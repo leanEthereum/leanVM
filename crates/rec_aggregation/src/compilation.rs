@@ -483,7 +483,7 @@ fn all_air_evals_in_zk_dsl() -> String {
 const AIR_INNER_VALUES_VAR: &str = "inner_evals";
 
 struct AirCodegenCtx {
-    expr_cache: HashMap<u32, String>,
+    expr_cache: HashMap<SymbolicNodeRef<F>, String>,
     consts_cache: HashMap<Vec<u32>, String>,
     ef_const_cache: HashMap<u32, String>,
     ctr: Counter,
@@ -594,14 +594,14 @@ fn eval_air_constraint(
     let v = match expr {
         SymbolicExpression::Constant(c) => ctx.write_embedded_constant(c.as_canonical_u32(), res),
         SymbolicExpression::Variable(v) => format!("{} + DIM * {}", AIR_INNER_VALUES_VAR, v.index),
-        SymbolicExpression::Operation(idx) => {
-            if let Some(v) = ctx.expr_cache.get(&idx) {
+        SymbolicExpression::Operation(handle) => {
+            if let Some(v) = ctx.expr_cache.get(&handle) {
                 v.clone()
-            } else if let Some(v) = try_emit_dot_product_be(idx, dest, ctx, res) {
-                ctx.expr_cache.insert(idx, v.clone());
+            } else if let Some(v) = try_emit_dot_product_be(handle, dest, ctx, res) {
+                ctx.expr_cache.insert(handle, v.clone());
                 return v;
             } else {
-                let node = get_node::<F>(idx);
+                let node = get_node::<F>(handle);
                 let v = match node.op {
                     SymbolicOperation::Neg => {
                         let a = eval_air_constraint(node.lhs, None, ctx, res);
@@ -611,7 +611,7 @@ fn eval_air_constraint(
                     }
                     _ => eval_air_binary_op(node.op, node.lhs, node.rhs, dest, ctx, res),
                 };
-                ctx.expr_cache.insert(idx, v.clone());
+                ctx.expr_cache.insert(handle, v.clone());
                 v
             }
         }
@@ -626,16 +626,21 @@ fn eval_air_constraint(
 
 /// Detect `0 + c0*x0 + c1*x1 + ... + cn*xn` in the expression tree and emit
 /// a single `dot_product_be` precompile call. Returns None if the pattern doesn't match.
-fn try_emit_dot_product_be(idx: u32, dest: Option<&str>, ctx: &mut AirCodegenCtx, res: &mut String) -> Option<String> {
+fn try_emit_dot_product_be(
+    handle: SymbolicNodeRef<F>,
+    dest: Option<&str>,
+    ctx: &mut AirCodegenCtx,
+    res: &mut String,
+) -> Option<String> {
     // Walk the left-spine of Add(_, Mul(Const, _)) nodes down to Constant(ZERO).
     let mut constants = Vec::new();
     let mut operands = Vec::new();
-    let mut current = SymbolicExpression::<F>::Operation(idx);
+    let mut current = SymbolicExpression::<F>::Operation(handle);
     loop {
         match current {
             SymbolicExpression::Constant(c) if c == F::ZERO && constants.len() >= 2 => break,
             SymbolicExpression::Operation(op_idx) => {
-                if op_idx != idx && ctx.expr_cache.contains_key(&op_idx) {
+                if op_idx != handle && ctx.expr_cache.contains_key(&op_idx) {
                     return None;
                 }
                 let node = get_node::<F>(op_idx);
@@ -699,12 +704,12 @@ fn try_emit_dot_product_be(idx: u32, dest: Option<&str>, ctx: &mut AirCodegenCtx
 fn try_find_contiguous_buffer(operands: &[SymbolicExpression<F>], ctx: &AirCodegenCtx) -> Option<String> {
     let mut base: Option<&str> = None;
     for (i, op) in operands.iter().enumerate() {
-        let idx = match op {
-            SymbolicExpression::Operation(idx) => *idx,
+        let handle = match op {
+            SymbolicExpression::Operation(handle) => *handle,
             _ => return None,
         };
         let suffix = format!(" + DIM * {}", i);
-        let this_base = ctx.expr_cache.get(&idx)?.strip_suffix(&suffix)?;
+        let this_base = ctx.expr_cache.get(&handle)?.strip_suffix(&suffix)?;
         match base {
             None => base = Some(this_base),
             Some(b) if b == this_base => {}
