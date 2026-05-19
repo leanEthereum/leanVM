@@ -169,6 +169,8 @@ $h^{max}_\text{execution}$ & 24 & log2 of the maximum of rows in the \texttt{exe
 $h^{max}_\text{poseidon}$ & 21 & log2 of the maximum of rows in the \texttt{poseidon} table \\
 $h^{max}_\text{extension}$ & 21 & log2 of the maximum of rows in the \texttt{extension} table \\
 $\textsf{bus\_width}$ & 16 & number of field elements in the bus (see Section~\ref{sec:Bus: interractions between table via logup-GKR}) \\
+$\textsf{memory\_sep}$ & 1 & domain separator of memory interactions \\
+$\textsf{bytecode\_sep}$ & 2 & domain separator of bytecode interactions \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -591,7 +593,22 @@ The stacked polynomial $\hat{S}$, which we commit, has $5 = \lceil \log_2(2^4 + 
 \subsection{Tables}\label{sec:table-sizes}
 
 The execution trace is split across three \textit{tables}: \textsc{execution}, \textsc{extension}, and \textsc{poseidon}. Each table $T$ is a matrix of base-field elements, with a variable power-of-two height $2^{h_T}$, and a fixed number of columns $n_\text{column}^T = n_\text{shift}^T + n_\text{flat}^T$. Each column $\hat{\textsf{col}}^T_i$ ($i \in [0, n_\text{column}^T)$) is interpreted as a multilinear polynomial in ${h_T}$ variables.
-\subsubsection{AIR constraints}
+
+We restrict their maximal heights, to ensure logup multiplicites never overflow modulo $p$:
+
+\begin{center}
+\begin{tabular}{lc}
+\toprule
+Table & Max rows \\
+\midrule
+\textsc{EXECUTION} & $2^{25}$ \\
+\textsc{EXTENSION} & $2^{21}$ \\
+\textsc{POSEIDON} & $2^{21}$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{AIR constraints}
 
 Every table $T$ has a list of $n^\text{constraints}_T$ AIR (Algebraic Intermediate Representation) constraints. Each AIR constraint $C_k^T$ ($k \in [0, n_\text{constraints}^T)$) is a multivariate polynomial in $n_\text{column}^T + n_\text{shift}^T$ variables. $C_k^T$ is respected by the table's trace if:
 $$
@@ -603,44 +620,42 @@ $$
 
 In order for the tables (Section~\ref{sec:table-sizes}) to exchange data, we use a \emph{bus}: a global channel in which tables may \textsc{Push} or \textsc{Pull} tuples of $\textsf{bus\_width} = 16$ field elements $\Fq$. We enforce the following property: \textit{every tuple is pulled exactly as many times as it is pushed}.
 
+\subsubsection{Different types of interaction}
 
-\begin{itemize}
-    \item \textbf{AIR transition constraints.} A list of transition constraints (\ref{sec:air-eval}): polynomials in the current and the next row, each required to vanish on every pair of consecutive rows. Their degree is bounded by a fixed value, characteristic of the table.
+Every interaction is a tuple of $\textsf{bus\_width} = 16$ field elements with a fixed shape:
+$$\sigma = \big(\,\underbrace{d_0,\ \dots,\ d_{N-1}}_{\text{data}},\quad \underbrace{0,\ \dots,\ 0}_{\text{padding}},\quad \textsf{domain\_sep}\,\big),$$
 
-    \item \textbf{Bus interaction.} A \textit{direction} (\textsc{push} or \textsc{pull}), a boolean \textit{selector} column (possibly virtual), and a \textit{data tuple} of at most $4$ entries, each entry being a column or a constant. On every row where the selector equals $1$, the data tuple is pushed onto (\textsc{push}) or pulled from (\textsc{pull}) the precompile bus; on the other rows the table does not touch the bus. The bus enforces that pushes and pulls match (\ref{buses}).
+associated to a \emph{multiplicity}: a value $m \in \Fp$ counting the number of times that tuple is pushed (or pulled). The bus should be balanced: for every $\sigma$, the sums of all its \emph{push} multiplicities must equal the sum of all its \emph{pull} multiplicities.
 
-    \item \textbf{Memory lookups.} A (possibly empty) list of lookups into the read-only memory, each consisting of an \textit{index} column and a group of \textit{value} columns, asserting that the value columns hold the memory contents at consecutive addresses starting from the index (\ref{sec:memory-lookup}).
-\end{itemize}
+The $N \le 15$ \emph{data} entries fill the low slots, the last slot always holds the \emph{domain separator} $\textsf{domain\_sep}$, and the slots in between are zero.
 
-The three tables, together with their maximal heights:
+
+
+There are 4 different types of interactions:
+
+\textbf{Memory:} Each memory fetch corresponds to a data pair $(\textsf{value}, \textsf{address})$, tagged with the domain separator $\textsf{memory\_sep} = 1$.
+
+\textbf{Bytecode:} Each instruction fetch is the data tuple $(\textsf{instr}_0, \dots, \textsf{instr}_{11}, \textsf{pc})$, tagged with the domain separator $\textsf{bytecode\_sep} = 2$.
+
+\textbf{Poseidon:} Each \textsc{POSEIDON} precompile call corresponds to a data tuple $(\nu_A, \nu_B, \nu_C)$ of its three memory pointers, tagged with a non-constant domain separator, that encodes some additional infomration (compression / permutation etc.), but which is an odd value $\ge 3$.
+
+\textbf{Extension} Each \textsc{EXTENSION} precompile call corresponds to a data tuple $(\nu_A, \nu_B, \nu_C)$ of its three memory pointers, tagged with a non-constant domain separator, that encodes some additional infomration (dot\_product / add / eq etc.), but which is a a multiple of $4$.
 
 \begin{center}
-\begin{tabular}{lc}
+\begin{tabular}{lll}
 \toprule
-Table & Max rows \\
+Kind & data entries & $\textsf{domain\_sep}$ \\
 \midrule
-Execution & $2^{25}$ \\
-Extension op & $2^{21}$ \\
-Poseidon & $2^{21}$ \\
+Memory                   & $(\textsf{value},\ \textsf{address})$  & $\textsf{memory\_sep} = 1$ \\
+Bytecode                 & $(\textsf{instr}_0,\ \dots,\ \textsf{instr}_{11},\ \textsf{pc})$ & $\textsf{bytecode\_sep} = 2$ \\
+Poseidon     & $(\nu_A,\ \nu_B,\ \nu_C)$ & odd, $\ge 3$ \\
+Extension & $(\nu_A,\ \nu_B,\ \nu_C)$ & multiple of $4$ \\
 \bottomrule
 \end{tabular}
 \end{center}
 
-Heights are powers of two: each table is padded to the next power of two, with a minimum of $2^{8}$ rows. These bounds are critical for soundness: they ensure that logup multiplicities cannot overflow modulo $p$.
 
-\subsection{Arithmetic Intermediate Representation (AIR)}\label{sec:air-eval}
-
-If a table has $n$ columns, a transition constraint is a multivariate polynomial $C(x_1, \dots, x_n, y_1, \dots, y_n)$ in $2n$ variables, where $(x_1, \dots, x_n)$ represents the current row and $(y_1, \dots, y_n)$ represents the next row. Each table defines a set of such constraints, all of which must evaluate to zero on every pair of consecutive rows. For a table with $H$ rows (indexed $0, \dots, H-1$), the constraints are evaluated on $(H-1) + 1 = H$ pairs:
-\begin{itemize}
-    \item $H - 1$ consecutive pairs: $(\text{row}_i, \text{row}_{i+1})$ for $i = 0, \dots, H-2$
-    \item 1 \textbf{wrapping pair}: $(\text{row}_{H-1}, \text{row}_{H-1})$ --- the last row is paired with itself
-\end{itemize}
-
-The wrapping pair means that on the last row, $\text{next}(x) = x$ for every column $x$.
-
-\vspace{3mm}
-
-TODO: describe how to prove AIR via sumcheck.
+A table $T$ may \textsc{Push} or \textsc{Pull} various tuples to the common bus.
 
 \subsection{Execution table}
 
