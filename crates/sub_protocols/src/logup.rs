@@ -343,11 +343,7 @@ pub fn verify_generic_logup(
 ) -> ProofResult<GenericLogupStatements> {
     let tables_heights_sorted = sort_tables_by_height(table_log_n_rows);
     let log_bytecode = log2_strict_usize(bytecode_multilinear.len() / N_INSTRUCTION_COLUMNS.next_power_of_two());
-    let total_gkr_n_vars = log2_ceil_usize(compute_total_active_len(
-        log_memory,
-        log_bytecode,
-        &tables_heights_sorted,
-    ));
+    let total_gkr_n_vars = compute_total_logup_log_size(log_memory, log_bytecode, &tables_heights_sorted);
 
     let (sum, point_gkr, numerators_value, denominators_value) = verify_gkr_quotient(verifier_state, total_gkr_n_vars)?;
 
@@ -506,6 +502,17 @@ fn offset_for_table(table: &Table, log_n_rows: usize) -> usize {
     num_cols << log_n_rows
 }
 
+pub fn compute_total_logup_log_size(
+    log_memory: usize,
+    log_bytecode: usize,
+    tables_heights_sorted: &[(Table, VarCount)],
+) -> VarCount {
+    log2_ceil_usize(compute_total_active_len(
+        log_memory,
+        log_bytecode,
+        tables_heights_sorted,
+    ))
+}
 fn compute_total_active_len(
     log_memory: usize,
     log_bytecode: usize,

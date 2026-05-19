@@ -16,6 +16,12 @@ pub fn verify_execution(
     public_input: &[F],
     proof: Proof<F>,
 ) -> Result<(ProofVerificationDetails, RawProof<F>), ProofError> {
+    if bytecode.log_size() > MAX_BYTECODE_LOG_SIZE {
+        return Err(ProofError::TooBigBytecode {
+            current_log_size: bytecode.log_size(),
+            max_log_size: MAX_BYTECODE_LOG_SIZE,
+        });
+    }
     let mut verifier_state = VerifierState::<EF, _>::new(proof, get_poseidon16().clone())?;
     verifier_state.observe_scalars(public_input);
     verifier_state.observe_scalars(&poseidon16_compress_pair(&bytecode.hash, &SNARK_DOMAIN_SEP));

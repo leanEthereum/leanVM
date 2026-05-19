@@ -29,6 +29,10 @@ pub enum ProofError {
     InvalidPadding,
     InvalidRate,
     TooBigTable(TooBigTableError),
+    TooBigBytecode {
+        current_log_size: usize,
+        max_log_size: usize,
+    },
 }
 
 impl From<TooBigTableError> for ProofError {
@@ -71,6 +75,13 @@ impl Display for ProofError {
                 "LeanVM supports rate 1/2, 1/4, 1/8 and 1/16 (log_inv_rate in {{1, 2, 3, 4}})"
             ),
             Self::TooBigTable(e) => write!(f, "{}", e),
+            Self::TooBigBytecode {
+                current_log_size,
+                max_log_size,
+            } => write!(
+                f,
+                "Bytecode too big: current=2^{current_log_size}, max=2^{max_log_size}"
+            ),
         }
     }
 }
