@@ -82,16 +82,7 @@ class EF:
     def __mul__(self, o):
         if isinstance(o, Fp):
             return EF([a * o for a in self.c])
-        a, b = self.c, o.c
-        prod = [Fp(0)] * 9
-        for i in range(5):
-            for j in range(5):
-                prod[i + j] = prod[i + j] + a[i] * b[j]
-        for k in range(8, 4, -1):  # X^k = X^(k-5)·(1 − X²) for k ≥ 5.
-            coef = prod[k]
-            prod[k - 5] = prod[k - 5] + coef
-            prod[k - 3] = prod[k - 3] - coef
-        return EF(prod[:5])
+        return EF(_quintic_mul(self.c, o.c, Fp(0)))
 
     __rmul__ = __mul__
 
@@ -134,6 +125,19 @@ def ef_prod(factors) -> EF:
     for f in factors:
         acc = acc * f
     return acc
+
+
+def _quintic_mul(a, b, zero):
+    """Schoolbook product in `Fp[X]/(X⁵+X²−1)`. `a`, `b` and the result are length-5
+    coefficient lists over any ring sharing the additive identity `zero`."""
+    prod = [zero] * 9
+    for i in range(5):
+        for j in range(5):
+            prod[i + j] = prod[i + j] + a[i] * b[j]
+    for k in range(8, 4, -1):  # X^k = X^(k−5)·(1 − X²) for k ≥ 5.
+        prod[k - 5] = prod[k - 5] + prod[k]
+        prod[k - 3] = prod[k - 3] - prod[k]
+    return prod[:5]
 
 
 _POSEIDON16 = Poseidon1(PARAMS_16)
@@ -503,13 +507,15 @@ def verify_sumcheck(
 
 
 def combine_constraints(state: VerifierState, target: EF, constraints: list[SparseStatement]) -> tuple[EF, list[EF]]:
+    """Fold all constraint values into `target` via powers of γ; return those γ-power weights."""
     gamma: EF = state.sample()
-    combo = [ONE]
+    combo: list[EF] = []
+    g = ONE
     for smt in constraints:
-        for v in smt.values:
-            target = target + combo[-1] * v[1]
-            combo.append(combo[-1] * gamma)
-    combo.pop()
+        for _, value in smt.values:
+            target = target + g * value
+            combo.append(g)
+            g = g * gamma
     return target, combo
 
 
@@ -755,7 +761,8 @@ def to_big_endian_in_field(value: int, bit_count: int) -> list[EF]:
 
 
 def from_end(seq: Sequence, n: int) -> list:
-    return list(seq[len(seq) - n :]) if n else []
+    """The last `n` elements of `seq` (empty list when `n == 0`)."""
+    return list(seq[-n:]) if n else []
 
 
 def mle_of_01234567_etc(point: Sequence[EF]) -> EF:
@@ -982,11 +989,7 @@ def air_constraint_eval(
     extra_data: dict,
 ) -> EF:
     folder = ConstraintFolder(col_evals[: table.n_columns], col_evals[table.n_columns :], alpha_powers)
-    {
-        "execution": _eval_air_execution,
-        "extension_op": _eval_air_extension_op,
-        "poseidon16_compress": _eval_air_poseidon16,
-    }[table.name](folder, table, extra_data)
+    _TABLE_SPECS[table.name]["air"](folder, table, extra_data)
     return folder.accumulator
 
 
@@ -999,9 +1002,9 @@ def _eval_air_execution(folder: ConstraintFolder, table: TableMeta, extra_data: 
     pc_shift, fp_shift = folder.shift[0], folder.shift[1]
 
     # nu_x = flag·operand + (1 − flag − flag_ab_fp)·value + flag_ab_fp·(fp + operand)
-    nfa = -(flag_a + flag_ab_fp - ONE)
-    nfb = -(flag_b + flag_ab_fp - ONE)
-    nfc = -(flag_c + flag_c_fp - ONE)
+    nfa = ONE - flag_a - flag_ab_fp
+    nfb = ONE - flag_b - flag_ab_fp
+    nfc = ONE - flag_c - flag_c_fp
     nu_a = flag_a * operand_a + nfa * value_a + flag_ab_fp * (fp + operand_a)
     nu_b = flag_b * operand_b + nfb * value_b + flag_ab_fp * (fp + operand_b)
     nu_c = flag_c * operand_c + nfc * value_c + flag_c_fp * (fp + operand_c)
@@ -1009,7 +1012,7 @@ def _eval_air_execution(folder: ConstraintFolder, table: TableMeta, extra_data: 
     # aux ∈ {0,1,2}: 0=nothing, 1=add, 2=deref.
     add = aux * fb(2) - aux * aux
     deref = aux * (aux - ONE) * EF.from_base(_INV_TWO)
-    is_precompile = -(add + mul + deref + jump - ONE)
+    is_precompile = ONE - add - mul - deref - jump
 
     az = folder.assert_zero
     az(_eval_virtual_bus_column(extra_data, is_precompile, discriminator, [nu_a, nu_b, nu_c]))
@@ -1024,7 +1027,7 @@ def _eval_air_execution(folder: ConstraintFolder, table: TableMeta, extra_data: 
     az(jc * (nu_a - ONE))
     az(jc * (pc_shift - nu_b))
     az(jc * (fp_shift - nu_c))
-    not_jc = -(jc - ONE)
+    not_jc = ONE - jc
     az(not_jc * (pc_shift - (pc + ONE)))
     az(not_jc * (fp_shift - fp))
 
@@ -1038,21 +1041,9 @@ _EXT_OP_LEN_MULTIPLIER = 64
 
 
 def _quintic_mul_ef(a: Sequence[EF], b: Sequence[EF]) -> list[EF]:
-    """Port of `quintic_mul` (multiplication of two EF⁵ as quintic-extension elements)."""
+    """Multiply two quintic-extension elements whose coefficients are themselves `EF`."""
     assert len(a) == 5 and len(b) == 5
-    b0m3, b1m4, b4m2 = b[0] - b[3], b[1] - b[4], b[4] - b[2]
-    rows = [
-        [b[0], b[4], b[3], b[2], b1m4],
-        [b[1], b[0], b[4], b[3], b[2]],
-        [b[2], b1m4, b0m3, b4m2, b[3] - b1m4],
-        [b[3], b[2], b1m4, b0m3, b4m2],
-        [b[4], b[3], b[2], b1m4, b0m3],
-    ]
-
-    def dot(row: list[EF]) -> EF:
-        return ef_sum(a[i] * row[i] for i in range(5))
-
-    return [dot(row) for row in rows]
+    return _quintic_mul(a, b, ZERO)
 
 
 def _eval_air_extension_op(folder: ConstraintFolder, table: TableMeta, extra_data: dict) -> None:
@@ -1080,7 +1071,7 @@ def _eval_air_extension_op(folder: ConstraintFolder, table: TableMeta, extra_dat
     for x in (is_be, start, flag_add, flag_mul, flag_poly_eq):
         folder.assert_bool(x)
 
-    is_ee, not_start_sh = -(is_be - ONE), -(start_sh - ONE)
+    is_ee, not_start_sh = ONE - is_be, ONE - start_sh
     va_x = [va[0]] + [va[k] * is_ee for k in range(1, 5)]
     comp_tail = [comp_sh[k] * not_start_sh for k in range(5)]
     va_vb = _quintic_mul_ef(va_x, vb)
@@ -1260,9 +1251,9 @@ def _eval_air_poseidon16(folder: ConstraintFolder, table: TableMeta, extra_data:
 
 
 _TABLE_SPECS: dict[str, dict] = {
-    "execution": {"degree": 5, "n_constraints": 13, "n_shift": 2},
-    "extension_op": {"degree": 4, "n_constraints": 33, "n_shift": 13},
-    "poseidon16_compress": {"degree": 10, "n_constraints": 99, "n_shift": 0},
+    "execution": {"degree": 5, "n_constraints": 13, "n_shift": 2, "air": _eval_air_execution},
+    "extension_op": {"degree": 4, "n_constraints": 33, "n_shift": 13, "air": _eval_air_extension_op},
+    "poseidon16_compress": {"degree": 10, "n_constraints": 99, "n_shift": 0, "air": _eval_air_poseidon16},
 }
 
 
