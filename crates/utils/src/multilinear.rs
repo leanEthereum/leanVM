@@ -73,23 +73,19 @@ pub fn mle_of_01234567_etc<F: Field>(point: &[F]) -> F {
     }
 }
 
-pub fn finger_print<F: Field, IF: ExtensionField<PF<EF>>, EF: ExtensionField<IF> + ExtensionField<F>>(
-    table: F,
-    data: &[IF],
-    alphas_eq_poly: &[EF],
-) -> EF {
+pub fn finger_print<DS: Field, EF: ExtensionField<DS>>(discriminator: DS, data: &[EF], alphas_eq_poly: &[EF]) -> EF {
     assert!(alphas_eq_poly.len() > data.len());
     dot_product::<EF, _, _>(alphas_eq_poly.iter().copied(), data.iter().copied())
-        + *alphas_eq_poly.last().unwrap() * table
+        + *alphas_eq_poly.last().unwrap() * discriminator
 }
 
 #[inline(always)]
 pub fn finger_print_packed<EF: ExtensionField<PF<EF>>>(
-    table_contrib: EFPacking<EF>,
+    discriminator_contrib: EFPacking<EF>,
     data: &[PFPacking<EF>],
     alphas_packed: &[EFPacking<EF>],
 ) -> EFPacking<EF> {
-    let mut result = table_contrib;
+    let mut result = discriminator_contrib;
     for (alpha, d) in alphas_packed.iter().zip(data) {
         result += *alpha * *d;
     }

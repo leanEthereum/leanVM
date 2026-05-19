@@ -27,8 +27,8 @@ pub(super) const COL_VB: usize = 19;
 pub(super) const COL_VRES: usize = 24;
 
 // Virtual columns (not explicitely in AIR)
-pub(super) const COL_ACTIVATION_FLAG: usize = 29;
-pub(super) const COL_AUX_EXTENSION_OP: usize = 30;
+pub(super) const COL_MULTIPLICITY_EXTENSION_OP: usize = 29;
+pub(super) const COL_DISCRIMINATOR_EXTENSION_OP: usize = 30;
 
 use backend::quintic_extension::extension::quintic_mul;
 
@@ -86,7 +86,7 @@ impl<const BUS: bool> Air for ExtensionOpPrecompile<BUS> {
         let comp_shift: [AB::IF; 5] = std::array::from_fn(|k| shift[COL_COMP + k]);
 
         let active = flag_add + flag_mul + flag_poly_eq;
-        let activation_flag = start * active;
+        let multiplicity = start * active;
 
         let aux = is_be * AB::F::from_usize(EXT_OP_FLAG_IS_BE)
             + flag_add * AB::F::from_usize(EXT_OP_FLAG_ADD)
@@ -99,12 +99,14 @@ impl<const BUS: bool> Air for ExtensionOpPrecompile<BUS> {
         if BUS {
             builder.assert_zero_ef(eval_virtual_bus_column::<AB, EF>(
                 extra_data,
-                activation_flag,
-                &[aux, idx_a, idx_b, idx_r],
+                multiplicity,
+                aux,
+                &[idx_a, idx_b, idx_r],
             ));
         } else {
-            builder.declare_values(&[activation_flag]);
-            builder.declare_values(&[aux, idx_a, idx_b, idx_r]);
+            builder.declare_values(&[multiplicity]);
+            builder.declare_values(std::slice::from_ref(&aux));
+            builder.declare_values(&[idx_a, idx_b, idx_r]);
         }
 
         let is_ee = -(is_be - AB::F::ONE);

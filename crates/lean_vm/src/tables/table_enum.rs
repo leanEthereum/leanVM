@@ -5,7 +5,7 @@ use crate::*;
 
 pub const N_TABLES: usize = 3;
 pub const ALL_TABLES: [Table; N_TABLES] = [Table::execution(), Table::extension_op(), Table::poseidon16()];
-pub const MAX_PRECOMPILE_BUS_WIDTH: usize = 4;
+pub const MAX_PRECOMPILE_BUS_WIDTH: usize = 3;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(usize)]
@@ -106,7 +106,7 @@ impl Air for Table {
     }
 }
 
-pub fn max_bus_width_including_domainsep() -> usize {
+pub fn max_bus_width_including_bytecode() -> usize {
     1 + MAX_PRECOMPILE_BUS_WIDTH.max(N_INSTRUCTION_COLUMNS) // "+1" for domain separation in logup between memory / bytecode / precompiles interactions
 }
 

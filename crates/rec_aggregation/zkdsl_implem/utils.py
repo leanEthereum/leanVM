@@ -131,6 +131,20 @@ def poly_eq_base_extension(a, b, n):
     return res
 
 
+def poly_eq_base_extension_or_one(a, b, n):
+    # Like poly_eq_base_extension, but returns the identity (the extension element 1)
+    # when n == 0, i.e. the empty product, instead of failing the match_range dispatch.
+    debug_assert(n < 33)
+    res = match_range(
+        n,
+        range(0, 1),
+        lambda _: ONE_EF_PTR,
+        range(1, 33),
+        lambda i: poly_eq_base_extension(a, b, i),
+    )
+    return res
+
+
 @inline
 def expand_from_univariate_base(alpha, n):
     debug_assert(n < 33)

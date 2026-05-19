@@ -76,9 +76,9 @@ fn dump_whir_configs() {
     }
 
     let json = serde_json::to_string_pretty(&configs).unwrap();
-    let path = std::env::var("WHIR_DUMP_PATH").map(PathBuf::from).unwrap_or_else(|_| {
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("whir_configs.json")
-    });
+    let path = std::env::var("WHIR_DUMP_PATH")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("whir_configs.json"));
     fs::write(&path, json).unwrap_or_else(|e| panic!("failed to write {}: {e}", path.display()));
     println!("wrote {} WhirConfig entries to {}", configs.len(), path.display());
 }

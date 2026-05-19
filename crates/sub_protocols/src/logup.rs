@@ -54,9 +54,9 @@ pub fn prove_generic_logup(
     let c_packed = EFPacking::<EF>::from(c);
     let alphas_packed: Vec<EFPacking<EF>> = alphas_eq_poly.iter().map(|a| EFPacking::<EF>::from(*a)).collect();
     let alpha_last = *alphas_eq_poly.last().unwrap();
-    let memory_contrib = EFPacking::<EF>::from(alpha_last * F::from_usize(LOGUP_MEMORY_DOMAINSEP));
-    let bytecode_contrib = EFPacking::<EF>::from(alpha_last * F::from_usize(LOGUP_BYTECODE_DOMAINSEP));
-    let precompile_contrib = EFPacking::<EF>::from(alpha_last * F::from_usize(LOGUP_PRECOMPILE_DOMAINSEP));
+    let memory_contrib = EFPacking::<EF>::from(alpha_last * F::from_usize(LOGUP_MEMORY_DISCRIMINATOR));
+    let bytecode_contrib = EFPacking::<EF>::from(alpha_last * F::from_usize(LOGUP_BYTECODE_DISCRIMINATOR));
+    let alpha_last_packed = EFPacking::<EF>::from(alpha_last);
 
     let min_section_log = log_bytecode.min(tables_log_heights_sorted.last().unwrap().1);
     if min_section_log < ENDIANNESS_PIVOT_GKR {
@@ -152,9 +152,9 @@ pub fn prove_generic_logup(
 
         // I] Bus
         let bus = table.bus();
-        let selector = &trace.columns[bus.selector];
+        let multiplicity = &trace.columns[bus.multiplicity];
         let pull = matches!(bus.direction, BusDirection::Pull);
-        fill_num_from(&mut numerators[offset..][..1 << log_n_rows], selector, pull);
+        fill_num_from(&mut numerators[offset..][..1 << log_n_rows], multiplicity, pull);
         let bus_data_entries = &bus.data;
         fill_denoms(&mut denominators[offset / width..][..(1 << log_n_rows) / width], |p| {
             let mut bus_data = [PFPacking::<EF>::ZERO; MAX_PRECOMPILE_BUS_WIDTH];
@@ -164,8 +164,16 @@ pub fn prove_generic_logup(
                     BusData::Constant(val) => PFPacking::<EF>::from(F::from_usize(*val)),
                 };
             }
+            let discriminator = match bus.discriminator {
+                BusData::Column(col) => PFPacking::<EF>::from_fn(|w| trace.columns[col][src_idx(p, w)]),
+                BusData::Constant(val) => PFPacking::<EF>::from(F::from_usize(val)),
+            };
             c_packed
-                + finger_print_packed::<EF>(precompile_contrib, &bus_data[..bus_data_entries.len()], &alphas_packed)
+                + finger_print_packed::<EF>(
+                    alpha_last_packed * discriminator,
+                    &bus_data[..bus_data_entries.len()],
+                    &alphas_packed,
+                )
         });
         offset += 1 << log_n_rows;
 
@@ -268,8 +276,9 @@ pub fn prove_generic_logup(
         }
 
         let bus = table.bus();
-        let eval_on_selector = trace.columns[bus.selector].evaluate(&inner_point) * bus.direction.to_field_flag();
-        prover_state.add_extension_scalar(eval_on_selector);
+        let eval_on_multiplicity =
+            trace.columns[bus.multiplicity].evaluate(&inner_point) * bus.direction.to_field_flag();
+        prover_state.add_extension_scalar(eval_on_multiplicity);
 
         let bus_data_evals: Vec<EF> = bus
             .data
@@ -279,14 +288,14 @@ pub fn prove_generic_logup(
                 BusData::Constant(val) => EF::from(F::from_usize(*val)),
             })
             .collect();
-        let eval_on_data = c + finger_print::<F, EF, EF>(
-            F::from_usize(LOGUP_PRECOMPILE_DOMAINSEP),
-            &bus_data_evals,
-            alphas_eq_poly,
-        );
+        let bus_discriminator_eval: EF = match bus.discriminator {
+            BusData::Column(col) => trace.columns[col].evaluate(&inner_point),
+            BusData::Constant(val) => EF::from(F::from_usize(val)),
+        };
+        let eval_on_data = c + finger_print(bus_discriminator_eval, &bus_data_evals, alphas_eq_poly);
         prover_state.add_extension_scalar(eval_on_data);
 
-        bus_numerators_values.insert(*table, eval_on_selector);
+        bus_numerators_values.insert(*table, eval_on_multiplicity);
         bus_denominators_values.insert(*table, eval_on_data);
 
         // II] Lookup into memory
@@ -334,11 +343,7 @@ pub fn verify_generic_logup(
 ) -> ProofResult<GenericLogupStatements> {
     let tables_heights_sorted = sort_tables_by_height(table_log_n_rows);
     let log_bytecode = log2_strict_usize(bytecode_multilinear.len() / N_INSTRUCTION_COLUMNS.next_power_of_two());
-    let total_gkr_n_vars = log2_ceil_usize(compute_total_active_len(
-        log_memory,
-        log_bytecode,
-        &tables_heights_sorted,
-    ));
+    let total_gkr_n_vars = compute_total_logup_log_size(log_memory, log_bytecode, &tables_heights_sorted);
 
     let (sum, point_gkr, numerators_value, denominators_value) = verify_gkr_quotient(verifier_state, total_gkr_n_vars)?;
 
@@ -365,7 +370,7 @@ pub fn verify_generic_logup(
     let value_index = mle_of_01234567_etc(&memory_and_acc_point);
     retrieved_denominators_value += pref
         * (c - finger_print(
-            F::from_usize(LOGUP_MEMORY_DOMAINSEP),
+            F::from_usize(LOGUP_MEMORY_DISCRIMINATOR),
             &[value_memory, value_index],
             alphas_eq_poly,
         ));
@@ -394,7 +399,7 @@ pub fn verify_generic_logup(
     retrieved_denominators_value += pref
         * (c - (bytecode_value_corrected
             + bytecode_index_value * alphas_eq_poly[N_INSTRUCTION_COLUMNS]
-            + *alphas_eq_poly.last().unwrap() * F::from_usize(LOGUP_BYTECODE_DOMAINSEP)));
+            + *alphas_eq_poly.last().unwrap() * F::from_usize(LOGUP_BYTECODE_DISCRIMINATOR)));
     // Padding for bytecode
     retrieved_denominators_value +=
         pref_padded * mle_of_zeros_then_ones(1 << log_bytecode, from_end(&point_gkr, log_bytecode_padded));
@@ -421,7 +426,7 @@ pub fn verify_generic_logup(
             retrieved_numerators_value += pref; // numerator is 1
             retrieved_denominators_value += pref
                 * (c - finger_print(
-                    F::from_usize(LOGUP_BYTECODE_DOMAINSEP),
+                    F::from_usize(LOGUP_BYTECODE_DISCRIMINATOR),
                     &[instr_evals, vec![eval_on_pc]].concat(),
                     alphas_eq_poly,
                 ));
@@ -430,14 +435,14 @@ pub fn verify_generic_logup(
         }
 
         // I] Bus (data flow between tables)
-        let eval_on_selector = verifier_state.next_extension_scalar()?;
+        let eval_on_multiplicity = verifier_state.next_extension_scalar()?;
         let pref = pref_at(offset, log_n_rows);
-        retrieved_numerators_value += pref * eval_on_selector;
+        retrieved_numerators_value += pref * eval_on_multiplicity;
 
         let eval_on_data = verifier_state.next_extension_scalar()?;
         retrieved_denominators_value += pref * eval_on_data;
 
-        bus_numerators_values.insert(table, eval_on_selector);
+        bus_numerators_values.insert(table, eval_on_multiplicity);
         bus_denominators_values.insert(table, eval_on_data);
 
         offset += 1 << log_n_rows;
@@ -457,7 +462,7 @@ pub fn verify_generic_logup(
                 retrieved_numerators_value += pref; // numerator is 1
                 retrieved_denominators_value += pref
                     * (c - finger_print(
-                        F::from_usize(LOGUP_MEMORY_DOMAINSEP),
+                        F::from_usize(LOGUP_MEMORY_DISCRIMINATOR),
                         &[value_eval, index_eval + F::from_usize(i)],
                         alphas_eq_poly,
                     ));
@@ -497,6 +502,17 @@ fn offset_for_table(table: &Table, log_n_rows: usize) -> usize {
     num_cols << log_n_rows
 }
 
+pub fn compute_total_logup_log_size(
+    log_memory: usize,
+    log_bytecode: usize,
+    tables_heights_sorted: &[(Table, VarCount)],
+) -> VarCount {
+    log2_ceil_usize(compute_total_active_len(
+        log_memory,
+        log_bytecode,
+        tables_heights_sorted,
+    ))
+}
 fn compute_total_active_len(
     log_memory: usize,
     log_bytecode: usize,

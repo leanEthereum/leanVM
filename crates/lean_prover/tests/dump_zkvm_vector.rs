@@ -51,7 +51,8 @@ enum BusDataJson {
 #[derive(Serialize)]
 struct BusJson {
     direction: &'static str,
-    selector: usize,
+    multiplicity: usize,
+    discriminator: BusDataJson,
     data: Vec<BusDataJson>,
 }
 
@@ -74,9 +75,8 @@ struct ConstantsJson {
     n_instruction_columns: usize,
     n_runtime_columns: usize,
     col_pc: usize,
-    logup_memory_domainsep: usize,
-    logup_precompile_domainsep: usize,
-    logup_bytecode_domainsep: usize,
+    logup_memory_discriminator: usize,
+    logup_bytecode_discriminator: usize,
     max_precompile_bus_width: usize,
     starting_pc: usize,
     ending_pc: usize,
@@ -146,20 +146,18 @@ fn dump_zkvm_vector() {
     let public_input = verified.input_data_hash;
     let raw_proof = verified.raw_proof;
 
+    let convert_bus_data = |d: BusData| match d {
+        BusData::Column(c) => BusDataJson::Column(c),
+        BusData::Constant(v) => BusDataJson::Constant(v),
+    };
     let convert_bus = |bus: Bus| BusJson {
         direction: match bus.direction {
             BusDirection::Pull => "Pull",
             BusDirection::Push => "Push",
         },
-        selector: bus.selector,
-        data: bus
-            .data
-            .into_iter()
-            .map(|d| match d {
-                BusData::Column(c) => BusDataJson::Column(c),
-                BusData::Constant(v) => BusDataJson::Constant(v),
-            })
-            .collect(),
+        multiplicity: bus.multiplicity,
+        discriminator: convert_bus_data(bus.discriminator),
+        data: bus.data.into_iter().map(convert_bus_data).collect(),
     };
 
     let table_infos: Vec<TableInfoJson> = ALL_TABLES
@@ -171,7 +169,10 @@ fn dump_zkvm_vector() {
             lookups: t
                 .lookups()
                 .into_iter()
-                .map(|l| LookupJson { index: l.index, values: l.values })
+                .map(|l| LookupJson {
+                    index: l.index,
+                    values: l.values,
+                })
                 .collect(),
         })
         .collect();
@@ -198,9 +199,8 @@ fn dump_zkvm_vector() {
             n_instruction_columns: N_INSTRUCTION_COLUMNS,
             n_runtime_columns: N_RUNTIME_COLUMNS,
             col_pc: COL_PC,
-            logup_memory_domainsep: LOGUP_MEMORY_DOMAINSEP,
-            logup_precompile_domainsep: LOGUP_PRECOMPILE_DOMAINSEP,
-            logup_bytecode_domainsep: LOGUP_BYTECODE_DOMAINSEP,
+            logup_memory_discriminator: LOGUP_MEMORY_DISCRIMINATOR,
+            logup_bytecode_discriminator: LOGUP_BYTECODE_DISCRIMINATOR,
             max_precompile_bus_width: MAX_PRECOMPILE_BUS_WIDTH,
             starting_pc: STARTING_PC,
             ending_pc: bytecode.ending_pc,

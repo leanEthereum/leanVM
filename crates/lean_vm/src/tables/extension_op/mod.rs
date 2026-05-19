@@ -6,7 +6,7 @@ use air::*;
 mod exec;
 pub use exec::fill_trace_extension_op;
 
-// `PRECOMPILE_DATA` encoding: see `tables/mod.rs`.
+// Discriminator encoding: see `tables/mod.rs`.
 pub(crate) const EXT_OP_FLAG_IS_BE: usize = 4;
 pub(crate) const EXT_OP_FLAG_ADD: usize = 8;
 pub(crate) const EXT_OP_FLAG_MUL: usize = 16;
@@ -104,29 +104,28 @@ impl<const BUS: bool> TableT for ExtensionOpPrecompile<BUS> {
         ]
     }
 
-    #[allow(clippy::vec_init_then_push)] // https://github.com/leanEthereum/leanMultisig/issues/198
     fn bus(&self) -> Bus {
-        let mut data = Vec::with_capacity(4);
-        data.push(BusData::Column(COL_AUX_EXTENSION_OP));
-        data.push(BusData::Column(COL_IDX_A));
-        data.push(BusData::Column(COL_IDX_B));
-        data.push(BusData::Column(COL_IDX_RES));
         Bus {
             direction: BusDirection::Pull,
-            selector: COL_ACTIVATION_FLAG,
-            data,
+            multiplicity: COL_MULTIPLICITY_EXTENSION_OP,
+            discriminator: BusData::Column(COL_DISCRIMINATOR_EXTENSION_OP),
+            data: vec![
+                BusData::Column(COL_IDX_A),
+                BusData::Column(COL_IDX_B),
+                BusData::Column(COL_IDX_RES),
+            ],
         }
     }
 
     fn n_columns_total(&self) -> usize {
-        self.n_columns() + 2 // +2 for COL_ACTIVATION_FLAG and COL_AUX_EXTENSION_OP (non-AIR, used in bus logup)
+        self.n_columns() + 2 // +2 for COL_MULTIPLICITY_EXTENSION_OP and COL_DISCRIMINATOR_EXTENSION_OP (non-AIR, used in bus logup)
     }
 
     fn padding_row(&self, zero_vec_ptr: usize, _null_hash_ptr: usize, _ending_pc: usize) -> Vec<F> {
         let mut row = vec![F::ZERO; self.n_columns_total()];
         row[COL_START] = F::ONE;
         row[COL_LEN] = F::ONE;
-        row[COL_AUX_EXTENSION_OP] = F::from_usize(EXT_OP_LEN_MULTIPLIER);
+        row[COL_DISCRIMINATOR_EXTENSION_OP] = F::from_usize(EXT_OP_LEN_MULTIPLIER);
         row[COL_IDX_A] = F::from_usize(zero_vec_ptr);
         row[COL_IDX_B] = F::from_usize(zero_vec_ptr);
         row[COL_IDX_RES] = F::from_usize(zero_vec_ptr);

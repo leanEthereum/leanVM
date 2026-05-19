@@ -9,10 +9,9 @@ use std::fs;
 use std::path::PathBuf;
 
 use backend::{
-    KoalaBear, POSEIDON1_HALF_FULL_ROUNDS, POSEIDON1_PARTIAL_ROUNDS, PrimeField32,
-    poseidon1_final_constants, poseidon1_initial_constants, poseidon1_sparse_first_round_constants,
-    poseidon1_sparse_first_row, poseidon1_sparse_m_i, poseidon1_sparse_scalar_round_constants,
-    poseidon1_sparse_v,
+    KoalaBear, POSEIDON1_HALF_FULL_ROUNDS, POSEIDON1_PARTIAL_ROUNDS, PrimeField32, poseidon1_final_constants,
+    poseidon1_initial_constants, poseidon1_sparse_first_round_constants, poseidon1_sparse_first_row,
+    poseidon1_sparse_m_i, poseidon1_sparse_scalar_round_constants, poseidon1_sparse_v,
 };
 use serde::Serialize;
 
@@ -75,7 +74,10 @@ fn dump_poseidon1_constants() {
         initial_constants: initial.iter().map(|row| row.iter().map(|&x| k(x)).collect()).collect(),
         final_constants: final_.iter().map(|row| row.iter().map(|&x| k(x)).collect()).collect(),
         sparse_m_i: m_i.iter().map(|row| row.iter().map(|&x| k(x)).collect()).collect(),
-        sparse_first_row: first_row.iter().map(|row| row.iter().map(|&x| k(x)).collect()).collect(),
+        sparse_first_row: first_row
+            .iter()
+            .map(|row| row.iter().map(|&x| k(x)).collect())
+            .collect(),
         sparse_v: sparse_v.iter().map(|row| row.iter().map(|&x| k(x)).collect()).collect(),
         sparse_first_round_constants: first_rc.iter().map(|&x| k(x)).collect(),
         sparse_scalar_round_constants: scalar_rc.iter().map(|&x| k(x)).collect(),

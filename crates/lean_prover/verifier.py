@@ -787,13 +787,13 @@ def mle_of_zeros_then_ones(n_zeros: int, point: Sequence[EF]) -> EF:
     return point[0] * mle_of_zeros_then_ones(n_zeros - half, tail)
 
 
-def finger_print(table: Fp, data: Sequence[EF], alphas_eq_poly: Sequence[EF]) -> EF:
-    """`Σᵢ αᵢ · dataᵢ + α_last · table`."""
+def finger_print(discriminator: Fp, data: Sequence[EF], alphas_eq_poly: Sequence[EF]) -> EF:
+    """`Σᵢ αᵢ · dataᵢ + α_last · discriminator`."""
     assert len(alphas_eq_poly) > len(data)
     acc = EF.zero()
     for a, d in zip(alphas_eq_poly, data):
         acc = acc + a * d
-    return acc + alphas_eq_poly[-1] * EF.from_base(table)
+    return acc + alphas_eq_poly[-1] * EF.from_base(discriminator)
 
 
 def sort_tables_by_height(table_log_heights: dict[str, int]) -> list[tuple[str, int]]:
@@ -824,8 +824,8 @@ def verify_generic_logup(
     n_instr_cols = constants["n_instruction_columns"]
     n_runtime_cols = constants["n_runtime_columns"]
     col_pc = constants["col_pc"]
-    dom_mem = Fp(constants["logup_memory_domainsep"])
-    dom_byte = Fp(constants["logup_bytecode_domainsep"])
+    disc_mem = Fp(constants["logup_memory_discriminator"])
+    disc_byte = Fp(constants["logup_bytecode_discriminator"])
 
     tables_sorted = sort_tables_by_height(table_log_heights)
     log_bytecode = log2_strict_usize(len(bytecode_multilinear) // (1 << log2_ceil_usize(n_instr_cols)))
@@ -857,7 +857,7 @@ def verify_generic_logup(
     pref = pref_at(0, log_memory)
     value_memory_acc = state.next_extension_scalar()
     value_memory = state.next_extension_scalar()
-    fp_mem = finger_print(dom_mem, [value_memory, mle_of_01234567_etc(mem_pt)], alphas_eq_poly)
+    fp_mem = finger_print(disc_mem, [value_memory, mle_of_01234567_etc(mem_pt)], alphas_eq_poly)
     num = num - pref * value_memory_acc
     den = den + pref * (c - fp_mem)
     offset = 1 << log_memory
@@ -875,7 +875,7 @@ def verify_generic_logup(
     fp_byte = (
         bytecode_value * correction
         + mle_of_01234567_etc(byte_pt) * alphas_eq_poly[n_instr_cols]
-        + alphas_eq_poly[-1] * EF.from_base(dom_byte)
+        + alphas_eq_poly[-1] * EF.from_base(disc_byte)
     )
     num = num - pref * value_bytecode_acc
     den = (
@@ -899,17 +899,17 @@ def verify_generic_logup(
             table_values[col_pc] = eval_on_pc
             table_values.update({n_runtime_cols + i: e for i, e in enumerate(instr_evals)})
             pref = pref_at(offset, log_n_rows)
-            fp = finger_print(dom_byte, list(instr_evals) + [eval_on_pc], alphas_eq_poly)
+            fp = finger_print(disc_byte, list(instr_evals) + [eval_on_pc], alphas_eq_poly)
             num = num + pref
             den = den + pref * (c - fp)
             offset += 1 << log_n_rows
 
-        eval_on_selector = state.next_extension_scalar()
+        eval_on_multiplicity = state.next_extension_scalar()
         eval_on_data = state.next_extension_scalar()
         pref = pref_at(offset, log_n_rows)
-        num = num + pref * eval_on_selector
+        num = num + pref * eval_on_multiplicity
         den = den + pref * eval_on_data
-        bus_num_vals[name] = eval_on_selector
+        bus_num_vals[name] = eval_on_multiplicity
         bus_den_vals[name] = eval_on_data
         offset += 1 << log_n_rows
 
@@ -923,7 +923,7 @@ def verify_generic_logup(
                 table_values[col_index] = value_eval
                 pref = pref_at(offset, log_n_rows)
                 fp = finger_print(
-                    dom_mem,
+                    disc_mem,
                     [value_eval, index_eval + EF.from_base(Fp(i))],
                     alphas_eq_poly,
                 )
@@ -974,16 +974,19 @@ class ConstraintFolder:
         self.assert_zero(x * (EF.one() - x))
 
 
-def _eval_virtual_bus_column(extra_data: dict, flag: EF, data: Sequence[EF]) -> EF:
-    """`(Σ αᵢ·dataᵢ + α_last·DOMAINSEP)·β + flag` (LOGUP_PRECOMPILE_DOMAINSEP = 1)."""
+def _eval_virtual_bus_column(extra_data: dict, multiplicity: EF, discriminator: EF, data: Sequence[EF]) -> EF:
+    """`(Σ αᵢ·dataᵢ + α_last·discriminator)·β + multiplicity`.
+
+    The per-bus `discriminator` keeps the three precompile buses disjoint from each
+    other and from the memory/bytecode lookups (reserved discriminators 1 and 2)."""
     alphas: list[EF] = extra_data["logup_alphas_eq_poly"]
     bus_beta: EF = extra_data["bus_beta"]
     assert len(data) < len(alphas)
     inner = EF.zero()
     for a, d in zip(alphas, data):
         inner = inner + a * d
-    inner = inner + alphas[-1] * EF.from_base(Fp(1))
-    return inner * bus_beta + flag
+    inner = inner + alphas[-1] * discriminator
+    return inner * bus_beta + multiplicity
 
 
 def air_constraint_eval(
@@ -1005,7 +1008,7 @@ def _eval_air_execution(folder: ConstraintFolder, table: TableMeta, extra_data: 
     # fmt: off
     (pc, fp, addr_a, addr_b, addr_c, value_a, value_b, value_c,
      operand_a, operand_b, operand_c, flag_a, flag_b, flag_c, flag_c_fp,
-     flag_ab_fp, mul, jump, aux, precompile_data) = folder.flat[:20]
+     flag_ab_fp, mul, jump, aux, discriminator) = folder.flat[:20]
     # fmt: on
     pc_shift, fp_shift = folder.shift[0], folder.shift[1]
     one = EF.one()
@@ -1024,7 +1027,7 @@ def _eval_air_execution(folder: ConstraintFolder, table: TableMeta, extra_data: 
     is_precompile = -(add + mul + deref + jump - one)
 
     az = folder.assert_zero
-    az(_eval_virtual_bus_column(extra_data, is_precompile, [precompile_data, nu_a, nu_b, nu_c]))
+    az(_eval_virtual_bus_column(extra_data, is_precompile, discriminator, [nu_a, nu_b, nu_c]))
     az(nfa * (addr_a - (fp + operand_a)))
     az(nfb * (addr_b - (fp + operand_b)))
     az(nfc * (addr_c - (fp + operand_c)))
@@ -1091,7 +1094,7 @@ def _eval_air_extension_op(folder: ConstraintFolder, table: TableMeta, extra_dat
         + len_col * Fb(_EXT_OP_LEN_MULTIPLIER)
     )
     folder.assert_zero(
-        _eval_virtual_bus_column(extra_data, start * (flag_add + flag_mul + flag_poly_eq), [aux, idx_a, idx_b, idx_res])
+        _eval_virtual_bus_column(extra_data, start * (flag_add + flag_mul + flag_poly_eq), aux, [idx_a, idx_b, idx_res])
     )
 
     for x in (is_be, start, flag_add, flag_mul, flag_poly_eq):
@@ -1154,6 +1157,7 @@ def _p1c() -> dict:
 
 _POSEIDON_WIDTH = 16
 _HALF_DIGEST_LEN = 4
+_POSEIDON_DISCRIMINATOR_BASE = 3  # odd ≥ 3, disjoint from memory (1) / bytecode (2)
 _POSEIDON_PERMUTE_SHIFT, _POSEIDON_HALF_OUTPUT_SHIFT = 1 << 1, 1 << 2
 _POSEIDON_HARDCODED_LEFT_4_FLAG_SHIFT, _POSEIDON_HARDCODED_LEFT_4_OFFSET_SHIFT = (
     1 << 3,
@@ -1245,7 +1249,7 @@ def _eval_air_poseidon16(folder: ConstraintFolder, table: TableMeta, extra_data:
         return list(chunk)
 
     # fmt: off
-    [flag_active, index_b, index_res, flag_half_output, flag_hardcoded_left,
+    [multiplicity, index_b, index_res, flag_half_output, flag_hardcoded_left,
      offset_hardcoded_left, eff_idx_left_first, eff_idx_left_second, flag_permute] = take(9)
     # fmt: on
     inputs = take(W)
@@ -1254,8 +1258,8 @@ def _eval_air_poseidon16(folder: ConstraintFolder, table: TableMeta, extra_data:
     ending_full_rounds = [take(W) for _ in range(half_final - 1)]
     outputs_left, outputs_right = take(W // 2), take(W // 2)
 
-    precompile_data = (
-        one
+    discriminator = (
+        Fb(_POSEIDON_DISCRIMINATOR_BASE)
         + flag_permute * Fb(_POSEIDON_PERMUTE_SHIFT)
         + flag_half_output * Fb(_POSEIDON_HALF_OUTPUT_SHIFT)
         + flag_hardcoded_left * Fb(_POSEIDON_HARDCODED_LEFT_4_FLAG_SHIFT)
@@ -1264,10 +1268,8 @@ def _eval_air_poseidon16(folder: ConstraintFolder, table: TableMeta, extra_data:
     not_hcl = one - flag_hardcoded_left
     index_a = eff_idx_left_second - not_hcl * Fb(_HALF_DIGEST_LEN)
 
-    folder.assert_zero(
-        _eval_virtual_bus_column(extra_data, flag_active, [precompile_data, index_a, index_b, index_res])
-    )
-    for f in (flag_active, flag_half_output, flag_hardcoded_left, flag_permute):
+    folder.assert_zero(_eval_virtual_bus_column(extra_data, multiplicity, discriminator, [index_a, index_b, index_res]))
+    for f in (multiplicity, flag_half_output, flag_hardcoded_left, flag_permute):
         folder.assert_bool(f)
     folder.assert_zero(flag_permute * (flag_half_output + flag_hardcoded_left))
     folder.assert_zero(flag_hardcoded_left * (offset_hardcoded_left - eff_idx_left_first))

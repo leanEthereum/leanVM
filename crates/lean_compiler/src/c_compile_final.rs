@@ -167,6 +167,10 @@ pub fn compile_to_low_level_bytecode(
         .collect();
     assert!(hints.is_empty());
 
+    if log2_ceil_usize(code.len()) > MAX_BYTECODE_LOG_SIZE {
+        return Err("Bytecode too large".to_string());
+    }
+
     Ok(Bytecode {
         code,
         instructions_multilinear,

@@ -1,9 +1,8 @@
 use crate::Table;
 
 /// Domain separation in logup
-pub const LOGUP_MEMORY_DOMAINSEP: usize = 0;
-pub const LOGUP_PRECOMPILE_DOMAINSEP: usize = 1;
-pub const LOGUP_BYTECODE_DOMAINSEP: usize = 2;
+pub const LOGUP_MEMORY_DISCRIMINATOR: usize = 1;
+pub const LOGUP_BYTECODE_DISCRIMINATOR: usize = 2;
 
 /// Large field = extension field of degree DIMENSION over koala-bear
 pub const DIMENSION: usize = 5;
@@ -18,6 +17,7 @@ pub const MIN_LOG_MEMORY_SIZE: usize = 16;
 pub const MAX_LOG_MEMORY_SIZE: usize = 26;
 
 pub const MIN_BYTECODE_LOG_SIZE: usize = 8;
+pub const MAX_BYTECODE_LOG_SIZE: usize = 22;
 
 /// Minimum and maximum number of rows per table (as powers of two), both inclusive
 pub const MIN_LOG_N_ROWS_PER_TABLE: usize = 8; // Zero padding will be added to each at least, if this minimum is not reached, (ensuring AIR / GKR work fine, with SIMD, without too much edge cases). Long term, we should find a more elegant solution.
