@@ -72,7 +72,7 @@ pub fn verify_execution(
 
     let logup_c = verifier_state.sample();
     verifier_state.duplex();
-    let logup_alphas = verifier_state.sample_vec(log2_ceil_usize(max_bus_width_including_domainsep()));
+    let logup_alphas = verifier_state.sample_vec(log2_ceil_usize(max_bus_width_including_bytecode()));
     let logup_alphas_eq_poly = eval_eq(&logup_alphas);
 
     let logup_statements = verify_generic_logup(

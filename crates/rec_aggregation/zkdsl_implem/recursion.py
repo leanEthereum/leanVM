@@ -14,9 +14,8 @@ MAX_LOG_MEMORY_SIZE = MAX_LOG_MEMORY_SIZE_PLACEHOLDER
 MAX_BUS_WIDTH = MAX_BUS_WIDTH_PLACEHOLDER
 MAX_NUM_AIR_CONSTRAINTS = MAX_NUM_AIR_CONSTRAINTS_PLACEHOLDER
 
-LOGUP_MEMORY_DOMAINSEP = LOGUP_MEMORY_DOMAINSEP_PLACEHOLDER
-LOGUP_PRECOMPILE_DOMAINSEP = LOGUP_PRECOMPILE_DOMAINSEP_PLACEHOLDER
-LOGUP_BYTECODE_DOMAINSEP = LOGUP_BYTECODE_DOMAINSEP_PLACEHOLDER
+LOGUP_MEMORY_DISCRIMINATOR = LOGUP_MEMORY_DISCRIMINATOR_PLACEHOLDER
+LOGUP_BYTECODE_DISCRIMINATOR = LOGUP_BYTECODE_DISCRIMINATOR_PLACEHOLDER
 EXECUTION_TABLE_INDEX = EXECUTION_TABLE_INDEX_PLACEHOLDER
 
 LOOKUPS_INDEXES = LOOKUPS_INDEXES_PLACEHOLDER  # [[_; ?]; N_TABLES]
@@ -115,7 +114,7 @@ def recursion(inner_public_memory, bytecode_hash_domsep):
     retrieved_numerators_value: Mut = opposite_extension_ret(mul_extension_ret(memory_and_acc_prefix, value_acc))
 
     value_index = mle_of_01234567_etc(point_gkr + (n_vars_logup_gkr - log_memory) * DIM, log_memory)
-    fingerprint_memory = fingerprint_2(LOGUP_MEMORY_DOMAINSEP, value_memory, value_index, logup_alphas_eq_poly)
+    fingerprint_memory = fingerprint_2(LOGUP_MEMORY_DISCRIMINATOR, value_memory, value_index, logup_alphas_eq_poly)
     retrieved_denominators_value: Mut = mul_extension_ret(memory_and_acc_prefix, sub_extension_ret(logup_c, fingerprint_memory))
 
     offset: Mut = two_exp(log_memory)
@@ -159,7 +158,7 @@ def recursion(inner_public_memory, bytecode_hash_domsep):
                     bytecode_value_corrected,
                     add_extension_ret(
                         mul_extension_ret(bytecode_index_value, logup_alphas_eq_poly + N_INSTRUCTION_COLUMNS * DIM),
-                        mul_base_extension_ret(LOGUP_BYTECODE_DOMAINSEP, logup_alphas_eq_poly + (2 ** log2_ceil(MAX_BUS_WIDTH) - 1) * DIM),
+                        mul_base_extension_ret(LOGUP_BYTECODE_DISCRIMINATOR, logup_alphas_eq_poly + (2 ** log2_ceil(MAX_BUS_WIDTH) - 1) * DIM),
                     ),
                 ),
             ),
@@ -356,7 +355,7 @@ def continue_recursion_ordered(
                 pref = multilinear_location_prefix(offset / n_rows, n_vars_logup_gkr - log_n_rows, point_gkr)  # TODO there is some duplication here
                 retrieved_numerators_value = add_extension_ret(retrieved_numerators_value, pref)
                 fingerp = fingerprint_2(
-                    LOGUP_MEMORY_DOMAINSEP,
+                    LOGUP_MEMORY_DISCRIMINATOR,
                     value_eval,
                     add_base_extension_ret(i, index_eval),
                     logup_alphas_eq_poly,
@@ -705,7 +704,7 @@ def fingerprint_bytecode(instr_evals, eval_on_pc, logup_alphas_eq_poly):
     res = add_extension_ret(res, mul_extension_ret(eval_on_pc, logup_alphas_eq_poly + N_INSTRUCTION_COLUMNS * DIM))
     res = add_extension_ret(
         res,
-        mul_base_extension_ret(LOGUP_BYTECODE_DOMAINSEP, logup_alphas_eq_poly + (2 ** log2_ceil(MAX_BUS_WIDTH) - 1) * DIM),
+        mul_base_extension_ret(LOGUP_BYTECODE_DISCRIMINATOR, logup_alphas_eq_poly + (2 ** log2_ceil(MAX_BUS_WIDTH) - 1) * DIM),
     )
     return res
 
