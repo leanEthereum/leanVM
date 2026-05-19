@@ -1,5 +1,5 @@
-//! Single end-to-end test vector for the Python verifier: aggregate one XMSS
-//! signature using rec-aggregation, then dump the resulting bytecode, public
+//! Single end-to-end test vector for the Python verifier: aggregate 1000 XMSS
+//! signatures using rec-aggregation, then dump the resulting bytecode, public
 //! input, table metadata, and proof.
 //!
 //! Run:
@@ -125,12 +125,13 @@ fn dump_zkvm_vector() {
     init_aggregation_bytecode();
     let bytecode = get_aggregation_bytecode();
 
-    // Aggregate one raw XMSS signature into a TypeOneMultiSignature.
+    // Aggregate 1000 raw XMSS signatures into a TypeOneMultiSignature.
+    const N_SIGNATURES: usize = 1000;
     let sig = {
-        let (pk, xmss_sig) = get_benchmark_signatures()[0].clone();
+        let raw_xmss = get_benchmark_signatures()[..N_SIGNATURES].to_vec();
         aggregate_type_1(
             &[],
-            vec![(pk, xmss_sig)],
+            raw_xmss,
             message_for_benchmark(),
             BENCHMARK_SLOT,
             /* log_inv_rate = */ 1,
