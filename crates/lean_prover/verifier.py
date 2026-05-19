@@ -61,16 +61,8 @@ class EF:
         self.c = tuple(coeffs)
 
     @staticmethod
-    def zero() -> "EF":
-        return EF([Fp(0)] * 5)
-
-    @staticmethod
-    def one() -> "EF":
-        return EF([Fp(1)] + [Fp(0)] * 4)
-
-    @staticmethod
     def from_base(x: Fp) -> "EF":
-        return EF([x] + [Fp(0)] * 4)
+        return EF([x, Fp(0), Fp(0), Fp(0), Fp(0)])
 
     def __add__(self, o):
         if isinstance(o, Fp):
@@ -113,13 +105,35 @@ class EF:
         return f"EF({[int(x.value) for x in self.c]})"
 
     def inv(self) -> "EF":
-        result, base, n = EF.one(), self, P**5 - 2
+        result, base, n = ONE, self, P**5 - 2
         while n > 0:
             if n & 1:
                 result = result * base
             base = base * base
             n >>= 1
         return result
+
+
+ZERO = EF([Fp(0)] * 5)
+ONE = EF.from_base(Fp(1))
+
+
+def fb(v: int) -> EF:
+    """`EF` lift of an integer base-field element."""
+    return EF.from_base(Fp(v))
+
+
+def ef_sum(terms) -> EF:
+    """Sum of an iterable of `EF` (empty -> `ZERO`)."""
+    return sum(terms, ZERO)
+
+
+def ef_prod(factors) -> EF:
+    """Product of an iterable of `EF` (empty -> `ONE`)."""
+    acc = ONE
+    for f in factors:
+        acc = acc * f
+    return acc
 
 
 _POSEIDON16 = Poseidon1(PARAMS_16)
@@ -299,31 +313,21 @@ def expand_from_univariate(x: EF, num_variables: int) -> list[EF]:
 def eq_poly_outside(a: Sequence[EF], b: Sequence[EF]) -> EF:
     """`Π (1 − a_i − b_i + 2·a_i·b_i)`."""
     assert len(a) == len(b)
-    one, acc = EF.one(), EF.one()
-    for x, y in zip(a, b):
-        xy = x * y
-        acc = acc * (one + xy + xy - x - y)
-    return acc
+    return ef_prod(ONE + x * y + x * y - x - y for x, y in zip(a, b))
 
 
 def next_mle(x: Sequence[EF], y: Sequence[EF]) -> EF:
     """Multilinear extension of `y = x + 1` (big-endian, mod `2^n`)."""
     assert len(x) == len(y)
-    one = EF.one()
     n = len(x)
-    eq_prefix = [one]
+    eq_prefix = [ONE]
     for i in range(n):
-        eq_prefix.append(eq_prefix[i] * (x[i] * y[i] + (one - x[i]) * (one - y[i])))
-    low_suffix = [one] * (n + 1)
+        eq_prefix.append(eq_prefix[i] * (x[i] * y[i] + (ONE - x[i]) * (ONE - y[i])))
+    low_suffix = [ONE] * (n + 1)
     for i in range(n - 1, -1, -1):
-        low_suffix[i] = low_suffix[i + 1] * x[i] * (one - y[i])
-    s = EF.zero()
-    for i in range(n):
-        s = s + eq_prefix[i] * (one - x[i]) * y[i] * low_suffix[i + 1]
-    prod = one
-    for v in list(x) + list(y):
-        prod = prod * v
-    return s + prod
+        low_suffix[i] = low_suffix[i + 1] * x[i] * (ONE - y[i])
+    s = ef_sum(eq_prefix[i] * (ONE - x[i]) * y[i] * low_suffix[i + 1] for i in range(n))
+    return s + ef_prod([*x, *y])
 
 
 def eval_multilinear_evals(evals: Sequence[EF], point: Sequence[EF]) -> EF:
@@ -475,7 +479,7 @@ class ParsedCommitment:
 
 
 def _eval_univariate(coeffs: list[EF], x: EF) -> EF:
-    acc = EF.zero()
+    acc = ZERO
     for c in reversed(coeffs):
         acc = acc * x + c
     return acc
@@ -488,9 +492,7 @@ def verify_sumcheck(
     point: list[EF] = []
     for _ in range(n_vars):
         coeffs = state.next_extension_scalars_vec(degree + 1)
-        s = coeffs[0]
-        for c in coeffs:
-            s = s + c
+        s = coeffs[0] + ef_sum(coeffs)
         if s != target:
             raise ProofError("Sumcheck identity failed: h(0) + h(1) != target")
         state.check_pow_grinding(pow_bits)
@@ -502,7 +504,7 @@ def verify_sumcheck(
 
 def combine_constraints(state: VerifierState, target: EF, constraints: list[SparseStatement]) -> tuple[EF, list[EF]]:
     gamma: EF = state.sample()
-    combo = [EF.one()]
+    combo = [ONE]
     for smt in constraints:
         for v in smt.values:
             target = target + combo[-1] * v[1]
@@ -538,7 +540,7 @@ def verify_stir_challenges(
         if not merkle_verify_path(commitment.root, log_height, idx, op.leaf_data, op.path):
             raise ProofError("Merkle verification failed")
         fold = eval_multilinear_evals(pack_answers(op.leaf_data), folding_randomness)
-        ef_pt = EF.from_base(Fp(pow(int(gen.value), idx, P)))
+        ef_pt = fb(pow(int(gen.value), idx, P))
         constraints.append(SparseStatement.dense(expand_from_univariate(ef_pt, num_variables), fold))
     return constraints
 
@@ -554,7 +556,7 @@ def verify_constraint_coeffs(constraint: SparseStatement, coeffs: list[EF]) -> b
 
 
 def eval_constraints_poly(constraints: list[tuple[list[EF], list[SparseStatement]]], point: list[EF]) -> EF:
-    value = EF.zero()
+    value = ZERO
     pt = list(point)
     for round_idx, (randomness, smts) in enumerate(constraints):
         if round_idx > 0:
@@ -565,10 +567,7 @@ def eval_constraints_poly(constraints: list[tuple[list[EF], list[SparseStatement
             common = next_mle(smt.point, inner_pt) if smt.is_next else eq_poly_outside(smt.point, inner_pt)
             sel_n = smt.selector_num_variables
             for v in smt.values:
-                lagrange = EF.one()
-                for j in range(sel_n):
-                    bit = (v[0] >> (sel_n - 1 - j)) & 1
-                    lagrange = lagrange * (pt[j] if bit else (EF.one() - pt[j]))
+                lagrange = ef_prod(pt[j] if (v[0] >> (sel_n - 1 - j)) & 1 else ONE - pt[j] for j in range(sel_n))
                 value = value + lagrange * common * randomness[i]
                 i += 1
         assert i == len(randomness)
@@ -587,7 +586,7 @@ def whir_verify(
     n_rounds, final_sumcheck_rounds = whir_n_rounds_and_final_sumcheck(cfg["num_variables"])
     round_constraints: list[tuple[list[EF], list[SparseStatement]]] = []
     round_folding: list[list[EF]] = []
-    target = EF.zero()
+    target = ZERO
 
     def step(constraints: list[SparseStatement], n_fold: int, pow_bits: int) -> None:
         nonlocal target
@@ -707,11 +706,7 @@ def stacked_pcs_global_statements(
         if name == "execution":
             # PC column: pin first row to starting_pc, last row to ending_pc.
             for idx, pc in [(0, constants["starting_pc"]), ((1 << n_vars) - 1, constants["ending_pc"])]:
-                out.append(
-                    SparseStatement.unique_value(
-                        stacked_n_vars, offset + (col_pc << n_vars) + idx, EF.from_base(Fp(pc))
-                    )
-                )
+                out.append(SparseStatement.unique_value(stacked_n_vars, offset + (col_pc << n_vars) + idx, fb(pc)))
 
         for point, eq_values, next_values in committed_statements[name]:
             if next_values:
@@ -732,9 +727,7 @@ def verify_gkr_quotient(state: VerifierState, n_vars: int) -> tuple[EF, list[EF]
 
     nums = state.next_extension_scalars_vec(1 << N_VARS_TO_SEND_GKR_COEFFS)
     dens = state.next_extension_scalars_vec(1 << N_VARS_TO_SEND_GKR_COEFFS)
-    quotient = EF.zero()
-    for n, d in zip(nums, dens):
-        quotient = quotient + n * d.inv()
+    quotient = ef_sum(n * d.inv() for n, d in zip(nums, dens))
 
     point = state.sample_vec(N_VARS_TO_SEND_GKR_COEFFS)
     claim_num = eval_multilinear_evals(nums, point)
@@ -749,7 +742,7 @@ def verify_gkr_quotient(state: VerifierState, n_vars: int) -> tuple[EF, list[EF]
         if sc_value != eq_poly_outside(point, sc_point) * (alpha * dl * dr + nl * dr + nr * dl):
             raise ProofError("GKR step: postponed value mismatch")
         beta = state.sample()
-        one_minus = EF.one() - beta
+        one_minus = ONE - beta
         claim_num = one_minus * nl + beta * nr
         claim_den = one_minus * dl + beta * dr
         point = sc_point + [beta]
@@ -758,7 +751,7 @@ def verify_gkr_quotient(state: VerifierState, n_vars: int) -> tuple[EF, list[EF]
 
 
 def to_big_endian_in_field(value: int, bit_count: int) -> list[EF]:
-    return [EF.one() if (value >> (bit_count - 1 - i)) & 1 else EF.zero() for i in range(bit_count)]
+    return [ONE if (value >> (bit_count - 1 - i)) & 1 else ZERO for i in range(bit_count)]
 
 
 def from_end(seq: Sequence, n: int) -> list:
@@ -768,9 +761,9 @@ def from_end(seq: Sequence, n: int) -> list:
 def mle_of_01234567_etc(point: Sequence[EF]) -> EF:
     """MLE of `f(i) = i` (big-endian) at `point`."""
     if not point:
-        return EF.zero()
+        return ZERO
     e = mle_of_01234567_etc(point[1:])
-    return e + point[0] * EF.from_base(Fp(1 << (len(point) - 1)))
+    return e + point[0] * fb(1 << (len(point) - 1))
 
 
 def mle_of_zeros_then_ones(n_zeros: int, point: Sequence[EF]) -> EF:
@@ -778,21 +771,19 @@ def mle_of_zeros_then_ones(n_zeros: int, point: Sequence[EF]) -> EF:
     n_values = 1 << len(point)
     assert n_zeros <= n_values
     if n_zeros == 0:
-        return EF.one()
+        return ONE
     if n_zeros == n_values:
-        return EF.zero()
+        return ZERO
     half, tail = n_values >> 1, point[1:]
     if n_zeros < half:
-        return (EF.one() - point[0]) * mle_of_zeros_then_ones(n_zeros, tail) + point[0]
+        return (ONE - point[0]) * mle_of_zeros_then_ones(n_zeros, tail) + point[0]
     return point[0] * mle_of_zeros_then_ones(n_zeros - half, tail)
 
 
 def finger_print(discriminator: Fp, data: Sequence[EF], alphas_eq_poly: Sequence[EF]) -> EF:
     """`Σᵢ αᵢ · dataᵢ + α_last · discriminator`."""
     assert len(alphas_eq_poly) > len(data)
-    acc = EF.zero()
-    for a, d in zip(alphas_eq_poly, data):
-        acc = acc + a * d
+    acc = ef_sum(a * d for a, d in zip(alphas_eq_poly, data))
     return acc + alphas_eq_poly[-1] * EF.from_base(discriminator)
 
 
@@ -803,9 +794,9 @@ def sort_tables_by_height(table_log_heights: dict[str, int]) -> list[tuple[str, 
 
 def eval_eq(point: Sequence[EF]) -> list[EF]:
     """Length-`2^n` evaluation table of `eq(point, ·)`."""
-    out = [EF.one()]
+    out = [ONE]
     for p in point:
-        out = [w for v in out for w in (v * (EF.one() - p), v * p)]
+        out = [w for v in out for w in (v * (ONE - p), v * p)]
     return out
 
 
@@ -842,10 +833,10 @@ def verify_generic_logup(
     total_gkr_n_vars = log2_ceil_usize(total_active_len)
 
     quotient, point_gkr, claim_num, claim_den = verify_gkr_quotient(state, total_gkr_n_vars)
-    if quotient != EF.zero():
+    if quotient != ZERO:
         raise ProofError("logup: GKR sum != 0")
 
-    num, den = EF.zero(), EF.zero()
+    num, den = ZERO, ZERO
 
     def pref_at(offset: int, log_height: int) -> EF:
         n_missing = total_gkr_n_vars - log_height
@@ -869,9 +860,7 @@ def verify_generic_logup(
     pref_pad = pref_at(offset, log_byte_pad)
     value_bytecode_acc = state.next_extension_scalar()
     bytecode_value = eval_mle_base_at_ef(bytecode_multilinear, list(byte_pt) + list(from_end(alphas, log_instr)))
-    correction = EF.one()
-    for a in alphas[: len(alphas) - log_instr]:
-        correction = correction * (EF.one() - a)
+    correction = ef_prod(ONE - a for a in alphas[: len(alphas) - log_instr])
     fp_byte = (
         bytecode_value * correction
         + mle_of_01234567_etc(byte_pt) * alphas_eq_poly[n_instr_cols]
@@ -924,7 +913,7 @@ def verify_generic_logup(
                 pref = pref_at(offset, log_n_rows)
                 fp = finger_print(
                     disc_mem,
-                    [value_eval, index_eval + EF.from_base(Fp(i))],
+                    [value_eval, index_eval + fb(i)],
                     alphas_eq_poly,
                 )
                 num = num + pref
@@ -960,7 +949,7 @@ class ConstraintFolder:
             list(shift),
             list(alpha_powers),
         )
-        self.accumulator: EF = EF.zero()
+        self.accumulator: EF = ZERO
         self.i = 0
 
     def assert_zero(self, x: EF) -> None:
@@ -971,7 +960,7 @@ class ConstraintFolder:
         self.assert_zero(x - y)
 
     def assert_bool(self, x: EF) -> None:
-        self.assert_zero(x * (EF.one() - x))
+        self.assert_zero(x * (ONE - x))
 
 
 def _eval_virtual_bus_column(extra_data: dict, multiplicity: EF, discriminator: EF, data: Sequence[EF]) -> EF:
@@ -982,10 +971,7 @@ def _eval_virtual_bus_column(extra_data: dict, multiplicity: EF, discriminator: 
     alphas: list[EF] = extra_data["logup_alphas_eq_poly"]
     bus_beta: EF = extra_data["bus_beta"]
     assert len(data) < len(alphas)
-    inner = EF.zero()
-    for a, d in zip(alphas, data):
-        inner = inner + a * d
-    inner = inner + alphas[-1] * discriminator
+    inner = ef_sum(a * d for a, d in zip(alphas, data)) + alphas[-1] * discriminator
     return inner * bus_beta + multiplicity
 
 
@@ -1011,20 +997,19 @@ def _eval_air_execution(folder: ConstraintFolder, table: TableMeta, extra_data: 
      flag_ab_fp, mul, jump, aux, discriminator) = folder.flat[:20]
     # fmt: on
     pc_shift, fp_shift = folder.shift[0], folder.shift[1]
-    one = EF.one()
 
     # nu_x = flag·operand + (1 − flag − flag_ab_fp)·value + flag_ab_fp·(fp + operand)
-    nfa = -(flag_a + flag_ab_fp - one)
-    nfb = -(flag_b + flag_ab_fp - one)
-    nfc = -(flag_c + flag_c_fp - one)
+    nfa = -(flag_a + flag_ab_fp - ONE)
+    nfb = -(flag_b + flag_ab_fp - ONE)
+    nfc = -(flag_c + flag_c_fp - ONE)
     nu_a = flag_a * operand_a + nfa * value_a + flag_ab_fp * (fp + operand_a)
     nu_b = flag_b * operand_b + nfb * value_b + flag_ab_fp * (fp + operand_b)
     nu_c = flag_c * operand_c + nfc * value_c + flag_c_fp * (fp + operand_c)
 
     # aux ∈ {0,1,2}: 0=nothing, 1=add, 2=deref.
-    add = aux * EF.from_base(Fp(2)) - aux * aux
-    deref = aux * (aux - one) * EF.from_base(_INV_TWO)
-    is_precompile = -(add + mul + deref + jump - one)
+    add = aux * fb(2) - aux * aux
+    deref = aux * (aux - ONE) * EF.from_base(_INV_TWO)
+    is_precompile = -(add + mul + deref + jump - ONE)
 
     az = folder.assert_zero
     az(_eval_virtual_bus_column(extra_data, is_precompile, discriminator, [nu_a, nu_b, nu_c]))
@@ -1036,11 +1021,11 @@ def _eval_air_execution(folder: ConstraintFolder, table: TableMeta, extra_data: 
     az(deref * (addr_b - (value_a + operand_b)))
     az(deref * (value_b - nu_c))
     jc = jump * nu_a
-    az(jc * (nu_a - one))
+    az(jc * (nu_a - ONE))
     az(jc * (pc_shift - nu_b))
     az(jc * (fp_shift - nu_c))
-    not_jc = -(jc - one)
-    az(not_jc * (pc_shift - (pc + one)))
+    not_jc = -(jc - ONE)
+    az(not_jc * (pc_shift - (pc + ONE)))
     az(not_jc * (fp_shift - fp))
 
 
@@ -1065,10 +1050,7 @@ def _quintic_mul_ef(a: Sequence[EF], b: Sequence[EF]) -> list[EF]:
     ]
 
     def dot(row: list[EF]) -> EF:
-        acc = a[0] * row[0]
-        for i in range(1, 5):
-            acc = acc + a[i] * row[i]
-        return acc
+        return ef_sum(a[i] * row[i] for i in range(5))
 
     return [dot(row) for row in rows]
 
@@ -1083,15 +1065,13 @@ def _eval_air_extension_op(folder: ConstraintFolder, table: TableMeta, extra_dat
     s = folder.shift
     is_be_sh, start_sh, len_sh, flag_add_sh, flag_mul_sh, flag_poly_eq_sh, idx_a_sh, idx_b_sh = s[:8]
     comp_sh = s[8:13]
-    one, zero = EF.one(), EF.zero()
-    Fb = lambda v: EF.from_base(Fp(v))
 
     aux = (
-        is_be * Fb(_EXT_OP_FLAG_IS_BE)
-        + flag_add * Fb(_EXT_OP_FLAG_ADD)
-        + flag_mul * Fb(_EXT_OP_FLAG_MUL)
-        + flag_poly_eq * Fb(_EXT_OP_FLAG_POLY_EQ)
-        + len_col * Fb(_EXT_OP_LEN_MULTIPLIER)
+        is_be * fb(_EXT_OP_FLAG_IS_BE)
+        + flag_add * fb(_EXT_OP_FLAG_ADD)
+        + flag_mul * fb(_EXT_OP_FLAG_MUL)
+        + flag_poly_eq * fb(_EXT_OP_FLAG_POLY_EQ)
+        + len_col * fb(_EXT_OP_LEN_MULTIPLIER)
     )
     folder.assert_zero(
         _eval_virtual_bus_column(extra_data, start * (flag_add + flag_mul + flag_poly_eq), aux, [idx_a, idx_b, idx_res])
@@ -1100,7 +1080,7 @@ def _eval_air_extension_op(folder: ConstraintFolder, table: TableMeta, extra_dat
     for x in (is_be, start, flag_add, flag_mul, flag_poly_eq):
         folder.assert_bool(x)
 
-    is_ee, not_start_sh = -(is_be - one), -(start_sh - one)
+    is_ee, not_start_sh = -(is_be - ONE), -(start_sh - ONE)
     va_x = [va[0]] + [va[k] * is_ee for k in range(1, 5)]
     comp_tail = [comp_sh[k] * not_start_sh for k in range(5)]
     va_vb = _quintic_mul_ef(va_x, vb)
@@ -1111,7 +1091,7 @@ def _eval_air_extension_op(folder: ConstraintFolder, table: TableMeta, extra_dat
         folder.assert_zero((comp[k] - (va_vb[k] + comp_tail[k])) * flag_mul)
 
     # poly_eq: comp ← (2·va·vb − va − vb + 1) · comp_sh_or_one.
-    poly_eq_val = [va_vb[k] + va_vb[k] - va_x[k] - vb[k] + (one if k == 0 else zero) for k in range(5)]
+    poly_eq_val = [va_vb[k] + va_vb[k] - va_x[k] - vb[k] + (ONE if k == 0 else ZERO) for k in range(5)]
     comp_sh_or_one = [comp_sh[0] * not_start_sh + start_sh] + [comp_sh[k] * not_start_sh for k in range(1, 5)]
     poly_eq_result = _quintic_mul_ef(poly_eq_val, comp_sh_or_one)
     for k in range(5):
@@ -1120,7 +1100,7 @@ def _eval_air_extension_op(folder: ConstraintFolder, table: TableMeta, extra_dat
         folder.assert_zero((comp[k] - vres[k]) * start)
 
     for x, y in [
-        (len_col, len_sh + one),
+        (len_col, len_sh + ONE),
         (is_be, is_be_sh),
         (flag_add, flag_add_sh),
         (flag_mul, flag_mul_sh),
@@ -1128,9 +1108,9 @@ def _eval_air_extension_op(folder: ConstraintFolder, table: TableMeta, extra_dat
     ]:
         folder.assert_zero(not_start_sh * (x - y))
 
-    folder.assert_zero(not_start_sh * (idx_a_sh - idx_a - (is_be + is_ee * Fb(5))))
-    folder.assert_zero(not_start_sh * (idx_b_sh - idx_b - Fb(5)))
-    folder.assert_zero(start_sh * (len_col - one))
+    folder.assert_zero(not_start_sh * (idx_a_sh - idx_a - (is_be + is_ee * fb(5))))
+    folder.assert_zero(not_start_sh * (idx_b_sh - idx_b - fb(5)))
+    folder.assert_zero(start_sh * (len_col - ONE))
 
 
 @functools.cache
@@ -1166,21 +1146,13 @@ _POSEIDON_HARDCODED_LEFT_4_FLAG_SHIFT, _POSEIDON_HARDCODED_LEFT_4_OFFSET_SHIFT =
 
 
 def _matvec_kb(mat: list[list[Fp]], state: list[EF]) -> list[EF]:
-    out: list[EF] = []
-    for row in mat:
-        acc = EF.zero()
-        for s, m in zip(state, row):
-            acc = acc + s * m
-        out.append(acc)
-    return out
+    return [ef_sum(s * m for s, m in zip(state, row)) for row in mat]
 
 
 def _full_round(state: list[EF], rc1: list[Fp], rc2: list[Fp]) -> list[EF]:
     for rc in (rc1, rc2):
-        state = _matvec_kb(
-            _p1c()["mds_dense"],
-            [(s + EF.from_base(c)) * (s + EF.from_base(c)) * (s + EF.from_base(c)) for s, c in zip(state, rc)],
-        )
+        sbox = [(t := s + c) * t * t for s, c in zip(state, rc)]
+        state = _matvec_kb(_p1c()["mds_dense"], sbox)
     return state
 
 
@@ -1198,7 +1170,7 @@ def _eval_poseidon1_16(folder: ConstraintFolder, cols: dict, extra_data: dict) -
             folder.assert_eq(state[i], post)
             state[i] = post
 
-    state = [s + EF.from_base(c) for s, c in zip(state, const["sparse_first_rc"])]
+    state = [s + c for s, c in zip(state, const["sparse_first_rc"])]
     state = _matvec_kb(const["sparse_m_i"], state)
 
     n_partial = const["partial_rounds"]
@@ -1208,10 +1180,7 @@ def _eval_poseidon1_16(folder: ConstraintFolder, cols: dict, extra_data: dict) -
         if r < n_partial - 1:
             state[0] = state[0] + const["sparse_scalar_rc"][r]
         old_s0 = state[0]
-        new_s0 = EF.zero()
-        for j in range(_POSEIDON_WIDTH):
-            new_s0 = new_s0 + state[j] * const["sparse_first_row"][r][j]
-        state[0] = new_s0
+        state[0] = ef_sum(state[j] * const["sparse_first_row"][r][j] for j in range(_POSEIDON_WIDTH))
         for i in range(1, _POSEIDON_WIDTH):
             state[i] = state[i] + old_s0 * const["sparse_v"][r][i - 1]
 
@@ -1226,7 +1195,7 @@ def _eval_poseidon1_16(folder: ConstraintFolder, cols: dict, extra_data: dict) -
     last = 2 * (half_final - 1)
     state = _full_round(state, const["final_constants"][last], const["final_constants"][last + 1])
     flag_permute = cols["flag_permute"]
-    not_permute = EF.one() - flag_permute
+    not_permute = ONE - flag_permute
     compression_last4 = not_permute - cols["flag_half_output"]
     for i in range(_POSEIDON_WIDTH // 2):
         gate = not_permute if i < _HALF_DIGEST_LEN else compression_last4
@@ -1237,9 +1206,8 @@ def _eval_poseidon1_16(folder: ConstraintFolder, cols: dict, extra_data: dict) -
 
 def _eval_air_poseidon16(folder: ConstraintFolder, table: TableMeta, extra_data: dict) -> None:
     const = _p1c()
-    flat, one, W = folder.flat, EF.one(), _POSEIDON_WIDTH
+    flat, W = folder.flat, _POSEIDON_WIDTH
     half_initial = half_final = const["half_full_rounds"] // 2
-    Fb = lambda v: EF.from_base(Fp(v))
 
     o = 0
 
@@ -1259,14 +1227,14 @@ def _eval_air_poseidon16(folder: ConstraintFolder, table: TableMeta, extra_data:
     outputs_left, outputs_right = take(W // 2), take(W // 2)
 
     discriminator = (
-        Fb(_POSEIDON_DISCRIMINATOR_BASE)
-        + flag_permute * Fb(_POSEIDON_PERMUTE_SHIFT)
-        + flag_half_output * Fb(_POSEIDON_HALF_OUTPUT_SHIFT)
-        + flag_hardcoded_left * Fb(_POSEIDON_HARDCODED_LEFT_4_FLAG_SHIFT)
-        + flag_hardcoded_left * offset_hardcoded_left * Fb(_POSEIDON_HARDCODED_LEFT_4_OFFSET_SHIFT)
+        fb(_POSEIDON_DISCRIMINATOR_BASE)
+        + flag_permute * fb(_POSEIDON_PERMUTE_SHIFT)
+        + flag_half_output * fb(_POSEIDON_HALF_OUTPUT_SHIFT)
+        + flag_hardcoded_left * fb(_POSEIDON_HARDCODED_LEFT_4_FLAG_SHIFT)
+        + flag_hardcoded_left * offset_hardcoded_left * fb(_POSEIDON_HARDCODED_LEFT_4_OFFSET_SHIFT)
     )
-    not_hcl = one - flag_hardcoded_left
-    index_a = eff_idx_left_second - not_hcl * Fb(_HALF_DIGEST_LEN)
+    not_hcl = ONE - flag_hardcoded_left
+    index_a = eff_idx_left_second - not_hcl * fb(_HALF_DIGEST_LEN)
 
     folder.assert_zero(_eval_virtual_bus_column(extra_data, multiplicity, discriminator, [index_a, index_b, index_res]))
     for f in (multiplicity, flag_half_output, flag_hardcoded_left, flag_permute):
@@ -1374,7 +1342,7 @@ def verify_execution(
     eta = state.sample()
 
     def powers(x: EF, n: int) -> list[EF]:
-        out, cur = [], EF.one()
+        out, cur = [], ONE
         for _ in range(n):
             out.append(cur)
             cur = cur * x
@@ -1385,9 +1353,9 @@ def verify_execution(
     extra_data = {"logup_alphas_eq_poly": logup_alphas_eq, "bus_beta": bus_beta, "c": logup_c}
 
     # Initial AIR sum: Σ η^t · (bus_num · sign + β · (bus_den − c)).
-    initial_sum = EF.zero()
+    initial_sum = ZERO
     for (name, _), eta_pow in zip(tables_sorted, eta_powers):
-        sign = -EF.one() if tables_by_name[name].bus_direction == "Pull" else EF.one()
+        sign = -ONE if tables_by_name[name].bus_direction == "Pull" else ONE
         initial_sum = initial_sum + eta_pow * (
             logup["bus_num"][name] * sign + bus_beta * (logup["bus_den"][name] - logup_c)
         )
@@ -1400,16 +1368,14 @@ def verify_execution(
         name: [(list(from_end(gkr_point, table_log_heights[name])), dict(logup["columns_values"][name]), {})]
         for name in tables_by_name
     }
-    my_air_final = EF.zero()
+    my_air_final = ZERO
     for (name, log_n_rows), eta_pow in zip(tables_sorted, eta_powers):
         meta, n_shift = tables_by_name[name], _TABLE_SPECS[name]["n_shift"]
         col_evals = state.next_extension_scalars_vec(meta.n_columns + n_shift)
         constraint_eval = air_constraint_eval(meta, col_evals, alpha_powers, extra_data)
 
         natural_pt = list(reversed(sc_point[-log_n_rows:])) if log_n_rows else []
-        k_t = EF.one()
-        for x in sc_point[: n_max - log_n_rows]:
-            k_t = k_t * x
+        k_t = ef_prod(sc_point[: n_max - log_n_rows])
         my_air_final = (
             my_air_final
             + eta_pow * k_t * eq_poly_outside(from_end(gkr_point, log_n_rows), natural_pt) * constraint_eval
