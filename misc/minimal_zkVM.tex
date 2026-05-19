@@ -37,6 +37,7 @@
 \newcommand{\nextmle}{\overset{\scriptscriptstyle\wedge}{\textsf{next}}}
 
 \newtheorem{lemma}{Lemma}
+\newtheorem{theorem}{Theorem}
 
 \title{LeanVM}
 \author{draft 0.8.0}
@@ -167,6 +168,7 @@ $h^{min}$ & 8 & log2 of the minimum number of rows in any table \\
 $h^{max}_\text{execution}$ & 24 & log2 of the maximum of rows in the \texttt{execution} table \\
 $h^{max}_\text{poseidon}$ & 21 & log2 of the maximum of rows in the \texttt{poseidon} table \\
 $h^{max}_\text{extension}$ & 21 & log2 of the maximum of rows in the \texttt{extension} table \\
+$\textsf{bus\_width}$ & 16 & number of field elements in the bus (see Section~\ref{sec:Bus: interractions between table via logup-GKR}) \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -596,7 +598,10 @@ $$
 \forall r \in [0, 2^{h_T}), \quad C_k(\textsf{col}^T_0(r), \ldots, \textsf{col}^T_{n_\text{column}^T-1}(r), \textsf{shift}(\textsf{col}^T_0)[r], \ldots, \textsf{shift}(\textsf{col}^T_{n_\text{shift}^T-1})[r]) = 0
 $$
 
-TODO
+\subsection{Buses}\label{sec:Bus: interractions between table via logup-GKR}
+
+
+In order for the tables (Section~\ref{sec:table-sizes}) to exchange data, we use a \emph{bus}: a global channel in which tables may \textsc{Push} or \textsc{Pull} tuples of $\textsf{bus\_width} = 16$ field elements $\Fq$. We enforce the following property: \textit{every tuple is pulled exactly as many times as it is pushed}.
 
 
 \begin{itemize}
