@@ -115,15 +115,15 @@ Throughout, $v$ denotes a vector and $\hat{v}$ its MLE.
 \begin{lemma}[Multilinear Schwartz-Zippel]\label{lem:multilinear-sz}
 Let $v, v' \in \Fp^{2^n}$ with $v \neq v'$. Then
 \[
-\Pr_{\vec\beta \,\overset{\$}{\leftarrow}\, \Fq^n}\!\big[\,\hat{v}(\vec\beta) = \hat{v'}(\vec\beta)\,\big] \;\leq\; \frac{n}{|\Fq|}.
+\Pr_{\vec\beta \,\overset{\$}{\leftarrow}\, \Fq^n}\!\big[\,\hat{v}(\vec\beta) = \hat{v'}(\vec\beta)\,\big] \;\leq\; \frac{n}{q}.
 \]
 \end{lemma}
 \begin{proof}
-Let $P = \hat{v} - \hat{v'}$. $P$ is a non-zero multilinear polynomial in $n$ variables, and it suffices to show $\Pr_{\vec\beta}[P(\vec\beta) = 0] \leq n/|\Fq|$. We induct on $n$. The case $n = 0$ is trivial. For $n \geq 1$, split
+Let $P = \hat{v} - \hat{v'}$. $P$ is a non-zero multilinear polynomial in $n$ variables, and it suffices to show $\Pr_{\vec\beta}[P(\vec\beta) = 0] \leq n/q$. We induct on $n$. The case $n = 0$ is trivial. For $n \geq 1$, split
 \[
 P(X_1, \ldots, X_n) \;=\; X_n \cdot Q(X_1, \ldots, X_{n-1}) \;+\; R(X_1, \ldots, X_{n-1}),
 \]
-and write $\vec\beta = (\vec\beta_{<n}, \beta_n)$. If $Q = 0$, then $R$ is a non-zero multilinear polynomial in $n-1$ variables, and the induction hypothesis gives $\Pr[P(\vec\beta) = 0] \leq (n-1)/|\Fq| \leq n/|\Fq$. Otherwise $Q \neq 0$. By the induction hypothesis, $\Pr[Q(\vec\beta_{<n}) = 0] \leq (n-1)/|\Fq|$; and conditioned on $Q(\vec\beta_{<n}) \neq 0$, the polynomial $X_n \mapsto P(\vec\beta_{<n}, X_n)$ has degree exactly $1$, hence at most one root, so $\Pr[P(\vec\beta) = 0 \mid Q(\vec\beta_{<n}) \neq 0] \leq 1/|\Fq|$. A union bound gives $\Pr[P(\vec\beta) = 0] \leq n/|\Fq|$.
+and write $\vec\beta = (\vec\beta_{<n}, \beta_n)$. If $Q = 0$, then $R$ is a non-zero multilinear polynomial in $n-1$ variables, and the induction hypothesis gives $\Pr[P(\vec\beta) = 0] \leq (n-1)/q \leq n/|\Fq$. Otherwise $Q \neq 0$. By the induction hypothesis, $\Pr[Q(\vec\beta_{<n}) = 0] \leq (n-1)/q$; and conditioned on $Q(\vec\beta_{<n}) \neq 0$, the polynomial $X_n \mapsto P(\vec\beta_{<n}, X_n)$ has degree exactly $1$, hence at most one root, so $\Pr[P(\vec\beta) = 0 \mid Q(\vec\beta_{<n}) \neq 0] \leq 1/q$. A union bound gives $\Pr[P(\vec\beta) = 0] \leq n/q$.
 \end{proof}
 
 \vspace{5mm}
@@ -184,6 +184,7 @@ $h^{max}_\text{execution}$ & 24 & log2 of the maximum of rows in the \texttt{exe
 $h^{max}_\text{poseidon}$ & 21 & log2 of the maximum of rows in the \texttt{poseidon} table \\
 $h^{max}_\text{extension}$ & 21 & log2 of the maximum of rows in the \texttt{extension} table \\
 $\textsf{bus\_width}$ & 16 & number of field elements in the bus (see Section~\ref{sec:Bus: interractions between table via logup-GKR}) \\
+$\ell$ & 4 & $\log_2(\textsf{bus\_width})$ \\
 $\textsf{memory\_sep}$ & 1 & domain separator of memory interactions \\
 $\textsf{bytecode\_sep}$ & 2 & domain separator of bytecode interactions \\
 \bottomrule
@@ -677,11 +678,18 @@ A table $T$ may \textsc{Push} or \textsc{Pull} various tuples to the common bus.
 
 \subsubsection{Balanced bus proved via logup}
 
-\paragraph{Hashing tuples to a single field element.} Since $\textsf{bus\_width} = 16 = 2^4$, for some $\vec\beta = (\beta_1, \beta_2, \beta_3, \beta_4) \in \Fq^4$ sampled uniformly at random, we define:
+\paragraph{Hashing tuples to a single field element.} For some $\vec\beta = (\beta_1, \ldots, \beta_\ell) \in \Fq^\ell$ sampled uniformly at random, we define:
 \[
-h_{\vec\beta}(\sigma) \;=\; \sum_{i=0}^{15} \sigma_i \cdot \hat{eq}\big(\vec\beta,\, [i]_{01}\big) \;=\; \hat{\sigma}(\vec\beta).
+h_{\vec\beta}(\sigma) \;=\; \sum_{i=0}^{\textsf{bus\_width} - 1} \sigma_i \cdot \hat{eq}\big(\vec\beta,\, [i]_{01}\big) \;=\; \hat{\sigma}(\vec\beta).
 \]
-By Lemma~\ref{lem:multilinear-sz}, two distinct tuples collide with probability at most $4/|\Fq|$.
+By Lemma~\ref{lem:multilinear-sz}, two distinct tuples collide with probability at most $\ell/q$.
+
+\paragraph{Bus balance as a rational identity.} Enumerate the bus interactions across all tables as a list of pairs $(\sigma_k, m_k)_{1 \leq k \leq K}$, where $\sigma_k \in \Fp^{\textsf{bus\_width}}$ is the interacted tuple and $m_k \in \Fp$ is its signed multiplicity (positive for \textsc{Push}, negative for \textsc{Pull}). Assume that, for every tuple $\sigma$, both the total pushes and the total pulls of $\sigma$ are strictly less than $p$, so no wrap-around hides a genuine imbalance (the table-height bounds of Section~\ref{sec:table-sizes} guarantee this). Then the bus is balanced if and only if, for every $\sigma$, $\sum_{k \,:\, \sigma_k = \sigma} m_k = 0$, which, for $\vec\beta \overset{\$}{\leftarrow} \Fq^\ell$ and $\gamma \overset{\$}{\leftarrow} \Fq$, up to soundness error $\ell \cdot K/q$ to:
+\[
+\sum_{k=1}^{K} \frac{m_k}{\gamma - h_{\vec\beta}(\sigma_k)} \;=\; 0.
+\]
+
+
 
 
 \subsection{Execution table}
