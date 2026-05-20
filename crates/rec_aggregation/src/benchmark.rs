@@ -9,6 +9,7 @@ use utils::ansi as s;
 use crate::compilation::{get_aggregation_bytecode, init_aggregation_bytecode};
 use crate::signatures_cache::{BENCHMARK_SLOT, get_benchmark_signatures, message_for_benchmark};
 use crate::type_1_aggregation::{TypeOneMultiSignature, aggregate_type_1, verify_type_1};
+use crate::type_2_aggregation::{TypeTwoMultiSignature, merge_many_type_1, split_type_2, verify_type_2};
 
 #[derive(Debug, Clone)]
 pub struct AggregationTopology {
@@ -47,6 +48,15 @@ fn count_nodes(topology: &AggregationTopology) -> usize {
     1 + topology.children.iter().map(count_nodes).sum::<usize>()
 }
 
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum NodeKind {
+    #[default]
+    AggregateType1,
+    MergeManyType1,
+    SplitType2,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct NodeStats {
     pub time_secs: f64,
@@ -56,6 +66,8 @@ pub struct NodeStats {
     pub poseidons: usize,
     pub dots: usize,
     pub n_xmss: Option<usize>,
+    #[serde(default)]
+    pub kind: NodeKind,
 }
 
 /// `path` is the topology-relative path from the root (`[]` = root)
@@ -186,6 +198,21 @@ impl LiveTree {
         print!("\x1b[{}A\r\x1b[2K{}\x1b[{}B\r", up, line, up);
         io::stdout().flush().unwrap();
     }
+}
+
+fn print_stage(silent: bool, label: &str, stats: &NodeStats) {
+    if silent {
+        return;
+    }
+    let xmss_tag = stats.n_xmss.map(|n| format!(" n_xmss={}", n)).unwrap_or_default();
+    println!(
+        "{:30} {:>8.3}s {:>5} KiB cycles={:>10}{}",
+        label,
+        stats.time_secs,
+        stats.proof_kib,
+        pretty_integer(stats.cycles),
+        xmss_tag,
+    );
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -365,6 +392,7 @@ fn build_aggregation(
         poseidons: meta.n_poseidons,
         dots: meta.n_extension_ops,
         n_xmss: if is_leaf { Some(topology.raw_xmss) } else { None },
+        kind: NodeKind::AggregateType1,
     };
     if !tracing {
         let own_display_index = display_index + count_nodes(topology) - 1;
@@ -426,6 +454,364 @@ pub fn run_aggregation_benchmark(topology: &AggregationTopology, tracing: bool, 
     );
 
     verify_type_1(&aggregated).expect("root type-1 proof failed to verify");
+
+    BenchmarkReport { nodes }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn run_aggregate_type_1(
+    children: &[TypeOneMultiSignature],
+    raw_xmss: Vec<(XmssPublicKey, XmssSignature)>,
+    log_inv_rate: usize,
+    n_xmss: usize,
+    path: Vec<usize>,
+    label: &str,
+    silent: bool,
+    nodes: &mut Vec<NodeReport>,
+) -> TypeOneMultiSignature {
+    let time = Instant::now();
+
+    #[cfg(not(feature = "standard-alloc"))]
+    zk_alloc::begin_phase();
+
+    let result = aggregate_type_1(
+        children,
+        raw_xmss,
+        message_for_benchmark(),
+        BENCHMARK_SLOT,
+        log_inv_rate,
+    )
+    .unwrap();
+
+    #[cfg(not(feature = "standard-alloc"))]
+    let result = {
+        zk_alloc::end_phase();
+        result.clone()
+    };
+
+    let elapsed = time.elapsed();
+    let meta = result.proof.metadata.as_ref().unwrap();
+    let proof_kib = result.proof.proof.proof_size_fe() * F::bits() / (8 * 1024);
+    let stats = NodeStats {
+        time_secs: elapsed.as_secs_f64(),
+        proof_kib,
+        cycles: meta.cycles,
+        memory: meta.memory,
+        poseidons: meta.n_poseidons,
+        dots: meta.n_extension_ops,
+        n_xmss: Some(n_xmss),
+        kind: NodeKind::AggregateType1,
+    };
+
+    print_stage(silent, label, &stats);
+    nodes.push(NodeReport {
+        path: path.clone(),
+        stats,
+    });
+
+    result
+}
+
+fn run_merge_many(
+    types_1: Vec<TypeOneMultiSignature>,
+    log_inv_rate: usize,
+    path: Vec<usize>,
+    label: &str,
+    silent: bool,
+    nodes: &mut Vec<NodeReport>,
+) -> TypeTwoMultiSignature {
+    let time = Instant::now();
+
+    #[cfg(not(feature = "standard-alloc"))]
+    zk_alloc::begin_phase();
+
+    let result = merge_many_type_1(types_1, log_inv_rate).unwrap();
+
+    #[cfg(not(feature = "standard-alloc"))]
+    let result = {
+        zk_alloc::end_phase();
+        result.clone()
+    };
+
+    let elapsed = time.elapsed();
+    let meta = result.proof.metadata.as_ref().unwrap();
+    let proof_kib = result.proof.proof.proof_size_fe() * F::bits() / (8 * 1024);
+    let stats = NodeStats {
+        time_secs: elapsed.as_secs_f64(),
+        proof_kib,
+        cycles: meta.cycles,
+        memory: meta.memory,
+        poseidons: meta.n_poseidons,
+        dots: meta.n_extension_ops,
+        n_xmss: None,
+        kind: NodeKind::MergeManyType1,
+    };
+
+    print_stage(silent, label, &stats);
+    nodes.push(NodeReport {
+        path: path.clone(),
+        stats,
+    });
+
+    result
+}
+
+#[allow(clippy::too_many_arguments)]
+fn run_split(
+    type_2: TypeTwoMultiSignature,
+    index: usize,
+    log_inv_rate: usize,
+    n_xmss: usize,
+    path: Vec<usize>,
+    label: &str,
+    silent: bool,
+    nodes: &mut Vec<NodeReport>,
+) -> TypeOneMultiSignature {
+    let time = Instant::now();
+
+    #[cfg(not(feature = "standard-alloc"))]
+    zk_alloc::begin_phase();
+
+    let result = split_type_2(type_2, index, log_inv_rate).unwrap();
+
+    #[cfg(not(feature = "standard-alloc"))]
+    let result = {
+        zk_alloc::end_phase();
+        result.clone()
+    };
+
+    let elapsed = time.elapsed();
+    let meta = result.proof.metadata.as_ref().unwrap();
+    let proof_kib = result.proof.proof.proof_size_fe() * F::bits() / (8 * 1024);
+    let stats = NodeStats {
+        time_secs: elapsed.as_secs_f64(),
+        proof_kib,
+        cycles: meta.cycles,
+        memory: meta.memory,
+        poseidons: meta.n_poseidons,
+        dots: meta.n_extension_ops,
+        n_xmss: Some(n_xmss),
+        kind: NodeKind::SplitType2,
+    };
+
+    print_stage(silent, label, &stats);
+    nodes.push(NodeReport {
+        path: path.clone(),
+        stats,
+    });
+
+    result
+}
+
+fn build_parent_type_2(
+    per_component: usize,
+    n_components: usize,
+    log_inv_rate: usize,
+    nodes: &mut Vec<NodeReport>,
+    silent: bool,
+) -> TypeTwoMultiSignature {
+    let cache = get_benchmark_signatures();
+    assert!(n_components >= 1, "n_components must be >= 1");
+    assert!(
+        cache.len() >= per_component * n_components,
+        "benchmark cache too small: need {} sigs, have {}",
+        per_component * n_components,
+        cache.len(),
+    );
+
+    let mut components: Vec<TypeOneMultiSignature> = Vec::with_capacity(n_components);
+    for i in 0..n_components {
+        let raw_xmss = cache[i * per_component..(i + 1) * per_component].to_vec();
+        let result = run_aggregate_type_1(
+            &[],
+            raw_xmss,
+            log_inv_rate,
+            per_component,
+            vec![0, i],
+            &format!("  setup aggregate component {}", i),
+            silent,
+            nodes,
+        );
+        components.push(result);
+    }
+
+    run_merge_many(
+        components,
+        log_inv_rate,
+        vec![0],
+        "  setup merge parent type-2",
+        silent,
+        nodes,
+    )
+}
+
+/// Benchmark `split_type_2` at index 0 of a parent type-2 built from
+/// `n_components` type-1's, each aggregated from `per_component` raw XMSS sigs.
+pub fn run_split_benchmark(
+    per_component: usize,
+    n_components: usize,
+    log_inv_rate: usize,
+    silent: bool,
+) -> BenchmarkReport {
+    #[cfg(target_os = "macos")]
+    let _activity = macos_activity::Activity::begin("lean-multisig benchmark");
+
+    precompute_dft_twiddles::<F>(1 << 24);
+
+    init_aggregation_bytecode();
+
+    if !silent {
+        println!(
+            "Aggregation program: {} instructions\n",
+            pretty_integer(get_aggregation_bytecode().code.len())
+        );
+    }
+
+    let mut nodes: Vec<NodeReport> = Vec::new();
+    let type2 = build_parent_type_2(per_component, n_components, log_inv_rate, &mut nodes, silent);
+    let split = run_split(
+        type2,
+        0,
+        log_inv_rate,
+        per_component,
+        vec![],
+        "  split index 0 (measured)",
+        silent,
+        &mut nodes,
+    );
+
+    verify_type_1(&split).expect("split-derived type-1 failed to verify");
+
+    BenchmarkReport { nodes }
+}
+
+/// Benchmark `merge_many_type_1` over one split-derived type-1 and one
+/// freshly-aggregated original type-1, both claiming `per_component` signers.
+pub fn run_merge_split_and_original_benchmark(
+    per_component: usize,
+    n_components: usize,
+    log_inv_rate: usize,
+    silent: bool,
+) -> BenchmarkReport {
+    #[cfg(target_os = "macos")]
+    let _activity = macos_activity::Activity::begin("lean-multisig benchmark");
+
+    precompute_dft_twiddles::<F>(1 << 24);
+
+    init_aggregation_bytecode();
+
+    if !silent {
+        println!(
+            "Aggregation program: {} instructions\n",
+            pretty_integer(get_aggregation_bytecode().code.len())
+        );
+    }
+
+    let mut nodes: Vec<NodeReport> = Vec::new();
+    let type2 = build_parent_type_2(per_component, n_components, log_inv_rate, &mut nodes, silent);
+    let split = run_split(
+        type2,
+        0,
+        log_inv_rate,
+        per_component,
+        vec![1, 0],
+        "  split index 0",
+        silent,
+        &mut nodes,
+    );
+
+    let cache = get_benchmark_signatures();
+    let parent_end = per_component * n_components;
+    assert!(
+        cache.len() >= parent_end + per_component,
+        "benchmark cache too small for original component"
+    );
+    let raw_xmss = cache[parent_end..parent_end + per_component].to_vec();
+    let original = run_aggregate_type_1(
+        &[],
+        raw_xmss,
+        log_inv_rate,
+        per_component,
+        vec![2],
+        "  original aggregate",
+        silent,
+        &mut nodes,
+    );
+
+    let merged = run_merge_many(
+        vec![split, original],
+        log_inv_rate,
+        vec![],
+        "  merge_many (measured)",
+        silent,
+        &mut nodes,
+    );
+
+    verify_type_2(&merged).expect("merged type-2 failed to verify");
+
+    BenchmarkReport { nodes }
+}
+
+/// Benchmark `aggregate_type_1` over one split-derived type-1 (index 0 of a
+/// K-component parent type-2) plus `n_new_leaves` fresh raw XMSS signatures
+/// signing the same (message, slot). Output is a single type-1 claiming
+/// `per_component + n_new_leaves` signers.
+pub fn run_merge_split_and_leaves_benchmark(
+    per_component: usize,
+    n_components: usize,
+    n_new_leaves: usize,
+    log_inv_rate: usize,
+    silent: bool,
+) -> BenchmarkReport {
+    #[cfg(target_os = "macos")]
+    let _activity = macos_activity::Activity::begin("lean-multisig benchmark");
+
+    precompute_dft_twiddles::<F>(1 << 24);
+
+    init_aggregation_bytecode();
+
+    if !silent {
+        println!(
+            "Aggregation program: {} instructions\n",
+            pretty_integer(get_aggregation_bytecode().code.len())
+        );
+    }
+
+    let mut nodes: Vec<NodeReport> = Vec::new();
+    let type2 = build_parent_type_2(per_component, n_components, log_inv_rate, &mut nodes, silent);
+    let split = run_split(
+        type2,
+        0,
+        log_inv_rate,
+        per_component,
+        vec![1, 0],
+        "  split index 0",
+        silent,
+        &mut nodes,
+    );
+
+    let cache = get_benchmark_signatures();
+    let parent_end = per_component * n_components;
+    assert!(
+        cache.len() >= parent_end + n_new_leaves,
+        "benchmark cache too small for {} new leaves",
+        n_new_leaves
+    );
+    let new_raw_xmss = cache[parent_end..parent_end + n_new_leaves].to_vec();
+    let n_total = per_component + n_new_leaves;
+
+    let combined = run_aggregate_type_1(
+        std::slice::from_ref(&split),
+        new_raw_xmss,
+        log_inv_rate,
+        n_total,
+        vec![],
+        "  aggregate split + new leaves (measured)",
+        silent,
+        &mut nodes,
+    );
+
+    verify_type_1(&combined).expect("combined type-1 failed to verify");
 
     BenchmarkReport { nodes }
 }
