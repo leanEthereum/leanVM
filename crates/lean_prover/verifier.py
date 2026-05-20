@@ -43,6 +43,8 @@ SNARK_DOMAIN_SEP = [Fp(v) for v in (
 MIN_WHIR_LOG_INV_RATE, MAX_WHIR_LOG_INV_RATE = 1, 4
 MIN_LOG_MEMORY_SIZE, MAX_LOG_MEMORY_SIZE = 16, 26
 MIN_LOG_N_ROWS_PER_TABLE, MIN_BYTECODE_LOG_SIZE, BASE_TWO_ADICITY = 8, 8, 24
+MAX_BYTECODE_LOG_SIZE = 22
+MAX_LOG_N_ROWS_PER_TABLE = {"execution": 24, "extension_op": 21, "poseidon16_compress": 21}
 WHIR_CONFIGS_PATH = "whir_configs.json"
 
 
@@ -1302,12 +1304,18 @@ def verify_execution(
         raise ProofError("InvalidRate")
     if any(h < MIN_LOG_N_ROWS_PER_TABLE for h in table_log_n_rows):
         raise ProofError("InvalidProof: table too small")
+    for t, h in zip(tables, table_log_n_rows):
+        limit = MAX_LOG_N_ROWS_PER_TABLE.get(t.name)
+        if limit is None:
+            raise ProofError(f"InvalidProof: unknown table {t.name}")
+        if h > limit:
+            raise ProofError(f"InvalidProof: table {t.name} too large (log_n_rows={h} > {limit})")
     if log_memory < max(max(table_log_n_rows, default=0), bytecode_log_size):
         raise ProofError("InvalidProof: memory smaller than tables/bytecode")
     if not MIN_LOG_MEMORY_SIZE <= log_memory <= MAX_LOG_MEMORY_SIZE:
         raise ProofError("InvalidProof: log_memory out of range")
-    if bytecode_log_size < MIN_BYTECODE_LOG_SIZE:
-        raise ProofError("InvalidProof: bytecode too small")
+    if not MIN_BYTECODE_LOG_SIZE <= bytecode_log_size <= MAX_BYTECODE_LOG_SIZE:
+        raise ProofError("InvalidProof: bytecode log_size out of range")
 
     table_log_heights = {t.name: h for t, h in zip(tables, table_log_n_rows)}
     tables_by_name = {t.name: t for t in tables}
@@ -1426,6 +1434,15 @@ def verify_execution(
         constants,
     )
     whir_verify(state, cfg, parsed_commitment, global_statements)
+
+    if state.offset != len(state.transcript):
+        raise ProofError(
+            f"InvalidProof: transcript not fully consumed ({state.offset}/{len(state.transcript)} scalars read)"
+        )
+    if state.open_idx != len(state.openings):
+        raise ProofError(
+            f"InvalidProof: Merkle openings not fully consumed ({state.open_idx}/{len(state.openings)} openings used)"
+        )
 
     return {"log_inv_rate": log_inv_rate, "log_memory": log_memory, "stacked_n_vars": stacked_n_vars}
 
