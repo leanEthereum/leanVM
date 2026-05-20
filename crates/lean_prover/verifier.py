@@ -666,23 +666,43 @@ def whir_verify(
 
     return folding_flat
 
+def _table_buses(name: str, n_columns: int) -> tuple:
+    if name == "execution":
+        return (
+            ("col_mult", "Push"),
+            ("byte_lookup",),
+            ("mem_group", 2, 5, 1),  # addr_a, value_a
+            ("mem_group", 3, 6, 1),  # addr_b, value_b
+            ("mem_group", 4, 7, 1),  # addr_c, value_c
+        )
+    if name == "extension_op":
+        return (
+            ("col_mult", "Pull"),
+            ("mem_group", 6, 14, 5),  # idx_a,   va
+            ("mem_group", 7, 19, 5),  # idx_b,   vb
+            ("mem_group", 13, 24, 5),  # idx_res, vres
+        )
+    if name == "poseidon16_compress":
+        return (
+            ("col_mult", "Pull"),
+            ("mem_group", 6, 9, 4),
+            ("mem_group", 7, 13, 4),
+            ("mem_group", 1, 17, 8),
+            ("mem_group", 2, n_columns - 16, 16),
+        )
+    raise ProofError(f"unknown table: {name}")
+
 
 @dataclass(frozen=True)
 class TableMeta:
     name: str
     n_columns: int
-    bus_direction: str  # "Pull" or "Push"
-    lookups: tuple[tuple[int, tuple[int, ...]], ...]  # (index_col, value_cols)
+    buses: tuple
 
 
 def tables_from_json(obj: list[dict]) -> list[TableMeta]:
     return [
-        TableMeta(
-            name=t["name"],
-            n_columns=int(t["n_columns"]),
-            bus_direction=t["bus"]["direction"],
-            lookups=tuple((int(l["index"]), tuple(int(v) for v in l["values"])) for l in t["lookups"]),
-        )
+        TableMeta(name=t["name"], n_columns=int(t["n_columns"]), buses=_table_buses(t["name"], int(t["n_columns"])))
         for t in obj
     ]
 
@@ -710,7 +730,7 @@ def stacked_pcs_global_statements(
 
     for name, n_vars in tables_sorted:
         if name == "execution":
-            # PC column: pin first row to starting_pc, last row to ending_pc.
+            # PC column: pin first row to STARTING_PC, last row to ending_pc.
             for idx, pc in [(0, constants["starting_pc"]), ((1 << n_vars) - 1, constants["ending_pc"])]:
                 out.append(SparseStatement.unique_value(stacked_n_vars, offset + (col_pc << n_vars) + idx, fb(pc)))
 
@@ -822,20 +842,21 @@ def verify_generic_logup(
     n_instr_cols = constants["n_instruction_columns"]
     n_runtime_cols = constants["n_runtime_columns"]
     col_pc = constants["col_pc"]
-    disc_mem = Fp(constants["logup_memory_discriminator"])
-    disc_byte = Fp(constants["logup_bytecode_discriminator"])
+    ds_mem = Fp(constants["logup_memory_domainsep"])
+    ds_byte = Fp(constants["logup_bytecode_domainsep"])
 
     tables_sorted = sort_tables_by_height(table_log_heights)
     log_bytecode = log2_strict_usize(len(bytecode_multilinear) // (1 << log2_ceil_usize(n_instr_cols)))
     log_instr = log2_ceil_usize(n_instr_cols)
-    log_n_cycles = table_log_heights["execution"]
 
-    table_cols = lambda n: sum(len(vs) for _, vs in tables[n].lookups) + 1
+    def n_buses(name: str) -> int:
+        # mem_group entries expand to `n` individual buses.
+        return sum(b[3] if b[0] == "mem_group" else 1 for b in tables[name].buses)
+
     total_active_len = (
         (1 << log_memory)
         + max(1 << log_bytecode, 1 << tables_sorted[0][1])
-        + (1 << log_n_cycles)
-        + sum(table_cols(n) << h for n, h in tables_sorted)
+        + sum(n_buses(n) << h for n, h in tables_sorted)
     )
     total_gkr_n_vars = log2_ceil_usize(total_active_len)
 
@@ -850,13 +871,13 @@ def verify_generic_logup(
         bits = to_big_endian_in_field(offset >> log_height, n_missing)
         return eq_poly_outside(bits, point_gkr[:n_missing])
 
-    # Memory.
+    # Memory (data order: [value_index, value_memory] mirrors `crates/sub_protocols/src/logup.rs`).
     mem_pt = from_end(point_gkr, log_memory)
     pref = pref_at(0, log_memory)
     value_memory_acc = state.next_extension_scalar()
-    value_memory = state.next_extension_scalar()
-    fp_mem = finger_print(disc_mem, [value_memory, mle_of_01234567_etc(mem_pt)], alphas_eq_poly)
     num = num - pref * value_memory_acc
+    value_memory = state.next_extension_scalar()
+    fp_mem = finger_print(ds_mem, [mle_of_01234567_etc(mem_pt), value_memory], alphas_eq_poly)
     den = den + pref * (c - fp_mem)
     offset = 1 << log_memory
 
@@ -871,7 +892,7 @@ def verify_generic_logup(
     fp_byte = (
         bytecode_value * correction
         + mle_of_01234567_etc(byte_pt) * alphas_eq_poly[n_instr_cols]
-        + alphas_eq_poly[-1] * EF.from_base(disc_byte)
+        + alphas_eq_poly[-1] * EF.from_base(ds_byte)
     )
     num = num - pref * value_bytecode_acc
     den = (
@@ -881,51 +902,54 @@ def verify_generic_logup(
     )
     offset += 1 << log_byte_pad
 
-    # Per-table: execution bytecode lookup + bus column + per-lookup memory reads.
+    # Per-table: walk the bus spec in the same order as the Rust prover. The prover
+    # writes col_evals for new (uncached) columns in `bus.data` order via a single
+    # `add_extension_scalars` chunk per bus — the verifier must read in the same chunks.
     bus_num_vals: dict[str, EF] = {}
     bus_den_vals: dict[str, EF] = {}
     columns_values: dict[str, dict[int, EF]] = {}
+
     for name, log_n_rows in tables_sorted:
         meta = tables[name]
         table_values: dict[int, EF] = {}
+        row_stride = 1 << log_n_rows
 
-        if name == "execution":
-            eval_on_pc = state.next_extension_scalar()
-            instr_evals = state.next_extension_scalars_vec(n_instr_cols)
-            table_values[col_pc] = eval_on_pc
-            table_values.update({n_runtime_cols + i: e for i, e in enumerate(instr_evals)})
+        for bus in meta.buses:
             pref = pref_at(offset, log_n_rows)
-            fp = finger_print(disc_byte, list(instr_evals) + [eval_on_pc], alphas_eq_poly)
-            num = num + pref
-            den = den + pref * (c - fp)
-            offset += 1 << log_n_rows
-
-        eval_on_multiplicity = state.next_extension_scalar()
-        eval_on_data = state.next_extension_scalar()
-        pref = pref_at(offset, log_n_rows)
-        num = num + pref * eval_on_multiplicity
-        den = den + pref * eval_on_data
-        bus_num_vals[name] = eval_on_multiplicity
-        bus_den_vals[name] = eval_on_data
-        offset += 1 << log_n_rows
-
-        for index_col, value_cols in meta.lookups:
-            index_eval = state.next_extension_scalar()
-            assert index_col not in table_values
-            table_values[index_col] = index_eval
-            for i, col_index in enumerate(value_cols):
-                value_eval = state.next_extension_scalar()
-                assert col_index not in table_values
-                table_values[col_index] = value_eval
-                pref = pref_at(offset, log_n_rows)
-                fp = finger_print(
-                    disc_mem,
-                    [value_eval, index_eval + fb(i)],
-                    alphas_eq_poly,
-                )
-                num = num + pref
-                den = den + pref * (c - fp)
-                offset += 1 << log_n_rows
+            match bus:
+                case ("col_mult", _direction):
+                    bus_num_vals[name] = state.next_extension_scalar()
+                    bus_den_vals[name] = state.next_extension_scalar()
+                    num = num + pref * bus_num_vals[name]
+                    den = den + pref * bus_den_vals[name]
+                    offset += row_stride
+                case ("byte_lookup",):
+                    cols = list(range(n_runtime_cols, n_runtime_cols + n_instr_cols)) + [col_pc]
+                    evals = state.next_extension_scalars_vec(len(cols))
+                    for c_idx, e in zip(cols, evals):
+                        table_values[c_idx] = e
+                    num = num + pref  # Push direction
+                    den = den + pref * (c - finger_print(ds_byte, evals, alphas_eq_poly))
+                    offset += row_stride
+                case ("mem_group", idx_col, vals_start, n):
+                    # One bus per row in the group; first sees idx_col fresh, the rest
+                    # see only val_col fresh (mirrors the Rust prover's dedup logic).
+                    for i in range(n):
+                        val_col = vals_start + i
+                        idx_fresh = idx_col not in table_values
+                        val_fresh = val_col not in table_values
+                        evals = iter(state.next_extension_scalars_vec(idx_fresh + val_fresh))
+                        if idx_fresh:
+                            table_values[idx_col] = next(evals)
+                        if val_fresh:
+                            table_values[val_col] = next(evals)
+                        pref = pref_at(offset, log_n_rows)
+                        fp = finger_print(ds_mem, [table_values[idx_col] + fb(i), table_values[val_col]], alphas_eq_poly)
+                        num = num + pref  # Push direction
+                        den = den + pref * (c - fp)
+                        offset += row_stride
+                case _:
+                    raise ProofError(f"unknown bus kind: {bus[0]}")
 
         columns_values[name] = table_values
 
@@ -993,7 +1017,7 @@ def air_constraint_eval(
     return folder.accumulator
 
 
-def _eval_air_execution(folder: ConstraintFolder, table: TableMeta, extra_data: dict) -> None:
+def _eval_air_execution(folder: ConstraintFolder, _table: TableMeta, extra_data: dict) -> None:
     # fmt: off
     (pc, fp, addr_a, addr_b, addr_c, value_a, value_b, value_c,
      operand_a, operand_b, operand_c, flag_a, flag_b, flag_c, flag_c_fp,
@@ -1046,7 +1070,7 @@ def _quintic_mul_ef(a: Sequence[EF], b: Sequence[EF]) -> list[EF]:
     return _quintic_mul(a, b, ZERO)
 
 
-def _eval_air_extension_op(folder: ConstraintFolder, table: TableMeta, extra_data: dict) -> None:
+def _eval_air_extension_op(folder: ConstraintFolder, _table: TableMeta, extra_data: dict) -> None:
     # Layout: shift columns 0..13 = (is_be, start, len, flag_{add,mul,poly_eq},
     # idx_{a,b}, comp[0..5]); then idx_res, va, vb, vres (5 each).
     f = folder.flat
@@ -1147,7 +1171,7 @@ def _full_round(state: list[EF], rc1: list[Fp], rc2: list[Fp]) -> list[EF]:
     return state
 
 
-def _eval_poseidon1_16(folder: ConstraintFolder, cols: dict, extra_data: dict) -> None:
+def _eval_poseidon1_16(folder: ConstraintFolder, cols: dict, _extra_data: dict) -> None:
     """AIR for Poseidon1-16. Each `post` column commits an intermediate state, which we
     constrain against the local computation, then adopt to bound polynomial degree."""
     const = _p1c()
@@ -1195,7 +1219,7 @@ def _eval_poseidon1_16(folder: ConstraintFolder, cols: dict, extra_data: dict) -
         folder.assert_zero(flag_permute * (state[i + _POSEIDON_WIDTH // 2] - cols["outputs_right"][i]))
 
 
-def _eval_air_poseidon16(folder: ConstraintFolder, table: TableMeta, extra_data: dict) -> None:
+def _eval_air_poseidon16(folder: ConstraintFolder, _table: TableMeta, extra_data: dict) -> None:
     const = _p1c()
     flat, W = folder.flat, _POSEIDON_WIDTH
     half_initial = half_final = const["half_full_rounds"] // 2
@@ -1252,8 +1276,8 @@ def _eval_air_poseidon16(folder: ConstraintFolder, table: TableMeta, extra_data:
 
 _TABLE_SPECS: dict[str, dict] = {
     "execution": {"degree": 5, "n_constraints": 13, "n_shift": 2, "air": _eval_air_execution},
-    "extension_op": {"degree": 4, "n_constraints": 33, "n_shift": 13, "air": _eval_air_extension_op},
-    "poseidon16_compress": {"degree": 10, "n_constraints": 99, "n_shift": 0, "air": _eval_air_poseidon16},
+    "extension_op": {"degree": 6, "n_constraints": 33, "n_shift": 13, "air": _eval_air_extension_op},
+    "poseidon16_compress": {"degree": 10, "n_constraints": 100, "n_shift": 0, "air": _eval_air_poseidon16},
 }
 
 
@@ -1310,8 +1334,7 @@ def verify_execution(
 
     logup_c = state.sample()
     state.duplex()
-    max_bus_width = 1 + max(constants["max_precompile_bus_width"], constants["n_instruction_columns"])
-    logup_alphas = state.sample_vec(log2_ceil_usize(max_bus_width))
+    logup_alphas = state.sample_vec(constants["log_max_bus_width"])
     logup_alphas_eq = eval_eq(logup_alphas)
     logup = verify_generic_logup(
         state,
@@ -1343,12 +1366,13 @@ def verify_execution(
     eta_powers = powers(eta, len(tables_sorted))
     extra_data = {"logup_alphas_eq_poly": logup_alphas_eq, "bus_beta": bus_beta, "c": logup_c}
 
-    # Initial AIR sum: Σ η^t · (bus_num · sign + β · (bus_den − c)).
+    # Initial AIR sum: Σ η^t · (bus_num · sign + β · (c − bus_den)). The sign is the
+    # direction of each table's unique Column-multiplicity bus (always `buses[0]`).
     initial_sum = ZERO
     for (name, _), eta_pow in zip(tables_sorted, eta_powers):
-        sign = -ONE if tables_by_name[name].bus_direction == "Pull" else ONE
+        sign = -ONE if tables_by_name[name].buses[0][1] == "Pull" else ONE
         initial_sum = initial_sum + eta_pow * (
-            logup["bus_num"][name] * sign + bus_beta * (logup["bus_den"][name] - logup_c)
+            logup["bus_num"][name] * sign + bus_beta * (logup_c - logup["bus_den"][name])
         )
     n_max = tables_sorted[0][1]
     sc_point, sc_value = verify_sumcheck(
