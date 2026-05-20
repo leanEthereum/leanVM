@@ -1,8 +1,8 @@
 use crate::Table;
 
 /// Domain separation in logup
-pub const LOGUP_MEMORY_DISCRIMINATOR: usize = 1;
-pub const LOGUP_BYTECODE_DISCRIMINATOR: usize = 2;
+pub const LOGUP_MEMORY_DOMAINSEP: usize = 1;
+pub const LOGUP_BYTECODE_DOMAINSEP: usize = 2;
 
 /// Large field = extension field of degree DIMENSION over koala-bear
 pub const DIMENSION: usize = 5;
@@ -48,7 +48,7 @@ mod tests {
     #[test]
     fn ensure_no_overflow_in_logup() {
         fn memory_lookups_count<T: TableT>(t: &T) -> usize {
-            t.lookups().iter().map(|l| l.values.len()).sum::<usize>()
+            t.bus_interactions().iter().filter(|bus| bus.is_memory_lookup()).count()
         }
         // memory lookup
         let mut max_memory_logup_sum: u64 = 0;

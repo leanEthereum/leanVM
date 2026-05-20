@@ -91,10 +91,14 @@ pub fn prove_execution(
     let mut memory_acc = F::zero_vec(memory.len());
     info_span!("Building memory access count").in_scope(|| {
         for (table, trace) in &traces {
-            for lookup in table.lookups() {
-                for i in &trace.columns[lookup.index] {
-                    for j in 0..lookup.values.len() {
-                        memory_acc[i.to_usize() + j] += F::ONE;
+            let buses = table.bus_interactions();
+            for group in memory_lookup_groups(&buses) {
+                let idx_col = &trace.columns[group.idx_col];
+                let n = group.value_cols.len();
+                for idx in idx_col {
+                    let base = idx.to_usize();
+                    for ofs in 0..n {
+                        memory_acc[base + ofs] += F::ONE;
                     }
                 }
             }
@@ -122,7 +126,7 @@ pub fn prove_execution(
     // logup (GKR)
     let logup_c = prover_state.sample();
     prover_state.duplex();
-    let logup_alphas = prover_state.sample_vec(log2_ceil_usize(max_bus_width_including_bytecode()));
+    let logup_alphas = prover_state.sample_vec(LOG_MAX_BUS_WIDTH);
     let logup_alphas_eq_poly = eval_eq(&logup_alphas);
 
     let logup_statements = prove_generic_logup(
@@ -181,11 +185,11 @@ pub fn prove_execution(
         let bus_numerator_value = logup_statements.bus_numerators_values[table];
         let bus_denominator_value = logup_statements.bus_denominators_values[table];
         let bus_final_value = bus_numerator_value
-            * match table.bus().direction {
+            * match table.bus_interactions()[0].direction {
                 BusDirection::Pull => EF::NEG_ONE,
                 BusDirection::Push => EF::ONE,
             }
-            + bus_beta * (bus_denominator_value - logup_c);
+            + bus_beta * (logup_c - bus_denominator_value);
 
         let eq_suffix = from_end(gkr_point, *log_n_rows).to_vec();
 

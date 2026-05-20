@@ -89,8 +89,8 @@ const HALF_INITIAL_FULL_ROUNDS: usize = POSEIDON1_HALF_FULL_ROUNDS / 2;
 const PARTIAL_ROUNDS: usize = POSEIDON1_PARTIAL_ROUNDS;
 const HALF_FINAL_FULL_ROUNDS: usize = POSEIDON1_HALF_FULL_ROUNDS / 2;
 
-// Discriminator encoding: see `tables/mod.rs`.
-pub const POSEIDON_DISCRIMINATOR_BASE: usize = 3;
+// Domainsep encoding: see `tables/mod.rs`.
+pub const POSEIDON_DOMAINSEP_BASE: usize = 3;
 pub const POSEIDON_PERMUTE_SHIFT: usize = 1 << 1;
 pub const POSEIDON_HALF_OUTPUT_SHIFT: usize = 1 << 2;
 pub const POSEIDON_HARDCODED_LEFT_4_FLAG_SHIFT: usize = 1 << 3;
@@ -110,7 +110,7 @@ pub const POSEIDON_16_COL_OUTPUT_LEFT: ColIndex = num_cols_poseidon_16() - 16;
 pub const POSEIDON_16_COL_OUTPUT_RIGHT: ColIndex = num_cols_poseidon_16() - 8;
 /// Non-committed columns ("virtual"):
 pub const POSEIDON_16_COL_INDEX_INPUT_LEFT: ColIndex = num_cols_poseidon_16();
-pub const POSEIDON_16_COL_DISCRIMINATOR: ColIndex = num_cols_poseidon_16() + 1;
+pub const POSEIDON_16_COL_DOMAINSEP: ColIndex = num_cols_poseidon_16() + 1;
 
 pub const POSEIDON16_NAME: &str = "poseidon16_compress";
 pub const POSEIDON16_HALF_NAME: &str = "poseidon16_compress_half";
@@ -138,44 +138,42 @@ impl<const BUS: bool> TableT for Poseidon16Precompile<BUS> {
         Table::poseidon16()
     }
 
-    fn lookups(&self) -> Vec<LookupIntoMemory> {
-        vec![
-            LookupIntoMemory {
-                index: POSEIDON_16_COL_EFFECTIVE_INDEX_LEFT_FIRST,
-                values: (POSEIDON_16_COL_INPUT_START..POSEIDON_16_COL_INPUT_START + HALF_DIGEST_LEN).collect(),
-            },
-            LookupIntoMemory {
-                index: POSEIDON_16_COL_EFFECTIVE_INDEX_LEFT_SECOND,
-                values: (POSEIDON_16_COL_INPUT_START + HALF_DIGEST_LEN..POSEIDON_16_COL_INPUT_START + DIGEST_LEN)
-                    .collect(),
-            },
-            LookupIntoMemory {
-                index: POSEIDON_16_COL_INDEX_INPUT_RIGHT,
-                values: (POSEIDON_16_COL_INPUT_START + DIGEST_LEN..POSEIDON_16_COL_INPUT_START + DIGEST_LEN * 2)
-                    .collect(),
-            },
-            LookupIntoMemory {
-                index: POSEIDON_16_COL_INDEX_INPUT_RES,
-                values: (POSEIDON_16_COL_OUTPUT_LEFT..POSEIDON_16_COL_OUTPUT_LEFT + DIGEST_LEN * 2).collect(),
-            },
-        ]
-    }
-
     fn n_columns_total(&self) -> usize {
         num_cols_total_poseidon_16()
     }
 
-    fn bus(&self) -> Bus {
-        Bus {
+    fn bus_interactions(&self) -> Vec<BusInteraction> {
+        let mut buses = vec![BusInteraction {
             direction: BusDirection::Pull,
-            multiplicity: POSEIDON_16_COL_MULTIPLICITY,
-            discriminator: BusData::Column(POSEIDON_16_COL_DISCRIMINATOR),
+            multiplicity: BusMultiplicity::Column(POSEIDON_16_COL_MULTIPLICITY),
+            domainsep: BusData::Column(POSEIDON_16_COL_DOMAINSEP),
             data: vec![
                 BusData::Column(POSEIDON_16_COL_INDEX_INPUT_LEFT),
                 BusData::Column(POSEIDON_16_COL_INDEX_INPUT_RIGHT),
                 BusData::Column(POSEIDON_16_COL_INDEX_INPUT_RES),
             ],
-        }
+        }];
+        buses.extend(memory_lookups_consecutive(
+            POSEIDON_16_COL_EFFECTIVE_INDEX_LEFT_FIRST,
+            POSEIDON_16_COL_INPUT_START,
+            HALF_DIGEST_LEN,
+        ));
+        buses.extend(memory_lookups_consecutive(
+            POSEIDON_16_COL_EFFECTIVE_INDEX_LEFT_SECOND,
+            POSEIDON_16_COL_INPUT_START + HALF_DIGEST_LEN,
+            HALF_DIGEST_LEN,
+        ));
+        buses.extend(memory_lookups_consecutive(
+            POSEIDON_16_COL_INDEX_INPUT_RIGHT,
+            POSEIDON_16_COL_INPUT_START + DIGEST_LEN,
+            DIGEST_LEN,
+        ));
+        buses.extend(memory_lookups_consecutive(
+            POSEIDON_16_COL_INDEX_INPUT_RES,
+            POSEIDON_16_COL_OUTPUT_LEFT,
+            DIGEST_LEN * 2,
+        ));
+        buses
     }
 
     fn padding_row(&self, zero_vec_ptr: usize, null_hash_ptr: usize, _ending_pc: usize) -> Vec<F> {
@@ -197,7 +195,7 @@ impl<const BUS: bool> TableT for Poseidon16Precompile<BUS> {
         *perm.flag_permute = F::ZERO;
         perm.outputs_right.iter_mut().for_each(|x| **x = F::ZERO);
         row[POSEIDON_16_COL_INDEX_INPUT_LEFT] = F::from_usize(zero_vec_ptr);
-        row[POSEIDON_16_COL_DISCRIMINATOR] = F::from_usize(POSEIDON_DISCRIMINATOR_BASE);
+        row[POSEIDON_16_COL_DOMAINSEP] = F::from_usize(POSEIDON_DOMAINSEP_BASE);
 
         generate_trace_rows_for_perm(perm);
         row
@@ -277,12 +275,12 @@ impl<const BUS: bool> TableT for Poseidon16Precompile<BUS> {
         }
         // Non-committed columns
         trace.columns[POSEIDON_16_COL_INDEX_INPUT_LEFT].push(arg_a);
-        let discriminator = POSEIDON_DISCRIMINATOR_BASE
+        let domainsep = POSEIDON_DOMAINSEP_BASE
             + POSEIDON_PERMUTE_SHIFT * (permute as usize)
             + POSEIDON_HALF_OUTPUT_SHIFT * (half_output as usize)
             + POSEIDON_HARDCODED_LEFT_4_FLAG_SHIFT * (flag_hardcoded as usize)
             + POSEIDON_HARDCODED_LEFT_4_OFFSET_SHIFT * hardcoded_offset_left_val;
-        trace.columns[POSEIDON_16_COL_DISCRIMINATOR].push(F::from_usize(discriminator));
+        trace.columns[POSEIDON_16_COL_DOMAINSEP].push(F::from_usize(domainsep));
 
         // the rest of the trace is filled at the end of the execution (to get parallelism + SIMD)
 
@@ -322,7 +320,7 @@ impl<const BUS: bool> Air for Poseidon16Precompile<BUS> {
             unsafe { std::ptr::read(&shorts[0]) }
         };
 
-        let discriminator_reconstructed = AB::IF::from_usize(POSEIDON_DISCRIMINATOR_BASE)
+        let domainsep_reconstructed = AB::IF::from_usize(POSEIDON_DOMAINSEP_BASE)
             + cols.flag_half_output * AB::F::from_usize(POSEIDON_HALF_OUTPUT_SHIFT)
             + cols.flag_hardcoded_left * AB::F::from_usize(POSEIDON_HARDCODED_LEFT_4_FLAG_SHIFT)
             + cols.flag_hardcoded_left
@@ -335,18 +333,17 @@ impl<const BUS: bool> Air for Poseidon16Precompile<BUS> {
         let index_a =
             cols.effective_index_left_second - one_minus_flag_hardcoded_left * AB::F::from_usize(HALF_DIGEST_LEN);
 
-        // Bus: discriminator = discriminator, data = [a, b, res]
+        // Bus: data = [a, b, res], domainsep
         if BUS {
-            builder.assert_zero_ef(eval_virtual_bus_column::<AB, EF>(
+            builder.assert_zero_ef(eval_bus_virtual::<AB, EF>(
                 extra_data,
                 cols.multiplicity,
-                discriminator_reconstructed,
+                domainsep_reconstructed,
                 &[index_a, cols.index_b, cols.index_res],
             ));
         } else {
             builder.declare_values(std::slice::from_ref(&cols.multiplicity));
-            builder.declare_values(std::slice::from_ref(&discriminator_reconstructed));
-            builder.declare_values(&[index_a, cols.index_b, cols.index_res]);
+            builder.declare_values(&[index_a, cols.index_b, cols.index_res, domainsep_reconstructed]);
         }
 
         builder.assert_bool(cols.multiplicity);
@@ -454,7 +451,7 @@ pub const fn num_cols_poseidon_16() -> usize {
 }
 
 pub const fn num_cols_total_poseidon_16() -> usize {
-    // +2 for non-committed columns: POSEIDON_16_COL_INDEX_INPUT_LEFT, POSEIDON_16_COL_DISCRIMINATOR
+    // +2 for non-committed columns: POSEIDON_16_COL_INDEX_INPUT_LEFT, POSEIDON_16_COL_DOMAINSEP
     num_cols_poseidon_16() + 2
 }
 

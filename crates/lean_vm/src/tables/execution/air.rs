@@ -1,4 +1,4 @@
-use crate::{EF, ExecutionTable, ExtraDataForBuses, eval_virtual_bus_column};
+use crate::{EF, ExecutionTable, ExtraDataForBuses, eval_bus_virtual};
 use backend::*;
 
 pub const N_RUNTIME_COLUMNS: usize = 8;
@@ -27,7 +27,7 @@ pub const COL_FLAG_AB_FP: usize = 15;
 pub const COL_MUL: usize = 16;
 pub const COL_JUMP: usize = 17;
 pub const COL_AUX: usize = 18;
-pub const COL_PRECOMPILE_DISCRIMINATOR: usize = 19;
+pub const COL_PRECOMPILE_DOMAINSEP: usize = 19;
 
 // Temporary columns (stored to avoid duplicate computations)
 pub const N_TEMPORARY_EXEC_COLUMNS: usize = 4;
@@ -67,7 +67,7 @@ impl<const BUS: bool> Air for ExecutionTable<BUS> {
         let mul = flat[COL_MUL];
         let jump = flat[COL_JUMP];
         let aux = flat[COL_AUX];
-        let discriminator = flat[COL_PRECOMPILE_DISCRIMINATOR];
+        let domainsep = flat[COL_PRECOMPILE_DOMAINSEP];
 
         let (value_a, value_b, value_c) = (flat[COL_MEM_VALUE_A], flat[COL_MEM_VALUE_B], flat[COL_MEM_VALUE_C]);
         let pc = flat[COL_PC];
@@ -97,16 +97,15 @@ impl<const BUS: bool> Air for ExecutionTable<BUS> {
         let multiplicity = -(add + mul + deref + jump - AB::F::ONE);
 
         if BUS {
-            builder.assert_zero_ef(eval_virtual_bus_column::<AB, EF>(
+            builder.assert_zero_ef(eval_bus_virtual::<AB, EF>(
                 extra_data,
                 multiplicity,
-                discriminator,
+                domainsep,
                 &[nu_a, nu_b, nu_c],
             ));
         } else {
             builder.declare_values(&[multiplicity]);
-            builder.declare_values(std::slice::from_ref(&discriminator));
-            builder.declare_values(&[nu_a, nu_b, nu_c]);
+            builder.declare_values(&[nu_a, nu_b, nu_c, domainsep]);
         }
 
         builder.assert_zero(one_minus_flag_a_and_flag_ab_fp * (addr_a - fp_plus_operand_a));

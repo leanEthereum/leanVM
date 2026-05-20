@@ -1,6 +1,5 @@
 use crate::{
-    EF, EXT_OP_FLAG_ADD, EXT_OP_FLAG_IS_BE, EXT_OP_FLAG_MUL, EXT_OP_FLAG_POLY_EQ, ExtraDataForBuses,
-    eval_virtual_bus_column,
+    EF, EXT_OP_FLAG_ADD, EXT_OP_FLAG_IS_BE, EXT_OP_FLAG_MUL, EXT_OP_FLAG_POLY_EQ, ExtraDataForBuses, eval_bus_virtual,
     tables::extension_op::{EXT_OP_LEN_MULTIPLIER, ExtensionOpPrecompile},
 };
 use backend::*;
@@ -28,7 +27,7 @@ pub(super) const COL_VRES: usize = 24;
 
 // Virtual columns (not explicitely in AIR)
 pub(super) const COL_MULTIPLICITY_EXTENSION_OP: usize = 29;
-pub(super) const COL_DISCRIMINATOR_EXTENSION_OP: usize = 30;
+pub(super) const COL_DOMAINSEP_EXTENSION_OP: usize = 30;
 
 use backend::quintic_extension::extension::quintic_mul;
 
@@ -97,7 +96,7 @@ impl<const BUS: bool> Air for ExtensionOpPrecompile<BUS> {
         let idx_r = flat[COL_IDX_RES];
 
         if BUS {
-            builder.assert_zero_ef(eval_virtual_bus_column::<AB, EF>(
+            builder.assert_zero_ef(eval_bus_virtual::<AB, EF>(
                 extra_data,
                 multiplicity,
                 aux,
@@ -105,8 +104,7 @@ impl<const BUS: bool> Air for ExtensionOpPrecompile<BUS> {
             ));
         } else {
             builder.declare_values(&[multiplicity]);
-            builder.declare_values(std::slice::from_ref(&aux));
-            builder.declare_values(&[idx_a, idx_b, idx_r]);
+            builder.declare_values(&[idx_a, idx_b, idx_r, aux]);
         }
 
         let is_ee = -(is_be - AB::F::ONE);

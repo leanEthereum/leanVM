@@ -1,7 +1,7 @@
 use backend::*;
 use lean_vm::{
-    ALL_TABLES, COL_PC, CommittedStatements, MIN_LOG_MEMORY_SIZE, MIN_LOG_N_ROWS_PER_TABLE, N_INSTRUCTION_COLUMNS,
-    STARTING_PC, sort_tables_by_height,
+    ALL_TABLES, COL_PC, ColIndex, CommittedStatements, MIN_LOG_MEMORY_SIZE, MIN_LOG_N_ROWS_PER_TABLE,
+    N_INSTRUCTION_COLUMNS, STARTING_PC, sort_tables_by_height,
 };
 use lean_vm::{EF, F, Table, TableT, TableTrace};
 use std::collections::BTreeMap;
@@ -208,11 +208,15 @@ pub fn total_whir_statements() -> usize {
      + ALL_TABLES
         .iter()
         .map(|table| {
-            // AIR
-            table.n_columns()
-            + table.n_shift_columns()
-            // Lookups into memory
-            + table.lookups().iter().map(|lookup| 1 + lookup.values.len()).sum::<usize>()
+            let mut seen_cols = std::collections::HashSet::<ColIndex>::new();
+            for bus in table.bus_interactions().iter().filter(|b| b.is_memory_lookup()) {
+                for entry in &bus.data {
+                    if let Some(col) = entry.column() {
+                        seen_cols.insert(col);
+                    }
+                }
+            }
+            table.n_columns() + table.n_shift_columns() + seen_cols.len()
         })
         .sum::<usize>()
         // bytecode lookup

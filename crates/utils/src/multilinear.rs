@@ -73,19 +73,23 @@ pub fn mle_of_01234567_etc<F: Field>(point: &[F]) -> F {
     }
 }
 
-pub fn finger_print<DS: Field, EF: ExtensionField<DS>>(discriminator: DS, data: &[EF], alphas_eq_poly: &[EF]) -> EF {
+/// Fingerprint of a logup data tuple. The `domainsep` always occupies the last
+/// fingerprint slot (`alphas_eq_poly.last()`) for domain separation, while `data`
+/// fills the low slots.
+pub fn finger_print<EF: Field>(domainsep: EF, data: &[EF], alphas_eq_poly: &[EF]) -> EF {
     assert!(alphas_eq_poly.len() > data.len());
     dot_product::<EF, _, _>(alphas_eq_poly.iter().copied(), data.iter().copied())
-        + *alphas_eq_poly.last().unwrap() * discriminator
+        + *alphas_eq_poly.last().unwrap() * domainsep
 }
 
+/// Packed variant of [`finger_print`].
 #[inline(always)]
 pub fn finger_print_packed<EF: ExtensionField<PF<EF>>>(
-    discriminator_contrib: EFPacking<EF>,
+    domainsep: PFPacking<EF>,
     data: &[PFPacking<EF>],
     alphas_packed: &[EFPacking<EF>],
 ) -> EFPacking<EF> {
-    let mut result = discriminator_contrib;
+    let mut result = *alphas_packed.last().unwrap() * domainsep;
     for (alpha, d) in alphas_packed.iter().zip(data) {
         result += *alpha * *d;
     }
