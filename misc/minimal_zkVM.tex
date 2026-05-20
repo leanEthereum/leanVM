@@ -112,19 +112,11 @@ For a vector of field elements $v \in \mathbb F^{2^n}$ (for some $n \geq 0$), th
 
 Throughout, $v$ denotes a vector and $\hat{v}$ its MLE.
 
-\begin{lemma}[Multilinear Schwartz-Zippel]\label{lem:multilinear-sz}
-Let $v, v' \in \Fp^{2^n}$ with $v \neq v'$. Then
-\[
-\Pr_{\vec\beta \,\overset{\$}{\leftarrow}\, \Fq^n}\!\big[\,\hat{v}(\vec\beta) = \hat{v'}(\vec\beta)\,\big] \;\leq\; \frac{n}{q}.
-\]
-\end{lemma}
-\begin{proof}
-Let $P = \hat{v} - \hat{v'}$. $P$ is a non-zero multilinear polynomial in $n$ variables, and it suffices to show $\Pr_{\vec\beta}[P(\vec\beta) = 0] \leq n/q$. We induct on $n$. The case $n = 0$ is trivial. For $n \geq 1$, split
-\[
-P(X_1, \ldots, X_n) \;=\; X_n \cdot Q(X_1, \ldots, X_{n-1}) \;+\; R(X_1, \ldots, X_{n-1}),
-\]
-and write $\vec\beta = (\vec\beta_{<n}, \beta_n)$. If $Q = 0$, then $R$ is a non-zero multilinear polynomial in $n-1$ variables, and the induction hypothesis gives $\Pr[P(\vec\beta) = 0] \leq (n-1)/q \leq n/|\Fq$. Otherwise $Q \neq 0$. By the induction hypothesis, $\Pr[Q(\vec\beta_{<n}) = 0] \leq (n-1)/q$; and conditioned on $Q(\vec\beta_{<n}) \neq 0$, the polynomial $X_n \mapsto P(\vec\beta_{<n}, X_n)$ has degree exactly $1$, hence at most one root, so $\Pr[P(\vec\beta) = 0 \mid Q(\vec\beta_{<n}) \neq 0] \leq 1/q$. A union bound gives $\Pr[P(\vec\beta) = 0] \leq n/q$.
-\end{proof}
+\vspace{5mm}
+
+\subsubsection{$\Fp$-valued multiset}\label{sec:fp-multiset}
+
+An \emph{$\Fp$-valued multiset} over a set $X$ is a function $M : X \to \Fp$ assigning a multiplicity in $\Fp$ to each element of $X$. Its \emph{support} is $\mathrm{supp}(M) = \{x \in X : M(x) \neq 0\}$, and $M$ is the \emph{zero multiset} when $\mathrm{supp}(M) = \emptyset$.
 
 \vspace{5mm}
 
@@ -168,6 +160,28 @@ The polynomial $\nextmle$ enables sumcheck-based evaluation of shifted MLEs \ref
 \[
 \overset{\scriptscriptstyle\wedge}{\textsf{shift}(v)}(x) \;=\; \sum_{y \in \{0,1\}^n} \nextmle(x, y)\; \hat{v}(y) ,
 \]
+
+\subsection{Lemmas}
+
+\subsubsection{Schwartz-Zippel}
+
+\begin{lemma}[Schwartz-Zippel]\label{lem:sz}
+Let $P \in \Fq[X_1, \ldots, X_n]$ be a non-zero polynomial of total degree $d$. Then
+\[
+\Pr_{\vec\beta \,\overset{\$}{\leftarrow}\, \Fq^n}\big[P(\vec\beta) = 0\big] \;\leq\; \frac{d}{q}.
+\]
+\end{lemma}
+\begin{proof}
+By induction on $n$. For $n = 1$, $P$ is a non-zero univariate polynomial of degree $d$, hence has at most $d$ roots in $\Fq$, so $\Pr_\beta[P(\beta) = 0] \leq d/q$.
+
+For $n \geq 2$, write $P$ as a polynomial in $X_n$ with coefficients in $\Fq[X_1, \ldots, X_{n-1}]$:
+\[
+P(X_1, \ldots, X_n) \;=\; \sum_{k=0}^{d} X_n^k \, Q_k(X_1, \ldots, X_{n-1}),
+\]
+and let $k^\star = \max\{k : Q_k \neq 0\}$. Then $Q_{k^\star}$ is a non-zero polynomial in $n-1$ variables of total degree at most $d - k^\star$. By the induction hypothesis, $\Pr_{\vec\beta_{<n}}[Q_{k^\star}(\vec\beta_{<n}) = 0] \leq (d - k^\star)/q$. Conditioned on $Q_{k^\star}(\vec\beta_{<n}) \neq 0$, the polynomial $X_n \mapsto P(\vec\beta_{<n}, X_n)$ has degree exactly $k^\star$, hence at most $k^\star$ roots in $\Fq$, so $\Pr_{\beta_n}[P(\vec\beta) = 0 \mid Q_{k^\star}(\vec\beta_{<n}) \neq 0] \leq k^\star/q$. A union bound gives $\Pr_{\vec\beta}[P(\vec\beta) = 0] \leq d/q$.
+\end{proof}
+
+A useful consequence: a non-zero multilinear polynomial in $n$ variables has total degree $\leq n$, so it vanishes at a uniform $\vec\beta \in \Fq^n$ with probability at most $n/q$. 
 
 \subsection{Constants}
 
@@ -682,12 +696,38 @@ A table $T$ may \textsc{Push} or \textsc{Pull} various tuples to the common bus.
 \[
 h_{\vec\beta}(\sigma) \;=\; \sum_{i=0}^{\textsf{bus\_width} - 1} \sigma_i \cdot \hat{eq}\big(\vec\beta,\, [i]_{01}\big) \;=\; \hat{\sigma}(\vec\beta).
 \]
-By Lemma~\ref{lem:multilinear-sz}, two distinct tuples collide with probability at most $\ell/q$.
+By Lemma~\ref{lem:sz} applied to the (non-zero) multilinear polynomial $\hat\sigma - \hat{\sigma'}$ in $\ell$ variables, two distinct tuples collide with probability at most $\ell/q$.
 
-\paragraph{Bus balance as a rational identity.} Enumerate the bus interactions across all tables as a list of pairs $(\sigma_k, m_k)_{1 \leq k \leq K}$, where $\sigma_k \in \Fp^{\textsf{bus\_width}}$ is the interacted tuple and $m_k \in \Fp$ is its signed multiplicity (positive for \textsc{Push}, negative for \textsc{Pull}). Assume that, for every tuple $\sigma$, both the total pushes and the total pulls of $\sigma$ are strictly less than $p$, so no wrap-around hides a genuine imbalance (the table-height bounds of Section~\ref{sec:table-sizes} guarantee this). Then the bus is balanced if and only if, for every $\sigma$, $\sum_{k \,:\, \sigma_k = \sigma} m_k = 0$, which, for $\vec\beta \overset{\$}{\leftarrow} \Fq^\ell$ and $\gamma \overset{\$}{\leftarrow} \Fq$, up to soundness error $\ell \cdot K/q$ to:
+\paragraph{Bus balance as a rational identity.} Enumerate the bus interactions across all tables as a list of pairs $(\sigma_k, m_k)_{1 \leq k \leq K}$, where $\sigma_k \in \Fp^{\textsf{bus\_width}}$ is the pushed (or pulled) tuple data and $m_k \in \Fp$ is its signed multiplicity (positive for \textsc{Push}, negative for \textsc{Pull}) (where we naturally embedd the integers $(-p, p)$ into $\Fp$). Assume that, for every tuple $\sigma$, both the total pushes and the total pulls of $\sigma$ are strictly less than $p$. Then the bus is balanced if and only if, for every $\sigma$, $\sum_{k \,:\, \sigma_k = \sigma} m_k = 0$, which, for $\vec\beta \overset{\$}{\leftarrow} \Fq^\ell$ and $\gamma \overset{\$}{\leftarrow} \Fq$, is equivalent up to completeness error $K / q$ and soundness error $K \ell / q$ to:
 \[
 \sum_{k=1}^{K} \frac{m_k}{\gamma - h_{\vec\beta}(\sigma_k)} \;=\; 0.
 \]
+
+\begin{proof}
+(Inspired by \href{https://github.com/openvm-org/stark-backend/blob/main/docs/Soundness_of_Interactions_via_LogUp.pdf}{Soundness of Interactions via LogUp})
+Define the $\Fp$-valued multiset $M(\sigma) = \sum_{k \,:\, \sigma_k = \sigma} m_k$, with support $S = \{\sigma : M(\sigma) \neq 0\}$, of size $s = |S|$. The bus is balanced iff $S = \emptyset$.
+
+\emph{Completeness.} If $S = \emptyset$, then $M(\sigma) = 0$ for every $\sigma$, so the rational sum is identically zero wherever it is defined. The sum is undefined when $\gamma$ coincides with some pole $h_{\vec\beta}(\sigma_k)$, which over uniform $\gamma$ happens with probability at most $K/q$:  the protocol's \emph{completeness error}.
+
+\emph{Soundness.} Suppose $S \neq \emptyset$, and define
+\[
+N(\vec\beta, \gamma) \;:=\; \sum_{\sigma \in S} M(\sigma) \prod_{\sigma' \in S \setminus \{\sigma\}}\!\big(\gamma - h_{\vec\beta}(\sigma')\big), \qquad Q(\vec\beta, \gamma) \;:=\; \prod_{\sigma \in S}\!\big(\gamma - h_{\vec\beta}(\sigma)\big).
+\]
+Over a common denominator, the rational sum equals $N/Q$. Verifier acceptance requires this fraction to be defined and equal to zero, hence forces $N(\vec\beta, \gamma) = 0$.
+
+\emph{Total degree of $N$.} The degree of $N$, interpreted as multivariable polynomial in $\gamma$ and $\vec\beta$, is at most $(s-1)\ell \leq K \ell$.
+
+\emph{Non-vanishing of $N$.} Pick any $\sigma^\star \in S$ (so $M(\sigma^\star) \neq 0$). To show $N$ is not the zero polynomial in $\Fq[\vec\beta, \gamma]$, substitute the variable $\gamma$ by the polynomial $h_{\vec\beta}(\sigma^\star) \in \Fq[\vec\beta]$. If $N$ were the zero polynomial its image would also be zero. For every $\sigma \in S$ with $\sigma \neq \sigma^\star$, the product $\prod_{\sigma' \in S \setminus \{\sigma\}}$ contains the factor $\gamma - h_{\vec\beta}(\sigma^\star)$ (since $\sigma^\star \in S \setminus \{\sigma\}$), which the substitution sends to $0$; only the $\sigma = \sigma^\star$ summand survives, giving
+\[
+N\big(\vec\beta,\, h_{\vec\beta}(\sigma^\star)\big) \;=\; M(\sigma^\star) \prod_{\sigma' \in S \setminus \{\sigma^\star\}} (\hat\sigma^\star - \hat\sigma')(\vec\beta) \;\in\; \Fq[\vec\beta].
+\]
+Each factor in this product is the MLE of the non-zero vector $\sigma^\star - \sigma' \in \Fp^{\textsf{bus\_width}}$, hence a non-zero polynomial in $\vec\beta$. Given that $M(\sigma^\star) \neq 0$, $N$ is non-zero in $\Fq[\vec\beta, \gamma]$.
+
+By Lemma~\ref{lem:sz},
+\[
+\Pr_{\vec\beta, \gamma}[N(\vec\beta, \gamma) = 0] \;\leq\; K\,\ell/q. \qedhere
+\]
+\end{proof}
 
 
 
