@@ -93,8 +93,8 @@ pub fn prove_generic_logup(
             - finger_print_packed::<EF>(
                 memory_domainsep_packed,
                 &[
-                    PFPacking::<EF>::from_fn(|w| memory[src_idx(p, w)]),
                     PFPacking::<EF>::from_fn(|w| F::from_usize(src_idx(p, w))),
+                    PFPacking::<EF>::from_fn(|w| memory[src_idx(p, w)]),
                 ],
                 &alphas_packed,
             )
@@ -131,70 +131,40 @@ pub fn prove_generic_logup(
         let trace = &traces[table];
         let log_n_rows = trace.log_n_rows;
 
-        if *table == Table::execution() {
-            let pc_column = &trace.columns[COL_PC];
-            let bytecode_columns = &trace.columns[N_RUNTIME_COLUMNS..][..N_INSTRUCTION_COLUMNS];
-            numerators[offset..][..1 << log_n_rows]
-                .par_iter_mut()
-                .for_each(|n| *n = F::ONE);
-            fill_denoms(&mut denominators[offset / width..][..(1 << log_n_rows) / width], |p| {
-                let mut data = [PFPacking::<EF>::ZERO; N_INSTRUCTION_COLUMNS + 1];
-                for k in 0..N_INSTRUCTION_COLUMNS {
-                    data[k] = PFPacking::<EF>::from_fn(|w| bytecode_columns[k][src_idx(p, w)]);
+        let resolve_packed = |entry: BusData, p: usize| -> PFPacking<EF> {
+            match entry {
+                BusData::Column(col) => PFPacking::<EF>::from_fn(|w| trace.columns[col][src_idx(p, w)]),
+                BusData::ColumnPlusConstant(col, ofs) => {
+                    let ofs_f = F::from_usize(ofs);
+                    PFPacking::<EF>::from_fn(|w| trace.columns[col][src_idx(p, w)] + ofs_f)
                 }
-                data[N_INSTRUCTION_COLUMNS] = PFPacking::<EF>::from_fn(|w| pc_column[src_idx(p, w)]);
-                c_packed - finger_print_packed::<EF>(bytecode_domainsep_packed, &data, &alphas_packed)
+                BusData::Constant(val) => PFPacking::<EF>::from(F::from_usize(val)),
+            }
+        };
+
+        for bus in table.bus_interactions() {
+            let slice = &mut numerators[offset..][..1 << log_n_rows];
+            match bus.multiplicity {
+                BusMultiplicity::One => {
+                    let val = bus.direction.to_field_flag();
+                    slice.par_iter_mut().for_each(|n| *n = val);
+                }
+                BusMultiplicity::Column(col) => {
+                    fill_num_from(slice, &trace.columns[col], matches!(bus.direction, BusDirection::Pull));
+                }
+            }
+            let denom_slot = &mut denominators[offset / width..][..(1 << log_n_rows) / width];
+            let bus_data: &[BusData] = &bus.data;
+            let bus_domainsep = bus.domainsep;
+            fill_denoms(denom_slot, |p| {
+                let mut data_buf = [PFPacking::<EF>::ZERO; MAX_BUS_WIDTH];
+                for (k, entry) in bus_data.iter().enumerate() {
+                    data_buf[k] = resolve_packed(*entry, p);
+                }
+                let ds = resolve_packed(bus_domainsep, p);
+                c_packed - finger_print_packed::<EF>(ds, &data_buf[..bus_data.len()], &alphas_packed)
             });
             offset += 1 << log_n_rows;
-        }
-
-        // I] Bus
-        let bus = table.bus();
-        let multiplicity = &trace.columns[bus.multiplicity];
-        let pull = matches!(bus.direction, BusDirection::Pull);
-        fill_num_from(&mut numerators[offset..][..1 << log_n_rows], multiplicity, pull);
-        let bus_data_entries = &bus.data;
-        let bus_domainsep = bus.domainsep;
-        let resolve = |entry: BusData, p: usize| match entry {
-            BusData::Column(col) => PFPacking::<EF>::from_fn(|w| trace.columns[col][src_idx(p, w)]),
-            BusData::Constant(val) => PFPacking::<EF>::from(F::from_usize(val)),
-        };
-        fill_denoms(&mut denominators[offset / width..][..(1 << log_n_rows) / width], |p| {
-            let mut bus_data = [PFPacking::<EF>::ZERO; MAX_PRECOMPILE_BUS_WIDTH];
-            for (j, entry) in bus_data_entries.iter().enumerate() {
-                bus_data[j] = resolve(*entry, p);
-            }
-            let domainsep = resolve(bus_domainsep, p);
-            c_packed + finger_print_packed::<EF>(domainsep, &bus_data[..bus_data_entries.len()], &alphas_packed)
-        });
-        offset += 1 << log_n_rows;
-
-        // II] Lookup into memory
-        let value_columns = table.lookup_value_columns(trace);
-        let index_columns = table.lookup_index_columns(trace);
-        for (col_index, col_values) in index_columns.iter().zip(&value_columns) {
-            numerators[offset..][..col_values.len() << log_n_rows]
-                .par_iter_mut()
-                .for_each(|n| *n = F::ONE);
-            let packed_chunk_size = (1 << log_n_rows) / width;
-            denominators[offset / width..][..col_values.len() * packed_chunk_size]
-                .par_chunks_exact_mut(packed_chunk_size)
-                .enumerate()
-                .for_each(|(i, denom_chunk)| {
-                    let i_field = F::from_usize(i);
-                    denom_chunk.par_iter_mut().enumerate().for_each(|(p, slot)| {
-                        *slot = c_packed
-                            - finger_print_packed::<EF>(
-                                memory_domainsep_packed,
-                                &[
-                                    PFPacking::<EF>::from_fn(|w| col_values[i][src_idx(p, w)]),
-                                    PFPacking::<EF>::from_fn(|w| col_index[src_idx(p, w)] + i_field),
-                                ],
-                                &alphas_packed,
-                            );
-                    });
-                });
-            offset += col_values.len() << log_n_rows;
         }
     }
 
@@ -244,57 +214,48 @@ pub fn prove_generic_logup(
         let inner_point = MultilinearPoint(from_end(&claim_point_gkr, log_n_rows).to_vec());
         let mut table_values = BTreeMap::<ColIndex, EF>::new();
 
-        if table == &Table::execution() {
-            let pc_column = &trace.columns[COL_PC];
-            let bytecode_columns = trace.columns[N_RUNTIME_COLUMNS..][..N_INSTRUCTION_COLUMNS]
-                .iter()
-                .collect::<Vec<_>>();
-
-            let eval_on_pc = pc_column.evaluate(&inner_point);
-            prover_state.add_extension_scalar(eval_on_pc);
-            assert!(!table_values.contains_key(&COL_PC));
-            table_values.insert(COL_PC, eval_on_pc);
-
-            let instr_evals = bytecode_columns
-                .iter()
-                .map(|col| col.evaluate(&inner_point))
-                .collect::<Vec<_>>();
-            prover_state.add_extension_scalars(&instr_evals);
-            for (i, eval_on_instr_col) in instr_evals.iter().enumerate() {
-                let global_index = N_RUNTIME_COLUMNS + i;
-                assert!(!table_values.contains_key(&global_index));
-                table_values.insert(global_index, *eval_on_instr_col);
+        let resolve_ef = |entry: BusData| -> EF {
+            match entry {
+                BusData::Column(col) => trace.columns[col].evaluate(&inner_point),
+                BusData::ColumnPlusConstant(col, ofs) => trace.columns[col].evaluate(&inner_point) + F::from_usize(ofs),
+                BusData::Constant(val) => EF::from_usize(val),
             }
-        }
-
-        let bus = table.bus();
-        let eval_on_multiplicity =
-            trace.columns[bus.multiplicity].evaluate(&inner_point) * bus.direction.to_field_flag();
-        prover_state.add_extension_scalar(eval_on_multiplicity);
-
-        let resolve = |entry: BusData| match entry {
-            BusData::Column(col) => trace.columns[col].evaluate(&inner_point),
-            BusData::Constant(val) => EF::from_usize(val),
         };
-        let bus_data_evals: Vec<EF> = bus.data.iter().map(|entry| resolve(*entry)).collect();
-        let eval_on_data = c + finger_print(resolve(bus.domainsep), &bus_data_evals, alphas_eq_poly);
-        prover_state.add_extension_scalar(eval_on_data);
 
-        bus_numerators_values.insert(*table, eval_on_multiplicity);
-        bus_denominators_values.insert(*table, eval_on_data);
-
-        // II] Lookup into memory
-        for lookup in table.lookups() {
-            let index_eval = trace.columns[lookup.index].evaluate(&inner_point);
-            prover_state.add_extension_scalar(index_eval);
-            assert!(!table_values.contains_key(&lookup.index));
-            table_values.insert(lookup.index, index_eval);
-
-            for col_index in &lookup.values {
-                let value_eval = trace.columns[*col_index].evaluate(&inner_point);
-                prover_state.add_extension_scalar(value_eval);
-                assert!(!table_values.contains_key(col_index));
-                table_values.insert(*col_index, value_eval);
+        for bus in table.bus_interactions() {
+            match bus.multiplicity {
+                BusMultiplicity::Column(mult_col) => {
+                    let eval_on_multiplicity =
+                        trace.columns[mult_col].evaluate(&inner_point) * bus.direction.to_field_flag();
+                    prover_state.add_extension_scalar(eval_on_multiplicity);
+                    let data_evals: Vec<EF> = bus.data.iter().map(|e| resolve_ef(*e)).collect();
+                    let eval_on_data = c - finger_print(resolve_ef(bus.domainsep), &data_evals, alphas_eq_poly);
+                    prover_state.add_extension_scalar(eval_on_data);
+                    bus_numerators_values.insert(*table, eval_on_multiplicity);
+                    bus_denominators_values.insert(*table, eval_on_data);
+                }
+                BusMultiplicity::One => {
+                    // Skip columns already in table_values: memory-lookup groups share
+                    // an idx column across buses, so it's written once per group rather
+                    // than once per bus. This also keeps simple-lookup writes (e.g. the
+                    // bytecode bus) batched into a single RATE-aligned transcript block.
+                    let col_evals: Vec<EF> = bus
+                        .data
+                        .iter()
+                        .filter_map(|entry| {
+                            entry.column().and_then(|col| {
+                                if let std::collections::btree_map::Entry::Vacant(e) = table_values.entry(col) {
+                                    let v = trace.columns[col].evaluate(&inner_point);
+                                    e.insert(v);
+                                    Some(v)
+                                } else {
+                                    None
+                                }
+                            })
+                        })
+                        .collect();
+                    prover_state.add_extension_scalars(&col_evals);
+                }
             }
         }
 
@@ -356,7 +317,7 @@ pub fn verify_generic_logup(
     retrieved_denominators_value += pref
         * (c - finger_print(
             EF::from_usize(LOGUP_MEMORY_DOMAINSEP),
-            &[value_memory, value_index],
+            &[value_index, value_memory],
             alphas_eq_poly,
         ));
     let mut offset = 1 << log_memory;
@@ -397,62 +358,54 @@ pub fn verify_generic_logup(
     for &(table, log_n_rows) in &tables_heights_sorted {
         let mut table_values = BTreeMap::<ColIndex, EF>::new();
 
-        if table == Table::execution() {
-            // 0] bytecode lookup
-            let eval_on_pc = verifier_state.next_extension_scalar()?;
-            table_values.insert(COL_PC, eval_on_pc);
-
-            let instr_evals = verifier_state.next_extension_scalars_vec(N_INSTRUCTION_COLUMNS)?;
-            for (i, eval_on_instr_col) in instr_evals.iter().enumerate() {
-                table_values.insert(N_RUNTIME_COLUMNS + i, *eval_on_instr_col);
-            }
-
+        for bus in table.bus_interactions() {
             let pref = pref_at(offset, log_n_rows);
-            retrieved_numerators_value += pref; // numerator is 1
-            retrieved_denominators_value += pref
-                * (c - finger_print(
-                    EF::from_usize(LOGUP_BYTECODE_DOMAINSEP),
-                    &[instr_evals, vec![eval_on_pc]].concat(),
-                    alphas_eq_poly,
-                ));
-
-            offset += 1 << log_n_rows;
-        }
-
-        // I] Bus (data flow between tables)
-        let eval_on_multiplicity = verifier_state.next_extension_scalar()?;
-        let pref = pref_at(offset, log_n_rows);
-        retrieved_numerators_value += pref * eval_on_multiplicity;
-
-        let eval_on_data = verifier_state.next_extension_scalar()?;
-        retrieved_denominators_value += pref * eval_on_data;
-
-        bus_numerators_values.insert(table, eval_on_multiplicity);
-        bus_denominators_values.insert(table, eval_on_data);
-
-        offset += 1 << log_n_rows;
-
-        // II] Lookup into memory
-        for lookup in table.lookups() {
-            let index_eval = verifier_state.next_extension_scalar()?;
-            assert!(!table_values.contains_key(&lookup.index));
-            table_values.insert(lookup.index, index_eval);
-
-            for (i, col_index) in lookup.values.iter().enumerate() {
-                let value_eval = verifier_state.next_extension_scalar()?;
-                assert!(!table_values.contains_key(col_index));
-                table_values.insert(*col_index, value_eval);
-
-                let pref = pref_at(offset, log_n_rows);
-                retrieved_numerators_value += pref; // numerator is 1
-                retrieved_denominators_value += pref
-                    * (c - finger_print(
-                        EF::from_usize(LOGUP_MEMORY_DOMAINSEP),
-                        &[value_eval, index_eval + F::from_usize(i)],
-                        alphas_eq_poly,
-                    ));
-                offset += 1 << log_n_rows;
+            match bus.multiplicity {
+                BusMultiplicity::Column(_) => {
+                    let eval_on_multiplicity = verifier_state.next_extension_scalar()?;
+                    let eval_on_data = verifier_state.next_extension_scalar()?;
+                    retrieved_numerators_value += pref * eval_on_multiplicity;
+                    retrieved_denominators_value += pref * eval_on_data;
+                    bus_numerators_values.insert(table, eval_on_multiplicity);
+                    bus_denominators_values.insert(table, eval_on_data);
+                }
+                BusMultiplicity::One => {
+                    let n_col_entries = bus
+                        .data
+                        .iter()
+                        .filter(|e| e.column().is_some_and(|col| !table_values.contains_key(&col)))
+                        .count();
+                    let col_evals = verifier_state.next_extension_scalars_vec(n_col_entries)?;
+                    let mut eval_iter = col_evals.into_iter();
+                    let data_evals: Vec<EF> = bus
+                        .data
+                        .iter()
+                        .map(|entry| match *entry {
+                            BusData::Constant(val) => EF::from_usize(val),
+                            BusData::Column(col) | BusData::ColumnPlusConstant(col, _) => {
+                                let v = if let Some(&cached) = table_values.get(&col) {
+                                    cached
+                                } else {
+                                    let v = eval_iter.next().unwrap();
+                                    table_values.insert(col, v);
+                                    v
+                                };
+                                match *entry {
+                                    BusData::ColumnPlusConstant(_, ofs) => v + F::from_usize(ofs),
+                                    _ => v,
+                                }
+                            }
+                        })
+                        .collect();
+                    let BusData::Constant(domainsep) = bus.domainsep else {
+                        unreachable!("multiplicity-One bus domsep must be a constant");
+                    };
+                    retrieved_numerators_value += pref * bus.direction.to_field_flag();
+                    retrieved_denominators_value +=
+                        pref * (c - finger_print(EF::from_usize(domainsep), &data_evals, alphas_eq_poly));
+                }
             }
+            offset += 1 << log_n_rows;
         }
 
         columns_values.insert(table, table_values);
@@ -483,8 +436,7 @@ pub fn verify_generic_logup(
 }
 
 fn offset_for_table(table: &Table, log_n_rows: usize) -> usize {
-    let num_cols = table.lookups().iter().map(|l| l.values.len()).sum::<usize>() + 1; // +1 for the bus
-    num_cols << log_n_rows
+    table.bus_interactions().len() << log_n_rows
 }
 
 pub fn compute_total_logup_log_size(
@@ -504,14 +456,8 @@ fn compute_total_active_len(
     tables_heights_sorted: &[(Table, VarCount)],
 ) -> usize {
     let max_table_height = 1 << tables_heights_sorted[0].1;
-    let log_n_cycles = tables_heights_sorted
-        .iter()
-        .find(|(table, _)| *table == Table::execution())
-        .unwrap()
-        .1;
     (1 << log_memory)
         + (1 << log_bytecode).max(max_table_height)
-        + (1 << log_n_cycles)
         + tables_heights_sorted
             .iter()
             .map(|(table, log_n_rows)| offset_for_table(table, *log_n_rows))

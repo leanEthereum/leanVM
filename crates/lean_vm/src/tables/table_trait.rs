@@ -1,5 +1,5 @@
 use crate::execution::memory::MemoryAccess;
-use crate::{EF, F, InstructionContext, PrecompileCompTimeArgs, RunnerError, Table};
+use crate::{EF, F, InstructionContext, LOGUP_MEMORY_DOMAINSEP, PrecompileCompTimeArgs, RunnerError, Table};
 use backend::*;
 
 use std::{any::TypeId, cmp::Reverse, collections::BTreeMap, mem::transmute};
@@ -10,13 +10,6 @@ pub type ColIndex = usize;
 /// Each entry: (point, eval, eval at 'shifted-down' column).
 pub type CommittedStatements =
     BTreeMap<Table, Vec<(MultilinearPoint<EF>, BTreeMap<ColIndex, EF>, BTreeMap<ColIndex, EF>)>>;
-
-#[derive(Debug)]
-pub struct LookupIntoMemory {
-    pub index: ColIndex, // should be in base field columns
-    /// For (i, col_index) in values.iter().enumerate(), For j in 0..num_rows, columns_f[col_index][j] = memory[index[j] + i]
-    pub values: Vec<ColIndex>,
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BusDirection {
@@ -36,15 +29,51 @@ impl BusDirection {
 #[derive(Debug, Clone, Copy)]
 pub enum BusData {
     Column(ColIndex),
+    ColumnPlusConstant(ColIndex, usize),
     Constant(usize),
 }
 
+impl BusData {
+    pub fn column(self) -> Option<ColIndex> {
+        match self {
+            Self::Column(c) | Self::ColumnPlusConstant(c, _) => Some(c),
+            Self::Constant(_) => None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum BusMultiplicity {
+    One,
+    Column(ColIndex),
+}
+
 #[derive(Debug)]
-pub struct Bus {
+pub struct BusInteraction {
     pub direction: BusDirection,
-    pub multiplicity: ColIndex,
+    pub multiplicity: BusMultiplicity,
     pub domainsep: BusData,
     pub data: Vec<BusData>,
+}
+
+impl BusInteraction {
+    pub fn is_memory_lookup(&self) -> bool {
+        matches!(self.domainsep, BusData::Constant(LOGUP_MEMORY_DOMAINSEP))
+    }
+}
+
+pub fn memory_lookups_consecutive(idx_col: ColIndex, values_start: ColIndex, n: usize) -> Vec<BusInteraction> {
+    (0..n)
+        .map(|i| BusInteraction {
+            direction: BusDirection::Push,
+            multiplicity: BusMultiplicity::One,
+            domainsep: BusData::Constant(LOGUP_MEMORY_DOMAINSEP),
+            data: vec![
+                BusData::ColumnPlusConstant(idx_col, i),
+                BusData::Column(values_start + i),
+            ],
+        })
+        .collect()
 }
 
 #[derive(Debug, Default)]
@@ -125,8 +154,7 @@ impl<EF: ExtensionField<PF<EF>>> ExtraDataForBuses<EF> {
 pub trait TableT: Air {
     fn name(&self) -> &'static str;
     fn table(&self) -> Table;
-    fn lookups(&self) -> Vec<LookupIntoMemory>;
-    fn bus(&self) -> Bus;
+    fn bus_interactions(&self) -> Vec<BusInteraction>;
     fn padding_row(&self, zero_vec_ptr: usize, null_hash_ptr: usize, ending_pc: usize) -> Vec<F>;
     fn execute<M: MemoryAccess>(
         &self,
@@ -144,19 +172,5 @@ pub trait TableT: Air {
 
     fn is_execution_table(&self) -> bool {
         false
-    }
-
-    fn lookup_index_columns<'a>(&'a self, trace: &'a TableTrace) -> Vec<&'a [F]> {
-        self.lookups()
-            .iter()
-            .map(|lookup| &trace.columns[lookup.index][..])
-            .collect()
-    }
-    fn lookup_value_columns<'a>(&self, trace: &'a TableTrace) -> Vec<Vec<&'a [F]>> {
-        let mut cols = Vec::new();
-        for lookup in self.lookups() {
-            cols.push(lookup.values.iter().map(|&c| &trace.columns[c][..]).collect());
-        }
-        cols
     }
 }

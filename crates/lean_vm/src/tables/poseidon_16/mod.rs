@@ -138,44 +138,42 @@ impl<const BUS: bool> TableT for Poseidon16Precompile<BUS> {
         Table::poseidon16()
     }
 
-    fn lookups(&self) -> Vec<LookupIntoMemory> {
-        vec![
-            LookupIntoMemory {
-                index: POSEIDON_16_COL_EFFECTIVE_INDEX_LEFT_FIRST,
-                values: (POSEIDON_16_COL_INPUT_START..POSEIDON_16_COL_INPUT_START + HALF_DIGEST_LEN).collect(),
-            },
-            LookupIntoMemory {
-                index: POSEIDON_16_COL_EFFECTIVE_INDEX_LEFT_SECOND,
-                values: (POSEIDON_16_COL_INPUT_START + HALF_DIGEST_LEN..POSEIDON_16_COL_INPUT_START + DIGEST_LEN)
-                    .collect(),
-            },
-            LookupIntoMemory {
-                index: POSEIDON_16_COL_INDEX_INPUT_RIGHT,
-                values: (POSEIDON_16_COL_INPUT_START + DIGEST_LEN..POSEIDON_16_COL_INPUT_START + DIGEST_LEN * 2)
-                    .collect(),
-            },
-            LookupIntoMemory {
-                index: POSEIDON_16_COL_INDEX_INPUT_RES,
-                values: (POSEIDON_16_COL_OUTPUT_LEFT..POSEIDON_16_COL_OUTPUT_LEFT + DIGEST_LEN * 2).collect(),
-            },
-        ]
-    }
-
     fn n_columns_total(&self) -> usize {
         num_cols_total_poseidon_16()
     }
 
-    fn bus(&self) -> Bus {
-        Bus {
+    fn bus_interactions(&self) -> Vec<BusInteraction> {
+        let mut buses = vec![BusInteraction {
             direction: BusDirection::Pull,
-            multiplicity: POSEIDON_16_COL_MULTIPLICITY,
+            multiplicity: BusMultiplicity::Column(POSEIDON_16_COL_MULTIPLICITY),
             domainsep: BusData::Column(POSEIDON_16_COL_DOMAINSEP),
             data: vec![
                 BusData::Column(POSEIDON_16_COL_INDEX_INPUT_LEFT),
                 BusData::Column(POSEIDON_16_COL_INDEX_INPUT_RIGHT),
                 BusData::Column(POSEIDON_16_COL_INDEX_INPUT_RES),
             ],
-        }
+        }];
+        buses.extend(memory_lookups_consecutive(
+            POSEIDON_16_COL_EFFECTIVE_INDEX_LEFT_FIRST,
+            POSEIDON_16_COL_INPUT_START,
+            HALF_DIGEST_LEN,
+        ));
+        buses.extend(memory_lookups_consecutive(
+            POSEIDON_16_COL_EFFECTIVE_INDEX_LEFT_SECOND,
+            POSEIDON_16_COL_INPUT_START + HALF_DIGEST_LEN,
+            HALF_DIGEST_LEN,
+        ));
+        buses.extend(memory_lookups_consecutive(
+            POSEIDON_16_COL_INDEX_INPUT_RIGHT,
+            POSEIDON_16_COL_INPUT_START + DIGEST_LEN,
+            DIGEST_LEN,
+        ));
+        buses.extend(memory_lookups_consecutive(
+            POSEIDON_16_COL_INDEX_INPUT_RES,
+            POSEIDON_16_COL_OUTPUT_LEFT,
+            DIGEST_LEN * 2,
+        ));
+        buses
     }
 
     fn padding_row(&self, zero_vec_ptr: usize, null_hash_ptr: usize, _ending_pc: usize) -> Vec<F> {

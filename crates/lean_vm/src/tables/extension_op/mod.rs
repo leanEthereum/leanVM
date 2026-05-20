@@ -87,34 +87,21 @@ impl<const BUS: bool> TableT for ExtensionOpPrecompile<BUS> {
         Table::extension_op()
     }
 
-    fn lookups(&self) -> Vec<LookupIntoMemory> {
-        vec![
-            LookupIntoMemory {
-                index: COL_IDX_A,
-                values: (COL_VA..COL_VA + DIMENSION).collect(),
-            },
-            LookupIntoMemory {
-                index: COL_IDX_B,
-                values: (COL_VB..COL_VB + DIMENSION).collect(),
-            },
-            LookupIntoMemory {
-                index: COL_IDX_RES,
-                values: (COL_VRES..COL_VRES + DIMENSION).collect(),
-            },
-        ]
-    }
-
-    fn bus(&self) -> Bus {
-        Bus {
+    fn bus_interactions(&self) -> Vec<BusInteraction> {
+        let mut buses = vec![BusInteraction {
             direction: BusDirection::Pull,
-            multiplicity: COL_MULTIPLICITY_EXTENSION_OP,
+            multiplicity: BusMultiplicity::Column(COL_MULTIPLICITY_EXTENSION_OP),
             domainsep: BusData::Column(COL_DOMAINSEP_EXTENSION_OP),
             data: vec![
                 BusData::Column(COL_IDX_A),
                 BusData::Column(COL_IDX_B),
                 BusData::Column(COL_IDX_RES),
             ],
-        }
+        }];
+        buses.extend(memory_lookups_consecutive(COL_IDX_A, COL_VA, DIMENSION));
+        buses.extend(memory_lookups_consecutive(COL_IDX_B, COL_VB, DIMENSION));
+        buses.extend(memory_lookups_consecutive(COL_IDX_RES, COL_VRES, DIMENSION));
+        buses
     }
 
     fn n_columns_total(&self) -> usize {
