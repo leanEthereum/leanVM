@@ -101,6 +101,7 @@ See \ref{sec:signature-aggregation} for more details.
     \item $\textbf{m}[i..j]$ is the memory slice $(\textbf{m}[i], \textbf{m}[i+1], \ldots, \textbf{m}[j-1])$.
     \item $||$ denotes concatenation of slices.
     \item $0_k$ denotes the all-zero vector of length $k$, for $k \geq 0$.
+    \item $x \overset{\$}{\leftarrow} S$ means $x$ is sampled uniformly at random from the finite set $S$.
 \end{itemize}
 
 \subsection{Definitions}
@@ -110,6 +111,20 @@ See \ref{sec:signature-aggregation} for more details.
 For a vector of field elements $v \in \mathbb F^{2^n}$ (for some $n \geq 0$), the Multilinear Extension (MLE) of $v$, denoted by $\hat{v}$, is the unique multilinear polynomial in $\mathbb F[X_1, \dots, X_n]$, in $n$ variables, such that: $\forall i \in [0, 2^n), v[i] = \hat{v}([i]_{01})$
 
 Throughout, $v$ denotes a vector and $\hat{v}$ its MLE.
+
+\begin{lemma}[Multilinear Schwartz-Zippel]\label{lem:multilinear-sz}
+Let $v, v' \in \Fp^{2^n}$ with $v \neq v'$. Then
+\[
+\Pr_{\vec\beta \,\overset{\$}{\leftarrow}\, \Fq^n}\!\big[\,\hat{v}(\vec\beta) = \hat{v'}(\vec\beta)\,\big] \;\leq\; \frac{n}{|\Fq|}.
+\]
+\end{lemma}
+\begin{proof}
+Let $P = \hat{v} - \hat{v'}$. $P$ is a non-zero multilinear polynomial in $n$ variables, and it suffices to show $\Pr_{\vec\beta}[P(\vec\beta) = 0] \leq n/|\Fq|$. We induct on $n$. The case $n = 0$ is trivial. For $n \geq 1$, split
+\[
+P(X_1, \ldots, X_n) \;=\; X_n \cdot Q(X_1, \ldots, X_{n-1}) \;+\; R(X_1, \ldots, X_{n-1}),
+\]
+and write $\vec\beta = (\vec\beta_{<n}, \beta_n)$. If $Q = 0$, then $R$ is a non-zero multilinear polynomial in $n-1$ variables, and the induction hypothesis gives $\Pr[P(\vec\beta) = 0] \leq (n-1)/|\Fq| \leq n/|\Fq$. Otherwise $Q \neq 0$. By the induction hypothesis, $\Pr[Q(\vec\beta_{<n}) = 0] \leq (n-1)/|\Fq|$; and conditioned on $Q(\vec\beta_{<n}) \neq 0$, the polynomial $X_n \mapsto P(\vec\beta_{<n}, X_n)$ has degree exactly $1$, hence at most one root, so $\Pr[P(\vec\beta) = 0 \mid Q(\vec\beta_{<n}) \neq 0] \leq 1/|\Fq|$. A union bound gives $\Pr[P(\vec\beta) = 0] \leq n/|\Fq|$.
+\end{proof}
 
 \vspace{5mm}
 
@@ -658,6 +673,16 @@ Extension & $(\nu_A,\ \nu_B,\ \nu_C)$ & multiple of $4$ \\
 
 
 A table $T$ may \textsc{Push} or \textsc{Pull} various tuples to the common bus.
+
+
+\subsubsection{Balanced bus proved via logup}
+
+\paragraph{Hashing tuples to a single field element.} Since $\textsf{bus\_width} = 16 = 2^4$, for some $\vec\beta = (\beta_1, \beta_2, \beta_3, \beta_4) \in \Fq^4$ sampled uniformly at random, we define:
+\[
+h_{\vec\beta}(\sigma) \;=\; \sum_{i=0}^{15} \sigma_i \cdot \hat{eq}\big(\vec\beta,\, [i]_{01}\big) \;=\; \hat{\sigma}(\vec\beta).
+\]
+By Lemma~\ref{lem:multilinear-sz}, two distinct tuples collide with probability at most $4/|\Fq|$.
+
 
 \subsection{Execution table}
 
