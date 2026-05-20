@@ -130,19 +130,47 @@ pub fn prove_generic_logup(
     for (table, _) in &tables_log_heights_sorted {
         let trace = &traces[table];
         let log_n_rows = trace.log_n_rows;
+        let buses = table.bus_interactions();
+        let mem_groups = memory_lookup_groups(&buses);
 
-        let resolve_packed = |entry: BusData, p: usize| -> PFPacking<EF> {
-            match entry {
-                BusData::Column(col) => PFPacking::<EF>::from_fn(|w| trace.columns[col][src_idx(p, w)]),
-                BusData::ColumnPlusConstant(col, ofs) => {
-                    let ofs_f = F::from_usize(ofs);
-                    PFPacking::<EF>::from_fn(|w| trace.columns[col][src_idx(p, w)] + ofs_f)
-                }
-                BusData::Constant(val) => PFPacking::<EF>::from(F::from_usize(val)),
+        let mut next_group = 0;
+        let mut bus_idx = 0;
+        while bus_idx < buses.len() {
+            if next_group < mem_groups.len() && mem_groups[next_group].start_bus == bus_idx {
+                let group = &mem_groups[next_group];
+                let group_len = group.value_cols.len();
+                let col_index = &trace.columns[group.idx_col];
+                let packed_chunk_size = (1 << log_n_rows) / width;
+
+                numerators[offset..][..group_len << log_n_rows]
+                    .par_iter_mut()
+                    .for_each(|n| *n = F::ONE);
+
+                denominators[offset / width..][..group_len * packed_chunk_size]
+                    .par_chunks_exact_mut(packed_chunk_size)
+                    .enumerate()
+                    .for_each(|(i, denom_chunk)| {
+                        let i_field = F::from_usize(i);
+                        let col_value = &trace.columns[group.value_cols[i]];
+                        denom_chunk.par_iter_mut().enumerate().for_each(|(p, slot)| {
+                            *slot = c_packed
+                                - finger_print_packed::<EF>(
+                                    memory_domainsep_packed,
+                                    &[
+                                        PFPacking::<EF>::from_fn(|w| col_index[src_idx(p, w)] + i_field),
+                                        PFPacking::<EF>::from_fn(|w| col_value[src_idx(p, w)]),
+                                    ],
+                                    &alphas_packed,
+                                );
+                        });
+                    });
+                offset += group_len << log_n_rows;
+                bus_idx += group_len;
+                next_group += 1;
+                continue;
             }
-        };
 
-        for bus in table.bus_interactions() {
+            let bus = &buses[bus_idx];
             let slice = &mut numerators[offset..][..1 << log_n_rows];
             match bus.multiplicity {
                 BusMultiplicity::One => {
@@ -154,17 +182,42 @@ pub fn prove_generic_logup(
                 }
             }
             let denom_slot = &mut denominators[offset / width..][..(1 << log_n_rows) / width];
-            let bus_data: &[BusData] = &bus.data;
-            let bus_domainsep = bus.domainsep;
+
+            let n_data = bus.data.len();
+            let mut data_cols: [&[F]; MAX_BUS_WIDTH] = [&[]; MAX_BUS_WIDTH];
+            for (k, entry) in bus.data.iter().enumerate() {
+                match *entry {
+                    BusData::Column(c) => {
+                        data_cols[k] = &trace.columns[c];
+                    }
+                    _ => {
+                        panic!("Non-Column BusData::data entries are not supported on the fast path");
+                    }
+                }
+            }
+            let ds_col: Option<&[F]> = match bus.domainsep {
+                BusData::Column(c) => Some(&trace.columns[c]),
+                _ => None,
+            };
+            let ds_constant_packed: PFPacking<EF> = match bus.domainsep {
+                BusData::Constant(v) => PFPacking::<EF>::from(F::from_usize(v)),
+                _ => PFPacking::<EF>::ZERO,
+            };
+
             fill_denoms(denom_slot, |p| {
                 let mut data_buf = [PFPacking::<EF>::ZERO; MAX_BUS_WIDTH];
-                for (k, entry) in bus_data.iter().enumerate() {
-                    data_buf[k] = resolve_packed(*entry, p);
+                for k in 0..n_data {
+                    let col = data_cols[k];
+                    data_buf[k] = PFPacking::<EF>::from_fn(|w| col[src_idx(p, w)]);
                 }
-                let ds = resolve_packed(bus_domainsep, p);
-                c_packed - finger_print_packed::<EF>(ds, &data_buf[..bus_data.len()], &alphas_packed)
+                let ds = match ds_col {
+                    Some(col) => PFPacking::<EF>::from_fn(|w| col[src_idx(p, w)]),
+                    None => ds_constant_packed,
+                };
+                c_packed - finger_print_packed::<EF>(ds, &data_buf[..n_data], &alphas_packed)
             });
             offset += 1 << log_n_rows;
+            bus_idx += 1;
         }
     }
 

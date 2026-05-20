@@ -91,15 +91,15 @@ pub fn prove_execution(
     let mut memory_acc = F::zero_vec(memory.len());
     info_span!("Building memory access count").in_scope(|| {
         for (table, trace) in &traces {
-            for bus in table.bus_interactions() {
-                if !bus.is_memory_lookup() {
-                    continue;
-                }
-                let BusData::ColumnPlusConstant(idx_col, offset) = bus.data[0] else {
-                    unreachable!("memory-lookup bus shape is enforced by memory_lookups_consecutive");
-                };
-                for i in &trace.columns[idx_col] {
-                    memory_acc[i.to_usize() + offset] += F::ONE;
+            let buses = table.bus_interactions();
+            for group in memory_lookup_groups(&buses) {
+                let idx_col = &trace.columns[group.idx_col];
+                let n = group.value_cols.len();
+                for idx in idx_col {
+                    let base = idx.to_usize();
+                    for ofs in 0..n {
+                        memory_acc[base + ofs] += F::ONE;
+                    }
                 }
             }
         }

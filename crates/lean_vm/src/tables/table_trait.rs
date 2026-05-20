@@ -76,6 +76,66 @@ pub fn memory_lookups_consecutive(idx_col: ColIndex, values_start: ColIndex, n: 
         .collect()
 }
 
+pub fn memory_lookup_groups(buses: &[BusInteraction]) -> Vec<MemoryLookupGroup> {
+    let mut groups: Vec<MemoryLookupGroup> = Vec::new();
+    let mut i = 0;
+    while i < buses.len() {
+        if !buses[i].is_memory_lookup() {
+            i += 1;
+            continue;
+        }
+        let (idx_col, first_ofs) = match buses[i].data[0] {
+            BusData::ColumnPlusConstant(c, ofs) => (c, ofs),
+            _ => unreachable!("memory-lookup bus shape is enforced by memory_lookups_consecutive"),
+        };
+        if first_ofs != 0 {
+            let value_col = match buses[i].data[1] {
+                BusData::Column(c) => c,
+                _ => unreachable!("memory-lookup bus shape is enforced by memory_lookups_consecutive"),
+            };
+            groups.push(MemoryLookupGroup {
+                start_bus: i,
+                idx_col,
+                value_cols: vec![value_col],
+            });
+            i += 1;
+            continue;
+        }
+        let mut value_cols = Vec::new();
+        let start = i;
+        let mut expected_ofs = 0;
+        while i < buses.len() && buses[i].is_memory_lookup() {
+            let ok = matches!(
+                buses[i].data[0],
+                BusData::ColumnPlusConstant(c, ofs) if c == idx_col && ofs == expected_ofs
+            );
+            if !ok {
+                break;
+            }
+            let value_col = match buses[i].data[1] {
+                BusData::Column(c) => c,
+                _ => unreachable!("memory-lookup bus shape is enforced by memory_lookups_consecutive"),
+            };
+            value_cols.push(value_col);
+            i += 1;
+            expected_ofs += 1;
+        }
+        groups.push(MemoryLookupGroup {
+            start_bus: start,
+            idx_col,
+            value_cols,
+        });
+    }
+    groups
+}
+
+#[derive(Debug)]
+pub struct MemoryLookupGroup {
+    pub start_bus: usize,
+    pub idx_col: ColIndex,
+    pub value_cols: Vec<ColIndex>,
+}
+
 #[derive(Debug, Default)]
 pub struct TableTrace {
     pub columns: Vec<Vec<F>>,
