@@ -640,13 +640,6 @@ Table & Max rows \\
 \end{tabular}
 \end{center}
 
-\subsection{AIR constraints}
-
-Every table $T$ has a list of $n^\text{constraints}_T$ AIR (Algebraic Intermediate Representation) constraints. Each AIR constraint $C_k^T$ ($k \in [0, n_\text{constraints}^T)$) is a multivariate polynomial in $n_\text{column}^T + n_\text{shift}^T$ variables. $C_k^T$ is respected by the table's trace if:
-$$
-\forall r \in [0, 2^{h_T}), \quad C_k(\textsf{col}^T_0(r), \ldots, \textsf{col}^T_{n_\text{column}^T-1}(r), \textsf{shift}(\textsf{col}^T_0)[r], \ldots, \textsf{shift}(\textsf{col}^T_{n_\text{shift}^T-1})[r]) = 0
-$$
-
 \subsection{Buses}\label{sec:Bus: interractions between table via logup-GKR}
 
 
@@ -730,7 +723,12 @@ By Lemma~\ref{lem:sz},
 \end{proof}
 
 
+\subsection{AIR constraints}
 
+Every table $T$ has a list of $n^\text{constraints}_T$ AIR (Algebraic Intermediate Representation) constraints. Each AIR constraint $C_k^T$ ($k \in [0, n_\text{constraints}^T)$) is a multivariate polynomial in $n_\text{column}^T + n_\text{shift}^T$ variables. $C_k^T$ is respected by the table's trace if:
+$$
+\forall r \in [0, 2^{h_T}), \quad C_k(\textsf{col}^T_0(r), \ldots, \textsf{col}^T_{n_\text{column}^T-1}(r), \textsf{shift}(\textsf{col}^T_0)[r], \ldots, \textsf{shift}(\textsf{col}^T_{n_\text{shift}^T-1})[r]) = 0
+$$
 
 \subsection{Execution table}
 
