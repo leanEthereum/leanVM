@@ -514,7 +514,7 @@ The following program takes two base field elements $(n, r)$ as public input, an
 \section{Proving system}\label{sec:proving}
 
 
-\subsection{Stacking multilinear polynomials}
+\subsection{Stacking multilinear polynomials}\label{sec:stacking}
 
 \subsubsection{Protocol}
 
@@ -725,10 +725,35 @@ By Lemma~\ref{lem:sz},
 
 \subsection{AIR constraints}
 
-Every table $T$ has a list of $n^\text{constraints}_T$ AIR (Algebraic Intermediate Representation) constraints. Each AIR constraint $C_k^T$ ($k \in [0, n_\text{constraints}^T)$) is a multivariate polynomial in $n_\text{column}^T + n_\text{shift}^T$ variables. $C_k^T$ is respected by the table's trace if:
+Every table $T$ has a list of $n^\text{constraints}_T$ AIR (Algebraic Intermediate Representation) constraints. Each AIR constraint $C_k^T$ ($k \in [0, n_\text{constraints}^T)$) is a multivariate polynomial in $n_\text{column}^T + n_\text{shift}^T$ variables: one variable per column (taking its row-$r$ value $\textsf{col}^T_i(r)$ as input), plus one variable per shifted column (taking $\textsf{shift}(\textsf{col}^T_j)[r]$ as input). The constraint is respected by the table's trace if, for every row $r \in [0, 2^{h_T})$,
 $$
-\forall r \in [0, 2^{h_T}), \quad C_k(\textsf{col}^T_0(r), \ldots, \textsf{col}^T_{n_\text{column}^T-1}(r), \textsf{shift}(\textsf{col}^T_0)[r], \ldots, \textsf{shift}(\textsf{col}^T_{n_\text{shift}^T-1})[r]) = 0
+C_k^T\big(\textsf{col}^T_0(r), \ldots, \textsf{col}^T_{n_\text{column}^T-1}(r),\ \textsf{shift}(\textsf{col}^T_0)[r], \ldots, \textsf{shift}(\textsf{col}^T_{n_\text{shift}^T-1})[r]\big) = 0.
 $$
+
+\subsubsection{ZeroCheck: Proving AIR constraints via sumcheck}
+
+For each table $T$, we want to convince the verifier that every constraint $C_k^T$ vanishes on every row of the trace. We proceed in three steps.
+
+\textbf{Batching.} The verifier samples $\alpha \in \Fq$ and we form the batched constraint
+\[
+H_T \;:=\; \sum_{k=0}^{n_\text{constraints}^T - 1} \alpha^k\, C_k^T,
+\]
+a polynomial in the same $n_\text{column}^T + n_\text{shift}^T$ variables as each $C_k^T$.
+
+\emph{Completeness}: if every $C_k^T$ vanishes on every row, so does $H_T$.
+
+\emph{Soundness}: if some $C_k^T$ fails to vanish at some row $\vec b^\star$, then $\alpha \mapsto H_T(\vec b^\star)$, then so does $H_T$, except with soudness error $n_\text{constraints}^T/q$ via Schwartz-Zippel (lemma \ref{lem:sz}).
+
+\textbf{Zerocheck.} Let $f_T \in \Fq^{2^{h_T}}$ be the vector whose $\vec b$-th coordinate is
+\[
+f_T(\vec b) \;:=\; H_T\big(\hat{\textsf{col}}^T_0(\vec b), \ldots, \hat{\textsf{col}}^T_{n_\text{column}^T-1}(\vec b), \overset{\scriptscriptstyle\wedge}{\textsf{shift}}(\textsf{col}^T_0)(\vec b), \ldots, \overset{\scriptscriptstyle\wedge}{\textsf{shift}}(\textsf{col}^T_{n_\text{shift}^T-1})(\vec b)\big),
+\]
+so the claim is $f_T \equiv 0$. The verifier samples $\vec r \in \Fq^{h_T}$. By Lemma~\ref{lem:sz} applied to the multilinear polynomial (in $h_T$ variables) $\hat{f}_T$, with soundness error $h_T / q$ it suffices to prove that $\hat{f}_T(\vec r) = 0$, i.e.,
+\[
+\sum_{\vec b \in \{0,1\}^{h_T}} \hat{eq}(\vec b, \vec r) \cdot f_T(\vec b) \;=\; 0.
+\]
+
+\textbf{Sumcheck.} Run the standard sumcheck protocol \cite{sumcheck} on the sum above. After $h_T$ rounds with challenges $\vec\beta \in \Fq^{h_T}$, the verifier must check the summand at $\vec b = \vec\beta$: $\hat{eq}(\vec\beta, \vec r)$ is computed directly, and the column and shifted-column evaluations are claimed by the prover and verified as described in Section~\ref{sec:stacking}.
 
 \subsection{Execution table}
 
