@@ -594,6 +594,8 @@ The stacked polynomial $\hat{S}$, which we commit, has $5 = \lceil \log_2(2^4 + 
 
 The execution trace is split across three \textit{tables}: \textsc{execution}, \textsc{extension}, and \textsc{poseidon}. Each table $T$ is a matrix of base-field elements, with a variable power-of-two height $2^{h_T}$, and a fixed number of columns $n_\text{column}^T = n_\text{shift}^T + n_\text{flat}^T$. Each column $\hat{\textsf{col}}^T_i$ ($i \in [0, n_\text{column}^T)$) is interpreted as a multilinear polynomial in ${h_T}$ variables.
 
+Each VM cycle corresponds to a row of the $\textsc{EXECUTION}$, each poseidon precompile call corresponds to a row of the $\textsc{POSEIDON}$, and each extension precompile call with a size parameter of $n$ (see TODO) corresponds to a row of the $\textsc{EXTENSION}$ table.
+
 We restrict their maximal heights, to ensure logup multiplicites never overflow modulo $p$:
 
 \begin{center}
@@ -660,7 +662,7 @@ A table $T$ may \textsc{Push} or \textsc{Pull} various tuples to the common bus.
 \subsection{Execution table}
 
 
-\subsubsection{Commitment}
+\subsubsection{Columns}
 
 \fbox{At each cycle, we commit to 20 (base) field elements:}
 
