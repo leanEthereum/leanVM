@@ -755,6 +755,8 @@ so the claim is $f_T \equiv 0$. The verifier samples $\vec r \in \Fq^{h_T}$. By 
 
 \textbf{Sumcheck.} Run the standard sumcheck protocol \cite{sumcheck} on the sum above. After $h_T$ rounds with challenges $\vec\beta \in \Fq^{h_T}$, the verifier must check the summand at $\vec b = \vec\beta$: $\hat{eq}(\vec\beta, \vec r)$ is computed directly, and the column and shifted-column evaluations are claimed by the prover and verified as described in Section~\ref{sec:stacking}.
 
+\textbf{Beyond consecutive sampling of the challenge $\vec r$.} Prover and verifier may engage in arbitrary auxiliary sub-protocols between successive $r_i$ samplings; what matters for soundness is only that each $r_i$ is sampled uniformly at random and after the trace commitment.
+
 \subsubsection{Batching many ZeroChecks together}
 
 Instead of running the zerocheck above individually for each table, we merge them into a single \emph{back-loaded} sumcheck of $h_{\max} := \max_T h_T$ rounds, using a shared random challenge $\vec r \in \Fq^{h_{\max}}$. For each table $T$, let $\vec r_T \in \Fq^{h_T}$ be the suffix of $\vec r$ of length $h_T$, write $\vec X_{\geq k} := (X_k, \ldots, X_{h_{\max} - 1})$, and define $G_T \in \Fq[X_0, \ldots, X_{h_{\max}-1}]$ by
