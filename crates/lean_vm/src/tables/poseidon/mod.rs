@@ -1,7 +1,7 @@
 use std::any::TypeId;
 
 use crate::*;
-use crate::{execution::memory::MemoryAccess, tables::poseidon_16::trace_gen::generate_trace_rows_for_perm};
+use crate::{execution::memory::MemoryAccess, tables::poseidon::trace_gen::generate_trace_rows_for_perm};
 use backend::*;
 use utils::{ToUsize, poseidon16_compress, poseidon16_permute};
 
@@ -308,7 +308,7 @@ impl<const BUS: bool> Air for Poseidon16Precompile<BUS> {
         0
     }
     fn n_constraints(&self) -> usize {
-        BUS as usize + 99
+        2 * BUS as usize + 99
     }
     fn eval<AB: AirBuilder>(&self, builder: &mut AB, extra_data: &Self::ExtraData) {
         let cols: Poseidon1Cols16<AB::IF> = {
@@ -335,12 +335,13 @@ impl<const BUS: bool> Air for Poseidon16Precompile<BUS> {
 
         // Bus: data = [a, b, res], domainsep
         if BUS {
-            builder.assert_zero_ef(eval_bus_virtual::<AB, EF>(
+            eval_bus_virtual::<AB, EF>(
+                builder,
                 extra_data,
                 cols.multiplicity,
                 domainsep_reconstructed,
                 &[index_a, cols.index_b, cols.index_res],
-            ));
+            );
         } else {
             builder.declare_values(std::slice::from_ref(&cols.multiplicity));
             builder.declare_values(&[index_a, cols.index_b, cols.index_res, domainsep_reconstructed]);

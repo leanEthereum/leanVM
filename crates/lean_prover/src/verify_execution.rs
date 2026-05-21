@@ -104,43 +104,38 @@ pub fn verify_execution(
         );
     }
 
-    let bus_beta = verifier_state.sample();
-    verifier_state.duplex();
     let air_alpha = verifier_state.sample();
-    let air_alpha_powers: Vec<EF> = air_alpha.powers().collect_n(max_air_constraints() + 1);
-    verifier_state.duplex();
-    let eta: EF = verifier_state.sample(); // batching the sumchecks proving validity of AIR tables
+    let air_alpha_powers: Vec<EF> = air_alpha.powers().collect_n(total_air_constraints());
 
     let tables_sorted = sort_tables_by_height(&table_n_vars);
 
     struct TableVerifyData {
         table: Table,
         extra_data: ExtraDataForBuses<EF>,
-        eta_power: EF,
     }
     let mut verify_data: Vec<TableVerifyData> = Vec::new();
     let mut initial_sum = EF::ZERO;
-    let mut eta_power = EF::ONE;
+    let mut alpha_offset = 0;
 
     for (table, _) in &tables_sorted {
+        let n_constraints = table.n_constraints();
         let bus_numerator_value = logup_statements.bus_numerators_values[table];
         let bus_denominator_value = logup_statements.bus_denominators_values[table];
-        let bus_final_value = bus_numerator_value
+        let signed_numerator = bus_numerator_value
             * match table.bus_interactions()[0].direction {
                 BusDirection::Pull => EF::NEG_ONE,
                 BusDirection::Push => EF::ONE,
-            }
-            + bus_beta * (logup_c - bus_denominator_value);
+            };
+        initial_sum += air_alpha_powers[alpha_offset] * signed_numerator
+            + air_alpha_powers[alpha_offset + 1] * (logup_c - bus_denominator_value);
 
-        initial_sum += eta_power * bus_final_value;
-
+        let alpha_slice = air_alpha_powers[alpha_offset..alpha_offset + n_constraints].to_vec();
         verify_data.push(TableVerifyData {
             table: *table,
-            eta_power,
-            extra_data: ExtraDataForBuses::new(logup_alphas_eq_poly.clone(), bus_beta, air_alpha_powers.clone()),
+            extra_data: ExtraDataForBuses::new(logup_alphas_eq_poly.clone(), alpha_slice),
         });
 
-        eta_power *= eta;
+        alpha_offset += n_constraints;
     }
 
     let max_full_degree = tables_sorted.iter().map(|(t, _)| t.degree_air() + 1).max().unwrap();
@@ -168,7 +163,6 @@ pub fn verify_execution(
             &sumcheck_air_point.0,
             &natural_ordering_point,
             constraint_eval,
-            vd.eta_power,
         );
 
         macro_rules! split {
@@ -244,7 +238,6 @@ fn back_loaded_table_contribution<EF: ExtensionField<PF<EF>>>(
     sumcheck_air_point: &[EF],
     natural_ordering_point: &[EF],
     constraint_eval: EF,
-    eta_power: EF,
 ) -> EF {
     let n_t = bus_point.len();
     let n_max = sumcheck_air_point.len();
@@ -253,5 +246,5 @@ fn back_loaded_table_contribution<EF: ExtensionField<PF<EF>>>(
     let eq_val =
         MultilinearPoint(bus_point.to_vec()).eq_poly_outside(&MultilinearPoint(natural_ordering_point.to_vec()));
     let k_t: EF = sumcheck_air_point[..suffix_start].iter().copied().product();
-    eta_power * k_t * eq_val * constraint_eval
+    k_t * eq_val * constraint_eval
 }

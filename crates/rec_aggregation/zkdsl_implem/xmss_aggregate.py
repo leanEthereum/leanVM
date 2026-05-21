@@ -30,6 +30,7 @@ TWEAK_CHAIN_OFFSET = TWEAK_ENCODING_OFFSET + TWEAK_LEN  # just after the encodin
 TWEAK_WOTS_PK_OFFSET = TWEAK_CHAIN_OFFSET + V * CHAIN_LENGTH * TWEAK_LEN
 TWEAK_MERKLE_OFFSET = TWEAK_WOTS_PK_OFFSET + TWEAK_LEN
 
+
 @inline
 def xmss_verify(pub_key, message, merkle_chunks):
     wots = Array(WOTS_SIG_SIZE)
@@ -38,7 +39,7 @@ def xmss_verify(pub_key, message, merkle_chunks):
     public_param = pub_key + XMSS_DIGEST_LEN
     randomness = wots
     chain_starts = wots + RANDOMNESS_LEN
-   
+
     # 1) Encode: poseidon16_compress(message[0:8], [randomness(6) | tweak_encoding(2))
     #            poseidon16_compress(pre_compressed, [pp(4) | zeros(4)])
     encoding_tweak = TWEAK_TABLE_ADDR + TWEAK_ENCODING_OFFSET
@@ -48,8 +49,8 @@ def xmss_verify(pub_key, message, merkle_chunks):
     a_input_right[7] = encoding_tweak[1]
     pre_compressed = Array(DIGEST_LEN)
     poseidon16_compress(message, a_input_right, pre_compressed)
-    
-    public_params_paded_buff = Array(DIGEST_LEN + 2) # 0 [public_param(4) | zeros(4)] 0
+
+    public_params_paded_buff = Array(DIGEST_LEN + 2)  # 0 [public_param(4) | zeros(4)] 0
     copy_5(public_param - 1, public_params_paded_buff)
     set_to_5_zeros(public_params_paded_buff + 5)
     public_params_paded = public_params_paded_buff + 1
@@ -76,7 +77,6 @@ def xmss_verify(pub_key, message, merkle_chunks):
         # remaining_i = (encoding_fe[i] - partial_sum) * inv(2^24) = (partial_sum - encoding_fe[i]) * 127
         remaining_i = (partial_sum - encoding_fe[i]) * 127
         assert remaining_i < 127  # ensures uniformity + prevent overflow
-
 
     debug_assert(V % 2 == 0)
     wots_public_key = Array((V / 2) * WOTS_PK_PAIR_STRIDE)
@@ -141,9 +141,7 @@ def chain_hash_pa(input, n, output, chain_i_tweaks, chain_right):
 
         # Final hash: digests[(n-2)*4..(n-1)*4] → output
         last_tweak = chain_i_tweaks + (starting_step + n - 1) * TWEAK_LEN
-        poseidon16_compress_half_hardcoded_left(
-            digests + (n - 2) * XMSS_DIGEST_LEN, chain_right, output, last_tweak
-        )
+        poseidon16_compress_half_hardcoded_left(digests + (n - 2) * XMSS_DIGEST_LEN, chain_right, output, last_tweak)
     return
 
 
@@ -183,9 +181,7 @@ def chain_hash_pair(
 def wots_pk_hash(wots_public_key, public_param):
     N_CHUNKS = V / 2
     states = Array((N_CHUNKS + 1) * DIGEST_LEN)
-    poseidon16_compress_hardcoded_left(
-        public_param, ZERO_VEC_PTR, states, TWEAK_TABLE_ADDR + TWEAK_WOTS_PK_OFFSET
-    )
+    poseidon16_compress_hardcoded_left(public_param, ZERO_VEC_PTR, states, TWEAK_TABLE_ADDR + TWEAK_WOTS_PK_OFFSET)
     for i in unroll(0, N_CHUNKS):
         poseidon16_compress(
             states + i * DIGEST_LEN,
@@ -240,7 +236,9 @@ def do_4_merkle_levels(b, state_in, state_out, public_param, merkle_tweaks_chunk
         poseidon16_compress_half_hardcoded_left(public_param, buf1, buf2, merkle_tweaks_chunk + 1 * TWEAK_LEN)
         hint_witness("xmss_merkle_node", buf2 + XMSS_DIGEST_LEN)
     else:
-        poseidon16_compress_half_hardcoded_left(public_param, buf1, buf2 + XMSS_DIGEST_LEN, merkle_tweaks_chunk + 1 * TWEAK_LEN)
+        poseidon16_compress_half_hardcoded_left(
+            public_param, buf1, buf2 + XMSS_DIGEST_LEN, merkle_tweaks_chunk + 1 * TWEAK_LEN
+        )
         hint_witness("xmss_merkle_node", buf2)
 
     # Level 2 hash → buf3
@@ -249,7 +247,9 @@ def do_4_merkle_levels(b, state_in, state_out, public_param, merkle_tweaks_chunk
         poseidon16_compress_half_hardcoded_left(public_param, buf2, buf3, merkle_tweaks_chunk + 2 * TWEAK_LEN)
         hint_witness("xmss_merkle_node", buf3 + XMSS_DIGEST_LEN)
     else:
-        poseidon16_compress_half_hardcoded_left(public_param, buf2, buf3 + XMSS_DIGEST_LEN, merkle_tweaks_chunk + 2 * TWEAK_LEN)
+        poseidon16_compress_half_hardcoded_left(
+            public_param, buf2, buf3 + XMSS_DIGEST_LEN, merkle_tweaks_chunk + 2 * TWEAK_LEN
+        )
         hint_witness("xmss_merkle_node", buf3)
 
     poseidon16_compress_half_hardcoded_left(public_param, buf3, state_out, merkle_tweaks_chunk + 3 * TWEAK_LEN)
@@ -262,7 +262,11 @@ def xmss_merkle_verify(leaf_digest, merkle_chunks, expected_root, public_param, 
     states = states_alloc + 1
 
     # First chunk
-    match_range(merkle_chunks[0], range(0, 16), lambda b: do_4_merkle_levels(b, leaf_digest, states, public_param, merkle_tweaks))
+    match_range(
+        merkle_chunks[0],
+        range(0, 16),
+        lambda b: do_4_merkle_levels(b, leaf_digest, states, public_param, merkle_tweaks),
+    )
 
     state_indexes = Array(N_MERKLE_CHUNKS - 1)
     state_indexes[0] = states

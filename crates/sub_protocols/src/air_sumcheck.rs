@@ -636,11 +636,9 @@ where
 pub fn prove_batched_air_sumcheck<'a, EF: ExtensionField<PF<EF>>>(
     prover_state: &mut impl FSProver<EF>,
     sessions: &mut [Box<dyn OuterSumcheckSession<EF> + 'a>],
-    eta: EF,
 ) -> MultilinearPoint<EF> {
     let n_rounds = sessions.iter().map(|s| s.initial_n_vars()).max().unwrap_or(0);
     let max_full_degree = sessions.iter().map(|s| s.bare_degree() + 1).max().unwrap_or(1);
-    let eta_powers: Vec<EF> = eta.powers().collect_n(sessions.len());
 
     let mut challenges = Vec::with_capacity(n_rounds);
     let mut k: Vec<EF> = vec![EF::ONE; sessions.len()];
@@ -652,12 +650,12 @@ pub fn prove_batched_air_sumcheck<'a, EF: ExtensionField<PF<EF>>>(
         for (idx, session) in sessions.iter_mut().enumerate() {
             let join_round = n_rounds - session.initial_n_vars();
             if round < join_round {
-                combined_coeffs[1] += eta_powers[idx] * k[idx] * session.sum();
+                combined_coeffs[1] += k[idx] * session.sum();
             } else {
                 let bare_poly = session.compute_bare_round_poly();
                 let full_coeffs = expand_bare_to_full(&bare_poly.coeffs, session.eq_alpha());
                 for (i, &c) in full_coeffs.iter().enumerate() {
-                    combined_coeffs[i] += eta_powers[idx] * k[idx] * c;
+                    combined_coeffs[i] += k[idx] * c;
                 }
                 bare_polys[idx] = Some(bare_poly);
             }

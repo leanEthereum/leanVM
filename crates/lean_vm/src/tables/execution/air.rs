@@ -49,7 +49,7 @@ impl<const BUS: bool> Air for ExecutionTable<BUS> {
         2
     }
     fn n_constraints(&self) -> usize {
-        13
+        14
     }
 
     #[inline]
@@ -97,12 +97,7 @@ impl<const BUS: bool> Air for ExecutionTable<BUS> {
         let multiplicity = -(add + mul + deref + jump - AB::F::ONE);
 
         if BUS {
-            builder.assert_zero_ef(eval_bus_virtual::<AB, EF>(
-                extra_data,
-                multiplicity,
-                domainsep,
-                &[nu_a, nu_b, nu_c],
-            ));
+            eval_bus_virtual::<AB, EF>(builder, extra_data, multiplicity, domainsep, &[nu_a, nu_b, nu_c]);
         } else {
             builder.declare_values(&[multiplicity]);
             builder.declare_values(&[nu_a, nu_b, nu_c, domainsep]);

@@ -153,12 +153,8 @@ pub fn prove_execution(
         );
     }
 
-    let bus_beta = prover_state.sample();
-    prover_state.duplex();
     let air_alpha = prover_state.sample();
-    let air_alpha_powers: Vec<EF> = air_alpha.powers().collect_n(max_air_constraints() + 1);
-    prover_state.duplex();
-    let air_eta: EF = prover_state.sample();
+    let air_alpha_powers: Vec<EF> = air_alpha.powers().collect_n(total_air_constraints());
 
     let tables_log_heights: BTreeMap<Table, VarCount> =
         traces.iter().map(|(table, trace)| (*table, trace.log_n_rows)).collect();
@@ -181,19 +177,26 @@ pub fn prove_execution(
         .collect();
     std::mem::drop(_span);
     let mut sessions = Vec::with_capacity(tables_sorted.len());
+    let mut alpha_offset = 0;
     for (idx, (table, log_n_rows)) in tables_sorted.iter().enumerate() {
+        let n_constraints = table.n_constraints();
         let bus_numerator_value = logup_statements.bus_numerators_values[table];
         let bus_denominator_value = logup_statements.bus_denominators_values[table];
-        let bus_final_value = bus_numerator_value
+        let signed_numerator = bus_numerator_value
             * match table.bus_interactions()[0].direction {
                 BusDirection::Pull => EF::NEG_ONE,
                 BusDirection::Push => EF::ONE,
-            }
-            + bus_beta * (logup_c - bus_denominator_value);
+            };
+        // Each table consumes a disjoint range of alpha powers; alpha^offset weights the bus
+        // numerator (multiplicity), alpha^{offset+1} weights the bus fingerprint, alpha^{offset+2..}
+        // weight the remaining AIR constraints.
+        let bus_final_value = air_alpha_powers[alpha_offset] * signed_numerator
+            + air_alpha_powers[alpha_offset + 1] * (logup_c - bus_denominator_value);
 
         let eq_suffix = from_end(gkr_point, *log_n_rows).to_vec();
 
-        let extra_data = ExtraDataForBuses::new(logup_alphas_eq_poly.clone(), bus_beta, air_alpha_powers.clone());
+        let alpha_slice = air_alpha_powers[alpha_offset..alpha_offset + n_constraints].to_vec();
+        let extra_data = ExtraDataForBuses::new(logup_alphas_eq_poly.clone(), alpha_slice);
 
         let mut flat_and_shift: Vec<&[PF<EF>]> = column_refs[idx].to_vec();
         flat_and_shift.extend(shifted_rows[idx].iter().map(Vec::as_slice));
@@ -208,10 +211,11 @@ pub fn prove_execution(
             }};
         }
         sessions.push(delegate_to_inner!(table => make_session));
+        alpha_offset += n_constraints;
     }
 
-    let sumcheck_air_point = info_span!("batched AIR sumcheck")
-        .in_scope(|| prove_batched_air_sumcheck(&mut prover_state, &mut sessions, air_eta));
+    let sumcheck_air_point =
+        info_span!("batched AIR sumcheck").in_scope(|| prove_batched_air_sumcheck(&mut prover_state, &mut sessions));
 
     for (idx, (table, _)) in tables_sorted.iter().enumerate() {
         let col_evals = sessions[idx].final_column_evals();

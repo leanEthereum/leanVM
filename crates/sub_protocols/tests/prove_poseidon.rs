@@ -65,9 +65,9 @@ fn prove_air_poseidon_16(log_n_rows: usize) {
     let witness = whir_config.commit(&mut prover_state, &committed_pol, n_cols << log_n_rows);
 
     let alpha = prover_state.sample();
-    let air_alpha_powers: Vec<EF> = alpha.powers().collect_n(n_constraints + 1);
-    // BUS=false => `logup_alphas_eq_poly` and `bus_beta` are unused; only `alpha_powers` matter.
-    let extra_data = ExtraDataForBuses::new(Vec::new(), EF::ZERO, air_alpha_powers);
+    let air_alpha_powers: Vec<EF> = alpha.powers().collect_n(n_constraints);
+    // BUS=false => `logup_alphas_eq_poly` is unused; only `alpha_powers` matter.
+    let extra_data = ExtraDataForBuses::new(Vec::new(), air_alpha_powers);
     prover_state.duplex();
     let eq_factor: Vec<EF> = prover_state.sample_vec(log_n_rows);
     let column_refs: Vec<&[F]> = trace.iter().map(Vec::as_slice).collect();
@@ -82,7 +82,7 @@ fn prove_air_poseidon_16(log_n_rows: usize) {
         n_rows,
     ))];
 
-    let sumcheck_air_point = prove_batched_air_sumcheck(&mut prover_state, &mut sessions, EF::ONE);
+    let sumcheck_air_point = prove_batched_air_sumcheck(&mut prover_state, &mut sessions);
     let col_evals = sessions[0].final_column_evals();
     prover_state.add_extension_scalars(&col_evals);
 
@@ -108,8 +108,8 @@ fn prove_air_poseidon_16(log_n_rows: usize) {
     let parsed_commitment = whir_config.parse_commitment::<F>(&mut verifier_state).unwrap();
 
     let alpha = verifier_state.sample();
-    let air_alpha_powers: Vec<EF> = alpha.powers().collect_n(n_constraints + 1);
-    let extra_data = ExtraDataForBuses::new(Vec::new(), EF::ZERO, air_alpha_powers);
+    let air_alpha_powers: Vec<EF> = alpha.powers().collect_n(n_constraints);
+    let extra_data = ExtraDataForBuses::new(Vec::new(), air_alpha_powers);
 
     verifier_state.duplex();
     let eq_factor_v: Vec<EF> = verifier_state.sample_vec(log_n_rows);

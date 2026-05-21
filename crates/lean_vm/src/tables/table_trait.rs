@@ -164,18 +164,14 @@ pub struct ExtraDataForBuses<EF: ExtensionField<PF<EF>>> {
     // GKR quotient challenges
     pub logup_alphas_eq_poly: Vec<EF>,
     pub logup_alphas_eq_poly_packed: Vec<EFPacking<EF>>,
-    pub bus_beta: EF,
-    pub bus_beta_packed: EFPacking<EF>,
     pub alpha_powers: Vec<EF>,
 }
 impl<EF: ExtensionField<PF<EF>>> ExtraDataForBuses<EF> {
-    pub fn new(logup_alphas_eq_poly: Vec<EF>, bus_beta: EF, alpha_powers: Vec<EF>) -> Self {
+    pub fn new(logup_alphas_eq_poly: Vec<EF>, alpha_powers: Vec<EF>) -> Self {
         let logup_alphas_eq_poly_packed = logup_alphas_eq_poly.iter().map(|a| EFPacking::<EF>::from(*a)).collect();
         Self {
             logup_alphas_eq_poly,
             logup_alphas_eq_poly_packed,
-            bus_beta,
-            bus_beta_packed: EFPacking::<EF>::from(bus_beta),
             alpha_powers,
         }
     }
@@ -194,17 +190,12 @@ impl AlphaPowers<EF> for ExtraDataForBuses<EF> {
 }
 
 impl<EF: ExtensionField<PF<EF>>> ExtraDataForBuses<EF> {
-    pub fn transmute_bus_data<NewEF: 'static>(&self) -> (&Vec<NewEF>, &NewEF) {
+    pub fn transmute_bus_data<NewEF: 'static>(&self) -> &Vec<NewEF> {
         if TypeId::of::<NewEF>() == TypeId::of::<EF>() {
-            unsafe { transmute::<(&Vec<EF>, &EF), (&Vec<NewEF>, &NewEF)>((&self.logup_alphas_eq_poly, &self.bus_beta)) }
+            unsafe { transmute::<&Vec<EF>, &Vec<NewEF>>(&self.logup_alphas_eq_poly) }
         } else {
             assert_eq!(TypeId::of::<NewEF>(), TypeId::of::<EFPacking<EF>>());
-            unsafe {
-                transmute::<(&Vec<EFPacking<EF>>, &EFPacking<EF>), (&Vec<NewEF>, &NewEF)>((
-                    &self.logup_alphas_eq_poly_packed,
-                    &self.bus_beta_packed,
-                ))
-            }
+            unsafe { transmute::<&Vec<EFPacking<EF>>, &Vec<NewEF>>(&self.logup_alphas_eq_poly_packed) }
         }
     }
 }

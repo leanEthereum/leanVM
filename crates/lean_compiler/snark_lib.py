@@ -17,8 +17,10 @@ def inline(fn):
 def unroll(a: int, b: int):
     return range(a, b)
 
+
 def parallel_range(a: int, b: int):
     return range(a, b)
+
 
 # dynamic_unroll(start, end, n_bits) returns range(start, end) for Python execution
 def dynamic_unroll(start: int, end: int, n_bits: int):
@@ -91,7 +93,7 @@ def poseidon16_compress_half_hardcoded_left(left, right, output, offset):
 
 def poseidon16_permute(left, right, output):
     """Raw Poseidon1 permutation (no feed-forward). Writes the 16-cell result in natural order:
-        m[output .. output + 16] = poseidon(left || right)"""
+    m[output .. output + 16] = poseidon(left || right)"""
     _ = left, right, output
 
 
@@ -122,6 +124,7 @@ def poly_eq_ee(a, b, result, length=None):
 def hint_decompose_bits(value, bits, n_bits):
     _ = value, bits, n_bits
 
+
 def hint_less_than(a, b, result_ptr):
     _ = a, b, result_ptr
 
@@ -134,8 +137,10 @@ def log2_ceil(x: int) -> int:
 def div_ceil(a: int, b: int) -> int:
     return (a + b - 1) // b
 
+
 def div_floor(a: int, b: int) -> int:
     return a // b
+
 
 def next_multiple_of(x: int, n: int) -> int:
     return x + (n - x % n) % n

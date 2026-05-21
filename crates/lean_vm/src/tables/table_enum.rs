@@ -104,8 +104,8 @@ impl Air for Table {
     }
 }
 
-pub fn max_air_constraints() -> usize {
-    ALL_TABLES.iter().map(|table| table.n_constraints()).max().unwrap()
+pub fn total_air_constraints() -> usize {
+    ALL_TABLES.iter().map(|table| table.n_constraints()).sum()
 }
 
 #[cfg(test)]
