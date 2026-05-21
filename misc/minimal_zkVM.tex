@@ -842,80 +842,35 @@ For precompiles, when $\alpha^\textsf{addr} = \beta^\textsf{addr} = \texttt{fp\_
 
 Constraints have degree 5. The values $\nu_A, \nu_B, \nu_C$ are as defined in Section~\ref{sec:opcode-encoding}.
 
-\vspace{5mm}
-
-The addressing-mode flags are tied to the address columns by:
+\paragraph{Addressing-mode constraints.}
 \begin{itemize}
     \item $(1 - \textsf{flag}_A - \textsf{flag}^{AB}_\textbf{fp}) \cdot (\textsf{address}_A - (\textbf{fp} + \textsf{operand}_A)) = 0$
     \item $(1 - \textsf{flag}_B - \textsf{flag}^{AB}_\textbf{fp}) \cdot (\textsf{address}_B - (\textbf{fp} + \textsf{operand}_B)) = 0$
     \item $(1 - \textsf{flag}_C - \textsf{flag}^{C}_\textbf{fp}) \cdot (\textsf{address}_C - (\textbf{fp} + \textsf{operand}_C)) = 0$
 \end{itemize}
 
-\vspace{3mm}\centerline{\rule{10cm}{0.4pt}}\vspace{5mm}
-
-Let $P_0, P_1, P_2$ be the Lagrange basis polynomials at points $0, 1, 2$. Explicitely:
-
-$$P_0(x) = (x-1)\cdot(x-2) / 2 \hspace{10mm} P_1(x) = x \cdot (2-x) \hspace{10mm} P_2(x) = x \cdot (x-1) / 2$$
-
-We define the following values:
-
+\paragraph{Opcode selectors.} Let $P_0, P_1, P_2$ be the Lagrange basis polynomials at $0, 1, 2$:
+$$P_0(x) = (x-1)(x-2)/2, \qquad P_1(x) = x(2-x), \qquad P_2(x) = x(x-1)/2.$$
+We define the selectors
 \begin{itemize}
-    \item ADD = $P_1(\textsf{aux}_1)$
-    \item DEREF = $P_2(\textsf{aux}_1)$
-    \item IS\_PRECOMPILE = $1 - (\text{ADD} + \textsf{flag}_\textsf{mul} + \text{DEREF} + \textsf{flag}_\textsf{jump})$
+    \item $\textsf{add} = P_1(\textsf{aux}_1)$ \quad (equals $1$ when $\textsf{aux}_1 = 1$, else $0$ on $\{0, 2\}$),
+    \item $\textsf{deref} = P_2(\textsf{aux}_1)$ \quad (equals $1$ when $\textsf{aux}_1 = 2$, else $0$ on $\{0, 1\}$),
+    \item $\textsf{is\_precompile} = 1 - (\textsf{add} + \textsf{flag}_\textsf{mul} + \textsf{deref} + \textsf{flag}_\textsf{jump})$.
 \end{itemize}
+$\textsf{is\_precompile}$ is used as the bus selector for precompile dispatch (see Section~\ref{buses}).
 
-IS\_PRECOMPILE is used a "bus selector" (see \ref{buses}).
-
-\vspace{3mm}\centerline{\rule{10cm}{0.4pt}}\vspace{5mm}
-
-$\textsf{aux}_2$ encodes the precompile being called, and the parameters of the call:
+\paragraph{Per-opcode semantic constraints.}
 \begin{itemize}
-    \item No precompile $\rightarrow$ $\textsf{aux}_2 = 0$
-    \item Poseidon precompile $\rightarrow$ $\textsf{aux}_2 = 1$
-    \item Extension op precompile $\rightarrow$ $\textsf{aux}_2 = 2 \cdot \textsf{be} + 4 \cdot \textsf{flag\_add} + 8 \cdot \textsf{flag\_mul} + 16 \cdot \textsf{flag\_eq} + 32 \cdot N$ \hfill ($N$ = length)
+    \item $\texttt{ADD}$: $\quad \textsf{add} \cdot (\nu_B - (\nu_A + \nu_C)) = 0$.
+    \item $\texttt{MUL}$: $\quad \textsf{flag}_\textsf{mul} \cdot (\nu_B - \nu_A \cdot \nu_C) = 0$.
+    \item $\texttt{DEREF}$: $\quad \textsf{deref} \cdot (\textsf{addr}_B - (\textsf{value}_A + \textsf{operand}_B)) = 0$ \quad and \quad $\textsf{deref} \cdot (\textsf{value}_B - \nu_C) = 0$.
+    \item $\texttt{JUMP}$: let $J = \textsf{flag}_\textsf{jump} \cdot \nu_A$ (so $J = 1$ on a taken jump, $J = 0$ otherwise). Then:
+    \begin{itemize}
+        \item $J \cdot (1 - \nu_A) = 0$ \quad (forces $\nu_A \in \{0, 1\}$ on jump rows)
+        \item $J \cdot (\text{next}(\textbf{pc}) - \nu_B) = 0$ \quad and \quad $(1 - J) \cdot (\text{next}(\textbf{pc}) - (\textbf{pc} + 1)) = 0$
+        \item $J \cdot (\text{next}(\textbf{fp}) - \nu_C) = 0$ \quad and \quad $(1 - J) \cdot (\text{next}(\textbf{fp}) - \textbf{fp}) = 0$
+    \end{itemize}
 \end{itemize}
-
-\vspace{3mm}\centerline{\rule{10cm}{0.4pt}}\vspace{5mm}
-
-For addition, set $\textsf{aux}_1 = 1$.
-\begin{itemize}
-    \item $\text{ADD} \cdot(\nu_B - (\nu_A + \nu_C)) = 0$
-\end{itemize}
-
-
-\vspace{3mm}\centerline{\rule{10cm}{0.4pt}}\vspace{5mm}
-
-For multiplication, set $\textsf{flag}_\textsf{mul} = 1$.
-\begin{itemize}
-    \item $\textsf{flag}_\textsf{mul} \cdot(\nu_B - \nu_A \cdot \nu_C) = 0$
-\end{itemize}
-
-\vspace{3mm}\centerline{\rule{10cm}{0.4pt}}\vspace{5mm}
-
-For DEREF instructions, set $\textsf{aux}_1 = 2$, $\textsf{flag}_A = 0$, $\textsf{flag}_B = 1$ and $\textsf{flag}_C$ / $\textsf{flag}^{C}_\textbf{fp}$ according to whether the third operand is an immediate value, a memory read, or fp-relative.
-
-The relation $\textbf{m}[\textbf{m}[\textbf{fp} + \alpha] + \beta] = \nu_C$ is then captured by:
-
-\begin{itemize}
-    \item $\text{DEREF} \cdot (\textsf{addr}_B - (\textsf{value}_A + \textsf{operand}_B)) = 0$
-    \item $\text{DEREF} \cdot (\textsf{value}_B - \nu_C) = 0$
-\end{itemize}
-
-\vspace{3mm}\centerline{\rule{10cm}{0.4pt}}\vspace{5mm}
-
-For (conditional) jumps, set $\textsf{flag}_\textsf{jump} = 1$, with the following constraints, using $J = \textsf{flag}_\textsf{jump} \cdot \nu_A$:
-\begin{itemize}
-    \item $J \cdot (1 - \nu_A) = 0$
-    \item $J \cdot ( \text{next(\textbf{pc})} - \nu_B) = 0$
-    \item $J \cdot ( \text{next(fp)} - \nu_C) = 0$
-    \item $(1 - J) \cdot ( \text{next(\textbf{pc})} - (\text{\textbf{pc}} + 1)) = 0$
-    \item $(1 - J) \cdot (\text{next(fp)} - \textbf{fp}) = 0$
-\end{itemize}
-
-Note: the constraint $J \cdot (1 - \nu_A) = 0$ could be removed, as long as it's correctly enforced in the bytecode.
-
-\vspace{3mm}
 
 TODO: Verify and (formally) prove soundness.
 
@@ -1199,7 +1154,7 @@ This can be computed via GKR, as introduced in \cite{logup_gkr}.
 
 See OpenVM \cite{openvm}, definition 2.2.2, for more details.
 
-At each cycle when IS\_PRECOMPILE = 1, the execution table \textsc{Push}es $$\sigma = (\textsf{aux}_2, \nu_A, \nu_B, \nu_C)$$ to the "precompile bus".
+At each cycle when $\textsf{is\_precompile} = 1$, the execution table \textsc{Push}es $$\sigma = (\textsf{aux}_2, \nu_A, \nu_B, \nu_C)$$ to the "precompile bus".
 
 In case of Poseidon call, $\textsf{aux}_2 = 1$ and $\nu_A$, $\nu_B$, $\nu_C$ represent the left input address, the right input address, and the output address (3 pointers to a chunk of 8 field elements in memory).
 
@@ -1207,7 +1162,7 @@ In case of extension op call, $\textsf{aux}_2 = 2 \cdot \textsf{be} + 4 \cdot \t
 
 Each such tuple $\sigma$ (counting multiplicity) must be \textsc{Pulled} by one of the precompile tables. Given that the Poseidon table only pulls tuples with $\textsf{aux}_2 = 1$, and the extension op table only pulls tuples with $\textsf{aux}_2 \geq 32$, the bus is effectively partitioned into two disjoint sub-buses, one for each precompile.
 
-Similarly to the IS\_PRECOMPILE (virtual) column for the execution table, each one of the two precompile tables has a boolean (virtual) column acting as a bus selector, indicating at which rows the table is pulling from the bus (1) or not (0).
+Similarly to the $\textsf{is\_precompile}$ (virtual) column for the execution table, each one of the two precompile tables has a boolean (virtual) column acting as a bus selector, indicating at which rows the table is pulling from the bus (1) or not (0).
 
 \vspace{3mm}
 
