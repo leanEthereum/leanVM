@@ -755,6 +755,19 @@ so the claim is $f_T \equiv 0$. The verifier samples $\vec r \in \Fq^{h_T}$. By 
 
 \textbf{Sumcheck.} Run the standard sumcheck protocol \cite{sumcheck} on the sum above. After $h_T$ rounds with challenges $\vec\beta \in \Fq^{h_T}$, the verifier must check the summand at $\vec b = \vec\beta$: $\hat{eq}(\vec\beta, \vec r)$ is computed directly, and the column and shifted-column evaluations are claimed by the prover and verified as described in Section~\ref{sec:stacking}.
 
+\subsubsection{Batching many ZeroChecks together}
+
+Instead of running the zerocheck above individually for each table, we merge them into a single \emph{back-loaded} sumcheck of $h_{\max} := \max_T h_T$ rounds, using a shared random challenge $\vec r \in \Fq^{h_{\max}}$. For each table $T$, let $\vec r_T \in \Fq^{h_T}$ be the suffix of $\vec r$ of length $h_T$, write $\vec X_{\geq k} := (X_k, \ldots, X_{h_{\max} - 1})$, and define $G_T \in \Fq[X_0, \ldots, X_{h_{\max}-1}]$ by
+\[
+G_T(\vec X) \;:=\; \Big(\textstyle\prod_{i < h_{\max} - h_T} X_i\Big) \cdot \hat{eq}\big(\vec X_{\geq h_{\max} - h_T},\, \vec r_T\big) \cdot f_T\big(\vec X_{\geq h_{\max} - h_T}\big).
+\]
+
+The verifier samples $\lambda \in \Fq$. Enumerating the three tables as $T \in \{\textsc{EXECUTION}, \textsc{EXTENSION}, \textsc{POSEIDON}\}$ with indices $i_T \in \{0, 1, 2\}$, we run a single sumcheck claiming
+\[
+\sum_{\vec b \in \{0, 1\}^{h_{\max}}} \sum_T \lambda^{i_T}\, G_T(\vec b) \;=\; 0,
+\]
+which is equivalent, up to soundness error $2/q$ over $\lambda$ from Lemma~\ref{lem:sz}, to the conjunction of the three per-table zerocheck claims.
+
 \subsection{Execution table}
 
 
