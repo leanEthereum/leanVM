@@ -842,28 +842,30 @@ For precompiles, when $\alpha^\textsf{addr} = \beta^\textsf{addr} = \texttt{fp\_
 
 Constraints have degree 5. The values $\nu_A, \nu_B, \nu_C$ are as defined in Section~\ref{sec:opcode-encoding}.
 
-\paragraph{Addressing-mode constraints.}
+
+Let $P_0, P_1, P_2$ be the Lagrange basis polynomials at $0, 1, 2$:
+$$P_0(x) = (x-1)(x-2)/2, \qquad P_1(x) = x(2-x), \qquad P_2(x) = x(x-1)/2.$$
+We define the virtual (non-committed) selectors
+\begin{itemize}
+    \item $\textsf{flag}_\textsf{add} = P_1(\textsf{aux}_1)$ \quad (equals $1$ when $\textsf{aux}_1 = 1$, else $0$ on $\{0, 2\}$),
+    \item $\textsf{flag}_\textsf{deref} = P_2(\textsf{aux}_1)$ \quad (equals $1$ when $\textsf{aux}_1 = 2$, else $0$ on $\{0, 1\}$),
+    \item $\textsf{flag}_\textsf{precompile} = 1 - (\textsf{flag}_\textsf{add} + \textsf{flag}_\textsf{mul} + \textsf{flag}_\textsf{deref} + \textsf{flag}_\textsf{jump})$.
+\end{itemize}
+$\textsf{flag}_\textsf{precompile}$ is the selector for the precompile bus push (Section~\ref{sec:execution-bus}).
+
+\paragraph{Addressing constraints.}
 \begin{itemize}
     \item $(1 - \textsf{flag}_A - \textsf{flag}^{AB}_\textbf{fp}) \cdot (\textsf{address}_A - (\textbf{fp} + \textsf{operand}_A)) = 0$
     \item $(1 - \textsf{flag}_B - \textsf{flag}^{AB}_\textbf{fp}) \cdot (\textsf{address}_B - (\textbf{fp} + \textsf{operand}_B)) = 0$
     \item $(1 - \textsf{flag}_C - \textsf{flag}^{C}_\textbf{fp}) \cdot (\textsf{address}_C - (\textbf{fp} + \textsf{operand}_C)) = 0$
 \end{itemize}
 
-\paragraph{Opcode selectors.} Let $P_0, P_1, P_2$ be the Lagrange basis polynomials at $0, 1, 2$:
-$$P_0(x) = (x-1)(x-2)/2, \qquad P_1(x) = x(2-x), \qquad P_2(x) = x(x-1)/2.$$
-We define the selectors
-\begin{itemize}
-    \item $\textsf{add} = P_1(\textsf{aux}_1)$ \quad (equals $1$ when $\textsf{aux}_1 = 1$, else $0$ on $\{0, 2\}$),
-    \item $\textsf{deref} = P_2(\textsf{aux}_1)$ \quad (equals $1$ when $\textsf{aux}_1 = 2$, else $0$ on $\{0, 1\}$),
-    \item $\textsf{is\_precompile} = 1 - (\textsf{add} + \textsf{flag}_\textsf{mul} + \textsf{deref} + \textsf{flag}_\textsf{jump})$.
-\end{itemize}
-$\textsf{is\_precompile}$ is used as the bus selector for precompile dispatch (see Section~\ref{buses}).
 
 \paragraph{Per-opcode semantic constraints.}
 \begin{itemize}
-    \item $\texttt{ADD}$: $\quad \textsf{add} \cdot (\nu_B - (\nu_A + \nu_C)) = 0$.
+    \item $\texttt{ADD}$: $\quad \textsf{flag}_\textsf{add} \cdot (\nu_B - (\nu_A + \nu_C)) = 0$.
     \item $\texttt{MUL}$: $\quad \textsf{flag}_\textsf{mul} \cdot (\nu_B - \nu_A \cdot \nu_C) = 0$.
-    \item $\texttt{DEREF}$: $\quad \textsf{deref} \cdot (\textsf{addr}_B - (\textsf{value}_A + \textsf{operand}_B)) = 0$ \quad and \quad $\textsf{deref} \cdot (\textsf{value}_B - \nu_C) = 0$.
+    \item $\texttt{DEREF}$: $\quad \textsf{flag}_\textsf{deref} \cdot (\textsf{addr}_B - (\textsf{value}_A + \textsf{operand}_B)) = 0$ \quad and \quad $\textsf{flag}_\textsf{deref} \cdot (\textsf{value}_B - \nu_C) = 0$.
     \item $\texttt{JUMP}$: let $J = \textsf{flag}_\textsf{jump} \cdot \nu_A$ (so $J = 1$ on a taken jump, $J = 0$ otherwise). Then:
     \begin{itemize}
         \item $J \cdot (1 - \nu_A) = 0$ \quad (forces $\nu_A \in \{0, 1\}$ on jump rows)
@@ -872,7 +874,31 @@ $\textsf{is\_precompile}$ is used as the bus selector for precompile dispatch (s
     \end{itemize}
 \end{itemize}
 
-TODO: Verify and (formally) prove soundness.
+TODO: Verify and (formally) prove completeness + soundness.
+
+\subsubsection{Bus interactions}\label{sec:execution-bus}
+
+\paragraph{Memory pulls (three per row).} For each $X \in \{A, B, C\}$:
+\[
+\textsc{Pull}\big(\textsf{value}_X,\, \textsf{addr}_X,\, 0_{13},\, \textsf{memory\_sep}\big) \quad \text{with multiplicity } 1.
+\]
+
+\paragraph{Bytecode pull (one per row).}
+\[
+\textsc{Pull}\big(\textsf{instr},\, \textbf{pc},\, 0_2,\, \textsf{bytecode\_sep}\big) \quad \text{with multiplicity } 1.
+\]
+
+where we write:
+\[
+\textsf{instr} \;=\; \big(\textsf{operand}_A, \textsf{operand}_B, \textsf{operand}_C, \textsf{flag}_A, \textsf{flag}_B, \textsf{flag}_C, \textsf{flag}^{C}_\textbf{fp}, \textsf{flag}^{AB}_\textbf{fp}, \textsf{flag}_\textsf{mul}, \textsf{flag}_\textsf{jump}, \textsf{aux}_1, \textsf{aux}_2\big)
+\]
+for the 12 instruction columns.
+
+\paragraph{Precompile push (conditional).}
+\[
+\textsc{Push}\big(\nu_A,\, \nu_B,\, \nu_C,\, 0_{12},\, \textsf{aux}_2\big) \quad \text{with multiplicity } \textsf{flag}_\textsf{precompile} (\ref{sec:air-eval-after}),
+\]
+where $\textsf{aux}_2$ encodes either a call to the \textsf{POSEIDON} / \textsf{EXTENSION} table.
 
 \subsection{Poseidon table}
 
@@ -1154,7 +1180,7 @@ This can be computed via GKR, as introduced in \cite{logup_gkr}.
 
 See OpenVM \cite{openvm}, definition 2.2.2, for more details.
 
-At each cycle when $\textsf{is\_precompile} = 1$, the execution table \textsc{Push}es $$\sigma = (\textsf{aux}_2, \nu_A, \nu_B, \nu_C)$$ to the "precompile bus".
+At each cycle when $\textsf{flag}_\textsf{precompile} = 1$, the execution table \textsc{Push}es $$\sigma = (\textsf{aux}_2, \nu_A, \nu_B, \nu_C)$$ to the "precompile bus".
 
 In case of Poseidon call, $\textsf{aux}_2 = 1$ and $\nu_A$, $\nu_B$, $\nu_C$ represent the left input address, the right input address, and the output address (3 pointers to a chunk of 8 field elements in memory).
 
@@ -1162,7 +1188,7 @@ In case of extension op call, $\textsf{aux}_2 = 2 \cdot \textsf{be} + 4 \cdot \t
 
 Each such tuple $\sigma$ (counting multiplicity) must be \textsc{Pulled} by one of the precompile tables. Given that the Poseidon table only pulls tuples with $\textsf{aux}_2 = 1$, and the extension op table only pulls tuples with $\textsf{aux}_2 \geq 32$, the bus is effectively partitioned into two disjoint sub-buses, one for each precompile.
 
-Similarly to the $\textsf{is\_precompile}$ (virtual) column for the execution table, each one of the two precompile tables has a boolean (virtual) column acting as a bus selector, indicating at which rows the table is pulling from the bus (1) or not (0).
+Similarly to the $\textsf{flag}_\textsf{precompile}$ (virtual) column for the execution table, each one of the two precompile tables has a boolean (virtual) column acting as a bus selector, indicating at which rows the table is pulling from the bus (1) or not (0).
 
 \vspace{3mm}
 
