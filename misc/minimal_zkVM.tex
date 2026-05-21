@@ -102,6 +102,7 @@ See \ref{sec:signature-aggregation} for more details.
     \item $||$ denotes concatenation of slices.
     \item $0_k$ denotes the all-zero vector of length $k$, for $k \geq 0$.
     \item $x \overset{\$}{\leftarrow} S$ means $x$ is sampled uniformly at random from the finite set $S$.
+    \item $[P]$ denotes the \emph{Iverson bracket} of a proposition $P$: $[P] = 1$ if $P$ holds, and $0$ otherwise.
 \end{itemize}
 
 \subsection{Definitions}
@@ -806,21 +807,44 @@ so the zerocheck target shifts from $0$ to $\sum_{j} \alpha^{n_\text{constraints
 \textbf{Note.} $\textsf{flag}^{AB}_\textbf{fp}$ is only used by precompile instructions; for ADD, MUL, DEREF, and JUMP it is always 0. We can reuse it to enrish the ISA. But is it worth it?
 
 
-\subsubsection{AIR constraints}
+\subsubsection{Opcode encoding}\label{sec:opcode-encoding}
 
-Cconstraints have degree 5.
-
-\vspace{5mm}
-
-We define the following values:
+We first derive three values $\nu_A, \nu_B, \nu_C$ from the instruction columns:
 \begin{itemize}
-    \item $\nu_A = \textsf{flag}_A \cdot \textsf{operand}_A + (1 - \textsf{flag}_A - \textsf{flag}^{AB}_\textbf{fp}) \cdot \textsf{value}_A + \textsf{flag}^{AB}_\textbf{fp} \cdot (\textbf{fp} + \alpha)$ 
-    \item $\nu_B = \textsf{flag}_B \cdot \textsf{operand}_B + (1 - \textsf{flag}_B - \textsf{flag}^{AB}_\textbf{fp}) \cdot \textsf{value}_B + \textsf{flag}^{AB}_\textbf{fp} \cdot (\textbf{fp} + \beta)$
-    \item $\nu_C = \textsf{flag}_C \cdot \textsf{operand}_C + (1 - \textsf{flag}_C - \textsf{flag}_\textbf{fp}) \cdot \textsf{value}_C + \textsf{flag}_\textbf{fp} \cdot (\textbf{fp} + \gamma)$
+    \item $\nu_A = \textsf{flag}_A \cdot \textsf{operand}_A + (1 - \textsf{flag}_A - \textsf{flag}^{AB}_\textbf{fp}) \cdot \textsf{value}_A + \textsf{flag}^{AB}_\textbf{fp} \cdot (\textbf{fp} + \textsf{operand}_A)$
+    \item $\nu_B = \textsf{flag}_B \cdot \textsf{operand}_B + (1 - \textsf{flag}_B - \textsf{flag}^{AB}_\textbf{fp}) \cdot \textsf{value}_B + \textsf{flag}^{AB}_\textbf{fp} \cdot (\textbf{fp} + \textsf{operand}_B)$
+    \item $\nu_C = \textsf{flag}_C \cdot \textsf{operand}_C + (1 - \textsf{flag}_C - \textsf{flag}^{C}_\textbf{fp}) \cdot \textsf{value}_C + \textsf{flag}^{C}_\textbf{fp} \cdot (\textbf{fp} + \textsf{operand}_C)$
+\end{itemize}
+
+For an ISA operand pair $(x^\textsf{addr}, x) \in \{\texttt{imm}, \texttt{mem}, \texttt{fp\_rel}\} \times \Fp$ to be assigned to $\nu_X$ ($X \in \{A, B, C\}$), we write $\nu_X \!\leftarrow\! (x^\textsf{addr}, x)$ for the column assignment defined by
+\[
+\begin{array}{c|ll}
+x^\textsf{addr} & \text{columns set} & \text{resulting }\nu_X \\
+\hline
+\texttt{imm} & \textsf{flag}_X = 1,\ \textsf{operand}_X = x & x \\
+\texttt{mem} & \textsf{flag}_X = 0,\ \textsf{operand}_X = x & \textbf{m}[\textbf{fp} + x] \\
+\texttt{fp\_rel} & \textsf{flag}^C_\textbf{fp} = 1,\ \textsf{operand}_C = x \quad (X = C \text{ only}) & \textbf{fp} + x
+\end{array}
+\]
+For precompiles, when $\alpha^\textsf{addr} = \beta^\textsf{addr} = \texttt{fp\_rel}$, the encoding uses the simultaneous mode instead: $\textsf{flag}^{AB}_\textbf{fp} = 1$, $\textsf{operand}_A = \alpha$, $\textsf{operand}_B = \beta$, yielding $\nu_A = \textbf{fp} + \alpha$ and $\nu_B = \textbf{fp} + \beta$. All columns not explicitly set below are zero.
+
+\begin{itemize}\setlength\itemsep{4pt}
+    \item $\texttt{ADD}[\alpha^\textsf{addr}, \alpha, \beta^\textsf{addr}, \beta, \gamma^\textsf{addr}, \gamma]$ \; (semantics $\nu_A + \nu_C = \nu_B$): $\textsf{aux}_1 = 1$;\; $\nu_A \!\leftarrow\! (\alpha^\textsf{addr}, \alpha)$, $\nu_B \!\leftarrow\! (\beta^\textsf{addr}, \beta)$, $\nu_C \!\leftarrow\! (\gamma^\textsf{addr}, \gamma)$.
+    \item $\texttt{MUL}[\alpha^\textsf{addr}, \alpha, \beta^\textsf{addr}, \beta, \gamma^\textsf{addr}, \gamma]$ \; (semantics $\nu_A \cdot \nu_C = \nu_B$): $\textsf{flag}_\textsf{mul} = 1$;\; $\nu_A \!\leftarrow\! (\alpha^\textsf{addr}, \alpha)$, $\nu_B \!\leftarrow\! (\beta^\textsf{addr}, \beta)$, $\nu_C \!\leftarrow\! (\gamma^\textsf{addr}, \gamma)$.
+    \item $\texttt{DEREF}[\alpha, \beta, \gamma^\textsf{addr}, \gamma]$ \; (semantics $\textbf{m}[\textbf{m}[\textbf{fp} + \alpha] + \beta] = \nu_C$): $\textsf{aux}_1 = 2$;\; $\textsf{flag}_A = 0$, $\textsf{operand}_A = \alpha$ (so $\nu_A = \textbf{m}[\textbf{fp} + \alpha]$);\; $\textsf{flag}_B = 1$, $\textsf{operand}_B = \beta$;\; $\nu_C \!\leftarrow\! (\gamma^\textsf{addr}, \gamma)$.
+    \item $\texttt{JUMP}[\alpha^\textsf{addr}, \alpha, \beta^\textsf{addr}, \beta, \gamma^\textsf{addr}, \gamma]$ \; (condition / dest / updated-fp): $\textsf{flag}_\textsf{jump} = 1$;\; $\nu_A \!\leftarrow\! (\alpha^\textsf{addr}, \alpha)$, $\nu_B \!\leftarrow\! (\beta^\textsf{addr}, \beta)$, $\nu_C \!\leftarrow\! (\gamma^\textsf{addr}, \gamma)$.
+    \item $\texttt{POSEIDON\_OP}[\alpha^\textsf{addr}, \alpha, \beta^\textsf{addr}, \beta, \gamma^\textsf{addr}, \gamma, \texttt{permute}, \texttt{half}, \delta]$: $\textsf{aux}_2 \,=\, 1 + 2\,\texttt{permute} + 4\,\texttt{half} + 8 \cdot [\delta \neq \bot] + 16\, \delta \cdot [\delta \neq \bot]$;\; $\nu_A \!\leftarrow\! (\alpha^\textsf{addr}, \alpha)$, $\nu_B \!\leftarrow\! (\beta^\textsf{addr}, \beta)$, $\nu_C \!\leftarrow\! (\gamma^\textsf{addr}, \gamma)$.
+    \item $\texttt{EXTENSION\_OP}[\alpha^\textsf{addr}, \alpha, \beta^\textsf{addr}, \beta, \gamma^\textsf{addr}, \gamma, \texttt{op}, \textsf{be}, N]$: $\textsf{aux}_2 \,=\, 2\,\textsf{be} + 4\,[\texttt{op} = \textsc{add}] + 8\,[\texttt{op} = \textsc{dot\_product}] + 16\,[\texttt{op} = \textsc{eq}] + 32 N$;\; $\nu_A \!\leftarrow\! (\alpha^\textsf{addr}, \alpha)$, $\nu_B \!\leftarrow\! (\beta^\textsf{addr}, \beta)$, $\nu_C \!\leftarrow\! (\gamma^\textsf{addr}, \gamma)$.
 \end{itemize}
 
 
-With the associated constraints:
+\subsubsection{AIR constraints}\label{sec:air-eval-after}
+
+Constraints have degree 5. The values $\nu_A, \nu_B, \nu_C$ are as defined in Section~\ref{sec:opcode-encoding}.
+
+\vspace{5mm}
+
+The addressing-mode flags are tied to the address columns by:
 \begin{itemize}
     \item $(1 - \textsf{flag}_A - \textsf{flag}^{AB}_\textbf{fp}) \cdot (\textsf{address}_A - (\textbf{fp} + \textsf{operand}_A)) = 0$
     \item $(1 - \textsf{flag}_B - \textsf{flag}^{AB}_\textbf{fp}) \cdot (\textsf{address}_B - (\textbf{fp} + \textsf{operand}_B)) = 0$
