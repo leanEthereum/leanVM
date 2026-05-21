@@ -996,16 +996,12 @@ class ConstraintFolder:
         self.assert_zero(x * (ONE - x))
 
 
-def _eval_virtual_bus_column(extra_data: dict, multiplicity: EF, discriminator: EF, data: Sequence[EF]) -> EF:
-    """`(Σ αᵢ·dataᵢ + α_last·discriminator)·β + multiplicity`.
-
-    The per-bus `discriminator` keeps the three precompile buses disjoint from each
-    other and from the memory/bytecode lookups (reserved discriminators 1 and 2)."""
+def _eval_bus_virtual(folder: "ConstraintFolder", extra_data: dict, multiplicity: EF, discriminator: EF, data: Sequence[EF]) -> None:
     alphas: list[EF] = extra_data["logup_alphas_eq_poly"]
-    bus_beta: EF = extra_data["bus_beta"]
     assert len(data) < len(alphas)
-    inner = ef_sum(a * d for a, d in zip(alphas, data)) + alphas[-1] * discriminator
-    return inner * bus_beta + multiplicity
+    folder.assert_zero(multiplicity)
+    encoded = ef_sum(a * d for a, d in zip(alphas, data)) + alphas[-1] * discriminator
+    folder.assert_zero(encoded)
 
 
 def air_constraint_eval(
@@ -1041,7 +1037,7 @@ def _eval_air_execution(folder: ConstraintFolder, _table: TableMeta, extra_data:
     is_precompile = ONE - add - mul - deref - jump
 
     az = folder.assert_zero
-    az(_eval_virtual_bus_column(extra_data, is_precompile, discriminator, [nu_a, nu_b, nu_c]))
+    _eval_bus_virtual(folder, extra_data, is_precompile, discriminator, [nu_a, nu_b, nu_c])
     az(nfa * (addr_a - (fp + operand_a)))
     az(nfb * (addr_b - (fp + operand_b)))
     az(nfc * (addr_c - (fp + operand_c)))
@@ -1090,9 +1086,7 @@ def _eval_air_extension_op(folder: ConstraintFolder, _table: TableMeta, extra_da
         + flag_poly_eq * fb(_EXT_OP_FLAG_POLY_EQ)
         + len_col * fb(_EXT_OP_LEN_MULTIPLIER)
     )
-    folder.assert_zero(
-        _eval_virtual_bus_column(extra_data, start * (flag_add + flag_mul + flag_poly_eq), aux, [idx_a, idx_b, idx_res])
-    )
+    _eval_bus_virtual(folder, extra_data, start * (flag_add + flag_mul + flag_poly_eq), aux, [idx_a, idx_b, idx_res])
 
     for x in (is_be, start, flag_add, flag_mul, flag_poly_eq):
         folder.assert_bool(x)
@@ -1253,7 +1247,7 @@ def _eval_air_poseidon16(folder: ConstraintFolder, _table: TableMeta, extra_data
     not_hcl = ONE - flag_hardcoded_left
     index_a = eff_idx_left_second - not_hcl * fb(_HALF_DIGEST_LEN)
 
-    folder.assert_zero(_eval_virtual_bus_column(extra_data, multiplicity, discriminator, [index_a, index_b, index_res]))
+    _eval_bus_virtual(folder, extra_data, multiplicity, discriminator, [index_a, index_b, index_res])
     for f in (multiplicity, flag_half_output, flag_hardcoded_left, flag_permute):
         folder.assert_bool(f)
     folder.assert_zero(flag_permute * (flag_half_output + flag_hardcoded_left))
@@ -1277,9 +1271,9 @@ def _eval_air_poseidon16(folder: ConstraintFolder, _table: TableMeta, extra_data
 
 
 _TABLE_SPECS: dict[str, dict] = {
-    "execution": {"degree": 5, "n_constraints": 13, "n_shift": 2, "air": _eval_air_execution},
-    "extension_op": {"degree": 6, "n_constraints": 33, "n_shift": 13, "air": _eval_air_extension_op},
-    "poseidon16_compress": {"degree": 10, "n_constraints": 100, "n_shift": 0, "air": _eval_air_poseidon16},
+    "execution": {"degree": 5, "n_constraints": 14, "n_shift": 2, "air": _eval_air_execution},
+    "extension_op": {"degree": 6, "n_constraints": 35, "n_shift": 13, "air": _eval_air_extension_op},
+    "poseidon16_compress": {"degree": 10, "n_constraints": 101, "n_shift": 0, "air": _eval_air_poseidon16},
 }
 
 
@@ -1357,11 +1351,7 @@ def verify_execution(
     )
     gkr_point = logup["gkr_point"]
 
-    bus_beta = state.sample()
-    state.duplex()
     air_alpha = state.sample()
-    state.duplex()
-    eta = state.sample()
 
     def powers(x: EF, n: int) -> list[EF]:
         out, cur = [], ONE
@@ -1370,18 +1360,23 @@ def verify_execution(
             cur = cur * x
         return out
 
-    alpha_powers = powers(air_alpha, max(_TABLE_SPECS[n]["n_constraints"] for n in tables_by_name) + 1)
-    eta_powers = powers(eta, len(tables_sorted))
-    extra_data = {"logup_alphas_eq_poly": logup_alphas_eq, "bus_beta": bus_beta, "c": logup_c}
+    total_air_constraints = sum(_TABLE_SPECS[n]["n_constraints"] for n, _ in tables_sorted)
+    alpha_powers = powers(air_alpha, total_air_constraints)
+    alpha_offsets: list[int] = []
+    cumulative = 0
+    for name, _ in tables_sorted:
+        alpha_offsets.append(cumulative)
+        cumulative += _TABLE_SPECS[name]["n_constraints"]
 
-    # Initial AIR sum: Σ η^t · (bus_num · sign + β · (c − bus_den)). The sign is the
-    # direction of each table's unique Column-multiplicity bus (always `buses[0]`).
+    extra_data = {"logup_alphas_eq_poly": logup_alphas_eq}
+
+    # Initial AIR sum: Σ_table (α^o · signed_num + α^(o+1) · (c − bus_den)). The
+    # sign is the direction of each table's unique Column-multiplicity bus.
     initial_sum = ZERO
-    for (name, _), eta_pow in zip(tables_sorted, eta_powers):
+    for (name, _), offset in zip(tables_sorted, alpha_offsets):
         sign = -ONE if tables_by_name[name].buses[0][1] == "Pull" else ONE
-        initial_sum = initial_sum + eta_pow * (
-            logup["bus_num"][name] * sign + bus_beta * (logup_c - logup["bus_den"][name])
-        )
+        initial_sum = initial_sum + alpha_powers[offset] * (logup["bus_num"][name] * sign)
+        initial_sum = initial_sum + alpha_powers[offset + 1] * (logup_c - logup["bus_den"][name])
     n_max = tables_sorted[0][1]
     sc_point, sc_value = verify_sumcheck(
         state, initial_sum, n_max, max(_TABLE_SPECS[n]["degree"] + 1 for n, _ in tables_sorted)
@@ -1392,16 +1387,17 @@ def verify_execution(
         for name in tables_by_name
     }
     my_air_final = ZERO
-    for (name, log_n_rows), eta_pow in zip(tables_sorted, eta_powers):
+    for (name, log_n_rows), offset in zip(tables_sorted, alpha_offsets):
         meta, n_shift = tables_by_name[name], _TABLE_SPECS[name]["n_shift"]
         col_evals = state.next_extension_scalars_vec(meta.n_columns + n_shift)
-        constraint_eval = air_constraint_eval(meta, col_evals, alpha_powers, extra_data)
+        alpha_slice = alpha_powers[offset : offset + _TABLE_SPECS[name]["n_constraints"]]
+        constraint_eval = air_constraint_eval(meta, col_evals, alpha_slice, extra_data)
 
         natural_pt = list(reversed(sc_point[-log_n_rows:])) if log_n_rows else []
         k_t = ef_prod(sc_point[: n_max - log_n_rows])
         my_air_final = (
             my_air_final
-            + eta_pow * k_t * eq_poly_outside(from_end(gkr_point, log_n_rows), natural_pt) * constraint_eval
+            + k_t * eq_poly_outside(from_end(gkr_point, log_n_rows), natural_pt) * constraint_eval
         )
 
         eq_vals = {i: col_evals[i] for i in range(meta.n_columns)}
