@@ -16,6 +16,12 @@ pub fn verify_execution(
     public_input: &[F],
     proof: Proof<F>,
 ) -> Result<(ProofVerificationDetails, RawProof<F>), ProofError> {
+    if bytecode.log_size() > MAX_BYTECODE_LOG_SIZE {
+        return Err(ProofError::TooBigBytecode {
+            current_log_size: bytecode.log_size(),
+            max_log_size: MAX_BYTECODE_LOG_SIZE,
+        });
+    }
     let mut verifier_state = VerifierState::<EF, _>::new(proof, get_poseidon16().clone())?;
     verifier_state.observe_scalars(public_input);
     verifier_state.observe_scalars(&poseidon16_compress_pair(&bytecode.hash, &SNARK_DOMAIN_SEP));
@@ -71,7 +77,8 @@ pub fn verify_execution(
     )?;
 
     let logup_c = verifier_state.sample();
-    let logup_alphas = verifier_state.sample_vec(log2_ceil_usize(max_bus_width_including_domainsep()));
+    verifier_state.duplex();
+    let logup_alphas = verifier_state.sample_vec(LOG_MAX_BUS_WIDTH);
     let logup_alphas_eq_poly = eval_eq(&logup_alphas);
 
     let logup_statements = verify_generic_logup(
@@ -98,8 +105,10 @@ pub fn verify_execution(
     }
 
     let bus_beta = verifier_state.sample();
+    verifier_state.duplex();
     let air_alpha = verifier_state.sample();
     let air_alpha_powers: Vec<EF> = air_alpha.powers().collect_n(max_air_constraints() + 1);
+    verifier_state.duplex();
     let eta: EF = verifier_state.sample(); // batching the sumchecks proving validity of AIR tables
 
     let tables_sorted = sort_tables_by_height(&table_n_vars);
@@ -117,11 +126,11 @@ pub fn verify_execution(
         let bus_numerator_value = logup_statements.bus_numerators_values[table];
         let bus_denominator_value = logup_statements.bus_denominators_values[table];
         let bus_final_value = bus_numerator_value
-            * match table.bus().direction {
+            * match table.bus_interactions()[0].direction {
                 BusDirection::Pull => EF::NEG_ONE,
                 BusDirection::Push => EF::ONE,
             }
-            + bus_beta * (bus_denominator_value - logup_c);
+            + bus_beta * (logup_c - bus_denominator_value);
 
         initial_sum += eta_power * bus_final_value;
 
@@ -144,7 +153,7 @@ pub fn verify_execution(
 
     let mut my_air_final_value = EF::ZERO;
     for vd in &verify_data {
-        let n_cols_total = vd.table.n_columns() + vd.table.n_down_columns();
+        let n_cols_total = vd.table.n_columns() + vd.table.n_shift_columns();
         let col_evals = verifier_state.next_extension_scalars_vec(n_cols_total)?;
 
         macro_rules! eval_constraint {
@@ -163,7 +172,7 @@ pub fn verify_execution(
         );
 
         macro_rules! split {
-            ($t:expr) => {{ columns_evals_up_and_down($t, &col_evals, &natural_ordering_point) }};
+            ($t:expr) => {{ columns_evals_flat_and_shift($t, &col_evals, &natural_ordering_point) }};
         }
         let claim = delegate_to_inner!(&vd.table => split);
 
@@ -206,6 +215,7 @@ pub fn verify_execution(
         parsed_commitment.num_variables,
         log_memory,
         bytecode.log_size(),
+        bytecode.ending_pc,
         previous_statements,
         &table_n_vars,
         &committed_statements,

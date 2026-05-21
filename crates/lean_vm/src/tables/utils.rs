@@ -1,10 +1,11 @@
 use backend::*;
 
-use crate::{ExtraDataForBuses, LOGUP_PRECOMPILE_DOMAINSEP};
+use crate::ExtraDataForBuses;
 
-pub(crate) fn eval_virtual_bus_column<AB: AirBuilder, EF: ExtensionField<PF<EF>>>(
+pub(crate) fn eval_bus_virtual<AB: AirBuilder, EF: ExtensionField<PF<EF>>>(
     extra_data: &ExtraDataForBuses<EF>,
-    flag: AB::IF,
+    multiplicity: AB::IF,
+    domainsep: AB::IF,
     data: &[AB::IF],
 ) -> AB::EF {
     let (logup_alphas_eq_poly, bus_beta) = extra_data.transmute_bus_data::<AB::EF>();
@@ -15,7 +16,7 @@ pub(crate) fn eval_virtual_bus_column<AB: AirBuilder, EF: ExtensionField<PF<EF>>
         .zip(data)
         .map(|(c, d)| *c * *d)
         .sum::<AB::EF>()
-        + *logup_alphas_eq_poly.last().unwrap() * AB::F::from_usize(LOGUP_PRECOMPILE_DOMAINSEP))
+        + *logup_alphas_eq_poly.last().unwrap() * domainsep)
         * *bus_beta
-        + flag
+        + multiplicity
 }
