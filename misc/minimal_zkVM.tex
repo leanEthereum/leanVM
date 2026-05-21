@@ -201,6 +201,7 @@ $\textsf{bus\_width}$ & 16 & number of field elements in the bus (see Section~\r
 $\ell$ & 4 & $\log_2(\textsf{bus\_width})$ \\
 $\textsf{memory\_sep}$ & 1 & domain separator of memory interactions \\
 $\textsf{bytecode\_sep}$ & 2 & domain separator of bytecode interactions \\
+$n_{cols}^{execution}$ & 20 & number of columns in the \texttt{execution} table \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -258,19 +259,19 @@ The VM uses two registers \textbf{pc} and \textbf{fp} that fully describes its s
 
 \subsection{Addressing modes}
 
-Most of the operands usually come in pair $(x^\text{addr}, x)$:
+Most of the operands usually come in pair $(x^\textsf{addr}, x)$:
 \begin{itemize}
-    \item one \textit{addressing mode} $x^\text{addr} \in \{\,\texttt{imm},\ \texttt{mem},\ \texttt{fp\_rel}\,\}$
+    \item one \textit{addressing mode} $x^\textsf{addr} \in \{\,\texttt{imm},\ \texttt{mem},\ \texttt{fp\_rel}\,\}$
     \item one \textit{value} $x \in \Fp$
 \end{itemize}
 
 At runtime, it resolves to:
 \[
-\mathsf{val}(x^\text{addr}, x) =
+\mathsf{val}(x^\textsf{addr}, x) =
 \begin{cases}
-x & \text{if } x^\text{addr} = \texttt{imm} \quad \text{(immediate)} \\
-\textbf{m}[\textbf{fp} + x] & \text{if } x^\text{addr} = \texttt{mem} \quad \text{(memory)} \\
-\textbf{fp} + x & \text{if } x^\text{addr} = \texttt{fp\_rel} \quad \text{(fp-relative)}
+x & \text{if } x^\textsf{addr} = \texttt{imm} \quad \text{(immediate)} \\
+\textbf{m}[\textbf{fp} + x] & \text{if } x^\textsf{addr} = \texttt{mem} \quad \text{(memory)} \\
+\textbf{fp} + x & \text{if } x^\textsf{addr} = \texttt{fp\_rel} \quad \text{(fp-relative)}
 \end{cases}
 \]
 \subsection{Instruction Set Architecture}
@@ -285,17 +286,17 @@ The instruction set comprises 4 \emph{core instructions} (ADD, MUL, DEREF, JUMP)
 An addition over the base field $\Fp$.
 
 \[
-\texttt{ADD}[\;\alpha^\text{addr},\, \alpha,\;\; \beta^\text{addr},\, \beta,\;\; \gamma^\text{addr},\, \gamma\;]
+\texttt{ADD}[\;\alpha^\textsf{addr},\, \alpha,\;\; \beta^\textsf{addr},\, \beta,\;\; \gamma^\textsf{addr},\, \gamma\;]
 \]
 
 \textbf{Operands:}
 \begin{itemize}
     \item $\alpha, \beta, \gamma \in \Fp$
-    \item $\alpha^\text{addr}, \beta^\text{addr} \in \{\texttt{imm}, \texttt{mem}\}$
-    \item $\gamma^\text{addr} \in \{\texttt{imm}, \texttt{mem}, \texttt{fp\_rel}\}$
+    \item $\alpha^\textsf{addr}, \beta^\textsf{addr} \in \{\texttt{imm}, \texttt{mem}\}$
+    \item $\gamma^\textsf{addr} \in \{\texttt{imm}, \texttt{mem}, \texttt{fp\_rel}\}$
 \end{itemize}
 
-\textbf{Semantics.} Write $a = \mathsf{val}(\alpha^\text{addr}, \alpha)$, $b = \mathsf{val}(\beta^\text{addr}, \beta)$, $c = \mathsf{val}(\gamma^\text{addr}, \gamma)$.
+\textbf{Semantics.} Write $a = \mathsf{val}(\alpha^\textsf{addr}, \alpha)$, $b = \mathsf{val}(\beta^\textsf{addr}, \beta)$, $c = \mathsf{val}(\gamma^\textsf{addr}, \gamma)$.
 \[
 a + c = b
 \]
@@ -305,7 +306,7 @@ a + c = b
 A multiplication over the base field $\Fp$.
 
 \[
-\texttt{MUL}[\;\alpha^\text{addr},\, \alpha,\;\; \beta^\text{addr},\, \beta,\;\; \gamma^\text{addr},\, \gamma\;]
+\texttt{MUL}[\;\alpha^\textsf{addr},\, \alpha,\;\; \beta^\textsf{addr},\, \beta,\;\; \gamma^\textsf{addr},\, \gamma\;]
 \]
 
 Same operands as \texttt{ADD}. Reusing the notations above, the semantics is
@@ -320,18 +321,18 @@ a \cdot c = b
 A pointer dereference: accesses memory at an address read from another memory cell.
 
 \[
-\texttt{DEREF}[\;\alpha,\;\; \beta,\;\; \gamma^\text{addr},\, \gamma\;]
+\texttt{DEREF}[\;\alpha,\;\; \beta,\;\; \gamma^\textsf{addr},\, \gamma\;]
 \]
 
 \textbf{Operands:}
 \begin{itemize}
     \item $\alpha, \beta, \gamma \in \Fp$
-    \item $\gamma^\text{addr} \in \{\texttt{imm}, \texttt{mem}, \texttt{fp\_rel}\}$
+    \item $\gamma^\textsf{addr} \in \{\texttt{imm}, \texttt{mem}, \texttt{fp\_rel}\}$
 \end{itemize}
 
 \textbf{Semantics:}
 \[
-\textbf{m}\big[\;\textbf{m}[\textbf{fp} + \alpha] + \beta\;\big] \;=\; \mathsf{val}(\gamma^\text{addr}, \gamma).
+\textbf{m}\big[\;\textbf{m}[\textbf{fp} + \alpha] + \beta\;\big] \;=\; \mathsf{val}(\gamma^\textsf{addr}, \gamma).
 \]
 
 \subsubsection{JUMP} \label{sec:jump}
@@ -339,17 +340,17 @@ A pointer dereference: accesses memory at an address read from another memory ce
 A conditional jump.
 
 \[
-\texttt{JUMP}[\;\alpha^\text{addr},\, \alpha,\;\; \beta^\text{addr},\, \beta,\;\; \gamma^\text{addr},\, \gamma\;]
+\texttt{JUMP}[\;\alpha^\textsf{addr},\, \alpha,\;\; \beta^\textsf{addr},\, \beta,\;\; \gamma^\textsf{addr},\, \gamma\;]
 \]
 
 \textbf{Operands:}
 \begin{itemize}
     \item $\alpha, \beta, \gamma \in \Fp$
-    \item $\alpha^\text{addr}, \beta^\text{addr} \in \{\texttt{imm}, \texttt{mem}\}$
-    \item $\gamma^\text{addr} \in \{\texttt{imm}, \texttt{mem}, \texttt{fp\_rel}\}$
+    \item $\alpha^\textsf{addr}, \beta^\textsf{addr} \in \{\texttt{imm}, \texttt{mem}\}$
+    \item $\gamma^\textsf{addr} \in \{\texttt{imm}, \texttt{mem}, \texttt{fp\_rel}\}$
 \end{itemize}
 
-\textbf{Semantics:} Write $\text{cond} = \mathsf{val}(\alpha^\text{addr}, \alpha)$, $\text{updated\_pc} = \mathsf{val}(\beta^\text{addr}, \beta)$, and $\text{updated\_fp} = \mathsf{val}(\gamma^\text{addr}, \gamma)$. The condition is constrained to be boolean, $\text{cond} \in \{0, 1\}$, and the registers are updated by
+\textbf{Semantics:} Write $\text{cond} = \mathsf{val}(\alpha^\textsf{addr}, \alpha)$, $\text{updated\_pc} = \mathsf{val}(\beta^\textsf{addr}, \beta)$, and $\text{updated\_fp} = \mathsf{val}(\gamma^\textsf{addr}, \gamma)$. The condition is constrained to be boolean, $\text{cond} \in \{0, 1\}$, and the registers are updated by
 \[
 (\textbf{pc}, \textbf{fp}) \;\gets\;
 \begin{cases}
@@ -364,17 +365,17 @@ A conditional jump.
 A precompile to compute Poseidon in permuation or compression mode.
 
 \[
-\texttt{POSEIDON\_OP}[\;\alpha^\text{addr},\, \alpha,\;\; \beta^\text{addr},\, \beta,\;\; \gamma^\text{addr},\, \gamma,\;\; \texttt{permute},\;\; \texttt{half},\;\; \delta\;]
+\texttt{POSEIDON\_OP}[\;\alpha^\textsf{addr},\, \alpha,\;\; \beta^\textsf{addr},\, \beta,\;\; \gamma^\textsf{addr},\, \gamma,\;\; \texttt{permute},\;\; \texttt{half},\;\; \delta\;]
 \]
 
 \textbf{Operands:}
 \begin{itemize}
     \item $\alpha, \beta, \gamma \in \Fp$
-    \item $\alpha^\text{addr}, \beta^\text{addr}, \gamma^\text{addr} \in \{\texttt{imm}, \texttt{mem}, \texttt{fp\_rel}\}$, with $\alpha^\text{addr} = \texttt{fp\_rel} \Leftrightarrow \beta^\text{addr} = \texttt{fp\_rel}$
+    \item $\alpha^\textsf{addr}, \beta^\textsf{addr}, \gamma^\textsf{addr} \in \{\texttt{imm}, \texttt{mem}, \texttt{fp\_rel}\}$, with $\alpha^\textsf{addr} = \texttt{fp\_rel} \Leftrightarrow \beta^\textsf{addr} = \texttt{fp\_rel}$
     \item $\texttt{permute}, \texttt{half} \in \{0, 1\}$,  $\delta \in \Fp \cup \{\bot\}$, with constraint: $\texttt{permute} = 1 \Rightarrow (\texttt{half}, \delta) = (0, \bot)$ 
 \end{itemize}
 
-\textbf{Semantics:} Define the pointers $a = \mathsf{val}(\alpha^\text{addr}, \alpha)$, $b = \mathsf{val}(\beta^\text{addr}, \beta)$, $c = \mathsf{val}(\gamma^\text{addr}, \gamma)$.
+\textbf{Semantics:} Define the pointers $a = \mathsf{val}(\alpha^\textsf{addr}, \alpha)$, $b = \mathsf{val}(\beta^\textsf{addr}, \beta)$, $c = \mathsf{val}(\gamma^\textsf{addr}, \gamma)$.
 
 \textbf{Input.} The $16$-element input $x = L \,||\, R \in \Fp^{16}$ is built from a left half $L$ and a right half $R$:
 \[
@@ -403,19 +404,19 @@ A precompile to compute various operations in the extension field, usefull for r
 
 
 \[
-\texttt{EXTENSION\_OP}[\;\alpha^\text{addr},\, \alpha,\;\; \beta^\text{addr},\, \beta,\;\; \gamma^\text{addr},\, \gamma,\;\; \texttt{op},\;\; \texttt{be},\;\; N\;]
+\texttt{EXTENSION\_OP}[\;\alpha^\textsf{addr},\, \alpha,\;\; \beta^\textsf{addr},\, \beta,\;\; \gamma^\textsf{addr},\, \gamma,\;\; \texttt{op},\;\; \textsf{be},\;\; N\;]
 \]
 
 
 \textbf{Operands:}
 \begin{itemize}
     \item $\alpha, \beta, \gamma \in \Fp$
-    \item $\alpha^\text{addr}, \beta^\text{addr}, \gamma^\text{addr} \in \{\texttt{imm}, \texttt{mem}, \texttt{fp\_rel}\}$, with $\alpha^\text{addr} = \texttt{fp\_rel} \Leftrightarrow \beta^\text{addr} = \texttt{fp\_rel}$
-    \item $\texttt{op} \in \{\textsc{add}, \textsc{dot\_product}, \textsc{eq}\}$, $\texttt{be} \in \{0, 1\}$
+    \item $\alpha^\textsf{addr}, \beta^\textsf{addr}, \gamma^\textsf{addr} \in \{\texttt{imm}, \texttt{mem}, \texttt{fp\_rel}\}$, with $\alpha^\textsf{addr} = \texttt{fp\_rel} \Leftrightarrow \beta^\textsf{addr} = \texttt{fp\_rel}$
+    \item $\texttt{op} \in \{\textsc{add}, \textsc{dot\_product}, \textsc{eq}\}$, $\textsf{be} \in \{0, 1\}$
     \item $N \geq 1$
 \end{itemize}
 
-\textbf{Semantics:} Define the pointers $a = \mathsf{val}(\alpha^\text{addr}, \alpha)$, $b = \mathsf{val}(\beta^\text{addr}, \beta)$, $c = \mathsf{val}(\gamma^\text{addr}, \gamma)$.
+\textbf{Semantics:} Define the pointers $a = \mathsf{val}(\alpha^\textsf{addr}, \alpha)$, $b = \mathsf{val}(\beta^\textsf{addr}, \beta)$, $c = \mathsf{val}(\gamma^\textsf{addr}, \gamma)$.
 
 \textbf{Input.} For each $i \in [0, N)$, define
 $
@@ -425,8 +426,8 @@ and:
 \[
 a_i =
 \begin{cases}
-\textbf{m}[a + i] \in \Fp & \text{if } \texttt{be} = 1 \quad \text{(base-extension)} \\[1mm]
-\mathsf{embed}\big(\textbf{m}[a + 5i \,..\, a + 5(i + 1)]\big) \in \Fq & \text{if } \texttt{be} = 0 \quad \text{(extension-extension)}
+\textbf{m}[a + i] \in \Fp & \text{if } \textsf{be} = 1 \quad \text{(base-extension)} \\[1mm]
+\mathsf{embed}\big(\textbf{m}[a + 5i \,..\, a + 5(i + 1)]\big) \in \Fq & \text{if } \textsf{be} = 0 \quad \text{(extension-extension)}
 \end{cases}
 \]
 
@@ -782,56 +783,48 @@ H_T \;:=\; \sum_{k=0}^{n_\text{constraints}^T - 1} \alpha^k\, C_k^T \;+\; \sum_{
 \]
 so the zerocheck target shifts from $0$ to $\sum_{j} \alpha^{n_\text{constraints}^T + j}\, v_j^T$.
 
-\subsection{Execution table}
+\subsection{EXECUTION table}
 
 
 \subsubsection{Columns}
 
-\fbox{At each cycle, we commit to 20 (base) field elements:}
+ Each row corresponds to a VM cycle. It has $n_{cols}^{execution} = 20$ columns.
 
 \begin{itemize}
     \item \textbf{pc} (program counter)
     \item \textbf{fp} (frame pointer)
-    % \item jump (non zero when a jump occurs)
-    \item $\text{addr}_A$, $\text{addr}_B$, $\text{addr}_C$
-    \item $\text{value}_A = \textbf{m}[\text{addr}_A]$, $\text{value}_B = \textbf{m}[\text{addr}_B]$, $\text{value}_C = \textbf{m}[\text{addr}_C]$
-    \item 12 field elements describing the instruction being executed (see below)
+    \item $\textsf{addr}_A$, $\textsf{addr}_B$, $\textsf{addr}_C$ (memory indexes)
+    \item $\textsf{value}_A$, $\textsf{value}_B$, $\textsf{value}_C$ (corresponding memory values)
+    \item 12 columns encoding the instruction being executed:
+        \begin{itemize}
+        \item $\textsf{flag}_A$, $\textsf{flag}_B$, $\textsf{flag}_C$, $\textsf{flag}^{C}_\textbf{fp}, \textsf{flag}_\textsf{mul}, \textsf{flag}_\textsf{jump}, \textsf{flag}^{AB}_\textbf{fp} \in \{0, 1\}$
+        \item $\textsf{aux}_1 \in \{0, 1, 2\}$ ($\textsf{aux}_1$ handles both ADD and DEREF)
+        \item $\textsf{operand}_A$, $\textsf{operand}_B$, $\textsf{operand}_C, \textsf{aux}_2 \in \Fp$
+    \end{itemize}
 \end{itemize}
 
-
-\subsubsection{Instruction Encoding}
-
-Each instruction is described by 12 field elements ($\Fp$):
-
-\begin{itemize}
-    \item 3 operands: $\text{operand}_A$, $\text{operand}_B$, $\text{operand}_C$
-    \item 5 flags ($\in \{0, 1\}$): $\text{flag}_A$, $\text{flag}_B$, $\text{flag}_C$, $\text{flag}^{C}_\textbf{fp}$, $\text{flag}^{AB}_\textbf{fp}$
-    \item 3 opcode flags: MUL ($\in \{0, 1\}$), JUMP ($\in \{0, 1\}$), AUX ($\in \{0, 1, 2\}$) (AUX handles both ADD and DEREF)
-    \item PRECOMPILE\_DATA
-\end{itemize}
-
-$\text{flag}^{AB}_\textbf{fp}$ is only used by precompile instructions; for ADD, MUL, DEREF, and JUMP it is always 0.
+\textbf{Note.} $\textsf{flag}^{AB}_\textbf{fp}$ is only used by precompile instructions; for ADD, MUL, DEREF, and JUMP it is always 0. We can reuse it to enrish the ISA. But is it worth it?
 
 
-\subsubsection{AIR transition constraints}
+\subsubsection{AIR constraints}
 
-\fbox{We use transition constraints of degree 5.}
+Cconstraints have degree 5.
 
 \vspace{5mm}
 
 We define the following values:
 \begin{itemize}
-    \item $\nu_A = \text{flag}_A \cdot \text{operand}_A + (1 - \text{flag}_A - \text{flag}^{AB}_\textbf{fp}) \cdot \text{value}_A + \text{flag}^{AB}_\textbf{fp} \cdot (\textbf{fp} + \alpha)$ 
-    \item $\nu_B = \text{flag}_B \cdot \text{operand}_B + (1 - \text{flag}_B - \text{flag}^{AB}_\textbf{fp}) \cdot \text{value}_B + \text{flag}^{AB}_\textbf{fp} \cdot (\textbf{fp} + \beta)$
-    \item $\nu_C = \text{flag}_C \cdot \text{operand}_C + (1 - \text{flag}_C - \text{flag}_\textbf{fp}) \cdot \text{value}_C + \text{flag}_\textbf{fp} \cdot (\textbf{fp} + \gamma)$
+    \item $\nu_A = \textsf{flag}_A \cdot \textsf{operand}_A + (1 - \textsf{flag}_A - \textsf{flag}^{AB}_\textbf{fp}) \cdot \textsf{value}_A + \textsf{flag}^{AB}_\textbf{fp} \cdot (\textbf{fp} + \alpha)$ 
+    \item $\nu_B = \textsf{flag}_B \cdot \textsf{operand}_B + (1 - \textsf{flag}_B - \textsf{flag}^{AB}_\textbf{fp}) \cdot \textsf{value}_B + \textsf{flag}^{AB}_\textbf{fp} \cdot (\textbf{fp} + \beta)$
+    \item $\nu_C = \textsf{flag}_C \cdot \textsf{operand}_C + (1 - \textsf{flag}_C - \textsf{flag}_\textbf{fp}) \cdot \textsf{value}_C + \textsf{flag}_\textbf{fp} \cdot (\textbf{fp} + \gamma)$
 \end{itemize}
 
 
 With the associated constraints:
 \begin{itemize}
-    \item $(1 - \text{flag}_A - \text{flag}^{AB}_\textbf{fp}) \cdot (\text{address}_A - (\textbf{fp} + \text{operand}_A)) = 0$
-    \item $(1 - \text{flag}_B - \text{flag}^{AB}_\textbf{fp}) \cdot (\text{address}_B - (\textbf{fp} + \text{operand}_B)) = 0$
-    \item $(1 - \text{flag}_C - \text{flag}^{C}_\textbf{fp}) \cdot (\text{address}_C - (\textbf{fp} + \text{operand}_C)) = 0$
+    \item $(1 - \textsf{flag}_A - \textsf{flag}^{AB}_\textbf{fp}) \cdot (\textsf{address}_A - (\textbf{fp} + \textsf{operand}_A)) = 0$
+    \item $(1 - \textsf{flag}_B - \textsf{flag}^{AB}_\textbf{fp}) \cdot (\textsf{address}_B - (\textbf{fp} + \textsf{operand}_B)) = 0$
+    \item $(1 - \textsf{flag}_C - \textsf{flag}^{C}_\textbf{fp}) \cdot (\textsf{address}_C - (\textbf{fp} + \textsf{operand}_C)) = 0$
 \end{itemize}
 
 \vspace{3mm}\centerline{\rule{10cm}{0.4pt}}\vspace{5mm}
@@ -843,25 +836,25 @@ $$P_0(x) = (x-1)\cdot(x-2) / 2 \hspace{10mm} P_1(x) = x \cdot (2-x) \hspace{10mm
 We define the following values:
 
 \begin{itemize}
-    \item ADD = $P_1(\text{AUX})$
-    \item DEREF = $P_2(\text{AUX})$
-    \item IS\_PRECOMPILE = $1 - (\text{ADD} + \text{MUL} + \text{DEREF} + \text{JUMP})$
+    \item ADD = $P_1(\textsf{aux}_1)$
+    \item DEREF = $P_2(\textsf{aux}_1)$
+    \item IS\_PRECOMPILE = $1 - (\text{ADD} + \textsf{flag}_\textsf{mul} + \text{DEREF} + \textsf{flag}_\textsf{jump})$
 \end{itemize}
 
 IS\_PRECOMPILE is used a "bus selector" (see \ref{buses}).
 
 \vspace{3mm}\centerline{\rule{10cm}{0.4pt}}\vspace{5mm}
 
-PRECOMPILE\_DATA encodes the precompile being called, and the parameters of the call:
+$\textsf{aux}_2$ encodes the precompile being called, and the parameters of the call:
 \begin{itemize}
-    \item No precompile $\rightarrow$ PRECOMPILE\_DATA $= 0$
-    \item Poseidon precompile $\rightarrow$ PRECOMPILE\_DATA $= 1$
-    \item Extension op precompile $\rightarrow$ PRECOMPILE\_DATA $= 2 \cdot \texttt{be} + 4 \cdot \texttt{flag\_add} + 8 \cdot \texttt{flag\_mul} + 16 \cdot \texttt{flag\_eq} + 32 \cdot N$ \hfill ($N$ = length)
+    \item No precompile $\rightarrow$ $\textsf{aux}_2 = 0$
+    \item Poseidon precompile $\rightarrow$ $\textsf{aux}_2 = 1$
+    \item Extension op precompile $\rightarrow$ $\textsf{aux}_2 = 2 \cdot \textsf{be} + 4 \cdot \textsf{flag\_add} + 8 \cdot \textsf{flag\_mul} + 16 \cdot \textsf{flag\_eq} + 32 \cdot N$ \hfill ($N$ = length)
 \end{itemize}
 
 \vspace{3mm}\centerline{\rule{10cm}{0.4pt}}\vspace{5mm}
 
-For addition, set AUX $= 1$.
+For addition, set $\textsf{aux}_1 = 1$.
 \begin{itemize}
     \item $\text{ADD} \cdot(\nu_B - (\nu_A + \nu_C)) = 0$
 \end{itemize}
@@ -869,25 +862,25 @@ For addition, set AUX $= 1$.
 
 \vspace{3mm}\centerline{\rule{10cm}{0.4pt}}\vspace{5mm}
 
-For multiplication, set MUL $= 1$.
+For multiplication, set $\textsf{flag}_\textsf{mul} = 1$.
 \begin{itemize}
-    \item $\text{MUL} \cdot(\nu_B - \nu_A \cdot \nu_C) = 0$
+    \item $\textsf{flag}_\textsf{mul} \cdot(\nu_B - \nu_A \cdot \nu_C) = 0$
 \end{itemize}
 
 \vspace{3mm}\centerline{\rule{10cm}{0.4pt}}\vspace{5mm}
 
-For DEREF instructions, set AUX $= 2$, $\text{flag}_A = 0$, $\text{flag}_B = 1$ and $\text{flag}_C$ / $\text{flag}^{C}_\textbf{fp}$ according to whether the third operand is an immediate value, a memory read, or fp-relative.
+For DEREF instructions, set $\textsf{aux}_1 = 2$, $\textsf{flag}_A = 0$, $\textsf{flag}_B = 1$ and $\textsf{flag}_C$ / $\textsf{flag}^{C}_\textbf{fp}$ according to whether the third operand is an immediate value, a memory read, or fp-relative.
 
 The relation $\textbf{m}[\textbf{m}[\textbf{fp} + \alpha] + \beta] = \nu_C$ is then captured by:
 
 \begin{itemize}
-    \item $\text{DEREF} \cdot (\text{addr}_B - (\text{value}_A + \text{operand}_B)) = 0$
-    \item $\text{DEREF} \cdot (\text{value}_B - \nu_C) = 0$
+    \item $\text{DEREF} \cdot (\textsf{addr}_B - (\textsf{value}_A + \textsf{operand}_B)) = 0$
+    \item $\text{DEREF} \cdot (\textsf{value}_B - \nu_C) = 0$
 \end{itemize}
 
 \vspace{3mm}\centerline{\rule{10cm}{0.4pt}}\vspace{5mm}
 
-For (conditional) jumps, set JUMP = 1, with the following constraints, using $J = \text{JUMP} \cdot \nu_A$:
+For (conditional) jumps, set $\textsf{flag}_\textsf{jump} = 1$, with the following constraints, using $J = \textsf{flag}_\textsf{jump} \cdot \nu_A$:
 \begin{itemize}
     \item $J \cdot (1 - \nu_A) = 0$
     \item $J \cdot ( \text{next(\textbf{pc})} - \nu_B) = 0$
@@ -904,7 +897,7 @@ TODO: Verify and (formally) prove soundness.
 
 \subsection{Poseidon table}
 
-Poseidon \cite{poseidon1} is a permutation of $\Fp^{16}$. The table runs this permutation once per row, and the final part of the row, which is exposed to memory via lookup, is a function of a compile-time bit $\texttt{flag\_permute}$: we perform either a $16 \to 8$ \emph{compression} or a $16 \to 16$ \emph{permutation}.
+Poseidon \cite{poseidon1} is a permutation of $\Fp^{16}$. The table runs this permutation once per row, and the final part of the row, which is exposed to memory via lookup, is a function of a compile-time bit $\textsf{flag\_permute}$: we perform either a $16 \to 8$ \emph{compression} or a $16 \to 16$ \emph{permutation}.
 
 The execution table hands the precompile three pointers $\nu_A$, $\nu_B$, $\nu_C$ over the precompile bus, and the precompile fetches the two input halves
 $$\texttt{left} = \textbf{m}[\nu_A..\nu_A + 8], \qquad \texttt{right} = \textbf{m}[\nu_B..\nu_B + 8].$$
@@ -912,14 +905,14 @@ Write $s = \text{poseidon}(\texttt{left} \;\|\; \texttt{right}) \in \Fp^{16}$ fo
 
 \vspace{2mm}
 
-\paragraph{Compression mode} ($\texttt{flag\_permute} = 0$) Using pairwise addition in $\Fp$:
+\paragraph{Compression mode} ($\textsf{flag\_permute} = 0$) Using pairwise addition in $\Fp$:
 
 $$\textbf{m}[\nu_C..\nu_C + 8] = s[0..8] + \texttt{left}$$
 
 
 \vspace{2mm}
 
-\paragraph{Permute mode} ($\texttt{flag\_permute} = 1$). 
+\paragraph{Permute mode} ($\textsf{flag\_permute} = 1$). 
 
 $$\textbf{m}[\nu_C..\nu_C + 16] = s.$$
 
@@ -939,30 +932,30 @@ We present two independent (and composable) optimizations of the poseidon precom
 
 \textbf{1. Chopped output}
 
-We introduce a boolean flag $\texttt{flag\_short}$ that signals that only the first $\texttt{n}$ field elements of the output should be written to memory, at $\textbf{m}[\nu_C..\nu_C + \texttt{n}]$ (the remaining $8 - \texttt{n}$ ones are ignored), 
+We introduce a boolean flag $\textsf{flag\_short}$ that signals that only the first $\texttt{n}$ field elements of the output should be written to memory, at $\textbf{m}[\nu_C..\nu_C + \texttt{n}]$ (the remaining $8 - \texttt{n}$ ones are ignored), 
 
 \vspace{5mm}
 
 \textbf{2. Custom first-half of left-input}
 
-We introduce a boolean flag $\texttt{flag\_left}$, alongside a compile-time parameter $\texttt{offset\_left}$:
-$$\texttt{left} = \begin{cases} \textbf{m}[\nu_A..\nu_A + 8] & \text{if } \texttt{flag\_left} = 0 \text{ (default)} \\ \textbf{m}[\texttt{offset\_left}..\texttt{offset\_left} + 4] \;\|\; \textbf{m}[\nu_A..\nu_A + 4] & \text{if } \texttt{flag\_left} = 1 \end{cases}$$
+We introduce a boolean flag $\textsf{flag\_left}$, alongside a compile-time parameter $\textsf{offset\_left}$:
+$$\texttt{left} = \begin{cases} \textbf{m}[\nu_A..\nu_A + 8] & \text{if } \textsf{flag\_left} = 0 \text{ (default)} \\ \textbf{m}[\textsf{offset\_left}..\textsf{offset\_left} + 4] \;\|\; \textbf{m}[\nu_A..\nu_A + 4] & \text{if } \textsf{flag\_left} = 1 \end{cases}$$
 
 \vspace{5mm}
 
 Both optimizations can be implemented (together), at the cost of 4 additional columns, and incrementing the degree of the constraints by 1.
 
-Both flags ($\texttt{flag\_short}$ and $\texttt{flag\_left}$) and the offset ($\texttt{offset\_left}$) can be encoded in a single (compile-time) parameter, as follows:
-$$\texttt{AUX} = 1 + 2 \cdot \texttt{flag\_permute} + 4 \cdot \texttt{flag\_short} + 8 \cdot \texttt{flag\_left} + 16 \cdot \texttt{offset\_left} \cdot  \texttt{flag\_left}$$
+Both flags ($\textsf{flag\_short}$ and $\textsf{flag\_left}$) and the offset ($\textsf{offset\_left}$) can be encoded in a single (compile-time) parameter, as follows:
+$$\textsf{aux}_2 = 1 + 2 \cdot \textsf{flag\_permute} + 4 \cdot \textsf{flag\_short} + 8 \cdot \textsf{flag\_left} + 16 \cdot \textsf{offset\_left} \cdot  \textsf{flag\_left}$$
 
 Soundness of this encoding (encoding multiple data into a single field element requires care, to avoid overflows that would break injectivity):
 \begin{itemize}
     \item both flags are asserted to be boolean by the AIR constraints
-    \item if $\texttt{flag\_left} = 0$: then $\texttt{offset\_left}$ is unconstrained: but it does not contribute to the encoding $\texttt{AUX}$, and it has no effect in the AIR logic.
-    \item if $\texttt{flag\_left} = 1$: then for the lookup into memory $\textbf{m}[\texttt{offset\_left}..\texttt{offset\_left} + 4]$ to be valid, $\texttt{offset\_left}$ must be smaller than the memory size $M \leq 2^{26} < p / 2$. As a result no overflow can occur in the encoding of $\texttt{AUX}$, which is thus injective.
+    \item if $\textsf{flag\_left} = 0$: then $\textsf{offset\_left}$ is unconstrained: but it does not contribute to the encoding $\textsf{aux}_2$, and it has no effect in the AIR logic.
+    \item if $\textsf{flag\_left} = 1$: then for the lookup into memory $\textbf{m}[\textsf{offset\_left}..\textsf{offset\_left} + 4]$ to be valid, $\textsf{offset\_left}$ must be smaller than the memory size $M \leq 2^{26} < p / 2$. As a result no overflow can occur in the encoding of $\textsf{aux}_2$, which is thus injective.
 \end{itemize}
 
-\textbf{Conclusion.} Every tuple $(\nu_A, \nu_B, \nu_C, \texttt{AUX})$ pushed by the execution table is faithfully pulled and decoded by the Poseidon table: the recovered triple $(\texttt{flag\_short}, \texttt{flag\_left}, \texttt{offset\_left})$ matches the one used at the call site, with one harmless exception: when $\texttt{flag\_left} = 0$, $\texttt{offset\_left}$ is left unconstrained, but this is inconsequential since it then has no effect at the AIR level.
+\textbf{Conclusion.} Every tuple $(\nu_A, \nu_B, \nu_C, \textsf{aux}_2)$ pushed by the execution table is faithfully pulled and decoded by the Poseidon table: the recovered triple $(\textsf{flag\_short}, \textsf{flag\_left}, \textsf{offset\_left})$ matches the one used at the call site, with one harmless exception: when $\textsf{flag\_left} = 0$, $\textsf{offset\_left}$ is left unconstrained, but this is inconsequential since it then has no effect at the AIR level.
 
 \subsection{Extension op table}
 
@@ -970,7 +963,7 @@ See \ref{extension_op_instruction} for the instruction specification.
 
 \subsubsection{Trace layout}
 
-Each extension field operation occupies $N$ consecutive rows (one row per element pair). Within a group, rows are ordered from first element to last, but the \texttt{computation} column accumulates backward: the first row holds the full result, the last row holds only the final element's value. Padding rows have all operation flags set to 0 and $\texttt{start} = 1$, $\texttt{len} = 1$.
+Each extension field operation occupies $N$ consecutive rows (one row per element pair). Within a group, rows are ordered from first element to last, but the \texttt{computation} column accumulates backward: the first row holds the full result, the last row holds only the final element's value. Padding rows have all operation flags set to 0 and $\textsf{start} = 1$, $\textsf{len} = 1$.
 
 \vspace{3mm}
 
@@ -978,20 +971,20 @@ Each extension field operation occupies $N$ consecutive rows (one row per elemen
 \begin{tabular}{ccccccccccccccc}
 \toprule
 \multicolumn{14}{c}{29 base field columns (AIR)} & \\
-\texttt{be} & \texttt{start} & $\texttt{f}_\texttt{add}$ & $\texttt{f}_\texttt{mul}$ & $\texttt{f}_\texttt{eq}$ & \texttt{len} & $\text{idx}_A$ & $\text{idx}_B$ & $\text{idx}_R$ & $v_A$ \tiny{(5 cols)} & $v_B$ \tiny{(5 cols)} & \texttt{res} \tiny{(5 cols)} & \texttt{comp} \tiny{(5 cols)} & & \texttt{aux} \\
+\textsf{be} & \textsf{start} & $\textsf{f}_\textsf{add}$ & $\textsf{f}_\textsf{mul}$ & $\textsf{f}_\textsf{eq}$ & \textsf{len} & $\textsf{idx}_A$ & $\textsf{idx}_B$ & $\textsf{idx}_R$ & $v_A$ \tiny{(5 cols)} & $v_B$ \tiny{(5 cols)} & \textsf{res} \tiny{(5 cols)} & \textsf{comp} \tiny{(5 cols)} & & $\textsf{aux}_2$ \\
 \midrule
-\multicolumn{15}{l}{\textit{MUL, BE, $N\!=\!4$ ($\nu_A\!=\!90$, $\nu_B\!=\!211$, $\nu_C\!=\!74$): \quad $\texttt{res} = \sum_{i=0}^{3} \textbf{m}[90\!+\!i] \cdot \textbf{m}[211\!+\!5i..216\!+\!5i]$}} \\[2pt]
+\multicolumn{15}{l}{\textit{MUL, BE, $N\!=\!4$ ($\nu_A\!=\!90$, $\nu_B\!=\!211$, $\nu_C\!=\!74$): \quad $\textsf{res} = \sum_{i=0}^{3} \textbf{m}[90\!+\!i] \cdot \textbf{m}[211\!+\!5i..216\!+\!5i]$}} \\[2pt]
 1 & 1 & 0 & 1 & 0 & 4 & 90  & 211 & 74 & $\textbf{m}[90..95]$  & $\textbf{m}[211..216]$ & $\textbf{m}[74..79]$ & $e_0\!+\!e_1\!+\!e_2\!+\!e_3$ & & 138 \\
 1 & 0 & 0 & 1 & 0 & 3 & 91  & 216 & 74 & $\textbf{m}[91..96]$  & $\textbf{m}[216..221]$ & $\textbf{m}[74..79]$ & $e_1\!+\!e_2\!+\!e_3$       & & 106 \\
 1 & 0 & 0 & 1 & 0 & 2 & 92  & 221 & 74 & $\textbf{m}[92..97]$  & $\textbf{m}[221..226]$ & $\textbf{m}[74..79]$ & $e_2\!+\!e_3$               & & 74 \\
 1 & 0 & 0 & 1 & 0 & 1 & 93  & 226 & 74 & $\textbf{m}[93..98]$  & $\textbf{m}[226..231]$ & $\textbf{m}[74..79]$ & $e_3$                       & & 42  \\
 \midrule
-\multicolumn{15}{l}{\textit{ADD, EE, $N\!=\!3$ ($\nu_A\!=\!400$, $\nu_B\!=\!500$, $\nu_C\!=\!300$): \quad $\texttt{res} = \sum_{i=0}^{2} (\textbf{m}[400\!+\!5i..405\!+\!5i] + \textbf{m}[500\!+\!5i..505\!+\!5i])$}} \\[2pt]
+\multicolumn{15}{l}{\textit{ADD, EE, $N\!=\!3$ ($\nu_A\!=\!400$, $\nu_B\!=\!500$, $\nu_C\!=\!300$): \quad $\textsf{res} = \sum_{i=0}^{2} (\textbf{m}[400\!+\!5i..405\!+\!5i] + \textbf{m}[500\!+\!5i..505\!+\!5i])$}} \\[2pt]
 0 & 1 & 1 & 0 & 0 & 3 & 400 & 500 & 300 & $\textbf{m}[400..405]$ & $\textbf{m}[500..505]$ & $\textbf{m}[300..305]$ & $e_0\!+\!e_1\!+\!e_2$ & & 100 \\
 0 & 0 & 1 & 0 & 0 & 2 & 405 & 505 & 300 & $\textbf{m}[405..410]$ & $\textbf{m}[505..510]$ & $\textbf{m}[300..305]$ & $e_1\!+\!e_2$         & & 68 \\
 0 & 0 & 1 & 0 & 0 & 1 & 410 & 510 & 300 & $\textbf{m}[410..415]$ & $\textbf{m}[510..515]$ & $\textbf{m}[300..305]$ & $e_2$                 & & 36 \\
 \midrule
-\multicolumn{15}{l}{\textit{EQ, EE, $N\!=\!3$ ($\nu_A\!=\!600$, $\nu_B\!=\!700$, $\nu_C\!=\!800$): \quad $\texttt{res} = \prod_{i=0}^{2} [a_i b_i + (1\!-\!a_i)(1\!-\!b_i)]$}} \\[2pt]
+\multicolumn{15}{l}{\textit{EQ, EE, $N\!=\!3$ ($\nu_A\!=\!600$, $\nu_B\!=\!700$, $\nu_C\!=\!800$): \quad $\textsf{res} = \prod_{i=0}^{2} [a_i b_i + (1\!-\!a_i)(1\!-\!b_i)]$}} \\[2pt]
 0 & 1 & 0 & 0 & 1 & 3 & 600 & 700 & 800 & $\textbf{m}[600..605]$ & $\textbf{m}[700..705]$ & $\textbf{m}[800..805]$ & $e_0 \cdot e_1 \cdot e_2$ & & 112 \\
 0 & 0 & 0 & 0 & 1 & 2 & 605 & 705 & 800 & $\textbf{m}[605..610]$ & $\textbf{m}[705..710]$ & $\textbf{m}[800..805]$ & $e_1 \cdot e_2$           & & 80 \\
 0 & 0 & 0 & 0 & 1 & 1 & 610 & 710 & 800 & $\textbf{m}[610..615]$ & $\textbf{m}[710..715]$ & $\textbf{m}[800..805]$ & $e_2$                     & & 48 \\
@@ -1004,7 +997,7 @@ Each extension field operation occupies $N$ consecutive rows (one row per elemen
 
 \vspace{3mm}
 
-Notes: $e_i$ denotes the per-element result (virtual, not a committed column). $v_A$ stores 5 base-field coordinates $\textbf{m}[\text{idx}_A..\text{idx}_A\!+\!5]$; in BE mode only the first coordinate is used, in EE mode all 5 are used. \texttt{aux} is a non-committed bus fingerprinting column, equal to $2 \cdot \texttt{be} + 4 \cdot \texttt{flag\_add} + 8 \cdot \texttt{flag\_mul} + 16 \cdot \texttt{flag\_eq} + 32 \cdot \texttt{len}$ on each row. The bus selector is the virtual column $\texttt{activation\_flag} = \texttt{start} \cdot \texttt{active}$ (not shown; equals \texttt{start} on active rows, 0 on padding).
+Notes: $e_i$ denotes the per-element result (virtual, not a committed column). $v_A$ stores 5 base-field coordinates $\textbf{m}[\textsf{idx}_A..\textsf{idx}_A\!+\!5]$; in BE mode only the first coordinate is used, in EE mode all 5 are used. $\textsf{aux}_2$ is a non-committed bus fingerprinting column, equal to $2 \cdot \textsf{be} + 4 \cdot \textsf{flag\_add} + 8 \cdot \textsf{flag\_mul} + 16 \cdot \textsf{flag\_eq} + 32 \cdot \textsf{len}$ on each row. The bus selector is the virtual column $\textsf{activation\_flag} = \textsf{start} \cdot \textsf{active}$ (not shown; equals \textsf{start} on active rows, 0 on padding).
 
 \subsubsection{Columns}
 
@@ -1017,35 +1010,35 @@ All columns are base field ($\Fp$) columns. Extension field values are represent
 \vspace{2mm}
 
 \begin{itemize}
-    \item \texttt{be} $\in \{0,1\}$: mode flag (1: base $\times$ extension, 0: extension $\times$ extension)
-    \item \texttt{start} $\in \{0,1\}$: group boundary (1 on first row of each group and on padding, 0 elsewhere)
-    \item $\texttt{flag\_add}$, $\texttt{flag\_mul}$, $\texttt{flag\_eq}$ $\in \{0,1\}$: operation selectors (exactly one is 1 on active rows, all 0 on padding)
-    \item \texttt{len}: countdown from $N$ to 1 within each group (1 on padding)
-    \item $\text{idx}_A$, $\text{idx}_B$, $\text{idx}_R$: memory addresses
+    \item \textsf{be} $\in \{0,1\}$: mode flag (1: base $\times$ extension, 0: extension $\times$ extension)
+    \item \textsf{start} $\in \{0,1\}$: group boundary (1 on first row of each group and on padding, 0 elsewhere)
+    \item $\textsf{flag\_add}$, $\textsf{flag\_mul}$, $\textsf{flag\_eq}$ $\in \{0,1\}$: operation selectors (exactly one is 1 on active rows, all 0 on padding)
+    \item \textsf{len}: countdown from $N$ to 1 within each group (1 on padding)
+    \item $\textsf{idx}_A$, $\textsf{idx}_B$, $\textsf{idx}_R$: memory addresses
     \item $v_A$ (5 cols). In BE mode only the first coordinate is used; in EE mode all 5.
     \item $v_B$ (5 cols)
-    \item \texttt{res} (5 cols) (same on every row of a group)
-    \item \texttt{comp} (5 cols): running accumulation; equals \texttt{res} on \texttt{start} rows
+    \item \textsf{res} (5 cols) (same on every row of a group)
+    \item \textsf{comp} (5 cols): running accumulation; equals \textsf{res} on \textsf{start} rows
 \end{itemize}
 
 \textbf{Non-committed columns} (used for bus interaction):
 \begin{itemize}
-    \item $\texttt{activation\_flag} = \texttt{start} \cdot \texttt{active}$: bus selector (1 on first row of each active group, 0 elsewhere)
-    \item \texttt{aux} $= 2 \cdot \texttt{be} + 4 \cdot \texttt{flag\_add} + 8 \cdot \texttt{flag\_mul} + 16 \cdot \texttt{flag\_eq} + 32 \cdot \texttt{len}$
+    \item $\textsf{activation\_flag} = \textsf{start} \cdot \textsf{active}$: bus selector (1 on first row of each active group, 0 elsewhere)
+    \item $\textsf{aux}_2 = 2 \cdot \textsf{be} + 4 \cdot \textsf{flag\_add} + 8 \cdot \textsf{flag\_mul} + 16 \cdot \textsf{flag\_eq} + 32 \cdot \textsf{len}$
 \end{itemize}
 
 \subsubsection{Memory lookups}
 \begin{itemize}
-    \item $v_A = \textbf{m}[\text{idx}_A..+5]$
-    \item $v_B = \textbf{m}[\text{idx}_B..+5]$
-    \item $\texttt{res} = \textbf{m}[\text{idx}_R..+5]$
+    \item $v_A = \textbf{m}[\textsf{idx}_A..+5]$
+    \item $v_B = \textbf{m}[\textsf{idx}_B..+5]$
+    \item $\textsf{res} = \textbf{m}[\textsf{idx}_R..+5]$
 \end{itemize}
 
 \subsubsection{Bus interaction}
-On rows where $\texttt{activation\_flag} = 1$ (i.e.\ $\texttt{start} = 1$ and $\texttt{active} = 1$), the table \textsc{Pulls} the tuple $(\texttt{aux}, \text{idx}_A, \text{idx}_B, \text{idx}_R)$ from the precompile bus. The execution table \textsc{Pushes} a matching tuple for each EXTENSION\_OP instruction.
+On rows where $\textsf{activation\_flag} = 1$ (i.e.\ $\textsf{start} = 1$ and $\textsf{active} = 1$), the table \textsc{Pulls} the tuple $(\textsf{aux}_2, \textsf{idx}_A, \textsf{idx}_B, \textsf{idx}_R)$ from the precompile bus. The execution table \textsc{Pushes} a matching tuple for each EXTENSION\_OP instruction.
 
 
-The $\texttt{aux}$ encoding ensures both the mode and the length are bound to the bus data. Since $\texttt{be}$, $\texttt{flag\_add}$, $\texttt{flag\_mul}$, and $\texttt{flag\_eq}$ are constrained to be boolean, and since the length is constrained to be $\leq 2^{20}$ (by Lemma~\ref{lem:len-bound}), no overflow can occur modulo $p$ and the $\texttt{aux}$ value is unique for each combination of parameters, which enforces that all values of PRECOMPILE\_DATA sent by the execution table are correctly received by the extension\_op table.
+The $\textsf{aux}_2$ encoding ensures both the mode and the length are bound to the bus data. Since $\textsf{be}$, $\textsf{flag\_add}$, $\textsf{flag\_mul}$, and $\textsf{flag\_eq}$ are constrained to be boolean, and since the length is constrained to be $\leq 2^{20}$ (by Lemma~\ref{lem:len-bound}), no overflow can occur modulo $p$ and the $\textsf{aux}_2$ value is unique for each combination of parameters, which enforces that all values of $\textsf{aux}_2$ sent by the execution table are correctly received by the extension\_op table.
 
 
 \subsubsection{AIR constraints}
@@ -1054,34 +1047,34 @@ The $\texttt{aux}$ encoding ensures both the mode and the length are bound to th
 
 \vspace{2mm}
 
-\textbf{Value selection:} In BE mode, $v_A$ is treated as a base field element (only the first of its 5 coordinates matters); in EE mode all 5 coordinates are used. Formally, for $k = 1, \dots, 4$: $v_A[k]$ is multiplied by $(1 - \texttt{be})$ in the constraints, so only $v_A[0]$ survives in BE mode.
+\textbf{Value selection:} In BE mode, $v_A$ is treated as a base field element (only the first of its 5 coordinates matters); in EE mode all 5 coordinates are used. Formally, for $k = 1, \dots, 4$: $v_A[k]$ is multiplied by $(1 - \textsf{be})$ in the constraints, so only $v_A[0]$ survives in BE mode.
 
-Let $\texttt{active} = \texttt{flag\_add} + \texttt{flag\_mul} + \texttt{flag\_eq}$ (1 on active rows, 0 on padding), and define the per-element results (virtual):
+Let $\textsf{active} = \textsf{flag\_add} + \textsf{flag\_mul} + \textsf{flag\_eq}$ (1 on active rows, 0 on padding), and define the per-element results (virtual):
 \begin{align*}
     e_\text{add} &= v_A + v_B \\
     e_\text{mul} &= v_A \cdot v_B \\
     e_\text{peq} &= v_A \cdot v_B + (1 - v_A)(1 - v_B)
 \end{align*}
 
-Let $\texttt{comp\_tail} = \text{next}(\texttt{comp}) \cdot (1 - \text{next}(\texttt{start}))$ (zero when the next row is a new group).
+Let $\textsf{comp\_tail} = \text{next}(\textsf{comp}) \cdot (1 - \text{next}(\textsf{start}))$ (zero when the next row is a new group).
 
 \vspace{2mm}
 
 \textbf{Boolean constraints:}
 \begin{enumerate}
-    \item $\texttt{be} \cdot (1 - \texttt{be}) = 0$
-    \item $\texttt{start} \cdot (1 - \texttt{start}) = 0$
-    \item $\texttt{flag\_add} \cdot (1 - \texttt{flag\_add}) = 0$
-    \item $\texttt{flag\_mul} \cdot (1 - \texttt{flag\_mul}) = 0$
-    \item $\texttt{flag\_eq} \cdot (1 - \texttt{flag\_eq}) = 0$
+    \item $\textsf{be} \cdot (1 - \textsf{be}) = 0$
+    \item $\textsf{start} \cdot (1 - \textsf{start}) = 0$
+    \item $\textsf{flag\_add} \cdot (1 - \textsf{flag\_add}) = 0$
+    \item $\textsf{flag\_mul} \cdot (1 - \textsf{flag\_mul}) = 0$
+    \item $\textsf{flag\_eq} \cdot (1 - \textsf{flag\_eq}) = 0$
 \end{enumerate}
 
 \textbf{Accumulation constraint:}
 \begin{enumerate}
     \setcounter{enumi}{5}
-    \item $\texttt{f}_\texttt{add} \cdot (\texttt{comp} - e_\text{add} - \texttt{comp\_tail}) = 0$ \hfill (additive ADD)
-    \item $\texttt{f}_\texttt{mul} \cdot (\texttt{comp} - e_\text{mul} - \texttt{comp\_tail}) = 0$ \hfill (additive MUL)
-    \item $\texttt{f}_\texttt{peq} \cdot (\texttt{comp} - e_\text{peq} \cdot (\texttt{comp\_tail} + \text{next}(\texttt{start}))) = 0$ \hfill (multiplicative EQ)
+    \item $\textsf{f}_\textsf{add} \cdot (\textsf{comp} - e_\text{add} - \textsf{comp\_tail}) = 0$ \hfill (additive ADD)
+    \item $\textsf{f}_\textsf{mul} \cdot (\textsf{comp} - e_\text{mul} - \textsf{comp\_tail}) = 0$ \hfill (additive MUL)
+    \item $\textsf{f}_\textsf{peq} \cdot (\textsf{comp} - e_\text{peq} \cdot (\textsf{comp\_tail} + \text{next}(\textsf{start}))) = 0$ \hfill (multiplicative EQ)
 \end{enumerate}
 
 \vspace{2mm}
@@ -1089,31 +1082,31 @@ Let $\texttt{comp\_tail} = \text{next}(\texttt{comp}) \cdot (1 - \text{next}(\te
 \textbf{Result constraint:}
 \begin{enumerate}
     \setcounter{enumi}{8}
-    \item $\texttt{start} \cdot (\texttt{comp} - \texttt{res}) = 0$ \hfill (on start rows, computation equals result)
+    \item $\textsf{start} \cdot (\textsf{comp} - \textsf{res}) = 0$ \hfill (on start rows, computation equals result)
 \end{enumerate}
 
 \textbf{Intra-group consistency:}
 \begin{enumerate}
     \setcounter{enumi}{9}
-    \item $(1 - \text{next}(\texttt{start})) \cdot (\texttt{len} - \text{next}(\texttt{len}) - 1) = 0$ \hfill (len countdown)
-    \item $(1 - \text{next}(\texttt{start})) \cdot (\texttt{be} - \text{next}(\texttt{be})) = 0$ \hfill (mode consistent)
-    \item $(1 - \text{next}(\texttt{start})) \cdot (\texttt{f}_\texttt{add} - \text{next}(\texttt{f}_\texttt{add})) = 0$
-    \item $(1 - \text{next}(\texttt{start})) \cdot (\texttt{f}_\texttt{mul} - \text{next}(\texttt{f}_\texttt{mul})) = 0$
-    \item $(1 - \text{next}(\texttt{start})) \cdot (\texttt{f}_\texttt{peq} - \text{next}(\texttt{f}_\texttt{peq})) = 0$
-    \item $(1 - \text{next}(\texttt{start})) \cdot (\text{next}(\text{idx}_A) - \text{idx}_A - (\texttt{be} + (1 - \texttt{be}) \cdot 5)) = 0$
-    \item $(1 - \text{next}(\texttt{start})) \cdot (\text{next}(\text{idx}_B) - \text{idx}_B - 5) = 0$
+    \item $(1 - \text{next}(\textsf{start})) \cdot (\textsf{len} - \text{next}(\textsf{len}) - 1) = 0$ \hfill (len countdown)
+    \item $(1 - \text{next}(\textsf{start})) \cdot (\textsf{be} - \text{next}(\textsf{be})) = 0$ \hfill (mode consistent)
+    \item $(1 - \text{next}(\textsf{start})) \cdot (\textsf{f}_\textsf{add} - \text{next}(\textsf{f}_\textsf{add})) = 0$
+    \item $(1 - \text{next}(\textsf{start})) \cdot (\textsf{f}_\textsf{mul} - \text{next}(\textsf{f}_\textsf{mul})) = 0$
+    \item $(1 - \text{next}(\textsf{start})) \cdot (\textsf{f}_\textsf{peq} - \text{next}(\textsf{f}_\textsf{peq})) = 0$
+    \item $(1 - \text{next}(\textsf{start})) \cdot (\text{next}(\textsf{idx}_A) - \textsf{idx}_A - (\textsf{be} + (1 - \textsf{be}) \cdot 5)) = 0$
+    \item $(1 - \text{next}(\textsf{start})) \cdot (\text{next}(\textsf{idx}_B) - \textsf{idx}_B - 5) = 0$
 \end{enumerate}
 
 \textbf{Boundary:}
 \begin{enumerate}
     \setcounter{enumi}{16}
-    \item $\text{next}(\texttt{start}) \cdot (\texttt{len} - 1) = 0$ \hfill (when next row is a group start, current len must be 1)
+    \item $\text{next}(\textsf{start}) \cdot (\textsf{len} - 1) = 0$ \hfill (when next row is a group start, current len must be 1)
 \end{enumerate}
 
 \vspace{5mm}
 
 \begin{lemma}\label{lem:len-bound}
-On every row $r$ of the dot product table, $\texttt{len}_r \leq H - r$ (as an integer in $\{0, \dots, p-1\}$), where $H \leq 2^{21}$ is the table height. In particular, $\texttt{len}_r \leq H$.
+On every row $r$ of the dot product table, $\textsf{len}_r \leq H - r$ (as an integer in $\{0, \dots, p-1\}$), where $H \leq 2^{21}$ is the table height. In particular, $\textsf{len}_r \leq H$.
 \end{lemma}
 
 \begin{proof}
@@ -1121,15 +1114,15 @@ By backward induction on $r$, from $r = H - 1$ down to $r = 0$.
 
 \vspace{2mm}
 
-\textbf{Base case ($r = H - 1$):} On the wrapping pair (row $H\!-\!1$ paired with itself, see Section~\ref{sec:air-eval}), $\text{next}(x) = x$ for every column $x$. Constraint~10 becomes $(1 - \texttt{start}) \cdot (\texttt{len} - \texttt{len} - 1) = -(1 - \texttt{start}) = 0$, forcing $\texttt{start}_{H-1} = 1$. Then constraint~17 becomes $1 \cdot (\texttt{len} - 1) = 0$, giving $\texttt{len}_{H-1} = 1 = H - (H-1)$.
+\textbf{Base case ($r = H - 1$):} On the wrapping pair (row $H\!-\!1$ paired with itself, see Section~\ref{sec:air-eval}), $\text{next}(x) = x$ for every column $x$. Constraint~10 becomes $(1 - \textsf{start}) \cdot (\textsf{len} - \textsf{len} - 1) = -(1 - \textsf{start}) = 0$, forcing $\textsf{start}_{H-1} = 1$. Then constraint~17 becomes $1 \cdot (\textsf{len} - 1) = 0$, giving $\textsf{len}_{H-1} = 1 = H - (H-1)$.
 
 \vspace{2mm}
 
-\textbf{Inductive step ($r < H - 1$):} Assume $\texttt{len}_s \leq H - s$ for all $s > r$. The pair (row $r$, row $r\!+\!1$) gives two cases depending on $\texttt{start}_{r+1} \in \{0,1\}$ (constraint~2):
+\textbf{Inductive step ($r < H - 1$):} Assume $\textsf{len}_s \leq H - s$ for all $s > r$. The pair (row $r$, row $r\!+\!1$) gives two cases depending on $\textsf{start}_{r+1} \in \{0,1\}$ (constraint~2):
 
 \begin{itemize}
-    \item If $\texttt{start}_{r+1} = 1$: constraint~17 gives $1 \cdot (\texttt{len}_r - 1) = 0$, so $\texttt{len}_r = 1 \leq H - r$.
-    \item If $\texttt{start}_{r+1} = 0$: constraint~10 gives $(1 - 0) \cdot (\texttt{len}_r - \texttt{len}_{r+1} - 1) = 0$, so $\texttt{len}_r = \texttt{len}_{r+1} + 1$ in $\Fp$. By induction, $\texttt{len}_{r+1} \leq H - (r+1)$, so $\texttt{len}_{r+1} + 1 \leq H - r$. Since $H - r \leq H \leq 2^{21} < p$, the addition does not overflow modulo $p$, so $\texttt{len}_r = \texttt{len}_{r+1} + 1 \leq H - r$ as integers.
+    \item If $\textsf{start}_{r+1} = 1$: constraint~17 gives $1 \cdot (\textsf{len}_r - 1) = 0$, so $\textsf{len}_r = 1 \leq H - r$.
+    \item If $\textsf{start}_{r+1} = 0$: constraint~10 gives $(1 - 0) \cdot (\textsf{len}_r - \textsf{len}_{r+1} - 1) = 0$, so $\textsf{len}_r = \textsf{len}_{r+1} + 1$ in $\Fp$. By induction, $\textsf{len}_{r+1} \leq H - (r+1)$, so $\textsf{len}_{r+1} + 1 \leq H - r$. Since $H - r \leq H \leq 2^{21} < p$, the addition does not overflow modulo $p$, so $\textsf{len}_r = \textsf{len}_{r+1} + 1 \leq H - r$ as integers.
 \end{itemize}
 \end{proof}
 
@@ -1182,13 +1175,13 @@ This can be computed via GKR, as introduced in \cite{logup_gkr}.
 
 See OpenVM \cite{openvm}, definition 2.2.2, for more details.
 
-At each cycle when IS\_PRECOMPILE = 1, the execution table \textsc{Push}es $$\sigma = (\text{PRECOMPILE\_DATA}, \nu_A, \nu_B, \nu_C)$$ to the "precompile bus".
+At each cycle when IS\_PRECOMPILE = 1, the execution table \textsc{Push}es $$\sigma = (\textsf{aux}_2, \nu_A, \nu_B, \nu_C)$$ to the "precompile bus".
 
-In case of Poseidon call, PRECOMPILE\_DATA = 1 and $\nu_A$, $\nu_B$, $\nu_C$ represent the left input address, the right input address, and the output address (3 pointers to a chunk of 8 field elements in memory).
+In case of Poseidon call, $\textsf{aux}_2 = 1$ and $\nu_A$, $\nu_B$, $\nu_C$ represent the left input address, the right input address, and the output address (3 pointers to a chunk of 8 field elements in memory).
 
-In case of extension op call, PRECOMPILE\_DATA $= 2 \cdot \texttt{be} + 4 \cdot \texttt{flag\_add} + 8 \cdot \texttt{flag\_mul} + 16 \cdot \texttt{flag\_eq} + 32 \cdot N$ encodes the mode, the operation, and the length $N$, and $\nu_A$, $\nu_B$, $\nu_C$ represent the starting address of the first operand, the starting address of the second operand, and the address of the result.
+In case of extension op call, $\textsf{aux}_2 = 2 \cdot \textsf{be} + 4 \cdot \textsf{flag\_add} + 8 \cdot \textsf{flag\_mul} + 16 \cdot \textsf{flag\_eq} + 32 \cdot N$ encodes the mode, the operation, and the length $N$, and $\nu_A$, $\nu_B$, $\nu_C$ represent the starting address of the first operand, the starting address of the second operand, and the address of the result.
 
-Each such tuple $\sigma$ (counting multiplicity) must be \textsc{Pulled} by one of the precompile tables. Given that the Poseidon table only pulls tuples with PRECOMPILE\_DATA $= 1$, and the extension op table only pulls tuples with PRECOMPILE\_DATA $\geq 32$, the bus is effectively partitioned into two disjoint sub-buses, one for each precompile.
+Each such tuple $\sigma$ (counting multiplicity) must be \textsc{Pulled} by one of the precompile tables. Given that the Poseidon table only pulls tuples with $\textsf{aux}_2 = 1$, and the extension op table only pulls tuples with $\textsf{aux}_2 \geq 32$, the bus is effectively partitioned into two disjoint sub-buses, one for each precompile.
 
 Similarly to the IS\_PRECOMPILE (virtual) column for the execution table, each one of the two precompile tables has a boolean (virtual) column acting as a bus selector, indicating at which rows the table is pulling from the bus (1) or not (0).
 
