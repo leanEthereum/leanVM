@@ -768,6 +768,18 @@ The verifier samples $\lambda \in \Fq$. Enumerating the three tables as $T \in \
 \]
 which is equivalent, up to soundness error $2/q$ over $\lambda$ from Lemma~\ref{lem:sz}, to the conjunction of the three per-table zerocheck claims.
 
+\subsubsection{Attaching evaluation claims}\label{sec:air-eval}
+
+Suppose, in addition to the AIR constraints, we also want to verify evaluation claims of the form $\hat{V}(\vec r_T) = v$, where $V$ is a polynomial expression in the columns of $T$ (sometimes called \emph{virtual column}, i.e. that is not committed).
+\[
+\hat{V}(\vec r_T) \;=\; \sum_{\vec b \in \{0,1\}^{h_T}} \hat{eq}(\vec b, \vec r_T) \cdot V(\vec b),
+\]
+so each claim contributes one extra term to the sum already being computed. Given evaluation claims $\big(\hat V_j^T(\vec r_T) = v_j^T\big)_{j = 0}^{m_T - 1}$, simply extend the batched expression to
+\[
+H_T \;:=\; \sum_{k=0}^{n_\text{constraints}^T - 1} \alpha^k\, C_k^T \;+\; \sum_{j=0}^{m_T-1} \alpha^{n_\text{constraints}^T + j}\, V_j^T,
+\]
+so the zerocheck target shifts from $0$ to $\sum_{j} \alpha^{n_\text{constraints}^T + j}\, v_j^T$.
+
 \subsection{Execution table}
 
 
