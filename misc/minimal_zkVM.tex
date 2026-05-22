@@ -934,7 +934,7 @@ Non-committed (virtual): $\nu_A$ (left-input pointer) and $\textsf{aux}_2$ (the 
     \item $\textsf{out}_\text{lo}[i]$ at $\nu_C + i$ and $\textsf{out}_\text{hi}[i]$ at $\nu_C + 8 + i$, for $i \in [0, 8)$.
 \end{itemize}
 
-\textbf{Precompile pulls.} The table pulls the call tuple
+\textbf{Precompile pull.} The table pulls the call tuple
 \[
 \textsc{Pull}\big(\nu_A,\, \nu_B,\, \nu_C,\, 0_{12},\, \textsf{aux}_2\big) \quad \text{with multiplicity } \textsf{multiplicity},
 \]
@@ -975,19 +975,16 @@ Write $\nu_A = \textsf{addr}^\text{hi}_\text{left} - (1 - \textsf{flag\_left}) \
 
 \subsection{Extension op table}
 
-See \ref{extension_op_instruction} for the instruction specification.
-
 \subsubsection{Trace layout}
 
-Each extension field operation occupies $N$ consecutive rows (one row per element pair). Within a group, rows are ordered from first element to last, but the \texttt{computation} column accumulates backward: the first row holds the full result, the last row holds only the final element's value. Padding rows have all operation flags set to 0 and $\textsf{start} = 1$, $\textsf{len} = 1$.
+Each extension field operation occupies $N$ consecutive rows, where $N$ is the length parameter of the $\texttt{EXTENSION\_OP}$ instruction (the number of element pairs in the dot product / sum / eq operation, see Section~\ref{extension_op_instruction}): one row per element pair, with the column $\textsf{len}$ counting down from $N$ on the first row to $1$ on the last. Within a group, rows are ordered from first element to last, but the \textsf{comp} column accumulates backward: the first row holds the full result, the last row holds only the final element's value. Padding rows have all operation flags set to 0 and $\textsf{start} = 1$, $\textsf{len} = 1$.
 
 \vspace{3mm}
 
 \noindent\resizebox{\textwidth}{!}{%
 \begin{tabular}{ccccccccccccccc}
 \toprule
-\multicolumn{14}{c}{29 base field columns (AIR)} & \\
-\textsf{be} & \textsf{start} & $\textsf{f}_\textsf{add}$ & $\textsf{f}_\textsf{mul}$ & $\textsf{f}_\textsf{eq}$ & \textsf{len} & $\textsf{idx}_A$ & $\textsf{idx}_B$ & $\textsf{idx}_R$ & $v_A$ \tiny{(5 cols)} & $v_B$ \tiny{(5 cols)} & \textsf{res} \tiny{(5 cols)} & \textsf{comp} \tiny{(5 cols)} & & $\textsf{aux}_2$ \\
+\textsf{be} & \textsf{start} & $\textsf{flag\_add}$ & $\textsf{flag\_mul}$ & $\textsf{flag\_eq}$ & \textsf{len} & $\textsf{idx}_A$ & $\textsf{idx}_B$ & $\textsf{idx}_R$ & $v_A$ \tiny{(5 cols)} & $v_B$ \tiny{(5 cols)} & \textsf{res} \tiny{(5 cols)} & \textsf{comp} \tiny{(5 cols)} & & $\textsf{aux}_2$ \\
 \midrule
 \multicolumn{15}{l}{\textit{MUL, BE, $N\!=\!4$ ($\nu_A\!=\!90$, $\nu_B\!=\!211$, $\nu_C\!=\!74$): \quad $\textsf{res} = \sum_{i=0}^{3} \textbf{m}[90\!+\!i] \cdot \textbf{m}[211\!+\!5i..216\!+\!5i]$}} \\[2pt]
 1 & 1 & 0 & 1 & 0 & 4 & 90  & 211 & 74 & $\textbf{m}[90..95]$  & $\textbf{m}[211..216]$ & $\textbf{m}[74..79]$ & $e_0\!+\!e_1\!+\!e_2\!+\!e_3$ & & 138 \\
@@ -1011,17 +1008,9 @@ Each extension field operation occupies $N$ consecutive rows (one row per elemen
 \end{tabular}%
 }
 
-\vspace{3mm}
-
-Notes: $e_i$ denotes the per-element result (virtual, not a committed column). $v_A$ stores 5 base-field coordinates $\textbf{m}[\textsf{idx}_A..\textsf{idx}_A\!+\!5]$; in BE mode only the first coordinate is used, in EE mode all 5 are used. $\textsf{aux}_2$ is a non-committed bus fingerprinting column, equal to $2 \cdot \textsf{be} + 4 \cdot \textsf{flag\_add} + 8 \cdot \textsf{flag\_mul} + 16 \cdot \textsf{flag\_eq} + 32 \cdot \textsf{len}$ on each row. The bus selector is the virtual column $\textsf{activation\_flag} = \textsf{start} \cdot \textsf{active}$ (not shown; equals \textsf{start} on active rows, 0 on padding).
-
 \subsubsection{Columns}
 
-\fbox{29 columns.}
-
-\vspace{3mm}
-
-All columns are base field ($\Fp$) columns. Extension field values are represented as 5 consecutive base field columns.
+There are 29 columns. Extension field values are represented as 5 consecutive base field columns.
 
 \vspace{2mm}
 
@@ -1037,28 +1026,20 @@ All columns are base field ($\Fp$) columns. Extension field values are represent
     \item \textsf{comp} (5 cols): running accumulation; equals \textsf{res} on \textsf{start} rows
 \end{itemize}
 
-\textbf{Non-committed columns} (used for bus interaction):
-\begin{itemize}
-    \item $\textsf{activation\_flag} = \textsf{start} \cdot \textsf{active}$: bus selector (1 on first row of each active group, 0 elsewhere)
-    \item $\textsf{aux}_2 = 2 \cdot \textsf{be} + 4 \cdot \textsf{flag\_add} + 8 \cdot \textsf{flag\_mul} + 16 \cdot \textsf{flag\_eq} + 32 \cdot \textsf{len}$
-\end{itemize}
+Virtual (non-committed) columns: $\textsf{multiplicity} = \textsf{start} \cdot (\textsf{flag\_add} + \textsf{flag\_mul} + \textsf{flag\_eq})$ and $\textsf{aux}_2 = 2 \cdot \textsf{be} + 4 \cdot \textsf{flag\_add} + 8 \cdot \textsf{flag\_mul} + 16 \cdot \textsf{flag\_eq} + 32 \cdot \textsf{len}$
 
-\subsubsection{Memory lookups}
-\begin{itemize}
-    \item $v_A = \textbf{m}[\textsf{idx}_A..+5]$
-    \item $v_B = \textbf{m}[\textsf{idx}_B..+5]$
-    \item $\textsf{res} = \textbf{m}[\textsf{idx}_R..+5]$
-\end{itemize}
+\subsubsection{Bus interactions}
 
-\subsubsection{Bus interaction}
-On rows where $\textsf{activation\_flag} = \textsf{start} \cdot \textsf{active} = 1$ (the first row of each active group):
+\textbf{Memory pulls.} For each operand $(s, \textsf{idx}) \in \{(v_A, \textsf{idx}_A),\, (v_B, \textsf{idx}_B),\, (\textsf{res}, \textsf{idx}_R)\}$ and each $k \in [0, 5)$:
 \[
-\textsc{Pull}\big(\textsf{idx}_A,\, \textsf{idx}_B,\, \textsf{idx}_R,\, 0_{12},\, \textsf{aux}_2\big) \quad \text{with multiplicity } 1,
+\textsc{Pull}\big(s[k],\, \textsf{idx} + k,\, 0_{13},\, \textsf{memory\_sep}\big) \quad \text{with multiplicity } 1.
 \]
-matching the precompile push issued by the execution table (Section~\ref{sec:execution-bus}) for each \texttt{EXTENSION\_OP} instruction.
 
-
-The $\textsf{aux}_2$ encoding ensures both the mode and the length are bound to the bus data. Since $\textsf{be}$, $\textsf{flag\_add}$, $\textsf{flag\_mul}$, and $\textsf{flag\_eq}$ are constrained to be boolean, and since the length is constrained to be $\leq 2^{20}$ (by Lemma~\ref{lem:len-bound}), no overflow can occur modulo $p$ and the $\textsf{aux}_2$ value is unique for each combination of parameters, which enforces that all values of $\textsf{aux}_2$ sent by the execution table are correctly received by the extension\_op table.
+\textbf{Precompile pull.}
+\[
+\textsc{Pull}\big(\textsf{idx}_A,\, \textsf{idx}_B,\, \textsf{idx}_R,\, 0_{12},\, \textsf{aux}_2\big) \quad \text{with multiplicity } \textsf{multiplicity},
+\]
+The domain separator $\textsf{aux}_2$ binds the mode and length to the bus data: since $\textsf{be}, \textsf{flag\_add}, \textsf{flag\_mul}, \textsf{flag\_eq}$ are boolean and the length is $\leq 2^{20}$ (Lemma~\ref{lem:len-bound}), the encoding is injective, so every $\textsf{aux}_2$ sent by the execution table is faithfully received here.
 
 
 \subsubsection{AIR constraints}
@@ -1073,7 +1054,7 @@ Let $\textsf{active} = \textsf{flag\_add} + \textsf{flag\_mul} + \textsf{flag\_e
 \begin{align*}
     e_\text{add} &= v_A + v_B \\
     e_\text{mul} &= v_A \cdot v_B \\
-    e_\text{peq} &= v_A \cdot v_B + (1 - v_A)(1 - v_B)
+    e_\text{eq} &= v_A \cdot v_B + (1 - v_A)(1 - v_B)
 \end{align*}
 
 Let $\textsf{comp\_tail} = \text{next}(\textsf{comp}) \cdot (1 - \text{next}(\textsf{start}))$ (zero when the next row is a new group).
@@ -1092,9 +1073,9 @@ Let $\textsf{comp\_tail} = \text{next}(\textsf{comp}) \cdot (1 - \text{next}(\te
 \textbf{Accumulation constraint:}
 \begin{enumerate}
     \setcounter{enumi}{5}
-    \item $\textsf{f}_\textsf{add} \cdot (\textsf{comp} - e_\text{add} - \textsf{comp\_tail}) = 0$ \hfill (additive ADD)
-    \item $\textsf{f}_\textsf{mul} \cdot (\textsf{comp} - e_\text{mul} - \textsf{comp\_tail}) = 0$ \hfill (additive MUL)
-    \item $\textsf{f}_\textsf{peq} \cdot (\textsf{comp} - e_\text{peq} \cdot (\textsf{comp\_tail} + \text{next}(\textsf{start}))) = 0$ \hfill (multiplicative EQ)
+    \item $\textsf{flag\_add} \cdot (\textsf{comp} - e_\text{add} - \textsf{comp\_tail}) = 0$ \hfill (additive ADD)
+    \item $\textsf{flag\_mul} \cdot (\textsf{comp} - e_\text{mul} - \textsf{comp\_tail}) = 0$ \hfill (additive MUL)
+    \item $\textsf{flag\_eq} \cdot (\textsf{comp} - e_\text{eq} \cdot (\textsf{comp\_tail} + \text{next}(\textsf{start}))) = 0$ \hfill (multiplicative EQ)
 \end{enumerate}
 
 \vspace{2mm}
@@ -1110,9 +1091,9 @@ Let $\textsf{comp\_tail} = \text{next}(\textsf{comp}) \cdot (1 - \text{next}(\te
     \setcounter{enumi}{9}
     \item $(1 - \text{next}(\textsf{start})) \cdot (\textsf{len} - \text{next}(\textsf{len}) - 1) = 0$ \hfill (len countdown)
     \item $(1 - \text{next}(\textsf{start})) \cdot (\textsf{be} - \text{next}(\textsf{be})) = 0$ \hfill (mode consistent)
-    \item $(1 - \text{next}(\textsf{start})) \cdot (\textsf{f}_\textsf{add} - \text{next}(\textsf{f}_\textsf{add})) = 0$
-    \item $(1 - \text{next}(\textsf{start})) \cdot (\textsf{f}_\textsf{mul} - \text{next}(\textsf{f}_\textsf{mul})) = 0$
-    \item $(1 - \text{next}(\textsf{start})) \cdot (\textsf{f}_\textsf{peq} - \text{next}(\textsf{f}_\textsf{peq})) = 0$
+    \item $(1 - \text{next}(\textsf{start})) \cdot (\textsf{flag\_add} - \text{next}(\textsf{flag\_add})) = 0$
+    \item $(1 - \text{next}(\textsf{start})) \cdot (\textsf{flag\_mul} - \text{next}(\textsf{flag\_mul})) = 0$
+    \item $(1 - \text{next}(\textsf{start})) \cdot (\textsf{flag\_eq} - \text{next}(\textsf{flag\_eq})) = 0$
     \item $(1 - \text{next}(\textsf{start})) \cdot (\text{next}(\textsf{idx}_A) - \textsf{idx}_A - (\textsf{be} + (1 - \textsf{be}) \cdot 5)) = 0$
     \item $(1 - \text{next}(\textsf{start})) \cdot (\text{next}(\textsf{idx}_B) - \textsf{idx}_B - 5) = 0$
 \end{enumerate}
