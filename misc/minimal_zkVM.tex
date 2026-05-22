@@ -363,7 +363,7 @@ A conditional jump.
 \]
 
 
-\subsubsection{POSEIDON\_OP}
+\subsubsection{POSEIDON\_OP}\label{sec:poseidon-op}
 
 A precompile to compute Poseidon in permuation or compression mode.
 
@@ -835,8 +835,15 @@ For precompiles, when $\alpha^\textsf{addr} = \beta^\textsf{addr} = \texttt{fp\_
     \item $\texttt{MUL}[\alpha^\textsf{addr}, \alpha, \beta^\textsf{addr}, \beta, \gamma^\textsf{addr}, \gamma]$ \; (semantics $\nu_A \cdot \nu_C = \nu_B$): $\textsf{flag}_\textsf{mul} = 1$;\; $\nu_A \!\leftarrow\! (\alpha^\textsf{addr}, \alpha)$, $\nu_B \!\leftarrow\! (\beta^\textsf{addr}, \beta)$, $\nu_C \!\leftarrow\! (\gamma^\textsf{addr}, \gamma)$.
     \item $\texttt{DEREF}[\alpha, \beta, \gamma^\textsf{addr}, \gamma]$ \; (semantics $\textbf{m}[\textbf{m}[\textbf{fp} + \alpha] + \beta] = \nu_C$): $\textsf{aux}_1 = 2$;\; $\textsf{flag}_A = 0$, $\textsf{operand}_A = \alpha$ (so $\nu_A = \textbf{m}[\textbf{fp} + \alpha]$);\; $\textsf{flag}_B = 1$, $\textsf{operand}_B = \beta$;\; $\nu_C \!\leftarrow\! (\gamma^\textsf{addr}, \gamma)$.
     \item $\texttt{JUMP}[\alpha^\textsf{addr}, \alpha, \beta^\textsf{addr}, \beta, \gamma^\textsf{addr}, \gamma]$ \; (condition / dest / updated-fp): $\textsf{flag}_\textsf{jump} = 1$;\; $\nu_A \!\leftarrow\! (\alpha^\textsf{addr}, \alpha)$, $\nu_B \!\leftarrow\! (\beta^\textsf{addr}, \beta)$, $\nu_C \!\leftarrow\! (\gamma^\textsf{addr}, \gamma)$.
-    \item $\texttt{POSEIDON\_OP}[\alpha^\textsf{addr}, \alpha, \beta^\textsf{addr}, \beta, \gamma^\textsf{addr}, \gamma, \texttt{permute}, \texttt{half}, \delta]$: $\textsf{aux}_2 \,=\, 1 + 2\,\texttt{permute} + 4\,\texttt{half} + 8 \cdot [\delta \neq \bot] + 16\, \delta \cdot [\delta \neq \bot]$;\; $\nu_A \!\leftarrow\! (\alpha^\textsf{addr}, \alpha)$, $\nu_B \!\leftarrow\! (\beta^\textsf{addr}, \beta)$, $\nu_C \!\leftarrow\! (\gamma^\textsf{addr}, \gamma)$.
-    \item $\texttt{EXTENSION\_OP}[\alpha^\textsf{addr}, \alpha, \beta^\textsf{addr}, \beta, \gamma^\textsf{addr}, \gamma, \texttt{op}, \textsf{be}, N]$: $\textsf{aux}_2 \,=\, 2\,\textsf{be} + 4\,[\texttt{op} = \textsc{add}] + 8\,[\texttt{op} = \textsc{dot\_product}] + 16\,[\texttt{op} = \textsc{eq}] + 32 N$;\; $\nu_A \!\leftarrow\! (\alpha^\textsf{addr}, \alpha)$, $\nu_B \!\leftarrow\! (\beta^\textsf{addr}, \beta)$, $\nu_C \!\leftarrow\! (\gamma^\textsf{addr}, \gamma)$.
+    \item $\texttt{POSEIDON\_OP}[\alpha^\textsf{addr}, \alpha, \beta^\textsf{addr}, \beta, \gamma^\textsf{addr}, \gamma, \texttt{permute}, \texttt{half}, \delta]$: \; $\nu_A \!\leftarrow\! (\alpha^\textsf{addr}, \alpha)$, $\nu_B \!\leftarrow\! (\beta^\textsf{addr}, \beta)$, $\nu_C \!\leftarrow\! (\gamma^\textsf{addr}, \gamma)$, and
+    \[
+    \textsf{aux}_2 = 1 + 2\,\texttt{permute} + 4\,\texttt{half} + 8\,[\delta \neq \bot] + 16\, \delta\,[\delta \neq \bot].
+    \]
+    \item $\texttt{EXTENSION\_OP}[\alpha^\textsf{addr}, \alpha, \beta^\textsf{addr}, \beta, \gamma^\textsf{addr}, \gamma, \texttt{op}, \textsf{be}, N]$: \; $\nu_A \!\leftarrow\! (\alpha^\textsf{addr}, \alpha)$, $\nu_B \!\leftarrow\! (\beta^\textsf{addr}, \beta)$, $\nu_C \!\leftarrow\! (\gamma^\textsf{addr}, \gamma)$, and
+    \[
+    \textsf{aux}_2 = 2\,\textsf{be} + 4\,\textsf{flag\_add} + 8\,\textsf{flag\_mul} + 16\,\textsf{flag\_eq} + 32N,
+    \]
+    where $(\textsf{flag\_add}, \textsf{flag\_mul}, \textsf{flag\_eq})$ is the one-hot encoding of $\texttt{op}$.
 \end{itemize}
 
 
@@ -902,67 +909,69 @@ for the 12 instruction columns.
 \]
 where $\textsf{aux}_2$ encodes either a call to the \textsf{POSEIDON} / \textsf{EXTENSION} table.
 
-\subsection{Poseidon table}
+\subsection{POSEIDON table}
 
-Poseidon \cite{poseidon1} is a permutation of $\Fp^{16}$. The table runs this permutation once per row, and the final part of the row, which is exposed to memory via lookup, is a function of a compile-time bit $\textsf{flag\_permute}$: we perform either a $16 \to 8$ \emph{compression} or a $16 \to 16$ \emph{permutation}.
+The Poseidon table runs one $\texttt{POSEIDON\_OP}$ precompile call (Section~\ref{sec:poseidon-op}) per row, pulling the call $(\nu_A, \nu_B, \nu_C, \textsf{aux}_2)$ from the precompile bus. The call's compile-time parameters $(\texttt{permute}, \texttt{half}, \delta)$ are recorded in the row as the boolean flags $\textsf{flag\_permute}, \textsf{flag\_short}, \textsf{flag\_left}$ and the offset $\textsf{offset\_left} \in \Fp$, with $\textsf{flag\_left} = [\delta \neq \bot]$ and $\textsf{offset\_left} = \delta$ (so $\textsf{flag\_left} = 1$ replaces the first four left-input elements by a hardcoded prefix, and $\textsf{flag\_short} = 1$ chops the compression output to its first four elements).
 
-The execution table hands the precompile three pointers $\nu_A$, $\nu_B$, $\nu_C$ over the precompile bus, and the precompile fetches the two input halves
-$$\texttt{left} = \textbf{m}[\nu_A..\nu_A + 8], \qquad \texttt{right} = \textbf{m}[\nu_B..\nu_B + 8].$$
-Write $s = \text{poseidon}(\texttt{left} \;\|\; \texttt{right}) \in \Fp^{16}$ for the raw permutation output.
+\subsubsection{Columns}
 
-\vspace{2mm}
+It has $n_{cols}^{poseidon} = 109$ columns.
 
-\paragraph{Compression mode} ($\textsf{flag\_permute} = 0$) Using pairwise addition in $\Fp$:
-
-$$\textbf{m}[\nu_C..\nu_C + 8] = s[0..8] + \texttt{left}$$
-
-
-\vspace{2mm}
-
-\paragraph{Permute mode} ($\textsf{flag\_permute} = 1$). 
-
-$$\textbf{m}[\nu_C..\nu_C + 16] = s.$$
-
-
-\vspace{2mm}
-
-The AIR has degree 10 and $\approx 100$ committed columns; a degree-3 variant exists at the cost of $\approx 160$ columns.
-\subsubsection{Efficiently verrifying hash-based signatures}\label{efficiently_verrifying_hash-based_signatures}
-
-The following optimizes the $\emph{compression}$ mode, and is incompatible with the $\emph{permutation}$ mode.
-
-Hash-based signatures often rely on tweaks and public parameters (see \cite{ethereum_signatures}).
-
-We present two independent (and composable) optimizations of the poseidon precompile, when both the hash digest and the public parameters are composed of $n = 4$ field elements. We also assume each tweak occupies less than $n$ field elements (in practice 2 is enough).
-
-\vspace{5mm}
-
-\textbf{1. Chopped output}
-
-We introduce a boolean flag $\textsf{flag\_short}$ that signals that only the first $\texttt{n}$ field elements of the output should be written to memory, at $\textbf{m}[\nu_C..\nu_C + \texttt{n}]$ (the remaining $8 - \texttt{n}$ ones are ignored), 
-
-\vspace{5mm}
-
-\textbf{2. Custom first-half of left-input}
-
-We introduce a boolean flag $\textsf{flag\_left}$, alongside a compile-time parameter $\textsf{offset\_left}$:
-$$\texttt{left} = \begin{cases} \textbf{m}[\nu_A..\nu_A + 8] & \text{if } \textsf{flag\_left} = 0 \text{ (default)} \\ \textbf{m}[\textsf{offset\_left}..\textsf{offset\_left} + 4] \;\|\; \textbf{m}[\nu_A..\nu_A + 4] & \text{if } \textsf{flag\_left} = 1 \end{cases}$$
-
-\vspace{5mm}
-
-Both optimizations can be implemented (together), at the cost of 4 additional columns, and incrementing the degree of the constraints by 1.
-
-Both flags ($\textsf{flag\_short}$ and $\textsf{flag\_left}$) and the offset ($\textsf{offset\_left}$) can be encoded in a single (compile-time) parameter, as follows:
-$$\textsf{aux}_2 = 1 + 2 \cdot \textsf{flag\_permute} + 4 \cdot \textsf{flag\_short} + 8 \cdot \textsf{flag\_left} + 16 \cdot \textsf{offset\_left} \cdot  \textsf{flag\_left}$$
-
-Soundness of this encoding (encoding multiple data into a single field element requires care, to avoid overflows that would break injectivity):
 \begin{itemize}
-    \item both flags are asserted to be boolean by the AIR constraints
-    \item if $\textsf{flag\_left} = 0$: then $\textsf{offset\_left}$ is unconstrained: but it does not contribute to the encoding $\textsf{aux}_2$, and it has no effect in the AIR logic.
-    \item if $\textsf{flag\_left} = 1$: then for the lookup into memory $\textbf{m}[\textsf{offset\_left}..\textsf{offset\_left} + 4]$ to be valid, $\textsf{offset\_left}$ must be smaller than the memory size $M \leq 2^{26} < p / 2$. As a result no overflow can occur in the encoding of $\textsf{aux}_2$, which is thus injective.
+    \item \textbf{Control / pointers ($9$):} the multiplicity (for precompile bus-interraction) $\textsf{multiplicity}$ ($1$ on active rows, $0$ on padding); the boolean mode flags $\textsf{flag\_permute}$, $\textsf{flag\_short}$, $\textsf{flag\_left}$ and the offset $\textsf{offset\_left}$; the right-input and output pointers $\nu_B$, $\nu_C$; and two derived left addresses $\textsf{addr}^\text{lo}_\text{left}$, $\textsf{addr}^\text{hi}_\text{left}$, equal to $(\nu_A, \nu_A{+}4)$ if $\textsf{flag\_left}{=}0$ and to $(\textsf{offset\_left}, \nu_A)$ if $\textsf{flag\_left}{=}1$.
+    \item \textbf{Input ($16$):} $\textsf{input}_0, \ldots, \textsf{input}_{15}$, the permutation input $\texttt{left} \,\|\, \texttt{right}$ (so $\textsf{input}_{0..8} = \texttt{left}$ and $\textsf{input}_{8..16} = \texttt{right}$).
+    \item \textbf{Intermediate rounds ($68$):} the full state is committed only after each \emph{pair} of full rounds: $\textsf{full}_1, \textsf{full}_2$ ($16$ cols each) after the two pairs making up the $4$ initial full rounds, and $\textsf{full}_3$ ($16$ cols) after the first pair of the $4$ final full rounds (the last pair feeds the output columns directly). Plus $\textsf{sbox}_1, \ldots, \textsf{sbox}_{20}$, the single S-box output (the cube of the first state coordinate) committed at each partial round.
+    \item \textbf{Output ($16$):} two halves $\textsf{out}_\text{lo}, \textsf{out}_\text{hi}$ ($8$ cols each). $\textsf{out}_\text{lo}$ holds the written first half — the feed-forward sum $s[0..8] + \texttt{left}$ in compression, or $s[0..8]$ in permutation; $\textsf{out}_\text{hi}$ holds $s[8..16]$ and is used only in permutation.
 \end{itemize}
 
-\textbf{Conclusion.} Every tuple $(\nu_A, \nu_B, \nu_C, \textsf{aux}_2)$ pushed by the execution table is faithfully pulled and decoded by the Poseidon table: the recovered triple $(\textsf{flag\_short}, \textsf{flag\_left}, \textsf{offset\_left})$ matches the one used at the call site, with one harmless exception: when $\textsf{flag\_left} = 0$, $\textsf{offset\_left}$ is left unconstrained, but this is inconsequential since it then has no effect at the AIR level.
+Non-committed (virtual): $\nu_A$ (left-input pointer) and $\textsf{aux}_2$ (the precompile-data domain separator, see below).
+
+\subsubsection{Bus interactions}
+\textbf{Memory pulls.} Each committed input/output cell is tied to memory by a $\textsc{Pull}\big(c,\, a,\, 0_{13},\, \textsf{memory\_sep}\big)$ of multiplicity $1$ (value $c$ at address $a$):
+\begin{itemize}
+    \item $\textsf{input}_i$ at $\textsf{addr}^\text{lo}_\text{left} + i$ and $\textsf{input}_{4+i}$ at $\textsf{addr}^\text{hi}_\text{left} + i$, for $i \in [0, 4)$ (the left half);
+    \item $\textsf{input}_{8+i}$ at $\nu_B + i$, for $i \in [0, 8)$ (the right half);
+    \item $\textsf{out}_\text{lo}[i]$ at $\nu_C + i$ and $\textsf{out}_\text{hi}[i]$ at $\nu_C + 8 + i$, for $i \in [0, 8)$.
+\end{itemize}
+
+\textbf{Precompile pulls.} The table pulls the call tuple
+\[
+\textsc{Pull}\big(\nu_A,\, \nu_B,\, \nu_C,\, 0_{12},\, \textsf{aux}_2\big) \quad \text{with multiplicity } \textsf{multiplicity},
+\]
+matching the push issued by the execution table (Section~\ref{sec:execution-bus}), with domain separator
+\[
+\textsf{aux}_2 = 1 + 2\,\textsf{flag\_permute} + 4\,\textsf{flag\_short} + 8\,\textsf{flag\_left} + 16\,\textsf{flag\_left} \cdot \textsf{offset\_left}
+\]
+packing all three flags and the offset. This encoding is injective: the flags are boolean (AIR-enforced), and when $\textsf{flag\_left} = 1$ the left lookup forces $\textsf{offset\_left} < M \leq 2^{26} < p/2$, so no wrap-around occurs modulo $p$; when $\textsf{flag\_left} = 0$, $\textsf{offset\_left}$ does not enter $\textsf{aux}_2$.
+
+\subsubsection{AIR constraints}
+
+Constraints have degree $10$.
+
+Write $\nu_A = \textsf{addr}^\text{hi}_\text{left} - (1 - \textsf{flag\_left}) \cdot 4$ for the (virtual) left-input pointer, and let $\sigma \in \Fp^{16}$ denote the running state of the recomputed permutation.
+
+\textbf{Booleanity ($4$).} $\textsf{multiplicity}$, $\textsf{flag\_permute}$, $\textsf{flag\_short}$, $\textsf{flag\_left}$ are each boolean: $x \cdot (1 - x) = 0$.
+
+\textbf{Mode separation ($1$).} $\textsf{flag\_permute} \cdot (\textsf{flag\_short} + \textsf{flag\_left}) = 0$  (permutation excludes the two compression optimizations)
+
+\textbf{Left-address binding ($2$).}
+\begin{itemize}
+    \item $\textsf{flag\_left} \cdot (\textsf{offset\_left} - \textsf{addr}^\text{lo}_\text{left}) = 0$ \quad (when $\textsf{flag\_left} = 1$: $\textsf{addr}^\text{lo}_\text{left} = \textsf{offset\_left}$, $\textsf{addr}^\text{hi}_\text{left} = \nu_A$);
+    \item $(1 - \textsf{flag\_left}) \cdot (\nu_A - \textsf{addr}^\text{lo}_\text{left}) = 0$ \quad (when $\textsf{flag\_left} = 0$: $\textsf{addr}^\text{lo}_\text{left} = \nu_A$, $\textsf{addr}^\text{hi}_\text{left} = \nu_A + 4$).
+\end{itemize}
+
+\textbf{Permutation ($68$).} Starting from $\sigma = \textsf{input}$, recompute the Poseidon permutation (round constants, S-box $x \mapsto x^3$, and the MDS / sparse partial-round layers; we omit the Poseidon-internal details), and check it against the committed round witnesses:
+\begin{itemize}
+    \item \emph{full-round pairs ($48$):} after each committed pair, the $16$ recomputed coordinates equal the witness — $\sigma = \textsf{full}_1$, then $\textsf{full}_2$ (the two initial pairs), then $\textsf{full}_3$ (the first final pair);
+    \item \emph{partial rounds ($20$):} at partial round $k$, $\textsf{sbox}_k = (\sigma_0)^3$ (and $\sigma_0$ is then set to $\textsf{sbox}_k$, keeping the constraint low-degree).
+\end{itemize}
+
+\textbf{Output ($24$).} Let $\sigma$ be the state after the \emph{last} (uncommitted) final full-round pair, and set the gates $g_i = 1 - \textsf{flag\_permute}$ for $i \in [0,4)$ and $g_i = 1 - \textsf{flag\_permute} - \textsf{flag\_short}$ for $i \in [4,8)$. For each $i \in [0, 8)$:
+\begin{itemize}
+    \item $g_i \cdot \big(\sigma_i + \textsf{input}_i - \textsf{out}_\text{lo}[i]\big) = 0$ \quad (compression: feed-forward sum, with the upper half gated off when $\textsf{flag\_short} = 1$);
+    \item $\textsf{flag\_permute} \cdot \big(\sigma_i - \textsf{out}_\text{lo}[i]\big) = 0$ \quad and \quad $\textsf{flag\_permute} \cdot \big(\sigma_{i+8} - \textsf{out}_\text{hi}[i]\big) = 0$ \quad (permutation: raw output).
+\end{itemize}
+
 
 \subsection{Extension op table}
 
@@ -1042,7 +1051,11 @@ All columns are base field ($\Fp$) columns. Extension field values are represent
 \end{itemize}
 
 \subsubsection{Bus interaction}
-On rows where $\textsf{activation\_flag} = 1$ (i.e.\ $\textsf{start} = 1$ and $\textsf{active} = 1$), the table \textsc{Pulls} the tuple $(\textsf{aux}_2, \textsf{idx}_A, \textsf{idx}_B, \textsf{idx}_R)$ from the precompile bus. The execution table \textsc{Pushes} a matching tuple for each EXTENSION\_OP instruction.
+On rows where $\textsf{activation\_flag} = \textsf{start} \cdot \textsf{active} = 1$ (the first row of each active group):
+\[
+\textsc{Pull}\big(\textsf{idx}_A,\, \textsf{idx}_B,\, \textsf{idx}_R,\, 0_{12},\, \textsf{aux}_2\big) \quad \text{with multiplicity } 1,
+\]
+matching the precompile push issued by the execution table (Section~\ref{sec:execution-bus}) for each \texttt{EXTENSION\_OP} instruction.
 
 
 The $\textsf{aux}_2$ encoding ensures both the mode and the length are bound to the bus data. Since $\textsf{be}$, $\textsf{flag\_add}$, $\textsf{flag\_mul}$, and $\textsf{flag\_eq}$ are constrained to be boolean, and since the length is constrained to be $\leq 2^{20}$ (by Lemma~\ref{lem:len-bound}), no overflow can occur modulo $p$ and the $\textsf{aux}_2$ value is unique for each combination of parameters, which enforces that all values of $\textsf{aux}_2$ sent by the execution table are correctly received by the extension\_op table.
