@@ -6,5 +6,6 @@ def main():
     assert arr[0] == 1
     return
 
+
 def one():
     return 1

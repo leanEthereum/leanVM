@@ -30,6 +30,7 @@ TYPE_2_DIGESTS_OFFSET = COMPONENT_DATA_OFFSET
 BYTECODE_CLAIM_NUM_CHUNKS = BYTECODE_CLAIM_SIZE_PADDED / DIGEST_LEN
 TYPE_2_BASE_NUM_CHUNKS = BYTECODE_CLAIM_NUM_CHUNKS + 2  # prefix chunk + domsep chunk
 
+
 def main():
     debug_assert(MAX_N_SIGS + MAX_N_DUPS <= 2**16)  # because of range checking, TODO increase
     pub_mem = 0  # See hashing.py for the memory layout
@@ -89,11 +90,11 @@ def main():
         hint_witness("inner_type2_layout", type2_data_buf)
         ensure_well_formed_input_data(type2_data_buf, bytecode_hash_domsep, TYPE_2_FLAG)
         type2_digests = type2_data_buf + TYPE_2_DIGESTS_OFFSET
-     
+
         kept_type1_buff = Array(TYPE_1_INPUT_DATA_SIZE_PADDED)
         hint_witness("kept_type1_buff", kept_type1_buff)
-        copy_8(data_buf, kept_type1_buff) # type-1 flag | n_signatures | 0×6
-        copy_32(data_buf + COMPONENT_DATA_OFFSET, kept_type1_buff + COMPONENT_DATA_OFFSET )
+        copy_8(data_buf, kept_type1_buff)  # type-1 flag | n_signatures | 0×6
+        copy_32(data_buf + COMPONENT_DATA_OFFSET, kept_type1_buff + COMPONENT_DATA_OFFSET)
         ensure_well_formed_input_data(kept_type1_buff, bytecode_hash_domsep, TYPE_1_FLAG)
         digest_kept = type2_digests + type2_kept_index * DIGEST_LEN
         slice_hash_with_iv(kept_type1_buff, TYPE_1_INPUT_DATA_NUM_CHUNKS, digest_kept)
@@ -147,7 +148,7 @@ def main():
         if n_raw_xmss == 0:
             type1_data_buf = Array(TYPE_1_INPUT_DATA_SIZE_PADDED)
             copy_8(data_buf, type1_data_buf)  # prefix
-            copy_32(data_buf + COMPONENT_DATA_OFFSET, type1_data_buf + COMPONENT_DATA_OFFSET )
+            copy_32(data_buf + COMPONENT_DATA_OFFSET, type1_data_buf + COMPONENT_DATA_OFFSET)
             hint_witness("inner_bytecode_claim", type1_data_buf + BYTECODE_CLAIM_OFFSET)
             ensure_well_formed_input_data(type1_data_buf, bytecode_hash_domsep, TYPE_1_FLAG)
             inner_pub_mem = Array(INNER_PUB_MEM_SIZE)
@@ -209,7 +210,7 @@ def main():
         type1_data_buf[1] = n_sub
         for k in unroll(2, DIGEST_LEN):
             type1_data_buf[k] = 0
-        
+
         copy_8(running_hash, type1_data_buf + TYPE_1_PUBKEYS_HASH_OFFSET)
         copy_8(message, type1_data_buf + TYPE_1_PUBKEYS_HASH_OFFSET + DIGEST_LEN)
         copy_8(merkle_chunks_for_slot, type1_data_buf + TYPE_1_PUBKEYS_HASH_OFFSET + DIGEST_LEN + MESSAGE_LEN)

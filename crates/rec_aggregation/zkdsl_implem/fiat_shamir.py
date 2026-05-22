@@ -64,7 +64,7 @@ def assert_trailing_bits_are_zeros(value, bits: Const):
     debug_assert(bits != 0)
 
     chunk_size = 12
-    num_chunks = 24 / chunk_size # 2
+    num_chunks = 24 / chunk_size  # 2
 
     chunks = Array(num_chunks)
     hint_decompose_bits_merkle_whir(chunks, value, chunk_size)
@@ -74,7 +74,7 @@ def assert_trailing_bits_are_zeros(value, bits: Const):
     partial_sums = Array(num_chunks)
     partial_sums[0] = chunks[0]
     for i in unroll(1, num_chunks):
-        partial_sums[i] = partial_sums[i - 1] + chunks[i] * 2**(i * chunk_size)
+        partial_sums[i] = partial_sums[i - 1] + chunks[i] * 2 ** (i * chunk_size)
     # p = 2^31 - 2^24 + 1, so 2^24 * 127 = p - 1 ≡ -1 (mod p), hence inv(2^24) = -127.
     # Deduce top7 from the identity partial_sum + top7 * 2^24 == a:
     # top7 = (a - partial_sum) * inv(2^24) = (partial_sum - a) * 127
@@ -84,10 +84,10 @@ def assert_trailing_bits_are_zeros(value, bits: Const):
         assert partial_sums[chunk_size - 1] == 0
 
     if bits < 12:
-        assert chunks[0] / 2**bits < 2**(chunk_size - bits)
+        assert chunks[0] / 2**bits < 2 ** (chunk_size - bits)
     elif bits < 24:
         assert chunks[0] == 0
-        assert chunks[1] / 2**(bits - 12) < 2**(chunk_size - (bits - 12))
+        assert chunks[1] / 2 ** (bits - 12) < 2 ** (chunk_size - (bits - 12))
     else:
         debug_assert(bits == 24)
         assert chunks[0] == 0

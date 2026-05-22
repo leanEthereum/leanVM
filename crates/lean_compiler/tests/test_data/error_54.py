@@ -5,5 +5,6 @@ def main():
     assert out == 1
     return
 
+
 def one():
     return 1

@@ -47,7 +47,7 @@ pub fn field_representation(instr: &Instruction) -> [F; N_INSTRUCTION_COLUMNS] {
             set_nu_c(&mut fields, updated_fp);
         }
         Instruction::Precompile(precompile) => {
-            let precompile_data = match &precompile.data {
+            let domainsep = match &precompile.data {
                 PrecompileCompTimeArgs::Poseidon16 {
                     half_output,
                     hardcoded_offset_left,
@@ -55,7 +55,7 @@ pub fn field_representation(instr: &Instruction) -> [F; N_INSTRUCTION_COLUMNS] {
                 } => {
                     let flag_left = hardcoded_offset_left.is_some() as usize;
                     let hardcoded_offset_left_val = hardcoded_offset_left.unwrap_or(0);
-                    POSEIDON_PRECOMPILE_DATA
+                    POSEIDON_DOMAINSEP_BASE
                         + POSEIDON_PERMUTE_SHIFT * (*permute as usize)
                         + POSEIDON_HALF_OUTPUT_SHIFT * (*half_output as usize)
                         + POSEIDON_HARDCODED_LEFT_4_FLAG_SHIFT * flag_left
@@ -66,7 +66,7 @@ pub fn field_representation(instr: &Instruction) -> [F; N_INSTRUCTION_COLUMNS] {
                     mode.flag_encoding() + EXT_OP_LEN_MULTIPLIER * size
                 }
             };
-            fields[instr_idx(COL_PRECOMPILE_DATA)] = F::from_usize(precompile_data);
+            fields[instr_idx(COL_PRECOMPILE_DOMAINSEP)] = F::from_usize(domainsep);
             match (precompile.arg_0, precompile.arg_1) {
                 (MemOrFpOrConstant::FpRelative { offset: off_a }, MemOrFpOrConstant::FpRelative { offset: off_b }) => {
                     fields[instr_idx(COL_FLAG_AB_FP)] = F::ONE;

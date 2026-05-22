@@ -1,5 +1,6 @@
 from snark_lib import *
 
+
 def main():
     arr = 1000
     arr[0] = 34

@@ -1,8 +1,7 @@
 use crate::Table;
 
 /// Domain separation in logup
-pub const LOGUP_MEMORY_DOMAINSEP: usize = 0;
-pub const LOGUP_PRECOMPILE_DOMAINSEP: usize = 1;
+pub const LOGUP_MEMORY_DOMAINSEP: usize = 1;
 pub const LOGUP_BYTECODE_DOMAINSEP: usize = 2;
 
 /// Large field = extension field of degree DIMENSION over koala-bear
@@ -18,6 +17,7 @@ pub const MIN_LOG_MEMORY_SIZE: usize = 16;
 pub const MAX_LOG_MEMORY_SIZE: usize = 26;
 
 pub const MIN_BYTECODE_LOG_SIZE: usize = 8;
+pub const MAX_BYTECODE_LOG_SIZE: usize = 22;
 
 /// Minimum and maximum number of rows per table (as powers of two), both inclusive
 pub const MIN_LOG_N_ROWS_PER_TABLE: usize = 8; // Zero padding will be added to each at least, if this minimum is not reached, (ensuring AIR / GKR work fine, with SIMD, without too much edge cases). Long term, we should find a more elegant solution.
@@ -48,7 +48,7 @@ mod tests {
     #[test]
     fn ensure_no_overflow_in_logup() {
         fn memory_lookups_count<T: TableT>(t: &T) -> usize {
-            t.lookups().iter().map(|l| l.values.len()).sum::<usize>()
+            t.bus_interactions().iter().filter(|bus| bus.is_memory_lookup()).count()
         }
         // memory lookup
         let mut max_memory_logup_sum: u64 = 0;

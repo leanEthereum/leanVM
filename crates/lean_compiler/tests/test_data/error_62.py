@@ -14,5 +14,6 @@ def pick(flag):
         return 10
     return 20
 
+
 def one():
     return 1

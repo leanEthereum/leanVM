@@ -183,8 +183,8 @@ pub(super) fn exec_multi_row(
         }
 
         // Virtual columns
-        trace.columns[COL_ACTIVATION_FLAG].push(F::from_bool(is_start));
-        trace.columns[COL_AUX_EXTENSION_OP].push(F::from_usize(mode_bits + EXT_OP_LEN_MULTIPLIER * current_len));
+        trace.columns[COL_MULTIPLICITY_EXTENSION_OP].push(F::from_bool(is_start));
+        trace.columns[COL_DOMAINSEP_EXTENSION_OP].push(F::from_usize(mode_bits + EXT_OP_LEN_MULTIPLIER * current_len));
     }
 
     Ok(())
