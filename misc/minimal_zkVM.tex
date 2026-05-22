@@ -644,7 +644,7 @@ Table & Max rows \\
 \end{tabular}
 \end{center}
 
-\subsection{Buses}\label{sec:Bus: interractions between table via logup-GKR}
+\subsection{One bus to interract between tables}\label{sec:Bus: interractions between table via logup-GKR}
 
 
 In order for the tables (Section~\ref{sec:table-sizes}) to exchange data, we use a \emph{bus}: a global channel in which tables may \textsc{Push} or \textsc{Pull} tuples of $\textsf{bus\_width} = 16$ field elements $\Fq$. We enforce the following property: \textit{every tuple is pulled exactly as many times as it is pushed}.
@@ -696,9 +696,9 @@ h_{\vec\beta}(\sigma) \;=\; \sum_{i=0}^{\textsf{bus\_width} - 1} \sigma_i \cdot 
 By Lemma~\ref{lem:sz} applied to the (non-zero) multilinear polynomial $\hat\sigma - \hat{\sigma'}$ in $\ell$ variables, two distinct tuples collide with probability at most $\ell/q$.
 
 \paragraph{Bus balance as a rational identity.} Enumerate the bus interactions across all tables as a list of pairs $(\sigma_k, m_k)_{1 \leq k \leq K}$, where $\sigma_k \in \Fp^{\textsf{bus\_width}}$ is the pushed (or pulled) tuple data and $m_k \in \Fp$ is its signed multiplicity (positive for \textsc{Push}, negative for \textsc{Pull}) (where we naturally embedd the integers $(-p, p)$ into $\Fp$). Assume that, for every tuple $\sigma$, both the total pushes and the total pulls of $\sigma$ are strictly less than $p$. Then the bus is balanced if and only if, for every $\sigma$, $\sum_{k \,:\, \sigma_k = \sigma} m_k = 0$, which, for $\vec\beta \overset{\$}{\leftarrow} \Fq^\ell$ and $\gamma \overset{\$}{\leftarrow} \Fq$, is equivalent up to completeness error $K / q$ and soundness error $K \ell / q$ to:
-\[
+\begin{equation} \label{eq:logup-sum}
 \sum_{k=1}^{K} \frac{m_k}{\gamma - h_{\vec\beta}(\sigma_k)} \;=\; 0.
-\]
+\end{equation}
 
 \begin{proof}
 (Inspired by \href{https://github.com/openvm-org/stark-backend/blob/main/docs/Soundness_of_Interactions_via_LogUp.pdf}{Soundness of Interactions via LogUp})
@@ -715,9 +715,9 @@ Over a common denominator, the rational sum equals $N/Q$. Verifier acceptance re
 \emph{Total degree of $N$.} The degree of $N$, interpreted as multivariable polynomial in $\gamma$ and $\vec\beta$, is at most $(s-1)\ell \leq K \ell$.
 
 \emph{Non-vanishing of $N$.} Pick any $\sigma^\star \in S$ (so $M(\sigma^\star) \neq 0$). To show $N$ is not the zero polynomial in $\Fq[\vec\beta, \gamma]$, substitute the variable $\gamma$ by the polynomial $h_{\vec\beta}(\sigma^\star) \in \Fq[\vec\beta]$. If $N$ were the zero polynomial its image would also be zero. For every $\sigma \in S$ with $\sigma \neq \sigma^\star$, the product $\prod_{\sigma' \in S \setminus \{\sigma\}}$ contains the factor $\gamma - h_{\vec\beta}(\sigma^\star)$ (since $\sigma^\star \in S \setminus \{\sigma\}$), which the substitution sends to $0$; only the $\sigma = \sigma^\star$ summand survives, giving
-\[
+$$
 N\big(\vec\beta,\, h_{\vec\beta}(\sigma^\star)\big) \;=\; M(\sigma^\star) \prod_{\sigma' \in S \setminus \{\sigma^\star\}} (\hat\sigma^\star - \hat\sigma')(\vec\beta) \;\in\; \Fq[\vec\beta].
-\]
+$$
 Each factor in this product is the MLE of the non-zero vector $\sigma^\star - \sigma' \in \Fp^{\textsf{bus\_width}}$, hence a non-zero polynomial in $\vec\beta$. Given that $M(\sigma^\star) \neq 0$, $N$ is non-zero in $\Fq[\vec\beta, \gamma]$.
 
 By Lemma~\ref{lem:sz},
@@ -726,6 +726,28 @@ By Lemma~\ref{lem:sz},
 \]
 \end{proof}
 
+\subsubsection{Logup-GKR}
+
+The prover can convince the verifier of the validity of equation \ref{eq:logup-sum} efficiently via GKR \cite{logup_gkr}, and long as the verifier can efficiently evaluate the MLEs of $(m_k)_{k \in [1, K]}$ and $(h_{\vec\beta}(\sigma_k))_{k \in [1, K]}$ (assuming $K$ is a power-of-two, which we can always garantee up to some padding: zeros for numerators, ones for denominators).
+
+We briefly recall the GKR construction in this context.
+
+Assume the prover wants to convince the verifier $\sum_{b \in \{0, 1\}^n} \frac{\hat{num}(b)}{\hat{den}(b)} = \kappa$ for some $\hat{num}, \hat{den} \in \Fq^{<2}[X_1, \dots, X_n]$ efficiently evaluable and $\kappa \in \Fq$.
+
+Define the following protocol $GKR(n):$
+
+\begin{itemize}
+    \item If $n = 0$, the verifier can evaluate the sum by evaluting $\hat{num} $ and $\hat{den}$ once each, at a common point (the empty point, since both are constant polynomial).
+    \item If $n > 0:$ 
+    \begin{itemize}
+        \item Write $\kappa = \sum_{b \in \{0, 1\}^{n-1}} \frac{\hat{num}'(b)}{\hat{den}'(b)}$, where $num'$ is the MLE of $(\hat{num}(0, b) \cdot \hat{den}(1, b) + \hat{num}(1, b) \cdot \hat{den}(0, b))_{b \in \{0, 1\}^{n -1}}$ and $\hat{den}'$ is the MLE of $(\hat{den}(0, b) \cdot \hat{den}(1, b))_{b \in \{0, 1\}^{n -1}}$
+        \item recursively call $GKR(n-1)$ on this new sum, which will return 2 claims of the form: $\hat{num}'(\alpha) = \beta^{num}$ and $\hat{den}'(\alpha) = \beta^{den}$ with $\alpha \in \Fq^{n-1}, \beta^{num}, \beta^{den}\in \Fq$.
+        \item Sample $\gamma \in \Fq$ and run the sumcheck protocol on:
+        $$\sum_{b \in \{0, 1\}^{n -1}} eq(\alpha, b)\big[(\hat{num}(0, b) \cdot \hat{den}(1, b) + \hat{num}(1, b) \cdot \hat{den}(0, b)) + \gamma \cdot \hat{den}(0, b) \cdot \hat{den}(1, b)\big] = \beta^{num} + \gamma \cdot \beta^{den}$$
+        \item Let $\eta \in \Fq^{n-1}$ be the sumcheck challenges. The prover sends $num_0, num_1, den_0, den_1$, respectively equal to $\hat{num}(0, b), \hat{num}(1, b), \hat{den}(0, b), \hat{den}(1, b)$ in the honest case. This enables the verifier to evaluate the expression within the sum above, and to conclude the sumcheck.
+        \item Sample $\delta \in \Fq$, and conclude the GKR step by outputing the following claims (that remains to be proven): $\hat{num}(\delta, \eta) \stackrel{?}{=} (1-\delta) \cdot num_0 + \delta \cdot num_1$ and $\hat{den}(\delta, \eta) \stackrel{?}{=} (1-\delta) \cdot den_0 + \delta \cdot den_1$.
+    \end{itemize}
+\end{itemize}
 
 \subsection{AIR constraints}
 
@@ -1044,7 +1066,7 @@ The domain separator $\textsf{aux}_2$ binds the mode and length to the bus data:
 
 \subsubsection{AIR constraints}
 
-\fbox{Degree 6.}
+We use AIR constraints of degree 6.
 
 \vspace{2mm}
 
@@ -1439,7 +1461,7 @@ Because the folded variables are the \emph{most significant} bits, the zeros lan
 
 \subsection{Small-Value Optimization (SVO) and Split-Eq}\label{sec:svo}
 
-WHIR opens its commitment with a sumcheck of the form $\sum_{b \in \{0,1\}^v} w(b)\, f(b)$, where $f$ is the committed (base-field) polynomial and the weight $w(b) = \sum_i \alpha^i\, \hat{eq}(b, w_i)$ batches the evaluation claims $f(w_i) = y_i$ (we ommit 'shift' claims by simplicity, but this is generalizable). In our setting the claims are highly \emph{sparse}: stacking many table columns into a single WHIR instance produces, for each column, a claim $w_i$ whose high-order coordinates are the boolean prefix bits selecting that column, with only the remaining coordinates in $\Fq$.
+WHIR opening conatins a sumcheck of the form $\sum_{b \in \{0,1\}^v} w(b)\, f(b)$, where $f$ is the committed (base-field) polynomial and the weight $w(b) = \sum_i \alpha^i\, \hat{eq}(b, w_i)$ batches the evaluation claims $f(w_i) = y_i$ (we ommit 'shift' claims by simplicity, but this is generalizable). In our setting the claims are highly \emph{sparse}: stacking many table columns into a single WHIR instance produces, for each column, a claim $w_i$ whose high-order coordinates are the boolean prefix bits selecting that column, with only the remaining coordinates in $\Fq$.
 
 The \emph{small-value optimization} (SVO), together with the \emph{split-eq} trick (algo. 6 of \cite{Speeding-Up-Sum-Check-Proving}), speeds up the first $l_0$  sumcheck rounds (where most of the prover's cost lies) by precomputing accumulators (via the factorization $\hat{eq}(b, w_i) = \hat{eq}(b^{lo}, w_i^{lo}) \cdot \hat{eq}(b^{hi}, w_i^{hi})$). For prover cost to be proportional to the \emph{non-sparse} part of each claim, the boolean (sparse) coordinates must sit at the \emph{opposite end} from the variables folded first.
 
