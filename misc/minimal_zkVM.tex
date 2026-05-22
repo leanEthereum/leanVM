@@ -1443,6 +1443,14 @@ Because the folded variables are the \emph{most significant} bits, the zeros lan
     \item \textbf{Leaf hashing:} we hash each Merkle leaf via a sponge absorbing data right-to-left, so the shared zero suffix yields the same partial state, which we precompute once and reuse for every leaf.
 \end{itemize}
 
+\subsection{Small-Value Optimization (SVO) and Split-Eq}\label{sec:svo}
+
+WHIR opens its commitment with a sumcheck of the form $\sum_{b \in \{0,1\}^v} w(b)\, f(b)$, where $f$ is the committed (base-field) polynomial and the weight $w(b) = \sum_i \alpha^i\, \hat{eq}(b, w_i)$ batches the evaluation claims $f(w_i) = y_i$ (we ommit 'shift' claims by simplicity, but this is generalizable). In our setting the claims are highly \emph{sparse}: stacking many table columns into a single WHIR instance produces, for each column, a claim $w_i$ whose high-order coordinates are the boolean prefix bits selecting that column, with only the remaining coordinates in $\Fq$.
+
+The \emph{small-value optimization} (SVO), together with the \emph{split-eq} trick (algo. 6 of \cite{Speeding-Up-Sum-Check-Proving}), speeds up the first $l_0$  sumcheck rounds (where most of the prover's cost lies) by precomputing accumulators (via the factorization $\hat{eq}(b, w_i) = \hat{eq}(b^{lo}, w_i^{lo}) \cdot \hat{eq}(b^{hi}, w_i^{hi})$). For prover cost to be proportional to the \emph{non-sparse} part of each claim, the boolean (sparse) coordinates must sit at the \emph{opposite end} from the variables folded first.
+
+This conflicts with the zero-suffix optimization of Section~\ref{sec:zero-suffix}, which folds the \emph{most significant} variables first ($X_1, X_2, \dots$). TODO can we (efficiently) reconcile the 2 optimizations?
+
 \clearpage
 \bibliographystyle{IEEEtran}
 \bibliography{bibliography}
