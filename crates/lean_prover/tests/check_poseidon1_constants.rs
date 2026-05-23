@@ -1,7 +1,7 @@
 //! Ensure the Poseidon1 (width-16) constants hardcoded in
 //! `crates/lean_prover/verifier.py` match the Rust constants used by the AIR.
-//! The test prints the expected line (so you can paste it back if anything
-//! drifts) and asserts that `verifier.py` contains that exact string up to
+//! The test prints the expected lines (so you can paste them back if anything
+//! drifts) and asserts that `verifier.py` contains those exact strings up to
 //! whitespace.
 //!
 //! Run:
@@ -19,6 +19,14 @@ use backend::{
 
 fn k(x: KoalaBear) -> u32 {
     x.as_canonical_u32()
+}
+
+/// Recover the 16 shifts of the circulant MDS by computing `M^T * e_0`, which
+/// equals row 0 of `M` and therefore `[SHIFTS[0], SHIFTS[1], …, SHIFTS[15]]`.
+/// We get row 0 from `dense_mds_matrix()` since `M[0][j] = SHIFTS[(j-0) % 16]`.
+fn mds_circ_16_shifts() -> [KoalaBear; 16] {
+    let mds = dense_mds_matrix();
+    mds[0]
 }
 
 /// Reconstruct the dense MDS matrix the way `mds_dense_16` does in
@@ -73,14 +81,12 @@ fn expected_poseidon1_constants_line() -> String {
     let sparse_v = poseidon1_sparse_v();
     let first_rc = poseidon1_sparse_first_round_constants();
     let scalar_rc = poseidon1_sparse_scalar_round_constants();
-    let mds = dense_mds_matrix();
 
     let initial: Vec<Vec<KoalaBear>> = initial.iter().map(|r| r.to_vec()).collect();
     let final_: Vec<Vec<KoalaBear>> = final_.iter().map(|r| r.to_vec()).collect();
     let m_i: Vec<Vec<KoalaBear>> = m_i.iter().map(|r| r.to_vec()).collect();
     let first_row: Vec<Vec<KoalaBear>> = first_row.iter().map(|r| r.to_vec()).collect();
     let sparse_v: Vec<Vec<KoalaBear>> = sparse_v.iter().map(|r| r.to_vec()).collect();
-    let mds: Vec<Vec<KoalaBear>> = mds.iter().map(|r| r.to_vec()).collect();
 
     format!(
         "POSEIDON1_CONSTANTS = {{\
@@ -92,8 +98,7 @@ fn expected_poseidon1_constants_line() -> String {
 'sparse_first_row':{sfr},\
 'sparse_v':{sv},\
 'sparse_first_round_constants':{sfrc},\
-'sparse_scalar_round_constants':{ssrc},\
-'mds_dense':{mds}\
+'sparse_scalar_round_constants':{ssrc}\
 }}",
         hf = POSEIDON1_HALF_FULL_ROUNDS,
         pr = POSEIDON1_PARTIAL_ROUNDS,
@@ -104,8 +109,11 @@ fn expected_poseidon1_constants_line() -> String {
         sv = fmt_mat(&sparse_v),
         sfrc = fmt_vec(first_rc),
         ssrc = fmt_vec(scalar_rc),
-        mds = fmt_mat(&mds),
     )
+}
+
+fn expected_mds_shifts_line() -> String {
+    format!("MDS_CIRC_16_SHIFTS = {}", fmt_vec(&mds_circ_16_shifts()))
 }
 
 fn strip_ws(s: &str) -> String {
@@ -114,15 +122,23 @@ fn strip_ws(s: &str) -> String {
 
 #[test]
 fn check_poseidon1_constants() {
-    let expected = expected_poseidon1_constants_line();
-    println!("{expected}");
+    let expected_shifts = expected_mds_shifts_line();
+    let expected_constants = expected_poseidon1_constants_line();
+    println!("{expected_shifts}");
+    println!("{expected_constants}");
 
     let verifier_py = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("verifier.py");
     let src =
         fs::read_to_string(&verifier_py).unwrap_or_else(|e| panic!("failed to read {}: {e}", verifier_py.display()));
+    let src_ws = strip_ws(&src);
 
     assert!(
-        strip_ws(&src).contains(&strip_ws(&expected)),
+        src_ws.contains(&strip_ws(&expected_shifts)),
+        "MDS_CIRC_16_SHIFTS in {} is out of sync with Rust. Replace the line with the one printed above.",
+        verifier_py.display(),
+    );
+    assert!(
+        src_ws.contains(&strip_ws(&expected_constants)),
         "POSEIDON1_CONSTANTS in {} is out of sync with Rust. Replace the line with the one printed above.",
         verifier_py.display(),
     );
