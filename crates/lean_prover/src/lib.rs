@@ -4,7 +4,7 @@ use std::fmt::Display;
 
 use backend::*;
 use lean_vm::{
-    EF, F, MAX_WHIR_LOG_INV_RATE, MIN_LOG_N_ROWS_PER_TABLE, MIN_WHIR_LOG_INV_RATE, RunnerError, Table, TableT,
+    Bytecode, EF, F, MAX_WHIR_LOG_INV_RATE, MIN_LOG_N_ROWS_PER_TABLE, MIN_WHIR_LOG_INV_RATE, RunnerError, Table, TableT,
 };
 use utils::*;
 
@@ -30,6 +30,14 @@ pub const RS_DOMAIN_INITIAL_REDUCTION_FACTOR: usize = 5;
 pub const SNARK_DOMAIN_SEP: [F; 8] = F::new_array([
     130704175, 1303721200, 493664240, 1035493700, 2063844858, 1410214009, 1938905908, 1696767928,
 ]);
+
+pub fn fiat_shamir_domain_sep(bytecode: &Bytecode) -> [F; 8] {
+    let mut block = [F::ZERO; 16];
+    block[..8].copy_from_slice(&SNARK_DOMAIN_SEP);
+    block[8] = F::from_usize(bytecode.public_input_size);
+    let extended = poseidon16_compress(block);
+    poseidon16_compress_pair(&bytecode.hash, &extended)
+}
 
 pub fn default_whir_config(starting_log_inv_rate: usize) -> WhirConfigBuilder {
     assert!(0 < starting_log_inv_rate);
@@ -63,6 +71,7 @@ pub enum ProverError {
     Runner(RunnerError),
     UnknownMessage,
     MultipleMessages,
+    InvalidPunlicInputSize { expected: usize, actual: usize },
 }
 
 impl From<TooBigTableError> for ProverError {
@@ -84,6 +93,9 @@ impl Display for ProverError {
             Self::Runner(e) => write!(f, "{}", e),
             Self::UnknownMessage => write!(f, "Unknown message, not part of the type2"),
             Self::MultipleMessages => write!(f, "Multiple common messages in the type2"),
+            Self::InvalidPunlicInputSize { expected, actual } => {
+                write!(f, "Invalid public input size: expected {}, actual {}", expected, actual)
+            }
         }
     }
 }

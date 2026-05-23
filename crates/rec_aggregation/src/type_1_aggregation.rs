@@ -1,10 +1,10 @@
 use backend::*;
 use lean_prover::ProverError;
-use lean_prover::SNARK_DOMAIN_SEP;
+use lean_prover::fiat_shamir_domain_sep;
 use lean_prover::prove_execution::{ExecutionProof, prove_execution};
 use lean_vm::*;
 use tracing::instrument;
-use utils::{poseidon_compress_slice, poseidon16_compress_pair};
+use utils::poseidon_compress_slice;
 use xmss::CHAIN_LENGTH;
 use xmss::make_tweak;
 use xmss::{
@@ -108,7 +108,7 @@ impl TypeOneInfo {
             self.slot,
             &tweaks_hash,
             &self.bytecode_claim_flat(),
-            &get_aggregation_bytecode().hash,
+            get_aggregation_bytecode(),
         )
     }
 }
@@ -166,9 +166,9 @@ pub(crate) fn build_type1_input_data(
     slot: u32,
     tweaks_hash: &[F; DIGEST_LEN],
     bytecode_claim_flat: &[F],
-    bytecode_hash: &[F; DIGEST_LEN],
+    bytecode: &Bytecode,
 ) -> Vec<F> {
-    let log_size = get_aggregation_bytecode().log_size();
+    let log_size = bytecode.log_size();
     let mut data = Vec::with_capacity(type1_input_data_size_padded(log_size));
     data.push(F::from_usize(TYPE1_FLAG));
     data.push(F::from_usize(n_sigs));
@@ -176,7 +176,7 @@ pub(crate) fn build_type1_input_data(
     data.extend_from_slice(bytecode_claim_flat);
     let claim_padding = bytecode_claim_flat.len().next_multiple_of(DIGEST_LEN) - bytecode_claim_flat.len();
     data.extend(std::iter::repeat_n(F::ZERO, claim_padding));
-    data.extend_from_slice(&poseidon16_compress_pair(bytecode_hash, &SNARK_DOMAIN_SEP));
+    data.extend_from_slice(&fiat_shamir_domain_sep(bytecode));
     data.extend_from_slice(pubkeys_hash);
     data.extend_from_slice(message);
     data.extend(compute_merkle_chunks_for_slot(slot));
@@ -262,7 +262,7 @@ pub fn aggregate_type_1(
         slot,
         &tweaks_hash,
         &reduced_claims.final_claim_flat(),
-        &bytecode.hash,
+        bytecode,
     );
     let public_input = poseidon_compress_slice(&pub_input_data, true).to_vec();
 

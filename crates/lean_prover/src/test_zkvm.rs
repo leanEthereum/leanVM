@@ -199,7 +199,7 @@ def main():
     return
 "#;
 
-    test_zk_vm_helper(program_str, &[]);
+    test_zk_vm_helper(program_str, &[F::ZERO; DIGEST_LEN]);
 }
 
 #[test]
@@ -243,7 +243,7 @@ def fibonacci_const(a, b, n: Const):
 
 fn test_zk_vm_helper(program_str: &str, public_input: &[F]) {
     utils::init_tracing();
-    let bytecode = compile_program(&ProgramSource::Raw(program_str.to_string()));
+    let bytecode = compile_program(&ProgramSource::Raw(program_str.to_string()), public_input.len());
     let time = std::time::Instant::now();
     let starting_log_inv_rate = 1;
     let witness = ExecutionWitness::default();

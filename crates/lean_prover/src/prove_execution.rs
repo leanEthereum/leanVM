@@ -27,6 +27,12 @@ pub fn prove_execution(
     check_rate(whir_config.starting_log_inv_rate)
         .map_err(|err| panic!("{err}"))
         .unwrap();
+    if public_input.len() != bytecode.public_input_size {
+        return Err(ProverError::InvalidPunlicInputSize {
+            expected: bytecode.public_input_size,
+            actual: public_input.len(),
+        });
+    }
     let ExecutionTrace {
         traces,
         public_memory_size,
@@ -46,14 +52,10 @@ pub fn prove_execution(
     }
     let mut prover_state = build_prover_state();
     prover_state.observe_scalars(public_input);
-    prover_state.observe_scalars(&poseidon16_compress_pair(&bytecode.hash, &SNARK_DOMAIN_SEP));
+    prover_state.observe_scalars(&fiat_shamir_domain_sep(bytecode));
     prover_state.add_base_scalars(
         &[
-            vec![
-                whir_config.starting_log_inv_rate,
-                log2_strict_usize(memory.len()),
-                public_input.len(),
-            ],
+            vec![whir_config.starting_log_inv_rate, log2_strict_usize(memory.len())],
             traces.values().map(|t| t.log_n_rows).collect::<Vec<_>>(),
         ]
         .concat()

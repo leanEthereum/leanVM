@@ -1,6 +1,6 @@
 use std::time::Instant;
 
-use backend::BasedVectorSpace;
+use backend::{BasedVectorSpace, PrimeCharacteristicRing};
 use lean_compiler::*;
 use lean_vm::*;
 use rand::{RngExt, SeedableRng, rngs::StdRng};
@@ -65,6 +65,7 @@ def div_ext_2(n, d):
     public_input.extend(n.as_basis_coefficients_slice());
     public_input.extend(d.as_basis_coefficients_slice());
     public_input.extend(q.as_basis_coefficients_slice());
+    public_input.resize(16, F::ZERO);
     compile_and_run(&ProgramSource::Raw(program.to_string()), &public_input, false);
 }
 
@@ -95,7 +96,7 @@ fn find_files(dir: &str, prefix: &str, suffix: &str) -> Vec<String> {
 fn test_num_files() {
     let expected_num_files = 3; // program_2.py imports foo.py and bar.py
     let path = format!("{}/program_2.py", test_data_dir());
-    let bytecode = compile_program(&ProgramSource::Filepath(path));
+    let bytecode = compile_program(&ProgramSource::Filepath(path), DIGEST_LEN);
     assert_eq!(bytecode.filepaths.len(), expected_num_files);
     assert_eq!(bytecode.source_code.len(), expected_num_files);
 }
@@ -109,7 +110,7 @@ fn test_all_errors() {
     println!("Found {} test error programs", paths.len());
 
     for path in paths {
-        let result = try_compile_and_run(&ProgramSource::Filepath(path.clone()), &[], false);
+        let result = try_compile_and_run(&ProgramSource::Filepath(path.clone()), &[F::ZERO; DIGEST_LEN], false);
         assert!(result.is_err(), "Expected error for {}, but it succeeded", path);
     }
 }
@@ -129,7 +130,7 @@ fn test_all_programs() {
         ..ExecutionWitness::default()
     };
     for path in paths {
-        let bytecode = match try_compile_program(&ProgramSource::Filepath(path.clone())) {
+        let bytecode = match try_compile_program(&ProgramSource::Filepath(path.clone()), DIGEST_LEN) {
             Ok(b) => b,
             Err(err) => panic!("Program {} failed to compile: {:?}", path, err),
         };
@@ -144,7 +145,7 @@ fn test_reserved_function_names() {
     for name in RESERVED_FUNCTION_NAMES {
         let program = format!("def main():\n    return\ndef {name}():\n    return");
         assert!(
-            try_compile_and_run(&ProgramSource::Raw(program), &[], false).is_err(),
+            try_compile_and_run(&ProgramSource::Raw(program), &[F::ZERO; DIGEST_LEN], false).is_err(),
             "Expected error when defining function with reserved name '{name}', but it succeeded"
         );
     }
@@ -167,7 +168,7 @@ def main():
     return
 "#
         );
-        let bytecode = compile_program(&ProgramSource::Raw(program));
+        let bytecode = compile_program(&ProgramSource::Raw(program), DIGEST_LEN);
 
         let run = |end_val: u32| -> usize {
             let expected_sum = (start..end_val).map(|i| i as u64).sum::<u64>() as u32;
@@ -194,7 +195,7 @@ def main():
 fn debug_file_program() {
     let index = 167;
     let path = format!("{}/program_{}.py", test_data_dir(), index);
-    compile_and_run(&ProgramSource::Filepath(path), &[], false);
+    compile_and_run(&ProgramSource::Filepath(path), &[F::ZERO; DIGEST_LEN], false);
 }
 
 #[test]
@@ -214,7 +215,7 @@ def func(a, b):
     poseidon16_compress(a, a, b)
     return
    "#;
-    let bytecode = compile_program(&ProgramSource::Raw(program.to_string()));
+    let bytecode = compile_program(&ProgramSource::Raw(program.to_string()), DIGEST_LEN);
     let n_cycles = execute_bytecode(&bytecode, &[], &ExecutionWitness::default(), false).n_cycles();
     assert!(n_cycles < 1100);
 }
@@ -240,8 +241,11 @@ def factorial(n):
         return n * factorial(n - 1)
    "#;
 
-    let compiled_sequencial = compile_program(&ProgramSource::Raw(program.replace("loop", "range")));
-    let compiled_parallel = compile_program(&ProgramSource::Raw(program.replace("loop", "parallel_range")));
+    let compiled_sequencial = compile_program(&ProgramSource::Raw(program.replace("loop", "range")), DIGEST_LEN);
+    let compiled_parallel = compile_program(
+        &ProgramSource::Raw(program.replace("loop", "parallel_range")),
+        DIGEST_LEN,
+    );
 
     let time_sequential = Instant::now();
     let exec_seq = execute_bytecode(&compiled_sequencial, &[], &ExecutionWitness::default(), false);
@@ -272,7 +276,7 @@ def main():
         print(i)
     return
    "#;
-    compile_and_run(&ProgramSource::Raw(program.to_string()), &[], false);
+    compile_and_run(&ProgramSource::Raw(program.to_string()), &[F::ZERO; DIGEST_LEN], false);
 }
 
 #[test]
@@ -292,7 +296,7 @@ fn test_soundness_suite() {
 
     for &(name, valid, perturbations) in cases {
         let path = format!("{}/{}.py", test_data_dir(), name);
-        let bytecode = compile_program(&ProgramSource::Filepath(path));
+        let bytecode = compile_program(&ProgramSource::Filepath(path), DIGEST_LEN);
 
         try_execute_bytecode(&bytecode, &to_input(valid), &ExecutionWitness::default(), false)
             .unwrap_or_else(|err| panic!("{name}: valid input {valid:?} must succeed, got {err:?}"));

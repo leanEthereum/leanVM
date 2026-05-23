@@ -1,14 +1,13 @@
 use backend::*;
 use lean_prover::ProverError;
-use lean_prover::SNARK_DOMAIN_SEP;
 use lean_prover::default_whir_config;
+use lean_prover::fiat_shamir_domain_sep;
 use lean_prover::prove_execution::ExecutionProof;
 use lean_prover::prove_execution::prove_execution;
 use lean_vm::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use utils::poseidon_compress_slice;
-use utils::poseidon16_compress_pair;
 
 use crate::InnerVerified;
 use crate::bytecode_claims::compute_bytecode_value_at;
@@ -79,8 +78,7 @@ fn build_type2_input_data(digests: &[[F; DIGEST_LEN]], bytecode_claim_flat: &[F]
     // data[2..8] stays zero (prefix-chunk pad).
 
     data[BYTECODE_CLAIM_OFFSET..][..bytecode_claim_flat.len()].copy_from_slice(bytecode_claim_flat);
-    let bytecode_hash = &get_aggregation_bytecode().hash;
-    let domsep = poseidon16_compress_pair(bytecode_hash, &SNARK_DOMAIN_SEP);
+    let domsep = fiat_shamir_domain_sep(get_aggregation_bytecode());
     data[domsep_offset..][..DIGEST_LEN].copy_from_slice(&domsep);
 
     for (i, d) in digests.iter().enumerate() {

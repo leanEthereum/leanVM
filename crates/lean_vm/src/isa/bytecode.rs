@@ -2,7 +2,7 @@
 
 use backend::*;
 
-use crate::{DIMENSION, F, FileId, FunctionName, Hint, N_INSTRUCTION_COLUMNS, SourceLocation};
+use crate::{DIGEST_LEN, DIMENSION, F, FileId, FunctionName, Hint, N_INSTRUCTION_COLUMNS, SourceLocation};
 
 use super::Instruction;
 use std::collections::BTreeMap;
@@ -21,6 +21,7 @@ pub struct Bytecode {
     pub starting_frame_memory: usize,
     pub ending_pc: usize,
     pub hash: [F; DIGEST_ELEMS],
+    pub public_input_size: usize,
     // debug
     pub function_locations: BTreeMap<SourceLocation, FunctionName>,
     pub filepaths: BTreeMap<FileId, String>,
@@ -63,4 +64,8 @@ impl Display for Bytecode {
         }
         Ok(())
     }
+}
+
+pub fn is_valid_public_input_size(size: usize) -> bool {
+    size.is_power_of_two() && size.is_multiple_of(DIGEST_LEN)
 }
