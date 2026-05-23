@@ -93,7 +93,7 @@ See \ref{sec:signature-aggregation} for more details.
 \begin{itemize}
     \item $[a, b] = \{a, a + 1, \ldots, b\}$
     \item $[a, b) = \{a, a + 1, \ldots, b-1\}$    \item $\hat{eq}(x, y) = x y + (1 - x)(1 - y)$
-    \item $\mathsf{embed}(x_1, x_2, x_3, x_4, x_5)$ is the extension field element built from 5 base field elements: $x_1 + x_2 X + x_3 X^2 + x_4 X^3 + x_5 X^4$, using $X^5 + X^2 - 1$ as the irreducible polynomial defining the extension.
+    \item \label{sec:preliminaries-embed} $\mathsf{embed}(x_1, x_2, x_3, x_4, x_5)$ is the extension field element built from 5 base field elements: $x_1 + x_2 X + x_3 X^2 + x_4 X^3 + x_5 X^4$, using $X^5 + X^2 - 1$ as the irreducible polynomial defining the extension (see Section~\ref{sec:field}).
     \item Given a number of bits $n > 0$, and an $n$-bit iteger $x$, we denote by $[x]_{01}$ its big-endian bit-decomposion in $n$ boolean values. For example, $[14]_{01} = (1, 1, 1, 0)$
     
     \item $M$ is the size of the (read-only) memory, which is a power of 2.
@@ -210,9 +210,9 @@ $f_{>0}$ & 7 & WHIR subsequent folding factor \\
 \end{center}
 
 \section{VM specification}
-\subsection{Field}
+\subsection{Field}\label{sec:field}
 
-The base field is $\Fp$, with $p = 2^{31} - 2^{24} + 1$ (KoalaBear prime). The extension field is $\Fq$, with $q = p^5$ (degree 5 extension).
+The base field is $\Fp$, with $p = 2^{31} - 2^{24} + 1$ (KoalaBear prime). The extension field is $\Fq = \Fp[X] / (X^5 + X^2 - 1)$, with $q = p^5$. Extension field elements are represented in the canonical basis $(1, X, X^2, X^3, X^4)$ as 5-tuples of base field coordinates (cf. the $\mathsf{embed}$ map of Section~\ref{sec:preliminaries-embed}).
 
 
 \subsection{Poseidon specification}
@@ -407,7 +407,7 @@ A precompile to compute various operations in the extension field, usefull for r
 
 
 \[
-\texttt{EXTENSION\_OP}[\;\alpha^\textsf{addr},\, \alpha,\;\; \beta^\textsf{addr},\, \beta,\;\; \gamma^\textsf{addr},\, \gamma,\;\; \texttt{op},\;\; \textsf{be},\;\; N\;]
+\texttt{EXTENSION\_OP}[\;\alpha^\textsf{addr},\, \alpha,\;\; \beta^\textsf{addr},\, \beta,\;\; \gamma^\textsf{addr},\, \gamma,\;\; \texttt{op},\;\; \textsf{flag\_be},\;\; N\;]
 \]
 
 
@@ -415,7 +415,7 @@ A precompile to compute various operations in the extension field, usefull for r
 \begin{itemize}
     \item $\alpha, \beta, \gamma \in \Fp$
     \item $\alpha^\textsf{addr}, \beta^\textsf{addr}, \gamma^\textsf{addr} \in \{\texttt{imm}, \texttt{mem}, \texttt{fp\_rel}\}$, with $\alpha^\textsf{addr} = \texttt{fp\_rel} \Leftrightarrow \beta^\textsf{addr} = \texttt{fp\_rel}$
-    \item $\texttt{op} \in \{\textsc{add}, \textsc{dot\_product}, \textsc{eq}\}$, $\textsf{be} \in \{0, 1\}$
+    \item $\texttt{op} \in \{\textsc{add}, \textsc{dot\_product}, \textsc{eq}\}$, $\textsf{flag\_be} \in \{0, 1\}$
     \item $N \geq 1$
 \end{itemize}
 
@@ -429,8 +429,8 @@ and:
 \[
 a_i =
 \begin{cases}
-\textbf{m}[a + i] \in \Fp & \text{if } \textsf{be} = 1 \quad \text{(base-extension)} \\[1mm]
-\mathsf{embed}\big(\textbf{m}[a + 5i \,..\, a + 5(i + 1)]\big) \in \Fq & \text{if } \textsf{be} = 0 \quad \text{(extension-extension)}
+\textbf{m}[a + i] \in \Fp & \text{if } \textsf{flag\_be} = 1 \quad \text{(base-extension)} \\[1mm]
+\mathsf{embed}\big(\textbf{m}[a + 5i \,..\, a + 5(i + 1)]\big) \in \Fq & \text{if } \textsf{flag\_be} = 0 \quad \text{(extension-extension)}
 \end{cases}
 \]
 
@@ -749,6 +749,10 @@ Define the following protocol $GKR(n):$
     \end{itemize}
 \end{itemize}
 
+\subsubsection{Stacking within logup}
+
+In practice, the fingerprinted data $h_{\vec\beta}(\sigma_k)$ and multiplicities $m_k$ come from multiple columns, of potentially different sizes. We stack them in a similar way than Section \label{sec:stacking}. TODO give more details
+
 \subsection{AIR constraints}
 
 Every table $T$ has a list of $n^\text{constraints}_T$ AIR (Algebraic Intermediate Representation) constraints. Each AIR constraint $C_k^T$ ($k \in [0, n_\text{constraints}^T)$) is a multivariate polynomial in $n_\text{column}^T + n_\text{shift}^T$ variables: one variable per column (taking its row-$r$ value $\textsf{col}^T_i(r)$ as input), plus one variable per shifted column (taking $\textsf{shift}(\textsf{col}^T_j)[r]$ as input). The constraint is respected by the table's trace if, for every row $r \in [0, 2^{h_T})$,
@@ -861,11 +865,11 @@ For precompiles, when $\alpha^\textsf{addr} = \beta^\textsf{addr} = \texttt{fp\_
     \[
     \textsf{aux}_2 = 1 + 2\,\texttt{permute} + 4\,\texttt{half} + 8\,[\delta \neq \bot] + 16\, \delta\,[\delta \neq \bot].
     \]
-    \item $\texttt{EXTENSION\_OP}[\alpha^\textsf{addr}, \alpha, \beta^\textsf{addr}, \beta, \gamma^\textsf{addr}, \gamma, \texttt{op}, \textsf{be}, N]$: \; $\nu_A \!\leftarrow\! (\alpha^\textsf{addr}, \alpha)$, $\nu_B \!\leftarrow\! (\beta^\textsf{addr}, \beta)$, $\nu_C \!\leftarrow\! (\gamma^\textsf{addr}, \gamma)$, and
+    \item $\texttt{EXTENSION\_OP}[\alpha^\textsf{addr}, \alpha, \beta^\textsf{addr}, \beta, \gamma^\textsf{addr}, \gamma, \texttt{op}, \textsf{flag\_be}, N]$: \; $\nu_A \!\leftarrow\! (\alpha^\textsf{addr}, \alpha)$, $\nu_B \!\leftarrow\! (\beta^\textsf{addr}, \beta)$, $\nu_C \!\leftarrow\! (\gamma^\textsf{addr}, \gamma)$, and
     \[
-    \textsf{aux}_2 = 2\,\textsf{be} + 4\,\textsf{flag\_add} + 8\,\textsf{flag\_mul} + 16\,\textsf{flag\_eq} + 32N,
+    \textsf{aux}_2 = 2\,\textsf{flag\_be} + 4\,\textsf{flag\_add} + 8\,\textsf{flag\_dot\_product} + 16\,\textsf{flag\_eq} + 32N,
     \]
-    where $(\textsf{flag\_add}, \textsf{flag\_mul}, \textsf{flag\_eq})$ is the one-hot encoding of $\texttt{op}$.
+    where $(\textsf{flag\_add}, \textsf{flag\_dot\_product}, \textsf{flag\_eq})$ is the one-hot encoding of $\texttt{op}$.
 \end{itemize}
 
 
@@ -942,8 +946,8 @@ It has $n_{cols}^{poseidon} = 109$ columns.
 \begin{itemize}
     \item \textbf{Control / pointers ($9$):} the multiplicity (for precompile bus-interraction) $\textsf{multiplicity}$ ($1$ on active rows, $0$ on padding); the boolean mode flags $\textsf{flag\_permute}$, $\textsf{flag\_short}$, $\textsf{flag\_left}$ and the offset $\textsf{offset\_left}$; the right-input and output pointers $\nu_B$, $\nu_C$; and two derived left addresses $\textsf{addr}^\text{lo}_\text{left}$, $\textsf{addr}^\text{hi}_\text{left}$, equal to $(\nu_A, \nu_A{+}4)$ if $\textsf{flag\_left}{=}0$ and to $(\textsf{offset\_left}, \nu_A)$ if $\textsf{flag\_left}{=}1$.
     \item \textbf{Input ($16$):} $\textsf{input}_0, \ldots, \textsf{input}_{15}$, the permutation input $\texttt{left} \,\|\, \texttt{right}$ (so $\textsf{input}_{0..8} = \texttt{left}$ and $\textsf{input}_{8..16} = \texttt{right}$).
-    \item \textbf{Intermediate rounds ($68$):} the full state is committed only after each \emph{pair} of full rounds: $\textsf{full}_1, \textsf{full}_2$ ($16$ cols each) after the two pairs making up the $4$ initial full rounds, and $\textsf{full}_3$ ($16$ cols) after the first pair of the $4$ final full rounds (the last pair feeds the output columns directly). Plus $\textsf{sbox}_1, \ldots, \textsf{sbox}_{20}$, the single S-box output (the cube of the first state coordinate) committed at each partial round.
-    \item \textbf{Output ($16$):} two halves $\textsf{out}_\text{lo}, \textsf{out}_\text{hi}$ ($8$ cols each). $\textsf{out}_\text{lo}$ holds the written first half — the feed-forward sum $s[0..8] + \texttt{left}$ in compression, or $s[0..8]$ in permutation; $\textsf{out}_\text{hi}$ holds $s[8..16]$ and is used only in permutation.
+    \item \textbf{Intermediate rounds ($68$):} the full state is committed only after each \emph{pair} of full rounds: $\textsf{full}_1, \textsf{full}_2$ ($16$ columns each) after the two pairs making up the $4$ initial full rounds, and $\textsf{full}_3$ ($16$ columns) after the first pair of the $4$ final full rounds (the last pair feeds the output columns directly). Plus $\textsf{sbox}_1, \ldots, \textsf{sbox}_{20}$, the single S-box output (the cube of the first state coordinate) committed at each partial round.
+    \item \textbf{Output ($16$):} two halves $\textsf{out}_\text{lo}, \textsf{out}_\text{hi}$ ($8$ columns each). $\textsf{out}_\text{lo}$ holds the written first half — the feed-forward sum $s[0..8] + \texttt{left}$ in compression, or $s[0..8]$ in permutation; $\textsf{out}_\text{hi}$ holds $s[8..16]$ and is used only in permutation.
 \end{itemize}
 
 Non-committed (virtual): $\nu_A$ (left-input pointer) and $\textsf{aux}_2$ (the precompile-data domain separator, see below).
@@ -995,31 +999,31 @@ Write $\nu_A = \textsf{addr}^\text{hi}_\text{left} - (1 - \textsf{flag\_left}) \
 \end{itemize}
 
 
-\subsection{Extension op table}
+\subsection{EXTENSION table}
 
 \subsubsection{Trace layout}
 
-Each extension field operation occupies $N$ consecutive rows, where $N$ is the length parameter of the $\texttt{EXTENSION\_OP}$ instruction (the number of element pairs in the dot product / sum / eq operation, see Section~\ref{extension_op_instruction}): one row per element pair, with the column $\textsf{len}$ counting down from $N$ on the first row to $1$ on the last. Within a group, rows are ordered from first element to last, but the \textsf{comp} column accumulates backward: the first row holds the full result, the last row holds only the final element's value. Padding rows have all operation flags set to 0 and $\textsf{start} = 1$, $\textsf{len} = 1$.
+Each extension field operation occupies $N$ consecutive rows, where $N$ is the length parameter of the $\texttt{EXTENSION\_OP}$ instruction (the number of element pairs in the dot product / sum / eq operation, see Section~\ref{extension_op_instruction}): one row per element pair, with the column $\textsf{len}$ counting down from $N$ on the first row to $1$ on the last. Within a group, rows are ordered from first element to last, but the \textsf{acc} column accumulates backward: the first row holds the full result, the last row holds only the final element's value. Padding rows have all operation flags set to 0 and $\textsf{flag\_start} = 1$, $\textsf{len} = 1$.
 
 \vspace{3mm}
 
 \noindent\resizebox{\textwidth}{!}{%
 \begin{tabular}{ccccccccccccccc}
 \toprule
-\textsf{be} & \textsf{start} & $\textsf{flag\_add}$ & $\textsf{flag\_mul}$ & $\textsf{flag\_eq}$ & \textsf{len} & $\textsf{idx}_A$ & $\textsf{idx}_B$ & $\textsf{idx}_R$ & $v_A$ \tiny{(5 cols)} & $v_B$ \tiny{(5 cols)} & \textsf{res} \tiny{(5 cols)} & \textsf{comp} \tiny{(5 cols)} & & $\textsf{aux}_2$ \\
+\textsf{flag\_be} & \textsf{flag\_start} & $\textsf{flag\_add}$ & $\textsf{flag\_dot\_product}$ & $\textsf{flag\_eq}$ & \textsf{len} & $\textsf{idx}_A$ & $\textsf{idx}_B$ & $\textsf{idx}_R$ & $v_A$ \tiny{(5 columns)} & $v_B$ \tiny{(5 columns)} & \textsf{res} \tiny{(5 columns)} & \textsf{acc} \tiny{(5 columns)} & & $\textsf{aux}_2$ \\
 \midrule
-\multicolumn{15}{l}{\textit{MUL, BE, $N\!=\!4$ ($\nu_A\!=\!90$, $\nu_B\!=\!211$, $\nu_C\!=\!74$): \quad $\textsf{res} = \sum_{i=0}^{3} \textbf{m}[90\!+\!i] \cdot \textbf{m}[211\!+\!5i..216\!+\!5i]$}} \\[2pt]
+\multicolumn{15}{l}{\textit{DOT\_PRODUCT, base $\times$ extension, $N\!=\!4$ ($\nu_A\!=\!90$, $\nu_B\!=\!211$, $\nu_C\!=\!74$): \quad $\textsf{res} = \sum_{i=0}^{3} \textbf{m}[90\!+\!i] \cdot \textbf{m}[211\!+\!5i..216\!+\!5i]$}} \\[2pt]
 1 & 1 & 0 & 1 & 0 & 4 & 90  & 211 & 74 & $\textbf{m}[90..95]$  & $\textbf{m}[211..216]$ & $\textbf{m}[74..79]$ & $e_0\!+\!e_1\!+\!e_2\!+\!e_3$ & & 138 \\
 1 & 0 & 0 & 1 & 0 & 3 & 91  & 216 & 74 & $\textbf{m}[91..96]$  & $\textbf{m}[216..221]$ & $\textbf{m}[74..79]$ & $e_1\!+\!e_2\!+\!e_3$       & & 106 \\
 1 & 0 & 0 & 1 & 0 & 2 & 92  & 221 & 74 & $\textbf{m}[92..97]$  & $\textbf{m}[221..226]$ & $\textbf{m}[74..79]$ & $e_2\!+\!e_3$               & & 74 \\
 1 & 0 & 0 & 1 & 0 & 1 & 93  & 226 & 74 & $\textbf{m}[93..98]$  & $\textbf{m}[226..231]$ & $\textbf{m}[74..79]$ & $e_3$                       & & 42  \\
 \midrule
-\multicolumn{15}{l}{\textit{ADD, EE, $N\!=\!3$ ($\nu_A\!=\!400$, $\nu_B\!=\!500$, $\nu_C\!=\!300$): \quad $\textsf{res} = \sum_{i=0}^{2} (\textbf{m}[400\!+\!5i..405\!+\!5i] + \textbf{m}[500\!+\!5i..505\!+\!5i])$}} \\[2pt]
+\multicolumn{15}{l}{\textit{ADD, extension $\times$ extension, $N\!=\!3$ ($\nu_A\!=\!400$, $\nu_B\!=\!500$, $\nu_C\!=\!300$): \quad $\textsf{res} = \sum_{i=0}^{2} (\textbf{m}[400\!+\!5i..405\!+\!5i] + \textbf{m}[500\!+\!5i..505\!+\!5i])$}} \\[2pt]
 0 & 1 & 1 & 0 & 0 & 3 & 400 & 500 & 300 & $\textbf{m}[400..405]$ & $\textbf{m}[500..505]$ & $\textbf{m}[300..305]$ & $e_0\!+\!e_1\!+\!e_2$ & & 100 \\
 0 & 0 & 1 & 0 & 0 & 2 & 405 & 505 & 300 & $\textbf{m}[405..410]$ & $\textbf{m}[505..510]$ & $\textbf{m}[300..305]$ & $e_1\!+\!e_2$         & & 68 \\
 0 & 0 & 1 & 0 & 0 & 1 & 410 & 510 & 300 & $\textbf{m}[410..415]$ & $\textbf{m}[510..515]$ & $\textbf{m}[300..305]$ & $e_2$                 & & 36 \\
 \midrule
-\multicolumn{15}{l}{\textit{EQ, EE, $N\!=\!3$ ($\nu_A\!=\!600$, $\nu_B\!=\!700$, $\nu_C\!=\!800$): \quad $\textsf{res} = \prod_{i=0}^{2} [a_i b_i + (1\!-\!a_i)(1\!-\!b_i)]$}} \\[2pt]
+\multicolumn{15}{l}{\textit{EQ, extension $\times$ extension, $N\!=\!3$ ($\nu_A\!=\!600$, $\nu_B\!=\!700$, $\nu_C\!=\!800$): \quad $\textsf{res} = \prod_{i=0}^{2} [a_i b_i + (1\!-\!a_i)(1\!-\!b_i)]$}} \\[2pt]
 0 & 1 & 0 & 0 & 1 & 3 & 600 & 700 & 800 & $\textbf{m}[600..605]$ & $\textbf{m}[700..705]$ & $\textbf{m}[800..805]$ & $e_0 \cdot e_1 \cdot e_2$ & & 112 \\
 0 & 0 & 0 & 0 & 1 & 2 & 605 & 705 & 800 & $\textbf{m}[605..610]$ & $\textbf{m}[705..710]$ & $\textbf{m}[800..805]$ & $e_1 \cdot e_2$           & & 80 \\
 0 & 0 & 0 & 0 & 1 & 1 & 610 & 710 & 800 & $\textbf{m}[610..615]$ & $\textbf{m}[710..715]$ & $\textbf{m}[800..805]$ & $e_2$                     & & 48 \\
@@ -1032,23 +1036,23 @@ Each extension field operation occupies $N$ consecutive rows, where $N$ is the l
 
 \subsubsection{Columns}
 
-There are 29 columns. Extension field values are represented as 5 consecutive base field columns.
+There are 29 columns. Extension field values are represented as 5 consecutive columns.
 
 \vspace{2mm}
 
 \begin{itemize}
-    \item \textsf{be} $\in \{0,1\}$: mode flag (1: base $\times$ extension, 0: extension $\times$ extension)
-    \item \textsf{start} $\in \{0,1\}$: group boundary (1 on first row of each group and on padding, 0 elsewhere)
-    \item $\textsf{flag\_add}$, $\textsf{flag\_mul}$, $\textsf{flag\_eq}$ $\in \{0,1\}$: operation selectors (exactly one is 1 on active rows, all 0 on padding)
+    \item \textsf{flag\_be} $\in \{0,1\}$: mode flag (1: base $\times$ extension, 0: extension $\times$ extension)
+    \item \textsf{flag\_start} $\in \{0,1\}$: group boundary (1 on first row of each group and on padding, 0 elsewhere)
+    \item $\textsf{flag\_add}$, $\textsf{flag\_dot\_product}$, $\textsf{flag\_eq}$ $\in \{0,1\}$: operation selectors (exactly one is 1 on active rows, all 0 on padding)
     \item \textsf{len}: countdown from $N$ to 1 within each group (1 on padding)
-    \item $\textsf{idx}_A$, $\textsf{idx}_B$, $\textsf{idx}_R$: memory addresses
-    \item $v_A$ (5 cols). In BE mode only the first coordinate is used; in EE mode all 5.
-    \item $v_B$ (5 cols)
-    \item \textsf{res} (5 cols) (same on every row of a group)
-    \item \textsf{comp} (5 cols): running accumulation; equals \textsf{res} on \textsf{start} rows
+    \item $\textsf{idx}_A$, $\textsf{idx}_B$, $\textsf{idx}_R$: memory addresses of the two operands and of the result
+    \item $v_A = (v_A[0], \dots, v_A[4])$ (5 columns): the 5 base field values claimed to live at memory addresses $\textsf{idx}_A, \dots, \textsf{idx}_A + 4$ (enforced by the memory pulls below). In extension $\times$ extension mode, $v_A$ is interpreted as the extension field element $\mathsf{embed}(v_A)$; in base $\times$ extension mode, only $v_A[0]$ is used (as a base field scalar) and the remaining coordinates $v_A[1..5]$ are unconstrained.
+    \item $v_B = (v_B[0], \dots, v_B[4])$ (5 columns): same as $v_A$ at addresses $\textsf{idx}_B, \dots, \textsf{idx}_B + 4$; always interpreted as the extension field element $\mathsf{embed}(v_B)$.
+    \item $\textsf{res} = (\textsf{res}[0], \dots, \textsf{res}[4])$ (5 columns): the 5 base field values of the output extension field element, claimed to live at addresses $\textsf{idx}_R, \dots, \textsf{idx}_R + 4$. Constant on all rows of a group.
+    \item $\textsf{acc} = (\textsf{acc}[0], \dots, \textsf{acc}[4])$ (5 columns): running accumulator (over $\Fq$) of the per-element contributions $e_\bullet$ defined in the AIR constraints below; on \textsf{flag\_start} rows it equals $\textsf{res}$.
 \end{itemize}
 
-Virtual (non-committed) columns: $\textsf{multiplicity} = \textsf{start} \cdot (\textsf{flag\_add} + \textsf{flag\_mul} + \textsf{flag\_eq})$ and $\textsf{aux}_2 = 2 \cdot \textsf{be} + 4 \cdot \textsf{flag\_add} + 8 \cdot \textsf{flag\_mul} + 16 \cdot \textsf{flag\_eq} + 32 \cdot \textsf{len}$
+Virtual (non-committed) columns: $\textsf{multiplicity} = \textsf{flag\_start} \cdot (\textsf{flag\_add} + \textsf{flag\_dot\_product} + \textsf{flag\_eq})$ and $\textsf{aux}_2 = 2 \cdot \textsf{flag\_be} + 4 \cdot \textsf{flag\_add} + 8 \cdot \textsf{flag\_dot\_product} + 16 \cdot \textsf{flag\_eq} + 32 \cdot \textsf{len}$
 
 \subsubsection{Bus interactions}
 
@@ -1061,7 +1065,7 @@ Virtual (non-committed) columns: $\textsf{multiplicity} = \textsf{start} \cdot (
 \[
 \textsc{Pull}\big(\textsf{idx}_A,\, \textsf{idx}_B,\, \textsf{idx}_R,\, 0_{12},\, \textsf{aux}_2\big) \quad \text{with multiplicity } \textsf{multiplicity},
 \]
-The domain separator $\textsf{aux}_2$ binds the mode and length to the bus data: since $\textsf{be}, \textsf{flag\_add}, \textsf{flag\_mul}, \textsf{flag\_eq}$ are boolean and the length is $\leq 2^{20}$ (Lemma~\ref{lem:len-bound}), the encoding is injective, so every $\textsf{aux}_2$ sent by the execution table is faithfully received here.
+The domain separator $\textsf{aux}_2$ binds the mode and length to the bus data: since $\textsf{flag\_be}, \textsf{flag\_add}, \textsf{flag\_dot\_product}, \textsf{flag\_eq}$ are boolean and the length is $\leq 2^{20}$ (Lemma~\ref{lem:len-bound}), the encoding is injective, so every $\textsf{aux}_2$ sent by the execution table is faithfully received here.
 
 
 \subsubsection{AIR constraints}
@@ -1070,61 +1074,41 @@ We use AIR constraints of degree 6.
 
 \vspace{2mm}
 
-\textbf{Value selection:} In BE mode, $v_A$ is treated as a base field element (only the first of its 5 coordinates matters); in EE mode all 5 coordinates are used. Formally, for $k = 1, \dots, 4$: $v_A[k]$ is multiplied by $(1 - \textsf{be})$ in the constraints, so only $v_A[0]$ survives in BE mode.
+Let $\tilde v_A = (v_A[0],\, (1 - \textsf{flag\_be}) \cdot v_A[1],\, \dots,\, (1 - \textsf{flag\_be}) \cdot v_A[4])$, and define the per-element (virtual) results
+\[
+    e_\text{add} = \tilde v_A + v_B, \qquad e_\text{dot\_product} = \tilde v_A \cdot v_B, \qquad e_\text{eq} = \tilde v_A \cdot v_B + (1 - \tilde v_A)(1 - v_B),
+\]
+where sums and products are in $\Fq = \Fp[X]/(X^5 + X^2 - 1)$ (Section~\ref{sec:field}). Each $e_\bullet$ is therefore a 5-tuple of base field expressions (one per coordinate), and each coordinate-valued constraint below stands for 5 base field constraints.
 
-Let $\textsf{active} = \textsf{flag\_add} + \textsf{flag\_mul} + \textsf{flag\_eq}$ (1 on active rows, 0 on padding), and define the per-element results (virtual):
-\begin{align*}
-    e_\text{add} &= v_A + v_B \\
-    e_\text{mul} &= v_A \cdot v_B \\
-    e_\text{eq} &= v_A \cdot v_B + (1 - v_A)(1 - v_B)
-\end{align*}
-
-Let $\textsf{comp\_tail} = \text{next}(\textsf{comp}) \cdot (1 - \text{next}(\textsf{start}))$ (zero when the next row is a new group).
+Let $\textsf{acc\_tail} = \text{next}(\textsf{acc}) \cdot (1 - \text{next}(\textsf{flag\_start}))$.
 
 \vspace{2mm}
 
-\textbf{Boolean constraints:}
-\begin{enumerate}
-    \item $\textsf{be} \cdot (1 - \textsf{be}) = 0$
-    \item $\textsf{start} \cdot (1 - \textsf{start}) = 0$
-    \item $\textsf{flag\_add} \cdot (1 - \textsf{flag\_add}) = 0$
-    \item $\textsf{flag\_mul} \cdot (1 - \textsf{flag\_mul}) = 0$
-    \item $\textsf{flag\_eq} \cdot (1 - \textsf{flag\_eq}) = 0$
-\end{enumerate}
+\textbf{Boolean flags.} Each of $\textsf{flag\_be}, \textsf{flag\_start}, \textsf{flag\_add}, \textsf{flag\_dot\_product}, \textsf{flag\_eq}$ is constrained to be boolean:
+\begin{itemize}
+    \item \refstepcounter{equation}\textbf{(\theequation)}\label{c:bool-flags}\hspace{1mm} $f \cdot (1 - f) = 0$ for $f \in \{\textsf{flag\_be},\, \textsf{flag\_start},\, \textsf{flag\_add},\, \textsf{flag\_dot\_product},\, \textsf{flag\_eq}\}$.
+\end{itemize}
 
-\textbf{Accumulation constraint:}
-\begin{enumerate}
-    \setcounter{enumi}{5}
-    \item $\textsf{flag\_add} \cdot (\textsf{comp} - e_\text{add} - \textsf{comp\_tail}) = 0$ \hfill (additive ADD)
-    \item $\textsf{flag\_mul} \cdot (\textsf{comp} - e_\text{mul} - \textsf{comp\_tail}) = 0$ \hfill (additive MUL)
-    \item $\textsf{flag\_eq} \cdot (\textsf{comp} - e_\text{eq} \cdot (\textsf{comp\_tail} + \text{next}(\textsf{start}))) = 0$ \hfill (multiplicative EQ)
-\end{enumerate}
+\textbf{Per-row accumulation and result.} The running accumulator $\textsf{acc}$ propagates the per-element contribution backwards:
+\begin{itemize}
+    \item $\textsf{flag\_add} \cdot (\textsf{acc} - e_\text{add} - \textsf{acc\_tail}) = 0$ \hfill (ADD: additive accumulation)
+    \item $\textsf{flag\_dot\_product} \cdot (\textsf{acc} - e_\text{dot\_product} - \textsf{acc\_tail}) = 0$ \hfill (DOT\_PRODUCT: additive accumulation)
+    \item $\textsf{flag\_eq} \cdot (\textsf{acc} - e_\text{eq} \cdot (\textsf{acc\_tail} + \text{next}(\textsf{flag\_start}))) = 0$ \hfill (EQ: multiplicative accumulation)
+    \item $\textsf{flag\_start} \cdot (\textsf{acc} - \textsf{res}) = 0$ \hfill (on group-start rows, $\textsf{acc} = \textsf{res}$)
+\end{itemize}
 
-\vspace{2mm}
+\textbf{Intra-group consistency.} Within a group (i.e.\ when the next row is not a group start), the mode/operation flags are constant, $\textsf{len}$ counts down by 1, and the input pointers advance by their natural stride (1 base field cell for $\textsf{idx}_A$ in base $\times$ extension mode, 5 cells otherwise):
+\begin{itemize}
+    \item \refstepcounter{equation}\textbf{(\theequation)}\label{c:len-countdown}\hspace{1mm} $(1 - \text{next}(\textsf{flag\_start})) \cdot (\textsf{len} - \text{next}(\textsf{len}) - 1) = 0$ \hfill ($\textsf{len}$ countdown)
+    \item $(1 - \text{next}(\textsf{flag\_start})) \cdot (f - \text{next}(f)) = 0$ for $f \in \{\textsf{flag\_be},\, \textsf{flag\_add},\, \textsf{flag\_dot\_product},\, \textsf{flag\_eq}\}$ \hfill (mode/operation constant)
+    \item $(1 - \text{next}(\textsf{flag\_start})) \cdot (\text{next}(\textsf{idx}_A) - \textsf{idx}_A - (\textsf{flag\_be} + (1 - \textsf{flag\_be}) \cdot 5)) = 0$ \hfill ($\textsf{idx}_A$ stride)
+    \item $(1 - \text{next}(\textsf{flag\_start})) \cdot (\text{next}(\textsf{idx}_B) - \textsf{idx}_B - 5) = 0$ \hfill ($\textsf{idx}_B$ stride)
+\end{itemize}
 
-\textbf{Result constraint:}
-\begin{enumerate}
-    \setcounter{enumi}{8}
-    \item $\textsf{start} \cdot (\textsf{comp} - \textsf{res}) = 0$ \hfill (on start rows, computation equals result)
-\end{enumerate}
-
-\textbf{Intra-group consistency:}
-\begin{enumerate}
-    \setcounter{enumi}{9}
-    \item $(1 - \text{next}(\textsf{start})) \cdot (\textsf{len} - \text{next}(\textsf{len}) - 1) = 0$ \hfill (len countdown)
-    \item $(1 - \text{next}(\textsf{start})) \cdot (\textsf{be} - \text{next}(\textsf{be})) = 0$ \hfill (mode consistent)
-    \item $(1 - \text{next}(\textsf{start})) \cdot (\textsf{flag\_add} - \text{next}(\textsf{flag\_add})) = 0$
-    \item $(1 - \text{next}(\textsf{start})) \cdot (\textsf{flag\_mul} - \text{next}(\textsf{flag\_mul})) = 0$
-    \item $(1 - \text{next}(\textsf{start})) \cdot (\textsf{flag\_eq} - \text{next}(\textsf{flag\_eq})) = 0$
-    \item $(1 - \text{next}(\textsf{start})) \cdot (\text{next}(\textsf{idx}_A) - \textsf{idx}_A - (\textsf{be} + (1 - \textsf{be}) \cdot 5)) = 0$
-    \item $(1 - \text{next}(\textsf{start})) \cdot (\text{next}(\textsf{idx}_B) - \textsf{idx}_B - 5) = 0$
-\end{enumerate}
-
-\textbf{Boundary:}
-\begin{enumerate}
-    \setcounter{enumi}{16}
-    \item $\text{next}(\textsf{start}) \cdot (\textsf{len} - 1) = 0$ \hfill (when next row is a group start, current len must be 1)
-\end{enumerate}
+\textbf{Group boundary.} When the next row starts a new group, the current group must have reached its last element:
+\begin{itemize}
+    \item \refstepcounter{equation}\textbf{(\theequation)}\label{c:len-boundary}\hspace{1mm} $\text{next}(\textsf{flag\_start}) \cdot (\textsf{len} - 1) = 0$ \hfill ($\textsf{len} = 1$ on the last row of a group)
+\end{itemize}
 
 \vspace{5mm}
 
@@ -1137,15 +1121,15 @@ By backward induction on $r$, from $r = H - 1$ down to $r = 0$.
 
 \vspace{2mm}
 
-\textbf{Base case ($r = H - 1$):} On the wrapping pair (row $H\!-\!1$ paired with itself, see Section~\ref{sec:air-eval}), $\text{next}(x) = x$ for every column $x$. Constraint~10 becomes $(1 - \textsf{start}) \cdot (\textsf{len} - \textsf{len} - 1) = -(1 - \textsf{start}) = 0$, forcing $\textsf{start}_{H-1} = 1$. Then constraint~17 becomes $1 \cdot (\textsf{len} - 1) = 0$, giving $\textsf{len}_{H-1} = 1 = H - (H-1)$.
+\textbf{Base case ($r = H - 1$):} On the wrapping pair (row $H\!-\!1$ paired with itself, see Section~\ref{sec:air-eval}), $\text{next}(x) = x$ for every column $x$. Constraint~\eqref{c:len-countdown} becomes $(1 - \textsf{flag\_start}) \cdot (\textsf{len} - \textsf{len} - 1) = -(1 - \textsf{flag\_start}) = 0$, forcing $\textsf{flag\_start}_{H-1} = 1$ (which is itself in $\{0, 1\}$ by~\eqref{c:bool-flags} applied to $f = \textsf{flag\_start}$). Then \eqref{c:len-boundary} becomes $1 \cdot (\textsf{len} - 1) = 0$, giving $\textsf{len}_{H-1} = 1 = H - (H-1)$.
 
 \vspace{2mm}
 
-\textbf{Inductive step ($r < H - 1$):} Assume $\textsf{len}_s \leq H - s$ for all $s > r$. The pair (row $r$, row $r\!+\!1$) gives two cases depending on $\textsf{start}_{r+1} \in \{0,1\}$ (constraint~2):
+\textbf{Inductive step ($r < H - 1$):} Assume $\textsf{len}_s \leq H - s$ for all $s > r$. The pair (row $r$, row $r\!+\!1$) gives two cases depending on $\textsf{flag\_start}_{r+1} \in \{0,1\}$ (by~\eqref{c:bool-flags} applied to $f = \textsf{flag\_start}$):
 
 \begin{itemize}
-    \item If $\textsf{start}_{r+1} = 1$: constraint~17 gives $1 \cdot (\textsf{len}_r - 1) = 0$, so $\textsf{len}_r = 1 \leq H - r$.
-    \item If $\textsf{start}_{r+1} = 0$: constraint~10 gives $(1 - 0) \cdot (\textsf{len}_r - \textsf{len}_{r+1} - 1) = 0$, so $\textsf{len}_r = \textsf{len}_{r+1} + 1$ in $\Fp$. By induction, $\textsf{len}_{r+1} \leq H - (r+1)$, so $\textsf{len}_{r+1} + 1 \leq H - r$. Since $H - r \leq H \leq 2^{21} < p$, the addition does not overflow modulo $p$, so $\textsf{len}_r = \textsf{len}_{r+1} + 1 \leq H - r$ as integers.
+    \item If $\textsf{flag\_start}_{r+1} = 1$: \eqref{c:len-boundary} gives $1 \cdot (\textsf{len}_r - 1) = 0$, so $\textsf{len}_r = 1 \leq H - r$.
+    \item If $\textsf{flag\_start}_{r+1} = 0$: \eqref{c:len-countdown} gives $(1 - 0) \cdot (\textsf{len}_r - \textsf{len}_{r+1} - 1) = 0$, so $\textsf{len}_r = \textsf{len}_{r+1} + 1$ in $\Fp$. By induction, $\textsf{len}_{r+1} \leq H - (r+1)$, so $\textsf{len}_{r+1} + 1 \leq H - r$. Since $H - r \leq H \leq 2^{21} < p$, the addition does not overflow modulo $p$, so $\textsf{len}_r = \textsf{len}_{r+1} + 1 \leq H - r$ as integers.
 \end{itemize}
 \end{proof}
 
@@ -1202,7 +1186,7 @@ At each cycle when $\textsf{flag}_\textsf{precompile} = 1$, the execution table 
 
 In case of Poseidon call, $\textsf{aux}_2 = 1$ and $\nu_A$, $\nu_B$, $\nu_C$ represent the left input address, the right input address, and the output address (3 pointers to a chunk of 8 field elements in memory).
 
-In case of extension op call, $\textsf{aux}_2 = 2 \cdot \textsf{be} + 4 \cdot \textsf{flag\_add} + 8 \cdot \textsf{flag\_mul} + 16 \cdot \textsf{flag\_eq} + 32 \cdot N$ encodes the mode, the operation, and the length $N$, and $\nu_A$, $\nu_B$, $\nu_C$ represent the starting address of the first operand, the starting address of the second operand, and the address of the result.
+In case of extension op call, $\textsf{aux}_2 = 2 \cdot \textsf{flag\_be} + 4 \cdot \textsf{flag\_add} + 8 \cdot \textsf{flag\_dot\_product} + 16 \cdot \textsf{flag\_eq} + 32 \cdot N$ encodes the mode, the operation, and the length $N$, and $\nu_A$, $\nu_B$, $\nu_C$ represent the starting address of the first operand, the starting address of the second operand, and the address of the result.
 
 Each such tuple $\sigma$ (counting multiplicity) must be \textsc{Pulled} by one of the precompile tables. Given that the Poseidon table only pulls tuples with $\textsf{aux}_2 = 1$, and the extension op table only pulls tuples with $\textsf{aux}_2 \geq 32$, the bus is effectively partitioned into two disjoint sub-buses, one for each precompile.
 
