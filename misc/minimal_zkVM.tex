@@ -1137,105 +1137,10 @@ By backward induction on $r$, from $r = H - 1$ down to $r = 0$.
 
 TODO: Verify and (formally) prove soundness.
 
-\subsection{Data flow between tables / memory}
 
+\section{ISA programming}
 
-\begin{lemma}
-    Let $a_0, a_1, \ldots, a_{n-1}$ be pairwise distinct poles in $\Fq$, and let $m_0, m_1, \ldots, m_{n-1}$ be an associated list of multiplicities in $\{0, 1, \dots, p - 1\}$. Consider the rational function:
-$$P(X) = \sum_{i=0}^{n-1} \frac{m_i}{X - a_i}$$
-
-Except with probability $n/q$, if $P(\alpha) = 0$ for a random $\alpha \in \Fq$, then all multiplicities $m_i = 0$.
-
-\end{lemma}
-
-\subsubsection{Indexed Lookup into Memory}\label{sec:memory-lookup}
-
-We use logup \cite{logup}, in its indexed form, to allow tables to perform lookups into the read-only memory.
-
-
-\vspace{3mm}
-
-Let $\mathcal{T}$ denote the set of all tables in the system. For each table $T \in \mathcal{T}$ with $H_T$ rows, let $n_T$ denote the number of memory lookups. Each lookup $i < n_T$ consists of an \textbf{index column} $\text{col}_{\text{index},T,i}$ and a \textbf{value column} $\text{col}_{\text{val},T,i}$.
-
-\vspace{3mm}
-
-The rule to enforce is the following:
-$$\forall T \in \mathcal{T}, \forall i < n_T, \forall j < H_T: \quad \text{col}_{\text{val},T,i}(j) = \textbf{m}[\text{col}_{\text{index},T,i}(j)]$$
-
-Implicitly, we must also have $\text{col}_{\text{index},T,i}(j) < M$ (the memory size).
-
-\vspace{3mm}
-
-The prover initially commits to a multilinear polynomial $\textit{acc}$, having the same size as the memory, such that (in the honest case) for every $k < M$:
-$$\textit{acc}[k] = \sum_{T \in \mathcal{T}} \sum_{i < n_T} \left| \{ j < H_T : \text{col}_{\text{index},T,i}(j) = k \} \right|$$
-i.e., $\textit{acc}[k]$ represents the total number of times address $k$ is accessed by the lookups across all tables.
-
-\vspace{3mm}
-
-The verifier sends a random challenge $\alpha \in \Fq$ (TODO quantify soundness error). Let $N = \sum_{T \in \mathcal{T}} n_T \cdot H_T$ be the total number of memory lookups. Assuming $N < p$ (to avoid overflow), the indexed lookup into memory is valid, except with probability $(N + M)/q$, if for a randomly sampled $X \in \Fq$:
-
-$$\sum_{T \in \mathcal{T}} \sum_{i<n_T} \sum_{j<H_T} \frac{1}{X - (\text{col}_{\text{index},T,i}(j) + \alpha \cdot \text{col}_{\text{val},T,i}(j))} = \sum_{k<M} \frac{\textit{acc}(k)}{X - (k + \alpha \cdot \textbf{m}[k])}$$
-
-This can be computed via GKR, as introduced in \cite{logup_gkr}.
-
-\subsubsection{Precompile bus: Data flow between tables}\label{buses}
-
-See OpenVM \cite{openvm}, definition 2.2.2, for more details.
-
-At each cycle when $\textsf{flag}_\textsf{precompile} = 1$, the execution table \textsc{Push}es $$\sigma = (\textsf{aux}_2, \nu_A, \nu_B, \nu_C)$$ to the "precompile bus".
-
-In case of Poseidon call, $\textsf{aux}_2 = 1$ and $\nu_A$, $\nu_B$, $\nu_C$ represent the left input address, the right input address, and the output address (3 pointers to a chunk of 8 field elements in memory).
-
-In case of extension op call, $\textsf{aux}_2 = 2 \cdot \textsf{flag\_be} + 4 \cdot \textsf{flag\_add} + 8 \cdot \textsf{flag\_dot\_product} + 16 \cdot \textsf{flag\_eq} + 32 \cdot N$ encodes the mode, the operation, and the length $N$, and $\nu_A$, $\nu_B$, $\nu_C$ represent the starting address of the first operand, the starting address of the second operand, and the address of the result.
-
-Each such tuple $\sigma$ (counting multiplicity) must be \textsc{Pulled} by one of the precompile tables. Given that the Poseidon table only pulls tuples with $\textsf{aux}_2 = 1$, and the extension op table only pulls tuples with $\textsf{aux}_2 \geq 32$, the bus is effectively partitioned into two disjoint sub-buses, one for each precompile.
-
-Similarly to the $\textsf{flag}_\textsf{precompile}$ (virtual) column for the execution table, each one of the two precompile tables has a boolean (virtual) column acting as a bus selector, indicating at which rows the table is pulling from the bus (1) or not (0).
-
-\vspace{3mm}
-
-\textbf{Balance rule:} At the end of execution, for each tuple $\sigma$, the number of pushes must equal the number of pulls accross the 3 tables: execution, poseidon, and extension op.
-
-\vspace{5mm}
-
-\textbf{Proving system (logup):}
-
-Let $\mathcal{T}$ denote the set of all tables in the system. Each table $T \in \mathcal{T}$ has $H_T$ rows. The bus interaction of the table $T$ is defined by:
-\begin{itemize}
-    \item $\text{dir}_{T} \in \{+1, -1\}$: the direction ($+1$ for \textsc{Push}, $-1$ for \textsc{Pull})
-    \item $\text{sel}_{T}: [0, H_T) \to \{0, 1\}$: the selector (virtual) column
-    \item $\sigma_{T} = (\sigma_0, \ldots, \sigma_{k-1})$: the $k$ data columns
-\end{itemize}
-
-\vspace{3mm}
-
-The verifier sends a random challenge $\alpha \in \Fq$. Define the encoding of a tuple $\sigma = (\sigma_0, \ldots, \sigma_{k-1})$ by:
-$$\text{encode}(\sigma_0, \ldots, \sigma_{k-1}) = \sum_{i=0}^{k-1} \alpha^{i} \cdot \sigma_i$$
-
-\vspace{3mm}
-
-Except with negligible probability probability (TODO quantify precisely), the bus is balanced if for a randomly sampled $X \in \Fq$:
-
-$$\sum_{T \in \mathcal{T}} \sum_{j=0}^{H_T - 1} \frac{\text{dir}_{T} \cdot \text{sel}_{T}(j)}{X - \text{encode}(\sigma_{T}(j))} = 0$$
-
-
-\vspace{3mm}
-
-\textit{Overflow constraint:} We must ensure that multiplicities do not overflow modulo $p$. This is enforced by limitting the maximum height of each table.
-
-\vspace{3mm}
-
-As with the indexed lookup into memory, this sum can be computed efficiently via GKR \cite{logup_gkr}. In practice, all logup instances (bus balance and memory lookups) are batched into a single GKR instance, using an addition field element passed to the encoding tuple for domain separation.
-
-\vspace{3mm} TODO: Unified vision in which memory is just another table, and memory accesses are just bus interactions?
-
-A detailled soundness analysis can be found in \href{https://github.com/openvm-org/stark-backend/blob/main/docs/Soundness_of_Interactions_via_LogUp.pdf}{Soundness of Interactions via LogUp}.
-
-
-
-\subsection{ISA programming}
-
-\subsubsection{Functions}
+\subsection{Functions}
 
 \begin{enumerate}
     \item Each function has a deterministic memory footprint: the length of the continuous frame in memory that is allocated for each of the its calls.
@@ -1249,12 +1154,12 @@ A detailled soundness analysis can be found in \href{https://github.com/openvm-o
 \includegraphics[scale=0.4]{images/memory_layout.png}
 \end{figure}
 
-\subsubsection{Loops}\label{loops}
+\subsection{Loops}\label{loops}
 
 We suggest to unroll loops when the number of iterations is low, and known at compile time.
 The remaining loops are transformed into recursive functions (by the leanISA compiler).
 
-\subsubsection{Range checks}
+\subsection{Range checks}
 
 \fbox{It's possible to check that a memory cell is smaller than $t$ (for $t \leq 2^{16}$) in 3 cycles.}
 
@@ -1299,7 +1204,7 @@ This idea was pointed out by D. Khovratovich, and is an unplanned use of the DER
 \end{exmp}
 
 
-\subsubsection{Switch statements}
+\subsection{Switch statements}
 
 Suppose we want a different logic depending on the value $x$ of a given memory cell, where $x$ is known to be $< k$ (if the value $x$ comes from a "hint", don't forget to range-check it).
 
