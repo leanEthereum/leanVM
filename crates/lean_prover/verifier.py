@@ -6,6 +6,7 @@ Run this script to verify it.
 
 Setup (one-time):
     uv venv .venv --python 3.12
+    source .venv/bin/activate
     VIRTUAL_ENV=.venv uv pip install "git+https://github.com/leanEthereum/leanSpec.git"
     cargo test --release -p lean_prover --test dump_whir_configs        -- --nocapture
     cargo test --release -p lean_prover --test dump_poseidon1_constants -- --nocapture
@@ -32,6 +33,8 @@ MAX_NUM_VARIABLES_TO_SEND_COEFFS = 8
 RS_DOMAIN_INITIAL_REDUCTION_FACTOR = 5
 RATE, WIDTH, DIGEST_ELEMS = 8, 16, 8
 CAPACITY = WIDTH - RATE
+PUBLIC_INPUT_SIZE = DIGEST_ELEMS
+
 
 # fmt: off
 SNARK_DOMAIN_SEP = [Fp(v) for v in (
@@ -160,6 +163,14 @@ def hash_slice(data: Sequence[Fp]) -> list[Fp]:
     for k in range(len(data) // RATE - 3, -1, -1):
         state = poseidon16_compress_in_place(state[:CAPACITY] + list(data[k * RATE : (k + 1) * RATE]))
     return state[:DIGEST_ELEMS]
+
+
+def fiat_shamir_domain_sep(bytecode_hash: Sequence[Fp], public_input_size: int) -> list[Fp]:
+    """Domain-separator absorbed before the proof. Mixes the bytecode hash and the
+    bytecode's declared `public_input_size` (mirrors `lean_prover::fiat_shamir_domain_sep`)."""
+    tail = [Fp(public_input_size)] + [Fp(0)] * (RATE - 1)
+    extended = poseidon16_compress(SNARK_DOMAIN_SEP, tail)
+    return poseidon16_compress(bytecode_hash, extended)
 
 
 class Challenger:
@@ -1286,16 +1297,19 @@ def verify_execution(
     constants: dict,
     bytecode_multilinear: list[int],
 ) -> dict:
+    if len(public_input) != PUBLIC_INPUT_SIZE:
+        raise ProofError("InvalidProof: public_input length mismatch")
+
     state = VerifierState(proof)
     state.observe_scalars(list(public_input))
-    state.observe_scalars(poseidon16_compress(bytecode_hash, SNARK_DOMAIN_SEP))
+    state.observe_scalars(fiat_shamir_domain_sep(bytecode_hash, PUBLIC_INPUT_SIZE))
 
-    dims = [int(x.value) for x in state.next_base_scalars_vec(3 + len(tables))]
-    log_inv_rate, log_memory, public_input_len, *table_log_n_rows = dims
-    if public_input_len != len(public_input):
-        raise ProofError("InvalidProof: public_input length mismatch")
+    dims = [int(x.value) for x in state.next_base_scalars_vec(2 + len(tables))]
+    log_inv_rate, log_memory, *table_log_n_rows = dims
     if not MIN_WHIR_LOG_INV_RATE <= log_inv_rate <= MAX_WHIR_LOG_INV_RATE:
         raise ProofError("InvalidRate")
+    if log_memory < log2_strict_usize(PUBLIC_INPUT_SIZE):
+        raise ProofError("InvalidProof: memory smaller than public_input_size")
     if any(h < MIN_LOG_N_ROWS_PER_TABLE for h in table_log_n_rows):
         raise ProofError("InvalidProof: table too small")
     for t, h in zip(tables, table_log_n_rows):
