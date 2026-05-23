@@ -269,46 +269,47 @@ def eval_multilinear_evals(evals: Sequence[EF], point: Sequence[EF]) -> EF:
 
 
 def eval_mle_base_at_ef(base_evals: Sequence[int], point: Sequence[EF]) -> EF:
-    """numpy-backed fold for the 2²²-entry bytecode multilinear."""
-    import numpy as np
+    """Evaluate a base-field multilinear in eval form at an EF point.
 
+    """
     assert len(base_evals) == 1 << len(point)
-    pt = [tuple(int(ci.value) for ci in p.c) for p in point]
-    cur = np.asarray(base_evals, dtype=np.int64) % P
-    # First round: base → EF. a + (b-a)·r with r ∈ EF.
-    a, b = cur[0::2], cur[1::2]
-    d = (b - a) % P
-    r = pt[-1]
-    cur = np.stack(
-        [(a + d * r[0]) % P, *[(d * r[k]) % P for k in range(1, 5)]],
-        axis=1,
-    )
-    # EF × EF rounds: schoolbook product reduced mod X⁵+X²−1.
-    for r0, r1, r2, r3, r4 in (pt[i] for i in range(len(pt) - 2, -1, -1)):
-        a, b = cur[0::2], cur[1::2]
-        d = (b - a) % P
-        d0, d1, d2, d3, d4 = d[:, 0], d[:, 1], d[:, 2], d[:, 3], d[:, 4]
-        m = lambda x, y: (x * y) % P
-        p0 = m(d0, r0)
-        p1 = (m(d0, r1) + m(d1, r0)) % P
-        p2 = (m(d0, r2) + m(d1, r1) + m(d2, r0)) % P
-        p3 = (m(d0, r3) + m(d1, r2) + m(d2, r1) + m(d3, r0)) % P
-        p4 = (m(d0, r4) + m(d1, r3) + m(d2, r2) + m(d3, r1) + m(d4, r0)) % P
-        p5 = (m(d1, r4) + m(d2, r3) + m(d3, r2) + m(d4, r1)) % P
-        p6 = (m(d2, r4) + m(d3, r3) + m(d4, r2)) % P
-        p7 = (m(d3, r4) + m(d4, r3)) % P
-        p8 = m(d4, r4)
-        cur = np.stack(
-            [
-                (a[:, 0] + p0 + p5 - p8) % P,
-                (a[:, 1] + p1 + p6) % P,
-                (a[:, 2] + p2 - p5 + p7 + p8) % P,
-                (a[:, 3] + p3 - p6 + p8) % P,
-                (a[:, 4] + p4 - p7) % P,
-            ],
-            axis=1,
-        )
-    return EF([Fp(int(v)) for v in cur[0]])
+
+    # First fold: cur[n] = base[2n] + (base[2n+1] − base[2n]) · r.
+    r0, r1, r2, r3, r4 = (int(c.value) for c in point[-1].c)
+    cur = []
+    for j in range(0, len(base_evals), 2):
+        a = base_evals[j] % P
+        d = (base_evals[j + 1] - a) % P
+        cur.append(((a + d * r0) % P, (d * r1) % P, (d * r2) % P, (d * r3) % P, (d * r4) % P))
+
+    # Subsequent folds in EF. Schoolbook produces a degree-8 polynomial p[0..8];
+    # reduce via X^5 ≡ 1 − X^2 (so X^6 ≡ X − X^3, X^7 ≡ X^2 − X^4, X^8 ≡ −1 + X^2 + X^3).
+    for pt in reversed(point[:-1]):
+        r0, r1, r2, r3, r4 = (int(c.value) for c in pt.c)
+        new = []
+        for j in range(0, len(cur), 2):
+            a0, a1, a2, a3, a4 = cur[j]
+            b0, b1, b2, b3, b4 = cur[j + 1]
+            d0, d1, d2, d3, d4 = (b0 - a0) % P, (b1 - a1) % P, (b2 - a2) % P, (b3 - a3) % P, (b4 - a4) % P
+            p0 = d0 * r0
+            p1 = d0 * r1 + d1 * r0
+            p2 = d0 * r2 + d1 * r1 + d2 * r0
+            p3 = d0 * r3 + d1 * r2 + d2 * r1 + d3 * r0
+            p4 = d0 * r4 + d1 * r3 + d2 * r2 + d3 * r1 + d4 * r0
+            p5 = d1 * r4 + d2 * r3 + d3 * r2 + d4 * r1
+            p6 = d2 * r4 + d3 * r3 + d4 * r2
+            p7 = d3 * r4 + d4 * r3
+            p8 = d4 * r4
+            new.append((
+                (a0 + p0 + p5 - p8) % P,
+                (a1 + p1 + p6) % P,
+                (a2 + p2 - p5 + p7 + p8) % P,
+                (a3 + p3 - p6 + p8) % P,
+                (a4 + p4 - p7) % P,
+            ))
+        cur = new
+
+    return EF([Fp(x) for x in cur[0]])
 
 
 def eval_multilinear_coeffs(coeffs: Sequence[EF], point: Sequence[EF]) -> EF:
