@@ -79,10 +79,10 @@ def hash_slice(data: Sequence[Fp]) -> list[Fp]:
     return state[:DIGEST_ELEMS]
 
 
-def fiat_shamir_domain_sep(bytecode_hash: Sequence[Fp], public_input_size: int) -> list[Fp]:
-    """Domain-separator absorbed before the proof. Mixes the bytecode hash and the
-    bytecode's declared `public_input_size` (mirrors `lean_prover::fiat_shamir_domain_sep`)."""
-    tail = [Fp(public_input_size)] + [Fp(0)] * (RATE - 1)
+def fiat_shamir_domain_sep(bytecode_hash: Sequence[Fp]) -> list[Fp]:
+    """Domain-separator absorbed before the proof. Mixes the bytecode hash and
+    `PUBLIC_INPUT_SIZE` (mirrors `lean_prover::fiat_shamir_domain_sep`)."""
+    tail = [Fp(PUBLIC_INPUT_SIZE)] + [Fp(0)] * (RATE - 1)
     extended = poseidon16_compress(SNARK_DOMAIN_SEP, tail)
     return poseidon16_compress(bytecode_hash, extended)
 
@@ -115,11 +115,10 @@ class Challenger:
         return list(self.state[CAPACITY:])
 
     def _sample_many(self, n: int) -> list[Fp]:
-        if n == 0:
-            return []
-        out = self._sample_rate()
-        for _ in range(1, n):
-            self.duplex()
+        out: list[Fp] = []
+        for i in range(n):
+            if i:
+                self.duplex()
             out.extend(self._sample_rate())
         return out
 
@@ -364,6 +363,15 @@ def whir_n_rounds_and_final_sumcheck(num_variables: int) -> tuple[int, int]:
     return n, nv - n * WHIR_SUBSEQUENT_FOLDING_FACTOR
 
 
+def ef_powers(x: EF, n: int) -> list[EF]:
+    """`[1, x, x², …, x^(n−1)]`."""
+    out, cur = [], ONE
+    for _ in range(n):
+        out.append(cur)
+        cur = cur * x
+    return out
+
+
 def whir_log_domain_size_at(num_variables: int, start_rate: int, r: int) -> int:
     return num_variables + start_rate - (RS_DOMAIN_INITIAL_REDUCTION_FACTOR + r - 1 if r >= 1 else 0)
 
@@ -540,8 +548,8 @@ def whir_verify(
         new_commitment = ParsedCommitment(
             nvars_round,
             state.next_base_scalars_vec(DIGEST_ELEMS),
-            state.sample_vec(nood) if nood else [],
-            state.next_extension_scalars_vec(nood) if nood else [],
+            state.sample_vec(nood),
+            state.next_extension_scalars_vec(nood),
         )
         stir = verify_stir_challenges(
             state,
@@ -621,13 +629,29 @@ class TableMeta:
     name: str
     n_columns: int
     buses: tuple
+    air_degree: int  # max degree of AIR transition constraints
+    n_constraints: int
+    n_shift: int  # number of shift (next-row) columns
+    air_fn: object  # (folder, extra_data) -> None, fills folder with AIR constraints
+
+    @property
+    def n_buses(self) -> int:
+        # mem_group entries expand to `n` individual buses.
+        return sum(b[3] if b[0] == "mem_group" else 1 for b in self.buses)
 
 
 def tables_from_json(obj: list[dict]) -> list[TableMeta]:
-    return [
-        TableMeta(name=t["name"], n_columns=int(t["n_columns"]), buses=_table_buses(t["name"], int(t["n_columns"])))
-        for t in obj
-    ]
+    # (air_degree, n_constraints, n_shift, air_fn) per table.
+    specs = {
+        "execution": (5, 14, 2, _eval_air_execution),
+        "extension_op": (6, 35, 13, _eval_air_extension_op),
+        "poseidon16_compress": (10, 101, 0, _eval_air_poseidon16),
+    }
+    out = []
+    for t in obj:
+        name, n_cols = t["name"], int(t["n_columns"])
+        out.append(TableMeta(name, n_cols, _table_buses(name, n_cols), *specs[name]))
+    return out
 
 
 def stacked_pcs_global_statements(
@@ -642,12 +666,11 @@ def stacked_pcs_global_statements(
 ) -> list[SparseStatement]:
     assert len(table_log_heights) == len(committed_statements)
     tables_sorted = sort_tables_by_height(table_log_heights)
-    max_table_n_vars = tables_sorted[0][1]
 
     # Layout offsets are assigned in sorted-by-height order (taller tables come first
     # in the stacked polynomial), but statements are emitted in canonical ALL_TABLES order.
     table_offsets: dict[str, int] = {}
-    layout_offset = (2 << memory_n_vars) + (1 << max(bytecode_n_vars, max_table_n_vars))
+    layout_offset = (2 << memory_n_vars) + (1 << max(bytecode_n_vars, tables_sorted[0][1]))
     for name, n_vars in tables_sorted:
         table_offsets[name] = layout_offset
         layout_offset += tables[name].n_columns << n_vars
@@ -655,22 +678,22 @@ def stacked_pcs_global_statements(
     out = list(previous_statements)
     col_pc = constants["col_pc"]
 
+    # Rust uses BTreeMap (sorted by key); Python dicts are insertion-ordered, sort here.
+    def values_at(d: dict[int, EF], col_base: int) -> list[tuple[int, EF]]:
+        return [(col_base + i, v) for i, v in sorted(d.items())]
+
     for name in ALL_TABLES_ORDER:
         n_vars = table_log_heights[name]
         offset = table_offsets[name]
+        col_base = offset >> n_vars
         if name == "execution":
             # PC column: pin first row to STARTING_PC, last row to ending_pc.
             for idx, pc in [(0, constants["starting_pc"]), ((1 << n_vars) - 1, constants["ending_pc"])]:
                 out.append(SparseStatement.unique_value(stacked_n_vars, offset + (col_pc << n_vars) + idx, fb(pc)))
-
-        # Rust uses BTreeMap (sorted); Python dicts are insertion-ordered, sort here.
-        def values_at(d: dict[int, EF], off: int = offset, nv: int = n_vars) -> list[tuple[int, EF]]:
-            return [((off >> nv) + i, v) for i, v in sorted(d.items())]
-
         for point, eq_values, next_values in committed_statements[name]:
             if next_values:
-                out.append(SparseStatement.new_next(stacked_n_vars, list(point), values_at(next_values)))
-            out.append(SparseStatement(stacked_n_vars, list(point), values_at(eq_values)))
+                out.append(SparseStatement.new_next(stacked_n_vars, list(point), values_at(next_values, col_base)))
+            out.append(SparseStatement(stacked_n_vars, list(point), values_at(eq_values, col_base)))
 
     return out
 
@@ -707,10 +730,6 @@ def verify_gkr_quotient(state: VerifierState, n_vars: int) -> tuple[EF, list[EF]
     return quotient, point, claim_num, claim_den
 
 
-def to_big_endian_in_field(value: int, bit_count: int) -> list[EF]:
-    return [ONE if (value >> (bit_count - 1 - i)) & 1 else ZERO for i in range(bit_count)]
-
-
 def from_end(seq: Sequence, n: int) -> list:
     """The last `n` elements of `seq` (empty list when `n == 0`)."""
     return list(seq[-n:]) if n else []
@@ -718,10 +737,8 @@ def from_end(seq: Sequence, n: int) -> list:
 
 def mle_of_01234567_etc(point: Sequence[EF]) -> EF:
     """MLE of `f(i) = i` (big-endian) at `point`."""
-    if not point:
-        return ZERO
-    e = mle_of_01234567_etc(point[1:])
-    return e + point[0] * fb(1 << (len(point) - 1))
+    n = len(point)
+    return ef_sum(p * fb(1 << (n - 1 - i)) for i, p in enumerate(point))
 
 
 def mle_of_zeros_then_ones(n_zeros: int, point: Sequence[EF]) -> EF:
@@ -780,14 +797,10 @@ def verify_generic_logup(
     log_bytecode = log2_strict_usize(len(bytecode_multilinear) // (1 << log2_ceil_usize(n_instr_cols)))
     log_instr = log2_ceil_usize(n_instr_cols)
 
-    def n_buses(name: str) -> int:
-        # mem_group entries expand to `n` individual buses.
-        return sum(b[3] if b[0] == "mem_group" else 1 for b in tables[name].buses)
-
     total_active_len = (
         (1 << log_memory)
         + max(1 << log_bytecode, 1 << tables_sorted[0][1])
-        + sum(n_buses(n) << h for n, h in tables_sorted)
+        + sum(tables[n].n_buses << h for n, h in tables_sorted)
     )
     total_gkr_n_vars = log2_ceil_usize(total_active_len)
 
@@ -799,7 +812,8 @@ def verify_generic_logup(
 
     def pref_at(offset: int, log_height: int) -> EF:
         n_missing = total_gkr_n_vars - log_height
-        bits = to_big_endian_in_field(offset >> log_height, n_missing)
+        idx = offset >> log_height
+        bits = [ONE if (idx >> (n_missing - 1 - i)) & 1 else ZERO for i in range(n_missing)]
         return eq_poly_outside(bits, point_gkr[:n_missing])
 
     # Memory (data order: [value_index, value_memory] mirrors `crates/sub_protocols/src/logup.rs`).
@@ -838,7 +852,7 @@ def verify_generic_logup(
     table_offsets: dict[str, int] = {}
     for name, log_n_rows in tables_sorted:
         table_offsets[name] = offset
-        offset += n_buses(name) << log_n_rows
+        offset += tables[name].n_buses << log_n_rows
     final_offset = offset
 
     # Per-table: walk the bus spec in the same order as the Rust prover. The prover
@@ -951,11 +965,11 @@ def air_constraint_eval(
     extra_data: dict,
 ) -> EF:
     folder = ConstraintFolder(col_evals[: table.n_columns], col_evals[table.n_columns :], alpha_powers)
-    _TABLE_SPECS[table.name]["air"](folder, table, extra_data)
+    table.air_fn(folder, extra_data)
     return folder.accumulator
 
 
-def _eval_air_execution(folder: ConstraintFolder, _table: TableMeta, extra_data: dict) -> None:
+def _eval_air_execution(folder: ConstraintFolder, extra_data: dict) -> None:
     # fmt: off
     (pc, fp, addr_a, addr_b, addr_c, value_a, value_b, value_c,
      operand_a, operand_b, operand_c, flag_a, flag_b, flag_c, flag_c_fp,
@@ -1008,7 +1022,7 @@ def _quintic_mul_ef(a: Sequence[EF], b: Sequence[EF]) -> list[EF]:
     return quintic_mul(a, b, ZERO)
 
 
-def _eval_air_extension_op(folder: ConstraintFolder, _table: TableMeta, extra_data: dict) -> None:
+def _eval_air_extension_op(folder: ConstraintFolder, extra_data: dict) -> None:
     # Layout: shift columns 0..13 = (is_be, start, len, flag_{add,mul,poly_eq},
     # idx_{a,b}, comp[0..5]); then idx_res, va, vb, vres (5 each).
     f = folder.flat
@@ -1113,7 +1127,7 @@ def _full_round(state: list[EF], rc1: list[Fp], rc2: list[Fp]) -> list[EF]:
     return state
 
 
-def _eval_poseidon1_16(folder: ConstraintFolder, cols: dict, _extra_data: dict) -> None:
+def _eval_poseidon1_16(folder: ConstraintFolder, cols: dict) -> None:
     """AIR for Poseidon1-16. Each `post` column commits an intermediate state, which we
     constrain against the local computation, then adopt to bound polynomial degree."""
     const = _p1c()
@@ -1161,7 +1175,7 @@ def _eval_poseidon1_16(folder: ConstraintFolder, cols: dict, _extra_data: dict) 
         folder.assert_zero(flag_permute * (state[i + _POSEIDON_WIDTH // 2] - cols["outputs_right"][i]))
 
 
-def _eval_air_poseidon16(folder: ConstraintFolder, _table: TableMeta, extra_data: dict) -> None:
+def _eval_air_poseidon16(folder: ConstraintFolder, extra_data: dict) -> None:
     const = _p1c()
     flat, W = folder.flat, _POSEIDON_WIDTH
     half_initial = half_final = const["half_full_rounds"] // 2
@@ -1200,27 +1214,16 @@ def _eval_air_poseidon16(folder: ConstraintFolder, _table: TableMeta, extra_data
     folder.assert_zero(flag_hardcoded_left * (offset_hardcoded_left - eff_idx_left_first))
     folder.assert_zero(not_hcl * (index_a - eff_idx_left_first))
 
-    _eval_poseidon1_16(
-        folder,
-        {
-            "inputs": inputs,
-            "beginning_full_rounds": beginning_full_rounds,
-            "partial_rounds": partial_cols,
-            "ending_full_rounds": ending_full_rounds,
-            "outputs_left": outputs_left,
-            "outputs_right": outputs_right,
-            "flag_half_output": flag_half_output,
-            "flag_permute": flag_permute,
-        },
-        extra_data,
-    )
-
-
-_TABLE_SPECS: dict[str, dict] = {
-    "execution": {"degree": 5, "n_constraints": 14, "n_shift": 2, "air": _eval_air_execution},
-    "extension_op": {"degree": 6, "n_constraints": 35, "n_shift": 13, "air": _eval_air_extension_op},
-    "poseidon16_compress": {"degree": 10, "n_constraints": 101, "n_shift": 0, "air": _eval_air_poseidon16},
-}
+    _eval_poseidon1_16(folder, {
+        "inputs": inputs,
+        "beginning_full_rounds": beginning_full_rounds,
+        "partial_rounds": partial_cols,
+        "ending_full_rounds": ending_full_rounds,
+        "outputs_left": outputs_left,
+        "outputs_right": outputs_right,
+        "flag_half_output": flag_half_output,
+        "flag_permute": flag_permute,
+    })
 
 
 def verify_execution(
@@ -1237,51 +1240,46 @@ def verify_execution(
 
     state = VerifierState(proof)
     state.observe_scalars(list(public_input))
-    state.observe_scalars(fiat_shamir_domain_sep(bytecode_hash, PUBLIC_INPUT_SIZE))
+    state.observe_scalars(fiat_shamir_domain_sep(bytecode_hash))
 
     dims = [int(x.value) for x in state.next_base_scalars_vec(2 + len(tables))]
     log_inv_rate, log_memory, *table_log_n_rows = dims
     if not MIN_WHIR_LOG_INV_RATE <= log_inv_rate <= MAX_WHIR_LOG_INV_RATE:
         raise ProofError("InvalidRate")
-    if log_memory < log2_strict_usize(PUBLIC_INPUT_SIZE):
-        raise ProofError("InvalidProof: memory smaller than public_input_size")
-    if any(h < MIN_LOG_N_ROWS_PER_TABLE for h in table_log_n_rows):
-        raise ProofError("InvalidProof: table too small")
-    for t, h in zip(tables, table_log_n_rows):
-        limit = MAX_LOG_N_ROWS_PER_TABLE.get(t.name)
-        if limit is None:
-            raise ProofError(f"InvalidProof: unknown table {t.name}")
-        if h > limit:
-            raise ProofError(f"InvalidProof: table {t.name} too large (log_n_rows={h} > {limit})")
-    if log_memory < max(max(table_log_n_rows, default=0), bytecode_log_size):
-        raise ProofError("InvalidProof: memory smaller than tables/bytecode")
     if not MIN_LOG_MEMORY_SIZE <= log_memory <= MAX_LOG_MEMORY_SIZE:
         raise ProofError("InvalidProof: log_memory out of range")
     if not MIN_BYTECODE_LOG_SIZE <= bytecode_log_size <= MAX_BYTECODE_LOG_SIZE:
         raise ProofError("InvalidProof: bytecode log_size out of range")
+    if log_memory < max(max(table_log_n_rows, default=0), bytecode_log_size):
+        raise ProofError("InvalidProof: memory smaller than tables/bytecode")
+    for t, h in zip(tables, table_log_n_rows):
+        limit = MAX_LOG_N_ROWS_PER_TABLE.get(t.name)
+        if limit is None:
+            raise ProofError(f"InvalidProof: unknown table {t.name}")
+        if not MIN_LOG_N_ROWS_PER_TABLE <= h <= limit:
+            raise ProofError(f"InvalidProof: table {t.name} log_n_rows={h} not in [{MIN_LOG_N_ROWS_PER_TABLE}, {limit}]")
 
     table_log_heights = {t.name: h for t, h in zip(tables, table_log_n_rows)}
     tables_by_name = {t.name: t for t in tables}
     tables_sorted = sort_tables_by_height(table_log_heights)
+    n_max = tables_sorted[0][1]
 
-    # memory ≥ every table (no longer requires execution to be the largest).
-    if log_memory < tables_sorted[0][1]:
-        raise ProofError("InvalidProof: memory smaller than largest table")
     total_stacked = (
         (2 << log_memory)
-        + (1 << max(bytecode_log_size, tables_sorted[0][1]))
+        + (1 << max(bytecode_log_size, n_max))
         + sum(t.n_columns << table_log_heights[t.name] for t in tables)
     )
     stacked_n_vars = log2_ceil_usize(total_stacked)
     if stacked_n_vars > BASE_TWO_ADICITY + WHIR_INITIAL_FOLDING_FACTOR - log_inv_rate:
         raise ProofError("InvalidProof: stacked_n_vars exceeds WHIR domain bound")
     cfg = whir_config(log_inv_rate, stacked_n_vars)
-    root = state.next_base_scalars_vec(DIGEST_ELEMS)
-    ood_points = state.sample_vec(cfg["commitment_ood_samples"]) if cfg["commitment_ood_samples"] else []
-    ood_answers = (
-        state.next_extension_scalars_vec(cfg["commitment_ood_samples"]) if cfg["commitment_ood_samples"] else []
+    nood = cfg["commitment_ood_samples"]
+    parsed_commitment = ParsedCommitment(
+        stacked_n_vars,
+        state.next_base_scalars_vec(DIGEST_ELEMS),
+        state.sample_vec(nood),
+        state.next_extension_scalars_vec(nood),
     )
-    parsed_commitment = ParsedCommitment(stacked_n_vars, root, ood_points, ood_answers)
 
     logup_c = state.sample()
     state.duplex()
@@ -1302,22 +1300,14 @@ def verify_execution(
 
     air_alpha = state.sample()
 
-    def powers(x: EF, n: int) -> list[EF]:
-        out, cur = [], ONE
-        for _ in range(n):
-            out.append(cur)
-            cur = cur * x
-        return out
-
-    # AIR alpha offsets are now assigned in canonical ALL_TABLES order
+    # AIR alpha powers/offsets are laid out in canonical ALL_TABLES order
     # (mirrors `for table in ALL_TABLES { alpha_offset += n_constraints }` in verify_execution.rs).
-    total_air_constraints = sum(_TABLE_SPECS[n]["n_constraints"] for n in ALL_TABLES_ORDER)
-    alpha_powers = powers(air_alpha, total_air_constraints)
     alpha_offsets: dict[str, int] = {}
     cumulative = 0
     for name in ALL_TABLES_ORDER:
         alpha_offsets[name] = cumulative
-        cumulative += _TABLE_SPECS[name]["n_constraints"]
+        cumulative += tables_by_name[name].n_constraints
+    alpha_powers = ef_powers(air_alpha, cumulative)
 
     extra_data = {"logup_alphas_eq_poly": logup_alphas_eq}
 
@@ -1329,33 +1319,29 @@ def verify_execution(
         sign = -ONE if tables_by_name[name].buses[0][1] == "Pull" else ONE
         initial_sum = initial_sum + alpha_powers[offset] * (logup["bus_num"][name] * sign)
         initial_sum = initial_sum + alpha_powers[offset + 1] * (logup_c - logup["bus_den"][name])
-    n_max = tables_sorted[0][1]
     sc_point, sc_value = verify_sumcheck(
-        state, initial_sum, n_max, max(_TABLE_SPECS[n]["degree"] + 1 for n in ALL_TABLES_ORDER)
+        state, initial_sum, n_max, max(t.air_degree + 1 for t in tables)
     )
 
     committed = {
-        name: [(list(from_end(gkr_point, table_log_heights[name])), dict(logup["columns_values"][name]), {})]
+        name: [(from_end(gkr_point, table_log_heights[name]), dict(logup["columns_values"][name]), {})]
         for name in ALL_TABLES_ORDER
     }
     my_air_final = ZERO
     for name in ALL_TABLES_ORDER:
+        meta = tables_by_name[name]
         log_n_rows = table_log_heights[name]
+        col_evals = state.next_extension_scalars_vec(meta.n_columns + meta.n_shift)
         offset = alpha_offsets[name]
-        meta, n_shift = tables_by_name[name], _TABLE_SPECS[name]["n_shift"]
-        col_evals = state.next_extension_scalars_vec(meta.n_columns + n_shift)
-        alpha_slice = alpha_powers[offset : offset + _TABLE_SPECS[name]["n_constraints"]]
+        alpha_slice = alpha_powers[offset : offset + meta.n_constraints]
         constraint_eval = air_constraint_eval(meta, col_evals, alpha_slice, extra_data)
 
         natural_pt = list(reversed(sc_point[-log_n_rows:])) if log_n_rows else []
         k_t = ef_prod(sc_point[: n_max - log_n_rows])
-        my_air_final = (
-            my_air_final
-            + k_t * eq_poly_outside(from_end(gkr_point, log_n_rows), natural_pt) * constraint_eval
-        )
+        my_air_final = my_air_final + k_t * eq_poly_outside(from_end(gkr_point, log_n_rows), natural_pt) * constraint_eval
 
         eq_vals = {i: col_evals[i] for i in range(meta.n_columns)}
-        next_vals = {j: col_evals[meta.n_columns + j] for j in range(n_shift)}
+        next_vals = {j: col_evals[meta.n_columns + j] for j in range(meta.n_shift)}
         committed[name].append((natural_pt, eq_vals, next_vals))
     if my_air_final != sc_value:
         raise ProofError("AIR sumcheck: claimed value mismatch")
@@ -1364,14 +1350,13 @@ def verify_execution(
     pm_point = state.sample_vec(log2_strict_usize(len(public_memory)))
     pm_eval = eval_multilinear_evals([EF.from_base(f) for f in public_memory], pm_point)
 
-    mk = lambda point, values: SparseStatement(stacked_n_vars, list(point), values)
+    bytecode_acc_idx = (2 << log_memory) >> bytecode_log_size
     previous = [
-        mk(from_end(gkr_point, log_memory), [(0, logup["value_memory"]), (1, logup["value_memory_acc"])]),
-        mk(pm_point, [(0, pm_eval)]),
-        mk(
-            from_end(gkr_point, bytecode_log_size),
-            [((2 << log_memory) >> bytecode_log_size, logup["value_bytecode_acc"])],
-        ),
+        SparseStatement(stacked_n_vars, from_end(gkr_point, log_memory),
+                        [(0, logup["value_memory"]), (1, logup["value_memory_acc"])]),
+        SparseStatement(stacked_n_vars, pm_point, [(0, pm_eval)]),
+        SparseStatement(stacked_n_vars, from_end(gkr_point, bytecode_log_size),
+                        [(bytecode_acc_idx, logup["value_bytecode_acc"])]),
     ]
     global_statements = stacked_pcs_global_statements(
         stacked_n_vars,
