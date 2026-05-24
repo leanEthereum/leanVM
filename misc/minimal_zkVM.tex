@@ -1291,7 +1291,39 @@ Every call operates on a fresh contiguous block of $s$ memory cells: its \emph{f
 \subsection{Loops}\label{loops}
 
 We suggest to unroll loops when the number of iterations is low, and known at compile time.
-The remaining loops are transformed into recursive functions (by the leanISA compiler).
+
+The remaining loops are transformed into recursive functions (by a compiler):
+
+\begin{exmp}
+Summing the $n$ entries of an array $a$:
+
+\begin{center}
+\begin{minipage}[t]{0.46\textwidth}
+\centering\textit{loop form}
+\begin{verbatim}
+sum(a, n):
+    s = 0
+    for i in [0, n):
+        s = s + a[i]
+    return s
+\end{verbatim}
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.46\textwidth}
+\centering\textit{recursive form}
+\begin{verbatim}
+sum(a, n):
+    return sum_rec(a, n, 0, 0)
+
+sum_rec(a, n, i, s):
+    if i == n:
+        return s
+    return sum_rec(a, n, i + 1, s + a[i])
+\end{verbatim}
+\end{minipage}
+\end{center}
+
+\end{exmp}
 
 \subsection{Range checks}\label{sec:range-checks}
 
