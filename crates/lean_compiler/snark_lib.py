@@ -22,12 +22,6 @@ def parallel_range(a: int, b: int):
     return range(a, b)
 
 
-# dynamic_unroll(start, end, n_bits) returns range(start, end) for Python execution
-def dynamic_unroll(start: int, end: int, n_bits: int):
-    _ = n_bits
-    return range(start, end)
-
-
 # Array - simulates write-once memory with pointer arithmetic
 class Array:
     def __init__(self, size: int):
@@ -182,6 +176,10 @@ def hint_decompose_bits_merkle_whir(*args):
 
 def hint_log2_ceil(n):
     return log2_ceil(n)
+
+
+def hint_div_floor(a, b, q_ptr, r_ptr):
+    _ = a, b, q_ptr, r_ptr
 
 
 def hint_witness(name, destination):

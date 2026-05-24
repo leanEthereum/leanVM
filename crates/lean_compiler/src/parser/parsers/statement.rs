@@ -172,10 +172,6 @@ impl Parse<Line> for ForStatementParser {
         let end = ExpressionParser.parse(next_inner_pair(&mut range_inner, "loop end")?, ctx)?;
         let loop_kind = match rule {
             Rule::unroll_range => LoopKind::Unroll,
-            Rule::dynamic_unroll_range => {
-                let n_bits = ExpressionParser.parse(next_inner_pair(&mut range_inner, "n_bits")?, ctx)?;
-                LoopKind::DynamicUnroll { n_bits }
-            }
             Rule::parallel_range => LoopKind::ParallelRange,
             _ => LoopKind::Range,
         };
