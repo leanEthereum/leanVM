@@ -1153,9 +1153,8 @@ By backward induction on $r$, from $r = H - 1$ down to $r = 0$.
 
 TODO: Verify and (formally) prove soundness.
 
-\subsection{End-to-end protocol}\label{sec:verify-protocol}
+\subsection{End-to-end protocol}\label{sec:e2e-protocol}
 
-The protocol below is presented as an interactive protocol; the non-interactive version uses the standard Fiat-Shamir compilation (see TODO).
 
 \vspace{2mm}
 
@@ -1207,6 +1206,9 @@ The protocol below is presented as an interactive protocol; the non-interactive 
 
 \end{enumerate}
 
+\subsection{Fiat-Shamir}
+
+In order to turn interractice protocol described in Section~\ref{sec:e2e-protocol} into a non-interractive one, we apply the BCS transformation \cite{BCS}. In Particular, we use the Fiat-Shamir transformation implemented via a duplex sponge  \cite{fiat_shamir_duplex_sponge} (using the $\texttt{POSEIDON}^\pi$ permutation over a state of 16 koalabear field elements).
 
 \section{ISA programming}
 
