@@ -96,9 +96,8 @@ See \Cref{sec:signature-aggregation} for more details.
     \item $[a, b) = \{a, a + 1, \ldots, b-1\}$
     \item $\hat{eq}(x, y) = x y + (1 - x)(1 - y)$
     \item \label{sec:preliminaries-embed} $\mathsf{embed}(x_1, x_2, x_3, x_4, x_5)$ is the extension field element built from 5 base field elements: $x_1 + x_2 X + x_3 X^2 + x_4 X^3 + x_5 X^4$, using $X^5 + X^2 - 1$ as the irreducible polynomial defining the extension (see \Cref{sec:field}).
-    \item Given a number of bits $n > 0$, and an $n$-bit integer $x$, we denote by $[x]_{01}$ its big-endian bit-decomposition in $n$ boolean values. For example, $[14]_{01} = (1, 1, 1, 0)$
-    
-    \item $h_\textsc{memory}$ is the log-size of the (read-only) memory; the memory has $2^{h_\textsc{memory}}$ words (always a power of 2). $h_\textsc{bytecode}$ is the bytecode log-size (the bytecode has $2^{h_\textsc{bytecode}}$ instructions), and $h_\textsc{exec}$, $h_\textsc{poseidon}$, $h_\textsc{extension}$ are the log-heights of the three tables (see \Cref{sec:table-sizes}).
+    \item Given a number of bits $n > 0$, and an $n$-bit integer $x$, we denote by $[x]_\text{bits}^n$ its big-endian bit-decomposition in $n$ boolean values. For example, $[14]_\text{bits}^4 = (1, 1, 1, 0)$
+    \item $h_\textsc{memory}$ is the log-size of the (read-only) memory; the memory has $2^{h_\textsc{memory}}$ words (always a power of 2). $h_\textsc{public}$ is the log-size of the public memory (with $h_\textsc{public} \leq h_\textsc{memory}$). $h_\textsc{bytecode}$ is the bytecode log-size (the bytecode has $2^{h_\textsc{bytecode}}$ instructions), and $h_\textsc{exec}$, $h_\textsc{poseidon}$, $h_\textsc{extension}$ are the log-heights of the three tables (see \Cref{sec:table-sizes}).
     \item $\textbf{m}[i]$ is the value of the memory at index $i$. It is defined only for $0 \leq i < 2^{h_\textsc{memory}}$; any out-of-bound access ($i \geq 2^{h_\textsc{memory}}$) makes the execution \emph{invalid}. More generally, any vector of field elements $v$ is indexed starting at $v[0], v[1], \dots$
     \item $\textbf{m}[i..j]$ is the memory slice $(\textbf{m}[i], \textbf{m}[i+1], \ldots, \textbf{m}[j-1])$.
     \item $||$ denotes concatenation of slices.
@@ -111,7 +110,7 @@ See \Cref{sec:signature-aggregation} for more details.
 
 \subsubsection{Multilinear Extension (MLE)}
 
-For a vector of field elements $v \in \mathbb F^{2^n}$ (for some $n \geq 0$), the Multilinear Extension (MLE) of $v$, denoted by $\hat{v}$, is the unique multilinear polynomial in $\mathbb F[X_1, \dots, X_n]$, in $n$ variables, such that: $\forall i \in [0, 2^n), v[i] = \hat{v}([i]_{01})$
+For a vector of field elements $v \in \mathbb F^{2^n}$ (for some $n \geq 0$), the Multilinear Extension (MLE) of $v$, denoted by $\hat{v}$, is the unique multilinear polynomial in $\mathbb F[X_1, \dots, X_n]$, in $n$ variables, such that: $\forall i \in [0, 2^n), v[i] = \hat{v}([i]_\text{bits}^n)$
 
 Throughout, $v$ denotes a vector and $\hat{v}$ its MLE.
 
@@ -195,7 +194,6 @@ Symbol & Value & Description \\
 \midrule
 $h_\textsc{memory}^{\min}$ & $16$ & log2 of the minimum size of the memory \\
 $h_\textsc{memory}^{\max}$ & $26$ & log2 of the maximum size of the memory \\
-$h_\textsc{public}$ & variable, $\leq h_\textsc{memory}$ & log2 of the public memory size \\
 $h^{\min}$ & $8$ & log2 of the minimum height shared by all tables (and by the bytecode) \\
 $h_\textsc{exec}^{\max}$ & $24$ & log2 of the maximum height of the \texttt{execution} table \\
 $h_\textsc{poseidon}^{\max}$ & $21$ & log2 of the maximum height of the \texttt{poseidon} table \\
@@ -709,7 +707,7 @@ These columns serve as the multiplicities of the two corresponding bus pushes:
 
 \paragraph{Hashing tuples to a single field element.} For some $\vec\beta = (\beta_1, \ldots, \beta_\ell) \in \Fq^\ell$ sampled uniformly at random, we define:
 \[
-\pi_{\vec\beta}(\sigma) \;=\; \sum_{i=0}^{\textsf{bus\_width} - 1} \sigma_i \cdot \hat{eq}\big(\vec\beta,\, [i]_{01}\big) \;=\; \hat{\sigma}(\vec\beta).
+\pi_{\vec\beta}(\sigma) \;=\; \sum_{i=0}^{\textsf{bus\_width} - 1} \sigma_i \cdot \hat{eq}\big(\vec\beta,\, [i]_\text{bits}^\ell\big) \;=\; \hat{\sigma}(\vec\beta).
 \]
 By \Cref{lem:sz} applied to the (non-zero) multilinear polynomial $\hat\sigma - \hat{\sigma'}$ in $\ell$ variables, two distinct tuples collide with probability at most $\ell/q$.
 
