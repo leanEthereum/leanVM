@@ -707,32 +707,32 @@ These columns serve as the multiplicities of the two corresponding bus pushes:
 
 \paragraph{Hashing tuples to a single field element.} For some $\vec\beta = (\beta_1, \ldots, \beta_\ell) \in \Fq^\ell$ sampled uniformly at random, we define:
 \[
-h_{\vec\beta}(\sigma) \;=\; \sum_{i=0}^{\textsf{bus\_width} - 1} \sigma_i \cdot \hat{eq}\big(\vec\beta,\, [i]_{01}\big) \;=\; \hat{\sigma}(\vec\beta).
+\pi_{\vec\beta}(\sigma) \;=\; \sum_{i=0}^{\textsf{bus\_width} - 1} \sigma_i \cdot \hat{eq}\big(\vec\beta,\, [i]_{01}\big) \;=\; \hat{\sigma}(\vec\beta).
 \]
 By Lemma~\ref{lem:sz} applied to the (non-zero) multilinear polynomial $\hat\sigma - \hat{\sigma'}$ in $\ell$ variables, two distinct tuples collide with probability at most $\ell/q$.
 
 \paragraph{Bus balance as a rational identity.} Enumerate the bus interactions across all tables as a list of pairs $(\sigma_k, m_k)_{1 \leq k \leq K}$, where $\sigma_k \in \Fp^{\textsf{bus\_width}}$ is the pushed (or pulled) tuple data and $m_k \in \Fp$ is its signed multiplicity (positive for \textsc{Push}, negative for \textsc{Pull}) (where we naturally embedd the integers $(-p, p)$ into $\Fp$). Assume that, for every tuple $\sigma$, both the total pushes and the total pulls of $\sigma$ are strictly less than $p$. Then the bus is balanced if and only if, for every $\sigma$, $\sum_{k \,:\, \sigma_k = \sigma} m_k = 0$, which, for $\vec\beta \overset{\$}{\leftarrow} \Fq^\ell$ and $\gamma \overset{\$}{\leftarrow} \Fq$, is equivalent up to completeness error $K / q$ and soundness error $K \ell / q$ to:
 \begin{equation} \label{eq:logup-sum}
-\sum_{k=1}^{K} \frac{m_k}{\gamma - h_{\vec\beta}(\sigma_k)} \;=\; 0.
+\sum_{k=1}^{K} \frac{m_k}{\gamma - \pi_{\vec\beta}(\sigma_k)} \;=\; 0.
 \end{equation}
 
 \begin{proof}
 (Inspired by \href{https://github.com/openvm-org/stark-backend/blob/main/docs/Soundness_of_Interactions_via_LogUp.pdf}{Soundness of Interactions via LogUp})
 Define the $\Fp$-valued multiset $M(\sigma) = \sum_{k \,:\, \sigma_k = \sigma} m_k$, with support $S = \{\sigma : M(\sigma) \neq 0\}$, of size $s = |S|$. The bus is balanced iff $S = \emptyset$.
 
-\emph{Completeness.} If $S = \emptyset$, then $M(\sigma) = 0$ for every $\sigma$, so the rational sum is identically zero wherever it is defined. The sum is undefined when $\gamma$ coincides with some pole $h_{\vec\beta}(\sigma_k)$, which over uniform $\gamma$ happens with probability at most $K/q$:  the protocol's \emph{completeness error}.
+\emph{Completeness.} If $S = \emptyset$, then $M(\sigma) = 0$ for every $\sigma$, so the rational sum is identically zero wherever it is defined. The sum is undefined when $\gamma$ coincides with some pole $\pi_{\vec\beta}(\sigma_k)$, which over uniform $\gamma$ happens with probability at most $K/q$:  the protocol's \emph{completeness error}.
 
 \emph{Soundness.} Suppose $S \neq \emptyset$, and define
 \[
-N(\vec\beta, \gamma) \;:=\; \sum_{\sigma \in S} M(\sigma) \prod_{\sigma' \in S \setminus \{\sigma\}}\!\big(\gamma - h_{\vec\beta}(\sigma')\big), \qquad Q(\vec\beta, \gamma) \;:=\; \prod_{\sigma \in S}\!\big(\gamma - h_{\vec\beta}(\sigma)\big).
+N(\vec\beta, \gamma) \;:=\; \sum_{\sigma \in S} M(\sigma) \prod_{\sigma' \in S \setminus \{\sigma\}}\!\big(\gamma - \pi_{\vec\beta}(\sigma')\big), \qquad Q(\vec\beta, \gamma) \;:=\; \prod_{\sigma \in S}\!\big(\gamma - \pi_{\vec\beta}(\sigma)\big).
 \]
 Over a common denominator, the rational sum equals $N/Q$. Verifier acceptance requires this fraction to be defined and equal to zero, hence forces $N(\vec\beta, \gamma) = 0$.
 
 \emph{Total degree of $N$.} The degree of $N$, interpreted as multivariable polynomial in $\gamma$ and $\vec\beta$, is at most $(s-1)\ell \leq K \ell$.
 
-\emph{Non-vanishing of $N$.} Pick any $\sigma^\star \in S$ (so $M(\sigma^\star) \neq 0$). To show $N$ is not the zero polynomial in $\Fq[\vec\beta, \gamma]$, substitute the variable $\gamma$ by the polynomial $h_{\vec\beta}(\sigma^\star) \in \Fq[\vec\beta]$. If $N$ were the zero polynomial its image would also be zero. For every $\sigma \in S$ with $\sigma \neq \sigma^\star$, the product $\prod_{\sigma' \in S \setminus \{\sigma\}}$ contains the factor $\gamma - h_{\vec\beta}(\sigma^\star)$ (since $\sigma^\star \in S \setminus \{\sigma\}$), which the substitution sends to $0$; only the $\sigma = \sigma^\star$ summand survives, giving
+\emph{Non-vanishing of $N$.} Pick any $\sigma^\star \in S$ (so $M(\sigma^\star) \neq 0$). To show $N$ is not the zero polynomial in $\Fq[\vec\beta, \gamma]$, substitute the variable $\gamma$ by the polynomial $\pi_{\vec\beta}(\sigma^\star) \in \Fq[\vec\beta]$. If $N$ were the zero polynomial its image would also be zero. For every $\sigma \in S$ with $\sigma \neq \sigma^\star$, the product $\prod_{\sigma' \in S \setminus \{\sigma\}}$ contains the factor $\gamma - \pi_{\vec\beta}(\sigma^\star)$ (since $\sigma^\star \in S \setminus \{\sigma\}$), which the substitution sends to $0$; only the $\sigma = \sigma^\star$ summand survives, giving
 $$
-N\big(\vec\beta,\, h_{\vec\beta}(\sigma^\star)\big) \;=\; M(\sigma^\star) \prod_{\sigma' \in S \setminus \{\sigma^\star\}} (\hat\sigma^\star - \hat\sigma')(\vec\beta) \;\in\; \Fq[\vec\beta].
+N\big(\vec\beta,\, \pi_{\vec\beta}(\sigma^\star)\big) \;=\; M(\sigma^\star) \prod_{\sigma' \in S \setminus \{\sigma^\star\}} (\hat\sigma^\star - \hat\sigma')(\vec\beta) \;\in\; \Fq[\vec\beta].
 $$
 Each factor in this product is the MLE of the non-zero vector $\sigma^\star - \sigma' \in \Fp^{\textsf{bus\_width}}$, hence a non-zero polynomial in $\vec\beta$. Given that $M(\sigma^\star) \neq 0$, $N$ is non-zero in $\Fq[\vec\beta, \gamma]$.
 
@@ -744,7 +744,7 @@ By Lemma~\ref{lem:sz},
 
 \subsubsection{Logup-GKR}
 
-The prover can convince the verifier of the validity of equation \ref{eq:logup-sum} efficiently via GKR \cite{logup_gkr}, and long as the verifier can efficiently evaluate the MLEs of $(m_k)_{k \in [1, K]}$ and $(h_{\vec\beta}(\sigma_k))_{k \in [1, K]}$ (assuming $K$ is a power-of-two, which we can always garantee up to some padding: zeros for numerators, ones for denominators).
+The prover can convince the verifier of the validity of equation \ref{eq:logup-sum} efficiently via GKR \cite{logup_gkr}, and long as the verifier can efficiently evaluate the MLEs of $(m_k)_{k \in [1, K]}$ and $(\pi_{\vec\beta}(\sigma_k))_{k \in [1, K]}$ (assuming $K$ is a power-of-two, which we can always garantee up to some padding: zeros for numerators, ones for denominators).
 
 We briefly recall the GKR construction in this context.
 
@@ -767,7 +767,7 @@ Define the following protocol $GKR(n):$
 
 \subsubsection{Stacking within logup}
 
-In practice, the fingerprinted data $h_{\vec\beta}(\sigma_k)$ and multiplicities $m_k$ come from multiple columns, of potentially different sizes. We stack them in a similar way than Section \label{sec:stacking}. TODO give more details
+In practice, the fingerprinted data $\pi_{\vec\beta}(\sigma_k)$ and multiplicities $m_k$ come from multiple columns, of potentially different sizes. We stack them in a similar way than Section \ref{sec:stacking}. TODO give more details
 
 \subsection{AIR constraints}
 
@@ -1179,7 +1179,7 @@ TODO: Verify and (formally) prove soundness.
 
     \item \textbf{Logup.}
     \begin{enumerate}
-        \item  The verifier samples $\gamma \in \Fq$ and $\vec\alpha \in \Fq^{\ell}$ (bus-tuple hashing seeds, $\ell = \log_2 \textsf{bus\_width}$), used for Equation \ref{eq:logup-sum}.
+        \item  The verifier samples $\gamma \in \Fq$ and $\vec\beta \in \Fq^{\ell}$ (bus-tuple hashing seeds, $\ell = \log_2 \textsf{bus\_width}$), used for Equation~\ref{eq:logup-sum}.
         \item  Run the GKR protocol of Section~\ref{sec:Bus: interractions between table via logup-GKR} to compute the sum of quotients from Equation \ref{eq:logup-sum}. The sum contains terms from: the memory section ($2^{h_\textsc{memory}}$ entries) and the bytecode section ($\max(2^{h_\textsc{bytecode}}, 2^{h_\textsc{exec}})$ entries, padded if $h_\textsc{bytecode} < h_\textsc{exec}$; see Section~\ref{sec:special-pushes}), then, for each table $T$ sorted by descending height, one block of $2^{h_T}$ entries per bus interaction of $T$. Write $h_\textsc{gkr}$ for the log2-ceiling of the resulting total length.
 
         The protocol yields a point $\vec r_\textsc{gkr} \in \Fq^{h_\textsc{gkr}}$ and two scalar claims $(e_\text{num}, e_\text{den})$ on the numerator and denominator MLEs at $\vec r_\textsc{gkr}$.
@@ -1195,7 +1195,7 @@ TODO: Verify and (formally) prove soundness.
 
     \item \textbf{AIR.}
     \begin{enumerate}
-        \item The verifier samples $\alpha_\textsc{air} \in \Fq$. Consecutive powers $1, \alpha_\textsc{air}, \alpha_\textsc{air}^2, \dots$ are used to take a random linear combination of \emph{all} verification constraints across the three tables.
+        \item The verifier samples $\mu \in \Fq$. Consecutive powers $1, \mu, \mu^2, \dots$ are used to take a random linear combination of \emph{all} verification constraints across the three tables.
         \item Prover and verifier run the back-loaded batched zerocheck of Section~\ref{sec:air-eval}, merging the per-table constraint polynomials into a single sumcheck of $h_\textsc{max} := \max_T h_T$ rounds, \emph{crucially reusing $\vec r_\textsc{gkr}$ from the logup step as the zerocheck random challenge (no fresh point is sampled)}. TODO explain why do this, and TODO explain why it's sound. Let $\vec r_\textsc{air} \in \Fq^{h_\textsc{max}}$ denote the sumcheck challenges.
         \item For each table $T$, the prover sends the evaluations of all of $T$'s committed columns and shifted columns at the appropriate suffix of $\vec r_\textsc{air}$. The verifier evaluates $T$'s AIR-constraint polynomial at these column evaluations, which enables to conclude the batched-zerocheck.
     \end{enumerate}
