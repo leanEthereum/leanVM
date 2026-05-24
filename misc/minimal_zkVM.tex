@@ -1456,14 +1456,15 @@ Here $\textsf{Array}(k)$ is a hint: a prover-supplied pointer to a fresh region 
 
 \section{Signature aggregation}\label{sec:signature-aggregation}
 
+XMSS \cite{ethereum_signatures} is a stateful hash-based signature scheme: each signature is bound to a nonce $s$. Aggregated via leanVM, XMSS is a promising candidate as a Post-Quantum replacement for BLS \cite{bls} at the consensus layer of Ethereum.
 
-We need to:
-\begin{itemize}
-     \item \textbf{Aggregate} hash-based signatures (leanXMSS / leanSPHINCS)
-    \item \textbf{Merge} those aggregate signatures $\rightarrow$ recursive proof
-\end{itemize}
+\paragraph{Statement we prove.} Fix a slot $s$, a message $\textsf{msg}$ and a list of public keys $\textsf{pk}_1, \dots, \textsf{pk}_K$. In Ethereum Consensus' setting, $s$ is the current consensus slot and $\textsf{msg}$ is the block hash. The aggregation proof attests knowledge soundness of:
+\[
+    \exists\, \sigma_1, \dots, \sigma_K \;\;\text{such that}\;\; \textsf{XMSS.Verify}(\textsf{pk}_k,\, \textsf{msg},\, s,\, \sigma_k) = \textsc{true} \quad \text{for every } k \in [1, K].
+\]
+The proof's public input is $(s,\, \textsf{msg},\, \textsf{pk}_1, \dots, \textsf{pk}_K)$; the individual signatures are part of the witness.
 
-Aggregation and merging are unified in a single program, that attests knowledge of a list of signatures corresponding to a list of (message, publickey) pairs. In the case the consensus: a single message (block hash) is shared by all signers, at a given slot.
+We need to support recursive aggregation: being able to further aggregate a list of previously aggregated signatures.
 
 \begin{figure}[ht]
 \centering
@@ -1531,7 +1532,33 @@ Aggregation and merging are unified in a single program, that attests knowledge 
 
 The recursive aggregation program (see Figure~\ref{fig:recursive-aggregation}) attests that a set of public keys have valid signatures for a given message. It partitions the signers into $n_{\text{rec}} + 1$ sources: one \textbf{direct source} whose XMSS signatures are verified explicitly, and $n_{\text{rec}} \geq 0$ \textbf{recursive sources}, each accompanied by a sub-proof that is recursively verified.
 
-For each recursive source, the program runs the leanVM verifier on the provided sub-proof, confirming that the sub-proof itself is a valid recursive aggregation proof covering the source's signers. When $n_{\text{rec}} = 0$, the program simply verifies all signatures directly.
+
+\begin{framed}
+\small
+\begin{verbatim}
+def aggregate(slot, msg, pks):       # msg:message, pks: public keys
+
+    # the prover partitions pks into 1 direct subset + n_rec recursive subsets
+    direct = hint()                  # subset of pks to verify directly
+    n_rec  = hint()                  # number of recursive groups
+    groups = hint()                  # groups[j] = subset of pks for j = 0..n_rec-1
+
+    for pk in direct:
+        sig = hint()
+        assert XMSS.Verify(pk, msg, slot, sig)
+
+    for j in range(n_rec):
+        sub_proof = hint()
+        assert leanVM.Verify(
+            bytecode      = THIS_PROGRAM,  # self-dependency, see section below
+            public_input  = (slot, msg, groups[j]),
+            proof         = sub_proof,
+        )
+
+    # every pk in pks must appear in direct or in some groups[j]
+    assert_full_coverage(pks, direct, groups)
+\end{verbatim}
+\end{framed}
 
 \subsubsection{Bytecode evaluation claims}\label{sec:bytecode-reduction}
 
