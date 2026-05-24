@@ -926,6 +926,8 @@ $\textsf{flag}_\textsf{precompile}$ is the selector for the precompile bus push 
     \end{itemize}
 \end{itemize}
 
+\paragraph{Well-formed-bytecode assumption.} The constraints above assume each instruction is well-formed.
+
 TODO: Verify and (formally) prove completeness + soundness.
 
 \subsubsection{Bus interactions}\label{sec:execution-bus}
@@ -1030,23 +1032,23 @@ Each extension field operation occupies $N$ consecutive rows, where $N$ is the l
 \textsf{flag\_be} & \textsf{flag\_start} & $\textsf{flag\_add}$ & $\textsf{flag\_dot\_product}$ & $\textsf{flag\_eq}$ & \textsf{len} & $\textsf{idx}_A$ & $\textsf{idx}_B$ & $\textsf{idx}_R$ & $v_A$ \tiny{(5 columns)} & $v_B$ \tiny{(5 columns)} & \textsf{res} \tiny{(5 columns)} & \textsf{acc} \tiny{(5 columns)} & & $\textsf{aux}_2$ \\
 \midrule
 \multicolumn{15}{l}{\textit{DOT\_PRODUCT, base $\times$ extension, $N\!=\!4$ ($\nu_A\!=\!90$, $\nu_B\!=\!211$, $\nu_C\!=\!74$): \quad $\textsf{res} = \sum_{i=0}^{3} \textbf{m}[90\!+\!i] \cdot \textbf{m}[211\!+\!5i..216\!+\!5i]$}} \\[2pt]
-1 & 1 & 0 & 1 & 0 & 4 & 90  & 211 & 74 & $\textbf{m}[90..95]$  & $\textbf{m}[211..216]$ & $\textbf{m}[74..79]$ & $e_0\!+\!e_1\!+\!e_2\!+\!e_3$ & & 138 \\
-1 & 0 & 0 & 1 & 0 & 3 & 91  & 216 & 74 & $\textbf{m}[91..96]$  & $\textbf{m}[216..221]$ & $\textbf{m}[74..79]$ & $e_1\!+\!e_2\!+\!e_3$       & & 106 \\
-1 & 0 & 0 & 1 & 0 & 2 & 92  & 221 & 74 & $\textbf{m}[92..97]$  & $\textbf{m}[221..226]$ & $\textbf{m}[74..79]$ & $e_2\!+\!e_3$               & & 74 \\
-1 & 0 & 0 & 1 & 0 & 1 & 93  & 226 & 74 & $\textbf{m}[93..98]$  & $\textbf{m}[226..231]$ & $\textbf{m}[74..79]$ & $e_3$                       & & 42  \\
+1 & 1 & 0 & 1 & 0 & 4 & 90  & 211 & 74 & $\textbf{m}[90..95]$  & $\textbf{m}[211..216]$ & $\textbf{m}[74..79]$ & $e_0\!+\!e_1\!+\!e_2\!+\!e_3$ & & 276 \\
+1 & 0 & 0 & 1 & 0 & 3 & 91  & 216 & 74 & $\textbf{m}[91..96]$  & $\textbf{m}[216..221]$ & $\textbf{m}[74..79]$ & $e_1\!+\!e_2\!+\!e_3$       & & 212 \\
+1 & 0 & 0 & 1 & 0 & 2 & 92  & 221 & 74 & $\textbf{m}[92..97]$  & $\textbf{m}[221..226]$ & $\textbf{m}[74..79]$ & $e_2\!+\!e_3$               & & 148 \\
+1 & 0 & 0 & 1 & 0 & 1 & 93  & 226 & 74 & $\textbf{m}[93..98]$  & $\textbf{m}[226..231]$ & $\textbf{m}[74..79]$ & $e_3$                       & & 84  \\
 \midrule
 \multicolumn{15}{l}{\textit{ADD, extension $\times$ extension, $N\!=\!3$ ($\nu_A\!=\!400$, $\nu_B\!=\!500$, $\nu_C\!=\!300$): \quad $\textsf{res} = \sum_{i=0}^{2} (\textbf{m}[400\!+\!5i..405\!+\!5i] + \textbf{m}[500\!+\!5i..505\!+\!5i])$}} \\[2pt]
-0 & 1 & 1 & 0 & 0 & 3 & 400 & 500 & 300 & $\textbf{m}[400..405]$ & $\textbf{m}[500..505]$ & $\textbf{m}[300..305]$ & $e_0\!+\!e_1\!+\!e_2$ & & 100 \\
-0 & 0 & 1 & 0 & 0 & 2 & 405 & 505 & 300 & $\textbf{m}[405..410]$ & $\textbf{m}[505..510]$ & $\textbf{m}[300..305]$ & $e_1\!+\!e_2$         & & 68 \\
-0 & 0 & 1 & 0 & 0 & 1 & 410 & 510 & 300 & $\textbf{m}[410..415]$ & $\textbf{m}[510..515]$ & $\textbf{m}[300..305]$ & $e_2$                 & & 36 \\
+0 & 1 & 1 & 0 & 0 & 3 & 400 & 500 & 300 & $\textbf{m}[400..405]$ & $\textbf{m}[500..505]$ & $\textbf{m}[300..305]$ & $e_0\!+\!e_1\!+\!e_2$ & & 200 \\
+0 & 0 & 1 & 0 & 0 & 2 & 405 & 505 & 300 & $\textbf{m}[405..410]$ & $\textbf{m}[505..510]$ & $\textbf{m}[300..305]$ & $e_1\!+\!e_2$         & & 136 \\
+0 & 0 & 1 & 0 & 0 & 1 & 410 & 510 & 300 & $\textbf{m}[410..415]$ & $\textbf{m}[510..515]$ & $\textbf{m}[300..305]$ & $e_2$                 & & 72 \\
 \midrule
 \multicolumn{15}{l}{\textit{EQ, extension $\times$ extension, $N\!=\!3$ ($\nu_A\!=\!600$, $\nu_B\!=\!700$, $\nu_C\!=\!800$): \quad $\textsf{res} = \prod_{i=0}^{2} [a_i b_i + (1\!-\!a_i)(1\!-\!b_i)]$}} \\[2pt]
-0 & 1 & 0 & 0 & 1 & 3 & 600 & 700 & 800 & $\textbf{m}[600..605]$ & $\textbf{m}[700..705]$ & $\textbf{m}[800..805]$ & $e_0 \cdot e_1 \cdot e_2$ & & 112 \\
-0 & 0 & 0 & 0 & 1 & 2 & 605 & 705 & 800 & $\textbf{m}[605..610]$ & $\textbf{m}[705..710]$ & $\textbf{m}[800..805]$ & $e_1 \cdot e_2$           & & 80 \\
-0 & 0 & 0 & 0 & 1 & 1 & 610 & 710 & 800 & $\textbf{m}[610..615]$ & $\textbf{m}[710..715]$ & $\textbf{m}[800..805]$ & $e_2$                     & & 48 \\
+0 & 1 & 0 & 0 & 1 & 3 & 600 & 700 & 800 & $\textbf{m}[600..605]$ & $\textbf{m}[700..705]$ & $\textbf{m}[800..805]$ & $e_0 \cdot e_1 \cdot e_2$ & & 224 \\
+0 & 0 & 0 & 0 & 1 & 2 & 605 & 705 & 800 & $\textbf{m}[605..610]$ & $\textbf{m}[705..710]$ & $\textbf{m}[800..805]$ & $e_1 \cdot e_2$           & & 160 \\
+0 & 0 & 0 & 0 & 1 & 1 & 610 & 710 & 800 & $\textbf{m}[610..615]$ & $\textbf{m}[710..715]$ & $\textbf{m}[800..805]$ & $e_2$                     & & 96 \\
 \midrule
 \multicolumn{15}{l}{\textit{Padding row}} \\[2pt]
-0 & 1 & 0 & 0 & 0 & 1 & 0   & 0   & 0   & $\textbf{m}[0..5]$ & $\textbf{m}[0..5]$ & $\textbf{m}[0..5]$ & 0 & & 32 \\
+0 & 1 & 0 & 0 & 0 & 1 & 0   & 0   & 0   & $\textbf{m}[0..5]$ & $\textbf{m}[0..5]$ & $\textbf{m}[0..5]$ & 0 & & 64 \\
 \bottomrule
 \end{tabular}%
 }
@@ -1082,7 +1084,7 @@ Virtual (non-committed) columns: $\textsf{multiplicity} = \textsf{flag\_start} \
 \[
 \textsc{Pull}\big(\textsf{idx}_A,\, \textsf{idx}_B,\, \textsf{idx}_R,\, 0_{12},\, \textsf{aux}_2\big) \quad \text{with multiplicity } \textsf{multiplicity},
 \]
-The domain separator $\textsf{aux}_2$ binds the mode and length to the bus data: since $\textsf{flag\_be}, \textsf{flag\_add}, \textsf{flag\_dot\_product}, \textsf{flag\_eq}$ are boolean and the length is $\leq 2^{20}$ (Lemma~\ref{lem:len-bound}), the encoding is injective, so every $\textsf{aux}_2$ sent by the execution table is faithfully received here.
+The domain separator $\textsf{aux}_2$ binds the mode and length to the bus data: since $\textsf{flag\_be}, \textsf{flag\_add}, \textsf{flag\_dot\_product}, \textsf{flag\_eq}$ are boolean and the length is $\leq 2^{21}$ (Lemma~\ref{lem:len-bound}), the encoding is injective, so every $\textsf{aux}_2$ sent by the execution table is faithfully received here.
 
 
 \subsubsection{AIR constraints}
@@ -1138,7 +1140,7 @@ By backward induction on $r$, from $r = H - 1$ down to $r = 0$.
 
 \vspace{2mm}
 
-\textbf{Base case ($r = H - 1$):} On the wrapping pair (row $H\!-\!1$ paired with itself, see Section~\ref{sec:air-eval}), $\text{next}(x) = x$ for every column $x$. Constraint~\eqref{c:len-countdown} becomes $(1 - \textsf{flag\_start}) \cdot (\textsf{len} - \textsf{len} - 1) = -(1 - \textsf{flag\_start}) = 0$, forcing $\textsf{flag\_start}_{H-1} = 1$ (which is itself in $\{0, 1\}$ by~\eqref{c:bool-flags} applied to $f = \textsf{flag\_start}$). Then \eqref{c:len-boundary} becomes $1 \cdot (\textsf{len} - 1) = 0$, giving $\textsf{len}_{H-1} = 1 = H - (H-1)$.
+\textbf{Base case ($r = H - 1$):} On the wrapping pair (row $H\!-\!1$ paired with itself, see Section~\ref{sec:next-mle}), $\text{next}(x) = x$ for every column $x$. Constraint~\eqref{c:len-countdown} becomes $(1 - \textsf{flag\_start}) \cdot (\textsf{len} - \textsf{len} - 1) = -(1 - \textsf{flag\_start}) = 0$, forcing $\textsf{flag\_start}_{H-1} = 1$ (which is itself in $\{0, 1\}$ by~\eqref{c:bool-flags} applied to $f = \textsf{flag\_start}$). Then \eqref{c:len-boundary} becomes $1 \cdot (\textsf{len} - 1) = 0$, giving $\textsf{len}_{H-1} = 1 = H - (H-1)$.
 
 \vspace{2mm}
 
@@ -1197,11 +1199,13 @@ TODO: Verify and (formally) prove soundness.
     \item \textbf{AIR.}
     \begin{enumerate}
         \item The verifier samples $\mu \in \Fq$. Consecutive powers $1, \mu, \mu^2, \dots$ are used to take a random linear combination of \emph{all} verification constraints across the three tables.
-        \item Prover and verifier run the back-loaded batched zerocheck of Section~\ref{sec:air-eval}, merging the per-table constraint polynomials into a single sumcheck of $h_\textsc{max} := \max_T h_T$ rounds, \emph{crucially reusing $\vec r_\textsc{gkr}$ from the logup step as the zerocheck random challenge (no fresh point is sampled)}. TODO explain why do this, and TODO explain why it's sound. Let $\vec r_\textsc{air} \in \Fq^{h_\textsc{max}}$ denote the sumcheck challenges.
+        \item Prover and verifier run the back-loaded batched zerocheck of Section~\ref{sec:air-eval}, merging the per-table constraint polynomials into a single sumcheck of $h_\textsc{max} := \max_T h_T$ rounds, \emph{crucially reusing the suffix of $\vec r_\textsc{gkr}$ of length $h_\textsc{max}$ from the logup step as the zerocheck random challenge (no fresh point is sampled)}. TODO explain why do this, and TODO explain why it's sound. Let $\vec r_\textsc{air} \in \Fq^{h_\textsc{max}}$ denote the sumcheck challenges.
         \item For each table $T$, the prover sends the evaluations of all of $T$'s committed columns and shifted columns at the appropriate suffix of $\vec r_\textsc{air}$. The verifier evaluates $T$'s AIR-constraint polynomial at these column evaluations, which enables to conclude the batched-zerocheck.
     \end{enumerate}
 
     \item \textbf{Public-memory consistency.} The verifier samples $\vec r_\textsc{pub} \in \Fq^{h_\textsc{public}}$ and evaluates $\textsf{public\_input}$ (zero-padded to length $2^{h_\textsc{public}}$) as a multilinear polynomial at $\vec r_\textsc{pub}$, obtaining $v_\textsc{pub} \in \Fq$. The pair $(\vec r_\textsc{pub}, v_\textsc{pub})$ is queued as an opening claim on the initial $2^{h_\textsc{public}}$-cell prefix of the committed memory polynomial, to be discharged by the WHIR step below (Lemma~\ref{lem:sz}).
+
+    \item \textbf{Boundary pc.} To ensure a valid initial / final program counter, we add two opening claims on the \textbf{pc} column of the \textsc{execution} table: $\hat{\textbf{pc}}(0, \ldots, 0) = 0$ and $\hat{\textbf{pc}}(1, \ldots, 1) = 2^{h_\textsc{bytecode}} - 1$ (handled by WHIR bellow).
 
     \item \textbf{WHIR opening.} The prover and verifier run a single WHIR verification on the stacked commitment of step~2 against the list of evaluation claims (including shifted ones) gathered so far.
 
