@@ -194,10 +194,10 @@ Symbol & Value & Description \\
 $h_\textsc{memory}^{\min}$ & $16$ & log2 of the minimum size of the memory \\
 $h_\textsc{memory}^{\max}$ & $26$ & log2 of the maximum size of the memory \\
 $h_\textsc{public}$ & variable, $\leq h_\textsc{memory}$ & log2 of the public memory size \\
-$h^{min}$ & 8 & log2 of the minimum number of rows in any table \\
-$h^{max}_\text{execution}$ & 24 & log2 of the maximum of rows in the \texttt{execution} table \\
-$h^{max}_\text{poseidon}$ & 21 & log2 of the maximum of rows in the \texttt{poseidon} table \\
-$h^{max}_\text{extension}$ & 21 & log2 of the maximum of rows in the \texttt{extension} table \\
+$h^{\min}$ & $8$ & log2 of the minimum height shared by all tables (and by the bytecode) \\
+$h_\textsc{exec}^{\max}$ & $24$ & log2 of the maximum height of the \texttt{execution} table \\
+$h_\textsc{poseidon}^{\max}$ & $21$ & log2 of the maximum height of the \texttt{poseidon} table \\
+$h_\textsc{extension}^{\max}$ & $21$ & log2 of the maximum height of the \texttt{extension} table \\
 $\textsf{bus\_width}$ & 16 & number of field elements in the bus (see Section~\ref{sec:Bus: interractions between table via logup-GKR}) \\
 $\ell$ & 4 & $\log_2(\textsf{bus\_width})$ \\
 $\textsf{memory\_sep}$ & 1 & domain separator of memory interactions \\
@@ -205,6 +205,8 @@ $\textsf{bytecode\_sep}$ & 2 & domain separator of bytecode interactions \\
 $n_{cols}^{execution}$ & 20 & number of columns in the \texttt{execution} table \\
 $f_0^\text{whir}$ & 7 & WHIR initial folding factor \\
 $f_{>0}$ & 7 & WHIR subsequent folding factor \\
+$\textsf{log\_inv\_rate}^{\min}$ & $1$ & minimum value of $\textsf{log\_inv\_rate}$ (WHIR) \\
+$\textsf{log\_inv\_rate}^{\max}$ & $4$ & maximum value of $\textsf{log\_inv\_rate}$ \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -1150,6 +1152,60 @@ By backward induction on $r$, from $r = H - 1$ down to $r = 0$.
 \vspace{3mm}
 
 TODO: Verify and (formally) prove soundness.
+
+\subsection{End-to-end protocol}\label{sec:verify-protocol}
+
+The protocol below is presented as an interactive protocol; the non-interactive version uses the standard Fiat-Shamir compilation (see TODO).
+
+\vspace{2mm}
+
+\noindent\fbox{%
+\begin{minipage}{0.97\textwidth}
+\textbf{Verification parameters (known to both prover and verifier).}
+\begin{itemize}
+    \item $\textsf{bytecode}$: the bytecode of the program being executed (Section~\ref{sec:opcode-encoding}), of size $2^{h_\textsc{bytecode}}$.
+    \item $\textsf{public\_input}$: the initial public part of the memory, occupying cells $[0,\, 2^{h_\textsc{public}})$.
+\end{itemize}
+\end{minipage}}
+
+\vspace{3mm}
+
+\begin{enumerate}
+    \item \textbf{Dimensions.} 
+    The prover sends $(\textsf{log\_inv\_rate},\, h_\textsc{memory},\, h_\textsc{exec},\, h_\textsc{poseidon},\, h_\textsc{extension})$.
+    
+    The verifier checks: $\textsf{log\_inv\_rate}^{\min} \leq \textsf{log\_inv\_rate} \leq \textsf{log\_inv\_rate}^{\max}$ (i.e.\ $1 \leq \textsf{log\_inv\_rate} \leq 4$); $h^{\min} \leq h_T \leq h_T^{\max}$ for each $T \in \{\textsc{exec}, \textsc{poseidon}, \textsc{extension}\}$ (Section~\ref{sec:table-sizes}); $h_\textsc{memory}^{\min} \leq h_\textsc{memory} \leq h_\textsc{memory}^{\max}$; $h_\textsc{bytecode} \geq h^{\min}$; and $h_\textsc{memory} \geq \max(h_\textsc{bytecode} ,\, h_\textsc{public}\, h_\textsc{exec},\, h_\textsc{poseidon},\, h_\textsc{extension})$.
+
+    \item \textbf{Stacked commitment.} The prover commits via WHIR \cite{whir} to a single multilinear polynomial stacking the memory $\textbf{m}$, the access counts $\textsf{memory\_acc}$ and $\textsf{bytecode\_acc}$, and all committed columns of the three tables.
+
+    \item \textbf{Logup.}
+    \begin{enumerate}
+        \item  The verifier samples $\gamma \in \Fq$ and $\vec\alpha \in \Fq^{\ell}$ (bus-tuple hashing seeds, $\ell = \log_2 \textsf{bus\_width}$), used for Equation \ref{eq:logup-sum}.
+        \item  Run the GKR protocol of Section~\ref{sec:Bus: interractions between table via logup-GKR} to compute the sum of quotients from Equation \ref{eq:logup-sum}. The sum contains terms from: the memory section ($2^{h_\textsc{memory}}$ entries) and the bytecode section ($\max(2^{h_\textsc{bytecode}}, 2^{h_\textsc{exec}})$ entries, padded if $h_\textsc{bytecode} < h_\textsc{exec}$; see Section~\ref{sec:special-pushes}), then, for each table $T$ sorted by descending height, one block of $2^{h_T}$ entries per bus interaction of $T$. Write $h_\textsc{gkr}$ for the log2-ceiling of the resulting total length.
+
+        The protocol yields a point $\vec r_\textsc{gkr} \in \Fq^{h_\textsc{gkr}}$ and two scalar claims $(e_\text{num}, e_\text{den})$ on the numerator and denominator MLEs at $\vec r_\textsc{gkr}$.
+
+         \item The prover sends, at the appropriate suffixes of $\vec r_\textsc{gkr}$:
+    \begin{itemize}
+        \item the evaluations of $\textsf{memory\_acc}$ and $\textbf{m}$ for the memory section;
+        \item the evaluation of $\textsf{bytecode\_acc}$ for the bytecode section;
+        \item for each table $T$ and each bus interaction of $T$, the per-column evaluations needed to reconstruct that bus's numerator/denominator contribution.
+    \end{itemize}
+    The verifier recombines these evaluations into a claimed total numerator and denominator and checks they equal $(e_\text{num}, e_\text{den})$.
+    \end{enumerate}
+
+    \item \textbf{AIR.}
+    \begin{enumerate}
+        \item The verifier samples $\alpha_\textsc{air} \in \Fq$. Consecutive powers $1, \alpha_\textsc{air}, \alpha_\textsc{air}^2, \dots$ are used to take a random linear combination of \emph{all} verification constraints across the three tables.
+        \item Prover and verifier run the back-loaded batched zerocheck of Section~\ref{sec:air-eval}, merging the per-table constraint polynomials into a single sumcheck of $h_\textsc{max} := \max_T h_T$ rounds, \emph{crucially reusing $\vec r_\textsc{gkr}$ from the logup step as the zerocheck random challenge (no fresh point is sampled)}. TODO explain why do this, and TODO explain why it's sound. Let $\vec r_\textsc{air} \in \Fq^{h_\textsc{max}}$ denote the sumcheck challenges.
+        \item For each table $T$, the prover sends the evaluations of all of $T$'s committed columns and shifted columns at the appropriate suffix of $\vec r_\textsc{air}$. The verifier evaluates $T$'s AIR-constraint polynomial at these column evaluations, which enables to conclude the batched-zerocheck.
+    \end{enumerate}
+
+    \item \textbf{Public-memory consistency.} The verifier samples $\vec r_\textsc{pub} \in \Fq^{h_\textsc{public}}$ and evaluates $\textsf{public\_input}$ (zero-padded to length $2^{h_\textsc{public}}$) as a multilinear polynomial at $\vec r_\textsc{pub}$, obtaining $v_\textsc{pub} \in \Fq$. The pair $(\vec r_\textsc{pub}, v_\textsc{pub})$ is queued as an opening claim on the initial $2^{h_\textsc{public}}$-cell prefix of the committed memory polynomial, to be discharged by the WHIR step below (Lemma~\ref{lem:sz}).
+
+    \item \textbf{WHIR opening.} The prover and verifier run a single WHIR verification on the stacked commitment of step~2 against the list of evaluation claims (including shifted ones) gathered so far.
+
+\end{enumerate}
 
 
 \section{ISA programming}
