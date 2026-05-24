@@ -1288,7 +1288,7 @@ Every call operates on a fresh contiguous block of $s$ memory cells: its \emph{f
 \paragraph{No allocation pointer.} Cairo \cite{cairo} keeps a register $\textbf{ap}$ pointing to the next free memory cell. leanVM does not: the write-once memory (Section~\ref{sec:memory}) prevents any frame from overwriting previously-written data. And since a function's internal logic should only depend on its inputs, not on where its frame happens to land, the exact value of $\textbf{fp}_\text{callee}$ does not matter to the verifier.
 
 
-\subsection{Loops}\label{loops}
+\subsection{Loops}\label{sec:loops}
 
 We suggest to unroll loops when the number of iterations is low, and known at compile time.
 
@@ -1408,6 +1408,49 @@ Computing the $x$-th decimal digit of $\pi = 3.1415\dots$ for $x \in \{0, 1, 2, 
 \end{verbatim}
 \end{framed}
 
+\end{exmp}
+
+\subsection{Compiling from a high-level zkDSL}\label{sec:zkdsl-to-ssa}
+
+A high-level zkDSL (with mutable variables, loops, and conditionals) can be compiled to the ISA, by systematically translating mutation into \emph{Static Single-Assignment} (SSA) form, and every loop by a recursive function (Section~\ref{sec:loops}).
+
+\begin{exmp}
+\begin{framed}
+\small
+\noindent
+\begin{minipage}[t]{0.42\textwidth}
+\textit{source}
+\begin{verbatim}
+def func(n):
+    x: Mut = 1
+    x += 2
+    x = x * 4
+    for i in range(0, n):
+        x += i
+    return x
+\end{verbatim}
+\end{minipage}%
+\begin{minipage}[t]{0.46\textwidth}
+\textit{after an intial compilation pass}
+\begin{verbatim}
+def func(n):
+    x1 = 1
+    x2 = x1 + 2
+    x3 = x2 * 4
+    x_buff = Array(n + 1)
+    x_buff[0] = x3
+    loop(0, n, x_buff)
+    return x_buff[n]
+
+def loop(i, n, x_buff):
+    if i == n:
+        return
+    x_buff[i+1] = x_buff[i] + i
+    loop(i + 1, n, x_buff)
+\end{verbatim}
+\end{minipage}
+\end{framed}
+Here $\textsf{Array}(k)$ is a hint: a prover-supplied pointer to a fresh region of $k$ memory cells.
 \end{exmp}
 
 
