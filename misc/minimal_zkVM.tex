@@ -52,7 +52,7 @@
 \section{Introduction}
 Ethereum's cryptography currently relies on elliptic curves, which are known to be vulnerable to quantum computers \cite{shor}.
 
-LeanVM is a verifiable Virtual Machine (also called zkVM for "zero knowledge VM"). It uses a minimal ISA (Intruction Set Architecture) inspired by Cairo \cite{cairo}.
+LeanVM is a verifiable Virtual Machine (also called zkVM for "zero knowledge VM"). It uses a minimal ISA (Instruction Set Architecture) inspired by Cairo \cite{cairo}.
 \begin{itemize}
     \item It's hash-based (WHIR \cite{whir}): plausibly post-quantum, conceptually simple
     \item It's multilinear: the trace is committed as a single multilinear polynomial (reducing proof size), and constraints are proven via sumcheck \cite{sumcheck}
@@ -66,7 +66,7 @@ LeanVM is optimized to provide a post-quantum alternative for each of the three 
 \subsection{Consensus Layer}
 \begin{itemize}
     \item \textbf{Currently (pre-quantum):} BLS \cite{bls}: lightweight signatures of 96 bytes, with native support for aggregation.
-    \item \textbf{With LeanVM (post-quantum):} Replace BLS by XMSS over poseidon \cite{ethereum_signatures} (leanXMSS). Aggregate those signatures using leanVM. Already aggregated signatures can be further merged, via recursion. XMSS is a statefull signature scheme, but Ethereum's slot can be used a nonce (double signing is already prevented).
+    \item \textbf{With LeanVM (post-quantum):} Replace BLS by XMSS over Poseidon \cite{ethereum_signatures} (leanXMSS). Aggregate those signatures using leanVM. Already aggregated signatures can be further merged, via recursion. XMSS is a stateful signature scheme, but Ethereum's slot can be used as a nonce (double signing is already prevented).
 \end{itemize}
 
 See \ref{sec:signature-aggregation} for more details.
@@ -83,7 +83,7 @@ See \ref{sec:signature-aggregation} for more details.
 
 \begin{itemize}
     \item \textbf{Currently (pre-quantum):} KZG polynomial commitment scheme \cite{kzg}
-    \item \textbf{With LeanVM (post-quantum):} Read-Solomon encode and Merkle-commit the codeword, for each blob. Prove the claimed Merkle Root was correctly computed using leanVM.
+    \item \textbf{With LeanVM (post-quantum):} Reed-Solomon encode and Merkle-commit the codeword, for each blob. Prove the claimed Merkle Root was correctly computed using leanVM.
 \end{itemize}
 
 \section{Preliminaries}
@@ -92,9 +92,10 @@ See \ref{sec:signature-aggregation} for more details.
 
 \begin{itemize}
     \item $[a, b] = \{a, a + 1, \ldots, b\}$
-    \item $[a, b) = \{a, a + 1, \ldots, b-1\}$    \item $\hat{eq}(x, y) = x y + (1 - x)(1 - y)$
+    \item $[a, b) = \{a, a + 1, \ldots, b-1\}$
+    \item $\hat{eq}(x, y) = x y + (1 - x)(1 - y)$
     \item \label{sec:preliminaries-embed} $\mathsf{embed}(x_1, x_2, x_3, x_4, x_5)$ is the extension field element built from 5 base field elements: $x_1 + x_2 X + x_3 X^2 + x_4 X^3 + x_5 X^4$, using $X^5 + X^2 - 1$ as the irreducible polynomial defining the extension (see Section~\ref{sec:field}).
-    \item Given a number of bits $n > 0$, and an $n$-bit iteger $x$, we denote by $[x]_{01}$ its big-endian bit-decomposion in $n$ boolean values. For example, $[14]_{01} = (1, 1, 1, 0)$
+    \item Given a number of bits $n > 0$, and an $n$-bit integer $x$, we denote by $[x]_{01}$ its big-endian bit-decomposition in $n$ boolean values. For example, $[14]_{01} = (1, 1, 1, 0)$
     
     \item $h_\textsc{memory}$ is the log-size of the (read-only) memory; the memory has $2^{h_\textsc{memory}}$ words (always a power of 2). $h_\textsc{bytecode}$ is the bytecode log-size (the bytecode has $2^{h_\textsc{bytecode}}$ instructions), and $h_\textsc{exec}$, $h_\textsc{poseidon}$, $h_\textsc{extension}$ are the log-heights of the three tables (see Section~\ref{sec:table-sizes}).
     \item $\textbf{m}[i]$ is the value of the memory at index $i$. It is defined only for $0 \leq i < 2^{h_\textsc{memory}}$; any out-of-bound access ($i \geq 2^{h_\textsc{memory}}$) makes the execution \emph{invalid}. More generally, any vector of field elements $v$ is indexed starting at $v[0], v[1], \dots$
@@ -123,7 +124,7 @@ An \emph{$\Fp$-valued multiset} over a set $X$ is a function $M : X \to \Fp$ ass
 
 \subsubsection{Inner Product Commitment Scheme}\label{sec:inner_product_PCS}
 
-An \textit{Inner Product Commitment Scheme} is an interractive protocol where a prover commits to a vector of field elements $v \in \Fp^{2^n}$ (for some $n \geq 0$), and later convince a verifier of the evaluation of $\sum_{i = 0}^{2^n} v[i] \cdot x[i]$ for some arbitrary vector $x \in \Fq^{2^n}$, assuming the verifier is able to evaluate the MLE of $x$.
+An \textit{Inner Product Commitment Scheme} is an interactive protocol where a prover commits to a vector of field elements $v \in \Fp^{2^n}$ (for some $n \geq 0$), and later convinces a verifier of the evaluation of $\sum_{i = 0}^{2^n - 1} v[i] \cdot x[i]$ for some arbitrary vector $x \in \Fq^{2^n}$, assuming the verifier is able to evaluate the MLE of $x$.
 
 WHIR \cite{whir} is an example of Inner Product Commitment Scheme.
 
@@ -135,7 +136,7 @@ WHIR \cite{whir} is an example of Inner Product Commitment Scheme.
 Given a vector $v \in \Fp^{2^n}$, we define $\mathsf{shift}(v)  \in \Fp^{2^n}$ by $\mathsf{shift}(v)[2^n - 1] = v[2^n - 1]$ and:
 
 $$
-\forall i [0, 2^n - 1), \mathsf{shift}(v)[i] = v[i + 1]
+\forall i \in [0, 2^n - 1), \mathsf{shift}(v)[i] = v[i + 1]
 $$
 
 \subsubsection{The next multilinear}\label{sec:next-mle}
@@ -198,13 +199,13 @@ $h^{\min}$ & $8$ & log2 of the minimum height shared by all tables (and by the b
 $h_\textsc{exec}^{\max}$ & $24$ & log2 of the maximum height of the \texttt{execution} table \\
 $h_\textsc{poseidon}^{\max}$ & $21$ & log2 of the maximum height of the \texttt{poseidon} table \\
 $h_\textsc{extension}^{\max}$ & $21$ & log2 of the maximum height of the \texttt{extension} table \\
-$\textsf{bus\_width}$ & 16 & number of field elements in the bus (see Section~\ref{sec:Bus: interractions between table via logup-GKR}) \\
+$\textsf{bus\_width}$ & 16 & number of field elements in the bus (see Section~\ref{sec:bus-interactions}) \\
 $\ell$ & 4 & $\log_2(\textsf{bus\_width})$ \\
 $\textsf{memory\_sep}$ & 1 & domain separator of memory interactions \\
 $\textsf{bytecode\_sep}$ & 2 & domain separator of bytecode interactions \\
 $n_{cols}^{execution}$ & 20 & number of columns in the \texttt{execution} table \\
 $f_0^\text{whir}$ & 7 & WHIR initial folding factor \\
-$f_{>0}$ & 7 & WHIR subsequent folding factor \\
+$f_{>0}^\text{whir}$ & 5 & WHIR subsequent folding factor \\
 $\textsf{log\_inv\_rate}^{\min}$ & $1$ & minimum value of $\textsf{log\_inv\_rate}$ (WHIR) \\
 $\textsf{log\_inv\_rate}^{\max}$ & $4$ & maximum value of $\textsf{log\_inv\_rate}$ \\
 \bottomrule
@@ -247,7 +248,7 @@ We use a read-only memory (also called write-once memory). Each memory word is a
 
 \subsection{Bytecode}
 
-The bytecode is also read-only, and also has a power of two size. It lives in a separate region than the memory (Harvard architecture). Both prover and verifier are expected to have access to the bytecode. Each bytecode specifies the public-memory log-size $h_\textsc{public}$. For a bytecode of size $2^{h_\textsc{bytecode}}$, a valid execution should start at $\textbf{pc} = 0$, and ends at $\textbf{pc} = 2^{h_\textsc{bytecode}} - 1$. In practice, it is suggested to use for the last instruction (at index $2^{h_\textsc{bytecode}} - 1$) a \texttt{JUMP} (\ref{sec:jump}) that inconditionally jumps to itself (for padding reasons within the snark). The minimal bytecode log-size is $h^{\min}$.
+The bytecode is also read-only, and also has a power of two size. It lives in a separate region than the memory (Harvard architecture). Both prover and verifier are expected to have access to the bytecode. Each bytecode specifies the public-memory log-size $h_\textsc{public}$. For a bytecode of size $2^{h_\textsc{bytecode}}$, a valid execution should start at $\textbf{pc} = 0$, and ends at $\textbf{pc} = 2^{h_\textsc{bytecode}} - 1$. In practice, it is suggested to use for the last instruction (at index $2^{h_\textsc{bytecode}} - 1$) a \texttt{JUMP} (\ref{sec:jump}) that unconditionally jumps to itself (for padding reasons within the snark). The minimal bytecode log-size is $h^{\min}$.
 
 \subsection{Registers}
 
@@ -367,7 +368,7 @@ A conditional jump.
 
 \subsubsection{POSEIDON\_OP}\label{sec:poseidon-op}
 
-A precompile to compute Poseidon in permuation or compression mode.
+A precompile to compute Poseidon in permutation or compression mode.
 
 \[
 \texttt{POSEIDON\_OP}[\;\alpha^\textsf{addr},\, \alpha,\;\; \beta^\textsf{addr},\, \beta,\;\; \gamma^\textsf{addr},\, \gamma,\;\; \texttt{permute},\;\; \texttt{half},\;\; \delta\;]
@@ -405,7 +406,7 @@ R = \textbf{m}[b .. b + 8].
 
 \subsubsection{EXTENSION\_OP}\label{extension_op_instruction}
 
-A precompile to compute various operations in the extension field, usefull for recursion.
+A precompile to compute various operations in the extension field, useful for recursion.
 
 
 \[
@@ -641,17 +642,17 @@ We restrict their maximal heights, to ensure logup multiplicites never overflow 
 \toprule
 Table & Max rows \\
 \midrule
-\textsc{EXECUTION} & $2^{25}$ \\
+\textsc{EXECUTION} & $2^{24}$ \\
 \textsc{EXTENSION} & $2^{21}$ \\
 \textsc{POSEIDON} & $2^{21}$ \\
 \bottomrule
 \end{tabular}
 \end{center}
 
-\subsection{One bus to interract between tables}\label{sec:Bus: interractions between table via logup-GKR}
+\subsection{One bus to interact between tables}\label{sec:bus-interactions}
 
 
-In order for the tables (Section~\ref{sec:table-sizes}) to exchange data, we use a \emph{bus}: a global channel in which tables may \textsc{Push} or \textsc{Pull} tuples of $\textsf{bus\_width} = 16$ field elements $\Fq$. We enforce the following property: \textit{every tuple is pulled exactly as many times as it is pushed}.
+In order for the tables (Section~\ref{sec:table-sizes}) to exchange data, we use a \emph{bus}: a global channel in which tables may \textsc{Push} or \textsc{Pull} tuples of $\textsf{bus\_width} = 16$ field elements in $\Fq$. We enforce the following property: \textit{every tuple is pulled exactly as many times as it is pushed}.
 
 \subsubsection{Different types of interaction}
 
@@ -670,9 +671,9 @@ There are 4 different types of interactions:
 
 \textbf{Bytecode:} Each instruction fetch is the data tuple $(\textsf{instr}_0, \dots, \textsf{instr}_{11}, \textsf{pc})$, tagged with the domain separator $\textsf{bytecode\_sep} = 2$.
 
-\textbf{Poseidon:} Each \textsc{POSEIDON} precompile call corresponds to a data tuple $(\nu_A, \nu_B, \nu_C)$ of its three memory pointers, tagged with a non-constant domain separator, that encodes some additional infomration (compression / permutation etc.), but which is an odd value $\ge 3$.
+\textbf{Poseidon:} Each \textsc{POSEIDON} precompile call corresponds to a data tuple $(\nu_A, \nu_B, \nu_C)$ of its three memory pointers, tagged with a non-constant domain separator, that encodes some additional information (compression / permutation etc.), but which is an odd value $\ge 3$.
 
-\textbf{Extension} Each \textsc{EXTENSION} precompile call corresponds to a data tuple $(\nu_A, \nu_B, \nu_C)$ of its three memory pointers, tagged with a non-constant domain separator, that encodes some additional infomration (dot\_product / add / eq etc.), but which is a a multiple of $4$.
+\textbf{Extension:} Each \textsc{EXTENSION} precompile call corresponds to a data tuple $(\nu_A, \nu_B, \nu_C)$ of its three memory pointers, tagged with a non-constant domain separator, that encodes some additional information (dot\_product / add / eq etc.), but which is a multiple of $4$.
 
 \begin{center}
 \begin{tabular}{lll}
@@ -711,7 +712,7 @@ These columns serve as the multiplicities of the two corresponding bus pushes:
 \]
 By Lemma~\ref{lem:sz} applied to the (non-zero) multilinear polynomial $\hat\sigma - \hat{\sigma'}$ in $\ell$ variables, two distinct tuples collide with probability at most $\ell/q$.
 
-\paragraph{Bus balance as a rational identity.} Enumerate the bus interactions across all tables as a list of pairs $(\sigma_k, m_k)_{1 \leq k \leq K}$, where $\sigma_k \in \Fp^{\textsf{bus\_width}}$ is the pushed (or pulled) tuple data and $m_k \in \Fp$ is its signed multiplicity (positive for \textsc{Push}, negative for \textsc{Pull}) (where we naturally embedd the integers $(-p, p)$ into $\Fp$). Assume that, for every tuple $\sigma$, both the total pushes and the total pulls of $\sigma$ are strictly less than $p$. Then the bus is balanced if and only if, for every $\sigma$, $\sum_{k \,:\, \sigma_k = \sigma} m_k = 0$, which, for $\vec\beta \overset{\$}{\leftarrow} \Fq^\ell$ and $\gamma \overset{\$}{\leftarrow} \Fq$, is equivalent up to completeness error $K / q$ and soundness error $K \ell / q$ to:
+\paragraph{Bus balance as a rational identity.} Enumerate the bus interactions across all tables as a list of pairs $(\sigma_k, m_k)_{1 \leq k \leq K}$, where $\sigma_k \in \Fp^{\textsf{bus\_width}}$ is the pushed (or pulled) tuple data and $m_k \in \Fp$ is its signed multiplicity (positive for \textsc{Push}, negative for \textsc{Pull}) (where we naturally embed the integers $(-p, p)$ into $\Fp$). Assume that, for every tuple $\sigma$, both the total pushes and the total pulls of $\sigma$ are strictly less than $p$. Then the bus is balanced if and only if, for every $\sigma$, $\sum_{k \,:\, \sigma_k = \sigma} m_k = 0$, which, for $\vec\beta \overset{\$}{\leftarrow} \Fq^\ell$ and $\gamma \overset{\$}{\leftarrow} \Fq$, is equivalent up to completeness error $K / q$ and soundness error $K \ell / q$ to:
 \begin{equation} \label{eq:logup-sum}
 \sum_{k=1}^{K} \frac{m_k}{\gamma - \pi_{\vec\beta}(\sigma_k)} \;=\; 0.
 \end{equation}
@@ -744,7 +745,7 @@ By Lemma~\ref{lem:sz},
 
 \subsubsection{Logup-GKR}
 
-The prover can convince the verifier of the validity of equation \ref{eq:logup-sum} efficiently via GKR \cite{logup_gkr}, and long as the verifier can efficiently evaluate the MLEs of $(m_k)_{k \in [1, K]}$ and $(\pi_{\vec\beta}(\sigma_k))_{k \in [1, K]}$ (assuming $K$ is a power-of-two, which we can always garantee up to some padding: zeros for numerators, ones for denominators).
+The prover can convince the verifier of the validity of equation \ref{eq:logup-sum} efficiently via GKR \cite{logup_gkr}, as long as the verifier can efficiently evaluate the MLEs of $(m_k)_{k \in [1, K]}$ and $(\pi_{\vec\beta}(\sigma_k))_{k \in [1, K]}$ (assuming $K$ is a power-of-two, which we can always guarantee up to some padding: zeros for numerators, ones for denominators).
 
 We briefly recall the GKR construction in this context.
 
@@ -788,7 +789,7 @@ a polynomial in the same $n_\text{column}^T + n_\text{shift}^T$ variables as eac
 
 \emph{Completeness}: if every $C_k^T$ vanishes on every row, so does $H_T$.
 
-\emph{Soundness}: if some $C_k^T$ fails to vanish at some row $\vec b^\star$, then $\alpha \mapsto H_T(\vec b^\star)$, then so does $H_T$, except with soudness error $n_\text{constraints}^T/q$ via Schwartz-Zippel (lemma \ref{lem:sz}).
+\emph{Soundness}: if some $C_k^T$ fails to vanish at some row $\vec b^\star$, then the univariate polynomial $\alpha \mapsto H_T(\vec b^\star)$ is non-zero of degree at most $n_\text{constraints}^T - 1$, so $H_T(\vec b^\star) \neq 0$ except with soundness error $n_\text{constraints}^T/q$ over uniform $\alpha$, via Schwartz-Zippel (lemma \ref{lem:sz}).
 
 \textbf{Zerocheck.} Let $f_T \in \Fq^{2^{h_T}}$ be the vector whose $\vec b$-th coordinate is
 \[
@@ -848,7 +849,7 @@ so the zerocheck target shifts from $0$ to $\sum_{j} \alpha^{n_\text{constraints
     \end{itemize}
 \end{itemize}
 
-\textbf{Note.} $\textsf{flag}^{AB}_\textbf{fp}$ is only used by precompile instructions; for ADD, MUL, DEREF, and JUMP it is always 0. We can reuse it to enrish the ISA. But is it worth it?
+\textbf{Note.} $\textsf{flag}^{AB}_\textbf{fp}$ is only used by precompile instructions; for ADD, MUL, DEREF, and JUMP it is always 0. We can reuse it to enrich the ISA. But is it worth it?
 
 
 \subsubsection{Opcode encoding}\label{sec:opcode-encoding}
@@ -879,11 +880,11 @@ For precompiles, when $\alpha^\textsf{addr} = \beta^\textsf{addr} = \texttt{fp\_
     \item $\texttt{JUMP}[\alpha^\textsf{addr}, \alpha, \beta^\textsf{addr}, \beta, \gamma^\textsf{addr}, \gamma]$ \; (condition / dest / updated-fp): $\textsf{flag}_\textsf{jump} = 1$;\; $\nu_A \!\leftarrow\! (\alpha^\textsf{addr}, \alpha)$, $\nu_B \!\leftarrow\! (\beta^\textsf{addr}, \beta)$, $\nu_C \!\leftarrow\! (\gamma^\textsf{addr}, \gamma)$.
     \item $\texttt{POSEIDON\_OP}[\alpha^\textsf{addr}, \alpha, \beta^\textsf{addr}, \beta, \gamma^\textsf{addr}, \gamma, \texttt{permute}, \texttt{half}, \delta]$: \; $\nu_A \!\leftarrow\! (\alpha^\textsf{addr}, \alpha)$, $\nu_B \!\leftarrow\! (\beta^\textsf{addr}, \beta)$, $\nu_C \!\leftarrow\! (\gamma^\textsf{addr}, \gamma)$, and
     \[
-    \textsf{aux}_2 = 1 + 2\,\texttt{permute} + 4\,\texttt{half} + 8\,[\delta \neq \bot] + 16\, \delta\,[\delta \neq \bot].
+    \textsf{aux}_2 = 3 + 2\,\texttt{permute} + 4\,\texttt{half} + 8\,[\delta \neq \bot] + 16\, \delta\,[\delta \neq \bot].
     \]
     \item $\texttt{EXTENSION\_OP}[\alpha^\textsf{addr}, \alpha, \beta^\textsf{addr}, \beta, \gamma^\textsf{addr}, \gamma, \texttt{op}, \textsf{flag\_be}, N]$: \; $\nu_A \!\leftarrow\! (\alpha^\textsf{addr}, \alpha)$, $\nu_B \!\leftarrow\! (\beta^\textsf{addr}, \beta)$, $\nu_C \!\leftarrow\! (\gamma^\textsf{addr}, \gamma)$, and
     \[
-    \textsf{aux}_2 = 2\,\textsf{flag\_be} + 4\,\textsf{flag\_add} + 8\,\textsf{flag\_dot\_product} + 16\,\textsf{flag\_eq} + 32N,
+    \textsf{aux}_2 = 4\,\textsf{flag\_be} + 8\,\textsf{flag\_add} + 16\,\textsf{flag\_dot\_product} + 32\,\textsf{flag\_eq} + 64N,
     \]
     where $(\textsf{flag\_add}, \textsf{flag\_dot\_product}, \textsf{flag\_eq})$ is the one-hot encoding of $\texttt{op}$.
 \end{itemize}
@@ -902,7 +903,7 @@ We define the virtual (non-committed) selectors
     \item $\textsf{flag}_\textsf{deref} = P_2(\textsf{aux}_1)$ \quad (equals $1$ when $\textsf{aux}_1 = 2$, else $0$ on $\{0, 1\}$),
     \item $\textsf{flag}_\textsf{precompile} = 1 - (\textsf{flag}_\textsf{add} + \textsf{flag}_\textsf{mul} + \textsf{flag}_\textsf{deref} + \textsf{flag}_\textsf{jump})$.
 \end{itemize}
-$\textsf{flag}_\textsf{precompile}$ is the selector for the precompile bus push (Section~\ref{sec:execution-bus}).
+$\textsf{flag}_\textsf{precompile}$ is the selector for the precompile bus push (see Section~\ref{sec:execution-bus}).
 
 \paragraph{Addressing constraints.}
 \begin{itemize}
@@ -947,9 +948,9 @@ for the 12 instruction columns.
 
 \paragraph{Precompile push (conditional).}
 \[
-\textsc{Push}\big(\nu_A,\, \nu_B,\, \nu_C,\, 0_{12},\, \textsf{aux}_2\big) \quad \text{with multiplicity } \textsf{flag}_\textsf{precompile} (\ref{sec:air-eval-after}),
+\textsc{Push}\big(\nu_A,\, \nu_B,\, \nu_C,\, 0_{12},\, \textsf{aux}_2\big) \quad \text{with multiplicity } \textsf{flag}_\textsf{precompile} \text{ (see Section~\ref{sec:air-eval-after})},
 \]
-where $\textsf{aux}_2$ encodes either a call to the \textsf{POSEIDON} / \textsf{EXTENSION} table.
+where $\textsf{aux}_2$ encodes a call to either the \textsf{POSEIDON} or \textsf{EXTENSION} table.
 
 \subsection{POSEIDON table}
 
@@ -960,7 +961,7 @@ The Poseidon table runs one $\texttt{POSEIDON\_OP}$ precompile call (Section~\re
 It has $n_{cols}^{poseidon} = 109$ columns.
 
 \begin{itemize}
-    \item \textbf{Control / pointers ($9$):} the multiplicity (for precompile bus-interraction) $\textsf{multiplicity}$ ($1$ on active rows, $0$ on padding); the boolean mode flags $\textsf{flag\_permute}$, $\textsf{flag\_short}$, $\textsf{flag\_left}$ and the offset $\textsf{offset\_left}$; the right-input and output pointers $\nu_B$, $\nu_C$; and two derived left addresses $\textsf{addr}^\text{lo}_\text{left}$, $\textsf{addr}^\text{hi}_\text{left}$, equal to $(\nu_A, \nu_A{+}4)$ if $\textsf{flag\_left}{=}0$ and to $(\textsf{offset\_left}, \nu_A)$ if $\textsf{flag\_left}{=}1$.
+    \item \textbf{Control / pointers ($9$):} the multiplicity (for precompile bus-interaction) $\textsf{multiplicity}$ ($1$ on active rows, $0$ on padding); the boolean mode flags $\textsf{flag\_permute}$, $\textsf{flag\_short}$, $\textsf{flag\_left}$ and the offset $\textsf{offset\_left}$; the right-input and output pointers $\nu_B$, $\nu_C$; and two derived left addresses $\textsf{addr}^\text{lo}_\text{left}$, $\textsf{addr}^\text{hi}_\text{left}$, equal to $(\nu_A, \nu_A{+}4)$ if $\textsf{flag\_left}{=}0$ and to $(\textsf{offset\_left}, \nu_A)$ if $\textsf{flag\_left}{=}1$.
     \item \textbf{Input ($16$):} $\textsf{input}_0, \ldots, \textsf{input}_{15}$, the permutation input $\texttt{left} \,\|\, \texttt{right}$ (so $\textsf{input}_{0..8} = \texttt{left}$ and $\textsf{input}_{8..16} = \texttt{right}$).
     \item \textbf{Intermediate rounds ($68$):} the full state is committed only after each \emph{pair} of full rounds: $\textsf{full}_1, \textsf{full}_2$ ($16$ columns each) after the two pairs making up the $4$ initial full rounds, and $\textsf{full}_3$ ($16$ columns) after the first pair of the $4$ final full rounds (the last pair feeds the output columns directly). Plus $\textsf{sbox}_1, \ldots, \textsf{sbox}_{20}$, the single S-box output (the cube of the first state coordinate) committed at each partial round.
     \item \textbf{Output ($16$):} two halves $\textsf{out}_\text{lo}, \textsf{out}_\text{hi}$ ($8$ columns each). $\textsf{out}_\text{lo}$ holds the written first half — the feed-forward sum $s[0..8] + \texttt{left}$ in compression, or $s[0..8]$ in permutation; $\textsf{out}_\text{hi}$ holds $s[8..16]$ and is used only in permutation.
@@ -982,7 +983,7 @@ Non-committed (virtual): $\nu_A$ (left-input pointer) and $\textsf{aux}_2$ (the 
 \]
 matching the push issued by the execution table (Section~\ref{sec:execution-bus}), with domain separator
 \[
-\textsf{aux}_2 = 1 + 2\,\textsf{flag\_permute} + 4\,\textsf{flag\_short} + 8\,\textsf{flag\_left} + 16\,\textsf{flag\_left} \cdot \textsf{offset\_left}
+\textsf{aux}_2 = 3 + 2\,\textsf{flag\_permute} + 4\,\textsf{flag\_short} + 8\,\textsf{flag\_left} + 16\,\textsf{flag\_left} \cdot \textsf{offset\_left}
 \]
 packing all three flags and the offset. This encoding is injective: the flags are boolean (AIR-enforced), and when $\textsf{flag\_left} = 1$ the left lookup forces $\textsf{offset\_left} < 2^{h_\textsc{memory}} \leq 2^{26} < p/2$, so no wrap-around occurs modulo $p$; when $\textsf{flag\_left} = 0$, $\textsf{offset\_left}$ does not enter $\textsf{aux}_2$.
 
@@ -1068,7 +1069,7 @@ There are 29 columns. Extension field values are represented as 5 consecutive co
     \item $\textsf{acc} = (\textsf{acc}[0], \dots, \textsf{acc}[4])$ (5 columns): running accumulator (over $\Fq$) of the per-element contributions $e_\bullet$ defined in the AIR constraints below; on \textsf{flag\_start} rows it equals $\textsf{res}$.
 \end{itemize}
 
-Virtual (non-committed) columns: $\textsf{multiplicity} = \textsf{flag\_start} \cdot (\textsf{flag\_add} + \textsf{flag\_dot\_product} + \textsf{flag\_eq})$ and $\textsf{aux}_2 = 2 \cdot \textsf{flag\_be} + 4 \cdot \textsf{flag\_add} + 8 \cdot \textsf{flag\_dot\_product} + 16 \cdot \textsf{flag\_eq} + 32 \cdot \textsf{len}$
+Virtual (non-committed) columns: $\textsf{multiplicity} = \textsf{flag\_start} \cdot (\textsf{flag\_add} + \textsf{flag\_dot\_product} + \textsf{flag\_eq})$ and $\textsf{aux}_2 = 4 \cdot \textsf{flag\_be} + 8 \cdot \textsf{flag\_add} + 16 \cdot \textsf{flag\_dot\_product} + 32 \cdot \textsf{flag\_eq} + 64 \cdot \textsf{len}$
 
 \subsubsection{Bus interactions}
 
@@ -1129,7 +1130,7 @@ Let $\textsf{acc\_tail} = \text{next}(\textsf{acc}) \cdot (1 - \text{next}(\text
 \vspace{5mm}
 
 \begin{lemma}\label{lem:len-bound}
-On every row $r$ of the dot product table, $\textsf{len}_r \leq H - r$ (as an integer in $\{0, \dots, p-1\}$), where $H \leq 2^{21}$ is the table height. In particular, $\textsf{len}_r \leq H$.
+On every row $r$ of the extension table, $\textsf{len}_r \leq H - r$ (as an integer in $\{0, \dots, p-1\}$), where $H \leq 2^{21}$ is the table height. In particular, $\textsf{len}_r \leq H$.
 \end{lemma}
 
 \begin{proof}
@@ -1173,14 +1174,14 @@ TODO: Verify and (formally) prove soundness.
     \item \textbf{Dimensions.} 
     The prover sends $(\textsf{log\_inv\_rate},\, h_\textsc{memory},\, h_\textsc{exec},\, h_\textsc{poseidon},\, h_\textsc{extension})$.
     
-    The verifier checks: $\textsf{log\_inv\_rate}^{\min} \leq \textsf{log\_inv\_rate} \leq \textsf{log\_inv\_rate}^{\max}$ (i.e.\ $1 \leq \textsf{log\_inv\_rate} \leq 4$); $h^{\min} \leq h_T \leq h_T^{\max}$ for each $T \in \{\textsc{exec}, \textsc{poseidon}, \textsc{extension}\}$ (Section~\ref{sec:table-sizes}); $h_\textsc{memory}^{\min} \leq h_\textsc{memory} \leq h_\textsc{memory}^{\max}$; $h_\textsc{bytecode} \geq h^{\min}$; and $h_\textsc{memory} \geq \max(h_\textsc{bytecode} ,\, h_\textsc{public}\, h_\textsc{exec},\, h_\textsc{poseidon},\, h_\textsc{extension})$.
+    The verifier checks: $\textsf{log\_inv\_rate}^{\min} \leq \textsf{log\_inv\_rate} \leq \textsf{log\_inv\_rate}^{\max}$ (i.e.\ $1 \leq \textsf{log\_inv\_rate} \leq 4$); $h^{\min} \leq h_T \leq h_T^{\max}$ for each $T \in \{\textsc{exec}, \textsc{poseidon}, \textsc{extension}\}$ (Section~\ref{sec:table-sizes}); $h_\textsc{memory}^{\min} \leq h_\textsc{memory} \leq h_\textsc{memory}^{\max}$; $h_\textsc{bytecode} \geq h^{\min}$; and $h_\textsc{memory} \geq \max(h_\textsc{bytecode},\, h_\textsc{public},\, h_\textsc{exec},\, h_\textsc{poseidon},\, h_\textsc{extension})$.
 
     \item \textbf{Stacked commitment.} The prover commits via WHIR \cite{whir} to a single multilinear polynomial stacking the memory $\textbf{m}$, the access counts $\textsf{memory\_acc}$ and $\textsf{bytecode\_acc}$, and all committed columns of the three tables.
 
     \item \textbf{Logup.}
     \begin{enumerate}
         \item  The verifier samples $\gamma \in \Fq$ and $\vec\beta \in \Fq^{\ell}$ (bus-tuple hashing seeds, $\ell = \log_2 \textsf{bus\_width}$), used for Equation~\ref{eq:logup-sum}.
-        \item  Run the GKR protocol of Section~\ref{sec:Bus: interractions between table via logup-GKR} to compute the sum of quotients from Equation \ref{eq:logup-sum}. The sum contains terms from: the memory section ($2^{h_\textsc{memory}}$ entries) and the bytecode section ($\max(2^{h_\textsc{bytecode}}, 2^{h_\textsc{exec}})$ entries, padded if $h_\textsc{bytecode} < h_\textsc{exec}$; see Section~\ref{sec:special-pushes}), then, for each table $T$ sorted by descending height, one block of $2^{h_T}$ entries per bus interaction of $T$. Write $h_\textsc{gkr}$ for the log2-ceiling of the resulting total length.
+        \item  Run the GKR protocol of Section~\ref{sec:bus-interactions} to compute the sum of quotients from Equation \ref{eq:logup-sum}. The sum contains terms from: the memory section ($2^{h_\textsc{memory}}$ entries) and the bytecode section ($\max(2^{h_\textsc{bytecode}}, 2^{h_\textsc{exec}})$ entries, padded if $h_\textsc{bytecode} < h_\textsc{exec}$; see Section~\ref{sec:special-pushes}), then, for each table $T$ sorted by descending height, one block of $2^{h_T}$ entries per bus interaction of $T$. Write $h_\textsc{gkr}$ for the log2-ceiling of the resulting total length.
 
         The protocol yields a point $\vec r_\textsc{gkr} \in \Fq^{h_\textsc{gkr}}$ and two scalar claims $(e_\text{num}, e_\text{den})$ on the numerator and denominator MLEs at $\vec r_\textsc{gkr}$.
 
@@ -1208,7 +1209,7 @@ TODO: Verify and (formally) prove soundness.
 
 \subsection{Fiat-Shamir}
 
-In order to turn interractice protocol described in Section~\ref{sec:e2e-protocol} into a non-interractive one, we apply the BCS transformation \cite{BCS}. In Particular, we use the Fiat-Shamir transformation implemented via a duplex sponge  \cite{fiat_shamir_duplex_sponge} (using the $\texttt{POSEIDON}^\pi$ permutation over a state of 16 koalabear field elements).
+In order to turn the interactive protocol described in Section~\ref{sec:e2e-protocol} into a non-interactive one, we apply the BCS transformation \cite{BCS}. In particular, we use the Fiat-Shamir transformation implemented via a duplex sponge \cite{fiat_shamir_duplex_sponge} (using the $\texttt{POSEIDON}^\pi$ permutation over a state of 16 KoalaBear field elements).
 
 \section{ISA programming}
 
@@ -1562,7 +1563,7 @@ def aggregate(slot, msg, pks):       # msg:message, pks: public keys
 
 \subsubsection{Bytecode evaluation claims}\label{sec:bytecode-reduction}
 
-A key subtlety arises from recursion. Every leanVM proof is tied to a specific \emph{bytecode} --- the program that was executed, represented as a multilinear polynomial. In our case, there is a single program (that both contain signature verification and recursion algorithms). The leanVM verification algorithm requires evaluating the bytecode polynomial at a random point.
+A key subtlety arises from recursion. Every leanVM proof is tied to a specific \emph{bytecode} --- the program that was executed, represented as a multilinear polynomial. In our case, there is a single program (that contains both the signature verification and recursion algorithms). The leanVM verification algorithm requires evaluating the bytecode polynomial at a random point.
 
 When the recursive aggregation program verifies a sub-proof, it runs the leanVM verifier \emph{inside} the program. This verification produces a bytecode evaluation claim. For efficiency, rather than checking it inside the program (with a PCS), the claim is forwarded to the public input, to be checked externally.
 
@@ -1588,7 +1589,7 @@ In the following, we assume  the message being signed is common to all signers (
 
 Consider an aggregation of $n_{\text{sigs}}$ (distinct) signatures. The $n_{\text{sigs}}$ (distinct) public keys are part of the "public input" in memory. The aggregation program must ensure that each public key is verified by at least one of the $1 + n_{\text{rec}}$ sources (duplications allowed: some public keys may be verified by multiple sources).
 
-Let $n_{\text{dup}}$ be the total number of duplicated public keys across sources, counted with multiplicity. To ensure ensure valid partionning, we use the following algorithm:
+Let $n_{\text{dup}}$ be the total number of duplicated public keys across sources, counted with multiplicity. To ensure valid partitioning, we use the following algorithm:
 
 \begin{itemize}
     \item Initialize a counter $c \gets 0$.
@@ -1606,9 +1607,9 @@ Let $n_{\text{dup}}$ be the total number of duplicated public keys across source
 
 \subsection{Avoid paying for (most of) the zero suffix from polynomial stacking}\label{sec:zero-suffix}
 
-The polynomial $S$ (in $\nu$ variables) committed by WHIR (using an interleaved Reed Solomon code) is the \emph{stacking} (Section~\ref{sec:stacking}) of all columns, memory, and access counts, padded with zeros up to the next power of two; its $2^v$ evaluations are therefore non-zero only on a prefix of some length $L$ ($2^{\nu - 1} < L \leq 2^\nu$). The first WHIR round folds $X_1, \ldots, X_{f_0^\text{whir}}$ (where $f_0^\text{whir} = 7$ is the initial folding factor), which splits the evaluations (on the boolean hypercube) of $S$ into $2^{f_0^\text{whir}} = 128$ contiguous blocks. Each block is Reed-Solomon encoded, and the $128$ encoded blocks become the columns of a matrix whose rows are the Merkle leaves.
+The polynomial $S$ (in $\nu$ variables) committed by WHIR (using an interleaved Reed-Solomon code) is the \emph{stacking} (Section~\ref{sec:stacking}) of all columns, memory, and access counts, padded with zeros up to the next power of two; its $2^\nu$ evaluations are therefore non-zero only on a prefix of some length $L$ ($2^{\nu - 1} < L \leq 2^\nu$). The first WHIR round folds $X_1, \ldots, X_{f_0^\text{whir}}$ (where $f_0^\text{whir} = 7$ is the initial folding factor), which splits the evaluations (on the boolean hypercube) of $S$ into $2^{f_0^\text{whir}} = 128$ contiguous blocks. Each block is Reed-Solomon encoded, and the $128$ encoded blocks become the columns of a matrix whose rows are the Merkle leaves.
 
-Because the folded variables are the \emph{most significant} bits, the zeros land in the last blocks: only the first $n_\text{eff} = \lceil L / 2^{v - f_0} \rceil$ blocks are non-zero, so every leaf ends with the same $128 - n_\text{eff}$ zeros. Two optimizations follow:
+Because the folded variables are the \emph{most significant} bits, the zeros land in the last blocks: only the first $n_\text{eff} = \lceil L / 2^{\nu - f_0^\text{whir}} \rceil$ blocks are non-zero, so every leaf ends with the same $128 - n_\text{eff}$ zeros. Two optimizations follow:
 
 \begin{itemize}
     \item \textbf{FFT:} only the first $n_\text{eff}$ blocks are FFT encoded (trailing zero blocks encode to zero)
@@ -1617,9 +1618,9 @@ Because the folded variables are the \emph{most significant} bits, the zeros lan
 
 \subsection{Small-Value Optimization (SVO) and Split-Eq}\label{sec:svo}
 
-WHIR opening conatins a sumcheck of the form $\sum_{b \in \{0,1\}^v} w(b)\, f(b)$, where $f$ is the committed (base-field) polynomial and the weight $w(b) = \sum_i \alpha^i\, \hat{eq}(b, w_i)$ batches the evaluation claims $f(w_i) = y_i$ (we ommit 'shift' claims by simplicity, but this is generalizable). In our setting the claims are highly \emph{sparse}: stacking many table columns into a single WHIR instance produces, for each column, a claim $w_i$ whose high-order coordinates are the boolean prefix bits selecting that column, with only the remaining coordinates in $\Fq$.
+WHIR opening contains a sumcheck of the form $\sum_{b \in \{0,1\}^\nu} w(b)\, f(b)$, where $f$ is the committed (base-field) polynomial and the weight $w(b) = \sum_i \alpha^i\, \hat{eq}(b, w_i)$ batches the evaluation claims $f(w_i) = y_i$ (we omit 'shift' claims for simplicity, but this is generalizable). In our setting the claims are highly \emph{sparse}: stacking many table columns into a single WHIR instance produces, for each column, a claim $w_i$ whose high-order coordinates are the boolean prefix bits selecting that column, with only the remaining coordinates in $\Fq$.
 
-The \emph{small-value optimization} (SVO), together with the \emph{split-eq} trick (algo. 6 of \cite{Speeding-Up-Sum-Check-Proving}), speeds up the first $l_0$  sumcheck rounds (where most of the prover's cost lies) by precomputing accumulators (via the factorization $\hat{eq}(b, w_i) = \hat{eq}(b^{lo}, w_i^{lo}) \cdot \hat{eq}(b^{hi}, w_i^{hi})$). For prover cost to be proportional to the \emph{non-sparse} part of each claim, the boolean (sparse) coordinates must sit at the \emph{opposite end} from the variables folded first.
+The \emph{small-value optimization} (SVO), together with the \emph{split-eq} trick (algo. 6 of \cite{Speeding-Up-Sum-Check-Proving}), speeds up the first $\ell_0$  sumcheck rounds (where most of the prover's cost lies) by precomputing accumulators (via the factorization $\hat{eq}(b, w_i) = \hat{eq}(b^{lo}, w_i^{lo}) \cdot \hat{eq}(b^{hi}, w_i^{hi})$). For prover cost to be proportional to the \emph{non-sparse} part of each claim, the boolean (sparse) coordinates must sit at the \emph{opposite end} from the variables folded first.
 
 This conflicts with the zero-suffix optimization of Section~\ref{sec:zero-suffix}, which folds the \emph{most significant} variables first ($X_1, X_2, \dots$). TODO can we (efficiently) reconcile the 2 optimizations?
 
