@@ -19,7 +19,7 @@
 \usepackage{tikz}
 \usepackage{tcolorbox}
 \usepackage{amsthm}
-\usetikzlibrary{positioning, arrows.meta}
+\usetikzlibrary{positioning, arrows.meta, decorations.pathreplacing}
 
 \theoremstyle{definition}
 \newtheorem{exmp}{Example}[section]
@@ -241,7 +241,7 @@ x &\mapsto (\texttt{POSEIDON}^\pi(x) + x)[0..8]
 where $+$ represents field coordinate-wise addition, and $[0..8]$ represents the first 8 elements of the result.
 
 
-\subsection{Memory}
+\subsection{Memory}\label{sec:memory}
 
 We use a read-only memory (also called write-once memory). Each memory word is a base field element. The memory is a 1D array of $2^{h_\textsc{memory}}$ words; the log-size $h_\textsc{memory}$ is attached to each execution of the VM and must satisfy $h_\textsc{memory}^{\min} \leq h_\textsc{memory} \leq h_\textsc{memory}^{\max}$, with $h_\textsc{memory}^{\min} = 16$ and $h_\textsc{memory}^{\max} = 26$. The first $2^{h_\textsc{public}}$ memory cells (with $h_\textsc{public} \leq h_\textsc{memory}$) hold the "public input", which informally represents the part of the memory "controlled" by the verifier of an execution proof.
 
@@ -279,7 +279,7 @@ x & \text{if } x^\textsf{addr} = \texttt{imm} \quad \text{(immediate)} \\
 \textbf{fp} + x & \text{if } x^\textsf{addr} = \texttt{fp\_rel} \quad \text{(fp-relative)}
 \end{cases}
 \]
-\subsection{Instruction Set Architecture}
+\subsection{Instruction Set Architecture}\label{sec:isa}
 
 The instruction set comprises 4 \emph{core instructions} (ADD, MUL, DEREF, JUMP) and 2 \emph{precompiles} (POSEIDON\_OP, EXTENSION\_OP).
 
@@ -1212,26 +1212,88 @@ In order to turn interractice protocol described in Section~\ref{sec:e2e-protoco
 
 \section{ISA programming}
 
-\subsection{Functions}
+This section describes \emph{conventions} for writing programs using the ISA of Section~\ref{sec:isa}. None of it is hard-coded into the VM or enforced by the snark.
 
-\begin{enumerate}
-    \item Each function has a deterministic memory footprint: the length of the continuous frame in memory that is allocated for each of the its calls.
-    \item At runtime, each time we call our function, we receive via a memory cell a hint pointing to a free range of memory. We then store the current values of \textbf{pc} / \textbf{fp} at the start of this newly allocated frame, alongside the function's arguments, we can then jump, to enter the function bytecode, and modify \textbf{fp} with the hinted value. The intuition here is that the verifier does not care where the new memory frame will be placed (we use a read-only memory, so we cannot overwrite previous frames). In practice, the prover that runs the program would need to keep the value of the allocation pointer "ap", in order to adequately allocate new memory frames, but there is no need to keep track of it from the versifier's perspective.
-\end{enumerate}
+\subsection{Hints}\label{sec:hints}
 
+A \emph{hint} is the use of non-determinism: the prover supplies a value, the program then verifies it, in order to replace an expensive computation by a cheap check.
 
-\begin{figure}[h]
-\caption{Memory layout of a function call}
-\centering
-\includegraphics[scale=0.4]{images/memory_layout.png}
-\end{figure}
+\begin{exmp} Computing an inverse $y := x^{-1} \in \Fp$. $y$ is hinted to some memory cell and the program performs the single check $x \cdot y = 1$: one MUL.
+\end{exmp}
+
+% \paragraph{Sorting.} Sorting an array $a$ of length $n$ from scratch costs $O(n \log n)$ comparisons (see Section~\ref{sec:range-checks}). We can instead hint a candidate sorted array $b$ \emph{together with} a list of indices $\pi(0), \dots, \pi(n-1) \in [0, n)$ claiming that $b[i] = a[\pi(i)]$. The program then only has to verify
+% \begin{enumerate}
+%     \item $b$ is non-decreasing: one comparison per adjacent pair, $n-1$ in total.
+%     \item $b[i] = a[\pi(i)]$ for every $i \in [0, n)$: $n$ memory reads.
+%     \item $\pi(i) < n$ for every $i \in [0, n)$: one range check per index (Section~\ref{sec:range-checks}).
+%     \item $\pi$ is injective. Take a pointer $\textsf{scratch} \in [0, 2^{h_\textsc{memory}} - n)$ to a fresh memory segment of size $n$. For each $i \in [0, n)$, write $\textbf{m}[\textsf{scratch} + \pi(i)] = i$. Any collision $\pi(i) = \pi(j)$ with $i \neq j$ would force the same cell to take two different values, breaking the write-once invariant and invalidating the trace. Combined with step~3, $\pi : [0, n) \to [0, n)$ is then a bijection, hence a permutation.
+% \end{enumerate}
+% All four checks are $O(n)$, beating the $\Theta(n \log n)$ of an in-program sort.
+
+\subsection{Functions}\label{sec:functions}
+
+A \emph{function} is a piece of bytecode, associated to:
+\begin{itemize}
+    \item a starting $\textbf{pc}$
+    \item a number of inputs $n_\textsf{in}$
+    \item a number of outputs $n_\textsf{out}$
+    \item a frame size $s \geq 2 + n_\textsf{in} + n_\textsf{out}$ (in memory)
+\end{itemize}
+Every call operates on a fresh contiguous block of $s$ memory cells: its \emph{frame}, pointed to by $\textbf{fp}$ during execution. By convention, this frame contains the following data:
+\begin{center}
+\begin{tikzpicture}[
+    cell/.style={draw, minimum width=1.7cm, minimum height=1.1cm, font=\footnotesize, inner sep=2pt},
+    ctxcell/.style={cell, fill=gray!22},
+    incell/.style={cell, fill=blue!10},
+    outcell/.style={cell, fill=orange!15},
+    loccell/.style={cell, fill=gray!6},
+    brace/.style={decorate, decoration={brace, amplitude=5pt, raise=2pt}, thick}
+]
+    % memory cells
+    \node[ctxcell] (c0) at (0, 0) {ret.\ $\textbf{pc}$};
+    \node[ctxcell, right=0pt of c0] (c1) {ret.\ $\textbf{fp}$};
+    \node[incell, right=0pt of c1] (i0) {input $0$};
+    \node[right=0pt of i0, draw=none, minimum width=1.1cm] (idots) {$\cdots$};
+    \node[incell, right=0pt of idots] (iN) {input $n_\textsf{in}{-}1$};
+    \node[outcell, right=0pt of iN] (o0) {output $0$};
+    \node[right=0pt of o0, draw=none, minimum width=1.1cm] (odots) {$\cdots$};
+    \node[outcell, right=0pt of odots] (oN) {output $n_\textsf{out}{-}1$};
+    \node[loccell, right=0pt of oN] (loc) {locals \dots};
+
+    % address labels below each cell
+    \node[below=2pt of c0,  font=\scriptsize] {$\textbf{m}[\textbf{fp}]$};
+    \node[below=2pt of c1,  font=\scriptsize] {$\textbf{m}[\textbf{fp}{+}1]$};
+    \node[below=2pt of i0,  font=\scriptsize] {$\textbf{m}[\textbf{fp}{+}2]$};
+    \node[below=2pt of iN,  font=\scriptsize] {$\textbf{m}[\textbf{fp}{+}1{+}n_\textsf{in}]$};
+    \node[below=2pt of o0,  font=\scriptsize] {$\textbf{m}[\textbf{fp}{+}2{+}n_\textsf{in}]$};
+    \node[below=2pt of oN,  font=\scriptsize] {$\textbf{m}[\textbf{fp}{+}1{+}n_\textsf{in}{+}n_\textsf{out}]$};
+
+    % top braces (slightly inset on each side so adjacent braces don't touch)
+    \draw[brace] ([yshift=4pt, xshift=4pt]c0.north west) -- ([yshift=4pt, xshift=-4pt]c1.north east) node[midway, above=6pt, font=\scriptsize] {caller's context};
+    \draw[brace] ([yshift=4pt, xshift=4pt]i0.north west) -- ([yshift=4pt, xshift=-4pt]iN.north east) node[midway, above=6pt, font=\scriptsize] {$n_\textsf{in}$ inputs};
+    \draw[brace] ([yshift=4pt, xshift=4pt]o0.north west) -- ([yshift=4pt, xshift=-4pt]oN.north east) node[midway, above=6pt, font=\scriptsize] {$n_\textsf{out}$ outputs};
+\end{tikzpicture}
+\end{center}
+
+\textbf{Call.} Say the caller is at $\textbf{pc} = \textbf{pc}_\text{caller}$, $\textbf{fp} = \textbf{fp}_\text{caller}$, about to invoke a function $f$ with entry point $\textbf{pc}_f$ and inputs $a_0, \dots, a_{n_\textsf{in}-1}$ (either constants or memory cells). It obtains a hinted frame pointer $\textbf{fp}_\text{callee}$ (supposedly pointing to a fresh interval of size $s$ in memory) and executes:
+\begin{itemize}
+    \item $\textbf{m}[\textbf{fp}_\text{callee}] \gets \textbf{pc}_\text{ret}$, where $\textbf{pc}_\text{ret}  = \textbf{pc}_\text{caller} + 2 + n_\textsf{in}$ is the address of the instruction following the JUMP below;
+    \item $\textbf{m}[\textbf{fp}_\text{callee} + 1] \gets \textbf{fp}_\text{caller}$;
+    \item $\textbf{m}[\textbf{fp}_\text{callee} + 2 + k] \gets a_k$ for $k = 0, \dots, n_\textsf{in} - 1$;
+    \item JUMP with $\textbf{pc} \gets \textbf{pc}_f$ and $\textbf{fp} \gets \textbf{fp}_\text{callee}$.
+\end{itemize}
+
+\textbf{Return.} Before returning, the callee has written its $n_\textsf{out}$ outputs $r_0, \dots, r_{n_\textsf{out}-1}$ to $\textbf{m}[\textbf{fp} + 2 + n_\textsf{in} + k] \gets r_k$ for $k = 0, \dots, n_\textsf{out} - 1$. It then executes the JUMP $\textbf{pc} \gets \textbf{m}[\textbf{fp}]$, $\textbf{fp} \gets \textbf{m}[\textbf{fp} + 1]$, which reads back $\textbf{pc}_\text{ret}$ and $\textbf{fp}_\text{caller}$. Execution resumes at $\textbf{pc}_\text{ret}$ in the caller's original frame.
+
+\paragraph{No allocation pointer.} Cairo \cite{cairo} keeps a register $\textbf{ap}$ pointing to the next free memory cell. leanVM does not: the write-once memory (Section~\ref{sec:memory}) prevents any frame from overwriting previously-written data. And since a function's internal logic should only depend on its inputs, not on where its frame happens to land, the exact value of $\textbf{fp}_\text{callee}$ does not matter to the verifier.
+
 
 \subsection{Loops}\label{loops}
 
 We suggest to unroll loops when the number of iterations is low, and known at compile time.
 The remaining loops are transformed into recursive functions (by the leanISA compiler).
 
-\subsection{Range checks}
+\subsection{Range checks}\label{sec:range-checks}
 
 \fbox{It's possible to check that a memory cell is smaller than $t$ (for $t \leq 2^{16}$) in 3 cycles.}
 
