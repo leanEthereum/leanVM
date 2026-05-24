@@ -42,6 +42,8 @@ MIN_LOG_MEMORY_SIZE, MAX_LOG_MEMORY_SIZE = 16, 26
 MIN_LOG_N_ROWS_PER_TABLE, MIN_BYTECODE_LOG_SIZE, BASE_TWO_ADICITY = 8, 8, 24
 MAX_BYTECODE_LOG_SIZE = 22
 MAX_LOG_N_ROWS_PER_TABLE = {"execution": 24, "extension_op": 21, "poseidon16_compress": 21}
+# Canonical table order — must match Rust `ALL_TABLES` in lean_vm/src/tables/table_enum.rs.
+ALL_TABLES_ORDER = ("execution", "extension_op", "poseidon16_compress")
 
 # WHIR per-(log_inv_rate, num_variables) parameters. Tuple-of-tuples to keep the table on one line:
 #   (log_inv_rate, num_variables, commitment_ood_samples, starting_folding_pow_bits, final_queries, final_query_pow_bits, rounds)
@@ -640,27 +642,35 @@ def stacked_pcs_global_statements(
 ) -> list[SparseStatement]:
     assert len(table_log_heights) == len(committed_statements)
     tables_sorted = sort_tables_by_height(table_log_heights)
+    max_table_n_vars = tables_sorted[0][1]
+
+    # Layout offsets are assigned in sorted-by-height order (taller tables come first
+    # in the stacked polynomial), but statements are emitted in canonical ALL_TABLES order.
+    table_offsets: dict[str, int] = {}
+    layout_offset = (2 << memory_n_vars) + (1 << max(bytecode_n_vars, max_table_n_vars))
+    for name, n_vars in tables_sorted:
+        table_offsets[name] = layout_offset
+        layout_offset += tables[name].n_columns << n_vars
 
     out = list(previous_statements)
-    offset = (2 << memory_n_vars) + (1 << max(bytecode_n_vars, tables_sorted[0][1]))
     col_pc = constants["col_pc"]
 
-    # Rust uses BTreeMap (sorted); Python dicts are insertion-ordered, sort here.
-    def values_at(d: dict[int, EF], n_vars: int) -> list[tuple[int, EF]]:
-        return [((offset >> n_vars) + i, v) for i, v in sorted(d.items())]
-
-    for name, n_vars in tables_sorted:
+    for name in ALL_TABLES_ORDER:
+        n_vars = table_log_heights[name]
+        offset = table_offsets[name]
         if name == "execution":
             # PC column: pin first row to STARTING_PC, last row to ending_pc.
             for idx, pc in [(0, constants["starting_pc"]), ((1 << n_vars) - 1, constants["ending_pc"])]:
                 out.append(SparseStatement.unique_value(stacked_n_vars, offset + (col_pc << n_vars) + idx, fb(pc)))
 
+        # Rust uses BTreeMap (sorted); Python dicts are insertion-ordered, sort here.
+        def values_at(d: dict[int, EF], off: int = offset, nv: int = n_vars) -> list[tuple[int, EF]]:
+            return [((off >> nv) + i, v) for i, v in sorted(d.items())]
+
         for point, eq_values, next_values in committed_statements[name]:
             if next_values:
-                out.append(SparseStatement.new_next(stacked_n_vars, list(point), values_at(next_values, n_vars)))
-            out.append(SparseStatement(stacked_n_vars, list(point), values_at(eq_values, n_vars)))
-
-        offset += tables[name].n_columns << n_vars
+                out.append(SparseStatement.new_next(stacked_n_vars, list(point), values_at(next_values)))
+            out.append(SparseStatement(stacked_n_vars, list(point), values_at(eq_values)))
 
     return out
 
@@ -823,27 +833,38 @@ def verify_generic_logup(
     )
     offset += 1 << log_byte_pad
 
+    # Per-table base offsets in the GKR layout are assigned in sorted-by-height order
+    # (mirrors `layout_offsets` in sub_protocols/src/logup.rs).
+    table_offsets: dict[str, int] = {}
+    for name, log_n_rows in tables_sorted:
+        table_offsets[name] = offset
+        offset += n_buses(name) << log_n_rows
+    final_offset = offset
+
     # Per-table: walk the bus spec in the same order as the Rust prover. The prover
     # writes col_evals for new (uncached) columns in `bus.data` order via a single
     # `add_extension_scalars` chunk per bus — the verifier must read in the same chunks.
+    # Iterate tables in canonical ALL_TABLES order (matches the new prover scalar layout).
     bus_num_vals: dict[str, EF] = {}
     bus_den_vals: dict[str, EF] = {}
     columns_values: dict[str, dict[int, EF]] = {}
 
-    for name, log_n_rows in tables_sorted:
+    for name in ALL_TABLES_ORDER:
+        log_n_rows = table_log_heights[name]
         meta = tables[name]
         table_values: dict[int, EF] = {}
         row_stride = 1 << log_n_rows
+        offset_within_table = table_offsets[name]
 
         for bus in meta.buses:
-            pref = pref_at(offset, log_n_rows)
+            pref = pref_at(offset_within_table, log_n_rows)
             match bus:
                 case ("col_mult", _direction):
                     bus_num_vals[name] = state.next_extension_scalar()
                     bus_den_vals[name] = state.next_extension_scalar()
                     num = num + pref * bus_num_vals[name]
                     den = den + pref * bus_den_vals[name]
-                    offset += row_stride
+                    offset_within_table += row_stride
                 case ("byte_lookup",):
                     cols = list(range(n_runtime_cols, n_runtime_cols + n_instr_cols)) + [col_pc]
                     evals = state.next_extension_scalars_vec(len(cols))
@@ -851,7 +872,7 @@ def verify_generic_logup(
                         table_values[c_idx] = e
                     num = num + pref  # Push direction
                     den = den + pref * (c - finger_print(ds_byte, evals, alphas_eq_poly))
-                    offset += row_stride
+                    offset_within_table += row_stride
                 case ("mem_group", idx_col, vals_start, n):
                     # One bus per row in the group; first sees idx_col fresh, the rest
                     # see only val_col fresh (mirrors the Rust prover's dedup logic).
@@ -864,17 +885,17 @@ def verify_generic_logup(
                             table_values[idx_col] = next(evals)
                         if val_fresh:
                             table_values[val_col] = next(evals)
-                        pref = pref_at(offset, log_n_rows)
+                        pref = pref_at(offset_within_table, log_n_rows)
                         fp = finger_print(ds_mem, [table_values[idx_col] + fb(i), table_values[val_col]], alphas_eq_poly)
                         num = num + pref  # Push direction
                         den = den + pref * (c - fp)
-                        offset += row_stride
+                        offset_within_table += row_stride
                 case _:
                     raise ProofError(f"unknown bus kind: {bus[0]}")
 
         columns_values[name] = table_values
 
-    den = den + mle_of_zeros_then_ones(offset, point_gkr)
+    den = den + mle_of_zeros_then_ones(final_offset, point_gkr)
     if num != claim_num:
         raise ProofError("logup: numerators value mismatch")
     if den != claim_den:
@@ -1243,9 +1264,9 @@ def verify_execution(
     tables_by_name = {t.name: t for t in tables}
     tables_sorted = sort_tables_by_height(table_log_heights)
 
-    # memory ≥ execution ≥ all other tables.
-    if log_memory < table_log_heights["execution"] or table_log_heights["execution"] < tables_sorted[0][1]:
-        raise ProofError("InvalidProof: memory or execution table size invariants broken")
+    # memory ≥ every table (no longer requires execution to be the largest).
+    if log_memory < tables_sorted[0][1]:
+        raise ProofError("InvalidProof: memory smaller than largest table")
     total_stacked = (
         (2 << log_memory)
         + (1 << max(bytecode_log_size, tables_sorted[0][1]))
@@ -1288,12 +1309,14 @@ def verify_execution(
             cur = cur * x
         return out
 
-    total_air_constraints = sum(_TABLE_SPECS[n]["n_constraints"] for n, _ in tables_sorted)
+    # AIR alpha offsets are now assigned in canonical ALL_TABLES order
+    # (mirrors `for table in ALL_TABLES { alpha_offset += n_constraints }` in verify_execution.rs).
+    total_air_constraints = sum(_TABLE_SPECS[n]["n_constraints"] for n in ALL_TABLES_ORDER)
     alpha_powers = powers(air_alpha, total_air_constraints)
-    alpha_offsets: list[int] = []
+    alpha_offsets: dict[str, int] = {}
     cumulative = 0
-    for name, _ in tables_sorted:
-        alpha_offsets.append(cumulative)
+    for name in ALL_TABLES_ORDER:
+        alpha_offsets[name] = cumulative
         cumulative += _TABLE_SPECS[name]["n_constraints"]
 
     extra_data = {"logup_alphas_eq_poly": logup_alphas_eq}
@@ -1301,21 +1324,24 @@ def verify_execution(
     # Initial AIR sum: Σ_table (α^o · signed_num + α^(o+1) · (c − bus_den)). The
     # sign is the direction of each table's unique Column-multiplicity bus.
     initial_sum = ZERO
-    for (name, _), offset in zip(tables_sorted, alpha_offsets):
+    for name in ALL_TABLES_ORDER:
+        offset = alpha_offsets[name]
         sign = -ONE if tables_by_name[name].buses[0][1] == "Pull" else ONE
         initial_sum = initial_sum + alpha_powers[offset] * (logup["bus_num"][name] * sign)
         initial_sum = initial_sum + alpha_powers[offset + 1] * (logup_c - logup["bus_den"][name])
     n_max = tables_sorted[0][1]
     sc_point, sc_value = verify_sumcheck(
-        state, initial_sum, n_max, max(_TABLE_SPECS[n]["degree"] + 1 for n, _ in tables_sorted)
+        state, initial_sum, n_max, max(_TABLE_SPECS[n]["degree"] + 1 for n in ALL_TABLES_ORDER)
     )
 
     committed = {
         name: [(list(from_end(gkr_point, table_log_heights[name])), dict(logup["columns_values"][name]), {})]
-        for name in tables_by_name
+        for name in ALL_TABLES_ORDER
     }
     my_air_final = ZERO
-    for (name, log_n_rows), offset in zip(tables_sorted, alpha_offsets):
+    for name in ALL_TABLES_ORDER:
+        log_n_rows = table_log_heights[name]
+        offset = alpha_offsets[name]
         meta, n_shift = tables_by_name[name], _TABLE_SPECS[name]["n_shift"]
         col_evals = state.next_extension_scalars_vec(meta.n_columns + n_shift)
         alpha_slice = alpha_powers[offset : offset + _TABLE_SPECS[name]["n_constraints"]]
