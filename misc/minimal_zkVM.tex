@@ -1327,7 +1327,9 @@ sum_rec(a, n, i, s):
 
 \subsection{Range checks}\label{sec:range-checks}
 
-\fbox{It's possible to check that a memory cell is smaller than $t$ (for $t \leq 2^{16}$) in 3 cycles.}
+It's possible to check that a memory cell is smaller than $t$ (for $t \leq 2^{16}$) in 3 cycles, where $t$ is either a constant or a memory cell \footnote{This idea was pointed out by D. Khovratovich, and is an unplanned use of the DEREF instruction}.
+
+In case $t$ is a memory cell, the program should crucially enforce $t \leq 2^{16}$ (potentially using, again, a range check).
 
 We denote by \textbf{m}[\textbf{fp} + $x$] the memory cell for which we want to ensure \textbf{m}[\textbf{fp} + $x$] $< t$.
 We also denote by \textbf{m}[\textbf{fp} + $i$], \textbf{m}[\textbf{fp} + $j$] and \textbf{m}[\textbf{fp} + $k$] 3 auxiliary memory cells (that have not been used yet).
@@ -1339,9 +1341,8 @@ We also denote by \textbf{m}[\textbf{fp} + $i$], \textbf{m}[\textbf{fp} + $j$] a
 
 Given $t \leq 2^{16} \leq 2^{h_\textsc{memory}}$, \textbf{m}[\textbf{fp} + $x$] $< 2^{h_\textsc{memory}}$, $t - 1 - $ \textbf{m}[\textbf{fp} + $x$] $< 2^{h_\textsc{memory}}$, and $2^{h_\textsc{memory}} \leq 2^{26} < p / 2$, we have: \textbf{m}[\textbf{fp} + $x$] $ < t$.
 
-Note: From the point of view of the prover running the program, some hints are necessary (filling the values of \textbf{m}[\textbf{fp} + $i$] and \textbf{m}[\textbf{fp} + $k$] must be done at end of execution).
+Note: From the point of view of the prover running the program: filling the values of \textbf{m}[\textbf{fp} + $i$] and \textbf{m}[\textbf{fp} + $k$] must be done at end of execution.
 
-This idea was pointed out by D. Khovratovich, and is an unplanned use of the DEREF instruction.
 
 \begin{exmp}
 	Let's say we want to write a function with 2 arguments $x = \textbf{m}$[\textbf{fp} + 2] and $y = \textbf{m}$[\textbf{fp} + 3] ($\textbf{m}$[\textbf{fp} + 0] and $\textbf{m}$[\textbf{fp} + 1] are used, by convention, to store the caller's \textbf{pc} and \textbf{fp}, to return to the previous context at the end of the function), which perform the following:
@@ -1372,12 +1373,42 @@ This idea was pointed out by D. Khovratovich, and is an unplanned use of the DER
 
 \subsection{Switch statements}
 
-Suppose we want a different logic depending on the value $x$ of a given memory cell, where $x$ is known to be $< k$ (if the value $x$ comes from a "hint", don't forget to range-check it).
+A switch dispatches to one of $k$ different code blocks based on a runtime value $x$ known to satisfy $0 \leq x < k$ (if $x$ came from a hint, it must be range-checked first; see Section~\ref{sec:range-checks}).
 
-Each of the $k$ different values leads to a different branch at runtime, represented by a block of code. We want to jump to the correct block of code depending on $x$.
-One efficient implementation consists in placing our blocks of code at regular intervals, and to jump to $a + b \cdot x$, where $a$ is the offset of the first block of code (in case $x = 0$), and $b$ is the distance between two consecutive blocks.
+Implementation: place the $k$ blocks at regular intervals in the bytecode, all of the same length $b$ (the smaller blocks are padded with unreachable instructions), starting at $\textbf{pc} = a$ (the block for $x = 0$). The dispatch is then a single JUMP to $\textbf{pc} = a + b \cdot x$.
 
-Example: During XMSS verification, for each of the $v$ chains, we need to hash a pre-image, a number of times depending on the encoding, but known to be $< w$. Here $k = w$, and the $i$-th block of code we could jump to will execute $i$ times the hash function (unrolled loop).
+\begin{exmp}
+Computing the $x$-th decimal digit of $\pi = 3.1415\dots$ for $x \in \{0, 1, 2, 3\}$:
+\[
+    r \;=\; \begin{cases} 3 & x = 0 \\ 1 & x = 1 \\ 4 & x = 2 \\ 1 & x = 3 \end{cases}
+\]
+
+\begin{framed}
+\small
+\begin{verbatim}
+   ;; dispatch (a = 100, b = 2, x = m[fp+3])
+   97: MUL[imm, 2,    mem, 4,   mem, 3]      ; m[fp+4] = 2 * x
+   98: ADD[imm, 100,  mem, 5,   mem, 4]      ; m[fp+5] = 100 + 2*x
+   99: JUMP[imm, 1,   mem, 5,   fp_rel, 0]   ; pc <- m[fp+5]
+
+   ;; 4 blocks, each of length b = 2, laid out at regular intervals
+  100: ADD[imm, 3,    mem, 6,   imm, 0]      ; res = 3         
+  101: JUMP[imm, 1,   imm, 108, fp_rel, 0]   ; pc <- 108     
+
+  102: ADD[imm, 1,    mem, 6,   imm, 0]      ; res = 1        
+  103: JUMP[imm, 1,   imm, 108, fp_rel, 0]   ; pc <- 108   
+
+  104: ADD[imm, 4,    mem, 6,   imm, 0]      ; res = 4        
+  105: JUMP[imm, 1,   imm, 108, fp_rel, 0]   ; pc <- 108    
+
+  106: ADD[imm, 1,    mem, 6,   imm, 0]      ; res = 1         
+  107: JUMP[imm, 1,   imm, 108, fp_rel, 0]   ; pc <- 108   
+
+  108: ...                                                       ;; merge
+\end{verbatim}
+\end{framed}
+
+\end{exmp}
 
 
 \section{Signature aggregation}\label{sec:signature-aggregation}
