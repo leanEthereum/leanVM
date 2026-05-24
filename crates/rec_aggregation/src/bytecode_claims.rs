@@ -124,7 +124,7 @@ pub(crate) fn hash_bytecode_claims(claims: &[Evaluation<EF>]) -> [F; DIGEST_LEN]
         let mut data = flatten_scalars_to_base::<F, EF>(&ef_data);
         data.resize(data.len().next_multiple_of(DIGEST_LEN), F::ZERO);
 
-        let claim_hash = poseidon_compress_slice(&data, false);
+        let claim_hash = poseidon_compress_slice(&data);
         running_hash = poseidon16_compress_pair(&running_hash, &claim_hash);
     }
     running_hash

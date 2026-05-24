@@ -16,7 +16,7 @@ PREAMBLE_MEMORY_END = REPEATED_ONES_PTR + NUM_REPEATED_ONES
 PREAMBLE_MEMORY_LEN = PREAMBLE_MEMORY_END - PUBLIC_INPUT_LEN
 
 
-def batch_hash_slice_rtl(num_queries, all_data_to_hash, all_resulting_hashes, num_chunks):
+def batch_hash_slice_rtl_with_iv(num_queries, all_data_to_hash, all_resulting_hashes, num_chunks):
     if num_chunks == DIM * 2:
         batch_hash_slice_rtl_const(num_queries, all_data_to_hash, all_resulting_hashes, DIM * 2)
         return
@@ -43,39 +43,49 @@ def batch_hash_slice_rtl(num_queries, all_data_to_hash, all_resulting_hashes, nu
 
 
 def batch_hash_slice_rtl_const(num_queries, all_data_to_hash, all_resulting_hashes, num_chunks: Const):
+    iv = build_iv(num_chunks * DIGEST_LEN)
     for i in range(0, num_queries):
         data = all_data_to_hash[i]
-        res = slice_hash_rtl(data, num_chunks)
+        res = slice_hash_rtl(data, num_chunks, iv)
         all_resulting_hashes[i] = res
     return
 
 
+# IV for the sponge: [slice length in field elements, 0, 0, ..., 0]
 @inline
-def slice_hash_rtl(data, num_chunks):
-    states = Array((num_chunks - 1) * DIGEST_LEN)
+def build_iv(length):
+    iv = Array(DIGEST_LEN)
+    iv[0] = length
+    for k in unroll(1, DIGEST_LEN):
+        iv[k] = 0
+    return iv
 
-    poseidon16_compress(data + (num_chunks - 2) * DIGEST_LEN, data + (num_chunks - 1) * DIGEST_LEN, states)
-    for j in unroll(1, num_chunks - 1):
+
+@inline
+def slice_hash_rtl(data, num_chunks, iv):
+    debug_assert(1 <= num_chunks)
+    states = Array(num_chunks * DIGEST_LEN)
+    poseidon16_compress(iv, data + (num_chunks - 1) * DIGEST_LEN, states)
+    for j in unroll(1, num_chunks):
         poseidon16_compress(
-            states + (j - 1) * DIGEST_LEN, data + (num_chunks - 2 - j) * DIGEST_LEN, states + j * DIGEST_LEN
+            states + (j - 1) * DIGEST_LEN, data + (num_chunks - 1 - j) * DIGEST_LEN, states + j * DIGEST_LEN
         )
-    return states + (num_chunks - 2) * DIGEST_LEN
+    return states + (num_chunks - 1) * DIGEST_LEN
 
 
 @inline
-def slice_hash(data, num_chunks):
-    states = Array((num_chunks - 1) * DIGEST_LEN)
-    poseidon16_compress(data, data + DIGEST_LEN, states)
-    for j in unroll(1, num_chunks - 1):
-        poseidon16_compress(states + (j - 1) * DIGEST_LEN, data + (j + 1) * DIGEST_LEN, states + j * DIGEST_LEN)
-    return states + (num_chunks - 2) * DIGEST_LEN
+def slice_hash_ret(data, num_chunks):
+    res = Array(DIGEST_LEN)
+    slice_hash(data, num_chunks, res)
+    return res
 
 
-def slice_hash_with_iv_range(data, num_chunks, dest):
+def slice_hash_range(data, num_chunks, dest):
     debug_assert(0 < num_chunks)
     debug_assert(2 < num_chunks)
+    iv = build_iv(num_chunks * DIGEST_LEN)
     states = Array((num_chunks - 1) * DIGEST_LEN)
-    poseidon16_compress(ZERO_VEC_PTR, data, states)
+    poseidon16_compress(iv, data, states)
     for j in range(1, num_chunks - 1):
         poseidon16_compress(states + (j - 1) * DIGEST_LEN, data + j * DIGEST_LEN, states + j * DIGEST_LEN)
     poseidon16_compress(states + (num_chunks - 2) * DIGEST_LEN, data + (num_chunks - 1) * DIGEST_LEN, dest)
@@ -83,27 +93,30 @@ def slice_hash_with_iv_range(data, num_chunks, dest):
 
 
 @inline
-def slice_hash_with_iv(data, num_chunks, dest):
+def slice_hash(data, num_chunks, dest):
     debug_assert(2 <= num_chunks)
+    iv = build_iv(num_chunks * DIGEST_LEN)
     states = Array(num_chunks * DIGEST_LEN)
-    poseidon16_compress(ZERO_VEC_PTR, data, states)
+    poseidon16_compress(iv, data, states)
     for j in unroll(1, num_chunks - 1):
         poseidon16_compress(states + (j - 1) * DIGEST_LEN, data + j * DIGEST_LEN, states + j * DIGEST_LEN)
     poseidon16_compress(states + (num_chunks - 2) * DIGEST_LEN, data + (num_chunks - 1) * DIGEST_LEN, dest)
     return
 
 
-def slice_hash_with_iv_dynamic_unroll(data, num_chunks, num_chunks_bits: Const):
+def slice_hash_dynamic_unroll(data, num_chunks, num_chunks_bits: Const):
     debug_assert(num_chunks != 0)
     debug_assert(num_chunks < 2**num_chunks_bits)
 
+    iv = build_iv(num_chunks * DIGEST_LEN)
+
     if num_chunks == 1:
         result = Array(DIGEST_LEN)
-        poseidon16_compress(ZERO_VEC_PTR, data, result)
+        poseidon16_compress(iv, data, result)
         return result
 
     states = Array(num_chunks * DIGEST_LEN)
-    poseidon16_compress(ZERO_VEC_PTR, data, states)
+    poseidon16_compress(iv, data, states)
     n_iters = num_chunks - 1
     state_ptr: Mut = states
     data_ptr: Mut = data + DIGEST_LEN

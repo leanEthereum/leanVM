@@ -28,7 +28,7 @@ pub struct InnerVerified {
 }
 
 pub(crate) fn verify_inner(input_data: Vec<F>, proof: Proof<F>) -> Result<InnerVerified, ProofError> {
-    let input_data_hash = poseidon_compress_slice(&input_data, true);
+    let input_data_hash = poseidon_compress_slice(&input_data);
     let bytecode = get_aggregation_bytecode();
     let (verif, raw_proof) = verify_execution(bytecode, &input_data_hash, proof)?;
     Ok(InnerVerified {

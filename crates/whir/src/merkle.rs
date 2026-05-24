@@ -8,6 +8,7 @@ use field::BasedVectorSpace;
 use field::ExtensionField;
 use field::Field;
 use field::PackedValue;
+use field::PrimeCharacteristicRing;
 use koala_bear::{KoalaBear, QuinticExtensionFieldKB, default_koalabear_poseidon1_16};
 use poly::*;
 
@@ -63,22 +64,20 @@ fn build_merkle_tree_koalabear(
 ) -> RoundMerkleTree<KoalaBear> {
     let perm = default_koalabear_poseidon1_16();
     let n_zero_suffix_rate_chunks = (full_base_width - effective_base_width) / 8;
-    let first_layer = if n_zero_suffix_rate_chunks >= 2 {
-        let scalar_state = symetric::precompute_zero_suffix_state::<KoalaBear, _, 16, 8, DIGEST_ELEMS>(
-            &perm,
-            n_zero_suffix_rate_chunks,
-        );
-        let packed_state: [PFPacking<KoalaBear>; 16] =
-            std::array::from_fn(|i| PFPacking::<KoalaBear>::from_fn(|_| scalar_state[i]));
-        first_digest_layer_with_initial_state::<PFPacking<KoalaBear>, _, _, DIGEST_ELEMS, 16, 8>(
-            &perm,
-            &leaf,
-            &packed_state,
-            effective_base_width,
-        )
-    } else {
-        first_digest_layer::<PFPacking<KoalaBear>, _, _, DIGEST_ELEMS, 16, 8>(&perm, &leaf, full_base_width)
-    };
+    let iv_first = KoalaBear::from_usize(full_base_width);
+    let scalar_state = symetric::precompute_zero_suffix_state::<KoalaBear, _, 16, 8, DIGEST_ELEMS>(
+        &perm,
+        iv_first,
+        n_zero_suffix_rate_chunks,
+    );
+    let packed_state: [PFPacking<KoalaBear>; 16] =
+        std::array::from_fn(|i| PFPacking::<KoalaBear>::from_fn(|_| scalar_state[i]));
+    let first_layer = first_digest_layer_with_initial_state::<PFPacking<KoalaBear>, _, _, DIGEST_ELEMS, 16, 8>(
+        &perm,
+        &leaf,
+        &packed_state,
+        effective_base_width,
+    );
     let tree = symetric::merkle::MerkleTree::from_first_layer::<PFPacking<KoalaBear>, _, 16>(&perm, first_layer);
     WhirMerkleTree {
         leaf,
@@ -159,7 +158,7 @@ pub struct WhirMerkleTree<F, M, const DIGEST_ELEMS: usize> {
     full_leaf_base_width: usize,
 }
 
-impl<F: Clone + Copy + Default + Send + Sync, M: Matrix<F>, const DIGEST_ELEMS: usize>
+impl<F: field::PrimeCharacteristicRing + Send + Sync, M: Matrix<F>, const DIGEST_ELEMS: usize>
     WhirMerkleTree<F, M, DIGEST_ELEMS>
 {
     #[instrument(name = "build merkle tree", skip_all)]
@@ -174,21 +173,19 @@ impl<F: Clone + Copy + Default + Send + Sync, M: Matrix<F>, const DIGEST_ELEMS: 
         Perm: Compression<[F; WIDTH]> + Compression<[P; WIDTH]>,
     {
         let n_zero_suffix_rate_chunks = (full_leaf_base_width - effective_base_width) / RATE;
-        let first_layer = if n_zero_suffix_rate_chunks >= 2 {
-            let scalar_state = symetric::precompute_zero_suffix_state::<F, Perm, WIDTH, RATE, DIGEST_ELEMS>(
-                perm,
-                n_zero_suffix_rate_chunks,
-            );
-            let packed_state: [P; WIDTH] = std::array::from_fn(|i| P::from_fn(|_| scalar_state[i]));
-            first_digest_layer_with_initial_state::<P, Perm, _, DIGEST_ELEMS, WIDTH, RATE>(
-                perm,
-                &leaf,
-                &packed_state,
-                effective_base_width,
-            )
-        } else {
-            first_digest_layer::<P, Perm, _, DIGEST_ELEMS, WIDTH, RATE>(perm, &leaf, full_leaf_base_width)
-        };
+        let iv_first = F::from_usize(full_leaf_base_width);
+        let scalar_state = symetric::precompute_zero_suffix_state::<F, Perm, WIDTH, RATE, DIGEST_ELEMS>(
+            perm,
+            iv_first,
+            n_zero_suffix_rate_chunks,
+        );
+        let packed_state: [P; WIDTH] = std::array::from_fn(|i| P::from_fn(|_| scalar_state[i]));
+        let first_layer = first_digest_layer_with_initial_state::<P, Perm, _, DIGEST_ELEMS, WIDTH, RATE>(
+            perm,
+            &leaf,
+            &packed_state,
+            effective_base_width,
+        );
         let tree = symetric::merkle::MerkleTree::from_first_layer::<P, Perm, WIDTH>(perm, first_layer);
         Self {
             leaf,
@@ -212,42 +209,6 @@ impl<F: Clone + Copy + Default + Send + Sync, M: Matrix<F>, const DIGEST_ELEMS: 
 }
 
 #[instrument(name = "first digest layer", level = "debug", skip_all)]
-fn first_digest_layer<P, Perm, M, const DIGEST_ELEMS: usize, const WIDTH: usize, const RATE: usize>(
-    perm: &Perm,
-    matrix: &M,
-    full_width: usize,
-) -> Vec<[P::Value; DIGEST_ELEMS]>
-where
-    P: PackedValue + Default,
-    P::Value: Default + Copy,
-    Perm: Compression<[P::Value; WIDTH]> + Compression<[P; WIDTH]>,
-    M: Matrix<P::Value>,
-{
-    let width = P::WIDTH;
-    let height = matrix.height();
-    assert!(height.is_multiple_of(width));
-    let matrix_width = matrix.width();
-    let n_trailing_zeros = full_width - matrix_width;
-
-    let mut digests = unsafe { uninitialized_vec(height) };
-
-    digests
-        .par_chunks_exact_mut(width)
-        .enumerate()
-        .for_each(|(i, digests_chunk)| {
-            let first_row = i * width;
-            let rtl_iter = matrix.vertically_packed_row_rtl::<P>(first_row, matrix_width, n_trailing_zeros);
-            let packed_digest: [P; DIGEST_ELEMS] =
-                symetric::hash_rtl_iter::<_, _, _, WIDTH, RATE, DIGEST_ELEMS>(perm, rtl_iter);
-            for (dst, src) in digests_chunk.iter_mut().zip(unpack_array(packed_digest)) {
-                *dst = src;
-            }
-        });
-
-    digests
-}
-
-#[instrument(skip_all)]
 fn first_digest_layer_with_initial_state<P, Perm, M, const DIGEST_ELEMS: usize, const WIDTH: usize, const RATE: usize>(
     perm: &Perm,
     matrix: &M,

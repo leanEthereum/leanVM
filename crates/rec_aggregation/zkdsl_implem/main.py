@@ -61,14 +61,14 @@ def main():
             inner_type1_buf = Array(TYPE_1_INPUT_DATA_SIZE_PADDED)
             hint_witness("component_layout", inner_type1_buf)
             ensure_well_formed_input_data(inner_type1_buf, bytecode_hash_domsep, TYPE_1_FLAG)
-            slice_hash_with_iv(inner_type1_buf, TYPE_1_INPUT_DATA_NUM_CHUNKS, component_digest)
+            slice_hash(inner_type1_buf, TYPE_1_INPUT_DATA_NUM_CHUNKS, component_digest)
 
             bytecode_claims[2 * c] = inner_type1_buf + BYTECODE_CLAIM_OFFSET
             bytecode_claims[2 * c + 1] = recursion(component_digest, bytecode_hash_domsep)
 
         reduce_bytecode_claims(bytecode_claims, n_bytecode_claims, bytecode_claim_output)
 
-        slice_hash_with_iv_range(data_buf, n_components + TYPE_2_BASE_NUM_CHUNKS, pub_mem)
+        slice_hash_range(data_buf, n_components + TYPE_2_BASE_NUM_CHUNKS, pub_mem)
         return
 
     assert discriminator == TYPE_1_FLAG
@@ -97,15 +97,15 @@ def main():
         copy_32(data_buf + COMPONENT_DATA_OFFSET, kept_type1_buff + COMPONENT_DATA_OFFSET)
         ensure_well_formed_input_data(kept_type1_buff, bytecode_hash_domsep, TYPE_1_FLAG)
         digest_kept = type2_digests + type2_kept_index * DIGEST_LEN
-        slice_hash_with_iv(kept_type1_buff, TYPE_1_INPUT_DATA_NUM_CHUNKS, digest_kept)
+        slice_hash(kept_type1_buff, TYPE_1_INPUT_DATA_NUM_CHUNKS, digest_kept)
 
         inner_pub_mem = Array(INNER_PUB_MEM_SIZE)
-        slice_hash_with_iv_range(type2_data_buf, type2_num_chunks, inner_pub_mem)
+        slice_hash_range(type2_data_buf, type2_num_chunks, inner_pub_mem)
         bytecode_claims = Array(2)
         bytecode_claims[0] = type2_data_buf + BYTECODE_CLAIM_OFFSET
         bytecode_claims[1] = recursion(inner_pub_mem, bytecode_hash_domsep)
         reduce_bytecode_claims(bytecode_claims, 2, bytecode_claim_output)
-        slice_hash_with_iv(data_buf, TYPE_1_INPUT_DATA_NUM_CHUNKS, pub_mem)
+        slice_hash(data_buf, TYPE_1_INPUT_DATA_NUM_CHUNKS, pub_mem)
         return
 
     # ============ Standard type-1: single (message, slot) aggregation ============
@@ -139,7 +139,7 @@ def main():
     aggregate_sizes = Array(n_recursions)
     hint_witness("aggregate_sizes", aggregate_sizes)
 
-    computed_tweaks_hash = slice_hash(tweak_table, TWEAK_TABLE_SIZE_FE_PADDED / DIGEST_LEN)
+    computed_tweaks_hash = slice_hash_ret(tweak_table, TWEAK_TABLE_SIZE_FE_PADDED / DIGEST_LEN)
     copy_8(computed_tweaks_hash, tweaks_hash_expected)
 
     # 1->1 optimization: a single recursive type-1 child, no raw signatures, no duplicates.
@@ -152,16 +152,16 @@ def main():
             hint_witness("inner_bytecode_claim", type1_data_buf + BYTECODE_CLAIM_OFFSET)
             ensure_well_formed_input_data(type1_data_buf, bytecode_hash_domsep, TYPE_1_FLAG)
             inner_pub_mem = Array(INNER_PUB_MEM_SIZE)
-            slice_hash_with_iv(type1_data_buf, TYPE_1_INPUT_DATA_NUM_CHUNKS, inner_pub_mem)
+            slice_hash(type1_data_buf, TYPE_1_INPUT_DATA_NUM_CHUNKS, inner_pub_mem)
             bytecode_claims = Array(2)
             bytecode_claims[0] = type1_data_buf + BYTECODE_CLAIM_OFFSET
             bytecode_claims[1] = recursion(inner_pub_mem, bytecode_hash_domsep)
             reduce_bytecode_claims(bytecode_claims, 2, bytecode_claim_output)
-            slice_hash_with_iv(data_buf, TYPE_1_INPUT_DATA_NUM_CHUNKS, pub_mem)
+            slice_hash(data_buf, TYPE_1_INPUT_DATA_NUM_CHUNKS, pub_mem)
             return
 
     # General path
-    computed_pubkeys_hash = slice_hash_with_iv_dynamic_unroll(all_pubkeys, n_sigs, log2_ceil(MAX_N_SIGS))
+    computed_pubkeys_hash = slice_hash_dynamic_unroll(all_pubkeys, n_sigs, log2_ceil(MAX_N_SIGS))
     copy_8(computed_pubkeys_hash, pubkeys_hash_expected)
 
     # Buffer for partition verification
@@ -193,7 +193,8 @@ def main():
         counter += 1
         pk0 = all_pubkeys + idx0 * PUB_KEY_SIZE
         running_hash: Mut = Array(DIGEST_LEN)
-        poseidon16_compress(ZERO_VEC_PTR, pk0, running_hash)
+        iv = build_iv(n_sub * PUB_KEY_SIZE)
+        poseidon16_compress(iv, pk0, running_hash)
 
         for j in dynamic_unroll(1, n_sub, log2_ceil(MAX_N_SIGS)):
             idx = sub_indices_arr[j]
@@ -218,7 +219,7 @@ def main():
         hint_witness("inner_bytecode_claim", type1_data_buf + BYTECODE_CLAIM_OFFSET)
         ensure_well_formed_input_data(type1_data_buf, bytecode_hash_domsep, TYPE_1_FLAG)
         inner_pub_mem = Array(INNER_PUB_MEM_SIZE)
-        slice_hash_with_iv(type1_data_buf, TYPE_1_INPUT_DATA_NUM_CHUNKS, inner_pub_mem)
+        slice_hash(type1_data_buf, TYPE_1_INPUT_DATA_NUM_CHUNKS, inner_pub_mem)
 
         bytecode_claims[2 * rec_idx] = type1_data_buf + BYTECODE_CLAIM_OFFSET
         bytecode_claims[2 * rec_idx + 1] = recursion(inner_pub_mem, bytecode_hash_domsep)
@@ -234,7 +235,7 @@ def main():
     else:
         reduce_bytecode_claims(bytecode_claims, n_bytecode_claims, bytecode_claim_output)
 
-    slice_hash_with_iv(data_buf, TYPE_1_INPUT_DATA_NUM_CHUNKS, pub_mem)
+    slice_hash(data_buf, TYPE_1_INPUT_DATA_NUM_CHUNKS, pub_mem)
     return
 
 
@@ -244,7 +245,7 @@ def reduce_bytecode_claims(bytecode_claims, n_bytecode_claims, bytecode_claim_ou
         claim_ptr = bytecode_claims[i]
         for k in unroll(BYTECODE_CLAIM_SIZE, BYTECODE_CLAIM_SIZE_PADDED):
             assert claim_ptr[k] == 0
-        claim_hash = slice_hash(claim_ptr, BYTECODE_CLAIM_SIZE_PADDED / DIGEST_LEN)
+        claim_hash = slice_hash_ret(claim_ptr, BYTECODE_CLAIM_SIZE_PADDED / DIGEST_LEN)
         new_hash = Array(DIGEST_LEN)
         poseidon16_compress(bytecode_claims_hash, claim_hash, new_hash)
         bytecode_claims_hash = new_hash

@@ -559,7 +559,7 @@ def whir_1_merkle_step_and_pow(v, state_in, path_chunk, state_out, power_shift):
 
 
 @inline
-def decompose_and_verify_merkle_query(a, domain_size, prev_root, num_chunks):
+def decompose_and_verify_merkle_query(a, domain_size, prev_root, num_chunks, leaf_iv):
     nibbles = Array(6)
     hint_decompose_bits_merkle_whir(nibbles, a, 4)
 
@@ -580,7 +580,7 @@ def decompose_and_verify_merkle_query(a, domain_size, prev_root, num_chunks):
 
     leaf_data = Array(num_chunks * DIGEST_LEN)
     hint_witness("merkle_leaf", leaf_data)
-    leaf_hash = slice_hash_rtl(leaf_data, num_chunks)
+    leaf_hash = slice_hash_rtl(leaf_data, num_chunks, leaf_iv)
 
     merkle_path = Array(domain_size * DIGEST_LEN)
     hint_witness("merkle_path", merkle_path)

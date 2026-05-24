@@ -161,7 +161,7 @@ pub fn compile_to_low_level_bytecode(
         pc_to_location.push(current_location);
     }
 
-    let hash = poseidon_compress_slice(&instructions_multilinear, true);
+    let hash = poseidon_compress_slice(&instructions_multilinear);
 
     let code: Vec<_> = instructions
         .into_iter()

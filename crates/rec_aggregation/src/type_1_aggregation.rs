@@ -31,8 +31,6 @@ pub(crate) const N_TWEAKS: usize = 1 + V * CHAIN_LENGTH + 1 + LOG_LIFETIME;
 pub(crate) const TWEAK_SLOT_SIZE: usize = 4;
 pub(crate) const TWEAK_TABLE_SIZE_FE_PADDED: usize = (N_TWEAKS * TWEAK_SLOT_SIZE).next_multiple_of(DIGEST_LEN);
 
-pub(crate) const TWEAKS_HASHING_USE_IV: bool = false; // fixed size → no IV needed
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub(crate) struct Digest(pub [F; DIGEST_LEN]);
 
@@ -100,7 +98,7 @@ impl TypeOneInfo {
 
     pub(crate) fn build_input_data(&self) -> Vec<F> {
         let tweak_table = compute_tweak_table(self.slot);
-        let tweaks_hash = poseidon_compress_slice(&tweak_table, TWEAKS_HASHING_USE_IV);
+        let tweaks_hash = poseidon_compress_slice(&tweak_table);
         build_type1_input_data(
             self.pubkeys.len(),
             &hash_pubkeys(&self.pubkeys),
@@ -115,7 +113,7 @@ impl TypeOneInfo {
 
 pub(crate) fn hash_pubkeys(pub_keys: &[XmssPublicKey]) -> [F; DIGEST_LEN] {
     let flat: Vec<F> = pub_keys.iter().flat_map(|pk| pk.flaten().into_iter()).collect();
-    poseidon_compress_slice(&flat, true)
+    poseidon_compress_slice(&flat)
 }
 
 /// Tweak slots are 4-FE [tw[0], tw[1], 0, 0]
@@ -262,7 +260,7 @@ pub(crate) fn aggregate_type_1_with_min_padding(
     assert!(n_sigs <= MAX_XMSS_AGGREGATED);
 
     let tweak_table = compute_tweak_table(slot);
-    let tweaks_hash = poseidon_compress_slice(&tweak_table, TWEAKS_HASHING_USE_IV);
+    let tweaks_hash = poseidon_compress_slice(&tweak_table);
 
     let reduced_claims = reduce_bytecode_claims(&verified_children);
 
@@ -275,7 +273,7 @@ pub(crate) fn aggregate_type_1_with_min_padding(
         &reduced_claims.final_claim_flat(),
         bytecode,
     );
-    let public_input = poseidon_compress_slice(&pub_input_data, true).to_vec();
+    let public_input = poseidon_compress_slice(&pub_input_data).to_vec();
 
     let mut claimed: HashSet<XmssPublicKey> = HashSet::new();
     let mut dup_pub_keys: Vec<XmssPublicKey> = Vec::new();

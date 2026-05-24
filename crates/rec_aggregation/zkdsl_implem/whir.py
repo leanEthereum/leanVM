@@ -276,8 +276,11 @@ def decompose_and_verify_merkle_batch_with_height(
 def decompose_and_verify_merkle_batch_const(
     num_queries, sampled, root, height: Const, num_chunks: Const, circle_values, merkle_leaves
 ):
+    leaf_iv = build_iv(num_chunks * DIGEST_LEN)
     for i in range(0, num_queries):
-        merkle_leaves[i], circle_values[i] = decompose_and_verify_merkle_query(sampled[i], height, root, num_chunks)
+        merkle_leaves[i], circle_values[i] = decompose_and_verify_merkle_query(
+            sampled[i], height, root, num_chunks, leaf_iv
+        )
     return
 
 
