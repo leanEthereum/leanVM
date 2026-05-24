@@ -11,7 +11,11 @@ pub struct ExecutionTrace {
     pub metadata: ExecutionMetadata,
 }
 
-pub fn get_execution_trace(bytecode: &Bytecode, execution_result: ExecutionResult) -> ExecutionTrace {
+pub fn get_execution_trace(
+    bytecode: &Bytecode,
+    execution_result: ExecutionResult,
+    min_table_log_n_rows: &BTreeMap<Table, usize>, // testing purpose
+) -> ExecutionTrace {
     assert_eq!(execution_result.pcs.len(), execution_result.fps.len());
 
     let n_cycles = execution_result.pcs.len();
@@ -150,12 +154,18 @@ pub fn get_execution_trace(bytecode: &Bytecode, execution_result: ExecutionResul
         },
     );
     for table in traces.keys().copied().collect::<Vec<_>>() {
+        let floor = min_table_log_n_rows
+            .get(&table)
+            .copied()
+            .unwrap_or_default()
+            .max(MIN_LOG_N_ROWS_PER_TABLE);
         pad_table(
             &table,
             &mut traces,
             padding_zero_vec_ptr,
             null_poseidon_16_hash_ptr,
             bytecode.ending_pc,
+            floor,
         );
     }
 
@@ -173,6 +183,7 @@ fn pad_table(
     zero_vec_ptr: usize,
     null_poseidon_16_hash_ptr: usize,
     ending_pc: usize,
+    min_log_n_rows: usize,
 ) {
     let trace = traces.get_mut(table).unwrap();
     let h = trace.columns[0].len();
@@ -183,7 +194,7 @@ fn pad_table(
         .for_each(|(i, col)| assert_eq!(col.len(), h, "column {}, table {}", i, table.name()));
 
     trace.non_padded_n_rows = h;
-    trace.log_n_rows = log2_ceil_usize(h + 1).max(MIN_LOG_N_ROWS_PER_TABLE);
+    trace.log_n_rows = log2_ceil_usize(h + 1).max(min_log_n_rows);
     let n_rows = 1 << trace.log_n_rows;
     let padding_row = table.padding_row(zero_vec_ptr, null_poseidon_16_hash_ptr, ending_pc);
     trace.columns.par_iter_mut().enumerate().for_each(|(i, col)| {

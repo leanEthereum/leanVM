@@ -30,6 +30,7 @@ AIR_DEGREES = AIR_DEGREES_PLACEHOLDER  # [_; N_TABLES]
 MAX_AIR_FULL_DEGREE = MAX_AIR_FULL_DEGREE_PLACEHOLDER
 N_AIR_COLUMNS = N_AIR_COLUMNS_PLACEHOLDER  # [_; N_TABLES]
 N_AIR_SHIFT_COLUMNS = N_AIR_SHIFT_COLUMNS_PLACEHOLDER  # [_; N_TABLES] — by convention, shift column j of table t is column j
+AIR_ALPHA_OFFSETS = AIR_ALPHA_OFFSETS_PLACEHOLDER  # [_; N_TABLES], # AIR_ALPHA_OFFSETS[t] = sum(N_AIR_CONSTRAINTS[k] for k in range(t))
 
 N_INSTRUCTION_COLUMNS = N_INSTRUCTION_COLUMNS_PLACEHOLDER
 N_COMMITTED_EXEC_COLUMNS = N_COMMITTED_EXEC_COLUMNS_PLACEHOLDER
@@ -66,28 +67,64 @@ def recursion(inner_public_memory, bytecode_hash_domsep):
     log_memory = dims[1]
     table_log_heights = dims + 2
 
-
     assert MIN_WHIR_LOG_INV_RATE <= whir_log_inv_rate
     assert whir_log_inv_rate <= MAX_WHIR_LOG_INV_RATE
-
-    log_n_cycles = table_log_heights[EXECUTION_TABLE_INDEX]
-    assert log_n_cycles <= log_memory
-
-    log_bytecode_padded = maximum(LOG_GUEST_BYTECODE_LEN, log_n_cycles)
 
     table_heights = Array(N_TABLES)
     for i in unroll(0, N_TABLES):
         table_log_height = table_log_heights[i]
-        table_heights[i] = two_exp(table_log_height)
-        assert table_log_height <= log_n_cycles
-        assert MIN_LOG_N_ROWS_PER_TABLE <= table_log_height
         assert table_log_height <= MAX_LOG_N_ROWS_PER_TABLE[i]
+        assert MIN_LOG_N_ROWS_PER_TABLE <= table_log_height
+        table_heights[i] = two_exp(table_log_height)
+
+    sorted_tables = Array(N_TABLES) # sorted_tables[0] is the index of the biggest table, sorted_tables[1] is the index of the second biggest table, etc
+    hint_witness("table_sort_perm", sorted_tables)
+    # Force table_sort_perm to be a permutation of {0..N_TABLES-1}
+    perm_seen = Array(N_TABLES)
+    for i in unroll(0, N_TABLES):
+        p = sorted_tables[i]
+        assert p < N_TABLES
+        perm_seen[p] = i
+    
+    for i in unroll(0, N_TABLES - 1):
+        height_curr = table_log_heights[sorted_tables[i]]
+        height_next = table_log_heights[sorted_tables[i + 1]]
+        assert height_next <= height_curr
+        if height_curr == height_next:
+            assert sorted_tables[i] < sorted_tables[i + 1]
+
     assert MIN_LOG_MEMORY_SIZE <= log_memory
     assert log_memory <= MAX_LOG_MEMORY_SIZE
     assert LOG_GUEST_BYTECODE_LEN <= log_memory
 
+    log_max_table_height = table_log_heights[sorted_tables[0]]  # largest table's log height
+    assert log_max_table_height <= log_memory
+    log_n_cycles = table_log_heights[EXECUTION_TABLE_INDEX]
+
+    log_bytecode_padded = maximum(LOG_GUEST_BYTECODE_LEN, log_max_table_height)
+
     stacked_n_vars = compute_stacked_n_vars(log_memory, log_bytecode_padded, table_heights)
     assert stacked_n_vars <= TWO_ADICITY + WHIR_INITIAL_FOLDING_FACTOR - whir_log_inv_rate
+
+    n_vars_logup_gkr = compute_total_gkr_n_vars(log_memory, log_bytecode_padded, table_heights)
+
+    n_buses_per_table = Array(N_TABLES) # indexed by table_index
+    n_cols_per_table = Array(N_TABLES) # indexed by table_index
+    for i in unroll(0, N_TABLES):
+        n_buses_per_table[i] = len(ONE_BUSES_DOMSEPS[i]) + 1 # + 1 for the precompile bus interraction (the rest is memory / bytecode interractions)
+        n_cols_per_table[i] = NUM_COLS_AIR[i]
+
+    gkr_table_base_offset = Array(N_TABLES)
+    stacked_table_base_offset = Array(N_TABLES)
+    gkr_cumul: Mut = two_exp(log_memory) + two_exp(log_bytecode_padded)
+    stacked_cumul: Mut = two_exp(log_memory) * 2 + two_exp(log_bytecode_padded)
+    for sorted_pos in unroll(0, N_TABLES):
+        ti = sorted_tables[sorted_pos]
+        gkr_table_base_offset[ti] = gkr_cumul
+        stacked_table_base_offset[ti] = stacked_cumul
+        n_rows = table_heights[ti]
+        gkr_cumul += n_rows * n_buses_per_table[ti]
+        stacked_cumul += n_rows * n_cols_per_table[ti]
 
     num_oods = get_num_oods(whir_log_inv_rate, stacked_n_vars)
     num_ood_at_commitment = num_oods[0]
@@ -100,9 +137,7 @@ def recursion(inner_public_memory, bytecode_hash_domsep):
 
     logup_alphas_eq_poly = compute_eq_mle_extension(logup_alphas, log2_ceil(MAX_BUS_WIDTH))
 
-    # GENERIC LOGUP
-
-    n_vars_logup_gkr = compute_total_gkr_n_vars(log_memory, log_bytecode_padded, table_heights)
+    # LOGUP
 
     fs, quotient_gkr, point_gkr, numerators_value, denominators_value = verify_gkr_quotient(fs, n_vars_logup_gkr)
     set_to_5_zeros(quotient_gkr)
@@ -120,14 +155,14 @@ def recursion(inner_public_memory, bytecode_hash_domsep):
         memory_and_acc_prefix, sub_extension_ret(logup_c, fingerprint_memory)
     )
 
-    offset: Mut = two_exp(log_memory)
+    bytecode_section_offset = two_exp(log_memory)
 
     bytecode_and_acc_point = point_gkr + (n_vars_logup_gkr - LOG_GUEST_BYTECODE_LEN) * DIM
     bytecode_multilinear_location_prefix = multilinear_location_prefix(
-        offset / 2**LOG_GUEST_BYTECODE_LEN, n_vars_logup_gkr - LOG_GUEST_BYTECODE_LEN, point_gkr
+        bytecode_section_offset / 2**LOG_GUEST_BYTECODE_LEN, n_vars_logup_gkr - LOG_GUEST_BYTECODE_LEN, point_gkr
     )
     bytecode_padded_multilinear_location_prefix = multilinear_location_prefix(
-        offset / two_exp(log_bytecode_padded), n_vars_logup_gkr - log_bytecode_padded, point_gkr
+        bytecode_section_offset / two_exp(log_bytecode_padded), n_vars_logup_gkr - log_bytecode_padded, point_gkr
     )
     # Build padded claim data: [point | value | zero padding]
     bytecode_claim = Array(BYTECODE_CLAIM_SIZE_PADDED)
@@ -182,126 +217,28 @@ def recursion(inner_public_memory, bytecode_hash_domsep):
             ),
         ),
     )
-    offset += two_exp(log_bytecode_padded)
 
-    # Dispatch based on table height ordering (sorted by descending height)
-    if maximum(table_log_heights[1], table_log_heights[2]) == table_log_heights[1]:
-        continue_recursion_ordered(
-            1,
-            2,
-            fs,
-            offset,
-            retrieved_numerators_value,
-            retrieved_denominators_value,
-            table_heights,
-            table_log_heights,
-            point_gkr,
-            n_vars_logup_gkr,
-            logup_alphas_eq_poly,
-            logup_c,
-            numerators_value,
-            denominators_value,
-            log_memory,
-            inner_public_memory,
-            stacked_n_vars,
-            whir_log_inv_rate,
-            whir_base_root,
-            whir_base_ood_points,
-            whir_base_ood_evals,
-            num_ood_at_commitment,
-            log_n_cycles,
-            log_bytecode_padded,
-            bytecode_and_acc_point,
-            value_memory,
-            value_acc,
-            value_bytecode_acc,
-        )
-    else:
-        continue_recursion_ordered(
-            2,
-            1,
-            fs,
-            offset,
-            retrieved_numerators_value,
-            retrieved_denominators_value,
-            table_heights,
-            table_log_heights,
-            point_gkr,
-            n_vars_logup_gkr,
-            logup_alphas_eq_poly,
-            logup_c,
-            numerators_value,
-            denominators_value,
-            log_memory,
-            inner_public_memory,
-            stacked_n_vars,
-            whir_log_inv_rate,
-            whir_base_root,
-            whir_base_ood_points,
-            whir_base_ood_evals,
-            num_ood_at_commitment,
-            log_n_cycles,
-            log_bytecode_padded,
-            bytecode_and_acc_point,
-            value_memory,
-            value_acc,
-            value_bytecode_acc,
-        )
-
-    return bytecode_claim
-
-
-@inline
-def continue_recursion_ordered(
-    second_table,
-    third_table,
-    fs,
-    offset,
-    retrieved_numerators_value,
-    retrieved_denominators_value,
-    table_heights,
-    table_log_heights,
-    point_gkr,
-    n_vars_logup_gkr,
-    logup_alphas_eq_poly,
-    logup_c,
-    numerators_value,
-    denominators_value,
-    log_memory,
-    inner_public_memory,
-    stacked_n_vars,
-    whir_log_inv_rate,
-    whir_base_root,
-    whir_base_ood_points,
-    whir_base_ood_evals,
-    num_ood_at_commitment,
-    log_n_cycles,
-    log_bytecode_padded,
-    bytecode_and_acc_point,
-    value_memory,
-    value_acc,
-    value_bytecode_acc,
-):
-    bus_numerators_values = DynArray([])
-    bus_denominators_values = DynArray([])
-    pcs_points = DynArray([])  # [[_; N]; N_TABLES]
-    pcs_values = DynArray([])  # [[[[] or [_]; num cols]; N]; N_TABLES]
-    pcs_values_shift = DynArray([])  # same structure, for next_mle-weighted column evals
-    for i in unroll(0, N_TABLES):
+    # Per-table data accumulators (indexed by table_index).
+    bus_numerators_values = Array(N_TABLES * DIM)
+    bus_denominators_values = Array(N_TABLES * DIM)
+    pcs_points = DynArray([])
+    pcs_values = DynArray([])
+    pcs_values_shift = DynArray([])
+    for table_index in unroll(0, N_TABLES):
         pcs_points.push(DynArray([]))
         pcs_values.push(DynArray([]))
-        pcs_values[i].push(DynArray([]))
+        pcs_values[table_index].push(DynArray([]))
         pcs_values_shift.push(DynArray([]))
-        pcs_values_shift[i].push(DynArray([]))
-        for _ in unroll(0, NUM_COLS_AIR[i]):
-            pcs_values[i][0].push(DynArray([]))
-            pcs_values_shift[i][0].push(DynArray([]))
+        pcs_values_shift[table_index].push(DynArray([]))
+        for _ in unroll(0, NUM_COLS_AIR[table_index]):
+            pcs_values[table_index][0].push(DynArray([]))
+            pcs_values_shift[table_index][0].push(DynArray([]))
 
-    for sorted_pos in unroll(0, N_TABLES):
-        table_index = sorted_table_index(sorted_pos, second_table, third_table)
-
+    for table_index in unroll(0, N_TABLES):
         log_n_rows = table_log_heights[table_index]
         n_rows = table_heights[table_index]
+        offset: Mut = gkr_table_base_offset[table_index]
+
         inner_point = point_gkr + (n_vars_logup_gkr - log_n_rows) * DIM
         pcs_points[table_index].push(inner_point)
 
@@ -318,9 +255,8 @@ def continue_recursion_ordered(
             retrieved_denominators_value, mul_extension_ret(prefix, eval_on_data)
         )
 
-        bus_numerators_values.push(eval_on_selector)
-
-        bus_denominators_values.push(eval_on_data)
+        copy_5(eval_on_selector, bus_numerators_values + table_index * DIM)
+        copy_5(eval_on_data, bus_denominators_values + table_index * DIM)
 
         offset += n_rows
 
@@ -356,9 +292,10 @@ def continue_recursion_ordered(
             )
             offset += n_rows
 
+    # Final logup adjustment (padding)
     retrieved_denominators_value = add_extension_ret(
         retrieved_denominators_value,
-        mle_of_zeros_then_ones(point_gkr, offset, n_vars_logup_gkr),
+        mle_of_zeros_then_ones(point_gkr, gkr_cumul, n_vars_logup_gkr),
     )
 
     copy_5(retrieved_numerators_value, numerators_value)
@@ -366,54 +303,48 @@ def continue_recursion_ordered(
 
     memory_and_acc_point = point_gkr + (n_vars_logup_gkr - log_memory) * DIM
 
-    # END OF GENERIC LOGUP
+    # END OF LOGUP
 
-    # VERIFY BUS AND AIR — back-loaded batched sumcheck (see https://hackmd.io/s/HyxaupAAA)
+    # VERIFY BUS AND AIR — back-loaded batched sumcheck
 
     fs, air_alpha = fs_sample_ef(fs)
     air_alpha_powers = powers_const(air_alpha, TOTAL_NUM_AIR_CONSTRAINTS)
 
-    alpha_offsets = Array(N_TABLES)
-    cumulative: Mut = 0
-    for sorted_pos in unroll(0, N_TABLES):
-        alpha_offsets[sorted_pos] = cumulative
-        table_index = sorted_table_index(sorted_pos, second_table, third_table)
-        cumulative += N_AIR_CONSTRAINTS[table_index]
-
     initial_sum: Mut = ZERO_VEC_PTR
-    for sorted_pos in unroll(0, N_TABLES):
-        table_index = sorted_table_index(sorted_pos, second_table, third_table)
-        bus_numerator_value = bus_numerators_values[sorted_pos]
-        bus_denominator_value = bus_denominators_values[sorted_pos]
-        offset = alpha_offsets[sorted_pos]
+    for table_index in unroll(0, N_TABLES):
+        alpha_offset = AIR_ALPHA_OFFSETS[table_index]
+        bus_numerator_value = bus_numerators_values + table_index * DIM
+        bus_denominator_value = bus_denominators_values + table_index * DIM
 
         signed_numerator: Mut = bus_numerator_value
         if table_index != EXECUTION_TABLE_INDEX:
             signed_numerator = opposite_extension_ret(signed_numerator)
-        bus_final_value: Mut = mul_extension_ret(air_alpha_powers + offset * DIM, signed_numerator)
+        bus_final_value: Mut = mul_extension_ret(air_alpha_powers + alpha_offset * DIM, signed_numerator)
         bus_final_value = add_extension_ret(
             bus_final_value,
-            mul_extension_ret(air_alpha_powers + (offset + 1) * DIM, sub_extension_ret(logup_c, bus_denominator_value)),
+            mul_extension_ret(
+                air_alpha_powers + (alpha_offset + 1) * DIM,
+                sub_extension_ret(logup_c, bus_denominator_value),
+            ),
         )
         initial_sum = add_extension_ret(initial_sum, bus_final_value)
 
-    n_max = log_n_cycles  # extension table is always the biggest
+    n_max = log_max_table_height
     # Batched AIR sumcheck:
     fs, all_challenges, batched_air_final_value = sumcheck_verify_reversed(fs, n_max, initial_sum, MAX_AIR_FULL_DEGREE)
 
     check_sum: Mut = ZERO_VEC_PTR
-    for sorted_pos in unroll(0, N_TABLES):
-        table_index = sorted_table_index(sorted_pos, second_table, third_table)
+    for table_index in unroll(0, N_TABLES):
         log_n_rows = table_log_heights[table_index]
         total_num_cols = NUM_COLS_AIR[table_index]
         n_flat_columns = N_AIR_COLUMNS[table_index]
         n_shift_columns = N_AIR_SHIFT_COLUMNS[table_index]
-        offset = alpha_offsets[sorted_pos]
+        alpha_offset = AIR_ALPHA_OFFSETS[table_index]
 
         fs, inner_evals = fs_receive_ef_inlined(fs, n_flat_columns + n_shift_columns)
 
         air_constraints_eval = evaluate_air_constraints(
-            table_index, inner_evals, air_alpha_powers + offset * DIM, logup_alphas_eq_poly
+            table_index, inner_evals, air_alpha_powers + alpha_offset * DIM, logup_alphas_eq_poly
         )
 
         bus_point = pcs_points[table_index][0]
@@ -466,13 +397,12 @@ def continue_recursion_ordered(
     whir_sum = add_extension_ret(mul_extension_ret(value_bytecode_acc, curr_randomness), whir_sum)
     curr_randomness += DIM
 
-    whir_sum = add_extension_ret(mul_extension_ret(embed_in_ef(STARTING_PC), curr_randomness), whir_sum)
-    curr_randomness += DIM
-    whir_sum = add_extension_ret(mul_extension_ret(embed_in_ef(ENDING_PC), curr_randomness), whir_sum)
-    curr_randomness += DIM
-
-    for sorted_pos in unroll(0, N_TABLES):
-        table_index = sorted_table_index(sorted_pos, second_table, third_table)
+    for table_index in unroll(0, N_TABLES):
+        if table_index == EXECUTION_TABLE_INDEX:
+            whir_sum = add_extension_ret(mul_extension_ret(embed_in_ef(STARTING_PC), curr_randomness), whir_sum)
+            curr_randomness += DIM
+            whir_sum = add_extension_ret(mul_extension_ret(embed_in_ef(ENDING_PC), curr_randomness), whir_sum)
+            curr_randomness += DIM
         debug_assert(len(pcs_points[table_index]) == len(pcs_values[table_index]))
         for i in unroll(0, len(pcs_values[table_index])):
             # next_mle-weighted (shift) values come first
@@ -544,7 +474,7 @@ def continue_recursion_ordered(
     )
     curr_randomness += DIM
 
-    offset = two_exp(log_memory) * 2  # memory and acc_memory
+    bytecode_acc_layout_offset = two_exp(log_memory) * 2  # memory + acc_memory
 
     eq_bytecode_acc = Array(DIM)
     poly_eq_ee(
@@ -554,7 +484,7 @@ def continue_recursion_ordered(
         LOG_GUEST_BYTECODE_LEN,
     )
     prefix_bytecode_acc = multilinear_location_prefix(
-        offset / 2**LOG_GUEST_BYTECODE_LEN,
+        bytecode_acc_layout_offset / 2**LOG_GUEST_BYTECODE_LEN,
         stacked_n_vars - LOG_GUEST_BYTECODE_LEN,
         folding_randomness_global,
     )
@@ -563,31 +493,32 @@ def continue_recursion_ordered(
         mul_extension_ret(mul_extension_ret(curr_randomness, prefix_bytecode_acc), eq_bytecode_acc),
     )
     curr_randomness += DIM
-    offset += two_exp(log_bytecode_padded)
 
-    prefix_pc_start = multilinear_location_prefix(
-        offset + COL_PC * two_exp(log_n_cycles),
-        stacked_n_vars,
-        folding_randomness_global,
-    )
-    s = add_extension_ret(s, mul_extension_ret(curr_randomness, prefix_pc_start))
-    curr_randomness += DIM
-
-    prefix_pc_end = multilinear_location_prefix(
-        offset + (COL_PC + 1) * two_exp(log_n_cycles) - 1,
-        stacked_n_vars,
-        folding_randomness_global,
-    )
-    s = add_extension_ret(s, mul_extension_ret(curr_randomness, prefix_pc_end))
-    curr_randomness += DIM
-
-    for sorted_pos in unroll(0, N_TABLES):
-        table_index = sorted_table_index(sorted_pos, second_table, third_table)
+    for table_index in unroll(0, N_TABLES):
         log_n_rows = table_log_heights[table_index]
         n_rows = table_heights[table_index]
         total_num_cols = NUM_COLS_AIR[table_index]
+        table_offset = stacked_table_base_offset[table_index]
+
+        if table_index == EXECUTION_TABLE_INDEX:
+            prefix_pc_start = multilinear_location_prefix(
+                table_offset + COL_PC * two_exp(log_n_cycles),
+                stacked_n_vars,
+                folding_randomness_global,
+            )
+            s = add_extension_ret(s, mul_extension_ret(curr_randomness, prefix_pc_start))
+            curr_randomness += DIM
+
+            prefix_pc_end = multilinear_location_prefix(
+                table_offset + (COL_PC + 1) * two_exp(log_n_cycles) - 1,
+                stacked_n_vars,
+                folding_randomness_global,
+            )
+            s = add_extension_ret(s, mul_extension_ret(curr_randomness, prefix_pc_end))
+            curr_randomness += DIM
+
         column_prefixes = compute_column_prefixes(
-            offset / n_rows,
+            table_offset / n_rows,
             stacked_n_vars - log_n_rows,
             folding_randomness_global,
             total_num_cols,
@@ -618,10 +549,10 @@ def continue_recursion_ordered(
                         mul_extension_ret(mul_extension_ret(curr_randomness, prefix), eq_factor),
                     )
                     curr_randomness += DIM
-        offset += n_rows * total_num_cols
 
     copy_5(mul_extension_ret(s, final_value), end_sum)
-    return
+
+    return bytecode_claim
 
 
 def multilinear_location_prefix(offset, n_vars, point):
@@ -671,18 +602,6 @@ def fingerprint_2(table_index, data_1, data_2, logup_alphas_eq_poly):
         res, mul_base_extension_ret(table_index, logup_alphas_eq_poly + (2 ** log2_ceil(MAX_BUS_WIDTH) - 1) * DIM)
     )
     return res
-
-
-@inline
-def sorted_table_index(sorted_pos, second_table, third_table):
-    table_index: Imu
-    if sorted_pos == 0:
-        table_index = EXECUTION_TABLE_INDEX
-    if sorted_pos == 1:
-        table_index = second_table
-    if sorted_pos == 2:
-        table_index = third_table
-    return table_index
 
 
 @inline

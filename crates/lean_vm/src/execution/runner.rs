@@ -21,6 +21,8 @@ pub struct ExecutionWitness {
     /// manually by the program at startup.
     pub preamble_memory_len: usize,
     pub hints: HashMap<String, Vec<Vec<F>>>,
+    /// testing purpose
+    pub min_table_log_n_rows: BTreeMap<Table, usize>,
 }
 
 pub fn try_execute_bytecode(

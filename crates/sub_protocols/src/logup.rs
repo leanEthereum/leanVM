@@ -260,8 +260,8 @@ pub fn prove_generic_logup(
     let mut bus_numerators_values = BTreeMap::new();
     let mut bus_denominators_values = BTreeMap::new();
     let mut columns_values = BTreeMap::new();
-    for (table, _) in &tables_log_heights_sorted {
-        let trace = &traces[table];
+    for table in ALL_TABLES {
+        let trace = &traces[&table];
         let log_n_rows = trace.log_n_rows;
 
         let inner_point = MultilinearPoint(from_end(&claim_point_gkr, log_n_rows).to_vec());
@@ -284,8 +284,8 @@ pub fn prove_generic_logup(
                     let data_evals: Vec<EF> = bus.data.iter().map(|e| resolve_ef(*e)).collect();
                     let eval_on_data = c - finger_print(resolve_ef(bus.domainsep), &data_evals, alphas_eq_poly);
                     prover_state.add_extension_scalar(eval_on_data);
-                    bus_numerators_values.insert(*table, eval_on_multiplicity);
-                    bus_denominators_values.insert(*table, eval_on_data);
+                    bus_numerators_values.insert(table, eval_on_multiplicity);
+                    bus_denominators_values.insert(table, eval_on_data);
                 }
                 BusMultiplicity::One => {
                     // Skip columns already in table_values: memory-lookup groups share
@@ -312,7 +312,7 @@ pub fn prove_generic_logup(
             }
         }
 
-        columns_values.insert(*table, table_values);
+        columns_values.insert(table, table_values);
     }
 
     GenericLogupStatements {
@@ -404,15 +404,25 @@ pub fn verify_generic_logup(
         pref_padded * mle_of_zeros_then_ones(1 << log_bytecode, from_end(&point_gkr, log_bytecode_padded));
     offset += 1 << log_bytecode_padded;
 
-    // ... Rest of the tables:
+    // ... Rest of the tables.
+    let mut layout_offsets: BTreeMap<Table, usize> = BTreeMap::new();
+    let mut layout_offset = offset;
+    for &(table, log_n_rows) in &tables_heights_sorted {
+        layout_offsets.insert(table, layout_offset);
+        layout_offset += offset_for_table(&table, log_n_rows);
+    }
+    let final_offset = layout_offset;
+
     let mut bus_numerators_values = BTreeMap::new();
     let mut bus_denominators_values = BTreeMap::new();
     let mut columns_values = BTreeMap::new();
-    for &(table, log_n_rows) in &tables_heights_sorted {
+    for table in ALL_TABLES {
+        let log_n_rows = table_log_n_rows[&table];
+        let mut offset_within_table = layout_offsets[&table];
         let mut table_values = BTreeMap::<ColIndex, EF>::new();
 
         for bus in table.bus_interactions() {
-            let pref = pref_at(offset, log_n_rows);
+            let pref = pref_at(offset_within_table, log_n_rows);
             match bus.multiplicity {
                 BusMultiplicity::Column(_) => {
                     let eval_on_multiplicity = verifier_state.next_extension_scalar()?;
@@ -458,14 +468,14 @@ pub fn verify_generic_logup(
                         pref * (c - finger_print(EF::from_usize(domainsep), &data_evals, alphas_eq_poly));
                 }
             }
-            offset += 1 << log_n_rows;
+            offset_within_table += 1 << log_n_rows;
         }
 
         columns_values.insert(table, table_values);
     }
 
     // Compensates for the final padding `xxx..xxx111...1`
-    retrieved_denominators_value += mle_of_zeros_then_ones(offset, &point_gkr);
+    retrieved_denominators_value += mle_of_zeros_then_ones(final_offset, &point_gkr);
     if retrieved_numerators_value != numerators_value {
         return Err(ProofError::InvalidProof);
     }

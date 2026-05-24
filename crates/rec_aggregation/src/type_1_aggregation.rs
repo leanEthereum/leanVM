@@ -13,7 +13,7 @@ use xmss::{
 };
 
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 use crate::InnerVerified;
 use crate::bytecode_claims::compute_bytecode_value_at;
@@ -205,10 +205,21 @@ pub fn verify_type_1(sig: &TypeOneMultiSignature) -> Result<InnerVerified, Proof
 #[instrument(skip_all)]
 pub fn aggregate_type_1(
     children: &[TypeOneMultiSignature],
+    raw_xmss: Vec<(XmssPublicKey, XmssSignature)>,
+    message: [F; MESSAGE_LEN_FE],
+    slot: u32,
+    log_inv_rate: usize,
+) -> Result<TypeOneMultiSignature, ProverError> {
+    aggregate_type_1_with_min_padding(children, raw_xmss, message, slot, log_inv_rate, BTreeMap::new())
+}
+
+pub(crate) fn aggregate_type_1_with_min_padding(
+    children: &[TypeOneMultiSignature],
     mut raw_xmss: Vec<(XmssPublicKey, XmssSignature)>,
     message: [F; MESSAGE_LEN_FE],
     slot: u32,
     log_inv_rate: usize,
+    min_table_log_n_rows: BTreeMap<Table, usize>,
 ) -> Result<TypeOneMultiSignature, ProverError> {
     assert!(children.len() <= MAX_RECURSIONS);
     for child in children {
@@ -288,6 +299,7 @@ pub fn aggregate_type_1(
     let mut bytecode_value_hint_blobs = Vec::with_capacity(n_recursions);
     let mut inner_bytecode_claim_blobs = Vec::with_capacity(n_recursions);
     let mut proof_transcript_blobs = Vec::with_capacity(n_recursions);
+    let mut table_sort_perm_blobs = Vec::with_capacity(n_recursions);
 
     let claim_size_padded = bytecode_claim_size.next_multiple_of(DIGEST_LEN);
 
@@ -310,6 +322,7 @@ pub fn aggregate_type_1(
         bytecode_value_hint_blobs.push(v.bytecode_evaluation.value.as_basis_coefficients_slice().to_vec());
         inner_bytecode_claim_blobs.push(v.input_data[BYTECODE_CLAIM_OFFSET..][..claim_size_padded].to_vec());
         proof_transcript_blobs.push(v.raw_proof.transcript.clone());
+        table_sort_perm_blobs.push(v.sorted_table_perm.iter().map(|&i| F::from_usize(i)).collect());
     }
 
     let n_dup = dup_pub_keys.len();
@@ -360,6 +373,7 @@ pub fn aggregate_type_1(
             .collect(),
     );
     hints.insert("proof_transcript".to_string(), proof_transcript_blobs);
+    hints.insert("table_sort_perm".to_string(), table_sort_perm_blobs);
     hints.insert("wots".to_string(), wots_blobs);
     hints.insert("xmss_merkle_node".to_string(), xmss_merkle_node_blobs);
     hints.insert("merkle_leaf".to_string(), merkle_leaf_blobs);
@@ -376,6 +390,7 @@ pub fn aggregate_type_1(
     let witness = ExecutionWitness {
         preamble_memory_len: PREAMBLE_MEMORY_LEN,
         hints,
+        min_table_log_n_rows,
     };
     let proof = prove_execution(bytecode, &public_input, &witness, &whir_config, false)?;
 
@@ -403,4 +418,39 @@ pub(crate) fn extract_merkle_hint_blobs<'a>(
             (leaf, path)
         })
         .unzip()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::compilation::init_aggregation_bytecode;
+    use xmss::signers_cache::{BENCHMARK_SLOT, get_benchmark_signatures, message_for_benchmark};
+
+    /// Exercises the recursive-aggregation path when the inner proof has the
+    /// extension-op table bigger than the execution table.
+    #[test]
+    fn test_recursive_aggregation_extension_table_bigger_than_execution() {
+        init_aggregation_bytecode();
+
+        let log_inv_rate = 2;
+        let message = message_for_benchmark();
+        let slot: u32 = BENCHMARK_SLOT;
+        let signatures = get_benchmark_signatures();
+        let raws_inner = signatures[0..10].to_vec();
+        let raws_outer = signatures[10..12].to_vec();
+
+        let extension_padding_log = 15;
+        let mut min_padding: BTreeMap<Table, usize> = BTreeMap::new();
+        min_padding.insert(Table::extension_op(), extension_padding_log);
+
+        let inner =
+            aggregate_type_1_with_min_padding(&[], raws_inner, message, slot, log_inv_rate, min_padding).unwrap();
+        verify_type_1(&inner).unwrap();
+
+        let inner_metadata = inner.proof.metadata.as_ref().expect("inner metadata available");
+        assert!(dbg!(inner_metadata.cycles) < 1usize << extension_padding_log,);
+
+        let outer = aggregate_type_1(&[inner], raws_outer, message, slot, log_inv_rate).unwrap();
+        verify_type_1(&outer).unwrap();
+    }
 }

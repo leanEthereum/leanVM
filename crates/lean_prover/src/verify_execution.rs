@@ -9,6 +9,7 @@ use utils::{ToUsize, from_end, get_poseidon16};
 #[derive(Debug, Clone)]
 pub struct ProofVerificationDetails {
     pub bytecode_evaluation: Evaluation<EF>,
+    pub sorted_table_perm: Vec<usize>,
 }
 
 pub fn verify_execution(
@@ -109,8 +110,6 @@ pub fn verify_execution(
     let air_alpha = verifier_state.sample();
     let air_alpha_powers: Vec<EF> = air_alpha.powers().collect_n(total_air_constraints());
 
-    let tables_sorted = sort_tables_by_height(&table_n_vars);
-
     struct TableVerifyData {
         table: Table,
         extra_data: ExtraDataForBuses<EF>,
@@ -119,10 +118,10 @@ pub fn verify_execution(
     let mut initial_sum = EF::ZERO;
     let mut alpha_offset = 0;
 
-    for (table, _) in &tables_sorted {
+    for table in ALL_TABLES {
         let n_constraints = table.n_constraints();
-        let bus_numerator_value = logup_statements.bus_numerators_values[table];
-        let bus_denominator_value = logup_statements.bus_denominators_values[table];
+        let bus_numerator_value = logup_statements.bus_numerators_values[&table];
+        let bus_denominator_value = logup_statements.bus_denominators_values[&table];
         let signed_numerator = bus_numerator_value
             * match table.bus_interactions()[0].direction {
                 BusDirection::Pull => EF::NEG_ONE,
@@ -133,16 +132,16 @@ pub fn verify_execution(
 
         let alpha_slice = air_alpha_powers[alpha_offset..alpha_offset + n_constraints].to_vec();
         verify_data.push(TableVerifyData {
-            table: *table,
+            table,
             extra_data: ExtraDataForBuses::new(logup_alphas_eq_poly.clone(), alpha_slice),
         });
 
         alpha_offset += n_constraints;
     }
 
-    let max_full_degree = tables_sorted.iter().map(|(t, _)| t.degree_air() + 1).max().unwrap();
+    let max_full_degree = ALL_TABLES.iter().map(|t| t.degree_air() + 1).max().unwrap();
 
-    let n_max = tables_sorted[0].1;
+    let n_max = *table_n_vars.values().max().unwrap();
     let Evaluation {
         point: sumcheck_air_point,
         value: claimed_air_final_value,
@@ -227,9 +226,14 @@ pub fn verify_execution(
         global_statements_base,
     )?;
 
+    let sorted_table_perm: Vec<usize> = sort_tables_by_height(&table_n_vars)
+        .into_iter()
+        .map(|(t, _)| t.index())
+        .collect();
     Ok((
         ProofVerificationDetails {
             bytecode_evaluation: logup_statements.bytecode_evaluation.unwrap(),
+            sorted_table_perm,
         },
         verifier_state.into_raw_proof(),
     ))

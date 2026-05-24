@@ -360,6 +360,16 @@ fn build_replacements(log_inner_bytecode: usize, bytecode_zero_eval: F) -> BTree
         "N_AIR_CONSTRAINTS_PLACEHOLDER".to_string(),
         format!("[{}]", n_air_constraints.join(", ")),
     );
+    let mut air_alpha_offsets = Vec::with_capacity(n_air_constraints.len());
+    let mut cumul: usize = 0;
+    for s in &n_air_constraints {
+        air_alpha_offsets.push(cumul.to_string());
+        cumul += s.parse::<usize>().unwrap();
+    }
+    replacements.insert(
+        "AIR_ALPHA_OFFSETS_PLACEHOLDER".to_string(),
+        format!("[{}]", air_alpha_offsets.join(", ")),
+    );
     replacements.insert(
         "AIR_DEGREES_PLACEHOLDER".to_string(),
         format!("[{}]", air_degrees.join(", ")),
