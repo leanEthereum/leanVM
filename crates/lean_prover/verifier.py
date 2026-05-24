@@ -72,9 +72,10 @@ def poseidon16_compress(left: Sequence[Fp], right: Sequence[Fp]) -> list[Fp]:
 
 
 def hash_slice(data: Sequence[Fp]) -> list[Fp]:
-    assert len(data) % RATE == 0 and len(data) >= WIDTH
-    state = poseidon16_compress_in_place(list(data[-WIDTH:]))
-    for k in range(len(data) // RATE - 3, -1, -1):
+    """RTL sponge absorb of `data` (RATE-multiple length) into IV `[len(data), 0, ..., 0]`."""
+    assert len(data) % RATE == 0 and len(data) > 0
+    state = [Fp(len(data))] + [Fp(0)] * (WIDTH - 1)
+    for k in range(len(data) // RATE - 1, -1, -1):
         state = poseidon16_compress_in_place(state[:CAPACITY] + list(data[k * RATE : (k + 1) * RATE]))
     return state[:DIGEST_ELEMS]
 
@@ -1383,9 +1384,9 @@ def verify_execution(
 
 
 def poseidon_compress_slice_iv(data: Sequence[Fp]) -> list[Fp]:
-    """Hash a multiple-of-8 sequence (Poseidon16/Davies-Meyer, all-zero IV)."""
+    """Hash a multiple-of-8 sequence (Poseidon16/Davies-Meyer). IV first element = len(data)."""
     assert data and len(data) % 8 == 0
-    h = [Fp(0)] * 8
+    h = [Fp(len(data))] + [Fp(0)] * 7
     for i in range(0, len(data), 8):
         h = poseidon16_compress(h, list(data[i : i + 8]))
     return h
