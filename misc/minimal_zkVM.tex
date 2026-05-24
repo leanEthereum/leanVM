@@ -780,15 +780,15 @@ $$
 
 For each table $T$, we want to convince the verifier that every constraint $C_k^T$ vanishes on every row of the trace. We proceed in three steps.
 
-\textbf{Batching.} The verifier samples $\alpha \in \Fq$ and we form the batched constraint
+\textbf{Batching.} The verifier samples a single $\mu \in \Fq$, and we form, for each table $T$, the batched constraint
 \[
-H_T \;:=\; \sum_{k=0}^{n_\text{constraints}^T - 1} \alpha^k\, C_k^T,
+H_T \;:=\; \sum_{k=0}^{n_\text{constraints}^T - 1} \mu^{\iota_T + k}\, C_k^T,
 \]
-a polynomial in the same $n_\text{column}^T + n_\text{shift}^T$ variables as each $C_k^T$.
+where $\iota_T := \sum_{T' < T} n_\text{constraints}^{T'}$ is the offset of $T$ in a global ordering of all constraints across all tables (so consecutive powers $1, \mu, \mu^2, \dots$ are distributed across all constraints).
 
-\emph{Completeness}: if every $C_k^T$ vanishes on every row, so does $H_T$.
+\emph{Completeness}: if every $C_k^T$ vanishes on every row, so does each $H_T$.
 
-\emph{Soundness}: if some $C_k^T$ fails to vanish at some row $\vec b^\star$, then the univariate polynomial $\alpha \mapsto H_T(\vec b^\star)$ is non-zero of degree at most $n_\text{constraints}^T - 1$, so $H_T(\vec b^\star) \neq 0$ except with soundness error $n_\text{constraints}^T/q$ over uniform $\alpha$, via Schwartz-Zippel (\cref{lem:sz}).
+\emph{Soundness}: if some $C_k^T$ fails to vanish at some row $\vec b^\star$, then $\mu \mapsto H_T(\vec b^\star)$ is a non-zero univariate polynomial of degree $< N := \sum_T n_\text{constraints}^T$, so $H_T(\vec b^\star) \neq 0$ except with soundness error $N/q$ over uniform $\mu$, via Schwartz-Zippel (\cref{lem:sz}).
 
 \textbf{Zerocheck.} Let $f_T \in \Fq^{2^{h_T}}$ be the vector whose $\vec b$-th coordinate is
 \[
@@ -810,23 +810,18 @@ Instead of running the zerocheck above individually for each table, we merge the
 G_T(\vec X) \;:=\; \Big(\textstyle\prod_{i < h_{\max} - h_T} X_i\Big) \cdot \hat{eq}\big(\vec X_{\geq h_{\max} - h_T},\, \vec r_T\big) \cdot f_T\big(\vec X_{\geq h_{\max} - h_T}\big).
 \]
 
-The verifier samples $\lambda \in \Fq$. Enumerating the three tables as $T \in \{\textsc{EXECUTION}, \textsc{EXTENSION}, \textsc{POSEIDON}\}$ with indices $i_T \in \{0, 1, 2\}$, we run a single sumcheck claiming
+We run a single sumcheck claiming
 \[
-\sum_{\vec b \in \{0, 1\}^{h_{\max}}} \sum_T \lambda^{i_T}\, G_T(\vec b) \;=\; 0,
+\sum_{\vec b \in \{0, 1\}^{h_{\max}}} \sum_T G_T(\vec b) \;=\; 0,
 \]
-which is equivalent, up to soundness error $2/q$ over $\lambda$ from \Cref{lem:sz}, to the conjunction of the three per-table zerocheck claims.
+which is equivalent to the conjunction of the three per-table zerocheck claims.
 
 \subsubsection{Attaching evaluation claims}\label{sec:air-eval}
 
-Suppose, in addition to the AIR constraints, we also want to verify evaluation claims of the form $\hat{V}(\vec r_T) = v$, where $V$ is a polynomial expression in the columns of $T$ (sometimes called \emph{virtual column}, i.e. that is not committed).
+Suppose, in addition to the AIR constraints, we also want to verify evaluation claims of the form $\hat{V}(\vec r_T) = v$, where $V$ is a polynomial expression in the columns of $T$ (sometimes called \emph{virtual column}, i.e. that is not committed). One way to see it: treat each such $V$ as just another constraint of $T$, batched in alongside the $C_k^T$'s with its own power of $\mu$ in the global ordering: the only difference is that its expected sum is no longer $0$. Listing all eval claims across the three tables as $(v_1, \dots, v_M)$ with respective global indices $(\iota_1, \dots, \iota_M)$, the zerocheck target shifts from $0$ to
 \[
-\hat{V}(\vec r_T) \;=\; \sum_{\vec b \in \{0,1\}^{h_T}} \hat{eq}(\vec b, \vec r_T) \cdot V(\vec b),
+\sum_{i = 1}^{M} \mu^{\iota_i}\, v_i.
 \]
-so each claim contributes one extra term to the sum already being computed. Given evaluation claims $\big(\hat V_j^T(\vec r_T) = v_j^T\big)_{j = 0}^{m_T - 1}$, simply extend the batched expression to
-\[
-H_T \;:=\; \sum_{k=0}^{n_\text{constraints}^T - 1} \alpha^k\, C_k^T \;+\; \sum_{j=0}^{m_T-1} \alpha^{n_\text{constraints}^T + j}\, V_j^T,
-\]
-so the zerocheck target shifts from $0$ to $\sum_{j} \alpha^{n_\text{constraints}^T + j}\, v_j^T$.
 
 \subsection{EXECUTION table}
 
@@ -1177,7 +1172,7 @@ TODO: Verify and (formally) prove soundness.
     
     The verifier checks: $\textsf{log\_inv\_rate}^{\min} \leq \textsf{log\_inv\_rate} \leq \textsf{log\_inv\_rate}^{\max}$ (i.e.\ $1 \leq \textsf{log\_inv\_rate} \leq 4$); $h^{\min} \leq h_T \leq h_T^{\max}$ for each $T \in \{\textsc{exec}, \textsc{poseidon}, \textsc{extension}\}$ (\Cref{sec:table-sizes}); $h_\textsc{memory}^{\min} \leq h_\textsc{memory} \leq h_\textsc{memory}^{\max}$; $h_\textsc{bytecode} \geq h^{\min}$; and $h_\textsc{memory} \geq \max(h_\textsc{bytecode},\, h_\textsc{public},\, h_\textsc{exec},\, h_\textsc{poseidon},\, h_\textsc{extension})$.
 
-    \item \textbf{Stacked commitment.} The prover commits via WHIR \cite{whir} to a single multilinear polynomial stacking the memory $\textbf{m}$, the access counts $\textsf{memory\_acc}$ and $\textsf{bytecode\_acc}$, and all committed columns of the three tables.
+    \item \textbf{Stacked commitment.} The prover commits via WHIR \cite{whir} to a single multilinear polynomial stacking (see \Cref{sec:stacking}) the memory $\textbf{m}$, the access counts $\textsf{memory\_acc}$ and $\textsf{bytecode\_acc}$, and all committed columns of the three tables.
 
     \item \textbf{Logup.}
     \begin{enumerate}
@@ -1202,7 +1197,7 @@ TODO: Verify and (formally) prove soundness.
         \item For each table $T$, the prover sends the evaluations of all of $T$'s committed columns and shifted columns at the appropriate suffix of $\vec r_\textsc{air}$. The verifier evaluates $T$'s AIR-constraint polynomial at these column evaluations, which enables to conclude the batched-zerocheck.
     \end{enumerate}
 
-    \item \textbf{Public-memory consistency.} The verifier samples $\vec r_\textsc{pub} \in \Fq^{h_\textsc{public}}$ and evaluates $\textsf{public\_input}$ (zero-padded to length $2^{h_\textsc{public}}$) as a multilinear polynomial at $\vec r_\textsc{pub}$, obtaining $v_\textsc{pub} \in \Fq$. The pair $(\vec r_\textsc{pub}, v_\textsc{pub})$ is queued as an opening claim on the initial $2^{h_\textsc{public}}$-cell prefix of the committed memory polynomial, to be discharged by the WHIR step below (\Cref{lem:sz}).
+    \item \textbf{Public-memory consistency.} The verifier samples $\vec r_\textsc{pub} \in \Fq^{h_\textsc{public}}$ and evaluates $\textsf{public\_input}$ as a multilinear polynomial at $\vec r_\textsc{pub}$, obtaining $v_\textsc{pub} \in \Fq$. The pair $(\vec r_\textsc{pub}, v_\textsc{pub})$ is queued as an opening claim on the initial $2^{h_\textsc{public}}$-cell prefix of the committed memory polynomial (handled by WHIR below).
 
     \item \textbf{Boundary pc.} To ensure a valid initial / final program counter, we add two opening claims on the \textbf{pc} column of the \textsc{execution} table: $\hat{\textbf{pc}}(0, \ldots, 0) = 0$ and $\hat{\textbf{pc}}(1, \ldots, 1) = 2^{h_\textsc{bytecode}} - 1$ (handled by WHIR bellow).
 
