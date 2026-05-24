@@ -120,6 +120,17 @@ def euclidian_div_runtime(a, b):
     return q, r
 
 
+def absorb_n_hashes_const(n: Const, sp_in, dp_in):
+    sp: Mut = sp_in
+    dp: Mut = dp_in
+    for _ in unroll(0, n):
+        new_state = sp + DIGEST_LEN
+        poseidon16_compress(sp, dp, new_state)
+        sp = new_state
+        dp += DIGEST_LEN
+    return sp
+
+
 def slice_hash_runtime(data, num_chunks):
     debug_assert(num_chunks != 0)
 
@@ -144,13 +155,12 @@ def slice_hash_runtime(data, num_chunks):
             state_ptr = new_state
             data_ptr += DIGEST_LEN
 
-    for _ in range(0, remainder):
-        new_state = state_ptr + DIGEST_LEN
-        poseidon16_compress(state_ptr, data_ptr, new_state)
-        state_ptr = new_state
-        data_ptr += DIGEST_LEN
-
-    return state_ptr
+    final_state_ptr = match_range(
+        remainder,
+        range(0, PARTIAL_UNROLL_BATCH),
+        lambda r: absorb_n_hashes_const(r, state_ptr, data_ptr),
+    )
+    return final_state_ptr
 
 
 @inline

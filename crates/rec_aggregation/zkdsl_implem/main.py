@@ -196,9 +196,13 @@ def main():
                 counter, running_hash = absorb_recursive_pubkey(j + u, sub_indices_arr, n_total, all_pubkeys, buffer, counter, running_hash)
             j += PARTIAL_UNROLL_BATCH
         # Tail iterations
-        for _ in range(0, remainder):
-            counter, running_hash = absorb_recursive_pubkey(j, sub_indices_arr, n_total, all_pubkeys, buffer, counter, running_hash)
-            j += 1
+        tail_counter, tail_running_hash = match_range(
+            remainder,
+            range(0, PARTIAL_UNROLL_BATCH),
+            lambda r: absorb_n_pubkeys_const(r, j, sub_indices_arr, n_total, all_pubkeys, buffer, counter, running_hash),
+        )
+        counter = tail_counter
+        running_hash = tail_running_hash
 
         type1_data_buf = Array(TYPE_1_INPUT_DATA_SIZE_PADDED)
         type1_data_buf[0] = TYPE_1_FLAG
@@ -298,4 +302,12 @@ def absorb_recursive_pubkey(j, sub_indices_arr, n_total, all_pubkeys, buffer, co
     new_hash = Array(DIGEST_LEN)
     poseidon16_compress(running_hash_in, pk, new_hash)
     return new_counter, new_hash
+
+
+def absorb_n_pubkeys_const(n: Const, j_start, sub_indices_arr, n_total, all_pubkeys, buffer, counter_in, running_hash_in):
+    counter: Mut = counter_in
+    running_hash: Mut = running_hash_in
+    for u in unroll(0, n):
+        counter, running_hash = absorb_recursive_pubkey(j_start + u, sub_indices_arr, n_total, all_pubkeys, buffer, counter, running_hash)
+    return counter, running_hash
 
