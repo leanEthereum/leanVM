@@ -16,6 +16,7 @@ pub struct CodeEntry {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Bytecode {
+    pub unpadded_size: usize,
     pub code: Vec<CodeEntry>,
     pub instructions_multilinear: Vec<F>,
     pub starting_frame_memory: usize,

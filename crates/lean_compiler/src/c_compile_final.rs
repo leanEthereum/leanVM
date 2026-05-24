@@ -178,6 +178,7 @@ pub fn compile_to_low_level_bytecode(
     }
 
     Ok(Bytecode {
+        unpadded_size: n_real_instructions,
         code,
         instructions_multilinear,
         hash,
