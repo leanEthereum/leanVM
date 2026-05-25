@@ -451,7 +451,7 @@ def verify_stir_challenges(
 
     def pack_answers(leaf: list[Fp]) -> list[EF]:
         if round_index == 0:
-            return [EF.from_base(f) for f in leaf]
+            return [EF(f) for f in leaf]
         return [EF(leaf[i : i + EF.DIMENSION]) for i in range(0, len(leaf), EF.DIMENSION)]
 
     constraints: list[SparseStatement] = []
@@ -460,7 +460,7 @@ def verify_stir_challenges(
         if not merkle_verify_path(commitment.root, log_height, idx, op.leaf_data, op.path):
             raise ProofError("Merkle verification failed")
         fold = eval_multilinear_evals(pack_answers(op.leaf_data), folding_randomness)
-        ef_pt = fb(pow(int(gen.value), idx, P))
+        ef_pt = EF(pow(int(gen.value), idx, P))
         constraints.append(SparseStatement.dense(expand_from_univariate(ef_pt, num_variables), fold))
     return constraints
 
@@ -673,7 +673,7 @@ def stacked_pcs_global_statements(
         if name == "execution":
             # PC column: pin first row to STARTING_PC, last row to ending_pc.
             for idx, pc in [(0, constants["starting_pc"]), ((1 << n_vars) - 1, constants["ending_pc"])]:
-                out.append(SparseStatement.unique_value(stacked_n_vars, offset + (col_pc << n_vars) + idx, fb(pc)))
+                out.append(SparseStatement.unique_value(stacked_n_vars, offset + (col_pc << n_vars) + idx, EF(pc)))
         for point, eq_values, next_values in committed_statements[name]:
             if next_values:
                 out.append(SparseStatement.new_next(stacked_n_vars, list(point), values_at(next_values, col_base)))
@@ -722,7 +722,7 @@ def from_end(seq: Sequence, n: int) -> list:
 def mle_of_01234567_etc(point: Sequence[EF]) -> EF:
     """MLE of `f(i) = i` (big-endian) at `point`."""
     n = len(point)
-    return ef_sum(p * fb(1 << (n - 1 - i)) for i, p in enumerate(point))
+    return ef_sum(p * EF(1 << (n - 1 - i)) for i, p in enumerate(point))
 
 
 def mle_of_zeros_then_ones(n_zeros: int, point: Sequence[EF]) -> EF:
@@ -743,7 +743,7 @@ def finger_print(discriminator: Fp, data: Sequence[EF], alphas_eq_poly: Sequence
     """`Σᵢ αᵢ · dataᵢ + α_last · discriminator`."""
     assert len(alphas_eq_poly) > len(data)
     acc = ef_sum(a * d for a, d in zip(alphas_eq_poly, data))
-    return acc + alphas_eq_poly[-1] * EF.from_base(discriminator)
+    return acc + alphas_eq_poly[-1] * EF(discriminator)
 
 
 def sort_tables_by_height(table_log_heights: dict[str, int]) -> list[tuple[str, int]]:
@@ -821,7 +821,7 @@ def verify_generic_logup(
     fp_byte = (
         bytecode_value * correction
         + mle_of_01234567_etc(byte_pt) * alphas_eq_poly[n_instr_cols]
-        + alphas_eq_poly[-1] * EF.from_base(ds_byte)
+        + alphas_eq_poly[-1] * EF(ds_byte)
     )
     num = num - pref * value_bytecode_acc
     den = (
@@ -884,7 +884,7 @@ def verify_generic_logup(
                     if val_fresh:
                         table_values[val_col] = next(evals)
                     pref = pref_at(offset_within_table, log_n_rows)
-                    fp = finger_print(ds_mem, [table_values[idx_col] + fb(i), table_values[val_col]], alphas_eq_poly)
+                    fp = finger_print(ds_mem, [table_values[idx_col] + EF(i), table_values[val_col]], alphas_eq_poly)
                     num = num + pref  # Push direction
                     den = den + pref * (c - fp)
                     offset_within_table += row_stride
@@ -972,8 +972,8 @@ def _eval_air_execution(folder: ConstraintFolder, extra_data: dict) -> None:
     nu_c = flag_c * operand_c + nfc * value_c + flag_c_fp * (fp + operand_c)
 
     # aux ∈ {0,1,2}: 0=nothing, 1=add, 2=deref.
-    add = aux * fb(2) - aux * aux
-    deref = aux * (aux - ONE) * EF.from_base(_INV_TWO)
+    add = aux * EF(2) - aux * aux
+    deref = aux * (aux - ONE) * EF(_INV_TWO)
     is_precompile = ONE - add - mul - deref - jump
 
     az = folder.assert_zero
@@ -1020,11 +1020,11 @@ def _eval_air_extension_op(folder: ConstraintFolder, extra_data: dict) -> None:
     comp_sh = s[8:13]
 
     aux = (
-        is_be * fb(_EXT_OP_FLAG_IS_BE)
-        + flag_add * fb(_EXT_OP_FLAG_ADD)
-        + flag_mul * fb(_EXT_OP_FLAG_MUL)
-        + flag_poly_eq * fb(_EXT_OP_FLAG_POLY_EQ)
-        + len_col * fb(_EXT_OP_LEN_MULTIPLIER)
+        is_be * EF(_EXT_OP_FLAG_IS_BE)
+        + flag_add * EF(_EXT_OP_FLAG_ADD)
+        + flag_mul * EF(_EXT_OP_FLAG_MUL)
+        + flag_poly_eq * EF(_EXT_OP_FLAG_POLY_EQ)
+        + len_col * EF(_EXT_OP_LEN_MULTIPLIER)
     )
     _eval_bus_virtual(folder, extra_data, start * (flag_add + flag_mul + flag_poly_eq), aux, [idx_a, idx_b, idx_res])
 
@@ -1059,8 +1059,8 @@ def _eval_air_extension_op(folder: ConstraintFolder, extra_data: dict) -> None:
     ]:
         folder.assert_zero(not_start_sh * (x - y))
 
-    folder.assert_zero(not_start_sh * (idx_a_sh - idx_a - (is_be + is_ee * fb(5))))
-    folder.assert_zero(not_start_sh * (idx_b_sh - idx_b - fb(5)))
+    folder.assert_zero(not_start_sh * (idx_a_sh - idx_a - (is_be + is_ee * EF(5))))
+    folder.assert_zero(not_start_sh * (idx_b_sh - idx_b - EF(5)))
     folder.assert_zero(start_sh * (len_col - ONE))
 
 
@@ -1184,14 +1184,14 @@ def _eval_air_poseidon16(folder: ConstraintFolder, extra_data: dict) -> None:
     outputs_left, outputs_right = take(W // 2), take(W // 2)
 
     discriminator = (
-        fb(_POSEIDON_DISCRIMINATOR_BASE)
-        + flag_permute * fb(_POSEIDON_PERMUTE_SHIFT)
-        + flag_half_output * fb(_POSEIDON_HALF_OUTPUT_SHIFT)
-        + flag_hardcoded_left * fb(_POSEIDON_HARDCODED_LEFT_4_FLAG_SHIFT)
-        + flag_hardcoded_left * offset_hardcoded_left * fb(_POSEIDON_HARDCODED_LEFT_4_OFFSET_SHIFT)
+        EF(_POSEIDON_DISCRIMINATOR_BASE)
+        + flag_permute * EF(_POSEIDON_PERMUTE_SHIFT)
+        + flag_half_output * EF(_POSEIDON_HALF_OUTPUT_SHIFT)
+        + flag_hardcoded_left * EF(_POSEIDON_HARDCODED_LEFT_4_FLAG_SHIFT)
+        + flag_hardcoded_left * offset_hardcoded_left * EF(_POSEIDON_HARDCODED_LEFT_4_OFFSET_SHIFT)
     )
     not_hcl = ONE - flag_hardcoded_left
-    index_a = eff_idx_left_second - not_hcl * fb(_HALF_DIGEST_LEN)
+    index_a = eff_idx_left_second - not_hcl * EF(_HALF_DIGEST_LEN)
 
     _eval_bus_virtual(folder, extra_data, multiplicity, discriminator, [index_a, index_b, index_res])
     for f in (multiplicity, flag_half_output, flag_hardcoded_left, flag_permute):
@@ -1339,7 +1339,7 @@ def verify_execution(
 
     public_memory = padd_with_zero_to_next_power_of_two(public_input)
     pm_point = state.sample_vec(log2_strict_usize(len(public_memory)))
-    pm_eval = eval_multilinear_evals([EF.from_base(f) for f in public_memory], pm_point)
+    pm_eval = eval_multilinear_evals([EF(f) for f in public_memory], pm_point)
 
     bytecode_acc_idx = (2 << log_memory) >> bytecode_log_size
     previous = [

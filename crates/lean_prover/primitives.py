@@ -61,13 +61,15 @@ class EF:
     __slots__ = ("c",)
     DIMENSION = 5
 
-    def __init__(self, coeffs: Sequence[Fp]):
-        assert len(coeffs) == 5
-        self.c = tuple(coeffs)
-
-    @staticmethod
-    def from_base(x: Fp) -> "EF":
-        return EF([x, Fp(0), Fp(0), Fp(0), Fp(0)])
+    def __init__(self, value):
+        """Accepts an `int` (lifted via `Fp`), an `Fp` (lifted), or a length-5 `Sequence[Fp]`."""
+        if isinstance(value, int):
+            self.c = (Fp(value), Fp(0), Fp(0), Fp(0), Fp(0))
+        elif isinstance(value, Fp):
+            self.c = (value, Fp(0), Fp(0), Fp(0), Fp(0))
+        else:
+            assert len(value) == 5
+            self.c = tuple(value)
 
     def __add__(self, o):
         if isinstance(o, Fp):
@@ -110,13 +112,8 @@ class EF:
         return result
 
 
-ZERO = EF([Fp(0)] * 5)
-ONE = EF.from_base(Fp(1))
-
-
-def fb(v: int) -> EF:
-    """`EF` lift of an integer base-field element."""
-    return EF.from_base(Fp(v))
+ZERO = EF(0)
+ONE = EF(1)
 
 
 def ef_sum(terms) -> EF:
