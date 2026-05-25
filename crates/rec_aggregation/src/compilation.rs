@@ -275,6 +275,7 @@ fn build_replacements(log_inner_bytecode: usize, bytecode_zero_eval: F) -> BTree
     let mut n_air_columns = vec![];
     let mut n_air_shift_columns = vec![];
     let mut n_air_constraints = vec![];
+    let mut one_buses_all_cols = vec![];
     for table in ALL_TABLES {
         let mut table_domseps = vec![];
         let mut table_data_cols = vec![];
@@ -322,12 +323,25 @@ fn build_replacements(log_inner_bytecode: usize, bytecode_zero_eval: F) -> BTree
         one_buses_data_offsets.push(format!("[{}]", table_data_offsets.join(", ")));
         one_buses_new_cols.push(format!("[{}]", table_new_cols.join(", ")));
 
+        let mut sorted_seen: Vec<ColIndex> = seen_cols.iter().copied().collect();
+        sorted_seen.sort();
+        one_buses_all_cols.push(format!(
+            "[{}]",
+            sorted_seen.iter().map(usize::to_string).collect::<Vec<_>>().join(", ")
+        ));
+
         num_cols_air.push(table.n_columns().to_string());
         air_degrees.push(table.degree_air().to_string());
         n_air_columns.push(table.n_columns().to_string());
         n_air_shift_columns.push(table.n_shift_columns().to_string());
         n_air_constraints.push(table.n_constraints().to_string());
     }
+    let max_num_cols_air = ALL_TABLES.iter().map(|t| t.n_columns()).max().unwrap();
+    replacements.insert("MAX_NUM_COLS_AIR_PLACEHOLDER".to_string(), max_num_cols_air.to_string());
+    replacements.insert(
+        "ONE_BUSES_ALL_COLS_PLACEHOLDER".to_string(),
+        format!("[{}]", one_buses_all_cols.join(", ")),
+    );
     replacements.insert(
         "ONE_BUSES_DOMSEPS_PLACEHOLDER".to_string(),
         format!("[{}]", one_buses_domseps.join(", ")),
