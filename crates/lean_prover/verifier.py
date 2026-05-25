@@ -13,6 +13,7 @@ Format:
 from __future__ import annotations
 
 import functools
+import math
 from dataclasses import dataclass
 from typing import Sequence
 
@@ -226,7 +227,7 @@ def expand_from_univariate(x: EF, num_variables: int) -> list[EF]:
 def eq_poly_outside(a: Sequence[EF], b: Sequence[EF]) -> EF:
     """`Π (1 − a_i − b_i + 2·a_i·b_i)`."""
     assert len(a) == len(b)
-    return ef_prod(ONE + x * y + x * y - x - y for x, y in zip(a, b))
+    return math.prod(ONE + x * y + x * y - x - y for x, y in zip(a, b))
 
 
 def next_mle(x: Sequence[EF], y: Sequence[EF]) -> EF:
@@ -239,8 +240,8 @@ def next_mle(x: Sequence[EF], y: Sequence[EF]) -> EF:
     low_suffix = [ONE] * (n + 1)
     for i in range(n - 1, -1, -1):
         low_suffix[i] = low_suffix[i + 1] * x[i] * (ONE - y[i])
-    s = ef_sum(eq_prefix[i] * (ONE - x[i]) * y[i] * low_suffix[i + 1] for i in range(n))
-    return s + ef_prod([*x, *y])
+    s = sum(eq_prefix[i] * (ONE - x[i]) * y[i] * low_suffix[i + 1] for i in range(n))
+    return s + math.prod([*x, *y])
 
 
 def eval_multilinear_evals(evals: Sequence[EF], point: Sequence[EF]) -> EF:
@@ -410,7 +411,7 @@ def verify_sumcheck(
     point: list[EF] = []
     for _ in range(n_vars):
         coeffs = state.next_extension_scalars_vec(degree + 1)
-        s = coeffs[0] + ef_sum(coeffs)
+        s = coeffs[0] + sum(coeffs)
         if s != target:
             raise ProofError("Sumcheck identity failed: h(0) + h(1) != target")
         state.check_pow_grinding(pow_bits)
@@ -487,7 +488,7 @@ def eval_constraints_poly(constraints: list[tuple[list[EF], list[SparseStatement
             common = next_mle(smt.point, inner_pt) if smt.is_next else eq_poly_outside(smt.point, inner_pt)
             sel_n = smt.selector_num_variables
             for v in smt.values:
-                lagrange = ef_prod(pt[j] if (v[0] >> (sel_n - 1 - j)) & 1 else ONE - pt[j] for j in range(sel_n))
+                lagrange = math.prod(pt[j] if (v[0] >> (sel_n - 1 - j)) & 1 else ONE - pt[j] for j in range(sel_n))
                 value = value + lagrange * common * randomness[i]
                 i += 1
         assert i == len(randomness)
@@ -691,7 +692,7 @@ def verify_gkr_quotient(state: VerifierState, n_vars: int) -> tuple[EF, list[EF]
 
     nums = state.next_extension_scalars_vec(1 << N_VARS_TO_SEND_GKR_COEFFS)
     dens = state.next_extension_scalars_vec(1 << N_VARS_TO_SEND_GKR_COEFFS)
-    quotient = ef_sum(n * d.inv() for n, d in zip(nums, dens))
+    quotient = sum(n * d.inv() for n, d in zip(nums, dens))
 
     point = state.sample_vec(N_VARS_TO_SEND_GKR_COEFFS)
     claim_num = eval_multilinear_evals(nums, point)
@@ -722,7 +723,7 @@ def from_end(seq: Sequence, n: int) -> list:
 def mle_of_01234567_etc(point: Sequence[EF]) -> EF:
     """MLE of `f(i) = i` (big-endian) at `point`."""
     n = len(point)
-    return ef_sum(p * EF(1 << (n - 1 - i)) for i, p in enumerate(point))
+    return sum(p * EF(1 << (n - 1 - i)) for i, p in enumerate(point))
 
 
 def mle_of_zeros_then_ones(n_zeros: int, point: Sequence[EF]) -> EF:
@@ -742,7 +743,7 @@ def mle_of_zeros_then_ones(n_zeros: int, point: Sequence[EF]) -> EF:
 def finger_print(discriminator: Fp, data: Sequence[EF], alphas_eq_poly: Sequence[EF]) -> EF:
     """`Σᵢ αᵢ · dataᵢ + α_last · discriminator`."""
     assert len(alphas_eq_poly) > len(data)
-    acc = ef_sum(a * d for a, d in zip(alphas_eq_poly, data))
+    acc = sum(a * d for a, d in zip(alphas_eq_poly, data))
     return acc + alphas_eq_poly[-1] * EF(discriminator)
 
 
@@ -817,7 +818,7 @@ def verify_generic_logup(
     pref_pad = pref_at(offset, log_byte_pad)
     value_bytecode_acc = state.next_extension_scalar()
     bytecode_value = eval_mle_base_at_ef(bytecode_multilinear, list(byte_pt) + list(from_end(alphas, log_instr)))
-    correction = ef_prod(ONE - a for a in alphas[: len(alphas) - log_instr])
+    correction = math.prod(ONE - a for a in alphas[: len(alphas) - log_instr])
     fp_byte = (
         bytecode_value * correction
         + mle_of_01234567_etc(byte_pt) * alphas_eq_poly[n_instr_cols]
@@ -940,7 +941,7 @@ def _eval_bus_virtual(
     alphas: list[EF] = extra_data["logup_alphas_eq_poly"]
     assert len(data) < len(alphas)
     folder.assert_zero(multiplicity)
-    encoded = ef_sum(a * d for a, d in zip(alphas, data)) + alphas[-1] * discriminator
+    encoded = sum(a * d for a, d in zip(alphas, data)) + alphas[-1] * discriminator
     folder.assert_zero(encoded)
 
 
@@ -1103,7 +1104,7 @@ _POSEIDON_HARDCODED_LEFT_4_FLAG_SHIFT, _POSEIDON_HARDCODED_LEFT_4_OFFSET_SHIFT =
 
 
 def _matvec_kb(mat: list[list[Fp]], state: list[EF]) -> list[EF]:
-    return [ef_sum(s * m for s, m in zip(state, row)) for row in mat]
+    return [sum(s * m for s, m in zip(state, row)) for row in mat]
 
 
 def _full_round(state: list[EF], rc1: list[Fp], rc2: list[Fp]) -> list[EF]:
@@ -1137,7 +1138,7 @@ def _eval_poseidon1_16(folder: ConstraintFolder, cols: dict) -> None:
         if r < n_partial - 1:
             state[0] = state[0] + const["sparse_scalar_rc"][r]
         old_s0 = state[0]
-        state[0] = ef_sum(state[j] * const["sparse_first_row"][r][j] for j in range(_POSEIDON_WIDTH))
+        state[0] = sum(state[j] * const["sparse_first_row"][r][j] for j in range(_POSEIDON_WIDTH))
         for i in range(1, _POSEIDON_WIDTH):
             state[i] = state[i] + old_s0 * const["sparse_v"][r][i - 1]
 
@@ -1326,7 +1327,7 @@ def verify_execution(
         constraint_eval = air_constraint_eval(meta, col_evals, alpha_slice, extra_data)
 
         natural_pt = list(reversed(sc_point[-log_n_rows:])) if log_n_rows else []
-        k_t = ef_prod(sc_point[: n_max - log_n_rows])
+        k_t = math.prod(sc_point[: n_max - log_n_rows])
         my_air_final = (
             my_air_final + k_t * eq_poly_outside(from_end(gkr_point, log_n_rows), natural_pt) * constraint_eval
         )

@@ -72,6 +72,8 @@ class EF:
             self.c = tuple(value)
 
     def __add__(self, o):
+        if isinstance(o, int):
+            return self if o == 0 else self + EF(o)
         if isinstance(o, Fp):
             return EF([self.c[0] + o, *self.c[1:]])
         return EF([a + b for a, b in zip(self.c, o.c)])
@@ -87,6 +89,8 @@ class EF:
     __radd__ = __add__
 
     def __mul__(self, o):
+        if isinstance(o, int):
+            return self if o == 1 else self * EF(o)
         if isinstance(o, Fp):
             return EF([a * o for a in self.c])
         return EF(quintic_mul(self.c, o.c, Fp(0)))
@@ -114,19 +118,6 @@ class EF:
 
 ZERO = EF(0)
 ONE = EF(1)
-
-
-def ef_sum(terms) -> EF:
-    """Sum of an iterable of `EF` (empty -> `ZERO`)."""
-    return sum(terms, ZERO)
-
-
-def ef_prod(factors) -> EF:
-    """Product of an iterable of `EF` (empty -> `ONE`)."""
-    acc = ONE
-    for f in factors:
-        acc = acc * f
-    return acc
 
 
 # Plonky3 width-16 circulant MDS first row.
