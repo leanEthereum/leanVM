@@ -148,7 +148,7 @@ impl Parse<Expression> for ArrayAccessParser {
     }
 }
 
-/// Parser for len() expressions on const arrays and vectors (supports indexed access like len(ARR[i])).
+/// Parser for len() expressions on const arrays (supports indexed access like len(ARR[i])).
 pub struct LenParser;
 
 impl Parse<Expression> for LenParser {
@@ -214,7 +214,7 @@ impl Parse<Expression> for LenParser {
             }
         }
 
-        // Defer evaluation for non-const arrays (could be vectors) or non-const indices
+        // Defer evaluation when indices aren't all const at parse time (e.g., `len(ARR[i])` inside an unroll loop).
         Ok(Expression::Len {
             array: ident,
             indices: index_exprs,
