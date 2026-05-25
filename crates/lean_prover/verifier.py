@@ -1262,7 +1262,7 @@ def verify_execution(
         + sum(t.n_columns << table_log_heights[t.name] for t in tables)
     )
     stacked_n_vars = log2_ceil_usize(total_stacked)
-    if stacked_n_vars > BASE_TWO_ADICITY + WHIR_INITIAL_FOLDING_FACTOR - log_inv_rate:
+    if stacked_n_vars > TWO_ADICITY + WHIR_INITIAL_FOLDING_FACTOR - log_inv_rate:
         raise ProofError("InvalidProof: stacked_n_vars exceeds WHIR domain bound")
     cfg = whir_config(log_inv_rate, stacked_n_vars)
     nood = cfg["commitment_ood_samples"]
