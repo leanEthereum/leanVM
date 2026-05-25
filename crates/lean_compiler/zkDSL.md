@@ -14,7 +14,7 @@ def helper():                   # other functions (optional)
     ...
 ```
 
-The `from snark_lib import *` line imports Python definitions for zkDSL primitives (Array, DynArray, Mut, Const, etc.), allowing `.py` files to be executed as normal Python scripts for testing. The zkDSL compiler ignores this import line.
+The `from snark_lib import *` line imports Python definitions for zkDSL primitives (Array, Mut, Const, etc.), allowing `.py` files to be executed as normal Python scripts for testing. The zkDSL compiler ignores this import line.
 
 To run zkDSL files as Python scripts, run from the file's directory with PYTHONPATH pointing to the lean_compiler crate (for snark_lib.py):
 ```bash
@@ -196,65 +196,6 @@ arr[0] = 20               # ERROR: different value at same location
 ```
 
 Use `mut` variables when you need mutability, the compiler cannot handle mutability on hand-written allocated memory ("Array(...)").
-
-## DynArray (Compile-Time Dynamic Arrays)
-
-DynArrays are compile-time constructs for building dynamic arrays. Unlike `Array`, DynArrays track structure at compile time—each element gets its own memory slot.
-
-```
-v = DynArray([1, 2, 3])  # create dynamic array
-v.push(4)                # append element
-v.pop()                  # remove last element (does not return it)
-x = v[2]                 # access (index must be compile-time constant)
-n = len(v)               # get length
-```
-
-### Nested DynArrays
-
-```
-matrix = DynArray([DynArray([1, 2]), DynArray([3, 4, 5])])
-matrix[1].push(6)        # push to inner array
-matrix[0].pop()          # pop from inner array
-x = matrix[0][0]         # x = 1
-n = len(matrix[1])       # n = 4
-```
-
-### Building DynArrays in Loops
-
-Use `unroll` loops to build arrays dynamically:
-
-```
-v = DynArray([])
-for i in unroll(0, 5):
-    v.push(i * i)        # v = [0, 1, 4, 9, 16]
-```
-
-### Restrictions
-
-DynArrays are compile-time only. The compiler must know the exact structure at every point:
-
-1. **Indices must be compile-time constants** (literals or unroll loop variables)
-2. **Push/pop to outer-scope arrays forbidden** inside `if/else`, `match`, or non-unrolled loops
-3. **DynArrays cannot be passed to non-inlined functions**
-4. **Pop on empty array is a compile error**
-
-```
-# OK: local array in branch
-if cond == 1:
-    v = DynArray([1, 2])
-    v.push(3)
-
-# ERROR: push to outer-scope array in branch
-v = DynArray([1, 2])
-if cond == 1:
-    v.push(3)            # compile error
-
-# OK: same variable name in different branches
-if cond == 1:
-    v = DynArray([1])
-else:
-    v = DynArray([2, 3]) # different structure, but only one executes
-```
 
 ## Control Flow
 
@@ -580,11 +521,11 @@ result = function_call(
     arg3
 )
 
-arr = DynArray([
+ARR = [
     1,
     2,
-    3
-])
+    3,
+]
 ```
 
 ### Explicit continuation with backslash

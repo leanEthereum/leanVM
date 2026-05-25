@@ -25,11 +25,6 @@ def main():
     result = add_four(1, 2, 3, 4)
     assert result == 10
 
-    arr = DynArray([1, 2, 3])
-    assert arr[0] == 1
-    assert arr[1] == 2
-    assert arr[2] == 3
-
     nested = add_four(1, add_four(10, 20, 30, 40), 2, 3)
     assert nested == 106
 

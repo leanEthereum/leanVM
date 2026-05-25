@@ -1,13 +1,13 @@
 use lean_vm::{Boolean, BooleanExpr};
 use utils::ToUsize;
 
-use super::expression::{ExpressionParser, VecElementParser, VecLiteralParser};
+use super::expression::ExpressionParser;
 use super::function::{AssignmentParser, TupleExpressionParser};
 use super::literal::ConstExprParser;
 use super::{Parse, ParseContext, next_inner_pair, push_statement_with_location};
 use crate::{
     SourceLineNumber,
-    lang::{Expression, Line, LoopKind, SourceLocation, VecLiteral},
+    lang::{Expression, Line, LoopKind, SourceLocation},
     parser::{
         error::{ParseResult, SemanticError},
         grammar::{ParsePair, Rule},
@@ -36,9 +36,6 @@ impl Parse<Line> for StatementParser {
                     Rule::return_statement => ReturnStatementParser.parse(simple_inner, ctx),
                     Rule::assert_statement => AssertParser::<false>.parse(simple_inner, ctx),
                     Rule::debug_assert_statement => AssertParser::<true>.parse(simple_inner, ctx),
-                    Rule::vec_declaration => VecDeclarationParser.parse(simple_inner, ctx),
-                    Rule::push_statement => PushStatementParser.parse(simple_inner, ctx),
-                    Rule::pop_statement => PopStatementParser.parse(simple_inner, ctx),
                     _ => Err(SemanticError::new("Unknown simple statement").into()),
                 }
             }
@@ -284,111 +281,6 @@ impl<const DEBUG: bool> Parse<Line> for AssertParser<DEBUG> {
             }
             _ => Err(SemanticError::new("Expected comparison or False in assert statement").into()),
         }
-    }
-}
-
-/// Parser for vector declarations: `var = vec![...]` (vectors are implicitly mutable for push)
-pub struct VecDeclarationParser;
-
-impl Parse<Line> for VecDeclarationParser {
-    fn parse(&self, pair: ParsePair<'_>, ctx: &mut ParseContext) -> ParseResult<Line> {
-        let line_number = pair.line_col().0;
-        let mut inner = pair.into_inner();
-
-        // Parse variable name
-        let var = next_inner_pair(&mut inner, "variable name")?.as_str().to_string();
-
-        // Parse the vec_literal
-        let vec_literal_pair = next_inner_pair(&mut inner, "vec literal")?;
-        let vec_literal = VecLiteralParser.parse(vec_literal_pair, ctx)?;
-
-        // Extract elements from the VecLiteral::Vec
-        let elements = match vec_literal {
-            VecLiteral::Vec(elems) => elems,
-            VecLiteral::Expr(_) => {
-                return Err(SemanticError::new("Expected vec literal, got expression").into());
-            }
-        };
-
-        Ok(Line::VecDeclaration {
-            var,
-            elements,
-            location: SourceLocation {
-                file_id: ctx.current_file_id,
-                line_number,
-            },
-        })
-    }
-}
-
-/// Parser for push statements: `vec_var.push(element);` or `vec_var[i][j].push(element);`
-pub struct PushStatementParser;
-
-impl Parse<Line> for PushStatementParser {
-    fn parse(&self, pair: ParsePair<'_>, ctx: &mut ParseContext) -> ParseResult<Line> {
-        let line_number = pair.line_col().0;
-        let mut inner = pair.into_inner();
-
-        // Parse the push_target (identifier with optional indices)
-        let push_target = next_inner_pair(&mut inner, "push target")?;
-        let mut target_inner = push_target.into_inner();
-
-        // First element is the vector variable name
-        let vector = next_inner_pair(&mut target_inner, "vector variable")?
-            .as_str()
-            .to_string();
-
-        // Remaining elements are index expressions
-        let indices: Vec<Expression> = target_inner
-            .map(|idx_pair| ExpressionParser.parse(idx_pair, ctx))
-            .collect::<Result<Vec<_>, _>>()?;
-
-        // Parse the element to push (vec_element can be vec_literal or expression)
-        let element_pair = next_inner_pair(&mut inner, "push element")?;
-        let element = VecElementParser.parse(element_pair, ctx)?;
-
-        Ok(Line::Push {
-            vector,
-            indices,
-            element,
-            location: SourceLocation {
-                file_id: ctx.current_file_id,
-                line_number,
-            },
-        })
-    }
-}
-
-/// Parser for pop statements: `vec_var.pop();` or `vec_var[i][j].pop();`
-pub struct PopStatementParser;
-
-impl Parse<Line> for PopStatementParser {
-    fn parse(&self, pair: ParsePair<'_>, ctx: &mut ParseContext) -> ParseResult<Line> {
-        let line_number = pair.line_col().0;
-        let mut inner = pair.into_inner();
-
-        // Parse the pop_target (identifier with optional indices)
-        let pop_target = next_inner_pair(&mut inner, "pop target")?;
-        let mut target_inner = pop_target.into_inner();
-
-        // First element is the vector variable name
-        let vector = next_inner_pair(&mut target_inner, "vector variable")?
-            .as_str()
-            .to_string();
-
-        // Remaining elements are index expressions
-        let indices: Vec<Expression> = target_inner
-            .map(|idx_pair| ExpressionParser.parse(idx_pair, ctx))
-            .collect::<Result<Vec<_>, _>>()?;
-
-        Ok(Line::Pop {
-            vector,
-            indices,
-            location: SourceLocation {
-                file_id: ctx.current_file_id,
-                line_number,
-            },
-        })
     }
 }
 
