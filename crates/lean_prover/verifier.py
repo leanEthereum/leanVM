@@ -873,40 +873,40 @@ def verify_generic_logup(
 
         for bus in meta.buses:
             pref = pref_at(offset_within_table, log_n_rows)
-            match bus:
-                case ("col_mult", _direction):
-                    bus_num_vals[name] = state.next_extension_scalar()
-                    bus_den_vals[name] = state.next_extension_scalar()
-                    num = num + pref * bus_num_vals[name]
-                    den = den + pref * bus_den_vals[name]
-                    offset_within_table += row_stride
-                case ("byte_lookup",):
-                    cols = list(range(n_runtime_cols, n_runtime_cols + n_instr_cols)) + [col_pc]
-                    evals = state.next_extension_scalars_vec(len(cols))
-                    for c_idx, e in zip(cols, evals):
-                        table_values[c_idx] = e
+            if bus[0] == "col_mult":
+                bus_num_vals[name] = state.next_extension_scalar()
+                bus_den_vals[name] = state.next_extension_scalar()
+                num = num + pref * bus_num_vals[name]
+                den = den + pref * bus_den_vals[name]
+                offset_within_table += row_stride
+            elif bus[0] == "byte_lookup":
+                cols = list(range(n_runtime_cols, n_runtime_cols + n_instr_cols)) + [col_pc]
+                evals = state.next_extension_scalars_vec(len(cols))
+                for c_idx, e in zip(cols, evals):
+                    table_values[c_idx] = e
+                num = num + pref  # Push direction
+                den = den + pref * (c - finger_print(ds_byte, evals, alphas_eq_poly))
+                offset_within_table += row_stride
+            elif bus[0] == "mem_group":
+                _, idx_col, vals_start, n = bus
+                # One bus per row in the group; first sees idx_col fresh, the rest
+                # see only val_col fresh (mirrors the Rust prover's dedup logic).
+                for i in range(n):
+                    val_col = vals_start + i
+                    idx_fresh = idx_col not in table_values
+                    val_fresh = val_col not in table_values
+                    evals = iter(state.next_extension_scalars_vec(idx_fresh + val_fresh))
+                    if idx_fresh:
+                        table_values[idx_col] = next(evals)
+                    if val_fresh:
+                        table_values[val_col] = next(evals)
+                    pref = pref_at(offset_within_table, log_n_rows)
+                    fp = finger_print(ds_mem, [table_values[idx_col] + fb(i), table_values[val_col]], alphas_eq_poly)
                     num = num + pref  # Push direction
-                    den = den + pref * (c - finger_print(ds_byte, evals, alphas_eq_poly))
+                    den = den + pref * (c - fp)
                     offset_within_table += row_stride
-                case ("mem_group", idx_col, vals_start, n):
-                    # One bus per row in the group; first sees idx_col fresh, the rest
-                    # see only val_col fresh (mirrors the Rust prover's dedup logic).
-                    for i in range(n):
-                        val_col = vals_start + i
-                        idx_fresh = idx_col not in table_values
-                        val_fresh = val_col not in table_values
-                        evals = iter(state.next_extension_scalars_vec(idx_fresh + val_fresh))
-                        if idx_fresh:
-                            table_values[idx_col] = next(evals)
-                        if val_fresh:
-                            table_values[val_col] = next(evals)
-                        pref = pref_at(offset_within_table, log_n_rows)
-                        fp = finger_print(ds_mem, [table_values[idx_col] + fb(i), table_values[val_col]], alphas_eq_poly)
-                        num = num + pref  # Push direction
-                        den = den + pref * (c - fp)
-                        offset_within_table += row_stride
-                case _:
-                    raise ProofError(f"unknown bus kind: {bus[0]}")
+            else:
+                raise ProofError(f"unknown bus kind: {bus[0]}")
 
         columns_values[name] = table_values
 
