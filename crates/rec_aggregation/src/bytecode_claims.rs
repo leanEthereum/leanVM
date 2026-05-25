@@ -118,6 +118,7 @@ pub(crate) fn extract_bytecode_claim_from_input_data(
 
 pub(crate) fn hash_bytecode_claims(claims: &[Evaluation<EF>]) -> [F; DIGEST_LEN] {
     let mut running_hash = [F::ZERO; DIGEST_LEN];
+    running_hash[0] = F::from_usize(claims.len() * DIGEST_LEN);
     for eval in claims {
         let mut ef_data: Vec<EF> = eval.point.0.clone();
         ef_data.push(eval.value);

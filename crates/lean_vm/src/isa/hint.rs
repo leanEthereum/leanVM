@@ -111,14 +111,16 @@ pub enum CustomHint {
     DecomposeBits,
     LessThan,
     Log2Ceil,
+    DivFloor,
 }
 
-pub const CUSTOM_HINTS: [CustomHint; 5] = [
+pub const CUSTOM_HINTS: [CustomHint; 6] = [
     CustomHint::DecomposeBitsXMSS,
     CustomHint::DecomposeBitsMerkleWhir,
     CustomHint::DecomposeBits,
     CustomHint::LessThan,
     CustomHint::Log2Ceil,
+    CustomHint::DivFloor,
 ];
 
 impl CustomHint {
@@ -129,6 +131,7 @@ impl CustomHint {
             Self::DecomposeBits => "hint_decompose_bits",
             Self::LessThan => "hint_less_than",
             Self::Log2Ceil => "hint_log2_ceil",
+            Self::DivFloor => "hint_div_floor",
         }
     }
 
@@ -139,6 +142,7 @@ impl CustomHint {
             Self::DecomposeBits => 3,
             Self::LessThan => 3,
             Self::Log2Ceil => 2,
+            Self::DivFloor => 4,
         }
     }
 
@@ -197,6 +201,15 @@ impl CustomHint {
                 let n = args[0].read_value(ctx.memory, ctx.fp)?.to_usize();
                 let res_ptr = args[1].memory_address(ctx.fp)?;
                 ctx.memory.set(res_ptr, F::from_usize(log2_ceil_usize(n)))?;
+            }
+            Self::DivFloor => {
+                let a = args[0].read_value(ctx.memory, ctx.fp)?.to_usize();
+                let b = args[1].read_value(ctx.memory, ctx.fp)?.to_usize();
+                let q_ptr = args[2].memory_address(ctx.fp)?;
+                let r_ptr = args[3].memory_address(ctx.fp)?;
+                assert!(b != 0, "hint_div_floor: division by zero");
+                ctx.memory.set(q_ptr, F::from_usize(a / b))?;
+                ctx.memory.set(r_ptr, F::from_usize(a % b))?;
             }
         }
         Ok(())

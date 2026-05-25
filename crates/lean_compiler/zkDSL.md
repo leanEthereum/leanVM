@@ -339,8 +339,6 @@ for i in parallel_range(0, n):          # iterations executed in parallel (see b
     ...
 for i in unroll(0, 4):                  # unrolled at compile time
     ...
-for i in dynamic_unroll(5, a, n_bits):  # start=5 and n_bits compile-time; a runtime, with (a - start) < 2^n_bits
-    ...
 ```
 Use `unroll` when bounds are const or compile-time expansion is needed.
 
@@ -350,8 +348,6 @@ Use `unroll` when bounds are const or compile-time expansion is needed.
   external addresses that do not affect other iterations .
 - The memory footprint (i.e. total memory usage) must be the same across iterations
 - XMSS / Merkle hint consumption must be the same across iterations
-
-**`dynamic_unroll`** enables iterating from `start` to a runtime value `a` (where `a - start` is known to be < 2^n_bits) in an unrolled fashion. The compiler automatically generates bit decomposition of `a - start`, verification constraints, and conditional execution for each index. Both `start` and `n_bits` must be compile-time known.
 
 **Mutable variables in non-unrolled loops:** Mutable variables can be modified inside non-unrolled loops. The compiler automatically transforms these into buffer-based implementations:
 
@@ -465,6 +461,7 @@ hints = prover-supplied values at runtime (without adding snark constraints). Li
 | `hint_decompose_bits`             | `(to_decompose, ptr, num_bits, endianness)`                                       | `num_bits` field elements at `ptr` (the 0/1 bit decomposition of `to_decompose`); `endianness` is `0` for big-endian, `1` for little-endian |
 | `hint_less_than`                  | `(a, b, result_ptr)`                                                              | `1` at `result_ptr` if `a < b` else `0`                                                                                                     |
 | `hint_log2_ceil`                  | `(n, result_ptr)`                                                                 | `ceil(log2(n))` at `result_ptr`                                                                                                             |
+| `hint_div_floor`                  | `(a, b, q_ptr, r_ptr)`                                                            | `floor(a/b)` at `q_ptr` and `a mod b` at `r_ptr` (requires `b != 0`)                                                                        |
 | `hint_decompose_bits_xmss`        | `(decomposed_ptr, remaining_ptr, to_decompose_ptr, num_to_decompose, chunk_size)` | XMSS-specific decomposition (see `crates/lean_vm/src/isa/hint.rs`)                                                                          |
 | `hint_decompose_bits_merkle_whir` | `(decomposed_ptr, remaining_ptr, value, chunk_size)`                              | Merkle/WHIR-specific decomposition                                                                                                          |
 

@@ -822,3 +822,4 @@ def log2_ceil_runtime(n):
             lambda i: _verify_log2_large(n, i),
         )
     return log2
+

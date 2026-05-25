@@ -6,6 +6,7 @@ DIGEST_LEN = 8
 # memory layout: [public_input (PUBLIC_INPUT_LEN)] [preamble_memory (PREAMBLE_MEMORY_LEN)] [runtime ...]
 # `preamble_memory` is a region that is filled by the guest program, with usefull constants [0000...][1000...]...
 PUBLIC_INPUT_LEN = DIGEST_LEN
+PARTIAL_UNROLL_BATCH = 64
 ZERO_VEC_PTR = PUBLIC_INPUT_LEN
 ZERO_VEC_LEN = ZERO_VEC_LEN_PLACEHOLDER
 SAMPLING_DOMAIN_SEPARATOR_PTR = ZERO_VEC_PTR + ZERO_VEC_LEN
@@ -104,9 +105,34 @@ def slice_hash(data, num_chunks, dest):
     return
 
 
-def slice_hash_dynamic_unroll(data, num_chunks, num_chunks_bits: Const):
+@inline
+def euclidian_div_runtime(a, b):
+    # Returns (q, r) with q = floor(a / b) and r = a mod b.
+    # Requires:
+    #   1 <= b < 2^14
+    #   floor(a / b) < 2^16  (so that q*b + r stays well below p)
+    q: Imu
+    r: Imu
+    hint_div_floor(a, b, q, r)
+    assert r < b
+    assert q < 2 ** 16
+    assert q * b + r == a
+    return q, r
+
+
+def absorb_n_hashes_const(n: Const, sp_in, dp_in):
+    sp: Mut = sp_in
+    dp: Mut = dp_in
+    for _ in unroll(0, n):
+        new_state = sp + DIGEST_LEN
+        poseidon16_compress(sp, dp, new_state)
+        sp = new_state
+        dp += DIGEST_LEN
+    return sp
+
+
+def slice_hash_runtime(data, num_chunks):
     debug_assert(num_chunks != 0)
-    debug_assert(num_chunks < 2**num_chunks_bits)
 
     iv = build_iv(num_chunks * DIGEST_LEN)
 
@@ -120,12 +146,21 @@ def slice_hash_dynamic_unroll(data, num_chunks, num_chunks_bits: Const):
     n_iters = num_chunks - 1
     state_ptr: Mut = states
     data_ptr: Mut = data + DIGEST_LEN
-    for _ in dynamic_unroll(0, n_iters, num_chunks_bits):
-        new_state = state_ptr + DIGEST_LEN
-        poseidon16_compress(state_ptr, data_ptr, new_state)
-        state_ptr = new_state
-        data_ptr = data_ptr + DIGEST_LEN
-    return state_ptr
+
+    n_chunks_outer, remainder = euclidian_div_runtime(n_iters, PARTIAL_UNROLL_BATCH)
+    for _ in range(0, n_chunks_outer):
+        for _ in unroll(0, PARTIAL_UNROLL_BATCH):
+            new_state = state_ptr + DIGEST_LEN
+            poseidon16_compress(state_ptr, data_ptr, new_state)
+            state_ptr = new_state
+            data_ptr += DIGEST_LEN
+
+    final_state_ptr = match_range(
+        remainder,
+        range(0, PARTIAL_UNROLL_BATCH),
+        lambda r: absorb_n_hashes_const(r, state_ptr, data_ptr),
+    )
+    return final_state_ptr
 
 
 @inline
