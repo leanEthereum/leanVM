@@ -7,6 +7,7 @@ from typing import Final, Sequence
 P: Final = 2**31 - 2**24 + 1
 """KoalaBear prime: `2^31 - 2^24 + 1`."""
 
+BASE_TWO_ADICITY = 24
 
 class Fp:
     """An element of the KoalaBear prime field `F_p`."""
