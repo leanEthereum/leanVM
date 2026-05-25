@@ -9,6 +9,8 @@ TWO_ADICITY = 24
 MDS_FIRST_ROW_16: Final = (1, 1, 51, 1, 11, 17, 2, 1, 101, 63, 15, 2, 67, 22, 13, 3) # for Poseidon
 KB_TWO_ADIC_GENERATORS: Final = tuple(pow(0x6AC49F88, 1 << (TWO_ADICITY - b), P) for b in range(TWO_ADICITY + 1))
 
+SPONGE_RATE, SPONGE_STATE, DIGEST_ELEMS = 8, 16, 8
+SPONGE_CAPACITY = SPONGE_STATE - SPONGE_RATE
 
 class Fp:
     """An element of the KoalaBear prime field `F_p`."""
@@ -239,6 +241,27 @@ PARAMS_16 = Poseidon1Params(
     round_constants=P1_ROUND_CONSTANTS_16,
 )
 """Poseidon1 parameters for width-16 (8 full rounds, 20 partial)."""
+
+
+POSEIDON16 = Poseidon1(PARAMS_16)
+
+def poseidon16_compress(left: Sequence[Fp], right: Sequence[Fp]) -> list[Fp]:
+    state = list(left) + list(right)
+    assert len(state) == SPONGE_STATE
+    return [a + b for a, b in zip(POSEIDON16.permute(state), state)][:DIGEST_ELEMS]
+
+
+def log2_ceil_usize(x: int) -> int:
+    return 0 if x <= 1 else (x - 1).bit_length()
+
+
+def log2_strict_usize(x: int) -> int:
+    assert x > 0 and (x & (x - 1)) == 0, f"{x} is not a power of two"
+    return x.bit_length() - 1
+
+
+def next_multiple_of(n: int, k: int) -> int:
+    return (n + k - 1) // k * k
 
 
 # ---------------------------------------------------------------------------

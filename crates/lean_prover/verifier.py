@@ -1,87 +1,61 @@
 """Pure-Python verifier for leanVM proofs.
-
-Setup (one-time):
+Setup the test vector (one-time):
     cargo test --release -p lean_prover --test dump_zkvm_vector -- --nocapture
-
 Run:
     python3 crates/lean_prover/verifier.py
-
 Format:
     ruff format --line-length 120 crates/lean_prover/verifier.py
 """
 
 from __future__ import annotations
-
 import functools
 import math
 from dataclasses import dataclass
 from typing import Sequence
-
 from primitives import *
 
-WHIR_INITIAL_FOLDING_FACTOR, WHIR_SUBSEQUENT_FOLDING_FACTOR = 7, 5
-MAX_NUM_VARIABLES_TO_SEND_COEFFS = 8
-RS_DOMAIN_INITIAL_REDUCTION_FACTOR = 5
-SPONGE_RATE, SPONGE_STATE, DIGEST_ELEMS = 8, 16, 8
-SPNGE_CAPACITY = SPONGE_STATE - SPONGE_RATE
+
 PUBLIC_INPUT_SIZE = DIGEST_ELEMS
 SNARK_DOMAIN_SEP = [Fp(v) for v in (130704175, 1303721200, 493664240, 1035493700, 2063844858, 1410214009, 1938905908, 1696767928)]  # fmt: skip
 
-MIN_WHIR_LOG_INV_RATE, MAX_WHIR_LOG_INV_RATE = 1, 4
+WHIR_INITIAL_FOLDING_FACTOR, WHIR_SUBSEQUENT_FOLDING_FACTOR, WHIR_MAX_NUM_VARIABLES_TO_SEND_COEFFS = 7, 5, 8
+MIN_WHIR_LOG_INV_RATE, MAX_WHIR_LOG_INV_RATE, RS_DOMAIN_INITIAL_REDUCTION_FACTOR = 1, 4, 5
+# (log_inv_rate, num_variables, commitment_ood_samples, starting_folding_pow_bits, final_queries, final_query_pow_bits, rounds)
+# where `rounds = ((num_queries, ood_samples, query_pow_bits, folding_pow_bits), ...)`. (checked by `cargo test -p lean_prover --test check_whir_configs`)
+WHIR_CONFIGS = ((1,7,1,10,220,16,()),(1,8,1,11,220,16,()),(1,9,1,12,220,16,()),(1,10,1,13,220,16,()),(1,11,1,14,220,16,()),(1,12,1,15,220,16,()),(1,13,1,16,220,16,()),(1,14,1,15,221,16,()),(1,15,1,16,221,16,()),(1,16,1,16,73,16,((222,1,16,11),)),(1,17,1,16,73,16,((223,1,16,12),)),(1,18,1,16,73,16,((224,1,16,13),)),(1,19,1,16,73,16,((225,1,16,14),)),(1,20,1,16,73,16,((227,1,16,15),)),(1,21,2,16,32,16,((229,1,16,16),(73,1,16,9))),(1,22,2,16,32,16,((230,1,16,12),(74,1,16,10))),(1,23,2,16,32,16,((234,1,16,13),(74,1,16,11))),(1,24,2,16,32,16,((235,1,16,14),(74,1,16,12))),(1,25,2,16,32,16,((241,2,16,15),(74,2,16,13))),(1,26,2,16,21,14,((243,2,16,16),(74,2,16,14),(32,2,16,14))),(1,27,2,16,21,14,((248,2,16,15),(75,2,16,15),(32,2,16,15))),(1,28,2,16,21,14,((256,2,16,16),(75,2,16,16),(32,2,16,16))),(1,29,2,16,21,14,((262,2,16,15),(76,2,16,12),(33,2,16,17))),(1,30,2,16,21,14,((270,2,16,16),(76,2,16,13),(33,2,16,18))),(2,7,1,13,109,16,()),(2,8,1,14,109,16,()),(2,9,1,15,109,16,()),(2,10,1,16,109,16,()),(2,11,1,12,110,16,()),(2,12,1,13,110,16,()),(2,13,1,14,110,16,()),(2,14,1,15,110,16,()),(2,15,1,16,110,16,()),(2,16,1,14,55,16,((111,1,16,10),)),(2,17,1,15,55,16,((111,1,16,11),)),(2,18,1,16,55,16,((111,1,16,12),)),(2,19,1,15,55,16,((112,1,16,13),)),(2,20,2,16,55,16,((112,1,16,14),)),(2,21,2,16,28,16,((113,1,16,15),(55,1,16,10))),(2,22,2,15,28,16,((114,1,16,16),(55,1,16,11))),(2,23,2,16,28,16,((114,1,16,13),(56,1,16,12))),(2,24,2,16,28,16,((115,1,16,14),(56,2,16,13))),(2,25,2,15,28,16,((118,2,16,15),(56,2,16,14))),(2,26,2,16,19,15,((118,2,16,16),(56,2,16,15),(28,2,16,17))),(2,27,2,16,19,15,((119,2,16,13),(57,2,16,16),(28,2,16,18))),(2,28,2,16,19,15,((120,2,16,14),(57,2,16,14),(29,2,15,19))),(2,29,2,16,19,15,((123,2,16,15),(57,2,16,15),(29,2,15,20))),(3,7,1,9,73,16,()),(3,8,1,10,73,16,()),(3,9,1,11,73,16,()),(3,10,1,12,73,16,()),(3,11,1,13,73,16,()),(3,12,1,14,73,16,()),(3,13,1,15,73,16,()),(3,14,1,16,73,16,()),(3,15,1,12,74,16,()),(3,16,1,13,44,16,((74,1,16,11),)),(3,17,1,14,44,16,((74,1,16,12),)),(3,18,2,15,44,16,((74,1,16,13),)),(3,19,2,16,44,16,((74,1,16,14),)),(3,20,2,15,44,16,((75,1,16,15),)),(3,21,2,16,25,16,((75,1,16,16),(44,1,16,11))),(3,22,2,15,25,16,((76,1,16,11),(45,1,16,12))),(3,23,2,16,25,16,((76,1,16,12),(45,2,16,13))),(3,24,2,16,25,16,((77,2,16,13),(45,2,16,14))),(3,25,2,16,25,16,((78,2,15,14),(45,2,16,15))),(3,26,2,16,18,12,((79,2,15,15),(45,2,16,16),(25,2,16,19))),(3,27,2,16,18,12,((80,2,16,16),(45,2,16,15),(26,2,13,20))),(3,28,2,15,18,12,((82,2,15,15),(46,2,16,16),(26,2,13,21))),(4,7,1,8,55,16,()),(4,8,1,9,55,16,()),(4,9,1,10,55,16,()),(4,10,1,11,55,16,()),(4,11,1,12,55,16,()),(4,12,1,13,55,16,()),(4,13,1,14,55,16,()),(4,14,1,15,55,16,()),(4,15,1,16,55,16,()),(4,16,1,13,37,16,((56,1,16,9),)),(4,17,1,14,37,16,((56,1,16,10),)),(4,18,2,15,37,16,((56,1,16,11),)),(4,19,2,16,37,16,((56,1,16,12),)),(4,20,2,13,37,16,((57,1,16,13),)),(4,21,2,14,23,15,((57,2,16,14),(37,2,16,12))),(4,22,2,15,23,15,((57,2,16,15),(37,2,16,13))),(4,23,2,16,23,15,((57,2,16,16),(37,2,16,14))),(4,24,2,15,23,15,((58,2,16,13),(38,2,16,15))),(4,25,2,16,23,15,((58,2,16,14),(38,2,16,16))),(4,26,2,16,16,16,((60,2,15,15),(38,2,16,17),(23,2,15,22))),(4,27,2,15,16,16,((61,2,16,16),(38,2,16,18),(23,2,15,23))))  # fmt: skip
+
 MIN_LOG_MEMORY_SIZE, MAX_LOG_MEMORY_SIZE = 16, 26
 MIN_LOG_N_ROWS_PER_TABLE, MIN_BYTECODE_LOG_SIZE, MAX_BYTECODE_LOG_SIZE = 8, 8, 22
 MAX_LOG_N_ROWS_PER_TABLE = {"execution": 24, "extension_op": 21, "poseidon16_compress": 21}
 ALL_TABLES_ORDER = ("execution", "extension_op", "poseidon16_compress")
-
-# (log_inv_rate, num_variables, commitment_ood_samples, starting_folding_pow_bits, final_queries, final_query_pow_bits, rounds)
-# where `rounds = ((num_queries, ood_samples, query_pow_bits, folding_pow_bits), ...)`. (checked by `cargo test -p lean_prover --test check_whir_configs`)
-WHIR_CONFIGS = ((1,7,1,10,220,16,()),(1,8,1,11,220,16,()),(1,9,1,12,220,16,()),(1,10,1,13,220,16,()),(1,11,1,14,220,16,()),(1,12,1,15,220,16,()),(1,13,1,16,220,16,()),(1,14,1,15,221,16,()),(1,15,1,16,221,16,()),(1,16,1,16,73,16,((222,1,16,11),)),(1,17,1,16,73,16,((223,1,16,12),)),(1,18,1,16,73,16,((224,1,16,13),)),(1,19,1,16,73,16,((225,1,16,14),)),(1,20,1,16,73,16,((227,1,16,15),)),(1,21,2,16,32,16,((229,1,16,16),(73,1,16,9))),(1,22,2,16,32,16,((230,1,16,12),(74,1,16,10))),(1,23,2,16,32,16,((234,1,16,13),(74,1,16,11))),(1,24,2,16,32,16,((235,1,16,14),(74,1,16,12))),(1,25,2,16,32,16,((241,2,16,15),(74,2,16,13))),(1,26,2,16,21,14,((243,2,16,16),(74,2,16,14),(32,2,16,14))),(1,27,2,16,21,14,((248,2,16,15),(75,2,16,15),(32,2,16,15))),(1,28,2,16,21,14,((256,2,16,16),(75,2,16,16),(32,2,16,16))),(1,29,2,16,21,14,((262,2,16,15),(76,2,16,12),(33,2,16,17))),(1,30,2,16,21,14,((270,2,16,16),(76,2,16,13),(33,2,16,18))),(2,7,1,13,109,16,()),(2,8,1,14,109,16,()),(2,9,1,15,109,16,()),(2,10,1,16,109,16,()),(2,11,1,12,110,16,()),(2,12,1,13,110,16,()),(2,13,1,14,110,16,()),(2,14,1,15,110,16,()),(2,15,1,16,110,16,()),(2,16,1,14,55,16,((111,1,16,10),)),(2,17,1,15,55,16,((111,1,16,11),)),(2,18,1,16,55,16,((111,1,16,12),)),(2,19,1,15,55,16,((112,1,16,13),)),(2,20,2,16,55,16,((112,1,16,14),)),(2,21,2,16,28,16,((113,1,16,15),(55,1,16,10))),(2,22,2,15,28,16,((114,1,16,16),(55,1,16,11))),(2,23,2,16,28,16,((114,1,16,13),(56,1,16,12))),(2,24,2,16,28,16,((115,1,16,14),(56,2,16,13))),(2,25,2,15,28,16,((118,2,16,15),(56,2,16,14))),(2,26,2,16,19,15,((118,2,16,16),(56,2,16,15),(28,2,16,17))),(2,27,2,16,19,15,((119,2,16,13),(57,2,16,16),(28,2,16,18))),(2,28,2,16,19,15,((120,2,16,14),(57,2,16,14),(29,2,15,19))),(2,29,2,16,19,15,((123,2,16,15),(57,2,16,15),(29,2,15,20))),(3,7,1,9,73,16,()),(3,8,1,10,73,16,()),(3,9,1,11,73,16,()),(3,10,1,12,73,16,()),(3,11,1,13,73,16,()),(3,12,1,14,73,16,()),(3,13,1,15,73,16,()),(3,14,1,16,73,16,()),(3,15,1,12,74,16,()),(3,16,1,13,44,16,((74,1,16,11),)),(3,17,1,14,44,16,((74,1,16,12),)),(3,18,2,15,44,16,((74,1,16,13),)),(3,19,2,16,44,16,((74,1,16,14),)),(3,20,2,15,44,16,((75,1,16,15),)),(3,21,2,16,25,16,((75,1,16,16),(44,1,16,11))),(3,22,2,15,25,16,((76,1,16,11),(45,1,16,12))),(3,23,2,16,25,16,((76,1,16,12),(45,2,16,13))),(3,24,2,16,25,16,((77,2,16,13),(45,2,16,14))),(3,25,2,16,25,16,((78,2,15,14),(45,2,16,15))),(3,26,2,16,18,12,((79,2,15,15),(45,2,16,16),(25,2,16,19))),(3,27,2,16,18,12,((80,2,16,16),(45,2,16,15),(26,2,13,20))),(3,28,2,15,18,12,((82,2,15,15),(46,2,16,16),(26,2,13,21))),(4,7,1,8,55,16,()),(4,8,1,9,55,16,()),(4,9,1,10,55,16,()),(4,10,1,11,55,16,()),(4,11,1,12,55,16,()),(4,12,1,13,55,16,()),(4,13,1,14,55,16,()),(4,14,1,15,55,16,()),(4,15,1,16,55,16,()),(4,16,1,13,37,16,((56,1,16,9),)),(4,17,1,14,37,16,((56,1,16,10),)),(4,18,2,15,37,16,((56,1,16,11),)),(4,19,2,16,37,16,((56,1,16,12),)),(4,20,2,13,37,16,((57,1,16,13),)),(4,21,2,14,23,15,((57,2,16,14),(37,2,16,12))),(4,22,2,15,23,15,((57,2,16,15),(37,2,16,13))),(4,23,2,16,23,15,((57,2,16,16),(37,2,16,14))),(4,24,2,15,23,15,((58,2,16,13),(38,2,16,15))),(4,25,2,16,23,15,((58,2,16,14),(38,2,16,16))),(4,26,2,16,16,16,((60,2,15,15),(38,2,16,17),(23,2,15,22))),(4,27,2,15,16,16,((61,2,16,16),(38,2,16,18),(23,2,15,23))))  # fmt: skip
 
 
 class ProofError(Exception):
     pass
 
 
-_POSEIDON16 = Poseidon1(PARAMS_16)
-
-
-def poseidon16_compress_in_place(state: list[Fp]) -> list[Fp]:
-    assert len(state) == SPONGE_STATE
-    return [a + b for a, b in zip(_POSEIDON16.permute(state), state)]
-
-
-def poseidon16_compress(left: Sequence[Fp], right: Sequence[Fp]) -> list[Fp]:
-    return poseidon16_compress_in_place(list(left) + list(right))[:DIGEST_ELEMS]
-
-
-def hash_slice(data: Sequence[Fp]) -> list[Fp]:
-    """RTL sponge absorb of `data` (RATE-multiple length) into IV `[len(data), 0, ..., 0]`."""
+# T-Sponge (compression instead of permutation) with replacement (instead of xoring / adding the ingested data).
+def sponge_hash(data: Sequence[Fp]) -> list[Fp]:
     assert len(data) % SPONGE_RATE == 0 and len(data) > 0
-    state = [Fp(len(data))] + [Fp(0)] * (SPONGE_STATE - 1)
-    for k in range(len(data) // SPONGE_RATE - 1, -1, -1):
-        state = poseidon16_compress_in_place(state[:SPNGE_CAPACITY] + list(data[k * SPONGE_RATE : (k + 1) * SPONGE_RATE]))
-    return state[:DIGEST_ELEMS]
+    state = [Fp(len(data))] + [Fp(0)] * (SPONGE_CAPACITY - 1)
+    for k in range(len(data) // SPONGE_RATE):
+        state = poseidon16_compress(state, data[k * SPONGE_RATE : (k + 1) * SPONGE_RATE])
+    return state
 
 
 def fiat_shamir_domain_sep(bytecode_hash: Sequence[Fp]) -> list[Fp]:
-    """Domain-separator absorbed before the proof. Mixes the bytecode hash and
-    `PUBLIC_INPUT_SIZE` (mirrors `lean_prover::fiat_shamir_domain_sep`)."""
     tail = [Fp(PUBLIC_INPUT_SIZE)] + [Fp(0)] * (SPONGE_RATE - 1)
-    extended = poseidon16_compress(SNARK_DOMAIN_SEP, tail)
-    return poseidon16_compress(bytecode_hash, extended)
+    return poseidon16_compress(bytecode_hash, poseidon16_compress(SNARK_DOMAIN_SEP, tail))
 
 
-class Challenger:
-    """Duplex-sponge Fiat-Shamir. `observe(chunk)` permutes `state[:CAPACITY] || chunk`;
-    `_sample_rate()` reads `state[CAPACITY:]` once per `duplex()`."""
-
+class Challenger:  # https://eprint.iacr.org/2025/536.pdf
     def __init__(self) -> None:
         self.state: list[Fp] = [Fp(0)] * SPONGE_STATE
         self.rate_fresh: bool = False
 
     def observe(self, chunk: Sequence[Fp]) -> None:
         assert len(chunk) == SPONGE_RATE
-        self.state = _POSEIDON16.permute(self.state[:SPNGE_CAPACITY] + list(chunk))
+        self.state = POSEIDON16.permute(self.state[:SPONGE_CAPACITY] + list(chunk))
         self.rate_fresh = True
 
     def observe_many(self, scalars: Sequence[Fp]) -> None:
@@ -96,7 +70,7 @@ class Challenger:
     def _sample_rate(self) -> list[Fp]:
         assert self.rate_fresh, "stale rate — insert duplex() before sampling"
         self.rate_fresh = False
-        return list(self.state[SPNGE_CAPACITY:])
+        return list(self.state[SPONGE_CAPACITY:])
 
     def _sample_many(self, n: int) -> list[Fp]:
         out: list[Fp] = []
@@ -106,12 +80,12 @@ class Challenger:
             out.extend(self._sample_rate())
         return out
 
-    def sample_vec(self, n: int) -> list[EF]:
+    def sample_many_ef(self, n: int) -> list[EF]:
         flat = self._sample_many((n * EF.DIMENSION + SPONGE_RATE - 1) // SPONGE_RATE)[: n * EF.DIMENSION]
         return [EF(flat[i : i + EF.DIMENSION]) for i in range(0, len(flat), EF.DIMENSION)]
 
-    def sample(self) -> EF:
-        return self.sample_vec(1)[0]
+    def sample_ef(self) -> EF:
+        return self.sample_many_ef(1)[0]
 
     def sample_in_range(self, bits: int, n_samples: int) -> list[int]:
         assert bits < 31
@@ -132,18 +106,14 @@ class Proof:
 
 
 class VerifierState(Challenger):
-    """Challenger + transcript reader. `n` scalars are consumed as `next_multiple_of(n, RATE)`
-    raw scalars (trailing must be zero) and absorbed."""
-
     def __init__(self, proof: Proof) -> None:
         super().__init__()
         self.transcript = list(proof.transcript)
-        self.openings = list(proof.merkle_openings)
+        self.openings = list(reversed(proof.merkle_openings))
         self.offset = 0
-        self.open_idx = 0
 
     def _read_padded(self, n: int) -> list[Fp]:
-        n_pad = -(-n // SPONGE_RATE) * SPONGE_RATE
+        n_pad = next_multiple_of(n, SPONGE_RATE)
         if self.offset + n_pad > len(self.transcript):
             raise ProofError("ExceededTranscript")
         chunk = self.transcript[self.offset : self.offset + n_pad]
@@ -167,36 +137,16 @@ class VerifierState(Challenger):
         return self.next_extension_scalars_vec(1)[0]
 
     def next_merkle_opening(self) -> MerkleOpening:
-        if self.open_idx >= len(self.openings):
+        if not self.openings:
             raise ProofError("ExceededTranscript: no more Merkle openings")
-        self.open_idx += 1
-        return self.openings[self.open_idx - 1]
+        return self.openings.pop()
 
     def check_pow_grinding(self, bits: int) -> None:
         if bits == 0:
             return
         self._read_padded(1)
-        if int(self.state[SPNGE_CAPACITY].value) & ((1 << bits) - 1) != 0:
+        if int(self.state[SPONGE_CAPACITY].value) & ((1 << bits) - 1) != 0:
             raise ProofError("InvalidGrindingWitness")
-
-
-_INV_TWO = Fp(pow(2, P - 2, P))
-
-
-def log2_ceil_usize(x: int) -> int:
-    return 0 if x <= 1 else (x - 1).bit_length()
-
-
-def log2_strict_usize(x: int) -> int:
-    assert x > 0 and (x & (x - 1)) == 0, f"{x} is not a power of two"
-    return x.bit_length() - 1
-
-
-def padd_with_zero_to_next_power_of_two(values: Sequence[Fp]) -> list[Fp]:
-    if not values:
-        return [Fp(0)]
-    n = 1 << log2_ceil_usize(len(values))
-    return list(values) + [Fp(0)] * (n - len(values))
 
 
 def merkle_verify_path(
@@ -208,7 +158,8 @@ def merkle_verify_path(
 ) -> bool:
     if len(opening_proof) != log_height:
         return False
-    cur = hash_slice(list(opened_values))
+    chunks = [list(opened_values[i : i + SPONGE_RATE]) for i in range(0, len(opened_values), SPONGE_RATE)]
+    cur = sponge_hash([x for c in reversed(chunks) for x in c])
     for sibling in opening_proof:
         cur = poseidon16_compress(cur, sibling) if index & 1 == 0 else poseidon16_compress(sibling, cur)
         index >>= 1
@@ -341,9 +292,9 @@ def whir_folding_factor_at_round(r: int) -> int:
 
 def whir_n_rounds_and_final_sumcheck(num_variables: int) -> tuple[int, int]:
     nv = num_variables - WHIR_INITIAL_FOLDING_FACTOR
-    if nv < MAX_NUM_VARIABLES_TO_SEND_COEFFS:
+    if nv < WHIR_MAX_NUM_VARIABLES_TO_SEND_COEFFS:
         return 0, nv
-    n = -(-(nv - MAX_NUM_VARIABLES_TO_SEND_COEFFS) // WHIR_SUBSEQUENT_FOLDING_FACTOR)
+    n = -(-(nv - WHIR_MAX_NUM_VARIABLES_TO_SEND_COEFFS) // WHIR_SUBSEQUENT_FOLDING_FACTOR)
     return n, nv - n * WHIR_SUBSEQUENT_FOLDING_FACTOR
 
 
@@ -415,7 +366,7 @@ def verify_sumcheck(
         if s != target:
             raise ProofError("Sumcheck identity failed: h(0) + h(1) != target")
         state.check_pow_grinding(pow_bits)
-        r = state.sample()
+        r = state.sample_ef()
         point.append(r)
         target = _eval_univariate(coeffs, r)
     return point, target
@@ -423,7 +374,7 @@ def verify_sumcheck(
 
 def combine_constraints(state: VerifierState, target: EF, constraints: list[SparseStatement]) -> tuple[EF, list[EF]]:
     """Fold all constraint values into `target` via powers of γ; return those γ-power weights."""
-    gamma: EF = state.sample()
+    gamma: EF = state.sample_ef()
     combo: list[EF] = []
     g = ONE
     for smt in constraints:
@@ -532,7 +483,7 @@ def whir_verify(
         new_commitment = ParsedCommitment(
             nvars_round,
             state.next_base_scalars_vec(DIGEST_ELEMS),
-            state.sample_vec(nood),
+            state.sample_many_ef(nood),
             state.next_extension_scalars_vec(nood),
         )
         stir = verify_stir_challenges(
@@ -694,19 +645,19 @@ def verify_gkr_quotient(state: VerifierState, n_vars: int) -> tuple[EF, list[EF]
     dens = state.next_extension_scalars_vec(1 << N_VARS_TO_SEND_GKR_COEFFS)
     quotient = sum(n * d.inv() for n, d in zip(nums, dens))
 
-    point = state.sample_vec(N_VARS_TO_SEND_GKR_COEFFS)
+    point = state.sample_many_ef(N_VARS_TO_SEND_GKR_COEFFS)
     claim_num = eval_multilinear_evals(nums, point)
     claim_den = eval_multilinear_evals(dens, point)
 
     for layer_n_vars in range(N_VARS_TO_SEND_GKR_COEFFS, n_vars):
         state.duplex()
-        alpha = state.sample()
+        alpha = state.sample_ef()
         raw_pt, sc_value = verify_sumcheck(state, claim_num + alpha * claim_den, layer_n_vars, 3)
         sc_point = list(reversed(raw_pt))
         nl, nr, dl, dr = state.next_extension_scalars_vec(4)
         if sc_value != eq_poly_outside(point, sc_point) * (alpha * dl * dr + nl * dr + nr * dl):
             raise ProofError("GKR step: postponed value mismatch")
-        beta = state.sample()
+        beta = state.sample_ef()
         one_minus = ONE - beta
         claim_num = one_minus * nl + beta * nr
         claim_den = one_minus * dl + beta * dr
@@ -974,7 +925,7 @@ def _eval_air_execution(folder: ConstraintFolder, extra_data: dict) -> None:
 
     # aux ∈ {0,1,2}: 0=nothing, 1=add, 2=deref.
     add = aux * EF(2) - aux * aux
-    deref = aux * (aux - ONE) * EF(_INV_TWO)
+    deref = aux * (aux - ONE) * EF((P + 1) // 2)  # (P+1)/2 is the inverse of 2 mod P
     is_precompile = ONE - add - mul - deref - jump
 
     az = folder.assert_zero
@@ -1269,13 +1220,13 @@ def verify_execution(
     parsed_commitment = ParsedCommitment(
         stacked_n_vars,
         state.next_base_scalars_vec(DIGEST_ELEMS),
-        state.sample_vec(nood),
+        state.sample_many_ef(nood),
         state.next_extension_scalars_vec(nood),
     )
 
-    logup_c = state.sample()
+    logup_c = state.sample_ef()
     state.duplex()
-    logup_alphas = state.sample_vec(constants["log_max_bus_width"])
+    logup_alphas = state.sample_many_ef(constants["log_max_bus_width"])
     logup_alphas_eq = eval_eq(logup_alphas)
     logup = verify_generic_logup(
         state,
@@ -1290,7 +1241,7 @@ def verify_execution(
     )
     gkr_point = logup["gkr_point"]
 
-    air_alpha = state.sample()
+    air_alpha = state.sample_ef()
 
     # AIR alpha powers/offsets are laid out in canonical ALL_TABLES order
     # (mirrors `for table in ALL_TABLES { alpha_offset += n_constraints }` in verify_execution.rs).
@@ -1338,9 +1289,9 @@ def verify_execution(
     if my_air_final != sc_value:
         raise ProofError("AIR sumcheck: claimed value mismatch")
 
-    public_memory = padd_with_zero_to_next_power_of_two(public_input)
-    pm_point = state.sample_vec(log2_strict_usize(len(public_memory)))
-    pm_eval = eval_multilinear_evals([EF(f) for f in public_memory], pm_point)
+    assert len(public_input) % DIGEST_ELEMS == 0
+    pm_point = state.sample_many_ef(log2_strict_usize(len(public_input)))
+    pm_eval = eval_multilinear_evals([EF(f) for f in public_input], pm_point)
 
     bytecode_acc_idx = (2 << log_memory) >> bytecode_log_size
     previous = [
@@ -1370,10 +1321,8 @@ def verify_execution(
         raise ProofError(
             f"InvalidProof: transcript not fully consumed ({state.offset}/{len(state.transcript)} scalars read)"
         )
-    if state.open_idx != len(state.openings):
-        raise ProofError(
-            f"InvalidProof: Merkle openings not fully consumed ({state.open_idx}/{len(state.openings)} openings used)"
-        )
+    if state.openings:
+        raise ProofError(f"InvalidProof: {len(state.openings)} Merkle openings unused")
 
     return {"log_inv_rate": log_inv_rate, "log_memory": log_memory, "stacked_n_vars": stacked_n_vars}
 
