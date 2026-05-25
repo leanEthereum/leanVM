@@ -11,6 +11,7 @@ from __future__ import annotations
 import functools
 import math
 from dataclasses import dataclass
+from itertools import accumulate, repeat
 from typing import Sequence
 from primitives import *
 
@@ -44,8 +45,7 @@ def sponge_hash(data: Sequence[Fp]) -> list[Fp]:
 
 
 def fiat_shamir_domain_sep(bytecode_hash: Sequence[Fp]) -> list[Fp]:
-    tail = [Fp(PUBLIC_INPUT_SIZE)] + [Fp(0)] * (SPONGE_RATE - 1)
-    return poseidon16_compress(bytecode_hash, poseidon16_compress(SNARK_DOMAIN_SEP, tail))
+    return poseidon16_compress(bytecode_hash, SNARK_DOMAIN_SEP)
 
 
 class Challenger:  # https://eprint.iacr.org/2025/536.pdf
@@ -167,36 +167,25 @@ def merkle_verify_path(
 
 
 def expand_from_univariate(x: EF, num_variables: int) -> list[EF]:
-    """`[x, x², x⁴, …, x^(2^(n−1))]`."""
-    out, cur = [], x
-    for _ in range(num_variables):
-        out.append(cur)
-        cur = cur * cur
-    return out
+    return list(accumulate(repeat(x, num_variables), lambda a, _: a * a)) # [x, x², x⁴, …, x^(2^(n−1))]
 
 
-def eq_poly_outside(a: Sequence[EF], b: Sequence[EF]) -> EF:
-    """`Π (1 − a_i − b_i + 2·a_i·b_i)`."""
+def eq_poly(a: Sequence[EF], b: Sequence[EF]) -> EF:
     assert len(a) == len(b)
-    return math.prod(ONE + x * y + x * y - x - y for x, y in zip(a, b))
+    return math.prod(x*y + (ONE - x) * (ONE - y) for x, y in zip(a, b))
 
 
 def next_mle(x: Sequence[EF], y: Sequence[EF]) -> EF:
-    """Multilinear extension of `y = x + 1` (big-endian, mod `2^n`)."""
     assert len(x) == len(y)
-    n = len(x)
-    eq_prefix = [ONE]
-    for i in range(n):
-        eq_prefix.append(eq_prefix[i] * (x[i] * y[i] + (ONE - x[i]) * (ONE - y[i])))
-    low_suffix = [ONE] * (n + 1)
-    for i in range(n - 1, -1, -1):
-        low_suffix[i] = low_suffix[i + 1] * x[i] * (ONE - y[i])
-    s = sum(eq_prefix[i] * (ONE - x[i]) * y[i] * low_suffix[i + 1] for i in range(n))
+    s, eq_prefix = ZERO, ONE
+    for xi, yi in zip(x, y):
+        s = xi * (ONE - yi) * s + eq_prefix * (ONE - xi) * yi
+        eq_prefix *= xi * yi + (ONE - xi) * (ONE - yi)
     return s + math.prod([*x, *y])
 
 
-def eval_multilinear_evals(evals: Sequence[EF], point: Sequence[EF]) -> EF:
-    """Evaluate a multilinear in evaluation form at `point` (big-endian fold)."""
+def eval_multilinear(evals: Sequence[EF], point: Sequence[EF]) -> EF:
+    """Evaluate a multilinear in evaluation form at `point`."""
     assert len(evals) == 1 << len(point)
     cur = list(evals)
     for r in reversed(point):
@@ -204,8 +193,8 @@ def eval_multilinear_evals(evals: Sequence[EF], point: Sequence[EF]) -> EF:
     return cur[0]
 
 
-def eval_mle_base_at_ef(base_evals: Sequence[int], point: Sequence[EF]) -> EF:
-    """Evaluate a base-field multilinear in eval form at an EF point."""
+def eval_base_field_multilinear(base_evals: Sequence[int], point: Sequence[EF]) -> EF:
+    """Evaluate a base-field multilinear in evaluation form at `point`."""
     assert len(base_evals) == 1 << len(point)
 
     # First fold: cur[n] = base[2n] + (base[2n+1] − base[2n]) · r.
@@ -411,7 +400,7 @@ def verify_stir_challenges(
         op = state.next_merkle_opening()
         if not merkle_verify_path(commitment.root, log_height, idx, op.leaf_data, op.path):
             raise ProofError("Merkle verification failed")
-        fold = eval_multilinear_evals(pack_answers(op.leaf_data), folding_randomness)
+        fold = eval_multilinear(pack_answers(op.leaf_data), folding_randomness)
         ef_pt = EF(pow(int(gen.value), idx, P))
         constraints.append(SparseStatement.dense(expand_from_univariate(ef_pt, num_variables), fold))
     return constraints
@@ -436,7 +425,7 @@ def eval_constraints_poly(constraints: list[tuple[list[EF], list[SparseStatement
         i = 0
         for smt in smts:
             inner_pt = pt[len(pt) - len(smt.point) :]
-            common = next_mle(smt.point, inner_pt) if smt.is_next else eq_poly_outside(smt.point, inner_pt)
+            common = next_mle(smt.point, inner_pt) if smt.is_next else eq_poly(smt.point, inner_pt)
             sel_n = smt.selector_num_variables
             for v in smt.values:
                 lagrange = math.prod(pt[j] if (v[0] >> (sel_n - 1 - j)) & 1 else ONE - pt[j] for j in range(sel_n))
@@ -646,8 +635,8 @@ def verify_gkr_quotient(state: VerifierState, n_vars: int) -> tuple[EF, list[EF]
     quotient = sum(n * d.inv() for n, d in zip(nums, dens))
 
     point = state.sample_many_ef(N_VARS_TO_SEND_GKR_COEFFS)
-    claim_num = eval_multilinear_evals(nums, point)
-    claim_den = eval_multilinear_evals(dens, point)
+    claim_num = eval_multilinear(nums, point)
+    claim_den = eval_multilinear(dens, point)
 
     for layer_n_vars in range(N_VARS_TO_SEND_GKR_COEFFS, n_vars):
         state.duplex()
@@ -655,7 +644,7 @@ def verify_gkr_quotient(state: VerifierState, n_vars: int) -> tuple[EF, list[EF]
         raw_pt, sc_value = verify_sumcheck(state, claim_num + alpha * claim_den, layer_n_vars, 3)
         sc_point = list(reversed(raw_pt))
         nl, nr, dl, dr = state.next_extension_scalars_vec(4)
-        if sc_value != eq_poly_outside(point, sc_point) * (alpha * dl * dr + nl * dr + nr * dl):
+        if sc_value != eq_poly(point, sc_point) * (alpha * dl * dr + nl * dr + nr * dl):
             raise ProofError("GKR step: postponed value mismatch")
         beta = state.sample_ef()
         one_minus = ONE - beta
@@ -750,7 +739,7 @@ def verify_generic_logup(
         n_missing = total_gkr_n_vars - log_height
         idx = offset >> log_height
         bits = [ONE if (idx >> (n_missing - 1 - i)) & 1 else ZERO for i in range(n_missing)]
-        return eq_poly_outside(bits, point_gkr[:n_missing])
+        return eq_poly(bits, point_gkr[:n_missing])
 
     # Memory (data order: [value_index, value_memory] mirrors `crates/sub_protocols/src/logup.rs`).
     mem_pt = from_end(point_gkr, log_memory)
@@ -768,7 +757,7 @@ def verify_generic_logup(
     pref = pref_at(offset, log_bytecode)
     pref_pad = pref_at(offset, log_byte_pad)
     value_bytecode_acc = state.next_extension_scalar()
-    bytecode_value = eval_mle_base_at_ef(bytecode_multilinear, list(byte_pt) + list(from_end(alphas, log_instr)))
+    bytecode_value = eval_base_field_multilinear(bytecode_multilinear, list(byte_pt) + list(from_end(alphas, log_instr)))
     correction = math.prod(ONE - a for a in alphas[: len(alphas) - log_instr])
     fp_byte = (
         bytecode_value * correction
@@ -1280,7 +1269,7 @@ def verify_execution(
         natural_pt = list(reversed(sc_point[-log_n_rows:])) if log_n_rows else []
         k_t = math.prod(sc_point[: n_max - log_n_rows])
         my_air_final = (
-            my_air_final + k_t * eq_poly_outside(from_end(gkr_point, log_n_rows), natural_pt) * constraint_eval
+            my_air_final + k_t * eq_poly(from_end(gkr_point, log_n_rows), natural_pt) * constraint_eval
         )
 
         eq_vals = {i: col_evals[i] for i in range(meta.n_columns)}
@@ -1291,7 +1280,7 @@ def verify_execution(
 
     assert len(public_input) % DIGEST_ELEMS == 0
     pm_point = state.sample_many_ef(log2_strict_usize(len(public_input)))
-    pm_eval = eval_multilinear_evals([EF(f) for f in public_input], pm_point)
+    pm_eval = eval_multilinear([EF(f) for f in public_input], pm_point)
 
     bytecode_acc_idx = (2 << log_memory) >> bytecode_log_size
     previous = [
