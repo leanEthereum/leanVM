@@ -23,7 +23,7 @@ pub fn verify_execution(
             max_log_size: MAX_BYTECODE_LOG_SIZE,
         });
     }
-    if public_input.len() != bytecode.public_input_size {
+    if public_input.len() != PUBLIC_INPUT_LEN {
         return Err(ProofError::InvalidProof);
     }
     let mut verifier_state = VerifierState::<EF, _>::new(proof, get_poseidon16().clone())?;
@@ -38,9 +38,6 @@ pub fn verify_execution(
     let log_memory = dims[1];
     let table_n_vars: BTreeMap<Table, VarCount> = (0..N_TABLES).map(|i| (ALL_TABLES[i], dims[i + 2])).collect();
     check_rate(log_inv_rate)?;
-    if log_memory < log2_strict_usize(bytecode.public_input_size) {
-        return Err(ProofError::InvalidProof);
-    }
     let whir_config = default_whir_config(log_inv_rate);
     for (table, &log_n_rows) in &table_n_vars {
         if log_n_rows < MIN_LOG_N_ROWS_PER_TABLE {

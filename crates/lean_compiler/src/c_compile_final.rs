@@ -39,13 +39,7 @@ pub fn compile_to_low_level_bytecode(
     function_locations: BTreeMap<SourceLocation, FunctionName>,
     source_code: BTreeMap<FileId, String>,
     filepaths: BTreeMap<FileId, String>,
-    public_input_size: usize,
 ) -> Result<Bytecode, String> {
-    if !is_valid_public_input_size(public_input_size) {
-        return Err(format!(
-            "public_input_size must be a power of 2 and a multiple of DIGEST_LEN ({DIGEST_LEN}), got {public_input_size}"
-        ));
-    }
     intermediate_bytecode.bytecode.insert(
         Label::EndProgram,
         vec![IntermediateInstruction::Jump {
@@ -184,7 +178,6 @@ pub fn compile_to_low_level_bytecode(
         hash,
         starting_frame_memory,
         ending_pc,
-        public_input_size,
         function_locations,
         source_code,
         filepaths,

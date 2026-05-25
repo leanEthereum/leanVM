@@ -96,7 +96,7 @@ fn find_files(dir: &str, prefix: &str, suffix: &str) -> Vec<String> {
 fn test_num_files() {
     let expected_num_files = 3; // program_2.py imports foo.py and bar.py
     let path = format!("{}/program_2.py", test_data_dir());
-    let bytecode = compile_program(&ProgramSource::Filepath(path), DIGEST_LEN);
+    let bytecode = compile_program(&ProgramSource::Filepath(path));
     assert_eq!(bytecode.filepaths.len(), expected_num_files);
     assert_eq!(bytecode.source_code.len(), expected_num_files);
 }
@@ -130,7 +130,7 @@ fn test_all_programs() {
         ..ExecutionWitness::default()
     };
     for path in paths {
-        let bytecode = match try_compile_program(&ProgramSource::Filepath(path.clone()), DIGEST_LEN) {
+        let bytecode = match try_compile_program(&ProgramSource::Filepath(path.clone())) {
             Ok(b) => b,
             Err(err) => panic!("Program {} failed to compile: {:?}", path, err),
         };
@@ -175,7 +175,7 @@ def func(a, b):
     poseidon16_compress(a, a, b)
     return
    "#;
-    let bytecode = compile_program(&ProgramSource::Raw(program.to_string()), DIGEST_LEN);
+    let bytecode = compile_program(&ProgramSource::Raw(program.to_string()));
     let n_cycles = execute_bytecode(&bytecode, &[], &ExecutionWitness::default(), false).n_cycles();
     assert!(n_cycles < 1100);
 }
@@ -201,11 +201,8 @@ def factorial(n):
         return n * factorial(n - 1)
    "#;
 
-    let compiled_sequencial = compile_program(&ProgramSource::Raw(program.replace("loop", "range")), DIGEST_LEN);
-    let compiled_parallel = compile_program(
-        &ProgramSource::Raw(program.replace("loop", "parallel_range")),
-        DIGEST_LEN,
-    );
+    let compiled_sequencial = compile_program(&ProgramSource::Raw(program.replace("loop", "range")));
+    let compiled_parallel = compile_program(&ProgramSource::Raw(program.replace("loop", "parallel_range")));
 
     let time_sequential = Instant::now();
     let exec_seq = execute_bytecode(&compiled_sequencial, &[], &ExecutionWitness::default(), false);
@@ -256,7 +253,7 @@ fn test_soundness_suite() {
 
     for &(name, valid, perturbations) in cases {
         let path = format!("{}/{}.py", test_data_dir(), name);
-        let bytecode = compile_program(&ProgramSource::Filepath(path), DIGEST_LEN);
+        let bytecode = compile_program(&ProgramSource::Filepath(path));
 
         try_execute_bytecode(&bytecode, &to_input(valid), &ExecutionWitness::default(), false)
             .unwrap_or_else(|err| panic!("{name}: valid input {valid:?} must succeed, got {err:?}"));

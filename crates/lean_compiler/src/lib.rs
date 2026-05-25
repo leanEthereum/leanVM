@@ -127,7 +127,6 @@ pub struct CompilationFlags {
 pub fn try_compile_program_with_flags(
     input: &ProgramSource,
     flags: CompilationFlags,
-    public_input_size: usize,
 ) -> Result<Bytecode, CompileError> {
     let parsed_program = parse_program(input, flags)?;
     let function_locations = parsed_program.function_locations.clone();
@@ -135,34 +134,24 @@ pub fn try_compile_program_with_flags(
     let filepaths = parsed_program.filepaths.clone();
     let simple_program = simplify_program(parsed_program)?;
     let intermediate_bytecode = compile_to_intermediate_bytecode(simple_program)?;
-    let bytecode = compile_to_low_level_bytecode(
-        intermediate_bytecode,
-        function_locations,
-        source_code,
-        filepaths,
-        public_input_size,
-    )?;
+    let bytecode = compile_to_low_level_bytecode(intermediate_bytecode, function_locations, source_code, filepaths)?;
     Ok(bytecode)
 }
 
-pub fn compile_program_with_flags(
-    input: &ProgramSource,
-    flags: CompilationFlags,
-    public_input_size: usize,
-) -> Bytecode {
-    try_compile_program_with_flags(input, flags, public_input_size).unwrap()
+pub fn compile_program_with_flags(input: &ProgramSource, flags: CompilationFlags) -> Bytecode {
+    try_compile_program_with_flags(input, flags).unwrap()
 }
 
-pub fn try_compile_program(input: &ProgramSource, public_input_size: usize) -> Result<Bytecode, CompileError> {
-    try_compile_program_with_flags(input, Default::default(), public_input_size)
+pub fn try_compile_program(input: &ProgramSource) -> Result<Bytecode, CompileError> {
+    try_compile_program_with_flags(input, Default::default())
 }
 
-pub fn compile_program(input: &ProgramSource, public_input_size: usize) -> Bytecode {
-    try_compile_program(input, public_input_size).unwrap()
+pub fn compile_program(input: &ProgramSource) -> Bytecode {
+    try_compile_program(input).unwrap()
 }
 
 pub fn try_compile_and_run(input: &ProgramSource, public_input: &[F], profiler: bool) -> Result<String, Error> {
-    let bytecode = try_compile_program(input, public_input.len())?;
+    let bytecode = try_compile_program(input)?;
     let witness = ExecutionWitness::default();
     let result = try_execute_bytecode(&bytecode, public_input, &witness, profiler)?;
     println!("{}", result.metadata.display());

@@ -27,9 +27,9 @@ pub fn prove_execution(
     check_rate(whir_config.starting_log_inv_rate)
         .map_err(|err| panic!("{err}"))
         .unwrap();
-    if public_input.len() != bytecode.public_input_size {
-        return Err(ProverError::InvalidPunlicInputSize {
-            expected: bytecode.public_input_size,
+    if public_input.len() != PUBLIC_INPUT_LEN {
+        return Err(ProverError::InvalidPublicInputSize {
+            expected: PUBLIC_INPUT_LEN,
             actual: public_input.len(),
         });
     }

@@ -74,7 +74,7 @@ fn compile_main_program(program_log_size: usize, bytecode_zero_eval: F) -> Bytec
         entry: "main.py".to_string(),
         dir: &EMBEDDED_ZK_DSL,
     };
-    compile_program_with_flags(&source, CompilationFlags { replacements }, DIGEST_LEN)
+    compile_program_with_flags(&source, CompilationFlags { replacements })
 }
 
 #[instrument(skip_all)]

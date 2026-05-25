@@ -9,6 +9,8 @@ pub const DIMENSION: usize = 5;
 
 pub const DIGEST_LEN: usize = 8;
 
+pub const PUBLIC_INPUT_LEN: usize = DIGEST_LEN;
+
 pub const MIN_WHIR_LOG_INV_RATE: usize = 1;
 pub const MAX_WHIR_LOG_INV_RATE: usize = 4;
 

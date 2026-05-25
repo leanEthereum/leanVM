@@ -97,7 +97,7 @@ See \Cref{sec:signature-aggregation} for more details.
     \item $\hat{eq}(x, y) = x y + (1 - x)(1 - y)$
     \item \label{sec:preliminaries-embed} $\mathsf{embed}(x_1, x_2, x_3, x_4, x_5)$ is the extension field element built from 5 base field elements: $x_1 + x_2 X + x_3 X^2 + x_4 X^3 + x_5 X^4$, using $X^5 + X^2 - 1$ as the irreducible polynomial defining the extension (see \Cref{sec:field}).
     \item Given a number of bits $n > 0$, and an $n$-bit integer $x$, we denote by $[x]_\text{bits}^n$ its big-endian bit-decomposition in $n$ boolean values. For example, $[14]_\text{bits}^4 = (1, 1, 1, 0)$
-    \item $h_\textsc{memory}$ is the log-size of the (read-only) memory; the memory has $2^{h_\textsc{memory}}$ words (always a power of 2). $h_\textsc{public}$ is the log-size of the public memory (with $h_\textsc{public} \leq h_\textsc{memory}$). $h_\textsc{bytecode}$ is the bytecode log-size (the bytecode has $2^{h_\textsc{bytecode}}$ instructions), and $h_\textsc{exec}$, $h_\textsc{poseidon}$, $h_\textsc{extension}$ are the log-heights of the three tables (see \Cref{sec:table-sizes}).
+    \item $h_\textsc{memory}$ is the log-size of the (read-only) memory; the memory has $2^{h_\textsc{memory}}$ words (always a power of 2). $h_\textsc{bytecode}$ is the bytecode log-size (the bytecode has $2^{h_\textsc{bytecode}}$ instructions), and $h_\textsc{exec}$, $h_\textsc{poseidon}$, $h_\textsc{extension}$ are the log-heights of the three tables (see \Cref{sec:table-sizes}).
     \item $\textbf{m}[i]$ is the value of the memory at index $i$. It is defined only for $0 \leq i < 2^{h_\textsc{memory}}$; any out-of-bound access ($i \geq 2^{h_\textsc{memory}}$) makes the execution \emph{invalid}. More generally, any vector of field elements $v$ is indexed starting at $v[0], v[1], \dots$
     \item $\textbf{m}[i..j]$ is the memory slice $(\textbf{m}[i], \textbf{m}[i+1], \ldots, \textbf{m}[j-1])$.
     \item $||$ denotes concatenation of slices.
@@ -192,6 +192,7 @@ A useful consequence: a non-zero multilinear polynomial in $n$ variables has tot
 \toprule
 Symbol & Value & Description \\
 \midrule
+$\ell_\textsc{public}$ & $8$ & public input length, in field elements (one digest) \\
 $h_\textsc{memory}^{\min}$ & $16$ & log2 of the minimum size of the memory \\
 $h_\textsc{memory}^{\max}$ & $26$ & log2 of the maximum size of the memory \\
 $h^{\min}$ & $8$ & log2 of the minimum height shared by all tables (and by the bytecode) \\
@@ -243,11 +244,11 @@ where $+$ represents field coordinate-wise addition, and $[0..8]$ represents the
 
 \subsection{Memory}\label{sec:memory}
 
-We use a read-only memory (also called write-once memory). Each memory word is a base field element. The memory is a 1D array of $2^{h_\textsc{memory}}$ words; the log-size $h_\textsc{memory}$ is attached to each execution of the VM and must satisfy $h_\textsc{memory}^{\min} \leq h_\textsc{memory} \leq h_\textsc{memory}^{\max}$, with $h_\textsc{memory}^{\min} = 16$ and $h_\textsc{memory}^{\max} = 26$. The first $2^{h_\textsc{public}}$ memory cells (with $h_\textsc{public} \leq h_\textsc{memory}$) hold the "public input", which informally represents the part of the memory "controlled" by the verifier of an execution proof.
+We use a read-only memory (also called write-once memory). Each memory word is a base field element. The memory is a 1D array of $2^{h_\textsc{memory}}$ words; the log-size $h_\textsc{memory}$ is attached to each execution of the VM and must satisfy $h_\textsc{memory}^{\min} \leq h_\textsc{memory} \leq h_\textsc{memory}^{\max}$, with $h_\textsc{memory}^{\min} = 16$ and $h_\textsc{memory}^{\max} = 26$. The first $\ell_\textsc{public} = 8$ memory cells (one hash digest) hold the "public input", which informally represents the part of the memory "controlled" by the verifier of an execution proof. If a program requires bigger input, it is enought to pass as public input its hash, and to hint (see \Cref{sec:hints}) the corresponding data at runtime (whose hash will be checked against the public input).
 
 \subsection{Bytecode}
 
-The bytecode is also read-only, and also has a power of two size. It lives in a separate region than the memory (Harvard architecture). Both prover and verifier are expected to have access to the bytecode. Each bytecode specifies the public-memory log-size $h_\textsc{public}$. For a bytecode of size $2^{h_\textsc{bytecode}}$, a valid execution should start at $\textbf{pc} = 0$, and ends at $\textbf{pc} = 2^{h_\textsc{bytecode}} - 1$. In practice, it is suggested to use for the last instruction (at index $2^{h_\textsc{bytecode}} - 1$) a \texttt{JUMP} (\cref{sec:jump}) that unconditionally jumps to itself (for padding reasons within the snark). The minimal bytecode log-size is $h^{\min}$.
+The bytecode is also read-only, and also has a power of two size. It lives in a separate region than the memory (Harvard architecture). Both prover and verifier are expected to have access to the bytecode. For a bytecode of size $2^{h_\textsc{bytecode}}$, a valid execution should start at $\textbf{pc} = 0$, and ends at $\textbf{pc} = 2^{h_\textsc{bytecode}} - 1$. In practice, it is suggested to use for the last instruction (at index $2^{h_\textsc{bytecode}} - 1$) a \texttt{JUMP} (\cref{sec:jump}) that unconditionally jumps to itself (for padding reasons within the snark). The minimal bytecode log-size is $h^{\min}$.
 
 \subsection{Registers}
 
@@ -448,15 +449,13 @@ a_i =
 
 \subsection{Example: Fibonacci Program}
 
-The following program takes two base field elements $(n, r)$ as public input, and proves that the $n$-th Fibonacci number, reduced modulo $p$, equals $r$.
+The following program takes two base field elements $(n, r)$ as public input (occupying the first two cells of the fixed $\ell_\textsc{public} = 8$ public-input slots), and proves that the $n$-th Fibonacci number, reduced modulo $p$, equals $r$.
 
 \begin{framed}
 \small
 \noindent
 \begin{minipage}[t]{0.48\textwidth}
 \begin{verbatim}
-[public input size]  2
-
 [program]
    0: ADD[imm, 0,  imm, 0,  mem, 2]
    1: DEREF[2,  0,  mem, 3]
@@ -1160,7 +1159,7 @@ TODO: Verify and (formally) prove soundness.
 \textbf{Verification parameters (known to both prover and verifier).}
 \begin{itemize}
     \item $\textsf{bytecode}$: the bytecode of the program being executed (\Cref{sec:opcode-encoding}), of size $2^{h_\textsc{bytecode}}$.
-    \item $\textsf{public\_input}$: the initial public part of the memory, occupying cells $[0,\, 2^{h_\textsc{public}})$.
+    \item $\textsf{public\_input}$: the initial public part of the memory, occupying cells $[0,\, \ell_\textsc{public})$ with $\ell_\textsc{public} = 8$.
 \end{itemize}
 \end{minipage}}
 
@@ -1170,7 +1169,7 @@ TODO: Verify and (formally) prove soundness.
     \item \textbf{Dimensions.} 
     The prover sends $(\textsf{log\_inv\_rate},\, h_\textsc{memory},\, h_\textsc{exec},\, h_\textsc{poseidon},\, h_\textsc{extension})$.
     
-    The verifier checks: $\textsf{log\_inv\_rate}^{\min} \leq \textsf{log\_inv\_rate} \leq \textsf{log\_inv\_rate}^{\max}$ (i.e.\ $1 \leq \textsf{log\_inv\_rate} \leq 4$); $h^{\min} \leq h_T \leq h_T^{\max}$ for each $T \in \{\textsc{exec}, \textsc{poseidon}, \textsc{extension}\}$ (\Cref{sec:table-sizes}); $h_\textsc{memory}^{\min} \leq h_\textsc{memory} \leq h_\textsc{memory}^{\max}$; $h_\textsc{bytecode} \geq h^{\min}$; and $h_\textsc{memory} \geq \max(h_\textsc{bytecode},\, h_\textsc{public},\, h_\textsc{exec},\, h_\textsc{poseidon},\, h_\textsc{extension})$.
+    The verifier checks: $\textsf{log\_inv\_rate}^{\min} \leq \textsf{log\_inv\_rate} \leq \textsf{log\_inv\_rate}^{\max}$ (i.e.\ $1 \leq \textsf{log\_inv\_rate} \leq 4$); $h^{\min} \leq h_T \leq h_T^{\max}$ for each $T \in \{\textsc{exec}, \textsc{poseidon}, \textsc{extension}\}$ (\Cref{sec:table-sizes}); $h_\textsc{memory}^{\min} \leq h_\textsc{memory} \leq h_\textsc{memory}^{\max}$; $h_\textsc{bytecode} \geq h^{\min}$; and $h_\textsc{memory} \geq \max(h_\textsc{bytecode},\, h_\textsc{exec},\, h_\textsc{poseidon},\, h_\textsc{extension})$.
 
     \item \textbf{Stacked commitment.} The prover commits via WHIR \cite{whir} to a single multilinear polynomial stacking (see \Cref{sec:stacking}) the memory $\textbf{m}$, the access counts $\textsf{memory\_acc}$ and $\textsf{bytecode\_acc}$, and all committed columns of the three tables.
 
@@ -1197,7 +1196,7 @@ TODO: Verify and (formally) prove soundness.
         \item For each table $T$, the prover sends the evaluations of all of $T$'s committed columns and shifted columns at the appropriate suffix of $\vec r_\textsc{air}$. The verifier evaluates $T$'s AIR-constraint polynomial at these column evaluations, which enables to conclude the batched-zerocheck.
     \end{enumerate}
 
-    \item \textbf{Public-memory consistency.} The verifier samples $\vec r_\textsc{pub} \in \Fq^{h_\textsc{public}}$ and evaluates $\textsf{public\_input}$ as a multilinear polynomial at $\vec r_\textsc{pub}$, obtaining $v_\textsc{pub} \in \Fq$. The pair $(\vec r_\textsc{pub}, v_\textsc{pub})$ is queued as an opening claim on the initial $2^{h_\textsc{public}}$-cell prefix of the committed memory polynomial (handled by WHIR below).
+    \item \textbf{Public-memory consistency.} The verifier samples $\vec r_\textsc{pub} \in \Fq^{\log_2 \ell_\textsc{public}}$ and evaluates $\textsf{public\_input}$ as a multilinear polynomial at $\vec r_\textsc{pub}$, obtaining $v_\textsc{pub} \in \Fq$. The pair $(\vec r_\textsc{pub}, v_\textsc{pub})$ is queued as an opening claim on the initial $\ell_\textsc{public}$-cell prefix of the committed memory polynomial (handled by WHIR below).
 
     \item \textbf{Boundary pc.} To ensure a valid initial / final program counter, we add two opening claims on the \textbf{pc} column of the \textsc{execution} table: $\hat{\textbf{pc}}(0, \ldots, 0) = 0$ and $\hat{\textbf{pc}}(1, \ldots, 1) = 2^{h_\textsc{bytecode}} - 1$ (handled by WHIR bellow).
 
