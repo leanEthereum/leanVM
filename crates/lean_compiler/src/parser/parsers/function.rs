@@ -15,8 +15,6 @@ pub const RESERVED_FUNCTION_NAMES: &[&str] = &[
     // Built-in functions
     "print",
     "Array",
-    "DynArray",
-    "push", // Compile-time vector push
     // Compile-time only functions
     "len",
     "log2_ceil",

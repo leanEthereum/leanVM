@@ -5,7 +5,7 @@ use super::literal::{VarOrConstantParser, evaluate_const_expr};
 use super::{ConstArrayValue, Parse, ParseContext, next_inner_pair};
 use crate::lang::MathOperation;
 use crate::{
-    lang::{ConstExpression, ConstantValue, Expression, SimpleExpr, VecLiteral},
+    lang::{ConstExpression, ConstantValue, Expression, SimpleExpr},
     parser::{
         error::{ParseResult, SemanticError},
         grammar::{ParsePair, Rule},
@@ -148,7 +148,7 @@ impl Parse<Expression> for ArrayAccessParser {
     }
 }
 
-/// Parser for len() expressions on const arrays and vectors (supports indexed access like len(ARR[i])).
+/// Parser for len() expressions on const arrays (supports indexed access like len(ARR[i])).
 pub struct LenParser;
 
 impl Parse<Expression> for LenParser {
@@ -214,47 +214,10 @@ impl Parse<Expression> for LenParser {
             }
         }
 
-        // Defer evaluation for non-const arrays (could be vectors) or non-const indices
+        // Defer evaluation when indices aren't all const at parse time (e.g., `len(ARR[i])` inside an unroll loop).
         Ok(Expression::Len {
             array: ident,
             indices: index_exprs,
         })
-    }
-}
-
-/// Parser for vec![...] literals (compile-time vectors)
-/// Parses into the VecLiteral enum (separate from Expression)
-pub struct VecLiteralParser;
-
-impl Parse<VecLiteral> for VecLiteralParser {
-    fn parse(&self, pair: ParsePair<'_>, ctx: &mut ParseContext) -> ParseResult<VecLiteral> {
-        // vec_literal = { "vec!" ~ "[" ~ (vec_element ~ ("," ~ vec_element)*)? ~ "]" }
-        // vec_element = { vec_literal | expression }
-        let elements: Vec<VecLiteral> = pair
-            .into_inner()
-            .map(|elem_pair| VecElementParser.parse(elem_pair, ctx))
-            .collect::<Result<Vec<_>, _>>()?;
-
-        Ok(VecLiteral::Vec(elements))
-    }
-}
-
-/// Parser for vec element (either a nested vec_literal or an expression)
-pub struct VecElementParser;
-
-impl Parse<VecLiteral> for VecElementParser {
-    fn parse(&self, pair: ParsePair<'_>, ctx: &mut ParseContext) -> ParseResult<VecLiteral> {
-        match pair.as_rule() {
-            Rule::vec_element => {
-                // vec_element contains either vec_literal or expression
-                let inner = next_inner_pair(&mut pair.into_inner(), "vec element")?;
-                match inner.as_rule() {
-                    Rule::vec_literal => VecLiteralParser.parse(inner, ctx),
-                    _ => Ok(VecLiteral::Expr(ExpressionParser.parse(inner, ctx)?)),
-                }
-            }
-            Rule::vec_literal => VecLiteralParser.parse(pair, ctx),
-            _ => Ok(VecLiteral::Expr(ExpressionParser.parse(pair, ctx)?)),
-        }
     }
 }

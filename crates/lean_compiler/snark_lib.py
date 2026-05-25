@@ -45,24 +45,6 @@ class Array:
         return
 
 
-# DynArray - dynamic array with push/pop (compile-time construct)
-class DynArray:
-    def __init__(self, initial: list):
-        self._data = list(initial)
-
-    def __getitem__(self, idx):
-        return self._data[idx]
-
-    def __len__(self):
-        return len(self._data)
-
-    def push(self, value):
-        self._data.append(value)
-
-    def pop(self):
-        self._data.pop()
-
-
 def poseidon16_compress(left, right, output):
     _ = left, right, output
 

@@ -124,7 +124,7 @@ fn test_all_programs() {
     println!("Found {} test programs", paths.len());
 
     // Reserve a 5-cell preamble for the programs that materialize a local
-    // ONE_EF_PTR (program_15, program_166, program_179).
+    // ONE_EF_PTR (program_15, program_179).
     let witness = ExecutionWitness {
         preamble_memory_len: 5,
         ..ExecutionWitness::default()
