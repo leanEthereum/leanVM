@@ -11,7 +11,6 @@ from __future__ import annotations
 import functools
 import math
 from dataclasses import dataclass
-from itertools import accumulate, repeat
 from typing import Sequence
 from primitives import *
 
@@ -244,14 +243,6 @@ def whir_n_rounds_and_final_sumcheck(num_variables: int) -> tuple[int, int]:
     return n, nv - n * WHIR_SUBSEQUENT_FOLDING_FACTOR
 
 
-def ef_powers(x: EF, n: int) -> list[EF]:
-    """`[1, x, x², …, x^(n−1)]`."""
-    out, cur = [], ONE
-    for _ in range(n):
-        out.append(cur)
-        cur = cur * x
-    return out
-
 
 def whir_log_domain_size_at(num_variables: int, start_rate: int, r: int) -> int:
     return num_variables + start_rate - (RS_DOMAIN_INITIAL_REDUCTION_FACTOR + r - 1 if r >= 1 else 0)
@@ -294,7 +285,7 @@ class ParsedCommitment:
         ]
 
 
-def _eval_univariate(coeffs: list[EF], x: EF) -> EF:
+def eval_univariate_polynomial(coeffs: list[EF], x: EF) -> EF:
     acc = ZERO
     for c in reversed(coeffs):
         acc = acc * x + c
@@ -314,7 +305,7 @@ def verify_sumcheck(
         state.check_pow_grinding(pow_bits)
         r = state.sample_ef()
         point.append(r)
-        target = _eval_univariate(coeffs, r)
+        target = eval_univariate_polynomial(coeffs, r)
     return point, target
 
 
@@ -369,7 +360,7 @@ def verify_constraint_coeffs(constraint: SparseStatements, coeffs: list[EF]) -> 
     alpha = constraint.point[0]
     if any(a * a != b for a, b in zip(constraint.point, constraint.point[1:])):
         return False
-    univ_eval = _eval_univariate(coeffs, alpha)
+    univ_eval = eval_univariate_polynomial(coeffs, alpha)
     return all(univ_eval == v[1] for v in constraint.values)
 
 
@@ -610,11 +601,6 @@ def verify_gkr_quotient(state: VerifierState, n_vars: int) -> tuple[EF, list[EF]
     return quotient, point, claim_num, claim_den
 
 
-def from_end(seq: Sequence, n: int) -> list:
-    """The last `n` elements of `seq` (empty list when `n == 0`)."""
-    return list(seq[-n:]) if n else []
-
-
 def mle_of_01234567_etc(point: Sequence[EF]) -> EF:
     """MLE of `f(i) = i` (big-endian) at `point`."""
     n = len(point)
@@ -696,7 +682,7 @@ def verify_generic_logup(
         return eq_poly(bits, point_gkr[:n_missing])
 
     # Memory (data order: [value_index, value_memory] mirrors `crates/sub_protocols/src/logup.rs`).
-    mem_pt = from_end(point_gkr, log_memory)
+    mem_pt = point_gkr[-log_memory:]
     pref = pref_at(0, log_memory)
     value_memory_acc = state.next_extension_scalar()
     num = num - pref * value_memory_acc
@@ -707,11 +693,11 @@ def verify_generic_logup(
 
     # Bytecode (padded to the tallest table).
     log_byte_pad = max(log_bytecode, tables_sorted[0][1])
-    byte_pt = from_end(point_gkr, log_bytecode)
+    byte_pt = point_gkr[-log_bytecode:]
     pref = pref_at(offset, log_bytecode)
     pref_pad = pref_at(offset, log_byte_pad)
     value_bytecode_acc = state.next_extension_scalar()
-    bytecode_value = eval_multilinear_evals([EF(v) for v in bytecode_multilinear], list(byte_pt) + list(from_end(alphas, log_instr)))
+    bytecode_value = eval_multilinear_evals([EF(v) for v in bytecode_multilinear], list(byte_pt) + list(alphas[-log_instr:]))
     correction = math.prod(ONE - a for a in alphas[: len(alphas) - log_instr])
     fp_byte = (
         bytecode_value * correction
@@ -722,7 +708,7 @@ def verify_generic_logup(
     den = (
         den
         + pref * (c - fp_byte)
-        + pref_pad * mle_of_zeros_then_ones(1 << log_bytecode, from_end(point_gkr, log_byte_pad))
+        + pref_pad * mle_of_zeros_then_ones(1 << log_bytecode, point_gkr[-log_byte_pad:])
     )
     offset += 1 << log_byte_pad
 
@@ -1206,7 +1192,7 @@ def verify_execution(
     sc_point, sc_value = verify_sumcheck(state, initial_sum, n_max, max(t.air_degree + 1 for t in tables))
 
     committed = {
-        name: [(from_end(gkr_point, table_log_heights[name]), dict(logup["columns_values"][name]), {})]
+        name: [(gkr_point[-table_log_heights[name]:], dict(logup["columns_values"][name]), {})]
         for name in ALL_TABLES_ORDER
     }
     my_air_final = ZERO
@@ -1221,7 +1207,7 @@ def verify_execution(
         natural_pt = list(reversed(sc_point[-log_n_rows:])) if log_n_rows else []
         k_t = math.prod(sc_point[: n_max - log_n_rows])
         my_air_final = (
-            my_air_final + k_t * eq_poly(from_end(gkr_point, log_n_rows), natural_pt) * constraint_eval
+            my_air_final + k_t * eq_poly(gkr_point[-log_n_rows:], natural_pt) * constraint_eval
         )
 
         eq_vals = {i: col_evals[i] for i in range(meta.n_columns)}
@@ -1238,12 +1224,12 @@ def verify_execution(
     previous = [
         SparseStatements(
             stacked_n_vars,
-            from_end(gkr_point, log_memory),
+            gkr_point[-log_memory:],
             [(0, logup["value_memory"]), (1, logup["value_memory_acc"])],
         ),
         SparseStatements(stacked_n_vars, pm_point, [(0, pm_eval)]),
         SparseStatements(
-            stacked_n_vars, from_end(gkr_point, bytecode_log_size), [(bytecode_acc_idx, logup["value_bytecode_acc"])]
+            stacked_n_vars, gkr_point[-bytecode_log_size:], [(bytecode_acc_idx, logup["value_bytecode_acc"])]
         ),
     ]
     global_statements = stacked_pcs_global_statements(
