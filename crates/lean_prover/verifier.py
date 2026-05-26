@@ -53,8 +53,8 @@ def fiat_shamir_domain_sep(bytecode_hash: Sequence[Fp]) -> list[Fp]:
 
 
 class Challenger:  # https://eprint.iacr.org/2025/536.pdf
-    def __init__(self) -> None:
-        self.state: list[Fp] = [Fp(0)] * SPONGE_STATE
+    def __init__(self, initial_capacity: Sequence[Fp]) -> None:
+        self.state: list[Fp] = list(initial_capacity) + [Fp(0)] * SPONGE_RATE
         self.rate_fresh: bool = False
 
     def observe(self, chunk: Sequence[Fp]) -> None:
@@ -110,8 +110,8 @@ class Proof:
 
 
 class VerifierState(Challenger):
-    def __init__(self, proof: Proof) -> None:
-        super().__init__()
+    def __init__(self, proof: Proof, initial_capacity: Sequence[Fp]) -> None:
+        super().__init__(initial_capacity)
         self.transcript = list(proof.transcript)
         self.openings = list(reversed(proof.merkle_openings))
         self.offset = 0
@@ -1127,9 +1127,8 @@ def verify_execution(
     if len(public_input) != PUBLIC_INPUT_SIZE:
         raise ProofError("InvalidProof: public_input length mismatch")
 
-    state = VerifierState(proof)
+    state = VerifierState(proof, fiat_shamir_domain_sep(bytecode_hash))
     state.observe_scalars(list(public_input))
-    state.observe_scalars(fiat_shamir_domain_sep(bytecode_hash))
 
     dims = [int(x.value) for x in state.next_base_scalars_vec(2 + len(tables))]
     log_inv_rate, log_memory, *table_log_n_rows = dims
