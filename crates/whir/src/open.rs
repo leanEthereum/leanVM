@@ -524,48 +524,37 @@ where
 
     let out_len = 1 << (num_variables - packing_log_width::<EF>());
 
-    let first = &statements[0];
-    let first_is_full_initializer = !first.is_next
-        && first.values.len() == 1
-        && first.values[0].selector == 0
-        && first.inner_num_variables() == num_variables;
+    let is_full = |s: &SparseStatement<EF>| {
+        !s.is_next && s.values.len() == 1 && s.values[0].selector == 0 && s.inner_num_variables() == num_variables
+    };
 
     let mut combined_weights: Vec<EFPacking<EF>>;
     let mut combined_sum = EF::ZERO;
     let mut gamma_pow = EF::ONE;
-    let start_idx;
 
-    if first_is_full_initializer {
-        combined_weights = unsafe { uninitialized_vec(out_len) };
-        let first_scalar = gamma_pow;
-        combined_sum += first.values[0].value * gamma_pow;
-        gamma_pow *= gamma;
-
-        let second = statements.get(1);
-        let second_is_full_domain = second.is_some_and(|s| {
-            !s.is_next && s.values.len() == 1 && s.values[0].selector == 0 && s.inner_num_variables() == num_variables
-        });
-
-        if second_is_full_domain {
-            let second = &statements[1];
-            compute_eval_eq_packed_dual::<EF>(
-                &first.point.0,
-                &second.point.0,
-                &mut combined_weights,
-                first_scalar,
-                gamma_pow,
-            );
-            combined_sum += second.values[0].value * gamma_pow;
-            gamma_pow *= gamma;
-            start_idx = 2;
-        } else {
-            compute_eval_eq_packed::<EF, false>(&first.point.0, &mut combined_weights, first_scalar);
-            start_idx = 1;
+    let start_idx = match statements {
+        [a, b, ..] if is_full(a) && is_full(b) => {
+            combined_weights = unsafe { uninitialized_vec(out_len) };
+            let sa = gamma_pow;
+            let sb = gamma_pow * gamma;
+            combined_sum = a.values[0].value * sa + b.values[0].value * sb;
+            gamma_pow = sb * gamma;
+            compute_eval_eq_packed_dual::<EF>(&a.point.0, &b.point.0, &mut combined_weights, sa, sb);
+            2
         }
-    } else {
-        combined_weights = EFPacking::<EF>::zero_vec(out_len);
-        start_idx = 0;
-    }
+        [a, ..] if is_full(a) => {
+            combined_weights = unsafe { uninitialized_vec(out_len) };
+            let sa = gamma_pow;
+            combined_sum = a.values[0].value * sa;
+            gamma_pow *= gamma;
+            compute_eval_eq_packed::<EF, false>(&a.point.0, &mut combined_weights, sa);
+            1
+        }
+        _ => {
+            combined_weights = EFPacking::<EF>::zero_vec(out_len);
+            0
+        }
+    };
 
     for smt in &statements[start_idx..] {
         if !smt.is_next && (smt.values.len() == 1 || smt.inner_num_variables() < packing_log_width::<EF>()) {
