@@ -328,7 +328,10 @@ pub(super) fn run_phase2_sumcheck<EF: ExtensionField<PF<EF>>>(
         };
 
         let acc: RoundCoeffs<EF> = if active_pairs >= PARALLEL_THRESHOLD {
-            (0..active_pairs).into_par_iter().map(term).reduce(RoundCoeffs::zero, Add::add)
+            (0..active_pairs)
+                .into_par_iter()
+                .map(term)
+                .reduce(RoundCoeffs::zero, Add::add)
         } else {
             (0..active_pairs).map(term).fold(RoundCoeffs::<EF>::zero(), Add::add)
         };
