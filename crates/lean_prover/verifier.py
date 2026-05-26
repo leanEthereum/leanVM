@@ -23,18 +23,32 @@ SNARK_DOMAIN_SEP = [Fp(v) for v in (130704175, 1303721200, 493664240, 1035493700
 
 WHIR_INITIAL_FOLDING_FACTOR, WHIR_SUBSEQUENT_FOLDING_FACTOR, WHIR_MAX_NUM_VARIABLES_TO_SEND_COEFFS = 7, 5, 8
 MIN_WHIR_LOG_INV_RATE, MAX_WHIR_LOG_INV_RATE, RS_DOMAIN_INITIAL_REDUCTION_FACTOR = 1, 4, 5
-# (log_inv_rate, num_variables, commitment_ood_samples, starting_folding_pow_bits, final_queries, final_query_pow_bits, rounds)
-# where `rounds = ((num_queries, ood_samples, query_pow_bits, folding_pow_bits), ...)`. (checked by `cargo test -p lean_prover --test check_whir_configs`)
-WHIR_CONFIGS = ((1,7,1,10,220,16,()),(1,8,1,11,220,16,()),(1,9,1,12,220,16,()),(1,10,1,13,220,16,()),(1,11,1,14,220,16,()),(1,12,1,15,220,16,()),(1,13,1,16,220,16,()),(1,14,1,15,221,16,()),(1,15,1,16,221,16,()),(1,16,1,16,73,16,((222,1,16,11),)),(1,17,1,16,73,16,((223,1,16,12),)),(1,18,1,16,73,16,((224,1,16,13),)),(1,19,1,16,73,16,((225,1,16,14),)),(1,20,1,16,73,16,((227,1,16,15),)),(1,21,2,16,32,16,((229,1,16,16),(73,1,16,9))),(1,22,2,16,32,16,((230,1,16,12),(74,1,16,10))),(1,23,2,16,32,16,((234,1,16,13),(74,1,16,11))),(1,24,2,16,32,16,((235,1,16,14),(74,1,16,12))),(1,25,2,16,32,16,((241,2,16,15),(74,2,16,13))),(1,26,2,16,21,14,((243,2,16,16),(74,2,16,14),(32,2,16,14))),(1,27,2,16,21,14,((248,2,16,15),(75,2,16,15),(32,2,16,15))),(1,28,2,16,21,14,((256,2,16,16),(75,2,16,16),(32,2,16,16))),(1,29,2,16,21,14,((262,2,16,15),(76,2,16,12),(33,2,16,17))),(1,30,2,16,21,14,((270,2,16,16),(76,2,16,13),(33,2,16,18))),(2,7,1,13,109,16,()),(2,8,1,14,109,16,()),(2,9,1,15,109,16,()),(2,10,1,16,109,16,()),(2,11,1,12,110,16,()),(2,12,1,13,110,16,()),(2,13,1,14,110,16,()),(2,14,1,15,110,16,()),(2,15,1,16,110,16,()),(2,16,1,14,55,16,((111,1,16,10),)),(2,17,1,15,55,16,((111,1,16,11),)),(2,18,1,16,55,16,((111,1,16,12),)),(2,19,1,15,55,16,((112,1,16,13),)),(2,20,2,16,55,16,((112,1,16,14),)),(2,21,2,16,28,16,((113,1,16,15),(55,1,16,10))),(2,22,2,15,28,16,((114,1,16,16),(55,1,16,11))),(2,23,2,16,28,16,((114,1,16,13),(56,1,16,12))),(2,24,2,16,28,16,((115,1,16,14),(56,2,16,13))),(2,25,2,15,28,16,((118,2,16,15),(56,2,16,14))),(2,26,2,16,19,15,((118,2,16,16),(56,2,16,15),(28,2,16,17))),(2,27,2,16,19,15,((119,2,16,13),(57,2,16,16),(28,2,16,18))),(2,28,2,16,19,15,((120,2,16,14),(57,2,16,14),(29,2,15,19))),(2,29,2,16,19,15,((123,2,16,15),(57,2,16,15),(29,2,15,20))),(3,7,1,9,73,16,()),(3,8,1,10,73,16,()),(3,9,1,11,73,16,()),(3,10,1,12,73,16,()),(3,11,1,13,73,16,()),(3,12,1,14,73,16,()),(3,13,1,15,73,16,()),(3,14,1,16,73,16,()),(3,15,1,12,74,16,()),(3,16,1,13,44,16,((74,1,16,11),)),(3,17,1,14,44,16,((74,1,16,12),)),(3,18,2,15,44,16,((74,1,16,13),)),(3,19,2,16,44,16,((74,1,16,14),)),(3,20,2,15,44,16,((75,1,16,15),)),(3,21,2,16,25,16,((75,1,16,16),(44,1,16,11))),(3,22,2,15,25,16,((76,1,16,11),(45,1,16,12))),(3,23,2,16,25,16,((76,1,16,12),(45,2,16,13))),(3,24,2,16,25,16,((77,2,16,13),(45,2,16,14))),(3,25,2,16,25,16,((78,2,15,14),(45,2,16,15))),(3,26,2,16,18,12,((79,2,15,15),(45,2,16,16),(25,2,16,19))),(3,27,2,16,18,12,((80,2,16,16),(45,2,16,15),(26,2,13,20))),(3,28,2,15,18,12,((82,2,15,15),(46,2,16,16),(26,2,13,21))),(4,7,1,8,55,16,()),(4,8,1,9,55,16,()),(4,9,1,10,55,16,()),(4,10,1,11,55,16,()),(4,11,1,12,55,16,()),(4,12,1,13,55,16,()),(4,13,1,14,55,16,()),(4,14,1,15,55,16,()),(4,15,1,16,55,16,()),(4,16,1,13,37,16,((56,1,16,9),)),(4,17,1,14,37,16,((56,1,16,10),)),(4,18,2,15,37,16,((56,1,16,11),)),(4,19,2,16,37,16,((56,1,16,12),)),(4,20,2,13,37,16,((57,1,16,13),)),(4,21,2,14,23,15,((57,2,16,14),(37,2,16,12))),(4,22,2,15,23,15,((57,2,16,15),(37,2,16,13))),(4,23,2,16,23,15,((57,2,16,16),(37,2,16,14))),(4,24,2,15,23,15,((58,2,16,13),(38,2,16,15))),(4,25,2,16,23,15,((58,2,16,14),(38,2,16,16))),(4,26,2,16,16,16,((60,2,15,15),(38,2,16,17),(23,2,15,22))),(4,27,2,15,16,16,((61,2,16,16),(38,2,16,18),(23,2,15,23))))  # fmt: skip
+WHIR_CONFIGS = {
+    (c[0], c[1]): {
+        "log_inv_rate": c[0],
+        "num_variables": c[1],
+        "commitment_ood_samples": c[2],
+        "starting_folding_pow_bits": c[3],
+        "final_queries": c[4],
+        "final_query_pow_bits": c[5],
+        "rounds": [
+            {"num_queries": r[0], "ood_samples": r[1], "query_pow_bits": r[2], "folding_pow_bits": r[3]} for r in c[6]
+        ],
+    }
+    for c in ((1,7,1,10,220,16,()),(1,8,1,11,220,16,()),(1,9,1,12,220,16,()),(1,10,1,13,220,16,()),(1,11,1,14,220,16,()),(1,12,1,15,220,16,()),(1,13,1,16,220,16,()),(1,14,1,15,221,16,()),(1,15,1,16,221,16,()),(1,16,1,16,73,16,((222,1,16,11),)),(1,17,1,16,73,16,((223,1,16,12),)),(1,18,1,16,73,16,((224,1,16,13),)),(1,19,1,16,73,16,((225,1,16,14),)),(1,20,1,16,73,16,((227,1,16,15),)),(1,21,2,16,32,16,((229,1,16,16),(73,1,16,9))),(1,22,2,16,32,16,((230,1,16,12),(74,1,16,10))),(1,23,2,16,32,16,((234,1,16,13),(74,1,16,11))),(1,24,2,16,32,16,((235,1,16,14),(74,1,16,12))),(1,25,2,16,32,16,((241,2,16,15),(74,2,16,13))),(1,26,2,16,21,14,((243,2,16,16),(74,2,16,14),(32,2,16,14))),(1,27,2,16,21,14,((248,2,16,15),(75,2,16,15),(32,2,16,15))),(1,28,2,16,21,14,((256,2,16,16),(75,2,16,16),(32,2,16,16))),(1,29,2,16,21,14,((262,2,16,15),(76,2,16,12),(33,2,16,17))),(1,30,2,16,21,14,((270,2,16,16),(76,2,16,13),(33,2,16,18))),(2,7,1,13,109,16,()),(2,8,1,14,109,16,()),(2,9,1,15,109,16,()),(2,10,1,16,109,16,()),(2,11,1,12,110,16,()),(2,12,1,13,110,16,()),(2,13,1,14,110,16,()),(2,14,1,15,110,16,()),(2,15,1,16,110,16,()),(2,16,1,14,55,16,((111,1,16,10),)),(2,17,1,15,55,16,((111,1,16,11),)),(2,18,1,16,55,16,((111,1,16,12),)),(2,19,1,15,55,16,((112,1,16,13),)),(2,20,2,16,55,16,((112,1,16,14),)),(2,21,2,16,28,16,((113,1,16,15),(55,1,16,10))),(2,22,2,15,28,16,((114,1,16,16),(55,1,16,11))),(2,23,2,16,28,16,((114,1,16,13),(56,1,16,12))),(2,24,2,16,28,16,((115,1,16,14),(56,2,16,13))),(2,25,2,15,28,16,((118,2,16,15),(56,2,16,14))),(2,26,2,16,19,15,((118,2,16,16),(56,2,16,15),(28,2,16,17))),(2,27,2,16,19,15,((119,2,16,13),(57,2,16,16),(28,2,16,18))),(2,28,2,16,19,15,((120,2,16,14),(57,2,16,14),(29,2,15,19))),(2,29,2,16,19,15,((123,2,16,15),(57,2,16,15),(29,2,15,20))),(3,7,1,9,73,16,()),(3,8,1,10,73,16,()),(3,9,1,11,73,16,()),(3,10,1,12,73,16,()),(3,11,1,13,73,16,()),(3,12,1,14,73,16,()),(3,13,1,15,73,16,()),(3,14,1,16,73,16,()),(3,15,1,12,74,16,()),(3,16,1,13,44,16,((74,1,16,11),)),(3,17,1,14,44,16,((74,1,16,12),)),(3,18,2,15,44,16,((74,1,16,13),)),(3,19,2,16,44,16,((74,1,16,14),)),(3,20,2,15,44,16,((75,1,16,15),)),(3,21,2,16,25,16,((75,1,16,16),(44,1,16,11))),(3,22,2,15,25,16,((76,1,16,11),(45,1,16,12))),(3,23,2,16,25,16,((76,1,16,12),(45,2,16,13))),(3,24,2,16,25,16,((77,2,16,13),(45,2,16,14))),(3,25,2,16,25,16,((78,2,15,14),(45,2,16,15))),(3,26,2,16,18,12,((79,2,15,15),(45,2,16,16),(25,2,16,19))),(3,27,2,16,18,12,((80,2,16,16),(45,2,16,15),(26,2,13,20))),(3,28,2,15,18,12,((82,2,15,15),(46,2,16,16),(26,2,13,21))),(4,7,1,8,55,16,()),(4,8,1,9,55,16,()),(4,9,1,10,55,16,()),(4,10,1,11,55,16,()),(4,11,1,12,55,16,()),(4,12,1,13,55,16,()),(4,13,1,14,55,16,()),(4,14,1,15,55,16,()),(4,15,1,16,55,16,()),(4,16,1,13,37,16,((56,1,16,9),)),(4,17,1,14,37,16,((56,1,16,10),)),(4,18,2,15,37,16,((56,1,16,11),)),(4,19,2,16,37,16,((56,1,16,12),)),(4,20,2,13,37,16,((57,1,16,13),)),(4,21,2,14,23,15,((57,2,16,14),(37,2,16,12))),(4,22,2,15,23,15,((57,2,16,15),(37,2,16,13))),(4,23,2,16,23,15,((57,2,16,16),(37,2,16,14))),(4,24,2,15,23,15,((58,2,16,13),(38,2,16,15))),(4,25,2,16,23,15,((58,2,16,14),(38,2,16,16))),(4,26,2,16,16,16,((60,2,15,15),(38,2,16,17),(23,2,15,22))),(4,27,2,15,16,16,((61,2,16,16),(38,2,16,18),(23,2,15,23))))  # fmt: skip
+}
 
 MIN_LOG_MEMORY_SIZE, MAX_LOG_MEMORY_SIZE = 16, 26
 MIN_LOG_N_ROWS_PER_TABLE, MIN_BYTECODE_LOG_SIZE, MAX_BYTECODE_LOG_SIZE = 8, 8, 22
-MAX_LOG_N_ROWS_PER_TABLE = {"execution": 24, "extension_op": 21, "poseidon16_compress": 21}
-ALL_TABLES_ORDER = ("execution", "extension_op", "poseidon16_compress")
+MAX_LOG_N_ROWS_PER_TABLE = {"execution": 24, "extension": 21, "poseidon": 21}
+ALL_TABLES_ORDER = ("execution", "extension", "poseidon")
+N_VARS_TO_SEND_GKR_COEFFS = 5
 
-N_RUNTIME_COLUMNS, N_INSTRUCTION_COLUMNS, COL_PC = 8, 12, 0
+N_RUNTIME_COLUMNS, N_INSTRUCTION_COLUMNS, PC_COL_INDEX = 8, 12, 0
 LOGUP_MEMORY_DOMAINSEP, LOGUP_BYTECODE_DOMAINSEP = 1, 2
-STARTING_PC = 0
+STARTING_PC = 0  # every program starts at PC = 0, and ends at PC = len(bytecode) - 1
+
+POSEIDON_WIDTH, POSEIDON_FULL_ROUNDS, POSEIDON_PARTIAL_ROUNDS = 16, 8, 20
 
 
 class ProofError(Exception):
@@ -48,10 +62,6 @@ def sponge_hash(data: Sequence[Fp]) -> list[Fp]:
     for k in range(len(data) // SPONGE_RATE):
         state = poseidon16_compress(state, data[k * SPONGE_RATE : (k + 1) * SPONGE_RATE])
     return state
-
-
-def fiat_shamir_domain_sep(bytecode_hash: Sequence[Fp]) -> list[Fp]:
-    return poseidon16_compress(bytecode_hash, SNARK_DOMAIN_SEP)
 
 
 class Challenger:  # https://eprint.iacr.org/2025/536.pdf
@@ -156,7 +166,7 @@ class VerifierState(Challenger):
 
 
 def merkle_verify_path(
-    commit: list[Fp],
+    root: list[Fp],
     log_height: int,
     index: int,
     opened_values: Sequence[Fp],
@@ -165,11 +175,11 @@ def merkle_verify_path(
     if len(opening_proof) != log_height:
         return False
     chunks = [list(opened_values[i : i + SPONGE_RATE]) for i in range(0, len(opened_values), SPONGE_RATE)]
-    cur = sponge_hash([x for c in reversed(chunks) for x in c])
+    current = sponge_hash([x for c in reversed(chunks) for x in c])
     for sibling in opening_proof:
-        cur = poseidon16_compress(cur, sibling) if index & 1 == 0 else poseidon16_compress(sibling, cur)
+        current = poseidon16_compress(current, sibling) if index & 1 == 0 else poseidon16_compress(sibling, current)
         index >>= 1
-    return list(commit) == list(cur)
+    return root == current
 
 
 def expand_from_univariate(x: EF, num_variables: int) -> list[EF]:
@@ -179,6 +189,11 @@ def expand_from_univariate(x: EF, num_variables: int) -> list[EF]:
 def eq_poly(a: Sequence[EF], b: Sequence[EF]) -> EF:
     assert len(a) == len(b)
     return math.prod(x * y + (ONE - x) * (ONE - y) for x, y in zip(a, b))
+
+
+def dot_product(a: Sequence, b: Sequence):
+    """`Σᵢ aᵢ · bᵢ` over the common prefix of `a` and `b`."""
+    return sum(x * y for x, y in zip(a, b))
 
 
 def next_mle(x: Sequence[EF], y: Sequence[EF]) -> EF:
@@ -253,27 +268,10 @@ def whir_log_domain_size_at(num_variables: int, start_rate: int, r: int) -> int:
 def two_adic_generator(bits: int) -> Fp:
     return Fp(KB_TWO_ADIC_GENERATORS[bits])
 
-
-WHIR_CONFIG_BY_KEY = {
-    (c[0], c[1]): {
-        "log_inv_rate": c[0],
-        "num_variables": c[1],
-        "commitment_ood_samples": c[2],
-        "starting_folding_pow_bits": c[3],
-        "final_queries": c[4],
-        "final_query_pow_bits": c[5],
-        "rounds": [
-            {"num_queries": r[0], "ood_samples": r[1], "query_pow_bits": r[2], "folding_pow_bits": r[3]} for r in c[6]
-        ],
-    }
-    for c in WHIR_CONFIGS
-}
-
-
 @dataclass
 class ParsedCommitment:
     num_variables: int
-    root: list[Fp]  # length DIGEST_ELEMS
+    root: list[Fp]
     ood_points: list[EF]
     ood_answers: list[EF]
 
@@ -308,19 +306,6 @@ def verify_sumcheck(
     return point, target
 
 
-def combine_constraints(state: VerifierState, target: EF, constraints: list[SparseStatements]) -> tuple[EF, list[EF]]:
-    """Fold all constraint values into `target` via powers of γ; return those γ-power weights."""
-    gamma: EF = state.sample_ef()
-    combo: list[EF] = []
-    g = ONE
-    for smt in constraints:
-        for _, value in smt.values:
-            target = target + g * value
-            combo.append(g)
-            g = g * gamma
-    return target, combo
-
-
 def verify_stir_challenges(
     state: VerifierState,
     cfg: dict,
@@ -337,17 +322,17 @@ def verify_stir_challenges(
     state.check_pow_grinding(query_pow_bits)
     indices = state.sample_in_range(log_height, num_queries)
 
-    def pack_answers(leaf: list[Fp]) -> list[EF]:
-        if round_index == 0:
-            return [EF(f) for f in leaf]
-        return [EF(leaf[i : i + EF.DIMENSION]) for i in range(0, len(leaf), EF.DIMENSION)]
-
     constraints: list[SparseStatements] = []
     for idx in indices:
         op = state.next_merkle_opening()
         if not merkle_verify_path(commitment.root, log_height, idx, op.leaf_data, op.path):
             raise ProofError("Merkle verification failed")
-        fold = eval_multilinear_evals(pack_answers(op.leaf_data), folding_randomness)
+        leaf = op.leaf_data
+        if round_index == 0:
+            packed = [EF(f) for f in leaf]
+        else:
+            packed = [EF(leaf[i : i + EF.DIMENSION]) for i in range(0, len(leaf), EF.DIMENSION)]
+        fold = eval_multilinear_evals(packed, folding_randomness)
         ef_pt = EF(pow(int(gen.value), idx, P))
         constraints.append(SparseStatements.dense(expand_from_univariate(ef_pt, num_variables), fold))
     return constraints
@@ -399,9 +384,17 @@ def whir_verify(
     def step(constraints: list[SparseStatements], n_fold: int, pow_bits: int) -> None:
         nonlocal target
         state.duplex()
-        new_target, combo = combine_constraints(state, target, constraints)
+        # Fold each constraint value into `target` via successive powers of γ.
+        gamma = state.sample_ef()
+        combo: list[EF] = []
+        g = ONE
+        for smt in constraints:
+            for _, value in smt.values:
+                target = target + g * value
+                combo.append(g)
+                g = g * gamma
         round_constraints.append((combo, constraints))
-        sc_point, target = verify_sumcheck(state, new_target, n_fold, 2, pow_bits)
+        sc_point, target = verify_sumcheck(state, target, n_fold, 2, pow_bits)
         round_folding.append(sc_point)
 
     step(
@@ -469,10 +462,8 @@ def whir_verify(
     return folding_flat
 
 
-# poseidon16_compress: 9 scalars + 16 inputs + half_full_rounds*WIDTH (begin + end-1) + partial + WIDTH outputs.
-_POSEIDON_N_COLS = (
-    25 + 32 * (POSEIDON1_AIR_CONSTANTS["half_full_rounds"] // 2) + POSEIDON1_AIR_CONSTANTS["partial_rounds"]
-)
+# poseidon16_compress: 9 scalars + WIDTH inputs + (ROUNDS_F/2) pairs of WIDTH cols (begin + end-1 + outputs) + partial.
+_POSEIDON_N_COLS = 9 + POSEIDON_WIDTH + POSEIDON_WIDTH * (POSEIDON_FULL_ROUNDS // 2) + POSEIDON_PARTIAL_ROUNDS
 TABLE_BUSES = {
     "execution": (
         ("col_mult", "Push"),
@@ -481,13 +472,13 @@ TABLE_BUSES = {
         ("mem_group", 3, 6, 1),  # addr_b, value_b
         ("mem_group", 4, 7, 1),  # addr_c, value_c
     ),
-    "extension_op": (
+    "extension": (
         ("col_mult", "Pull"),
         ("mem_group", 6, 14, 5),  # idx_a,   va
         ("mem_group", 7, 19, 5),  # idx_b,   vb
         ("mem_group", 13, 24, 5),  # idx_res, vres
     ),
-    "poseidon16_compress": (
+    "poseidon": (
         ("col_mult", "Pull"),
         ("mem_group", 6, 9, 4),
         ("mem_group", 7, 13, 4),
@@ -547,16 +538,15 @@ def stacked_pcs_global_statements(
         if name == "execution":
             # PC column: pin first row to STARTING_PC, last row to ending_pc.
             for idx, pc in [(0, STARTING_PC), ((1 << n_vars) - 1, ending_pc)]:
-                out.append(SparseStatements.unique_value(stacked_n_vars, offset + (COL_PC << n_vars) + idx, EF(pc)))
+                out.append(
+                    SparseStatements.unique_value(stacked_n_vars, offset + (PC_COL_INDEX << n_vars) + idx, EF(pc))
+                )
         for point, eq_values, next_values in committed_statements[name]:
             if next_values:
                 out.append(SparseStatements.new_next(stacked_n_vars, list(point), values_at(next_values, col_base)))
             out.append(SparseStatements(stacked_n_vars, list(point), values_at(eq_values, col_base)))
 
     return out
-
-
-N_VARS_TO_SEND_GKR_COEFFS = 5
 
 
 def verify_gkr_quotient(state: VerifierState, n_vars: int) -> tuple[EF, list[EF], EF, EF]:
@@ -611,8 +601,7 @@ def mle_of_zeros_then_ones(n_zeros: int, point: Sequence[EF]) -> EF:
 def finger_print(discriminator: Fp, data: Sequence[EF], alphas_eq_poly: Sequence[EF]) -> EF:
     """`Σᵢ αᵢ · dataᵢ + α_last · discriminator`."""
     assert len(alphas_eq_poly) > len(data)
-    acc = sum(a * d for a, d in zip(alphas_eq_poly, data))
-    return acc + alphas_eq_poly[-1] * EF(discriminator)
+    return dot_product(alphas_eq_poly, data) + alphas_eq_poly[-1] * EF(discriminator)
 
 
 def sort_tables_by_height(table_log_heights: dict[str, int]) -> list[tuple[str, int]]:
@@ -641,7 +630,7 @@ def verify_generic_logup(
     """GKR-quotient + section-by-section (memory/bytecode/per-table) reconstruction."""
     n_instr_cols = N_INSTRUCTION_COLUMNS
     n_runtime_cols = N_RUNTIME_COLUMNS
-    col_pc = COL_PC
+    col_pc = PC_COL_INDEX
     ds_mem = Fp(LOGUP_MEMORY_DOMAINSEP)
     ds_byte = Fp(LOGUP_BYTECODE_DOMAINSEP)
 
@@ -685,7 +674,7 @@ def verify_generic_logup(
     pref_pad = pref_at(offset, log_byte_pad)
     value_bytecode_acc = state.next_extension_scalar()
     bytecode_value = eval_multilinear_evals(
-        [EF(v) for v in bytecode_multilinear], list(byte_pt) + list(alphas[-log_instr:])
+        [EF(v) for v in bytecode_multilinear], byte_pt + alphas[-log_instr:]
     )
     correction = math.prod(ONE - a for a in alphas[: len(alphas) - log_instr])
     fp_byte = (
@@ -806,7 +795,7 @@ def _eval_bus_virtual(
     alphas: list[EF] = extra_data["logup_alphas_eq"]
     assert len(data) < len(alphas)
     folder.assert_zero(multiplicity)
-    encoded = sum(a * d for a, d in zip(alphas, data)) + alphas[-1] * discriminator
+    encoded = dot_product(alphas, data) + alphas[-1] * discriminator
     folder.assert_zero(encoded)
 
 
@@ -936,16 +925,14 @@ def _build_p1c() -> dict:
     fp_vec = lambda v: [Fp(x) for x in v]
     n = len(MDS_FIRST_ROW_16)
     mds_dense = [[Fp(MDS_FIRST_ROW_16[(j - i) % n]) for j in range(n)] for i in range(n)]
-    # External full-round RCs: first and last `half_full_rounds * width` entries of the
-    # raw 448-element round-constant table that drives the actual Poseidon permutation.
-    hf, t = raw["half_full_rounds"], SPONGE_STATE
+    # External full-round RCs: first and last `(ROUNDS_F/2) * WIDTH` entries of the
+    # raw round-constant table that drives the actual Poseidon permutation.
+    hf, t = POSEIDON_FULL_ROUNDS // 2, POSEIDON_WIDTH
     rcs = PARAMS_16.round_constants
     initial_constants = [[Fp(x) for x in rcs[i * t : (i + 1) * t]] for i in range(hf)]
-    tail_start = (hf + raw["partial_rounds"]) * t
+    tail_start = (hf + POSEIDON_PARTIAL_ROUNDS) * t
     final_constants = [[Fp(x) for x in rcs[tail_start + i * t : tail_start + (i + 1) * t]] for i in range(hf)]
     return {
-        "half_full_rounds": raw["half_full_rounds"],
-        "partial_rounds": raw["partial_rounds"],
         "initial_constants": initial_constants,
         "final_constants": final_constants,
         "sparse_m_i": fp_mat(raw["sparse_m_i"]),
@@ -960,7 +947,6 @@ def _build_p1c() -> dict:
 P1C = _build_p1c()
 
 
-_POSEIDON_WIDTH = 16
 _HALF_DIGEST_LEN = 4
 _POSEIDON_DISCRIMINATOR_BASE = 3  # odd ≥ 3, disjoint from memory (1) / bytecode (2)
 _POSEIDON_PERMUTE_SHIFT, _POSEIDON_HALF_OUTPUT_SHIFT = 1 << 1, 1 << 2
@@ -971,7 +957,7 @@ _POSEIDON_HARDCODED_LEFT_4_FLAG_SHIFT, _POSEIDON_HARDCODED_LEFT_4_OFFSET_SHIFT =
 
 
 def _matvec_kb(mat: list[list[Fp]], state: list[EF]) -> list[EF]:
-    return [sum(s * m for s, m in zip(state, row)) for row in mat]
+    return [dot_product(state, row) for row in mat]
 
 
 def _full_round(state: list[EF], rc1: list[Fp], rc2: list[Fp]) -> list[EF]:
@@ -987,7 +973,7 @@ def _eval_poseidon1_16(folder: ConstraintFolder, cols: dict) -> None:
     const = P1C
     state = list(cols["inputs"])
     initial = list(cols["inputs"])
-    half_initial = half_final = const["half_full_rounds"] // 2
+    half_initial = half_final = POSEIDON_FULL_ROUNDS // 4
 
     for r in range(half_initial):
         state = _full_round(state, const["initial_constants"][2 * r], const["initial_constants"][2 * r + 1])
@@ -998,15 +984,15 @@ def _eval_poseidon1_16(folder: ConstraintFolder, cols: dict) -> None:
     state = [s + c for s, c in zip(state, const["sparse_first_rc"])]
     state = _matvec_kb(const["sparse_m_i"], state)
 
-    n_partial = const["partial_rounds"]
+    n_partial = POSEIDON_PARTIAL_ROUNDS
     for r in range(n_partial):
         folder.assert_eq(state[0] * state[0] * state[0], cols["partial_rounds"][r])
         state[0] = cols["partial_rounds"][r]
         if r < n_partial - 1:
             state[0] = state[0] + const["sparse_scalar_rc"][r]
         old_s0 = state[0]
-        state[0] = sum(state[j] * const["sparse_first_row"][r][j] for j in range(_POSEIDON_WIDTH))
-        for i in range(1, _POSEIDON_WIDTH):
+        state[0] = dot_product(state, const["sparse_first_row"][r])
+        for i in range(1, POSEIDON_WIDTH):
             state[i] = state[i] + old_s0 * const["sparse_v"][r][i - 1]
 
     for r in range(half_final - 1):
@@ -1022,17 +1008,16 @@ def _eval_poseidon1_16(folder: ConstraintFolder, cols: dict) -> None:
     flag_permute = cols["flag_permute"]
     not_permute = ONE - flag_permute
     compression_last4 = not_permute - cols["flag_half_output"]
-    for i in range(_POSEIDON_WIDTH // 2):
+    for i in range(POSEIDON_WIDTH // 2):
         gate = not_permute if i < _HALF_DIGEST_LEN else compression_last4
         folder.assert_zero(gate * (state[i] + initial[i] - cols["outputs_left"][i]))
         folder.assert_zero(flag_permute * (state[i] - cols["outputs_left"][i]))
-        folder.assert_zero(flag_permute * (state[i + _POSEIDON_WIDTH // 2] - cols["outputs_right"][i]))
+        folder.assert_zero(flag_permute * (state[i + POSEIDON_WIDTH // 2] - cols["outputs_right"][i]))
 
 
 def _eval_air_poseidon16(folder: ConstraintFolder, extra_data: dict) -> None:
-    const = P1C
-    flat, W = folder.flat, _POSEIDON_WIDTH
-    half_initial = half_final = const["half_full_rounds"] // 2
+    flat, W = folder.flat, POSEIDON_WIDTH
+    half_initial = half_final = POSEIDON_FULL_ROUNDS // 4
 
     o = 0
 
@@ -1047,7 +1032,7 @@ def _eval_air_poseidon16(folder: ConstraintFolder, extra_data: dict) -> None:
     # fmt: on
     inputs = take(W)
     beginning_full_rounds = [take(W) for _ in range(half_initial)]
-    partial_cols = take(const["partial_rounds"])
+    partial_cols = take(POSEIDON_PARTIAL_ROUNDS)
     ending_full_rounds = [take(W) for _ in range(half_final - 1)]
     outputs_left, outputs_right = take(W // 2), take(W // 2)
 
@@ -1088,8 +1073,8 @@ DEFAULT_TABLES = [
     TableMeta(name, n, TABLE_BUSES[name], d, k, s, fn)
     for name, n, d, k, s, fn in (
         ("execution", N_INSTRUCTION_COLUMNS + N_RUNTIME_COLUMNS, 5, 14, 2, _eval_air_execution),
-        ("extension_op", 29, 6, 35, 13, _eval_air_extension_op),
-        ("poseidon16_compress", _POSEIDON_N_COLS, 10, 101, 0, _eval_air_poseidon16),
+        ("extension", 29, 6, 35, 13, _eval_air_extension_op),
+        ("poseidon", _POSEIDON_N_COLS, 10, 101, 0, _eval_air_poseidon16),
     )
 ]
 
@@ -1106,8 +1091,10 @@ def verify_execution(
     if len(public_input) != PUBLIC_INPUT_SIZE:
         raise ProofError("InvalidProof: public_input length mismatch")
 
-    state = VerifierState(proof, fiat_shamir_domain_sep(bytecode_hash))
-    state.observe_scalars(list(public_input))
+    state = VerifierState(
+        proof, poseidon16_compress(bytecode_hash, SNARK_DOMAIN_SEP)
+    )  # domain separator accross bytecode
+    state.observe_scalars(public_input)
 
     dims = [int(x.value) for x in state.next_base_scalars_vec(2 + len(tables))]
     log_inv_rate, log_memory, *table_log_n_rows = dims
@@ -1139,7 +1126,7 @@ def verify_execution(
     stacked_n_vars = log2_ceil(total_stacked)
     if stacked_n_vars > TWO_ADICITY + WHIR_INITIAL_FOLDING_FACTOR - log_inv_rate:
         raise ProofError("InvalidProof: stacked_n_vars exceeds WHIR domain bound")
-    cfg = WHIR_CONFIG_BY_KEY[(log_inv_rate, stacked_n_vars)]
+    cfg = WHIR_CONFIGS[(log_inv_rate, stacked_n_vars)]
     nood = cfg["commitment_ood_samples"]
     parsed_commitment = ParsedCommitment(
         stacked_n_vars,
