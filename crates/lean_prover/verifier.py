@@ -57,6 +57,7 @@ EXT_OP_FLAG_IS_BE, EXT_OP_FLAG_ADD, EXT_OP_FLAG_MUL, EXT_OP_FLAG_POLY_EQ, EXT_OP
 STARTING_PC = 0  # every program starts at PC = 0, and ends at PC = len(bytecode) - 1
 
 POSEIDON_WIDTH, POSEIDON_FULL_ROUNDS, POSEIDON_PARTIAL_ROUNDS = 16, 8, 20
+POSEIDON_HALF_FULL_ROUNDS = POSEIDON_FULL_ROUNDS // 2
 
 
 class ProofError(Exception):
@@ -68,7 +69,7 @@ class BusDirection(IntEnum):
     PULL = -1
 
 
-class BusInterractiion(IntEnum):
+class BusInteraction(IntEnum):
     PRECOMPILE = 0
     BYTECODE = 1
     MEMORY = 2
@@ -92,7 +93,7 @@ class Table:
     @property
     def n_buses(self) -> int:
         # MEMORY entries expand to `n` individual buses.
-        return sum(b[3] if b[0] == BusInterractiion.MEMORY else 1 for b in self.buses)
+        return sum(b[3] if b[0] == BusInteraction.MEMORY else 1 for b in self.buses)
 
     @property
     def mult_sign(self) -> EF:
@@ -124,7 +125,7 @@ class Table:
 # T-Sponge (compression instead of permutation) with replacement (instead of xoring / adding the ingested data).
 def sponge_hash(data: Sequence[Fp]) -> list[Fp]:
     assert len(data) % SPONGE_RATE == 0 and len(data) > 0
-    state = [Fp(len(data))] + [Fp(0)] * (SPONGE_CAPACITY - 1)  # IV = [size, 0, 0, 0, ..., 0]
+    state = [Fp(len(data))] + [Fp(0)] * (SPONGE_CAPACITY - 1)
     for k in range(len(data) // SPONGE_RATE):
         state = poseidon16_compress(state, data[k * SPONGE_RATE : (k + 1) * SPONGE_RATE])
     return state
@@ -152,7 +153,7 @@ class DuplexSpongeChallenger:  # https://eprint.iacr.org/2025/536.pdf
     def _sample_rate(self) -> list[Fp]:
         assert self.rate_fresh, "stale rate — insert duplex() before sampling"
         self.rate_fresh = False
-        return list(self.state[SPONGE_CAPACITY:])
+        return self.state[SPONGE_CAPACITY:]
 
     def _sample_many(self, n: int) -> list[Fp]:
         out: list[Fp] = []
@@ -274,7 +275,7 @@ def next_mle(x: Sequence[EF], y: Sequence[EF]) -> EF:
 def eval_multilinear_evals(evals: Sequence[Fp | EF], point: Sequence[EF]) -> EF:
     """Evaluate a multilinear in evaluation form at `point`."""
     assert len(evals) == 1 << len(point)
-    cur = list(evals)
+    cur: Sequence = evals
     for r in reversed(point):
         cur = [cur[j] + (cur[j + 1] - cur[j]) * r for j in range(0, len(cur), 2)]
     return cur[0]
@@ -496,9 +497,10 @@ def whir_verify(
         prev_commitment,
         round_folding[-1],
     )
-    # Each STIR constraint's point is `expand_from_univariate(α, n)` = [α, α², α⁴, …]; check that `Σ coeffs[i]·α^i == value`.
+    # Each STIR constraint's point is `expand_from_univariate(α, n)` = [α, α², α⁴, …]
+    # (built by SparseStatements.dense, so selector_num_variables == 0 by construction).
+    # Check that `Σ coeffs[i]·α^i == value` for each smt's single (index 0) value.
     for smt in final_stir:
-        assert smt.selector_num_variables == 0
         univ_eval = eval_univariate_polynomial(final_coeffs, smt.point[0])
         if any(univ_eval != v[1] for v in smt.values):
             raise ProofError("Final STIR constraint mismatch")
@@ -612,14 +614,16 @@ def verify_generic_logup(
     tables: Sequence[Table],
     heights: dict[str, int],
 ) -> dict:
-    tables_sorted = sort_tables_by_height(tables, heights)
-    log_bytecode = log2_strict(len(bytecode_multilinear) // (1 << log2_ceil(N_INSTRUCTION_COLUMNS)))
+    ds_mem = Fp(LOGUP_MEMORY_DOMAINSEP)
+    ds_byte = Fp(LOGUP_BYTECODE_DOMAINSEP)
     log_instr = log2_ceil(N_INSTRUCTION_COLUMNS)
+    log_bytecode = log2_strict(len(bytecode_multilinear)) - log_instr
+
+    tables_sorted = sort_tables_by_height(tables, heights)
+    tallest_h = tables_sorted[0][1]
 
     total_active_len = (
-        (1 << log_memory)
-        + max(1 << log_bytecode, 1 << tables_sorted[0][1])
-        + sum(t.n_buses << h for t, h in tables_sorted)
+        (1 << log_memory) + max(1 << log_bytecode, 1 << tallest_h) + sum(t.n_buses << h for t, h in tables_sorted)
     )
     total_gkr_n_vars = log2_ceil(total_active_len)
 
@@ -627,26 +631,28 @@ def verify_generic_logup(
     if quotient != ZERO:
         raise ProofError("logup: GKR sum != 0")
 
-    num, den = ZERO, ZERO
-
     def pref_at(offset: int, log_height: int) -> EF:
+        """Lagrange weight for the layout-offset of a section of height 2^log_height."""
         n_missing = total_gkr_n_vars - log_height
         idx = offset >> log_height
-        bits = [ONE if (idx >> (n_missing - 1 - i)) & 1 else ZERO for i in range(n_missing)]
-        return eq_poly(bits, point_gkr[:n_missing])
+        return math.prod(
+            point_gkr[i] if (idx >> (n_missing - 1 - i)) & 1 else ONE - point_gkr[i] for i in range(n_missing)
+        )
 
-    # Memory (data order: [value_index, value_memory] mirrors `crates/sub_protocols/src/logup.rs`).
+    num = den = ZERO
+
+    # Memory section ---
     mem_pt = point_gkr[-log_memory:]
     pref = pref_at(0, log_memory)
     value_memory_acc = fiat_shamir.next_extension_scalar()
-    num -= pref * value_memory_acc
     value_memory = fiat_shamir.next_extension_scalar()
-    fp_mem = finger_print(Fp(LOGUP_MEMORY_DOMAINSEP), [mle_of_01234567_etc(mem_pt), value_memory], beta_eq)
+    fp_mem = finger_print(ds_mem, [mle_of_01234567_etc(mem_pt), value_memory], beta_eq)
+    num -= pref * value_memory_acc
     den += pref * (gamma - fp_mem)
     offset = 1 << log_memory
 
-    # Bytecode (padded to the tallest table).
-    log_byte_pad = max(log_bytecode, tables_sorted[0][1])
+    # Bytecode section (padded to the tallest table) ---
+    log_byte_pad = max(log_bytecode, tallest_h)
     byte_pt = point_gkr[-log_bytecode:]
     pref = pref_at(offset, log_bytecode)
     pref_pad = pref_at(offset, log_byte_pad)
@@ -656,24 +662,20 @@ def verify_generic_logup(
     fp_byte = (
         bytecode_value * correction
         + mle_of_01234567_etc(byte_pt) * beta_eq[N_INSTRUCTION_COLUMNS]
-        + beta_eq[-1] * Fp(LOGUP_BYTECODE_DOMAINSEP)
+        + beta_eq[-1] * ds_byte
     )
     num -= pref * value_bytecode_acc
     den += pref * (gamma - fp_byte) + pref_pad * mle_of_zeros_then_ones(1 << log_bytecode, point_gkr[-log_byte_pad:])
     offset += 1 << log_byte_pad
 
-    # Per-table base offsets in the GKR layout are assigned in sorted-by-height order
-    # (mirrors `layout_offsets` in sub_protocols/src/logup.rs).
+    # Per-table section: lay out per-table base offsets (sorted-by-height), then
+    # walk each table's buses in canonical TABLES order to match the prover's writes.
     table_offsets: dict[str, int] = {}
     for table, log_n_rows in tables_sorted:
         table_offsets[table.name] = offset
         offset += table.n_buses << log_n_rows
     final_offset = offset
 
-    # Per-table: walk the bus spec in the same order as the Rust prover. The prover
-    # writes col_evals for new (uncached) columns in `bus.data` order via a single
-    # `add_extension_scalars` chunk per bus — the verifier must read in the same chunks.
-    # Iterate tables in canonical TABLES order (matches the new prover scalar layout).
     bus_num_vals: dict[str, EF] = {}
     bus_den_vals: dict[str, EF] = {}
     columns_values: dict[str, dict[int, EF]] = {}
@@ -681,49 +683,47 @@ def verify_generic_logup(
     for table in tables:
         name = table.name
         log_n_rows = heights[name]
-        table_values: dict[int, EF] = {}
         row_stride = 1 << log_n_rows
         offset_within_table = table_offsets[name]
+        table_values: dict[int, EF] = {}
+
+        def read_fresh(cols: list[int]) -> None:
+            """Read one extension scalar per column not yet in `table_values`, in order."""
+            missing = [c for c in cols if c not in table_values]
+            for c, e in zip(missing, fiat_shamir.next_extension_scalars_vec(len(missing))):
+                table_values[c] = e
 
         for bus in table.buses:
             pref = pref_at(offset_within_table, log_n_rows)
-            if bus[0] == BusInterractiion.PRECOMPILE:
+            kind = bus[0]
+            if kind == BusInteraction.PRECOMPILE:
                 bus_num_vals[name] = fiat_shamir.next_extension_scalar()
                 bus_den_vals[name] = fiat_shamir.next_extension_scalar()
                 num += pref * bus_num_vals[name]
                 den += pref * bus_den_vals[name]
                 offset_within_table += row_stride
-            elif bus[0] == BusInterractiion.BYTECODE:
+            elif kind == BusInteraction.BYTECODE:
                 cols = list(range(N_RUNTIME_COLUMNS, N_RUNTIME_COLUMNS + N_INSTRUCTION_COLUMNS)) + [table.col("pc")]
-                evals = fiat_shamir.next_extension_scalars_vec(len(cols))
-                for c_idx, e in zip(cols, evals):
-                    table_values[c_idx] = e
-                num += pref  # Push direction
-                den += pref * (gamma - finger_print(Fp(LOGUP_BYTECODE_DOMAINSEP), evals, beta_eq))
+                read_fresh(cols)
+                evals = [table_values[c] for c in cols]
+                num += pref
+                den += pref * (gamma - finger_print(ds_byte, evals, beta_eq))
                 offset_within_table += row_stride
-            elif bus[0] == BusInterractiion.MEMORY:
+            elif kind == BusInteraction.MEMORY:
                 _, idx_ref, vals_ref, n = bus
                 idx_col, vals_start = table.col(idx_ref), table.col(vals_ref)
-                # One bus per row in the group; first sees idx_col fresh, the rest
-                # see only val_col fresh (mirrors the Rust prover's dedup logic).
+                # One sub-bus per cell in the group; the prover sends only the
+                # not-yet-seen columns per row (idx_col is shared across all n rows).
                 for i in range(n):
                     val_col = vals_start + i
-                    idx_fresh = idx_col not in table_values
-                    val_fresh = val_col not in table_values
-                    evals = iter(fiat_shamir.next_extension_scalars_vec(idx_fresh + val_fresh))
-                    if idx_fresh:
-                        table_values[idx_col] = next(evals)
-                    if val_fresh:
-                        table_values[val_col] = next(evals)
+                    read_fresh([idx_col, val_col])
                     pref = pref_at(offset_within_table, log_n_rows)
-                    fp = finger_print(
-                        Fp(LOGUP_MEMORY_DOMAINSEP), [table_values[idx_col] + i, table_values[val_col]], beta_eq
-                    )
-                    num += pref  # Push direction
+                    fp = finger_print(ds_mem, [table_values[idx_col] + i, table_values[val_col]], beta_eq)
+                    num += pref
                     den += pref * (gamma - fp)
                     offset_within_table += row_stride
             else:
-                raise ProofError(f"unknown bus kind: {bus[0]}")
+                raise ProofError(f"unknown bus kind: {kind}")
 
         columns_values[name] = table_values
 
@@ -739,7 +739,7 @@ def verify_generic_logup(
         "value_bytecode_acc": value_bytecode_acc,
         "bus_num": bus_num_vals,
         "bus_den": bus_den_vals,
-        "gkr_point": list(point_gkr),
+        "gkr_point": point_gkr,
         "columns_values": columns_values,
     }
 
@@ -779,7 +779,7 @@ def eval_precompile_bus_virtual_columns(
     folder.assert_zero(dot_product(logup_beta_eq, data) + logup_beta_eq[-1] * discriminator)
 
 
-def _eval_air_execution(folder: ConstraintFolder, logup_beta_eq: list[EF]) -> None:
+def eval_air_execution(folder: ConstraintFolder, logup_beta_eq: list[EF]) -> None:
     # fmt: off
     (pc, fp, addr_a, addr_b, addr_c, value_a, value_b, value_c,
      operand_a, operand_b, operand_c, flag_a, flag_b, flag_c, flag_c_fp,
@@ -854,7 +854,7 @@ def eval_air_extension_op(folder: ConstraintFolder, logup_beta_eq: list[EF]) -> 
         folder.assert_zero((comp[k] - (va_vb[k] + comp_tail[k])) * flag_mul)
 
     # poly_eq: comp ← (2·va·vb − va − vb + 1) · comp_sh_or_one.
-    poly_eq_val = [va_vb[k] + va_vb[k] - va_x[k] - vb[k] + (ONE if k == 0 else ZERO) for k in range(5)]
+    poly_eq_val = [2 * va_vb[k] - va_x[k] - vb[k] + (ONE if k == 0 else ZERO) for k in range(5)]
     comp_sh_or_one = [comp_sh[0] * not_start_sh + start_sh] + [comp_sh[k] * not_start_sh for k in range(1, 5)]
     poly_eq_result = quintic_mul(poly_eq_val, comp_sh_or_one, ZERO)
     for k in range(5):
@@ -884,7 +884,7 @@ def _build_p1c() -> dict:
     mds_dense = [[Fp(MDS_FIRST_ROW_16[(j - i) % n]) for j in range(n)] for i in range(n)]
     # External full-round RCs: first and last `(ROUNDS_F/2) * WIDTH` entries of the
     # raw round-constant table that drives the actual Poseidon permutation.
-    hf, t = POSEIDON_FULL_ROUNDS // 2, POSEIDON_WIDTH
+    hf, t = POSEIDON_HALF_FULL_ROUNDS, POSEIDON_WIDTH
     rcs = PARAMS_16.round_constants
     initial_constants = [[Fp(x) for x in rcs[i * t : (i + 1) * t]] for i in range(hf)]
     tail_start = (hf + POSEIDON_PARTIAL_ROUNDS) * t
@@ -921,7 +921,7 @@ def _eval_poseidon1_16(folder: ConstraintFolder, cols: dict) -> None:
     const = P1C
     state = list(cols["inputs"])
     initial = list(cols["inputs"])
-    half_initial = half_final = POSEIDON_FULL_ROUNDS // 4
+    half_initial = half_final = POSEIDON_HALF_FULL_ROUNDS // 2
 
     for r in range(half_initial):
         state = _full_round(state, const["initial_constants"][2 * r], const["initial_constants"][2 * r + 1])
@@ -965,7 +965,7 @@ def _eval_poseidon1_16(folder: ConstraintFolder, cols: dict) -> None:
 
 def eval_air_poseidon16(folder: ConstraintFolder, logup_beta_eq: list[EF]) -> None:
     W = POSEIDON_WIDTH
-    half_initial = half_final = POSEIDON_FULL_ROUNDS // 4
+    half_initial = half_final = POSEIDON_HALF_FULL_ROUNDS // 2
     flat_iter = iter(folder.flat)
     take = lambda n: [next(flat_iter) for _ in range(n)]
 
@@ -1027,9 +1027,9 @@ EXTENSION_COLUMNS = (
 POSEIDON_COLUMNS = (
     "multiplicity", "index_b", "index_res", "flag_half_output", "flag_hardcoded_left", "offset_hardcoded_left", "eff_idx_left_first", "eff_idx_left_second", "flag_permute",
     *(f"input_{i}" for i in range(POSEIDON_WIDTH)),
-    *(f"begin_r{r}_{i}" for r in range(POSEIDON_FULL_ROUNDS // 4) for i in range(POSEIDON_WIDTH)),
+    *(f"begin_r{r}_{i}" for r in range(POSEIDON_HALF_FULL_ROUNDS // 2) for i in range(POSEIDON_WIDTH)),
     *(f"partial_{i}" for i in range(POSEIDON_PARTIAL_ROUNDS)),
-    *(f"end_r{r}_{i}" for r in range(POSEIDON_FULL_ROUNDS // 4 - 1) for i in range(POSEIDON_WIDTH)),
+    *(f"end_r{r}_{i}" for r in range(POSEIDON_HALF_FULL_ROUNDS // 2 - 1) for i in range(POSEIDON_WIDTH)),
     *(f"out_left_{i}" for i in range(POSEIDON_WIDTH // 2)),
     *(f"out_right_{i}" for i in range(POSEIDON_WIDTH // 2)),
 )  # fmt: skip
@@ -1039,26 +1039,26 @@ TABLES = [
         name="execution",
         columns=EXECUTION_COLUMNS,
         buses=(
-            (BusInterractiion.PRECOMPILE, BusDirection.PUSH),
-            (BusInterractiion.BYTECODE,),
-            (BusInterractiion.MEMORY, "addr_a", "value_a", 1),
-            (BusInterractiion.MEMORY, "addr_b", "value_b", 1),
-            (BusInterractiion.MEMORY, "addr_c", "value_c", 1),
+            (BusInteraction.PRECOMPILE, BusDirection.PUSH),
+            (BusInteraction.BYTECODE,),
+            (BusInteraction.MEMORY, "addr_a", "value_a", 1),
+            (BusInteraction.MEMORY, "addr_b", "value_b", 1),
+            (BusInteraction.MEMORY, "addr_c", "value_c", 1),
         ),
         air_degree=5,
         n_constraints=14,
         n_shift=2,
         max_log_height=24,
-        air_fn=_eval_air_execution,
+        air_fn=eval_air_execution,
     ),
     Table(
         name="extension",
         columns=EXTENSION_COLUMNS,
         buses=(
-            (BusInterractiion.PRECOMPILE, BusDirection.PULL),
-            (BusInterractiion.MEMORY, "idx_a", "va_0", 5),
-            (BusInterractiion.MEMORY, "idx_b", "vb_0", 5),
-            (BusInterractiion.MEMORY, "idx_res", "vres_0", 5),
+            (BusInteraction.PRECOMPILE, BusDirection.PULL),
+            (BusInteraction.MEMORY, "idx_a", "va_0", 5),
+            (BusInteraction.MEMORY, "idx_b", "vb_0", 5),
+            (BusInteraction.MEMORY, "idx_res", "vres_0", 5),
         ),
         air_degree=6,
         n_constraints=35,
@@ -1070,11 +1070,11 @@ TABLES = [
         name="poseidon",
         columns=POSEIDON_COLUMNS,
         buses=(
-            (BusInterractiion.PRECOMPILE, BusDirection.PULL),
-            (BusInterractiion.MEMORY, "eff_idx_left_first", "input_0", 4),
-            (BusInterractiion.MEMORY, "eff_idx_left_second", "input_4", 4),
-            (BusInterractiion.MEMORY, "index_b", "input_8", 8),
-            (BusInterractiion.MEMORY, "index_res", "out_left_0", 16),
+            (BusInteraction.PRECOMPILE, BusDirection.PULL),
+            (BusInteraction.MEMORY, "eff_idx_left_first", "input_0", 4),
+            (BusInteraction.MEMORY, "eff_idx_left_second", "input_4", 4),
+            (BusInteraction.MEMORY, "index_b", "input_8", 8),
+            (BusInteraction.MEMORY, "index_res", "out_left_0", 16),
         ),
         air_degree=10,
         n_constraints=101,
@@ -1096,9 +1096,7 @@ def verify_execution(
     if len(public_input) != PUBLIC_INPUT_SIZE:
         raise ProofError("InvalidProof: public_input length mismatch")
 
-    state = FiatShamir(
-        proof, poseidon16_compress(bytecode_hash, SNARK_DOMAIN_SEP)
-    )  # domain separator accross bytecodes
+    state = FiatShamir(proof, poseidon16_compress(bytecode_hash, SNARK_DOMAIN_SEP))  # domain separator across bytecodes
     state.observe_scalars(public_input)
     dims = [int(x.value) for x in state.next_base_scalars_vec(2 + len(TABLES))]
     log_inv_rate, log_memory, *table_log_n_rows = dims
@@ -1193,8 +1191,11 @@ def verify_execution(
     pm_point = state.sample_many_ef(log2_strict(PUBLIC_INPUT_SIZE))
     pm_eval = eval_multilinear_evals(public_input, pm_point)
 
+    # Statements about the non-table columns in the stacked polynomial:
+    # value_memory + memory acc counts (memory layout), public memory (program input),
+    # and bytecode acc counts (offset by the bytecode-acc section's position in the layout).
     bytecode_acc_idx = (2 << log_memory) >> bytecode_log_size
-    previous = [
+    previous_statements = [
         SparseStatements(
             stacked_n_vars,
             gkr_point[-log_memory:],
@@ -1209,7 +1210,7 @@ def verify_execution(
         stacked_n_vars,
         log_memory,
         bytecode_log_size,
-        previous,
+        previous_statements,
         TABLES,
         log_heights,
         committed,
