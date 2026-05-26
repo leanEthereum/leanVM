@@ -82,7 +82,7 @@ class Table:
     n_constraints: int
     n_shift: int  # shift (next-row) columns are always the first ones
     max_log_height: int
-    air_fn: object  # (folder, logup_alphas_eq) -> None, fills folder with AIR constraints
+    air_fn: object  # (folder, logup_beta_eq) -> None, fills folder with AIR constraints
 
     @property
     def n_columns(self) -> int:
@@ -102,9 +102,9 @@ class Table:
         """Resolve a column reference (name or already-int index) to its integer index."""
         return ref if isinstance(ref, int) else self.columns.index(ref)
 
-    def eval_air(self, col_evals: Sequence[EF], alpha_powers: Sequence[EF], logup_alphas_eq: list[EF]) -> EF:
+    def eval_air(self, col_evals: Sequence[EF], alpha_powers: Sequence[EF], logup_beta_eq: list[EF]) -> EF:
         folder = ConstraintFolder(col_evals[: self.n_columns], col_evals[self.n_columns :], alpha_powers)
-        self.air_fn(folder, logup_alphas_eq)
+        self.air_fn(folder, logup_beta_eq)
         return folder.accumulator
 
     def boundary_statements(
@@ -590,10 +590,10 @@ def mle_of_zeros_then_ones(n_zeros: int, point: Sequence[EF]) -> EF:
     return point[0] * mle_of_zeros_then_ones(n_zeros - half, tail)
 
 
-def finger_print(discriminator: Fp, data: Sequence[EF], alphas_eq_poly: Sequence[EF]) -> EF:
+def finger_print(discriminator: Fp, data: Sequence[EF], beta_eq: Sequence[EF]) -> EF:
     """`Σᵢ αᵢ · dataᵢ + α_last · discriminator`."""
-    assert len(alphas_eq_poly) > len(data)
-    return dot_product(alphas_eq_poly, data) + alphas_eq_poly[-1] * discriminator
+    assert len(beta_eq) > len(data)
+    return dot_product(beta_eq, data) + beta_eq[-1] * discriminator
 
 
 def sort_tables_by_height(tables: Sequence[Table], heights: dict[str, int]) -> list[tuple[Table, int]]:
@@ -611,9 +611,9 @@ def eval_eq(point: Sequence[EF]) -> list[EF]:
 
 def verify_generic_logup(
     fiat_shamir: FiatShamir,
-    c: EF,
-    alphas: list[EF],
-    alphas_eq_poly: list[EF],
+    gamma: EF,  # `γ` from minimal_zkVM.tex (logup quotient denominator challenge).
+    beta: list[EF],  # `β` from minimal_zkVM.tex (bus-tuple hashing seeds).
+    beta_eq: list[EF],  # eq(β, ·) evaluation table.
     log_memory: int,
     bytecode_multilinear: list[int],
     tables: Sequence[Table],
@@ -654,8 +654,8 @@ def verify_generic_logup(
     value_memory_acc = fiat_shamir.next_extension_scalar()
     num -= pref * value_memory_acc
     value_memory = fiat_shamir.next_extension_scalar()
-    fp_mem = finger_print(ds_mem, [mle_of_01234567_etc(mem_pt), value_memory], alphas_eq_poly)
-    den += pref * (c - fp_mem)
+    fp_mem = finger_print(ds_mem, [mle_of_01234567_etc(mem_pt), value_memory], beta_eq)
+    den += pref * (gamma - fp_mem)
     offset = 1 << log_memory
 
     # Bytecode (padded to the tallest table).
@@ -664,15 +664,11 @@ def verify_generic_logup(
     pref = pref_at(offset, log_bytecode)
     pref_pad = pref_at(offset, log_byte_pad)
     value_bytecode_acc = fiat_shamir.next_extension_scalar()
-    bytecode_value = eval_multilinear_evals([Fp(v) for v in bytecode_multilinear], byte_pt + alphas[-log_instr:])
-    correction = math.prod(ONE - a for a in alphas[: len(alphas) - log_instr])
-    fp_byte = (
-        bytecode_value * correction
-        + mle_of_01234567_etc(byte_pt) * alphas_eq_poly[n_instr_cols]
-        + alphas_eq_poly[-1] * ds_byte
-    )
+    bytecode_value = eval_multilinear_evals([Fp(v) for v in bytecode_multilinear], byte_pt + beta[-log_instr:])
+    correction = math.prod(ONE - a for a in beta[: len(beta) - log_instr])
+    fp_byte = bytecode_value * correction + mle_of_01234567_etc(byte_pt) * beta_eq[n_instr_cols] + beta_eq[-1] * ds_byte
     num -= pref * value_bytecode_acc
-    den += pref * (c - fp_byte) + pref_pad * mle_of_zeros_then_ones(1 << log_bytecode, point_gkr[-log_byte_pad:])
+    den += pref * (gamma - fp_byte) + pref_pad * mle_of_zeros_then_ones(1 << log_bytecode, point_gkr[-log_byte_pad:])
     offset += 1 << log_byte_pad
 
     # Per-table base offsets in the GKR layout are assigned in sorted-by-height order
@@ -712,7 +708,7 @@ def verify_generic_logup(
                 for c_idx, e in zip(cols, evals):
                     table_values[c_idx] = e
                 num += pref  # Push direction
-                den += pref * (c - finger_print(ds_byte, evals, alphas_eq_poly))
+                den += pref * (gamma - finger_print(ds_byte, evals, beta_eq))
                 offset_within_table += row_stride
             elif bus[0] == BusInterractiion.MEMORY:
                 _, idx_ref, vals_ref, n = bus
@@ -729,9 +725,9 @@ def verify_generic_logup(
                     if val_fresh:
                         table_values[val_col] = next(evals)
                     pref = pref_at(offset_within_table, log_n_rows)
-                    fp = finger_print(ds_mem, [table_values[idx_col] + i, table_values[val_col]], alphas_eq_poly)
+                    fp = finger_print(ds_mem, [table_values[idx_col] + i, table_values[val_col]], beta_eq)
                     num += pref  # Push direction
-                    den += pref * (c - fp)
+                    den += pref * (gamma - fp)
                     offset_within_table += row_stride
             else:
                 raise ProofError(f"unknown bus kind: {bus[0]}")
@@ -781,16 +777,16 @@ class ConstraintFolder:
 
 def eval_precompile_bus_virtual_columns(
     folder: "ConstraintFolder",
-    logup_alphas_eq: list[EF],
+    logup_beta_eq: list[EF],
     multiplicity: EF,
     discriminator: EF,
     data: Sequence[EF],
 ) -> None:
     folder.assert_zero(multiplicity)
-    folder.assert_zero(dot_product(logup_alphas_eq, data) + logup_alphas_eq[-1] * discriminator)
+    folder.assert_zero(dot_product(logup_beta_eq, data) + logup_beta_eq[-1] * discriminator)
 
 
-def _eval_air_execution(folder: ConstraintFolder, logup_alphas_eq: list[EF]) -> None:
+def _eval_air_execution(folder: ConstraintFolder, logup_beta_eq: list[EF]) -> None:
     # fmt: off
     (pc, fp, addr_a, addr_b, addr_c, value_a, value_b, value_c,
      operand_a, operand_b, operand_c, flag_a, flag_b, flag_c, flag_c_fp,
@@ -812,7 +808,7 @@ def _eval_air_execution(folder: ConstraintFolder, logup_alphas_eq: list[EF]) -> 
     is_precompile = ONE - add - mul - deref - jump
 
     az = folder.assert_zero
-    eval_precompile_bus_virtual_columns(folder, logup_alphas_eq, is_precompile, discriminator, [nu_a, nu_b, nu_c])
+    eval_precompile_bus_virtual_columns(folder, logup_beta_eq, is_precompile, discriminator, [nu_a, nu_b, nu_c])
     az(nfa * (addr_a - (fp + operand_a)))
     az(nfb * (addr_b - (fp + operand_b)))
     az(nfc * (addr_c - (fp + operand_c)))
@@ -843,7 +839,7 @@ def _quintic_mul_ef(a: Sequence[EF], b: Sequence[EF]) -> list[EF]:
     return quintic_mul(a, b, ZERO)
 
 
-def _eval_air_extension_op(folder: ConstraintFolder, logup_alphas_eq: list[EF]) -> None:
+def eval_air_extension_op(folder: ConstraintFolder, logup_beta_eq: list[EF]) -> None:
     # Layout: shift columns 0..13 = (is_be, start, len, flag_{add,mul,poly_eq},
     # idx_{a,b}, comp[0..5]); then idx_res, va, vb, vres (5 each).
     f = folder.flat
@@ -862,7 +858,7 @@ def _eval_air_extension_op(folder: ConstraintFolder, logup_alphas_eq: list[EF]) 
         + len_col * _EXT_OP_LEN_MULTIPLIER
     )
     eval_precompile_bus_virtual_columns(
-        folder, logup_alphas_eq, start * (flag_add + flag_mul + flag_poly_eq), aux, [idx_a, idx_b, idx_res]
+        folder, logup_beta_eq, start * (flag_add + flag_mul + flag_poly_eq), aux, [idx_a, idx_b, idx_res]
     )
 
     for x in (is_be, start, flag_add, flag_mul, flag_poly_eq):
@@ -988,7 +984,7 @@ def _eval_poseidon1_16(folder: ConstraintFolder, cols: dict) -> None:
         folder.assert_zero(flag_permute * (state[i + POSEIDON_WIDTH // 2] - cols["outputs_right"][i]))
 
 
-def _eval_air_poseidon16(folder: ConstraintFolder, logup_alphas_eq: list[EF]) -> None:
+def _eval_air_poseidon16(folder: ConstraintFolder, logup_beta_eq: list[EF]) -> None:
     flat, W = folder.flat, POSEIDON_WIDTH
     half_initial = half_final = POSEIDON_FULL_ROUNDS // 4
 
@@ -1019,7 +1015,9 @@ def _eval_air_poseidon16(folder: ConstraintFolder, logup_alphas_eq: list[EF]) ->
     not_hcl = ONE - flag_hardcoded_left
     index_a = eff_idx_left_second - not_hcl * (DIGEST_ELEMS // 2)
 
-    eval_precompile_bus_virtual_columns(folder, logup_alphas_eq, multiplicity, discriminator, [index_a, index_b, index_res])
+    eval_precompile_bus_virtual_columns(
+        folder, logup_beta_eq, multiplicity, discriminator, [index_a, index_b, index_res]
+    )
     for f in (multiplicity, flag_half_output, flag_hardcoded_left, flag_permute):
         folder.assert_bool(f)
     folder.assert_zero(flag_permute * (flag_half_output + flag_hardcoded_left))
@@ -1096,7 +1094,7 @@ TABLES = [
         n_constraints=35,
         n_shift=13,
         max_log_height=21,
-        air_fn=_eval_air_extension_op,
+        air_fn=eval_air_extension_op,
     ),
     Table(
         name="poseidon",
@@ -1166,15 +1164,17 @@ def verify_execution(
         state.next_extension_scalars_vec(nood),
     )
 
-    logup_c = state.sample_ef()
+    # logup challenges, named after minimal_zkVM.tex: γ is the quotient denominator,
+    # β are the bus-tuple hashing seeds (length ℓ = log2(bus_width)).
+    logup_gamma = state.sample_ef()
     state.duplex()
-    logup_alphas = state.sample_many_ef(log2_ceil(N_INSTRUCTION_COLUMNS + 2))
-    logup_alphas_eq = eval_eq(logup_alphas)
+    logup_beta = state.sample_many_ef(log2_ceil(N_INSTRUCTION_COLUMNS + 2))
+    logup_beta_eq = eval_eq(logup_beta)
     logup = verify_generic_logup(
         state,
-        logup_c,
-        logup_alphas,
-        logup_alphas_eq,
+        logup_gamma,
+        logup_beta,
+        logup_beta_eq,
         log_memory,
         bytecode_multilinear,
         tables,
@@ -1193,13 +1193,13 @@ def verify_execution(
         cumulative += t.n_constraints
     alpha_powers = ef_powers(air_alpha, cumulative)
 
-    # Initial AIR sum: Σ_table (α^o · signed_num + α^(o+1) · (c − bus_den)). The
+    # Initial AIR sum: Σ_table (α^o · signed_num + α^(o+1) · (γ − bus_den)). The
     # sign is the direction of each table's unique Column-multiplicity bus.
     initial_sum = ZERO
     for t in tables:
         offset = alpha_offsets[t.name]
         initial_sum += alpha_powers[offset] * (logup["bus_num"][t.name] * t.mult_sign)
-        initial_sum += alpha_powers[offset + 1] * (logup_c - logup["bus_den"][t.name])
+        initial_sum += alpha_powers[offset + 1] * (logup_gamma - logup["bus_den"][t.name])
     sc_point, sc_value = verify_sumcheck(state, initial_sum, n_max, max(t.air_degree + 1 for t in tables))
 
     committed = {t.name: [(gkr_point[-heights[t.name] :], logup["columns_values"][t.name], {})] for t in tables}
@@ -1209,7 +1209,7 @@ def verify_execution(
         col_evals = state.next_extension_scalars_vec(t.n_columns + t.n_shift)
         offset = alpha_offsets[t.name]
         alpha_slice = alpha_powers[offset : offset + t.n_constraints]
-        constraint_eval = t.eval_air(col_evals, alpha_slice, logup_alphas_eq)
+        constraint_eval = t.eval_air(col_evals, alpha_slice, logup_beta_eq)
 
         natural_pt = list(reversed(sc_point[-log_n_rows:])) if log_n_rows else []
         k_t = math.prod(sc_point[: n_max - log_n_rows])
