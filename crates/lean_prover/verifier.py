@@ -188,18 +188,13 @@ def next_mle(x: Sequence[EF], y: Sequence[EF]) -> EF:
     return s + math.prod([*x, *y])
 
 
-def eval_multilinear(evals: Sequence[EF], point: Sequence[EF]) -> EF:
+def eval_multilinear_evals(evals: Sequence[EF], point: Sequence[EF]) -> EF:
     """Evaluate a multilinear in evaluation form at `point`."""
     assert len(evals) == 1 << len(point)
     cur = list(evals)
     for r in reversed(point):
         cur = [cur[j] + (cur[j + 1] - cur[j]) * r for j in range(0, len(cur), 2)]
     return cur[0]
-
-
-def eval_base_field_multilinear(base_evals: Sequence[int], point: Sequence[EF]) -> EF:
-    """Evaluate a base-field multilinear in evaluation form at `point`."""
-    return eval_multilinear([EF(v) for v in base_evals], point)
 
 
 def eval_multilinear_coeffs(coeffs: Sequence[EF], point: Sequence[EF]) -> EF:
@@ -214,7 +209,7 @@ def eval_multilinear_coeffs(coeffs: Sequence[EF], point: Sequence[EF]) -> EF:
 
 
 @dataclass
-class SparseStatement:
+class SparseStatements:
     total_num_variables: int
     point: list[EF]
     values: list[tuple[int, EF]]
@@ -225,16 +220,16 @@ class SparseStatement:
         return self.total_num_variables - len(self.point)
 
     @staticmethod
-    def dense(point: list[EF], value: EF) -> "SparseStatement":
-        return SparseStatement(len(point), point, [(0, value)])
+    def dense(point: list[EF], value: EF) -> "SparseStatements":
+        return SparseStatements(len(point), point, [(0, value)])
 
     @staticmethod
-    def unique_value(total: int, index: int, value: EF) -> "SparseStatement":
-        return SparseStatement(total, [], [(index, value)])
+    def unique_value(total: int, index: int, value: EF) -> "SparseStatements":
+        return SparseStatements(total, [], [(index, value)])
 
     @staticmethod
-    def new_next(total: int, point: list[EF], values: list[tuple[int, EF]]) -> "SparseStatement":
-        return SparseStatement(total, point, values, is_next=True)
+    def new_next(total: int, point: list[EF], values: list[tuple[int, EF]]) -> "SparseStatements":
+        return SparseStatements(total, point, values, is_next=True)
 
 
 def whir_folding_factor_at_round(r: int) -> int:
@@ -292,9 +287,9 @@ class ParsedCommitment:
     ood_points: list[EF]
     ood_answers: list[EF]
 
-    def oods_constraints(self) -> list[SparseStatement]:
+    def oods_constraints(self) -> list[SparseStatements]:
         return [
-            SparseStatement.dense(expand_from_univariate(p, self.num_variables), ev)
+            SparseStatements.dense(expand_from_univariate(p, self.num_variables), ev)
             for p, ev in zip(self.ood_points, self.ood_answers)
         ]
 
@@ -323,7 +318,7 @@ def verify_sumcheck(
     return point, target
 
 
-def combine_constraints(state: VerifierState, target: EF, constraints: list[SparseStatement]) -> tuple[EF, list[EF]]:
+def combine_constraints(state: VerifierState, target: EF, constraints: list[SparseStatements]) -> tuple[EF, list[EF]]:
     """Fold all constraint values into `target` via powers of γ; return those γ-power weights."""
     gamma: EF = state.sample_ef()
     combo: list[EF] = []
@@ -346,7 +341,7 @@ def verify_stir_challenges(
     query_pow_bits: int,
     commitment: ParsedCommitment,
     folding_randomness: list[EF],
-) -> list[SparseStatement]:
+) -> list[SparseStatements]:
     log_height = whir_log_domain_size_at(cfg["num_variables"], cfg["log_inv_rate"], round_index) - folding_factor
     gen = two_adic_generator(log_height)
     state.check_pow_grinding(query_pow_bits)
@@ -357,18 +352,18 @@ def verify_stir_challenges(
             return [EF(f) for f in leaf]
         return [EF(leaf[i : i + EF.DIMENSION]) for i in range(0, len(leaf), EF.DIMENSION)]
 
-    constraints: list[SparseStatement] = []
+    constraints: list[SparseStatements] = []
     for idx in indices:
         op = state.next_merkle_opening()
         if not merkle_verify_path(commitment.root, log_height, idx, op.leaf_data, op.path):
             raise ProofError("Merkle verification failed")
-        fold = eval_multilinear(pack_answers(op.leaf_data), folding_randomness)
+        fold = eval_multilinear_evals(pack_answers(op.leaf_data), folding_randomness)
         ef_pt = EF(pow(int(gen.value), idx, P))
-        constraints.append(SparseStatement.dense(expand_from_univariate(ef_pt, num_variables), fold))
+        constraints.append(SparseStatements.dense(expand_from_univariate(ef_pt, num_variables), fold))
     return constraints
 
 
-def verify_constraint_coeffs(constraint: SparseStatement, coeffs: list[EF]) -> bool:
+def verify_constraint_coeffs(constraint: SparseStatements, coeffs: list[EF]) -> bool:
     """Checks `point == [α, α², α⁴, …]` and `Σ coeffs[i]·α^i == value`."""
     assert constraint.selector_num_variables == 0
     alpha = constraint.point[0]
@@ -378,7 +373,7 @@ def verify_constraint_coeffs(constraint: SparseStatement, coeffs: list[EF]) -> b
     return all(univ_eval == v[1] for v in constraint.values)
 
 
-def eval_constraints_poly(constraints: list[tuple[list[EF], list[SparseStatement]]], point: list[EF]) -> EF:
+def eval_constraints_poly(constraints: list[tuple[list[EF], list[SparseStatements]]], point: list[EF]) -> EF:
     value = ZERO
     pt = list(point)
     for round_idx, (randomness, smts) in enumerate(constraints):
@@ -401,17 +396,17 @@ def whir_verify(
     state: VerifierState,
     cfg: dict,
     parsed_commitment: ParsedCommitment,
-    statement: list[SparseStatement],
+    statement: list[SparseStatements],
 ) -> list[EF]:
     for s in statement:
         assert s.total_num_variables == parsed_commitment.num_variables
 
     n_rounds, final_sumcheck_rounds = whir_n_rounds_and_final_sumcheck(cfg["num_variables"])
-    round_constraints: list[tuple[list[EF], list[SparseStatement]]] = []
+    round_constraints: list[tuple[list[EF], list[SparseStatements]]] = []
     round_folding: list[list[EF]] = []
     target = ZERO
 
-    def step(constraints: list[SparseStatement], n_fold: int, pow_bits: int) -> None:
+    def step(constraints: list[SparseStatements], n_fold: int, pow_bits: int) -> None:
         nonlocal target
         state.duplex()
         new_target, combo = combine_constraints(state, target, constraints)
@@ -544,12 +539,12 @@ def stacked_pcs_global_statements(
     stacked_n_vars: int,
     memory_n_vars: int,
     bytecode_n_vars: int,
-    previous_statements: list[SparseStatement],
+    previous_statements: list[SparseStatements],
     table_log_heights: dict[str, int],
     committed_statements: dict[str, list[tuple[list[EF], dict[int, EF], dict[int, EF]]]],
     tables: dict[str, TableMeta],
     ending_pc: int,
-) -> list[SparseStatement]:
+) -> list[SparseStatements]:
     assert len(table_log_heights) == len(committed_statements)
     tables_sorted = sort_tables_by_height(table_log_heights)
 
@@ -574,11 +569,11 @@ def stacked_pcs_global_statements(
         if name == "execution":
             # PC column: pin first row to STARTING_PC, last row to ending_pc.
             for idx, pc in [(0, STARTING_PC), ((1 << n_vars) - 1, ending_pc)]:
-                out.append(SparseStatement.unique_value(stacked_n_vars, offset + (COL_PC << n_vars) + idx, EF(pc)))
+                out.append(SparseStatements.unique_value(stacked_n_vars, offset + (COL_PC << n_vars) + idx, EF(pc)))
         for point, eq_values, next_values in committed_statements[name]:
             if next_values:
-                out.append(SparseStatement.new_next(stacked_n_vars, list(point), values_at(next_values, col_base)))
-            out.append(SparseStatement(stacked_n_vars, list(point), values_at(eq_values, col_base)))
+                out.append(SparseStatements.new_next(stacked_n_vars, list(point), values_at(next_values, col_base)))
+            out.append(SparseStatements(stacked_n_vars, list(point), values_at(eq_values, col_base)))
 
     return out
 
@@ -595,8 +590,8 @@ def verify_gkr_quotient(state: VerifierState, n_vars: int) -> tuple[EF, list[EF]
     quotient = sum(n * d.inv() for n, d in zip(nums, dens))
 
     point = state.sample_many_ef(N_VARS_TO_SEND_GKR_COEFFS)
-    claim_num = eval_multilinear(nums, point)
-    claim_den = eval_multilinear(dens, point)
+    claim_num = eval_multilinear_evals(nums, point)
+    claim_den = eval_multilinear_evals(dens, point)
 
     for layer_n_vars in range(N_VARS_TO_SEND_GKR_COEFFS, n_vars):
         state.duplex()
@@ -716,7 +711,7 @@ def verify_generic_logup(
     pref = pref_at(offset, log_bytecode)
     pref_pad = pref_at(offset, log_byte_pad)
     value_bytecode_acc = state.next_extension_scalar()
-    bytecode_value = eval_base_field_multilinear(bytecode_multilinear, list(byte_pt) + list(from_end(alphas, log_instr)))
+    bytecode_value = eval_multilinear_evals([EF(v) for v in bytecode_multilinear], list(byte_pt) + list(from_end(alphas, log_instr)))
     correction = math.prod(ONE - a for a in alphas[: len(alphas) - log_instr])
     fp_byte = (
         bytecode_value * correction
@@ -1237,17 +1232,17 @@ def verify_execution(
 
     assert len(public_input) % DIGEST_ELEMS == 0
     pm_point = state.sample_many_ef(log2_strict(len(public_input)))
-    pm_eval = eval_multilinear([EF(f) for f in public_input], pm_point)
+    pm_eval = eval_multilinear_evals([EF(f) for f in public_input], pm_point)
 
     bytecode_acc_idx = (2 << log_memory) >> bytecode_log_size
     previous = [
-        SparseStatement(
+        SparseStatements(
             stacked_n_vars,
             from_end(gkr_point, log_memory),
             [(0, logup["value_memory"]), (1, logup["value_memory_acc"])],
         ),
-        SparseStatement(stacked_n_vars, pm_point, [(0, pm_eval)]),
-        SparseStatement(
+        SparseStatements(stacked_n_vars, pm_point, [(0, pm_eval)]),
+        SparseStatements(
             stacked_n_vars, from_end(gkr_point, bytecode_log_size), [(bytecode_acc_idx, logup["value_bytecode_acc"])]
         ),
     ]
