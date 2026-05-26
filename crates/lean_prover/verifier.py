@@ -35,8 +35,8 @@ WHIR_CONFIGS = {
             {"num_queries": r[0], "ood_samples": r[1], "query_pow_bits": r[2], "folding_pow_bits": r[3]} for r in c[6]
         ],
     }
-    for c in ((1,7,1,10,220,16,()),(1,8,1,11,220,16,()),(1,9,1,12,220,16,()),(1,10,1,13,220,16,()),(1,11,1,14,220,16,()),(1,12,1,15,220,16,()),(1,13,1,16,220,16,()),(1,14,1,15,221,16,()),(1,15,1,16,221,16,()),(1,16,1,16,73,16,((222,1,16,11),)),(1,17,1,16,73,16,((223,1,16,12),)),(1,18,1,16,73,16,((224,1,16,13),)),(1,19,1,16,73,16,((225,1,16,14),)),(1,20,1,16,73,16,((227,1,16,15),)),(1,21,2,16,32,16,((229,1,16,16),(73,1,16,9))),(1,22,2,16,32,16,((230,1,16,12),(74,1,16,10))),(1,23,2,16,32,16,((234,1,16,13),(74,1,16,11))),(1,24,2,16,32,16,((235,1,16,14),(74,1,16,12))),(1,25,2,16,32,16,((241,2,16,15),(74,2,16,13))),(1,26,2,16,21,14,((243,2,16,16),(74,2,16,14),(32,2,16,14))),(1,27,2,16,21,14,((248,2,16,15),(75,2,16,15),(32,2,16,15))),(1,28,2,16,21,14,((256,2,16,16),(75,2,16,16),(32,2,16,16))),(1,29,2,16,21,14,((262,2,16,15),(76,2,16,12),(33,2,16,17))),(1,30,2,16,21,14,((270,2,16,16),(76,2,16,13),(33,2,16,18))),(2,7,1,13,109,16,()),(2,8,1,14,109,16,()),(2,9,1,15,109,16,()),(2,10,1,16,109,16,()),(2,11,1,12,110,16,()),(2,12,1,13,110,16,()),(2,13,1,14,110,16,()),(2,14,1,15,110,16,()),(2,15,1,16,110,16,()),(2,16,1,14,55,16,((111,1,16,10),)),(2,17,1,15,55,16,((111,1,16,11),)),(2,18,1,16,55,16,((111,1,16,12),)),(2,19,1,15,55,16,((112,1,16,13),)),(2,20,2,16,55,16,((112,1,16,14),)),(2,21,2,16,28,16,((113,1,16,15),(55,1,16,10))),(2,22,2,15,28,16,((114,1,16,16),(55,1,16,11))),(2,23,2,16,28,16,((114,1,16,13),(56,1,16,12))),(2,24,2,16,28,16,((115,1,16,14),(56,2,16,13))),(2,25,2,15,28,16,((118,2,16,15),(56,2,16,14))),(2,26,2,16,19,15,((118,2,16,16),(56,2,16,15),(28,2,16,17))),(2,27,2,16,19,15,((119,2,16,13),(57,2,16,16),(28,2,16,18))),(2,28,2,16,19,15,((120,2,16,14),(57,2,16,14),(29,2,15,19))),(2,29,2,16,19,15,((123,2,16,15),(57,2,16,15),(29,2,15,20))),(3,7,1,9,73,16,()),(3,8,1,10,73,16,()),(3,9,1,11,73,16,()),(3,10,1,12,73,16,()),(3,11,1,13,73,16,()),(3,12,1,14,73,16,()),(3,13,1,15,73,16,()),(3,14,1,16,73,16,()),(3,15,1,12,74,16,()),(3,16,1,13,44,16,((74,1,16,11),)),(3,17,1,14,44,16,((74,1,16,12),)),(3,18,2,15,44,16,((74,1,16,13),)),(3,19,2,16,44,16,((74,1,16,14),)),(3,20,2,15,44,16,((75,1,16,15),)),(3,21,2,16,25,16,((75,1,16,16),(44,1,16,11))),(3,22,2,15,25,16,((76,1,16,11),(45,1,16,12))),(3,23,2,16,25,16,((76,1,16,12),(45,2,16,13))),(3,24,2,16,25,16,((77,2,16,13),(45,2,16,14))),(3,25,2,16,25,16,((78,2,15,14),(45,2,16,15))),(3,26,2,16,18,12,((79,2,15,15),(45,2,16,16),(25,2,16,19))),(3,27,2,16,18,12,((80,2,16,16),(45,2,16,15),(26,2,13,20))),(3,28,2,15,18,12,((82,2,15,15),(46,2,16,16),(26,2,13,21))),(4,7,1,8,55,16,()),(4,8,1,9,55,16,()),(4,9,1,10,55,16,()),(4,10,1,11,55,16,()),(4,11,1,12,55,16,()),(4,12,1,13,55,16,()),(4,13,1,14,55,16,()),(4,14,1,15,55,16,()),(4,15,1,16,55,16,()),(4,16,1,13,37,16,((56,1,16,9),)),(4,17,1,14,37,16,((56,1,16,10),)),(4,18,2,15,37,16,((56,1,16,11),)),(4,19,2,16,37,16,((56,1,16,12),)),(4,20,2,13,37,16,((57,1,16,13),)),(4,21,2,14,23,15,((57,2,16,14),(37,2,16,12))),(4,22,2,15,23,15,((57,2,16,15),(37,2,16,13))),(4,23,2,16,23,15,((57,2,16,16),(37,2,16,14))),(4,24,2,15,23,15,((58,2,16,13),(38,2,16,15))),(4,25,2,16,23,15,((58,2,16,14),(38,2,16,16))),(4,26,2,16,16,16,((60,2,15,15),(38,2,16,17),(23,2,15,22))),(4,27,2,15,16,16,((61,2,16,16),(38,2,16,18),(23,2,15,23))))  # fmt: skip
-}
+    for c in ((1,7,1,10,220,16,()),(1,8,1,11,220,16,()),(1,9,1,12,220,16,()),(1,10,1,13,220,16,()),(1,11,1,14,220,16,()),(1,12,1,15,220,16,()),(1,13,1,16,220,16,()),(1,14,1,15,221,16,()),(1,15,1,16,221,16,()),(1,16,1,16,73,16,((222,1,16,11),)),(1,17,1,16,73,16,((223,1,16,12),)),(1,18,1,16,73,16,((224,1,16,13),)),(1,19,1,16,73,16,((225,1,16,14),)),(1,20,1,16,73,16,((227,1,16,15),)),(1,21,2,16,32,16,((229,1,16,16),(73,1,16,9))),(1,22,2,16,32,16,((230,1,16,12),(74,1,16,10))),(1,23,2,16,32,16,((234,1,16,13),(74,1,16,11))),(1,24,2,16,32,16,((235,1,16,14),(74,1,16,12))),(1,25,2,16,32,16,((241,2,16,15),(74,2,16,13))),(1,26,2,16,21,14,((243,2,16,16),(74,2,16,14),(32,2,16,14))),(1,27,2,16,21,14,((248,2,16,15),(75,2,16,15),(32,2,16,15))),(1,28,2,16,21,14,((256,2,16,16),(75,2,16,16),(32,2,16,16))),(1,29,2,16,21,14,((262,2,16,15),(76,2,16,12),(33,2,16,17))),(1,30,2,16,21,14,((270,2,16,16),(76,2,16,13),(33,2,16,18))),(2,7,1,13,109,16,()),(2,8,1,14,109,16,()),(2,9,1,15,109,16,()),(2,10,1,16,109,16,()),(2,11,1,12,110,16,()),(2,12,1,13,110,16,()),(2,13,1,14,110,16,()),(2,14,1,15,110,16,()),(2,15,1,16,110,16,()),(2,16,1,14,55,16,((111,1,16,10),)),(2,17,1,15,55,16,((111,1,16,11),)),(2,18,1,16,55,16,((111,1,16,12),)),(2,19,1,15,55,16,((112,1,16,13),)),(2,20,2,16,55,16,((112,1,16,14),)),(2,21,2,16,28,16,((113,1,16,15),(55,1,16,10))),(2,22,2,15,28,16,((114,1,16,16),(55,1,16,11))),(2,23,2,16,28,16,((114,1,16,13),(56,1,16,12))),(2,24,2,16,28,16,((115,1,16,14),(56,2,16,13))),(2,25,2,15,28,16,((118,2,16,15),(56,2,16,14))),(2,26,2,16,19,15,((118,2,16,16),(56,2,16,15),(28,2,16,17))),(2,27,2,16,19,15,((119,2,16,13),(57,2,16,16),(28,2,16,18))),(2,28,2,16,19,15,((120,2,16,14),(57,2,16,14),(29,2,15,19))),(2,29,2,16,19,15,((123,2,16,15),(57,2,16,15),(29,2,15,20))),(3,7,1,9,73,16,()),(3,8,1,10,73,16,()),(3,9,1,11,73,16,()),(3,10,1,12,73,16,()),(3,11,1,13,73,16,()),(3,12,1,14,73,16,()),(3,13,1,15,73,16,()),(3,14,1,16,73,16,()),(3,15,1,12,74,16,()),(3,16,1,13,44,16,((74,1,16,11),)),(3,17,1,14,44,16,((74,1,16,12),)),(3,18,2,15,44,16,((74,1,16,13),)),(3,19,2,16,44,16,((74,1,16,14),)),(3,20,2,15,44,16,((75,1,16,15),)),(3,21,2,16,25,16,((75,1,16,16),(44,1,16,11))),(3,22,2,15,25,16,((76,1,16,11),(45,1,16,12))),(3,23,2,16,25,16,((76,1,16,12),(45,2,16,13))),(3,24,2,16,25,16,((77,2,16,13),(45,2,16,14))),(3,25,2,16,25,16,((78,2,15,14),(45,2,16,15))),(3,26,2,16,18,12,((79,2,15,15),(45,2,16,16),(25,2,16,19))),(3,27,2,16,18,12,((80,2,16,16),(45,2,16,15),(26,2,13,20))),(3,28,2,15,18,12,((82,2,15,15),(46,2,16,16),(26,2,13,21))),(4,7,1,8,55,16,()),(4,8,1,9,55,16,()),(4,9,1,10,55,16,()),(4,10,1,11,55,16,()),(4,11,1,12,55,16,()),(4,12,1,13,55,16,()),(4,13,1,14,55,16,()),(4,14,1,15,55,16,()),(4,15,1,16,55,16,()),(4,16,1,13,37,16,((56,1,16,9),)),(4,17,1,14,37,16,((56,1,16,10),)),(4,18,2,15,37,16,((56,1,16,11),)),(4,19,2,16,37,16,((56,1,16,12),)),(4,20,2,13,37,16,((57,1,16,13),)),(4,21,2,14,23,15,((57,2,16,14),(37,2,16,12))),(4,22,2,15,23,15,((57,2,16,15),(37,2,16,13))),(4,23,2,16,23,15,((57,2,16,16),(37,2,16,14))),(4,24,2,15,23,15,((58,2,16,13),(38,2,16,15))),(4,25,2,16,23,15,((58,2,16,14),(38,2,16,16))),(4,26,2,16,16,16,((60,2,15,15),(38,2,16,17),(23,2,15,22))),(4,27,2,15,16,16,((61,2,16,16),(38,2,16,18),(23,2,15,23))))
+}  # fmt: skip
 
 MIN_LOG_MEMORY_SIZE, MAX_LOG_MEMORY_SIZE = 16, 26
 MIN_LOG_N_ROWS_PER_TABLE, MIN_BYTECODE_LOG_SIZE, MAX_BYTECODE_LOG_SIZE = 8, 8, 22
@@ -45,7 +45,16 @@ ALL_TABLES_ORDER = ("execution", "extension", "poseidon")
 N_VARS_TO_SEND_GKR_COEFFS = 5
 
 N_RUNTIME_COLUMNS, N_INSTRUCTION_COLUMNS, PC_COL_INDEX = 8, 12, 0
+
 LOGUP_MEMORY_DOMAINSEP, LOGUP_BYTECODE_DOMAINSEP = 1, 2
+POSEIDON_DISCRIMINATOR_BASE = 3  # odd ≥ 3
+POSEIDON_PERMUTE_SHIFT, POSEIDON_HALF_OUTPUT_SHIFT = 1 << 1, 1 << 2
+POSEIDON_HARDCODED_LEFT_4_FLAG_SHIFT, POSEIDON_HARDCODED_LEFT_4_OFFSET_SHIFT = (
+    1 << 3,
+    1 << 4,
+)
+
+
 STARTING_PC = 0  # every program starts at PC = 0, and ends at PC = len(bytecode) - 1
 
 POSEIDON_WIDTH, POSEIDON_FULL_ROUNDS, POSEIDON_PARTIAL_ROUNDS = 16, 8, 20
@@ -64,7 +73,7 @@ def sponge_hash(data: Sequence[Fp]) -> list[Fp]:
     return state
 
 
-class Challenger:  # https://eprint.iacr.org/2025/536.pdf
+class DuplexSpongeChallenger:  # https://eprint.iacr.org/2025/536.pdf
     def __init__(self, initial_capacity: Sequence[Fp]) -> None:
         self.state: list[Fp] = list(initial_capacity) + [Fp(0)] * SPONGE_RATE
         self.rate_fresh: bool = False
@@ -121,7 +130,7 @@ class Proof:
     merkle_openings: list[MerkleOpening]
 
 
-class VerifierState(Challenger):
+class FiatShamir(DuplexSpongeChallenger):
     def __init__(self, proof: Proof, initial_capacity: Sequence[Fp]) -> None:
         super().__init__(initial_capacity)
         self.transcript = list(proof.transcript)
@@ -171,15 +180,16 @@ def merkle_verify_path(
     index: int,
     opened_values: Sequence[Fp],
     opening_proof: Sequence[list[Fp]],
-) -> bool:
+) -> None:
     if len(opening_proof) != log_height:
-        return False
+        raise ProofError("Merkle verification failed: opening proof has wrong length")
     chunks = [list(opened_values[i : i + SPONGE_RATE]) for i in range(0, len(opened_values), SPONGE_RATE)]
     current = sponge_hash([x for c in reversed(chunks) for x in c])
     for sibling in opening_proof:
         current = poseidon16_compress(current, sibling) if index & 1 == 0 else poseidon16_compress(sibling, current)
         index >>= 1
-    return root == current
+    if root != current:
+        raise ProofError("Merkle verification failed: root mismatch")
 
 
 def expand_from_univariate(x: EF, num_variables: int) -> list[EF]:
@@ -192,7 +202,6 @@ def eq_poly(a: Sequence[EF], b: Sequence[EF]) -> EF:
 
 
 def dot_product(a: Sequence, b: Sequence):
-    """`Σᵢ aᵢ · bᵢ` over the common prefix of `a` and `b`."""
     return sum(x * y for x, y in zip(a, b))
 
 
@@ -223,6 +232,13 @@ def eval_multilinear_coeffs(coeffs: Sequence[EF], point: Sequence[EF]) -> EF:
     lo = eval_multilinear_coeffs(coeffs[:half], point[1:])
     hi = eval_multilinear_coeffs(coeffs[half:], point[1:])
     return lo + hi * point[0]
+
+
+def eval_univariate_polynomial(coeffs: list[EF], x: EF) -> EF:
+    acc = ZERO
+    for c in reversed(coeffs):
+        acc = acc * x + c
+    return acc
 
 
 @dataclass
@@ -261,13 +277,6 @@ def whir_n_rounds_and_final_sumcheck(num_variables: int) -> tuple[int, int]:
     return n, nv - n * WHIR_SUBSEQUENT_FOLDING_FACTOR
 
 
-def whir_log_domain_size_at(num_variables: int, start_rate: int, r: int) -> int:
-    return num_variables + start_rate - (RS_DOMAIN_INITIAL_REDUCTION_FACTOR + r - 1 if r >= 1 else 0)
-
-
-def two_adic_generator(bits: int) -> Fp:
-    return Fp(KB_TWO_ADIC_GENERATORS[bits])
-
 @dataclass
 class ParsedCommitment:
     num_variables: int
@@ -282,51 +291,39 @@ class ParsedCommitment:
         ]
 
 
-def eval_univariate_polynomial(coeffs: list[EF], x: EF) -> EF:
-    acc = ZERO
-    for c in reversed(coeffs):
-        acc = acc * x + c
-    return acc
-
-
 def verify_sumcheck(
-    state: VerifierState, target: EF, n_vars: int, degree: int, pow_bits: int = 0
+    fiat_shamir: FiatShamir, target: EF, n_rounds: int, degree: int, pow_bits: int = 0
 ) -> tuple[list[EF], EF]:
-    """Round-by-round: check `h(0) + h(1) == target`, grind, sample, fold. Returns (point, value)."""
     point: list[EF] = []
-    for _ in range(n_vars):
-        coeffs = state.next_extension_scalars_vec(degree + 1)
+    for _ in range(n_rounds):
+        coeffs = fiat_shamir.next_extension_scalars_vec(degree + 1)
         s = coeffs[0] + sum(coeffs)
         if s != target:
             raise ProofError("Sumcheck identity failed: h(0) + h(1) != target")
-        state.check_pow_grinding(pow_bits)
-        r = state.sample_ef()
+        fiat_shamir.check_pow_grinding(pow_bits)
+        r = fiat_shamir.sample_ef()
         point.append(r)
         target = eval_univariate_polynomial(coeffs, r)
     return point, target
 
 
 def verify_stir_challenges(
-    state: VerifierState,
-    cfg: dict,
+    fiat_shamir: FiatShamir,
     round_index: int,
+    log_height: int,
     num_variables: int,
-    folding_factor: int,
     num_queries: int,
     query_pow_bits: int,
     commitment: ParsedCommitment,
     folding_randomness: list[EF],
 ) -> list[SparseStatements]:
-    log_height = whir_log_domain_size_at(cfg["num_variables"], cfg["log_inv_rate"], round_index) - folding_factor
-    gen = two_adic_generator(log_height)
-    state.check_pow_grinding(query_pow_bits)
-    indices = state.sample_in_range(log_height, num_queries)
-
+    gen = Fp(KB_TWO_ADIC_GENERATORS[log_height])
+    fiat_shamir.check_pow_grinding(query_pow_bits)
+    indices = fiat_shamir.sample_in_range(log_height, num_queries)
     constraints: list[SparseStatements] = []
     for idx in indices:
-        op = state.next_merkle_opening()
-        if not merkle_verify_path(commitment.root, log_height, idx, op.leaf_data, op.path):
-            raise ProofError("Merkle verification failed")
+        op = fiat_shamir.next_merkle_opening()
+        merkle_verify_path(commitment.root, log_height, idx, op.leaf_data, op.path)
         leaf = op.leaf_data
         if round_index == 0:
             packed = [EF(f) for f in leaf]
@@ -336,16 +333,6 @@ def verify_stir_challenges(
         ef_pt = EF(pow(int(gen.value), idx, P))
         constraints.append(SparseStatements.dense(expand_from_univariate(ef_pt, num_variables), fold))
     return constraints
-
-
-def verify_constraint_coeffs(constraint: SparseStatements, coeffs: list[EF]) -> bool:
-    """Checks `point == [α, α², α⁴, …]` and `Σ coeffs[i]·α^i == value`."""
-    assert constraint.selector_num_variables == 0
-    alpha = constraint.point[0]
-    if any(a * a != b for a, b in zip(constraint.point, constraint.point[1:])):
-        return False
-    univ_eval = eval_univariate_polynomial(coeffs, alpha)
-    return all(univ_eval == v[1] for v in constraint.values)
 
 
 def eval_constraints_poly(constraints: list[tuple[list[EF], list[SparseStatements]]], point: list[EF]) -> EF:
@@ -368,14 +355,11 @@ def eval_constraints_poly(constraints: list[tuple[list[EF], list[SparseStatement
 
 
 def whir_verify(
-    state: VerifierState,
+    fiat_shamir: FiatShamir,
     cfg: dict,
     parsed_commitment: ParsedCommitment,
-    statement: list[SparseStatements],
+    statements: list[SparseStatements],
 ) -> list[EF]:
-    for s in statement:
-        assert s.total_num_variables == parsed_commitment.num_variables
-
     n_rounds, final_sumcheck_rounds = whir_n_rounds_and_final_sumcheck(cfg["num_variables"])
     round_constraints: list[tuple[list[EF], list[SparseStatements]]] = []
     round_folding: list[list[EF]] = []
@@ -383,9 +367,9 @@ def whir_verify(
 
     def step(constraints: list[SparseStatements], n_fold: int, pow_bits: int) -> None:
         nonlocal target
-        state.duplex()
+        fiat_shamir.duplex()
         # Fold each constraint value into `target` via successive powers of γ.
-        gamma = state.sample_ef()
+        gamma = fiat_shamir.sample_ef()
         combo: list[EF] = []
         g = ONE
         for smt in constraints:
@@ -394,63 +378,66 @@ def whir_verify(
                 combo.append(g)
                 g = g * gamma
         round_constraints.append((combo, constraints))
-        sc_point, target = verify_sumcheck(state, target, n_fold, 2, pow_bits)
+        sc_point, target = verify_sumcheck(fiat_shamir, target, n_fold, 2, pow_bits)
         round_folding.append(sc_point)
 
     step(
-        parsed_commitment.oods_constraints() + statement,
+        parsed_commitment.oods_constraints() + statements,
         whir_folding_factor_at_round(0),
         cfg["starting_folding_pow_bits"],
     )
 
     prev_commitment = parsed_commitment
-    nvars_round = cfg["num_variables"]
+    current_vars = cfg["num_variables"]
+    log_domain = cfg["num_variables"] + cfg["log_inv_rate"]
     for r in range(n_rounds):
-        rp = cfg["rounds"][r]
-        nvars_round -= whir_folding_factor_at_round(r)
-        nood = rp["ood_samples"]
+        round_params = cfg["rounds"][r]
+        current_vars -= whir_folding_factor_at_round(r)
+        n_ood_samples = round_params["ood_samples"]
         new_commitment = ParsedCommitment(
-            nvars_round,
-            state.next_base_scalars_vec(DIGEST_ELEMS),
-            state.sample_many_ef(nood),
-            state.next_extension_scalars_vec(nood),
+            current_vars,
+            fiat_shamir.next_base_scalars_vec(DIGEST_ELEMS),
+            fiat_shamir.sample_many_ef(n_ood_samples),
+            fiat_shamir.next_extension_scalars_vec(n_ood_samples),
         )
         stir = verify_stir_challenges(
-            state,
-            cfg,
+            fiat_shamir,
             r,
-            nvars_round,
-            whir_folding_factor_at_round(r),
-            rp["num_queries"],
-            rp["query_pow_bits"],
+            log_domain - whir_folding_factor_at_round(r),
+            current_vars,
+            round_params["num_queries"],
+            round_params["query_pow_bits"],
             prev_commitment,
             round_folding[-1],
         )
         step(
             new_commitment.oods_constraints() + stir,
             whir_folding_factor_at_round(r + 1),
-            rp["folding_pow_bits"],
+            round_params["folding_pow_bits"],
         )
+        log_domain -= RS_DOMAIN_INITIAL_REDUCTION_FACTOR if r == 0 else 1
         prev_commitment = new_commitment
 
-    n_vars_final = nvars_round - whir_folding_factor_at_round(n_rounds)
-    final_coeffs = state.next_extension_scalars_vec(1 << n_vars_final)
+    n_vars_final = current_vars - whir_folding_factor_at_round(n_rounds)
+    final_coeffs = fiat_shamir.next_extension_scalars_vec(1 << n_vars_final)
     final_stir = verify_stir_challenges(
-        state,
-        cfg,
+        fiat_shamir,
         n_rounds,
+        log_domain - whir_folding_factor_at_round(n_rounds),
         n_vars_final,
-        whir_folding_factor_at_round(n_rounds),
         cfg["final_queries"],
         cfg["final_query_pow_bits"],
         prev_commitment,
         round_folding[-1],
     )
+    # Each STIR constraint's point is `expand_from_univariate(α, n)` = [α, α², α⁴, …]; check that `Σ coeffs[i]·α^i == value`.
     for smt in final_stir:
-        if not verify_constraint_coeffs(smt, final_coeffs):
+        assert smt.selector_num_variables == 0
+        univ_eval = eval_univariate_polynomial(final_coeffs, smt.point[0])
+        if any(univ_eval != v[1] for v in smt.values):
             raise ProofError("Final STIR constraint mismatch")
 
-    final_sc_point, final_sc_value = verify_sumcheck(state, target, final_sumcheck_rounds, 2)
+    final_sc_point, final_sc_value = verify_sumcheck(fiat_shamir, target, final_sumcheck_rounds, 2)
     round_folding.append(final_sc_point)
 
     folding_flat = [r for chunk in round_folding for r in chunk]
@@ -549,27 +536,27 @@ def stacked_pcs_global_statements(
     return out
 
 
-def verify_gkr_quotient(state: VerifierState, n_vars: int) -> tuple[EF, list[EF], EF, EF]:
+def verify_gkr_quotient(fiat_shamir: FiatShamir, n_vars: int) -> tuple[EF, list[EF], EF, EF]:
     """Layered sumcheck for `Σ nᵢ/dᵢ`. Returns `(quotient, point, claim_num, claim_den)`."""
     assert n_vars > N_VARS_TO_SEND_GKR_COEFFS
 
-    nums = state.next_extension_scalars_vec(1 << N_VARS_TO_SEND_GKR_COEFFS)
-    dens = state.next_extension_scalars_vec(1 << N_VARS_TO_SEND_GKR_COEFFS)
+    nums = fiat_shamir.next_extension_scalars_vec(1 << N_VARS_TO_SEND_GKR_COEFFS)
+    dens = fiat_shamir.next_extension_scalars_vec(1 << N_VARS_TO_SEND_GKR_COEFFS)
     quotient = sum(n * d.inv() for n, d in zip(nums, dens))
 
-    point = state.sample_many_ef(N_VARS_TO_SEND_GKR_COEFFS)
+    point = fiat_shamir.sample_many_ef(N_VARS_TO_SEND_GKR_COEFFS)
     claim_num = eval_multilinear_evals(nums, point)
     claim_den = eval_multilinear_evals(dens, point)
 
     for layer_n_vars in range(N_VARS_TO_SEND_GKR_COEFFS, n_vars):
-        state.duplex()
-        alpha = state.sample_ef()
-        raw_pt, sc_value = verify_sumcheck(state, claim_num + alpha * claim_den, layer_n_vars, 3)
+        fiat_shamir.duplex()
+        alpha = fiat_shamir.sample_ef()
+        raw_pt, sc_value = verify_sumcheck(fiat_shamir, claim_num + alpha * claim_den, layer_n_vars, 3)
         sc_point = list(reversed(raw_pt))
-        nl, nr, dl, dr = state.next_extension_scalars_vec(4)
+        nl, nr, dl, dr = fiat_shamir.next_extension_scalars_vec(4)
         if sc_value != eq_poly(point, sc_point) * (alpha * dl * dr + nl * dr + nr * dl):
             raise ProofError("GKR step: postponed value mismatch")
-        beta = state.sample_ef()
+        beta = fiat_shamir.sample_ef()
         one_minus = ONE - beta
         claim_num = one_minus * nl + beta * nr
         claim_den = one_minus * dl + beta * dr
@@ -618,7 +605,7 @@ def eval_eq(point: Sequence[EF]) -> list[EF]:
 
 
 def verify_generic_logup(
-    state: VerifierState,
+    fiat_shamir: FiatShamir,
     c: EF,
     alphas: list[EF],
     alphas_eq_poly: list[EF],
@@ -645,7 +632,7 @@ def verify_generic_logup(
     )
     total_gkr_n_vars = log2_ceil(total_active_len)
 
-    quotient, point_gkr, claim_num, claim_den = verify_gkr_quotient(state, total_gkr_n_vars)
+    quotient, point_gkr, claim_num, claim_den = verify_gkr_quotient(fiat_shamir, total_gkr_n_vars)
     if quotient != ZERO:
         raise ProofError("logup: GKR sum != 0")
 
@@ -660,9 +647,9 @@ def verify_generic_logup(
     # Memory (data order: [value_index, value_memory] mirrors `crates/sub_protocols/src/logup.rs`).
     mem_pt = point_gkr[-log_memory:]
     pref = pref_at(0, log_memory)
-    value_memory_acc = state.next_extension_scalar()
+    value_memory_acc = fiat_shamir.next_extension_scalar()
     num = num - pref * value_memory_acc
-    value_memory = state.next_extension_scalar()
+    value_memory = fiat_shamir.next_extension_scalar()
     fp_mem = finger_print(ds_mem, [mle_of_01234567_etc(mem_pt), value_memory], alphas_eq_poly)
     den = den + pref * (c - fp_mem)
     offset = 1 << log_memory
@@ -672,10 +659,8 @@ def verify_generic_logup(
     byte_pt = point_gkr[-log_bytecode:]
     pref = pref_at(offset, log_bytecode)
     pref_pad = pref_at(offset, log_byte_pad)
-    value_bytecode_acc = state.next_extension_scalar()
-    bytecode_value = eval_multilinear_evals(
-        [EF(v) for v in bytecode_multilinear], byte_pt + alphas[-log_instr:]
-    )
+    value_bytecode_acc = fiat_shamir.next_extension_scalar()
+    bytecode_value = eval_multilinear_evals([EF(v) for v in bytecode_multilinear], byte_pt + alphas[-log_instr:])
     correction = math.prod(ONE - a for a in alphas[: len(alphas) - log_instr])
     fp_byte = (
         bytecode_value * correction
@@ -712,14 +697,14 @@ def verify_generic_logup(
         for bus in meta.buses:
             pref = pref_at(offset_within_table, log_n_rows)
             if bus[0] == "col_mult":
-                bus_num_vals[name] = state.next_extension_scalar()
-                bus_den_vals[name] = state.next_extension_scalar()
+                bus_num_vals[name] = fiat_shamir.next_extension_scalar()
+                bus_den_vals[name] = fiat_shamir.next_extension_scalar()
                 num = num + pref * bus_num_vals[name]
                 den = den + pref * bus_den_vals[name]
                 offset_within_table += row_stride
             elif bus[0] == "byte_lookup":
                 cols = list(range(n_runtime_cols, n_runtime_cols + n_instr_cols)) + [col_pc]
-                evals = state.next_extension_scalars_vec(len(cols))
+                evals = fiat_shamir.next_extension_scalars_vec(len(cols))
                 for c_idx, e in zip(cols, evals):
                     table_values[c_idx] = e
                 num = num + pref  # Push direction
@@ -733,7 +718,7 @@ def verify_generic_logup(
                     val_col = vals_start + i
                     idx_fresh = idx_col not in table_values
                     val_fresh = val_col not in table_values
-                    evals = iter(state.next_extension_scalars_vec(idx_fresh + val_fresh))
+                    evals = iter(fiat_shamir.next_extension_scalars_vec(idx_fresh + val_fresh))
                     if idx_fresh:
                         table_values[idx_col] = next(evals)
                     if val_fresh:
@@ -947,15 +932,6 @@ def _build_p1c() -> dict:
 P1C = _build_p1c()
 
 
-_HALF_DIGEST_LEN = 4
-_POSEIDON_DISCRIMINATOR_BASE = 3  # odd ≥ 3, disjoint from memory (1) / bytecode (2)
-_POSEIDON_PERMUTE_SHIFT, _POSEIDON_HALF_OUTPUT_SHIFT = 1 << 1, 1 << 2
-_POSEIDON_HARDCODED_LEFT_4_FLAG_SHIFT, _POSEIDON_HARDCODED_LEFT_4_OFFSET_SHIFT = (
-    1 << 3,
-    1 << 4,
-)
-
-
 def _matvec_kb(mat: list[list[Fp]], state: list[EF]) -> list[EF]:
     return [dot_product(state, row) for row in mat]
 
@@ -1009,7 +985,7 @@ def _eval_poseidon1_16(folder: ConstraintFolder, cols: dict) -> None:
     not_permute = ONE - flag_permute
     compression_last4 = not_permute - cols["flag_half_output"]
     for i in range(POSEIDON_WIDTH // 2):
-        gate = not_permute if i < _HALF_DIGEST_LEN else compression_last4
+        gate = not_permute if i < (DIGEST_ELEMS // 2) else compression_last4
         folder.assert_zero(gate * (state[i] + initial[i] - cols["outputs_left"][i]))
         folder.assert_zero(flag_permute * (state[i] - cols["outputs_left"][i]))
         folder.assert_zero(flag_permute * (state[i + POSEIDON_WIDTH // 2] - cols["outputs_right"][i]))
@@ -1037,14 +1013,14 @@ def _eval_air_poseidon16(folder: ConstraintFolder, extra_data: dict) -> None:
     outputs_left, outputs_right = take(W // 2), take(W // 2)
 
     discriminator = (
-        EF(_POSEIDON_DISCRIMINATOR_BASE)
-        + flag_permute * EF(_POSEIDON_PERMUTE_SHIFT)
-        + flag_half_output * EF(_POSEIDON_HALF_OUTPUT_SHIFT)
-        + flag_hardcoded_left * EF(_POSEIDON_HARDCODED_LEFT_4_FLAG_SHIFT)
-        + flag_hardcoded_left * offset_hardcoded_left * EF(_POSEIDON_HARDCODED_LEFT_4_OFFSET_SHIFT)
+        EF(POSEIDON_DISCRIMINATOR_BASE)
+        + flag_permute * EF(POSEIDON_PERMUTE_SHIFT)
+        + flag_half_output * EF(POSEIDON_HALF_OUTPUT_SHIFT)
+        + flag_hardcoded_left * EF(POSEIDON_HARDCODED_LEFT_4_FLAG_SHIFT)
+        + flag_hardcoded_left * offset_hardcoded_left * EF(POSEIDON_HARDCODED_LEFT_4_OFFSET_SHIFT)
     )
     not_hcl = ONE - flag_hardcoded_left
-    index_a = eff_idx_left_second - not_hcl * EF(_HALF_DIGEST_LEN)
+    index_a = eff_idx_left_second - not_hcl * EF(DIGEST_ELEMS // 2)
 
     _eval_bus_virtual(folder, extra_data, multiplicity, discriminator, [index_a, index_b, index_res])
     for f in (multiplicity, flag_half_output, flag_hardcoded_left, flag_permute):
@@ -1091,9 +1067,7 @@ def verify_execution(
     if len(public_input) != PUBLIC_INPUT_SIZE:
         raise ProofError("InvalidProof: public_input length mismatch")
 
-    state = VerifierState(
-        proof, poseidon16_compress(bytecode_hash, SNARK_DOMAIN_SEP)
-    )  # domain separator accross bytecode
+    state = FiatShamir(proof, poseidon16_compress(bytecode_hash, SNARK_DOMAIN_SEP))  # domain separator accross bytecode
     state.observe_scalars(public_input)
 
     dims = [int(x.value) for x in state.next_base_scalars_vec(2 + len(tables))]
