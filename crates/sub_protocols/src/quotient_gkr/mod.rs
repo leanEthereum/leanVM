@@ -197,7 +197,7 @@ mod tests {
 
     use super::*;
     use rand::{RngExt, SeedableRng, rngs::StdRng};
-    use utils::{build_prover_state, build_verifier_state, init_tracing};
+    use utils::{get_poseidon16, init_tracing};
 
     type F = KoalaBear;
     type EF = QuinticExtensionFieldKB;
@@ -244,7 +244,7 @@ mod tests {
         denominators_raw.extend(std::iter::repeat_n(EF::ONE, n - active_len));
 
         let real_quotient = sum_all_quotients(&numerators_raw, &denominators_raw);
-        let mut prover_state = build_prover_state();
+        let mut prover_state = ProverState::new(get_poseidon16().clone(), Default::default());
 
         // Keep natural-layout MLEs to check claims at `claim_point`.
         let numerators_nat = MleOwned::BasePacked(pack_extension(&numerators_raw));
@@ -268,7 +268,9 @@ mod tests {
         );
         println!("Proving time: {:.3}s", time.elapsed().as_secs_f64());
 
-        let mut verifier_state = build_verifier_state(prover_state).unwrap();
+        let mut verifier_state =
+            VerifierState::<EF, _>::new(prover_state.into_proof(), get_poseidon16().clone(), Default::default())
+                .unwrap();
         let verifier_statements = verify_gkr_quotient::<EF>(&mut verifier_state, log_n).unwrap();
         let (retrieved_quotient, claim_point, claim_num, claim_den) = verifier_statements;
         assert_eq!(claim_point_prover, claim_point);

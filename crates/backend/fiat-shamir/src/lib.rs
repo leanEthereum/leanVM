@@ -8,6 +8,7 @@ mod utils;
 pub use utils::*;
 
 mod challenger;
+pub use challenger::{CAPACITY, RATE, WIDTH};
 
 mod traits;
 pub use traits::*;

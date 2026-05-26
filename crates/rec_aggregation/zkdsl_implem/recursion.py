@@ -50,15 +50,14 @@ INNER_PUBLIC_MEMORY_LOG_SIZE = 3  # public input = 1 hash digest = 8 field eleme
 PUB_INPUT_SIZE = DIGEST_LEN  # the public input is a single digest
 
 
-def recursion(inner_public_memory, bytecode_hash_domsep):
+def recursion(inner_public_memory, initial_fiat_shamir_cap):
     proof_transcript_size_buf = Array(1)
     hint_witness("proof_transcript_size", proof_transcript_size_buf)
     proof_transcript = Array(proof_transcript_size_buf[0])
     hint_witness("proof_transcript", proof_transcript)
-    fs: Mut = fs_new(proof_transcript)
+    fs: Mut = fs_new(proof_transcript, initial_fiat_shamir_cap)
 
     fs = fs_observe(fs, inner_public_memory, PUB_INPUT_SIZE)  # observe public input (the data digest)
-    fs = fs_observe(fs, bytecode_hash_domsep, DIGEST_LEN)  # observe hash(bytecode hash, domain sep)
 
     # table dims
     debug_assert(N_TABLES + 1 < DIGEST_LEN)

@@ -10,7 +10,7 @@ use rand::{RngExt, SeedableRng, rngs::StdRng};
 use sub_protocols::{
     AirSumcheckSession, OuterSumcheckSession, natural_ordering_point_for_session, prove_batched_air_sumcheck,
 };
-use utils::{build_prover_state, build_verifier_state, padd_with_zero_to_next_power_of_two};
+use utils::{get_poseidon16, padd_with_zero_to_next_power_of_two};
 
 const WIDTH: usize = 16;
 const HALF_DIGEST_LEN: usize = 4;
@@ -53,7 +53,7 @@ fn prove_air_poseidon_16(log_n_rows: usize) {
     let packed_n_vars = log2_ceil_usize(n_cols << log_n_rows);
     let whir_config = WhirConfig::new(&whir_config_builder, packed_n_vars);
 
-    let mut prover_state = build_prover_state();
+    let mut prover_state = ProverState::<EF, _>::new(get_poseidon16().clone(), Default::default());
 
     let time = Instant::now();
 
@@ -103,7 +103,8 @@ fn prove_air_poseidon_16(log_n_rows: usize) {
         (n_rows as f64 / time.elapsed().as_secs_f64()) as usize
     );
 
-    let mut verifier_state = build_verifier_state(prover_state).unwrap();
+    let mut verifier_state =
+        VerifierState::<EF, _>::new(prover_state.into_proof(), get_poseidon16().clone(), Default::default()).unwrap();
 
     let parsed_commitment = whir_config.parse_commitment::<F>(&mut verifier_state).unwrap();
 

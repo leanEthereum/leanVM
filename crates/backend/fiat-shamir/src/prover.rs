@@ -36,10 +36,10 @@ where
     PF<EF>: PrimeField64,
 {
     #[must_use]
-    pub fn new(permutation: P) -> Self {
+    pub fn new(permutation: P, capacity: [PF<EF>; CAPACITY]) -> Self {
         assert!(EF::DIMENSION <= RATE);
         Self {
-            challenger: Challenger::new(permutation),
+            challenger: Challenger::new(permutation, capacity),
             transcript: Vec::new(),
             merkle_paths: Vec::new(),
         }
