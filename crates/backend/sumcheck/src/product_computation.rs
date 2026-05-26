@@ -45,11 +45,7 @@ pub fn run_product_sumcheck<EF: ExtensionField<PF<EF>>>(
     assert!(n_rounds >= 1);
     let first_sumcheck_poly = match (pol_a, pol_b) {
         (MleRef::BasePacked(evals), MleRef::ExtensionPacked(weights)) => {
-            if EF::DIMENSION == 5 {
-                compute_product_sumcheck_polynomial_base_ext_packed::<5, _, _, _, EF>(evals, weights, sum)
-            } else {
-                unimplemented!()
-            }
+            compute_product_sumcheck_polynomial(evals, weights, sum, |e| EFPacking::<EF>::to_ext_iter([e]).collect())
         }
         (MleRef::ExtensionPacked(evals), MleRef::ExtensionPacked(weights)) => {
             compute_product_sumcheck_polynomial(evals, weights, sum, |e| EFPacking::<EF>::to_ext_iter([e]).collect())

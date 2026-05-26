@@ -881,6 +881,105 @@ fn eval_eq_with_packed_output<F: Field, EF: ExtensionField<F>, const INITIALIZED
     }
 }
 
+#[inline]
+fn eval_eq_with_packed_output_dual<F: Field, EF: ExtensionField<F>>(
+    eval_a: &[EF],
+    eval_b: &[EF],
+    out: &mut [EF::ExtensionPacking],
+    scalar_a: EF::ExtensionPacking,
+    scalar_b: EF::ExtensionPacking,
+) {
+    debug_assert_eq!(eval_a.len(), eval_b.len());
+    debug_assert_eq!(out.len(), 1 << eval_a.len());
+
+    match eval_a.len() {
+        0 => {
+            out[0] = scalar_a + scalar_b;
+        }
+        1 => {
+            let [a0, a1] = eval_eq_1(eval_a, scalar_a);
+            let [b0, b1] = eval_eq_1(eval_b, scalar_b);
+            out[0] = a0 + b0;
+            out[1] = a1 + b1;
+        }
+        2 => {
+            let eq_a = eval_eq_2(eval_a, scalar_a);
+            let eq_b = eval_eq_2(eval_b, scalar_b);
+            for i in 0..4 {
+                out[i] = eq_a[i] + eq_b[i];
+            }
+        }
+        3 => {
+            let eq_a = eval_eq_3(eval_a, scalar_a);
+            let eq_b = eval_eq_3(eval_b, scalar_b);
+            for i in 0..8 {
+                out[i] = eq_a[i] + eq_b[i];
+            }
+        }
+        _ => {
+            let (low, high) = out.split_at_mut(out.len() / 2);
+            let sa1 = scalar_a * eval_a[0];
+            let sa0 = scalar_a - sa1;
+            let sb1 = scalar_b * eval_b[0];
+            let sb0 = scalar_b - sb1;
+            eval_eq_with_packed_output_dual::<F, EF>(&eval_a[1..], &eval_b[1..], low, sa0, sb0);
+            eval_eq_with_packed_output_dual::<F, EF>(&eval_a[1..], &eval_b[1..], high, sa1, sb1);
+        }
+    }
+}
+
+pub fn compute_eval_eq_packed_dual<EF>(
+    eval_a: &[EF],
+    eval_b: &[EF],
+    out: &mut [EF::ExtensionPacking],
+    scalar_a: EF,
+    scalar_b: EF,
+) where
+    EF: ExtensionField<PF<EF>>,
+{
+    let packing_width = packing_width::<EF>();
+    let log_packing_width = log2_strict_usize(packing_width);
+
+    assert_eq!(eval_a.len(), eval_b.len());
+    assert!(log_packing_width <= eval_a.len());
+    assert_eq!(out.len(), 1 << (eval_a.len() - log_packing_width));
+
+    if eval_a.len() <= log_packing_width + 1 + LOG_NUM_THREADS {
+        let mut output_no_packing = EF::zero_vec(1 << eval_a.len());
+        eval_eq_basic::<_, _, _, false>(eval_a, &mut output_no_packing, scalar_a);
+        eval_eq_basic::<_, _, _, true>(eval_b, &mut output_no_packing, scalar_b);
+        out.par_iter_mut()
+            .zip(output_no_packing.par_chunks_exact(packing_width))
+            .for_each(|(out_elem, chunk)| {
+                *out_elem = EF::ExtensionPacking::from_ext_slice(chunk);
+            });
+    } else {
+        let eval_len_min_packing = eval_a.len() - log_packing_width;
+
+        let mut parallel_buffer_a = EF::ExtensionPacking::zero_vec(NUM_THREADS_PADDED);
+        let mut parallel_buffer_b = EF::ExtensionPacking::zero_vec(NUM_THREADS_PADDED);
+        let out_chunk_size = out.len() / NUM_THREADS_PADDED;
+
+        parallel_buffer_a[0] = packed_eq_poly(&eval_a[eval_len_min_packing..], scalar_a);
+        fill_buffer(eval_a[..LOG_NUM_THREADS].iter().rev(), &mut parallel_buffer_a);
+
+        parallel_buffer_b[0] = packed_eq_poly(&eval_b[eval_len_min_packing..], scalar_b);
+        fill_buffer(eval_b[..LOG_NUM_THREADS].iter().rev(), &mut parallel_buffer_b);
+
+        out.par_chunks_exact_mut(out_chunk_size)
+            .enumerate()
+            .for_each(|(i, out_chunk)| {
+                eval_eq_with_packed_output_dual::<PF<EF>, EF>(
+                    &eval_a[LOG_NUM_THREADS..eval_len_min_packing],
+                    &eval_b[LOG_NUM_THREADS..eval_len_min_packing],
+                    out_chunk,
+                    parallel_buffer_a[i],
+                    parallel_buffer_b[i],
+                );
+            });
+    }
+}
+
 /// Computes the equality polynomial evaluations via a simple recursive algorithm.
 ///
 /// Unlike [`eval_eq_basic`], this function makes heavy use of packed values to speed up computations.
@@ -968,10 +1067,19 @@ fn base_eval_eq_packed_with_packed_output<F, EF, const INITIALIZED: bool>(
     F: Field,
     EF: ExtensionField<F>,
 {
+    // Ensure that the output buffer size is correct:
+    // It should be of size `2^n`, where `n` is the number of variables.
+    let width = F::Packing::WIDTH;
+    let log_packing_width = log2_strict_usize(width);
     debug_assert_eq!(out.len(), 1 << eval_points.len());
+    debug_assert!(log_packing_width <= eval_points.len());
 
     match eval_points.len() {
-        0 => unreachable!(),
+        0 => {
+            debug_assert_eq!(F::Packing::WIDTH, 1);
+            let base_vals = F::Packing::pack_slice(eq_evals.as_slice());
+            scale_and_add_pf::<F, EF, INITIALIZED>(out, base_vals, packed_scalar);
+        }
         1 => {
             let eq_evaluations = eval_eq_1(eval_points, eq_evals);
             scale_and_add_pf::<F, EF, INITIALIZED>(out, eq_evaluations.as_slice(), packed_scalar);
@@ -1246,6 +1354,30 @@ mod tests {
 
                 assert_eq!(out_2, out_3_packed);
             }
+        }
+    }
+
+    #[test]
+    fn test_compute_eval_eq_packed_dual() {
+        let packing_width = <F as Field>::Packing::WIDTH;
+        let log_packing_width = log2_strict_usize(packing_width);
+        let mut rng = StdRng::seed_from_u64(42);
+
+        for n_vars in log_packing_width..22 {
+            let eval_a: Vec<EF> = (0..n_vars).map(|_| rng.random()).collect();
+            let eval_b: Vec<EF> = (0..n_vars).map(|_| rng.random()).collect();
+            let scalar_a: EF = rng.random();
+            let scalar_b: EF = rng.random();
+
+            let packed_len = 1 << (n_vars - log_packing_width);
+            let mut out_dual = EFPacking::<EF>::zero_vec(packed_len);
+            compute_eval_eq_packed_dual::<EF>(&eval_a, &eval_b, &mut out_dual, scalar_a, scalar_b);
+
+            let mut out_separate = EFPacking::<EF>::zero_vec(packed_len);
+            compute_eval_eq_packed::<EF, false>(&eval_a, &mut out_separate, scalar_a);
+            compute_eval_eq_packed::<EF, true>(&eval_b, &mut out_separate, scalar_b);
+
+            assert_eq!(out_dual, out_separate, "Mismatch at n_vars={}", n_vars);
         }
     }
 }
