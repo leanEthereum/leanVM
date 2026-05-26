@@ -54,10 +54,34 @@ POSEIDON_HARDCODED_LEFT_4_FLAG_SHIFT, POSEIDON_HARDCODED_LEFT_4_OFFSET_SHIFT = (
     1 << 4,
 )
 
-
 STARTING_PC = 0  # every program starts at PC = 0, and ends at PC = len(bytecode) - 1
 
 POSEIDON_WIDTH, POSEIDON_FULL_ROUNDS, POSEIDON_PARTIAL_ROUNDS = 16, 8, 20
+POSEIDON_N_COLS = 9 + POSEIDON_WIDTH + POSEIDON_WIDTH * (POSEIDON_FULL_ROUNDS // 2) + POSEIDON_PARTIAL_ROUNDS
+TABLE_BUSES = {
+    "execution": (
+        ("col_mult", "Push"),
+        ("byte_lookup",),
+        ("mem_group", 2, 5, 1),  # addr_a, value_a
+        ("mem_group", 3, 6, 1),  # addr_b, value_b
+        ("mem_group", 4, 7, 1),  # addr_c, value_c
+    ),
+    "extension": (
+        ("col_mult", "Pull"),
+        ("mem_group", 6, 14, 5),  # idx_a,   va
+        ("mem_group", 7, 19, 5),  # idx_b,   vb
+        ("mem_group", 13, 24, 5),  # idx_res, vres
+    ),
+    "poseidon": (
+        ("col_mult", "Pull"),
+        ("mem_group", 6, 9, 4),
+        ("mem_group", 7, 13, 4),
+        ("mem_group", 1, 17, 8),
+        ("mem_group", 2, POSEIDON_N_COLS - 16, 16),
+    ),
+}
+
+
 
 
 class ProofError(Exception):
@@ -214,7 +238,7 @@ def next_mle(x: Sequence[EF], y: Sequence[EF]) -> EF:
     return s + math.prod([*x, *y])
 
 
-def eval_multilinear_evals(evals: Sequence[EF], point: Sequence[EF]) -> EF:
+def eval_multilinear_evals(evals: Sequence[Fp | EF], point: Sequence[EF]) -> EF:
     """Evaluate a multilinear in evaluation form at `point`."""
     assert len(evals) == 1 << len(point)
     cur = list(evals)
@@ -324,34 +348,16 @@ def verify_stir_challenges(
     for idx in indices:
         op = fiat_shamir.next_merkle_opening()
         merkle_verify_path(commitment.root, log_height, idx, op.leaf_data, op.path)
+        # Round 0 leaves are raw base-field elements; later rounds pack DIM Fp values per EF element.
         leaf = op.leaf_data
         if round_index == 0:
-            packed = [EF(f) for f in leaf]
+            packed = leaf
         else:
             packed = [EF(leaf[i : i + EF.DIMENSION]) for i in range(0, len(leaf), EF.DIMENSION)]
         fold = eval_multilinear_evals(packed, folding_randomness)
         ef_pt = EF(pow(int(gen.value), idx, P))
         constraints.append(SparseStatements.dense(expand_from_univariate(ef_pt, num_variables), fold))
     return constraints
-
-
-def eval_constraints_poly(constraints: list[tuple[list[EF], list[SparseStatements]]], point: list[EF]) -> EF:
-    value = ZERO
-    pt = list(point)
-    for round_idx, (randomness, smts) in enumerate(constraints):
-        if round_idx > 0:
-            pt = pt[whir_folding_factor_at_round(round_idx - 1) :]
-        i = 0
-        for smt in smts:
-            inner_pt = pt[len(pt) - len(smt.point) :]
-            common = next_mle(smt.point, inner_pt) if smt.is_next else eq_poly(smt.point, inner_pt)
-            sel_n = smt.selector_num_variables
-            for v in smt.values:
-                lagrange = math.prod(pt[j] if (v[0] >> (sel_n - 1 - j)) & 1 else ONE - pt[j] for j in range(sel_n))
-                value = value + lagrange * common * randomness[i]
-                i += 1
-        assert i == len(randomness)
-    return value
 
 
 def whir_verify(
@@ -374,9 +380,9 @@ def whir_verify(
         g = ONE
         for smt in constraints:
             for _, value in smt.values:
-                target = target + g * value
+                target += g * value
                 combo.append(g)
-                g = g * gamma
+                g *= gamma
         round_constraints.append((combo, constraints))
         sc_point, target = verify_sumcheck(fiat_shamir, target, n_fold, 2, pow_bits)
         round_folding.append(sc_point)
@@ -441,7 +447,21 @@ def whir_verify(
     round_folding.append(final_sc_point)
 
     folding_flat = [r for chunk in round_folding for r in chunk]
-    eval_weights = eval_constraints_poly(round_constraints, folding_flat)
+
+    eval_weights = ZERO
+    pt = folding_flat
+    for round_idx, (randomness, smts) in enumerate(round_constraints):
+        if round_idx > 0:
+            pt = pt[whir_folding_factor_at_round(round_idx - 1) :]
+        i = 0
+        for smt in smts:
+            inner_pt = pt[len(pt) - len(smt.point) :]
+            common = next_mle(smt.point, inner_pt) if smt.is_next else eq_poly(smt.point, inner_pt)
+            sel_n = smt.selector_num_variables
+            for v in smt.values:
+                lagrange = math.prod(pt[j] if (v[0] >> (sel_n - 1 - j)) & 1 else ONE - pt[j] for j in range(sel_n))
+                eval_weights += lagrange * common * randomness[i]
+                i += 1
     final_value = eval_multilinear_coeffs(final_coeffs, list(reversed(final_sc_point)))
     if final_sc_value != eval_weights * final_value:
         raise ProofError("WHIR final sumcheck check failed")
@@ -449,30 +469,6 @@ def whir_verify(
     return folding_flat
 
 
-# poseidon16_compress: 9 scalars + WIDTH inputs + (ROUNDS_F/2) pairs of WIDTH cols (begin + end-1 + outputs) + partial.
-_POSEIDON_N_COLS = 9 + POSEIDON_WIDTH + POSEIDON_WIDTH * (POSEIDON_FULL_ROUNDS // 2) + POSEIDON_PARTIAL_ROUNDS
-TABLE_BUSES = {
-    "execution": (
-        ("col_mult", "Push"),
-        ("byte_lookup",),
-        ("mem_group", 2, 5, 1),  # addr_a, value_a
-        ("mem_group", 3, 6, 1),  # addr_b, value_b
-        ("mem_group", 4, 7, 1),  # addr_c, value_c
-    ),
-    "extension": (
-        ("col_mult", "Pull"),
-        ("mem_group", 6, 14, 5),  # idx_a,   va
-        ("mem_group", 7, 19, 5),  # idx_b,   vb
-        ("mem_group", 13, 24, 5),  # idx_res, vres
-    ),
-    "poseidon": (
-        ("col_mult", "Pull"),
-        ("mem_group", 6, 9, 4),
-        ("mem_group", 7, 13, 4),
-        ("mem_group", 1, 17, 8),
-        ("mem_group", 2, _POSEIDON_N_COLS - 16, 16),
-    ),
-}
 
 
 @dataclass(frozen=True)
@@ -480,7 +476,7 @@ class TableMeta:
     name: str
     n_columns: int
     buses: tuple
-    air_degree: int  # max degree of AIR transition constraints
+    air_degree: int
     n_constraints: int
     n_shift: int  # number of shift (next-row) columns
     air_fn: object  # (folder, extra_data) -> None, fills folder with AIR constraints
@@ -568,7 +564,7 @@ def verify_gkr_quotient(fiat_shamir: FiatShamir, n_vars: int) -> tuple[EF, list[
 def mle_of_01234567_etc(point: Sequence[EF]) -> EF:
     """MLE of `f(i) = i` (big-endian) at `point`."""
     n = len(point)
-    return sum(p * EF(1 << (n - 1 - i)) for i, p in enumerate(point))
+    return sum(p * (1 << (n - 1 - i)) for i, p in enumerate(point))
 
 
 def mle_of_zeros_then_ones(n_zeros: int, point: Sequence[EF]) -> EF:
@@ -588,7 +584,7 @@ def mle_of_zeros_then_ones(n_zeros: int, point: Sequence[EF]) -> EF:
 def finger_print(discriminator: Fp, data: Sequence[EF], alphas_eq_poly: Sequence[EF]) -> EF:
     """`Σᵢ αᵢ · dataᵢ + α_last · discriminator`."""
     assert len(alphas_eq_poly) > len(data)
-    return dot_product(alphas_eq_poly, data) + alphas_eq_poly[-1] * EF(discriminator)
+    return dot_product(alphas_eq_poly, data) + alphas_eq_poly[-1] * discriminator
 
 
 def sort_tables_by_height(table_log_heights: dict[str, int]) -> list[tuple[str, int]]:
@@ -648,10 +644,10 @@ def verify_generic_logup(
     mem_pt = point_gkr[-log_memory:]
     pref = pref_at(0, log_memory)
     value_memory_acc = fiat_shamir.next_extension_scalar()
-    num = num - pref * value_memory_acc
+    num -= pref * value_memory_acc
     value_memory = fiat_shamir.next_extension_scalar()
     fp_mem = finger_print(ds_mem, [mle_of_01234567_etc(mem_pt), value_memory], alphas_eq_poly)
-    den = den + pref * (c - fp_mem)
+    den += pref * (c - fp_mem)
     offset = 1 << log_memory
 
     # Bytecode (padded to the tallest table).
@@ -660,15 +656,15 @@ def verify_generic_logup(
     pref = pref_at(offset, log_bytecode)
     pref_pad = pref_at(offset, log_byte_pad)
     value_bytecode_acc = fiat_shamir.next_extension_scalar()
-    bytecode_value = eval_multilinear_evals([EF(v) for v in bytecode_multilinear], byte_pt + alphas[-log_instr:])
+    bytecode_value = eval_multilinear_evals([Fp(v) for v in bytecode_multilinear], byte_pt + alphas[-log_instr:])
     correction = math.prod(ONE - a for a in alphas[: len(alphas) - log_instr])
     fp_byte = (
         bytecode_value * correction
         + mle_of_01234567_etc(byte_pt) * alphas_eq_poly[n_instr_cols]
-        + alphas_eq_poly[-1] * EF(ds_byte)
+        + alphas_eq_poly[-1] * ds_byte
     )
-    num = num - pref * value_bytecode_acc
-    den = den + pref * (c - fp_byte) + pref_pad * mle_of_zeros_then_ones(1 << log_bytecode, point_gkr[-log_byte_pad:])
+    num -= pref * value_bytecode_acc
+    den += pref * (c - fp_byte) + pref_pad * mle_of_zeros_then_ones(1 << log_bytecode, point_gkr[-log_byte_pad:])
     offset += 1 << log_byte_pad
 
     # Per-table base offsets in the GKR layout are assigned in sorted-by-height order
@@ -699,16 +695,16 @@ def verify_generic_logup(
             if bus[0] == "col_mult":
                 bus_num_vals[name] = fiat_shamir.next_extension_scalar()
                 bus_den_vals[name] = fiat_shamir.next_extension_scalar()
-                num = num + pref * bus_num_vals[name]
-                den = den + pref * bus_den_vals[name]
+                num += pref * bus_num_vals[name]
+                den += pref * bus_den_vals[name]
                 offset_within_table += row_stride
             elif bus[0] == "byte_lookup":
                 cols = list(range(n_runtime_cols, n_runtime_cols + n_instr_cols)) + [col_pc]
                 evals = fiat_shamir.next_extension_scalars_vec(len(cols))
                 for c_idx, e in zip(cols, evals):
                     table_values[c_idx] = e
-                num = num + pref  # Push direction
-                den = den + pref * (c - finger_print(ds_byte, evals, alphas_eq_poly))
+                num += pref  # Push direction
+                den += pref * (c - finger_print(ds_byte, evals, alphas_eq_poly))
                 offset_within_table += row_stride
             elif bus[0] == "mem_group":
                 _, idx_col, vals_start, n = bus
@@ -724,16 +720,16 @@ def verify_generic_logup(
                     if val_fresh:
                         table_values[val_col] = next(evals)
                     pref = pref_at(offset_within_table, log_n_rows)
-                    fp = finger_print(ds_mem, [table_values[idx_col] + EF(i), table_values[val_col]], alphas_eq_poly)
-                    num = num + pref  # Push direction
-                    den = den + pref * (c - fp)
+                    fp = finger_print(ds_mem, [table_values[idx_col] + i, table_values[val_col]], alphas_eq_poly)
+                    num += pref  # Push direction
+                    den += pref * (c - fp)
                     offset_within_table += row_stride
             else:
                 raise ProofError(f"unknown bus kind: {bus[0]}")
 
         columns_values[name] = table_values
 
-    den = den + mle_of_zeros_then_ones(final_offset, point_gkr)
+    den += mle_of_zeros_then_ones(final_offset, point_gkr)
     if num != claim_num:
         raise ProofError("logup: numerators value mismatch")
     if den != claim_den:
@@ -812,8 +808,8 @@ def _eval_air_execution(folder: ConstraintFolder, extra_data: dict) -> None:
     nu_c = flag_c * operand_c + nfc * value_c + flag_c_fp * (fp + operand_c)
 
     # aux ∈ {0,1,2}: 0=nothing, 1=add, 2=deref.
-    add = aux * EF(2) - aux * aux
-    deref = aux * (aux - ONE) * EF((P + 1) // 2)  # (P+1)/2 is the inverse of 2 mod P
+    add = aux * 2 - aux * aux
+    deref = aux * (aux - ONE) * ((P + 1) // 2)  # (P+1)/2 is the inverse of 2 mod P
     is_precompile = ONE - add - mul - deref - jump
 
     az = folder.assert_zero
@@ -860,11 +856,11 @@ def _eval_air_extension_op(folder: ConstraintFolder, extra_data: dict) -> None:
     comp_sh = s[8:13]
 
     aux = (
-        is_be * EF(_EXT_OP_FLAG_IS_BE)
-        + flag_add * EF(_EXT_OP_FLAG_ADD)
-        + flag_mul * EF(_EXT_OP_FLAG_MUL)
-        + flag_poly_eq * EF(_EXT_OP_FLAG_POLY_EQ)
-        + len_col * EF(_EXT_OP_LEN_MULTIPLIER)
+        is_be * _EXT_OP_FLAG_IS_BE
+        + flag_add * _EXT_OP_FLAG_ADD
+        + flag_mul * _EXT_OP_FLAG_MUL
+        + flag_poly_eq * _EXT_OP_FLAG_POLY_EQ
+        + len_col * _EXT_OP_LEN_MULTIPLIER
     )
     _eval_bus_virtual(folder, extra_data, start * (flag_add + flag_mul + flag_poly_eq), aux, [idx_a, idx_b, idx_res])
 
@@ -899,8 +895,8 @@ def _eval_air_extension_op(folder: ConstraintFolder, extra_data: dict) -> None:
     ]:
         folder.assert_zero(not_start_sh * (x - y))
 
-    folder.assert_zero(not_start_sh * (idx_a_sh - idx_a - (is_be + is_ee * EF(5))))
-    folder.assert_zero(not_start_sh * (idx_b_sh - idx_b - EF(5)))
+    folder.assert_zero(not_start_sh * (idx_a_sh - idx_a - (is_be + is_ee * 5)))
+    folder.assert_zero(not_start_sh * (idx_b_sh - idx_b - 5))
     folder.assert_zero(start_sh * (len_col - ONE))
 
 
@@ -965,11 +961,11 @@ def _eval_poseidon1_16(folder: ConstraintFolder, cols: dict) -> None:
         folder.assert_eq(state[0] * state[0] * state[0], cols["partial_rounds"][r])
         state[0] = cols["partial_rounds"][r]
         if r < n_partial - 1:
-            state[0] = state[0] + const["sparse_scalar_rc"][r]
+            state[0] += const["sparse_scalar_rc"][r]
         old_s0 = state[0]
         state[0] = dot_product(state, const["sparse_first_row"][r])
         for i in range(1, POSEIDON_WIDTH):
-            state[i] = state[i] + old_s0 * const["sparse_v"][r][i - 1]
+            state[i] += old_s0 * const["sparse_v"][r][i - 1]
 
     for r in range(half_final - 1):
         state = _full_round(state, const["final_constants"][2 * r], const["final_constants"][2 * r + 1])
@@ -1013,14 +1009,14 @@ def _eval_air_poseidon16(folder: ConstraintFolder, extra_data: dict) -> None:
     outputs_left, outputs_right = take(W // 2), take(W // 2)
 
     discriminator = (
-        EF(POSEIDON_DISCRIMINATOR_BASE)
-        + flag_permute * EF(POSEIDON_PERMUTE_SHIFT)
-        + flag_half_output * EF(POSEIDON_HALF_OUTPUT_SHIFT)
-        + flag_hardcoded_left * EF(POSEIDON_HARDCODED_LEFT_4_FLAG_SHIFT)
-        + flag_hardcoded_left * offset_hardcoded_left * EF(POSEIDON_HARDCODED_LEFT_4_OFFSET_SHIFT)
+        POSEIDON_DISCRIMINATOR_BASE
+        + flag_permute * POSEIDON_PERMUTE_SHIFT
+        + flag_half_output * POSEIDON_HALF_OUTPUT_SHIFT
+        + flag_hardcoded_left * POSEIDON_HARDCODED_LEFT_4_FLAG_SHIFT
+        + flag_hardcoded_left * offset_hardcoded_left * POSEIDON_HARDCODED_LEFT_4_OFFSET_SHIFT
     )
     not_hcl = ONE - flag_hardcoded_left
-    index_a = eff_idx_left_second - not_hcl * EF(DIGEST_ELEMS // 2)
+    index_a = eff_idx_left_second - not_hcl * (DIGEST_ELEMS // 2)
 
     _eval_bus_virtual(folder, extra_data, multiplicity, discriminator, [index_a, index_b, index_res])
     for f in (multiplicity, flag_half_output, flag_hardcoded_left, flag_permute):
@@ -1050,7 +1046,7 @@ DEFAULT_TABLES = [
     for name, n, d, k, s, fn in (
         ("execution", N_INSTRUCTION_COLUMNS + N_RUNTIME_COLUMNS, 5, 14, 2, _eval_air_execution),
         ("extension", 29, 6, 35, 13, _eval_air_extension_op),
-        ("poseidon", _POSEIDON_N_COLS, 10, 101, 0, _eval_air_poseidon16),
+        ("poseidon", POSEIDON_N_COLS, 10, 101, 0, _eval_air_poseidon16),
     )
 ]
 
@@ -1144,8 +1140,8 @@ def verify_execution(
     for name in ALL_TABLES_ORDER:
         offset = alpha_offsets[name]
         sign = -ONE if tables_by_name[name].buses[0][1] == "Pull" else ONE
-        initial_sum = initial_sum + alpha_powers[offset] * (logup["bus_num"][name] * sign)
-        initial_sum = initial_sum + alpha_powers[offset + 1] * (logup_c - logup["bus_den"][name])
+        initial_sum += alpha_powers[offset] * (logup["bus_num"][name] * sign)
+        initial_sum += alpha_powers[offset + 1] * (logup_c - logup["bus_den"][name])
     sc_point, sc_value = verify_sumcheck(state, initial_sum, n_max, max(t.air_degree + 1 for t in tables))
 
     committed = {
@@ -1162,7 +1158,7 @@ def verify_execution(
 
         natural_pt = list(reversed(sc_point[-log_n_rows:])) if log_n_rows else []
         k_t = math.prod(sc_point[: n_max - log_n_rows])
-        my_air_final = my_air_final + k_t * eq_poly(gkr_point[-log_n_rows:], natural_pt) * constraint_eval
+        my_air_final += k_t * eq_poly(gkr_point[-log_n_rows:], natural_pt) * constraint_eval
 
         eq_vals = {i: col_evals[i] for i in range(meta.n_columns)}
         next_vals = {j: col_evals[meta.n_columns + j] for j in range(meta.n_shift)}
@@ -1172,7 +1168,7 @@ def verify_execution(
 
     assert len(public_input) % DIGEST_ELEMS == 0
     pm_point = state.sample_many_ef(log2_strict(len(public_input)))
-    pm_eval = eval_multilinear_evals([EF(f) for f in public_input], pm_point)
+    pm_eval = eval_multilinear_evals(public_input, pm_point)
 
     bytecode_acc_idx = (2 << log_memory) >> bytecode_log_size
     previous = [

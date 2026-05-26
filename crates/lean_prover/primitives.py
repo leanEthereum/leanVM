@@ -21,16 +21,22 @@ class Fp:
     def __init__(self, value: int) -> None:
         self.value = value % P
 
-    def __add__(self, other: "Fp") -> "Fp":
+    def __add__(self, other):
+        if not isinstance(other, Fp):
+            return NotImplemented  # let EF.__radd__ / etc. handle mixed-type arithmetic.
         return Fp(self.value + other.value)
 
-    def __sub__(self, other: "Fp") -> "Fp":
+    def __sub__(self, other):
+        if not isinstance(other, Fp):
+            return NotImplemented
         return Fp(self.value - other.value)
 
     def __neg__(self) -> "Fp":
         return Fp(-self.value)
 
-    def __mul__(self, other: "Fp") -> "Fp":
+    def __mul__(self, other):
+        if not isinstance(other, Fp):
+            return NotImplemented
         return Fp(self.value * other.value)
 
     def __pow__(self, exponent: int) -> "Fp":
@@ -82,6 +88,8 @@ class EF:
         return EF([a + b for a, b in zip(self.c, o.c)])
 
     def __sub__(self, o):
+        if isinstance(o, int):
+            return self if o == 0 else self - EF(o)
         if isinstance(o, Fp):
             return EF([self.c[0] - o, *self.c[1:]])
         return EF([a - b for a, b in zip(self.c, o.c)])
