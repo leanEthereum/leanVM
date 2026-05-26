@@ -4,13 +4,16 @@ Setup the test vector (one-time):
 Run:
     python3 crates/lean_prover/verifier.py
 Format:
-    ruff format --line-length 120 crates/lean_prover/verifier.py
+    ruff format --line-length 120 crates/lean_prover
 """
 
 from __future__ import annotations
-import functools
+import array
+import json
 import math
+import sys
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Sequence
 from primitives import *
 
@@ -41,7 +44,7 @@ class ProofError(Exception):
 # T-Sponge (compression instead of permutation) with replacement (instead of xoring / adding the ingested data).
 def sponge_hash(data: Sequence[Fp]) -> list[Fp]:
     assert len(data) % SPONGE_RATE == 0 and len(data) > 0
-    state = [Fp(len(data))] + [Fp(0)] * (SPONGE_CAPACITY - 1) # IV = [size, 0, 0, 0, ..., 0]
+    state = [Fp(len(data))] + [Fp(0)] * (SPONGE_CAPACITY - 1)  # IV = [size, 0, 0, 0, ..., 0]
     for k in range(len(data) // SPONGE_RATE):
         state = poseidon16_compress(state, data[k * SPONGE_RATE : (k + 1) * SPONGE_RATE])
     return state
@@ -170,12 +173,12 @@ def merkle_verify_path(
 
 
 def expand_from_univariate(x: EF, num_variables: int) -> list[EF]:
-    return list(accumulate(repeat(x, num_variables), lambda a, _: a * a)) # [x, x², x⁴, …, x^(2^(n−1))]
+    return list(accumulate(repeat(x, num_variables), lambda a, _: a * a))  # [x, x², x⁴, …, x^(2^(n−1))]
 
 
 def eq_poly(a: Sequence[EF], b: Sequence[EF]) -> EF:
     assert len(a) == len(b)
-    return math.prod(x*y + (ONE - x) * (ONE - y) for x, y in zip(a, b))
+    return math.prod(x * y + (ONE - x) * (ONE - y) for x, y in zip(a, b))
 
 
 def next_mle(x: Sequence[EF], y: Sequence[EF]) -> EF:
@@ -243,7 +246,6 @@ def whir_n_rounds_and_final_sumcheck(num_variables: int) -> tuple[int, int]:
     return n, nv - n * WHIR_SUBSEQUENT_FOLDING_FACTOR
 
 
-
 def whir_log_domain_size_at(num_variables: int, start_rate: int, r: int) -> int:
     return num_variables + start_rate - (RS_DOMAIN_INITIAL_REDUCTION_FACTOR + r - 1 if r >= 1 else 0)
 
@@ -252,23 +254,20 @@ def two_adic_generator(bits: int) -> Fp:
     return Fp(KB_TWO_ADIC_GENERATORS[bits])
 
 
-@functools.cache
-def whir_config(log_inv_rate: int, num_variables: int) -> dict:
-    for c in WHIR_CONFIGS:
-        if (c[0], c[1]) == (log_inv_rate, num_variables):
-            return {
-                "log_inv_rate": c[0],
-                "num_variables": c[1],
-                "commitment_ood_samples": c[2],
-                "starting_folding_pow_bits": c[3],
-                "final_queries": c[4],
-                "final_query_pow_bits": c[5],
-                "rounds": [
-                    {"num_queries": r[0], "ood_samples": r[1], "query_pow_bits": r[2], "folding_pow_bits": r[3]}
-                    for r in c[6]
-                ],
-            }
-    raise KeyError(f"No WHIR config for (log_inv_rate={log_inv_rate}, num_variables={num_variables}).")
+WHIR_CONFIG_BY_KEY = {
+    (c[0], c[1]): {
+        "log_inv_rate": c[0],
+        "num_variables": c[1],
+        "commitment_ood_samples": c[2],
+        "starting_folding_pow_bits": c[3],
+        "final_queries": c[4],
+        "final_query_pow_bits": c[5],
+        "rounds": [
+            {"num_queries": r[0], "ood_samples": r[1], "query_pow_bits": r[2], "folding_pow_bits": r[3]} for r in c[6]
+        ],
+    }
+    for c in WHIR_CONFIGS
+}
 
 
 @dataclass
@@ -470,31 +469,32 @@ def whir_verify(
     return folding_flat
 
 
-def _table_buses(name: str, n_columns: int) -> tuple:
-    if name == "execution":
-        return (
-            ("col_mult", "Push"),
-            ("byte_lookup",),
-            ("mem_group", 2, 5, 1),  # addr_a, value_a
-            ("mem_group", 3, 6, 1),  # addr_b, value_b
-            ("mem_group", 4, 7, 1),  # addr_c, value_c
-        )
-    if name == "extension_op":
-        return (
-            ("col_mult", "Pull"),
-            ("mem_group", 6, 14, 5),  # idx_a,   va
-            ("mem_group", 7, 19, 5),  # idx_b,   vb
-            ("mem_group", 13, 24, 5),  # idx_res, vres
-        )
-    if name == "poseidon16_compress":
-        return (
-            ("col_mult", "Pull"),
-            ("mem_group", 6, 9, 4),
-            ("mem_group", 7, 13, 4),
-            ("mem_group", 1, 17, 8),
-            ("mem_group", 2, n_columns - 16, 16),
-        )
-    raise ProofError(f"unknown table: {name}")
+# poseidon16_compress: 9 scalars + 16 inputs + half_full_rounds*WIDTH (begin + end-1) + partial + WIDTH outputs.
+_POSEIDON_N_COLS = (
+    25 + 32 * (POSEIDON1_AIR_CONSTANTS["half_full_rounds"] // 2) + POSEIDON1_AIR_CONSTANTS["partial_rounds"]
+)
+TABLE_BUSES = {
+    "execution": (
+        ("col_mult", "Push"),
+        ("byte_lookup",),
+        ("mem_group", 2, 5, 1),  # addr_a, value_a
+        ("mem_group", 3, 6, 1),  # addr_b, value_b
+        ("mem_group", 4, 7, 1),  # addr_c, value_c
+    ),
+    "extension_op": (
+        ("col_mult", "Pull"),
+        ("mem_group", 6, 14, 5),  # idx_a,   va
+        ("mem_group", 7, 19, 5),  # idx_b,   vb
+        ("mem_group", 13, 24, 5),  # idx_res, vres
+    ),
+    "poseidon16_compress": (
+        ("col_mult", "Pull"),
+        ("mem_group", 6, 9, 4),
+        ("mem_group", 7, 13, 4),
+        ("mem_group", 1, 17, 8),
+        ("mem_group", 2, _POSEIDON_N_COLS - 16, 16),
+    ),
+}
 
 
 @dataclass(frozen=True)
@@ -511,19 +511,6 @@ class TableMeta:
     def n_buses(self) -> int:
         # mem_group entries expand to `n` individual buses.
         return sum(b[3] if b[0] == "mem_group" else 1 for b in self.buses)
-
-
-def default_tables() -> list[TableMeta]:
-    # (n_columns, air_degree, n_constraints, n_shift, air_fn) per table — all constants.
-    # poseidon16_compress: 9 scalars + 16 inputs + half_full_rounds*WIDTH (begin + end-1) + partial + WIDTH outputs.
-    p = POSEIDON1_AIR_CONSTANTS
-    poseidon_n_cols = 25 + 32 * (p["half_full_rounds"] // 2) + p["partial_rounds"]
-    specs = (
-        ("execution", N_INSTRUCTION_COLUMNS + N_RUNTIME_COLUMNS, 5, 14, 2, _eval_air_execution),
-        ("extension_op", 29, 6, 35, 13, _eval_air_extension_op),
-        ("poseidon16_compress", poseidon_n_cols, 10, 101, 0, _eval_air_poseidon16),
-    )
-    return [TableMeta(name, n, _table_buses(name, n), d, k, s, fn) for name, n, d, k, s, fn in specs]
 
 
 def stacked_pcs_global_statements(
@@ -697,7 +684,9 @@ def verify_generic_logup(
     pref = pref_at(offset, log_bytecode)
     pref_pad = pref_at(offset, log_byte_pad)
     value_bytecode_acc = state.next_extension_scalar()
-    bytecode_value = eval_multilinear_evals([EF(v) for v in bytecode_multilinear], list(byte_pt) + list(alphas[-log_instr:]))
+    bytecode_value = eval_multilinear_evals(
+        [EF(v) for v in bytecode_multilinear], list(byte_pt) + list(alphas[-log_instr:])
+    )
     correction = math.prod(ONE - a for a in alphas[: len(alphas) - log_instr])
     fp_byte = (
         bytecode_value * correction
@@ -705,11 +694,7 @@ def verify_generic_logup(
         + alphas_eq_poly[-1] * EF(ds_byte)
     )
     num = num - pref * value_bytecode_acc
-    den = (
-        den
-        + pref * (c - fp_byte)
-        + pref_pad * mle_of_zeros_then_ones(1 << log_bytecode, point_gkr[-log_byte_pad:])
-    )
+    den = den + pref * (c - fp_byte) + pref_pad * mle_of_zeros_then_ones(1 << log_bytecode, point_gkr[-log_byte_pad:])
     offset += 1 << log_byte_pad
 
     # Per-table base offsets in the GKR layout are assigned in sorted-by-height order
@@ -818,7 +803,7 @@ class ConstraintFolder:
 def _eval_bus_virtual(
     folder: "ConstraintFolder", extra_data: dict, multiplicity: EF, discriminator: EF, data: Sequence[EF]
 ) -> None:
-    alphas: list[EF] = extra_data["logup_alphas_eq_poly"]
+    alphas: list[EF] = extra_data["logup_alphas_eq"]
     assert len(data) < len(alphas)
     folder.assert_zero(multiplicity)
     encoded = sum(a * d for a, d in zip(alphas, data)) + alphas[-1] * discriminator
@@ -945,8 +930,7 @@ def _eval_air_extension_op(folder: ConstraintFolder, extra_data: dict) -> None:
     folder.assert_zero(start_sh * (len_col - ONE))
 
 
-@functools.cache
-def _p1c() -> dict:
+def _build_p1c() -> dict:
     raw = POSEIDON1_AIR_CONSTANTS
     fp_mat = lambda m: [[Fp(v) for v in row] for row in m]
     fp_vec = lambda v: [Fp(x) for x in v]
@@ -973,6 +957,9 @@ def _p1c() -> dict:
     }
 
 
+P1C = _build_p1c()
+
+
 _POSEIDON_WIDTH = 16
 _HALF_DIGEST_LEN = 4
 _POSEIDON_DISCRIMINATOR_BASE = 3  # odd ≥ 3, disjoint from memory (1) / bytecode (2)
@@ -990,14 +977,14 @@ def _matvec_kb(mat: list[list[Fp]], state: list[EF]) -> list[EF]:
 def _full_round(state: list[EF], rc1: list[Fp], rc2: list[Fp]) -> list[EF]:
     for rc in (rc1, rc2):
         sbox = [(t := s + c) * t * t for s, c in zip(state, rc)]
-        state = _matvec_kb(_p1c()["mds_dense"], sbox)
+        state = _matvec_kb(P1C["mds_dense"], sbox)
     return state
 
 
 def _eval_poseidon1_16(folder: ConstraintFolder, cols: dict) -> None:
     """AIR for Poseidon1-16. Each `post` column commits an intermediate state, which we
     constrain against the local computation, then adopt to bound polynomial degree."""
-    const = _p1c()
+    const = P1C
     state = list(cols["inputs"])
     initial = list(cols["inputs"])
     half_initial = half_final = const["half_full_rounds"] // 2
@@ -1043,7 +1030,7 @@ def _eval_poseidon1_16(folder: ConstraintFolder, cols: dict) -> None:
 
 
 def _eval_air_poseidon16(folder: ConstraintFolder, extra_data: dict) -> None:
-    const = _p1c()
+    const = P1C
     flat, W = folder.flat, _POSEIDON_WIDTH
     half_initial = half_final = const["half_full_rounds"] // 2
 
@@ -1096,12 +1083,23 @@ def _eval_air_poseidon16(folder: ConstraintFolder, extra_data: dict) -> None:
     )
 
 
+# (n_columns, air_degree, n_constraints, n_shift, air_fn) per table — all constants.
+DEFAULT_TABLES = [
+    TableMeta(name, n, TABLE_BUSES[name], d, k, s, fn)
+    for name, n, d, k, s, fn in (
+        ("execution", N_INSTRUCTION_COLUMNS + N_RUNTIME_COLUMNS, 5, 14, 2, _eval_air_execution),
+        ("extension_op", 29, 6, 35, 13, _eval_air_extension_op),
+        ("poseidon16_compress", _POSEIDON_N_COLS, 10, 101, 0, _eval_air_poseidon16),
+    )
+]
+
+
 def verify_execution(
     public_input: Sequence[Fp],
     proof: Proof,
     bytecode_multilinear: list[int],
 ):
-    tables = default_tables()
+    tables = DEFAULT_TABLES
     bytecode_log_size = log2_strict(len(bytecode_multilinear)) - log2_ceil(N_INSTRUCTION_COLUMNS)
     ending_pc = (1 << bytecode_log_size) - 1
     bytecode_hash = sponge_hash([Fp(v) for v in bytecode_multilinear])
@@ -1122,9 +1120,7 @@ def verify_execution(
     if log_memory < max(max(table_log_n_rows, default=0), bytecode_log_size):
         raise ProofError("InvalidProof: memory smaller than tables/bytecode")
     for t, h in zip(tables, table_log_n_rows):
-        limit = MAX_LOG_N_ROWS_PER_TABLE.get(t.name)
-        if limit is None:
-            raise ProofError(f"InvalidProof: unknown table {t.name}")
+        limit = MAX_LOG_N_ROWS_PER_TABLE[t.name]
         if not MIN_LOG_N_ROWS_PER_TABLE <= h <= limit:
             raise ProofError(
                 f"InvalidProof: table {t.name} log_n_rows={h} not in [{MIN_LOG_N_ROWS_PER_TABLE}, {limit}]"
@@ -1143,7 +1139,7 @@ def verify_execution(
     stacked_n_vars = log2_ceil(total_stacked)
     if stacked_n_vars > TWO_ADICITY + WHIR_INITIAL_FOLDING_FACTOR - log_inv_rate:
         raise ProofError("InvalidProof: stacked_n_vars exceeds WHIR domain bound")
-    cfg = whir_config(log_inv_rate, stacked_n_vars)
+    cfg = WHIR_CONFIG_BY_KEY[(log_inv_rate, stacked_n_vars)]
     nood = cfg["commitment_ood_samples"]
     parsed_commitment = ParsedCommitment(
         stacked_n_vars,
@@ -1179,7 +1175,7 @@ def verify_execution(
         cumulative += tables_by_name[name].n_constraints
     alpha_powers = ef_powers(air_alpha, cumulative)
 
-    extra_data = {"logup_alphas_eq_poly": logup_alphas_eq}
+    extra_data = {"logup_alphas_eq": logup_alphas_eq}
 
     # Initial AIR sum: Σ_table (α^o · signed_num + α^(o+1) · (c − bus_den)). The
     # sign is the direction of each table's unique Column-multiplicity bus.
@@ -1192,8 +1188,7 @@ def verify_execution(
     sc_point, sc_value = verify_sumcheck(state, initial_sum, n_max, max(t.air_degree + 1 for t in tables))
 
     committed = {
-        name: [(gkr_point[-table_log_heights[name]:], dict(logup["columns_values"][name]), {})]
-        for name in ALL_TABLES_ORDER
+        name: [(gkr_point[-table_log_heights[name] :], logup["columns_values"][name], {})] for name in ALL_TABLES_ORDER
     }
     my_air_final = ZERO
     for name in ALL_TABLES_ORDER:
@@ -1206,9 +1201,7 @@ def verify_execution(
 
         natural_pt = list(reversed(sc_point[-log_n_rows:])) if log_n_rows else []
         k_t = math.prod(sc_point[: n_max - log_n_rows])
-        my_air_final = (
-            my_air_final + k_t * eq_poly(gkr_point[-log_n_rows:], natural_pt) * constraint_eval
-        )
+        my_air_final = my_air_final + k_t * eq_poly(gkr_point[-log_n_rows:], natural_pt) * constraint_eval
 
         eq_vals = {i: col_evals[i] for i in range(meta.n_columns)}
         next_vals = {j: col_evals[meta.n_columns + j] for j in range(meta.n_shift)}
@@ -1253,14 +1246,11 @@ def verify_execution(
 
 
 def main() -> int:
-    import array, json
-    from pathlib import Path
-
     vector_path = Path(__file__).resolve().parents[2] / "target" / "zkvm_test_vectors" / "proof.json"
     if not vector_path.exists():
         print(
             f"Test vector not found at {vector_path}. Generate it first with:\n"
-            "    cargo test --release -p lean_prover dump_zkvm_vector -- --nocapture"
+            "    cargo test --release -p lean_prover dump_test_vector_for_python_verifier -- --nocapture"
         )
         return 1
 
@@ -1293,6 +1283,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    import sys as _sys
-
-    _sys.exit(main())
+    sys.exit(main())
