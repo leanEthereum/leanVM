@@ -9,9 +9,11 @@ from utils import *
 # This matches the normal-ordering poseidon precompile output [cap | rate].
 
 
-def fs_new(transcript_ptr):
+@inline
+def fs_new(transcript_ptr, initial_capacity):
     fs = Array(17)
-    set_to_16_zeros(fs)
+    copy_8(fs, initial_capacity)
+    set_to_8_zeros(fs + 8)
     fs[16] = transcript_ptr
     return fs
 

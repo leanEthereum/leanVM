@@ -1,9 +1,9 @@
 use field::PrimeField64;
 use koala_bear::symmetric::Permutation;
 
-pub(crate) const RATE: usize = 8;
-pub(crate) const WIDTH: usize = RATE * 2;
-pub(crate) const CAPACITY: usize = WIDTH - RATE;
+pub const RATE: usize = 8;
+pub const WIDTH: usize = RATE * 2;
+pub const CAPACITY: usize = WIDTH - RATE;
 
 #[derive(Clone, Debug)]
 pub struct Challenger<F, P> {
@@ -13,13 +13,15 @@ pub struct Challenger<F, P> {
 }
 
 impl<F: PrimeField64, P: Permutation<[F; WIDTH]>> Challenger<F, P> {
-    pub fn new(permutation: P) -> Self
+    pub fn new(permutation: P, initial_capacity: [F; CAPACITY]) -> Self
     where
         F: Default,
     {
+        let mut state = [F::ZERO; WIDTH];
+        state[..CAPACITY].copy_from_slice(&initial_capacity);
         Self {
             permutation,
-            state: [F::ZERO; WIDTH],
+            state,
             rate_fresh: false,
         }
     }

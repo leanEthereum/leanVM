@@ -25,7 +25,7 @@ impl<EF: ExtensionField<PF<EF>>, P: Permutation<[PF<EF>; WIDTH]>> VerifierState<
 where
     PF<EF>: PrimeField64,
 {
-    pub fn new(proof: Proof<PF<EF>>, permutation: P) -> Result<Self, ProofError> {
+    pub fn new(proof: Proof<PF<EF>>, permutation: P, capacity: [PF<EF>; CAPACITY]) -> Result<Self, ProofError> {
         let mut merkle_openings = Vec::new();
         for paths in proof.merkle_paths {
             let restored = Self::restore_merkle_paths(paths).ok_or(ProofError::InvalidProof)?;
@@ -33,7 +33,7 @@ where
         }
 
         Ok(Self {
-            challenger: Challenger::new(permutation),
+            challenger: Challenger::new(permutation, capacity),
             transcript: proof.transcript,
             transcript_offset: 0,
             merkle_openings,

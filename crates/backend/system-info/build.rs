@@ -38,12 +38,12 @@ fn detect_l1_cache_size() -> Option<usize> {
 
 #[cfg(target_os = "macos")]
 fn detect_l1_cache_size() -> Option<usize> {
-    // `sysctl -n hw.l1dcachesize` prints bytes as a decimal integer.
-    let out = std::process::Command::new("sysctl")
-        .args(["-n", "hw.l1dcachesize"])
-        .output()
-        .ok()?;
-    std::str::from_utf8(&out.stdout).ok()?.trim().parse().ok()
+    // `hw.l1dcachesize` returns the E-core value on Apple Silicon; prefer the P-core size.
+    let read_sysctl = |key: &str| -> Option<usize> {
+        let out = std::process::Command::new("sysctl").args(["-n", key]).output().ok()?;
+        std::str::from_utf8(&out.stdout).ok()?.trim().parse().ok()
+    };
+    read_sysctl("hw.perflevel0.l1dcachesize").or_else(|| read_sysctl("hw.l1dcachesize"))
 }
 
 #[cfg(not(any(target_os = "linux", target_os = "macos")))]

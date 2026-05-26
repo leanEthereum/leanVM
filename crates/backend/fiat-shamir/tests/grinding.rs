@@ -8,15 +8,16 @@ type EF = QuinticExtensionFieldKB;
 #[ignore]
 fn bench_grinding() {
     let n_reps = 100;
+    let perm = default_koalabear_poseidon1_16();
     for grinding_bits in 20..=20 {
-        let mut prover_state = ProverState::<EF, _>::new(default_koalabear_poseidon1_16());
+        let mut prover_state = ProverState::<EF, _>::new(perm.clone(), Default::default());
         let time = Instant::now();
         for _ in 0..n_reps {
             prover_state.pow_grinding(grinding_bits);
         }
         let elapsed = time.elapsed();
         let mut verifier_state =
-            VerifierState::<EF, _>::new(prover_state.into_proof(), default_koalabear_poseidon1_16()).unwrap();
+            VerifierState::<EF, _>::new(prover_state.into_proof(), perm.clone(), Default::default()).unwrap();
         for _ in 0..n_reps {
             verifier_state.check_pow_grinding(grinding_bits).unwrap()
         }

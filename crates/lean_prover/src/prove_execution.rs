@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use sub_protocols::*;
 use tracing::info_span;
 use utils::ansi::Colorize;
-use utils::{build_prover_state, from_end};
+use utils::{from_end, get_poseidon16};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExecutionProof {
@@ -51,9 +51,8 @@ pub fn prove_execution(
     if memory.len() < min_memory_size {
         memory.resize(min_memory_size, F::ZERO);
     }
-    let mut prover_state = build_prover_state();
+    let mut prover_state = ProverState::new(get_poseidon16().clone(), fiat_shamir_domain_sep(bytecode));
     prover_state.observe_scalars(public_input);
-    prover_state.observe_scalars(&fiat_shamir_domain_sep(bytecode));
     prover_state.add_base_scalars(
         &[
             vec![whir_config.starting_log_inv_rate, log2_strict_usize(memory.len())],

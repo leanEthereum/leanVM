@@ -156,7 +156,7 @@ fn compute_merkle_chunks_for_slot(slot: u32) -> Vec<F> {
         .collect()
 }
 
-/// Layout: [prefix(8) | bytecode_claim_padded | bytecode_hash_domsep(8) | pubkeys_hash | message | merkle_chunks | tweaks_hash].
+/// Layout: [prefix(8) | bytecode_claim_padded | initial_fiat_shamir_cap(8) | pubkeys_hash | message | merkle_chunks | tweaks_hash].
 pub(crate) fn build_type1_input_data(
     n_sigs: usize,
     pubkeys_hash: &[F; DIGEST_LEN],

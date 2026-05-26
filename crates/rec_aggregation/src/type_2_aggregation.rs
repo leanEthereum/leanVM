@@ -65,7 +65,7 @@ impl TypeTwoMultiSignature {
     }
 }
 
-/// Layout: [prefix(8) | bytecode_claim_padded | bytecode_hash_domsep(8) | n × digest(8)].
+/// Layout: [prefix(8) | bytecode_claim_padded | initial_fiat_shamir_cap(8) | n × digest(8)].
 fn build_type2_input_data(digests: &[[F; DIGEST_LEN]], bytecode_claim_flat: &[F]) -> Vec<F> {
     let n = digests.len();
     let claim_padded = bytecode_claim_flat.len().next_multiple_of(DIGEST_LEN);

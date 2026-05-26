@@ -55,12 +55,12 @@ pub(crate) fn bytecode_claim_size_padded(program_log_size: usize) -> usize {
     ((bytecode_point_n_vars + 1) * DIMENSION).next_multiple_of(DIGEST_LEN)
 }
 
-pub(crate) fn bytecode_hash_domsep_offset(program_log_size: usize) -> usize {
+pub(crate) fn initial_fiat_shamir_cap_offset(program_log_size: usize) -> usize {
     BYTECODE_CLAIM_OFFSET + bytecode_claim_size_padded(program_log_size)
 }
 
 pub(crate) fn component_data_offset(program_log_size: usize) -> usize {
-    bytecode_hash_domsep_offset(program_log_size) + DIGEST_LEN
+    initial_fiat_shamir_cap_offset(program_log_size) + DIGEST_LEN
 }
 
 pub(crate) fn type1_input_data_size_padded(program_log_size: usize) -> usize {

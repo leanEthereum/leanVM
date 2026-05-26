@@ -100,7 +100,7 @@ fn test_run_whir() {
         ));
     }
 
-    let mut prover_state = ProverState::new(poseidon16.clone());
+    let mut prover_state = ProverState::new(poseidon16.clone(), Default::default());
 
     precompute_dft_twiddles::<F>(1 << F::TWO_ADICITY);
 
@@ -123,7 +123,7 @@ fn test_run_whir() {
 
     let proof_size_single = pruned_proof.proof_size_fe() as f64 * F::bits() as f64 / 8.0;
 
-    let mut verifier_state = VerifierState::<EF, _>::new(pruned_proof, poseidon16.clone()).unwrap();
+    let mut verifier_state = VerifierState::<EF, _>::new(pruned_proof, poseidon16.clone(), Default::default()).unwrap();
 
     let parsed_commitment = params.parse_commitment::<F>(&mut verifier_state).unwrap();
 
