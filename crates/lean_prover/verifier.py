@@ -238,7 +238,7 @@ def eval_base_field_multilinear(base_evals: Sequence[int], point: Sequence[EF]) 
 
 
 def eval_multilinear_coeffs(coeffs: Sequence[EF], point: Sequence[EF]) -> EF:
-    """`Σ_b c_b · Π_i x_i^(b_i)` in the standard multilinear coefficient basis."""
+    """Evaluate a multilinear in coefficient form at `point`."""
     assert len(coeffs) == 1 << len(point)
     if not point:
         return coeffs[0]
@@ -250,9 +250,6 @@ def eval_multilinear_coeffs(coeffs: Sequence[EF], point: Sequence[EF]) -> EF:
 
 @dataclass
 class SparseStatement:
-    """Claim with multilinear `point` and `(selector, value)` pairs. `is_next`
-    swaps the eq-weight for `next_mle`."""
-
     total_num_variables: int
     point: list[EF]
     values: list[tuple[int, EF]]
