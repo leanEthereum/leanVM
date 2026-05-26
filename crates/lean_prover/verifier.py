@@ -30,10 +30,8 @@ MIN_LOG_N_ROWS_PER_TABLE, MIN_BYTECODE_LOG_SIZE, MAX_BYTECODE_LOG_SIZE = 8, 8, 2
 MAX_LOG_N_ROWS_PER_TABLE = {"execution": 24, "extension_op": 21, "poseidon16_compress": 21}
 ALL_TABLES_ORDER = ("execution", "extension_op", "poseidon16_compress")
 
-# leanVM constants (mirror `crates/lean_vm/src/`). `ending_pc` is the only bytecode-specific value.
-N_INSTRUCTION_COLUMNS, N_RUNTIME_COLUMNS, COL_PC = 12, 8, 0
+N_RUNTIME_COLUMNS, N_INSTRUCTION_COLUMNS, COL_PC = 8, 12, 0
 LOGUP_MEMORY_DOMAINSEP, LOGUP_BYTECODE_DOMAINSEP = 1, 2
-LOG_MAX_BUS_WIDTH = 4  # = log2_ceil(N_INSTRUCTION_COLUMNS + 2)
 STARTING_PC = 0
 
 
@@ -680,15 +678,15 @@ def verify_generic_logup(
     ds_byte = Fp(LOGUP_BYTECODE_DOMAINSEP)
 
     tables_sorted = sort_tables_by_height(table_log_heights)
-    log_bytecode = log2_strict_usize(len(bytecode_multilinear) // (1 << log2_ceil_usize(n_instr_cols)))
-    log_instr = log2_ceil_usize(n_instr_cols)
+    log_bytecode = log2_strict(len(bytecode_multilinear) // (1 << log2_ceil(n_instr_cols)))
+    log_instr = log2_ceil(n_instr_cols)
 
     total_active_len = (
         (1 << log_memory)
         + max(1 << log_bytecode, 1 << tables_sorted[0][1])
         + sum(tables[n].n_buses << h for n, h in tables_sorted)
     )
-    total_gkr_n_vars = log2_ceil_usize(total_active_len)
+    total_gkr_n_vars = log2_ceil(total_active_len)
 
     quotient, point_gkr, claim_num, claim_den = verify_gkr_quotient(state, total_gkr_n_vars)
     if quotient != ZERO:
@@ -1121,9 +1119,9 @@ def verify_execution(
     public_input: Sequence[Fp],
     proof: Proof,
     bytecode_multilinear: list[int],
-) -> dict:
+):
     tables = default_tables()
-    bytecode_log_size = log2_strict_usize(len(bytecode_multilinear)) - log2_ceil_usize(N_INSTRUCTION_COLUMNS)
+    bytecode_log_size = log2_strict(len(bytecode_multilinear)) - log2_ceil(N_INSTRUCTION_COLUMNS)
     ending_pc = (1 << bytecode_log_size) - 1
     bytecode_hash = sponge_hash([Fp(v) for v in bytecode_multilinear])
     if len(public_input) != PUBLIC_INPUT_SIZE:
@@ -1162,7 +1160,7 @@ def verify_execution(
         + (1 << max(bytecode_log_size, n_max))
         + sum(t.n_columns << table_log_heights[t.name] for t in tables)
     )
-    stacked_n_vars = log2_ceil_usize(total_stacked)
+    stacked_n_vars = log2_ceil(total_stacked)
     if stacked_n_vars > TWO_ADICITY + WHIR_INITIAL_FOLDING_FACTOR - log_inv_rate:
         raise ProofError("InvalidProof: stacked_n_vars exceeds WHIR domain bound")
     cfg = whir_config(log_inv_rate, stacked_n_vars)
@@ -1176,7 +1174,7 @@ def verify_execution(
 
     logup_c = state.sample_ef()
     state.duplex()
-    logup_alphas = state.sample_many_ef(LOG_MAX_BUS_WIDTH)
+    logup_alphas = state.sample_many_ef(log2_ceil(N_INSTRUCTION_COLUMNS + 2))
     logup_alphas_eq = eval_eq(logup_alphas)
     logup = verify_generic_logup(
         state,
@@ -1239,7 +1237,7 @@ def verify_execution(
         raise ProofError("AIR sumcheck: claimed value mismatch")
 
     assert len(public_input) % DIGEST_ELEMS == 0
-    pm_point = state.sample_many_ef(log2_strict_usize(len(public_input)))
+    pm_point = state.sample_many_ef(log2_strict(len(public_input)))
     pm_eval = eval_multilinear([EF(f) for f in public_input], pm_point)
 
     bytecode_acc_idx = (2 << log_memory) >> bytecode_log_size
@@ -1273,8 +1271,6 @@ def verify_execution(
     if state.openings:
         raise ProofError(f"InvalidProof: {len(state.openings)} Merkle openings unused")
 
-    return {"log_inv_rate": log_inv_rate, "log_memory": log_memory, "stacked_n_vars": stacked_n_vars}
-
 
 def main() -> int:
     import array, json
@@ -1290,6 +1286,7 @@ def main() -> int:
 
     print(f"Loading {vector_path.name}...")
     raw = json.loads(vector_path.read_text())
+    print("... done")
 
     arr = array.array("I")
     arr.frombytes((vector_path.parent / raw["bytecode_multilinear_path"]).read_bytes())
@@ -1306,12 +1303,12 @@ def main() -> int:
     )
 
     try:
-        result = verify_execution(public_input, proof, bytecode_multilinear)
+        verify_execution(public_input, proof, bytecode_multilinear)
     except ProofError as e:
         print(f"FAIL: {e}")
         return 1
 
-    print(f"OK: minimal-zkVM proof verified ({result})")
+    print(f"Proof successfully verified")
     return 0
 
 

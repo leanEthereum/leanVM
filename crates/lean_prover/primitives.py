@@ -251,11 +251,11 @@ def poseidon16_compress(left: Sequence[Fp], right: Sequence[Fp]) -> list[Fp]:
     return [a + b for a, b in zip(POSEIDON16.permute(state), state)][:DIGEST_ELEMS]
 
 
-def log2_ceil_usize(x: int) -> int:
+def log2_ceil(x: int) -> int:
     return 0 if x <= 1 else (x - 1).bit_length()
 
 
-def log2_strict_usize(x: int) -> int:
+def log2_strict(x: int) -> int:
     assert x > 0 and (x & (x - 1)) == 0, f"{x} is not a power of two"
     return x.bit_length() - 1
 
