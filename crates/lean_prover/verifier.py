@@ -42,7 +42,7 @@ class ProofError(Exception):
 # T-Sponge (compression instead of permutation) with replacement (instead of xoring / adding the ingested data).
 def sponge_hash(data: Sequence[Fp]) -> list[Fp]:
     assert len(data) % SPONGE_RATE == 0 and len(data) > 0
-    state = [Fp(len(data))] + [Fp(0)] * (SPONGE_CAPACITY - 1)
+    state = [Fp(len(data))] + [Fp(0)] * (SPONGE_CAPACITY - 1) # IV = [size, 0, 0, 0, ..., 0]
     for k in range(len(data) // SPONGE_RATE):
         state = poseidon16_compress(state, data[k * SPONGE_RATE : (k + 1) * SPONGE_RATE])
     return state
