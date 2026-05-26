@@ -1152,31 +1152,25 @@ def verify_execution(
     gkr_point = logup["gkr_point"]
 
     air_alpha = state.sample_ef()
+    alpha_powers = ef_powers(air_alpha, sum(t.n_constraints for t in TABLES))
 
-    alpha_offsets: dict[str, int] = {}
-    cumulative = 0
+    # Initial AIR sum: Σ_table (α^o · signed_num + α^(o+1) · (γ − bus_den)). The sign is
+    # the direction of each table's unique Column-multiplicity bus.
+    initial_sum, offset = ZERO, 0
     for table in TABLES:
-        alpha_offsets[table.name] = cumulative
-        cumulative += table.n_constraints
-    alpha_powers = ef_powers(air_alpha, cumulative)
-
-    # Initial AIR sum: Σ_table (α^o · signed_num + α^(o+1) · (γ − bus_den)). The
-    # sign is the direction of each table's unique Column-multiplicity bus.
-    initial_sum = ZERO
-    for table in TABLES:
-        offset = alpha_offsets[table.name]
         initial_sum += alpha_powers[offset] * (logup["bus_num"][table.name] * table.mult_sign)
         initial_sum += alpha_powers[offset + 1] * (logup_gamma - logup["bus_den"][table.name])
+        offset += table.n_constraints
     sc_point, sc_value = verify_sumcheck(state, initial_sum, n_max, max(t.air_degree + 1 for t in TABLES))
 
     committed = {t.name: [(gkr_point[-log_heights[t.name] :], logup["columns_values"][t.name], {})] for t in TABLES}
-    my_air_final = ZERO
+    my_air_final, offset = ZERO, 0
     for table in TABLES:
         log_n_rows = log_heights[table.name]
         col_evals = state.next_extension_scalars_vec(table.n_columns + table.n_shift)
-        offset = alpha_offsets[table.name]
-        alpha_slice = alpha_powers[offset : offset + table.n_constraints]
-        constraint_eval = table.eval_air(col_evals, alpha_slice, logup_beta_eq)
+        alphas = alpha_powers[offset : offset + table.n_constraints]
+        offset += table.n_constraints
+        constraint_eval = table.eval_air(col_evals, alphas, logup_beta_eq)
 
         natural_pt = list(reversed(sc_point[-log_n_rows:])) if log_n_rows else []
         k_t = math.prod(sc_point[: n_max - log_n_rows])
