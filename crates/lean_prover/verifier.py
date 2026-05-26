@@ -52,6 +52,7 @@ POSEIDON_HARDCODED_LEFT_4_FLAG_SHIFT, POSEIDON_HARDCODED_LEFT_4_OFFSET_SHIFT = (
     1 << 3,
     1 << 4,
 )
+EXT_OP_FLAG_IS_BE, EXT_OP_FLAG_ADD, EXT_OP_FLAG_MUL, EXT_OP_FLAG_POLY_EQ, EXT_OP_LEN_MULTIPLIER = 4, 8, 16, 32, 64
 
 STARTING_PC = 0  # every program starts at PC = 0, and ends at PC = len(bytecode) - 1
 
@@ -297,6 +298,33 @@ def eval_univariate_polynomial(coeffs: list[EF], x: EF) -> EF:
     return acc
 
 
+def mle_of_01234567_etc(point: Sequence[EF]) -> EF:
+    """evaluate the MLE of `f(i) = i` (big-endian) at `point`."""
+    n = len(point)
+    return sum(p * (1 << (n - 1 - i)) for i, p in enumerate(point))
+
+
+def mle_of_zeros_then_ones(n_zeros: int, point: Sequence[EF]) -> EF:
+    """evaluate the MLE of `[0]*n_zeros ++ [1]*(2^len(point) - n_zeros)` at `point`."""
+    n_values = 1 << len(point)
+    assert n_zeros <= n_values
+    if n_zeros == 0:
+        return ONE
+    if n_zeros == n_values:
+        return ZERO
+    half, tail = n_values >> 1, point[1:]
+    if n_zeros < half:
+        return (ONE - point[0]) * mle_of_zeros_then_ones(n_zeros, tail) + point[0]
+    return point[0] * mle_of_zeros_then_ones(n_zeros - half, tail)
+
+
+def eval_eq(point: Sequence[EF]) -> list[EF]:
+    out = [ONE]
+    for p in point:
+        out = [w for v in out for w in (v * (ONE - p), v * p)]
+    return out
+
+
 @dataclass
 class SparseStatements:
     total_num_variables: int
@@ -511,11 +539,7 @@ def stacked_pcs_global_statements(
     committed_statements: dict[str, list[tuple[list[EF], dict[int, EF], dict[int, EF]]]],
     ending_pc: int,
 ) -> list[SparseStatements]:
-    assert len(tables) == len(committed_statements)
     tables_sorted = sort_tables_by_height(tables, heights)
-
-    # Layout offsets are assigned in sorted-by-height order (taller tables come first
-    # in the stacked polynomial), but statements are emitted in canonical TABLES order.
     table_offsets: dict[str, int] = {}
     layout_offset = (2 << memory_n_vars) + (1 << max(bytecode_n_vars, tables_sorted[0][1]))
     for table, n_vars in tables_sorted:
@@ -524,7 +548,6 @@ def stacked_pcs_global_statements(
 
     out = list(previous_statements)
 
-    # Rust uses BTreeMap (sorted by key); Python dicts are insertion-ordered, sort here.
     def values_at(d: dict[int, EF], col_base: int) -> list[tuple[int, EF]]:
         return [(col_base + i, v) for i, v in sorted(d.items())]
 
@@ -542,7 +565,6 @@ def stacked_pcs_global_statements(
 
 
 def verify_gkr_quotient(fiat_shamir: FiatShamir, n_vars: int) -> tuple[EF, list[EF], EF, EF]:
-    """Layered sumcheck for `Σ nᵢ/dᵢ`. Returns `(quotient, point, claim_num, claim_den)`."""
     assert n_vars > N_VARS_TO_SEND_GKR_COEFFS
 
     nums = fiat_shamir.next_extension_scalars_vec(1 << N_VARS_TO_SEND_GKR_COEFFS)
@@ -570,64 +592,29 @@ def verify_gkr_quotient(fiat_shamir: FiatShamir, n_vars: int) -> tuple[EF, list[
     return quotient, point, claim_num, claim_den
 
 
-def mle_of_01234567_etc(point: Sequence[EF]) -> EF:
-    """MLE of `f(i) = i` (big-endian) at `point`."""
-    n = len(point)
-    return sum(p * (1 << (n - 1 - i)) for i, p in enumerate(point))
-
-
-def mle_of_zeros_then_ones(n_zeros: int, point: Sequence[EF]) -> EF:
-    """MLE of `[0]*n_zeros ++ [1]*(2^len(point) − n_zeros)` at `point`."""
-    n_values = 1 << len(point)
-    assert n_zeros <= n_values
-    if n_zeros == 0:
-        return ONE
-    if n_zeros == n_values:
-        return ZERO
-    half, tail = n_values >> 1, point[1:]
-    if n_zeros < half:
-        return (ONE - point[0]) * mle_of_zeros_then_ones(n_zeros, tail) + point[0]
-    return point[0] * mle_of_zeros_then_ones(n_zeros - half, tail)
-
-
 def finger_print(discriminator: Fp, data: Sequence[EF], beta_eq: Sequence[EF]) -> EF:
-    """`Σᵢ αᵢ · dataᵢ + α_last · discriminator`."""
     assert len(beta_eq) > len(data)
     return dot_product(beta_eq, data) + beta_eq[-1] * discriminator
 
 
 def sort_tables_by_height(tables: Sequence[Table], heights: dict[str, int]) -> list[tuple[Table, int]]:
-    """Descending by height, alphabetical on ties (matches Rust `BTreeMap`)."""
+    """Descending by height, alphabetical on ties"""
     return sorted([(t, heights[t.name]) for t in tables], key=lambda x: (-x[1], x[0].name))
-
-
-def eval_eq(point: Sequence[EF]) -> list[EF]:
-    """Length-`2^n` evaluation table of `eq(point, ·)`."""
-    out = [ONE]
-    for p in point:
-        out = [w for v in out for w in (v * (ONE - p), v * p)]
-    return out
 
 
 def verify_generic_logup(
     fiat_shamir: FiatShamir,
-    gamma: EF,  # `γ` from minimal_zkVM.tex (logup quotient denominator challenge).
-    beta: list[EF],  # `β` from minimal_zkVM.tex (bus-tuple hashing seeds).
-    beta_eq: list[EF],  # eq(β, ·) evaluation table.
+    gamma: EF,  # quotient denominator challenge
+    beta: list[EF],  # bus-tuple hashing seeds
+    beta_eq: list[EF],  # eq(beta, ·) evaluation table
     log_memory: int,
     bytecode_multilinear: list[int],
     tables: Sequence[Table],
     heights: dict[str, int],
 ) -> dict:
-    """GKR-quotient + section-by-section (memory/bytecode/per-table) reconstruction."""
-    n_instr_cols = N_INSTRUCTION_COLUMNS
-    n_runtime_cols = N_RUNTIME_COLUMNS
-    ds_mem = Fp(LOGUP_MEMORY_DOMAINSEP)
-    ds_byte = Fp(LOGUP_BYTECODE_DOMAINSEP)
-
     tables_sorted = sort_tables_by_height(tables, heights)
-    log_bytecode = log2_strict(len(bytecode_multilinear) // (1 << log2_ceil(n_instr_cols)))
-    log_instr = log2_ceil(n_instr_cols)
+    log_bytecode = log2_strict(len(bytecode_multilinear) // (1 << log2_ceil(N_INSTRUCTION_COLUMNS)))
+    log_instr = log2_ceil(N_INSTRUCTION_COLUMNS)
 
     total_active_len = (
         (1 << log_memory)
@@ -654,7 +641,7 @@ def verify_generic_logup(
     value_memory_acc = fiat_shamir.next_extension_scalar()
     num -= pref * value_memory_acc
     value_memory = fiat_shamir.next_extension_scalar()
-    fp_mem = finger_print(ds_mem, [mle_of_01234567_etc(mem_pt), value_memory], beta_eq)
+    fp_mem = finger_print(Fp(LOGUP_MEMORY_DOMAINSEP), [mle_of_01234567_etc(mem_pt), value_memory], beta_eq)
     den += pref * (gamma - fp_mem)
     offset = 1 << log_memory
 
@@ -666,7 +653,11 @@ def verify_generic_logup(
     value_bytecode_acc = fiat_shamir.next_extension_scalar()
     bytecode_value = eval_multilinear_evals([Fp(v) for v in bytecode_multilinear], byte_pt + beta[-log_instr:])
     correction = math.prod(ONE - a for a in beta[: len(beta) - log_instr])
-    fp_byte = bytecode_value * correction + mle_of_01234567_etc(byte_pt) * beta_eq[n_instr_cols] + beta_eq[-1] * ds_byte
+    fp_byte = (
+        bytecode_value * correction
+        + mle_of_01234567_etc(byte_pt) * beta_eq[N_INSTRUCTION_COLUMNS]
+        + beta_eq[-1] * Fp(LOGUP_BYTECODE_DOMAINSEP)
+    )
     num -= pref * value_bytecode_acc
     den += pref * (gamma - fp_byte) + pref_pad * mle_of_zeros_then_ones(1 << log_bytecode, point_gkr[-log_byte_pad:])
     offset += 1 << log_byte_pad
@@ -703,12 +694,12 @@ def verify_generic_logup(
                 den += pref * bus_den_vals[name]
                 offset_within_table += row_stride
             elif bus[0] == BusInterractiion.BYTECODE:
-                cols = list(range(n_runtime_cols, n_runtime_cols + n_instr_cols)) + [table.col("pc")]
+                cols = list(range(N_RUNTIME_COLUMNS, N_RUNTIME_COLUMNS + N_INSTRUCTION_COLUMNS)) + [table.col("pc")]
                 evals = fiat_shamir.next_extension_scalars_vec(len(cols))
                 for c_idx, e in zip(cols, evals):
                     table_values[c_idx] = e
                 num += pref  # Push direction
-                den += pref * (gamma - finger_print(ds_byte, evals, beta_eq))
+                den += pref * (gamma - finger_print(Fp(LOGUP_BYTECODE_DOMAINSEP), evals, beta_eq))
                 offset_within_table += row_stride
             elif bus[0] == BusInterractiion.MEMORY:
                 _, idx_ref, vals_ref, n = bus
@@ -725,7 +716,9 @@ def verify_generic_logup(
                     if val_fresh:
                         table_values[val_col] = next(evals)
                     pref = pref_at(offset_within_table, log_n_rows)
-                    fp = finger_print(ds_mem, [table_values[idx_col] + i, table_values[val_col]], beta_eq)
+                    fp = finger_print(
+                        Fp(LOGUP_MEMORY_DOMAINSEP), [table_values[idx_col] + i, table_values[val_col]], beta_eq
+                    )
                     num += pref  # Push direction
                     den += pref * (gamma - fp)
                     offset_within_table += row_stride
@@ -825,20 +818,6 @@ def _eval_air_execution(folder: ConstraintFolder, logup_beta_eq: list[EF]) -> No
     az(not_jc * (fp_shift - fp))
 
 
-# extension_op/air.rs precompile-data layout.
-_EXT_OP_FLAG_IS_BE = 4
-_EXT_OP_FLAG_ADD = 8
-_EXT_OP_FLAG_MUL = 16
-_EXT_OP_FLAG_POLY_EQ = 32
-_EXT_OP_LEN_MULTIPLIER = 64
-
-
-def _quintic_mul_ef(a: Sequence[EF], b: Sequence[EF]) -> list[EF]:
-    """Multiply two quintic-extension elements whose coefficients are themselves `EF`."""
-    assert len(a) == 5 and len(b) == 5
-    return quintic_mul(a, b, ZERO)
-
-
 def eval_air_extension_op(folder: ConstraintFolder, logup_beta_eq: list[EF]) -> None:
     # Layout: shift columns 0..13 = (is_be, start, len, flag_{add,mul,poly_eq},
     # idx_{a,b}, comp[0..5]); then idx_res, va, vb, vres (5 each).
@@ -851,11 +830,11 @@ def eval_air_extension_op(folder: ConstraintFolder, logup_beta_eq: list[EF]) -> 
     comp_sh = s[8:13]
 
     aux = (
-        is_be * _EXT_OP_FLAG_IS_BE
-        + flag_add * _EXT_OP_FLAG_ADD
-        + flag_mul * _EXT_OP_FLAG_MUL
-        + flag_poly_eq * _EXT_OP_FLAG_POLY_EQ
-        + len_col * _EXT_OP_LEN_MULTIPLIER
+        is_be * EXT_OP_FLAG_IS_BE
+        + flag_add * EXT_OP_FLAG_ADD
+        + flag_mul * EXT_OP_FLAG_MUL
+        + flag_poly_eq * EXT_OP_FLAG_POLY_EQ
+        + len_col * EXT_OP_LEN_MULTIPLIER
     )
     eval_precompile_bus_virtual_columns(
         folder, logup_beta_eq, start * (flag_add + flag_mul + flag_poly_eq), aux, [idx_a, idx_b, idx_res]
@@ -867,7 +846,7 @@ def eval_air_extension_op(folder: ConstraintFolder, logup_beta_eq: list[EF]) -> 
     is_ee, not_start_sh = ONE - is_be, ONE - start_sh
     va_x = [va[0]] + [va[k] * is_ee for k in range(1, 5)]
     comp_tail = [comp_sh[k] * not_start_sh for k in range(5)]
-    va_vb = _quintic_mul_ef(va_x, vb)
+    va_vb = quintic_mul(va_x, vb, ZERO)
 
     for k in range(5):
         folder.assert_zero((comp[k] - (va_x[k] + vb[k] + comp_tail[k])) * flag_add)
@@ -877,7 +856,7 @@ def eval_air_extension_op(folder: ConstraintFolder, logup_beta_eq: list[EF]) -> 
     # poly_eq: comp ← (2·va·vb − va − vb + 1) · comp_sh_or_one.
     poly_eq_val = [va_vb[k] + va_vb[k] - va_x[k] - vb[k] + (ONE if k == 0 else ZERO) for k in range(5)]
     comp_sh_or_one = [comp_sh[0] * not_start_sh + start_sh] + [comp_sh[k] * not_start_sh for k in range(1, 5)]
-    poly_eq_result = _quintic_mul_ef(poly_eq_val, comp_sh_or_one)
+    poly_eq_result = quintic_mul(poly_eq_val, comp_sh_or_one, ZERO)
     for k in range(5):
         folder.assert_zero((comp[k] - poly_eq_result[k]) * flag_poly_eq)
     for k in range(5):
@@ -984,21 +963,13 @@ def _eval_poseidon1_16(folder: ConstraintFolder, cols: dict) -> None:
         folder.assert_zero(flag_permute * (state[i + POSEIDON_WIDTH // 2] - cols["outputs_right"][i]))
 
 
-def _eval_air_poseidon16(folder: ConstraintFolder, logup_beta_eq: list[EF]) -> None:
-    flat, W = folder.flat, POSEIDON_WIDTH
+def eval_air_poseidon16(folder: ConstraintFolder, logup_beta_eq: list[EF]) -> None:
+    W = POSEIDON_WIDTH
     half_initial = half_final = POSEIDON_FULL_ROUNDS // 4
+    flat_iter = iter(folder.flat)
+    take = lambda n: [next(flat_iter) for _ in range(n)]
 
-    o = 0
-
-    def take(n: int) -> list[EF]:
-        nonlocal o
-        chunk, o = flat[o : o + n], o + n
-        return list(chunk)
-
-    # fmt: off
-    [multiplicity, index_b, index_res, flag_half_output, flag_hardcoded_left,
-     offset_hardcoded_left, eff_idx_left_first, eff_idx_left_second, flag_permute] = take(9)
-    # fmt: on
+    [multiplicity, index_b, index_res, flag_half_output, flag_hardcoded_left, offset_hardcoded_left, eff_idx_left_first, eff_idx_left_second, flag_permute] = take(9)  # fmt: skip
     inputs = take(W)
     beginning_full_rounds = [take(W) for _ in range(half_initial)]
     partial_cols = take(POSEIDON_PARTIAL_ROUNDS)
@@ -1063,7 +1034,6 @@ POSEIDON_COLUMNS = (
     *(f"out_right_{i}" for i in range(POSEIDON_WIDTH // 2)),
 )  # fmt: skip
 
-# Canonical iteration order. Holds all per-table data: layout, buses, AIR config, and the AIR eval fn.
 TABLES = [
     Table(
         name="execution",
@@ -1110,7 +1080,7 @@ TABLES = [
         n_constraints=101,
         n_shift=0,
         max_log_height=21,
-        air_fn=_eval_air_poseidon16,
+        air_fn=eval_air_poseidon16,
     ),
 ]
 
@@ -1120,17 +1090,17 @@ def verify_execution(
     proof: Proof,
     bytecode_multilinear: list[int],
 ):
-    tables = TABLES
     bytecode_log_size = log2_strict(len(bytecode_multilinear)) - log2_ceil(N_INSTRUCTION_COLUMNS)
     ending_pc = (1 << bytecode_log_size) - 1
     bytecode_hash = sponge_hash([Fp(v) for v in bytecode_multilinear])
     if len(public_input) != PUBLIC_INPUT_SIZE:
         raise ProofError("InvalidProof: public_input length mismatch")
 
-    state = FiatShamir(proof, poseidon16_compress(bytecode_hash, SNARK_DOMAIN_SEP))  # domain separator accross bytecode
+    state = FiatShamir(
+        proof, poseidon16_compress(bytecode_hash, SNARK_DOMAIN_SEP)
+    )  # domain separator accross bytecodes
     state.observe_scalars(public_input)
-
-    dims = [int(x.value) for x in state.next_base_scalars_vec(2 + len(tables))]
+    dims = [int(x.value) for x in state.next_base_scalars_vec(2 + len(TABLES))]
     log_inv_rate, log_memory, *table_log_n_rows = dims
     if not MIN_WHIR_LOG_INV_RATE <= log_inv_rate <= MAX_WHIR_LOG_INV_RATE:
         raise ProofError("InvalidRate")
@@ -1140,18 +1110,21 @@ def verify_execution(
         raise ProofError("InvalidProof: bytecode log_size out of range")
     if log_memory < max(max(table_log_n_rows, default=0), bytecode_log_size):
         raise ProofError("InvalidProof: memory smaller than tables/bytecode")
-    for t, h in zip(tables, table_log_n_rows):
-        if not MIN_LOG_N_ROWS_PER_TABLE <= h <= t.max_log_height:
+    for table, log_height in zip(TABLES, table_log_n_rows):
+        if not MIN_LOG_N_ROWS_PER_TABLE <= log_height <= table.max_log_height:
             raise ProofError(
-                f"InvalidProof: table {t.name} log_n_rows={h} not in [{MIN_LOG_N_ROWS_PER_TABLE}, {t.max_log_height}]"
+                f"InvalidProof: table {table.name} log_n_rows={log_height} not in [{MIN_LOG_N_ROWS_PER_TABLE}, {table.max_log_height}]"
             )
 
-    heights = {t.name: h for t, h in zip(tables, table_log_n_rows)}
-    n_max = sort_tables_by_height(tables, heights)[0][1]
+    log_heights = {t.name: h for t, h in zip(TABLES, table_log_n_rows)}
+    n_max = sort_tables_by_height(TABLES, log_heights)[0][1]
 
     total_stacked = (
-        (2 << log_memory) + (1 << max(bytecode_log_size, n_max)) + sum(t.n_columns << heights[t.name] for t in tables)
+        (2 << log_memory)
+        + (1 << max(bytecode_log_size, n_max))
+        + sum(t.n_columns << log_heights[t.name] for t in TABLES)
     )
+
     stacked_n_vars = log2_ceil(total_stacked)
     if stacked_n_vars > TWO_ADICITY + WHIR_INITIAL_FOLDING_FACTOR - log_inv_rate:
         raise ProofError("InvalidProof: stacked_n_vars exceeds WHIR domain bound")
@@ -1164,11 +1137,9 @@ def verify_execution(
         state.next_extension_scalars_vec(nood),
     )
 
-    # logup challenges, named after minimal_zkVM.tex: γ is the quotient denominator,
-    # β are the bus-tuple hashing seeds (length ℓ = log2(bus_width)).
-    logup_gamma = state.sample_ef()
+    logup_gamma = state.sample_ef()  # the quotient denominator
     state.duplex()
-    logup_beta = state.sample_many_ef(log2_ceil(N_INSTRUCTION_COLUMNS + 2))
+    logup_beta = state.sample_many_ef(log2_ceil(N_INSTRUCTION_COLUMNS + 2))  # the bus-tuple hashing seeds
     logup_beta_eq = eval_eq(logup_beta)
     logup = verify_generic_logup(
         state,
@@ -1177,52 +1148,49 @@ def verify_execution(
         logup_beta_eq,
         log_memory,
         bytecode_multilinear,
-        tables,
-        heights,
+        TABLES,
+        log_heights,
     )
     gkr_point = logup["gkr_point"]
 
     air_alpha = state.sample_ef()
 
-    # AIR alpha powers/offsets are laid out in canonical TABLES order
-    # (mirrors `for table in ALL_TABLES { alpha_offset += n_constraints }` in verify_execution.rs).
     alpha_offsets: dict[str, int] = {}
     cumulative = 0
-    for t in tables:
-        alpha_offsets[t.name] = cumulative
-        cumulative += t.n_constraints
+    for table in TABLES:
+        alpha_offsets[table.name] = cumulative
+        cumulative += table.n_constraints
     alpha_powers = ef_powers(air_alpha, cumulative)
 
     # Initial AIR sum: Σ_table (α^o · signed_num + α^(o+1) · (γ − bus_den)). The
     # sign is the direction of each table's unique Column-multiplicity bus.
     initial_sum = ZERO
-    for t in tables:
-        offset = alpha_offsets[t.name]
-        initial_sum += alpha_powers[offset] * (logup["bus_num"][t.name] * t.mult_sign)
-        initial_sum += alpha_powers[offset + 1] * (logup_gamma - logup["bus_den"][t.name])
-    sc_point, sc_value = verify_sumcheck(state, initial_sum, n_max, max(t.air_degree + 1 for t in tables))
+    for table in TABLES:
+        offset = alpha_offsets[table.name]
+        initial_sum += alpha_powers[offset] * (logup["bus_num"][table.name] * table.mult_sign)
+        initial_sum += alpha_powers[offset + 1] * (logup_gamma - logup["bus_den"][table.name])
+    sc_point, sc_value = verify_sumcheck(state, initial_sum, n_max, max(t.air_degree + 1 for t in TABLES))
 
-    committed = {t.name: [(gkr_point[-heights[t.name] :], logup["columns_values"][t.name], {})] for t in tables}
+    committed = {t.name: [(gkr_point[-log_heights[t.name] :], logup["columns_values"][t.name], {})] for t in TABLES}
     my_air_final = ZERO
-    for t in tables:
-        log_n_rows = heights[t.name]
-        col_evals = state.next_extension_scalars_vec(t.n_columns + t.n_shift)
-        offset = alpha_offsets[t.name]
-        alpha_slice = alpha_powers[offset : offset + t.n_constraints]
-        constraint_eval = t.eval_air(col_evals, alpha_slice, logup_beta_eq)
+    for table in TABLES:
+        log_n_rows = log_heights[table.name]
+        col_evals = state.next_extension_scalars_vec(table.n_columns + table.n_shift)
+        offset = alpha_offsets[table.name]
+        alpha_slice = alpha_powers[offset : offset + table.n_constraints]
+        constraint_eval = table.eval_air(col_evals, alpha_slice, logup_beta_eq)
 
         natural_pt = list(reversed(sc_point[-log_n_rows:])) if log_n_rows else []
         k_t = math.prod(sc_point[: n_max - log_n_rows])
         my_air_final += k_t * eq_poly(gkr_point[-log_n_rows:], natural_pt) * constraint_eval
 
-        eq_vals = {i: col_evals[i] for i in range(t.n_columns)}
-        next_vals = {j: col_evals[t.n_columns + j] for j in range(t.n_shift)}
-        committed[t.name].append((natural_pt, eq_vals, next_vals))
+        eq_vals = {i: col_evals[i] for i in range(table.n_columns)}
+        next_vals = {j: col_evals[table.n_columns + j] for j in range(table.n_shift)}
+        committed[table.name].append((natural_pt, eq_vals, next_vals))
     if my_air_final != sc_value:
         raise ProofError("AIR sumcheck: claimed value mismatch")
 
-    assert len(public_input) % DIGEST_ELEMS == 0
-    pm_point = state.sample_many_ef(log2_strict(len(public_input)))
+    pm_point = state.sample_many_ef(log2_strict(PUBLIC_INPUT_SIZE))
     pm_eval = eval_multilinear_evals(public_input, pm_point)
 
     bytecode_acc_idx = (2 << log_memory) >> bytecode_log_size
@@ -1242,8 +1210,8 @@ def verify_execution(
         log_memory,
         bytecode_log_size,
         previous,
-        tables,
-        heights,
+        TABLES,
+        log_heights,
         committed,
         ending_pc,
     )
