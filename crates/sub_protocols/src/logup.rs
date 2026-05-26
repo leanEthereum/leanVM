@@ -56,8 +56,10 @@ pub fn prove_generic_logup(
     let memory_domainsep_packed = PFPacking::<EF>::from(F::from_usize(LOGUP_MEMORY_DOMAINSEP));
     let bytecode_domainsep_packed = PFPacking::<EF>::from(F::from_usize(LOGUP_BYTECODE_DOMAINSEP));
 
-    let log_bytecode_section = log_bytecode.max(tables_log_heights_sorted[0].1);
-    let min_section_log = log_bytecode_section.min(tables_log_heights_sorted.last().unwrap().1);
+    let min_section_log = log_bytecode.min(tables_log_heights_sorted.last().unwrap().1);
+    if min_section_log < ENDIANNESS_PIVOT_GKR {
+        tracing::info!("TODO: suboptimal GKR pivot (could be improved).");
+    }
     let pivot = ENDIANNESS_PIVOT_GKR.min(min_section_log);
     let chunk_size = 1usize << pivot;
     let chunk_shift = usize::BITS as usize - pivot;
