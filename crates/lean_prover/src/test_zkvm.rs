@@ -250,8 +250,6 @@ fn dump_test_vector_for_python_verifier() {
         })
     };
     let out = serde_json::json!({
-        "bytecode_log_size": bytecode.log_size(),
-        "bytecode_hash": bytecode.hash.map(f_u32),
         "bytecode_multilinear_path": mle_path,
         "public_input": public_input.iter().map(|&f| f_u32(f)).collect::<Vec<_>>(),
         "proof": {

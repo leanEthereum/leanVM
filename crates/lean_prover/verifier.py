@@ -1118,15 +1118,14 @@ def _eval_air_poseidon16(folder: ConstraintFolder, extra_data: dict) -> None:
 
 
 def verify_execution(
-    bytecode_hash: list[Fp],
-    bytecode_log_size: int,
     public_input: Sequence[Fp],
     proof: Proof,
     bytecode_multilinear: list[int],
 ) -> dict:
     tables = default_tables()
-    # Bytecode is padded to the next power of two; `ending_pc` is the last slot.
+    bytecode_log_size = log2_strict_usize(len(bytecode_multilinear)) - log2_ceil_usize(N_INSTRUCTION_COLUMNS)
     ending_pc = (1 << bytecode_log_size) - 1
+    bytecode_hash = sponge_hash([Fp(v) for v in bytecode_multilinear])
     if len(public_input) != PUBLIC_INPUT_SIZE:
         raise ProofError("InvalidProof: public_input length mismatch")
 
@@ -1294,8 +1293,6 @@ def main() -> int:
 
     arr = array.array("I")
     arr.frombytes((vector_path.parent / raw["bytecode_multilinear_path"]).read_bytes())
-    expected_len = (1 << raw["bytecode_log_size"]) * (1 << log2_ceil_usize(N_INSTRUCTION_COLUMNS))
-    assert len(arr) == expected_len, f"bytecode_multilinear length {len(arr)} != expected {expected_len}"
     bytecode_multilinear: list[int] = list(arr)
 
     fp_list = lambda xs: [Fp(v) for v in xs]
@@ -1309,13 +1306,7 @@ def main() -> int:
     )
 
     try:
-        result = verify_execution(
-            fp_list(raw["bytecode_hash"]),
-            raw["bytecode_log_size"],
-            public_input,
-            proof,
-            bytecode_multilinear,
-        )
+        result = verify_execution(public_input, proof, bytecode_multilinear)
     except ProofError as e:
         print(f"FAIL: {e}")
         return 1
