@@ -1,6 +1,6 @@
 """Pure-Python verifier for leanVM proofs.
 Setup the test vector (one-time):
-    cargo test --release -p lean_prover --test dump_zkvm_vector -- --nocapture
+    cargo test --release -p lean_prover dump_test_vector_for_python_verifier -- --nocapture
 Run:
     python3 crates/lean_prover/verifier.py
 Format:
@@ -195,46 +195,7 @@ def eval_multilinear(evals: Sequence[EF], point: Sequence[EF]) -> EF:
 
 def eval_base_field_multilinear(base_evals: Sequence[int], point: Sequence[EF]) -> EF:
     """Evaluate a base-field multilinear in evaluation form at `point`."""
-    assert len(base_evals) == 1 << len(point)
-
-    # First fold: cur[n] = base[2n] + (base[2n+1] − base[2n]) · r.
-    r0, r1, r2, r3, r4 = (int(c.value) for c in point[-1].c)
-    cur = []
-    for j in range(0, len(base_evals), 2):
-        a = base_evals[j] % P
-        d = (base_evals[j + 1] - a) % P
-        cur.append(((a + d * r0) % P, (d * r1) % P, (d * r2) % P, (d * r3) % P, (d * r4) % P))
-
-    # Subsequent folds in EF. Schoolbook produces a degree-8 polynomial p[0..8];
-    # reduce via X^5 ≡ 1 − X^2 (so X^6 ≡ X − X^3, X^7 ≡ X^2 − X^4, X^8 ≡ −1 + X^2 + X^3).
-    for pt in reversed(point[:-1]):
-        r0, r1, r2, r3, r4 = (int(c.value) for c in pt.c)
-        new = []
-        for j in range(0, len(cur), 2):
-            a0, a1, a2, a3, a4 = cur[j]
-            b0, b1, b2, b3, b4 = cur[j + 1]
-            d0, d1, d2, d3, d4 = (b0 - a0) % P, (b1 - a1) % P, (b2 - a2) % P, (b3 - a3) % P, (b4 - a4) % P
-            p0 = d0 * r0
-            p1 = d0 * r1 + d1 * r0
-            p2 = d0 * r2 + d1 * r1 + d2 * r0
-            p3 = d0 * r3 + d1 * r2 + d2 * r1 + d3 * r0
-            p4 = d0 * r4 + d1 * r3 + d2 * r2 + d3 * r1 + d4 * r0
-            p5 = d1 * r4 + d2 * r3 + d3 * r2 + d4 * r1
-            p6 = d2 * r4 + d3 * r3 + d4 * r2
-            p7 = d3 * r4 + d4 * r3
-            p8 = d4 * r4
-            new.append(
-                (
-                    (a0 + p0 + p5 - p8) % P,
-                    (a1 + p1 + p6) % P,
-                    (a2 + p2 - p5 + p7 + p8) % P,
-                    (a3 + p3 - p6 + p8) % P,
-                    (a4 + p4 - p7) % P,
-                )
-            )
-        cur = new
-
-    return EF([Fp(x) for x in cur[0]])
+    return eval_multilinear([EF(v) for v in base_evals], point)
 
 
 def eval_multilinear_coeffs(coeffs: Sequence[EF], point: Sequence[EF]) -> EF:
@@ -1313,15 +1274,6 @@ def verify_execution(
     return {"log_inv_rate": log_inv_rate, "log_memory": log_memory, "stacked_n_vars": stacked_n_vars}
 
 
-def poseidon_compress_slice_iv(data: Sequence[Fp]) -> list[Fp]:
-    """Hash a multiple-of-8 sequence (Poseidon16/Davies-Meyer). IV first element = len(data)."""
-    assert data and len(data) % 8 == 0
-    h = [Fp(len(data))] + [Fp(0)] * 7
-    for i in range(0, len(data), 8):
-        h = poseidon16_compress(h, list(data[i : i + 8]))
-    return h
-
-
 def main() -> int:
     import array, json
     from pathlib import Path
@@ -1330,7 +1282,7 @@ def main() -> int:
     if not vector_path.exists():
         print(
             f"Test vector not found at {vector_path}. Generate it first with:\n"
-            "    cargo test --release -p lean_prover --test dump_zkvm_vector -- --nocapture"
+            "    cargo test --release -p lean_prover dump_zkvm_vector -- --nocapture"
         )
         return 1
 
@@ -1344,7 +1296,6 @@ def main() -> int:
 
     fp_list = lambda xs: [Fp(v) for v in xs]
     public_input = fp_list(raw["public_input"])
-    input_data = fp_list(raw["input_data"])
     proof = Proof(
         transcript=fp_list(raw["proof"]["transcript"]),
         merkle_openings=[
@@ -1352,10 +1303,6 @@ def main() -> int:
             for o in raw["proof"]["merkle_openings"]
         ],
     )
-
-    if poseidon_compress_slice_iv(input_data) != public_input:
-        print("FAIL: poseidon_compress_slice(input_data) doesn't match dumped public_input")
-        return 1
 
     try:
         result = verify_execution(
@@ -1371,7 +1318,7 @@ def main() -> int:
         print(f"FAIL: {e}")
         return 1
 
-    print(f"OK: rec-aggregation proof verified ({result})")
+    print(f"OK: minimal-zkVM proof verified ({result})")
     return 0
 
 

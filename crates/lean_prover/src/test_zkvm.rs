@@ -1,3 +1,5 @@
+use std::{collections::BTreeMap, io::Write};
+
 use crate::{default_whir_config, prove_execution::prove_execution, verify_execution::verify_execution};
 use backend::*;
 use lean_compiler::*;
@@ -5,15 +7,17 @@ use lean_vm::*;
 use rand::{RngExt, SeedableRng, rngs::StdRng};
 use utils::{init_tracing, poseidon16_compress, poseidon16_permute};
 
-#[test]
-fn test_zk_vm_all_precompiles() {
-    let program_str = r#"
+const N: usize = 11;
+const M: usize = 3;
+
+const ALL_PRECOMPILES_PROGRAM: &str = r#"
 DIM = 5
 N = 11
 M = 3
 DIGEST_LEN = 8
 HALF_DIGEST_LEN = 4
 SCRATCH_SIZE = 8192
+LOOP_ITERS = LOOP_ITERS_PLACEHOLDER
 
 def main():
     scratch = Array(SCRATCH_SIZE)
@@ -80,16 +84,20 @@ def main():
     poly_eq_ee(ext_a_ptr, ext_b_ptr, scratch + 1300, N)
 
     c: Mut = 0
-    for i in range(0,100):
+    for i in range(0, LOOP_ITERS):
         c += 1
-    assert c == 100
+    assert c == LOOP_ITERS
 
     return
 "#;
 
-    const N: usize = 11;
-    const M: usize = 3;
+fn all_precompiles_flags(loop_iters: usize) -> CompilationFlags {
+    CompilationFlags {
+        replacements: BTreeMap::from([("LOOP_ITERS_PLACEHOLDER".to_string(), loop_iters.to_string())]),
+    }
+}
 
+fn all_precompiles_witness() -> (Vec<F>, ExecutionWitness) {
     let mut rng = StdRng::seed_from_u64(0);
     let mut scratch = F::zero_vec(8192);
 
@@ -195,7 +203,93 @@ def main():
         hints,
         ..Default::default()
     };
-    test_zk_vm_helper_with_witness(program_str, &public_input, witness);
+    (public_input, witness)
+}
+
+#[test]
+fn test_zk_vm_all_precompiles() {
+    let (public_input, witness) = all_precompiles_witness();
+    test_zk_vm_helper_with_witness(
+        ALL_PRECOMPILES_PROGRAM,
+        &public_input,
+        witness,
+        all_precompiles_flags(100),
+    );
+}
+
+#[test]
+fn dump_test_vector_for_python_verifier() {
+    const LOOP_ITERS: usize = 5000;
+
+    let (public_input, witness) = all_precompiles_witness();
+    let bytecode = compile_program_with_flags(
+        &ProgramSource::Raw(ALL_PRECOMPILES_PROGRAM.to_string()),
+        all_precompiles_flags(LOOP_ITERS),
+    );
+    let exec_proof = prove_execution(&bytecode, &public_input, &witness, &default_whir_config(1), false).unwrap();
+    let n_cycles = exec_proof.metadata.as_ref().map_or(0, |m| m.cycles);
+    let (_details, raw_proof) = verify_execution(&bytecode, &public_input, exec_proof.proof).unwrap();
+
+    let f_u32 = |x: F| x.as_canonical_u32();
+    let out_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../..")
+        .join(std::env::var("CARGO_TARGET_DIR").unwrap_or_else(|_| "target".into()))
+        .join("zkvm_test_vectors");
+    std::fs::create_dir_all(&out_dir).unwrap();
+
+    // Sidecar: raw u32-LE bytecode multilinear.
+    let mle_path = "proof.bytecode_mle.bin";
+    let mut mle_file = std::fs::File::create(out_dir.join(mle_path)).unwrap();
+    for v in &bytecode.instructions_multilinear {
+        mle_file.write_all(&f_u32(*v).to_le_bytes()).unwrap();
+    }
+
+    let tables_json: Vec<serde_json::Value> = ALL_TABLES
+        .iter()
+        .map(|t| serde_json::json!({"name": t.name(), "n_columns": <Table as Air>::n_columns(t)}))
+        .collect();
+    let opening_json = |o: &MerkleOpening<F>| -> serde_json::Value {
+        serde_json::json!({
+            "leaf_data": o.leaf_data.iter().map(|&f| f_u32(f)).collect::<Vec<_>>(),
+            "path": o.path.iter().map(|d| d.map(f_u32)).collect::<Vec<_>>(),
+        })
+    };
+    let out = serde_json::json!({
+        "bytecode_log_size": bytecode.log_size(),
+        "bytecode_hash": bytecode.hash.map(f_u32),
+        "bytecode_multilinear_path": mle_path,
+        "bytecode_multilinear_len": bytecode.instructions_multilinear.len(),
+        "public_input": public_input.iter().map(|&f| f_u32(f)).collect::<Vec<_>>(),
+        "n_tables": N_TABLES,
+        "tables": tables_json,
+        "constants": {
+            "n_instruction_columns": N_INSTRUCTION_COLUMNS,
+            "n_runtime_columns": N_RUNTIME_COLUMNS,
+            "col_pc": COL_PC,
+            "logup_memory_domainsep": LOGUP_MEMORY_DOMAINSEP,
+            "logup_bytecode_domainsep": LOGUP_BYTECODE_DOMAINSEP,
+            "log_max_bus_width": LOG_MAX_BUS_WIDTH,
+            "starting_pc": STARTING_PC,
+            "ending_pc": bytecode.ending_pc,
+        },
+        "snark_domain_sep": crate::SNARK_DOMAIN_SEP.map(f_u32),
+        "n_cycles": n_cycles,
+        "proof": {
+            "transcript": raw_proof.transcript.iter().map(|&f| f_u32(f)).collect::<Vec<_>>(),
+            "merkle_openings": raw_proof.merkle_openings.iter().map(opening_json).collect::<Vec<_>>(),
+        },
+    });
+    let json_path = out_dir.join("proof.json");
+    std::fs::write(&json_path, serde_json::to_string(&out).unwrap()).unwrap();
+
+    println!(
+        "wrote {} ({:.1} KiB), bytecode_log_size={}, n_cycles={} (~2^{:.2})",
+        json_path.display(),
+        json_path.metadata().unwrap().len() as f64 / 1024.0,
+        bytecode.log_size(),
+        n_cycles,
+        (n_cycles as f64).log2(),
+    );
 }
 
 #[test]
@@ -245,18 +339,34 @@ def fibonacci_const(a, b, n: Const):
         buff[j] = buff[j - 1] + buff[j - 2]
     return buff[n], buff[n + 1]
 "#;
-    let program_str = program_str.replace("FIB_N_PLACEHOLDER", &n.to_string());
-
-    test_zk_vm_helper(&program_str, &[F::ZERO; PUBLIC_INPUT_LEN]);
+    let flags = CompilationFlags {
+        replacements: [("FIB_N_PLACEHOLDER".to_string(), n.to_string())].into_iter().collect(),
+    };
+    test_zk_vm_helper_with_witness(
+        program_str,
+        &[F::ZERO; PUBLIC_INPUT_LEN],
+        ExecutionWitness::default(),
+        flags,
+    );
 }
 
 fn test_zk_vm_helper(program_str: &str, public_input: &[F]) {
-    test_zk_vm_helper_with_witness(program_str, public_input, ExecutionWitness::default())
+    test_zk_vm_helper_with_witness(
+        program_str,
+        public_input,
+        ExecutionWitness::default(),
+        CompilationFlags::default(),
+    )
 }
 
-fn test_zk_vm_helper_with_witness(program_str: &str, public_input: &[F], witness: ExecutionWitness) {
+fn test_zk_vm_helper_with_witness(
+    program_str: &str,
+    public_input: &[F],
+    witness: ExecutionWitness,
+    flags: CompilationFlags,
+) {
     utils::init_tracing();
-    let bytecode = compile_program(&ProgramSource::Raw(program_str.to_string()));
+    let bytecode = compile_program_with_flags(&ProgramSource::Raw(program_str.to_string()), flags);
     let time = std::time::Instant::now();
     let starting_log_inv_rate = 1;
     let proof = prove_execution(
