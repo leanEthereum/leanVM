@@ -227,7 +227,6 @@ fn dump_test_vector_for_python_verifier() {
         all_precompiles_flags(LOOP_ITERS),
     );
     let exec_proof = prove_execution(&bytecode, &public_input, &witness, &default_whir_config(1), false).unwrap();
-    let n_cycles = exec_proof.metadata.as_ref().map_or(0, |m| m.cycles);
     let (_details, raw_proof) = verify_execution(&bytecode, &public_input, exec_proof.proof).unwrap();
 
     let f_u32 = |x: F| x.as_canonical_u32();
@@ -244,10 +243,6 @@ fn dump_test_vector_for_python_verifier() {
         mle_file.write_all(&f_u32(*v).to_le_bytes()).unwrap();
     }
 
-    let tables_json: Vec<serde_json::Value> = ALL_TABLES
-        .iter()
-        .map(|t| serde_json::json!({"name": t.name(), "n_columns": <Table as Air>::n_columns(t)}))
-        .collect();
     let opening_json = |o: &MerkleOpening<F>| -> serde_json::Value {
         serde_json::json!({
             "leaf_data": o.leaf_data.iter().map(|&f| f_u32(f)).collect::<Vec<_>>(),
@@ -258,22 +253,7 @@ fn dump_test_vector_for_python_verifier() {
         "bytecode_log_size": bytecode.log_size(),
         "bytecode_hash": bytecode.hash.map(f_u32),
         "bytecode_multilinear_path": mle_path,
-        "bytecode_multilinear_len": bytecode.instructions_multilinear.len(),
         "public_input": public_input.iter().map(|&f| f_u32(f)).collect::<Vec<_>>(),
-        "n_tables": N_TABLES,
-        "tables": tables_json,
-        "constants": {
-            "n_instruction_columns": N_INSTRUCTION_COLUMNS,
-            "n_runtime_columns": N_RUNTIME_COLUMNS,
-            "col_pc": COL_PC,
-            "logup_memory_domainsep": LOGUP_MEMORY_DOMAINSEP,
-            "logup_bytecode_domainsep": LOGUP_BYTECODE_DOMAINSEP,
-            "log_max_bus_width": LOG_MAX_BUS_WIDTH,
-            "starting_pc": STARTING_PC,
-            "ending_pc": bytecode.ending_pc,
-        },
-        "snark_domain_sep": crate::SNARK_DOMAIN_SEP.map(f_u32),
-        "n_cycles": n_cycles,
         "proof": {
             "transcript": raw_proof.transcript.iter().map(|&f| f_u32(f)).collect::<Vec<_>>(),
             "merkle_openings": raw_proof.merkle_openings.iter().map(opening_json).collect::<Vec<_>>(),
@@ -283,12 +263,10 @@ fn dump_test_vector_for_python_verifier() {
     std::fs::write(&json_path, serde_json::to_string(&out).unwrap()).unwrap();
 
     println!(
-        "wrote {} ({:.1} KiB), bytecode_log_size={}, n_cycles={} (~2^{:.2})",
+        "wrote {} ({:.1} KiB), bytecode_log_size={}",
         json_path.display(),
         json_path.metadata().unwrap().len() as f64 / 1024.0,
         bytecode.log_size(),
-        n_cycles,
-        (n_cycles as f64).log2(),
     );
 }
 

@@ -30,6 +30,12 @@ MIN_LOG_N_ROWS_PER_TABLE, MIN_BYTECODE_LOG_SIZE, MAX_BYTECODE_LOG_SIZE = 8, 8, 2
 MAX_LOG_N_ROWS_PER_TABLE = {"execution": 24, "extension_op": 21, "poseidon16_compress": 21}
 ALL_TABLES_ORDER = ("execution", "extension_op", "poseidon16_compress")
 
+# leanVM constants (mirror `crates/lean_vm/src/`). `ending_pc` is the only bytecode-specific value.
+N_INSTRUCTION_COLUMNS, N_RUNTIME_COLUMNS, COL_PC = 12, 8, 0
+LOGUP_MEMORY_DOMAINSEP, LOGUP_BYTECODE_DOMAINSEP = 1, 2
+LOG_MAX_BUS_WIDTH = 4  # = log2_ceil(N_INSTRUCTION_COLUMNS + 2)
+STARTING_PC = 0
+
 
 class ProofError(Exception):
     pass
@@ -523,18 +529,17 @@ class TableMeta:
         return sum(b[3] if b[0] == "mem_group" else 1 for b in self.buses)
 
 
-def tables_from_json(obj: list[dict]) -> list[TableMeta]:
-    # (air_degree, n_constraints, n_shift, air_fn) per table.
-    specs = {
-        "execution": (5, 14, 2, _eval_air_execution),
-        "extension_op": (6, 35, 13, _eval_air_extension_op),
-        "poseidon16_compress": (10, 101, 0, _eval_air_poseidon16),
-    }
-    out = []
-    for t in obj:
-        name, n_cols = t["name"], int(t["n_columns"])
-        out.append(TableMeta(name, n_cols, _table_buses(name, n_cols), *specs[name]))
-    return out
+def default_tables() -> list[TableMeta]:
+    # (n_columns, air_degree, n_constraints, n_shift, air_fn) per table — all constants.
+    # poseidon16_compress: 9 scalars + 16 inputs + half_full_rounds*WIDTH (begin + end-1) + partial + WIDTH outputs.
+    p = POSEIDON1_AIR_CONSTANTS
+    poseidon_n_cols = 25 + 32 * (p["half_full_rounds"] // 2) + p["partial_rounds"]
+    specs = (
+        ("execution", N_INSTRUCTION_COLUMNS + N_RUNTIME_COLUMNS, 5, 14, 2, _eval_air_execution),
+        ("extension_op", 29, 6, 35, 13, _eval_air_extension_op),
+        ("poseidon16_compress", poseidon_n_cols, 10, 101, 0, _eval_air_poseidon16),
+    )
+    return [TableMeta(name, n, _table_buses(name, n), d, k, s, fn) for name, n, d, k, s, fn in specs]
 
 
 def stacked_pcs_global_statements(
@@ -545,7 +550,7 @@ def stacked_pcs_global_statements(
     table_log_heights: dict[str, int],
     committed_statements: dict[str, list[tuple[list[EF], dict[int, EF], dict[int, EF]]]],
     tables: dict[str, TableMeta],
-    constants: dict,
+    ending_pc: int,
 ) -> list[SparseStatement]:
     assert len(table_log_heights) == len(committed_statements)
     tables_sorted = sort_tables_by_height(table_log_heights)
@@ -559,7 +564,6 @@ def stacked_pcs_global_statements(
         layout_offset += tables[name].n_columns << n_vars
 
     out = list(previous_statements)
-    col_pc = constants["col_pc"]
 
     # Rust uses BTreeMap (sorted by key); Python dicts are insertion-ordered, sort here.
     def values_at(d: dict[int, EF], col_base: int) -> list[tuple[int, EF]]:
@@ -571,8 +575,8 @@ def stacked_pcs_global_statements(
         col_base = offset >> n_vars
         if name == "execution":
             # PC column: pin first row to STARTING_PC, last row to ending_pc.
-            for idx, pc in [(0, constants["starting_pc"]), ((1 << n_vars) - 1, constants["ending_pc"])]:
-                out.append(SparseStatement.unique_value(stacked_n_vars, offset + (col_pc << n_vars) + idx, EF(pc)))
+            for idx, pc in [(0, STARTING_PC), ((1 << n_vars) - 1, ending_pc)]:
+                out.append(SparseStatement.unique_value(stacked_n_vars, offset + (COL_PC << n_vars) + idx, EF(pc)))
         for point, eq_values, next_values in committed_statements[name]:
             if next_values:
                 out.append(SparseStatement.new_next(stacked_n_vars, list(point), values_at(next_values, col_base)))
@@ -667,14 +671,13 @@ def verify_generic_logup(
     bytecode_multilinear: list[int],
     table_log_heights: dict[str, int],
     tables: dict[str, TableMeta],
-    constants: dict,
 ) -> dict:
     """GKR-quotient + section-by-section (memory/bytecode/per-table) reconstruction."""
-    n_instr_cols = constants["n_instruction_columns"]
-    n_runtime_cols = constants["n_runtime_columns"]
-    col_pc = constants["col_pc"]
-    ds_mem = Fp(constants["logup_memory_domainsep"])
-    ds_byte = Fp(constants["logup_bytecode_domainsep"])
+    n_instr_cols = N_INSTRUCTION_COLUMNS
+    n_runtime_cols = N_RUNTIME_COLUMNS
+    col_pc = COL_PC
+    ds_mem = Fp(LOGUP_MEMORY_DOMAINSEP)
+    ds_byte = Fp(LOGUP_BYTECODE_DOMAINSEP)
 
     tables_sorted = sort_tables_by_height(table_log_heights)
     log_bytecode = log2_strict_usize(len(bytecode_multilinear) // (1 << log2_ceil_usize(n_instr_cols)))
@@ -1119,10 +1122,11 @@ def verify_execution(
     bytecode_log_size: int,
     public_input: Sequence[Fp],
     proof: Proof,
-    tables: Sequence[TableMeta],
-    constants: dict,
     bytecode_multilinear: list[int],
 ) -> dict:
+    tables = default_tables()
+    # Bytecode is padded to the next power of two; `ending_pc` is the last slot.
+    ending_pc = (1 << bytecode_log_size) - 1
     if len(public_input) != PUBLIC_INPUT_SIZE:
         raise ProofError("InvalidProof: public_input length mismatch")
 
@@ -1173,7 +1177,7 @@ def verify_execution(
 
     logup_c = state.sample_ef()
     state.duplex()
-    logup_alphas = state.sample_many_ef(constants["log_max_bus_width"])
+    logup_alphas = state.sample_many_ef(LOG_MAX_BUS_WIDTH)
     logup_alphas_eq = eval_eq(logup_alphas)
     logup = verify_generic_logup(
         state,
@@ -1184,7 +1188,6 @@ def verify_execution(
         bytecode_multilinear,
         table_log_heights,
         tables_by_name,
-        constants,
     )
     gkr_point = logup["gkr_point"]
 
@@ -1260,7 +1263,7 @@ def verify_execution(
         table_log_heights,
         committed,
         tables_by_name,
-        constants,
+        ending_pc,
     )
     whir_verify(state, cfg, parsed_commitment, global_statements)
 
@@ -1291,7 +1294,8 @@ def main() -> int:
 
     arr = array.array("I")
     arr.frombytes((vector_path.parent / raw["bytecode_multilinear_path"]).read_bytes())
-    assert len(arr) == raw["bytecode_multilinear_len"]
+    expected_len = (1 << raw["bytecode_log_size"]) * (1 << log2_ceil_usize(N_INSTRUCTION_COLUMNS))
+    assert len(arr) == expected_len, f"bytecode_multilinear length {len(arr)} != expected {expected_len}"
     bytecode_multilinear: list[int] = list(arr)
 
     fp_list = lambda xs: [Fp(v) for v in xs]
@@ -1310,8 +1314,6 @@ def main() -> int:
             raw["bytecode_log_size"],
             public_input,
             proof,
-            tables_from_json(raw["tables"]),
-            raw["constants"],
             bytecode_multilinear,
         )
     except ProofError as e:
