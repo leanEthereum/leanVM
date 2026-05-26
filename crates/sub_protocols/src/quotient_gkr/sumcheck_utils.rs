@@ -302,63 +302,35 @@ pub(super) fn run_phase2_sumcheck<EF: ExtensionField<PF<EF>>>(
         let active_pairs = active_l.div_ceil(2);
         let fully_active = active_r / 2;
 
-        let acc = if active_pairs >= PARALLEL_THRESHOLD {
-            let fa = fully_active;
-            (0..active_pairs)
-                .into_par_iter()
-                .fold(RoundCoeffs::zero, |mut acc, j| {
-                    let coeffs = if j < fa {
-                        pair_coeffs::<EF, EF>(
-                            (num_l[2 * j], num_l[2 * j + 1]),
-                            (num_r[2 * j], num_r[2 * j + 1]),
-                            (den_l[2 * j], den_l[2 * j + 1]),
-                            (den_r[2 * j], den_r[2 * j + 1]),
-                        )
-                    } else {
-                        let get_pair = |arr: &[EF], idx: usize, pad: EF| {
-                            (
-                                arr.get(idx).copied().unwrap_or(pad),
-                                arr.get(idx + 1).copied().unwrap_or(pad),
-                            )
-                        };
-                        pair_coeffs::<EF, EF>(
-                            get_pair(&num_l, 2 * j, EF::ZERO),
-                            get_pair(&num_r, 2 * j, EF::ZERO),
-                            get_pair(&den_l, 2 * j, EF::ONE),
-                            get_pair(&den_r, 2 * j, EF::ONE),
-                        )
-                    };
-                    acc += coeffs * eq_table[j];
-                    acc
-                })
-                .reduce(RoundCoeffs::zero, Add::add)
-        } else {
-            let mut acc = RoundCoeffs::<EF>::zero();
-            for j in 0..active_pairs {
-                let coeffs = if j < fully_active {
-                    pair_coeffs::<EF, EF>(
-                        (num_l[2 * j], num_l[2 * j + 1]),
-                        (num_r[2 * j], num_r[2 * j + 1]),
-                        (den_l[2 * j], den_l[2 * j + 1]),
-                        (den_r[2 * j], den_r[2 * j + 1]),
-                    )
-                } else {
-                    let get_pair = |arr: &[EF], idx: usize, pad: EF| {
-                        (
-                            arr.get(idx).copied().unwrap_or(pad),
-                            arr.get(idx + 1).copied().unwrap_or(pad),
-                        )
-                    };
-                    pair_coeffs::<EF, EF>(
-                        get_pair(&num_l, 2 * j, EF::ZERO),
-                        get_pair(&num_r, 2 * j, EF::ZERO),
-                        get_pair(&den_l, 2 * j, EF::ONE),
-                        get_pair(&den_r, 2 * j, EF::ONE),
+        let term = |j: usize| -> RoundCoeffs<EF> {
+            let coeffs = if j < fully_active {
+                pair_coeffs::<EF, EF>(
+                    (num_l[2 * j], num_l[2 * j + 1]),
+                    (num_r[2 * j], num_r[2 * j + 1]),
+                    (den_l[2 * j], den_l[2 * j + 1]),
+                    (den_r[2 * j], den_r[2 * j + 1]),
+                )
+            } else {
+                let get_pair = |arr: &[EF], idx: usize, pad: EF| {
+                    (
+                        arr.get(idx).copied().unwrap_or(pad),
+                        arr.get(idx + 1).copied().unwrap_or(pad),
                     )
                 };
-                acc += coeffs * eq_table[j];
-            }
-            acc
+                pair_coeffs::<EF, EF>(
+                    get_pair(&num_l, 2 * j, EF::ZERO),
+                    get_pair(&num_r, 2 * j, EF::ZERO),
+                    get_pair(&den_l, 2 * j, EF::ONE),
+                    get_pair(&den_r, 2 * j, EF::ONE),
+                )
+            };
+            coeffs * eq_table[j]
+        };
+
+        let acc: RoundCoeffs<EF> = if active_pairs >= PARALLEL_THRESHOLD {
+            (0..active_pairs).into_par_iter().map(term).reduce(RoundCoeffs::zero, Add::add)
+        } else {
+            (0..active_pairs).map(term).fold(RoundCoeffs::<EF>::zero(), Add::add)
         };
 
         let eq_prefix = &remaining_eq[..remaining_eq.len() - 1];
@@ -385,16 +357,12 @@ pub(super) fn run_phase2_sumcheck<EF: ExtensionField<PF<EF>>>(
 
         let new_eq_len = eq_table.len() / 2;
         if new_eq_len > 0 {
-            let mut new_eq = unsafe { uninitialized_vec(new_eq_len) };
-            let fold_eq = |(i, slot): (usize, &mut EF)| {
-                *slot = eq_table[2 * i] + eq_table[2 * i + 1];
-            };
-            if new_eq_len >= PARALLEL_THRESHOLD {
-                new_eq.par_iter_mut().enumerate().for_each(fold_eq);
+            let fold_eq = |i: usize| eq_table[2 * i] + eq_table[2 * i + 1];
+            eq_table = if new_eq_len >= PARALLEL_THRESHOLD {
+                (0..new_eq_len).into_par_iter().map(fold_eq).collect()
             } else {
-                new_eq.iter_mut().enumerate().for_each(fold_eq);
-            }
-            eq_table = new_eq;
+                (0..new_eq_len).map(fold_eq).collect()
+            };
         }
 
         q_natural.push(r);
