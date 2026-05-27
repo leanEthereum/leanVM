@@ -639,30 +639,25 @@ buffer; `off` (where present) is a compile-time address.
 
 ### Extension-field operations
 
-Six built-in functions, each combines a fixed element-wise operation with an
-accumulation over `length` element pairs:
-
-| Function                            | Element-wise `e_i`               | Result      |
-| ----------------------------------- | -------------------------------- | ----------- |
-| `add_ee` / `add_be`                 | `a_i + b_i`                      | `sum(e_i)`  |
-| `dot_product_ee` / `dot_product_be` | `a_i * b_i`                      | `sum(e_i)`  |
-| `poly_eq_ee` / `poly_eq_be`         | `a_i * b_i + (1 - a_i)(1 - b_i)` | `prod(e_i)` |
-
-Signature (the same for all six):
+Six built-in functions, each reading two length-`n` vectors `a` and `b` and
+writing one extension-field element to `result`. `n` defaults to `1` and must
+be a compile-time constant when given.
 
 ```python
-func(ptr_a, ptr_b, ptr_result)           # length defaults to 1
-func(ptr_a, ptr_b, ptr_result, length)   # length must be a compile-time constant
+add_ee(a, b, result, n=1)         # result = sum_i (a[i] + b[i])
+dot_product_ee(a, b, result, n=1) # result = sum_i  a[i] * b[i]
+poly_eq_ee(a, b, result, n=1)     # result = prod_i (a[i]*b[i] + (1-a[i])*(1-b[i]))
 ```
 
-- `ptr_result` points to a single extension-field element (5 cells).
-- The `_ee` / `_be` suffix selects the layout of the operands:
-  - `_ee`: both `ptr_a` and `ptr_b` point to extension elements (stride
-    `DIM = 5`).
-  - `_be`: `ptr_a` points to base-field elements (stride 1); `ptr_b` points
-    to extension elements (stride `DIM = 5`).
+The `_ee` suffix means both `a` and `b` are vectors of *extension*-field
+elements (each occupying `DIM = 5` consecutive cells). The `_be` variants
+(`add_be`, `dot_product_be`, `poly_eq_be`) are identical except `a` is a
+vector of *base*-field elements (1 cell each); `b` and `result` are still
+extension-field.
 
-For a runtime length, dispatch through `match_range`:
+`result` always points to a single extension-field element (5 cells).
+
+For a runtime `n`, dispatch through `match_range`:
 
 ```python
 def dot_product_ee_dynamic(a, b, res, n):
@@ -673,25 +668,16 @@ def dot_product_ee_dynamic(a, b, res, n):
 Common idioms:
 
 ```python
-# Multiply two extension elements (length defaults to 1)
-dot_product_ee(x, y, z)                   # z = x * y
+# Multiply two extension elements (n defaults to 1)
+dot_product_ee(x, y, z)                       # z = x * y
 
-# Copy an extension element by multiplying by [1, 0, 0, 0, 0]
+# Copy an extension element by multiplying by 1
 # (ONE_EF_PTR is a constant materialized in the preamble)
 dot_product_ee(src, ONE_EF_PTR, dst)
 
-# Dot products
-dot_product_ee(coeffs, basis, result, N)
-dot_product_be(alpha_powers, coeffs, result, N)
-
-# Extension addition / subtraction (the second form uses write-once memory
-# to turn an addition into the subtraction constraint b + c = a)
-add_ee(a, b, c)            # c = a + b
-add_ee(b, c, a)            # c = a - b
-
-# Equality polynomial: eq(a, b) = a*b + (1-a)*(1-b)
-poly_eq_ee(a, b, eq_result)
-poly_eq_ee(a, b, result, n)   # multi-point eq: prod_i eq(a[i], b[i])
+# Extension subtraction: write-once memory turns "c = a + b" into
+# the constraint "b + c = a", i.e. c = a - b
+add_ee(b, c, a)                               # c = a - b
 ```
 
 ## Debugging
@@ -710,19 +696,19 @@ the print hint in `lean_vm/src/isa/hint.rs (Self::Print)` to `eprint!` directly.
 The runner lays out memory as
 
 ```python
-[ public_input (zero-padded) | preamble_memory | runtime ]
+[ public_input (PUBLIC_INPUT_LEN cells) | preamble_memory | runtime ]
 ```
 
-- `public_input` lives at `memory[0..public_input.len()]` and is zero-padded to
-  the next power of two by the runner, so it can be evaluated as a multilinear
-  polynomial.
+- `public_input` is fixed at `PUBLIC_INPUT_LEN = DIGEST_LEN = 8` cells (a hash
+  digest), occupying `memory[0..8]`.
 - `preamble_memory` is a region of `witness.preamble_memory_len` cells the
-  runner reserves but does **not** initialize. The guest program is expected
-  to fill this region with whatever helper constants it relies on (e.g. a
-  vector of zeros for `dot_product_ee`-as-copy, an extension-field one for
-  multiply-by-one tricks, a vector of ones for batched accumulations, …) at
-  the start of `main`. The names and offsets of these constants are not part
-  of the VM contract — each program defines its own. See
+  runner reserves immediately after the public input but does **not**
+  initialize. The guest program is expected to fill this region with whatever
+  helper constants it relies on (e.g. a vector of zeros for
+  `dot_product_ee`-as-copy, an extension-field one for multiply-by-one tricks,
+  a vector of ones for batched accumulations, …) at the start of `main`. The
+  names and offsets of these constants are not part of the VM contract — each
+  program defines its own. See
   `crates/rec_aggregation/zkdsl_implem/utils.py (build_preamble_memory)` for
   a concrete example.
 - The runtime region holds the program's stack frames, working memory, and any

@@ -6,7 +6,6 @@ use utils::{ToUsize, get_poseidon_16_of_zero, transposed_par_iter_mut};
 #[derive(Debug)]
 pub struct ExecutionTrace {
     pub traces: BTreeMap<Table, TableTrace>,
-    pub public_memory_size: usize,
     pub memory: Vec<F>, // of length a multiple of public_memory_size
     pub metadata: ExecutionMetadata,
 }
@@ -171,7 +170,6 @@ pub fn get_execution_trace(
 
     ExecutionTrace {
         traces,
-        public_memory_size: execution_result.public_memory_size,
         memory: memory_padded,
         metadata: execution_result.metadata,
     }

@@ -14,7 +14,7 @@ pub struct ProofVerificationDetails {
 
 pub fn verify_execution(
     bytecode: &Bytecode,
-    public_input: &[F],
+    public_input: &[F; PUBLIC_INPUT_LEN],
     proof: Proof<F>,
 ) -> Result<(ProofVerificationDetails, RawProof<F>), ProofError> {
     if bytecode.log_size() > MAX_BYTECODE_LOG_SIZE {
@@ -22,9 +22,6 @@ pub fn verify_execution(
             current_log_size: bytecode.log_size(),
             max_log_size: MAX_BYTECODE_LOG_SIZE,
         });
-    }
-    if public_input.len() != PUBLIC_INPUT_LEN {
-        return Err(ProofError::InvalidProof);
     }
     let mut verifier_state =
         VerifierState::<EF, _>::new(proof, get_poseidon16().clone(), fiat_shamir_domain_sep(bytecode))?;
@@ -57,8 +54,6 @@ pub fn verify_execution(
     if log_memory < (*table_n_vars.values().max().unwrap()).max(bytecode.log_size()) {
         return Err(ProofError::InvalidProof);
     }
-
-    let public_memory = padd_with_zero_to_next_power_of_two(public_input);
 
     if !(MIN_LOG_MEMORY_SIZE..=MAX_LOG_MEMORY_SIZE).contains(&log_memory) {
         return Err(ProofError::InvalidProof);
@@ -175,9 +170,8 @@ pub fn verify_execution(
         return Err(ProofError::InvalidProof);
     }
 
-    let public_memory_random_point =
-        MultilinearPoint(verifier_state.sample_vec(log2_strict_usize(public_memory.len())));
-    let public_memory_eval = public_memory.evaluate(&public_memory_random_point);
+    let public_memory_random_point = MultilinearPoint(verifier_state.sample_vec(log2_strict_usize(public_input.len())));
+    let public_memory_eval = public_input.evaluate(&public_memory_random_point);
 
     let previous_statements = vec![
         SparseStatement::new(

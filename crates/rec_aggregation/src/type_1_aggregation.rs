@@ -273,7 +273,7 @@ pub(crate) fn aggregate_type_1_with_min_padding(
         &reduced_claims.final_claim_flat(),
         bytecode,
     );
-    let public_input = poseidon_compress_slice(&pub_input_data).to_vec();
+    let public_input = poseidon_compress_slice(&pub_input_data);
 
     let mut claimed: HashSet<XmssPublicKey> = HashSet::new();
     let mut dup_pub_keys: Vec<XmssPublicKey> = Vec::new();

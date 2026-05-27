@@ -19,7 +19,7 @@ pub struct ExecutionProof {
 
 pub fn prove_execution(
     bytecode: &Bytecode,
-    public_input: &[F],
+    public_input: &[F; PUBLIC_INPUT_LEN],
     witness: &ExecutionWitness,
     whir_config: &WhirConfigBuilder,
     vm_profiler: bool,
@@ -27,15 +27,8 @@ pub fn prove_execution(
     check_rate(whir_config.starting_log_inv_rate)
         .map_err(|err| panic!("{err}"))
         .unwrap();
-    if public_input.len() != PUBLIC_INPUT_LEN {
-        return Err(ProverError::InvalidPublicInputSize {
-            expected: PUBLIC_INPUT_LEN,
-            actual: public_input.len(),
-        });
-    }
     let ExecutionTrace {
         traces,
-        public_memory_size,
         mut memory, // padded with zeros to next power of two
         metadata,
     } = info_span!("Witness generation").in_scope(|| -> Result<_, ProverError> {
@@ -232,8 +225,8 @@ pub fn prove_execution(
         committed_statements.get_mut(table).unwrap().push(claim);
     }
 
-    let public_memory_random_point = MultilinearPoint(prover_state.sample_vec(log2_strict_usize(public_memory_size)));
-    let public_memory_eval = (&memory[..public_memory_size]).evaluate(&public_memory_random_point);
+    let public_memory_random_point = MultilinearPoint(prover_state.sample_vec(log2_strict_usize(PUBLIC_INPUT_LEN)));
+    let public_memory_eval = (&memory[..PUBLIC_INPUT_LEN]).evaluate(&public_memory_random_point);
 
     let previous_statements = vec![
         SparseStatement::new(

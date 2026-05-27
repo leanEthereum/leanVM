@@ -67,7 +67,6 @@ pub enum ProverError {
     Runner(RunnerError),
     UnknownMessage,
     MultipleMessages,
-    InvalidPublicInputSize { expected: usize, actual: usize },
 }
 
 impl From<TooBigTableError> for ProverError {
@@ -89,9 +88,6 @@ impl Display for ProverError {
             Self::Runner(e) => write!(f, "{}", e),
             Self::UnknownMessage => write!(f, "Unknown message, not part of the type2"),
             Self::MultipleMessages => write!(f, "Multiple common messages in the type2"),
-            Self::InvalidPublicInputSize { expected, actual } => {
-                write!(f, "Invalid public input size: expected {}, actual {}", expected, actual)
-            }
         }
     }
 }

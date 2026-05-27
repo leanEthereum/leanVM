@@ -97,7 +97,7 @@ fn all_precompiles_flags(loop_iters: usize) -> CompilationFlags {
     }
 }
 
-fn all_precompiles_witness() -> (Vec<F>, ExecutionWitness) {
+fn all_precompiles_witness() -> ([F; PUBLIC_INPUT_LEN], ExecutionWitness) {
     let mut rng = StdRng::seed_from_u64(0);
     let mut scratch = F::zero_vec(8192);
 
@@ -194,7 +194,7 @@ fn all_precompiles_witness() -> (Vec<F>, ExecutionWitness) {
         .fold(EF::ONE, |acc, x| acc * x);
     scratch[1300..][..DIMENSION].copy_from_slice(poly_eq_ee_result.as_basis_coefficients_slice());
 
-    let mut public_input = vec![F::ZERO; PUBLIC_INPUT_LEN];
+    let mut public_input = [F::ZERO; PUBLIC_INPUT_LEN];
     public_input[..4].copy_from_slice(&hardcoded_prefix);
 
     let mut hints = std::collections::HashMap::new();
@@ -326,7 +326,7 @@ def fibonacci_const(a, b, n: Const):
     );
 }
 
-fn test_zk_vm_helper(program_str: &str, public_input: &[F]) {
+fn test_zk_vm_helper(program_str: &str, public_input: &[F; PUBLIC_INPUT_LEN]) {
     test_zk_vm_helper_with_witness(
         program_str,
         public_input,
@@ -337,7 +337,7 @@ fn test_zk_vm_helper(program_str: &str, public_input: &[F]) {
 
 fn test_zk_vm_helper_with_witness(
     program_str: &str,
-    public_input: &[F],
+    public_input: &[F; PUBLIC_INPUT_LEN],
     witness: ExecutionWitness,
     flags: CompilationFlags,
 ) {

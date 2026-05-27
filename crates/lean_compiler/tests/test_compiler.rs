@@ -4,27 +4,6 @@ use backend::{BasedVectorSpace, PrimeCharacteristicRing};
 use lean_compiler::*;
 use lean_vm::*;
 use rand::{RngExt, SeedableRng, rngs::StdRng};
-use utils::poseidon16_compress;
-
-#[test]
-fn test_poseidon() {
-    let program = r#"
-def main():
-    a = 0
-    b = a + 8
-    c = Array(8)
-    poseidon16_compress(a, b, c)
-
-    for i in range(0, 8):
-        cc = c[i]
-        print(cc)
-    return
-   "#;
-    let public_input: [F; 16] = (0..16).map(F::new).collect::<Vec<F>>().try_into().unwrap();
-    compile_and_run(&ProgramSource::Raw(program.to_string()), &public_input, false);
-
-    let _ = dbg!(poseidon16_compress(public_input));
-}
 
 #[test]
 fn test_div_extension_field() {
@@ -32,13 +11,16 @@ fn test_div_extension_field() {
 DIM = 5
 
 def main():
-    n = 0
-    d = n + DIM
-    q = n + 2 * DIM
+    nd = Array(2 * DIM)
+    hint_witness("nd", nd)
+    n = nd
+    d = nd + DIM
+    expected_q = Array(DIM)
+    hint_witness("q", expected_q)
     computed_q_1 = div_ext_1(n, d)
     computed_q_2 = div_ext_2(n, d)
-    assert_eq_ext(computed_q_2, q)
-    assert_eq_ext(computed_q_1, q)
+    assert_eq_ext(computed_q_2, expected_q)
+    assert_eq_ext(computed_q_1, expected_q)
     return
 
 def assert_eq_ext(x, y):
@@ -61,12 +43,19 @@ def div_ext_2(n, d):
     let n: EF = rng.random();
     let d: EF = rng.random();
     let q = n / d;
-    let mut public_input = vec![];
-    public_input.extend(n.as_basis_coefficients_slice());
-    public_input.extend(d.as_basis_coefficients_slice());
-    public_input.extend(q.as_basis_coefficients_slice());
-    public_input.resize(16, F::ZERO);
-    compile_and_run(&ProgramSource::Raw(program.to_string()), &public_input, false);
+    let mut nd_buf: Vec<F> = Vec::new();
+    nd_buf.extend(n.as_basis_coefficients_slice());
+    nd_buf.extend(d.as_basis_coefficients_slice());
+    let q_buf: Vec<F> = q.as_basis_coefficients_slice().to_vec();
+    let mut hints = std::collections::HashMap::new();
+    hints.insert("nd".to_string(), vec![nd_buf]);
+    hints.insert("q".to_string(), vec![q_buf]);
+    let witness = ExecutionWitness {
+        hints,
+        ..ExecutionWitness::default()
+    };
+    let bytecode = compile_program(&ProgramSource::Raw(program.to_string()));
+    try_execute_bytecode(&bytecode, &[F::ZERO; PUBLIC_INPUT_LEN], &witness, false).unwrap();
 }
 
 fn test_data_dir() -> String {
@@ -134,7 +123,7 @@ fn test_all_programs() {
             Ok(b) => b,
             Err(err) => panic!("Program {} failed to compile: {:?}", path, err),
         };
-        if let Err(err) = try_execute_bytecode(&bytecode, &[], &witness, false) {
+        if let Err(err) = try_execute_bytecode(&bytecode, &[F::ZERO; PUBLIC_INPUT_LEN], &witness, false) {
             panic!("Program {} failed with error: {:?}", path, err);
         }
     }
@@ -176,7 +165,13 @@ def func(a, b):
     return
    "#;
     let bytecode = compile_program(&ProgramSource::Raw(program.to_string()));
-    let n_cycles = execute_bytecode(&bytecode, &[], &ExecutionWitness::default(), false).n_cycles();
+    let n_cycles = execute_bytecode(
+        &bytecode,
+        &[F::ZERO; PUBLIC_INPUT_LEN],
+        &ExecutionWitness::default(),
+        false,
+    )
+    .n_cycles();
     assert!(n_cycles < 1100);
 }
 
@@ -205,10 +200,20 @@ def factorial(n):
     let compiled_parallel = compile_program(&ProgramSource::Raw(program.replace("loop", "parallel_range")));
 
     let time_sequential = Instant::now();
-    let exec_seq = execute_bytecode(&compiled_sequencial, &[], &ExecutionWitness::default(), false);
+    let exec_seq = execute_bytecode(
+        &compiled_sequencial,
+        &[F::ZERO; PUBLIC_INPUT_LEN],
+        &ExecutionWitness::default(),
+        false,
+    );
     let duration_sequential = time_sequential.elapsed();
     let time_parallel = Instant::now();
-    let exec_par = execute_bytecode(&compiled_parallel, &[], &ExecutionWitness::default(), false);
+    let exec_par = execute_bytecode(
+        &compiled_parallel,
+        &[F::ZERO; PUBLIC_INPUT_LEN],
+        &ExecutionWitness::default(),
+        false,
+    );
     let duration_parallel = time_parallel.elapsed();
 
     assert_eq!(exec_seq.metadata.stdout, exec_par.metadata.stdout);
@@ -249,7 +254,13 @@ fn test_soundness_suite() {
         ("soundness_5", &[3, 4, 7, 19, 49, 28, 1, 3],  &[(0, 4), (1, 5), (2, 8), (3, 20), (4, 50), (5, 29), (6, 0), (6, 2), (7, 4)]),
     ];
 
-    let to_input = |v: &[u32]| v.iter().copied().map(F::new).collect::<Vec<_>>();
+    let to_input = |v: &[u32]| -> [F; PUBLIC_INPUT_LEN] {
+        let mut out = [F::ZERO; PUBLIC_INPUT_LEN];
+        for (slot, &x) in out.iter_mut().zip(v) {
+            *slot = F::new(x);
+        }
+        out
+    };
 
     for &(name, valid, perturbations) in cases {
         let path = format!("{}/{}.py", test_data_dir(), name);

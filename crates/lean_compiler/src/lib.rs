@@ -150,7 +150,11 @@ pub fn compile_program(input: &ProgramSource) -> Bytecode {
     try_compile_program(input).unwrap()
 }
 
-pub fn try_compile_and_run(input: &ProgramSource, public_input: &[F], profiler: bool) -> Result<String, Error> {
+pub fn try_compile_and_run(
+    input: &ProgramSource,
+    public_input: &[F; PUBLIC_INPUT_LEN],
+    profiler: bool,
+) -> Result<String, Error> {
     let bytecode = try_compile_program(input)?;
     let witness = ExecutionWitness::default();
     let result = try_execute_bytecode(&bytecode, public_input, &witness, profiler)?;
@@ -158,7 +162,7 @@ pub fn try_compile_and_run(input: &ProgramSource, public_input: &[F], profiler: 
     Ok(result.metadata.display())
 }
 
-pub fn compile_and_run(input: &ProgramSource, public_input: &[F], profiler: bool) {
+pub fn compile_and_run(input: &ProgramSource, public_input: &[F; PUBLIC_INPUT_LEN], profiler: bool) {
     let summary = try_compile_and_run(input, public_input, profiler).unwrap();
     println!("{summary}");
 }

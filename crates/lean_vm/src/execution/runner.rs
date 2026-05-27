@@ -1,6 +1,6 @@
 //! VM execution runner
 
-use crate::core::{DIMENSION, F};
+use crate::core::{DIMENSION, F, PUBLIC_INPUT_LEN};
 use crate::diagnostics::{ExecutionMetadata, ExecutionResult, RunnerError};
 use crate::execution::memory::MemoryAccess;
 use crate::execution::{ExecutionHistory, Memory};
@@ -10,7 +10,7 @@ use crate::isa::instruction::{InstructionContext, InstructionCounts};
 use crate::{ALL_TABLES, CodeAddress, HintExecutionContext, MemOrConstant, N_TABLES, STARTING_PC, Table, TableTrace};
 use backend::*;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
-use utils::{ToUsize, padd_with_zero_to_next_power_of_two};
+use utils::ToUsize;
 
 use super::memory::SegmentMemory;
 
@@ -27,7 +27,7 @@ pub struct ExecutionWitness {
 
 pub fn try_execute_bytecode(
     bytecode: &Bytecode,
-    public_input: &[F],
+    public_input: &[F; PUBLIC_INPUT_LEN],
     witness: &ExecutionWitness,
     profiling: bool,
 ) -> Result<ExecutionResult, RunnerError> {
@@ -58,7 +58,7 @@ pub fn try_execute_bytecode(
 
 pub fn execute_bytecode(
     bytecode: &Bytecode,
-    public_input: &[F],
+    public_input: &[F; PUBLIC_INPUT_LEN],
     witness: &ExecutionWitness,
     profiling: bool,
 ) -> ExecutionResult {
@@ -237,7 +237,7 @@ fn resolve_deref_hints(memory: &mut Memory, pending: &[(usize, usize)]) {
 #[allow(clippy::too_many_arguments)]
 fn execute_bytecode_helper(
     bytecode: &Bytecode,
-    public_input: &[F],
+    public_input: &[F; PUBLIC_INPUT_LEN],
     witness: &ExecutionWitness,
     std_out: &mut String,
     instruction_history: &mut ExecutionHistory,
@@ -248,10 +248,9 @@ fn execute_bytecode_helper(
         .iter()
         .map(|(name, entries)| (name.clone(), NamedHintCursor::new(entries)))
         .collect();
-    let public_memory = padd_with_zero_to_next_power_of_two(public_input);
-    let public_memory_size = public_memory.len();
+    let public_memory = public_input.to_vec();
     let mut memory = Memory::new(public_memory);
-    let mut fp = public_memory_size + witness.preamble_memory_len;
+    let mut fp = PUBLIC_INPUT_LEN + witness.preamble_memory_len;
     fp = fp.next_multiple_of(DIMENSION);
     let initial_ap = fp + bytecode.starting_frame_memory;
     let mut pc = STARTING_PC;
@@ -325,7 +324,7 @@ fn execute_bytecode_helper(
     } else {
         None
     };
-    let runtime_memory_size = memory.0.len() - public_memory_size - witness.preamble_memory_len;
+    let runtime_memory_size = memory.0.len() - PUBLIC_INPUT_LEN - witness.preamble_memory_len;
     let used_memory_cells = memory.0.par_iter().filter(|&&x| x.is_some()).count();
     let metadata = ExecutionMetadata {
         cycles: trace.pcs.len(),
@@ -333,7 +332,7 @@ fn execute_bytecode_helper(
         n_poseidons: trace.tables[&Table::poseidon16()].columns[0].len(),
         n_extension_ops: trace.tables[&Table::extension_op()].columns[0].len(),
         bytecode_size: bytecode.code.len(),
-        public_input_size: public_input.len(),
+        public_input_size: PUBLIC_INPUT_LEN,
         runtime_memory: runtime_memory_size,
         memory_usage_percent: used_memory_cells as f64 / memory.0.len() as f64 * 100.0,
         stdout: std::mem::take(std_out),
@@ -341,7 +340,6 @@ fn execute_bytecode_helper(
     };
     Ok(ExecutionResult {
         runtime_memory_size: no_vec_runtime_memory,
-        public_memory_size,
         memory,
         pcs: trace.pcs,
         fps: trace.fps,

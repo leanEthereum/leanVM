@@ -72,7 +72,6 @@ impl ExecutionMetadata {
 #[derive(Debug)]
 pub struct ExecutionResult {
     pub runtime_memory_size: usize,
-    pub public_memory_size: usize,
     pub memory: Memory,
     pub pcs: Vec<usize>,
     pub fps: Vec<usize>,

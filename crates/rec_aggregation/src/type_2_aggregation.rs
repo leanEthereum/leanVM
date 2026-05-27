@@ -110,7 +110,7 @@ pub fn merge_many_type_1(
 
     let digests: Vec<[F; DIGEST_LEN]> = verified_children.iter().map(|v| v.input_data_hash).collect();
     let pub_input_data = build_type2_input_data(&digests, &reduced_claims.final_claim_flat());
-    let public_input_digest = poseidon_compress_slice(&pub_input_data).to_vec();
+    let public_input_digest = poseidon_compress_slice(&pub_input_data);
 
     let bytecode_value_hint_blobs: Vec<Vec<F>> = verified_children
         .iter()
