@@ -218,6 +218,7 @@ fn test_zk_vm_all_precompiles() {
 }
 
 #[test]
+#[ignore]
 fn dump_test_vector_for_python_verifier() {
     const LOOP_ITERS: usize = 5000;
 
@@ -236,9 +237,8 @@ fn dump_test_vector_for_python_verifier() {
         .join("zkvm_test_vectors");
     std::fs::create_dir_all(&out_dir).unwrap();
 
-    // Sidecar: raw u32-LE bytecode multilinear.
-    let mle_path = "proof.bytecode_mle.bin";
-    let mut mle_file = std::fs::File::create(out_dir.join(mle_path)).unwrap();
+    let bytecode_path = "proof.bytecode_mle.bin";
+    let mut mle_file = std::fs::File::create(out_dir.join(bytecode_path)).unwrap();
     for v in &bytecode.instructions_multilinear {
         mle_file.write_all(&f_u32(*v).to_le_bytes()).unwrap();
     }
@@ -250,7 +250,7 @@ fn dump_test_vector_for_python_verifier() {
         })
     };
     let out = serde_json::json!({
-        "bytecode_multilinear_path": mle_path,
+        "bytecode_multilinear_path": bytecode_path,
         "public_input": public_input.iter().map(|&f| f_u32(f)).collect::<Vec<_>>(),
         "proof": {
             "transcript": raw_proof.transcript.iter().map(|&f| f_u32(f)).collect::<Vec<_>>(),

@@ -67,7 +67,7 @@ fn check_whir_configs() {
     let expected = expected_whir_configs_line();
     println!("{expected}");
 
-    let verifier_py = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("verifier.py");
+    let verifier_py = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("python-verifier/verifier.py");
     let src =
         fs::read_to_string(&verifier_py).unwrap_or_else(|e| panic!("failed to read {}: {e}", verifier_py.display()));
 
