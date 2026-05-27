@@ -78,9 +78,9 @@ len(DEEP[0][0])        # 2
 
 When `len()` is applied with a variable index (`len(ARR[i])`), `i` must be a
 compile-time constant. `: Const` parameters always qualify (see [Functions]
-below), as do iterator variables of an `unroll` loop (see [For loops] below) —
-those are the two ways to get a value the compiler can substitute at expansion
-time. Example: iterating a ragged 2D table:
+below), as do iterator variables of an `unroll` loop (see [For loops] below).
+
+Example: iterating a ragged 2D table:
 
 ```python
 MATRIX = [[1, 2, 3], [4, 5], [6, 7, 8, 9]]
@@ -112,16 +112,13 @@ Every function must contain at least one `return`. The compiler infers the numbe
 of returned values from the `return` statements; all `return`s in a function must
 agree. A function that "returns nothing" uses a bare `return`.
 
-### Parameter modifiers
+
+### Parameter types
 
 | Syntax     | Meaning                  |
 | ---------- | ------------------------ |
-| `x`        | normal (immutable) parameter |
-| `x: Const` | compile-time-known value |
-
-All parameters are pass-by-value and immutable inside the function — use return
-values to propagate results (there are no out-parameters). If you need a locally
-mutable copy of a parameter, introduce a `: Mut` local at the top of the body:
+| `x`        | normal (immutable) runtime parameter |
+| `x: Const` | compile-time parameter |
 
 ```python
 def repeat(n: Const):            # Const enables unroll(0, n)
@@ -138,9 +135,8 @@ def double(x):                   # parameter is immutable; shadow with a local
 
 ### Inline functions
 
-`@inline` expands a function at every call site instead of generating a call
-instruction. Useful for small helpers, and for cases where the body must "see" the
-caller's `: Const` context.
+`@inline` expands a function at every call site instead of generating a JUMP 
+instruction to another part of the bytecode. Useful for performance (calling a function costs a few cycles).
 
 ```python
 @inline
@@ -148,15 +144,7 @@ def square(x):
     return x * x
 ```
 
-Constraints on inline functions:
-
-- Exactly one `return`, placed at the top level of the body — not nested inside
-  `if`, a loop, or `match`. Inlining rewrites the `return` into a plain
-  assignment, so early or conditional returns cannot be expressed.
-
-If you need conditional returns, use a normal (non-`@inline`) function. Combine
-it with `: Const` parameters when you need compile-time specialization at the
-call site.
+Constraints on inline functions (compiler limitations): Exactly one `return`, placed as the last statement of the body, not nested inside `if`, a loop, or `match`. Inlining rewrites the `return` into a plain assignment in place, so early or conditional returns cannot be expressed.
 
 ## Variables
 
