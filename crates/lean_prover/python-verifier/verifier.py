@@ -1,10 +1,10 @@
 """Pure-Python verifier for leanVM proofs.
 Setup the test vector (one-time):
-    cargo test --release -p lean_prover dump_test_vector_for_python_verifier -- --nocapture
+    cargo test --release --package lean_prover --lib -- test_zkvm::dump_test_vector_for_python_verifier --include-ignored 
 Run:
-    python3 crates/lean_prover/verifier.py
+    python3 crates/lean_prover/python-verifier/verifier.py
 Format:
-    ruff format --line-length 120 crates/lean_prover
+    ruff format --line-length 120 crates/lean_prover/python-verifier
 """
 
 from __future__ import annotations
@@ -1150,7 +1150,7 @@ def verify_execution(
 
 
 def main() -> int:
-    vector_path = Path(__file__).resolve().parents[2] / "target" / "zkvm_test_vectors" / "proof.json"
+    vector_path = Path(__file__).resolve().parents[3] / "target" / "zkvm_test_vectors" / "proof.json"
     if not vector_path.exists():
         print(
             f"Test vector not found at {vector_path}. Generate it first with:\n"
