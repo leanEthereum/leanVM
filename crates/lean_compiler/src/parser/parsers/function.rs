@@ -15,11 +15,14 @@ pub const RESERVED_FUNCTION_NAMES: &[&str] = &[
     // Built-in functions
     "print",
     "Array",
+    "hint_witness",
     // Compile-time only functions
     "len",
     "log2_ceil",
     "next_multiple_of",
     "saturating_sub",
+    "div_ceil",
+    "div_floor",
     "range",
     "parallel_range",
     "match_range",
