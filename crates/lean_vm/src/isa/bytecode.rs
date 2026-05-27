@@ -14,6 +14,7 @@ pub struct CodeEntry {
     pub instruction: Instruction,
 }
 
+/// `instructions_multilinear` and `hash` must be checked at initialization to match `code`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Bytecode {
     pub unpadded_size: usize,

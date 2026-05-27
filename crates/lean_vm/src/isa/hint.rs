@@ -301,7 +301,7 @@ impl Hint {
                         .iter()
                         .map(|value| Ok(value.read_value(ctx.memory, ctx.fp)?.to_string()))
                         .collect::<Result<Vec<_>, _>>()?;
-                    if values[0] == "123456789" {
+                    if values.first().is_some_and(|v| v == "123456789") {
                         if values.len() == 1 {
                             *diag.std_out += "[CHECKPOINT]\n";
                         } else {

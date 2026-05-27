@@ -221,6 +221,9 @@ impl Parse<Line> for MatchStatementParser {
                 arms.push((pattern, statements));
             }
         }
+        if arms.is_empty() {
+            return Err(SemanticError::new(format!("`match` at line {line_number} has no arms")).into());
+        }
         let location = SourceLocation {
             file_id: ctx.current_file_id,
             line_number,

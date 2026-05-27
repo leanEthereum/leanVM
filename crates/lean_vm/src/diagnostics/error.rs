@@ -23,6 +23,7 @@ pub enum RunnerError {
         range: usize,
     },
     InvalidExtensionOp,
+    ImpossibleDerefResolution,
     ParallelSegmentFailed(usize, Box<RunnerError>),
 }
 
@@ -55,6 +56,7 @@ impl Display for RunnerError {
                 )
             }
             Self::InvalidExtensionOp => write!(f, "invalid extension op"),
+            Self::ImpossibleDerefResolution => write!(f, "impossible deref hint resolution"),
             Self::ParallelSegmentFailed(id, err) => {
                 write!(f, "parallel segment {id} failed: {err}")
             }

@@ -123,7 +123,15 @@ impl Parse<Program> for ProgramParser {
                         ctx.current_source_code = import_source.get_content(&ctx.flags)?;
                         let subprogram = parse_program_helper(ctx)?;
                         ctx.import_stack.pop();
-                        functions.extend(subprogram.functions);
+                        for (name, function) in subprogram.functions {
+                            if functions.insert(name.clone(), function).is_some() {
+                                return Err(SemanticError::with_context(
+                                    format!("Multiply defined function: {name}"),
+                                    "function definition",
+                                )
+                                .into());
+                            }
+                        }
                         function_locations.extend(subprogram.function_locations);
                         source_code.extend(subprogram.source_code);
                         filepaths.extend(subprogram.filepaths);

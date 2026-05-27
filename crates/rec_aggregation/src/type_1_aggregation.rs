@@ -62,9 +62,7 @@ impl<'de> Deserialize<'de> for TypeOneInfo {
         if bytecode_claim_point.len() != get_aggregation_bytecode().cumulated_n_vars() {
             return Err(serde::de::Error::custom("invalid bytecode point"));
         }
-        if !pubkeys.is_sorted() {
-            return Err(serde::de::Error::custom("unsorted pubkeys"));
-        }
+        check_type_one_pubkeys(&pubkeys).map_err(serde::de::Error::custom)?;
         let bytecode_value = compute_bytecode_value_at(&bytecode_claim_point);
         Ok(Self {
             message,
@@ -73,6 +71,16 @@ impl<'de> Deserialize<'de> for TypeOneInfo {
             bytecode_claim: Evaluation::new(bytecode_claim_point, bytecode_value),
         })
     }
+}
+
+pub(crate) fn check_type_one_pubkeys(pubkeys: &[XmssPublicKey]) -> Result<(), &'static str> {
+    if pubkeys.is_empty() {
+        return Err("pubkeys must be non-empty");
+    }
+    if !pubkeys.windows(2).all(|w| w[0] < w[1]) {
+        return Err("pubkeys must be strictly sorted (no duplicates)");
+    }
+    Ok(())
 }
 
 impl TypeOneMultiSignature {
@@ -192,9 +200,7 @@ fn encode_wots_signature(sig: &XmssSignature) -> Vec<F> {
 
 // assumes `bytecode_value` in TypeOneMultiSignature::proof is correct (it should not be read / deserialized from an untrusted source)
 pub fn verify_type_1(sig: &TypeOneMultiSignature) -> Result<InnerVerified, ProofError> {
-    if !sig.info.pubkeys.is_sorted() {
-        return Err(ProofError::InvalidProof);
-    }
+    check_type_one_pubkeys(&sig.info.pubkeys).map_err(|_| ProofError::InvalidProof)?;
     verify_inner(sig.info.build_input_data(), sig.proof.proof.clone())
 }
 
@@ -219,7 +225,13 @@ pub(crate) fn aggregate_type_1_with_min_padding(
     log_inv_rate: usize,
     min_table_log_n_rows: BTreeMap<Table, usize>,
 ) -> Result<TypeOneMultiSignature, ProverError> {
-    assert!(children.len() <= MAX_RECURSIONS);
+    if children.len() > MAX_RECURSIONS {
+        return Err(ProverError::LimitExceeded {
+            what: "aggregation children",
+            actual: children.len(),
+            max: MAX_RECURSIONS,
+        });
+    }
     for child in children {
         assert_eq!(
             child.info.message, message,
@@ -231,10 +243,7 @@ pub(crate) fn aggregate_type_1_with_min_padding(
         );
     }
     let message = &message;
-    let verified_children: Vec<InnerVerified> = children
-        .iter()
-        .map(|c| verify_type_1(c).expect("child proof failed to verify"))
-        .collect();
+    let verified_children: Vec<InnerVerified> = children.iter().map(verify_type_1).collect::<Result<_, _>>()?;
     let children: Vec<&[XmssPublicKey]> = children.iter().map(|c| c.info.pubkeys.as_slice()).collect();
     let children = children.as_slice();
 
@@ -257,7 +266,13 @@ pub(crate) fn aggregate_type_1_with_min_padding(
     global_pub_keys.sort();
     global_pub_keys.dedup();
     let n_sigs = global_pub_keys.len();
-    assert!(n_sigs <= MAX_XMSS_AGGREGATED);
+    if n_sigs > MAX_XMSS_AGGREGATED {
+        return Err(ProverError::LimitExceeded {
+            what: "aggregated public keys",
+            actual: n_sigs,
+            max: MAX_XMSS_AGGREGATED,
+        });
+    }
 
     let tweak_table = compute_tweak_table(slot);
     let tweaks_hash = poseidon_compress_slice(&tweak_table);
@@ -324,7 +339,13 @@ pub(crate) fn aggregate_type_1_with_min_padding(
     }
 
     let n_dup = dup_pub_keys.len();
-    assert!(n_dup <= MAX_XMSS_DUPLICATES);
+    if n_dup > MAX_XMSS_DUPLICATES {
+        return Err(ProverError::LimitExceeded {
+            what: "duplicate public keys",
+            actual: n_dup,
+            max: MAX_XMSS_DUPLICATES,
+        });
+    }
 
     let mut pubkeys_blob: Vec<F> = Vec::with_capacity((n_sigs + n_dup) * PUB_KEY_FLAT_SIZE);
     for pk in &global_pub_keys {

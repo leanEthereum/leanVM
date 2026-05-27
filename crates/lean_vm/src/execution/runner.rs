@@ -205,8 +205,7 @@ fn run_loop<M: MemoryAccess>(
 /// Each constraint has form: memory[target_addr] = memory[memory[src_addr]]
 /// Order matters because some src addresses might point to targets of other hints.
 /// We iteratively resolve constraints until no more progress, then fill remaining with 0.
-/// Assumption: every memory[src_addr] is defined (i.e. is Some(_)) (which is true when DEREFs come from range checks)
-fn resolve_deref_hints(memory: &mut Memory, pending: &[(usize, usize)]) {
+fn resolve_deref_hints(memory: &mut Memory, pending: &[(usize, usize)]) -> Result<(), RunnerError> {
     let mut resolved: BTreeSet<usize> = BTreeSet::new();
     loop {
         let mut made_progress = false;
@@ -214,11 +213,13 @@ fn resolve_deref_hints(memory: &mut Memory, pending: &[(usize, usize)]) {
             if resolved.contains(&target_addr) {
                 continue;
             }
-            let addr = memory.0[src_addr].unwrap();
+            let addr = memory
+                .get(src_addr)
+                .map_err(|_| RunnerError::ImpossibleDerefResolution)?;
             let Some(value) = memory.0.get(addr.to_usize()).copied().flatten() else {
                 continue;
             };
-            memory.set(target_addr, value).unwrap();
+            memory.set(target_addr, value)?;
             resolved.insert(target_addr);
             made_progress = true;
         }
@@ -229,9 +230,10 @@ fn resolve_deref_hints(memory: &mut Memory, pending: &[(usize, usize)]) {
     // Fill any remaining unresolved targets with 0 (this can happen in case of cycles)
     for &(target_addr, _src_addr) in pending {
         if !resolved.contains(&target_addr) {
-            memory.set(target_addr, F::ZERO).unwrap();
+            memory.set(target_addr, F::ZERO)?;
         }
     }
+    Ok(())
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -301,7 +303,7 @@ fn execute_bytecode_helper(
         }
     }
 
-    resolve_deref_hints(&mut memory, &trace.pending_deref_hints);
+    resolve_deref_hints(&mut memory, &trace.pending_deref_hints).map_err(|e| (pc, e))?;
     assert_eq!(pc, bytecode.ending_pc);
     for (name, cursor) in &named_hints {
         assert_eq!(

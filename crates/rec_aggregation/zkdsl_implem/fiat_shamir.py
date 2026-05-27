@@ -83,7 +83,7 @@ def assert_trailing_bits_are_zeros(value, bits: Const):
     top7 = (partial_sums[num_chunks - 1] - value) * 127
     assert top7 < 2**7
     if top7 == 2**7 - 1:
-        assert partial_sums[chunk_size - 1] == 0
+        assert partial_sums[num_chunks - 1] == 0
 
     if bits < 12:
         assert chunks[0] / 2**bits < 2 ** (chunk_size - bits)

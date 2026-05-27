@@ -90,6 +90,18 @@ impl IntermediateValue {
     }
 }
 
+fn check_non_negative_fp_rel_sink(expr: &SimpleExpr, compiler: &Compiler) -> Result<(), String> {
+    if let SimpleExpr::Memory(VarOrConstMallocAccess::Var(v)) = expr
+        && let Some(&offset) = compiler.const_malloc_vars.get(v)
+        && offset < 0
+    {
+        return Err(format!(
+            "Derived fp-relative pointer '{v}' resolves to a negative offset ({offset})"
+        ));
+    }
+    Ok(())
+}
+
 /// Try to encode a precompile arg as FpRelative (fp + known_offset).
 /// Works for const_malloc vars and derived fp-relative vars (const_malloc + constant).
 fn try_precompile_fp_relative(expr: &SimpleExpr, compiler: &Compiler) -> Option<IntermediateValue> {
@@ -543,9 +555,12 @@ fn compile_lines(
                     compiler.stack_pos += 1;
                     IntermediateValue::MemoryAfterFp { offset: offset.into() }
                 } else {
+                    check_non_negative_fp_rel_sink(&precompile.res, compiler)?;
                     try_precompile_fp_relative(&precompile.res, compiler)
                         .unwrap_or_else(|| IntermediateValue::from_simple_expr(&precompile.res, compiler))
                 };
+                check_non_negative_fp_rel_sink(&precompile.arg_0, compiler)?;
+                check_non_negative_fp_rel_sink(&precompile.arg_1, compiler)?;
                 let (left, right) = match (
                     try_precompile_fp_relative(&precompile.arg_0, compiler),
                     try_precompile_fp_relative(&precompile.arg_1, compiler),
@@ -606,16 +621,20 @@ fn compile_lines(
                 let simplified_args = args
                     .iter()
                     .map(|expr| {
-                        try_precompile_fp_relative(expr, compiler)
-                            .unwrap_or_else(|| IntermediateValue::from_simple_expr(expr, compiler))
+                        check_non_negative_fp_rel_sink(expr, compiler)?;
+                        Ok(try_precompile_fp_relative(expr, compiler)
+                            .unwrap_or_else(|| IntermediateValue::from_simple_expr(expr, compiler)))
                     })
-                    .collect::<Vec<_>>();
+                    .collect::<Result<Vec<_>, String>>()?;
                 instructions.push(IntermediateInstruction::CustomHint(*hint, simplified_args));
             }
             SimpleLine::HintWitness { destination, name } => {
                 let SimpleExpr::Memory(VarOrConstMallocAccess::Var(ptr_var)) = destination else {
-                    panic!("hint_witness: destination must be a plain variable, got {destination}")
+                    return Err(format!(
+                        "hint_witness: destination must be a plain variable, got {destination}"
+                    ));
                 };
+                check_non_negative_fp_rel_sink(destination, compiler)?;
                 let hint_destination = if let Some(IntermediateValue::FpRelative { offset }) =
                     try_precompile_fp_relative(destination, compiler)
                 {

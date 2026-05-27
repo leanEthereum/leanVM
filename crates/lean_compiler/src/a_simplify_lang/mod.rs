@@ -275,8 +275,30 @@ fn ends_with_early_exit(block: &[SimpleLine]) -> bool {
     }
 }
 
+fn check_no_dead_code(body: &[Line], function_name: &str) -> Result<(), String> {
+    for (i, line) in body.iter().enumerate() {
+        let exit_kind = match line {
+            Line::FunctionRet { .. } => Some("return"),
+            Line::Panic { .. } => Some("panic"),
+            _ => None,
+        };
+        if let Some(kind) = exit_kind
+            && i + 1 < body.len()
+        {
+            return Err(format!("function `{function_name}`: unreachable code after `{kind}`"));
+        }
+        for nested in line.nested_blocks() {
+            check_no_dead_code(nested, function_name)?;
+        }
+    }
+    Ok(())
+}
+
 pub fn simplify_program(mut program: Program) -> Result<SimpleProgram, String> {
-    check_program_scoping(&program);
+    check_program_scoping(&program)?;
+    for (name, func) in &program.functions {
+        check_no_dead_code(&func.body, name)?;
+    }
 
     let mut unroll_counter = Counter::new();
     let mut inline_counter = Counter::new();
@@ -505,7 +527,7 @@ fn compile_time_transform_in_lines(
                         && !existing_functions.contains_key(&const_funct_name)
                     {
                         let mut new_body = func.body.clone();
-                        replace_vars_by_const_in_lines(&mut new_body, &const_evals.iter().cloned().collect());
+                        replace_vars_by_const_in_lines(&mut new_body, &const_evals.iter().cloned().collect())?;
                         new_functions.insert(
                             const_funct_name.clone(),
                             Function {
@@ -1253,7 +1275,7 @@ fn check_block_always_returns(function_name: &String, instructions: &[SimpleLine
     Err(format!("Cannot prove that function always returns: {function_name}"))
 }
 
-fn check_program_scoping(program: &Program) {
+fn check_program_scoping(program: &Program) -> Result<(), String> {
     for function in program.functions.values() {
         let mut scope = Scope { vars: BTreeSet::new() };
         for arg in function.arguments.iter() {
@@ -1264,26 +1286,27 @@ fn check_program_scoping(program: &Program) {
             const_arrays: program.const_arrays.clone(),
         };
 
-        check_block_scoping(&function.body, &mut ctx);
+        check_block_scoping(&function.body, &mut ctx)?;
     }
+    Ok(())
 }
 
-fn check_block_scoping(block: &[Line], ctx: &mut Context) {
+fn check_block_scoping(block: &[Line], ctx: &mut Context) -> Result<(), String> {
     for line in block.iter() {
         match line {
             Line::ForwardDeclaration { var, .. } => {
                 ctx.add_var(var);
             }
             Line::Match { value, arms, .. } => {
-                check_expr_scoping(value, ctx);
+                check_expr_scoping(value, ctx)?;
                 for (_, arm) in arms {
                     ctx.scopes.push(Scope { vars: BTreeSet::new() });
-                    check_block_scoping(arm, ctx);
+                    check_block_scoping(arm, ctx)?;
                     ctx.scopes.pop();
                 }
             }
             Line::Statement { targets, value, .. } => {
-                check_expr_scoping(value, ctx);
+                check_expr_scoping(value, ctx)?;
                 // First: add new variables to scope
                 for target in targets {
                     if let AssignmentTarget::Var { var, .. } = target
@@ -1292,15 +1315,16 @@ fn check_block_scoping(block: &[Line], ctx: &mut Context) {
                         ctx.add_var(var);
                     }
                 }
-                // Second pass: check array access targets
+                // Second pass: check array access targets (base + index)
                 for target in targets {
-                    if let AssignmentTarget::ArrayAccess { array: _, index } = target {
-                        check_expr_scoping(index, ctx);
+                    if let AssignmentTarget::ArrayAccess { array, index } = target {
+                        check_simple_expr_scoping(array, ctx)?;
+                        check_expr_scoping(index, ctx)?;
                     }
                 }
             }
             Line::Assert { boolean, .. } => {
-                check_boolean_scoping(boolean, ctx);
+                check_boolean_scoping(boolean, ctx)?;
             }
             Line::IfCondition {
                 condition,
@@ -1308,10 +1332,10 @@ fn check_block_scoping(block: &[Line], ctx: &mut Context) {
                 else_branch,
                 location: _,
             } => {
-                check_boolean_scoping(condition, ctx);
+                check_boolean_scoping(condition, ctx)?;
                 for branch in [then_branch, else_branch] {
                     ctx.scopes.push(Scope { vars: BTreeSet::new() });
-                    check_block_scoping(branch, ctx);
+                    check_block_scoping(branch, ctx)?;
                     ctx.scopes.pop();
                 }
             }
@@ -1323,57 +1347,65 @@ fn check_block_scoping(block: &[Line], ctx: &mut Context) {
                 loop_kind: _,
                 location: _,
             } => {
-                check_expr_scoping(start, ctx);
-                check_expr_scoping(end, ctx);
+                check_expr_scoping(start, ctx)?;
+                check_expr_scoping(end, ctx)?;
                 let mut new_scope_vars = BTreeSet::new();
                 new_scope_vars.insert(iterator.clone());
                 ctx.scopes.push(Scope { vars: new_scope_vars });
-                check_block_scoping(body, ctx);
+                check_block_scoping(body, ctx)?;
                 ctx.scopes.pop();
             }
             Line::FunctionRet { return_data } => {
                 for expr in return_data {
-                    check_expr_scoping(expr, ctx);
+                    check_expr_scoping(expr, ctx)?;
                 }
             }
             Line::Panic { .. } | Line::LocationReport { .. } => {}
         }
     }
+    Ok(())
 }
 
-fn check_expr_scoping(expr: &Expression, ctx: &Context) {
+fn check_expr_scoping(expr: &Expression, ctx: &Context) -> Result<(), String> {
     match expr {
-        Expression::Value(simple_expr) => {
-            check_simple_expr_scoping(simple_expr, ctx);
-        }
+        Expression::Value(simple_expr) => check_simple_expr_scoping(simple_expr, ctx),
         Expression::Lambda { param, body } => {
-            // Lambda parameters are in scope within the body
+            // Lambda binders cannot shadow enclosing names: later passes substitute by name only.
+            if ctx.defines(param) {
+                return Err(format!(
+                    "Lambda parameter '{param}' shadows a name visible in an enclosing scope"
+                ));
+            }
             let mut lambda_ctx = Context::new();
             lambda_ctx.scopes = ctx.scopes.clone();
             lambda_ctx.const_arrays = ctx.const_arrays.clone();
             lambda_ctx.add_var(param);
-            check_expr_scoping(body, &lambda_ctx);
+            check_expr_scoping(body, &lambda_ctx)
         }
         _ => {
             for inner_expr in expr.inner_exprs() {
-                check_expr_scoping(inner_expr, ctx);
+                check_expr_scoping(inner_expr, ctx)?;
             }
+            Ok(())
         }
     }
 }
 
-fn check_simple_expr_scoping(expr: &SimpleExpr, ctx: &Context) {
+fn check_simple_expr_scoping(expr: &SimpleExpr, ctx: &Context) -> Result<(), String> {
     match expr {
         SimpleExpr::Memory(VarOrConstMallocAccess::Var(v)) => {
-            assert!(ctx.defines(v), "Variable used but not defined: {v}");
+            if !ctx.defines(v) {
+                return Err(format!("Variable used but not defined: {v}"));
+            }
         }
         SimpleExpr::Memory(VarOrConstMallocAccess::ConstMallocAccess { .. }) | SimpleExpr::Constant(_) => {}
     }
+    Ok(())
 }
 
-fn check_boolean_scoping(boolean: &BooleanExpr<Expression>, ctx: &Context) {
-    check_expr_scoping(&boolean.left, ctx);
-    check_expr_scoping(&boolean.right, ctx);
+fn check_boolean_scoping(boolean: &BooleanExpr<Expression>, ctx: &Context) -> Result<(), String> {
+    check_expr_scoping(&boolean.left, ctx)?;
+    check_expr_scoping(&boolean.right, ctx)
 }
 
 #[derive(Debug, Clone, Default)]
@@ -2444,9 +2476,11 @@ fn simplify_expr(
                     })
                     .collect::<Result<Vec<_>, String>>()?;
 
+                let navigated = arr
+                    .navigate(&simplified_index)
+                    .ok_or_else(|| format!("Const array index out of bounds for array '{name}'"))?;
                 return Ok(SimpleExpr::Constant(ConstExpression::scalar(
-                    arr.navigate(&simplified_index)
-                        .unwrap_or_else(|| panic!("Const array index out of bounds for array '{}'", name))
+                    navigated
                         .as_scalar()
                         .expect("Const array access should return a scalar"),
                 )));
@@ -2454,7 +2488,14 @@ fn simplify_expr(
 
             let versioned_array = array_var_name.map(|n| state.mut_tracker.current_name(n));
 
-            assert_eq!(index.len(), 1);
+            if index.len() != 1 {
+                return Err(format!(
+                    "Multidimensional indexing is only supported on compile-time const arrays; \
+                     `{}[..][..]` has {} indices",
+                    array_var_name.unwrap_or(&"<expr>".to_string()),
+                    index.len(),
+                ));
+            }
             let index = index[0].clone();
 
             if let Some(name) = array_var_name
@@ -3035,7 +3076,7 @@ fn replace_vars_for_unroll(
     transform_vars_in_lines(lines, &transform);
 }
 
-fn replace_vars_by_const_in_expr(expr: &mut Expression, map: &BTreeMap<Var, F>) {
+fn replace_vars_by_const_in_expr(expr: &mut Expression, map: &BTreeMap<Var, F>) -> Result<(), String> {
     match expr {
         Expression::Value(value) => match &value {
             SimpleExpr::Memory(VarOrConstMallocAccess::Var(var)) => {
@@ -3049,51 +3090,59 @@ fn replace_vars_by_const_in_expr(expr: &mut Expression, map: &BTreeMap<Var, F>) 
             SimpleExpr::Constant(_) => {}
         },
         Expression::ArrayAccess { array, index } => {
-            if let Some(name) = array.as_var() {
-                assert!(!map.contains_key(name), "Array {name} is a constant");
+            if let Some(name) = array.as_var()
+                && map.contains_key(name)
+            {
+                return Err(format!("Array {name} is a constant"));
             }
             for index in index {
-                replace_vars_by_const_in_expr(index, map);
+                replace_vars_by_const_in_expr(index, map)?;
             }
         }
         Expression::MathExpr(_, args) => {
             for arg in args {
-                replace_vars_by_const_in_expr(arg, map);
+                replace_vars_by_const_in_expr(arg, map)?;
             }
         }
         Expression::FunctionCall { args, .. } => {
             for arg in args {
-                replace_vars_by_const_in_expr(arg, map);
+                replace_vars_by_const_in_expr(arg, map)?;
             }
         }
         Expression::Len { indices, .. } => {
             for idx in indices {
-                replace_vars_by_const_in_expr(idx, map);
+                replace_vars_by_const_in_expr(idx, map)?;
             }
         }
         Expression::Lambda { body, .. } => {
-            replace_vars_by_const_in_expr(body, map);
+            replace_vars_by_const_in_expr(body, map)?;
         }
         Expression::HintWitness { .. } => {}
     }
+    Ok(())
 }
 
-fn replace_vars_by_const_in_lines(lines: &mut [Line], map: &BTreeMap<Var, F>) {
+fn replace_vars_by_const_in_lines(lines: &mut [Line], map: &BTreeMap<Var, F>) -> Result<(), String> {
     for line in lines {
-        // Debug: assert target vars are not const-replaced
         match line {
             Line::ForwardDeclaration { var, .. } => {
-                assert!(!map.contains_key(var), "Variable {var} is a constant");
+                if map.contains_key(var) {
+                    return Err(format!("Variable {var} is a constant"));
+                }
             }
             Line::Statement { targets, .. } => {
                 for target in targets.iter() {
                     match target {
                         AssignmentTarget::Var { var, .. } => {
-                            assert!(!map.contains_key(var), "Variable {var} is a constant");
+                            if map.contains_key(var) {
+                                return Err(format!("Variable {var} is a constant"));
+                            }
                         }
                         AssignmentTarget::ArrayAccess { array, .. } => {
-                            if let Some(name) = array.as_var() {
-                                assert!(!map.contains_key(name), "Array {name} is a constant");
+                            if let Some(name) = array.as_var()
+                                && map.contains_key(name)
+                            {
+                                return Err(format!("Array {name} is a constant"));
                             }
                         }
                     }
@@ -3102,12 +3151,13 @@ fn replace_vars_by_const_in_lines(lines: &mut [Line], map: &BTreeMap<Var, F>) {
             _ => {}
         }
         for expr in line.expressions_mut() {
-            replace_vars_by_const_in_expr(expr, map);
+            replace_vars_by_const_in_expr(expr, map)?;
         }
         for block in line.nested_blocks_mut() {
-            replace_vars_by_const_in_lines(block, map);
+            replace_vars_by_const_in_lines(block, map)?;
         }
     }
+    Ok(())
 }
 
 impl Display for SimpleLine {
