@@ -6,6 +6,20 @@ Source files use the `.py` extension. They are **not** currently runnable as
 real Python, but the syntax is kept Python-compatible so that one day they
 could be (TODO).
 
+## Dev experience
+
+To recycle python tooling/linting on zkDSL files (which import [`snark_lib`](snark_lib.py)), point your editor at the compiler crate. With VSCode (for instance in `leanMultisig/.vscode/settings.json`):
+
+```json
+{
+    "python.analysis.extraPaths": [
+        "./crates/lean_compiler"
+    ]
+}
+```
+
+## Entrypoint
+
 Programs are organized as one or more `.py` files. The toplevel of each file is a
 sequence of:
 
@@ -707,66 +721,28 @@ The runner lays out memory as
   helper constants it relies on (e.g. a vector of zeros for
   `dot_product_ee`-as-copy, an extension-field one for multiply-by-one tricks,
   a vector of ones for batched accumulations, …) at the start of `main`. The
-  names and offsets of these constants are not part of the VM contract — each
-  program defines its own. See
+  names and offsets of these constants are not enshrined within leanVM. See
   `crates/rec_aggregation/zkdsl_implem/utils.py (build_preamble_memory)` for
   a concrete example.
 - The runtime region holds the program's stack frames, working memory, and any
   prover-supplied witness data, all governed by the write-once rule.
 
-## Tips and gotchas
+## Tips
 
-1. Prefer `unroll` over `range` for small, fixed-size loops — no buffer
-   bookkeeping, no recursive-function overhead.
+1. Prefer `unroll` over `range` for small, fixed-size loops.
 2. Reach for `: Const` parameters when the function body needs `unroll` over the
-   parameter, or when array sizes depend on it.
+   parameter.
 3. `if` / `elif` branches that assign to the same outer variable should
    forward-declare it (`x: Imm` or `x: Mut`) before the branch.
-4. **`match`** / **`match_range`** dispatch is undefined for out-of-range
-   values — always pair it with a `debug_assert` (or `assert`) on the value.
-5. `match` patterns must be contiguous integers; if you need gaps, restructure
-   into an `if` chain or pad with an empty arm.
-6. `assert a < b` and `assert a <= b` are range-checked under the assumption
-   that `b <= 2^MIN_LOG_MEMORY_SIZE = 2^16`. Larger comparisons must be done
-   with explicit bit decomposition (`hint_decompose_bits` + manual checks).
 7. Function parameters are always immutable. To mutate a parameter's value
    inside a function, introduce a local `: Mut` alias at the top of the body
-   (e.g. `y: Mut = x`). Inline functions additionally cannot return
-   conditionally — use a regular function for those cases.
-8. `parallel_range` requires per-iteration determinism in memory and hints; a
-   single divergent iteration breaks proving.
-9. **A variable that's assigned inside an `if` nested in an `unroll` loop may
-   silently fail to remain in scope after the loop.** When you're dispatching
-   over per-iteration compile-time constants, prefer a flat top-level
-   `if`/`elif` chain (one branch per iteration value) over `unroll` + nested
-   `if`. This affects compile-time dispatch only; runtime `if` inside `range`
-   loops is unaffected.
+   (e.g. `y: Mut = x`).
 
-## A simple example
+## Example
 
-```python
-SIZE = 8
+Look at the recursive aggregation program (to aggregate XMSS) at its entrypoint [main.py](../rec_aggregation/zkdsl_implem/main.py).
 
-def main():
-    arr = Array(SIZE)
-    for i in unroll(0, SIZE):
-        arr[i] = i * i
-    sum = compute_sum(arr, SIZE)
-    assert sum == 140
-    return
-
-def compute_sum(ptr, n: Const):
-    acc: Mut = 0
-    for i in unroll(0, n):
-        acc = acc + ptr[i]
-    return acc
-```
-
-## Worked example: sugar -> ISA
-
-This shows how the front-end normalizes a small program with mutable variables in
-a runtime loop down to a form close to the ISA. The compiler does this
-automatically; you don't have to write the intermediate forms.
+## Compilation step-by-step: zkDSL -> ISA
 
 Starting program:
 
@@ -786,7 +762,7 @@ def main():
     return
 ```
 
-Step 1 — replace mutable-across-loop variables with index buffers, since memory
+Step 1 — the compiler replaces mutable-across-loop variables with index buffers, since memory
 is write-once:
 
 ```python
@@ -862,14 +838,14 @@ def main():
     x_buff[0] = x2
     y_buff = Array(size + 1)
     y_buff[0] = y2
-    loop(4, x_buff, y_buff)
+    loop_helper(4, x_buff, y_buff)
     x3 = x_buff[size]
     y3 = y_buff[size]
     assert x3 == 35
     assert y3 == 40
     return
 
-def loop(i, x_buff, y_buff):
+def loop_helper(i, x_buff, y_buff):
     if i == 6:
         return
     else:
@@ -883,23 +859,7 @@ def loop(i, x_buff, y_buff):
         next_idx = buff_idx + 1
         x_buff[next_idx] = x_body3
         y_buff[next_idx] = y_body3
-        loop(i + 1, x_buff, y_buff)
+        loop_helper(i + 1, x_buff, y_buff)
     return
 ```
 
-## Dev experience
-
-For Python tooling/linting on zkDSL files (which import `snark_lib` at the top),
-point your editor at the compiler crate. With VSCode:
-
-```json
-{
-    "python.analysis.extraPaths": [
-        "./crates/lean_compiler"
-    ]
-}
-```
-
-This makes the stubs in `crates/lean_compiler/snark_lib.py` visible to your
-language server, so completion / type-checks light up correctly inside `.py`
-zkDSL sources.
