@@ -106,8 +106,9 @@ class Table:
         """Static row-pinning constraints. Only the execution table pins the PC column."""
         if self.name != "execution":
             return []
+        pc_col_offset = offset + (self.col("pc") << n_vars)
         return [
-            SparseStatements(stacked_n_vars, [], [(offset + (self.col("pc") << n_vars) + idx, EF(pc))])
+            SparseStatements(stacked_n_vars, [], [(pc_col_offset + idx, EF(pc))])
             for idx, pc in [(0, STARTING_PC), ((1 << n_vars) - 1, ending_pc)]
         ]
 
@@ -154,15 +155,15 @@ class DuplexSpongeChallenger:  # https://eprint.iacr.org/2025/536.pdf
         return out
 
     def sample_many_ef(self, n: int) -> list[EF]:
-        flat = self._sample_many((n * EF.DIMENSION + SPONGE_RATE - 1) // SPONGE_RATE)[: n * EF.DIMENSION]
-        return [EF(flat[i : i + EF.DIMENSION]) for i in range(0, len(flat), EF.DIMENSION)]
+        flat = self._sample_many(div_ceil(n * EF.DIMENSION, SPONGE_RATE))[: n * EF.DIMENSION]
+        return pack_ef(flat)
 
     def sample_ef(self) -> EF:
         return self.sample_many_ef(1)[0]
 
     def sample_in_range(self, bits: int, n_samples: int) -> list[int]:
         assert bits < 31
-        flat = self._sample_many((n_samples + SPONGE_RATE - 1) // SPONGE_RATE)[:n_samples]
+        flat = self._sample_many(div_ceil(n_samples, SPONGE_RATE))[:n_samples]
         return [int(x.value) & ((1 << bits) - 1) for x in flat]
 
 
@@ -204,7 +205,7 @@ class FiatShamir(DuplexSpongeChallenger):
 
     def next_extension_scalars_vec(self, n: int) -> list[EF]:
         flat = self.next_base_scalars_vec(n * EF.DIMENSION)
-        return [EF(flat[i : i + EF.DIMENSION]) for i in range(0, len(flat), EF.DIMENSION)]
+        return pack_ef(flat)
 
     def next_extension_scalar(self) -> EF:
         return self.next_extension_scalars_vec(1)[0]
@@ -247,6 +248,11 @@ def expand_from_univariate(x: EF, num_variables: int) -> list[EF]:
 def eq_poly(a: Sequence[EF], b: Sequence[EF]) -> EF:
     assert len(a) == len(b)
     return math.prod(x * y + (ONE - x) * (ONE - y) for x, y in zip(a, b))
+
+
+def eq_at_index(point: Sequence[EF], idx: int, n: int) -> EF:
+    """eq(point, big-endian-bits(idx, n)). Specialization of eq_poly for boolean points."""
+    return math.prod(point[j] if (idx >> (n - 1 - j)) & 1 else ONE - point[j] for j in range(n))
 
 
 def dot_product(a: Sequence, b: Sequence):
@@ -336,7 +342,7 @@ def whir_n_rounds_and_final_sumcheck(num_variables: int) -> tuple[int, int]:
     nv = num_variables - WHIR_INITIAL_FOLDING_FACTOR
     if nv < WHIR_MAX_NUM_VARIABLES_TO_SEND_COEFFS:
         return 0, nv
-    n = -(-(nv - WHIR_MAX_NUM_VARIABLES_TO_SEND_COEFFS) // WHIR_SUBSEQUENT_FOLDING_FACTOR)
+    n = div_ceil(nv - WHIR_MAX_NUM_VARIABLES_TO_SEND_COEFFS, WHIR_SUBSEQUENT_FOLDING_FACTOR)
     return n, nv - n * WHIR_SUBSEQUENT_FOLDING_FACTOR
 
 
@@ -392,7 +398,7 @@ def verify_stir_challenges(
         if round_index == 0:
             packed = leaf
         else:
-            packed = [EF(leaf[i : i + EF.DIMENSION]) for i in range(0, len(leaf), EF.DIMENSION)]
+            packed = pack_ef(leaf)
         fold = eval_multilinear_evals(packed, folding_randomness)
         ef_pt = EF(pow(int(gen.value), idx, P))
         pt = expand_from_univariate(ef_pt, num_variables)
@@ -497,7 +503,7 @@ def whir_verify(
             common = next_mle(smt.point, inner_pt) if smt.is_next else eq_poly(smt.point, inner_pt)
             sel_n = smt.selector_num_variables
             for v in smt.values:
-                lagrange = math.prod(pt[j] if (v[0] >> (sel_n - 1 - j)) & 1 else ONE - pt[j] for j in range(sel_n))
+                lagrange = eq_at_index(pt, v[0], sel_n)
                 eval_weights += lagrange * common * randomness[i]
                 i += 1
     final_value = eval_multilinear_coeffs(final_coeffs, list(reversed(final_sc_point)))
@@ -570,7 +576,7 @@ def verify_gkr_quotient(fiat_shamir: FiatShamir, n_vars: int) -> tuple[EF, list[
     return quotient, point, claim_num, claim_den
 
 
-def finger_print(discriminator: Fp, data: Sequence[EF], beta_eq: Sequence[EF]) -> EF:
+def finger_print(discriminator: Fp | EF, data: Sequence[EF], beta_eq: Sequence[EF]) -> EF:
     assert len(beta_eq) > len(data)
     return dot_product(beta_eq, data) + beta_eq[-1] * discriminator
 
@@ -610,10 +616,7 @@ def verify_generic_logup(
     def pref_at(offset: int, log_height: int) -> EF:
         """Lagrange weight for the layout-offset of a section of height 2^log_height."""
         n_missing = total_gkr_n_vars - log_height
-        idx = offset >> log_height
-        return math.prod(
-            point_gkr[i] if (idx >> (n_missing - 1 - i)) & 1 else ONE - point_gkr[i] for i in range(n_missing)
-        )
+        return eq_at_index(point_gkr, offset >> log_height, n_missing)
 
     num = den = ZERO
 
@@ -752,7 +755,7 @@ def eval_precompile_bus_virtual_columns(
     data: Sequence[EF],
 ) -> None:
     folder.assert_zero(multiplicity)
-    folder.assert_zero(dot_product(logup_beta_eq, data) + logup_beta_eq[-1] * discriminator)
+    folder.assert_zero(finger_print(discriminator, data, logup_beta_eq))
 
 
 def eval_air_execution(folder: ConstraintFolder, logup_beta_eq: list[EF]) -> None:
