@@ -301,18 +301,60 @@ Similar to `match`, range validity of the matched value is the responsibility of
 
 ### For loops
 
-Three loop forms, all written `for i in <range_kind>(start, end):`. Ranging from `start`, `start + 1`, ..., up to `end - 1`.
+Three loop forms, all written `for i in <range_kind>(start, end):`. The
+iterator visits `start, start + 1, ..., end - 1`.
 
-| Loop form                        | When                                                                       |
-| -------------------------------- | -------------------------------------------------------------------------- |
-| `for i in range(a, b):`          | Runtime loop. Compiled into a recursive function (no `break`/`continue`).  |
-| `for i in unroll(a, b):`         | Compile-time expansion; `a` and `b` must both be compile-time constants.   |
-| `for i in parallel_range(a, b):` | Runtime loop; iterations are executed in parallel by the runner via rayon. |
+Restrictions shared by all three forms:
 
-`parallel_range` requires the loop body to be iteration-independent. The
-runner executes the first iteration sequentially to learn its memory footprint,
-then runs the rest of the iterations concurrently — so anything cross-iteration
-must hold a-priori, since there is no synchronization:
+- No `break` or `continue` (not in the grammar).
+
+#### `range(a, b)`: runtime loop
+
+The general-purpose runtime loop. `a` and `b` may be runtime values. The
+compiler lowers the loop to a recursive function.
+
+```python
+sum: Mut = 0
+for i in range(1, 11):
+    sum += i
+assert sum == 55
+```
+
+Mutable variables carried across iterations are supported transparently.
+
+*Under the hood: the compiler inserts a buffer array, stores the per-iteration value into it, and reads the final value back after the loop.*
+
+Restrictions: No `return` inside the body
+
+*Under the hood: because the loop is lowered to a recursive function.*
+
+#### `unroll(a, b)`: compile-time unrolling
+
+The loop is expanded at compile time: the body is duplicated once per iteration
+with `i` substituted by its concrete value. Both `a` and `b` must be
+compile-time constants.
+
+```python
+for i in unroll(0, 4):
+    buffer[i] = i * i
+```
+
+#### `parallel_range(a, b)` — parallel runtime loop
+
+**`parallel_range` compiles to exactly the same bytecode as `range`.** It
+differs only in the runner's scheduling policy: iterations are dispatched
+concurrently across worker threads rather than evaluated in sequence. The only advantage is faster witness generation.
+Iteration `a` is executed first, in isolation, to determine the per-iteration
+memory footprint; the remaining iterations are then evaluated in parallel
+without inter-iteration synchronization.
+
+```python
+for i in parallel_range(0, n):
+    process(i, inputs[i], outputs[i])
+```
+
+Because there is no synchronization, the loop body must be
+iteration-independent:
 
 - No `Mut` variables carried across iterations (each iteration writes only to
   its own call frame and to addresses disjoint from every other iteration).
@@ -322,24 +364,6 @@ must hold a-priori, since there is no synchronization:
 
 These constraints are **not** checked at compile time. Violating them produces
 silently wrong proofs.
-
-Mutable variables inside non-unrolled loops are supported transparently — the
-compiler inserts a buffer array, stores per-iteration values into it, and reads
-the final value back after the loop:
-
-```python
-sum: Mut = 0
-for i in range(1, 11):
-    sum += i
-assert sum == 55
-```
-
-Loop limitations (current):
-
-- No `break` or `continue` (these forms are not in the grammar).
-- No `return` inside the body of a non-unrolled loop (because such loops are
-  lowered to recursive functions). The compiler emits "Function return inside
-  a loop is not currently supported" if you try.
 
 ### Statements without effect are rejected
 
@@ -383,21 +407,6 @@ saturating_sub(a, b)      # max(0, a - b)
 len(array)                # length of a constant array (any depth)
 ```
 
-### Reserved names
-
-These identifiers cannot be redefined as user functions, because the parser or
-compiler intercepts calls to them:
-
-- Built-ins: `print`, `Array`, `len`, `hint_witness`
-- Compile-time math: `log2_ceil`, `next_multiple_of`, `saturating_sub`,
-  `div_ceil`, `div_floor`
-- Loop / control-flow forms: `range`, `parallel_range`, `match_range`
-- Custom hints: every `hint_*` name (see [Hints] below)
-- Poseidon16 precompiles: `poseidon16_compress`, `poseidon16_compress_half`,
-  `poseidon16_compress_hardcoded_left`,
-  `poseidon16_compress_half_hardcoded_left`, `poseidon16_permute`
-- Extension-op precompiles: `add_ee`, `add_be`, `dot_product_ee`,
-  `dot_product_be`, `poly_eq_ee`, `poly_eq_be`
 
 ### `_` (the discard target)
 
@@ -411,7 +420,14 @@ _ = compute()                  # discard a single return value
 
 ## Assertions
 
-Snark constraints (enforced by the proof):
+The zkDSL provides two assertion forms with very different semantics:
+
+| Form           | Enforced by         | Use for                                                  |
+| -------------- | ------------------- | -------------------------------------------------------- |
+| `assert`       | The proof system | Invariants the verifier must check          |
+| `debug_assert` | The prover only (at witness generation) | Sanity checks; preconditions the verifier does not need to re-check |
+
+### `assert`: proof-enforced constraint
 
 ```python
 assert x == y
@@ -420,31 +436,39 @@ assert x <  y
 assert x <= y
 ```
 
-Unconditional failure (compiles to a Panic):
+The four supported comparison operators are `==`, `!=`, `<`, `<=` (no `>` or
+`>=`; flip the operands).
+
+
+### Range checks: `assert a < b` and `assert a <= b`
+
+Inequalities are proved via DEREF, which relies on the soundness of memory
+accesses into a read-only memory of size `<= 2^MIN_LOG_MEMORY_SIZE` (currently
+`MIN_LOG_MEMORY_SIZE = 16`). For the constraint to be sound, the right-hand
+side `b` must therefore satisfy `b <= 2^16`. To compare against a larger
+constant, first decompose the value into bits and assert the bound piecewise.
+
+#### Explicit panic
+
+`assert False` is the unconditional failure form. It compiles to a Panic and
+accepts an optional message:
 
 ```python
 assert False
 assert False, "human-readable message"
 ```
 
-Runtime-only checks; not part of the constraint system. Same four comparison
-operators (`==`, `!=`, `<`, `<=`):
+### `debug_assert`: sanity checks at witness generation
 
 ```python
 debug_assert(x < y)
 ```
 
-`debug_assert` is for invariants the prover must respect but that the verifier
-doesn't need to re-check — typically range-validity preconditions for `match` /
-`match_range` dispatches.
-
-### Range checks: `assert a < b` and `assert a <= b`
-
-A signed inequality is implemented using DEREF (memory-access soundness on a
-read-only memory of size `<= 2^MIN_LOG_MEMORY_SIZE`). The compiler automatically
-emits the necessary helper hints, but **the right-hand side `b` must fit in
-`2^16` (MIN_LOG_MEMORY_SIZE bits)** for the constraint to be sound. Compare
-against larger constants by decomposing the value into bits first.
+`debug_assert` accepts the same four comparison operators. It is evaluated by
+the prover at trace-generation time and does **not** emit any constraint, so
+the verifier never re-checks it. Use it for invariants the prover is expected
+to maintain but that the verifier can take for granted — typically the
+range-validity preconditions of `match` / `match_range` dispatches.
 
 ## Comments
 
