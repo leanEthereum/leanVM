@@ -610,7 +610,8 @@ def fingerprint_n(domsep, data_evals, n, logup_alphas_eq_poly):
     return res
 
 
-def verify_gkr_quotient(fs: Mut, n_vars):
+def verify_gkr_quotient(prev_fs, n_vars):
+    fs: Mut = prev_fs
     fs, nums = fs_receive_ef_inlined(fs, LOGUP_GKR_N_COEFFS_SENT)
     fs, denoms = fs_receive_ef_inlined(fs, LOGUP_GKR_N_COEFFS_SENT)
 
@@ -653,13 +654,16 @@ def verify_gkr_quotient(fs: Mut, n_vars):
     )
 
 
-def verify_gkr_quotient_step(fs: Mut, n_vars, point, claim_num, claim_den):
+def verify_gkr_quotient_step(prev_fs, n_vars, point, claim_num, claim_den):
+    fs: Mut = prev_fs
     fs = fs_duplex(fs)
     fs, alpha = fs_sample_ef(fs)
     alpha_mul_claim_den = mul_extension_ret(alpha, claim_den)
     num_plus_alpha_mul_claim_den = add_extension_ret(claim_num, alpha_mul_claim_den)
     postponed_point = Array((n_vars + 1) * DIM)
-    fs, postponed_value = sumcheck_verify_reversed_helper(fs, n_vars, num_plus_alpha_mul_claim_den, 3, postponed_point)
+    fs, postponed_value = sumcheck_verify_reversed_helper(
+        fs, n_vars, num_plus_alpha_mul_claim_den, 3, postponed_point
+    )
     fs, inner_evals = fs_receive_ef_inlined(fs, 4)
     a_num = inner_evals
     b_num = inner_evals + DIM

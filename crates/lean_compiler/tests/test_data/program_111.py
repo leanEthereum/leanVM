@@ -78,10 +78,11 @@ def chain_compute(x, y):
     a2, b2, c2 = step_compute(a1, b1)
     return a2, b2, c1 + c2
 
-def nested_mut_params(base: Mut):
+def nested_mut_params(base):
+    acc: Mut = base
     for i in unroll(0, 3):
-        base = base + i * 2
-    return base
+        acc = acc + i * 2
+    return acc
 
 def state_machine_step(current_state, phase):
     result: Imu

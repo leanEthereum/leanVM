@@ -15,7 +15,7 @@ def multi_return(a, b):
 
 def multi_line_params(
     a,
-    b: Mut,
+    b,
     c: Const,
 ):
     return a + b + c

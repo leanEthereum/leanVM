@@ -114,14 +114,14 @@ agree. A function that "returns nothing" uses a bare `return`.
 
 ### Parameter modifiers
 
-| Syntax     | Meaning                                                                             |
-| ---------- | ----------------------------------------------------------------------------------- |
-| `x`        | normal (immutable) parameter                                                        |
-| `x: Const` | compile-time-known value|
-| `x: Mut`   | locally mutable parameter (reassignable inside the function — caller is unaffected) |
+| Syntax     | Meaning                  |
+| ---------- | ------------------------ |
+| `x`        | normal (immutable) parameter |
+| `x: Const` | compile-time-known value |
 
-All parameters are pass-by-value. Use return values to propagate results — there
-are no out-parameters.
+All parameters are pass-by-value and immutable inside the function — use return
+values to propagate results (there are no out-parameters). If you need a locally
+mutable copy of a parameter, introduce a `: Mut` local at the top of the body:
 
 ```python
 def repeat(n: Const):            # Const enables unroll(0, n)
@@ -130,9 +130,10 @@ def repeat(n: Const):            # Const enables unroll(0, n)
         sum = sum + i
     return sum
 
-def double(x: Mut):              # Mut: only the local copy is reassignable
-    x = x * 2
-    return x
+def double(x):                   # parameter is immutable; shadow with a local
+    y: Mut = x
+    y = y * 2
+    return y
 ```
 
 ### Inline functions
@@ -149,7 +150,6 @@ def square(x):
 
 Constraints on inline functions:
 
-- No `: Mut` parameters allowed.
 - Exactly one `return`, placed at the top level of the body — not nested inside
   `if`, a loop, or `match`. Inlining rewrites the `return` into a plain
   assignment, so early or conditional returns cannot be expressed.
@@ -687,7 +687,9 @@ The runner lays out memory as
 6. `assert a < b` and `assert a <= b` are range-checked under the assumption
    that `b <= 2^MIN_LOG_MEMORY_SIZE = 2^16`. Larger comparisons must be done
    with explicit bit decomposition (`hint_decompose_bits` + manual checks).
-7. Inline functions cannot have `: Mut` parameters and cannot return
+7. Function parameters are always immutable. To mutate a parameter's value
+   inside a function, introduce a local `: Mut` alias at the top of the body
+   (e.g. `y: Mut = x`). Inline functions additionally cannot return
    conditionally — use a regular function for those cases.
 8. `parallel_range` requires per-iteration determinism in memory and hints; a
    single divergent iteration breaks proving.

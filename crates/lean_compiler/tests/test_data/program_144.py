@@ -374,9 +374,10 @@ def test_multi_return(flag):
 
 
 # Helper function for TEST 22
-def func_with_mut_param(x: Mut, flag):
+def func_with_mut_param(x, flag):
+    y: Mut = x
     if flag == 1:
-        x = x * 10
+        y = y * 10
     else:
         assert False
-    return x
+    return y

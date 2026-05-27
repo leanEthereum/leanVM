@@ -1,7 +1,7 @@
 from snark_lib import *
 
 
-# Error: inline functions with parameters: Mut are not supported
+# Error: function parameters cannot be declared ': Mut'
 def main():
     return
 

@@ -7,7 +7,8 @@ def main():
     return
 
 
-def accumulate(x: Mut):
+def accumulate(x):
+    acc: Mut = x
     for i in unroll(0, 3):
-        x = x + i
-    return x
+        acc = acc + i
+    return acc

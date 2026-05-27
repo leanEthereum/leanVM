@@ -32,7 +32,6 @@ impl Program {
 pub struct FunctionArg {
     pub name: Var,
     pub is_const: bool,
-    pub is_mutable: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -47,9 +46,6 @@ pub struct Function {
 impl Function {
     pub fn has_const_arguments(&self) -> bool {
         self.arguments.iter().any(|arg| arg.is_const)
-    }
-    pub fn has_mutable_arguments(&self) -> bool {
-        self.arguments.iter().any(|arg| arg.is_mutable)
     }
 }
 
@@ -902,8 +898,6 @@ impl Display for Function {
             .map(|arg| {
                 if arg.is_const {
                     format!("const {}", arg.name)
-                } else if arg.is_mutable {
-                    format!("mut {}", arg.name)
                 } else {
                     arg.name.to_string()
                 }

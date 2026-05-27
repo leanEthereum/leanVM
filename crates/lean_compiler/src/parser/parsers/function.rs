@@ -142,22 +142,24 @@ impl Parse<FunctionArg> for ParameterParser {
         let mut inner = pair.into_inner();
         let name = next_inner_pair(&mut inner, "parameter name")?.as_str().to_string();
 
-        // Check for optional type annotation (: Const or : Mut)
-        let (is_const, is_mutable) = if let Some(annotation) = inner.next() {
+        // Check for optional type annotation (: Const). ': Mut' parameters are forbidden.
+        let is_const = if let Some(annotation) = inner.next() {
             match annotation.as_str().trim() {
-                ": Const" => (true, false),
-                ": Mut" => (false, true),
+                ": Const" => true,
+                ": Mut" => {
+                    return Err(SemanticError::new(format!(
+                        "Parameter '{name}' cannot be declared ': Mut'. Mutable parameters are not allowed; \
+                         introduce a local '{name}_mut: Mut = {name}' instead."
+                    ))
+                    .into());
+                }
                 other => return Err(SemanticError::new(format!("Invalid parameter annotation: {other}")).into()),
             }
         } else {
-            (false, false)
+            false
         };
 
-        Ok(FunctionArg {
-            name,
-            is_const,
-            is_mutable,
-        })
+        Ok(FunctionArg { name, is_const })
     }
 }
 

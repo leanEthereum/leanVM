@@ -10,19 +10,22 @@ def main():
     return
 
 
-def step1(n: Mut):
-    n = n * 2
-    n = n + 1
-    return n
+def step1(n):
+    m: Mut = n
+    m = m * 2
+    m = m + 1
+    return m
 
 
-def step2(n: Mut):
-    n = n * 3
-    n = n + 2
-    return n
+def step2(n):
+    m: Mut = n
+    m = m * 3
+    m = m + 2
+    return m
 
 
-def step3(n: Mut):
-    n = n * 4
-    n = n + 3
-    return n
+def step3(n):
+    m: Mut = n
+    m = m * 4
+    m = m + 3
+    return m

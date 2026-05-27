@@ -310,21 +310,14 @@ pub fn simplify_program(mut program: Program) -> Result<SimpleProgram, String> {
         let mut array_manager = ArrayManager::default();
         let mut mut_tracker = MutableVarTracker::default();
 
-        // Register mutable arguments and capture their initial versioned names
-        // BEFORE simplifying the body
+        // All arguments are immutable; record them as assigned to detect illegal reassignment.
         let arguments: Vec<Var> = func
             .arguments
             .iter()
             .map(|arg| {
                 assert!(!arg.is_const);
-                if arg.is_mutable {
-                    mut_tracker.register_mutable(&arg.name);
-                    // Capture the initial versioned name (version 0)
-                    mut_tracker.current_name(&arg.name)
-                } else {
-                    mut_tracker.assigned.insert(arg.name.clone());
-                    arg.name.clone()
-                }
+                mut_tracker.assigned.insert(arg.name.clone());
+                arg.name.clone()
             })
             .collect();
 
@@ -376,9 +369,6 @@ fn compile_time_transform_in_program(
         .collect();
 
     for func in inlined_functions.values() {
-        if func.has_mutable_arguments() {
-            return Err("Inlined functions with mutable arguments are not supported yet".to_string());
-        }
         if func.has_const_arguments() {
             return Err(format!(
                 "Inlined function should not have \"Const\" arguments (function \"{}\")",

@@ -7,7 +7,8 @@ def main():
     return
 
 
-def increment_twice(x: Mut):
-    x = x + 1
-    x = x + 1
-    return x
+def increment_twice(x):
+    y: Mut = x
+    y = y + 1
+    y = y + 1
+    return y
