@@ -48,10 +48,7 @@ N_RUNTIME_COLUMNS, N_INSTRUCTION_COLUMNS = 8, 12
 LOGUP_MEMORY_DOMAINSEP, LOGUP_BYTECODE_DOMAINSEP = 1, 2
 POSEIDON_DISCRIMINATOR_BASE = 3  # odd ≥ 3
 POSEIDON_PERMUTE_SHIFT, POSEIDON_HALF_OUTPUT_SHIFT = 1 << 1, 1 << 2
-POSEIDON_HARDCODED_LEFT_4_FLAG_SHIFT, POSEIDON_HARDCODED_LEFT_4_OFFSET_SHIFT = (
-    1 << 3,
-    1 << 4,
-)
+POSEIDON_HARDCODED_LEFT_4_FLAG_SHIFT, POSEIDON_HARDCODED_LEFT_4_OFFSET_SHIFT = 1 << 3, 1 << 4
 EXT_OP_FLAG_IS_BE, EXT_OP_FLAG_ADD, EXT_OP_FLAG_MUL, EXT_OP_FLAG_POLY_EQ, EXT_OP_LEN_MULTIPLIER = 4, 8, 16, 32, 64
 
 STARTING_PC = 0  # every program starts at PC = 0, and ends at PC = len(bytecode) - 1
@@ -84,7 +81,7 @@ class Table:
     n_constraints: int
     n_shift: int  # shift (next-row) columns are always the first ones
     max_log_height: int
-    air_fn: object  # (folder, logup_beta_eq) -> None, fills folder with AIR constraints
+    air_constraints_fn: object  # (folder, logup_beta_eq) -> None
 
     @property
     def n_columns(self) -> int:
@@ -92,21 +89,18 @@ class Table:
 
     @property
     def n_buses(self) -> int:
-        # MEMORY entries expand to `n` individual buses.
         return sum(b[3] if b[0] == BusInteraction.MEMORY else 1 for b in self.buses)
 
     @property
-    def mult_sign(self) -> EF:
-        # First bus is always the ROW_MULT bus; its direction (Push=+1, Pull=−1) IS the sign.
-        return EF(self.buses[0][1])
+    def precompile_bus_interraction_sign(self) -> EF:
+        return EF(self.buses[0][1]) # precompile interraction is the first, by convention
 
-    def col(self, ref) -> int:
-        """Resolve a column reference (name or already-int index) to its integer index."""
-        return ref if isinstance(ref, int) else self.columns.index(ref)
+    def col(self, name: str) -> int:
+        return self.columns.index(name)
 
     def eval_air(self, col_evals: Sequence[EF], alpha_powers: Sequence[EF], logup_beta_eq: list[EF]) -> EF:
         folder = ConstraintFolder(col_evals[: self.n_columns], col_evals[self.n_columns :], alpha_powers, self.columns)
-        self.air_fn(folder, logup_beta_eq)
+        self.air_constraints_fn(folder, logup_beta_eq)
         return folder.accumulator
 
     def boundary_statements(
@@ -115,9 +109,8 @@ class Table:
         """Static row-pinning constraints. Only the execution table pins the PC column."""
         if self.name != "execution":
             return []
-        pc_col = self.col("pc")
         return [
-            SparseStatements.unique_value(stacked_n_vars, offset + (pc_col << n_vars) + idx, EF(pc))
+            SparseStatements.unique_value(stacked_n_vars, offset + (self.col("pc") << n_vars) + idx, EF(pc))
             for idx, pc in [(0, STARTING_PC), ((1 << n_vars) - 1, ending_pc)]
         ]
 
@@ -435,7 +428,6 @@ def whir_verify(
     def step(constraints: list[SparseStatements], n_fold: int, pow_bits: int) -> None:
         nonlocal target
         fiat_shamir.duplex()
-        # Fold each constraint value into `target` via successive powers of γ.
         gamma = fiat_shamir.sample_ef()
         combo: list[EF] = []
         g = ONE
@@ -497,9 +489,7 @@ def whir_verify(
         prev_commitment,
         round_folding[-1],
     )
-    # Each STIR constraint's point is `expand_from_univariate(α, n)` = [α, α², α⁴, …]
-    # (built by SparseStatements.dense, so selector_num_variables == 0 by construction).
-    # Check that `Σ coeffs[i]·α^i == value` for each smt's single (index 0) value.
+    # Each STIR constraint's point is `expand_from_univariate(α, n)` = [α, α², α⁴, …]. We check that `Σ coeffs[i]·α^i == value` for each smt
     for smt in final_stir:
         univ_eval = eval_univariate_polynomial(final_coeffs, smt.point[0])
         if any(univ_eval != v[1] for v in smt.values):
@@ -641,7 +631,7 @@ def verify_generic_logup(
 
     num = den = ZERO
 
-    # Memory section ---
+    # Memory section
     mem_pt = point_gkr[-log_memory:]
     pref = pref_at(0, log_memory)
     value_memory_acc = fiat_shamir.next_extension_scalar()
@@ -651,7 +641,7 @@ def verify_generic_logup(
     den += pref * (gamma - fp_mem)
     offset = 1 << log_memory
 
-    # Bytecode section (padded to the tallest table) ---
+    # Bytecode section (padded to the tallest table)
     log_byte_pad = max(log_bytecode, tallest_h)
     byte_pt = point_gkr[-log_bytecode:]
     pref = pref_at(offset, log_bytecode)
@@ -668,8 +658,7 @@ def verify_generic_logup(
     den += pref * (gamma - fp_byte) + pref_pad * mle_of_zeros_then_ones(1 << log_bytecode, point_gkr[-log_byte_pad:])
     offset += 1 << log_byte_pad
 
-    # Per-table section: lay out per-table base offsets (sorted-by-height), then
-    # walk each table's buses in canonical TABLES order to match the prover's writes.
+    # Per-table section
     table_offsets: dict[str, int] = {}
     for table, log_n_rows in tables_sorted:
         table_offsets[table.name] = offset
@@ -750,10 +739,6 @@ class Cols(dict):
 
 
 class ConstraintFolder:
-    """`flat`/`shift` = current-row / next-row column evals. `cur[name]` and `nxt[name]`
-    expose the same data indexed by column name (the table's `columns` tuple). Each
-    `assert_zero(x)` adds `alpha_powers[i]·x` to the accumulator."""
-
     def __init__(
         self, flat: Sequence[EF], shift: Sequence[EF], alpha_powers: Sequence[EF], columns: Sequence[str]
     ) -> None:
@@ -812,22 +797,21 @@ def eval_air_execution(folder: ConstraintFolder, logup_beta_eq: list[EF]) -> Non
     deref = aux * (aux - ONE) * ((P + 1) // 2)  # (P+1)/2 is the inverse of 2 mod P
     is_precompile = ONE - add - mul - deref - jump
 
-    az = folder.assert_zero
     eval_precompile_bus_virtual_columns(folder, logup_beta_eq, is_precompile, discriminator, [nu_a, nu_b, nu_c])
-    az(nfa * (addr_a - (fp + operand_a)))
-    az(nfb * (addr_b - (fp + operand_b)))
-    az(nfc * (addr_c - (fp + operand_c)))
-    az(add * (nu_b - (nu_a + nu_c)))
-    az(mul * (nu_b - nu_a * nu_c))
-    az(deref * (addr_b - (value_a + operand_b)))
-    az(deref * (value_b - nu_c))
+    folder.assert_zero(nfa * (addr_a - (fp + operand_a)))
+    folder.assert_zero(nfb * (addr_b - (fp + operand_b)))
+    folder.assert_zero(nfc * (addr_c - (fp + operand_c)))
+    folder.assert_zero(add * (nu_b - (nu_a + nu_c)))
+    folder.assert_zero(mul * (nu_b - nu_a * nu_c))
+    folder.assert_zero(deref * (addr_b - (value_a + operand_b)))
+    folder.assert_zero(deref * (value_b - nu_c))
     jc = jump * nu_a
-    az(jc * (nu_a - ONE))
-    az(jc * (pc_shift - nu_b))
-    az(jc * (fp_shift - nu_c))
+    folder.assert_zero(jc * (nu_a - ONE))
+    folder.assert_zero(jc * (pc_shift - nu_b))
+    folder.assert_zero(jc * (fp_shift - nu_c))
     not_jc = ONE - jc
-    az(not_jc * (pc_shift - (pc + ONE)))
-    az(not_jc * (fp_shift - fp))
+    folder.assert_zero(not_jc * (pc_shift - (pc + ONE)))
+    folder.assert_zero(not_jc * (fp_shift - fp))
 
 
 def eval_air_extension_op(folder: ConstraintFolder, logup_beta_eq: list[EF]) -> None:
@@ -1065,7 +1049,7 @@ TABLES = [
         n_constraints=14,
         n_shift=2,
         max_log_height=24,
-        air_fn=eval_air_execution,
+        air_constraints_fn=eval_air_execution,
     ),
     Table(
         name="extension",
@@ -1080,7 +1064,7 @@ TABLES = [
         n_constraints=35,
         n_shift=13,
         max_log_height=21,
-        air_fn=eval_air_extension_op,
+        air_constraints_fn=eval_air_extension_op,
     ),
     Table(
         name="poseidon",
@@ -1096,7 +1080,7 @@ TABLES = [
         n_constraints=101,
         n_shift=0,
         max_log_height=21,
-        air_fn=eval_air_poseidon16,
+        air_constraints_fn=eval_air_poseidon16,
     ),
 ]
 
@@ -1170,11 +1154,9 @@ def verify_execution(
     air_alpha = state.sample_ef()
     alpha_powers = ef_powers(air_alpha, sum(t.n_constraints for t in TABLES))
 
-    # Initial AIR sum: Σ_table (α^o · signed_num + α^(o+1) · (γ − bus_den)). The sign is
-    # the direction of each table's unique Column-multiplicity bus.
     initial_sum, offset = ZERO, 0
     for table in TABLES:
-        initial_sum += alpha_powers[offset] * (logup["bus_num"][table.name] * table.mult_sign)
+        initial_sum += alpha_powers[offset] * (logup["bus_num"][table.name] * table.precompile_bus_interraction_sign)
         initial_sum += alpha_powers[offset + 1] * (logup_gamma - logup["bus_den"][table.name])
         offset += table.n_constraints
     sc_point, sc_value = verify_sumcheck(state, initial_sum, n_max, max(t.air_degree + 1 for t in TABLES))
@@ -1201,9 +1183,6 @@ def verify_execution(
     pm_point = state.sample_many_ef(log2_strict(PUBLIC_INPUT_SIZE))
     pm_eval = eval_multilinear_evals(public_input, pm_point)
 
-    # Statements about the non-table columns in the stacked polynomial:
-    # value_memory + memory acc counts (memory layout), public memory (program input),
-    # and bytecode acc counts (offset by the bytecode-acc section's position in the layout).
     bytecode_acc_idx = (2 << log_memory) >> bytecode_log_size
     previous_statements = [
         SparseStatements(
