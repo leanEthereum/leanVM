@@ -103,7 +103,6 @@ class Table:
     def boundary_statements(
         self, stacked_n_vars: int, offset: int, n_vars: int, ending_pc: int
     ) -> list["SparseStatements"]:
-        """Static row-pinning constraints. Only the execution table pins the PC column."""
         if self.name != "execution":
             return []
         pc_col_offset = offset + (self.col("pc") << n_vars)
@@ -731,8 +730,8 @@ class ConstraintFolder:
         self.shift = list(shift)
         self.alpha_powers = list(alpha_powers)
         # Shift columns are always the first `n_shift` columns of the table.
-        self.cur = Cols(zip(columns, self.flat))
-        self.nxt = Cols(zip(columns[: len(self.shift)], self.shift))
+        self.flat = Cols(zip(columns, self.flat))
+        self.next = Cols(zip(columns[: len(self.shift)], self.shift))
         self.accumulator: EF = ZERO
         self.i = 0
 
@@ -759,14 +758,12 @@ def eval_precompile_bus_virtual_columns(
 
 
 def eval_air_execution(folder: ConstraintFolder, logup_beta_eq: list[EF]) -> None:
-    c, n = folder.cur, folder.nxt
-    # fmt: off
+    c, n = folder.flat, folder.next
     (pc, fp, addr_a, addr_b, addr_c, value_a, value_b, value_c, operand_a, operand_b, operand_c,
      flag_a, flag_b, flag_c, flag_c_fp, flag_ab_fp, mul, jump, aux, discriminator) = (c[k] for k in (
         "pc", "fp", "addr_a", "addr_b", "addr_c", "value_a", "value_b", "value_c",
         "operand_a", "operand_b", "operand_c", "flag_a", "flag_b", "flag_c", "flag_c_fp",
-        "flag_ab_fp", "mul", "jump", "aux", "discriminator"))
-    # fmt: on
+        "flag_ab_fp", "mul", "jump", "aux", "discriminator"))  # fmt: skip
     pc_shift, fp_shift = n["pc"], n["fp"]
 
     # nu_x = flag·operand + (1 − flag − flag_ab_fp)·value + flag_ab_fp·(fp + operand)
@@ -799,8 +796,8 @@ def eval_air_execution(folder: ConstraintFolder, logup_beta_eq: list[EF]) -> Non
     folder.assert_zero(not_jc * (fp_shift - fp))
 
 
-def eval_air_extension_op(folder: ConstraintFolder, logup_beta_eq: list[EF]) -> None:
-    c, n = folder.cur, folder.nxt
+def eval_air_extension(folder: ConstraintFolder, logup_beta_eq: list[EF]) -> None:
+    c, n = folder.flat, folder.next
     is_be, start, len_col = c["is_be"], c["start"], c["len"]
     flag_add, flag_mul, flag_poly_eq = c["flag_add"], c["flag_mul"], c["flag_poly_eq"]
     idx_a, idx_b, idx_res = c["idx_a"], c["idx_b"], c["idx_res"]
@@ -866,7 +863,7 @@ def _full_round(state: list[EF], rc1: list[Fp], rc2: list[Fp]) -> list[EF]:
 
 
 def eval_air_poseidon16(folder: ConstraintFolder, logup_beta_eq: list[EF]) -> None:
-    c = folder.cur
+    c = folder.flat
     half_pairs = POSEIDON_HALF_FULL_ROUNDS // 2
 
     multiplicity = c["multiplicity"]
@@ -1001,7 +998,7 @@ TABLES = [
         n_constraints=35,
         n_shift=13,
         max_log_height=21,
-        air_constraints_fn=eval_air_extension_op,
+        air_constraints_fn=eval_air_extension,
     ),
     Table(
         name="poseidon",
