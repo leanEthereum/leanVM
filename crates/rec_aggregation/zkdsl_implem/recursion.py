@@ -709,7 +709,7 @@ def compute_total_gkr_n_vars(log_memory, log_bytecode_padded, tables_heights):
 
 
 def evaluate_air_constraints(table_index, inner_evals, air_alpha_powers, logup_alphas_eq_poly):
-    res: Imu
+    res: Imm
     debug_assert(table_index < N_TABLES)
     match table_index:
         case 0:

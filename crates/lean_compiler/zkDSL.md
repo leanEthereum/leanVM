@@ -152,16 +152,16 @@ Constraints on inline functions (compiler limitations): Exactly one `return`, pl
 | ------------- | ---------- | ---------------------------------------------- |
 | `x = 10`      | immutable  | cannot be reassigned                           |
 | `x: Mut = 10` | mutable    | reassignable                                   |
-| `x: Imu`      | immutable  | forward declaration; assign exactly once later |
+| `x: Imm`      | immutable  | forward declaration; assign exactly once later |
 | `x: Mut`      | mutable    | forward declaration; reassignable later        |
 
 ### Forward declarations
 
-Use `x: Imu` when you want an immutable binding but the value comes from a
+Use `x: Imm` when you want an immutable binding but the value comes from a
 branch:
 
 ```python
-result: Imu
+result: Imm
 if cond == 1:
     result = 10
 else:
@@ -196,7 +196,10 @@ b = b + 1            # OK
 ```python
 buffer = Array(16)            # allocate 16 field elements
 buffer[0] = 42
-x = buffer[5]
+buffer[0] = 42                # Valid
+# buffer[0] = 41              # ERROR: conflicting write (read only memory)
+buffer[5] = 34
+x = buffer[5]                 # x = 34
 
 matrix = Array(64)            # 2D via manual indexing
 matrix[row * 8 + col] = value
@@ -206,21 +209,9 @@ ptr2[0] = 100                 # same as buffer[5] = 100
 ```
 
 `Array(n)` returns a pointer to a freshly allocated block of `n` field
-elements. `n` may be a compile-time constant (the common case) or a runtime
-value; the runner handles both. Memory is **write-once**: a cell may be
-written more than once only if all writes store the same value. The second
-write of a different value is a runtime error at the point of the write.
-
-```python
-arr = Array(3)
-arr[0] = 10
-arr[0] = 10      # OK: same value
-arr[0] = 20      # ERROR: conflicting write
-```
-
-`Array` cells are not implicitly mutable — if you need a running accumulator,
-use `x: Mut` for the variable and only commit final values to memory. Pointer
-arithmetic (`ptr + offset`) is the way to address into sub-regions.
+elements. `n` may be a compile-time constant (more efficient, analogy: allocated on the stack) or a runtime
+value (less efficient, analogy: allocated on the heap). Memory is **write-once**: a cell may be
+written more than once only if all writes store the same value.
 
 ## Control flow
 
@@ -266,7 +257,7 @@ result = match_range(n, range(1, 5), lambda i: compute(i))
 expands to
 
 ```python
-result: Imu
+result: Imm
 match n:
     case 1: result = compute(1)
     case 2: result = compute(2)
@@ -667,7 +658,7 @@ The runner lays out memory as
 2. Reach for `: Const` parameters when the function body needs `unroll` over the
    parameter, or when array sizes depend on it.
 3. `if` / `elif` branches that assign to the same outer variable should
-   forward-declare it (`x: Imu` or `x: Mut`) before the branch.
+   forward-declare it (`x: Imm` or `x: Mut`) before the branch.
 4. **`match`** / **`match_range`** dispatch is undefined for out-of-range
    values — always pair it with a `debug_assert` (or `assert`) on the value.
 5. `match` patterns must be contiguous integers; if you need gaps, restructure

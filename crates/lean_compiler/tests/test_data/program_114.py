@@ -31,8 +31,8 @@ def main():
     result4 = complex_nested_compute(2, 1, 3)
     assert result4 == 280
 
-    fwd_x: Imu
-    fwd_y: Imu
+    fwd_x: Imm
+    fwd_y: Imm
 
     mode = 2
     if mode == 0:
@@ -90,7 +90,7 @@ def sum_array_func(arr, n: Const):
 
 
 def complex_nested_compute(outer, inner, depth):
-    result: Imu
+    result: Imm
 
     if outer == 0:
         result = 100

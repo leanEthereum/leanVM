@@ -236,7 +236,7 @@ def mle_of_01234567_etc(point, n):
 
 @inline
 def checked_less_than(a, b):
-    res: Imu
+    res: Imm
     hint_less_than(a, b, res)
     assert res * (1 - res) == 0
     if res == 1:
@@ -249,7 +249,7 @@ def checked_less_than(a, b):
 @inline
 def maximum(a, b):
     is_a_less_than_b = checked_less_than(a, b)
-    res: Imu
+    res: Imm
     if is_a_less_than_b == 1:
         res = b
     else:
@@ -809,7 +809,7 @@ def _verify_log2_large(n, log2: Const):
 
 def log2_ceil_runtime(n):
     # requires: 2 < n <= 2^30
-    log2: Imu
+    log2: Imm
     hint_log2_ceil(n, log2)
     assert log2 < 31
     if two_exp(log2) != n:

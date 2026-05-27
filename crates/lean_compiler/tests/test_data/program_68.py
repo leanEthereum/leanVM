@@ -10,10 +10,10 @@ def main():
 def test_func(a, b):
     x = 1
 
-    mut_x_2: Imu
+    mut_x_2: Imm
     match a:
         case 0:
-            mut_x_1: Imu
+            mut_x_1: Imm
             mut_x_1 = x + 2
             match b:
                 case 0:

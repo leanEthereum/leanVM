@@ -42,7 +42,7 @@ def whir_open(
 
     domain_sz: Mut = n_vars + initial_log_inv_rate
     for r in range(0, n_rounds):
-        is_first_round: Imu
+        is_first_round: Imm
         if r == 0:
             is_first_round = 1
         else:
@@ -313,7 +313,7 @@ def sample_stir_indexes_and_fold(
     merkle_leaves = Array(num_queries)
     circle_values = Array(num_queries)
 
-    n_chunks_per_answer: Imu
+    n_chunks_per_answer: Imm
     # the number of chunk of 8 field elements per merkle leaf opened
     if merkle_leaves_in_basefield == 1:
         n_chunks_per_answer = two_pow_folding_factor
@@ -410,9 +410,9 @@ def polynomial_sum_at_0_and_1(coeffs, degree, dst):
 
 
 def parse_commitment(fs, num_ood):
-    root: Imu
-    ood_points: Imu
-    ood_evals: Imu
+    root: Imm
+    ood_points: Imm
+    ood_evals: Imm
     debug_assert(num_ood < 5)
     debug_assert(num_ood != 0)
     new_fs, root, ood_points, ood_evals = match_range(
@@ -441,15 +441,15 @@ def get_whir_params(n_vars, log_inv_rate):
 
     debug_assert(MIN_WHIR_LOG_INV_RATE <= log_inv_rate)
     debug_assert(log_inv_rate <= MAX_WHIR_LOG_INV_RATE)
-    num_queries: Imu
+    num_queries: Imm
     num_queries = get_num_queries(log_inv_rate, n_vars)
 
-    query_grinding_bits: Imu
+    query_grinding_bits: Imm
     query_grinding_bits = get_query_grinding_bits(log_inv_rate, n_vars)
 
     num_oods = get_num_oods(log_inv_rate, n_vars)
 
-    folding_grinding: Imu
+    folding_grinding: Imm
     folding_grinding = get_folding_grinding(log_inv_rate, n_vars)
 
     return n_rounds, final_vars, num_queries, num_oods, query_grinding_bits, folding_grinding

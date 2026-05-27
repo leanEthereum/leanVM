@@ -662,7 +662,7 @@ impl Line {
                 if *is_mutable {
                     format!("{var}: Mut")
                 } else {
-                    format!("{var}: Imu")
+                    format!("{var}: Imm")
                 }
             }
             Self::Statement { targets, value, .. } => {

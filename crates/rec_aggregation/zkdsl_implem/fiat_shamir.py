@@ -177,8 +177,8 @@ def fs_receive_ef_inlined(fs, n):
 def fs_receive_ef_by_log_dynamic(fs, log_n, min_value: Const, max_value: Const):
     debug_assert(log_n < max_value)
     debug_assert(min_value <= log_n)
-    new_fs: Imu
-    ef_ptr: Imu
+    new_fs: Imm
+    ef_ptr: Imm
     new_fs, ef_ptr = match_range(log_n, range(min_value, max_value), lambda ln: fs_receive_ef(fs, 2**ln))
     return new_fs, ef_ptr
 

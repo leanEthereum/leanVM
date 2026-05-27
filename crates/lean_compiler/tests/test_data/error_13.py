@@ -2,7 +2,7 @@ from snark_lib import *
 
 
 def main():
-    a: Imu
+    a: Imm
     a = 0
     a = a + 1
     if a == 1:

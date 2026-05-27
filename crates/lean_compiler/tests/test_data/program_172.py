@@ -8,7 +8,7 @@ def helper_const(n: Const):
 
 
 def main():
-    # Test 1: Basic match_range - no forward declaration needed (auto-generated as Imu)
+    # Test 1: Basic match_range - no forward declaration needed (auto-generated as Imm)
     x = 2
     r1 = match_range(x, range(0, 4), lambda i: i * 100)
     assert r1 == 200

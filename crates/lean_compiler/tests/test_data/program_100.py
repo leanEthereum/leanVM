@@ -2,8 +2,8 @@ from snark_lib import *
 
 
 def main():
-    x: Imu
-    y: Imu
+    x: Imm
+    y: Imm
 
     cond = 1
     if cond == 1:

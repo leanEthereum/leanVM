@@ -15,20 +15,20 @@ def main():
 
 def compute(a, b, c):
     base = 1000
-    outer_val: Imu
-    mid_val: Imu
-    inner_val: Imu
+    outer_val: Imm
+    mid_val: Imm
+    inner_val: Imm
 
     match a:
         case 0:
             outer_val = 5
-            local_a: Imu
+            local_a: Imm
             local_a = a + outer_val
 
             match b:
                 case 0:
                     mid_val = 3
-                    local_b: Imu
+                    local_b: Imm
                     local_b = local_a + mid_val
 
                     match c:
@@ -38,7 +38,7 @@ def compute(a, b, c):
                             inner_val = base + local_b + c
                 case 1:
                     mid_val = 7
-                    local_b: Imu
+                    local_b: Imm
                     local_b = local_a + mid_val
 
                     match c:
@@ -48,13 +48,13 @@ def compute(a, b, c):
                             inner_val = base + local_b + c
         case 1:
             outer_val = 15
-            local_a: Imu
+            local_a: Imm
             local_a = a + outer_val
 
             match b:
                 case 0:
                     mid_val = 20
-                    local_b: Imu
+                    local_b: Imm
                     local_b = local_a + mid_val
 
                     match c:
@@ -64,7 +64,7 @@ def compute(a, b, c):
                             inner_val = base + local_b + c
                 case 1:
                     mid_val = 30
-                    local_b: Imu
+                    local_b: Imm
                     local_b = local_a + mid_val
 
                     match c:

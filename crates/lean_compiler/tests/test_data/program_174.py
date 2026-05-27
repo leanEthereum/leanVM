@@ -40,7 +40,7 @@ def main():
 
 
 def match_start_at_1(x):
-    result: Imu
+    result: Imm
     match x:
         case 1:
             result = 100
@@ -54,7 +54,7 @@ def match_start_at_1(x):
 
 
 def match_start_at_5(x):
-    result: Imu
+    result: Imm
     match x:
         case 5:
             result = 50
@@ -68,7 +68,7 @@ def match_start_at_5(x):
 
 
 def match_start_at_10(x):
-    result: Imu
+    result: Imm
     match x:
         case 10:
             result = 1000
@@ -95,7 +95,7 @@ def match_nonzero_mutable(x):
 
 
 def nested_nonzero_match(outer, inner):
-    result: Imu
+    result: Imm
     match outer:
         case 1:
             match inner:
@@ -125,7 +125,7 @@ def nested_nonzero_match(outer, inner):
 
 
 def nonzero_match_in_if(cond, x):
-    result: Imu
+    result: Imm
     if cond == 0:
         result = 0
     else:

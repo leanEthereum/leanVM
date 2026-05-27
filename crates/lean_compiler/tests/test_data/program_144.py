@@ -8,7 +8,7 @@ def main():
     # ==========================================================================
     # TEST 1: Basic - panic in else branch (the original bug case)
     # ==========================================================================
-    two: Imu
+    two: Imm
     if 1 == 1:
         two = 2
     else:
@@ -18,7 +18,7 @@ def main():
     # ==========================================================================
     # TEST 2: panic in then branch
     # ==========================================================================
-    three: Imu
+    three: Imm
     if 1 != 1:
         assert False
     else:
@@ -28,9 +28,9 @@ def main():
     # ==========================================================================
     # TEST 3: Multiple mutable variables, panic in else
     # ==========================================================================
-    a: Imu
-    b: Imu
-    c: Imu
+    a: Imm
+    b: Imm
+    c: Imm
     if 1 == 1:
         a = 10
         b = 20
@@ -44,7 +44,7 @@ def main():
     # ==========================================================================
     # TEST 4: Nested if with panic in inner else
     # ==========================================================================
-    x: Imu
+    x: Imm
     if 1 == 1:
         if 2 == 2:
             x = 42
@@ -79,7 +79,7 @@ def main():
     # ==========================================================================
     # TEST 7: Chain of else-if with panic in final else
     # ==========================================================================
-    result: Imu
+    result: Imm
     selector = 1
     if selector == 0:
         result = 100
@@ -94,7 +94,7 @@ def main():
     # ==========================================================================
     # TEST 8: Match with panic in one arm
     # ==========================================================================
-    matched: Imu
+    matched: Imm
     tag = 1
     match tag:
         case 0:
@@ -108,7 +108,7 @@ def main():
     # ==========================================================================
     # TEST 9: Match where only one arm doesn't panic
     # ==========================================================================
-    only_valid: Imu
+    only_valid: Imm
     tag2 = 2
     match tag2:
         case 0:
@@ -124,7 +124,7 @@ def main():
     # ==========================================================================
     # TEST 10: Panic in deeply nested structure
     # ==========================================================================
-    deep: Imu
+    deep: Imm
     if 1 == 1:
         if 1 == 1:
             if 1 == 1:
@@ -151,7 +151,7 @@ def main():
     # ==========================================================================
     # TEST 12: Forward declared with = None panic in branch
     # ==========================================================================
-    fwd: Imu
+    fwd: Imm
     cond = 1
     if cond == 1:
         fwd = 777
@@ -162,8 +162,8 @@ def main():
     # ==========================================================================
     # TEST 13: Both mutable and immutable forward decl with panic
     # ==========================================================================
-    imm: Imu
-    mtbl: Imu
+    imm: Imm
+    mtbl: Imm
     flag = 0
     if flag == 0:
         imm = 100
@@ -206,7 +206,7 @@ def main():
     # ==========================================================================
     # TEST 17: Nested match with panic
     # ==========================================================================
-    nested_match: Imu
+    nested_match: Imm
     outer = 1
     match outer:
         case 0:
@@ -223,7 +223,7 @@ def main():
     # ==========================================================================
     # TEST 18: If inside match with panic
     # ==========================================================================
-    if_in_match: Imu
+    if_in_match: Imm
     m18_sel = 0
     match m18_sel:
         case 0:
@@ -239,7 +239,7 @@ def main():
     # ==========================================================================
     # TEST 19: Match inside if with panic
     # ==========================================================================
-    match_in_if: Imu
+    match_in_if: Imm
     cond19 = 1
     if cond19 == 1:
         tag19 = 1
@@ -255,7 +255,7 @@ def main():
     # ==========================================================================
     # TEST 20: Panic after partial assignment
     # ==========================================================================
-    partial: Imu
+    partial: Imm
     check = 0
     if check == 0:
         partial_tmp: Mut = 1
@@ -288,7 +288,7 @@ def main():
     # ==========================================================================
     # TEST 23: Multiple levels - if/match/if with panics
     # ==========================================================================
-    multi_level: Imu
+    multi_level: Imm
     c1 = 1
     if c1 == 1:
         s1 = 0
@@ -308,7 +308,7 @@ def main():
     # ==========================================================================
     # TEST 24: Panic in both outer branches but inner assigns
     # ==========================================================================
-    inner_assigns: Imu
+    inner_assigns: Imm
     outer24 = 0
     match outer24:
         case 0:
@@ -324,9 +324,9 @@ def main():
     # ==========================================================================
     # TEST 25: Complex - multiple vars, nested, with panics
     # ==========================================================================
-    va: Imu
-    vb: Imu
-    vc: Imu
+    va: Imm
+    vb: Imm
+    vc: Imm
 
     outer25 = 1
     if outer25 == 1:
@@ -353,7 +353,7 @@ def main():
 
 # Helper function for TEST 14
 def test_early_return(flag):
-    result: Imu
+    result: Imm
     if flag == 1:
         result = 10
     else:
@@ -363,8 +363,8 @@ def test_early_return(flag):
 
 # Helper function for TEST 15
 def test_multi_return(flag):
-    a: Imu
-    b: Imu
+    a: Imm
+    b: Imm
     if flag == 1:
         a = 100
         b = 200

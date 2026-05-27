@@ -85,7 +85,7 @@ def nested_mut_params(base):
     return acc
 
 def state_machine_step(current_state, phase):
-    result: Imu
+    result: Imm
     if phase == 0:
         if current_state == 0:
             result = 1

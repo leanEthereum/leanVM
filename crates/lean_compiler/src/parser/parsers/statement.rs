@@ -284,7 +284,7 @@ impl<const DEBUG: bool> Parse<Line> for AssertParser<DEBUG> {
     }
 }
 
-/// Parser for forward declarations: `x: Imu` or `x: Mut`
+/// Parser for forward declarations: `x: Imm` or `x: Mut`
 pub struct ForwardDeclarationParser;
 
 impl Parse<Line> for ForwardDeclarationParser {
@@ -294,7 +294,7 @@ impl Parse<Line> for ForwardDeclarationParser {
         // Parse variable name
         let var = next_inner_pair(&mut inner, "variable name")?.as_str().to_string();
 
-        // Check for : Mut or : Imu annotation
+        // Check for : Mut or : Imm annotation
         let annotation = next_inner_pair(&mut inner, "type annotation")?;
         let is_mutable = annotation.as_rule() == Rule::mut_annotation;
 

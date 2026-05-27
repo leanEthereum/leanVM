@@ -12,7 +12,7 @@ def main():
     offset = p[6]
     total = p[7]
 
-    computed: Imu
+    computed: Imm
     match mode:
         case 0:
             computed = add_op(x, y)
@@ -24,7 +24,7 @@ def main():
             computed = combined(x, y)
     assert computed == expected
 
-    adjusted: Imu
+    adjusted: Imm
     if flag == 0:
         adjusted = bump(secondary, 1)
     elif flag == 1:

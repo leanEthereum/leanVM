@@ -36,7 +36,7 @@ def main():
 
     assert paired_sum(seed, n) == paired
 
-    chosen: Imu
+    chosen: Imm
     if flag == 1:
         chosen = seed
     else:

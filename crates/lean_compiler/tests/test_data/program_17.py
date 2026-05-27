@@ -7,7 +7,7 @@ def main():
 
 
 def func():
-    a: Imu
+    a: Imm
     if 0 == 0:
         a = aux()
     return a

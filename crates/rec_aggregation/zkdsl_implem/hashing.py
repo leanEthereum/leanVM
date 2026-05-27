@@ -111,8 +111,8 @@ def euclidian_div_runtime(a, b):
     # Requires:
     #   1 <= b < 2^14
     #   floor(a / b) < 2^16  (so that q*b + r stays well below p)
-    q: Imu
-    r: Imu
+    q: Imm
+    r: Imm
     hint_div_floor(a, b, q, r)
     assert r < b
     assert q < 2 ** 16

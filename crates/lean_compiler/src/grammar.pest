@@ -49,9 +49,9 @@ return_statement = { "return" ~ (("(" ~ tuple_expression ~ ")") | tuple_expressi
 
 mut_keyword = @{ "mut" ~ !(ASCII_ALPHANUMERIC | "_") }
 mut_annotation = { ":" ~ "Mut" }
-im_annotation = { ":" ~ "Imu" }
+im_annotation = { ":" ~ "Imm" }
 
-// Forward declaration: x: Imu or x: Mut (not followed by =)
+// Forward declaration: x: Imm or x: Mut (not followed by =)
 forward_declaration = { identifier ~ (im_annotation | mut_annotation) ~ !("=") }
 
 // General assignment: LHS is optional, RHS is any expression

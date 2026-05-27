@@ -71,7 +71,7 @@ def main():
     assert sum == 10
 
     # Test 13: Inline functions in if condition (comparison)
-    result13: Imu
+    result13: Imm
     if incr(incr(0)) == 2:
         result13 = 100
     else:
@@ -79,7 +79,7 @@ def main():
     assert result13 == 100
 
     # Test 14: Nested inline calls in both sides of if condition
-    result14: Imu
+    result14: Imm
     if double(3) == triple(2):
         result14 = 1
     else:
@@ -88,7 +88,7 @@ def main():
     assert result14 == 1
 
     # Test 15: Inline calls inside if/else branches
-    result15: Imu
+    result15: Imm
     if 1 == 1:
         result15 = incr(incr(incr(10)))
     else:
@@ -96,7 +96,7 @@ def main():
     assert result15 == 13
 
     # Test 16: Multiple nested inline calls in if condition
-    result16: Imu
+    result16: Imm
     if incr(double(incr(1))) == 5:
         # incr(1) = 2, double(2) = 4, incr(4) = 5
         result16 = 200
@@ -105,7 +105,7 @@ def main():
     assert result16 == 200
 
     # Test 17: Inline call with != comparison
-    result17: Imu
+    result17: Imm
     if incr(5) != 5:
         result17 = 300
     else:
@@ -152,7 +152,7 @@ def main():
     assert sum23 == 21
 
     # Test 24: Chained else-if with inline conditions
-    result24: Imu
+    result24: Imm
     x24 = 5
     if incr(x24) == 4:
         result24 = 1
@@ -194,7 +194,7 @@ def double(x):
 @inline
 def triple(x):
     y: Mut = x
-    two: Imu
+    two: Imm
     match y - x + 1:
         case 0:
             assert False

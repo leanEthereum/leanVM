@@ -30,14 +30,14 @@ def main():
 
     x = 5
     y = 10
-    z: Imu
+    z: Imm
     if x + y == 15:
         z = 1
     else:
         z = 0
     assert z == 1
 
-    w: Imu
+    w: Imm
     if x + y * 2 == 25:
         w = 100
     else:

@@ -6,7 +6,7 @@ from typing import Any
 # Type annotations
 Mut = Any
 Const = Any
-Imu = Any
+Imm = Any
 
 
 # @inline decorator (does nothing in Python execution)

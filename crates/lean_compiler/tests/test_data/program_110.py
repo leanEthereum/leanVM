@@ -79,7 +79,7 @@ def main():
     result = complex_compute(3, 4, 5)
     assert result == 47
 
-    fwd_val: Imu
+    fwd_val: Imm
     cond = 1
     if cond == 0:
         fwd_val = 100

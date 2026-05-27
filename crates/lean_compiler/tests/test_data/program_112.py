@@ -2,7 +2,7 @@ from snark_lib import *
 
 
 def main():
-    result1: Imu
+    result1: Imm
     outer_sel = 1
     match outer_sel:
         case 0:
@@ -18,8 +18,8 @@ def main():
                     result1 = 456
     assert result1 == 456
 
-    counter: Imu
-    flag: Imu
+    counter: Imm
+    flag: Imm
 
     phase = 1
     if phase == 0:
@@ -40,8 +40,8 @@ def main():
     assert counter2 == 15
     assert flag2 == 400
 
-    x: Imu
-    y: Imu
+    x: Imm
+    y: Imm
 
     init_sel = 0
     if init_sel == 0:
@@ -61,7 +61,7 @@ def main():
     assert x2 == 220
     assert y2 == 20
 
-    outcome: Imu
+    outcome: Imm
     selector = 4
     match selector:
         case 0:
@@ -78,9 +78,9 @@ def main():
             outcome = compute_outcome(5, 25)
     assert outcome == 84
 
-    p: Imu
-    q: Imu
-    r: Imu
+    p: Imm
+    q: Imm
+    r: Imm
 
     s1 = 1
     if s1 == 1:

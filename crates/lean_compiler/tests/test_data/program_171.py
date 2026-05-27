@@ -1,7 +1,7 @@
 from snark_lib import *
 
 # Comprehensive test for inlining with mutable variables in branches
-# Tests: @inline functions, Mut/Imu variables, match, if/else, loops, nesting
+# Tests: @inline functions, Mut/Imm variables, match, if/else, loops, nesting
 
 # ============================================================================
 # Simple inline functions with mutable variables
@@ -118,7 +118,7 @@ def inline_with_if(x):
 @inline
 def inline_with_match(selector):
     """Inline function that itself contains match"""
-    out: Imu
+    out: Imm
     match selector:
         case 0:
             out = 1000
@@ -132,7 +132,7 @@ def inline_with_match(selector):
 @inline
 def inline_with_nested_branch(a, b):
     """Inline with nested if inside match"""
-    res: Imu
+    res: Imm
     match a:
         case 0:
             if b == 0:
@@ -321,7 +321,7 @@ def main():
     # TEST 1: Basic inline in match arms (different inlined vars per arm)
     # This was the original bug - each arm gets its own inlined variable names
     # -------------------------------------------------------------------
-    res1: Imu
+    res1: Imm
     match 0:
         case 0:
             res1 = count_up(5)
@@ -329,7 +329,7 @@ def main():
             res1 = count_up(10)
     assert res1 == 5
 
-    res2: Imu
+    res2: Imm
     match 1:
         case 0:
             res2 = count_up(5)
@@ -340,7 +340,7 @@ def main():
     # -------------------------------------------------------------------
     # TEST 2: Different inline functions in different arms
     # -------------------------------------------------------------------
-    res3: Imu
+    res3: Imm
     match 0:
         case 0:
             res3 = count_up(3)
@@ -350,7 +350,7 @@ def main():
             res3 = double_count(3)
     assert res3 == 3
 
-    res4: Imu
+    res4: Imm
     match 1:
         case 0:
             res4 = count_up(3)
@@ -360,7 +360,7 @@ def main():
             res4 = double_count(3)
     assert res4 == 3  # 0+1+2
 
-    res5: Imu
+    res5: Imm
     match 2:
         case 0:
             res5 = count_up(3)
@@ -392,7 +392,7 @@ def main():
     # -------------------------------------------------------------------
     # TEST 4: Multiple inlines in same arm
     # -------------------------------------------------------------------
-    multi: Imu
+    multi: Imm
     match 0:
         case 0:
             a = count_up(3)
@@ -406,7 +406,7 @@ def main():
     # -------------------------------------------------------------------
     # TEST 5: Nested inline functions in match arms
     # -------------------------------------------------------------------
-    nested1: Imu
+    nested1: Imm
     match 0:
         case 0:
             nested1 = outer_with_inner(4)
@@ -416,7 +416,7 @@ def main():
     #                     = 0 + 0 + 1 + 3 = 4
     assert nested1 == 4
 
-    nested2: Imu
+    nested2: Imm
     match 1:
         case 0:
             nested2 = outer_with_inner(4)
@@ -428,7 +428,7 @@ def main():
     # -------------------------------------------------------------------
     # TEST 6: Deep nesting in match
     # -------------------------------------------------------------------
-    deep1: Imu
+    deep1: Imm
     match 0:
         case 0:
             deep1 = deep_nested(3)
@@ -442,14 +442,14 @@ def main():
     # -------------------------------------------------------------------
     # TEST 7: Inline in if/else branches
     # -------------------------------------------------------------------
-    if_res1: Imu
+    if_res1: Imm
     if 1 == 1:
         if_res1 = count_up(7)
     else:
         if_res1 = count_up(3)
     assert if_res1 == 7
 
-    if_res2: Imu
+    if_res2: Imm
     if 1 == 0:
         if_res2 = count_up(7)
     else:
@@ -459,7 +459,7 @@ def main():
     # -------------------------------------------------------------------
     # TEST 8: Nested if/else with inlines
     # -------------------------------------------------------------------
-    nested_if: Imu
+    nested_if: Imm
     if 1 == 1:
         if 2 == 2:
             nested_if = sum_range(0, 5)
@@ -472,7 +472,7 @@ def main():
     # -------------------------------------------------------------------
     # TEST 9: Match inside if with inlines
     # -------------------------------------------------------------------
-    mixed: Imu
+    mixed: Imm
     if 1 == 1:
         match 1:
             case 0:
@@ -486,7 +486,7 @@ def main():
     # -------------------------------------------------------------------
     # TEST 10: If inside match with inlines
     # -------------------------------------------------------------------
-    mixed2: Imu
+    mixed2: Imm
     match 0:
         case 0:
             if 1 == 1:
@@ -500,7 +500,7 @@ def main():
     # -------------------------------------------------------------------
     # TEST 11: Complex mutable variables in inline
     # -------------------------------------------------------------------
-    cx: Imu
+    cx: Imm
     match 0:
         case 0:
             cx = complex_muts(4)
@@ -519,7 +519,7 @@ def main():
     # TEST 12: Mix of Mut and immutable in branches with inlines
     # -------------------------------------------------------------------
     outer_mut: Mut = 10
-    inner_imu: Imu
+    inner_imu: Imm
     match 0:
         case 0:
             local_imm = with_immutable(3)
@@ -535,7 +535,7 @@ def main():
     # -------------------------------------------------------------------
     # TEST 13: Inline inside unroll loop inside match
     # -------------------------------------------------------------------
-    unroll_in_match: Imu
+    unroll_in_match: Imm
     match 0:
         case 0:
             acc: Mut = 0
@@ -550,10 +550,10 @@ def main():
     # -------------------------------------------------------------------
     # TEST 14: Multiple match levels with different inlines at each
     # -------------------------------------------------------------------
-    multi_match: Imu
+    multi_match: Imm
     match 1:
         case 0:
-            inner: Imu
+            inner: Imm
             match 0:
                 case 0:
                     inner = count_up(2)
@@ -561,7 +561,7 @@ def main():
                     inner = count_up(3)
             multi_match = inner
         case 1:
-            inner2: Imu
+            inner2: Imm
             match 1:
                 case 0:
                     inner2 = sum_range(0, 2)
@@ -573,7 +573,7 @@ def main():
     # -------------------------------------------------------------------
     # TEST 15: Same inline function called multiple times in same arm
     # -------------------------------------------------------------------
-    same_fn: Imu
+    same_fn: Imm
     match 0:
         case 0:
             r1 = count_up(3)
@@ -607,7 +607,7 @@ def main():
     # -------------------------------------------------------------------
     # TEST 17: Variables declared inside only some branches
     # -------------------------------------------------------------------
-    outside: Imu
+    outside: Imm
     match 0:
         case 0:
             local_only_here = count_up(5)
@@ -622,7 +622,7 @@ def main():
     # -------------------------------------------------------------------
     # TEST 18: Very deeply nested structure
     # -------------------------------------------------------------------
-    very_deep: Imu
+    very_deep: Imm
     if 1 == 1:
         match 0:
             case 0:
@@ -668,7 +668,7 @@ def main():
     # -------------------------------------------------------------------
     # TEST 20: Inline result used immediately in arithmetic in branch
     # -------------------------------------------------------------------
-    arith: Imu
+    arith: Imm
     match 0:
         case 0:
             arith = count_up(3) * 10 + sum_range(0, 3) * 100
@@ -684,7 +684,7 @@ def main():
     # -------------------------------------------------------------------
     # TEST 21: Inline containing if/else in different match arms
     # -------------------------------------------------------------------
-    t21: Imu
+    t21: Imm
     match 0:
         case 0:
             t21 = inline_with_if(0)
@@ -693,7 +693,7 @@ def main():
     # inline_with_if(0): result=100, result=100+0=100
     assert t21 == 100
 
-    t21b: Imu
+    t21b: Imm
     match 1:
         case 0:
             t21b = inline_with_if(0)
@@ -705,7 +705,7 @@ def main():
     # -------------------------------------------------------------------
     # TEST 22: Inline containing match in different branches
     # -------------------------------------------------------------------
-    t22: Imu
+    t22: Imm
     match 0:
         case 0:
             t22 = inline_with_match(0)
@@ -715,7 +715,7 @@ def main():
             t22 = inline_with_match(2)
     assert t22 == 1000
 
-    t22b: Imu
+    t22b: Imm
     match 2:
         case 0:
             t22b = inline_with_match(0)
@@ -728,7 +728,7 @@ def main():
     # -------------------------------------------------------------------
     # TEST 23: Inline with nested branches called in nested branches
     # -------------------------------------------------------------------
-    t23: Imu
+    t23: Imm
     match 0:
         case 0:
             if 1 == 1:
@@ -740,7 +740,7 @@ def main():
     # inline_with_nested_branch(0, 1): a=0 -> if b==0 else -> 20
     assert t23 == 20
 
-    t23b: Imu
+    t23b: Imm
     match 1:
         case 0:
             t23b = inline_with_nested_branch(0, 0)
@@ -752,8 +752,8 @@ def main():
     # -------------------------------------------------------------------
     # TEST 24: Multi-return inline in match arms
     # -------------------------------------------------------------------
-    t24a: Imu
-    t24b: Imu
+    t24a: Imm
+    t24b: Imm
     match 0:
         case 0:
             t24a, t24b = multi_return_inline(5)
@@ -763,8 +763,8 @@ def main():
     assert t24a == 5
     assert t24b == 110
 
-    t24c: Imu
-    t24d: Imu
+    t24c: Imm
+    t24d: Imm
     match 1:
         case 0:
             t24c, t24d = multi_return_inline(5)
@@ -777,9 +777,9 @@ def main():
     # -------------------------------------------------------------------
     # TEST 25: Triple return inline in branches
     # -------------------------------------------------------------------
-    t25a: Imu
-    t25b: Imu
-    t25c: Imu
+    t25a: Imm
+    t25b: Imm
+    t25c: Imm
     match 0:
         case 0:
             t25a, t25b, t25c = triple_return(10)
@@ -793,7 +793,7 @@ def main():
     # -------------------------------------------------------------------
     # TEST 26: 4-level deep inline nesting in match arms
     # -------------------------------------------------------------------
-    t26: Imu
+    t26: Imm
     match 0:
         case 0:
             t26 = level_a(1)
@@ -809,7 +809,7 @@ def main():
     #            = (1+2) + 20 + 200 + 2000 = 2223
     assert t26 == 2223
 
-    t26b: Imu
+    t26b: Imm
     match 3:
         case 0:
             t26b = level_a(5)
@@ -825,7 +825,7 @@ def main():
     # -------------------------------------------------------------------
     # TEST 27: Inline with Array in match arms
     # -------------------------------------------------------------------
-    t27: Imu
+    t27: Imm
     match 0:
         case 0:
             t27 = inline_with_array(10)
@@ -834,7 +834,7 @@ def main():
     # inline_with_array(10): 10+11+12+13 = 46
     assert t27 == 46
 
-    t27b: Imu
+    t27b: Imm
     match 1:
         case 0:
             t27b = inline_with_array(10)
@@ -846,7 +846,7 @@ def main():
     # -------------------------------------------------------------------
     # TEST 28: Inline modifying array in branches
     # -------------------------------------------------------------------
-    t28: Imu
+    t28: Imm
     match 0:
         case 0:
             t28 = inline_modify_array(1)
@@ -858,7 +858,7 @@ def main():
     # -------------------------------------------------------------------
     # TEST 29: Chained inline calls in match arms
     # -------------------------------------------------------------------
-    t29: Imu
+    t29: Imm
     match 0:
         case 0:
             # chain_a(5)=7, chain_b(7)=28, chain_c(28)=48
@@ -867,7 +867,7 @@ def main():
             t29 = chain_a(100)
     assert t29 == 48
 
-    t29b: Imu
+    t29b: Imm
     match 1:
         case 0:
             t29b = chain_c(chain_b(chain_a(1)))
@@ -879,7 +879,7 @@ def main():
     # -------------------------------------------------------------------
     # TEST 30: Different chain patterns in different arms
     # -------------------------------------------------------------------
-    t30: Imu
+    t30: Imm
     match 0:
         case 0:
             t30 = chain_a(chain_a(chain_a(0)))
@@ -890,7 +890,7 @@ def main():
     # chain_a(0)=2, chain_a(2)=4, chain_a(4)=6
     assert t30 == 6
 
-    t30b: Imu
+    t30b: Imm
     match 1:
         case 0:
             t30b = chain_a(chain_a(chain_a(0)))
@@ -904,7 +904,7 @@ def main():
     # -------------------------------------------------------------------
     # TEST 31: Stress test - many variables inline in match
     # -------------------------------------------------------------------
-    t31: Imu
+    t31: Imm
     match 0:
         case 0:
             t31 = many_vars(0)
@@ -918,7 +918,7 @@ def main():
     # -------------------------------------------------------------------
     # TEST 32: Multiple multi-return inlines in same arm
     # -------------------------------------------------------------------
-    t32_sum: Imu
+    t32_sum: Imm
     match 0:
         case 0:
             a1, b1 = multi_return_inline(3)
@@ -936,7 +936,7 @@ def main():
     # -------------------------------------------------------------------
     # TEST 33: 5-way match with all different inline types
     # -------------------------------------------------------------------
-    t33: Imu
+    t33: Imm
     match 0:
         case 0:
             t33 = count_up(10)
@@ -950,7 +950,7 @@ def main():
             t33 = inline_with_array(1)
     assert t33 == 10
 
-    t33b: Imu
+    t33b: Imm
     match 4:
         case 0:
             t33b = count_up(10)
@@ -968,10 +968,10 @@ def main():
     # -------------------------------------------------------------------
     # TEST 34: Triple nested match with inlines at each level
     # -------------------------------------------------------------------
-    t34: Imu
+    t34: Imm
     match 0:
         case 0:
-            inner1: Imu
+            inner1: Imm
             match 1:
                 case 0:
                     tmp34a = count_up(2)
@@ -986,10 +986,10 @@ def main():
     assert t34 == 1423
 
     # Additional triple nesting test - without forward declaration inside innermost
-    t34b: Imu
+    t34b: Imm
     match 0:
         case 0:
-            mid1: Imu
+            mid1: Imm
             match 0:
                 case 0:
                     # Use inline directly without forward declaration
@@ -1003,10 +1003,10 @@ def main():
     assert t34b == 1105
 
     # Test forward declaration with nested match and inline
-    t34c: Imu
+    t34c: Imm
     match 0:
         case 0:
-            val34c: Imu
+            val34c: Imm
             match 0:
                 case 0:
                     val34c = sum_range(0, 5)
@@ -1041,12 +1041,12 @@ def main():
     assert deep_mut == 210
 
     # -------------------------------------------------------------------
-    # TEST 36: Multiple forward-declared Imu assigned via inlines
+    # TEST 36: Multiple forward-declared Imm assigned via inlines
     # -------------------------------------------------------------------
-    fwd1: Imu
-    fwd2: Imu
-    fwd3: Imu
-    fwd4: Imu
+    fwd1: Imm
+    fwd2: Imm
+    fwd3: Imm
+    fwd4: Imm
     match 0:
         case 0:
             fwd1 = count_up(1)
@@ -1086,7 +1086,7 @@ def main():
     # -------------------------------------------------------------------
     # TEST 38: If-else-if chain with different inlines
     # -------------------------------------------------------------------
-    t38: Imu
+    t38: Imm
     if 0 == 1:
         t38 = count_up(100)
     else:
@@ -1126,7 +1126,7 @@ def main():
     # -------------------------------------------------------------------
     # TEST 40: Inline returning mutable at different states
     # -------------------------------------------------------------------
-    t40: Imu
+    t40: Imm
     match 0:
         case 0:
             # complex_muts returns computation of interdependent muts
@@ -1164,7 +1164,7 @@ def main():
     # TEST 42: Deeply nested with mixed mutable tracking
     # -------------------------------------------------------------------
     outer_m: Mut = 100
-    t42: Imu
+    t42: Imm
     if 1 == 1:
         outer_m = outer_m + 50
         match 0:
@@ -1197,14 +1197,14 @@ def main():
     # -------------------------------------------------------------------
     # TEST 43: All arms have different nesting patterns
     # -------------------------------------------------------------------
-    t43: Imu
+    t43: Imm
     match 0:
         case 0:
             # Flat
             t43 = count_up(5)
         case 1:
             # One level nested
-            if_inner: Imu
+            if_inner: Imm
             if 1 == 1:
                 if_inner = sum_range(0, 10)
             else:
@@ -1212,7 +1212,7 @@ def main():
             t43 = if_inner
         case 2:
             # Two levels nested
-            m_inner: Imu
+            m_inner: Imm
             match 0:
                 case 0:
                     m_inner = level_a(1)
@@ -1221,7 +1221,7 @@ def main():
             t43 = m_inner
         case 3:
             # Three levels nested
-            deep_inner: Imu
+            deep_inner: Imm
             if 1 == 1:
                 match 0:
                     case 0:
@@ -1271,7 +1271,7 @@ def main():
     # -------------------------------------------------------------------
     # TEST 45: Inline calling another inline that has internal branches
     # -------------------------------------------------------------------
-    t45: Imu
+    t45: Imm
     match 0:
         case 0:
             # outer_with_inner calls inner_loop
