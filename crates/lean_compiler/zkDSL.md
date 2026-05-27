@@ -227,34 +227,37 @@ else:
 ```
 
 Comparison operators on conditions: `==`, `!=`, `<`, `<=`. There is **no** `>`
-or `>=` — flip the operands to get the same effect.
+or `>=` (flip the operands to get the same effect).
 
 ### `match`
 
-Patterns must be a contiguous run of integers:
+Patterns must be a set of integers of the form [n, n+1, n + 2, ...]:
 
 ```python
 match value:
-    case 5: result = 500
-    case 6: result = 600
-    case 7: result = 700
+    case 5:
+        result = 500
+        do_stuf()
+    case 6:
+        result = 600
+        do_other_stuf()
+    case 7:
+        result = 700
+        ...
 ```
 
 The matched value must lie inside the listed range; out-of-range values produce
-undefined behaviour. Use a `debug_assert` (or `assert`, if you want it to be
-enforced by the proof) to guard the input.
+undefined behaviour: **It's the responsability of the program to ensure this** (no checks added by the compiler). Letting a prover-controlled value escape the range in a `range` is a critical vulnerability.
 
 ### `match_range`
 
-`match_range` is the workhorse for *dispatching a runtime value to a const-
-parameter function*. It is a compile-time construct that expands into a
-forward-declared variable plus a `match` over a contiguous range of integers.
+`match_range` enables to automatically generate a `match` with repeated arms.
 
 ```python
 result = match_range(n, range(1, 5), lambda i: compute(i))
 ```
 
-expands to
+is expanded by the compiler to:
 
 ```python
 result: Imm
@@ -265,7 +268,7 @@ match n:
     case 4: result = compute(4)
 ```
 
-You can chain several `(range, lambda)` pairs, provided the ranges are
+It's possible to chain several `(range, lambda)` pairs, provided the ranges are
 **contiguous** (the end of one is the start of the next):
 
 ```python
@@ -275,35 +278,30 @@ result = match_range(n,
 ```
 
 Multiple return values are supported via tuple unpacking. The bindings produced
-by `match_range` are always immutable — forward-declare with `: Mut` (and then
+by `match_range` are always immutable. Forward-declare with `: Mut` (and then
 reassign) if you need them mutable later:
 
 ```python
+a: Mut
 a, b = match_range(n, range(0, 4), lambda i: two_values(i))
+a += 1
 ```
 
-Idiomatic use — dispatching a runtime length to a function that requires a
-compile-time length:
+Idiomatic use: enables to dispatch a runtime value to a const-parameter function.
 
 ```python
 def helper_const(n: Const):
     return n * n
 
 def compute(value):
-    debug_assert(value < 10)
+    assert value < 10
     return match_range(value, range(0, 10), lambda i: helper_const(i))
 ```
-
-**Range validity is the caller's job.** A `match_range` whose input falls
-outside any listed range is undefined behaviour at runtime — always pair it
-with a `debug_assert` (or `assert`, if you want the proof to enforce it) on the
-dispatched value. Skipping this guard is by far the most common source of
-silent bugs in zkDSL.
+Similar to `match`, range validity of the matched value is the responsibility of the program, not the compiler. Letting a prover-controlled value escape the range in a `match_range` is a critical vulnerability.
 
 ### For loops
 
-Three loop forms, all written `for i in <range_kind>(start, end):`. Bounds and
-behaviour:
+Three loop forms, all written `for i in <range_kind>(start, end):`. Ranging from `start`, `start + 1`, ..., up to `end - 1`.
 
 | Loop form                        | When                                                                       |
 | -------------------------------- | -------------------------------------------------------------------------- |
