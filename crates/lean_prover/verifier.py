@@ -53,9 +53,6 @@ EXT_OP_FLAG_IS_BE, EXT_OP_FLAG_ADD, EXT_OP_FLAG_MUL, EXT_OP_FLAG_POLY_EQ, EXT_OP
 
 STARTING_PC = 0  # every program starts at PC = 0, and ends at PC = len(bytecode) - 1
 
-POSEIDON_WIDTH, POSEIDON_FULL_ROUNDS, POSEIDON_PARTIAL_ROUNDS = 16, 8, 20
-POSEIDON_HALF_FULL_ROUNDS = POSEIDON_FULL_ROUNDS // 2
-
 
 class ProofError(Exception):
     pass
@@ -93,7 +90,7 @@ class Table:
 
     @property
     def precompile_bus_interraction_sign(self) -> EF:
-        return EF(self.buses[0][1]) # precompile interraction is the first, by convention
+        return EF(self.buses[0][1])  # precompile interraction is the first, by convention
 
     def col(self, name: str) -> int:
         return self.columns.index(name)
@@ -872,96 +869,17 @@ def eval_air_extension_op(folder: ConstraintFolder, logup_beta_eq: list[EF]) -> 
     folder.assert_zero(start_sh * (len_col - ONE))
 
 
-def _build_p1c() -> dict:
-    raw = POSEIDON1_AIR_CONSTANTS
-    fp_mat = lambda m: [[Fp(v) for v in row] for row in m]
-    fp_vec = lambda v: [Fp(x) for x in v]
-    n = len(MDS_FIRST_ROW_16)
-    mds_dense = [[Fp(MDS_FIRST_ROW_16[(j - i) % n]) for j in range(n)] for i in range(n)]
-    # External full-round RCs: first and last `(ROUNDS_F/2) * WIDTH` entries of the
-    # raw round-constant table that drives the actual Poseidon permutation.
-    hf, t = POSEIDON_HALF_FULL_ROUNDS, POSEIDON_WIDTH
-    rcs = PARAMS_16.round_constants
-    initial_constants = [[Fp(x) for x in rcs[i * t : (i + 1) * t]] for i in range(hf)]
-    tail_start = (hf + POSEIDON_PARTIAL_ROUNDS) * t
-    final_constants = [[Fp(x) for x in rcs[tail_start + i * t : tail_start + (i + 1) * t]] for i in range(hf)]
-    return {
-        "initial_constants": initial_constants,
-        "final_constants": final_constants,
-        "sparse_m_i": fp_mat(raw["sparse_m_i"]),
-        "sparse_first_row": fp_mat(raw["sparse_first_row"]),
-        "sparse_v": fp_mat(raw["sparse_v"]),
-        "sparse_first_rc": fp_vec(raw["sparse_first_round_constants"]),
-        "sparse_scalar_rc": fp_vec(raw["sparse_scalar_round_constants"]),
-        "mds_dense": mds_dense,
-    }
-
-
-P1C = _build_p1c()
-
-
-def _matvec_kb(mat: list[list[Fp]], state: list[EF]) -> list[EF]:
-    return [dot_product(state, row) for row in mat]
-
-
 def _full_round(state: list[EF], rc1: list[Fp], rc2: list[Fp]) -> list[EF]:
+    """Two consecutive Poseidon full rounds, fused as one AIR step."""
     for rc in (rc1, rc2):
-        sbox = [(t := s + c) * t * t for s, c in zip(state, rc)]
-        state = _matvec_kb(P1C["mds_dense"], sbox)
+        sbox = [(s + c).cube() for s, c in zip(state, rc)]
+        state = [dot_product(sbox, row) for row in POSEIDON_AIR_MDS_DENSE]
     return state
-
-
-def _eval_poseidon1_16(folder: ConstraintFolder, cols: dict) -> None:
-    """AIR for Poseidon1-16. Each `post` column commits an intermediate state, which we
-    constrain against the local computation, then adopt to bound polynomial degree."""
-    const = P1C
-    state = list(cols["inputs"])
-    initial = list(cols["inputs"])
-    half_initial = half_final = POSEIDON_HALF_FULL_ROUNDS // 2
-
-    for r in range(half_initial):
-        state = _full_round(state, const["initial_constants"][2 * r], const["initial_constants"][2 * r + 1])
-        for i, post in enumerate(cols["beginning_full_rounds"][r]):
-            folder.assert_eq(state[i], post)
-            state[i] = post
-
-    state = [s + c for s, c in zip(state, const["sparse_first_rc"])]
-    state = _matvec_kb(const["sparse_m_i"], state)
-
-    n_partial = POSEIDON_PARTIAL_ROUNDS
-    for r in range(n_partial):
-        folder.assert_eq(state[0] * state[0] * state[0], cols["partial_rounds"][r])
-        state[0] = cols["partial_rounds"][r]
-        if r < n_partial - 1:
-            state[0] += const["sparse_scalar_rc"][r]
-        old_s0 = state[0]
-        state[0] = dot_product(state, const["sparse_first_row"][r])
-        for i in range(1, POSEIDON_WIDTH):
-            state[i] += old_s0 * const["sparse_v"][r][i - 1]
-
-    for r in range(half_final - 1):
-        state = _full_round(state, const["final_constants"][2 * r], const["final_constants"][2 * r + 1])
-        for i, post in enumerate(cols["ending_full_rounds"][r]):
-            folder.assert_eq(state[i], post)
-            state[i] = post
-
-    # Last full round: compression mode adds `initial` (gated by flag_half_output for lanes 4..8);
-    # permute mode (flag_permute=1) outputs raw state.
-    last = 2 * (half_final - 1)
-    state = _full_round(state, const["final_constants"][last], const["final_constants"][last + 1])
-    flag_permute = cols["flag_permute"]
-    not_permute = ONE - flag_permute
-    compression_last4 = not_permute - cols["flag_half_output"]
-    for i in range(POSEIDON_WIDTH // 2):
-        gate = not_permute if i < (DIGEST_ELEMS // 2) else compression_last4
-        folder.assert_zero(gate * (state[i] + initial[i] - cols["outputs_left"][i]))
-        folder.assert_zero(flag_permute * (state[i] - cols["outputs_left"][i]))
-        folder.assert_zero(flag_permute * (state[i + POSEIDON_WIDTH // 2] - cols["outputs_right"][i]))
 
 
 def eval_air_poseidon16(folder: ConstraintFolder, logup_beta_eq: list[EF]) -> None:
     c = folder.cur
-    half_initial = half_final = POSEIDON_HALF_FULL_ROUNDS // 2
+    half_pairs = POSEIDON_HALF_FULL_ROUNDS // 2
 
     multiplicity = c["multiplicity"]
     index_b, index_res = c["index_b"], c["index_res"]
@@ -970,9 +888,9 @@ def eval_air_poseidon16(folder: ConstraintFolder, logup_beta_eq: list[EF]) -> No
     eff_idx_left_first, eff_idx_left_second = c["eff_idx_left_first"], c["eff_idx_left_second"]
     flag_permute = c["flag_permute"]
     inputs = c.arr("input", POSEIDON_WIDTH)
-    beginning_full_rounds = [c.arr(f"begin_r{r}", POSEIDON_WIDTH) for r in range(half_initial)]
+    beginning_full_rounds = [c.arr(f"begin_r{r}", POSEIDON_WIDTH) for r in range(half_pairs)]
     partial_cols = c.arr("partial", POSEIDON_PARTIAL_ROUNDS)
-    ending_full_rounds = [c.arr(f"end_r{r}", POSEIDON_WIDTH) for r in range(half_final - 1)]
+    ending_full_rounds = [c.arr(f"end_r{r}", POSEIDON_WIDTH) for r in range(half_pairs - 1)]
     outputs_left = c.arr("out_left", POSEIDON_WIDTH // 2)
     outputs_right = c.arr("out_right", POSEIDON_WIDTH // 2)
 
@@ -995,19 +913,50 @@ def eval_air_poseidon16(folder: ConstraintFolder, logup_beta_eq: list[EF]) -> No
     folder.assert_zero(flag_hardcoded_left * (offset_hardcoded_left - eff_idx_left_first))
     folder.assert_zero(not_hcl * (index_a - eff_idx_left_first))
 
-    _eval_poseidon1_16(
-        folder,
-        {
-            "inputs": inputs,
-            "beginning_full_rounds": beginning_full_rounds,
-            "partial_rounds": partial_cols,
-            "ending_full_rounds": ending_full_rounds,
-            "outputs_left": outputs_left,
-            "outputs_right": outputs_right,
-            "flag_half_output": flag_half_output,
-            "flag_permute": flag_permute,
-        },
-    )
+    # --- Poseidon1-16 permutation AIR: each committed `post` row pins the intermediate
+    # state then re-binds it, capping polynomial degree across the long round sequence.
+    state = list(inputs)
+
+    # Beginning full rounds, paired up.
+    for r in range(half_pairs):
+        state = _full_round(state, POSEIDON_AIR_INITIAL_CONSTANTS[2 * r], POSEIDON_AIR_INITIAL_CONSTANTS[2 * r + 1])
+        for i, post in enumerate(beginning_full_rounds[r]):
+            folder.assert_eq(state[i], post)
+            state[i] = post
+
+    # Transition into sparse partial-round form.
+    state = [s + rc for s, rc in zip(state, POSEIDON_AIR_SPARSE_FIRST_RC)]
+    state = [dot_product(state, row) for row in POSEIDON_AIR_SPARSE_M_I]
+
+    # Partial rounds: one sbox on lane 0, then sparse mat-vec.
+    for r in range(POSEIDON_PARTIAL_ROUNDS):
+        folder.assert_eq(state[0].cube(), partial_cols[r])
+        state[0] = partial_cols[r]
+        if r < POSEIDON_PARTIAL_ROUNDS - 1:
+            state[0] += POSEIDON_AIR_SPARSE_SCALAR_RC[r]
+        old_s0 = state[0]
+        state[0] = dot_product(state, POSEIDON_AIR_SPARSE_FIRST_ROW[r])
+        for i in range(1, POSEIDON_WIDTH):
+            state[i] += old_s0 * POSEIDON_AIR_SPARSE_V[r][i - 1]
+
+    # Ending full rounds (all but the last pair) commit intermediate state.
+    for r in range(half_pairs - 1):
+        state = _full_round(state, POSEIDON_AIR_FINAL_CONSTANTS[2 * r], POSEIDON_AIR_FINAL_CONSTANTS[2 * r + 1])
+        for i, post in enumerate(ending_full_rounds[r]):
+            folder.assert_eq(state[i], post)
+            state[i] = post
+
+    # Last full round: compression mode adds `inputs` back (gated by flag_half_output for lanes 4..8);
+    # permute mode (flag_permute=1) outputs raw state.
+    last = 2 * (half_pairs - 1)
+    state = _full_round(state, POSEIDON_AIR_FINAL_CONSTANTS[last], POSEIDON_AIR_FINAL_CONSTANTS[last + 1])
+    not_permute = ONE - flag_permute
+    compression_last4 = not_permute - flag_half_output
+    for i in range(POSEIDON_WIDTH // 2):
+        gate = not_permute if i < (DIGEST_ELEMS // 2) else compression_last4
+        folder.assert_zero(gate * (state[i] + inputs[i] - outputs_left[i]))
+        folder.assert_zero(flag_permute * (state[i] - outputs_left[i]))
+        folder.assert_zero(flag_permute * (state[i + POSEIDON_WIDTH // 2] - outputs_right[i]))
 
 
 EXECUTION_COLUMNS = (

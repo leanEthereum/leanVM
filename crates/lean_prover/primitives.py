@@ -42,6 +42,9 @@ class Fp:
     def __pow__(self, exponent: int) -> "Fp":
         return Fp(pow(self.value, exponent, P))
 
+    def cube(self) -> "Fp":
+        return self * self * self
+
     def __eq__(self, other: object) -> bool:
         return isinstance(other, Fp) and self.value == other.value
 
@@ -116,6 +119,9 @@ class EF:
 
     def __repr__(self):
         return f"EF({[int(x.value) for x in self.c]})"
+
+    def cube(self) -> "EF":
+        return self * self * self
 
     def inv(self) -> "EF":
         result, base, n = ONE, self, P**5 - 2
@@ -280,8 +286,13 @@ def next_multiple_of(n: int, k: int) -> int:
 
 
 # ---------------------------------------------------------------------------
-# sparse partial-round optimization for the AIR.
+# Poseidon2-16 sparse optimization for partial rounds (see Appendix B of https://eprint.iacr.org/2019/458.pdf)
 # ---------------------------------------------------------------------------
+
+POSEIDON_FULL_ROUNDS = 8
+POSEIDON_WIDTH = 16
+POSEIDON_PARTIAL_ROUNDS = 20
+POSEIDON_HALF_FULL_ROUNDS = POSEIDON_FULL_ROUNDS // 2  # = 4 full rounds per side
 
 
 def _mat_mul(a: list[list[int]], b: list[list[int]], n: int) -> list[list[int]]:
@@ -318,18 +329,25 @@ def _gauss_jordan_inv(m_in: list[list[int]], n: int) -> list[list[int]]:
     return inv
 
 
-def _compute_air_sparse_constants() -> dict:
+def _compute_sparse_constants() -> dict:
+    """Compress partial rounds into per-round (sparse first row, sparse v, scalar rc) triples.
+
+    Output:
+      sparse_m_i: 16×16 — applied once when entering the partial-round phase.
+      sparse_first_row[r], sparse_v[r]: row-r operator that replaces the full MDS matvec.
+      sparse_first_round_constants, sparse_scalar_round_constants: compressed RCs.
+    """
     w = PARAMS_16.width
     hf = PARAMS_16.rounds_f // 2
     rp = PARAMS_16.rounds_p
     rc = PARAMS_16.round_constants
 
-    # Dense circulant MDS: M[i][j] = MDS_FIRST_ROW_16[(j - i) mod w].
     mds = [[MDS_FIRST_ROW_16[(j - i) % w] for j in range(w)] for i in range(w)]
     mds_inv = _gauss_jordan_inv(mds, w)
     partial_rc = [list(rc[(hf + i) * w : (hf + i + 1) * w]) for i in range(rp)]
 
-    # --- Compress round constants via backward substitution through MDS^{-1}. ---
+    # Backward substitution through MDS^{-1} to collapse each round's RC vector into
+    # one scalar (the lane-0 RC kept inline) plus a constant carry on the next round.
     scalar_rc: list[int] = [0] * rp
     tmp = list(partial_rc[rp - 1])
     for i in range(rp - 2, -1, -1):
@@ -339,9 +357,9 @@ def _compute_air_sparse_constants() -> dict:
         for j in range(1, w):
             tmp[j] = (tmp[j] + inv_cip[j]) % P
     sparse_first_round_constants = tmp
-    sparse_scalar_round_constants = scalar_rc[1:]  # length rp - 1
+    sparse_scalar_round_constants = scalar_rc[1:]
 
-    # --- Factor MDS into per-round sparse matrices. ---
+    # Factor MDS into per-round sparse matrices (first row + v column).
     mds_t = _mat_transpose(mds, w)
     m_mul = [row[:] for row in mds_t]
     v_collection: list[list[int]] = []
@@ -366,13 +384,9 @@ def _compute_air_sparse_constants() -> dict:
     v_collection.reverse()
     w_hat_collection.reverse()
 
-    # Pre-assemble full first rows: [mds[0][0], ŵ[0], ..., ŵ[14]].
     mds_0_0 = mds[0][0]
     sparse_first_row = [[mds_0_0] + w_hat_collection[r][:15] for r in range(rp)]
-
     return {
-        "half_full_rounds": hf,
-        "partial_rounds": rp,
         "sparse_m_i": sparse_m_i,
         "sparse_first_row": sparse_first_row,
         "sparse_v": v_collection,
@@ -381,4 +395,24 @@ def _compute_air_sparse_constants() -> dict:
     }
 
 
-POSEIDON1_AIR_CONSTANTS = _compute_air_sparse_constants()
+_HF, _W = POSEIDON_HALF_FULL_ROUNDS, POSEIDON_WIDTH
+_N = len(MDS_FIRST_ROW_16)
+_RCS = PARAMS_16.round_constants
+_SPARSE = _compute_sparse_constants()
+
+# Dense circulant MDS matrix: M[i][j] = MDS_FIRST_ROW_16[(j - i) % 16].
+POSEIDON_AIR_MDS_DENSE: list[list[Fp]] = [[Fp(MDS_FIRST_ROW_16[(j - i) % _N]) for j in range(_N)] for i in range(_N)]
+
+# External full-round constants: first / last POSEIDON_HALF_FULL_ROUNDS slices of round_constants.
+POSEIDON_AIR_INITIAL_CONSTANTS: list[list[Fp]] = [[Fp(v) for v in _RCS[i * _W : (i + 1) * _W]] for i in range(_HF)]
+_TAIL = (_HF + POSEIDON_PARTIAL_ROUNDS) * _W
+POSEIDON_AIR_FINAL_CONSTANTS: list[list[Fp]] = [
+    [Fp(v) for v in _RCS[_TAIL + i * _W : _TAIL + (i + 1) * _W]] for i in range(_HF)
+]
+
+# Sparse partial-round constants (Fp-wrapped).
+POSEIDON_AIR_SPARSE_M_I: list[list[Fp]] = [[Fp(v) for v in row] for row in _SPARSE["sparse_m_i"]]
+POSEIDON_AIR_SPARSE_FIRST_ROW: list[list[Fp]] = [[Fp(v) for v in row] for row in _SPARSE["sparse_first_row"]]
+POSEIDON_AIR_SPARSE_V: list[list[Fp]] = [[Fp(v) for v in row] for row in _SPARSE["sparse_v"]]
+POSEIDON_AIR_SPARSE_FIRST_RC: list[Fp] = [Fp(v) for v in _SPARSE["sparse_first_round_constants"]]
+POSEIDON_AIR_SPARSE_SCALAR_RC: list[Fp] = [Fp(v) for v in _SPARSE["sparse_scalar_round_constants"]]
