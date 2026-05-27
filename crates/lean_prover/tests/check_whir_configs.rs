@@ -1,12 +1,4 @@
-//! Ensure the WHIR parameter table hardcoded in `crates/lean_prover/verifier.py`
-//! matches what the Rust prover would compute from `default_whir_config`. The
-//! test prints the expected line (so you can paste it back if it drifts) and
-//! asserts that `verifier.py` contains that exact string.
-//!
-//! Run:
-//!     cargo test -p lean_prover --test check_whir_configs -- --nocapture
-
-use std::fmt::Write as _;
+use std::fmt::Write;
 use std::fs;
 use std::path::PathBuf;
 
@@ -63,7 +55,7 @@ fn strip_ws(s: &str) -> String {
 }
 
 #[test]
-fn check_whir_configs() {
+fn check_whir_configs_in_python_verifier() {
     let expected = expected_whir_configs_line();
     println!("{expected}");
 
