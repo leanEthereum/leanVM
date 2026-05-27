@@ -1,6 +1,6 @@
 # zkDSL Language Reference
 
-The zkDSL is a Python-syntax language that compiles to leanVM bytecode (4 basic instructions and 2 special ones (precompile): poseidon / extension operations).
+The zkDSL is a Python-syntax language that compiles to leanVM bytecode (4 basic instructions and 2 special ones (precompile): poseidon / extension operations). For the underlying VM, and proving system, see [`minimal_zkVM.pdf`](../../minimal_zkVM.pdf).
 
 Source files use the `.py` extension. They are **not** currently runnable as
 real Python, but the syntax is kept Python-compatible so that one day they

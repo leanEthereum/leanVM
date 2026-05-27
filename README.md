@@ -8,6 +8,7 @@ Minimal hash-based zkVM, targeting recursion and aggregation of hash-based signa
 
 <p align="center">
   <a href="minimal_zkVM.pdf"><img src="https://img.shields.io/badge/Documentation-blue?style=for-the-badge&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0id2hpdGUiPjxwYXRoIGQ9Ik0xNCAySDZjLTEuMSAwLTIgLjktMiAydjE2YzAgMS4xLjg5IDIgMS45OSAySDE4YzEuMSAwIDItLjkgMi0yVjhsLTYtNnpNOC41IDE0LjVoMS4yNWMuOTcgMCAxLjc1LS43OCAxLjc1LTEuNzVTMTAuNzIgMTEgOS43NSAxMUg3LjV2Nmgxdi0yLjV6bTAtMVYxMmgxLjI1Yy40MSAwIC43NS4zNC43NS43NXMtLjM0Ljc1LS43NS43NUg4LjV6bTUuNSAzLjVoMnYtMWgtMnYtMWgydi0xaC0ydi0xLjVjMC0uMjguMjItLjUuNS0uNUgxN3YtMWgtMmMtLjgzIDAtMS41LjY3LTEuNSAxLjVWMTd6TTEzIDlWMy41TDE4LjUgOUgxM3oiLz48L3N2Zz4=" alt="Documentation"></a>
+  <a href="crates/lean_compiler/zkDSL.md"><img src="https://img.shields.io/badge/zkDSL%20reference-7c3aed?style=for-the-badge&logo=markdown&logoColor=white" alt="zkDSL reference"></a>
   <a href="crates/lean_prover/python-verifier/verifier.py"><img src="https://img.shields.io/badge/Python%20verifier-d97706?style=for-the-badge&logo=python&logoColor=white" alt="Python verifier"></a>
 </p>
 
