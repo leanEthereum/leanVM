@@ -107,7 +107,7 @@ class Table:
         if self.name != "execution":
             return []
         return [
-            SparseStatements.unique_value(stacked_n_vars, offset + (self.col("pc") << n_vars) + idx, EF(pc))
+            SparseStatements(stacked_n_vars, [], [(offset + (self.col("pc") << n_vars) + idx, EF(pc))])
             for idx, pc in [(0, STARTING_PC), ((1 << n_vars) - 1, ending_pc)]
         ]
 
@@ -327,18 +327,6 @@ class SparseStatements:
     def selector_num_variables(self) -> int:
         return self.total_num_variables - len(self.point)
 
-    @staticmethod
-    def dense(point: list[EF], value: EF) -> "SparseStatements":
-        return SparseStatements(len(point), point, [(0, value)])
-
-    @staticmethod
-    def unique_value(total: int, index: int, value: EF) -> "SparseStatements":
-        return SparseStatements(total, [], [(index, value)])
-
-    @staticmethod
-    def new_next(total: int, point: list[EF], values: list[tuple[int, EF]]) -> "SparseStatements":
-        return SparseStatements(total, point, values, is_next=True)
-
 
 def whir_folding_factor_at_round(r: int) -> int:
     return WHIR_INITIAL_FOLDING_FACTOR if r == 0 else WHIR_SUBSEQUENT_FOLDING_FACTOR
@@ -361,7 +349,7 @@ class ParsedCommitment:
 
     def oods_constraints(self) -> list[SparseStatements]:
         return [
-            SparseStatements.dense(expand_from_univariate(p, self.num_variables), ev)
+            SparseStatements(self.num_variables, expand_from_univariate(p, self.num_variables), [(0, ev)])
             for p, ev in zip(self.ood_points, self.ood_answers)
         ]
 
@@ -407,7 +395,8 @@ def verify_stir_challenges(
             packed = [EF(leaf[i : i + EF.DIMENSION]) for i in range(0, len(leaf), EF.DIMENSION)]
         fold = eval_multilinear_evals(packed, folding_randomness)
         ef_pt = EF(pow(int(gen.value), idx, P))
-        constraints.append(SparseStatements.dense(expand_from_univariate(ef_pt, num_variables), fold))
+        pt = expand_from_univariate(ef_pt, num_variables)
+        constraints.append(SparseStatements(num_variables, pt, [(0, fold)]))
     return constraints
 
 
@@ -547,7 +536,7 @@ def stacked_pcs_global_statements(
         out.extend(table.boundary_statements(stacked_n_vars, offset, n_vars, ending_pc))
         for point, eq_values, next_values in committed_statements[table.name]:
             if next_values:
-                out.append(SparseStatements.new_next(stacked_n_vars, list(point), values_at(next_values, col_base)))
+                out.append(SparseStatements(stacked_n_vars, list(point), values_at(next_values, col_base), True))
             out.append(SparseStatements(stacked_n_vars, list(point), values_at(eq_values, col_base)))
 
     return out
@@ -687,29 +676,29 @@ def verify_generic_logup(
                 bus_den_vals[name] = fiat_shamir.next_extension_scalar()
                 num += pref * bus_num_vals[name]
                 den += pref * bus_den_vals[name]
-                offset_within_table += row_stride
+                n_sub = 1
             elif kind == BusInteraction.BYTECODE:
                 cols = list(range(N_RUNTIME_COLUMNS, N_RUNTIME_COLUMNS + N_INSTRUCTION_COLUMNS)) + [table.col("pc")]
                 read_fresh(cols)
                 evals = [table_values[c] for c in cols]
                 num += pref
                 den += pref * (gamma - finger_print(ds_byte, evals, beta_eq))
-                offset_within_table += row_stride
+                n_sub = 1
             elif kind == BusInteraction.MEMORY:
-                _, idx_ref, vals_ref, n = bus
+                _, idx_ref, vals_ref, n_sub = bus
                 idx_col, vals_start = table.col(idx_ref), table.col(vals_ref)
-                # One sub-bus per cell in the group; the prover sends only the
-                # not-yet-seen columns per row (idx_col is shared across all n rows).
-                for i in range(n):
+                # One sub-bus per cell in the group; the prover sends only the not-yet-seen
+                # columns per row (idx_col is shared across all n_sub rows).
+                for i in range(n_sub):
                     val_col = vals_start + i
                     read_fresh([idx_col, val_col])
-                    pref = pref_at(offset_within_table, log_n_rows)
+                    pref = pref_at(offset_within_table + i * row_stride, log_n_rows)
                     fp = finger_print(ds_mem, [table_values[idx_col] + i, table_values[val_col]], beta_eq)
                     num += pref
                     den += pref * (gamma - fp)
-                    offset_within_table += row_stride
             else:
                 raise ProofError(f"unknown bus kind: {kind}")
+            offset_within_table += n_sub * row_stride
 
         columns_values[name] = table_values
 
@@ -720,14 +709,10 @@ def verify_generic_logup(
         raise ProofError("logup: denominators value mismatch")
 
     return {
-        "value_memory": value_memory,
-        "value_memory_acc": value_memory_acc,
-        "value_bytecode_acc": value_bytecode_acc,
-        "bus_num": bus_num_vals,
-        "bus_den": bus_den_vals,
-        "gkr_point": point_gkr,
-        "columns_values": columns_values,
-    }
+        "value_memory": value_memory, "value_memory_acc": value_memory_acc,
+        "value_bytecode_acc": value_bytecode_acc, "bus_num": bus_num_vals, "bus_den": bus_den_vals,
+        "gkr_point": point_gkr, "columns_values": columns_values,
+    }  # fmt: skip
 
 
 class Cols(dict):
@@ -772,13 +757,13 @@ def eval_precompile_bus_virtual_columns(
 
 def eval_air_execution(folder: ConstraintFolder, logup_beta_eq: list[EF]) -> None:
     c, n = folder.cur, folder.nxt
-    pc, fp = c["pc"], c["fp"]
-    addr_a, addr_b, addr_c = c["addr_a"], c["addr_b"], c["addr_c"]
-    value_a, value_b, value_c = c["value_a"], c["value_b"], c["value_c"]
-    operand_a, operand_b, operand_c = c["operand_a"], c["operand_b"], c["operand_c"]
-    flag_a, flag_b, flag_c = c["flag_a"], c["flag_b"], c["flag_c"]
-    flag_c_fp, flag_ab_fp = c["flag_c_fp"], c["flag_ab_fp"]
-    mul, jump, aux, discriminator = c["mul"], c["jump"], c["aux"], c["discriminator"]
+    # fmt: off
+    (pc, fp, addr_a, addr_b, addr_c, value_a, value_b, value_c, operand_a, operand_b, operand_c,
+     flag_a, flag_b, flag_c, flag_c_fp, flag_ab_fp, mul, jump, aux, discriminator) = (c[k] for k in (
+        "pc", "fp", "addr_a", "addr_b", "addr_c", "value_a", "value_b", "value_c",
+        "operand_a", "operand_b", "operand_c", "flag_a", "flag_b", "flag_c", "flag_c_fp",
+        "flag_ab_fp", "mul", "jump", "aux", "discriminator"))
+    # fmt: on
     pc_shift, fp_shift = n["pc"], n["fp"]
 
     # nu_x = flag·operand + (1 − flag − flag_ab_fp)·value + flag_ab_fp·(fp + operand)
