@@ -105,7 +105,7 @@ class Table:
         return ref if isinstance(ref, int) else self.columns.index(ref)
 
     def eval_air(self, col_evals: Sequence[EF], alpha_powers: Sequence[EF], logup_beta_eq: list[EF]) -> EF:
-        folder = ConstraintFolder(col_evals[: self.n_columns], col_evals[self.n_columns :], alpha_powers)
+        folder = ConstraintFolder(col_evals[: self.n_columns], col_evals[self.n_columns :], alpha_powers, self.columns)
         self.air_fn(folder, logup_beta_eq)
         return folder.accumulator
 
@@ -744,16 +744,25 @@ def verify_generic_logup(
     }
 
 
-class ConstraintFolder:
-    """`flat`/`shift` = current-row / next-row column evals. Each `assert_zero(x)`
-    adds `alpha_powers[i]·x` to the accumulator."""
+class Cols(dict):
+    def arr(self, prefix: str, n: int) -> list:
+        return [self[f"{prefix}_{i}"] for i in range(n)]
 
-    def __init__(self, flat: Sequence[EF], shift: Sequence[EF], alpha_powers: Sequence[EF]) -> None:
-        self.flat, self.shift, self.alpha_powers = (
-            list(flat),
-            list(shift),
-            list(alpha_powers),
-        )
+
+class ConstraintFolder:
+    """`flat`/`shift` = current-row / next-row column evals. `cur[name]` and `nxt[name]`
+    expose the same data indexed by column name (the table's `columns` tuple). Each
+    `assert_zero(x)` adds `alpha_powers[i]·x` to the accumulator."""
+
+    def __init__(
+        self, flat: Sequence[EF], shift: Sequence[EF], alpha_powers: Sequence[EF], columns: Sequence[str]
+    ) -> None:
+        self.flat = list(flat)
+        self.shift = list(shift)
+        self.alpha_powers = list(alpha_powers)
+        # Shift columns are always the first `n_shift` columns of the table.
+        self.cur = Cols(zip(columns, self.flat))
+        self.nxt = Cols(zip(columns[: len(self.shift)], self.shift))
         self.accumulator: EF = ZERO
         self.i = 0
 
@@ -780,12 +789,15 @@ def eval_precompile_bus_virtual_columns(
 
 
 def eval_air_execution(folder: ConstraintFolder, logup_beta_eq: list[EF]) -> None:
-    # fmt: off
-    (pc, fp, addr_a, addr_b, addr_c, value_a, value_b, value_c,
-     operand_a, operand_b, operand_c, flag_a, flag_b, flag_c, flag_c_fp,
-     flag_ab_fp, mul, jump, aux, discriminator) = folder.flat[:20]
-    # fmt: on
-    pc_shift, fp_shift = folder.shift[0], folder.shift[1]
+    c, n = folder.cur, folder.nxt
+    pc, fp = c["pc"], c["fp"]
+    addr_a, addr_b, addr_c = c["addr_a"], c["addr_b"], c["addr_c"]
+    value_a, value_b, value_c = c["value_a"], c["value_b"], c["value_c"]
+    operand_a, operand_b, operand_c = c["operand_a"], c["operand_b"], c["operand_c"]
+    flag_a, flag_b, flag_c = c["flag_a"], c["flag_b"], c["flag_c"]
+    flag_c_fp, flag_ab_fp = c["flag_c_fp"], c["flag_ab_fp"]
+    mul, jump, aux, discriminator = c["mul"], c["jump"], c["aux"], c["discriminator"]
+    pc_shift, fp_shift = n["pc"], n["fp"]
 
     # nu_x = flag·operand + (1 − flag − flag_ab_fp)·value + flag_ab_fp·(fp + operand)
     nfa = ONE - flag_a - flag_ab_fp
@@ -819,15 +831,15 @@ def eval_air_execution(folder: ConstraintFolder, logup_beta_eq: list[EF]) -> Non
 
 
 def eval_air_extension_op(folder: ConstraintFolder, logup_beta_eq: list[EF]) -> None:
-    # Layout: shift columns 0..13 = (is_be, start, len, flag_{add,mul,poly_eq},
-    # idx_{a,b}, comp[0..5]); then idx_res, va, vb, vres (5 each).
-    f = folder.flat
-    is_be, start, len_col, flag_add, flag_mul, flag_poly_eq, idx_a, idx_b = f[:8]
-    comp, idx_res = f[8:13], f[13]
-    va, vb, vres = f[14:19], f[19:24], f[24:29]
-    s = folder.shift
-    is_be_sh, start_sh, len_sh, flag_add_sh, flag_mul_sh, flag_poly_eq_sh, idx_a_sh, idx_b_sh = s[:8]
-    comp_sh = s[8:13]
+    c, n = folder.cur, folder.nxt
+    is_be, start, len_col = c["is_be"], c["start"], c["len"]
+    flag_add, flag_mul, flag_poly_eq = c["flag_add"], c["flag_mul"], c["flag_poly_eq"]
+    idx_a, idx_b, idx_res = c["idx_a"], c["idx_b"], c["idx_res"]
+    comp, va, vb, vres = c.arr("comp", 5), c.arr("va", 5), c.arr("vb", 5), c.arr("vres", 5)
+    is_be_sh, start_sh, len_sh = n["is_be"], n["start"], n["len"]
+    flag_add_sh, flag_mul_sh, flag_poly_eq_sh = n["flag_add"], n["flag_mul"], n["flag_poly_eq"]
+    idx_a_sh, idx_b_sh = n["idx_a"], n["idx_b"]
+    comp_sh = n.arr("comp", 5)
 
     aux = (
         is_be * EXT_OP_FLAG_IS_BE
@@ -964,17 +976,21 @@ def _eval_poseidon1_16(folder: ConstraintFolder, cols: dict) -> None:
 
 
 def eval_air_poseidon16(folder: ConstraintFolder, logup_beta_eq: list[EF]) -> None:
-    W = POSEIDON_WIDTH
+    c = folder.cur
     half_initial = half_final = POSEIDON_HALF_FULL_ROUNDS // 2
-    flat_iter = iter(folder.flat)
-    take = lambda n: [next(flat_iter) for _ in range(n)]
 
-    [multiplicity, index_b, index_res, flag_half_output, flag_hardcoded_left, offset_hardcoded_left, eff_idx_left_first, eff_idx_left_second, flag_permute] = take(9)  # fmt: skip
-    inputs = take(W)
-    beginning_full_rounds = [take(W) for _ in range(half_initial)]
-    partial_cols = take(POSEIDON_PARTIAL_ROUNDS)
-    ending_full_rounds = [take(W) for _ in range(half_final - 1)]
-    outputs_left, outputs_right = take(W // 2), take(W // 2)
+    multiplicity = c["multiplicity"]
+    index_b, index_res = c["index_b"], c["index_res"]
+    flag_half_output, flag_hardcoded_left = c["flag_half_output"], c["flag_hardcoded_left"]
+    offset_hardcoded_left = c["offset_hardcoded_left"]
+    eff_idx_left_first, eff_idx_left_second = c["eff_idx_left_first"], c["eff_idx_left_second"]
+    flag_permute = c["flag_permute"]
+    inputs = c.arr("input", POSEIDON_WIDTH)
+    beginning_full_rounds = [c.arr(f"begin_r{r}", POSEIDON_WIDTH) for r in range(half_initial)]
+    partial_cols = c.arr("partial", POSEIDON_PARTIAL_ROUNDS)
+    ending_full_rounds = [c.arr(f"end_r{r}", POSEIDON_WIDTH) for r in range(half_final - 1)]
+    outputs_left = c.arr("out_left", POSEIDON_WIDTH // 2)
+    outputs_right = c.arr("out_right", POSEIDON_WIDTH // 2)
 
     discriminator = (
         POSEIDON_DISCRIMINATOR_BASE
