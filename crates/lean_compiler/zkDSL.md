@@ -14,7 +14,7 @@ sequence of:
 
 Execution starts at `def main(): ...`.
 
-```
+```python
 from snark_lib import *        # Python compatibility shim, stripped by the compiler
 from dir.file import *         # other .py files in the import root
 from ..parent_module import *  # parent-directory imports
@@ -39,7 +39,7 @@ python program.py
 
 ## Imports
 
-```
+```python
 from utils import *               # imports utils.py (resolved from the import root)
 from dir.subdir.file import *     # nested module
 from ..module import *            # parent-directory import (relative to current file)
@@ -54,7 +54,7 @@ name in two imported files cause a compile-time error.
 Constants live at the top of the file, outside any function. By convention they are
 UPPERCASE.
 
-```
+```python
 X = 42
 ARR = [1, 2, 3]
 NESTED = [[1, 2], [3]]
@@ -62,21 +62,21 @@ NESTED = [[1, 2], [3]]
 
 ### Nested (multi-dimensional, possibly ragged) constant arrays
 
-```
+```python
 MATRIX = [[1, 2, 3], [4, 5], [6, 7, 8, 9]]
 DEEP   = [[[1, 2], [3]], [[4, 5, 6]]]
 ```
 
 Indexed access uses chained subscripts at compile time:
 
-```
+```python
 x = MATRIX[0][2]       # 3
 y = DEEP[1][0][1]      # 5
 ```
 
 `len()` works at every depth, including on a row addressed by a constant index:
 
-```
+```python
 len(MATRIX)            # 3
 len(MATRIX[0])         # 3
 len(DEEP[0][0])        # 2
@@ -88,7 +88,7 @@ below), as do iterator variables of an `unroll` loop (see [For loops] below) —
 those are the two ways to get a value the compiler can substitute at expansion
 time. Example: iterating a ragged 2D table:
 
-```
+```python
 MATRIX = [[1, 2, 3], [4, 5], [6, 7, 8, 9]]
 
 def main():
@@ -102,7 +102,7 @@ def main():
 
 ## Functions
 
-```
+```python
 def add(a, b):
     return a + b
 
@@ -120,16 +120,16 @@ agree. A function that "returns nothing" uses a bare `return`.
 
 ### Parameter modifiers
 
-| Syntax     | Meaning                                                                           |
-| ---------- | --------------------------------------------------------------------------------- |
-| `x`        | normal (immutable) parameter                                                      |
-| `x: Const` | compile-time-known value; enables `unroll`/array sizes that depend on the param   |
+| Syntax     | Meaning                                                                             |
+| ---------- | ----------------------------------------------------------------------------------- |
+| `x`        | normal (immutable) parameter                                                        |
+| `x: Const` | compile-time-known value; enables `unroll`/array sizes that depend on the param     |
 | `x: Mut`   | locally mutable parameter (reassignable inside the function — caller is unaffected) |
 
 All parameters are pass-by-value. Use return values to propagate results — there
 are no out-parameters.
 
-```
+```python
 def repeat(n: Const):            # Const enables unroll(0, n)
     sum: Mut = 0
     for i in unroll(0, n):
@@ -147,7 +147,7 @@ def double(x: Mut):              # Mut: only the local copy is reassignable
 instruction. Useful for small helpers, and for cases where the body must "see" the
 caller's `: Const` context.
 
-```
+```python
 @inline
 def square(x):
     return x * x
@@ -178,7 +178,7 @@ call site.
 Use `x: Imu` when you want an immutable binding but the value comes from a
 branch:
 
-```
+```python
 result: Imu
 if cond == 1:
     result = 10
@@ -189,7 +189,7 @@ else:
 
 Use `x: Mut` when you want to keep mutating the variable after the branch:
 
-```
+```python
 x: Mut
 if cond == 1:
     x = 10
@@ -202,7 +202,7 @@ x = x + 1   # OK: x is mutable
 
 To make a single component of a tuple-return mutable, forward-declare it:
 
-```
+```python
 b: Mut
 a, b, c = some_function()
 b = b + 1            # OK
@@ -211,7 +211,7 @@ b = b + 1            # OK
 
 ## Memory and arrays
 
-```
+```python
 buffer = Array(16)            # allocate 16 field elements
 buffer[0] = 42
 x = buffer[5]
@@ -229,7 +229,7 @@ value; the runner handles both. Memory is **write-once**: a cell may be
 written more than once only if all writes store the same value. The second
 write of a different value is a runtime error at the point of the write.
 
-```
+```python
 arr = Array(3)
 arr[0] = 10
 arr[0] = 10      # OK: same value
@@ -244,7 +244,7 @@ arithmetic (`ptr + offset`) is the way to address into sub-regions.
 
 ### `if` / `elif` / `else`
 
-```
+```python
 if x == 0:
     y = 1
 elif x == 1:
@@ -260,14 +260,11 @@ or `>=` — flip the operands to get the same effect.
 
 Patterns must be a contiguous run of integers:
 
-```
+```python
 match value:
-    case 5:
-        result = 500
-    case 6:
-        result = 600
-    case 7:
-        result = 700
+    case 5: result = 500
+    case 6: result = 600
+    case 7: result = 700
 ```
 
 The matched value must lie inside the listed range; out-of-range values produce
@@ -280,13 +277,13 @@ enforced by the proof) to guard the input.
 parameter function*. It is a compile-time construct that expands into a
 forward-declared variable plus a `match` over a contiguous range of integers.
 
-```
+```python
 result = match_range(n, range(1, 5), lambda i: compute(i))
 ```
 
 expands to
 
-```
+```python
 result: Imu
 match n:
     case 1: result = compute(1)
@@ -298,26 +295,24 @@ match n:
 You can chain several `(range, lambda)` pairs, provided the ranges are
 **contiguous** (the end of one is the start of the next):
 
-```
-result = match_range(
-    n,
-    range(0, 1),  lambda i: special_case(),
-    range(1, 8),  lambda i: normal_case(i),
-)
+```python
+result = match_range(n,
+    range(0, 1), lambda i: special_case(),
+    range(1, 8), lambda i: normal_case(i))
 ```
 
 Multiple return values are supported via tuple unpacking. The bindings produced
 by `match_range` are always immutable — forward-declare with `: Mut` (and then
 reassign) if you need them mutable later:
 
-```
+```python
 a, b = match_range(n, range(0, 4), lambda i: two_values(i))
 ```
 
 Idiomatic use — dispatching a runtime length to a function that requires a
 compile-time length:
 
-```
+```python
 def helper_const(n: Const):
     return n * n
 
@@ -337,10 +332,10 @@ silent bugs in zkDSL.
 Three loop forms, all written `for i in <range_kind>(start, end):`. Bounds and
 behaviour:
 
-| Loop form                    | When                                                                      |
-| ---------------------------- | ------------------------------------------------------------------------- |
-| `for i in range(a, b):`      | Runtime loop. Compiled into a recursive function (no `break`/`continue`). |
-| `for i in unroll(a, b):`     | Compile-time expansion; `a` and `b` must both be compile-time constants.  |
+| Loop form                        | When                                                                       |
+| -------------------------------- | -------------------------------------------------------------------------- |
+| `for i in range(a, b):`          | Runtime loop. Compiled into a recursive function (no `break`/`continue`).  |
+| `for i in unroll(a, b):`         | Compile-time expansion; `a` and `b` must both be compile-time constants.   |
 | `for i in parallel_range(a, b):` | Runtime loop; iterations are executed in parallel by the runner via rayon. |
 
 `parallel_range` requires the loop body to be iteration-independent. The
@@ -361,7 +356,7 @@ Mutable variables inside non-unrolled loops are supported transparently — the
 compiler inserts a buffer array, stores per-iteration values into it, and reads
 the final value back after the loop:
 
-```
+```python
 sum: Mut = 0
 for i in range(1, 11):
     sum += i
@@ -393,7 +388,7 @@ must be constants known at compile time.
 
 ### Compound assignment
 
-```
+```python
 x: Mut = 10
 x += 5    # x = x + 5
 x -= 3    # x = x - 3
@@ -408,7 +403,7 @@ Only a single target is allowed on the LHS of a compound assignment.
 These functions are evaluated at compile time only — their arguments must be
 constants:
 
-```
+```python
 log2_ceil(x)              # ceil(log2(x))
 next_multiple_of(x, n)    # smallest multiple of n that is >= x
 div_ceil(a, b)            # (a + b - 1) // b
@@ -438,29 +433,34 @@ compiler intercepts calls to them:
 Inside a tuple-unpacking LHS, `_` discards the value at that position. The
 compiler rewrites each `_` to a fresh anonymous name so they don't collide.
 
-```
+```python
 _, b = swap(a, b)             # only keep b
 _ = compute()                  # discard a single return value
 ```
 
 ## Assertions
 
-```
-# Snark constraint (enforced by the proof)
+Snark constraints (enforced by the proof):
+
+```python
 assert x == y
 assert x != y
 assert x <  y
 assert x <= y
+```
 
-# Unconditional failure (compiles to a Panic)
+Unconditional failure (compiles to a Panic):
+
+```python
 assert False
 assert False, "human-readable message"
+```
 
-# Runtime-only check; not part of the constraint system
-debug_assert(x == y)
-debug_assert(x != y)
-debug_assert(x <  y)
-debug_assert(x <= y)
+Runtime-only checks; not part of the constraint system. Same four comparison
+operators (`==`, `!=`, `<`, `<=`):
+
+```python
+debug_assert(x < y)
 ```
 
 `debug_assert` is for invariants the prover must respect but that the verifier
@@ -477,7 +477,7 @@ against larger constants by decomposing the value into bits first.
 
 ## Comments
 
-```
+```python
 # single-line comment
 
 """
@@ -495,22 +495,12 @@ As in Python:
 - **Implicit** continuation inside `(...)`, `[...]`, or `{...}`.
 - **Explicit** continuation with `\` at end of line.
 
-```
-result = function_call(
-    arg1,
-    arg2,
-    arg3,
-)
-
-ARR = [
-    1,
-    2,
-    3,
-]
-
-x = very_long_function_name(arg1, \
-    arg2, \
-    arg3)
+```python
+result = function_call(arg1,
+                       arg2,
+                       arg3)   # implicit continuation inside parens
+y = 1 + 2 + \
+    3 + 4                      # explicit continuation with backslash
 ```
 
 ## Hints (prover-supplied data)
@@ -527,7 +517,7 @@ and writes it into the buffer at `ptr`. Witness data lives in the
 list of byte-buffers, consumed in order). The guest is responsible for
 allocating `ptr` large enough; the length is implicit and trusted.
 
-```
+```python
 data_buf = Array(64)
 hint_witness("input_data", data_buf)
 n = data_buf[0]
@@ -539,14 +529,14 @@ Each hint has a fixed argument count and writes its result(s) into caller-provid
 buffers. The hint *suggests* a value — your program must add the constraints
 that bind the value to its specification.
 
-| Hint                              | Arguments                                                             | Effect                                                                                                                                  |
-| --------------------------------- | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `hint_decompose_bits`             | `(value, ptr, n_bits)`                                                | Writes `n_bits` big-endian 0/1 field elements at `ptr` (MSB at `ptr[0]`). Requires `n_bits <= 31`.                                       |
-| `hint_decompose_bits_merkle_whir` | `(decomposed_ptr, value, chunk_size)`                                 | Writes `24 / chunk_size` little-endian `chunk_size`-bit chunks of `value` at `decomposed_ptr` (`chunk_size` must divide 24).             |
-| `hint_decompose_bits_xmss`        | `(decomposed_ptr, to_decompose_ptr, num_to_decompose, chunk_size)`    | For each of `num_to_decompose` values at `to_decompose_ptr[..]`, writes its `24 / chunk_size` little-endian chunks at `decomposed_ptr`. |
-| `hint_less_than`                  | `(a, b, result_ptr)`                                                  | `1` at `result_ptr` if `a < b` (canonical integer compare), else `0`.                                                                   |
-| `hint_log2_ceil`                  | `(n, result_ptr)`                                                     | `ceil(log2(n))` at `result_ptr`.                                                                                                        |
-| `hint_div_floor`                  | `(a, b, q_ptr, r_ptr)`                                                | `floor(a / b)` at `q_ptr`, `a mod b` at `r_ptr` (requires `b != 0`).                                                                    |
+| Hint                              | Arguments                                                          | Effect                                                                                                                                  |
+| --------------------------------- | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `hint_decompose_bits`             | `(value, ptr, n_bits)`                                             | Writes `n_bits` big-endian 0/1 field elements at `ptr` (MSB at `ptr[0]`). Requires `n_bits <= 31`.                                      |
+| `hint_decompose_bits_merkle_whir` | `(decomposed_ptr, value, chunk_size)`                              | Writes `24 / chunk_size` little-endian `chunk_size`-bit chunks of `value` at `decomposed_ptr` (`chunk_size` must divide 24).            |
+| `hint_decompose_bits_xmss`        | `(decomposed_ptr, to_decompose_ptr, num_to_decompose, chunk_size)` | For each of `num_to_decompose` values at `to_decompose_ptr[..]`, writes its `24 / chunk_size` little-endian chunks at `decomposed_ptr`. |
+| `hint_less_than`                  | `(a, b, result_ptr)`                                               | `1` at `result_ptr` if `a < b` (canonical integer compare), else `0`.                                                                   |
+| `hint_log2_ceil`                  | `(n, result_ptr)`                                                  | `ceil(log2(n))` at `result_ptr`.                                                                                                        |
+| `hint_div_floor`                  | `(a, b, q_ptr, r_ptr)`                                             | `floor(a / b)` at `q_ptr`, `a mod b` at `r_ptr` (requires `b != 0`).                                                                    |
 
 ## Precompiles
 
@@ -555,7 +545,7 @@ that bind the value to its specification.
 leanVM has one Poseidon2 width-16 precompile table; the zkDSL exposes five
 specializations that all hit the same table.
 
-```
+```python
 poseidon16_compress(left, right, output)
 ```
 
@@ -563,7 +553,7 @@ Standard compression: writes the 8-cell compressed output of `Poseidon2(left || 
 to `m[output..output+8]`. `left` and `right` are 8-cell buffers; `output` is an
 8-cell destination.
 
-```
+```python
 poseidon16_compress_half(left, right, output)
 ```
 
@@ -571,7 +561,7 @@ Same as `poseidon16_compress`, but only the first 4 output cells are
 constrained — `output[4..8]` is unconstrained. Useful when the consumer only
 cares about half of the digest.
 
-```
+```python
 poseidon16_compress_hardcoded_left(left, right, output, offset)
 ```
 
@@ -581,14 +571,14 @@ The remaining 4 cells of the left input still come from `m[left..left+4]`. Used
 e.g. for XMSS Merkle hashing where one half of the input is the public parameter
 (stored at a fixed address).
 
-```
+```python
 poseidon16_compress_half_hardcoded_left(left, right, output, offset)
 ```
 
 Composition of `_compress_half` and `_compress_hardcoded_left`: hardcoded left
 prefix at `offset`, only the first 4 output cells constrained.
 
-```
+```python
 poseidon16_permute(left, right, output)
 ```
 
@@ -608,7 +598,7 @@ element pairs:
 | `dot_product_ee` / `dot_product_be` | `e_i = a_i * b_i`                 | `result = sum(e_i)`  |
 | `poly_eq_ee` / `poly_eq_be`         | `e_i = a_i*b_i + (1-a_i)*(1-b_i)` | `result = prod(e_i)` |
 
-```
+```python
 func(ptr_a, ptr_b, ptr_result)           # length defaults to 1
 func(ptr_a, ptr_b, ptr_result, length)   # explicit length (N element pairs)
 ```
@@ -625,7 +615,7 @@ func(ptr_a, ptr_b, ptr_result, length)   # explicit length (N element pairs)
 **`length` must be a compile-time constant.** For a runtime length, dispatch
 through `match_range`:
 
-```
+```python
 def dot_product_ee_dynamic(a, b, res, n):
     debug_assert(n <= 256)
     match_range(n, range(1, 257), lambda i: dot_product_ee(a, b, res, i))
@@ -633,7 +623,7 @@ def dot_product_ee_dynamic(a, b, res, n):
 
 Common idioms:
 
-```
+```python
 # Multiply two extension elements (length defaults to 1)
 dot_product_ee(x, y, z)                   # z = x * y
 
@@ -656,7 +646,7 @@ poly_eq_ee(a, b, result, n)   # multi-point eq: prod_i eq(a[i], b[i])
 
 ## Debugging
 
-```
+```python
 print(value)
 print(a, b, c)
 ```
@@ -669,7 +659,7 @@ the print hint in `lean_vm/src/isa/hint.rs (Self::Print)` to `eprint!` directly.
 
 The runner lays out memory as
 
-```
+```python
 [ public_input (zero-padded) | preamble_memory | runtime ]
 ```
 
@@ -716,7 +706,7 @@ The runner lays out memory as
 
 ## A simple example
 
-```
+```python
 SIZE = 8
 
 def main():
@@ -742,7 +732,7 @@ automatically; you don't have to write the intermediate forms.
 
 Starting program:
 
-```
+```python
 def main():
     x: Mut = 0
     y: Mut = 3
@@ -761,7 +751,7 @@ def main():
 Step 1 — replace mutable-across-loop variables with index buffers, since memory
 is write-once:
 
-```
+```python
 def main():
     x: Mut = 0
     y: Mut = 3
@@ -792,7 +782,7 @@ def main():
 
 Step 2 — SSA-rename all reassignments to fresh names:
 
-```
+```python
 def main():
     x = 0
     y = 3
@@ -823,7 +813,7 @@ def main():
 
 Step 3 — lower the runtime loop to a recursive function:
 
-```
+```python
 def main():
     x = 0
     y = 3
