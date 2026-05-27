@@ -1,9 +1,10 @@
 # zkDSL Language Reference
 
-The zkDSL is a Python-syntax language that compiles to leanVM bytecode (4 instructions
-+ 2 precompile tables). It is restricted enough that every `.py` source file also
-runs as plain Python (using `crates/lean_compiler/snark_lib.py` as a stub library),
-which lets you sanity-check programs with a regular interpreter before compiling.
+The zkDSL is a Python-syntax language that compiles to leanVM bytecode (4 basic instructions and 2 special ones (precompile): poseidon / extension operations).
+
+Source files use the `.py` extension. They are **not** currently runnable as
+real Python, but the syntax is kept Python-compatible so that one day they
+could be (TODO).
 
 Programs are organized as one or more `.py` files. The toplevel of each file is a
 sequence of:
@@ -15,26 +16,20 @@ sequence of:
 Execution starts at `def main(): ...`.
 
 ```python
-from snark_lib import *        # Python compatibility shim, stripped by the compiler
-from dir.file import *         # other .py files in the import root
-from ..parent_module import *  # parent-directory imports
+from snark_lib import *        # only there to keep the Python linter happy; stripped by the zkDSL compiler
+from utils import *        # import other file
 
 X = 42                          # constants must come before functions
-ARR = [1, 2, 3]
+# array constants (or arbitrary dimmensions: 1D, 2D, etc)
+ARR_1D = [1, 2, 3]
+ARR_2D = [[1, 2, 3], [], [10, 4]]
+ARR_3D = [[[1, 2, 3], [7, 8], [9]], [], [[10], [10, 4]]]
 
 def main():                     # required entry point
     ...
 
 def helper():                   # other functions
     ...
-```
-
-The compiler strips the `from snark_lib import *` line (and only that line) so the
-same source is valid Python. To run a `.py` file under regular Python for testing:
-
-```bash
-export PYTHONPATH=/path/to/repo/crates/lean_compiler
-python program.py
 ```
 
 ## Imports
@@ -46,13 +41,12 @@ from ..module import *            # parent-directory import (relative to current
 ```
 
 Imports are wildcard-only (`import *`). Each module is loaded once even if imported
-multiple times; circular imports are detected and rejected. Constants with the same
+multiple times; circular imports are rejected. Constants with the same
 name in two imported files cause a compile-time error.
 
 ## Constants
 
-Constants live at the top of the file, outside any function. By convention they are
-UPPERCASE.
+Constants live at the top of the file, outside any function.
 
 ```python
 X = 42
@@ -123,7 +117,7 @@ agree. A function that "returns nothing" uses a bare `return`.
 | Syntax     | Meaning                                                                             |
 | ---------- | ----------------------------------------------------------------------------------- |
 | `x`        | normal (immutable) parameter                                                        |
-| `x: Const` | compile-time-known value; enables `unroll`/array sizes that depend on the param     |
+| `x: Const` | compile-time-known value|
 | `x: Mut`   | locally mutable parameter (reassignable inside the function — caller is unaffected) |
 
 All parameters are pass-by-value. Use return values to propagate results — there
