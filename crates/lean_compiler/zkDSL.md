@@ -115,10 +115,10 @@ agree. A function that "returns nothing" uses a bare `return`.
 
 ### Parameter types
 
-| Syntax     | Meaning                  |
-| ---------- | ------------------------ |
+| Syntax     | Meaning                              |
+| ---------- | ------------------------------------ |
 | `x`        | normal (immutable) runtime parameter |
-| `x: Const` | compile-time parameter |
+| `x: Const` | compile-time parameter               |
 
 ```python
 def repeat(n: Const):            # Const enables unroll(0, n)
@@ -422,9 +422,9 @@ _ = compute()                  # discard a single return value
 
 The zkDSL provides two assertion forms with very different semantics:
 
-| Form           | Enforced by         | Use for                                                  |
-| -------------- | ------------------- | -------------------------------------------------------- |
-| `assert`       | The proof system | Invariants the verifier must check          |
+| Form           | Enforced by                             | Use for                                                             |
+| -------------- | --------------------------------------- | ------------------------------------------------------------------- |
+| `assert`       | The proof system                        | Invariants the verifier must check                                  |
 | `debug_assert` | The prover only (at witness generation) | Sanity checks; preconditions the verifier does not need to re-check |
 
 ### `assert`: proof-enforced constraint
@@ -608,80 +608,61 @@ The full list:
 
 ## Precompiles
 
+Precompiles are special instructions in the leanVM ISA, alongside the four
+basic ones (ADD, MUL, DEREF, JUMP). The zkDSL exposes them as built-in
+functions. There are two families: Poseidon hashing and extension-field
+operations.
+
 ### Poseidon16 family
 
-leanVM has one Poseidon width-16 precompile table; the zkDSL exposes five
-specializations that all hit the same table.
+The variants are as follows:
 
-```python
-poseidon16_compress(left, right, output)
-```
+- **compress vs. permute** — `compress` applies the feed-forward addition
+  (`Poseidon(L || R) + L`); `permute` is the raw 16-cell permutation.
+- **full vs. half output** — `_half` constrains only the first 4 output cells
+  (the rest are unconstrained); useful when the consumer only cares about
+  half a digest.
+- **hardcoded-left** — `_hardcoded_left` reads the first 4 cells of the left
+  input from a compile-time address instead of from `m[L..L+4]`; the last 4
+  cells of the left input still come from memory.
 
-Standard compression: writes the 8-cell compressed output of `Poseidon2(left || right) + left`
-to `m[output..output+8]`. `left` and `right` are 8-cell buffers; `output` is an
-8-cell destination.
+Common arguments: `L`, `R` are 8-cell input buffers; `O` is the output
+buffer; `off` (where present) is a compile-time address.
 
-```python
-poseidon16_compress_half(left, right, output)
-```
+| Function                                                | Cells written to `O` | Notes                                     |
+| ------------------------------------------------------- | -------------------- | ----------------------------------------- |
+| `poseidon16_compress(L, R, O)`                          | `O[0..8]`            | `Poseidon(L \|\| R) + L`                  |
+| `poseidon16_compress_half(L, R, O)`                     | `O[0..4]`            | `O[4..8]` is unconstrained                |
+| `poseidon16_compress_hardcoded_left(L, R, O, off)`      | `O[0..8]`            | left = `m[off..off+4] \|\| m[L..L+4]`     |
+| `poseidon16_compress_half_hardcoded_left(L, R, O, off)` | `O[0..4]`            | half-output + hardcoded-left composition  |
+| `poseidon16_permute(L, R, O)`                           | `O[0..16]`           | raw Poseidon permutation, no feed-forward |
 
-Same as `poseidon16_compress`, but only the first 4 output cells are
-constrained — `output[4..8]` is unconstrained. Useful when the consumer only
-cares about half of the digest.
+### Extension-field operations
 
-```python
-poseidon16_compress_hardcoded_left(left, right, output, offset)
-```
+Six built-in functions, each combines a fixed element-wise operation with an
+accumulation over `length` element pairs:
 
-Like `poseidon16_compress`, except the first 4 cells of the *left* input are
-read from the **compile-time** address `offset` instead of `m[left..left+4]`.
-The remaining 4 cells of the left input still come from `m[left..left+4]`. Used
-e.g. for XMSS Merkle hashing where one half of the input is the public parameter
-(stored at a fixed address).
+| Function                            | Element-wise `e_i`               | Result      |
+| ----------------------------------- | -------------------------------- | ----------- |
+| `add_ee` / `add_be`                 | `a_i + b_i`                      | `sum(e_i)`  |
+| `dot_product_ee` / `dot_product_be` | `a_i * b_i`                      | `sum(e_i)`  |
+| `poly_eq_ee` / `poly_eq_be`         | `a_i * b_i + (1 - a_i)(1 - b_i)` | `prod(e_i)` |
 
-```python
-poseidon16_compress_half_hardcoded_left(left, right, output, offset)
-```
-
-Composition of `_compress_half` and `_compress_hardcoded_left`: hardcoded left
-prefix at `offset`, only the first 4 output cells constrained.
-
-```python
-poseidon16_permute(left, right, output)
-```
-
-Raw Poseidon2 permutation (no feed-forward addition). Writes the full 16 output
-cells to `m[output..output+16]` in natural order. Used for the Fiat-Shamir
-sponge.
-
-### Extension field operations
-
-Six built-in functions all route through one `extension_op` precompile table.
-Each combines a fixed element-wise operation with an accumulation over `length`
-element pairs:
-
-| Function                            | Element-wise                      | Accumulation         |
-| ----------------------------------- | --------------------------------- | -------------------- |
-| `add_ee` / `add_be`                 | `e_i = a_i + b_i`                 | `result = sum(e_i)`  |
-| `dot_product_ee` / `dot_product_be` | `e_i = a_i * b_i`                 | `result = sum(e_i)`  |
-| `poly_eq_ee` / `poly_eq_be`         | `e_i = a_i*b_i + (1-a_i)*(1-b_i)` | `result = prod(e_i)` |
+Signature (the same for all six):
 
 ```python
 func(ptr_a, ptr_b, ptr_result)           # length defaults to 1
-func(ptr_a, ptr_b, ptr_result, length)   # explicit length (N element pairs)
+func(ptr_a, ptr_b, ptr_result, length)   # length must be a compile-time constant
 ```
 
-**Operand suffix:**
+- `ptr_result` points to a single extension-field element (5 cells).
+- The `_ee` / `_be` suffix selects the layout of the operands:
+  - `_ee`: both `ptr_a` and `ptr_b` point to extension elements (stride
+    `DIM = 5`).
+  - `_be`: `ptr_a` points to base-field elements (stride 1); `ptr_b` points
+    to extension elements (stride `DIM = 5`).
 
-- `_ee`: both `ptr_a` and `ptr_b` point to *extension* field elements (5 base-field
-  cells each, stride `DIM = 5`).
-- `_be`: `ptr_a` points to *base* field elements (stride 1); `ptr_b` points to
-  *extension* field elements (stride `DIM = 5`).
-
-`ptr_result` always points to a single extension-field element (5 cells).
-
-**`length` must be a compile-time constant.** For a runtime length, dispatch
-through `match_range`:
+For a runtime length, dispatch through `match_range`:
 
 ```python
 def dot_product_ee_dynamic(a, b, res, n):
@@ -696,16 +677,17 @@ Common idioms:
 dot_product_ee(x, y, z)                   # z = x * y
 
 # Copy an extension element by multiplying by [1, 0, 0, 0, 0]
-# ONE_EF_PTR is a guest-program constant that you materialize in the preamble
+# (ONE_EF_PTR is a constant materialized in the preamble)
 dot_product_ee(src, ONE_EF_PTR, dst)
 
 # Dot products
 dot_product_ee(coeffs, basis, result, N)
 dot_product_be(alpha_powers, coeffs, result, N)
 
-# Extension addition / subtraction
+# Extension addition / subtraction (the second form uses write-once memory
+# to turn an addition into the subtraction constraint b + c = a)
 add_ee(a, b, c)            # c = a + b
-add_ee(b, c, a)            # c = a - b, expressed as a constraint  (b + c = a)
+add_ee(b, c, a)            # c = a - b
 
 # Equality polynomial: eq(a, b) = a*b + (1-a)*(1-b)
 poly_eq_ee(a, b, eq_result)
