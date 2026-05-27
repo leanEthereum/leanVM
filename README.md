@@ -6,7 +6,14 @@
 
 Minimal hash-based zkVM, targeting recursion and aggregation of hash-based signatures, for a Post-Quantum Ethereum.
 
-Documentation: [PDF](minimal_zkVM.pdf)
+<p align="center">
+  <a href="minimal_zkVM.pdf">
+    <img src="https://img.shields.io/badge/Documentation-blue?style=for-the-badge" alt="Documentation">
+  </a>
+  <a href="crates/lean_prover/python-verifier/verifier.py">
+    <img src="https://img.shields.io/badge/Python%20verifier-d97706?style=for-the-badge" alt="Python verifier">
+  </a>
+</p>
 
 ## Proving System
 
