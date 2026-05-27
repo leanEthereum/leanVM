@@ -442,11 +442,15 @@ The four supported comparison operators are `==`, `!=`, `<`, `<=` (no `>` or
 
 ### Range checks: `assert a < b` and `assert a <= b`
 
-Inequalities are proved via DEREF, which relies on the soundness of memory
-accesses into a read-only memory of size `<= 2^MIN_LOG_MEMORY_SIZE` (currently
-`MIN_LOG_MEMORY_SIZE = 16`). For the constraint to be sound, the right-hand
-side `b` must therefore satisfy `b <= 2^16`. To compare against a larger
-constant, first decompose the value into bits and assert the bound piecewise.
+**The program must ensure `b <= 2^16`.** The compiler does not check this
+(`b` may be a runtime value). Violating the bound is a critical soundness
+vulnerability.
+
+*Under the hood: the compiler proves `a < b` by emitting two DEREF instructions,
+which check that `a` and `b - 1 - a` are both valid memory addresses. An
+address is valid iff it is `< M`, where `M` is the memory size. To stay sound
+for every admissible memory size, the construction relies on the smallest one,
+`M_min = 2^16` (= `2^MIN_LOG_MEMORY_SIZE`), giving the bound `b <= 2^16`.*
 
 #### Explicit panic
 
@@ -480,14 +484,11 @@ block comment
 """
 ```
 
-Both forms are stripped before the grammar runs. There is no docstring concept —
-a `"""..."""` block is purely a comment.
-
 ## Line continuation
 
 As in Python:
 
-- **Implicit** continuation inside `(...)`, `[...]`, or `{...}`.
+- **Implicit** continuation inside `(...)` or `[...]`.
 - **Explicit** continuation with `\` at end of line.
 
 ```python
@@ -506,23 +507,95 @@ believe anything about it. There are two flavours of hint:
 
 ### `hint_witness("name", ptr)`
 
-Pulls the next chunk of witness data registered under the string label `name`,
-and writes it into the buffer at `ptr`. Witness data lives in the
-`ExecutionWitness::hints: HashMap<String, Vec<Vec<F>>>` map (each name has a
-list of byte-buffers, consumed in order). The guest is responsible for
-allocating `ptr` large enough; the length is implicit and trusted.
+Writes the next buffer queued under the label `name` into memory starting at
+`ptr`. The guest must allocate `ptr` large enough to hold the data; no length
+is checked at runtime.
+
+The buffer comes from the host (Rust side), not from the guest. Before
+running the program, the host fills `ExecutionWitness::hints` with one queue
+of buffers per label; each `hint_witness("name", ptr)` call pops the next
+buffer from `hints["name"]`.
+
+`ExecutionWitness` lives in `crates/lean_vm/src/execution/runner.rs`:
+
+```rust
+pub struct ExecutionWitness {
+    ...
+    pub hints: HashMap<String, Vec<Vec<F>>>,
+    ...
+}
+```
+
+Each map key is a label; the value is the **ordered list of buffers** the
+guest will consume under that label. The N-th `hint_witness("name", ptr)` call
+the guest executes pops the N-th `Vec<F>` from `hints["name"]` and writes it
+at `ptr`.
+
+For example, the guest below issues three `hint_witness` calls — two against
+`"input_data"` and one against `"other_stuff"`:
 
 ```python
-data_buf = Array(64)
-hint_witness("input_data", data_buf)
-n = data_buf[0]
+data_buf_1 = Array(64)
+hint_witness("input_data", data_buf_1)
+n = data_buf_1[0]
+
+data_buf_2 = Array(64)
+hint_witness("input_data", data_buf_2)
+m = data_buf_2[3]
+assert n == m + 8
+
+data_buf_3 = Array(10)
+hint_witness("other_stuff", data_buf_3)
+...
 ```
+
+The matching Rust side must register two buffers under `"input_data"` (in
+the order the guest will read them) and one under `"other_stuff"`:
+
+```rust
+let mut hints: HashMap<String, Vec<Vec<F>>> = HashMap::new();
+hints.insert(
+    "input_data".to_string(),
+    vec![
+        first_input_buffer,   // consumed by the first  hint_witness("input_data", ...)
+        second_input_buffer,  // consumed by the second hint_witness("input_data", ...)
+    ],
+);
+hints.insert("other_stuff".to_string(), vec![other_buffer]);
+
+let witness = ExecutionWitness { hints, ..Default::default() };
+```
+
+A missing label, or running out of buffers under a label, is a runner-side
+panic: each call requires its corresponding entry to exist.
 
 ### Custom hints
 
-Each hint has a fixed argument count and writes its result(s) into caller-provided
-buffers. The hint *suggests* a value — your program must add the constraints
-that bind the value to its specification.
+Custom hints are a fixed set of built-in calls the prover uses to compute
+values that would be expensive to derive in-circuit — bit
+decompositions, comparisons, integer division, etc. Each is invoked like an
+ordinary function and writes its result into a caller-supplied memory
+location.
+
+Like every hint, **the result is unconstrained**: the verifier checks
+nothing about the hinted value. The guest program must add its own
+constraints binding the hinted bits / quotient / remainder / boolean to the
+original input — otherwise a malicious prover can substitute any value. The
+typical pattern is "hint, then assert the relationship":
+
+```python
+# hint the bits...
+bits = Array(8)
+hint_decompose_bits(value, bits, 8)
+# ...then constrain them to actually equal `value`
+acc: Mut = 0
+for i in unroll(0, 8):
+    assert bits[i] * (bits[i] - 1) == 0    # boolean
+    acc = acc * 2 + bits[i]
+assert acc == value
+```
+
+The full list:
 
 | Hint                              | Arguments                                                          | Effect                                                                                                                                  |
 | --------------------------------- | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
@@ -537,7 +610,7 @@ that bind the value to its specification.
 
 ### Poseidon16 family
 
-leanVM has one Poseidon2 width-16 precompile table; the zkDSL exposes five
+leanVM has one Poseidon width-16 precompile table; the zkDSL exposes five
 specializations that all hit the same table.
 
 ```python
