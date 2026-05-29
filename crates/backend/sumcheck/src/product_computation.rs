@@ -161,26 +161,18 @@ pub fn compute_product_sumcheck_polynomial<
                 (a0 + b0, a2 + b2)
             })
     } else {
-        // Chunk the reduction so each pool task folds a contiguous range into a local
-        // accumulator — amortizing the per-task `current_worker_id()`/slot overhead that
-        // a one-element-per-task `map_reduce` would pay millions of times.
+        // Per-worker in-place accumulation: each worker folds the contiguous range it
+        // claims straight into its own `(c0, c2)` accumulator (no per-chunk tuple to build
+        // and reduce, worker-slot lookup amortized once per batch by `for_each_chunk`).
         let half = n / 2;
-        let chunk_size = 1024;
-        let n_chunks = half.div_ceil(chunk_size);
-        parallel::map_reduce(
-            n_chunks,
+        parallel::map_reduce_with_state(
+            half,
+            || (),
             || (EFPacking::ZERO, EFPacking::ZERO),
-            |c| {
-                let start = c * chunk_size;
-                let end = (start + chunk_size).min(half);
-                let mut a0 = EFPacking::ZERO;
-                let mut a2 = EFPacking::ZERO;
-                for i in start..end {
-                    let (b0, b2) = sumcheck_quadratic(((&pol_0[i], &pol_0[half + i]), (&pol_1[i], &pol_1[half + i])));
-                    a0 += b0;
-                    a2 += b2;
-                }
-                (a0, a2)
+            |(), acc, i| {
+                let (b0, b2) = sumcheck_quadratic(((&pol_0[i], &pol_0[half + i]), (&pol_1[i], &pol_1[half + i])));
+                acc.0 += b0;
+                acc.1 += b2;
             },
             |(a0, a2), (b0, b2)| (a0 + b0, a2 + b2),
         )
@@ -312,43 +304,38 @@ pub fn fold_and_compute_product_sumcheck_polynomial<
                 (a0 + b0, a2 + b2)
             })
     } else {
-        // Fused single pass: fold both polynomials (writing the disjoint `i` / `quarter + i`
-        // slots of the output buffers) and reduce the per-index quadratic contributions.
+        // Fused single pass with per-worker in-place accumulation: fold both polynomials
+        // (writing the disjoint `i` / `quarter + i` output slots) and accumulate the
+        // per-index quadratic straight into the worker's `(c0, c2)` — no per-chunk tuple.
         let quarter = n / 4;
         let p0f = SyncMutPtr(pol_0_folded.as_mut_ptr());
         let p1f = SyncMutPtr(pol_1_folded.as_mut_ptr());
-        let chunk_size = 1024.min(quarter).max(1);
-        let n_chunks = quarter.div_ceil(chunk_size);
-        parallel::map_reduce(
-            n_chunks,
+        parallel::map_reduce_with_state(
+            quarter,
+            || (),
             || (EFPacking::ZERO, EFPacking::ZERO),
-            |c| {
-                let start = c * chunk_size;
-                let end = (start + chunk_size).min(quarter);
-                let mut acc = (EFPacking::ZERO, EFPacking::ZERO);
-                for i in start..end {
-                    let diff_0 = pol_0[2 * quarter + i] - pol_0[i];
-                    let diff_1 = pol_0[3 * quarter + i] - pol_0[quarter + i];
-                    let x_0 = prev_folding_factor_packed * diff_0 + pol_0[i];
-                    let x_1 = prev_folding_factor_packed * diff_1 + pol_0[quarter + i];
+            |(), acc, i| {
+                let diff_0 = pol_0[2 * quarter + i] - pol_0[i];
+                let diff_1 = pol_0[3 * quarter + i] - pol_0[quarter + i];
+                let x_0 = prev_folding_factor_packed * diff_0 + pol_0[i];
+                let x_1 = prev_folding_factor_packed * diff_1 + pol_0[quarter + i];
 
-                    let y_0 = prev_folding_factor_packed * (pol_1[2 * quarter + i] - pol_1[i]) + pol_1[i];
-                    let y_1 =
-                        prev_folding_factor_packed * (pol_1[3 * quarter + i] - pol_1[quarter + i]) + pol_1[quarter + i];
+                let y_0 = prev_folding_factor_packed * (pol_1[2 * quarter + i] - pol_1[i]) + pol_1[i];
+                let y_1 =
+                    prev_folding_factor_packed * (pol_1[3 * quarter + i] - pol_1[quarter + i]) + pol_1[quarter + i];
 
-                    // SAFETY: distinct `i` write disjoint slots `i` and `quarter + i` in
-                    // `[0, n/2)`; the dispatcher keeps both buffers borrowed for the call.
-                    unsafe {
-                        *p0f.add(i) = x_0;
-                        *p0f.add(quarter + i) = x_1;
-                        *p1f.add(i) = y_0;
-                        *p1f.add(quarter + i) = y_1;
-                    }
-
-                    let (b0, b2) = sumcheck_quadratic(((&x_0, &x_1), (&y_0, &y_1)));
-                    acc = (acc.0 + b0, acc.1 + b2);
+                // SAFETY: distinct `i` write disjoint slots `i` and `quarter + i` in
+                // `[0, n/2)`; the dispatcher keeps both buffers borrowed for the call.
+                unsafe {
+                    *p0f.add(i) = x_0;
+                    *p0f.add(quarter + i) = x_1;
+                    *p1f.add(i) = y_0;
+                    *p1f.add(quarter + i) = y_1;
                 }
-                acc
+
+                let (b0, b2) = sumcheck_quadratic(((&x_0, &x_1), (&y_0, &y_1)));
+                acc.0 += b0;
+                acc.1 += b2;
             },
             |(a0, a2), (b0, b2)| (a0 + b0, a2 + b2),
         )
