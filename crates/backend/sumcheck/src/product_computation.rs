@@ -1,10 +1,25 @@
 use fiat_shamir::*;
 use field::*;
 use poly::*;
-use rayon::prelude::*;
 use tracing::instrument;
 
 use crate::{SumcheckComputation, sumcheck_prove_many_rounds};
+
+/// Raw mutable base pointer shareable across pool tasks; each task writes only the
+/// disjoint folded slots computed from its index range.
+struct SyncMutPtr<T>(*mut T);
+// SAFETY: writes are partitioned by task index (see `fold_and_compute_*`).
+unsafe impl<T> Send for SyncMutPtr<T> {}
+unsafe impl<T> Sync for SyncMutPtr<T> {}
+
+impl<T> SyncMutPtr<T> {
+    /// SAFETY: `n` must keep the result within the original allocation, and writes
+    /// through it must target slots no other task touches.
+    #[inline]
+    unsafe fn add(&self, n: usize) -> *mut T {
+        unsafe { self.0.add(n) }
+    }
+}
 
 #[derive(Debug)]
 pub struct ProductComputation;
@@ -281,13 +296,46 @@ pub fn fold_and_compute_product_sumcheck_polynomial<
                 (a0 + b0, a2 + b2)
             })
     } else {
-        par_zip_fold_2(pol_0, &mut pol_0_folded)
-            .zip(par_zip_fold_2(pol_1, &mut pol_1_folded))
-            .map(|(p0, p1)| process_element(p0, p1))
-            .reduce(
-                || (EFPacking::ZERO, EFPacking::ZERO),
-                |(a0, a2), (b0, b2)| (a0 + b0, a2 + b2),
-            )
+        // Fused single pass: fold both polynomials (writing the disjoint `i` / `quarter + i`
+        // slots of the output buffers) and reduce the per-index quadratic contributions.
+        let quarter = n / 4;
+        let p0f = SyncMutPtr(pol_0_folded.as_mut_ptr());
+        let p1f = SyncMutPtr(pol_1_folded.as_mut_ptr());
+        let chunk_size = 1024.min(quarter).max(1);
+        let n_chunks = quarter.div_ceil(chunk_size);
+        parallel::map_reduce(
+            n_chunks,
+            || (EFPacking::ZERO, EFPacking::ZERO),
+            |c| {
+                let start = c * chunk_size;
+                let end = (start + chunk_size).min(quarter);
+                let mut acc = (EFPacking::ZERO, EFPacking::ZERO);
+                for i in start..end {
+                    let diff_0 = pol_0[2 * quarter + i] - pol_0[i];
+                    let diff_1 = pol_0[3 * quarter + i] - pol_0[quarter + i];
+                    let x_0 = prev_folding_factor_packed * diff_0 + pol_0[i];
+                    let x_1 = prev_folding_factor_packed * diff_1 + pol_0[quarter + i];
+
+                    let y_0 = prev_folding_factor_packed * (pol_1[2 * quarter + i] - pol_1[i]) + pol_1[i];
+                    let y_1 = prev_folding_factor_packed * (pol_1[3 * quarter + i] - pol_1[quarter + i])
+                        + pol_1[quarter + i];
+
+                    // SAFETY: distinct `i` write disjoint slots `i` and `quarter + i` in
+                    // `[0, n/2)`; the dispatcher keeps both buffers borrowed for the call.
+                    unsafe {
+                        *p0f.add(i) = x_0;
+                        *p0f.add(quarter + i) = x_1;
+                        *p1f.add(i) = y_0;
+                        *p1f.add(quarter + i) = y_1;
+                    }
+
+                    let (b0, b2) = sumcheck_quadratic(((&x_0, &x_1), (&y_0, &y_1)));
+                    acc = (acc.0 + b0, acc.1 + b2);
+                }
+                acc
+            },
+            |(a0, a2), (b0, b2)| (a0 + b0, a2 + b2),
+        )
     };
 
     let c0 = decompose(c0_packed).into_iter().sum::<EF>();

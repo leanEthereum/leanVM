@@ -10,7 +10,6 @@ system-info.workspace = true
 parallel.workspace = true
 
 itertools.workspace = true
-rayon.workspace = true
 rand.workspace = true
 serde.workspace = true
 

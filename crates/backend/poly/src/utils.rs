@@ -1,18 +1,21 @@
 use std::{
     mem::ManuallyDrop,
-    ops::{Add, Range, Sub},
+    ops::{Add, Sub},
 };
 
 use field::*;
-use rayon::{
-    iter::Zip,
-    prelude::*,
-    slice::{Iter, IterMut},
-};
 
 use crate::{EFPacking, PF, PFPacking};
 
 pub const PARALLEL_THRESHOLD: usize = 1 << 9;
+
+/// Number of elements each pool task should handle in a flat fan-out. Aims for a few
+/// chunks per worker so the pool's atomic counter can load-balance heterogeneous cores,
+/// while keeping chunks coarse enough to amortize dispatch.
+#[inline]
+fn par_chunk_size(n_items: usize) -> usize {
+    n_items.div_ceil(parallel::num_threads() * 4).max(1)
+}
 
 pub fn pack_extension<EF: ExtensionField<PF<EF>>>(slice: &[EF]) -> Vec<EFPacking<EF>> {
     let width = packing_width::<EF>();
@@ -26,9 +29,13 @@ pub fn pack_extension<EF: ExtensionField<PF<EF>>>(slice: &[EF]) -> Vec<EFPacking
             write(slot, chunk);
         }
     } else {
-        out.par_iter_mut()
-            .zip(slice.par_chunks_exact(width))
-            .for_each(|(slot, chunk)| write(slot, chunk));
+        let chunk_size = par_chunk_size(n_packed);
+        parallel::par_chunks_mut(&mut out, chunk_size, |ci, out_chunk| {
+            for (k, slot) in out_chunk.iter_mut().enumerate() {
+                let idx = ci * chunk_size + k;
+                write(slot, &slice[idx * width..][..width]);
+            }
+        });
     }
     out
 }
@@ -48,9 +55,14 @@ pub fn unpack_extension<EF: ExtensionField<PF<EF>>>(vec: &[EFPacking<EF>]) -> Ve
             write(chunk, x);
         }
     } else {
-        out.par_chunks_exact_mut(width)
-            .zip(vec.par_iter())
-            .for_each(|(chunk, x)| write(chunk, x));
+        // One pool task per group of `group` packed elements, each writing `group * width`
+        // contiguous output scalars from a disjoint slice of `vec`.
+        let group = par_chunk_size(vec.len());
+        parallel::par_chunks_mut(&mut out, group * width, |ci, out_chunk| {
+            for (k, sub) in out_chunk.chunks_exact_mut(width).enumerate() {
+                write(sub, &vec[ci * group + k]);
+            }
+        });
     }
     out
 }
@@ -84,10 +96,12 @@ pub fn batch_fold_multilinears<
             .map(|poly| fold_multilinear(poly, alpha, &mul_if_of))
             .collect()
     } else {
-        polys
-            .par_iter()
-            .map(|poly| fold_multilinear(poly, alpha, &mul_if_of))
-            .collect()
+        // One task per poly (inner fold runs sequentially via the pool's nesting fallback).
+        let mut out: Vec<Vec<OF>> = (0..polys.len()).map(|_| Vec::new()).collect();
+        parallel::par_chunks_mut(&mut out, 1, |i, slot| {
+            slot[0] = fold_multilinear(polys[i], alpha, &mul_if_of);
+        });
+        out
     }
 }
 
@@ -109,7 +123,13 @@ pub fn fold_multilinear_lsb<
     if new_size < PARALLEL_THRESHOLD {
         m.chunks_exact(2).zip(res.iter_mut()).for_each(compute);
     } else {
-        m.par_chunks_exact(2).zip(res.par_iter_mut()).for_each(compute);
+        let chunk = par_chunk_size(new_size);
+        parallel::par_chunks_mut(&mut res, chunk, |ci, res_chunk| {
+            for (k, r_v) in res_chunk.iter_mut().enumerate() {
+                let j = ci * chunk + k;
+                compute((&m[2 * j..2 * j + 2], r_v));
+            }
+        });
     }
     res
 }
@@ -149,11 +169,12 @@ pub fn fold_multilinear_at_bit<
             *res_v = compute(new_j);
         }
     } else {
-        (0..new_size)
-            .into_par_iter()
-            .with_min_len(PARALLEL_THRESHOLD)
-            .map(compute)
-            .collect_into_vec(&mut res);
+        let chunk = par_chunk_size(new_size);
+        parallel::par_chunks_mut(&mut res, chunk, |ci, res_chunk| {
+            for (k, res_v) in res_chunk.iter_mut().enumerate() {
+                *res_v = compute(ci * chunk + k);
+            }
+        });
     }
     res
 }
@@ -176,11 +197,13 @@ pub fn fold_multilinear<
             res[i] = mul_if_of(m[i + new_size] - m[i], alpha) + m[i];
         }
     } else {
-        (0..new_size)
-            .into_par_iter()
-            .with_min_len(PARALLEL_THRESHOLD)
-            .map(|i| mul_if_of(m[i + new_size] - m[i], alpha) + m[i])
-            .collect_into_vec(&mut res);
+        let chunk = par_chunk_size(new_size);
+        parallel::par_chunks_mut(&mut res, chunk, |ci, res_chunk| {
+            for (k, res_v) in res_chunk.iter_mut().enumerate() {
+                let i = ci * chunk + k;
+                *res_v = mul_if_of(m[i + new_size] - m[i], alpha) + m[i];
+            }
+        });
     }
     res
 }
@@ -203,10 +226,12 @@ pub fn batch_fold_multilinears_at_bit<
             .map(|poly| fold_multilinear_at_bit(poly, alpha, bit, &mul_if_of))
             .collect()
     } else {
-        polys
-            .par_iter()
-            .map(|poly| fold_multilinear_at_bit(poly, alpha, bit, &mul_if_of))
-            .collect()
+        // One task per poly (inner fold runs sequentially via the pool's nesting fallback).
+        let mut out: Vec<Vec<OF>> = (0..polys.len()).map(|_| Vec::new()).collect();
+        parallel::par_chunks_mut(&mut out, 1, |i, slot| {
+            slot[0] = fold_multilinear_at_bit(polys[i], alpha, bit, &mul_if_of);
+        });
+        out
     }
 }
 
@@ -279,54 +304,6 @@ pub fn split_at_mut_many<'a, A>(slice: &'a mut [A], indices: &[usize]) -> Vec<&'
     result.push(current_slice);
 
     result
-}
-
-// Parallel
-
-#[allow(clippy::type_complexity)]
-pub fn par_iter_split_4<'a, A: Sync + Send>(
-    u: &'a [A],
-) -> Zip<Zip<Iter<'a, A>, Iter<'a, A>>, Zip<Iter<'a, A>, Iter<'a, A>>> {
-    let n = u.len();
-    assert!(n.is_multiple_of(4));
-    let [u_ll, u_lr, u_rl, u_rr] = split_at_many(u, &[n / 4, n / 2, 3 * n / 4]).try_into().ok().unwrap();
-    (u_ll.par_iter().zip(u_lr)).zip(u_rl.par_iter().zip(u_rr.par_iter()))
-}
-
-pub fn par_iter_split_2<'a, A: Sync + Send>(u: &'a [A]) -> Zip<Iter<'a, A>, Iter<'a, A>> {
-    par_iter_split_2_capped(u, 0..u.len() / 2)
-}
-
-pub fn par_iter_split_2_capped<'a, A: Sync + Send>(u: &'a [A], range: Range<usize>) -> Zip<Iter<'a, A>, Iter<'a, A>> {
-    let n = u.len();
-    assert!(n.is_multiple_of(2));
-    let (u_left, u_right) = u.split_at(n / 2);
-    u_left[range.clone()].par_iter().zip(u_right[range.clone()].par_iter())
-}
-
-pub fn par_iter_mut_split_2<'a, A: Sync + Send>(u: &'a mut [A]) -> Zip<IterMut<'a, A>, IterMut<'a, A>> {
-    par_iter_mut_split_2_capped(u, 0..u.len() / 2)
-}
-
-pub fn par_iter_mut_split_2_capped<'a, A: Sync + Send>(
-    u: &'a mut [A],
-    range: Range<usize>,
-) -> Zip<IterMut<'a, A>, IterMut<'a, A>> {
-    let n = u.len();
-    assert!(n.is_multiple_of(2));
-    let (u_left, u_right) = u.split_at_mut(n / 2);
-    u_left[range.clone()].par_iter_mut().zip(u_right[range].par_iter_mut())
-}
-
-#[allow(clippy::type_complexity)]
-pub fn par_zip_fold_2<'a, 'b, A: Sync + Send, B: Sync + Send>(
-    u: &'a [A],
-    folded: &'b mut [B],
-) -> Zip<Zip<Zip<Iter<'a, A>, Iter<'a, A>>, Zip<Iter<'a, A>, Iter<'a, A>>>, Zip<IterMut<'b, B>, IterMut<'b, B>>> {
-    let n = u.len();
-    assert!(n.is_multiple_of(4));
-    assert_eq!(folded.len(), n / 2);
-    par_iter_split_4(u).zip(par_iter_mut_split_2(folded))
 }
 
 // Sequential

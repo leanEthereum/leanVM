@@ -632,9 +632,9 @@ dependencies = [
  "itertools",
  "mt-utils",
  "num-bigint",
+ "parallel",
  "paste",
  "rand",
- "rayon",
  "serde",
  "tracing",
 ]
@@ -664,7 +664,6 @@ dependencies = [
  "mt-utils",
  "parallel",
  "rand",
- "rayon",
  "serde",
  "system-info",
 ]
@@ -679,7 +678,6 @@ dependencies = [
  "mt-koala-bear",
  "mt-poly",
  "parallel",
- "rayon",
  "tracing",
 ]
 

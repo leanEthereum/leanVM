@@ -1,8 +1,8 @@
 use crate::*;
 use crate::{EFPacking, PF};
+use ::utils::log2_ceil_usize;
 use field::{ExtensionField, Field, PrimeCharacteristicRing};
 use itertools::Itertools;
-use rayon::{join, prelude::*};
 use std::borrow::Borrow;
 
 pub trait EvaluationsList<F: Field> {
@@ -87,7 +87,16 @@ pub fn scale_poly<F: Field, EF: ExtensionField<F>>(poly: &[F], factor: EF) -> Ve
     if poly.len() < PARALLEL_THRESHOLD {
         poly.iter().map(|&e| factor * e).collect()
     } else {
-        poly.par_iter().map(|&e| factor * e).collect()
+        let mut out: Vec<EF> = unsafe { uninitialized_vec(poly.len()) };
+        let n_chunks = (parallel::num_threads() * 4).min(poly.len());
+        let chunk = poly.len().div_ceil(n_chunks);
+        parallel::par_chunks_mut(&mut out, chunk, |i, c| {
+            let start = i * chunk;
+            for (j, o) in c.iter_mut().enumerate() {
+                *o = factor * poly[start + j];
+            }
+        });
+        out
     }
 }
 
@@ -257,20 +266,23 @@ where
                     //
                     // This chain of operations computes the regrouped sum:
                     // Σ_{v_high} eq(v_high, p_high) * (Σ_{v_low} f(v_high, v_low) * eq(v_low, p_low))
-                    evals
-                        .par_chunks(left.len())
-                        .zip_eq(right.par_iter())
-                        .map(|(part, &c)| {
+                    let left_len = left.len();
+                    parallel::map_reduce(
+                        right.len(),
+                        || Res::ZERO,
+                        |i| {
+                            let part = &evals[i * left_len..][..left_len];
                             // This is the inner sum: a dot product between the evaluation chunk and the `left` basis values.
                             mul_res_point(
                                 part.iter()
                                     .zip_eq(left.iter())
                                     .map(|(&a, &b)| mul_coeffs_point(a, b))
                                     .sum::<Res>(),
-                                c,
+                                right[i],
                             )
-                        })
-                        .sum()
+                        },
+                        |a, b| a + b,
+                    )
                 } else {
                     evals
                         .chunks(left.len())
@@ -290,58 +302,74 @@ where
             } else {
                 // For moderately sized inputs (5 to 19 variables), use the recursive strategy.
                 //
-                // Split the evaluations into two halves, corresponding to the first variable being 0 or 1.
-                let (f0, f1) = evals.split_at(evals.len() / 2);
-
-                // Recursively evaluate on the two smaller hypercubes.
-                let (f0_eval, f1_eval) = {
-                    // Only spawn parallel tasks if the subproblem is large enough to overcome
-                    // the overhead of threading.
-                    let work_size: usize = (1 << 15) / std::mem::size_of::<Coeffs>();
-                    if evals.len() > work_size && PARALLEL {
-                        join(
-                            || {
-                                eval_multilinear_generic::<_, _, _, _, _, _, PARALLEL>(
-                                    f0,
-                                    tail,
-                                    mul_coeffs_point,
-                                    add_res_coeffs,
-                                    mul_res_point,
-                                )
-                            },
-                            || {
-                                eval_multilinear_generic::<_, _, _, _, _, _, PARALLEL>(
-                                    f1,
-                                    tail,
-                                    mul_coeffs_point,
-                                    add_res_coeffs,
-                                    mul_res_point,
-                                )
-                            },
-                        )
-                    } else {
-                        // For smaller subproblems, execute sequentially.
-                        (
-                            eval_multilinear_generic::<_, _, _, _, _, _, false>(
-                                f0,
-                                tail,
-                                mul_coeffs_point,
-                                add_res_coeffs,
-                                mul_res_point,
-                            ),
-                            eval_multilinear_generic::<_, _, _, _, _, _, false>(
-                                f1,
-                                tail,
-                                mul_coeffs_point,
-                                add_res_coeffs,
-                                mul_res_point,
-                            ),
-                        )
-                    }
-                };
-                // Perform the final linear interpolation for the first variable `x`.
-                f0_eval + mul_res_point(f1_eval - f0_eval, *x)
+                // Only spawn parallel tasks if the subproblem is large enough to overcome
+                // the overhead of threading.
+                let work_size: usize = (1 << 15) / std::mem::size_of::<Coeffs>();
+                if evals.len() > work_size && PARALLEL {
+                    // Flat fan-out: peel the `n_split` leading variables into `2^n_split`
+                    // independent subproblems, evaluate each over the remaining coordinates
+                    // sequentially across the pool, then interpolate the partial results over
+                    // the leading coordinates. Equivalent to the recursive `join` split, but
+                    // flat so the in-house pool can parallelize it (nested dispatches fall
+                    // back to sequential, so a recursive split would lose all parallelism).
+                    let log_work = log2_ceil_usize(work_size.max(2));
+                    let n_split = point.len().saturating_sub(log_work).max(1);
+                    let (lead, sub_point) = point.split_at(n_split);
+                    let n_chunks = 1 << n_split;
+                    let chunk = evals.len() >> n_split;
+                    let mut partials = vec![Res::ZERO; n_chunks];
+                    parallel::par_chunks_mut(&mut partials, 1, |j, slot| {
+                        slot[0] = eval_multilinear_generic::<_, _, _, _, _, _, false>(
+                            &evals[j * chunk..][..chunk],
+                            sub_point,
+                            mul_coeffs_point,
+                            add_res_coeffs,
+                            mul_res_point,
+                        );
+                    });
+                    interpolate_res(&partials, lead, mul_res_point)
+                } else {
+                    // For smaller subproblems, execute sequentially.
+                    let (f0, f1) = evals.split_at(evals.len() / 2);
+                    let f0_eval = eval_multilinear_generic::<_, _, _, _, _, _, false>(
+                        f0,
+                        tail,
+                        mul_coeffs_point,
+                        add_res_coeffs,
+                        mul_res_point,
+                    );
+                    let f1_eval = eval_multilinear_generic::<_, _, _, _, _, _, false>(
+                        f1,
+                        tail,
+                        mul_coeffs_point,
+                        add_res_coeffs,
+                        mul_res_point,
+                    );
+                    // Perform the final linear interpolation for the first variable `x`.
+                    f0_eval + mul_res_point(f1_eval - f0_eval, *x)
+                }
             }
+        }
+    }
+}
+
+/// Multilinear interpolation of `values` (the `2^point.len()` hypercube evaluations of a
+/// function, indexed lexicographically) at `point`, using only `Res` arithmetic and the
+/// `mul_res_point` scaling. Used to recombine the partial results of the flat parallel
+/// fan-out in [`eval_multilinear_generic`].
+fn interpolate_res<Point, Res, MRP>(values: &[Res], point: &[Point], mul_res_point: &MRP) -> Res
+where
+    Point: Field,
+    Res: Copy + PrimeCharacteristicRing,
+    MRP: Fn(Res, Point) -> Res,
+{
+    match point {
+        [] => values[0],
+        [x, tail @ ..] => {
+            let (low, high) = values.split_at(values.len() / 2);
+            let p0 = interpolate_res(low, tail, mul_res_point);
+            let p1 = interpolate_res(high, tail, mul_res_point);
+            p0 + mul_res_point(p1 - p0, *x)
         }
     }
 }

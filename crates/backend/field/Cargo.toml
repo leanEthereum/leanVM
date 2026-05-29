@@ -9,7 +9,7 @@ utils = { path = "../utils", package = "mt-utils" }
 itertools.workspace = true
 num-bigint = "*"
 paste = "*"
+parallel.workspace = true
 rand.workspace = true
-rayon.workspace = true
 serde.workspace = true
 tracing.workspace = true
