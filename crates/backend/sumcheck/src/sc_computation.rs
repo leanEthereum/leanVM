@@ -218,7 +218,7 @@ where
             extra_data,
             missing_mul_factor,
             packed_fold_size,
-            |sc, pf, ed| sc.eval_packed_extension(&pf, ed),
+            |sc, pf, ed| sc.eval_packed_extension(pf, ed),
             packing_unpack_sum,
         ),
         MleGroupRef::BasePacked(multilinears) => {
@@ -236,7 +236,7 @@ where
                 extra_data,
                 missing_mul_factor,
                 packed_fold_size,
-                |sc, pf, ed| sc.eval_packed_base(&pf, ed),
+                |sc, pf, ed| sc.eval_packed_base(pf, ed),
                 packing_unpack_sum,
             )
         }
@@ -248,7 +248,7 @@ where
             extra_data,
             missing_mul_factor,
             fold_size,
-            |sc, pf, ed| sc.eval_base(&pf, ed),
+            |sc, pf, ed| sc.eval_base(pf, ed),
             |s| s,
         ),
         MleGroupRef::Extension(multilinears) => sumcheck_compute_core(
@@ -259,7 +259,7 @@ where
             extra_data,
             missing_mul_factor,
             fold_size,
-            |sc, pf, ed| sc.eval_extension(&pf, ed),
+            |sc, pf, ed| sc.eval_extension(pf, ed),
             |s| s,
         ),
     }
@@ -400,7 +400,7 @@ fn sumcheck_compute_core<EF, IF, EFT, SC>(
     extra_data: &SC::ExtraData,
     missing_mul_factor: Option<EF>,
     fold_size: usize,
-    eval_fn: impl Fn(&SC, Vec<IF>, &SC::ExtraData) -> EFT + Sync + Send,
+    eval_fn: impl Fn(&SC, &[IF], &SC::ExtraData) -> EFT + Sync + Send,
     unpack_sum: impl Fn(EFT) -> EF,
 ) -> Vec<EF>
 where
@@ -416,43 +416,55 @@ where
         + MulAssign,
     SC: SumcheckComputation<EF>,
 {
-    let compute_at = |i: usize, eq_val: Option<EFT>| -> Vec<EFT> {
-        let mut rows = multilinears
-            .iter()
-            .map(|m| {
+    // Per-worker scratch: `rows` (the [lo, diff, hi] triples) and `point` (the
+    // evaluation point handed to `eval_fn`) are reused across every task a worker
+    // owns, so the hot loop allocates nothing — recovering what the zk-alloc arena
+    // would otherwise absorb. `acc` (length `degree`) is the per-worker partial sum.
+    let n_mult = multilinears.len();
+    let sums = parallel::map_reduce_with_state(
+        fold_size,
+        || (Vec::<[IF; 3]>::with_capacity(n_mult), Vec::<IF>::with_capacity(n_mult)),
+        || EFT::zero_vec(degree),
+        |(rows, point), acc, i| {
+            let eq_val = eq_at(i);
+
+            rows.clear();
+            rows.extend(multilinears.iter().map(|m| {
                 let lo = m[i];
                 let hi = m[i + fold_size];
-                let diff_hi_lo = hi - lo;
-                [lo, diff_hi_lo, hi]
-            })
-            .collect::<Vec<_>>();
+                [lo, hi - lo, hi]
+            }));
 
-        // z = 0
-        let point_0 = rows.iter().map(|row| row[0]).collect::<Vec<_>>();
-        let mut eval_0 = eval_fn(computation, point_0, extra_data);
-        if let Some(eq) = eq_val {
-            eval_0 *= eq;
-        }
-
-        let mut evals = Vec::with_capacity(degree);
-        evals.push(eval_0);
-
-        // z = 2, 3, ...
-        for _ in 1..degree {
-            for [_, diff_hi_lo, running] in &mut rows {
-                *running += *diff_hi_lo;
-            }
-            let point_f = rows.iter().map(|row| row[2]).collect::<Vec<_>>();
-            let mut eval = eval_fn(computation, point_f, extra_data);
+            // z = 0
+            point.clear();
+            point.extend(rows.iter().map(|row| row[0]));
+            let mut eval_0 = eval_fn(computation, point, extra_data);
             if let Some(eq) = eq_val {
-                eval *= eq;
+                eval_0 *= eq;
             }
-            evals.push(eval);
-        }
-        evals
-    };
+            acc[0] += eval_0;
 
-    let sums = parallel_sum(fold_size, degree, |i| compute_at(i, eq_at(i)));
+            // z = 2, 3, ...
+            for acc_d in acc.iter_mut().skip(1) {
+                for [_, diff_hi_lo, running] in rows.iter_mut() {
+                    *running += *diff_hi_lo;
+                }
+                point.clear();
+                point.extend(rows.iter().map(|row| row[2]));
+                let mut eval = eval_fn(computation, point, extra_data);
+                if let Some(eq) = eq_val {
+                    eval *= eq;
+                }
+                *acc_d += eval;
+            }
+        },
+        |mut a: Vec<EFT>, b: Vec<EFT>| {
+            for (x, y) in a.iter_mut().zip(b) {
+                *x += y;
+            }
+            a
+        },
+    );
     let unpacked_sums = sums.into_iter().map(&unpack_sum);
     build_evals(unpacked_sums, missing_mul_factor)
 }

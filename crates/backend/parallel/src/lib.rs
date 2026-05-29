@@ -290,6 +290,54 @@ where
     partials.into_iter().flatten().fold(identity(), &reduce)
 }
 
+/// Parallel reduce where each worker keeps reusable **scratch** alongside its
+/// accumulator, so the per-task body can avoid allocating.
+///
+/// Each worker creates `(scratch, acc)` once (via `init_state` / `init_acc`) the
+/// first time it claims a task, then calls `fold(&mut scratch, &mut acc, i)` for
+/// every task index it owns — reusing `scratch` across all of them. The per-worker
+/// `acc`s are then combined on the dispatching thread, starting from `init_acc()`.
+///
+/// This is the allocation-elimination counterpart to [`map_reduce`]: where that one
+/// builds and reduces a fresh value per task, this one lets a worker fold many tasks
+/// into one accumulator using one scratch buffer. `combine` must be associative.
+pub fn map_reduce_with_state<S, A, IS, IA, F, C>(n_tasks: usize, init_state: IS, init_acc: IA, fold: F, combine: C) -> A
+where
+    S: Send,
+    A: Send,
+    IS: Fn() -> S + Sync,
+    IA: Fn() -> A + Sync,
+    F: Fn(&mut S, &mut A, usize) + Sync,
+    C: Fn(A, A) -> A,
+{
+    if NUM_THREADS <= 1 || n_tasks <= 1 {
+        let mut state = init_state();
+        let mut acc = init_acc();
+        for i in 0..n_tasks {
+            fold(&mut state, &mut acc, i);
+        }
+        return acc;
+    }
+
+    let mut slots: Vec<Option<(S, A)>> = (0..NUM_THREADS).map(|_| None).collect();
+    let ptr = SendPtr(slots.as_mut_ptr());
+
+    for_each_index(n_tasks, |i| {
+        let wid = current_worker_id();
+        // SAFETY: `wid` is unique per live worker and < NUM_THREADS, so slots are
+        // disjoint; `slots` outlives the dispatch (dispatcher blocks until done).
+        let slot = unsafe { &mut *ptr.add(wid) };
+        let (state, acc) = slot.get_or_insert_with(|| (init_state(), init_acc()));
+        fold(state, acc, i);
+    });
+
+    slots
+        .into_iter()
+        .flatten()
+        .map(|(_, acc)| acc)
+        .fold(init_acc(), &combine)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -339,6 +387,34 @@ mod tests {
         );
         let s: u64 = (0..n as u64).sum();
         assert_eq!(got, vec![s, 2 * s, 3 * s]);
+    }
+
+    #[test]
+    fn map_reduce_with_state_matches_sequential() {
+        // Scratch (reused Vec) + Vec accumulator, mirroring the sumcheck use.
+        for n in [0usize, 1, 3, 1000, 50_000] {
+            let got = map_reduce_with_state(
+                n,
+                Vec::<u64>::new,  // scratch
+                || vec![0u64; 2], // accumulator
+                |scratch: &mut Vec<u64>, acc: &mut Vec<u64>, i| {
+                    scratch.clear();
+                    scratch.push(i as u64);
+                    scratch.push((i * i) as u64);
+                    acc[0] += scratch[0];
+                    acc[1] += scratch[1];
+                },
+                |mut a: Vec<u64>, b: Vec<u64>| {
+                    for (x, y) in a.iter_mut().zip(b) {
+                        *x += y;
+                    }
+                    a
+                },
+            );
+            let s0: u64 = (0..n as u64).sum();
+            let s1: u64 = (0..n as u64).map(|i| i * i).sum();
+            assert_eq!(got, vec![s0, s1], "n={n}");
+        }
     }
 
     #[test]
