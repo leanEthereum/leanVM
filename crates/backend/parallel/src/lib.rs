@@ -1,45 +1,57 @@
 //! Minimal fixed-size thread pool for flat, static data-parallel kernels.
 //!
-//! This is a deliberately tiny alternative to rayon for the one shape the prover
-//! actually uses on its hot paths: "split a slice into N pieces, run a closure on
-//! each." Unlike rayon it does **no** work-stealing of nested tasks and allocates
-//! **nothing** per dispatch — the whole point is to remove the per-task heap
-//! traffic that currently forces the `zk-alloc` arena to exist.
+//! A deliberately tiny alternative to rayon for the one shape the prover uses on its
+//! hot paths: "split a range/slice into pieces, run a closure on each." Unlike rayon
+//! it does **no** work-stealing of nested tasks and allocates **nothing** per
+//! dispatch — the whole point is to own the runtime so we can (a) attach per-worker
+//! scratch buffers (eliminating the per-task allocations that justify the `zk-alloc`
+//! arena), and (b) drop rayon entirely along with its `flush_rayon` injector hack.
 //!
 //! ## Model
 //!
-//! The pool owns exactly `NUM_THREADS - 1` background worker threads with stable
-//! ids `1..NUM_THREADS`. The dispatching thread acts as worker `0` and runs its
-//! share inline, so a dispatch keeps all `NUM_THREADS` hardware threads busy with
-//! only `NUM_THREADS - 1` extra threads (no oversubscription, matching the
-//! build-time `NUM_THREADS` assumption baked in elsewhere).
+//! The pool owns exactly `NUM_THREADS - 1` background workers with stable ids
+//! `1..NUM_THREADS`; the dispatching thread acts as worker `0` and runs its share
+//! inline (so a dispatch keeps all `NUM_THREADS` hardware threads busy with only
+//! `NUM_THREADS - 1` extra threads — no oversubscription). Tasks are claimed from a
+//! shared atomic counter, giving dynamic load balancing for free.
 //!
-//! Tasks are claimed from a shared atomic counter. That gives dynamic load
-//! balancing across uneven task costs for free, while still allocating nothing.
+//! ## Dispatch is lock-free on the hot path
 //!
-//! ## Why stable worker ids
+//! A `std::Barrier` (mutex + condvar) wake-up costs ~2x rayon per dispatch, which the
+//! prover's many dispatches turn into a real regression. Instead, dispatch bumps a
+//! `generation` counter that idle workers watch by **spinning** (so back-to-back
+//! dispatches never pay a syscall), parking only after `SPIN_LIMIT` unrewarded spins.
+//! Completion is a lock-free atomic countdown (`working`) the dispatcher spins on.
+//! Park/unpark uses a per-worker `parked` flag with SeqCst ordering against
+//! `generation` to avoid lost wake-ups, so the unpark syscall is skipped while
+//! workers are hot. Measured ~7.5µs/dispatch vs rayon's ~37µs.
 //!
-//! [`current_worker_id`] returns a stable `0..NUM_THREADS` id. This is the hook for
-//! a future per-worker scratch-buffer strategy: once each worker can index its own
-//! preallocated scratch, the short-lived per-task allocations that `zk-alloc`
-//! currently absorbs disappear at the source, and the arena can be dropped.
+//! ## Coexistence caveat
+//!
+//! Running this pool *alongside* rayon (a partial migration) regresses the prover
+//! ~30% — work bounces between two disjoint thread sets, thrashing caches and
+//! oversubscribing at region boundaries. This pool only pays off once rayon is gone
+//! everywhere. Treat partial-migration benchmarks accordingly.
 //!
 //! ## Constraints
 //!
-//! - **No nesting.** A worker must not itself dispatch (it would deadlock on the
-//!   dispatch lock / barriers). The prover's parallel sections are flat, so this
-//!   holds. Nesting is a logic error, not a soundness hole.
+//! - **No nesting.** A worker must not itself dispatch (it would deadlock). The
+//!   prover's parallel sections are flat, so this holds.
 //! - **One dispatcher at a time.** Concurrent dispatches are serialized by a mutex.
 
 use std::cell::{Cell, UnsafeCell};
 use std::ptr::NonNull;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
-use std::sync::{Barrier, Mutex, Once, OnceLock};
+use std::sync::{Mutex, Once, OnceLock};
+use std::thread::Thread;
 
 use system_info::NUM_THREADS;
 
-/// Total worker count (including the dispatching thread). Equal to the build-time
-/// `NUM_THREADS`.
+/// Spins an idle worker performs before parking. Tuned so back-to-back dispatches
+/// keep workers hot (no syscalls) while a long idle stretch still lets them sleep.
+const SPIN_LIMIT: u32 = 1 << 16;
+
+/// Total worker count (including the dispatching thread). Equal to build-time `NUM_THREADS`.
 #[must_use]
 pub const fn num_threads() -> usize {
     NUM_THREADS
@@ -47,73 +59,63 @@ pub const fn num_threads() -> usize {
 
 thread_local! {
     /// Stable id of this thread within the pool. Set once per background worker;
-    /// stays `0` on the dispatching thread (which acts as worker 0) and on any
-    /// thread that never participates.
+    /// stays `0` on the dispatching thread (worker 0) and on any non-worker thread.
     static WORKER_ID: Cell<usize> = const { Cell::new(0) };
 }
 
-/// Stable id of the calling worker, in `0..NUM_THREADS`. Returns `0` on the
-/// dispatching thread and on any non-worker thread.
+/// Stable id of the calling worker, in `0..NUM_THREADS` (`0` off-pool). The hook for
+/// per-worker scratch buffers.
 #[must_use]
 pub fn current_worker_id() -> usize {
     WORKER_ID.with(Cell::get)
 }
 
-/// A type-erased unit of parallel work. `f` is a `&(dyn Fn(usize) + Sync)` whose
-/// lifetime has been erased to `'static`: it is only ever dereferenced between the
-/// start and end barriers of a single dispatch, during which the dispatcher blocks,
-/// so the borrow it came from outlives every call.
+/// Type-erased unit of work: a `&(dyn Fn(usize) + Sync)` whose lifetime is erased to
+/// `'static`. Only dereferenced inside a dispatch window during which the dispatcher
+/// blocks, so the source borrow outlives every call.
 struct Job {
     f: NonNull<dyn Fn(usize) + Sync>,
     n_tasks: usize,
 }
 
 struct Pool {
-    /// Current job. Written by the dispatcher before `start.wait()` and read by
-    /// workers after it; the barrier supplies the happens-before relationship, so
-    /// no additional synchronization on this cell is required.
+    /// Current job. Written by the dispatcher before bumping `generation`, read by
+    /// workers after they observe the bump; `generation` supplies the happens-before.
     job: UnsafeCell<Option<Job>>,
+    /// Bumped once per dispatch. Idle workers watch it (spin, then park).
+    generation: AtomicUsize,
     /// Next task index to claim. Reset to 0 before each dispatch.
     counter: AtomicUsize,
+    /// Background workers still draining the current dispatch; dispatcher spins to 0.
+    working: AtomicUsize,
     shutdown: AtomicBool,
-    /// Workers park here between dispatches; the dispatcher releases them.
-    start: Barrier,
-    /// Everyone meets here once all tasks are drained.
-    end: Barrier,
+    /// Per-worker "currently parked" flags (indexed by worker id; slot 0 unused).
+    parked: Vec<AtomicBool>,
+    /// Per-worker thread handles for `unpark` (indexed by worker id; slot 0 unused).
+    handles: Vec<OnceLock<Thread>>,
     /// Serializes dispatchers: only one thread may drive the pool at a time.
     dispatch: Mutex<()>,
 }
 
-// SAFETY: `job` is only mutated by the unique dispatcher (serialized by `dispatch`)
-// while workers are parked, and only read by workers/dispatcher while no one writes;
-// the barriers order these phases. The erased `Job` pointer is never used outside a
-// dispatch window during which its source borrow is live.
+// SAFETY: `job` is mutated only by the unique dispatcher while workers are parked or
+// before they observe the generation bump, and read only after; the `generation`
+// release/acquire (and SeqCst park protocol) order these phases. The erased `Job`
+// pointer is never used outside a dispatch window during which its borrow is live.
 unsafe impl Sync for Pool {}
 unsafe impl Send for Pool {}
 
-/// Construct the pool and exercise its full dispatch path once, now.
+/// Construct the pool and exercise its dispatch path once, now.
 ///
-/// **Must be called before any arena allocator that recycles memory between phases
-/// is active** (e.g. before `zk_alloc::begin_phase()`), and is idempotent.
-///
-/// Two things must end up in the system allocator (not a recyclable arena slab):
-/// 1. the leaked `Pool` struct, and
-/// 2. the OS sync primitives behind `Mutex`/`Barrier`. On macOS std allocates the
-///    underlying `pthread_mutex_t` / `pthread_cond_t` **lazily on first use**, not at
-///    construction. So merely building the `Pool` is not enough — if the first
-///    `lock()`/`wait()` happened during a phase, that primitive would land in the
-///    arena and the next reset would corrupt it (observed as `EINVAL` on lock).
-///
-/// Running one real dispatch here forces every lazy primitive (the dispatch mutex
-/// and both barriers, touched by the dispatcher and every worker) to allocate while
-/// the arena is inactive, pinning them in the system allocator for good.
+/// **Must be called before any arena allocator that recycles memory between phases is
+/// active** (e.g. before `zk_alloc::begin_phase()`); idempotent. The leaked `Pool`
+/// and the `dispatch` mutex's lazily-allocated `pthread_mutex_t` (macOS allocates it
+/// on first lock, not construction) must live in the system allocator, not a slab the
+/// next reset recycles. Running one real dispatch forces those allocations while the
+/// arena is inactive. (Worker `Parker`s are allocated eagerly at spawn, also here.)
 pub fn init() {
     static INIT: Once = Once::new();
     INIT.call_once(|| {
         let _ = pool();
-        // `n_tasks > 1` and `NUM_THREADS > 1` are required to take the real dispatch
-        // path rather than the sequential fast path. On single-core builds the pool
-        // is never used, so there is nothing to warm up.
         if NUM_THREADS > 1 {
             for_each_index(NUM_THREADS, |_| {});
         }
@@ -126,10 +128,12 @@ fn pool() -> &'static Pool {
         let n = NUM_THREADS.max(1);
         let p: &'static Pool = Box::leak(Box::new(Pool {
             job: UnsafeCell::new(None),
+            generation: AtomicUsize::new(0),
             counter: AtomicUsize::new(0),
+            working: AtomicUsize::new(0),
             shutdown: AtomicBool::new(false),
-            start: Barrier::new(n),
-            end: Barrier::new(n),
+            parked: (0..n).map(|_| AtomicBool::new(false)).collect(),
+            handles: (0..n).map(|_| OnceLock::new()).collect(),
             dispatch: Mutex::new(()),
         }));
         for id in 1..n {
@@ -144,23 +148,52 @@ fn pool() -> &'static Pool {
 
 fn worker_main(pool: &'static Pool, id: usize) {
     WORKER_ID.with(|c| c.set(id));
+    let _ = pool.handles[id].set(std::thread::current());
+
+    let mut last_gen = 0usize;
     loop {
-        pool.start.wait();
-        if pool.shutdown.load(Ordering::Acquire) {
-            break;
-        }
+        let mut spins = 0u32;
+        let g = loop {
+            let g = pool.generation.load(Ordering::Acquire);
+            if g != last_gen {
+                break g;
+            }
+            if pool.shutdown.load(Ordering::Acquire) {
+                return;
+            }
+            if spins < SPIN_LIMIT {
+                spins += 1;
+                std::hint::spin_loop();
+            } else {
+                // About to park. Publish it, then re-check `generation`: by SeqCst
+                // total order with the dispatcher's `generation` bump and `parked`
+                // load, at least one side sees the other, so no wake-up is lost.
+                pool.parked[id].store(true, Ordering::SeqCst);
+                if pool.generation.load(Ordering::SeqCst) != last_gen {
+                    pool.parked[id].store(false, Ordering::SeqCst);
+                } else if pool.shutdown.load(Ordering::SeqCst) {
+                    pool.parked[id].store(false, Ordering::SeqCst);
+                    return;
+                } else {
+                    std::thread::park();
+                    pool.parked[id].store(false, Ordering::SeqCst);
+                }
+                spins = 0;
+            }
+        };
+        last_gen = g;
         drain(pool);
-        pool.end.wait();
+        pool.working.fetch_sub(1, Ordering::Release);
     }
 }
 
 /// Claim and run task indices until the counter is exhausted.
 fn drain(pool: &Pool) {
-    // SAFETY: the dispatcher published `Some(job)` before the start barrier we just
-    // crossed, and clears it only after the end barrier; nobody writes during drain.
+    // SAFETY: the dispatcher published `Some(job)` before the generation bump this
+    // worker just observed, and overwrites it only on the next dispatch (gated on
+    // `working == 0`); nobody writes during drain.
     let job = unsafe { (*pool.job.get()).as_ref().expect("drain without a published job") };
-    // SAFETY: `job.f` points at a `&dyn Fn` borrow held live by the blocked
-    // dispatcher for the entire dispatch window.
+    // SAFETY: `job.f` points at a `&dyn Fn` borrow held live by the blocked dispatcher.
     let f = unsafe { job.f.as_ref() };
     let n = job.n_tasks;
     loop {
@@ -172,11 +205,8 @@ fn drain(pool: &Pool) {
     }
 }
 
-/// Run `f(i)` for every `i` in `0..n_tasks`, in parallel across the pool. Blocks
-/// until all tasks complete. The dispatching thread participates as worker 0.
-///
-/// Falls back to a sequential loop for trivial sizes or single-core builds, so no
-/// workers are woken for work that isn't worth the handshake.
+/// Run `f(i)` for every `i` in `0..n_tasks`, in parallel across the pool. Blocks until
+/// all tasks complete; the dispatching thread participates as worker 0.
 pub fn for_each_index<F: Fn(usize) + Sync>(n_tasks: usize, f: F) {
     if NUM_THREADS <= 1 || n_tasks <= 1 {
         for i in 0..n_tasks {
@@ -187,33 +217,46 @@ pub fn for_each_index<F: Fn(usize) + Sync>(n_tasks: usize, f: F) {
 
     let pool = pool();
     let _guard = pool.dispatch.lock().unwrap();
+    let n = NUM_THREADS;
 
     let f_ref: &(dyn Fn(usize) + Sync) = &f;
-    // SAFETY: erase the borrow's lifetime to store it in the 'static `Job`. The
-    // dispatcher blocks on `end.wait()` below before returning, so `f` (and thus
-    // `f_ref`) outlives every worker call that dereferences this pointer.
+    // SAFETY: erase the borrow's lifetime to store in the 'static `Job`. The
+    // dispatcher spins on `working` below before returning, so `f` outlives every
+    // worker call that dereferences this pointer.
     let f_erased: NonNull<dyn Fn(usize) + Sync> = unsafe {
         std::mem::transmute::<NonNull<dyn Fn(usize) + Sync>, NonNull<dyn Fn(usize) + Sync>>(NonNull::from(f_ref))
     };
 
-    // SAFETY: workers are parked on `start`; we hold `dispatch`, so we are the sole
-    // writer of `job` and `counter` here.
+    // SAFETY: all workers finished the previous dispatch (we waited for `working == 0`)
+    // and none observes this one until the generation bump, so we are the sole writer.
     unsafe { *pool.job.get() = Some(Job { f: f_erased, n_tasks }) };
     pool.counter.store(0, Ordering::Relaxed);
+    pool.working.store(n - 1, Ordering::Release);
 
-    pool.start.wait(); // release workers (publishes job)
+    // Publish the dispatch. SeqCst so the parked-flag protocol can't lose a wake-up.
+    pool.generation.fetch_add(1, Ordering::SeqCst);
+
+    // Wake only workers that actually parked; hot (spinning) ones see the bump for free.
+    for id in 1..n {
+        if pool.parked[id].load(Ordering::SeqCst) {
+            if let Some(t) = pool.handles[id].get() {
+                t.unpark();
+            }
+        }
+    }
+
     drain(pool); // dispatcher runs as worker 0
-    pool.end.wait(); // wait for all workers
 
-    // SAFETY: all workers have passed `end`; none will touch `job` until the next
-    // dispatch republishes it.
-    unsafe { *pool.job.get() = None };
+    // Lock-free completion: wait for every background worker to finish draining.
+    while pool.working.load(Ordering::Acquire) != 0 {
+        std::hint::spin_loop();
+    }
 }
 
 /// Wrapper holding a raw base pointer that is safe to share across workers because
-/// each worker only ever touches a disjoint sub-slice computed from its task index.
+/// each worker only touches a disjoint sub-slice computed from its task index.
 struct SendPtr<T>(*mut T);
-// SAFETY: see `par_chunks_mut` — accesses are partitioned by task index.
+// SAFETY: accesses are partitioned by task index (see callers).
 unsafe impl<T> Send for SendPtr<T> {}
 unsafe impl<T> Sync for SendPtr<T> {}
 
@@ -224,11 +267,8 @@ impl<T> SendPtr<T> {
     }
 }
 
-/// Parallel equivalent of `data.chunks_mut(chunk).enumerate().for_each(...)`.
-///
-/// Splits `data` into `ceil(len / chunk)` consecutive chunks and runs
+/// Parallel equivalent of `data.chunks_mut(chunk).enumerate().for_each(...)`, running
 /// `f(chunk_index, chunk)` on each in parallel. The final chunk may be shorter.
-/// Mirrors rayon's `par_chunks_mut().enumerate()` for the prover's kernels.
 pub fn par_chunks_mut<T: Send, F>(data: &mut [T], chunk: usize, f: F)
 where
     F: Fn(usize, &mut [T]) + Sync,
@@ -241,9 +281,8 @@ where
     for_each_index(n_chunks, |i| {
         let start = i * chunk;
         let this_len = chunk.min(len - start);
-        // SAFETY: distinct `i` produce non-overlapping `[start, start+this_len)`
-        // ranges within `data`, and the dispatcher keeps `data` borrowed for the
-        // whole call. `SendPtr` only re-exposes a pointer into that live borrow.
+        // SAFETY: distinct `i` produce non-overlapping in-bounds ranges, and `data`
+        // stays borrowed for the whole call.
         let slice = unsafe { std::slice::from_raw_parts_mut(base.add(start), this_len) };
         f(i, slice);
     });
@@ -252,10 +291,9 @@ where
 /// Parallel map-reduce over `0..n_tasks`, equivalent to
 /// `(0..n_tasks).into_par_iter().map(map).reduce(identity, reduce)`.
 ///
-/// Each worker folds the task indices it claims into a single local accumulator, so
-/// only one accumulator is allocated per worker (not one per task). The per-worker
-/// partials are then combined on the dispatching thread. `reduce` must be
-/// associative; the combination order is otherwise unspecified.
+/// Each worker folds the task indices it claims into one local accumulator (one per
+/// worker, not per task); the per-worker partials are combined on the dispatcher.
+/// `reduce` must be associative.
 pub fn map_reduce<T, ID, M, R>(n_tasks: usize, identity: ID, map: M, reduce: R) -> T
 where
     T: Send,
@@ -271,15 +309,14 @@ where
         return acc;
     }
 
-    // One slot per worker id (0 == dispatcher). Each worker touches only its own slot.
-    let mut partials: Vec<Option<T>> = (0..NUM_THREADS).map(|_| None).collect();
-    let slots = SendPtr(partials.as_mut_ptr());
+    let mut slots: Vec<Option<T>> = (0..NUM_THREADS).map(|_| None).collect();
+    let ptr = SendPtr(slots.as_mut_ptr());
 
     for_each_index(n_tasks, |i| {
         let wid = current_worker_id();
-        // SAFETY: `wid` is unique per live worker and < NUM_THREADS, so slots are
-        // disjoint; `partials` outlives the dispatch (dispatcher blocks until done).
-        let slot = unsafe { &mut *slots.add(wid) };
+        // SAFETY: `wid` is unique per live worker and < NUM_THREADS; slots disjoint;
+        // `slots` outlives the dispatch.
+        let slot = unsafe { &mut *ptr.add(wid) };
         let v = map(i);
         *slot = Some(match slot.take() {
             Some(acc) => reduce(acc, v),
@@ -287,20 +324,14 @@ where
         });
     });
 
-    partials.into_iter().flatten().fold(identity(), &reduce)
+    slots.into_iter().flatten().fold(identity(), &reduce)
 }
 
 /// Parallel reduce where each worker keeps reusable **scratch** alongside its
-/// accumulator, so the per-task body can avoid allocating.
-///
-/// Each worker creates `(scratch, acc)` once (via `init_state` / `init_acc`) the
-/// first time it claims a task, then calls `fold(&mut scratch, &mut acc, i)` for
-/// every task index it owns — reusing `scratch` across all of them. The per-worker
-/// `acc`s are then combined on the dispatching thread, starting from `init_acc()`.
-///
-/// This is the allocation-elimination counterpart to [`map_reduce`]: where that one
-/// builds and reduces a fresh value per task, this one lets a worker fold many tasks
-/// into one accumulator using one scratch buffer. `combine` must be associative.
+/// accumulator, so the per-task body can avoid allocating. Each worker creates
+/// `(scratch, acc)` once on its first task and reuses the scratch across all the
+/// tasks it claims; the per-worker `acc`s are then combined. `combine` must be
+/// associative.
 pub fn map_reduce_with_state<S, A, IS, IA, F, C>(n_tasks: usize, init_state: IS, init_acc: IA, fold: F, combine: C) -> A
 where
     S: Send,
@@ -324,8 +355,8 @@ where
 
     for_each_index(n_tasks, |i| {
         let wid = current_worker_id();
-        // SAFETY: `wid` is unique per live worker and < NUM_THREADS, so slots are
-        // disjoint; `slots` outlives the dispatch (dispatcher blocks until done).
+        // SAFETY: `wid` unique per live worker and < NUM_THREADS; slots disjoint;
+        // `slots` outlives the dispatch.
         let slot = unsafe { &mut *ptr.add(wid) };
         let (state, acc) = slot.get_or_insert_with(|| (init_state(), init_acc()));
         fold(state, acc, i);
@@ -372,7 +403,6 @@ mod tests {
             let got = map_reduce(n, || 0u64, |i| i as u64, |a, b| a + b);
             assert_eq!(got, (0..n as u64).sum::<u64>(), "scalar sum n={n}");
         }
-        // Vec accumulator (mirrors sumcheck's parallel_sum shape).
         let n = 5000;
         let got = map_reduce(
             n,
@@ -391,12 +421,11 @@ mod tests {
 
     #[test]
     fn map_reduce_with_state_matches_sequential() {
-        // Scratch (reused Vec) + Vec accumulator, mirroring the sumcheck use.
         for n in [0usize, 1, 3, 1000, 50_000] {
             let got = map_reduce_with_state(
                 n,
-                Vec::<u64>::new,  // scratch
-                || vec![0u64; 2], // accumulator
+                Vec::<u64>::new,
+                || vec![0u64; 2],
                 |scratch: &mut Vec<u64>, acc: &mut Vec<u64>, i| {
                     scratch.clear();
                     scratch.push(i as u64);
