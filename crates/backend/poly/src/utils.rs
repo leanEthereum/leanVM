@@ -9,14 +9,6 @@ use crate::{EFPacking, PF, PFPacking};
 
 pub const PARALLEL_THRESHOLD: usize = 1 << 9;
 
-/// Number of elements each pool task should handle in a flat fan-out. Aims for a few
-/// chunks per worker so the pool's atomic counter can load-balance heterogeneous cores,
-/// while keeping chunks coarse enough to amortize dispatch.
-#[inline]
-fn par_chunk_size(n_items: usize) -> usize {
-    n_items.div_ceil(parallel::num_threads() * 4).max(1)
-}
-
 pub fn pack_extension<EF: ExtensionField<PF<EF>>>(slice: &[EF]) -> Vec<EFPacking<EF>> {
     let width = packing_width::<EF>();
     let n_packed = slice.len() / width;
@@ -29,7 +21,7 @@ pub fn pack_extension<EF: ExtensionField<PF<EF>>>(slice: &[EF]) -> Vec<EFPacking
             write(slot, chunk);
         }
     } else {
-        let chunk_size = par_chunk_size(n_packed);
+        let chunk_size = parallel::recommended_chunk_size(n_packed);
         parallel::par_chunks_mut(&mut out, chunk_size, |ci, out_chunk| {
             for (k, slot) in out_chunk.iter_mut().enumerate() {
                 let idx = ci * chunk_size + k;
@@ -57,7 +49,7 @@ pub fn unpack_extension<EF: ExtensionField<PF<EF>>>(vec: &[EFPacking<EF>]) -> Ve
     } else {
         // One pool task per group of `group` packed elements, each writing `group * width`
         // contiguous output scalars from a disjoint slice of `vec`.
-        let group = par_chunk_size(vec.len());
+        let group = parallel::recommended_chunk_size(vec.len());
         parallel::par_chunks_mut(&mut out, group * width, |ci, out_chunk| {
             for (k, sub) in out_chunk.chunks_exact_mut(width).enumerate() {
                 write(sub, &vec[ci * group + k]);
@@ -123,7 +115,7 @@ pub fn fold_multilinear_lsb<
     if new_size < PARALLEL_THRESHOLD {
         m.chunks_exact(2).zip(res.iter_mut()).for_each(compute);
     } else {
-        let chunk = par_chunk_size(new_size);
+        let chunk = parallel::recommended_chunk_size(new_size);
         parallel::par_chunks_mut(&mut res, chunk, |ci, res_chunk| {
             for (k, r_v) in res_chunk.iter_mut().enumerate() {
                 let j = ci * chunk + k;
@@ -169,7 +161,7 @@ pub fn fold_multilinear_at_bit<
             *res_v = compute(new_j);
         }
     } else {
-        let chunk = par_chunk_size(new_size);
+        let chunk = parallel::recommended_chunk_size(new_size);
         parallel::par_chunks_mut(&mut res, chunk, |ci, res_chunk| {
             for (k, res_v) in res_chunk.iter_mut().enumerate() {
                 *res_v = compute(ci * chunk + k);
@@ -197,7 +189,7 @@ pub fn fold_multilinear<
             res[i] = mul_if_of(m[i + new_size] - m[i], alpha) + m[i];
         }
     } else {
-        let chunk = par_chunk_size(new_size);
+        let chunk = parallel::recommended_chunk_size(new_size);
         parallel::par_chunks_mut(&mut res, chunk, |ci, res_chunk| {
             for (k, res_v) in res_chunk.iter_mut().enumerate() {
                 let i = ci * chunk + k;

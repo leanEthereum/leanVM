@@ -3,23 +3,6 @@ use std::borrow::Cow;
 
 use backend::*;
 
-/// Raw mutable base pointer shareable across pool tasks; each task writes only the
-/// disjoint slot computed from its index (the paired second output buffer of the
-/// quotient-fold kernels, while the pool iterates the first via `par_chunks_mut`).
-pub(super) struct SyncMutPtr<T>(pub *mut T);
-// SAFETY: writes are partitioned by task index (see `sum_quotients_*`).
-unsafe impl<T> Send for SyncMutPtr<T> {}
-unsafe impl<T> Sync for SyncMutPtr<T> {}
-
-impl<T> SyncMutPtr<T> {
-    /// SAFETY: `n` must stay within the original allocation and target a slot no
-    /// other task writes.
-    #[inline]
-    pub(super) unsafe fn add(&self, n: usize) -> *mut T {
-        unsafe { self.0.add(n) }
-    }
-}
-
 pub(super) enum LayerStorage<'a, EF: ExtensionField<PF<EF>>> {
     Initial {
         nums: Cow<'a, [PFPacking<EF>]>,
@@ -147,8 +130,8 @@ fn sum_quotients_2_by_2<EF: ExtensionField<PF<EF>>>(nums: &[EF], dens: &[EF]) ->
     let mut new_dens: Vec<EF> = unsafe { uninitialized_vec(new_active) };
 
     {
-        let dp = SyncMutPtr(new_dens.as_mut_ptr());
-        let chunk = full_pairs.div_ceil(parallel::num_threads() * 4).max(1);
+        let dp = parallel::SendPtr(new_dens.as_mut_ptr());
+        let chunk = parallel::recommended_chunk_size(full_pairs);
         parallel::par_chunks_mut(&mut new_nums[..full_pairs], chunk, |ci, num_chunk| {
             for (k, num) in num_chunk.iter_mut().enumerate() {
                 let i = ci * chunk + k;
@@ -193,8 +176,8 @@ where
     let mut new_dens: Vec<EFPacking<EF>> = unsafe { uninitialized_vec(nums.len() >> 1) };
 
     {
-        let dp = SyncMutPtr(new_dens.as_mut_ptr());
-        let chunk = new_nums.len().div_ceil(parallel::num_threads() * 4).max(1);
+        let dp = parallel::SendPtr(new_dens.as_mut_ptr());
+        let chunk = parallel::recommended_chunk_size(new_nums.len());
         parallel::par_chunks_mut(&mut new_nums, chunk, |ci, num_chunk| {
             for (k, num_out) in num_chunk.iter_mut().enumerate() {
                 let new_j = ci * chunk + k;

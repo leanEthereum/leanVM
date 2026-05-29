@@ -5,22 +5,6 @@ use tracing::instrument;
 
 use crate::{SumcheckComputation, sumcheck_prove_many_rounds};
 
-/// Raw mutable base pointer shareable across pool tasks; each task writes only the
-/// disjoint folded slots computed from its index range.
-struct SyncMutPtr<T>(*mut T);
-// SAFETY: writes are partitioned by task index (see `fold_and_compute_*`).
-unsafe impl<T> Send for SyncMutPtr<T> {}
-unsafe impl<T> Sync for SyncMutPtr<T> {}
-
-impl<T> SyncMutPtr<T> {
-    /// SAFETY: `n` must keep the result within the original allocation, and writes
-    /// through it must target slots no other task touches.
-    #[inline]
-    unsafe fn add(&self, n: usize) -> *mut T {
-        unsafe { self.0.add(n) }
-    }
-}
-
 #[derive(Debug)]
 pub struct ProductComputation;
 
@@ -308,8 +292,8 @@ pub fn fold_and_compute_product_sumcheck_polynomial<
         // (writing the disjoint `i` / `quarter + i` output slots) and accumulate the
         // per-index quadratic straight into the worker's `(c0, c2)` — no per-chunk tuple.
         let quarter = n / 4;
-        let p0f = SyncMutPtr(pol_0_folded.as_mut_ptr());
-        let p1f = SyncMutPtr(pol_1_folded.as_mut_ptr());
+        let p0f = parallel::SendPtr(pol_0_folded.as_mut_ptr());
+        let p1f = parallel::SendPtr(pol_1_folded.as_mut_ptr());
         parallel::map_reduce_with_state(
             quarter,
             || (),

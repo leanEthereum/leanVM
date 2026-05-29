@@ -598,7 +598,7 @@ where
             for (out_buff, &(origin_index, _)) in chunks_mut.iter_mut().zip(&indexed_smt_values) {
                 let out = &mut out_buff[..1 << shift];
                 let scalar = next_gamma_powers[origin_index];
-                let chunk = out.len().div_ceil(parallel::num_threads() * 4).max(1);
+                let chunk = parallel::recommended_chunk_size(out.len());
                 parallel::par_chunks_mut(out, chunk, |ci, sub| {
                     for (k, out_elem) in sub.iter_mut().enumerate() {
                         *out_elem += inner_poly[ci * chunk + k] * scalar;

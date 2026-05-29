@@ -138,7 +138,7 @@ fn prepare_evals_for_fft_unpacked<A: Copy + Send + Sync>(
     let out_len = block_size * dft_n_cols;
 
     let mut out: Vec<A> = unsafe { uninitialized_vec(out_len) };
-    let chunk = out_len.div_ceil(parallel::num_threads() * 4).max(1);
+    let chunk = parallel::recommended_chunk_size(out_len);
     parallel::par_chunks_mut(&mut out, chunk, |ci, out_chunk| {
         for (k, slot) in out_chunk.iter_mut().enumerate() {
             let i = ci * chunk + k;
@@ -166,7 +166,7 @@ fn prepare_evals_for_fft_packed_extension<EF: ExtensionField<PF<EF>>>(
     let packing_mask = (1 << log_packing) - 1;
 
     let mut out: Vec<EF> = unsafe { uninitialized_vec(full_len) };
-    let chunk = full_len.div_ceil(parallel::num_threads() * 4).max(1);
+    let chunk = parallel::recommended_chunk_size(full_len);
     parallel::par_chunks_mut(&mut out, chunk, |ci, out_chunk| {
         for (k, slot) in out_chunk.iter_mut().enumerate() {
             let i = ci * chunk + k;

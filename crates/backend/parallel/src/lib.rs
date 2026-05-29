@@ -74,6 +74,16 @@ pub const fn num_threads() -> usize {
     NUM_THREADS
 }
 
+/// The standard chunk size for a flat fan-out of `n_items` over the pool: a handful of
+/// chunks per worker so the atomic counter can rebalance heterogeneous cores, while
+/// staying coarse enough to amortize dispatch. The canonical divisor for `par_chunks_mut`
+/// — prefer this over hand-rolling `n.div_ceil(num_threads() * 4)` at each call site.
+#[must_use]
+#[inline]
+pub fn recommended_chunk_size(n_items: usize) -> usize {
+    n_items.div_ceil(NUM_THREADS * 4).max(1)
+}
+
 thread_local! {
     /// Stable id of this thread within the pool. Set once per background worker;
     /// stays `0` on the dispatching thread (worker 0) and on any non-worker thread.
@@ -312,16 +322,24 @@ pub fn for_each_index<F: Fn(usize) + Sync>(n_tasks: usize, f: F) {
     });
 }
 
-/// Wrapper holding a raw base pointer that is safe to share across workers because
-/// each worker only touches a disjoint sub-slice computed from its task index.
-struct SendPtr<T>(*mut T);
+/// A raw base pointer made shareable across pool workers. Sound only because every
+/// caller partitions the backing allocation by task index, so each worker touches a
+/// disjoint region. This is the one home for the "share a `*mut` across a dispatch"
+/// pattern — reach for it (with `par_chunks_mut`) instead of redefining it per crate.
+#[derive(Debug)]
+pub struct SendPtr<T>(pub *mut T);
 // SAFETY: accesses are partitioned by task index (see callers).
 unsafe impl<T> Send for SendPtr<T> {}
 unsafe impl<T> Sync for SendPtr<T> {}
 
 impl<T> SendPtr<T> {
-    /// SAFETY: `n` must keep the result within the original allocation.
-    unsafe fn add(&self, n: usize) -> *mut T {
+    /// Offset the base pointer by `n` elements.
+    ///
+    /// # Safety
+    /// `n` must keep the result within the original allocation, and any write through it
+    /// must target a slot no other concurrent task touches.
+    #[inline]
+    pub unsafe fn add(&self, n: usize) -> *mut T {
         unsafe { self.0.add(n) }
     }
 }

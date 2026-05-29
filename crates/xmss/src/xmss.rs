@@ -87,7 +87,7 @@ pub fn xmss_key_gen(
     let n_leaves = (slot_end - slot_start + 1) as usize;
     let mut leaves: Vec<Digest> = unsafe { uninitialized_vec(n_leaves) };
     {
-        let chunk = n_leaves.div_ceil(parallel::num_threads() * 4).max(1);
+        let chunk = parallel::recommended_chunk_size(n_leaves);
         parallel::par_chunks_mut(&mut leaves, chunk, |ci, sub| {
             for (k, out) in sub.iter_mut().enumerate() {
                 let slot = slot_start + (ci * chunk + k) as u32;
@@ -109,7 +109,7 @@ pub fn xmss_key_gen(
             let prev = &merkle_tree[level - 1];
             let n_nodes = (top - base + 1) as usize;
             let mut nodes: Vec<Digest> = unsafe { uninitialized_vec(n_nodes) };
-            let chunk = n_nodes.div_ceil(parallel::num_threads() * 4).max(1);
+            let chunk = parallel::recommended_chunk_size(n_nodes);
             parallel::par_chunks_mut(&mut nodes, chunk, |ci, sub| {
                 for (k, out) in sub.iter_mut().enumerate() {
                     let i = base + (ci * chunk + k) as u64;

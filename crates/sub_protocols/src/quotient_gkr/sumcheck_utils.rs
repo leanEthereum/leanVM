@@ -5,7 +5,7 @@ use std::{
 
 use backend::*;
 
-use crate::quotient_gkr::layers::{SyncMutPtr, unpack_and_unreverse_active};
+use crate::quotient_gkr::layers::unpack_and_unreverse_active;
 
 pub(super) fn even_odd_split<T: Copy>(v: &[T]) -> (Vec<T>, Vec<T>) {
     (
@@ -360,7 +360,7 @@ pub(super) fn run_phase2_sumcheck<EF: ExtensionField<PF<EF>>>(
             let fold_eq = |i: usize| eq_table[2 * i] + eq_table[2 * i + 1];
             eq_table = if new_eq_len >= PARALLEL_THRESHOLD {
                 let mut out: Vec<EF> = unsafe { uninitialized_vec(new_eq_len) };
-                let chunk = new_eq_len.div_ceil(parallel::num_threads() * 4).max(1);
+                let chunk = parallel::recommended_chunk_size(new_eq_len);
                 parallel::par_chunks_mut(&mut out, chunk, |ci, sub| {
                     for (k, slot) in sub.iter_mut().enumerate() {
                         *slot = fold_eq(ci * chunk + k);
@@ -396,7 +396,7 @@ fn fold_normal_with_padding<EF: ExtensionField<PF<EF>>>(m: &[EF], r: EF, pad_val
     if new_active < PARALLEL_THRESHOLD {
         out.iter_mut().enumerate().for_each(compute);
     } else {
-        let chunk = new_active.div_ceil(parallel::num_threads() * 4).max(1);
+        let chunk = parallel::recommended_chunk_size(new_active);
         parallel::par_chunks_mut(&mut out, chunk, |ci, sub| {
             for (k, slot) in sub.iter_mut().enumerate() {
                 compute((ci * chunk + k, slot));
@@ -482,8 +482,8 @@ where
     let prev_r_packed: EFPacking<EF> = <EFPacking<EF> as From<EF>>::from(prev_r);
 
     let n_chunks = nums.len() / in_packed;
-    let nn = SyncMutPtr(new_nums.as_mut_ptr());
-    let nd = SyncMutPtr(new_dens.as_mut_ptr());
+    let nn = parallel::SendPtr(new_nums.as_mut_ptr());
+    let nd = parallel::SendPtr(new_dens.as_mut_ptr());
     let coeffs = parallel::map_reduce(
         n_chunks,
         RoundCoeffs::zero,

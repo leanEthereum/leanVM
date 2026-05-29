@@ -95,7 +95,7 @@ pub fn get_execution_trace(
 
     let mut memory_padded: Vec<F> = unsafe { uninitialized_vec(memory.0.len()) };
     {
-        let chunk = memory_padded.len().div_ceil(parallel::num_threads() * 4).max(1);
+        let chunk = parallel::recommended_chunk_size(memory_padded.len());
         parallel::par_chunks_mut(&mut memory_padded, chunk, |ci, sub| {
             for (k, slot) in sub.iter_mut().enumerate() {
                 *slot = memory.0[ci * chunk + k].unwrap_or(F::ZERO);
