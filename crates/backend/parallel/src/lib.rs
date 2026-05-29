@@ -90,8 +90,8 @@ pub fn current_worker_id() -> usize {
     WORKER_ID.with(Cell::get)
 }
 
-/// Type-erased unit of work: a `&(dyn Fn(usize) + Sync)` whose lifetime is erased to
-/// `'static`. Only dereferenced inside a dispatch window during which the dispatcher
+/// Type-erased unit of work: a `&(dyn Fn(usize, usize) + Sync)` whose lifetime is erased
+/// to `'static`. Only dereferenced inside a dispatch window during which the dispatcher
 /// blocks, so the source borrow outlives every call.
 struct Job {
     /// Range-based work: `f(start, end)` processes the half-open task range `start..end`.
@@ -270,15 +270,11 @@ pub fn for_each_chunk<F: Fn(usize, usize) + Sync>(n_tasks: usize, f: F) {
     let _guard = pool.dispatch.lock().unwrap();
     let n = NUM_THREADS;
 
+    // SAFETY: erase the borrow's lifetime so the closure can live in the `'static`
+    // `Job`. The dispatcher blocks on `working` below before returning, so `f`
+    // outlives every worker dereference of this pointer.
     let f_ref: &(dyn Fn(usize, usize) + Sync) = &f;
-    // SAFETY: erase the borrow's lifetime to store in the 'static `Job`. The
-    // dispatcher spins on `working` below before returning, so `f` outlives every
-    // worker call that dereferences this pointer.
-    let f_erased: NonNull<dyn Fn(usize, usize) + Sync> = unsafe {
-        std::mem::transmute::<NonNull<dyn Fn(usize, usize) + Sync>, NonNull<dyn Fn(usize, usize) + Sync>>(
-            NonNull::from(f_ref),
-        )
-    };
+    let f_erased: NonNull<dyn Fn(usize, usize) + Sync> = unsafe { std::mem::transmute(NonNull::from(f_ref)) };
 
     // SAFETY: all workers finished the previous dispatch (we waited for `working == 0`)
     // and none observes this one until the generation bump, so we are the sole writer.
@@ -351,6 +347,23 @@ where
     });
 }
 
+/// Give each worker exclusive, persistent access to its own `Option<S>` slot while it
+/// drains `0..n_tasks`: `run(slot, start, end)` is called once per claimed batch, always
+/// with the same slot for a given worker, so state accumulates across the batches it
+/// claims. Returns the per-worker slots (one per worker that ran, rest `None`) for the
+/// caller to combine. This is the single home of the cross-worker slot `unsafe`.
+fn drain_into_slots<S: Send>(n_tasks: usize, run: impl Fn(&mut Option<S>, usize, usize) + Sync) -> Vec<Option<S>> {
+    let mut slots: Vec<Option<S>> = (0..NUM_THREADS).map(|_| None).collect();
+    let ptr = SendPtr(slots.as_mut_ptr());
+    for_each_chunk(n_tasks, |start, end| {
+        // SAFETY: `current_worker_id()` is unique per live worker and < NUM_THREADS, so
+        // workers touch disjoint slots; `slots` outlives the dispatch.
+        let slot = unsafe { &mut *ptr.add(current_worker_id()) };
+        run(slot, start, end);
+    });
+    slots
+}
+
 /// Parallel map-reduce over `0..n_tasks`, equivalent to
 /// `(0..n_tasks).into_par_iter().map(map).reduce(identity, reduce)`.
 ///
@@ -365,32 +378,19 @@ where
     R: Fn(T, T) -> T + Sync,
 {
     if NUM_THREADS <= 1 || n_tasks <= 1 {
-        let mut acc = identity();
-        for i in 0..n_tasks {
-            acc = reduce(acc, map(i));
-        }
-        return acc;
+        return (0..n_tasks).fold(identity(), |acc, i| reduce(acc, map(i)));
     }
-
-    let mut slots: Vec<Option<T>> = (0..NUM_THREADS).map(|_| None).collect();
-    let ptr = SendPtr(slots.as_mut_ptr());
-
-    for_each_chunk(n_tasks, |start, end| {
-        // One worker-slot lookup per claimed batch, then fold the whole range into it —
-        // amortizing the thread-local read over the batch instead of paying it per element.
-        let wid = current_worker_id();
-        // SAFETY: `wid` is unique per live worker and < NUM_THREADS; slots disjoint;
-        // `slots` outlives the dispatch.
-        let slot = unsafe { &mut *ptr.add(wid) };
-        for i in start..end {
-            let v = map(i);
-            *slot = Some(match slot.take() {
-                Some(acc) => reduce(acc, v),
-                None => v,
-            });
-        }
+    let slots = drain_into_slots(n_tasks, |slot, start, end| {
+        // Fold the batch into the worker's accumulator, taking/replacing the shared slot
+        // just once so per-element writes stay off the cross-worker pointer.
+        let acc = (start..end).fold(slot.take(), |acc, i| {
+            Some(match acc {
+                Some(a) => reduce(a, map(i)),
+                None => map(i),
+            })
+        });
+        *slot = acc;
     });
-
     slots.into_iter().flatten().fold(identity(), &reduce)
 }
 
@@ -416,23 +416,13 @@ where
         }
         return acc;
     }
-
-    let mut slots: Vec<Option<(S, A)>> = (0..NUM_THREADS).map(|_| None).collect();
-    let ptr = SendPtr(slots.as_mut_ptr());
-
-    for_each_chunk(n_tasks, |start, end| {
-        // One worker-slot lookup per claimed batch; the reusable scratch and accumulator
-        // are then threaded through every element of the range.
-        let wid = current_worker_id();
-        // SAFETY: `wid` unique per live worker and < NUM_THREADS; slots disjoint;
-        // `slots` outlives the dispatch.
-        let slot = unsafe { &mut *ptr.add(wid) };
+    let slots = drain_into_slots(n_tasks, |slot, start, end| {
+        // Scratch and accumulator are created once and threaded through every batch.
         let (state, acc) = slot.get_or_insert_with(|| (init_state(), init_acc()));
         for i in start..end {
             fold(state, acc, i);
         }
     });
-
     slots
         .into_iter()
         .flatten()
