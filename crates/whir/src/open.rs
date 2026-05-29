@@ -5,7 +5,6 @@ use fiat_shamir::{FSProver, MerklePath, ProofResult};
 use field::PrimeCharacteristicRing;
 use field::{ExtensionField, Field, TwoAdicField};
 use poly::*;
-use rayon::prelude::*;
 use sumcheck::{ProductComputation, run_product_sumcheck, sumcheck_prove_many_rounds};
 use tracing::{info_span, instrument};
 
@@ -594,17 +593,18 @@ where
             for (e, &scalar) in smt.values.iter().zip(&next_gamma_powers) {
                 combined_sum += e.value * scalar;
             }
-            chunks_mut
-                .into_par_iter()
-                .zip(&indexed_smt_values)
-                .for_each(|(out_buff, &(origin_index, _))| {
-                    out_buff[..1 << shift]
-                        .par_iter_mut()
-                        .zip(&inner_poly)
-                        .for_each(|(out_elem, &poly_elem)| {
-                            *out_elem += poly_elem * next_gamma_powers[origin_index];
-                        });
+            // Few sparse statements (the outer chunks) but each inner accumulation can be
+            // large, so parallelize the inner loop per statement (the outer runs serial).
+            for (out_buff, &(origin_index, _)) in chunks_mut.iter_mut().zip(&indexed_smt_values) {
+                let out = &mut out_buff[..1 << shift];
+                let scalar = next_gamma_powers[origin_index];
+                let chunk = out.len().div_ceil(parallel::num_threads() * 4).max(1);
+                parallel::par_chunks_mut(out, chunk, |ci, sub| {
+                    for (k, out_elem) in sub.iter_mut().enumerate() {
+                        *out_elem += inner_poly[ci * chunk + k] * scalar;
+                    }
                 });
+            }
             gamma_pow = *next_gamma_powers.last().unwrap() * gamma;
         }
     }

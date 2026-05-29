@@ -29,7 +29,6 @@ use field::PackedValue;
 use field::{BasedVectorSpace, Field, PackedField, TwoAdicField};
 use itertools::Itertools;
 
-use rayon::prelude::*;
 use tracing::instrument;
 use utils::{as_base_slice, log2_strict_usize};
 
@@ -164,7 +163,8 @@ where
 /// also divide by the height.
 #[inline]
 fn par_initial_layers<F: Field>(mat: &mut [F], chunk_size: usize, root_table: &[Vec<F>], width: usize) {
-    mat.par_chunks_exact_mut(chunk_size).for_each(|chunk| {
+    let n_full = mat.len() / chunk_size * chunk_size;
+    parallel::par_chunks_mut(&mut mat[..n_full], chunk_size, |_, chunk| {
         initial_layers(chunk, root_table, width);
     });
 }
@@ -197,11 +197,15 @@ fn dft_layer<F: Field, B: Butterfly<F>>(vec: &mut [F], twiddles: &[B], width: us
 
 #[inline]
 fn dft_layer_par<F: Field, B: Butterfly<F>>(vec: &mut [F], twiddles: &[B], width: usize) {
-    vec.par_chunks_exact_mut(twiddles.len() * 2 * width).for_each(|block| {
+    let block_size = twiddles.len() * 2 * width;
+    let n_full = vec.len() / block_size * block_size;
+    // Outer fan-out over blocks runs on the pool; the inner per-row butterflies run
+    // sequentially within each task (nested dispatches fall back to sequential).
+    parallel::par_chunks_mut(&mut vec[..n_full], block_size, |_, block| {
         let (left, right) = block.split_at_mut(twiddles.len() * width);
-        left.par_chunks_exact_mut(width)
-            .zip(right.par_chunks_exact_mut(width))
-            .zip(twiddles.par_iter())
+        left.chunks_exact_mut(width)
+            .zip(right.chunks_exact_mut(width))
+            .zip(twiddles.iter())
             .for_each(|((hi_chunk, lo_chunk), twiddle)| {
                 twiddle.apply_to_rows(hi_chunk, lo_chunk);
             });
@@ -235,39 +239,29 @@ fn dft_layer_par_double<F: Field, B: Butterfly<F>, M: MultiLayerButterfly<F, B>>
     assert_eq!(twiddles_large.len(), twiddles_small.len() * 2);
 
     // TODO optimal workload size with L1 cache
-    mat.values
-        .par_chunks_exact_mut(twiddles_large.len() * 2 * width)
-        .for_each(|block| {
-            // (0..twiddles_small.len()).into_par_iter().for_each(|ind| {
-            //     let hi_hi = slice_ref_mut(block, ind * width, width);
-            //     let hi_lo = slice_ref_mut(block, (ind + twiddles_small.len()) * width, width);
-            //     let lo_hi = slice_ref_mut(block, (ind + 2 * twiddles_small.len()) * width, width);
-            //     let lo_lo = slice_ref_mut(block, (ind + 3 * twiddles_small.len()) * width, width);
-            //     multi_butterfly.apply_2_layers(
-            //         ((hi_hi, hi_lo), (lo_hi, lo_lo)),
-            //         ind,
-            //         twiddles_small,
-            //         twiddles_large,
-            //     );
-            // });
-            let (hi_blocks, lo_blocks) = block.split_at_mut(twiddles_small.len() * width * 2);
-            let (hi_hi_blocks, hi_lo_blocks) = hi_blocks.split_at_mut(twiddles_small.len() * width);
-            let (lo_hi_blocks, lo_lo_blocks) = lo_blocks.split_at_mut(twiddles_small.len() * width);
-            hi_hi_blocks
-                .par_chunks_exact_mut(width)
-                .zip(hi_lo_blocks.par_chunks_exact_mut(width))
-                .zip(lo_hi_blocks.par_chunks_exact_mut(width))
-                .zip(lo_lo_blocks.par_chunks_exact_mut(width))
-                .enumerate()
-                .for_each(|(ind, (((hi_hi, hi_lo), lo_hi), lo_lo))| {
-                    multi_butterfly.apply_2_layers(
-                        ((hi_hi, hi_lo), (lo_hi, lo_lo)),
-                        ind,
-                        twiddles_small,
-                        twiddles_large,
-                    );
-                });
-        });
+    let block_size = twiddles_large.len() * 2 * width;
+    let n_full = mat.values.len() / block_size * block_size;
+    // Outer fan-out over blocks runs on the pool; the inner butterflies run sequentially
+    // within each task (nested dispatches fall back to sequential).
+    parallel::par_chunks_mut(&mut mat.values[..n_full], block_size, |_, block| {
+        let (hi_blocks, lo_blocks) = block.split_at_mut(twiddles_small.len() * width * 2);
+        let (hi_hi_blocks, hi_lo_blocks) = hi_blocks.split_at_mut(twiddles_small.len() * width);
+        let (lo_hi_blocks, lo_lo_blocks) = lo_blocks.split_at_mut(twiddles_small.len() * width);
+        hi_hi_blocks
+            .chunks_exact_mut(width)
+            .zip(hi_lo_blocks.chunks_exact_mut(width))
+            .zip(lo_hi_blocks.chunks_exact_mut(width))
+            .zip(lo_lo_blocks.chunks_exact_mut(width))
+            .enumerate()
+            .for_each(|(ind, (((hi_hi, hi_lo), lo_hi), lo_lo))| {
+                multi_butterfly.apply_2_layers(
+                    ((hi_hi, hi_lo), (lo_hi, lo_lo)),
+                    ind,
+                    twiddles_small,
+                    twiddles_large,
+                );
+            });
+    });
 }
 
 /// Applies three layers of a Radix-2 FFT butterfly network making use of parallelization.
@@ -303,44 +297,46 @@ fn dft_layer_par_triple<F: Field, B: Butterfly<F>, M: MultiLayerButterfly<F, B>>
     // let inner_chunk_size =
     //     (workload_size::<F>().next_power_of_two() / 8).min(eighth_outer_block_size);
 
-    mat.values
-        .par_chunks_exact_mut(twiddles_large.len() * 2 * width)
-        .for_each(|block| {
-            let (hi_blocks, lo_blocks) = block.split_at_mut(twiddles_small.len() * width * 4);
-            let (hi_hi_blocks, hi_lo_blocks) = hi_blocks.split_at_mut(twiddles_small.len() * width * 2);
-            let (lo_hi_blocks, lo_lo_blocks) = lo_blocks.split_at_mut(twiddles_small.len() * width * 2);
-            let (hi_hi_hi_blocks, hi_hi_lo_blocks) = hi_hi_blocks.split_at_mut(twiddles_small.len() * width);
-            let (hi_lo_hi_blocks, hi_lo_lo_blocks) = hi_lo_blocks.split_at_mut(twiddles_small.len() * width);
-            let (lo_hi_hi_blocks, lo_hi_lo_blocks) = lo_hi_blocks.split_at_mut(twiddles_small.len() * width);
-            let (lo_lo_hi_blocks, lo_lo_lo_blocks) = lo_lo_blocks.split_at_mut(twiddles_small.len() * width);
-            hi_hi_hi_blocks
-                .par_chunks_exact_mut(width)
-                .zip(hi_hi_lo_blocks.par_chunks_exact_mut(width))
-                .zip(hi_lo_hi_blocks.par_chunks_exact_mut(width))
-                .zip(hi_lo_lo_blocks.par_chunks_exact_mut(width))
-                .zip(lo_hi_hi_blocks.par_chunks_exact_mut(width))
-                .zip(lo_hi_lo_blocks.par_chunks_exact_mut(width))
-                .zip(lo_lo_hi_blocks.par_chunks_exact_mut(width))
-                .zip(lo_lo_lo_blocks.par_chunks_exact_mut(width))
-                .enumerate()
-                .for_each(
-                    |(
+    let block_size = twiddles_large.len() * 2 * width;
+    let n_full = mat.values.len() / block_size * block_size;
+    // Outer fan-out over blocks runs on the pool; the inner butterflies run sequentially
+    // within each task (nested dispatches fall back to sequential).
+    parallel::par_chunks_mut(&mut mat.values[..n_full], block_size, |_, block| {
+        let (hi_blocks, lo_blocks) = block.split_at_mut(twiddles_small.len() * width * 4);
+        let (hi_hi_blocks, hi_lo_blocks) = hi_blocks.split_at_mut(twiddles_small.len() * width * 2);
+        let (lo_hi_blocks, lo_lo_blocks) = lo_blocks.split_at_mut(twiddles_small.len() * width * 2);
+        let (hi_hi_hi_blocks, hi_hi_lo_blocks) = hi_hi_blocks.split_at_mut(twiddles_small.len() * width);
+        let (hi_lo_hi_blocks, hi_lo_lo_blocks) = hi_lo_blocks.split_at_mut(twiddles_small.len() * width);
+        let (lo_hi_hi_blocks, lo_hi_lo_blocks) = lo_hi_blocks.split_at_mut(twiddles_small.len() * width);
+        let (lo_lo_hi_blocks, lo_lo_lo_blocks) = lo_lo_blocks.split_at_mut(twiddles_small.len() * width);
+        hi_hi_hi_blocks
+            .chunks_exact_mut(width)
+            .zip(hi_hi_lo_blocks.chunks_exact_mut(width))
+            .zip(hi_lo_hi_blocks.chunks_exact_mut(width))
+            .zip(hi_lo_lo_blocks.chunks_exact_mut(width))
+            .zip(lo_hi_hi_blocks.chunks_exact_mut(width))
+            .zip(lo_hi_lo_blocks.chunks_exact_mut(width))
+            .zip(lo_lo_hi_blocks.chunks_exact_mut(width))
+            .zip(lo_lo_lo_blocks.chunks_exact_mut(width))
+            .enumerate()
+            .for_each(
+                |(
+                    ind,
+                    (((((((hi_hi_hi, hi_hi_lo), hi_lo_hi), hi_lo_lo), lo_hi_hi), lo_hi_lo), lo_lo_hi), lo_lo_lo),
+                )| {
+                    multi_butterfly.apply_3_layers(
+                        (
+                            ((hi_hi_hi, hi_hi_lo), (hi_lo_hi, hi_lo_lo)),
+                            ((lo_hi_hi, lo_hi_lo), (lo_lo_hi, lo_lo_lo)),
+                        ),
                         ind,
-                        (((((((hi_hi_hi, hi_hi_lo), hi_lo_hi), hi_lo_lo), lo_hi_hi), lo_hi_lo), lo_lo_hi), lo_lo_lo),
-                    )| {
-                        multi_butterfly.apply_3_layers(
-                            (
-                                ((hi_hi_hi, hi_hi_lo), (hi_lo_hi, hi_lo_lo)),
-                                ((lo_hi_hi, lo_hi_lo), (lo_lo_hi, lo_lo_lo)),
-                            ),
-                            ind,
-                            twiddles_small,
-                            twiddles_med,
-                            twiddles_large,
-                        );
-                    },
-                );
-        });
+                        twiddles_small,
+                        twiddles_med,
+                        twiddles_large,
+                    );
+                },
+            );
+    });
 }
 
 /// Applies the remaining layers of the Radix-2 FFT butterfly network in parallel.

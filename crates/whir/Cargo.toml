@@ -14,7 +14,7 @@ symetric = { path = "../backend/symetric", package = "mt-symetric" }
 system-info.workspace = true
 
 itertools.workspace = true
-rayon.workspace = true
+parallel.workspace = true
 rand.workspace = true
 tracing.workspace = true
 
