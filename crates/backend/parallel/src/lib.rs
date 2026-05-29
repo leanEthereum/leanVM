@@ -56,9 +56,12 @@ use std::thread::Thread;
 
 use system_info::NUM_THREADS;
 
-/// Spins an idle worker performs before parking. Tuned so back-to-back dispatches
-/// keep workers hot (no syscalls) while a long idle stretch still lets them sleep.
-const SPIN_LIMIT: u32 = 1 << 16;
+/// Spins an idle worker performs before parking (~a few µs). Tuned so back-to-back
+/// dispatches keep workers hot (no syscalls), while the prover's *sequential* stretches
+/// — longer than this — let the workers sleep, freeing their cores so the active thread
+/// can clock up instead of competing with 15 spinners. (A much larger limit kept workers
+/// spinning through those gaps, adding run-to-run variance for no throughput gain.)
+const SPIN_LIMIT: u32 = 1 << 12;
 
 /// Upper bound on a single guided-self-scheduling claim (see [`drain`]). Caps the
 /// worst-case load imbalance from one worker grabbing too large an initial batch, while

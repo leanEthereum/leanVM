@@ -177,8 +177,8 @@ pub fn compute_product_sumcheck_polynomial<
                 let mut a2 = EFPacking::ZERO;
                 for i in start..end {
                     let (b0, b2) = sumcheck_quadratic(((&pol_0[i], &pol_0[half + i]), (&pol_1[i], &pol_1[half + i])));
-                    a0 = a0 + b0;
-                    a2 = a2 + b2;
+                    a0 += b0;
+                    a2 += b2;
                 }
                 (a0, a2)
             },
