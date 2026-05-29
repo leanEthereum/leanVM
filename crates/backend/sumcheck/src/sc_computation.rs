@@ -61,14 +61,7 @@ fn build_evals<EF: ExtensionField<PF<EF>>>(
     sums: impl IntoIterator<Item = EF>,
     missing_mul_factor: Option<EF>,
 ) -> Vec<EF> {
-    sums.into_iter()
-        .map(|mut sum| {
-            if let Some(factor) = missing_mul_factor {
-                sum *= factor;
-            }
-            sum
-        })
-        .collect()
+    sums.into_iter().map(|sum| missing_mul_factor.map_or(sum, |f| sum * f)).collect()
 }
 
 #[inline(always)]
