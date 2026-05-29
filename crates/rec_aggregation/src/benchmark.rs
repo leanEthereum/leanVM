@@ -1,14 +1,14 @@
 use backend::*;
 use lean_vm::*;
+use leansig_wrapper::{XmssPublicKey, XmssSignature};
 use serde::{Deserialize, Serialize};
 use std::io::{self, Write};
 use std::time::Instant;
 use utils::ansi as s;
-use xmss::signers_cache::{BENCHMARK_SLOT, get_benchmark_signatures, message_for_benchmark};
-use xmss::{XmssPublicKey, XmssSignature};
 
+use crate::aggregation::{AggregatedXMSS, aggregate, verify_aggregation};
 use crate::compilation::{get_aggregation_bytecode, init_aggregation_bytecode};
-use crate::type_1_aggregation::{TypeOneMultiSignature, aggregate_type_1, verify_type_1};
+use crate::signatures_cache::{BENCHMARK_SLOT, get_benchmark_signatures, message_for_benchmark};
 
 #[derive(Debug, Clone)]
 pub struct AggregationTopology {
@@ -47,6 +47,15 @@ fn count_nodes(topology: &AggregationTopology) -> usize {
     1 + topology.children.iter().map(count_nodes).sum::<usize>()
 }
 
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum NodeKind {
+    #[default]
+    AggregateType1,
+    MergeManyType1,
+    SplitType2,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct NodeStats {
     pub time_secs: f64,
@@ -61,6 +70,8 @@ pub struct NodeStats {
     pub poseidons: usize,
     pub dots: usize,
     pub n_xmss: Option<usize>,
+    #[serde(default)]
+    pub kind: NodeKind,
 }
 
 fn default_samples() -> usize {
@@ -256,6 +267,21 @@ impl LiveTree {
     }
 }
 
+fn print_stage(silent: bool, label: &str, stats: &NodeStats) {
+    if silent {
+        return;
+    }
+    let xmss_tag = stats.n_xmss.map(|n| format!(" n_xmss={}", n)).unwrap_or_default();
+    println!(
+        "{:30} {:>8.3}s {:>5} KiB cycles={:>10}{}",
+        label,
+        stats.time_secs,
+        stats.proof_kib,
+        pretty_integer(stats.cycles),
+        xmss_tag,
+    );
+}
+
 #[allow(clippy::too_many_arguments)]
 fn build_tree_descs(
     topology: &AggregationTopology,
@@ -351,13 +377,13 @@ fn build_aggregation(
     tracing: bool,
     is_root: bool,
     repeat: usize,
-) -> TypeOneMultiSignature {
+) -> AggregatedXMSS {
     let raw_count = topology.raw_xmss;
     let raw_xmss: Vec<(XmssPublicKey, XmssSignature)> = (0..raw_count)
         .map(|i| (pub_keys[i].clone(), signatures[i].clone()))
         .collect();
 
-    let mut children: Vec<TypeOneMultiSignature> = vec![];
+    let mut children: Vec<AggregatedXMSS> = vec![];
     let mut child_start = raw_count;
     let mut child_display_index = display_index;
     for (child_idx, child) in topology.children.iter().enumerate() {
@@ -390,16 +416,15 @@ fn build_aggregation(
 
     assert!(repeat > 0);
     let is_leaf = topology.children.is_empty();
-    let n_xmss_opt = is_leaf.then_some(topology.raw_xmss);
     let mut times = Vec::with_capacity(repeat);
-    let mut last_result: Option<TypeOneMultiSignature> = None;
+    let mut last_result: Option<AggregatedXMSS> = None;
     let own_display_index = display_index + count_nodes(topology) - 1;
     for _ in 0..repeat {
         #[cfg(not(feature = "standard-alloc"))]
         zk_alloc::begin_phase();
 
         let time = Instant::now();
-        let result = aggregate_type_1(
+        let result = aggregate(
             &children,
             raw_xmss.clone(),
             message_for_benchmark(),
@@ -435,7 +460,8 @@ fn build_aggregation(
                     memory: meta.memory,
                     poseidons: meta.n_poseidons,
                     dots: meta.n_extension_ops,
-                    n_xmss: n_xmss_opt,
+                    n_xmss: if is_leaf { Some(topology.raw_xmss) } else { None },
+                    kind: NodeKind::AggregateType1,
                 },
             );
         }
@@ -475,7 +501,8 @@ fn build_aggregation(
         memory: meta.memory,
         poseidons: meta.n_poseidons,
         dots: meta.n_extension_ops,
-        n_xmss: n_xmss_opt,
+        n_xmss: if is_leaf { Some(topology.raw_xmss) } else { None },
+        kind: NodeKind::AggregateType1,
     };
     if !tracing {
         live_tree.update_node(own_display_index, &stats);
@@ -541,9 +568,65 @@ pub fn run_aggregation_benchmark(
         repeat,
     );
 
-    verify_type_1(&aggregated).expect("root type-1 proof failed to verify");
+    verify_aggregation(&aggregated).expect("root type-1 proof failed to verify");
 
     BenchmarkReport { nodes }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn run_xmss_aggregate(
+    children: &[AggregatedXMSS],
+    raw_xmss: Vec<(XmssPublicKey, XmssSignature)>,
+    log_inv_rate: usize,
+    n_xmss: usize,
+    path: Vec<usize>,
+    label: &str,
+    silent: bool,
+    nodes: &mut Vec<NodeReport>,
+) -> AggregatedXMSS {
+    let time = Instant::now();
+
+    #[cfg(not(feature = "standard-alloc"))]
+    zk_alloc::begin_phase();
+
+    let result = aggregate(
+        children,
+        raw_xmss,
+        message_for_benchmark(),
+        BENCHMARK_SLOT,
+        log_inv_rate,
+    )
+    .unwrap();
+
+    #[cfg(not(feature = "standard-alloc"))]
+    let result = {
+        zk_alloc::end_phase();
+        result.clone()
+    };
+
+    let elapsed = time.elapsed();
+    let meta = result.proof.metadata.as_ref().unwrap();
+    let proof_kib = result.proof.proof.proof_size_fe() * F::bits() / (8 * 1024);
+    let stats = NodeStats {
+        time_secs: elapsed.as_secs_f64(),
+        time_ci_secs: 0.0,
+        samples: 1,
+        proof_kib,
+        cycles: meta.cycles,
+        memory: meta.memory,
+        poseidons: meta.n_poseidons,
+        dots: meta.n_extension_ops,
+        n_xmss: Some(n_xmss),
+        kind: NodeKind::AggregateType1,
+    };
+
+    print_stage(silent, label, &stats);
+    nodes.push(NodeReport {
+        path: path.clone(),
+        stats,
+    });
+
+    result
 }
 
 // TODO is there a better fix?

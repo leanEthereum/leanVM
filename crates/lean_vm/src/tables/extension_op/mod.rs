@@ -13,7 +13,7 @@ pub(crate) const EXT_OP_FLAG_DOT_PRODUCT: usize = 16;
 pub(crate) const EXT_OP_FLAG_EQ: usize = 32;
 pub const EXT_OP_LEN_MULTIPLIER: usize = 64;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
 pub enum ExtensionOp {
     Add,
     DotProduct,
@@ -39,7 +39,7 @@ impl ExtensionOp {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
 pub struct ExtensionOpMode {
     pub op: ExtensionOp,
     pub flag_be: bool,
@@ -75,7 +75,7 @@ impl ExtensionOpMode {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
 pub struct ExtensionOpPrecompile<const BUS: bool>;
 
 impl<const BUS: bool> TableT for ExtensionOpPrecompile<BUS> {

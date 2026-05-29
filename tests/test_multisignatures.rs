@@ -1,30 +1,20 @@
-use std::time::Instant;
-
-use lean_multisig::{
-    TypeOneMultiSignature, TypeTwoMultiSignature, aggregate_type_1, merge_many_type_1, setup_prover, split_type_2,
-    verify_type_1, verify_type_2,
-};
-use rand::{RngExt, SeedableRng, rngs::StdRng};
-use rec_aggregation::{
-    benchmark::{AggregationTopology, run_aggregation_benchmark},
-    split_type_2_by_msg,
-};
-use xmss::{
-    signers_cache::{BENCHMARK_SLOT, get_benchmark_signatures, message_for_benchmark},
-    xmss_key_gen, xmss_sign, xmss_verify,
-};
+use lean_multisig::{AggregatedXMSS, setup_prover, xmss_aggregate, xmss_verify_aggregation};
+use leansig_wrapper::{xmss_keygen_fast, xmss_sign_fast, xmss_verify};
+use rand::{SeedableRng, rngs::StdRng};
+use rec_aggregation::benchmark::{AggregationTopology, run_aggregation_benchmark};
+use rec_aggregation::signatures_cache::{BENCHMARK_SLOT, get_benchmark_signatures, message_for_benchmark};
 
 #[test]
 fn test_xmss_signature() {
-    let start_slot = 111;
-    let end_slot = 200;
+    let activation_epoch = 111;
+    let num_active_epochs = 39;
     let slot: u32 = 124;
     let mut rng: StdRng = StdRng::seed_from_u64(0);
-    let msg = rng.random();
+    let msg = [42u8; leansig_wrapper::MESSAGE_LENGTH];
 
-    let (secret_key, pub_key) = xmss_key_gen(rng.random(), start_slot, end_slot).unwrap();
-    let signature = xmss_sign(&mut rng, &secret_key, &msg, slot).unwrap();
-    xmss_verify(&pub_key, &msg, &signature, slot).unwrap();
+    let (secret_key, pub_key) = xmss_keygen_fast(&mut rng, activation_epoch, num_active_epochs);
+    let signature = xmss_sign_fast(&secret_key, &msg, slot).unwrap();
+    xmss_verify(&pub_key, slot, &msg, &signature).unwrap();
 }
 
 #[test]
@@ -41,7 +31,7 @@ fn test_aggregation() {
 }
 
 #[test]
-fn test_type_1_aggregation() {
+fn test_xmss_aggregate() {
     setup_prover();
 
     let log_inv_rate = 2; // [1, 2, 3 or 4] (lower = faster but bigger proofs)
@@ -50,79 +40,67 @@ fn test_type_1_aggregation() {
     let signatures = get_benchmark_signatures();
 
     let raws_a = signatures[0..3].to_vec();
-    let type1_a = aggregate_type_1(&[], raws_a, message, slot, log_inv_rate).unwrap();
+    let (_, type1_a) = xmss_aggregate(&[], raws_a, &message, slot, log_inv_rate).unwrap();
 
     let raws_b = signatures[3..5].to_vec();
-    let type1_b = aggregate_type_1(&[], raws_b, message, slot, log_inv_rate).unwrap();
+    let (_, type1_b) = xmss_aggregate(&[], raws_b, &message, slot, log_inv_rate).unwrap();
 
     let raws_c = signatures[5..6].to_vec();
-    let final_sig = aggregate_type_1(&[type1_a, type1_b], raws_c, message, slot, log_inv_rate).unwrap();
+    let pks_a = type1_a.info.pubkeys.clone();
+    let pks_b = type1_b.info.pubkeys.clone();
+    let (_, final_sig) = xmss_aggregate(
+        &[(&pks_a, type1_a), (&pks_b, type1_b)],
+        raws_c,
+        &message,
+        slot,
+        log_inv_rate,
+    )
+    .unwrap();
 
     let serialized_proof = final_sig.compress();
     println!("Serialized aggregated final: {} KiB", serialized_proof.len() / 1024);
-    let recovered = TypeOneMultiSignature::decompress(&serialized_proof).unwrap();
+    let recovered = AggregatedXMSS::decompress(&serialized_proof).unwrap();
 
-    verify_type_1(&recovered).unwrap();
+    xmss_verify_aggregation(recovered.info.pubkeys.clone(), &recovered, &message, slot).unwrap();
 }
 
 #[test]
-fn test_type_2_aggregation() {
+fn test_type1_compression() {
     setup_prover();
 
-    let log_inv_rate = 2; // [1, 2, 3 or 4] (lower = faster but bigger proofs)
-    let slot_a = BENCHMARK_SLOT;
-    let message_a = message_for_benchmark();
+    let log_inv_rate = 2;
+    let message = message_for_benchmark();
+    let slot = BENCHMARK_SLOT;
     let signatures = get_benchmark_signatures();
-    let raws_a = signatures[0..3].to_vec();
 
-    let slot_b = BENCHMARK_SLOT + 1;
-    let mut rng_b: StdRng = StdRng::seed_from_u64(17);
-    let message_b: [_; 8] = std::array::from_fn(|_| rng_b.random());
+    // The pubkey set is shared between prover and verifier.
+    let raws_a = signatures[..3].to_vec();
+    let shared_pubkeys_a = raws_a.iter().map(|(pk, _)| pk.clone()).collect::<Vec<_>>();
+    let (_, type1_a) = xmss_aggregate(&[], raws_a, &message, slot, log_inv_rate).unwrap();
 
-    assert!(message_b != message_a && slot_b != slot_a);
+    let type1_a_compressed_compact = type1_a.compress_without_pubkeys();
+    let type1_a_compact_recovered =
+        AggregatedXMSS::decompress_without_pubkeys(&type1_a_compressed_compact, shared_pubkeys_a)
+            .expect("type-1 round-trip");
+    xmss_verify_aggregation(
+        type1_a_compact_recovered.info.pubkeys.clone(),
+        &type1_a_compact_recovered,
+        &message,
+        slot,
+    )
+    .expect("recovered type-1 must verify");
+    assert_eq!(type1_a_compact_recovered.info.pubkeys, type1_a.info.pubkeys);
 
-    let raws_b: Vec<_> = (0..2)
-        .map(|_| {
-            let (sk, pk) = xmss_key_gen(rng_b.random(), slot_b, slot_b).unwrap();
-            let sig = xmss_sign(&mut rng_b, &sk, &message_b, slot_b).unwrap();
-            (pk, sig)
-        })
-        .collect();
+    let type1_a_compressed_full = type1_a.compress();
+    let type1_a_full_recovered = AggregatedXMSS::decompress(&type1_a_compressed_full).expect("type-1 round-trip");
+    xmss_verify_aggregation(
+        type1_a_full_recovered.info.pubkeys.clone(),
+        &type1_a_full_recovered,
+        &message,
+        slot,
+    )
+    .expect("recovered type-1 must verify");
+    assert_eq!(type1_a_full_recovered.info.pubkeys, type1_a.info.pubkeys);
 
-    let type1_a = aggregate_type_1(&[], raws_a, message_a, slot_a, log_inv_rate).unwrap();
-    let type1_b = aggregate_type_1(&[], raws_b, message_b, slot_b, log_inv_rate).unwrap();
-
-    verify_type_1(&type1_a).unwrap();
-    verify_type_1(&type1_b).unwrap();
-
-    let info_a = type1_a.info.clone();
-    let info_b = type1_b.info.clone();
-
-    let time = Instant::now();
-    let type2 = merge_many_type_1(vec![type1_a, type1_b], log_inv_rate).unwrap();
-    println!("merge_many_type_1: {:.2}s", time.elapsed().as_secs_f64());
-    assert_eq!(type2.info.len(), 2);
-    assert_eq!(type2.info[0], info_a);
-    assert_eq!(type2.info[1], info_b);
-
-    let compressed_type2 = type2.compress();
-    let type2 = TypeTwoMultiSignature::decompress(&compressed_type2).unwrap();
-    verify_type_2(&type2).unwrap();
-
-    let time = Instant::now();
-    let split_a = split_type_2(type2.clone(), 0, log_inv_rate).unwrap();
-    println!("split index 0: {:.2}s", time.elapsed().as_secs_f64());
-    let time = Instant::now();
-    let split_b = split_type_2_by_msg(type2, message_b, log_inv_rate).unwrap();
-    println!("split index 1: {:.2}s", time.elapsed().as_secs_f64());
-    assert_eq!(
-        (split_a.info.message, &split_a.info.slot, &split_a.info.pubkeys),
-        (info_a.message, &info_a.slot, &info_a.pubkeys)
-    );
-    assert_eq!(
-        (split_b.info.message, &split_b.info.slot, &split_b.info.pubkeys),
-        (info_b.message, &info_b.slot, &info_b.pubkeys)
-    );
-    verify_type_1(&split_a).expect("split index 0 failed verify_type_1");
-    verify_type_1(&split_b).expect("split index 1 failed verify_type_1");
+    assert!(type1_a_compressed_compact.len() < type1_a_compressed_full.len());
 }

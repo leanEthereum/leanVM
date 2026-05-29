@@ -639,8 +639,8 @@ The full list:
 
 Precompiles are special instructions in the leanVM ISA, alongside the four
 basic ones (ADD, MUL, DEREF, JUMP). The zkDSL exposes them as built-in
-functions. There are two families: Poseidon hashing and extension-field
-operations.
+functions. There are three families: Poseidon16 hashing, Poseidon24 hashing,
+and extension-field operations.
 
 ### Poseidon16 family
 
@@ -665,6 +665,17 @@ buffer; `off` (where present) is a compile-time address.
 | `poseidon16_compress_hardcoded_left(L, R, O, off)`      | `O[0..8]`            | left = `m[off..off+4] \|\| m[L..L+4]`     |
 | `poseidon16_compress_half_hardcoded_left(L, R, O, off)` | `O[0..4]`            | half-output + hardcoded-left composition  |
 | `poseidon16_permute(L, R, O)`                           | `O[0..16]`           | raw Poseidon permutation, no feed-forward |
+
+### Poseidon24 family
+
+Width-24 Poseidon. `L` is a 9-cell buffer (capacity), `R` a 15-cell buffer
+(rate), `O` the 9-cell output buffer.
+
+| Function                            | Cells written to `O` | Notes                                       |
+| ----------------------------------- | -------------------- | ------------------------------------------- |
+| `poseidon24_compress_0_9(L, R, O)`  | `O[0..9]`            | `(Poseidon(L \|\| R) + (L \|\| R))[0..9]`   |
+| `poseidon24_permute_0_9(L, R, O)`   | `O[0..9]`            | raw permutation, output cells `0..9`        |
+| `poseidon24_permute_9_18(L, R, O)`  | `O[0..9]`            | raw permutation, output cells `9..18`       |
 
 ### Extension-field operations
 

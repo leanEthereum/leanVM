@@ -6,7 +6,7 @@ use crate::core::{F, Label};
 use crate::diagnostics::RunnerError;
 use crate::execution::memory::MemoryAccess;
 use crate::tables::TableT;
-use crate::{ExtensionOpMode, Table, TableTrace};
+use crate::{ExtensionOpMode, Poseidon24Mode, Table, TableTrace};
 use crate::{POSEIDON16_NAME, POSEIDON16_PERMUTE_NAME};
 use backend::*;
 use std::collections::BTreeMap;
@@ -15,7 +15,7 @@ use std::ops::AddAssign;
 use utils::ToUsize;
 
 /// Complete set of VM instruction types with comprehensive operation support
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
 pub enum Instruction {
     /// Basic arithmetic computation instruction (ADD, MUL)
     Computation {
@@ -53,7 +53,7 @@ pub enum Instruction {
     Precompile(PrecompileInstruction),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
 pub struct PrecompileArgs<V, S> {
     pub arg_0: V,
     pub arg_1: V,
@@ -61,7 +61,7 @@ pub struct PrecompileArgs<V, S> {
     pub data: PrecompileCompTimeArgs<S>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
 pub enum PrecompileCompTimeArgs<S> {
     Poseidon16 {
         half_output: bool,
@@ -71,6 +71,7 @@ pub enum PrecompileCompTimeArgs<S> {
         // Mutually exclusive with `half_output`.
         permute: bool,
     },
+    Poseidon24(Poseidon24Mode),
     ExtensionOp {
         size: S,
         mode: ExtensionOpMode,
@@ -81,6 +82,7 @@ impl<S> PrecompileCompTimeArgs<S> {
     pub fn table(&self) -> Table {
         match self {
             Self::Poseidon16 { .. } => Table::poseidon16(),
+            Self::Poseidon24(_) => Table::poseidon24(),
             Self::ExtensionOp { .. } => Table::extension_op(),
         }
     }
@@ -96,6 +98,7 @@ impl<S> PrecompileCompTimeArgs<S> {
                 hardcoded_offset_left: hardcoded_left_4.map(&mut f),
                 permute,
             },
+            Self::Poseidon24(mode) => PrecompileCompTimeArgs::Poseidon24(mode),
             Self::ExtensionOp { size, mode } => PrecompileCompTimeArgs::ExtensionOp { size: f(size), mode },
         }
     }
@@ -276,6 +279,9 @@ impl<V: Display, S: Display> Display for PrecompileArgs<V, S> {
                         ),
                     }
                 }
+            }
+            PrecompileCompTimeArgs::Poseidon24(mode) => {
+                write!(f, "poseidon24(mode={mode:?}, {arg_0}, {arg_1}, {res})")
             }
             PrecompileCompTimeArgs::ExtensionOp { size, mode } => {
                 write!(f, "{}({arg_0}, {arg_1}, {res}, {size})", mode.name())

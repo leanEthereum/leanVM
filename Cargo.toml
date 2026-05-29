@@ -55,11 +55,11 @@ wildcard_imports = "allow"
 # Local
 utils = { path = "crates/utils" }
 lean_vm = { path = "crates/lean_vm" }
-xmss = { path = "crates/xmss" }
 sub_protocols = { path = "crates/sub_protocols" }
 lean_compiler = { path = "crates/lean_compiler" }
 lean_prover = { path = "crates/lean_prover" }
 rec_aggregation = { path = "crates/rec_aggregation" }
+leansig_wrapper = { path = "crates/leansig_wrapper" }
 backend = { path = "crates/backend" }
 zk-alloc = { path = "crates/backend/zk-alloc" }
 system-info = { path = "crates/backend/system-info" }
@@ -79,10 +79,13 @@ tracing-subscriber = { version = "0.3.23", features = ["std", "env-filter"] }
 tracing-forest = { version = "0.3.0", features = ["ansi", "smallvec"] }
 postcard = { version = "1.1.3", features = ["alloc"] }
 lz4_flex = "0.13.0"
+leansig = { git = "https://github.com/leanEthereum/leanSig" }
+leansig_fast_keygen = { git = "https://github.com/TomWambsgans/leanSig", branch = "devnet4-fast-keygen" }
 include_dir = "0.7"
 
 [features]
 prox-gaps-conjecture = ["rec_aggregation/prox-gaps-conjecture"]
+test-config = ["rec_aggregation/test-config"]
 standard-alloc = ["rec_aggregation/standard-alloc"]
 
 [dependencies]
@@ -92,11 +95,14 @@ zk-alloc.workspace = true
 rand.workspace = true
 sub_protocols.workspace = true
 utils.workspace = true
+leansig_wrapper.workspace = true
 lean_vm.workspace = true
-xmss.workspace = true
 backend.workspace = true
 serde_json.workspace = true
 system-info.workspace = true
+
+[dev-dependencies]
+serde.workspace = true
 
 
 [profile.release]

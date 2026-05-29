@@ -1,12 +1,16 @@
 #![cfg_attr(not(test), allow(unused_crate_dependencies))]
+mod aggregation;
 pub mod benchmark;
 mod bytecode_claims;
 mod compilation;
 mod error;
-mod type_1_aggregation;
-mod type_2_aggregation;
+pub mod signatures_cache;
 
+pub use aggregation::{
+    AggregatedXMSS, AggregatedXMSSInfo, AggregatedXMSSInfoWithoutPubkeys, xmss_aggregate, xmss_verify_aggregation,
+};
 use backend::{Evaluation, Proof, ProofError, RawProof};
+pub use benchmark::AggregationTopology;
 pub use compilation::{
     MAX_RECURSIONS, MAX_XMSS_AGGREGATED, MAX_XMSS_DUPLICATES, NUM_REPEATED_ONES, PREAMBLE_MEMORY_LEN, ZERO_VEC_LEN,
     get_aggregation_bytecode, init_aggregation_bytecode,
@@ -15,10 +19,6 @@ pub use error::AggregationError;
 pub use lean_prover::ProverError;
 use lean_prover::verify_execution::verify_execution;
 use lean_vm::{DIGEST_LEN, EF, F};
-pub use type_1_aggregation::{TypeOneInfo, TypeOneMultiSignature, aggregate_type_1, verify_type_1};
-pub use type_2_aggregation::{
-    TypeTwoMultiSignature, merge_many_type_1, split_type_2, split_type_2_by_msg, verify_type_2,
-};
 use utils::poseidon_compress_slice;
 
 #[allow(missing_debug_implementations)]
@@ -53,4 +53,16 @@ pub(crate) fn verify_inner(input_data: Vec<F>, proof: Proof<F>) -> Result<InnerV
         raw_proof,
         sorted_table_perm: verif.sorted_table_perm,
     })
+}
+
+/// postcard-encode then lz4-compress. Inverse of `lz4_postcard_decode`.
+pub(crate) fn lz4_postcard_encode<T: serde::Serialize>(value: &T) -> Vec<u8> {
+    let encoded = postcard::to_allocvec(value).expect("postcard serialization failed");
+    lz4_flex::compress_prepend_size(&encoded)
+}
+
+/// Inverse of `lz4_postcard_encode`. Returns `None` on either lz4 or postcard failure.
+pub(crate) fn lz4_postcard_decode<T: serde::de::DeserializeOwned>(bytes: &[u8]) -> Option<T> {
+    let decompressed = lz4_flex::decompress_size_prepended(bytes).ok()?;
+    postcard::from_bytes(&decompressed).ok()
 }

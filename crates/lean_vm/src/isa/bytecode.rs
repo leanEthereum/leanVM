@@ -1,6 +1,7 @@
 //! Bytecode representation and management
 
 use backend::*;
+use serde::{Deserialize, Serialize};
 
 use crate::{DIMENSION, F, FileId, FunctionName, Hint, N_INSTRUCTION_COLUMNS, SourceLocation};
 
@@ -8,14 +9,14 @@ use super::Instruction;
 use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CodeEntry {
     pub hints: Box<[Hint]>, // executed before the instruction
     pub instruction: Instruction,
 }
 
 /// `instructions_multilinear`, `hash`, and `ending_pc` must be checked at initialization to match `code`.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Bytecode {
     pub unpadded_size: usize,
     pub code: Vec<CodeEntry>, // assumed to be well-formed

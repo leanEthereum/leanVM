@@ -1,6 +1,9 @@
 use backend::*;
+#[cfg(test)]
+use leansig_wrapper::xmss_verify;
+use leansig_wrapper::{MESSAGE_LENGTH, XmssPublicKey, XmssSignature, xmss_keygen_fast, xmss_sign_fast};
+use rand::SeedableRng;
 use rand::rngs::StdRng;
-use rand::{RngExt, SeedableRng};
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Sha3_256};
 use std::fs;
@@ -9,7 +12,9 @@ use std::sync::OnceLock;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Instant;
 
-use crate::*;
+pub fn message_for_benchmark() -> [u8; MESSAGE_LENGTH] {
+    BENCHMARK_MESSAGE
+}
 
 static SIGNERS_CACHE: OnceLock<Vec<(XmssPublicKey, XmssSignature)>> = OnceLock::new();
 
@@ -18,11 +23,11 @@ pub fn get_benchmark_signatures() -> &'static Vec<(XmssPublicKey, XmssSignature)
 }
 
 pub const BENCHMARK_SLOT: u32 = 111;
+pub const BENCHMARK_MESSAGE: [u8; MESSAGE_LENGTH] = [
+    78, 32, 21, 11, 1, 76, 255, 254, 0, 0, 22, 11, 11, 87, 87, 32, 11, 32, 11, 76, 23, 12, 11, 2, 2, 2, 2, 2, 2, 3, 4,
+    5,
+];
 pub const NUM_BENCHMARK_SIGNERS: usize = 10_000;
-
-pub fn message_for_benchmark() -> [F; MESSAGE_LEN_FE] {
-    std::array::from_fn(F::from_usize)
-}
 
 const CACHE_SCHEMA_VERSION: u32 = 2;
 
@@ -36,12 +41,9 @@ fn cache_footprint(first_pubkey: &XmssPublicKey) -> u128 {
     let mut hasher = Sha3_256::new();
     hasher.update(NUM_BENCHMARK_SIGNERS.to_le_bytes());
     hasher.update(BENCHMARK_SLOT.to_le_bytes());
-    for f in message_for_benchmark() {
-        hasher.update(f.as_canonical_u32().to_le_bytes());
-    }
-    for f in first_pubkey.merkle_root {
-        hasher.update(f.as_canonical_u32().to_le_bytes());
-    }
+    hasher.update(BENCHMARK_MESSAGE);
+    let pk_bytes = postcard::to_allocvec(first_pubkey).expect("pubkey serialization failed");
+    hasher.update(&pk_bytes);
     let hash = hasher.finalize();
     u128::from_le_bytes(hash[..16].try_into().unwrap())
 }
@@ -65,8 +67,8 @@ fn compute_signer(index: usize) -> (XmssPublicKey, XmssSignature) {
     let mut rng = StdRng::seed_from_u64(index as u64);
     let key_start = BENCHMARK_SLOT;
     let key_end = BENCHMARK_SLOT + 1;
-    let (sk, pk) = xmss_key_gen(rng.random(), key_start, key_end).unwrap();
-    let sig = xmss_sign(&mut rng, &sk, &message_for_benchmark(), BENCHMARK_SLOT).unwrap();
+    let (sk, pk) = xmss_keygen_fast(&mut rng, key_start, key_end);
+    let sig = xmss_sign_fast(&sk, &BENCHMARK_MESSAGE, BENCHMARK_SLOT).unwrap();
     (pk, sig)
 }
 
@@ -129,7 +131,7 @@ fn gen_benchmark_signers_cache() -> Vec<(XmssPublicKey, XmssSignature)> {
 fn test_signature_cache() {
     let signatures = get_benchmark_signatures();
     signatures.par_iter().enumerate().for_each(|(i, (pk, sig))| {
-        xmss_verify(pk, &message_for_benchmark(), sig, BENCHMARK_SLOT)
+        xmss_verify(pk, BENCHMARK_SLOT, &BENCHMARK_MESSAGE, sig)
             .unwrap_or_else(|_| panic!("Signature {} failed to verify", i));
     });
 }

@@ -1,7 +1,8 @@
 use backend::*;
 use lean_vm::*;
 use std::{array, collections::BTreeMap};
-use utils::{ToUsize, get_poseidon_16_of_zero, transposed_par_iter_mut};
+use tracing::info_span;
+use utils::{ToUsize, get_poseidon_16_of_zero, get_poseidon_24_of_zero, transposed_par_iter_mut};
 
 #[derive(Debug)]
 pub struct ExecutionTrace {
@@ -96,11 +97,18 @@ pub fn get_execution_trace(
 
     let mut memory_padded = memory.0.par_iter().map(|&v| v.unwrap_or(F::ZERO)).collect::<Vec<F>>();
 
-    // Write [0000000000000000 | poseidon_compress(0000000000000000)] (to make lookups work on padding-rows).
+    // Write [0000000000000000 | poseidon16_compress(0000000000000000) | poseidon24_compress(000000000000000000000000)] (to make lookups work on padding-rows).
     let padding_zero_vec_ptr = memory_padded.len();
     memory_padded.extend(std::iter::repeat_n(F::ZERO, 16));
     let null_poseidon_16_hash_ptr = memory_padded.len();
     memory_padded.extend_from_slice(get_poseidon_16_of_zero());
+    // poseidon16 padding rows read DIGEST_LEN*2 = 16 cells from `null_poseidon_16_hash_ptr` (the
+    // compression output lookup spans OUT_LO|OUT_HI), with OUT_HI = 0. Pad the null-16 region to 16
+    // cells of [hash(8) | 0(8)] so that read matches memory; otherwise the following null-24 hash
+    // would occupy those cells and break the Logup balance on padding rows.
+    memory_padded.extend(std::iter::repeat_n(F::ZERO, 8));
+    let null_poseidon_24_hash_ptr = memory_padded.len();
+    memory_padded.extend_from_slice(get_poseidon_24_of_zero());
 
     // IMPORTANT: memory size should always be >= number of VM cycles
     let padded_memory_len = (memory_padded.len().max(n_cycles).max(1 << MIN_LOG_N_ROWS_PER_TABLE)).next_power_of_two();
@@ -163,10 +171,32 @@ pub fn get_execution_trace(
             &mut traces,
             padding_zero_vec_ptr,
             null_poseidon_16_hash_ptr,
+            null_poseidon_24_hash_ptr,
             bytecode.ending_pc,
             floor,
         );
     }
+
+    // Ensure poseidon24 is always the smallest (last) table by padding other tables if needed.
+    // The recursive aggregation verifier assumes this ordering.
+    let p24_log = traces[&Table::poseidon24()].log_n_rows;
+    for &table in &[Table::extension_op(), Table::poseidon16()] {
+        if traces[&table].log_n_rows < p24_log {
+            let target = 1usize << p24_log;
+            let trace = traces.get_mut(&table).unwrap();
+            let padding = table.padding_row(padding_zero_vec_ptr, null_poseidon_16_hash_ptr, bytecode.ending_pc);
+            for (col, val) in trace.columns.iter_mut().zip(padding.iter()) {
+                col.resize(target, *val);
+            }
+            trace.log_n_rows = p24_log;
+        }
+    }
+
+    // Fill AIR trace columns (intermediate round states + outputs).
+    // poseidon16 is filled earlier (before padding) together with its output override.
+    info_span!("Poseidon AIR trace fill").in_scope(|| {
+        fill_trace_poseidon_24(&mut traces.get_mut(&Table::poseidon24()).unwrap().columns);
+    });
 
     ExecutionTrace {
         traces,
@@ -180,21 +210,25 @@ fn pad_table(
     traces: &mut BTreeMap<Table, TableTrace>,
     zero_vec_ptr: usize,
     null_poseidon_16_hash_ptr: usize,
+    null_poseidon_24_hash_ptr: usize,
     ending_pc: usize,
     min_log_n_rows: usize,
 ) {
     let trace = traces.get_mut(table).unwrap();
     let h = trace.columns[0].len();
-    trace
-        .columns
-        .iter()
-        .enumerate()
-        .for_each(|(i, col)| assert_eq!(col.len(), h, "column {}, table {}", i, table.name()));
 
     trace.non_padded_n_rows = h;
     trace.log_n_rows = log2_ceil_usize(h + 1).max(min_log_n_rows);
     let n_rows = 1 << trace.log_n_rows;
-    let padding_row = table.padding_row(zero_vec_ptr, null_poseidon_16_hash_ptr, ending_pc);
+    // Each table interprets the null-hash argument it needs; poseidon24 uses the width-24
+    // null hash, all others use the width-16 one (or ignore it). `ending_pc` is used by the
+    // execution table only.
+    let null_hash_ptr = if *table == Table::poseidon24() {
+        null_poseidon_24_hash_ptr
+    } else {
+        null_poseidon_16_hash_ptr
+    };
+    let padding_row = table.padding_row(zero_vec_ptr, null_hash_ptr, ending_pc);
     trace.columns.par_iter_mut().enumerate().for_each(|(i, col)| {
         assert!(col.len() <= h); // potentially some columns have not been filled (in Poseidon -> we fill it later with SIMD + parallelism), but the first one should always be representative
         col.resize(n_rows, padding_row[i]);

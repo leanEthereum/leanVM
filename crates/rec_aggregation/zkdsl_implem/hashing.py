@@ -163,6 +163,101 @@ def slice_hash_runtime(data, num_chunks):
     return final_state_ptr
 
 
+# leansig pubkey hashing: zero-IV sponge over `len` FE (arbitrary length, last chunk zero-padded).
+# Matches the Rust `poseidon_compress_slice_zero_iv`.
+def slice_hash_with_iv_dynamic_unroll(data, len, len_bits: Const):
+    remainder = modulo_8(len, len_bits)
+    num_full_elements = len - remainder
+    num_full_chunks = num_full_elements / 8
+
+    if num_full_chunks == 0:
+        left = Array(DIGEST_LEN)
+        fill_padded_chunk(left, data, remainder)
+        result = Array(DIGEST_LEN)
+        poseidon16_compress(ZERO_VEC_PTR, left, result)
+        return result
+
+    if num_full_chunks == 1:
+        if remainder == 0:
+            result = Array(DIGEST_LEN)
+            poseidon16_compress(ZERO_VEC_PTR, data, result)
+            return result
+        else:
+            h0 = Array(DIGEST_LEN)
+            poseidon16_compress(ZERO_VEC_PTR, data, h0)
+            right = Array(DIGEST_LEN)
+            fill_padded_chunk(right, data + DIGEST_LEN, remainder)
+            result = Array(DIGEST_LEN)
+            poseidon16_compress(h0, right, result)
+            return result
+
+    partial_hash = slice_hash_chunks_with_iv(data, num_full_chunks, len_bits)
+    if remainder == 0:
+        return partial_hash
+    else:
+        padded_last = Array(DIGEST_LEN)
+        fill_padded_chunk(padded_last, data + num_full_elements, remainder)
+        final_hash = Array(DIGEST_LEN)
+        poseidon16_compress(partial_hash, padded_last, final_hash)
+        return final_hash
+
+
+@inline
+def slice_hash_chunks_with_iv(data, num_chunks, num_chunks_bits):
+    debug_assert(1 < num_chunks)
+    states = Array(num_chunks * DIGEST_LEN)
+    poseidon16_compress(ZERO_VEC_PTR, data, states)
+    n_iters = num_chunks - 1
+    state_ptr: Mut = states
+    data_ptr: Mut = data + DIGEST_LEN
+
+    n_chunks_outer, remainder = euclidian_div_runtime(n_iters, PARTIAL_UNROLL_BATCH)
+    for _ in range(0, n_chunks_outer):
+        for _ in unroll(0, PARTIAL_UNROLL_BATCH):
+            new_state = state_ptr + DIGEST_LEN
+            poseidon16_compress(state_ptr, data_ptr, new_state)
+            state_ptr = new_state
+            data_ptr += DIGEST_LEN
+
+    final_state_ptr = match_range(
+        remainder,
+        range(0, PARTIAL_UNROLL_BATCH),
+        lambda r: absorb_n_hashes_const(r, state_ptr, data_ptr),
+    )
+    return final_state_ptr
+
+
+def fill_padded_chunk(dst, src, n):
+    debug_assert(0 < n)
+    debug_assert(n < DIGEST_LEN)
+    match_range(n, range(1, DIGEST_LEN), lambda r: fill_padded_chunk_const(dst, src, r))
+    return
+
+
+def fill_padded_chunk_const(dst, src, n: Const):
+    for i in unroll(0, n):
+        dst[i] = src[i]
+    for i in unroll(n, DIGEST_LEN):
+        dst[i] = 0
+    return
+
+
+def modulo_8(n, n_bits: Const):
+    debug_assert(2 < n_bits)
+    debug_assert(n < 2**n_bits)
+    bits = Array(n_bits)
+    hint_decompose_bits(n, bits, n_bits)
+    partial_sums = Array(n_bits)
+    partial_sums[0] = bits[n_bits - 1]
+    assert partial_sums[0] * (1 - partial_sums[0]) == 0
+    for i in unroll(1, n_bits):
+        b = bits[n_bits - 1 - i]
+        assert b * (1 - b) == 0
+        partial_sums[i] = partial_sums[i - 1] + b * 2**i
+    assert n == partial_sums[n_bits - 1]
+    return partial_sums[2]
+
+
 @inline
 def whir_do_4_merkle_levels(b, state_in, path_chunk, state_out):
     b0 = b % 2

@@ -5,15 +5,17 @@ use lean_prover::{
     WHIR_SUBSEQUENT_FOLDING_FACTOR, default_whir_config,
 };
 use lean_vm::*;
+use leansig_wrapper::{
+    LOG_LIFETIME, MSG_LEN_FE, PARAMETER_LEN, RAND_LEN_FE, TARGET_SUM, TWEAK_LEN_FE, V, W, WOTS_PUBKET_SPONGE_DOMAIN_SEP,
+};
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::sync::OnceLock;
 use sub_protocols::{N_VARS_TO_SEND_GKR_COEFFS, min_stacked_n_vars, total_whir_statements};
 use tracing::instrument;
 use utils::Counter;
-use xmss::{LOG_LIFETIME, MESSAGE_LEN_FE, PUBLIC_PARAM_LEN_FE, RANDOMNESS_LEN_FE, TARGET_SUM, V, W, XMSS_DIGEST_LEN};
 
+use crate::aggregation::TWEAK_TABLE_SIZE_FE_PADDED;
 use crate::bytecode_claims::bytecode_reduction_sumcheck_proof_size;
-use crate::type_1_aggregation::TWEAK_TABLE_SIZE_FE_PADDED;
 
 // preamble memory layout: see `build_preamble_memory` in utils.py:
 // [000.. (ZERO_VEC_LEN)][10000000 (fiat-shamir domain sep)][10000 (one in extension field)][111... (NUM_REPEATED_ONES)][tweak table]
@@ -27,18 +29,8 @@ pub(crate) const N_MERKLE_CHUNKS_FOR_SLOT: usize = LOG_LIFETIME / MERKLE_LEVELS_
 
 static BYTECODE: OnceLock<Bytecode> = OnceLock::new();
 
-pub fn get_aggregation_bytecode() -> &'static Bytecode {
-    BYTECODE
-        .get()
-        .unwrap_or_else(|| panic!("call init_aggregation_bytecode() first"))
-}
-
 pub fn try_get_aggregation_bytecode() -> Option<&'static Bytecode> {
     BYTECODE.get()
-}
-
-pub fn init_aggregation_bytecode() {
-    BYTECODE.get_or_init(compile_main_program_self_referential);
 }
 
 static EMBEDDED_ZK_DSL: include_dir::Dir<'_> = include_dir::include_dir!("$CARGO_MANIFEST_DIR/zkdsl_implem");
@@ -48,11 +40,11 @@ pub const MAX_XMSS_AGGREGATED: usize = 1 << 15; // TODO increase (we would need 
 pub const MAX_XMSS_DUPLICATES: usize = 1 << 15; // ...same
 
 pub(crate) const TYPE1_FLAG: usize = 1;
-pub(crate) const TYPE2_FLAG: usize = 0;
 
 pub(crate) const BYTECODE_CLAIM_OFFSET: usize = DIGEST_LEN;
-/// Type-1's component data: pubkeys_hash | message | merkle_chunks | tweaks_hash.
-pub(crate) const COMPONENT_DATA_SIZE: usize = DIGEST_LEN + MESSAGE_LEN_FE + N_MERKLE_CHUNKS_FOR_SLOT + DIGEST_LEN;
+/// Type-1's component data: pubkeys_hash | message | merkle_chunks | tweaks_hash, padded to DIGEST_LEN.
+pub(crate) const COMPONENT_DATA_SIZE: usize =
+    (DIGEST_LEN + MSG_LEN_FE + N_MERKLE_CHUNKS_FOR_SLOT + DIGEST_LEN).next_multiple_of(DIGEST_LEN);
 
 pub(crate) fn bytecode_claim_size_padded(program_log_size: usize) -> usize {
     let bytecode_point_n_vars = program_log_size + log2_ceil_usize(N_INSTRUCTION_COLUMNS);
@@ -69,6 +61,16 @@ pub(crate) fn component_data_offset(program_log_size: usize) -> usize {
 
 pub(crate) fn type1_input_data_size_padded(program_log_size: usize) -> usize {
     component_data_offset(program_log_size) + COMPONENT_DATA_SIZE
+}
+
+pub fn get_aggregation_bytecode() -> &'static Bytecode {
+    BYTECODE
+        .get()
+        .unwrap_or_else(|| panic!("call init_aggregation_bytecode() first"))
+}
+
+pub fn init_aggregation_bytecode() {
+    BYTECODE.get_or_init(compile_main_program_self_referential);
 }
 
 fn compile_main_program(program_log_size: usize, bytecode_zero_eval: F) -> Bytecode {
@@ -426,22 +428,29 @@ fn build_replacements(log_inner_bytecode: usize, bytecode_zero_eval: F) -> BTree
     // XMSS-specific replacements
     replacements.insert("V_PLACEHOLDER".to_string(), V.to_string());
     replacements.insert("W_PLACEHOLDER".to_string(), W.to_string());
+    replacements.insert("PUBLIC_PARAM_LEN_PLACEHOLDER".to_string(), PARAMETER_LEN.to_string());
+    replacements.insert("TWEAK_LEN_PLACEHOLDER".to_string(), TWEAK_LEN_FE.to_string());
     replacements.insert("TARGET_SUM_PLACEHOLDER".to_string(), TARGET_SUM.to_string());
     replacements.insert("LOG_LIFETIME_PLACEHOLDER".to_string(), LOG_LIFETIME.to_string());
-    replacements.insert("MESSAGE_LEN_PLACEHOLDER".to_string(), MESSAGE_LEN_FE.to_string());
-    replacements.insert("RANDOMNESS_LEN_PLACEHOLDER".to_string(), RANDOMNESS_LEN_FE.to_string());
-    replacements.insert(
-        "PUBLIC_PARAM_LEN_FE_PLACEHOLDER".to_string(),
-        PUBLIC_PARAM_LEN_FE.to_string(),
-    );
+    replacements.insert("MESSAGE_LEN_PLACEHOLDER".to_string(), MSG_LEN_FE.to_string());
+    replacements.insert("RANDOMNESS_LEN_PLACEHOLDER".to_string(), RAND_LEN_FE.to_string());
     replacements.insert(
         "MERKLE_LEVELS_PER_CHUNK_PLACEHOLDER".to_string(),
         MERKLE_LEVELS_PER_CHUNK_FOR_SLOT.to_string(),
     );
-    replacements.insert("XMSS_DIGEST_LEN_PLACEHOLDER".to_string(), XMSS_DIGEST_LEN.to_string());
+    replacements.insert(
+        "WOTS_PUBKET_SPONGE_DOMAIN_SEP_PLACEHOLDER".to_string(),
+        format!(
+            "[{}]",
+            WOTS_PUBKET_SPONGE_DOMAIN_SEP
+                .iter()
+                .map(|v| v.to_string())
+                .collect::<Vec<_>>()
+                .join(", ")
+        ),
+    );
 
     replacements.insert("TYPE_1_FLAG_PLACEHOLDER".to_string(), TYPE1_FLAG.to_string());
-    replacements.insert("TYPE_2_FLAG_PLACEHOLDER".to_string(), TYPE2_FLAG.to_string());
     replacements.insert(
         "MAX_XMSS_AGGREGATED_PLACEHOLDER".to_string(),
         MAX_XMSS_AGGREGATED.to_string(),
@@ -471,6 +480,7 @@ fn all_air_evals_in_zk_dsl() -> String {
     res += &air_eval_in_zk_dsl(ExecutionTable::<false> {});
     res += &air_eval_in_zk_dsl(ExtensionOpPrecompile::<false> {});
     res += &air_eval_in_zk_dsl(Poseidon16Precompile::<false> {});
+    res += &air_eval_in_zk_dsl(Poseidon24Precompile::<false> {});
     res
 }
 

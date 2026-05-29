@@ -8,7 +8,7 @@ use crate::{
         grammar::{ParsePair, Rule},
     },
 };
-use lean_vm::{ALL_POSEIDON16_NAMES, CUSTOM_HINTS, ExtensionOpMode};
+use lean_vm::{CUSTOM_HINTS, ExtensionOpMode};
 
 /// Reserved function names that users cannot define.
 pub const RESERVED_FUNCTION_NAMES: &[&str] = &[
@@ -26,15 +26,16 @@ pub const RESERVED_FUNCTION_NAMES: &[&str] = &[
     "range",
     "parallel_range",
     "match_range",
+    "poseidon16_compress",
+    "poseidon24_compress_0_9",
+    "poseidon24_permute_0_9",
+    "poseidon24_permute_9_18",
 ];
 
 /// Check if a function name is reserved.
 fn is_reserved_function_name(name: &str) -> bool {
     // Check static reserved names
     if RESERVED_FUNCTION_NAMES.contains(&name) || CUSTOM_HINTS.iter().any(|hint| hint.name() == name) {
-        return true;
-    }
-    if ALL_POSEIDON16_NAMES.contains(&name) {
         return true;
     }
     if ExtensionOpMode::from_name(name).is_some() {

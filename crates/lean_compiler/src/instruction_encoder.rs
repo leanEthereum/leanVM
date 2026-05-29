@@ -61,6 +61,9 @@ pub fn field_representation(instr: &Instruction) -> [F; N_INSTRUCTION_COLUMNS] {
                         + POSEIDON_FLAG_LEFT_SHIFT * flag_left
                         + POSEIDON_OFFSET_LEFT_SHIFT * offset_left_val
                 }
+                PrecompileCompTimeArgs::Poseidon24(mode) => {
+                    POSEIDON_24_DOMAINSEP_BASE + POSEIDON_24_DOMAINSEP_STEP * mode.as_usize()
+                }
                 PrecompileCompTimeArgs::ExtensionOp { size, mode } => {
                     assert!(*size >= 1, "invalid extension_op size={size}");
                     mode.flag_encoding() + EXT_OP_LEN_MULTIPLIER * size

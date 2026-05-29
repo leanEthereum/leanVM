@@ -126,7 +126,7 @@ pub const ALL_POSEIDON16_NAMES: [&str; 5] = [
 ];
 pub const HALF_DIGEST_LEN: usize = DIGEST_LEN / 2;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
 pub struct Poseidon16Precompile<const BUS: bool>;
 
 impl<const BUS: bool> TableT for Poseidon16Precompile<BUS> {

@@ -3,29 +3,29 @@ use backend::*;
 use lean_prover::fiat_shamir_domain_sep;
 use lean_prover::prove_execution::{ExecutionProof, prove_execution};
 use lean_vm::*;
-use tracing::instrument;
-use utils::poseidon_compress_slice;
-use xmss::CHAIN_LENGTH;
-use xmss::make_tweak;
-use xmss::{
-    LOG_LIFETIME, MESSAGE_LEN_FE, PUB_KEY_FLAT_SIZE, TWEAK_TYPE_CHAIN, TWEAK_TYPE_ENCODING, TWEAK_TYPE_MERKLE,
-    TWEAK_TYPE_WOTS_PK, V, WOTS_SIG_SIZE_FE, XmssPublicKey, XmssSignature,
+use leansig_wrapper::{
+    BASE, HASH_LEN_FE, LOG_LIFETIME, MESSAGE_LENGTH, MSG_LEN_FE, PARAMETER_LEN, SIG_SIZE_FE, V, XmssPublicKey,
+    XmssSignature, chain_tweak, merkle_tweak, pubkey_merkle_root, pubkey_public_parameter, xmmss_revealed_chain_tips,
+    xmss_encode_message, xmss_merkle_path, xmss_randomness,
 };
+use tracing::instrument;
+use utils::{poseidon_compress_slice, poseidon_compress_slice_zero_iv};
 
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 use crate::InnerVerified;
-use crate::bytecode_claims::compute_bytecode_value_at;
+use crate::bytecode_claims::evaluation_for_bytecode_point;
 use crate::bytecode_claims::flatten_bytecode_claim;
 use crate::bytecode_claims::reduce_bytecode_claims;
 use crate::compilation::{
     BYTECODE_CLAIM_OFFSET, MAX_RECURSIONS, MAX_XMSS_AGGREGATED, MAX_XMSS_DUPLICATES, N_MERKLE_CHUNKS_FOR_SLOT,
-    PREAMBLE_MEMORY_LEN, TYPE1_FLAG, get_aggregation_bytecode, try_get_aggregation_bytecode,
-    type1_input_data_size_padded,
+    PREAMBLE_MEMORY_LEN, TYPE1_FLAG, get_aggregation_bytecode, type1_input_data_size_padded,
 };
-use crate::decompress_size_prepended_bounded;
-use crate::verify_inner;
+use crate::{lz4_postcard_decode, lz4_postcard_encode, verify_inner};
+
+const CHAIN_LENGTH: usize = BASE;
+const PUB_KEY_FLAT_SIZE: usize = HASH_LEN_FE + PARAMETER_LEN;
 
 /// Number of tweaks in the table: 1 encoding + V*CHAIN_LENGTH chains + 1 wots_pk + LOG_LIFETIME merkle
 pub(crate) const N_TWEAKS: usize = 1 + V * CHAIN_LENGTH + 1 + LOG_LIFETIME;
@@ -37,47 +37,38 @@ pub(crate) const TWEAK_TABLE_SIZE_FE_PADDED: usize = (N_TWEAKS * TWEAK_SLOT_SIZE
 pub(crate) struct Digest(pub [F; DIGEST_LEN]);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TypeOneInfo {
-    pub message: [F; MESSAGE_LEN_FE],
-    pub slot: u32,
+pub struct AggregatedXMSSInfo {
+    pub without_pubkeys: AggregatedXMSSInfoWithoutPubkeys,
     pub pubkeys: Vec<XmssPublicKey>,
-    pub bytecode_claim: Evaluation<EF>, // value is trusted to be correct (should be recomputed when receiving a proof from an untrusted source)
 }
 
 // Aggregation of many signatures, all sharing the same (message, slot)
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TypeOneMultiSignature {
-    pub info: TypeOneInfo,
+pub struct AggregatedXMSS {
+    pub info: AggregatedXMSSInfo,
     pub proof: ExecutionProof,
 }
 
-impl Serialize for TypeOneInfo {
+impl Serialize for AggregatedXMSSInfo {
     fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
-        (&self.message, &self.slot, &self.pubkeys, &self.bytecode_claim.point).serialize(s)
+        (&self.without_pubkeys, &self.pubkeys).serialize(s)
     }
 }
 
-impl<'de> Deserialize<'de> for TypeOneInfo {
+impl<'de> Deserialize<'de> for AggregatedXMSSInfo {
     fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
-        let (message, slot, pubkeys, bytecode_claim_point) =
-            <([F; MESSAGE_LEN_FE], u32, Vec<XmssPublicKey>, MultilinearPoint<EF>)>::deserialize(d)?;
-        let bytecode =
-            try_get_aggregation_bytecode().ok_or_else(|| serde::de::Error::custom("bytecode not initialized"))?;
-        if bytecode_claim_point.len() != bytecode.cumulated_n_vars() {
-            return Err(serde::de::Error::custom("invalid bytecode point"));
+        let (without_pubkeys, pubkeys) = <(AggregatedXMSSInfoWithoutPubkeys, Vec<XmssPublicKey>)>::deserialize(d)?;
+        if !pubkeys.is_sorted() {
+            return Err(serde::de::Error::custom("unsorted pubkeys"));
         }
-        check_type_one_pubkeys(&pubkeys).map_err(serde::de::Error::custom)?;
-        let bytecode_value = compute_bytecode_value_at(&bytecode_claim_point);
         Ok(Self {
-            message,
-            slot,
+            without_pubkeys,
             pubkeys,
-            bytecode_claim: Evaluation::new(bytecode_claim_point, bytecode_value),
         })
     }
 }
 
-pub(crate) fn check_type_one_pubkeys(pubkeys: &[XmssPublicKey]) -> Result<(), &'static str> {
+pub(crate) fn check_aggregation_pubkeys(pubkeys: &[XmssPublicKey]) -> Result<(), &'static str> {
     if pubkeys.is_empty() {
         return Err("pubkeys must be non-empty");
     }
@@ -90,16 +81,24 @@ pub(crate) fn check_type_one_pubkeys(pubkeys: &[XmssPublicKey]) -> Result<(), &'
     Ok(())
 }
 
-impl TypeOneMultiSignature {
+impl AggregatedXMSS {
     pub fn compress(&self) -> Vec<u8> {
-        let encoded = postcard::to_allocvec(self).expect("postcard serialization failed");
-        lz4_flex::compress_prepend_size(&encoded)
+        lz4_postcard_encode(self)
     }
 
     pub fn decompress(bytes: &[u8]) -> Option<Self> {
-        let decompressed = decompress_size_prepended_bounded(bytes)?;
-        let (value, rest) = postcard::take_from_bytes::<Self>(&decompressed).ok()?;
-        rest.is_empty().then_some(value)
+        lz4_postcard_decode(bytes)
+    }
+
+    pub fn compress_without_pubkeys(&self) -> Vec<u8> {
+        lz4_postcard_encode(&(&self.info.without_pubkeys, &self.proof))
+    }
+
+    pub fn decompress_without_pubkeys(bytes: &[u8], pubkeys: Vec<XmssPublicKey>) -> Option<Self> {
+        let (without_pubkeys, proof) =
+            lz4_postcard_decode::<(AggregatedXMSSInfoWithoutPubkeys, ExecutionProof)>(bytes)?;
+        let info = without_pubkeys.with_pubkeys(pubkeys)?;
+        Some(Self { info, proof })
     }
 
     pub(crate) fn bytecode_claim_flat(&self) -> Vec<F> {
@@ -107,19 +106,65 @@ impl TypeOneMultiSignature {
     }
 }
 
-impl TypeOneInfo {
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AggregatedXMSSInfoWithoutPubkeys {
+    pub message: [u8; MESSAGE_LENGTH],
+    pub slot: u32,
+    pub bytecode_claim: Evaluation<EF>,
+}
+
+impl Serialize for AggregatedXMSSInfoWithoutPubkeys {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        (&self.message, &self.slot, &self.bytecode_claim.point).serialize(s)
+    }
+}
+
+impl<'de> Deserialize<'de> for AggregatedXMSSInfoWithoutPubkeys {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        let (message, slot, bytecode_claim_point) =
+            <([u8; MESSAGE_LENGTH], u32, MultilinearPoint<EF>)>::deserialize(d)?;
+        let bytecode_claim = evaluation_for_bytecode_point(bytecode_claim_point)
+            .ok_or_else(|| serde::de::Error::custom("invalid bytecode point"))?;
+        Ok(Self {
+            message,
+            slot,
+            bytecode_claim,
+        })
+    }
+}
+
+impl AggregatedXMSSInfoWithoutPubkeys {
+    pub(crate) fn with_pubkeys(self, mut pubkeys: Vec<XmssPublicKey>) -> Option<AggregatedXMSSInfo> {
+        pubkeys.sort();
+        pubkeys.dedup();
+        Some(AggregatedXMSSInfo {
+            without_pubkeys: self,
+            pubkeys,
+        })
+    }
+}
+
+impl AggregatedXMSSInfo {
     pub(crate) fn bytecode_claim_flat(&self) -> Vec<F> {
-        flatten_bytecode_claim(&self.bytecode_claim)
+        flatten_bytecode_claim(&self.without_pubkeys.bytecode_claim)
+    }
+
+    pub fn compress_without_pubkeys(&self) -> Vec<u8> {
+        lz4_postcard_encode(&self.without_pubkeys)
+    }
+
+    pub fn decompress_without_pubkeys(bytes: &[u8], pubkeys: Vec<XmssPublicKey>) -> Option<Self> {
+        lz4_postcard_decode::<AggregatedXMSSInfoWithoutPubkeys>(bytes)?.with_pubkeys(pubkeys)
     }
 
     pub(crate) fn build_input_data(&self) -> Vec<F> {
-        let tweak_table = compute_tweak_table(self.slot);
+        let tweak_table = compute_tweak_table(self.without_pubkeys.slot);
         let tweaks_hash = poseidon_compress_slice(&tweak_table);
-        build_type1_input_data(
+        build_aggregation_input_data(
             self.pubkeys.len(),
             &hash_pubkeys(&self.pubkeys),
-            &self.message,
-            self.slot,
+            &xmss_encode_message(&self.without_pubkeys.message),
+            self.without_pubkeys.slot,
             &tweaks_hash,
             &self.bytecode_claim_flat(),
             get_aggregation_bytecode(),
@@ -127,37 +172,53 @@ impl TypeOneInfo {
     }
 }
 
+fn pub_key_flat(pk: &XmssPublicKey) -> Vec<F> {
+    let mut data = Vec::with_capacity(PUB_KEY_FLAT_SIZE);
+    data.extend_from_slice(&pubkey_merkle_root(pk));
+    data.extend_from_slice(&pubkey_public_parameter(pk));
+    data
+}
+
 pub(crate) fn hash_pubkeys(pub_keys: &[XmssPublicKey]) -> [F; DIGEST_LEN] {
-    let flat: Vec<F> = pub_keys.iter().flat_map(|pk| pk.flaten().into_iter()).collect();
-    poseidon_compress_slice(&flat)
+    // leansig pubkeys are PUB_KEY_FLAT_SIZE=13 FE each (not 8-aligned) -> zero-IV remainder hash,
+    // matching the zkDSL `slice_hash_with_iv_dynamic_unroll`.
+    let flat: Vec<F> = pub_keys.iter().flat_map(pub_key_flat).collect();
+    poseidon_compress_slice_zero_iv(&flat)
 }
 
 /// Tweak slots are 4-FE [tw[0], tw[1], 0, 0]
 fn compute_tweak_table(slot: u32) -> Vec<F> {
     let mut table = Vec::new();
 
-    let push_padded = |table: &mut Vec<F>, tweak_type: usize, sub_position: usize, index: u32| {
-        table.extend(make_tweak(tweak_type, sub_position, index));
+    let push_padded = |table: &mut Vec<F>, tweak: [F; 2]| {
+        table.extend(tweak);
         table.extend(std::iter::repeat_n(F::ZERO, 2));
     };
 
-    // Encoding tweak
-    push_padded(&mut table, TWEAK_TYPE_ENCODING, 0, slot);
+    // Encoding tweak: encode_epoch(slot) = ((slot << 8) | TWEAK_SEPARATOR_MSG) in base-p
+    let acc = ((slot as u64) << 8) | 0x02u64;
+    let encoding_tweak = [F::from_u64(acc % F::ORDER_U64), F::from_u64(acc / F::ORDER_U64)];
+    push_padded(&mut table, encoding_tweak);
 
     // Chain tweaks
     for i in 0..V {
         for s in 0..CHAIN_LENGTH {
-            push_padded(&mut table, TWEAK_TYPE_CHAIN, i * CHAIN_LENGTH + s, slot);
+            push_padded(&mut table, chain_tweak(slot, i as u32, s as u32));
         }
     }
 
-    // WOTS_PK tweak
-    push_padded(&mut table, TWEAK_TYPE_WOTS_PK, 0, slot);
+    // Leaf tweak: tree_tweak(0, slot) for hashing chain ends into a leaf node
+    push_padded(&mut table, merkle_tweak(0, slot));
 
     // Merkle tweaks
     for level in 0..LOG_LIFETIME {
-        let parent_index = ((slot as u64) >> (level + 1)) as u32;
-        push_padded(&mut table, TWEAK_TYPE_MERKLE, level + 1, parent_index);
+        let parent_level = level + 1;
+        let parent_index = if parent_level < 32 {
+            ((slot as u64) >> parent_level) as u32
+        } else {
+            0
+        };
+        push_padded(&mut table, merkle_tweak(parent_level, parent_index));
     }
     table.resize(TWEAK_TABLE_SIZE_FE_PADDED, F::ZERO);
     table
@@ -173,10 +234,10 @@ fn compute_merkle_chunks_for_slot(slot: u32) -> Vec<F> {
 }
 
 /// Layout: [prefix(8) | bytecode_claim_padded | initial_fiat_shamir_cap(8) | pubkeys_hash | message | merkle_chunks | tweaks_hash].
-pub(crate) fn build_type1_input_data(
+pub(crate) fn build_aggregation_input_data(
     n_sigs: usize,
     pubkeys_hash: &[F; DIGEST_LEN],
-    message: &[F; MESSAGE_LEN_FE],
+    message: &[F; MSG_LEN_FE],
     slot: u32,
     tweaks_hash: &[F; DIGEST_LEN],
     bytecode_claim_flat: &[F],
@@ -195,44 +256,100 @@ pub(crate) fn build_type1_input_data(
     data.extend_from_slice(message);
     data.extend(compute_merkle_chunks_for_slot(slot));
     data.extend_from_slice(tweaks_hash);
+    // Pad up to a multiple of DIGEST_LEN so slice_hash_with_iv consumes the whole buffer.
+    data.resize(data.len().next_multiple_of(DIGEST_LEN), F::ZERO);
     data
 }
 
-fn encode_wots_signature(sig: &XmssSignature) -> Vec<F> {
+fn encode_xmss_signature(sig: &XmssSignature) -> Vec<F> {
     let mut data = vec![];
-    data.extend(sig.wots_signature.randomness.to_vec());
-    data.extend(sig.wots_signature.chain_tips.iter().flat_map(|digest| digest.to_vec()));
-    assert_eq!(data.len(), WOTS_SIG_SIZE_FE);
+    data.extend_from_slice(xmss_randomness(sig));
+    data.extend(
+        xmmss_revealed_chain_tips(sig)
+            .iter()
+            .flat_map(|digest| digest.iter().copied()),
+    );
+    data.extend(xmss_merkle_path(sig).iter().flat_map(|digest| digest.iter().copied()));
+    assert_eq!(data.len(), SIG_SIZE_FE);
     data
 }
 
-// assumes `bytecode_value` in TypeOneMultiSignature::proof is correct (it should not be read / deserialized from an untrusted source)
-pub fn verify_type_1(sig: &TypeOneMultiSignature) -> Result<InnerVerified, ProofError> {
-    check_type_one_pubkeys(&sig.info.pubkeys).map_err(|_| ProofError::InvalidProof)?;
+// assumes `bytecode_value` in AggregatedXMSS::proof is correct (it should not be read / deserialized from an untrusted source)
+pub(crate) fn verify_aggregation(sig: &AggregatedXMSS) -> Result<InnerVerified, ProofError> {
+    check_aggregation_pubkeys(&sig.info.pubkeys).map_err(|_| ProofError::InvalidProof)?;
     verify_inner(sig.info.build_input_data(), sig.proof.proof.clone())
+}
+
+/// Verify an aggregated multi-signature against the expected `pub_keys`, `message` and `slot`.
+pub fn xmss_verify_aggregation(
+    pub_keys: Vec<XmssPublicKey>,
+    agg_sig: &AggregatedXMSS,
+    message: &[u8; MESSAGE_LENGTH],
+    slot: u32,
+) -> Result<InnerVerified, ProofError> {
+    let mut pub_keys = pub_keys;
+    pub_keys.sort();
+    pub_keys.dedup();
+    if pub_keys != agg_sig.info.pubkeys
+        || agg_sig.info.without_pubkeys.message != *message
+        || agg_sig.info.without_pubkeys.slot != slot
+    {
+        return Err(ProofError::InvalidProof);
+    }
+    verify_aggregation(agg_sig)
 }
 
 /// Aggregate raw XMSS signatures and previously aggregated multi-signatures.
 /// Type 1 = single message, single slot.
 #[instrument(skip_all)]
-pub fn aggregate_type_1(
-    children: &[TypeOneMultiSignature],
+pub(crate) fn aggregate(
+    children: &[AggregatedXMSS],
     raw_xmss: Vec<(XmssPublicKey, XmssSignature)>,
-    message: [F; MESSAGE_LEN_FE],
+    message: [u8; MESSAGE_LENGTH],
     slot: u32,
     log_inv_rate: usize,
-) -> Result<TypeOneMultiSignature, AggregationError> {
-    aggregate_type_1_with_min_padding(children, raw_xmss, message, slot, log_inv_rate, BTreeMap::new())
+) -> Result<AggregatedXMSS, AggregationError> {
+    xmss_aggregate_with_min_padding(children, raw_xmss, message, slot, log_inv_rate, BTreeMap::new())
 }
 
-pub(crate) fn aggregate_type_1_with_min_padding(
-    children: &[TypeOneMultiSignature],
+/// Aggregate raw XMSS signatures and previously aggregated multi-signatures, all sharing the
+/// given `message`/`slot`. Each child is `(pub_keys, signature)`; `pub_keys` must match those
+/// bound inside the signature.
+///
+/// Returns the sorted, deduplicated union of all signers alongside the aggregated signature.
+pub fn xmss_aggregate(
+    children: &[(&[XmssPublicKey], AggregatedXMSS)],
+    raw_xmss: Vec<(XmssPublicKey, XmssSignature)>,
+    message: &[u8; MESSAGE_LENGTH],
+    slot: u32,
+    log_inv_rate: usize,
+) -> Result<(Vec<XmssPublicKey>, AggregatedXMSS), AggregationError> {
+    let mut child_sigs = Vec::with_capacity(children.len());
+    for (pub_keys, agg) in children {
+        let mut pub_keys = pub_keys.to_vec();
+        pub_keys.sort();
+        pub_keys.dedup();
+        if pub_keys != agg.info.pubkeys
+            || agg.info.without_pubkeys.message != *message
+            || agg.info.without_pubkeys.slot != slot
+        {
+            return Err(AggregationError::InvalidChildProof(ProofError::InvalidProof));
+        }
+        child_sigs.push(agg.clone());
+    }
+    let aggregated = aggregate(&child_sigs, raw_xmss, *message, slot, log_inv_rate)?;
+    let pub_keys = aggregated.info.pubkeys.clone();
+    Ok((pub_keys, aggregated))
+}
+
+pub(crate) fn xmss_aggregate_with_min_padding(
+    children: &[AggregatedXMSS],
     mut raw_xmss: Vec<(XmssPublicKey, XmssSignature)>,
-    message: [F; MESSAGE_LEN_FE],
+    message: [u8; MESSAGE_LENGTH],
     slot: u32,
     log_inv_rate: usize,
     min_table_log_n_rows: BTreeMap<Table, usize>,
-) -> Result<TypeOneMultiSignature, AggregationError> {
+) -> Result<AggregatedXMSS, AggregationError> {
     if children.len() > MAX_RECURSIONS {
         return Err(AggregationError::LimitExceeded {
             what: "aggregation children",
@@ -241,19 +358,19 @@ pub(crate) fn aggregate_type_1_with_min_padding(
         });
     }
     for child in children {
-        if child.info.message != message {
+        if child.info.without_pubkeys.message != message {
             return Err(AggregationError::InconsistentChildren {
                 what: "all children of a type-1 aggregation must share the same message",
             });
         }
-        if child.info.slot != slot {
+        if child.info.without_pubkeys.slot != slot {
             return Err(AggregationError::InconsistentChildren {
                 what: "all children of a type-1 aggregation must share the same slot",
             });
         }
     }
     let message = &message;
-    let verified_children: Vec<InnerVerified> = children.iter().map(verify_type_1).collect::<Result<_, _>>()?;
+    let verified_children: Vec<InnerVerified> = children.iter().map(verify_aggregation).collect::<Result<_, _>>()?;
     let children: Vec<&[XmssPublicKey]> = children.iter().map(|c| c.info.pubkeys.as_slice()).collect();
     let children = children.as_slice();
 
@@ -293,10 +410,10 @@ pub(crate) fn aggregate_type_1_with_min_padding(
 
     let reduced_claims = reduce_bytecode_claims(&verified_children);
 
-    let pub_input_data = build_type1_input_data(
+    let pub_input_data = build_aggregation_input_data(
         n_sigs,
         &hash_pubkeys(&global_pub_keys),
-        message,
+        &xmss_encode_message(message),
         slot,
         &tweaks_hash,
         &reduced_claims.final_claim_flat(),
@@ -307,11 +424,7 @@ pub(crate) fn aggregate_type_1_with_min_padding(
     let mut claimed: HashSet<XmssPublicKey> = HashSet::new();
     let mut dup_pub_keys: Vec<XmssPublicKey> = Vec::new();
 
-    let wots_blobs: Vec<Vec<F>> = raw_xmss.iter().map(|(_, sig)| encode_wots_signature(sig)).collect();
-    let xmss_merkle_node_blobs: Vec<Vec<F>> = raw_xmss
-        .iter()
-        .flat_map(|(_, sig)| sig.merkle_proof.iter().map(|d| d.to_vec()))
-        .collect();
+    let xmss_signature_blobs: Vec<Vec<F>> = raw_xmss.iter().map(|(_, sig)| encode_xmss_signature(sig)).collect();
 
     let raw_indices: Vec<F> = raw_xmss
         .iter()
@@ -326,7 +439,7 @@ pub(crate) fn aggregate_type_1_with_min_padding(
     let mut bytecode_value_hint_blobs = Vec::with_capacity(n_recursions);
     let mut inner_bytecode_claim_blobs = Vec::with_capacity(n_recursions);
     let mut proof_transcript_blobs = Vec::with_capacity(n_recursions);
-    let mut table_sort_perm_blobs = Vec::with_capacity(n_recursions);
+    let mut table_sort_perm_blobs: Vec<Vec<F>> = Vec::with_capacity(n_recursions);
 
     let claim_size_padded = bytecode_claim_size.next_multiple_of(DIGEST_LEN);
 
@@ -363,10 +476,10 @@ pub(crate) fn aggregate_type_1_with_min_padding(
 
     let mut pubkeys_blob: Vec<F> = Vec::with_capacity((n_sigs + n_dup) * PUB_KEY_FLAT_SIZE);
     for pk in &global_pub_keys {
-        pubkeys_blob.extend_from_slice(&pk.flaten());
+        pubkeys_blob.extend(pub_key_flat(pk));
     }
     for pk in &dup_pub_keys {
-        pubkeys_blob.extend_from_slice(&pk.flaten());
+        pubkeys_blob.extend(pub_key_flat(pk));
     }
 
     let (merkle_leaf_blobs, merkle_path_blobs) =
@@ -394,8 +507,6 @@ pub(crate) fn aggregate_type_1_with_min_padding(
     let fast_path = n_recursions == 1 && raw_count == 0 && dup_pub_keys.is_empty();
     let sub_indices_for_hints = if fast_path { Vec::new() } else { sub_indices_blobs };
     hints.insert("sub_indices".to_string(), sub_indices_for_hints);
-    // Standard type-1 (not a split).
-    hints.insert("is_split".to_string(), vec![vec![F::ZERO]]);
     hints.insert("bytecode_value_hint".to_string(), bytecode_value_hint_blobs);
     hints.insert("inner_bytecode_claim".to_string(), inner_bytecode_claim_blobs);
     hints.insert(
@@ -407,8 +518,7 @@ pub(crate) fn aggregate_type_1_with_min_padding(
     );
     hints.insert("proof_transcript".to_string(), proof_transcript_blobs);
     hints.insert("table_sort_perm".to_string(), table_sort_perm_blobs);
-    hints.insert("wots".to_string(), wots_blobs);
-    hints.insert("xmss_merkle_node".to_string(), xmss_merkle_node_blobs);
+    hints.insert("xmss_signature".to_string(), xmss_signature_blobs);
     hints.insert("merkle_leaf".to_string(), merkle_leaf_blobs);
     hints.insert("merkle_path".to_string(), merkle_path_blobs);
     hints.insert("aggregate_sizes".to_string(), vec![aggregate_sizes]);
@@ -427,12 +537,14 @@ pub(crate) fn aggregate_type_1_with_min_padding(
     };
     let proof = prove_execution(bytecode, &public_input, &witness, &whir_config, false)?;
 
-    Ok(TypeOneMultiSignature {
-        info: TypeOneInfo {
-            message: *message,
-            slot,
+    Ok(AggregatedXMSS {
+        info: AggregatedXMSSInfo {
+            without_pubkeys: AggregatedXMSSInfoWithoutPubkeys {
+                message: *message,
+                slot,
+                bytecode_claim: reduced_claims.final_claim,
+            },
             pubkeys: global_pub_keys,
-            bytecode_claim: reduced_claims.final_claim,
         },
         proof,
     })
@@ -457,7 +569,7 @@ pub(crate) fn extract_merkle_hint_blobs<'a>(
 mod tests {
     use super::*;
     use crate::compilation::init_aggregation_bytecode;
-    use xmss::signers_cache::{BENCHMARK_SLOT, get_benchmark_signatures, message_for_benchmark};
+    use crate::signatures_cache::{BENCHMARK_SLOT, get_benchmark_signatures, message_for_benchmark};
 
     /// Exercises the recursive-aggregation path when the inner proof has the
     /// extension-op table bigger than the execution table.
@@ -476,14 +588,13 @@ mod tests {
         let mut min_padding: BTreeMap<Table, usize> = BTreeMap::new();
         min_padding.insert(Table::extension_op(), extension_padding_log);
 
-        let inner =
-            aggregate_type_1_with_min_padding(&[], raws_inner, message, slot, log_inv_rate, min_padding).unwrap();
-        verify_type_1(&inner).unwrap();
+        let inner = xmss_aggregate_with_min_padding(&[], raws_inner, message, slot, log_inv_rate, min_padding).unwrap();
+        verify_aggregation(&inner).unwrap();
 
         let inner_metadata = inner.proof.metadata.as_ref().expect("inner metadata available");
         assert!(dbg!(inner_metadata.cycles) < 1usize << extension_padding_log,);
 
-        let outer = aggregate_type_1(&[inner], raws_outer, message, slot, log_inv_rate).unwrap();
-        verify_type_1(&outer).unwrap();
+        let outer = aggregate(&[inner], raws_outer, message, slot, log_inv_rate).unwrap();
+        verify_aggregation(&outer).unwrap();
     }
 }

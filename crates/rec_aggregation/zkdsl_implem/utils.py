@@ -39,10 +39,10 @@ def div_ceil_dynamic(a, b: Const):
 def powers(alpha, n):
     # alpha: EF
     # n: F
-    assert n < 400
+    assert n < 512
     assert 0 < n
     # 2**log2_ceil(i) is not really necessary but helps reduce byetcode size (traedoff cycles / bytecode size)
-    res = match_range(n, range(1, 400), lambda i: powers_const(alpha, 2 ** log2_ceil(i)))
+    res = match_range(n, range(1, 512), lambda i: powers_const(alpha, 2 ** log2_ceil(i)))
     return res
 
 
@@ -419,12 +419,43 @@ def set_to_8_zeros(a):
 
 
 @inline
+def set_to_9_zeros(a):
+    zero_ptr = ZERO_VEC_PTR
+    dot_product_ee(a, ONE_EF_PTR, zero_ptr)
+    dot_product_ee(a + (9 - DIM), ONE_EF_PTR, zero_ptr)
+    return
+
+
+@inline
 def set_to_16_zeros(a):
     zero_ptr = ZERO_VEC_PTR
     dot_product_ee(a, ONE_EF_PTR, zero_ptr)
     dot_product_ee(a + 5, ONE_EF_PTR, zero_ptr)
     dot_product_ee(a + 10, ONE_EF_PTR, zero_ptr)
     a[15] = 0
+    return
+
+
+@inline
+def copy_9(a, b):
+    dot_product_ee(a, ONE_EF_PTR, b)
+    dot_product_ee(a + (9 - DIM), ONE_EF_PTR, b + (9 - DIM))
+    return
+
+
+@inline
+def copy_13(a, b):
+    dot_product_ee(a, ONE_EF_PTR, b)
+    dot_product_ee(a + 5, ONE_EF_PTR, b + 5)
+    dot_product_ee(a + (13 - DIM), ONE_EF_PTR, b + (13 - DIM))
+    return
+
+
+@inline
+def copy_15(a, b):
+    copy_5(a, b)
+    copy_5(a + 5, b + 5)
+    copy_5(a + 10, b + 10)
     return
 
 
@@ -451,6 +482,16 @@ def copy_32(a, b):
         copy_5(a + i * DIM, b + i * DIM)
     if DIM * chunks != 32:
         copy_5(a + (32 - DIM), b + (32 - DIM))
+    return
+
+
+@inline
+def copy_40(a, b):
+    copy_8(a, b)
+    copy_8(a + 8, b + 8)
+    copy_8(a + 16, b + 16)
+    copy_8(a + 24, b + 24)
+    copy_8(a + 32, b + 32)
     return
 
 
@@ -569,14 +610,12 @@ def decompose_and_verify_merkle_query(a, domain_size, prev_root, num_chunks, lea
     partial_sum: Mut = nibbles[0]
     for i in unroll(1, 6):
         partial_sum += nibbles[i] * 16**i
-
-    # p = 2^31 - 2^24 + 1, so 2^24 * 127 = p - 1 ≡ -1 (mod p), hence inv(2^24) = -127.
-    # Deduce top7 from the identity partial_sum + top7 * 2^24 == a:
-    # top7 = (a - partial_sum) * inv(2^24) = (partial_sum - a) * 127
+    # top7 = (a - partial_sum) * inv(2^24) = (partial_sum - a) * 127  (inv(2^24) = -127 mod p)
     top7 = (partial_sum - a) * 127
     assert top7 < 2**7
     if top7 == 2**7 - 1:
         assert partial_sum == 0
+    assert partial_sum + top7 * 2**24 == a
 
     leaf_data = Array(num_chunks * DIGEST_LEN)
     hint_witness("merkle_leaf", leaf_data)

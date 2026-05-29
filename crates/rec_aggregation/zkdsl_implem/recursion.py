@@ -708,6 +708,8 @@ def evaluate_air_constraints(table_index, inner_evals, air_alpha_powers, logup_a
             res = evaluate_air_constraints_table_1(inner_evals, air_alpha_powers, logup_alphas_eq_poly)
         case 2:
             res = evaluate_air_constraints_table_2(inner_evals, air_alpha_powers, logup_alphas_eq_poly)
+        case 3:
+            res = evaluate_air_constraints_table_3(inner_evals, air_alpha_powers, logup_alphas_eq_poly)
     return res
 
 

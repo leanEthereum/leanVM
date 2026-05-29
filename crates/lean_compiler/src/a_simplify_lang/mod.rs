@@ -3,7 +3,7 @@ use backend::PrimeCharacteristicRing;
 use lean_vm::{
     ALL_POSEIDON16_NAMES, Boolean, BooleanExpr, CustomHint, ExtensionOpMode, FunctionName,
     POSEIDON16_HALF_HARDCODED_LEFT_NAME, POSEIDON16_HALF_NAME, POSEIDON16_HARDCODED_LEFT_NAME, POSEIDON16_PERMUTE_NAME,
-    PrecompileArgs, PrecompileCompTimeArgs, SourceLocation,
+    Poseidon24Mode, PrecompileArgs, PrecompileCompTimeArgs, SourceLocation,
 };
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -1848,6 +1848,38 @@ fn simplify_lines(
                                 arg_1: simplified_args[1].clone(),
                                 res: simplified_args[2].clone(),
                                 data: PrecompileCompTimeArgs::ExtensionOp { size, mode },
+                            }));
+                            continue;
+                        }
+
+                        // Special handling for poseidon24 precompile (3 variants).
+                        let p24_mode = match function_name.as_str() {
+                            "poseidon24_compress_0_9" => Some(Poseidon24Mode::Compress0_9),
+                            "poseidon24_permute_0_9" => Some(Poseidon24Mode::Permute0_9),
+                            "poseidon24_permute_9_18" => Some(Poseidon24Mode::Permute9_18),
+                            _ => None,
+                        };
+                        if let Some(mode) = p24_mode {
+                            if !targets.is_empty() {
+                                return Err(format!(
+                                    "Precompile {function_name} should not return values, at {location}"
+                                ));
+                            }
+                            if args.len() != 3 {
+                                return Err(format!(
+                                    "Precompile {function_name} expects 3 arguments (ptr_a, ptr_b, ptr_res), got {}, at {location}",
+                                    args.len()
+                                ));
+                            }
+                            let simplified_args = args
+                                .iter()
+                                .map(|arg| simplify_expr(ctx, state, const_malloc, arg, &mut res))
+                                .collect::<Result<Vec<_>, _>>()?;
+                            res.push(SimpleLine::Precompile(PrecompileArgs {
+                                arg_0: simplified_args[0].clone(),
+                                arg_1: simplified_args[1].clone(),
+                                res: simplified_args[2].clone(),
+                                data: PrecompileCompTimeArgs::Poseidon24(mode),
                             }));
                             continue;
                         }
