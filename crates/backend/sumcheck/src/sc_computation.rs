@@ -57,25 +57,6 @@ where
     }
 }
 
-fn parallel_sum<T, F>(size: usize, n: usize, compute_iteration: F) -> Vec<T>
-where
-    T: PrimeCharacteristicRing + Send + Sync,
-    F: Fn(usize) -> Vec<T> + Sync + Send,
-{
-    let accumulate = |mut acc: Vec<T>, sums: Vec<T>| {
-        for (j, sum) in sums.into_iter().enumerate() {
-            acc[j] += sum;
-        }
-        acc
-    };
-
-    if size < PARALLEL_THRESHOLD {
-        (0..size).fold(T::zero_vec(n), |acc, i| accumulate(acc, compute_iteration(i)))
-    } else {
-        parallel::map_reduce(size, || T::zero_vec(n), compute_iteration, accumulate)
-    }
-}
-
 fn build_evals<EF: ExtensionField<PF<EF>>>(
     sums: impl IntoIterator<Item = EF>,
     missing_mul_factor: Option<EF>,
@@ -206,7 +187,7 @@ where
                 extra_data,
                 missing_mul_factor,
                 packed_fold_size,
-                |sc, pf, ed| sc.eval_packed_extension(&pf, ed),
+                |sc, pf, ed| sc.eval_packed_extension(pf, ed),
                 packing_unpack_sum,
             )
         }
@@ -312,7 +293,7 @@ where
                 missing_mul_factor,
                 compute_fold_size,
                 |m, id| (m[id + prev_folded_size] - m[id]) * prev_folding_factor + m[id],
-                |sc, pf, ed| sc.eval_packed_extension(&pf, ed),
+                |sc, pf, ed| sc.eval_packed_extension(pf, ed),
                 packing_unpack_sum,
                 MleGroupOwned::ExtensionPacked,
             )
@@ -328,7 +309,7 @@ where
                 missing_mul_factor,
                 compute_fold_size,
                 |m, id| (m[id + prev_folded_size] - m[id]) * prev_folding_factor + m[id],
-                |sc, pf, ed| sc.eval_packed_extension(&pf, ed),
+                |sc, pf, ed| sc.eval_packed_extension(pf, ed),
                 packing_unpack_sum,
                 MleGroupOwned::ExtensionPacked,
             )
@@ -351,7 +332,7 @@ where
                 missing_mul_factor,
                 compute_fold_size,
                 |m, id| prev_folding_factor_packed * (m[id + prev_folded_size] - m[id]) + m[id],
-                |sc, pf, ed| sc.eval_packed_extension(&pf, ed),
+                |sc, pf, ed| sc.eval_packed_extension(pf, ed),
                 packing_unpack_sum,
                 MleGroupOwned::ExtensionPacked,
             )
@@ -367,7 +348,7 @@ where
                 missing_mul_factor,
                 compute_fold_size,
                 |m, id| prev_folding_factor * (m[id + prev_folded_size] - m[id]) + m[id],
-                |sc, pf, ed| sc.eval_extension(&pf, ed),
+                |sc, pf, ed| sc.eval_extension(pf, ed),
                 |s| s,
                 MleGroupOwned::Extension,
             )
@@ -383,7 +364,7 @@ where
                 missing_mul_factor,
                 compute_fold_size,
                 |m, id| (m[id + prev_folded_size] - m[id]) * prev_folding_factor + m[id],
-                |sc, pf, ed| sc.eval_extension(&pf, ed),
+                |sc, pf, ed| sc.eval_extension(pf, ed),
                 |s| s,
                 MleGroupOwned::Extension,
             )
@@ -480,7 +461,7 @@ fn sumcheck_fold_and_compute_core<EF, IF, FT, SC>(
     missing_mul_factor: Option<EF>,
     compute_fold_size: usize,
     fold_f: impl Fn(&[IF], usize) -> FT + Sync + Send,
-    eval_fn: impl Fn(&SC, Vec<FT>, &SC::ExtraData) -> FT + Sync + Send,
+    eval_fn: impl Fn(&SC, &[FT], &SC::ExtraData) -> FT + Sync + Send,
     unpack_sum: impl Fn(FT) -> EF,
     wrap_f: impl FnOnce(Vec<Vec<FT>>) -> MleGroupOwned<EF>,
 ) -> (Vec<EF>, MleGroupOwned<EF>)
@@ -496,13 +477,20 @@ where
         .map(|_| FT::zero_vec(prev_folded_size))
         .collect();
 
-    let compute_iteration = |i: usize| -> Vec<FT> {
-        let eq_mle_eval = eq_at(i);
+    // Per-worker scratch: `rows_f` (the [lo, diff, hi] triples) and `point` (the
+    // evaluation point handed to `eval_fn`) are reused across every task a worker
+    // owns, so the hot loop allocates nothing. `acc` (length `degree`) is the
+    // per-worker partial sum.
+    let n_mult = multilinears.len();
+    let sums = parallel::map_reduce_with_state(
+        compute_fold_size,
+        || (Vec::<[FT; 3]>::with_capacity(n_mult), Vec::<FT>::with_capacity(n_mult)),
+        || FT::zero_vec(degree),
+        |(rows_f, point), acc, i| {
+            let eq_mle_eval = eq_at(i);
 
-        let mut rows_f: Vec<[FT; 3]> = multilinears
-            .iter()
-            .enumerate()
-            .map(|(j, m)| {
+            rows_f.clear();
+            rows_f.extend(multilinears.iter().enumerate().map(|(j, m)| {
                 let lo = fold_f(m, i);
                 let hi = fold_f(m, i + compute_fold_size);
                 unsafe {
@@ -510,37 +498,39 @@ where
                     *ptr.add(i) = lo;
                     *ptr.add(i + compute_fold_size) = hi;
                 }
-                let diff_hi_lo = hi - lo;
-                [lo, diff_hi_lo, hi]
-            })
-            .collect();
+                [lo, hi - lo, hi]
+            }));
 
-        // z = 0
-        let point_0 = rows_f.iter().map(|row| row[0]).collect::<Vec<FT>>();
-        let mut eval_0 = eval_fn(computation, point_0, extra_data);
-        if let Some(eq) = eq_mle_eval {
-            eval_0 *= eq;
-        }
-
-        let mut evals = Vec::with_capacity(degree);
-        evals.push(eval_0);
-
-        // z = 2, 3, ...
-        for _ in 1..degree {
-            for [_, diff_hi_lo, running] in &mut rows_f {
-                *running += *diff_hi_lo;
-            }
-            let point_f = rows_f.iter().map(|row| row[2]).collect::<Vec<FT>>();
-            let mut eval = eval_fn(computation, point_f, extra_data);
+            // z = 0
+            point.clear();
+            point.extend(rows_f.iter().map(|row| row[0]));
+            let mut eval_0 = eval_fn(computation, point, extra_data);
             if let Some(eq) = eq_mle_eval {
-                eval *= eq;
+                eval_0 *= eq;
             }
-            evals.push(eval);
-        }
-        evals
-    };
+            acc[0] += eval_0;
 
-    let sums = parallel_sum(compute_fold_size, degree, compute_iteration);
+            // z = 2, 3, ...
+            for acc_d in acc.iter_mut().skip(1) {
+                for [_, diff_hi_lo, running] in rows_f.iter_mut() {
+                    *running += *diff_hi_lo;
+                }
+                point.clear();
+                point.extend(rows_f.iter().map(|row| row[2]));
+                let mut eval = eval_fn(computation, point, extra_data);
+                if let Some(eq) = eq_mle_eval {
+                    eval *= eq;
+                }
+                *acc_d += eval;
+            }
+        },
+        |mut a: Vec<FT>, b: Vec<FT>| {
+            for (x, y) in a.iter_mut().zip(b) {
+                *x += y;
+            }
+            a
+        },
+    );
     let unpacked_sums = sums.into_iter().map(&unpack_sum);
     (build_evals(unpacked_sums, missing_mul_factor), wrap_f(folded_f))
 }
@@ -554,7 +544,7 @@ fn sumcheck_compute_with_split_eq<EF, SC>(
     extra_data: &SC::ExtraData,
     missing_mul_factor: Option<EF>,
     fold_size: usize,
-    eval_fn: impl Fn(&SC, Vec<EFPacking<EF>>, &SC::ExtraData) -> EFPacking<EF> + Sync + Send,
+    eval_fn: impl Fn(&SC, &[EFPacking<EF>], &SC::ExtraData) -> EFPacking<EF> + Sync + Send,
     unpack_sum: impl Fn(EFPacking<EF>) -> EF,
 ) -> Vec<EF>
 where
@@ -567,58 +557,64 @@ where
     let eq_lo = &split_eq.eq_lo;
     let eq_hi = &split_eq.eq_hi_packed;
 
-    let zero = || EFPacking::<EF>::zero_vec(degree);
-    let accumulate = |mut acc: Vec<EFPacking<EF>>, vals: Vec<EFPacking<EF>>| -> Vec<EFPacking<EF>> {
-        for (a, v) in acc.iter_mut().zip(vals.iter()) {
-            *a += *v;
-        }
-        acc
-    };
-
-    let sums: Vec<EFPacking<EF>> = parallel::map_reduce(
+    // Per-worker scratch reused across every `b_lo` task: `rows` ([lo, diff, hi]
+    // triples), `point` (handed to `eval_fn`), and `block_acc` (per-`b_lo` partial
+    // sum, scaled by `eq_lo` before folding into the worker accumulator `acc`).
+    let n_mult = multilinears.len();
+    let sums: Vec<EFPacking<EF>> = parallel::map_reduce_with_state(
         n_lo,
-        zero,
-        |b_lo| {
+        || {
+            (
+                Vec::<[EFPacking<EF>; 3]>::with_capacity(n_mult),
+                Vec::<EFPacking<EF>>::with_capacity(n_mult),
+                EFPacking::<EF>::zero_vec(degree),
+            )
+        },
+        || EFPacking::<EF>::zero_vec(degree),
+        |(rows, point, block_acc), acc, b_lo| {
             let eq_lo_bc = EFPacking::<EF>::from(eq_lo[b_lo]);
             let base = b_lo << log_packed_hi;
-            let mut block_acc = zero();
+            block_acc.iter_mut().for_each(|x| *x = EFPacking::<EF>::ZERO);
             for k in 0..packed_hi {
                 let i = base + k;
                 let eq_val = eq_hi[k];
 
-                let mut rows = multilinears
-                    .iter()
-                    .map(|m| {
-                        let lo = m[i];
-                        let hi = m[i + fold_size];
-                        let diff = hi - lo;
-                        [lo, diff, hi]
-                    })
-                    .collect::<Vec<_>>();
+                rows.clear();
+                rows.extend(multilinears.iter().map(|m| {
+                    let lo = m[i];
+                    let hi = m[i + fold_size];
+                    [lo, hi - lo, hi]
+                }));
 
                 // z = 0
-                let p0 = rows.iter().map(|r| r[0]).collect();
-                let mut e0 = eval_fn(computation, p0, extra_data);
+                point.clear();
+                point.extend(rows.iter().map(|r| r[0]));
+                let mut e0 = eval_fn(computation, point, extra_data);
                 e0 *= eq_val;
                 block_acc[0] += e0;
 
                 // z = 2, 3, ...
                 for d in 1..degree {
-                    for [_, diff, running] in &mut rows {
+                    for [_, diff, running] in rows.iter_mut() {
                         *running += *diff;
                     }
-                    let pf = rows.iter().map(|r| r[2]).collect();
-                    let mut ev = eval_fn(computation, pf, extra_data);
+                    point.clear();
+                    point.extend(rows.iter().map(|r| r[2]));
+                    let mut ev = eval_fn(computation, point, extra_data);
                     ev *= eq_val;
                     block_acc[d] += ev;
                 }
             }
-            for a in &mut block_acc {
-                *a *= eq_lo_bc;
+            for (a, b) in acc.iter_mut().zip(block_acc.iter()) {
+                *a += *b * eq_lo_bc;
             }
-            block_acc
         },
-        accumulate,
+        |mut a: Vec<EFPacking<EF>>, b: Vec<EFPacking<EF>>| {
+            for (x, y) in a.iter_mut().zip(b) {
+                *x += y;
+            }
+            a
+        },
     );
 
     let unpacked = sums.into_iter().map(&unpack_sum);
@@ -636,7 +632,7 @@ fn sumcheck_fold_and_compute_with_split_eq<EF, IF, SC>(
     missing_mul_factor: Option<EF>,
     compute_fold_size: usize,
     fold_f: impl Fn(&[IF], usize) -> EFPacking<EF> + Sync + Send,
-    eval_fn: impl Fn(&SC, Vec<EFPacking<EF>>, &SC::ExtraData) -> EFPacking<EF> + Sync + Send,
+    eval_fn: impl Fn(&SC, &[EFPacking<EF>], &SC::ExtraData) -> EFPacking<EF> + Sync + Send,
     unpack_sum: impl Fn(EFPacking<EF>) -> EF,
     wrap_f: impl FnOnce(Vec<Vec<EFPacking<EF>>>) -> MleGroupOwned<EF>,
 ) -> (Vec<EF>, MleGroupOwned<EF>)
@@ -656,62 +652,68 @@ where
     let eq_lo = &split_eq.eq_lo;
     let eq_hi = &split_eq.eq_hi_packed;
 
-    let zero = || EFPacking::<EF>::zero_vec(degree);
-    let accumulate = |mut acc: Vec<EFPacking<EF>>, vals: Vec<EFPacking<EF>>| -> Vec<EFPacking<EF>> {
-        for (a, v) in acc.iter_mut().zip(vals.iter()) {
-            *a += *v;
-        }
-        acc
-    };
-
-    let sums: Vec<EFPacking<EF>> = parallel::map_reduce(
+    // Per-worker scratch reused across every `b_lo` task (see `sumcheck_compute_with_split_eq`):
+    // `rows_f` triples, `point` for `eval_fn`, and the per-`b_lo` `block_acc`.
+    let n_mult = multilinears.len();
+    let sums: Vec<EFPacking<EF>> = parallel::map_reduce_with_state(
         n_lo,
-        zero,
-        |b_lo| {
+        || {
+            (
+                Vec::<[EFPacking<EF>; 3]>::with_capacity(n_mult),
+                Vec::<EFPacking<EF>>::with_capacity(n_mult),
+                EFPacking::<EF>::zero_vec(degree),
+            )
+        },
+        || EFPacking::<EF>::zero_vec(degree),
+        |(rows_f, point, block_acc), acc, b_lo| {
             let eq_lo_bc = EFPacking::<EF>::from(eq_lo[b_lo]);
             let base = b_lo << log_packed_hi;
-            let mut block_acc = zero();
+            block_acc.iter_mut().for_each(|x| *x = EFPacking::<EF>::ZERO);
             for k in 0..packed_hi {
                 let i = base + k;
                 let eq_val = eq_hi[k];
 
-                let mut rows_f: Vec<[EFPacking<EF>; 3]> = multilinears
-                    .iter()
-                    .enumerate()
-                    .map(|(j, m)| {
-                        let lo = fold_f(m, i);
-                        let hi = fold_f(m, i + compute_fold_size);
-                        unsafe {
-                            let ptr = folded_f[j].as_ptr() as *mut EFPacking<EF>;
-                            *ptr.add(i) = lo;
-                            *ptr.add(i + compute_fold_size) = hi;
-                        }
-                        let diff = hi - lo;
-                        [lo, diff, hi]
-                    })
-                    .collect();
+                rows_f.clear();
+                rows_f.extend(multilinears.iter().enumerate().map(|(j, m)| {
+                    let lo = fold_f(m, i);
+                    let hi = fold_f(m, i + compute_fold_size);
+                    unsafe {
+                        let ptr = folded_f[j].as_ptr() as *mut EFPacking<EF>;
+                        *ptr.add(i) = lo;
+                        *ptr.add(i + compute_fold_size) = hi;
+                    }
+                    [lo, hi - lo, hi]
+                }));
 
-                let p0 = rows_f.iter().map(|r| r[0]).collect();
-                let mut e0 = eval_fn(computation, p0, extra_data);
+                // z = 0
+                point.clear();
+                point.extend(rows_f.iter().map(|r| r[0]));
+                let mut e0 = eval_fn(computation, point, extra_data);
                 e0 *= eq_val;
                 block_acc[0] += e0;
 
+                // z = 2, 3, ...
                 for d in 1..degree {
-                    for [_, diff, running] in &mut rows_f {
+                    for [_, diff, running] in rows_f.iter_mut() {
                         *running += *diff;
                     }
-                    let pf = rows_f.iter().map(|r| r[2]).collect();
-                    let mut ev = eval_fn(computation, pf, extra_data);
+                    point.clear();
+                    point.extend(rows_f.iter().map(|r| r[2]));
+                    let mut ev = eval_fn(computation, point, extra_data);
                     ev *= eq_val;
                     block_acc[d] += ev;
                 }
             }
-            for a in &mut block_acc {
-                *a *= eq_lo_bc;
+            for (a, b) in acc.iter_mut().zip(block_acc.iter()) {
+                *a += *b * eq_lo_bc;
             }
-            block_acc
         },
-        accumulate,
+        |mut a: Vec<EFPacking<EF>>, b: Vec<EFPacking<EF>>| {
+            for (x, y) in a.iter_mut().zip(b) {
+                *x += y;
+            }
+            a
+        },
     );
 
     let unpacked = sums.into_iter().map(&unpack_sum);
