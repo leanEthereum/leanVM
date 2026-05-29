@@ -73,10 +73,7 @@ where
     if size < PARALLEL_THRESHOLD {
         (0..size).fold(T::zero_vec(n), |acc, i| accumulate(acc, compute_iteration(i)))
     } else {
-        (0..size)
-            .into_par_iter()
-            .map(compute_iteration)
-            .reduce(|| T::zero_vec(n), accumulate)
+        parallel::map_reduce(size, || T::zero_vec(n), compute_iteration, accumulate)
     }
 }
 

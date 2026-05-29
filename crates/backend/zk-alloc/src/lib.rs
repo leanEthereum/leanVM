@@ -100,6 +100,13 @@ pub fn init() {
 /// Activates the arena and resets every thread's slab. All allocations until the next
 /// `end_phase()` go to the arena; the previous phase's data is overwritten in place.
 pub fn begin_phase() {
+    // Ensure the `parallel` thread pool is fully constructed *before* the arena goes
+    // active. Its persistent state must live in the system allocator: if it were
+    // lazily created during a phase it would land in a slab that the next
+    // `begin_phase()` recycles, corrupting the workers' barriers. Idempotent, so the
+    // cost after the first call is a single atomic load.
+    parallel::init();
+
     let prev_active = ARENA_ACTIVE.swap(true, Ordering::Release);
     assert!(
         !prev_active,

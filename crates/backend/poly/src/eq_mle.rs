@@ -2,12 +2,46 @@ use crate::*;
 use crate::{EFPacking, PF};
 use ::utils::{iter_array_chunks_padded, log2_ceil_usize, log2_strict_usize};
 use field::*;
-use rayon::prelude::*;
 use system_info::NUM_THREADS;
 
 const LOG_NUM_THREADS: usize = log2_ceil_usize(NUM_THREADS);
-const NUM_THREADS_PADDED: usize = 1 << LOG_NUM_THREADS;
 const LOG_BATCHED_TILE_SIZE: usize = 14;
+
+/// Oversubscription factor (log2) for the parallel fan-out: the prover's eq_mle
+/// kernels split the output into `NUM_THREADS << PARALLEL_LOG_OVERSUB` chunks rather
+/// than one per worker. Emitting more chunks than workers lets the pool's atomic
+/// task counter rebalance across heterogeneous cores (e.g. Apple P/E cores) instead
+/// of being bound by the slowest single chunk. `0` reproduces the one-chunk-per-
+/// worker behavior.
+///
+/// Default is `2` (4x): a deliberately conservative, machine-agnostic value. On the
+/// M-series Mac the benefit saturates by 2-3x and a higher factor (4-5x) is slightly
+/// faster, but those finer chunks risk regressing on many-core homogeneous CPUs
+/// (more contention on the shared counter, worse cache reuse), so we take the low
+/// end that captures most of the gain everywhere rather than the per-machine optimum.
+/// Exposed as a runtime knob so the benchmark can re-sweep on each target machine.
+pub static PARALLEL_LOG_OVERSUB: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(2);
+
+/// `(log2(n_chunks), n_chunks)` for the parallel fan-out, honoring [`PARALLEL_LOG_OVERSUB`].
+#[inline]
+fn parallel_split() -> (usize, usize) {
+    let log_chunks = LOG_NUM_THREADS + PARALLEL_LOG_OVERSUB.load(std::sync::atomic::Ordering::Relaxed);
+    (log_chunks, 1 << log_chunks)
+}
+
+/// Parallel equivalent of
+/// `out.par_chunks_exact_mut(chunk).zip(buf).enumerate().for_each(|(i, (c, _))| g(i, c, &buf[i]))`,
+/// dispatched through the in-house [`parallel`] pool. `chunk` must divide `out.len()`
+/// exactly into `buf.len()` chunks (the eq_mle fan-out always does).
+#[inline]
+fn par_chunks_zip<T, A, G>(out: &mut [T], chunk: usize, buf: &[A], g: G)
+where
+    T: Send,
+    A: Sync,
+    G: Fn(&mut [T], &A) + Sync,
+{
+    parallel::par_chunks_mut(out, chunk, |i, c| g(c, &buf[i]));
+}
 
 /// Given `evals` = (α_1, ..., α_n), returns a multilinear polynomial P in n variables,
 /// defined on the boolean hypercube by: ∀ (x_1, ..., x_n) ∈ {0, 1}^n,
@@ -105,7 +139,8 @@ where
 
     // If the number of variables is small, there is no need to use
     // parallelization or packings.
-    if eval.len() <= log_packing_width + 1 + LOG_NUM_THREADS {
+    let (log_chunks, n_chunks) = parallel_split();
+    if eval.len() <= log_packing_width + 1 + log_chunks {
         // A basic recursive approach.
         eval_eq_basic::<_, _, _, INITIALIZED>(eval, out, scalar);
         return;
@@ -114,16 +149,16 @@ where
     let eval_len_min_packing = eval.len() - log_packing_width;
 
     // We split eval into three parts:
-    // - eval[..LOG_NUM_THREADS] (the first LOG_NUM_THREADS elements)
-    // - eval[LOG_NUM_THREADS..eval_len_min_packing] (the middle elements)
+    // - eval[..log_chunks] (the first log_chunks elements)
+    // - eval[log_chunks..eval_len_min_packing] (the middle elements)
     // - eval[eval_len_min_packing..] (the last log_packing_width elements)
 
     // The middle elements are the ones which will be computed in parallel.
     // The last log_packing_width elements are the ones which will be packed.
 
-    // We make a buffer of elements of size `NUM_THREADS`.
-    let mut parallel_buffer = EF::ExtensionPacking::zero_vec(NUM_THREADS_PADDED);
-    let out_chunk_size = out.len() / NUM_THREADS_PADDED;
+    // We make a buffer with one entry per parallel chunk.
+    let mut parallel_buffer = EF::ExtensionPacking::zero_vec(n_chunks);
+    let out_chunk_size = out.len() / n_chunks;
 
     // Compute the equality polynomial corresponding to the last log_packing_width elements
     // and pack these.
@@ -131,18 +166,13 @@ where
 
     // Update the buffer so it contains the evaluations of the equality polynomial
     // with respect to parts one and three.
-    fill_buffer(eval[..LOG_NUM_THREADS].iter().rev(), &mut parallel_buffer);
+    fill_buffer(eval[..log_chunks].iter().rev(), &mut parallel_buffer);
 
     // Finally do all computations involving the middle elements in parallel.
-    out.par_chunks_exact_mut(out_chunk_size)
-        .zip(parallel_buffer.par_iter())
-        .for_each(|(out_chunk, buffer_val)| {
-            eval_eq_with_packed_scalar::<_, _, INITIALIZED>(
-                &eval[LOG_NUM_THREADS..(eval.len() - log_packing_width)],
-                out_chunk,
-                *buffer_val,
-            );
-        });
+    let middle = &eval[log_chunks..(eval.len() - log_packing_width)];
+    par_chunks_zip(out, out_chunk_size, &parallel_buffer, |out_chunk, buffer_val| {
+        eval_eq_with_packed_scalar::<_, _, INITIALIZED>(middle, out_chunk, *buffer_val);
+    });
 }
 
 #[inline]
@@ -168,12 +198,13 @@ where
 
     // If the number of variables is small, there is no need to use
     // parallelization or packings.
-    if eval.len() <= log_packing_width + 1 + LOG_NUM_THREADS {
-        // A basic recursive approach.
+    let (log_chunks, n_chunks) = parallel_split();
+    if eval.len() <= log_packing_width + 1 + log_chunks {
+        // A basic recursive approach. Small case: pack the result sequentially.
         let mut output_no_packing = EF::zero_vec(1 << eval.len());
         eval_eq_basic::<_, _, _, false>(eval, &mut output_no_packing, scalar);
-        out.par_iter_mut()
-            .zip(output_no_packing.par_chunks_exact(packing_width))
+        out.iter_mut()
+            .zip(output_no_packing.chunks_exact(packing_width))
             .for_each(|(out_elem, chunk)| {
                 if INITIALIZED {
                     *out_elem += EF::ExtensionPacking::from_ext_slice(chunk);
@@ -185,16 +216,16 @@ where
         let eval_len_min_packing = eval.len() - log_packing_width;
 
         // We split eval into three parts:
-        // - eval[..LOG_NUM_THREADS] (the first LOG_NUM_THREADS elements)
-        // - eval[LOG_NUM_THREADS..eval_len_min_packing] (the middle elements)
+        // - eval[..log_chunks] (the first log_chunks elements)
+        // - eval[log_chunks..eval_len_min_packing] (the middle elements)
         // - eval[eval_len_min_packing..] (the last log_packing_width elements)
 
         // The middle elements are the ones which will be computed in parallel.
         // The last log_packing_width elements are the ones which will be packed.
 
-        // We make a buffer of elements of size `NUM_THREADS`.
-        let mut parallel_buffer = EF::ExtensionPacking::zero_vec(NUM_THREADS_PADDED);
-        let out_chunk_size = out.len() / NUM_THREADS_PADDED;
+        // We make a buffer with one entry per parallel chunk.
+        let mut parallel_buffer = EF::ExtensionPacking::zero_vec(n_chunks);
+        let out_chunk_size = out.len() / n_chunks;
 
         // Compute the equality polynomial corresponding to the last log_packing_width elements
         // and pack these.
@@ -202,18 +233,13 @@ where
 
         // Update the buffer so it contains the evaluations of the equality polynomial
         // with respect to parts one and three.
-        fill_buffer(eval[..LOG_NUM_THREADS].iter().rev(), &mut parallel_buffer);
+        fill_buffer(eval[..log_chunks].iter().rev(), &mut parallel_buffer);
 
         // Finally do all computations involving the middle elements in parallel.
-        out.par_chunks_exact_mut(out_chunk_size)
-            .zip(parallel_buffer.par_iter())
-            .for_each(|(out_chunk, buffer_val)| {
-                eval_eq_with_packed_output::<_, _, INITIALIZED>(
-                    &eval[LOG_NUM_THREADS..(eval.len() - log_packing_width)],
-                    out_chunk,
-                    *buffer_val,
-                );
-            });
+        let middle = &eval[log_chunks..(eval.len() - log_packing_width)];
+        par_chunks_zip(out, out_chunk_size, &parallel_buffer, |out_chunk, buffer_val| {
+            eval_eq_with_packed_output::<_, _, INITIALIZED>(middle, out_chunk, *buffer_val);
+        });
     }
 }
 
@@ -249,7 +275,8 @@ where
 
     // If the number of variables is small, there is no need to use
     // parallelization or packings.
-    if eval.len() <= log_packing_width + 1 + LOG_NUM_THREADS {
+    let (log_chunks, n_chunks) = parallel_split();
+    if eval.len() <= log_packing_width + 1 + log_chunks {
         // A basic recursive approach.
         eval_eq_basic::<_, _, _, INITIALIZED>(eval, out, scalar);
         return;
@@ -258,19 +285,19 @@ where
     let eval_len_min_packing = eval.len() - log_packing_width;
 
     // We split eval into three parts:
-    // - eval[..LOG_NUM_THREADS] (the first LOG_NUM_THREADS elements)
-    // - eval[LOG_NUM_THREADS..eval_len_min_packing] (the middle elements)
+    // - eval[..log_chunks] (the first log_chunks elements)
+    // - eval[log_chunks..eval_len_min_packing] (the middle elements)
     // - eval[eval_len_min_packing..] (the last log_packing_width elements)
 
     // The middle elements are the ones which will be computed in parallel.
     // The last log_packing_width elements are the ones which will be packed.
 
-    // We make a buffer of PackedField elements of size `NUM_THREADS`.
+    // We make a buffer of PackedField elements, one entry per parallel chunk.
     // Note that this is a slightly different strategy to `eval_eq` which instead
     // uses PackedExtensionField elements. Whilst this involves slightly more mathematical
     // operations, it seems to be faster in practice due to less data moving around.
-    let mut parallel_buffer = F::Packing::zero_vec(NUM_THREADS_PADDED);
-    let out_chunk_size = out.len() / NUM_THREADS_PADDED;
+    let mut parallel_buffer = F::Packing::zero_vec(n_chunks);
+    let out_chunk_size = out.len() / n_chunks;
 
     // Compute the equality polynomial corresponding to the last log_packing_width elements
     // and pack these.
@@ -278,19 +305,13 @@ where
 
     // Update the buffer so it contains the evaluations of the equality polynomial
     // with respect to parts one and three.
-    fill_buffer(eval[..LOG_NUM_THREADS].iter().rev(), &mut parallel_buffer);
+    fill_buffer(eval[..log_chunks].iter().rev(), &mut parallel_buffer);
 
     // Finally do all computations involving the middle elements in parallel.
-    out.par_chunks_exact_mut(out_chunk_size)
-        .zip(parallel_buffer.par_iter())
-        .for_each(|(out_chunk, buffer_val)| {
-            base_eval_eq_packed::<_, _, INITIALIZED>(
-                &eval[LOG_NUM_THREADS..(eval.len() - log_packing_width)],
-                out_chunk,
-                *buffer_val,
-                scalar,
-            );
-        });
+    let middle = &eval[log_chunks..(eval.len() - log_packing_width)];
+    par_chunks_zip(out, out_chunk_size, &parallel_buffer, |out_chunk, buffer_val| {
+        base_eval_eq_packed::<_, _, INITIALIZED>(middle, out_chunk, *buffer_val, scalar);
+    });
 }
 
 #[inline]
@@ -314,12 +335,13 @@ pub fn compute_eval_eq_base_packed<F, EF, const INITIALIZED: bool>(
 
     // If the number of variables is small, there is no need to use
     // parallelization or packings.
-    if eval.len() <= log_packing_width + 1 + LOG_NUM_THREADS {
-        // A basic recursive approach.
+    let (log_chunks, n_chunks) = parallel_split();
+    if eval.len() <= log_packing_width + 1 + log_chunks {
+        // A basic recursive approach. Small case: pack the result sequentially.
         let mut output_no_packing = EF::zero_vec(1 << eval.len());
         eval_eq_basic::<_, _, _, false>(eval, &mut output_no_packing, scalar);
-        out.par_iter_mut()
-            .zip(output_no_packing.par_chunks_exact(packing_width))
+        out.iter_mut()
+            .zip(output_no_packing.chunks_exact(packing_width))
             .for_each(|(out_elem, chunk)| {
                 if INITIALIZED {
                     *out_elem += EF::ExtensionPacking::from_ext_slice(chunk);
@@ -331,19 +353,19 @@ pub fn compute_eval_eq_base_packed<F, EF, const INITIALIZED: bool>(
         let eval_len_min_packing = eval.len() - log_packing_width;
 
         // We split eval into three parts:
-        // - eval[..LOG_NUM_THREADS] (the first LOG_NUM_THREADS elements)
-        // - eval[LOG_NUM_THREADS..eval_len_min_packing] (the middle elements)
+        // - eval[..log_chunks] (the first log_chunks elements)
+        // - eval[log_chunks..eval_len_min_packing] (the middle elements)
         // - eval[eval_len_min_packing..] (the last log_packing_width elements)
 
         // The middle elements are the ones which will be computed in parallel.
         // The last log_packing_width elements are the ones which will be packed.
 
-        // We make a buffer of PackedField elements of size `NUM_THREADS`.
+        // We make a buffer of PackedField elements, one entry per parallel chunk.
         // Note that this is a slightly different strategy to `eval_eq` which instead
         // uses PackedExtensionField elements. Whilst this involves slightly more mathematical
         // operations, it seems to be faster in practice due to less data moving around.
-        let mut parallel_buffer = F::Packing::zero_vec(NUM_THREADS_PADDED);
-        let out_chunk_size = out.len() / NUM_THREADS_PADDED;
+        let mut parallel_buffer = F::Packing::zero_vec(n_chunks);
+        let out_chunk_size = out.len() / n_chunks;
 
         // Compute the equality polynomial corresponding to the last log_packing_width elements
         // and pack these.
@@ -351,20 +373,14 @@ pub fn compute_eval_eq_base_packed<F, EF, const INITIALIZED: bool>(
 
         // Update the buffer so it contains the evaluations of the equality polynomial
         // with respect to parts one and three.
-        fill_buffer(eval[..LOG_NUM_THREADS].iter().rev(), &mut parallel_buffer);
+        fill_buffer(eval[..log_chunks].iter().rev(), &mut parallel_buffer);
 
         // Finally do all computations involving the middle elements in parallel.
         let scalar_packed = EF::ExtensionPacking::from(scalar);
-        out.par_chunks_exact_mut(out_chunk_size)
-            .zip(parallel_buffer.par_iter())
-            .for_each(|(out_chunk, buffer_val)| {
-                base_eval_eq_packed_with_packed_output::<F, EF, INITIALIZED>(
-                    &eval[LOG_NUM_THREADS..(eval.len() - log_packing_width)],
-                    out_chunk,
-                    *buffer_val,
-                    scalar_packed,
-                );
-            });
+        let middle = &eval[log_chunks..(eval.len() - log_packing_width)];
+        par_chunks_zip(out, out_chunk_size, &parallel_buffer, |out_chunk, buffer_val| {
+            base_eval_eq_packed_with_packed_output::<F, EF, INITIALIZED>(middle, out_chunk, *buffer_val, scalar_packed);
+        });
     }
 }
 
@@ -412,21 +428,21 @@ pub fn compute_eval_eq_base_packed_batched<F, EF>(
         })
         .collect();
 
-    out.par_chunks_exact_mut(tile_packed_size)
-        .enumerate()
-        .for_each(|(tile_idx, out_tile)| {
-            for (eq_prefix, middle, eq_suffix) in &per_query {
-                // Here e could precompute the eq poly, trading some memory for less computation
-                // (2x faster on M4 max, but 2x slower on machines with smaller caches.
-                // TODO implement both and choose based on cache size?)
-                base_eval_eq_packed_with_packed_output::<F, EF, true>(
-                    middle,
-                    out_tile,
-                    *eq_suffix,
-                    EF::ExtensionPacking::from(eq_prefix[tile_idx]),
-                );
-            }
-        });
+    // `out` already splits into `2^n_prefix_levels` tiles — many more than there are
+    // workers — so the pool's task counter load-balances these directly.
+    parallel::par_chunks_mut(out, tile_packed_size, |tile_idx, out_tile| {
+        for (eq_prefix, middle, eq_suffix) in &per_query {
+            // Here e could precompute the eq poly, trading some memory for less computation
+            // (2x faster on M4 max, but 2x slower on machines with smaller caches.
+            // TODO implement both and choose based on cache size?)
+            base_eval_eq_packed_with_packed_output::<F, EF, true>(
+                middle,
+                out_tile,
+                *eq_suffix,
+                EF::ExtensionPacking::from(eq_prefix[tile_idx]),
+            );
+        }
+    });
 }
 
 /// Fills the `buffer` with evaluations of the equality polynomial
@@ -944,39 +960,40 @@ pub fn compute_eval_eq_packed_dual<EF>(
     assert!(log_packing_width <= eval_a.len());
     assert_eq!(out.len(), 1 << (eval_a.len() - log_packing_width));
 
-    if eval_a.len() <= log_packing_width + 1 + LOG_NUM_THREADS {
+    let (log_chunks, n_chunks) = parallel_split();
+    if eval_a.len() <= log_packing_width + 1 + log_chunks {
         let mut output_no_packing = EF::zero_vec(1 << eval_a.len());
         eval_eq_basic::<_, _, _, false>(eval_a, &mut output_no_packing, scalar_a);
         eval_eq_basic::<_, _, _, true>(eval_b, &mut output_no_packing, scalar_b);
-        out.par_iter_mut()
-            .zip(output_no_packing.par_chunks_exact(packing_width))
+        out.iter_mut()
+            .zip(output_no_packing.chunks_exact(packing_width))
             .for_each(|(out_elem, chunk)| {
                 *out_elem = EF::ExtensionPacking::from_ext_slice(chunk);
             });
     } else {
         let eval_len_min_packing = eval_a.len() - log_packing_width;
 
-        let mut parallel_buffer_a = EF::ExtensionPacking::zero_vec(NUM_THREADS_PADDED);
-        let mut parallel_buffer_b = EF::ExtensionPacking::zero_vec(NUM_THREADS_PADDED);
-        let out_chunk_size = out.len() / NUM_THREADS_PADDED;
+        let mut parallel_buffer_a = EF::ExtensionPacking::zero_vec(n_chunks);
+        let mut parallel_buffer_b = EF::ExtensionPacking::zero_vec(n_chunks);
+        let out_chunk_size = out.len() / n_chunks;
 
         parallel_buffer_a[0] = packed_eq_poly(&eval_a[eval_len_min_packing..], scalar_a);
-        fill_buffer(eval_a[..LOG_NUM_THREADS].iter().rev(), &mut parallel_buffer_a);
+        fill_buffer(eval_a[..log_chunks].iter().rev(), &mut parallel_buffer_a);
 
         parallel_buffer_b[0] = packed_eq_poly(&eval_b[eval_len_min_packing..], scalar_b);
-        fill_buffer(eval_b[..LOG_NUM_THREADS].iter().rev(), &mut parallel_buffer_b);
+        fill_buffer(eval_b[..log_chunks].iter().rev(), &mut parallel_buffer_b);
 
-        out.par_chunks_exact_mut(out_chunk_size)
-            .enumerate()
-            .for_each(|(i, out_chunk)| {
-                eval_eq_with_packed_output_dual::<PF<EF>, EF>(
-                    &eval_a[LOG_NUM_THREADS..eval_len_min_packing],
-                    &eval_b[LOG_NUM_THREADS..eval_len_min_packing],
-                    out_chunk,
-                    parallel_buffer_a[i],
-                    parallel_buffer_b[i],
-                );
-            });
+        let middle_a = &eval_a[log_chunks..eval_len_min_packing];
+        let middle_b = &eval_b[log_chunks..eval_len_min_packing];
+        parallel::par_chunks_mut(out, out_chunk_size, |i, out_chunk| {
+            eval_eq_with_packed_output_dual::<PF<EF>, EF>(
+                middle_a,
+                middle_b,
+                out_chunk,
+                parallel_buffer_a[i],
+                parallel_buffer_b[i],
+            );
+        });
     }
 }
 
@@ -1312,7 +1329,7 @@ mod tests {
                 let time = Instant::now();
                 compute_eval_eq::<F, EF, true>(&eval, &mut out_3, scalar);
                 let out_3_packed = out_3
-                    .par_chunks_exact(packing_width)
+                    .chunks_exact(packing_width)
                     .map(<EF as ExtensionField<F>>::ExtensionPacking::from_ext_slice)
                     .collect::<Vec<_>>();
                 println!("EXTENSION PACKED AFTER: {:?}", time.elapsed());
@@ -1347,13 +1364,91 @@ mod tests {
                 let time = Instant::now();
                 compute_eval_eq_base::<F, EF, true>(&eval, &mut out_3, scalar);
                 let out_3_packed = out_3
-                    .par_chunks_exact(packing_width)
+                    .chunks_exact(packing_width)
                     .map(<EF as ExtensionField<F>>::ExtensionPacking::from_ext_slice)
                     .collect::<Vec<_>>();
                 println!("BASE PACKED AFTER: {:?}", time.elapsed());
 
                 assert_eq!(out_2, out_3_packed);
             }
+        }
+    }
+
+    #[test]
+    #[ignore = "benchmark; run explicitly with --ignored --nocapture"]
+    fn bench_pool_oversub() {
+        use std::sync::atomic::Ordering;
+        use std::time::Instant;
+
+        // Sweep oversubscription log-factors. 0 == one chunk per worker.
+        const FACTORS: [usize; 6] = [0, 1, 2, 3, 4, 5];
+
+        let mut rng = StdRng::seed_from_u64(0);
+
+        // Time `f` over `iters` runs after `warmup` discarded runs; report best.
+        fn timed(warmup: usize, iters: usize, mut f: impl FnMut()) -> std::time::Duration {
+            for _ in 0..warmup {
+                f();
+            }
+            let mut best = std::time::Duration::MAX;
+            for _ in 0..iters {
+                let t = Instant::now();
+                f();
+                best = best.min(t.elapsed());
+            }
+            best
+        }
+
+        // Time `run` at every oversub factor; print ms (best-of-N) per factor, with
+        // the per-row best marked. Lets us pick a factor robust across machines.
+        fn sweep(label: &str, n_vars: usize, warmup: usize, iters: usize, mut run: impl FnMut()) {
+            let restore = PARALLEL_LOG_OVERSUB.load(Ordering::Relaxed);
+            let times: Vec<f64> = FACTORS
+                .iter()
+                .map(|&f| {
+                    PARALLEL_LOG_OVERSUB.store(f, Ordering::Relaxed);
+                    timed(warmup, iters, &mut run).as_secs_f64() * 1e3
+                })
+                .collect();
+            PARALLEL_LOG_OVERSUB.store(restore, Ordering::Relaxed);
+            let best = times.iter().copied().fold(f64::MAX, f64::min);
+            print!("  {label:>14} n={n_vars:>2} |");
+            for &t in &times {
+                let mark = if (t - best).abs() < 1e-9 { '*' } else { ' ' };
+                print!(" {t:>6.2}{mark}");
+            }
+            println!();
+        }
+
+        print!("\n          oversub factor:");
+        for f in FACTORS {
+            print!("    {f:>2}x ");
+        }
+        println!("   (ms, best-of-N, * = row best)");
+        for n_vars in [18usize, 20, 22, 23, 24] {
+            let eval_ef: Vec<EF> = (0..n_vars).map(|_| rng.random()).collect();
+            let eval_f: Vec<F> = (0..n_vars).map(|_| rng.random()).collect();
+            let scalar: EF = rng.random();
+            let (warmup, iters) = if n_vars >= 23 { (1, 3) } else { (2, 10) };
+
+            // Correctness: the factor must not change the result.
+            PARALLEL_LOG_OVERSUB.store(0, Ordering::Relaxed);
+            let mut ref_out = EF::zero_vec(1 << n_vars);
+            compute_eval_eq::<F, EF, false>(&eval_ef, &mut ref_out, scalar);
+            for f in FACTORS {
+                PARALLEL_LOG_OVERSUB.store(f, Ordering::Relaxed);
+                let mut out = EF::zero_vec(1 << n_vars);
+                compute_eval_eq::<F, EF, false>(&eval_ef, &mut out, scalar);
+                assert_eq!(ref_out, out, "oversub {f} changed output (ext) at n={n_vars}");
+            }
+
+            let mut out = EF::zero_vec(1 << n_vars);
+            sweep("eval_eq (ext)", n_vars, warmup, iters, || {
+                compute_eval_eq::<F, EF, false>(&eval_ef, &mut out, scalar);
+            });
+            sweep("eval_eq_base", n_vars, warmup, iters, || {
+                compute_eval_eq_base::<F, EF, false>(&eval_f, &mut out, scalar);
+            });
         }
     }
 
