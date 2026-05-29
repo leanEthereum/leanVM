@@ -1,0 +1,38 @@
+name: Spec PDF
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'misc/minimal_zkVM.tex'
+      - 'misc/bibliography.bib'
+      - 'misc/images/**'
+      - '.github/workflows/pdf.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pdf-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-pdf:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile LaTeX
+        uses: xu-cheng/latex-action@v3
+        with:
+          working_directory: misc
+          root_file: minimal_zkVM.tex
+      - name: Publish PDF as release asset
+        if: github.event_name != 'pull_request'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: spec-latest
+          name: Latest spec PDF
+          body: Auto-built from `misc/minimal_zkVM.tex` on every push to `main`.
+          make_latest: false
+          files: misc/minimal_zkVM.pdf

@@ -8,7 +8,7 @@ could be (TODO).
 
 ## Dev experience
 
-To recycle python tooling/linting on zkDSL files (which import [`snark_lib`](snark_lib.py)), point your editor at the compiler crate. With VSCode (for instance in `leanMultisig/.vscode/settings.json`):
+To recycle python tooling/linting on zkDSL files (which import [`snark_lib`](snark_lib.py)), point your editor at the compiler crate. With VSCode (for instance in `leanVM/.vscode/settings.json`):
 
 ```json
 {

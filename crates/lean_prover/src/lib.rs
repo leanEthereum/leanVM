@@ -104,7 +104,7 @@ mod tests {
     fn compute_snark_domain_sep() {
         init_aggregation_bytecode();
         let recursion_bytecode_hash = get_aggregation_bytecode().hash;
-        let name_fe = "leanMultisig-0.6.0"
+        let name_fe = "leanVM-0.6.0"
             .as_bytes()
             .iter()
             .map(|b| F::from_u8(*b))
