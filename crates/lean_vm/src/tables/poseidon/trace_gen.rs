@@ -19,7 +19,7 @@ pub fn fill_trace_poseidon_16(trace: &mut [Vec<F>]) {
     let trace_packed: Vec<_> = trace.iter().map(|col| FPacking::<F>::pack_slice(&col[..m])).collect();
 
     // fill the packed rows
-    (0..m / packing_width::<F>()).into_par_iter().for_each(|i| {
+    parallel::for_each_index(m / packing_width::<F>(), |i| {
         let ptrs: Vec<*mut FPacking<F>> = trace_packed
             .iter()
             .map(|col| unsafe { (col.as_ptr() as *mut FPacking<F>).add(i) })

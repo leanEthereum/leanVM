@@ -77,7 +77,7 @@ impl MemoryAccess for Memory {
 
 impl Memory {
     pub fn new(public_memory: Vec<F>) -> Self {
-        Self(public_memory.into_par_iter().map(Some).collect())
+        Self(public_memory.into_iter().map(Some).collect())
     }
 
     pub fn get(&self, index: usize) -> Result<F, RunnerError> {

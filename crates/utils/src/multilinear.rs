@@ -13,10 +13,16 @@ pub fn multilinears_linear_combination<F: Field, EF: ExtensionField<F>, P: Borro
     assert_eq!(pols.len(), scalars.len());
     let n_vars = log2_strict_usize(pols[0].borrow().len());
     assert!(pols.iter().all(|p| log2_strict_usize(p.borrow().len()) == n_vars));
-    (0..1 << n_vars)
-        .into_par_iter()
-        .map(|i| dot_product(scalars.iter().copied(), pols.iter().map(|p| p.borrow()[i])))
-        .collect::<Vec<_>>()
+    let n = 1usize << n_vars;
+    let mut out: Vec<EF> = unsafe { uninitialized_vec(n) };
+    let chunk = n.div_ceil(parallel::num_threads() * 4).max(1);
+    parallel::par_chunks_mut(&mut out, chunk, |ci, sub| {
+        for (k, slot) in sub.iter_mut().enumerate() {
+            let i = ci * chunk + k;
+            *slot = dot_product(scalars.iter().copied(), pols.iter().map(|p| p.borrow()[i]));
+        }
+    });
+    out
 }
 
 pub fn multilinear_eval_constants_at_right<F: Field>(limit: usize, point: &[F]) -> F {

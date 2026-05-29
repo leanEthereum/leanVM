@@ -333,7 +333,8 @@ fn execute_bytecode_helper(
         None
     };
     let runtime_memory_size = memory.0.len() - PUBLIC_INPUT_LEN - witness.preamble_memory_len;
-    let used_memory_cells = memory.0.par_iter().filter(|&&x| x.is_some()).count();
+    let used_memory_cells =
+        parallel::map_reduce(memory.0.len(), || 0usize, |i| usize::from(memory.0[i].is_some()), |a, b| a + b);
     let metadata = ExecutionMetadata {
         cycles: trace.pcs.len(),
         memory: memory.0.len(),
@@ -432,13 +433,31 @@ fn handle_parallel_batch(
     let split_at = batch.batch_fp + stride; // end of iteration 0's frame
     let (left, right) = memory.0.split_at_mut(split_at);
     let shared: &[Option<F>] = &*left;
-    let segment_slices: Vec<&mut [Option<F>]> = right.chunks_mut(stride).take(n_par).collect();
+    let mut segment_slices: Vec<&mut [Option<F>]> = right.chunks_mut(stride).take(n_par).collect();
 
     type SegResult = Result<(Trace, Vec<(usize, F)>), RunnerError>;
-    let results: Vec<SegResult> = segment_slices
-        .into_par_iter()
-        .enumerate()
-        .map(|(i, seg_slice)| {
+
+    // Raw base pointer + length per disjoint segment, so the pool can run each segment
+    // on its own slice without moving `&mut` references through the `Fn` task closure.
+    struct SegPtr(*mut Option<F>);
+    // SAFETY: the segments are non-overlapping `chunks_mut` of `right`; each task `i`
+    // reconstructs and touches only segment `i`.
+    unsafe impl Send for SegPtr {}
+    unsafe impl Sync for SegPtr {}
+
+    let seg_info: Vec<(SegPtr, usize)> = segment_slices
+        .iter_mut()
+        .map(|s| (SegPtr(s.as_mut_ptr()), s.len()))
+        .collect();
+    // Release the `&mut` borrows so only the raw pointers alias the segments.
+    drop(segment_slices);
+
+    let mut results: Vec<Option<SegResult>> = (0..n_par).map(|_| None).collect();
+    parallel::par_chunks_mut(&mut results, 1, |i, out| {
+        let (seg_ptr, seg_len) = &seg_info[i];
+        // SAFETY: distinct `i` reconstruct disjoint segments of `right`, valid for the dispatch.
+        let seg_slice: &mut [Option<F>] = unsafe { std::slice::from_raw_parts_mut(seg_ptr.0, *seg_len) };
+        out[0] = Some((|| -> SegResult {
             let seg_start = split_at + i * stride;
             let mut seg_mem = SegmentMemory::new(shared, seg_slice, seg_start);
             let fp_i = batch.batch_fp + (i + 1) * stride;
@@ -478,8 +497,9 @@ fn handle_parallel_batch(
             }
             let deferred = seg_mem.into_deferred_writes();
             Ok((seg_trace, deferred))
-        })
-        .collect();
+        })());
+    });
+    let results: Vec<SegResult> = results.into_iter().map(Option::unwrap).collect();
 
     for (idx, result) in results.into_iter().enumerate() {
         let (seg_trace, deferred) = result.map_err(|e| RunnerError::ParallelSegmentFailed(idx + 1, Box::new(e)))?;

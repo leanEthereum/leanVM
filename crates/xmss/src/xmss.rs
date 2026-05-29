@@ -84,13 +84,18 @@ pub fn xmss_key_gen(
     }
     let public_param: PublicParam = gen_public_param(&seed);
     // Level 0: WOTS leaf hashes for slots in [slot_start, slot_end]
-    let leaves: Vec<Digest> = (slot_start..=slot_end)
-        .into_par_iter()
-        .map(|slot| {
-            let wots = gen_wots_secret_key(&seed, slot, public_param);
-            wots.public_key().hash(public_param, slot)
-        })
-        .collect();
+    let n_leaves = (slot_end - slot_start + 1) as usize;
+    let mut leaves: Vec<Digest> = unsafe { uninitialized_vec(n_leaves) };
+    {
+        let chunk = n_leaves.div_ceil(parallel::num_threads() * 4).max(1);
+        parallel::par_chunks_mut(&mut leaves, chunk, |ci, sub| {
+            for (k, out) in sub.iter_mut().enumerate() {
+                let slot = slot_start + (ci * chunk + k) as u32;
+                let wots = gen_wots_secret_key(&seed, slot, public_param);
+                *out = wots.public_key().hash(public_param, slot);
+            }
+        });
+    }
     let mut merkle_tree = vec![leaves];
     // Build levels 1..=LOG_LIFETIME.
     // At level l, we store nodes with index in [(slot_start >> l), (slot_end >> l)].
@@ -102,9 +107,12 @@ pub fn xmss_key_gen(
         let prev_top: u64 = (slot_end as u64) >> (level - 1);
         let nodes: Vec<Digest> = {
             let prev = &merkle_tree[level - 1];
-            (base..=top)
-                .into_par_iter()
-                .map(|i| {
+            let n_nodes = (top - base + 1) as usize;
+            let mut nodes: Vec<Digest> = unsafe { uninitialized_vec(n_nodes) };
+            let chunk = n_nodes.div_ceil(parallel::num_threads() * 4).max(1);
+            parallel::par_chunks_mut(&mut nodes, chunk, |ci, sub| {
+                for (k, out) in sub.iter_mut().enumerate() {
+                    let i = base + (ci * chunk + k) as u64;
                     let left_idx = 2 * i;
                     let right_idx = 2 * i + 1;
                     let left = if left_idx >= prev_base && left_idx <= prev_top {
@@ -123,9 +131,10 @@ pub fn xmss_key_gen(
                         &left,
                         &right,
                     );
-                    poseidon16_compress(merkle_data)[..XMSS_DIGEST_LEN].try_into().unwrap()
-                })
-                .collect()
+                    *out = poseidon16_compress(merkle_data)[..XMSS_DIGEST_LEN].try_into().unwrap();
+                }
+            });
+            nodes
         };
         merkle_tree.push(nodes);
     }

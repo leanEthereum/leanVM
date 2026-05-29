@@ -64,15 +64,21 @@ pub(crate) fn reduce_bytecode_claims(verified: &[InnerVerified]) -> ReducedBytec
     let n_claims = claims.len();
     let alpha_powers: Vec<EF> = alpha.powers().take(n_claims).collect();
 
-    let weights_packed = claims
-        .par_iter()
-        .zip(&alpha_powers)
-        .map(|(eval, &alpha_i)| eval_eq_packed_scaled(&eval.point.0, alpha_i))
-        .reduce_with(|mut acc, eq_i| {
-            acc.par_iter_mut().zip(&eq_i).for_each(|(w, e)| *w += *e);
-            acc
-        })
-        .unwrap();
+    let weights_packed = parallel::map_reduce(
+        n_claims,
+        Vec::<EFPacking<EF>>::new,
+        |i| eval_eq_packed_scaled(&claims[i].point.0, alpha_powers[i]),
+        |mut acc, eq_i| {
+            if acc.is_empty() {
+                eq_i
+            } else {
+                for (w, e) in acc.iter_mut().zip(&eq_i) {
+                    *w += *e;
+                }
+                acc
+            }
+        },
+    );
 
     let claimed_sum: EF = dot_product(claims.iter().map(|c| c.value), alpha_powers.iter().copied());
 

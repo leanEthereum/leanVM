@@ -46,17 +46,19 @@ fn encoding_grinding_bits() {
         merkle_root: Default::default(),
         public_param: Default::default(),
     };
-    let total_iters = (0..n)
-        .into_par_iter()
-        .map(|i| {
+    let total_iters = parallel::map_reduce(
+        n,
+        || 0usize,
+        |i| {
             let message: [F; MESSAGE_LEN_FE] = Default::default();
             let slot = i as u32;
             let mut rng = StdRng::seed_from_u64(i as u64);
             let (_randomness, _encoding, num_iters) =
                 find_randomness_for_wots_encoding(&message, slot, &xmss_pub_key, &mut rng);
             num_iters
-        })
-        .sum::<usize>();
+        },
+        |a, b| a + b,
+    );
     let grinding = ((total_iters as f64) / (n as f64)).log2();
     println!("Average grinding bits: {:.1}", grinding);
 }

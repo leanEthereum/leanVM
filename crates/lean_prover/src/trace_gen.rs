@@ -1,7 +1,7 @@
 use backend::*;
 use lean_vm::*;
 use std::{array, collections::BTreeMap};
-use utils::{ToUsize, get_poseidon_16_of_zero, transposed_par_iter_mut};
+use utils::{ToUsize, get_poseidon_16_of_zero, transposed_par_for_each_mut};
 
 #[derive(Debug)]
 pub struct ExecutionTrace {
@@ -27,10 +27,9 @@ pub fn get_execution_trace(
         }
     }
 
-    transposed_par_iter_mut(&mut main_trace)
-        .zip(execution_result.pcs.par_iter())
-        .zip(execution_result.fps.par_iter())
-        .for_each(|((trace_row, &pc), &fp)| {
+    transposed_par_for_each_mut(&mut main_trace, |i, trace_row| {
+            let pc = execution_result.pcs[i];
+            let fp = execution_result.fps[i];
             let instruction = &bytecode.code[pc].instruction;
             let field_repr = &bytecode.instructions_multilinear[pc * N_INSTRUCTION_COLUMNS.next_power_of_two()..]
                 [..N_INSTRUCTION_COLUMNS];
@@ -94,7 +93,15 @@ pub fn get_execution_trace(
             *trace_row[EXEC_COL_ADDR_C] = addr_c;
         });
 
-    let mut memory_padded = memory.0.par_iter().map(|&v| v.unwrap_or(F::ZERO)).collect::<Vec<F>>();
+    let mut memory_padded: Vec<F> = unsafe { uninitialized_vec(memory.0.len()) };
+    {
+        let chunk = memory_padded.len().div_ceil(parallel::num_threads() * 4).max(1);
+        parallel::par_chunks_mut(&mut memory_padded, chunk, |ci, sub| {
+            for (k, slot) in sub.iter_mut().enumerate() {
+                *slot = memory.0[ci * chunk + k].unwrap_or(F::ZERO);
+            }
+        });
+    }
 
     // Write [0000000000000000 | poseidon_compress(0000000000000000)] (to make lookups work on padding-rows).
     let padding_zero_vec_ptr = memory_padded.len();
@@ -122,23 +129,22 @@ pub fn get_execution_trace(
         const N: usize = HALF_DIGEST_LEN + DIGEST_LEN;
         let cols: &mut [Vec<F>; N] = (&mut right[..N]).try_into().unwrap();
 
-        transposed_par_iter_mut(cols)
-            .zip(flag_short_col)
-            .zip(permute_col)
-            .zip(nu_c_col)
-            .for_each(|(((row, &flag_short), &permute), &nu_c)| {
-                if permute == F::ZERO {
-                    let base = nu_c.to_usize();
-                    if flag_short == F::ONE {
-                        for j in 0..HALF_DIGEST_LEN {
-                            *row[j] = memory_padded[base + HALF_DIGEST_LEN + j];
-                        }
-                    }
-                    for j in 0..DIGEST_LEN {
-                        *row[HALF_DIGEST_LEN + j] = memory_padded[base + DIGEST_LEN + j];
+        transposed_par_for_each_mut(cols, |i, row| {
+            let flag_short = flag_short_col[i];
+            let permute = permute_col[i];
+            let nu_c = nu_c_col[i];
+            if permute == F::ZERO {
+                let base = nu_c.to_usize();
+                if flag_short == F::ONE {
+                    for j in 0..HALF_DIGEST_LEN {
+                        *row[j] = memory_padded[base + HALF_DIGEST_LEN + j];
                     }
                 }
-            });
+                for j in 0..DIGEST_LEN {
+                    *row[HALF_DIGEST_LEN + j] = memory_padded[base + DIGEST_LEN + j];
+                }
+            }
+        });
     }
 
     let extension_op_trace = traces.get_mut(&Table::extension_op()).unwrap();
@@ -195,7 +201,8 @@ fn pad_table(
     trace.log_n_rows = log2_ceil_usize(h + 1).max(min_log_n_rows);
     let n_rows = 1 << trace.log_n_rows;
     let padding_row = table.padding_row(zero_vec_ptr, null_poseidon_16_hash_ptr, ending_pc);
-    trace.columns.par_iter_mut().enumerate().for_each(|(i, col)| {
+    parallel::par_chunks_mut(&mut trace.columns, 1, |i, slot| {
+        let col = &mut slot[0];
         assert!(col.len() <= h); // potentially some columns have not been filled (in Poseidon -> we fill it later with SIMD + parallelism), but the first one should always be representative
         col.resize(n_rows, padding_row[i]);
     });
