@@ -18,12 +18,12 @@ pub fn fill_trace_poseidon_16(trace: &mut [Vec<F>]) {
     let m = n - (n % packing_width::<F>());
     let trace_packed: Vec<_> = trace.iter().map(|col| FPacking::<F>::pack_slice(&col[..m])).collect();
 
+    const N_COLS: usize = super::num_cols_poseidon_16();
+
     // fill the packed rows
     parallel::for_each_index(m / packing_width::<F>(), |i| {
-        let ptrs: Vec<*mut FPacking<F>> = trace_packed
-            .iter()
-            .map(|col| unsafe { (col.as_ptr() as *mut FPacking<F>).add(i) })
-            .collect();
+        let ptrs: [*mut FPacking<F>; N_COLS] =
+            std::array::from_fn(|c| unsafe { (trace_packed[c].as_ptr() as *mut FPacking<F>).add(i) });
         let perm: &mut Poseidon1Cols16<&mut FPacking<F>> =
             unsafe { &mut *(ptrs.as_ptr() as *mut Poseidon1Cols16<&mut FPacking<F>>) };
 
@@ -32,10 +32,7 @@ pub fn fill_trace_poseidon_16(trace: &mut [Vec<F>]) {
 
     // fill the remaining rows (non packed)
     for i in m..n {
-        let ptrs: Vec<*mut F> = trace
-            .iter()
-            .map(|col| unsafe { (col.as_ptr() as *mut F).add(i) })
-            .collect();
+        let ptrs: [*mut F; N_COLS] = std::array::from_fn(|c| unsafe { (trace[c].as_ptr() as *mut F).add(i) });
         let perm: &mut Poseidon1Cols16<&mut F> = unsafe { &mut *(ptrs.as_ptr() as *mut Poseidon1Cols16<&mut F>) };
         generate_trace_rows_for_perm(perm);
     }
