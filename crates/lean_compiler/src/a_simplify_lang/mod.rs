@@ -3160,10 +3160,8 @@ fn replace_vars_by_const_in_expr(expr: &mut Expression, map: &BTreeMap<Var, F>) 
 fn replace_vars_by_const_in_lines(lines: &mut [Line], map: &BTreeMap<Var, F>) -> Result<(), String> {
     for line in lines {
         match line {
-            Line::ForwardDeclaration { var, .. } => {
-                if map.contains_key(var) {
-                    return Err(format!("Variable {var} is a constant"));
-                }
+            Line::ForwardDeclaration { var, .. } if map.contains_key(var) => {
+                return Err(format!("Variable {var} is a constant"));
             }
             Line::Statement { targets, .. } => {
                 for target in targets.iter() {
