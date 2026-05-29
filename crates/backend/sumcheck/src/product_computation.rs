@@ -161,11 +161,27 @@ pub fn compute_product_sumcheck_polynomial<
                 (a0 + b0, a2 + b2)
             })
     } else {
+        // Chunk the reduction so each pool task folds a contiguous range into a local
+        // accumulator — amortizing the per-task `current_worker_id()`/slot overhead that
+        // a one-element-per-task `map_reduce` would pay millions of times.
         let half = n / 2;
+        let chunk_size = 1024;
+        let n_chunks = half.div_ceil(chunk_size);
         parallel::map_reduce(
-            half,
+            n_chunks,
             || (EFPacking::ZERO, EFPacking::ZERO),
-            |i| sumcheck_quadratic(((&pol_0[i], &pol_0[half + i]), (&pol_1[i], &pol_1[half + i]))),
+            |c| {
+                let start = c * chunk_size;
+                let end = (start + chunk_size).min(half);
+                let mut a0 = EFPacking::ZERO;
+                let mut a2 = EFPacking::ZERO;
+                for i in start..end {
+                    let (b0, b2) = sumcheck_quadratic(((&pol_0[i], &pol_0[half + i]), (&pol_1[i], &pol_1[half + i])));
+                    a0 = a0 + b0;
+                    a2 = a2 + b2;
+                }
+                (a0, a2)
+            },
             |(a0, a2), (b0, b2)| (a0 + b0, a2 + b2),
         )
     };

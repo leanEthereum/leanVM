@@ -60,6 +60,11 @@ use system_info::NUM_THREADS;
 /// keep workers hot (no syscalls) while a long idle stretch still lets them sleep.
 const SPIN_LIMIT: u32 = 1 << 16;
 
+/// Upper bound on a single guided-self-scheduling claim (see [`drain`]). Caps the
+/// worst-case load imbalance from one worker grabbing too large an initial batch, while
+/// staying large enough that million-task kernels need only a few thousand claims.
+const MAX_CLAIM_BATCH: usize = 1 << 12;
+
 /// Total worker count (including the dispatching thread). Equal to build-time `NUM_THREADS`.
 #[must_use]
 pub const fn num_threads() -> usize {
@@ -200,6 +205,15 @@ fn worker_main(pool: &'static Pool, id: usize) {
 }
 
 /// Claim and run task indices until the counter is exhausted.
+///
+/// Uses **guided self-scheduling**: each claim grabs a batch proportional to the work
+/// still remaining (`remaining / (NUM_THREADS * 2)`), capped at [`MAX_CLAIM_BATCH`].
+/// This is what rayon's recursive splitting buys implicitly — without it, a kernel that
+/// emits one task per element (e.g. a merkle layer with one packed compression per task,
+/// millions of tasks) would hammer the shared counter with millions of `fetch_add`s.
+/// Large early batches cut that contention to a handful of claims; the proportional
+/// shrink toward the end keeps the tail finely divided for load balance, and small
+/// dispatches naturally fall back to single-task claims (`max(1)`).
 fn drain(pool: &Pool) {
     // SAFETY: the dispatcher published `Some(job)` before the generation bump this
     // worker just observed, and overwrites it only on the next dispatch (gated on
@@ -212,11 +226,22 @@ fn drain(pool: &Pool) {
     // rather than deadlocking on the dispatch lock.
     let prev = IN_TASK.replace(true);
     loop {
-        let i = pool.counter.fetch_add(1, Ordering::Relaxed);
-        if i >= n {
+        // Batch size is computed from a (possibly stale) counter read; this only affects
+        // granularity, never correctness — `fetch_add` chains claims into a contiguous,
+        // non-overlapping tiling of `0..n`, and out-of-range tails are clamped/skipped.
+        let observed = pool.counter.load(Ordering::Relaxed);
+        if observed >= n {
             break;
         }
-        f(i);
+        let batch = ((n - observed) / (NUM_THREADS * 2)).clamp(1, MAX_CLAIM_BATCH);
+        let start = pool.counter.fetch_add(batch, Ordering::Relaxed);
+        if start >= n {
+            break;
+        }
+        let end = (start + batch).min(n);
+        for i in start..end {
+            f(i);
+        }
     }
     IN_TASK.set(prev);
 }

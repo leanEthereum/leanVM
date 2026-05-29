@@ -37,6 +37,26 @@ use crate::{Matrix, RowMajorMatrix, RowMajorMatrixViewMut};
 /// The number of layers to compute in each parallelization.
 const LAYERS_PER_GROUP: usize = 3;
 
+/// Raw mutable base pointer shareable across pool tasks. The multi-layer butterfly
+/// kernels flatten their (block, inner-group) iteration space into one parallel loop and
+/// reconstruct each group's disjoint `width`-row sub-slices from this base — so coarse
+/// layers (few blocks) still parallelize over their inner groups instead of going serial.
+#[derive(Clone, Copy)]
+struct ButterflyPtr<F>(*mut F);
+// SAFETY: each task touches only the disjoint rows computed from its group index.
+unsafe impl<F> Send for ButterflyPtr<F> {}
+unsafe impl<F> Sync for ButterflyPtr<F> {}
+
+impl<F> ButterflyPtr<F> {
+    /// Reconstruct the `width`-long row starting at element offset `off`.
+    /// SAFETY: `off`/`width` must stay in-bounds and the row must be disjoint from every
+    /// other row any concurrent task reconstructs.
+    #[inline]
+    unsafe fn row<'a>(self, off: usize, width: usize) -> &'a mut [F] {
+        unsafe { std::slice::from_raw_parts_mut(self.0.add(off), width) }
+    }
+}
+
 #[derive(Default, Debug)]
 pub(crate) struct EvalsDft<F> {
     twiddles: RwLock<Vec<Vec<F>>>,
@@ -197,18 +217,20 @@ fn dft_layer<F: Field, B: Butterfly<F>>(vec: &mut [F], twiddles: &[B], width: us
 
 #[inline]
 fn dft_layer_par<F: Field, B: Butterfly<F>>(vec: &mut [F], twiddles: &[B], width: usize) {
-    let block_size = twiddles.len() * 2 * width;
-    let n_full = vec.len() / block_size * block_size;
-    // Outer fan-out over blocks runs on the pool; the inner per-row butterflies run
-    // sequentially within each task (nested dispatches fall back to sequential).
-    parallel::par_chunks_mut(&mut vec[..n_full], block_size, |_, block| {
-        let (left, right) = block.split_at_mut(twiddles.len() * width);
-        left.chunks_exact_mut(width)
-            .zip(right.chunks_exact_mut(width))
-            .zip(twiddles.iter())
-            .for_each(|((hi_chunk, lo_chunk), twiddle)| {
-                twiddle.apply_to_rows(hi_chunk, lo_chunk);
-            });
+    let ts = twiddles.len();
+    let block_size = 2 * ts * width;
+    let n_blocks = vec.len() / block_size;
+    // Flatten (block, group) into one parallel loop over `n_blocks * ts` groups so coarse
+    // layers (few blocks) still parallelize; guided scheduling keeps a worker's batch of
+    // consecutive groups within the same block, preserving the per-block cache locality.
+    let base = ButterflyPtr(vec.as_mut_ptr());
+    parallel::for_each_index(n_blocks * ts, |g| {
+        let block_base = (g / ts) * block_size;
+        let ind = g % ts;
+        // SAFETY: distinct `g` map to disjoint (hi, lo) `width`-rows.
+        let hi = unsafe { base.row(block_base + ind * width, width) };
+        let lo = unsafe { base.row(block_base + (ts + ind) * width, width) };
+        twiddles[ind].apply_to_rows(hi, lo);
     });
 }
 
@@ -238,24 +260,24 @@ fn dft_layer_par_double<F: Field, B: Butterfly<F>, M: MultiLayerButterfly<F, B>>
 
     assert_eq!(twiddles_large.len(), twiddles_small.len() * 2);
 
-    // TODO optimal workload size with L1 cache
-    let block_size = twiddles_large.len() * 2 * width;
-    let n_full = mat.values.len() / block_size * block_size;
-    // Outer fan-out over blocks runs on the pool; the inner butterflies run sequentially
-    // within each task (nested dispatches fall back to sequential).
-    parallel::par_chunks_mut(&mut mat.values[..n_full], block_size, |_, block| {
-        let (hi_blocks, lo_blocks) = block.split_at_mut(twiddles_small.len() * width * 2);
-        let (hi_hi_blocks, hi_lo_blocks) = hi_blocks.split_at_mut(twiddles_small.len() * width);
-        let (lo_hi_blocks, lo_lo_blocks) = lo_blocks.split_at_mut(twiddles_small.len() * width);
-        hi_hi_blocks
-            .chunks_exact_mut(width)
-            .zip(hi_lo_blocks.chunks_exact_mut(width))
-            .zip(lo_hi_blocks.chunks_exact_mut(width))
-            .zip(lo_lo_blocks.chunks_exact_mut(width))
-            .enumerate()
-            .for_each(|(ind, (((hi_hi, hi_lo), lo_hi), lo_lo))| {
-                multi_butterfly.apply_2_layers(((hi_hi, hi_lo), (lo_hi, lo_lo)), ind, twiddles_small, twiddles_large);
-            });
+    // Flatten (block, inner-group) into one parallel loop. A block is `4·ts` rows of
+    // `width`; group `ind` touches the 4 rows at sub-block offsets `k·ts + ind` (k=0..3).
+    // Coarse layers (few blocks) thus still parallelize over their `ts` inner groups, and
+    // guided scheduling keeps a worker's consecutive groups within one block (cache-local).
+    let ts = twiddles_small.len();
+    let block_size = 4 * ts * width; // == twiddles_large.len() * 2 * width
+    let n_blocks = mat.values.len() / block_size;
+    let base = ButterflyPtr(mat.values.as_mut_ptr());
+    parallel::for_each_index(n_blocks * ts, |g| {
+        let block_base = (g / ts) * block_size;
+        let ind = g % ts;
+        let row = |k: usize| block_base + (k * ts + ind) * width;
+        // SAFETY: distinct `g` map to disjoint sets of 4 `width`-rows.
+        let hi_hi = unsafe { base.row(row(0), width) };
+        let hi_lo = unsafe { base.row(row(1), width) };
+        let lo_hi = unsafe { base.row(row(2), width) };
+        let lo_lo = unsafe { base.row(row(3), width) };
+        multi_butterfly.apply_2_layers(((hi_hi, hi_lo), (lo_hi, lo_lo)), ind, twiddles_small, twiddles_large);
     });
 }
 
@@ -292,45 +314,37 @@ fn dft_layer_par_triple<F: Field, B: Butterfly<F>, M: MultiLayerButterfly<F, B>>
     // let inner_chunk_size =
     //     (workload_size::<F>().next_power_of_two() / 8).min(eighth_outer_block_size);
 
-    let block_size = twiddles_large.len() * 2 * width;
-    let n_full = mat.values.len() / block_size * block_size;
-    // Outer fan-out over blocks runs on the pool; the inner butterflies run sequentially
-    // within each task (nested dispatches fall back to sequential).
-    parallel::par_chunks_mut(&mut mat.values[..n_full], block_size, |_, block| {
-        let (hi_blocks, lo_blocks) = block.split_at_mut(twiddles_small.len() * width * 4);
-        let (hi_hi_blocks, hi_lo_blocks) = hi_blocks.split_at_mut(twiddles_small.len() * width * 2);
-        let (lo_hi_blocks, lo_lo_blocks) = lo_blocks.split_at_mut(twiddles_small.len() * width * 2);
-        let (hi_hi_hi_blocks, hi_hi_lo_blocks) = hi_hi_blocks.split_at_mut(twiddles_small.len() * width);
-        let (hi_lo_hi_blocks, hi_lo_lo_blocks) = hi_lo_blocks.split_at_mut(twiddles_small.len() * width);
-        let (lo_hi_hi_blocks, lo_hi_lo_blocks) = lo_hi_blocks.split_at_mut(twiddles_small.len() * width);
-        let (lo_lo_hi_blocks, lo_lo_lo_blocks) = lo_lo_blocks.split_at_mut(twiddles_small.len() * width);
-        hi_hi_hi_blocks
-            .chunks_exact_mut(width)
-            .zip(hi_hi_lo_blocks.chunks_exact_mut(width))
-            .zip(hi_lo_hi_blocks.chunks_exact_mut(width))
-            .zip(hi_lo_lo_blocks.chunks_exact_mut(width))
-            .zip(lo_hi_hi_blocks.chunks_exact_mut(width))
-            .zip(lo_hi_lo_blocks.chunks_exact_mut(width))
-            .zip(lo_lo_hi_blocks.chunks_exact_mut(width))
-            .zip(lo_lo_lo_blocks.chunks_exact_mut(width))
-            .enumerate()
-            .for_each(
-                |(
-                    ind,
-                    (((((((hi_hi_hi, hi_hi_lo), hi_lo_hi), hi_lo_lo), lo_hi_hi), lo_hi_lo), lo_lo_hi), lo_lo_lo),
-                )| {
-                    multi_butterfly.apply_3_layers(
-                        (
-                            ((hi_hi_hi, hi_hi_lo), (hi_lo_hi, hi_lo_lo)),
-                            ((lo_hi_hi, lo_hi_lo), (lo_lo_hi, lo_lo_lo)),
-                        ),
-                        ind,
-                        twiddles_small,
-                        twiddles_med,
-                        twiddles_large,
-                    );
-                },
-            );
+    // Flatten (block, inner-group) into one parallel loop. A block is `8·ts` rows of
+    // `width`; group `ind` touches the 8 rows at sub-block offsets `k·ts + ind` (k=0..7).
+    // Coarse layers still parallelize over their `ts` inner groups; guided scheduling keeps
+    // a worker's consecutive groups within one block (cache-local).
+    let ts = twiddles_small.len();
+    let block_size = 8 * ts * width; // == twiddles_large.len() * 2 * width
+    let n_blocks = mat.values.len() / block_size;
+    let base = ButterflyPtr(mat.values.as_mut_ptr());
+    parallel::for_each_index(n_blocks * ts, |g| {
+        let block_base = (g / ts) * block_size;
+        let ind = g % ts;
+        let row = |k: usize| block_base + (k * ts + ind) * width;
+        // SAFETY: distinct `g` map to disjoint sets of 8 `width`-rows.
+        let hi_hi_hi = unsafe { base.row(row(0), width) };
+        let hi_hi_lo = unsafe { base.row(row(1), width) };
+        let hi_lo_hi = unsafe { base.row(row(2), width) };
+        let hi_lo_lo = unsafe { base.row(row(3), width) };
+        let lo_hi_hi = unsafe { base.row(row(4), width) };
+        let lo_hi_lo = unsafe { base.row(row(5), width) };
+        let lo_lo_hi = unsafe { base.row(row(6), width) };
+        let lo_lo_lo = unsafe { base.row(row(7), width) };
+        multi_butterfly.apply_3_layers(
+            (
+                ((hi_hi_hi, hi_hi_lo), (hi_lo_hi, hi_lo_lo)),
+                ((lo_hi_hi, lo_hi_lo), (lo_lo_hi, lo_lo_lo)),
+            ),
+            ind,
+            twiddles_small,
+            twiddles_med,
+            twiddles_large,
+        );
     });
 }
 
