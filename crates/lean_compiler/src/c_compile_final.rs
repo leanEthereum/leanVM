@@ -132,8 +132,7 @@ pub fn compile_to_low_level_bytecode(
         validate_instruction(instruction)?;
     }
 
-    let mut instructions_encoded: Vec<[F; N_INSTRUCTION_COLUMNS]> =
-        unsafe { uninitialized_vec(instructions.len()) };
+    let mut instructions_encoded: Vec<[F; N_INSTRUCTION_COLUMNS]> = unsafe { uninitialized_vec(instructions.len()) };
     {
         let chunk = instructions.len().div_ceil(parallel::num_threads() * 4).max(1);
         parallel::par_chunks_mut(&mut instructions_encoded, chunk, |ci, sub| {

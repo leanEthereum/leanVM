@@ -254,12 +254,7 @@ fn dft_layer_par_double<F: Field, B: Butterfly<F>, M: MultiLayerButterfly<F, B>>
             .zip(lo_lo_blocks.chunks_exact_mut(width))
             .enumerate()
             .for_each(|(ind, (((hi_hi, hi_lo), lo_hi), lo_lo))| {
-                multi_butterfly.apply_2_layers(
-                    ((hi_hi, hi_lo), (lo_hi, lo_lo)),
-                    ind,
-                    twiddles_small,
-                    twiddles_large,
-                );
+                multi_butterfly.apply_2_layers(((hi_hi, hi_lo), (lo_hi, lo_lo)), ind, twiddles_small, twiddles_large);
             });
     });
 }

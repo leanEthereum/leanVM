@@ -10,7 +10,6 @@ sumcheck = { path = "sumcheck", package = "mt-sumcheck" }
 field = { path = "field", package = "mt-field" }
 air = { path = "air", package = "mt-air" }
 parallel.workspace = true
-rayon.workspace = true
 whir = { path = "../whir", package = "mt-whir" }
 tracing.workspace = true
 fiat-shamir = { path = "fiat-shamir", package = "mt-fiat-shamir" }

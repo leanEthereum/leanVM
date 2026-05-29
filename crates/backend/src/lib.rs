@@ -4,8 +4,6 @@ pub use field::*;
 pub use koala_bear::*;
 pub use parallel;
 pub use poly::*;
-pub use rayon;
-pub use rayon::prelude::*;
 pub use sumcheck::*;
 pub use symetric::*;
 pub use utils::*;

@@ -333,8 +333,12 @@ fn execute_bytecode_helper(
         None
     };
     let runtime_memory_size = memory.0.len() - PUBLIC_INPUT_LEN - witness.preamble_memory_len;
-    let used_memory_cells =
-        parallel::map_reduce(memory.0.len(), || 0usize, |i| usize::from(memory.0[i].is_some()), |a, b| a + b);
+    let used_memory_cells = parallel::map_reduce(
+        memory.0.len(),
+        || 0usize,
+        |i| usize::from(memory.0[i].is_some()),
+        |a, b| a + b,
+    );
     let metadata = ExecutionMetadata {
         cycles: trace.pcs.len(),
         memory: memory.0.len(),
@@ -471,8 +475,10 @@ fn handle_parallel_batch(
                     cursor.index += i * delta;
                 }
             }
-            let seg_start_indices: HashMap<_, _> =
-                seg_named_hints.iter().map(|(name, c)| (name.clone(), c.index)).collect();
+            let seg_start_indices: HashMap<_, _> = seg_named_hints
+                .iter()
+                .map(|(name, c)| (name.clone(), c.index))
+                .collect();
             let mut hints = HintState {
                 diagnostics: None,
                 named_hints: &mut seg_named_hints,
