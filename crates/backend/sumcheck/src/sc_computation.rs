@@ -2,7 +2,6 @@ use crate::*;
 use air::*;
 use field::*;
 use poly::*;
-use rayon::prelude::*;
 use std::any::TypeId;
 use std::ops::{Add, AddAssign, Mul, MulAssign, Sub};
 
@@ -564,9 +563,10 @@ where
         acc
     };
 
-    let sums: Vec<EFPacking<EF>> = (0..n_lo)
-        .into_par_iter()
-        .map(|b_lo| {
+    let sums: Vec<EFPacking<EF>> = parallel::map_reduce(
+        n_lo,
+        zero,
+        |b_lo| {
             let eq_lo_bc = EFPacking::<EF>::from(eq_lo[b_lo]);
             let base = b_lo << log_packed_hi;
             let mut block_acc = zero();
@@ -605,8 +605,9 @@ where
                 *a *= eq_lo_bc;
             }
             block_acc
-        })
-        .reduce(zero, accumulate);
+        },
+        accumulate,
+    );
 
     let unpacked = sums.into_iter().map(&unpack_sum);
     build_evals(unpacked, missing_mul_factor)
@@ -651,9 +652,10 @@ where
         acc
     };
 
-    let sums: Vec<EFPacking<EF>> = (0..n_lo)
-        .into_par_iter()
-        .map(|b_lo| {
+    let sums: Vec<EFPacking<EF>> = parallel::map_reduce(
+        n_lo,
+        zero,
+        |b_lo| {
             let eq_lo_bc = EFPacking::<EF>::from(eq_lo[b_lo]);
             let base = b_lo << log_packed_hi;
             let mut block_acc = zero();
@@ -696,8 +698,9 @@ where
                 *a *= eq_lo_bc;
             }
             block_acc
-        })
-        .reduce(zero, accumulate);
+        },
+        accumulate,
+    );
 
     let unpacked = sums.into_iter().map(&unpack_sum);
     (build_evals(unpacked, missing_mul_factor), wrap_f(folded_f))

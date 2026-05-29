@@ -146,15 +146,13 @@ pub fn compute_product_sumcheck_polynomial<
                 (a0 + b0, a2 + b2)
             })
     } else {
-        pol_0[..n / 2]
-            .par_iter()
-            .zip(pol_0[n / 2..].par_iter())
-            .zip(pol_1[..n / 2].par_iter().zip(pol_1[n / 2..].par_iter()))
-            .map(sumcheck_quadratic)
-            .reduce(
-                || (EFPacking::ZERO, EFPacking::ZERO),
-                |(a0, a2), (b0, b2)| (a0 + b0, a2 + b2),
-            )
+        let half = n / 2;
+        parallel::map_reduce(
+            half,
+            || (EFPacking::ZERO, EFPacking::ZERO),
+            |i| sumcheck_quadratic(((&pol_0[i], &pol_0[half + i]), (&pol_1[i], &pol_1[half + i]))),
+            |(a0, a2), (b0, b2)| (a0 + b0, a2 + b2),
+        )
     };
 
     let c0 = decompose(c0_packed).into_iter().sum::<EF>();
@@ -186,15 +184,17 @@ pub fn compute_product_sumcheck_polynomial_base_ext_packed<
 
     let chunk_size = 1024;
 
-    let (c0_acc, c2_acc) = pol_0[..half]
-        .par_chunks(chunk_size)
-        .zip(pol_0[half..].par_chunks(chunk_size))
-        .zip(
-            pol_1[..half]
-                .par_chunks(chunk_size)
-                .zip(pol_1[half..].par_chunks(chunk_size)),
-        )
-        .map(|((b_lo, b_hi), (e_lo, e_hi))| {
+    let n_chunks = half.div_ceil(chunk_size);
+    let (c0_acc, c2_acc) = parallel::map_reduce(
+        n_chunks,
+        || ([0u128; DIM], [0i128; DIM]),
+        |c| {
+            let start = c * chunk_size;
+            let end = (start + chunk_size).min(half);
+            let b_lo = &pol_0[start..end];
+            let b_hi = &pol_0[half + start..half + end];
+            let e_lo = &pol_1[start..end];
+            let e_hi = &pol_1[half + start..half + end];
             let mut c0 = [0u128; DIM];
             let mut c2 = [0i128; DIM];
             for i in 0..b_lo.len() {
@@ -216,17 +216,15 @@ pub fn compute_product_sumcheck_polynomial_base_ext_packed<
                 }
             }
             (c0, c2)
-        })
-        .reduce(
-            || ([0u128; DIM], [0i128; DIM]),
-            |(mut a0, mut a2): Acc<DIM>, (b0, b2): Acc<DIM>| {
-                for j in 0..DIM {
-                    a0[j] += b0[j];
-                    a2[j] += b2[j];
-                }
-                (a0, a2)
-            },
-        );
+        },
+        |(mut a0, mut a2): Acc<DIM>, (b0, b2): Acc<DIM>| {
+            for j in 0..DIM {
+                a0[j] += b0[j];
+                a2[j] += b2[j];
+            }
+            (a0, a2)
+        },
+    );
 
     let c0 = EF::from_basis_coefficients_fn(|j| F::reduce_product_sum(c0_acc[j]));
     let c2 = EF::from_basis_coefficients_fn(|j| F::reduce_signed_product_sum(c2_acc[j]));
