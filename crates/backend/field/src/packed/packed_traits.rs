@@ -343,10 +343,10 @@ pub trait PackedFieldExtension<BaseField: Field, ExtField: ExtensionField<BaseFi
     #[must_use]
     fn to_ext_iter(iter: impl IntoIterator<Item = Self>) -> impl Iterator<Item = ExtField> {
         iter.into_iter().flat_map(|x| {
-            let packed_coeffs = x.as_basis_coefficients_slice();
-            (0..BaseField::Packing::WIDTH)
-                .map(|i| ExtField::from_basis_coefficients_fn(|j| packed_coeffs[j].as_slice()[i]))
-                .collect::<Vec<_>>() // PackedFieldExtension's should reimplement this to avoid this allocation.
+            (0..BaseField::Packing::WIDTH).map(move |i| {
+                let packed_coeffs = x.as_basis_coefficients_slice();
+                ExtField::from_basis_coefficients_fn(|j| packed_coeffs[j].as_slice()[i])
+            })
         })
     }
 
@@ -357,14 +357,7 @@ pub trait PackedFieldExtension<BaseField: Field, ExtField: ExtensionField<BaseFi
     #[inline]
     #[must_use]
     fn to_ext_iter_vec(iter: Vec<Self>) -> Vec<ExtField> {
-        iter.into_iter()
-            .flat_map(|x| {
-                let packed_coeffs = x.as_basis_coefficients_slice();
-                (0..BaseField::Packing::WIDTH)
-                    .map(|i| ExtField::from_basis_coefficients_fn(|j| packed_coeffs[j].as_slice()[i]))
-                    .collect::<Vec<_>>() // PackedFieldExtension's should reimplement this to avoid this allocation.
-            })
-            .collect()
+        Self::to_ext_iter(iter).collect()
     }
 
     /// Similar to `packed_powers`, construct an iterator which returns

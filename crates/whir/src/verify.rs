@@ -251,7 +251,7 @@ where
         // dbg!(&stir_challenges_indexes);
         // dbg!(verifier_state.challenger().state());
 
-        let dimensions = vec![Dimensions {
+        let dimensions = [Dimensions {
             height: params.domain_size >> params.folding_factor,
             width: 1 << params.folding_factor,
         }];

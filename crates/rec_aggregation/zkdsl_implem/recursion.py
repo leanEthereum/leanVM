@@ -516,35 +516,25 @@ def recursion(inner_public_memory, initial_fiat_shamir_cap):
         n_shift_columns = N_AIR_SHIFT_COLUMNS[table_index]
 
         # LOGUP
-        point_logup = pcs_inner_points[table_index]
-        eq_factor_logup = poly_eq_extension_dynamic_ret(point_logup, inner_folding, log_n_rows)
+        eq_factor_logup = poly_eq_extension_dynamic_ret(pcs_inner_points[table_index], inner_folding, log_n_rows)
+        logup_acc: Mut = ZERO_VEC_PTR
         for k in unroll(0, len(ONE_BUSES_ALL_COLS[table_index])):
             col = ONE_BUSES_ALL_COLS[table_index][k]
             prefix = column_prefixes + col * DIM
-            s = add_extension_ret(
-                s,
-                mul_extension_ret(mul_extension_ret(curr_randomness, prefix), eq_factor_logup),
-            )
+            logup_acc = add_extension_ret(logup_acc, mul_extension_ret(curr_randomness, prefix))
             curr_randomness += DIM
+        s = add_extension_ret(s, mul_extension_ret(logup_acc, eq_factor_logup))
 
         # AIR
         if n_shift_columns != 0:
             next_factor = next_mle(all_challenges, inner_folding, log_n_rows)
-            for j in unroll(0, n_shift_columns):
-                prefix = column_prefixes + j * DIM
-                s = add_extension_ret(
-                    s,
-                    mul_extension_ret(mul_extension_ret(curr_randomness, prefix), next_factor),
-                )
-                curr_randomness += DIM
+            shift_sum = dot_product_ee_ret(curr_randomness, column_prefixes, n_shift_columns)
+            s = add_extension_ret(s, mul_extension_ret(shift_sum, next_factor))
+            curr_randomness += n_shift_columns * DIM
         eq_factor_air = poly_eq_extension_dynamic_ret(all_challenges, inner_folding, log_n_rows)
-        for j in unroll(0, N_AIR_COLUMNS[table_index]):
-            prefix = column_prefixes + j * DIM
-            s = add_extension_ret(
-                s,
-                mul_extension_ret(mul_extension_ret(curr_randomness, prefix), eq_factor_air),
-            )
-            curr_randomness += DIM
+        air_sum = dot_product_ee_ret(curr_randomness, column_prefixes, N_AIR_COLUMNS[table_index])
+        s = add_extension_ret(s, mul_extension_ret(air_sum, eq_factor_air))
+        curr_randomness += N_AIR_COLUMNS[table_index] * DIM
 
     copy_5(mul_extension_ret(s, final_value), end_sum)
 
