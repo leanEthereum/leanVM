@@ -11,6 +11,16 @@ pub trait MemoryAccess {
         (0..len).map(|i| self.get(start + i)).collect()
     }
 
+    /// In-place version of [`get_slice`] that writes into a caller-provided buffer,
+    /// avoiding a per-call heap allocation on the hot interpreter path (Poseidon /
+    /// extension-op slice reads run hundreds of thousands of times per proof).
+    fn get_slice_into(&self, start: usize, dest: &mut [F]) -> Result<(), RunnerError> {
+        for (i, d) in dest.iter_mut().enumerate() {
+            *d = self.get(start + i)?;
+        }
+        Ok(())
+    }
+
     fn set_slice(&mut self, start: usize, values: &[F]) -> Result<(), RunnerError> {
         for (i, v) in values.iter().enumerate() {
             self.set(start + i, *v)?;

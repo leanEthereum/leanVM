@@ -237,14 +237,14 @@ impl<const BUS: bool> TableT for Poseidon16Precompile<BUS> {
         } else {
             arg_a_usize + HALF_DIGEST_LEN
         };
-        let arg0_first = ctx.memory.get_slice(left_first_addr, HALF_DIGEST_LEN)?;
-        let arg0_second = ctx.memory.get_slice(left_second_addr, HALF_DIGEST_LEN)?;
-        let arg1 = ctx.memory.get_slice(arg_b.to_usize(), DIGEST_LEN)?;
-
+        // Fill the Poseidon input array directly from memory — no per-call Vec allocation
+        // (this runs once per Poseidon instruction, the dominant small-alloc source).
         let mut input = [F::ZERO; DIGEST_LEN * 2];
-        input[..HALF_DIGEST_LEN].copy_from_slice(&arg0_first);
-        input[HALF_DIGEST_LEN..DIGEST_LEN].copy_from_slice(&arg0_second);
-        input[DIGEST_LEN..].copy_from_slice(&arg1);
+        ctx.memory
+            .get_slice_into(left_first_addr, &mut input[..HALF_DIGEST_LEN])?;
+        ctx.memory
+            .get_slice_into(left_second_addr, &mut input[HALF_DIGEST_LEN..DIGEST_LEN])?;
+        ctx.memory.get_slice_into(arg_b.to_usize(), &mut input[DIGEST_LEN..])?;
 
         let res_addr = index_res_a.to_usize();
         if permute {
