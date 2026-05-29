@@ -91,7 +91,10 @@ pub fn current_worker_id() -> usize {
 /// `'static`. Only dereferenced inside a dispatch window during which the dispatcher
 /// blocks, so the source borrow outlives every call.
 struct Job {
-    f: NonNull<dyn Fn(usize) + Sync>,
+    /// Range-based work: `f(start, end)` processes the half-open task range `start..end`.
+    /// Building the primitive on ranges (rather than single indices) lets reductions look
+    /// up their per-worker accumulator once per claimed batch instead of once per element.
+    f: NonNull<dyn Fn(usize, usize) + Sync>,
     n_tasks: usize,
 }
 
@@ -239,21 +242,24 @@ fn drain(pool: &Pool) {
             break;
         }
         let end = (start + batch).min(n);
-        for i in start..end {
-            f(i);
-        }
+        f(start, end);
     }
     IN_TASK.set(prev);
 }
 
-/// Run `f(i)` for every `i` in `0..n_tasks`, in parallel across the pool. Blocks until
-/// all tasks complete; the dispatching thread participates as worker 0.
-pub fn for_each_index<F: Fn(usize) + Sync>(n_tasks: usize, f: F) {
+/// Core dispatch: run `f(start, end)` over disjoint contiguous sub-ranges that together
+/// tile `0..n_tasks`, in parallel across the pool. The ranges are produced by guided
+/// self-scheduling (see [`drain`]); a worker may receive several. Blocks until all
+/// complete; the dispatching thread participates as worker 0.
+///
+/// This is the primitive everything else is built on. Range-based (rather than per-index)
+/// so a reduction can look up its per-worker accumulator once per claimed batch.
+pub fn for_each_chunk<F: Fn(usize, usize) + Sync>(n_tasks: usize, f: F) {
     // Trivial sizes, single-core builds, and nested dispatches (called from within a
     // pool task) all run sequentially — the last avoids deadlocking on the lock.
     if NUM_THREADS <= 1 || n_tasks <= 1 || IN_TASK.get() {
-        for i in 0..n_tasks {
-            f(i);
+        if n_tasks > 0 {
+            f(0, n_tasks);
         }
         return;
     }
@@ -262,12 +268,14 @@ pub fn for_each_index<F: Fn(usize) + Sync>(n_tasks: usize, f: F) {
     let _guard = pool.dispatch.lock().unwrap();
     let n = NUM_THREADS;
 
-    let f_ref: &(dyn Fn(usize) + Sync) = &f;
+    let f_ref: &(dyn Fn(usize, usize) + Sync) = &f;
     // SAFETY: erase the borrow's lifetime to store in the 'static `Job`. The
     // dispatcher spins on `working` below before returning, so `f` outlives every
     // worker call that dereferences this pointer.
-    let f_erased: NonNull<dyn Fn(usize) + Sync> = unsafe {
-        std::mem::transmute::<NonNull<dyn Fn(usize) + Sync>, NonNull<dyn Fn(usize) + Sync>>(NonNull::from(f_ref))
+    let f_erased: NonNull<dyn Fn(usize, usize) + Sync> = unsafe {
+        std::mem::transmute::<NonNull<dyn Fn(usize, usize) + Sync>, NonNull<dyn Fn(usize, usize) + Sync>>(
+            NonNull::from(f_ref),
+        )
     };
 
     // SAFETY: all workers finished the previous dispatch (we waited for `working == 0`)
@@ -294,6 +302,16 @@ pub fn for_each_index<F: Fn(usize) + Sync>(n_tasks: usize, f: F) {
     while pool.working.load(Ordering::Acquire) != 0 {
         std::hint::spin_loop();
     }
+}
+
+/// Run `f(i)` for every `i` in `0..n_tasks`, in parallel across the pool. Blocks until
+/// all tasks complete; the dispatching thread participates as worker 0.
+pub fn for_each_index<F: Fn(usize) + Sync>(n_tasks: usize, f: F) {
+    for_each_chunk(n_tasks, |start, end| {
+        for i in start..end {
+            f(i);
+        }
+    });
 }
 
 /// Wrapper holding a raw base pointer that is safe to share across workers because
@@ -355,16 +373,20 @@ where
     let mut slots: Vec<Option<T>> = (0..NUM_THREADS).map(|_| None).collect();
     let ptr = SendPtr(slots.as_mut_ptr());
 
-    for_each_index(n_tasks, |i| {
+    for_each_chunk(n_tasks, |start, end| {
+        // One worker-slot lookup per claimed batch, then fold the whole range into it —
+        // amortizing the thread-local read over the batch instead of paying it per element.
         let wid = current_worker_id();
         // SAFETY: `wid` is unique per live worker and < NUM_THREADS; slots disjoint;
         // `slots` outlives the dispatch.
         let slot = unsafe { &mut *ptr.add(wid) };
-        let v = map(i);
-        *slot = Some(match slot.take() {
-            Some(acc) => reduce(acc, v),
-            None => v,
-        });
+        for i in start..end {
+            let v = map(i);
+            *slot = Some(match slot.take() {
+                Some(acc) => reduce(acc, v),
+                None => v,
+            });
+        }
     });
 
     slots.into_iter().flatten().fold(identity(), &reduce)
@@ -396,13 +418,17 @@ where
     let mut slots: Vec<Option<(S, A)>> = (0..NUM_THREADS).map(|_| None).collect();
     let ptr = SendPtr(slots.as_mut_ptr());
 
-    for_each_index(n_tasks, |i| {
+    for_each_chunk(n_tasks, |start, end| {
+        // One worker-slot lookup per claimed batch; the reusable scratch and accumulator
+        // are then threaded through every element of the range.
         let wid = current_worker_id();
         // SAFETY: `wid` unique per live worker and < NUM_THREADS; slots disjoint;
         // `slots` outlives the dispatch.
         let slot = unsafe { &mut *ptr.add(wid) };
         let (state, acc) = slot.get_or_insert_with(|| (init_state(), init_acc()));
-        fold(state, acc, i);
+        for i in start..end {
+            fold(state, acc, i);
+        }
     });
 
     slots
