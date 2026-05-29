@@ -3,6 +3,23 @@ use std::borrow::Cow;
 
 use backend::*;
 
+/// Raw mutable base pointer shareable across pool tasks; each task writes only the
+/// disjoint slot computed from its index (the paired second output buffer of the
+/// quotient-fold kernels, while the pool iterates the first via `par_chunks_mut`).
+pub(super) struct SyncMutPtr<T>(pub *mut T);
+// SAFETY: writes are partitioned by task index (see `sum_quotients_*`).
+unsafe impl<T> Send for SyncMutPtr<T> {}
+unsafe impl<T> Sync for SyncMutPtr<T> {}
+
+impl<T> SyncMutPtr<T> {
+    /// SAFETY: `n` must stay within the original allocation and target a slot no
+    /// other task writes.
+    #[inline]
+    pub(super) unsafe fn add(&self, n: usize) -> *mut T {
+        unsafe { self.0.add(n) }
+    }
+}
+
 pub(super) enum LayerStorage<'a, EF: ExtensionField<PF<EF>>> {
     Initial {
         nums: Cow<'a, [PFPacking<EF>]>,
@@ -111,13 +128,12 @@ pub(super) fn bit_reverse_chunks<T: Copy + Send + Sync>(v: &[T], chunk_log: usiz
         return out;
     }
     let shift = usize::BITS as usize - chunk_log;
-    out.par_chunks_exact_mut(chunk_size)
-        .zip(v.par_chunks_exact(chunk_size))
-        .for_each(|(dst, src)| {
-            for (p, slot) in dst.iter_mut().enumerate() {
-                *slot = src[p.reverse_bits() >> shift];
-            }
-        });
+    parallel::par_chunks_mut(&mut out, chunk_size, |c, dst| {
+        let src = &v[c * chunk_size..][..chunk_size];
+        for (p, slot) in dst.iter_mut().enumerate() {
+            *slot = src[p.reverse_bits() >> shift];
+        }
+    });
     out
 }
 
@@ -130,18 +146,22 @@ fn sum_quotients_2_by_2<EF: ExtensionField<PF<EF>>>(nums: &[EF], dens: &[EF]) ->
     let mut new_nums: Vec<EF> = unsafe { uninitialized_vec(new_active) };
     let mut new_dens: Vec<EF> = unsafe { uninitialized_vec(new_active) };
 
-    new_nums[..full_pairs]
-        .par_iter_mut()
-        .zip(new_dens[..full_pairs].par_iter_mut())
-        .enumerate()
-        .for_each(|(i, (num, den))| {
-            let n0 = nums[2 * i];
-            let n1 = nums[2 * i + 1];
-            let d0 = dens[2 * i];
-            let d1 = dens[2 * i + 1];
-            *num = d1 * n0 + d0 * n1;
-            *den = d0 * d1;
+    {
+        let dp = SyncMutPtr(new_dens.as_mut_ptr());
+        let chunk = full_pairs.div_ceil(parallel::num_threads() * 4).max(1);
+        parallel::par_chunks_mut(&mut new_nums[..full_pairs], chunk, |ci, num_chunk| {
+            for (k, num) in num_chunk.iter_mut().enumerate() {
+                let i = ci * chunk + k;
+                let n0 = nums[2 * i];
+                let n1 = nums[2 * i + 1];
+                let d0 = dens[2 * i];
+                let d1 = dens[2 * i + 1];
+                *num = d1 * n0 + d0 * n1;
+                // SAFETY: each `i` writes a distinct slot in `new_dens`, a separate buffer.
+                unsafe { *dp.add(i) = d0 * d1 };
+            }
         });
+    }
 
     // Boundary (at most one pair: a/b + 0/1 = a/b).
     if full_pairs < new_active {
@@ -172,18 +192,22 @@ where
     let mut new_nums: Vec<EFPacking<EF>> = unsafe { uninitialized_vec(nums.len() >> 1) };
     let mut new_dens: Vec<EFPacking<EF>> = unsafe { uninitialized_vec(nums.len() >> 1) };
 
-    new_nums
-        .par_iter_mut()
-        .zip(new_dens.par_iter_mut())
-        .enumerate()
-        .for_each(|(new_j, (num_out, den_out))| {
-            let i_hi = new_j >> bit;
-            let i_lo = new_j & lo_mask;
-            let i0 = (i_hi << (bit + 1)) | i_lo;
-            let i1 = i0 | stride;
-            *num_out = dens[i1] * nums[i0] + dens[i0] * nums[i1];
-            *den_out = dens[i0] * dens[i1];
+    {
+        let dp = SyncMutPtr(new_dens.as_mut_ptr());
+        let chunk = new_nums.len().div_ceil(parallel::num_threads() * 4).max(1);
+        parallel::par_chunks_mut(&mut new_nums, chunk, |ci, num_chunk| {
+            for (k, num_out) in num_chunk.iter_mut().enumerate() {
+                let new_j = ci * chunk + k;
+                let i_hi = new_j >> bit;
+                let i_lo = new_j & lo_mask;
+                let i0 = (i_hi << (bit + 1)) | i_lo;
+                let i1 = i0 | stride;
+                *num_out = dens[i1] * nums[i0] + dens[i0] * nums[i1];
+                // SAFETY: each `new_j` writes a distinct slot in `new_dens`, a separate buffer.
+                unsafe { *dp.add(new_j) = dens[i0] * dens[i1] };
+            }
         });
+    }
 
     (new_nums, new_dens)
 }

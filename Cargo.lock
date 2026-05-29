@@ -104,6 +104,7 @@ dependencies = [
  "mt-symetric",
  "mt-utils",
  "mt-whir",
+ "parallel",
  "rayon",
  "tracing",
 ]

@@ -72,15 +72,13 @@ pub fn prove_generic_logup(
     };
 
     let fill_num_from = |dst: &mut [F], src: &[F], neg: bool| {
-        dst.par_chunks_exact_mut(chunk_size)
-            .enumerate()
-            .for_each(|(c, dst_chunk)| {
-                let src_chunk = &src[c * chunk_size..][..chunk_size];
-                for (i, slot) in dst_chunk.iter_mut().enumerate() {
-                    let v = src_chunk[i.reverse_bits() >> chunk_shift];
-                    *slot = if neg { -v } else { v };
-                }
-            });
+        parallel::par_chunks_mut(dst, chunk_size, |c, dst_chunk| {
+            let src_chunk = &src[c * chunk_size..][..chunk_size];
+            for (i, slot) in dst_chunk.iter_mut().enumerate() {
+                let v = src_chunk[i.reverse_bits() >> chunk_shift];
+                *slot = if neg { -v } else { v };
+            }
+        });
     };
 
     let mut offset = 0;
@@ -118,12 +116,14 @@ pub fn prove_generic_logup(
     );
     if 1 << log_bytecode < max_table_height {
         // padding
-        numerators[offset + (1 << log_bytecode)..offset + max_table_height]
-            .par_iter_mut()
-            .for_each(|n| *n = F::ZERO);
-        denominators[(offset + (1 << log_bytecode)) / width..(offset + max_table_height) / width]
-            .par_iter_mut()
-            .for_each(|d| *d = EFPacking::<EF>::ONE);
+        par_fill(
+            &mut numerators[offset + (1 << log_bytecode)..offset + max_table_height],
+            |_| F::ZERO,
+        );
+        par_fill(
+            &mut denominators[(offset + (1 << log_bytecode)) / width..(offset + max_table_height) / width],
+            |_| EFPacking::<EF>::ONE,
+        );
     }
     offset += max_table_height.max(1 << log_bytecode);
 
@@ -142,17 +142,15 @@ pub fn prove_generic_logup(
                 let col_index = &trace.columns[group.idx_col];
                 let packed_chunk_size = (1 << log_n_rows) / width;
 
-                numerators[offset..][..group_len << log_n_rows]
-                    .par_iter_mut()
-                    .for_each(|n| *n = F::ONE);
+                par_fill(&mut numerators[offset..][..group_len << log_n_rows], |_| F::ONE);
 
-                denominators[offset / width..][..group_len * packed_chunk_size]
-                    .par_chunks_exact_mut(packed_chunk_size)
-                    .enumerate()
-                    .for_each(|(i, denom_chunk)| {
+                parallel::par_chunks_mut(
+                    &mut denominators[offset / width..][..group_len * packed_chunk_size],
+                    packed_chunk_size,
+                    |i, denom_chunk| {
                         let i_field = F::from_usize(i);
                         let col_value = &trace.columns[group.value_cols[i]];
-                        denom_chunk.par_iter_mut().enumerate().for_each(|(p, slot)| {
+                        for (p, slot) in denom_chunk.iter_mut().enumerate() {
                             *slot = c_packed
                                 - finger_print_packed::<EF>(
                                     memory_domainsep_packed,
@@ -162,8 +160,9 @@ pub fn prove_generic_logup(
                                     ],
                                     &alphas_packed,
                                 );
-                        });
-                    });
+                        }
+                    },
+                );
                 offset += group_len << log_n_rows;
                 bus_idx += group_len;
                 next_group += 1;
@@ -175,7 +174,7 @@ pub fn prove_generic_logup(
             match bus.multiplicity {
                 BusMultiplicity::One => {
                     let val = bus.direction.to_field_flag();
-                    slice.par_iter_mut().for_each(|n| *n = val);
+                    par_fill(slice, |_| val);
                 }
                 BusMultiplicity::Column(col) => {
                     fill_num_from(slice, &trace.columns[col], matches!(bus.direction, BusDirection::Pull));
@@ -532,5 +531,17 @@ fn fill_denoms<Build>(dst: &mut [EFPacking<EF>], build: Build)
 where
     Build: Fn(usize) -> EFPacking<EF> + Sync,
 {
-    dst.par_iter_mut().enumerate().for_each(|(p, slot)| *slot = build(p));
+    par_fill(dst, build);
+}
+
+/// Fill `dst` in parallel through the in-house pool, computing each slot from its
+/// global index. Replaces the rayon `par_iter_mut().enumerate()` constant/index fills.
+#[inline]
+fn par_fill<T: Send + Sync + Copy, Build: Fn(usize) -> T + Sync>(dst: &mut [T], build: Build) {
+    let chunk = dst.len().div_ceil(parallel::num_threads() * 4).max(1);
+    parallel::par_chunks_mut(dst, chunk, |ci, sub| {
+        for (k, slot) in sub.iter_mut().enumerate() {
+            *slot = build(ci * chunk + k);
+        }
+    });
 }

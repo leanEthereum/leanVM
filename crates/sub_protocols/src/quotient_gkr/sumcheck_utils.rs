@@ -5,7 +5,7 @@ use std::{
 
 use backend::*;
 
-use crate::quotient_gkr::layers::unpack_and_unreverse_active;
+use crate::quotient_gkr::layers::{SyncMutPtr, unpack_and_unreverse_active};
 
 pub(super) fn even_odd_split<T: Copy>(v: &[T]) -> (Vec<T>, Vec<T>) {
     (
@@ -328,10 +328,7 @@ pub(super) fn run_phase2_sumcheck<EF: ExtensionField<PF<EF>>>(
         };
 
         let acc: RoundCoeffs<EF> = if active_pairs > PARALLEL_THRESHOLD {
-            (0..active_pairs)
-                .into_par_iter()
-                .map(term)
-                .reduce(RoundCoeffs::zero, Add::add)
+            parallel::map_reduce(active_pairs, RoundCoeffs::zero, term, Add::add)
         } else {
             (0..active_pairs).map(term).fold(RoundCoeffs::<EF>::zero(), Add::add)
         };
@@ -362,7 +359,14 @@ pub(super) fn run_phase2_sumcheck<EF: ExtensionField<PF<EF>>>(
         if new_eq_len > 0 {
             let fold_eq = |i: usize| eq_table[2 * i] + eq_table[2 * i + 1];
             eq_table = if new_eq_len >= PARALLEL_THRESHOLD {
-                (0..new_eq_len).into_par_iter().map(fold_eq).collect()
+                let mut out: Vec<EF> = unsafe { uninitialized_vec(new_eq_len) };
+                let chunk = new_eq_len.div_ceil(parallel::num_threads() * 4).max(1);
+                parallel::par_chunks_mut(&mut out, chunk, |ci, sub| {
+                    for (k, slot) in sub.iter_mut().enumerate() {
+                        *slot = fold_eq(ci * chunk + k);
+                    }
+                });
+                out
             } else {
                 (0..new_eq_len).map(fold_eq).collect()
             };
@@ -392,10 +396,12 @@ fn fold_normal_with_padding<EF: ExtensionField<PF<EF>>>(m: &[EF], r: EF, pad_val
     if new_active < PARALLEL_THRESHOLD {
         out.iter_mut().enumerate().for_each(compute);
     } else {
-        out.par_iter_mut()
-            .with_min_len(PARALLEL_THRESHOLD)
-            .enumerate()
-            .for_each(compute);
+        let chunk = new_active.div_ceil(parallel::num_threads() * 4).max(1);
+        parallel::par_chunks_mut(&mut out, chunk, |ci, sub| {
+            for (k, slot) in sub.iter_mut().enumerate() {
+                compute((ci * chunk + k, slot));
+            }
+        });
     }
     out
 }
@@ -420,10 +426,13 @@ where
     debug_assert_eq!(dens.len(), nums.len());
     debug_assert_eq!(eq_within.len(), quarter);
 
-    nums.par_chunks_exact(layer_packed)
-        .zip(dens.par_chunks_exact(layer_packed))
-        .enumerate()
-        .fold(RoundCoeffs::zero, |mut acc, (c, (n_c, d_c))| {
+    let n_chunks = nums.len() / layer_packed;
+    parallel::map_reduce(
+        n_chunks,
+        RoundCoeffs::zero,
+        |c| {
+            let n_c = &nums[c * layer_packed..][..layer_packed];
+            let d_c = &dens[c * layer_packed..][..layer_packed];
             let eq_o: EF = eq_outer.get(c).copied().unwrap_or(EF::ONE);
             let mut local = RoundCoeffs::<EFPacking<EF>>::zero();
             for inner in 0..quarter {
@@ -435,10 +444,10 @@ where
                 );
                 local += coeffs * eq_within[inner];
             }
-            acc += local * eq_o;
-            acc
-        })
-        .reduce(RoundCoeffs::zero, Add::add)
+            local * eq_o
+        },
+        Add::add,
+    )
 }
 
 #[allow(clippy::type_complexity)]
@@ -472,13 +481,19 @@ where
     let mut new_dens: Vec<EFPacking<EF>> = unsafe { uninitialized_vec(active_out_packed) };
     let prev_r_packed: EFPacking<EF> = <EFPacking<EF> as From<EF>>::from(prev_r);
 
-    let coeffs = nums
-        .par_chunks_exact(in_packed)
-        .zip(dens.par_chunks_exact(in_packed))
-        .zip(new_nums.par_chunks_exact_mut(out_packed))
-        .zip(new_dens.par_chunks_exact_mut(out_packed))
-        .enumerate()
-        .fold(RoundCoeffs::zero, |mut acc, (c, (((n_c, d_c), nn_c), nd_c))| {
+    let n_chunks = nums.len() / in_packed;
+    let nn = SyncMutPtr(new_nums.as_mut_ptr());
+    let nd = SyncMutPtr(new_dens.as_mut_ptr());
+    let coeffs = parallel::map_reduce(
+        n_chunks,
+        RoundCoeffs::zero,
+        |c| {
+            let n_c = &nums[c * in_packed..][..in_packed];
+            let d_c = &dens[c * in_packed..][..in_packed];
+            // SAFETY: chunk `c` owns the disjoint `out_packed`-sized regions of the two
+            // output buffers at `c * out_packed`; no other task touches them.
+            let nn_c = unsafe { std::slice::from_raw_parts_mut(nn.add(c * out_packed), out_packed) };
+            let nd_c = unsafe { std::slice::from_raw_parts_mut(nd.add(c * out_packed), out_packed) };
             let eq_o: EF = eq_outer.get(c).copied().unwrap_or(EF::ONE);
             let mut local = RoundCoeffs::<EFPacking<EF>>::zero();
             for i in 0..in_eighth {
@@ -499,10 +514,10 @@ where
                 );
                 local += round * eq_within[i];
             }
-            acc += local * eq_o;
-            acc
-        })
-        .reduce(RoundCoeffs::zero, Add::add);
+            local * eq_o
+        },
+        Add::add,
+    );
 
     (new_nums, new_dens, coeffs)
 }
