@@ -33,11 +33,20 @@
 //! oversubscribing at region boundaries. This pool only pays off once rayon is gone
 //! everywhere. Treat partial-migration benchmarks accordingly.
 //!
-//! ## Constraints
+//! ## Nesting falls back to sequential
 //!
-//! - **No nesting.** A worker must not itself dispatch (it would deadlock). The
-//!   prover's parallel sections are flat, so this holds.
-//! - **One dispatcher at a time.** Concurrent dispatches are serialized by a mutex.
+//! Some kernels nest parallelism (e.g. the NTT fans out over blocks, then over rows
+//! within a block). A flat pool can't dispatch from inside a task — that would
+//! deadlock on the dispatch lock. So a `for_each_index` call made from a thread
+//! already running a pool task runs **sequentially inline** instead. Correct, never
+//! deadlocks; the inner level loses parallelism but the outer level has usually
+//! already saturated all cores. (rayon work-steals through nesting instead; this is
+//! the one place we trade a little potential utilization for a vastly simpler pool.)
+//!
+//! ## Constraint
+//!
+//! - **One dispatcher at a time.** Concurrent (non-nested) dispatches from different
+//!   threads are serialized by a mutex.
 
 use std::cell::{Cell, UnsafeCell};
 use std::ptr::NonNull;
@@ -61,6 +70,9 @@ thread_local! {
     /// Stable id of this thread within the pool. Set once per background worker;
     /// stays `0` on the dispatching thread (worker 0) and on any non-worker thread.
     static WORKER_ID: Cell<usize> = const { Cell::new(0) };
+    /// True while this thread is executing a pool task. A `for_each_index` issued in
+    /// that state is a nested dispatch and runs sequentially (see module docs).
+    static IN_TASK: Cell<bool> = const { Cell::new(false) };
 }
 
 /// Stable id of the calling worker, in `0..NUM_THREADS` (`0` off-pool). The hook for
@@ -196,6 +208,9 @@ fn drain(pool: &Pool) {
     // SAFETY: `job.f` points at a `&dyn Fn` borrow held live by the blocked dispatcher.
     let f = unsafe { job.f.as_ref() };
     let n = job.n_tasks;
+    // Mark this thread as in-task so a nested `for_each_index` runs sequentially
+    // rather than deadlocking on the dispatch lock.
+    let prev = IN_TASK.replace(true);
     loop {
         let i = pool.counter.fetch_add(1, Ordering::Relaxed);
         if i >= n {
@@ -203,12 +218,15 @@ fn drain(pool: &Pool) {
         }
         f(i);
     }
+    IN_TASK.set(prev);
 }
 
 /// Run `f(i)` for every `i` in `0..n_tasks`, in parallel across the pool. Blocks until
 /// all tasks complete; the dispatching thread participates as worker 0.
 pub fn for_each_index<F: Fn(usize) + Sync>(n_tasks: usize, f: F) {
-    if NUM_THREADS <= 1 || n_tasks <= 1 {
+    // Trivial sizes, single-core builds, and nested dispatches (called from within a
+    // pool task) all run sequentially — the last avoids deadlocking on the lock.
+    if NUM_THREADS <= 1 || n_tasks <= 1 || IN_TASK.get() {
         for i in 0..n_tasks {
             f(i);
         }
@@ -238,10 +256,10 @@ pub fn for_each_index<F: Fn(usize) + Sync>(n_tasks: usize, f: F) {
 
     // Wake only workers that actually parked; hot (spinning) ones see the bump for free.
     for id in 1..n {
-        if pool.parked[id].load(Ordering::SeqCst) {
-            if let Some(t) = pool.handles[id].get() {
-                t.unpark();
-            }
+        if pool.parked[id].load(Ordering::SeqCst)
+            && let Some(t) = pool.handles[id].get()
+        {
+            t.unpark();
         }
     }
 
@@ -443,6 +461,25 @@ mod tests {
             let s0: u64 = (0..n as u64).sum();
             let s1: u64 = (0..n as u64).map(|i| i * i).sum();
             assert_eq!(got, vec![s0, s1], "n={n}");
+        }
+    }
+
+    #[test]
+    fn nested_dispatch_does_not_deadlock() {
+        // Outer parallel loop whose body itself dispatches — must run (inner goes
+        // sequential) and produce correct results, not hang.
+        let mut data = vec![0u64; 1000];
+        par_chunks_mut(&mut data, 50, |outer, chunk| {
+            // Nested dispatch from inside a pool task.
+            let sum = AtomicU64::new(0);
+            for_each_index(chunk.len(), |i| {
+                sum.fetch_add((outer * 50 + i) as u64, Ordering::Relaxed);
+            });
+            chunk[0] = sum.load(Ordering::Relaxed);
+        });
+        for (c, chunk) in data.chunks(50).enumerate() {
+            let expected: u64 = (0..50).map(|i| (c * 50 + i) as u64).sum();
+            assert_eq!(chunk[0], expected, "chunk {c}");
         }
     }
 
