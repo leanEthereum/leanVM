@@ -10,12 +10,22 @@ pub use xmss::{MESSAGE_LEN_FE, XmssPublicKey, XmssSecretKey, XmssSignature, xmss
 
 pub type F = KoalaBear;
 
-/// Tune the default (mimalloc) allocator for the prover's churn of huge short-lived buffers.
+/// Tune the allocator and VM memory policy for the prover's churn of huge buffers.
 ///
-/// Disables purging so freed large blocks are **retained** rather than returned to the OS
-/// and re-faulted on the next allocation. This is what made the old bump arena fast (it
-/// reused the same pages); mimalloc-with-retention matches *and beats* it here, without the
-/// arena's fragility. Idempotent; call before any heavy proving allocation.
+/// Two things, both before any heavy proving allocation (idempotent):
+///
+/// 1. **Disable mimalloc purging** so freed large blocks are *retained* rather than returned
+///    to the OS and re-faulted on the next allocation — what made the old bump arena fast
+///    (page reuse); mimalloc-with-retention matches and beats it.
+///
+/// 2. **Disable Transparent Huge Pages for this process.** On Zen4 (and likely other x86 with
+///    physically-indexed L2/L3), when the kernel promotes the allocator's large arenas to
+///    2 MB huge pages, the prover's strided multilinear/NTT array access collapses into a few
+///    cache sets — measured **+217% cache-misses, IPC 0.85 → 0.51, +50% wall time** on
+///    `fancy-aggregation`. It's intermittent (only fires when 2 MB-contiguous memory is free
+///    for THP promotion), which is what made it so hard to pin down. `prctl(PR_SET_THP_DISABLE)`
+///    is process-local and overrides even a system-wide `THP=always`. No-op off Linux (macOS
+///    has no THP — Apple silicon was never affected). Applies under any allocator.
 pub fn tune_allocator() {
     // mimalloc v3 option index `mi_option_purge_delay` = 15; value -1 = never purge
     // (equivalent to `MIMALLOC_PURGE_DELAY=-1`). No-op under the `standard-alloc` (plain
@@ -23,6 +33,11 @@ pub fn tune_allocator() {
     #[cfg(not(feature = "standard-alloc"))]
     unsafe {
         libmimalloc_sys::mi_option_set(15, -1);
+    }
+    // Keep allocator arenas on 4 KB pages (see point 2 above).
+    #[cfg(target_os = "linux")]
+    unsafe {
+        libc::prctl(libc::PR_SET_THP_DISABLE, 1, 0, 0, 0);
     }
 }
 

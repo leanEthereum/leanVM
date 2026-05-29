@@ -490,6 +490,7 @@ dependencies = [
  "backend",
  "clap",
  "lean_vm",
+ "libc",
  "libmimalloc-sys",
  "mimalloc",
  "rand",

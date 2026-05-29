@@ -90,6 +90,7 @@ clap.workspace = true
 rec_aggregation.workspace = true
 mimalloc = "0.1"
 libmimalloc-sys = { version = "0.1", features = ["extended"] }
+libc = "0.2"
 rand.workspace = true
 sub_protocols.workspace = true
 utils.workspace = true
