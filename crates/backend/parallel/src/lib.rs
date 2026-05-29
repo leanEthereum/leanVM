@@ -4,8 +4,8 @@
 //! hot paths: "split a range/slice into pieces, run a closure on each." Unlike rayon
 //! it does **no** work-stealing of nested tasks and allocates **nothing** per
 //! dispatch — the whole point is to own the runtime so we can (a) attach per-worker
-//! scratch buffers (eliminating the per-task allocations that justify the `zk-alloc`
-//! arena), and (b) drop rayon entirely along with its `flush_rayon` injector hack.
+//! scratch buffers (eliminating per-task allocations on hot paths), and (b) drop
+//! rayon entirely along with its `flush_rayon` injector hack.
 //!
 //! ## Model
 //!
@@ -129,12 +129,11 @@ unsafe impl Send for Pool {}
 
 /// Construct the pool and exercise its dispatch path once, now.
 ///
-/// **Must be called before any arena allocator that recycles memory between phases is
-/// active** (e.g. before `zk_alloc::begin_phase()`); idempotent. The leaked `Pool`
-/// and the `dispatch` mutex's lazily-allocated `pthread_mutex_t` (macOS allocates it
-/// on first lock, not construction) must live in the system allocator, not a slab the
-/// next reset recycles. Running one real dispatch forces those allocations while the
-/// arena is inactive. (Worker `Parker`s are allocated eagerly at spawn, also here.)
+/// Optional warm-up: idempotent, it spawns the worker threads and runs one real
+/// dispatch so the leaked `Pool`, the worker `Parker`s, and the `dispatch` mutex's
+/// lazily-allocated `pthread_mutex_t` (macOS allocates it on first lock, not
+/// construction) are all created up front, before any timed proving work. Without it
+/// the pool initializes lazily on the first parallel call.
 pub fn init() {
     static INIT: Once = Once::new();
     INIT.call_once(|| {

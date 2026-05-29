@@ -418,8 +418,8 @@ where
 {
     // Per-worker scratch: `rows` (the [lo, diff, hi] triples) and `point` (the
     // evaluation point handed to `eval_fn`) are reused across every task a worker
-    // owns, so the hot loop allocates nothing — recovering what the zk-alloc arena
-    // would otherwise absorb. `acc` (length `degree`) is the per-worker partial sum.
+    // owns, so the hot loop allocates nothing. `acc` (length `degree`) is the
+    // per-worker partial sum.
     let n_mult = multilinears.len();
     let sums = parallel::map_reduce_with_state(
         fold_size,
