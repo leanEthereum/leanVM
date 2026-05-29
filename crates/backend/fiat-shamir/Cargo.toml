@@ -10,4 +10,4 @@ symetric = { path = "../symetric", package = "mt-symetric" }
 utils = { path = "../utils", package = "mt-utils" }
 tracing.workspace = true
 serde.workspace = true
-rayon.workspace = true
+parallel.workspace = true

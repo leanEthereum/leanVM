@@ -620,7 +620,7 @@ dependencies = [
  "mt-koala-bear",
  "mt-symetric",
  "mt-utils",
- "rayon",
+ "parallel",
  "serde",
  "tracing",
 ]
@@ -687,7 +687,7 @@ version = "0.1.0"
 dependencies = [
  "mt-field",
  "mt-koala-bear",
- "rayon",
+ "parallel",
 ]
 
 [[package]]
