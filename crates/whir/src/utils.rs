@@ -13,7 +13,7 @@ use tracing::instrument;
 use utils::log2_strict_usize;
 
 use crate::EvalsDft;
-use crate::RowMajorMatrix;
+use crate::Matrix;
 
 pub(crate) fn get_challenge_stir_queries<F: Field, Chal: ChallengeSampler<F>>(
     folded_domain_size: usize,
@@ -61,8 +61,8 @@ pub(crate) enum DftInput<EF: Field> {
 }
 
 pub(crate) enum DftOutput<EF: Field> {
-    Base(RowMajorMatrix<PF<EF>>),
-    Extension(RowMajorMatrix<EF>),
+    Base(Matrix<PF<EF>>),
+    Extension(Matrix<EF>),
 }
 
 pub(crate) fn reorder_and_dft<EF: ExtensionField<PF<EF>>>(
@@ -81,11 +81,9 @@ where
         tracing::warn!("Twiddles have not been precomputed, for size = {}", dft_size);
     }
     match prepared_evals {
-        DftInput::Base(evals) => {
-            DftOutput::Base(dft.dft_algebra_batch_by_evals(RowMajorMatrix::new(evals, dft_n_cols)))
-        }
+        DftInput::Base(evals) => DftOutput::Base(dft.dft_algebra_batch_by_evals(Matrix::new(evals, dft_n_cols))),
         DftInput::Extension(evals) => {
-            DftOutput::Extension(dft.dft_algebra_batch_by_evals(RowMajorMatrix::new(evals, dft_n_cols)))
+            DftOutput::Extension(dft.dft_algebra_batch_by_evals(Matrix::new(evals, dft_n_cols)))
         }
     }
 }
