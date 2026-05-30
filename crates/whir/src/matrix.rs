@@ -82,17 +82,6 @@ pub trait Matrix<T: Send + Sync + Clone>: Send + Sync {
         RowMajorMatrix::new(self.rows().flatten().collect(), self.width())
     }
 
-    // #[inline]
-    // fn vertically_packed_row<P>(&self, r: usize) -> impl Iterator<Item = P>
-    // where
-    //     T: Copy,
-    //     P: PackedValue<Value = T>,
-    // {
-    //     let rows = self.wrapping_row_slices(r, P::WIDTH);
-    //     (0..self.width()).map(move |c| P::from_fn(|i| rows[i][c]))
-    // }
-
-    #[inline]
     fn vertically_packed_row_rtl<P>(
         &self,
         r: usize,
@@ -101,13 +90,7 @@ pub trait Matrix<T: Send + Sync + Clone>: Send + Sync {
     ) -> impl Iterator<Item = P>
     where
         T: Copy,
-        P: PackedValue<Value = T> + Default,
-    {
-        let rows = self.wrapping_row_slices(r, P::WIDTH);
-        (0..n_leading_zeros)
-            .map(|_| P::default())
-            .chain((0..effective_width).rev().map(move |c| P::from_fn(|i| rows[i][c])))
-    }
+        P: PackedValue<Value = T> + Default;
 }
 
 pub(crate) type RowMajorMatrix<T> = DenseMatrix<T>;
@@ -203,6 +186,30 @@ impl<T: Clone + Send + Sync, S: DenseStorage<T>> Matrix<T> for DenseMatrix<T, S>
         T: Clone,
     {
         RowMajorMatrix::new(self.values.to_vec(), self.width)
+    }
+
+    // Safety: caller must ensure `r + P::WIDTH <= height` and `effective_width <= width`.
+    #[inline]
+    fn vertically_packed_row_rtl<P>(
+        &self,
+        r: usize,
+        effective_width: usize,
+        n_leading_zeros: usize,
+    ) -> impl Iterator<Item = P>
+    where
+        T: Copy,
+        P: PackedValue<Value = T> + Default,
+    {
+        let width = self.width;
+        debug_assert!(effective_width <= width);
+        debug_assert!(r + P::WIDTH <= self.height());
+        let values = self.values.borrow();
+        let base = r * width;
+        (0..n_leading_zeros).map(|_| P::default()).chain(
+            (0..effective_width)
+                .rev()
+                .map(move |c| P::from_fn(|i| unsafe { *values.get_unchecked(base + i * width + c) })),
+        )
     }
 }
 
