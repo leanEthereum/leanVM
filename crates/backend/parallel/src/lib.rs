@@ -18,9 +18,9 @@
 //!
 //! ## Nesting is forbidden
 //!
-//! A flat pool can't dispatch from inside a task (would deadlock the dispatch lock), so a
-//! dispatch issued from within a pool task panics. The outer level has already saturated all
-//! cores, so nested parallelism would buy nothing anyway.
+//! A flat pool can't dispatch from inside a task (it would deadlock on the dispatch lock);
+//! an `IN_TASK` guard catches that and panics instead. The outer level has already saturated
+//! all cores, so nested parallelism would buy nothing anyway.
 //!
 //! ## Constraint
 //!
@@ -83,6 +83,16 @@ struct Job {
     n_tasks: usize,
 }
 
+/// Per-worker state touched by the park/unpark protocol (indexed by worker id; slot 0,
+/// the dispatcher, is unused — it never parks).
+#[derive(Debug)]
+struct Worker {
+    /// "Currently parked" flag, ordered SeqCst against `Pool::generation`.
+    parked: AtomicBool,
+    /// Thread handle for `unpark`, published once by the worker on start-up.
+    handle: OnceLock<Thread>,
+}
+
 struct Pool {
     /// Current job. Written by the dispatcher before bumping `generation`, read by
     /// workers after they observe the bump; `generation` supplies the happens-before.
@@ -93,11 +103,8 @@ struct Pool {
     counter: AtomicUsize,
     /// Background workers still draining the current dispatch; dispatcher spins to 0.
     working: AtomicUsize,
-    shutdown: AtomicBool,
-    /// Per-worker "currently parked" flags (indexed by worker id; slot 0 unused).
-    parked: Vec<AtomicBool>,
-    /// Per-worker thread handles for `unpark` (indexed by worker id; slot 0 unused).
-    handles: Vec<OnceLock<Thread>>,
+    /// Per-worker park flag + unpark handle (indexed by worker id; slot 0 unused).
+    workers: Vec<Worker>,
     /// Serializes dispatchers: only one thread may drive the pool at a time.
     dispatch: Mutex<()>,
 }
@@ -131,9 +138,12 @@ fn pool() -> &'static Pool {
             generation: AtomicUsize::new(0),
             counter: AtomicUsize::new(0),
             working: AtomicUsize::new(0),
-            shutdown: AtomicBool::new(false),
-            parked: (0..n).map(|_| AtomicBool::new(false)).collect(),
-            handles: (0..n).map(|_| OnceLock::new()).collect(),
+            workers: (0..n)
+                .map(|_| Worker {
+                    parked: AtomicBool::new(false),
+                    handle: OnceLock::new(),
+                })
+                .collect(),
             dispatch: Mutex::new(()),
         }));
         for id in 1..n {
@@ -148,49 +158,53 @@ fn pool() -> &'static Pool {
 
 fn worker_main(pool: &'static Pool, id: usize) {
     WORKER_ID.with(|c| c.set(id));
-    let _ = pool.handles[id].set(std::thread::current());
+    let _ = pool.workers[id].handle.set(std::thread::current());
 
+    // The pool is leaked and lives for the whole process: workers never shut down, they
+    // die with the process. Each iteration services exactly one dispatch.
     let mut last_gen = 0usize;
     loop {
-        let mut spins = 0u32;
-        let g = loop {
-            let g = pool.generation.load(Ordering::Acquire);
-            if g != last_gen {
-                break g;
-            }
-            if pool.shutdown.load(Ordering::Acquire) {
-                return;
-            }
-            if spins < SPIN_LIMIT {
-                spins += 1;
-                std::hint::spin_loop();
-            } else {
-                // About to park. Publish it, then re-check `generation`: by SeqCst
-                // total order with the dispatcher's `generation` bump and `parked`
-                // load, at least one side sees the other, so no wake-up is lost.
-                pool.parked[id].store(true, Ordering::SeqCst);
-                if pool.generation.load(Ordering::SeqCst) != last_gen {
-                    pool.parked[id].store(false, Ordering::SeqCst);
-                } else if pool.shutdown.load(Ordering::SeqCst) {
-                    pool.parked[id].store(false, Ordering::SeqCst);
-                    return;
-                } else {
-                    std::thread::park();
-                    pool.parked[id].store(false, Ordering::SeqCst);
-                }
-                spins = 0;
-            }
-        };
-        last_gen = g;
+        last_gen = wait_for_dispatch(pool, id, last_gen);
         drain(pool);
         pool.working.fetch_sub(1, Ordering::Release);
     }
 }
 
+/// Block until the dispatcher publishes a new job, returning its generation. Spins up to
+/// [`SPIN_LIMIT`] times (so back-to-back dispatches pay no syscall), then parks.
+///
+/// The park is the delicate part: we publish `parked = true` and only then re-check
+/// `generation`, both under `SeqCst`. That single total order is also observed by the
+/// dispatcher's `generation` bump and subsequent `parked` load, so for every dispatch at
+/// least one side sees the other — a wake-up can never be lost.
+fn wait_for_dispatch(pool: &Pool, id: usize, last_gen: usize) -> usize {
+    let mut spins = 0u32;
+    loop {
+        let g = pool.generation.load(Ordering::Acquire);
+        if g != last_gen {
+            return g;
+        }
+        if spins < SPIN_LIMIT {
+            spins += 1;
+            std::hint::spin_loop();
+            continue;
+        }
+        // Spun out. Announce the intent to park, then re-check under SeqCst: park only if
+        // nothing changed in the meantime; otherwise loop back and re-observe at the top.
+        pool.workers[id].parked.store(true, Ordering::SeqCst);
+        if pool.generation.load(Ordering::SeqCst) == last_gen {
+            std::thread::park();
+        }
+        pool.workers[id].parked.store(false, Ordering::SeqCst);
+        spins = 0;
+    }
+}
+
 /// Claim and run task indices until the counter is exhausted, using **guided
-/// self-scheduling**: each claim grabs `remaining / (NUM_THREADS * 2)`, capped at
-/// [`MAX_CLAIM_BATCH`]. Large early batches keep counter contention low; the proportional
-/// shrink keeps the tail finely divided for load balance.
+/// self-scheduling**: each claim grabs `remaining / (NUM_THREADS * 2)`, clamped to
+/// `1..=`[`MAX_CLAIM_BATCH`] (the floor of 1 guarantees progress on tiny tails). Large
+/// early batches keep counter contention low; the proportional shrink keeps the tail
+/// finely divided for load balance.
 fn drain(pool: &Pool) {
     // SAFETY: the dispatcher published `Some(job)` before the generation bump this
     // worker just observed, and overwrites it only on the next dispatch (gated on
@@ -244,9 +258,12 @@ pub fn for_each_chunk<F: Fn(usize, usize) + Sync>(n_tasks: usize, f: F) {
     let _guard = pool.dispatch.lock().unwrap();
     let n = NUM_THREADS;
 
-    // SAFETY: erase the borrow's lifetime so the closure can live in the `'static`
-    // `Job`. The dispatcher blocks on `working` below before returning, so `f`
-    // outlives every worker dereference of this pointer.
+    // SAFETY: erase the borrow's lifetime so the closure can live in the `'static` `Job`.
+    // The dispatcher blocks on `working` below before returning, so `f` outlives every
+    // worker dereference of this pointer. `transmute` is required here — NOT a `&dyn -> *const`
+    // cast: coercing to a bare `*const dyn` defaults the trait object to `'static`, which would
+    // force `F: 'static` (E0310) and break every non-'static caller. The transmute reinterprets
+    // the same (data, vtable) fat pointer without imposing that bound.
     let f_ref: &(dyn Fn(usize, usize) + Sync) = &f;
     let f_erased: NonNull<dyn Fn(usize, usize) + Sync> = unsafe { std::mem::transmute(NonNull::from(f_ref)) };
 
@@ -260,9 +277,9 @@ pub fn for_each_chunk<F: Fn(usize, usize) + Sync>(n_tasks: usize, f: F) {
     pool.generation.fetch_add(1, Ordering::SeqCst);
 
     // Wake only workers that actually parked; hot (spinning) ones see the bump for free.
-    for id in 1..n {
-        if pool.parked[id].load(Ordering::SeqCst)
-            && let Some(t) = pool.handles[id].get()
+    for worker in &pool.workers[1..n] {
+        if worker.parked.load(Ordering::SeqCst)
+            && let Some(t) = worker.handle.get()
         {
             t.unpark();
         }
@@ -278,6 +295,9 @@ pub fn for_each_chunk<F: Fn(usize, usize) + Sync>(n_tasks: usize, f: F) {
 
 /// Run `f(i)` for every `i` in `0..n_tasks`, in parallel across the pool. Blocks until
 /// all tasks complete; the dispatching thread participates as worker 0.
+/// `#[inline]` so the trivial range→index adapter folds into the monomorphized
+/// [`for_each_chunk`] (mirrors [`par_for_each_mut`]).
+#[inline]
 pub fn for_each_index<F: Fn(usize) + Sync>(n_tasks: usize, f: F) {
     for_each_chunk(n_tasks, |start, end| {
         for i in start..end {
