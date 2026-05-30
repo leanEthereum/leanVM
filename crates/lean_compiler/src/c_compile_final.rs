@@ -2,7 +2,7 @@ use crate::{F, instruction_encoder::field_representation, ir::*, lang::*};
 use backend::*;
 use lean_vm::*;
 use std::collections::BTreeMap;
-use utils::{ToUsize, poseidon_compress_slice};
+use utils::{ToUsize, poseidon_hash_slice};
 
 impl IntermediateInstruction {
     const fn is_hint(&self) -> bool {
@@ -162,7 +162,7 @@ pub fn compile_to_low_level_bytecode(
         pc_to_location.push(current_location);
     }
 
-    let hash = poseidon_compress_slice(&instructions_multilinear);
+    let hash = poseidon_hash_slice(&instructions_multilinear);
 
     let code: Vec<_> = instructions
         .into_iter()

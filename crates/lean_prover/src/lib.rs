@@ -95,7 +95,7 @@ impl Display for ProverError {
 
 #[cfg(test)]
 mod tests {
-    use backend::{PrimeCharacteristicRing, default_koalabear_poseidon1_16, hash_slice};
+    use backend::{PrimeCharacteristicRing, default_koalabear_poseidon1_16, hash_slice_rtl};
     use lean_vm::F;
     use rec_aggregation::{get_aggregation_bytecode, init_aggregation_bytecode};
     use utils::poseidon16_compress_pair;
@@ -117,7 +117,7 @@ mod tests {
         }
         prefix_free_name_fe.push(F::from_u64(len as u64));
         let comp = default_koalabear_poseidon1_16();
-        let name_hash = hash_slice::<_, _, _, 8, 8>(&comp, &prefix_free_name_fe);
+        let name_hash = hash_slice_rtl::<_, _, _, 8, 8>(&comp, &prefix_free_name_fe);
 
         // We incorporate the recursion program hash, containing all the verifier logic, into fiat shamir domain separator
         // (likely not necessary but why not, is there a cleaner approach?)

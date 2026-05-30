@@ -1,7 +1,7 @@
 use backend::*;
 use rand::{CryptoRng, RngExt};
 use serde::{Deserialize, Serialize};
-use utils::{ToUsize, poseidon16_compress_pair};
+use utils::{ToUsize, poseidon16_compress_pair, poseidon16_permute};
 
 use crate::*;
 
@@ -91,25 +91,19 @@ impl WotsSignature {
 }
 
 impl WotsPublicKey {
-    // We use a T-Sponge with replacement, i.e. we use Poseidon in compression mode + replace (instead of modular addition) when ingesting 8 new field elements.
+    // Overwrite-sponge
     pub fn hash(&self, public_param: PublicParam, slot: u32) -> Digest {
-        // IV: [tweak(2) | 00 | pp(4)]
-        let tweak = make_tweak(TWEAK_TYPE_WOTS_PK, 0, slot);
-        let mut state = [F::default(); 8];
-        state[..TWEAK_LEN].copy_from_slice(&tweak);
-        // state[2..4] = 00 (default)
+        // state[0..8] = IV [tweak(2) | 00 | pp(4)]; state[8..16] = 0.
+        let mut state = [F::ZERO; WIDTH];
+        state[..TWEAK_LEN].copy_from_slice(&make_tweak(TWEAK_TYPE_WOTS_PK, 0, slot));
         state[4..4 + PUBLIC_PARAM_LEN_FE].copy_from_slice(&public_param);
-
-        let zeros = [F::ZERO; 8]; // for snark-friendliless (not necessary for security)
-        state = poseidon16_compress_pair(&state, &zeros);
-
+        state = poseidon16_permute(state);
         for i in (0..V).step_by(2) {
-            let mut chunk = [F::default(); 8];
-            chunk[..XMSS_DIGEST_LEN].copy_from_slice(&self.0[i]);
-            chunk[XMSS_DIGEST_LEN..].copy_from_slice(&self.0[i + 1]);
-            state = poseidon16_compress_pair(&state, &chunk);
+            state[8..][..XMSS_DIGEST_LEN].copy_from_slice(&self.0[i]);
+            state[8 + XMSS_DIGEST_LEN..].copy_from_slice(&self.0[i + 1]);
+            state = poseidon16_permute(state);
         }
-        state[..XMSS_DIGEST_LEN].try_into().unwrap()
+        state[CAPACITY..][..XMSS_DIGEST_LEN].try_into().unwrap()
     }
 }
 

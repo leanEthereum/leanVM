@@ -2,9 +2,10 @@ use backend::*;
 
 pub use backend::ProofError;
 pub use rec_aggregation::{
-    AggregationError, MAX_RECURSIONS, MAX_XMSS_AGGREGATED, MAX_XMSS_DUPLICATES, ProverError, TypeOneInfo,
-    TypeOneMultiSignature, TypeTwoMultiSignature, aggregate_type_1, merge_many_type_1, split_type_2, verify_type_1,
-    verify_type_2,
+    AggregationError, MAX_RECURSIONS, MAX_XMSS_AGGREGATED, MAX_XMSS_DUPLICATES, MultiMessageAggregateSignature,
+    ProverError, SingleMessageAggregateSignature, SingleMessageInfo, aggregate_single_msg_signatures,
+    merge_single_message_aggregates, split_multi_message_aggregate, verify_multi_message_aggregate,
+    verify_single_message_aggregate,
 };
 pub use xmss::{MESSAGE_LEN_FE, XmssPublicKey, XmssSecretKey, XmssSignature, xmss_key_gen, xmss_sign, xmss_verify};
 

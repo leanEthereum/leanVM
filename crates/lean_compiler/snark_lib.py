@@ -45,32 +45,48 @@ class Array:
         return
 
 
-def poseidon16_compress(left, right, output):
-    _ = left, right, output
+# Poseidon16 precompiles on input x = m[left..left+8] || m[right..right+8], written at `output`:
+#   - `compress_*` adds the input back, i.e. feed-forward (Poseidon(x) + x); `permute_*` is the raw Poseidon(x).
+#   - `_half` keeps 8 elements, `_quarter` keeps 4, plain `permute` keeps 16
+#   - `_hardcoded_left`: the left half is m[offset..offset+4] || m[left..left+4], at the compile-time constant `offset`.
 
 
 def poseidon16_compress_half(left, right, output):
-    """Poseidon16 compression outputting only the first 4 FE (last 4 unconstrained)."""
+    """m[output..output+8] = (Poseidon(x) + x)[0..8]."""
     _ = left, right, output
 
 
-def poseidon16_compress_hardcoded_left(left, right, output, offset):
-    """Poseidon16 compression where the first 4 FE of the left input are read from
-    memory[offset..offset+4] instead of memory[left..left+4]. The last 4 FE of the
-    left input come from memory[left..left+4]. `offset` must be a compile-time
-    constant expression."""
-    _ = left, right, output, offset
+def poseidon16_compress_quarter(left, right, output):
+    """m[output..output+4] = (Poseidon(x) + x)[0..4]."""
+    _ = left, right, output
 
 
 def poseidon16_compress_half_hardcoded_left(left, right, output, offset):
-    """Composition of `poseidon16_compress_half` and `poseidon16_compress_hardcoded_left`."""
+    """`poseidon16_compress_half` with a hardcoded left prefix: the left half of the input is
+    m[offset..offset+4] || m[left..left+4]."""
+    _ = left, right, output, offset
+
+
+def poseidon16_compress_quarter_hardcoded_left(left, right, output, offset):
+    """`poseidon16_compress_quarter` with a hardcoded left prefix: the left half of the input is
+    m[offset..offset+4] || m[left..left+4]."""
     _ = left, right, output, offset
 
 
 def poseidon16_permute(left, right, output):
-    """Raw Poseidon1 permutation (no feed-forward). Writes the 16-cell result in natural order:
-    m[output .. output + 16] = poseidon(left || right)"""
+    """m[output..output+16] = Poseidon(x) (raw permutation, no feed-forward)."""
     _ = left, right, output
+
+
+def poseidon16_permute_half(left, right, output):
+    """m[output..output+8] = Poseidon(x)[0..8] (raw permutation, no feed-forward; high 8 discarded)."""
+    _ = left, right, output
+
+
+def poseidon16_permute_half_hardcoded_left(left, right, output, offset):
+    """`poseidon16_permute_half` with a hardcoded left prefix: the left half of the input is
+    m[offset..offset+4] || m[left..left+4]."""
+    _ = left, right, output, offset
 
 
 def add_be(a, b, result, length=None):

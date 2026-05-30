@@ -55,9 +55,10 @@ pub fn field_representation(instr: &Instruction) -> [F; N_INSTRUCTION_COLUMNS] {
                 } => {
                     let flag_left = hardcoded_offset_left.is_some() as usize;
                     let offset_left_val = hardcoded_offset_left.unwrap_or(0);
+                    let out8 = (!*half_output && !*permute) || (*half_output && *permute);
                     POSEIDON_DOMAINSEP_BASE
                         + POSEIDON_FLAG_PERMUTE_SHIFT * (*permute as usize)
-                        + POSEIDON_FLAG_SHORT_SHIFT * (*half_output as usize)
+                        + POSEIDON_FLAG_OUT8_SHIFT * (out8 as usize)
                         + POSEIDON_FLAG_LEFT_SHIFT * flag_left
                         + POSEIDON_OFFSET_LEFT_SHIFT * offset_left_val
                 }

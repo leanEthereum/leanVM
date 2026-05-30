@@ -48,7 +48,7 @@ N_RUNTIME_COLUMNS, N_INSTRUCTION_COLUMNS = 8, 12
 
 LOGUP_MEMORY_DOMAINSEP, LOGUP_BYTECODE_DOMAINSEP = 1, 2
 POSEIDON_DOMAINSEP_BASE = 3  # odd ≥ 3
-POSEIDON_FLAG_PERMUTE_SHIFT, POSEIDON_FLAG_SHORT_SHIFT = 1 << 1, 1 << 2
+POSEIDON_FLAG_PERMUTE_SHIFT, POSEIDON_FLAG_OUT8_SHIFT = 1 << 1, 1 << 2
 POSEIDON_FLAG_LEFT_SHIFT, POSEIDON_OFFSET_LEFT_SHIFT = 1 << 3, 1 << 4
 EXT_OP_FLAG_BE, EXT_OP_FLAG_ADD, EXT_OP_FLAG_DOT_PRODUCT, EXT_OP_FLAG_EQ, EXT_OP_LEN_MULTIPLIER = 4, 8, 16, 32, 64
 
@@ -113,13 +113,16 @@ class Table:
         ]
 
 
-# T-Sponge (compression instead of permutation) with replacement (instead of xoring / adding the ingested data).
+# Overwrite-sponge
 def sponge_hash(data: Sequence[Fp]) -> list[Fp]:
     assert len(data) % SPONGE_RATE == 0 and len(data) > 0
-    state = [Fp(len(data))] + [Fp(0)] * (SPONGE_CAPACITY - 1)
+    capacity = [Fp(len(data))] + [Fp(0)] * (SPONGE_CAPACITY - 1)
+    full = list(capacity) + [Fp(0)] * SPONGE_RATE
     for k in range(len(data) // SPONGE_RATE):
-        state = poseidon16_compress(state, data[k * SPONGE_RATE : (k + 1) * SPONGE_RATE])
-    return state
+        chunk = data[k * SPONGE_RATE : (k + 1) * SPONGE_RATE]
+        full = POSEIDON16.permute(list(capacity) + list(chunk))
+        capacity = full[:SPONGE_CAPACITY]
+    return full[SPONGE_CAPACITY:]
 
 
 class DuplexSpongeChallenger:  # https://eprint.iacr.org/2025/536.pdf
@@ -869,7 +872,7 @@ def eval_air_poseidon16(folder: ConstraintFolder, logup_beta_eq: list[EF]) -> No
 
     multiplicity = c["multiplicity"]
     nu_b, nu_c = c["nu_b"], c["nu_c"]
-    flag_short, flag_left = c["flag_short"], c["flag_left"]
+    flag_out4, flag_out8, flag_left = c["flag_out4"], c["flag_out8"], c["flag_left"]
     offset_left = c["offset_left"]
     addr_left_lo, addr_left_hi = c["addr_left_lo"], c["addr_left_hi"]
     flag_permute = c["flag_permute"]
@@ -883,19 +886,19 @@ def eval_air_poseidon16(folder: ConstraintFolder, logup_beta_eq: list[EF]) -> No
     domainsep = (
         POSEIDON_DOMAINSEP_BASE
         + flag_permute * POSEIDON_FLAG_PERMUTE_SHIFT
-        + flag_short * POSEIDON_FLAG_SHORT_SHIFT
+        + flag_out8 * POSEIDON_FLAG_OUT8_SHIFT
         + flag_left * POSEIDON_FLAG_LEFT_SHIFT
         + flag_left * offset_left * POSEIDON_OFFSET_LEFT_SHIFT
     )
     not_flag_left = ONE - flag_left
     nu_a = addr_left_hi - not_flag_left * (DIGEST_ELEMS // 2)
 
-    eval_precompile_bus_virtual_columns(
-        folder, logup_beta_eq, multiplicity, domainsep, [nu_a, nu_b, nu_c]
-    )
-    for f in (multiplicity, flag_short, flag_left, flag_permute):
+    eval_precompile_bus_virtual_columns(folder, logup_beta_eq, multiplicity, domainsep, [nu_a, nu_b, nu_c])
+    for f in (multiplicity, flag_out4, flag_out8, flag_left, flag_permute):
         folder.assert_bool(f)
-    folder.assert_zero(flag_permute * (flag_short + flag_left))
+    folder.assert_zero(flag_permute * flag_out4)
+    folder.assert_zero(flag_out8 * flag_out4)
+    folder.assert_zero((ONE - flag_permute) * (ONE - flag_out8) * (ONE - flag_out4))
     folder.assert_zero(flag_left * (offset_left - addr_left_lo))
     folder.assert_zero(not_flag_left * (nu_a - addr_left_lo))
 
@@ -932,17 +935,21 @@ def eval_air_poseidon16(folder: ConstraintFolder, logup_beta_eq: list[EF]) -> No
             folder.assert_eq(state[i], post)
             state[i] = post
 
-    # Last full round: compression mode adds `inputs` back (gated by flag_short for lanes 4..8);
-    # permute mode (flag_permute=1) outputs raw state.
+    # Last full round: compression feeds `inputs` forward into out_lo (permute does not).
+    # out_lo[4..8] is real unless the output is 4 elements (out4); out_hi (capacity) is only
+    # written by the full 16-element permutation (out16 = neither out8 nor out4).
     last = 2 * (half_pairs - 1)
     state = _full_round(state, POSEIDON_AIR_FINAL_CONSTANTS[last], POSEIDON_AIR_FINAL_CONSTANTS[last + 1])
     not_permute = ONE - flag_permute
-    compression_last4 = not_permute - flag_short
+    gate_lo_8 = ONE - flag_out4
+    gate_hi = ONE - flag_out8 - flag_out4
     for i in range(POSEIDON_WIDTH // 2):
-        gate = not_permute if i < (DIGEST_ELEMS // 2) else compression_last4
-        folder.assert_zero(gate * (state[i] + inputs[i] - out_lo[i]))
-        folder.assert_zero(flag_permute * (state[i] - out_lo[i]))
-        folder.assert_zero(flag_permute * (state[i + POSEIDON_WIDTH // 2] - out_hi[i]))
+        value = state[i] + not_permute * inputs[i]
+        if i < (DIGEST_ELEMS // 2):
+            folder.assert_zero(value - out_lo[i])
+        else:
+            folder.assert_zero(gate_lo_8 * (value - out_lo[i]))
+        folder.assert_zero(gate_hi * (state[i + POSEIDON_WIDTH // 2] - out_hi[i]))
 
 
 EXECUTION_COLUMNS = (
@@ -960,7 +967,7 @@ EXTENSION_COLUMNS = (
 )  # fmt: skip
 
 POSEIDON_COLUMNS = (
-    "multiplicity", "nu_b", "nu_c", "flag_short", "flag_left", "offset_left", "addr_left_lo", "addr_left_hi", "flag_permute",
+    "multiplicity", "nu_b", "nu_c", "flag_out4", "flag_out8", "flag_left", "offset_left", "addr_left_lo", "addr_left_hi", "flag_permute",
     *(f"input_{i}" for i in range(POSEIDON_WIDTH)),
     *(f"begin_r{r}_{i}" for r in range(POSEIDON_HALF_FULL_ROUNDS // 2) for i in range(POSEIDON_WIDTH)),
     *(f"partial_{i}" for i in range(POSEIDON_PARTIAL_ROUNDS)),

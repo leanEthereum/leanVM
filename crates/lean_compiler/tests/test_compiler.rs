@@ -182,7 +182,7 @@ def main():
 
 @inline
 def func(a, b):
-    poseidon16_compress(a, a, b)
+    poseidon16_compress_half(a, a, b)
     return
    "#;
     let bytecode = compile_program(&ProgramSource::Raw(program.to_string()));

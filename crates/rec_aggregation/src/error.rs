@@ -43,8 +43,8 @@ impl Display for AggregationError {
         match self {
             Self::Prover(e) => write!(f, "{e}"),
             Self::InvalidChildProof(e) => write!(f, "Invalid child proof: {e}"),
-            Self::UnknownMessage => write!(f, "Unknown message, not part of the type2"),
-            Self::MultipleMessages => write!(f, "Multiple common messages in the type2"),
+            Self::UnknownMessage => write!(f, "Unknown message, not part of the multi-message aggregate"),
+            Self::MultipleMessages => write!(f, "Multiple common messages in the multi-message aggregate"),
             Self::InvalidSplitIndex { index, n_components } => {
                 write!(f, "Invalid split index {index} for {n_components} components")
             }

@@ -37,17 +37,15 @@ pub fn poseidon16_compress_pair(left: &[KoalaBear; 8], right: &[KoalaBear; 8]) -
     poseidon16_compress(input)
 }
 
-/// Absorbs `data` in rate-mode chunks of 8, starting from the IV `[data.len(), 0, ..., 0]`.
-pub fn poseidon_compress_slice(data: &[KoalaBear]) -> [KoalaBear; 8] {
+// Overwrite-sponge
+pub fn poseidon_hash_slice(data: &[KoalaBear]) -> [KoalaBear; DIGEST_ELEMS] {
     assert!(!data.is_empty());
-    assert!(data.len().is_multiple_of(8));
-    let mut hash = [KoalaBear::default(); 8];
-    hash[0] = KoalaBear::from_usize(data.len());
-    for chunk in data.chunks(8) {
-        let mut block = [KoalaBear::default(); 16];
-        block[..8].copy_from_slice(&hash);
-        block[8..].copy_from_slice(chunk);
-        hash = poseidon16_compress(block);
+    assert!(data.len().is_multiple_of(RATE));
+    let mut state = [KoalaBear::default(); WIDTH];
+    state[0] = KoalaBear::from_usize(data.len());
+    for chunk in data.chunks(RATE) {
+        state[CAPACITY..].copy_from_slice(chunk);
+        state = poseidon16_permute(state);
     }
-    hash
+    state[CAPACITY..].try_into().unwrap()
 }

@@ -1,4 +1,4 @@
-use lean_multisig::{aggregate_type_1, setup_prover, verify_type_1};
+use lean_multisig::{aggregate_single_msg_signatures, setup_prover, verify_single_message_aggregate};
 use xmss::signers_cache::{BENCHMARK_SLOT, get_benchmark_signatures, message_for_benchmark};
 
 // End-to-end prove+verify under the default (mimalloc) allocator. Repeated to catch any
@@ -15,7 +15,7 @@ fn test_aggregation_prove_verify() {
     let raw_xmss = signatures[0..6].to_vec();
 
     for _ in 0..2 {
-        let aggregated = aggregate_type_1(&[], raw_xmss.clone(), message, slot, log_inv_rate).unwrap();
-        verify_type_1(&aggregated).unwrap();
+        let aggregated = aggregate_single_msg_signatures(&[], raw_xmss.clone(), message, slot, log_inv_rate).unwrap();
+        verify_single_message_aggregate(&aggregated).unwrap();
     }
 }

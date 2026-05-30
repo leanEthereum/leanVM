@@ -2,8 +2,9 @@ use std::time::Instant;
 
 use backend::*;
 use lean_vm::{
-    EF, ExtraDataForBuses, F, POSEIDON_COL_ADDR_LEFT_HI, POSEIDON_COL_ADDR_LEFT_LO, POSEIDON_COL_INPUT_START,
-    POSEIDON_COL_MULTIPLICITY, Poseidon16Precompile, fill_trace_poseidon_16, num_cols_poseidon_16,
+    EF, ExtraDataForBuses, F, POSEIDON_COL_ADDR_LEFT_HI, POSEIDON_COL_ADDR_LEFT_LO, POSEIDON_COL_FLAG_OUT8,
+    POSEIDON_COL_INPUT_START, POSEIDON_COL_MULTIPLICITY, Poseidon16Precompile, fill_trace_poseidon_16,
+    num_cols_poseidon_16,
 };
 use rand::{RngExt, SeedableRng, rngs::StdRng};
 use sub_protocols::{
@@ -15,14 +16,10 @@ const WIDTH: usize = 16;
 const HALF_DIGEST_LEN: usize = 4;
 
 #[test]
-fn test_prove_poseidon_16() {
-    // LOG_N_ROWS=20 cargo test --release --package sub_protocols --test prove_poseidon_16 -- test_prove_poseidon_16 --exact --nocapture
-    let log_n_rows: usize = std::env::var("LOG_N_ROWS").unwrap_or("11".to_string()).parse().unwrap();
-    prove_air_poseidon_16(log_n_rows);
-}
-
 #[allow(clippy::too_many_lines)]
-fn prove_air_poseidon_16(log_n_rows: usize) {
+fn test_prove_poseidon() {
+    // LOG_N_ROWS=20 cargo test --release --package sub_protocols --test prove_poseidon -- test_prove_poseidon --exact --nocapture
+    let log_n_rows: usize = std::env::var("LOG_N_ROWS").unwrap_or("11".to_string()).parse().unwrap();
     let n_rows = 1 << log_n_rows;
     let mut rng = StdRng::seed_from_u64(0);
     let n_cols = num_cols_poseidon_16();
@@ -31,6 +28,7 @@ fn prove_air_poseidon_16(log_n_rows: usize) {
         *t = (0..n_rows).map(|_| rng.random()).collect();
     }
     trace[POSEIDON_COL_MULTIPLICITY] = vec![F::ONE; n_rows];
+    trace[POSEIDON_COL_FLAG_OUT8] = vec![F::ONE; n_rows];
     trace[POSEIDON_COL_ADDR_LEFT_LO] = vec![F::ZERO; n_rows];
     trace[POSEIDON_COL_ADDR_LEFT_HI] = vec![F::from_usize(HALF_DIGEST_LEN); n_rows];
     fill_trace_poseidon_16(&mut trace);

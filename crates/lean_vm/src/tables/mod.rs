@@ -22,6 +22,6 @@ pub(crate) use utils::*;
 // a multiple of 4 (ExtensionOp) — also from the memory and bytecode lookups, whose
 // reserved domainseps are respectively 1 and 2.
 //
-//   Poseidon16  (odd >= 3): 3 + 2·flag_permute + 4·flag_short + 8·flag_left + 16·flag_left·offset_left
+//   Poseidon16  (odd >= 3): 3 + 2·flag_permute + 4·flag_out8 + 8·flag_left + 16·flag_left·offset_left
 //   ExtensionOp (0 mod 4):  4·flag_be + 8·flag_add + 16·flag_dot_product + 32·flag_eq + 64·len
 //

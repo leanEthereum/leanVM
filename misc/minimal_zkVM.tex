@@ -31,6 +31,8 @@
 
 \newcommand{\Fp}{\mathbb F_p}
 \newcommand{\Fq}{\mathbb F_q}
+\newcommand{\extdeg}{d} % degree of the extension field (value 5)
+\newcommand{\diglen}{{\ell_{\textsc{digest}}}} % hash digest size, in field elements (value 8)
 \newcommand{\offdest}{\text{off}_{\text{dest}}}
 \newcommand{\offopzero}{\text{off}_{\text{op0}}}
 \newcommand{\offopone}{\text{off}_{\text{op1}}}
@@ -95,7 +97,7 @@ See \Cref{sec:signature-aggregation} for more details.
     \item $[a, b] = \{a, a + 1, \ldots, b\}$
     \item $[a, b) = \{a, a + 1, \ldots, b-1\}$
     \item $\hat{eq}(x, y) = x y + (1 - x)(1 - y)$
-    \item \label{sec:preliminaries-embed} $\mathsf{embed}(x_1, x_2, x_3, x_4, x_5)$ is the extension field element built from 5 base field elements: $x_1 + x_2 X + x_3 X^2 + x_4 X^3 + x_5 X^4$, using $X^5 + X^2 - 1$ as the irreducible polynomial defining the extension (see \Cref{sec:field}).
+    \item \label{sec:preliminaries-embed} $\mathsf{embed}(x_1, x_2, x_3, x_4, x_5)$ is the extension field element built from $\extdeg$ base field elements: $x_1 + x_2 X + x_3 X^2 + x_4 X^3 + x_5 X^4$, using $X^5 + X^2 - 1$ as the irreducible polynomial defining the extension (see \Cref{sec:field}).
     \item Given a number of bits $n > 0$, and an $n$-bit integer $x$, we denote by $[x]_\text{bits}^n$ its big-endian bit-decomposition in $n$ boolean values. For example, $[14]_\text{bits}^4 = (1, 1, 1, 0)$
     \item $h_\textsc{memory}$ is the log-size of the (read-only) memory; the memory has $2^{h_\textsc{memory}}$ words (always a power of 2). $h_\textsc{bytecode}$ is the bytecode log-size (the bytecode has $2^{h_\textsc{bytecode}}$ instructions), and $h_\textsc{exec}$, $h_\textsc{poseidon}$, $h_\textsc{extension}$ are the log-heights of the three tables (see \Cref{sec:table-sizes}).
     \item $\textbf{m}[i]$ is the value of the memory at index $i$. It is defined only for $0 \leq i < 2^{h_\textsc{memory}}$; any out-of-bound access ($i \geq 2^{h_\textsc{memory}}$) makes the execution \emph{invalid}. More generally, any vector of field elements $v$ is indexed starting at $v[0], v[1], \dots$
@@ -192,7 +194,9 @@ A useful consequence: a non-zero multilinear polynomial in $n$ variables has tot
 \toprule
 Symbol & Value & Description \\
 \midrule
-$\ell_\textsc{public}$ & $8$ & public input length, in field elements (one digest) \\
+$\extdeg$ & $5$ & degree of the extension field $\Fq$ over $\Fp$ \\
+$\diglen$ & $8$ & hash digest size, in field elements \\
+$\ell_\textsc{public}$ & $\diglen$ & public input length (one digest) \\
 $h_\textsc{memory}^{\min}$ & $16$ & log2 of the minimum size of the memory \\
 $h_\textsc{memory}^{\max}$ & $26$ & log2 of the maximum size of the memory \\
 $h^{\min}$ & $8$ & log2 of the minimum height shared by all tables (and by the bytecode) \\
@@ -203,6 +207,8 @@ $\textsf{bus\_width}$ & 16 & number of field elements in the bus (see \Cref{sec:
 $\ell$ & 4 & $\log_2(\textsf{bus\_width})$ \\
 $\textsf{memory\_sep}$ & 1 & domain separator of memory interactions \\
 $\textsf{bytecode\_sep}$ & 2 & domain separator of bytecode interactions \\
+$\textsf{flag}_\textsc{single}$ & 1 & public-input flag for a single-message aggregation (\Cref{sec:aggregation-layout}) \\
+$\textsf{flag}_\textsc{multi}$ & 0 & public-input flag for a multi-message aggregation (\Cref{sec:aggregation-layout}) \\
 $n_{cols}^{execution}$ & 20 & number of columns in the \texttt{execution} table \\
 $f_0^\text{whir}$ & 7 & WHIR initial folding factor \\
 $f_{>0}^\text{whir}$ & 5 & WHIR subsequent folding factor \\
@@ -215,7 +221,7 @@ $\textsf{log\_inv\_rate}^{\max}$ & $4$ & maximum value of $\textsf{log\_inv\_rat
 \section{VM specification}
 \subsection{Field}\label{sec:field}
 
-The base field is $\Fp$, with $p = 2^{31} - 2^{24} + 1$ (KoalaBear prime). The extension field is $\Fq = \Fp[X] / (X^5 + X^2 - 1)$, with $q = p^5$. Extension field elements are represented in the canonical basis $(1, X, X^2, X^3, X^4)$ as 5-tuples of base field coordinates (cf. the $\mathsf{embed}$ map of \Cref{sec:preliminaries-embed}).
+The base field is $\Fp$, with $p = 2^{31} - 2^{24} + 1$ (KoalaBear prime). The extension field is $\Fq = \Fp[X] / (X^5 + X^2 - 1)$, a degree-$\extdeg$ extension ($\extdeg = 5$) with $q = p^\extdeg$. Extension field elements are represented in the canonical basis $(1, X, X^2, X^3, X^4)$ as $\extdeg$-tuples of base field coordinates (cf. the $\mathsf{embed}$ map of \Cref{sec:preliminaries-embed}).
 
 
 \subsection{Poseidon specification}
@@ -244,7 +250,7 @@ where $+$ represents field coordinate-wise addition, and $[0..8]$ represents the
 
 \subsection{Memory}\label{sec:memory}
 
-We use a read-only memory (also called write-once memory). Each memory word is a base field element. The memory is a 1D array of $2^{h_\textsc{memory}}$ words; the log-size $h_\textsc{memory}$ is attached to each execution of the VM and must satisfy $h_\textsc{memory}^{\min} \leq h_\textsc{memory} \leq h_\textsc{memory}^{\max}$, with $h_\textsc{memory}^{\min} = 16$ and $h_\textsc{memory}^{\max} = 26$. The first $\ell_\textsc{public} = 8$ memory cells (one hash digest) hold the "public input", which informally represents the part of the memory "controlled" by the verifier of an execution proof. If a program requires bigger input, it is enought to pass as public input its hash, and to hint (see \Cref{sec:hints}) the corresponding data at runtime (whose hash will be checked against the public input).
+We use a read-only memory (also called write-once memory). Each memory word is a base field element. The memory is a 1D array of $2^{h_\textsc{memory}}$ words; the log-size $h_\textsc{memory}$ is attached to each execution of the VM and must satisfy $h_\textsc{memory}^{\min} \leq h_\textsc{memory} \leq h_\textsc{memory}^{\max}$, with $h_\textsc{memory}^{\min} = 16$ and $h_\textsc{memory}^{\max} = 26$. The first $\ell_\textsc{public}$ memory cells (one hash digest) hold the "public input", which informally represents the part of the memory "controlled" by the verifier of an execution proof. If a program requires bigger input, it is enought to pass as public input its hash, and to hint (see \Cref{sec:hints}) the corresponding data at runtime (whose hash will be checked against the public input).
 
 \subsection{Bytecode}
 
@@ -371,14 +377,14 @@ A conditional jump.
 A precompile to compute Poseidon in permutation or compression mode.
 
 \[
-\texttt{POSEIDON\_OP}[\;\alpha^\textsf{addr},\, \alpha,\;\; \beta^\textsf{addr},\, \beta,\;\; \gamma^\textsf{addr},\, \gamma,\;\; \texttt{permute},\;\; \texttt{half},\;\; \delta\;]
+\texttt{POSEIDON\_OP}[\;\alpha^\textsf{addr},\, \alpha,\;\; \beta^\textsf{addr},\, \beta,\;\; \gamma^\textsf{addr},\, \gamma,\;\; \texttt{permute},\;\; \texttt{out8},\;\; \texttt{out4},\;\; \delta\;]
 \]
 
 \textbf{Operands:}
 \begin{itemize}
     \item $\alpha, \beta, \gamma \in \Fp$
     \item $\alpha^\textsf{addr}, \beta^\textsf{addr}, \gamma^\textsf{addr} \in \{\texttt{imm}, \texttt{mem}, \texttt{fp\_rel}\}$, with $\alpha^\textsf{addr} = \texttt{fp\_rel} \Leftrightarrow \beta^\textsf{addr} = \texttt{fp\_rel}$
-    \item $\texttt{permute}, \texttt{half} \in \{0, 1\}$,  $\delta \in \Fp \cup \{\bot\}$, with constraint: $\texttt{permute} = 1 \Rightarrow (\texttt{half}, \delta) = (0, \bot)$ 
+    \item $\texttt{permute} \in \{0, 1\}$; the pair $(\texttt{out8}, \texttt{out4})$ gives the output length, $(1,0) \mapsto 8$, $(0,1) \mapsto 4$, $(0,0) \mapsto 16$ (so $\texttt{out8}\cdot\texttt{out4} = 0$); $\delta \in \Fp \cup \{\bot\}$. Valid combinations: compression outputs $8$ or $4$, permutation outputs $16$ or $8$ (i.e. $\texttt{permute}\cdot\texttt{out4} = 0$, and the $16$-element output requires $\texttt{permute} = 1$).
 \end{itemize}
 
 \textbf{Semantics:} Define the pointers $a = \mathsf{val}(\alpha^\textsf{addr}, \alpha)$, $b = \mathsf{val}(\beta^\textsf{addr}, \beta)$, $c = \mathsf{val}(\gamma^\textsf{addr}, \gamma)$.
@@ -397,12 +403,12 @@ R = \textbf{m}[b .. b + 8].
 \textbf{Output.}
 \[
 \begin{cases}
-\textbf{m}[c .. c + 16] = \texttt{POSEIDON}^\pi(x) & \text{if } \texttt{permute} = 1 \\[1mm]
-\textbf{m}[c .. c + 8] = \texttt{POSEIDON}^C(x) & \text{if } \texttt{permute} = 0,\; \texttt{half} = 0 \\[1mm]
-\textbf{m}[c .. c + 4] = \texttt{POSEIDON}^C(x)[0..4] & \text{if } \texttt{permute} = 0,\; \texttt{half} = 1
+\textbf{m}[c .. c + 16] = \texttt{POSEIDON}^\pi(x) & \text{if } \texttt{permute} = 1,\; \texttt{out8} = \texttt{out4} = 0 \\[1mm]
+\textbf{m}[c .. c + 8] = \texttt{POSEIDON}^\pi(x)[0..8] & \text{if } \texttt{permute} = 1,\; \texttt{out8} = 1 \\[1mm]
+\textbf{m}[c .. c + 8] = \texttt{POSEIDON}^C(x) & \text{if } \texttt{permute} = 0,\; \texttt{out8} = 1 \\[1mm]
+\textbf{m}[c .. c + 4] = \texttt{POSEIDON}^C(x)[0..4] & \text{if } \texttt{permute} = 0,\; \texttt{out4} = 1
 \end{cases}
 \]
-
 
 \subsubsection{EXTENSION\_OP}\label{extension_op_instruction}
 
@@ -426,20 +432,20 @@ A precompile to compute various operations in the extension field, useful for re
 
 \textbf{Input.} For each $i \in [0, N)$, define
 $
-b_i = \mathsf{embed}\big(\textbf{m}[b + 5i \,..\, b + 5i + 5]\big) \in \Fq,
+b_i = \mathsf{embed}\big(\textbf{m}[b + \extdeg i \,..\, b + \extdeg i + \extdeg]\big) \in \Fq,
 $
 and:
 \[
 a_i =
 \begin{cases}
 \textbf{m}[a + i] \in \Fp & \text{if } \textsf{flag\_be} = 1 \quad \text{(base-extension)} \\[1mm]
-\mathsf{embed}\big(\textbf{m}[a + 5i \,..\, a + 5(i + 1)]\big) \in \Fq & \text{if } \textsf{flag\_be} = 0 \quad \text{(extension-extension)}
+\mathsf{embed}\big(\textbf{m}[a + \extdeg i \,..\, a + \extdeg(i + 1)]\big) \in \Fq & \text{if } \textsf{flag\_be} = 0 \quad \text{(extension-extension)}
 \end{cases}
 \]
 
 \textbf{Output.}
 \[
-\mathsf{embed}\big(\textbf{m}[c \,..\, c + 5]\big) =
+\mathsf{embed}\big(\textbf{m}[c \,..\, c + \extdeg]\big) =
 \begin{cases}
 \sum_{i=0}^{N-1} (a_i + b_i) & \text{if } \texttt{op} = \textsc{add} \\[1mm]
 \sum_{i=0}^{N-1} a_i \cdot b_i & \text{if } \texttt{op} = \textsc{dot\_product} \\[1mm]
@@ -871,10 +877,11 @@ For precompiles, when $\alpha^\textsf{addr} = \beta^\textsf{addr} = \texttt{fp\_
     \item $\texttt{MUL}[\alpha^\textsf{addr}, \alpha, \beta^\textsf{addr}, \beta, \gamma^\textsf{addr}, \gamma]$ \; (semantics $\nu_A \cdot \nu_C = \nu_B$): $\textsf{flag}_\textsf{mul} = 1$;\; $\nu_A \!\leftarrow\! (\alpha^\textsf{addr}, \alpha)$, $\nu_B \!\leftarrow\! (\beta^\textsf{addr}, \beta)$, $\nu_C \!\leftarrow\! (\gamma^\textsf{addr}, \gamma)$.
     \item $\texttt{DEREF}[\alpha, \beta, \gamma^\textsf{addr}, \gamma]$ \; (semantics $\textbf{m}[\textbf{m}[\textbf{fp} + \alpha] + \beta] = \nu_C$): $\textsf{aux}_1 = 2$;\; $\textsf{flag}_A = 0$, $\textsf{operand}_A = \alpha$ (so $\nu_A = \textbf{m}[\textbf{fp} + \alpha]$);\; $\textsf{flag}_B = 1$, $\textsf{operand}_B = \beta$;\; $\nu_C \!\leftarrow\! (\gamma^\textsf{addr}, \gamma)$.
     \item $\texttt{JUMP}[\alpha^\textsf{addr}, \alpha, \beta^\textsf{addr}, \beta, \gamma^\textsf{addr}, \gamma]$ \; (condition / dest / updated-fp): $\textsf{flag}_\textsf{jump} = 1$;\; $\nu_A \!\leftarrow\! (\alpha^\textsf{addr}, \alpha)$, $\nu_B \!\leftarrow\! (\beta^\textsf{addr}, \beta)$, $\nu_C \!\leftarrow\! (\gamma^\textsf{addr}, \gamma)$.
-    \item $\texttt{POSEIDON\_OP}[\alpha^\textsf{addr}, \alpha, \beta^\textsf{addr}, \beta, \gamma^\textsf{addr}, \gamma, \texttt{permute}, \texttt{half}, \delta]$: \; $\nu_A \!\leftarrow\! (\alpha^\textsf{addr}, \alpha)$, $\nu_B \!\leftarrow\! (\beta^\textsf{addr}, \beta)$, $\nu_C \!\leftarrow\! (\gamma^\textsf{addr}, \gamma)$, and
+    \item $\texttt{POSEIDON\_OP}[\alpha^\textsf{addr}, \alpha, \beta^\textsf{addr}, \beta, \gamma^\textsf{addr}, \gamma, \texttt{permute}, \texttt{out8}, \texttt{out4}, \delta]$: \; $\nu_A \!\leftarrow\! (\alpha^\textsf{addr}, \alpha)$, $\nu_B \!\leftarrow\! (\beta^\textsf{addr}, \beta)$, $\nu_C \!\leftarrow\! (\gamma^\textsf{addr}, \gamma)$, and
     \[
-    \textsf{aux}_2 = 3 + 2\,\texttt{permute} + 4\,\texttt{half} + 8\,[\delta \neq \bot] + 16\, \delta\,[\delta \neq \bot].
+    \textsf{aux}_2 = 3 + 2\,\texttt{permute} + 4\,\texttt{out8} + 8\,[\delta \neq \bot] + 16\, \delta\,[\delta \neq \bot].
     \]
+    ($\texttt{out4}$ is omitted from $\textsf{aux}_2$; see the POSEIDON table below.)
     \item $\texttt{EXTENSION\_OP}[\alpha^\textsf{addr}, \alpha, \beta^\textsf{addr}, \beta, \gamma^\textsf{addr}, \gamma, \texttt{op}, \textsf{flag\_be}, N]$: \; $\nu_A \!\leftarrow\! (\alpha^\textsf{addr}, \alpha)$, $\nu_B \!\leftarrow\! (\beta^\textsf{addr}, \beta)$, $\nu_C \!\leftarrow\! (\gamma^\textsf{addr}, \gamma)$, and
     \[
     \textsf{aux}_2 = 4\,\textsf{flag\_be} + 8\,\textsf{flag\_add} + 16\,\textsf{flag\_dot\_product} + 32\,\textsf{flag\_eq} + 64N,
@@ -949,17 +956,17 @@ where $\textsf{aux}_2$ encodes a call to either the \textsf{POSEIDON} or \textsf
 
 \subsection{POSEIDON table}
 
-The Poseidon table runs one $\texttt{POSEIDON\_OP}$ precompile call (\Cref{sec:poseidon-op}) per row, pulling the call $(\nu_A, \nu_B, \nu_C, \textsf{aux}_2)$ from the precompile bus. The call's compile-time parameters $(\texttt{permute}, \texttt{half}, \delta)$ are recorded in the row as the boolean flags $\textsf{flag\_permute}, \textsf{flag\_short}, \textsf{flag\_left}$ and the offset $\textsf{offset\_left} \in \Fp$, with $\textsf{flag\_left} = [\delta \neq \bot]$ and $\textsf{offset\_left} = \delta$ (so $\textsf{flag\_left} = 1$ replaces the first four left-input elements by a hardcoded prefix, and $\textsf{flag\_short} = 1$ chops the compression output to its first four elements).
+The Poseidon table runs one $\texttt{POSEIDON\_OP}$ precompile call (\Cref{sec:poseidon-op}) per row, pulling the call $(\nu_A, \nu_B, \nu_C, 0_{12}, \textsf{aux}_2)$ from the precompile bus. The call's compile-time parameters are recorded in the row as the boolean flags $\textsf{flag\_permute}, \textsf{flag\_out8}, \textsf{flag\_out4}, \textsf{flag\_left}$ and the offset $\textsf{offset\_left} \in \Fp$, with $\textsf{flag\_left} = [\delta \neq \bot]$ and $\textsf{offset\_left} = \delta$ (so $\textsf{flag\_left} = 1$ replaces the first four left-input elements by a hardcoded prefix). The pair $(\textsf{flag\_out8}, \textsf{flag\_out4})$ encodes the output length — $(1, 0) \mapsto 8$, $(0, 1) \mapsto 4$, $(0, 0) \mapsto 16$ — so the four valid $(\textsf{permute}, \text{output})$ modes are: compression $8$ $(\textsf{permute}{=}0, \textsf{out8}{=}1)$, compression $4$ $(\textsf{permute}{=}0, \textsf{out4}{=}1)$, permutation $16$ $(\textsf{permute}{=}1, \textsf{out16})$, and permutation $8$ $(\textsf{permute}{=}1, \textsf{out8}{=}1)$.
 
 \subsubsection{Columns}
 
-It has $n_{cols}^{poseidon} = 109$ columns.
+It has $n_{cols}^{poseidon} = 110$ columns.
 
 \begin{itemize}
-    \item \textbf{Control / pointers ($9$):} the multiplicity (for precompile bus-interaction) $\textsf{multiplicity}$ ($1$ on active rows, $0$ on padding); the boolean mode flags $\textsf{flag\_permute}$, $\textsf{flag\_short}$, $\textsf{flag\_left}$ and the offset $\textsf{offset\_left}$; the right-input and output pointers $\nu_B$, $\nu_C$; and two derived left addresses $\textsf{addr}^\text{lo}_\text{left}$, $\textsf{addr}^\text{hi}_\text{left}$, equal to $(\nu_A, \nu_A{+}4)$ if $\textsf{flag\_left}{=}0$ and to $(\textsf{offset\_left}, \nu_A)$ if $\textsf{flag\_left}{=}1$.
+    \item \textbf{Control / pointers ($10$):} the multiplicity (for precompile bus-interaction) $\textsf{multiplicity}$ ($1$ on active rows, $0$ on padding); the boolean mode flags $\textsf{flag\_permute}$, $\textsf{flag\_out8}$, $\textsf{flag\_out4}$, $\textsf{flag\_left}$ and the offset $\textsf{offset\_left}$; the right-input and output pointers $\nu_B$, $\nu_C$; and two derived left addresses $\textsf{addr}^\text{lo}_\text{left}$, $\textsf{addr}^\text{hi}_\text{left}$, equal to $(\nu_A, \nu_A{+}4)$ if $\textsf{flag\_left}{=}0$ and to $(\textsf{offset\_left}, \nu_A)$ if $\textsf{flag\_left}{=}1$.
     \item \textbf{Input ($16$):} $\textsf{input}_0, \ldots, \textsf{input}_{15}$, the permutation input $\texttt{left} \,\|\, \texttt{right}$ (so $\textsf{input}_{0..8} = \texttt{left}$ and $\textsf{input}_{8..16} = \texttt{right}$).
     \item \textbf{Intermediate rounds ($68$):} the full state is committed only after each \emph{pair} of full rounds: $\textsf{full}_1, \textsf{full}_2$ ($16$ columns each) after the two pairs making up the $4$ initial full rounds, and $\textsf{full}_3$ ($16$ columns) after the first pair of the $4$ final full rounds (the last pair feeds the output columns directly). Plus $\textsf{sbox}_1, \ldots, \textsf{sbox}_{20}$, the single S-box output (the cube of the first state coordinate) committed at each partial round.
-    \item \textbf{Output ($16$):} two halves $\textsf{out}_\text{lo}, \textsf{out}_\text{hi}$ ($8$ columns each). $\textsf{out}_\text{lo}$ holds the written first half — the feed-forward sum $s[0..8] + \texttt{left}$ in compression, or $s[0..8]$ in permutation; $\textsf{out}_\text{hi}$ holds $s[8..16]$ and is used only in permutation.
+    \item \textbf{Output ($16$):} two halves $\textsf{out}_\text{lo}, \textsf{out}_\text{hi}$ ($8$ columns each). $\textsf{out}_\text{lo}$ holds the written first half — the feed-forward sum $s[0..8] + \texttt{left}$ in compression, or $s[0..8]$ in permutation; $\textsf{out}_\text{hi}$ holds $s[8..16]$ and is constrained only by the full $16$-element permutation. Cells the AIR leaves unconstrained ($\textsf{out}_\text{lo}[4..8]$ when the output is $4$; $\textsf{out}_\text{hi}$ when it is not $16$) are set to the corresponding memory values so the $16$-cell output lookup balances.
 \end{itemize}
 
 Non-committed (virtual): $\nu_A$ (left-input pointer) and $\textsf{aux}_2$ (the precompile-data domain separator, see below).
@@ -978,9 +985,9 @@ Non-committed (virtual): $\nu_A$ (left-input pointer) and $\textsf{aux}_2$ (the 
 \]
 matching the push issued by the execution table (\Cref{sec:execution-bus}), with domain separator
 \[
-\textsf{aux}_2 = 3 + 2\,\textsf{flag\_permute} + 4\,\textsf{flag\_short} + 8\,\textsf{flag\_left} + 16\,\textsf{flag\_left} \cdot \textsf{offset\_left}
+\textsf{aux}_2 = 3 + 2\,\textsf{flag\_permute} + 4\,\textsf{flag\_out8} + 8\,\textsf{flag\_left} + 16\,\textsf{flag\_left} \cdot \textsf{offset\_left}
 \]
-packing all three flags and the offset. This encoding is injective: the flags are boolean (AIR-enforced), and when $\textsf{flag\_left} = 1$ the left lookup forces $\textsf{offset\_left} < 2^{h_\textsc{memory}} \leq 2^{26} < p/2$, so no wrap-around occurs modulo $p$; when $\textsf{flag\_left} = 0$, $\textsf{offset\_left}$ does not enter $\textsf{aux}_2$.
+Although $\textsf{flag\_out4}$ is absent, $\textsf{aux}_2$ is injective over valid modes. It does not wrap mod $p$: $\textsf{flag\_left} = 1$ forces $\textsf{offset\_left} < 2^{h_\textsc{memory}} \leq 2^{26}$ (otherwsie the memory lookup is invalid), so $16\,\textsf{offset\_left} \leq 2^{30} < p$. Hence $\textsf{aux}_2 \bmod 8 = 3 + 2\,\textsf{flag\_permute} + 4\,\textsf{flag\_out8}$ recovers $\textsf{flag\_permute}, \textsf{flag\_out8}$ (the values $\{0,2,4,6\}$ are distinct); the term $8\,\textsf{flag\_left} + 16\,\textsf{flag\_left} \cdot \textsf{offset\_left}$ recovers $\textsf{flag\_left}$ and $\textsf{offset\_left}$; and the constraints below pin $\textsf{flag\_out4} = (1 - \textsf{flag\_permute})(1 - \textsf{flag\_out8})$. So every flag is determined by $\textsf{aux}_2$.
 
 \subsubsection{AIR constraints}
 
@@ -988,9 +995,14 @@ Constraints have degree $10$.
 
 Write $\nu_A = \textsf{addr}^\text{hi}_\text{left} - (1 - \textsf{flag\_left}) \cdot 4$ for the (virtual) left-input pointer, and let $\sigma \in \Fp^{16}$ denote the running state of the recomputed permutation.
 
-\textbf{Booleanity ($4$).} $\textsf{multiplicity}$, $\textsf{flag\_permute}$, $\textsf{flag\_short}$, $\textsf{flag\_left}$ are each boolean: $x \cdot (1 - x) = 0$.
+\textbf{Booleanity ($5$).} $\textsf{multiplicity}$, $\textsf{flag\_permute}$, $\textsf{flag\_out8}$, $\textsf{flag\_out4}$, $\textsf{flag\_left}$ are each boolean: $x \cdot (1 - x) = 0$.
 
-\textbf{Mode separation ($1$).} $\textsf{flag\_permute} \cdot (\textsf{flag\_short} + \textsf{flag\_left}) = 0$  (permutation excludes the two compression optimizations)
+\textbf{Mode separation ($3$).}
+\begin{itemize}
+    \item $\textsf{flag\_permute} \cdot \textsf{flag\_out4} = 0$ \quad (permutation never produces a $4$-element output);
+    \item $\textsf{flag\_out8} \cdot \textsf{flag\_out4} = 0$ \quad (output length is one of $\{4, 8, 16\}$);
+    \item $(1 - \textsf{flag\_permute})(1 - \textsf{flag\_out8})(1 - \textsf{flag\_out4}) = 0$ \quad (compression never produces a $16$-element output)
+\end{itemize}
 
 \textbf{Left-address binding ($2$).}
 \begin{itemize}
@@ -1004,10 +1016,10 @@ Write $\nu_A = \textsf{addr}^\text{hi}_\text{left} - (1 - \textsf{flag\_left}) \
     \item \emph{partial rounds ($20$):} at partial round $k$, $\textsf{sbox}_k = (\sigma_0)^3$ (and $\sigma_0$ is then set to $\textsf{sbox}_k$, keeping the constraint low-degree).
 \end{itemize}
 
-\textbf{Output ($24$).} Let $\sigma$ be the state after the \emph{last} (uncommitted) final full-round pair, and set the gates $g_i = 1 - \textsf{flag\_permute}$ for $i \in [0,4)$ and $g_i = 1 - \textsf{flag\_permute} - \textsf{flag\_short}$ for $i \in [4,8)$. For each $i \in [0, 8)$:
+\textbf{Output ($16$).} Let $\sigma$ be the state after the \emph{last} (uncommitted) final full-round pair, and write the per-cell value $v_i = \sigma_i + (1 - \textsf{flag\_permute}) \cdot \textsf{input}_i$ (the feed-forward sum in compression, the raw state in permutation). For each $i \in [0, 8)$:
 \begin{itemize}
-    \item $g_i \cdot \big(\sigma_i + \textsf{input}_i - \textsf{out}_\text{lo}[i]\big) = 0$ \quad (compression: feed-forward sum, with the upper half gated off when $\textsf{flag\_short} = 1$);
-    \item $\textsf{flag\_permute} \cdot \big(\sigma_i - \textsf{out}_\text{lo}[i]\big) = 0$ \quad and \quad $\textsf{flag\_permute} \cdot \big(\sigma_{i+8} - \textsf{out}_\text{hi}[i]\big) = 0$ \quad (permutation: raw output).
+    \item $v_i - \textsf{out}_\text{lo}[i] = 0$ \quad for $i \in [0, 4)$ (always constrained), and $(1 - \textsf{flag\_out4}) \cdot \big(v_i - \textsf{out}_\text{lo}[i]\big) = 0$ \quad for $i \in [4, 8)$ (the low half is real unless the output is $4$);
+    \item $(1 - \textsf{flag\_out8} - \textsf{flag\_out4}) \cdot \big(\sigma_{i+8} - \textsf{out}_\text{hi}[i]\big) = 0$ \quad ($\textsf{out}_\text{hi}$ is written only by the full $16$-element permutation).
 \end{itemize}
 
 
@@ -1022,7 +1034,7 @@ Each extension field operation occupies $N$ consecutive rows, where $N$ is the l
 \noindent\resizebox{\textwidth}{!}{%
 \begin{tabular}{ccccccccccccccc}
 \toprule
-\textsf{flag\_be} & \textsf{flag\_start} & $\textsf{flag\_add}$ & $\textsf{flag\_dot\_product}$ & $\textsf{flag\_eq}$ & \textsf{len} & $\textsf{idx}_A$ & $\textsf{idx}_B$ & $\textsf{idx}_R$ & $v_A$ \tiny{(5 columns)} & $v_B$ \tiny{(5 columns)} & \textsf{res} \tiny{(5 columns)} & \textsf{acc} \tiny{(5 columns)} & & $\textsf{aux}_2$ \\
+\textsf{flag\_be} & \textsf{flag\_start} & $\textsf{flag\_add}$ & $\textsf{flag\_dot\_product}$ & $\textsf{flag\_eq}$ & \textsf{len} & $\textsf{idx}_A$ & $\textsf{idx}_B$ & $\textsf{idx}_R$ & $v_A$ \tiny{($\extdeg$ columns)} & $v_B$ \tiny{($\extdeg$ columns)} & \textsf{res} \tiny{($\extdeg$ columns)} & \textsf{acc} \tiny{($\extdeg$ columns)} & & $\textsf{aux}_2$ \\
 \midrule
 \multicolumn{15}{l}{\textit{DOT\_PRODUCT, base $\times$ extension, $N\!=\!4$ ($\nu_A\!=\!90$, $\nu_B\!=\!211$, $\nu_C\!=\!74$): \quad $\textsf{res} = \sum_{i=0}^{3} \textbf{m}[90\!+\!i] \cdot \textbf{m}[211\!+\!5i..216\!+\!5i]$}} \\[2pt]
 1 & 1 & 0 & 1 & 0 & 4 & 90  & 211 & 74 & $\textbf{m}[90..95]$  & $\textbf{m}[211..216]$ & $\textbf{m}[74..79]$ & $e_0\!+\!e_1\!+\!e_2\!+\!e_3$ & & 276 \\
@@ -1048,7 +1060,7 @@ Each extension field operation occupies $N$ consecutive rows, where $N$ is the l
 
 \subsubsection{Columns}
 
-There are 29 columns. Extension field values are represented as 5 consecutive columns.
+There are 29 columns. Extension field values are represented as $\extdeg$ consecutive columns.
 
 \vspace{2mm}
 
@@ -1058,17 +1070,17 @@ There are 29 columns. Extension field values are represented as 5 consecutive co
     \item $\textsf{flag\_add}$, $\textsf{flag\_dot\_product}$, $\textsf{flag\_eq}$ $\in \{0,1\}$: operation selectors (exactly one is 1 on active rows, all 0 on padding)
     \item \textsf{len}: countdown from $N$ to 1 within each group (1 on padding)
     \item $\textsf{idx}_A$, $\textsf{idx}_B$, $\textsf{idx}_R$: memory addresses of the two operands and of the result
-    \item $v_A = (v_A[0], \dots, v_A[4])$ (5 columns): the 5 base field values claimed to live at memory addresses $\textsf{idx}_A, \dots, \textsf{idx}_A + 4$ (enforced by the memory pulls below). In extension $\times$ extension mode, $v_A$ is interpreted as the extension field element $\mathsf{embed}(v_A)$; in base $\times$ extension mode, only $v_A[0]$ is used (as a base field scalar) and the remaining coordinates $v_A[1..5]$ are unconstrained.
-    \item $v_B = (v_B[0], \dots, v_B[4])$ (5 columns): same as $v_A$ at addresses $\textsf{idx}_B, \dots, \textsf{idx}_B + 4$; always interpreted as the extension field element $\mathsf{embed}(v_B)$.
-    \item $\textsf{res} = (\textsf{res}[0], \dots, \textsf{res}[4])$ (5 columns): the 5 base field values of the output extension field element, claimed to live at addresses $\textsf{idx}_R, \dots, \textsf{idx}_R + 4$. Constant on all rows of a group.
-    \item $\textsf{acc} = (\textsf{acc}[0], \dots, \textsf{acc}[4])$ (5 columns): running accumulator (over $\Fq$) of the per-element contributions $e_\bullet$ defined in the AIR constraints below; on \textsf{flag\_start} rows it equals $\textsf{res}$.
+    \item $v_A = (v_A[0], \dots, v_A[4])$ ($\extdeg$ columns): the $\extdeg$ base field values claimed to live at memory addresses $\textsf{idx}_A, \dots, \textsf{idx}_A + 4$ (enforced by the memory pulls below). In extension $\times$ extension mode, $v_A$ is interpreted as the extension field element $\mathsf{embed}(v_A)$; in base $\times$ extension mode, only $v_A[0]$ is used (as a base field scalar) and the remaining coordinates $v_A[1..\extdeg]$ are unconstrained.
+    \item $v_B = (v_B[0], \dots, v_B[4])$ ($\extdeg$ columns): same as $v_A$ at addresses $\textsf{idx}_B, \dots, \textsf{idx}_B + 4$; always interpreted as the extension field element $\mathsf{embed}(v_B)$.
+    \item $\textsf{res} = (\textsf{res}[0], \dots, \textsf{res}[4])$ ($\extdeg$ columns): the $\extdeg$ base field values of the output extension field element, claimed to live at addresses $\textsf{idx}_R, \dots, \textsf{idx}_R + 4$. Constant on all rows of a group.
+    \item $\textsf{acc} = (\textsf{acc}[0], \dots, \textsf{acc}[4])$ ($\extdeg$ columns): running accumulator (over $\Fq$) of the per-element contributions $e_\bullet$ defined in the AIR constraints below; on \textsf{flag\_start} rows it equals $\textsf{res}$.
 \end{itemize}
 
 Virtual (non-committed) columns: $\textsf{multiplicity} = \textsf{flag\_start} \cdot (\textsf{flag\_add} + \textsf{flag\_dot\_product} + \textsf{flag\_eq})$ and $\textsf{aux}_2 = 4 \cdot \textsf{flag\_be} + 8 \cdot \textsf{flag\_add} + 16 \cdot \textsf{flag\_dot\_product} + 32 \cdot \textsf{flag\_eq} + 64 \cdot \textsf{len}$
 
 \subsubsection{Bus interactions}
 
-\textbf{Memory pulls.} For each operand $(s, \textsf{idx}) \in \{(v_A, \textsf{idx}_A),\, (v_B, \textsf{idx}_B),\, (\textsf{res}, \textsf{idx}_R)\}$ and each $k \in [0, 5)$:
+\textbf{Memory pulls.} For each operand $(s, \textsf{idx}) \in \{(v_A, \textsf{idx}_A),\, (v_B, \textsf{idx}_B),\, (\textsf{res}, \textsf{idx}_R)\}$ and each $k \in [0, \extdeg)$:
 \[
 \textsc{Pull}\big(s[k],\, \textsf{idx} + k,\, 0_{13},\, \textsf{memory\_sep}\big) \quad \text{with multiplicity } 1.
 \]
@@ -1090,7 +1102,7 @@ Let $\tilde v_A = (v_A[0],\, (1 - \textsf{flag\_be}) \cdot v_A[1],\, \dots,\, (1
 \[
     e_\text{add} = \tilde v_A + v_B, \qquad e_\text{dot\_product} = \tilde v_A \cdot v_B, \qquad e_\text{eq} = \tilde v_A \cdot v_B + (1 - \tilde v_A)(1 - v_B),
 \]
-where sums and products are in $\Fq = \Fp[X]/(X^5 + X^2 - 1)$ (\Cref{sec:field}). Each $e_\bullet$ is therefore a 5-tuple of base field expressions (one per coordinate), and each coordinate-valued constraint below stands for 5 base field constraints.
+where sums and products are in $\Fq = \Fp[X]/(X^5 + X^2 - 1)$ (\Cref{sec:field}). Each $e_\bullet$ is therefore a $\extdeg$-tuple of base field expressions (one per coordinate), and each coordinate-valued constraint below stands for $\extdeg$ base field constraints.
 
 Let $\textsf{acc\_tail} = \text{next}(\textsf{acc}) \cdot (1 - \text{next}(\textsf{flag\_start}))$.
 
@@ -1109,12 +1121,12 @@ Let $\textsf{acc\_tail} = \text{next}(\textsf{acc}) \cdot (1 - \text{next}(\text
     \item $\textsf{flag\_start} \cdot (\textsf{acc} - \textsf{res}) = 0$ \hfill (on group-start rows, $\textsf{acc} = \textsf{res}$)
 \end{itemize}
 
-\textbf{Intra-group consistency.} Within a group (i.e.\ when the next row is not a group start), the mode/operation flags are constant, $\textsf{len}$ counts down by 1, and the input pointers advance by their natural stride (1 base field cell for $\textsf{idx}_A$ in base $\times$ extension mode, 5 cells otherwise):
+\textbf{Intra-group consistency.} Within a group (i.e.\ when the next row is not a group start), the mode/operation flags are constant, $\textsf{len}$ counts down by 1, and the input pointers advance by their natural stride (1 base field cell for $\textsf{idx}_A$ in base $\times$ extension mode, $\extdeg$ cells otherwise):
 \begin{itemize}
     \item \refstepcounter{equation}\textbf{(\theequation)}\label{c:len-countdown}\hspace{1mm} $(1 - \text{next}(\textsf{flag\_start})) \cdot (\textsf{len} - \text{next}(\textsf{len}) - 1) = 0$ \hfill ($\textsf{len}$ countdown)
     \item $(1 - \text{next}(\textsf{flag\_start})) \cdot (f - \text{next}(f)) = 0$ for $f \in \{\textsf{flag\_be},\, \textsf{flag\_add},\, \textsf{flag\_dot\_product},\, \textsf{flag\_eq}\}$ \hfill (mode/operation constant)
-    \item $(1 - \text{next}(\textsf{flag\_start})) \cdot (\text{next}(\textsf{idx}_A) - \textsf{idx}_A - (\textsf{flag\_be} + (1 - \textsf{flag\_be}) \cdot 5)) = 0$ \hfill ($\textsf{idx}_A$ stride)
-    \item $(1 - \text{next}(\textsf{flag\_start})) \cdot (\text{next}(\textsf{idx}_B) - \textsf{idx}_B - 5) = 0$ \hfill ($\textsf{idx}_B$ stride)
+    \item $(1 - \text{next}(\textsf{flag\_start})) \cdot (\text{next}(\textsf{idx}_A) - \textsf{idx}_A - (\textsf{flag\_be} + (1 - \textsf{flag\_be}) \cdot \extdeg)) = 0$ \hfill ($\textsf{idx}_A$ stride)
+    \item $(1 - \text{next}(\textsf{flag\_start})) \cdot (\text{next}(\textsf{idx}_B) - \textsf{idx}_B - \extdeg) = 0$ \hfill ($\textsf{idx}_B$ stride)
 \end{itemize}
 
 \textbf{Group boundary.} When the next row starts a new group, the current group must have reached its last element:
@@ -1203,6 +1215,12 @@ TODO: Verify and (formally) prove soundness.
     \item \textbf{WHIR opening.} The prover and verifier run a single WHIR verification on the stacked commitment of step~2 against the list of evaluation claims (including shifted ones) gathered so far.
 
 \end{enumerate}
+
+\subsection{Sponge}\label{sec:sponge}
+
+A slice $v$ of field elements, of arbitrary length $L \ge 1$, is hashed into a digest $\mathsf{H}(v) \in \Fp^\diglen$ by an \emph{overwrite sponge} over the permutation $\texttt{POSEIDON}^\pi$, whose state splits into a \emph{rate} of $\diglen$ elements and a \emph{capacity} of equal size $8$. Writing a state as $(c \,\|\, r)$ with capacity $c$ and rate $r$, split $v$ into $n = \lceil L / \diglen \rceil$ blocks $B_0, \dots, B_{n-1}$ of $\diglen$ elements (zero-padding the last). Each block \emph{overwrites} the rate before the state is permuted, starting from a capacity that carries the length:
+$$c_0 = (L,\, 0, \dots, 0), \qquad (c_{i+1} \,\|\, r_{i+1}) = \texttt{POSEIDON}^\pi(c_i \,\|\, B_i) \quad (0 \le i < n), \qquad \mathsf{H}(v) = r_n.$$
+
 
 \subsection{Fiat-Shamir}
 
@@ -1596,10 +1614,53 @@ Let $n_{\text{dup}}$ be the total number of duplicated public keys across source
 \end{itemize}
 
 
+\subsection{Public-input layout}\label{sec:aggregation-layout}
+
+The aggregation program supports two flavors, selected by a leading flag:
+\begin{itemize}
+    \item \textbf{Single-message} ($\textsf{flag}_\textsc{single} = 1$): a single $(\textsf{msg}, s)$ aggregation, where every public key in the list signed the same message $\textsf{msg}$ at the same slot $s$. It combines any mix of raw XMSS signatures (verified directly) and child single-message aggregates (verified recursively, \Cref{sec:recursive-aggregation}).
+    \item \textbf{Multi-message} ($\textsf{flag}_\textsc{multi} = 0$): a bundle of $n$ independent single-message aggregates, each with its own $(\textsf{msg}, s)$ and pubkey set.
+\end{itemize}
+
+The public input is the hash of a field-element buffer (via the sponge of \Cref{sec:slice-hash}). The buffer is defined as follows:
+
+\begin{center}
+\begin{tabular}{cll}
+\toprule
+Offset & Size & Contents \\
+\midrule
+$0$           & $\diglen$  & $[\textsf{flag},\ \textsf{count},\ 0,\dots,0]$ \\
+$\diglen$     & $c$        & bytecode evaluation claim (\Cref{sec:bytecode-reduction}), zero-padded to whole digests \\
+$\diglen+c$   & $\diglen$  & bytecode-hash domain separator \\
+\midrule
+\multicolumn{3}{l}{\emph{single-message} tail (fixed, $4$ digests):} \\
+$2\diglen+c$  & $\diglen$  & hash of all aggregated public keys \\
+$3\diglen+c$  & $\diglen$  & message $\textsf{msg}$ \\
+$4\diglen+c$  & $\diglen$  & Merkle chunks identifying the slot $s$ \\
+$5\diglen+c$  & $\diglen$  & tweak-table hash \\
+\midrule
+\multicolumn{3}{l}{\emph{multi-message} tail (variable, $n$ digests):} \\
+$2\diglen+c$  & $n\diglen$ & one digest per inner single-message aggregate (its public-input hash) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The $\textsf{count}$ field holds the number of aggregated public keys for a single-message proof, and the number $n$ of bundled components for a multi-message one.
+
+The last two single-message fields are XMSS-specific. The \emph{Merkle chunks} record the slot $s$ (common to all signatures) split into nibbles. The \emph{tweak-table hash} is the hash (see \Cref{sec:sponge}) of the XMSS \emph{tweaks} (domain separators between every hash of an XMSS) for slot $s$.
+
+The bytecode claim is one evaluation of the bytecode polynomial over $\Fq$ (\Cref{sec:bytecode-reduction}): an evaluation point together with the resulting value. Its size $c$ is built up as follows:
+\begin{itemize}
+    \item the bytecode polynomial has $h_\textsc{bytecode} + 4$ variables (the $+4 = \lceil\log_2 12\rceil$ addresses the $12$ columns of one instruction), so the point has $h_\textsc{bytecode} + 4$ coordinates;
+    \item adding the value gives $h_\textsc{bytecode} + 5$ elements of $\Fq$, that is $(h_\textsc{bytecode} + 5)\cdot \extdeg$ base field elements;
+    \item $c$ rounds this up to a whole number of digests.
+\end{itemize}
+
+
 \clearpage
 \appendix
 
-\section{WHIR \cite{whir} Optimizations}
+\section{WHIR Optimizations}
 
 
 \subsection{Avoid paying for (most of) the zero suffix from polynomial stacking}\label{sec:zero-suffix}
@@ -1610,7 +1671,7 @@ Because the folded variables are the \emph{most significant} bits, the zeros lan
 
 \begin{itemize}
     \item \textbf{FFT:} only the first $n_\text{eff}$ blocks are FFT encoded (trailing zero blocks encode to zero)
-    \item \textbf{Leaf hashing:} we hash each Merkle leaf via a sponge absorbing data right-to-left, so the shared zero suffix yields the same partial state, which we precompute once and reuse for every leaf.
+    \item \textbf{Leaf hashing:} we hash each Merkle leaf via an overwrite-sponge, absorbing data right-to-left, so the shared zero suffix yields the same partial state, which we precompute once and reuse for every leaf.
 \end{itemize}
 
 \subsection{Small-Value Optimization (SVO) and Split-Eq}\label{sec:svo}

@@ -647,24 +647,26 @@ operations.
 The variants are as follows:
 
 - **compress vs. permute** — `compress` applies the feed-forward addition
-  (`Poseidon(L || R) + L`); `permute` is the raw 16-cell permutation.
-- **full vs. half output** — `_half` constrains only the first 4 output cells
-  (the rest are unconstrained); useful when the consumer only cares about
-  half a digest.
+  (`Poseidon(L || R) + L`); `permute` is the raw permutation, no feed-forward.
+- **output length** — the suffix is the fraction of the 16-cell permutation
+  kept: no suffix = full 16 (permute only), `_half` = 8, `_quarter` = 4.
+  Cells beyond the kept prefix are unconstrained.
 - **hardcoded-left** — `_hardcoded_left` reads the first 4 cells of the left
-  input from a compile-time address instead of from `m[L..L+4]`; the last 4
-  cells of the left input still come from memory.
+  input from a compile-time address instead of from `m[L..L+4]` (the last 4
+  cells still come from `m[L..L+4]`); composes with both compress and permute.
 
 Common arguments: `L`, `R` are 8-cell input buffers; `O` is the output
 buffer; `off` (where present) is a compile-time address.
 
 | Function                                                | Cells written to `O` | Notes                                     |
 | ------------------------------------------------------- | -------------------- | ----------------------------------------- |
-| `poseidon16_compress(L, R, O)`                          | `O[0..8]`            | `Poseidon(L \|\| R) + L`                  |
-| `poseidon16_compress_half(L, R, O)`                     | `O[0..4]`            | `O[4..8]` is unconstrained                |
-| `poseidon16_compress_hardcoded_left(L, R, O, off)`      | `O[0..8]`            | left = `m[off..off+4] \|\| m[L..L+4]`     |
-| `poseidon16_compress_half_hardcoded_left(L, R, O, off)` | `O[0..4]`            | half-output + hardcoded-left composition  |
+| `poseidon16_compress_half(L, R, O)`                     | `O[0..8]`            | `Poseidon(L \|\| R) + L`                  |
+| `poseidon16_compress_quarter(L, R, O)`                     | `O[0..4]`            | `O[4..8]` is unconstrained                |
+| `poseidon16_compress_half_hardcoded_left(L, R, O, off)` | `O[0..8]`            | left = `m[off..off+4] \|\| m[L..L+4]`     |
+| `poseidon16_compress_quarter_hardcoded_left(L, R, O, off)` | `O[0..4]`            | quarter-output + hardcoded-left composition |
 | `poseidon16_permute(L, R, O)`                           | `O[0..16]`           | raw Poseidon permutation, no feed-forward |
+| `poseidon16_permute_half(L, R, O)`                      | `O[0..8]`            | permutation, low 8 only (high 8 discarded) |
+| `poseidon16_permute_half_hardcoded_left(L, R, O, off)`  | `O[0..8]`            | permute (low 8) + hardcoded-left          |
 
 ### Extension-field operations
 

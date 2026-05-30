@@ -88,8 +88,9 @@ where
     next_digests
 }
 
-pub fn merkle_verify<F, Comp, const DIGEST_ELEMS: usize, const WIDTH: usize, const RATE: usize>(
-    comp: &Comp,
+pub fn merkle_verify<F, LeafPerm, NodeComp, const DIGEST_ELEMS: usize, const WIDTH: usize, const RATE: usize>(
+    leaf_perm: &LeafPerm,
+    node_comp: &NodeComp,
     commit: &[F; DIGEST_ELEMS],
     log_height: usize,
     mut index: usize,
@@ -98,13 +99,14 @@ pub fn merkle_verify<F, Comp, const DIGEST_ELEMS: usize, const WIDTH: usize, con
 ) -> bool
 where
     F: field::PrimeCharacteristicRing + PartialEq,
-    Comp: Compression<[F; WIDTH]>,
+    LeafPerm: koala_bear::symmetric::Permutation<[F; WIDTH]>,
+    NodeComp: Compression<[F; WIDTH]>,
 {
     if opening_proof.len() != log_height {
         return false;
     }
 
-    let mut root = crate::hash_slice::<_, _, WIDTH, RATE, DIGEST_ELEMS>(comp, opened_values);
+    let mut root = crate::hash_slice_rtl::<_, _, WIDTH, RATE, DIGEST_ELEMS>(leaf_perm, opened_values);
 
     for &sibling in opening_proof.iter() {
         let (left, right) = if index & 1 == 0 {
@@ -112,7 +114,7 @@ where
         } else {
             (sibling, root)
         };
-        root = crate::compress(comp, [left, right]);
+        root = crate::compress(node_comp, [left, right]);
         index >>= 1;
     }
 

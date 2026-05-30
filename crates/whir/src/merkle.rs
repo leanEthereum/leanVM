@@ -12,7 +12,6 @@ use field::PrimeCharacteristicRing;
 use koala_bear::{KoalaBear, QuinticExtensionFieldKB, default_koalabear_poseidon1_16};
 use poly::*;
 
-use symetric::Compression;
 use symetric::merkle::unpack_array;
 use tracing::instrument;
 use utils::log2_ceil_usize;
@@ -61,6 +60,8 @@ fn build_merkle_tree_koalabear(
     full_base_width: usize,
     effective_base_width: usize,
 ) -> RoundMerkleTree<KoalaBear> {
+    // Leaf hashing is an overwrite sponge (raw permutation); the 2->1 tree climb is compression.
+    // `perm` (Poseidon16) implements both `Permutation` and `Compression`, so it serves both roles.
     let perm = default_koalabear_poseidon1_16();
     let n_zero_suffix_rate_chunks = (full_base_width - effective_base_width) / 8;
     let iv_first = KoalaBear::from_usize(full_base_width);
@@ -124,7 +125,8 @@ pub(crate) fn merkle_verify<F: Field, EF: ExtensionField<F>>(
         let data = unsafe { std::mem::transmute::<_, Vec<QuinticExtensionFieldKB>>(data) };
         let proof = unsafe { std::mem::transmute::<_, &Vec<[KoalaBear; DIGEST_ELEMS]>>(proof) };
         let base_data = QuinticExtensionFieldKB::flatten_to_base(data);
-        symetric::merkle::merkle_verify::<_, _, DIGEST_ELEMS, 16, 8>(
+        symetric::merkle::merkle_verify::<_, _, _, DIGEST_ELEMS, 16, 8>(
+            &perm,
             &perm,
             &merkle_root,
             log_max_height,
@@ -137,7 +139,8 @@ pub(crate) fn merkle_verify<F: Field, EF: ExtensionField<F>>(
         let data = unsafe { std::mem::transmute::<_, Vec<KoalaBear>>(data) };
         let proof = unsafe { std::mem::transmute::<_, &Vec<[KoalaBear; DIGEST_ELEMS]>>(proof) };
         let base_data = KoalaBear::flatten_to_base(data);
-        symetric::merkle::merkle_verify::<_, _, DIGEST_ELEMS, 16, 8>(
+        symetric::merkle::merkle_verify::<_, _, _, DIGEST_ELEMS, 16, 8>(
+            &perm,
             &perm,
             &merkle_root,
             log_max_height,
@@ -160,39 +163,6 @@ pub struct WhirMerkleTree<F, M, const DIGEST_ELEMS: usize> {
 impl<F: field::PrimeCharacteristicRing + Send + Sync, M: Matrix<F>, const DIGEST_ELEMS: usize>
     WhirMerkleTree<F, M, DIGEST_ELEMS>
 {
-    #[instrument(name = "build merkle tree", skip_all)]
-    pub fn new<P, Perm, const WIDTH: usize, const RATE: usize>(
-        perm: &Perm,
-        leaf: M,
-        full_leaf_base_width: usize,
-        effective_base_width: usize,
-    ) -> Self
-    where
-        P: PackedValue<Value = F> + Default,
-        Perm: Compression<[F; WIDTH]> + Compression<[P; WIDTH]>,
-    {
-        let n_zero_suffix_rate_chunks = (full_leaf_base_width - effective_base_width) / RATE;
-        let iv_first = F::from_usize(full_leaf_base_width);
-        let scalar_state = symetric::precompute_zero_suffix_state::<F, Perm, WIDTH, RATE, DIGEST_ELEMS>(
-            perm,
-            iv_first,
-            n_zero_suffix_rate_chunks,
-        );
-        let packed_state: [P; WIDTH] = std::array::from_fn(|i| P::from_fn(|_| scalar_state[i]));
-        let first_layer = first_digest_layer_with_initial_state::<P, Perm, _, DIGEST_ELEMS, WIDTH, RATE>(
-            perm,
-            &leaf,
-            &packed_state,
-            effective_base_width,
-        );
-        let tree = symetric::merkle::MerkleTree::from_first_layer::<P, Perm, WIDTH>(perm, first_layer);
-        Self {
-            leaf,
-            tree,
-            full_leaf_base_width,
-        }
-    }
-
     #[must_use]
     pub fn root(&self) -> [F; DIGEST_ELEMS] {
         self.tree.root()
@@ -217,7 +187,7 @@ fn first_digest_layer_with_initial_state<P, Perm, M, const DIGEST_ELEMS: usize, 
 where
     P: PackedValue + Default,
     P::Value: Default + Copy,
-    Perm: Compression<[P::Value; WIDTH]> + Compression<[P; WIDTH]>,
+    Perm: koala_bear::symmetric::Permutation<[P::Value; WIDTH]> + koala_bear::symmetric::Permutation<[P; WIDTH]>,
     M: Matrix<P::Value>,
 {
     let width = P::WIDTH;
