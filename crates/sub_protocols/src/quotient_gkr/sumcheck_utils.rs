@@ -67,14 +67,15 @@ where
     N: PrimeCharacteristicRing + Copy,
     T: Algebra<N> + Algebra<T> + Copy,
 {
-    let (c0_den, c2_den) = sumcheck_quadratic(((&dl.0, &dl.1), (&dr.0, &dr.1)));
-    let (c0_a, c2_a) = sumcheck_quadratic(((&nl.0, &nl.1), (&dr.0, &dr.1)));
-    let (c0_b, c2_b) = sumcheck_quadratic(((&nr.0, &nr.1), (&dl.0, &dl.1)));
+    let ddl = dl.1 - dl.0;
+    let ddr = dr.1 - dr.0;
+    let dnl = nl.1 - nl.0;
+    let dnr = nr.1 - nr.0;
     RoundCoeffs {
-        c0_den,
-        c2_den,
-        c0_num: c0_a + c0_b,
-        c2_num: c2_a + c2_b,
+        c0_den: dr.0 * dl.0,
+        c2_den: ddl * ddr,
+        c0_num: dr.0 * nl.0 + dl.0 * nr.0,
+        c2_num: ddr * dnl + ddl * dnr,
     }
 }
 
