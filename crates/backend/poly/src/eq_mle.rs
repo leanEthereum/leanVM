@@ -7,19 +7,9 @@ use system_info::NUM_THREADS;
 const LOG_NUM_THREADS: usize = log2_ceil_usize(NUM_THREADS);
 const LOG_BATCHED_TILE_SIZE: usize = 14;
 
-/// Oversubscription factor (log2) for the parallel fan-out: the prover's eq_mle
-/// kernels split the output into `NUM_THREADS << PARALLEL_LOG_OVERSUB` chunks rather
-/// than one per worker. Emitting more chunks than workers lets the pool's atomic
-/// task counter rebalance across heterogeneous cores (e.g. Apple P/E cores) instead
-/// of being bound by the slowest single chunk. `0` reproduces the one-chunk-per-
-/// worker behavior.
-///
-/// Default is `2` (4x): a deliberately conservative, machine-agnostic value. On the
-/// M-series Mac the benefit saturates by 2-3x and a higher factor (4-5x) is slightly
-/// faster, but those finer chunks risk regressing on many-core homogeneous CPUs
-/// (more contention on the shared counter, worse cache reuse), so we take the low
-/// end that captures most of the gain everywhere rather than the per-machine optimum.
-/// Exposed as a runtime knob so the benchmark can re-sweep on each target machine.
+/// log2 oversubscription for the eq_mle fan-out: emit `NUM_THREADS << this` chunks so the
+/// pool's task counter rebalances across heterogeneous cores (e.g. P/E). `0` = one chunk
+/// per worker. Default `2` (4x) is conservative; a runtime knob so the benchmark can sweep.
 pub static PARALLEL_LOG_OVERSUB: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(2);
 
 /// `(log2(n_chunks), n_chunks)` for the parallel fan-out, honoring [`PARALLEL_LOG_OVERSUB`].

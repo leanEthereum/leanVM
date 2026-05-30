@@ -443,15 +443,10 @@ fn handle_parallel_batch(
 
     // Raw base pointer + length per disjoint segment, so the pool can run each segment
     // on its own slice without moving `&mut` references through the `Fn` task closure.
-    struct SegPtr(*mut Option<F>);
-    // SAFETY: the segments are non-overlapping `chunks_mut` of `right`; each task `i`
-    // reconstructs and touches only segment `i`.
-    unsafe impl Send for SegPtr {}
-    unsafe impl Sync for SegPtr {}
-
-    let seg_info: Vec<(SegPtr, usize)> = segment_slices
+    // SAFETY: segments are non-overlapping `chunks_mut` of `right`; task `i` touches only `i`.
+    let seg_info: Vec<(parallel::SendPtr<Option<F>>, usize)> = segment_slices
         .iter_mut()
-        .map(|s| (SegPtr(s.as_mut_ptr()), s.len()))
+        .map(|s| (parallel::SendPtr(s.as_mut_ptr()), s.len()))
         .collect();
     // Release the `&mut` borrows so only the raw pointers alias the segments.
     drop(segment_slices);

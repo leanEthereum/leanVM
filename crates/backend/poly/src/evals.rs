@@ -324,7 +324,6 @@ where
                     });
                     interpolate_res(&partials, lead, mul_res_point)
                 } else {
-                    // For smaller subproblems, execute sequentially.
                     let (f0, f1) = evals.split_at(evals.len() / 2);
                     let f0_eval = eval_multilinear_generic::<_, _, _, _, _, _, false>(
                         f0,
