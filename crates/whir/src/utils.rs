@@ -138,11 +138,25 @@ fn prepare_evals_for_fft_unpacked<A: Copy + Send + Sync>(
     let out_len = block_size * dft_n_cols;
 
     let mut out: Vec<A> = unsafe { uninitialized_vec(out_len) };
-    parallel::par_for_each_mut(&mut out, |i, slot| {
-        let block_index = i % dft_n_cols;
-        let offset_in_block = i / dft_n_cols;
-        let src_index = ((block_index << log_block_size) + offset_in_block) >> log_inv_rate;
-        *slot = unsafe { *evals.get_unchecked(src_index) };
+    if block_size == 0 || dft_n_cols == 0 {
+        return out;
+    }
+
+    let rows_per_band = ((system_info::L1_CACHE_SIZE / 2) / (dft_n_cols * size_of::<A>())).clamp(1, block_size);
+    let band_len = rows_per_band * dft_n_cols;
+
+    parallel::par_chunks_mut(&mut out, band_len, |band_idx, band| {
+        let row0 = band_idx * rows_per_band;
+        let n_rows = band.len() / dft_n_cols;
+        for col in 0..dft_n_cols {
+            let col_base = col << log_block_size;
+            for r in 0..n_rows {
+                let src = (col_base + row0 + r) >> log_inv_rate;
+                unsafe {
+                    *band.get_unchecked_mut(r * dft_n_cols + col) = *evals.get_unchecked(src);
+                }
+            }
+        }
     });
     out
 }
