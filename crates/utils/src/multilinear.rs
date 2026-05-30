@@ -15,12 +15,8 @@ pub fn multilinears_linear_combination<F: Field, EF: ExtensionField<F>, P: Borro
     assert!(pols.iter().all(|p| log2_strict_usize(p.borrow().len()) == n_vars));
     let n = 1usize << n_vars;
     let mut out: Vec<EF> = unsafe { uninitialized_vec(n) };
-    let chunk = parallel::recommended_chunk_size(n);
-    parallel::par_chunks_mut(&mut out, chunk, |ci, sub| {
-        for (k, slot) in sub.iter_mut().enumerate() {
-            let i = ci * chunk + k;
-            *slot = dot_product(scalars.iter().copied(), pols.iter().map(|p| p.borrow()[i]));
-        }
+    parallel::par_for_each_mut(&mut out, |i, slot| {
+        *slot = dot_product(scalars.iter().copied(), pols.iter().map(|p| p.borrow()[i]));
     });
     out
 }

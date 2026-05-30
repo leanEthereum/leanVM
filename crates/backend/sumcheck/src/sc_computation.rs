@@ -5,6 +5,13 @@ use poly::*;
 use std::any::TypeId;
 use std::ops::{Add, AddAssign, Mul, MulAssign, Sub};
 
+fn add_assign_vec<T: AddAssign>(mut a: Vec<T>, b: Vec<T>) -> Vec<T> {
+    for (x, y) in a.iter_mut().zip(b) {
+        *x += y;
+    }
+    a
+}
+
 pub trait SumcheckComputation<EF: ExtensionField<PF<EF>>>: Sync {
     type ExtraData: Send + Sync + 'static;
 
@@ -434,12 +441,7 @@ where
                 *acc_d += eval;
             }
         },
-        |mut a: Vec<EFT>, b: Vec<EFT>| {
-            for (x, y) in a.iter_mut().zip(b) {
-                *x += y;
-            }
-            a
-        },
+        add_assign_vec,
     );
     let unpacked_sums = sums.into_iter().map(&unpack_sum);
     build_evals(unpacked_sums, missing_mul_factor)
@@ -519,12 +521,7 @@ where
                 *acc_d += eval;
             }
         },
-        |mut a: Vec<FT>, b: Vec<FT>| {
-            for (x, y) in a.iter_mut().zip(b) {
-                *x += y;
-            }
-            a
-        },
+        add_assign_vec,
     );
     let unpacked_sums = sums.into_iter().map(&unpack_sum);
     (build_evals(unpacked_sums, missing_mul_factor), wrap_f(folded_f))
@@ -604,12 +601,7 @@ where
                 *a += *b * eq_lo_bc;
             }
         },
-        |mut a: Vec<EFPacking<EF>>, b: Vec<EFPacking<EF>>| {
-            for (x, y) in a.iter_mut().zip(b) {
-                *x += y;
-            }
-            a
-        },
+        add_assign_vec,
     );
 
     let unpacked = sums.into_iter().map(&unpack_sum);
@@ -703,12 +695,7 @@ where
                 *a += *b * eq_lo_bc;
             }
         },
-        |mut a: Vec<EFPacking<EF>>, b: Vec<EFPacking<EF>>| {
-            for (x, y) in a.iter_mut().zip(b) {
-                *x += y;
-            }
-            a
-        },
+        add_assign_vec,
     );
 
     let unpacked = sums.into_iter().map(&unpack_sum);

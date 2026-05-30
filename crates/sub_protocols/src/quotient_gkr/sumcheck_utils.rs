@@ -360,12 +360,7 @@ pub(super) fn run_phase2_sumcheck<EF: ExtensionField<PF<EF>>>(
             let fold_eq = |i: usize| eq_table[2 * i] + eq_table[2 * i + 1];
             eq_table = if new_eq_len >= PARALLEL_THRESHOLD {
                 let mut out: Vec<EF> = unsafe { uninitialized_vec(new_eq_len) };
-                let chunk = parallel::recommended_chunk_size(new_eq_len);
-                parallel::par_chunks_mut(&mut out, chunk, |ci, sub| {
-                    for (k, slot) in sub.iter_mut().enumerate() {
-                        *slot = fold_eq(ci * chunk + k);
-                    }
-                });
+                parallel::par_for_each_mut(&mut out, |i, slot| *slot = fold_eq(i));
                 out
             } else {
                 (0..new_eq_len).map(fold_eq).collect()
@@ -396,12 +391,7 @@ fn fold_normal_with_padding<EF: ExtensionField<PF<EF>>>(m: &[EF], r: EF, pad_val
     if new_active < PARALLEL_THRESHOLD {
         out.iter_mut().enumerate().for_each(compute);
     } else {
-        let chunk = parallel::recommended_chunk_size(new_active);
-        parallel::par_chunks_mut(&mut out, chunk, |ci, sub| {
-            for (k, slot) in sub.iter_mut().enumerate() {
-                compute((ci * chunk + k, slot));
-            }
-        });
+        parallel::par_for_each_mut(&mut out, |i, slot| compute((i, slot)));
     }
     out
 }

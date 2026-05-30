@@ -86,16 +86,11 @@ pub fn xmss_key_gen(
     // Level 0: WOTS leaf hashes for slots in [slot_start, slot_end]
     let n_leaves = (slot_end - slot_start + 1) as usize;
     let mut leaves: Vec<Digest> = unsafe { uninitialized_vec(n_leaves) };
-    {
-        let chunk = parallel::recommended_chunk_size(n_leaves);
-        parallel::par_chunks_mut(&mut leaves, chunk, |ci, sub| {
-            for (k, out) in sub.iter_mut().enumerate() {
-                let slot = slot_start + (ci * chunk + k) as u32;
-                let wots = gen_wots_secret_key(&seed, slot, public_param);
-                *out = wots.public_key().hash(public_param, slot);
-            }
-        });
-    }
+    parallel::par_for_each_mut(&mut leaves, |i, out| {
+        let slot = slot_start + i as u32;
+        let wots = gen_wots_secret_key(&seed, slot, public_param);
+        *out = wots.public_key().hash(public_param, slot);
+    });
     let mut merkle_tree = vec![leaves];
     // Build levels 1..=LOG_LIFETIME.
     // At level l, we store nodes with index in [(slot_start >> l), (slot_end >> l)].
@@ -109,30 +104,27 @@ pub fn xmss_key_gen(
             let prev = &merkle_tree[level - 1];
             let n_nodes = (top - base + 1) as usize;
             let mut nodes: Vec<Digest> = unsafe { uninitialized_vec(n_nodes) };
-            let chunk = parallel::recommended_chunk_size(n_nodes);
-            parallel::par_chunks_mut(&mut nodes, chunk, |ci, sub| {
-                for (k, out) in sub.iter_mut().enumerate() {
-                    let i = base + (ci * chunk + k) as u64;
-                    let left_idx = 2 * i;
-                    let right_idx = 2 * i + 1;
-                    let left = if left_idx >= prev_base && left_idx <= prev_top {
-                        prev[(left_idx - prev_base) as usize]
-                    } else {
-                        gen_random_node(&seed, level - 1, left_idx)
-                    };
-                    let right = if right_idx >= prev_base && right_idx <= prev_top {
-                        prev[(right_idx - prev_base) as usize]
-                    } else {
-                        gen_random_node(&seed, level - 1, right_idx)
-                    };
-                    let merkle_data = build_merkle_data(
-                        make_tweak(TWEAK_TYPE_MERKLE, level, i as u32),
-                        &public_param,
-                        &left,
-                        &right,
-                    );
-                    *out = poseidon16_compress(merkle_data)[..XMSS_DIGEST_LEN].try_into().unwrap();
-                }
+            parallel::par_for_each_mut(&mut nodes, |k, out| {
+                let i = base + k as u64;
+                let left_idx = 2 * i;
+                let right_idx = 2 * i + 1;
+                let left = if left_idx >= prev_base && left_idx <= prev_top {
+                    prev[(left_idx - prev_base) as usize]
+                } else {
+                    gen_random_node(&seed, level - 1, left_idx)
+                };
+                let right = if right_idx >= prev_base && right_idx <= prev_top {
+                    prev[(right_idx - prev_base) as usize]
+                } else {
+                    gen_random_node(&seed, level - 1, right_idx)
+                };
+                let merkle_data = build_merkle_data(
+                    make_tweak(TWEAK_TYPE_MERKLE, level, i as u32),
+                    &public_param,
+                    &left,
+                    &right,
+                );
+                *out = poseidon16_compress(merkle_data)[..XMSS_DIGEST_LEN].try_into().unwrap();
             });
             nodes
         };

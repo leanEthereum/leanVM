@@ -94,14 +94,9 @@ pub fn get_execution_trace(
     });
 
     let mut memory_padded: Vec<F> = unsafe { uninitialized_vec(memory.0.len()) };
-    {
-        let chunk = parallel::recommended_chunk_size(memory_padded.len());
-        parallel::par_chunks_mut(&mut memory_padded, chunk, |ci, sub| {
-            for (k, slot) in sub.iter_mut().enumerate() {
-                *slot = memory.0[ci * chunk + k].unwrap_or(F::ZERO);
-            }
-        });
-    }
+    parallel::par_for_each_mut(&mut memory_padded, |i, slot| {
+        *slot = memory.0[i].unwrap_or(F::ZERO);
+    });
 
     // Write [0000000000000000 | poseidon_compress(0000000000000000)] (to make lookups work on padding-rows).
     let padding_zero_vec_ptr = memory_padded.len();

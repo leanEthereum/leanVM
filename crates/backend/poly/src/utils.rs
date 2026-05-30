@@ -21,12 +21,8 @@ pub fn pack_extension<EF: ExtensionField<PF<EF>>>(slice: &[EF]) -> Vec<EFPacking
             write(slot, chunk);
         }
     } else {
-        let chunk_size = parallel::recommended_chunk_size(n_packed);
-        parallel::par_chunks_mut(&mut out, chunk_size, |ci, out_chunk| {
-            for (k, slot) in out_chunk.iter_mut().enumerate() {
-                let idx = ci * chunk_size + k;
-                write(slot, &slice[idx * width..][..width]);
-            }
+        parallel::par_for_each_mut(&mut out, |idx, slot| {
+            write(slot, &slice[idx * width..][..width]);
         });
     }
     out
@@ -115,12 +111,8 @@ pub fn fold_multilinear_lsb<
     if new_size < PARALLEL_THRESHOLD {
         m.chunks_exact(2).zip(res.iter_mut()).for_each(compute);
     } else {
-        let chunk = parallel::recommended_chunk_size(new_size);
-        parallel::par_chunks_mut(&mut res, chunk, |ci, res_chunk| {
-            for (k, r_v) in res_chunk.iter_mut().enumerate() {
-                let j = ci * chunk + k;
-                compute((&m[2 * j..2 * j + 2], r_v));
-            }
+        parallel::par_for_each_mut(&mut res, |j, r_v| {
+            compute((&m[2 * j..2 * j + 2], r_v));
         });
     }
     res
@@ -161,11 +153,8 @@ pub fn fold_multilinear_at_bit<
             *res_v = compute(new_j);
         }
     } else {
-        let chunk = parallel::recommended_chunk_size(new_size);
-        parallel::par_chunks_mut(&mut res, chunk, |ci, res_chunk| {
-            for (k, res_v) in res_chunk.iter_mut().enumerate() {
-                *res_v = compute(ci * chunk + k);
-            }
+        parallel::par_for_each_mut(&mut res, |new_j, res_v| {
+            *res_v = compute(new_j);
         });
     }
     res
@@ -189,12 +178,8 @@ pub fn fold_multilinear<
             res[i] = mul_if_of(m[i + new_size] - m[i], alpha) + m[i];
         }
     } else {
-        let chunk = parallel::recommended_chunk_size(new_size);
-        parallel::par_chunks_mut(&mut res, chunk, |ci, res_chunk| {
-            for (k, res_v) in res_chunk.iter_mut().enumerate() {
-                let i = ci * chunk + k;
-                *res_v = mul_if_of(m[i + new_size] - m[i], alpha) + m[i];
-            }
+        parallel::par_for_each_mut(&mut res, |i, res_v| {
+            *res_v = mul_if_of(m[i + new_size] - m[i], alpha) + m[i];
         });
     }
     res

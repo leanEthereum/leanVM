@@ -365,6 +365,29 @@ where
     });
 }
 
+/// Parallel `data.iter_mut().enumerate().for_each(|(i, x)| f(i, x))`: run `f` for every
+/// element across the pool, sized with [`recommended_chunk_size`]. Hands the closure each
+/// element's **global** index, so call sites stop reconstructing `chunk_index * chunk + k`
+/// (and the chunk-size dance) by hand — the one home for the "write `out[i]` from a
+/// function of `i`" fan-out.
+///
+/// `#[inline]` so this thin wrapper folds into the caller — it is invoked once per parallel
+/// region (e.g. every `fold_multilinear`, thousands of times per proof), and inlining
+/// recovers exactly the codegen of the hand-written `par_chunks_mut` + index loop it replaces.
+#[inline]
+pub fn par_for_each_mut<T: Send, F>(data: &mut [T], f: F)
+where
+    F: Fn(usize, &mut T) + Sync,
+{
+    let chunk = recommended_chunk_size(data.len());
+    par_chunks_mut(data, chunk, |ci, sub| {
+        let base = ci * chunk;
+        for (k, slot) in sub.iter_mut().enumerate() {
+            f(base + k, slot);
+        }
+    });
+}
+
 /// Give each worker exclusive, persistent access to its own `Option<S>` slot while it
 /// drains `0..n_tasks`: `run(slot, start, end)` is called once per claimed batch, always
 /// with the same slot for a given worker, so state accumulates across the batches it

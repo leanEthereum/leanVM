@@ -138,15 +138,11 @@ fn prepare_evals_for_fft_unpacked<A: Copy + Send + Sync>(
     let out_len = block_size * dft_n_cols;
 
     let mut out: Vec<A> = unsafe { uninitialized_vec(out_len) };
-    let chunk = parallel::recommended_chunk_size(out_len);
-    parallel::par_chunks_mut(&mut out, chunk, |ci, out_chunk| {
-        for (k, slot) in out_chunk.iter_mut().enumerate() {
-            let i = ci * chunk + k;
-            let block_index = i % dft_n_cols;
-            let offset_in_block = i / dft_n_cols;
-            let src_index = ((block_index << log_block_size) + offset_in_block) >> log_inv_rate;
-            *slot = unsafe { *evals.get_unchecked(src_index) };
-        }
+    parallel::par_for_each_mut(&mut out, |i, slot| {
+        let block_index = i % dft_n_cols;
+        let offset_in_block = i / dft_n_cols;
+        let src_index = ((block_index << log_block_size) + offset_in_block) >> log_inv_rate;
+        *slot = unsafe { *evals.get_unchecked(src_index) };
     });
     out
 }
@@ -166,22 +162,18 @@ fn prepare_evals_for_fft_packed_extension<EF: ExtensionField<PF<EF>>>(
     let packing_mask = (1 << log_packing) - 1;
 
     let mut out: Vec<EF> = unsafe { uninitialized_vec(full_len) };
-    let chunk = parallel::recommended_chunk_size(full_len);
-    parallel::par_chunks_mut(&mut out, chunk, |ci, out_chunk| {
-        for (k, slot) in out_chunk.iter_mut().enumerate() {
-            let i = ci * chunk + k;
-            let block_index = i & n_blocks_mask;
-            let offset_in_block = i >> folding_factor;
-            let src_index = ((block_index << log_block_size) + offset_in_block) >> log_inv_rate;
-            let packed_src_index = src_index >> log_packing;
-            let offset_in_packing = src_index & packing_mask;
-            let packed = unsafe { evals.get_unchecked(packed_src_index) };
-            let unpacked: &[PFPacking<EF>] = packed.as_basis_coefficients_slice();
-            *slot = EF::from_basis_coefficients_fn(|j| unsafe {
-                let u: &PFPacking<EF> = unpacked.get_unchecked(j);
-                *u.as_slice().get_unchecked(offset_in_packing)
-            });
-        }
+    parallel::par_for_each_mut(&mut out, |i, slot| {
+        let block_index = i & n_blocks_mask;
+        let offset_in_block = i >> folding_factor;
+        let src_index = ((block_index << log_block_size) + offset_in_block) >> log_inv_rate;
+        let packed_src_index = src_index >> log_packing;
+        let offset_in_packing = src_index & packing_mask;
+        let packed = unsafe { evals.get_unchecked(packed_src_index) };
+        let unpacked: &[PFPacking<EF>] = packed.as_basis_coefficients_slice();
+        *slot = EF::from_basis_coefficients_fn(|j| unsafe {
+            let u: &PFPacking<EF> = unpacked.get_unchecked(j);
+            *u.as_slice().get_unchecked(offset_in_packing)
+        });
     });
     out
 }

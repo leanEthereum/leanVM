@@ -88,13 +88,8 @@ pub fn scale_poly<F: Field, EF: ExtensionField<F>>(poly: &[F], factor: EF) -> Ve
         poly.iter().map(|&e| factor * e).collect()
     } else {
         let mut out: Vec<EF> = unsafe { uninitialized_vec(poly.len()) };
-        let n_chunks = (parallel::num_threads() * 4).min(poly.len());
-        let chunk = poly.len().div_ceil(n_chunks);
-        parallel::par_chunks_mut(&mut out, chunk, |i, c| {
-            let start = i * chunk;
-            for (j, o) in c.iter_mut().enumerate() {
-                *o = factor * poly[start + j];
-            }
+        parallel::par_for_each_mut(&mut out, |i, o| {
+            *o = factor * poly[i];
         });
         out
     }

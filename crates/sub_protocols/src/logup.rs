@@ -538,10 +538,5 @@ where
 /// global index. Replaces the rayon `par_iter_mut().enumerate()` constant/index fills.
 #[inline]
 fn par_fill<T: Send + Sync + Copy, Build: Fn(usize) -> T + Sync>(dst: &mut [T], build: Build) {
-    let chunk = parallel::recommended_chunk_size(dst.len());
-    parallel::par_chunks_mut(dst, chunk, |ci, sub| {
-        for (k, slot) in sub.iter_mut().enumerate() {
-            *slot = build(ci * chunk + k);
-        }
-    });
+    parallel::par_for_each_mut(dst, |i, slot| *slot = build(i));
 }
