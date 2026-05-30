@@ -67,6 +67,83 @@ pub const fn must_unpack_multilinears<EF: Field>(n_vars: usize) -> bool {
     n_vars <= 1 + packing_log_width::<EF>()
 }
 
+/// Fill `len` output slots with `compute(i)`, parallelizing via the pool when the work is
+/// large enough. `seq` forces the sequential path: the batched wrappers below dispatch one
+/// pool task per poly, so their inner fold must not nest a parallel dispatch (which would
+/// panic in [`parallel`]).
+#[inline]
+fn fold_fill<OF: Send, C: Fn(usize) -> OF + Sync>(len: usize, seq: bool, compute: C) -> Vec<OF> {
+    let mut res = unsafe { uninitialized_vec(len) };
+    if seq || len < PARALLEL_THRESHOLD {
+        for (i, r) in res.iter_mut().enumerate() {
+            *r = compute(i);
+        }
+    } else {
+        parallel::par_for_each_mut(&mut res, |i, r| *r = compute(i));
+    }
+    res
+}
+
+fn fold_multilinear_lsb<
+    EF: PrimeCharacteristicRing + Copy + Send + Sync,
+    IF: Copy + Sub<Output = IF> + Send + Sync,
+    OF: Copy + Add<IF, Output = OF> + Send + Sync,
+    Mul: Fn(IF, EF) -> OF + Sync + Send,
+>(
+    m: &[IF],
+    alpha: EF,
+    mul_if_of: &Mul,
+    seq: bool,
+) -> Vec<OF> {
+    fold_fill(m.len() / 2, seq, |j| {
+        mul_if_of(m[2 * j + 1] - m[2 * j], alpha) + m[2 * j]
+    })
+}
+
+/// Fold `m` at variable `bit`. `seq` forces sequential execution (see [`fold_fill`]).
+pub fn fold_multilinear_at_bit<
+    EF: PrimeCharacteristicRing + Copy + Send + Sync,
+    IF: Copy + Sub<Output = IF> + Send + Sync,
+    OF: Copy + Add<IF, Output = OF> + Send + Sync,
+    Mul: Fn(IF, EF) -> OF + Sync + Send,
+>(
+    m: &[IF],
+    alpha: EF,
+    bit: usize,
+    mul_if_of: &Mul,
+    seq: bool,
+) -> Vec<OF> {
+    assert!(m.len() >= 2 * (1 << bit), "bit out of range for slice length");
+    if bit == 0 {
+        return fold_multilinear_lsb(m, alpha, mul_if_of, seq);
+    }
+    let stride = 1usize << bit;
+    let lo_mask = stride - 1;
+    fold_fill(m.len() / 2, seq, |new_j| {
+        let i_hi = new_j >> bit;
+        let i_lo = new_j & lo_mask;
+        let i0 = (i_hi << (bit + 1)) | i_lo;
+        let i1 = i0 | stride;
+        mul_if_of(m[i1] - m[i0], alpha) + m[i0]
+    })
+}
+
+/// Fold `m` at its top variable. `seq` forces sequential execution (see [`fold_fill`]).
+pub fn fold_multilinear<
+    EF: PrimeCharacteristicRing + Copy + Send + Sync,
+    IF: Copy + Sub<Output = IF> + Send + Sync,
+    OF: Copy + Add<IF, Output = OF> + Send + Sync,
+    F: Fn(IF, EF) -> OF + Sync + Send,
+>(
+    m: &[IF],
+    alpha: EF,
+    mul_if_of: &F,
+    seq: bool,
+) -> Vec<OF> {
+    let new_size = m.len() / 2;
+    fold_fill(new_size, seq, |i| mul_if_of(m[i + new_size] - m[i], alpha) + m[i])
+}
+
 pub fn batch_fold_multilinears<
     EF: PrimeCharacteristicRing + Copy + Send + Sync,
     IF: Copy + Sub<Output = IF> + Send + Sync,
@@ -81,108 +158,15 @@ pub fn batch_fold_multilinears<
     if total_size < PARALLEL_THRESHOLD {
         polys
             .iter()
-            .map(|poly| fold_multilinear(poly, alpha, &mul_if_of))
+            .map(|poly| fold_multilinear(poly, alpha, &mul_if_of, true))
             .collect()
     } else {
-        // One task per poly (inner fold runs sequentially via the pool's nesting fallback).
         let mut out: Vec<Vec<OF>> = (0..polys.len()).map(|_| Vec::new()).collect();
         parallel::par_chunks_mut(&mut out, 1, |i, slot| {
-            slot[0] = fold_multilinear(polys[i], alpha, &mul_if_of);
+            slot[0] = fold_multilinear(polys[i], alpha, &mul_if_of, true);
         });
         out
     }
-}
-
-pub fn fold_multilinear_lsb<
-    EF: PrimeCharacteristicRing + Copy + Send + Sync,
-    IF: Copy + Sub<Output = IF> + Send + Sync,
-    OF: Copy + Add<IF, Output = OF> + Send + Sync,
-    Mul: Fn(IF, EF) -> OF + Sync + Send,
->(
-    m: &[IF],
-    alpha: EF,
-    mul_if_of: &Mul,
-) -> Vec<OF> {
-    let new_size = m.len() / 2;
-    let mut res = unsafe { uninitialized_vec(new_size) };
-    let compute = |(c, r_v): (&[IF], &mut OF)| {
-        *r_v = mul_if_of(c[1] - c[0], alpha) + c[0];
-    };
-    if new_size < PARALLEL_THRESHOLD {
-        m.chunks_exact(2).zip(res.iter_mut()).for_each(compute);
-    } else {
-        parallel::par_for_each_mut(&mut res, |j, r_v| {
-            compute((&m[2 * j..2 * j + 2], r_v));
-        });
-    }
-    res
-}
-
-pub fn fold_multilinear_at_bit<
-    EF: PrimeCharacteristicRing + Copy + Send + Sync,
-    IF: Copy + Sub<Output = IF> + Send + Sync,
-    OF: Copy + Add<IF, Output = OF> + Send + Sync,
-    Mul: Fn(IF, EF) -> OF + Sync + Send,
->(
-    m: &[IF],
-    alpha: EF,
-    bit: usize,
-    mul_if_of: &Mul,
-) -> Vec<OF> {
-    let new_size = m.len() / 2;
-    assert!(m.len() >= 2 * (1 << bit), "bit out of range for slice length");
-
-    if bit == 0 {
-        return fold_multilinear_lsb(m, alpha, mul_if_of);
-    }
-
-    let stride = 1usize << bit;
-    let lo_mask = stride - 1;
-    let mut res = unsafe { uninitialized_vec(new_size) };
-
-    let compute = |new_j: usize| {
-        let i_hi = new_j >> bit;
-        let i_lo = new_j & lo_mask;
-        let i0 = (i_hi << (bit + 1)) | i_lo;
-        let i1 = i0 | stride;
-        mul_if_of(m[i1] - m[i0], alpha) + m[i0]
-    };
-
-    if new_size < PARALLEL_THRESHOLD {
-        for (new_j, res_v) in res.iter_mut().enumerate() {
-            *res_v = compute(new_j);
-        }
-    } else {
-        parallel::par_for_each_mut(&mut res, |new_j, res_v| {
-            *res_v = compute(new_j);
-        });
-    }
-    res
-}
-
-pub fn fold_multilinear<
-    EF: PrimeCharacteristicRing + Copy + Send + Sync,
-    IF: Copy + Sub<Output = IF> + Send + Sync,
-    OF: Copy + Add<IF, Output = OF> + Send + Sync,
-    F: Fn(IF, EF) -> OF + Sync + Send,
->(
-    m: &[IF],
-    alpha: EF,
-    mul_if_of: &F,
-) -> Vec<OF> {
-    let new_size = m.len() / 2;
-    let mut res = unsafe { uninitialized_vec(new_size) };
-
-    if new_size < PARALLEL_THRESHOLD {
-        for i in 0..new_size {
-            res[i] = mul_if_of(m[i + new_size] - m[i], alpha) + m[i];
-        }
-    } else {
-        parallel::par_for_each_mut(&mut res, |i, res_v| {
-            *res_v = mul_if_of(m[i + new_size] - m[i], alpha) + m[i];
-        });
-    }
-    res
 }
 
 pub fn batch_fold_multilinears_at_bit<
@@ -196,17 +180,17 @@ pub fn batch_fold_multilinears_at_bit<
     bit: usize,
     mul_if_of: F,
 ) -> Vec<Vec<OF>> {
+    // See `batch_fold_multilinears`: one task per poly, inner fold forced sequential.
     let total_size: usize = polys.iter().map(|p| p.len()).sum();
     if total_size < PARALLEL_THRESHOLD {
         polys
             .iter()
-            .map(|poly| fold_multilinear_at_bit(poly, alpha, bit, &mul_if_of))
+            .map(|poly| fold_multilinear_at_bit(poly, alpha, bit, &mul_if_of, true))
             .collect()
     } else {
-        // One task per poly (inner fold runs sequentially via the pool's nesting fallback).
         let mut out: Vec<Vec<OF>> = (0..polys.len()).map(|_| Vec::new()).collect();
         parallel::par_chunks_mut(&mut out, 1, |i, slot| {
-            slot[0] = fold_multilinear_at_bit(polys[i], alpha, bit, &mul_if_of);
+            slot[0] = fold_multilinear_at_bit(polys[i], alpha, bit, &mul_if_of, true);
         });
         out
     }

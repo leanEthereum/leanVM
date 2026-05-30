@@ -16,11 +16,11 @@
 //! the dispatcher spins on. The per-worker `parked` flag is ordered SeqCst against
 //! `generation` so no wake-up is lost and the unpark syscall is skipped while workers spin.
 //!
-//! ## Nesting falls back to sequential
+//! ## Nesting is forbidden
 //!
 //! A flat pool can't dispatch from inside a task (would deadlock the dispatch lock), so a
-//! `for_each_index` issued from within a pool task runs sequentially inline. The outer
-//! level has usually already saturated all cores.
+//! dispatch issued from within a pool task panics. The outer level has already saturated all
+//! cores, so nested parallelism would buy nothing anyway.
 //!
 //! ## Constraint
 //!
@@ -60,8 +60,8 @@ thread_local! {
     /// Stable id of this thread within the pool. Set once per background worker;
     /// stays `0` on the dispatching thread (worker 0) and on any non-worker thread.
     static WORKER_ID: Cell<usize> = const { Cell::new(0) };
-    /// True while this thread is executing a pool task. A `for_each_index` issued in
-    /// that state is a nested dispatch and runs sequentially (see module docs).
+    /// True while this thread is executing a pool task. A dispatch issued in that state is
+    /// nested parallelism, which is forbidden and panics (see module docs).
     static IN_TASK: Cell<bool> = const { Cell::new(false) };
 }
 
@@ -199,7 +199,7 @@ fn drain(pool: &Pool) {
     // SAFETY: `job.f` points at a `&dyn Fn` borrow held live by the blocked dispatcher.
     let f = unsafe { job.f.as_ref() };
     let n = job.n_tasks;
-    // Mark this thread as in-task so a nested `for_each_index` runs sequentially
+    // Mark this thread as in-task so a nested dispatch panics (see `for_each_chunk`)
     // rather than deadlocking on the dispatch lock.
     let prev = IN_TASK.replace(true);
     loop {
@@ -228,9 +228,12 @@ fn drain(pool: &Pool) {
 /// This is the primitive everything else is built on. Range-based (rather than per-index)
 /// so a reduction can look up its per-worker accumulator once per claimed batch.
 pub fn for_each_chunk<F: Fn(usize, usize) + Sync>(n_tasks: usize, f: F) {
-    // Trivial sizes, single-core builds, and nested dispatches (called from within a
-    // pool task) all run sequentially — the last avoids deadlocking on the lock.
-    if NUM_THREADS <= 1 || n_tasks <= 1 || IN_TASK.get() {
+    // Nesting is forbidden (would deadlock the dispatch lock): panic rather than silently
+    // running sequentially, so an accidental nested dispatch is caught instead of going slow.
+    assert!(!IN_TASK.get(), "nested parallel dispatch from within a pool task");
+
+    // Trivial sizes and single-core builds run sequentially inline.
+    if NUM_THREADS <= 1 || n_tasks <= 1 {
         if n_tasks > 0 {
             f(0, n_tasks);
         }

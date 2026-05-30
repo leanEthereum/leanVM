@@ -119,13 +119,15 @@ impl<'a, EF: ExtensionField<PF<EF>>> MleRef<'a, EF> {
 
     pub fn fold(&self, alpha: EF) -> MleOwned<EF> {
         match self {
-            Self::Base(pols) => MleOwned::Extension(fold_multilinear(pols, alpha, &|a, b| b * a)),
-            Self::Extension(pols) => MleOwned::Extension(fold_multilinear(pols, alpha, &|a, b| b * a)),
+            Self::Base(pols) => MleOwned::Extension(fold_multilinear(pols, alpha, &|a, b| b * a, false)),
+            Self::Extension(pols) => MleOwned::Extension(fold_multilinear(pols, alpha, &|a, b| b * a, false)),
             Self::BasePacked(pols) => {
                 let alpha_packed = EFPacking::<EF>::from(alpha);
-                MleOwned::ExtensionPacked(fold_multilinear(pols, alpha_packed, &|a, b| b * a))
+                MleOwned::ExtensionPacked(fold_multilinear(pols, alpha_packed, &|a, b| b * a, false))
             }
-            Self::ExtensionPacked(pols) => MleOwned::ExtensionPacked(fold_multilinear(pols, alpha, &|a, b| a * b)),
+            Self::ExtensionPacked(pols) => {
+                MleOwned::ExtensionPacked(fold_multilinear(pols, alpha, &|a, b| a * b, false))
+            }
         }
     }
 }

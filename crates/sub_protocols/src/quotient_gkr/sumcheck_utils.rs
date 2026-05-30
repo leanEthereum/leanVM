@@ -255,8 +255,8 @@ pub(super) fn run_phase1_sumcheck<'a, EF: ExtensionField<PF<EF>>>(
     if let Some(prev_r) = pending_r {
         let prev_bit = layer_chunk_log - 1 - w;
         let mul = |x: EFPacking<EF>, a: EF| x * a;
-        nums = Cow::Owned(fold_multilinear_at_bit(nums.as_ref(), prev_r, prev_bit, &mul));
-        dens = Cow::Owned(fold_multilinear_at_bit(dens.as_ref(), prev_r, prev_bit, &mul));
+        nums = Cow::Owned(fold_multilinear_at_bit(nums.as_ref(), prev_r, prev_bit, &mul, false));
+        dens = Cow::Owned(fold_multilinear_at_bit(dens.as_ref(), prev_r, prev_bit, &mul, false));
     }
 
     let nums_nat = unpack_and_unreverse_active::<EF>(nums.as_ref(), layer_chunk_log);
