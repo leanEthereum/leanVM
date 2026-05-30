@@ -172,22 +172,36 @@ fn prepare_evals_for_fft_packed_extension<EF: ExtensionField<PF<EF>>>(
     let full_len = evals.len() << (log_inv_rate + log_packing);
     let block_size = full_len / n_blocks;
     let log_block_size = log2_strict_usize(block_size);
-    let n_blocks_mask = n_blocks - 1;
     let packing_mask = (1 << log_packing) - 1;
 
     let mut out: Vec<EF> = unsafe { uninitialized_vec(full_len) };
-    parallel::par_for_each_mut(&mut out, |i, slot| {
-        let block_index = i & n_blocks_mask;
-        let offset_in_block = i >> folding_factor;
-        let src_index = ((block_index << log_block_size) + offset_in_block) >> log_inv_rate;
-        let packed_src_index = src_index >> log_packing;
-        let offset_in_packing = src_index & packing_mask;
-        let packed = unsafe { evals.get_unchecked(packed_src_index) };
-        let unpacked: &[PFPacking<EF>] = packed.as_basis_coefficients_slice();
-        *slot = EF::from_basis_coefficients_fn(|j| unsafe {
-            let u: &PFPacking<EF> = unpacked.get_unchecked(j);
-            *u.as_slice().get_unchecked(offset_in_packing)
-        });
+    if block_size == 0 || n_blocks == 0 {
+        return out;
+    }
+
+    let rows_per_band = ((system_info::L1_CACHE_SIZE / 2) / (n_blocks * size_of::<EF>())).clamp(1, block_size);
+    let band_len = rows_per_band * n_blocks;
+
+    parallel::par_chunks_mut(&mut out, band_len, |band_idx, band| {
+        let row0 = band_idx * rows_per_band;
+        let n_rows = band.len() / n_blocks;
+        for col in 0..n_blocks {
+            let col_base = col << log_block_size;
+            for r in 0..n_rows {
+                let src_index = (col_base + row0 + r) >> log_inv_rate;
+                let packed_src_index = src_index >> log_packing;
+                let offset_in_packing = src_index & packing_mask;
+                let packed = unsafe { evals.get_unchecked(packed_src_index) };
+                let unpacked: &[PFPacking<EF>] = packed.as_basis_coefficients_slice();
+                let val = EF::from_basis_coefficients_fn(|j| unsafe {
+                    let u: &PFPacking<EF> = unpacked.get_unchecked(j);
+                    *u.as_slice().get_unchecked(offset_in_packing)
+                });
+                unsafe {
+                    *band.get_unchecked_mut(r * n_blocks + col) = val;
+                }
+            }
+        }
     });
     out
 }
