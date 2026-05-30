@@ -1,15 +1,14 @@
 use clap::Parser;
 use rec_aggregation::benchmark::{AggregationTopology, biggest_leaf, run_aggregation_benchmark};
 
-// Allocator: mimalloc — a robust production allocator, tuned to retain freed memory (see
-// `lean_multisig::tune_allocator`). Replaces the former `zk-alloc` bump arena, which was
-// fast but fragile: any allocation outliving a phase, or a pointer retained across
-// `begin_phase`'s slab reset (e.g. from a background thread, tracing, or a stray clone),
-// silently corrupted memory. mimalloc-with-retention is both **faster** here and stable.
+// Allocator: zk-alloc — a bump+reset arena. Allocation is a pointer bump and free is a no-op;
+// `begin_phase`/`end_phase` (see `benchmark.rs`) reset every thread's slab between proofs so the
+// prover's huge per-phase buffer churn reuses pages instead of re-faulting. Outputs are cloned
+// out after `end_phase` so they detach to the system allocator before the next reset.
 // The `standard-alloc` feature selects the plain system allocator for comparison.
 #[cfg(not(feature = "standard-alloc"))]
 #[global_allocator]
-static ALLOC: mimalloc::MiMalloc = mimalloc::MiMalloc;
+static ALLOC: zk_alloc::ZkAllocator = zk_alloc::ZkAllocator;
 
 #[derive(Parser)]
 enum Cli {
@@ -73,9 +72,11 @@ fn run_with_warmup(topology: &AggregationTopology, tracing: bool, json: bool, re
 
 #[allow(clippy::too_many_lines)]
 fn main() {
-    // Retain freed memory (no purging) so the prover's huge buffer churn reuses pages
-    // instead of re-faulting — the property that made the old arena fast. Before any work.
+    // Disable THP for the prover's strided arrays (see `tune_allocator`), before any work.
     lean_multisig::tune_allocator();
+    // Validate the build-time thread count before the arena maps its slabs.
+    #[cfg(not(feature = "standard-alloc"))]
+    lean_multisig::init_allocator();
 
     let cli = Cli::parse();
 

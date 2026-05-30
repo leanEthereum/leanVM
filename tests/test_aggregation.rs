@@ -1,9 +1,8 @@
 use lean_multisig::{aggregate_single_msg_signatures, setup_prover, verify_single_message_aggregate};
 use xmss::signers_cache::{BENCHMARK_SLOT, get_benchmark_signatures, message_for_benchmark};
 
-// End-to-end prove+verify under the default (mimalloc) allocator. Repeated to catch any
-// cross-run state corruption. (Replaces the former `test_zk_alloc` arena regression test;
-// the bump arena and its phase ceremony were removed in favor of a robust allocator.)
+// End-to-end prove+verify under the system allocator (no arena phases). Repeated to catch
+// any cross-run state corruption. `test_zk_alloc.rs` is the matching arena-allocator run.
 #[test]
 fn test_aggregation_prove_verify() {
     setup_prover();
