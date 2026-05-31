@@ -12,7 +12,7 @@ fn test_xmss_serialize_deserialize() {
     let slot_end = 115;
     let slot = 110;
 
-    let (sk, pk) = xmss_key_gen(keygen_seed, slot_start, slot_end).unwrap();
+    let (sk, pk) = xmss_key_gen(keygen_seed, slot_start, slot_end, false).unwrap();
     let sig = xmss_sign(&mut StdRng::seed_from_u64(slot as u64), &sk, &message, slot).unwrap();
 
     let pk_bytes = postcard::to_allocvec(&pk).unwrap();
@@ -32,7 +32,7 @@ fn keygen_sign_verify() {
     let message: [F; MESSAGE_LEN_FE] = std::array::from_fn(|i| F::from_usize(i * 3 + 7));
 
     for slot in [0, 1234, u32::MAX] {
-        let (sk, pk) = xmss_key_gen(keygen_seed, slot.saturating_sub(1), slot.saturating_add(2)).unwrap();
+        let (sk, pk) = xmss_key_gen(keygen_seed, slot.saturating_sub(1), slot.saturating_add(2), false).unwrap();
         let sig = xmss_sign(&mut StdRng::seed_from_u64(slot as u64), &sk, &message, slot).unwrap();
         xmss_verify(&pk, &message, &sig, slot).unwrap();
     }

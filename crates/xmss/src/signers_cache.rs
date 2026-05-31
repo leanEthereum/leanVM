@@ -65,7 +65,7 @@ fn compute_signer(index: usize) -> (XmssPublicKey, XmssSignature) {
     let mut rng = StdRng::seed_from_u64(index as u64);
     let key_start = BENCHMARK_SLOT;
     let key_end = BENCHMARK_SLOT + 1;
-    let (sk, pk) = xmss_key_gen(rng.random(), key_start, key_end).unwrap();
+    let (sk, pk) = xmss_key_gen(rng.random(), key_start, key_end, true).unwrap();
     let sig = xmss_sign(&mut rng, &sk, &message_for_benchmark(), BENCHMARK_SLOT).unwrap();
     (pk, sig)
 }

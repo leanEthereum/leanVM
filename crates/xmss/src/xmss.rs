@@ -74,10 +74,19 @@ pub enum XmssKeyGenError {
     InvalidRange,
 }
 
+fn fill<T: Send>(sequential: bool, data: &mut [T], f: impl Fn(usize, &mut T) + Sync) {
+    if sequential {
+        data.iter_mut().enumerate().for_each(|(i, out)| f(i, out));
+    } else {
+        parallel::par_for_each_mut(data, f);
+    }
+}
+
 pub fn xmss_key_gen(
     seed: [u8; 32],
     slot_start: u32,
     slot_end: u32,
+    sequential: bool,
 ) -> Result<(XmssSecretKey, XmssPublicKey), XmssKeyGenError> {
     if slot_start > slot_end || slot_end as u64 >= (1 << LOG_LIFETIME) {
         return Err(XmssKeyGenError::InvalidRange);
@@ -86,7 +95,7 @@ pub fn xmss_key_gen(
     // Level 0: WOTS leaf hashes for slots in [slot_start, slot_end]
     let n_leaves = (slot_end - slot_start + 1) as usize;
     let mut leaves: Vec<Digest> = unsafe { uninitialized_vec(n_leaves) };
-    parallel::par_for_each_mut(&mut leaves, |i, out| {
+    fill(sequential, &mut leaves, |i, out| {
         let slot = slot_start + i as u32;
         let wots = gen_wots_secret_key(&seed, slot, public_param);
         *out = wots.public_key().hash(public_param, slot);
@@ -104,7 +113,7 @@ pub fn xmss_key_gen(
             let prev = &merkle_tree[level - 1];
             let n_nodes = (top - base + 1) as usize;
             let mut nodes: Vec<Digest> = unsafe { uninitialized_vec(n_nodes) };
-            parallel::par_for_each_mut(&mut nodes, |k, out| {
+            fill(sequential, &mut nodes, |k, out| {
                 let i = base + k as u64;
                 let left_idx = 2 * i;
                 let right_idx = 2 * i + 1;
