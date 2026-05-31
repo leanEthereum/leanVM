@@ -57,6 +57,12 @@ enum Cli {
 }
 
 fn run_with_warmup(topology: &AggregationTopology, tracing: bool, json: bool, repeat: usize) {
+    // Build all persistent state — thread pool, compiled bytecode, DFT twiddles — before the
+    // first `begin_phase()`, so it lands in the system allocator and survives the per-proof
+    // slab resets. Without this it would initialize lazily inside the phased warm-up, land in
+    // arena memory, and be corrupted by the next phase's reset. (The arena requires all
+    // cross-phase state to predate the first phase; the tests already do this.)
+    lean_multisig::setup_prover();
     let warmup = biggest_leaf(topology).unwrap();
     eprint!("warming up... ");
     let _ = run_aggregation_benchmark(&warmup, false, true, 1);

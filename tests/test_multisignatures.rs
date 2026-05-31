@@ -23,7 +23,7 @@ fn test_xmss_signature() {
     let mut rng: StdRng = StdRng::seed_from_u64(0);
     let msg = rng.random();
 
-    let (secret_key, pub_key) = xmss_key_gen(rng.random(), start_slot, end_slot).unwrap();
+    let (secret_key, pub_key) = xmss_key_gen(rng.random(), start_slot, end_slot, false).unwrap();
     let signature = xmss_sign(&mut rng, &secret_key, &msg, slot).unwrap();
     xmss_verify(&pub_key, &msg, &signature, slot).unwrap();
 }
@@ -91,7 +91,7 @@ fn test_multi_message_aggregation() {
 
     let raws_b: Vec<_> = (0..2)
         .map(|_| {
-            let (sk, pk) = xmss_key_gen(rng_b.random(), slot_b, slot_b).unwrap();
+            let (sk, pk) = xmss_key_gen(rng_b.random(), slot_b, slot_b, false).unwrap();
             let sig = xmss_sign(&mut rng_b, &sk, &message_b, slot_b).unwrap();
             (pk, sig)
         })
