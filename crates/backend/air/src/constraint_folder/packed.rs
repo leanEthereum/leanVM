@@ -57,21 +57,21 @@ where
         self.shift
     }
 
-    #[inline]
+    #[inline(always)]
     fn assert_zero(&mut self, x: IF) {
         let alpha_power = self.extra_data.alpha_powers()[self.constraint_index];
         self.accumulator += EFPacking::<EF>::from(alpha_power) * x;
         self.constraint_index += 1;
     }
 
-    #[inline]
+    #[inline(always)]
     fn assert_zero_ef(&mut self, x: EFPacking<EF>) {
         let alpha_power = self.extra_data.alpha_powers()[self.constraint_index];
         self.accumulator += EFPacking::<EF>::from(alpha_power) * x;
         self.constraint_index += 1;
     }
 
-    #[inline]
+    #[inline(always)]
     fn assert_eq_low(&mut self, x: IF, y: IF) {
         let alpha_power = self.extra_data.alpha_powers()[self.constraint_index];
         let contrib = EFPacking::<EF>::from(alpha_power) * (x - y);
@@ -80,7 +80,7 @@ where
         self.constraint_index += 1;
     }
 
-    #[inline]
+    #[inline(always)]
     fn low_degree_block<F>(&mut self, state: &mut [IF], block: F)
     where
         F: FnOnce(&mut Self, &mut [IF]),

@@ -8,8 +8,7 @@ pub fn compress<T: Copy + Default, Comp: Compression<[T; WIDTH]>, const CHUNK: u
 ) -> [T; CHUNK] {
     debug_assert!(CHUNK * 2 <= WIDTH);
     let mut state = [T::default(); WIDTH];
-    state[..CHUNK].copy_from_slice(&input[0]);
-    state[CHUNK..2 * CHUNK].copy_from_slice(&input[1]);
+    state[..2 * CHUNK].copy_from_slice(input.as_flattened());
     let out = comp.compress(state);
     out[..CHUNK].try_into().unwrap()
 }
