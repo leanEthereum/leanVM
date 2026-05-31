@@ -86,7 +86,7 @@ class Table:
         return len(self.columns)
 
     @property
-    def n_buses(self) -> int:
+    def n_bus_interractions(self) -> int:
         return sum(b[3] if b[0] == BusInteraction.MEMORY else 1 for b in self.buses)
 
     @property
@@ -608,7 +608,7 @@ def verify_generic_logup(
     tallest_h = tables_sorted[0][1]
 
     total_active_len = (
-        (1 << log_memory) + max(1 << log_bytecode, 1 << tallest_h) + sum(t.n_buses << h for t, h in tables_sorted)
+        (1 << log_memory) + max(1 << log_bytecode, 1 << tallest_h) + sum(t.n_bus_interractions << h for t, h in tables_sorted)
     )
     total_gkr_n_vars = log2_ceil(total_active_len)
 
@@ -654,7 +654,7 @@ def verify_generic_logup(
     table_offsets: dict[str, int] = {}
     for table, log_n_rows in tables_sorted:
         table_offsets[table.name] = offset
-        offset += table.n_buses << log_n_rows
+        offset += table.n_bus_interractions << log_n_rows
     final_offset = offset
 
     bus_num_vals: dict[str, EF] = {}
