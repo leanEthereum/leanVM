@@ -754,10 +754,7 @@ def eval_precompile_bus_virtual_columns(
 def eval_air_execution(folder: ConstraintFolder, logup_beta_eq: list[EF]) -> None:
     c, n = folder.flat, folder.next
     (pc, fp, addr_a, addr_b, addr_c, value_a, value_b, value_c, operand_a, operand_b, operand_c,
-     flag_a, flag_b, flag_c, flag_c_fp, flag_ab_fp, flag_mul, flag_jump, aux_1, aux_2) = (c[k] for k in (
-        "pc", "fp", "addr_a", "addr_b", "addr_c", "value_a", "value_b", "value_c",
-        "operand_a", "operand_b", "operand_c", "flag_a", "flag_b", "flag_c", "flag_c_fp",
-        "flag_ab_fp", "flag_mul", "flag_jump", "aux_1", "aux_2"))  # fmt: skip
+     flag_a, flag_b, flag_c, flag_c_fp, flag_ab_fp, flag_mul, flag_jump, aux_1, aux_2) = (c[k] for k in EXECUTION_COLUMNS)  # fmt: skip
     pc_shift, fp_shift = n["pc"], n["fp"]
 
     # nu_x = flag·operand + (1 − flag − flag_ab_fp)·value + flag_ab_fp·(fp + operand)
