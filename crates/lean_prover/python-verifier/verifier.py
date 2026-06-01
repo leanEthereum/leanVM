@@ -399,11 +399,7 @@ def verify_stir_challenges(
         op = fiat_shamir.next_merkle_opening()
         merkle_verify_path(commitment.root, log_height, idx, op.leaf_data, op.path)
         # Round 0 leaves are raw base-field elements; later rounds pack DIM Fp values per EF element.
-        leaf = op.leaf_data
-        if round_index == 0:
-            packed = leaf
-        else:
-            packed = pack_ef(leaf)
+        packed = op.leaf_data if round_index == 0 else pack_ef(op.leaf_data)
         fold = eval_multilinear_evals(packed, folding_randomness)
         ef_pt = EF(pow(int(gen.value), idx, P))
         pt = expand_from_univariate(ef_pt, num_variables)
