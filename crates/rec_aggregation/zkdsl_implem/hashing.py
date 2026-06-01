@@ -165,16 +165,24 @@ def slice_hash_runtime(data, num_chunks):
     states = Array((num_chunks - 1) * DIGEST_LEN)
     poseidon16_permute_half(iv, data, states)
     n_iters = num_chunks - 2
-    state_ptr: Mut = states
-    data_ptr: Mut = data + DIGEST_LEN
 
     n_chunks_outer, remainder = euclidian_div_runtime(n_iters, PARTIAL_UNROLL_BATCH)
-    for _ in range(0, n_chunks_outer):
+    carry = Array((n_chunks_outer + 1) * 2)
+    carry[0] = states
+    carry[1] = data + DIGEST_LEN
+    for c in range(0, n_chunks_outer):
+        base = c * 2
+        state_ptr: Mut = carry[base]
+        data_ptr: Mut = carry[base + 1]
         for _ in unroll(0, PARTIAL_UNROLL_BATCH):
             new_state = state_ptr + DIGEST_LEN
             poseidon16_permute_half(state_ptr, data_ptr, new_state)
             state_ptr = new_state
             data_ptr += DIGEST_LEN
+        carry[base + 2] = state_ptr
+        carry[base + 3] = data_ptr
+    state_ptr = carry[n_chunks_outer * 2]
+    data_ptr = carry[n_chunks_outer * 2 + 1]
 
     final_state_ptr = match_range(
         remainder,

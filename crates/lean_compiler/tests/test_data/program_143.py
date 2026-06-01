@@ -193,16 +193,18 @@ def double(x):
 # Inline function: multiply by 3
 @inline
 def triple(x):
-    y: Mut = x
+    y = x
     two: Imm
     match y - x + 1:
         case 0:
             assert False
         case 1:
             two = 2
+    y_buf = Array(two + 1)
+    y_buf[0] = y
     for i in range(0, two):
-        y = y + x
-    return y
+        y_buf[i + 1] = y_buf[i] + x
+    return y_buf[two]
 
 
 # Inline function that calls another inline function

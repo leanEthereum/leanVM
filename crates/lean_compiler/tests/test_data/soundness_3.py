@@ -18,10 +18,11 @@ def main():
     for i in unroll(0, 4):
         arr[i] = seed + i
 
-    s: Mut = 0
+    s_buf = Array(5)
+    s_buf[0] = 0
     for i in range(0, 4):
-        s = s + arr[i]
-    assert s == sum_expected
+        s_buf[i + 1] = s_buf[i] + arr[i]
+    assert s_buf[4] == sum_expected
 
     prod: Mut = 1
     for i in unroll(0, 4):

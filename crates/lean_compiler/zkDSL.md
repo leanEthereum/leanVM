@@ -351,19 +351,46 @@ The general-purpose runtime loop. `a` and `b` may be runtime values. The
 compiler lowers the loop to a recursive function.
 
 ```python
-sum: Mut = 0
-for i in range(1, 11):
-    sum += i
-assert sum == 55
+for i in range(0, n):
+    out[i] = f(i)
 ```
 
-Mutable variables carried across iterations are supported transparently.
+**Mutability:** A `range` range connot mutate variables defined outside its scope.
 
-*Under the hood: the compiler inserts a buffer array, stores the per-iteration value into it, and reads the final value back after the loop.*
+```python
+total: Mut = 0
+for i in range(0, n):
+    total = total + a[i]    # ERROR: loop-carried mutable
+```
 
-Restrictions: No `return` inside the body
+Mutable variables defined inside the loop are fine:
 
-*Under the hood: because the loop is lowered to a recursive function.*
+````python
+y = 9
+for i in range(0, n):
+    x: Mut = f(i)
+    x += 4
+    x *= y
+    assert x < 455
+````
+
+*Under the hood: a `range` loop gets transformed into a recursive function, breaking compiler SSA renaming.*
+
+The solution, to mutate data beyond the loop's scope, is to use (read-only) buffers:
+
+```python
+def sum(arr, n):
+    total_buf = Array(n + 1)
+    total_buf[0] = 0
+    for i in range(0, n):
+        total: Mut = total_buf[i]      # loop-LOCAL mutable: fine
+        total += arr[i]
+        total_buf[i + 1] = total
+    result = total_buf[n]              # final value, after the loop
+    return result
+```
+
+Additional restrictions: no `return` inside the body (dos not concern `unroll` loops).
 
 #### `unroll(a, b)`: compile-time unrolling
 
@@ -393,8 +420,7 @@ for i in parallel_range(0, n):
 Because there is no synchronization, the loop body must be
 iteration-independent:
 
-- No `Mut` variables carried across iterations (each iteration writes only to
-  its own call frame and to addresses disjoint from every other iteration).
+- Each iteration writes only to its own call frame and to addresses disjoint from every other iteration (no concurrent writes).
 - Identical memory footprint per iteration.
 - Identical hint consumption per iteration (witness hints, XMSS-specific
   decomposition hints, Merkle hints, etc.).
@@ -780,49 +806,28 @@ def main():
     y: Mut = 3
     x += y
     y += x
+    x_buf = Array(3)               # 2 iterations + 1 slot
+    y_buf = Array(3)
+    x_buf[0] = x
+    y_buf[0] = y
     for i in range(4, 6):
-        x += i
-        x += y
-        y = i
-        y += x
+        idx = i - 4
+        x_cur: Mut = x_buf[idx]
+        y_cur: Mut = y_buf[idx]
+        x_cur += i
+        x_cur += y_cur
+        y_cur = i
+        y_cur += x_cur
+        x_buf[idx + 1] = x_cur
+        y_buf[idx + 1] = y_cur
+    x = x_buf[2]
+    y = y_buf[2]
     assert x == 35
     assert y == 40
     return
 ```
 
-Step 1 — the compiler replaces mutable-across-loop variables with index buffers, since memory
-is write-once:
-
-```python
-def main():
-    x: Mut = 0
-    y: Mut = 3
-    x += y
-    y += x
-    size = 6 - 4
-    x_buff = Array(size + 1)
-    x_buff[0] = x
-    y_buff = Array(size + 1)
-    y_buff[0] = y
-    for i in range(4, 6):
-        buff_idx = i - 4
-        x_body: Mut = x_buff[buff_idx]
-        y_body: Mut = y_buff[buff_idx]
-        x_body += i
-        x_body += y_body
-        y_body = i
-        y_body += x_body
-        next_idx = buff_idx + 1
-        x_buff[next_idx] = x_body
-        y_buff[next_idx] = y_body
-    x = x_buff[size]
-    y = y_buff[size]
-    assert x == 35
-    assert y == 40
-    return
-```
-
-Step 2 — SSA-rename all reassignments to fresh names:
+Step 1 — SSA-rename all reassignments to fresh names:
 
 ```python
 def main():
@@ -830,30 +835,28 @@ def main():
     y = 3
     x2 = x + y
     y2 = y + x2
-    size = 6 - 4
-    x_buff = Array(size + 1)
-    x_buff[0] = x2
-    y_buff = Array(size + 1)
-    y_buff[0] = y2
+    x_buf = Array(3)
+    y_buf = Array(3)
+    x_buf[0] = x2
+    y_buf[0] = y2
     for i in range(4, 6):
-        buff_idx = i - 4
-        x_body1 = x_buff[buff_idx]
-        y_body1 = y_buff[buff_idx]
-        x_body2 = x_body1 + i
-        x_body3 = x_body2 + y_body1
-        y_body2 = i
-        y_body3 = y_body2 + x_body3
-        next_idx = buff_idx + 1
-        x_buff[next_idx] = x_body3
-        y_buff[next_idx] = y_body3
-    x3 = x_buff[size]
-    y3 = y_buff[size]
+        idx = i - 4
+        x_cur1 = x_buf[idx]
+        y_cur1 = y_buf[idx]
+        x_cur2 = x_cur1 + i
+        x_cur3 = x_cur2 + y_cur1
+        y_cur2 = i
+        y_cur3 = y_cur2 + x_cur3
+        x_buf[idx + 1] = x_cur3
+        y_buf[idx + 1] = y_cur3
+    x3 = x_buf[2]
+    y3 = y_buf[2]
     assert x3 == 35
     assert y3 == 40
     return
 ```
 
-Step 3 — lower the runtime loop to a recursive function:
+Step 2 — lower the runtime loop to a recursive function:
 
 ```python
 def main():
@@ -861,33 +864,31 @@ def main():
     y = 3
     x2 = x + y
     y2 = y + x2
-    size = 6 - 4
-    x_buff = Array(size + 1)
-    x_buff[0] = x2
-    y_buff = Array(size + 1)
-    y_buff[0] = y2
-    loop_helper(4, x_buff, y_buff)
-    x3 = x_buff[size]
-    y3 = y_buff[size]
+    x_buf = Array(3)
+    y_buf = Array(3)
+    x_buf[0] = x2
+    y_buf[0] = y2
+    loop_helper(4, x_buf, y_buf)
+    x3 = x_buf[2]
+    y3 = y_buf[2]
     assert x3 == 35
     assert y3 == 40
     return
 
-def loop_helper(i, x_buff, y_buff):
+def loop_helper(i, x_buf, y_buf):
     if i == 6:
         return
     else:
-        buff_idx = i - 4
-        x_body1 = x_buff[buff_idx]
-        y_body1 = y_buff[buff_idx]
-        x_body2 = x_body1 + i
-        x_body3 = x_body2 + y_body1
-        y_body2 = i
-        y_body3 = y_body2 + x_body3
-        next_idx = buff_idx + 1
-        x_buff[next_idx] = x_body3
-        y_buff[next_idx] = y_body3
-        loop_helper(i + 1, x_buff, y_buff)
+        idx = i - 4
+        x_cur1 = x_buf[idx]
+        y_cur1 = y_buf[idx]
+        x_cur2 = x_cur1 + i
+        x_cur3 = x_cur2 + y_cur1
+        y_cur2 = i
+        y_cur3 = y_cur2 + x_cur3
+        x_buf[idx + 1] = x_cur3
+        y_buf[idx + 1] = y_cur3
+        loop_helper(i + 1, x_buf, y_buf)
     return
 ```
 

@@ -198,10 +198,11 @@ def main():
     res = Array(n)
     for i in loop(0, n):
         res[i] = factorial(10000)
-    sum: Mut = 0
+    sum_buf = Array(n + 1)
+    sum_buf[0] = 0
     for i in range(0, n):
-        sum = sum + res[i]
-    print(sum)
+        sum_buf[i + 1] = sum_buf[i] + res[i]
+    print(sum_buf[n])
     return
 
 def factorial(n):

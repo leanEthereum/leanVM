@@ -18,16 +18,22 @@ def main():
     for i in unroll(0, 5):
         markers[i] = i
 
-    sum_pos: Mut = 0
-    sum_neg: Mut = 0
+    sum_pos_buf = Array(6)
+    sum_neg_buf = Array(6)
+    sum_pos_buf[0] = 0
+    sum_neg_buf[0] = 0
     for i in range(0, 5):
         m = markers[i]
+        pos: Mut = sum_pos_buf[i]
+        neg: Mut = sum_neg_buf[i]
         if m == 0:
-            sum_neg = sum_neg + 10
+            neg = neg + 10
         else:
-            sum_pos = sum_pos + m
-    assert sum_pos == expected_sum_pos
-    assert sum_neg == expected_sum_neg
+            pos = pos + m
+        sum_pos_buf[i + 1] = pos
+        sum_neg_buf[i + 1] = neg
+    assert sum_pos_buf[5] == expected_sum_pos
+    assert sum_neg_buf[5] == expected_sum_neg
 
     assert pipeline(x, y) == expected_pipeline
 

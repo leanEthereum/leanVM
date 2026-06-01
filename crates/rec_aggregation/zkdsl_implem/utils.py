@@ -708,10 +708,13 @@ def mle_of_zeros_then_ones(point, n_zeros, n_vars):
 
     bits, _ = checked_decompose_bits(n_zeros)
 
-    res: Mut = Array(DIM)
-    set_to_one(res)
+    res_0 = Array(DIM)
+    set_to_one(res_0)
 
+    res_buf = Array(n_vars + 1)
+    res_buf[0] = res_0
     for i in range(0, n_vars):
+        res: Mut = res_buf[i]
         p = point + (n_vars - 1 - i) * DIM
         if bits[F_BITS - 1 - i] == 0:
             one_minus_p = one_minus_self_extension_ret(p)
@@ -719,7 +722,8 @@ def mle_of_zeros_then_ones(point, n_zeros, n_vars):
             res = add_extension_ret(tmp, p)
         else:
             res = mul_extension_ret(p, res)
-    return res
+        res_buf[i + 1] = res
+    return res_buf[n_vars]
 
 
 def mle_of_zeros_then_ones_pow2(point, log_n_zeros: Const, n_vars):
@@ -727,11 +731,11 @@ def mle_of_zeros_then_ones_pow2(point, log_n_zeros: Const, n_vars):
     if log_n_zeros == n_vars:
         return ZERO_VEC_PTR
     n_factors = n_vars - log_n_zeros
-    prod: Mut = one_minus_self_extension_ret(point)
+    prod_buf = Array(n_factors)
+    prod_buf[0] = one_minus_self_extension_ret(point)
     for i in range(1, n_factors):
-        new_prod = mul_extension_ret(prod, one_minus_self_extension_ret(point + i * DIM))
-        prod = new_prod
-    return sub_base_extension_ret(1, prod)
+        prod_buf[i] = mul_extension_ret(prod_buf[i - 1], one_minus_self_extension_ret(point + i * DIM))
+    return sub_base_extension_ret(1, prod_buf[n_factors - 1])
 
 
 @inline

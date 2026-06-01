@@ -14,10 +14,11 @@ def main():
 
     assert n == 5
 
-    s: Mut = 0
+    s_buf = Array(6)
+    s_buf[0] = 0
     for i in range(0, 5):
-        s = s + i
-    assert s == sum_range
+        s_buf[i + 1] = s_buf[i] + i
+    assert s_buf[5] == sum_range
 
     assert mul(x, y) == prod_xy
 

@@ -175,12 +175,13 @@ def main():
         pk = all_pubkeys + idx * PUB_KEY_SIZE
         xmss_verify(pk, message, merkle_chunks_for_slot)
 
-    counter: Mut = n_raw_xmss
-
     n_bytecode_claims = n_recursions * 2
     bytecode_claims = Array(n_bytecode_claims)
 
+    counter_outer_buf = Array(n_recursions + 1)
+    counter_outer_buf[0] = n_raw_xmss
     for rec_idx in range(0, n_recursions):
+        counter: Mut = counter_outer_buf[rec_idx]
         n_sub = aggregate_sizes[rec_idx]
         assert n_sub != 0
         assert n_sub <= MAX_N_SIGS
@@ -190,19 +191,33 @@ def main():
         running_hash: Mut = build_iv(n_sub * PUB_KEY_SIZE)
         n_first = n_sub - 1
         n_chunks, remainder = euclidian_div_runtime(n_first, PARTIAL_UNROLL_BATCH)
-        j: Mut = 0
-        for _ in range(0, n_chunks):
+        pubkey_idx: Mut = 0
+        inner_carry = Array((n_chunks + 1) * 3)
+        inner_carry[0] = counter
+        inner_carry[1] = running_hash
+        inner_carry[2] = pubkey_idx
+        for c in range(0, n_chunks):
+            base = c * 3
+            cur_counter: Mut = inner_carry[base]
+            cur_running_hash: Mut = inner_carry[base + 1]
+            cur_pubkey_idx: Mut = inner_carry[base + 2]
             for u in unroll(0, PARTIAL_UNROLL_BATCH):
-                counter, running_hash = absorb_recursive_pubkey(
-                    j + u, sub_indices_arr, n_total, all_pubkeys, buffer, counter, running_hash
+                cur_counter, cur_running_hash = absorb_recursive_pubkey(
+                    cur_pubkey_idx + u, sub_indices_arr, n_total, all_pubkeys, buffer, cur_counter, cur_running_hash
                 )
-            j += PARTIAL_UNROLL_BATCH
+            cur_pubkey_idx += PARTIAL_UNROLL_BATCH
+            inner_carry[base + 3] = cur_counter
+            inner_carry[base + 4] = cur_running_hash
+            inner_carry[base + 5] = cur_pubkey_idx
+        counter = inner_carry[n_chunks * 3]
+        running_hash = inner_carry[n_chunks * 3 + 1]
+        pubkey_idx = inner_carry[n_chunks * 3 + 2]
         # Tail iterations
         tail_counter, tail_running_hash = match_range(
             remainder,
             range(0, PARTIAL_UNROLL_BATCH),
             lambda r: absorb_n_pubkeys_const(
-                r, j, sub_indices_arr, n_total, all_pubkeys, buffer, counter, running_hash
+                r, pubkey_idx, sub_indices_arr, n_total, all_pubkeys, buffer, counter, running_hash
             ),
         )
         counter = tail_counter
@@ -229,7 +244,9 @@ def main():
 
         bytecode_claims[2 * rec_idx] = single_message_data_buf + BYTECODE_CLAIM_OFFSET
         bytecode_claims[2 * rec_idx + 1] = recursion(inner_pub_mem, initial_fiat_shamir_cap)
+        counter_outer_buf[rec_idx + 1] = counter
 
+    counter = counter_outer_buf[n_recursions]
     assert counter == n_total
 
     if n_recursions == 0:
@@ -258,14 +275,18 @@ def reduce_bytecode_claims(bytecode_claims, n_bytecode_claims, bytecode_claim_ou
     count_block[0] = n_bytecode_claims
     for k in unroll(1, DIGEST_LEN):
         count_block[k] = 0
-    running_capacity: Mut = slice_hash_continue(reduction_capacity, count_block, 1)
+    rc_buf = Array(n_bytecode_claims)
+    rc_buf[0] = slice_hash_continue(reduction_capacity, count_block, 1)
 
     for i in range(0, n_bytecode_claims - 1):
+        running_capacity: Mut = rc_buf[i]
         claim_ptr = bytecode_claims[i]
         for k in unroll(BYTECODE_CLAIM_SIZE, BYTECODE_CLAIM_SIZE_PADDED):
             assert claim_ptr[k] == 0
         running_capacity = slice_hash_continue(running_capacity, claim_ptr, BYTECODE_CLAIM_NUM_CHUNKS)
+        rc_buf[i + 1] = running_capacity
 
+    running_capacity: Mut = rc_buf[n_bytecode_claims - 1]
     last_claim = bytecode_claims[n_bytecode_claims - 1]
     for k in unroll(BYTECODE_CLAIM_SIZE, BYTECODE_CLAIM_SIZE_PADDED):
         assert last_claim[k] == 0
