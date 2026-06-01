@@ -358,6 +358,15 @@ class ParsedCommitment:
     ood_points: list[EF]
     ood_answers: list[EF]
 
+    @classmethod
+    def read(cls, fs: "FiatShamir", num_variables: int, n_ood: int) -> "ParsedCommitment":
+        return cls(
+            num_variables,
+            fs.next_base_scalars_vec(DIGEST_ELEMS),
+            fs.sample_many_ef(n_ood),
+            fs.next_extension_scalars_vec(n_ood),
+        )
+
     def oods_constraints(self) -> list[SparseStatements]:
         return [
             SparseStatements(self.num_variables, expand_from_univariate(p, self.num_variables), [(0, ev)])
@@ -446,12 +455,7 @@ def whir_verify(
         round_params = cfg["rounds"][r]
         current_vars -= whir_folding_factor_at_round(r)
         n_ood_samples = round_params["ood_samples"]
-        new_commitment = ParsedCommitment(
-            current_vars,
-            fiat_shamir.next_base_scalars_vec(DIGEST_ELEMS),
-            fiat_shamir.sample_many_ef(n_ood_samples),
-            fiat_shamir.next_extension_scalars_vec(n_ood_samples),
-        )
+        new_commitment = ParsedCommitment.read(fiat_shamir, current_vars, n_ood_samples)
         stir = verify_stir_challenges(
             fiat_shamir,
             r,
@@ -1053,12 +1057,7 @@ def verify_execution(
         raise ProofError("InvalidProof: stacked_n_vars exceeds WHIR domain bound")
     cfg = WHIR_CONFIGS[(log_inv_rate, stacked_n_vars)]
     nood = cfg["commitment_ood_samples"]
-    parsed_commitment = ParsedCommitment(
-        stacked_n_vars,
-        state.next_base_scalars_vec(DIGEST_ELEMS),
-        state.sample_many_ef(nood),
-        state.next_extension_scalars_vec(nood),
-    )
+    parsed_commitment = ParsedCommitment.read(state, stacked_n_vars, nood)
 
     logup_gamma = state.sample_ef()  # the quotient denominator
     state.duplex()
