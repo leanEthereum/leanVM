@@ -88,12 +88,12 @@ class Table:
         return len(self.columns)
 
     @property
-    def n_bus_interractions(self) -> int:
+    def n_bus_interactions(self) -> int:
         return sum(b.n_terms for b in self.buses)
 
     @property
-    def precompile_bus_interraction_sign(self) -> EF:
-        return EF(self.buses[0].direction)  # precompile interraction is the first, by convention
+    def precompile_bus_interaction_sign(self) -> EF:
+        return EF(self.buses[0].direction)  # precompile interaction is the first, by convention
 
     def col(self, name: str) -> int:
         return self.columns.index(name)
@@ -608,7 +608,7 @@ def verify_generic_logup(
     total_active_len = (
         (1 << log_memory)
         + max(1 << log_bytecode, 1 << tallest_h)
-        + sum(t.n_bus_interractions << h for t, h in tables_sorted)
+        + sum(t.n_bus_interactions << h for t, h in tables_sorted)
     )
     total_gkr_n_vars = log2_ceil(total_active_len)
 
@@ -654,7 +654,7 @@ def verify_generic_logup(
     table_offsets: dict[str, int] = {}
     for table, log_n_rows in tables_sorted:
         table_offsets[table.name] = offset
-        offset += table.n_bus_interractions << log_n_rows
+        offset += table.n_bus_interactions << log_n_rows
     final_offset = offset
 
     bus_num_vals: dict[str, EF] = {}
@@ -1081,7 +1081,7 @@ def verify_execution(
 
     initial_sum, offset = ZERO, 0
     for table in TABLES:
-        initial_sum += alpha_powers[offset] * (logup["bus_num"][table.name] * table.precompile_bus_interraction_sign)
+        initial_sum += alpha_powers[offset] * (logup["bus_num"][table.name] * table.precompile_bus_interaction_sign)
         initial_sum += alpha_powers[offset + 1] * (logup_gamma - logup["bus_den"][table.name])
         offset += table.n_constraints
     sc_point, sc_value = verify_sumcheck(state, initial_sum, n_max, max(t.air_degree + 1 for t in TABLES))
