@@ -1172,7 +1172,7 @@ def main() -> int:
         print(f"FAIL: {e}")
         return 1
 
-    print(f"Proof successfully verified")
+    print("Proof successfully verified")
     return 0
 
 
