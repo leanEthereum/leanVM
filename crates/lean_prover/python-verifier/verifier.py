@@ -81,7 +81,7 @@ class Table:
     n_constraints: int
     n_shift: int  # shift (next-row) columns are always the first ones
     max_log_height: int
-    air_constraints_fn: object  # (folder, logup_beta_eq) -> None
+    air_constraints_fn: object  # (constraint_evaluator, logup_beta_eq) -> None
 
     @property
     def n_columns(self) -> int:
@@ -99,9 +99,9 @@ class Table:
         return self.columns.index(name)
 
     def eval_air(self, col_evals: Sequence[EF], alpha_powers: Sequence[EF], logup_beta_eq: list[EF]) -> EF:
-        folder = ConstraintFolder(col_evals[: self.n_columns], col_evals[self.n_columns :], alpha_powers, self.columns)
-        self.air_constraints_fn(folder, logup_beta_eq)
-        return folder.accumulator
+        constraint_evaluator = ConstraintEvaluator(col_evals[: self.n_columns], col_evals[self.n_columns :], alpha_powers, self.columns)
+        self.air_constraints_fn(constraint_evaluator, logup_beta_eq)
+        return constraint_evaluator.accumulator
 
     def boundary_statements(
         self, stacked_n_vars: int, offset: int, n_vars: int, ending_pc: int
@@ -716,7 +716,7 @@ class Cols(dict):
         return [self[f"{prefix}_{i}"] for i in range(n)]
 
 
-class ConstraintFolder:
+class ConstraintEvaluator:
     def __init__(
         self, flat: Sequence[EF], shift: Sequence[EF], alpha_powers: Sequence[EF], columns: Sequence[str]
     ) -> None:
@@ -741,18 +741,18 @@ class ConstraintFolder:
 
 
 def eval_precompile_bus_virtual_columns(
-    folder: "ConstraintFolder",
+    evaluator: "ConstraintEvaluator",
     logup_beta_eq: list[EF],
     multiplicity: EF,
     domainsep: EF,
     data: Sequence[EF],
 ) -> None:
-    folder.assert_zero(multiplicity)
-    folder.assert_zero(finger_print(domainsep, data, logup_beta_eq))
+    evaluator.assert_zero(multiplicity)
+    evaluator.assert_zero(finger_print(domainsep, data, logup_beta_eq))
 
 
-def eval_air_execution(folder: ConstraintFolder, logup_beta_eq: list[EF]) -> None:
-    c, n = folder.flat, folder.next
+def eval_air_execution(evaluator: ConstraintEvaluator, logup_beta_eq: list[EF]) -> None:
+    c, n = evaluator.flat, evaluator.next
     (pc, fp, addr_a, addr_b, addr_c, value_a, value_b, value_c, operand_a, operand_b, operand_c,
      flag_a, flag_b, flag_c, flag_c_fp, flag_ab_fp, flag_mul, flag_jump, aux_1, aux_2) = (c[k] for k in EXECUTION_COLUMNS)  # fmt: skip
     pc_shift, fp_shift = n["pc"], n["fp"]
@@ -770,25 +770,25 @@ def eval_air_execution(folder: ConstraintFolder, logup_beta_eq: list[EF]) -> Non
     flag_deref = aux_1 * (aux_1 - ONE) * ((P + 1) // 2)  # (P+1)/2 is the inverse of 2 mod P
     flag_precompile = ONE - flag_add - flag_mul - flag_deref - flag_jump
 
-    eval_precompile_bus_virtual_columns(folder, logup_beta_eq, flag_precompile, aux_2, [nu_a, nu_b, nu_c])
-    folder.assert_zero(nfa * (addr_a - (fp + operand_a)))
-    folder.assert_zero(nfb * (addr_b - (fp + operand_b)))
-    folder.assert_zero(nfc * (addr_c - (fp + operand_c)))
-    folder.assert_zero(flag_add * (nu_b - (nu_a + nu_c)))
-    folder.assert_zero(flag_mul * (nu_b - nu_a * nu_c))
-    folder.assert_zero(flag_deref * (addr_b - (value_a + operand_b)))
-    folder.assert_zero(flag_deref * (value_b - nu_c))
+    eval_precompile_bus_virtual_columns(evaluator, logup_beta_eq, flag_precompile, aux_2, [nu_a, nu_b, nu_c])
+    evaluator.assert_zero(nfa * (addr_a - (fp + operand_a)))
+    evaluator.assert_zero(nfb * (addr_b - (fp + operand_b)))
+    evaluator.assert_zero(nfc * (addr_c - (fp + operand_c)))
+    evaluator.assert_zero(flag_add * (nu_b - (nu_a + nu_c)))
+    evaluator.assert_zero(flag_mul * (nu_b - nu_a * nu_c))
+    evaluator.assert_zero(flag_deref * (addr_b - (value_a + operand_b)))
+    evaluator.assert_zero(flag_deref * (value_b - nu_c))
     jc = flag_jump * nu_a
-    folder.assert_zero(jc * (nu_a - ONE))
-    folder.assert_zero(jc * (pc_shift - nu_b))
-    folder.assert_zero(jc * (fp_shift - nu_c))
+    evaluator.assert_zero(jc * (nu_a - ONE))
+    evaluator.assert_zero(jc * (pc_shift - nu_b))
+    evaluator.assert_zero(jc * (fp_shift - nu_c))
     not_jc = ONE - jc
-    folder.assert_zero(not_jc * (pc_shift - (pc + ONE)))
-    folder.assert_zero(not_jc * (fp_shift - fp))
+    evaluator.assert_zero(not_jc * (pc_shift - (pc + ONE)))
+    evaluator.assert_zero(not_jc * (fp_shift - fp))
 
 
-def eval_air_extension(folder: ConstraintFolder, logup_beta_eq: list[EF]) -> None:
-    c, n = folder.flat, folder.next
+def eval_air_extension(evaluator: ConstraintEvaluator, logup_beta_eq: list[EF]) -> None:
+    c, n = evaluator.flat, evaluator.next
     flag_be, flag_start, len_col = c["flag_be"], c["flag_start"], c["len"]
     flag_add, flag_dot_product, flag_eq = c["flag_add"], c["flag_dot_product"], c["flag_eq"]
     idx_a, idx_b, idx_r = c["idx_a"], c["idx_b"], c["idx_r"]
@@ -806,11 +806,11 @@ def eval_air_extension(folder: ConstraintFolder, logup_beta_eq: list[EF]) -> Non
         + len_col * EXT_OP_LEN_MULTIPLIER
     )
     eval_precompile_bus_virtual_columns(
-        folder, logup_beta_eq, flag_start * (flag_add + flag_dot_product + flag_eq), aux_2, [idx_a, idx_b, idx_r]
+        evaluator, logup_beta_eq, flag_start * (flag_add + flag_dot_product + flag_eq), aux_2, [idx_a, idx_b, idx_r]
     )
 
     for x in (flag_be, flag_start, flag_add, flag_dot_product, flag_eq):
-        folder.assert_bool(x)
+        evaluator.assert_bool(x)
 
     is_ee, not_start_sh = ONE - flag_be, ONE - flag_start_sh
     v_a_tilde = [v_a[0]] + [v_a[k] * is_ee for k in range(1, 5)]
@@ -818,18 +818,18 @@ def eval_air_extension(folder: ConstraintFolder, logup_beta_eq: list[EF]) -> Non
     v_a_v_b = quintic_mul(v_a_tilde, v_b, ZERO)
 
     for k in range(5):
-        folder.assert_zero((acc[k] - (v_a_tilde[k] + v_b[k] + acc_tail[k])) * flag_add)
+        evaluator.assert_zero((acc[k] - (v_a_tilde[k] + v_b[k] + acc_tail[k])) * flag_add)
     for k in range(5):
-        folder.assert_zero((acc[k] - (v_a_v_b[k] + acc_tail[k])) * flag_dot_product)
+        evaluator.assert_zero((acc[k] - (v_a_v_b[k] + acc_tail[k])) * flag_dot_product)
 
     # eq: acc ← (2·v_a·v_b − v_a − v_b + 1) · (acc_tail or 1 at group end).
     e_eq = [2 * v_a_v_b[k] - v_a_tilde[k] - v_b[k] + (ONE if k == 0 else ZERO) for k in range(5)]
     acc_tail_or_one = [acc_sh[0] * not_start_sh + flag_start_sh] + [acc_sh[k] * not_start_sh for k in range(1, 5)]
     eq_result = quintic_mul(e_eq, acc_tail_or_one, ZERO)
     for k in range(5):
-        folder.assert_zero((acc[k] - eq_result[k]) * flag_eq)
+        evaluator.assert_zero((acc[k] - eq_result[k]) * flag_eq)
     for k in range(5):
-        folder.assert_zero((acc[k] - res[k]) * flag_start)
+        evaluator.assert_zero((acc[k] - res[k]) * flag_start)
 
     for x, y in [
         (len_col, len_sh + ONE),
@@ -838,11 +838,11 @@ def eval_air_extension(folder: ConstraintFolder, logup_beta_eq: list[EF]) -> Non
         (flag_dot_product, flag_dot_product_sh),
         (flag_eq, flag_eq_sh),
     ]:
-        folder.assert_zero(not_start_sh * (x - y))
+        evaluator.assert_zero(not_start_sh * (x - y))
 
-    folder.assert_zero(not_start_sh * (idx_a_sh - idx_a - (flag_be + is_ee * 5)))
-    folder.assert_zero(not_start_sh * (idx_b_sh - idx_b - 5))
-    folder.assert_zero(flag_start_sh * (len_col - ONE))
+    evaluator.assert_zero(not_start_sh * (idx_a_sh - idx_a - (flag_be + is_ee * 5)))
+    evaluator.assert_zero(not_start_sh * (idx_b_sh - idx_b - 5))
+    evaluator.assert_zero(flag_start_sh * (len_col - ONE))
 
 
 def _full_round(state: list[EF], rc1: list[Fp], rc2: list[Fp]) -> list[EF]:
@@ -853,8 +853,8 @@ def _full_round(state: list[EF], rc1: list[Fp], rc2: list[Fp]) -> list[EF]:
     return state
 
 
-def eval_air_poseidon16(folder: ConstraintFolder, logup_beta_eq: list[EF]) -> None:
-    c = folder.flat
+def eval_air_poseidon16(evaluator: ConstraintEvaluator, logup_beta_eq: list[EF]) -> None:
+    c = evaluator.flat
     half_pairs = POSEIDON_HALF_FULL_ROUNDS // 2
 
     multiplicity = c["multiplicity"]
@@ -880,14 +880,14 @@ def eval_air_poseidon16(folder: ConstraintFolder, logup_beta_eq: list[EF]) -> No
     not_flag_left = ONE - flag_left
     nu_a = addr_left_hi - not_flag_left * (DIGEST_ELEMS // 2)
 
-    eval_precompile_bus_virtual_columns(folder, logup_beta_eq, multiplicity, domainsep, [nu_a, nu_b, nu_c])
+    eval_precompile_bus_virtual_columns(evaluator, logup_beta_eq, multiplicity, domainsep, [nu_a, nu_b, nu_c])
     for f in (multiplicity, flag_out4, flag_out8, flag_left, flag_permute):
-        folder.assert_bool(f)
-    folder.assert_zero(flag_permute * flag_out4)
-    folder.assert_zero(flag_out8 * flag_out4)
-    folder.assert_zero((ONE - flag_permute) * (ONE - flag_out8) * (ONE - flag_out4))
-    folder.assert_zero(flag_left * (offset_left - addr_left_lo))
-    folder.assert_zero(not_flag_left * (nu_a - addr_left_lo))
+        evaluator.assert_bool(f)
+    evaluator.assert_zero(flag_permute * flag_out4)
+    evaluator.assert_zero(flag_out8 * flag_out4)
+    evaluator.assert_zero((ONE - flag_permute) * (ONE - flag_out8) * (ONE - flag_out4))
+    evaluator.assert_zero(flag_left * (offset_left - addr_left_lo))
+    evaluator.assert_zero(not_flag_left * (nu_a - addr_left_lo))
 
     # --- Poseidon1-16 permutation AIR: each committed `post` row pins the intermediate
     # state then re-binds it, capping polynomial degree across the long round sequence.
@@ -897,7 +897,7 @@ def eval_air_poseidon16(folder: ConstraintFolder, logup_beta_eq: list[EF]) -> No
     for r in range(half_pairs):
         state = _full_round(state, POSEIDON_AIR_INITIAL_CONSTANTS[2 * r], POSEIDON_AIR_INITIAL_CONSTANTS[2 * r + 1])
         for i, post in enumerate(beginning_full_rounds[r]):
-            folder.assert_eq(state[i], post)
+            evaluator.assert_eq(state[i], post)
             state[i] = post
 
     # Transition into sparse partial-round form.
@@ -906,7 +906,7 @@ def eval_air_poseidon16(folder: ConstraintFolder, logup_beta_eq: list[EF]) -> No
 
     # Partial rounds: one sbox on lane 0, then sparse mat-vec.
     for r in range(POSEIDON_PARTIAL_ROUNDS):
-        folder.assert_eq(state[0].cube(), partial_cols[r])
+        evaluator.assert_eq(state[0].cube(), partial_cols[r])
         state[0] = partial_cols[r]
         if r < POSEIDON_PARTIAL_ROUNDS - 1:
             state[0] += POSEIDON_AIR_SPARSE_SCALAR_RC[r]
@@ -919,7 +919,7 @@ def eval_air_poseidon16(folder: ConstraintFolder, logup_beta_eq: list[EF]) -> No
     for r in range(half_pairs - 1):
         state = _full_round(state, POSEIDON_AIR_FINAL_CONSTANTS[2 * r], POSEIDON_AIR_FINAL_CONSTANTS[2 * r + 1])
         for i, post in enumerate(ending_full_rounds[r]):
-            folder.assert_eq(state[i], post)
+            evaluator.assert_eq(state[i], post)
             state[i] = post
 
     # Last full round: compression feeds `inputs` forward into out_lo (permute does not).
@@ -933,10 +933,10 @@ def eval_air_poseidon16(folder: ConstraintFolder, logup_beta_eq: list[EF]) -> No
     for i in range(POSEIDON_WIDTH // 2):
         value = state[i] + not_permute * inputs[i]
         if i < (DIGEST_ELEMS // 2):
-            folder.assert_zero(value - out_lo[i])
+            evaluator.assert_zero(value - out_lo[i])
         else:
-            folder.assert_zero(gate_lo_8 * (value - out_lo[i]))
-        folder.assert_zero(gate_hi * (state[i + POSEIDON_WIDTH // 2] - out_hi[i]))
+            evaluator.assert_zero(gate_lo_8 * (value - out_lo[i]))
+        evaluator.assert_zero(gate_hi * (state[i + POSEIDON_WIDTH // 2] - out_hi[i]))
 
 
 EXECUTION_COLUMNS = (
