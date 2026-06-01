@@ -64,17 +64,19 @@ class BusDirection(IntEnum):
     PULL = -1
 
 
-class BusInteraction(IntEnum):
-    PRECOMPILE = 0
-    BYTECODE = 1
-    MEMORY = 2
+@dataclass(frozen=True)
+class BusInteraction:
+    direction: BusDirection
+    domain_sep: int = 0
+    cols: tuple[str, ...] = ()  # committed columns forming σ (address column first, for memory)
+    n_terms: int = 1  # number of logup terms (memory groups: consecutive cells sharing cols[0])
 
 
 @dataclass(frozen=True)
 class Table:
     name: str
     columns: tuple[str, ...]
-    buses: tuple
+    buses: tuple[BusInteraction, ...]
     air_degree: int
     n_constraints: int
     n_shift: int  # shift (next-row) columns are always the first ones
@@ -87,11 +89,11 @@ class Table:
 
     @property
     def n_bus_interractions(self) -> int:
-        return sum(b[3] if b[0] == BusInteraction.MEMORY else 1 for b in self.buses)
+        return sum(b.n_terms for b in self.buses)
 
     @property
     def precompile_bus_interraction_sign(self) -> EF:
-        return EF(self.buses[0][1])  # precompile interraction is the first, by convention
+        return EF(self.buses[0].direction)  # precompile interraction is the first, by convention
 
     def col(self, name: str) -> int:
         return self.columns.index(name)
@@ -608,7 +610,9 @@ def verify_generic_logup(
     tallest_h = tables_sorted[0][1]
 
     total_active_len = (
-        (1 << log_memory) + max(1 << log_bytecode, 1 << tallest_h) + sum(t.n_bus_interractions << h for t, h in tables_sorted)
+        (1 << log_memory)
+        + max(1 << log_bytecode, 1 << tallest_h)
+        + sum(t.n_bus_interractions << h for t, h in tables_sorted)
     )
     total_gkr_n_vars = log2_ceil(total_active_len)
 
@@ -665,48 +669,34 @@ def verify_generic_logup(
         name = table.name
         log_n_rows = heights[name]
         row_stride = 1 << log_n_rows
-        offset_within_table = table_offsets[name]
-        table_values: dict[int, EF] = {}
+        offset = table_offsets[name]
+        vals: dict[int, EF] = {}
 
-        def read_fresh(cols: list[int]) -> None:
-            """Read one extension scalar per column not yet in `table_values`, in order."""
-            missing = [c for c in cols if c not in table_values]
+        def read(cols: Sequence[int]) -> list[EF]:
+            """Evals of `cols`, batch-reading any not-yet-seen column from the transcript, in order."""
+            missing = [c for c in cols if c not in vals]
             for c, e in zip(missing, fiat_shamir.next_extension_scalars_vec(len(missing))):
-                table_values[c] = e
+                vals[c] = e
+            return [vals[c] for c in cols]
 
         for bus in table.buses:
-            pref = pref_at(offset_within_table, log_n_rows)
-            kind = bus[0]
-            if kind == BusInteraction.PRECOMPILE:
+            if not bus.cols:
+                pref = pref_at(offset, log_n_rows)
                 bus_num_vals[name] = fiat_shamir.next_extension_scalar()
                 bus_den_vals[name] = fiat_shamir.next_extension_scalar()
                 num += pref * bus_num_vals[name]
                 den += pref * bus_den_vals[name]
-                n_sub = 1
-            elif kind == BusInteraction.BYTECODE:
-                cols = list(range(N_RUNTIME_COLUMNS, N_RUNTIME_COLUMNS + N_INSTRUCTION_COLUMNS)) + [table.col("pc")]
-                read_fresh(cols)
-                evals = [table_values[c] for c in cols]
+                offset += row_stride
+                continue
+            sep, base = Fp(bus.domain_sep), [table.col(c) for c in bus.cols]  # memory / bytecode
+            for i in range(bus.n_terms):  # term i: σ = (m[base[0]] + i, m[base[1:] + i])
+                pref = pref_at(offset, log_n_rows)
+                d = read([base[0], *(c + i for c in base[1:])])
                 num += pref
-                den += pref * (gamma - finger_print(ds_byte, evals, beta_eq))
-                n_sub = 1
-            elif kind == BusInteraction.MEMORY:
-                _, idx_ref, vals_ref, n_sub = bus
-                idx_col, vals_start = table.col(idx_ref), table.col(vals_ref)
-                # One sub-bus per cell in the group; the prover sends only the not-yet-seen
-                # columns per row (idx_col is shared across all n_sub rows).
-                for i in range(n_sub):
-                    val_col = vals_start + i
-                    read_fresh([idx_col, val_col])
-                    pref = pref_at(offset_within_table + i * row_stride, log_n_rows)
-                    fp = finger_print(ds_mem, [table_values[idx_col] + i, table_values[val_col]], beta_eq)
-                    num += pref
-                    den += pref * (gamma - fp)
-            else:
-                raise ProofError(f"unknown bus kind: {kind}")
-            offset_within_table += n_sub * row_stride
+                den += pref * (gamma - finger_print(sep, [d[0] + i, *d[1:]], beta_eq))
+                offset += row_stride
 
-        columns_values[name] = table_values
+        columns_values[name] = vals
 
     den += mle_of_zeros_then_ones(final_offset, point_gkr)
     if num != claim_num:
@@ -981,11 +971,11 @@ TABLES = [
         name="execution",
         columns=EXECUTION_COLUMNS,
         buses=(
-            (BusInteraction.PRECOMPILE, BusDirection.PUSH),
-            (BusInteraction.BYTECODE,),
-            (BusInteraction.MEMORY, "addr_a", "value_a", 1),
-            (BusInteraction.MEMORY, "addr_b", "value_b", 1),
-            (BusInteraction.MEMORY, "addr_c", "value_c", 1),
+            BusInteraction(BusDirection.PUSH),
+            BusInteraction(BusDirection.PULL, LOGUP_BYTECODE_DOMAINSEP, (*EXECUTION_COLUMNS[N_RUNTIME_COLUMNS:], "pc")),
+            BusInteraction(BusDirection.PULL, LOGUP_MEMORY_DOMAINSEP, ("addr_a", "value_a")),
+            BusInteraction(BusDirection.PULL, LOGUP_MEMORY_DOMAINSEP, ("addr_b", "value_b")),
+            BusInteraction(BusDirection.PULL, LOGUP_MEMORY_DOMAINSEP, ("addr_c", "value_c")),
         ),
         air_degree=5,
         n_constraints=14,
@@ -997,10 +987,10 @@ TABLES = [
         name="extension",
         columns=EXTENSION_COLUMNS,
         buses=(
-            (BusInteraction.PRECOMPILE, BusDirection.PULL),
-            (BusInteraction.MEMORY, "idx_a", "v_a_0", 5),
-            (BusInteraction.MEMORY, "idx_b", "v_b_0", 5),
-            (BusInteraction.MEMORY, "idx_r", "res_0", 5),
+            BusInteraction(BusDirection.PULL),
+            BusInteraction(BusDirection.PULL, LOGUP_MEMORY_DOMAINSEP, ("idx_a", "v_a_0"), 5),
+            BusInteraction(BusDirection.PULL, LOGUP_MEMORY_DOMAINSEP, ("idx_b", "v_b_0"), 5),
+            BusInteraction(BusDirection.PULL, LOGUP_MEMORY_DOMAINSEP, ("idx_r", "res_0"), 5),
         ),
         air_degree=6,
         n_constraints=35,
@@ -1012,11 +1002,11 @@ TABLES = [
         name="poseidon",
         columns=POSEIDON_COLUMNS,
         buses=(
-            (BusInteraction.PRECOMPILE, BusDirection.PULL),
-            (BusInteraction.MEMORY, "addr_left_lo", "input_0", 4),
-            (BusInteraction.MEMORY, "addr_left_hi", "input_4", 4),
-            (BusInteraction.MEMORY, "nu_b", "input_8", 8),
-            (BusInteraction.MEMORY, "nu_c", "out_lo_0", 16),
+            BusInteraction(BusDirection.PULL),
+            BusInteraction(BusDirection.PULL, LOGUP_MEMORY_DOMAINSEP, ("addr_left_lo", "input_0"), 4),
+            BusInteraction(BusDirection.PULL, LOGUP_MEMORY_DOMAINSEP, ("addr_left_hi", "input_4"), 4),
+            BusInteraction(BusDirection.PULL, LOGUP_MEMORY_DOMAINSEP, ("nu_b", "input_8"), 8),
+            BusInteraction(BusDirection.PULL, LOGUP_MEMORY_DOMAINSEP, ("nu_c", "out_lo_0"), 16),
         ),
         air_degree=10,
         n_constraints=101,
