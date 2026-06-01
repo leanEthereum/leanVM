@@ -33,7 +33,7 @@ use rayon::prelude::*;
 use tracing::instrument;
 use utils::{as_base_slice, log2_strict_usize};
 
-use crate::{Matrix, RowMajorMatrix, RowMajorMatrixViewMut};
+use crate::{Matrix, MatrixViewMut};
 
 /// The number of layers to compute in each parallelization.
 const LAYERS_PER_GROUP: usize = 3;
@@ -76,7 +76,7 @@ impl<F> EvalsDft<F>
 where
     F: TwoAdicField,
 {
-    pub(crate) fn dft_batch_by_evals(&self, mut mat: RowMajorMatrix<F>) -> RowMajorMatrix<F> {
+    pub(crate) fn dft_batch_by_evals(&self, mut mat: Matrix<F>) -> Matrix<F> {
         let h = mat.height();
         let w = mat.width();
         let log_h = log2_strict_usize(h);
@@ -146,12 +146,12 @@ where
     #[instrument(skip_all)]
     pub(crate) fn dft_algebra_batch_by_evals<V: BasedVectorSpace<F> + Clone + Send + Sync>(
         &self,
-        mat: RowMajorMatrix<V>,
-    ) -> RowMajorMatrix<V> {
+        mat: Matrix<V>,
+    ) -> Matrix<V> {
         let init_width = mat.width();
-        let base_mat = RowMajorMatrix::new(V::flatten_to_base(mat.values), init_width * V::DIMENSION);
+        let base_mat = Matrix::new(V::flatten_to_base(mat.values), init_width * V::DIMENSION);
         let base_dft_output = self.dft_batch_by_evals(base_mat);
-        RowMajorMatrix::new(V::reconstitute_from_base(base_dft_output.values), init_width)
+        Matrix::new(V::reconstitute_from_base(base_dft_output.values), init_width)
     }
 }
 
@@ -221,7 +221,7 @@ fn dft_layer_par<F: Field, B: Butterfly<F>>(vec: &mut [F], twiddles: &[B], width
 /// - `multi_butterfly`: Multi-layer butterfly which applies the two layers in the correct order.
 #[inline]
 fn dft_layer_par_double<F: Field, B: Butterfly<F>, M: MultiLayerButterfly<F, B>>(
-    mat: &mut RowMajorMatrixViewMut<'_, F>,
+    mat: &mut MatrixViewMut<'_, F>,
     twiddles_small: &[B],
     twiddles_large: &[B],
     multi_butterfly: M,
@@ -284,7 +284,7 @@ fn dft_layer_par_double<F: Field, B: Butterfly<F>, M: MultiLayerButterfly<F, B>>
 /// - `multi_butterfly`: Multi-layer butterfly which applies the three layers in the correct order.
 #[inline]
 fn dft_layer_par_triple<F: Field, B: Butterfly<F>, M: MultiLayerButterfly<F, B>>(
-    mat: &mut RowMajorMatrixViewMut<'_, F>,
+    mat: &mut MatrixViewMut<'_, F>,
     twiddles_small: &[B],
     twiddles_med: &[B],
     twiddles_large: &[B],
@@ -348,7 +348,7 @@ fn dft_layer_par_triple<F: Field, B: Butterfly<F>, M: MultiLayerButterfly<F, B>>
 /// This function is used to correct for the fact that the total number of layers
 /// may not be a multiple of `LAYERS_PER_GROUP`.
 fn dft_layer_par_extra_layers<F: Field, B: Butterfly<F>, M: MultiLayerButterfly<F, B>>(
-    mat: &mut RowMajorMatrixViewMut<'_, F>,
+    mat: &mut MatrixViewMut<'_, F>,
     root_table: &[Vec<F>],
     multi_layer: M,
     width: usize,
@@ -588,7 +588,7 @@ mod tests {
             let evals = (0..(1 << n_vars)).map(|_| rng.random()).collect::<Vec<EF>>();
 
             let dft = EvalsDft::<F>::default();
-            let evals_dft = dft.dft_algebra_batch_by_evals(RowMajorMatrix::new(evals.clone(), 1));
+            let evals_dft = dft.dft_algebra_batch_by_evals(Matrix::new(evals.clone(), 1));
             let fft_values = evals_dft.values;
             for _ in 0..10 {
                 let i = rng.random_range(0..(1 << n_vars));

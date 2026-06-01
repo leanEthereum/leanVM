@@ -8,7 +8,9 @@ use xmss::signers_cache::{BENCHMARK_SLOT, get_benchmark_signatures, message_for_
 use xmss::{XmssPublicKey, XmssSignature};
 
 use crate::compilation::{get_aggregation_bytecode, init_aggregation_bytecode};
-use crate::type_1_aggregation::{TypeOneMultiSignature, aggregate_type_1, verify_type_1};
+use crate::single_message_aggregation::{
+    SingleMessageAggregateSignature, aggregate_single_msg_signatures, verify_single_message_aggregate,
+};
 
 #[derive(Debug, Clone)]
 pub struct AggregationTopology {
@@ -351,13 +353,13 @@ fn build_aggregation(
     tracing: bool,
     is_root: bool,
     repeat: usize,
-) -> TypeOneMultiSignature {
+) -> SingleMessageAggregateSignature {
     let raw_count = topology.raw_xmss;
     let raw_xmss: Vec<(XmssPublicKey, XmssSignature)> = (0..raw_count)
         .map(|i| (pub_keys[i].clone(), signatures[i].clone()))
         .collect();
 
-    let mut children: Vec<TypeOneMultiSignature> = vec![];
+    let mut children: Vec<SingleMessageAggregateSignature> = vec![];
     let mut child_start = raw_count;
     let mut child_display_index = display_index;
     for (child_idx, child) in topology.children.iter().enumerate() {
@@ -392,14 +394,14 @@ fn build_aggregation(
     let is_leaf = topology.children.is_empty();
     let n_xmss_opt = is_leaf.then_some(topology.raw_xmss);
     let mut times = Vec::with_capacity(repeat);
-    let mut last_result: Option<TypeOneMultiSignature> = None;
+    let mut last_result: Option<SingleMessageAggregateSignature> = None;
     let own_display_index = display_index + count_nodes(topology) - 1;
     for _ in 0..repeat {
         #[cfg(not(feature = "standard-alloc"))]
         zk_alloc::begin_phase();
 
         let time = Instant::now();
-        let result = aggregate_type_1(
+        let result = aggregate_single_msg_signatures(
             &children,
             raw_xmss.clone(),
             message_for_benchmark(),
@@ -541,7 +543,7 @@ pub fn run_aggregation_benchmark(
         repeat,
     );
 
-    verify_type_1(&aggregated).expect("root type-1 proof failed to verify");
+    verify_single_message_aggregate(&aggregated).expect("root single-message proof failed to verify");
 
     BenchmarkReport { nodes }
 }

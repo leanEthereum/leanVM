@@ -303,14 +303,18 @@ result = match_range(n,
     range(1, 8), lambda i: normal_case(i))
 ```
 
-Multiple return values are supported via tuple unpacking. The bindings produced
-by `match_range` are always immutable. Forward-declare with `: Mut` (and then
-reassign) if you need them mutable later:
+Multiple return values are supported via tuple unpacking. Like any binding, a
+`match_range` result is immutable; declare the target `: Mut` if you assign it
+more than once in a scope (assigning it once per `unroll` iteration stays
+immutable, each iteration is a fresh scope):
 
 ```python
 a: Mut
 a, b = match_range(n, range(0, 4), lambda i: two_values(i))
-a += 1
+a += 1                                                   # second assign in this scope ⇒ a is : Mut
+
+for k in unroll(0, n):
+    c = match_range(k, range(0, 4), lambda i: one_value(i))  # immutable: a fresh binding each iteration
 ```
 
 Idiomatic use: enables to dispatch a runtime value to a const-parameter function.
@@ -333,6 +337,13 @@ iterator visits `start, start + 1, ..., end - 1`.
 Restrictions shared by all three forms:
 
 - No `break` or `continue` (not in the grammar).
+
+**Empty / reversed bounds (`start >= end`).** The two loop kinds behave differently:
+
+- `unroll(start, end)` with `start >= end` expands to **nothing** (zero iterations).
+- `range(start, end)` / `parallel_range(start, end)` count up until the counter *equals*
+  `end`, so `start > end` wraps around modulo `p` and may run up to ≈ `p` steps.
+  A runtime `range` must always have `start <= end`.
 
 #### `range(a, b)`: runtime loop
 

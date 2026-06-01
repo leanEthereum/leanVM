@@ -1,7 +1,7 @@
 use backend::*;
 use lean_prover::fiat_shamir_domain_sep;
 use lean_vm::*;
-use utils::{get_poseidon16, poseidon_hash_slice, poseidon16_permute};
+use utils::get_poseidon16;
 
 use crate::compilation::BYTECODE_CLAIM_OFFSET;
 use crate::{InnerVerified, get_aggregation_bytecode};
@@ -53,15 +53,15 @@ pub(crate) fn reduce_bytecode_claims(verified: &[InnerVerified]) -> ReducedBytec
         ));
         claims.push(v.bytecode_evaluation.clone());
     }
-    let claims_hash = hash_bytecode_claims(&claims);
+    let n_claims = claims.len();
+    let claim_size_padded = bytecode.bytecode_claim_size().next_multiple_of(DIGEST_LEN);
+    let bytecode_claims_fs_input = build_bytecode_claims_ingested_by_fiatshamir(&claims, claim_size_padded);
 
     let mut reduction_capacity = fiat_shamir_domain_sep(bytecode);
     reduction_capacity[0] += F::ONE; // Domain-separate this sub-protocol's Fiat-Shamir from the main snark
     let mut reduction_prover = ProverState::new(get_poseidon16().clone(), reduction_capacity);
-    reduction_prover.add_base_scalars(&claims_hash);
+    reduction_prover.observe_scalars(&bytecode_claims_fs_input);
     let alpha: EF = reduction_prover.sample();
-
-    let n_claims = claims.len();
     let alpha_powers: Vec<EF> = alpha.powers().take(n_claims).collect();
 
     let weights_packed = claims
@@ -96,7 +96,7 @@ pub(crate) fn reduce_bytecode_claims(verified: &[InnerVerified]) -> ReducedBytec
             reduction_capacity,
         )
         .unwrap();
-        vs.next_base_scalars_vec(claims_hash.len()).unwrap();
+        vs.observe_scalars(&bytecode_claims_fs_input);
         let _: EF = vs.sample();
         sumcheck_verify(&mut vs, bytecode.cumulated_n_vars(), 2, claimed_sum, None).unwrap();
         vs.into_raw_proof().transcript
@@ -124,31 +124,19 @@ pub(crate) fn extract_bytecode_claim_from_input_data(
     Evaluation::new(point, value)
 }
 
-pub(crate) fn hash_bytecode_claims(claims: &[Evaluation<EF>]) -> [F; DIGEST_LEN] {
-    let mut running_hash = [F::ZERO; DIGEST_LEN];
-    running_hash[0] = F::from_usize(claims.len() * DIGEST_LEN);
-    let n = claims.len();
-    for (i, eval) in claims.iter().enumerate() {
-        let mut ef_data: Vec<EF> = eval.point.0.clone();
-        ef_data.push(eval.value);
-        let mut data = flatten_scalars_to_base::<F, EF>(&ef_data);
-        data.resize(data.len().next_multiple_of(DIGEST_LEN), F::ZERO);
-
-        let claim_hash = poseidon_hash_slice(&data);
-        let mut input = [F::ZERO; 16];
-        input[..DIGEST_LEN].copy_from_slice(&running_hash);
-        input[DIGEST_LEN..].copy_from_slice(&claim_hash);
-        let permuted = poseidon16_permute(input);
-        running_hash = if i + 1 == n {
-            permuted[DIGEST_LEN..].try_into().unwrap() // final squeeze: rate
-        } else {
-            permuted[..DIGEST_LEN].try_into().unwrap() // carry: capacity
-        };
+fn build_bytecode_claims_ingested_by_fiatshamir(claims: &[Evaluation<EF>], claim_size_padded: usize) -> Vec<F> {
+    let mut buf = Vec::with_capacity(DIGEST_LEN + claims.len() * claim_size_padded);
+    buf.push(F::from_usize(claims.len()));
+    buf.resize(DIGEST_LEN, F::ZERO);
+    for eval in claims {
+        let start = buf.len();
+        buf.extend(flatten_bytecode_claim(eval));
+        buf.resize(start + claim_size_padded, F::ZERO);
     }
-    running_hash
+    buf
 }
 
 pub(crate) fn bytecode_reduction_sumcheck_proof_size(bytecode_point_n_vars: usize) -> usize {
     let per_round = (3 * DIMENSION).next_multiple_of(DIGEST_LEN);
-    DIGEST_LEN + bytecode_point_n_vars * per_round
+    bytecode_point_n_vars * per_round
 }

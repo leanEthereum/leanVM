@@ -3,8 +3,8 @@ pub mod benchmark;
 mod bytecode_claims;
 mod compilation;
 mod error;
-mod type_1_aggregation;
-mod type_2_aggregation;
+mod multi_message_aggregation;
+mod single_message_aggregation;
 
 use backend::{Evaluation, Proof, ProofError, RawProof};
 pub use compilation::{
@@ -15,9 +15,13 @@ pub use error::AggregationError;
 pub use lean_prover::ProverError;
 use lean_prover::verify_execution::verify_execution;
 use lean_vm::{DIGEST_LEN, EF, F};
-pub use type_1_aggregation::{TypeOneInfo, TypeOneMultiSignature, aggregate_type_1, verify_type_1};
-pub use type_2_aggregation::{
-    TypeTwoMultiSignature, merge_many_type_1, split_type_2, split_type_2_by_msg, verify_type_2,
+pub use multi_message_aggregation::{
+    MultiMessageAggregateSignature, merge_single_message_aggregates, split_multi_message_aggregate,
+    split_multi_message_aggregate_by_msg, verify_multi_message_aggregate,
+};
+pub use single_message_aggregation::{
+    SingleMessageAggregateSignature, SingleMessageInfo, aggregate_single_msg_signatures,
+    verify_single_message_aggregate,
 };
 use utils::poseidon_hash_slice;
 

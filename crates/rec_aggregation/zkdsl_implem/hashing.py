@@ -120,6 +120,15 @@ def slice_hash(data, num_chunks, dest):
 
 
 @inline
+def slice_hash_continue(running, data, num_chunks):
+    states = Array(num_chunks * DIGEST_LEN)
+    poseidon16_permute_half(running, data, states)
+    for j in unroll(1, num_chunks):
+        poseidon16_permute_half(states + (j - 1) * DIGEST_LEN, data + j * DIGEST_LEN, states + j * DIGEST_LEN)
+    return states + (num_chunks - 1) * DIGEST_LEN
+
+
+@inline
 def euclidian_div_runtime(a, b):
     # Returns (q, r) with q = floor(a / b) and r = a mod b.
     # Requires:

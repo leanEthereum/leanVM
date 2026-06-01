@@ -14,6 +14,8 @@ use utils::{Counter, ToUsize};
 
 mod post_optimization;
 
+const MAX_UNROLL_ITERATIONS: usize = 1 << 20;
+
 #[derive(Debug, Clone)]
 pub struct SimpleProgram {
     pub functions: BTreeMap<FunctionName, SimpleFunction>,
@@ -576,12 +578,19 @@ fn compile_time_transform_in_lines(
                         location
                     ));
                 };
+                let (start_u, end_u) = (start.to_usize(), end.to_usize());
+                let count = end_u.saturating_sub(start_u);
+                if count > MAX_UNROLL_ITERATIONS {
+                    return Err(format!(
+                        "line {location}: `unroll` loop is too large ({count} iterations; max {MAX_UNROLL_ITERATIONS})"
+                    ));
+                }
                 let unroll_index = unroll_counter.get_next();
                 let (internal_vars, _) = find_variable_usage(body, const_arrays);
                 let iterator = iterator.clone();
                 let body = body.clone();
                 let mut unrolled = Vec::new();
-                for j in start.to_usize()..end.to_usize() {
+                for j in start_u..end_u {
                     let mut body_copy = body.clone();
                     replace_vars_for_unroll(&mut body_copy, &iterator, unroll_index, j, &internal_vars);
                     unrolled.extend(body_copy);
@@ -1740,6 +1749,15 @@ fn simplify_lines(
                         }
                     };
 
+                for target in targets {
+                    if let AssignmentTarget::ArrayAccess { array, .. } = target
+                        && let Some(name) = array.as_var()
+                        && ctx.const_arrays.contains_key(name)
+                    {
+                        return Err(format!("cannot assign to const array '{name}', at {location}"));
+                    }
+                }
+
                 match value {
                     Expression::HintWitness { name: hint_name, ptr } => {
                         if !targets.is_empty() {
@@ -2031,25 +2049,37 @@ fn simplify_lines(
                                         res.push(SimpleLine::equality(target_var, simplified_val));
                                     }
                                     Expression::ArrayAccess { array, index } => {
-                                        // Pre-simplify indices before version update
-                                        let simplified_index = index
-                                            .iter()
-                                            .map(|idx| simplify_expr(ctx, state, const_malloc, idx, &mut res))
-                                            .collect::<Result<Vec<_>, _>>()?;
-                                        let target_var = get_target_var_name(state, var, *is_mutable)?;
-                                        if state.mut_tracker.is_ssa_reassignment(var) {
-                                            res.push(SimpleLine::ForwardDeclaration {
-                                                var: target_var.clone(),
-                                            });
+                                        if array.as_var().is_some_and(|n| ctx.const_arrays.contains_key(n)) {
+                                            let simplified_val =
+                                                simplify_expr(ctx, state, const_malloc, value, &mut res)?;
+                                            let target_var = get_target_var_name(state, var, *is_mutable)?;
+                                            if state.mut_tracker.is_ssa_reassignment(var) {
+                                                res.push(SimpleLine::ForwardDeclaration {
+                                                    var: target_var.clone(),
+                                                });
+                                            }
+                                            res.push(SimpleLine::equality(target_var, simplified_val));
+                                        } else {
+                                            // Pre-simplify indices before version update
+                                            let simplified_index = index
+                                                .iter()
+                                                .map(|idx| simplify_expr(ctx, state, const_malloc, idx, &mut res))
+                                                .collect::<Result<Vec<_>, _>>()?;
+                                            let target_var = get_target_var_name(state, var, *is_mutable)?;
+                                            if state.mut_tracker.is_ssa_reassignment(var) {
+                                                res.push(SimpleLine::ForwardDeclaration {
+                                                    var: target_var.clone(),
+                                                });
+                                            }
+                                            handle_array_assignment(
+                                                state,
+                                                const_malloc,
+                                                &mut res,
+                                                array,
+                                                &simplified_index,
+                                                ArrayAccessType::VarIsAssigned(target_var),
+                                            );
                                         }
-                                        handle_array_assignment(
-                                            state,
-                                            const_malloc,
-                                            &mut res,
-                                            array,
-                                            &simplified_index,
-                                            ArrayAccessType::VarIsAssigned(target_var),
-                                        );
                                     }
                                     Expression::MathExpr(operation, args) => {
                                         let args_simplified = args
@@ -2612,7 +2642,7 @@ fn simplify_expr(
             let function = ctx
                 .functions
                 .get(function_name)
-                .unwrap_or_else(|| panic!("Function used but not defined: {function_name}"));
+                .ok_or_else(|| format!("Function used but not defined: {function_name}"))?;
             if function.n_returned_vars != 1 {
                 return Err(format!(
                     "Nested function calls must return exactly one value (function {function_name} returns {} values)",
@@ -3174,10 +3204,8 @@ fn replace_vars_by_const_in_expr(expr: &mut Expression, map: &BTreeMap<Var, F>) 
 fn replace_vars_by_const_in_lines(lines: &mut [Line], map: &BTreeMap<Var, F>) -> Result<(), String> {
     for line in lines {
         match line {
-            Line::ForwardDeclaration { var, .. } => {
-                if map.contains_key(var) {
-                    return Err(format!("Variable {var} is a constant"));
-                }
+            Line::ForwardDeclaration { var, .. } if map.contains_key(var) => {
+                return Err(format!("Variable {var} is a constant"));
             }
             Line::Statement { targets, .. } => {
                 for target in targets.iter() {

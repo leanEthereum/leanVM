@@ -589,6 +589,7 @@ def decompose_and_verify_merkle_query(a, domain_size, prev_root, num_chunks, lea
     states = Array((n_nibbles - 1) * DIGEST_LEN)
 
     prod: Mut = 1
+    nib_pow: Mut
 
     # First nibble: leaf_hash -> states[0]
     nib_pow = match_range(

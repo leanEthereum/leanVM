@@ -5,30 +5,30 @@ MAX_RECURSIONS = MAX_RECURSIONS_PLACEHOLDER
 MAX_N_SIGS = MAX_XMSS_AGGREGATED_PLACEHOLDER
 MAX_N_DUPS = MAX_XMSS_DUPLICATES_PLACEHOLDER
 
-# data_buf[0..8] = [flag, count, 0×6] (count = n_sigs for type-1, n_components for type-2).
-TYPE_1_FLAG = TYPE_1_FLAG_PLACEHOLDER
-TYPE_2_FLAG = TYPE_2_FLAG_PLACEHOLDER
+# data_buf[0..8] = [flag, count, 0×6] (count = n_sigs for single-message, n_components for multi-message).
+SINGLE_MESSAGE_FLAG = SINGLE_MESSAGE_FLAG_PLACEHOLDER
+MULTI_MESSAGE_FLAG = MULTI_MESSAGE_FLAG_PLACEHOLDER
 
 BYTECODE_SUMCHECK_PROOF_SIZE = BYTECODE_SUMCHECK_PROOF_SIZE_PLACEHOLDER
 
-# layout: [flag, count, 0×6 (8)] [bytecode_claim_padded] [initial_fiat_shamir_cap(8)] [type1/type2 mode-specific data]
+# layout: [flag, count, 0×6 (8)] [bytecode_claim_padded] [initial_fiat_shamir_cap(8)] [single-message/multi-message mode-specific data]
 BYTECODE_CLAIM_OFFSET = DIGEST_LEN  # (right after the prefix chunk)
 INITIAL_FIAT_SHAMIR_CAP_OFFSET = BYTECODE_CLAIM_OFFSET + BYTECODE_CLAIM_SIZE_PADDED
 COMPONENT_DATA_OFFSET = INITIAL_FIAT_SHAMIR_CAP_OFFSET + DIGEST_LEN
 
-# Type-1 mode-specific data (fixed): pubkeys_hash | message | merkle_chunks | tweaks_hash.
-TYPE_1_PUBKEYS_HASH_OFFSET = COMPONENT_DATA_OFFSET
-TYPE_1_MSG_HASH_OFFSET = COMPONENT_DATA_OFFSET + DIGEST_LEN
-TYPE_1_MERKLE_CHUNKS_OFFSET = TYPE_1_MSG_HASH_OFFSET + DIGEST_LEN
-TYPE_1_TWEAKS_HASH_OFFSET = TYPE_1_MERKLE_CHUNKS_OFFSET + N_MERKLE_CHUNKS
-TYPE_1_INPUT_DATA_SIZE_PADDED = TYPE_1_TWEAKS_HASH_OFFSET + DIGEST_LEN
-TYPE_1_INPUT_DATA_NUM_CHUNKS = TYPE_1_INPUT_DATA_SIZE_PADDED / DIGEST_LEN
+# Single-message mode-specific data (fixed): pubkeys_hash | message | merkle_chunks | tweaks_hash.
+SINGLE_MESSAGE_PUBKEYS_HASH_OFFSET = COMPONENT_DATA_OFFSET
+SINGLE_MESSAGE_MSG_HASH_OFFSET = COMPONENT_DATA_OFFSET + DIGEST_LEN
+SINGLE_MESSAGE_MERKLE_CHUNKS_OFFSET = SINGLE_MESSAGE_MSG_HASH_OFFSET + DIGEST_LEN
+SINGLE_MESSAGE_TWEAKS_HASH_OFFSET = SINGLE_MESSAGE_MERKLE_CHUNKS_OFFSET + N_MERKLE_CHUNKS
+SINGLE_MESSAGE_INPUT_DATA_SIZE_PADDED = SINGLE_MESSAGE_TWEAKS_HASH_OFFSET + DIGEST_LEN
+SINGLE_MESSAGE_INPUT_DATA_NUM_CHUNKS = SINGLE_MESSAGE_INPUT_DATA_SIZE_PADDED / DIGEST_LEN
 
-# Type-2 mode-specific data (variable): n_components × digest(8).
-TYPE_2_DIGESTS_OFFSET = COMPONENT_DATA_OFFSET
+# Multi-message mode-specific data (variable): n_components × digest(8).
+MULTI_MESSAGE_DIGESTS_OFFSET = COMPONENT_DATA_OFFSET
 
 BYTECODE_CLAIM_NUM_CHUNKS = BYTECODE_CLAIM_SIZE_PADDED / DIGEST_LEN
-TYPE_2_BASE_NUM_CHUNKS = BYTECODE_CLAIM_NUM_CHUNKS + 2  # prefix chunk + domsep chunk
+MULTI_MESSAGE_BASE_NUM_CHUNKS = BYTECODE_CLAIM_NUM_CHUNKS + 2  # prefix chunk + domsep chunk
 
 
 def main():
@@ -47,8 +47,8 @@ def main():
     initial_fiat_shamir_cap = data_buf + INITIAL_FIAT_SHAMIR_CAP_OFFSET
 
     discriminator = data_buf[0]
-    if discriminator == TYPE_2_FLAG:
-        # Type-2: merge of n type-1 multi-signatures.
+    if discriminator == MULTI_MESSAGE_FLAG:
+        # Multi-message: merge of n single-message aggregate signatures.
         n_components = data_buf[1]
         assert n_components != 0
         assert n_components <= MAX_RECURSIONS
@@ -57,58 +57,58 @@ def main():
         bytecode_claims = Array(n_bytecode_claims)
 
         for c in range(0, n_components):
-            component_digest = data_buf + TYPE_2_DIGESTS_OFFSET + c * DIGEST_LEN
-            inner_type1_buf = Array(TYPE_1_INPUT_DATA_SIZE_PADDED)
-            hint_witness("component_layout", inner_type1_buf)
-            ensure_well_formed_input_data(inner_type1_buf, initial_fiat_shamir_cap, TYPE_1_FLAG)
-            slice_hash(inner_type1_buf, TYPE_1_INPUT_DATA_NUM_CHUNKS, component_digest)
+            component_digest = data_buf + MULTI_MESSAGE_DIGESTS_OFFSET + c * DIGEST_LEN
+            inner_single_message_buf = Array(SINGLE_MESSAGE_INPUT_DATA_SIZE_PADDED)
+            hint_witness("component_layout", inner_single_message_buf)
+            ensure_well_formed_input_data(inner_single_message_buf, initial_fiat_shamir_cap, SINGLE_MESSAGE_FLAG)
+            slice_hash(inner_single_message_buf, SINGLE_MESSAGE_INPUT_DATA_NUM_CHUNKS, component_digest)
 
-            bytecode_claims[2 * c] = inner_type1_buf + BYTECODE_CLAIM_OFFSET
+            bytecode_claims[2 * c] = inner_single_message_buf + BYTECODE_CLAIM_OFFSET
             bytecode_claims[2 * c + 1] = recursion(component_digest, initial_fiat_shamir_cap)
 
         reduce_bytecode_claims(bytecode_claims, n_bytecode_claims, bytecode_claim_output, initial_fiat_shamir_cap)
 
-        slice_hash_range(data_buf, n_components + TYPE_2_BASE_NUM_CHUNKS, pub_mem)
+        slice_hash_range(data_buf, n_components + MULTI_MESSAGE_BASE_NUM_CHUNKS, pub_mem)
         return
 
-    assert discriminator == TYPE_1_FLAG
+    assert discriminator == SINGLE_MESSAGE_FLAG
 
     is_split_buf = Array(1)
     hint_witness("is_split", is_split_buf)
     if is_split_buf[0] == 1:
-        # ============ type-1: Split (extract a type-one from a type-two) ============
-        type2_meta_hint = Array(2)
-        hint_witness("type2_meta", type2_meta_hint)
-        type2_n_components = type2_meta_hint[0]
-        type2_kept_index = type2_meta_hint[1]
-        assert type2_n_components != 0
-        assert type2_n_components <= MAX_RECURSIONS
-        assert type2_kept_index < type2_n_components
+        # ============ single-message: Split (extract a single-message from a multi-message) ============
+        multi_message_meta_hint = Array(2)
+        hint_witness("multi_message_meta", multi_message_meta_hint)
+        multi_message_n_components = multi_message_meta_hint[0]
+        multi_message_kept_index = multi_message_meta_hint[1]
+        assert multi_message_n_components != 0
+        assert multi_message_n_components <= MAX_RECURSIONS
+        assert multi_message_kept_index < multi_message_n_components
 
-        type2_num_chunks = type2_n_components + TYPE_2_BASE_NUM_CHUNKS
-        type2_data_buf = Array(type2_num_chunks * DIGEST_LEN)
-        hint_witness("inner_type2_layout", type2_data_buf)
-        ensure_well_formed_input_data(type2_data_buf, initial_fiat_shamir_cap, TYPE_2_FLAG)
-        type2_digests = type2_data_buf + TYPE_2_DIGESTS_OFFSET
+        multi_message_num_chunks = multi_message_n_components + MULTI_MESSAGE_BASE_NUM_CHUNKS
+        multi_message_data_buf = Array(multi_message_num_chunks * DIGEST_LEN)
+        hint_witness("inner_multi_message_layout", multi_message_data_buf)
+        ensure_well_formed_input_data(multi_message_data_buf, initial_fiat_shamir_cap, MULTI_MESSAGE_FLAG)
+        multi_message_digests = multi_message_data_buf + MULTI_MESSAGE_DIGESTS_OFFSET
 
-        kept_type1_buff = Array(TYPE_1_INPUT_DATA_SIZE_PADDED)
-        hint_witness("kept_type1_buff", kept_type1_buff)
-        copy_8(data_buf, kept_type1_buff)  # type-1 flag | n_signatures | 0×6
-        copy_32(data_buf + COMPONENT_DATA_OFFSET, kept_type1_buff + COMPONENT_DATA_OFFSET)
-        ensure_well_formed_input_data(kept_type1_buff, initial_fiat_shamir_cap, TYPE_1_FLAG)
-        digest_kept = type2_digests + type2_kept_index * DIGEST_LEN
-        slice_hash(kept_type1_buff, TYPE_1_INPUT_DATA_NUM_CHUNKS, digest_kept)
+        kept_single_message_buff = Array(SINGLE_MESSAGE_INPUT_DATA_SIZE_PADDED)
+        hint_witness("kept_single_message_buff", kept_single_message_buff)
+        copy_8(data_buf, kept_single_message_buff)  # single-message flag | n_signatures | 0×6
+        copy_32(data_buf + COMPONENT_DATA_OFFSET, kept_single_message_buff + COMPONENT_DATA_OFFSET)
+        ensure_well_formed_input_data(kept_single_message_buff, initial_fiat_shamir_cap, SINGLE_MESSAGE_FLAG)
+        digest_kept = multi_message_digests + multi_message_kept_index * DIGEST_LEN
+        slice_hash(kept_single_message_buff, SINGLE_MESSAGE_INPUT_DATA_NUM_CHUNKS, digest_kept)
 
         inner_pub_mem = Array(INNER_PUB_MEM_SIZE)
-        slice_hash_range(type2_data_buf, type2_num_chunks, inner_pub_mem)
+        slice_hash_range(multi_message_data_buf, multi_message_num_chunks, inner_pub_mem)
         bytecode_claims = Array(2)
-        bytecode_claims[0] = type2_data_buf + BYTECODE_CLAIM_OFFSET
+        bytecode_claims[0] = multi_message_data_buf + BYTECODE_CLAIM_OFFSET
         bytecode_claims[1] = recursion(inner_pub_mem, initial_fiat_shamir_cap)
         reduce_bytecode_claims(bytecode_claims, 2, bytecode_claim_output, initial_fiat_shamir_cap)
-        slice_hash(data_buf, TYPE_1_INPUT_DATA_NUM_CHUNKS, pub_mem)
+        slice_hash(data_buf, SINGLE_MESSAGE_INPUT_DATA_NUM_CHUNKS, pub_mem)
         return
 
-    # ============ Standard type-1: single (message, slot) aggregation ============
+    # ============ Standard single-message: single (message, slot) aggregation ============
     n_sigs = data_buf[1]
     assert n_sigs != 0
     assert n_sigs <= MAX_N_SIGS
@@ -116,10 +116,10 @@ def main():
     tweak_table: Mut = TWEAK_TABLE_ADDR
     hint_witness("tweak_table", tweak_table)
 
-    pubkeys_hash_expected = data_buf + TYPE_1_PUBKEYS_HASH_OFFSET
-    message = data_buf + TYPE_1_MSG_HASH_OFFSET
-    merkle_chunks_for_slot = data_buf + TYPE_1_MERKLE_CHUNKS_OFFSET
-    tweaks_hash_expected = data_buf + TYPE_1_TWEAKS_HASH_OFFSET
+    pubkeys_hash_expected = data_buf + SINGLE_MESSAGE_PUBKEYS_HASH_OFFSET
+    message = data_buf + SINGLE_MESSAGE_MSG_HASH_OFFSET
+    merkle_chunks_for_slot = data_buf + SINGLE_MESSAGE_MERKLE_CHUNKS_OFFSET
+    tweaks_hash_expected = data_buf + SINGLE_MESSAGE_TWEAKS_HASH_OFFSET
 
     # meta = [n_recursions, n_dup, n_raw_xmss]
     meta = Array(3)
@@ -142,22 +142,22 @@ def main():
     computed_tweaks_hash = slice_hash_ret(tweak_table, TWEAK_TABLE_SIZE_FE_PADDED / DIGEST_LEN)
     copy_8(computed_tweaks_hash, tweaks_hash_expected)
 
-    # 1->1 optimization: a single recursive type-1 child, no raw signatures, no duplicates.
+    # 1->1 optimization: a single recursive single-message child, no raw signatures, no duplicates.
     if n_recursions == 1:
         assert n_dup == 0
         if n_raw_xmss == 0:
-            type1_data_buf = Array(TYPE_1_INPUT_DATA_SIZE_PADDED)
-            copy_8(data_buf, type1_data_buf)  # prefix
-            copy_32(data_buf + COMPONENT_DATA_OFFSET, type1_data_buf + COMPONENT_DATA_OFFSET)
-            hint_witness("inner_bytecode_claim", type1_data_buf + BYTECODE_CLAIM_OFFSET)
-            ensure_well_formed_input_data(type1_data_buf, initial_fiat_shamir_cap, TYPE_1_FLAG)
+            single_message_data_buf = Array(SINGLE_MESSAGE_INPUT_DATA_SIZE_PADDED)
+            copy_8(data_buf, single_message_data_buf)  # prefix
+            copy_32(data_buf + COMPONENT_DATA_OFFSET, single_message_data_buf + COMPONENT_DATA_OFFSET)
+            hint_witness("inner_bytecode_claim", single_message_data_buf + BYTECODE_CLAIM_OFFSET)
+            ensure_well_formed_input_data(single_message_data_buf, initial_fiat_shamir_cap, SINGLE_MESSAGE_FLAG)
             inner_pub_mem = Array(INNER_PUB_MEM_SIZE)
-            slice_hash(type1_data_buf, TYPE_1_INPUT_DATA_NUM_CHUNKS, inner_pub_mem)
+            slice_hash(single_message_data_buf, SINGLE_MESSAGE_INPUT_DATA_NUM_CHUNKS, inner_pub_mem)
             bytecode_claims = Array(2)
-            bytecode_claims[0] = type1_data_buf + BYTECODE_CLAIM_OFFSET
+            bytecode_claims[0] = single_message_data_buf + BYTECODE_CLAIM_OFFSET
             bytecode_claims[1] = recursion(inner_pub_mem, initial_fiat_shamir_cap)
             reduce_bytecode_claims(bytecode_claims, 2, bytecode_claim_output, initial_fiat_shamir_cap)
-            slice_hash(data_buf, TYPE_1_INPUT_DATA_NUM_CHUNKS, pub_mem)
+            slice_hash(data_buf, SINGLE_MESSAGE_INPUT_DATA_NUM_CHUNKS, pub_mem)
             return
 
     # General path
@@ -212,22 +212,22 @@ def main():
             n_sub - 1, sub_indices_arr, n_total, all_pubkeys, buffer, counter, running_hash
         )
 
-        type1_data_buf = Array(TYPE_1_INPUT_DATA_SIZE_PADDED)
-        type1_data_buf[0] = TYPE_1_FLAG
-        type1_data_buf[1] = n_sub
+        single_message_data_buf = Array(SINGLE_MESSAGE_INPUT_DATA_SIZE_PADDED)
+        single_message_data_buf[0] = SINGLE_MESSAGE_FLAG
+        single_message_data_buf[1] = n_sub
         for k in unroll(2, DIGEST_LEN):
-            type1_data_buf[k] = 0
+            single_message_data_buf[k] = 0
 
-        copy_8(running_hash, type1_data_buf + TYPE_1_PUBKEYS_HASH_OFFSET)
-        copy_8(message, type1_data_buf + TYPE_1_PUBKEYS_HASH_OFFSET + DIGEST_LEN)
-        copy_8(merkle_chunks_for_slot, type1_data_buf + TYPE_1_PUBKEYS_HASH_OFFSET + DIGEST_LEN + MESSAGE_LEN)
-        copy_8(tweaks_hash_expected, type1_data_buf + TYPE_1_TWEAKS_HASH_OFFSET)
-        hint_witness("inner_bytecode_claim", type1_data_buf + BYTECODE_CLAIM_OFFSET)
-        ensure_well_formed_input_data(type1_data_buf, initial_fiat_shamir_cap, TYPE_1_FLAG)
+        copy_8(running_hash, single_message_data_buf + SINGLE_MESSAGE_PUBKEYS_HASH_OFFSET)
+        copy_8(message, single_message_data_buf + SINGLE_MESSAGE_PUBKEYS_HASH_OFFSET + DIGEST_LEN)
+        copy_8(merkle_chunks_for_slot, single_message_data_buf + SINGLE_MESSAGE_PUBKEYS_HASH_OFFSET + DIGEST_LEN + MESSAGE_LEN)
+        copy_8(tweaks_hash_expected, single_message_data_buf + SINGLE_MESSAGE_TWEAKS_HASH_OFFSET)
+        hint_witness("inner_bytecode_claim", single_message_data_buf + BYTECODE_CLAIM_OFFSET)
+        ensure_well_formed_input_data(single_message_data_buf, initial_fiat_shamir_cap, SINGLE_MESSAGE_FLAG)
         inner_pub_mem = Array(INNER_PUB_MEM_SIZE)
-        slice_hash(type1_data_buf, TYPE_1_INPUT_DATA_NUM_CHUNKS, inner_pub_mem)
+        slice_hash(single_message_data_buf, SINGLE_MESSAGE_INPUT_DATA_NUM_CHUNKS, inner_pub_mem)
 
-        bytecode_claims[2 * rec_idx] = type1_data_buf + BYTECODE_CLAIM_OFFSET
+        bytecode_claims[2 * rec_idx] = single_message_data_buf + BYTECODE_CLAIM_OFFSET
         bytecode_claims[2 * rec_idx + 1] = recursion(inner_pub_mem, initial_fiat_shamir_cap)
 
     assert counter == n_total
@@ -241,37 +241,37 @@ def main():
     else:
         reduce_bytecode_claims(bytecode_claims, n_bytecode_claims, bytecode_claim_output, initial_fiat_shamir_cap)
 
-    slice_hash(data_buf, TYPE_1_INPUT_DATA_NUM_CHUNKS, pub_mem)
+    slice_hash(data_buf, SINGLE_MESSAGE_INPUT_DATA_NUM_CHUNKS, pub_mem)
     return
 
 
 def reduce_bytecode_claims(bytecode_claims, n_bytecode_claims, bytecode_claim_output, initial_fiat_shamir_cap):
     debug_assert(n_bytecode_claims != 0)
-    bytecode_claims_hash: Mut = build_iv(n_bytecode_claims * DIGEST_LEN)
-    for i in range(0, n_bytecode_claims - 1):
-        claim_ptr = bytecode_claims[i]
-        for k in unroll(BYTECODE_CLAIM_SIZE, BYTECODE_CLAIM_SIZE_PADDED):
-            assert claim_ptr[k] == 0
-        claim_hash = slice_hash_ret(claim_ptr, BYTECODE_CLAIM_SIZE_PADDED / DIGEST_LEN)
-        new_hash = Array(DIGEST_LEN)
-        poseidon16_permute_half(bytecode_claims_hash, claim_hash, new_hash)
-        bytecode_claims_hash = new_hash
-    last_claim_ptr = bytecode_claims[n_bytecode_claims - 1]
-    for k in unroll(BYTECODE_CLAIM_SIZE, BYTECODE_CLAIM_SIZE_PADDED):
-        assert last_claim_ptr[k] == 0
-    last_claim_hash = slice_hash_ret(last_claim_ptr, BYTECODE_CLAIM_SIZE_PADDED / DIGEST_LEN)
-    bytecode_claims_hash = sponge_finalize(bytecode_claims_hash, last_claim_hash)
-
     bytecode_sumcheck_proof = Array(BYTECODE_SUMCHECK_PROOF_SIZE)
     hint_witness("bytecode_sumcheck_proof", bytecode_sumcheck_proof)
     reduction_capacity = Array(DIGEST_LEN)
     reduction_capacity[0] = initial_fiat_shamir_cap[0] + 1  # Domain-separate this sub-protocol from the main snark
     for i in unroll(1, DIGEST_LEN):
         reduction_capacity[i] = initial_fiat_shamir_cap[i]
-    reduction_fs: Mut = fs_new(bytecode_sumcheck_proof, reduction_capacity)
-    reduction_fs, received_claims_hash = fs_receive_chunks(reduction_fs, 1)
-    copy_8(bytecode_claims_hash, received_claims_hash)
 
+    count_block = Array(DIGEST_LEN)
+    count_block[0] = n_bytecode_claims
+    for k in unroll(1, DIGEST_LEN):
+        count_block[k] = 0
+    running_capacity: Mut = slice_hash_continue(reduction_capacity, count_block, 1)
+
+    for i in range(0, n_bytecode_claims - 1):
+        claim_ptr = bytecode_claims[i]
+        for k in unroll(BYTECODE_CLAIM_SIZE, BYTECODE_CLAIM_SIZE_PADDED):
+            assert claim_ptr[k] == 0
+        running_capacity = slice_hash_continue(running_capacity, claim_ptr, BYTECODE_CLAIM_NUM_CHUNKS)
+
+    last_claim = bytecode_claims[n_bytecode_claims - 1]
+    for k in unroll(BYTECODE_CLAIM_SIZE, BYTECODE_CLAIM_SIZE_PADDED):
+        assert last_claim[k] == 0
+    running_capacity = slice_hash_continue(running_capacity, last_claim, BYTECODE_CLAIM_NUM_CHUNKS - 1)
+    reduction_fs: Mut = fs_new(bytecode_sumcheck_proof, running_capacity)
+    reduction_fs = fs_observe_chunks(reduction_fs, last_claim + (BYTECODE_CLAIM_NUM_CHUNKS - 1) * DIGEST_LEN, 1)
     reduction_fs, alpha = fs_sample_ef(reduction_fs)
     alpha_powers = powers(alpha, n_bytecode_claims)
 

@@ -1,13 +1,14 @@
 use std::time::Instant;
 
 use lean_multisig::{
-    TypeOneMultiSignature, TypeTwoMultiSignature, aggregate_type_1, merge_many_type_1, setup_prover, split_type_2,
-    verify_type_1, verify_type_2,
+    MultiMessageAggregateSignature, SingleMessageAggregateSignature, aggregate_single_msg_signatures,
+    merge_single_message_aggregates, setup_prover, split_multi_message_aggregate, verify_multi_message_aggregate,
+    verify_single_message_aggregate,
 };
 use rand::{RngExt, SeedableRng, rngs::StdRng};
 use rec_aggregation::{
     benchmark::{AggregationTopology, run_aggregation_benchmark},
-    split_type_2_by_msg,
+    split_multi_message_aggregate_by_msg,
 };
 use xmss::{
     signers_cache::{BENCHMARK_SLOT, get_benchmark_signatures, message_for_benchmark},
@@ -41,7 +42,7 @@ fn test_aggregation() {
 }
 
 #[test]
-fn test_type_1_aggregation() {
+fn test_single_message_aggregation() {
     setup_prover();
 
     let log_inv_rate = 2; // [1, 2, 3 or 4] (lower = faster but bigger proofs)
@@ -50,23 +51,30 @@ fn test_type_1_aggregation() {
     let signatures = get_benchmark_signatures();
 
     let raws_a = signatures[0..3].to_vec();
-    let type1_a = aggregate_type_1(&[], raws_a, message, slot, log_inv_rate).unwrap();
+    let single_message_a = aggregate_single_msg_signatures(&[], raws_a, message, slot, log_inv_rate).unwrap();
 
     let raws_b = signatures[3..5].to_vec();
-    let type1_b = aggregate_type_1(&[], raws_b, message, slot, log_inv_rate).unwrap();
+    let single_message_b = aggregate_single_msg_signatures(&[], raws_b, message, slot, log_inv_rate).unwrap();
 
     let raws_c = signatures[5..6].to_vec();
-    let final_sig = aggregate_type_1(&[type1_a, type1_b], raws_c, message, slot, log_inv_rate).unwrap();
+    let final_sig = aggregate_single_msg_signatures(
+        &[single_message_a, single_message_b],
+        raws_c,
+        message,
+        slot,
+        log_inv_rate,
+    )
+    .unwrap();
 
     let serialized_proof = final_sig.compress();
     println!("Serialized aggregated final: {} KiB", serialized_proof.len() / 1024);
-    let recovered = TypeOneMultiSignature::decompress(&serialized_proof).unwrap();
+    let recovered = SingleMessageAggregateSignature::decompress(&serialized_proof).unwrap();
 
-    verify_type_1(&recovered).unwrap();
+    verify_single_message_aggregate(&recovered).unwrap();
 }
 
 #[test]
-fn test_type_2_aggregation() {
+fn test_multi_message_aggregation() {
     setup_prover();
 
     let log_inv_rate = 2; // [1, 2, 3 or 4] (lower = faster but bigger proofs)
@@ -89,31 +97,32 @@ fn test_type_2_aggregation() {
         })
         .collect();
 
-    let type1_a = aggregate_type_1(&[], raws_a, message_a, slot_a, log_inv_rate).unwrap();
-    let type1_b = aggregate_type_1(&[], raws_b, message_b, slot_b, log_inv_rate).unwrap();
+    let single_message_a = aggregate_single_msg_signatures(&[], raws_a, message_a, slot_a, log_inv_rate).unwrap();
+    let single_message_b = aggregate_single_msg_signatures(&[], raws_b, message_b, slot_b, log_inv_rate).unwrap();
 
-    verify_type_1(&type1_a).unwrap();
-    verify_type_1(&type1_b).unwrap();
+    verify_single_message_aggregate(&single_message_a).unwrap();
+    verify_single_message_aggregate(&single_message_b).unwrap();
 
-    let info_a = type1_a.info.clone();
-    let info_b = type1_b.info.clone();
-
-    let time = Instant::now();
-    let type2 = merge_many_type_1(vec![type1_a, type1_b], log_inv_rate).unwrap();
-    println!("merge_many_type_1: {:.2}s", time.elapsed().as_secs_f64());
-    assert_eq!(type2.info.len(), 2);
-    assert_eq!(type2.info[0], info_a);
-    assert_eq!(type2.info[1], info_b);
-
-    let compressed_type2 = type2.compress();
-    let type2 = TypeTwoMultiSignature::decompress(&compressed_type2).unwrap();
-    verify_type_2(&type2).unwrap();
+    let info_a = single_message_a.info.clone();
+    let info_b = single_message_b.info.clone();
 
     let time = Instant::now();
-    let split_a = split_type_2(type2.clone(), 0, log_inv_rate).unwrap();
+    let multi_message =
+        merge_single_message_aggregates(vec![single_message_a, single_message_b], log_inv_rate).unwrap();
+    println!("merge_single_message_aggregates: {:.2}s", time.elapsed().as_secs_f64());
+    assert_eq!(multi_message.info.len(), 2);
+    assert_eq!(multi_message.info[0], info_a);
+    assert_eq!(multi_message.info[1], info_b);
+
+    let compressed_multi_message = multi_message.compress();
+    let multi_message = MultiMessageAggregateSignature::decompress(&compressed_multi_message).unwrap();
+    verify_multi_message_aggregate(&multi_message).unwrap();
+
+    let time = Instant::now();
+    let split_a = split_multi_message_aggregate(multi_message.clone(), 0, log_inv_rate).unwrap();
     println!("split index 0: {:.2}s", time.elapsed().as_secs_f64());
     let time = Instant::now();
-    let split_b = split_type_2_by_msg(type2, message_b, log_inv_rate).unwrap();
+    let split_b = split_multi_message_aggregate_by_msg(multi_message, message_b, log_inv_rate).unwrap();
     println!("split index 1: {:.2}s", time.elapsed().as_secs_f64());
     assert_eq!(
         (split_a.info.message, &split_a.info.slot, &split_a.info.pubkeys),
@@ -123,6 +132,6 @@ fn test_type_2_aggregation() {
         (split_b.info.message, &split_b.info.slot, &split_b.info.pubkeys),
         (info_b.message, &info_b.slot, &info_b.pubkeys)
     );
-    verify_type_1(&split_a).expect("split index 0 failed verify_type_1");
-    verify_type_1(&split_b).expect("split index 1 failed verify_type_1");
+    verify_single_message_aggregate(&split_a).expect("split index 0 failed verify_single_message_aggregate");
+    verify_single_message_aggregate(&split_b).expect("split index 1 failed verify_single_message_aggregate");
 }
