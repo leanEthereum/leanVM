@@ -142,7 +142,7 @@ def ef_powers(x: EF, n: int) -> list[EF]:
     return list(accumulate(repeat(x, n), lambda a, _: a * x, initial=ONE))[:n]
 
 
-def pack_ef(flat: Sequence[Fp]) -> list[EF]:
+def embed_ef(flat: Sequence[Fp]) -> list[EF]:
     """Pack a length-(n·DIM) Fp vector into n EF elements (5 Fp coordinates per EF)."""
     return [EF(flat[i : i + EF.DIMENSION]) for i in range(0, len(flat), EF.DIMENSION)]
 

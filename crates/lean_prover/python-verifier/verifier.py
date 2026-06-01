@@ -163,7 +163,7 @@ class DuplexSpongeChallenger:  # https://eprint.iacr.org/2025/536.pdf
 
     def sample_many_ef(self, n: int) -> list[EF]:
         flat = self._sample_many(div_ceil(n * EF.DIMENSION, SPONGE_RATE))[: n * EF.DIMENSION]
-        return pack_ef(flat)
+        return embed_ef(flat)
 
     def sample_ef(self) -> EF:
         return self.sample_many_ef(1)[0]
@@ -212,7 +212,7 @@ class FiatShamir(DuplexSpongeChallenger):
 
     def next_extension_scalars_vec(self, n: int) -> list[EF]:
         flat = self.next_base_scalars_vec(n * EF.DIMENSION)
-        return pack_ef(flat)
+        return embed_ef(flat)
 
     def next_extension_scalar(self) -> EF:
         return self.next_extension_scalars_vec(1)[0]
@@ -332,17 +332,17 @@ def eval_eq(point: Sequence[EF]) -> list[EF]:
 @dataclass
 class SparseStatements:
     total_num_variables: int
-    point: list[EF]
-    values: list[tuple[int, EF]]
-    is_next: bool = False
+    point: list[EF]  # low-bits variables (suffix), shared by every entry in `values`
+    values: list[tuple[int, EF]]  # (selector_index, eval): poly(high bits = selector_index, low bits = point) == eval
+    is_next: bool = False  # if set, the low-variable part uses the shifted "next-row" MLE instead of plain eq
 
     @property
     def selector_num_variables(self) -> int:
-        return self.total_num_variables - len(self.point)
+        return self.total_num_variables - len(self.point)  # count of high/selector bits that selector_index spans
 
 
-def whir_folding_factor_at_round(r: int) -> int:
-    return WHIR_INITIAL_FOLDING_FACTOR if r == 0 else WHIR_SUBSEQUENT_FOLDING_FACTOR
+def whir_folding_factor_at_round(round: int) -> int:
+    return WHIR_INITIAL_FOLDING_FACTOR if round == 0 else WHIR_SUBSEQUENT_FOLDING_FACTOR
 
 
 @dataclass
@@ -401,12 +401,11 @@ def verify_stir_challenges(
     for idx in indices:
         op = fiat_shamir.next_merkle_opening()
         merkle_verify_path(commitment.root, log_height, idx, op.leaf_data, op.path)
-        # Round 0 leaves are raw base-field elements; later rounds pack DIM Fp values per EF element.
-        packed = op.leaf_data if is_first_round else pack_ef(op.leaf_data)
+        # Round 0 leaves are raw base-field elements; later rounds embed DIM Fp values per EF element.
+        packed = op.leaf_data if is_first_round else embed_ef(op.leaf_data)
         fold = eval_multilinear_evals(packed, folding_randomness)
-        ef_pt = EF(pow(int(gen.value), idx, P))
-        pt = expand_from_univariate(ef_pt, num_variables)
-        constraints.append(SparseStatements(num_variables, pt, [(0, fold)]))
+        point = expand_from_univariate(EF(pow(int(gen.value), idx, P)), num_variables)
+        constraints.append(SparseStatements(num_variables, point, [(0, fold)]))
     return constraints
 
 
@@ -420,20 +419,18 @@ def whir_verify(
     assert nv >= WHIR_MAX_NUM_VARIABLES_TO_SEND_COEFFS
     n_rounds = div_ceil(nv - WHIR_MAX_NUM_VARIABLES_TO_SEND_COEFFS, WHIR_SUBSEQUENT_FOLDING_FACTOR)
     final_sumcheck_rounds = nv - n_rounds * WHIR_SUBSEQUENT_FOLDING_FACTOR
-    round_constraints: list[tuple[list[EF], list[SparseStatements]]] = []
+    round_constraints: list[tuple[EF, list[SparseStatements]]] = []
     round_folding: list[list[EF]] = []
 
     def step(target: EF, constraints: list[SparseStatements], n_fold: int, pow_bits: int) -> EF:
         fiat_shamir.duplex()
         gamma = fiat_shamir.sample_ef()
-        combo: list[EF] = []
-        g = ONE
+        gamma_power = ONE
         for smt in constraints:
             for _, value in smt.values:
-                target += g * value
-                combo.append(g)
-                g *= gamma
-        round_constraints.append((combo, constraints))
+                target += gamma_power * value
+                gamma_power *= gamma
+        round_constraints.append((gamma, constraints))
         sc_point, target = verify_sumcheck(fiat_shamir, target, n_fold, 2, pow_bits)
         round_folding.append(sc_point)
         return target
@@ -497,18 +494,18 @@ def whir_verify(
 
     eval_weights = ZERO
     pt = folding_flat
-    for round_idx, (randomness, smts) in enumerate(round_constraints):
+    for round_idx, (gamma, smts) in enumerate(round_constraints):
         if round_idx > 0:
             pt = pt[whir_folding_factor_at_round(round_idx - 1) :]
-        i = 0
+        gamma_power = ONE
         for smt in smts:
             inner_pt = pt[len(pt) - len(smt.point) :]
             common = next_mle(smt.point, inner_pt) if smt.is_next else eq_poly(smt.point, inner_pt)
             sel_n = smt.selector_num_variables
             for v in smt.values:
                 lagrange = eq_at_index(pt, v[0], sel_n)
-                eval_weights += lagrange * common * randomness[i]
-                i += 1
+                eval_weights += lagrange * common * gamma_power
+                gamma_power *= gamma
     final_value = eval_multilinear_coeffs(final_coeffs, list(reversed(final_sc_point)))
     if final_sc_value != eval_weights * final_value:
         raise ProofError("WHIR final sumcheck check failed")
