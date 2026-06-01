@@ -31,11 +31,10 @@ WHIR_CONFIGS = {
         "num_variables": c[1],
         "commitment_ood_samples": c[2],
         "starting_folding_pow_bits": c[3],
-        "final_queries": c[4],
-        "final_query_pow_bits": c[5],
         "rounds": [
             {"num_queries": r[0], "ood_samples": r[1], "query_pow_bits": r[2], "folding_pow_bits": r[3]} for r in c[6]
-        ],
+        ]
+        + [{"num_queries": c[4], "query_pow_bits": c[5]}],
     }
     for c in _WHIR_CONFIGS
 }
@@ -422,7 +421,14 @@ def whir_verify(
     round_constraints: list[tuple[EF, list[SparseStatements]]] = []
     round_folding: list[list[EF]] = []
 
-    def step(target: EF, constraints: list[SparseStatements], n_fold: int, pow_bits: int) -> EF:
+    current_vars = cfg["num_variables"]
+    log_domain = current_vars + cfg["log_inv_rate"]
+    target = ZERO
+    constraints = parsed_commitment.oods_constraints() + statements
+    fold_pow_bits = cfg["starting_folding_pow_bits"]
+    for round in range(n_rounds + 1):
+        round_params = cfg["rounds"][round]
+        folding_factor = whir_folding_factor_at_round(round)
         fiat_shamir.duplex()
         gamma = fiat_shamir.sample_ef()
         gamma_power = ONE
@@ -431,58 +437,32 @@ def whir_verify(
                 target += gamma_power * value
                 gamma_power *= gamma
         round_constraints.append((gamma, constraints))
-        sc_point, target = verify_sumcheck(fiat_shamir, target, n_fold, 2, pow_bits)
+        sc_point, target = verify_sumcheck(fiat_shamir, target, folding_factor, 2, fold_pow_bits)
         round_folding.append(sc_point)
-        return target
-
-    target = step(
-        ZERO,
-        parsed_commitment.oods_constraints() + statements,
-        whir_folding_factor_at_round(0),
-        cfg["starting_folding_pow_bits"],
-    )
-
-    prev_commitment = parsed_commitment
-    current_vars = cfg["num_variables"]
-    log_domain = cfg["num_variables"] + cfg["log_inv_rate"]
-    for round in range(n_rounds):
-        round_params = cfg["rounds"][round]
-        current_vars -= whir_folding_factor_at_round(round)
-        n_ood_samples = round_params["ood_samples"]
-        new_commitment = ParsedCommitment.read(fiat_shamir, current_vars, n_ood_samples)
-        stir = verify_stir_challenges(
+        current_vars -= folding_factor
+        is_final = round == n_rounds
+        if is_final:
+            final_coeffs = fiat_shamir.next_extension_scalars_vec(1 << current_vars)
+        else:
+            new_commitment = ParsedCommitment.read(fiat_shamir, current_vars, round_params["ood_samples"])
+        stir_constraints = verify_stir_challenges(
             fiat_shamir,
             round == 0,
-            log_domain - whir_folding_factor_at_round(round),
+            log_domain - folding_factor,
             current_vars,
             round_params["num_queries"],
             round_params["query_pow_bits"],
-            prev_commitment,
+            parsed_commitment,
             round_folding[-1],
         )
-        target = step(
-            target,
-            new_commitment.oods_constraints() + stir,
-            whir_folding_factor_at_round(round + 1),
-            round_params["folding_pow_bits"],
-        )
+        if is_final:
+            final_stir_constraints = stir_constraints
+            break
+        constraints = new_commitment.oods_constraints() + stir_constraints
+        fold_pow_bits = round_params["folding_pow_bits"]
         log_domain -= RS_DOMAIN_INITIAL_REDUCTION_FACTOR if round == 0 else 1
-        prev_commitment = new_commitment
-
-    n_vars_final = current_vars - whir_folding_factor_at_round(n_rounds)
-    final_coeffs = fiat_shamir.next_extension_scalars_vec(1 << n_vars_final)
-    final_stir = verify_stir_challenges(
-        fiat_shamir,
-        False,
-        log_domain - whir_folding_factor_at_round(n_rounds),
-        n_vars_final,
-        cfg["final_queries"],
-        cfg["final_query_pow_bits"],
-        prev_commitment,
-        round_folding[-1],
-    )
-    # Each STIR constraint's point is `expand_from_univariate(α, n)` = [α, α², α⁴, …]. We check that `Σ coeffs[i]·α^i == value` for each smt
-    for smt in final_stir:
+        parsed_commitment = new_commitment
+    for smt in final_stir_constraints:
         univ_eval = eval_univariate_polynomial(final_coeffs, smt.point[0])
         if any(univ_eval != v[1] for v in smt.values):
             raise ProofError("Final STIR constraint mismatch")
