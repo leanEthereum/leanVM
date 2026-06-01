@@ -1014,7 +1014,7 @@ def verify_execution(
     public_input: Sequence[Fp],
     proof: Proof,
     bytecode_multilinear: list[int],
-):
+) -> None:
     bytecode_log_size = log2_strict(len(bytecode_multilinear)) - log2_ceil(N_INSTRUCTION_COLUMNS)
     ending_pc = (1 << bytecode_log_size) - 1
     bytecode_hash = sponge_hash([Fp(v) for v in bytecode_multilinear])
