@@ -99,7 +99,9 @@ class Table:
         return self.columns.index(name)
 
     def eval_air(self, col_evals: Sequence[EF], alpha_powers: Sequence[EF], logup_beta_eq: list[EF]) -> EF:
-        constraint_evaluator = ConstraintEvaluator(col_evals[: self.n_columns], col_evals[self.n_columns :], alpha_powers, self.columns)
+        constraint_evaluator = ConstraintEvaluator(
+            col_evals[: self.n_columns], col_evals[self.n_columns :], alpha_powers, self.columns
+        )
         self.air_constraints_fn(constraint_evaluator, logup_beta_eq)
         return constraint_evaluator.accumulator
 
@@ -343,14 +345,6 @@ def whir_folding_factor_at_round(r: int) -> int:
     return WHIR_INITIAL_FOLDING_FACTOR if r == 0 else WHIR_SUBSEQUENT_FOLDING_FACTOR
 
 
-def whir_n_rounds_and_final_sumcheck(num_variables: int) -> tuple[int, int]:
-    nv = num_variables - WHIR_INITIAL_FOLDING_FACTOR
-    if nv < WHIR_MAX_NUM_VARIABLES_TO_SEND_COEFFS:
-        return 0, nv
-    n = div_ceil(nv - WHIR_MAX_NUM_VARIABLES_TO_SEND_COEFFS, WHIR_SUBSEQUENT_FOLDING_FACTOR)
-    return n, nv - n * WHIR_SUBSEQUENT_FOLDING_FACTOR
-
-
 @dataclass
 class ParsedCommitment:
     num_variables: int
@@ -380,19 +374,19 @@ def verify_sumcheck(
     point: list[EF] = []
     for _ in range(n_rounds):
         coeffs = fiat_shamir.next_extension_scalars_vec(degree + 1)
-        s = coeffs[0] + sum(coeffs)
+        s = coeffs[0] + sum(coeffs)  # s = h(0) + h(1)
         if s != target:
             raise ProofError("Sumcheck identity failed: h(0) + h(1) != target")
         fiat_shamir.check_pow_grinding(pow_bits)
-        r = fiat_shamir.sample_ef()
-        point.append(r)
-        target = eval_univariate_polynomial(coeffs, r)
+        challenge = fiat_shamir.sample_ef()
+        point.append(challenge)
+        target = eval_univariate_polynomial(coeffs, challenge)
     return point, target
 
 
 def verify_stir_challenges(
     fiat_shamir: FiatShamir,
-    round_index: int,
+    is_first_round: int,
     log_height: int,
     num_variables: int,
     num_queries: int,
@@ -408,7 +402,7 @@ def verify_stir_challenges(
         op = fiat_shamir.next_merkle_opening()
         merkle_verify_path(commitment.root, log_height, idx, op.leaf_data, op.path)
         # Round 0 leaves are raw base-field elements; later rounds pack DIM Fp values per EF element.
-        packed = op.leaf_data if round_index == 0 else pack_ef(op.leaf_data)
+        packed = op.leaf_data if is_first_round else pack_ef(op.leaf_data)
         fold = eval_multilinear_evals(packed, folding_randomness)
         ef_pt = EF(pow(int(gen.value), idx, P))
         pt = expand_from_univariate(ef_pt, num_variables)
@@ -422,13 +416,14 @@ def whir_verify(
     parsed_commitment: ParsedCommitment,
     statements: list[SparseStatements],
 ) -> list[EF]:
-    n_rounds, final_sumcheck_rounds = whir_n_rounds_and_final_sumcheck(cfg["num_variables"])
+    nv = cfg["num_variables"] - WHIR_INITIAL_FOLDING_FACTOR
+    assert nv >= WHIR_MAX_NUM_VARIABLES_TO_SEND_COEFFS
+    n_rounds = div_ceil(nv - WHIR_MAX_NUM_VARIABLES_TO_SEND_COEFFS, WHIR_SUBSEQUENT_FOLDING_FACTOR)
+    final_sumcheck_rounds = nv - n_rounds * WHIR_SUBSEQUENT_FOLDING_FACTOR
     round_constraints: list[tuple[list[EF], list[SparseStatements]]] = []
     round_folding: list[list[EF]] = []
-    target = ZERO
 
-    def step(constraints: list[SparseStatements], n_fold: int, pow_bits: int) -> None:
-        nonlocal target
+    def step(target: EF, constraints: list[SparseStatements], n_fold: int, pow_bits: int) -> EF:
         fiat_shamir.duplex()
         gamma = fiat_shamir.sample_ef()
         combo: list[EF] = []
@@ -441,8 +436,10 @@ def whir_verify(
         round_constraints.append((combo, constraints))
         sc_point, target = verify_sumcheck(fiat_shamir, target, n_fold, 2, pow_bits)
         round_folding.append(sc_point)
+        return target
 
-    step(
+    target = step(
+        ZERO,
         parsed_commitment.oods_constraints() + statements,
         whir_folding_factor_at_round(0),
         cfg["starting_folding_pow_bits"],
@@ -451,34 +448,35 @@ def whir_verify(
     prev_commitment = parsed_commitment
     current_vars = cfg["num_variables"]
     log_domain = cfg["num_variables"] + cfg["log_inv_rate"]
-    for r in range(n_rounds):
-        round_params = cfg["rounds"][r]
-        current_vars -= whir_folding_factor_at_round(r)
+    for round in range(n_rounds):
+        round_params = cfg["rounds"][round]
+        current_vars -= whir_folding_factor_at_round(round)
         n_ood_samples = round_params["ood_samples"]
         new_commitment = ParsedCommitment.read(fiat_shamir, current_vars, n_ood_samples)
         stir = verify_stir_challenges(
             fiat_shamir,
-            r,
-            log_domain - whir_folding_factor_at_round(r),
+            round == 0,
+            log_domain - whir_folding_factor_at_round(round),
             current_vars,
             round_params["num_queries"],
             round_params["query_pow_bits"],
             prev_commitment,
             round_folding[-1],
         )
-        step(
+        target = step(
+            target,
             new_commitment.oods_constraints() + stir,
-            whir_folding_factor_at_round(r + 1),
+            whir_folding_factor_at_round(round + 1),
             round_params["folding_pow_bits"],
         )
-        log_domain -= RS_DOMAIN_INITIAL_REDUCTION_FACTOR if r == 0 else 1
+        log_domain -= RS_DOMAIN_INITIAL_REDUCTION_FACTOR if round == 0 else 1
         prev_commitment = new_commitment
 
     n_vars_final = current_vars - whir_folding_factor_at_round(n_rounds)
     final_coeffs = fiat_shamir.next_extension_scalars_vec(1 << n_vars_final)
     final_stir = verify_stir_challenges(
         fiat_shamir,
-        n_rounds,
+        False,
         log_domain - whir_folding_factor_at_round(n_rounds),
         n_vars_final,
         cfg["final_queries"],
