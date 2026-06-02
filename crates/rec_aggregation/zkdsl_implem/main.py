@@ -24,6 +24,10 @@ TYPE_1_TWEAKS_HASH_OFFSET = TYPE_1_MERKLE_CHUNKS_OFFSET + N_MERKLE_CHUNKS
 TYPE_1_INPUT_DATA_SIZE_PADDED = next_multiple_of(TYPE_1_TWEAKS_HASH_OFFSET + DIGEST_LEN, DIGEST_LEN)
 TYPE_1_INPUT_DATA_NUM_CHUNKS = TYPE_1_INPUT_DATA_SIZE_PADDED / DIGEST_LEN
 
+# Component data (pubkeys_hash | message | merkle_chunks | tweaks_hash) is a whole number of
+# DIGEST_LEN chunks; its size depends on the config (N_MERKLE_CHUNKS scales with LOG_LIFETIME).
+COMPONENT_DATA_NUM_CHUNKS = (TYPE_1_INPUT_DATA_SIZE_PADDED - COMPONENT_DATA_OFFSET) / DIGEST_LEN
+
 # Type-2 mode-specific data (variable): n_components × digest(8).
 TYPE_2_DIGESTS_OFFSET = COMPONENT_DATA_OFFSET
 
@@ -94,7 +98,7 @@ def main():
         kept_type1_buff = Array(TYPE_1_INPUT_DATA_SIZE_PADDED)
         hint_witness("kept_type1_buff", kept_type1_buff)
         copy_8(data_buf, kept_type1_buff)  # type-1 flag | n_signatures | 0×6
-        copy_40(data_buf + COMPONENT_DATA_OFFSET, kept_type1_buff + COMPONENT_DATA_OFFSET)
+        copy_8n(data_buf + COMPONENT_DATA_OFFSET, kept_type1_buff + COMPONENT_DATA_OFFSET, COMPONENT_DATA_NUM_CHUNKS)
         ensure_well_formed_input_data(kept_type1_buff, initial_fiat_shamir_cap, TYPE_1_FLAG)
         digest_kept = type2_digests + type2_kept_index * DIGEST_LEN
         slice_hash(kept_type1_buff, TYPE_1_INPUT_DATA_NUM_CHUNKS, digest_kept)
@@ -148,7 +152,7 @@ def main():
         if n_raw_xmss == 0:
             type1_data_buf = Array(TYPE_1_INPUT_DATA_SIZE_PADDED)
             copy_8(data_buf, type1_data_buf)  # prefix
-            copy_40(data_buf + COMPONENT_DATA_OFFSET, type1_data_buf + COMPONENT_DATA_OFFSET)
+            copy_8n(data_buf + COMPONENT_DATA_OFFSET, type1_data_buf + COMPONENT_DATA_OFFSET, COMPONENT_DATA_NUM_CHUNKS)
             hint_witness("inner_bytecode_claim", type1_data_buf + BYTECODE_CLAIM_OFFSET)
             ensure_well_formed_input_data(type1_data_buf, initial_fiat_shamir_cap, TYPE_1_FLAG)
             inner_pub_mem = Array(INNER_PUB_MEM_SIZE)

@@ -495,6 +495,15 @@ def copy_40(a, b):
     return
 
 
+# Copy n consecutive DIGEST_LEN-sized chunks (n compile-time known).
+@inline
+def copy_8n(a, b, n):
+    for i in unroll(0, n):
+        dot_product_ee(a + i * DIGEST_LEN, ONE_EF_PTR, b + i * DIGEST_LEN)
+        dot_product_ee(a + i * DIGEST_LEN + (DIGEST_LEN - DIM), ONE_EF_PTR, b + i * DIGEST_LEN + (DIGEST_LEN - DIM))
+    return
+
+
 @inline
 def copy_many_ef(a, b, n):
     for i in unroll(0, n):
