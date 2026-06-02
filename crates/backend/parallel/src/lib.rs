@@ -276,7 +276,11 @@ pub fn for_each_chunk<F: Fn(usize, usize) + Sync>(n_tasks: usize, f: F) {
 /// into the monomorphized [`for_each_chunk`].
 #[inline]
 pub fn for_each_index<F: Fn(usize) + Sync>(n_tasks: usize, f: F) {
-    for_each_chunk(n_tasks, |start, end| (start..end).for_each(&f));
+    for_each_chunk(n_tasks, |start, end| {
+        for i in start..end {
+            f(i);
+        }
+    });
 }
 
 /// A base `*mut` shareable across workers. Sound only because callers partition the allocation
