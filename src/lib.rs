@@ -33,7 +33,7 @@ pub fn tune_allocator() {
 
 /// Call once before proving. Compiles the aggregation program and precomputes DFT twiddles.
 pub fn setup_prover() {
-    parallel::init(); // construct the thread pool up front (was done by `zk_alloc::begin_phase`)
+    parallel::init();
     rec_aggregation::init_aggregation_bytecode();
     precompute_dft_twiddles::<F>(1 << 24);
 }

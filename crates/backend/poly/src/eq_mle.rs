@@ -30,6 +30,7 @@ where
     A: Sync,
     G: Fn(&mut [T], &A) + Sync,
 {
+    debug_assert_eq!(out.len(), chunk * buf.len());
     parallel::par_chunks_mut(out, chunk, |i, c| g(c, &buf[i]));
 }
 

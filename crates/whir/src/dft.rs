@@ -199,6 +199,7 @@ fn dft_layer<F: Field, B: Butterfly<F>>(vec: &mut [F], twiddles: &[B], width: us
 fn dft_layer_par<F: Field, B: Butterfly<F>>(vec: &mut [F], twiddles: &[B], width: usize) {
     let ts = twiddles.len();
     let block_size = 2 * ts * width;
+    debug_assert!(vec.len().is_multiple_of(block_size),);
     let n_blocks = vec.len() / block_size;
     // Flatten (block, group) into one parallel loop over `n_blocks * ts` groups so coarse
     // layers (few blocks) still parallelize; guided scheduling keeps a worker's batch of
