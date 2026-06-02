@@ -74,6 +74,10 @@ pub enum XmssKeyGenError {
     InvalidRange,
 }
 
+/// Fill `data` with `f`, in parallel — unless `sequential`, in which case run it inline.
+/// The sequential path exists for callers already running inside a pool task (e.g. the
+/// benchmark cache builder, which parallelizes over signers): the custom pool forbids nested
+/// dispatch, and the outer level has already saturated the cores.
 fn fill<T: Send>(sequential: bool, data: &mut [T], f: impl Fn(usize, &mut T) + Sync) {
     if sequential {
         data.iter_mut().enumerate().for_each(|(i, out)| f(i, out));
@@ -82,6 +86,8 @@ fn fill<T: Send>(sequential: bool, data: &mut [T], f: impl Fn(usize, &mut T) + S
     }
 }
 
+/// `sequential` runs the internal leaf/node loops inline instead of dispatching to the pool;
+/// pass `true` when calling from within an outer parallel loop (see [`fill`]), `false` otherwise.
 pub fn xmss_key_gen(
     seed: [u8; 32],
     slot_start: u32,

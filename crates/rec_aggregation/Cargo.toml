@@ -8,11 +8,14 @@ workspace = true
 
 [features]
 prox-gaps-conjecture = ["lean_prover/prox-gaps-conjecture"]
+# Skip the zk-alloc bump-arena phase ceremony (use the plain system allocator).
+standard-alloc = []
 
 [dependencies]
 utils.workspace = true
 xmss.workspace = true
 rand.workspace = true
+zk-alloc.workspace = true
 
 tracing.workspace = true
 include_dir.workspace = true

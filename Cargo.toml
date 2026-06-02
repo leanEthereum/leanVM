@@ -20,6 +20,7 @@ members = [
     "crates/backend/sumcheck",
     "crates/backend/system-info",
     "crates/backend/parallel",
+    "crates/backend/zk-alloc",
 ]
 
 [workspace.lints]
@@ -63,6 +64,7 @@ rec_aggregation = { path = "crates/rec_aggregation" }
 backend = { path = "crates/backend" }
 system-info = { path = "crates/backend/system-info" }
 parallel = { path = "crates/backend/parallel" }
+zk-alloc = { path = "crates/backend/zk-alloc" }
 
 # External
 sha3 = "0.11.0"
@@ -82,13 +84,13 @@ include_dir = "0.7"
 
 [features]
 prox-gaps-conjecture = ["rec_aggregation/prox-gaps-conjecture"]
-# Build with the plain system allocator instead of smalloc (for comparison/debugging).
-standard-alloc = []
+# Build with the plain system allocator instead of zk-alloc (for comparison/debugging).
+standard-alloc = ["rec_aggregation/standard-alloc"]
 
 [dependencies]
 clap.workspace = true
 rec_aggregation.workspace = true
-smalloc = { package = "smmalloc", version = "7.6.10" }
+zk-alloc.workspace = true
 libc = "0.2"
 rand.workspace = true
 sub_protocols.workspace = true
