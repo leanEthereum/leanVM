@@ -105,14 +105,14 @@ class Table:
         return constraint_evaluator.accumulator
 
     def boundary_statements(
-        self, stacked_n_vars: int, offset: int, n_vars: int, ending_pc: int
+        self, stacked_n_vars: int, offset: int, log_n_rows: int, ending_pc: int
     ) -> list["SparseStatements"]:
         if self.name != "execution":
             return []
-        pc_col_offset = offset + (self.col("pc") << n_vars)
+        pc_col_offset = offset + (self.col("pc") << log_n_rows)
         return [
             SparseStatements(stacked_n_vars, [], [(pc_col_offset + idx, EF(pc))])
-            for idx, pc in [(0, STARTING_PC), ((1 << n_vars) - 1, ending_pc)]
+            for idx, pc in [(0, STARTING_PC), ((1 << log_n_rows) - 1, ending_pc)]
         ]
 
 
