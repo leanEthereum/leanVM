@@ -413,13 +413,13 @@ def whir_verify(
     cfg: dict,
     parsed_commitment: ParsedCommitment,
     statements: list[SparseStatements],
-) -> list[EF]:
+):
     nv = cfg["num_variables"] - WHIR_INITIAL_FOLDING_FACTOR
     assert nv >= WHIR_MAX_NUM_VARIABLES_TO_SEND_COEFFS
     n_rounds = div_ceil(nv - WHIR_MAX_NUM_VARIABLES_TO_SEND_COEFFS, WHIR_SUBSEQUENT_FOLDING_FACTOR)
     final_sumcheck_rounds = nv - n_rounds * WHIR_SUBSEQUENT_FOLDING_FACTOR
     round_constraints: list[tuple[EF, list[SparseStatements]]] = []
-    round_folding: list[list[EF]] = []
+    round_folding_challenges: list[list[EF]] = []
 
     current_vars = cfg["num_variables"]
     log_domain = current_vars + cfg["log_inv_rate"]
@@ -438,7 +438,7 @@ def whir_verify(
                 gamma_power *= gamma
         round_constraints.append((gamma, constraints))
         sc_point, target = verify_sumcheck(fiat_shamir, target, folding_factor, 2, fold_pow_bits)
-        round_folding.append(sc_point)
+        round_folding_challenges.append(sc_point)
         current_vars -= folding_factor
         is_final = round == n_rounds
         if is_final:
@@ -453,7 +453,7 @@ def whir_verify(
             round_params["num_queries"],
             round_params["query_pow_bits"],
             parsed_commitment,
-            round_folding[-1],
+            round_folding_challenges[-1],
         )
         if is_final:
             final_stir_constraints = stir_constraints
@@ -468,29 +468,25 @@ def whir_verify(
             raise ProofError("Final STIR constraint mismatch")
 
     final_sc_point, final_sc_value = verify_sumcheck(fiat_shamir, target, final_sumcheck_rounds, 2)
-    round_folding.append(final_sc_point)
-
-    folding_flat = [r for chunk in round_folding for r in chunk]
+    round_folding_challenges.append(final_sc_point)
 
     eval_weights = ZERO
-    pt = folding_flat
-    for round_idx, (gamma, smts) in enumerate(round_constraints):
-        if round_idx > 0:
-            pt = pt[whir_folding_factor_at_round(round_idx - 1) :]
+    folding_challenges = [r for chunk in round_folding_challenges for r in chunk]
+    for round, (gamma, smts) in enumerate(round_constraints):
+        if round > 0:
+            folding_challenges = folding_challenges[whir_folding_factor_at_round(round - 1) :]
         gamma_power = ONE
         for smt in smts:
-            inner_pt = pt[len(pt) - len(smt.point) :]
-            common = next_mle(smt.point, inner_pt) if smt.is_next else eq_poly(smt.point, inner_pt)
+            point_suffix = folding_challenges[len(folding_challenges) - len(smt.point) :] # dense part of the point
+            eval_suffix = next_mle(smt.point, point_suffix) if smt.is_next else eq_poly(smt.point, point_suffix)
             sel_n = smt.selector_num_variables
             for v in smt.values:
-                lagrange = eq_at_index(pt, v[0], sel_n)
-                eval_weights += lagrange * common * gamma_power
+                eval_prefix = eq_at_index(folding_challenges, v[0], sel_n) # sparse part of the point
+                eval_weights += eval_prefix * eval_suffix * gamma_power
                 gamma_power *= gamma
     final_value = eval_multilinear_coeffs(final_coeffs, list(reversed(final_sc_point)))
     if final_sc_value != eval_weights * final_value:
         raise ProofError("WHIR final sumcheck check failed")
-
-    return folding_flat
 
 
 def stacked_pcs_global_statements(
