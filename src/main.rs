@@ -1,11 +1,6 @@
 use clap::Parser;
 use rec_aggregation::benchmark::{AggregationTopology, biggest_leaf, run_aggregation_benchmark};
 
-// Allocator: zk-alloc — a bump+reset arena. Allocation is a pointer bump and free is a no-op;
-// `begin_phase`/`end_phase` (see `benchmark.rs`) reset every thread's slab between proofs so the
-// prover's huge per-phase buffer churn reuses pages instead of re-faulting. Outputs are cloned
-// out after `end_phase` so they detach to the system allocator before the next reset.
-// The `standard-alloc` feature selects the plain system allocator for comparison.
 #[cfg(not(feature = "standard-alloc"))]
 #[global_allocator]
 static ALLOC: zk_alloc::ZkAllocator = zk_alloc::ZkAllocator;
@@ -57,11 +52,6 @@ enum Cli {
 }
 
 fn run_with_warmup(topology: &AggregationTopology, tracing: bool, json: bool, repeat: usize) {
-    // Build all persistent state — thread pool, compiled bytecode, DFT twiddles — before the
-    // first `begin_phase()`, so it lands in the system allocator and survives the per-proof
-    // slab resets. Without this it would initialize lazily inside the phased warm-up, land in
-    // arena memory, and be corrupted by the next phase's reset. (The arena requires all
-    // cross-phase state to predate the first phase; the tests already do this.)
     lean_multisig::setup_prover();
     let warmup = biggest_leaf(topology).unwrap();
     eprint!("warming up... ");
@@ -78,9 +68,7 @@ fn run_with_warmup(topology: &AggregationTopology, tracing: bool, json: bool, re
 
 #[allow(clippy::too_many_lines)]
 fn main() {
-    // Disable THP for the prover's strided arrays (see `tune_allocator`), before any work.
     lean_multisig::tune_allocator();
-    // Validate the build-time thread count before the arena maps its slabs.
     #[cfg(not(feature = "standard-alloc"))]
     lean_multisig::init_allocator();
 

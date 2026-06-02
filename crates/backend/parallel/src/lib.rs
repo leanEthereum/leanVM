@@ -353,8 +353,9 @@ fn drain_into_slots<S: Send>(n_tasks: usize, run: impl Fn(&mut Option<S>, usize,
 }
 
 /// Parallel map-reduce over `0..n_tasks` = `(0..n).map(map).reduce(identity, reduce)`. Each
-/// worker folds its claimed indices into one local accumulator; the partials combine on the
-/// dispatcher. `reduce` must be associative.
+/// worker folds its claimed indices into one local partial; the partials combine on the
+/// dispatcher. `reduce` must be associative with `identity()` a neutral element (rayon's
+/// `reduce` contract).
 pub fn map_reduce<T, ID, M, R>(n_tasks: usize, identity: ID, map: M, reduce: R) -> T
 where
     T: Send,
@@ -362,21 +363,22 @@ where
     M: Fn(usize) -> T + Sync,
     R: Fn(T, T) -> T + Sync,
 {
-    if NUM_THREADS <= 1 || n_tasks <= 1 {
-        return (0..n_tasks).fold(identity(), |acc, i| reduce(acc, map(i)));
-    }
     let slots = drain_into_slots(n_tasks, |slot, start, end| {
-        // Take/replace the shared slot once per batch so per-element writes stay local.
+        // Fold the batch into the worker's partial, seeded by the first `map` so `identity`
+        // stays off the per-element path; take/replace the shared slot just once.
         *slot = (start..end).fold(slot.take(), |acc, i| {
             Some(acc.map_or_else(|| map(i), |a| reduce(a, map(i))))
         });
     });
+    // `identity()` seeds the combine as a no-op left-identity; the empty and single-thread
+    // (`for_each_chunk` runs inline) cases then fall out without a special path.
     slots.into_iter().flatten().fold(identity(), &reduce)
 }
 
 /// Parallel reduce where each worker keeps reusable scratch beside its accumulator (so the
 /// per-task body needn't allocate). `(scratch, acc)` are created once per worker and threaded
-/// through its batches; the `acc`s combine on the dispatcher. `combine` must be associative.
+/// through its batches; the `acc`s combine on the dispatcher. `combine` must be associative
+/// with `init_acc()` a neutral element.
 pub fn map_reduce_with_state<S, A, IS, IA, F, C>(n_tasks: usize, init_state: IS, init_acc: IA, fold: F, combine: C) -> A
 where
     S: Send,
@@ -386,19 +388,14 @@ where
     F: Fn(&mut S, &mut A, usize) + Sync,
     C: Fn(A, A) -> A,
 {
-    if NUM_THREADS <= 1 || n_tasks <= 1 {
-        let (mut state, mut acc) = (init_state(), init_acc());
-        for i in 0..n_tasks {
-            fold(&mut state, &mut acc, i);
-        }
-        return acc;
-    }
     let slots = drain_into_slots(n_tasks, |slot, start, end| {
         let (state, acc) = slot.get_or_insert_with(|| (init_state(), init_acc()));
         for i in start..end {
             fold(state, acc, i);
         }
     });
+    // `init_acc()` seeds the combine as a neutral element; the empty and single-thread cases
+    // (`for_each_chunk` runs inline) then fall out without a special path.
     slots
         .into_iter()
         .flatten()
