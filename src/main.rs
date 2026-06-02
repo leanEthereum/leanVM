@@ -1,15 +1,9 @@
 use clap::Parser;
 use rec_aggregation::benchmark::{AggregationTopology, biggest_leaf, run_aggregation_benchmark};
 
-// Allocator: mimalloc — a robust production allocator, tuned to retain freed memory (see
-// `lean_multisig::tune_allocator`). Replaces the former `zk-alloc` bump arena, which was
-// fast but fragile: any allocation outliving a phase, or a pointer retained across
-// `begin_phase`'s slab reset (e.g. from a background thread, tracing, or a stray clone),
-// silently corrupted memory. mimalloc-with-retention is both **faster** here and stable.
-// The `standard-alloc` feature selects the plain system allocator for comparison.
 #[cfg(not(feature = "standard-alloc"))]
 #[global_allocator]
-static ALLOC: mimalloc::MiMalloc = mimalloc::MiMalloc;
+static ALLOC: smalloc::Smalloc = smalloc::Smalloc::new();
 
 #[derive(Parser)]
 enum Cli {
@@ -73,10 +67,6 @@ fn run_with_warmup(topology: &AggregationTopology, tracing: bool, json: bool, re
 
 #[allow(clippy::too_many_lines)]
 fn main() {
-    // Retain freed memory (no purging) so the prover's huge buffer churn reuses pages
-    // instead of re-faulting — the property that made the old arena fast. Before any work.
-    lean_multisig::tune_allocator();
-
     let cli = Cli::parse();
 
     match cli {

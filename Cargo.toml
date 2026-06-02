@@ -82,14 +82,13 @@ include_dir = "0.7"
 
 [features]
 prox-gaps-conjecture = ["rec_aggregation/prox-gaps-conjecture"]
-# Build with the plain system allocator instead of mimalloc (for comparison/debugging).
+# Build with the plain system allocator instead of smalloc (for comparison/debugging).
 standard-alloc = []
 
 [dependencies]
 clap.workspace = true
 rec_aggregation.workspace = true
-mimalloc = "0.1"
-libmimalloc-sys = { version = "0.1", features = ["extended"] }
+smalloc = { package = "smmalloc", version = "7.6.10" }
 libc = "0.2"
 rand.workspace = true
 sub_protocols.workspace = true
