@@ -14,6 +14,14 @@ use utils::{Counter, ToUsize};
 
 mod post_optimization;
 
+/*
+KNOWN LIMITATIONS:
+
+- inline function recursively calling themselves (directly or indirectly) will cause the compiler to run indifinetely (and crash OOM)
+*/
+
+const MAX_UNROLL_ITERATIONS: usize = 1 << 20;
+
 #[derive(Debug, Clone)]
 pub struct SimpleProgram {
     pub functions: BTreeMap<FunctionName, SimpleFunction>,
@@ -319,8 +327,7 @@ pub fn simplify_program(mut program: Program) -> Result<SimpleProgram, String> {
         program.functions.remove(&name);
     }
 
-    let mut mutable_loop_counter = Counter::new();
-    transform_mutable_in_loops_in_program(&mut program, &mut mutable_loop_counter)?;
+    check_no_loop_carried_mutables(&program)?;
 
     let mut new_functions = BTreeMap::new();
     let mut counters = Counters::default();
@@ -576,12 +583,19 @@ fn compile_time_transform_in_lines(
                         location
                     ));
                 };
+                let (start_u, end_u) = (start.to_usize(), end.to_usize());
+                let count = end_u.saturating_sub(start_u);
+                if count > MAX_UNROLL_ITERATIONS {
+                    return Err(format!(
+                        "line {location}: `unroll` loop is too large ({count} iterations; max {MAX_UNROLL_ITERATIONS})"
+                    ));
+                }
                 let unroll_index = unroll_counter.get_next();
                 let (internal_vars, _) = find_variable_usage(body, const_arrays);
                 let iterator = iterator.clone();
                 let body = body.clone();
                 let mut unrolled = Vec::new();
-                for j in start.to_usize()..end.to_usize() {
+                for j in start_u..end_u {
                     let mut body_copy = body.clone();
                     replace_vars_for_unroll(&mut body_copy, &iterator, unroll_index, j, &internal_vars);
                     unrolled.extend(body_copy);
@@ -947,28 +961,6 @@ fn substitute_const_vars_in_expr(expr: &mut Expression, const_var_exprs: &BTreeM
     changed
 }
 
-// ============================================================================
-// TRANSFORMATION: Mutable variables in non-unrolled loops
-// ============================================================================
-//
-// This transformation handles mutable variables that are modified inside
-// non-unrolled loops by using buffers to store intermediate values.
-//
-// For a loop like:
-//   for i in start..end { x += i; }
-//
-// We transform it to:
-//   size = end - start;
-//   x_buff = Array(size + 1);
-//   x_buff[0] = x;
-//   for i in start..end {
-//       buff_idx = i - start;
-//       mut x_body = x_buff[buff_idx];
-//       x_body += i;
-//       x_buff[buff_idx + 1] = x_body;
-//   }
-//   x = x_buff[size];
-
 /// Finds mutable variables that are:
 /// 1. Defined OUTSIDE this block (external)
 /// 2. Re-assigned INSIDE this block
@@ -1043,216 +1035,45 @@ fn find_assigned_external_vars_helper(
     }
 }
 
-fn transform_mutable_in_loops_in_program(program: &mut Program, counter: &mut Counter) -> Result<(), String> {
-    for func in program.functions.values_mut() {
-        transform_mutable_in_loops_in_lines(&mut func.body, &program.const_arrays, counter, &BTreeSet::new())?;
+/// Reject any `range` / `parallel_range` loop that reassigns a mutable variable
+/// defined in an enclosing scope ("loop-carried mutable").
+fn check_no_loop_carried_mutables(program: &Program) -> Result<(), String> {
+    for func in program.functions.values() {
+        check_loop_carried_mutables_in_lines(&func.body, &program.const_arrays, &BTreeSet::new())?;
     }
     Ok(())
 }
 
-fn transform_mutable_in_loops_in_lines(
-    lines: &mut Vec<Line>,
+fn check_loop_carried_mutables_in_lines(
+    lines: &[Line],
     const_arrays: &BTreeMap<String, ConstArrayValue>,
-    counter: &mut Counter,
     outer_mut_vars: &BTreeSet<Var>,
 ) -> Result<(), String> {
     let mut local_mut_vars = outer_mut_vars.clone();
-    let mut i = 0;
-    while i < lines.len() {
-        match &mut lines[i] {
-            Line::ForLoop { body, loop_kind, .. } if loop_kind.is_unroll() => {
-                transform_mutable_in_loops_in_lines(body, const_arrays, counter, &local_mut_vars)?;
-                i += 1;
-            }
+    for line in lines {
+        match line {
             Line::ForLoop {
-                iterator,
-                start,
-                end,
                 body,
-                loop_kind: loop_kind @ (LoopKind::Range | LoopKind::ParallelRange),
+                loop_kind: LoopKind::Range | LoopKind::ParallelRange,
                 location,
+                ..
             } => {
-                let loop_kind = loop_kind.clone();
-                transform_mutable_in_loops_in_lines(body, const_arrays, counter, &local_mut_vars)?;
+                check_loop_carried_mutables_in_lines(body, const_arrays, &local_mut_vars)?;
                 let modified_vars = find_modified_external_vars(body, const_arrays, &local_mut_vars);
-
-                if modified_vars.is_empty() {
-                    // No mutable variables modified, no transformation needed
-                    i += 1;
-                    continue;
-                }
-
-                if loop_kind.is_parallel() {
+                if !modified_vars.is_empty() {
                     return Err(format!(
-                        "parallel loop at {location} carries mutable variable(s) {modified_vars:?} across iterations; use a sequential `range` loop"
+                        "loop at {location} reassigns enclosing-scope mutable(s) {modified_vars:?}; \
+                         loop-carried mutables are unsupported: use an explicit buffer (see zkDSL.md, \"For loops\")"
                     ));
                 }
-
-                let suffix = counter.get_next();
-
-                // Generate the transformed code
-                let mut new_lines = Vec::new();
-
-                let location = *location;
-
-                // Create size variable: @loop_size_{suffix} = end - start
-                let size_var = format!("@loop_size_{suffix}");
-
-                new_lines.push(Line::Statement {
-                    targets: vec![AssignmentTarget::Var {
-                        var: size_var.clone(),
-                        is_mutable: false,
-                    }],
-                    value: Expression::MathExpr(MathOperation::Sub, vec![end.clone(), start.clone()]),
-                    location,
-                });
-
-                let mut var_to_buff: BTreeMap<Var, (Var, Var)> = BTreeMap::new(); // var -> (buff_name, body_name)
-
-                for var in &modified_vars {
-                    let buff_name = format!("@loop_buff_{var}_{suffix}");
-                    let body_name = format!("@loop_body_{var}_{suffix}");
-
-                    // buff = Array(size + 1)
-                    new_lines.push(Line::Statement {
-                        targets: vec![AssignmentTarget::Var {
-                            var: buff_name.clone(),
-                            is_mutable: false,
-                        }],
-                        value: Expression::FunctionCall {
-                            function_name: "Array".to_string(),
-                            args: vec![Expression::MathExpr(
-                                // TODO opti in case there is only one mutated var
-                                MathOperation::Add,
-                                vec![Expression::var(size_var.clone()), Expression::one()],
-                            )],
-                            location,
-                        },
-                        location,
-                    });
-
-                    // buff[0] = var (current value)
-                    new_lines.push(Line::Statement {
-                        targets: vec![AssignmentTarget::ArrayAccess {
-                            array: buff_name.clone().into(),
-                            index: Box::new(Expression::zero()),
-                        }],
-                        value: Expression::var(var.clone()),
-                        location,
-                    });
-
-                    var_to_buff.insert(var.clone(), (buff_name, body_name));
-                }
-
-                // Transform the loop body
-                let iterator = iterator.clone();
-                let mut new_body = Vec::new();
-
-                // buff_idx = i - start (or just i when start is zero)
-                let buff_idx_var = format!("@loop_buff_idx_{suffix}");
-
-                new_body.push(Line::Statement {
-                    targets: vec![AssignmentTarget::Var {
-                        var: buff_idx_var.clone(),
-                        is_mutable: false,
-                    }],
-                    value: Expression::MathExpr(
-                        MathOperation::Sub,
-                        vec![Expression::var(iterator.clone()), start.clone()],
-                    ),
-                    location,
-                });
-
-                // For each modified variable: mut body_var = buff[buff_idx]
-                for (var, (buff_name, body_name)) in &var_to_buff {
-                    new_body.push(Line::Statement {
-                        targets: vec![AssignmentTarget::Var {
-                            var: body_name.clone(),
-                            is_mutable: true,
-                        }],
-                        value: Expression::ArrayAccess {
-                            array: buff_name.clone().into(),
-                            index: vec![Expression::Value(
-                                VarOrConstMallocAccess::Var(buff_idx_var.clone()).into(),
-                            )],
-                        },
-                        location,
-                    });
-
-                    // Replace all references to var with body_name in the original body
-                    transform_vars_in_lines(body, &|v: &Var| {
-                        if v == var {
-                            VarTransform::Rename(body_name.clone())
-                        } else {
-                            VarTransform::Keep
-                        }
-                    });
-                }
-
-                // Add the original body (now modified to use body_vars)
-                new_body.append(body);
-
-                // next_idx = buff_idx + 1
-                let next_idx_var = format!("@loop_next_idx_{suffix}");
-                new_body.push(Line::Statement {
-                    targets: vec![AssignmentTarget::Var {
-                        var: next_idx_var.clone(),
-                        is_mutable: false,
-                    }],
-                    value: Expression::MathExpr(
-                        MathOperation::Add,
-                        vec![Expression::var(buff_idx_var.clone()), Expression::one()],
-                    ),
-                    location,
-                });
-
-                // For each modified variable: buff[next_idx] = body_var
-                for (buff_name, body_name) in var_to_buff.values() {
-                    new_body.push(Line::Statement {
-                        targets: vec![AssignmentTarget::ArrayAccess {
-                            array: buff_name.clone().into(),
-                            index: Expression::var(next_idx_var.clone()).into(),
-                        }],
-                        value: Expression::var(body_name.clone()),
-                        location,
-                    });
-                }
-
-                // Create the new loop
-                new_lines.push(Line::ForLoop {
-                    iterator: iterator.clone(),
-                    start: start.clone(),
-                    end: end.clone(),
-                    body: new_body,
-                    loop_kind,
-                    location,
-                });
-
-                // After the loop: var = buff[size]
-                for (var, (buff_name, _body_name)) in &var_to_buff {
-                    new_lines.push(Line::Statement {
-                        targets: vec![AssignmentTarget::Var {
-                            var: var.clone(),
-                            is_mutable: false,
-                        }],
-                        value: Expression::ArrayAccess {
-                            array: buff_name.clone().into(),
-                            index: vec![Expression::var(size_var.clone())],
-                        },
-                        location,
-                    });
-                }
-
-                // Replace the original loop with the new lines
-                let num_new = new_lines.len();
-                lines.splice(i..=i, new_lines);
-                i += num_new;
             }
-            line @ (Line::IfCondition { .. } | Line::Match { .. }) => {
-                for block in line.nested_blocks_mut() {
-                    transform_mutable_in_loops_in_lines(block, const_arrays, counter, &local_mut_vars)?;
+            Line::ForLoop { body, .. } => {
+                check_loop_carried_mutables_in_lines(body, const_arrays, &local_mut_vars)?;
+            }
+            Line::IfCondition { .. } | Line::Match { .. } => {
+                for block in line.nested_blocks() {
+                    check_loop_carried_mutables_in_lines(block, const_arrays, &local_mut_vars)?;
                 }
-                i += 1;
             }
             Line::Statement { targets, .. } => {
                 for target in targets {
@@ -1260,11 +1081,8 @@ fn transform_mutable_in_loops_in_lines(
                         local_mut_vars.insert(var.clone());
                     }
                 }
-                i += 1;
             }
-            _ => {
-                i += 1;
-            }
+            _ => {}
         }
     }
     Ok(())
@@ -1407,6 +1225,18 @@ fn check_expr_scoping(expr: &Expression, ctx: &Context) -> Result<(), String> {
             lambda_ctx.const_arrays = ctx.const_arrays.clone();
             lambda_ctx.add_var(param);
             check_expr_scoping(body, &lambda_ctx)
+        }
+        Expression::ArrayAccess { array, index } => {
+            for idx in index {
+                check_expr_scoping(idx, ctx)?;
+            }
+            if let Some(name) = array.as_var()
+                && !ctx.const_arrays.contains_key(name)
+                && !ctx.defines(name)
+            {
+                return Err(format!("Variable used but not defined: {name}"));
+            }
+            Ok(())
         }
         _ => {
             for inner_expr in expr.inner_exprs() {
@@ -1740,6 +1570,15 @@ fn simplify_lines(
                         }
                     };
 
+                for target in targets {
+                    if let AssignmentTarget::ArrayAccess { array, .. } = target
+                        && let Some(name) = array.as_var()
+                        && ctx.const_arrays.contains_key(name)
+                    {
+                        return Err(format!("cannot assign to const array '{name}', at {location}"));
+                    }
+                }
+
                 match value {
                     Expression::HintWitness { name: hint_name, ptr } => {
                         if !targets.is_empty() {
@@ -2031,25 +1870,37 @@ fn simplify_lines(
                                         res.push(SimpleLine::equality(target_var, simplified_val));
                                     }
                                     Expression::ArrayAccess { array, index } => {
-                                        // Pre-simplify indices before version update
-                                        let simplified_index = index
-                                            .iter()
-                                            .map(|idx| simplify_expr(ctx, state, const_malloc, idx, &mut res))
-                                            .collect::<Result<Vec<_>, _>>()?;
-                                        let target_var = get_target_var_name(state, var, *is_mutable)?;
-                                        if state.mut_tracker.is_ssa_reassignment(var) {
-                                            res.push(SimpleLine::ForwardDeclaration {
-                                                var: target_var.clone(),
-                                            });
+                                        if array.as_var().is_some_and(|n| ctx.const_arrays.contains_key(n)) {
+                                            let simplified_val =
+                                                simplify_expr(ctx, state, const_malloc, value, &mut res)?;
+                                            let target_var = get_target_var_name(state, var, *is_mutable)?;
+                                            if state.mut_tracker.is_ssa_reassignment(var) {
+                                                res.push(SimpleLine::ForwardDeclaration {
+                                                    var: target_var.clone(),
+                                                });
+                                            }
+                                            res.push(SimpleLine::equality(target_var, simplified_val));
+                                        } else {
+                                            // Pre-simplify indices before version update
+                                            let simplified_index = index
+                                                .iter()
+                                                .map(|idx| simplify_expr(ctx, state, const_malloc, idx, &mut res))
+                                                .collect::<Result<Vec<_>, _>>()?;
+                                            let target_var = get_target_var_name(state, var, *is_mutable)?;
+                                            if state.mut_tracker.is_ssa_reassignment(var) {
+                                                res.push(SimpleLine::ForwardDeclaration {
+                                                    var: target_var.clone(),
+                                                });
+                                            }
+                                            handle_array_assignment(
+                                                state,
+                                                const_malloc,
+                                                &mut res,
+                                                array,
+                                                &simplified_index,
+                                                ArrayAccessType::VarIsAssigned(target_var),
+                                            );
                                         }
-                                        handle_array_assignment(
-                                            state,
-                                            const_malloc,
-                                            &mut res,
-                                            array,
-                                            &simplified_index,
-                                            ArrayAccessType::VarIsAssigned(target_var),
-                                        );
                                     }
                                     Expression::MathExpr(operation, args) => {
                                         let args_simplified = args
@@ -2612,7 +2463,7 @@ fn simplify_expr(
             let function = ctx
                 .functions
                 .get(function_name)
-                .unwrap_or_else(|| panic!("Function used but not defined: {function_name}"));
+                .ok_or_else(|| format!("Function used but not defined: {function_name}"))?;
             if function.n_returned_vars != 1 {
                 return Err(format!(
                     "Nested function calls must return exactly one value (function {function_name} returns {} values)",

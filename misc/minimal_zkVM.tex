@@ -671,7 +671,7 @@ The $N \le 15$ \emph{data} entries fill the low slots, the last slot always hold
 
 There are 4 different types of interactions:
 
-\textbf{Memory:} Each memory fetch corresponds to a data pair $(\textsf{value}, \textsf{address})$, tagged with the domain separator $\textsf{memory\_sep} = 1$.
+\textbf{Memory:} Each memory fetch corresponds to a data pair $(\textsf{address}, \textsf{value})$, tagged with the domain separator $\textsf{memory\_sep} = 1$.
 
 \textbf{Bytecode:} Each instruction fetch is the data tuple $(\textsf{instr}_0, \dots, \textsf{instr}_{11}, \textsf{pc})$, tagged with the domain separator $\textsf{bytecode\_sep} = 2$.
 
@@ -684,7 +684,7 @@ There are 4 different types of interactions:
 \toprule
 Kind & data entries & $\textsf{domain\_sep}$ \\
 \midrule
-Memory                   & $(\textsf{value},\ \textsf{address})$  & $\textsf{memory\_sep} = 1$ \\
+Memory                   & $(\textsf{address},\ \textsf{value})$  & $\textsf{memory\_sep} = 1$ \\
 Bytecode                 & $(\textsf{instr}_0,\ \dots,\ \textsf{instr}_{11},\ \textsf{pc})$ & $\textsf{bytecode\_sep} = 2$ \\
 Poseidon     & $(\nu_A,\ \nu_B,\ \nu_C)$ & odd, $\ge 3$ \\
 Extension & $(\nu_A,\ \nu_B,\ \nu_C)$ & multiple of $4$ \\
@@ -699,12 +699,12 @@ A table $T$ may \textsc{Push} or \textsc{Pull} various tuples to the common bus.
 
 Alongside committing to the execution trace (i.e.\ the table columns), the prover commits to two access-count multilinear polynomials:
 \begin{itemize}
-    \item $\textsf{memory\_acc} \in \Fp^{2^{h_\textsc{memory}}}$: $\textsf{memory\_acc}[i]$ = number of pulls of $(\textbf{m}[i], i, 0_{13}, \textsf{memory\_sep})$ across all tables.
+    \item $\textsf{memory\_acc} \in \Fp^{2^{h_\textsc{memory}}}$: $\textsf{memory\_acc}[i]$ = number of pulls of $(i, \textbf{m}[i], 0_{13}, \textsf{memory\_sep})$ across all tables.
     \item $\textsf{bytecode\_acc} \in \Fp^{2^{h_\textsc{bytecode}}}$: $\textsf{bytecode\_acc}[\textbf{pc}]$ = number of pulls of $(\textsf{instr}_0, \dots, \textsf{instr}_{11}, \textbf{pc}, 0_2, \textsf{bytecode\_sep})$ by the execution table.
 \end{itemize}
 These columns serve as the multiplicities of the two corresponding bus pushes:
 \begin{itemize}
-    \item For each $i \in [0, 2^{h_\textsc{memory}})$: $\textsc{Push}\big(\textbf{m}[i],\, i,\, 0_{13},\, \textsf{memory\_sep}\big)$ with multiplicity $\textsf{memory\_acc}[i]$.
+    \item For each $i \in [0, 2^{h_\textsc{memory}})$: $\textsc{Push}\big(i,\, \textbf{m}[i],\, 0_{13},\, \textsf{memory\_sep}\big)$ with multiplicity $\textsf{memory\_acc}[i]$.
     \item For each $\textbf{pc} \in [0, 2^{h_\textsc{bytecode}})$: $\textsc{Push}\big(\textsf{instr}_0(\textbf{pc}), \dots, \textsf{instr}_{11}(\textbf{pc}),\, \textbf{pc},\, 0_2,\, \textsf{bytecode\_sep}\big)$ with multiplicity $\textsf{bytecode\_acc}[\textbf{pc}]$.
 \end{itemize}
 
@@ -934,7 +934,7 @@ TODO: Verify and (formally) prove completeness + soundness.
 
 \paragraph{Memory pulls (three per row).} For each $X \in \{A, B, C\}$:
 \[
-\textsc{Pull}\big(\textsf{value}_X,\, \textsf{addr}_X,\, 0_{13},\, \textsf{memory\_sep}\big) \quad \text{with multiplicity } 1.
+\textsc{Pull}\big(\textsf{addr}_X,\, \textsf{value}_X,\, 0_{13},\, \textsf{memory\_sep}\big) \quad \text{with multiplicity } 1.
 \]
 
 \paragraph{Bytecode pull (one per row).}
@@ -972,7 +972,7 @@ It has $n_{cols}^{poseidon} = 110$ columns.
 Non-committed (virtual): $\nu_A$ (left-input pointer) and $\textsf{aux}_2$ (the precompile-data domain separator, see below).
 
 \subsubsection{Bus interactions}
-\textbf{Memory pulls.} Each committed input/output cell is tied to memory by a $\textsc{Pull}\big(c,\, a,\, 0_{13},\, \textsf{memory\_sep}\big)$ of multiplicity $1$ (value $c$ at address $a$):
+\textbf{Memory pulls.} Each committed input/output cell is tied to memory by a $\textsc{Pull}\big(a,\, c,\, 0_{13},\, \textsf{memory\_sep}\big)$ of multiplicity $1$ (address $a$ holding value $c$):
 \begin{itemize}
     \item $\textsf{input}_i$ at $\textsf{addr}^\text{lo}_\text{left} + i$ and $\textsf{input}_{4+i}$ at $\textsf{addr}^\text{hi}_\text{left} + i$, for $i \in [0, 4)$ (the left half);
     \item $\textsf{input}_{8+i}$ at $\nu_B + i$, for $i \in [0, 8)$ (the right half);
@@ -1082,7 +1082,7 @@ Virtual (non-committed) columns: $\textsf{multiplicity} = \textsf{flag\_start} \
 
 \textbf{Memory pulls.} For each operand $(s, \textsf{idx}) \in \{(v_A, \textsf{idx}_A),\, (v_B, \textsf{idx}_B),\, (\textsf{res}, \textsf{idx}_R)\}$ and each $k \in [0, \extdeg)$:
 \[
-\textsc{Pull}\big(s[k],\, \textsf{idx} + k,\, 0_{13},\, \textsf{memory\_sep}\big) \quad \text{with multiplicity } 1.
+\textsc{Pull}\big(\textsf{idx} + k,\, s[k],\, 0_{13},\, \textsf{memory\_sep}\big) \quad \text{with multiplicity } 1.
 \]
 
 \textbf{Precompile pull.}

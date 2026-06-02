@@ -94,10 +94,11 @@ def main():
     # poly_eq_ee: prod_i (a[i]*b[i] + (1-a[i])*(1-b[i])) with ext a, ext b
     poly_eq_ee(ext_a_ptr, ext_b_ptr, scratch + 1300, N)
 
-    c: Mut = 0
+    c_buf = Array(LOOP_ITERS + 1)
+    c_buf[0] = 0
     for i in range(0, LOOP_ITERS):
-        c += 1
-    assert c == LOOP_ITERS
+        c_buf[i + 1] = c_buf[i] + 1
+    assert c_buf[LOOP_ITERS] == LOOP_ITERS
 
     return
 "#;

@@ -14,23 +14,27 @@ def main():
 
     assert n == 4
 
-    counter: Mut = 0
+    counter_buf = Array(5)
+    counter_buf[0] = 0
     for i in range(0, 4):
-        counter = 2 * i + 1
-    assert counter == last_write
+        counter_buf[i + 1] = 2 * i + 1
+    assert counter_buf[4] == last_write
 
-    acc: Mut = seed
+    acc_buf = Array(5)
+    acc_buf[0] = seed
     for i in range(0, 4):
+        a: Mut = acc_buf[i]
         match i:
             case 0:
-                acc = acc + 1
+                a = a + 1
             case 1:
-                acc = acc + 3
+                a = a + 3
             case 2:
-                acc = acc + 5
+                a = a + 5
             case 3:
-                acc = acc + 7
-    assert acc == match_tally
+                a = a + 7
+        acc_buf[i + 1] = a
+    assert acc_buf[4] == match_tally
 
     assert sqr_via_pipeline(seed + n) == pipeline_squared
 
@@ -57,7 +61,8 @@ def mul_boxed(a, b):
 
 
 def paired_sum(a, b):
-    total: Mut = 0
+    total_buf = Array(5)
+    total_buf[0] = 0
     for i in range(0, 4):
-        total = total + a + b
-    return total
+        total_buf[i + 1] = total_buf[i] + a + b
+    return total_buf[4]

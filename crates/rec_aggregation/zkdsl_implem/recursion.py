@@ -630,10 +630,13 @@ def verify_gkr_quotient(prev_fs, n_vars):
     claims_num[LOGUP_GKR_N_VARS_TO_SEND_COEFFS - 1] = first_claim_num
     claims_den[LOGUP_GKR_N_VARS_TO_SEND_COEFFS - 1] = first_claim_den
 
+    fs_buf = Array(n_vars - LOGUP_GKR_N_VARS_TO_SEND_COEFFS + 1)
+    fs_buf[0] = fs
     for i in range(LOGUP_GKR_N_VARS_TO_SEND_COEFFS, n_vars):
-        fs, points[i], claims_num[i], claims_den[i] = verify_gkr_quotient_step(
-            fs, i, points[i - 1], claims_num[i - 1], claims_den[i - 1]
+        fs_buf[i - LOGUP_GKR_N_VARS_TO_SEND_COEFFS + 1], points[i], claims_num[i], claims_den[i] = verify_gkr_quotient_step(
+            fs_buf[i - LOGUP_GKR_N_VARS_TO_SEND_COEFFS], i, points[i - 1], claims_num[i - 1], claims_den[i - 1]
         )
+    fs = fs_buf[n_vars - LOGUP_GKR_N_VARS_TO_SEND_COEFFS]
 
     return (
         fs,

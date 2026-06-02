@@ -84,7 +84,7 @@ pub fn compile_to_low_level_bytecode(
             .iter()
             .map(|block| count_real_instructions(block))
             .max()
-            .unwrap();
+            .ok_or_else(|| "match statement has no cases (e.g. `match_range` over an empty range)".to_string())?;
         match_first_block_starts.push(pc);
         match_block_sizes.push(max_block_size);
 

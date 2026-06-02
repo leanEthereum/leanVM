@@ -140,20 +140,34 @@ struct Fusions {
     declarations_to_drop: BTreeSet<Var>,
 }
 
-/// Search `lines[i+1..]` for an unclaimed `AssertEq` where `v` is one side.
-/// Returns `(j, other_side)` if found.
+fn asserts_by_var(lines: &[SimpleLine]) -> BTreeMap<Var, Vec<usize>> {
+    let mut map: BTreeMap<Var, Vec<usize>> = BTreeMap::new();
+    for (j, line) in lines.iter().enumerate() {
+        if let SimpleLine::AssertEq { left, right, .. } = line {
+            for side in [left, right] {
+                if let Some(n) = side.as_var() {
+                    map.entry(n.clone()).or_default().push(j);
+                }
+            }
+        }
+    }
+    map
+}
+
+/// The first unclaimed `AssertEq` after `i` that has `v` as one side; returns `(j, other_side)`.
 fn find_fusable_assert<'a>(
     lines: &'a [SimpleLine],
     i: usize,
     v: &Var,
     fusions: &Fusions,
+    asserts: &BTreeMap<Var, Vec<usize>>,
 ) -> Option<(usize, &'a SimpleExpr)> {
-    for (j, line) in lines.iter().enumerate().skip(i + 1) {
-        if fusions.replacements.contains_key(&j) {
-            // An AssertEq can be claimed only once
+    for &j in asserts.get(v)? {
+        // Only asserts strictly after `i`, and an AssertEq can be claimed only once.
+        if j <= i || fusions.replacements.contains_key(&j) {
             continue;
         }
-        let SimpleLine::AssertEq { left, right, .. } = line else {
+        let SimpleLine::AssertEq { left, right, .. } = &lines[j] else {
             continue;
         };
         match (left.as_var(), right.as_var()) {
@@ -197,6 +211,7 @@ fn fuse_raw_asserts(lines: &mut Vec<SimpleLine>, refs: &BTreeMap<Var, VarRefs>) 
     }
 
     let mut fusions = Fusions::default();
+    let asserts = asserts_by_var(lines);
     for i in 0..lines.len() {
         let SimpleLine::RawAccess { res, index, shift } = &lines[i] else {
             continue;
@@ -205,7 +220,7 @@ fn fuse_raw_asserts(lines: &mut Vec<SimpleLine>, refs: &BTreeMap<Var, VarRefs>) 
         if !is_one_time_var(v, refs) {
             continue;
         }
-        if let Some((j, other)) = find_fusable_assert(lines, i, v, &fusions) {
+        if let Some((j, other)) = find_fusable_assert(lines, i, v, &fusions, &asserts) {
             fusions.lines_to_drop.insert(i);
             fusions.declarations_to_drop.insert(v.clone());
             fusions.replacements.insert(
@@ -229,6 +244,7 @@ fn fuse_assign_asserts(lines: &mut Vec<SimpleLine>, refs: &BTreeMap<Var, VarRefs
     }
 
     let mut fusions = Fusions::default();
+    let asserts = asserts_by_var(lines);
     for i in 0..lines.len() {
         let SimpleLine::Assignment { var, op, arg0, arg1 } = &lines[i] else {
             continue;
@@ -237,7 +253,7 @@ fn fuse_assign_asserts(lines: &mut Vec<SimpleLine>, refs: &BTreeMap<Var, VarRefs
         if !is_one_time_var(v, refs) {
             continue;
         }
-        if let Some((j, other)) = find_fusable_assert(lines, i, v, &fusions) {
+        if let Some((j, other)) = find_fusable_assert(lines, i, v, &fusions, &asserts) {
             fusions.lines_to_drop.insert(i);
             fusions.declarations_to_drop.insert(v.clone());
             fusions.replacements.insert(

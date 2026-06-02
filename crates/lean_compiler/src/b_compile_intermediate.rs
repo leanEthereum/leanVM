@@ -205,7 +205,8 @@ fn compile_lines(
     for (i, line) in lines.iter().enumerate() {
         match line {
             SimpleLine::ForwardDeclaration { var } => {
-                if !compiler.dead_fp_relative_vars.contains(var)
+                if !compiler.is_in_scope(var)
+                    && !compiler.dead_fp_relative_vars.contains(var)
                     && !compiler.dead_store_vars.contains(var)
                     && !compiler.coalesced_ret_vars.contains(var)
                 {
