@@ -31,8 +31,10 @@ pub fn tune_allocator() {
     }
 }
 
-/// Call once before proving. Compiles the aggregation program and precomputes DFT twiddles.
+/// Call once before proving. Tunes the process memory policy (see [`tune_allocator`]),
+/// compiles the aggregation program, and precomputes DFT twiddles.
 pub fn setup_prover() {
+    tune_allocator();
     parallel::init();
     rec_aggregation::init_aggregation_bytecode();
     precompute_dft_twiddles::<F>(1 << 24);

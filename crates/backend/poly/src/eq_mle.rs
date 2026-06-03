@@ -9,13 +9,13 @@ const LOG_BATCHED_TILE_SIZE: usize = 14;
 
 /// log2 oversubscription for the eq_mle fan-out: emit `NUM_THREADS << this` chunks so the
 /// pool's task counter rebalances across heterogeneous cores (e.g. P/E). `0` = one chunk
-/// per worker. Default `2` (4x) is conservative; a runtime knob so the benchmark can sweep.
-pub static PARALLEL_LOG_OVERSUB: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(2);
+/// per worker; `2` (4x) is a conservative default that balances well without over-fragmenting.
+const PARALLEL_LOG_OVERSUB: usize = 2;
 
-/// `(log2(n_chunks), n_chunks)` for the parallel fan-out, honoring [`PARALLEL_LOG_OVERSUB`].
+/// `(log2(n_chunks), n_chunks)` for the parallel fan-out.
 #[inline]
 fn parallel_split() -> (usize, usize) {
-    let log_chunks = LOG_NUM_THREADS + PARALLEL_LOG_OVERSUB.load(std::sync::atomic::Ordering::Relaxed);
+    let log_chunks = LOG_NUM_THREADS + PARALLEL_LOG_OVERSUB;
     (log_chunks, 1 << log_chunks)
 }
 
@@ -1303,84 +1303,6 @@ mod tests {
 
                 assert_eq!(out_2, out_3_packed);
             }
-        }
-    }
-
-    #[test]
-    #[ignore = "benchmark; run explicitly with --ignored --nocapture"]
-    fn bench_pool_oversub() {
-        use std::sync::atomic::Ordering;
-        use std::time::Instant;
-
-        // Sweep oversubscription log-factors. 0 == one chunk per worker.
-        const FACTORS: [usize; 6] = [0, 1, 2, 3, 4, 5];
-
-        let mut rng = StdRng::seed_from_u64(0);
-
-        // Time `f` over `iters` runs after `warmup` discarded runs; report best.
-        fn timed(warmup: usize, iters: usize, mut f: impl FnMut()) -> std::time::Duration {
-            for _ in 0..warmup {
-                f();
-            }
-            let mut best = std::time::Duration::MAX;
-            for _ in 0..iters {
-                let t = Instant::now();
-                f();
-                best = best.min(t.elapsed());
-            }
-            best
-        }
-
-        // Time `run` at every oversub factor; print ms (best-of-N) per factor, with
-        // the per-row best marked. Lets us pick a factor robust across machines.
-        fn sweep(label: &str, n_vars: usize, warmup: usize, iters: usize, mut run: impl FnMut()) {
-            let restore = PARALLEL_LOG_OVERSUB.load(Ordering::Relaxed);
-            let times: Vec<f64> = FACTORS
-                .iter()
-                .map(|&f| {
-                    PARALLEL_LOG_OVERSUB.store(f, Ordering::Relaxed);
-                    timed(warmup, iters, &mut run).as_secs_f64() * 1e3
-                })
-                .collect();
-            PARALLEL_LOG_OVERSUB.store(restore, Ordering::Relaxed);
-            let best = times.iter().copied().fold(f64::MAX, f64::min);
-            print!("  {label:>14} n={n_vars:>2} |");
-            for &t in &times {
-                let mark = if (t - best).abs() < 1e-9 { '*' } else { ' ' };
-                print!(" {t:>6.2}{mark}");
-            }
-            println!();
-        }
-
-        print!("\n          oversub factor:");
-        for f in FACTORS {
-            print!("    {f:>2}x ");
-        }
-        println!("   (ms, best-of-N, * = row best)");
-        for n_vars in [18usize, 20, 22, 23, 24] {
-            let eval_ef: Vec<EF> = (0..n_vars).map(|_| rng.random()).collect();
-            let eval_f: Vec<F> = (0..n_vars).map(|_| rng.random()).collect();
-            let scalar: EF = rng.random();
-            let (warmup, iters) = if n_vars >= 23 { (1, 3) } else { (2, 10) };
-
-            // Correctness: the factor must not change the result.
-            PARALLEL_LOG_OVERSUB.store(0, Ordering::Relaxed);
-            let mut ref_out = EF::zero_vec(1 << n_vars);
-            compute_eval_eq::<F, EF, false>(&eval_ef, &mut ref_out, scalar);
-            for f in FACTORS {
-                PARALLEL_LOG_OVERSUB.store(f, Ordering::Relaxed);
-                let mut out = EF::zero_vec(1 << n_vars);
-                compute_eval_eq::<F, EF, false>(&eval_ef, &mut out, scalar);
-                assert_eq!(ref_out, out, "oversub {f} changed output (ext) at n={n_vars}");
-            }
-
-            let mut out = EF::zero_vec(1 << n_vars);
-            sweep("eval_eq (ext)", n_vars, warmup, iters, || {
-                compute_eval_eq::<F, EF, false>(&eval_ef, &mut out, scalar);
-            });
-            sweep("eval_eq_base", n_vars, warmup, iters, || {
-                compute_eval_eq_base::<F, EF, false>(&eval_f, &mut out, scalar);
-            });
         }
     }
 
