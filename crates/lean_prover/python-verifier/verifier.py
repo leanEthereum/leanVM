@@ -757,7 +757,6 @@ def eval_air_extension_table(evaluator: ConstraintEvaluator, logup_beta_eq: list
         evaluator.assert_zero((acc[k] - (v_a_tilde[k] + v_b[k] + acc_tail[k])) * flag_add)
     for k in range(EF.DIMENSION):
         evaluator.assert_zero((acc[k] - (v_a_v_b[k] + acc_tail[k])) * flag_dot_product)
-
     # eq: acc ← (2·v_a·v_b − v_a − v_b + 1) · (acc_tail or 1 at group end).
     e_eq = [2 * v_a_v_b[k] - v_a_tilde[k] - v_b[k] + (ONE if k == 0 else ZERO) for k in range(EF.DIMENSION)]
     acc_tail_or_one = [acc_next[0] * not_start_next + flag_start_next] + [
@@ -766,16 +765,11 @@ def eval_air_extension_table(evaluator: ConstraintEvaluator, logup_beta_eq: list
     eq_result = quintic_mul(e_eq, acc_tail_or_one, ZERO)
     for k in range(EF.DIMENSION):
         evaluator.assert_zero((acc[k] - eq_result[k]) * flag_eq)
+
     for k in range(EF.DIMENSION):
         evaluator.assert_zero((acc[k] - res[k]) * flag_start)
 
-    for x, y in [
-        (len_col, len_next + ONE),
-        (flag_be, flag_be_next),
-        (flag_add, flag_add_next),
-        (flag_dot_product, flag_dot_product_next),
-        (flag_eq, flag_eq_next),
-    ]:
+    for x, y in [(len_col, len_next + ONE), (flag_be, flag_be_next), (flag_add, flag_add_next), (flag_dot_product, flag_dot_product_next), (flag_eq, flag_eq_next)]:  # fmt: skip
         evaluator.assert_zero(not_start_next * (x - y))
 
     evaluator.assert_zero(not_start_next * (idx_a_next - idx_a - (flag_be + is_ee * EF.DIMENSION)))
@@ -826,22 +820,16 @@ def eval_air_poseidon16_table(evaluator: ConstraintEvaluator, logup_beta_eq: lis
     evaluator.assert_zero((ONE - flag_permute) * (ONE - flag_out8) * (ONE - flag_out4))
     evaluator.assert_zero(flag_left * (offset_left - addr_left_lo))
     evaluator.assert_zero(not_flag_left * (nu_a - addr_left_lo))
-
-    # --- Poseidon1-16 permutation AIR: each committed `post` row pins the intermediate
-    # state then re-binds it, capping polynomial degree across the long round sequence.
     state = list(inputs)
-
-    # Beginning full rounds, paired up.
+    # 2-by2 initial full rounds
     for r in range(half_pairs):
         state = _full_round(state, POSEIDON_AIR_INITIAL_CONSTANTS[2 * r], POSEIDON_AIR_INITIAL_CONSTANTS[2 * r + 1])
         for i, post in enumerate(beginning_full_rounds[r]):
             evaluator.assert_eq(state[i], post)
             state[i] = post
-
     # Transition into sparse partial-round form.
     state = [s + rc for s, rc in zip(state, POSEIDON_AIR_SPARSE_FIRST_RC)]
     state = [dot_product(state, row) for row in POSEIDON_AIR_SPARSE_M_I]
-
     # Partial rounds: one sbox on lane 0, then sparse mat-vec.
     for r in range(POSEIDON_PARTIAL_ROUNDS):
         evaluator.assert_eq(state[0].cube(), partial_cols[r])
@@ -852,8 +840,7 @@ def eval_air_poseidon16_table(evaluator: ConstraintEvaluator, logup_beta_eq: lis
         state[0] = dot_product(state, POSEIDON_AIR_SPARSE_FIRST_ROW[r])
         for i in range(1, POSEIDON_WIDTH):
             state[i] += old_s0 * POSEIDON_AIR_SPARSE_V[r][i - 1]
-
-    # Ending full rounds (all but the last pair) commit intermediate state.
+    # 2-by2 final full rounds
     for r in range(half_pairs - 1):
         state = _full_round(state, POSEIDON_AIR_FINAL_CONSTANTS[2 * r], POSEIDON_AIR_FINAL_CONSTANTS[2 * r + 1])
         for i, post in enumerate(ending_full_rounds[r]):
