@@ -17,29 +17,40 @@ fn expected_whir_configs_line() -> String {
         for num_variables in first_ff..=max_nv {
             let cfg: WhirConfig<EF> = WhirConfig::new(&builder, num_variables);
 
-            let mut rounds = String::from("(");
-            for (i, r) in cfg.round_parameters.iter().enumerate() {
+            let mut rounds = String::from("[");
+            for i in 0..cfg.n_rounds() {
+                let r = &cfg.round_parameters[i];
+                let folding_pow_bits = if i == 0 {
+                    cfg.starting_folding_pow_bits
+                } else {
+                    cfg.round_parameters[i - 1].folding_pow_bits
+                };
                 if i > 0 {
-                    rounds.push(',');
+                    rounds += ", ";
                 }
                 write!(
                     rounds,
                     "({},{},{},{})",
-                    r.num_queries, r.ood_samples, r.query_pow_bits, r.folding_pow_bits
+                    r.num_queries, r.ood_samples, r.query_pow_bits, folding_pow_bits
                 )
                 .unwrap();
             }
             if cfg.round_parameters.len() == 1 {
-                rounds.push(',');
+                rounds += ", ";
             }
-            rounds.push(')');
+            rounds.push(']');
 
+            let final_pow_bits = cfg
+                .round_parameters
+                .last()
+                .map(|r| r.folding_pow_bits)
+                .unwrap_or(cfg.starting_folding_pow_bits);
             entries.push(format!(
                 "({},{},{},{},{},{},{})",
                 log_inv_rate,
                 num_variables,
                 cfg.commitment_ood_samples,
-                cfg.starting_folding_pow_bits,
+                final_pow_bits,
                 cfg.final_queries,
                 cfg.final_query_pow_bits,
                 rounds,
@@ -47,7 +58,7 @@ fn expected_whir_configs_line() -> String {
         }
     }
 
-    format!("WHIR_CONFIGS = ({})", entries.join(","))
+    format!("WHIR_CONFIGS = [{}]", entries.join(", "))
 }
 
 fn strip_ws(s: &str) -> String {
