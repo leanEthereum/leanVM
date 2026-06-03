@@ -53,10 +53,6 @@ EXT_OP_FLAG_BE, EXT_OP_FLAG_ADD, EXT_OP_FLAG_DOT_PRODUCT, EXT_OP_FLAG_EQ, EXT_OP
 STARTING_PC = 0  # every program starts at PC = 0, and ends at PC = len(bytecode) - 1
 
 
-class ProofError(Exception):
-    pass
-
-
 class BusDirection(IntEnum):
     PUSH = 1
     PULL = -1
@@ -147,7 +143,7 @@ class DuplexSpongeChallenger:  # https://eprint.iacr.org/2025/536.pdf
         self.observe([Fp(0)] * SPONGE_RATE)
 
     def _sample_rate(self) -> list[Fp]:
-        assert self.rate_fresh, "stale rate — insert duplex() before sampling"
+        assert self.rate_fresh, "stale rate: insert duplex() before sampling" # unreachable
         self.rate_fresh = False
         return self.state[SPONGE_CAPACITY:]
 
@@ -193,12 +189,10 @@ class FiatShamir(DuplexSpongeChallenger):
 
     def _read_padded(self, n: int) -> list[Fp]:
         n_pad = next_multiple_of(n, SPONGE_RATE)
-        if self.offset + n_pad > len(self.transcript):
-            raise ProofError("ExceededTranscript")
+        assert self.offset + n_pad <= len(self.transcript), "Exceeded Transcript"
         chunk = self.transcript[self.offset : self.offset + n_pad]
         self.offset += n_pad
-        if any(int(chunk[i].value) for i in range(n, n_pad)):
-            raise ProofError("InvalidTranscript: non-zero padding")
+        assert all(int(chunk[i].value) == 0 for i in range(n, n_pad)), "InvalidTranscript: non-zero padding"
         self.observe_many(chunk)
         return chunk
 
@@ -216,16 +210,14 @@ class FiatShamir(DuplexSpongeChallenger):
         return self.next_extension_scalars_vec(1)[0]
 
     def next_merkle_opening(self) -> MerkleOpening:
-        if not self.openings:
-            raise ProofError("ExceededTranscript: no more Merkle openings")
+        assert self.openings, "Exceeded Transcript: no more Merkle openings"
         return self.openings.pop()
 
     def check_pow_grinding(self, bits: int) -> None:
         if bits == 0:
             return
         self._read_padded(SPONGE_RATE)
-        if int(self.state[SPONGE_CAPACITY].value) & ((1 << bits) - 1) != 0:
-            raise ProofError("InvalidGrindingWitness")
+        assert int(self.state[SPONGE_CAPACITY].value) & ((1 << bits) - 1) == 0, "Invalid Grinding Witness"
 
 
 def merkle_verify_path(
@@ -235,15 +227,13 @@ def merkle_verify_path(
     opened_values: Sequence[Fp],
     opening_proof: Sequence[list[Fp]],
 ) -> None:
-    if len(opening_proof) != log_height:
-        raise ProofError("Merkle verification failed: opening proof has wrong length")
+    assert len(opening_proof) == log_height, "Merkle verification failed: opening proof has wrong length"
     chunks = [list(opened_values[i : i + SPONGE_RATE]) for i in range(0, len(opened_values), SPONGE_RATE)]
     current = sponge_hash([x for c in reversed(chunks) for x in c])
     for sibling in opening_proof:
         current = poseidon16_compress(current, sibling) if index & 1 == 0 else poseidon16_compress(sibling, current)
         index >>= 1
-    if root != current:
-        raise ProofError("Merkle verification failed: root mismatch")
+    assert root == current, "Merkle verification failed: root mismatch"
 
 
 def expand_from_univariate(x: EF, num_variables: int) -> list[EF]:
@@ -373,8 +363,7 @@ def verify_sumcheck(
     for _ in range(n_rounds):
         coeffs = fiat_shamir.next_extension_scalars_vec(degree + 1)
         s = coeffs[0] + sum(coeffs)  # s = h(0) + h(1)
-        if s != target:
-            raise ProofError("Sumcheck identity failed: h(0) + h(1) != target")
+        assert s == target, "Sumcheck identity failed: h(0) + h(1) != target"
         fiat_shamir.check_pow_grinding(pow_bits)
         challenge = fiat_shamir.sample_ef()
         point.append(challenge)
@@ -440,8 +429,7 @@ def verify_whir(
         commitment = new_commitment
     for smt in final_stir_constraints:
         univ_eval = eval_univariate_polynomial(final_coeffs, smt.point[0])
-        if any(univ_eval != v[1] for v in smt.values):
-            raise ProofError("Final STIR constraint mismatch")
+        assert all(univ_eval == v[1] for v in smt.values), "Final STIR constraint mismatch"
 
     final_sc_point, final_sc_value = verify_sumcheck(fiat_shamir, target, current_vars, 2)
     folding_challenges += final_sc_point
@@ -460,8 +448,7 @@ def verify_whir(
                 eval_weights += eval_prefix * eval_suffix * gamma_power
                 gamma_power *= gamma
     final_value = eval_multilinear_by_coeffs(final_coeffs, list(reversed(final_sc_point)))
-    if final_sc_value != eval_weights * final_value:
-        raise ProofError("WHIR final sumcheck check failed")
+    assert final_sc_value == eval_weights * final_value, "WHIR final sumcheck check failed"
 
 
 def stacked_pcs_global_statements(
@@ -516,8 +503,7 @@ def verify_gkr_quotient(fiat_shamir: FiatShamir, n_vars: int) -> tuple[EF, list[
         sc_point, sc_value = verify_sumcheck(fiat_shamir, claim_num + alpha * claim_den, layer_n_vars, 3)
         sc_point = list(reversed(sc_point))
         nl, nr, dl, dr = fiat_shamir.next_extension_scalars_vec(4)
-        if sc_value != eq_poly(point, sc_point) * (alpha * dl * dr + nl * dr + nr * dl):
-            raise ProofError("GKR step: postponed value mismatch")
+        assert sc_value == eq_poly(point, sc_point) * (alpha * dl * dr + nl * dr + nr * dl), "GKR step: postponed value mismatch"
         beta = fiat_shamir.sample_ef()
         one_minus = ONE - beta
         claim_num = one_minus * nl + beta * nr
@@ -561,8 +547,7 @@ def verify_generic_logup(
     logup_n_vars = log2_ceil(total_active_len)
 
     quotient, gkr_point, claim_num, claim_den = verify_gkr_quotient(fiat_shamir, logup_n_vars)
-    if quotient != ZERO:
-        raise ProofError("imbalanced logup bus")
+    assert quotient == ZERO, "imbalanced logup bus"
 
     def pref_at(offset: int, log_height: int) -> EF:
         n_missing = logup_n_vars - log_height
@@ -641,10 +626,8 @@ def verify_generic_logup(
                 offset += 1 << table_heights[table.name]
 
     den += mle_of_zeros_then_ones(final_offset, gkr_point)
-    if num != claim_num:
-        raise ProofError("logup: numerators value mismatch")
-    if den != claim_den:
-        raise ProofError("logup: denominators value mismatch")
+    assert num == claim_num, "logup: numerators value mismatch"
+    assert den == claim_den, "logup: denominators value mismatch"
 
     return {
         "memory_eval": memory_eval, "memory_acc_eval": memory_acc_eval,
@@ -911,25 +894,17 @@ def verify_execution(
     bytecode_log_size = log2_strict(len(bytecode_multilinear)) - log2_ceil(N_INSTRUCTION_COLUMNS)
     ending_pc = (1 << bytecode_log_size) - 1
     bytecode_hash = sponge_hash([Fp(v) for v in bytecode_multilinear])
-    if len(public_input) != PUBLIC_INPUT_SIZE:
-        raise ProofError("InvalidProof: public_input length mismatch")
+    assert len(public_input) == PUBLIC_INPUT_SIZE, "InvalidProof: public_input length mismatch"
 
     fiat_shamir = FiatShamir(proof, poseidon16_compress(bytecode_hash, SNARK_DOMAIN_SEP))  # domain separator across bytecodes
     fiat_shamir.observe_scalars(public_input)
     log_inv_rate, log_memory, *table_log_n_rows = [int(x.value) for x in fiat_shamir.next_base_scalars(2 + len(TABLES))]
-    if not MIN_WHIR_LOG_INV_RATE <= log_inv_rate <= MAX_WHIR_LOG_INV_RATE:
-        raise ProofError("InvalidRate")
-    if not MIN_LOG_MEMORY_SIZE <= log_memory <= MAX_LOG_MEMORY_SIZE:
-        raise ProofError("InvalidProof: log_memory out of range")
-    if not MIN_BYTECODE_LOG_SIZE <= bytecode_log_size <= MAX_BYTECODE_LOG_SIZE:
-        raise ProofError("InvalidProof: bytecode log_size out of range")
-    if log_memory < max(max(table_log_n_rows, default=0), bytecode_log_size):
-        raise ProofError("InvalidProof: memory smaller than tables/bytecode")
+    assert MIN_WHIR_LOG_INV_RATE <= log_inv_rate <= MAX_WHIR_LOG_INV_RATE, "InvalidRate"
+    assert MIN_LOG_MEMORY_SIZE <= log_memory <= MAX_LOG_MEMORY_SIZE, "InvalidProof: log_memory out of range"
+    assert MIN_BYTECODE_LOG_SIZE <= bytecode_log_size <= MAX_BYTECODE_LOG_SIZE, "InvalidProof: bytecode log_size out of range"
+    assert log_memory >= max(max(table_log_n_rows, default=0), bytecode_log_size), "InvalidProof: memory smaller than tables/bytecode"
     for table, log_height in zip(TABLES, table_log_n_rows):
-        if not MIN_LOG_N_ROWS_PER_TABLE <= log_height <= table.max_log_height:
-            raise ProofError(
-                f"InvalidProof: table {table.name} log_n_rows={log_height} not in [{MIN_LOG_N_ROWS_PER_TABLE}, {table.max_log_height}]"
-            )
+        assert MIN_LOG_N_ROWS_PER_TABLE <= log_height <= table.max_log_height, f"InvalidProof: table {table.name} log_n_rows={log_height} not in [{MIN_LOG_N_ROWS_PER_TABLE}, {table.max_log_height}]"
 
     log_heights = {t.name: h for t, h in zip(TABLES, table_log_n_rows)}
     n_max = sort_tables_by_height(TABLES, log_heights)[0][1]
@@ -941,8 +916,7 @@ def verify_execution(
     )
 
     stacked_n_vars = log2_ceil(total_stacked)
-    if stacked_n_vars > TWO_ADICITY + WHIR_INITIAL_FOLDING_FACTOR - log_inv_rate:
-        raise ProofError("InvalidProof: stacked_n_vars exceeds WHIR domain bound")
+    assert stacked_n_vars <= TWO_ADICITY + WHIR_INITIAL_FOLDING_FACTOR - log_inv_rate, "InvalidProof: stacked_n_vars exceeds WHIR domain bound"
     cfg = WHIR_CONFIGS[(log_inv_rate, stacked_n_vars)]
     nood = cfg["commitment_ood_samples"]
     parsed_commitment = WhirCommitment.read(fiat_shamir, stacked_n_vars, nood)
@@ -991,8 +965,7 @@ def verify_execution(
         eq_vals = {i: col_evals[i] for i in range(table.n_columns)}
         next_vals = {j: col_evals[table.n_columns + j] for j in range(table.n_shift)}
         committed[table.name].append((natural_pt, eq_vals, next_vals))
-    if my_air_final != sc_value:
-        raise ProofError("AIR sumcheck: claimed value mismatch")
+    assert my_air_final == sc_value, "AIR sumcheck: claimed value mismatch"
 
     pm_point = fiat_shamir.sample_many_ef(log2_strict(PUBLIC_INPUT_SIZE))
     pm_eval = eval_multilinear_by_evals(public_input, pm_point)
@@ -1021,21 +994,12 @@ def verify_execution(
     )
     verify_whir(fiat_shamir, cfg, parsed_commitment, global_statements)
 
-    if fiat_shamir.offset != len(fiat_shamir.transcript):
-        raise ProofError(
-            f"InvalidProof: transcript not fully consumed ({fiat_shamir.offset}/{len(fiat_shamir.transcript)} scalars read)"
-        )
-    if fiat_shamir.openings:
-        raise ProofError(f"InvalidProof: {len(fiat_shamir.openings)} Merkle openings unused")
+    assert fiat_shamir.offset == len(fiat_shamir.transcript), f"InvalidProof: transcript not fully consumed ({fiat_shamir.offset}/{len(fiat_shamir.transcript)} scalars read)"
+    assert not fiat_shamir.openings, f"InvalidProof: {len(fiat_shamir.openings)} Merkle openings unused"
 
-
-def main() -> int:
+if __name__ == "__main__":
     vector_path = Path(__file__).resolve().parents[3] / "target" / "zkvm_test_vectors" / "proof.json"
-    if not vector_path.exists():
-        print(
-            f"Test vector not found at {vector_path}. Please follow the instructions at the beginning of verifier.py file."
-        )
-        return 1
+    assert vector_path.exists(), f"Test vector not found at {vector_path}. Please follow the instructions at the beginning of verifier.py file."
 
     print(f"Loading {vector_path.name}...")
     raw = json.loads(vector_path.read_text())
@@ -1055,15 +1019,5 @@ def main() -> int:
         ],
     )
 
-    try:
-        verify_execution(bytecode_multilinear, public_input, proof)
-    except ProofError as e:
-        print(f"FAIL: {e}")
-        return 1
-
+    verify_execution(bytecode_multilinear, public_input, proof)
     print("Proof successfully verified")
-    return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())
