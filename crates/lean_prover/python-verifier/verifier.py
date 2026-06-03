@@ -513,8 +513,8 @@ def verify_gkr_quotient(fiat_shamir: FiatShamir, n_vars: int) -> tuple[EF, list[
     for layer_n_vars in range(N_VARS_TO_SEND_GKR_COEFFS, n_vars):
         fiat_shamir.duplex()
         alpha = fiat_shamir.sample_ef()
-        raw_pt, sc_value = verify_sumcheck(fiat_shamir, claim_num + alpha * claim_den, layer_n_vars, 3)
-        sc_point = list(reversed(raw_pt))
+        sc_point, sc_value = verify_sumcheck(fiat_shamir, claim_num + alpha * claim_den, layer_n_vars, 3)
+        sc_point = list(reversed(sc_point))
         nl, nr, dl, dr = fiat_shamir.next_extension_scalars_vec(4)
         if sc_value != eq_poly(point, sc_point) * (alpha * dl * dr + nl * dr + nr * dl):
             raise ProofError("GKR step: postponed value mismatch")
@@ -540,19 +540,17 @@ def sort_tables_by_height(tables: Sequence[Table], heights: dict[str, int]) -> l
 def verify_generic_logup(
     fiat_shamir: FiatShamir,
     gamma: EF,  # quotient denominator challenge
-    beta: list[EF],  # bus-tuple hashing seeds
+    beta: list[EF],  # bus-tuple hashing seed
     beta_eq: list[EF],  # eq(beta, ·) evaluation table
     log_memory: int,
     bytecode_multilinear: list[int],
     tables: Sequence[Table],
-    heights: dict[str, int],
+    table_heights: dict[str, int],
 ) -> dict:
-    ds_mem = Fp(LOGUP_MEMORY_DOMAINSEP)
-    ds_byte = Fp(LOGUP_BYTECODE_DOMAINSEP)
     log_instr = log2_ceil(N_INSTRUCTION_COLUMNS)
     log_bytecode = log2_strict(len(bytecode_multilinear)) - log_instr
 
-    tables_sorted = sort_tables_by_height(tables, heights)
+    tables_sorted = sort_tables_by_height(tables, table_heights)
     tallest_h = tables_sorted[0][1]
 
     total_active_len = (
@@ -560,15 +558,14 @@ def verify_generic_logup(
         + max(1 << log_bytecode, 1 << tallest_h)
         + sum(t.n_bus_interactions << h for t, h in tables_sorted)
     )
-    total_gkr_n_vars = log2_ceil(total_active_len)
+    logup_n_vars = log2_ceil(total_active_len)
 
-    quotient, point_gkr, claim_num, claim_den = verify_gkr_quotient(fiat_shamir, total_gkr_n_vars)
+    quotient, point_gkr, claim_num, claim_den = verify_gkr_quotient(fiat_shamir, logup_n_vars)
     if quotient != ZERO:
-        raise ProofError("logup: GKR sum != 0")
+        raise ProofError("imbalanced logup bus")
 
     def pref_at(offset: int, log_height: int) -> EF:
-        """Lagrange weight for the layout-offset of a section of height 2^log_height."""
-        n_missing = total_gkr_n_vars - log_height
+        n_missing = logup_n_vars - log_height
         return eq_at_index(point_gkr, offset >> log_height, n_missing)
 
     num = den = ZERO
@@ -578,27 +575,26 @@ def verify_generic_logup(
     pref = pref_at(0, log_memory)
     value_memory_acc = fiat_shamir.next_extension_scalar()
     value_memory = fiat_shamir.next_extension_scalar()
-    fp_mem = finger_print(ds_mem, [mle_of_01234567_etc(mem_pt), value_memory], beta_eq)
     num -= pref * value_memory_acc
-    den += pref * (gamma - fp_mem)
+    den += pref * (gamma - finger_print(Fp(LOGUP_MEMORY_DOMAINSEP), [mle_of_01234567_etc(mem_pt), value_memory], beta_eq))
     offset = 1 << log_memory
 
     # Bytecode section (padded to the tallest table)
-    log_byte_pad = max(log_bytecode, tallest_h)
-    byte_pt = point_gkr[-log_bytecode:]
+    log_bytecode_padded = max(log_bytecode, tallest_h)
+    bytecode_pt = point_gkr[-log_bytecode:]
     pref = pref_at(offset, log_bytecode)
-    pref_pad = pref_at(offset, log_byte_pad)
+    pref_padded = pref_at(offset, log_bytecode_padded)
     value_bytecode_acc = fiat_shamir.next_extension_scalar()
-    bytecode_value = eval_multilinear_by_evals([Fp(v) for v in bytecode_multilinear], byte_pt + beta[-log_instr:])
+    value_bytecode = eval_multilinear_by_evals([Fp(v) for v in bytecode_multilinear], bytecode_pt + beta[-log_instr:])
     correction = math.prod(ONE - a for a in beta[: len(beta) - log_instr])
-    fp_byte = (
-        bytecode_value * correction
-        + mle_of_01234567_etc(byte_pt) * beta_eq[N_INSTRUCTION_COLUMNS]
-        + beta_eq[-1] * ds_byte
+    fingerprint_bytecode = (
+        value_bytecode * correction
+        + mle_of_01234567_etc(bytecode_pt) * beta_eq[N_INSTRUCTION_COLUMNS]
+        + beta_eq[-1] * Fp(LOGUP_BYTECODE_DOMAINSEP)
     )
     num -= pref * value_bytecode_acc
-    den += pref * (gamma - fp_byte) + pref_pad * mle_of_zeros_then_ones(1 << log_bytecode, point_gkr[-log_byte_pad:])
-    offset += 1 << log_byte_pad
+    den += pref * (gamma - fingerprint_bytecode) + pref_padded * mle_of_zeros_then_ones(1 << log_bytecode, point_gkr[-log_bytecode_padded:])
+    offset += 1 << log_bytecode_padded
 
     # Per-table section
     table_offsets: dict[str, int] = {}
@@ -612,37 +608,33 @@ def verify_generic_logup(
     columns_values: dict[str, dict[int, EF]] = {}
 
     for table in tables:
-        name = table.name
-        log_n_rows = heights[name]
-        row_stride = 1 << log_n_rows
-        offset = table_offsets[name]
-        vals: dict[int, EF] = {}
+        offset = table_offsets[table.name]
+        column_values: dict[int, EF] = {}
 
         def read(cols: Sequence[int]) -> list[EF]:
-            """Evals of `cols`, batch-reading any not-yet-seen column from the transcript, in order."""
-            missing = [c for c in cols if c not in vals]
+            missing = [c for c in cols if c not in column_values]
             for c, e in zip(missing, fiat_shamir.next_extension_scalars_vec(len(missing))):
-                vals[c] = e
-            return [vals[c] for c in cols]
+                column_values[c] = e
+            return [column_values[c] for c in cols]
 
         for bus in table.buses:
             if not bus.cols:
-                pref = pref_at(offset, log_n_rows)
-                bus_num_vals[name] = fiat_shamir.next_extension_scalar()
-                bus_den_vals[name] = fiat_shamir.next_extension_scalar()
-                num += pref * bus_num_vals[name]
-                den += pref * bus_den_vals[name]
-                offset += row_stride
+                pref = pref_at(offset, table_heights[table.name])
+                bus_num_vals[table.name] = fiat_shamir.next_extension_scalar()
+                bus_den_vals[table.name] = fiat_shamir.next_extension_scalar()
+                num += pref * bus_num_vals[table.name]
+                den += pref * bus_den_vals[table.name]
+                offset += 1 << table_heights[table.name]
                 continue
             sep, base = Fp(bus.domain_sep), [table.col(c) for c in bus.cols]  # memory / bytecode
             for i in range(bus.n_terms):  # term i: σ = (m[base[0]] + i, m[base[1:] + i])
-                pref = pref_at(offset, log_n_rows)
+                pref = pref_at(offset, table_heights[table.name])
                 d = read([base[0], *(c + i for c in base[1:])])
                 num += pref
                 den += pref * (gamma - finger_print(sep, [d[0] + i, *d[1:]], beta_eq))
-                offset += row_stride
+                offset += 1 << table_heights[table.name]
 
-        columns_values[name] = vals
+        columns_values[table.name] = column_values
 
     den += mle_of_zeros_then_ones(final_offset, point_gkr)
     if num != claim_num:
