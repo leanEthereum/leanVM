@@ -335,7 +335,7 @@ class WhirCommitment:
     ood_answers: list[EF]
 
     @classmethod
-    def read(cls, fs: "FiatShamir", num_variables: int, n_ood: int) -> "WhirCommitment":
+    def parse(cls, fs: "FiatShamir", num_variables: int, n_ood: int) -> "WhirCommitment":
         return cls(
             num_variables,
             fs.next_base_scalars(DIGEST_ELEMS),
@@ -397,7 +397,7 @@ def verify_whir(
         if is_final:
             final_coeffs = fiat_shamir.next_extension_scalars_vec(1 << current_vars)
         else:
-            new_commitment = WhirCommitment.read(fiat_shamir, current_vars, round_params["ood_samples"])
+            new_commitment = WhirCommitment.parse(fiat_shamir, current_vars, round_params["ood_samples"])
 
         log_height = log_domain - folding_factor
         gen = Fp(KB_TWO_ADIC_GENERATORS[log_height])
@@ -611,11 +611,7 @@ def verify_generic_logup(
     assert num == claim_num, "logup: numerators value mismatch"
     assert den == claim_den, "logup: denominators value mismatch"
 
-    return {
-        "memory_eval": memory_eval, "memory_acc_eval": memory_acc_eval,
-        "value_bytecode_acc": value_bytecode_acc, "precompile_nums": precompile_nums, "precompile_dens": precompile_dens,
-        "gkr_point": gkr_point, "columns_evals": columns_evals,
-    }  # fmt: skip
+    return memory_eval, memory_acc_eval, value_bytecode_acc, precompile_nums, precompile_dens, gkr_point, columns_evals
 
 
 class Cols(dict):
@@ -882,26 +878,24 @@ def verify_execution(
     assert MIN_BYTECODE_LOG_SIZE <= bytecode_log_size <= MAX_BYTECODE_LOG_SIZE, "bytecode log_size out of range"
     assert log_memory >= max(max(table_log_heights, default=0), bytecode_log_size), "memory smaller than tables/bytecode"
     for table, log_height in zip(TABLES, table_log_heights):
-        assert MIN_LOG_HEIGHT_PER_TABLE <= log_height <= table.max_log_height, (
-            f"table {table.name} log_heights={log_height} not in [{MIN_LOG_HEIGHT_PER_TABLE}, {table.max_log_height}]"
-        )
+        assert MIN_LOG_HEIGHT_PER_TABLE <= log_height <= table.max_log_height, f"table {table.name}: invalid height"
 
     log_heights = {t.name: h for t, h in zip(TABLES, table_log_heights)}
     n_max = sort_tables_by_height(TABLES, log_heights)[0][1]
 
-    total_stacked = (2 << log_memory) + (1 << max(bytecode_log_size, n_max)) + sum(t.n_columns << log_heights[t.name] for t in TABLES)
-
+    total_stacked = (
+        (2 << log_memory) + (1 << max(bytecode_log_size, n_max)) + sum(t.n_columns << log_heights[t.name] for t in TABLES)
+    )  # memory + memory_acc + bytecode_acc + biggest_table + second_biggest_table + etc + smallest_table
     stacked_n_vars = log2_ceil(total_stacked)
     assert stacked_n_vars <= TWO_ADICITY + WHIR_INITIAL_FOLDING_FACTOR - log_inv_rate, "tacked_n_vars exceeds WHIR domain bound"
     cfg = WHIR_CONFIGS[(log_inv_rate, stacked_n_vars)]
-    nood = cfg["commitment_ood_samples"]
-    parsed_commitment = WhirCommitment.read(fiat_shamir, stacked_n_vars, nood)
+    parsed_commitment = WhirCommitment.parse(fiat_shamir, stacked_n_vars, cfg["commitment_ood_samples"])
 
     logup_gamma = fiat_shamir.sample_ef()  # the quotient denominator
     fiat_shamir.duplex()
     logup_beta = fiat_shamir.sample_many_ef(log2_ceil(N_INSTRUCTION_COLUMNS + 2))  # the bus-tuple hashing seeds
     logup_beta_eq = eval_eq(logup_beta)
-    logup = verify_generic_logup(
+    memory_eval, memory_acc_eval, value_bytecode_acc, precompile_nums, precompile_dens, gkr_point, columns_evals = verify_generic_logup(
         fiat_shamir,
         logup_gamma,
         logup_beta,
@@ -911,19 +905,18 @@ def verify_execution(
         TABLES,
         log_heights,
     )
-    gkr_point = logup["gkr_point"]
 
     air_alpha = fiat_shamir.sample_ef()
     alpha_powers = ef_powers(air_alpha, sum(t.n_constraints for t in TABLES))
 
     initial_sum, offset = ZERO, 0
     for table in TABLES:
-        initial_sum += alpha_powers[offset] * (logup["precompile_nums"][table.name] * table.precompile_bus_interaction_sign)
-        initial_sum += alpha_powers[offset + 1] * (logup_gamma - logup["precompile_dens"][table.name])
+        initial_sum += alpha_powers[offset] * (precompile_nums[table.name] * table.precompile_bus_interaction_sign)
+        initial_sum += alpha_powers[offset + 1] * (logup_gamma - precompile_dens[table.name])
         offset += table.n_constraints
     sc_point, sc_value = verify_sumcheck(fiat_shamir, initial_sum, n_max, max(t.air_degree + 1 for t in TABLES))
 
-    committed = {t.name: [(gkr_point[-log_heights[t.name] :], logup["columns_evals"][t.name], {})] for t in TABLES}
+    committed = {t.name: [(gkr_point[-log_heights[t.name] :], columns_evals[t.name], {})] for t in TABLES}
     my_air_final, offset = ZERO, 0
     for table in TABLES:
         log_height = log_heights[table.name]
@@ -949,10 +942,10 @@ def verify_execution(
         SparseStatements(
             stacked_n_vars,
             gkr_point[-log_memory:],
-            [(0, logup["memory_eval"]), (1, logup["memory_acc_eval"])],
+            [(0, memory_eval), (1, memory_acc_eval)],
         ),
         SparseStatements(stacked_n_vars, pm_point, [(0, pm_eval)]),
-        SparseStatements(stacked_n_vars, gkr_point[-bytecode_log_size:], [(bytecode_acc_idx, logup["value_bytecode_acc"])]),
+        SparseStatements(stacked_n_vars, gkr_point[-bytecode_log_size:], [(bytecode_acc_idx, value_bytecode_acc)]),
     ]
     global_statements = stacked_pcs_global_statements(
         stacked_n_vars,
