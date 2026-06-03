@@ -416,9 +416,7 @@ POSEIDON_AIR_MDS_DENSE: list[list[Fp]] = [[Fp(MDS_FIRST_ROW_16[(j - i) % _N]) fo
 # External full-round constants: first / last POSEIDON_HALF_FULL_ROUNDS slices of round_constants.
 POSEIDON_AIR_INITIAL_CONSTANTS: list[list[Fp]] = [[Fp(v) for v in _RCS[i * _W : (i + 1) * _W]] for i in range(_HF)]
 _TAIL = (_HF + POSEIDON_PARTIAL_ROUNDS) * _W
-POSEIDON_AIR_FINAL_CONSTANTS: list[list[Fp]] = [
-    [Fp(v) for v in _RCS[_TAIL + i * _W : _TAIL + (i + 1) * _W]] for i in range(_HF)
-]
+POSEIDON_AIR_FINAL_CONSTANTS: list[list[Fp]] = [[Fp(v) for v in _RCS[_TAIL + i * _W : _TAIL + (i + 1) * _W]] for i in range(_HF)]
 
 # Sparse partial-round constants (Fp-wrapped).
 POSEIDON_AIR_SPARSE_M_I: list[list[Fp]] = [[Fp(v) for v in row] for row in _SPARSE["sparse_m_i"]]

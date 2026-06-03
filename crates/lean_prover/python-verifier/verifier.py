@@ -4,7 +4,7 @@ Setup the test vector (one-time):
 Run:
     python3 crates/lean_prover/python-verifier/verifier.py
 Format:
-    ruff format --line-length 120 crates/lean_prover/python-verifier
+    ruff format --line-length 150 crates/lean_prover/python-verifier
 """
 
 from __future__ import annotations
@@ -30,9 +30,7 @@ WHIR_CONFIGS = {
         "log_inv_rate": c[0],
         "num_variables": c[1],
         "commitment_ood_samples": c[2],
-        "rounds": [
-            {"num_queries": r[0], "ood_samples": r[1], "query_pow_bits": r[2], "folding_pow_bits": r[3]} for r in c[6]
-        ]
+        "rounds": [{"num_queries": r[0], "ood_samples": r[1], "query_pow_bits": r[2], "folding_pow_bits": r[3]} for r in c[6]]
         + [{"num_queries": c[4], "query_pow_bits": c[5], "folding_pow_bits": c[3]}],
     }
     for c in _WHIR_CONFIGS
@@ -93,15 +91,11 @@ class Table:
         return self.columns.index(name)
 
     def eval_air(self, col_evals: Sequence[EF], alpha_powers: Sequence[EF], logup_beta_eq: list[EF]) -> EF:
-        constraint_evaluator = ConstraintEvaluator(
-            col_evals[: self.n_columns], col_evals[self.n_columns :], alpha_powers, self.columns
-        )
+        constraint_evaluator = ConstraintEvaluator(col_evals[: self.n_columns], col_evals[self.n_columns :], alpha_powers, self.columns)
         self.air_constraints_fn(constraint_evaluator, logup_beta_eq)
         return constraint_evaluator.accumulator
 
-    def boundary_statements(
-        self, stacked_n_vars: int, offset: int, log_n_rows: int, ending_pc: int
-    ) -> list["SparseStatements"]:
+    def boundary_statements(self, stacked_n_vars: int, offset: int, log_n_rows: int, ending_pc: int) -> list["SparseStatements"]:
         if self.name != "execution":
             return []
         pc_col_offset = offset + (self.col("pc") << log_n_rows)
@@ -143,7 +137,7 @@ class DuplexSpongeChallenger:  # https://eprint.iacr.org/2025/536.pdf
         self.observe([Fp(0)] * SPONGE_RATE)
 
     def _sample_rate(self) -> list[Fp]:
-        assert self.rate_fresh, "stale rate: insert duplex() before sampling" # unreachable
+        assert self.rate_fresh, "stale rate: insert duplex() before sampling"  # unreachable
         self.rate_fresh = False
         return self.state[SPONGE_CAPACITY:]
 
@@ -356,9 +350,7 @@ class WhirCommitment:
         ]
 
 
-def verify_sumcheck(
-    fiat_shamir: FiatShamir, target: EF, n_rounds: int, degree: int, pow_bits: int = 0
-) -> tuple[list[EF], EF]:
+def verify_sumcheck(fiat_shamir: FiatShamir, target: EF, n_rounds: int, degree: int, pow_bits: int = 0) -> tuple[list[EF], EF]:
     point: list[EF] = []
     for _ in range(n_rounds):
         coeffs = fiat_shamir.next_extension_scalars_vec(degree + 1)
@@ -503,7 +495,7 @@ def verify_gkr_quotient(fiat_shamir: FiatShamir, n_vars: int) -> tuple[EF, list[
         sc_point, sc_value = verify_sumcheck(fiat_shamir, claim_num + alpha * claim_den, layer_n_vars, 3)
         sc_point = list(reversed(sc_point))
         nl, nr, dl, dr = fiat_shamir.next_extension_scalars_vec(4)
-        assert sc_value == eq_poly(point, sc_point) * (alpha * dl * dr + nl * dr + nr * dl), "GKR step: postponed value mismatch"
+        assert sc_value == eq_poly(point, sc_point) * (alpha * dl * dr + nl * dr + nr * dl), "GKR step: postponed value mismatch"  # fmt: skip
         beta = fiat_shamir.sample_ef()
         one_minus = ONE - beta
         claim_num = one_minus * nl + beta * nr
@@ -539,11 +531,7 @@ def verify_generic_logup(
     tables_sorted = sort_tables_by_height(tables, table_heights)
     tallest_h = tables_sorted[0][1]
 
-    total_active_len = (
-        (1 << log_memory)
-        + max(1 << log_bytecode, 1 << tallest_h)
-        + sum(t.n_bus_interactions << h for t, h in tables_sorted)
-    )
+    total_active_len = (1 << log_memory) + max(1 << log_bytecode, 1 << tallest_h) + sum(t.n_bus_interactions << h for t, h in tables_sorted)
     logup_n_vars = log2_ceil(total_active_len)
 
     quotient, gkr_point, claim_num, claim_den = verify_gkr_quotient(fiat_shamir, logup_n_vars)
@@ -561,9 +549,7 @@ def verify_generic_logup(
     memory_acc_eval = fiat_shamir.next_extension_scalar()
     memory_eval = fiat_shamir.next_extension_scalar()
     num -= pref * memory_acc_eval
-    den += pref * (
-        gamma - finger_print(Fp(LOGUP_MEMORY_DOMAINSEP), [mle_of_01234567_etc(mem_pt), memory_eval], beta_eq)
-    )
+    den += pref * (gamma - finger_print(Fp(LOGUP_MEMORY_DOMAINSEP), [mle_of_01234567_etc(mem_pt), memory_eval], beta_eq))
     offset = 1 << log_memory
 
     # Bytecode section (padded to the tallest table)
@@ -575,14 +561,10 @@ def verify_generic_logup(
     bytecode_eval = eval_multilinear_by_evals([Fp(v) for v in bytecode_multilinear], bytecode_point + beta[-log_instr:])
     correction = math.prod(ONE - a for a in beta[: len(beta) - log_instr])
     fingerprint_bytecode = (
-        bytecode_eval * correction
-        + mle_of_01234567_etc(bytecode_point) * beta_eq[N_INSTRUCTION_COLUMNS]
-        + beta_eq[-1] * Fp(LOGUP_BYTECODE_DOMAINSEP)
+        bytecode_eval * correction + mle_of_01234567_etc(bytecode_point) * beta_eq[N_INSTRUCTION_COLUMNS] + beta_eq[-1] * Fp(LOGUP_BYTECODE_DOMAINSEP)
     )
     num -= pref * value_bytecode_acc
-    den += pref * (gamma - fingerprint_bytecode) + pref_padded * mle_of_zeros_then_ones(
-        1 << log_bytecode, gkr_point[-log_bytecode_padded:]
-    )
+    den += pref * (gamma - fingerprint_bytecode) + pref_padded * mle_of_zeros_then_ones(1 << log_bytecode, gkr_point[-log_bytecode_padded:])
     offset += 1 << log_bytecode_padded
 
     # Per-table section
@@ -642,9 +624,7 @@ class Cols(dict):
 
 
 class ConstraintEvaluator:
-    def __init__(
-        self, flat: Sequence[EF], shift: Sequence[EF], alpha_powers: Sequence[EF], columns: Sequence[str]
-    ) -> None:
+    def __init__(self, flat: Sequence[EF], shift: Sequence[EF], alpha_powers: Sequence[EF], columns: Sequence[str]) -> None:
         self.flat = flat
         self.shift = shift
         self.alpha_powers = alpha_powers
@@ -734,9 +714,7 @@ def eval_air_extension_table(evaluator: ConstraintEvaluator, logup_beta_eq: list
         evaluator.assert_zero((acc[k] - (v_a_v_b[k] + acc_tail[k])) * flag_dot_product)
     # eq: acc ← (2·v_a·v_b − v_a − v_b + 1) · (acc_tail or 1 at group end).
     e_eq = [2 * v_a_v_b[k] - v_a_tilde[k] - v_b[k] + (ONE if k == 0 else ZERO) for k in range(EF.DIMENSION)]
-    acc_tail_or_one = [acc_next[0] * not_start_next + flag_start_next] + [
-        acc_next[k] * not_start_next for k in range(1, EF.DIMENSION)
-    ]
+    acc_tail_or_one = [acc_next[0] * not_start_next + flag_start_next] + [acc_next[k] * not_start_next for k in range(1, EF.DIMENSION)]
     eq_result = quintic_mul(e_eq, acc_tail_or_one, ZERO)
     for k in range(EF.DIMENSION):
         evaluator.assert_zero((acc[k] - eq_result[k]) * flag_eq)
@@ -887,36 +865,34 @@ TABLES = [
 
 
 def verify_execution(
-    bytecode_multilinear: list[int], # trusted-source (and thus contains only valid instructions)
+    bytecode_multilinear: list[int],  # trusted-source (and thus contains only valid instructions)
     public_input: Sequence[Fp],
     proof: Proof,
 ) -> None:
     bytecode_log_size = log2_strict(len(bytecode_multilinear)) - log2_ceil(N_INSTRUCTION_COLUMNS)
     ending_pc = (1 << bytecode_log_size) - 1
     bytecode_hash = sponge_hash([Fp(v) for v in bytecode_multilinear])
-    assert len(public_input) == PUBLIC_INPUT_SIZE, "InvalidProof: public_input length mismatch"
+    assert len(public_input) == PUBLIC_INPUT_SIZE, "public_input length mismatch"
 
     fiat_shamir = FiatShamir(proof, poseidon16_compress(bytecode_hash, SNARK_DOMAIN_SEP))  # domain separator across bytecodes
     fiat_shamir.observe_scalars(public_input)
     log_inv_rate, log_memory, *table_log_n_rows = [int(x.value) for x in fiat_shamir.next_base_scalars(2 + len(TABLES))]
     assert MIN_WHIR_LOG_INV_RATE <= log_inv_rate <= MAX_WHIR_LOG_INV_RATE, "InvalidRate"
-    assert MIN_LOG_MEMORY_SIZE <= log_memory <= MAX_LOG_MEMORY_SIZE, "InvalidProof: log_memory out of range"
-    assert MIN_BYTECODE_LOG_SIZE <= bytecode_log_size <= MAX_BYTECODE_LOG_SIZE, "InvalidProof: bytecode log_size out of range"
-    assert log_memory >= max(max(table_log_n_rows, default=0), bytecode_log_size), "InvalidProof: memory smaller than tables/bytecode"
+    assert MIN_LOG_MEMORY_SIZE <= log_memory <= MAX_LOG_MEMORY_SIZE, "log_memory out of range"
+    assert MIN_BYTECODE_LOG_SIZE <= bytecode_log_size <= MAX_BYTECODE_LOG_SIZE, "bytecode log_size out of range"
+    assert log_memory >= max(max(table_log_n_rows, default=0), bytecode_log_size), "memory smaller than tables/bytecode"
     for table, log_height in zip(TABLES, table_log_n_rows):
-        assert MIN_LOG_N_ROWS_PER_TABLE <= log_height <= table.max_log_height, f"InvalidProof: table {table.name} log_n_rows={log_height} not in [{MIN_LOG_N_ROWS_PER_TABLE}, {table.max_log_height}]"
+        assert MIN_LOG_N_ROWS_PER_TABLE <= log_height <= table.max_log_height, (
+            f"table {table.name} log_n_rows={log_height} not in [{MIN_LOG_N_ROWS_PER_TABLE}, {table.max_log_height}]"
+        )
 
     log_heights = {t.name: h for t, h in zip(TABLES, table_log_n_rows)}
     n_max = sort_tables_by_height(TABLES, log_heights)[0][1]
 
-    total_stacked = (
-        (2 << log_memory)
-        + (1 << max(bytecode_log_size, n_max))
-        + sum(t.n_columns << log_heights[t.name] for t in TABLES)
-    )
+    total_stacked = (2 << log_memory) + (1 << max(bytecode_log_size, n_max)) + sum(t.n_columns << log_heights[t.name] for t in TABLES)
 
     stacked_n_vars = log2_ceil(total_stacked)
-    assert stacked_n_vars <= TWO_ADICITY + WHIR_INITIAL_FOLDING_FACTOR - log_inv_rate, "InvalidProof: stacked_n_vars exceeds WHIR domain bound"
+    assert stacked_n_vars <= TWO_ADICITY + WHIR_INITIAL_FOLDING_FACTOR - log_inv_rate, "tacked_n_vars exceeds WHIR domain bound"
     cfg = WHIR_CONFIGS[(log_inv_rate, stacked_n_vars)]
     nood = cfg["commitment_ood_samples"]
     parsed_commitment = WhirCommitment.read(fiat_shamir, stacked_n_vars, nood)
@@ -942,9 +918,7 @@ def verify_execution(
 
     initial_sum, offset = ZERO, 0
     for table in TABLES:
-        initial_sum += alpha_powers[offset] * (
-            logup["precompile_nums"][table.name] * table.precompile_bus_interaction_sign
-        )
+        initial_sum += alpha_powers[offset] * (logup["precompile_nums"][table.name] * table.precompile_bus_interaction_sign)
         initial_sum += alpha_powers[offset + 1] * (logup_gamma - logup["precompile_dens"][table.name])
         offset += table.n_constraints
     sc_point, sc_value = verify_sumcheck(fiat_shamir, initial_sum, n_max, max(t.air_degree + 1 for t in TABLES))
@@ -978,9 +952,7 @@ def verify_execution(
             [(0, logup["memory_eval"]), (1, logup["memory_acc_eval"])],
         ),
         SparseStatements(stacked_n_vars, pm_point, [(0, pm_eval)]),
-        SparseStatements(
-            stacked_n_vars, gkr_point[-bytecode_log_size:], [(bytecode_acc_idx, logup["value_bytecode_acc"])]
-        ),
+        SparseStatements(stacked_n_vars, gkr_point[-bytecode_log_size:], [(bytecode_acc_idx, logup["value_bytecode_acc"])]),
     ]
     global_statements = stacked_pcs_global_statements(
         stacked_n_vars,
@@ -994,8 +966,9 @@ def verify_execution(
     )
     verify_whir(fiat_shamir, cfg, parsed_commitment, global_statements)
 
-    assert fiat_shamir.offset == len(fiat_shamir.transcript), f"InvalidProof: transcript not fully consumed ({fiat_shamir.offset}/{len(fiat_shamir.transcript)} scalars read)"
-    assert not fiat_shamir.openings, f"InvalidProof: {len(fiat_shamir.openings)} Merkle openings unused"
+    assert fiat_shamir.offset == len(fiat_shamir.transcript), f"transcript not fully consumed ({fiat_shamir.offset}/{len(fiat_shamir.transcript)})"
+    assert not fiat_shamir.openings, f"{len(fiat_shamir.openings)} Merkle openings unused"
+
 
 if __name__ == "__main__":
     vector_path = Path(__file__).resolve().parents[3] / "target" / "zkvm_test_vectors" / "proof.json"
@@ -1014,8 +987,7 @@ if __name__ == "__main__":
     proof = Proof(
         transcript=fp_list(raw["proof"]["transcript"]),
         merkle_openings=[
-            MerkleOpening(leaf_data=fp_list(o["leaf_data"]), path=[fp_list(d) for d in o["path"]])
-            for o in raw["proof"]["merkle_openings"]
+            MerkleOpening(leaf_data=fp_list(o["leaf_data"]), path=[fp_list(d) for d in o["path"]]) for o in raw["proof"]["merkle_openings"]
         ],
     )
 
