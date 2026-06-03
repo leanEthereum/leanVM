@@ -419,7 +419,7 @@ def verify_whir(
     assert num_vars_after_1_round >= WHIR_MAX_NUM_VARIABLES_TO_SEND_COEFFS
     n_rounds = div_ceil(num_vars_after_1_round - WHIR_MAX_NUM_VARIABLES_TO_SEND_COEFFS, WHIR_SUBSEQUENT_FOLDING_FACTOR)
     round_constraints: list[tuple[EF, list[SparseStatements]]] = []
-    round_folding_challenges: list[list[EF]] = []
+    folding_challenges: list[EF] = []
     log_domain = current_vars + cfg["log_inv_rate"]
     target = ZERO
     constraints = commitment.oods_constraints() + statements
@@ -436,7 +436,7 @@ def verify_whir(
                 gamma_power *= gamma
         round_constraints.append((gamma, constraints))
         sc_point, target = verify_sumcheck(fiat_shamir, target, folding_factor, 2, fold_pow_bits)
-        round_folding_challenges.append(sc_point)
+        folding_challenges += sc_point
         current_vars -= folding_factor
         is_final = round == n_rounds
         if is_final:
@@ -451,7 +451,7 @@ def verify_whir(
             round_params["num_queries"],
             round_params["query_pow_bits"],
             commitment,
-            round_folding_challenges[-1],
+            folding_challenges[-folding_factor:],
         )
         if is_final:
             final_stir_constraints = stir_constraints
@@ -466,10 +466,9 @@ def verify_whir(
             raise ProofError("Final STIR constraint mismatch")
 
     final_sc_point, final_sc_value = verify_sumcheck(fiat_shamir, target, current_vars, 2)
-    round_folding_challenges.append(final_sc_point)
+    folding_challenges += final_sc_point
 
     eval_weights = ZERO
-    folding_challenges = [r for chunk in round_folding_challenges for r in chunk]
     for round, (gamma, smts) in enumerate(round_constraints):
         if round > 0:
             folding_challenges = folding_challenges[whir_folding_factor_at_round(round - 1) :]
