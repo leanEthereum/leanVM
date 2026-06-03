@@ -205,11 +205,11 @@ class FiatShamir(DuplexSpongeChallenger):
     def observe_scalars(self, scalars: Sequence[Fp]) -> None:
         self.observe_many(list(scalars))
 
-    def next_base_scalars_vec(self, n: int) -> list[Fp]:
+    def next_base_scalars(self, n: int) -> list[Fp]:
         return self._read_padded(n)[:n]
 
     def next_extension_scalars_vec(self, n: int) -> list[EF]:
-        flat = self.next_base_scalars_vec(n * EF.DIMENSION)
+        flat = self.next_base_scalars(n * EF.DIMENSION)
         return embed_ef(flat)
 
     def next_extension_scalar(self) -> EF:
@@ -354,7 +354,7 @@ class WhirCommitment:
     def read(cls, fs: "FiatShamir", num_variables: int, n_ood: int) -> "WhirCommitment":
         return cls(
             num_variables,
-            fs.next_base_scalars_vec(DIGEST_ELEMS),
+            fs.next_base_scalars(DIGEST_ELEMS),
             fs.sample_many_ef(n_ood),
             fs.next_extension_scalars_vec(n_ood),
         )
@@ -904,9 +904,9 @@ TABLES = [
 
 
 def verify_execution(
+    bytecode_multilinear: list[int], # trusted-source (and thus contains only valid instructions)
     public_input: Sequence[Fp],
     proof: Proof,
-    bytecode_multilinear: list[int],
 ) -> None:
     bytecode_log_size = log2_strict(len(bytecode_multilinear)) - log2_ceil(N_INSTRUCTION_COLUMNS)
     ending_pc = (1 << bytecode_log_size) - 1
@@ -914,10 +914,9 @@ def verify_execution(
     if len(public_input) != PUBLIC_INPUT_SIZE:
         raise ProofError("InvalidProof: public_input length mismatch")
 
-    state = FiatShamir(proof, poseidon16_compress(bytecode_hash, SNARK_DOMAIN_SEP))  # domain separator across bytecodes
-    state.observe_scalars(public_input)
-    dims = [int(x.value) for x in state.next_base_scalars_vec(2 + len(TABLES))]
-    log_inv_rate, log_memory, *table_log_n_rows = dims
+    fiat_shamir = FiatShamir(proof, poseidon16_compress(bytecode_hash, SNARK_DOMAIN_SEP))  # domain separator across bytecodes
+    fiat_shamir.observe_scalars(public_input)
+    log_inv_rate, log_memory, *table_log_n_rows = [int(x.value) for x in fiat_shamir.next_base_scalars(2 + len(TABLES))]
     if not MIN_WHIR_LOG_INV_RATE <= log_inv_rate <= MAX_WHIR_LOG_INV_RATE:
         raise ProofError("InvalidRate")
     if not MIN_LOG_MEMORY_SIZE <= log_memory <= MAX_LOG_MEMORY_SIZE:
@@ -946,14 +945,14 @@ def verify_execution(
         raise ProofError("InvalidProof: stacked_n_vars exceeds WHIR domain bound")
     cfg = WHIR_CONFIGS[(log_inv_rate, stacked_n_vars)]
     nood = cfg["commitment_ood_samples"]
-    parsed_commitment = WhirCommitment.read(state, stacked_n_vars, nood)
+    parsed_commitment = WhirCommitment.read(fiat_shamir, stacked_n_vars, nood)
 
-    logup_gamma = state.sample_ef()  # the quotient denominator
-    state.duplex()
-    logup_beta = state.sample_many_ef(log2_ceil(N_INSTRUCTION_COLUMNS + 2))  # the bus-tuple hashing seeds
+    logup_gamma = fiat_shamir.sample_ef()  # the quotient denominator
+    fiat_shamir.duplex()
+    logup_beta = fiat_shamir.sample_many_ef(log2_ceil(N_INSTRUCTION_COLUMNS + 2))  # the bus-tuple hashing seeds
     logup_beta_eq = eval_eq(logup_beta)
     logup = verify_generic_logup(
-        state,
+        fiat_shamir,
         logup_gamma,
         logup_beta,
         logup_beta_eq,
@@ -964,7 +963,7 @@ def verify_execution(
     )
     gkr_point = logup["gkr_point"]
 
-    air_alpha = state.sample_ef()
+    air_alpha = fiat_shamir.sample_ef()
     alpha_powers = ef_powers(air_alpha, sum(t.n_constraints for t in TABLES))
 
     initial_sum, offset = ZERO, 0
@@ -974,13 +973,13 @@ def verify_execution(
         )
         initial_sum += alpha_powers[offset + 1] * (logup_gamma - logup["precompile_dens"][table.name])
         offset += table.n_constraints
-    sc_point, sc_value = verify_sumcheck(state, initial_sum, n_max, max(t.air_degree + 1 for t in TABLES))
+    sc_point, sc_value = verify_sumcheck(fiat_shamir, initial_sum, n_max, max(t.air_degree + 1 for t in TABLES))
 
     committed = {t.name: [(gkr_point[-log_heights[t.name] :], logup["columns_evals"][t.name], {})] for t in TABLES}
     my_air_final, offset = ZERO, 0
     for table in TABLES:
         log_n_rows = log_heights[table.name]
-        col_evals = state.next_extension_scalars_vec(table.n_columns + table.n_shift)
+        col_evals = fiat_shamir.next_extension_scalars_vec(table.n_columns + table.n_shift)
         alphas = alpha_powers[offset : offset + table.n_constraints]
         offset += table.n_constraints
         constraint_eval = table.eval_air(col_evals, alphas, logup_beta_eq)
@@ -995,7 +994,7 @@ def verify_execution(
     if my_air_final != sc_value:
         raise ProofError("AIR sumcheck: claimed value mismatch")
 
-    pm_point = state.sample_many_ef(log2_strict(PUBLIC_INPUT_SIZE))
+    pm_point = fiat_shamir.sample_many_ef(log2_strict(PUBLIC_INPUT_SIZE))
     pm_eval = eval_multilinear_by_evals(public_input, pm_point)
 
     bytecode_acc_idx = (2 << log_memory) >> bytecode_log_size
@@ -1020,14 +1019,14 @@ def verify_execution(
         committed,
         ending_pc,
     )
-    verify_whir(state, cfg, parsed_commitment, global_statements)
+    verify_whir(fiat_shamir, cfg, parsed_commitment, global_statements)
 
-    if state.offset != len(state.transcript):
+    if fiat_shamir.offset != len(fiat_shamir.transcript):
         raise ProofError(
-            f"InvalidProof: transcript not fully consumed ({state.offset}/{len(state.transcript)} scalars read)"
+            f"InvalidProof: transcript not fully consumed ({fiat_shamir.offset}/{len(fiat_shamir.transcript)} scalars read)"
         )
-    if state.openings:
-        raise ProofError(f"InvalidProof: {len(state.openings)} Merkle openings unused")
+    if fiat_shamir.openings:
+        raise ProofError(f"InvalidProof: {len(fiat_shamir.openings)} Merkle openings unused")
 
 
 def main() -> int:
@@ -1057,7 +1056,7 @@ def main() -> int:
     )
 
     try:
-        verify_execution(public_input, proof, bytecode_multilinear)
+        verify_execution(bytecode_multilinear, public_input, proof)
     except ProofError as e:
         print(f"FAIL: {e}")
         return 1
