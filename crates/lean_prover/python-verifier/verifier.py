@@ -345,14 +345,14 @@ def whir_folding_factor_at_round(round: int) -> int:
 
 
 @dataclass
-class ParsedCommitment:
+class WhirCommitment:
     num_variables: int
     root: list[Fp]
     ood_points: list[EF]
     ood_answers: list[EF]
 
     @classmethod
-    def read(cls, fs: "FiatShamir", num_variables: int, n_ood: int) -> "ParsedCommitment":
+    def read(cls, fs: "FiatShamir", num_variables: int, n_ood: int) -> "WhirCommitment":
         return cls(
             num_variables,
             fs.next_base_scalars_vec(DIGEST_ELEMS),
@@ -390,7 +390,7 @@ def verify_stir_challenges(
     num_variables: int,
     num_queries: int,
     query_pow_bits: int,
-    commitment: ParsedCommitment,
+    commitment: WhirCommitment,
     folding_randomness: list[EF],
 ) -> list[SparseStatements]:
     gen = Fp(KB_TWO_ADIC_GENERATORS[log_height])
@@ -408,23 +408,21 @@ def verify_stir_challenges(
     return constraints
 
 
-def whir_verify(
+def verify_whir(
     fiat_shamir: FiatShamir,
     cfg: dict,
-    parsed_commitment: ParsedCommitment,
+    commitment: WhirCommitment,
     statements: list[SparseStatements],
 ):
-    nv = cfg["num_variables"] - WHIR_INITIAL_FOLDING_FACTOR
-    assert nv >= WHIR_MAX_NUM_VARIABLES_TO_SEND_COEFFS
-    n_rounds = div_ceil(nv - WHIR_MAX_NUM_VARIABLES_TO_SEND_COEFFS, WHIR_SUBSEQUENT_FOLDING_FACTOR)
-    final_sumcheck_rounds = nv - n_rounds * WHIR_SUBSEQUENT_FOLDING_FACTOR
+    current_vars = cfg["num_variables"]
+    num_vars_after_1_round = current_vars - WHIR_INITIAL_FOLDING_FACTOR
+    assert num_vars_after_1_round >= WHIR_MAX_NUM_VARIABLES_TO_SEND_COEFFS
+    n_rounds = div_ceil(num_vars_after_1_round - WHIR_MAX_NUM_VARIABLES_TO_SEND_COEFFS, WHIR_SUBSEQUENT_FOLDING_FACTOR)
     round_constraints: list[tuple[EF, list[SparseStatements]]] = []
     round_folding_challenges: list[list[EF]] = []
-
-    current_vars = cfg["num_variables"]
     log_domain = current_vars + cfg["log_inv_rate"]
     target = ZERO
-    constraints = parsed_commitment.oods_constraints() + statements
+    constraints = commitment.oods_constraints() + statements
     fold_pow_bits = cfg["starting_folding_pow_bits"]
     for round in range(n_rounds + 1):
         round_params = cfg["rounds"][round]
@@ -444,7 +442,7 @@ def whir_verify(
         if is_final:
             final_coeffs = fiat_shamir.next_extension_scalars_vec(1 << current_vars)
         else:
-            new_commitment = ParsedCommitment.read(fiat_shamir, current_vars, round_params["ood_samples"])
+            new_commitment = WhirCommitment.read(fiat_shamir, current_vars, round_params["ood_samples"])
         stir_constraints = verify_stir_challenges(
             fiat_shamir,
             round == 0,
@@ -452,7 +450,7 @@ def whir_verify(
             current_vars,
             round_params["num_queries"],
             round_params["query_pow_bits"],
-            parsed_commitment,
+            commitment,
             round_folding_challenges[-1],
         )
         if is_final:
@@ -461,13 +459,13 @@ def whir_verify(
         constraints = new_commitment.oods_constraints() + stir_constraints
         fold_pow_bits = round_params["folding_pow_bits"]
         log_domain -= RS_DOMAIN_INITIAL_REDUCTION_FACTOR if round == 0 else 1
-        parsed_commitment = new_commitment
+        commitment = new_commitment
     for smt in final_stir_constraints:
         univ_eval = eval_univariate_polynomial(final_coeffs, smt.point[0])
         if any(univ_eval != v[1] for v in smt.values):
             raise ProofError("Final STIR constraint mismatch")
 
-    final_sc_point, final_sc_value = verify_sumcheck(fiat_shamir, target, final_sumcheck_rounds, 2)
+    final_sc_point, final_sc_value = verify_sumcheck(fiat_shamir, target, current_vars, 2)
     round_folding_challenges.append(final_sc_point)
 
     eval_weights = ZERO
@@ -1028,7 +1026,7 @@ def verify_execution(
         raise ProofError("InvalidProof: stacked_n_vars exceeds WHIR domain bound")
     cfg = WHIR_CONFIGS[(log_inv_rate, stacked_n_vars)]
     nood = cfg["commitment_ood_samples"]
-    parsed_commitment = ParsedCommitment.read(state, stacked_n_vars, nood)
+    parsed_commitment = WhirCommitment.read(state, stacked_n_vars, nood)
 
     logup_gamma = state.sample_ef()  # the quotient denominator
     state.duplex()
@@ -1100,7 +1098,7 @@ def verify_execution(
         committed,
         ending_pc,
     )
-    whir_verify(state, cfg, parsed_commitment, global_statements)
+    verify_whir(state, cfg, parsed_commitment, global_statements)
 
     if state.offset != len(state.transcript):
         raise ProofError(
