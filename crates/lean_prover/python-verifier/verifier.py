@@ -273,7 +273,7 @@ def next_mle(x: Sequence[EF], y: Sequence[EF]) -> EF:
     return s + math.prod([*x, *y])
 
 
-def eval_multilinear_evals(evals: Sequence[Fp | EF], point: Sequence[EF]) -> EF:
+def eval_multilinear_by_evals(evals: Sequence[Fp | EF], point: Sequence[EF]) -> EF:
     """Evaluate a multilinear in evaluation form at `point`."""
     assert len(evals) == 1 << len(point)
     cur: Sequence = evals
@@ -282,14 +282,14 @@ def eval_multilinear_evals(evals: Sequence[Fp | EF], point: Sequence[EF]) -> EF:
     return cur[0]
 
 
-def eval_multilinear_coeffs(coeffs: Sequence[EF], point: Sequence[EF]) -> EF:
+def eval_multilinear_by_coeffs(coeffs: Sequence[EF], point: Sequence[EF]) -> EF:
     """Evaluate a multilinear in coefficient form at `point`."""
     assert len(coeffs) == 1 << len(point)
     if not point:
         return coeffs[0]
     half = len(coeffs) // 2
-    lo = eval_multilinear_coeffs(coeffs[:half], point[1:])
-    hi = eval_multilinear_coeffs(coeffs[half:], point[1:])
+    lo = eval_multilinear_by_coeffs(coeffs[:half], point[1:])
+    hi = eval_multilinear_by_coeffs(coeffs[half:], point[1:])
     return lo + hi * point[0]
 
 
@@ -382,31 +382,6 @@ def verify_sumcheck(
     return point, target
 
 
-def verify_stir_challenges(
-    fiat_shamir: FiatShamir,
-    is_first_round: int,
-    log_height: int,
-    num_variables: int,
-    num_queries: int,
-    query_pow_bits: int,
-    commitment: WhirCommitment,
-    folding_randomness: list[EF],
-) -> list[SparseStatements]:
-    gen = Fp(KB_TWO_ADIC_GENERATORS[log_height])
-    fiat_shamir.check_pow_grinding(query_pow_bits)
-    indices = fiat_shamir.sample_in_range(log_height, num_queries)
-    constraints: list[SparseStatements] = []
-    for idx in indices:
-        op = fiat_shamir.next_merkle_opening()
-        merkle_verify_path(commitment.root, log_height, idx, op.leaf_data, op.path)
-        # Round 0 leaves are raw base-field elements; later rounds embed DIM Fp values per EF element.
-        packed = op.leaf_data if is_first_round else embed_ef(op.leaf_data)
-        fold = eval_multilinear_evals(packed, folding_randomness)
-        point = expand_from_univariate(EF(pow(int(gen.value), idx, P)), num_variables)
-        constraints.append(SparseStatements(num_variables, point, [(0, fold)]))
-    return constraints
-
-
 def verify_whir(
     fiat_shamir: FiatShamir,
     cfg: dict,
@@ -442,16 +417,21 @@ def verify_whir(
             final_coeffs = fiat_shamir.next_extension_scalars_vec(1 << current_vars)
         else:
             new_commitment = WhirCommitment.read(fiat_shamir, current_vars, round_params["ood_samples"])
-        stir_constraints = verify_stir_challenges(
-            fiat_shamir,
-            round == 0,
-            log_domain - folding_factor,
-            current_vars,
-            round_params["num_queries"],
-            round_params["query_pow_bits"],
-            commitment,
-            folding_challenges[-folding_factor:],
-        )
+
+        log_height = log_domain - folding_factor
+        gen = Fp(KB_TWO_ADIC_GENERATORS[log_height])
+        fiat_shamir.check_pow_grinding(round_params["query_pow_bits"])
+        indices = fiat_shamir.sample_in_range(log_height, round_params["num_queries"])
+        stir_constraints: list[SparseStatements] = []
+        for idx in indices:
+            op = fiat_shamir.next_merkle_opening()
+            merkle_verify_path(commitment.root, log_height, idx, op.leaf_data, op.path)
+            # Round 0 leaves are raw base-field elements; later rounds embed DIM Fp values per EF element.
+            packed = op.leaf_data if round == 0 else embed_ef(op.leaf_data)
+            fold = eval_multilinear_by_evals(packed, folding_challenges[-folding_factor:])
+            point = expand_from_univariate(EF(pow(int(gen.value), idx, P)), current_vars)
+            stir_constraints.append(SparseStatements(current_vars, point, [(0, fold)]))
+            
         if is_final:
             final_stir_constraints = stir_constraints
             break
@@ -479,7 +459,7 @@ def verify_whir(
                 eval_prefix = eq_at_index(folding_challenges, v[0], sel_n) # sparse part of the point
                 eval_weights += eval_prefix * eval_suffix * gamma_power
                 gamma_power *= gamma
-    final_value = eval_multilinear_coeffs(final_coeffs, list(reversed(final_sc_point)))
+    final_value = eval_multilinear_by_coeffs(final_coeffs, list(reversed(final_sc_point)))
     if final_sc_value != eval_weights * final_value:
         raise ProofError("WHIR final sumcheck check failed")
 
@@ -527,8 +507,8 @@ def verify_gkr_quotient(fiat_shamir: FiatShamir, n_vars: int) -> tuple[EF, list[
     quotient = sum(n * d.inv() for n, d in zip(nums, dens))
 
     point = fiat_shamir.sample_many_ef(N_VARS_TO_SEND_GKR_COEFFS)
-    claim_num = eval_multilinear_evals(nums, point)
-    claim_den = eval_multilinear_evals(dens, point)
+    claim_num = eval_multilinear_by_evals(nums, point)
+    claim_den = eval_multilinear_by_evals(dens, point)
 
     for layer_n_vars in range(N_VARS_TO_SEND_GKR_COEFFS, n_vars):
         fiat_shamir.duplex()
@@ -609,7 +589,7 @@ def verify_generic_logup(
     pref = pref_at(offset, log_bytecode)
     pref_pad = pref_at(offset, log_byte_pad)
     value_bytecode_acc = fiat_shamir.next_extension_scalar()
-    bytecode_value = eval_multilinear_evals([Fp(v) for v in bytecode_multilinear], byte_pt + beta[-log_instr:])
+    bytecode_value = eval_multilinear_by_evals([Fp(v) for v in bytecode_multilinear], byte_pt + beta[-log_instr:])
     correction = math.prod(ONE - a for a in beta[: len(beta) - log_instr])
     fp_byte = (
         bytecode_value * correction
@@ -1071,7 +1051,7 @@ def verify_execution(
         raise ProofError("AIR sumcheck: claimed value mismatch")
 
     pm_point = state.sample_many_ef(log2_strict(PUBLIC_INPUT_SIZE))
-    pm_eval = eval_multilinear_evals(public_input, pm_point)
+    pm_eval = eval_multilinear_by_evals(public_input, pm_point)
 
     bytecode_acc_idx = (2 << log_memory) >> bytecode_log_size
     previous_statements = [
