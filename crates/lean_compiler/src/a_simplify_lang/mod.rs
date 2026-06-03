@@ -14,6 +14,12 @@ use utils::{Counter, ToUsize};
 
 mod post_optimization;
 
+/*
+KNOWN LIMITATIONS:
+
+- inline function recursively calling themselves (directly or indirectly) will cause the compiler to run indifinetely (and crash OOM)
+*/
+
 const MAX_UNROLL_ITERATIONS: usize = 1 << 20;
 
 #[derive(Debug, Clone)]
@@ -1219,6 +1225,18 @@ fn check_expr_scoping(expr: &Expression, ctx: &Context) -> Result<(), String> {
             lambda_ctx.const_arrays = ctx.const_arrays.clone();
             lambda_ctx.add_var(param);
             check_expr_scoping(body, &lambda_ctx)
+        }
+        Expression::ArrayAccess { array, index } => {
+            for idx in index {
+                check_expr_scoping(idx, ctx)?;
+            }
+            if let Some(name) = array.as_var()
+                && !ctx.const_arrays.contains_key(name)
+                && !ctx.defines(name)
+            {
+                return Err(format!("Variable used but not defined: {name}"));
+            }
+            Ok(())
         }
         _ => {
             for inner_expr in expr.inner_exprs() {
