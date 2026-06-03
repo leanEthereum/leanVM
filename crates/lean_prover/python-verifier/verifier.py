@@ -443,41 +443,6 @@ def verify_whir(
     assert final_sc_value == eval_weights * final_value, "WHIR final sumcheck check failed"
 
 
-def stacked_pcs_global_statements(
-    stacked_n_vars: int,
-    memory_n_vars: int,
-    bytecode_n_vars: int,
-    previous_statements: list[SparseStatements],
-    tables: Sequence[Table],
-    heights: dict[str, int],
-    committed_statements: dict[str, list[tuple[list[EF], dict[int, EF], dict[int, EF]]]],
-    ending_pc: int,
-) -> list[SparseStatements]:
-    tables_sorted = sort_tables_by_height(tables, heights)
-    table_offsets: dict[str, int] = {}
-    layout_offset = (2 << memory_n_vars) + (1 << max(bytecode_n_vars, tables_sorted[0][1]))
-    for table, n_vars in tables_sorted:
-        table_offsets[table.name] = layout_offset
-        layout_offset += table.n_columns << n_vars
-
-    res = list(previous_statements)
-
-    def values_at(d: dict[int, EF], col_base: int) -> list[tuple[int, EF]]:
-        return [(col_base + i, v) for i, v in sorted(d.items())]
-
-    for table in tables:
-        n_vars = heights[table.name]
-        offset = table_offsets[table.name]
-        col_base = offset >> n_vars
-        res.extend(table.boundary_statements(stacked_n_vars, offset, n_vars, ending_pc))
-        for point, eq_values, next_values in committed_statements[table.name]:
-            if next_values:
-                res.append(SparseStatements(stacked_n_vars, point, values_at(next_values, col_base), True))
-            res.append(SparseStatements(stacked_n_vars, point, values_at(eq_values, col_base)))
-
-    return res
-
-
 def verify_gkr_quotient(fiat_shamir: FiatShamir, n_vars: int) -> tuple[EF, list[EF], EF, EF]:
     assert n_vars > N_VARS_TO_SEND_GKR_COEFFS
 
@@ -515,7 +480,7 @@ def sort_tables_by_height(tables: Sequence[Table], heights: dict[str, int]) -> l
     return sorted([(t, heights[t.name]) for t in tables], key=lambda x: (-x[1], x[0].name))
 
 
-def verify_generic_logup(
+def verify_logup(
     fiat_shamir: FiatShamir,
     gamma: EF,  # quotient denominator challenge
     beta: list[EF],  # bus-tuple hashing seed
@@ -726,13 +691,6 @@ def eval_air_extension_table(evaluator: ConstraintEvaluator, logup_beta_eq: list
     evaluator.assert_zero(flag_start_next * (len_col - ONE))
 
 
-def do_2_full_round(state: list[EF], rc1: list[Fp], rc2: list[Fp]) -> list[EF]:
-    for rc in (rc1, rc2):
-        sbox = [(s + c).cube() for s, c in zip(state, rc)]
-        state = [dot_product(sbox, row) for row in POSEIDON_AIR_MDS_DENSE]
-    return state
-
-
 def eval_air_poseidon16_table(evaluator: ConstraintEvaluator, logup_beta_eq: list[EF]) -> None:
     multiplicity, nu_b, nu_c , flag_out4, flag_out8, flag_left, offset_left, addr_left_lo, addr_left_hi, flag_permute = (evaluator.flat[k] for k in POSEIDON_COLUMNS[:10])  # fmt: skip
     inputs = evaluator.flat.arr("input", POSEIDON_WIDTH)
@@ -753,6 +711,13 @@ def eval_air_poseidon16_table(evaluator: ConstraintEvaluator, logup_beta_eq: lis
     evaluator.assert_zero(flag_left * (offset_left - addr_left_lo))
     evaluator.assert_zero(not_flag_left * (nu_a - addr_left_lo))
     state = list(inputs)
+
+    def do_2_full_round(state: list[EF], rc1: list[Fp], rc2: list[Fp]) -> list[EF]:
+        for rc in (rc1, rc2):
+            sbox = [(s + c).cube() for s, c in zip(state, rc)]
+            state = [dot_product(sbox, row) for row in POSEIDON_AIR_MDS_DENSE]
+        return state
+
     # 2-by-2 initial full rounds
     for r in range(POSEIDON_QUARTER_FULL_ROUNDS):
         state = do_2_full_round(state, POSEIDON_AIR_INITIAL_CONSTANTS[2 * r], POSEIDON_AIR_INITIAL_CONSTANTS[2 * r + 1])
@@ -880,22 +845,27 @@ def verify_execution(
     for table, log_height in zip(TABLES, table_log_heights):
         assert MIN_LOG_HEIGHT_PER_TABLE <= log_height <= table.max_log_height, f"table {table.name}: invalid height"
 
-    log_heights = {t.name: h for t, h in zip(TABLES, table_log_heights)}
-    n_max = sort_tables_by_height(TABLES, log_heights)[0][1]
+    table_log_heights = {t.name: h for t, h in zip(TABLES, table_log_heights)}
+    tables_sorted = sort_tables_by_height(TABLES, table_log_heights)
+    n_max = tables_sorted[0][1]
 
     total_stacked = (
-        (2 << log_memory) + (1 << max(bytecode_log_size, n_max)) + sum(t.n_columns << log_heights[t.name] for t in TABLES)
+        (2 << log_memory) + (1 << max(bytecode_log_size, n_max)) + sum(t.n_columns << table_log_heights[t.name] for t in TABLES)
     )  # memory + memory_acc + bytecode_acc + biggest_table + second_biggest_table + etc + smallest_table
     stacked_n_vars = log2_ceil(total_stacked)
     assert stacked_n_vars <= TWO_ADICITY + WHIR_INITIAL_FOLDING_FACTOR - log_inv_rate, "tacked_n_vars exceeds WHIR domain bound"
     cfg = WHIR_CONFIGS[(log_inv_rate, stacked_n_vars)]
+
+    # 1] Parse WHIR commitment
     parsed_commitment = WhirCommitment.parse(fiat_shamir, stacked_n_vars, cfg["commitment_ood_samples"])
 
     logup_gamma = fiat_shamir.sample_ef()  # the quotient denominator
     fiat_shamir.duplex()
     logup_beta = fiat_shamir.sample_many_ef(log2_ceil(N_INSTRUCTION_COLUMNS + 2))  # the bus-tuple hashing seeds
     logup_beta_eq = eval_eq(logup_beta)
-    memory_eval, memory_acc_eval, value_bytecode_acc, precompile_nums, precompile_dens, gkr_point, columns_evals = verify_generic_logup(
+
+    # 2] Verify logup bus interractions
+    memory_eval, memory_acc_eval, value_bytecode_acc, precompile_nums, precompile_dens, gkr_point, columns_evals = verify_logup(
         fiat_shamir,
         logup_gamma,
         logup_beta,
@@ -903,61 +873,70 @@ def verify_execution(
         log_memory,
         bytecode_multilinear,
         TABLES,
-        log_heights,
+        table_log_heights,
     )
 
-    air_alpha = fiat_shamir.sample_ef()
-    alpha_powers = ef_powers(air_alpha, sum(t.n_constraints for t in TABLES))
+    alpha = fiat_shamir.sample_ef()
+    alpha_powers = ef_powers(alpha, sum(t.n_constraints for t in TABLES))
 
     initial_sum, offset = ZERO, 0
     for table in TABLES:
         initial_sum += alpha_powers[offset] * (precompile_nums[table.name] * table.precompile_bus_interaction_sign)
         initial_sum += alpha_powers[offset + 1] * (logup_gamma - precompile_dens[table.name])
         offset += table.n_constraints
+    
+    # 3] verify batched AIR sumcheck
     sc_point, sc_value = verify_sumcheck(fiat_shamir, initial_sum, n_max, max(t.air_degree + 1 for t in TABLES))
 
-    committed = {t.name: [(gkr_point[-log_heights[t.name] :], columns_evals[t.name], {})] for t in TABLES}
-    my_air_final, offset = ZERO, 0
+    committed_column_evals = {t.name: [(gkr_point[-table_log_heights[t.name] :], columns_evals[t.name], {})] for t in TABLES}
+    air_final_value, offset = ZERO, 0
     for table in TABLES:
-        log_height = log_heights[table.name]
-        col_evals = fiat_shamir.next_extension_scalars_vec(table.n_columns + table.n_shift)
+        log_height = table_log_heights[table.name]
+        col_evals = fiat_shamir.next_extension_scalars_vec(table.n_shift + table.n_columns)
         alphas = alpha_powers[offset : offset + table.n_constraints]
         offset += table.n_constraints
         constraint_eval = table.eval_air(col_evals, alphas, logup_beta_eq)
-
-        natural_pt = list(reversed(sc_point[-log_height:]))
-        k_t = math.prod(sc_point[: n_max - log_height])
-        my_air_final += k_t * eq_poly(gkr_point[-log_height:], natural_pt) * constraint_eval
-
+        natural_point = list(reversed(sc_point[-log_height:]))
+        air_final_value += math.prod(sc_point[:-log_height]) * eq_poly(gkr_point[-log_height:], natural_point) * constraint_eval
         eq_vals = {i: col_evals[i] for i in range(table.n_columns)}
         next_vals = {j: col_evals[table.n_columns + j] for j in range(table.n_shift)}
-        committed[table.name].append((natural_pt, eq_vals, next_vals))
-    assert my_air_final == sc_value, "AIR sumcheck: claimed value mismatch"
+        committed_column_evals[table.name].append((natural_point, eq_vals, next_vals))
+    assert air_final_value == sc_value, "AIR sumcheck: claimed value mismatch"
 
-    pm_point = fiat_shamir.sample_many_ef(log2_strict(PUBLIC_INPUT_SIZE))
-    pm_eval = eval_multilinear_by_evals(public_input, pm_point)
+    public_memory_point = fiat_shamir.sample_many_ef(log2_strict(PUBLIC_INPUT_SIZE))
+    public_memory_eval = eval_multilinear_by_evals(public_input, public_memory_point)
 
-    bytecode_acc_idx = (2 << log_memory) >> bytecode_log_size
-    previous_statements = [
+    bytecode_acc_offset = (2 << log_memory) >> bytecode_log_size  # offset within the stacked polynomial
+    pcs_statements = [
         SparseStatements(
             stacked_n_vars,
             gkr_point[-log_memory:],
             [(0, memory_eval), (1, memory_acc_eval)],
         ),
-        SparseStatements(stacked_n_vars, pm_point, [(0, pm_eval)]),
-        SparseStatements(stacked_n_vars, gkr_point[-bytecode_log_size:], [(bytecode_acc_idx, value_bytecode_acc)]),
+        SparseStatements(stacked_n_vars, public_memory_point, [(0, public_memory_eval)]),
+        SparseStatements(stacked_n_vars, gkr_point[-bytecode_log_size:], [(bytecode_acc_offset, value_bytecode_acc)]),
     ]
-    global_statements = stacked_pcs_global_statements(
-        stacked_n_vars,
-        log_memory,
-        bytecode_log_size,
-        previous_statements,
-        TABLES,
-        log_heights,
-        committed,
-        ending_pc,
-    )
-    verify_whir(fiat_shamir, cfg, parsed_commitment, global_statements)
+    table_offsets: dict[str, int] = {}
+    layout_offset = (2 << log_memory) + (1 << max(bytecode_log_size, tables_sorted[0][1]))
+    for table, log_height in tables_sorted:
+        table_offsets[table.name] = layout_offset
+        layout_offset += table.n_columns << log_height
+
+    def values_at(d: dict[int, EF], col_base: int) -> list[tuple[int, EF]]:
+        return [(col_base + i, v) for i, v in sorted(d.items())]
+
+    for table in TABLES:
+        log_height = table_log_heights[table.name]
+        offset = table_offsets[table.name]
+        col_base = offset >> log_height
+        pcs_statements.extend(table.boundary_statements(stacked_n_vars, offset, log_height, ending_pc))
+        for point, eq_values, next_values in committed_column_evals[table.name]:
+            if next_values:
+                pcs_statements.append(SparseStatements(stacked_n_vars, point, values_at(next_values, col_base), True))
+            pcs_statements.append(SparseStatements(stacked_n_vars, point, values_at(eq_values, col_base)))
+
+    # 4] Open the PCS
+    verify_whir(fiat_shamir, cfg, parsed_commitment, pcs_statements)
 
     assert fiat_shamir.offset == len(fiat_shamir.transcript), f"transcript not fully consumed ({fiat_shamir.offset}/{len(fiat_shamir.transcript)})"
     assert not fiat_shamir.openings, f"{len(fiat_shamir.openings)} Merkle openings unused"
