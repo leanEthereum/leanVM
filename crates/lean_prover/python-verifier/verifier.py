@@ -37,7 +37,7 @@ WHIR_CONFIGS = {
 }
 
 MIN_LOG_MEMORY_SIZE, MAX_LOG_MEMORY_SIZE = 16, 26
-MIN_LOG_N_ROWS_PER_TABLE, MIN_BYTECODE_LOG_SIZE, MAX_BYTECODE_LOG_SIZE = 8, 8, 22
+MIN_LOG_HEIGHT_PER_TABLE, MIN_BYTECODE_LOG_SIZE, MAX_BYTECODE_LOG_SIZE = 8, 8, 22
 N_VARS_TO_SEND_GKR_COEFFS = 5
 
 N_RUNTIME_COLUMNS, N_INSTRUCTION_COLUMNS = 8, 12
@@ -95,13 +95,13 @@ class Table:
         self.air_constraints_fn(constraint_evaluator, logup_beta_eq)
         return constraint_evaluator.accumulator
 
-    def boundary_statements(self, stacked_n_vars: int, offset: int, log_n_rows: int, ending_pc: int) -> list["SparseStatements"]:
+    def boundary_statements(self, stacked_n_vars: int, offset: int, log_height: int, ending_pc: int) -> list["SparseStatements"]:
         if self.name != "execution":
             return []
-        pc_col_offset = offset + (self.col("pc") << log_n_rows)
+        pc_col_offset = offset + (self.col("pc") << log_height)
         return [
             SparseStatements(stacked_n_vars, [], [(pc_col_offset + idx, EF(pc))])
-            for idx, pc in [(0, STARTING_PC), ((1 << log_n_rows) - 1, ending_pc)]
+            for idx, pc in [(0, STARTING_PC), ((1 << log_height) - 1, ending_pc)]
         ]
 
 
@@ -569,9 +569,9 @@ def verify_generic_logup(
 
     # Per-table section
     table_offsets: dict[str, int] = {}
-    for table, log_n_rows in tables_sorted:
+    for table, log_height in tables_sorted:
         table_offsets[table.name] = offset
-        offset += table.n_bus_interactions << log_n_rows
+        offset += table.n_bus_interactions << log_height
     final_offset = offset
 
     precompile_nums: dict[str, EF] = {}
@@ -876,17 +876,17 @@ def verify_execution(
 
     fiat_shamir = FiatShamir(proof, poseidon16_compress(bytecode_hash, SNARK_DOMAIN_SEP))  # domain separator across bytecodes
     fiat_shamir.observe_scalars(public_input)
-    log_inv_rate, log_memory, *table_log_n_rows = [int(x.value) for x in fiat_shamir.next_base_scalars(2 + len(TABLES))]
+    log_inv_rate, log_memory, *table_log_heights = [int(x.value) for x in fiat_shamir.next_base_scalars(2 + len(TABLES))]
     assert MIN_WHIR_LOG_INV_RATE <= log_inv_rate <= MAX_WHIR_LOG_INV_RATE, "InvalidRate"
     assert MIN_LOG_MEMORY_SIZE <= log_memory <= MAX_LOG_MEMORY_SIZE, "log_memory out of range"
     assert MIN_BYTECODE_LOG_SIZE <= bytecode_log_size <= MAX_BYTECODE_LOG_SIZE, "bytecode log_size out of range"
-    assert log_memory >= max(max(table_log_n_rows, default=0), bytecode_log_size), "memory smaller than tables/bytecode"
-    for table, log_height in zip(TABLES, table_log_n_rows):
-        assert MIN_LOG_N_ROWS_PER_TABLE <= log_height <= table.max_log_height, (
-            f"table {table.name} log_n_rows={log_height} not in [{MIN_LOG_N_ROWS_PER_TABLE}, {table.max_log_height}]"
+    assert log_memory >= max(max(table_log_heights, default=0), bytecode_log_size), "memory smaller than tables/bytecode"
+    for table, log_height in zip(TABLES, table_log_heights):
+        assert MIN_LOG_HEIGHT_PER_TABLE <= log_height <= table.max_log_height, (
+            f"table {table.name} log_heights={log_height} not in [{MIN_LOG_HEIGHT_PER_TABLE}, {table.max_log_height}]"
         )
 
-    log_heights = {t.name: h for t, h in zip(TABLES, table_log_n_rows)}
+    log_heights = {t.name: h for t, h in zip(TABLES, table_log_heights)}
     n_max = sort_tables_by_height(TABLES, log_heights)[0][1]
 
     total_stacked = (2 << log_memory) + (1 << max(bytecode_log_size, n_max)) + sum(t.n_columns << log_heights[t.name] for t in TABLES)
@@ -926,15 +926,15 @@ def verify_execution(
     committed = {t.name: [(gkr_point[-log_heights[t.name] :], logup["columns_evals"][t.name], {})] for t in TABLES}
     my_air_final, offset = ZERO, 0
     for table in TABLES:
-        log_n_rows = log_heights[table.name]
+        log_height = log_heights[table.name]
         col_evals = fiat_shamir.next_extension_scalars_vec(table.n_columns + table.n_shift)
         alphas = alpha_powers[offset : offset + table.n_constraints]
         offset += table.n_constraints
         constraint_eval = table.eval_air(col_evals, alphas, logup_beta_eq)
 
-        natural_pt = list(reversed(sc_point[-log_n_rows:])) if log_n_rows else []
-        k_t = math.prod(sc_point[: n_max - log_n_rows])
-        my_air_final += k_t * eq_poly(gkr_point[-log_n_rows:], natural_pt) * constraint_eval
+        natural_pt = list(reversed(sc_point[-log_height:]))
+        k_t = math.prod(sc_point[: n_max - log_height])
+        my_air_final += k_t * eq_poly(gkr_point[-log_height:], natural_pt) * constraint_eval
 
         eq_vals = {i: col_evals[i] for i in range(table.n_columns)}
         next_vals = {j: col_evals[table.n_columns + j] for j in range(table.n_shift)}
