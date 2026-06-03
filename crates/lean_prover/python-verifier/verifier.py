@@ -560,40 +560,40 @@ def verify_generic_logup(
     )
     logup_n_vars = log2_ceil(total_active_len)
 
-    quotient, point_gkr, claim_num, claim_den = verify_gkr_quotient(fiat_shamir, logup_n_vars)
+    quotient, gkr_point, claim_num, claim_den = verify_gkr_quotient(fiat_shamir, logup_n_vars)
     if quotient != ZERO:
         raise ProofError("imbalanced logup bus")
 
     def pref_at(offset: int, log_height: int) -> EF:
         n_missing = logup_n_vars - log_height
-        return eq_at_index(point_gkr, offset >> log_height, n_missing)
+        return eq_at_index(gkr_point, offset >> log_height, n_missing)
 
     num = den = ZERO
 
     # Memory section
-    mem_pt = point_gkr[-log_memory:]
+    mem_pt = gkr_point[-log_memory:]
     pref = pref_at(0, log_memory)
-    value_memory_acc = fiat_shamir.next_extension_scalar()
-    value_memory = fiat_shamir.next_extension_scalar()
-    num -= pref * value_memory_acc
-    den += pref * (gamma - finger_print(Fp(LOGUP_MEMORY_DOMAINSEP), [mle_of_01234567_etc(mem_pt), value_memory], beta_eq))
+    memory_acc_eval = fiat_shamir.next_extension_scalar()
+    memory_eval = fiat_shamir.next_extension_scalar()
+    num -= pref * memory_acc_eval
+    den += pref * (gamma - finger_print(Fp(LOGUP_MEMORY_DOMAINSEP), [mle_of_01234567_etc(mem_pt), memory_eval], beta_eq))
     offset = 1 << log_memory
 
     # Bytecode section (padded to the tallest table)
     log_bytecode_padded = max(log_bytecode, tallest_h)
-    bytecode_pt = point_gkr[-log_bytecode:]
+    bytecode_point = gkr_point[-log_bytecode:]
     pref = pref_at(offset, log_bytecode)
     pref_padded = pref_at(offset, log_bytecode_padded)
     value_bytecode_acc = fiat_shamir.next_extension_scalar()
-    value_bytecode = eval_multilinear_by_evals([Fp(v) for v in bytecode_multilinear], bytecode_pt + beta[-log_instr:])
+    bytecode_eval = eval_multilinear_by_evals([Fp(v) for v in bytecode_multilinear], bytecode_point + beta[-log_instr:])
     correction = math.prod(ONE - a for a in beta[: len(beta) - log_instr])
     fingerprint_bytecode = (
-        value_bytecode * correction
-        + mle_of_01234567_etc(bytecode_pt) * beta_eq[N_INSTRUCTION_COLUMNS]
+        bytecode_eval * correction
+        + mle_of_01234567_etc(bytecode_point) * beta_eq[N_INSTRUCTION_COLUMNS]
         + beta_eq[-1] * Fp(LOGUP_BYTECODE_DOMAINSEP)
     )
     num -= pref * value_bytecode_acc
-    den += pref * (gamma - fingerprint_bytecode) + pref_padded * mle_of_zeros_then_ones(1 << log_bytecode, point_gkr[-log_bytecode_padded:])
+    den += pref * (gamma - fingerprint_bytecode) + pref_padded * mle_of_zeros_then_ones(1 << log_bytecode, gkr_point[-log_bytecode_padded:])
     offset += 1 << log_bytecode_padded
 
     # Per-table section
@@ -603,49 +603,49 @@ def verify_generic_logup(
         offset += table.n_bus_interactions << log_n_rows
     final_offset = offset
 
-    bus_num_vals: dict[str, EF] = {}
-    bus_den_vals: dict[str, EF] = {}
-    columns_values: dict[str, dict[int, EF]] = {}
+    precompile_nums: dict[str, EF] = {}
+    precompile_dens: dict[str, EF] = {}
+    columns_evals: dict[str, dict[int, EF]] = {}
 
     for table in tables:
         offset = table_offsets[table.name]
-        column_values: dict[int, EF] = {}
+        columns_evals[table.name] = {}
 
-        def read(cols: Sequence[int]) -> list[EF]:
-            missing = [c for c in cols if c not in column_values]
+        def request_column_evals_dedup(cols: Sequence[int]) -> list[EF]:
+            missing = [c for c in cols if c not in columns_evals[table.name]]
             for c, e in zip(missing, fiat_shamir.next_extension_scalars_vec(len(missing))):
-                column_values[c] = e
-            return [column_values[c] for c in cols]
+                columns_evals[table.name][c] = e
+            return [columns_evals[table.name][c] for c in cols]
 
         for bus in table.buses:
-            if not bus.cols:
+            if bus.cols:
+                # memory / bytecode interraction
+                base = [table.col(c) for c in bus.cols]  
+                for i in range(bus.n_terms):  # term i: σ = (m[base[0]] + i, m[base[1:] + i])
+                    pref = pref_at(offset, table_heights[table.name])
+                    d = request_column_evals_dedup([base[0], *(c + i for c in base[1:])])
+                    num += pref # always multiplicity 1
+                    den += pref * (gamma - finger_print(Fp(bus.domain_sep), [d[0] + i, *d[1:]], beta_eq))
+                    offset += 1 << table_heights[table.name]
+            else:
+                # precompile interraction
                 pref = pref_at(offset, table_heights[table.name])
-                bus_num_vals[table.name] = fiat_shamir.next_extension_scalar()
-                bus_den_vals[table.name] = fiat_shamir.next_extension_scalar()
-                num += pref * bus_num_vals[table.name]
-                den += pref * bus_den_vals[table.name]
+                precompile_nums[table.name] = fiat_shamir.next_extension_scalar()
+                precompile_dens[table.name] = fiat_shamir.next_extension_scalar()
+                num += pref * precompile_nums[table.name]
+                den += pref * precompile_dens[table.name]
                 offset += 1 << table_heights[table.name]
-                continue
-            sep, base = Fp(bus.domain_sep), [table.col(c) for c in bus.cols]  # memory / bytecode
-            for i in range(bus.n_terms):  # term i: σ = (m[base[0]] + i, m[base[1:] + i])
-                pref = pref_at(offset, table_heights[table.name])
-                d = read([base[0], *(c + i for c in base[1:])])
-                num += pref
-                den += pref * (gamma - finger_print(sep, [d[0] + i, *d[1:]], beta_eq))
-                offset += 1 << table_heights[table.name]
-
-        columns_values[table.name] = column_values
-
-    den += mle_of_zeros_then_ones(final_offset, point_gkr)
+            
+    den += mle_of_zeros_then_ones(final_offset, gkr_point)
     if num != claim_num:
         raise ProofError("logup: numerators value mismatch")
     if den != claim_den:
         raise ProofError("logup: denominators value mismatch")
 
     return {
-        "value_memory": value_memory, "value_memory_acc": value_memory_acc,
-        "value_bytecode_acc": value_bytecode_acc, "bus_num": bus_num_vals, "bus_den": bus_den_vals,
-        "gkr_point": point_gkr, "columns_values": columns_values,
+        "memory_eval": memory_eval, "memory_acc_eval": memory_acc_eval,
+        "value_bytecode_acc": value_bytecode_acc, "precompile_nums": precompile_nums, "precompile_dens": precompile_dens,
+        "gkr_point": gkr_point, "columns_evals": columns_evals,
     }  # fmt: skip
 
 
@@ -1018,12 +1018,12 @@ def verify_execution(
 
     initial_sum, offset = ZERO, 0
     for table in TABLES:
-        initial_sum += alpha_powers[offset] * (logup["bus_num"][table.name] * table.precompile_bus_interaction_sign)
-        initial_sum += alpha_powers[offset + 1] * (logup_gamma - logup["bus_den"][table.name])
+        initial_sum += alpha_powers[offset] * (logup["precompile_nums"][table.name] * table.precompile_bus_interaction_sign)
+        initial_sum += alpha_powers[offset + 1] * (logup_gamma - logup["precompile_dens"][table.name])
         offset += table.n_constraints
     sc_point, sc_value = verify_sumcheck(state, initial_sum, n_max, max(t.air_degree + 1 for t in TABLES))
 
-    committed = {t.name: [(gkr_point[-log_heights[t.name] :], logup["columns_values"][t.name], {})] for t in TABLES}
+    committed = {t.name: [(gkr_point[-log_heights[t.name] :], logup["columns_evals"][t.name], {})] for t in TABLES}
     my_air_final, offset = ZERO, 0
     for table in TABLES:
         log_n_rows = log_heights[table.name]
@@ -1050,7 +1050,7 @@ def verify_execution(
         SparseStatements(
             stacked_n_vars,
             gkr_point[-log_memory:],
-            [(0, logup["value_memory"]), (1, logup["value_memory_acc"])],
+            [(0, logup["memory_eval"]), (1, logup["memory_acc_eval"])],
         ),
         SparseStatements(stacked_n_vars, pm_point, [(0, pm_eval)]),
         SparseStatements(
