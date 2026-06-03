@@ -68,9 +68,6 @@ fn run_with_warmup(topology: &AggregationTopology, tracing: bool, json: bool, re
 
 #[allow(clippy::too_many_lines)]
 fn main() {
-    #[cfg(not(feature = "standard-alloc"))]
-    lean_multisig::init_allocator();
-
     let cli = Cli::parse();
 
     match cli {

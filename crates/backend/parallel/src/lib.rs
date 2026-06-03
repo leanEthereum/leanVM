@@ -108,9 +108,18 @@ unsafe impl Send for Pool {}
 
 /// Idempotent warm-up: spawn workers and run one empty dispatch so the pool and the (macOS)
 /// lazily-allocated mutex exist before timed work. Otherwise the pool inits on first use.
+///
+/// Also fail-fast if the machine's core count differs from the build-time [`NUM_THREADS`]
+/// (which sizes the whole pool): a mismatch silently over/under-subscribes every kernel, so
+/// surface it as "rebuild" rather than a quiet perf cliff.
 pub fn init() {
     static INIT: Once = Once::new();
     INIT.call_once(|| {
+        let actual = std::thread::available_parallelism().unwrap().get();
+        assert_eq!(
+            actual, NUM_THREADS,
+            "parallel pool built for {NUM_THREADS} threads but this machine reports {actual} -> please rebuild"
+        );
         let _ = pool();
         if NUM_THREADS > 1 {
             for_each_index(NUM_THREADS, |_| {});

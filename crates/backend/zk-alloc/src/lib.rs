@@ -7,7 +7,6 @@
 //! back to the system allocator.
 //!
 //! ```ignore
-//! init();                          // once, at process start
 //! loop {
 //!     begin_phase();               // arena ON; slabs reset lazily
 //!     let res = heavy_work();      // fast increments
@@ -86,15 +85,6 @@ fn ensure_region() -> usize {
         REGION_BASE.store(ptr as usize, Ordering::Release);
     });
     REGION_BASE.load(Ordering::Acquire)
-}
-
-/// Call once at process start, before any `begin_phase()`.
-pub fn init() {
-    let actual_num_threads = std::thread::available_parallelism().unwrap().get();
-    assert_eq!(
-        actual_num_threads, NUM_THREADS,
-        "built for {NUM_THREADS} threads but this machine reports {actual_num_threads} -> please rebuild`"
-    );
 }
 
 /// Activates the arena and resets every thread's slab. All allocations until the next
