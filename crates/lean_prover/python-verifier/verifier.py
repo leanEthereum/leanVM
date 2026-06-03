@@ -734,16 +734,8 @@ def eval_air_extension_table(evaluator: ConstraintEvaluator, logup_beta_eq: list
     flag_be_next, flag_start_next, len_next, flag_add_next, flag_dot_product_next, flag_eq_next, idx_a_next, idx_b_next = (evaluator.next[k] for k in EXTENSION_COLUMNS[:8])  # fmt: skip
     acc_next = evaluator.next.arr("acc", EF.DIMENSION)
 
-    aux_2 = (
-        flag_be * EXT_OP_FLAG_BE
-        + flag_add * EXT_OP_FLAG_ADD
-        + flag_dot_product * EXT_OP_FLAG_DOT_PRODUCT
-        + flag_eq * EXT_OP_FLAG_EQ
-        + len_col * EXT_OP_LEN_MULTIPLIER
-    )
-    eval_precompile_bus_in_air(
-        evaluator, logup_beta_eq, flag_start * (flag_add + flag_dot_product + flag_eq), aux_2, [idx_a, idx_b, idx_r]
-    )
+    aux_2 = flag_be * EXT_OP_FLAG_BE + flag_add * EXT_OP_FLAG_ADD + flag_dot_product * EXT_OP_FLAG_DOT_PRODUCT + flag_eq * EXT_OP_FLAG_EQ + len_col * EXT_OP_LEN_MULTIPLIER  # fmt: skip
+    eval_precompile_bus_in_air(evaluator, logup_beta_eq, flag_start * (flag_add + flag_dot_product + flag_eq), aux_2, [idx_a, idx_b, idx_r])  # fmt: skip
 
     for x in (flag_be, flag_start, flag_add, flag_dot_product, flag_eq):
         evaluator.assert_bool(x)
@@ -777,8 +769,7 @@ def eval_air_extension_table(evaluator: ConstraintEvaluator, logup_beta_eq: list
     evaluator.assert_zero(flag_start_next * (len_col - ONE))
 
 
-def _full_round(state: list[EF], rc1: list[Fp], rc2: list[Fp]) -> list[EF]:
-    """Two consecutive Poseidon full rounds, fused as one AIR step."""
+def do_2_full_round(state: list[EF], rc1: list[Fp], rc2: list[Fp]) -> list[EF]:
     for rc in (rc1, rc2):
         sbox = [(s + c).cube() for s, c in zip(state, rc)]
         state = [dot_product(sbox, row) for row in POSEIDON_AIR_MDS_DENSE]
@@ -786,32 +777,16 @@ def _full_round(state: list[EF], rc1: list[Fp], rc2: list[Fp]) -> list[EF]:
 
 
 def eval_air_poseidon16_table(evaluator: ConstraintEvaluator, logup_beta_eq: list[EF]) -> None:
-    c = evaluator.flat
-    half_pairs = POSEIDON_HALF_FULL_ROUNDS // 2
+    multiplicity, nu_b, nu_c , flag_out4, flag_out8, flag_left, offset_left, addr_left_lo, addr_left_hi, flag_permute = (evaluator.flat[k] for k in POSEIDON_COLUMNS[:10])  # fmt: skip
+    inputs = evaluator.flat.arr("input", POSEIDON_WIDTH)
+    beginning_full_rounds = [evaluator.flat.arr(f"begin_r{r}", POSEIDON_WIDTH) for r in range(POSEIDON_QUARTER_FULL_ROUNDS)]  # fmt: skip
+    partial_cols = evaluator.flat.arr("partial", POSEIDON_PARTIAL_ROUNDS)
+    ending_full_rounds = [evaluator.flat.arr(f"end_r{r}", POSEIDON_WIDTH) for r in range(POSEIDON_QUARTER_FULL_ROUNDS - 1)]  # fmt: skip
+    out_lo, out_hi = evaluator.flat.arr("out_lo", POSEIDON_WIDTH // 2), evaluator.flat.arr("out_hi", POSEIDON_WIDTH // 2)  # fmt: skip
 
-    multiplicity = c["multiplicity"]
-    nu_b, nu_c = c["nu_b"], c["nu_c"]
-    flag_out4, flag_out8, flag_left = c["flag_out4"], c["flag_out8"], c["flag_left"]
-    offset_left = c["offset_left"]
-    addr_left_lo, addr_left_hi = c["addr_left_lo"], c["addr_left_hi"]
-    flag_permute = c["flag_permute"]
-    inputs = c.arr("input", POSEIDON_WIDTH)
-    beginning_full_rounds = [c.arr(f"begin_r{r}", POSEIDON_WIDTH) for r in range(half_pairs)]
-    partial_cols = c.arr("partial", POSEIDON_PARTIAL_ROUNDS)
-    ending_full_rounds = [c.arr(f"end_r{r}", POSEIDON_WIDTH) for r in range(half_pairs - 1)]
-    out_lo = c.arr("out_lo", POSEIDON_WIDTH // 2)
-    out_hi = c.arr("out_hi", POSEIDON_WIDTH // 2)
-
-    domainsep = (
-        POSEIDON_DOMAINSEP_BASE
-        + flag_permute * POSEIDON_FLAG_PERMUTE_SHIFT
-        + flag_out8 * POSEIDON_FLAG_OUT8_SHIFT
-        + flag_left * POSEIDON_FLAG_LEFT_SHIFT
-        + flag_left * offset_left * POSEIDON_OFFSET_LEFT_SHIFT
-    )
+    domainsep = POSEIDON_DOMAINSEP_BASE + flag_permute * POSEIDON_FLAG_PERMUTE_SHIFT + flag_out8 * POSEIDON_FLAG_OUT8_SHIFT + flag_left * POSEIDON_FLAG_LEFT_SHIFT + flag_left * offset_left * POSEIDON_OFFSET_LEFT_SHIFT  # fmt: skip
     not_flag_left = ONE - flag_left
     nu_a = addr_left_hi - not_flag_left * (DIGEST_ELEMS // 2)
-
     eval_precompile_bus_in_air(evaluator, logup_beta_eq, multiplicity, domainsep, [nu_a, nu_b, nu_c])
     for f in (multiplicity, flag_out4, flag_out8, flag_left, flag_permute):
         evaluator.assert_bool(f)
@@ -821,16 +796,15 @@ def eval_air_poseidon16_table(evaluator: ConstraintEvaluator, logup_beta_eq: lis
     evaluator.assert_zero(flag_left * (offset_left - addr_left_lo))
     evaluator.assert_zero(not_flag_left * (nu_a - addr_left_lo))
     state = list(inputs)
-    # 2-by2 initial full rounds
-    for r in range(half_pairs):
-        state = _full_round(state, POSEIDON_AIR_INITIAL_CONSTANTS[2 * r], POSEIDON_AIR_INITIAL_CONSTANTS[2 * r + 1])
+    # 2-by-2 initial full rounds
+    for r in range(POSEIDON_QUARTER_FULL_ROUNDS):
+        state = do_2_full_round(state, POSEIDON_AIR_INITIAL_CONSTANTS[2 * r], POSEIDON_AIR_INITIAL_CONSTANTS[2 * r + 1])
         for i, post in enumerate(beginning_full_rounds[r]):
             evaluator.assert_eq(state[i], post)
             state[i] = post
-    # Transition into sparse partial-round form.
+    # partial-rounds (using the sparse decomposition, see Appendix of [Poseidon1](https://eprint.iacr.org/2019/458))
     state = [s + rc for s, rc in zip(state, POSEIDON_AIR_SPARSE_FIRST_RC)]
     state = [dot_product(state, row) for row in POSEIDON_AIR_SPARSE_M_I]
-    # Partial rounds: one sbox on lane 0, then sparse mat-vec.
     for r in range(POSEIDON_PARTIAL_ROUNDS):
         evaluator.assert_eq(state[0].cube(), partial_cols[r])
         state[0] = partial_cols[r]
@@ -840,52 +814,42 @@ def eval_air_poseidon16_table(evaluator: ConstraintEvaluator, logup_beta_eq: lis
         state[0] = dot_product(state, POSEIDON_AIR_SPARSE_FIRST_ROW[r])
         for i in range(1, POSEIDON_WIDTH):
             state[i] += old_s0 * POSEIDON_AIR_SPARSE_V[r][i - 1]
-    # 2-by2 final full rounds
-    for r in range(half_pairs - 1):
-        state = _full_round(state, POSEIDON_AIR_FINAL_CONSTANTS[2 * r], POSEIDON_AIR_FINAL_CONSTANTS[2 * r + 1])
+    # 2-by-2 final full rounds
+    for r in range(POSEIDON_QUARTER_FULL_ROUNDS - 1):
+        state = do_2_full_round(state, POSEIDON_AIR_FINAL_CONSTANTS[2 * r], POSEIDON_AIR_FINAL_CONSTANTS[2 * r + 1])
         for i, post in enumerate(ending_full_rounds[r]):
             evaluator.assert_eq(state[i], post)
             state[i] = post
-
-    # Last full round: compression feeds `inputs` forward into out_lo (permute does not).
-    # out_lo[4..8] is real unless the output is 4 elements (out4); out_hi (capacity) is only
-    # written by the full 16-element permutation (out16 = neither out8 nor out4).
-    last = 2 * (half_pairs - 1)
-    state = _full_round(state, POSEIDON_AIR_FINAL_CONSTANTS[last], POSEIDON_AIR_FINAL_CONSTANTS[last + 1])
-    not_permute = ONE - flag_permute
-    gate_lo_8 = ONE - flag_out4
-    gate_hi = ONE - flag_out8 - flag_out4
+    # Last full round
+    state = do_2_full_round(state, POSEIDON_AIR_FINAL_CONSTANTS[-2], POSEIDON_AIR_FINAL_CONSTANTS[-1])
+    not_permute, gate_out_4_to_8, gate_hi = ONE - flag_permute, ONE - flag_out4, ONE - flag_out8 - flag_out4
     for i in range(POSEIDON_WIDTH // 2):
-        value = state[i] + not_permute * inputs[i]
+        value = state[i] + not_permute * inputs[i]  # when it's not permutation -> it's a compression (feedforward)
         if i < (DIGEST_ELEMS // 2):
             evaluator.assert_zero(value - out_lo[i])
         else:
-            evaluator.assert_zero(gate_lo_8 * (value - out_lo[i]))
+            evaluator.assert_zero(gate_out_4_to_8 * (value - out_lo[i]))
         evaluator.assert_zero(gate_hi * (state[i + POSEIDON_WIDTH // 2] - out_hi[i]))
 
 
 EXECUTION_COLUMNS = (
-    "pc", "fp", "addr_a", "addr_b", "addr_c", "value_a", "value_b", "value_c", # 8 runtime cols
+    "pc", "fp", # 'next' columns (the rest are 'flat')
+    "addr_a", "addr_b", "addr_c", "value_a", "value_b", "value_c", # 8 runtime cols
     "operand_a", "operand_b", "operand_c", "flag_a", "flag_b", "flag_c", "flag_c_fp", "flag_ab_fp", "flag_mul", "flag_jump", "aux_1", "aux_2", # 12 instruction cols.
 )  # fmt: skip
 
 EXTENSION_COLUMNS = (
-    "flag_be", "flag_start", "len", "flag_add", "flag_dot_product", "flag_eq", "idx_a", "idx_b",
-    *(f"acc_{i}" for i in range(EF.DIMENSION)),
-    "idx_r",
-    *(f"v_a_{i}" for i in range(EF.DIMENSION)),
-    *(f"v_b_{i}" for i in range(EF.DIMENSION)),
-    *(f"res_{i}" for i in range(EF.DIMENSION)),
+    "flag_be", "flag_start", "len", "flag_add", "flag_dot_product", "flag_eq", "idx_a", "idx_b", *(f"acc_{i}" for i in range(EF.DIMENSION)), # 'next' columns
+    "idx_r", *(f"v_a_{i}" for i in range(EF.DIMENSION)), *(f"v_b_{i}" for i in range(EF.DIMENSION)), *(f"res_{i}" for i in range(EF.DIMENSION)), # # 'flat' columns
 )  # fmt: skip
 
-POSEIDON_COLUMNS = (
+POSEIDON_COLUMNS = ( # all 'flat' columns
     "multiplicity", "nu_b", "nu_c", "flag_out4", "flag_out8", "flag_left", "offset_left", "addr_left_lo", "addr_left_hi", "flag_permute",
     *(f"input_{i}" for i in range(POSEIDON_WIDTH)),
     *(f"begin_r{r}_{i}" for r in range(POSEIDON_HALF_FULL_ROUNDS // 2) for i in range(POSEIDON_WIDTH)),
     *(f"partial_{i}" for i in range(POSEIDON_PARTIAL_ROUNDS)),
     *(f"end_r{r}_{i}" for r in range(POSEIDON_HALF_FULL_ROUNDS // 2 - 1) for i in range(POSEIDON_WIDTH)),
-    *(f"out_lo_{i}" for i in range(POSEIDON_WIDTH // 2)),
-    *(f"out_hi_{i}" for i in range(POSEIDON_WIDTH // 2)),
+    *(f"out_lo_{i}" for i in range(POSEIDON_WIDTH // 2)), *(f"out_hi_{i}" for i in range(POSEIDON_WIDTH // 2)), # lo: [0:8], hi: [8:16]
 )  # fmt: skip
 
 TABLES = [

@@ -301,7 +301,8 @@ def div_ceil(n: int, k: int) -> int:
 POSEIDON_FULL_ROUNDS = 8
 POSEIDON_WIDTH = 16
 POSEIDON_PARTIAL_ROUNDS = 20
-POSEIDON_HALF_FULL_ROUNDS = POSEIDON_FULL_ROUNDS // 2  # = 4 full rounds per side
+POSEIDON_HALF_FULL_ROUNDS = POSEIDON_FULL_ROUNDS // 2  # = 4 full rounds per side (initial / final)
+POSEIDON_QUARTER_FULL_ROUNDS = POSEIDON_HALF_FULL_ROUNDS // 2
 
 
 def _mat_mul(a: list[list[int]], b: list[list[int]], n: int) -> list[list[int]]:
