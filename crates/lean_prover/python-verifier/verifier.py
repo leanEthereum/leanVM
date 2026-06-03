@@ -24,7 +24,7 @@ SNARK_DOMAIN_SEP = [Fp(v) for v in (130704175, 1303721200, 493664240, 1035493700
 
 WHIR_INITIAL_FOLDING_FACTOR, WHIR_SUBSEQUENT_FOLDING_FACTOR, WHIR_MAX_NUM_VARIABLES_TO_SEND_COEFFS = 7, 5, 8
 MIN_WHIR_LOG_INV_RATE, MAX_WHIR_LOG_INV_RATE, RS_DOMAIN_INITIAL_REDUCTION_FACTOR = 1, 4, 5
-_WHIR_CONFIGS = WHIR_CONFIGS = [(1,7,1,10,220,16,[]), (1,8,1,11,220,16,[]), (1,9,1,12,220,16,[]), (1,10,1,13,220,16,[]), (1,11,1,14,220,16,[]), (1,12,1,15,220,16,[]), (1,13,1,16,220,16,[]), (1,14,1,15,221,16,[]), (1,15,1,16,221,16,[]), (1,16,1,11,73,16,[(222,1,16,16), ]), (1,17,1,12,73,16,[(223,1,16,16), ]), (1,18,1,13,73,16,[(224,1,16,16), ]), (1,19,1,14,73,16,[(225,1,16,16), ]), (1,20,1,15,73,16,[(227,1,16,16), ]), (1,21,2,9,32,16,[(229,1,16,16), (73,1,16,16)]), (1,22,2,10,32,16,[(230,1,16,16), (74,1,16,12)]), (1,23,2,11,32,16,[(234,1,16,16), (74,1,16,13)]), (1,24,2,12,32,16,[(235,1,16,16), (74,1,16,14)]), (1,25,2,13,32,16,[(241,2,16,16), (74,2,16,15)]), (1,26,2,14,21,14,[(243,2,16,16), (74,2,16,16), (32,2,16,14)]), (1,27,2,15,21,14,[(248,2,16,16), (75,2,16,15), (32,2,16,15)]), (1,28,2,16,21,14,[(256,2,16,16), (75,2,16,16), (32,2,16,16)]), (1,29,2,17,21,14,[(262,2,16,16), (76,2,16,15), (33,2,16,12)]), (1,30,2,18,21,14,[(270,2,16,16), (76,2,16,16), (33,2,16,13)]), (2,7,1,13,109,16,[]), (2,8,1,14,109,16,[]), (2,9,1,15,109,16,[]), (2,10,1,16,109,16,[]), (2,11,1,12,110,16,[]), (2,12,1,13,110,16,[]), (2,13,1,14,110,16,[]), (2,14,1,15,110,16,[]), (2,15,1,16,110,16,[]), (2,16,1,10,55,16,[(111,1,16,14), ]), (2,17,1,11,55,16,[(111,1,16,15), ]), (2,18,1,12,55,16,[(111,1,16,16), ]), (2,19,1,13,55,16,[(112,1,16,15), ]), (2,20,2,14,55,16,[(112,1,16,16), ]), (2,21,2,10,28,16,[(113,1,16,16), (55,1,16,15)]), (2,22,2,11,28,16,[(114,1,16,15), (55,1,16,16)]), (2,23,2,12,28,16,[(114,1,16,16), (56,1,16,13)]), (2,24,2,13,28,16,[(115,1,16,16), (56,2,16,14)]), (2,25,2,14,28,16,[(118,2,16,15), (56,2,16,15)]), (2,26,2,17,19,15,[(118,2,16,16), (56,2,16,16), (28,2,16,15)]), (2,27,2,18,19,15,[(119,2,16,16), (57,2,16,13), (28,2,16,16)]), (2,28,2,19,19,15,[(120,2,16,16), (57,2,16,14), (29,2,15,14)]), (2,29,2,20,19,15,[(123,2,16,16), (57,2,16,15), (29,2,15,15)]), (3,7,1,9,73,16,[]), (3,8,1,10,73,16,[]), (3,9,1,11,73,16,[]), (3,10,1,12,73,16,[]), (3,11,1,13,73,16,[]), (3,12,1,14,73,16,[]), (3,13,1,15,73,16,[]), (3,14,1,16,73,16,[]), (3,15,1,12,74,16,[]), (3,16,1,11,44,16,[(74,1,16,13), ]), (3,17,1,12,44,16,[(74,1,16,14), ]), (3,18,2,13,44,16,[(74,1,16,15), ]), (3,19,2,14,44,16,[(74,1,16,16), ]), (3,20,2,15,44,16,[(75,1,16,15), ]), (3,21,2,11,25,16,[(75,1,16,16), (44,1,16,16)]), (3,22,2,12,25,16,[(76,1,16,15), (45,1,16,11)]), (3,23,2,13,25,16,[(76,1,16,16), (45,2,16,12)]), (3,24,2,14,25,16,[(77,2,16,16), (45,2,16,13)]), (3,25,2,15,25,16,[(78,2,15,16), (45,2,16,14)]), (3,26,2,19,18,12,[(79,2,15,16), (45,2,16,15), (25,2,16,16)]), (3,27,2,20,18,12,[(80,2,16,16), (45,2,16,16), (26,2,13,15)]), (3,28,2,21,18,12,[(82,2,15,15), (46,2,16,15), (26,2,13,16)]), (4,7,1,8,55,16,[]), (4,8,1,9,55,16,[]), (4,9,1,10,55,16,[]), (4,10,1,11,55,16,[]), (4,11,1,12,55,16,[]), (4,12,1,13,55,16,[]), (4,13,1,14,55,16,[]), (4,14,1,15,55,16,[]), (4,15,1,16,55,16,[]), (4,16,1,9,37,16,[(56,1,16,13), ]), (4,17,1,10,37,16,[(56,1,16,14), ]), (4,18,2,11,37,16,[(56,1,16,15), ]), (4,19,2,12,37,16,[(56,1,16,16), ]), (4,20,2,13,37,16,[(57,1,16,13), ]), (4,21,2,12,23,15,[(57,2,16,14), (37,2,16,14)]), (4,22,2,13,23,15,[(57,2,16,15), (37,2,16,15)]), (4,23,2,14,23,15,[(57,2,16,16), (37,2,16,16)]), (4,24,2,15,23,15,[(58,2,16,15), (38,2,16,13)]), (4,25,2,16,23,15,[(58,2,16,16), (38,2,16,14)]), (4,26,2,22,16,16,[(60,2,15,16), (38,2,16,15), (23,2,15,17)]), (4,27,2,23,16,16,[(61,2,16,15), (38,2,16,16), (23,2,15,18)])] # fmt: skip
+_WHIR_CONFIGS = WHIR_CONFIGS = [(1,7,1,10,220,16,[]), (1,8,1,11,220,16,[]), (1,9,1,12,220,16,[]), (1,10,1,13,220,16,[]), (1,11,1,14,220,16,[]), (1,12,1,15,220,16,[]), (1,13,1,16,220,16,[]), (1,14,1,15,221,16,[]), (1,15,1,16,221,16,[]), (1,16,1,11,73,16,[(222,1,16,16), ]), (1,17,1,12,73,16,[(223,1,16,16), ]), (1,18,1,13,73,16,[(224,1,16,16), ]), (1,19,1,14,73,16,[(225,1,16,16), ]), (1,20,1,15,73,16,[(227,1,16,16), ]), (1,21,2,9,32,16,[(229,1,16,16), (73,1,16,16)]), (1,22,2,10,32,16,[(230,1,16,16), (74,1,16,12)]), (1,23,2,11,32,16,[(234,1,16,16), (74,1,16,13)]), (1,24,2,12,32,16,[(235,1,16,16), (74,1,16,14)]), (1,25,2,13,32,16,[(241,2,16,16), (74,2,16,15)]), (1,26,2,14,21,14,[(243,2,16,16), (74,2,16,16), (32,2,16,14)]), (1,27,2,15,21,14,[(248,2,16,16), (75,2,16,15), (32,2,16,15)]), (1,28,2,16,21,14,[(256,2,16,16), (75,2,16,16), (32,2,16,16)]), (1,29,2,17,21,14,[(262,2,16,16), (76,2,16,15), (33,2,16,12)]), (1,30,2,18,21,14,[(270,2,16,16), (76,2,16,16), (33,2,16,13)]), (2,7,1,13,109,16,[]), (2,8,1,14,109,16,[]), (2,9,1,15,109,16,[]), (2,10,1,16,109,16,[]), (2,11,1,12,110,16,[]), (2,12,1,13,110,16,[]), (2,13,1,14,110,16,[]), (2,14,1,15,110,16,[]), (2,15,1,16,110,16,[]), (2,16,1,10,55,16,[(111,1,16,14), ]), (2,17,1,11,55,16,[(111,1,16,15), ]), (2,18,1,12,55,16,[(111,1,16,16), ]), (2,19,1,13,55,16,[(112,1,16,15), ]), (2,20,2,14,55,16,[(112,1,16,16), ]), (2,21,2,10,28,16,[(113,1,16,16), (55,1,16,15)]), (2,22,2,11,28,16,[(114,1,16,15), (55,1,16,16)]), (2,23,2,12,28,16,[(114,1,16,16), (56,1,16,13)]), (2,24,2,13,28,16,[(115,1,16,16), (56,2,16,14)]), (2,25,2,14,28,16,[(118,2,16,15), (56,2,16,15)]), (2,26,2,17,19,15,[(118,2,16,16), (56,2,16,16), (28,2,16,15)]), (2,27,2,18,19,15,[(119,2,16,16), (57,2,16,13), (28,2,16,16)]), (2,28,2,19,19,15,[(120,2,16,16), (57,2,16,14), (29,2,15,14)]), (2,29,2,20,19,15,[(123,2,16,16), (57,2,16,15), (29,2,15,15)]), (3,7,1,9,73,16,[]), (3,8,1,10,73,16,[]), (3,9,1,11,73,16,[]), (3,10,1,12,73,16,[]), (3,11,1,13,73,16,[]), (3,12,1,14,73,16,[]), (3,13,1,15,73,16,[]), (3,14,1,16,73,16,[]), (3,15,1,12,74,16,[]), (3,16,1,11,44,16,[(74,1,16,13), ]), (3,17,1,12,44,16,[(74,1,16,14), ]), (3,18,2,13,44,16,[(74,1,16,15), ]), (3,19,2,14,44,16,[(74,1,16,16), ]), (3,20,2,15,44,16,[(75,1,16,15), ]), (3,21,2,11,25,16,[(75,1,16,16), (44,1,16,16)]), (3,22,2,12,25,16,[(76,1,16,15), (45,1,16,11)]), (3,23,2,13,25,16,[(76,1,16,16), (45,2,16,12)]), (3,24,2,14,25,16,[(77,2,16,16), (45,2,16,13)]), (3,25,2,15,25,16,[(78,2,15,16), (45,2,16,14)]), (3,26,2,19,18,12,[(79,2,15,16), (45,2,16,15), (25,2,16,16)]), (3,27,2,20,18,12,[(80,2,16,16), (45,2,16,16), (26,2,13,15)]), (3,28,2,21,18,12,[(82,2,15,15), (46,2,16,15), (26,2,13,16)]), (4,7,1,8,55,16,[]), (4,8,1,9,55,16,[]), (4,9,1,10,55,16,[]), (4,10,1,11,55,16,[]), (4,11,1,12,55,16,[]), (4,12,1,13,55,16,[]), (4,13,1,14,55,16,[]), (4,14,1,15,55,16,[]), (4,15,1,16,55,16,[]), (4,16,1,9,37,16,[(56,1,16,13), ]), (4,17,1,10,37,16,[(56,1,16,14), ]), (4,18,2,11,37,16,[(56,1,16,15), ]), (4,19,2,12,37,16,[(56,1,16,16), ]), (4,20,2,13,37,16,[(57,1,16,13), ]), (4,21,2,12,23,15,[(57,2,16,14), (37,2,16,14)]), (4,22,2,13,23,15,[(57,2,16,15), (37,2,16,15)]), (4,23,2,14,23,15,[(57,2,16,16), (37,2,16,16)]), (4,24,2,15,23,15,[(58,2,16,15), (38,2,16,13)]), (4,25,2,16,23,15,[(58,2,16,16), (38,2,16,14)]), (4,26,2,22,16,16,[(60,2,15,16), (38,2,16,15), (23,2,15,17)]), (4,27,2,23,16,16,[(61,2,16,15), (38,2,16,16), (23,2,15,18)])]  # fmt: skip
 WHIR_CONFIGS = {
     (c[0], c[1]): {
         "log_inv_rate": c[0],
@@ -431,7 +431,7 @@ def verify_whir(
             leaf_eval = eval_multilinear_by_evals(leaf, folding_challenges[-folding_factor:])
             point = expand_from_univariate(EF(pow(int(gen.value), idx, P)), current_vars)
             stir_constraints.append(SparseStatements(current_vars, point, [(0, leaf_eval)]))
-            
+
         if is_final:
             final_stir_constraints = stir_constraints
             break
@@ -452,11 +452,11 @@ def verify_whir(
             folding_challenges = folding_challenges[whir_folding_factor_at_round(round - 1) :]
         gamma_power = ONE
         for smt in smts:
-            point_suffix = folding_challenges[len(folding_challenges) - len(smt.point) :] # dense part of the point
+            point_suffix = folding_challenges[len(folding_challenges) - len(smt.point) :]  # dense part of the point
             eval_suffix = next_mle(smt.point, point_suffix) if smt.is_next else eq_poly(smt.point, point_suffix)
             sel_n = smt.selector_num_variables
             for v in smt.values:
-                eval_prefix = eq_at_index(folding_challenges, v[0], sel_n) # sparse part of the point
+                eval_prefix = eq_at_index(folding_challenges, v[0], sel_n)  # sparse part of the point
                 eval_weights += eval_prefix * eval_suffix * gamma_power
                 gamma_power *= gamma
     final_value = eval_multilinear_by_coeffs(final_coeffs, list(reversed(final_sc_point)))
@@ -576,7 +576,9 @@ def verify_generic_logup(
     memory_acc_eval = fiat_shamir.next_extension_scalar()
     memory_eval = fiat_shamir.next_extension_scalar()
     num -= pref * memory_acc_eval
-    den += pref * (gamma - finger_print(Fp(LOGUP_MEMORY_DOMAINSEP), [mle_of_01234567_etc(mem_pt), memory_eval], beta_eq))
+    den += pref * (
+        gamma - finger_print(Fp(LOGUP_MEMORY_DOMAINSEP), [mle_of_01234567_etc(mem_pt), memory_eval], beta_eq)
+    )
     offset = 1 << log_memory
 
     # Bytecode section (padded to the tallest table)
@@ -593,7 +595,9 @@ def verify_generic_logup(
         + beta_eq[-1] * Fp(LOGUP_BYTECODE_DOMAINSEP)
     )
     num -= pref * value_bytecode_acc
-    den += pref * (gamma - fingerprint_bytecode) + pref_padded * mle_of_zeros_then_ones(1 << log_bytecode, gkr_point[-log_bytecode_padded:])
+    den += pref * (gamma - fingerprint_bytecode) + pref_padded * mle_of_zeros_then_ones(
+        1 << log_bytecode, gkr_point[-log_bytecode_padded:]
+    )
     offset += 1 << log_bytecode_padded
 
     # Per-table section
@@ -620,11 +624,11 @@ def verify_generic_logup(
         for bus in table.buses:
             if bus.cols:
                 # memory / bytecode interraction
-                base = [table.col(c) for c in bus.cols]  
+                base = [table.col(c) for c in bus.cols]
                 for i in range(bus.n_terms):  # term i: σ = (m[base[0]] + i, m[base[1:] + i])
                     pref = pref_at(offset, table_heights[table.name])
                     d = request_column_evals_dedup([base[0], *(c + i for c in base[1:])])
-                    num += pref # always multiplicity 1
+                    num += pref  # always multiplicity 1
                     den += pref * (gamma - finger_print(Fp(bus.domain_sep), [d[0] + i, *d[1:]], beta_eq))
                     offset += 1 << table_heights[table.name]
             else:
@@ -635,7 +639,7 @@ def verify_generic_logup(
                 num += pref * precompile_nums[table.name]
                 den += pref * precompile_dens[table.name]
                 offset += 1 << table_heights[table.name]
-            
+
     den += mle_of_zeros_then_ones(final_offset, gkr_point)
     if num != claim_num:
         raise ProofError("logup: numerators value mismatch")
@@ -658,9 +662,9 @@ class ConstraintEvaluator:
     def __init__(
         self, flat: Sequence[EF], shift: Sequence[EF], alpha_powers: Sequence[EF], columns: Sequence[str]
     ) -> None:
-        self.flat = list(flat)
-        self.shift = list(shift)
-        self.alpha_powers = list(alpha_powers)
+        self.flat = flat
+        self.shift = shift
+        self.alpha_powers = alpha_powers
         # Shift columns are always the first `n_shift` columns of the table.
         self.flat = Cols(zip(columns, self.flat))
         self.next = Cols(zip(columns[: len(self.shift)], self.shift))
@@ -678,7 +682,7 @@ class ConstraintEvaluator:
         self.assert_zero(x * (ONE - x))
 
 
-def eval_precompile_bus_virtual_columns(
+def eval_precompile_bus_in_air(
     evaluator: "ConstraintEvaluator",
     logup_beta_eq: list[EF],
     multiplicity: EF,
@@ -689,11 +693,10 @@ def eval_precompile_bus_virtual_columns(
     evaluator.assert_zero(finger_print(domainsep, data, logup_beta_eq))
 
 
-def eval_air_execution(evaluator: ConstraintEvaluator, logup_beta_eq: list[EF]) -> None:
-    c, n = evaluator.flat, evaluator.next
+def eval_air_execution_table(evaluator: ConstraintEvaluator, logup_beta_eq: list[EF]) -> None:
     (pc, fp, addr_a, addr_b, addr_c, value_a, value_b, value_c, operand_a, operand_b, operand_c,
-     flag_a, flag_b, flag_c, flag_c_fp, flag_ab_fp, flag_mul, flag_jump, aux_1, aux_2) = (c[k] for k in EXECUTION_COLUMNS)  # fmt: skip
-    pc_shift, fp_shift = n["pc"], n["fp"]
+        flag_a, flag_b, flag_c, flag_c_fp, flag_ab_fp, flag_mul, flag_jump, aux_1, aux_2) = (evaluator.flat[k] for k in EXECUTION_COLUMNS)  # fmt: skip
+    next_pc, next_fp = evaluator.next["pc"], evaluator.next["fp"]
 
     # nu_x = flag·operand + (1 − flag − flag_ab_fp)·value + flag_ab_fp·(fp + operand)
     nfa = ONE - flag_a - flag_ab_fp
@@ -708,7 +711,7 @@ def eval_air_execution(evaluator: ConstraintEvaluator, logup_beta_eq: list[EF]) 
     flag_deref = aux_1 * (aux_1 - ONE) * ((P + 1) // 2)  # (P+1)/2 is the inverse of 2 mod P
     flag_precompile = ONE - flag_add - flag_mul - flag_deref - flag_jump
 
-    eval_precompile_bus_virtual_columns(evaluator, logup_beta_eq, flag_precompile, aux_2, [nu_a, nu_b, nu_c])
+    eval_precompile_bus_in_air(evaluator, logup_beta_eq, flag_precompile, aux_2, [nu_a, nu_b, nu_c])
     evaluator.assert_zero(nfa * (addr_a - (fp + operand_a)))
     evaluator.assert_zero(nfb * (addr_b - (fp + operand_b)))
     evaluator.assert_zero(nfc * (addr_c - (fp + operand_c)))
@@ -716,25 +719,20 @@ def eval_air_execution(evaluator: ConstraintEvaluator, logup_beta_eq: list[EF]) 
     evaluator.assert_zero(flag_mul * (nu_b - nu_a * nu_c))
     evaluator.assert_zero(flag_deref * (addr_b - (value_a + operand_b)))
     evaluator.assert_zero(flag_deref * (value_b - nu_c))
-    jc = flag_jump * nu_a
-    evaluator.assert_zero(jc * (nu_a - ONE))
-    evaluator.assert_zero(jc * (pc_shift - nu_b))
-    evaluator.assert_zero(jc * (fp_shift - nu_c))
-    not_jc = ONE - jc
-    evaluator.assert_zero(not_jc * (pc_shift - (pc + ONE)))
-    evaluator.assert_zero(not_jc * (fp_shift - fp))
+    jumping = flag_jump * nu_a
+    evaluator.assert_zero(jumping * (nu_a - ONE))  # nu_a (condition) should be boolean in case of JUMP instruction
+    evaluator.assert_zero(jumping * (next_pc - nu_b))
+    evaluator.assert_zero(jumping * (next_fp - nu_c))
+    not_jumping = ONE - jumping
+    evaluator.assert_zero(not_jumping * (next_pc - (pc + ONE)))
+    evaluator.assert_zero(not_jumping * (next_fp - fp))
 
 
-def eval_air_extension(evaluator: ConstraintEvaluator, logup_beta_eq: list[EF]) -> None:
-    c, n = evaluator.flat, evaluator.next
-    flag_be, flag_start, len_col = c["flag_be"], c["flag_start"], c["len"]
-    flag_add, flag_dot_product, flag_eq = c["flag_add"], c["flag_dot_product"], c["flag_eq"]
-    idx_a, idx_b, idx_r = c["idx_a"], c["idx_b"], c["idx_r"]
-    acc, v_a, v_b, res = c.arr("acc", 5), c.arr("v_a", 5), c.arr("v_b", 5), c.arr("res", 5)
-    flag_be_sh, flag_start_sh, len_sh = n["flag_be"], n["flag_start"], n["len"]
-    flag_add_sh, flag_dot_product_sh, flag_eq_sh = n["flag_add"], n["flag_dot_product"], n["flag_eq"]
-    idx_a_sh, idx_b_sh = n["idx_a"], n["idx_b"]
-    acc_sh = n.arr("acc", 5)
+def eval_air_extension_table(evaluator: ConstraintEvaluator, logup_beta_eq: list[EF]) -> None:
+    (flag_be, flag_start, len_col, flag_add, flag_dot_product, flag_eq, idx_a, idx_b) = (evaluator.flat[k] for k in EXTENSION_COLUMNS[:8])  # fmt: skip
+    idx_r, acc, v_a, v_b, res = evaluator.flat["idx_r"], evaluator.flat.arr("acc", EF.DIMENSION), evaluator.flat.arr("v_a", EF.DIMENSION), evaluator.flat.arr("v_b", EF.DIMENSION), evaluator.flat.arr("res", EF.DIMENSION)  # fmt: skip
+    flag_be_next, flag_start_next, len_next, flag_add_next, flag_dot_product_next, flag_eq_next, idx_a_next, idx_b_next = (evaluator.next[k] for k in EXTENSION_COLUMNS[:8])  # fmt: skip
+    acc_next = evaluator.next.arr("acc", EF.DIMENSION)
 
     aux_2 = (
         flag_be * EXT_OP_FLAG_BE
@@ -743,44 +741,46 @@ def eval_air_extension(evaluator: ConstraintEvaluator, logup_beta_eq: list[EF]) 
         + flag_eq * EXT_OP_FLAG_EQ
         + len_col * EXT_OP_LEN_MULTIPLIER
     )
-    eval_precompile_bus_virtual_columns(
+    eval_precompile_bus_in_air(
         evaluator, logup_beta_eq, flag_start * (flag_add + flag_dot_product + flag_eq), aux_2, [idx_a, idx_b, idx_r]
     )
 
     for x in (flag_be, flag_start, flag_add, flag_dot_product, flag_eq):
         evaluator.assert_bool(x)
 
-    is_ee, not_start_sh = ONE - flag_be, ONE - flag_start_sh
-    v_a_tilde = [v_a[0]] + [v_a[k] * is_ee for k in range(1, 5)]
-    acc_tail = [acc_sh[k] * not_start_sh for k in range(5)]
+    is_ee, not_start_next = ONE - flag_be, ONE - flag_start_next
+    v_a_tilde = [v_a[0]] + [v_a[k] * is_ee for k in range(1, EF.DIMENSION)]
+    acc_tail = [acc_next[k] * not_start_next for k in range(EF.DIMENSION)]
     v_a_v_b = quintic_mul(v_a_tilde, v_b, ZERO)
 
-    for k in range(5):
+    for k in range(EF.DIMENSION):
         evaluator.assert_zero((acc[k] - (v_a_tilde[k] + v_b[k] + acc_tail[k])) * flag_add)
-    for k in range(5):
+    for k in range(EF.DIMENSION):
         evaluator.assert_zero((acc[k] - (v_a_v_b[k] + acc_tail[k])) * flag_dot_product)
 
     # eq: acc ← (2·v_a·v_b − v_a − v_b + 1) · (acc_tail or 1 at group end).
-    e_eq = [2 * v_a_v_b[k] - v_a_tilde[k] - v_b[k] + (ONE if k == 0 else ZERO) for k in range(5)]
-    acc_tail_or_one = [acc_sh[0] * not_start_sh + flag_start_sh] + [acc_sh[k] * not_start_sh for k in range(1, 5)]
+    e_eq = [2 * v_a_v_b[k] - v_a_tilde[k] - v_b[k] + (ONE if k == 0 else ZERO) for k in range(EF.DIMENSION)]
+    acc_tail_or_one = [acc_next[0] * not_start_next + flag_start_next] + [
+        acc_next[k] * not_start_next for k in range(1, EF.DIMENSION)
+    ]
     eq_result = quintic_mul(e_eq, acc_tail_or_one, ZERO)
-    for k in range(5):
+    for k in range(EF.DIMENSION):
         evaluator.assert_zero((acc[k] - eq_result[k]) * flag_eq)
-    for k in range(5):
+    for k in range(EF.DIMENSION):
         evaluator.assert_zero((acc[k] - res[k]) * flag_start)
 
     for x, y in [
-        (len_col, len_sh + ONE),
-        (flag_be, flag_be_sh),
-        (flag_add, flag_add_sh),
-        (flag_dot_product, flag_dot_product_sh),
-        (flag_eq, flag_eq_sh),
+        (len_col, len_next + ONE),
+        (flag_be, flag_be_next),
+        (flag_add, flag_add_next),
+        (flag_dot_product, flag_dot_product_next),
+        (flag_eq, flag_eq_next),
     ]:
-        evaluator.assert_zero(not_start_sh * (x - y))
+        evaluator.assert_zero(not_start_next * (x - y))
 
-    evaluator.assert_zero(not_start_sh * (idx_a_sh - idx_a - (flag_be + is_ee * 5)))
-    evaluator.assert_zero(not_start_sh * (idx_b_sh - idx_b - 5))
-    evaluator.assert_zero(flag_start_sh * (len_col - ONE))
+    evaluator.assert_zero(not_start_next * (idx_a_next - idx_a - (flag_be + is_ee * EF.DIMENSION)))
+    evaluator.assert_zero(not_start_next * (idx_b_next - idx_b - EF.DIMENSION))
+    evaluator.assert_zero(flag_start_next * (len_col - ONE))
 
 
 def _full_round(state: list[EF], rc1: list[Fp], rc2: list[Fp]) -> list[EF]:
@@ -791,7 +791,7 @@ def _full_round(state: list[EF], rc1: list[Fp], rc2: list[Fp]) -> list[EF]:
     return state
 
 
-def eval_air_poseidon16(evaluator: ConstraintEvaluator, logup_beta_eq: list[EF]) -> None:
+def eval_air_poseidon16_table(evaluator: ConstraintEvaluator, logup_beta_eq: list[EF]) -> None:
     c = evaluator.flat
     half_pairs = POSEIDON_HALF_FULL_ROUNDS // 2
 
@@ -818,7 +818,7 @@ def eval_air_poseidon16(evaluator: ConstraintEvaluator, logup_beta_eq: list[EF])
     not_flag_left = ONE - flag_left
     nu_a = addr_left_hi - not_flag_left * (DIGEST_ELEMS // 2)
 
-    eval_precompile_bus_virtual_columns(evaluator, logup_beta_eq, multiplicity, domainsep, [nu_a, nu_b, nu_c])
+    eval_precompile_bus_in_air(evaluator, logup_beta_eq, multiplicity, domainsep, [nu_a, nu_b, nu_c])
     for f in (multiplicity, flag_out4, flag_out8, flag_left, flag_permute):
         evaluator.assert_bool(f)
     evaluator.assert_zero(flag_permute * flag_out4)
@@ -884,11 +884,11 @@ EXECUTION_COLUMNS = (
 
 EXTENSION_COLUMNS = (
     "flag_be", "flag_start", "len", "flag_add", "flag_dot_product", "flag_eq", "idx_a", "idx_b",
-    *(f"acc_{i}" for i in range(5)),
+    *(f"acc_{i}" for i in range(EF.DIMENSION)),
     "idx_r",
-    *(f"v_a_{i}" for i in range(5)),
-    *(f"v_b_{i}" for i in range(5)),
-    *(f"res_{i}" for i in range(5)),
+    *(f"v_a_{i}" for i in range(EF.DIMENSION)),
+    *(f"v_b_{i}" for i in range(EF.DIMENSION)),
+    *(f"res_{i}" for i in range(EF.DIMENSION)),
 )  # fmt: skip
 
 POSEIDON_COLUMNS = (
@@ -916,22 +916,22 @@ TABLES = [
         n_constraints=14,
         n_shift=2,
         max_log_height=24,
-        air_constraints_fn=eval_air_execution,
+        air_constraints_fn=eval_air_execution_table,
     ),
     Table(
         name="extension",
         columns=EXTENSION_COLUMNS,
         buses=(
             BusInteraction(BusDirection.PULL),
-            BusInteraction(BusDirection.PULL, LOGUP_MEMORY_DOMAINSEP, ("idx_a", "v_a_0"), 5),
-            BusInteraction(BusDirection.PULL, LOGUP_MEMORY_DOMAINSEP, ("idx_b", "v_b_0"), 5),
-            BusInteraction(BusDirection.PULL, LOGUP_MEMORY_DOMAINSEP, ("idx_r", "res_0"), 5),
+            BusInteraction(BusDirection.PULL, LOGUP_MEMORY_DOMAINSEP, ("idx_a", "v_a_0"), EF.DIMENSION),
+            BusInteraction(BusDirection.PULL, LOGUP_MEMORY_DOMAINSEP, ("idx_b", "v_b_0"), EF.DIMENSION),
+            BusInteraction(BusDirection.PULL, LOGUP_MEMORY_DOMAINSEP, ("idx_r", "res_0"), EF.DIMENSION),
         ),
         air_degree=6,
         n_constraints=35,
         n_shift=13,
         max_log_height=21,
-        air_constraints_fn=eval_air_extension,
+        air_constraints_fn=eval_air_extension_table,
     ),
     Table(
         name="poseidon",
@@ -947,7 +947,7 @@ TABLES = [
         n_constraints=101,
         n_shift=0,
         max_log_height=21,
-        air_constraints_fn=eval_air_poseidon16,
+        air_constraints_fn=eval_air_poseidon16_table,
     ),
 ]
 
@@ -1018,7 +1018,9 @@ def verify_execution(
 
     initial_sum, offset = ZERO, 0
     for table in TABLES:
-        initial_sum += alpha_powers[offset] * (logup["precompile_nums"][table.name] * table.precompile_bus_interaction_sign)
+        initial_sum += alpha_powers[offset] * (
+            logup["precompile_nums"][table.name] * table.precompile_bus_interaction_sign
+        )
         initial_sum += alpha_powers[offset + 1] * (logup_gamma - logup["precompile_dens"][table.name])
         offset += table.n_constraints
     sc_point, sc_value = verify_sumcheck(state, initial_sum, n_max, max(t.air_degree + 1 for t in TABLES))
