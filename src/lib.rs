@@ -11,19 +11,9 @@ pub use xmss::{MESSAGE_LEN_FE, XmssPublicKey, XmssSecretKey, XmssSignature, xmss
 
 pub type F = KoalaBear;
 
-#[allow(clippy::missing_const_for_fn)]
-pub fn tune_allocator() {
-    #[cfg(target_os = "linux")]
-    unsafe {
-        // Disable Transparent Huge Pages
-        libc::prctl(libc::PR_SET_THP_DISABLE, 1, 0, 0, 0);
-    }
-}
-
 /// Call once before proving. Tunes the process memory policy (see [`tune_allocator`]),
 /// compiles the aggregation program, and precomputes DFT twiddles.
 pub fn setup_prover() {
-    tune_allocator();
     parallel::init();
     rec_aggregation::init_aggregation_bytecode();
     precompute_dft_twiddles::<F>(1 << 24);
