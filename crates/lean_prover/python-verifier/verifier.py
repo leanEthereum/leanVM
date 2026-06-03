@@ -427,10 +427,10 @@ def verify_whir(
             op = fiat_shamir.next_merkle_opening()
             merkle_verify_path(commitment.root, log_height, idx, op.leaf_data, op.path)
             # Round 0 leaves are raw base-field elements; later rounds embed DIM Fp values per EF element.
-            packed = op.leaf_data if round == 0 else embed_ef(op.leaf_data)
-            fold = eval_multilinear_by_evals(packed, folding_challenges[-folding_factor:])
+            leaf = op.leaf_data if round == 0 else embed_ef(op.leaf_data)
+            leaf_eval = eval_multilinear_by_evals(leaf, folding_challenges[-folding_factor:])
             point = expand_from_univariate(EF(pow(int(gen.value), idx, P)), current_vars)
-            stir_constraints.append(SparseStatements(current_vars, point, [(0, fold)]))
+            stir_constraints.append(SparseStatements(current_vars, point, [(0, leaf_eval)]))
             
         if is_final:
             final_stir_constraints = stir_constraints
@@ -481,7 +481,7 @@ def stacked_pcs_global_statements(
         table_offsets[table.name] = layout_offset
         layout_offset += table.n_columns << n_vars
 
-    out = list(previous_statements)
+    res = list(previous_statements)
 
     def values_at(d: dict[int, EF], col_base: int) -> list[tuple[int, EF]]:
         return [(col_base + i, v) for i, v in sorted(d.items())]
@@ -490,13 +490,13 @@ def stacked_pcs_global_statements(
         n_vars = heights[table.name]
         offset = table_offsets[table.name]
         col_base = offset >> n_vars
-        out.extend(table.boundary_statements(stacked_n_vars, offset, n_vars, ending_pc))
+        res.extend(table.boundary_statements(stacked_n_vars, offset, n_vars, ending_pc))
         for point, eq_values, next_values in committed_statements[table.name]:
             if next_values:
-                out.append(SparseStatements(stacked_n_vars, list(point), values_at(next_values, col_base), True))
-            out.append(SparseStatements(stacked_n_vars, list(point), values_at(eq_values, col_base)))
+                res.append(SparseStatements(stacked_n_vars, point, values_at(next_values, col_base), True))
+            res.append(SparseStatements(stacked_n_vars, point, values_at(eq_values, col_base)))
 
-    return out
+    return res
 
 
 def verify_gkr_quotient(fiat_shamir: FiatShamir, n_vars: int) -> tuple[EF, list[EF], EF, EF]:
