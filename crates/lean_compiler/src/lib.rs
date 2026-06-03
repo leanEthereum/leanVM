@@ -180,7 +180,6 @@ pub fn try_compile_and_run(
     let bytecode = try_compile_program(input)?;
     let witness = ExecutionWitness::default();
     let result = try_execute_bytecode(&bytecode, public_input, &witness, profiler)?;
-    println!("{}", result.metadata.display());
     Ok(result.metadata.display())
 }
 
