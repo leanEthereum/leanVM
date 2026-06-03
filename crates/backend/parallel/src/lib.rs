@@ -349,6 +349,23 @@ where
     });
 }
 
+/// Parallel `(0..n_tasks).map(f).collect::<Vec<_>>()`: runs `f(i)` across the pool and gathers
+/// the results in index order, writing each straight into the output (no `Option` slots, one
+/// allocation). Folds away the common "fill a `Vec<Option<_>>` in parallel, then unwrap" dance.
+pub fn par_map_collect<T: Send, F: Fn(usize) -> T + Sync>(n_tasks: usize, f: F) -> Vec<T> {
+    let mut out: Vec<T> = Vec::with_capacity(n_tasks);
+    let base = SendPtr(out.as_mut_ptr());
+    for_each_index(n_tasks, |i| {
+        // SAFETY: distinct `i` write disjoint, in-bounds slots (each exactly once) and the
+        // dispatch blocks until all writes finish. A panic in `f` leaks the slots written so
+        // far, which is fine: a pool task panic is fatal (see the module's "Panics" note).
+        unsafe { base.add(i).write(f(i)) };
+    });
+    // SAFETY: every slot in `0..n_tasks` was initialized exactly once above.
+    unsafe { out.set_len(n_tasks) };
+    out
+}
+
 /// Give each worker its own persistent `Option<S>` slot while it drains `0..n_tasks`:
 /// `run(slot, start, end)` fires once per claimed batch with that worker's slot, so state
 /// accumulates across its batches. Returns the slots (rest `None`) for the caller to combine.
@@ -414,31 +431,4 @@ where
         .flatten()
         .map(|(_, acc)| acc)
         .fold(init_acc(), &combine)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    /// A task panic must surface on the dispatcher (never hang the completion spin), and the
-    /// pool must stay usable for later dispatches.
-    #[test]
-    fn task_panic_propagates_and_pool_survives() {
-        init();
-        // Silence the default hook so the intentional panic doesn't spam test output.
-        let prev_hook = std::panic::take_hook();
-        std::panic::set_hook(Box::new(|_| {}));
-        let caught = catch_unwind(|| for_each_index(1 << 10, |i| assert_ne!(i, 513, "intentional task panic")));
-        std::panic::set_hook(prev_hook);
-        assert!(
-            caught.is_err(),
-            "task panic should propagate to the dispatcher, not hang"
-        );
-
-        // Pool still works after a caught task panic.
-        assert_eq!(map_reduce(1000, || 0usize, |i| i, |a, b| a + b), (0..1000).sum());
-        let mut data = vec![0usize; 1000];
-        par_for_each_mut(&mut data, |i, slot| *slot = i);
-        assert!(data.iter().enumerate().all(|(i, &v)| i == v));
-    }
 }

@@ -90,17 +90,15 @@ fn gen_benchmark_signers_cache() -> Vec<(XmssPublicKey, XmssSignature)> {
     let completed = AtomicUsize::new(1);
     let time = Instant::now();
     let n_rest = NUM_BENCHMARK_SIGNERS - 1;
-    let mut rest_opt: Vec<Option<(XmssPublicKey, XmssSignature)>> = (0..n_rest).map(|_| None).collect();
-    parallel::par_for_each_mut(&mut rest_opt, |i, out| {
+    let rest = parallel::par_map_collect(n_rest, |i| {
         let signer = compute_signer(1 + i);
         let done = completed.fetch_add(1, Ordering::Relaxed) + 1;
         print!(
             "\rPrecomputing benchmark signatures (cached after first run): {:.0}%",
             100.0 * done as f64 / NUM_BENCHMARK_SIGNERS as f64
         );
-        *out = Some(signer);
+        signer
     });
-    let rest: Vec<_> = rest_opt.into_iter().map(Option::unwrap).collect();
 
     println!(
         "\rGenerating signatures for benchmark (one-time operation): 100% - done ({:.2}s)",
