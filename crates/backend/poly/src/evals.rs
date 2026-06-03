@@ -312,15 +312,14 @@ where
                     let (lead, sub_point) = point.split_at(n_split);
                     let n_chunks = 1 << n_split;
                     let chunk = evals.len() >> n_split;
-                    let mut partials = vec![Res::ZERO; n_chunks];
-                    parallel::par_chunks_mut(&mut partials, 1, |j, slot| {
-                        slot[0] = eval_multilinear_generic::<_, _, _, _, _, _, false>(
+                    let partials = parallel::par_map_collect(n_chunks, |j| {
+                        eval_multilinear_generic::<_, _, _, _, _, _, false>(
                             &evals[j * chunk..][..chunk],
                             sub_point,
                             mul_coeffs_point,
                             add_res_coeffs,
                             mul_res_point,
-                        );
+                        )
                     });
                     interpolate_res(&partials, lead, mul_res_point)
                 } else {

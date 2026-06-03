@@ -161,11 +161,7 @@ pub fn batch_fold_multilinears<
             .map(|poly| fold_multilinear(poly, alpha, &mul_if_of, true))
             .collect()
     } else {
-        let mut out: Vec<Vec<OF>> = (0..polys.len()).map(|_| Vec::new()).collect();
-        parallel::par_chunks_mut(&mut out, 1, |i, slot| {
-            slot[0] = fold_multilinear(polys[i], alpha, &mul_if_of, true);
-        });
-        out
+        parallel::par_map_collect(polys.len(), |i| fold_multilinear(polys[i], alpha, &mul_if_of, true))
     }
 }
 
@@ -188,11 +184,9 @@ pub fn batch_fold_multilinears_at_bit<
             .map(|poly| fold_multilinear_at_bit(poly, alpha, bit, &mul_if_of, true))
             .collect()
     } else {
-        let mut out: Vec<Vec<OF>> = (0..polys.len()).map(|_| Vec::new()).collect();
-        parallel::par_chunks_mut(&mut out, 1, |i, slot| {
-            slot[0] = fold_multilinear_at_bit(polys[i], alpha, bit, &mul_if_of, true);
-        });
-        out
+        parallel::par_map_collect(polys.len(), |i| {
+            fold_multilinear_at_bit(polys[i], alpha, bit, &mul_if_of, true)
+        })
     }
 }
 
