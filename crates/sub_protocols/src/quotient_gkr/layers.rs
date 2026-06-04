@@ -137,7 +137,6 @@ fn sum_quotients_2_by_2<EF: ExtensionField<PF<EF>>>(nums: &[EF], dens: &[EF]) ->
             let d0 = dens[2 * i];
             let d1 = dens[2 * i + 1];
             *num = d1 * n0 + d0 * n1;
-            // SAFETY: each `i` writes a distinct slot in `new_dens`, a separate buffer.
             unsafe { *dp.add(i) = d0 * d1 };
         });
     }
@@ -179,7 +178,6 @@ where
             let i0 = (i_hi << (bit + 1)) | i_lo;
             let i1 = i0 | stride;
             *num_out = dens[i1] * nums[i0] + dens[i0] * nums[i1];
-            // SAFETY: each `new_j` writes a distinct slot in `new_dens`, a separate buffer.
             unsafe { *dp.add(new_j) = dens[i0] * dens[i1] };
         });
     }

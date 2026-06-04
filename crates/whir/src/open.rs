@@ -593,8 +593,6 @@ where
             for (e, &scalar) in smt.values.iter().zip(&next_gamma_powers) {
                 combined_sum += e.value * scalar;
             }
-            // Few sparse statements (the outer chunks) but each inner accumulation can be
-            // large, so parallelize the inner loop per statement (the outer runs serial).
             for (out_buff, &(origin_index, _)) in chunks_mut.iter_mut().zip(&indexed_smt_values) {
                 let out = &mut out_buff[..1 << shift];
                 let scalar = next_gamma_powers[origin_index];

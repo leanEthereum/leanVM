@@ -201,14 +201,10 @@ fn dft_layer_par<F: Field, B: Butterfly<F>>(vec: &mut [F], twiddles: &[B], width
     let block_size = 2 * ts * width;
     debug_assert!(vec.len().is_multiple_of(block_size),);
     let n_blocks = vec.len() / block_size;
-    // Flatten (block, group) into one parallel loop over `n_blocks * ts` groups so coarse
-    // layers (few blocks) still parallelize; guided scheduling keeps a worker's batch of
-    // consecutive groups within the same block, preserving the per-block cache locality.
     let base = parallel::SendPtr(vec.as_mut_ptr());
     parallel::for_each_index(n_blocks * ts, |g| {
         let block_base = (g / ts) * block_size;
         let ind = g % ts;
-        // SAFETY: distinct `g` map to disjoint (hi, lo) `width`-rows.
         let hi = unsafe { base.slice(block_base + ind * width, width) };
         let lo = unsafe { base.slice(block_base + (ts + ind) * width, width) };
         twiddles[ind].apply_to_rows(hi, lo);
@@ -241,10 +237,6 @@ fn dft_layer_par_double<F: Field, B: Butterfly<F>, M: MultiLayerButterfly<F, B>>
 
     assert_eq!(twiddles_large.len(), twiddles_small.len() * 2);
 
-    // Flatten (block, inner-group) into one parallel loop. A block is `4·ts` rows of
-    // `width`; group `ind` touches the 4 rows at sub-block offsets `k·ts + ind` (k=0..3).
-    // Coarse layers (few blocks) thus still parallelize over their `ts` inner groups, and
-    // guided scheduling keeps a worker's consecutive groups within one block (cache-local).
     let ts = twiddles_small.len();
     let block_size = 4 * ts * width; // == twiddles_large.len() * 2 * width
     let n_blocks = mat.values.len() / block_size;
@@ -253,7 +245,6 @@ fn dft_layer_par_double<F: Field, B: Butterfly<F>, M: MultiLayerButterfly<F, B>>
         let block_base = (g / ts) * block_size;
         let ind = g % ts;
         let row = |k: usize| block_base + (k * ts + ind) * width;
-        // SAFETY: distinct `g` map to disjoint sets of 4 `width`-rows.
         let hi_hi = unsafe { base.slice(row(0), width) };
         let hi_lo = unsafe { base.slice(row(1), width) };
         let lo_hi = unsafe { base.slice(row(2), width) };
@@ -295,10 +286,6 @@ fn dft_layer_par_triple<F: Field, B: Butterfly<F>, M: MultiLayerButterfly<F, B>>
     // let inner_chunk_size =
     //     (workload_size::<F>().next_power_of_two() / 8).min(eighth_outer_block_size);
 
-    // Flatten (block, inner-group) into one parallel loop. A block is `8·ts` rows of
-    // `width`; group `ind` touches the 8 rows at sub-block offsets `k·ts + ind` (k=0..7).
-    // Coarse layers still parallelize over their `ts` inner groups; guided scheduling keeps
-    // a worker's consecutive groups within one block (cache-local).
     let ts = twiddles_small.len();
     let block_size = 8 * ts * width; // == twiddles_large.len() * 2 * width
     let n_blocks = mat.values.len() / block_size;
@@ -307,7 +294,6 @@ fn dft_layer_par_triple<F: Field, B: Butterfly<F>, M: MultiLayerButterfly<F, B>>
         let block_base = (g / ts) * block_size;
         let ind = g % ts;
         let row = |k: usize| block_base + (k * ts + ind) * width;
-        // SAFETY: distinct `g` map to disjoint sets of 8 `width`-rows.
         let hi_hi_hi = unsafe { base.slice(row(0), width) };
         let hi_hi_lo = unsafe { base.slice(row(1), width) };
         let hi_lo_hi = unsafe { base.slice(row(2), width) };

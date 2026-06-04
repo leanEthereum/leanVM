@@ -11,8 +11,7 @@ pub use xmss::{MESSAGE_LEN_FE, XmssPublicKey, XmssSecretKey, XmssSignature, xmss
 
 pub type F = KoalaBear;
 
-/// Call once before proving. Tunes the process memory policy (see [`tune_allocator`]),
-/// compiles the aggregation program, and precomputes DFT twiddles.
+/// Call once before proving.
 pub fn setup_prover() {
     parallel::init();
     rec_aggregation::init_aggregation_bytecode();

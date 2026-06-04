@@ -534,8 +534,6 @@ where
     par_fill(dst, build);
 }
 
-/// Fill `dst` in parallel through the in-house pool, computing each slot from its
-/// global index. Replaces the rayon `par_iter_mut().enumerate()` constant/index fills.
 #[inline]
 fn par_fill<T: Send + Sync + Copy, Build: Fn(usize) -> T + Sync>(dst: &mut [T], build: Build) {
     parallel::par_for_each_mut(dst, |i, slot| *slot = build(i));

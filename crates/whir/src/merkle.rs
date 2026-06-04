@@ -193,7 +193,6 @@ where
 
     let mut digests = unsafe { uninitialized_vec(height) };
 
-    // `height` is a multiple of `width`, so every chunk is exactly `width` long.
     parallel::par_chunks_mut(&mut digests, width, |i, digests_chunk| {
         let first_row = i * width;
         let rtl_iter = matrix.vertically_packed_row_rtl::<P>(first_row, effective_base_width, n_pad);

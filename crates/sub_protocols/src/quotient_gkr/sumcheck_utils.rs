@@ -481,8 +481,6 @@ where
         |c| {
             let n_c = &nums[c * in_packed..][..in_packed];
             let d_c = &dens[c * in_packed..][..in_packed];
-            // SAFETY: chunk `c` owns the disjoint `out_packed`-sized regions of the two
-            // output buffers at `c * out_packed`; no other task touches them.
             let nn_c = unsafe { std::slice::from_raw_parts_mut(nn.add(c * out_packed), out_packed) };
             let nd_c = unsafe { std::slice::from_raw_parts_mut(nd.add(c * out_packed), out_packed) };
             let eq_o: EF = eq_outer.get(c).copied().unwrap_or(EF::ONE);
