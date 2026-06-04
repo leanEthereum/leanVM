@@ -87,11 +87,7 @@ pub fn scale_poly<F: Field, EF: ExtensionField<F>>(poly: &[F], factor: EF) -> Ve
     if poly.len() < PARALLEL_THRESHOLD {
         poly.iter().map(|&e| factor * e).collect()
     } else {
-        let mut out: Vec<EF> = unsafe { uninitialized_vec(poly.len()) };
-        parallel::par_for_each_mut(&mut out, |i, o| {
-            *o = factor * poly[i];
-        });
-        out
+        parallel::par_map_collect(poly.len(), |i| factor * poly[i])
     }
 }
 

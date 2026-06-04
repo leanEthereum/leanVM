@@ -195,8 +195,7 @@ fn pad_table(
     trace.log_n_rows = log2_ceil_usize(h + 1).max(min_log_n_rows);
     let n_rows = 1 << trace.log_n_rows;
     let padding_row = table.padding_row(zero_vec_ptr, null_poseidon_16_hash_ptr, ending_pc);
-    parallel::par_chunks_mut(&mut trace.columns, 1, |i, slot| {
-        let col = &mut slot[0];
+    parallel::par_for_each_mut(&mut trace.columns, |i, col| {
         assert!(col.len() <= h); // potentially some columns have not been filled (in Poseidon -> we fill it later with SIMD + parallelism), but the first one should always be representative
         col.resize(n_rows, padding_row[i]);
     });

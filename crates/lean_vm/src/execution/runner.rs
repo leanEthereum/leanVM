@@ -451,56 +451,52 @@ fn handle_parallel_batch(
     // Release the `&mut` borrows so only the raw pointers alias the segments.
     drop(segment_slices);
 
-    let mut results: Vec<Option<SegResult>> = (0..n_par).map(|_| None).collect();
-    parallel::par_chunks_mut(&mut results, 1, |i, out| {
+    let results: Vec<SegResult> = parallel::par_map_collect(n_par, |i| {
         let (seg_ptr, seg_len) = &seg_info[i];
         // SAFETY: distinct `i` reconstruct disjoint segments of `right`, valid for the dispatch.
         let seg_slice: &mut [Option<F>] = unsafe { std::slice::from_raw_parts_mut(seg_ptr.0, *seg_len) };
-        out[0] = Some((|| -> SegResult {
-            let seg_start = split_at + i * stride;
-            let mut seg_mem = SegmentMemory::new(shared, seg_slice, seg_start);
-            let fp_i = batch.batch_fp + (i + 1) * stride;
-            let mut seg_trace = Trace::new();
-            let mut seg_pc = batch.batch_pc;
-            let mut seg_fp = fp_i;
-            let mut seg_ap = fp_i + batch.frame_size;
-            let mut seg_named_hints = named_hints.clone();
-            for (name, delta) in &named_per_iter {
-                if let Some(cursor) = seg_named_hints.get_mut(name) {
-                    cursor.index += i * delta;
-                }
+        let seg_start = split_at + i * stride;
+        let mut seg_mem = SegmentMemory::new(shared, seg_slice, seg_start);
+        let fp_i = batch.batch_fp + (i + 1) * stride;
+        let mut seg_trace = Trace::new();
+        let mut seg_pc = batch.batch_pc;
+        let mut seg_fp = fp_i;
+        let mut seg_ap = fp_i + batch.frame_size;
+        let mut seg_named_hints = named_hints.clone();
+        for (name, delta) in &named_per_iter {
+            if let Some(cursor) = seg_named_hints.get_mut(name) {
+                cursor.index += i * delta;
             }
-            let seg_start_indices: HashMap<_, _> = seg_named_hints
-                .iter()
-                .map(|(name, c)| (name.clone(), c.index))
-                .collect();
-            let mut hints = HintState {
-                diagnostics: None,
-                named_hints: &mut seg_named_hints,
-            };
-            run_loop(
-                bytecode,
-                &mut seg_mem,
-                &mut seg_trace,
-                &mut seg_pc,
-                &mut seg_fp,
-                &mut seg_ap,
-                &mut hints,
-                Some(batch.batch_pc),
-            )?;
-            for (name, delta) in &named_per_iter {
-                let consumed = seg_named_hints[name].index - seg_start_indices[name];
-                if consumed != *delta {
-                    return Err(RunnerError::InvalidHintWitness(format!(
-                        "hint '{name}' consumed {consumed} entries in a parallel iteration but {delta} in iteration 0; parallel iterations must consume hints uniformly"
-                    )));
-                }
+        }
+        let seg_start_indices: HashMap<_, _> = seg_named_hints
+            .iter()
+            .map(|(name, c)| (name.clone(), c.index))
+            .collect();
+        let mut hints = HintState {
+            diagnostics: None,
+            named_hints: &mut seg_named_hints,
+        };
+        run_loop(
+            bytecode,
+            &mut seg_mem,
+            &mut seg_trace,
+            &mut seg_pc,
+            &mut seg_fp,
+            &mut seg_ap,
+            &mut hints,
+            Some(batch.batch_pc),
+        )?;
+        for (name, delta) in &named_per_iter {
+            let consumed = seg_named_hints[name].index - seg_start_indices[name];
+            if consumed != *delta {
+                return Err(RunnerError::InvalidHintWitness(format!(
+                    "hint '{name}' consumed {consumed} entries in a parallel iteration but {delta} in iteration 0; parallel iterations must consume hints uniformly"
+                )));
             }
-            let deferred = seg_mem.into_deferred_writes();
-            Ok((seg_trace, deferred))
-        })());
+        }
+        let deferred = seg_mem.into_deferred_writes();
+        Ok((seg_trace, deferred))
     });
-    let results: Vec<SegResult> = results.into_iter().map(Option::unwrap).collect();
 
     for (idx, result) in results.into_iter().enumerate() {
         let (seg_trace, deferred) = result.map_err(|e| RunnerError::ParallelSegmentFailed(idx + 1, Box::new(e)))?;
