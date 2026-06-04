@@ -19,10 +19,6 @@ fn parallel_split() -> (usize, usize) {
     (log_chunks, 1 << log_chunks)
 }
 
-/// Parallel equivalent of
-/// `out.par_chunks_exact_mut(chunk).zip(buf).enumerate().for_each(|(i, (c, _))| g(i, c, &buf[i]))`,
-/// dispatched through the in-house [`parallel`] pool. `chunk` must divide `out.len()`
-/// exactly into `buf.len()` chunks (the eq_mle fan-out always does).
 #[inline]
 fn par_chunks_zip<T, A, G>(out: &mut [T], chunk: usize, buf: &[A], g: G)
 where
@@ -34,12 +30,6 @@ where
     parallel::par_chunks_mut(out, chunk, |i, c| g(c, &buf[i]));
 }
 
-/// Shared parallel tail of the `compute_eval_eq*` family. With `eval` split into
-/// `log_chunks` leading variables (handled one-per-chunk), `log_packing_width` trailing
-/// variables already folded into `seed = buffer[0]`, and the middle variables left for
-/// `kernel`, this builds the per-chunk equality buffer and runs
-/// `kernel(middle, out_chunk, buffer_val)` over `out` in parallel. `kernel` fires once
-/// per chunk (not per element), so threading it through a closure costs nothing.
 #[inline]
 fn par_eval_eq<In, Buf, Out>(
     eval: &[In],

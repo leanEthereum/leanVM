@@ -132,10 +132,6 @@ where
         // each batch tests lanes witnesses simultaneously
         let num_batches = PF::<EF>::ORDER_U64.div_ceil(lanes as u64);
 
-        // Parallel short-circuiting search (replaces rayon `find_any`): spawn one
-        // searcher per worker, each claiming batches from a shared counter and bailing
-        // as soon as any worker finds a witness. Bounds the work to ~expected + a few
-        // extra batches instead of enumerating all `num_batches` (which can be ~2^31).
         let next_batch = AtomicU64::new(0);
         let found = AtomicBool::new(false);
         parallel::for_each_index(parallel::num_threads(), |_| {
