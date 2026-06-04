@@ -145,9 +145,6 @@ pub fn compute_product_sumcheck_polynomial<
                 (a0 + b0, a2 + b2)
             })
     } else {
-        // Per-worker in-place accumulation: each worker folds the contiguous range it
-        // claims straight into its own `(c0, c2)` accumulator (no per-chunk tuple to build
-        // and reduce, worker-slot lookup amortized once per batch by `for_each_chunk`).
         let half = n / 2;
         parallel::map_reduce_with_state(
             half,
@@ -217,9 +214,6 @@ pub fn fold_and_compute_product_sumcheck_polynomial<
                 (a0 + b0, a2 + b2)
             })
     } else {
-        // Fused single pass with per-worker in-place accumulation: fold both polynomials
-        // (writing the disjoint `i` / `quarter + i` output slots) and accumulate the
-        // per-index quadratic straight into the worker's `(c0, c2)` — no per-chunk tuple.
         let quarter = n / 4;
         let p0f = parallel::SendPtr(pol_0_folded.as_mut_ptr());
         let p1f = parallel::SendPtr(pol_1_folded.as_mut_ptr());

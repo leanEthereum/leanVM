@@ -100,10 +100,6 @@ pub fn begin_phase() {
 
 /// Deactivates the arena. New allocations go to the system allocator; existing arena
 /// pointers stay valid until the next `begin_phase()` resets the slabs.
-///
-/// Unlike the rayon-based build (which needed `flush_rayon` to drain crossbeam's
-/// arena-allocated injector blocks), the in-house `parallel` pool allocates its state
-/// once at startup and nothing per-dispatch, so no flush is required here.
 pub fn end_phase() {
     ARENA_ACTIVE.store(false, Ordering::Release);
 }

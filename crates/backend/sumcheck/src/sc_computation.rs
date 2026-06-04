@@ -549,9 +549,6 @@ where
     let eq_lo = &split_eq.eq_lo;
     let eq_hi = &split_eq.eq_hi_packed;
 
-    // Per-worker scratch reused across every `b_lo` task: `rows` ([lo, diff, hi]
-    // triples), `point` (handed to `eval_fn`), and `block_acc` (per-`b_lo` partial
-    // sum, scaled by `eq_lo` before folding into the worker accumulator `acc`).
     let n_mult = multilinears.len();
     let sums: Vec<EFPacking<EF>> = parallel::map_reduce_with_state(
         n_lo,
@@ -639,8 +636,6 @@ where
     let eq_lo = &split_eq.eq_lo;
     let eq_hi = &split_eq.eq_hi_packed;
 
-    // Per-worker scratch reused across every `b_lo` task (see `sumcheck_compute_with_split_eq`):
-    // `rows_f` triples, `point` for `eval_fn`, and the per-`b_lo` `block_acc`.
     let n_mult = multilinears.len();
     let sums: Vec<EFPacking<EF>> = parallel::map_reduce_with_state(
         n_lo,
