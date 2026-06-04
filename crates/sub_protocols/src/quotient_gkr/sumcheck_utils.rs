@@ -379,18 +379,18 @@ fn fold_normal_with_padding<EF: ExtensionField<PF<EF>>>(m: &[EF], r: EF, pad_val
     let active = m.len();
     let new_active = active.div_ceil(2);
     assert!(new_active != 0);
-    let mut out = unsafe { uninitialized_vec(new_active) };
+    let mut out: Vec<EF> = unsafe { uninitialized_vec(new_active) };
 
-    let compute = |(i, slot): (usize, &mut EF)| {
+    let compute = |i: usize, slot: &mut EF| {
         let a = m[2 * i];
         let b = if 2 * i + 1 < active { m[2 * i + 1] } else { pad_value };
         *slot = a + (b - a) * r;
     };
 
     if new_active < PARALLEL_THRESHOLD {
-        out.iter_mut().enumerate().for_each(compute);
+        out.iter_mut().enumerate().for_each(|(i, slot)| compute(i, slot));
     } else {
-        parallel::par_for_each_mut(&mut out, |i, slot| compute((i, slot)));
+        parallel::par_for_each_mut(&mut out, compute);
     }
     out
 }
@@ -479,8 +479,8 @@ where
         |c| {
             let n_c = &nums[c * in_packed..][..in_packed];
             let d_c = &dens[c * in_packed..][..in_packed];
-            let nn_c = unsafe { std::slice::from_raw_parts_mut(nn.add(c * out_packed), out_packed) };
-            let nd_c = unsafe { std::slice::from_raw_parts_mut(nd.add(c * out_packed), out_packed) };
+            let nn_c = unsafe { nn.slice(c * out_packed, out_packed) };
+            let nd_c = unsafe { nd.slice(c * out_packed, out_packed) };
             let eq_o: EF = eq_outer.get(c).copied().unwrap_or(EF::ONE);
             let mut local = RoundCoeffs::<EFPacking<EF>>::zero();
             for i in 0..in_eighth {
