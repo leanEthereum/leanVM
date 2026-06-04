@@ -1,19 +1,18 @@
-//! Minimal fixed-size thread pool for flat data-parallel kernels ("split a range, run a
-//! closure on each piece"). No work-stealing, no per-dispatch allocation; owning the runtime
-//! lets us pin per-worker scratch and drop rayon.
+//! Minimal fixed-size thread pool for flat data-parallel kernels ("split a range, run a closure
+//! on each piece"). No work-stealing, no per-dispatch allocation; owning the runtime lets us pin
+//! per-worker scratch and drop rayon.
 //!
 //! - **Model.** `NUM_THREADS-1` background workers (ids `1..NUM_THREADS`); the dispatcher is
-//!   worker 0 and runs its share inline. Workers claim task ranges from a shared atomic
-//!   counter (guided self-scheduling) for dynamic load balance.
-//! - **Lock-free dispatch.** Dispatch bumps a `generation` counter idle workers spin on
-//!   (back-to-back dispatches pay no syscall), parking only after `SPIN_LIMIT` idle spins.
-//!   Completion is a `working` countdown the dispatcher spins on. The per-worker `parked` flag
-//!   is SeqCst-ordered against `generation`, so for every dispatch at least one side sees the
-//!   other — a wakeup can't be lost — and unpark is skipped while a worker spins.
-//! - **No nesting.** Dispatching from inside a task would deadlock the dispatch lock; an
-//!   `IN_TASK` guard panics instead (the outer level already saturates every core).
+//!   worker 0 and runs its share inline. Workers claim ranges from a shared atomic counter
+//!   (guided self-scheduling) for load balance.
+//! - **Lock-free dispatch.** Dispatch bumps a `generation` counter idle workers spin on, parking
+//!   after `SPIN_LIMIT` spins; completion is a `working` countdown the dispatcher spins on.
+//!   `parked` is SeqCst-ordered against `generation`, so each dispatch one side sees the other
+//!   (no lost wakeup) and unpark is skipped while a worker spins.
+//! - **No nesting.** A dispatch from within a task would deadlock the dispatch lock; an `IN_TASK`
+//!   guard panics instead.
 //! - **Panics.** A task panic is caught on its worker and re-raised on the dispatcher once the
-//!   dispatch quiesces (rayon's propagate-to-caller behavior); the pool stays usable.
+//!   dispatch quiesces; the pool stays usable.
 //! - **One dispatcher at a time**, serialized by the `dispatch` mutex.
 
 use std::any::Any;
@@ -26,8 +25,8 @@ use std::thread::Thread;
 
 use system_info::NUM_THREADS;
 
-/// Idle spins before a worker parks: long enough that back-to-back dispatches stay hot, short
-/// enough that sequential gaps free the core for the active thread.
+/// Idle spins before a worker parks: long enough to stay hot across back-to-back dispatches,
+/// short enough to yield the core during sequential gaps.
 const SPIN_LIMIT: u32 = 1 << 12;
 
 /// Max tasks claimed in one guided-self-scheduling step: bounds load imbalance while keeping
@@ -55,7 +54,7 @@ thread_local! {
     static IN_TASK: Cell<bool> = const { Cell::new(false) };
 }
 
-/// Calling worker's id in `0..NUM_THREADS` (`0` off-pool). The hook for per-worker scratch.
+/// Calling worker's id in `0..NUM_THREADS` (`0` off-pool).
 #[must_use]
 pub fn current_worker_id() -> usize {
     WORKER_ID.with(Cell::get)
@@ -107,11 +106,10 @@ unsafe impl Sync for Pool {}
 unsafe impl Send for Pool {}
 
 /// Idempotent warm-up: spawn workers and run one empty dispatch so the pool and the (macOS)
-/// lazily-allocated mutex exist before timed work. Otherwise the pool inits on first use.
+/// lazily-allocated mutex exist before timed work; otherwise the pool inits on first use.
 ///
-/// Also fail-fast if the machine's core count differs from the build-time [`NUM_THREADS`]
-/// (which sizes the whole pool): a mismatch silently over/under-subscribes every kernel, so
-/// surface it as "rebuild" rather than a quiet perf cliff.
+/// Also fail-fast if the machine's core count differs from the build-time [`NUM_THREADS`] (which
+/// sizes the pool): a mismatch silently over/under-subscribes every kernel.
 pub fn init() {
     static INIT: Once = Once::new();
     INIT.call_once(|| {
@@ -167,10 +165,9 @@ fn worker_main(pool: &'static Pool, id: usize) {
     }
 }
 
-/// Block until a new job is published, returning its generation. Spins up to [`SPIN_LIMIT`],
-/// then parks. The park is delicate: publish `parked = true`, then re-check `generation`, both
-/// SeqCst — the same total order the dispatcher's bump and `parked` load observe, so a wakeup
-/// can never be lost.
+/// Block until a new job is published, returning its generation. Spins up to [`SPIN_LIMIT`], then
+/// parks: publish `parked = true`, re-check `generation`, both SeqCst — the same total order the
+/// dispatcher's bump and `parked` load observe, so a wakeup can't be lost.
 fn wait_for_dispatch(pool: &Pool, id: usize, last_gen: usize) -> usize {
     let mut spins = 0u32;
     loop {
@@ -293,7 +290,7 @@ pub fn for_each_index<F: Fn(usize) + Sync>(n_tasks: usize, f: F) {
 }
 
 /// A base `*mut` shareable across workers. Sound only because callers partition the allocation
-/// by task index (disjoint regions). Reuse this instead of redefining the pattern per crate.
+/// by task index (disjoint regions).
 #[derive(Debug)]
 pub struct SendPtr<T>(pub *mut T);
 // SAFETY: accesses are partitioned by task index (see callers).
@@ -335,7 +332,8 @@ where
 }
 
 /// Parallel `data.iter_mut().enumerate().for_each(f)`, chunked by [`recommended_chunk_size`].
-/// Hands the closure each element's **global** index. `#[inline]` to recover hand-written codegen.
+/// Hands the closure each element's **global** index. `#[inline]` folds the per-chunk adapter
+/// into the monomorphized [`par_chunks_mut`].
 #[inline]
 pub fn par_for_each_mut<T: Send, F>(data: &mut [T], f: F)
 where
@@ -349,9 +347,8 @@ where
     });
 }
 
-/// Parallel `(0..n_tasks).map(f).collect::<Vec<_>>()`: runs `f(i)` across the pool and gathers
-/// the results in index order, writing each straight into the output (no `Option` slots, one
-/// allocation). Folds away the common "fill a `Vec<Option<_>>` in parallel, then unwrap" dance.
+/// Parallel `(0..n_tasks).map(f).collect::<Vec<_>>()`: runs `f(i)` across the pool and writes each
+/// result straight into the output in index order — one allocation, no `Option` slots.
 pub fn par_map_collect<T: Send, F: Fn(usize) -> T + Sync>(n_tasks: usize, f: F) -> Vec<T> {
     let mut out: Vec<T> = Vec::with_capacity(n_tasks);
     let base = SendPtr(out.as_mut_ptr());
@@ -366,10 +363,18 @@ pub fn par_map_collect<T: Send, F: Fn(usize) -> T + Sync>(n_tasks: usize, f: F) 
     out
 }
 
+/// Parallel `for (i, slot) in dst.iter_mut().enumerate() { *slot = build(i); }`: fill an existing
+/// slice from an index closure. The in-place dual of [`par_map_collect`] (which allocates).
+/// `#[inline]` folds the fill adapter into the monomorphized [`par_for_each_mut`]. Always
+/// dispatches to the pool; guard the call yourself when small inputs need a sequential fast path.
+#[inline]
+pub fn par_fill<T: Send, F: Fn(usize) -> T + Sync>(dst: &mut [T], build: F) {
+    par_for_each_mut(dst, |i, slot| *slot = build(i));
+}
+
 /// Give each worker its own persistent `Option<S>` slot while it drains `0..n_tasks`:
 /// `run(slot, start, end)` fires once per claimed batch with that worker's slot, so state
 /// accumulates across its batches. Returns the slots (rest `None`) for the caller to combine.
-/// The sole home of the cross-worker slot `unsafe`.
 fn drain_into_slots<S: Send>(n_tasks: usize, run: impl Fn(&mut Option<S>, usize, usize) + Sync) -> Vec<Option<S>> {
     let mut slots: Vec<Option<S>> = (0..NUM_THREADS).map(|_| None).collect();
     let ptr = SendPtr(slots.as_mut_ptr());
@@ -384,8 +389,7 @@ fn drain_into_slots<S: Send>(n_tasks: usize, run: impl Fn(&mut Option<S>, usize,
 
 /// Parallel map-reduce over `0..n_tasks` = `(0..n).map(map).reduce(identity, reduce)`. Each
 /// worker folds its claimed indices into one local partial; the partials combine on the
-/// dispatcher. `reduce` must be associative with `identity()` a neutral element (rayon's
-/// `reduce` contract).
+/// dispatcher. `reduce` must be associative with `identity()` a neutral element.
 pub fn map_reduce<T, ID, M, R>(n_tasks: usize, identity: ID, map: M, reduce: R) -> T
 where
     T: Send,

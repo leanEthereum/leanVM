@@ -361,7 +361,7 @@ pub(super) fn run_phase2_sumcheck<EF: ExtensionField<PF<EF>>>(
             let fold_eq = |i: usize| eq_table[2 * i] + eq_table[2 * i + 1];
             eq_table = if new_eq_len >= PARALLEL_THRESHOLD {
                 let mut out: Vec<EF> = unsafe { uninitialized_vec(new_eq_len) };
-                parallel::par_for_each_mut(&mut out, |i, slot| *slot = fold_eq(i));
+                parallel::par_fill(&mut out, fold_eq);
                 out
             } else {
                 (0..new_eq_len).map(fold_eq).collect()

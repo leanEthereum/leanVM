@@ -79,7 +79,7 @@ fn fold_fill<OF: Send, C: Fn(usize) -> OF + Sync>(len: usize, seq: bool, compute
             *r = compute(i);
         }
     } else {
-        parallel::par_for_each_mut(&mut res, |i, r| *r = compute(i));
+        parallel::par_fill(&mut res, &compute);
     }
     res
 }

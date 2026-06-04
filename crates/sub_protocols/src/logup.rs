@@ -1,6 +1,7 @@
 use crate::{ENDIANNESS_PIVOT_GKR, prove_gkr_quotient, verify_gkr_quotient};
 use backend::*;
 use lean_vm::*;
+use parallel::par_fill;
 use std::collections::BTreeMap;
 use tracing::instrument;
 use utils::ansi::Colorize;
@@ -86,7 +87,7 @@ pub fn prove_generic_logup(
     // Memory section.
     assert_eq!(memory.len(), memory_acc.len());
     fill_num_from(&mut numerators[offset..][..memory.len()], memory_acc, true);
-    fill_denoms(&mut denominators[offset / width..][..memory.len() / width], |p| {
+    par_fill(&mut denominators[offset / width..][..memory.len() / width], |p| {
         c_packed
             - finger_print_packed::<EF>(
                 memory_domainsep_packed,
@@ -103,7 +104,7 @@ pub fn prove_generic_logup(
     assert_eq!(1 << log_bytecode, bytecode_acc.len());
     fill_num_from(&mut numerators[offset..][..bytecode_acc.len()], bytecode_acc, true);
     let bytecode_stride = N_INSTRUCTION_COLUMNS.next_power_of_two();
-    fill_denoms(
+    par_fill(
         &mut denominators[offset / width..][..(1 << log_bytecode) / width],
         |p| {
             let mut data = [PFPacking::<EF>::ZERO; N_INSTRUCTION_COLUMNS + 1];
@@ -203,7 +204,7 @@ pub fn prove_generic_logup(
                 _ => PFPacking::<EF>::ZERO,
             };
 
-            fill_denoms(denom_slot, |p| {
+            par_fill(denom_slot, |p| {
                 let mut data_buf = [PFPacking::<EF>::ZERO; MAX_BUS_WIDTH];
                 for k in 0..n_data {
                     let col = data_cols[k];
@@ -524,17 +525,4 @@ fn compute_total_active_len(
             .iter()
             .map(|(table, log_n_rows)| offset_for_table(table, *log_n_rows))
             .sum::<usize>()
-}
-
-#[inline]
-fn fill_denoms<Build>(dst: &mut [EFPacking<EF>], build: Build)
-where
-    Build: Fn(usize) -> EFPacking<EF> + Sync,
-{
-    par_fill(dst, build);
-}
-
-#[inline]
-fn par_fill<T: Send + Sync + Copy, Build: Fn(usize) -> T + Sync>(dst: &mut [T], build: Build) {
-    parallel::par_for_each_mut(dst, |i, slot| *slot = build(i));
 }
