@@ -365,11 +365,17 @@ where
 pub fn par_map_collect<T: Send, F: Fn(usize) -> T + Sync>(n_tasks: usize, f: F) -> Vec<T> {
     let mut out: Vec<T> = Vec::with_capacity(n_tasks);
     let base = SendPtr(out.as_mut_ptr());
-    for_each_index(n_tasks, |i| {
-        // SAFETY: distinct `i` write disjoint, in-bounds slots (each exactly once) and the
-        // dispatch blocks until all writes finish. A panic in `f` leaks the slots written so
-        // far, which is fine: a pool task panic is fatal (see the module's "Panics" note).
-        unsafe { base.add(i).write(f(i)) };
+    let chunk = recommended_chunk_size(n_tasks);
+    for_each_chunk(n_tasks.div_ceil(chunk), |cstart, cend| {
+        let start = cstart * chunk;
+        let end = (cend * chunk).min(n_tasks);
+        for i in start..end {
+            // SAFETY: disjoint chunk-index ranges give disjoint, in-bounds element ranges, so
+            // each slot in `0..n_tasks` is written exactly once; the dispatch blocks until all
+            // writes finish. A panic in `f` leaks the slots written so far, which is fine: a pool
+            // task panic is fatal (see the module's "Panics" note).
+            unsafe { base.add(i).write(f(i)) };
+        }
     });
     // SAFETY: every slot in `0..n_tasks` was initialized exactly once above.
     unsafe { out.set_len(n_tasks) };
