@@ -96,7 +96,7 @@ See \Cref{sec:signature-aggregation} for more details.
 \begin{itemize}
     \item $[a, b] = \{a, a + 1, \ldots, b\}$
     \item $[a, b) = \{a, a + 1, \ldots, b-1\}$
-    \item $\hat{eq}(x, y) = x y + (1 - x)(1 - y)$
+    \item $\hat{eq}\big((x_1, \dots, x_n), (y_1, \dots, y_n)\big) = \prod_{i = 1}^{n}{\big(x_i y_i + (1 - x_i)(1 - y_i)\big)}$
     \item \label{sec:preliminaries-embed} $\mathsf{embed}(x_1, x_2, x_3, x_4, x_5)$ is the extension field element built from $\extdeg$ base field elements: $x_1 + x_2 X + x_3 X^2 + x_4 X^3 + x_5 X^4$, using $X^5 + X^2 - 1$ as the irreducible polynomial defining the extension (see \Cref{sec:field}).
     \item Given a number of bits $n > 0$, and an $n$-bit integer $x$, we denote by $[x]_\text{bits}^n$ its big-endian bit-decomposition in $n$ boolean values. For example, $[14]_\text{bits}^4 = (1, 1, 1, 0)$
     \item $h_\textsc{memory}$ is the log-size of the (read-only) memory; the memory has $2^{h_\textsc{memory}}$ words (always a power of 2). $h_\textsc{bytecode}$ is the bytecode log-size (the bytecode has $2^{h_\textsc{bytecode}}$ instructions), and $h_\textsc{exec}$, $h_\textsc{poseidon}$, $h_\textsc{extension}$ are the log-heights of the three tables (see \Cref{sec:table-sizes}).
@@ -143,15 +143,15 @@ $$
 
 \subsubsection{The next multilinear}\label{sec:next-mle}
 
-For $n \geq 0$, identify each $x \in \{0,1\}^n$ with the integer it encodes in big-endian. We define $\nextmle$ as the multilinear polynomial in $2n$ variables whose values on the boolean hypercube are
+For $n \geq 0$, we define $\nextmle$ as the multilinear polynomial in $2n$ variables whose values on the boolean hypercube are
 \[
-\nextmle(x, y) =
+\nextmle([x]_\text{bits}^n \,\, || \,\, [y]_\text{bits}^n) =
 \begin{cases}
 1 & \text{if } y = x + 1, \\
 1 & \text{if } x = y = 2^n - 1, \\
 0 & \text{otherwise},
 \end{cases}
-\qquad x, y \in \{0,1\}^n .
+\qquad x, y \in [0, 2^n)
 \]
 
 $\nextmle$ can be efficiently evaluated:
@@ -160,7 +160,7 @@ $\nextmle$ can be efficiently evaluated:
 \]
 The leading product is the wrap-around case $x = y = 2^n - 1$. The $k$-th term of the sum is the case $y = x + 1$ with the carry stopping at bit $k$: the high bits ($j < k$) are unchanged, bit $k$ flips $0 \to 1$, and the low bits ($j > k$) flip $1 \to 0$.
 
-The polynomial $\nextmle$ enables sumcheck-based evaluation of shifted MLEs (\cref{sec:shifts}): for every $v \in \Fp^{2^n}$,
+This enables sumcheck-based evaluation of shifted MLEs (\cref{sec:shifts}): for every $v \in \Fp^{2^n}$,
 \[
 \overset{\scriptscriptstyle\wedge}{\textsf{shift}(v)}(x) \;=\; \sum_{y \in \{0,1\}^n} \nextmle(x, y)\; \hat{v}(y) ,
 \]
@@ -170,7 +170,7 @@ The polynomial $\nextmle$ enables sumcheck-based evaluation of shifted MLEs (\cr
 \subsubsection{Schwartz-Zippel}
 
 \begin{lemma}[Schwartz-Zippel]\label{lem:sz}
-Let $P \in \Fq[X_1, \ldots, X_n]$ be a non-zero polynomial of total degree $d$. Then
+Let $P \in \Fq[X_1, \ldots, X_n]$ be a non-zero polynomial of total degree at most $d$. Then
 \[
 \Pr_{\vec\beta \,\overset{\$}{\leftarrow}\, \Fq^n}\big[P(\vec\beta) = 0\big] \;\leq\; \frac{d}{q}.
 \]
