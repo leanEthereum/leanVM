@@ -93,10 +93,7 @@ pub fn get_execution_trace(
         *trace_row[EXEC_COL_ADDR_C] = addr_c;
     });
 
-    let mut memory_padded: Vec<F> = unsafe { uninitialized_vec(memory.0.len()) };
-    parallel::par_for_each_mut(&mut memory_padded, |i, slot| {
-        *slot = memory.0[i].unwrap_or(F::ZERO);
-    });
+    let mut memory_padded: Vec<F> = parallel::par_map_collect(memory.0.len(), |i| memory.0[i].unwrap_or(F::ZERO));
 
     // Write [0000000000000000 | poseidon_compress(0000000000000000)] (to make lookups work on padding-rows).
     let padding_zero_vec_ptr = memory_padded.len();

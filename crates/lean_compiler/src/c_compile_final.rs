@@ -132,10 +132,8 @@ pub fn compile_to_low_level_bytecode(
         validate_instruction(instruction)?;
     }
 
-    let mut instructions_encoded: Vec<[F; N_INSTRUCTION_COLUMNS]> = unsafe { uninitialized_vec(instructions.len()) };
-    parallel::par_for_each_mut(&mut instructions_encoded, |i, out| {
-        *out = field_representation(&instructions[i]);
-    });
+    let instructions_encoded: Vec<[F; N_INSTRUCTION_COLUMNS]> =
+        parallel::par_map_collect(instructions.len(), |i| field_representation(&instructions[i]));
 
     let mut instructions_multilinear = vec![];
     for instr in &instructions_encoded {

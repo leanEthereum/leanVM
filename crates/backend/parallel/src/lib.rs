@@ -347,6 +347,19 @@ where
     });
 }
 
+/// [`par_for_each_mut`] over two equal-length slices at once: `f(i, &mut a[i], &mut b[i])`
+#[inline]
+pub fn par_for_each_mut2<A: Send, B: Send, F>(a: &mut [A], b: &mut [B], f: F)
+where
+    F: Fn(usize, &mut A, &mut B) + Sync,
+{
+    assert_eq!(a.len(), b.len(), "par_for_each_mut2: slices differ in length");
+    let bp = SendPtr(b.as_mut_ptr());
+    par_for_each_mut(a, |i, ai| {
+        f(i, ai, unsafe { &mut *bp.add(i) });
+    });
+}
+
 /// Parallel `(0..n_tasks).map(f).collect::<Vec<_>>()`: runs `f(i)` across the pool and writes each
 /// result straight into the output in index order — one allocation, no `Option` slots.
 pub fn par_map_collect<T: Send, F: Fn(usize) -> T + Sync>(n_tasks: usize, f: F) -> Vec<T> {

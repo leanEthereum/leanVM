@@ -129,17 +129,18 @@ fn sum_quotients_2_by_2<EF: ExtensionField<PF<EF>>>(nums: &[EF], dens: &[EF]) ->
     let mut new_nums: Vec<EF> = unsafe { uninitialized_vec(new_active) };
     let mut new_dens: Vec<EF> = unsafe { uninitialized_vec(new_active) };
 
-    {
-        let dp = parallel::SendPtr(new_dens.as_mut_ptr());
-        parallel::par_for_each_mut(&mut new_nums[..full_pairs], |i, num| {
+    parallel::par_for_each_mut2(
+        &mut new_nums[..full_pairs],
+        &mut new_dens[..full_pairs],
+        |i, num, den| {
             let n0 = nums[2 * i];
             let n1 = nums[2 * i + 1];
             let d0 = dens[2 * i];
             let d1 = dens[2 * i + 1];
             *num = d1 * n0 + d0 * n1;
-            unsafe { *dp.add(i) = d0 * d1 };
-        });
-    }
+            *den = d0 * d1;
+        },
+    );
 
     // Boundary (at most one pair: a/b + 0/1 = a/b).
     if full_pairs < new_active {
@@ -170,17 +171,14 @@ where
     let mut new_nums: Vec<EFPacking<EF>> = unsafe { uninitialized_vec(nums.len() >> 1) };
     let mut new_dens: Vec<EFPacking<EF>> = unsafe { uninitialized_vec(nums.len() >> 1) };
 
-    {
-        let dp = parallel::SendPtr(new_dens.as_mut_ptr());
-        parallel::par_for_each_mut(&mut new_nums, |new_j, num_out| {
-            let i_hi = new_j >> bit;
-            let i_lo = new_j & lo_mask;
-            let i0 = (i_hi << (bit + 1)) | i_lo;
-            let i1 = i0 | stride;
-            *num_out = dens[i1] * nums[i0] + dens[i0] * nums[i1];
-            unsafe { *dp.add(new_j) = dens[i0] * dens[i1] };
-        });
-    }
+    parallel::par_for_each_mut2(&mut new_nums, &mut new_dens, |new_j, num_out, den_out| {
+        let i_hi = new_j >> bit;
+        let i_lo = new_j & lo_mask;
+        let i0 = (i_hi << (bit + 1)) | i_lo;
+        let i1 = i0 | stride;
+        *num_out = dens[i1] * nums[i0] + dens[i0] * nums[i1];
+        *den_out = dens[i0] * dens[i1];
+    });
 
     (new_nums, new_dens)
 }
