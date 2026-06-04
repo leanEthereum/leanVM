@@ -397,7 +397,6 @@ fn build_aggregation(
     let mut last_result: Option<SingleMessageAggregateSignature> = None;
     let own_display_index = display_index + count_nodes(topology) - 1;
     for _ in 0..repeat {
-        #[cfg(not(feature = "standard-alloc"))]
         zk_alloc::begin_phase();
 
         let time = Instant::now();
@@ -412,7 +411,6 @@ fn build_aggregation(
         let elapsed = time.elapsed();
 
         // Clone the outputs out of the arena before the next phase resets its slabs.
-        #[cfg(not(feature = "standard-alloc"))]
         let result = {
             zk_alloc::end_phase();
             result.clone()

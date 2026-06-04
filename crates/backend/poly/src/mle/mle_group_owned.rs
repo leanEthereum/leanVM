@@ -4,28 +4,28 @@ use field::ExtensionField;
 
 #[derive(Debug)]
 pub enum MleGroupOwned<EF: ExtensionField<PF<EF>>> {
-    Base(Vec<Vec<PF<EF>>>),
-    Extension(Vec<Vec<EF>>),
-    BasePacked(Vec<Vec<PFPacking<EF>>>),
-    ExtensionPacked(Vec<Vec<EFPacking<EF>>>),
+    Base(Vec<ArenaVec<PF<EF>>>),
+    Extension(Vec<ArenaVec<EF>>),
+    BasePacked(Vec<ArenaVec<PFPacking<EF>>>),
+    ExtensionPacked(Vec<ArenaVec<EFPacking<EF>>>),
 }
 
 impl<EF: ExtensionField<PF<EF>>> MleGroupOwned<EF> {
-    pub fn as_extension_mut(&mut self) -> Option<&mut Vec<Vec<EF>>> {
+    pub fn as_extension_mut(&mut self) -> Option<&mut Vec<ArenaVec<EF>>> {
         match self {
             Self::Extension(e) => Some(e),
             _ => None,
         }
     }
 
-    pub fn as_extension_packed_mut(&mut self) -> Option<&mut Vec<Vec<EFPacking<EF>>>> {
+    pub fn as_extension_packed_mut(&mut self) -> Option<&mut Vec<ArenaVec<EFPacking<EF>>>> {
         match self {
             Self::ExtensionPacked(e) => Some(e),
             _ => None,
         }
     }
 
-    pub fn as_extension(self) -> Option<Vec<Vec<EF>>> {
+    pub fn as_extension(self) -> Option<Vec<ArenaVec<EF>>> {
         match self {
             Self::Extension(e) => Some(e),
             _ => None,

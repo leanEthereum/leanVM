@@ -6,6 +6,7 @@ edition.workspace = true
 [dependencies]
 utils = { path = "../utils", package = "mt-utils" }
 
+allocator-api2.workspace = true
 itertools.workspace = true
 num-bigint = "*"
 paste = "*"

@@ -8,7 +8,6 @@ workspace = true
 
 [features]
 prox-gaps-conjecture = ["lean_prover/prox-gaps-conjecture"]
-standard-alloc = []
 
 [dependencies]
 utils.workspace = true

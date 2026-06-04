@@ -12,6 +12,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "allocator-api2"
+version = "0.2.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "683d7910e743518b0e34f1186f92494becacb047c7b6bf616c96772180fef923"
+
+[[package]]
 name = "ansi_term"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -605,6 +611,7 @@ dependencies = [
 name = "mt-field"
 version = "0.1.0"
 dependencies = [
+ "allocator-api2",
  "itertools",
  "mt-utils",
  "num-bigint",
@@ -633,6 +640,7 @@ dependencies = [
 name = "mt-poly"
 version = "0.1.0"
 dependencies = [
+ "allocator-api2",
  "itertools",
  "mt-field",
  "mt-koala-bear",
@@ -641,6 +649,7 @@ dependencies = [
  "rand",
  "serde",
  "system-info",
+ "zk-alloc",
 ]
 
 [[package]]
@@ -669,6 +678,7 @@ dependencies = [
 name = "mt-utils"
 version = "0.1.0"
 dependencies = [
+ "allocator-api2",
  "serde",
 ]
 
@@ -770,6 +780,7 @@ checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
 name = "parallel"
 version = "0.1.0"
 dependencies = [
+ "allocator-api2",
  "system-info",
 ]
 
@@ -1438,6 +1449,7 @@ dependencies = [
 name = "zk-alloc"
 version = "0.1.0"
 dependencies = [
+ "allocator-api2",
  "libc",
  "system-info",
 ]

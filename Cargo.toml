@@ -67,6 +67,7 @@ parallel = { path = "crates/backend/parallel" }
 zk-alloc = { path = "crates/backend/zk-alloc" }
 
 # External
+allocator-api2 = "0.2"
 sha3 = "0.11.0"
 clap = { version = "4.5.59", features = ["derive"] }
 rand = "0.10.0"
@@ -84,8 +85,6 @@ include_dir = "0.7"
 
 [features]
 prox-gaps-conjecture = ["rec_aggregation/prox-gaps-conjecture"]
-# Build with the plain system allocator instead of zk-alloc (for comparison/debugging).
-standard-alloc = ["rec_aggregation/standard-alloc"]
 
 [dependencies]
 clap.workspace = true

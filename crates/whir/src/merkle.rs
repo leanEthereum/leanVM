@@ -18,31 +18,36 @@ use utils::log2_ceil_usize;
 
 use crate::Dimensions;
 use crate::Matrix;
+use poly::ArenaVec;
 pub use symetric::DIGEST_ELEMS;
 
 pub(crate) type RoundMerkleTree<F> = WhirMerkleTree<F, DIGEST_ELEMS>;
 
 #[allow(clippy::missing_transmute_annotations)]
 pub(crate) fn merkle_commit<F: Field, EF: ExtensionField<F>>(
-    matrix: Matrix<EF>,
+    matrix: Matrix<EF, ArenaVec<EF>>,
     full_n_cols: usize,
     effective_n_cols: usize,
 ) -> ([F; DIGEST_ELEMS], RoundMerkleTree<F>) {
     if TypeId::of::<(F, EF)>() == TypeId::of::<(KoalaBear, QuinticExtensionFieldKB)>() {
-        let matrix = unsafe { std::mem::transmute::<_, Matrix<QuinticExtensionFieldKB>>(matrix) };
+        // Transmute carries the arena storage type unchanged (EF == QuinticExtensionFieldKB here),
+        // so `Drop` still deallocates through `ProverAlloc`, not the global allocator.
+        let matrix = unsafe {
+            std::mem::transmute::<_, Matrix<QuinticExtensionFieldKB, ArenaVec<QuinticExtensionFieldKB>>>(matrix)
+        };
         let dim = <QuinticExtensionFieldKB as BasedVectorSpace<KoalaBear>>::DIMENSION;
         let dft_base_width = matrix.width * dim;
         let full_base_width = full_n_cols * dim;
         let effective_base_width = effective_n_cols * dim;
-        let base_values = QuinticExtensionFieldKB::flatten_to_base(matrix.values);
-        let base_matrix = Matrix::<KoalaBear>::new(base_values, dft_base_width);
+        let base_values = QuinticExtensionFieldKB::flatten_to_base_in(matrix.values);
+        let base_matrix = Matrix::new(base_values, dft_base_width);
         let tree = build_merkle_tree_koalabear(base_matrix, full_base_width, effective_base_width);
         let root: [_; DIGEST_ELEMS] = tree.root();
         let root = unsafe { std::mem::transmute_copy::<_, [F; DIGEST_ELEMS]>(&root) };
         let tree = unsafe { std::mem::transmute::<_, RoundMerkleTree<F>>(tree) };
         (root, tree)
     } else if TypeId::of::<(F, EF)>() == TypeId::of::<(KoalaBear, KoalaBear)>() {
-        let matrix = unsafe { std::mem::transmute::<_, Matrix<KoalaBear>>(matrix) };
+        let matrix = unsafe { std::mem::transmute::<_, Matrix<KoalaBear, ArenaVec<KoalaBear>>>(matrix) };
         let tree = build_merkle_tree_koalabear(matrix, full_n_cols, effective_n_cols);
         let root: [_; DIGEST_ELEMS] = tree.root();
         let root = unsafe { std::mem::transmute_copy::<_, [F; DIGEST_ELEMS]>(&root) };
@@ -55,7 +60,7 @@ pub(crate) fn merkle_commit<F: Field, EF: ExtensionField<F>>(
 
 #[instrument(name = "build merkle tree", skip_all)]
 fn build_merkle_tree_koalabear(
-    leaf: Matrix<KoalaBear>,
+    leaf: Matrix<KoalaBear, ArenaVec<KoalaBear>>,
     full_base_width: usize,
     effective_base_width: usize,
 ) -> RoundMerkleTree<KoalaBear> {
@@ -71,7 +76,7 @@ fn build_merkle_tree_koalabear(
     );
     let packed_state: [PFPacking<KoalaBear>; 16] =
         std::array::from_fn(|i| PFPacking::<KoalaBear>::from_fn(|_| scalar_state[i]));
-    let first_layer = first_digest_layer_with_initial_state::<PFPacking<KoalaBear>, _, DIGEST_ELEMS, 16, 8>(
+    let first_layer = first_digest_layer_with_initial_state::<PFPacking<KoalaBear>, _, _, DIGEST_ELEMS, 16, 8>(
         &perm,
         &leaf,
         &packed_state,
@@ -154,7 +159,9 @@ pub(crate) fn merkle_verify<F: Field, EF: ExtensionField<F>>(
 
 #[derive(Debug, Clone)]
 pub struct WhirMerkleTree<F, const DIGEST_ELEMS: usize> {
-    pub(crate) leaf: Matrix<F>,
+    // The leaf codeword (the dominant commit-time buffer) is arena-backed; the digest layers in
+    // `tree` stay on the system allocator (much smaller, and owned by the `symetric` crate).
+    pub(crate) leaf: Matrix<F, ArenaVec<F>>,
     pub(crate) tree: symetric::merkle::MerkleTree<F, DIGEST_ELEMS>,
     full_leaf_base_width: usize,
 }
@@ -175,14 +182,22 @@ impl<F: field::PrimeCharacteristicRing + Send + Sync, const DIGEST_ELEMS: usize>
 }
 
 #[instrument(name = "first digest layer", level = "debug", skip_all)]
-fn first_digest_layer_with_initial_state<P, Perm, const DIGEST_ELEMS: usize, const WIDTH: usize, const RATE: usize>(
+fn first_digest_layer_with_initial_state<
+    P,
+    Perm,
+    LV,
+    const DIGEST_ELEMS: usize,
+    const WIDTH: usize,
+    const RATE: usize,
+>(
     perm: &Perm,
-    matrix: &Matrix<P::Value>,
+    matrix: &Matrix<P::Value, LV>,
     packed_initial_state: &[P; WIDTH],
     effective_base_width: usize,
 ) -> Vec<[P::Value; DIGEST_ELEMS]>
 where
     P: PackedValue + Default,
+    LV: AsRef<[P::Value]> + Send + Sync,
     P::Value: Default + Copy + Send + Sync,
     Perm: koala_bear::symmetric::Permutation<[P::Value; WIDTH]> + koala_bear::symmetric::Permutation<[P; WIDTH]>,
 {

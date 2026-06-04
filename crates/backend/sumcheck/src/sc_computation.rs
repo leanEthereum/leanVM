@@ -460,7 +460,7 @@ fn sumcheck_fold_and_compute_core<EF, IF, FT, SC>(
     fold_f: impl Fn(&[IF], usize) -> FT + Sync + Send,
     eval_fn: impl Fn(&SC, &[FT], &SC::ExtraData) -> FT + Sync + Send,
     unpack_sum: impl Fn(FT) -> EF,
-    wrap_f: impl FnOnce(Vec<Vec<FT>>) -> MleGroupOwned<EF>,
+    wrap_f: impl FnOnce(Vec<ArenaVec<FT>>) -> MleGroupOwned<EF>,
 ) -> (Vec<EF>, MleGroupOwned<EF>)
 where
     EF: ExtensionField<PF<EF>>,
@@ -470,8 +470,8 @@ where
 {
     let prev_folded_size = 2 * compute_fold_size;
 
-    let folded_f: Vec<Vec<FT>> = (0..multilinears.len())
-        .map(|_| FT::zero_vec(prev_folded_size))
+    let folded_f: Vec<ArenaVec<FT>> = (0..multilinears.len())
+        .map(|_| arena_filled(FT::ZERO, prev_folded_size))
         .collect();
 
     // Per-worker scratch: `rows_f` (the [lo, diff, hi] triples) and `point` (the
@@ -618,7 +618,7 @@ fn sumcheck_fold_and_compute_with_split_eq<EF, IF, SC>(
     fold_f: impl Fn(&[IF], usize) -> EFPacking<EF> + Sync + Send,
     eval_fn: impl Fn(&SC, &[EFPacking<EF>], &SC::ExtraData) -> EFPacking<EF> + Sync + Send,
     unpack_sum: impl Fn(EFPacking<EF>) -> EF,
-    wrap_f: impl FnOnce(Vec<Vec<EFPacking<EF>>>) -> MleGroupOwned<EF>,
+    wrap_f: impl FnOnce(Vec<ArenaVec<EFPacking<EF>>>) -> MleGroupOwned<EF>,
 ) -> (Vec<EF>, MleGroupOwned<EF>)
 where
     EF: ExtensionField<PF<EF>>,
@@ -626,8 +626,8 @@ where
     SC: SumcheckComputation<EF>,
 {
     let prev_folded_size = 2 * compute_fold_size;
-    let folded_f: Vec<Vec<EFPacking<EF>>> = (0..multilinears.len())
-        .map(|_| EFPacking::<EF>::zero_vec(prev_folded_size))
+    let folded_f: Vec<ArenaVec<EFPacking<EF>>> = (0..multilinears.len())
+        .map(|_| arena_filled(EFPacking::<EF>::ZERO, prev_folded_size))
         .collect();
 
     let n_lo = split_eq.n_lo();

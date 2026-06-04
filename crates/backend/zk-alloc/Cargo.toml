@@ -6,6 +6,7 @@ description = "Bump+reset arena allocator for ZK proving workloads"
 
 [dependencies]
 system-info.workspace = true
+allocator-api2.workspace = true
 
 [target.'cfg(not(all(target_os = "linux", target_arch = "x86_64")))'.dependencies]
 libc = "0.2"

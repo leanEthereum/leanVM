@@ -1,9 +1,6 @@
 // Credits: whir-p3 (https://github.com/tcoratger/whir-p3) (MIT and Apache-2.0 licenses).
 
-use std::{
-    borrow::{Borrow, BorrowMut},
-    marker::PhantomData,
-};
+use std::marker::PhantomData;
 
 use field::PackedValue;
 
@@ -28,13 +25,13 @@ pub struct Matrix<T, V = Vec<T>> {
     _phantom: PhantomData<T>,
 }
 
-impl<T: Clone + Send + Sync, V: Borrow<[T]> + Send + Sync> Matrix<T, V> {
+impl<T: Clone + Send + Sync, V: AsRef<[T]> + Send + Sync> Matrix<T, V> {
     /// Create a new dense matrix of the given dimensions, backed by the given storage.
     ///
     /// It is undefined behavior to create a matrix such that `values.len() % width != 0`.
     #[must_use]
     pub fn new(values: V, width: usize) -> Self {
-        debug_assert!(values.borrow().len().is_multiple_of(width));
+        debug_assert!(values.as_ref().len().is_multiple_of(width));
         Self {
             values,
             width,
@@ -49,14 +46,14 @@ impl<T: Clone + Send + Sync, V: Borrow<[T]> + Send + Sync> Matrix<T, V> {
 
     #[inline]
     pub fn height(&self) -> usize {
-        self.values.borrow().len().checked_div(self.width).unwrap_or(0)
+        self.values.as_ref().len().checked_div(self.width).unwrap_or(0)
     }
 
     pub fn as_view_mut(&mut self) -> MatrixViewMut<'_, T>
     where
-        V: BorrowMut<[T]>,
+        V: AsMut<[T]>,
     {
-        MatrixViewMut::new(self.values.borrow_mut(), self.width)
+        MatrixViewMut::new(self.values.as_mut(), self.width)
     }
 
     /// Row `r` as an iterator over its values, or `None` if out of bounds.
@@ -64,7 +61,7 @@ impl<T: Clone + Send + Sync, V: Borrow<[T]> + Send + Sync> Matrix<T, V> {
     pub fn row(&self, r: usize) -> Option<impl Iterator<Item = T> + '_> {
         (r < self.height()).then(|| {
             let start = r * self.width;
-            self.values.borrow()[start..start + self.width].iter().cloned()
+            self.values.as_ref()[start..start + self.width].iter().cloned()
         })
     }
 
@@ -86,7 +83,7 @@ impl<T: Clone + Send + Sync, V: Borrow<[T]> + Send + Sync> Matrix<T, V> {
         let width = self.width;
         debug_assert!(effective_width <= width);
         debug_assert!(r + P::WIDTH <= self.height());
-        let values = self.values.borrow();
+        let values = self.values.as_ref();
         let base = r * width;
         (0..n_leading_zeros).map(|_| P::default()).chain(
             (0..effective_width)

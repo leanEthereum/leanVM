@@ -1,14 +1,17 @@
 use lean_multisig::{
-    ZkAllocator, aggregate_single_msg_signatures, begin_phase, end_phase, setup_prover, verify_single_message_aggregate,
+    aggregate_single_msg_signatures, begin_phase, enable_arena, end_phase, setup_prover,
+    verify_single_message_aggregate,
 };
 use xmss::signers_cache::{BENCHMARK_SLOT, get_benchmark_signatures, message_for_benchmark};
 
-#[global_allocator]
-static ALLOC: ZkAllocator = ZkAllocator;
-
+// No `#[global_allocator]`: the process keeps the system allocator. The proving arena is driven
+// purely by the explicit `ProverAlloc`-typed proof buffers, so the whole pipeline (witness,
+// trace, MLEs, stacked PCS, WHIR codeword + Merkle leaf) lands in the arena without `ZkAllocator`
+// dictating the global allocator.
 #[test]
 #[allow(clippy::redundant_clone)]
-fn test_aggregation_with_zk_alloc() {
+fn test_aggregation_without_global_allocator() {
+    enable_arena();
     setup_prover();
 
     let log_inv_rate = 2;

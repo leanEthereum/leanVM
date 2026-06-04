@@ -171,14 +171,14 @@ pub fn fold_and_compute_product_sumcheck_polynomial<
     prev_folding_factor: EF,
     sum: EF,
     decompose: impl Fn(EFPacking) -> Vec<EF>,
-) -> (DensePolynomial<EF>, Vec<Vec<EFPacking>>) {
+) -> (DensePolynomial<EF>, Vec<ArenaVec<EFPacking>>) {
     let n = pol_0.len();
     assert_eq!(n, pol_1.len());
     assert!(n.is_power_of_two());
     let prev_folding_factor_packed = EFPacking::from(prev_folding_factor);
 
-    let mut pol_0_folded = unsafe { uninitialized_vec::<EFPacking>(n / 2) };
-    let mut pol_1_folded = unsafe { uninitialized_vec::<EFPacking>(n / 2) };
+    let mut pol_0_folded = unsafe { uninitialized_arena_vec::<EFPacking>(n / 2) };
+    let mut pol_1_folded = unsafe { uninitialized_arena_vec::<EFPacking>(n / 2) };
 
     #[allow(clippy::type_complexity)]
     let process_element = |(p0_prev, p0_f): (((&F, &F), (&F, &F)), (&mut EFPacking, &mut EFPacking)),

@@ -85,7 +85,7 @@ impl<'a, EF: ExtensionField<PF<EF>>> MleGroupRef<'a, EF> {
             }
             Self::Extension(ext) => {
                 // the only case where there is real work
-                MleGroupOwned::ExtensionPacked(ext.iter().map(|v| pack_extension(v)).collect()).into()
+                MleGroupOwned::ExtensionPacked(ext.iter().map(|v| pack_extension_in(v)).collect()).into()
             }
             Self::BasePacked(_) | Self::ExtensionPacked(_) => self.soft_clone().into(),
         }
@@ -99,7 +99,7 @@ impl<'a, EF: ExtensionField<PF<EF>>> MleGroupRef<'a, EF> {
                 MleGroupRef::Base(pols.iter().map(|v| PFPacking::<EF>::unpack_slice(v)).collect()).into()
             }
             Self::ExtensionPacked(pols) => {
-                MleGroupOwned::Extension(pols.iter().map(|v| unpack_extension(v)).collect()).into()
+                MleGroupOwned::Extension(pols.iter().map(|v| unpack_extension_in(v)).collect()).into()
             }
         }
     }
@@ -158,10 +158,12 @@ impl<'a, EF: ExtensionField<PF<EF>>> MleGroupRef<'a, EF> {
 
     pub fn clone_to_owned(&self) -> MleGroupOwned<EF> {
         match self {
-            Self::Base(pols) => MleGroupOwned::Base(pols.iter().map(|v| v.to_vec()).collect()),
-            Self::Extension(pols) => MleGroupOwned::Extension(pols.iter().map(|v| v.to_vec()).collect()),
-            Self::BasePacked(pols) => MleGroupOwned::BasePacked(pols.iter().map(|v| v.to_vec()).collect()),
-            Self::ExtensionPacked(pols) => MleGroupOwned::ExtensionPacked(pols.iter().map(|v| v.to_vec()).collect()),
+            Self::Base(pols) => MleGroupOwned::Base(pols.iter().map(|v| arena_from_slice(v)).collect()),
+            Self::Extension(pols) => MleGroupOwned::Extension(pols.iter().map(|v| arena_from_slice(v)).collect()),
+            Self::BasePacked(pols) => MleGroupOwned::BasePacked(pols.iter().map(|v| arena_from_slice(v)).collect()),
+            Self::ExtensionPacked(pols) => {
+                MleGroupOwned::ExtensionPacked(pols.iter().map(|v| arena_from_slice(v)).collect())
+            }
         }
     }
 }

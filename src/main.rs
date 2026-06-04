@@ -1,7 +1,6 @@
 use clap::Parser;
 use rec_aggregation::benchmark::{AggregationTopology, biggest_leaf, run_aggregation_benchmark};
 
-#[cfg(not(feature = "standard-alloc"))]
 #[global_allocator]
 static ALLOC: zk_alloc::ZkAllocator = zk_alloc::ZkAllocator;
 
@@ -68,6 +67,10 @@ fn run_with_warmup(topology: &AggregationTopology, tracing: bool, json: bool, re
 
 #[allow(clippy::too_many_lines)]
 fn main() {
+    // This binary owns the arena lifecycle (one proving at a time, bracketed by
+    // begin_phase/end_phase in the benchmark loop), so opt the process in.
+    zk_alloc::enable_arena();
+
     let cli = Cli::parse();
 
     match cli {

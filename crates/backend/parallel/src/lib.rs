@@ -385,6 +385,30 @@ pub fn par_fill<T: Send, F: Fn(usize) -> T + Sync>(dst: &mut [T], build: F) {
     par_for_each_mut(dst, |i, slot| *slot = build(i));
 }
 
+/// Like [`par_map_collect`] but allocates the output in `alloc` (an `allocator_api2`
+/// allocator) instead of the global one — so proof buffers can land in an explicit arena
+/// without forcing it as the process `#[global_allocator]`. The single allocation happens
+/// on the calling thread; workers only write into the reserved slots via raw pointers, so
+/// the allocator is never touched concurrently.
+pub fn par_map_collect_in<T, A, F>(n_tasks: usize, alloc: A, f: F) -> allocator_api2::vec::Vec<T, A>
+where
+    T: Send,
+    A: allocator_api2::alloc::Allocator,
+    F: Fn(usize) -> T + Sync,
+{
+    let mut out: allocator_api2::vec::Vec<T, A> = allocator_api2::vec::Vec::with_capacity_in(n_tasks, alloc);
+    let base = SendPtr(out.as_mut_ptr());
+    for_each_index(n_tasks, |i| {
+        // SAFETY: distinct `i` write disjoint, in-bounds slots (each exactly once) and the
+        // dispatch blocks until all writes finish. A panic in `f` leaks the slots written so
+        // far, which is fine: a pool task panic is fatal (see the module's "Panics" note).
+        unsafe { base.add(i).write(f(i)) };
+    });
+    // SAFETY: every slot in `0..n_tasks` was initialized exactly once above.
+    unsafe { out.set_len(n_tasks) };
+    out
+}
+
 /// Give each worker its own persistent `Option<S>` slot while it drains `0..n_tasks`:
 /// `run(slot, start, end)` fires once per claimed batch with that worker's slot, so state
 /// accumulates across its batches. Returns the slots (rest `None`) for the caller to combine.

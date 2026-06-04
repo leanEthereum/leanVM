@@ -1,18 +1,21 @@
-use crate::{EFPacking, Mle, MleRef, MultilinearPoint, PF, PFPacking, pack_extension, packing_width, unpack_extension};
+use crate::{
+    ArenaVec, EFPacking, Mle, MleRef, MultilinearPoint, PF, PFPacking, arena_vec, pack_extension_in, packing_width,
+    unpack_extension_in,
+};
 use field::PackedValue;
 use field::{ExtensionField, PackedFieldExtension};
 
 #[derive(Debug, Clone)]
 pub enum MleOwned<EF: ExtensionField<PF<EF>>> {
-    Base(Vec<PF<EF>>),
-    Extension(Vec<EF>),
-    BasePacked(Vec<PFPacking<EF>>),
-    ExtensionPacked(Vec<EFPacking<EF>>),
+    Base(ArenaVec<PF<EF>>),
+    Extension(ArenaVec<EF>),
+    BasePacked(ArenaVec<PFPacking<EF>>),
+    ExtensionPacked(ArenaVec<EFPacking<EF>>),
 }
 
 impl<EF: ExtensionField<PF<EF>>> Default for MleOwned<EF> {
     fn default() -> Self {
-        Self::Base(vec![])
+        Self::Base(arena_vec())
     }
 }
 
@@ -63,35 +66,35 @@ impl<EF: ExtensionField<PF<EF>>> MleOwned<EF> {
         }
     }
 
-    pub fn as_extension_packed_mut(&mut self) -> Option<&mut Vec<EFPacking<EF>>> {
+    pub fn as_extension_packed_mut(&mut self) -> Option<&mut ArenaVec<EFPacking<EF>>> {
         match self {
             Self::ExtensionPacked(ep) => Some(ep),
             _ => None,
         }
     }
 
-    pub fn into_base(self) -> Option<Vec<PF<EF>>> {
+    pub fn into_base(self) -> Option<ArenaVec<PF<EF>>> {
         match self {
             Self::Base(b) => Some(b),
             _ => None,
         }
     }
 
-    pub fn into_extension(self) -> Option<Vec<EF>> {
+    pub fn into_extension(self) -> Option<ArenaVec<EF>> {
         match self {
             Self::Extension(e) => Some(e),
             _ => None,
         }
     }
 
-    pub fn into_base_backed(self) -> Option<Vec<PFPacking<EF>>> {
+    pub fn into_base_backed(self) -> Option<ArenaVec<PFPacking<EF>>> {
         match self {
             Self::BasePacked(pb) => Some(pb),
             _ => None,
         }
     }
 
-    pub fn into_extension_packed(self) -> Option<Vec<EFPacking<EF>>> {
+    pub fn into_extension_packed(self) -> Option<ArenaVec<EFPacking<EF>>> {
         match self {
             Self::ExtensionPacked(ep) => Some(ep),
             _ => None,
@@ -105,7 +108,7 @@ impl<EF: ExtensionField<PF<EF>>> MleOwned<EF> {
     pub fn pack<'a>(&'a self) -> Mle<'a, EF> {
         match self {
             Self::Base(v) => Mle::Ref(MleRef::BasePacked(PFPacking::<EF>::pack_slice(v))),
-            Self::Extension(v) => Mle::Owned(MleOwned::ExtensionPacked(pack_extension(v))),
+            Self::Extension(v) => Mle::Owned(MleOwned::ExtensionPacked(pack_extension_in(v))),
             Self::BasePacked(_) => Mle::Ref(self.by_ref()),
             Self::ExtensionPacked(_) => Mle::Ref(self.by_ref()),
         }
@@ -116,7 +119,7 @@ impl<EF: ExtensionField<PF<EF>>> MleOwned<EF> {
             Self::Base(v) => Mle::Ref(MleRef::Base(v)),
             Self::Extension(v) => Mle::Ref(MleRef::Extension(v)),
             Self::BasePacked(pb) => Mle::Ref(MleRef::Base(PFPacking::<EF>::unpack_slice(pb))),
-            Self::ExtensionPacked(ep) => Mle::Owned(MleOwned::Extension(unpack_extension(ep))),
+            Self::ExtensionPacked(ep) => Mle::Owned(MleOwned::Extension(unpack_extension_in(ep))),
         }
     }
 

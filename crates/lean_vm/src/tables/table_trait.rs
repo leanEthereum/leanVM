@@ -138,7 +138,7 @@ pub struct MemoryLookupGroup {
 
 #[derive(Debug, Default)]
 pub struct TableTrace {
-    pub columns: Vec<Vec<F>>,
+    pub columns: Vec<ArenaVec<F>>,
     pub non_padded_n_rows: usize,
     pub log_n_rows: VarCount,
 }
@@ -146,7 +146,7 @@ pub struct TableTrace {
 impl TableTrace {
     pub fn new<A: TableT>(air: &A) -> Self {
         Self {
-            columns: vec![Vec::new(); air.n_columns_total()],
+            columns: (0..air.n_columns_total()).map(|_| arena_vec()).collect(),
             non_padded_n_rows: 0, // filled later
             log_n_rows: 0,        // filled later
         }

@@ -160,7 +160,7 @@ pub fn prove_execution(
         .map(|table| {
             traces[table].columns[..table.n_columns()]
                 .iter()
-                .map(Vec::as_slice)
+                .map(|c| c.as_slice())
                 .collect()
         })
         .collect();

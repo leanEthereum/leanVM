@@ -7,8 +7,10 @@ pub fn from_end<A>(slice: &[A], n: usize) -> &[A] {
     &slice[slice.len() - n..]
 }
 
-pub fn transposed_par_for_each_mut<A: Send + Sync, const N: usize, G>(array: &mut [Vec<A>; N], g: G)
+pub fn transposed_par_for_each_mut<A, V, const N: usize, G>(array: &mut [V; N], g: G)
 where
+    A: Send + Sync,
+    V: std::ops::DerefMut<Target = [A]>,
     G: Fn(usize, [&mut A; N]) + Sync,
 {
     // all vectors must have the same length

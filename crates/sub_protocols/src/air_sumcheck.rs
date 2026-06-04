@@ -89,9 +89,9 @@ where
                 let _span = info_span!("chunk-bit-reversing columns").entered();
                 let chunk_size = 1usize << pivot;
                 let shift = usize::BITS as usize - pivot;
-                let bit_reversed: Vec<Vec<PFPacking<EF>>> = parallel::par_map_collect(cols.len(), |i| {
+                let bit_reversed: Vec<ArenaVec<PFPacking<EF>>> = parallel::par_map_collect(cols.len(), |i| {
                     let src = cols[i];
-                    let mut dst: Vec<PFPacking<EF>> = unsafe { uninitialized_vec(src.len()) };
+                    let mut dst: ArenaVec<PFPacking<EF>> = unsafe { uninitialized_arena_vec(src.len()) };
                     let src_u = PFPacking::<EF>::unpack_slice(src);
                     let dst_u = PFPacking::<EF>::unpack_slice_mut(&mut dst);
                     for (src_chunk, dst_chunk) in src_u.chunks_exact(chunk_size).zip(dst_u.chunks_exact_mut(chunk_size))

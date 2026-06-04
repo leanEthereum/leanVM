@@ -7,7 +7,7 @@ use crate::{
 use backend::*;
 
 #[instrument(name = "generate Poseidon16 AIR trace", skip_all)]
-pub fn fill_trace_poseidon_16(trace: &mut [Vec<F>]) {
+pub fn fill_trace_poseidon_16(trace: &mut [ArenaVec<F>]) {
     let n = trace.iter().map(|col| col.len()).max().unwrap();
     for col in trace.iter_mut() {
         if col.len() != n {
@@ -33,7 +33,7 @@ pub fn fill_trace_poseidon_16(trace: &mut [Vec<F>]) {
     });
 
     // fill the remaining rows (non packed)
-    let cols: &[Vec<F>; N_COLS] = (&trace[..N_COLS]).try_into().unwrap();
+    let cols: &[ArenaVec<F>; N_COLS] = (&trace[..N_COLS]).try_into().unwrap();
     for i in m..n {
         let ptrs: [*mut F; N_COLS] = std::array::from_fn(|c| unsafe { (cols[c].as_ptr() as *mut F).add(i) });
         let perm: &mut Poseidon1Cols16<&mut F> = unsafe { &mut *(ptrs.as_ptr() as *mut Poseidon1Cols16<&mut F>) };

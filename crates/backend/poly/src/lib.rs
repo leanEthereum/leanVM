@@ -1,5 +1,8 @@
 #![cfg_attr(not(test), warn(unused_crate_dependencies))]
 
+mod alloc;
+pub use alloc::*;
+
 mod mle;
 pub use mle::*;
 

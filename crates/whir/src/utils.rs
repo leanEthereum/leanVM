@@ -56,13 +56,13 @@ where
 }
 
 pub(crate) enum DftInput<EF: Field> {
-    Base(Vec<PF<EF>>),
-    Extension(Vec<EF>),
+    Base(ArenaVec<PF<EF>>),
+    Extension(ArenaVec<EF>),
 }
 
 pub(crate) enum DftOutput<EF: Field> {
-    Base(Matrix<PF<EF>>),
-    Extension(Matrix<EF>),
+    Base(Matrix<PF<EF>, ArenaVec<PF<EF>>>),
+    Extension(Matrix<EF, ArenaVec<EF>>),
 }
 
 pub(crate) fn reorder_and_dft<EF: ExtensionField<PF<EF>>>(
@@ -127,7 +127,7 @@ fn prepare_evals_for_fft_unpacked<A: Copy + Send + Sync>(
     folding_factor: usize,
     log_inv_rate: usize,
     dft_n_cols: usize,
-) -> Vec<A> {
+) -> ArenaVec<A> {
     assert!(evals.len().is_multiple_of(1 << folding_factor));
     let n_blocks = 1 << folding_factor;
     let full_len = evals.len() << log_inv_rate;
@@ -135,7 +135,7 @@ fn prepare_evals_for_fft_unpacked<A: Copy + Send + Sync>(
     let log_block_size = log2_strict_usize(block_size);
     let out_len = block_size * dft_n_cols;
 
-    let mut out: Vec<A> = unsafe { uninitialized_vec(out_len) };
+    let mut out: ArenaVec<A> = unsafe { uninitialized_arena_vec(out_len) };
     if block_size == 0 || dft_n_cols == 0 {
         return out;
     }
@@ -163,7 +163,7 @@ fn prepare_evals_for_fft_packed_extension<EF: ExtensionField<PF<EF>>>(
     evals: &[EFPacking<EF>],
     folding_factor: usize,
     log_inv_rate: usize,
-) -> Vec<EF> {
+) -> ArenaVec<EF> {
     let log_packing = packing_log_width::<EF>();
     assert!((evals.len() << log_packing).is_multiple_of(1 << folding_factor));
     let n_blocks = 1 << folding_factor;
@@ -172,7 +172,7 @@ fn prepare_evals_for_fft_packed_extension<EF: ExtensionField<PF<EF>>>(
     let log_block_size = log2_strict_usize(block_size);
     let packing_mask = (1 << log_packing) - 1;
 
-    let mut out: Vec<EF> = unsafe { uninitialized_vec(full_len) };
+    let mut out: ArenaVec<EF> = unsafe { uninitialized_arena_vec(full_len) };
     if block_size == 0 || n_blocks == 0 {
         return out;
     }

@@ -117,34 +117,80 @@ pub const fn indices_arr<const N: usize>() -> [usize; N] {
     indices_arr
 }
 
+/// Bridge a `std::Vec<T>` to `allocator_api2::Vec<T, Global>` in O(1). `allocator_api2`'s
+/// `Global` delegates to the same `std::alloc` global allocator that backs `std::Vec`, so their
+/// raw parts are interchangeable.
+#[inline]
+fn vec_into_global<T>(vec: Vec<T>) -> allocator_api2::vec::Vec<T, allocator_api2::alloc::Global> {
+    let mut vec = std::mem::ManuallyDrop::new(vec);
+    // SAFETY: raw parts come straight from a valid `Vec`, and `Global` shares its allocator.
+    unsafe {
+        allocator_api2::vec::Vec::from_raw_parts_in(
+            vec.as_mut_ptr(),
+            vec.len(),
+            vec.capacity(),
+            allocator_api2::alloc::Global,
+        )
+    }
+}
+
+/// Inverse of [`vec_into_global`].
+#[inline]
+fn vec_from_global<T>(vec: allocator_api2::vec::Vec<T, allocator_api2::alloc::Global>) -> Vec<T> {
+    let (ptr, len, cap, _global) = vec.into_raw_parts_with_alloc();
+    // SAFETY: as `vec_into_global`.
+    unsafe { Vec::from_raw_parts(ptr, len, cap) }
+}
+
 /// Convert a vector of `BaseArray` elements to a vector of `Base` elements without any
-/// reallocations.
+/// reallocations. The `Global`-allocator specialization of [`flatten_to_base_in`].
 ///
 /// # Safety
-///
 /// This assumes that `BaseArray` has the same alignment and memory layout as `[Base; N]`.
 #[inline]
 pub unsafe fn flatten_to_base<Base, BaseArray>(vec: Vec<BaseArray>) -> Vec<Base> {
+    // SAFETY: forwarded to the allocator-generic core; the caller upholds its layout contract.
+    vec_from_global(unsafe { flatten_to_base_in::<Base, BaseArray, _>(vec_into_global(vec)) })
+}
+
+/// Convert a vector of `Base` elements to a vector of `BaseArray` elements. The `Global`-
+/// allocator specialization of [`reconstitute_from_base_in`].
+///
+/// # Safety
+/// This assumes that `BaseArray` has the same alignment and memory layout as `[Base; N]`.
+#[inline]
+pub unsafe fn reconstitute_from_base<Base, BaseArray: Clone>(vec: Vec<Base>) -> Vec<BaseArray> {
+    // SAFETY: as above.
+    vec_from_global(unsafe { reconstitute_from_base_in::<Base, BaseArray, _>(vec_into_global(vec)) })
+}
+
+/// Convert a vector of `BaseArray` elements to a vector of `Base` elements without any
+/// reallocations, carrying the backing allocator `A` (e.g. the proving arena) through unchanged.
+///
+/// # Safety
+/// `BaseArray` must have the same alignment and memory layout as `[Base; N]`.
+#[inline]
+pub unsafe fn flatten_to_base_in<Base, BaseArray, A: allocator_api2::alloc::Allocator>(
+    vec: allocator_api2::vec::Vec<BaseArray, A>,
+) -> allocator_api2::vec::Vec<Base, A> {
     const {
         assert!(align_of::<Base>() == align_of::<BaseArray>());
         assert!(size_of::<BaseArray>().is_multiple_of(size_of::<Base>()));
     }
 
     let d = size_of::<BaseArray>() / size_of::<Base>();
-    let mut values = std::mem::ManuallyDrop::new(vec);
-    let new_len = values.len() * d;
-    let new_cap = values.capacity() * d;
-    let ptr = values.as_mut_ptr() as *mut Base;
-    unsafe { Vec::from_raw_parts(ptr, new_len, new_cap) }
+    let (ptr, len, cap, alloc) = vec.into_raw_parts_with_alloc();
+    unsafe { allocator_api2::vec::Vec::from_raw_parts_in(ptr.cast::<Base>(), len * d, cap * d, alloc) }
 }
 
-/// Convert a vector of `Base` elements to a vector of `BaseArray` elements.
+/// Allocator-preserving [`reconstitute_from_base`] (see [`flatten_to_base_in`]).
 ///
 /// # Safety
-///
-/// This assumes that `BaseArray` has the same alignment and memory layout as `[Base; N]`.
+/// Same contract as [`reconstitute_from_base`].
 #[inline]
-pub unsafe fn reconstitute_from_base<Base, BaseArray: Clone>(mut vec: Vec<Base>) -> Vec<BaseArray> {
+pub unsafe fn reconstitute_from_base_in<Base, BaseArray: Clone, A: allocator_api2::alloc::Allocator + Clone>(
+    vec: allocator_api2::vec::Vec<Base, A>,
+) -> allocator_api2::vec::Vec<BaseArray, A> {
     const {
         assert!(align_of::<Base>() == align_of::<BaseArray>());
         assert!(size_of::<BaseArray>().is_multiple_of(size_of::<Base>()));
@@ -158,17 +204,18 @@ pub unsafe fn reconstitute_from_base<Base, BaseArray: Clone>(mut vec: Vec<Base>)
         d
     );
     let new_len = vec.len() / d;
-    let cap = vec.capacity();
 
-    if cap.is_multiple_of(d) {
-        let mut values = std::mem::ManuallyDrop::new(vec);
-        let new_cap = cap / d;
-        let ptr = values.as_mut_ptr() as *mut BaseArray;
-        unsafe { Vec::from_raw_parts(ptr, new_len, new_cap) }
+    if vec.capacity().is_multiple_of(d) {
+        let (ptr, _len, cap, alloc) = vec.into_raw_parts_with_alloc();
+        unsafe { allocator_api2::vec::Vec::from_raw_parts_in(ptr.cast::<BaseArray>(), new_len, cap / d, alloc) }
     } else {
-        let buf_ptr = vec.as_mut_ptr().cast::<BaseArray>();
+        // Capacity isn't a clean multiple: copy into a fresh, same-allocator buffer.
+        let alloc = vec.allocator().clone();
+        let buf_ptr = vec.as_ptr().cast::<BaseArray>();
         let slice_ref = unsafe { slice::from_raw_parts(buf_ptr, new_len) };
-        slice_ref.to_vec()
+        let mut out = allocator_api2::vec::Vec::with_capacity_in(new_len, alloc);
+        out.extend_from_slice(slice_ref);
+        out
     }
 }
 

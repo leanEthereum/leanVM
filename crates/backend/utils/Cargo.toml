@@ -5,3 +5,4 @@ edition.workspace = true
 
 [dependencies]
 serde.workspace = true
+allocator-api2.workspace = true

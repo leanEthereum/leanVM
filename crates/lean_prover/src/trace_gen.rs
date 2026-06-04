@@ -6,7 +6,7 @@ use utils::{ToUsize, get_poseidon_16_of_zero, transposed_par_for_each_mut};
 #[derive(Debug)]
 pub struct ExecutionTrace {
     pub traces: BTreeMap<Table, TableTrace>,
-    pub memory: Vec<F>, // of length a multiple of public_memory_size
+    pub memory: ArenaVec<F>, // of length a multiple of public_memory_size
     pub metadata: ExecutionMetadata,
 }
 
@@ -19,8 +19,8 @@ pub fn get_execution_trace(
 
     let n_cycles = execution_result.pcs.len();
     let memory = &execution_result.memory;
-    let mut main_trace: [Vec<F>; N_TOTAL_EXECUTION_COLUMNS + N_TEMPORARY_EXEC_COLUMNS] =
-        array::from_fn(|_| F::zero_vec(n_cycles.next_power_of_two()));
+    let mut main_trace: [ArenaVec<F>; N_TOTAL_EXECUTION_COLUMNS + N_TEMPORARY_EXEC_COLUMNS] =
+        array::from_fn(|_| arena_filled(F::ZERO, n_cycles.next_power_of_two()));
     for col in &mut main_trace {
         unsafe {
             col.set_len(n_cycles);
@@ -93,7 +93,8 @@ pub fn get_execution_trace(
         *trace_row[EXEC_COL_ADDR_C] = addr_c;
     });
 
-    let mut memory_padded: Vec<F> = parallel::par_map_collect(memory.0.len(), |i| memory.0[i].unwrap_or(F::ZERO));
+    let mut memory_padded: ArenaVec<F> =
+        parallel::par_map_collect_in(memory.0.len(), ProverAlloc, |i| memory.0[i].unwrap_or(F::ZERO));
 
     // Write [0000000000000000 | poseidon_compress(0000000000000000)] (to make lookups work on padding-rows).
     let padding_zero_vec_ptr = memory_padded.len();
@@ -121,7 +122,7 @@ pub fn get_execution_trace(
         let flag_out8_col = &left[POSEIDON_COL_FLAG_OUT8];
         let nu_c_col = &left[POSEIDON_COL_NU_C];
         const N: usize = HALF_DIGEST_LEN + DIGEST_LEN;
-        let cols: &mut [Vec<F>; N] = (&mut right[..N]).try_into().unwrap();
+        let cols: &mut [ArenaVec<F>; N] = (&mut right[..N]).try_into().unwrap();
 
         transposed_par_for_each_mut(cols, |i, row| {
             let flag_out4 = flag_out4_col[i];
