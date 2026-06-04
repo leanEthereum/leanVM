@@ -297,12 +297,6 @@ where
                 // the overhead of threading.
                 let work_size: usize = (1 << 15) / std::mem::size_of::<Coeffs>();
                 if evals.len() > work_size && PARALLEL {
-                    // Flat fan-out: peel the `n_split` leading variables into `2^n_split`
-                    // independent subproblems, evaluate each over the remaining coordinates
-                    // sequentially across the pool, then interpolate the partial results over
-                    // the leading coordinates. Equivalent to the recursive `join` split, but
-                    // flat so the in-house pool can parallelize it (nested dispatches fall
-                    // back to sequential, so a recursive split would lose all parallelism).
                     let log_work = log2_ceil_usize(work_size.max(2));
                     let n_split = point.len().saturating_sub(log_work).max(1);
                     let (lead, sub_point) = point.split_at(n_split);
@@ -342,10 +336,6 @@ where
     }
 }
 
-/// Multilinear interpolation of `values` (the `2^point.len()` hypercube evaluations of a
-/// function, indexed lexicographically) at `point`, using only `Res` arithmetic and the
-/// `mul_res_point` scaling. Used to recombine the partial results of the flat parallel
-/// fan-out in [`eval_multilinear_generic`].
 fn interpolate_res<Point, Res, MRP>(values: &[Res], point: &[Point], mul_res_point: &MRP) -> Res
 where
     Point: Field,
