@@ -146,15 +146,10 @@ pub fn compute_product_sumcheck_polynomial<
             })
     } else {
         let half = n / 2;
-        parallel::map_reduce_with_state(
+        parallel::map_reduce(
             half,
-            || (),
             || (EFPacking::ZERO, EFPacking::ZERO),
-            |(), acc, i| {
-                let (b0, b2) = sumcheck_quadratic(((&pol_0[i], &pol_0[half + i]), (&pol_1[i], &pol_1[half + i])));
-                acc.0 += b0;
-                acc.1 += b2;
-            },
+            |i| sumcheck_quadratic(((&pol_0[i], &pol_0[half + i]), (&pol_1[i], &pol_1[half + i]))),
             |(a0, a2), (b0, b2)| (a0 + b0, a2 + b2),
         )
     };
@@ -217,11 +212,10 @@ pub fn fold_and_compute_product_sumcheck_polynomial<
         let quarter = n / 4;
         let p0f = parallel::SendPtr(pol_0_folded.as_mut_ptr());
         let p1f = parallel::SendPtr(pol_1_folded.as_mut_ptr());
-        parallel::map_reduce_with_state(
+        parallel::map_reduce(
             quarter,
-            || (),
             || (EFPacking::ZERO, EFPacking::ZERO),
-            |(), acc, i| {
+            |i| {
                 let diff_0 = pol_0[2 * quarter + i] - pol_0[i];
                 let diff_1 = pol_0[3 * quarter + i] - pol_0[quarter + i];
                 let x_0 = prev_folding_factor_packed * diff_0 + pol_0[i];
@@ -240,9 +234,7 @@ pub fn fold_and_compute_product_sumcheck_polynomial<
                     *p1f.add(quarter + i) = y_1;
                 }
 
-                let (b0, b2) = sumcheck_quadratic(((&x_0, &x_1), (&y_0, &y_1)));
-                acc.0 += b0;
-                acc.1 += b2;
+                sumcheck_quadratic(((&x_0, &x_1), (&y_0, &y_1)))
             },
             |(a0, a2), (b0, b2)| (a0 + b0, a2 + b2),
         )

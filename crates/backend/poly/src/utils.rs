@@ -67,10 +67,6 @@ pub const fn must_unpack_multilinears<EF: Field>(n_vars: usize) -> bool {
     n_vars <= 1 + packing_log_width::<EF>()
 }
 
-/// Fill `len` output slots with `compute(i)`, parallelizing via the pool when the work is
-/// large enough. `seq` forces the sequential path: the batched wrappers below dispatch one
-/// pool task per poly, so their inner fold must not nest a parallel dispatch (which would
-/// panic in [`parallel`]).
 #[inline]
 fn fold_fill<OF: Send, C: Fn(usize) -> OF + Sync>(len: usize, seq: bool, compute: C) -> Vec<OF> {
     let mut res = unsafe { uninitialized_vec(len) };
@@ -176,7 +172,6 @@ pub fn batch_fold_multilinears_at_bit<
     bit: usize,
     mul_if_of: F,
 ) -> Vec<Vec<OF>> {
-    // See `batch_fold_multilinears`: one task per poly, inner fold forced sequential.
     let total_size: usize = polys.iter().map(|p| p.len()).sum();
     if total_size < PARALLEL_THRESHOLD {
         polys
