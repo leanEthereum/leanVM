@@ -225,8 +225,6 @@ pub fn fold_and_compute_product_sumcheck_polynomial<
                 let y_1 =
                     prev_folding_factor_packed * (pol_1[3 * quarter + i] - pol_1[quarter + i]) + pol_1[quarter + i];
 
-                // SAFETY: distinct `i` write disjoint slots `i` and `quarter + i` in
-                // `[0, n/2)`; the dispatcher keeps both buffers borrowed for the call.
                 unsafe {
                     *p0f.add(i) = x_0;
                     *p0f.add(quarter + i) = x_1;

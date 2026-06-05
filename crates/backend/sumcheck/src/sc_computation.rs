@@ -399,10 +399,6 @@ where
         + MulAssign,
     SC: SumcheckComputation<EF>,
 {
-    // Per-worker scratch: `rows` (the [lo, diff, hi] triples) and `point` (the
-    // evaluation point handed to `eval_fn`) are reused across every task a worker
-    // owns, so the hot loop allocates nothing. `acc` (length `degree`) is the
-    // per-worker partial sum.
     let n_mult = multilinears.len();
     let sums = parallel::map_reduce_with_state(
         fold_size,
@@ -474,10 +470,6 @@ where
         .map(|_| FT::zero_vec(prev_folded_size))
         .collect();
 
-    // Per-worker scratch: `rows_f` (the [lo, diff, hi] triples) and `point` (the
-    // evaluation point handed to `eval_fn`) are reused across every task a worker
-    // owns, so the hot loop allocates nothing. `acc` (length `degree`) is the
-    // per-worker partial sum.
     let n_mult = multilinears.len();
     let sums = parallel::map_reduce_with_state(
         compute_fold_size,

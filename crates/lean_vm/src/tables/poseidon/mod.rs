@@ -240,8 +240,6 @@ impl<const BUS: bool> TableT for Poseidon16Precompile<BUS> {
         } else {
             arg_a_usize + HALF_DIGEST_LEN
         };
-        // Fill the Poseidon input array directly from memory — no per-call Vec allocation
-        // (this runs once per Poseidon instruction, the dominant small-alloc source).
         let mut input = [F::ZERO; DIGEST_LEN * 2];
         ctx.memory
             .get_slice_into(left_first_addr, &mut input[..HALF_DIGEST_LEN])?;
