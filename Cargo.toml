@@ -54,7 +54,6 @@ wildcard_imports = "allow"
 
 [workspace.dependencies]
 # Local
-utils = { path = "crates/utils" }
 lean_vm = { path = "crates/lean_vm" }
 xmss = { path = "crates/xmss" }
 sub_protocols = { path = "crates/sub_protocols" }
@@ -93,7 +92,6 @@ zk-alloc.workspace = true
 libc = "0.2"
 rand.workspace = true
 sub_protocols.workspace = true
-utils.workspace = true
 lean_vm.workspace = true
 xmss.workspace = true
 backend.workspace = true

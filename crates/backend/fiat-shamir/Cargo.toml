@@ -7,7 +7,7 @@ edition.workspace = true
 field = { path = "../field", package = "mt-field" }
 koala-bear = { path = "../koala-bear", package = "mt-koala-bear" }
 symetric = { path = "../symetric", package = "mt-symetric" }
-utils = { path = "../utils", package = "mt-utils" }
+utils = { path = "../utils", package = "utils" }
 tracing.workspace = true
 serde.workspace = true
 parallel.workspace = true

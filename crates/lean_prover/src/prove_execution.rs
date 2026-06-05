@@ -1,13 +1,11 @@
 use std::collections::BTreeMap;
 
 use crate::*;
+use backend::ansi::Colorize;
 use lean_vm::*;
-
 use serde::{Deserialize, Serialize};
 use sub_protocols::*;
 use tracing::info_span;
-use utils::ansi::Colorize;
-use utils::{from_end, get_poseidon16};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExecutionProof {

@@ -4,7 +4,6 @@ use crate::*;
 use backend::{Proof, RawProof, VerifierState};
 use lean_vm::*;
 use sub_protocols::*;
-use utils::{ToUsize, from_end, get_poseidon16};
 
 #[derive(Debug, Clone)]
 pub struct ProofVerificationDetails {

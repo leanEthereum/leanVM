@@ -13,7 +13,6 @@ use crate::{
 };
 use backend::*;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
-use utils::ToUsize;
 
 use super::memory::SegmentMemory;
 

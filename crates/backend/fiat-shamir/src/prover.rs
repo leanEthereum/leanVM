@@ -1,8 +1,5 @@
-use crate::{
-    MerklePaths, PrunedMerklePaths,
-    challenger::{CAPACITY, Challenger, RATE, WIDTH},
-    *,
-};
+use crate::challenger::Challenger;
+use crate::{MerklePaths, PrunedMerklePaths, *};
 use field::Field;
 use field::PackedValue;
 use field::PrimeCharacteristicRing;
@@ -12,6 +9,9 @@ use koala_bear::symmetric::Permutation;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::time::Duration;
 use std::{fmt::Debug, sync::Mutex, time::Instant};
+use symetric::CAPACITY;
+use symetric::RATE;
+use symetric::WIDTH;
 
 static POW_GRINDING_NANOS: AtomicU64 = AtomicU64::new(0);
 

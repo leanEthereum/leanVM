@@ -89,7 +89,8 @@ where
                 let _span = info_span!("chunk-bit-reversing columns").entered();
                 let chunk_size = 1usize << pivot;
                 let shift = usize::BITS as usize - pivot;
-                let bit_reversed: Vec<ArenaVec<PFPacking<EF>>> = parallel::par_map_collect(cols.len(), |i| {
+                let mut bit_reversed: Vec<ArenaVec<PFPacking<EF>>> = vec![arena_vec(); cols.len()];
+                parallel::par_chunks_mut(&mut bit_reversed, 1, |i, out_slot| {
                     let src = cols[i];
                     let mut dst: ArenaVec<PFPacking<EF>> = unsafe { uninitialized_arena_vec(src.len()) };
                     let src_u = PFPacking::<EF>::unpack_slice(src);
@@ -100,7 +101,7 @@ where
                             *slot = src_chunk[p.reverse_bits() >> shift];
                         }
                     }
-                    dst
+                    out_slot[0] = dst;
                 });
                 MleGroup::Owned(MleGroupOwned::BasePacked(bit_reversed))
             }
@@ -658,13 +659,15 @@ pub fn prove_batched_air_sumcheck<'a, EF: ExtensionField<PF<EF>>>(
 
 pub fn compute_shifted_columns<F: Field>(n_shift_columns: usize, columns: &[&[F]]) -> Vec<Vec<F>> {
     // Convention: the first `n_shift_columns` columns are the ones that get shifted.
-    parallel::par_map_collect(n_shift_columns, |i| {
+    let mut out: Vec<Vec<F>> = (0..n_shift_columns).map(|_| Vec::new()).collect();
+    parallel::par_chunks_mut(&mut out, 1, |i, slot| {
         let column = columns[i];
         let mut shifted = unsafe { uninitialized_vec(column.len()) };
         shifted[..column.len() - 1].copy_from_slice(&column[1..]);
         shifted[column.len() - 1] = column[column.len() - 1];
-        shifted
-    })
+        slot[0] = shifted;
+    });
+    out
 }
 
 pub fn natural_ordering_point_for_session<EF: Copy>(sumcheck_air_point: &[EF], log_n_rows: usize) -> Vec<EF> {

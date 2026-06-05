@@ -1,3 +1,4 @@
+use backend::ansi::Colorize;
 use backend::*;
 use lean_vm::{
     ALL_TABLES, ColIndex, CommittedStatements, EXEC_COL_PC, MIN_LOG_MEMORY_SIZE, MIN_LOG_N_ROWS_PER_TABLE,
@@ -6,8 +7,6 @@ use lean_vm::{
 use lean_vm::{EF, F, Table, TableT, TableTrace};
 use std::collections::BTreeMap;
 use tracing::instrument;
-use utils::VarCount;
-use utils::ansi::Colorize;
 
 /*
 Stacking of various (multilinear) polynomials into a single -big- (multilinear) polynomial, which is committed via WHIR.

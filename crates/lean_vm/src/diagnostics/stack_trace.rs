@@ -1,9 +1,7 @@
-use std::collections::BTreeMap;
-
-use utils::ansi::Colorize;
-
 use crate::isa::Bytecode;
 use crate::{CodeAddress, FunctionName, SourceLocation};
+use backend::ansi::Colorize;
+use std::collections::BTreeMap;
 
 pub(crate) fn pretty_stack_trace(
     bytecode: &Bytecode,

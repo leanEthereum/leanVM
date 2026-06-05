@@ -9,7 +9,7 @@ koala-bear = { path = "../backend/koala-bear", package = "mt-koala-bear" }
 poly = { path = "../backend/poly", package = "mt-poly" }
 sumcheck = { path = "../backend/sumcheck", package = "mt-sumcheck" }
 fiat-shamir = { path = "../backend/fiat-shamir", package = "mt-fiat-shamir" }
-utils = { path = "../backend/utils", package = "mt-utils" }
+utils = { path = "../backend/utils", package = "utils" }
 symetric = { path = "../backend/symetric", package = "mt-symetric" }
 system-info.workspace = true
 

@@ -201,7 +201,6 @@ mod tests {
 
     use super::*;
     use rand::{RngExt, SeedableRng, rngs::StdRng};
-    use utils::{get_poseidon16, init_tracing};
 
     type F = KoalaBear;
     type EF = QuinticExtensionFieldKB;

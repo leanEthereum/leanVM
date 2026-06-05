@@ -1,11 +1,10 @@
 use crate::{ENDIANNESS_PIVOT_GKR, prove_gkr_quotient, verify_gkr_quotient};
+use backend::ansi::Colorize;
 use backend::*;
 use lean_vm::*;
 use parallel::par_fill;
 use std::collections::BTreeMap;
 use tracing::instrument;
-use utils::ansi::Colorize;
-use utils::*;
 
 #[derive(Debug, PartialEq, Hash, Clone)]
 pub struct GenericLogupStatements {

@@ -8,7 +8,7 @@ use crate::execution::memory::MemoryAccess;
 use crate::tables::TableT;
 use crate::{ExtensionOpMode, Table, TableTrace};
 use crate::{
-    POSEIDON16_HARDCODED_LEFT_NAME, POSEIDON16_NAME, POSEIDON16_PERMUTE_HALF_HARDCODED_LEFT_NAME,
+    POSEIDON16_COMPRESS_HALF_NAME, POSEIDON16_HARDCODED_LEFT_NAME, POSEIDON16_PERMUTE_HALF_HARDCODED_LEFT_NAME,
     POSEIDON16_PERMUTE_HALF_NAME, POSEIDON16_PERMUTE_NAME, POSEIDON16_QUARTER_HARDCODED_LEFT_NAME,
     POSEIDON16_QUARTER_NAME,
 };
@@ -16,7 +16,6 @@ use backend::*;
 use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
 use std::ops::AddAssign;
-use utils::ToUsize;
 
 /// Complete set of VM instruction types with comprehensive operation support
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -277,7 +276,7 @@ impl<V: Display, S: Display> Display for PrecompileArgs<V, S> {
                     }
                 } else {
                     match (*half_output, hardcoded_left_4) {
-                        (false, None) => write!(f, "{POSEIDON16_NAME}({arg_0}, {arg_1}, {res})"),
+                        (false, None) => write!(f, "{POSEIDON16_COMPRESS_HALF_NAME}({arg_0}, {arg_1}, {res})"),
                         (true, None) => write!(f, "{POSEIDON16_QUARTER_NAME}({arg_0}, {arg_1}, {res})"),
                         (false, Some(off)) => {
                             write!(

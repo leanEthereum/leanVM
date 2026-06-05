@@ -7,7 +7,6 @@ use lean_prover::prove_execution::prove_execution;
 use lean_vm::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use utils::poseidon_hash_slice;
 
 use crate::InnerVerified;
 use crate::bytecode_claims::compute_bytecode_value_at;

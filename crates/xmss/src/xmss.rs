@@ -2,7 +2,6 @@ use backend::*;
 use rand::{CryptoRng, RngExt, SeedableRng, rngs::StdRng};
 use serde::{Deserialize, Serialize};
 use sha3::{Digest as Sha3Digest, Keccak256};
-use utils::poseidon16_compress;
 
 use crate::*;
 

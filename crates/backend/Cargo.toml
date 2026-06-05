@@ -14,4 +14,4 @@ whir = { path = "../whir", package = "mt-whir" }
 tracing.workspace = true
 fiat-shamir = { path = "fiat-shamir", package = "mt-fiat-shamir" }
 koala-bear = { path = "koala-bear", package = "mt-koala-bear" }
-utils = { path = "utils", package = "mt-utils" }
+utils = { path = "utils", package = "utils" }

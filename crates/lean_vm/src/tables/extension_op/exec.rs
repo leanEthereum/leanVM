@@ -6,7 +6,6 @@ use crate::RunnerError;
 use crate::TableTrace;
 use crate::tables::extension_op::{EXT_OP_FLAG_BE, EXT_OP_LEN_MULTIPLIER, ExtensionOp, air::*};
 use backend::*;
-use utils::ToUsize;
 
 fn compute_elem(v_a: EF, v_b: EF, op: ExtensionOp) -> EF {
     match op {

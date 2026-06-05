@@ -1,5 +1,5 @@
 use crate::{F, a_simplify_lang::post_optimization::propagate_copies, lang::*, parser::ConstArrayValue};
-use backend::PrimeCharacteristicRing;
+use backend::*;
 use lean_vm::{
     ALL_POSEIDON16_NAMES, Boolean, BooleanExpr, CustomHint, ExtensionOpMode, FunctionName,
     POSEIDON16_HARDCODED_LEFT_NAME, POSEIDON16_PERMUTE_HALF_HARDCODED_LEFT_NAME, POSEIDON16_PERMUTE_HALF_NAME,
@@ -10,7 +10,6 @@ use std::{
     collections::{BTreeMap, BTreeSet},
     fmt::{Display, Formatter},
 };
-use utils::{Counter, ToUsize};
 
 mod post_optimization;
 
