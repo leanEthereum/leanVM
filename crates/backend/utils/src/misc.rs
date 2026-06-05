@@ -1,7 +1,5 @@
 use std::sync::atomic::{AtomicPtr, Ordering};
 
-use backend::*;
-
 pub fn from_end<A>(slice: &[A], n: usize) -> &[A] {
     assert!(n <= slice.len());
     &slice[slice.len() - n..]
@@ -19,10 +17,6 @@ where
         let row: [&mut A; N] = unsafe { std::array::from_fn(|j| &mut *data_ptrs[j].load(Ordering::Relaxed).add(i)) };
         g(i, row);
     });
-}
-
-pub fn collect_refs<T>(vecs: &[Vec<T>]) -> Vec<&[T]> {
-    vecs.iter().map(Vec::as_slice).collect()
 }
 
 #[derive(Debug, Clone, Default)]

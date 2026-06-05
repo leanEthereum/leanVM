@@ -2,7 +2,6 @@ use crate::{F, instruction_encoder::field_representation, ir::*, lang::*};
 use backend::*;
 use lean_vm::*;
 use std::collections::BTreeMap;
-use utils::{ToUsize, poseidon_hash_slice};
 
 impl IntermediateInstruction {
     const fn is_hint(&self) -> bool {

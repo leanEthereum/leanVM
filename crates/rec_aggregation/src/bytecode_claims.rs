@@ -1,7 +1,6 @@
 use backend::*;
 use lean_prover::fiat_shamir_domain_sep;
 use lean_vm::*;
-use utils::get_poseidon16;
 
 use crate::compilation::BYTECODE_CLAIM_OFFSET;
 use crate::{InnerVerified, get_aggregation_bytecode};

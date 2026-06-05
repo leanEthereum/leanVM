@@ -1,10 +1,6 @@
-use std::any::TypeId;
-use std::collections::VecDeque;
-use std::iter::repeat_n;
-
+use crate::challenger::Challenger;
 use crate::{
     MerkleOpening, MerklePaths, PrunedMerklePaths, RawProof,
-    challenger::{CAPACITY, Challenger, RATE, WIDTH},
     transcript::{DIGEST_LEN_FE, Proof},
     *,
 };
@@ -12,6 +8,12 @@ use field::PrimeCharacteristicRing;
 use field::{ExtensionField, PrimeField64};
 use koala_bear::symmetric::Permutation;
 use koala_bear::{KoalaBear, default_koalabear_poseidon1_16};
+use std::any::TypeId;
+use std::collections::VecDeque;
+use std::iter::repeat_n;
+use symetric::CAPACITY;
+use symetric::RATE;
+use symetric::WIDTH;
 
 pub struct VerifierState<EF: ExtensionField<PF<EF>>, P> {
     challenger: Challenger<PF<EF>, P>,

@@ -1,11 +1,11 @@
-use backend::symmetric::Permutation;
-use backend::*;
 use std::sync::OnceLock;
 
-pub type Poseidon16 = Poseidon1KoalaBear16;
+use field::PrimeCharacteristicRing;
+use koala_bear::{KoalaBear, Poseidon1KoalaBear16, default_koalabear_poseidon1_16, symmetric::Permutation};
 
-pub const HALF_FULL_ROUNDS_16: usize = POSEIDON1_HALF_FULL_ROUNDS;
-pub const PARTIAL_ROUNDS_16: usize = POSEIDON1_PARTIAL_ROUNDS;
+use crate::{CAPACITY, Compression, DIGEST_ELEMS, RATE, WIDTH};
+
+pub type Poseidon16 = Poseidon1KoalaBear16;
 
 static POSEIDON_16_INSTANCE: OnceLock<Poseidon16> = OnceLock::new();
 static POSEIDON_16_OF_ZERO: OnceLock<[KoalaBear; 8]> = OnceLock::new();

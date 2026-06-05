@@ -2,7 +2,6 @@ use backend::*;
 use lean_vm::*;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::{Display, Formatter};
-use utils::ToUsize;
 
 use crate::a_simplify_lang::VarOrConstMallocAccess;
 use crate::{F, parser::ConstArrayValue};

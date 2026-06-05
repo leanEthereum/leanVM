@@ -10,9 +10,6 @@ use rand::{RngExt, SeedableRng, rngs::StdRng};
 use sub_protocols::{
     AirSumcheckSession, OuterSumcheckSession, natural_ordering_point_for_session, prove_batched_air_sumcheck,
 };
-use utils::{get_poseidon16, padd_with_zero_to_next_power_of_two};
-
-const WIDTH: usize = 16;
 const HALF_DIGEST_LEN: usize = 4;
 
 #[test]

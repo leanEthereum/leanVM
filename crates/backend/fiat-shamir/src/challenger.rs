@@ -1,9 +1,6 @@
 use field::PrimeField64;
 use koala_bear::symmetric::Permutation;
-
-pub const RATE: usize = 8;
-pub const WIDTH: usize = RATE * 2;
-pub const CAPACITY: usize = WIDTH - RATE;
+use symetric::{CAPACITY, RATE, WIDTH};
 
 #[derive(Clone, Debug)]
 pub struct Challenger<F, P> {

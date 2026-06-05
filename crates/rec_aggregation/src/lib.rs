@@ -6,7 +6,7 @@ mod error;
 mod multi_message_aggregation;
 mod single_message_aggregation;
 
-use backend::{Evaluation, Proof, ProofError, RawProof};
+use backend::{Evaluation, Proof, ProofError, RawProof, poseidon_hash_slice};
 pub use compilation::{
     MAX_RECURSIONS, MAX_XMSS_AGGREGATED, MAX_XMSS_DUPLICATES, NUM_REPEATED_ONES, PREAMBLE_MEMORY_LEN, ZERO_VEC_LEN,
     get_aggregation_bytecode, init_aggregation_bytecode,
@@ -23,7 +23,6 @@ pub use single_message_aggregation::{
     SingleMessageAggregateSignature, SingleMessageInfo, aggregate_single_msg_signatures,
     verify_single_message_aggregate,
 };
-use utils::poseidon_hash_slice;
 
 #[allow(missing_debug_implementations)]
 pub struct InnerVerified {

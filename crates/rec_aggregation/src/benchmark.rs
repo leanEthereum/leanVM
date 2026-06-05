@@ -1,9 +1,9 @@
+use backend::ansi as s;
 use backend::*;
 use lean_vm::*;
 use serde::{Deserialize, Serialize};
 use std::io::{self, Write};
 use std::time::Instant;
-use utils::ansi as s;
 use xmss::signers_cache::{BENCHMARK_SLOT, get_benchmark_signatures, message_for_benchmark};
 use xmss::{XmssPublicKey, XmssSignature};
 
@@ -387,7 +387,7 @@ fn build_aggregation(
     }
 
     if tracing && is_root {
-        utils::init_tracing();
+        init_tracing();
     }
 
     assert!(repeat > 0);

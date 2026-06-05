@@ -1,17 +1,5 @@
-"""Pure-Python verifier for leanVM proofs.
-Setup the test vector (one-time):
-    cargo test --release --package lean_prover --lib -- test_zkvm::dump_test_vector_for_python_verifier --include-ignored
-Run:
-    python3 crates/lean_prover/python-verifier/verifier.py
-Format:
-    ruff format --line-length 150 crates/lean_prover/python-verifier
-"""
-
 from __future__ import annotations
-import array
-import json
 import math
-import sys
 from dataclasses import dataclass
 from enum import IntEnum
 from pathlib import Path
@@ -884,7 +872,7 @@ def verify_execution(
         initial_sum += alpha_powers[offset] * (precompile_nums[table.name] * table.precompile_bus_interaction_sign)
         initial_sum += alpha_powers[offset + 1] * (logup_gamma - precompile_dens[table.name])
         offset += table.n_constraints
-    
+
     # 3] verify batched AIR sumcheck
     sc_point, sc_value = verify_sumcheck(fiat_shamir, initial_sum, n_max, max(t.air_degree + 1 for t in TABLES))
 
@@ -940,28 +928,3 @@ def verify_execution(
 
     assert fiat_shamir.offset == len(fiat_shamir.transcript), f"transcript not fully consumed ({fiat_shamir.offset}/{len(fiat_shamir.transcript)})"
     assert not fiat_shamir.openings, f"{len(fiat_shamir.openings)} Merkle openings unused"
-
-
-if __name__ == "__main__":
-    vector_path = Path(__file__).resolve().parents[3] / "target" / "zkvm_test_vectors" / "proof.json"
-    assert vector_path.exists(), f"Test vector not found at {vector_path}. Please follow the instructions at the beginning of verifier.py file."
-
-    print(f"Loading {vector_path.name}...")
-    raw = json.loads(vector_path.read_text())
-    print("... done")
-
-    arr = array.array("I")
-    arr.frombytes((vector_path.parent / raw["bytecode_multilinear_path"]).read_bytes())
-    bytecode_multilinear: list[int] = list(arr)
-
-    fp_list = lambda xs: [Fp(v) for v in xs]
-    public_input = fp_list(raw["public_input"])
-    proof = Proof(
-        transcript=fp_list(raw["proof"]["transcript"]),
-        merkle_openings=[
-            MerkleOpening(leaf_data=fp_list(o["leaf_data"]), path=[fp_list(d) for d in o["path"]]) for o in raw["proof"]["merkle_openings"]
-        ],
-    )
-
-    verify_execution(bytecode_multilinear, public_input, proof)
-    print("Proof successfully verified")

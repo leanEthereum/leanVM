@@ -4,7 +4,7 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
-utils = { path = "../utils", package = "mt-utils" }
+utils = { path = "../utils", package = "utils" }
 
 itertools.workspace = true
 num-bigint = "*"
