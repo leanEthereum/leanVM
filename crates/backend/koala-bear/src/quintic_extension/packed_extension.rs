@@ -48,7 +48,7 @@ impl<F: Field, PF: PackedField<Scalar = F>> From<QuinticExtensionField<F>> for P
     #[inline]
     fn from(x: QuinticExtensionField<F>) -> Self {
         Self {
-            value: x.value.map(Into::into),
+            value: array::from_fn(|i| x.value[i].into()),
         }
     }
 }
@@ -117,10 +117,11 @@ macro_rules! impl_packed_ext_scalar_ops {
         impl Mul<KoalaBear> for PackedQuinticExtensionField<KoalaBear, $pf> {
             type Output = Self;
             #[inline]
-            fn mul(self, rhs: KoalaBear) -> Self {
-                Self {
-                    value: self.value.map(|x| x * rhs),
+            fn mul(mut self, rhs: KoalaBear) -> Self {
+                for v in &mut self.value {
+                    *v *= rhs;
                 }
+                self
             }
         }
 
@@ -281,10 +282,12 @@ where
     type Output = Self;
 
     #[inline]
-    fn neg(self) -> Self {
-        Self {
-            value: self.value.map(PF::neg),
+    fn neg(mut self) -> Self {
+        // Loop, not `self.value.map(..)`: avoids a thin-LTO de-inlined `Wrapped` closure.
+        for v in &mut self.value {
+            *v = -*v;
         }
+        self
     }
 }
 
@@ -478,7 +481,7 @@ where
 
     #[inline(always)]
     fn mul(self, rhs: QuinticExtensionField<F>) -> Self {
-        let b: [PF; 5] = rhs.value.map(|x| x.into());
+        let b: [PF; 5] = array::from_fn(|i| rhs.value[i].into());
         Self {
             value: super::extension::quintic_mul(&self.value, &b, PF::dot_product::<5>),
         }
@@ -493,10 +496,11 @@ where
     type Output = Self;
 
     #[inline]
-    fn mul(self, rhs: PF) -> Self {
-        Self {
-            value: self.value.map(|x| x * rhs),
+    fn mul(mut self, rhs: PF) -> Self {
+        for v in &mut self.value {
+            *v *= rhs;
         }
+        self
     }
 }
 
