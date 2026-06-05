@@ -36,8 +36,8 @@ cargo run --release -- xmss --n-signatures 1550 --log-inv-rate 1
 
 | WHIR rate | Proven Regime         | Proximity Gaps Conjecture |
 | --------- | --------------------- | ------------------------- |
-| 1/2       | 1319 XMSS/s - 338 KiB | 1345 XMSS/s - 176 KiB     |
-| 1/4       | 961 XMSS/s - 228 KiB  | 969 XMSS/s - 126 KiB      |
+| 1/2       | 1453 XMSS/s - 344 KiB | 1500 XMSS/s - 178 KiB     |
+| 1/4       | 1058 XMSS/s - 229 KiB | 1065 XMSS/s - 127 KiB     |
 
 
 (Proving throughput - proof size)
@@ -54,15 +54,14 @@ cargo run --release -- recursion --n 2 --log-inv-rate 2
 
 | n   | WHIR rate | Proven Regime               | Proximity Gaps Conjecture   |
 | --- | --------- | --------------------------- | --------------------------- |
-| 1   | 1/2       | 0.39s = 1 x 0.39s - 278 KiB | 0.24s = 1 x 0.24s - 147 KiB |
-| 1   | 1/4       | 0.32s = 1 x 0.32s - 188 KiB | 0.27s = 1 x 0.27s - 100 KiB |
-| 2   | 1/2       | 0.7s = 2 x 0.35s - 293 KiB  | 0.43s = 2 x 0.21s - 157 KiB |
-| 2   | 1/4       | 0.56s = 2 x 0.28s - 194 KiB | 0.43s = 2 x 0.22s - 102 KiB |
-| 3   | 1/2       | 0.85s = 3 x 0.28s - 312 KiB | 0.63s = 3 x 0.21s - 150 KiB |
-| 3   | 1/4       | 0.94s = 3 x 0.31s - 203 KiB | 0.73s = 3 x 0.24s - 108 KiB |
-| 4   | 1/2       | 1.27s = 4 x 0.32s - 308 KiB | 0.78s = 4 x 0.2s - 166 KiB  |
-| 4   | 1/4       | 1.02s = 4 x 0.26s - 206 KiB | 0.79s = 4 x 0.2s - 108 KiB  |
-
+| 1   | 1/2       | 0.22s = 1 x 0.22s - 285 KiB | 0.15s = 1 x 0.15s - 143 KiB |
+| 1   | 1/4       | 0.24s = 1 x 0.24s - 189 KiB | 0.18s = 1 x 0.18s - 98 KiB  |
+| 2   | 1/2       | 0.52s = 2 x 0.26s - 282 KiB | 0.33s = 2 x 0.16s - 159 KiB |
+| 2   | 1/4       | 0.45s = 2 x 0.23s - 198 KiB | 0.33s = 2 x 0.16s - 102 KiB |
+| 3   | 1/2       | 0.7s = 3 x 0.23s - 317 KiB  | 0.47s = 3 x 0.16s - 151 KiB |
+| 3   | 1/4       | 0.67s = 3 x 0.22s - 191 KiB | 0.43s = 3 x 0.14s - 111 KiB |
+| 4   | 1/2       | 1.02s = 4 x 0.26s - 309 KiB | 0.61s = 4 x 0.15s - 168 KiB |
+| 4   | 1/4       | 0.85s = 4 x 0.21s - 208 KiB | 0.62s = 4 x 0.15s - 109 KiB |
 
 
 (time for n->1 recursive aggregation - proof size)
