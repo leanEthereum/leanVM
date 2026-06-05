@@ -593,16 +593,26 @@ where
             for (e, &scalar) in smt.values.iter().zip(&next_gamma_powers) {
                 combined_sum += e.value * scalar;
             }
-            for (out_buff, &(origin_index, _)) in chunks_mut.iter_mut().zip(&indexed_smt_values) {
-                let out = &mut out_buff[..1 << shift];
-                let scalar = next_gamma_powers[origin_index];
-                parallel::par_for_each_mut(out, |i, out_elem| {
-                    *out_elem += inner_poly[i] * scalar;
-                });
-            }
+            let n = 1usize << shift;
+            let mask = n - 1;
+            let ptrs: Vec<(parallel::SendPtr<EFPacking<EF>>, EF)> = chunks_mut
+                .iter_mut()
+                .zip(&indexed_smt_values)
+                .map(|(out_buff, &(origin_index, _))| {
+                    (
+                        parallel::SendPtr(out_buff.as_mut_ptr()),
+                        next_gamma_powers[origin_index],
+                    )
+                })
+                .collect();
+            let inner = inner_poly.as_slice();
+            parallel::for_each_index(ptrs.len() << shift, |flat| {
+                let (ptr, scalar) = &ptrs[flat >> shift];
+                let i = flat & mask;
+                unsafe { *ptr.add(i) += inner[i] * *scalar };
+            });
             gamma_pow = *next_gamma_powers.last().unwrap() * gamma;
         }
     }
-
     (combined_weights, combined_sum)
 }
