@@ -247,8 +247,19 @@ pub struct ProverAlloc;
 // SAFETY: `allocate` hands out either a system pointer or a per-thread arena pointer
 // (valid for the requested size, aligned, non-overlapping); `deallocate` only frees
 // system pointers and treats arena pointers as no-ops, exactly as `GlobalAlloc` above.
-// A returned arena pointer is invalidated by the next `begin_phase()` — the same
-// "clone outputs before the next phase" contract the arena already documents.
+//
+// DEVIATION FROM THE `Allocator` CONTRACT (load-bearing — do not rely on the formal one):
+// `allocator_api2` requires a returned block to stay valid until it is explicitly
+// deallocated or the allocator (and all its clones) is dropped. `ProverAlloc` does NOT
+// satisfy this: it is a `Copy` ZST aliasing the process-global arena, so it is never
+// "dropped" in a way that releases blocks, yet `begin_phase()` invalidates every
+// outstanding arena pointer wholesale (in place) while the `Vec<T, ProverAlloc>` holding
+// it is still alive. This is intentional — it is the entire point of a bump-reset arena —
+// and is sound ONLY under the unenforced "clone outputs before the next `begin_phase()`"
+// discipline: any buffer that must outlive its phase must be copied into the system
+// allocator first (the type system cannot catch a violation). Do not "fix" this by giving
+// the arena per-block lifetimes; the no-op `deallocate` is shared with `ZkAllocator`'s
+// `GlobalAlloc` path and is what makes the arena fast.
 unsafe impl Allocator for ProverAlloc {
     #[inline]
     fn allocate(&self, layout: Layout) -> Result<NonNull<[u8]>, AllocError> {

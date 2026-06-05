@@ -3,8 +3,6 @@ use crate::{EFPacking, PF};
 use ::utils::log2_ceil_usize;
 use field::{ExtensionField, Field, PrimeCharacteristicRing};
 use itertools::Itertools;
-use std::borrow::Borrow;
-
 pub trait EvaluationsList<F: Field> {
     fn num_variables(&self) -> usize;
     fn num_evals(&self) -> usize;
@@ -14,30 +12,30 @@ pub trait EvaluationsList<F: Field> {
     fn evaluate_sparse<EF: ExtensionField<F>>(&self, selector: usize, point: &MultilinearPoint<EF>) -> EF;
 }
 
-impl<F: Field, EL: Borrow<[F]>> EvaluationsList<F> for EL {
+impl<F: Field, EL: AsRef<[F]>> EvaluationsList<F> for EL {
     fn num_variables(&self) -> usize {
-        self.borrow().len().ilog2() as usize
+        self.as_ref().len().ilog2() as usize
     }
 
     fn num_evals(&self) -> usize {
-        self.borrow().len()
+        self.as_ref().len()
     }
 
     fn evaluate<EF: ExtensionField<F>>(&self, point: &MultilinearPoint<EF>) -> EF {
-        eval_multilinear::<_, _, true>(self.borrow(), point)
+        eval_multilinear::<_, _, true>(self.as_ref(), point)
     }
 
     fn evaluate_sequential<EF: ExtensionField<F>>(&self, point: &MultilinearPoint<EF>) -> EF {
-        eval_multilinear::<_, _, false>(self.borrow(), point)
+        eval_multilinear::<_, _, false>(self.as_ref(), point)
     }
 
     fn as_constant(&self) -> F {
-        assert_eq!(self.borrow().len(), 1);
-        self.borrow()[0]
+        assert_eq!(self.as_ref().len(), 1);
+        self.as_ref()[0]
     }
 
     fn evaluate_sparse<EF: ExtensionField<F>>(&self, selector: usize, point: &MultilinearPoint<EF>) -> EF {
-        (&self.borrow()[selector << point.len()..][..(1 << point.len())]).evaluate(point)
+        (&self.as_ref()[selector << point.len()..][..(1 << point.len())]).evaluate(point)
     }
 }
 

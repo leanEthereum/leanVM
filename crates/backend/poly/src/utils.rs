@@ -170,23 +170,8 @@ pub fn fold_multilinear_at_bit<
     })
 }
 
-/// Fold `m` at its top variable. `seq` forces sequential execution (see [`fold_fill`]).
-pub fn fold_multilinear<
-    EF: PrimeCharacteristicRing + Copy + Send + Sync,
-    IF: Copy + Sub<Output = IF> + Send + Sync,
-    OF: Copy + Add<IF, Output = OF> + Send + Sync,
-    F: Fn(IF, EF) -> OF + Sync + Send,
->(
-    m: &[IF],
-    alpha: EF,
-    mul_if_of: &F,
-    seq: bool,
-) -> Vec<OF> {
-    let new_size = m.len() / 2;
-    fold_fill(new_size, seq, |i| mul_if_of(m[i + new_size] - m[i], alpha) + m[i])
-}
-
-/// Arena-allocated [`fold_multilinear`], for folded buffers stored in [`MleOwned`](crate::MleOwned).
+/// Fold `m` at its top variable into an arena buffer, for folded data stored in
+/// [`MleOwned`](crate::MleOwned). `seq` forces sequential execution (see [`fold_fill`]).
 pub fn fold_multilinear_in<
     EF: PrimeCharacteristicRing + Copy + Send + Sync,
     IF: Copy + Sub<Output = IF> + Send + Sync,
