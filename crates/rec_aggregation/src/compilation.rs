@@ -600,7 +600,7 @@ fn eval_air_constraint(
                 ctx.expr_cache.insert(idx, v.clone());
                 return v;
             } else {
-                let node = get_node::<F>(idx);
+                let node = unsafe { get_node::<F>(idx) };
                 let v = match node.op {
                     SymbolicOperation::Neg => {
                         let a = eval_air_constraint(node.lhs, None, ctx, res);
@@ -637,7 +637,7 @@ fn try_emit_dot_product_be(idx: u32, dest: Option<&str>, ctx: &mut AirCodegenCtx
                 if op_idx != idx && ctx.expr_cache.contains_key(&op_idx) {
                     return None;
                 }
-                let node = get_node::<F>(op_idx);
+                let node = unsafe { get_node::<F>(op_idx) };
                 if node.op != SymbolicOperation::Add {
                     return None;
                 }
@@ -645,7 +645,7 @@ fn try_emit_dot_product_be(idx: u32, dest: Option<&str>, ctx: &mut AirCodegenCtx
                     SymbolicExpression::Operation(i) => i,
                     _ => return None,
                 };
-                let mul = get_node::<F>(mul_idx);
+                let mul = unsafe { get_node::<F>(mul_idx) };
                 if mul.op != SymbolicOperation::Mul {
                     return None;
                 }

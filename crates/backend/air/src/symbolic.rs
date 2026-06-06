@@ -92,9 +92,15 @@ fn alloc_node<F: Field>(node: SymbolicNode<F>) -> u32 {
     })
 }
 
-pub fn get_node<F: Field>(idx: u32) -> SymbolicNode<F> {
+/// # Safety
+/// `idx` must be an offset returned by `alloc_node::<F>` for the current (same `F`, uncleared) arena.
+pub unsafe fn get_node<F: Field>(idx: u32) -> SymbolicNode<F> {
     ARENA.with(|arena| {
         let bytes = arena.borrow();
+        assert!(
+            idx as usize + std::mem::size_of::<SymbolicNode<F>>() <= bytes.len(),
+            "arena index out of bounds"
+        );
         unsafe { std::ptr::read_unaligned(bytes.as_ptr().add(idx as usize) as *const SymbolicNode<F>) }
     })
 }
