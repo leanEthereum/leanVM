@@ -527,36 +527,29 @@ pub trait BasedVectorSpace<F: PrimeCharacteristicRing>: Sized {
     #[must_use]
     fn reconstitute_from_base(vec: Vec<F>) -> Vec<Self>;
 
-    /// Allocator-preserving [`flatten_to_base`](Self::flatten_to_base), for buffers backed by an
-    /// `allocator_api2` allocator (e.g. the proving arena) instead of the global one. Defaults to
-    /// the same layout reinterpret; override it alongside `flatten_to_base` for any representation
-    /// that isn't `repr(transparent)` as `[F; DIMENSION]`.
+    /// [`flatten_to_base`](Self::flatten_to_base) for `ArenaVec` proof buffers. Defaults to a layout
+    /// reinterpret; override alongside `flatten_to_base` if `Self` isn't `[F; DIMENSION]`.
     ///
     /// # Safety
     /// Same basis-portability caveat as [`flatten_to_base`](Self::flatten_to_base).
     #[must_use]
-    fn flatten_to_base_in<A: allocator_api2::alloc::Allocator + Clone>(
-        vec: allocator_api2::vec::Vec<Self, A>,
-    ) -> allocator_api2::vec::Vec<F, A> {
-        // SAFETY: `Self` is laid out as `[F; DIMENSION]` (the `flatten_to_base` contract); the
-        // `const` size/align asserts inside `flatten_to_base_in` reject any incompatible type.
-        unsafe { utils::flatten_to_base_in::<F, Self, A>(vec) }
+    fn flatten_to_base_in(vec: zk_alloc::ArenaVec<Self>) -> zk_alloc::ArenaVec<F> {
+        // SAFETY: `Self` is `[F; DIMENSION]` (the `flatten_to_base` contract); the const asserts reject mismatches.
+        unsafe { utils::flatten_to_base_in::<F, Self>(vec) }
     }
 
-    /// Allocator-preserving [`reconstitute_from_base`](Self::reconstitute_from_base) (see
+    /// [`reconstitute_from_base`](Self::reconstitute_from_base) for `ArenaVec` proof buffers (see
     /// [`flatten_to_base_in`](Self::flatten_to_base_in)).
     ///
     /// # Safety
     /// Same basis-portability caveat as [`reconstitute_from_base`](Self::reconstitute_from_base).
     #[must_use]
-    fn reconstitute_from_base_in<A: allocator_api2::alloc::Allocator + Clone>(
-        vec: allocator_api2::vec::Vec<F, A>,
-    ) -> allocator_api2::vec::Vec<Self, A>
+    fn reconstitute_from_base_in(vec: zk_alloc::ArenaVec<F>) -> zk_alloc::ArenaVec<Self>
     where
         Self: Clone,
     {
         // SAFETY: as above.
-        unsafe { utils::reconstitute_from_base_in::<F, Self, A>(vec) }
+        unsafe { utils::reconstitute_from_base_in::<F, Self>(vec) }
     }
 }
 

@@ -6,7 +6,6 @@ description = "Minimal fixed-size thread pool for static data-parallel kernels"
 
 [dependencies]
 system-info.workspace = true
-allocator-api2.workspace = true
 
 [lints]
 workspace = true

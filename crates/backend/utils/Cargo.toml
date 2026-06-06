@@ -5,7 +5,7 @@ edition.workspace = true
 
 [dependencies]
 serde.workspace = true
-allocator-api2.workspace = true
+zk-alloc.workspace = true
 tracing-forest.workspace = true
 tracing-subscriber.workspace = true
 tracing.workspace = true

@@ -92,8 +92,7 @@ pub fn get_execution_trace(
         *trace_row[EXEC_COL_ADDR_C] = addr_c;
     });
 
-    let mut memory_padded: ArenaVec<F> =
-        parallel::par_map_collect_in(memory.0.len(), ProverAlloc, |i| memory.0[i].unwrap_or(F::ZERO));
+    let mut memory_padded: ArenaVec<F> = arena_par_collect(memory.0.len(), |i| memory.0[i].unwrap_or(F::ZERO));
 
     // Write [0000000000000000 | poseidon_compress(0000000000000000)] (to make lookups work on padding-rows).
     let padding_zero_vec_ptr = memory_padded.len();

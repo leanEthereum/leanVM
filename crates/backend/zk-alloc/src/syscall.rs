@@ -1,163 +1,50 @@
-// Raw syscalls instead of libc wrappers to avoid reentrancy: libc's mmap/madvise
-// may internally call malloc, which would deadlock when called from inside
-// #[global_allocator].
+//! Anonymous `mmap` + `madvise` via `libc`.
+//!
+//! (Raw inline-asm syscalls when zk-alloc was a `#[global_allocator]`, to avoid `libc` re-entering
+//! `malloc`. It no longer is, so `libc` is safe: its internal allocations hit the system allocator,
+//! not this arena.)
 
-#[cfg(all(target_os = "linux", target_arch = "x86_64"))]
-mod imp {
-    use std::ptr;
+use std::ptr;
 
-    const SYS_MMAP: usize = 9;
-    const SYS_MADVISE: usize = 28;
+/// `madvise` advice: disable transparent huge pages for the region. Consulted only on Linux
+/// (a no-op elsewhere); see [`madvise`].
+pub const MADV_NOHUGEPAGE: usize = 15;
 
-    const PROT_READ: usize = 1;
-    const PROT_WRITE: usize = 2;
-    const MAP_PRIVATE: usize = 0x02;
-    const MAP_ANONYMOUS: usize = 0x20;
-    const MAP_NORESERVE: usize = 0x4000;
-
-    pub const MADV_NOHUGEPAGE: usize = 15;
-
-    #[inline]
-    unsafe fn syscall6(nr: usize, a1: usize, a2: usize, a3: usize, a4: usize, a5: usize, a6: usize) -> isize {
-        let ret: isize;
-        unsafe {
-            std::arch::asm!(
-                "syscall",
-                inlateout("rax") nr as isize => ret,
-                in("rdi") a1,
-                in("rsi") a2,
-                in("rdx") a3,
-                in("r10") a4,
-                in("r8") a5,
-                in("r9") a6,
-                lateout("rcx") _,
-                lateout("r11") _,
-                options(nostack),
-            );
-        }
-        ret
-    }
-
-    #[inline]
-    unsafe fn syscall3(nr: usize, a1: usize, a2: usize, a3: usize) -> isize {
-        let ret: isize;
-        unsafe {
-            std::arch::asm!(
-                "syscall",
-                inlateout("rax") nr as isize => ret,
-                in("rdi") a1,
-                in("rsi") a2,
-                in("rdx") a3,
-                lateout("rcx") _,
-                lateout("r11") _,
-                lateout("r10") _,
-                options(nostack),
-            );
-        }
-        ret
-    }
-
-    #[inline]
-    pub unsafe fn mmap_anonymous(size: usize) -> *mut u8 {
-        let flags = MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE;
-        let ret = unsafe { syscall6(SYS_MMAP, 0, size, PROT_READ | PROT_WRITE, flags, usize::MAX, 0) };
-        if ret < 0 { ptr::null_mut() } else { ret as *mut u8 }
-    }
-
-    #[inline]
-    pub unsafe fn madvise(ptr: *mut u8, size: usize, advice: usize) {
-        unsafe { syscall3(SYS_MADVISE, ptr as usize, size, advice) };
+/// Reserve `size` bytes of anonymous virtual address space, lazily backed by physical pages.
+///
+/// # Safety
+/// Always safe to call; returns a page-aligned pointer or null on failure, and the caller owns the
+/// resulting mapping.
+#[inline]
+pub unsafe fn mmap_anonymous(size: usize) -> *mut u8 {
+    let flags = libc::MAP_PRIVATE | libc::MAP_ANON;
+    // MAP_NORESERVE (Linux) keeps the huge sparse reservation from committing swap up front; macOS
+    // backs anonymous mappings lazily without it.
+    #[cfg(target_os = "linux")]
+    let flags = flags | libc::MAP_NORESERVE;
+    // SAFETY: a null `addr` lets the kernel pick the placement; `fd` is -1 for an anonymous map.
+    let ret = unsafe { libc::mmap(ptr::null_mut(), size, libc::PROT_READ | libc::PROT_WRITE, flags, -1, 0) };
+    if ret == libc::MAP_FAILED {
+        ptr::null_mut()
+    } else {
+        ret.cast::<u8>()
     }
 }
 
-#[cfg(all(target_os = "linux", target_arch = "aarch64"))]
-mod imp {
-    use std::ptr;
-
-    const SYS_MMAP: usize = 222;
-    const SYS_MADVISE: usize = 233;
-
-    const PROT_READ: usize = 1;
-    const PROT_WRITE: usize = 2;
-    const MAP_PRIVATE: usize = 0x02;
-    const MAP_ANONYMOUS: usize = 0x20;
-    const MAP_NORESERVE: usize = 0x4000;
-
-    pub const MADV_NOHUGEPAGE: usize = 15;
-
-    #[inline]
-    unsafe fn syscall6(nr: usize, a1: usize, a2: usize, a3: usize, a4: usize, a5: usize, a6: usize) -> isize {
-        let ret: isize;
-        unsafe {
-            std::arch::asm!(
-                "svc 0",
-                in("x8") nr,
-                inlateout("x0") a1 as isize => ret,
-                in("x1") a2,
-                in("x2") a3,
-                in("x3") a4,
-                in("x4") a5,
-                in("x5") a6,
-                options(nostack),
-            );
-        }
-        ret
+/// Apply `advice` to `[ptr, ptr + size)`. No-op on non-Linux (the advice values we use are
+/// Linux-specific).
+///
+/// # Safety
+/// `ptr`/`size` must describe a live mapping returned by [`mmap_anonymous`].
+#[inline]
+pub unsafe fn madvise(ptr: *mut u8, size: usize, advice: usize) {
+    #[cfg(target_os = "linux")]
+    unsafe {
+        // SAFETY: the caller guarantees `[ptr, ptr + size)` is a live mapping.
+        libc::madvise(ptr.cast::<libc::c_void>(), size, advice as libc::c_int);
     }
-
-    #[inline]
-    unsafe fn syscall3(nr: usize, a1: usize, a2: usize, a3: usize) -> isize {
-        let ret: isize;
-        unsafe {
-            std::arch::asm!(
-                "svc 0",
-                in("x8") nr,
-                inlateout("x0") a1 as isize => ret,
-                in("x1") a2,
-                in("x2") a3,
-                options(nostack),
-            );
-        }
-        ret
-    }
-
-    #[inline]
-    pub unsafe fn mmap_anonymous(size: usize) -> *mut u8 {
-        let flags = MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE;
-        let ret = unsafe { syscall6(SYS_MMAP, 0, size, PROT_READ | PROT_WRITE, flags, usize::MAX, 0) };
-        if ret < 0 { ptr::null_mut() } else { ret as *mut u8 }
-    }
-
-    #[inline]
-    pub unsafe fn madvise(ptr: *mut u8, size: usize, advice: usize) {
-        unsafe { syscall3(SYS_MADVISE, ptr as usize, size, advice) };
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = (ptr, size, advice);
     }
 }
-
-#[cfg(not(all(target_os = "linux", any(target_arch = "x86_64", target_arch = "aarch64"))))]
-mod imp {
-    use std::ptr;
-
-    pub const MADV_NOHUGEPAGE: usize = 15;
-
-    #[inline]
-    pub unsafe fn mmap_anonymous(size: usize) -> *mut u8 {
-        // MAP_NORESERVE is Linux-only. macOS lazily backs anonymous mappings
-        // with physical memory by default, so the large virtual reservation
-        // is fine without NORESERVE.
-        let prot = libc::PROT_READ | libc::PROT_WRITE;
-        let flags = libc::MAP_PRIVATE | libc::MAP_ANON;
-        let ret = unsafe { libc::mmap(ptr::null_mut(), size, prot, flags, -1, 0) };
-        if ret == libc::MAP_FAILED {
-            ptr::null_mut()
-        } else {
-            ret.cast::<u8>()
-        }
-    }
-
-    #[inline]
-    pub unsafe fn madvise(_ptr: *mut u8, _size: usize, _advice: usize) {
-        // The advice values we pass are Linux-specific.
-    }
-}
-
-pub use imp::{MADV_NOHUGEPAGE, madvise, mmap_anonymous};

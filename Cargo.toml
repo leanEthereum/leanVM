@@ -66,7 +66,6 @@ parallel = { path = "crates/backend/parallel" }
 zk-alloc = { path = "crates/backend/zk-alloc" }
 
 # External
-allocator-api2 = "0.2"
 sha3 = "0.11.0"
 clap = { version = "4.5.59", features = ["derive"] }
 rand = "0.10.0"
@@ -101,3 +100,4 @@ system-info.workspace = true
 
 [profile.release]
 lto = "thin"
+codegen-units = 1

@@ -30,8 +30,7 @@ pub(crate) fn merkle_commit<F: Field, EF: ExtensionField<F>>(
     effective_n_cols: usize,
 ) -> ([F; DIGEST_ELEMS], RoundMerkleTree<F>) {
     if TypeId::of::<(F, EF)>() == TypeId::of::<(KoalaBear, QuinticExtensionFieldKB)>() {
-        // Transmute carries the arena storage type unchanged (EF == QuinticExtensionFieldKB here),
-        // so `Drop` still deallocates through `ProverAlloc`, not the global allocator.
+        // EF == QuinticExtensionFieldKB here, so `ArenaVec`'s storage type (and its range-checked `Drop`) is unchanged.
         let matrix = unsafe {
             std::mem::transmute::<_, Matrix<QuinticExtensionFieldKB, ArenaVec<QuinticExtensionFieldKB>>>(matrix)
         };

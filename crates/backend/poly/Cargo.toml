@@ -9,7 +9,6 @@ utils = { path = "../utils", package = "utils" }
 system-info.workspace = true
 parallel.workspace = true
 zk-alloc.workspace = true
-allocator-api2.workspace = true
 
 tracing.workspace = true
 itertools.workspace = true

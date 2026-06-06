@@ -1,9 +1,6 @@
 use clap::Parser;
 use rec_aggregation::benchmark::{AggregationTopology, biggest_leaf, run_aggregation_benchmark};
 
-#[global_allocator]
-static ALLOC: zk_alloc::ZkAllocator = zk_alloc::ZkAllocator;
-
 #[derive(Parser)]
 enum Cli {
     #[command(about = "Aggregate XMSS")]

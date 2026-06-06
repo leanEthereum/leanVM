@@ -23,19 +23,9 @@ pub fn setup_verifier() {
     rec_aggregation::init_aggregation_bytecode();
 }
 
-/// Bump-arena allocator.
+/// Explicit bump-arena allocator (never a `#[global_allocator]`).
 ///
-/// Opt in once at startup with [`enable_arena`] (until then phases are inert and everything
-/// uses the system allocator), then bracket each proving call with [`begin_phase`] /
-/// [`end_phase`] and **clone the outputs after [`end_phase`]** so the copy lands in the system
-/// allocator before the next [`begin_phase`] resets the arena slabs. Two ways to route proof
-/// data through it:
-///
-/// - **Global:** set [`ZkAllocator`] as the binary's `#[global_allocator]` — every allocation
-///   in a phase hits the arena. Simplest, but forces the process allocator on the whole binary.
-/// - **Explicit ([`ProverAlloc`]):** leave the global allocator alone and put proof data in
-///   `Vec<T, ProverAlloc>` / `Box<T, ProverAlloc>`. Only those containers use the arena, so a
-///   library can opt in without dictating its consumers' global allocator.
-///
-/// See `tests/test_zk_alloc.rs` for a runnable end-to-end example.
-pub use zk_alloc::{ProverAlloc, ZkAllocator, begin_phase, enable_arena, end_phase};
+/// [`enable_arena`] once, then bracket each proving call with [`begin_phase`] / [`end_phase`].
+/// `ArenaVec` buffers bump from the arena inside a phase and use the system allocator outside one;
+/// data that must outlive a phase needs the system allocator, since [`begin_phase`] resets the arena.
+pub use zk_alloc::{begin_phase, enable_arena, end_phase};

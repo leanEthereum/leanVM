@@ -1,65 +1,55 @@
-//! Bump-pointer arena allocator.
+//! Bump-pointer arena allocator, used **explicitly** (never as a `#[global_allocator]`).
 //!
-//! One mmap region split into per-thread slabs. Allocation = increment a thread-local
-//! pointer; free = no-op. `begin_phase()` resets the arena: each thread's next
-//! allocation starts over at the beginning of its slab, overwriting the previous
-//! phase's data. Allocations that don't fit (too large, or beyond `MAX_THREADS`) fall
-//! back to the system allocator.
+//! One mmap region split into per-thread slabs: allocation bumps a thread-local pointer, free is a
+//! no-op, and `begin_phase()` resets every slab to its base (overwriting the previous phase).
+//! Allocations that don't fit (too large, or beyond `MAX_THREADS`) fall back to the system
+//! allocator. Proof data lives in [`ArenaVec<T>`], backed by `raw_alloc` / `raw_dealloc`; the latter
+//! picks arena-vs-system by pointer range, so `ArenaVec` needs no allocator type parameter.
 //!
 //! ```ignore
+//! enable_arena();                  // opt in once
 //! loop {
 //!     begin_phase();               // arena ON; slabs reset lazily
-//!     let res = heavy_work();      // fast increments
-//!     end_phase();                 // arena OFF; new allocations go to System
-//!     let copy = res.clone();      // detach from arena before next phase resets it
+//!     let res = heavy_work();      // ArenaVec buffers bump; everything else stays on System
+//!     end_phase();                 // arena OFF
+//!     let copy = res.to_vec();     // detach before the next reset
 //! }
 //! ```
 
 use std::alloc::{GlobalAlloc, Layout};
 use std::cell::Cell;
-use std::ptr::NonNull;
-use std::sync::Once;
+use std::sync::OnceLock;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
-use allocator_api2::alloc::{AllocError, Allocator};
 use system_info::NUM_THREADS;
 
+mod arena_vec;
 mod syscall;
+
+pub use arena_vec::ArenaVec;
 
 const SLAB_SIZE: usize = 8 << 30; // 8GB
 const SLACK: usize = 4; // SLACK absorbs the main thread and any non-rayon helpers.
 const MAX_THREADS: usize = NUM_THREADS + SLACK;
 const REGION_SIZE: usize = SLAB_SIZE * MAX_THREADS;
 
-#[derive(Debug)]
-pub struct ZkAllocator;
-
-/// Incremented by `begin_phase()`. Every thread caches the last value it saw in
-/// `ARENA_GEN`; when they differ, the thread resets its allocation cursor to the start
-/// of its slab on the next allocation. This is how a single store on the main thread
-/// "resets" every other thread's slab without any cross-thread synchronization.
+/// Incremented by `begin_phase()`. A thread whose cached `ARENA_GEN` differs resets its cursor to
+/// its slab base on the next allocation — so one store "resets" every thread's slab, lock-free.
 static GENERATION: AtomicUsize = AtomicUsize::new(0);
 
 /// Master switch for the arena. `true` (set by `begin_phase`) routes allocations
 /// through the arena; `false` (set by `end_phase`) routes them to the system allocator.
 static ARENA_ACTIVE: AtomicBool = AtomicBool::new(false);
 
-/// Process-wide opt-in. Until [`enable_arena`] is called, `begin_phase`/`end_phase` are
-/// no-ops and every allocation (global or [`ProverAlloc`]) goes to the system allocator.
-///
-/// The arena is a single-proving-at-a-time, process-global construct: a `begin_phase`
-/// resets every thread's slab, which is only safe when one proving owns the process.
-/// Gating activation behind an explicit opt-in keeps incidental `begin_phase` calls (e.g.
-/// a benchmark invoked from a multi-test process that never installed the arena) from
-/// silently hijacking and corrupting `ProverAlloc` buffers on other threads.
+/// Process-wide opt-in. Until [`enable_arena`], `begin_phase`/`end_phase` are no-ops and every
+/// [`ArenaVec`] uses the system allocator. Since `begin_phase` resets *every* thread's slab, it is only
+/// safe when one proving owns the process; gating it keeps a stray `begin_phase` (e.g. a benchmark
+/// reached from a concurrent test that never opted in) from corrupting other threads' buffers.
 static ARENA_ENGAGED: AtomicBool = AtomicBool::new(false);
 
-/// Base address of the mmap'd region, or `0` before `ensure_region` runs. Read on
-/// every `dealloc` to test whether a pointer belongs to us.
-static REGION_BASE: AtomicUsize = AtomicUsize::new(0);
-
-/// Synchronizes the one-time mmap so concurrent first-allocators don't race.
-static REGION_INIT: Once = Once::new();
+/// Base address of the mmap'd region, mapped once on first use (`None` until then). Read on every
+/// `dealloc` to test whether a pointer belongs to us; the one-time init also races-safely here.
+static REGION: OnceLock<usize> = OnceLock::new();
 
 /// Monotonic counter handed out to threads to pick their slab. `fetch_add`'d once per
 /// thread on its first arena allocation. Threads that get `idx >= MAX_THREADS` mark
@@ -86,7 +76,7 @@ thread_local! {
 
 /// Returns the base address of the mmap'd region, mapping it on the first call.
 fn ensure_region() -> usize {
-    REGION_INIT.call_once(|| {
+    *REGION.get_or_init(|| {
         // SAFETY: mmap_anonymous returns a page-aligned pointer or null. MAP_NORESERVE
         // means no physical memory is committed until pages are touched.
         let ptr = unsafe { syscall::mmap_anonymous(REGION_SIZE) };
@@ -94,16 +84,14 @@ fn ensure_region() -> usize {
             std::process::abort();
         }
         unsafe { syscall::madvise(ptr, REGION_SIZE, syscall::MADV_NOHUGEPAGE) };
-        REGION_BASE.store(ptr as usize, Ordering::Release);
-    });
-    REGION_BASE.load(Ordering::Acquire)
+        ptr as usize
+    })
 }
 
 /// Opt into the arena for this process. Call once at startup, before any `begin_phase()`,
-/// from a binary that owns the arena lifecycle (e.g. one that installs [`ZkAllocator`] as
-/// `#[global_allocator]`, or one that drives proving through [`ProverAlloc`] buffers and
-/// brackets it with `begin_phase`/`end_phase`). Until it is called, phases are inert and
-/// everything uses the system allocator — see [`ARENA_ENGAGED`].
+/// from a binary that owns the arena lifecycle (one proving at a time, driven through [`ArenaVec`]
+/// buffers bracketed by `begin_phase`/`end_phase`). Until it is called, phases are inert and
+/// every [`ArenaVec`] uses the system allocator — see [`ARENA_ENGAGED`].
 pub fn enable_arena() {
     ARENA_ENGAGED.store(true, Ordering::Release);
 }
@@ -164,15 +152,14 @@ unsafe fn arena_alloc_cold(size: usize, align: usize) -> *mut u8 {
     unsafe { std::alloc::System.alloc(Layout::from_size_align_unchecked(size, align)) }
 }
 
-/// Shared allocation core: an arena bump while a phase is active and this thread's slab
-/// is live, else a fallthrough to the system allocator. Used by both the process-wide
-/// [`ZkAllocator`] (`GlobalAlloc`) and the explicit [`ProverAlloc`] (`Allocator`).
+/// Allocation core for [`ArenaVec`]: an arena bump while a phase is active and this thread's slab
+/// is live, else a fallthrough to the system allocator.
 ///
 /// # Safety
 /// `align` is a power of two; the returned pointer is valid for `size` bytes (or null on
 /// system-allocator failure). Arena pointers stay valid until the next `begin_phase()`.
 #[inline(always)]
-unsafe fn raw_alloc(size: usize, align: usize) -> *mut u8 {
+pub(crate) unsafe fn raw_alloc(size: usize, align: usize) -> *mut u8 {
     if ARENA_ACTIVE.load(Ordering::Relaxed) {
         let generation = GENERATION.load(Ordering::Relaxed);
         if ARENA_GEN.get() == generation {
@@ -193,96 +180,18 @@ unsafe fn raw_alloc(size: usize, align: usize) -> *mut u8 {
 ///
 /// # Safety
 /// `ptr` came from [`raw_alloc`] with this `size`/`align`.
+//
+// SAFETY (allocation core): `raw_alloc` pointers come from our per-thread mmap'd region (valid,
+// aligned, non-overlapping) or from System; the cursor is thread-local, so no data race. Relaxed
+// ordering is sound — a stale read just costs one extra system-alloc before the next generation.
 #[inline(always)]
-unsafe fn raw_dealloc(ptr: *mut u8, size: usize, align: usize) {
+pub(crate) unsafe fn raw_dealloc(ptr: *mut u8, size: usize, align: usize) {
     let addr = ptr as usize;
-    let base = REGION_BASE.load(Ordering::Relaxed);
-    if base != 0 && addr >= base && addr < base + REGION_SIZE {
+    if REGION
+        .get()
+        .is_some_and(|&base| addr >= base && addr < base + REGION_SIZE)
+    {
         return; // arena-owned pointer — free is a no-op
     }
     unsafe { std::alloc::System.dealloc(ptr, Layout::from_size_align_unchecked(size, align)) };
-}
-
-// SAFETY: All pointers returned are either from our mmap'd region (valid, aligned,
-// non-overlapping per thread) or from System. The arena is thread-local so no data
-// races. Relaxed ordering on ARENA_ACTIVE/GENERATION is sound: worst case a thread
-// sees a stale value and does one extra system-alloc before picking up the new
-// generation on the next call.
-unsafe impl GlobalAlloc for ZkAllocator {
-    #[inline(always)]
-    unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        unsafe { raw_alloc(layout.size(), layout.align()) }
-    }
-
-    #[inline(always)]
-    unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
-        unsafe { raw_dealloc(ptr, layout.size(), layout.align()) };
-    }
-
-    #[inline(always)]
-    unsafe fn realloc(&self, ptr: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
-        if new_size <= layout.size() {
-            return ptr;
-        }
-        let new_ptr = unsafe { raw_alloc(new_size, layout.align()) };
-        if !new_ptr.is_null() {
-            unsafe { std::ptr::copy(ptr, new_ptr, layout.size()) };
-            unsafe { raw_dealloc(ptr, layout.size(), layout.align()) };
-        }
-        new_ptr
-    }
-}
-
-/// Explicit, `allocator_api2`-style handle onto the same arena as [`ZkAllocator`] —
-/// **without** requiring the arena to be the process `#[global_allocator]`.
-///
-/// Attach it to the containers that hold proof data (`Vec<T, ProverAlloc>`,
-/// `Box<T, ProverAlloc>`); every other allocation keeps the binary's own global
-/// allocator. Inside a [`begin_phase`]/[`end_phase`] window it bump-allocates from the
-/// arena; outside one it transparently uses the system allocator. Being a ZST it is
-/// `Copy`, so threading it through container constructors costs nothing.
-#[derive(Clone, Copy, Debug, Default)]
-pub struct ProverAlloc;
-
-// SAFETY: `allocate` hands out either a system pointer or a per-thread arena pointer
-// (valid for the requested size, aligned, non-overlapping); `deallocate` only frees
-// system pointers and treats arena pointers as no-ops, exactly as `GlobalAlloc` above.
-//
-// DEVIATION FROM THE `Allocator` CONTRACT (load-bearing — do not rely on the formal one):
-// `allocator_api2` requires a returned block to stay valid until it is explicitly
-// deallocated or the allocator (and all its clones) is dropped. `ProverAlloc` does NOT
-// satisfy this: it is a `Copy` ZST aliasing the process-global arena, so it is never
-// "dropped" in a way that releases blocks, yet `begin_phase()` invalidates every
-// outstanding arena pointer wholesale (in place) while the `Vec<T, ProverAlloc>` holding
-// it is still alive. This is intentional — it is the entire point of a bump-reset arena —
-// and is sound ONLY under the unenforced "clone outputs before the next `begin_phase()`"
-// discipline: any buffer that must outlive its phase must be copied into the system
-// allocator first (the type system cannot catch a violation). Do not "fix" this by giving
-// the arena per-block lifetimes; the no-op `deallocate` is shared with `ZkAllocator`'s
-// `GlobalAlloc` path and is what makes the arena fast.
-unsafe impl Allocator for ProverAlloc {
-    #[inline]
-    fn allocate(&self, layout: Layout) -> Result<NonNull<[u8]>, AllocError> {
-        let size = layout.size();
-        if size == 0 {
-            // allocator_api2 contract: a zero-sized request returns an aligned dangling
-            // pointer without touching any allocator. align is a non-zero power of two.
-            let dangling = unsafe { NonNull::new_unchecked(layout.align() as *mut u8) };
-            return Ok(NonNull::slice_from_raw_parts(dangling, 0));
-        }
-        // SAFETY: size > 0; align is a valid power of two from `layout`.
-        let ptr = unsafe { raw_alloc(size, layout.align()) };
-        NonNull::new(ptr)
-            .map(|nn| NonNull::slice_from_raw_parts(nn, size))
-            .ok_or(AllocError)
-    }
-
-    #[inline]
-    unsafe fn deallocate(&self, ptr: NonNull<u8>, layout: Layout) {
-        if layout.size() == 0 {
-            return; // never allocated (see `allocate`)
-        }
-        // SAFETY: `ptr`/`layout` come from a prior `allocate` on this allocator.
-        unsafe { raw_dealloc(ptr.as_ptr(), layout.size(), layout.align()) };
-    }
 }

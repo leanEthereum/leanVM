@@ -94,8 +94,8 @@ impl Trace {
         self.pending_deref_hints.extend(other.pending_deref_hints);
         for (table, other_t) in other.tables {
             let mine = self.tables.get_mut(&table).unwrap();
-            for (col, new_data) in mine.columns.iter_mut().zip(other_t.columns) {
-                col.extend(new_data);
+            for (col, new_data) in mine.columns.iter_mut().zip(&other_t.columns) {
+                col.extend_from_slice(new_data);
             }
         }
     }

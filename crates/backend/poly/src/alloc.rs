@@ -1,29 +1,23 @@
 //! Explicit arena allocation for proof buffers.
 //!
-//! [`ProverAlloc`] (re-exported from `zk-alloc`) is an `allocator_api2` allocator backed by
-//! the proving arena. Storing proof data in [`ArenaVec`] lets the arena be used without
-//! installing it as the process `#[global_allocator]`; outside a `begin_phase`/`end_phase`
-//! window it transparently falls back to the system allocator.
+//! [`ArenaVec`] is [`zk_alloc::ArenaVec`]: an owning vector that bumps from the proving arena inside a
+//! phase and falls back to the system allocator outside one. `Deref<Target = [T]>` lets it drop
+//! into slice-based APIs unchanged.
 
-use allocator_api2::vec::Vec as AllocVec;
-pub use zk_alloc::ProverAlloc;
-
-/// A `Vec` whose storage comes from the proving arena (or the system allocator when no
-/// phase is active). Derefs to `&[T]`, so slice-based APIs accept it unchanged.
-pub type ArenaVec<T> = AllocVec<T, ProverAlloc>;
+pub use zk_alloc::ArenaVec;
 
 /// Empty `ArenaVec`.
 #[inline]
 #[must_use]
 pub fn arena_vec<T>() -> ArenaVec<T> {
-    AllocVec::new_in(ProverAlloc)
+    ArenaVec::new()
 }
 
 /// `ArenaVec` with room for `cap` elements pre-reserved.
 #[inline]
 #[must_use]
 pub fn arena_with_capacity<T>(cap: usize) -> ArenaVec<T> {
-    AllocVec::with_capacity_in(cap, ProverAlloc)
+    ArenaVec::with_capacity(cap)
 }
 
 /// Arena-backed `vec![value; n]`.
@@ -64,5 +58,16 @@ pub unsafe fn uninitialized_arena_vec<T>(len: usize) -> ArenaVec<T> {
     let mut v = arena_with_capacity(len);
     // SAFETY: caller guarantees all `len` slots are written before being read.
     unsafe { v.set_len(len) };
+    v
+}
+
+/// Arena-backed parallel `(0..n).map(f).collect()`: fill an `ArenaVec` of length `n` in parallel.
+/// The single allocation happens on the calling thread; workers write disjoint slots.
+#[inline]
+#[must_use]
+pub fn arena_par_collect<T: Send, F: Fn(usize) -> T + Sync>(n: usize, f: F) -> ArenaVec<T> {
+    // SAFETY: `par_fill` writes every slot in `0..n` exactly once before any is read.
+    let mut v = unsafe { uninitialized_arena_vec(n) };
+    parallel::par_fill(&mut v, f);
     v
 }
