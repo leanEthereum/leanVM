@@ -145,7 +145,7 @@ pub struct TableTrace {
 impl TableTrace {
     pub fn new<A: TableT>(air: &A) -> Self {
         Self {
-            columns: (0..air.n_columns_total()).map(|_| arena_vec()).collect(),
+            columns: (0..air.n_columns_total()).map(|_| ArenaVec::new()).collect(),
             non_padded_n_rows: 0, // filled later
             log_n_rows: 0,        // filled later
         }

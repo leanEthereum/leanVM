@@ -6,25 +6,15 @@
 
 pub use zk_alloc::ArenaVec;
 
-/// Empty `ArenaVec`.
-#[inline]
-#[must_use]
-pub fn arena_vec<T>() -> ArenaVec<T> {
-    ArenaVec::new()
-}
-
-/// `ArenaVec` with room for `cap` elements pre-reserved.
-#[inline]
-#[must_use]
-pub fn arena_with_capacity<T>(cap: usize) -> ArenaVec<T> {
-    ArenaVec::with_capacity(cap)
-}
+// Construct empty / pre-sized arena vectors with the inherent `ArenaVec::new()` and
+// `ArenaVec::with_capacity()`. The helpers below cover the cases with no inherent equivalent
+// (`vec![v; n]`, collect, `to_vec`, uninitialized, parallel fill).
 
 /// Arena-backed `vec![value; n]`.
 #[inline]
 #[must_use]
 pub fn arena_filled<T: Clone>(value: T, n: usize) -> ArenaVec<T> {
-    let mut v = arena_with_capacity(n);
+    let mut v = ArenaVec::with_capacity(n);
     v.resize(n, value);
     v
 }
@@ -34,7 +24,7 @@ pub fn arena_filled<T: Clone>(value: T, n: usize) -> ArenaVec<T> {
 #[must_use]
 pub fn arena_collect<T, I: IntoIterator<Item = T>>(iter: I) -> ArenaVec<T> {
     let iter = iter.into_iter();
-    let mut v = arena_with_capacity(iter.size_hint().0);
+    let mut v = ArenaVec::with_capacity(iter.size_hint().0);
     v.extend(iter);
     v
 }
@@ -43,7 +33,7 @@ pub fn arena_collect<T, I: IntoIterator<Item = T>>(iter: I) -> ArenaVec<T> {
 #[inline]
 #[must_use]
 pub fn arena_from_slice<T: Clone>(slice: &[T]) -> ArenaVec<T> {
-    let mut v = arena_with_capacity(slice.len());
+    let mut v = ArenaVec::with_capacity(slice.len());
     v.extend_from_slice(slice);
     v
 }
@@ -55,7 +45,7 @@ pub fn arena_from_slice<T: Clone>(slice: &[T]) -> ArenaVec<T> {
 #[inline]
 #[must_use]
 pub unsafe fn uninitialized_arena_vec<T>(len: usize) -> ArenaVec<T> {
-    let mut v = arena_with_capacity(len);
+    let mut v = ArenaVec::with_capacity(len);
     // SAFETY: caller guarantees all `len` slots are written before being read.
     unsafe { v.set_len(len) };
     v

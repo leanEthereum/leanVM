@@ -1,5 +1,5 @@
 use crate::{
-    ArenaVec, EFPacking, Mle, MleRef, MultilinearPoint, PF, PFPacking, arena_vec, pack_extension_in, packing_width,
+    ArenaVec, EFPacking, Mle, MleRef, MultilinearPoint, PF, PFPacking, pack_extension_in, packing_width,
     unpack_extension_in,
 };
 use field::PackedValue;
@@ -15,7 +15,7 @@ pub enum MleOwned<EF: ExtensionField<PF<EF>>> {
 
 impl<EF: ExtensionField<PF<EF>>> Default for MleOwned<EF> {
     fn default() -> Self {
-        Self::Base(arena_vec())
+        Self::Base(ArenaVec::new())
     }
 }
 

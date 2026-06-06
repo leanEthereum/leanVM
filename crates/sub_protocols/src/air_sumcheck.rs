@@ -89,7 +89,7 @@ where
                 let _span = info_span!("chunk-bit-reversing columns").entered();
                 let chunk_size = 1usize << pivot;
                 let shift = usize::BITS as usize - pivot;
-                let mut bit_reversed: Vec<ArenaVec<PFPacking<EF>>> = vec![arena_vec(); cols.len()];
+                let mut bit_reversed: Vec<ArenaVec<PFPacking<EF>>> = vec![ArenaVec::new(); cols.len()];
                 parallel::par_chunks_mut(&mut bit_reversed, 1, |i, out_slot| {
                     let src = cols[i];
                     let mut dst: ArenaVec<PFPacking<EF>> = unsafe { uninitialized_arena_vec(src.len()) };
