@@ -1,8 +1,9 @@
 use std::ops::{Add, Sub};
 
 use field::*;
+use zk_alloc::{ArenaVec, OwnedBuffer};
 
-use crate::{ArenaVec, EFPacking, OwnedBuffer, PF, PFPacking};
+use crate::{EFPacking, PF, PFPacking};
 
 pub const PARALLEL_THRESHOLD: usize = 1 << 9;
 

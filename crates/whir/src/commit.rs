@@ -4,6 +4,7 @@ use fiat_shamir::FSProver;
 use field::{ExtensionField, TwoAdicField};
 use poly::*;
 use tracing::{info_span, instrument};
+use zk_alloc::ArenaVec;
 
 use crate::*;
 

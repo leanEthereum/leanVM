@@ -1,6 +1,7 @@
 use crate::*;
 use ::utils::log2_strict_usize;
 use field::ExtensionField;
+use zk_alloc::ArenaVec;
 
 #[derive(Debug)]
 pub enum MleGroupOwned<EF: ExtensionField<PF<EF>>> {

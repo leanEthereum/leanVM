@@ -2,6 +2,7 @@ use crate::*;
 use air::*;
 use field::*;
 use poly::*;
+use zk_alloc::ArenaVec;
 use std::any::TypeId;
 use std::ops::{Add, AddAssign, Mul, MulAssign, Sub};
 

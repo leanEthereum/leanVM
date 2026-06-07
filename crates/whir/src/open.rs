@@ -7,6 +7,7 @@ use field::{ExtensionField, Field, TwoAdicField};
 use poly::*;
 use sumcheck::{ProductComputation, run_product_sumcheck, sumcheck_prove_many_rounds};
 use tracing::{info_span, instrument};
+use zk_alloc::ArenaVec;
 
 use crate::{config::WhirConfig, *};
 

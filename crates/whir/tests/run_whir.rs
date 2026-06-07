@@ -10,6 +10,7 @@ use poly::*;
 use rand::{RngExt, SeedableRng, rngs::StdRng};
 use tracing_forest::{ForestLayer, util::LevelFilter};
 use tracing_subscriber::{EnvFilter, Registry, layer::SubscriberExt, util::SubscriberInitExt};
+use zk_alloc::ArenaVec;
 
 type F = KoalaBear;
 type EF = QuinticExtensionFieldKB;

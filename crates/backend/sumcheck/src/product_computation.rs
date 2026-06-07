@@ -2,6 +2,7 @@ use fiat_shamir::*;
 use field::*;
 use poly::*;
 use tracing::instrument;
+use zk_alloc::ArenaVec;
 
 use crate::{SumcheckComputation, sumcheck_prove_many_rounds};
 

@@ -10,6 +10,7 @@ use rand::{RngExt, SeedableRng, rngs::StdRng};
 use sub_protocols::{
     AirSumcheckSession, OuterSumcheckSession, natural_ordering_point_for_session, prove_batched_air_sumcheck,
 };
+use zk_alloc::ArenaVec;
 const HALF_DIGEST_LEN: usize = 4;
 
 #[test]

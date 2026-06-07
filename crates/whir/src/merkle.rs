@@ -15,11 +15,11 @@ use poly::*;
 use symetric::merkle::unpack_array;
 use tracing::instrument;
 use utils::log2_ceil_usize;
+use zk_alloc::ArenaVec;
 
 use crate::Dimensions;
 use crate::Matrix;
 use crate::utils::flatten_to_base_arena;
-use poly::ArenaVec;
 pub use symetric::DIGEST_ELEMS;
 
 pub(crate) type RoundMerkleTree<F> = WhirMerkleTree<F, DIGEST_ELEMS>;

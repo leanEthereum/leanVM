@@ -1,8 +1,9 @@
 use crate::{
-    ArenaVec, EFPacking, Mle, MleRef, MultilinearPoint, PF, PFPacking, pack_extension, packing_width, unpack_extension,
+   EFPacking, Mle, MleRef, MultilinearPoint, PF, PFPacking, pack_extension, packing_width, unpack_extension,
 };
 use field::PackedValue;
 use field::{ExtensionField, PackedFieldExtension};
+use zk_alloc::ArenaVec;
 
 #[derive(Debug, Clone)]
 pub enum MleOwned<EF: ExtensionField<PF<EF>>> {

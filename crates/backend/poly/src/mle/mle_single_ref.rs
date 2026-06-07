@@ -2,6 +2,7 @@ use crate::*;
 use ::utils::log2_strict_usize;
 use field::ExtensionField;
 use field::PackedValue;
+use zk_alloc::ArenaVec;
 
 #[derive(Debug)]
 pub enum MleRef<'a, EF: ExtensionField<PF<EF>>> {

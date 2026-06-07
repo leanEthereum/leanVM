@@ -28,7 +28,7 @@ use std::sync::RwLock;
 use field::PackedValue;
 use field::{BasedVectorSpace, Field, PackedField, TwoAdicField};
 use itertools::Itertools;
-use poly::ArenaVec;
+use zk_alloc::ArenaVec;
 
 use crate::utils::{flatten_to_base_arena, reconstitute_from_base_arena};
 
@@ -551,6 +551,7 @@ mod tests {
     use koala_bear::{KoalaBear, QuinticExtensionFieldKB};
     use poly::*;
     use rand::{RngExt, SeedableRng, rngs::StdRng};
+use zk_alloc::ArenaVec;
 
     use crate::*;
 
