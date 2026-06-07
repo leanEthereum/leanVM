@@ -15,7 +15,7 @@ pub type F = KoalaBear;
 ///
 /// # Safety
 /// Never generate two proofs concurrently in one process.
-/// 
+///
 /// (The arena allocator has a single shared region per process, so concurrent proving corrupts each proof's buffers)
 /// Use separate processes to parallelize
 pub fn setup_prover() {
