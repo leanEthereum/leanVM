@@ -5,7 +5,6 @@ use std::ops::{Add, AddAssign, Mul, Sub};
 use backend::*;
 use lean_vm::ColIndex;
 use tracing::info_span;
-use zk_alloc::ArenaVec;
 
 // Sumcheck to prove validity of AIR constraints
 //

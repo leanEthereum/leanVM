@@ -106,6 +106,7 @@ dependencies = [
  "parallel",
  "tracing",
  "utils",
+ "zk-alloc",
 ]
 
 [[package]]
@@ -510,7 +511,6 @@ dependencies = [
  "sub_protocols",
  "tracing",
  "xmss",
- "zk-alloc",
 ]
 
 [[package]]
@@ -524,7 +524,6 @@ dependencies = [
  "rand",
  "tracing",
  "xmss",
- "zk-alloc",
 ]
 
 [[package]]
@@ -1053,7 +1052,6 @@ dependencies = [
  "lean_vm",
  "rand",
  "tracing",
- "zk-alloc",
 ]
 
 [[package]]

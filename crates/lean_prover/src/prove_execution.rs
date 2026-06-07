@@ -6,7 +6,7 @@ use lean_vm::*;
 use serde::{Deserialize, Serialize};
 use sub_protocols::*;
 use tracing::info_span;
-use zk_alloc::enter_phase;
+use backend::enter_phase;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExecutionProof {

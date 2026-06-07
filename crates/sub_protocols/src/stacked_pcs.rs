@@ -5,7 +5,6 @@ use lean_vm::{
     N_INSTRUCTION_COLUMNS, STARTING_PC, sort_tables_by_height,
 };
 use lean_vm::{EF, F, Table, TableT, TableTrace};
-use zk_alloc::ArenaVec;
 use std::collections::BTreeMap;
 use tracing::instrument;
 

@@ -1,5 +1,4 @@
 use tracing::instrument;
-use zk_alloc::ArenaVec;
 
 use crate::{
     F,

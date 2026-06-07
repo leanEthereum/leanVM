@@ -8,3 +8,4 @@ pub use sumcheck::*;
 pub use symetric::*;
 pub use utils::*;
 pub use whir::*;
+pub use zk_alloc::*;

@@ -1,7 +1,6 @@
 use crate::execution::memory::MemoryAccess;
 use crate::{EF, F, InstructionContext, LOGUP_MEMORY_DOMAINSEP, PrecompileCompTimeArgs, RunnerError, Table};
 use backend::*;
-use zk_alloc::ArenaVec;
 
 use std::{any::TypeId, cmp::Reverse, collections::BTreeMap, mem::transmute};
 

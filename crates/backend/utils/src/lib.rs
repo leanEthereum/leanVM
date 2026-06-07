@@ -165,8 +165,6 @@ pub unsafe fn reconstitute_from_base<Base, BaseArray: Clone>(vec: Vec<Base>) -> 
     } else {
         // Capacity isn't a clean multiple: copy into a fresh buffer.
         let buf_ptr = vec.as_ptr().cast::<BaseArray>();
-        // SAFETY: the first `new_len * d` `Base` slots are initialized and reinterpret as
-        // `new_len` `BaseArray`s.
         unsafe { slice::from_raw_parts(buf_ptr, new_len) }.to_vec()
     }
 }

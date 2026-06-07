@@ -1,6 +1,5 @@
 use backend::*;
 use lean_vm::*;
-use zk_alloc::ArenaVec;
 use std::{array, collections::BTreeMap};
 
 #[derive(Debug)]
