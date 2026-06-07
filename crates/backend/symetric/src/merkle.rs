@@ -4,18 +4,19 @@
 use std::array;
 
 use field::PackedValue;
+use zk_alloc::ArenaVec;
 
 use crate::Compression;
 
 /// A Merkle tree storing only the digest layers (no leaf data).
 #[derive(Debug, Clone)]
 pub struct MerkleTree<F, const DIGEST_ELEMS: usize> {
-    pub digest_layers: Vec<Vec<[F; DIGEST_ELEMS]>>,
+    pub digest_layers: Vec<ArenaVec<[F; DIGEST_ELEMS]>>,
 }
 
 impl<F: Clone + Copy + Default + Send + Sync, const DIGEST_ELEMS: usize> MerkleTree<F, DIGEST_ELEMS> {
     /// Build a Merkle tree from a pre-computed first digest layer.
-    pub fn from_first_layer<P, Comp, const WIDTH: usize>(comp: &Comp, first_layer: Vec<[F; DIGEST_ELEMS]>) -> Self
+    pub fn from_first_layer<P, Comp, const WIDTH: usize>(comp: &Comp, first_layer: ArenaVec<[F; DIGEST_ELEMS]>) -> Self
     where
         P: PackedValue<Value = F> + Default,
         Comp: Compression<[F; WIDTH]> + Compression<[P; WIDTH]>,
@@ -47,7 +48,7 @@ impl<F: Clone + Copy + Default + Send + Sync, const DIGEST_ELEMS: usize> MerkleT
 pub fn compress_layer<P, Comp, const DIGEST_ELEMS: usize, const WIDTH: usize>(
     prev_layer: &[[P::Value; DIGEST_ELEMS]],
     comp: &Comp,
-) -> Vec<[P::Value; DIGEST_ELEMS]>
+) -> ArenaVec<[P::Value; DIGEST_ELEMS]>
 where
     P: PackedValue + Default,
     P::Value: Default + Copy,
@@ -62,7 +63,7 @@ where
     let next_len = prev_layer.len() / 2;
 
     let default_digest = [P::Value::default(); DIGEST_ELEMS];
-    let mut next_digests = vec![default_digest; next_len_padded];
+    let mut next_digests = ArenaVec::filled(default_digest, next_len_padded);
 
     // Process only the full packed chunks in parallel (matches `par_chunks_exact_mut`);
     // the `< width` remainder is handled by the sequential tail loop below.

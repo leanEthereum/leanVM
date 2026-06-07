@@ -7,3 +7,4 @@ edition.workspace = true
 koala-bear = { path = "../koala-bear", package = "mt-koala-bear" }
 field = { path = "../field", package = "mt-field" }
 parallel.workspace = true
+zk-alloc.workspace = true

@@ -662,6 +662,7 @@ dependencies = [
  "mt-field",
  "mt-koala-bear",
  "parallel",
+ "zk-alloc",
 ]
 
 [[package]]

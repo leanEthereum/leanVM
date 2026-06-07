@@ -3,6 +3,7 @@ use crate::{EFPacking, PF};
 use ::utils::log2_ceil_usize;
 use field::{ExtensionField, Field, PrimeCharacteristicRing};
 use itertools::Itertools;
+use zk_alloc::ArenaVec;
 pub trait EvaluationsList<F: Field> {
     fn num_variables(&self) -> usize;
     fn num_evals(&self) -> usize;
@@ -224,9 +225,9 @@ where
                 // We precompute all `2^|z1|` values of eq(v_high, p_high) and store them in `right`.
 
                 // Allocate uninitialized memory for the low-order basis polynomial evaluations.
-                let mut left = unsafe { uninitialized_vec(1 << z0.len()) };
+                let mut left: ArenaVec<_> = unsafe { ArenaVec::uninitialized(1 << z0.len()) };
                 // Allocate uninitialized memory for the high-order basis polynomial evaluations.
-                let mut right = unsafe { uninitialized_vec(1 << z1.len()) };
+                let mut right: ArenaVec<_> = unsafe { ArenaVec::uninitialized(1 << z1.len()) };
 
                 // The `eval_eq` function requires the variables in their original order, so we reverse the halves back.
                 let mut z0_ordered = z0.to_vec();

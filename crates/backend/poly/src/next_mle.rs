@@ -1,4 +1,5 @@
 use field::{ExtensionField, Field, PrimeCharacteristicRing};
+use zk_alloc::ArenaVec;
 
 use crate::{PF, eval_eq_scaled};
 
@@ -32,12 +33,12 @@ pub fn next_mle<F: Field>(x: &[F], y: &[F]) -> F {
 ///
 /// This is the "folded" version: the first argument (outer_challenges) is fixed,
 /// and the result is a vector indexed by the second argument.
-pub fn matrix_next_mle_folded<F: ExtensionField<PF<F>>>(outer_challenges: &[F]) -> Vec<F>
+pub fn matrix_next_mle_folded<F: ExtensionField<PF<F>>>(outer_challenges: &[F]) -> ArenaVec<F>
 where
     PF<F>: PrimeCharacteristicRing,
 {
     let n = outer_challenges.len();
-    let mut res = F::zero_vec(1 << n);
+    let mut res = unsafe { ArenaVec::<F>::zeroed(1 << n) };
     for k in 0..n {
         let outer_challenges_prod =
             (F::ONE - outer_challenges[n - k - 1]) * outer_challenges[n - k..].iter().copied().product::<F>();

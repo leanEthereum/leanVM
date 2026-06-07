@@ -191,7 +191,7 @@ fn first_digest_layer_with_initial_state<
     matrix: &Matrix<P::Value, LV>,
     packed_initial_state: &[P; WIDTH],
     effective_base_width: usize,
-) -> Vec<[P::Value; DIGEST_ELEMS]>
+) -> ArenaVec<[P::Value; DIGEST_ELEMS]>
 where
     P: PackedValue + Default,
     LV: AsRef<[P::Value]> + Send + Sync,
@@ -203,7 +203,7 @@ where
     assert!(height.is_multiple_of(width));
     let n_pad = (RATE - effective_base_width % RATE) % RATE;
 
-    let mut digests = unsafe { uninitialized_vec(height) };
+    let mut digests = unsafe { ArenaVec::uninitialized(height) };
 
     parallel::par_chunks_mut(&mut digests, width, |i, digests_chunk| {
         let first_row = i * width;
