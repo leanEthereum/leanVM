@@ -797,34 +797,25 @@ def next_mle_const(x, y, n: Const):
     return result
 
 
-def _verify_log2_small(n, partial_sums_24, log2: Const):
-    # For log2 in [3, 23]: verify n has exactly log2 bits
-    assert partial_sums_24[log2 - 1] == n
-    assert partial_sums_24[log2 - 2] != n
-    return
-
-
-def _verify_log2_large(n, log2: Const):
-    # For log2 in [24, 30]: verify 2^(log2-1) < n <= 2^log2
-    # by checking that n - 2^(log2-1) - 1 fits in (log2-1) bits
-    remainder = n - 2 ** (log2 - 1) - 1
-    _unused = checked_decompose_bits_small_value_const(remainder, log2 - 1)
-    return
+def _verify_log2_ceil(n, log2: Const):
+    # log2 == ceil(log2(n))  <=>  2^(log2-1) < n <= 2^log2  <=>  r := n - 2^(log2-1) - 1 is a (log2-1)-bit value
+    # (in [0, 2^(log2-1))), which checked_decompose_bits_small_value_const checks. A wrong log2 makes r too big:
+    #   too small (n > 2^log2):       r >= 2^(log2-1)
+    #   too large (n <= 2^(log2-1)):  r in (-p, 0), so r mod p = p + n - 2^(log2-1) - 1 > 2^(log2-1),
+    #                                 since p + n - 1 - 2^log2 >= n + 2^30 - 2^24 > 0.
+    if log2 < 2:
+        assert False
+    else:
+        remainder = n - 2 ** (log2 - 1) - 1
+        _ = checked_decompose_bits_small_value_const(remainder, log2 - 1)
+        return
 
 
 def log2_ceil_runtime(n):
-    # requires: 2 < n <= 2^30
+    # requires: 2 < n <= 2^30, so 2 <= ceil(log2(n)) <= 30
     log2: Imm
     hint_log2_ceil(n, log2)
     assert log2 < 31
-    if two_exp(log2) != n:
-        _, partial_sums_24 = checked_decompose_bits(n)
-        match_range(
-            log2,
-            range(2, 24),
-            lambda i: _verify_log2_small(n, partial_sums_24, i),
-            range(24, 31),
-            lambda i: _verify_log2_large(n, i),
-        )
+    match_range(log2, range(0, 31), lambda i: _verify_log2_ceil(n, i))
     return log2
 
