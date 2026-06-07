@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use crate::*;
 use backend::ansi::Colorize;
-use backend::enter_phase;
+use backend::{ArenaVec, enter_phase};
 use lean_vm::*;
 use serde::{Deserialize, Serialize};
 use sub_protocols::*;
@@ -82,7 +82,7 @@ pub fn prove_execution(
     tracing::info!("Trace tables sizes: {}", table_log.magenta());
 
     // TODO parrallelize
-    let mut memory_acc = F::zero_vec(memory.len());
+    let mut memory_acc = unsafe { ArenaVec::<F>::zeroed(memory.len()) };
     info_span!("Building memory access count").in_scope(|| -> Result<(), ProverError> {
         for (table, trace) in &traces {
             let buses = table.bus_interactions();
@@ -102,7 +102,7 @@ pub fn prove_execution(
     })?;
 
     // // TODO parrallelize
-    let mut bytecode_acc = F::zero_vec(bytecode.padded_size());
+    let mut bytecode_acc = unsafe { ArenaVec::<F>::zeroed(bytecode.padded_size()) };
     info_span!("Building bytecode access count").in_scope(|| -> Result<(), ProverError> {
         for pc in traces[&Table::execution()].columns[EXEC_COL_PC].iter() {
             *bytecode_acc.get_mut(pc.to_usize()).ok_or(RunnerError::PCOutOfBounds)? += F::ONE;

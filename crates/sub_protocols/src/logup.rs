@@ -48,9 +48,10 @@ pub fn prove_generic_logup(
         &tables_log_heights_sorted,
     );
     let total_gkr_n_vars = log2_ceil_usize(total_active_len);
-    let mut numerators: Vec<F> = unsafe { uninitialized_vec(total_active_len) };
+    let mut numerators: ArenaVec<F> = unsafe { ArenaVec::<F>::uninitialized(total_active_len) };
     let width = packing_width::<EF>();
-    let mut denominators: Vec<EFPacking<EF>> = unsafe { uninitialized_vec(total_active_len / width) };
+    let mut denominators: ArenaVec<EFPacking<EF>> =
+        unsafe { ArenaVec::<EFPacking<EF>>::uninitialized(total_active_len / width) };
     let c_packed = EFPacking::<EF>::from(c);
     let alphas_packed: Vec<EFPacking<EF>> = alphas_eq_poly.iter().map(|a| EFPacking::<EF>::from(*a)).collect();
     let memory_domainsep_packed = PFPacking::<EF>::from(F::from_usize(LOGUP_MEMORY_DOMAINSEP));
