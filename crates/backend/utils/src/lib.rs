@@ -171,22 +171,6 @@ pub unsafe fn reconstitute_from_base<Base, BaseArray: Clone>(vec: Vec<Base>) -> 
     }
 }
 
-/// Try to force Rust to emit a branch.
-#[inline(always)]
-pub fn branch_hint() {
-    #[cfg(any(
-        target_arch = "aarch64",
-        target_arch = "arm",
-        target_arch = "riscv32",
-        target_arch = "riscv64",
-        target_arch = "x86",
-        target_arch = "x86_64",
-    ))]
-    unsafe {
-        core::arch::asm!("", options(nomem, nostack, preserves_flags));
-    }
-}
-
 #[inline(always)]
 pub const fn relatively_prime_u64(mut u: u64, mut v: u64) -> bool {
     if u == 0 || v == 0 {

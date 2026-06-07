@@ -11,13 +11,6 @@ pub enum MleGroupOwned<EF: ExtensionField<PF<EF>>> {
 }
 
 impl<EF: ExtensionField<PF<EF>>> MleGroupOwned<EF> {
-    pub fn as_extension_mut(&mut self) -> Option<&mut Vec<ArenaVec<EF>>> {
-        match self {
-            Self::Extension(e) => Some(e),
-            _ => None,
-        }
-    }
-
     pub fn as_extension_packed_mut(&mut self) -> Option<&mut Vec<ArenaVec<EFPacking<EF>>>> {
         match self {
             Self::ExtensionPacked(e) => Some(e),

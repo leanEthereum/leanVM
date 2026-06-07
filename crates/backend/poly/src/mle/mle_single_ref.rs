@@ -104,10 +104,6 @@ impl<'a, EF: ExtensionField<PF<EF>>> MleRef<'a, EF> {
         }
     }
 
-    pub fn pack_if(&self, cond: bool) -> Mle<'a, EF> {
-        if cond { self.pack() } else { Mle::Ref(self.soft_clone()) }
-    }
-
     pub fn clone_to_owned(&self) -> MleOwned<EF> {
         match self {
             Self::Base(v) => MleOwned::Base(ArenaVec::from_slice(v)),

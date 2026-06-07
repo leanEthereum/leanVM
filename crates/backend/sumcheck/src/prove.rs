@@ -7,33 +7,6 @@ use poly::*;
 use crate::*;
 
 #[allow(clippy::too_many_arguments)]
-pub fn sumcheck_prove<'a, EF, SC, M: Into<MleGroup<'a, EF>>>(
-    multilinears_f: M,
-    computation: &SC,
-    extra_data: &SC::ExtraData,
-    eq_factor: Option<Vec<EF>>,
-    prover_state: &mut impl FSProver<EF>,
-    sum: EF,
-    store_intermediate_foldings: bool,
-) -> (MultilinearPoint<EF>, Vec<EF>, EF)
-where
-    EF: ExtensionField<PF<EF>>,
-    SC: SumcheckComputation<EF> + 'static,
-    SC::ExtraData: AlphaPowers<EF>,
-{
-    sumcheck_fold_and_prove(
-        multilinears_f,
-        None,
-        computation,
-        extra_data,
-        eq_factor,
-        prover_state,
-        sum,
-        store_intermediate_foldings,
-    )
-}
-
-#[allow(clippy::too_many_arguments)]
 pub fn sumcheck_fold_and_prove<'a, EF, SC, M: Into<MleGroup<'a, EF>>>(
     multilinears_f: M,
     prev_folding_factor: Option<EF>,

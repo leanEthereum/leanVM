@@ -10,7 +10,6 @@ system-info.workspace = true
 parallel.workspace = true
 zk-alloc.workspace = true
 
-tracing.workspace = true
 itertools.workspace = true
 rand.workspace = true
 serde.workspace = true

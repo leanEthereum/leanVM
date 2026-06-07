@@ -636,7 +636,6 @@ dependencies = [
  "rand",
  "serde",
  "system-info",
- "tracing",
  "utils",
  "zk-alloc",
 ]

@@ -79,16 +79,6 @@ where
     }
 }
 
-/// Multiply the polynomial by a scalar factor.
-#[must_use]
-pub fn scale_poly<F: Field, EF: ExtensionField<F>>(poly: &[F], factor: EF) -> Vec<EF> {
-    if poly.len() < PARALLEL_THRESHOLD {
-        poly.iter().map(|&e| factor * e).collect()
-    } else {
-        parallel::par_map_collect(poly.len(), |i| factor * poly[i])
-    }
-}
-
 fn eval_multilinear<F, EF, const PARALLEL: bool>(evals: &[F], point: &[EF]) -> EF
 where
     F: Field,

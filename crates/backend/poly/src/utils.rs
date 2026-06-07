@@ -1,7 +1,4 @@
-use std::{
-    mem::ManuallyDrop,
-    ops::{Add, Sub},
-};
+use std::ops::{Add, Sub};
 
 use field::*;
 
@@ -234,7 +231,9 @@ pub fn batch_fold_multilinears<
             .map(|poly| fold_multilinear_arena(poly, alpha, &mul_if_of, true))
             .collect()
     } else {
-        parallel::par_map_collect(polys.len(), |i| fold_multilinear_arena(polys[i], alpha, &mul_if_of, true))
+        parallel::par_map_collect(polys.len(), |i| {
+            fold_multilinear_arena(polys[i], alpha, &mul_if_of, true)
+        })
     }
 }
 
@@ -275,35 +274,6 @@ pub unsafe fn uninitialized_vec<A>(len: usize) -> Vec<A> {
     }
 }
 
-pub fn split_at_many<'a, A>(slice: &'a [A], indices: &[usize]) -> Vec<&'a [A]> {
-    for i in 0..indices.len() {
-        if i > 0 {
-            assert!(indices[i] > indices[i - 1]);
-        }
-        assert!(indices[i] <= slice.len());
-    }
-
-    if indices.is_empty() {
-        return vec![slice];
-    }
-
-    let mut result = Vec::with_capacity(indices.len() + 1);
-    let mut current_slice = slice;
-    let mut prev_idx = 0;
-
-    for &idx in indices {
-        let adjusted_idx = idx - prev_idx;
-        let (left, right) = current_slice.split_at(adjusted_idx);
-        result.push(left);
-        current_slice = right;
-        prev_idx = idx;
-    }
-
-    result.push(current_slice);
-
-    result
-}
-
 pub fn split_at_mut_many<'a, A>(slice: &'a mut [A], indices: &[usize]) -> Vec<&'a mut [A]> {
     for i in 0..indices.len() {
         if i > 0 {
@@ -335,13 +305,6 @@ pub fn split_at_mut_many<'a, A>(slice: &'a mut [A], indices: &[usize]) -> Vec<&'
 
 // Sequential
 
-pub fn iter_split_2<A>(u: &[A]) -> impl Iterator<Item = (&A, &A)> {
-    let n = u.len();
-    assert!(n.is_multiple_of(2));
-    let (u_left, u_right) = u.split_at(n / 2);
-    u_left.iter().zip(u_right.iter())
-}
-
 pub fn iter_split_4<A>(u: &[A]) -> impl Iterator<Item = ((&A, &A), (&A, &A))> {
     let n = u.len();
     assert!(n.is_multiple_of(4));
@@ -369,18 +332,6 @@ pub fn zip_fold_2<'a, 'b, A, B>(
     iter_split_4(u).zip(iter_mut_split_2(folded))
 }
 
-pub fn transmute_array<A, const N: usize, const M: usize>(input: [A; N]) -> [A; M] {
-    assert_eq!(N, M, "Array sizes must match");
-
-    unsafe {
-        // Prevent input from being dropped
-        let input = ManuallyDrop::new(input);
-
-        // Read the array as a pointer and cast to the output type
-        std::ptr::read(&*input as *const [A; N] as *const [A; M])
-    }
-}
-
 pub fn to_big_endian_bits(value: usize, bit_count: usize) -> Vec<bool> {
     (0..bit_count).rev().map(|i| (value >> i) & 1 == 1).collect()
 }
@@ -394,12 +345,6 @@ pub fn to_big_endian_in_field<F: Field>(value: usize, bit_count: usize) -> Vec<F
 
 pub fn to_little_endian_bits(value: usize, bit_count: usize) -> Vec<bool> {
     let mut res = to_big_endian_bits(value, bit_count);
-    res.reverse();
-    res
-}
-
-pub fn to_little_endian_in_field<F: Field>(value: usize, bit_count: usize) -> Vec<F> {
-    let mut res = to_big_endian_in_field::<F>(value, bit_count);
     res.reverse();
     res
 }
