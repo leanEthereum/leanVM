@@ -214,17 +214,24 @@ pub fn verify_single_message_aggregate(sig: &SingleMessageAggregateSignature) ->
 /// Aggregate raw XMSS signatures and previously aggregated single-message signatures.
 /// Single-message = one shared (message, slot).
 #[instrument(skip_all)]
-pub fn aggregate_single_msg_signatures(
+pub fn aggregate_single_message_signatures(
     children: &[SingleMessageAggregateSignature],
     raw_xmss: Vec<(XmssPublicKey, XmssSignature)>,
     message: [F; MESSAGE_LEN_FE],
     slot: u32,
     log_inv_rate: usize,
 ) -> Result<SingleMessageAggregateSignature, AggregationError> {
-    aggregate_single_msg_signatures_with_min_padding(children, raw_xmss, message, slot, log_inv_rate, BTreeMap::new())
+    aggregate_single_message_signatures_with_min_padding(
+        children,
+        raw_xmss,
+        message,
+        slot,
+        log_inv_rate,
+        BTreeMap::new(),
+    )
 }
 
-pub(crate) fn aggregate_single_msg_signatures_with_min_padding(
+pub(crate) fn aggregate_single_message_signatures_with_min_padding(
     children: &[SingleMessageAggregateSignature],
     mut raw_xmss: Vec<(XmssPublicKey, XmssSignature)>,
     message: [F; MESSAGE_LEN_FE],
@@ -478,15 +485,21 @@ mod tests {
         let mut min_padding: BTreeMap<Table, usize> = BTreeMap::new();
         min_padding.insert(Table::extension_op(), extension_padding_log);
 
-        let inner =
-            aggregate_single_msg_signatures_with_min_padding(&[], raws_inner, message, slot, log_inv_rate, min_padding)
-                .unwrap();
+        let inner = aggregate_single_message_signatures_with_min_padding(
+            &[],
+            raws_inner,
+            message,
+            slot,
+            log_inv_rate,
+            min_padding,
+        )
+        .unwrap();
         verify_single_message_aggregate(&inner).unwrap();
 
         let inner_metadata = inner.proof.metadata.as_ref().expect("inner metadata available");
         assert!(dbg!(inner_metadata.cycles) < 1usize << extension_padding_log,);
 
-        let outer = aggregate_single_msg_signatures(&[inner], raws_outer, message, slot, log_inv_rate).unwrap();
+        let outer = aggregate_single_message_signatures(&[inner], raws_outer, message, slot, log_inv_rate).unwrap();
         verify_single_message_aggregate(&outer).unwrap();
     }
 }

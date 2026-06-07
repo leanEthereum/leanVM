@@ -196,15 +196,15 @@ pub fn verify_multi_message_aggregate(sig: &MultiMessageAggregateSignature) -> R
     verify_inner(input_data, sig.proof.proof.clone())
 }
 
-pub fn split_multi_message_aggregate_by_msg(
+pub fn split_multi_message_aggregate_by_message(
     multi_message: MultiMessageAggregateSignature,
-    msg: [F; DIGEST_LEN],
+    message: [F; DIGEST_LEN],
     log_inv_rate: usize,
 ) -> Result<SingleMessageAggregateSignature, AggregationError> {
-    let Some(index) = multi_message.info.iter().position(|info| info.message == msg) else {
+    let Some(index) = multi_message.info.iter().position(|info| info.message == message) else {
         return Err(AggregationError::UnknownMessage);
     };
-    if multi_message.info.iter().filter(|info| info.message == msg).count() > 1 {
+    if multi_message.info.iter().filter(|info| info.message == message).count() > 1 {
         return Err(AggregationError::MultipleMessages);
     }
     split_multi_message_aggregate(multi_message, index, log_inv_rate)

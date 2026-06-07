@@ -9,7 +9,7 @@ use xmss::{XmssPublicKey, XmssSignature};
 
 use crate::compilation::{get_aggregation_bytecode, init_aggregation_bytecode};
 use crate::single_message_aggregation::{
-    SingleMessageAggregateSignature, aggregate_single_msg_signatures, verify_single_message_aggregate,
+    SingleMessageAggregateSignature, aggregate_single_message_signatures, verify_single_message_aggregate,
 };
 
 #[derive(Debug, Clone)]
@@ -398,7 +398,7 @@ fn build_aggregation(
     let own_display_index = display_index + count_nodes(topology) - 1;
     for _ in 0..repeat {
         let time = Instant::now();
-        let result = aggregate_single_msg_signatures(
+        let result = aggregate_single_message_signatures(
             &children,
             raw_xmss.clone(),
             message_for_benchmark(),

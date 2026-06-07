@@ -3,7 +3,7 @@ use backend::*;
 pub use backend::ProofError;
 pub use rec_aggregation::{
     AggregationError, MAX_RECURSIONS, MAX_XMSS_AGGREGATED, MAX_XMSS_DUPLICATES, MultiMessageAggregateSignature,
-    ProverError, SingleMessageAggregateSignature, SingleMessageInfo, aggregate_single_msg_signatures,
+    ProverError, SingleMessageAggregateSignature, SingleMessageInfo, aggregate_single_message_signatures,
     merge_single_message_aggregates, split_multi_message_aggregate, verify_multi_message_aggregate,
     verify_single_message_aggregate,
 };

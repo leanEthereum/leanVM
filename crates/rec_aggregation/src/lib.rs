@@ -17,10 +17,10 @@ use lean_prover::verify_execution::verify_execution;
 use lean_vm::{DIGEST_LEN, EF, F};
 pub use multi_message_aggregation::{
     MultiMessageAggregateSignature, merge_single_message_aggregates, split_multi_message_aggregate,
-    split_multi_message_aggregate_by_msg, verify_multi_message_aggregate,
+    split_multi_message_aggregate_by_message, verify_multi_message_aggregate,
 };
 pub use single_message_aggregation::{
-    SingleMessageAggregateSignature, SingleMessageInfo, aggregate_single_msg_signatures,
+    SingleMessageAggregateSignature, SingleMessageInfo, aggregate_single_message_signatures,
     verify_single_message_aggregate,
 };
 
