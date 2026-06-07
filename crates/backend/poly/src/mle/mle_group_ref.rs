@@ -85,7 +85,7 @@ impl<'a, EF: ExtensionField<PF<EF>>> MleGroupRef<'a, EF> {
             }
             Self::Extension(ext) => {
                 // the only case where there is real work
-                MleGroupOwned::ExtensionPacked(ext.iter().map(|v| pack_extension_in(v)).collect()).into()
+                MleGroupOwned::ExtensionPacked(ext.iter().map(|v| pack_extension_arena(v)).collect()).into()
             }
             Self::BasePacked(_) | Self::ExtensionPacked(_) => self.soft_clone().into(),
         }
@@ -99,7 +99,7 @@ impl<'a, EF: ExtensionField<PF<EF>>> MleGroupRef<'a, EF> {
                 MleGroupRef::Base(pols.iter().map(|v| PFPacking::<EF>::unpack_slice(v)).collect()).into()
             }
             Self::ExtensionPacked(pols) => {
-                MleGroupOwned::Extension(pols.iter().map(|v| unpack_extension_in(v)).collect()).into()
+                MleGroupOwned::Extension(pols.iter().map(|v| unpack_extension_arena(v)).collect()).into()
             }
         }
     }

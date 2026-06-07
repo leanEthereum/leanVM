@@ -32,9 +32,6 @@ pub(crate) const N_TWEAKS: usize = 1 + V * CHAIN_LENGTH + 1 + LOG_LIFETIME;
 pub(crate) const TWEAK_SLOT_SIZE: usize = 4;
 pub(crate) const TWEAK_TABLE_SIZE_FE_PADDED: usize = (N_TWEAKS * TWEAK_SLOT_SIZE).next_multiple_of(DIGEST_LEN);
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
-pub(crate) struct Digest(pub [F; DIGEST_LEN]);
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SingleMessageInfo {
     pub message: [F; MESSAGE_LEN_FE],
@@ -99,10 +96,6 @@ impl SingleMessageAggregateSignature {
         let decompressed = decompress_size_prepended_bounded(bytes)?;
         let (value, rest) = postcard::take_from_bytes::<Self>(&decompressed).ok()?;
         rest.is_empty().then_some(value)
-    }
-
-    pub(crate) fn bytecode_claim_flat(&self) -> Vec<F> {
-        self.info.bytecode_claim_flat()
     }
 }
 

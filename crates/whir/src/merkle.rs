@@ -31,7 +31,6 @@ pub(crate) fn merkle_commit<F: Field, EF: ExtensionField<F>>(
     effective_n_cols: usize,
 ) -> ([F; DIGEST_ELEMS], RoundMerkleTree<F>) {
     if TypeId::of::<(F, EF)>() == TypeId::of::<(KoalaBear, QuinticExtensionFieldKB)>() {
-        // EF == QuinticExtensionFieldKB here, so `ArenaVec`'s storage type (and its range-checked `Drop`) is unchanged.
         let matrix = unsafe {
             std::mem::transmute::<_, Matrix<QuinticExtensionFieldKB, ArenaVec<QuinticExtensionFieldKB>>>(matrix)
         };
@@ -159,8 +158,6 @@ pub(crate) fn merkle_verify<F: Field, EF: ExtensionField<F>>(
 
 #[derive(Debug, Clone)]
 pub struct WhirMerkleTree<F, const DIGEST_ELEMS: usize> {
-    // The leaf codeword (the dominant commit-time buffer) is arena-backed; the digest layers in
-    // `tree` stay on the system allocator (much smaller, and owned by the `symetric` crate).
     pub(crate) leaf: Matrix<F, ArenaVec<F>>,
     pub(crate) tree: symetric::merkle::MerkleTree<F, DIGEST_ELEMS>,
     full_leaf_base_width: usize,

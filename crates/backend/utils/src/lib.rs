@@ -138,14 +138,10 @@ pub unsafe fn flatten_to_base<Base, BaseArray>(vec: Vec<BaseArray>) -> Vec<Base>
     }
     let d = size_of::<BaseArray>() / size_of::<Base>();
     let mut me = mem::ManuallyDrop::new(vec);
-    // SAFETY: same buffer, reinterpreted; byte length/capacity are unchanged.
     unsafe { Vec::from_raw_parts(me.as_mut_ptr().cast::<Base>(), me.len() * d, me.capacity() * d) }
 }
 
 /// Convert a vector of `Base` elements to a vector of `BaseArray` elements.
-///
-/// # Panics
-/// If `vec.len()` is not a multiple of `size_of::<BaseArray>() / size_of::<Base>()`.
 ///
 /// # Safety
 /// This assumes that `BaseArray` has the same alignment and memory layout as `[Base; N]`.
@@ -165,7 +161,6 @@ pub unsafe fn reconstitute_from_base<Base, BaseArray: Clone>(vec: Vec<Base>) -> 
     let new_len = vec.len() / d;
     if vec.capacity().is_multiple_of(d) {
         let mut me = mem::ManuallyDrop::new(vec);
-        // SAFETY: reinterpret; len/cap divide evenly by `d`.
         unsafe { Vec::from_raw_parts(me.as_mut_ptr().cast::<BaseArray>(), new_len, me.capacity() / d) }
     } else {
         // Capacity isn't a clean multiple: copy into a fresh buffer.

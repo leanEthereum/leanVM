@@ -16,16 +16,6 @@ pub struct Program {
     pub filepaths: BTreeMap<FileId, String>,
 }
 
-impl Program {
-    pub fn inlined_function_names(&self) -> BTreeSet<FunctionName> {
-        self.functions
-            .iter()
-            .filter(|(_, func)| func.inlined)
-            .map(|(name, _)| name.clone())
-            .collect()
-    }
-}
-
 /// A function argument with its modifiers
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct FunctionArg {

@@ -1,6 +1,6 @@
 use crate::{
-    ArenaVec, EFPacking, Mle, MleRef, MultilinearPoint, PF, PFPacking, pack_extension_in, packing_width,
-    unpack_extension_in,
+    ArenaVec, EFPacking, Mle, MleRef, MultilinearPoint, PF, PFPacking, pack_extension_arena, packing_width,
+    unpack_extension_arena,
 };
 use field::PackedValue;
 use field::{ExtensionField, PackedFieldExtension};
@@ -108,7 +108,7 @@ impl<EF: ExtensionField<PF<EF>>> MleOwned<EF> {
     pub fn pack<'a>(&'a self) -> Mle<'a, EF> {
         match self {
             Self::Base(v) => Mle::Ref(MleRef::BasePacked(PFPacking::<EF>::pack_slice(v))),
-            Self::Extension(v) => Mle::Owned(MleOwned::ExtensionPacked(pack_extension_in(v))),
+            Self::Extension(v) => Mle::Owned(MleOwned::ExtensionPacked(pack_extension_arena(v))),
             Self::BasePacked(_) => Mle::Ref(self.by_ref()),
             Self::ExtensionPacked(_) => Mle::Ref(self.by_ref()),
         }
@@ -119,7 +119,7 @@ impl<EF: ExtensionField<PF<EF>>> MleOwned<EF> {
             Self::Base(v) => Mle::Ref(MleRef::Base(v)),
             Self::Extension(v) => Mle::Ref(MleRef::Extension(v)),
             Self::BasePacked(pb) => Mle::Ref(MleRef::Base(PFPacking::<EF>::unpack_slice(pb))),
-            Self::ExtensionPacked(ep) => Mle::Owned(MleOwned::Extension(unpack_extension_in(ep))),
+            Self::ExtensionPacked(ep) => Mle::Owned(MleOwned::Extension(unpack_extension_arena(ep))),
         }
     }
 
