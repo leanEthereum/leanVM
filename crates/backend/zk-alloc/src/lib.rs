@@ -28,7 +28,7 @@ mod syscall;
 
 pub use arena_vec::ArenaVec;
 
-const SLAB_SIZE: usize = 8 << 30; // 8GB
+const SLAB_SIZE: usize = 8 << 30; // 8 GiB
 const SLACK: usize = 4; // SLACK absorbs the main thread and any non-rayon helpers.
 const MAX_THREADS: usize = NUM_THREADS + SLACK;
 const REGION_SIZE: usize = SLAB_SIZE * MAX_THREADS;

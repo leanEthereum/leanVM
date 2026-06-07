@@ -4,8 +4,6 @@ use std::{
     slice,
 };
 
-use zk_alloc::ArenaVec;
-
 pub mod array_serialization;
 
 pub mod ansi;
@@ -128,7 +126,7 @@ pub const fn indices_arr<const N: usize>() -> [usize; N] {
 }
 
 /// Convert a vector of `BaseArray` elements to a vector of `Base` elements without any
-/// reallocations. The `std::Vec` twin of [`flatten_to_base_in`].
+/// reallocations.
 ///
 /// # Safety
 /// This assumes that `BaseArray` has the same alignment and memory layout as `[Base; N]`.
@@ -144,8 +142,7 @@ pub unsafe fn flatten_to_base<Base, BaseArray>(vec: Vec<BaseArray>) -> Vec<Base>
     unsafe { Vec::from_raw_parts(me.as_mut_ptr().cast::<Base>(), me.len() * d, me.capacity() * d) }
 }
 
-/// Convert a vector of `Base` elements to a vector of `BaseArray` elements. The `std::Vec` twin
-/// of [`reconstitute_from_base_in`].
+/// Convert a vector of `Base` elements to a vector of `BaseArray` elements.
 ///
 /// # Panics
 /// If `vec.len()` is not a multiple of `size_of::<BaseArray>() / size_of::<Base>()`.
@@ -176,61 +173,6 @@ pub unsafe fn reconstitute_from_base<Base, BaseArray: Clone>(vec: Vec<Base>) -> 
         // SAFETY: the first `new_len * d` `Base` slots are initialized and reinterpret as
         // `new_len` `BaseArray`s.
         unsafe { slice::from_raw_parts(buf_ptr, new_len) }.to_vec()
-    }
-}
-
-/// Convert an [`ArenaVec`] of `BaseArray` elements to one of `Base` elements without any
-/// reallocations, keeping the buffer (and so its arena/system backing) in place. The
-/// arena-backed twin of [`flatten_to_base`].
-///
-/// # Safety
-/// `BaseArray` must have the same alignment and memory layout as `[Base; N]`.
-#[inline]
-pub unsafe fn flatten_to_base_in<Base, BaseArray>(vec: ArenaVec<BaseArray>) -> ArenaVec<Base> {
-    const {
-        assert!(align_of::<Base>() == align_of::<BaseArray>());
-        assert!(size_of::<BaseArray>().is_multiple_of(size_of::<Base>()));
-    }
-    let d = size_of::<BaseArray>() / size_of::<Base>();
-    let (ptr, len, cap) = vec.into_raw_parts();
-    // SAFETY: same buffer reinterpreted; `raw_dealloc` decides arena-vs-system by pointer range,
-    // so the original backing is freed correctly regardless of the element type.
-    unsafe { ArenaVec::from_raw_parts(ptr.cast::<Base>(), len * d, cap * d) }
-}
-
-/// Arena-backed twin of [`reconstitute_from_base`].
-///
-/// # Panics
-/// If `vec.len()` is not a multiple of `size_of::<BaseArray>() / size_of::<Base>()`.
-///
-/// # Safety
-/// Same contract as [`reconstitute_from_base`].
-#[inline]
-pub unsafe fn reconstitute_from_base_in<Base, BaseArray: Clone>(vec: ArenaVec<Base>) -> ArenaVec<BaseArray> {
-    const {
-        assert!(align_of::<Base>() == align_of::<BaseArray>());
-        assert!(size_of::<BaseArray>().is_multiple_of(size_of::<Base>()));
-    }
-    let d = size_of::<BaseArray>() / size_of::<Base>();
-    assert!(
-        vec.len().is_multiple_of(d),
-        "Vector length (got {}) must be a multiple of the extension field dimension ({}).",
-        vec.len(),
-        d
-    );
-    let new_len = vec.len() / d;
-    if vec.capacity().is_multiple_of(d) {
-        let (ptr, _len, cap) = vec.into_raw_parts();
-        // SAFETY: reinterpret; len/cap divide evenly by `d`.
-        unsafe { ArenaVec::from_raw_parts(ptr.cast::<BaseArray>(), new_len, cap / d) }
-    } else {
-        // Capacity isn't a clean multiple: copy into a fresh, same-backing buffer.
-        let buf_ptr = vec.as_ptr().cast::<BaseArray>();
-        // SAFETY: the first `new_len * d` `Base` slots are initialized.
-        let slice_ref = unsafe { slice::from_raw_parts(buf_ptr, new_len) };
-        let mut out = ArenaVec::with_capacity(new_len);
-        out.extend_from_slice(slice_ref);
-        out
     }
 }
 

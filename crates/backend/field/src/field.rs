@@ -526,31 +526,6 @@ pub trait BasedVectorSpace<F: PrimeCharacteristicRing>: Sized {
     /// different basis might have been used.
     #[must_use]
     fn reconstitute_from_base(vec: Vec<F>) -> Vec<Self>;
-
-    /// [`flatten_to_base`](Self::flatten_to_base) for `ArenaVec` proof buffers. Defaults to a layout
-    /// reinterpret; override alongside `flatten_to_base` if `Self` isn't `[F; DIMENSION]`.
-    ///
-    /// # Safety
-    /// Same basis-portability caveat as [`flatten_to_base`](Self::flatten_to_base).
-    #[must_use]
-    fn flatten_to_base_in(vec: zk_alloc::ArenaVec<Self>) -> zk_alloc::ArenaVec<F> {
-        // SAFETY: `Self` is `[F; DIMENSION]` (the `flatten_to_base` contract); the const asserts reject mismatches.
-        unsafe { utils::flatten_to_base_in::<F, Self>(vec) }
-    }
-
-    /// [`reconstitute_from_base`](Self::reconstitute_from_base) for `ArenaVec` proof buffers (see
-    /// [`flatten_to_base_in`](Self::flatten_to_base_in)).
-    ///
-    /// # Safety
-    /// Same basis-portability caveat as [`reconstitute_from_base`](Self::reconstitute_from_base).
-    #[must_use]
-    fn reconstitute_from_base_in(vec: zk_alloc::ArenaVec<F>) -> zk_alloc::ArenaVec<Self>
-    where
-        Self: Clone,
-    {
-        // SAFETY: as above.
-        unsafe { utils::reconstitute_from_base_in::<F, Self>(vec) }
-    }
 }
 
 impl<F: PrimeCharacteristicRing> BasedVectorSpace<F> for F {

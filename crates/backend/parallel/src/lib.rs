@@ -56,7 +56,7 @@ thread_local! {
 
 /// Calling worker's id in `0..NUM_THREADS` (`0` off-pool).
 #[must_use]
-pub fn current_worker_id() -> usize {
+pub(crate) fn current_worker_id() -> usize {
     WORKER_ID.with(Cell::get)
 }
 

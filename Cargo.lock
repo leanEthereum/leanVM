@@ -609,7 +609,6 @@ dependencies = [
  "serde",
  "tracing",
  "utils",
- "zk-alloc",
 ]
 
 [[package]]
@@ -1220,7 +1219,6 @@ dependencies = [
  "tracing",
  "tracing-forest",
  "tracing-subscriber",
- "zk-alloc",
 ]
 
 [[package]]

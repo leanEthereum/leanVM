@@ -30,6 +30,8 @@ use field::{BasedVectorSpace, Field, PackedField, TwoAdicField};
 use itertools::Itertools;
 use poly::ArenaVec;
 
+use crate::utils::{flatten_to_base_arena, reconstitute_from_base_arena};
+
 use tracing::instrument;
 use utils::{as_base_slice, log2_strict_usize};
 
@@ -152,9 +154,9 @@ where
         mat: Matrix<V, ArenaVec<V>>,
     ) -> Matrix<V, ArenaVec<V>> {
         let init_width = mat.width();
-        let base_mat = Matrix::new(V::flatten_to_base_in(mat.values), init_width * V::DIMENSION);
+        let base_mat = Matrix::new(flatten_to_base_arena::<F, V>(mat.values), init_width * V::DIMENSION);
         let base_dft_output = self.dft_batch_by_evals(base_mat);
-        Matrix::new(V::reconstitute_from_base_in(base_dft_output.values), init_width)
+        Matrix::new(reconstitute_from_base_arena::<F, V>(base_dft_output.values), init_width)
     }
 }
 

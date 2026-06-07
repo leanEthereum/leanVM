@@ -18,6 +18,7 @@ use utils::log2_ceil_usize;
 
 use crate::Dimensions;
 use crate::Matrix;
+use crate::utils::flatten_to_base_arena;
 use poly::ArenaVec;
 pub use symetric::DIGEST_ELEMS;
 
@@ -38,7 +39,7 @@ pub(crate) fn merkle_commit<F: Field, EF: ExtensionField<F>>(
         let dft_base_width = matrix.width * dim;
         let full_base_width = full_n_cols * dim;
         let effective_base_width = effective_n_cols * dim;
-        let base_values = QuinticExtensionFieldKB::flatten_to_base_in(matrix.values);
+        let base_values = flatten_to_base_arena::<KoalaBear, QuinticExtensionFieldKB>(matrix.values);
         let base_matrix = Matrix::new(base_values, dft_base_width);
         let tree = build_merkle_tree_koalabear(base_matrix, full_base_width, effective_base_width);
         let root: [_; DIGEST_ELEMS] = tree.root();

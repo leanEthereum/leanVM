@@ -4,6 +4,7 @@ use fiat_shamir::{ChallengeSampler, FSProver};
 use field::BasedVectorSpace;
 use field::Field;
 use field::PackedValue;
+use field::PrimeCharacteristicRing;
 use field::{ExtensionField, TwoAdicField};
 use poly::*;
 use std::any::{Any, TypeId};
@@ -14,6 +15,60 @@ use utils::log2_strict_usize;
 
 use crate::EvalsDft;
 use crate::Matrix;
+
+// `ArenaVec` twins of `BasedVectorSpace::flatten_to_base` / `reconstitute_from_base`, kept off that
+// trait so `field` needn't depend on `zk-alloc`. Both reinterpret the `[F; DIMENSION]` layout.
+
+/// In-place `V` -> `F` reinterpret of an arena buffer, no copy.
+#[inline]
+#[must_use]
+pub(crate) fn flatten_to_base_arena<F: PrimeCharacteristicRing, V: BasedVectorSpace<F>>(
+    vec: ArenaVec<V>,
+) -> ArenaVec<F> {
+    const {
+        assert!(align_of::<V>() == align_of::<F>());
+        assert!(size_of::<V>() == V::DIMENSION * size_of::<F>());
+    }
+    let (ptr, len, cap) = vec.into_raw_parts();
+    // SAFETY: same buffer reinterpreted; byte length/capacity are unchanged.
+    unsafe { ArenaVec::from_raw_parts(ptr.cast::<F>(), len * V::DIMENSION, cap * V::DIMENSION) }
+}
+
+/// Inverse of [`flatten_to_base_arena`]: `F` -> `V`, copying only if `cap` isn't a multiple of
+/// `V::DIMENSION`.
+///
+/// # Panics
+/// If `vec.len()` isn't a multiple of `V::DIMENSION`.
+#[inline]
+#[must_use]
+pub(crate) fn reconstitute_from_base_arena<F: PrimeCharacteristicRing, V: BasedVectorSpace<F> + Clone>(
+    vec: ArenaVec<F>,
+) -> ArenaVec<V> {
+    const {
+        assert!(align_of::<V>() == align_of::<F>());
+        assert!(size_of::<V>() == V::DIMENSION * size_of::<F>());
+    }
+    let d = V::DIMENSION;
+    assert!(
+        vec.len().is_multiple_of(d),
+        "ArenaVec length (got {}) must be a multiple of the extension field dimension ({}).",
+        vec.len(),
+        d
+    );
+    let new_len = vec.len() / d;
+    if vec.capacity().is_multiple_of(d) {
+        let (ptr, _len, cap) = vec.into_raw_parts();
+        // SAFETY: reinterpret; len/cap divide evenly by `d`.
+        unsafe { ArenaVec::from_raw_parts(ptr.cast::<V>(), new_len, cap / d) }
+    } else {
+        // Capacity isn't a clean multiple: copy into a fresh, same-backing buffer.
+        // SAFETY: the first `new_len * d` `F` slots are initialized.
+        let slice_ref = unsafe { std::slice::from_raw_parts(vec.as_ptr().cast::<V>(), new_len) };
+        let mut out = ArenaVec::with_capacity(new_len);
+        out.extend_from_slice(slice_ref);
+        out
+    }
+}
 
 pub(crate) fn get_challenge_stir_queries<F: Field, Chal: ChallengeSampler<F>>(
     folded_domain_size: usize,

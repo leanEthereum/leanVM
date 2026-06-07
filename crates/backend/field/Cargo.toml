@@ -5,7 +5,6 @@ edition.workspace = true
 
 [dependencies]
 utils = { path = "../utils", package = "utils" }
-zk-alloc.workspace = true
 
 itertools.workspace = true
 num-bigint = "*"
