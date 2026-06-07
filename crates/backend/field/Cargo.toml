@@ -4,12 +4,12 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
-utils = { path = "../utils", package = "mt-utils" }
+utils = { path = "../utils", package = "utils" }
 
 itertools.workspace = true
 num-bigint = "*"
 paste = "*"
+parallel.workspace = true
 rand.workspace = true
-rayon.workspace = true
 serde.workspace = true
 tracing.workspace = true

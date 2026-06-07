@@ -142,7 +142,7 @@ def ef_powers(x: EF, n: int) -> list[EF]:
     return list(accumulate(repeat(x, n), lambda a, _: a * x, initial=ONE))[:n]
 
 
-def pack_ef(flat: Sequence[Fp]) -> list[EF]:
+def embed_ef(flat: Sequence[Fp]) -> list[EF]:
     """Pack a length-(n·DIM) Fp vector into n EF elements (5 Fp coordinates per EF)."""
     return [EF(flat[i : i + EF.DIMENSION]) for i in range(0, len(flat), EF.DIMENSION)]
 
@@ -301,7 +301,8 @@ def div_ceil(n: int, k: int) -> int:
 POSEIDON_FULL_ROUNDS = 8
 POSEIDON_WIDTH = 16
 POSEIDON_PARTIAL_ROUNDS = 20
-POSEIDON_HALF_FULL_ROUNDS = POSEIDON_FULL_ROUNDS // 2  # = 4 full rounds per side
+POSEIDON_HALF_FULL_ROUNDS = POSEIDON_FULL_ROUNDS // 2  # = 4 full rounds per side (initial / final)
+POSEIDON_QUARTER_FULL_ROUNDS = POSEIDON_HALF_FULL_ROUNDS // 2
 
 
 def _mat_mul(a: list[list[int]], b: list[list[int]], n: int) -> list[list[int]]:
@@ -415,9 +416,7 @@ POSEIDON_AIR_MDS_DENSE: list[list[Fp]] = [[Fp(MDS_FIRST_ROW_16[(j - i) % _N]) fo
 # External full-round constants: first / last POSEIDON_HALF_FULL_ROUNDS slices of round_constants.
 POSEIDON_AIR_INITIAL_CONSTANTS: list[list[Fp]] = [[Fp(v) for v in _RCS[i * _W : (i + 1) * _W]] for i in range(_HF)]
 _TAIL = (_HF + POSEIDON_PARTIAL_ROUNDS) * _W
-POSEIDON_AIR_FINAL_CONSTANTS: list[list[Fp]] = [
-    [Fp(v) for v in _RCS[_TAIL + i * _W : _TAIL + (i + 1) * _W]] for i in range(_HF)
-]
+POSEIDON_AIR_FINAL_CONSTANTS: list[list[Fp]] = [[Fp(v) for v in _RCS[_TAIL + i * _W : _TAIL + (i + 1) * _W]] for i in range(_HF)]
 
 # Sparse partial-round constants (Fp-wrapped).
 POSEIDON_AIR_SPARSE_M_I: list[list[Fp]] = [[Fp(v) for v in row] for row in _SPARSE["sparse_m_i"]]

@@ -3,7 +3,6 @@ use crate::{EF, F, InstructionContext, LOGUP_MEMORY_DOMAINSEP, PrecompileCompTim
 use backend::*;
 
 use std::{any::TypeId, cmp::Reverse, collections::BTreeMap, mem::transmute};
-use utils::VarCount;
 
 pub type ColIndex = usize;
 

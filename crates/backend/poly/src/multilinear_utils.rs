@@ -1,9 +1,10 @@
 use std::borrow::Borrow;
 
-use crate::from_end;
-
-use backend::*;
+use field::{ExtensionField, Field, dot_product};
 use tracing::instrument;
+use utils::*;
+
+use crate::{EFPacking, EvaluationsList as _, MultilinearPoint, PF, PFPacking};
 
 #[instrument(skip_all)]
 pub fn multilinears_linear_combination<F: Field, EF: ExtensionField<F>, P: Borrow<[F]> + Send + Sync>(
@@ -13,10 +14,10 @@ pub fn multilinears_linear_combination<F: Field, EF: ExtensionField<F>, P: Borro
     assert_eq!(pols.len(), scalars.len());
     let n_vars = log2_strict_usize(pols[0].borrow().len());
     assert!(pols.iter().all(|p| log2_strict_usize(p.borrow().len()) == n_vars));
-    (0..1 << n_vars)
-        .into_par_iter()
-        .map(|i| dot_product(scalars.iter().copied(), pols.iter().map(|p| p.borrow()[i])))
-        .collect::<Vec<_>>()
+    let n = 1usize << n_vars;
+    parallel::par_map_collect(n, |i| {
+        dot_product(scalars.iter().copied(), pols.iter().map(|p| p.borrow()[i]))
+    })
 }
 
 pub fn multilinear_eval_constants_at_right<F: Field>(limit: usize, point: &[F]) -> F {
@@ -98,6 +99,8 @@ pub fn finger_print_packed<EF: ExtensionField<PF<EF>>>(
 
 #[cfg(test)]
 mod tests {
+    use field::PrimeCharacteristicRing;
+    use koala_bear::{KoalaBear, QuinticExtensionFieldKB};
     use rand::rngs::StdRng;
     use rand::{RngExt, SeedableRng};
 

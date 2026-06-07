@@ -6,7 +6,6 @@ use field::Field;
 use field::PackedValue;
 use field::{ExtensionField, TwoAdicField};
 use poly::*;
-use rayon::prelude::*;
 use std::any::{Any, TypeId};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, OnceLock};
@@ -136,15 +135,28 @@ fn prepare_evals_for_fft_unpacked<A: Copy + Send + Sync>(
     let log_block_size = log2_strict_usize(block_size);
     let out_len = block_size * dft_n_cols;
 
-    (0..out_len)
-        .into_par_iter()
-        .map(|i| {
-            let block_index = i % dft_n_cols;
-            let offset_in_block = i / dft_n_cols;
-            let src_index = ((block_index << log_block_size) + offset_in_block) >> log_inv_rate;
-            unsafe { *evals.get_unchecked(src_index) }
-        })
-        .collect()
+    let mut out: Vec<A> = unsafe { uninitialized_vec(out_len) };
+    if block_size == 0 || dft_n_cols == 0 {
+        return out;
+    }
+
+    let rows_per_band = ((system_info::L1_CACHE_SIZE / 2) / (dft_n_cols * size_of::<A>())).clamp(1, block_size);
+    let band_len = rows_per_band * dft_n_cols;
+
+    parallel::par_chunks_mut(&mut out, band_len, |band_idx, band| {
+        let row0 = band_idx * rows_per_band;
+        let n_rows = band.len() / dft_n_cols;
+        for col in 0..dft_n_cols {
+            let col_base = col << log_block_size;
+            for r in 0..n_rows {
+                let src = (col_base + row0 + r) >> log_inv_rate;
+                unsafe {
+                    *band.get_unchecked_mut(r * dft_n_cols + col) = *evals.get_unchecked(src);
+                }
+            }
+        }
+    });
+    out
 }
 
 fn prepare_evals_for_fft_packed_extension<EF: ExtensionField<PF<EF>>>(
@@ -158,25 +170,38 @@ fn prepare_evals_for_fft_packed_extension<EF: ExtensionField<PF<EF>>>(
     let full_len = evals.len() << (log_inv_rate + log_packing);
     let block_size = full_len / n_blocks;
     let log_block_size = log2_strict_usize(block_size);
-    let n_blocks_mask = n_blocks - 1;
     let packing_mask = (1 << log_packing) - 1;
 
-    (0..full_len)
-        .into_par_iter()
-        .map(|i| {
-            let block_index = i & n_blocks_mask;
-            let offset_in_block = i >> folding_factor;
-            let src_index = ((block_index << log_block_size) + offset_in_block) >> log_inv_rate;
-            let packed_src_index = src_index >> log_packing;
-            let offset_in_packing = src_index & packing_mask;
-            let packed = unsafe { evals.get_unchecked(packed_src_index) };
-            let unpacked: &[PFPacking<EF>] = packed.as_basis_coefficients_slice();
-            EF::from_basis_coefficients_fn(|i| unsafe {
-                let u: &PFPacking<EF> = unpacked.get_unchecked(i);
-                *u.as_slice().get_unchecked(offset_in_packing)
-            })
-        })
-        .collect()
+    let mut out: Vec<EF> = unsafe { uninitialized_vec(full_len) };
+    if block_size == 0 || n_blocks == 0 {
+        return out;
+    }
+
+    let rows_per_band = ((system_info::L1_CACHE_SIZE / 2) / (n_blocks * size_of::<EF>())).clamp(1, block_size);
+    let band_len = rows_per_band * n_blocks;
+
+    parallel::par_chunks_mut(&mut out, band_len, |band_idx, band| {
+        let row0 = band_idx * rows_per_band;
+        let n_rows = band.len() / n_blocks;
+        for col in 0..n_blocks {
+            let col_base = col << log_block_size;
+            for r in 0..n_rows {
+                let src_index = (col_base + row0 + r) >> log_inv_rate;
+                let packed_src_index = src_index >> log_packing;
+                let offset_in_packing = src_index & packing_mask;
+                let packed = unsafe { evals.get_unchecked(packed_src_index) };
+                let unpacked: &[PFPacking<EF>] = packed.as_basis_coefficients_slice();
+                let val = EF::from_basis_coefficients_fn(|j| unsafe {
+                    let u: &PFPacking<EF> = unpacked.get_unchecked(j);
+                    *u.as_slice().get_unchecked(offset_in_packing)
+                });
+                unsafe {
+                    *band.get_unchecked_mut(r * n_blocks + col) = val;
+                }
+            }
+        }
+    });
+    out
 }
 
 type CacheKey = TypeId;

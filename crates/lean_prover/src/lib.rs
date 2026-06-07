@@ -2,17 +2,12 @@
 
 use std::fmt::Display;
 
-use backend::*;
-use lean_vm::{
-    Bytecode, EF, F, MAX_WHIR_LOG_INV_RATE, MIN_LOG_N_ROWS_PER_TABLE, MIN_WHIR_LOG_INV_RATE, RunnerError, Table, TableT,
-};
-use utils::*;
-
-mod trace_gen;
-
 pub mod prove_execution;
+mod trace_gen;
 pub mod verify_execution;
 
+use backend::*;
+use lean_vm::*;
 #[cfg(test)]
 mod test_zkvm;
 
@@ -95,10 +90,9 @@ impl Display for ProverError {
 
 #[cfg(test)]
 mod tests {
-    use backend::{PrimeCharacteristicRing, default_koalabear_poseidon1_16, hash_slice_rtl};
+    use backend::{PrimeCharacteristicRing, default_koalabear_poseidon1_16, hash_slice_rtl, poseidon16_compress_pair};
     use lean_vm::F;
     use rec_aggregation::{get_aggregation_bytecode, init_aggregation_bytecode};
-    use utils::poseidon16_compress_pair;
 
     #[test]
     fn compute_snark_domain_sep() {

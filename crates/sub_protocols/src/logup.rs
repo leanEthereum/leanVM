@@ -1,10 +1,10 @@
 use crate::{ENDIANNESS_PIVOT_GKR, prove_gkr_quotient, verify_gkr_quotient};
+use backend::ansi::Colorize;
 use backend::*;
 use lean_vm::*;
+use parallel::par_fill;
 use std::collections::BTreeMap;
 use tracing::instrument;
-use utils::ansi::Colorize;
-use utils::*;
 
 #[derive(Debug, PartialEq, Hash, Clone)]
 pub struct GenericLogupStatements {
@@ -72,15 +72,13 @@ pub fn prove_generic_logup(
     };
 
     let fill_num_from = |dst: &mut [F], src: &[F], neg: bool| {
-        dst.par_chunks_exact_mut(chunk_size)
-            .enumerate()
-            .for_each(|(c, dst_chunk)| {
-                let src_chunk = &src[c * chunk_size..][..chunk_size];
-                for (i, slot) in dst_chunk.iter_mut().enumerate() {
-                    let v = src_chunk[i.reverse_bits() >> chunk_shift];
-                    *slot = if neg { -v } else { v };
-                }
-            });
+        parallel::par_chunks_mut(dst, chunk_size, |c, dst_chunk| {
+            let src_chunk = &src[c * chunk_size..][..chunk_size];
+            for (i, slot) in dst_chunk.iter_mut().enumerate() {
+                let v = src_chunk[i.reverse_bits() >> chunk_shift];
+                *slot = if neg { -v } else { v };
+            }
+        });
     };
 
     let mut offset = 0;
@@ -88,7 +86,7 @@ pub fn prove_generic_logup(
     // Memory section.
     assert_eq!(memory.len(), memory_acc.len());
     fill_num_from(&mut numerators[offset..][..memory.len()], memory_acc, true);
-    fill_denoms(&mut denominators[offset / width..][..memory.len() / width], |p| {
+    par_fill(&mut denominators[offset / width..][..memory.len() / width], |p| {
         c_packed
             - finger_print_packed::<EF>(
                 memory_domainsep_packed,
@@ -105,7 +103,7 @@ pub fn prove_generic_logup(
     assert_eq!(1 << log_bytecode, bytecode_acc.len());
     fill_num_from(&mut numerators[offset..][..bytecode_acc.len()], bytecode_acc, true);
     let bytecode_stride = N_INSTRUCTION_COLUMNS.next_power_of_two();
-    fill_denoms(
+    par_fill(
         &mut denominators[offset / width..][..(1 << log_bytecode) / width],
         |p| {
             let mut data = [PFPacking::<EF>::ZERO; N_INSTRUCTION_COLUMNS + 1];
@@ -118,12 +116,14 @@ pub fn prove_generic_logup(
     );
     if 1 << log_bytecode < max_table_height {
         // padding
-        numerators[offset + (1 << log_bytecode)..offset + max_table_height]
-            .par_iter_mut()
-            .for_each(|n| *n = F::ZERO);
-        denominators[(offset + (1 << log_bytecode)) / width..(offset + max_table_height) / width]
-            .par_iter_mut()
-            .for_each(|d| *d = EFPacking::<EF>::ONE);
+        par_fill(
+            &mut numerators[offset + (1 << log_bytecode)..offset + max_table_height],
+            |_| F::ZERO,
+        );
+        par_fill(
+            &mut denominators[(offset + (1 << log_bytecode)) / width..(offset + max_table_height) / width],
+            |_| EFPacking::<EF>::ONE,
+        );
     }
     offset += max_table_height.max(1 << log_bytecode);
 
@@ -142,17 +142,15 @@ pub fn prove_generic_logup(
                 let col_index = &trace.columns[group.idx_col];
                 let packed_chunk_size = (1 << log_n_rows) / width;
 
-                numerators[offset..][..group_len << log_n_rows]
-                    .par_iter_mut()
-                    .for_each(|n| *n = F::ONE);
+                par_fill(&mut numerators[offset..][..group_len << log_n_rows], |_| F::ONE);
 
-                denominators[offset / width..][..group_len * packed_chunk_size]
-                    .par_chunks_exact_mut(packed_chunk_size)
-                    .enumerate()
-                    .for_each(|(i, denom_chunk)| {
+                parallel::par_chunks_mut(
+                    &mut denominators[offset / width..][..group_len * packed_chunk_size],
+                    packed_chunk_size,
+                    |i, denom_chunk| {
                         let i_field = F::from_usize(i);
                         let col_value = &trace.columns[group.value_cols[i]];
-                        denom_chunk.par_iter_mut().enumerate().for_each(|(p, slot)| {
+                        for (p, slot) in denom_chunk.iter_mut().enumerate() {
                             *slot = c_packed
                                 - finger_print_packed::<EF>(
                                     memory_domainsep_packed,
@@ -162,8 +160,9 @@ pub fn prove_generic_logup(
                                     ],
                                     &alphas_packed,
                                 );
-                        });
-                    });
+                        }
+                    },
+                );
                 offset += group_len << log_n_rows;
                 bus_idx += group_len;
                 next_group += 1;
@@ -175,7 +174,7 @@ pub fn prove_generic_logup(
             match bus.multiplicity {
                 BusMultiplicity::One => {
                     let val = bus.direction.to_field_flag();
-                    slice.par_iter_mut().for_each(|n| *n = val);
+                    par_fill(slice, |_| val);
                 }
                 BusMultiplicity::Column(col) => {
                     fill_num_from(slice, &trace.columns[col], matches!(bus.direction, BusDirection::Pull));
@@ -204,7 +203,7 @@ pub fn prove_generic_logup(
                 _ => PFPacking::<EF>::ZERO,
             };
 
-            fill_denoms(denom_slot, |p| {
+            par_fill(denom_slot, |p| {
                 let mut data_buf = [PFPacking::<EF>::ZERO; MAX_BUS_WIDTH];
                 for k in 0..n_data {
                     let col = data_cols[k];
@@ -525,12 +524,4 @@ fn compute_total_active_len(
             .iter()
             .map(|(table, log_n_rows)| offset_for_table(table, *log_n_rows))
             .sum::<usize>()
-}
-
-#[inline]
-fn fill_denoms<Build>(dst: &mut [EFPacking<EF>], build: Build)
-where
-    Build: Fn(usize) -> EFPacking<EF> + Sync,
-{
-    dst.par_iter_mut().enumerate().for_each(|(p, slot)| *slot = build(p));
 }

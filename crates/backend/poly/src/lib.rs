@@ -23,3 +23,6 @@ pub use evals::*;
 
 mod wrappers;
 pub use wrappers::*;
+
+mod multilinear_utils;
+pub use multilinear_utils::*;

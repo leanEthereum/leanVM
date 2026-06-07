@@ -9,7 +9,6 @@ use core::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAss
 use core::{array, slice};
 
 use num_bigint::BigUint;
-use rayon::{current_num_threads, prelude::*};
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use utils::{flatten_to_base, iter_array_chunks_padded};
@@ -1020,7 +1019,7 @@ impl<F: Field> BoundedPowers<F> {
         let mut points_packed = F::Packing::zero_vec(num_packed);
 
         // Split computation evenly among threads
-        let num_threads = current_num_threads().max(1);
+        let num_threads = parallel::num_threads().max(1);
         let chunk_size = num_packed.div_ceil(num_threads);
 
         // Precompute base for each chunk.
@@ -1028,16 +1027,13 @@ impl<F: Field> BoundedPowers<F> {
         let chunk_base = base.exp_u64((chunk_size * width) as u64);
         let shift = self.iter.current;
 
-        points_packed
-            .par_chunks_mut(chunk_size)
-            .enumerate()
-            .for_each(|(chunk_idx, chunk_slice)| {
-                // First power in this chunk
-                let chunk_start = shift * chunk_base.exp_u64(chunk_idx as u64);
+        parallel::par_chunks_mut(&mut points_packed, chunk_size, |chunk_idx, chunk_slice| {
+            // First power in this chunk
+            let chunk_start = shift * chunk_base.exp_u64(chunk_idx as u64);
 
-                // Fill the chunk with packed powers.
-                F::Packing::packed_shifted_powers(base, chunk_start).fill(chunk_slice);
-            });
+            // Fill the chunk with packed powers.
+            F::Packing::packed_shifted_powers(base, chunk_start).fill(chunk_slice);
+        });
 
         // return the number of requested points, discarding the unused packed powers
         // SAFETY: size_of::<F::Packing> always divides size_of::<F::Packing>.

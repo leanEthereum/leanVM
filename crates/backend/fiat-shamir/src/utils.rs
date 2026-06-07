@@ -1,7 +1,8 @@
 use field::{BasedVectorSpace, ExtensionField, Field, PrimeCharacteristicRing, PrimeField64};
 use koala_bear::symmetric::Permutation;
+use symetric::{RATE, WIDTH};
 
-use crate::challenger::{Challenger, RATE, WIDTH};
+use crate::challenger::Challenger;
 
 pub(crate) type PF<F> = <F as PrimeCharacteristicRing>::PrimeSubfield;
 

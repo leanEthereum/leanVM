@@ -9,7 +9,6 @@ workspace = true
 [dependencies]
 pest.workspace = true
 pest_derive.workspace = true
-utils.workspace = true
 xmss.workspace = true
 rand.workspace = true
 

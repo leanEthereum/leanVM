@@ -83,6 +83,8 @@ impl<Data: Clone, F: Clone> MerklePaths<Data, F> {
     }
 }
 
+const MAX_MERKLE_PATHS: usize = 1 << 10;
+
 impl<Data: Clone, F: Clone> PrunedMerklePaths<Data, F> {
     pub fn restore(
         mut self,
@@ -97,6 +99,9 @@ impl<Data: Clone, F: Clone> PrunedMerklePaths<Data, F> {
 
         if h >= 32 {
             return None; // prevent DoS with huge tree height
+        }
+        if n > MAX_MERKLE_PATHS {
+            return None; // prevent DoS with huge number of paths
         }
         if self.n_trailing_zeros > 1024 {
             return None; // prevent DoS with huge leaf data
@@ -117,8 +122,8 @@ impl<Data: Clone, F: Clone> PrunedMerklePaths<Data, F> {
         };
         let skip = |i: usize| self.paths.get(i + 1).map(|p| lca_level(self.paths[i].0, p.0) - 1);
 
-        // Backward pass: compute subtree hashes needed to restore skipped siblings
-        let mut subtree_hashes: Vec<Vec<[F; DIGEST_LEN_FE]>> = vec![vec![]; n];
+        // Backward pass: each path donates one subtree hash (the sibling its predecessor omitted).
+        let mut donated: Vec<Option<[F; DIGEST_LEN_FE]>> = vec![None; n];
 
         for i in (0..n).rev() {
             let (leaf_idx, ref stored) = self.paths[i];
@@ -128,10 +133,12 @@ impl<Data: Clone, F: Clone> PrunedMerklePaths<Data, F> {
             let mut stored = stored.iter();
             let mut hash = hash_leaf(self.leaf_data.get(i)?);
 
-            subtree_hashes[i].push(hash.clone());
             for lvl in 0..levels(i) {
+                if lvl + 1 == levels(i) {
+                    donated[i] = Some(hash.clone()); // top level kept: this is predecessor i-1's missing sibling
+                }
                 let sibling = if skip(i) == Some(lvl) {
-                    subtree_hashes.get(i + 1)?.get(lvl)?.clone()
+                    donated[i + 1].clone()? // contributed by successor path i+1
                 } else {
                     stored.next()?.clone()
                 };
@@ -140,7 +147,6 @@ impl<Data: Clone, F: Clone> PrunedMerklePaths<Data, F> {
                 } else {
                     hash_combine(&sibling, &hash)
                 };
-                subtree_hashes[i].push(hash.clone());
             }
             if stored.next().is_some() {
                 return None;
@@ -157,7 +163,7 @@ impl<Data: Clone, F: Clone> PrunedMerklePaths<Data, F> {
             let mut siblings = Vec::with_capacity(h);
             for lvl in 0..levels(i) {
                 let sibling = if skip(i) == Some(lvl) {
-                    subtree_hashes.get(i + 1)?.get(lvl)?.clone()
+                    donated[i + 1].clone()? // contributed by successor path i+1
                 } else {
                     stored.next()?.clone()
                 };

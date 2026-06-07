@@ -12,4 +12,11 @@ mod compression;
 pub use compression::*;
 
 pub mod merkle;
-pub use merkle::DIGEST_ELEMS;
+
+mod poseidon_utils;
+pub use poseidon_utils::*;
+
+pub const DIGEST_ELEMS: usize = 8;
+pub const RATE: usize = 8;
+pub const WIDTH: usize = RATE * 2;
+pub const CAPACITY: usize = WIDTH - RATE;

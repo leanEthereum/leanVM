@@ -256,8 +256,8 @@ pub(super) fn run_phase1_sumcheck<'a, EF: ExtensionField<PF<EF>>>(
     if let Some(prev_r) = pending_r {
         let prev_bit = layer_chunk_log - 1 - w;
         let mul = |x: EFPacking<EF>, a: EF| x * a;
-        nums = Cow::Owned(fold_multilinear_at_bit(nums.as_ref(), prev_r, prev_bit, &mul));
-        dens = Cow::Owned(fold_multilinear_at_bit(dens.as_ref(), prev_r, prev_bit, &mul));
+        nums = Cow::Owned(fold_multilinear_at_bit(nums.as_ref(), prev_r, prev_bit, &mul, false));
+        dens = Cow::Owned(fold_multilinear_at_bit(dens.as_ref(), prev_r, prev_bit, &mul, false));
     }
 
     let nums_nat = unpack_and_unreverse_active::<EF>(nums.as_ref(), layer_chunk_log);
@@ -329,10 +329,7 @@ pub(super) fn run_phase2_sumcheck<EF: ExtensionField<PF<EF>>>(
         };
 
         let acc: RoundCoeffs<EF> = if active_pairs > PARALLEL_THRESHOLD {
-            (0..active_pairs)
-                .into_par_iter()
-                .map(term)
-                .reduce(RoundCoeffs::zero, Add::add)
+            parallel::map_reduce(active_pairs, RoundCoeffs::zero, term, Add::add)
         } else {
             (0..active_pairs).map(term).fold(RoundCoeffs::<EF>::zero(), Add::add)
         };
@@ -363,7 +360,7 @@ pub(super) fn run_phase2_sumcheck<EF: ExtensionField<PF<EF>>>(
         if new_eq_len > 0 {
             let fold_eq = |i: usize| eq_table[2 * i] + eq_table[2 * i + 1];
             eq_table = if new_eq_len >= PARALLEL_THRESHOLD {
-                (0..new_eq_len).into_par_iter().map(fold_eq).collect()
+                parallel::par_map_collect(new_eq_len, fold_eq)
             } else {
                 (0..new_eq_len).map(fold_eq).collect()
             };
@@ -382,21 +379,18 @@ fn fold_normal_with_padding<EF: ExtensionField<PF<EF>>>(m: &[EF], r: EF, pad_val
     let active = m.len();
     let new_active = active.div_ceil(2);
     assert!(new_active != 0);
-    let mut out = unsafe { uninitialized_vec(new_active) };
+    let mut out: Vec<EF> = unsafe { uninitialized_vec(new_active) };
 
-    let compute = |(i, slot): (usize, &mut EF)| {
+    let compute = |i: usize, slot: &mut EF| {
         let a = m[2 * i];
         let b = if 2 * i + 1 < active { m[2 * i + 1] } else { pad_value };
         *slot = a + (b - a) * r;
     };
 
     if new_active < PARALLEL_THRESHOLD {
-        out.iter_mut().enumerate().for_each(compute);
+        out.iter_mut().enumerate().for_each(|(i, slot)| compute(i, slot));
     } else {
-        out.par_iter_mut()
-            .with_min_len(PARALLEL_THRESHOLD)
-            .enumerate()
-            .for_each(compute);
+        parallel::par_for_each_mut(&mut out, compute);
     }
     out
 }
@@ -421,10 +415,13 @@ where
     debug_assert_eq!(dens.len(), nums.len());
     debug_assert_eq!(eq_within.len(), quarter);
 
-    nums.par_chunks_exact(layer_packed)
-        .zip(dens.par_chunks_exact(layer_packed))
-        .enumerate()
-        .fold(RoundCoeffs::zero, |mut acc, (c, (n_c, d_c))| {
+    let n_chunks = nums.len() / layer_packed;
+    parallel::map_reduce(
+        n_chunks,
+        RoundCoeffs::zero,
+        |c| {
+            let n_c = &nums[c * layer_packed..][..layer_packed];
+            let d_c = &dens[c * layer_packed..][..layer_packed];
             let eq_o: EF = eq_outer.get(c).copied().unwrap_or(EF::ONE);
             let mut local = RoundCoeffs::<EFPacking<EF>>::zero();
             for inner in 0..quarter {
@@ -436,10 +433,10 @@ where
                 );
                 local += coeffs * eq_within[inner];
             }
-            acc += local * eq_o;
-            acc
-        })
-        .reduce(RoundCoeffs::zero, Add::add)
+            local * eq_o
+        },
+        Add::add,
+    )
 }
 
 #[allow(clippy::type_complexity)]
@@ -473,13 +470,17 @@ where
     let mut new_dens: Vec<EFPacking<EF>> = unsafe { uninitialized_vec(active_out_packed) };
     let prev_r_packed: EFPacking<EF> = <EFPacking<EF> as From<EF>>::from(prev_r);
 
-    let coeffs = nums
-        .par_chunks_exact(in_packed)
-        .zip(dens.par_chunks_exact(in_packed))
-        .zip(new_nums.par_chunks_exact_mut(out_packed))
-        .zip(new_dens.par_chunks_exact_mut(out_packed))
-        .enumerate()
-        .fold(RoundCoeffs::zero, |mut acc, (c, (((n_c, d_c), nn_c), nd_c))| {
+    let n_chunks = nums.len() / in_packed;
+    let nn = parallel::SendPtr(new_nums.as_mut_ptr());
+    let nd = parallel::SendPtr(new_dens.as_mut_ptr());
+    let coeffs = parallel::map_reduce(
+        n_chunks,
+        RoundCoeffs::zero,
+        |c| {
+            let n_c = &nums[c * in_packed..][..in_packed];
+            let d_c = &dens[c * in_packed..][..in_packed];
+            let nn_c = unsafe { nn.slice(c * out_packed, out_packed) };
+            let nd_c = unsafe { nd.slice(c * out_packed, out_packed) };
             let eq_o: EF = eq_outer.get(c).copied().unwrap_or(EF::ONE);
             let mut local = RoundCoeffs::<EFPacking<EF>>::zero();
             for i in 0..in_eighth {
@@ -500,10 +501,10 @@ where
                 );
                 local += round * eq_within[i];
             }
-            acc += local * eq_o;
-            acc
-        })
-        .reduce(RoundCoeffs::zero, Add::add);
+            local * eq_o
+        },
+        Add::add,
+    );
 
     (new_nums, new_dens, coeffs)
 }

@@ -4,7 +4,6 @@ use lean_prover::fiat_shamir_domain_sep;
 use lean_prover::prove_execution::{ExecutionProof, prove_execution};
 use lean_vm::*;
 use tracing::instrument;
-use utils::poseidon_hash_slice;
 use xmss::CHAIN_LENGTH;
 use xmss::make_tweak;
 use xmss::{

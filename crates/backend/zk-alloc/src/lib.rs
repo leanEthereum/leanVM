@@ -7,7 +7,6 @@
 //! back to the system allocator.
 //!
 //! ```ignore
-//! init();                          // once, at process start
 //! loop {
 //!     begin_phase();               // arena ON; slabs reset lazily
 //!     let res = heavy_work();      // fast increments
@@ -88,15 +87,6 @@ fn ensure_region() -> usize {
     REGION_BASE.load(Ordering::Acquire)
 }
 
-/// Call once at process start, before any `begin_phase()`.
-pub fn init() {
-    let actual_num_threads = std::thread::available_parallelism().unwrap().get();
-    assert_eq!(
-        actual_num_threads, NUM_THREADS,
-        "built for {NUM_THREADS} threads but this machine reports {actual_num_threads} -> please rebuild`"
-    );
-}
-
 /// Activates the arena and resets every thread's slab. All allocations until the next
 /// `end_phase()` go to the arena; the previous phase's data is overwritten in place.
 pub fn begin_phase() {
@@ -110,12 +100,8 @@ pub fn begin_phase() {
 
 /// Deactivates the arena. New allocations go to the system allocator; existing arena
 /// pointers stay valid until the next `begin_phase()` resets the slabs.
-///
-/// Also calls [`system_info::flush_rayon`] to release any rayon/crossbeam storage
-/// still referencing this phase's arena memory.
 pub fn end_phase() {
     ARENA_ACTIVE.store(false, Ordering::Release);
-    system_info::flush_rayon();
 }
 
 #[cold]

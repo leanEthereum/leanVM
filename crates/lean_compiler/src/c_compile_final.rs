@@ -2,7 +2,6 @@ use crate::{F, instruction_encoder::field_representation, ir::*, lang::*};
 use backend::*;
 use lean_vm::*;
 use std::collections::BTreeMap;
-use utils::{ToUsize, poseidon_hash_slice};
 
 impl IntermediateInstruction {
     const fn is_hint(&self) -> bool {
@@ -132,7 +131,8 @@ pub fn compile_to_low_level_bytecode(
         validate_instruction(instruction)?;
     }
 
-    let instructions_encoded = instructions.par_iter().map(field_representation).collect::<Vec<_>>();
+    let instructions_encoded: Vec<[F; N_INSTRUCTION_COLUMNS]> =
+        parallel::par_map_collect(instructions.len(), |i| field_representation(&instructions[i]));
 
     let mut instructions_multilinear = vec![];
     for instr in &instructions_encoded {

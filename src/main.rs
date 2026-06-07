@@ -52,6 +52,7 @@ enum Cli {
 }
 
 fn run_with_warmup(topology: &AggregationTopology, tracing: bool, json: bool, repeat: usize) {
+    lean_multisig::setup_prover();
     let warmup = biggest_leaf(topology).unwrap();
     eprint!("warming up... ");
     let _ = run_aggregation_benchmark(&warmup, false, true, 1);
@@ -67,9 +68,6 @@ fn run_with_warmup(topology: &AggregationTopology, tracing: bool, json: bool, re
 
 #[allow(clippy::too_many_lines)]
 fn main() {
-    #[cfg(not(feature = "standard-alloc"))]
-    zk_alloc::init();
-
     let cli = Cli::parse();
 
     match cli {

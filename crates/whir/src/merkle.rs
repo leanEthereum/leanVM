@@ -12,7 +12,6 @@ use field::PrimeCharacteristicRing;
 use koala_bear::{KoalaBear, QuinticExtensionFieldKB, default_koalabear_poseidon1_16};
 use poly::*;
 
-use rayon::prelude::*;
 use symetric::merkle::unpack_array;
 use tracing::instrument;
 use utils::log2_ceil_usize;
@@ -194,22 +193,19 @@ where
 
     let mut digests = unsafe { uninitialized_vec(height) };
 
-    digests
-        .par_chunks_exact_mut(width)
-        .enumerate()
-        .for_each(|(i, digests_chunk)| {
-            let first_row = i * width;
-            let rtl_iter = matrix.vertically_packed_row_rtl::<P>(first_row, effective_base_width, n_pad);
-            let packed_digest: [P; DIGEST_ELEMS] =
-                symetric::hash_rtl_iter_with_initial_state::<_, _, _, WIDTH, RATE, DIGEST_ELEMS>(
-                    perm,
-                    rtl_iter,
-                    packed_initial_state,
-                );
-            for (dst, src) in digests_chunk.iter_mut().zip(unpack_array(packed_digest)) {
-                *dst = src;
-            }
-        });
+    parallel::par_chunks_mut(&mut digests, width, |i, digests_chunk| {
+        let first_row = i * width;
+        let rtl_iter = matrix.vertically_packed_row_rtl::<P>(first_row, effective_base_width, n_pad);
+        let packed_digest: [P; DIGEST_ELEMS] =
+            symetric::hash_rtl_iter_with_initial_state::<_, _, _, WIDTH, RATE, DIGEST_ELEMS>(
+                perm,
+                rtl_iter,
+                packed_initial_state,
+            );
+        for (dst, src) in digests_chunk.iter_mut().zip(unpack_array(packed_digest)) {
+            *dst = src;
+        }
+    });
 
     digests
 }

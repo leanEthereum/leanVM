@@ -9,7 +9,6 @@ use std::collections::HashMap;
 use std::fmt::Debug;
 use std::fmt::{Display, Formatter};
 use std::hash::Hash;
-use utils::ToUsize;
 
 /// VM hints provide execution guidance and debugging information, but does not appear
 /// in the verified bytecode.

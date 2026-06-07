@@ -5,10 +5,9 @@ edition.workspace = true
 
 [dependencies]
 field = { path = "../field", package = "mt-field" }
-utils = { path = "../utils", package = "mt-utils" }
+utils = { path = "../utils", package = "utils" }
 
 rand.workspace = true
-rayon.workspace = true
 serde.workspace = true
 itertools.workspace = true
 tracing.workspace = true

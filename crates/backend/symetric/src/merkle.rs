@@ -4,11 +4,8 @@
 use std::array;
 
 use field::PackedValue;
-use rayon::prelude::*;
 
 use crate::Compression;
-
-pub const DIGEST_ELEMS: usize = 8;
 
 /// A Merkle tree storing only the digest layers (no leaf data).
 #[derive(Debug, Clone)]
@@ -67,18 +64,18 @@ where
     let default_digest = [P::Value::default(); DIGEST_ELEMS];
     let mut next_digests = vec![default_digest; next_len_padded];
 
-    next_digests[0..next_len]
-        .par_chunks_exact_mut(width)
-        .enumerate()
-        .for_each(|(i, digests_chunk)| {
-            let first_row = i * width;
-            let left = array::from_fn(|j| P::from_fn(|k| prev_layer[2 * (first_row + k)][j]));
-            let right = array::from_fn(|j| P::from_fn(|k| prev_layer[2 * (first_row + k) + 1][j]));
-            let packed_digest = crate::compress(comp, [left, right]);
-            for (dst, src) in digests_chunk.iter_mut().zip(unpack_array(packed_digest)) {
-                *dst = src;
-            }
-        });
+    // Process only the full packed chunks in parallel (matches `par_chunks_exact_mut`);
+    // the `< width` remainder is handled by the sequential tail loop below.
+    let n_full = next_len / width * width;
+    parallel::par_chunks_mut(&mut next_digests[0..n_full], width, |i, digests_chunk| {
+        let first_row = i * width;
+        let left = array::from_fn(|j| P::from_fn(|k| prev_layer[2 * (first_row + k)][j]));
+        let right = array::from_fn(|j| P::from_fn(|k| prev_layer[2 * (first_row + k) + 1][j]));
+        let packed_digest = crate::compress(comp, [left, right]);
+        for (dst, src) in digests_chunk.iter_mut().zip(unpack_array(packed_digest)) {
+            *dst = src;
+        }
+    });
 
     for i in (next_len / width * width)..next_len {
         let left = prev_layer[2 * i];

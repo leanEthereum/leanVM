@@ -5,7 +5,6 @@ use fiat_shamir::{FSProver, MerklePath, ProofResult};
 use field::PrimeCharacteristicRing;
 use field::{ExtensionField, Field, TwoAdicField};
 use poly::*;
-use rayon::prelude::*;
 use sumcheck::{ProductComputation, run_product_sumcheck, sumcheck_prove_many_rounds};
 use tracing::{info_span, instrument};
 
@@ -594,20 +593,26 @@ where
             for (e, &scalar) in smt.values.iter().zip(&next_gamma_powers) {
                 combined_sum += e.value * scalar;
             }
-            chunks_mut
-                .into_par_iter()
+            let n = 1usize << shift;
+            let mask = n - 1;
+            let ptrs: Vec<(parallel::SendPtr<EFPacking<EF>>, EF)> = chunks_mut
+                .iter_mut()
                 .zip(&indexed_smt_values)
-                .for_each(|(out_buff, &(origin_index, _))| {
-                    out_buff[..1 << shift]
-                        .par_iter_mut()
-                        .zip(&inner_poly)
-                        .for_each(|(out_elem, &poly_elem)| {
-                            *out_elem += poly_elem * next_gamma_powers[origin_index];
-                        });
-                });
+                .map(|(out_buff, &(origin_index, _))| {
+                    (
+                        parallel::SendPtr(out_buff.as_mut_ptr()),
+                        next_gamma_powers[origin_index],
+                    )
+                })
+                .collect();
+            let inner = inner_poly.as_slice();
+            parallel::for_each_index(ptrs.len() << shift, |flat| {
+                let (ptr, scalar) = &ptrs[flat >> shift];
+                let i = flat & mask;
+                unsafe { *ptr.add(i) += inner[i] * *scalar };
+            });
             gamma_pow = *next_gamma_powers.last().unwrap() * gamma;
         }
     }
-
     (combined_weights, combined_sum)
 }

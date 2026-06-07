@@ -259,6 +259,7 @@ def do_4_merkle_levels(b, state_in, state_out, public_param, merkle_tweaks_chunk
 
 @inline
 def xmss_merkle_verify(leaf_digest, merkle_chunks, expected_root, public_param, merkle_tweaks):
+    # merkle_chunks need no `< 16` check: the verifier rebuilds them as nibbles from the slot, bound via hash(input_data).
     states_alloc = Array(DIM * N_MERKLE_CHUNKS)
     states = states_alloc + 1
 
