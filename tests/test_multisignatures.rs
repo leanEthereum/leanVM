@@ -1,4 +1,4 @@
-use std::sync::{Mutex, MutexGuard, PoisonError};
+use std::sync::{Mutex, MutexGuard};
 use std::time::Instant;
 
 use lean_multisig::{
@@ -19,7 +19,7 @@ use xmss::{
 static ARENA_TEST_LOCK: Mutex<()> = Mutex::new(());
 
 fn serialize_arena_tests() -> MutexGuard<'static, ()> {
-    ARENA_TEST_LOCK.lock().unwrap_or_else(PoisonError::into_inner)
+    ARENA_TEST_LOCK.lock().unwrap()
 }
 
 #[test]

@@ -12,7 +12,6 @@ prox-gaps-conjecture = ["lean_prover/prox-gaps-conjecture"]
 [dependencies]
 xmss.workspace = true
 rand.workspace = true
-zk-alloc.workspace = true
 
 tracing.workspace = true
 include_dir.workspace = true

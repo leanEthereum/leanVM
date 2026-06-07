@@ -4,7 +4,7 @@
 //! phase and falls back to the system allocator outside one. `Deref<Target = [T]>` lets it drop
 //! into slice-based APIs unchanged.
 
-pub use zk_alloc::ArenaVec;
+pub use zk_alloc::{ArenaVec, PhaseGuard, enter_phase};
 
 // Construct empty / pre-sized arena vectors with the inherent `ArenaVec::new()` and
 // `ArenaVec::with_capacity()`. The helpers below cover the cases with no inherent equivalent

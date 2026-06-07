@@ -123,6 +123,25 @@ pub fn end_phase() {
     ARENA_ACTIVE.store(false, Ordering::Release);
 }
 
+/// Guard returned by [`enter_phase`]; calls [`end_phase`] when dropped.
+#[derive(Debug)]
+pub struct PhaseGuard(());
+
+impl Drop for PhaseGuard {
+    fn drop(&mut self) {
+        end_phase();
+    }
+}
+
+/// Open a proving phase ([`begin_phase`]) and return a guard that closes it ([`end_phase`]) on drop —
+/// including on early return or panic, which hand-pairing the two calls does not guarantee. Phases
+/// must not nest, so hold one guard at a time. No-op until [`enable_arena`].
+#[must_use = "the phase ends the moment the guard is dropped"]
+pub fn enter_phase() -> PhaseGuard {
+    begin_phase();
+    PhaseGuard(())
+}
+
 #[cold]
 #[inline(never)]
 unsafe fn arena_alloc_cold(size: usize, align: usize) -> *mut u8 {

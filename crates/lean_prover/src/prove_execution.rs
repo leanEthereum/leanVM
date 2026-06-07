@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 
 use crate::*;
 use backend::ansi::Colorize;
+use backend::enter_phase;
 use lean_vm::*;
 use serde::{Deserialize, Serialize};
 use sub_protocols::*;
@@ -22,6 +23,8 @@ pub fn prove_execution(
     whir_config: &WhirConfigBuilder,
     vm_profiler: bool,
 ) -> Result<ExecutionProof, ProverError> {
+    let _phase = enter_phase();
+
     check_rate(whir_config.starting_log_inv_rate).map_err(|_| ProverError::InvalidRate)?;
     let ExecutionTrace {
         traces,

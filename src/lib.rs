@@ -23,11 +23,3 @@ pub fn setup_prover() {
 pub fn setup_verifier() {
     rec_aggregation::init_aggregation_bytecode();
 }
-
-/// Explicit bump-arena allocator (never a `#[global_allocator]`).
-///
-/// [`setup_prover`] engages the arena, so it is on by default once the prover is set up; bracket each
-/// proving call with [`begin_phase`] / [`end_phase`]. `ArenaVec` buffers bump from the arena inside a
-/// phase and use the system allocator outside one; data that must outlive a phase needs the system
-/// allocator, since [`begin_phase`] resets the arena.
-pub use zk_alloc::{begin_phase, end_phase};

@@ -902,7 +902,6 @@ dependencies = [
  "sub_protocols",
  "tracing",
  "xmss",
- "zk-alloc",
 ]
 
 [[package]]
