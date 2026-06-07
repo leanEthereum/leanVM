@@ -348,7 +348,7 @@ pub fn compute_eval_eq_base_packed_batched<F, EF>(
         .map(|(eval, &scalar)| {
             let middle = &eval[n_prefix_levels..n - log_packing_width];
             let eq_suffix = packed_eq_poly::<F, F>(&eval[n - log_packing_width..], F::ONE);
-            let mut eq_prefix: Vec<EF> = unsafe { uninitialized_vec(1 << n_prefix_levels) };
+            let mut eq_prefix: ArenaVec<EF> = unsafe { ArenaVec::uninitialized(1 << n_prefix_levels) };
             eval_eq_basic::<F, F, EF, false>(&eval[..n_prefix_levels], &mut eq_prefix, scalar);
             (eq_prefix, middle, eq_suffix)
         })
