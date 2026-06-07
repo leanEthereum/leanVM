@@ -10,9 +10,11 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
 use system_info::NUM_THREADS;
 
+mod arena_cow;
 mod arena_vec;
 mod syscall;
 
+pub use arena_cow::ArenaCow;
 pub use arena_vec::{ArenaVec, OwnedBuffer};
 
 const SLAB_SIZE: usize = 8 << 30; // 8 GiB; per-thread soft cap, overflow falls back to System

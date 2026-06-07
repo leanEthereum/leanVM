@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use backend::*;
 use tracing::instrument;
 
@@ -41,8 +39,8 @@ pub fn prove_gkr_quotient<'a, EF: ExtensionField<PF<EF>>>(
     assert_eq!(nums_br.len(), dens_br.len());
 
     let initial = LayerStorage::Initial {
-        nums: Cow::Borrowed(nums_br),
-        dens: Cow::Borrowed(dens_br),
+        nums: ArenaCow::Borrowed(nums_br),
+        dens: ArenaCow::Borrowed(dens_br),
         chunk_log: pivot,
     };
 
