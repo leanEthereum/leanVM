@@ -564,7 +564,7 @@ mod tests {
             let evals = (0..(1 << n_vars)).map(|_| rng.random()).collect::<Vec<EF>>();
 
             let dft = EvalsDft::<F>::default();
-            let evals_dft = dft.dft_algebra_batch_by_evals(Matrix::new(poly::arena_from_slice(&evals), 1));
+            let evals_dft = dft.dft_algebra_batch_by_evals(Matrix::new(ArenaVec::from_slice(&evals), 1));
             let fft_values = evals_dft.values;
             for _ in 0..10 {
                 let i = rng.random_range(0..(1 << n_vars));

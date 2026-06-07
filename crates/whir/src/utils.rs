@@ -135,7 +135,7 @@ fn prepare_evals_for_fft_unpacked<A: Copy + Send + Sync>(
     let log_block_size = log2_strict_usize(block_size);
     let out_len = block_size * dft_n_cols;
 
-    let mut out: ArenaVec<A> = unsafe { uninitialized_arena_vec(out_len) };
+    let mut out: ArenaVec<A> = unsafe { ArenaVec::uninitialized(out_len) };
     if block_size == 0 || dft_n_cols == 0 {
         return out;
     }
@@ -172,7 +172,7 @@ fn prepare_evals_for_fft_packed_extension<EF: ExtensionField<PF<EF>>>(
     let log_block_size = log2_strict_usize(block_size);
     let packing_mask = (1 << log_packing) - 1;
 
-    let mut out: ArenaVec<EF> = unsafe { uninitialized_arena_vec(full_len) };
+    let mut out: ArenaVec<EF> = unsafe { ArenaVec::uninitialized(full_len) };
     if block_size == 0 || n_blocks == 0 {
         return out;
     }

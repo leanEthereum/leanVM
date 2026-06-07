@@ -19,7 +19,7 @@ pub fn get_execution_trace(
     let n_cycles = execution_result.pcs.len();
     let memory = &execution_result.memory;
     let mut main_trace: [ArenaVec<F>; N_TOTAL_EXECUTION_COLUMNS + N_TEMPORARY_EXEC_COLUMNS] =
-        array::from_fn(|_| arena_filled(F::ZERO, n_cycles.next_power_of_two()));
+        array::from_fn(|_| unsafe { ArenaVec::<F>::zeroed(n_cycles.next_power_of_two()) });
     for col in &mut main_trace {
         unsafe {
             col.set_len(n_cycles);
@@ -92,7 +92,7 @@ pub fn get_execution_trace(
         *trace_row[EXEC_COL_ADDR_C] = addr_c;
     });
 
-    let mut memory_padded: ArenaVec<F> = arena_par_collect(memory.0.len(), |i| memory.0[i].unwrap_or(F::ZERO));
+    let mut memory_padded: ArenaVec<F> = ArenaVec::par_collect(memory.0.len(), |i| memory.0[i].unwrap_or(F::ZERO));
 
     // Write [0000000000000000 | poseidon_compress(0000000000000000)] (to make lookups work on padding-rows).
     let padding_zero_vec_ptr = memory_padded.len();

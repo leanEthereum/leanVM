@@ -110,10 +110,10 @@ impl<'a, EF: ExtensionField<PF<EF>>> MleRef<'a, EF> {
 
     pub fn clone_to_owned(&self) -> MleOwned<EF> {
         match self {
-            Self::Base(v) => MleOwned::Base(arena_from_slice(v)),
-            Self::Extension(v) => MleOwned::Extension(arena_from_slice(v)),
-            Self::BasePacked(pb) => MleOwned::BasePacked(arena_from_slice(pb)),
-            Self::ExtensionPacked(ep) => MleOwned::ExtensionPacked(arena_from_slice(ep)),
+            Self::Base(v) => MleOwned::Base(ArenaVec::from_slice(v)),
+            Self::Extension(v) => MleOwned::Extension(ArenaVec::from_slice(v)),
+            Self::BasePacked(pb) => MleOwned::BasePacked(ArenaVec::from_slice(pb)),
+            Self::ExtensionPacked(ep) => MleOwned::ExtensionPacked(ArenaVec::from_slice(ep)),
         }
     }
 

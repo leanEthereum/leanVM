@@ -104,7 +104,7 @@ fn test_run_whir() {
 
     precompute_dft_twiddles::<F>(1 << F::TWO_ADICITY);
 
-    let polynomial: MleOwned<EF> = MleOwned::Base(arena_collect(polynomial));
+    let polynomial: MleOwned<EF> = MleOwned::Base(ArenaVec::from_iter(polynomial));
 
     let time = Instant::now();
     let witness = params.commit(&mut prover_state, &polynomial, num_coeffs);

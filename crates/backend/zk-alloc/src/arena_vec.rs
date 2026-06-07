@@ -61,6 +61,73 @@ impl<T> ArenaVec<T> {
         v
     }
 
+    /// Arena-backed `vec![value; n]`.
+    #[inline]
+    #[must_use]
+    pub fn filled(value: T, n: usize) -> Self
+    where
+        T: Clone,
+    {
+        let mut v = Self::with_capacity(n);
+        v.resize(n, value);
+        v
+    }
+
+    /// Arena-backed zero-initialized buffer of length `n`, zeroed with a single `write_bytes`
+    /// (`memset`) — far cheaper than [`filled`](Self::filled)'s element-wise clone loop.
+    ///
+    /// # Safety
+    /// `T`'s all-zero bit pattern must be a valid, fully-initialized value of `T` (true for the
+    /// Montgomery field types and their SIMD packings, whose `ZERO` is all-zero bytes).
+    #[inline]
+    #[must_use]
+    pub unsafe fn zeroed(n: usize) -> Self {
+        // SAFETY: every slot is initialized by the `write_bytes` below before it can be read.
+        let mut v = unsafe { Self::uninitialized(n) };
+        // SAFETY: `v` owns `n` allocated slots; caller guarantees all-zero is a valid `T`.
+        unsafe { ptr::write_bytes(v.as_mut_ptr(), 0u8, n) };
+        v
+    }
+
+    /// Arena-backed `slice.to_vec()`.
+    #[inline]
+    #[must_use]
+    pub fn from_slice(slice: &[T]) -> Self
+    where
+        T: Clone,
+    {
+        let mut v = Self::with_capacity(slice.len());
+        v.extend_from_slice(slice);
+        v
+    }
+
+    /// `len` uninitialized slots.
+    ///
+    /// # Safety
+    /// Every element must be overwritten before it is read.
+    #[inline]
+    #[must_use]
+    pub unsafe fn uninitialized(len: usize) -> Self {
+        let mut v = Self::with_capacity(len);
+        // SAFETY: caller guarantees all `len` slots are written before being read.
+        unsafe { v.set_len(len) };
+        v
+    }
+
+    /// Arena-backed parallel `(0..n).map(f).collect()`: fill a vector of length `n` in parallel.
+    /// The single allocation happens on the calling thread; workers write disjoint slots.
+    #[inline]
+    #[must_use]
+    pub fn par_collect<F: Fn(usize) -> T + Sync>(n: usize, f: F) -> Self
+    where
+        T: Send,
+    {
+        // SAFETY: `par_fill` writes every slot in `0..n` exactly once before any is read.
+        let mut v = unsafe { Self::uninitialized(n) };
+        parallel::par_fill(&mut v, f);
+        v
+    }
+
     #[inline]
     #[must_use]
     pub const fn len(&self) -> usize {
@@ -331,6 +398,16 @@ impl<T> Extend<T> for ArenaVec<T> {
         for x in iter {
             self.push(x);
         }
+    }
+}
+
+impl<T> FromIterator<T> for ArenaVec<T> {
+    #[inline]
+    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
+        let iter = iter.into_iter();
+        let mut v = Self::with_capacity(iter.size_hint().0);
+        v.extend(iter);
+        v
     }
 }
 

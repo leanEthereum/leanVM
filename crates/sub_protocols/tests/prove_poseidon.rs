@@ -20,14 +20,14 @@ fn test_prove_poseidon() {
     let n_rows = 1 << log_n_rows;
     let mut rng = StdRng::seed_from_u64(0);
     let n_cols = num_cols_poseidon_16();
-    let mut trace: Vec<ArenaVec<F>> = (0..n_cols).map(|_| arena_filled(F::ZERO, n_rows)).collect();
+    let mut trace: Vec<ArenaVec<F>> = (0..n_cols).map(|_| ArenaVec::filled(F::ZERO, n_rows)).collect();
     for t in trace.iter_mut().skip(POSEIDON_COL_INPUT_START).take(WIDTH) {
-        *t = arena_collect((0..n_rows).map(|_| rng.random()));
+        *t = ArenaVec::from_iter((0..n_rows).map(|_| rng.random()));
     }
-    trace[POSEIDON_COL_MULTIPLICITY] = arena_filled(F::ONE, n_rows);
-    trace[POSEIDON_COL_FLAG_OUT8] = arena_filled(F::ONE, n_rows);
-    trace[POSEIDON_COL_ADDR_LEFT_LO] = arena_filled(F::ZERO, n_rows);
-    trace[POSEIDON_COL_ADDR_LEFT_HI] = arena_filled(F::from_usize(HALF_DIGEST_LEN), n_rows);
+    trace[POSEIDON_COL_MULTIPLICITY] = ArenaVec::filled(F::ONE, n_rows);
+    trace[POSEIDON_COL_FLAG_OUT8] = ArenaVec::filled(F::ONE, n_rows);
+    trace[POSEIDON_COL_ADDR_LEFT_LO] = ArenaVec::filled(F::ZERO, n_rows);
+    trace[POSEIDON_COL_ADDR_LEFT_HI] = ArenaVec::filled(F::from_usize(HALF_DIGEST_LEN), n_rows);
     fill_trace_poseidon_16(&mut trace);
 
     let air = Poseidon16Precompile::<false>;
@@ -51,7 +51,7 @@ fn test_prove_poseidon() {
 
     let time = Instant::now();
 
-    let mut commitmed_pol = arena_filled(F::ZERO, (n_cols << log_n_rows).next_power_of_two());
+    let mut commitmed_pol = ArenaVec::filled(F::ZERO, (n_cols << log_n_rows).next_power_of_two());
     for (i, col) in trace.iter().enumerate() {
         commitmed_pol[i << log_n_rows..(i + 1) << log_n_rows].copy_from_slice(col);
     }

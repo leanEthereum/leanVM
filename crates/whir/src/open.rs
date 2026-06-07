@@ -533,7 +533,7 @@ where
 
     let start_idx = match statements {
         [a, b, ..] if is_full(a) && is_full(b) => {
-            combined_weights = unsafe { uninitialized_arena_vec(out_len) };
+            combined_weights = unsafe { ArenaVec::uninitialized(out_len) };
             let sa = gamma_pow;
             let sb = gamma_pow * gamma;
             combined_sum = a.values[0].value * sa + b.values[0].value * sb;
@@ -542,7 +542,7 @@ where
             2
         }
         [a, ..] if is_full(a) => {
-            combined_weights = unsafe { uninitialized_arena_vec(out_len) };
+            combined_weights = unsafe { ArenaVec::uninitialized(out_len) };
             let sa = gamma_pow;
             combined_sum = a.values[0].value * sa;
             gamma_pow *= gamma;
@@ -550,7 +550,7 @@ where
             1
         }
         _ => {
-            combined_weights = arena_filled(EFPacking::<EF>::ZERO, out_len);
+            combined_weights = unsafe { ArenaVec::zeroed(out_len) };
             0
         }
     };

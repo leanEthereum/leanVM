@@ -467,7 +467,7 @@ where
     let prev_folded_size = 2 * compute_fold_size;
 
     let folded_f: Vec<ArenaVec<FT>> = (0..multilinears.len())
-        .map(|_| arena_filled(FT::ZERO, prev_folded_size))
+        .map(|_| unsafe { ArenaVec::<FT>::zeroed(prev_folded_size) })
         .collect();
 
     let n_mult = multilinears.len();
@@ -619,7 +619,9 @@ where
 {
     let prev_folded_size = 2 * compute_fold_size;
     let folded_f: Vec<ArenaVec<EFPacking<EF>>> = (0..multilinears.len())
-        .map(|_| arena_filled(EFPacking::<EF>::ZERO, prev_folded_size))
+        // SAFETY: all-zero bytes is the valid ZERO for `EFPacking<EF>`, the same invariant the
+        // `EFPacking::<EF>::zero_vec` call below relies on; memset beats the clone-fill loop.
+        .map(|_| unsafe { ArenaVec::<EFPacking<EF>>::zeroed(prev_folded_size) })
         .collect();
 
     let n_lo = split_eq.n_lo();

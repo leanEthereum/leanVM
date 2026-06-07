@@ -158,11 +158,11 @@ impl<'a, EF: ExtensionField<PF<EF>>> MleGroupRef<'a, EF> {
 
     pub fn clone_to_owned(&self) -> MleGroupOwned<EF> {
         match self {
-            Self::Base(pols) => MleGroupOwned::Base(pols.iter().map(|v| arena_from_slice(v)).collect()),
-            Self::Extension(pols) => MleGroupOwned::Extension(pols.iter().map(|v| arena_from_slice(v)).collect()),
-            Self::BasePacked(pols) => MleGroupOwned::BasePacked(pols.iter().map(|v| arena_from_slice(v)).collect()),
+            Self::Base(pols) => MleGroupOwned::Base(pols.iter().map(|v| ArenaVec::from_slice(v)).collect()),
+            Self::Extension(pols) => MleGroupOwned::Extension(pols.iter().map(|v| ArenaVec::from_slice(v)).collect()),
+            Self::BasePacked(pols) => MleGroupOwned::BasePacked(pols.iter().map(|v| ArenaVec::from_slice(v)).collect()),
             Self::ExtensionPacked(pols) => {
-                MleGroupOwned::ExtensionPacked(pols.iter().map(|v| arena_from_slice(v)).collect())
+                MleGroupOwned::ExtensionPacked(pols.iter().map(|v| ArenaVec::from_slice(v)).collect())
             }
         }
     }

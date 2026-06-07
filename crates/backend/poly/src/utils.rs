@@ -5,7 +5,7 @@ use std::{
 
 use field::*;
 
-use crate::{ArenaVec, EFPacking, PF, PFPacking, uninitialized_arena_vec};
+use crate::{ArenaVec, EFPacking, PF, PFPacking};
 
 pub const PARALLEL_THRESHOLD: usize = 1 << 9;
 
@@ -38,7 +38,7 @@ pub fn pack_extension<EF: ExtensionField<PF<EF>>>(slice: &[EF]) -> Vec<EFPacking
 /// Arena-allocated [`pack_extension`], for proof buffers stored in [`ArenaVec`].
 pub fn pack_extension_in<EF: ExtensionField<PF<EF>>>(slice: &[EF]) -> ArenaVec<EFPacking<EF>> {
     let n_packed = slice.len() / packing_width::<EF>();
-    let mut out: ArenaVec<EFPacking<EF>> = unsafe { uninitialized_arena_vec(n_packed) };
+    let mut out: ArenaVec<EFPacking<EF>> = unsafe { ArenaVec::uninitialized(n_packed) };
     fill_packed_extension(slice, &mut out);
     out
 }
@@ -81,7 +81,7 @@ pub fn unpack_extension<EF: ExtensionField<PF<EF>>>(vec: &[EFPacking<EF>]) -> Ve
 /// Arena-allocated [`unpack_extension`], for proof buffers stored in [`ArenaVec`].
 pub fn unpack_extension_in<EF: ExtensionField<PF<EF>>>(vec: &[EFPacking<EF>]) -> ArenaVec<EF> {
     let total = vec.len() * packing_width::<EF>();
-    let mut out: ArenaVec<EF> = unsafe { uninitialized_arena_vec(total) };
+    let mut out: ArenaVec<EF> = unsafe { ArenaVec::uninitialized(total) };
     fill_unpacked_extension(vec, &mut out);
     out
 }
@@ -121,7 +121,7 @@ fn fold_fill<OF: Send, C: Fn(usize) -> OF + Sync>(len: usize, seq: bool, compute
 /// Arena-allocated [`fold_fill`]: identical, but the output lands in [`ArenaVec`].
 #[inline]
 fn fold_fill_in<OF: Send, C: Fn(usize) -> OF + Sync>(len: usize, seq: bool, compute: C) -> ArenaVec<OF> {
-    let mut res = unsafe { uninitialized_arena_vec(len) };
+    let mut res = unsafe { ArenaVec::uninitialized(len) };
     fill_fold(&mut res, seq, compute);
     res
 }

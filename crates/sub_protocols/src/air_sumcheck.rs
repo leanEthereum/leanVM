@@ -92,7 +92,7 @@ where
                 let mut bit_reversed: Vec<ArenaVec<PFPacking<EF>>> = vec![ArenaVec::new(); cols.len()];
                 parallel::par_chunks_mut(&mut bit_reversed, 1, |i, out_slot| {
                     let src = cols[i];
-                    let mut dst: ArenaVec<PFPacking<EF>> = unsafe { uninitialized_arena_vec(src.len()) };
+                    let mut dst: ArenaVec<PFPacking<EF>> = unsafe { ArenaVec::uninitialized(src.len()) };
                     let src_u = PFPacking::<EF>::unpack_slice(src);
                     let dst_u = PFPacking::<EF>::unpack_slice_mut(&mut dst);
                     for (src_chunk, dst_chunk) in src_u.chunks_exact(chunk_size).zip(dst_u.chunks_exact_mut(chunk_size))

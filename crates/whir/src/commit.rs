@@ -35,11 +35,11 @@ impl<EF: ExtensionField<PF<EF>>> MerkleData<EF> {
         match self {
             MerkleData::Base(prover_data) => {
                 let (leaf, proof) = merkle_open::<PF<EF>, PF<EF>>(prover_data, index);
-                (MleOwned::Base(arena_from_slice(&leaf)), proof)
+                (MleOwned::Base(ArenaVec::from_slice(&leaf)), proof)
             }
             MerkleData::Extension(prover_data) => {
                 let (leaf, proof) = merkle_open::<PF<EF>, EF>(prover_data, index);
-                (MleOwned::Extension(arena_from_slice(&leaf)), proof)
+                (MleOwned::Extension(ArenaVec::from_slice(&leaf)), proof)
             }
         }
     }

@@ -118,7 +118,7 @@ pub fn stack_polynomials_and_commit(
         log2_strict_usize(bytecode_acc.len()),
         &tables_heights_sorted.iter().cloned().collect(),
     );
-    let mut global_polynomial = arena_filled(F::ZERO, 1 << stacked_n_vars); // TODO avoid cloning all witness data
+    let mut global_polynomial = unsafe { ArenaVec::<F>::zeroed(1 << stacked_n_vars) };
     global_polynomial[..memory.len()].copy_from_slice(memory);
     let mut offset = memory.len();
     global_polynomial[offset..][..memory_acc.len()].copy_from_slice(memory_acc);
