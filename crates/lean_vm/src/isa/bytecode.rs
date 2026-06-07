@@ -19,6 +19,7 @@ pub struct CodeEntry {
 pub struct Bytecode {
     pub unpadded_size: usize,
     pub code: Vec<CodeEntry>, // assumed to be well-formed
+    pub hint_names: Vec<String>,
     pub instructions_multilinear: Vec<F>,
     pub starting_frame_memory: usize,
     pub ending_pc: usize, // Must equal `code.len() - 1`.

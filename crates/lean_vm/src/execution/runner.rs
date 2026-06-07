@@ -118,7 +118,7 @@ struct ParallelBatchInfo {
     /// Per-name cursor indices at the moment iteration 0 started consuming
     /// hints. Diffed against the post-iteration-0 state to learn per-name
     /// consumption.
-    hint_indices_at_start: HashMap<String, usize>,
+    hint_indices_at_start: Vec<usize>,
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -158,11 +158,7 @@ fn run_loop<M: MemoryAccess>(
                         frame_size: *ap - *fp,
                         n_args: *n_args,
                         end_value: *end_value,
-                        hint_indices_at_start: hints
-                            .named_hints
-                            .iter()
-                            .map(|(name, cursor)| (name.clone(), cursor.index))
-                            .collect(),
+                        hint_indices_at_start: hints.hint_cursors.iter().map(|c| c.index).collect(),
                     });
                 }
                 continue;
@@ -249,11 +245,24 @@ fn execute_bytecode_helper(
     instruction_history: &mut ExecutionHistory,
     profiling: bool,
 ) -> Result<ExecutionResult, (CodeAddress, RunnerError)> {
-    let mut named_hints: HashMap<String, NamedHintCursor<'_>> = witness
-        .hints
-        .iter()
-        .map(|(name, entries)| (name.clone(), NamedHintCursor::new(entries)))
-        .collect();
+    let mut hint_cursors: Vec<NamedHintCursor<'_>> = Vec::with_capacity(bytecode.hint_names.len());
+    for name in &bytecode.hint_names {
+        let entries: &[Vec<F>] = match witness.hints.get(name) {
+            Some(v) => v,
+            None => &[],
+        };
+        hint_cursors.push(NamedHintCursor::new(name, entries));
+    }
+    for (name, entries) in &witness.hints {
+        if !entries.is_empty() && !bytecode.hint_names.contains(name) {
+            return Err((
+                STARTING_PC,
+                RunnerError::InvalidHintWitness(format!(
+                    "witness provides hint '{name}' that the program never consumes"
+                )),
+            ));
+        }
+    }
     let public_memory = public_input.to_vec();
     let mut memory = Memory::new(public_memory);
     let mut fp = PUBLIC_INPUT_LEN + witness.preamble_memory_len;
@@ -275,7 +284,7 @@ fn execute_bytecode_helper(
                 last_checkpoint_cpu_cycles: &mut last_checkpoint_cpu_cycles,
                 checkpoint_ap: &mut checkpoint_ap,
             }),
-            named_hints: &mut named_hints,
+            hint_cursors: &mut hint_cursors,
         };
         match run_loop(
             bytecode,
@@ -295,7 +304,7 @@ fn execute_bytecode_helper(
                     bytecode,
                     &mut memory,
                     &mut trace,
-                    &mut named_hints,
+                    &mut hint_cursors,
                     &mut pc,
                     &mut fp,
                     &mut ap,
@@ -309,7 +318,8 @@ fn execute_bytecode_helper(
 
     resolve_deref_hints(&mut memory, &trace.pending_deref_hints).map_err(|e| (pc, e))?;
     assert_eq!(pc, bytecode.ending_pc);
-    for (name, cursor) in &named_hints {
+    for (slot, name) in bytecode.hint_names.iter().enumerate() {
+        let cursor = &hint_cursors[slot];
         if cursor.index != cursor.entries.len() {
             return Err((
                 pc,
@@ -384,7 +394,7 @@ fn handle_parallel_batch(
     bytecode: &Bytecode,
     memory: &mut Memory,
     trace: &mut Trace,
-    named_hints: &mut HashMap<String, NamedHintCursor<'_>>,
+    hint_cursors: &mut [NamedHintCursor<'_>],
     pc: &mut usize,
     fp: &mut usize,
     ap: &mut usize,
@@ -404,10 +414,10 @@ fn handle_parallel_batch(
         .map(|i| memory.get(batch.batch_fp + 2 + i).unwrap())
         .collect();
 
-    // Per-name deltas for named hints (measured from iteration 0).
-    let named_per_iter: HashMap<String, usize> = named_hints
+    let named_per_iter: Vec<usize> = hint_cursors
         .iter()
-        .map(|(name, cursor)| (name.clone(), cursor.index - batch.hint_indices_at_start[name]))
+        .enumerate()
+        .map(|(slot, cursor)| cursor.index - batch.hint_indices_at_start[slot])
         .collect();
 
     for i in 1..=n_iters {
@@ -458,19 +468,13 @@ fn handle_parallel_batch(
         let mut seg_pc = batch.batch_pc;
         let mut seg_fp = fp_i;
         let mut seg_ap = fp_i + batch.frame_size;
-        let mut seg_named_hints = named_hints.clone();
-        for (name, delta) in &named_per_iter {
-            if let Some(cursor) = seg_named_hints.get_mut(name) {
-                cursor.index += i * delta;
-            }
+        let mut seg_cursors = hint_cursors.to_vec();
+        for (slot, cursor) in seg_cursors.iter_mut().enumerate() {
+            cursor.index += i * named_per_iter[slot];
         }
-        let seg_start_indices: HashMap<_, _> = seg_named_hints
-            .iter()
-            .map(|(name, c)| (name.clone(), c.index))
-            .collect();
         let mut hints = HintState {
             diagnostics: None,
-            named_hints: &mut seg_named_hints,
+            hint_cursors: &mut seg_cursors,
         };
         run_loop(
             bytecode,
@@ -482,9 +486,12 @@ fn handle_parallel_batch(
             &mut hints,
             Some(batch.batch_pc),
         )?;
-        for (name, delta) in &named_per_iter {
-            let consumed = seg_named_hints[name].index - seg_start_indices[name];
-            if consumed != *delta {
+        for slot in 0..seg_cursors.len() {
+            let delta = named_per_iter[slot];
+            // Before `run_loop` this cursor was at `cursors[slot].index + i*delta`.
+            let consumed = seg_cursors[slot].index - (hint_cursors[slot].index + i * delta);
+            if consumed != delta {
+                let name = bytecode.hint_names.get(slot).map_or("<unknown>", |n| n.as_str());
                 return Err(RunnerError::InvalidHintWitness(format!(
                     "hint '{name}' consumed {consumed} entries in a parallel iteration but {delta} in iteration 0; parallel iterations must consume hints uniformly"
                 )));
@@ -502,10 +509,8 @@ fn handle_parallel_batch(
         }
     }
 
-    for (name, delta) in &named_per_iter {
-        if let Some(cursor) = named_hints.get_mut(name) {
-            cursor.index += n_par * delta;
-        }
+    for (slot, &delta) in named_per_iter.iter().enumerate() {
+        hint_cursors[slot].index += n_par * delta;
     }
 
     *pc = batch.batch_pc;

@@ -5,7 +5,6 @@ use crate::execution::memory::MemoryAccess;
 use crate::isa::operands::{MemOrConstant, MemOrFpOrConstant};
 use crate::{MAX_LOG_MEMORY_SIZE, MIN_LOG_MEMORY_SIZE};
 use backend::*;
-use std::collections::HashMap;
 use std::fmt::Debug;
 use std::fmt::{Display, Formatter};
 use std::hash::Hash;
@@ -74,7 +73,7 @@ pub enum Hint {
         end_value: MemOrConstant,
     },
     HintWitness {
-        name: String,
+        slot: usize,
         destination: HintWitnessDestination<usize>,
     },
 }
@@ -262,18 +261,23 @@ pub struct DiagnosticState<'a> {
 pub struct NamedHintCursor<'a> {
     pub entries: &'a [Vec<F>],
     pub index: usize,
+    pub name: &'a str,
 }
 
 impl<'a> NamedHintCursor<'a> {
-    pub fn new(entries: &'a [Vec<F>]) -> Self {
-        Self { entries, index: 0 }
+    pub fn new(name: &'a str, entries: &'a [Vec<F>]) -> Self {
+        Self {
+            entries,
+            index: 0,
+            name,
+        }
     }
 }
 
 #[derive(Debug)]
 pub struct HintState<'a, 'h> {
     pub diagnostics: Option<DiagnosticState<'a>>,
-    pub named_hints: &'a mut HashMap<String, NamedHintCursor<'h>>,
+    pub hint_cursors: &'a mut [NamedHintCursor<'h>],
 }
 
 #[derive(Debug)]
@@ -395,8 +399,8 @@ impl Hint {
             }
             // Handled by the runner's parallel dispatch; no-op in sequential mode.
             Self::ParallelBatchStart { .. } => {}
-            Self::HintWitness { name, destination } => {
-                let data = consume_next_hint_entry(ctx.hints.named_hints, name)?;
+            Self::HintWitness { slot, destination } => {
+                let data = consume_next_hint_entry(ctx.hints.hint_cursors, *slot)?;
                 let dest_addr = match destination {
                     HintWitnessDestination::Inline { offset } => ctx.fp + *offset,
                     HintWitnessDestination::Indirect { ptr_offset } => ctx.memory.get(ctx.fp + *ptr_offset)?.to_usize(),
@@ -408,18 +412,14 @@ impl Hint {
     }
 }
 
-fn consume_next_hint_entry<'h>(
-    named_hints: &mut HashMap<String, NamedHintCursor<'h>>,
-    name: &str,
-) -> Result<&'h [F], RunnerError> {
-    let cursor = named_hints
-        .get_mut(name)
-        .ok_or_else(|| RunnerError::InvalidHintWitness(format!("no hint named '{name}'")))?;
+fn consume_next_hint_entry<'h>(cursors: &mut [NamedHintCursor<'h>], slot: usize) -> Result<&'h [F], RunnerError> {
+    let cursor = &mut cursors[slot];
     let entries = cursor.entries;
     let index = cursor.index;
     if index >= entries.len() {
         return Err(RunnerError::InvalidHintWitness(format!(
-            "exhausted entries for '{name}' (len={})",
+            "exhausted entries for hint '{}' (len={})",
+            cursor.name,
             entries.len()
         )));
     }
@@ -476,16 +476,16 @@ impl Display for Hint {
                 write!(f, "parallel_batch_start(n_args={n_args}, end={end_value})")
             }
             Self::HintWitness {
-                name,
+                slot,
                 destination: HintWitnessDestination::Inline { offset },
             } => {
-                write!(f, "m[fp + {offset} ..] = hint_witness(\"{name}\")")
+                write!(f, "m[fp + {offset} ..] = hint_witness(#{slot})")
             }
             Self::HintWitness {
-                name,
+                slot,
                 destination: HintWitnessDestination::Indirect { ptr_offset },
             } => {
-                write!(f, "m[m[fp + {ptr_offset}] ..] = hint_witness(\"{name}\")")
+                write!(f, "m[m[fp + {ptr_offset}] ..] = hint_witness(#{slot})")
             }
         }
     }
