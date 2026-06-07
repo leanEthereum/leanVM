@@ -137,7 +137,7 @@ pub struct InstructionContext<'a, M: MemoryAccess> {
     pub memory: &'a mut M,
     pub fp: &'a mut usize,
     pub pc: &'a mut usize,
-    pub pcs: &'a Vec<usize>,
+    pub pcs: &'a [usize],
     pub traces: &'a mut BTreeMap<Table, TableTrace>,
     pub counts: &'a mut InstructionCounts,
 }

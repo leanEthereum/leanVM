@@ -1,5 +1,7 @@
 //! VM execution runner
 
+use backend::ArenaVec;
+
 use crate::core::{DIMENSION, F, PUBLIC_INPUT_LEN};
 use crate::diagnostics::{ExecutionMetadata, ExecutionResult, RunnerError};
 use crate::execution::memory::MemoryAccess;
@@ -69,8 +71,8 @@ pub fn execute_bytecode(
 }
 
 struct Trace {
-    pcs: Vec<usize>,
-    fps: Vec<usize>,
+    pcs: ArenaVec<usize>,
+    fps: ArenaVec<usize>,
     tables: BTreeMap<Table, TableTrace>,
     counts: InstructionCounts,
     pending_deref_hints: Vec<(usize, usize)>, // (target_addr, src_addr) constraints to resolve at end
@@ -79,8 +81,8 @@ struct Trace {
 impl Trace {
     fn new() -> Self {
         Self {
-            pcs: Vec::new(),
-            fps: Vec::new(),
+            pcs: ArenaVec::new(),
+            fps: ArenaVec::new(),
             tables: BTreeMap::from_iter((0..N_TABLES).map(|i| (ALL_TABLES[i], TableTrace::new(&ALL_TABLES[i])))),
             counts: InstructionCounts::default(),
             pending_deref_hints: Vec::new(),
@@ -88,8 +90,8 @@ impl Trace {
     }
 
     fn merge(&mut self, other: Self) {
-        self.pcs.extend(other.pcs);
-        self.fps.extend(other.fps);
+        self.pcs.extend_from_slice(&other.pcs);
+        self.fps.extend_from_slice(&other.fps);
         self.counts += other.counts;
         self.pending_deref_hints.extend(other.pending_deref_hints);
         for (table, other_t) in other.tables {

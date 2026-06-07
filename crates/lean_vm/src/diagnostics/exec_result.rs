@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use backend::pretty_integer;
+use backend::{ArenaVec, pretty_integer};
 
 use crate::execution::Memory;
 use crate::{Table, TableTrace};
@@ -73,8 +73,8 @@ impl ExecutionMetadata {
 pub struct ExecutionResult {
     pub runtime_memory_size: usize,
     pub memory: Memory,
-    pub pcs: Vec<usize>,
-    pub fps: Vec<usize>,
+    pub pcs: ArenaVec<usize>,
+    pub fps: ArenaVec<usize>,
     pub traces: BTreeMap<Table, TableTrace>,
     pub metadata: ExecutionMetadata,
 }
