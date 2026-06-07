@@ -166,7 +166,7 @@ pub fn prove_execution(
         })
         .collect();
     let _span = info_span!("Computing shifted columns for AIR sumcheck").entered();
-    let shifted_rows: Vec<Vec<Vec<F>>> = ALL_TABLES
+    let shifted_rows: Vec<Vec<ArenaVec<F>>> = ALL_TABLES
         .iter()
         .zip(&column_refs)
         .map(|(table, cols)| compute_shifted_columns(table.n_shift_columns(), cols))
@@ -196,7 +196,7 @@ pub fn prove_execution(
         let extra_data = ExtraDataForBuses::new(logup_alphas_eq_poly.clone(), alpha_slice);
 
         let mut flat_and_shift: Vec<&[PF<EF>]> = column_refs[idx].to_vec();
-        flat_and_shift.extend(shifted_rows[idx].iter().map(Vec::as_slice));
+        flat_and_shift.extend(shifted_rows[idx].iter().map(|c| c.as_slice()));
         let packed = MleGroupRef::<EF>::Base(flat_and_shift).pack();
 
         let non_padded = traces[table].non_padded_n_rows;

@@ -657,12 +657,12 @@ pub fn prove_batched_air_sumcheck<'a, EF: ExtensionField<PF<EF>>>(
     MultilinearPoint(challenges)
 }
 
-pub fn compute_shifted_columns<F: Field>(n_shift_columns: usize, columns: &[&[F]]) -> Vec<Vec<F>> {
+pub fn compute_shifted_columns<F: Field>(n_shift_columns: usize, columns: &[&[F]]) -> Vec<ArenaVec<F>> {
     // Convention: the first `n_shift_columns` columns are the ones that get shifted.
-    let mut out: Vec<Vec<F>> = (0..n_shift_columns).map(|_| Vec::new()).collect();
+    let mut out: Vec<ArenaVec<F>> = (0..n_shift_columns).map(|_| ArenaVec::new()).collect();
     parallel::par_chunks_mut(&mut out, 1, |i, slot| {
         let column = columns[i];
-        let mut shifted = unsafe { uninitialized_vec(column.len()) };
+        let mut shifted = unsafe { ArenaVec::<F>::uninitialized(column.len()) };
         shifted[..column.len() - 1].copy_from_slice(&column[1..]);
         shifted[column.len() - 1] = column[column.len() - 1];
         slot[0] = shifted;
