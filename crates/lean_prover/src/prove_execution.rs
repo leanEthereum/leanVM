@@ -193,7 +193,7 @@ pub fn prove_execution(
         let eq_suffix = from_end(gkr_point, log_n_rows).to_vec();
 
         let alpha_slice = air_alpha_powers[alpha_offset..alpha_offset + n_constraints].to_vec();
-        let extra_data = ExtraDataForBuses::new(logup_alphas_eq_poly.clone(), alpha_slice);
+        let extra_data = ExtraDataForBuses::new(&logup_alphas_eq_poly, alpha_slice);
 
         let mut flat_and_shift: Vec<&[PF<EF>]> = column_refs[idx].to_vec();
         flat_and_shift.extend(shifted_rows[idx].iter().map(|c| c.as_slice()));

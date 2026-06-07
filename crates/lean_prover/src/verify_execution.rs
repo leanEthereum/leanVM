@@ -125,7 +125,7 @@ pub fn verify_execution(
         let alpha_slice = air_alpha_powers[alpha_offset..alpha_offset + n_constraints].to_vec();
         verify_data.push(TableVerifyData {
             table,
-            extra_data: ExtraDataForBuses::new(logup_alphas_eq_poly.clone(), alpha_slice),
+            extra_data: ExtraDataForBuses::new(&logup_alphas_eq_poly, alpha_slice),
         });
 
         alpha_offset += n_constraints;

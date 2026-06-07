@@ -564,7 +564,7 @@ where
                 gamma_pow *= gamma;
             }
         } else {
-            let inner_poly = if smt.is_next {
+            let inner_poly: ArenaVec<EFPacking<EF>> = if smt.is_next {
                 let next = matrix_next_mle_folded(&smt.point.0);
                 pack_extension(&next)
             } else {

@@ -1,13 +1,14 @@
 use field::{ExtensionField, PackedFieldExtension};
 use poly::*;
+use zk_alloc::ArenaVec;
 
 #[derive(Debug)]
 pub struct SplitEq<EF: ExtensionField<PF<EF>>> {
-    pub eq_lo: Vec<EF>,
-    pub eq_hi_packed: Vec<EFPacking<EF>>,
+    pub eq_lo: ArenaVec<EF>,
+    pub eq_hi_packed: ArenaVec<EFPacking<EF>>,
     pub log_packed_hi: u32, // = log2(eq_hi_packed.len()), cached for bit-shift in get_packed
     /// Unpacked remainder for when the packed table is empty or exhausted.
-    pub remainder: Vec<EF>,
+    pub remainder: ArenaVec<EF>,
 }
 
 impl<EF: ExtensionField<PF<EF>>> SplitEq<EF> {
@@ -16,8 +17,8 @@ impl<EF: ExtensionField<PF<EF>>> SplitEq<EF> {
 
         if must_unpack_multilinears::<EF>(n + 1) {
             return Self {
-                eq_lo: vec![EF::ONE],
-                eq_hi_packed: Vec::new(),
+                eq_lo: ArenaVec::filled(EF::ONE, 1),
+                eq_hi_packed: ArenaVec::new(),
                 log_packed_hi: 0,
                 remainder: eval_eq(eq_point),
             };
@@ -32,7 +33,7 @@ impl<EF: ExtensionField<PF<EF>>> SplitEq<EF> {
             eq_lo,
             eq_hi_packed,
             log_packed_hi,
-            remainder: Vec::new(),
+            remainder: ArenaVec::new(),
         }
     }
 
@@ -53,7 +54,7 @@ impl<EF: ExtensionField<PF<EF>>> SplitEq<EF> {
             self.log_packed_hi = new_len.trailing_zeros();
         } else {
             // eq_hi_packed has 0 or 1 element — unpack to remainder and halve
-            let mut unpacked: Vec<EF> = EFPacking::<EF>::to_ext_iter(self.eq_hi_packed.iter().copied()).collect();
+            let mut unpacked: ArenaVec<EF> = EFPacking::<EF>::to_ext_iter(self.eq_hi_packed.iter().copied()).collect();
             let scale = self.eq_lo[0];
             for v in &mut unpacked {
                 *v *= scale;
