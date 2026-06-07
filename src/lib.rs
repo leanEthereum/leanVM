@@ -12,6 +12,12 @@ pub use xmss::{MESSAGE_LEN_FE, XmssPublicKey, XmssSecretKey, XmssSignature, xmss
 pub type F = KoalaBear;
 
 /// Call once before proving.
+///
+/// # Safety
+/// Never generate two proofs concurrently in one process.
+/// 
+/// (The arena allocator has a single shared region per process, so concurrent proving corrupts each proof's buffers)
+/// Use separate processes to parallelize
 pub fn setup_prover() {
     zk_alloc::enable_arena();
     parallel::init();

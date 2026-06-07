@@ -31,8 +31,6 @@ pub fn pack_extension<EF: ExtensionField<PF<EF>>, B: OwnedBuffer<EFPacking<EF>>>
     })
 }
 
-/// SoA->AoS transpose of the packed `vec` into the already-sized scalar buffer `out`
-/// (`out.len() == vec.len() * packing_width`).
 fn fill_unpacked_extension<EF: ExtensionField<PF<EF>>>(vec: &[EFPacking<EF>], out: &mut [EF]) {
     let width = packing_width::<EF>();
     let total = out.len();
@@ -76,7 +74,6 @@ pub const fn must_unpack_multilinears<EF: Field>(n_vars: usize) -> bool {
     n_vars <= 1 + packing_log_width::<EF>()
 }
 
-/// Fill `res[i] = compute(i)`, parallel above [`PARALLEL_THRESHOLD`] unless `seq`.
 #[inline]
 fn fill_fold<OF: Send, C: Fn(usize) -> OF + Sync>(res: &mut [OF], seq: bool, compute: C) {
     if seq || res.len() < PARALLEL_THRESHOLD {
