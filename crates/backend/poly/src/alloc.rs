@@ -5,7 +5,7 @@
 //! into slice-based APIs unchanged. Construct one with its inherent constructors — `ArenaVec::new`,
 //! `with_capacity`, `filled`, `zeroed`, `from_slice`, `from_iter`, `par_collect`, `uninitialized`.
 
-pub use zk_alloc::{ArenaVec, PhaseGuard, enter_phase};
+pub use zk_alloc::{ArenaVec, OwnedBuffer, PhaseGuard, enter_phase};
 
 #[cfg(test)]
 mod bench {

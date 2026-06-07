@@ -364,7 +364,7 @@ mod tests {
         let res_normal = eval_multilinear::<_, _, true>(&poly, &point);
         println!("Normal eval time: {:?}", time.elapsed());
 
-        let packed_poly = pack_extension(&poly);
+        let packed_poly: Vec<_> = pack_extension(&poly);
         let time = Instant::now();
         let res_packed = eval_packed::<_, true>(&packed_poly, &point);
         println!("Packed eval time: {:?}", time.elapsed());

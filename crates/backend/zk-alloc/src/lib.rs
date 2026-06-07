@@ -26,7 +26,7 @@ use system_info::NUM_THREADS;
 mod arena_vec;
 mod syscall;
 
-pub use arena_vec::ArenaVec;
+pub use arena_vec::{ArenaVec, OwnedBuffer};
 
 const SLAB_SIZE: usize = 8 << 30; // 8 GiB
 const SLACK: usize = 4; // SLACK absorbs the main thread and any non-rayon helpers.

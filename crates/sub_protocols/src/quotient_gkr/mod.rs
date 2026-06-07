@@ -250,8 +250,8 @@ mod tests {
         let mut prover_state = ProverState::new(get_poseidon16().clone(), Default::default());
 
         // Keep natural-layout MLEs to check claims at `claim_point`.
-        let numerators_nat = MleOwned::BasePacked(pack_extension_arena(&numerators_raw));
-        let denominators_nat = MleOwned::ExtensionPacked(pack_extension_arena(&denominators_raw));
+        let numerators_nat = MleOwned::BasePacked(pack_extension(&numerators_raw));
+        let denominators_nat = MleOwned::ExtensionPacked(pack_extension(&denominators_raw));
 
         // Pre-BR the inputs for `prove_gkr_quotient_br`.
         let nums_br = bit_reverse_chunks_and_pack_base::<EF>(&numerators_raw, pivot);

@@ -187,7 +187,7 @@ where
         // Convert evaluations to coefficient form and send to the verifier.
         let mut coeffs = match &round_state.sumcheck_prover.evals {
             MleOwned::Extension(evals) => evals.clone(),
-            MleOwned::ExtensionPacked(evals) => unpack_extension_arena::<EF>(evals),
+            MleOwned::ExtensionPacked(evals) => unpack_extension(evals),
             _ => unreachable!(),
         };
         evals_to_coeffs(&mut coeffs);

@@ -2,13 +2,12 @@ use std::ops::{Add, Sub};
 
 use field::*;
 
-use crate::{ArenaVec, EFPacking, PF, PFPacking};
+use crate::{ArenaVec, EFPacking, OwnedBuffer, PF, PFPacking};
 
 pub const PARALLEL_THRESHOLD: usize = 1 << 9;
 
 /// AoS->SoA transpose of `slice` into the already-sized packed buffer `out` (`out.len()`
-/// packed elements, each consuming `packing_width` scalars). Shared by the system-allocated
-/// [`pack_extension`] and the arena-allocated [`pack_extension_arena`].
+/// packed elements, each consuming `packing_width` scalars).
 fn fill_packed_extension<EF: ExtensionField<PF<EF>>>(slice: &[EF], out: &mut [EFPacking<EF>]) {
     let width = packing_width::<EF>();
     let write = |slot: &mut EFPacking<EF>, chunk: &[EF]| {
@@ -25,24 +24,14 @@ fn fill_packed_extension<EF: ExtensionField<PF<EF>>>(slice: &[EF], out: &mut [EF
     }
 }
 
-pub fn pack_extension<EF: ExtensionField<PF<EF>>>(slice: &[EF]) -> Vec<EFPacking<EF>> {
-    let n_packed = slice.len() / packing_width::<EF>();
-    let mut out: Vec<EFPacking<EF>> = unsafe { uninitialized_vec(n_packed) };
-    fill_packed_extension(slice, &mut out);
-    out
-}
-
-/// Arena-allocated [`pack_extension`], for proof buffers stored in [`ArenaVec`].
-pub fn pack_extension_arena<EF: ExtensionField<PF<EF>>>(slice: &[EF]) -> ArenaVec<EFPacking<EF>> {
-    let n_packed = slice.len() / packing_width::<EF>();
-    let mut out: ArenaVec<EFPacking<EF>> = unsafe { ArenaVec::uninitialized(n_packed) };
-    fill_packed_extension(slice, &mut out);
-    out
+pub fn pack_extension<EF: ExtensionField<PF<EF>>, B: OwnedBuffer<EFPacking<EF>>>(slice: &[EF]) -> B {
+    B::build(slice.len() / packing_width::<EF>(), |out| {
+        fill_packed_extension(slice, out)
+    })
 }
 
 /// SoA->AoS transpose of the packed `vec` into the already-sized scalar buffer `out`
-/// (`out.len() == vec.len() * packing_width`). Shared by [`unpack_extension`] and
-/// [`unpack_extension_arena`].
+/// (`out.len() == vec.len() * packing_width`).
 fn fill_unpacked_extension<EF: ExtensionField<PF<EF>>>(vec: &[EFPacking<EF>], out: &mut [EF]) {
     let width = packing_width::<EF>();
     let total = out.len();
@@ -68,19 +57,10 @@ fn fill_unpacked_extension<EF: ExtensionField<PF<EF>>>(vec: &[EFPacking<EF>], ou
     }
 }
 
-pub fn unpack_extension<EF: ExtensionField<PF<EF>>>(vec: &[EFPacking<EF>]) -> Vec<EF> {
-    let total = vec.len() * packing_width::<EF>();
-    let mut out: Vec<EF> = unsafe { uninitialized_vec(total) };
-    fill_unpacked_extension(vec, &mut out);
-    out
-}
-
-/// Arena-allocated [`unpack_extension`], for proof buffers stored in [`ArenaVec`].
-pub fn unpack_extension_arena<EF: ExtensionField<PF<EF>>>(vec: &[EFPacking<EF>]) -> ArenaVec<EF> {
-    let total = vec.len() * packing_width::<EF>();
-    let mut out: ArenaVec<EF> = unsafe { ArenaVec::uninitialized(total) };
-    fill_unpacked_extension(vec, &mut out);
-    out
+pub fn unpack_extension<EF: ExtensionField<PF<EF>>, B: OwnedBuffer<EF>>(vec: &[EFPacking<EF>]) -> B {
+    B::build(vec.len() * packing_width::<EF>(), |out| {
+        fill_unpacked_extension(vec, out)
+    })
 }
 
 pub const fn packing_log_width<EF: Field>() -> usize {
@@ -95,8 +75,7 @@ pub const fn must_unpack_multilinears<EF: Field>(n_vars: usize) -> bool {
     n_vars <= 1 + packing_log_width::<EF>()
 }
 
-/// Fill `res[i] = compute(i)`, parallel above [`PARALLEL_THRESHOLD`] unless `seq`. The shared
-/// body of [`fold_fill`] and [`fold_fill_arena`], which differ only in the output allocator.
+/// Fill `res[i] = compute(i)`, parallel above [`PARALLEL_THRESHOLD`] unless `seq`.
 #[inline]
 fn fill_fold<OF: Send, C: Fn(usize) -> OF + Sync>(res: &mut [OF], seq: bool, compute: C) {
     if seq || res.len() < PARALLEL_THRESHOLD {
@@ -109,103 +88,48 @@ fn fill_fold<OF: Send, C: Fn(usize) -> OF + Sync>(res: &mut [OF], seq: bool, com
 }
 
 #[inline]
-fn fold_fill<OF: Send, C: Fn(usize) -> OF + Sync>(len: usize, seq: bool, compute: C) -> Vec<OF> {
-    let mut res = unsafe { uninitialized_vec(len) };
-    fill_fold(&mut res, seq, compute);
-    res
+fn fold_fill<OF: Send, B: OwnedBuffer<OF>, C: Fn(usize) -> OF + Sync>(len: usize, seq: bool, compute: C) -> B {
+    B::build(len, |res| fill_fold(res, seq, compute))
 }
 
-/// Arena-allocated [`fold_fill`]: identical, but the output lands in [`ArenaVec`].
-#[inline]
-fn fold_fill_arena<OF: Send, C: Fn(usize) -> OF + Sync>(len: usize, seq: bool, compute: C) -> ArenaVec<OF> {
-    let mut res = unsafe { ArenaVec::uninitialized(len) };
-    fill_fold(&mut res, seq, compute);
-    res
-}
-
-fn fold_multilinear_lsb<
+pub fn fold_multilinear<
     EF: PrimeCharacteristicRing + Copy + Send + Sync,
     IF: Copy + Sub<Output = IF> + Send + Sync,
     OF: Copy + Add<IF, Output = OF> + Send + Sync,
-    Mul: Fn(IF, EF) -> OF + Sync + Send,
+    F: Fn(IF, EF) -> OF + Sync + Send,
+    B: OwnedBuffer<OF>,
 >(
     m: &[IF],
     alpha: EF,
-    mul_if_of: &Mul,
+    mul_if_of: &F,
     seq: bool,
-) -> Vec<OF> {
-    fold_fill(m.len() / 2, seq, |j| {
-        mul_if_of(m[2 * j + 1] - m[2 * j], alpha) + m[2 * j]
-    })
+) -> B {
+    let new_size = m.len() / 2;
+    fold_fill(new_size, seq, |i| mul_if_of(m[i + new_size] - m[i], alpha) + m[i])
 }
 
-/// Fold `m` at variable `bit`. `seq` forces sequential execution (see [`fold_fill`]).
 pub fn fold_multilinear_at_bit<
     EF: PrimeCharacteristicRing + Copy + Send + Sync,
     IF: Copy + Sub<Output = IF> + Send + Sync,
     OF: Copy + Add<IF, Output = OF> + Send + Sync,
-    Mul: Fn(IF, EF) -> OF + Sync + Send,
->(
-    m: &[IF],
-    alpha: EF,
-    bit: usize,
-    mul_if_of: &Mul,
-    seq: bool,
-) -> Vec<OF> {
-    assert!(m.len() >= 2 * (1 << bit), "bit out of range for slice length");
-    if bit == 0 {
-        return fold_multilinear_lsb(m, alpha, mul_if_of, seq);
-    }
-    let stride = 1usize << bit;
-    let lo_mask = stride - 1;
-    fold_fill(m.len() / 2, seq, |new_j| {
-        let i_hi = new_j >> bit;
-        let i_lo = new_j & lo_mask;
-        let i0 = (i_hi << (bit + 1)) | i_lo;
-        let i1 = i0 | stride;
-        mul_if_of(m[i1] - m[i0], alpha) + m[i0]
-    })
-}
-
-/// Fold `m` at its top variable into an arena buffer, for folded data stored in
-/// [`MleOwned`](crate::MleOwned). `seq` forces sequential execution (see [`fold_fill`]).
-pub fn fold_multilinear_arena<
-    EF: PrimeCharacteristicRing + Copy + Send + Sync,
-    IF: Copy + Sub<Output = IF> + Send + Sync,
-    OF: Copy + Add<IF, Output = OF> + Send + Sync,
     F: Fn(IF, EF) -> OF + Sync + Send,
->(
-    m: &[IF],
-    alpha: EF,
-    mul_if_of: &F,
-    seq: bool,
-) -> ArenaVec<OF> {
-    let new_size = m.len() / 2;
-    fold_fill_arena(new_size, seq, |i| mul_if_of(m[i + new_size] - m[i], alpha) + m[i])
-}
-
-/// Arena-allocated [`fold_multilinear_at_bit`].
-pub fn fold_multilinear_at_bit_arena<
-    EF: PrimeCharacteristicRing + Copy + Send + Sync,
-    IF: Copy + Sub<Output = IF> + Send + Sync,
-    OF: Copy + Add<IF, Output = OF> + Send + Sync,
-    F: Fn(IF, EF) -> OF + Sync + Send,
+    B: OwnedBuffer<OF>,
 >(
     m: &[IF],
     alpha: EF,
     bit: usize,
     mul_if_of: &F,
     seq: bool,
-) -> ArenaVec<OF> {
+) -> B {
     assert!(m.len() >= 2 * (1 << bit), "bit out of range for slice length");
     if bit == 0 {
-        return fold_fill_arena(m.len() / 2, seq, |j| {
+        return fold_fill(m.len() / 2, seq, |j| {
             mul_if_of(m[2 * j + 1] - m[2 * j], alpha) + m[2 * j]
         });
     }
     let stride = 1usize << bit;
     let lo_mask = stride - 1;
-    fold_fill_arena(m.len() / 2, seq, |new_j| {
+    fold_fill(m.len() / 2, seq, |new_j| {
         let i_hi = new_j >> bit;
         let i_lo = new_j & lo_mask;
         let i0 = (i_hi << (bit + 1)) | i_lo;
@@ -228,12 +152,10 @@ pub fn batch_fold_multilinears<
     if total_size < PARALLEL_THRESHOLD {
         polys
             .iter()
-            .map(|poly| fold_multilinear_arena(poly, alpha, &mul_if_of, true))
+            .map(|poly| fold_multilinear(poly, alpha, &mul_if_of, true))
             .collect()
     } else {
-        parallel::par_map_collect(polys.len(), |i| {
-            fold_multilinear_arena(polys[i], alpha, &mul_if_of, true)
-        })
+        parallel::par_map_collect(polys.len(), |i| fold_multilinear(polys[i], alpha, &mul_if_of, true))
     }
 }
 
@@ -252,11 +174,11 @@ pub fn batch_fold_multilinears_at_bit<
     if total_size < PARALLEL_THRESHOLD {
         polys
             .iter()
-            .map(|poly| fold_multilinear_at_bit_arena(poly, alpha, bit, &mul_if_of, true))
+            .map(|poly| fold_multilinear_at_bit(poly, alpha, bit, &mul_if_of, true))
             .collect()
     } else {
         parallel::par_map_collect(polys.len(), |i| {
-            fold_multilinear_at_bit_arena(polys[i], alpha, bit, &mul_if_of, true)
+            fold_multilinear_at_bit(polys[i], alpha, bit, &mul_if_of, true)
         })
     }
 }
@@ -414,9 +336,9 @@ mod bench_tests {
         for &log_n in &LOG_SIZES {
             let n = 1usize << log_n;
             let ext_vec: Vec<EF> = (0..n).map(|_| rng.random()).collect();
-            let packed = pack_extension(&ext_vec);
-            let _ = unpack_extension::<EF>(&packed); // warmup
-            let (avg, min_t, max_t) = measure(|| unpack_extension::<EF>(&packed));
+            let packed: Vec<_> = pack_extension(&ext_vec);
+            let _ = unpack_extension::<EF, Vec<_>>(&packed); // warmup
+            let (avg, min_t, max_t) = measure(|| unpack_extension::<EF, Vec<_>>(&packed));
             print_row(log_n, n, avg, min_t, max_t);
         }
     }
@@ -428,8 +350,8 @@ mod bench_tests {
         for &log_n in &LOG_SIZES {
             let n = 1usize << log_n;
             let ext_vec: Vec<EF> = (0..n).map(|_| rng.random()).collect();
-            let _ = pack_extension::<EF>(&ext_vec); // warmup
-            let (avg, min_t, max_t) = measure(|| pack_extension::<EF>(&ext_vec));
+            let _ = pack_extension::<EF, Vec<_>>(&ext_vec); // warmup
+            let (avg, min_t, max_t) = measure(|| pack_extension::<EF, Vec<_>>(&ext_vec));
             print_row(log_n, n, avg, min_t, max_t);
         }
     }

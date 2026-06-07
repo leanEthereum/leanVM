@@ -105,7 +105,7 @@ where
         let packed = &mut out[selector >> shift];
         let mut unpacked: Vec<EF> = unpack_extension(&[*packed]);
         compute_sparse_eval_eq::<EF>(selector & ((1 << shift) - 1), eval, &mut unpacked, scalar);
-        *packed = pack_extension(&unpacked)[0];
+        *packed = pack_extension::<_, Vec<_>>(&unpacked)[0];
         return;
     }
 

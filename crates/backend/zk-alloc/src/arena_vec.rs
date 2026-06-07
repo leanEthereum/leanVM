@@ -28,10 +28,44 @@ pub struct ArenaVec<T> {
     _marker: PhantomData<T>,
 }
 
-// SAFETY: `ArenaVec<T>` owns its `T`s exactly like `Vec<T>`; the backing pointer is uniquely owned, so
-// the usual `Vec` Send/Sync bounds apply.
 unsafe impl<T: Send> Send for ArenaVec<T> {}
 unsafe impl<T: Sync> Sync for ArenaVec<T> {}
+
+pub trait OwnedBuffer<T>: DerefMut<Target = [T]> + Sized {
+    /// `len` uninitialized elements.
+    ///
+    /// # Safety
+    /// Every element must be written before it is read.
+    unsafe fn uninit(len: usize) -> Self;
+
+    /// `len` elements, initialized in place by `fill` — which **must** write all of them.
+    #[inline]
+    fn build(len: usize, fill: impl FnOnce(&mut [T])) -> Self {
+        // SAFETY: `fill` writes every one of the `len` elements before any is read.
+        let mut buf = unsafe { Self::uninit(len) };
+        fill(&mut buf);
+        buf
+    }
+}
+
+impl<T> OwnedBuffer<T> for Vec<T> {
+    #[inline]
+    #[allow(clippy::uninit_vec)]
+    unsafe fn uninit(len: usize) -> Self {
+        let mut v = Vec::with_capacity(len);
+        // SAFETY: the `uninit`/`build` contract requires all `len` slots written before read.
+        unsafe { v.set_len(len) };
+        v
+    }
+}
+
+impl<T> OwnedBuffer<T> for ArenaVec<T> {
+    #[inline]
+    unsafe fn uninit(len: usize) -> Self {
+        // SAFETY: as above.
+        unsafe { Self::uninitialized(len) }
+    }
+}
 
 impl<T> ArenaVec<T> {
     /// `usize::MAX` capacity stands in for "unbounded" for zero-sized elements (which never

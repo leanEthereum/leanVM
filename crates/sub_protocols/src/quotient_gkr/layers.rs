@@ -187,7 +187,7 @@ pub(super) fn unpack_and_unreverse_active<EF: ExtensionField<PF<EF>>>(
     v: &[EFPacking<EF>],
     chunk_log: usize,
 ) -> Vec<EF> {
-    bit_reverse_chunks(&unpack_extension::<EF>(v), chunk_log)
+    bit_reverse_chunks(&unpack_extension::<EF, Vec<_>>(v), chunk_log)
 }
 
 fn unpack_base_and_unreverse_active<EF: ExtensionField<PF<EF>>>(v: &[PFPacking<EF>], chunk_log: usize) -> Vec<EF> {
