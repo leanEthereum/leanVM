@@ -1,3 +1,4 @@
+use std::sync::{Mutex, MutexGuard, PoisonError};
 use std::time::Instant;
 
 use lean_multisig::{
@@ -15,6 +16,12 @@ use xmss::{
     xmss_key_gen, xmss_sign, xmss_verify,
 };
 
+static ARENA_TEST_LOCK: Mutex<()> = Mutex::new(());
+
+fn serialize_arena_tests() -> MutexGuard<'static, ()> {
+    ARENA_TEST_LOCK.lock().unwrap_or_else(PoisonError::into_inner)
+}
+
 #[test]
 fn test_xmss_signature() {
     let start_slot = 111;
@@ -30,6 +37,7 @@ fn test_xmss_signature() {
 
 #[test]
 fn test_aggregation() {
+    let _arena_guard = serialize_arena_tests();
     for n_signatures in [1, 2, 4, 8, 16, 32, 64, 128] {
         let topology = AggregationTopology {
             raw_xmss: n_signatures,
@@ -43,6 +51,7 @@ fn test_aggregation() {
 
 #[test]
 fn test_single_message_aggregation() {
+    let _arena_guard = serialize_arena_tests();
     setup_prover();
 
     let log_inv_rate = 2; // [1, 2, 3 or 4] (lower = faster but bigger proofs)
@@ -75,6 +84,7 @@ fn test_single_message_aggregation() {
 
 #[test]
 fn test_multi_message_aggregation() {
+    let _arena_guard = serialize_arena_tests();
     setup_prover();
 
     let log_inv_rate = 2; // [1, 2, 3 or 4] (lower = faster but bigger proofs)

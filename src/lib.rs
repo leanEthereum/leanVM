@@ -13,6 +13,7 @@ pub type F = KoalaBear;
 
 /// Call once before proving.
 pub fn setup_prover() {
+    zk_alloc::enable_arena();
     parallel::init();
     rec_aggregation::init_aggregation_bytecode();
     precompute_dft_twiddles::<F>(1 << 24);
@@ -25,7 +26,8 @@ pub fn setup_verifier() {
 
 /// Explicit bump-arena allocator (never a `#[global_allocator]`).
 ///
-/// [`enable_arena`] once, then bracket each proving call with [`begin_phase`] / [`end_phase`].
-/// `ArenaVec` buffers bump from the arena inside a phase and use the system allocator outside one;
-/// data that must outlive a phase needs the system allocator, since [`begin_phase`] resets the arena.
-pub use zk_alloc::{begin_phase, enable_arena, end_phase};
+/// [`setup_prover`] engages the arena, so it is on by default once the prover is set up; bracket each
+/// proving call with [`begin_phase`] / [`end_phase`]. `ArenaVec` buffers bump from the arena inside a
+/// phase and use the system allocator outside one; data that must outlive a phase needs the system
+/// allocator, since [`begin_phase`] resets the arena.
+pub use zk_alloc::{begin_phase, end_phase};
