@@ -1,6 +1,4 @@
-use crate::{
-   EFPacking, Mle, MleRef, MultilinearPoint, PF, PFPacking, pack_extension, packing_width, unpack_extension,
-};
+use crate::{EFPacking, Mle, MleRef, MultilinearPoint, PF, PFPacking, pack_extension, packing_width, unpack_extension};
 use field::PackedValue;
 use field::{ExtensionField, PackedFieldExtension};
 use zk_alloc::ArenaVec;

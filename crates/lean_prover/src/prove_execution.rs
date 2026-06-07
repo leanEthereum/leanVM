@@ -2,11 +2,11 @@ use std::collections::BTreeMap;
 
 use crate::*;
 use backend::ansi::Colorize;
+use backend::enter_phase;
 use lean_vm::*;
 use serde::{Deserialize, Serialize};
 use sub_protocols::*;
 use tracing::info_span;
-use backend::enter_phase;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExecutionProof {

@@ -2,9 +2,9 @@ use crate::*;
 use air::*;
 use field::*;
 use poly::*;
-use zk_alloc::ArenaVec;
 use std::any::TypeId;
 use std::ops::{Add, AddAssign, Mul, MulAssign, Sub};
+use zk_alloc::ArenaVec;
 
 fn add_assign_vec<T: AddAssign>(mut a: Vec<T>, b: Vec<T>) -> Vec<T> {
     for (x, y) in a.iter_mut().zip(b) {

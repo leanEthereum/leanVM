@@ -7,12 +7,12 @@ use field::PackedValue;
 use field::PrimeCharacteristicRing;
 use field::{ExtensionField, TwoAdicField};
 use poly::*;
-use zk_alloc::ArenaVec;
 use std::any::{Any, TypeId};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, OnceLock};
 use tracing::instrument;
 use utils::log2_strict_usize;
+use zk_alloc::ArenaVec;
 
 use crate::EvalsDft;
 use crate::Matrix;
