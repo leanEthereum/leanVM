@@ -142,7 +142,7 @@ fn sweep_flags(loop_iters: usize, n_poseidon: usize, ext_len: usize, bytecode_pa
     }
 }
 
-fn all_precompiles_witness(ext_len: usize) -> ([F; PUBLIC_INPUT_LEN], ExecutionWitness) {
+fn all_precompiles_witness(ext_len: usize, bytecode: &Bytecode) -> ([F; PUBLIC_INPUT_LEN], ExecutionWitness) {
     let mut rng = StdRng::seed_from_u64(0);
     let mut scratch = F::zero_vec(8192);
 
@@ -252,12 +252,11 @@ fn all_precompiles_witness(ext_len: usize) -> ([F; PUBLIC_INPUT_LEN], ExecutionW
 
     let pos_src: [F; 16] = rng.random();
     let ext_vec = |rng: &mut StdRng| ef_to_f(&(0..ext_len).map(|_| rng.random()).collect::<Vec<EF>>());
-    let hints = std::collections::HashMap::from([
-        ("scratch".to_string(), vec![scratch]),
-        ("pos_src".to_string(), vec![pos_src.to_vec()]),
-        ("ext_a".to_string(), vec![ext_vec(&mut rng)]),
-        ("ext_b".to_string(), vec![ext_vec(&mut rng)]),
-    ]);
+    let mut hints = Hints::default();
+    hints.insert(bytecode, "scratch", arena_vec![ArenaVec::from_slice(&scratch)]);
+    hints.insert(bytecode, "pos_src", arena_vec![ArenaVec::from_slice(&pos_src)]);
+    hints.insert(bytecode, "ext_a", arena_vec![ArenaVec::from_slice(&ext_vec(&mut rng))]);
+    hints.insert(bytecode, "ext_b", arena_vec![ArenaVec::from_slice(&ext_vec(&mut rng))]);
     let witness = ExecutionWitness {
         hints,
         ..Default::default()
@@ -269,13 +268,12 @@ fn all_precompiles_witness(ext_len: usize) -> ([F; PUBLIC_INPUT_LEN], ExecutionW
 fn test_zk_vm_all_precompiles() {
     // Exercises every precompile variant; the sweep knobs are kept small so it stays fast.
     let ext_len = 2;
-    let (public_input, witness) = all_precompiles_witness(ext_len);
-    test_zk_vm_helper_with_witness(
-        ALL_PRECOMPILES_PROGRAM,
-        &public_input,
-        witness,
+    let bytecode = compile_program_with_flags(
+        &ProgramSource::Raw(ALL_PRECOMPILES_PROGRAM.to_string()),
         sweep_flags(100, 2, ext_len, 4),
     );
+    let (public_input, witness) = all_precompiles_witness(ext_len, &bytecode);
+    test_zk_vm_helper_with_bytecode(&bytecode, &public_input, witness);
 }
 
 // Python-verifier test vectors: compile ALL_PRECOMPILES_PROGRAM with different runtime flavours (table sizes, etc)
@@ -292,7 +290,7 @@ fn dump_vector(
         &ProgramSource::Raw(ALL_PRECOMPILES_PROGRAM.to_string()),
         sweep_flags(loop_iters, n_poseidon, ext_len, bytecode_pad),
     );
-    let (public_input, witness) = all_precompiles_witness(ext_len);
+    let (public_input, witness) = all_precompiles_witness(ext_len, &bytecode);
     let proof = prove_execution(&bytecode, &public_input, &witness, &default_whir_config(rate), false)
         .unwrap()
         .proof;
@@ -433,10 +431,18 @@ fn test_zk_vm_helper_with_witness(
 ) {
     init_tracing();
     let bytecode = compile_program_with_flags(&ProgramSource::Raw(program_str.to_string()), flags);
+    test_zk_vm_helper_with_bytecode(&bytecode, public_input, witness);
+}
+
+fn test_zk_vm_helper_with_bytecode(
+    bytecode: &Bytecode,
+    public_input: &[F; PUBLIC_INPUT_LEN],
+    witness: ExecutionWitness,
+) {
     let time = std::time::Instant::now();
     let starting_log_inv_rate = 1;
     let proof = prove_execution(
-        &bytecode,
+        bytecode,
         public_input,
         &witness,
         &default_whir_config(starting_log_inv_rate),
@@ -444,7 +450,7 @@ fn test_zk_vm_helper_with_witness(
     )
     .unwrap();
     let proof_time = time.elapsed();
-    verify_execution(&bytecode, public_input, proof.proof).unwrap();
+    verify_execution(bytecode, public_input, proof.proof).unwrap();
     println!("{}", proof.metadata.as_ref().unwrap().display());
     println!("Proof time: {:.3} s", proof_time.as_secs_f32());
 }

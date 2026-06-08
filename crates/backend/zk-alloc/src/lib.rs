@@ -17,6 +17,14 @@ mod syscall;
 pub use arena_cow::ArenaCow;
 pub use arena_vec::{ArenaVec, OwnedBuffer};
 
+/// Build an [`ArenaVec`], mirroring [`std::vec!`]:
+#[macro_export]
+macro_rules! arena_vec {
+    () => { $crate::ArenaVec::new() };
+    ($elem:expr; $n:expr) => { $crate::ArenaVec::filled($elem, $n) };
+    ($($x:expr),+ $(,)?) => { $crate::ArenaVec::from_iter([$($x),+]) };
+}
+
 const SLAB_SIZE: usize = 8 << 30; // 8 GiB; per-thread soft cap, overflow falls back to System
 const SLACK: usize = 4; // extra slabs for non-pool threads that allocate in a phase
 const MAX_THREADS: usize = NUM_THREADS + SLACK;

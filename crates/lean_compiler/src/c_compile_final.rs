@@ -120,7 +120,7 @@ pub fn compile_to_low_level_bytecode(
     };
 
     let mut instructions = Vec::new();
-    let mut hint_names: Vec<String> = Vec::new();
+    let mut hint_name_to_index: BTreeMap<String, usize> = BTreeMap::new();
 
     for (pc_start, block) in code_blocks {
         compile_block(
@@ -129,7 +129,7 @@ pub fn compile_to_low_level_bytecode(
             pc_start,
             &mut instructions,
             &mut hints,
-            &mut hint_names,
+            &mut hint_name_to_index,
         );
     }
 
@@ -186,7 +186,7 @@ pub fn compile_to_low_level_bytecode(
     Ok(Bytecode {
         unpadded_size: n_real_instructions,
         code,
-        hint_names,
+        hint_name_to_index,
         instructions_multilinear,
         hash,
         starting_frame_memory,
@@ -204,7 +204,7 @@ fn compile_block(
     pc_start: CodeAddress,
     low_level_bytecode: &mut Vec<Instruction>,
     hints: &mut BTreeMap<CodeAddress, Vec<Hint>>,
-    hint_names: &mut Vec<String>,
+    hint_names: &mut BTreeMap<String, usize>,
 ) {
     let try_as_mem_or_constant = |value: &IntermediateValue| {
         if let Some(cst) = try_as_constant(value, compiler) {
@@ -348,13 +348,8 @@ fn compile_block(
             }
             IntermediateInstruction::HintWitness { name, destination } => {
                 let destination = destination.map(|offset| eval_const_expression_usize(&offset, compiler));
-                let slot = match hint_names.iter().position(|n| *n == name) {
-                    Some(slot) => slot,
-                    None => {
-                        hint_names.push(name);
-                        hint_names.len() - 1
-                    }
-                };
+                let next_slot = hint_names.len();
+                let slot = *hint_names.entry(name).or_insert(next_slot);
                 hints
                     .entry(pc)
                     .or_default()

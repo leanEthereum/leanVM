@@ -7,14 +7,14 @@ use crate::diagnostics::{ExecutionMetadata, ExecutionResult, RunnerError};
 use crate::execution::memory::MemoryAccess;
 use crate::execution::{ExecutionHistory, Memory};
 use crate::isa::Bytecode;
-use crate::isa::hint::{DiagnosticState, Hint, HintState, NamedHintCursor};
+use crate::isa::hint::{DiagnosticState, Hint, HintState};
 use crate::isa::instruction::{InstructionContext, InstructionCounts};
 use crate::{
     ALL_TABLES, CodeAddress, HintExecutionContext, MAX_LOG_MEMORY_SIZE, MemOrConstant, N_TABLES, STARTING_PC, Table,
     TableTrace,
 };
 use backend::*;
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet};
 
 use super::memory::SegmentMemory;
 
@@ -24,9 +24,36 @@ pub struct ExecutionWitness {
     /// memory and runtime memory that the runner leaves unset, that is filled
     /// manually by the program at startup.
     pub preamble_memory_len: usize,
-    pub hints: HashMap<String, Vec<Vec<F>>>,
+    pub hints: Hints,
     /// testing purpose
     pub min_table_log_n_rows: BTreeMap<Table, usize>,
+}
+
+#[derive(Debug, Default)]
+pub struct HintData {
+    pub name: &'static str,
+    pub entries: ArenaVec<ArenaVec<F>>,
+}
+
+#[derive(Debug, Default)]
+pub struct Hints(Vec<HintData>);
+
+impl Hints {
+    pub fn insert(&mut self, bytecode: &Bytecode, name: &'static str, entries: ArenaVec<ArenaVec<F>>) {
+        let slot = bytecode.hint_slot(name);
+        if slot >= self.0.len() {
+            self.0.resize_with(slot + 1, HintData::default);
+        }
+        self.0[slot] = HintData { name, entries };
+    }
+
+    pub fn entries(&self, slot: usize) -> &[ArenaVec<F>] {
+        self.0.get(slot).map_or(&[], |h| &h.entries)
+    }
+
+    pub fn name(&self, slot: usize) -> &str {
+        self.0.get(slot).map_or("", |h| h.name)
+    }
 }
 
 pub fn try_execute_bytecode(
@@ -129,7 +156,8 @@ fn run_loop<M: MemoryAccess>(
     pc: &mut usize,
     fp: &mut usize,
     ap: &mut usize,
-    hints: &mut HintState<'_, '_>,
+    hints: &mut HintState<'_>,
+    hint_data: &Hints,
     stop_pc: Option<usize>,
 ) -> Result<LoopExit, RunnerError> {
     let mut parallel_batch: Option<ParallelBatchInfo> = None;
@@ -158,13 +186,14 @@ fn run_loop<M: MemoryAccess>(
                         frame_size: *ap - *fp,
                         n_args: *n_args,
                         end_value: *end_value,
-                        hint_indices_at_start: hints.hint_cursors.iter().map(|c| c.index).collect(),
+                        hint_indices_at_start: hints.indices.to_vec(),
                     });
                 }
                 continue;
             }
             let mut ctx = HintExecutionContext {
                 hints,
+                hint_data,
                 memory,
                 fp: *fp,
                 ap,
@@ -245,24 +274,10 @@ fn execute_bytecode_helper(
     instruction_history: &mut ExecutionHistory,
     profiling: bool,
 ) -> Result<ExecutionResult, (CodeAddress, RunnerError)> {
-    let mut hint_cursors: Vec<NamedHintCursor<'_>> = Vec::with_capacity(bytecode.hint_names.len());
-    for name in &bytecode.hint_names {
-        let entries: &[Vec<F>] = match witness.hints.get(name) {
-            Some(v) => v,
-            None => &[],
-        };
-        hint_cursors.push(NamedHintCursor::new(name, entries));
-    }
-    for (name, entries) in &witness.hints {
-        if !entries.is_empty() && !bytecode.hint_names.contains(name) {
-            return Err((
-                STARTING_PC,
-                RunnerError::InvalidHintWitness(format!(
-                    "witness provides hint '{name}' that the program never consumes"
-                )),
-            ));
-        }
-    }
+    let n_slots = bytecode.hint_name_to_index.len();
+    let hint_data = &witness.hints;
+    let mut hint_indices = vec![0usize; n_slots];
+
     let public_memory = public_input.to_vec();
     let mut memory = Memory::new(public_memory);
     let mut fp = PUBLIC_INPUT_LEN + witness.preamble_memory_len;
@@ -284,7 +299,7 @@ fn execute_bytecode_helper(
                 last_checkpoint_cpu_cycles: &mut last_checkpoint_cpu_cycles,
                 checkpoint_ap: &mut checkpoint_ap,
             }),
-            hint_cursors: &mut hint_cursors,
+            indices: &mut hint_indices,
         };
         match run_loop(
             bytecode,
@@ -294,6 +309,7 @@ fn execute_bytecode_helper(
             &mut fp,
             &mut ap,
             &mut hints,
+            hint_data,
             None,
         )
         .map_err(|e| (pc, e))?
@@ -304,7 +320,8 @@ fn execute_bytecode_helper(
                     bytecode,
                     &mut memory,
                     &mut trace,
-                    &mut hint_cursors,
+                    &mut hints,
+                    hint_data,
                     &mut pc,
                     &mut fp,
                     &mut ap,
@@ -318,15 +335,15 @@ fn execute_bytecode_helper(
 
     resolve_deref_hints(&mut memory, &trace.pending_deref_hints).map_err(|e| (pc, e))?;
     assert_eq!(pc, bytecode.ending_pc);
-    for (slot, name) in bytecode.hint_names.iter().enumerate() {
-        let cursor = &hint_cursors[slot];
-        if cursor.index != cursor.entries.len() {
+    for (slot, hint) in hint_data.0.iter().enumerate() {
+        if hint_indices[slot] != hint.entries.len() {
             return Err((
                 pc,
                 RunnerError::InvalidHintWitness(format!(
-                    "not all entries of named hint '{name}' were consumed ({} of {} used)",
-                    cursor.index,
-                    cursor.entries.len(),
+                    "not all entries of named hint '{}' were consumed ({} of {} used)",
+                    hint.name,
+                    hint_indices[slot],
+                    hint.entries.len(),
                 )),
             ));
         }
@@ -394,7 +411,8 @@ fn handle_parallel_batch(
     bytecode: &Bytecode,
     memory: &mut Memory,
     trace: &mut Trace,
-    hint_cursors: &mut [NamedHintCursor<'_>],
+    hints: &mut HintState<'_>,
+    hint_data: &Hints,
     pc: &mut usize,
     fp: &mut usize,
     ap: &mut usize,
@@ -414,11 +432,13 @@ fn handle_parallel_batch(
         .map(|i| memory.get(batch.batch_fp + 2 + i).unwrap())
         .collect();
 
-    let named_per_iter: Vec<usize> = hint_cursors
+    let named_per_iter: Vec<usize> = hints
+        .indices
         .iter()
         .enumerate()
-        .map(|(slot, cursor)| cursor.index - batch.hint_indices_at_start[slot])
+        .map(|(slot, &index)| index - batch.hint_indices_at_start[slot])
         .collect();
+    let base_indices: Vec<usize> = hints.indices.to_vec();
 
     for i in 1..=n_iters {
         let iter_val = if i < n_iters { start_value + i } else { end_value };
@@ -468,13 +488,13 @@ fn handle_parallel_batch(
         let mut seg_pc = batch.batch_pc;
         let mut seg_fp = fp_i;
         let mut seg_ap = fp_i + batch.frame_size;
-        let mut seg_cursors = hint_cursors.to_vec();
-        for (slot, cursor) in seg_cursors.iter_mut().enumerate() {
-            cursor.index += i * named_per_iter[slot];
+        let mut seg_indices = base_indices.clone();
+        for (slot, index) in seg_indices.iter_mut().enumerate() {
+            *index += i * named_per_iter[slot];
         }
-        let mut hints = HintState {
+        let mut seg_hints = HintState {
             diagnostics: None,
-            hint_cursors: &mut seg_cursors,
+            indices: &mut seg_indices,
         };
         run_loop(
             bytecode,
@@ -483,15 +503,16 @@ fn handle_parallel_batch(
             &mut seg_pc,
             &mut seg_fp,
             &mut seg_ap,
-            &mut hints,
+            &mut seg_hints,
+            hint_data,
             Some(batch.batch_pc),
         )?;
-        for slot in 0..seg_cursors.len() {
+        for slot in 0..seg_indices.len() {
             let delta = named_per_iter[slot];
-            // Before `run_loop` this cursor was at `cursors[slot].index + i*delta`.
-            let consumed = seg_cursors[slot].index - (hint_cursors[slot].index + i * delta);
+            // Before `run_loop` this segment was at `base_indices[slot] + i*delta`.
+            let consumed = seg_indices[slot] - (base_indices[slot] + i * delta);
             if consumed != delta {
-                let name = bytecode.hint_names.get(slot).map_or("<unknown>", |n| n.as_str());
+                let name = hint_data.name(slot);
                 return Err(RunnerError::InvalidHintWitness(format!(
                     "hint '{name}' consumed {consumed} entries in a parallel iteration but {delta} in iteration 0; parallel iterations must consume hints uniformly"
                 )));
@@ -510,7 +531,7 @@ fn handle_parallel_batch(
     }
 
     for (slot, &delta) in named_per_iter.iter().enumerate() {
-        hint_cursors[slot].index += n_par * delta;
+        hints.indices[slot] += n_par * delta;
     }
 
     *pc = batch.batch_pc;

@@ -7,7 +7,7 @@ use field::{ExtensionField, Field, TwoAdicField};
 use poly::*;
 use sumcheck::{ProductComputation, run_product_sumcheck, sumcheck_prove_many_rounds};
 use tracing::{info_span, instrument};
-use zk_alloc::ArenaVec;
+use zk_alloc::{ArenaVec, arena_vec};
 
 use crate::{config::WhirConfig, *};
 
@@ -587,7 +587,7 @@ where
                     .collect::<Vec<_>>(),
             );
             chunks_mut.remove(0);
-            let mut next_gamma_powers = vec![gamma_pow];
+            let mut next_gamma_powers = arena_vec![gamma_pow];
             for _ in 1..indexed_smt_values.len() {
                 next_gamma_powers.push(*next_gamma_powers.last().unwrap() * gamma);
             }
@@ -596,7 +596,7 @@ where
             }
             let n = 1usize << shift;
             let mask = n - 1;
-            let ptrs: Vec<(parallel::SendPtr<EFPacking<EF>>, EF)> = chunks_mut
+            let ptrs: ArenaVec<(parallel::SendPtr<EFPacking<EF>>, EF)> = chunks_mut
                 .iter_mut()
                 .zip(&indexed_smt_values)
                 .map(|(out_buff, &(origin_index, _))| {

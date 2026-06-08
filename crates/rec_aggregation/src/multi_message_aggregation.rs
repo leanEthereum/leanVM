@@ -6,7 +6,6 @@ use lean_prover::prove_execution::ExecutionProof;
 use lean_prover::prove_execution::prove_execution;
 use lean_vm::*;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 use crate::InnerVerified;
 use crate::bytecode_claims::compute_bytecode_value_at;
@@ -99,6 +98,7 @@ pub fn merge_single_message_aggregates(
     single_messages: Vec<SingleMessageAggregateSignature>,
     log_inv_rate: usize,
 ) -> Result<MultiMessageAggregateSignature, AggregationError> {
+    let _phase = enter_phase();
     let n_components = single_messages.len();
     if n_components == 0 {
         return Err(AggregationError::EmptyAggregation {
@@ -126,44 +126,54 @@ pub fn merge_single_message_aggregates(
     let pub_input_data = build_multi_message_input_data(&digests, &reduced_claims.final_claim_flat());
     let public_input_digest = poseidon_hash_slice(&pub_input_data);
 
-    let bytecode_value_hint_blobs: Vec<Vec<F>> = verified_children
+    let bytecode_value_hint_blobs: ArenaVec<ArenaVec<F>> = verified_children
         .iter()
-        .map(|v| v.bytecode_evaluation.value.as_basis_coefficients_slice().to_vec())
+        .map(|v| ArenaVec::from_slice(v.bytecode_evaluation.value.as_basis_coefficients_slice()))
         .collect();
-    let component_layout_blobs: Vec<Vec<F>> = verified_children.iter().map(|v| v.input_data.clone()).collect();
-    let proof_transcript_blobs: Vec<Vec<F>> = verified_children
+    let component_layout_blobs: ArenaVec<ArenaVec<F>> = verified_children
         .iter()
-        .map(|v| v.raw_proof.transcript.clone())
+        .map(|v| ArenaVec::from_slice(&v.input_data))
         .collect();
-    let table_sort_perm_blobs: Vec<Vec<F>> = verified_children
+    let proof_transcript_blobs: ArenaVec<ArenaVec<F>> = verified_children
+        .iter()
+        .map(|v| ArenaVec::from_slice(&v.raw_proof.transcript))
+        .collect();
+    let table_sort_perm_blobs: ArenaVec<ArenaVec<F>> = verified_children
         .iter()
         .map(|v| v.sorted_table_perm.iter().map(|&i| F::from_usize(i)).collect())
         .collect();
     let (merkle_leaf_blobs, merkle_path_blobs) =
         extract_merkle_hint_blobs(verified_children.iter().map(|v| &v.raw_proof));
 
-    let mut hints: HashMap<String, Vec<Vec<F>>> = HashMap::new();
+    let mut hints = Hints::default();
     hints.insert(
-        "input_data_num_chunks".to_string(),
-        vec![vec![F::from_usize(pub_input_data.len() / DIGEST_LEN)]],
+        bytecode,
+        "input_data_num_chunks",
+        arena_vec![arena_vec![F::from_usize(pub_input_data.len() / DIGEST_LEN)]],
     );
-    hints.insert("input_data".to_string(), vec![pub_input_data]);
-    hints.insert("bytecode_value_hint".to_string(), bytecode_value_hint_blobs);
-    hints.insert("component_layout".to_string(), component_layout_blobs);
     hints.insert(
-        "proof_transcript_size".to_string(),
+        bytecode,
+        "input_data",
+        arena_vec![ArenaVec::from_slice(&pub_input_data)],
+    );
+    hints.insert(bytecode, "bytecode_value_hint", bytecode_value_hint_blobs);
+    hints.insert(bytecode, "component_layout", component_layout_blobs);
+    hints.insert(
+        bytecode,
+        "proof_transcript_size",
         proof_transcript_blobs
             .iter()
-            .map(|b| vec![F::from_usize(b.len())])
+            .map(|b| arena_vec![F::from_usize(b.len())])
             .collect(),
     );
-    hints.insert("proof_transcript".to_string(), proof_transcript_blobs);
-    hints.insert("table_sort_perm".to_string(), table_sort_perm_blobs);
-    hints.insert("merkle_leaf".to_string(), merkle_leaf_blobs);
-    hints.insert("merkle_path".to_string(), merkle_path_blobs);
+    hints.insert(bytecode, "proof_transcript", proof_transcript_blobs);
+    hints.insert(bytecode, "table_sort_perm", table_sort_perm_blobs);
+    hints.insert(bytecode, "merkle_leaf", merkle_leaf_blobs);
+    hints.insert(bytecode, "merkle_path", merkle_path_blobs);
     hints.insert(
-        "bytecode_sumcheck_proof".to_string(),
-        vec![reduced_claims.sumcheck_transcript],
+        bytecode,
+        "bytecode_sumcheck_proof",
+        arena_vec![ArenaVec::from_slice(&reduced_claims.sumcheck_transcript)],
     );
 
     let witness = ExecutionWitness {
@@ -217,6 +227,7 @@ pub fn split_multi_message_aggregate(
     index: usize,
     log_inv_rate: usize,
 ) -> Result<SingleMessageAggregateSignature, AggregationError> {
+    let _phase = enter_phase();
     let n_components = multi_message.info.len();
     if index >= n_components {
         return Err(AggregationError::InvalidSplitIndex { index, n_components });
@@ -235,7 +246,7 @@ pub fn split_multi_message_aggregate(
 
     let reduced_claims = reduce_bytecode_claims(std::slice::from_ref(&outer_verified));
     let bytecode_value_hint_blob = flatten_scalars_to_base(&[outer_verified.bytecode_evaluation.value]);
-    let table_sort_perm_blob: Vec<F> = outer_verified
+    let table_sort_perm_blob: ArenaVec<F> = outer_verified
         .sorted_table_perm
         .iter()
         .map(|&i| F::from_usize(i))
@@ -251,33 +262,56 @@ pub fn split_multi_message_aggregate(
     let (merkle_leaf_blobs, merkle_path_blobs) =
         extract_merkle_hint_blobs(std::slice::from_ref(&outer_verified.raw_proof));
     let proof_transcript = outer_verified.raw_proof.transcript;
-    let proof_transcript_size = vec![F::from_usize(proof_transcript.len())];
 
-    let mut hints: HashMap<String, Vec<Vec<F>>> = HashMap::new();
+    let mut hints = Hints::default();
     hints.insert(
-        "input_data_num_chunks".to_string(),
-        vec![vec![F::from_usize(ourer_input_data.len() / DIGEST_LEN)]],
-    );
-    hints.insert("input_data".to_string(), vec![ourer_input_data]);
-    hints.insert("is_split".to_string(), vec![vec![F::ONE]]);
-    hints.insert(
-        "multi_message_meta".to_string(),
-        vec![vec![F::from_usize(n_components), F::from_usize(index)]],
+        bytecode,
+        "input_data_num_chunks",
+        arena_vec![arena_vec![F::from_usize(ourer_input_data.len() / DIGEST_LEN)]],
     );
     hints.insert(
-        "inner_multi_message_layout".to_string(),
-        vec![outer_verified.input_data],
+        bytecode,
+        "input_data",
+        arena_vec![ArenaVec::from_slice(&ourer_input_data)],
     );
-    hints.insert("kept_single_message_buff".to_string(), vec![inner_input_data]);
-    hints.insert("bytecode_value_hint".to_string(), vec![bytecode_value_hint_blob]);
-    hints.insert("proof_transcript_size".to_string(), vec![proof_transcript_size]);
-    hints.insert("proof_transcript".to_string(), vec![proof_transcript]);
-    hints.insert("table_sort_perm".to_string(), vec![table_sort_perm_blob]);
-    hints.insert("merkle_leaf".to_string(), merkle_leaf_blobs);
-    hints.insert("merkle_path".to_string(), merkle_path_blobs);
+    hints.insert(bytecode, "is_split", arena_vec![arena_vec![F::ONE]]);
     hints.insert(
-        "bytecode_sumcheck_proof".to_string(),
-        vec![reduced_claims.sumcheck_transcript],
+        bytecode,
+        "multi_message_meta",
+        arena_vec![arena_vec![F::from_usize(n_components), F::from_usize(index)]],
+    );
+    hints.insert(
+        bytecode,
+        "inner_multi_message_layout",
+        arena_vec![ArenaVec::from_slice(&outer_verified.input_data)],
+    );
+    hints.insert(
+        bytecode,
+        "kept_single_message_buff",
+        arena_vec![ArenaVec::from_slice(&inner_input_data)],
+    );
+    hints.insert(
+        bytecode,
+        "bytecode_value_hint",
+        arena_vec![ArenaVec::from_slice(&bytecode_value_hint_blob)],
+    );
+    hints.insert(
+        bytecode,
+        "proof_transcript_size",
+        arena_vec![arena_vec![F::from_usize(proof_transcript.len())]],
+    );
+    hints.insert(
+        bytecode,
+        "proof_transcript",
+        arena_vec![ArenaVec::from_slice(&proof_transcript)],
+    );
+    hints.insert(bytecode, "table_sort_perm", arena_vec![table_sort_perm_blob]);
+    hints.insert(bytecode, "merkle_leaf", merkle_leaf_blobs);
+    hints.insert(bytecode, "merkle_path", merkle_path_blobs);
+    hints.insert(
+        bytecode,
+        "bytecode_sumcheck_proof",
+        arena_vec![ArenaVec::from_slice(&reduced_claims.sumcheck_transcript)],
     );
 
     let witness = ExecutionWitness {

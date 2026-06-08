@@ -3,7 +3,7 @@ use crate::diagnostics::RunnerError;
 use crate::execution::ExecutionHistory;
 use crate::execution::memory::MemoryAccess;
 use crate::isa::operands::{MemOrConstant, MemOrFpOrConstant};
-use crate::{MAX_LOG_MEMORY_SIZE, MIN_LOG_MEMORY_SIZE};
+use crate::{Hints, MAX_LOG_MEMORY_SIZE, MIN_LOG_MEMORY_SIZE};
 use backend::*;
 use std::fmt::Debug;
 use std::fmt::{Display, Formatter};
@@ -257,32 +257,16 @@ pub struct DiagnosticState<'a> {
     pub checkpoint_ap: &'a mut usize,
 }
 
-#[derive(Debug, Clone, Copy)]
-pub struct NamedHintCursor<'a> {
-    pub entries: &'a [Vec<F>],
-    pub index: usize,
-    pub name: &'a str,
-}
-
-impl<'a> NamedHintCursor<'a> {
-    pub fn new(name: &'a str, entries: &'a [Vec<F>]) -> Self {
-        Self {
-            entries,
-            index: 0,
-            name,
-        }
-    }
-}
-
 #[derive(Debug)]
-pub struct HintState<'a, 'h> {
+pub struct HintState<'a> {
     pub diagnostics: Option<DiagnosticState<'a>>,
-    pub hint_cursors: &'a mut [NamedHintCursor<'h>],
+    pub indices: &'a mut [usize],
 }
 
 #[derive(Debug)]
-pub struct HintExecutionContext<'a, 'h, 'hh, M: MemoryAccess> {
-    pub hints: &'a mut HintState<'h, 'hh>,
+pub struct HintExecutionContext<'a, 's, 'h, M: MemoryAccess> {
+    pub hints: &'a mut HintState<'s>,
+    pub hint_data: &'h Hints,
     pub memory: &'a mut M,
     pub fp: usize,
     pub ap: &'a mut usize,
@@ -400,7 +384,7 @@ impl Hint {
             // Handled by the runner's parallel dispatch; no-op in sequential mode.
             Self::ParallelBatchStart { .. } => {}
             Self::HintWitness { slot, destination } => {
-                let data = consume_next_hint_entry(ctx.hints.hint_cursors, *slot)?;
+                let data = consume_next_hint_entry(ctx.hint_data, ctx.hints.indices, *slot)?;
                 let dest_addr = match destination {
                     HintWitnessDestination::Inline { offset } => ctx.fp + *offset,
                     HintWitnessDestination::Indirect { ptr_offset } => ctx.memory.get(ctx.fp + *ptr_offset)?.to_usize(),
@@ -412,18 +396,21 @@ impl Hint {
     }
 }
 
-fn consume_next_hint_entry<'h>(cursors: &mut [NamedHintCursor<'h>], slot: usize) -> Result<&'h [F], RunnerError> {
-    let cursor = &mut cursors[slot];
-    let entries = cursor.entries;
-    let index = cursor.index;
+fn consume_next_hint_entry<'h>(
+    hint_data: &'h Hints,
+    indices: &mut [usize],
+    slot: usize,
+) -> Result<&'h [F], RunnerError> {
+    let entries = hint_data.entries(slot);
+    let index = indices[slot];
     if index >= entries.len() {
         return Err(RunnerError::InvalidHintWitness(format!(
-            "exhausted entries for hint '{}' (len={})",
-            cursor.name,
+            "exhausted entries for hint '{}' (slot {slot}, len={})",
+            hint_data.name(slot),
             entries.len()
         )));
     }
-    cursor.index += 1;
+    indices[slot] += 1;
     Ok(&entries[index])
 }
 

@@ -1,6 +1,6 @@
 use std::time::Instant;
 
-use backend::{BasedVectorSpace, PrimeCharacteristicRing};
+use backend::{ArenaVec, BasedVectorSpace, PrimeCharacteristicRing, arena_vec};
 use lean_compiler::*;
 use lean_vm::*;
 use rand::{RngExt, SeedableRng, rngs::StdRng};
@@ -43,18 +43,18 @@ def div_ext_2(n, d):
     let n: EF = rng.random();
     let d: EF = rng.random();
     let q = n / d;
-    let mut nd_buf: Vec<F> = Vec::new();
-    nd_buf.extend(n.as_basis_coefficients_slice());
-    nd_buf.extend(d.as_basis_coefficients_slice());
-    let q_buf: Vec<F> = q.as_basis_coefficients_slice().to_vec();
-    let mut hints = std::collections::HashMap::new();
-    hints.insert("nd".to_string(), vec![nd_buf]);
-    hints.insert("q".to_string(), vec![q_buf]);
+    let mut nd_buf: ArenaVec<F> = ArenaVec::new();
+    nd_buf.extend_from_slice(n.as_basis_coefficients_slice());
+    nd_buf.extend_from_slice(d.as_basis_coefficients_slice());
+    let q_buf = ArenaVec::from_slice(q.as_basis_coefficients_slice());
+    let bytecode = compile_program(&ProgramSource::Raw(program.to_string()));
+    let mut hints = Hints::default();
+    hints.insert(&bytecode, "nd", arena_vec![nd_buf]);
+    hints.insert(&bytecode, "q", arena_vec![q_buf]);
     let witness = ExecutionWitness {
         hints,
         ..ExecutionWitness::default()
     };
-    let bytecode = compile_program(&ProgramSource::Raw(program.to_string()));
     try_execute_bytecode(&bytecode, &Default::default(), &witness, false).unwrap();
 }
 

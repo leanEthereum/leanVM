@@ -208,7 +208,7 @@ where
                 // The `evals` are ordered lexicographically, meaning the first variable's bit changes the slowest.
                 //
                 // To align our computation with this memory layout, we process the point's coordinates in reverse.
-                let mut point_rev = point.to_vec();
+                let mut point_rev = ArenaVec::from_slice(point);
                 point_rev.reverse();
 
                 // Split the reversed point's coordinates into two halves:
@@ -230,13 +230,13 @@ where
                 let mut right: ArenaVec<_> = unsafe { ArenaVec::uninitialized(1 << z1.len()) };
 
                 // The `eval_eq` function requires the variables in their original order, so we reverse the halves back.
-                let mut z0_ordered = z0.to_vec();
+                let mut z0_ordered = ArenaVec::from_slice(z0);
                 z0_ordered.reverse();
                 // Compute all eq(v_low, p_low) values and fill the `left` vector.
                 compute_eval_eq::<_, _, false>(&z0_ordered, &mut left, Point::ONE);
 
                 // Repeat the process for the high-order variables.
-                let mut z1_ordered = z1.to_vec();
+                let mut z1_ordered = ArenaVec::from_slice(z1);
                 z1_ordered.reverse();
                 // Compute all eq(v_high, p_high) values and fill the `right` vector.
                 compute_eval_eq::<_, _, false>(&z1_ordered, &mut right, Point::ONE);

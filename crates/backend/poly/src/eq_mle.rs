@@ -184,7 +184,7 @@ where
     let (log_chunks, n_chunks) = parallel_split();
     if eval.len() <= log_packing_width + 1 + log_chunks {
         // Small case: evaluate unpacked, then pack lanes into `out`.
-        let mut unpacked = EF::zero_vec(1 << eval.len());
+        let mut unpacked = unsafe { ArenaVec::zeroed(1 << eval.len()) };
         eval_eq_basic::<_, _, _, false>(eval, &mut unpacked, scalar);
         out.iter_mut()
             .zip(unpacked.chunks_exact(packing_width))
@@ -279,7 +279,7 @@ pub fn compute_eval_eq_base_packed<F, EF, const INITIALIZED: bool>(
     let (log_chunks, n_chunks) = parallel_split();
     if eval.len() <= log_packing_width + 1 + log_chunks {
         // Small case: evaluate unpacked, then pack lanes into `out`.
-        let mut unpacked = EF::zero_vec(1 << eval.len());
+        let mut unpacked = unsafe { ArenaVec::zeroed(1 << eval.len()) };
         eval_eq_basic::<_, _, _, false>(eval, &mut unpacked, scalar);
         out.iter_mut()
             .zip(unpacked.chunks_exact(packing_width))
@@ -888,7 +888,7 @@ pub fn compute_eval_eq_packed_dual<EF>(
 
     let (log_chunks, n_chunks) = parallel_split();
     if eval_a.len() <= log_packing_width + 1 + log_chunks {
-        let mut output_no_packing = EF::zero_vec(1 << eval_a.len());
+        let mut output_no_packing = unsafe { ArenaVec::zeroed(1 << eval_a.len()) };
         eval_eq_basic::<_, _, _, false>(eval_a, &mut output_no_packing, scalar_a);
         eval_eq_basic::<_, _, _, true>(eval_b, &mut output_no_packing, scalar_b);
         out.iter_mut()
@@ -1143,7 +1143,7 @@ fn packed_eq_poly<F: Field, EF: ExtensionField<F>>(eval: &[EF], scalar: EF) -> E
     debug_assert_eq!(F::Packing::WIDTH, 1 << eval.len());
 
     // We build up the evaluations of the equality polynomial in buffer.
-    let mut buffer = EF::zero_vec(1 << eval.len());
+    let mut buffer = unsafe { ArenaVec::zeroed(1 << eval.len()) };
     buffer[0] = scalar;
 
     fill_buffer(eval.iter().rev(), &mut buffer);

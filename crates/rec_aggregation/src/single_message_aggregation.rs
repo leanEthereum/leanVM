@@ -12,7 +12,7 @@ use xmss::{
 };
 
 use serde::{Deserialize, Serialize};
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{BTreeMap, HashSet};
 
 use crate::InnerVerified;
 use crate::bytecode_claims::compute_bytecode_value_at;
@@ -125,10 +125,10 @@ pub(crate) fn hash_pubkeys(pub_keys: &[XmssPublicKey]) -> [F; DIGEST_LEN] {
 }
 
 /// Tweak slots are 4-FE [tw[0], tw[1], 0, 0]
-fn compute_tweak_table(slot: u32) -> Vec<F> {
-    let mut table = Vec::new();
+fn compute_tweak_table(slot: u32) -> ArenaVec<F> {
+    let mut table = ArenaVec::new();
 
-    let push_padded = |table: &mut Vec<F>, tweak_type: usize, sub_position: usize, index: u32| {
+    let push_padded = |table: &mut ArenaVec<F>, tweak_type: usize, sub_position: usize, index: u32| {
         table.extend(make_tweak(tweak_type, sub_position, index));
         table.extend(std::iter::repeat_n(F::ZERO, 2));
     };
@@ -190,11 +190,13 @@ pub(crate) fn build_single_message_input_data(
     data
 }
 
-fn encode_wots_signature(sig: &XmssSignature) -> Vec<F> {
-    let mut data = vec![];
-    data.extend(sig.wots_signature.randomness.to_vec());
-    data.extend(sig.wots_signature.chain_tips.iter().flat_map(|digest| digest.to_vec()));
-    assert_eq!(data.len(), WOTS_SIG_SIZE_FE);
+fn encode_wots_signature(sig: &XmssSignature) -> ArenaVec<F> {
+    let mut data = ArenaVec::with_capacity(WOTS_SIG_SIZE_FE);
+    data.extend_from_slice(&sig.wots_signature.randomness);
+    for digest in &sig.wots_signature.chain_tips {
+        data.extend_from_slice(digest);
+    }
+    debug_assert_eq!(data.len(), WOTS_SIG_SIZE_FE);
     data
 }
 
@@ -232,6 +234,7 @@ pub(crate) fn aggregate_single_message_signatures_with_min_padding(
     log_inv_rate: usize,
     min_table_log_n_rows: BTreeMap<Table, usize>,
 ) -> Result<SingleMessageAggregateSignature, AggregationError> {
+    let _phase = enter_phase();
     if children.len() > MAX_RECURSIONS {
         return Err(AggregationError::LimitExceeded {
             what: "aggregation children",
@@ -309,13 +312,13 @@ pub(crate) fn aggregate_single_message_signatures_with_min_padding(
     let mut claimed: HashSet<XmssPublicKey> = HashSet::new();
     let mut dup_pub_keys: Vec<XmssPublicKey> = Vec::new();
 
-    let wots_blobs: Vec<Vec<F>> = raw_xmss.iter().map(|(_, sig)| encode_wots_signature(sig)).collect();
-    let xmss_merkle_node_blobs: Vec<Vec<F>> = raw_xmss
+    let wots_blobs: ArenaVec<ArenaVec<F>> = raw_xmss.iter().map(|(_, sig)| encode_wots_signature(sig)).collect();
+    let xmss_merkle_node_blobs: ArenaVec<ArenaVec<F>> = raw_xmss
         .iter()
-        .flat_map(|(_, sig)| sig.merkle_proof.iter().map(|d| d.to_vec()))
+        .flat_map(|(_, sig)| sig.merkle_proof.iter().map(|d| ArenaVec::from_slice(d)))
         .collect();
 
-    let raw_indices: Vec<F> = raw_xmss
+    let raw_indices: ArenaVec<F> = raw_xmss
         .iter()
         .map(|(pk, _)| {
             let pos = global_pub_keys.binary_search(pk).unwrap();
@@ -324,11 +327,11 @@ pub(crate) fn aggregate_single_message_signatures_with_min_padding(
         })
         .collect();
 
-    let mut sub_indices_blobs = Vec::with_capacity(n_recursions);
-    let mut bytecode_value_hint_blobs = Vec::with_capacity(n_recursions);
-    let mut inner_bytecode_claim_blobs = Vec::with_capacity(n_recursions);
-    let mut proof_transcript_blobs = Vec::with_capacity(n_recursions);
-    let mut table_sort_perm_blobs = Vec::with_capacity(n_recursions);
+    let mut sub_indices_blobs: ArenaVec<ArenaVec<F>> = ArenaVec::with_capacity(n_recursions);
+    let mut bytecode_value_hint_blobs: ArenaVec<ArenaVec<F>> = ArenaVec::with_capacity(n_recursions);
+    let mut inner_bytecode_claim_blobs: ArenaVec<ArenaVec<F>> = ArenaVec::with_capacity(n_recursions);
+    let mut proof_transcript_blobs: ArenaVec<ArenaVec<F>> = ArenaVec::with_capacity(n_recursions);
+    let mut table_sort_perm_blobs: ArenaVec<ArenaVec<F>> = ArenaVec::with_capacity(n_recursions);
 
     let claim_size_padded = bytecode_claim_size.next_multiple_of(DIGEST_LEN);
 
@@ -345,12 +348,16 @@ pub(crate) fn aggregate_single_message_signatures_with_min_padding(
                 dup_pub_keys.push(pubkey.clone());
             }
         }
-        sub_indices_blobs.push(sub_indices);
+        sub_indices_blobs.push(ArenaVec::from_slice(&sub_indices));
 
         let v = &verified_children[i];
-        bytecode_value_hint_blobs.push(v.bytecode_evaluation.value.as_basis_coefficients_slice().to_vec());
-        inner_bytecode_claim_blobs.push(v.input_data[BYTECODE_CLAIM_OFFSET..][..claim_size_padded].to_vec());
-        proof_transcript_blobs.push(v.raw_proof.transcript.clone());
+        bytecode_value_hint_blobs.push(ArenaVec::from_slice(
+            v.bytecode_evaluation.value.as_basis_coefficients_slice(),
+        ));
+        inner_bytecode_claim_blobs.push(ArenaVec::from_slice(
+            &v.input_data[BYTECODE_CLAIM_OFFSET..][..claim_size_padded],
+        ));
+        proof_transcript_blobs.push(ArenaVec::from_slice(&v.raw_proof.transcript));
         table_sort_perm_blobs.push(v.sorted_table_perm.iter().map(|&i| F::from_usize(i)).collect());
     }
 
@@ -363,7 +370,7 @@ pub(crate) fn aggregate_single_message_signatures_with_min_padding(
         });
     }
 
-    let mut pubkeys_blob: Vec<F> = Vec::with_capacity((n_sigs + n_dup) * PUB_KEY_FLAT_SIZE);
+    let mut pubkeys_blob: ArenaVec<F> = ArenaVec::with_capacity((n_sigs + n_dup) * PUB_KEY_FLAT_SIZE);
     for pk in &global_pub_keys {
         pubkeys_blob.extend_from_slice(&pk.flaten());
     }
@@ -374,53 +381,62 @@ pub(crate) fn aggregate_single_message_signatures_with_min_padding(
     let (merkle_leaf_blobs, merkle_path_blobs) =
         extract_merkle_hint_blobs(verified_children.iter().map(|v| &v.raw_proof));
 
-    let aggregate_sizes: Vec<F> = sub_indices_blobs.iter().map(|b| F::from_usize(b.len())).collect();
+    let aggregate_sizes: ArenaVec<F> = sub_indices_blobs.iter().map(|b| F::from_usize(b.len())).collect();
 
-    let mut hints: HashMap<String, Vec<Vec<F>>> = HashMap::new();
+    let mut hints = Hints::default();
     hints.insert(
-        "input_data_num_chunks".to_string(),
-        vec![vec![F::from_usize(pub_input_data.len() / DIGEST_LEN)]],
+        bytecode,
+        "input_data_num_chunks",
+        arena_vec![arena_vec![F::from_usize(pub_input_data.len() / DIGEST_LEN)]],
     );
-    hints.insert("input_data".to_string(), vec![pub_input_data]);
+    hints.insert(
+        bytecode,
+        "input_data",
+        arena_vec![ArenaVec::from_slice(&pub_input_data)],
+    );
     // [n_recursions, n_dup, pubkeys_len, n_raw_xmss]
     hints.insert(
-        "meta".to_string(),
-        vec![vec![
+        bytecode,
+        "meta",
+        arena_vec![arena_vec![
             F::from_usize(n_recursions),
             F::from_usize(n_dup),
-            F::from_usize(raw_count),
+            F::from_usize(raw_count)
         ]],
     );
-    hints.insert("pubkeys".to_string(), vec![pubkeys_blob]);
-    hints.insert("raw_indices".to_string(), vec![raw_indices]);
+    hints.insert(bytecode, "pubkeys", arena_vec![pubkeys_blob]);
+    hints.insert(bytecode, "raw_indices", arena_vec![raw_indices]);
     let fast_path = n_recursions == 1 && raw_count == 0 && dup_pub_keys.is_empty();
-    let sub_indices_for_hints = if fast_path { Vec::new() } else { sub_indices_blobs };
-    hints.insert("sub_indices".to_string(), sub_indices_for_hints);
+    let sub_indices_for_hints = if fast_path { ArenaVec::new() } else { sub_indices_blobs };
+    hints.insert(bytecode, "sub_indices", sub_indices_for_hints);
     // Standard single-message aggregation (not a split).
-    hints.insert("is_split".to_string(), vec![vec![F::ZERO]]);
-    hints.insert("bytecode_value_hint".to_string(), bytecode_value_hint_blobs);
-    hints.insert("inner_bytecode_claim".to_string(), inner_bytecode_claim_blobs);
+    hints.insert(bytecode, "is_split", arena_vec![arena_vec![F::ZERO]]);
+    hints.insert(bytecode, "bytecode_value_hint", bytecode_value_hint_blobs);
+    hints.insert(bytecode, "inner_bytecode_claim", inner_bytecode_claim_blobs);
     hints.insert(
-        "proof_transcript_size".to_string(),
+        bytecode,
+        "proof_transcript_size",
         proof_transcript_blobs
             .iter()
-            .map(|b| vec![F::from_usize(b.len())])
+            .map(|b| arena_vec![F::from_usize(b.len())])
             .collect(),
     );
-    hints.insert("proof_transcript".to_string(), proof_transcript_blobs);
-    hints.insert("table_sort_perm".to_string(), table_sort_perm_blobs);
-    hints.insert("wots".to_string(), wots_blobs);
-    hints.insert("xmss_merkle_node".to_string(), xmss_merkle_node_blobs);
-    hints.insert("merkle_leaf".to_string(), merkle_leaf_blobs);
-    hints.insert("merkle_path".to_string(), merkle_path_blobs);
-    hints.insert("aggregate_sizes".to_string(), vec![aggregate_sizes]);
-    hints.insert("tweak_table".to_string(), vec![tweak_table]);
+    hints.insert(bytecode, "proof_transcript", proof_transcript_blobs);
+    hints.insert(bytecode, "table_sort_perm", table_sort_perm_blobs);
+    hints.insert(bytecode, "merkle_leaf", merkle_leaf_blobs);
+    hints.insert(bytecode, "merkle_path", merkle_path_blobs);
+    hints.insert(bytecode, "aggregate_sizes", arena_vec![aggregate_sizes]);
+    hints.insert(bytecode, "tweak_table", arena_vec![tweak_table]);
     if n_recursions > 0 {
         hints.insert(
-            "bytecode_sumcheck_proof".to_string(),
-            vec![reduced_claims.sumcheck_transcript],
+            bytecode,
+            "bytecode_sumcheck_proof",
+            arena_vec![ArenaVec::from_slice(&reduced_claims.sumcheck_transcript)],
         );
     }
+
+    hints.insert(bytecode, "wots", wots_blobs);
+    hints.insert(bytecode, "xmss_merkle_node", xmss_merkle_node_blobs);
 
     let witness = ExecutionWitness {
         preamble_memory_len: PREAMBLE_MEMORY_LEN,
@@ -443,13 +459,13 @@ pub(crate) fn aggregate_single_message_signatures_with_min_padding(
 /// return `([merkle_leafs], [merkle_paths])`
 pub(crate) fn extract_merkle_hint_blobs<'a>(
     raw_proofs: impl IntoIterator<Item = &'a RawProof<F>>,
-) -> (Vec<Vec<F>>, Vec<Vec<F>>) {
+) -> (ArenaVec<ArenaVec<F>>, ArenaVec<ArenaVec<F>>) {
     raw_proofs
         .into_iter()
         .flat_map(|p| p.merkle_openings.iter())
         .map(|o| {
-            let leaf = o.leaf_data.clone();
-            let path: Vec<F> = o.path.iter().flat_map(|d| d.iter().copied()).collect();
+            let leaf = ArenaVec::from_slice(&o.leaf_data);
+            let path: ArenaVec<F> = o.path.iter().flat_map(|d| d.iter().copied()).collect();
             (leaf, path)
         })
         .unzip()
