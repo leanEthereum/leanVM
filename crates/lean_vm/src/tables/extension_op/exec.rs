@@ -67,11 +67,11 @@ fn solve_unknowns(
         (Err(_), Ok(b), Ok(c)) => {
             let a = match op {
                 ExtensionOp::Add => c - b,
-                ExtensionOp::DotProduct => c / b,
+                ExtensionOp::DotProduct => c * b.try_inverse().ok_or(RunnerError::DivByZero)?,
                 ExtensionOp::Eq => unreachable!(),
             };
             if flag_be {
-                memory.set(addr_a, a.as_base().expect("solved A not in base field"))?;
+                memory.set(addr_a, a.as_base().ok_or(RunnerError::InvalidExtensionOp)?)?;
             } else {
                 memory.set_ef_element(addr_a, a)?;
             }
@@ -79,7 +79,7 @@ fn solve_unknowns(
         (Ok(a), Err(_), Ok(c)) => {
             let b = match op {
                 ExtensionOp::Add => c - a,
-                ExtensionOp::DotProduct => c / a,
+                ExtensionOp::DotProduct => c * a.try_inverse().ok_or(RunnerError::DivByZero)?,
                 ExtensionOp::Eq => unreachable!(),
             };
             memory.set_ef_element(addr_b, b)?;
