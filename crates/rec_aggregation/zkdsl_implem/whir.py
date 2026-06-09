@@ -34,7 +34,7 @@ def whir_open(
 
     all_folding_randomness = Array(n_rounds + 2)
     all_ood_points = Array(n_rounds)
-    all_circle_values = Array(n_rounds + 1)
+    all_stir_points = Array(n_rounds + 1)
     all_combination_randomness_powers = Array(n_rounds)
 
     carry = Array((n_rounds + 1) * 4)
@@ -58,7 +58,7 @@ def whir_open(
             all_folding_randomness[r],
             all_ood_points[r],
             root,
-            all_circle_values[r],
+            all_stir_points[r],
             all_combination_randomness_powers[r],
             claimed_sum,
         ) = whir_round(
@@ -91,14 +91,14 @@ def whir_open(
         fs, WHIR_SUBSEQUENT_FOLDING_FACTOR, claimed_sum, 2, folding_grinding[n_rounds]
     )
 
-    fs, final_coeffcients = fs_receive_ef_by_log_dynamic(
+    fs, final_coefficients = fs_receive_ef_by_log_dynamic(
         fs,
         n_final_vars,
         MAX_NUM_VARIABLES_TO_SEND_COEFFS - WHIR_SUBSEQUENT_FOLDING_FACTOR,
         MAX_NUM_VARIABLES_TO_SEND_COEFFS + 1,
     )
 
-    fs, all_circle_values[n_rounds], final_folds = sample_stir_indexes_and_fold(
+    fs, all_stir_points[n_rounds], final_folds = sample_stir_indexes_and_fold(
         fs,
         num_queries[n_rounds],
         0,
@@ -110,17 +110,17 @@ def whir_open(
         query_grinding_bits[n_rounds],
     )
 
-    final_circle_values = all_circle_values[n_rounds]
+    final_stir_points = all_stir_points[n_rounds]
     for i in range(0, num_queries[n_rounds]):
-        alpha = final_circle_values[i]
-        final_pol_evaluated_on_circle = match_range(
+        alpha = final_stir_points[i]
+        final_pol_eval_on_stir_point = match_range(
             n_final_vars,
             range(
                 MAX_NUM_VARIABLES_TO_SEND_COEFFS - WHIR_SUBSEQUENT_FOLDING_FACTOR, MAX_NUM_VARIABLES_TO_SEND_COEFFS + 1
             ),
-            lambda n: univariate_eval_on_base(final_coeffcients, alpha, n),
+            lambda n: univariate_eval_on_base(final_coefficients, alpha, n),
         )
-        copy_5(final_pol_evaluated_on_circle, final_folds + i * DIM)
+        copy_5(final_pol_eval_on_stir_point, final_folds + i * DIM)
 
     fs, all_folding_randomness[n_rounds + 1], end_sum = sumcheck_verify(fs, n_final_vars, claimed_sum, 2)
 
@@ -144,23 +144,23 @@ def whir_open(
         poly_eq_extension_dynamic_to(
             expanded_from_univariate, folding_randomness_global, all_ood_recovered_evals + i * DIM, n_vars
         )
-    s_init = Array(DIM)
+    ood_eval_sum = Array(DIM)
     dot_product_ee_dynamic(
         all_ood_recovered_evals,
         combination_randomness_powers_0,
-        s_init,
+        ood_eval_sum,
         num_oods[0],
     )
 
     eval_carry = Array((n_rounds + 1) * 3)
     eval_carry[0] = n_vars
     eval_carry[1] = folding_randomness_global
-    eval_carry[2] = s_init
+    eval_carry[2] = ood_eval_sum
     for i in range(0, n_rounds):
         base = i * 3
         n_vars_remaining: Mut = eval_carry[base]
         my_folding_randomness: Mut = eval_carry[base + 1]
-        s: Mut = eval_carry[base + 2]
+        eval_weights: Mut = eval_carry[base + 2]
         n_vars_remaining -= folding_factors[i]
         my_ood_recovered_evals = Array(num_oods[i + 1] * DIM)
         combination_randomness_powers = all_combination_randomness_powers[i]
@@ -178,32 +178,32 @@ def whir_open(
             num_oods[i + 1],
         )
 
-        s6s = Array((num_queries[i]) * DIM)
-        circle_value_i = all_circle_values[i]
+        query_recovered_evals = Array((num_queries[i]) * DIM)
+        stir_points_i = all_stir_points[i]
         for j in range(0, num_queries[i]):  # unroll ?
-            expanded_from_univariate = expand_from_univariate_base(circle_value_i[j], n_vars_remaining)
-            poly_eq_base_extension_to(expanded_from_univariate, my_folding_randomness, s6s + j * DIM, n_vars_remaining)
-        s7 = Array(DIM)
+            expanded_from_univariate = expand_from_univariate_base(stir_points_i[j], n_vars_remaining)
+            poly_eq_base_extension_to(expanded_from_univariate, my_folding_randomness, query_recovered_evals + j * DIM, n_vars_remaining)
+        query_eval_sum = Array(DIM)
         dot_product_ee_dynamic(
-            s6s,
+            query_recovered_evals,
             combination_randomness_powers + num_oods[i + 1] * DIM,
-            s7,
+            query_eval_sum,
             num_queries[i],
         )
-        s = add_extension_ret(s, s7)
-        s = add_extension_ret(summed_ood, s)
+        eval_weights = add_extension_ret(eval_weights, query_eval_sum)
+        eval_weights = add_extension_ret(summed_ood, eval_weights)
         eval_carry[base + 3] = n_vars_remaining
         eval_carry[base + 4] = my_folding_randomness
-        eval_carry[base + 5] = s
-    s = eval_carry[n_rounds * 3 + 2]
+        eval_carry[base + 5] = eval_weights
+    eval_weights = eval_carry[n_rounds * 3 + 2]
     final_value = match_range(
         n_final_vars,
         range(MAX_NUM_VARIABLES_TO_SEND_COEFFS - WHIR_SUBSEQUENT_FOLDING_FACTOR, MAX_NUM_VARIABLES_TO_SEND_COEFFS + 1),
-        lambda n: eval_multilinear_coeffs_rev(final_coeffcients, all_folding_randomness[n_rounds + 1], n),
+        lambda n: eval_multilinear_coeffs_rev(final_coefficients, all_folding_randomness[n_rounds + 1], n),
     )
-    # copy_5(mul_extension_ret(s, final_value), end_sum);
+    # copy_5(mul_extension_ret(eval_weights, final_value), end_sum);
 
-    return fs, folding_randomness_global, s, final_value, end_sum
+    return fs, folding_randomness_global, eval_weights, final_value, end_sum
 
 
 def sumcheck_verify(fs, n_steps, claimed_sum, degree: Const):
@@ -286,52 +286,52 @@ def sumcheck_verify_with_grinding(prev_fs, n_steps, prev_claimed_sum, degree: Co
 
 
 @inline
-def decompose_and_verify_merkle_batch(num_queries, sampled, root, height, num_chunks, circle_values, answers):
+def decompose_and_verify_merkle_batch(num_queries, sampled, root, height, num_chunks, stir_points, answers):
     debug_assert(height < 25)
     match_range(
         height,
         range(5, 25),
         lambda h: decompose_and_verify_merkle_batch_with_height(
-            num_queries, sampled, root, h, num_chunks, circle_values, answers
+            num_queries, sampled, root, h, num_chunks, stir_points, answers
         ),
     )
     return
 
 
 def decompose_and_verify_merkle_batch_with_height(
-    num_queries, sampled, root, height: Const, num_chunks, circle_values, answers
+    num_queries, sampled, root, height: Const, num_chunks, stir_points, answers
 ):
     if num_chunks == DIM * 2:
-        decompose_and_verify_merkle_batch_const(num_queries, sampled, root, height, DIM * 2, circle_values, answers)
+        decompose_and_verify_merkle_batch_const(num_queries, sampled, root, height, DIM * 2, stir_points, answers)
         return
     if num_chunks == 16:
-        decompose_and_verify_merkle_batch_const(num_queries, sampled, root, height, 16, circle_values, answers)
+        decompose_and_verify_merkle_batch_const(num_queries, sampled, root, height, 16, stir_points, answers)
         return
     if num_chunks == 8:
-        decompose_and_verify_merkle_batch_const(num_queries, sampled, root, height, 8, circle_values, answers)
+        decompose_and_verify_merkle_batch_const(num_queries, sampled, root, height, 8, stir_points, answers)
         return
     if num_chunks == 20:
-        decompose_and_verify_merkle_batch_const(num_queries, sampled, root, height, 20, circle_values, answers)
+        decompose_and_verify_merkle_batch_const(num_queries, sampled, root, height, 20, stir_points, answers)
         return
     if num_chunks == 1:
-        decompose_and_verify_merkle_batch_const(num_queries, sampled, root, height, 1, circle_values, answers)
+        decompose_and_verify_merkle_batch_const(num_queries, sampled, root, height, 1, stir_points, answers)
         return
     if num_chunks == 4:
-        decompose_and_verify_merkle_batch_const(num_queries, sampled, root, height, 4, circle_values, answers)
+        decompose_and_verify_merkle_batch_const(num_queries, sampled, root, height, 4, stir_points, answers)
         return
     if num_chunks == 5:
-        decompose_and_verify_merkle_batch_const(num_queries, sampled, root, height, 5, circle_values, answers)
+        decompose_and_verify_merkle_batch_const(num_queries, sampled, root, height, 5, stir_points, answers)
         return
     print(num_chunks)
     assert False, "decompose_and_verify_merkle_batch called with unsupported num_chunks"
 
 
 def decompose_and_verify_merkle_batch_const(
-    num_queries, sampled, root, height: Const, num_chunks: Const, circle_values, merkle_leaves
+    num_queries, sampled, root, height: Const, num_chunks: Const, stir_points, merkle_leaves
 ):
     leaf_iv = build_iv(num_chunks * DIGEST_LEN)
     for i in range(0, num_queries):
-        merkle_leaves[i], circle_values[i] = decompose_and_verify_merkle_query(
+        merkle_leaves[i], stir_points[i] = decompose_and_verify_merkle_query(
             sampled[i], height, root, num_chunks, leaf_iv
         )
     return
@@ -355,7 +355,7 @@ def sample_stir_indexes_and_fold(
     sampled, fs = fs_sample_queries(fs, num_queries)
 
     merkle_leaves = Array(num_queries)
-    circle_values = Array(num_queries)
+    stir_points = Array(num_queries)
 
     n_chunks_per_answer: Imm
     # the number of chunk of 8 field elements per merkle leaf opened
@@ -370,7 +370,7 @@ def sample_stir_indexes_and_fold(
         prev_root,
         folded_domain_size,
         n_chunks_per_answer / DIGEST_LEN,
-        circle_values,
+        stir_points,
         merkle_leaves,
     )
 
@@ -385,7 +385,7 @@ def sample_stir_indexes_and_fold(
         for i in range(0, num_queries):
             dot_product_ee_dynamic(merkle_leaves[i], poly_eq, folds + i * DIM, two_pow_folding_factor)
 
-    return fs, circle_values, folds
+    return fs, stir_points, folds
 
 
 def whir_round(
@@ -408,7 +408,7 @@ def whir_round(
 
     fs, root, ood_points, ood_evals = parse_commitment(fs, num_ood)
 
-    fs, circle_values, folds = sample_stir_indexes_and_fold(
+    fs, stir_points, folds = sample_stir_indexes_and_fold(
         fs,
         num_queries,
         merkle_leaves_in_basefield,
@@ -440,7 +440,7 @@ def whir_round(
         folding_randomness,
         ood_points,
         root,
-        circle_values,
+        stir_points,
         combination_randomness_powers,
         final_sum,
     )

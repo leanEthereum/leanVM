@@ -4,7 +4,7 @@ DIM = 5  # extension degree
 DIGEST_LEN = 8
 
 # memory layout: [public_input (PUBLIC_INPUT_LEN)] [preamble_memory (PREAMBLE_MEMORY_LEN)] [runtime ...]
-# `preamble_memory` is a region that is filled by the guest program, with usefull constants [0000...][1000...]...
+# `preamble_memory` is a region that is filled by the guest program, with useful constants [0000...][1000...]...
 PUBLIC_INPUT_LEN = DIGEST_LEN
 PARTIAL_UNROLL_BATCH = 64
 ZERO_VEC_PTR = PUBLIC_INPUT_LEN
@@ -94,7 +94,7 @@ def slice_hash_continue(running, data, num_chunks):
 
 
 @inline
-def euclidian_div_runtime(a, b):
+def euclidean_div_runtime(a, b):
     # Returns (q, r) with q = floor(a / b) and r = a mod b.
     # Requires:
     #   1 <= b < 2^14
@@ -131,7 +131,7 @@ def slice_hash_runtime(data, num_chunks):
     poseidon16_permute_half(iv, data, states)
     n_iters = num_chunks - 2
 
-    n_chunks_outer, remainder = euclidian_div_runtime(n_iters, PARTIAL_UNROLL_BATCH)
+    n_chunks_outer, remainder = euclidean_div_runtime(n_iters, PARTIAL_UNROLL_BATCH)
     carry = Array((n_chunks_outer + 1) * 2)
     carry[0] = states
     carry[1] = data + DIGEST_LEN

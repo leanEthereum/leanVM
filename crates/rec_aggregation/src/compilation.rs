@@ -522,7 +522,7 @@ where
     let mut ctx = AirCodegenCtx::new();
 
     let mut res = format!(
-        "def evaluate_air_constraints_table_{}({}, air_alpha_powers, logup_alphas_eq_poly):\n",
+        "def evaluate_air_constraints_table_{}({}, air_alpha_powers, logup_beta_eq_poly):\n",
         table.table().index(),
         AIR_INNER_VALUES_VAR
     );
@@ -542,14 +542,14 @@ where
         res += &format!("\n    copy_5({}, buff + DIM * {})", data_str, i);
     }
     let domainsep_str = eval_air_constraint(*bus_domainsep, None, &mut ctx, &mut res);
-    // bus_res = sum(buff[i] * logup_alphas_eq_poly[i]) + disc * logup_alphas_eq_poly.last()
+    // bus_res = sum(buff[i] * logup_beta_eq_poly[i]) + disc * logup_beta_eq_poly.last()
     res += "\n    bus_res_init = Array(DIM)";
     res += &format!(
-        "\n    dot_product_ee(buff, logup_alphas_eq_poly, bus_res_init, {})",
+        "\n    dot_product_ee(buff, logup_beta_eq_poly, bus_res_init, {})",
         bus_real_data.len()
     );
     res += &format!(
-        "\n    bus_res: Mut = add_extension_ret(mul_extension_ret({}, logup_alphas_eq_poly + {} * DIM), bus_res_init)",
+        "\n    bus_res: Mut = add_extension_ret(mul_extension_ret({}, logup_beta_eq_poly + {} * DIM), bus_res_init)",
         domainsep_str,
         (1 << LOG_MAX_BUS_WIDTH) - 1
     );

@@ -190,7 +190,7 @@ def main():
 
         running_hash: Mut = build_iv(n_sub * PUB_KEY_SIZE)
         n_first = n_sub - 1
-        n_chunks, remainder = euclidian_div_runtime(n_first, PARTIAL_UNROLL_BATCH)
+        n_chunks, remainder = euclidean_div_runtime(n_first, PARTIAL_UNROLL_BATCH)
         pubkey_idx: Mut = 0
         inner_carry = Array((n_chunks + 1) * 3)
         inner_carry[0] = counter

@@ -41,7 +41,7 @@ def powers(alpha, n):
     # n: F
     assert n < 400
     assert 0 < n
-    # 2**log2_ceil(i) is not really necessary but helps reduce byetcode size (traedoff cycles / bytecode size)
+    # 2**log2_ceil(i) is not really necessary but helps reduce bytecode size (tradeoff cycles / bytecode size)
     res = match_range(n, range(1, 400), lambda i: powers_const(alpha, 2 ** log2_ceil(i)))
     return res
 
