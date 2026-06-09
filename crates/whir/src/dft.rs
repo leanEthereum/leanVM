@@ -546,7 +546,6 @@ impl<F: Field> Butterfly<F> for EvalsButterfly<F> {
 mod tests {
     use field::{PrimeCharacteristicRing, TwoAdicField};
     use koala_bear::{KoalaBear, QuinticExtensionFieldKB};
-    use poly::*;
     use rand::{RngExt, SeedableRng, rngs::StdRng};
     use zk_alloc::ArenaVec;
 

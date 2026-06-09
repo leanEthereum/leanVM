@@ -4,7 +4,6 @@ use std::{fmt::Debug, marker::PhantomData};
 
 use fiat_shamir::{FSVerifier, ProofError, ProofResult, try_pack_scalars_to_extension};
 use field::{ExtensionField, Field, PrimeCharacteristicRing, TwoAdicField};
-use poly::*;
 
 use crate::*;
 
