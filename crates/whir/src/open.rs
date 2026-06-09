@@ -4,7 +4,6 @@ use ::utils::log2_strict_usize;
 use fiat_shamir::{FSProver, MerklePath, ProofResult};
 use field::PrimeCharacteristicRing;
 use field::{ExtensionField, Field, TwoAdicField};
-use poly::*;
 use sumcheck::{ProductComputation, run_product_sumcheck, sumcheck_prove_many_rounds};
 use tracing::{info_span, instrument};
 use zk_alloc::{ArenaVec, arena_vec};
