@@ -539,7 +539,7 @@ where
     res += &format!("\n    buff = Array(DIM * {})", bus_real_data.len());
     for (i, data) in bus_real_data.iter().enumerate() {
         let data_str = eval_air_constraint(*data, None, &mut ctx, &mut res);
-        res += &format!("\n    copy_5({}, buff + DIM * {})", data_str, i);
+        res += &format!("\n    copy_ef({}, buff + DIM * {})", data_str, i);
     }
     let domainsep_str = eval_air_constraint(*bus_domainsep, None, &mut ctx, &mut res);
     // bus_res = sum(buff[i] * logup_beta_eq_poly[i]) + disc * logup_beta_eq_poly.last()
@@ -608,7 +608,7 @@ fn eval_air_constraint(
     if let Some(d) = dest
         && v != d
     {
-        res.push_str(&format!("\n    copy_5({}, {})", v, d));
+        res.push_str(&format!("\n    copy_ef({}, {})", v, d));
     }
     v
 }

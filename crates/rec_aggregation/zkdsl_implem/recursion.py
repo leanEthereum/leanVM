@@ -246,8 +246,8 @@ def recursion(inner_public_memory, initial_fiat_shamir_cap):
             retrieved_denominators_value, mul_extension_ret(prefix, eval_on_data)
         )
 
-        copy_5(eval_on_selector, bus_numerators_values + table_index * DIM)
-        copy_5(eval_on_data, bus_denominators_values + table_index * DIM)
+        copy_ef(eval_on_selector, bus_numerators_values + table_index * DIM)
+        copy_ef(eval_on_data, bus_denominators_values + table_index * DIM)
 
         offset += n_rows
 
@@ -269,9 +269,9 @@ def recursion(inner_public_memory, initial_fiat_shamir_cap):
                 data_ofs = ONE_BUSES_DATA_OFFSETS[table_index][one_bus_idx][i]
                 src = pcs_vals_logup[table_index * MAX_NUM_COLS_AIR + data_col]
                 if data_ofs == 0:
-                    copy_5(src, data_evals + i * DIM)
+                    copy_ef(src, data_evals + i * DIM)
                 if data_ofs != 0:
-                    copy_5(add_base_extension_ret(data_ofs, src), data_evals + i * DIM)
+                    copy_ef(add_base_extension_ret(data_ofs, src), data_evals + i * DIM)
 
             pref = multilinear_location_prefix(offset / n_rows, n_vars_logup_gkr - log_n_rows, point_gkr)
             retrieved_numerators_value = add_extension_ret(retrieved_numerators_value, pref)
@@ -288,8 +288,8 @@ def recursion(inner_public_memory, initial_fiat_shamir_cap):
         mle_of_zeros_then_ones(point_gkr, gkr_cumul, n_vars_logup_gkr),
     )
 
-    copy_5(retrieved_numerators_value, numerators_value)
-    copy_5(retrieved_denominators_value, denominators_value)
+    copy_ef(retrieved_numerators_value, numerators_value)
+    copy_ef(retrieved_denominators_value, denominators_value)
 
     memory_and_acc_point = point_gkr + (n_vars_logup_gkr - log_memory) * DIM
 
@@ -353,7 +353,7 @@ def recursion(inner_public_memory, initial_fiat_shamir_cap):
                 pcs_shifts_air[table_index * MAX_NUM_COLS_AIR + i] = evals_shift + i * DIM
 
     # verify that the AIR-batched sumcheck is valid
-    copy_5(check_sum, batched_air_final_value)
+    copy_ef(check_sum, batched_air_final_value)
 
     fs, public_memory_random_point = fs_sample_many_ef(fs, INNER_PUBLIC_MEMORY_LOG_SIZE)
     poly_eq_public_mem = compute_eq_mle_extension(public_memory_random_point, INNER_PUBLIC_MEMORY_LOG_SIZE)
@@ -534,7 +534,7 @@ def recursion(inner_public_memory, initial_fiat_shamir_cap):
         eval_weights = add_extension_ret(eval_weights, mul_extension_ret(air_sum, eq_factor_air))
         curr_randomness += N_AIR_COLUMNS[table_index] * DIM
 
-    copy_5(mul_extension_ret(eval_weights, final_value), end_sum)
+    copy_ef(mul_extension_ret(eval_weights, final_value), end_sum)
 
     return bytecode_claim
 
@@ -579,8 +579,8 @@ def compute_column_prefixes(first_col_offset, n_vars, point, n_cols: Const):
 
 def fingerprint_2(table_index, data_1, data_2, logup_beta_eq_poly):
     buff = Array(DIM * 2)
-    copy_5(data_1, buff)
-    copy_5(data_2, buff + DIM)
+    copy_ef(data_1, buff)
+    copy_ef(data_2, buff + DIM)
     res: Mut = dot_product_ee_ret(buff, logup_beta_eq_poly, 2)
     res = add_extension_ret(
         res, mul_base_extension_ret(table_index, logup_beta_eq_poly + (2 ** log2_ceil(MAX_BUS_WIDTH) - 1) * DIM)
@@ -672,7 +672,7 @@ def verify_gkr_quotient_step(prev_fs, n_vars, point, claim_num, claim_den):
     new_claim_num = dot_product_ee_ret(inner_evals, point_poly_eq, 2)
     new_claim_den = dot_product_ee_ret(inner_evals + 2 * DIM, point_poly_eq, 2)
 
-    copy_5(beta, postponed_point + n_vars * DIM)
+    copy_ef(beta, postponed_point + n_vars * DIM)
 
     return fs, postponed_point, new_claim_num, new_claim_den
 

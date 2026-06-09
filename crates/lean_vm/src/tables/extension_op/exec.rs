@@ -46,7 +46,7 @@ fn solve_unknowns(
     let c = memory.get_ef_element(addr_res);
 
     if op == ExtensionOp::DotProduct && !flag_be {
-        // detect "copy_5"
+        // detect "copy_ef" (single EF-element copy: dot_product_ee against EF::ONE)
         if b == Ok(EF::ONE) {
             memory.make_slices_equal_and_defined(ptr_a.to_usize(), ptr_res.to_usize(), DIMENSION)?;
             return Ok(());

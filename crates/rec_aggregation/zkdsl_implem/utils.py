@@ -55,7 +55,7 @@ def powers_const(alpha, n: Const):
     set_to_one(res)
     if n == 1:
         return res
-    copy_5(alpha, res + DIM)
+    copy_ef(alpha, res + DIM)
     for i in unroll(1, n - 1):
         mul_extension(res + i * DIM, res + DIM, res + (i + 1) * DIM)
     return res
@@ -92,7 +92,7 @@ def compute_eq_mle_extension(point, n: Const):
 
     for s in unroll(0, n):
         p = Array(DIM)
-        copy_5(point + (n - 1 - s) * DIM, p)
+        copy_ef(point + (n - 1 - s) * DIM, p)
         for i in unroll(0, 2**s):
             mul_extension(p, res + (2**s - 1 + i) * DIM, res + (2 ** (s + 1) - 1 + 2**s + i) * DIM)
             sub_extension(
@@ -174,7 +174,7 @@ def expand_from_univariate_ext(alpha, n):
 
 def expand_from_univariate_ext_const(alpha, n: Const):
     res = Array(n * DIM)
-    copy_5(alpha, res)
+    copy_ef(alpha, res)
     for i in unroll(0, n - 1):
         mul_extension(res + i * DIM, res + i * DIM, res + (i + 1) * DIM)
     return res
@@ -199,7 +199,7 @@ def eval_multilinear_coeffs_rev(coeffs, point, n: Const):
     set_to_one(basis)
     for k in unroll(0, n):
         p = Array(DIM)
-        copy_5(point + k * DIM, p)
+        copy_ef(point + k * DIM, p)
         for j in unroll(0, 2**k):
             mul_extension(basis + j * DIM, p, basis + (j + 2**k) * DIM)
     result = Array(DIM)
@@ -374,6 +374,12 @@ def sub_extension_ret(a, b):
 
 
 @inline
+def copy_ef(a, b):
+    dot_product_ee(a, ONE_EF_PTR, b)
+    return
+
+
+@inline
 def copy_5(a, b):
     dot_product_ee(a, ONE_EF_PTR, b)
     return
@@ -420,9 +426,9 @@ def copy_8(a, b):
 def copy_32(a, b):
     chunks = div_floor(32, DIM)
     for i in unroll(0, chunks):
-        copy_5(a + i * DIM, b + i * DIM)
+        copy_ef(a + i * DIM, b + i * DIM)
     if DIM * chunks != 32:
-        copy_5(a + (32 - DIM), b + (32 - DIM))
+        copy_ef(a + (32 - DIM), b + (32 - DIM))
     return
 
 

@@ -299,7 +299,7 @@ def reduce_bytecode_claims(bytecode_claims, n_bytecode_claims, bytecode_claim_ou
     all_values = Array(n_bytecode_claims * DIM)
     for i in range(0, n_bytecode_claims):
         claim_ptr = bytecode_claims[i]
-        copy_5(claim_ptr + BYTECODE_POINT_N_VARS * DIM, all_values + i * DIM)
+        copy_ef(claim_ptr + BYTECODE_POINT_N_VARS * DIM, all_values + i * DIM)
 
     claimed_sum = Array(DIM)
     dot_product_ee_dynamic(all_values, alpha_powers, claimed_sum, n_bytecode_claims)
@@ -316,7 +316,7 @@ def reduce_bytecode_claims(bytecode_claims, n_bytecode_claims, bytecode_claim_ou
     bytecode_value_at_r = div_extension_ret(final_eval, w_r)
 
     copy_many_ef(challenges, bytecode_claim_output, BYTECODE_POINT_N_VARS)
-    copy_5(bytecode_value_at_r, bytecode_claim_output + BYTECODE_POINT_N_VARS * DIM)
+    copy_ef(bytecode_value_at_r, bytecode_claim_output + BYTECODE_POINT_N_VARS * DIM)
     return
 
 
