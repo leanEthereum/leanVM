@@ -402,38 +402,10 @@ def copy_6(a, b):
 
 
 @inline
-def set_to_7_zeros(a):
-    zero_ptr = ZERO_VEC_PTR
-    dot_product_ee(a, ONE_EF_PTR, zero_ptr)
-    a[5] = 0
-    a[6] = 0
-    return
-
-
-@inline
 def set_to_8_zeros(a):
     zero_ptr = ZERO_VEC_PTR
     dot_product_ee(a, ONE_EF_PTR, zero_ptr)
     dot_product_ee(a + (8 - DIM), ONE_EF_PTR, zero_ptr)
-    return
-
-
-@inline
-def set_to_16_zeros(a):
-    zero_ptr = ZERO_VEC_PTR
-    dot_product_ee(a, ONE_EF_PTR, zero_ptr)
-    dot_product_ee(a + 5, ONE_EF_PTR, zero_ptr)
-    dot_product_ee(a + 10, ONE_EF_PTR, zero_ptr)
-    a[15] = 0
-    return
-
-
-@inline
-def copy_16(a, b):
-    dot_product_ee(a, ONE_EF_PTR, b)
-    dot_product_ee(a + 5, ONE_EF_PTR, b + 5)
-    dot_product_ee(a + 10, ONE_EF_PTR, b + 10)
-    a[15] = b[15]
     return
 
 
@@ -465,24 +437,6 @@ def copy_many_ef(a, b, n):
 def set_to_one(a):
     dot_product_ee(ONE_EF_PTR, ONE_EF_PTR, a)
     return
-
-
-def print_ef(a):
-    for i in unroll(0, DIM):
-        print(a[i])
-    return
-
-
-def print_vec(a):
-    for i in unroll(0, DIGEST_LEN):
-        print(a[i])
-    return
-
-
-@inline
-def read_memory(ptr):
-    mem = 0
-    return mem[ptr]
 
 
 @inline

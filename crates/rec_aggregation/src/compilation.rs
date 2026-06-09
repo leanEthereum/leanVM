@@ -274,7 +274,6 @@ fn build_replacements(log_inner_bytecode: usize, bytecode_zero_eval: F) -> BTree
     let mut one_buses_data_offsets = vec![];
     let mut one_buses_new_cols = vec![];
     let mut num_cols_air = vec![];
-    let mut air_degrees = vec![];
     let mut n_air_columns = vec![];
     let mut n_air_shift_columns = vec![];
     let mut n_air_constraints = vec![];
@@ -334,7 +333,6 @@ fn build_replacements(log_inner_bytecode: usize, bytecode_zero_eval: F) -> BTree
         ));
 
         num_cols_air.push(table.n_columns().to_string());
-        air_degrees.push(table.degree_air().to_string());
         n_air_columns.push(table.n_columns().to_string());
         n_air_shift_columns.push(table.n_shift_columns().to_string());
         n_air_constraints.push(table.n_constraints().to_string());
@@ -388,10 +386,6 @@ fn build_replacements(log_inner_bytecode: usize, bytecode_zero_eval: F) -> BTree
         format!("[{}]", air_alpha_offsets.join(", ")),
     );
     replacements.insert(
-        "AIR_DEGREES_PLACEHOLDER".to_string(),
-        format!("[{}]", air_degrees.join(", ")),
-    );
-    replacements.insert(
         "MAX_AIR_FULL_DEGREE_PLACEHOLDER".to_string(),
         (ALL_TABLES.iter().map(|t| t.degree_air()).max().unwrap() + 1).to_string(),
     );
@@ -410,10 +404,6 @@ fn build_replacements(log_inner_bytecode: usize, bytecode_zero_eval: F) -> BTree
     replacements.insert(
         "N_INSTRUCTION_COLUMNS_PLACEHOLDER".to_string(),
         N_INSTRUCTION_COLUMNS.to_string(),
-    );
-    replacements.insert(
-        "N_COMMITTED_EXEC_COLUMNS_PLACEHOLDER".to_string(),
-        N_RUNTIME_COLUMNS.to_string(),
     );
     replacements.insert(
         "TOTAL_WHIR_STATEMENTS_PLACEHOLDER".to_string(),

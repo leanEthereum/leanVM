@@ -11,7 +11,6 @@ RANDOMNESS_LEN = RANDOMNESS_LEN_PLACEHOLDER
 PUBLIC_PARAM_LEN_FE = PUBLIC_PARAM_LEN_FE_PLACEHOLDER
 XMSS_DIGEST_LEN = XMSS_DIGEST_LEN_PLACEHOLDER
 PUB_KEY_SIZE = XMSS_DIGEST_LEN + PUBLIC_PARAM_LEN_FE
-PP_IN_LEFT = DIGEST_LEN - XMSS_DIGEST_LEN
 WOTS_SIG_SIZE = RANDOMNESS_LEN + V * XMSS_DIGEST_LEN
 # wots_public_key pair stride: each pair occupies 10 cells `[leading_0 | tip_a(4) | tip_b(4) | trailing_0]`. In order to be able to use copy_5 on both sides.
 WOTS_PK_PAIR_STRIDE = 2 + 2 * XMSS_DIGEST_LEN
@@ -191,14 +190,6 @@ def wots_pk_hash(wots_public_key, public_param):
     return sponge_finalize(
         states + (N_CHUNKS - 1) * DIGEST_LEN, wots_public_key + (N_CHUNKS - 1) * WOTS_PK_PAIR_STRIDE + 1
     )
-
-
-@inline
-def set_buf_prefix_right(buf, public_param):
-    # Writes [pp(4)] to buf[0..4] — the RIGHT-input prefix.
-    for k in unroll(0, PP_IN_LEFT):
-        buf[k] = public_param[k]
-    return
 
 
 @inline
