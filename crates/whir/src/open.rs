@@ -422,7 +422,7 @@ where
         let (weights, sum) = combine_statement::<EF>(statement, combination_randomness);
 
         let mut evals = evals.pack();
-        let mut weights = Mle::Owned(MleOwned::ExtensionPacked(ArenaVec::from_slice(&weights)));
+        let mut weights = Mle::Owned(MleOwned::ExtensionPacked(weights));
         let (challengess, new_sum, new_evals, new_weights) = run_product_sumcheck(
             &evals.by_ref(),
             &weights.by_ref(),
@@ -515,7 +515,7 @@ where
 }
 
 #[instrument(skip_all, fields(num_constraints = statements.len(), n_vars = statements[0].total_num_variables))]
-fn combine_statement<EF>(statements: &[SparseStatement<EF>], gamma: EF) -> (Vec<EFPacking<EF>>, EF)
+fn combine_statement<EF>(statements: &[SparseStatement<EF>], gamma: EF) -> (ArenaVec<EFPacking<EF>>, EF)
 where
     EF: ExtensionField<PF<EF>>,
 {
@@ -528,13 +528,13 @@ where
         !s.is_next && s.values.len() == 1 && s.values[0].selector == 0 && s.inner_num_variables() == num_variables
     };
 
-    let mut combined_weights: Vec<EFPacking<EF>>;
+    let mut combined_weights: ArenaVec<EFPacking<EF>>;
     let mut combined_sum = EF::ZERO;
     let mut gamma_pow = EF::ONE;
 
     let start_idx = match statements {
         [a, b, ..] if is_full(a) && is_full(b) => {
-            combined_weights = unsafe { uninitialized_vec(out_len) };
+            combined_weights = unsafe { ArenaVec::uninitialized(out_len) };
             let sa = gamma_pow;
             let sb = gamma_pow * gamma;
             combined_sum = a.values[0].value * sa + b.values[0].value * sb;
@@ -543,7 +543,7 @@ where
             2
         }
         [a, ..] if is_full(a) => {
-            combined_weights = unsafe { uninitialized_vec(out_len) };
+            combined_weights = unsafe { ArenaVec::uninitialized(out_len) };
             let sa = gamma_pow;
             combined_sum = a.values[0].value * sa;
             gamma_pow *= gamma;
@@ -551,7 +551,8 @@ where
             1
         }
         _ => {
-            combined_weights = EFPacking::<EF>::zero_vec(out_len);
+            // SAFETY: all-zero bytes are a valid `EFPacking` (Montgomery packing, ZERO = 0).
+            combined_weights = unsafe { ArenaVec::zeroed(out_len) };
             0
         }
     };
