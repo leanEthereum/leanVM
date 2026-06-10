@@ -5,6 +5,233 @@ use backend::*;
 
 use crate::{AirSumcheckSession, OuterSumcheckSession};
 
+// ---------------------------------------------------------------------------
+// Front-loaded batched orchestration (see plan_spec.md "Protocol spec")
+//
+// All tables join at round 0. A table with `n_t` variables is embedded in the
+// `n_max`-variable combined sum as a function of its FIRST `n_t` variables,
+// constant in the trailing `n_max − n_t` ones, so its claim `s_t` enters the
+// combined target with the static weight `w_t = 2^{n_max − n_t}`:
+//
+//     target₀ = Σ_t w_t · s_t .
+//
+// Round 0 is the univariate skip: ONE combined coefficient vector
+// P(X) = Σ_t w_t · v'_t(X) of degree ≤ (2^K − 1)·d_max is sent IN FULL — the
+// verifier's round-0 identity is the weighted window sum
+//
+//     Σ_{z ∈ D} ê(z) · P(z) == Σ_t w_t · s_t ,
+//
+// not `h(0) + h(1) = target`, so no coefficient can be elided (this full-vector
+// convention is the executable spec mirrored by the python verifier and the
+// recursion circuit). The next target is ê(r0) · P(r0).
+//
+// Linear rounds r = 0 .. n_max − K − 1 then bind one variable each with the
+// legacy `h(0) + h(1) = target` identity (c0 elided, reconstructed by the
+// verifier):
+//   • ACTIVE table (r < n_t − K): contributes w_t · eq-expanded bare poly,
+//     exactly the legacy per-round mechanism.
+//   • FINISHED table (r ≥ n_t − K): its remaining function is the constant
+//     c_t = session.sum() over the m = n_max − K − r unbound variables; its
+//     round polynomial is the constant c_t · 2^{m−1} (folded into coeffs[0]),
+//     since h(0) + h(1) = c_t · 2^m matches its target share, which halves
+//     each round and ends at exactly c_t. Hence the final combined value is
+//
+//     target_final = Σ_t s_t^final           (NO challenge products),
+//
+// with s_t^final = ê(r0) · eq(eq_factor_t[..n_t−K], natural_prefix_t) ·
+// C_t(col_evals_t) and natural_prefix_t = reverse(linear_challenges[..n_t−K]).
+// ---------------------------------------------------------------------------
+
+/// The univariate-skip analogue of the batched AIR sumcheck point: the skip
+/// challenge `r0` (binding the K lowest row bits of every table), the Lagrange
+/// window weights `L_x(r0)` (the tensor tail of the WHIR opening weights), and
+/// the linear-round challenges in round order.
+#[derive(Debug, Clone)]
+pub struct UniskipAirPoint<EF> {
+    pub r0: EF,
+    /// `L_x(r0)` for `x ∈ 0..2^K`, in row-bit (window-node) order.
+    pub lagrange_weights: Vec<EF>,
+    /// Challenges of the linear rounds, in round order (round r binds, for each
+    /// table still active, its highest remaining row bit).
+    pub linear_challenges: Vec<EF>,
+}
+
+impl<EF> UniskipAirPoint<EF> {
+    pub fn k(&self) -> usize {
+        log2_strict_usize(self.lagrange_weights.len())
+    }
+}
+
+/// The "natural ordering" opening point of a table's remaining (non-skipped)
+/// variables: the reverse of the first `log_n_rows − K` linear challenges
+/// (round r binds eq coordinate `n_t − K − 1 − r`, so index-wise pairing with
+/// `eq_factor_t[..n_t − K]` requires the reversed prefix).
+pub fn natural_prefix_for_session<EF: Copy>(point: &UniskipAirPoint<EF>, log_n_rows: usize) -> Vec<EF> {
+    point.linear_challenges[..log_n_rows - point.k()]
+        .iter()
+        .rev()
+        .copied()
+        .collect()
+}
+
+/// Front-loaded batched AIR sumcheck with a univariate skip round.
+/// `sessions` must all be fresh (`rounds_done == 0`) and share the same last-`k`
+/// eq coordinates (suffixes of one gkr point). Returns the binding point.
+pub fn prove_batched_air_sumcheck_uniskip<'a, EF: ExtensionField<PF<EF>>>(
+    prover_state: &mut impl FSProver<EF>,
+    sessions: &mut [Box<dyn SkipSession<EF> + 'a>],
+    k: usize,
+) -> UniskipAirPoint<EF> {
+    let n_max = sessions.iter().map(|s| s.initial_n_vars()).max().unwrap();
+    let max_full_degree = sessions.iter().map(|s| s.bare_degree() + 1).max().unwrap();
+    let d_max = sessions.iter().map(|s| s.bare_degree()).max().unwrap();
+    let n_skip_coeffs = ((1usize << k) - 1) * d_max + 1;
+
+    let weights: Vec<EF> = sessions
+        .iter()
+        .map(|s| EF::from_usize(1 << (n_max - s.initial_n_vars())))
+        .collect();
+
+    // The skipped eq coordinates are shared: every session's eq factor is a
+    // suffix of the same gkr point.
+    let eq_top = sessions[0].skip_eq_top(k);
+    for s in sessions.iter().skip(1) {
+        debug_assert_eq!(s.skip_eq_top(k), eq_top, "sessions must share the skip eq coordinates");
+    }
+
+    // Round 0 (skip): combined polynomial P = Σ_t w_t · v'_t, full coefficients.
+    let skip_polys: Vec<DensePolynomial<EF>> = sessions.iter_mut().map(|s| s.compute_skip_poly(k)).collect();
+    let mut combined_skip = EF::zero_vec(n_skip_coeffs);
+    for (poly, &w_t) in skip_polys.iter().zip(&weights) {
+        debug_assert!(poly.coeffs.len() <= n_skip_coeffs);
+        for (acc, &c) in combined_skip.iter_mut().zip(&poly.coeffs) {
+            *acc += w_t * c;
+        }
+    }
+    prover_state.add_extension_scalars(&combined_skip);
+    let r0: EF = prover_state.sample();
+
+    let lagrange_weights = lagrange_weights_at::<PF<EF>, EF>(k, r0);
+    let e_hat_r0 = e_hat_at(&eq_top, r0);
+    for (session, poly) in sessions.iter_mut().zip(&skip_polys) {
+        session.process_skip_challenge(k, r0, &lagrange_weights, e_hat_r0, poly);
+    }
+
+    // Invariant: the next target is ê(r0)·P(r0) = Σ_t w_t · session.sum().
+    let mut running_target = e_hat_r0 * DensePolynomial::new(combined_skip).evaluate(r0);
+    debug_assert_eq!(
+        running_target,
+        sessions
+            .iter()
+            .zip(&weights)
+            .map(|(s, &w)| w * s.sum())
+            .fold(EF::ZERO, |a, b| a + b)
+    );
+
+    // Linear rounds.
+    let n_linear = n_max - k;
+    let mut linear_challenges = Vec::with_capacity(n_linear);
+    for r in 0..n_linear {
+        let mut combined_coeffs = EF::zero_vec(max_full_degree + 1);
+        let mut bare_polys: Vec<Option<DensePolynomial<EF>>> = vec![None; sessions.len()];
+
+        for (idx, session) in sessions.iter_mut().enumerate() {
+            let n_own = session.initial_n_vars() - k;
+            if r < n_own {
+                let bare = session.compute_bare_round_poly();
+                let full = expand_bare_to_full(&bare.coeffs, session.eq_alpha());
+                for (acc, &c) in combined_coeffs.iter_mut().zip(&full) {
+                    *acc += weights[idx] * c;
+                }
+                bare_polys[idx] = Some(bare);
+            } else {
+                // Finished: constant c_t over the m = n_linear − r remaining
+                // variables; round poly = c_t · 2^{m−1} (constant in X).
+                combined_coeffs[0] += session.sum() * EF::from_usize(1 << (n_linear - r - 1));
+            }
+        }
+
+        // h(0) + h(1) = 2·c0 + Σ_{i≥1} c_i must equal the running target.
+        debug_assert_eq!(
+            combined_coeffs[0].double() + combined_coeffs[1..].iter().copied().sum::<EF>(),
+            running_target,
+            "front-loading bookkeeping broke at linear round {r}"
+        );
+
+        prover_state.add_sumcheck_polynomial(&combined_coeffs, None);
+        let challenge = prover_state.sample();
+        linear_challenges.push(challenge);
+
+        for (idx, session) in sessions.iter_mut().enumerate() {
+            if let Some(bare) = &bare_polys[idx] {
+                session.process_challenge(challenge, bare);
+            }
+        }
+        running_target = DensePolynomial::new(combined_coeffs).evaluate(challenge);
+    }
+
+    UniskipAirPoint {
+        r0,
+        lagrange_weights,
+        linear_challenges,
+    }
+}
+
+/// Verifier half of [`prove_batched_air_sumcheck_uniskip`]. Table arrays are in
+/// session order; `table_sums` are the per-table claims `s_t`; `eq_top` is the
+/// shared last-`k` slice of the gkr point; `table_degrees` are the bare AIR
+/// degrees (`Air::degree`), `max_full_degree = max(degree_air) + 1`.
+/// Returns the binding point and the final sumcheck target (the caller checks
+/// it against `Σ_t ê(r0) · eq(eq_factor_t[..n_t−k], natural_prefix_t) · C_t`).
+#[allow(clippy::too_many_arguments)]
+pub fn verify_batched_air_sumcheck_uniskip<EF: ExtensionField<PF<EF>>>(
+    verifier_state: &mut impl FSVerifier<EF>,
+    k: usize,
+    table_n_vars: &[usize],
+    table_degrees: &[usize],
+    table_sums: &[EF],
+    eq_top: &[EF],
+    max_full_degree: usize,
+) -> Result<(UniskipAirPoint<EF>, EF), ProofError> {
+    assert_eq!(table_n_vars.len(), table_sums.len());
+    assert_eq!(table_n_vars.len(), table_degrees.len());
+    assert_eq!(eq_top.len(), k);
+    let n_max = *table_n_vars.iter().max().unwrap();
+    let d_max = *table_degrees.iter().max().unwrap();
+    let n_skip_coeffs = ((1usize << k) - 1) * d_max + 1;
+
+    let coeffs = verifier_state.next_extension_scalars_vec(n_skip_coeffs)?;
+    let skip_poly = DensePolynomial::new(coeffs);
+
+    // Round-0 identity: Σ_{z ∈ D} ê(z) · P(z) == Σ_t w_t · s_t.
+    let e_hat_window = e_hat_on_window(eq_top);
+    let window_sum = (0..1usize << k)
+        .map(|z| e_hat_window[z] * skip_poly.evaluate(EF::from_usize(z)))
+        .fold(EF::ZERO, |a, b| a + b);
+    let claimed: EF = table_n_vars
+        .iter()
+        .zip(table_sums)
+        .map(|(&n_t, &s_t)| EF::from_usize(1 << (n_max - n_t)) * s_t)
+        .fold(EF::ZERO, |a, b| a + b);
+    if window_sum != claimed {
+        return Err(ProofError::InvalidProof);
+    }
+
+    let r0: EF = verifier_state.sample();
+    let target = e_hat_at(eq_top, r0) * skip_poly.evaluate(r0);
+
+    let Evaluation { point, value } = sumcheck_verify(verifier_state, n_max - k, max_full_degree, target, None)?;
+
+    Ok((
+        UniskipAirPoint {
+            r0,
+            lagrange_weights: lagrange_weights_at::<PF<EF>, EF>(k, r0),
+            linear_challenges: point.0,
+        },
+        value,
+    ))
+}
+
 // Univariate skip round for the batched AIR sumcheck (Gruen, eprint 2024/108 §5-6).
 //
 // The first `K` sumcheck rounds — which bind the K lowest row-index bits of every
