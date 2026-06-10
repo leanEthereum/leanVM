@@ -12,6 +12,7 @@ impl IntermediateInstruction {
             | Self::HintWitness { .. }
             | Self::Inverse { .. }
             | Self::LocationReport { .. }
+            | Self::CallSite { .. }
             | Self::DebugAssert { .. }
             | Self::DerefHint { .. }
             | Self::PanicHint { .. }
@@ -53,6 +54,7 @@ pub fn compile_to_low_level_bytecode(
         .ok_or("Missing main function")?;
 
     let mut hints = BTreeMap::new();
+    let mut call_sites_by_return_pc = BTreeMap::new();
     let mut label_to_pc = BTreeMap::new();
 
     let exit_point = intermediate_bytecode
@@ -129,6 +131,7 @@ pub fn compile_to_low_level_bytecode(
             pc_start,
             &mut instructions,
             &mut hints,
+            &mut call_sites_by_return_pc,
             &mut hint_name_to_index,
         );
     }
@@ -180,6 +183,7 @@ pub fn compile_to_low_level_bytecode(
             filepaths,
             source_code,
             pc_to_location,
+            call_sites_by_return_pc,
         },
     ))
 }
@@ -190,6 +194,7 @@ fn compile_block(
     pc_start: CodeAddress,
     low_level_bytecode: &mut Vec<Instruction>,
     hints: &mut BTreeMap<CodeAddress, Vec<Hint>>,
+    call_sites_by_return_pc: &mut BTreeMap<CodeAddress, CallSite>,
     hint_names: &mut BTreeMap<String, usize>,
 ) {
     let try_as_mem_or_constant = |value: &IntermediateValue| {
@@ -354,6 +359,28 @@ fn compile_block(
             IntermediateInstruction::LocationReport { location } => {
                 let hint = Hint::LocationReport { location };
                 hints.entry(pc).or_default().push(hint);
+            }
+            IntermediateInstruction::CallSite {
+                caller,
+                callee,
+                location,
+                return_label,
+            } => {
+                let return_pc = compiler
+                    .label_to_pc
+                    .get(&return_label)
+                    .copied()
+                    .expect("Fatal: unresolved call return label");
+                call_sites_by_return_pc.insert(
+                    return_pc,
+                    CallSite {
+                        caller,
+                        callee,
+                        location,
+                        call_pc: return_pc.saturating_sub(1),
+                        return_pc,
+                    },
+                );
             }
             IntermediateInstruction::DebugAssert {
                 expr,

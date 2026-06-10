@@ -1,15 +1,33 @@
+use std::collections::{BTreeMap, BTreeSet};
+
+use backend::ToUsize;
+use backend::ansi::Colorize;
+
+use crate::diagnostics::RunnerError;
+use crate::execution::memory::MemoryAccess;
 use crate::isa::Bytecode;
 use crate::{CodeAddress, FunctionName, SourceLocation};
-use backend::ansi::Colorize;
-use std::collections::BTreeMap;
 
-pub(crate) fn pretty_stack_trace(
+const MAX_STACK_FRAMES: usize = 256;
+
+struct StackFrame {
+    function: FunctionName,
+    location: SourceLocation,
+    pc: CodeAddress,
+    fp: usize,
+    return_pc: Option<CodeAddress>,
+}
+
+pub(crate) fn pretty_stack_trace<M: MemoryAccess>(
     bytecode: &Bytecode,
     error_pc: CodeAddress,
-    location_history: &[SourceLocation],
+    error_fp: usize,
+    memory: &M,
+    error: &RunnerError,
 ) -> String {
     let mut out = String::new();
-    let error_loc = bytecode.debug_info().pc_to_location.get(error_pc).copied();
+    let error_loc =
+        error_source_location(error).or_else(|| bytecode.debug_info().pc_to_location.get(error_pc).copied());
 
     out.push_str(&format!("{}\n\n", "ERROR".red().bold()));
 
@@ -59,19 +77,32 @@ pub(crate) fn pretty_stack_trace(
         }
     }
 
-    // Call stack
-    let stack = build_call_stack(location_history, &bytecode.debug_info().function_locations);
-    if stack.len() > 1 {
+    let (stack, truncated) = build_call_stack(bytecode, error_pc, error_fp, memory, error_loc);
+    let visible_stack: Vec<_> = stack
+        .iter()
+        .filter(|frame| !is_generated_loop_function(&frame.function))
+        .collect();
+    if !visible_stack.is_empty() {
         out.push_str(&format!("\n{}\n\n", "CALL STACK".yellow().bold()));
-        for (i, (func, call_loc)) in stack.iter().rev().enumerate() {
-            let path = filepath(bytecode, call_loc.file_id);
+        for (i, frame) in visible_stack.iter().enumerate() {
+            let path = filepath(bytecode, frame.location.file_id);
             let marker = if i == 0 { "→".red().to_string() } else { " ".into() };
+            let return_pc = frame.return_pc.map(|pc| format!(" return_pc={pc}")).unwrap_or_default();
             out.push_str(&format!(
-                "  {} {} at {}:{}\n",
+                "  {} {} at {}:{} pc={} fp={}{}\n",
                 marker,
-                format!("{func}()").bold(),
+                format!("{}()", frame.function).bold(),
                 path.dimmed(),
-                call_loc.line_number.to_string().dimmed()
+                frame.location.line_number.to_string().dimmed(),
+                frame.pc,
+                frame.fp,
+                return_pc,
+            ));
+        }
+        if truncated {
+            out.push_str(&format!(
+                "    {}\n",
+                format!("stack trace truncated after {MAX_STACK_FRAMES} frames").dimmed()
             ));
         }
     }
@@ -79,25 +110,89 @@ pub(crate) fn pretty_stack_trace(
     out
 }
 
-fn build_call_stack(
-    history: &[SourceLocation],
-    func_locs: &BTreeMap<SourceLocation, String>,
-) -> Vec<(String, SourceLocation)> {
-    let mut stack: Vec<(String, SourceLocation)> = Vec::new();
+fn build_call_stack<M: MemoryAccess>(
+    bytecode: &Bytecode,
+    error_pc: CodeAddress,
+    error_fp: usize,
+    memory: &M,
+    error_loc: Option<SourceLocation>,
+) -> (Vec<StackFrame>, bool) {
+    let mut stack = Vec::new();
+    let error_loc = error_loc.unwrap_or_else(unknown_location);
+    let (_, current_function) = find_function_for_location(error_loc, &bytecode.debug_info().function_locations);
+    stack.push(StackFrame {
+        function: current_function,
+        location: error_loc,
+        pc: error_pc,
+        fp: error_fp,
+        return_pc: None,
+    });
 
-    for (i, &loc) in history.iter().enumerate() {
-        let (_, func) = find_function_for_location(loc, func_locs);
-
-        if stack.last().map(|(f, _)| f) != Some(&func) {
-            if let Some(pos) = stack.iter().position(|(f, _)| f == &func) {
-                stack.truncate(pos + 1);
-            } else {
-                let call_loc = if i > 0 { history[i - 1] } else { loc };
-                stack.push((func, call_loc));
-            }
+    let mut fp = error_fp;
+    let mut seen_fps = BTreeSet::new();
+    while stack.len() < MAX_STACK_FRAMES {
+        if !seen_fps.insert(fp) {
+            break;
         }
+
+        let Ok(return_pc) = memory.get(fp).map(|value| value.to_usize()) else {
+            break;
+        };
+        let Ok(saved_fp) = memory.get(fp + 1).map(|value| value.to_usize()) else {
+            break;
+        };
+
+        let frame = if let Some(call_site) = bytecode.debug_info().call_sites_by_return_pc.get(&return_pc) {
+            StackFrame {
+                function: call_site.caller.clone(),
+                location: call_site.location,
+                pc: call_site.call_pc,
+                fp: saved_fp,
+                return_pc: Some(call_site.return_pc),
+            }
+        } else {
+            let caller_pc = return_pc.saturating_sub(1);
+            let loc = bytecode
+                .debug_info()
+                .pc_to_location
+                .get(caller_pc)
+                .copied()
+                .unwrap_or_else(unknown_location);
+            let (_, function) = find_function_for_location(loc, &bytecode.debug_info().function_locations);
+            StackFrame {
+                function,
+                location: loc,
+                pc: caller_pc,
+                fp: saved_fp,
+                return_pc: Some(return_pc),
+            }
+        };
+        stack.push(frame);
+
+        if saved_fp == fp {
+            return (stack, false);
+        }
+        fp = saved_fp;
     }
-    stack
+
+    let truncated = stack.len() == MAX_STACK_FRAMES
+        && !seen_fps.contains(&fp)
+        && memory.get(fp).is_ok()
+        && memory.get(fp + 1).is_ok();
+    (stack, truncated)
+}
+
+fn is_generated_loop_function(function: &str) -> bool {
+    function.starts_with("@loop_") || function.starts_with("@parallel_loop_")
+}
+
+fn error_source_location(error: &RunnerError) -> Option<SourceLocation> {
+    match error {
+        RunnerError::DebugAssertFailed(_, location) | RunnerError::RangeCheckWithTooBigRange { location, .. } => {
+            Some(*location)
+        }
+        _ => None,
+    }
 }
 
 pub(crate) fn find_function_for_location(
@@ -115,6 +210,13 @@ pub(crate) fn find_function_for_location(
             },
             "<unknown>".into(),
         ))
+}
+
+fn unknown_location() -> SourceLocation {
+    SourceLocation {
+        file_id: 0,
+        line_number: 0,
+    }
 }
 
 fn filepath(bytecode: &Bytecode, file_id: usize) -> &str {

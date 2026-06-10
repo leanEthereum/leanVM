@@ -1,6 +1,8 @@
 use super::value::IntermediateValue;
 use crate::lang::{ConstExpression, MathOperation};
-use lean_vm::{BooleanExpr, CustomHint, HintWitnessDestination, Operation, PrecompileArgs, SourceLocation};
+use lean_vm::{
+    BooleanExpr, CustomHint, FunctionName, HintWitnessDestination, Label, Operation, PrecompileArgs, SourceLocation,
+};
 use std::fmt::{Display, Formatter};
 
 /// Core instruction type for the intermediate representation.
@@ -57,6 +59,13 @@ pub enum IntermediateInstruction {
     // noop, debug purpose only
     LocationReport {
         location: SourceLocation,
+    },
+    // No-op metadata used to reconstruct source-level call stacks.
+    CallSite {
+        caller: FunctionName,
+        callee: FunctionName,
+        location: SourceLocation,
+        return_label: Label,
     },
     DebugAssert {
         expr: BooleanExpr<IntermediateValue>,
@@ -192,6 +201,15 @@ impl Display for IntermediateInstruction {
                 Ok(())
             }
             Self::LocationReport { .. } => Ok(()),
+            Self::CallSite {
+                caller,
+                callee,
+                location,
+                return_label,
+            } => write!(
+                f,
+                "call_site {caller} -> {callee} at {location}, returns to {return_label}"
+            ),
             Self::DebugAssert { expr, .. } => {
                 write!(f, "debug_assert {expr}")
             }

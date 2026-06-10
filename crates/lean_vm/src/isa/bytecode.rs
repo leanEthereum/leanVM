@@ -2,7 +2,7 @@
 
 use backend::*;
 
-use crate::{DIMENSION, F, FileId, FunctionName, Hint, N_INSTRUCTION_COLUMNS, SourceLocation};
+use crate::{CodeAddress, DIMENSION, F, FileId, FunctionName, Hint, N_INSTRUCTION_COLUMNS, SourceLocation};
 
 use super::Instruction;
 use super::encoder::field_representation;
@@ -15,6 +15,15 @@ pub struct CodeEntry {
     pub instruction: Instruction,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CallSite {
+    pub caller: FunctionName,
+    pub callee: FunctionName,
+    pub location: SourceLocation,
+    pub call_pc: CodeAddress,
+    pub return_pc: CodeAddress,
+}
+
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct BytecodeDebugInfo {
     pub function_locations: BTreeMap<SourceLocation, FunctionName>,
@@ -22,6 +31,8 @@ pub struct BytecodeDebugInfo {
     pub source_code: BTreeMap<FileId, String>,
     /// Maps each pc to its source location
     pub pc_to_location: Vec<SourceLocation>,
+    /// Maps a function-call continuation pc to source-level call-site metadata.
+    pub call_sites_by_return_pc: BTreeMap<CodeAddress, CallSite>,
 }
 
 /// `instructions_multilinear`, `hash`, and `ending_pc` must be checked at initialization to match `code`.

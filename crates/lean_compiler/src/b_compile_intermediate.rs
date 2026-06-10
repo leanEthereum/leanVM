@@ -502,6 +502,12 @@ fn compile_lines(
                 let new_fp_pos = compiler.stack_pos;
                 compiler.stack_pos += 1;
 
+                instructions.push(IntermediateInstruction::CallSite {
+                    caller: compiler.func_name.clone(),
+                    callee: callee_function_name.clone(),
+                    location: *location,
+                    return_label: return_label.clone(),
+                });
                 instructions.extend(emit_call_frame(
                     callee_function_name,
                     args,

@@ -18,6 +18,64 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use super::memory::SegmentMemory;
 
+#[derive(Debug, Clone, Copy)]
+pub struct ExecutionOptions {
+    /// Include VM profiling metadata in the execution result.
+    pub profiling: bool,
+    /// Print a source-level stack trace to stderr when execution fails.
+    pub stack_trace: bool,
+}
+
+impl ExecutionOptions {
+    /// Preserve the legacy boolean profiler API while allowing `LEANVM_STACK_TRACE=0`
+    /// to disable stack traces without changing callers.
+    pub fn from_profiling(profiling: bool) -> Self {
+        Self {
+            profiling,
+            stack_trace: stack_trace_enabled_from_env(true),
+        }
+    }
+}
+
+impl Default for ExecutionOptions {
+    fn default() -> Self {
+        Self {
+            profiling: false,
+            stack_trace: true,
+        }
+    }
+}
+
+struct ExecutionFailure {
+    err: RunnerError,
+    stack_trace: Option<String>,
+}
+
+impl ExecutionFailure {
+    fn new<M: MemoryAccess>(
+        bytecode: &Bytecode,
+        memory: &M,
+        pc: CodeAddress,
+        fp: usize,
+        err: RunnerError,
+        stack_trace: bool,
+    ) -> Self {
+        let stack_trace = stack_trace.then(|| crate::diagnostics::pretty_stack_trace(bytecode, pc, fp, memory, &err));
+        Self { err, stack_trace }
+    }
+}
+
+fn stack_trace_enabled_from_env(default: bool) -> bool {
+    match std::env::var("LEANVM_STACK_TRACE") {
+        Ok(value) => match value.trim().to_ascii_lowercase().as_str() {
+            "0" | "false" | "off" | "no" => false,
+            "1" | "true" | "on" | "yes" => true,
+            _ => default,
+        },
+        Err(_) => default,
+    }
+}
+
 #[derive(Debug, Default)]
 pub struct ExecutionWitness {
     /// Length of the program's "preamble memory" — a region between public
@@ -62,6 +120,20 @@ pub fn try_execute_bytecode(
     witness: &ExecutionWitness,
     profiling: bool,
 ) -> Result<ExecutionResult, RunnerError> {
+    try_execute_bytecode_with_options(
+        bytecode,
+        public_input,
+        witness,
+        ExecutionOptions::from_profiling(profiling),
+    )
+}
+
+pub fn try_execute_bytecode_with_options(
+    bytecode: &Bytecode,
+    public_input: &[F; PUBLIC_INPUT_LEN],
+    witness: &ExecutionWitness,
+    options: ExecutionOptions,
+) -> Result<ExecutionResult, RunnerError> {
     let mut std_out = String::new();
     let mut instruction_history = ExecutionHistory::new();
     execute_bytecode_helper(
@@ -70,20 +142,19 @@ pub fn try_execute_bytecode(
         witness,
         &mut std_out,
         &mut instruction_history,
-        profiling,
+        options,
     )
-    .map_err(|(last_pc, err)| {
-        eprintln!(
-            "\n{}",
-            crate::diagnostics::pretty_stack_trace(bytecode, last_pc, &instruction_history.lines)
-        );
+    .map_err(|failure| {
+        if let Some(stack_trace) = failure.stack_trace {
+            eprintln!("\n{stack_trace}");
+        }
         if !std_out.is_empty() {
             eprintln!("╔══════════════════════════════════════════════════════════════╗");
             eprintln!("║                         STD-OUT                              ║");
             eprintln!("╚══════════════════════════════════════════════════════════════╝\n");
             eprint!("{std_out}");
         }
-        err
+        failure.err
     })
 }
 
@@ -146,6 +217,13 @@ struct ParallelBatchInfo {
     /// hints. Diffed against the post-iteration-0 state to learn per-name
     /// consumption.
     hint_indices_at_start: Vec<usize>,
+}
+
+struct ParallelSegmentFailure {
+    segment_id: usize,
+    pc: CodeAddress,
+    fp: usize,
+    err: RunnerError,
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -272,8 +350,8 @@ fn execute_bytecode_helper(
     witness: &ExecutionWitness,
     std_out: &mut String,
     instruction_history: &mut ExecutionHistory,
-    profiling: bool,
-) -> Result<ExecutionResult, (CodeAddress, RunnerError)> {
+    options: ExecutionOptions,
+) -> Result<ExecutionResult, ExecutionFailure> {
     let n_slots = bytecode.n_hint_slots();
     let hint_data = &witness.hints;
     let mut hint_indices = vec![0usize; n_slots];
@@ -312,7 +390,7 @@ fn execute_bytecode_helper(
             hint_data,
             None,
         )
-        .map_err(|e| (pc, e))?
+        .map_err(|e| ExecutionFailure::new(bytecode, &memory, pc, fp, e, options.stack_trace))?
         {
             LoopExit::Halted => break,
             LoopExit::ParallelBatch(batch) => {
@@ -326,25 +404,30 @@ fn execute_bytecode_helper(
                     &mut fp,
                     &mut ap,
                     &batch,
-                )
-                .map_err(|e| (pc, e))?;
+                    options.stack_trace,
+                )?;
             }
             LoopExit::LoopBack => unreachable!("main loop has no stop_pc"),
         }
     }
 
-    resolve_deref_hints(&mut memory, &trace.pending_deref_hints).map_err(|e| (pc, e))?;
+    resolve_deref_hints(&mut memory, &trace.pending_deref_hints)
+        .map_err(|e| ExecutionFailure::new(bytecode, &memory, pc, fp, e, options.stack_trace))?;
     assert_eq!(pc, bytecode.ending_pc());
     for (slot, hint) in hint_data.0.iter().enumerate() {
         if hint_indices[slot] != hint.entries.len() {
-            return Err((
+            return Err(ExecutionFailure::new(
+                bytecode,
+                &memory,
                 pc,
+                fp,
                 RunnerError::InvalidHintWitness(format!(
                     "not all entries of named hint '{}' were consumed ({} of {} used)",
                     hint.name,
                     hint_indices[slot],
                     hint.entries.len(),
                 )),
+                options.stack_trace,
             ));
         }
     }
@@ -352,7 +435,7 @@ fn execute_bytecode_helper(
     trace.fps.push(fp);
 
     let no_vec_runtime_memory = ap - initial_ap;
-    let profiling_report = if profiling {
+    let profiling_report = if options.profiling {
         Some(crate::diagnostics::profiling_report(
             instruction_history,
             &bytecode.debug_info().function_locations,
@@ -417,20 +500,38 @@ fn handle_parallel_batch(
     fp: &mut usize,
     ap: &mut usize,
     batch: &ParallelBatchInfo,
-) -> Result<(), RunnerError> {
-    let start_value = memory.get(batch.batch_fp + 2)?.to_usize();
-    let end_value = batch.end_value.read_value(memory, batch.batch_fp)?.to_usize();
+    stack_trace: bool,
+) -> Result<(), ExecutionFailure> {
+    let start_value = memory
+        .get(batch.batch_fp + 2)
+        .map_err(|e| ExecutionFailure::new(bytecode, memory, *pc, *fp, e, stack_trace))?
+        .to_usize();
+    let end_value = batch
+        .end_value
+        .read_value(memory, batch.batch_fp)
+        .map_err(|e| ExecutionFailure::new(bytecode, memory, *pc, *fp, e, stack_trace))?
+        .to_usize();
     let n_iters = end_value.saturating_sub(start_value);
     if n_iters <= 1 {
         return Ok(());
     }
 
     let stride = *fp - batch.batch_fp;
-    let return_pc = memory.get(*fp)?.to_usize();
-    let saved_fp = memory.get(*fp + 1)?.to_usize();
+    let return_pc = memory
+        .get(*fp)
+        .map_err(|e| ExecutionFailure::new(bytecode, memory, *pc, *fp, e, stack_trace))?
+        .to_usize();
+    let saved_fp = memory
+        .get(*fp + 1)
+        .map_err(|e| ExecutionFailure::new(bytecode, memory, *pc, *fp, e, stack_trace))?
+        .to_usize();
     let args: Vec<F> = (0..batch.n_args)
-        .map(|i| memory.get(batch.batch_fp + 2 + i).unwrap())
-        .collect();
+        .map(|i| {
+            memory
+                .get(batch.batch_fp + 2 + i)
+                .map_err(|e| ExecutionFailure::new(bytecode, memory, *pc, *fp, e, stack_trace))
+        })
+        .collect::<Result<_, _>>()?;
 
     let named_per_iter: Vec<usize> = hints
         .indices
@@ -449,12 +550,20 @@ fn handle_parallel_batch(
             saved_fp,
             iter_val,
             &args,
-        )?;
+        )
+        .map_err(|e| ExecutionFailure::new(bytecode, memory, *pc, *fp, e, stack_trace))?;
     }
 
     let max_addr = batch.batch_fp + (n_iters + 1) * stride;
     if max_addr > 1 << MAX_LOG_MEMORY_SIZE {
-        return Err(RunnerError::OutOfMemory);
+        return Err(ExecutionFailure::new(
+            bytecode,
+            memory,
+            *pc,
+            *fp,
+            RunnerError::OutOfMemory,
+            stack_trace,
+        ));
     }
     if max_addr > memory.0.len() {
         memory.0.resize(max_addr, None);
@@ -470,7 +579,7 @@ fn handle_parallel_batch(
     let shared: &[Option<F>] = &*left;
     let mut segment_slices: Vec<&mut [Option<F>]> = right.chunks_mut(stride).take(n_par).collect();
 
-    type SegResult = Result<(Trace, Vec<(usize, F)>), RunnerError>;
+    type SegResult = Result<(Trace, Vec<(usize, F)>), ParallelSegmentFailure>;
 
     let seg_info: Vec<(parallel::SendPtr<Option<F>>, usize)> = segment_slices
         .iter_mut()
@@ -506,27 +615,49 @@ fn handle_parallel_batch(
             &mut seg_hints,
             hint_data,
             Some(batch.batch_pc),
-        )?;
+        )
+        .map_err(|err| ParallelSegmentFailure {
+            segment_id: i + 1,
+            pc: seg_pc,
+            fp: seg_fp,
+            err,
+        })?;
         for slot in 0..seg_indices.len() {
             let delta = named_per_iter[slot];
             // Before `run_loop` this segment was at `base_indices[slot] + i*delta`.
             let consumed = seg_indices[slot] - (base_indices[slot] + i * delta);
             if consumed != delta {
                 let name = hint_data.name(slot);
-                return Err(RunnerError::InvalidHintWitness(format!(
-                    "hint '{name}' consumed {consumed} entries in a parallel iteration but {delta} in iteration 0; parallel iterations must consume hints uniformly"
-                )));
+                return Err(ParallelSegmentFailure {
+                    segment_id: i + 1,
+                    pc: seg_pc,
+                    fp: seg_fp,
+                    err: RunnerError::InvalidHintWitness(format!(
+                        "hint '{name}' consumed {consumed} entries in a parallel iteration but {delta} in iteration 0; parallel iterations must consume hints uniformly"
+                    )),
+                });
             }
         }
         let deferred = seg_mem.into_deferred_writes();
         Ok((seg_trace, deferred))
     });
 
-    for (idx, result) in results.into_iter().enumerate() {
-        let (seg_trace, deferred) = result.map_err(|e| RunnerError::ParallelSegmentFailed(idx + 1, Box::new(e)))?;
+    for result in results {
+        let (seg_trace, deferred) = result.map_err(|failure| {
+            ExecutionFailure::new(
+                bytecode,
+                memory,
+                failure.pc,
+                failure.fp,
+                RunnerError::ParallelSegmentFailed(failure.segment_id, Box::new(failure.err)),
+                stack_trace,
+            )
+        })?;
         trace.merge(seg_trace);
         for (addr, val) in deferred {
-            memory.set(addr, val)?;
+            memory
+                .set(addr, val)
+                .map_err(|e| ExecutionFailure::new(bytecode, memory, *pc, *fp, e, stack_trace))?;
         }
     }
 
