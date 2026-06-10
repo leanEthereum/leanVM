@@ -29,6 +29,17 @@ MAX_NUM_COLS_AIR = MAX_NUM_COLS_AIR_PLACEHOLDER  # max(NUM_COLS_AIR[t] for t in 
 ONE_BUSES_ALL_COLS = ONE_BUSES_ALL_COLS_PLACEHOLDER  # [[col, ...], _; N_TABLES] — sorted union of cols across all Multiplicity::One buses per table
 
 MAX_AIR_FULL_DEGREE = MAX_AIR_FULL_DEGREE_PLACEHOLDER
+
+# Univariate skip (pw13 h1, Gruen eprint 2024/108 §5-6): round 0 of the batched AIR sumcheck
+# binds the SKIP_K lowest row bits of EVERY table via one univariate round over the integer
+# window D = {0..2^SKIP_K−1} (node for cube point x is x itself). Must equal
+# sub_protocols::UNIVARIATE_SKIP_K and python-verifier SKIP_K.
+SKIP_K = SKIP_K_PLACEHOLDER
+SKIP_WINDOW = 2**SKIP_K
+N_SKIP_COEFFS = (SKIP_WINDOW - 1) * (MAX_AIR_FULL_DEGREE - 1) + 1
+SKIP_Z_POWERS = SKIP_Z_POWERS_PLACEHOLDER  # [[z^j for j in 0..N_SKIP_COEFFS]; SKIP_WINDOW] (canonical)
+SKIP_LAGRANGE_C = SKIP_LAGRANGE_C_PLACEHOLDER  # [(Π_{y≠x}(x−y))^{-1}; SKIP_WINDOW] (canonical)
+
 N_AIR_COLUMNS = N_AIR_COLUMNS_PLACEHOLDER  # [_; N_TABLES]
 N_AIR_SHIFT_COLUMNS = N_AIR_SHIFT_COLUMNS_PLACEHOLDER  # [_; N_TABLES] — by convention, shift column j of table t is column j
 AIR_ALPHA_OFFSETS = AIR_ALPHA_OFFSETS_PLACEHOLDER  # [_; N_TABLES], # AIR_ALPHA_OFFSETS[t] = sum(N_AIR_CONSTRAINTS[k] for k in range(t))
@@ -295,12 +306,15 @@ def recursion(inner_public_memory, initial_fiat_shamir_cap):
 
     # END OF LOGUP
 
-    # VERIFY BUS AND AIR — back-loaded batched sumcheck
+    # VERIFY BUS AND AIR — univariate-skip round 0 + front-loaded batched sumcheck (pw13 h1)
 
     fs, air_alpha = fs_sample_ef(fs)
     air_alpha_powers = powers_const(air_alpha, TOTAL_NUM_AIR_CONSTRAINTS)
 
-    initial_sum: Mut = ZERO_VEC_PTR
+    n_max = log_max_table_height
+
+    # Per-table claims s_t, front-loaded: claimed = Σ_t w_t·s_t with w_t = 2^(n_max−n_t).
+    claimed_weighted_sum: Mut = ZERO_VEC_PTR
     for table_index in unroll(0, N_TABLES):
         alpha_offset = AIR_ALPHA_OFFSETS[table_index]
         bus_numerator_value = bus_numerators_values + table_index * DIM
@@ -317,12 +331,64 @@ def recursion(inner_public_memory, initial_fiat_shamir_cap):
                 sub_extension_ret(logup_gamma, bus_denominator_value),
             ),
         )
-        initial_sum = add_extension_ret(initial_sum, bus_final_value)
+        w_t = two_exp(n_max - table_log_heights[table_index])
+        claimed_weighted_sum = add_extension_ret(
+            claimed_weighted_sum, mul_base_extension_ret(w_t, bus_final_value)
+        )
 
-    n_max = log_max_table_height
-    # Batched AIR sumcheck:
-    fs, all_challenges, batched_air_final_value = sumcheck_verify_reversed(fs, n_max, initial_sum, MAX_AIR_FULL_DEGREE)
+    # Round 0 (skip): the prover sends ONE combined polynomial P(X) = Σ_t w_t·v'_t(X) in
+    # coefficient form (read BEFORE sampling r0). Identity: Σ_{z∈D} ê(z)·P(z) == Σ_t w_t·s_t,
+    # where ê = eq(eq_top, bits(·)) on D and eq_top = the last SKIP_K coords of the gkr point
+    # (shared by all tables: every table's eq factor is a suffix of the gkr point).
+    fs, skip_coeffs = fs_receive_ef_inlined(fs, N_SKIP_COEFFS)
+    eq_top = point_gkr + (n_vars_logup_gkr - SKIP_K) * DIM
+    e_hat = compute_eq_mle_extension(eq_top, SKIP_K)
+    window_evals = Array(SKIP_WINDOW * DIM)
+    for z in unroll(0, SKIP_WINDOW):
+        z_pows = Array(N_SKIP_COEFFS)
+        for j in unroll(0, N_SKIP_COEFFS):
+            z_pows[j] = SKIP_Z_POWERS[z][j]
+        dot_product_be(z_pows, skip_coeffs, window_evals + z * DIM, N_SKIP_COEFFS)
+    window_sum = dot_product_ee_ret(e_hat, window_evals, SKIP_WINDOW)
+    copy_ef(window_sum, claimed_weighted_sum)  # assert the round-0 weighted window identity
 
+    fs, skip_r0 = fs_sample_ef(fs)
+
+    # Lagrange weights L_x(r0) = c_x · Π_{y≠x}(r0 − y), c_x compile-time inverse constants
+    # (no in-circuit inversion). Also the tail of every AIR opening claim.
+    skip_diffs = Array(SKIP_WINDOW)
+    for x in unroll(0, SKIP_WINDOW):
+        skip_diffs[x] = sub_extension_base_ret(skip_r0, x)
+    skip_pre = Array(SKIP_WINDOW)
+    skip_suf = Array(SKIP_WINDOW)
+    skip_pre[0] = ONE_EF_PTR
+    skip_suf[SKIP_WINDOW - 1] = ONE_EF_PTR
+    for x in unroll(1, SKIP_WINDOW):
+        skip_pre[x] = mul_extension_ret(skip_pre[x - 1], skip_diffs[x - 1])
+        rev = SKIP_WINDOW - 1 - x
+        skip_suf[rev] = mul_extension_ret(skip_suf[rev + 1], skip_diffs[rev + 1])
+    lagrange_weights = Array(SKIP_WINDOW * DIM)
+    for x in unroll(0, SKIP_WINDOW):
+        mul_extension(
+            mul_base_extension_ret(SKIP_LAGRANGE_C[x], skip_pre[x]),
+            skip_suf[x],
+            lagrange_weights + x * DIM,
+        )
+    e_hat_r0 = dot_product_ee_ret(e_hat, lagrange_weights, SKIP_WINDOW)
+
+    # target = ê(r0)·P(r0)
+    r0_powers = powers_const(skip_r0, N_SKIP_COEFFS)
+    p_at_r0 = dot_product_ee_ret(skip_coeffs, r0_powers, N_SKIP_COEFFS)
+    target = mul_extension_ret(e_hat_r0, p_at_r0)
+
+    # Remaining linear rounds (unchanged round mechanics). sumcheck_verify_reversed stores the
+    # round-r challenge at slot n_linear−1−r, so `all_challenges` is in NATURAL slot order and
+    # the python spec's natural_prefix_t = reversed(linear_challenges[..log_h−K]) is the
+    # CONTIGUOUS slice all_challenges[n_linear−(log_h−K) ..] of length log_h−K.
+    n_linear = n_max - SKIP_K
+    fs, all_challenges, batched_air_final_value = sumcheck_verify_reversed(fs, n_linear, target, MAX_AIR_FULL_DEGREE)
+
+    pcs_natural_prefixes = Array(N_TABLES)
     check_sum: Mut = ZERO_VEC_PTR
     for table_index in unroll(0, N_TABLES):
         log_n_rows = table_log_heights[table_index]
@@ -337,11 +403,12 @@ def recursion(inner_public_memory, initial_fiat_shamir_cap):
         )
 
         bus_point = pcs_inner_points[table_index]
-        eq_val = poly_eq_extension_dynamic_ret(bus_point, all_challenges, log_n_rows)
+        natural_prefix = all_challenges + (n_linear - (log_n_rows - SKIP_K)) * DIM
+        pcs_natural_prefixes[table_index] = natural_prefix
+        # Final identity term: ê(r0) · eq(bus_point[..log_h−K], natural_prefix) · C_t(col_evals)
+        eq_val = poly_eq_extension_dynamic_ret(bus_point, natural_prefix, log_n_rows - SKIP_K)
 
-        k_t = product_first_n(all_challenges + log_n_rows * DIM, n_max - log_n_rows)
-
-        contribution = mul_extension_ret(k_t, mul_extension_ret(eq_val, air_constraints_eval))
+        contribution = mul_extension_ret(e_hat_r0, mul_extension_ret(eq_val, air_constraints_eval))
         check_sum = add_extension_ret(check_sum, contribution)
 
         # AIR block (i=1): all flat cols 0..n_flat_columns populated; shifts 0..n_shift_columns populated.
@@ -523,13 +590,22 @@ def recursion(inner_public_memory, initial_fiat_shamir_cap):
             curr_randomness += DIM
         eval_weights = add_extension_ret(eval_weights, mul_extension_ret(logup_acc, eq_factor_logup))
 
-        # AIR
+        # AIR (uniskip claims: point = natural_prefix, tail = Lagrange weights L_x(r0) on the
+        # lowest SKIP_K inner coords — weight = eq(prefix) ⊗ MLE(tail), next = shifted variant)
+        n_air_prefix = log_n_rows - SKIP_K
+        natural_prefix = pcs_natural_prefixes[table_index]
+        eq_low_table = compute_eq_mle_extension(inner_folding + n_air_prefix * DIM, SKIP_K)
+        tail_mle = dot_product_ee_ret(lagrange_weights, eq_low_table, SKIP_WINDOW)
         if n_shift_columns != 0:
-            next_factor = next_mle(all_challenges, inner_folding, log_n_rows)
+            next_factor = next_mle_with_tail(
+                natural_prefix, lagrange_weights, inner_folding, eq_low_table, n_air_prefix, SKIP_K
+            )
             shift_sum = dot_product_ee_ret(curr_randomness, column_prefixes, n_shift_columns)
             eval_weights = add_extension_ret(eval_weights, mul_extension_ret(shift_sum, next_factor))
             curr_randomness += n_shift_columns * DIM
-        eq_factor_air = poly_eq_extension_dynamic_ret(all_challenges, inner_folding, log_n_rows)
+        eq_factor_air = mul_extension_ret(
+            poly_eq_extension_dynamic_ret(natural_prefix, inner_folding, n_air_prefix), tail_mle
+        )
         air_sum = dot_product_ee_ret(curr_randomness, column_prefixes, N_AIR_COLUMNS[table_index])
         eval_weights = add_extension_ret(eval_weights, mul_extension_ret(air_sum, eq_factor_air))
         curr_randomness += N_AIR_COLUMNS[table_index] * DIM

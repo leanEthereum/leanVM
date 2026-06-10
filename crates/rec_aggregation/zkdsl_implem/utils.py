@@ -757,6 +757,29 @@ def next_mle_const(x, y, n: Const):
     return result
 
 
+def next_mle_with_tail(prefix, tail, y, eq_low_table, n_prefix, k: Const):
+    # Scalar evaluation of the tensor-tail SHIFTED weight over n_prefix + k variables:
+    #     Σ_x tail[x] · next_mle(prefix ++ bits_be(x), y)
+    # where y has n_prefix + k coords and eq_low_table = compute_eq_mle_extension(y[n_prefix..], k)
+    # (shared with the eq-statement tail evaluation). Mirrors python-verifier
+    # `next_mle_with_tail` / backend poly::matrix_next_mle_folded_with_tail via the identity
+    # (shift-by-one of the tail-seeded eq vector, with the saturating "next" corner):
+    #     eq(prefix, y_pref) · Σ_{x≥1} tail[x−1]·eq_low[x]
+    #   + tail[2^k−1] · ( eq_low[0]·next_mle(prefix, y_pref)
+    #                     + Πprefix·Πy_pref·(Πy_low − eq_low[0]) )
+    shifted_dot = dot_product_ee_ret(tail, eq_low_table + DIM, 2**k - 1)
+    term1 = mul_extension_ret(poly_eq_extension_dynamic_ret(prefix, y, n_prefix), shifted_dot)
+    y_low = y + n_prefix * DIM
+    prod_corner = mul_extension_ret(product_first_n(prefix, n_prefix), product_first_n(y, n_prefix))
+    prod_y_low = product_first_n_const(y_low, k)
+    corner = add_extension_ret(
+        mul_extension_ret(eq_low_table, next_mle(prefix, y, n_prefix)),
+        mul_extension_ret(prod_corner, sub_extension_ret(prod_y_low, eq_low_table)),
+    )
+    res = add_extension_ret(term1, mul_extension_ret(tail + (2**k - 1) * DIM, corner))
+    return res
+
+
 def _verify_log2_ceil(n, log2: Const):
     # log2 == ceil(log2(n))  <=>  2^(log2-1) < n <= 2^log2  <=>  r := n - 2^(log2-1) - 1 is a (log2-1)-bit value
     # (in [0, 2^(log2-1))), which checked_decompose_bits_small_value_const checks. A wrong log2 makes r too big:

@@ -7,7 +7,7 @@ use lean_prover::{
 use lean_vm::*;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::sync::OnceLock;
-use sub_protocols::{N_VARS_TO_SEND_GKR_COEFFS, min_stacked_n_vars, total_whir_statements};
+use sub_protocols::{N_VARS_TO_SEND_GKR_COEFFS, UNIVARIATE_SKIP_K, min_stacked_n_vars, total_whir_statements};
 use tracing::instrument;
 use xmss::{LOG_LIFETIME, MESSAGE_LEN_FE, PUBLIC_PARAM_LEN_FE, RANDOMNESS_LEN_FE, TARGET_SUM, V, W, XMSS_DIGEST_LEN};
 
@@ -388,6 +388,45 @@ fn build_replacements(log_inner_bytecode: usize, bytecode_zero_eval: F) -> BTree
     replacements.insert(
         "MAX_AIR_FULL_DEGREE_PLACEHOLDER".to_string(),
         (ALL_TABLES.iter().map(|t| t.degree_air()).max().unwrap() + 1).to_string(),
+    );
+    // Univariate skip (pw13 h1): window {0..2^K−1}, K from sub_protocols::UNIVARIATE_SKIP_K.
+    replacements.insert("SKIP_K_PLACEHOLDER".to_string(), UNIVARIATE_SKIP_K.to_string());
+    let skip_window = 1usize << UNIVARIATE_SKIP_K;
+    let max_air_degree = ALL_TABLES.iter().map(|t| t.degree_air()).max().unwrap();
+    let n_skip_coeffs = (skip_window - 1) * max_air_degree + 1;
+    // SKIP_Z_POWERS[z][j] = z^j (canonical), so the in-circuit window evals are dot products.
+    let z_power_rows: Vec<String> = (0..skip_window)
+        .map(|z| {
+            let zf = F::from_usize(z);
+            let mut acc = F::ONE;
+            let mut row = Vec::with_capacity(n_skip_coeffs);
+            for _ in 0..n_skip_coeffs {
+                row.push(acc.as_canonical_u64().to_string());
+                acc *= zf;
+            }
+            format!("[{}]", row.join(", "))
+        })
+        .collect();
+    replacements.insert(
+        "SKIP_Z_POWERS_PLACEHOLDER".to_string(),
+        format!("[{}]", z_power_rows.join(", ")),
+    );
+    // SKIP_LAGRANGE_C[x] = (Π_{y≠x}(x−y))^{-1}: the constant Lagrange denominators, inverted at
+    // build time so the circuit computes L_x(r0) without any in-circuit inversion.
+    let lagrange_c: Vec<String> = (0..skip_window)
+        .map(|x| {
+            let mut p = F::ONE;
+            for y in 0..skip_window {
+                if y != x {
+                    p *= F::from_usize(x) - F::from_usize(y);
+                }
+            }
+            p.inverse().as_canonical_u64().to_string()
+        })
+        .collect();
+    replacements.insert(
+        "SKIP_LAGRANGE_C_PLACEHOLDER".to_string(),
+        format!("[{}]", lagrange_c.join(", ")),
     );
     replacements.insert(
         "N_AIR_COLUMNS_PLACEHOLDER".to_string(),
