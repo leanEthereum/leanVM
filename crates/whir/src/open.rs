@@ -524,7 +524,11 @@ where
     let out_len = 1 << (num_variables - packing_log_width::<EF>());
 
     let is_full = |s: &SparseStatement<EF>| {
-        !s.is_next && s.values.len() == 1 && s.values[0].selector == 0 && s.inner_num_variables() == num_variables
+        s.tail.is_none()
+            && !s.is_next
+            && s.values.len() == 1
+            && s.values[0].selector == 0
+            && s.inner_num_variables() == num_variables
     };
 
     let mut combined_weights: ArenaVec<EFPacking<EF>>;
@@ -556,18 +560,21 @@ where
     };
 
     for smt in &statements[start_idx..] {
-        if !smt.is_next && (smt.values.len() == 1 || smt.inner_num_variables() < packing_log_width::<EF>()) {
+        if smt.tail.is_none()
+            && !smt.is_next
+            && (smt.values.len() == 1 || smt.inner_num_variables() < packing_log_width::<EF>())
+        {
             for evaluation in &smt.values {
                 compute_sparse_eval_eq_packed::<EF>(evaluation.selector, &smt.point, &mut combined_weights, gamma_pow);
                 combined_sum += evaluation.value * gamma_pow;
                 gamma_pow *= gamma;
             }
         } else {
-            let inner_poly: ArenaVec<EFPacking<EF>> = if smt.is_next {
-                let next = matrix_next_mle_folded(&smt.point.0);
-                pack_extension(&next)
-            } else {
-                eval_eq_packed(&smt.point)
+            let inner_poly: ArenaVec<EFPacking<EF>> = match (&smt.tail, smt.is_next) {
+                (Some(tail), true) => pack_extension(&matrix_next_mle_folded_with_tail(&smt.point.0, tail)),
+                (Some(tail), false) => eval_eq_packed_with_tail(&smt.point.0, tail),
+                (None, true) => pack_extension(&matrix_next_mle_folded(&smt.point.0)),
+                (None, false) => eval_eq_packed(&smt.point),
             };
             let shift = smt.inner_num_variables() - packing_log_width::<EF>();
             let mut indexed_smt_values = smt.values.iter().enumerate().collect::<Vec<_>>();

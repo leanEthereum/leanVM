@@ -362,10 +362,15 @@ where
             let mut i = 0;
             for smt in constraints {
                 let inner_point = &point[point.len() - smt.inner_num_variables()..];
-                let common_weight = if smt.is_next {
-                    next_mle(&smt.point.0, inner_point)
-                } else {
-                    smt.point.eq_poly_outside(&MultilinearPoint(inner_point.to_vec()))
+                let common_weight = match (&smt.tail, smt.is_next) {
+                    (Some(tail), true) => next_mle_with_tail(&smt.point.0, tail, inner_point),
+                    (Some(tail), false) => {
+                        let (prefix, low) = inner_point.split_at(smt.point.len());
+                        smt.point.eq_poly_outside(&MultilinearPoint(prefix.to_vec()))
+                            * tail.evaluate(&MultilinearPoint(low.to_vec()))
+                    }
+                    (None, true) => next_mle(&smt.point.0, inner_point),
+                    (None, false) => smt.point.eq_poly_outside(&MultilinearPoint(inner_point.to_vec())),
                 };
                 for e in &smt.values {
                     let eval = (0..smt.selector_num_variables())
@@ -389,6 +394,10 @@ where
 }
 
 fn verify_constraint_coeffs<EF: Field>(constraint: &SparseStatement<EF>, coeffs: &[EF]) -> bool {
+    debug_assert!(
+        constraint.tail.is_none(),
+        "tailed statements are never STIR constraints"
+    );
     assert_eq!(constraint.selector_num_variables(), 0);
     let alpha = constraint.point[0];
     // Verify the point is expand_from_univariate(alpha, n): [alpha, alpha^2, alpha^4, ...]
