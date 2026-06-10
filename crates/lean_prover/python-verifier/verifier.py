@@ -26,6 +26,7 @@ WHIR_CONFIGS = {
 MIN_LOG_MEMORY_SIZE, MAX_LOG_MEMORY_SIZE = 16, 26
 MIN_LOG_HEIGHT_PER_TABLE, MIN_BYTECODE_LOG_SIZE, MAX_BYTECODE_LOG_SIZE = 8, 8, 22
 N_VARS_TO_SEND_GKR_COEFFS = 5
+SKIP_K = 4  # univariate-skip width of the batched AIR sumcheck; must equal sub_protocols::UNIVARIATE_SKIP_K (Rust)
 
 N_RUNTIME_COLUMNS, N_INSTRUCTION_COLUMNS = 8, 12
 
@@ -244,6 +245,13 @@ def next_mle(x: Sequence[EF], y: Sequence[EF]) -> EF:
     return s + math.prod([*x, *y])
 
 
+def next_mle_with_tail(prefix: Sequence[EF], tail: Sequence[EF], y: Sequence[EF]) -> EF:
+    """Tensor-tail shifted MLE: Σ_x tail[x] · next_mle(prefix ++ bits_be(x), y)."""
+    k = log2_strict(len(tail))
+    bits = lambda x: [ONE if (x >> (k - 1 - j)) & 1 else ZERO for j in range(k)]
+    return sum(t * next_mle([*prefix, *bits(x)], y) for x, t in enumerate(tail))
+
+
 def eval_multilinear_by_evals(evals: Sequence[Fp | EF], point: Sequence[EF]) -> EF:
     """Evaluate a multilinear in evaluation form at `point`."""
     assert len(evals) == 1 << len(point)
@@ -304,10 +312,15 @@ class SparseStatements:
     point: list[EF]  # low-bits variables (suffix), shared by every entry in `values`
     values: list[tuple[int, EF]]  # (selector_index, eval): poly(high bits = selector_index, low bits = point) == eval
     is_next: bool = False  # if set, the low-variable part uses the shifted "next-row" MLE instead of plain eq
+    tail: list[EF] | None = None  # if set, weight = eq(point) ⊗ MLE(tail) with the tail on the LOWEST log2(len(tail)) inner variables
+
+    @property
+    def inner_num_variables(self) -> int:
+        return len(self.point) + (log2_strict(len(self.tail)) if self.tail is not None else 0)
 
     @property
     def selector_num_variables(self) -> int:
-        return self.total_num_variables - len(self.point)  # count of high/selector bits that selector_index spans
+        return self.total_num_variables - self.inner_num_variables  # count of high/selector bits that selector_index spans
 
 
 def whir_folding_factor_at_round(round: int) -> int:
@@ -348,6 +361,42 @@ def verify_sumcheck(fiat_shamir: FiatShamir, target: EF, n_rounds: int, degree: 
         point.append(challenge)
         target = eval_univariate_polynomial(coeffs, challenge)
     return point, target
+
+
+def verify_air_sumcheck_with_skip(
+    fiat_shamir: FiatShamir,
+    table_sums: list[EF],
+    table_n_vars: list[int],
+    table_degrees: list[int],
+    eq_top: list[EF],
+    max_full_degree: int,
+    n_max: int,
+) -> tuple[EF, list[EF], list[EF], EF]:
+    """Univariate-skip batched AIR sumcheck (Gruen eprint 2024/108 §5-6); mirrors
+    sub_protocols::verify_batched_air_sumcheck_uniskip. Round 0 binds the SKIP_K lowest
+    row bits of EVERY table at once: the prover sends ONE combined polynomial
+    P(X) = Σ_t w_t·v'_t(X) (w_t = 2^(n_max−n_t), front-loaded batching) in coefficient
+    form over the integer window D = {0..2^SKIP_K−1} (node for cube point x is x itself).
+    Round-0 identity: Σ_{z∈D} ê(z)·P(z) == Σ_t w_t·s_t, where ê = eq(eq_top, bits(·)) on D.
+    Then target = ê(r0)·P(r0) and the remaining n_max−SKIP_K rounds are standard."""
+    window = 1 << SKIP_K
+    n_coeffs = (window - 1) * max(table_degrees) + 1
+    coeffs = fiat_shamir.next_extension_scalars_vec(n_coeffs)
+    e_hat = eval_eq(eq_top)
+    window_sum = sum(e_hat[z] * eval_univariate_polynomial(coeffs, EF(z)) for z in range(window))
+    claimed = sum(EF(1 << (n_max - n_t)) * s_t for n_t, s_t in zip(table_n_vars, table_sums))
+    assert window_sum == claimed, "AIR skip round: weighted window identity failed"
+    r0 = fiat_shamir.sample_ef()
+    # Lagrange basis L_x(r0) over the window nodes
+    nodes = [EF(x) for x in range(window)]
+    lagrange_weights = [
+        math.prod(r0 - nodes[j] for j in range(window) if j != i)
+        * math.prod(nodes[i] - nodes[j] for j in range(window) if j != i).inv()
+        for i in range(window)
+    ]
+    target = dot_product(e_hat, lagrange_weights) * eval_univariate_polynomial(coeffs, r0)  # = ê(r0)·P(r0)
+    linear_challenges, final_value = verify_sumcheck(fiat_shamir, target, n_max - SKIP_K, max_full_degree)
+    return r0, lagrange_weights, linear_challenges, final_value
 
 
 def verify_whir(
@@ -419,8 +468,14 @@ def verify_whir(
             folding_challenges = folding_challenges[whir_folding_factor_at_round(round - 1) :]
         gamma_power = ONE
         for smt in smts:
-            point_suffix = folding_challenges[len(folding_challenges) - len(smt.point) :]  # dense part of the point
-            eval_suffix = next_mle(smt.point, point_suffix) if smt.is_next else eq_poly(smt.point, point_suffix)
+            point_suffix = folding_challenges[len(folding_challenges) - smt.inner_num_variables :]  # dense part of the point
+            if smt.tail is None:
+                eval_suffix = next_mle(smt.point, point_suffix) if smt.is_next else eq_poly(smt.point, point_suffix)
+            elif smt.is_next:
+                eval_suffix = next_mle_with_tail(smt.point, smt.tail, point_suffix)
+            else:  # weight = eq(point, prefix) · MLE(tail) at the lowest log2(len(tail)) inner coords
+                prefix, low = point_suffix[: len(smt.point)], point_suffix[len(smt.point) :]
+                eval_suffix = eq_poly(smt.point, prefix) * eval_multilinear_by_evals(smt.tail, low)
             sel_n = smt.selector_num_variables
             for v in smt.values:
                 eval_prefix = eq_at_index(folding_challenges, v[0], sel_n)  # sparse part of the point
@@ -866,16 +921,28 @@ def verify_execution(
     alpha = fiat_shamir.sample_ef()
     alpha_powers = ef_powers(alpha, sum(t.n_constraints for t in TABLES))
 
-    initial_sum, offset = ZERO, 0
+    table_sums, offset = [], 0
     for table in TABLES:
-        initial_sum += alpha_powers[offset] * (precompile_nums[table.name] * table.precompile_bus_interaction_sign)
-        initial_sum += alpha_powers[offset + 1] * (logup_gamma - precompile_dens[table.name])
+        table_sums.append(
+            alpha_powers[offset] * (precompile_nums[table.name] * table.precompile_bus_interaction_sign)
+            + alpha_powers[offset + 1] * (logup_gamma - precompile_dens[table.name])
+        )
         offset += table.n_constraints
 
-    # 3] verify batched AIR sumcheck
-    sc_point, sc_value = verify_sumcheck(fiat_shamir, initial_sum, n_max, max(t.air_degree + 1 for t in TABLES))
+    # 3] verify batched AIR sumcheck (univariate-skip round 0 + standard linear rounds)
+    eq_top = gkr_point[-SKIP_K:]  # shared by all tables: every eq factor is a suffix of gkr_point
+    r0, lagrange_weights, linear_challenges, sc_value = verify_air_sumcheck_with_skip(
+        fiat_shamir,
+        table_sums,
+        [table_log_heights[t.name] for t in TABLES],
+        [t.air_degree for t in TABLES],
+        eq_top,
+        max(t.air_degree + 1 for t in TABLES),
+        n_max,
+    )
+    e_hat_r0 = dot_product(eval_eq(eq_top), lagrange_weights)
 
-    committed_column_evals = {t.name: [(gkr_point[-table_log_heights[t.name] :], columns_evals[t.name], {})] for t in TABLES}
+    committed_column_evals = {t.name: [(gkr_point[-table_log_heights[t.name] :], columns_evals[t.name], {}, None)] for t in TABLES}
     air_final_value, offset = ZERO, 0
     for table in TABLES:
         log_height = table_log_heights[table.name]
@@ -883,11 +950,13 @@ def verify_execution(
         alphas = alpha_powers[offset : offset + table.n_constraints]
         offset += table.n_constraints
         constraint_eval = table.eval_air(col_evals, alphas, logup_beta_eq)
-        natural_point = list(reversed(sc_point[-log_height:]))
-        air_final_value += math.prod(sc_point[:-log_height]) * eq_poly(gkr_point[-log_height:], natural_point) * constraint_eval
+        # Final identity: target == Σ_t ê(r0) · eq(eq_factor_t[..n_t−K], natural_prefix_t) · C_t(col_evals_t);
+        # the SKIP_K lowest row bits of every table's opening live in the Lagrange tail.
+        natural_prefix = list(reversed(linear_challenges[: log_height - SKIP_K]))
+        air_final_value += e_hat_r0 * eq_poly(gkr_point[-log_height:][: log_height - SKIP_K], natural_prefix) * constraint_eval
         eq_vals = {i: col_evals[i] for i in range(table.n_columns)}
         next_vals = {j: col_evals[table.n_columns + j] for j in range(table.n_shift)}
-        committed_column_evals[table.name].append((natural_point, eq_vals, next_vals))
+        committed_column_evals[table.name].append((natural_prefix, eq_vals, next_vals, lagrange_weights))
     assert air_final_value == sc_value, "AIR sumcheck: claimed value mismatch"
 
     public_memory_point = fiat_shamir.sample_many_ef(log2_strict(PUBLIC_INPUT_SIZE))
@@ -917,10 +986,10 @@ def verify_execution(
         offset = table_offsets[table.name]
         col_base = offset >> log_height
         pcs_statements.extend(table.boundary_statements(stacked_n_vars, offset, log_height, ending_pc))
-        for point, eq_values, next_values in committed_column_evals[table.name]:
+        for point, eq_values, next_values, tail in committed_column_evals[table.name]:
             if next_values:
-                pcs_statements.append(SparseStatements(stacked_n_vars, point, values_at(next_values, col_base), True))
-            pcs_statements.append(SparseStatements(stacked_n_vars, point, values_at(eq_values, col_base)))
+                pcs_statements.append(SparseStatements(stacked_n_vars, point, values_at(next_values, col_base), True, tail))
+            pcs_statements.append(SparseStatements(stacked_n_vars, point, values_at(eq_values, col_base), tail=tail))
 
     # 4] Open the PCS
     verify_whir(fiat_shamir, cfg, parsed_commitment, pcs_statements)
