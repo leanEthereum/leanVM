@@ -91,11 +91,12 @@ pub fn verify_execution(
         let log_n = table_n_vars[&table];
         committed_statements.insert(
             table,
-            vec![(
-                MultilinearPoint(from_end(gkr_point, log_n).to_vec()),
-                logup_statements.columns_values[&table].clone(),
-                BTreeMap::new(),
-            )],
+            vec![CommittedClaim {
+                point: MultilinearPoint(from_end(gkr_point, log_n).to_vec()),
+                tail: None,
+                eq_values: logup_statements.columns_values[&table].clone(),
+                next_values: BTreeMap::new(),
+            }],
         );
     }
 
@@ -107,7 +108,7 @@ pub fn verify_execution(
         extra_data: ExtraDataForBuses<EF>,
     }
     let mut verify_data: Vec<TableVerifyData> = Vec::new();
-    let mut initial_sum = EF::ZERO;
+    let mut table_sums: Vec<EF> = Vec::new();
     let mut alpha_offset = 0;
 
     for table in ALL_TABLES {
@@ -119,8 +120,10 @@ pub fn verify_execution(
                 BusDirection::Pull => EF::NEG_ONE,
                 BusDirection::Push => EF::ONE,
             };
-        initial_sum += air_alpha_powers[alpha_offset] * signed_numerator
-            + air_alpha_powers[alpha_offset + 1] * (logup_c - bus_denominator_value);
+        table_sums.push(
+            air_alpha_powers[alpha_offset] * signed_numerator
+                + air_alpha_powers[alpha_offset + 1] * (logup_c - bus_denominator_value),
+        );
 
         let alpha_slice = air_alpha_powers[alpha_offset..alpha_offset + n_constraints].to_vec();
         verify_data.push(TableVerifyData {
@@ -133,14 +136,28 @@ pub fn verify_execution(
 
     let max_full_degree = ALL_TABLES.iter().map(|t| t.degree_air() + 1).max().unwrap();
 
-    let n_max = *table_n_vars.values().max().unwrap();
-    let Evaluation {
-        point: sumcheck_air_point,
-        value: claimed_air_final_value,
-    } = sumcheck_verify(&mut verifier_state, n_max, max_full_degree, initial_sum, None)?;
+    // Univariate-skip batched AIR sumcheck (see sub_protocols::air_sumcheck_skip):
+    // round 0 binds the K lowest row bits of every table with one univariate
+    // round whose identity is the w_t-weighted window sum of the per-table
+    // claims; the remaining n_max − K rounds are the legacy combined rounds.
+    let table_n_vars_ordered: Vec<usize> = ALL_TABLES.iter().map(|t| table_n_vars[t]).collect();
+    let table_degrees: Vec<usize> = ALL_TABLES.iter().map(|t| t.degree_air()).collect();
+    let eq_top = from_end(gkr_point, UNIVARIATE_SKIP_K);
+    let (uniskip_point, claimed_air_final_value) = verify_batched_air_sumcheck_uniskip(
+        &mut verifier_state,
+        UNIVARIATE_SKIP_K,
+        &table_n_vars_ordered,
+        &table_degrees,
+        &table_sums,
+        eq_top,
+        max_full_degree,
+    )?;
 
+    // Final identity: target == Σ_t ê(r0) · eq(eq_factor_t[..n_t−K], natural_prefix_t) · C_t(col_evals_t).
+    let e_hat_r0 = e_hat_at(eq_top, uniskip_point.r0);
     let mut my_air_final_value = EF::ZERO;
     for vd in &verify_data {
+        let n_t = table_n_vars[&vd.table];
         let n_cols_total = vd.table.n_columns() + vd.table.n_shift_columns();
         let col_evals = verifier_state.next_extension_scalars_vec(n_cols_total)?;
 
@@ -149,21 +166,23 @@ pub fn verify_execution(
         }
         let constraint_eval = delegate_to_inner!(&vd.table => eval_constraint);
 
-        let bus_point = from_end(gkr_point, table_n_vars[&vd.table]);
-        let natural_ordering_point = natural_ordering_point_for_session(&sumcheck_air_point.0, table_n_vars[&vd.table]);
-        my_air_final_value += back_loaded_table_contribution(
-            bus_point,
-            &sumcheck_air_point.0,
-            &natural_ordering_point,
-            constraint_eval,
-        );
+        let bus_point = from_end(gkr_point, n_t);
+        let natural_prefix = natural_prefix_for_session(&uniskip_point, n_t);
+        let eq_val = MultilinearPoint(bus_point[..n_t - UNIVARIATE_SKIP_K].to_vec())
+            .eq_poly_outside(&MultilinearPoint(natural_prefix.clone()));
+        my_air_final_value += e_hat_r0 * eq_val * constraint_eval;
 
         macro_rules! split {
-            ($t:expr) => {{ columns_evals_flat_and_shift($t, &col_evals, &natural_ordering_point) }};
+            ($t:expr) => {{ columns_evals_flat_and_shift($t, &col_evals, &natural_prefix) }};
         }
-        let claim = delegate_to_inner!(&vd.table => split);
+        let (point, eq_values, next_values) = delegate_to_inner!(&vd.table => split);
 
-        committed_statements.get_mut(&vd.table).unwrap().push(claim);
+        committed_statements.get_mut(&vd.table).unwrap().push(CommittedClaim {
+            point,
+            tail: Some(uniskip_point.lagrange_weights.clone()),
+            eq_values,
+            next_values,
+        });
     }
 
     if my_air_final_value != claimed_air_final_value {
@@ -231,18 +250,3 @@ pub fn verify_execution(
     ))
 }
 
-fn back_loaded_table_contribution<EF: ExtensionField<PF<EF>>>(
-    bus_point: &[EF],
-    sumcheck_air_point: &[EF],
-    natural_ordering_point: &[EF],
-    constraint_eval: EF,
-) -> EF {
-    let n_t = bus_point.len();
-    let n_max = sumcheck_air_point.len();
-    let suffix_start = n_max - n_t;
-    assert_eq!(natural_ordering_point.len(), n_t);
-    let eq_val =
-        MultilinearPoint(bus_point.to_vec()).eq_poly_outside(&MultilinearPoint(natural_ordering_point.to_vec()));
-    let k_t: EF = sumcheck_air_point[..suffix_start].iter().copied().product();
-    k_t * eq_val * constraint_eval
-}

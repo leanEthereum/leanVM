@@ -6,9 +6,19 @@ use std::{any::TypeId, cmp::Reverse, collections::BTreeMap, mem::transmute};
 
 pub type ColIndex = usize;
 
-/// Each entry: (point, eval, eval at 'shifted-down' column).
-pub type CommittedStatements =
-    BTreeMap<Table, Vec<(MultilinearPoint<EF>, BTreeMap<ColIndex, EF>, BTreeMap<ColIndex, EF>)>>;
+/// One batch of column-opening claims at a shared point: `eq_values[c] = f_c(point)`
+/// and `next_values[c]` = the shifted-down column at the same point. For
+/// univariate-skip openings the weight carries a tensor `tail` on the lowest
+/// `log2(tail.len())` row bits: weight = eq(point, ·) ⊗ MLE(tail)(·).
+#[derive(Debug, Clone)]
+pub struct CommittedClaim {
+    pub point: MultilinearPoint<EF>,
+    pub tail: Option<Vec<EF>>,
+    pub eq_values: BTreeMap<ColIndex, EF>,
+    pub next_values: BTreeMap<ColIndex, EF>,
+}
+
+pub type CommittedStatements = BTreeMap<Table, Vec<CommittedClaim>>;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BusDirection {

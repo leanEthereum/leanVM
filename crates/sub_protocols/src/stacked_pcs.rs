@@ -74,25 +74,31 @@ pub fn stacked_pcs_global_statements(
                 EF::from_usize(ending_pc),
             ));
         }
-        for (point, eq_values, next_values) in &committed_statements[&table] {
-            if !next_values.is_empty() {
-                global_statements.push(SparseStatement::new_next(
-                    stacked_n_vars,
-                    point.clone(),
-                    next_values
-                        .iter()
-                        .map(|(&col_index, &value)| SparseValue::new((offset >> n_vars) + col_index, value))
-                        .collect(),
-                ));
-            }
-            global_statements.push(SparseStatement::new(
-                stacked_n_vars,
-                point.clone(),
-                eq_values
+        for claim in &committed_statements[&table] {
+            if !claim.next_values.is_empty() {
+                let values = claim
+                    .next_values
                     .iter()
                     .map(|(&col_index, &value)| SparseValue::new((offset >> n_vars) + col_index, value))
-                    .collect(),
-            ));
+                    .collect();
+                global_statements.push(match &claim.tail {
+                    Some(tail) => {
+                        SparseStatement::new_next_with_tail(stacked_n_vars, claim.point.clone(), tail.clone(), values)
+                    }
+                    None => SparseStatement::new_next(stacked_n_vars, claim.point.clone(), values),
+                });
+            }
+            let values = claim
+                .eq_values
+                .iter()
+                .map(|(&col_index, &value)| SparseValue::new((offset >> n_vars) + col_index, value))
+                .collect();
+            global_statements.push(match &claim.tail {
+                Some(tail) => {
+                    SparseStatement::new_with_tail(stacked_n_vars, claim.point.clone(), tail.clone(), values)
+                }
+                None => SparseStatement::new(stacked_n_vars, claim.point.clone(), values),
+            });
         }
     }
     global_statements

@@ -140,11 +140,12 @@ pub fn prove_execution(
         let log_n_rows = traces[&table].log_n_rows;
         committed_statements.insert(
             table,
-            vec![(
-                MultilinearPoint(from_end(gkr_point, log_n_rows).to_vec()),
-                logup_statements.columns_values[&table].clone(),
-                BTreeMap::new(),
-            )],
+            vec![CommittedClaim {
+                point: MultilinearPoint(from_end(gkr_point, log_n_rows).to_vec()),
+                tail: None,
+                eq_values: logup_statements.columns_values[&table].clone(),
+                next_values: BTreeMap::new(),
+            }],
         );
     }
 
@@ -202,27 +203,31 @@ pub fn prove_execution(
         macro_rules! make_session {
             ($t:expr) => {{
                 let session = AirSumcheckSession::new(packed, eq_suffix, bus_final_value, *$t, extra_data, non_padded);
-                Box::new(session) as Box<dyn OuterSumcheckSession<EF> + '_>
+                Box::new(session) as Box<dyn SkipSession<EF> + '_>
             }};
         }
         sessions.push(delegate_to_inner!(table => make_session));
         alpha_offset += n_constraints;
     }
 
-    let sumcheck_air_point =
-        info_span!("batched AIR sumcheck").in_scope(|| prove_batched_air_sumcheck(&mut prover_state, &mut sessions));
+    let uniskip_point = info_span!("batched AIR sumcheck")
+        .in_scope(|| prove_batched_air_sumcheck_uniskip(&mut prover_state, &mut sessions, UNIVARIATE_SKIP_K));
 
     for (idx, table) in ALL_TABLES.iter().enumerate() {
         let col_evals = sessions[idx].final_column_evals();
         prover_state.add_extension_scalars(&col_evals);
 
-        let natural_ordering_point =
-            natural_ordering_point_for_session(&sumcheck_air_point.0, traces[table].log_n_rows);
+        let natural_prefix = natural_prefix_for_session(&uniskip_point, traces[table].log_n_rows);
         macro_rules! split {
-            ($t:expr) => {{ columns_evals_flat_and_shift($t, &col_evals, &natural_ordering_point) }};
+            ($t:expr) => {{ columns_evals_flat_and_shift($t, &col_evals, &natural_prefix) }};
         }
-        let claim = delegate_to_inner!(table => split);
-        committed_statements.get_mut(table).unwrap().push(claim);
+        let (point, eq_values, next_values) = delegate_to_inner!(table => split);
+        committed_statements.get_mut(table).unwrap().push(CommittedClaim {
+            point,
+            tail: Some(uniskip_point.lagrange_weights.clone()),
+            eq_values,
+            next_values,
+        });
     }
 
     let public_memory_random_point = MultilinearPoint(prover_state.sample_vec(log2_strict_usize(PUBLIC_INPUT_LEN)));
