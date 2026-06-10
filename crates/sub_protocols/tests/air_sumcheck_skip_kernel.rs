@@ -278,16 +278,77 @@ fn test_skip_unpacked_fallback() {
     check_skip_identities(air, 9, 5, n_cols, None, 9);
 }
 
+/// h4 (iteration 2): the finite-difference extension must produce the SAME
+/// polynomial, bit for bit, as the reference Lagrange-dot extension — exact
+/// field arithmetic evaluating the same unique degree-bounded polynomial.
+/// Covers all three kernels (generic, degree-split, unpacked fallback), the
+/// padding path, and K ∈ {3, 4, 5}.
+#[test]
+fn test_fd_extension_matches_lagrange() {
+    fn check<A>(air: A, n: usize, k: usize, non_padded: Option<usize>, seed: u64)
+    where
+        A: Air + Copy + std::fmt::Debug + Air<ExtraData = ExtraDataForBuses<EF>>,
+    {
+        let mut rng = StdRng::seed_from_u64(seed);
+        let n_cols = Air::n_columns(&air) + Air::n_shift_columns(&air);
+        let n_rows = 1usize << n;
+        let mut cols = random_cols(&mut rng, n_cols, n_rows);
+        if let Some(np) = non_padded {
+            pad_cols(&mut cols, np);
+        }
+        let eq_factor: Vec<EF> = (0..n).map(|_| rng.random()).collect();
+        let alpha: EF = rng.random();
+        let logup_alphas: Vec<EF> = (0..LOG_MAX_BUS_WIDTH).map(|_| rng.random()).collect();
+        let col_refs: Vec<&[F]> = cols.iter().map(|c| c.as_slice()).collect();
+        let packed = MleGroupRef::<EF>::Base(col_refs).pack();
+        let extra = ExtraDataForBuses::new(
+            &eval_eq(&logup_alphas),
+            alpha.powers().collect_n(Air::n_constraints(&air)),
+        );
+        let mut session = AirSumcheckSession::new(
+            packed,
+            eq_factor,
+            EF::ZERO,
+            air,
+            extra,
+            non_padded.unwrap_or(n_rows),
+        );
+        // compute_skip_poly does not advance the session: both paths run on
+        // identical state.
+        let lagrange = session.compute_skip_poly_forced(k, true);
+        let fd = session.compute_skip_poly_forced(k, false);
+        assert_eq!(fd.coeffs, lagrange.coeffs, "{air:?} n={n} k={k} pad={non_padded:?}");
+    }
+
+    // degree-split kernel (poseidon), K ∈ {3, 4, 5}:
+    check(Poseidon16Precompile::<false>, 11, 3, None, 21);
+    check(Poseidon16Precompile::<false>, 11, 4, None, 22);
+    check(Poseidon16Precompile::<false>, 11, 5, None, 23);
+    check(Poseidon16Precompile::<true>, 10, 4, None, 24);
+    // generic kernel (execution, with shift cols), K ∈ {3, 4}:
+    check(ExecutionTable::<false>, 10, 3, None, 25);
+    check(ExecutionTable::<false>, 10, 4, None, 26);
+    // extension_op:
+    check(ExtensionOpPrecompile::<false>, 9, 4, None, 27);
+    // padding path (n > pivot):
+    check(Poseidon16Precompile::<false>, 13, 4, Some(1 << 12), 28);
+    // unpacked fallback (n − k ≤ packing_log_width):
+    check(ExtensionOpPrecompile::<false>, 8, 4, None, 29);
+    check(ExtensionOpPrecompile::<false>, 9, 5, None, 30);
+}
+
 /// GO/NO-GO timing gate (plan_spec T2, kill condition a): the skip round must
 /// be cheaper than the legacy rounds 0..K−1 it replaces, on production-shaped
-/// data. Run with:
+/// data. Extended for h4 (plan_spec iteration 2, U1): also times the
+/// finite-difference extension against the reference Lagrange-dot extension —
+/// FD must win on the combined workload. Run with:
 ///   cargo test --release -p sub_protocols --test air_sumcheck_skip_kernel -- --ignored --nocapture
 #[test]
 #[ignore]
 fn skip_kernel_timing() {
     let k = UNIVARIATE_SKIP_K;
 
-    fn time_table<A>(air: A, n: usize, k: usize, label: &str) -> (f64, f64)
+    fn time_table<A>(air: A, n: usize, k: usize, label: &str) -> (f64, f64, f64, f64)
     where
         A: Air + Copy + std::fmt::Debug + Air<ExtraData = ExtraDataForBuses<EF>>,
     {
@@ -319,15 +380,24 @@ fn skip_kernel_timing() {
             AirSumcheckSession::new(packed, eq_factor.to_vec(), EF::ZERO, air, extra, n_rows)
         }
 
-        // Skip path.
+        // h4: FD vs Lagrange extension, compute_skip_poly only (the delta is
+        // confined to it). Lagrange first (warms the gather paths for FD too).
         let mut s_skip = make(col_refs.clone(), air, &eq_factor, &logup_alphas, alpha, n_rows);
+        let t_lag0 = Instant::now();
+        let _lag_poly = s_skip.compute_skip_poly_forced(k, true);
+        let t_lagrange = t_lag0.elapsed().as_secs_f64() * 1e3;
+
         let t0 = Instant::now();
-        let skip_poly = s_skip.compute_skip_poly(k);
+        let skip_poly = s_skip.compute_skip_poly_forced(k, false);
+        let t_fd = t0.elapsed().as_secs_f64() * 1e3;
+
+        // Full skip path (FD poly + fold), for the original skip-vs-legacy gate.
         let r0: EF = rng.random();
         let lw = lagrange_weights_at::<F, EF>(k, r0);
         let e_hat_r0 = e_hat_at(&s_skip.skip_eq_top(k), r0);
+        let t_fold0 = Instant::now();
         s_skip.process_skip_challenge(k, r0, &lw, e_hat_r0, &skip_poly);
-        let t_skip = t0.elapsed().as_secs_f64() * 1e3;
+        let t_skip = t_fd + t_fold0.elapsed().as_secs_f64() * 1e3;
 
         // Legacy path: K rounds.
         let mut s_legacy = make(col_refs.clone(), air, &eq_factor, &logup_alphas, alpha, n_rows);
@@ -338,12 +408,21 @@ fn skip_kernel_timing() {
         }
         let t_legacy = t1.elapsed().as_secs_f64() * 1e3;
 
-        println!("{label}: skip {t_skip:8.2} ms  vs  legacy rounds 0..{k} {t_legacy:8.2} ms");
-        (t_skip, t_legacy)
+        println!(
+            "{label}: skip-poly FD {t_fd:8.2} ms vs Lagrange {t_lagrange:8.2} ms | skip(FD) {t_skip:8.2} ms vs legacy rounds 0..{k} {t_legacy:8.2} ms"
+        );
+        (t_skip, t_legacy, t_fd, t_lagrange)
     }
 
-    let (p_skip, p_legacy) = time_table(Poseidon16Precompile::<true>, 18, k, "poseidon16 2^18x110");
-    let (e_skip, e_legacy) = time_table(ExecutionTable::<true>, 20, k, "execution  2^20x22 ");
+    let (p_skip, p_legacy, p_fd, p_lag) = time_table(Poseidon16Precompile::<true>, 18, k, "poseidon16 2^18x110");
+    let (e_skip, e_legacy, e_fd, e_lag) = time_table(ExecutionTable::<true>, 20, k, "execution  2^20x22 ");
+
+    let fd_total = p_fd + e_fd;
+    let lag_total = p_lag + e_lag;
+    println!(
+        "h4 gate: FD {fd_total:.2} ms vs Lagrange {lag_total:.2} ms -> {}",
+        if fd_total < lag_total { "PASS" } else { "FAIL" }
+    );
 
     let skip_total = p_skip + e_skip;
     let legacy_total = p_legacy + e_legacy;
@@ -351,5 +430,6 @@ fn skip_kernel_timing() {
         "combined: skip {skip_total:.2} ms vs legacy {legacy_total:.2} ms -> {}",
         if skip_total < legacy_total { "PASS" } else { "FAIL" }
     );
+    assert!(fd_total < lag_total, "h4 FD-vs-Lagrange timing gate FAILED");
     assert!(skip_total < legacy_total, "GO/NO-GO timing gate FAILED");
 }

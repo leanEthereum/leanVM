@@ -294,7 +294,17 @@ pub trait SkipSession<EF: ExtensionField<PF<EF>>>: OuterSumcheckSession<EF> {
     /// The univariate restriction `v'_t` of the session's claim to the skip
     /// window (eq over the REST variables only; excludes ê), in coefficient
     /// form. Requires a fresh session (`rounds_done == 0`).
-    fn compute_skip_poly(&mut self, k: usize) -> DensePolynomial<EF>;
+    fn compute_skip_poly(&mut self, k: usize) -> DensePolynomial<EF> {
+        self.compute_skip_poly_forced(k, false)
+    }
+
+    /// Test/bench hook: `force_lagrange = true` selects the reference
+    /// Lagrange-dot extension kernels instead of the default finite-difference
+    /// ones. Both produce bit-identical polynomials (exact field arithmetic);
+    /// the toggle exists so the equality tests and the h4 timing gate can
+    /// compare them. Not part of the protocol surface.
+    #[doc(hidden)]
+    fn compute_skip_poly_forced(&mut self, k: usize, force_lagrange: bool) -> DensePolynomial<EF>;
 
     /// Bind the K skipped variables to `r0`: fold every column `2^k → 1` with
     /// the Lagrange weights `L_x(r0)`, and fast-forward the session state to
@@ -320,7 +330,7 @@ where
     A: Air + Debug + 'static,
     A::ExtraData: AlphaPowers<EF> + AlphaPowersMut<EF> + Debug,
 {
-    fn compute_skip_poly(&mut self, k: usize) -> DensePolynomial<EF> {
+    fn compute_skip_poly_forced(&mut self, k: usize, force_lagrange: bool) -> DensePolynomial<EF> {
         assert_eq!(self.rounds_done, 0, "skip round must come first");
         assert_eq!(self.missing_mul_factor, EF::ONE);
         let n = self.initial_n_vars;
@@ -342,8 +352,14 @@ where
         let rest_alphas = self.permuted_alphas(n - k);
         let split_eq = SplitEq::new(&rest_alphas);
 
-        // Lagrange extension matrix: window -> extended targets.
-        let lagrange_targets = lagrange_coeffs_for_targets::<PF<EF>>(k, &nodes[window..]);
+        // Lagrange extension matrix: window -> extended targets (reference
+        // path only; the default finite-difference path needs no per-node
+        // coefficients — the nodes are consecutive integers).
+        let lagrange_targets = if force_lagrange {
+            lagrange_coeffs_for_targets::<PF<EF>>(k, &nodes[window..])
+        } else {
+            Vec::new()
+        };
 
         let active_rest = self.current_unpadded_len >> k;
         let total_rest = 1usize << (n - k);
@@ -355,8 +371,20 @@ where
                 .expect("skip round expects base-packed columns")
                 .clone();
             debug_assert!(pivot - k >= w);
-            match self.computation.low_degree_air() {
-                Some((low_degree, low_n_constraints)) => compute_skip_evals_degree_split::<EF, A>(
+            match (self.computation.low_degree_air(), force_lagrange) {
+                (Some((low_degree, low_n_constraints)), false) => compute_skip_evals_degree_split::<EF, A>(
+                    &cols,
+                    &self.computation,
+                    &self.extra_data,
+                    &split_eq,
+                    k,
+                    pivot,
+                    active_rest >> w,
+                    &nodes,
+                    low_degree,
+                    low_n_constraints,
+                ),
+                (Some((low_degree, low_n_constraints)), true) => compute_skip_evals_degree_split_lagrange::<EF, A>(
                     &cols,
                     &self.computation,
                     &self.extra_data,
@@ -369,7 +397,17 @@ where
                     low_degree,
                     low_n_constraints,
                 ),
-                None => compute_skip_evals_generic::<EF, A>(
+                (None, false) => compute_skip_evals_generic::<EF, A>(
+                    &cols,
+                    &self.computation,
+                    &self.extra_data,
+                    &split_eq,
+                    k,
+                    pivot,
+                    active_rest >> w,
+                    &nodes,
+                ),
+                (None, true) => compute_skip_evals_generic_lagrange::<EF, A>(
                     &cols,
                     &self.computation,
                     &self.extra_data,
@@ -381,6 +419,18 @@ where
                     &lagrange_targets,
                 ),
             }
+        } else if force_lagrange {
+            compute_skip_evals_unpacked_lagrange::<EF, A>(
+                &self.multilinears.by_ref(),
+                &self.computation,
+                &self.extra_data,
+                &split_eq,
+                k,
+                pivot,
+                active_rest,
+                &nodes,
+                &lagrange_targets,
+            )
         } else {
             compute_skip_evals_unpacked::<EF, A>(
                 &self.multilinears.by_ref(),
@@ -391,7 +441,6 @@ where
                 pivot,
                 active_rest,
                 &nodes,
-                &lagrange_targets,
             )
         };
 
@@ -503,6 +552,56 @@ where
     }
 }
 
+// ---------------------------------------------------------------------------
+// Finite-difference extension (h4, iteration 2).
+//
+// All three interpolation sites of the skip kernels — column values
+// (degree ≤ 2^k − 1, sampled on the window), the degree-split cached state
+// (same degree, same nodes), and the low-part accumulator (degree ≤
+// low_degree·(2^k − 1), sampled on the first n_low nodes) — are polynomials
+// sampled on CONSECUTIVE integer nodes and evaluated at the remaining
+// CONSECUTIVE integer nodes (see `skip_all_nodes`: 0, 1, 2, …). Newton forward
+// differences evaluate such a polynomial at each next node with `n_rows − 1`
+// field ADDS per value row, replacing the `n_rows` Montgomery MULS of a
+// Lagrange-coefficient dot. Field adds are exact, so the results are
+// BIT-IDENTICAL to the Lagrange path (same unique polynomial, same field
+// elements) — pinned by `test_fd_extension_matches_lagrange` and by the entire
+// iter-1 test suite, which the FD path must satisfy unchanged.
+//
+// State convention (right-edge anchored, verified in `fd_tests`):
+//   init:    for j in 1..n_rows { for i in 0..n_rows−j { row_i ← row_{i+1} − row_i } }
+//            after which row_{n_rows−1} = value at the LAST sampled node and
+//            row_{n_rows−1−j} holds the j-th forward difference Δʲ anchored so
+//            one advance yields the next node;
+//   advance: for i in 1..n_rows { row_i += row_{i−1} } — the value row at the
+//            next consecutive node is then row_{n_rows−1}, readable in place.
+// Both passes are forward-sequential over the flattened row-major buffer.
+// ---------------------------------------------------------------------------
+
+/// In-place right-edge forward-difference triangle over `n_rows` rows of
+/// `width` values (`rows[i * width + c]` = value row at the i-th consecutive
+/// node). Cost: width · n_rows(n_rows−1)/2 subs, once per group.
+#[inline]
+fn fd_init_in_place<T: PrimeCharacteristicRing + Copy>(rows: &mut [T], n_rows: usize, width: usize) {
+    debug_assert!(rows.len() >= n_rows * width);
+    for j in 1..n_rows {
+        for idx in 0..(n_rows - j) * width {
+            rows[idx] = rows[idx + width] - rows[idx];
+        }
+    }
+}
+
+/// Advances the FD state one node: `width · (n_rows − 1)` adds. The value row
+/// at the new node is `rows[(n_rows − 1) * width ..]`.
+#[inline]
+fn fd_advance<T: PrimeCharacteristicRing + Copy>(rows: &mut [T], n_rows: usize, width: usize) {
+    debug_assert!(rows.len() >= n_rows * width);
+    for idx in width..n_rows * width {
+        let prev = rows[idx - width];
+        rows[idx] += prev;
+    }
+}
+
 /// Gathers, for one packed rest-position `j_p`, the `2^k` window values of all
 /// columns into `win` (layout `win[x * n_cols + c]`, contiguous per window
 /// node so constraint evals can borrow `&win[x * n_cols..]` directly).
@@ -545,8 +644,69 @@ fn extend_point<EF: ExtensionField<PF<EF>>>(
     }
 }
 
+/// Default generic kernel: finite-difference extension (h4). The gathered
+/// window buffer doubles as the FD state after the window evals — zero extra
+/// per-thread memory vs the Lagrange path, and the value row at each extended
+/// node is read in place as the constraint-eval point.
 #[allow(clippy::too_many_arguments)]
 fn compute_skip_evals_generic<EF, A>(
+    cols: &[&[PFPacking<EF>]],
+    computation: &A,
+    extra_data: &A::ExtraData,
+    split_eq: &SplitEq<EF>,
+    k: usize,
+    pivot: usize,
+    active_packed: usize,
+    nodes: &[PF<EF>],
+) -> Vec<EF>
+where
+    EF: ExtensionField<PF<EF>>,
+    A: Air + 'static,
+    A::ExtraData: AlphaPowers<EF>,
+{
+    let w = packing_log_width::<EF>();
+    let n_cols = cols.len();
+    let window = 1usize << k;
+    let n_nodes = nodes.len();
+    let log_block = pivot - k - w;
+    let log_chunk = pivot - w;
+    let xb: Vec<usize> = (0..window).map(|x| skip_block_of_x(x, k)).collect();
+
+    let acc = parallel::map_reduce_with_state(
+        active_packed,
+        || vec![PFPacking::<EF>::ZERO; window * n_cols], // win, then FD state
+        || vec![EFPacking::<EF>::ZERO; n_nodes],
+        |win, acc, j_p| {
+            let partial_eq = split_eq.get_packed(j_p);
+            gather_window(cols, win, j_p, &xb, log_block, log_chunk);
+            for x in 0..window {
+                let v = computation.eval_packed_base(&win[x * n_cols..(x + 1) * n_cols], extra_data);
+                acc[x] += v * partial_eq;
+            }
+            fd_init_in_place(win, window, n_cols);
+            for node_acc in acc[window..n_nodes].iter_mut() {
+                fd_advance(win, window, n_cols);
+                let v = computation.eval_packed_base(&win[(window - 1) * n_cols..window * n_cols], extra_data);
+                *node_acc += v * partial_eq;
+            }
+        },
+        |mut a, b| {
+            for (x, y) in a.iter_mut().zip(b) {
+                *x += y;
+            }
+            a
+        },
+    );
+
+    acc.into_iter()
+        .map(|s| EFPacking::<EF>::to_ext_iter([s]).sum::<EF>())
+        .collect()
+}
+
+/// Reference generic kernel: Lagrange-coefficient dots (iter-1 path). Kept for
+/// the h4 timing gate and the bit-identity test.
+#[allow(clippy::too_many_arguments)]
+fn compute_skip_evals_generic_lagrange<EF, A>(
     cols: &[&[PFPacking<EF>]],
     computation: &A,
     extra_data: &A::ExtraData,
@@ -610,8 +770,137 @@ where
         .collect()
 }
 
+/// Default degree-split kernel: finite-difference extension (h4) at all three
+/// interpolation sites — column values (window FD on `win`, in place), the
+/// skipped low-block's cached state (degree ≤ 2^k − 1 in z: affine ops on
+/// degree-(2^k − 1) column extensions, so its own window-anchored FD cascade
+/// advanced in lockstep), and the low-part accumulator (degree ≤
+/// low_degree·(2^k − 1), FD over its first n_low values once captured).
 #[allow(clippy::too_many_arguments)]
 fn compute_skip_evals_degree_split<EF, A>(
+    cols: &[&[PFPacking<EF>]],
+    computation: &A,
+    extra_data: &A::ExtraData,
+    split_eq: &SplitEq<EF>,
+    k: usize,
+    pivot: usize,
+    active_packed: usize,
+    nodes: &[PF<EF>],
+    low_degree: usize,
+    low_n_constraints: usize,
+) -> Vec<EF>
+where
+    EF: ExtensionField<PF<EF>>,
+    A: Air + 'static,
+    A::ExtraData: AlphaPowers<EF>,
+    EFPacking<EF>: PrimeCharacteristicRing
+        + Mul<PFPacking<EF>, Output = EFPacking<EF>>
+        + Add<PFPacking<EF>, Output = EFPacking<EF>>,
+{
+    let w = packing_log_width::<EF>();
+    let n_cols = cols.len();
+    let n_flat = computation.n_columns();
+    let window = 1usize << k;
+    let n_nodes = nodes.len();
+    let n_low = low_degree * (window - 1) + 1;
+    debug_assert!(n_low >= window && n_low <= n_nodes);
+    let log_block = pivot - k - w;
+    let log_chunk = pivot - w;
+    let xb: Vec<usize> = (0..window).map(|x| skip_block_of_x(x, k)).collect();
+
+    let acc = parallel::map_reduce_with_state(
+        active_packed,
+        || {
+            (
+                vec![PFPacking::<EF>::ZERO; window * n_cols], // win, then column FD state
+                vec![Vec::<PFPacking<EF>>::new(); window],    // captured post-block states
+                Vec::<PFPacking<EF>>::new(),                  // s_fd: flattened state FD cascade
+                Vec::<PFPacking<EF>>::new(),                  // interpolated-state scratch for the folder
+                vec![EFPacking::<EF>::ZERO; n_low],           // low evals
+                Vec::<EFPacking<EF>>::new(),                  // low_fd: low-part FD cascade (width 1)
+            )
+        },
+        || vec![EFPacking::<EF>::ZERO; n_nodes],
+        |(win, states, s_fd, scratch, low_evals, low_fd), acc, j_p| {
+            let partial_eq = split_eq.get_packed(j_p);
+            gather_window(cols, win, j_p, &xb, log_block, log_chunk);
+
+            // Full evals at the window nodes; capture the post-block state.
+            for x in 0..window {
+                let pt = &win[x * n_cols..(x + 1) * n_cols];
+                let mut folder = ConstraintFolderPacked::new(&pt[..n_flat], &pt[n_flat..], extra_data);
+                folder.cached_state = Some(std::mem::take(&mut states[x]));
+                Air::eval(computation, &mut folder, extra_data);
+                acc[x] += folder.accumulator * partial_eq;
+                low_evals[x] = folder.accumulator_low;
+                states[x] = folder.cached_state.unwrap();
+            }
+
+            // FD cascades anchored on the window: columns (in place on `win`)
+            // and the captured post-block states (advanced in lockstep so the
+            // anchoring stays consistent; only read beyond n_low).
+            fd_init_in_place(win, window, n_cols);
+            let state_len = states[0].len();
+            s_fd.clear();
+            for st in states.iter() {
+                debug_assert_eq!(st.len(), state_len);
+                s_fd.extend_from_slice(st);
+            }
+            fd_init_in_place(s_fd, window, state_len);
+
+            // Full evals at the extended nodes that still determine the low part.
+            for z in window..n_low {
+                fd_advance(win, window, n_cols);
+                fd_advance(s_fd, window, state_len);
+                let pt = &win[(window - 1) * n_cols..window * n_cols];
+                let mut folder = ConstraintFolderPacked::new(&pt[..n_flat], &pt[n_flat..], extra_data);
+                Air::eval(computation, &mut folder, extra_data);
+                acc[z] += folder.accumulator * partial_eq;
+                low_evals[z] = folder.accumulator_low;
+            }
+
+            // Low-part FD cascade over its n_low captured values (width 1).
+            low_fd.clear();
+            low_fd.extend_from_slice(&low_evals[..n_low]);
+            fd_init_in_place(low_fd, n_low, 1);
+
+            // High-only evals beyond: skip the low block with the FD-advanced
+            // state, and add the FD-advanced low contribution.
+            for node_acc in acc[n_low..n_nodes].iter_mut() {
+                fd_advance(win, window, n_cols);
+                fd_advance(s_fd, window, state_len);
+                fd_advance(low_fd, n_low, 1);
+                let pt = &win[(window - 1) * n_cols..window * n_cols];
+
+                scratch.clear();
+                scratch.extend_from_slice(&s_fd[(window - 1) * state_len..window * state_len]);
+
+                let mut folder = ConstraintFolderPacked::new(&pt[..n_flat], &pt[n_flat..], extra_data);
+                folder.skip_low = true;
+                folder.cached_state = Some(std::mem::take(scratch));
+                folder.low_ci_count = low_n_constraints;
+                Air::eval(computation, &mut folder, extra_data);
+                *scratch = folder.cached_state.unwrap();
+
+                *node_acc += (folder.accumulator + low_fd[n_low - 1]) * partial_eq;
+            }
+        },
+        |mut a, b| {
+            for (x, y) in a.iter_mut().zip(b) {
+                *x += y;
+            }
+            a
+        },
+    );
+
+    acc.into_iter()
+        .map(|s| EFPacking::<EF>::to_ext_iter([s]).sum::<EF>())
+        .collect()
+}
+
+/// Reference degree-split kernel: Lagrange-coefficient dots (iter-1 path).
+#[allow(clippy::too_many_arguments)]
+fn compute_skip_evals_degree_split_lagrange<EF, A>(
     cols: &[&[PFPacking<EF>]],
     computation: &A,
     extra_data: &A::ExtraData,
@@ -737,10 +1026,65 @@ where
 }
 
 /// Scalar fallback for tables too small for the packed kernel
-/// (`n − k ≤ packing_log_width`): full evals at every node, no degree split.
-/// These tables have at most `2^{w + k}` rows — the cost is negligible.
+/// (`n − k ≤ packing_log_width`): full evals at every node, no degree split,
+/// finite-difference extension. These tables have at most `2^{w + k}` rows —
+/// the cost is negligible.
 #[allow(clippy::too_many_arguments)]
 fn compute_skip_evals_unpacked<EF, A>(
+    group: &MleGroupRef<'_, EF>,
+    computation: &A,
+    extra_data: &A::ExtraData,
+    split_eq: &SplitEq<EF>,
+    k: usize,
+    pivot: usize,
+    active_rest: usize,
+    nodes: &[PF<EF>],
+) -> Vec<EF>
+where
+    EF: ExtensionField<PF<EF>>,
+    A: Air + 'static,
+    A::ExtraData: AlphaPowers<EF>,
+{
+    let window = 1usize << k;
+    let n_nodes = nodes.len();
+    let log_block = pivot - k;
+    let xb: Vec<usize> = (0..window).map(|x| skip_block_of_x(x, k)).collect();
+    let block_mask = (1usize << log_block) - 1;
+
+    let unpacked = group.unpack();
+    let unpacked_ref = unpacked.by_ref();
+    let cols = unpacked_ref.as_base().expect("skip round expects base columns");
+    let n_cols = cols.len();
+
+    let mut acc = vec![EF::ZERO; n_nodes];
+    let mut win = vec![PF::<EF>::ZERO; window * n_cols];
+    for j in 0..active_rest {
+        let partial_eq = split_eq.get_unpacked(j);
+        let chunk = j >> log_block;
+        let o = j & block_mask;
+        let base = (chunk << pivot) | o;
+        for (c, col) in cols.iter().enumerate() {
+            for (x, &b) in xb.iter().enumerate() {
+                win[x * n_cols + c] = col[base | (b << log_block)];
+            }
+        }
+        for x in 0..window {
+            let v = computation.eval_base(&win[x * n_cols..(x + 1) * n_cols], extra_data);
+            acc[x] += partial_eq * v;
+        }
+        fd_init_in_place(&mut win, window, n_cols);
+        for node_acc in acc[window..n_nodes].iter_mut() {
+            fd_advance(&mut win, window, n_cols);
+            let v = computation.eval_base(&win[(window - 1) * n_cols..window * n_cols], extra_data);
+            *node_acc += partial_eq * v;
+        }
+    }
+    acc
+}
+
+/// Reference scalar fallback: Lagrange-coefficient dots (iter-1 path).
+#[allow(clippy::too_many_arguments)]
+fn compute_skip_evals_unpacked_lagrange<EF, A>(
     group: &MleGroupRef<'_, EF>,
     computation: &A,
     extra_data: &A::ExtraData,
@@ -796,4 +1140,59 @@ where
         }
     }
     acc
+}
+
+#[cfg(test)]
+mod fd_tests {
+    use super::{fd_advance, fd_init_in_place};
+    use backend::*;
+
+    fn horner(coeffs: &[KoalaBear], x: usize) -> KoalaBear {
+        let xf = KoalaBear::from_usize(x);
+        let mut acc = KoalaBear::ZERO;
+        for &c in coeffs.iter().rev() {
+            acc = acc * xf + c;
+        }
+        acc
+    }
+
+    /// The FD recurrence reproduces every consecutive node value of a degree-d
+    /// polynomial exactly (the classic cascade-direction off-by-one trap).
+    #[test]
+    fn fd_matches_direct_evaluation() {
+        for d in [1usize, 2, 3, 7, 15, 31, 45] {
+            let n_rows = d + 1;
+            let coeffs: Vec<KoalaBear> = (0..=d).map(|i| KoalaBear::from_usize(7 * i * i + 3 * i + 1)).collect();
+            let mut rows: Vec<KoalaBear> = (0..n_rows).map(|i| horner(&coeffs, i)).collect();
+            fd_init_in_place(&mut rows, n_rows, 1);
+            for next in n_rows..n_rows + 40 {
+                fd_advance(&mut rows, n_rows, 1);
+                assert_eq!(rows[n_rows - 1], horner(&coeffs, next), "d={d}, node={next}");
+            }
+        }
+    }
+
+    /// width > 1: independent polynomials per lane advance in lockstep.
+    #[test]
+    fn fd_matches_direct_evaluation_wide() {
+        let d = 15usize;
+        let width = 3usize;
+        let n_rows = d + 1;
+        let polys: Vec<Vec<KoalaBear>> = (0..width)
+            .map(|c| (0..=d).map(|i| KoalaBear::from_usize(11 * c * c + 5 * i * i * i + i + 2)).collect())
+            .collect();
+        let mut rows = vec![KoalaBear::ZERO; n_rows * width];
+        for i in 0..n_rows {
+            for (c, p) in polys.iter().enumerate() {
+                rows[i * width + c] = horner(p, i);
+            }
+        }
+        fd_init_in_place(&mut rows, n_rows, width);
+        for next in n_rows..n_rows + 25 {
+            fd_advance(&mut rows, n_rows, width);
+            for (c, p) in polys.iter().enumerate() {
+                assert_eq!(rows[(n_rows - 1) * width + c], horner(p, next), "lane {c}, node {next}");
+            }
+        }
+    }
 }
