@@ -192,12 +192,13 @@ where
                 .collect(),
         );
 
-        let evaluation_of_weights = self.eval_constraints_poly(&round_constraints, folding_randomness.clone());
+        // WHIR sumcheck folds LSB-first; eval_constraints_poly expects polynomial-var order.
+        let evaluation_of_weights = self.eval_constraints_poly(&round_constraints, folding_randomness.reversed());
 
-        // Check the final sumcheck evaluation (coefficient form, reversed point)
-        let mut reversed_point = final_sumcheck_randomness.0.clone();
-        reversed_point.reverse();
-        let final_value = eval_multilinear_coeffs(&final_coefficients, &reversed_point);
+        // Check the final sumcheck evaluation (coefficient form). For LSB-fold, the sumcheck
+        // challenges are already in the order eval_multilinear_coeffs expects (point[0] is the
+        // last variable of the polynomial), so no reversal needed.
+        let final_value = eval_multilinear_coeffs(&final_coefficients, &final_sumcheck_randomness.0);
         if claimed_sum != evaluation_of_weights * final_value {
             return Err(ProofError::InvalidProof);
         }
@@ -247,27 +248,22 @@ where
             verifier_state,
         );
 
-        // dbg!(&stir_challenges_indexes);
-        // dbg!(verifier_state.challenger().state());
-
-        let dimensions = [Dimensions {
+        let dimensions = Dimensions {
             height: params.domain_size >> params.folding_factor,
             width: 1 << params.folding_factor,
-        }];
+        };
         let answers = self.verify_merkle_proof::<F>(
             verifier_state,
             &commitment.root,
             &stir_challenges_indexes,
-            &dimensions,
+            dimensions,
             leafs_base_field,
-            round_index,
-            0,
         )?;
 
-        // Compute STIR Constraints
+        let folding_randomness_reversed = folding_randomness.reversed();
         let folds: Vec<_> = answers
             .into_iter()
-            .map(|answers| answers.evaluate(folding_randomness))
+            .map(|answers| answers.evaluate(&folding_randomness_reversed))
             .collect();
 
         let stir_constraints = stir_challenges_indexes
@@ -285,21 +281,20 @@ where
         Ok(stir_constraints)
     }
 
-    #[allow(clippy::too_many_arguments)]
     fn verify_merkle_proof<F>(
         &self,
         verifier_state: &mut impl FSVerifier<EF>,
         root: &[PF<EF>; DIGEST_ELEMS],
         indices: &[usize],
-        dimensions: &[Dimensions],
+        dimensions: Dimensions,
         leafs_base_field: bool,
-        _round_index: usize,
-        _var_shift: usize,
     ) -> ProofResult<Vec<Vec<EF>>>
     where
         F: Field + ExtensionField<PF<EF>>,
         EF: ExtensionField<F>,
     {
+        // DoS-hardened (main): bound the opening batch and reject malformed leaf_data lengths
+        // instead of panicking. Single `dimensions` (branch): no per-leaf padding/skip variants.
         verifier_state.begin_merkle_opening_batch(indices.len())?;
         let res = if leafs_base_field {
             let mut answers = Vec::<Vec<F>>::new();
@@ -314,17 +309,17 @@ where
             }
 
             for (i, &index) in indices.iter().enumerate() {
-                if !merkle_verify::<PF<EF>, F>(*root, index, dimensions[0], answers[i].clone(), &merkle_proofs[i]) {
+                if !merkle_verify::<PF<EF>, F>(*root, index, dimensions, answers[i].clone(), &merkle_proofs[i]) {
                     return Err(ProofError::InvalidProof);
                 }
             }
 
             answers
                 .into_iter()
-                .map(|inner| inner.iter().map(|&f_el| f_el.into()).collect())
+                .map(|inner| inner.into_iter().map(Into::into).collect())
                 .collect()
         } else {
-            let mut answers = vec![];
+            let mut answers = Vec::<Vec<EF>>::new();
             let mut merkle_proofs = Vec::new();
 
             for _ in 0..indices.len() {
@@ -336,7 +331,7 @@ where
             }
 
             for (i, &index) in indices.iter().enumerate() {
-                if !merkle_verify::<PF<EF>, EF>(*root, index, dimensions[0], answers[i].clone(), &merkle_proofs[i]) {
+                if !merkle_verify::<PF<EF>, EF>(*root, index, dimensions, answers[i].clone(), &merkle_proofs[i]) {
                     return Err(ProofError::InvalidProof);
                 }
             }
@@ -356,8 +351,11 @@ where
 
         for (round, (randomness, constraints)) in constraints.iter().enumerate() {
             if round > 0 {
+                // LSB-fold drops the polynomial's high-indexed (last) k vars at each round.
+                // The reversed cumulative point places those at the END.
                 let k = self.folding_factor.at_round(round - 1);
-                point = MultilinearPoint(point[k..].to_vec());
+                let new_len = point.len() - k;
+                point = MultilinearPoint(point[..new_len].to_vec());
             }
             let mut i = 0;
             for smt in constraints {

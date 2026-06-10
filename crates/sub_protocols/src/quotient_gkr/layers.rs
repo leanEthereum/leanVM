@@ -83,7 +83,7 @@ impl<'a, EF: ExtensionField<PF<EF>>> LayerStorage<'a, EF> {
         }
     }
 
-    pub fn materialise_in_full(self) -> (ArenaVec<EF>, ArenaVec<EF>) {
+    pub(super) fn materialise_in_full(self) -> (ArenaVec<EF>, ArenaVec<EF>) {
         let natural = match self {
             Self::Natural { .. } => self,
             other => other.convert_to_natural(),
