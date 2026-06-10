@@ -2,6 +2,9 @@ mod air_sumcheck;
 
 pub use air_sumcheck::*;
 
+mod air_sumcheck_skip;
+pub use air_sumcheck_skip::*;
+
 mod logup;
 pub use logup::*;
 

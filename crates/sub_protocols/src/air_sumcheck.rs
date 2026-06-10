@@ -46,18 +46,18 @@ pub struct AirSumcheckSession<'a, EF: ExtensionField<PF<EF>>, A: Air>
 where
     A::ExtraData: AlphaPowers<EF>,
 {
-    multilinears: MleGroup<'a, EF>,
-    eq_factor: Vec<EF>, // The last element is removed at each round
+    pub(crate) multilinears: MleGroup<'a, EF>,
+    pub(crate) eq_factor: Vec<EF>, // The last element is removed at each round
     /// Active element count in the current storage. Always a multiple of
     /// `2^{P - r}` while r < P (chunk-aligned), then ceil-halves afterward.
-    current_unpadded_len: usize,
-    sum: EF,
-    missing_mul_factor: EF,
-    computation: A,
-    extra_data: A::ExtraData,
-    initial_n_vars: usize,
-    constraints_eval_at_padding: EF,
-    rounds_done: usize,
+    pub(crate) current_unpadded_len: usize,
+    pub(crate) sum: EF,
+    pub(crate) missing_mul_factor: EF,
+    pub(crate) computation: A,
+    pub(crate) extra_data: A::ExtraData,
+    pub(crate) initial_n_vars: usize,
+    pub(crate) constraints_eval_at_padding: EF,
+    pub(crate) rounds_done: usize,
 }
 
 impl<'a, EF: ExtensionField<PF<EF>>, A: Air> AirSumcheckSession<'a, EF, A>
@@ -129,7 +129,7 @@ where
     A: Air + 'static,
     A::ExtraData: AlphaPowers<EF>,
 {
-    fn pivot(&self) -> usize {
+    pub(crate) fn pivot(&self) -> usize {
         ENDIANNESS_PIVOT_AIR.min(self.initial_n_vars)
     }
 
@@ -163,7 +163,7 @@ where
         }
     }
 
-    fn in_phase_1(&self) -> bool {
+    pub(crate) fn in_phase_1(&self) -> bool {
         let w = packing_log_width::<EF>();
         // (a) the variable being bound sits above the lane bits, and
         // (b) `SplitEq` can still run in packed mode (`n - r - 1 > w`).
@@ -180,7 +180,7 @@ where
 
     /// `eq_factor` permuted to match our storage convention: entries in
     /// `[0, n-P)` unchanged, entries in `[n-P, len)` reversed
-    fn permuted_alphas(&self, len: usize) -> Vec<EF> {
+    pub(crate) fn permuted_alphas(&self, len: usize) -> Vec<EF> {
         let head_len = (self.initial_n_vars - self.pivot()).min(len);
         let base = &self.eq_factor[..len];
         let mut out = Vec::with_capacity(len);
