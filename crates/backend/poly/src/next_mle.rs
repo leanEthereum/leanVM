@@ -1,7 +1,8 @@
+use ::utils::log2_strict_usize;
 use field::{ExtensionField, Field, PrimeCharacteristicRing};
 use zk_alloc::ArenaVec;
 
-use crate::{PF, eval_eq_scaled};
+use crate::{PF, eval_eq_scaled, eval_eq_with_tail, to_big_endian_in_field};
 
 /// Evaluates the "next" multilinear polynomial at two n-variable points (x, y).
 ///
@@ -54,6 +55,39 @@ where
     res
 }
 
+/// Tensor-tail variant of [`next_mle`]:
+/// `Σ_x tail[x] · next_mle(concat(prefix, bits(x)), y)`, where `bits(x)` is
+/// big-endian over `log2(tail.len())` variables (matching `eval_eq` indexing).
+/// Verifier-side: the loop over the `2^k` cube points is intentional.
+pub fn next_mle_with_tail<F: Field>(prefix: &[F], tail: &[F], y: &[F]) -> F {
+    let k = log2_strict_usize(tail.len());
+    debug_assert_eq!(prefix.len() + k, y.len());
+    let mut sum = F::ZERO;
+    for (x, &t) in tail.iter().enumerate() {
+        let mut point = prefix.to_vec();
+        point.extend(to_big_endian_in_field::<F>(x, k));
+        sum += next_mle(&point, y) * t;
+    }
+    sum
+}
+
+/// Tensor-tail variant of [`matrix_next_mle_folded`]: the dense vector
+/// `w[y] = Σ_x tail[x] · next_mle(concat(prefix, bits(x)), y)`.
+///
+/// Since `next_mle` is multilinear in its first argument,
+/// `w[y] = Σ_j v[j] · next_mle(j, y)` with `v = eval_eq_with_tail(prefix, tail)`,
+/// and `next_mle(j, y) = 1` iff `y = j + 1`, plus the wrap-around
+/// `next_mle(2^n − 1, 2^n − 1) = 1` (see [`next_mle`]). Hence `w` is the
+/// shift-by-one of `v`, with `w[last] += v[last]`.
+pub fn matrix_next_mle_folded_with_tail<F: ExtensionField<PF<F>>>(prefix: &[F], tail: &[F]) -> ArenaVec<F> {
+    let v = eval_eq_with_tail(prefix, tail);
+    let n = v.len();
+    let mut res = unsafe { ArenaVec::<F>::zeroed(n) };
+    res[1..].copy_from_slice(&v[..n - 1]);
+    res[n - 1] += v[n - 1];
+    res
+}
+
 #[cfg(test)]
 mod tests {
     use field::PrimeCharacteristicRing;
@@ -78,6 +112,70 @@ mod tests {
                 });
                 assert_eq!(matrix.evaluate(&MultilinearPoint(y_bools.clone())), expected);
                 assert_eq!(next_mle(&x_bools, &y_bools), expected);
+            }
+        }
+    }
+
+    #[test]
+    fn test_next_mle_with_tail_brute_force() {
+        use koala_bear::QuinticExtensionFieldKB;
+        use rand::{RngExt, SeedableRng, rngs::StdRng};
+
+        use crate::next_mle_with_tail;
+        type EF = QuinticExtensionFieldKB;
+
+        let mut rng = StdRng::seed_from_u64(11);
+        for k in [2usize, 3] {
+            let n_prefix = 5 - k;
+            let prefix: Vec<EF> = (0..n_prefix).map(|_| rng.random()).collect();
+            let tail: Vec<EF> = (0..1 << k).map(|_| rng.random()).collect();
+            let y: Vec<EF> = (0..5).map(|_| rng.random()).collect();
+            let direct = next_mle_with_tail(&prefix, &tail, &y);
+            let mut brute = EF::ZERO;
+            for (x, &t) in tail.iter().enumerate() {
+                let mut point = prefix.clone();
+                point.extend(to_big_endian_in_field::<EF>(x, k));
+                brute += next_mle(&point, &y) * t;
+            }
+            assert_eq!(direct, brute);
+        }
+    }
+
+    #[test]
+    fn test_matrix_next_mle_folded_with_tail_matches_sum() {
+        use koala_bear::QuinticExtensionFieldKB;
+        use rand::{RngExt, SeedableRng, rngs::StdRng};
+
+        use crate::{matrix_next_mle_folded_with_tail, next_mle_with_tail};
+        type EF = QuinticExtensionFieldKB;
+
+        let mut rng = StdRng::seed_from_u64(12);
+        for k in [2usize, 3] {
+            let n_prefix = 5 - k;
+            let prefix: Vec<EF> = (0..n_prefix).map(|_| rng.random()).collect();
+            let tail: Vec<EF> = (0..1 << k).map(|_| rng.random()).collect();
+
+            let folded = matrix_next_mle_folded_with_tail(&prefix, &tail);
+
+            // Elementwise against the sum of per-cube-point folded matrices.
+            let mut expected = EF::zero_vec(1 << 5);
+            for (x, &t) in tail.iter().enumerate() {
+                let mut point = prefix.clone();
+                point.extend(to_big_endian_in_field::<EF>(x, k));
+                for (e, &m) in expected.iter_mut().zip(matrix_next_mle_folded(&point).iter()) {
+                    *e += m * t;
+                }
+            }
+            assert_eq!(folded.as_slice(), &expected[..]);
+
+            // Consistency with the pointwise variant: the folded vector's MLE at a
+            // boolean point y equals next_mle_with_tail(prefix, tail, y).
+            for y in 0..1usize << 5 {
+                let y_bools = to_big_endian_in_field::<EF>(y, 5);
+                assert_eq!(
+                    folded.evaluate(&MultilinearPoint(y_bools.clone())),
+                    next_mle_with_tail(&prefix, &tail, &y_bools)
+                );
             }
         }
     }

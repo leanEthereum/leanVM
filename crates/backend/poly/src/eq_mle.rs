@@ -1151,6 +1151,112 @@ fn packed_eq_poly<F: Field, EF: ExtensionField<F>>(eval: &[EF], scalar: EF) -> E
     EF::ExtensionPacking::from_ext_slice(&buffer)
 }
 
+/// Tensor-tail variant of [`eval_eq`]: returns the table
+/// `out[(hi << log2(tail.len())) | lo] = eq(eval)[hi] * tail[lo]`,
+/// i.e. the eq expansion of `eval` tensored with an arbitrary vector `tail`
+/// occupying the lowest `log2(tail.len())` variables. `tail.len()` must be a
+/// power of two. With `tail = eval_eq(extra)` this equals
+/// `eval_eq(concat(eval, extra))` exactly.
+pub fn eval_eq_with_tail<F: ExtensionField<PF<F>>>(eval: &[F], tail: &[F]) -> ArenaVec<F> {
+    let log_tail = log2_strict_usize(tail.len());
+    let mut out = unsafe { ArenaVec::uninitialized(1 << (eval.len() + log_tail)) };
+    let (log_chunks, n_chunks) = parallel_split();
+    if eval.len() <= 1 + log_chunks {
+        eval_eq_tail_kernel(eval, &mut out, F::ONE, tail);
+        return out;
+    }
+    let mut buffer = F::zero_vec(n_chunks);
+    buffer[0] = F::ONE;
+    fill_buffer(eval[..log_chunks].iter().rev(), &mut buffer);
+    let middle = &eval[log_chunks..];
+    let out_chunk_size = out.len() / n_chunks;
+    par_chunks_zip(&mut out, out_chunk_size, &buffer, |out_chunk, &b| {
+        eval_eq_tail_kernel(middle, out_chunk, b, tail);
+    });
+    out
+}
+
+/// Packed-output variant of [`eval_eq_with_tail`]; same table, packed like
+/// [`eval_eq_packed`]. Requires `eval.len() + log2(tail.len()) >= packing_log_width`.
+pub fn eval_eq_packed_with_tail<F: ExtensionField<PF<F>>>(eval: &[F], tail: &[F]) -> ArenaVec<EFPacking<F>> {
+    let w = packing_log_width::<F>();
+    let k = log2_strict_usize(tail.len());
+    assert!(eval.len() + k >= w);
+    if k < w {
+        // Absorb the (w − k) trailing `eval` variables into the tail so the
+        // packed lanes are fully covered by the (extended) tail.
+        let absorb = w - k;
+        let eq_absorb = eval_eq(&eval[eval.len() - absorb..]);
+        let mut extended_tail = F::zero_vec(1 << w);
+        for (a, &ea) in eq_absorb.iter().enumerate() {
+            for (lo, &t) in tail.iter().enumerate() {
+                extended_tail[(a << k) | lo] = ea * t;
+            }
+        }
+        return eval_eq_packed_with_tail(&eval[..eval.len() - absorb], &extended_tail);
+    }
+    let tail_packed: Vec<EFPacking<F>> = pack_extension(tail);
+    let mut out = unsafe { ArenaVec::uninitialized(1 << (eval.len() + k - w)) };
+    let (log_chunks, n_chunks) = parallel_split();
+    if eval.len() <= 1 + log_chunks {
+        eval_eq_tail_kernel_packed::<F>(eval, &mut out, F::ONE, &tail_packed);
+        return out;
+    }
+    let mut buffer = F::zero_vec(n_chunks);
+    buffer[0] = F::ONE;
+    fill_buffer(eval[..log_chunks].iter().rev(), &mut buffer);
+    let middle = &eval[log_chunks..];
+    let out_chunk_size = out.len() / n_chunks;
+    par_chunks_zip(&mut out, out_chunk_size, &buffer, |out_chunk, &b| {
+        eval_eq_tail_kernel_packed::<F>(middle, out_chunk, b, &tail_packed);
+    });
+    out
+}
+
+/// Recursive kernel for [`eval_eq_with_tail`]: standard eq split on `eval`,
+/// with the leaf writing `scalar * tail` instead of a single scalar.
+#[inline]
+fn eval_eq_tail_kernel<F: Field>(eval: &[F], out: &mut [F], scalar: F, tail: &[F]) {
+    debug_assert_eq!(out.len(), tail.len() << eval.len());
+    match eval.split_first() {
+        None => {
+            out.iter_mut().zip(tail).for_each(|(o, &t)| *o = t * scalar);
+        }
+        Some((&x, rest)) => {
+            let (low, high) = out.split_at_mut(out.len() / 2);
+            let s1 = scalar * x;
+            let s0 = scalar - s1;
+            eval_eq_tail_kernel(rest, low, s0, tail);
+            eval_eq_tail_kernel(rest, high, s1, tail);
+        }
+    }
+}
+
+/// Recursive kernel for [`eval_eq_packed_with_tail`] (requires the tail to
+/// cover at least the packing width, guaranteed by the absorption step).
+#[inline]
+fn eval_eq_tail_kernel_packed<F: ExtensionField<PF<F>>>(
+    eval: &[F],
+    out: &mut [EFPacking<F>],
+    scalar: F,
+    tail_packed: &[EFPacking<F>],
+) {
+    debug_assert_eq!(out.len(), tail_packed.len() << eval.len());
+    match eval.split_first() {
+        None => {
+            let b = EFPacking::<F>::from(scalar);
+            out.iter_mut().zip(tail_packed).for_each(|(o, &t)| *o = t * b);
+        }
+        Some((&x, rest)) => {
+            let (low, high) = out.split_at_mut(out.len() / 2);
+            let s1 = scalar * x;
+            let s0 = scalar - s1;
+            eval_eq_tail_kernel_packed::<F>(rest, low, s0, tail_packed);
+            eval_eq_tail_kernel_packed::<F>(rest, high, s1, tail_packed);
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::time::Instant;
@@ -1320,6 +1426,57 @@ mod tests {
             compute_eval_eq_packed::<EF, true>(&eval_b, &mut out_separate, scalar_b);
 
             assert_eq!(out_dual, out_separate, "Mismatch at n_vars={}", n_vars);
+        }
+    }
+
+    #[test]
+    fn test_eval_eq_with_tail_matches_point_append() {
+        let mut rng = StdRng::seed_from_u64(7);
+        for n_vars in [2usize, 5, 9, 12] {
+            for k in [2usize, 3, 4] {
+                let eval: Vec<EF> = (0..n_vars).map(|_| rng.random()).collect();
+                let extra: Vec<EF> = (0..k).map(|_| rng.random()).collect();
+                let tail = eval_eq(&extra);
+                let with_tail = eval_eq_with_tail(&eval, &tail);
+                let appended = eval_eq(&[eval.clone(), extra.clone()].concat());
+                assert_eq!(with_tail.as_slice(), appended.as_slice(), "n={n_vars} k={k}");
+            }
+        }
+    }
+
+    #[test]
+    fn test_eval_eq_with_tail_random_tail_brute_force() {
+        let mut rng = StdRng::seed_from_u64(8);
+        let n_vars = 6;
+        let k = 3;
+        let eval: Vec<EF> = (0..n_vars).map(|_| rng.random()).collect();
+        let tail: Vec<EF> = (0..1 << k).map(|_| rng.random()).collect();
+        let with_tail = eval_eq_with_tail(&eval, &tail);
+        let eq_hi = eval_eq(&eval);
+        for hi in 0..1usize << n_vars {
+            for lo in 0..1usize << k {
+                assert_eq!(with_tail[(hi << k) | lo], eq_hi[hi] * tail[lo]);
+            }
+        }
+    }
+
+    #[test]
+    fn test_eval_eq_packed_with_tail_matches_unpacked() {
+        let mut rng = StdRng::seed_from_u64(9);
+        let w = packing_log_width::<EF>();
+        for n_vars in [2usize, 5, 9, 12] {
+            // Cover both k < w and k >= w paths regardless of the platform width.
+            for k in [2usize, 3, 4, 5] {
+                if n_vars + k < w {
+                    continue;
+                }
+                let eval: Vec<EF> = (0..n_vars).map(|_| rng.random()).collect();
+                let tail: Vec<EF> = (0..1 << k).map(|_| rng.random()).collect();
+                let unpacked = eval_eq_with_tail(&eval, &tail);
+                let packed = eval_eq_packed_with_tail(&eval, &tail);
+                let unpacked_from_packed: Vec<EF> = unpack_extension(&packed);
+                assert_eq!(unpacked.as_slice(), &unpacked_from_packed[..], "n={n_vars} k={k}");
+            }
         }
     }
 }
