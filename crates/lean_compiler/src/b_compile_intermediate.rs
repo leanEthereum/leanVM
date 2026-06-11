@@ -196,331 +196,375 @@ fn compile_function(
 }
 
 fn compile_lines(
-    lines: &[SimpleLine],
+    mut lines: &[SimpleLine],
     compiler: &mut Compiler,
     final_jump: Option<Label>,
 ) -> Result<Vec<IntermediateInstruction>, String> {
     let mut instructions = Vec::new();
+    let mut root_instructions: Option<Vec<IntermediateInstruction>> = None;
+    let mut current_label: Option<Label> = None;
 
-    for (i, line) in lines.iter().enumerate() {
-        match line {
-            SimpleLine::ForwardDeclaration { var } => {
-                if !compiler.is_in_scope(var)
-                    && !compiler.dead_fp_relative_vars.contains(var)
-                    && !compiler.dead_store_vars.contains(var)
-                    && !compiler.coalesced_ret_vars.contains(var)
-                {
-                    let current_scope_layout = compiler.stack_frame_layout.scopes.last_mut().unwrap();
-                    current_scope_layout
-                        .var_positions
-                        .insert(var.clone(), compiler.stack_pos);
-                    compiler.stack_pos += 1;
-                }
-            }
-
-            SimpleLine::Assignment { var, op, arg0, arg1 } => {
-                // Track derived fp-relative variables: if result = fp_relative_var +/- constant,
-                // then the result is also fp-relative (e.g. `ptr = arr + 8` or `ptr = arr - 1`)
-                let mut is_dead_derived = false;
-                if let Some(v) = var.as_var()
-                    && (*op == MathOperation::Add || *op == MathOperation::Sub)
-                {
-                    let fp_offset = match (op, arg0, arg1) {
-                        // Add: commutative, either order
-                        (
-                            MathOperation::Add,
-                            SimpleExpr::Memory(VarOrConstMallocAccess::Var(x)),
-                            SimpleExpr::Constant(c),
-                        )
-                        | (
-                            MathOperation::Add,
-                            SimpleExpr::Constant(c),
-                            SimpleExpr::Memory(VarOrConstMallocAccess::Var(x)),
-                        ) => compiler
-                            .const_malloc_vars
-                            .get(x)
-                            .and_then(|&base| c.naive_eval().map(|f| base + f.to_usize() as isize)),
-                        // Sub: only var - constant
-                        (
-                            MathOperation::Sub,
-                            SimpleExpr::Memory(VarOrConstMallocAccess::Var(x)),
-                            SimpleExpr::Constant(c),
-                        ) => compiler
-                            .const_malloc_vars
-                            .get(x)
-                            .and_then(|&base| c.naive_eval().map(|f| base - f.to_usize() as isize)),
-                        _ => None,
-                    };
-                    if let Some(offset) = fp_offset {
-                        compiler.const_malloc_vars.insert(v.clone(), offset);
-                        is_dead_derived = compiler.dead_fp_relative_vars.contains(v);
+    'compile_block: loop {
+        for (i, line) in lines.iter().enumerate() {
+            match line {
+                SimpleLine::ForwardDeclaration { var } => {
+                    if !compiler.is_in_scope(var)
+                        && !compiler.dead_fp_relative_vars.contains(var)
+                        && !compiler.dead_store_vars.contains(var)
+                        && !compiler.coalesced_ret_vars.contains(var)
+                    {
+                        let current_scope_layout = compiler.stack_frame_layout.scopes.last_mut().unwrap();
+                        current_scope_layout
+                            .var_positions
+                            .insert(var.clone(), compiler.stack_pos);
+                        compiler.stack_pos += 1;
                     }
                 }
 
-                if is_dead_derived {
-                    // No slot needed: all uses go through const_malloc_vars, not var_positions
-                    continue;
-                }
+                SimpleLine::Assignment { var, op, arg0, arg1 } => {
+                    // Track derived fp-relative variables: if result = fp_relative_var +/- constant,
+                    // then the result is also fp-relative (e.g. `ptr = arr + 8` or `ptr = arr - 1`)
+                    let mut is_dead_derived = false;
+                    if let Some(v) = var.as_var()
+                        && (*op == MathOperation::Add || *op == MathOperation::Sub)
+                    {
+                        let fp_offset = match (op, arg0, arg1) {
+                            // Add: commutative, either order
+                            (
+                                MathOperation::Add,
+                                SimpleExpr::Memory(VarOrConstMallocAccess::Var(x)),
+                                SimpleExpr::Constant(c),
+                            )
+                            | (
+                                MathOperation::Add,
+                                SimpleExpr::Constant(c),
+                                SimpleExpr::Memory(VarOrConstMallocAccess::Var(x)),
+                            ) => compiler
+                                .const_malloc_vars
+                                .get(x)
+                                .and_then(|&base| c.naive_eval().map(|f| base + f.to_usize() as isize)),
+                            // Sub: only var - constant
+                            (
+                                MathOperation::Sub,
+                                SimpleExpr::Memory(VarOrConstMallocAccess::Var(x)),
+                                SimpleExpr::Constant(c),
+                            ) => compiler
+                                .const_malloc_vars
+                                .get(x)
+                                .and_then(|&base| c.naive_eval().map(|f| base - f.to_usize() as isize)),
+                            _ => None,
+                        };
+                        if let Some(offset) = fp_offset {
+                            compiler.const_malloc_vars.insert(v.clone(), offset);
+                            is_dead_derived = compiler.dead_fp_relative_vars.contains(v);
+                        }
+                    }
 
-                if let Some(v) = var.as_var() {
-                    // Skip assignments to vars that are never used as runtime operands
-                    if compiler.dead_store_vars.contains(v) {
+                    if is_dead_derived {
+                        // No slot needed: all uses go through const_malloc_vars, not var_positions
                         continue;
                     }
-                    compiler.register_var_if_needed(v);
+
+                    if let Some(v) = var.as_var() {
+                        // Skip assignments to vars that are never used as runtime operands
+                        if compiler.dead_store_vars.contains(v) {
+                            continue;
+                        }
+                        compiler.register_var_if_needed(v);
+                    }
+
+                    let arg0 = IntermediateValue::from_simple_expr(arg0, compiler);
+                    let arg1 = IntermediateValue::from_simple_expr(arg1, compiler);
+
+                    instructions.push(IntermediateInstruction::computation(
+                        *op,
+                        arg0,
+                        arg1,
+                        IntermediateValue::from_simple_expr(var, compiler),
+                    ));
                 }
 
-                let arg0 = IntermediateValue::from_simple_expr(arg0, compiler);
-                let arg1 = IntermediateValue::from_simple_expr(arg1, compiler);
-
-                instructions.push(IntermediateInstruction::computation(
-                    *op,
-                    arg0,
-                    arg1,
-                    IntermediateValue::from_simple_expr(var, compiler),
-                ));
-            }
-
-            SimpleLine::Match { value, arms, offset } => {
-                compiler.stack_frame_layout.scopes.push(ScopeLayout::default());
-
-                let label_id = compiler.match_counter;
-                compiler.match_counter += 1;
-                let end_label = Label::match_end(label_id);
-
-                let value_simplified = IntermediateValue::from_simple_expr(value, compiler);
-
-                let mut compiled_arms = vec![];
-                let saved_stack_pos = compiler.stack_pos;
-                let mut new_stack_pos = saved_stack_pos;
-                for arm in arms.iter() {
-                    compiler.stack_pos = saved_stack_pos;
+                SimpleLine::Match { value, arms, offset } => {
                     compiler.stack_frame_layout.scopes.push(ScopeLayout::default());
-                    let arm_instructions = compile_lines(arm, compiler, Some(end_label.clone()))?;
-                    compiled_arms.push(arm_instructions);
+
+                    let label_id = compiler.match_counter;
+                    compiler.match_counter += 1;
+                    let end_label = Label::match_end(label_id);
+
+                    let value_simplified = IntermediateValue::from_simple_expr(value, compiler);
+
+                    let mut compiled_arms = vec![];
+                    let saved_stack_pos = compiler.stack_pos;
+                    let mut new_stack_pos = saved_stack_pos;
+                    for arm in arms.iter() {
+                        compiler.stack_pos = saved_stack_pos;
+                        compiler.stack_frame_layout.scopes.push(ScopeLayout::default());
+                        let arm_instructions = compile_lines(arm, compiler, Some(end_label.clone()))?;
+                        compiled_arms.push(arm_instructions);
+                        compiler.stack_frame_layout.scopes.pop();
+                        new_stack_pos = new_stack_pos.max(compiler.stack_pos);
+                    }
+                    compiler.stack_pos = new_stack_pos;
+                    compiler.match_blocks.push(MatchBlock {
+                        match_cases: compiled_arms,
+                    });
+                    // Get the actual index AFTER pushing (nested matches may have pushed their blocks first)
+                    let match_index = compiler.match_blocks.len() - 1;
+
+                    let value_scaled_offset = IntermediateValue::MemoryAfterFp {
+                        offset: compiler.stack_pos.into(),
+                    };
+                    compiler.stack_pos += 1;
+                    instructions.push(IntermediateInstruction::Computation {
+                        operation: Operation::Mul,
+                        arg_a: value_simplified,
+                        arg_b: ConstExpression::Value(ConstantValue::MatchBlockSize { match_index }).into(),
+                        res: value_scaled_offset.clone(),
+                    });
+
+                    // MatchFirstBlockStart - offset * MatchBlockSize
+                    let base_address = ConstExpression::MathExpr(
+                        MathOperation::Sub,
+                        vec![
+                            ConstExpression::Value(ConstantValue::MatchFirstBlockStart { match_index }),
+                            ConstExpression::MathExpr(
+                                MathOperation::Mul,
+                                vec![
+                                    ConstExpression::from(*offset),
+                                    ConstExpression::Value(ConstantValue::MatchBlockSize { match_index }),
+                                ],
+                            ),
+                        ],
+                    );
+
+                    let jump_dest_offset = IntermediateValue::MemoryAfterFp {
+                        offset: compiler.stack_pos.into(),
+                    };
+                    compiler.stack_pos += 1;
+                    instructions.push(IntermediateInstruction::Computation {
+                        operation: Operation::Add,
+                        arg_a: value_scaled_offset,
+                        arg_b: base_address.into(),
+                        res: jump_dest_offset.clone(),
+                    });
+                    instructions.push(IntermediateInstruction::Jump {
+                        dest: jump_dest_offset,
+                        updated_fp: None,
+                    });
+
                     compiler.stack_frame_layout.scopes.pop();
-                    new_stack_pos = new_stack_pos.max(compiler.stack_pos);
+                    // Don't reset stack_pos here - we need to preserve space for the temps we allocated.
+                    // Nested matches would otherwise reuse the same temp positions, causing conflicts.
+                    // This is consistent with IfNotZero which also doesn't reset stack_pos.
+
+                    compiler.stack_size = compiler.stack_size.max(compiler.stack_pos);
+                    if let Some(label) = current_label.take() {
+                        compiler.bytecode.insert(label, instructions);
+                    } else {
+                        root_instructions = Some(instructions);
+                    }
+                    let remaining = &lines[i + 1..];
+                    if remaining.is_empty() {
+                        let mut continuation = Vec::new();
+                        if let Some(jump_label) = &final_jump {
+                            continuation.push(IntermediateInstruction::Jump {
+                                dest: IntermediateValue::label(jump_label.clone()),
+                                updated_fp: None,
+                            });
+                        }
+                        compiler.bytecode.insert(end_label, continuation);
+                        return Ok(root_instructions.unwrap_or_default());
+                    }
+                    instructions = Vec::new();
+                    current_label = Some(end_label);
+                    lines = remaining;
+                    continue 'compile_block;
                 }
-                compiler.stack_pos = new_stack_pos;
-                compiler.match_blocks.push(MatchBlock {
-                    match_cases: compiled_arms,
-                });
-                // Get the actual index AFTER pushing (nested matches may have pushed their blocks first)
-                let match_index = compiler.match_blocks.len() - 1;
 
-                let value_scaled_offset = IntermediateValue::MemoryAfterFp {
-                    offset: compiler.stack_pos.into(),
-                };
-                compiler.stack_pos += 1;
-                instructions.push(IntermediateInstruction::Computation {
-                    operation: Operation::Mul,
-                    arg_a: value_simplified,
-                    arg_b: ConstExpression::Value(ConstantValue::MatchBlockSize { match_index }).into(),
-                    res: value_scaled_offset.clone(),
-                });
+                SimpleLine::IfNotZero {
+                    condition,
+                    then_branch,
+                    else_branch,
+                    location,
+                } => {
+                    let if_id = compiler.if_counter;
+                    compiler.if_counter += 1;
 
-                // MatchFirstBlockStart - offset * MatchBlockSize
-                let base_address = ConstExpression::MathExpr(
-                    MathOperation::Sub,
-                    vec![
-                        ConstExpression::Value(ConstantValue::MatchFirstBlockStart { match_index }),
-                        ConstExpression::MathExpr(
-                            MathOperation::Mul,
-                            vec![
-                                ConstExpression::from(*offset),
-                                ConstExpression::Value(ConstantValue::MatchBlockSize { match_index }),
-                            ],
-                        ),
-                    ],
-                );
+                    let (if_label, else_label, end_label) = (
+                        Label::if_label(if_id, *location),
+                        Label::else_label(if_id, *location),
+                        Label::if_else_end(if_id, *location),
+                    );
 
-                let jump_dest_offset = IntermediateValue::MemoryAfterFp {
-                    offset: compiler.stack_pos.into(),
-                };
-                compiler.stack_pos += 1;
-                instructions.push(IntermediateInstruction::Computation {
-                    operation: Operation::Add,
-                    arg_a: value_scaled_offset,
-                    arg_b: base_address.into(),
-                    res: jump_dest_offset.clone(),
-                });
-                instructions.push(IntermediateInstruction::Jump {
-                    dest: jump_dest_offset,
-                    updated_fp: None,
-                });
+                    // c: condition
+                    let condition_simplified = IntermediateValue::from_simple_expr(condition, compiler);
 
-                let remaining = compile_lines(&lines[i + 1..], compiler, final_jump)?;
-                compiler.bytecode.insert(end_label, remaining);
+                    // 1/c (or 0 if c is zero)
+                    let condition_inverse_offset = compiler.stack_pos;
+                    compiler.stack_pos += 1;
+                    instructions.push(IntermediateInstruction::Inverse {
+                        arg: condition_simplified.clone(),
+                        res_offset: condition_inverse_offset,
+                    });
 
-                compiler.stack_frame_layout.scopes.pop();
-                // Don't reset stack_pos here - we need to preserve space for the temps we allocated.
-                // Nested matches would otherwise reuse the same temp positions, causing conflicts.
-                // This is consistent with IfNotZero which also doesn't reset stack_pos.
+                    // c x 1/c
+                    let product_offset = compiler.stack_pos;
+                    compiler.stack_pos += 1;
+                    instructions.push(IntermediateInstruction::Computation {
+                        operation: Operation::Mul,
+                        arg_a: condition_simplified.clone(),
+                        arg_b: IntermediateValue::MemoryAfterFp {
+                            offset: condition_inverse_offset.into(),
+                        },
+                        res: IntermediateValue::MemoryAfterFp {
+                            offset: product_offset.into(),
+                        },
+                    });
+                    // It is not necessary to update compiler.stack_size here because the preceding call to
+                    // compile lines should have done so.
 
-                return Ok(instructions);
-            }
+                    // 1 - (c x 1/c)
+                    let one_minus_product_offset = compiler.stack_pos;
+                    compiler.stack_pos += 1;
+                    instructions.push(IntermediateInstruction::Computation {
+                        operation: Operation::Add,
+                        arg_a: IntermediateValue::MemoryAfterFp {
+                            offset: one_minus_product_offset.into(),
+                        },
+                        arg_b: IntermediateValue::MemoryAfterFp {
+                            offset: product_offset.into(),
+                        },
+                        res: ConstExpression::one().into(),
+                    });
 
-            SimpleLine::IfNotZero {
-                condition,
-                then_branch,
-                else_branch,
-                location,
-            } => {
-                let if_id = compiler.if_counter;
-                compiler.if_counter += 1;
+                    // c x (1 - (c x 1/c)) = 0
+                    instructions.push(IntermediateInstruction::Computation {
+                        operation: Operation::Mul,
+                        arg_a: IntermediateValue::MemoryAfterFp {
+                            offset: one_minus_product_offset.into(),
+                        },
+                        arg_b: condition_simplified,
+                        res: ConstExpression::zero().into(),
+                    });
 
-                let (if_label, else_label, end_label) = (
-                    Label::if_label(if_id, *location),
-                    Label::else_label(if_id, *location),
-                    Label::if_else_end(if_id, *location),
-                );
+                    instructions.push(IntermediateInstruction::JumpIfNotZero {
+                        condition: IntermediateValue::MemoryAfterFp {
+                            offset: product_offset.into(),
+                        }, // c x 1/c
+                        dest: IntermediateValue::label(if_label.clone()),
+                        updated_fp: None,
+                    });
+                    instructions.push(IntermediateInstruction::Jump {
+                        dest: IntermediateValue::label(else_label.clone()),
+                        updated_fp: None,
+                    });
 
-                // c: condition
-                let condition_simplified = IntermediateValue::from_simple_expr(condition, compiler);
+                    let saved_stack_pos = compiler.stack_pos;
 
-                // 1/c (or 0 if c is zero)
-                let condition_inverse_offset = compiler.stack_pos;
-                compiler.stack_pos += 1;
-                instructions.push(IntermediateInstruction::Inverse {
-                    arg: condition_simplified.clone(),
-                    res_offset: condition_inverse_offset,
-                });
+                    compiler.stack_frame_layout.scopes.push(ScopeLayout::default());
+                    let then_instructions = compile_lines(then_branch, compiler, Some(end_label.clone()))?;
 
-                // c x 1/c
-                let product_offset = compiler.stack_pos;
-                compiler.stack_pos += 1;
-                instructions.push(IntermediateInstruction::Computation {
-                    operation: Operation::Mul,
-                    arg_a: condition_simplified.clone(),
-                    arg_b: IntermediateValue::MemoryAfterFp {
-                        offset: condition_inverse_offset.into(),
-                    },
-                    res: IntermediateValue::MemoryAfterFp {
-                        offset: product_offset.into(),
-                    },
-                });
-                // It is not necessary to update compiler.stack_size here because the preceding call to
-                // compile lines should have done so.
+                    let then_stack_pos = compiler.stack_pos;
+                    compiler.stack_pos = saved_stack_pos;
+                    compiler.stack_frame_layout.scopes.pop();
+                    compiler.stack_frame_layout.scopes.push(ScopeLayout::default());
 
-                // 1 - (c x 1/c)
-                let one_minus_product_offset = compiler.stack_pos;
-                compiler.stack_pos += 1;
-                instructions.push(IntermediateInstruction::Computation {
-                    operation: Operation::Add,
-                    arg_a: IntermediateValue::MemoryAfterFp {
-                        offset: one_minus_product_offset.into(),
-                    },
-                    arg_b: IntermediateValue::MemoryAfterFp {
-                        offset: product_offset.into(),
-                    },
-                    res: ConstExpression::one().into(),
-                });
+                    let else_instructions = compile_lines(else_branch, compiler, Some(end_label.clone()))?;
 
-                // c x (1 - (c x 1/c)) = 0
-                instructions.push(IntermediateInstruction::Computation {
-                    operation: Operation::Mul,
-                    arg_a: IntermediateValue::MemoryAfterFp {
-                        offset: one_minus_product_offset.into(),
-                    },
-                    arg_b: condition_simplified,
-                    res: ConstExpression::zero().into(),
-                });
+                    compiler.bytecode.insert(if_label, then_instructions);
+                    compiler.bytecode.insert(else_label, else_instructions);
 
-                instructions.push(IntermediateInstruction::JumpIfNotZero {
-                    condition: IntermediateValue::MemoryAfterFp {
-                        offset: product_offset.into(),
-                    }, // c x 1/c
-                    dest: IntermediateValue::label(if_label.clone()),
-                    updated_fp: None,
-                });
-                instructions.push(IntermediateInstruction::Jump {
-                    dest: IntermediateValue::label(else_label.clone()),
-                    updated_fp: None,
-                });
+                    compiler.stack_frame_layout.scopes.pop();
+                    compiler.stack_pos = compiler.stack_pos.max(then_stack_pos);
 
-                let saved_stack_pos = compiler.stack_pos;
+                    // It is not necessary to update compiler.stack_size here because the preceding call to
+                    // compile_lines should have done so.
 
-                compiler.stack_frame_layout.scopes.push(ScopeLayout::default());
-                let then_instructions = compile_lines(then_branch, compiler, Some(end_label.clone()))?;
-
-                let then_stack_pos = compiler.stack_pos;
-                compiler.stack_pos = saved_stack_pos;
-                compiler.stack_frame_layout.scopes.pop();
-                compiler.stack_frame_layout.scopes.push(ScopeLayout::default());
-
-                let else_instructions = compile_lines(else_branch, compiler, Some(end_label.clone()))?;
-
-                compiler.bytecode.insert(if_label, then_instructions);
-                compiler.bytecode.insert(else_label, else_instructions);
-
-                compiler.stack_frame_layout.scopes.pop();
-                compiler.stack_pos = compiler.stack_pos.max(then_stack_pos);
-
-                let remaining = compile_lines(&lines[i + 1..], compiler, final_jump)?;
-                compiler.bytecode.insert(end_label, remaining);
-                // It is not necessary to update compiler.stack_size here because the preceding call to
-                // compile_lines should have done so.
-
-                return Ok(instructions);
-            }
-
-            SimpleLine::RawAccess { res, index, shift } => {
-                if let SimpleExpr::Memory(VarOrConstMallocAccess::Var(var)) = res {
-                    compiler.register_var_if_needed(var);
+                    compiler.stack_size = compiler.stack_size.max(compiler.stack_pos);
+                    if let Some(label) = current_label.take() {
+                        compiler.bytecode.insert(label, instructions);
+                    } else {
+                        root_instructions = Some(instructions);
+                    }
+                    let remaining = &lines[i + 1..];
+                    if remaining.is_empty() {
+                        let mut continuation = Vec::new();
+                        if let Some(jump_label) = &final_jump {
+                            continuation.push(IntermediateInstruction::Jump {
+                                dest: IntermediateValue::label(jump_label.clone()),
+                                updated_fp: None,
+                            });
+                        }
+                        compiler.bytecode.insert(end_label, continuation);
+                        return Ok(root_instructions.unwrap_or_default());
+                    }
+                    instructions = Vec::new();
+                    current_label = Some(end_label);
+                    lines = remaining;
+                    continue 'compile_block;
                 }
-                let shift_0 = match index {
-                    SimpleExpr::Constant(c) => c.clone(),
-                    _ => compiler.get_offset(&index.clone().try_into().unwrap()),
-                };
-                instructions.push(IntermediateInstruction::Deref {
-                    shift_0,
-                    shift_1: shift.clone(),
-                    res: IntermediateValue::from_simple_expr(res, compiler),
-                });
-            }
 
-            SimpleLine::FunctionCall {
-                function_name: callee_function_name,
-                args,
-                return_data,
-                location,
-            } => {
-                if is_self_recursive_tail_call(callee_function_name, return_data, &lines[i + 1..], compiler) {
-                    emit_self_recursive_tail_call(
-                        &mut instructions,
+                SimpleLine::RawAccess { res, index, shift } => {
+                    if let SimpleExpr::Memory(VarOrConstMallocAccess::Var(var)) = res {
+                        compiler.register_var_if_needed(var);
+                    }
+                    let shift_0 = match index {
+                        SimpleExpr::Constant(c) => c.clone(),
+                        _ => compiler.get_offset(&index.clone().try_into().unwrap()),
+                    };
+                    instructions.push(IntermediateInstruction::Deref {
+                        shift_0,
+                        shift_1: shift.clone(),
+                        res: IntermediateValue::from_simple_expr(res, compiler),
+                    });
+                }
+
+                SimpleLine::FunctionCall {
+                    function_name: callee_function_name,
+                    args,
+                    return_data,
+                    location,
+                } => {
+                    if is_self_recursive_tail_call(callee_function_name, return_data, &lines[i + 1..], compiler) {
+                        emit_self_recursive_tail_call(
+                            &mut instructions,
+                            callee_function_name,
+                            args,
+                            &lines[i + 1..],
+                            compiler,
+                        );
+                        compiler.stack_size = compiler.stack_size.max(compiler.stack_pos);
+                        if let Some(label) = current_label.take() {
+                            compiler.bytecode.insert(label, instructions);
+                            return Ok(root_instructions.unwrap_or_default());
+                        }
+                        return Ok(root_instructions.unwrap_or(instructions));
+                    }
+
+                    let call_id = compiler.call_counter;
+                    compiler.call_counter += 1;
+                    let return_label = Label::return_from_call(call_id, *location);
+                    let new_fp_pos = compiler.stack_pos;
+                    compiler.stack_pos += 1;
+
+                    instructions.extend(emit_call_frame(
                         callee_function_name,
                         args,
-                        &lines[i + 1..],
+                        new_fp_pos,
+                        ConstExpression::label(return_label.clone()).into(),
+                        IntermediateValue::fp_register(),
                         compiler,
-                    );
-                    return Ok(instructions);
-                }
+                    ));
 
-                let call_id = compiler.call_counter;
-                compiler.call_counter += 1;
-                let return_label = Label::return_from_call(call_id, *location);
-                let new_fp_pos = compiler.stack_pos;
-                compiler.stack_pos += 1;
+                    for var in return_data.iter() {
+                        compiler.register_var_if_needed(var);
+                    }
 
-                instructions.extend(emit_call_frame(
-                    callee_function_name,
-                    args,
-                    new_fp_pos,
-                    ConstExpression::label(return_label.clone()).into(),
-                    IntermediateValue::fp_register(),
-                    compiler,
-                ));
-
-                for var in return_data.iter() {
-                    compiler.register_var_if_needed(var);
-                }
-
-                let after_call = {
-                    let mut instructions = Vec::new();
+                    let mut after_call = Vec::new();
 
                     // Copy return values
                     for (i, ret_var) in return_data.iter().enumerate() {
-                        instructions.push(IntermediateInstruction::Deref {
+                        after_call.push(IntermediateInstruction::Deref {
                             shift_0: new_fp_pos.into(),
                             shift_1: (2 + args.len() + i).into(),
                             res: IntermediateValue::MemoryAfterFp {
@@ -529,255 +573,275 @@ fn compile_lines(
                         });
                     }
 
-                    instructions.extend(compile_lines(&lines[i + 1..], compiler, final_jump)?);
+                    // It is not necessary to update compiler.stack_size here because the preceding call to
+                    // compile_lines should have done so.
 
-                    instructions
-                };
-
-                compiler.bytecode.insert(return_label, after_call);
-                // It is not necessary to update compiler.stack_size here because the preceding call to
-                // compile_lines should have done so.
-
-                return Ok(instructions);
-            }
-
-            SimpleLine::Precompile(precompile) => {
-                // if res is constant, create a variable (in memory) to hold it
-                let res = if let SimpleExpr::Constant(cst) = &precompile.res {
-                    instructions.push(IntermediateInstruction::Computation {
-                        operation: Operation::Add,
-                        arg_a: IntermediateValue::Constant(cst.clone()),
-                        arg_b: IntermediateValue::Constant(0.into()),
-                        res: IntermediateValue::MemoryAfterFp {
-                            offset: compiler.stack_pos.into(),
-                        },
-                    });
-                    let offset = compiler.stack_pos;
-                    compiler.stack_pos += 1;
-                    IntermediateValue::MemoryAfterFp { offset: offset.into() }
-                } else {
-                    check_non_negative_fp_rel_sink(&precompile.res, compiler)?;
-                    try_precompile_fp_relative(&precompile.res, compiler)
-                        .unwrap_or_else(|| IntermediateValue::from_simple_expr(&precompile.res, compiler))
-                };
-                check_non_negative_fp_rel_sink(&precompile.arg_0, compiler)?;
-                check_non_negative_fp_rel_sink(&precompile.arg_1, compiler)?;
-                let (left, right) = match (
-                    try_precompile_fp_relative(&precompile.arg_0, compiler),
-                    try_precompile_fp_relative(&precompile.arg_1, compiler),
-                ) {
-                    (Some(a), Some(b)) => (a, b),
-                    _ => (
-                        IntermediateValue::from_simple_expr(&precompile.arg_0, compiler),
-                        IntermediateValue::from_simple_expr(&precompile.arg_1, compiler),
-                    ),
-                };
-                instructions.push(IntermediateInstruction::Precompile(PrecompileArgs {
-                    arg_0: left,
-                    arg_1: right,
-                    res,
-                    data: precompile.data.clone(),
-                }));
-            }
-
-            SimpleLine::FunctionRet { return_data } => {
-                if compiler.func_name == "main" {
-                    // pc -> ending_pc, fp -> 0
-                    let zero_value_offset = IntermediateValue::MemoryAfterFp {
-                        offset: compiler.stack_pos.into(),
-                    };
-                    compiler.stack_pos += 1;
-                    instructions.push(IntermediateInstruction::Computation {
-                        operation: Operation::Add,
-                        arg_a: IntermediateValue::Constant(0.into()),
-                        arg_b: IntermediateValue::Constant(0.into()),
-                        res: zero_value_offset.clone(),
-                    });
-                    instructions.push(IntermediateInstruction::Jump {
-                        dest: IntermediateValue::label(Label::EndProgram),
-                        updated_fp: Some(zero_value_offset),
-                    });
-                } else {
-                    compile_function_ret(&mut instructions, return_data, compiler);
+                    compiler.stack_size = compiler.stack_size.max(compiler.stack_pos);
+                    if let Some(label) = current_label.take() {
+                        compiler.bytecode.insert(label, instructions);
+                    } else {
+                        root_instructions = Some(instructions);
+                    }
+                    let remaining = &lines[i + 1..];
+                    if remaining.is_empty() {
+                        if let Some(jump_label) = &final_jump {
+                            after_call.push(IntermediateInstruction::Jump {
+                                dest: IntermediateValue::label(jump_label.clone()),
+                                updated_fp: None,
+                            });
+                        }
+                        compiler.bytecode.insert(return_label, after_call);
+                        return Ok(root_instructions.unwrap_or_default());
+                    }
+                    instructions = after_call;
+                    current_label = Some(return_label);
+                    lines = remaining;
+                    continue 'compile_block;
                 }
-            }
-            SimpleLine::Panic { message } => {
-                instructions.push(IntermediateInstruction::PanicHint {
-                    message: message.clone(),
-                });
-                instructions.push(IntermediateInstruction::Panic);
-            }
-            SimpleLine::HintMAlloc { var, size } => {
-                compiler.register_var_if_needed(var);
-                instructions.push(IntermediateInstruction::RequestMemory {
-                    offset: compiler.get_offset(&var.clone().into()),
-                    size: IntermediateValue::from_simple_expr(size, compiler),
-                });
-            }
-            SimpleLine::ConstMalloc { var, size, label } => {
-                let size = size.naive_eval().unwrap().to_usize();
-                handle_const_malloc(&mut instructions, compiler, var, size, label);
-            }
-            SimpleLine::CustomHint(hint, args) => {
-                let simplified_args = args
-                    .iter()
-                    .map(|expr| {
-                        check_non_negative_fp_rel_sink(expr, compiler)?;
-                        Ok(try_precompile_fp_relative(expr, compiler)
-                            .unwrap_or_else(|| IntermediateValue::from_simple_expr(expr, compiler)))
-                    })
-                    .collect::<Result<Vec<_>, String>>()?;
-                instructions.push(IntermediateInstruction::CustomHint(*hint, simplified_args));
-            }
-            SimpleLine::HintWitness { destination, name } => {
-                let SimpleExpr::Memory(VarOrConstMallocAccess::Var(ptr_var)) = destination else {
-                    return Err(format!(
-                        "hint_witness: destination must be a plain variable, got {destination}"
-                    ));
-                };
-                check_non_negative_fp_rel_sink(destination, compiler)?;
-                let hint_destination = if let Some(IntermediateValue::FpRelative { offset }) =
-                    try_precompile_fp_relative(destination, compiler)
-                {
-                    HintWitnessDestination::Inline { offset }
-                } else {
-                    HintWitnessDestination::Indirect {
-                        ptr_offset: compiler.get_offset(&ptr_var.clone().into()),
-                    }
-                };
-                instructions.push(IntermediateInstruction::HintWitness {
-                    name: name.clone(),
-                    destination: hint_destination,
-                });
-            }
-            SimpleLine::Print { line_info, content } => {
-                instructions.push(IntermediateInstruction::Print {
-                    line_info: line_info.clone(),
-                    content: content
-                        .iter()
-                        .map(|c| IntermediateValue::from_simple_expr(c, compiler))
-                        .collect(),
-                });
-            }
-            SimpleLine::LocationReport { location } => {
-                instructions.push(IntermediateInstruction::LocationReport { location: *location });
-            }
-            SimpleLine::DebugAssert {
-                expr,
-                location,
-                preceds_runtime_inequality,
-            } => {
-                let expr_simplified = BooleanExpr {
-                    kind: expr.kind,
-                    left: IntermediateValue::from_simple_expr(&expr.left, compiler),
-                    right: IntermediateValue::from_simple_expr(&expr.right, compiler),
-                };
-                instructions.push(IntermediateInstruction::DebugAssert {
-                    expr: expr_simplified,
-                    location: *location,
-                    preceds_runtime_inequality: *preceds_runtime_inequality,
-                });
-            }
-            SimpleLine::AssertEq { left, right, .. } => {
-                let register_if_var = |expr: &SimpleExpr, c: &mut Compiler| {
-                    if let SimpleExpr::Memory(VarOrConstMallocAccess::Var(v)) = expr {
-                        c.register_var_if_needed(v);
-                    }
-                };
-                register_if_var(left, compiler);
-                register_if_var(right, compiler);
-                let left_iv = IntermediateValue::from_simple_expr(left, compiler);
-                let right_iv = IntermediateValue::from_simple_expr(right, compiler);
-                instructions.push(IntermediateInstruction::equality(left_iv, right_iv));
-            }
-            SimpleLine::RangeCheck { val, bound } => {
-                // Range check for val <= bound compiles to:
-                // 1. DEREF: m[fp + aux1] = m[m[fp + val_offset]] - proves val < M
-                // 2. ADD: m[fp + val_offset] + m[fp + aux2] = bound - computes complement
-                // 3. DEREF: m[fp + aux3] = m[m[fp + aux2]] - proves complement < M
-                //
-                // DerefHint records constraints: memory[target] = memory[memory[src]]
-                // These are resolved at end of execution in correct order.
 
-                // Get the offset of the value being range-checked
-                let val_offset = match val {
-                    SimpleExpr::Memory(var_or_const) => compiler.get_offset(var_or_const),
-                    SimpleExpr::Constant(val_const) => {
-                        // For constants, we need to store in a temp variable first
-                        let temp_offset = compiler.stack_pos;
+                SimpleLine::Precompile(precompile) => {
+                    // if res is constant, create a variable (in memory) to hold it
+                    let res = if let SimpleExpr::Constant(cst) = &precompile.res {
+                        instructions.push(IntermediateInstruction::Computation {
+                            operation: Operation::Add,
+                            arg_a: IntermediateValue::Constant(cst.clone()),
+                            arg_b: IntermediateValue::Constant(0.into()),
+                            res: IntermediateValue::MemoryAfterFp {
+                                offset: compiler.stack_pos.into(),
+                            },
+                        });
+                        let offset = compiler.stack_pos;
+                        compiler.stack_pos += 1;
+                        IntermediateValue::MemoryAfterFp { offset: offset.into() }
+                    } else {
+                        check_non_negative_fp_rel_sink(&precompile.res, compiler)?;
+                        try_precompile_fp_relative(&precompile.res, compiler)
+                            .unwrap_or_else(|| IntermediateValue::from_simple_expr(&precompile.res, compiler))
+                    };
+                    check_non_negative_fp_rel_sink(&precompile.arg_0, compiler)?;
+                    check_non_negative_fp_rel_sink(&precompile.arg_1, compiler)?;
+                    let (left, right) = match (
+                        try_precompile_fp_relative(&precompile.arg_0, compiler),
+                        try_precompile_fp_relative(&precompile.arg_1, compiler),
+                    ) {
+                        (Some(a), Some(b)) => (a, b),
+                        _ => (
+                            IntermediateValue::from_simple_expr(&precompile.arg_0, compiler),
+                            IntermediateValue::from_simple_expr(&precompile.arg_1, compiler),
+                        ),
+                    };
+                    instructions.push(IntermediateInstruction::Precompile(PrecompileArgs {
+                        arg_0: left,
+                        arg_1: right,
+                        res,
+                        data: precompile.data.clone(),
+                    }));
+                }
+
+                SimpleLine::FunctionRet { return_data } => {
+                    if compiler.func_name == "main" {
+                        // pc -> ending_pc, fp -> 0
+                        let zero_value_offset = IntermediateValue::MemoryAfterFp {
+                            offset: compiler.stack_pos.into(),
+                        };
                         compiler.stack_pos += 1;
                         instructions.push(IntermediateInstruction::Computation {
                             operation: Operation::Add,
-                            arg_a: IntermediateValue::Constant(val_const.clone()),
-                            arg_b: IntermediateValue::Constant(ConstExpression::zero()),
-                            res: IntermediateValue::MemoryAfterFp {
-                                offset: ConstExpression::from_usize(temp_offset),
-                            },
+                            arg_a: IntermediateValue::Constant(0.into()),
+                            arg_b: IntermediateValue::Constant(0.into()),
+                            res: zero_value_offset.clone(),
                         });
-                        ConstExpression::from_usize(temp_offset)
+                        instructions.push(IntermediateInstruction::Jump {
+                            dest: IntermediateValue::label(Label::EndProgram),
+                            updated_fp: Some(zero_value_offset),
+                        });
+                    } else {
+                        compile_function_ret(&mut instructions, return_data, compiler);
                     }
-                };
+                }
+                SimpleLine::Panic { message } => {
+                    instructions.push(IntermediateInstruction::PanicHint {
+                        message: message.clone(),
+                    });
+                    instructions.push(IntermediateInstruction::Panic);
+                }
+                SimpleLine::HintMAlloc { var, size } => {
+                    compiler.register_var_if_needed(var);
+                    instructions.push(IntermediateInstruction::RequestMemory {
+                        offset: compiler.get_offset(&var.clone().into()),
+                        size: IntermediateValue::from_simple_expr(size, compiler),
+                    });
+                }
+                SimpleLine::ConstMalloc { var, size, label } => {
+                    let size = size.naive_eval().unwrap().to_usize();
+                    handle_const_malloc(&mut instructions, compiler, var, size, label);
+                }
+                SimpleLine::CustomHint(hint, args) => {
+                    let simplified_args = args
+                        .iter()
+                        .map(|expr| {
+                            check_non_negative_fp_rel_sink(expr, compiler)?;
+                            Ok(try_precompile_fp_relative(expr, compiler)
+                                .unwrap_or_else(|| IntermediateValue::from_simple_expr(expr, compiler)))
+                        })
+                        .collect::<Result<Vec<_>, String>>()?;
+                    instructions.push(IntermediateInstruction::CustomHint(*hint, simplified_args));
+                }
+                SimpleLine::HintWitness { destination, name } => {
+                    let SimpleExpr::Memory(VarOrConstMallocAccess::Var(ptr_var)) = destination else {
+                        return Err(format!(
+                            "hint_witness: destination must be a plain variable, got {destination}"
+                        ));
+                    };
+                    check_non_negative_fp_rel_sink(destination, compiler)?;
+                    let hint_destination = if let Some(IntermediateValue::FpRelative { offset }) =
+                        try_precompile_fp_relative(destination, compiler)
+                    {
+                        HintWitnessDestination::Inline { offset }
+                    } else {
+                        HintWitnessDestination::Indirect {
+                            ptr_offset: compiler.get_offset(&ptr_var.clone().into()),
+                        }
+                    };
+                    instructions.push(IntermediateInstruction::HintWitness {
+                        name: name.clone(),
+                        destination: hint_destination,
+                    });
+                }
+                SimpleLine::Print { line_info, content } => {
+                    instructions.push(IntermediateInstruction::Print {
+                        line_info: line_info.clone(),
+                        content: content
+                            .iter()
+                            .map(|c| IntermediateValue::from_simple_expr(c, compiler))
+                            .collect(),
+                    });
+                }
+                SimpleLine::LocationReport { location } => {
+                    instructions.push(IntermediateInstruction::LocationReport { location: *location });
+                }
+                SimpleLine::DebugAssert {
+                    expr,
+                    location,
+                    preceds_runtime_inequality,
+                } => {
+                    let expr_simplified = BooleanExpr {
+                        kind: expr.kind,
+                        left: IntermediateValue::from_simple_expr(&expr.left, compiler),
+                        right: IntermediateValue::from_simple_expr(&expr.right, compiler),
+                    };
+                    instructions.push(IntermediateInstruction::DebugAssert {
+                        expr: expr_simplified,
+                        location: *location,
+                        preceds_runtime_inequality: *preceds_runtime_inequality,
+                    });
+                }
+                SimpleLine::AssertEq { left, right, .. } => {
+                    let register_if_var = |expr: &SimpleExpr, c: &mut Compiler| {
+                        if let SimpleExpr::Memory(VarOrConstMallocAccess::Var(v)) = expr {
+                            c.register_var_if_needed(v);
+                        }
+                    };
+                    register_if_var(left, compiler);
+                    register_if_var(right, compiler);
+                    let left_iv = IntermediateValue::from_simple_expr(left, compiler);
+                    let right_iv = IntermediateValue::from_simple_expr(right, compiler);
+                    instructions.push(IntermediateInstruction::equality(left_iv, right_iv));
+                }
+                SimpleLine::RangeCheck { val, bound } => {
+                    // Range check for val <= bound compiles to:
+                    // 1. DEREF: m[fp + aux1] = m[m[fp + val_offset]] - proves val < M
+                    // 2. ADD: m[fp + val_offset] + m[fp + aux2] = bound - computes complement
+                    // 3. DEREF: m[fp + aux3] = m[m[fp + aux2]] - proves complement < M
+                    //
+                    // DerefHint records constraints: memory[target] = memory[memory[src]]
+                    // These are resolved at end of execution in correct order.
 
-                // Allocate 3 auxiliary cells
-                let aux1_offset = ConstExpression::from_usize(compiler.stack_pos);
-                compiler.stack_pos += 1;
-                let aux2_offset = ConstExpression::from_usize(compiler.stack_pos);
-                compiler.stack_pos += 1;
-                let aux3_offset = ConstExpression::from_usize(compiler.stack_pos);
-                compiler.stack_pos += 1;
+                    // Get the offset of the value being range-checked
+                    let val_offset = match val {
+                        SimpleExpr::Memory(var_or_const) => compiler.get_offset(var_or_const),
+                        SimpleExpr::Constant(val_const) => {
+                            // For constants, we need to store in a temp variable first
+                            let temp_offset = compiler.stack_pos;
+                            compiler.stack_pos += 1;
+                            instructions.push(IntermediateInstruction::Computation {
+                                operation: Operation::Add,
+                                arg_a: IntermediateValue::Constant(val_const.clone()),
+                                arg_b: IntermediateValue::Constant(ConstExpression::zero()),
+                                res: IntermediateValue::MemoryAfterFp {
+                                    offset: ConstExpression::from_usize(temp_offset),
+                                },
+                            });
+                            ConstExpression::from_usize(temp_offset)
+                        }
+                    };
 
-                // DerefHint for first DEREF: memory[aux1] = memory[memory[val_offset]]
-                instructions.push(IntermediateInstruction::DerefHint {
-                    offset_src: val_offset.clone(),
-                    offset_target: aux1_offset.clone(),
-                });
+                    // Allocate 3 auxiliary cells
+                    let aux1_offset = ConstExpression::from_usize(compiler.stack_pos);
+                    compiler.stack_pos += 1;
+                    let aux2_offset = ConstExpression::from_usize(compiler.stack_pos);
+                    compiler.stack_pos += 1;
+                    let aux3_offset = ConstExpression::from_usize(compiler.stack_pos);
+                    compiler.stack_pos += 1;
 
-                // 1. DEREF: m[fp + aux1] = m[m[fp + val_offset]]
-                instructions.push(IntermediateInstruction::Deref {
-                    shift_0: val_offset.clone(),
-                    shift_1: ConstExpression::zero(),
-                    res: IntermediateValue::MemoryAfterFp { offset: aux1_offset },
-                });
+                    // DerefHint for first DEREF: memory[aux1] = memory[memory[val_offset]]
+                    instructions.push(IntermediateInstruction::DerefHint {
+                        offset_src: val_offset.clone(),
+                        offset_target: aux1_offset.clone(),
+                    });
 
-                // 2. ADD: m[fp + val_offset] + m[fp + aux2] = bound
-                let bound_value = IntermediateValue::from_simple_expr(bound, compiler);
-                instructions.push(IntermediateInstruction::Computation {
-                    operation: Operation::Add,
-                    arg_a: IntermediateValue::MemoryAfterFp {
-                        offset: val_offset.clone(),
-                    },
-                    arg_b: IntermediateValue::MemoryAfterFp {
-                        offset: aux2_offset.clone(),
-                    },
-                    res: bound_value,
-                });
+                    // 1. DEREF: m[fp + aux1] = m[m[fp + val_offset]]
+                    instructions.push(IntermediateInstruction::Deref {
+                        shift_0: val_offset.clone(),
+                        shift_1: ConstExpression::zero(),
+                        res: IntermediateValue::MemoryAfterFp { offset: aux1_offset },
+                    });
 
-                // DerefHint for second DEREF: memory[aux3] = memory[memory[aux2]]
-                instructions.push(IntermediateInstruction::DerefHint {
-                    offset_src: aux2_offset.clone(),
-                    offset_target: aux3_offset.clone(),
-                });
+                    // 2. ADD: m[fp + val_offset] + m[fp + aux2] = bound
+                    let bound_value = IntermediateValue::from_simple_expr(bound, compiler);
+                    instructions.push(IntermediateInstruction::Computation {
+                        operation: Operation::Add,
+                        arg_a: IntermediateValue::MemoryAfterFp {
+                            offset: val_offset.clone(),
+                        },
+                        arg_b: IntermediateValue::MemoryAfterFp {
+                            offset: aux2_offset.clone(),
+                        },
+                        res: bound_value,
+                    });
 
-                // 3. DEREF: m[fp + aux3] = m[m[fp + aux2]]
-                instructions.push(IntermediateInstruction::Deref {
-                    shift_0: aux2_offset,
-                    shift_1: ConstExpression::zero(),
-                    res: IntermediateValue::MemoryAfterFp { offset: aux3_offset },
-                });
+                    // DerefHint for second DEREF: memory[aux3] = memory[memory[aux2]]
+                    instructions.push(IntermediateInstruction::DerefHint {
+                        offset_src: aux2_offset.clone(),
+                        offset_target: aux3_offset.clone(),
+                    });
+
+                    // 3. DEREF: m[fp + aux3] = m[m[fp + aux2]]
+                    instructions.push(IntermediateInstruction::Deref {
+                        shift_0: aux2_offset,
+                        shift_1: ConstExpression::zero(),
+                        res: IntermediateValue::MemoryAfterFp { offset: aux3_offset },
+                    });
+                }
             }
         }
+
+        compiler.stack_size = compiler.stack_size.max(compiler.stack_pos);
+
+        if let Some(jump_label) = &final_jump {
+            instructions.push(IntermediateInstruction::Jump {
+                dest: IntermediateValue::label(jump_label.clone()),
+                updated_fp: None,
+            });
+        }
+
+        if let Some(label) = current_label.take() {
+            compiler.bytecode.insert(label, instructions);
+            return Ok(root_instructions.unwrap_or_default());
+        }
+
+        return Ok(root_instructions.unwrap_or(instructions));
     }
-
-    compiler.stack_size = compiler.stack_size.max(compiler.stack_pos);
-
-    if let Some(jump_label) = final_jump {
-        instructions.push(IntermediateInstruction::Jump {
-            dest: IntermediateValue::label(jump_label),
-            updated_fp: None,
-        });
-    }
-
-    Ok(instructions)
 }
 
 fn handle_const_malloc(
