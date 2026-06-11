@@ -249,4 +249,3 @@ pub fn verify_execution(
         verifier_state.into_raw_proof(),
     ))
 }
-

@@ -201,12 +201,8 @@ fn test_tailed_mixed_with_ordinary_statements() {
     let w2 = matrix_next_mle_folded_with_tail(&p2, &t2);
     let chunk2 = &polynomial[1 << 16..][..1 << 16];
     let v2: EF = w2.iter().zip(chunk2).map(|(&w, &f)| w * f).sum();
-    let tailed_next = SparseStatement::new_next_with_tail(
-        NUM_VARIABLES,
-        MultilinearPoint(p2),
-        t2,
-        vec![SparseValue::new(1, v2)],
-    );
+    let tailed_next =
+        SparseStatement::new_next_with_tail(NUM_VARIABLES, MultilinearPoint(p2), t2, vec![SparseValue::new(1, v2)]);
 
     let statements = vec![dense, plain, tailed_eq, tailed_next];
     roundtrip(&polynomial, statements.clone(), statements).expect("mixed roundtrip must accept");

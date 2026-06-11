@@ -94,9 +94,7 @@ pub fn stacked_pcs_global_statements(
                 .map(|(&col_index, &value)| SparseValue::new((offset >> n_vars) + col_index, value))
                 .collect();
             global_statements.push(match &claim.tail {
-                Some(tail) => {
-                    SparseStatement::new_with_tail(stacked_n_vars, claim.point.clone(), tail.clone(), values)
-                }
+                Some(tail) => SparseStatement::new_with_tail(stacked_n_vars, claim.point.clone(), tail.clone(), values),
                 None => SparseStatement::new(stacked_n_vars, claim.point.clone(), values),
             });
         }

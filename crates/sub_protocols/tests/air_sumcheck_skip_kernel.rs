@@ -4,7 +4,9 @@
 use std::time::Instant;
 
 use backend::*;
-use lean_vm::{EF, ExecutionTable, ExtensionOpPrecompile, ExtraDataForBuses, F, LOG_MAX_BUS_WIDTH, Poseidon16Precompile};
+use lean_vm::{
+    EF, ExecutionTable, ExtensionOpPrecompile, ExtraDataForBuses, F, LOG_MAX_BUS_WIDTH, Poseidon16Precompile,
+};
 use rand::{RngExt, SeedableRng, rngs::StdRng};
 use sub_protocols::{AirSumcheckSession, OuterSumcheckSession, SkipSession, UNIVARIATE_SKIP_K, skip_block_of_x};
 
@@ -119,7 +121,11 @@ where
             }
             direct += eq_rest[j] * SumcheckComputation::<EF>::eval_base(&air, &point, &extra);
         }
-        assert_eq!(skip_poly.evaluate(EF::from(nodes[z_idx])), direct, "extended node {z_idx}");
+        assert_eq!(
+            skip_poly.evaluate(EF::from(nodes[z_idx])),
+            direct,
+            "extended node {z_idx}"
+        );
     }
 
     // (b) bind r0 and compare the post-skip session against brute force.
@@ -305,14 +311,8 @@ fn test_fd_extension_matches_lagrange() {
             &eval_eq(&logup_alphas),
             alpha.powers().collect_n(Air::n_constraints(&air)),
         );
-        let mut session = AirSumcheckSession::new(
-            packed,
-            eq_factor,
-            EF::ZERO,
-            air,
-            extra,
-            non_padded.unwrap_or(n_rows),
-        );
+        let mut session =
+            AirSumcheckSession::new(packed, eq_factor, EF::ZERO, air, extra, non_padded.unwrap_or(n_rows));
         // compute_skip_poly does not advance the session: both paths run on
         // identical state.
         let lagrange = session.compute_skip_poly_forced(k, true);

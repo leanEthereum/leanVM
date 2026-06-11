@@ -154,8 +154,8 @@ fn roundtrip(k: usize, tamper: Tamper) -> Result<(), String> {
         for (idx, (td, session)) in tables.iter().zip(&sessions).enumerate() {
             let eq_factor = &gkr_point[n_max - td.log_n..];
             let prefix = natural_prefix_for_session(&point, td.log_n);
-            let eq_val = MultilinearPoint(eq_factor[..td.log_n - k].to_vec())
-                .eq_poly_outside(&MultilinearPoint(prefix.clone()));
+            let eq_val =
+                MultilinearPoint(eq_factor[..td.log_n - k].to_vec()).eq_poly_outside(&MultilinearPoint(prefix.clone()));
             let col_evals = session.final_column_evals();
             macro_rules! eval_c {
                 ($t:expr) => {{ <_ as SumcheckComputation<EF>>::eval_extension($t, &col_evals, &extras_for_final[idx]) }};
@@ -214,8 +214,7 @@ fn roundtrip(k: usize, tamper: Tamper) -> Result<(), String> {
 
         let eq_factor = &gkr_point_v[n_max - td.log_n..];
         let prefix = natural_prefix_for_session(&point_v, td.log_n);
-        let eq_val =
-            MultilinearPoint(eq_factor[..td.log_n - k].to_vec()).eq_poly_outside(&MultilinearPoint(prefix));
+        let eq_val = MultilinearPoint(eq_factor[..td.log_n - k].to_vec()).eq_poly_outside(&MultilinearPoint(prefix));
         my_final += e_hat_r0 * eq_val * c_eval;
     }
     if my_final != final_target {

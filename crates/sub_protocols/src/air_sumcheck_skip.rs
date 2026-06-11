@@ -606,14 +606,7 @@ fn fd_advance<T: PrimeCharacteristicRing + Copy>(rows: &mut [T], n_rows: usize, 
 /// columns into `win` (layout `win[x * n_cols + c]`, contiguous per window
 /// node so constraint evals can borrow `&win[x * n_cols..]` directly).
 #[inline(always)]
-fn gather_window<T: Copy>(
-    cols: &[&[T]],
-    win: &mut [T],
-    j_p: usize,
-    xb: &[usize],
-    log_block: usize,
-    log_chunk: usize,
-) {
+fn gather_window<T: Copy>(cols: &[&[T]], win: &mut [T], j_p: usize, xb: &[usize], log_block: usize, log_chunk: usize) {
     let n_cols = cols.len();
     let block_mask = (1usize << log_block) - 1;
     let chunk = j_p >> log_block;
@@ -951,11 +944,11 @@ where
         active_packed,
         || {
             (
-                vec![PFPacking::<EF>::ZERO; window * n_cols],      // win
-                vec![PFPacking::<EF>::ZERO; n_cols],               // point
-                vec![Vec::<PFPacking<EF>>::new(); window],         // captured post-block states
-                Vec::<PFPacking<EF>>::new(),                       // interpolated state scratch
-                vec![EFPacking::<EF>::ZERO; n_low],                // low evals
+                vec![PFPacking::<EF>::ZERO; window * n_cols], // win
+                vec![PFPacking::<EF>::ZERO; n_cols],          // point
+                vec![Vec::<PFPacking<EF>>::new(); window],    // captured post-block states
+                Vec::<PFPacking<EF>>::new(),                  // interpolated state scratch
+                vec![EFPacking::<EF>::ZERO; n_low],           // low evals
             )
         },
         || vec![EFPacking::<EF>::ZERO; n_nodes],
@@ -1179,7 +1172,11 @@ mod fd_tests {
         let width = 3usize;
         let n_rows = d + 1;
         let polys: Vec<Vec<KoalaBear>> = (0..width)
-            .map(|c| (0..=d).map(|i| KoalaBear::from_usize(11 * c * c + 5 * i * i * i + i + 2)).collect())
+            .map(|c| {
+                (0..=d)
+                    .map(|i| KoalaBear::from_usize(11 * c * c + 5 * i * i * i + i + 2))
+                    .collect()
+            })
             .collect();
         let mut rows = vec![KoalaBear::ZERO; n_rows * width];
         for i in 0..n_rows {
