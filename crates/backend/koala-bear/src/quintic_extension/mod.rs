@@ -11,7 +11,8 @@ use crate::{KoalaBear, KoalaBearParameters};
 pub mod extension;
 pub(crate) mod packed_extension;
 pub(crate) mod packing;
-
+#[cfg(test)]
+mod tests;
 pub type QuinticExtensionFieldKB = QuinticExtensionField<KoalaBear>;
 pub type PackedQuinticExtensionFieldKB = PackedQuinticExtensionField<KoalaBear, <KoalaBear as Field>::Packing>;
 

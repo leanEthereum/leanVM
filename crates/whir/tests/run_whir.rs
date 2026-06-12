@@ -219,7 +219,9 @@ fn test_lazy_combine_proof_equality() {
             assert_eq!(r.query_pow_bits, 0, "test needs zero grinding");
         }
         let mut rng = StdRng::seed_from_u64(seed);
-        let polynomial = (0..1usize << num_variables).map(|_| rng.random::<F>()).collect::<Vec<F>>();
+        let polynomial = (0..1usize << num_variables)
+            .map(|_| rng.random::<F>())
+            .collect::<Vec<F>>();
 
         let mut statement: Vec<SparseStatement<EF>> = Vec::new();
         // full statement (selector 0, full-length point): with this config the
@@ -237,7 +239,11 @@ fn test_lazy_combine_proof_equality() {
         }
         // dense multi-selector blocks (table-shaped)
         for (selector_len, n_sels) in [(6usize, 5usize), (8, 9), (11, 3)] {
-            let point = MultilinearPoint((0..num_variables - selector_len).map(|_| rng.random::<EF>()).collect::<Vec<EF>>());
+            let point = MultilinearPoint(
+                (0..num_variables - selector_len)
+                    .map(|_| rng.random::<EF>())
+                    .collect::<Vec<EF>>(),
+            );
             let first = rng.random_range(0..(1usize << selector_len) - n_sels);
             statement.push(SparseStatement::new(
                 num_variables,
@@ -321,7 +327,8 @@ fn test_lazy_combine_proof_equality() {
             "delayed-EF produced a different proof (seed {seed}, n {num_variables})"
         );
 
-        let mut verifier_state = VerifierState::<EF, _>::new(proof_delayed, poseidon16.clone(), Default::default()).unwrap();
+        let mut verifier_state =
+            VerifierState::<EF, _>::new(proof_delayed, poseidon16.clone(), Default::default()).unwrap();
         let parsed_commitment = params.parse_commitment::<F>(&mut verifier_state).unwrap();
         params
             .verify::<F>(&mut verifier_state, &parsed_commitment, statement.clone())

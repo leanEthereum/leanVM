@@ -444,8 +444,7 @@ where
                 // rounds 2-3 via the 2-slice view; collapse at round 3's fold.
                 // Transcript bit-identical. n_rounds >= 4 keeps the many_rounds
                 // tail on its always-exercised path.
-                let delayed = std::env::var("WHIR_DELAYED_EF").map(|v| v != "0").unwrap_or(true)
-                    && folding_factor >= 4;
+                let delayed = std::env::var("WHIR_DELAYED_EF").map(|v| v != "0").unwrap_or(true) && folding_factor >= 4;
                 let (challenges, new_sum, folded_evals, folded_weights) = if delayed {
                     run_product_sumcheck_from_round1_delayed(
                         ev,
@@ -696,8 +695,8 @@ where
 const LAZY_OVERLAY_SPAN_MAX: usize = 8; // packed words; small blocks are pre-expanded
 
 struct LazyFullTerm<EF: ExtensionField<PF<EF>>> {
-    left: ArenaVec<EF>,              // 2^A prefix table, statement scalar folded in
-    right: ArenaVec<EFPacking<EF>>,  // 2^(n - A - w) packed suffix table
+    left: ArenaVec<EF>,             // 2^A prefix table, statement scalar folded in
+    right: ArenaVec<EFPacking<EF>>, // 2^(n - A - w) packed suffix table
     rshift: usize,
     rmask: usize,
 }
@@ -840,7 +839,11 @@ where
             let mut sorted = smt.values.iter().map(|e| e.selector).collect::<Vec<_>>();
             sorted.sort_unstable();
             sorted.dedup();
-            assert_eq!(sorted.len(), smt.values.len(), "Duplicate selectors in sparse statement");
+            assert_eq!(
+                sorted.len(),
+                smt.values.len(),
+                "Duplicate selectors in sparse statement"
+            );
 
             let inner: ArenaVec<EFPacking<EF>> = if smt.is_next {
                 let next = matrix_next_mle_folded(&smt.point.0);
@@ -974,7 +977,10 @@ where
                     let blk = &terms.blocks[b as usize];
                     if n_lo < MAX_BLOCKS {
                         let o = j0 - blk.start;
-                        blocks_lo[n_lo] = (&terms.inners[blk.inner_id as usize][o..o + run], terms.scalars[blk.scalar]);
+                        blocks_lo[n_lo] = (
+                            &terms.inners[blk.inner_id as usize][o..o + run],
+                            terms.scalars[blk.scalar],
+                        );
                         n_lo += 1;
                     } else {
                         slow = true;
@@ -984,7 +990,10 @@ where
                     let blk = &terms.blocks[b as usize];
                     if n_hi < MAX_BLOCKS {
                         let o = half + j0 - blk.start;
-                        blocks_hi[n_hi] = (&terms.inners[blk.inner_id as usize][o..o + run], terms.scalars[blk.scalar]);
+                        blocks_hi[n_hi] = (
+                            &terms.inners[blk.inner_id as usize][o..o + run],
+                            terms.scalars[blk.scalar],
+                        );
                         n_hi += 1;
                     } else {
                         slow = true;
@@ -1096,9 +1105,9 @@ mod fusion_bench {
     /// Full-eq term: scalar pre-multiplied into the prefix table.
     /// value(j) = right_packed[j & rmask] * left[j >> rshift]
     struct FullT {
-        left: ArenaVec<EF>,       // 2^A entries, scaled
-        right: ArenaVec<EFP>,     // 2^(n - A - w) packed entries
-        rshift: usize,            // n - A - w
+        left: ArenaVec<EF>,   // 2^A entries, scaled
+        right: ArenaVec<EFP>, // 2^(n - A - w) packed entries
+        rshift: usize,        // n - A - w
         rmask: usize,
     }
 
@@ -1106,12 +1115,12 @@ mod fusion_bench {
     /// selector blocks with per-block scalars).
     /// Covers packed range [start, start + n_blocks << ishift).
     struct DenseT {
-        start: usize,             // packed units
+        start: usize, // packed units
         end: usize,
-        ishift: usize,            // inner_vars - w
+        ishift: usize, // inner_vars - w
         imask: usize,
-        inner: ArenaVec<EFP>,     // 2^ishift packed entries (unscaled)
-        scalars: Vec<EF>,         // per block, gamma powers
+        inner: ArenaVec<EFP>, // 2^ishift packed entries (unscaled)
+        scalars: Vec<EF>,     // per block, gamma powers
     }
 
     struct LazyTerms {
@@ -1147,7 +1156,9 @@ mod fusion_bench {
     }
 
     fn rnd_vals(rng: &mut StdRng, first_sel: usize, n: usize) -> Vec<SparseValue<EF>> {
-        (0..n).map(|c| SparseValue::new(first_sel + c, rng.random::<EF>())).collect()
+        (0..n)
+            .map(|c| SparseValue::new(first_sel + c, rng.random::<EF>()))
+            .collect()
     }
 
     fn build_statements(n_vars: usize, rng: &mut StdRng) -> Vec<SparseStatement<EF>> {
@@ -1347,7 +1358,9 @@ mod fusion_bench {
         parallel::par_chunks_mut(unpacked, 1 << 16, |chunk_idx, chunk| {
             let mut state = (chunk_idx as u64).wrapping_mul(0x9E3779B97F4A7C15) | 1;
             for slot in chunk {
-                state = state.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+                state = state
+                    .wrapping_mul(6364136223846793005)
+                    .wrapping_add(1442695040888963407);
                 *slot = F::from_u32((state >> 33) as u32 & 0x3FFFFFFF);
             }
         });
@@ -1382,7 +1395,10 @@ mod fusion_bench {
         let mut rng = StdRng::seed_from_u64(42);
         let gamma: EF = rng.random();
         let stmts = build_statements(n_vars, &mut rng);
-        println!("T0a: n_vars={n_vars}, packing_log_width={w}, {} statements", stmts.len());
+        println!(
+            "T0a: n_vars={n_vars}, packing_log_width={w}, {} statements",
+            stmts.len()
+        );
 
         let evals = cheap_base_fill(1 << (n_vars - w));
 
@@ -1427,10 +1443,21 @@ mod fusion_bench {
         let lazy_total = t_terms + t_lazy_r0 + t_lazy_r1;
         let ratio_spec = t_lazy_r0 / (t_combine + t_read);
         let ratio_e2e = lazy_total / base_total;
-        println!("  baseline: combine {:.0}ms + read {:.0}ms + r0 {:.0}ms + r1fold {:.0}ms  (combine+r0+r1 = {:.0}ms)",
-            t_combine * 1e3, t_read * 1e3, t_r0 * 1e3, t_r1 * 1e3, base_total * 1e3);
-        println!("  lazy:     terms {:.0}ms + r0 {:.0}ms + r1fold {:.0}ms  (total {:.0}ms)",
-            t_terms * 1e3, t_lazy_r0 * 1e3, t_lazy_r1 * 1e3, lazy_total * 1e3);
+        println!(
+            "  baseline: combine {:.0}ms + read {:.0}ms + r0 {:.0}ms + r1fold {:.0}ms  (combine+r0+r1 = {:.0}ms)",
+            t_combine * 1e3,
+            t_read * 1e3,
+            t_r0 * 1e3,
+            t_r1 * 1e3,
+            base_total * 1e3
+        );
+        println!(
+            "  lazy:     terms {:.0}ms + r0 {:.0}ms + r1fold {:.0}ms  (total {:.0}ms)",
+            t_terms * 1e3,
+            t_lazy_r0 * 1e3,
+            t_lazy_r1 * 1e3,
+            lazy_total * 1e3
+        );
         let verdict = if ratio_spec <= 1.3 {
             "PASS"
         } else if ratio_spec <= 2.0 {
@@ -1441,8 +1468,13 @@ mod fusion_bench {
         println!(
             "T0A: ratio_spec (lazy_r0 / (combine+read)) = {ratio_spec:.2} (gate: <=1.3 PASS / <=2.0 GRAY / >2.0 KILL) => {verdict}"
         );
-        println!("T0A: ratio_e2e (lazy r0+r1+terms / combine+r0+r1) = {ratio_e2e:.2} (decision-relevant; <1.0 = net win)");
-        assert!(ratio_spec <= 2.0, "T0a KILL: lazy round-0 {ratio_spec:.2}x the materialized combine+read");
+        println!(
+            "T0A: ratio_e2e (lazy r0+r1+terms / combine+r0+r1) = {ratio_e2e:.2} (decision-relevant; <1.0 = net win)"
+        );
+        assert!(
+            ratio_spec <= 2.0,
+            "T0a KILL: lazy round-0 {ratio_spec:.2}x the materialized combine+read"
+        );
     }
 
     #[test]
@@ -1456,7 +1488,9 @@ mod fusion_bench {
             let n = 1 << (log_n - w);
             let base = cheap_base_fill(n);
             let ext: ArenaVec<EFP> = {
-                let vals: Vec<EF> = (0..(n << w)).map(|i| EF::from(F::from_u32((i as u32) | 1)) * EF::from_u32(7)).collect();
+                let vals: Vec<EF> = (0..(n << w))
+                    .map(|i| EF::from(F::from_u32((i as u32) | 1)) * EF::from_u32(7))
+                    .collect();
                 pack_extension(&vals)
             };
             let wts: ArenaVec<EFP> = {
@@ -1464,15 +1498,16 @@ mod fusion_bench {
                 pack_extension(&vals)
             };
             let sum: EF = rng.random();
-            let (t_base, p1) = time_med(3, || {
-                compute_product_sumcheck_polynomial(&base, &wts, sum, decompose)
-            });
-            let (t_ext, p2) = time_med(3, || {
-                compute_product_sumcheck_polynomial(&ext, &wts, sum, decompose)
-            });
+            let (t_base, p1) = time_med(3, || compute_product_sumcheck_polynomial(&base, &wts, sum, decompose));
+            let (t_ext, p2) = time_med(3, || compute_product_sumcheck_polynomial(&ext, &wts, sum, decompose));
             black_box((p1, p2));
             last_ratio = t_ext / t_base;
-            println!("  2^{log_n}: basexEF {:.1}ms, EFxEF {:.1}ms, ratio {:.2}", t_base * 1e3, t_ext * 1e3, last_ratio);
+            println!(
+                "  2^{log_n}: basexEF {:.1}ms, EFxEF {:.1}ms, ratio {:.2}",
+                t_base * 1e3,
+                t_ext * 1e3,
+                last_ratio
+            );
         }
         let max_slices = if last_ratio >= 4.0 {
             4
@@ -1481,7 +1516,9 @@ mod fusion_bench {
         } else {
             1
         };
-        println!("T0B: EFxEF/basexEF = {last_ratio:.2} => MAX_SLICES = {max_slices} (delayed-EF profitable while n_slices < ratio)");
+        println!(
+            "T0B: EFxEF/basexEF = {last_ratio:.2} => MAX_SLICES = {max_slices} (delayed-EF profitable while n_slices < ratio)"
+        );
     }
 }
 
@@ -1500,32 +1537,64 @@ mod lazy_combine_diag {
     fn diag_lazy_vs_combine_failing_shape() {
         let num_variables = 20usize;
         let mut rng = StdRng::seed_from_u64(7);
-        let polynomial = (0..1usize << num_variables).map(|_| rng.random::<F>()).collect::<Vec<F>>();
+        let polynomial = (0..1usize << num_variables)
+            .map(|_| rng.random::<F>())
+            .collect::<Vec<F>>();
 
         let mut statement: Vec<SparseStatement<EF>> = Vec::new();
         // 2 fake OOD full statements at the front (mirrors initialize_first_round_state)
         for _ in 0..2 {
             let p = MultilinearPoint((0..num_variables).map(|_| rng.random::<EF>()).collect::<Vec<EF>>());
-            statement.push(SparseStatement::new(num_variables, p, vec![SparseValue { selector: 0, value: rng.random::<EF>() }]));
+            statement.push(SparseStatement::new(
+                num_variables,
+                p,
+                vec![SparseValue {
+                    selector: 0,
+                    value: rng.random::<EF>(),
+                }],
+            ));
         }
         for (selector_len, n_sels) in [(6usize, 5usize), (8, 9), (11, 3)] {
-            let point = MultilinearPoint((0..num_variables - selector_len).map(|_| rng.random::<EF>()).collect::<Vec<EF>>());
+            let point = MultilinearPoint(
+                (0..num_variables - selector_len)
+                    .map(|_| rng.random::<EF>())
+                    .collect::<Vec<EF>>(),
+            );
             let first = rng.random_range(0..(1usize << selector_len) - n_sels);
             statement.push(SparseStatement::new(
                 num_variables,
                 point,
-                (0..n_sels).map(|k| SparseValue { selector: first + k, value: rng.random::<EF>() }).collect(),
+                (0..n_sels)
+                    .map(|k| SparseValue {
+                        selector: first + k,
+                        value: rng.random::<EF>(),
+                    })
+                    .collect(),
             ));
         }
         {
             let point = MultilinearPoint((0..num_variables - 5).map(|_| rng.random::<EF>()).collect::<Vec<EF>>());
             let sel = rng.random_range(0..32);
-            statement.push(SparseStatement::new(num_variables, point, vec![SparseValue { selector: sel, value: rng.random::<EF>() }]));
+            statement.push(SparseStatement::new(
+                num_variables,
+                point,
+                vec![SparseValue {
+                    selector: sel,
+                    value: rng.random::<EF>(),
+                }],
+            ));
         }
         for inner in [0usize, 1] {
             let point = MultilinearPoint((0..inner).map(|_| rng.random::<EF>()).collect::<Vec<EF>>());
             let sel = rng.random_range(0..(1usize << (num_variables - inner)));
-            statement.push(SparseStatement::new(num_variables, point, vec![SparseValue { selector: sel, value: rng.random::<EF>() }]));
+            statement.push(SparseStatement::new(
+                num_variables,
+                point,
+                vec![SparseValue {
+                    selector: sel,
+                    value: rng.random::<EF>(),
+                }],
+            ));
         }
         {
             let inner = 10usize;
@@ -1533,7 +1602,12 @@ mod lazy_combine_diag {
             let mut s = SparseStatement::new(
                 num_variables,
                 point,
-                (0..2usize).map(|k| SparseValue { selector: 3 + k, value: rng.random::<EF>() }).collect(),
+                (0..2usize)
+                    .map(|k| SparseValue {
+                        selector: 3 + k,
+                        value: rng.random::<EF>(),
+                    })
+                    .collect(),
             );
             s.is_next = true;
             statement.push(s);
