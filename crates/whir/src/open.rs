@@ -616,3 +616,434 @@ where
     }
     (combined_weights, combined_sum)
 }
+
+// ---------------------------------------------------------------------------
+// h-wf kill-ladder rung benches (pw13-mac iter-1, hypothesis "whir-lazy-fusion").
+// Test-only; no production code change.
+// T0a: lazy chunk-wise weight evaluation (never materializing the 1.34 GB
+//      combined weight) vs the materialized combine_statement + round-0 +
+//      round-1-fold baseline. Gates (plan_spec): lazy_r0/(combine+read) <= 1.3
+//      PASS, 1.3-2.0 GRAY, > 2.0 KILL. Bit-identical round polys asserted.
+// T0b: EFxEF vs basexEF packed product-sumcheck ratio -> pins MAX_SLICES for
+//      the delayed-EF representation (BDT 2024/1046).
+// ---------------------------------------------------------------------------
+#[cfg(test)]
+mod fusion_bench {
+    use super::*;
+    use crate::{SparseStatement, SparseValue};
+    use field::{PackedFieldExtension, PackedValue, PrimeCharacteristicRing};
+    use koala_bear::{KoalaBear, QuinticExtensionFieldKB};
+    use rand::{RngExt, SeedableRng, rngs::StdRng};
+    use std::hint::black_box;
+    use std::time::Instant;
+    use sumcheck::{compute_product_sumcheck_polynomial, fold_and_compute_product_sumcheck_polynomial};
+
+    type F = KoalaBear;
+    type EF = QuinticExtensionFieldKB;
+    type FP = PFPacking<EF>;
+    type EFP = EFPacking<EF>;
+
+    fn w_log() -> usize {
+        packing_log_width::<EF>()
+    }
+
+    #[inline(always)]
+    fn unpack_sum(s: EFP) -> EF {
+        <EFP as PackedFieldExtension<F, EF>>::to_ext_iter([s]).sum::<EF>()
+    }
+
+    fn decompose(e: EFP) -> Vec<EF> {
+        <EFP as PackedFieldExtension<F, EF>>::to_ext_iter([e]).collect()
+    }
+
+    /// Full-eq term: scalar pre-multiplied into the prefix table.
+    /// value(j) = right_packed[j & rmask] * left[j >> rshift]
+    struct FullT {
+        left: ArenaVec<EF>,       // 2^A entries, scaled
+        right: ArenaVec<EFP>,     // 2^(n - A - w) packed entries
+        rshift: usize,            // n - A - w
+        rmask: usize,
+    }
+
+    /// Dense block term (eq or next inner poly replicated over consecutive
+    /// selector blocks with per-block scalars).
+    /// Covers packed range [start, start + n_blocks << ishift).
+    struct DenseT {
+        start: usize,             // packed units
+        end: usize,
+        ishift: usize,            // inner_vars - w
+        imask: usize,
+        inner: ArenaVec<EFP>,     // 2^ishift packed entries (unscaled)
+        scalars: Vec<EF>,         // per block, gamma powers
+    }
+
+    struct LazyTerms {
+        full: Vec<FullT>,
+        dense: Vec<DenseT>,
+    }
+
+    impl LazyTerms {
+        #[inline(always)]
+        fn at(&self, j: usize) -> EFP {
+            let mut acc = EFP::ZERO;
+            for t in &self.full {
+                acc += t.right[j & t.rmask] * t.left[j >> t.rshift];
+            }
+            for t in &self.dense {
+                if j >= t.start && j < t.end {
+                    let o = j - t.start;
+                    acc += t.inner[o & t.imask] * t.scalars[o >> t.ishift];
+                }
+            }
+            acc
+        }
+    }
+
+    /// Statement set mirroring stacked_pcs_global_statements + 2 OOD at the
+    /// 1550-sig shape (tiny lane-level statements omitted in both arms; their
+    /// production cost is ~epsilon and T1's proof-equality test covers them).
+    /// Layout (elements): memory+acc [0, 2^23); bytecode_acc [2^23, 2^23+2^20);
+    /// exec 20 cols at sel 9 (inner 2^20); poseidon 110 cols at sel 116
+    /// (inner 2^18); ext 29 cols at sel 1807 (inner 2^15).
+    fn rnd_pt(rng: &mut StdRng, len: usize) -> MultilinearPoint<EF> {
+        MultilinearPoint((0..len).map(|_| rng.random::<EF>()).collect::<Vec<EF>>())
+    }
+
+    fn rnd_vals(rng: &mut StdRng, first_sel: usize, n: usize) -> Vec<SparseValue<EF>> {
+        (0..n).map(|c| SparseValue::new(first_sel + c, rng.random::<EF>())).collect()
+    }
+
+    fn build_statements(n_vars: usize, rng: &mut StdRng) -> Vec<SparseStatement<EF>> {
+        let mut stmts: Vec<SparseStatement<EF>> = Vec::new();
+        // 2 OOD full statements (dual fast path)
+        for _ in 0..2 {
+            let p = rnd_pt(rng, n_vars);
+            stmts.push(SparseStatement::new(n_vars, p, rnd_vals(rng, 0, 1)));
+        }
+        // memory + memory_acc (selectors 0,1 at inner n-4)
+        let p = rnd_pt(rng, n_vars - 4);
+        stmts.push(SparseStatement::new(n_vars, p, rnd_vals(rng, 0, 2)));
+        // bytecode_acc (single value, inner n-6, selector 8)
+        let p = rnd_pt(rng, n_vars - 6);
+        stmts.push(SparseStatement::new(n_vars, p, rnd_vals(rng, 8, 1)));
+        // exec: 2 eq statements (20 cols, inner n-6, sel 9..29) + 1 next (3 shift cols)
+        for _ in 0..2 {
+            let p = rnd_pt(rng, n_vars - 6);
+            stmts.push(SparseStatement::new(n_vars, p, rnd_vals(rng, 9, 20)));
+        }
+        {
+            let p = rnd_pt(rng, n_vars - 6);
+            let mut s = SparseStatement::new(n_vars, p, rnd_vals(rng, 9, 3));
+            s.is_next = true;
+            stmts.push(s);
+        }
+        // poseidon: 2 eq statements (110 cols, inner n-8, sel 116..226)
+        for _ in 0..2 {
+            let p = rnd_pt(rng, n_vars - 8);
+            stmts.push(SparseStatement::new(n_vars, p, rnd_vals(rng, 116, 110)));
+        }
+        // extension: 2 eq statements (29 cols, inner n-11, sel 1807..1836)
+        for _ in 0..2 {
+            let p = rnd_pt(rng, n_vars - 11);
+            stmts.push(SparseStatement::new(n_vars, p, rnd_vals(rng, 1807, 29)));
+        }
+        stmts
+    }
+
+    /// Replays combine_statement's exact gamma-power accounting into lazy terms.
+    /// Returns (terms, combined_sum) — combined_sum must equal combine_statement's.
+    fn build_lazy_terms(statements: &[SparseStatement<EF>], gamma: EF, n_vars: usize) -> (LazyTerms, EF) {
+        let w = w_log();
+        let is_full = |s: &SparseStatement<EF>| {
+            !s.is_next && s.values.len() == 1 && s.values[0].selector == 0 && s.inner_num_variables() == n_vars
+        };
+        let mut full = Vec::new();
+        let mut dense = Vec::new();
+        let mut combined_sum = EF::ZERO;
+        let mut gamma_pow = EF::ONE;
+
+        let make_full = |point: &[EF], scalar: EF| {
+            let a = n_vars / 2; // prefix length
+            let mut left: ArenaVec<EF> = eval_eq(&point[..a]);
+            for v in left.iter_mut() {
+                *v *= scalar;
+            }
+            let right: ArenaVec<EFP> = eval_eq_packed(&point[a..]);
+            FullT {
+                left,
+                right,
+                rshift: n_vars - a - w,
+                rmask: (1usize << (n_vars - a - w)) - 1,
+            }
+        };
+
+        let start_idx = match statements {
+            [a, b, ..] if is_full(a) && is_full(b) => {
+                let sa = gamma_pow;
+                let sb = gamma_pow * gamma;
+                combined_sum = a.values[0].value * sa + b.values[0].value * sb;
+                gamma_pow = sb * gamma;
+                full.push(make_full(&a.point.0, sa));
+                full.push(make_full(&b.point.0, sb));
+                2
+            }
+            [a, ..] if is_full(a) => {
+                let sa = gamma_pow;
+                combined_sum = a.values[0].value * sa;
+                gamma_pow *= gamma;
+                full.push(make_full(&a.point.0, sa));
+                1
+            }
+            _ => 0,
+        };
+
+        for smt in &statements[start_idx..] {
+            assert!(
+                smt.inner_num_variables() >= w,
+                "bench statement set must not contain lane-level statements"
+            );
+            let inner: ArenaVec<EFP> = if smt.is_next {
+                let next = matrix_next_mle_folded(&smt.point.0);
+                pack_extension(&next)
+            } else {
+                eval_eq_packed(&smt.point)
+            };
+            let ishift = smt.inner_num_variables() - w;
+            // consecutive selectors assumed (true for the bench set)
+            let first_sel = smt.values[0].selector;
+            let mut scalars = Vec::with_capacity(smt.values.len());
+            let mut p = gamma_pow;
+            for (k, e) in smt.values.iter().enumerate() {
+                assert_eq!(e.selector, first_sel + k, "bench terms assume consecutive selectors");
+                combined_sum += e.value * p;
+                scalars.push(p);
+                p *= gamma;
+            }
+            gamma_pow = p;
+            dense.push(DenseT {
+                start: first_sel << ishift,
+                end: (first_sel + smt.values.len()) << ishift,
+                ishift,
+                imask: (1usize << ishift) - 1,
+                inner,
+                scalars,
+            });
+        }
+        (LazyTerms { full, dense }, combined_sum)
+    }
+
+    /// Lazy round-0: same (c0,c2)+c1-from-sum skeleton as
+    /// compute_product_sumcheck_polynomial, weights from `terms.at(j)`.
+    fn lazy_round0(evals: &[FP], terms: &LazyTerms, sum: EF) -> DensePolynomial<EF> {
+        let n = evals.len();
+        let half = n / 2;
+        let (c0p, c2p) = parallel::map_reduce(
+            half,
+            || (EFP::ZERO, EFP::ZERO),
+            |i| {
+                let y0 = terms.at(i);
+                let y1 = terms.at(half + i);
+                let x0 = evals[i];
+                let x1 = evals[half + i];
+                let constant = y0 * x0;
+                let quadratic = (y1 - y0) * (x1 - x0);
+                (constant, quadratic)
+            },
+            |(a0, a2), (b0, b2)| (a0 + b0, a2 + b2),
+        );
+        let c0 = unpack_sum(c0p);
+        let c2 = unpack_sum(c2p);
+        let c1 = sum - c0.double() - c2;
+        DensePolynomial::new(vec![c0, c1, c2])
+    }
+
+    /// Lazy round-1 fused fold: recompute weights, fold both polys with r1,
+    /// materialize half-size folded arrays, emit round-1 coeffs — mirrors
+    /// fold_and_compute_product_sumcheck_polynomial exactly.
+    #[allow(clippy::type_complexity)]
+    fn lazy_fold_round1(
+        evals: &[FP],
+        terms: &LazyTerms,
+        r1: EF,
+        sum: EF,
+    ) -> (DensePolynomial<EF>, ArenaVec<EFP>, ArenaVec<EFP>) {
+        let n = evals.len();
+        let quarter = n / 4;
+        let r1p = EFP::from(r1);
+        let mut e_folded = unsafe { ArenaVec::<EFP>::uninitialized(n / 2) };
+        let mut w_folded = unsafe { ArenaVec::<EFP>::uninitialized(n / 2) };
+        let pe = parallel::SendPtr(e_folded.as_mut_ptr());
+        let pw = parallel::SendPtr(w_folded.as_mut_ptr());
+        let (c0p, c2p) = parallel::map_reduce(
+            quarter,
+            || (EFP::ZERO, EFP::ZERO),
+            |i| {
+                let x_0 = r1p * (evals[2 * quarter + i] - evals[i]) + evals[i];
+                let x_1 = r1p * (evals[3 * quarter + i] - evals[quarter + i]) + evals[quarter + i];
+                let w00 = terms.at(i);
+                let w01 = terms.at(quarter + i);
+                let w10 = terms.at(2 * quarter + i);
+                let w11 = terms.at(3 * quarter + i);
+                let y_0 = r1p * (w10 - w00) + w00;
+                let y_1 = r1p * (w11 - w01) + w01;
+                unsafe {
+                    *pe.add(i) = x_0;
+                    *pe.add(quarter + i) = x_1;
+                    *pw.add(i) = y_0;
+                    *pw.add(quarter + i) = y_1;
+                }
+                let constant = y_0 * x_0;
+                let quadratic = (y_1 - y_0) * (x_1 - x_0);
+                (constant, quadratic)
+            },
+            |(a0, a2), (b0, b2)| (a0 + b0, a2 + b2),
+        );
+        let c0 = unpack_sum(c0p);
+        let c2 = unpack_sum(c2p);
+        let c1 = sum - c0.double() - c2;
+        (DensePolynomial::new(vec![c0, c1, c2]), e_folded, w_folded)
+    }
+
+    fn cheap_base_fill(len: usize) -> ArenaVec<FP> {
+        let mut v = unsafe { ArenaVec::<FP>::uninitialized(len) };
+        let unpacked = FP::unpack_slice_mut(&mut v);
+        parallel::par_chunks_mut(unpacked, 1 << 16, |chunk_idx, chunk| {
+            let mut state = (chunk_idx as u64).wrapping_mul(0x9E3779B97F4A7C15) | 1;
+            for slot in chunk {
+                state = state.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+                *slot = F::from_u32((state >> 33) as u32 & 0x3FFFFFFF);
+            }
+        });
+        v
+    }
+
+    fn median(mut xs: Vec<f64>) -> f64 {
+        xs.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        xs[xs.len() / 2]
+    }
+
+    fn time_med<T>(reps: usize, mut f: impl FnMut() -> T) -> (f64, T) {
+        let mut times = Vec::new();
+        let mut out = None;
+        for _ in 0..reps {
+            let t = Instant::now();
+            let r = f();
+            times.push(t.elapsed().as_secs_f64());
+            out = Some(r);
+        }
+        (median(times), out.unwrap())
+    }
+
+    #[test]
+    #[ignore]
+    fn t0a_lazy_vs_materialized() {
+        let n_vars: usize = std::env::var("FUSION_BENCH_VARS")
+            .ok()
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(26);
+        let w = w_log();
+        let mut rng = StdRng::seed_from_u64(42);
+        let gamma: EF = rng.random();
+        let stmts = build_statements(n_vars, &mut rng);
+        println!("T0a: n_vars={n_vars}, packing_log_width={w}, {} statements", stmts.len());
+
+        let evals = cheap_base_fill(1 << (n_vars - w));
+
+        // --- materialized baseline ---
+        let (t_combine, (weights, sum_m)) = time_med(3, || combine_statement::<EF>(&stmts, gamma));
+        let (t_read, read_sink) = time_med(3, || {
+            parallel::map_reduce(weights.len(), || EFP::ZERO, |i| weights[i], |a, b| a + b)
+        });
+        black_box(read_sink);
+        let (t_r0, base_r0) = time_med(3, || {
+            compute_product_sumcheck_polynomial(&evals, &weights, sum_m, decompose)
+        });
+        let r1: EF = rng.random();
+        let sum_after_r0 = base_r0.evaluate(r1);
+        let (t_r1, (base_r1, base_folded)) = time_med(3, || {
+            fold_and_compute_product_sumcheck_polynomial(&evals, &weights, r1, sum_after_r0, decompose)
+        });
+
+        // --- lazy ---
+        let (t_terms, (terms, sum_l)) = time_med(3, || build_lazy_terms(&stmts, gamma, n_vars));
+        assert_eq!(sum_l, sum_m, "gamma-power accounting diverged");
+        // spot-check weight values
+        for _ in 0..4096 {
+            let j = rng.random_range(0..weights.len());
+            assert_eq!(terms.at(j), weights[j], "lazy weight mismatch at packed index {j}");
+        }
+        let (t_lazy_r0, lazy_r0_poly) = time_med(3, || lazy_round0(&evals, &terms, sum_l));
+        assert_eq!(lazy_r0_poly.coeffs, base_r0.coeffs, "round-0 poly mismatch");
+        let (t_lazy_r1, (lazy_r1_poly, lazy_e_folded, lazy_w_folded)) =
+            time_med(3, || lazy_fold_round1(&evals, &terms, r1, sum_after_r0));
+        assert_eq!(lazy_r1_poly.coeffs, base_r1.coeffs, "round-1 poly mismatch");
+        // folded arrays equality (weights: lazy vs baseline fold output)
+        let bw = &base_folded[1];
+        let be = &base_folded[0];
+        for _ in 0..4096 {
+            let j = rng.random_range(0..lazy_w_folded.len());
+            assert_eq!(lazy_w_folded[j], bw[j], "folded weight mismatch at {j}");
+            assert_eq!(lazy_e_folded[j], be[j], "folded evals mismatch at {j}");
+        }
+
+        let base_total = t_combine + t_r0 + t_r1;
+        let lazy_total = t_terms + t_lazy_r0 + t_lazy_r1;
+        let ratio_spec = t_lazy_r0 / (t_combine + t_read);
+        let ratio_e2e = lazy_total / base_total;
+        println!("  baseline: combine {:.0}ms + read {:.0}ms + r0 {:.0}ms + r1fold {:.0}ms  (combine+r0+r1 = {:.0}ms)",
+            t_combine * 1e3, t_read * 1e3, t_r0 * 1e3, t_r1 * 1e3, base_total * 1e3);
+        println!("  lazy:     terms {:.0}ms + r0 {:.0}ms + r1fold {:.0}ms  (total {:.0}ms)",
+            t_terms * 1e3, t_lazy_r0 * 1e3, t_lazy_r1 * 1e3, lazy_total * 1e3);
+        let verdict = if ratio_spec <= 1.3 {
+            "PASS"
+        } else if ratio_spec <= 2.0 {
+            "GRAY"
+        } else {
+            "KILL"
+        };
+        println!(
+            "T0A: ratio_spec (lazy_r0 / (combine+read)) = {ratio_spec:.2} (gate: <=1.3 PASS / <=2.0 GRAY / >2.0 KILL) => {verdict}"
+        );
+        println!("T0A: ratio_e2e (lazy r0+r1+terms / combine+r0+r1) = {ratio_e2e:.2} (decision-relevant; <1.0 = net win)");
+        assert!(ratio_spec <= 2.0, "T0a KILL: lazy round-0 {ratio_spec:.2}x the materialized combine+read");
+    }
+
+    #[test]
+    #[ignore]
+    fn t0b_ef_vs_base_ratio() {
+        let mut rng = StdRng::seed_from_u64(7);
+        let w = w_log();
+        println!("T0b: packed EFxEF vs basexEF product-sumcheck cost");
+        let mut last_ratio = 0.0;
+        for log_n in [20usize, 22, 23] {
+            let n = 1 << (log_n - w);
+            let base = cheap_base_fill(n);
+            let ext: ArenaVec<EFP> = {
+                let vals: Vec<EF> = (0..(n << w)).map(|i| EF::from(F::from_u32((i as u32) | 1)) * EF::from_u32(7)).collect();
+                pack_extension(&vals)
+            };
+            let wts: ArenaVec<EFP> = {
+                let vals: Vec<EF> = (0..(n << w)).map(|_| rng.random::<EF>()).collect();
+                pack_extension(&vals)
+            };
+            let sum: EF = rng.random();
+            let (t_base, p1) = time_med(3, || {
+                compute_product_sumcheck_polynomial(&base, &wts, sum, decompose)
+            });
+            let (t_ext, p2) = time_med(3, || {
+                compute_product_sumcheck_polynomial(&ext, &wts, sum, decompose)
+            });
+            black_box((p1, p2));
+            last_ratio = t_ext / t_base;
+            println!("  2^{log_n}: basexEF {:.1}ms, EFxEF {:.1}ms, ratio {:.2}", t_base * 1e3, t_ext * 1e3, last_ratio);
+        }
+        let max_slices = if last_ratio >= 4.0 {
+            4
+        } else if last_ratio >= 2.0 {
+            2
+        } else {
+            1
+        };
+        println!("T0B: EFxEF/basexEF = {last_ratio:.2} => MAX_SLICES = {max_slices} (delayed-EF profitable while n_slices < ratio)");
+    }
+}
