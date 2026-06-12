@@ -299,8 +299,9 @@ fn test_lazy_combine_proof_equality() {
             statement.push(s);
         }
 
-        let prove_once = |lazy: bool| {
+        let prove_once = |lazy: bool, delayed: bool| {
             set_lazy(if lazy { "1" } else { "0" });
+            unsafe { std::env::set_var("WHIR_DELAYED_EF", if delayed { "1" } else { "0" }) }
             let mut prover_state = ProverState::new(poseidon16.clone(), Default::default());
             let poly_mle: MleOwned<EF> = MleOwned::Base(ArenaVec::from_iter(polynomial.clone()));
             let witness = params.commit(&mut prover_state, &poly_mle, 1 << num_variables);
@@ -308,18 +309,24 @@ fn test_lazy_combine_proof_equality() {
             prover_state.into_proof()
         };
 
-        let proof_legacy = prove_once(false);
-        let proof_lazy = prove_once(true);
+        let proof_legacy = prove_once(false, false);
+        let proof_lazy = prove_once(true, false);
         assert_eq!(
             proof_legacy, proof_lazy,
             "lazy combine produced a different proof (seed {seed}, n {num_variables})"
         );
+        let proof_delayed = prove_once(true, true);
+        assert_eq!(
+            proof_legacy, proof_delayed,
+            "delayed-EF produced a different proof (seed {seed}, n {num_variables})"
+        );
 
-        let mut verifier_state = VerifierState::<EF, _>::new(proof_lazy, poseidon16.clone(), Default::default()).unwrap();
+        let mut verifier_state = VerifierState::<EF, _>::new(proof_delayed, poseidon16.clone(), Default::default()).unwrap();
         let parsed_commitment = params.parse_commitment::<F>(&mut verifier_state).unwrap();
         params
             .verify::<F>(&mut verifier_state, &parsed_commitment, statement.clone())
             .unwrap();
     }
     set_lazy("1");
+    unsafe { std::env::set_var("WHIR_DELAYED_EF", "1") }
 }

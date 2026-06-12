@@ -4,7 +4,10 @@ use ::utils::log2_strict_usize;
 use fiat_shamir::{FSProver, MerklePath, ProofResult};
 use field::PrimeCharacteristicRing;
 use field::{ExtensionField, Field, PackedFieldExtension, TwoAdicField};
-use sumcheck::{ProductComputation, run_product_sumcheck, run_product_sumcheck_from_round1, sumcheck_prove_many_rounds};
+use sumcheck::{
+    ProductComputation, run_product_sumcheck, run_product_sumcheck_from_round1,
+    run_product_sumcheck_from_round1_delayed, sumcheck_prove_many_rounds,
+};
 use tracing::{info_span, instrument};
 use zk_alloc::{ArenaVec, arena_vec};
 
@@ -437,16 +440,34 @@ where
                 prover_state.pow_grinding(pow_bits);
                 let r1: EF = prover_state.sample();
                 let sum1 = first_poly.evaluate(r1);
-                let weights = Mle::Owned(MleOwned::ExtensionPacked(weights_buf));
-                let (challenges, new_sum, folded_evals, folded_weights) = run_product_sumcheck_from_round1(
-                    &evals_packed.by_ref(),
-                    &weights.by_ref(),
-                    prover_state,
-                    r1,
-                    sum1,
-                    folding_factor,
-                    pow_bits,
-                );
+                // Delayed-EF (BDT 2024/1046): keep the base evals unpromoted through
+                // rounds 2-3 via the 2-slice view; collapse at round 3's fold.
+                // Transcript bit-identical. n_rounds >= 4 keeps the many_rounds
+                // tail on its always-exercised path.
+                let delayed = std::env::var("WHIR_DELAYED_EF").map(|v| v != "0").unwrap_or(true)
+                    && folding_factor >= 4;
+                let (challenges, new_sum, folded_evals, folded_weights) = if delayed {
+                    run_product_sumcheck_from_round1_delayed(
+                        ev,
+                        &weights_buf,
+                        prover_state,
+                        r1,
+                        sum1,
+                        folding_factor,
+                        pow_bits,
+                    )
+                } else {
+                    let weights = Mle::Owned(MleOwned::ExtensionPacked(weights_buf));
+                    run_product_sumcheck_from_round1(
+                        &evals_packed.by_ref(),
+                        &weights.by_ref(),
+                        prover_state,
+                        r1,
+                        sum1,
+                        folding_factor,
+                        pow_bits,
+                    )
+                };
                 let sumcheck = Self {
                     evals: folded_evals,
                     weights: folded_weights,
