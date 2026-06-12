@@ -196,7 +196,8 @@ fn test_lazy_combine_proof_equality() {
     let poseidon16 = default_koalabear_poseidon1_16();
     precompute_dft_twiddles::<F>(1 << F::TWO_ADICITY);
 
-    for (seed, num_variables) in [(1u64, 18usize), (7, 20)] {
+    // n_vars 26 = the production stacked-PCS size; 18/22 cover small/mid shapes.
+    for (seed, num_variables) in [(1u64, 18usize), (7, 22), (3, 26)] {
         // pow_grinding is a racy parallel nonce search (first valid witness wins),
         // so proof bytes are only reproducible when every grinding step is 0 bits.
         // The lazy combine path never touches grinding; zero-grinding configs make
@@ -221,6 +222,19 @@ fn test_lazy_combine_proof_equality() {
         let polynomial = (0..1usize << num_variables).map(|_| rng.random::<F>()).collect::<Vec<F>>();
 
         let mut statement: Vec<SparseStatement<EF>> = Vec::new();
+        // full statement (selector 0, full-length point): with this config the
+        // prover splices exactly ONE OOD full statement, so adding one of our own
+        // makes the layout [OOD-full, this-full, ...] and engages the dual
+        // fast-path arm (start_idx = 2) in both combine paths.
+        {
+            let point = MultilinearPoint((0..num_variables).map(|_| rng.random::<EF>()).collect::<Vec<EF>>());
+            let value = polynomial.evaluate_sparse(0, &point);
+            statement.push(SparseStatement::new(
+                num_variables,
+                point,
+                vec![SparseValue { selector: 0, value }],
+            ));
+        }
         // dense multi-selector blocks (table-shaped)
         for (selector_len, n_sels) in [(6usize, 5usize), (8, 9), (11, 3)] {
             let point = MultilinearPoint((0..num_variables - selector_len).map(|_| rng.random::<EF>()).collect::<Vec<EF>>());
