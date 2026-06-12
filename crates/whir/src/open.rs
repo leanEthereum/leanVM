@@ -900,26 +900,116 @@ fn combine_and_compute_first_round<EF>(
 ) -> (DensePolynomial<EF>, ArenaVec<EFPacking<EF>>)
 where
     EF: ExtensionField<PF<EF>>,
-    EFPacking<EF>: std::ops::Mul<PFPacking<EF>, Output = EFPacking<EF>>,
+    EFPacking<EF>: std::ops::Mul<PFPacking<EF>, Output = EFPacking<EF>> + std::ops::Mul<EF, Output = EFPacking<EF>>,
 {
     let n = evals.len();
     let half = n / 2;
     let mut weights = unsafe { ArenaVec::<EFPacking<EF>>::uninitialized(n) };
     let wp = parallel::SendPtr(weights.as_mut_ptr());
 
+    // Runs are aligned so that within a run (on both the j and half+j sides):
+    // every full term's left factor is constant (run within one 2^rshift block)
+    // and the grid cell is constant (run within one 2^grid_log cell) — the
+    // right-table and block-inner indices then advance sequentially, so the
+    // inner loop is pure slice iteration with all term contexts hoisted.
+    let mut run_log = ::utils::log2_strict_usize(half.max(1));
+    for t in &terms.full {
+        run_log = run_log.min(t.rshift);
+    }
+    if !terms.grid.is_empty() {
+        run_log = run_log.min(terms.grid_log);
+    }
+    let run = 1usize << run_log;
+    let n_runs = half >> run_log;
+
+    const MAX_BLOCKS: usize = 8;
+
     let (mut c0p, mut c2p) = parallel::map_reduce(
-        half,
+        n_runs,
         || (EFPacking::<EF>::ZERO, EFPacking::<EF>::ZERO),
-        |i| {
-            let w0 = terms.value_at(i);
-            let w1 = terms.value_at(half + i);
-            unsafe {
-                *wp.add(i) = w0;
-                *wp.add(half + i) = w1;
+        |run_idx| {
+            let j0 = run_idx << run_log;
+            let mut acc0 = EFPacking::<EF>::ZERO;
+            let mut acc2 = EFPacking::<EF>::ZERO;
+
+            // Hoisted full-term contexts: (right-slice, left scalar) per side.
+            let mut fulls_lo: [(&[EFPacking<EF>], EF); 4] = [(&[], EF::ZERO); 4];
+            let mut fulls_hi: [(&[EFPacking<EF>], EF); 4] = [(&[], EF::ZERO); 4];
+            let n_fulls = terms.full.len().min(4);
+            for (k, t) in terms.full.iter().take(4).enumerate() {
+                let lo_base = j0 & t.rmask;
+                let hi_base = (half + j0) & t.rmask;
+                fulls_lo[k] = (&t.right[lo_base..lo_base + run], t.left[j0 >> t.rshift]);
+                fulls_hi[k] = (&t.right[hi_base..hi_base + run], t.left[(half + j0) >> t.rshift]);
             }
-            let x0 = evals[i];
-            let x1 = evals[half + i];
-            (w0 * x0, (w1 - w0) * (x1 - x0))
+
+            // Hoisted block contexts per side.
+            let mut blocks_lo: [(&[EFPacking<EF>], EF); MAX_BLOCKS] = [(&[], EF::ZERO); MAX_BLOCKS];
+            let mut blocks_hi: [(&[EFPacking<EF>], EF); MAX_BLOCKS] = [(&[], EF::ZERO); MAX_BLOCKS];
+            let (mut n_lo, mut n_hi) = (0usize, 0usize);
+            let mut slow = terms.full.len() > 4;
+            if !terms.grid.is_empty() {
+                for &b in &terms.grid[j0 >> terms.grid_log] {
+                    let blk = &terms.blocks[b as usize];
+                    if n_lo < MAX_BLOCKS {
+                        let o = j0 - blk.start;
+                        blocks_lo[n_lo] = (&terms.inners[blk.inner_id as usize][o..o + run], terms.scalars[blk.scalar]);
+                        n_lo += 1;
+                    } else {
+                        slow = true;
+                    }
+                }
+                for &b in &terms.grid[(half + j0) >> terms.grid_log] {
+                    let blk = &terms.blocks[b as usize];
+                    if n_hi < MAX_BLOCKS {
+                        let o = half + j0 - blk.start;
+                        blocks_hi[n_hi] = (&terms.inners[blk.inner_id as usize][o..o + run], terms.scalars[blk.scalar]);
+                        n_hi += 1;
+                    } else {
+                        slow = true;
+                    }
+                }
+            }
+
+            if slow {
+                // rare generic fallback: per-index dispatch
+                for t in 0..run {
+                    let i = j0 + t;
+                    let w0 = terms.value_at(i);
+                    let w1 = terms.value_at(half + i);
+                    unsafe {
+                        *wp.add(i) = w0;
+                        *wp.add(half + i) = w1;
+                    }
+                    acc0 += w0 * evals[i];
+                    acc2 += (w1 - w0) * (evals[half + i] - evals[i]);
+                }
+                return (acc0, acc2);
+            }
+
+            let e_lo = &evals[j0..j0 + run];
+            let e_hi = &evals[half + j0..half + j0 + run];
+            for t in 0..run {
+                let mut w0 = EFPacking::<EF>::ZERO;
+                let mut w1 = EFPacking::<EF>::ZERO;
+                for k in 0..n_fulls {
+                    w0 += fulls_lo[k].0[t] * fulls_lo[k].1;
+                    w1 += fulls_hi[k].0[t] * fulls_hi[k].1;
+                }
+                for blk in blocks_lo.iter().take(n_lo) {
+                    w0 += blk.0[t] * blk.1;
+                }
+                for blk in blocks_hi.iter().take(n_hi) {
+                    w1 += blk.0[t] * blk.1;
+                }
+                unsafe {
+                    *wp.add(j0 + t) = w0;
+                    *wp.add(half + j0 + t) = w1;
+                }
+                acc0 += w0 * e_lo[t];
+                acc2 += (w1 - w0) * (e_hi[t] - e_lo[t]);
+            }
+            (acc0, acc2)
         },
         |(a0, a2), (b0, b2)| (a0 + b0, a2 + b2),
     );
