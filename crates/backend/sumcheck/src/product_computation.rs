@@ -64,6 +64,22 @@ pub fn run_product_sumcheck<EF: ExtensionField<PF<EF>>>(
     let r1: EF = prover_state.sample();
     sum = first_sumcheck_poly.evaluate(r1);
 
+    run_product_sumcheck_from_round1(pol_a, pol_b, prover_state, r1, sum, n_rounds, pow_bits)
+}
+
+/// Rounds 1+ of the product sumcheck, for callers that computed round 0 themselves
+/// (e.g. the fused lazy combine+round-0 path in WHIR). `sum` is the running sum after
+/// binding `r1` (= first_round_poly.evaluate(r1)). Byte-identical transcript to the
+/// corresponding tail of [`run_product_sumcheck`].
+pub fn run_product_sumcheck_from_round1<EF: ExtensionField<PF<EF>>>(
+    pol_a: &MleRef<'_, EF>, // evals
+    pol_b: &MleRef<'_, EF>, // weights
+    prover_state: &mut impl FSProver<EF>,
+    r1: EF,
+    mut sum: EF,
+    n_rounds: usize,
+    pow_bits: usize,
+) -> (MultilinearPoint<EF>, EF, MleOwned<EF>, MleOwned<EF>) {
     if n_rounds == 1 {
         return (MultilinearPoint(vec![r1]), sum, pol_a.fold(r1), pol_b.fold(r1));
     }

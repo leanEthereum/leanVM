@@ -3,8 +3,8 @@
 use ::utils::log2_strict_usize;
 use fiat_shamir::{FSProver, MerklePath, ProofResult};
 use field::PrimeCharacteristicRing;
-use field::{ExtensionField, Field, TwoAdicField};
-use sumcheck::{ProductComputation, run_product_sumcheck, sumcheck_prove_many_rounds};
+use field::{ExtensionField, Field, PackedFieldExtension, TwoAdicField};
+use sumcheck::{ProductComputation, run_product_sumcheck, run_product_sumcheck_from_round1, sumcheck_prove_many_rounds};
 use tracing::{info_span, instrument};
 use zk_alloc::{ArenaVec, arena_vec};
 
@@ -418,6 +418,44 @@ where
     ) -> (Self, MultilinearPoint<EF>) {
         assert_ne!(folding_factor, 0);
 
+        // Lazy-once fused combine + round-0 (transcript bit-identical to the
+        // legacy path below; see the module comment on `LazyCombineTerms`).
+        if lazy_combine_enabled() && packing_log_width::<EF>() > 0 {
+            let evals_packed = evals.pack();
+            if let MleRef::BasePacked(ev) = evals_packed.by_ref() {
+                let terms = info_span!("build_lazy_combine_terms")
+                    .in_scope(|| build_lazy_combine_terms::<EF>(statement, combination_randomness));
+                let (first_poly, weights_buf) = info_span!("combine_and_compute_first_round")
+                    .in_scope(|| combine_and_compute_first_round(ev, &terms, terms.combined_sum));
+                if std::env::var("WHIR_LAZY_SELFCHECK").is_ok_and(|v| v == "1") {
+                    let (w_ref, sum_ref) = combine_statement::<EF>(statement, combination_randomness);
+                    assert_eq!(terms.combined_sum, sum_ref, "selfcheck: combined_sum diverged");
+                    let n_bad = (0..w_ref.len()).filter(|&j| weights_buf[j] != w_ref[j]).count();
+                    assert_eq!(n_bad, 0, "selfcheck: {n_bad} weight mismatches of {}", w_ref.len());
+                }
+                prover_state.add_sumcheck_polynomial(&first_poly.coeffs, None);
+                prover_state.pow_grinding(pow_bits);
+                let r1: EF = prover_state.sample();
+                let sum1 = first_poly.evaluate(r1);
+                let weights = Mle::Owned(MleOwned::ExtensionPacked(weights_buf));
+                let (challenges, new_sum, folded_evals, folded_weights) = run_product_sumcheck_from_round1(
+                    &evals_packed.by_ref(),
+                    &weights.by_ref(),
+                    prover_state,
+                    r1,
+                    sum1,
+                    folding_factor,
+                    pow_bits,
+                );
+                let sumcheck = Self {
+                    evals: folded_evals,
+                    weights: folded_weights,
+                    sum: new_sum,
+                };
+                return (sumcheck, challenges);
+            }
+        }
+
         let (weights, sum) = combine_statement::<EF>(statement, combination_randomness);
 
         let mut evals = evals.pack();
@@ -615,6 +653,294 @@ where
         }
     }
     (combined_weights, combined_sum)
+}
+
+// ---------------------------------------------------------------------------
+// Lazy-once fused combine + round-0 for the WHIR initial sumcheck (pw13-mac h-wf).
+//
+// `combine_statement` materializes w = Σ_s γ^{k_s}·weight_s with one full-size
+// eq-tensor pass plus read-modify-write scatters over every statement region,
+// then round 0 re-reads the buffer. Here the weight value w[j] is instead
+// evaluated in-register from small per-statement tables (prefix/suffix split
+// for full statements, shared inner-eq tables for block statements), exactly
+// once, inside the round-0 pass — which also stream-writes the materialized
+// buffer for rounds 1+. The transcript is bit-identical: the gamma-power
+// accounting replays `combine_statement` exactly, and every weight value is
+// the same field element (exact-field reassociation only).
+//
+// Toggle: WHIR_LAZY_COMBINE=0 falls back to the legacy path (also used when
+// packing width is 1 or the evals are not base-packed).
+// ---------------------------------------------------------------------------
+
+const LAZY_OVERLAY_SPAN_MAX: usize = 8; // packed words; small blocks are pre-expanded
+
+struct LazyFullTerm<EF: ExtensionField<PF<EF>>> {
+    left: ArenaVec<EF>,              // 2^A prefix table, statement scalar folded in
+    right: ArenaVec<EFPacking<EF>>,  // 2^(n - A - w) packed suffix table
+    rshift: usize,
+    rmask: usize,
+}
+
+/// One (statement, value) pair: scalar·eq(point,·) (or next-mle) on the packed
+/// range [start, start + 2^ishift). Aligned: start is a multiple of 2^ishift.
+struct LazyBlock {
+    start: usize,
+    ishift: usize,
+    inner_id: u32,
+    scalar: usize, // index into `scalars`
+}
+
+pub(crate) struct LazyCombineTerms<EF: ExtensionField<PF<EF>>> {
+    full: Vec<LazyFullTerm<EF>>,
+    inners: Vec<ArenaVec<EFPacking<EF>>>,
+    blocks: Vec<LazyBlock>,
+    scalars: Vec<EF>,
+    grid: Vec<Vec<u32>>, // packed-index >> grid_log -> covering block ids
+    grid_log: usize,
+    overlay: Vec<(usize, EFPacking<EF>)>, // sorted by packed index
+    pub(crate) combined_sum: EF,
+}
+
+impl<EF: ExtensionField<PF<EF>>> LazyCombineTerms<EF> {
+    #[inline(always)]
+    fn value_at(&self, j: usize) -> EFPacking<EF> {
+        let mut acc = EFPacking::<EF>::ZERO;
+        for t in &self.full {
+            acc += t.right[j & t.rmask] * t.left[j >> t.rshift];
+        }
+        if !self.grid.is_empty() {
+            for &b in &self.grid[j >> self.grid_log] {
+                let blk = &self.blocks[b as usize];
+                // a block listed in this cell covers the whole cell
+                acc += self.inners[blk.inner_id as usize][j - blk.start] * self.scalars[blk.scalar];
+            }
+        }
+        acc
+    }
+}
+
+fn lazy_combine_enabled() -> bool {
+    std::env::var("WHIR_LAZY_COMBINE").map(|v| v != "0").unwrap_or(true)
+}
+
+/// Replays `combine_statement`'s exact gamma-power accounting into lazy term
+/// tables. `combined_sum` is the identical field element.
+pub(crate) fn build_lazy_combine_terms<EF>(statements: &[SparseStatement<EF>], gamma: EF) -> LazyCombineTerms<EF>
+where
+    EF: ExtensionField<PF<EF>>,
+{
+    let num_variables = statements[0].total_num_variables;
+    assert!(statements.iter().all(|e| e.total_num_variables == num_variables));
+    let w = packing_log_width::<EF>();
+
+    let is_full = |s: &SparseStatement<EF>| {
+        !s.is_next && s.values.len() == 1 && s.values[0].selector == 0 && s.inner_num_variables() == num_variables
+    };
+
+    let mut full = Vec::new();
+    let mut inners: Vec<ArenaVec<EFPacking<EF>>> = Vec::new();
+    let mut blocks: Vec<LazyBlock> = Vec::new();
+    let mut scalars: Vec<EF> = Vec::new();
+    let mut overlay_map: std::collections::BTreeMap<usize, EFPacking<EF>> = Default::default();
+    let mut combined_sum = EF::ZERO;
+    let mut gamma_pow = EF::ONE;
+
+    let make_full = |point: &[EF], scalar: EF| {
+        let a = num_variables / 2;
+        let mut left: ArenaVec<EF> = eval_eq(&point[..a]);
+        for v in left.iter_mut() {
+            *v *= scalar;
+        }
+        let right: ArenaVec<EFPacking<EF>> = eval_eq_packed(&point[a..]);
+        let rshift = num_variables - a - w;
+        LazyFullTerm {
+            left,
+            right,
+            rshift,
+            rmask: (1usize << rshift) - 1,
+        }
+    };
+
+    let start_idx = match statements {
+        [a, b, ..] if is_full(a) && is_full(b) => {
+            let sa = gamma_pow;
+            let sb = gamma_pow * gamma;
+            combined_sum = a.values[0].value * sa + b.values[0].value * sb;
+            gamma_pow = sb * gamma;
+            full.push(make_full(&a.point.0, sa));
+            full.push(make_full(&b.point.0, sb));
+            2
+        }
+        [a, ..] if is_full(a) => {
+            let sa = gamma_pow;
+            combined_sum = a.values[0].value * sa;
+            gamma_pow *= gamma;
+            full.push(make_full(&a.point.0, sa));
+            1
+        }
+        _ => 0,
+    };
+
+    for smt in &statements[start_idx..] {
+        if !smt.is_next && (smt.values.len() == 1 || smt.inner_num_variables() < w) {
+            // combine_statement's sparse path: per-value gamma powers.
+            let inner_vars = smt.inner_num_variables();
+            let mut stmt_inner: Option<u32> = None;
+            for ev in &smt.values {
+                let scalar = gamma_pow;
+                combined_sum += ev.value * scalar;
+                gamma_pow *= gamma;
+                if inner_vars < w {
+                    // lane-level: contributes within a single packed word
+                    let shift = w - inner_vars;
+                    let word = ev.selector >> shift;
+                    let mut unpacked = vec![EF::ZERO; 1usize << w];
+                    compute_sparse_eval_eq::<EF>(ev.selector & ((1 << shift) - 1), &smt.point.0, &mut unpacked, scalar);
+                    let delta: Vec<EFPacking<EF>> = pack_extension(&unpacked);
+                    *overlay_map.entry(word).or_insert(EFPacking::<EF>::ZERO) += delta[0];
+                } else {
+                    let inner_id = *stmt_inner.get_or_insert_with(|| {
+                        inners.push(eval_eq_packed(&smt.point));
+                        (inners.len() - 1) as u32
+                    });
+                    let ishift = inner_vars - w;
+                    scalars.push(scalar);
+                    blocks.push(LazyBlock {
+                        start: ev.selector << ishift,
+                        ishift,
+                        inner_id,
+                        scalar: scalars.len() - 1,
+                    });
+                }
+            }
+        } else {
+            // combine_statement's dense path: sorted-unique selectors,
+            // per-ORIGINAL-order gamma powers.
+            let mut sorted = smt.values.iter().map(|e| e.selector).collect::<Vec<_>>();
+            sorted.sort_unstable();
+            sorted.dedup();
+            assert_eq!(sorted.len(), smt.values.len(), "Duplicate selectors in sparse statement");
+
+            let inner: ArenaVec<EFPacking<EF>> = if smt.is_next {
+                let next = matrix_next_mle_folded(&smt.point.0);
+                pack_extension(&next)
+            } else {
+                eval_eq_packed(&smt.point)
+            };
+            inners.push(inner);
+            let inner_id = (inners.len() - 1) as u32;
+            let ishift = smt.inner_num_variables() - w;
+
+            let mut p = gamma_pow;
+            for ev in &smt.values {
+                combined_sum += ev.value * p;
+                scalars.push(p);
+                blocks.push(LazyBlock {
+                    start: ev.selector << ishift,
+                    ishift,
+                    inner_id,
+                    scalar: scalars.len() - 1,
+                });
+                p *= gamma;
+            }
+            gamma_pow = p;
+        }
+    }
+
+    // Small blocks become exact overlay words; the rest go on the grid.
+    let mut grid_blocks: Vec<LazyBlock> = Vec::new();
+    for blk in blocks {
+        let span = 1usize << blk.ishift;
+        if span <= LAZY_OVERLAY_SPAN_MAX {
+            let inner = &inners[blk.inner_id as usize];
+            let s = scalars[blk.scalar];
+            for t in 0..span {
+                *overlay_map.entry(blk.start + t).or_insert(EFPacking::<EF>::ZERO) += inner[t] * s;
+            }
+        } else {
+            grid_blocks.push(blk);
+        }
+    }
+
+    let (grid, grid_log) = if grid_blocks.is_empty() {
+        (Vec::new(), 0)
+    } else {
+        let grid_log = grid_blocks.iter().map(|b| b.ishift).min().unwrap();
+        let n_cells = 1usize << (num_variables - w - grid_log);
+        let mut grid: Vec<Vec<u32>> = vec![Vec::new(); n_cells];
+        for (id, blk) in grid_blocks.iter().enumerate() {
+            let c0 = blk.start >> grid_log;
+            let c1 = (blk.start + (1usize << blk.ishift)) >> grid_log;
+            for cell in grid.iter_mut().take(c1).skip(c0) {
+                cell.push(id as u32);
+            }
+        }
+        (grid, grid_log)
+    };
+
+    LazyCombineTerms {
+        full,
+        inners,
+        blocks: grid_blocks,
+        scalars,
+        grid,
+        grid_log,
+        overlay: overlay_map.into_iter().collect(),
+        combined_sum,
+    }
+}
+
+/// One parallel pass: evaluates every weight value exactly once, stream-writes
+/// the materialized buffer for rounds 1+, and accumulates the round-0
+/// quadratic coefficients ((c0, c2); c1 deduced from the claimed sum).
+fn combine_and_compute_first_round<EF>(
+    evals: &[PFPacking<EF>],
+    terms: &LazyCombineTerms<EF>,
+    sum: EF,
+) -> (DensePolynomial<EF>, ArenaVec<EFPacking<EF>>)
+where
+    EF: ExtensionField<PF<EF>>,
+    EFPacking<EF>: std::ops::Mul<PFPacking<EF>, Output = EFPacking<EF>>,
+{
+    let n = evals.len();
+    let half = n / 2;
+    let mut weights = unsafe { ArenaVec::<EFPacking<EF>>::uninitialized(n) };
+    let wp = parallel::SendPtr(weights.as_mut_ptr());
+
+    let (mut c0p, mut c2p) = parallel::map_reduce(
+        half,
+        || (EFPacking::<EF>::ZERO, EFPacking::<EF>::ZERO),
+        |i| {
+            let w0 = terms.value_at(i);
+            let w1 = terms.value_at(half + i);
+            unsafe {
+                *wp.add(i) = w0;
+                *wp.add(half + i) = w1;
+            }
+            let x0 = evals[i];
+            let x1 = evals[half + i];
+            (w0 * x0, (w1 - w0) * (x1 - x0))
+        },
+        |(a0, a2), (b0, b2)| (a0 + b0, a2 + b2),
+    );
+
+    // Exact overlay application: patch the buffer and correct the accumulators.
+    for &(idx, delta) in &terms.overlay {
+        weights[idx] += delta;
+        if idx < half {
+            // d c0 = delta·e0 ; d c2 = -delta·(e1 - e0)
+            c0p += delta * evals[idx];
+            c2p += delta * (evals[idx] - evals[half + idx]);
+        } else {
+            // d c2 = delta·(e1 - e0)
+            c2p += delta * (evals[idx] - evals[idx - half]);
+        }
+    }
+
+    let c0 = EFPacking::<EF>::to_ext_iter([c0p]).sum::<EF>();
+    let c2 = EFPacking::<EF>::to_ext_iter([c2p]).sum::<EF>();
+    let c1 = sum - c0.double() - c2;
+    (DensePolynomial::new(vec![c0, c1, c2]), weights)
 }
 
 // ---------------------------------------------------------------------------
@@ -1045,5 +1371,94 @@ mod fusion_bench {
             1
         };
         println!("T0B: EFxEF/basexEF = {last_ratio:.2} => MAX_SLICES = {max_slices} (delayed-EF profitable while n_slices < ratio)");
+    }
+}
+
+#[cfg(test)]
+mod lazy_combine_diag {
+    use super::*;
+    use crate::{SparseStatement, SparseValue};
+    use field::{PackedValue, PrimeCharacteristicRing};
+    use koala_bear::{KoalaBear, QuinticExtensionFieldKB};
+    use rand::{RngExt, SeedableRng, rngs::StdRng};
+
+    type F = KoalaBear;
+    type EF = QuinticExtensionFieldKB;
+
+    #[test]
+    fn diag_lazy_vs_combine_failing_shape() {
+        let num_variables = 20usize;
+        let mut rng = StdRng::seed_from_u64(7);
+        let polynomial = (0..1usize << num_variables).map(|_| rng.random::<F>()).collect::<Vec<F>>();
+
+        let mut statement: Vec<SparseStatement<EF>> = Vec::new();
+        // 2 fake OOD full statements at the front (mirrors initialize_first_round_state)
+        for _ in 0..2 {
+            let p = MultilinearPoint((0..num_variables).map(|_| rng.random::<EF>()).collect::<Vec<EF>>());
+            statement.push(SparseStatement::new(num_variables, p, vec![SparseValue { selector: 0, value: rng.random::<EF>() }]));
+        }
+        for (selector_len, n_sels) in [(6usize, 5usize), (8, 9), (11, 3)] {
+            let point = MultilinearPoint((0..num_variables - selector_len).map(|_| rng.random::<EF>()).collect::<Vec<EF>>());
+            let first = rng.random_range(0..(1usize << selector_len) - n_sels);
+            statement.push(SparseStatement::new(
+                num_variables,
+                point,
+                (0..n_sels).map(|k| SparseValue { selector: first + k, value: rng.random::<EF>() }).collect(),
+            ));
+        }
+        {
+            let point = MultilinearPoint((0..num_variables - 5).map(|_| rng.random::<EF>()).collect::<Vec<EF>>());
+            let sel = rng.random_range(0..32);
+            statement.push(SparseStatement::new(num_variables, point, vec![SparseValue { selector: sel, value: rng.random::<EF>() }]));
+        }
+        for inner in [0usize, 1] {
+            let point = MultilinearPoint((0..inner).map(|_| rng.random::<EF>()).collect::<Vec<EF>>());
+            let sel = rng.random_range(0..(1usize << (num_variables - inner)));
+            statement.push(SparseStatement::new(num_variables, point, vec![SparseValue { selector: sel, value: rng.random::<EF>() }]));
+        }
+        {
+            let inner = 10usize;
+            let point = MultilinearPoint((0..inner).map(|_| rng.random::<EF>()).collect::<Vec<EF>>());
+            let mut s = SparseStatement::new(
+                num_variables,
+                point,
+                (0..2usize).map(|k| SparseValue { selector: 3 + k, value: rng.random::<EF>() }).collect(),
+            );
+            s.is_next = true;
+            statement.push(s);
+        }
+
+        let gamma: EF = rng.random();
+        let (w_ref, sum_ref) = combine_statement::<EF>(&statement, gamma);
+        let terms = build_lazy_combine_terms::<EF>(&statement, gamma);
+        assert_eq!(terms.combined_sum, sum_ref, "combined_sum diverged");
+
+        // elementwise weight check including overlay
+        let half = w_ref.len() / 2;
+        let evals: Vec<PFPacking<EF>> = {
+            let mut v = vec![PFPacking::<EF>::ZERO; w_ref.len()];
+            let unp = PFPacking::<EF>::unpack_slice_mut(&mut v);
+            for (i, slot) in unp.iter_mut().enumerate() {
+                *slot = F::from_u32((i as u32).wrapping_mul(2654435761) >> 3);
+            }
+            v
+        };
+        let (poly_lazy, w_lazy) = combine_and_compute_first_round::<EF>(&evals, &terms, sum_ref);
+        let mut n_bad = 0usize;
+        for j in 0..w_ref.len() {
+            if w_lazy[j] != w_ref[j] {
+                if n_bad < 10 {
+                    println!("weight mismatch at packed {j} (half={half}, j>>13={})", j >> 13);
+                }
+                n_bad += 1;
+            }
+        }
+        println!("total weight mismatches: {n_bad} / {}", w_ref.len());
+        assert_eq!(n_bad, 0, "weights diverged");
+        let poly_ref = sumcheck::compute_product_sumcheck_polynomial(&evals, &w_ref, sum_ref, |e| {
+            <EFPacking<EF> as field::PackedFieldExtension<F, EF>>::to_ext_iter([e]).collect()
+        });
+        assert_eq!(poly_lazy.coeffs, poly_ref.coeffs, "round-0 poly diverged");
+        println!("diag: all equal");
     }
 }

@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{DIGEST_LEN_FE, MerklePath, MerklePaths};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PrunedMerklePaths<Data, F> {
     pub leaf_data: Vec<Vec<Data>>,
     pub sibling_hashes: Vec<[F; DIGEST_LEN_FE]>,

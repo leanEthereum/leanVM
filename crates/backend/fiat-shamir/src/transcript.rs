@@ -29,7 +29,7 @@ pub struct MerklePath<Data, F> {
 #[derive(Debug, Clone)]
 pub struct MerklePaths<Data, F>(pub(crate) Vec<MerklePath<Data, F>>);
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Proof<F> {
     pub(crate) transcript: Vec<F>,
     pub(crate) merkle_paths: Vec<PrunedMerklePaths<F, F>>,
