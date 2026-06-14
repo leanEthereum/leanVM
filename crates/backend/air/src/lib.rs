@@ -14,6 +14,28 @@ pub trait Air: Send + Sync + 'static {
 
     fn degree_air(&self) -> usize;
 
+    /// Maximum univariate degree of the constraint composition along a fold
+    /// line `C(lo + z*diff)` — i.e. the number of fresh evaluation points the
+    /// sumcheck prover needs per pair. Defaults to `degree_air()`. Override
+    /// when the declared `degree_air` over-states the true constraint degree:
+    /// the prover then skips the provably-redundant top eval pass. The wire
+    /// format is UNAFFECTED (messages stay sized by `degree_air`; the
+    /// interpolated coefficients are identical because the omitted top
+    /// coefficient is exactly zero).
+    fn degree_z(&self) -> usize {
+        self.degree_air()
+    }
+
+    /// Whether the C2 per-pair constraint-value table (h6' T3', Gruen 2024/108
+    /// §4 adapted) pays for itself for this AIR. The table trades one full
+    /// constraint eval per pair (the z=0 node) for one table lookup plus a
+    /// challenge-time extrapolation; it wins when constraint evaluation is
+    /// expensive relative to the bookkeeping. Both strategies are bit-identical
+    /// — this flag only selects the faster one per table.
+    fn c2_table_profitable(&self) -> bool {
+        true
+    }
+
     fn n_columns(&self) -> usize;
 
     fn n_constraints(&self) -> usize;
@@ -24,6 +46,16 @@ pub trait Air: Send + Sync + 'static {
     fn n_shift_columns(&self) -> usize;
 
     fn eval<AB: AirBuilder>(&self, builder: &mut AB, extra_data: &Self::ExtraData);
+
+    /// h6' T4' (plan §1.3 round-0 seeding, stage 2): emit ONLY the bus
+    /// constraints (indices 0 and 1 — every table's `eval` invokes the bus
+    /// first). On valid trace rows all genuine gates vanish, so the bus-only
+    /// accumulator equals the full one at a fraction of the cost; the C2 seed
+    /// round uses this for its z=0 / z=1 per-row values. Default = full eval
+    /// (bit-identical, just slower) so non-overriding AIRs stay correct.
+    fn eval_bus_only<AB: AirBuilder>(&self, builder: &mut AB, extra_data: &Self::ExtraData) {
+        self.eval(builder, extra_data);
+    }
 }
 
 pub trait AirBuilder: Sized {
