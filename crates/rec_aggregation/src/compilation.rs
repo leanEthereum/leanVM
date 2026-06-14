@@ -277,11 +277,7 @@ fn build_replacements(log_inner_bytecode: usize, bytecode_zero_eval: F) -> BTree
             let BusData::Constant(domsep) = bus.domainsep else {
                 panic!("Multiplicity::One bus domsep must be a constant");
             };
-            // h9-A deferred-claim bus: occupies its GKR segment (domsep kept so the
-            // circuit's n_buses_per_table / offset layout is unchanged), but contributes
-            // NO per-column evals — the circuit reads ONE composite denominator instead.
-            // Its data may reference temporary (virtual) columns, which must never reach
-            // the ONE_BUSES_* column lists (they have no PCS statements).
+            // Deferred-claim bus: no per-column evals, one composite denominator.
             if bus.deferred_claim {
                 table_domseps.push(domsep.to_string());
                 table_data_cols.push("[]".to_string());
@@ -365,9 +361,7 @@ fn build_replacements(log_inner_bytecode: usize, bytecode_zero_eval: F) -> BTree
         "ONE_BUSES_NEW_COLS_PLACEHOLDER".to_string(),
         format!("[{}]", one_buses_new_cols.join(", ")),
     );
-    // h9-A deferred-claim bus placeholders (plan_spec §3.A / T3): flags + per-bus slot
-    // index into the per-table deferred-denominator array + counts for the AIR
-    // initial_sum loop. MAX is floored at 1 so the circuit array allocation is nonzero.
+    // Deferred-claim bus metadata (flags, per-bus slot indices, counts).
     replacements.insert(
         "ONE_BUSES_DEFERRED_PLACEHOLDER".to_string(),
         format!("[{}]", one_buses_deferred.join(", ")),
@@ -547,11 +541,7 @@ fn air_eval_in_zk_dsl<T: TableT>(table: T) -> String
 where
     T::ExtraData: Default,
 {
-    // h9-A/T3: the 4th element holds the declared virtual-column expressions (exec's
-    // addr_a/b/c closed forms), consumed below to synthesize the deferred-bus
-    // fingerprints at alpha slots 2..2+n_deferred — mirroring the Rust BUS=true
-    // emission order (eval_bus_data_only directly after the Column-bus pair) and the
-    // verifier's initial_sum layout (verify_execution.rs / recursion.py).
+    // 4th element = deferred-claim virtual-column expressions (e.g. addr_a/b/c).
     let (constraints, bus_multiplicity, bus_data, deferred_groups) =
         get_symbolic_constraints_and_bus_data_values::<F, _>(&table);
     // `bus_data`'s last entry is the domainsep (logup domain separation).
@@ -599,11 +589,7 @@ where
     );
     res += "\n    sum: Mut = add_extension_ret(bus_res, weighted_multiplicity)";
 
-    // h9-A/T3 deferred-claim fingerprints (alpha slots 2..2+n_deferred, Rust layout:
-    // [mult, colbus, D_memA, D_memB, D_memC, algebra...]). Each deferred bus's data
-    // entries referencing temporary (virtual) columns are taken from the declared
-    // expression queue (exec: [addr_a, addr_b, addr_c]); committed-column entries use
-    // the table's inner evals directly. encoded_i = sum_j eq[j]*data_j + eq.last*domsep.
+    // Deferred-claim fingerprints (alpha slots 2..2+n_deferred).
     let mut virtual_expr_queue: Vec<_> = deferred_groups.iter().flatten().copied().collect();
     virtual_expr_queue.reverse(); // consume from the back via pop()
     let n_committed = table.n_columns();

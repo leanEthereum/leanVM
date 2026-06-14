@@ -1,20 +1,6 @@
-//! h9-A T2 adversarial gate (plan_spec §5 T2): every transcript scalar in the
-//! logup-claim region — including the three deferred-claim denominator evals D̂_i
-//! that replaced the per-column addr/value statements — must be binding: flipping
-//! any of them must make verification fail (at the GKR balance, the AIR final
-//! check, or WHIR, whichever catches it first; all are rejections).
-//!
-//! Construction: serialize the proof with postcard (canonical byte stream:
-//! `Proof { transcript: Vec<F>, .. }` ⇒ varint length + 8-byte LE scalars),
-//! flip one byte inside a chosen transcript scalar, deserialize, verify.
-//! A deserialization failure also counts as a rejection (caught corruption).
-//!
-//! Scope note (documented deviation): the plan's test (ii) — tampering value_a on
-//! an inactive row pre-proof — has no seam without modifying prove_execution
-//! (traces are built inside). Coverage argument: the GKR bus-balance fill is
-//! byte-identical code to the pre-h9 protocol for committed and deferred buses
-//! alike, and the new padding-row balance (addr 0, VALUE_* = memory[0]) is
-//! exercised by every green roundtrip in this file and the lean_prover suite.
+//! Adversarial binding test for deferred-claim bus denominators: every transcript
+//! scalar in the logup/deferred-claim region must be binding — flipping any one
+//! byte must make verification reject.
 
 use backend::*;
 use lean_compiler::*;
@@ -42,7 +28,7 @@ fn build_proof() -> (Bytecode, [F; PUBLIC_INPUT_LEN], Proof<F>) {
 }
 
 #[test]
-fn h9_deferred_claims_are_binding() {
+fn deferred_claims_are_binding() {
     let (bytecode, public_input, proof) = build_proof();
 
     // Honest proof verifies.

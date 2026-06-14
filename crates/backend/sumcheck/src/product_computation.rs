@@ -185,7 +185,7 @@ pub fn run_product_sumcheck_base_eager<const DIM: usize, EF: ExtensionField<PF<E
     (challenges, sum, pol_a, pol_b)
 }
 
-/// Lazy-fold path for the (BasePacked, ExtensionPacked) arm (plan h14-T2).
+/// Lazy-fold path for the (BasePacked, ExtensionPacked) arm.
 ///
 /// Round 1 never materializes the folded eval array: evals stay as two implicit
 /// base streams `a_i = P[i]`, `b_i = P[half+i] - P[i]` (the fold by `r1` is kept
@@ -568,10 +568,7 @@ pub fn compute_product_sumcheck_polynomial_base_ext_packed<
             let b_hi = &pol_0[half + start..half + end];
             let e_lo = &pol_1[start..end];
             let e_hi = &pol_1[half + start..half + end];
-            // Two passes over the (L2-resident) chunk, halving live accumulator
-            // registers per loop (plan_spec §3.1 register-pressure fallback:
-            // 6 accumulators x 4 zmm = 24 live exceeded the budget and spilled
-            // in-loop; 3 x 4 = 12 per pass fits).
+            // Two passes: 6 accumulators x 4 zmm = 24 spills; split to 3 x 4 = 12.
             let mut c0_lazy: [[PF; 4]; DIM] = core::array::from_fn(|_| PF::lazy_acc_zero());
             for i in 0..b_lo.len() {
                 let x0 = b_lo[i];
@@ -719,10 +716,7 @@ mod base_ext_packed_kernel_tests {
     use super::*;
     use koala_bear::{KoalaBear, PackedQuinticExtensionFieldKB, QuinticExtensionFieldKB};
 
-    /// Pre-T4 kernel body, kept verbatim as the equality oracle (scalar per-lane
-    /// accumulation with eager reduction). Proves the restructured kernel is
-    /// value-preserving; the Goldilocks lazy primitives themselves are proven by
-    /// the goldilocks crate's T2/T3 oracle tests (plan_spec §4.2 composition).
+    /// Original eager kernel, kept as equality oracle for the lazy path.
     fn reference_base_ext_packed<
         const DIM: usize,
         F: PrimeField64,
@@ -765,8 +759,6 @@ mod base_ext_packed_kernel_tests {
         DensePolynomial::new(vec![c0, c1, c2])
     }
 
-    // Minimal deterministic PRNG (same xorshift precedent as the goldilocks
-    // lazy_acc tests; no new deps).
     struct XorShift(u64);
     impl XorShift {
         fn next_u64(&mut self) -> u64 {

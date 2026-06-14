@@ -182,10 +182,8 @@ pub fn prove_execution(
                 BusDirection::Pull => EF::NEG_ONE,
                 BusDirection::Push => EF::ONE,
             };
-        // Each table consumes a disjoint range of alpha powers; alpha^offset weights the bus
-        // numerator (multiplicity), alpha^{offset+1} weights the Column-bus fingerprint, then
-        // one fingerprint slot per deferred-claim bus (h9-A, in bus order — mirroring the
-        // table's `eval` emission), and alpha^{offset+1+n_claims..} the algebra constraints.
+        // Alpha layout: slot 0 = multiplicity, slot 1 = Column-bus fingerprint,
+        // then deferred-claim slots, then algebra constraints.
         let mut bus_final_value = air_alpha_powers[alpha_offset] * signed_numerator;
         for (i, den) in bus_denominator_values.iter().enumerate() {
             bus_final_value += air_alpha_powers[alpha_offset + 1 + i] * (logup_c - *den);

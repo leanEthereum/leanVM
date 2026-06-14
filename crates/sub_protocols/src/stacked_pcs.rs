@@ -209,7 +209,7 @@ pub fn total_whir_statements() -> usize {
         .iter()
         .map(|table| {
             let mut seen_cols = std::collections::HashSet::<ColIndex>::new();
-            // h9-A: deferred-claim buses produce NO per-column PCS statements
+            // Skip deferred-claim buses (no per-column PCS statements).
             for bus in table
                 .bus_interactions()
                 .iter()

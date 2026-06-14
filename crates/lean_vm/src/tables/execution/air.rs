@@ -6,10 +6,7 @@ pub const N_INSTRUCTION_COLUMNS: usize = 12;
 pub const N_TOTAL_EXECUTION_COLUMNS: usize = N_INSTRUCTION_COLUMNS + N_RUNTIME_COLUMNS;
 
 // Committed columns (IMPORTANT: they must be the first columns)
-// h9-A (iter 5): ADDR_A/B/C are no longer committed — they are exact low-degree
-// polynomials of the columns below (the closed forms trace_gen.rs computes), so they
-// live as temporary columns and the memory-bus claims are proven inside the batched
-// AIR sumcheck (deferred-claim buses, plan_spec §3.A). Committed: 20 → 17 columns.
+// ADDR_A/B/C are virtual (temporary) — derived from committed columns below.
 pub const EXEC_COL_PC: usize = 0;
 pub const EXEC_COL_FP: usize = 1;
 pub const EXEC_COL_VALUE_A: usize = 2;
@@ -49,11 +46,7 @@ impl<const BUS: bool> Air for ExecutionTable<BUS> {
     fn degree_air(&self) -> usize {
         5
     }
-    // C2 kill rule, measured iter-3 T3' (3x interleaved A/B, 1550-sig xmss):
-    // exec class poly +1.5ms / fold +5.4ms = +6.9ms net REGRESSION — the cheap
-    // 14-constraint eval (~235 ns/pair EF) does not amortize the table's
-    // challenge-time extrapolation + cache traffic (plan_spec §5.1 thin case).
-    // Poseidon (~3338 ns/pair, 106 constraints) nets -39.7ms and keeps C2.
+    // C2 not profitable: 14-constraint eval is too cheap to amortize the cache overhead.
     fn c2_table_profitable(&self) -> bool {
         false
     }
@@ -61,8 +54,6 @@ impl<const BUS: bool> Air for ExecutionTable<BUS> {
         2
     }
     fn n_constraints(&self) -> usize {
-        // h9-A: 14 - 4 address-definition constraints (now definitional via the
-        // virtual closed forms) + 3 encoded memory-bus asserts (deferred claims).
         13
     }
 
@@ -109,20 +100,14 @@ impl<const BUS: bool> Air for ExecutionTable<BUS> {
         let flag_deref = (aux_1 * (aux_1 - AB::F::ONE)).halve();
         let flag_precompile = -(flag_add + flag_mul + flag_deref + flag_jump - AB::F::ONE);
 
-        // h9-A virtual addresses: the exact closed forms of trace_gen.rs (the old
-        // committed columns satisfied these identically on every real row; the old
-        // address-definition constraints are therefore definitional and deleted).
-        // Degrees: addr_a/c 2, addr_b 3 (flag_deref is quadratic in aux_1).
+        // Virtual addresses: closed-form expressions of committed columns.
         let addr_a = one_minus_flag_a_and_flag_ab_fp * fp_plus_operand_a;
         let addr_b = one_minus_flag_b_and_flag_ab_fp * fp_plus_operand_b + flag_deref * (value_a + operand_b);
         let addr_c = one_minus_flag_c_and_flag_c_fp * fp_plus_operand_c;
 
         if BUS {
             eval_bus_virtual::<AB, EF>(builder, extra_data, flag_precompile, aux_2, &[nu_a, nu_b, nu_c]);
-            // h9-A deferred memory-bus claims: one encoded assert per memory lookup,
-            // proven inside the batched AIR sumcheck (encoded degree <= 3+1 < degree_air).
-            // Order matters: these occupy the constraint slots directly after the
-            // precompile bus pair; the verifier's initial_sum loop matches this order.
+            // Deferred memory-bus claims (order must match verifier's initial_sum loop).
             eval_bus_data_only::<AB, EF>(builder, extra_data, LOGUP_MEMORY_DOMAINSEP, &[addr_a, value_a]);
             eval_bus_data_only::<AB, EF>(builder, extra_data, LOGUP_MEMORY_DOMAINSEP, &[addr_b, value_b]);
             eval_bus_data_only::<AB, EF>(builder, extra_data, LOGUP_MEMORY_DOMAINSEP, &[addr_c, value_c]);
@@ -135,7 +120,7 @@ impl<const BUS: bool> Air for ExecutionTable<BUS> {
         builder.assert_zero(flag_add * (nu_b - (nu_a + nu_c)));
         builder.assert_zero(flag_mul * (nu_b - nu_a * nu_c));
 
-        // DEREF: result in value_B, compared to nu_C (the addr_B linkage is definitional now)
+        // DEREF: result in value_B, compared to nu_C
         builder.assert_zero(flag_deref * (value_b - nu_c));
 
         let jump_and_condition = flag_jump * nu_a;

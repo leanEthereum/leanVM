@@ -1,8 +1,6 @@
-//! T3' (h6' C2) — equality of the C2 per-pair-table strategy vs the fresh-eval
-//! reference path, over full sumcheck runs with production-shaped padding
-//! (rows >= non_padded repeat the last real row, as prove_execution's traces do),
-//! odd straddle lengths in the unpacked rounds, and the phase-1 -> phase-2
-//! storage transition. The bare round polynomials must be IDENTICAL field
+//! C2 per-pair table equality test: verifies the C2 path produces identical
+//! round polynomials vs the fresh-eval path, including padding rows and the
+//! phase-1 → phase-2 transition. The bare round polynomials must be identical
 //! elements every round (this is what makes C2 transcript-invariant), and the
 //! final column evaluations must agree.
 //!

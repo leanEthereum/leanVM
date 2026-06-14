@@ -1,11 +1,5 @@
-//! T2' (h6' C3a) — pins the poseidon degree census: the constraint composition
-//! restricted to any fold line `C(lo + z*diff)` has true degree ≤ 7, although
-//! `degree_air()` declares 8. Therefore the z=8 evaluation pass the prover used
-//! to run is provably redundant (its interpolated top coefficient is zero), and
-//! `degree_z() = 7` removes it without changing a single wire byte.
-//!
-//! The census is STRUCTURAL: it holds for any committed column values, and is
-//! checked here on a real (witness-consistent) Poseidon8 trace.
+//! Degree census: verifies that `degree_z() = 7` is correct for Poseidon8
+//! (the constraint composition has true degree ≤ 7, so z=8 eval is redundant).
 
 use backend::*;
 use lean_vm::{

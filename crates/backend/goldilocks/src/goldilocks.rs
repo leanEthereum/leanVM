@@ -286,7 +286,7 @@ impl PrimeCharacteristicRing for Goldilocks {
         unsafe { flatten_to_base(vec![0u64; len]) }
     }
 
-    // Deferred multiply-accumulate protocol (plan_spec h3 §1.3-§1.5, §2).
+    // Deferred multiply-accumulate protocol.
     //
     // Accumulator layout: 192-bit little-endian limbs in slots 0..3:
     //   slot 0 = l0 (bits 0..64), slot 1 = l1 (bits 64..128), slot 2 = l2 (bits 128..192),
@@ -343,8 +343,8 @@ impl PrimeCharacteristicRing for Goldilocks {
         let l0 = acc[0].value;
         let l1 = acc[1].value;
         let l2 = acc[2].value;
-        // §1.5 bound: l2 drifts by <= 1 per term around its ~P/4 ~ 2^62 seed.
-        debug_assert!(l2 < (1u64 << 63), "lazy accumulator l2 out of §1.5 bound");
+        // l2 must stay below 2^63 (deferred reduction invariant).
+        debug_assert!(l2 < (1u64 << 63), "lazy accumulator l2 overflow");
         // V = l2*2^128 + l1*2^64 + l0 ≡ l0 + l1*eps - l2*2^32 (mod P)
         // (2^64 ≡ eps, 2^128 ≡ -2^32). Add P*2^33 (multiple of P, ~2^97 > l2*2^32 < 2^95)
         // to keep the u128 arithmetic borrow-free, then one reduce128:

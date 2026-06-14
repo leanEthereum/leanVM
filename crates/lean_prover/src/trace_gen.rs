@@ -163,7 +163,7 @@ pub fn get_execution_trace(
             padding_zero_vec_ptr,
             null_poseidon_16_hash_ptr,
             bytecode.ending_pc(),
-            memory_padded[0], // h9-A: padding VALUE_* must equal memory[0]
+            memory_padded[0],
             floor,
         );
     }

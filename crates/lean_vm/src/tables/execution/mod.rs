@@ -50,9 +50,7 @@ impl<const BUS: bool> TableT for ExecutionTable<BUS> {
         // Convention shared with the other tables: the unique Multiplicity::Column bus
         // comes first; everything that follows is Multiplicity::One.
         let mut buses = vec![precompile_bus, bytecode_lookup];
-        // h9-A: ADDR_A/B/C are temporary (virtual) columns — these three lookups are
-        // deferred-claim buses, grounded by the eval_bus_data_only constraints that the
-        // exec AIR emits right after the precompile bus pair (same order: A, B, C).
+        // Deferred-claim memory buses (virtual address columns, order: A, B, C).
         buses.extend(memory_lookups_consecutive_with_claim(
             EXEC_COL_ADDR_A,
             EXEC_COL_VALUE_A,
@@ -85,11 +83,7 @@ impl<const BUS: bool> TableT for ExecutionTable<BUS> {
         padding_row[EXEC_COL_FLAG_C_FP] = F::ONE; // this is kind of arbitrary
         padding_row[EXEC_COL_NU_A] = F::ONE; // we always jump here (self-loop, so condition = nu_a = 1)
         padding_row[EXEC_COL_NU_B] = F::from_usize(ending_pc); // nu_b = jump dest = ending_pc
-        // h9-A: the virtual address expressions evaluate to 0 on padding rows
-        // (flag_a = flag_b = 1, flag_c_fp = 1, flag_deref = 0), so the memory-bus
-        // pushes become (0, VALUE_*) — VALUE_* must equal memory[0] to balance.
-        // ADDR_A/B/C temporaries stay 0 (matching the virtual expressions), which
-        // also routes the padding access counts to address 0.
+        // Virtual addresses evaluate to 0 on padding rows, so VALUE_* must = memory[0].
         padding_row[EXEC_COL_VALUE_A] = mem0;
         padding_row[EXEC_COL_VALUE_B] = mem0;
         padding_row[EXEC_COL_VALUE_C] = mem0;
@@ -113,9 +107,7 @@ impl<const BUS: bool> TableT for ExecutionTable<BUS> {
 mod h9_layout_tests {
     use super::*;
 
-    /// h9-A invariants: committed layout 17 + 7 temporaries; the padding row
-    /// satisfies the virtual-address closed forms (all three evaluate to 0) and
-    /// carries mem0 in the VALUE columns so the (0, VALUE) bus pushes balance.
+    /// Padding row: virtual addresses all zero, VALUE_* = mem0.
     #[test]
     fn padding_row_satisfies_virtual_addresses() {
         let mem0 = F::from_usize(424242);

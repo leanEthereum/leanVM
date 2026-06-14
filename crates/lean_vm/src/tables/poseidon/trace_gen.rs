@@ -2,11 +2,8 @@ use tracing::instrument;
 
 use super::*;
 
-// `execute()` writes the I/O columns inline but defers the per-round witness
-// columns (h12 C-2): this pass recomputes them from the (final) input columns,
-// 8 rows per packed call, parallel over disjoint row ranges. Trailing rows
-// that don't fill a packed block — and every row on targets without the
-// packed kernel — use the scalar replay, which emits identical values.
+// Recompute per-round witness columns from the input columns, 8 rows per
+// packed call, parallel over disjoint row ranges.
 #[instrument(name = "generate Poseidon8 AIR trace", skip_all)]
 pub fn fill_trace_poseidon_8(trace: &mut [ArenaVec<F>]) {
     let n = trace.iter().map(|col| col.len()).max().unwrap_or(0);

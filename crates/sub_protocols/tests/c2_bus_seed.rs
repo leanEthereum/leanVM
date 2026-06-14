@@ -1,8 +1,5 @@
-//! T4' (h6' C2 bus-only seeding) — per-row equality gate: on every row of a
-//! witness-consistent Poseidon8 trace (including the padding copies of the
-//! last real row), the bus-only accumulator must equal the full constraint
-//! accumulator: all genuine gates vanish row-wise, leaving exactly
-//! `alpha^0 * multiplicity + alpha^1 * encoded` (plan_spec §1.3 round-0 seeding).
+//! C2 bus-only seeding test: on every valid row, the bus-only accumulator
+//! must equal the full constraint accumulator (non-bus gates vanish row-wise).
 
 use backend::*;
 use lean_vm::{

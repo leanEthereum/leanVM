@@ -118,12 +118,7 @@ const AUX_COLS_PER_ROW: usize = num_cols_poseidon_8() - POSEIDON_8_COL_ROUND_STA
 // decomposition so only 2 cols/round are emitted.
 
 fn mds_vec_mul(state: &[F; WIDTH]) -> [F; WIDTH] {
-    // u128-accumulator scheme replicating `mds_mul_scalar`
-    // (crates/backend/goldilocks/src/poseidon1.rs:85-110, read-only reference):
-    // all MDS8_ROW coefficients are <= 9, so each output is a sum of 8 products
-    // bounded by 8 * 9 * (p-1) < 2^71 — accumulate in u128 integers and reduce
-    // ONCE per lane via 2^64 = 2^32 - 1 (mod p), instead of 8 fully-reducing
-    // field multiplications. hi < 2^7, so hi * (2^32 - 1) fits u64 exactly.
+    // u128 accumulation: MDS coefficients <= 9, so sum < 2^71. Reduce once.
     let s: [u128; WIDTH] = std::array::from_fn(|j| state[j].as_canonical_u64() as u128);
     let mut out = [F::ZERO; WIDTH];
     for i in 0..WIDTH {
@@ -262,15 +257,7 @@ mod packed_witness {
         compute_poseidon8_witness_packed(state)
     }
 
-    /// 8-lane packed variant of [`compute_poseidon8_witness`]: replays 8
-    /// independent permutations in lockstep, one row per SIMD lane. Takes and
-    /// returns packed column-major data — lane `l` of `aux[k]` equals row
-    /// `l`'s scalar `aux[k]` — so a deferred trace fill can load 8 consecutive
-    /// rows of each input column and store each `aux[k]` into 8 consecutive
-    /// rows of its column with single 64-byte copies. The MDS reuses the
-    /// backend's delayed-reduction `mds_mul_simd`; everything else uses the
-    /// fully-reducing packed ops, so every emitted value is field-equal to the
-    /// scalar path's.
+    /// 8-lane packed variant of [`compute_poseidon8_witness`].
     pub fn compute_poseidon8_witness_packed(mut state: [P; WIDTH]) -> ([P; AUX_COLS_PER_ROW], [P; WIDTH]) {
         let c = get_partial_constants();
         let mut aux = [P::ZERO; AUX_COLS_PER_ROW];
@@ -467,11 +454,7 @@ impl<const BUS: bool> TableT for Poseidon8Precompile<BUS> {
             .get_slice_into(left_second_addr, &mut input[HALF_DIGEST_LEN..DIGEST])?;
         ctx.memory.get_slice_into(arg_b.to_usize(), &mut input[DIGEST..])?;
 
-        // h12 C-2: the per-round witness columns are deferred to
-        // `fill_trace_poseidon_8`'s packed parallel pass — the inline path only
-        // needs the permutation output, via the backend's fast scalar permute
-        // (field-equal to the sparse witness replay, see sparse.rs equivalence
-        // tests).
+        // Round witness columns filled later by fill_trace_poseidon_8.
         let perm_state = poseidon8_permute(input);
 
         // `output_cols` are the WIDTH output trace columns. For permute rows they
@@ -563,15 +546,7 @@ impl<const BUS: bool> Air for Poseidon8Precompile<BUS> {
         8
     }
     fn degree_z(&self) -> usize {
-        // Degree census (h6' plan §1.2; empirically validated: the bare
-        // round-poly coefficient at index 8 is [0,0,0] in EVERY round):
-        // full-round gates `post − Σ MDS·(state+rc)^7` and partial-round gates
-        // `post_sbox − x^7` are degree 7 (state / x are LINEAR in committed
-        // columns — the sparse decomposition commits post_sbox precisely to
-        // reset degree); all other constraints are degree ≤ 3, bus gates ≤ 2.
-        // 0 of 106 constraints reach the declared degree 8, so the z=8 eval
-        // pass is provably redundant. `degree_air()` stays 8 (wire format and
-        // verifier-side message sizing unchanged).
+        // True max is 7 (S-box x^7; all column refs linear). See degree_census test.
         7
     }
     fn n_shift_columns(&self) -> usize {
@@ -580,11 +555,7 @@ impl<const BUS: bool> Air for Poseidon8Precompile<BUS> {
     fn n_constraints(&self) -> usize {
         poseidon8_n_constraints(BUS)
     }
-    // h6' T4': bus-only row value for the C2 seed round. Reads the handful of
-    // committed columns the bus tuple needs and emits exactly the two bus
-    // constraints (alpha indices 0, 1). On witness-consistent rows (including
-    // padding copies of the last row) this equals the full `eval` accumulator
-    // — pinned per-row by tests/c2_bus_seed.rs and by the proof byte-diff.
+    // Bus-only eval for the C2 seed round (see c2_bus_seed.rs test).
     fn eval_bus_only<AB: AirBuilder>(&self, builder: &mut AB, extra_data: &Self::ExtraData) {
         if !BUS {
             self.eval(builder, extra_data);
@@ -927,8 +898,6 @@ mod mds_u128_tests {
         }
     }
 
-    /// C-2 PRE-GATE microbench: packed 8-lane witness kernel vs the scalar
-    /// post-C-1 path. Bar: >= 2.5x or C-2 is skipped.
     #[test]
     #[ignore]
     #[cfg(all(target_arch = "x86_64", target_feature = "avx512f"))]

@@ -127,7 +127,7 @@ impl PrimeCharacteristicRing for PackedGoldilocksAVX512 {
         unsafe { reconstitute_from_base(Goldilocks::zero_vec(len * WIDTH)) }
     }
 
-    // Deferred multiply-accumulate protocol (plan_spec h3 §1.2-§1.5, §2).
+    // Deferred multiply-accumulate protocol.
     //
     // Accumulator layout: [L, H, W, K], one zmm each:
     //   L = wrapping sum of term lows;  K = count of L-wraps (each worth 2^64)
@@ -142,13 +142,13 @@ impl PrimeCharacteristicRing for PackedGoldilocksAVX512 {
     // The separate K counter is mandatory: folding the lo-carry into t_hi via a
     // masked +1 is only safe for t_hi <= 2^64 - 2 (true for raw products) but NOT
     // for NOT-ed terms, where ~t_hi = 2^64 - 1 whenever t_hi = 0 — and zero
-    // products are reachable in real eval tables (plan §1.4: correctness over
+    // products are reachable in real eval tables
     // cleverness).
     //
-    // Finish (plan §1.3): merge K into H (carry into W), then one folding step
+    // Finish: merge K into H (carry into W), then one folding step
     //   V = L + H'_lo*eps - (H'_hi + W*2^32)   (mod P)
     // using 2^64 = eps, 2^96 = -1, 2^128 = -2^32, with the same
-    // sub_no_double/add_no_double tail as `reduce128` below. Bounds (§1.5):
+    // sub_no_double/add_no_double tail as `reduce128` below. Bounds:
     // the T1 contract caps accumulation at 5*2^20 terms, so W, K < 2^23 and
     // s = H'_hi + W*2^32 < 2^32 + 2^55 < P (tail precondition).
 
@@ -235,7 +235,7 @@ impl PrimeCharacteristicRing for PackedGoldilocksAVX512 {
                 for i in 0..WIDTH {
                     debug_assert!(
                         w_arr[i] < (1 << 23) && k_arr[i] < (1 << 23),
-                        "lazy accumulator wrap counters out of §1.5 bound"
+                        "lazy accumulator wrap counters overflow"
                     );
                 }
             }

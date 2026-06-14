@@ -2,12 +2,9 @@ use backend::*;
 
 use crate::ExtraDataForBuses;
 
-/// h9-A (iter 5): data-only bus fingerprint for deferred-claim buses
-/// (Multiplicity::One memory lookups whose address columns are virtual). Emits ONE
-/// encoded constraint — no multiplicity assert (the One-multiplicity numerator is
-/// already reconstructed verifier-side for committed One-buses). The constant
-/// `domainsep` is lifted directly into the fingerprint (vs. eval_bus_virtual's
-/// column-borne domainsep).
+/// Fingerprint constraint for deferred-claim buses (virtual address columns).
+/// Emits one encoded constraint; no multiplicity assert (One-numerator is
+/// reconstructed verifier-side).
 pub(crate) fn eval_bus_data_only<AB: AirBuilder, EF: ExtensionField<PF<EF>>>(
     builder: &mut AB,
     extra_data: &ExtraDataForBuses<EF>,

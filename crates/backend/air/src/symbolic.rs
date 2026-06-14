@@ -259,9 +259,6 @@ struct SymbolicAirBuilder<F: Field> {
     constraints: Vec<SymbolicExpression<F>>,
     bus_multiplicity_value: Option<SymbolicExpression<F>>,
     bus_data_values: Option<Vec<SymbolicExpression<F>>>,
-    /// h9-A: additional declared groups beyond the (multiplicity, bus-data) pair —
-    /// e.g. the virtual address expressions backing deferred-claim buses. Consumed by
-    /// the recursion codegen (one group per deferred bus claim).
     extra_declared_groups: Vec<Vec<SymbolicExpression<F>>>,
 }
 
@@ -317,7 +314,6 @@ impl<F: Field> AirBuilder for SymbolicAirBuilder<F> {
         } else if self.bus_data_values.is_none() {
             self.bus_data_values = Some(values.to_vec());
         } else {
-            // h9-A: third and later groups = deferred-claim expressions (virtual columns)
             self.extra_declared_groups.push(values.to_vec());
         }
     }
@@ -327,7 +323,6 @@ pub type SymbolicAirData<F> = (
     Vec<SymbolicExpression<F>>,
     SymbolicExpression<F>,
     Vec<SymbolicExpression<F>>,
-    // h9-A: declared groups beyond (multiplicity, bus-data) — deferred-claim expressions
     Vec<Vec<SymbolicExpression<F>>>,
 );
 

@@ -23,8 +23,7 @@ ONE_BUSES_DOMSEPS = ONE_BUSES_DOMSEPS_PLACEHOLDER  # [[_; num_buses]; N_TABLES]
 ONE_BUSES_DATA_COLS = ONE_BUSES_DATA_COLS_PLACEHOLDER  # [[[_; num_data]; num_buses]; N_TABLES]
 ONE_BUSES_DATA_OFFSETS = ONE_BUSES_DATA_OFFSETS_PLACEHOLDER  # [[[_; num_data]; num_buses]; N_TABLES]
 ONE_BUSES_NEW_COLS = ONE_BUSES_NEW_COLS_PLACEHOLDER  # [[[_; n_new]; num_buses]; N_TABLES]
-# h9-A deferred-claim buses (virtual data columns; one composite denominator on the wire,
-# grounded by the table's eval_bus_data_only constraint slots in the batched AIR sumcheck):
+# Deferred-claim buses (virtual data columns; one composite denominator on the wire):
 ONE_BUSES_DEFERRED = ONE_BUSES_DEFERRED_PLACEHOLDER  # [[0/1; num_buses]; N_TABLES]
 ONE_BUSES_DEFERRED_IDX = ONE_BUSES_DEFERRED_IDX_PLACEHOLDER  # [[slot or 0; num_buses]; N_TABLES]
 N_DEFERRED_BUSES = N_DEFERRED_BUSES_PLACEHOLDER  # [_; N_TABLES]
@@ -228,7 +227,7 @@ def recursion(inner_public_memory, initial_fiat_shamir_cap):
     # Per-table data accumulators (indexed by table_index).
     bus_numerators_values = Array(N_TABLES * DIM)
     bus_denominators_values = Array(N_TABLES * DIM)
-    # h9-A: composite denominator evals of deferred-claim buses, consumed by the AIR
+    # Composite denominator evals of deferred-claim buses, consumed by the AIR
     # initial_sum (slots alpha_offset+2+i, mirroring verify_execution.rs).
     deferred_bus_denominators = Array(N_TABLES * MAX_DEFERRED_BUSES * DIM)
     pcs_inner_points = Array(N_TABLES)
@@ -264,7 +263,7 @@ def recursion(inner_public_memory, initial_fiat_shamir_cap):
 
         # Multiplicity::One buses (bytecode lookup + memory lookups).
         for one_bus_idx in unroll(0, len(ONE_BUSES_DOMSEPS[table_index])):
-            # h9-A deferred-claim bus: the wire carries ONE composite denominator eval
+            # Deferred-claim bus: one composite denominator eval on the wire
             # (gamma - fingerprint-hat at the GKR point); the One-numerator is the prefix
             # itself (Push direction). The composite is grounded by the table's
             # eval_bus_data_only constraint slot in the batched AIR sumcheck (initial_sum
@@ -351,7 +350,7 @@ def recursion(inner_public_memory, initial_fiat_shamir_cap):
                 sub_extension_ret(logup_gamma, bus_denominator_value),
             ),
         )
-        # h9-A: one fingerprint alpha-slot per deferred-claim bus, directly after the
+        # One fingerprint alpha-slot per deferred-claim bus, after the
         # Column-bus pair (slots alpha_offset+2+i), mirroring verify_execution.rs. The
         # AIR final check grounds each composite via the eval_bus_data_only constraints.
         for i in unroll(0, N_DEFERRED_BUSES[table_index]):

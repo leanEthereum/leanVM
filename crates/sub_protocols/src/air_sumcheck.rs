@@ -31,14 +31,6 @@ use tracing::{info_span, instrument};
 
 const ENDIANNESS_PIVOT_AIR: usize = 12;
 
-/// Measurement-driven per-class C2 switch (plan §2/C2 kill rule; measured at
-/// T3' on the 1550-sig benchmark, two independent interleaved A/B campaigns:
-/// 4 pairs then 3 pairs): poseidon robust (poly -45..-52 ms/run vs fold
-/// +2..+5 ms table-update); execution NET REGRESSES (+6.9 ms: poly +1.5,
-/// fold +5.4 — its short EF rounds and base-cheap evals do not amortize the
-/// table update against the cache transient, plan risk §5.1) -> disabled via
-/// `Air::c2_table_profitable` (override in execution/air.rs); ext_op neutral
-/// -> enabled. Purely a choice between bit-identical computation strategies.
 fn c2_class_enabled<A: Air>(computation: &A) -> bool {
     computation.c2_table_profitable()
 }
@@ -53,12 +45,9 @@ pub trait OuterSumcheckSession<EF: ExtensionField<PF<EF>>>: Debug {
     fn final_column_evals(&self) -> Vec<EF>;
 }
 
-/// C2 (h6', Gruen 2024/108 §4 adapted to a non-zerocheck): per-pair table of
-/// constraint values `T_i[x] = C(r_0..r_{i-1}, x)` on the session's current
-/// folded storage. Lives packed through phase 1 (same layout as the columns),
-/// unpacked at the same boundary. The padding tail is NOT materialized: an
-/// index at/after the active boundary reads `constraints_eval_at_padding`
-/// (padding rows repeat the last row, so folding leaves them fixed).
+/// Per-pair constraint cache `T_i[x] = C(r_0..r_{i-1}, x)`. Lives packed
+/// through phase 1, unpacked at the same boundary. The padding tail is NOT
+/// materialized (padding rows are constant under folding).
 #[derive(Debug)]
 enum C2Store<EF: ExtensionField<PF<EF>>> {
     Packed(Vec<EFPacking<EF>>),
@@ -92,9 +81,6 @@ where
     initial_n_vars: usize,
     constraints_eval_at_padding: EF,
     rounds_done: usize,
-    /// C2 kill-switch (plan §2/C2): purely a choice between two bit-identical
-    /// computation strategies — flipped off permanently on any non-conforming
-    /// shape (fallback = the fresh-eval path).
     c2_enabled: bool,
     c2_table: Option<C2Store<EF>>,
     c2_cache: Option<C2Cache<EF>>,
@@ -290,10 +276,7 @@ where
             EF::ZERO
         };
 
-        // C2 (plan §1.3): seed round caches all node vectors; table rounds get
-        // the z=0 accumulator from `T_i` (no constraint eval) and cache only
-        // the fresh z = 2..d_z vectors. Any non-conforming shape falls back to
-        // the fresh-eval path (bit-identical) and disables C2 for the session.
+        // C2: seed round caches all node vectors; table rounds reuse z=0 from cache.
         let fold_bit = self.folding_bit_packed();
         let is_seed = self.c2_table.is_none();
         #[derive(PartialEq)]
@@ -325,9 +308,7 @@ where
                 let MleGroupRef::BasePacked(cols) = self.multilinears.by_ref() else {
                     unreachable!()
                 };
-                // T4': bus-only evals for the on-row nodes (z=0, z=1). The
-                // default `eval_bus_only` falls back to the full eval, so this
-                // is bit-identical for AIRs without an override.
+                // Bus-only evals for on-row nodes (z=0, z=1).
                 let eval_bus_01 = |a: &A, point: &[PFPacking<EF>], xd: &A::ExtraData| -> EFPacking<EF> {
                     let n_cols = a.n_columns();
                     let mut folder = ConstraintFolderPacked::new(&point[..n_cols], &point[n_cols..], xd);
@@ -402,8 +383,7 @@ where
             }
         };
 
-        // Dual-compute invariant (plan §4 T3' row): in dev builds, the C2 path
-        // must reproduce the fresh-eval accumulators exactly.
+        // Debug: verify C2 path reproduces the fresh-eval accumulators exactly.
         #[cfg(debug_assertions)]
         if new_cache.is_some() {
             let fresh = compute_raw_poly(
@@ -656,7 +636,7 @@ fn unpack_sum_packed<EF: ExtensionField<PF<EF>>>(s: EFPacking<EF>) -> EF {
     EFPacking::<EF>::to_ext_iter([s]).sum::<EF>()
 }
 
-/// C2 round pass (plan §1.3). Two modes:
+/// C2 round pass. Two modes:
 /// - `table = None` (seed, local round 0): fresh evals at z = 0, 1, 2, .., d_z;
 ///   ALL d_z+1 per-pair vectors cached; message accumulators as today
 ///   (z=0 weighted into `acc[0]`, z=2.. into `acc[1..]`; z=1 cached only).
@@ -728,8 +708,7 @@ where
                 None => {
                     // Seed: z = 0 (acc + cache), z = 1 (cache only), z = 2.. (acc + cache).
                     // z=0 / z=1 are evaluations on actual storage rows -> the
-                    // bus-only fast path applies (T4'); z = 2.. are off-row
-                    // points where genuine gates do NOT vanish -> full eval.
+                    // z=0,1 use bus-only eval; z=2.. need full eval.
                     let v0 = eval_fn_01(computation, point, extra_data);
                     write_cache(0, v0);
                     acc[0] += v0 * partial_eq;

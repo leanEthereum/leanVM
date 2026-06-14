@@ -1,4 +1,4 @@
-//! Tests for the deferred multiply-accumulate protocol (plan_spec h3 §4.1):
+//! Tests for the deferred multiply-accumulate protocol.
 //! scalar Goldilocks override (T2) and the eager default path.
 //!
 //! Oracle: plain canonical field arithmetic (`acc + a*b` / `acc - a*b` chains).
@@ -20,7 +20,7 @@ impl XorShift {
     }
 }
 
-/// Boundary operand set from plan §4.1 (includes non-canonical representatives).
+/// Boundary operand set (includes non-canonical representatives).
 const EPS: u64 = 0xFFFF_FFFF; // 2^32 - 1 = NEG_ORDER
 fn boundary_vals() -> Vec<u64> {
     vec![
@@ -98,7 +98,7 @@ fn scalar_boundary_pairs_add_sub_mixed() {
 
 #[test]
 fn scalar_randomized_equivalence_10m() {
-    // Plan §4.1: 10^7 randomized scalar iterations against the eager oracle.
+    // 10^7 randomized scalar iterations against the eager oracle.
     // Checked in chunks of <= 5 terms (the protocol's per-iteration term shape).
     let mut rng = XorShift(0x5EED_0001);
     let mut total = 0usize;
@@ -114,7 +114,7 @@ fn scalar_randomized_equivalence_10m() {
 
 #[test]
 fn scalar_mixed_walks_with_prefix_checks() {
-    // Plan §4.1: mixed add/sub random walks, lengths 1..8192, checking prefixes.
+    // mixed add/sub random walks, lengths 1..8192, checking prefixes.
     let mut rng = XorShift(0x5EED_0002);
     for walk in 0..64 {
         let len = 1 + (rng.next() % 8192) as usize;
@@ -134,7 +134,7 @@ fn scalar_mixed_walks_with_prefix_checks() {
 
 #[test]
 fn scalar_worst_case_counter_growth() {
-    // Plan §4.1: 2^20 iterations x 5 max-magnitude terms; exercises the §1.5
+    // 2^20 iterations x 5 max-magnitude terms; exercises the overflow
     // l2-drift bound (debug_assert in finish fires if violated) and equivalence.
     let max = u64::MAX;
     let t = Goldilocks::unreduced_mul(Goldilocks::new(max), Goldilocks::new(max));
@@ -265,7 +265,7 @@ mod packed {
     #[test]
     fn packed_zero_products_in_sub_patterns() {
         // The ~t_hi = 2^64-1 edge: zero (and small) products inside subs —
-        // exercises the mandatory separate-K-counter design (plan §1.4).
+        // exercises the mandatory separate-K-counter design.
         let mut rng = XorShift(0x5EED_1002);
         for _ in 0..200 {
             let mut chains = chains_from(&mut rng, 32, |j| j % 3 == 1);
@@ -281,7 +281,7 @@ mod packed {
 
     #[test]
     fn packed_worst_case_counter_growth() {
-        // 5*2^20 max-magnitude terms (plan §1.5 W/K saturation), all-add then
+        // 5*2^20 max-magnitude terms, all-add then
         // max-sub pattern; equivalence against the scalar override result.
         let n: u64 = 5 * (1 << 20);
         let max = PG(core::array::from_fn(|_| Goldilocks::new(u64::MAX)));

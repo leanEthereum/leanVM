@@ -121,10 +121,7 @@ pub fn verify_execution(
                 BusDirection::Pull => EF::NEG_ONE,
                 BusDirection::Push => EF::ONE,
             };
-        // Constraint-slot layout (mirrors each table's `eval` emission order):
-        // slot 0 = Column-bus multiplicity, slot 1 = Column-bus fingerprint, then one
-        // fingerprint slot per deferred-claim bus (h9-A), then the algebra constraints.
-        // (logup_c - den) is the fingerprint MLE eval the AIR sumcheck re-derives.
+        // slot 0 = multiplicity, slot 1 = Column-bus fingerprint, then deferred-claim slots.
         initial_sum += air_alpha_powers[alpha_offset] * signed_numerator;
         let n_claim_slots = bus_denominator_values.len();
         debug_assert_eq!(
