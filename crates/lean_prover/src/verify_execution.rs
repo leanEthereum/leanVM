@@ -115,14 +115,25 @@ pub fn verify_execution(
     for table in ALL_TABLES {
         let n_constraints = table.n_constraints();
         let bus_numerator_value = logup_statements.bus_numerators_values[&table];
-        let bus_denominator_value = logup_statements.bus_denominators_values[&table];
+        let bus_denominator_values = &logup_statements.bus_denominators_values[&table];
         let signed_numerator = bus_numerator_value
             * match table.bus_interactions()[0].direction {
                 BusDirection::Pull => EF::NEG_ONE,
                 BusDirection::Push => EF::ONE,
             };
-        initial_sum += air_alpha_powers[alpha_offset] * signed_numerator
-            + air_alpha_powers[alpha_offset + 1] * (logup_c - bus_denominator_value);
+        // Constraint-slot layout (mirrors each table's `eval` emission order):
+        // slot 0 = Column-bus multiplicity, slot 1 = Column-bus fingerprint, then one
+        // fingerprint slot per deferred-claim bus (h9-A), then the algebra constraints.
+        // (logup_c - den) is the fingerprint MLE eval the AIR sumcheck re-derives.
+        initial_sum += air_alpha_powers[alpha_offset] * signed_numerator;
+        let n_claim_slots = bus_denominator_values.len();
+        debug_assert_eq!(
+            n_claim_slots,
+            1 + table.bus_interactions().iter().filter(|b| b.deferred_claim).count()
+        );
+        for (i, den) in bus_denominator_values.iter().enumerate() {
+            initial_sum += air_alpha_powers[alpha_offset + 1 + i] * (logup_c - *den);
+        }
 
         let alpha_slice = air_alpha_powers[alpha_offset..alpha_offset + n_constraints].to_vec();
         verify_data.push(TableVerifyData {

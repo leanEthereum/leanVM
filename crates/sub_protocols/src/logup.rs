@@ -14,7 +14,11 @@ pub struct GenericLogupStatements {
     pub bytecode_and_acc_point: MultilinearPoint<EF>,
     pub value_bytecode_acc: EF,
     pub bus_numerators_values: BTreeMap<Table, EF>,
-    pub bus_denominators_values: BTreeMap<Table, EF>,
+    /// Per table, in `bus_interactions()` order restricted to claim-bearing buses:
+    /// index 0 = the unique Multiplicity::Column bus (paired with the numerator above);
+    /// indices 1.. = the deferred-claim One-buses (denominator-only; their One-numerators
+    /// are reconstructed verifier-side). h9-A, plan_spec §3.A.2.
+    pub bus_denominators_values: BTreeMap<Table, Vec<EF>>,
     pub gkr_point: Vec<EF>,
     pub columns_values: BTreeMap<Table, BTreeMap<ColIndex, EF>>,
     // Used in recursion
@@ -285,7 +289,23 @@ pub fn prove_generic_logup(
                     let eval_on_data = c - finger_print(resolve_ef(bus.domainsep), &data_evals, alphas_eq_poly);
                     prover_state.add_extension_scalar(eval_on_data);
                     bus_numerators_values.insert(table, eval_on_multiplicity);
-                    bus_denominators_values.insert(table, eval_on_data);
+                    bus_denominators_values
+                        .entry(table)
+                        .or_insert_with(Vec::new)
+                        .insert(0, eval_on_data);
+                }
+                // h9-A deferred-claim bus: the data references virtual (temporary) columns,
+                // so no per-column evals are sent; ONE composite denominator eval goes on
+                // the wire and the batched AIR sumcheck grounds it (eval_bus_data_only).
+                // The One-numerator is reconstructed verifier-side (pref * direction flag).
+                BusMultiplicity::One if bus.deferred_claim => {
+                    let data_evals: Vec<EF> = bus.data.iter().map(|e| resolve_ef(*e)).collect();
+                    let eval_on_data = c - finger_print(resolve_ef(bus.domainsep), &data_evals, alphas_eq_poly);
+                    prover_state.add_extension_scalar(eval_on_data);
+                    bus_denominators_values
+                        .entry(table)
+                        .or_insert_with(Vec::new)
+                        .push(eval_on_data);
                 }
                 BusMultiplicity::One => {
                     // Skip columns already in table_values: memory-lookup groups share
@@ -430,7 +450,23 @@ pub fn verify_generic_logup(
                     retrieved_numerators_value += pref * eval_on_multiplicity;
                     retrieved_denominators_value += pref * eval_on_data;
                     bus_numerators_values.insert(table, eval_on_multiplicity);
-                    bus_denominators_values.insert(table, eval_on_data);
+                    bus_denominators_values
+                        .entry(table)
+                        .or_insert_with(Vec::new)
+                        .insert(0, eval_on_data);
+                }
+                // h9-A deferred-claim bus (mirror of the prover arm above): one composite
+                // denominator eval from the transcript; numerator = pref * direction flag,
+                // exactly the committed-One-bus reconstruction. Grounding happens in the
+                // AIR final check via the table's eval_bus_data_only constraint slot.
+                BusMultiplicity::One if bus.deferred_claim => {
+                    let eval_on_data = verifier_state.next_extension_scalar()?;
+                    retrieved_numerators_value += pref * bus.direction.to_field_flag();
+                    retrieved_denominators_value += pref * eval_on_data;
+                    bus_denominators_values
+                        .entry(table)
+                        .or_insert_with(Vec::new)
+                        .push(eval_on_data);
                 }
                 BusMultiplicity::One => {
                     let n_col_entries = bus

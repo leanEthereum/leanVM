@@ -53,6 +53,14 @@ pub struct BusInteraction {
     pub multiplicity: BusMultiplicity,
     pub domainsep: BusData,
     pub data: Vec<BusData>,
+    /// h9-A (iter 5, plan_spec §3.A): a deferred-claim bus references virtual (temporary)
+    /// columns, so its GKR claim cannot be grounded through per-column PCS statements.
+    /// Instead the prover sends ONE composite denominator eval `c − fingerprint̂` at the
+    /// GKR point, and the batched AIR sumcheck re-derives the fingerprint eval from the
+    /// committed columns (one `eval_bus_data_only` constraint per such bus, emitted by the
+    /// table's `eval` directly after the Multiplicity::Column bus pair, in bus order).
+    /// Only Multiplicity::One buses may be deferred (the One-numerator needs no grounding).
+    pub deferred_claim: bool,
 }
 
 impl BusInteraction {
@@ -62,6 +70,16 @@ impl BusInteraction {
 }
 
 pub fn memory_lookups_consecutive(idx_col: ColIndex, values_start: ColIndex, n: usize) -> Vec<BusInteraction> {
+    memory_lookups_consecutive_with_claim(idx_col, values_start, n, false)
+}
+
+/// `deferred: true` marks the lookups as deferred-claim buses (see `BusInteraction::deferred_claim`).
+pub fn memory_lookups_consecutive_with_claim(
+    idx_col: ColIndex,
+    values_start: ColIndex,
+    n: usize,
+    deferred: bool,
+) -> Vec<BusInteraction> {
     (0..n)
         .map(|i| BusInteraction {
             direction: BusDirection::Push,
@@ -71,6 +89,7 @@ pub fn memory_lookups_consecutive(idx_col: ColIndex, values_start: ColIndex, n: 
                 BusData::ColumnPlusConstant(idx_col, i),
                 BusData::Column(values_start + i),
             ],
+            deferred_claim: deferred,
         })
         .collect()
 }
@@ -205,7 +224,10 @@ pub trait TableT: Air {
     fn name(&self) -> &'static str;
     fn table(&self) -> Table;
     fn bus_interactions(&self) -> Vec<BusInteraction>;
-    fn padding_row(&self, zero_vec_ptr: usize, null_hash_ptr: usize, ending_pc: usize) -> Vec<F>;
+    /// `mem0`: the value at memory address 0 (= public_input[0]). h9-A padding rows
+    /// have virtual addresses 0, so their VALUE_* must equal memory[0] for the
+    /// memory argument to balance.
+    fn padding_row(&self, zero_vec_ptr: usize, null_hash_ptr: usize, ending_pc: usize, mem0: F) -> Vec<F>;
     fn execute<M: MemoryAccess>(
         &self,
         arg_a: F,

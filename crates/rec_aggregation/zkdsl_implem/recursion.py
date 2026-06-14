@@ -23,6 +23,12 @@ ONE_BUSES_DOMSEPS = ONE_BUSES_DOMSEPS_PLACEHOLDER  # [[_; num_buses]; N_TABLES]
 ONE_BUSES_DATA_COLS = ONE_BUSES_DATA_COLS_PLACEHOLDER  # [[[_; num_data]; num_buses]; N_TABLES]
 ONE_BUSES_DATA_OFFSETS = ONE_BUSES_DATA_OFFSETS_PLACEHOLDER  # [[[_; num_data]; num_buses]; N_TABLES]
 ONE_BUSES_NEW_COLS = ONE_BUSES_NEW_COLS_PLACEHOLDER  # [[[_; n_new]; num_buses]; N_TABLES]
+# h9-A deferred-claim buses (virtual data columns; one composite denominator on the wire,
+# grounded by the table's eval_bus_data_only constraint slots in the batched AIR sumcheck):
+ONE_BUSES_DEFERRED = ONE_BUSES_DEFERRED_PLACEHOLDER  # [[0/1; num_buses]; N_TABLES]
+ONE_BUSES_DEFERRED_IDX = ONE_BUSES_DEFERRED_IDX_PLACEHOLDER  # [[slot or 0; num_buses]; N_TABLES]
+N_DEFERRED_BUSES = N_DEFERRED_BUSES_PLACEHOLDER  # [_; N_TABLES]
+MAX_DEFERRED_BUSES = MAX_DEFERRED_BUSES_PLACEHOLDER  # max(1, max over tables)
 
 NUM_COLS_AIR = NUM_COLS_AIR_PLACEHOLDER
 MAX_NUM_COLS_AIR = MAX_NUM_COLS_AIR_PLACEHOLDER  # max(NUM_COLS_AIR[t] for t in 0..N_TABLES)
@@ -222,6 +228,9 @@ def recursion(inner_public_memory, initial_fiat_shamir_cap):
     # Per-table data accumulators (indexed by table_index).
     bus_numerators_values = Array(N_TABLES * DIM)
     bus_denominators_values = Array(N_TABLES * DIM)
+    # h9-A: composite denominator evals of deferred-claim buses, consumed by the AIR
+    # initial_sum (slots alpha_offset+2+i, mirroring verify_execution.rs).
+    deferred_bus_denominators = Array(N_TABLES * MAX_DEFERRED_BUSES * DIM)
     pcs_inner_points = Array(N_TABLES)
     pcs_vals_logup = Array(N_TABLES * MAX_NUM_COLS_AIR)
     pcs_vals_air = Array(N_TABLES * MAX_NUM_COLS_AIR)
@@ -255,34 +264,57 @@ def recursion(inner_public_memory, initial_fiat_shamir_cap):
 
         # Multiplicity::One buses (bytecode lookup + memory lookups).
         for one_bus_idx in unroll(0, len(ONE_BUSES_DOMSEPS[table_index])):
-            domsep = ONE_BUSES_DOMSEPS[table_index][one_bus_idx]
-            n_new = len(ONE_BUSES_NEW_COLS[table_index][one_bus_idx])
-            n_data = len(ONE_BUSES_DATA_COLS[table_index][one_bus_idx])
+            # h9-A deferred-claim bus: the wire carries ONE composite denominator eval
+            # (gamma - fingerprint-hat at the GKR point); the One-numerator is the prefix
+            # itself (Push direction). The composite is grounded by the table's
+            # eval_bus_data_only constraint slot in the batched AIR sumcheck (initial_sum
+            # below). The bus still occupies its GKR segment: offset advances as usual.
+            if ONE_BUSES_DEFERRED[table_index][one_bus_idx] != 0:
+                fs, deferred_eval = fs_receive_ef_inlined(fs, 1)
+                pref_deferred = multilinear_location_prefix(
+                    offset / n_rows, n_vars_logup_gkr - log_n_rows, point_gkr
+                )
+                retrieved_numerators_value = add_extension_ret(retrieved_numerators_value, pref_deferred)
+                retrieved_denominators_value = add_extension_ret(
+                    retrieved_denominators_value,
+                    mul_extension_ret(pref_deferred, deferred_eval),
+                )
+                copy_ef(
+                    deferred_eval,
+                    deferred_bus_denominators
+                    + (table_index * MAX_DEFERRED_BUSES + ONE_BUSES_DEFERRED_IDX[table_index][one_bus_idx])
+                    * DIM,
+                )
+                offset += n_rows
+            if ONE_BUSES_DEFERRED[table_index][one_bus_idx] == 0:
+                domsep = ONE_BUSES_DOMSEPS[table_index][one_bus_idx]
+                n_new = len(ONE_BUSES_NEW_COLS[table_index][one_bus_idx])
+                n_data = len(ONE_BUSES_DATA_COLS[table_index][one_bus_idx])
 
-            fs, new_evals = fs_receive_ef_inlined(fs, n_new)
+                fs, new_evals = fs_receive_ef_inlined(fs, n_new)
 
-            for i in unroll(0, n_new):
-                new_col = ONE_BUSES_NEW_COLS[table_index][one_bus_idx][i]
-                pcs_vals_logup[table_index * MAX_NUM_COLS_AIR + new_col] = new_evals + i * DIM
+                for i in unroll(0, n_new):
+                    new_col = ONE_BUSES_NEW_COLS[table_index][one_bus_idx][i]
+                    pcs_vals_logup[table_index * MAX_NUM_COLS_AIR + new_col] = new_evals + i * DIM
 
-            data_evals = Array(n_data * DIM)
-            for i in unroll(0, n_data):
-                data_col = ONE_BUSES_DATA_COLS[table_index][one_bus_idx][i]
-                data_ofs = ONE_BUSES_DATA_OFFSETS[table_index][one_bus_idx][i]
-                src = pcs_vals_logup[table_index * MAX_NUM_COLS_AIR + data_col]
-                if data_ofs == 0:
-                    copy_ef(src, data_evals + i * DIM)
-                if data_ofs != 0:
-                    copy_ef(add_base_extension_ret(data_ofs, src), data_evals + i * DIM)
+                data_evals = Array(n_data * DIM)
+                for i in unroll(0, n_data):
+                    data_col = ONE_BUSES_DATA_COLS[table_index][one_bus_idx][i]
+                    data_ofs = ONE_BUSES_DATA_OFFSETS[table_index][one_bus_idx][i]
+                    src = pcs_vals_logup[table_index * MAX_NUM_COLS_AIR + data_col]
+                    if data_ofs == 0:
+                        copy_ef(src, data_evals + i * DIM)
+                    if data_ofs != 0:
+                        copy_ef(add_base_extension_ret(data_ofs, src), data_evals + i * DIM)
 
-            pref = multilinear_location_prefix(offset / n_rows, n_vars_logup_gkr - log_n_rows, point_gkr)
-            retrieved_numerators_value = add_extension_ret(retrieved_numerators_value, pref)
-            fingerp = fingerprint_n(domsep, data_evals, n_data, logup_beta_eq_poly)
-            retrieved_denominators_value = add_extension_ret(
-                retrieved_denominators_value,
-                mul_extension_ret(pref, sub_extension_ret(logup_gamma, fingerp)),
-            )
-            offset += n_rows
+                pref = multilinear_location_prefix(offset / n_rows, n_vars_logup_gkr - log_n_rows, point_gkr)
+                retrieved_numerators_value = add_extension_ret(retrieved_numerators_value, pref)
+                fingerp = fingerprint_n(domsep, data_evals, n_data, logup_beta_eq_poly)
+                retrieved_denominators_value = add_extension_ret(
+                    retrieved_denominators_value,
+                    mul_extension_ret(pref, sub_extension_ret(logup_gamma, fingerp)),
+                )
+                offset += n_rows
 
     # Final logup adjustment (padding)
     retrieved_denominators_value = add_extension_ret(
@@ -319,6 +351,20 @@ def recursion(inner_public_memory, initial_fiat_shamir_cap):
                 sub_extension_ret(logup_gamma, bus_denominator_value),
             ),
         )
+        # h9-A: one fingerprint alpha-slot per deferred-claim bus, directly after the
+        # Column-bus pair (slots alpha_offset+2+i), mirroring verify_execution.rs. The
+        # AIR final check grounds each composite via the eval_bus_data_only constraints.
+        for i in unroll(0, N_DEFERRED_BUSES[table_index]):
+            bus_final_value = add_extension_ret(
+                bus_final_value,
+                mul_extension_ret(
+                    air_alpha_powers + (alpha_offset + 2 + i) * DIM,
+                    sub_extension_ret(
+                        logup_gamma,
+                        deferred_bus_denominators + (table_index * MAX_DEFERRED_BUSES + i) * DIM,
+                    ),
+                ),
+            )
         initial_sum = add_extension_ret(initial_sum, bus_final_value)
 
     n_max = log_max_table_height

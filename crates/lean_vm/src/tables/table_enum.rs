@@ -67,8 +67,8 @@ impl TableT for Table {
     fn bus_interactions(&self) -> Vec<BusInteraction> {
         delegate_to_inner!(self, bus_interactions)
     }
-    fn padding_row(&self, zero_vec_ptr: usize, null_hash_ptr: usize, ending_pc: usize) -> Vec<PF<EF>> {
-        delegate_to_inner!(self, padding_row, zero_vec_ptr, null_hash_ptr, ending_pc)
+    fn padding_row(&self, zero_vec_ptr: usize, null_hash_ptr: usize, ending_pc: usize, mem0: PF<EF>) -> Vec<PF<EF>> {
+        delegate_to_inner!(self, padding_row, zero_vec_ptr, null_hash_ptr, ending_pc, mem0)
     }
     fn execute<M: MemoryAccess>(
         &self,

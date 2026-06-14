@@ -258,11 +258,17 @@ fn build_replacements(log_inner_bytecode: usize, bytecode_zero_eval: F) -> BTree
     let mut n_air_shift_columns = vec![];
     let mut n_air_constraints = vec![];
     let mut one_buses_all_cols = vec![];
+    let mut one_buses_deferred = vec![];
+    let mut one_buses_deferred_idx = vec![];
+    let mut n_deferred_buses = vec![];
     for table in ALL_TABLES {
         let mut table_domseps = vec![];
         let mut table_data_cols = vec![];
         let mut table_data_offsets = vec![];
         let mut table_new_cols = vec![];
+        let mut table_deferred = vec![];
+        let mut table_deferred_idx = vec![];
+        let mut n_deferred: usize = 0;
         let mut seen_cols: HashSet<ColIndex> = HashSet::new();
         for bus in table.bus_interactions() {
             if !matches!(bus.multiplicity, BusMultiplicity::One) {
@@ -271,6 +277,23 @@ fn build_replacements(log_inner_bytecode: usize, bytecode_zero_eval: F) -> BTree
             let BusData::Constant(domsep) = bus.domainsep else {
                 panic!("Multiplicity::One bus domsep must be a constant");
             };
+            // h9-A deferred-claim bus: occupies its GKR segment (domsep kept so the
+            // circuit's n_buses_per_table / offset layout is unchanged), but contributes
+            // NO per-column evals — the circuit reads ONE composite denominator instead.
+            // Its data may reference temporary (virtual) columns, which must never reach
+            // the ONE_BUSES_* column lists (they have no PCS statements).
+            if bus.deferred_claim {
+                table_domseps.push(domsep.to_string());
+                table_data_cols.push("[]".to_string());
+                table_data_offsets.push("[]".to_string());
+                table_new_cols.push("[]".to_string());
+                table_deferred.push("1".to_string());
+                table_deferred_idx.push(n_deferred.to_string());
+                n_deferred += 1;
+                continue;
+            }
+            table_deferred.push("0".to_string());
+            table_deferred_idx.push("0".to_string()); // unused for non-deferred buses
             let mut data_cols = vec![];
             let mut data_offsets = vec![];
             let mut new_cols = vec![];
@@ -304,6 +327,9 @@ fn build_replacements(log_inner_bytecode: usize, bytecode_zero_eval: F) -> BTree
         one_buses_data_cols.push(format!("[{}]", table_data_cols.join(", ")));
         one_buses_data_offsets.push(format!("[{}]", table_data_offsets.join(", ")));
         one_buses_new_cols.push(format!("[{}]", table_new_cols.join(", ")));
+        one_buses_deferred.push(format!("[{}]", table_deferred.join(", ")));
+        one_buses_deferred_idx.push(format!("[{}]", table_deferred_idx.join(", ")));
+        n_deferred_buses.push(n_deferred.to_string());
 
         let mut sorted_seen: Vec<ColIndex> = seen_cols.iter().copied().collect();
         sorted_seen.sort();
@@ -338,6 +364,31 @@ fn build_replacements(log_inner_bytecode: usize, bytecode_zero_eval: F) -> BTree
     replacements.insert(
         "ONE_BUSES_NEW_COLS_PLACEHOLDER".to_string(),
         format!("[{}]", one_buses_new_cols.join(", ")),
+    );
+    // h9-A deferred-claim bus placeholders (plan_spec §3.A / T3): flags + per-bus slot
+    // index into the per-table deferred-denominator array + counts for the AIR
+    // initial_sum loop. MAX is floored at 1 so the circuit array allocation is nonzero.
+    replacements.insert(
+        "ONE_BUSES_DEFERRED_PLACEHOLDER".to_string(),
+        format!("[{}]", one_buses_deferred.join(", ")),
+    );
+    replacements.insert(
+        "ONE_BUSES_DEFERRED_IDX_PLACEHOLDER".to_string(),
+        format!("[{}]", one_buses_deferred_idx.join(", ")),
+    );
+    replacements.insert(
+        "N_DEFERRED_BUSES_PLACEHOLDER".to_string(),
+        format!("[{}]", n_deferred_buses.join(", ")),
+    );
+    let max_deferred_buses = n_deferred_buses
+        .iter()
+        .map(|s| s.parse::<usize>().unwrap())
+        .max()
+        .unwrap_or(0)
+        .max(1);
+    replacements.insert(
+        "MAX_DEFERRED_BUSES_PLACEHOLDER".to_string(),
+        max_deferred_buses.to_string(),
     );
     replacements.insert(
         "NUM_COLS_AIR_PLACEHOLDER".to_string(),
@@ -496,7 +547,13 @@ fn air_eval_in_zk_dsl<T: TableT>(table: T) -> String
 where
     T::ExtraData: Default,
 {
-    let (constraints, bus_multiplicity, bus_data) = get_symbolic_constraints_and_bus_data_values::<F, _>(&table);
+    // h9-A/T3: the 4th element holds the declared virtual-column expressions (exec's
+    // addr_a/b/c closed forms), consumed below to synthesize the deferred-bus
+    // fingerprints at alpha slots 2..2+n_deferred — mirroring the Rust BUS=true
+    // emission order (eval_bus_data_only directly after the Column-bus pair) and the
+    // verifier's initial_sum layout (verify_execution.rs / recursion.py).
+    let (constraints, bus_multiplicity, bus_data, deferred_groups) =
+        get_symbolic_constraints_and_bus_data_values::<F, _>(&table);
     // `bus_data`'s last entry is the domainsep (logup domain separation).
     let (bus_domainsep, bus_real_data) = bus_data.split_last().unwrap();
     let mut ctx = AirCodegenCtx::new();
@@ -542,9 +599,79 @@ where
     );
     res += "\n    sum: Mut = add_extension_ret(bus_res, weighted_multiplicity)";
 
+    // h9-A/T3 deferred-claim fingerprints (alpha slots 2..2+n_deferred, Rust layout:
+    // [mult, colbus, D_memA, D_memB, D_memC, algebra...]). Each deferred bus's data
+    // entries referencing temporary (virtual) columns are taken from the declared
+    // expression queue (exec: [addr_a, addr_b, addr_c]); committed-column entries use
+    // the table's inner evals directly. encoded_i = sum_j eq[j]*data_j + eq.last*domsep.
+    let mut virtual_expr_queue: Vec<_> = deferred_groups.iter().flatten().copied().collect();
+    virtual_expr_queue.reverse(); // consume from the back via pop()
+    let n_committed = table.n_columns();
+    let deferred_buses: Vec<_> = table
+        .bus_interactions()
+        .into_iter()
+        .filter(|b| b.deferred_claim)
+        .collect();
+    let n_deferred = deferred_buses.len();
+    for (i, bus) in deferred_buses.iter().enumerate() {
+        let BusData::Constant(domsep) = bus.domainsep else {
+            panic!("deferred-claim bus domainsep must be a constant");
+        };
+        res += &format!("\n    dbuff_{} = Array(DIM * {})", i, bus.data.len());
+        for (j, entry) in bus.data.iter().enumerate() {
+            let (col, offset) = match entry {
+                BusData::Column(c) => (*c, 0usize),
+                BusData::ColumnPlusConstant(c, k) => (*c, *k),
+                BusData::Constant(_) => panic!("constant data entries unsupported in deferred buses"),
+            };
+            let src = if col >= n_committed {
+                // temporary/virtual column: next declared expression
+                let expr = virtual_expr_queue
+                    .pop()
+                    .expect("declared virtual-expression queue exhausted");
+                eval_air_constraint(expr, None, &mut ctx, &mut res)
+            } else {
+                format!("{} + DIM * {}", AIR_INNER_VALUES_VAR, col)
+            };
+            if offset == 0 {
+                res += &format!("\n    copy_ef({}, dbuff_{} + DIM * {})", src, i, j);
+            } else {
+                res += &format!(
+                    "\n    copy_ef(add_base_extension_ret({}, {}), dbuff_{} + DIM * {})",
+                    offset, src, i, j
+                );
+            }
+        }
+        res += &format!("\n    denc_init_{} = Array(DIM)", i);
+        res += &format!(
+            "\n    dot_product_ee(dbuff_{}, logup_beta_eq_poly, denc_init_{}, {})",
+            i,
+            i,
+            bus.data.len()
+        );
+        let domsep_const = ctx.write_embedded_constant(domsep as u64, &mut res);
+        res += &format!(
+            "\n    denc_{}: Mut = add_extension_ret(mul_extension_ret({}, logup_beta_eq_poly + {} * DIM), denc_init_{})",
+            i,
+            domsep_const,
+            (1 << LOG_MAX_BUS_WIDTH) - 1,
+            i
+        );
+        res += &format!(
+            "\n    sum = add_extension_ret(sum, mul_extension_ret(denc_{}, air_alpha_powers + {} * DIM))",
+            i,
+            2 + i
+        );
+    }
+    assert!(
+        virtual_expr_queue.is_empty(),
+        "unconsumed declared virtual expressions: deferred-bus data layout mismatch"
+    );
+
     res += "\n    weighted_constraints = Array(DIM)";
     res += &format!(
-        "\n    dot_product_ee(air_alpha_powers + 2 * DIM, constraints_buf, weighted_constraints, {})",
+        "\n    dot_product_ee(air_alpha_powers + {} * DIM, constraints_buf, weighted_constraints, {})",
+        2 + n_deferred,
         n_constraints
     );
     res += "\n    sum = add_extension_ret(sum, weighted_constraints)";

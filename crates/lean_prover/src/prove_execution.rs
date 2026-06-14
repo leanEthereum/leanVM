@@ -176,17 +176,20 @@ pub fn prove_execution(
         let log_n_rows = tables_log_heights[table];
         let n_constraints = table.n_constraints();
         let bus_numerator_value = logup_statements.bus_numerators_values[table];
-        let bus_denominator_value = logup_statements.bus_denominators_values[table];
+        let bus_denominator_values = &logup_statements.bus_denominators_values[table];
         let signed_numerator = bus_numerator_value
             * match table.bus_interactions()[0].direction {
                 BusDirection::Pull => EF::NEG_ONE,
                 BusDirection::Push => EF::ONE,
             };
         // Each table consumes a disjoint range of alpha powers; alpha^offset weights the bus
-        // numerator (multiplicity), alpha^{offset+1} weights the bus fingerprint, alpha^{offset+2..}
-        // weight the remaining AIR constraints.
-        let bus_final_value = air_alpha_powers[alpha_offset] * signed_numerator
-            + air_alpha_powers[alpha_offset + 1] * (logup_c - bus_denominator_value);
+        // numerator (multiplicity), alpha^{offset+1} weights the Column-bus fingerprint, then
+        // one fingerprint slot per deferred-claim bus (h9-A, in bus order — mirroring the
+        // table's `eval` emission), and alpha^{offset+1+n_claims..} the algebra constraints.
+        let mut bus_final_value = air_alpha_powers[alpha_offset] * signed_numerator;
+        for (i, den) in bus_denominator_values.iter().enumerate() {
+            bus_final_value += air_alpha_powers[alpha_offset + 1 + i] * (logup_c - *den);
+        }
 
         let eq_suffix = from_end(gkr_point, log_n_rows).to_vec();
 

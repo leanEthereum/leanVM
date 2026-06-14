@@ -163,6 +163,7 @@ pub fn get_execution_trace(
             padding_zero_vec_ptr,
             null_poseidon_16_hash_ptr,
             bytecode.ending_pc(),
+            memory_padded[0], // h9-A: padding VALUE_* must equal memory[0]
             floor,
         );
     }
@@ -180,6 +181,7 @@ fn pad_table(
     zero_vec_ptr: usize,
     null_poseidon_16_hash_ptr: usize,
     ending_pc: usize,
+    mem0: F,
     min_log_n_rows: usize,
 ) {
     let trace = traces.get_mut(table).unwrap();
@@ -193,7 +195,7 @@ fn pad_table(
     trace.non_padded_n_rows = h;
     trace.log_n_rows = log2_ceil_usize(h + 1).max(min_log_n_rows);
     let n_rows = 1 << trace.log_n_rows;
-    let padding_row = table.padding_row(zero_vec_ptr, null_poseidon_16_hash_ptr, ending_pc);
+    let padding_row = table.padding_row(zero_vec_ptr, null_poseidon_16_hash_ptr, ending_pc, mem0);
     parallel::par_for_each_mut(&mut trace.columns, |i, col| {
         assert!(col.len() <= h); // potentially some columns have not been filled (in Poseidon -> we fill it later with SIMD + parallelism), but the first one should always be representative
         col.resize(n_rows, padding_row[i]);

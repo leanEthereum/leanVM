@@ -1,36 +1,40 @@
-use crate::{EF, ExecutionTable, ExtraDataForBuses, eval_bus_virtual};
+use crate::{EF, ExecutionTable, ExtraDataForBuses, LOGUP_MEMORY_DOMAINSEP, eval_bus_data_only, eval_bus_virtual};
 use backend::*;
 
-pub const N_RUNTIME_COLUMNS: usize = 8;
+pub const N_RUNTIME_COLUMNS: usize = 5;
 pub const N_INSTRUCTION_COLUMNS: usize = 12;
 pub const N_TOTAL_EXECUTION_COLUMNS: usize = N_INSTRUCTION_COLUMNS + N_RUNTIME_COLUMNS;
 
 // Committed columns (IMPORTANT: they must be the first columns)
+// h9-A (iter 5): ADDR_A/B/C are no longer committed — they are exact low-degree
+// polynomials of the columns below (the closed forms trace_gen.rs computes), so they
+// live as temporary columns and the memory-bus claims are proven inside the batched
+// AIR sumcheck (deferred-claim buses, plan_spec §3.A). Committed: 20 → 17 columns.
 pub const EXEC_COL_PC: usize = 0;
 pub const EXEC_COL_FP: usize = 1;
-pub const EXEC_COL_ADDR_A: usize = 2;
-pub const EXEC_COL_ADDR_B: usize = 3;
-pub const EXEC_COL_ADDR_C: usize = 4;
-pub const EXEC_COL_VALUE_A: usize = 5;
-pub const EXEC_COL_VALUE_B: usize = 6;
-pub const EXEC_COL_VALUE_C: usize = 7;
+pub const EXEC_COL_VALUE_A: usize = 2;
+pub const EXEC_COL_VALUE_B: usize = 3;
+pub const EXEC_COL_VALUE_C: usize = 4;
 
 // Decoded instruction columns
-pub const EXEC_COL_OPERAND_A: usize = 8;
-pub const EXEC_COL_OPERAND_B: usize = 9;
-pub const EXEC_COL_OPERAND_C: usize = 10;
-pub const EXEC_COL_FLAG_A: usize = 11;
-pub const EXEC_COL_FLAG_B: usize = 12;
-pub const EXEC_COL_FLAG_C: usize = 13;
-pub const EXEC_COL_FLAG_C_FP: usize = 14;
-pub const EXEC_COL_FLAG_AB_FP: usize = 15;
-pub const EXEC_COL_FLAG_MUL: usize = 16;
-pub const EXEC_COL_FLAG_JUMP: usize = 17;
-pub const EXEC_COL_AUX_1: usize = 18;
-pub const EXEC_COL_AUX_2: usize = 19;
+pub const EXEC_COL_OPERAND_A: usize = 5;
+pub const EXEC_COL_OPERAND_B: usize = 6;
+pub const EXEC_COL_OPERAND_C: usize = 7;
+pub const EXEC_COL_FLAG_A: usize = 8;
+pub const EXEC_COL_FLAG_B: usize = 9;
+pub const EXEC_COL_FLAG_C: usize = 10;
+pub const EXEC_COL_FLAG_C_FP: usize = 11;
+pub const EXEC_COL_FLAG_AB_FP: usize = 12;
+pub const EXEC_COL_FLAG_MUL: usize = 13;
+pub const EXEC_COL_FLAG_JUMP: usize = 14;
+pub const EXEC_COL_AUX_1: usize = 15;
+pub const EXEC_COL_AUX_2: usize = 16;
 
-// Temporary columns (stored to avoid duplicate computations)
-pub const N_TEMPORARY_EXEC_COLUMNS: usize = 4;
+// Temporary columns (stored to avoid duplicate computations; NOT committed)
+pub const N_TEMPORARY_EXEC_COLUMNS: usize = 7;
+pub const EXEC_COL_ADDR_A: usize = 17;
+pub const EXEC_COL_ADDR_B: usize = 18;
+pub const EXEC_COL_ADDR_C: usize = 19;
 pub const EXEC_COL_FLAG_PRECOMPILE: usize = 20;
 pub const EXEC_COL_NU_A: usize = 21;
 pub const EXEC_COL_NU_B: usize = 22;
@@ -45,11 +49,21 @@ impl<const BUS: bool> Air for ExecutionTable<BUS> {
     fn degree_air(&self) -> usize {
         5
     }
+    // C2 kill rule, measured iter-3 T3' (3x interleaved A/B, 1550-sig xmss):
+    // exec class poly +1.5ms / fold +5.4ms = +6.9ms net REGRESSION — the cheap
+    // 14-constraint eval (~235 ns/pair EF) does not amortize the table's
+    // challenge-time extrapolation + cache traffic (plan_spec §5.1 thin case).
+    // Poseidon (~3338 ns/pair, 106 constraints) nets -39.7ms and keeps C2.
+    fn c2_table_profitable(&self) -> bool {
+        false
+    }
     fn n_shift_columns(&self) -> usize {
         2
     }
     fn n_constraints(&self) -> usize {
-        14
+        // h9-A: 14 - 4 address-definition constraints (now definitional via the
+        // virtual closed forms) + 3 encoded memory-bus asserts (deferred claims).
+        13
     }
 
     #[inline]
@@ -76,7 +90,6 @@ impl<const BUS: bool> Air for ExecutionTable<BUS> {
         let (value_a, value_b, value_c) = (flat[EXEC_COL_VALUE_A], flat[EXEC_COL_VALUE_B], flat[EXEC_COL_VALUE_C]);
         let pc = flat[EXEC_COL_PC];
         let fp = flat[EXEC_COL_FP];
-        let (addr_a, addr_b, addr_c) = (flat[EXEC_COL_ADDR_A], flat[EXEC_COL_ADDR_B], flat[EXEC_COL_ADDR_C]);
 
         let one_minus_flag_a_and_flag_ab_fp = -(flag_a + flag_ab_fp - AB::F::ONE);
         let one_minus_flag_b_and_flag_ab_fp = -(flag_b + flag_ab_fp - AB::F::ONE);
@@ -96,22 +109,33 @@ impl<const BUS: bool> Air for ExecutionTable<BUS> {
         let flag_deref = (aux_1 * (aux_1 - AB::F::ONE)).halve();
         let flag_precompile = -(flag_add + flag_mul + flag_deref + flag_jump - AB::F::ONE);
 
+        // h9-A virtual addresses: the exact closed forms of trace_gen.rs (the old
+        // committed columns satisfied these identically on every real row; the old
+        // address-definition constraints are therefore definitional and deleted).
+        // Degrees: addr_a/c 2, addr_b 3 (flag_deref is quadratic in aux_1).
+        let addr_a = one_minus_flag_a_and_flag_ab_fp * fp_plus_operand_a;
+        let addr_b = one_minus_flag_b_and_flag_ab_fp * fp_plus_operand_b + flag_deref * (value_a + operand_b);
+        let addr_c = one_minus_flag_c_and_flag_c_fp * fp_plus_operand_c;
+
         if BUS {
             eval_bus_virtual::<AB, EF>(builder, extra_data, flag_precompile, aux_2, &[nu_a, nu_b, nu_c]);
+            // h9-A deferred memory-bus claims: one encoded assert per memory lookup,
+            // proven inside the batched AIR sumcheck (encoded degree <= 3+1 < degree_air).
+            // Order matters: these occupy the constraint slots directly after the
+            // precompile bus pair; the verifier's initial_sum loop matches this order.
+            eval_bus_data_only::<AB, EF>(builder, extra_data, LOGUP_MEMORY_DOMAINSEP, &[addr_a, value_a]);
+            eval_bus_data_only::<AB, EF>(builder, extra_data, LOGUP_MEMORY_DOMAINSEP, &[addr_b, value_b]);
+            eval_bus_data_only::<AB, EF>(builder, extra_data, LOGUP_MEMORY_DOMAINSEP, &[addr_c, value_c]);
         } else {
             builder.declare_values(&[flag_precompile]);
             builder.declare_values(&[nu_a, nu_b, nu_c, aux_2]);
+            builder.declare_values(&[addr_a, addr_b, addr_c]);
         }
-
-        builder.assert_zero(one_minus_flag_a_and_flag_ab_fp * (addr_a - fp_plus_operand_a));
-        builder.assert_zero(one_minus_flag_b_and_flag_ab_fp * (addr_b - fp_plus_operand_b));
-        builder.assert_zero(one_minus_flag_c_and_flag_c_fp * (addr_c - fp_plus_operand_c));
 
         builder.assert_zero(flag_add * (nu_b - (nu_a + nu_c)));
         builder.assert_zero(flag_mul * (nu_b - nu_a * nu_c));
 
-        // DEREF: addr_B = value_A + operand_B, result in value_B, compared to nu_C
-        builder.assert_zero(flag_deref * (addr_b - (value_a + operand_b)));
+        // DEREF: result in value_B, compared to nu_C (the addr_B linkage is definitional now)
         builder.assert_zero(flag_deref * (value_b - nu_c));
 
         let jump_and_condition = flag_jump * nu_a;
