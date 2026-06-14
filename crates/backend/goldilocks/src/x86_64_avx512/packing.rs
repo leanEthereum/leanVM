@@ -126,6 +126,136 @@ impl PrimeCharacteristicRing for PackedGoldilocksAVX512 {
         // SAFETY: this is a repr(transparent) wrapper around an array.
         unsafe { reconstitute_from_base(Goldilocks::zero_vec(len * WIDTH)) }
     }
+
+    // Deferred multiply-accumulate protocol (plan_spec h3 §1.2-§1.5, §2).
+    //
+    // Accumulator layout: [L, H, W, K], one zmm each:
+    //   L = wrapping sum of term lows;  K = count of L-wraps (each worth 2^64)
+    //   H = wrapping sum of term highs; W = count of H-wraps (each worth 2^128)
+    // so the represented value is V = L + (H + K)*2^64 + W*2^128.
+    //
+    // Subtraction is NOT-based: adding (~t_hi, ~t_lo) contributes
+    // 2^128 - 1 - t = -t - (2^32 + 1) (mod P), since 2^128 = -2^32. Each sub
+    // therefore leaves a constant deficit of (2^32 + 1), repaid once at finish
+    // via `n_sub` (T1 protocol contract).
+    //
+    // The separate K counter is mandatory: folding the lo-carry into t_hi via a
+    // masked +1 is only safe for t_hi <= 2^64 - 2 (true for raw products) but NOT
+    // for NOT-ed terms, where ~t_hi = 2^64 - 1 whenever t_hi = 0 — and zero
+    // products are reachable in real eval tables (plan §1.4: correctness over
+    // cleverness).
+    //
+    // Finish (plan §1.3): merge K into H (carry into W), then one folding step
+    //   V = L + H'_lo*eps - (H'_hi + W*2^32)   (mod P)
+    // using 2^64 = eps, 2^96 = -1, 2^128 = -2^32, with the same
+    // sub_no_double/add_no_double tail as `reduce128` below. Bounds (§1.5):
+    // the T1 contract caps accumulation at 5*2^20 terms, so W, K < 2^23 and
+    // s = H'_hi + W*2^32 < 2^32 + 2^55 < P (tail precondition).
+
+    #[inline]
+    fn unreduced_mul(a: Self, b: Self) -> [Self; 4] {
+        let (hi, lo) = mul64_64(a.to_vector(), b.to_vector());
+        [Self::from_vector(lo), Self::from_vector(hi), Self::ZERO, Self::ZERO]
+    }
+
+    #[inline]
+    fn lazy_acc_zero() -> [Self; 4] {
+        [Self::ZERO; 4]
+    }
+
+    #[inline]
+    fn lazy_acc_add(acc: [Self; 4], t: [Self; 4]) -> [Self; 4] {
+        unsafe {
+            let (l, h, w, k) = (
+                acc[0].to_vector(),
+                acc[1].to_vector(),
+                acc[2].to_vector(),
+                acc[3].to_vector(),
+            );
+            let (t_lo, t_hi) = (t[0].to_vector(), t[1].to_vector());
+            let one = _mm512_set1_epi64(1);
+
+            let l2 = _mm512_add_epi64(l, t_lo);
+            let carry_l = _mm512_cmplt_epu64_mask(l2, t_lo);
+            let k2 = _mm512_mask_add_epi64(k, carry_l, k, one);
+
+            let h2 = _mm512_add_epi64(h, t_hi);
+            let carry_h = _mm512_cmplt_epu64_mask(h2, t_hi);
+            let w2 = _mm512_mask_add_epi64(w, carry_h, w, one);
+
+            [
+                Self::from_vector(l2),
+                Self::from_vector(h2),
+                Self::from_vector(w2),
+                Self::from_vector(k2),
+            ]
+        }
+    }
+
+    #[inline]
+    fn lazy_acc_sub(acc: [Self; 4], t: [Self; 4]) -> [Self; 4] {
+        unsafe {
+            // NOT both halves (vpternlogq imm 0x55 = NOT a), then add as usual.
+            let t_lo = t[0].to_vector();
+            let t_hi = t[1].to_vector();
+            let nt_lo = _mm512_ternarylogic_epi64::<0x55>(t_lo, t_lo, t_lo);
+            let nt_hi = _mm512_ternarylogic_epi64::<0x55>(t_hi, t_hi, t_hi);
+            Self::lazy_acc_add(
+                acc,
+                [
+                    Self::from_vector(nt_lo),
+                    Self::from_vector(nt_hi),
+                    Self::ZERO,
+                    Self::ZERO,
+                ],
+            )
+        }
+    }
+
+    #[inline]
+    fn lazy_acc_finish(acc: [Self; 4], n_sub: u64) -> Self {
+        unsafe {
+            let (l, h, w, k) = (
+                acc[0].to_vector(),
+                acc[1].to_vector(),
+                acc[2].to_vector(),
+                acc[3].to_vector(),
+            );
+            let one = _mm512_set1_epi64(1);
+
+            // Merge the lo-wrap counter into H, carrying into W.
+            let h2 = _mm512_add_epi64(h, k);
+            let carry = _mm512_cmplt_epu64_mask(h2, k);
+            let w2 = _mm512_mask_add_epi64(w, carry, w, one);
+
+            #[cfg(debug_assertions)]
+            {
+                let w_arr: [u64; WIDTH] = transmute(w2);
+                let k_arr: [u64; WIDTH] = transmute(k);
+                for i in 0..WIDTH {
+                    debug_assert!(
+                        w_arr[i] < (1 << 23) && k_arr[i] < (1 << 23),
+                        "lazy accumulator wrap counters out of §1.5 bound"
+                    );
+                }
+            }
+
+            // One folding step: V = L + H'_lo*eps - (H'_hi + W*2^32)  (mod P).
+            let e = _mm512_mul_epu32(h2, EPSILON);
+            let s = _mm512_add_epi64(_mm512_srli_epi64::<32>(h2), _mm512_slli_epi64::<32>(w2));
+            let t0 = sub_no_double_overflow_64_64(l, s);
+            let r = add_no_double_overflow_64_64(t0, e);
+            let r = Self::from_vector(r);
+
+            if n_sub == 0 {
+                r
+            } else {
+                // Repay the NOT deficit: n_sub * (2^32 + 1), n_sub < 2^23 so no overflow.
+                let deficit = Goldilocks::new(n_sub * ((1u64 << 32) + 1));
+                r + Self::broadcast(deficit)
+            }
+        }
+    }
 }
 
 impl_add_base_field!(PackedGoldilocksAVX512, Goldilocks);
@@ -390,9 +520,7 @@ unsafe fn mds_output<const I: usize>(s: &[__m512i; 8], s_hi: &[__m512i; 8]) -> _
 /// `vpmuludq`, while the `vpaddq` it replaces was happily dual-issuing on the
 /// add ports. Kept the `vpmuludq + vpaddq` form.
 #[inline(always)]
-pub(crate) fn mds_mul_simd(
-    state: [PackedGoldilocksAVX512; POSEIDON1_WIDTH],
-) -> [PackedGoldilocksAVX512; POSEIDON1_WIDTH] {
+pub fn mds_mul_simd(state: [PackedGoldilocksAVX512; POSEIDON1_WIDTH]) -> [PackedGoldilocksAVX512; POSEIDON1_WIDTH] {
     unsafe {
         let s: [__m512i; 8] = [
             state[0].to_vector(),

@@ -384,6 +384,66 @@ pub trait PrimeCharacteristicRing:
     fn zero_vec(len: usize) -> Vec<Self> {
         vec![Self::ZERO; len]
     }
+
+    /// Deferred multiply-accumulate protocol: unreduced product of two ring elements.
+    ///
+    /// The four slots of the `[Self; 4]` accumulator values used by `unreduced_mul` /
+    /// `lazy_acc_*` are an implementation-defined unreduced representation; only the
+    /// protocol methods of the SAME type may create or inspect them. The default
+    /// implementations are eager (slot 0 carries a canonical running value, slots 1-3
+    /// stay `ZERO`), so for types that do not override the protocol it is exactly
+    /// equivalent to `acc + a * b` / `acc - a * b` chains — pure sugar, no behavioral
+    /// change. Overrides (e.g. 64-bit prime fields with widening multipliers) may keep
+    /// products unreduced across many accumulation steps and reduce once in
+    /// [`Self::lazy_acc_finish`].
+    ///
+    /// # Contract
+    /// - At most `2^20` accumulation calls (each adding/subtracting one
+    ///   [`Self::unreduced_mul`] product) between [`Self::lazy_acc_zero`] and
+    ///   [`Self::lazy_acc_finish`]; callers chunk longer loops.
+    /// - `n_sub` passed to [`Self::lazy_acc_finish`] must equal the number of
+    ///   [`Self::lazy_acc_sub`] calls since [`Self::lazy_acc_zero`]; implementations
+    ///   whose subtraction is exact ignore it.
+    /// - Accumulator values must not be mixed across types or fed to ordinary
+    ///   ring arithmetic.
+    #[must_use]
+    #[inline]
+    fn unreduced_mul(a: Self, b: Self) -> [Self; 4] {
+        [a * b, Self::ZERO, Self::ZERO, Self::ZERO]
+    }
+
+    /// Fresh accumulator representing zero. See [`Self::unreduced_mul`] for the protocol.
+    #[must_use]
+    #[inline]
+    fn lazy_acc_zero() -> [Self; 4] {
+        [Self::ZERO; 4]
+    }
+
+    /// Accumulate `+t` (a value produced by [`Self::unreduced_mul`]) into `acc`.
+    /// See [`Self::unreduced_mul`] for the protocol.
+    #[must_use]
+    #[inline]
+    fn lazy_acc_add(acc: [Self; 4], t: [Self; 4]) -> [Self; 4] {
+        [acc[0] + t[0], Self::ZERO, Self::ZERO, Self::ZERO]
+    }
+
+    /// Accumulate `-t` (a value produced by [`Self::unreduced_mul`]) into `acc`.
+    /// See [`Self::unreduced_mul`] for the protocol.
+    #[must_use]
+    #[inline]
+    fn lazy_acc_sub(acc: [Self; 4], t: [Self; 4]) -> [Self; 4] {
+        [acc[0] - t[0], Self::ZERO, Self::ZERO, Self::ZERO]
+    }
+
+    /// Collapse an accumulator to a canonical ring element. `n_sub` must equal the
+    /// number of [`Self::lazy_acc_sub`] calls on this accumulator (protocol docs at
+    /// [`Self::unreduced_mul`]).
+    #[must_use]
+    #[inline]
+    fn lazy_acc_finish(acc: [Self; 4], n_sub: u64) -> Self {
+        let _ = n_sub;
+        acc[0]
+    }
 }
 
 /// A vector space `V` over `F` with a fixed basis. Fixing the basis allows elements of `V` to be

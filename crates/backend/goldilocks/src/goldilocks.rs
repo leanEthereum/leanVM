@@ -285,6 +285,74 @@ impl PrimeCharacteristicRing for Goldilocks {
         // SAFETY: `#[repr(transparent)]` means `Goldilocks` and `u64` share layout.
         unsafe { flatten_to_base(vec![0u64; len]) }
     }
+
+    // Deferred multiply-accumulate protocol (plan_spec h3 §1.3-§1.5, §2).
+    //
+    // Accumulator layout: 192-bit little-endian limbs in slots 0..3:
+    //   slot 0 = l0 (bits 0..64), slot 1 = l1 (bits 64..128), slot 2 = l2 (bits 128..192),
+    //   slot 3 unused. Seeded with OFFSET192 = P * 2^126 (a multiple of P, ~2^190) so
+    //   mixed-sign accumulation never wraps the 192-bit domain:
+    //   each term is < 2^128, the contract caps terms at 5 * 2^20 < 2^23, and
+    //   2^23 * 2^128 = 2^151 << 2^190 (headroom above: 2^192 - 2^190 = 3 * 2^190).
+    //   The limb values are raw u64 bit patterns wrapped in `Goldilocks` (same trick as
+    //   `zero_vec`'s transparent layout); they are never used as field elements.
+    //
+    // Same family as the `dot_product` override above (goldilocks.rs:248) and the
+    // poseidon1.rs:85-113 scalar MDS u128 accumulation (read-only precedent).
+
+    #[inline]
+    fn unreduced_mul(a: Self, b: Self) -> [Self; 4] {
+        let wide = (a.value as u128) * (b.value as u128);
+        [
+            Self::new(wide as u64),
+            Self::new((wide >> 64) as u64),
+            Self::ZERO,
+            Self::ZERO,
+        ]
+    }
+
+    #[inline]
+    fn lazy_acc_zero() -> [Self; 4] {
+        // OFFSET192 = P << 126 = (P >> 2) * 2^128 + (P & 0b11 = 1) * 2^126:
+        //   l0 = 0, l1 = 1 << 62, l2 = P >> 2.
+        [Self::ZERO, Self::new(1u64 << 62), Self::new(P >> 2), Self::ZERO]
+    }
+
+    #[inline]
+    fn lazy_acc_add(acc: [Self; 4], t: [Self; 4]) -> [Self; 4] {
+        let (l0, c0) = acc[0].value.overflowing_add(t[0].value);
+        let (l1a, c1a) = acc[1].value.overflowing_add(t[1].value);
+        let (l1, c1b) = l1a.overflowing_add(c0 as u64);
+        let l2 = acc[2].value.wrapping_add(c1a as u64).wrapping_add(c1b as u64);
+        [Self::new(l0), Self::new(l1), Self::new(l2), Self::ZERO]
+    }
+
+    #[inline]
+    fn lazy_acc_sub(acc: [Self; 4], t: [Self; 4]) -> [Self; 4] {
+        let (l0, b0) = acc[0].value.overflowing_sub(t[0].value);
+        let (l1a, b1a) = acc[1].value.overflowing_sub(t[1].value);
+        let (l1, b1b) = l1a.overflowing_sub(b0 as u64);
+        let l2 = acc[2].value.wrapping_sub(b1a as u64).wrapping_sub(b1b as u64);
+        [Self::new(l0), Self::new(l1), Self::new(l2), Self::ZERO]
+    }
+
+    #[inline]
+    fn lazy_acc_finish(acc: [Self; 4], n_sub: u64) -> Self {
+        // Subtraction above is exact (borrow chains); no NOT-deficit to repay.
+        let _ = n_sub;
+        let l0 = acc[0].value;
+        let l1 = acc[1].value;
+        let l2 = acc[2].value;
+        // §1.5 bound: l2 drifts by <= 1 per term around its ~P/4 ~ 2^62 seed.
+        debug_assert!(l2 < (1u64 << 63), "lazy accumulator l2 out of §1.5 bound");
+        // V = l2*2^128 + l1*2^64 + l0 ≡ l0 + l1*eps - l2*2^32 (mod P)
+        // (2^64 ≡ eps, 2^128 ≡ -2^32). Add P*2^33 (multiple of P, ~2^97 > l2*2^32 < 2^95)
+        // to keep the u128 arithmetic borrow-free, then one reduce128:
+        // r < 2^64 + 2^96 + 2^97 < 2^98.
+        const P_SHL33: u128 = (P as u128) << 33;
+        let r = (l0 as u128) + (l1 as u128) * (Self::NEG_ORDER as u128) + P_SHL33 - (l2 as u128) * (1u128 << 32);
+        reduce128(r)
+    }
 }
 
 /// `p - 1 = 2^32 * 3 * 5 * 17 * 257 * 65537`. The smallest `D` with `gcd(p - 1, D) = 1` is 7.

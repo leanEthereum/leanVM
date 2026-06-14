@@ -43,14 +43,20 @@ pub fn run_product_sumcheck<EF: ExtensionField<PF<EF>>>(
     pow_bits: usize,
 ) -> (MultilinearPoint<EF>, EF, MleOwned<EF>, MleOwned<EF>) {
     assert!(n_rounds >= 1);
-    let first_sumcheck_poly = match (pol_a, pol_b) {
-        (MleRef::BasePacked(evals), MleRef::ExtensionPacked(weights)) => {
-            if EF::DIMENSION == 3 {
-                compute_product_sumcheck_polynomial_base_ext_packed::<3, _, _, _, EF>(evals, weights, sum)
-            } else {
-                unimplemented!()
+    if let (MleRef::BasePacked(evals), MleRef::ExtensionPacked(weights)) = (pol_a, pol_b) {
+        if EF::DIMENSION == 3 {
+            // Lazy path for large instances only; the eager path stays the
+            // fallback (and keeps bytecode_claims' small-domain call site on
+            // its existing code).
+            let n_vars = (evals.len() * PFPacking::<EF>::WIDTH).trailing_zeros() as usize;
+            if n_vars >= 18 && n_rounds >= 2 {
+                return run_product_sumcheck_base_lazy::<3, EF>(evals, weights, prover_state, sum, n_rounds, pow_bits);
             }
+            return run_product_sumcheck_base_eager::<3, EF>(evals, weights, prover_state, sum, n_rounds, pow_bits);
         }
+        unimplemented!()
+    }
+    let first_sumcheck_poly = match (pol_a, pol_b) {
         (MleRef::ExtensionPacked(evals), MleRef::ExtensionPacked(weights)) => {
             compute_product_sumcheck_polynomial(evals, weights, sum, |e| EFPacking::<EF>::to_ext_iter([e]).collect())
         }
@@ -73,13 +79,6 @@ pub fn run_product_sumcheck<EF: ExtensionField<PF<EF>>>(
     }
 
     let (second_sumcheck_poly, folded) = match (pol_a, pol_b) {
-        (MleRef::BasePacked(evals), MleRef::ExtensionPacked(weights)) => {
-            let (second_sumcheck_poly, folded) =
-                fold_and_compute_product_sumcheck_polynomial(evals, weights, r1, sum, |e| {
-                    EFPacking::<EF>::to_ext_iter([e]).collect()
-                });
-            (second_sumcheck_poly, MleGroupOwned::ExtensionPacked(folded))
-        }
         (MleRef::ExtensionPacked(evals), MleRef::ExtensionPacked(weights)) => {
             let (second_sumcheck_poly, folded) =
                 fold_and_compute_product_sumcheck_polynomial(evals, weights, r1, sum, |e| {
@@ -122,6 +121,371 @@ pub fn run_product_sumcheck<EF: ExtensionField<PF<EF>>>(
     challenges.splice(0..0, [r1, r2]);
     let [pol_a, pol_b] = folds.split().try_into().unwrap();
     (challenges, sum, pol_a, pol_b)
+}
+
+/// Eager path for the (BasePacked, ExtensionPacked) arm, extracted verbatim from
+/// `run_product_sumcheck`. Kept as the equality oracle for the lazy path and as
+/// the fallback for small instances. Generic over `DIM` so the full path is
+/// exercisable by the KoalaBear (DIM = 5) test harness.
+pub fn run_product_sumcheck_base_eager<const DIM: usize, EF: ExtensionField<PF<EF>>>(
+    evals: &[PFPacking<EF>],
+    weights: &[EFPacking<EF>],
+    prover_state: &mut impl FSProver<EF>,
+    mut sum: EF,
+    n_rounds: usize,
+    pow_bits: usize,
+) -> (MultilinearPoint<EF>, EF, MleOwned<EF>, MleOwned<EF>) {
+    assert!(n_rounds >= 1);
+    let first_sumcheck_poly =
+        compute_product_sumcheck_polynomial_base_ext_packed::<DIM, _, _, _, EF>(evals, weights, sum);
+
+    prover_state.add_sumcheck_polynomial(&first_sumcheck_poly.coeffs, None);
+    prover_state.pow_grinding(pow_bits);
+    let r1: EF = prover_state.sample();
+    sum = first_sumcheck_poly.evaluate(r1);
+
+    if n_rounds == 1 {
+        return (
+            MultilinearPoint(vec![r1]),
+            sum,
+            MleRef::<EF>::BasePacked(evals).fold(r1),
+            MleRef::<EF>::ExtensionPacked(weights).fold(r1),
+        );
+    }
+
+    let (second_sumcheck_poly, folded) = {
+        let (second_sumcheck_poly, folded) =
+            fold_and_compute_product_sumcheck_polynomial(evals, weights, r1, sum, |e| {
+                EFPacking::<EF>::to_ext_iter([e]).collect()
+            });
+        (second_sumcheck_poly, MleGroupOwned::ExtensionPacked(folded))
+    };
+
+    prover_state.add_sumcheck_polynomial(&second_sumcheck_poly.coeffs, None);
+    prover_state.pow_grinding(pow_bits);
+    let r2: EF = prover_state.sample();
+    sum = second_sumcheck_poly.evaluate(r2);
+
+    let (mut challenges, folds, sum) = sumcheck_prove_many_rounds(
+        folded,
+        Some(r2),
+        &ProductComputation {},
+        &vec![],
+        None,
+        prover_state,
+        sum,
+        None,
+        n_rounds - 2,
+        false,
+        pow_bits,
+    );
+
+    challenges.splice(0..0, [r1, r2]);
+    let [pol_a, pol_b] = folds.split().try_into().unwrap();
+    (challenges, sum, pol_a, pol_b)
+}
+
+/// Lazy-fold path for the (BasePacked, ExtensionPacked) arm (plan h14-T2).
+///
+/// Round 1 never materializes the folded eval array: evals stay as two implicit
+/// base streams `a_i = P[i]`, `b_i = P[half+i] - P[i]` (the fold by `r1` is kept
+/// challenge-symbolic and bound once per accumulator), while the weights are
+/// folded eagerly in the same pass. Round 2 entry then materializes the
+/// double-folded evals directly from `P` via the 4-term basis comb
+/// `E''[i] = a_i + r1 b_i + r2 da_i + r1 r2 db_i` fused with the W''-fold and the
+/// round-2 quadratic. All reorderings are exact field identities, so the
+/// transcript is bit-identical to the eager path (enforced by the equality
+/// tests below and the e2e proof byte-diff gate).
+pub fn run_product_sumcheck_base_lazy<const DIM: usize, EF: ExtensionField<PF<EF>>>(
+    evals: &[PFPacking<EF>],
+    weights: &[EFPacking<EF>],
+    prover_state: &mut impl FSProver<EF>,
+    mut sum: EF,
+    n_rounds: usize,
+    pow_bits: usize,
+) -> (MultilinearPoint<EF>, EF, MleOwned<EF>, MleOwned<EF>) {
+    assert!(n_rounds >= 2);
+    let first_sumcheck_poly =
+        compute_product_sumcheck_polynomial_base_ext_packed::<DIM, _, _, _, EF>(evals, weights, sum);
+
+    prover_state.add_sumcheck_polynomial(&first_sumcheck_poly.coeffs, None);
+    prover_state.pow_grinding(pow_bits);
+    let r1: EF = prover_state.sample();
+    sum = first_sumcheck_poly.evaluate(r1);
+
+    let (second_sumcheck_poly, w_folded) =
+        fold_weights_and_compute_lazy_round1::<DIM, _, _, _, EF>(evals, weights, r1, sum);
+
+    prover_state.add_sumcheck_polynomial(&second_sumcheck_poly.coeffs, None);
+    prover_state.pow_grinding(pow_bits);
+    let r2: EF = prover_state.sample();
+    sum = second_sumcheck_poly.evaluate(r2);
+
+    let decompose = |e| EFPacking::<EF>::to_ext_iter([e]).collect::<Vec<EF>>();
+
+    if n_rounds == 2 {
+        let (_, e2, w2) = materialize_double_fold_and_compute_round2::<DIM, _, _, _, EF>(
+            evals, &w_folded, r1, r2, sum, false, decompose,
+        );
+        return (
+            MultilinearPoint(vec![r1, r2]),
+            sum,
+            MleOwned::ExtensionPacked(e2),
+            MleOwned::ExtensionPacked(w2),
+        );
+    }
+
+    let (third_sumcheck_poly, e2, w2) =
+        materialize_double_fold_and_compute_round2::<DIM, _, _, _, EF>(evals, &w_folded, r1, r2, sum, true, decompose);
+    let third_sumcheck_poly = third_sumcheck_poly.unwrap();
+
+    prover_state.add_sumcheck_polynomial(&third_sumcheck_poly.coeffs, None);
+    prover_state.pow_grinding(pow_bits);
+    let r3: EF = prover_state.sample();
+    sum = third_sumcheck_poly.evaluate(r3);
+
+    let (mut challenges, folds, sum) = sumcheck_prove_many_rounds(
+        MleGroupOwned::ExtensionPacked(vec![e2, w2]),
+        Some(r3),
+        &ProductComputation {},
+        &vec![],
+        None,
+        prover_state,
+        sum,
+        None,
+        n_rounds - 3,
+        false,
+        pow_bits,
+    );
+
+    challenges.splice(0..0, [r1, r2, r3]);
+    let [pol_a, pol_b] = folds.split().try_into().unwrap();
+    (challenges, sum, pol_a, pol_b)
+}
+
+/// Round-1 kernel of the lazy path: folds the weights by `r1` (the only array
+/// that must be materialized) and computes the round-1 quadratic with the eval
+/// fold kept challenge-symbolic: writing `E'[j] = a_j + r1 b_j` (`a_j = P[j]`,
+/// `b_j = P[half+j] - P[j]`, both base field) and pairing `(j, q+j)`,
+///
+///   c0 = sum_j E'[j] W'[j]                 = S_c0a + r1 S_c0b
+///   c2 = sum_j (E'[q+j]-E'[j])(W'[q+j]-W'[j]) = S_c2a + r1 S_c2b
+///
+/// with the four S-streams pure base-x-ext lazy-accumulator sums; `r1` is bound
+/// once per stream after the horizontal lane sum. Per L2-resident chunk the
+/// work is five passes (W'-fold + one per stream), each holding DIM lazy
+/// accumulators (3 groups x 4 zmm — the register budget proven by the round-0
+/// kernel above).
+#[allow(clippy::needless_range_loop)]
+pub fn fold_weights_and_compute_lazy_round1<
+    const DIM: usize,
+    F: PrimeField64,
+    PF: PackedField<Scalar = F>,
+    EFP: BasedVectorSpace<PF> + Algebra<PF> + From<EF> + Copy + Send + Sync + 'static,
+    EF: Field + BasedVectorSpace<F>,
+>(
+    pol_0: &[PF],
+    pol_1: &[EFP],
+    r1: EF,
+    sum: EF,
+) -> (DensePolynomial<EF>, ArenaVec<EFP>) {
+    assert_eq!(DIM, EF::DIMENSION);
+    let n = pol_0.len();
+    assert_eq!(n, pol_1.len());
+    assert!(n.is_power_of_two());
+    assert!(n >= 4);
+    let half = n / 2;
+    let q = half / 2;
+    let r1_packed = EFP::from(r1);
+
+    let mut w_folded = unsafe { ArenaVec::<EFP>::uninitialized(half) };
+    let wf_ptr = parallel::SendPtr(w_folded.as_mut_ptr());
+
+    let chunk_size = 1024;
+    let n_chunks = q.div_ceil(chunk_size);
+
+    // Four unreduced streams (n_sub = 0: every term is a raw positive product
+    // of canonical elements; chunk length 1024 <= 2^20 honors the protocol
+    // bound, see the round-0 kernel comment).
+    type Streams<PF, const DIM: usize> = ([PF; DIM], [PF; DIM], [PF; DIM], [PF; DIM]);
+    let (c0a_acc, c0b_acc, c2a_acc, c2b_acc): Streams<PF, DIM> = parallel::map_reduce(
+        n_chunks,
+        || ([PF::ZERO; DIM], [PF::ZERO; DIM], [PF::ZERO; DIM], [PF::ZERO; DIM]),
+        |chunk| {
+            let start = chunk * chunk_size;
+            let end = (start + chunk_size).min(q);
+
+            // Pass A: fold the weights for both halves of the pair range and
+            // store into W' (the only materialized array).
+            for i in start..end {
+                let w_lo = r1_packed * (pol_1[half + i] - pol_1[i]) + pol_1[i];
+                let w_hi = r1_packed * (pol_1[half + q + i] - pol_1[q + i]) + pol_1[q + i];
+                unsafe {
+                    *wf_ptr.add(i) = w_lo;
+                    *wf_ptr.add(q + i) = w_hi;
+                }
+            }
+            let w_lo_chunk: &[EFP] = unsafe { core::slice::from_raw_parts(wf_ptr.add(start), end - start) };
+            let w_hi_chunk: &[EFP] = unsafe { core::slice::from_raw_parts(wf_ptr.add(q + start), end - start) };
+
+            // Pass B: S_c0a += a_lo * w_lo.
+            let mut c0a: [[PF; 4]; DIM] = core::array::from_fn(|_| PF::lazy_acc_zero());
+            for i in 0..(end - start) {
+                let a = pol_0[start + i];
+                let w = w_lo_chunk[i].as_basis_coefficients_slice();
+                for j in 0..DIM {
+                    c0a[j] = PF::lazy_acc_add(c0a[j], PF::unreduced_mul(w[j], a));
+                }
+            }
+            // Pass C: S_c0b += b_lo * w_lo.
+            let mut c0b: [[PF; 4]; DIM] = core::array::from_fn(|_| PF::lazy_acc_zero());
+            for i in 0..(end - start) {
+                let b = pol_0[half + start + i] - pol_0[start + i];
+                let w = w_lo_chunk[i].as_basis_coefficients_slice();
+                for j in 0..DIM {
+                    c0b[j] = PF::lazy_acc_add(c0b[j], PF::unreduced_mul(w[j], b));
+                }
+            }
+            // Pass D1: S_c2a += (a_hi - a_lo) * (w_hi - w_lo).
+            let mut c2a: [[PF; 4]; DIM] = core::array::from_fn(|_| PF::lazy_acc_zero());
+            for i in 0..(end - start) {
+                let da = pol_0[q + start + i] - pol_0[start + i];
+                let dw = w_hi_chunk[i] - w_lo_chunk[i];
+                let dw_coords = dw.as_basis_coefficients_slice();
+                for j in 0..DIM {
+                    c2a[j] = PF::lazy_acc_add(c2a[j], PF::unreduced_mul(dw_coords[j], da));
+                }
+            }
+            // Pass D2: S_c2b += (b_hi - b_lo) * (w_hi - w_lo).
+            let mut c2b: [[PF; 4]; DIM] = core::array::from_fn(|_| PF::lazy_acc_zero());
+            for i in 0..(end - start) {
+                let b_lo = pol_0[half + start + i] - pol_0[start + i];
+                let b_hi = pol_0[half + q + start + i] - pol_0[q + start + i];
+                let db = b_hi - b_lo;
+                let dw = w_hi_chunk[i] - w_lo_chunk[i];
+                let dw_coords = dw.as_basis_coefficients_slice();
+                for j in 0..DIM {
+                    c2b[j] = PF::lazy_acc_add(c2b[j], PF::unreduced_mul(dw_coords[j], db));
+                }
+            }
+            (
+                core::array::from_fn(|j| PF::lazy_acc_finish(c0a[j], 0)),
+                core::array::from_fn(|j| PF::lazy_acc_finish(c0b[j], 0)),
+                core::array::from_fn(|j| PF::lazy_acc_finish(c2a[j], 0)),
+                core::array::from_fn(|j| PF::lazy_acc_finish(c2b[j], 0)),
+            )
+        },
+        |(mut a0, mut a1, mut a2, mut a3): Streams<PF, DIM>, (b0, b1, b2, b3): Streams<PF, DIM>| {
+            for j in 0..DIM {
+                a0[j] += b0[j];
+                a1[j] += b1[j];
+                a2[j] += b2[j];
+                a3[j] += b3[j];
+            }
+            (a0, a1, a2, a3)
+        },
+    );
+
+    let lane_sum = |p: PF| {
+        let mut s = F::ZERO;
+        for &v in p.as_slice() {
+            s += v;
+        }
+        s
+    };
+    let s_c0a = EF::from_basis_coefficients_fn(|j| lane_sum(c0a_acc[j]));
+    let s_c0b = EF::from_basis_coefficients_fn(|j| lane_sum(c0b_acc[j]));
+    let s_c2a = EF::from_basis_coefficients_fn(|j| lane_sum(c2a_acc[j]));
+    let s_c2b = EF::from_basis_coefficients_fn(|j| lane_sum(c2b_acc[j]));
+
+    // Bind r1 once per stream.
+    let c0 = s_c0a + r1 * s_c0b;
+    let c2 = s_c2a + r1 * s_c2b;
+    let c1 = sum - c0.double() - c2;
+
+    (DensePolynomial::new(vec![c0, c1, c2]), w_folded)
+}
+
+/// Round-2 entry of the lazy path: materializes the double-folded evals
+/// directly from the original base array via the 4-term basis comb, folds the
+/// weights by `r2`, and (unless `compute_quad` is false, i.e. `n_rounds == 2`)
+/// computes the round-2 quadratic — all in one parallel pass.
+#[allow(clippy::too_many_arguments)]
+pub fn materialize_double_fold_and_compute_round2<
+    const DIM: usize,
+    F: PrimeField64,
+    PF: PackedField<Scalar = F>,
+    EFP: BasedVectorSpace<PF> + Algebra<PF> + From<EF> + Copy + Send + Sync + 'static,
+    EF: Field + BasedVectorSpace<F>,
+>(
+    pol_0: &[PF],
+    w_folded: &[EFP],
+    r1: EF,
+    r2: EF,
+    sum: EF,
+    compute_quad: bool,
+    decompose: impl Fn(EFP) -> Vec<EF>,
+) -> (Option<DensePolynomial<EF>>, ArenaVec<EFP>, ArenaVec<EFP>) {
+    assert_eq!(DIM, EF::DIMENSION);
+    let n = pol_0.len();
+    assert!(n.is_power_of_two());
+    assert!(n >= 8);
+    let half = n / 2;
+    let q = half / 2;
+    assert_eq!(w_folded.len(), half);
+    let e = q / 2;
+
+    let r1_packed = EFP::from(r1);
+    let r2_packed = EFP::from(r2);
+    let r12_packed = EFP::from(r1 * r2);
+
+    let mut e2 = unsafe { ArenaVec::<EFP>::uninitialized(q) };
+    let mut w2 = unsafe { ArenaVec::<EFP>::uninitialized(q) };
+    let e2_ptr = parallel::SendPtr(e2.as_mut_ptr());
+    let w2_ptr = parallel::SendPtr(w2.as_mut_ptr());
+
+    // E''[j] = a_j + r1 b_j + r2 da_j + r1 r2 db_j, from P only.
+    let comb = |j: usize| -> EFP {
+        let a = pol_0[j];
+        let b = pol_0[half + j] - pol_0[j];
+        let da = pol_0[q + j] - pol_0[j];
+        let db = (pol_0[half + q + j] - pol_0[q + j]) - b;
+        r1_packed * b + (r2_packed * da + (r12_packed * db + a))
+    };
+
+    let (c0_packed, c2_packed) = parallel::map_reduce(
+        e,
+        || (EFP::ZERO, EFP::ZERO),
+        |i| {
+            let e_lo = comb(i);
+            let e_hi = comb(e + i);
+            let w_lo = r2_packed * (w_folded[q + i] - w_folded[i]) + w_folded[i];
+            let w_hi = r2_packed * (w_folded[q + e + i] - w_folded[e + i]) + w_folded[e + i];
+            unsafe {
+                *e2_ptr.add(i) = e_lo;
+                *e2_ptr.add(e + i) = e_hi;
+                *w2_ptr.add(i) = w_lo;
+                *w2_ptr.add(e + i) = w_hi;
+            }
+            if compute_quad {
+                (w_lo * e_lo, (w_hi - w_lo) * (e_hi - e_lo))
+            } else {
+                (EFP::ZERO, EFP::ZERO)
+            }
+        },
+        |(a0, a2), (b0, b2)| (a0 + b0, a2 + b2),
+    );
+
+    let poly = if compute_quad {
+        let c0 = decompose(c0_packed).into_iter().sum::<EF>();
+        let c2 = decompose(c2_packed).into_iter().sum::<EF>();
+        let c1 = sum - c0.double() - c2;
+        Some(DensePolynomial::new(vec![c0, c1, c2]))
+    } else {
+        None
+    };
+
+    (poly, e2, w2)
 }
 
 pub fn compute_product_sumcheck_polynomial<
@@ -189,9 +553,14 @@ pub fn compute_product_sumcheck_polynomial_base_ext_packed<
     let chunk_size = 1024;
 
     let n_chunks = half.div_ceil(chunk_size);
+    // Deferred-reduction packed accumulation (lazy-accumulator protocol, see
+    // PrimeCharacteristicRing::unreduced_mul): each chunk keeps 2*DIM unreduced
+    // accumulators and reduces once at chunk exit. All terms are raw products
+    // added positively, so n_sub = 0. Chunk length 1024 <= 2^20 honors the
+    // protocol bound (1 term per accumulator per iteration).
     let (c0_acc, c2_acc) = parallel::map_reduce(
         n_chunks,
-        || ([F::ZERO; DIM], [F::ZERO; DIM]),
+        || ([PF::ZERO; DIM], [PF::ZERO; DIM]),
         |chunk| {
             let start = chunk * chunk_size;
             let end = (start + chunk_size).min(half);
@@ -199,29 +568,34 @@ pub fn compute_product_sumcheck_polynomial_base_ext_packed<
             let b_hi = &pol_0[half + start..half + end];
             let e_lo = &pol_1[start..end];
             let e_hi = &pol_1[half + start..half + end];
-            let mut c0 = [F::ZERO; DIM];
-            let mut c2 = [F::ZERO; DIM];
+            // Two passes over the (L2-resident) chunk, halving live accumulator
+            // registers per loop (plan_spec §3.1 register-pressure fallback:
+            // 6 accumulators x 4 zmm = 24 live exceeded the budget and spilled
+            // in-loop; 3 x 4 = 12 per pass fits).
+            let mut c0_lazy: [[PF; 4]; DIM] = core::array::from_fn(|_| PF::lazy_acc_zero());
             for i in 0..b_lo.len() {
-                let x0_lanes = b_lo[i].as_slice();
-                let x1_lanes = b_hi[i].as_slice();
+                let x0 = b_lo[i];
+                let y0_coords = e_lo[i].as_basis_coefficients_slice();
+                for j in 0..DIM {
+                    c0_lazy[j] = PF::lazy_acc_add(c0_lazy[j], PF::unreduced_mul(y0_coords[j], x0));
+                }
+            }
+            let mut c2_lazy: [[PF; 4]; DIM] = core::array::from_fn(|_| PF::lazy_acc_zero());
+            for i in 0..b_lo.len() {
+                let dx = b_hi[i] - b_lo[i];
                 let y0_coords = e_lo[i].as_basis_coefficients_slice();
                 let y1_coords = e_hi[i].as_basis_coefficients_slice();
                 for j in 0..DIM {
-                    let y0_j = y0_coords[j].as_slice();
-                    let y1_j = y1_coords[j].as_slice();
-                    for lane in 0..PF::WIDTH {
-                        let x0 = x0_lanes[lane];
-                        let x1 = x1_lanes[lane];
-                        let y0 = y0_j[lane];
-                        let y1 = y1_j[lane];
-                        c0[j] += y0 * x0;
-                        c2[j] += (y1 - y0) * (x1 - x0);
-                    }
+                    let dy = y1_coords[j] - y0_coords[j];
+                    c2_lazy[j] = PF::lazy_acc_add(c2_lazy[j], PF::unreduced_mul(dy, dx));
                 }
             }
-            (c0, c2)
+            (
+                core::array::from_fn(|j| PF::lazy_acc_finish(c0_lazy[j], 0)),
+                core::array::from_fn(|j| PF::lazy_acc_finish(c2_lazy[j], 0)),
+            )
         },
-        |(mut a0, mut a2): ([F; DIM], [F; DIM]), (b0, b2): ([F; DIM], [F; DIM])| {
+        |(mut a0, mut a2): ([PF; DIM], [PF; DIM]), (b0, b2): ([PF; DIM], [PF; DIM])| {
             for j in 0..DIM {
                 a0[j] += b0[j];
                 a2[j] += b2[j];
@@ -230,8 +604,16 @@ pub fn compute_product_sumcheck_polynomial_base_ext_packed<
         },
     );
 
-    let c0 = EF::from_basis_coefficients_fn(|j| c0_acc[j]);
-    let c2 = EF::from_basis_coefficients_fn(|j| c2_acc[j]);
+    // Horizontal lane sum once at the very end.
+    let lane_sum = |p: PF| {
+        let mut s = F::ZERO;
+        for &v in p.as_slice() {
+            s += v;
+        }
+        s
+    };
+    let c0 = EF::from_basis_coefficients_fn(|j| lane_sum(c0_acc[j]));
+    let c2 = EF::from_basis_coefficients_fn(|j| lane_sum(c2_acc[j]));
     let c1 = sum - c0.double() - c2;
 
     DensePolynomial::new(vec![c0, c1, c2])
@@ -330,4 +712,445 @@ where
     let constant = y_0 * x_0;
     let quadratic = (y_1 - y_0) * (x_1 - x_0);
     (constant, quadratic)
+}
+
+#[cfg(test)]
+mod base_ext_packed_kernel_tests {
+    use super::*;
+    use koala_bear::{KoalaBear, PackedQuinticExtensionFieldKB, QuinticExtensionFieldKB};
+
+    /// Pre-T4 kernel body, kept verbatim as the equality oracle (scalar per-lane
+    /// accumulation with eager reduction). Proves the restructured kernel is
+    /// value-preserving; the Goldilocks lazy primitives themselves are proven by
+    /// the goldilocks crate's T2/T3 oracle tests (plan_spec §4.2 composition).
+    fn reference_base_ext_packed<
+        const DIM: usize,
+        F: PrimeField64,
+        PF: PackedField<Scalar = F>,
+        EFP: BasedVectorSpace<PF> + Copy + Send + Sync,
+        EF: Field + BasedVectorSpace<F>,
+    >(
+        pol_0: &[PF],
+        pol_1: &[EFP],
+        sum: EF,
+    ) -> DensePolynomial<EF> {
+        assert_eq!(DIM, EF::DIMENSION);
+        let n = pol_0.len();
+        assert_eq!(n, pol_1.len());
+        assert!(n.is_power_of_two());
+        let half = n / 2;
+        let mut c0_acc = [F::ZERO; DIM];
+        let mut c2_acc = [F::ZERO; DIM];
+        for i in 0..half {
+            let x0_lanes = pol_0[i].as_slice();
+            let x1_lanes = pol_0[half + i].as_slice();
+            let y0_coords = pol_1[i].as_basis_coefficients_slice();
+            let y1_coords = pol_1[half + i].as_basis_coefficients_slice();
+            for j in 0..DIM {
+                let y0_j = y0_coords[j].as_slice();
+                let y1_j = y1_coords[j].as_slice();
+                for lane in 0..PF::WIDTH {
+                    let x0 = x0_lanes[lane];
+                    let x1 = x1_lanes[lane];
+                    let y0 = y0_j[lane];
+                    let y1 = y1_j[lane];
+                    c0_acc[j] += y0 * x0;
+                    c2_acc[j] += (y1 - y0) * (x1 - x0);
+                }
+            }
+        }
+        let c0 = EF::from_basis_coefficients_fn(|j| c0_acc[j]);
+        let c2 = EF::from_basis_coefficients_fn(|j| c2_acc[j]);
+        let c1 = sum - c0.double() - c2;
+        DensePolynomial::new(vec![c0, c1, c2])
+    }
+
+    // Minimal deterministic PRNG (same xorshift precedent as the goldilocks
+    // lazy_acc tests; no new deps).
+    struct XorShift(u64);
+    impl XorShift {
+        fn next_u64(&mut self) -> u64 {
+            let mut x = self.0;
+            x ^= x << 13;
+            x ^= x >> 7;
+            x ^= x << 17;
+            self.0 = x;
+            x
+        }
+    }
+
+    type PFKb = <KoalaBear as Field>::Packing;
+    const DIM_KB: usize = 5;
+
+    fn random_inputs(seed: u64, log_n: usize) -> (Vec<PFKb>, Vec<PackedQuinticExtensionFieldKB>) {
+        let mut rng = XorShift(seed | 1);
+        let n = 1 << log_n;
+        let base: Vec<PFKb> = (0..n)
+            .map(|_| PFKb::from_fn(|_| KoalaBear::from_u64(rng.next_u64())))
+            .collect();
+        let ext: Vec<PackedQuinticExtensionFieldKB> = (0..n)
+            .map(|_| {
+                PackedQuinticExtensionFieldKB::from_basis_coefficients_fn(|_| {
+                    PFKb::from_fn(|_| KoalaBear::from_u64(rng.next_u64()))
+                })
+            })
+            .collect();
+        (base, ext)
+    }
+
+    #[test]
+    fn rewritten_kernel_matches_reference_randomized() {
+        for (seed, log_n) in [(1u64, 1usize), (2, 2), (3, 4), (4, 7), (5, 11), (6, 12)] {
+            let (base, ext) = random_inputs(seed, log_n);
+            let sum = QuinticExtensionFieldKB::from_basis_coefficients_fn(|j| KoalaBear::from_u64(seed + j as u64));
+            let new = compute_product_sumcheck_polynomial_base_ext_packed::<DIM_KB, _, _, _, QuinticExtensionFieldKB>(
+                &base, &ext, sum,
+            );
+            let reference = reference_base_ext_packed::<DIM_KB, _, _, _, QuinticExtensionFieldKB>(&base, &ext, sum);
+            assert_eq!(new.coeffs, reference.coeffs, "seed={seed} log_n={log_n}");
+        }
+    }
+
+    #[test]
+    fn rewritten_kernel_matches_reference_boundary() {
+        // Zero blocks, all-ones, and max-representative patterns interleaved:
+        // exercises zero products and the chunk-boundary path (non-multiple of
+        // chunk_size handled by the (start + chunk_size).min(half) slicing).
+        let n = 1 << 8;
+        let mut rng = XorShift(0xDEAD_BEEF);
+        let base: Vec<PFKb> = (0..n)
+            .map(|i| match i % 4 {
+                0 => PFKb::ZERO,
+                1 => PFKb::ONE,
+                2 => PFKb::from_fn(|_| KoalaBear::from_u64(u64::MAX)),
+                _ => PFKb::from_fn(|_| KoalaBear::from_u64(rng.next_u64())),
+            })
+            .collect();
+        let ext: Vec<PackedQuinticExtensionFieldKB> = (0..n)
+            .map(|i| match i % 3 {
+                0 => PackedQuinticExtensionFieldKB::ZERO,
+                1 => PackedQuinticExtensionFieldKB::ONE,
+                _ => PackedQuinticExtensionFieldKB::from_basis_coefficients_fn(|_| {
+                    PFKb::from_fn(|_| KoalaBear::from_u64(rng.next_u64()))
+                }),
+            })
+            .collect();
+        let sum = QuinticExtensionFieldKB::ONE;
+        let new = compute_product_sumcheck_polynomial_base_ext_packed::<DIM_KB, _, _, _, QuinticExtensionFieldKB>(
+            &base, &ext, sum,
+        );
+        let reference = reference_base_ext_packed::<DIM_KB, _, _, _, QuinticExtensionFieldKB>(&base, &ext, sum);
+        assert_eq!(new.coeffs, reference.coeffs);
+    }
+}
+
+#[cfg(test)]
+mod full_path_equality_tests {
+    use super::*;
+    use koala_bear::{KoalaBear, PackedQuinticExtensionFieldKB, QuinticExtensionFieldKB};
+
+    type EFKb = QuinticExtensionFieldKB;
+    type PFKb = <KoalaBear as Field>::Packing;
+    const DIM_KB: usize = 5;
+
+    struct XorShift(u64);
+    impl XorShift {
+        fn next_u64(&mut self) -> u64 {
+            let mut x = self.0;
+            x ^= x << 13;
+            x ^= x >> 7;
+            x ^= x << 17;
+            self.0 = x;
+            x
+        }
+    }
+
+    /// Deterministic recording Fiat-Shamir prover: challenges come from a seeded
+    /// xorshift stream (independent of absorbed data), and every coefficient
+    /// vector passed to `add_sumcheck_polynomial` is captured. Two runs with the
+    /// same seed and the same number of sample() calls see identical challenge
+    /// sequences, so any divergence between the eager and lazy paths surfaces as
+    /// a recorded-coefficient or returned-value mismatch.
+    pub(super) struct RecordingFs {
+        rng: XorShift,
+        pub polys: Vec<Vec<EFKb>>,
+        pub challenges: Vec<EFKb>,
+    }
+
+    impl RecordingFs {
+        pub fn new(seed: u64) -> Self {
+            Self {
+                rng: XorShift(seed | 1),
+                polys: vec![],
+                challenges: vec![],
+            }
+        }
+    }
+
+    impl ChallengeSampler<EFKb> for RecordingFs {
+        fn sample_vec(&mut self, len: usize) -> Vec<EFKb> {
+            (0..len)
+                .map(|_| {
+                    let c = EFKb::from_basis_coefficients_fn(|_| KoaBearRand::draw(&mut self.rng));
+                    self.challenges.push(c);
+                    c
+                })
+                .collect()
+        }
+        fn sample_in_range(&mut self, _bits: usize, _n_samples: usize) -> Vec<usize> {
+            unimplemented!("not used by run_product_sumcheck")
+        }
+    }
+
+    /// Helper so the closure in sample_vec stays readable.
+    struct KoaBearRand;
+    impl KoaBearRand {
+        fn draw(rng: &mut XorShift) -> KoalaBear {
+            KoalaBear::from_u64(rng.next_u64())
+        }
+    }
+
+    impl FSProver<EFKb> for RecordingFs {
+        fn state(&self) -> String {
+            format!("recording[{}]", self.polys.len())
+        }
+        fn add_base_scalars(&mut self, _scalars: &[KoalaBear]) {}
+        fn observe_scalars(&mut self, _scalars: &[KoalaBear]) {}
+        fn duplex(&mut self) {}
+        fn pow_grinding(&mut self, _bits: usize) {}
+        fn hint_merkle_paths_base(&mut self, _paths: Vec<MerklePath<KoalaBear, KoalaBear>>) {}
+        fn add_sumcheck_polynomial(&mut self, coeffs: &[EFKb], _eq_alpha: Option<EFKb>) {
+            self.polys.push(coeffs.to_vec());
+        }
+    }
+
+    pub(super) fn random_full_inputs(seed: u64, n_vars: usize) -> (Vec<PFKb>, Vec<PackedQuinticExtensionFieldKB>) {
+        let mut rng = XorShift(seed.wrapping_mul(0x9E37_79B9_7F4A_7C15) | 1);
+        let n_packed = (1usize << n_vars) / PFKb::WIDTH;
+        let base: Vec<PFKb> = (0..n_packed)
+            .map(|_| PFKb::from_fn(|_| KoalaBear::from_u64(rng.next_u64())))
+            .collect();
+        let ext: Vec<PackedQuinticExtensionFieldKB> = (0..n_packed)
+            .map(|_| {
+                PackedQuinticExtensionFieldKB::from_basis_coefficients_fn(|_| {
+                    PFKb::from_fn(|_| KoalaBear::from_u64(rng.next_u64()))
+                })
+            })
+            .collect();
+        (base, ext)
+    }
+
+    pub(super) fn true_sum(base: &[PFKb], ext: &[PackedQuinticExtensionFieldKB]) -> EFKb {
+        let mut acc = PackedQuinticExtensionFieldKB::ZERO;
+        for (b, e) in base.iter().zip(ext.iter()) {
+            acc += *e * *b;
+        }
+        <PackedQuinticExtensionFieldKB as PackedFieldExtension<KoalaBear, EFKb>>::to_ext_iter([acc]).sum::<EFKb>()
+    }
+
+    pub(super) fn mle_owned_to_ext_vec(m: &MleOwned<EFKb>) -> Vec<EFKb> {
+        match m {
+            MleOwned::Base(v) => v.iter().map(|&x| EFKb::from(x)).collect(),
+            MleOwned::Extension(v) => v.to_vec(),
+            MleOwned::BasePacked(v) => v.iter().flat_map(|p| p.as_slice().to_vec()).map(EFKb::from).collect(),
+            MleOwned::ExtensionPacked(v) => {
+                <PackedQuinticExtensionFieldKB as PackedFieldExtension<KoalaBear, EFKb>>::to_ext_iter(v.iter().copied())
+                    .collect()
+            }
+        }
+    }
+
+    /// Harness self-check: the eager full path is deterministic under the
+    /// recording FS prover (same seed -> identical transcript and outputs).
+    #[test]
+    fn eager_full_path_deterministic_under_mock() {
+        for (seed, n_vars, n_rounds) in [(1u64, 8usize, 2usize), (2, 10, 3), (3, 12, 6)] {
+            let (base, ext) = random_full_inputs(seed, n_vars);
+            let sum = true_sum(&base, &ext);
+
+            let mut fs_a = RecordingFs::new(seed);
+            let out_a = run_product_sumcheck_base_eager::<DIM_KB, EFKb>(&base, &ext, &mut fs_a, sum, n_rounds, 0);
+            let mut fs_b = RecordingFs::new(seed);
+            let out_b = run_product_sumcheck_base_eager::<DIM_KB, EFKb>(&base, &ext, &mut fs_b, sum, n_rounds, 0);
+
+            assert_eq!(fs_a.polys, fs_b.polys, "seed={seed}");
+            assert_eq!(fs_a.challenges, fs_b.challenges, "seed={seed}");
+            assert_eq!(out_a.0.0, out_b.0.0, "challenge points seed={seed}");
+            assert_eq!(out_a.1, out_b.1, "final sum seed={seed}");
+            assert_eq!(mle_owned_to_ext_vec(&out_a.2), mle_owned_to_ext_vec(&out_b.2));
+            assert_eq!(mle_owned_to_ext_vec(&out_a.3), mle_owned_to_ext_vec(&out_b.3));
+        }
+    }
+
+    /// Sanity: the eager path's final claim is consistent — the returned folds
+    /// evaluated as a product reproduce the final sum.
+    #[test]
+    fn eager_full_path_final_claim_consistent() {
+        for (seed, n_vars, n_rounds) in [(7u64, 9usize, 2usize), (8, 11, 4)] {
+            let (base, ext) = random_full_inputs(seed, n_vars);
+            let sum = true_sum(&base, &ext);
+            let mut fs = RecordingFs::new(seed);
+            let (_point, final_sum, pol_a, pol_b) =
+                run_product_sumcheck_base_eager::<DIM_KB, EFKb>(&base, &ext, &mut fs, sum, n_rounds, 0);
+            let a = mle_owned_to_ext_vec(&pol_a);
+            let b = mle_owned_to_ext_vec(&pol_b);
+            let recomposed: EFKb = a.iter().zip(b.iter()).map(|(&x, &y)| x * y).sum();
+            assert_eq!(recomposed, final_sum, "seed={seed} n_vars={n_vars} n_rounds={n_rounds}");
+        }
+    }
+}
+
+#[cfg(test)]
+mod lazy_path_equality_tests {
+    use super::full_path_equality_tests::{RecordingFs, mle_owned_to_ext_vec, random_full_inputs, true_sum};
+    use super::*;
+    use koala_bear::{KoalaBear, PackedQuinticExtensionFieldKB, QuinticExtensionFieldKB};
+
+    type EFKb = QuinticExtensionFieldKB;
+    type PFKb = <KoalaBear as Field>::Packing;
+    const DIM_KB: usize = 5;
+
+    fn ef_from(seed: u64, salt: u64) -> EFKb {
+        EFKb::from_basis_coefficients_fn(|j| KoalaBear::from_u64(seed.wrapping_mul(salt + 1 + j as u64) | 1))
+    }
+
+    /// E1: lazy round-1 kernel == eager fold-and-compute oracle (coeffs and W'
+    /// bit-equal), randomized and boundary sizes including non-multiples of the
+    /// chunk size.
+    #[test]
+    fn e1_lazy_round1_matches_eager_oracle() {
+        for (seed, n_vars) in [(11u64, 6usize), (12, 7), (13, 9), (14, 11), (15, 14)] {
+            let (base, ext) = random_full_inputs(seed, n_vars);
+            let r1 = ef_from(seed, 0xA5);
+            let sum = ef_from(seed, 0x5A); // claimed sum input only shifts c1 identically
+
+            let (poly_lazy, w_lazy) =
+                fold_weights_and_compute_lazy_round1::<DIM_KB, _, _, _, EFKb>(&base, &ext, r1, sum);
+            let (poly_eager, folded_eager) = fold_and_compute_product_sumcheck_polynomial(&base, &ext, r1, sum, |e| {
+                <PackedQuinticExtensionFieldKB as PackedFieldExtension<KoalaBear, EFKb>>::to_ext_iter([e])
+                    .collect::<Vec<EFKb>>()
+            });
+
+            assert_eq!(poly_lazy.coeffs, poly_eager.coeffs, "seed={seed} n_vars={n_vars}");
+            assert_eq!(
+                w_lazy.as_slice(),
+                folded_eager[1].as_slice(),
+                "W' seed={seed} n_vars={n_vars}"
+            );
+        }
+    }
+
+    /// E2: fused round-2 entry == fold-twice oracle (round-2 poly, E'', W'' all
+    /// bit-equal); also the compute_quad=false arm used by n_rounds == 2.
+    #[test]
+    fn e2_fused_round2_entry_matches_fold_twice_oracle() {
+        // KoalaBear packs 16 lanes on AVX-512, so n_vars >= 8 is the smallest size
+        // where the double fold stays packed-valid (production Goldilocks: WIDTH 8,
+        // n_vars 26).
+        for (seed, n_vars) in [(21u64, 8usize), (22, 9), (23, 10), (24, 13)] {
+            let (base, ext) = random_full_inputs(seed, n_vars);
+            let r1 = ef_from(seed, 0x11);
+            let r2 = ef_from(seed, 0x22);
+            let sum = ef_from(seed, 0x33);
+
+            // Oracle: eager fold by r1 (gives E', W'), then eager fold by r2.
+            let (_p1, folded1) = fold_and_compute_product_sumcheck_polynomial(&base, &ext, r1, sum, |e| {
+                <PackedQuinticExtensionFieldKB as PackedFieldExtension<KoalaBear, EFKb>>::to_ext_iter([e])
+                    .collect::<Vec<EFKb>>()
+            });
+            let (p2_oracle, folded2) = fold_and_compute_product_sumcheck_polynomial(
+                folded1[0].as_slice(),
+                folded1[1].as_slice(),
+                r2,
+                sum,
+                |e| {
+                    <PackedQuinticExtensionFieldKB as PackedFieldExtension<KoalaBear, EFKb>>::to_ext_iter([e])
+                        .collect::<Vec<EFKb>>()
+                },
+            );
+
+            let (_p1_lazy, w_folded) =
+                fold_weights_and_compute_lazy_round1::<DIM_KB, _, _, _, EFKb>(&base, &ext, r1, sum);
+            let (p2_lazy, e2, w2) = materialize_double_fold_and_compute_round2::<DIM_KB, _, _, _, EFKb>(
+                &base,
+                &w_folded,
+                r1,
+                r2,
+                sum,
+                true,
+                |e| {
+                    <PackedQuinticExtensionFieldKB as PackedFieldExtension<KoalaBear, EFKb>>::to_ext_iter([e])
+                        .collect::<Vec<EFKb>>()
+                },
+            );
+
+            assert_eq!(
+                p2_lazy.unwrap().coeffs,
+                p2_oracle.coeffs,
+                "poly seed={seed} n_vars={n_vars}"
+            );
+            assert_eq!(e2.as_slice(), folded2[0].as_slice(), "E'' seed={seed} n_vars={n_vars}");
+            assert_eq!(w2.as_slice(), folded2[1].as_slice(), "W'' seed={seed} n_vars={n_vars}");
+
+            let (none_poly, e2b, w2b) = materialize_double_fold_and_compute_round2::<DIM_KB, _, _, _, EFKb>(
+                &base,
+                &w_folded,
+                r1,
+                r2,
+                sum,
+                false,
+                |e| {
+                    <PackedQuinticExtensionFieldKB as PackedFieldExtension<KoalaBear, EFKb>>::to_ext_iter([e])
+                        .collect::<Vec<EFKb>>()
+                },
+            );
+            assert!(none_poly.is_none());
+            assert_eq!(e2b.as_slice(), e2.as_slice());
+            assert_eq!(w2b.as_slice(), w2.as_slice());
+        }
+    }
+
+    /// E3: full forced-lazy vs forced-eager runs under the recording mock:
+    /// identical coefficient sequences, challenges, final point/sum, and folds.
+    #[test]
+    fn e3_full_lazy_vs_eager_transcript_identical() {
+        for n_vars in [8usize, 9, 11, 14] {
+            for n_rounds in [2usize, 3, 6] {
+                if n_rounds > n_vars {
+                    continue;
+                }
+                let seed = (n_vars * 100 + n_rounds) as u64;
+                let (base, ext) = random_full_inputs(seed, n_vars);
+                let sum = true_sum(&base, &ext);
+
+                let mut fs_eager = RecordingFs::new(seed);
+                let out_eager =
+                    run_product_sumcheck_base_eager::<DIM_KB, EFKb>(&base, &ext, &mut fs_eager, sum, n_rounds, 0);
+                let mut fs_lazy = RecordingFs::new(seed);
+                let out_lazy =
+                    run_product_sumcheck_base_lazy::<DIM_KB, EFKb>(&base, &ext, &mut fs_lazy, sum, n_rounds, 0);
+
+                assert_eq!(
+                    fs_lazy.polys, fs_eager.polys,
+                    "polys n_vars={n_vars} n_rounds={n_rounds}"
+                );
+                assert_eq!(
+                    fs_lazy.challenges, fs_eager.challenges,
+                    "challenges n_vars={n_vars} n_rounds={n_rounds}"
+                );
+                assert_eq!(out_lazy.0.0, out_eager.0.0, "point n_vars={n_vars} n_rounds={n_rounds}");
+                assert_eq!(out_lazy.1, out_eager.1, "sum n_vars={n_vars} n_rounds={n_rounds}");
+                assert_eq!(
+                    mle_owned_to_ext_vec(&out_lazy.2),
+                    mle_owned_to_ext_vec(&out_eager.2),
+                    "fold A n_vars={n_vars} n_rounds={n_rounds}"
+                );
+                assert_eq!(
+                    mle_owned_to_ext_vec(&out_lazy.3),
+                    mle_owned_to_ext_vec(&out_eager.3),
+                    "fold B n_vars={n_vars} n_rounds={n_rounds}"
+                );
+            }
+        }
+    }
 }
