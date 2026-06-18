@@ -1087,26 +1087,26 @@ mod fusion_bench {
     type F = KoalaBear;
     type EF = QuinticExtensionFieldKB;
     type FP = PFPacking<EF>;
-    type EFP = EFPacking<EF>;
+    type Efp = EFPacking<EF>;
 
     fn w_log() -> usize {
         packing_log_width::<EF>()
     }
 
     #[inline(always)]
-    fn unpack_sum(s: EFP) -> EF {
-        <EFP as PackedFieldExtension<F, EF>>::to_ext_iter([s]).sum::<EF>()
+    fn unpack_sum(s: Efp) -> EF {
+        <Efp as PackedFieldExtension<F, EF>>::to_ext_iter([s]).sum::<EF>()
     }
 
-    fn decompose(e: EFP) -> Vec<EF> {
-        <EFP as PackedFieldExtension<F, EF>>::to_ext_iter([e]).collect()
+    fn decompose(e: Efp) -> Vec<EF> {
+        <Efp as PackedFieldExtension<F, EF>>::to_ext_iter([e]).collect()
     }
 
     /// Full-eq term: scalar pre-multiplied into the prefix table.
     /// value(j) = right_packed[j & rmask] * left[j >> rshift]
     struct FullT {
         left: ArenaVec<EF>,   // 2^A entries, scaled
-        right: ArenaVec<EFP>, // 2^(n - A - w) packed entries
+        right: ArenaVec<Efp>, // 2^(n - A - w) packed entries
         rshift: usize,        // n - A - w
         rmask: usize,
     }
@@ -1119,7 +1119,7 @@ mod fusion_bench {
         end: usize,
         ishift: usize, // inner_vars - w
         imask: usize,
-        inner: ArenaVec<EFP>, // 2^ishift packed entries (unscaled)
+        inner: ArenaVec<Efp>, // 2^ishift packed entries (unscaled)
         scalars: Vec<EF>,     // per block, gamma powers
     }
 
@@ -1130,8 +1130,8 @@ mod fusion_bench {
 
     impl LazyTerms {
         #[inline(always)]
-        fn at(&self, j: usize) -> EFP {
-            let mut acc = EFP::ZERO;
+        fn at(&self, j: usize) -> Efp {
+            let mut acc = Efp::ZERO;
             for t in &self.full {
                 acc += t.right[j & t.rmask] * t.left[j >> t.rshift];
             }
@@ -1216,7 +1216,7 @@ mod fusion_bench {
             for v in left.iter_mut() {
                 *v *= scalar;
             }
-            let right: ArenaVec<EFP> = eval_eq_packed(&point[a..]);
+            let right: ArenaVec<Efp> = eval_eq_packed(&point[a..]);
             FullT {
                 left,
                 right,
@@ -1250,7 +1250,7 @@ mod fusion_bench {
                 smt.inner_num_variables() >= w,
                 "bench statement set must not contain lane-level statements"
             );
-            let inner: ArenaVec<EFP> = if smt.is_next {
+            let inner: ArenaVec<Efp> = if smt.is_next {
                 let next = matrix_next_mle_folded(&smt.point.0);
                 pack_extension(&next)
             } else {
@@ -1287,7 +1287,7 @@ mod fusion_bench {
         let half = n / 2;
         let (c0p, c2p) = parallel::map_reduce(
             half,
-            || (EFP::ZERO, EFP::ZERO),
+            || (Efp::ZERO, Efp::ZERO),
             |i| {
                 let y0 = terms.at(i);
                 let y1 = terms.at(half + i);
@@ -1314,17 +1314,17 @@ mod fusion_bench {
         terms: &LazyTerms,
         r1: EF,
         sum: EF,
-    ) -> (DensePolynomial<EF>, ArenaVec<EFP>, ArenaVec<EFP>) {
+    ) -> (DensePolynomial<EF>, ArenaVec<Efp>, ArenaVec<Efp>) {
         let n = evals.len();
         let quarter = n / 4;
-        let r1p = EFP::from(r1);
-        let mut e_folded = unsafe { ArenaVec::<EFP>::uninitialized(n / 2) };
-        let mut w_folded = unsafe { ArenaVec::<EFP>::uninitialized(n / 2) };
+        let r1p = Efp::from(r1);
+        let mut e_folded = unsafe { ArenaVec::<Efp>::uninitialized(n / 2) };
+        let mut w_folded = unsafe { ArenaVec::<Efp>::uninitialized(n / 2) };
         let pe = parallel::SendPtr(e_folded.as_mut_ptr());
         let pw = parallel::SendPtr(w_folded.as_mut_ptr());
         let (c0p, c2p) = parallel::map_reduce(
             quarter,
-            || (EFP::ZERO, EFP::ZERO),
+            || (Efp::ZERO, Efp::ZERO),
             |i| {
                 let x_0 = r1p * (evals[2 * quarter + i] - evals[i]) + evals[i];
                 let x_1 = r1p * (evals[3 * quarter + i] - evals[quarter + i]) + evals[quarter + i];
@@ -1405,7 +1405,7 @@ mod fusion_bench {
         // --- materialized baseline ---
         let (t_combine, (weights, sum_m)) = time_med(3, || combine_statement::<EF>(&stmts, gamma));
         let (t_read, read_sink) = time_med(3, || {
-            parallel::map_reduce(weights.len(), || EFP::ZERO, |i| weights[i], |a, b| a + b)
+            parallel::map_reduce(weights.len(), || Efp::ZERO, |i| weights[i], |a, b| a + b)
         });
         black_box(read_sink);
         let (t_r0, base_r0) = time_med(3, || {
@@ -1487,13 +1487,13 @@ mod fusion_bench {
         for log_n in [20usize, 22, 23] {
             let n = 1 << (log_n - w);
             let base = cheap_base_fill(n);
-            let ext: ArenaVec<EFP> = {
+            let ext: ArenaVec<Efp> = {
                 let vals: Vec<EF> = (0..(n << w))
                     .map(|i| EF::from(F::from_u32((i as u32) | 1)) * EF::from_u32(7))
                     .collect();
                 pack_extension(&vals)
             };
-            let wts: ArenaVec<EFP> = {
+            let wts: ArenaVec<Efp> = {
                 let vals: Vec<EF> = (0..(n << w)).map(|_| rng.random::<EF>()).collect();
                 pack_extension(&vals)
             };
@@ -1537,7 +1537,7 @@ mod lazy_combine_diag {
     fn diag_lazy_vs_combine_failing_shape() {
         let num_variables = 20usize;
         let mut rng = StdRng::seed_from_u64(7);
-        let polynomial = (0..1usize << num_variables)
+        let _polynomial = (0..1usize << num_variables)
             .map(|_| rng.random::<F>())
             .collect::<Vec<F>>();
 
