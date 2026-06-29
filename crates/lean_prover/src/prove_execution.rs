@@ -225,8 +225,9 @@ pub fn prove_execution(
         committed_statements.get_mut(table).unwrap().push(claim);
     }
 
-    let public_memory_random_point = MultilinearPoint(prover_state.sample_vec(log2_strict_usize(PUBLIC_INPUT_LEN)));
-    let public_memory_eval = (&memory[..PUBLIC_INPUT_LEN]).evaluate(&public_memory_random_point);
+    let public_memory_len = bytecode.public_memory_len();
+    let public_memory_random_point = MultilinearPoint(prover_state.sample_vec(log2_strict_usize(public_memory_len)));
+    let public_memory_eval = (&memory[..public_memory_len]).evaluate(&public_memory_random_point);
 
     let previous_statements = vec![
         SparseStatement::new(

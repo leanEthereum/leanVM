@@ -170,8 +170,10 @@ pub fn verify_execution(
         return Err(ProofError::InvalidProof);
     }
 
-    let public_memory_random_point = MultilinearPoint(verifier_state.sample_vec(log2_strict_usize(public_input.len())));
-    let public_memory_eval = public_input.evaluate(&public_memory_random_point);
+    let public_memory = bytecode.public_memory(public_input);
+    let public_memory_random_point =
+        MultilinearPoint(verifier_state.sample_vec(log2_strict_usize(public_memory.len())));
+    let public_memory_eval = public_memory.evaluate(&public_memory_random_point);
 
     let previous_statements = vec![
         SparseStatement::new(

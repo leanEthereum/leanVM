@@ -1,0 +1,14 @@
+[package]
+name = "pq_das"
+version.workspace = true
+edition.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+backend.workspace = true
+clap.workspace = true
+lean_compiler.workspace = true
+lean_prover.workspace = true
+lean_vm.workspace = true

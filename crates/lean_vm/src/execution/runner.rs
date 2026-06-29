@@ -278,9 +278,12 @@ fn execute_bytecode_helper(
     let hint_data = &witness.hints;
     let mut hint_indices = vec![0usize; n_slots];
 
-    let public_memory = public_input.to_vec();
+    // Read-only bytecode data is part of public memory, so the proof binds every
+    // constant without spending VM instructions copying it into runtime memory.
+    let public_memory = bytecode.public_memory(public_input);
+    let public_memory_len = public_memory.len();
     let mut memory = Memory::new(public_memory);
-    let mut fp = PUBLIC_INPUT_LEN + witness.preamble_memory_len;
+    let mut fp = public_memory_len + witness.preamble_memory_len;
     fp = fp.next_multiple_of(DIMENSION);
     let initial_ap = fp + bytecode.starting_frame_memory();
     let mut pc = STARTING_PC;
@@ -360,7 +363,7 @@ fn execute_bytecode_helper(
     } else {
         None
     };
-    let runtime_memory_size = memory.0.len() - PUBLIC_INPUT_LEN - witness.preamble_memory_len;
+    let runtime_memory_size = memory.0.len() - public_memory_len - witness.preamble_memory_len;
     let used_memory_cells = parallel::map_reduce(
         memory.0.len(),
         || 0usize,
@@ -373,7 +376,7 @@ fn execute_bytecode_helper(
         n_poseidons: trace.tables[&Table::poseidon16()].columns[0].len(),
         n_extension_ops: trace.tables[&Table::extension_op()].columns[0].len(),
         bytecode_size: bytecode.size(),
-        public_input_size: PUBLIC_INPUT_LEN,
+        public_memory_size: public_memory_len,
         runtime_memory: runtime_memory_size,
         memory_usage_percent: used_memory_cells as f64 / memory.0.len() as f64 * 100.0,
         stdout: std::mem::take(std_out),

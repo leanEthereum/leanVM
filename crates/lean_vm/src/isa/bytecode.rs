@@ -2,7 +2,7 @@
 
 use backend::*;
 
-use crate::{DIMENSION, F, FileId, FunctionName, Hint, N_INSTRUCTION_COLUMNS, SourceLocation};
+use crate::{DIMENSION, F, FileId, FunctionName, Hint, N_INSTRUCTION_COLUMNS, PUBLIC_INPUT_LEN, SourceLocation};
 
 use super::Instruction;
 use super::encoder::field_representation;
@@ -31,6 +31,8 @@ pub struct Bytecode {
     code: Vec<CodeEntry>,
     hint_name_to_index: BTreeMap<String, usize>,
     instructions_multilinear: Vec<F>,
+    /// Public read-only values loaded after the fixed public input before execution.
+    read_only_data: Vec<F>,
     starting_frame_memory: usize,
     ending_pc: usize, // always `code.len() - 1`
     hash: [F; DIGEST_ELEMS],
@@ -67,6 +69,7 @@ impl Bytecode {
             code,
             hint_name_to_index,
             instructions_multilinear,
+            read_only_data: Vec::new(),
             starting_frame_memory,
             ending_pc,
             hash,
@@ -88,6 +91,49 @@ impl Bytecode {
     #[inline]
     pub fn instructions_multilinear(&self) -> &[F] {
         &self.instructions_multilinear
+    }
+
+    /// Returns the absolute memory address at which the read-only segment begins.
+    pub const fn read_only_data_start(&self) -> usize {
+        PUBLIC_INPUT_LEN
+    }
+
+    /// Returns the public read-only values bound to this bytecode.
+    pub fn read_only_data(&self) -> &[F] {
+        &self.read_only_data
+    }
+
+    /// Attaches public read-only data and binds it into the bytecode hash.
+    pub fn with_read_only_data(mut self, mut data: Vec<F>) -> Self {
+        data.resize(data.len().next_multiple_of(DIGEST_ELEMS), F::ZERO);
+        self.read_only_data = data;
+        self.refresh_hash();
+        self
+    }
+
+    /// Constructs the power-of-two public memory prefix checked by the proof.
+    pub fn public_memory(&self, public_input: &[F; PUBLIC_INPUT_LEN]) -> Vec<F> {
+        let mut memory = Vec::with_capacity(self.public_memory_len());
+        memory.extend_from_slice(public_input);
+        memory.extend_from_slice(&self.read_only_data);
+        memory.resize(self.public_memory_len(), F::ZERO);
+        memory
+    }
+
+    /// Returns the padded public-memory length without allocating the segment.
+    pub fn public_memory_len(&self) -> usize {
+        (PUBLIC_INPUT_LEN + self.read_only_data.len()).next_power_of_two()
+    }
+
+    /// Recomputes the Fiat-Shamir bytecode hash after read-only data changes.
+    fn refresh_hash(&mut self) {
+        let instruction_hash = poseidon_hash_slice(&self.instructions_multilinear);
+        self.hash = if self.read_only_data.is_empty() {
+            instruction_hash
+        } else {
+            let data_hash = poseidon_hash_slice(&self.read_only_data);
+            poseidon16_compress_pair(&instruction_hash, &data_hash)
+        };
     }
 
     #[inline]
