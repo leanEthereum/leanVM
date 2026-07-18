@@ -165,7 +165,9 @@ pub fn wots_encode(
         .iter()
         .flat_map(|kb| to_little_endian_bits(kb.to_usize(), 24))
         .collect::<Vec<_>>()
-        .chunks_exact(W)
+        .as_chunks::<W>()
+        .0
+        .iter()
         .take(V)
         .map(|chunk| {
             chunk

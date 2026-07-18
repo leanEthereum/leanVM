@@ -17,7 +17,7 @@ where
     debug_assert!(data.len().is_multiple_of(RATE));
     let mut state = [T::default(); WIDTH];
     state[0] = T::from_usize(data.len());
-    for chunk in data.chunks_exact(RATE).rev() {
+    for chunk in data.as_chunks::<RATE>().0.iter().rev() {
         state[WIDTH - RATE..].copy_from_slice(chunk);
         perm.permute_mut(&mut state);
     }

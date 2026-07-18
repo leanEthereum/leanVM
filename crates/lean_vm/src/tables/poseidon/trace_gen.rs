@@ -55,7 +55,7 @@ pub(super) fn generate_trace_rows_for_perm<F: Algebra<KoalaBear> + Copy>(perm: &
     for (full_round, constants) in perm
         .beginning_full_rounds
         .iter_mut()
-        .zip(poseidon1_initial_constants().chunks_exact(2))
+        .zip(poseidon1_initial_constants().as_chunks::<2>().0.iter())
     {
         generate_2_full_round(&mut state, full_round, &constants[0], &constants[1]);
     }
@@ -99,7 +99,7 @@ pub(super) fn generate_trace_rows_for_perm<F: Algebra<KoalaBear> + Copy>(perm: &
     for (full_round, constants) in perm
         .ending_full_rounds
         .iter_mut()
-        .zip(poseidon1_final_constants().chunks_exact(2))
+        .zip(poseidon1_final_constants().as_chunks::<2>().0.iter())
     {
         generate_2_full_round(&mut state, full_round, &constants[0], &constants[1]);
     }

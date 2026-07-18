@@ -57,8 +57,8 @@ impl XmssPublicKey {
 fn gen_wots_secret_key(seed: &[u8; 32], slot: u32, public_param: PublicParam) -> WotsSecretKey {
     let rng_seed_fe = poseidon_prf(PRF_DOMAINSEP_WOTS_SECRET_KEY, seed, [slot as usize, 0]);
     let mut rng_seed = [0u8; 32];
-    for (chunk, f) in rng_seed.chunks_exact_mut(4).zip(rng_seed_fe) {
-        chunk.copy_from_slice(&f.as_canonical_u32().to_le_bytes());
+    for (chunk, f) in rng_seed.as_chunks_mut::<4>().0.iter_mut().zip(rng_seed_fe) {
+        *chunk = f.as_canonical_u32().to_le_bytes();
     }
     let mut rng = StdRng::from_seed(rng_seed);
     WotsSecretKey::random(&mut rng, public_param, slot)

@@ -48,8 +48,8 @@ pub(crate) fn poseidon_prf(domain: u32, seed: &[u8; 32], indices: [usize; 2]) ->
     input[0] = F::from_u32(domain);
     let mask: usize = (1 << 30) - 1;
     let mut high_bits = 0usize;
-    for (i, word) in seed.chunks_exact(4).enumerate() {
-        let w = u32::from_le_bytes(word.try_into().unwrap()) as usize;
+    for (i, word) in seed.as_chunks::<4>().0.iter().enumerate() {
+        let w = u32::from_le_bytes(*word) as usize;
         input[1 + i] = F::from_usize(w & mask);
         high_bits |= (w >> 30) << (2 * i);
     }
