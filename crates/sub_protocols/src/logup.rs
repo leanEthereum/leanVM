@@ -245,14 +245,14 @@ pub fn prove_generic_logup(
 
     // Memory: ...
     let memory_and_acc_point = MultilinearPoint(from_end(&claim_point_gkr, log2_strict_usize(memory.len())).to_vec());
-    let value_memory_acc = memory_acc.evaluate(&memory_and_acc_point);
+    let value_memory_acc = eval_base_packed::<EF, true>(memory_acc, &memory_and_acc_point.0);
     prover_state.add_extension_scalar(value_memory_acc);
 
-    let value_memory = memory.evaluate(&memory_and_acc_point);
+    let value_memory = eval_base_packed::<EF, true>(memory, &memory_and_acc_point.0);
     prover_state.add_extension_scalar(value_memory);
 
     let bytecode_and_acc_point = MultilinearPoint(from_end(&claim_point_gkr, log_bytecode).to_vec());
-    let value_bytecode_acc = bytecode_acc.evaluate(&bytecode_and_acc_point);
+    let value_bytecode_acc = eval_base_packed::<EF, true>(bytecode_acc, &bytecode_and_acc_point.0);
     prover_state.add_extension_scalar(value_bytecode_acc);
 
     // evaluation on bytecode itself can be done directly by the verifier
@@ -269,8 +269,10 @@ pub fn prove_generic_logup(
 
         let resolve_ef = |entry: BusData| -> EF {
             match entry {
-                BusData::Column(col) => trace.columns[col].evaluate(&inner_point),
-                BusData::ColumnPlusConstant(col, ofs) => trace.columns[col].evaluate(&inner_point) + F::from_usize(ofs),
+                BusData::Column(col) => eval_base_packed::<EF, true>(&trace.columns[col], &inner_point.0),
+                BusData::ColumnPlusConstant(col, ofs) => {
+                    eval_base_packed::<EF, true>(&trace.columns[col], &inner_point.0) + F::from_usize(ofs)
+                }
                 BusData::Constant(val) => EF::from_usize(val),
             }
         };
@@ -278,8 +280,8 @@ pub fn prove_generic_logup(
         for bus in table.bus_interactions() {
             match bus.multiplicity {
                 BusMultiplicity::Column(mult_col) => {
-                    let eval_on_multiplicity =
-                        trace.columns[mult_col].evaluate(&inner_point) * bus.direction.to_field_flag();
+                    let eval_on_multiplicity = eval_base_packed::<EF, true>(&trace.columns[mult_col], &inner_point.0)
+                        * bus.direction.to_field_flag();
                     prover_state.add_extension_scalar(eval_on_multiplicity);
                     let data_evals: Vec<EF> = bus.data.iter().map(|e| resolve_ef(*e)).collect();
                     let eval_on_data = c - finger_print(resolve_ef(bus.domainsep), &data_evals, alphas_eq_poly);
@@ -298,7 +300,7 @@ pub fn prove_generic_logup(
                         .filter_map(|entry| {
                             entry.column().and_then(|col| {
                                 if let std::collections::btree_map::Entry::Vacant(e) = table_values.entry(col) {
-                                    let v = trace.columns[col].evaluate(&inner_point);
+                                    let v = eval_base_packed::<EF, true>(&trace.columns[col], &inner_point.0);
                                     e.insert(v);
                                     Some(v)
                                 } else {

@@ -1,7 +1,7 @@
 use crate::*;
 use crate::{EFPacking, PF};
 use ::utils::log2_ceil_usize;
-use field::{ExtensionField, Field, PrimeCharacteristicRing};
+use field::{ExtensionField, Field, PackedFieldExtension, PackedValue, PrimeCharacteristicRing};
 use zk_alloc::ArenaVec;
 pub trait EvaluationsList<F: Field> {
     fn num_variables(&self) -> usize;
@@ -110,6 +110,54 @@ where
 //     let res_unpacked: Vec<EF> = unpack_extension(&[res_packed]);
 //     eval_multilinear(&res_unpacked, &point[point.len() - log_width..])
 // }
+
+/// Minimum number of variables for [`eval_base_packed`] to use the split-eq
+/// strategy; below this the recursive strategy is used. Must stay above
+/// `packing_log_width + 1` so both eq tables are non-trivial.
+const EVAL_BASE_PACKED_MIN_VARS: usize = 6;
+
+/// Evaluate a multilinear polynomial with base-field coefficients at an
+/// extension-field point, via the regrouped sum
+///
+/// `Σ_{v_hi} eq(v_hi, p_hi) · (Σ_{v_lo} f(v_hi, v_lo) · eq(v_lo, p_lo))`.
+///
+/// The two eq tables have `~2^{n/2}` entries each, so their construction is
+/// negligible, and the inner dot products run on packed values with cheap
+/// base-times-extension multiplications. The recursive strategy used by
+/// `evaluate` spends one extension-by-extension multiplication per pair of
+/// subtrees, which is several times more base multiplications in total.
+pub fn eval_base_packed<EF, const PARALLEL: bool>(evals: &[PF<EF>], point: &[EF]) -> EF
+where
+    EF: ExtensionField<PF<EF>>,
+{
+    debug_assert_eq!(evals.len(), 1 << point.len());
+    if point.len() < EVAL_BASE_PACKED_MIN_VARS {
+        return eval_multilinear::<_, _, PARALLEL>(evals, point);
+    }
+
+    // The `mid` low-order (fastest-moving) variables go to the inner, contiguous
+    // dot products; `eval_eq_packed` requires more variables than the packing width.
+    let mid = (point.len() / 2).max(packing_log_width::<EF>() + 1);
+    let (hi, lo) = point.split_at(point.len() - mid);
+    let eq_lo = eval_eq_packed(lo);
+    let eq_hi = eval_eq(hi);
+
+    let dot = |i: usize| -> EF {
+        let part = PFPacking::<EF>::pack_slice(&evals[i << mid..][..1 << mid]);
+        let mut acc = EFPacking::<EF>::ZERO;
+        for (&a, &b) in part.iter().zip(eq_lo.iter()) {
+            acc += b * a;
+        }
+        EFPacking::<EF>::to_ext_iter([acc]).sum::<EF>() * eq_hi[i]
+    };
+
+    let work_size: usize = (1 << 15) / std::mem::size_of::<PF<EF>>();
+    if PARALLEL && evals.len() > work_size {
+        parallel::map_reduce(eq_hi.len(), || EF::ZERO, dot, |a, b| a + b)
+    } else {
+        (0..eq_hi.len()).map(dot).sum()
+    }
+}
 
 pub fn eval_packed<EF, const PARALLEL: bool>(evals: &[EFPacking<EF>], point: &[EF]) -> EF
 where
@@ -370,5 +418,28 @@ mod tests {
         println!("Packed eval time: {:?}", time.elapsed());
 
         assert_eq!(res_normal, res_packed);
+    }
+
+    #[test]
+    fn test_eval_base_packed() {
+        let mut rng = StdRng::seed_from_u64(0);
+        for n_vars in 0..=18 {
+            let poly = (0..(1usize << n_vars))
+                .map(|_| rng.random())
+                .collect::<Vec<koala_bear::KoalaBear>>();
+            let point = (0..n_vars).map(|_| rng.random()).collect::<Vec<EF>>();
+
+            let expected = eval_multilinear::<_, _, false>(&poly, &point);
+            assert_eq!(
+                eval_base_packed::<EF, false>(&poly, &point),
+                expected,
+                "n_vars = {n_vars}"
+            );
+            assert_eq!(
+                eval_base_packed::<EF, true>(&poly, &point),
+                expected,
+                "n_vars = {n_vars}"
+            );
+        }
     }
 }

@@ -80,9 +80,9 @@ impl<'a, EF: ExtensionField<PF<EF>>> MleRef<'a, EF> {
 
     pub fn evaluate(&self, point: &MultilinearPoint<EF>) -> EF {
         match self {
-            Self::Base(pol) => pol.evaluate(point),
+            Self::Base(pol) => eval_base_packed::<EF, true>(pol, &point.0),
             Self::Extension(pol) => pol.evaluate(point),
-            Self::BasePacked(pol) => PFPacking::<EF>::unpack_slice(pol).evaluate(point),
+            Self::BasePacked(pol) => eval_base_packed::<EF, true>(PFPacking::<EF>::unpack_slice(pol), &point.0),
             Self::ExtensionPacked(pol) => eval_packed::<_, true>(pol, &point.0),
         }
     }
