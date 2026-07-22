@@ -14,3 +14,4 @@ tracing.workspace = true
 
 [dev-dependencies]
 koala-bear = { path = "../koala-bear", package = "koala-bear" }
+rand.workspace = true

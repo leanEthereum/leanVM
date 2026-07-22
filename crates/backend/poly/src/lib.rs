@@ -26,3 +26,6 @@ pub use wrappers::*;
 
 mod multilinear_utils;
 pub use multilinear_utils::*;
+
+#[cfg(test)]
+mod benchmark_kernels;

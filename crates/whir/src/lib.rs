@@ -27,6 +27,9 @@ pub(crate) use utils::*;
 mod matrix;
 pub(crate) use matrix::*;
 
+#[cfg(test)]
+mod benchmark_first_round;
+
 #[derive(Clone, Debug)]
 pub struct SparseStatement<EF> {
     pub total_num_variables: usize,

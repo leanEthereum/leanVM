@@ -878,6 +878,7 @@ dependencies = [
  "koala-bear",
  "parallel",
  "poly",
+ "rand",
  "tracing",
  "zk-alloc",
 ]

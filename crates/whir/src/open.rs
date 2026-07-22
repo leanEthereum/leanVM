@@ -739,7 +739,7 @@ fn gather_run_terms<'a, EF: ExtensionField<PF<EF>>>(
 }
 
 /// One parallel pass: write the rounds-1+ weight buffer and accumulate the round-0 quadratic.
-fn combine_and_compute_first_round<EF>(
+pub(crate) fn combine_and_compute_first_round<EF>(
     evals: &[PFPacking<EF>],
     terms: &LazyCombineTerms<EF>,
 ) -> (DensePolynomial<EF>, ArenaVec<EFPacking<EF>>)

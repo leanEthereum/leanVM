@@ -14,3 +14,6 @@ pub use sc_computation::*;
 
 mod product_computation;
 pub use product_computation::*;
+
+#[cfg(test)]
+mod benchmark_product_sumcheck;
