@@ -15,10 +15,14 @@ pub use xmss::*;
 pub const XMSS_DIGEST_LEN: usize = 4;
 pub(crate) const TWEAK_LEN: usize = 2;
 
-type F = KoalaBear;
-type Digest = [F; XMSS_DIGEST_LEN];
-type PublicParam = [F; PUBLIC_PARAM_LEN_FE];
-type Randomness = [F; RANDOMNESS_LEN_FE];
+/// The base field of the scheme.
+pub type F = KoalaBear;
+/// A truncated Poseidon digest: hash-chain values and Merkle tree nodes.
+pub type Digest = [F; XMSS_DIGEST_LEN];
+/// The per-key public parameter of the tweakable hash.
+pub type PublicParam = [F; PUBLIC_PARAM_LEN_FE];
+/// The encoding randomness carried in every signature.
+pub type Randomness = [F; RANDOMNESS_LEN_FE];
 
 // WOTS
 pub const V: usize = 42;
