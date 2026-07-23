@@ -82,6 +82,19 @@ pub enum XmssKeyGenError {
     InvalidRange,
 }
 
+impl std::fmt::Display for XmssKeyGenError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::InvalidRange => write!(
+                f,
+                "invalid slot range (empty, reversed, or beyond the 2^{LOG_LIFETIME} lifetime)"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for XmssKeyGenError {}
+
 fn fill<T: Send>(sequential: bool, data: &mut [T], f: impl Fn(usize, &mut T) + Sync) {
     if sequential {
         data.iter_mut().enumerate().for_each(|(i, out)| f(i, out));
@@ -231,6 +244,17 @@ pub enum XmssSignatureError {
     InvalidRandomness,
 }
 
+impl std::fmt::Display for XmssSignatureError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::SlotOutOfRange => write!(f, "slot is outside the key's valid range"),
+            Self::InvalidRandomness => write!(f, "randomness does not yield a valid WOTS encoding"),
+        }
+    }
+}
+
+impl std::error::Error for XmssSignatureError {}
+
 /// WARNING: XMSS is statefull signature, you should never sign with the same same `slot` twice.
 /// (Even signing twice with the same message, at the same slot, is insecure, due to the non-determinism of the randomness part of the signature)
 pub fn xmss_sign<R: CryptoRng>(
@@ -318,6 +342,17 @@ pub enum XmssVerifyError {
     InvalidWots,
     InvalidMerklePath,
 }
+
+impl std::fmt::Display for XmssVerifyError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::InvalidWots => write!(f, "invalid WOTS signature (encoding rejected or wrong chain tips)"),
+            Self::InvalidMerklePath => write!(f, "merkle path does not lead to the public key's root"),
+        }
+    }
+}
+
+impl std::error::Error for XmssVerifyError {}
 
 pub fn xmss_verify(
     pub_key: &XmssPublicKey,
