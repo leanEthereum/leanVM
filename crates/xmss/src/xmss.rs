@@ -11,7 +11,6 @@ use crate::*;
 /// LOG_LIFETIME) instead of O(R). Stores the top tree (in-range band plus a thin spine) and one
 /// cached bottom subtree, cut at split_level = log2(R)/2. Out-of-range nodes are deterministic
 /// gen_random_node fillers; see `xmss_small_memory.tex` for the picture.
-#[derive(Debug)]
 pub struct XmssSecretKey {
     pub(crate) slot_start: u32, // inclusive
     pub(crate) slot_end: u32,   // inclusive
@@ -21,6 +20,16 @@ pub struct XmssSecretKey {
     // top[l - split_level] = level-l nodes for indices [slot_start >> l, slot_end >> l]
     pub(crate) top: Vec<Vec<Digest>>,
     pub(crate) cache: Mutex<Option<BottomSubtree>>,
+}
+
+impl std::fmt::Debug for XmssSecretKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("XmssSecretKey")
+            .field("slot_start", &self.slot_start)
+            .field("slot_end", &self.slot_end)
+            .field("split_level", &self.split_level)
+            .finish_non_exhaustive()
+    }
 }
 
 /// Bottom subtree covering the last-signed slot; its leaf range is derived from `subtree_index`.

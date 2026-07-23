@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::*;
 
-#[derive(Debug)]
+/// No Debug: `pre_images` are the one-time secret keys.
 pub struct WotsSecretKey {
     pre_images: [Digest; V],
     public_key: WotsPublicKey,
