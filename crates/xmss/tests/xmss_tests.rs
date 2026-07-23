@@ -60,6 +60,23 @@ fn signing_is_deterministic() {
 }
 
 #[test]
+fn prepare_warms_the_signing_cache() {
+    let message: [u8; MESSAGE_LEN_BYTES] = std::array::from_fn(|i| i as u8);
+    let (pk, sk) = xmss_key_gen(&mut StdRng::seed_from_u64(3), 1000, 300).unwrap();
+
+    // Signatures are unaffected by preparation (it only warms the cache).
+    let cold = xmss_sign(&sk, 1299, &message).unwrap();
+    sk.prepare(1000).unwrap(); // different subtree: rebuilds the cache
+    sk.prepare(1299).unwrap(); // back again
+    let warm = xmss_sign(&sk, 1299, &message).unwrap();
+    assert_eq!(cold, warm);
+    xmss_verify(&pk, 1299, &message, &warm).unwrap();
+
+    assert_eq!(sk.prepare(999).unwrap_err(), XmssSignatureError::SlotOutOfRange);
+    assert_eq!(sk.prepare(1300).unwrap_err(), XmssSignatureError::SlotOutOfRange);
+}
+
+#[test]
 fn keygen_rejects_invalid_ranges() {
     let mut rng = StdRng::seed_from_u64(0);
     assert_eq!(xmss_key_gen(&mut rng, 0, 0).unwrap_err(), XmssKeyGenError::InvalidRange);

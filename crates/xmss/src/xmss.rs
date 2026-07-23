@@ -304,12 +304,7 @@ pub fn xmss_sign(
         .ok_or(XmssSignatureError::EncodingAttemptsExceeded)?;
     let wots_secret_key = gen_wots_secret_key(&secret_key.seed, slot, secret_key.public_param);
     let wots_signature = wots_secret_key.sign_with_encoding(randomness, &encoding, secret_key.public_param, slot);
-    // Cache the bottom subtree covering `slot` (reused across its 2^split_level slots), then read the path.
-    let subtree_index = (slot as u64) >> secret_key.split_level;
-    let mut cache = secret_key.cache.lock().unwrap();
-    if cache.as_ref().is_none_or(|s| s.subtree_index != subtree_index) {
-        *cache = Some(secret_key.build_bottom_subtree(subtree_index));
-    }
+    let cache = secret_key.cached_bottom_subtree(slot);
     let sub = cache.as_ref().unwrap();
     let merkle_proof = std::array::from_fn(|level| {
         let neighbour_index = ((slot as u64) >> level) ^ 1;
@@ -328,6 +323,25 @@ impl XmssSecretKey {
             merkle_root: self.top.last().unwrap()[0],
             public_param: self.public_param,
         }
+    }
+
+    /// Warms the signing cache for `slot`: when the next signing slot is known in advance,
+    /// calling this ahead of time makes the subsequent `xmss_sign` faster.
+    pub fn prepare(&self, slot: u32) -> Result<(), XmssSignatureError> {
+        if slot < self.slot_start || slot > self.slot_end {
+            return Err(XmssSignatureError::SlotOutOfRange);
+        }
+        drop(self.cached_bottom_subtree(slot));
+        Ok(())
+    }
+
+    fn cached_bottom_subtree(&self, slot: u32) -> std::sync::MutexGuard<'_, Option<BottomSubtree>> {
+        let subtree_index = (slot as u64) >> self.split_level;
+        let mut cache = self.cache.lock().unwrap();
+        if cache.as_ref().is_none_or(|s| s.subtree_index != subtree_index) {
+            *cache = Some(self.build_bottom_subtree(subtree_index));
+        }
+        cache
     }
 
     /// (Re)build the bottom subtree with the given index. Always sequential: signing must
