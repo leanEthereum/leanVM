@@ -6,11 +6,11 @@ type F = KoalaBear;
 
 #[test]
 fn test_xmss_serialize_deserialize() {
-    let message: [F; MESSAGE_LEN_FE] = std::array::from_fn(|i| F::from_usize(i * 3 + 7));
+    let message: [u8; MESSAGE_LEN_BYTES] = std::array::from_fn(|i| (i * 3 + 7) as u8);
     let slot = 110;
 
     let (pk, sk) = xmss_key_gen(&mut StdRng::seed_from_u64(0), 100, 16).unwrap();
-    let sig = xmss_sign(&mut StdRng::seed_from_u64(slot as u64), &sk, &message, slot).unwrap();
+    let sig = xmss_sign(&mut StdRng::seed_from_u64(slot as u64), &sk, slot, &message).unwrap();
 
     let pk_bytes = postcard::to_allocvec(&pk).unwrap();
     let pk2: XmssPublicKey = postcard::from_bytes(&pk_bytes).unwrap();
@@ -20,20 +20,24 @@ fn test_xmss_serialize_deserialize() {
     let sig2: XmssSignature = postcard::from_bytes(&sig_bytes).unwrap();
     assert_eq!(sig, sig2);
 
-    xmss_verify(&pk2, &message, &sig2, slot).unwrap();
+    xmss_verify(&pk2, slot, &message, &sig2).unwrap();
 }
 
 #[test]
 fn keygen_sign_verify() {
-    let message: [F; MESSAGE_LEN_FE] = std::array::from_fn(|i| F::from_usize(i * 3 + 7));
+    let message: [u8; MESSAGE_LEN_BYTES] = std::array::from_fn(|i| (i * 3 + 7) as u8);
 
     for slot in [0, 1234, u32::MAX] {
         let activation_slot = (slot as u64).saturating_sub(1);
         let num_active_slots = (slot as u64 + 3).min(1 << LOG_LIFETIME) - activation_slot;
         let mut rng = StdRng::seed_from_u64(slot as u64);
         let (pk, sk) = xmss_key_gen(&mut rng, activation_slot, num_active_slots).unwrap();
-        let sig = xmss_sign(&mut rng, &sk, &message, slot).unwrap();
-        xmss_verify(&pk, &message, &sig, slot).unwrap();
+        let sig = xmss_sign(&mut rng, &sk, slot, &message).unwrap();
+        xmss_verify(&pk, slot, &message, &sig).unwrap();
+
+        let mut other_message = message;
+        other_message[0] ^= 1;
+        assert!(xmss_verify(&pk, slot, &other_message, &sig).is_err());
     }
 }
 

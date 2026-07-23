@@ -401,7 +401,7 @@ fn build_aggregation(
         let result = aggregate_single_message_signatures(
             &children,
             raw_xmss.clone(),
-            message_for_benchmark(),
+            xmss::hash_message(&message_for_benchmark()),
             BENCHMARK_SLOT,
             topology.log_inv_rate,
         )

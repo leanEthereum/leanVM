@@ -481,7 +481,7 @@ mod tests {
         init_aggregation_bytecode();
 
         let log_inv_rate = 2;
-        let message = message_for_benchmark();
+        let message = xmss::hash_message(&message_for_benchmark());
         let slot: u32 = BENCHMARK_SLOT;
         let signatures = get_benchmark_signatures();
         let raws_inner = signatures[0..10].to_vec();

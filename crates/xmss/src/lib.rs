@@ -1,5 +1,5 @@
 #![cfg_attr(not(test), warn(unused_crate_dependencies))]
-use backend::{DIGEST_LEN_FE, KoalaBear, POSEIDON1_WIDTH, PrimeCharacteristicRing, poseidon16_compress};
+use backend::{DIGEST_LEN_FE, KoalaBear, POSEIDON1_WIDTH, PrimeCharacteristicRing, PrimeField32, poseidon16_compress};
 
 pub mod signers_cache;
 mod wots;
@@ -23,6 +23,11 @@ pub const NUM_CHAIN_HASHES: usize = 110;
 pub const TARGET_SUM: usize = V * (CHAIN_LENGTH - 1) - NUM_CHAIN_HASHES;
 pub const NUM_ENCODING_FE: usize = V.div_ceil(24 / W);
 pub const RANDOMNESS_LEN_FE: usize = 6;
+/// Byte length of the messages being signed.
+pub const MESSAGE_LEN_BYTES: usize = 32;
+/// Field elements of the injective base-p embedding of a message (p > 2^30, 9 * 30 >= 8 * 32).
+pub const MESSAGE_EMBEDDING_LEN_FE: usize = 9;
+/// Field elements of the hashed message, the form consumed by WOTS encoding (and the snark).
 pub const MESSAGE_LEN_FE: usize = 8;
 pub const PUBLIC_PARAM_LEN_FE: usize = 4;
 pub const PUB_KEY_FLAT_SIZE: usize = XMSS_DIGEST_LEN + PUBLIC_PARAM_LEN_FE;
@@ -38,10 +43,45 @@ pub const TWEAK_TYPE_MERKLE: usize = 2;
 pub const TWEAK_TYPE_ENCODING: usize = 3;
 
 const _: () = assert!(V.is_multiple_of(2)); // For efficiency of the snark (we can batch chains in pairs)
+const _: () = assert!(MESSAGE_EMBEDDING_LEN_FE * 30 >= MESSAGE_LEN_BYTES * 8); // Injective embedding
+const _: () = assert!(MESSAGE_LEN_FE == DIGEST_LEN_FE); // hash_message output is one Poseidon digest
+const _: () = assert!(1 + MESSAGE_EMBEDDING_LEN_FE <= POSEIDON1_WIDTH); // Domain sep + embedding fit
 
+// Domain separators, placed in the first lane of a poseidon16_compress input. The window
+// [336, 1024) is collision-free with every tweak first lane: chain tweaks with index_hi = 0
+// stay below 336 (sub_position <= V * CHAIN_LENGTH - 1), any other tweak is >= 1024.
 pub(crate) const PRF_DOMAINSEP_WOTS_SECRET_KEY: u32 = 1000;
 pub(crate) const PRF_DOMAINSEP_PUBLIC_PARAM: u32 = 1001;
 pub(crate) const PRF_DOMAINSEP_RANDOM_NODE: u32 = 1002;
+pub(crate) const DOMAINSEP_MESSAGE_HASH: u32 = 1004;
+
+/// Injective embedding of a message into `MESSAGE_EMBEDDING_LEN_FE` field elements:
+/// little-endian base-p decomposition of the message read as a little-endian integer
+/// (the same convention as leanSig's `encode_message`).
+pub fn encode_message(message: &[u8; MESSAGE_LEN_BYTES]) -> [F; MESSAGE_EMBEDDING_LEN_FE] {
+    let p = u64::from(F::ORDER_U32);
+    let mut words: [u32; MESSAGE_LEN_BYTES / 4] =
+        std::array::from_fn(|i| u32::from_le_bytes(message[4 * i..4 * (i + 1)].try_into().unwrap()));
+    std::array::from_fn(|_| {
+        // Long division of the little-endian `words` integer by p; the remainder is the limb.
+        let mut rem: u64 = 0;
+        for word in words.iter_mut().rev() {
+            let cur = (rem << 32) | u64::from(*word);
+            *word = (cur / p) as u32;
+            rem = cur % p;
+        }
+        F::from_u64(rem)
+    })
+}
+
+/// Off-circuit message hash: what gets signed (and what the snark consumes as "message") is
+/// this domain-separated Poseidon digest of the 32-byte message.
+pub fn hash_message(message: &[u8; MESSAGE_LEN_BYTES]) -> [F; MESSAGE_LEN_FE] {
+    let mut input = [F::ZERO; POSEIDON1_WIDTH];
+    input[0] = F::from_u32(DOMAINSEP_MESSAGE_HASH);
+    input[1..1 + MESSAGE_EMBEDDING_LEN_FE].copy_from_slice(&encode_message(message));
+    poseidon16_compress(input)
+}
 
 pub(crate) fn poseidon_prf(domain: u32, seed: &[u8; 32], indices: [usize; 2]) -> [F; DIGEST_LEN_FE] {
     let mut input = [F::ZERO; 16];
@@ -105,4 +145,38 @@ pub(crate) fn build_right_chain_input(public_param: &PublicParam) -> [F; DIGEST_
     let mut right = [F::default(); DIGEST_LEN_FE];
     right[..PUBLIC_PARAM_LEN_FE].copy_from_slice(public_param);
     right
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Expected limbs computed independently (big-integer base-p decomposition, little-endian).
+    #[test]
+    fn encode_message_reference_vectors() {
+        let cases: [([u8; 32], [u32; MESSAGE_EMBEDDING_LEN_FE]); 3] = [
+            (
+                std::array::from_fn(|i| i as u8),
+                [
+                    158200685, 22817125, 768861932, 1220633732, 741473605, 1829125427, 227592113, 282695284, 33,
+                ],
+            ),
+            (
+                [0xFF; 32],
+                [
+                    1539525976, 1261153412, 1969546126, 1544481308, 1871195519, 936857536, 333911385, 1230415057, 272,
+                ],
+            ),
+            (
+                std::array::from_fn(|i| if i % 2 == 0 { 0x00 } else { 0xFF }),
+                [
+                    1914907182, 1596164347, 55024625, 1538471654, 1366473412, 361154807, 606204774, 1101267152, 271,
+                ],
+            ),
+        ];
+        for (message, expected) in cases {
+            assert_eq!(encode_message(&message).map(|l| l.as_canonical_u32()), expected);
+        }
+        assert_eq!(encode_message(&[0; 32]), [F::ZERO; MESSAGE_EMBEDDING_LEN_FE]);
+    }
 }

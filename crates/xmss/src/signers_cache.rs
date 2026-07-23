@@ -19,11 +19,11 @@ pub fn get_benchmark_signatures() -> &'static Vec<(XmssPublicKey, XmssSignature)
 pub const BENCHMARK_SLOT: u32 = 111;
 pub const NUM_BENCHMARK_SIGNERS: usize = 10_000;
 
-pub fn message_for_benchmark() -> [F; MESSAGE_LEN_FE] {
-    std::array::from_fn(F::from_usize)
+pub fn message_for_benchmark() -> [u8; MESSAGE_LEN_BYTES] {
+    std::array::from_fn(|i| i as u8)
 }
 
-const CACHE_SCHEMA_VERSION: u32 = 4;
+const CACHE_SCHEMA_VERSION: u32 = 5;
 
 #[derive(Serialize, Deserialize)]
 struct SignersCacheFile {
@@ -35,7 +35,7 @@ fn cache_footprint(first_pubkey: &XmssPublicKey) -> u128 {
     let mut input = [F::ZERO; 16];
     input[0] = F::from_usize(NUM_BENCHMARK_SIGNERS);
     input[1] = F::from_u32(BENCHMARK_SLOT);
-    input[2..2 + MESSAGE_LEN_FE].copy_from_slice(&message_for_benchmark());
+    input[2..2 + MESSAGE_LEN_FE].copy_from_slice(&hash_message(&message_for_benchmark()));
     input[2 + MESSAGE_LEN_FE..][..XMSS_DIGEST_LEN].copy_from_slice(&first_pubkey.merkle_root);
     let digest = poseidon16_compress(input);
     digest[..4]
@@ -61,7 +61,7 @@ fn cache_path(first_pubkey: &XmssPublicKey) -> PathBuf {
 fn compute_signer(index: usize) -> (XmssPublicKey, XmssSignature) {
     let mut rng = StdRng::seed_from_u64(index as u64);
     let (pk, sk) = xmss_key_gen(&mut rng, BENCHMARK_SLOT as u64, 2).unwrap();
-    let sig = xmss_sign(&mut rng, &sk, &message_for_benchmark(), BENCHMARK_SLOT).unwrap();
+    let sig = xmss_sign(&mut rng, &sk, BENCHMARK_SLOT, &message_for_benchmark()).unwrap();
     (pk, sig)
 }
 
@@ -121,7 +121,7 @@ fn test_signature_cache() {
     let signatures = get_benchmark_signatures();
     parallel::for_each_index(signatures.len(), |i| {
         let (pk, sig) = &signatures[i];
-        xmss_verify(pk, &message_for_benchmark(), sig, BENCHMARK_SLOT)
+        xmss_verify(pk, BENCHMARK_SLOT, &message_for_benchmark(), sig)
             .unwrap_or_else(|_| panic!("Signature {} failed to verify", i));
     });
 }

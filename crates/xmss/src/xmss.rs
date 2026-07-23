@@ -268,13 +268,15 @@ impl std::error::Error for XmssSignatureError {}
 pub fn xmss_sign<R: CryptoRng>(
     rng: &mut R,
     secret_key: &XmssSecretKey,
-    message: &[F; MESSAGE_LEN_FE],
     slot: u32,
+    message: &[u8; MESSAGE_LEN_BYTES],
 ) -> Result<XmssSignature, XmssSignatureError> {
     if slot < secret_key.slot_start || slot > secret_key.slot_end {
         return Err(XmssSignatureError::SlotOutOfRange);
     }
-    let (randomness, encoding, _) = find_randomness_for_wots_encoding(message, slot, &secret_key.public_key(), rng);
+    let message_fe = hash_message(message);
+    let (randomness, encoding, _) =
+        find_randomness_for_wots_encoding(&message_fe, slot, &secret_key.public_key(), rng);
     let wots_secret_key = gen_wots_secret_key(&secret_key.seed, slot, secret_key.public_param);
     let wots_signature = wots_secret_key.sign_with_encoding(randomness, &encoding, secret_key.public_param, slot);
     // Cache the bottom subtree covering `slot` (reused across its 2^split_level slots), then read the path.
@@ -363,13 +365,14 @@ impl std::error::Error for XmssVerifyError {}
 
 pub fn xmss_verify(
     pub_key: &XmssPublicKey,
-    message: &[F; MESSAGE_LEN_FE],
-    signature: &XmssSignature,
     slot: u32,
+    message: &[u8; MESSAGE_LEN_BYTES],
+    signature: &XmssSignature,
 ) -> Result<(), XmssVerifyError> {
+    let message_fe = hash_message(message);
     let wots_public_key = signature
         .wots_signature
-        .recover_public_key(message, slot, pub_key)
+        .recover_public_key(&message_fe, slot, pub_key)
         .ok_or(XmssVerifyError::InvalidWots)?;
     let mut current_hash = wots_public_key.hash(pub_key.public_param, slot);
     for (level, neighbour) in signature.merkle_proof.iter().enumerate() {
