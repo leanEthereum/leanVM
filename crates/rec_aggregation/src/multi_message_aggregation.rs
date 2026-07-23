@@ -91,6 +91,8 @@ fn build_multi_message_input_data(digests: &[[F; DIGEST_LEN]], bytecode_claim_fl
     data
 }
 
+/// Merge single-message aggregates (each with its own (message, slot)) into one
+/// multi-message aggregate attested by a single proof.
 pub fn merge_single_message_aggregates(
     single_messages: Vec<SingleMessageAggregateSignature>,
     log_inv_rate: usize,
@@ -187,6 +189,7 @@ pub fn merge_single_message_aggregates(
     })
 }
 
+/// Verify a multi-message aggregate against its per-component `info` (message, slot, pubkeys).
 pub fn verify_multi_message_aggregate(sig: &MultiMessageAggregateSignature) -> Result<InnerVerified, ProofError> {
     if sig.info.is_empty() || sig.info.len() > MAX_RECURSIONS {
         return Err(ProofError::InvalidProof);
@@ -203,6 +206,8 @@ pub fn verify_multi_message_aggregate(sig: &MultiMessageAggregateSignature) -> R
     verify_inner(input_data, sig.proof.proof.clone())
 }
 
+/// [`split_multi_message_aggregate`] for the unique component with the given message;
+/// errors if no component (or more than one) carries it.
 pub fn split_multi_message_aggregate_by_message(
     multi_message: MultiMessageAggregateSignature,
     message: [u8; xmss::MESSAGE_LEN_BYTES],

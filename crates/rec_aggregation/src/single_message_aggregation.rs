@@ -197,7 +197,10 @@ fn encode_wots_signature(sig: &XmssSignature) -> ArenaVec<F> {
     data
 }
 
-// assumes `bytecode_value` in SingleMessageAggregateSignature::proof is correct (it should not be read / deserialized from an untrusted source)
+/// Verify a single-message aggregate against its own `info` (message, slot, pubkeys).
+///
+/// Assumes `sig.info.bytecode_claim.value` is correct: it must not come from an untrusted
+/// source without recomputation (deserializing via serde recomputes it).
 pub fn verify_single_message_aggregate(sig: &SingleMessageAggregateSignature) -> Result<InnerVerified, ProofError> {
     check_single_message_pubkeys(&sig.info.pubkeys).map_err(|_| ProofError::InvalidProof)?;
     verify_inner(sig.info.build_input_data(), sig.proof.proof.clone())
