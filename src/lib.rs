@@ -8,7 +8,8 @@ pub use rec_aggregation::{
     verify_single_message_aggregate,
 };
 pub use xmss::{
-    MESSAGE_LEN_BYTES, MESSAGE_LEN_FE, XmssPublicKey, XmssSecretKey, XmssSignature, hash_message, xmss_key_gen,
+    MESSAGE_LEN_BYTES, MESSAGE_LEN_FE, PUB_KEY_SSZ_LEN, SIGNATURE_SSZ_LEN, XmssKeyGenError, XmssPublicKey,
+    XmssSecretKey, XmssSignature, XmssSignatureError, XmssVerifyError, hash_message, xmss_key_gen,
     xmss_key_gen_from_seed, xmss_sign, xmss_verify,
 };
 
