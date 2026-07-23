@@ -205,7 +205,7 @@ pub fn verify_multi_message_aggregate(sig: &MultiMessageAggregateSignature) -> R
 
 pub fn split_multi_message_aggregate_by_message(
     multi_message: MultiMessageAggregateSignature,
-    message: [F; DIGEST_LEN],
+    message: [u8; xmss::MESSAGE_LEN_BYTES],
     log_inv_rate: usize,
 ) -> Result<SingleMessageAggregateSignature, AggregationError> {
     let Some(index) = multi_message.info.iter().position(|info| info.message == message) else {

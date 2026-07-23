@@ -12,7 +12,6 @@ use rec_aggregation::{
     split_multi_message_aggregate_by_message,
 };
 use xmss::{
-    hash_message,
     signers_cache::{BENCHMARK_SLOT, get_benchmark_signatures, message_for_benchmark},
     xmss_key_gen, xmss_sign, xmss_verify,
 };
@@ -56,7 +55,7 @@ fn test_single_message_aggregation() {
     setup_prover();
 
     let log_inv_rate = 2; // [1, 2, 3 or 4] (lower = faster but bigger proofs)
-    let message = hash_message(&message_for_benchmark());
+    let message = message_for_benchmark();
     let slot: u32 = BENCHMARK_SLOT;
     let signatures = get_benchmark_signatures();
 
@@ -90,21 +89,20 @@ fn test_multi_message_aggregation() {
 
     let log_inv_rate = 2; // [1, 2, 3 or 4] (lower = faster but bigger proofs)
     let slot_a = BENCHMARK_SLOT;
-    let message_a = hash_message(&message_for_benchmark());
+    let message_a = message_for_benchmark();
     let signatures = get_benchmark_signatures();
     let raws_a = signatures[0..3].to_vec();
 
     let slot_b = BENCHMARK_SLOT + 1;
     let mut rng_b: StdRng = StdRng::seed_from_u64(17);
-    let message_b_bytes: [u8; 32] = rng_b.random();
-    let message_b = hash_message(&message_b_bytes);
+    let message_b: [u8; 32] = rng_b.random();
 
     assert!(message_b != message_a && slot_b != slot_a);
 
     let raws_b: Vec<_> = (0..2)
         .map(|_| {
             let (pk, sk) = xmss_key_gen(&mut rng_b, u64::from(slot_b), 1).unwrap();
-            let sig = xmss_sign(&sk, slot_b, &message_b_bytes).unwrap();
+            let sig = xmss_sign(&sk, slot_b, &message_b).unwrap();
             (pk, sig)
         })
         .collect();
