@@ -376,6 +376,11 @@ impl XmssSecretKey {
         }
     }
 
+    /// The slots this key can sign for.
+    pub const fn activation_slots(&self) -> std::ops::RangeInclusive<u32> {
+        self.slot_start..=self.slot_end
+    }
+
     /// Warms the signing cache for `slot`: when the next signing slot is known in advance,
     /// calling this ahead of time makes the subsequent `xmss_sign` faster.
     pub fn prepare(&self, slot: u32) -> Result<(), XmssSignatureError> {

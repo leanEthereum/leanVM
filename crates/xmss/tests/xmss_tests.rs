@@ -131,6 +131,7 @@ fn keygen_from_seed_is_deterministic() {
     let (pk1, sk1) = xmss_key_gen_from_seed(seed, 100, 16).unwrap();
     let (pk2, sk2) = xmss_key_gen_from_seed(seed, 100, 16).unwrap();
     assert_eq!(pk1, pk2);
+    assert_eq!(sk1.activation_slots(), 100..=115);
     assert_eq!(
         xmss_sign(&sk1, 110, &message).unwrap(),
         xmss_sign(&sk2, 110, &message).unwrap()
