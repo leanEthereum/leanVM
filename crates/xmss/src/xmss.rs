@@ -241,14 +241,12 @@ pub fn xmss_key_gen(
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 pub enum XmssSignatureError {
     SlotOutOfRange,
-    InvalidRandomness,
 }
 
 impl std::fmt::Display for XmssSignatureError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::SlotOutOfRange => write!(f, "slot is outside the key's valid range"),
-            Self::InvalidRandomness => write!(f, "randomness does not yield a valid WOTS encoding"),
         }
     }
 }
@@ -263,15 +261,12 @@ pub fn xmss_sign<R: CryptoRng>(
     message: &[F; MESSAGE_LEN_FE],
     slot: u32,
 ) -> Result<XmssSignature, XmssSignatureError> {
-    let (randomness, _, _) = find_randomness_for_wots_encoding(message, slot, &secret_key.public_key(), rng);
-
     if slot < secret_key.slot_start || slot > secret_key.slot_end {
         return Err(XmssSignatureError::SlotOutOfRange);
     }
+    let (randomness, encoding, _) = find_randomness_for_wots_encoding(message, slot, &secret_key.public_key(), rng);
     let wots_secret_key = gen_wots_secret_key(&secret_key.seed, slot, secret_key.public_param);
-    let wots_signature = wots_secret_key
-        .sign_with_randomness(message, slot, &secret_key.public_key(), randomness)
-        .ok_or(XmssSignatureError::InvalidRandomness)?;
+    let wots_signature = wots_secret_key.sign_with_encoding(randomness, &encoding, secret_key.public_param, slot);
     // Cache the bottom subtree covering `slot` (reused across its 2^split_level slots), then read the path.
     let subtree_index = (slot as u64) >> secret_key.split_level;
     let mut cache = secret_key.cache.lock().unwrap();

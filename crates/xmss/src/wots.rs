@@ -41,18 +41,7 @@ impl WotsSecretKey {
         &self.public_key
     }
 
-    pub fn sign_with_randomness(
-        &self,
-        message: &[F; MESSAGE_LEN_FE],
-        slot: u32,
-        xmss_pub_key: &XmssPublicKey,
-        randomness: Randomness,
-    ) -> Option<WotsSignature> {
-        let encoding = wots_encode(message, slot, xmss_pub_key, &randomness)?;
-        Some(self.sign_with_encoding(randomness, &encoding, xmss_pub_key.public_param, slot))
-    }
-
-    fn sign_with_encoding(
+    pub(crate) fn sign_with_encoding(
         &self,
         randomness: Randomness,
         encoding: &[u8; V],
