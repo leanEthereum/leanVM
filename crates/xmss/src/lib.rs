@@ -35,9 +35,9 @@ pub const RANDOMNESS_LEN_FE: usize = 6;
 /// Byte length of the messages being signed.
 pub const MESSAGE_LEN_BYTES: usize = 32;
 /// Field elements of the injective base-p embedding of a message (p > 2^30, 9 * 30 >= 8 * 32).
-pub const MESSAGE_EMBEDDING_LEN_FE: usize = 9;
+pub(crate) const MESSAGE_EMBEDDING_LEN_FE: usize = 9;
 /// Field elements of the hashed message, the form consumed by WOTS encoding (and the snark).
-pub const MESSAGE_LEN_FE: usize = 8;
+pub(crate) const MESSAGE_LEN_FE: usize = 8;
 pub const PUBLIC_PARAM_LEN_FE: usize = 4;
 pub const PUB_KEY_FLAT_SIZE: usize = XMSS_DIGEST_LEN + PUBLIC_PARAM_LEN_FE;
 pub const WOTS_SIG_SIZE_FE: usize = RANDOMNESS_LEN_FE + V * XMSS_DIGEST_LEN;
@@ -72,7 +72,7 @@ pub const MAX_SIGNING_ATTEMPTS: usize = 100_000;
 /// Injective embedding of a message into `MESSAGE_EMBEDDING_LEN_FE` field elements:
 /// little-endian base-p decomposition of the message read as a little-endian integer
 /// (the same convention as leanSig's `encode_message`).
-pub fn encode_message(message: &[u8; MESSAGE_LEN_BYTES]) -> [F; MESSAGE_EMBEDDING_LEN_FE] {
+pub(crate) fn encode_message(message: &[u8; MESSAGE_LEN_BYTES]) -> [F; MESSAGE_EMBEDDING_LEN_FE] {
     let p = u64::from(F::ORDER_U32);
     let mut words: [u32; MESSAGE_LEN_BYTES / 4] =
         std::array::from_fn(|i| u32::from_le_bytes(message[4 * i..4 * (i + 1)].try_into().unwrap()));
@@ -90,7 +90,8 @@ pub fn encode_message(message: &[u8; MESSAGE_LEN_BYTES]) -> [F; MESSAGE_EMBEDDIN
 
 /// Off-circuit message hash: what gets signed (and what the snark consumes as "message") is
 /// this domain-separated Poseidon digest of the 32-byte message.
-pub fn hash_message(message: &[u8; MESSAGE_LEN_BYTES]) -> [F; MESSAGE_LEN_FE] {
+#[doc(hidden)]
+pub fn hash_message(message: &[u8; MESSAGE_LEN_BYTES]) -> [F; DIGEST_LEN_FE] {
     let mut input = [F::ZERO; POSEIDON1_WIDTH];
     input[0] = F::from_u32(DOMAINSEP_MESSAGE_HASH);
     input[1..1 + MESSAGE_EMBEDDING_LEN_FE].copy_from_slice(&encode_message(message));

@@ -9,7 +9,7 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use std::sync::OnceLock;
 use sub_protocols::{N_VARS_TO_SEND_GKR_COEFFS, min_stacked_n_vars, total_whir_statements};
 use tracing::instrument;
-use xmss::{LOG_LIFETIME, MESSAGE_LEN_FE, PUBLIC_PARAM_LEN_FE, RANDOMNESS_LEN_FE, TARGET_SUM, V, W, XMSS_DIGEST_LEN};
+use xmss::{LOG_LIFETIME, PUBLIC_PARAM_LEN_FE, RANDOMNESS_LEN_FE, TARGET_SUM, V, W, XMSS_DIGEST_LEN};
 
 use crate::bytecode_claims::bytecode_reduction_sumcheck_proof_size;
 use crate::single_message_aggregation::TWEAK_TABLE_SIZE_FE_PADDED;
@@ -51,7 +51,7 @@ pub(crate) const MULTI_MESSAGE_FLAG: usize = 0;
 
 pub(crate) const BYTECODE_CLAIM_OFFSET: usize = DIGEST_LEN;
 /// Single-message component data: pubkeys_hash | message | merkle_chunks | tweaks_hash.
-pub(crate) const COMPONENT_DATA_SIZE: usize = DIGEST_LEN + MESSAGE_LEN_FE + N_MERKLE_CHUNKS_FOR_SLOT + DIGEST_LEN;
+pub(crate) const COMPONENT_DATA_SIZE: usize = DIGEST_LEN + DIGEST_LEN + N_MERKLE_CHUNKS_FOR_SLOT + DIGEST_LEN; // pubkeys_hash + hashed message + merkle chunks + tweaks_hash
 
 pub(crate) fn bytecode_claim_size_padded(program_log_size: usize) -> usize {
     let bytecode_point_n_vars = program_log_size + log2_ceil_usize(N_INSTRUCTION_COLUMNS);
@@ -417,7 +417,7 @@ fn build_replacements(log_inner_bytecode: usize, bytecode_zero_eval: F) -> BTree
     replacements.insert("W_PLACEHOLDER".to_string(), W.to_string());
     replacements.insert("TARGET_SUM_PLACEHOLDER".to_string(), TARGET_SUM.to_string());
     replacements.insert("LOG_LIFETIME_PLACEHOLDER".to_string(), LOG_LIFETIME.to_string());
-    replacements.insert("MESSAGE_LEN_PLACEHOLDER".to_string(), MESSAGE_LEN_FE.to_string());
+    replacements.insert("MESSAGE_LEN_PLACEHOLDER".to_string(), DIGEST_LEN.to_string()); // the hashed message is one digest
     replacements.insert("RANDOMNESS_LEN_PLACEHOLDER".to_string(), RANDOMNESS_LEN_FE.to_string());
     replacements.insert(
         "PUBLIC_PARAM_LEN_FE_PLACEHOLDER".to_string(),
