@@ -29,8 +29,8 @@ fn append_fes(buf: &mut Vec<u8>, fes: &[F]) {
 fn read_fes<const N: usize>(bytes: &[u8]) -> Result<[F; N], DecodeError> {
     debug_assert_eq!(bytes.len(), N * FE_BYTES);
     let mut out = [F::ZERO; N];
-    for (fe, chunk) in out.iter_mut().zip(bytes.chunks_exact(FE_BYTES)) {
-        let value = u32::from_le_bytes(chunk.try_into().unwrap());
+    for (fe, chunk) in out.iter_mut().zip(bytes.as_chunks::<FE_BYTES>().0) {
+        let value = u32::from_le_bytes(*chunk);
         if value >= F::ORDER_U32 {
             return Err(DecodeError::BytesInvalid(format!(
                 "non-canonical field element: {value}"
@@ -123,14 +123,17 @@ impl Decode for XmssSignature {
 
     fn from_ssz_bytes(bytes: &[u8]) -> Result<Self, DecodeError> {
         check_len(bytes, SIGNATURE_SSZ_LEN)?;
-        let mut digests = bytes.chunks_exact(DIGEST_BYTES);
+        let mut digests = bytes.as_chunks::<DIGEST_BYTES>().0.iter();
         let mut chain_tips = [[F::ZERO; XMSS_DIGEST_LEN]; V];
         for chain_tip in &mut chain_tips {
             *chain_tip = read_fes(digests.next().unwrap())?;
         }
         let randomness_start = V * DIGEST_BYTES;
         let randomness = read_fes(&bytes[randomness_start..randomness_start + RANDOMNESS_LEN_FE * FE_BYTES])?;
-        let mut digests = bytes[randomness_start + RANDOMNESS_LEN_FE * FE_BYTES..].chunks_exact(DIGEST_BYTES);
+        let mut digests = bytes[randomness_start + RANDOMNESS_LEN_FE * FE_BYTES..]
+            .as_chunks::<DIGEST_BYTES>()
+            .0
+            .iter();
         let mut merkle_proof = [[F::ZERO; XMSS_DIGEST_LEN]; LOG_LIFETIME];
         for neighbour in &mut merkle_proof {
             *neighbour = read_fes(digests.next().unwrap())?;
