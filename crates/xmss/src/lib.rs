@@ -47,7 +47,7 @@ pub const TWEAK_TYPE_ENCODING: usize = 3;
 const _: () = assert!(V.is_multiple_of(2)); // For efficiency of the snark (we can batch chains in pairs)
 const _: () = assert!(MESSAGE_EMBEDDING_LEN_FE * 30 >= MESSAGE_LEN_BYTES * 8); // Injective embedding
 const _: () = assert!(MESSAGE_LEN_FE == DIGEST_LEN_FE); // hash_message output is one Poseidon digest
-const _: () = assert!(1 + MESSAGE_EMBEDDING_LEN_FE <= POSEIDON1_WIDTH); // Domain sep + embedding fit
+const _: () = assert!(MESSAGE_EMBEDDING_LEN_FE < POSEIDON1_WIDTH); // Domain sep + embedding fit
 
 // Domain separators, placed in the first lane of a poseidon16_compress input. The window
 // [336, 1024) is collision-free with every tweak first lane: chain tweaks with index_hi = 0

@@ -12,6 +12,7 @@ use rec_aggregation::{
     split_multi_message_aggregate_by_message,
 };
 use xmss::{
+    hash_message,
     signers_cache::{BENCHMARK_SLOT, get_benchmark_signatures, message_for_benchmark},
     xmss_key_gen, xmss_sign, xmss_verify,
 };
@@ -24,15 +25,15 @@ fn serialize_arena_tests() -> MutexGuard<'static, ()> {
 
 #[test]
 fn test_xmss_signature() {
-    let start_slot = 111;
-    let end_slot = 200;
+    let activation_slot = 111;
+    let num_active_slots = 90;
     let slot: u32 = 124;
     let mut rng: StdRng = StdRng::seed_from_u64(0);
-    let message = rng.random();
+    let message: [u8; 32] = rng.random();
 
-    let (secret_key, pub_key) = xmss_key_gen(rng.random(), start_slot, end_slot, false).unwrap();
-    let signature = xmss_sign(&mut rng, &secret_key, &message, slot).unwrap();
-    xmss_verify(&pub_key, &message, &signature, slot).unwrap();
+    let (pub_key, secret_key) = xmss_key_gen(&mut rng, activation_slot, num_active_slots).unwrap();
+    let signature = xmss_sign(&secret_key, slot, &message).unwrap();
+    xmss_verify(&pub_key, slot, &message, &signature).unwrap();
 }
 
 #[test]
@@ -55,7 +56,7 @@ fn test_single_message_aggregation() {
     setup_prover();
 
     let log_inv_rate = 2; // [1, 2, 3 or 4] (lower = faster but bigger proofs)
-    let message = message_for_benchmark();
+    let message = hash_message(&message_for_benchmark());
     let slot: u32 = BENCHMARK_SLOT;
     let signatures = get_benchmark_signatures();
 
@@ -89,20 +90,21 @@ fn test_multi_message_aggregation() {
 
     let log_inv_rate = 2; // [1, 2, 3 or 4] (lower = faster but bigger proofs)
     let slot_a = BENCHMARK_SLOT;
-    let message_a = message_for_benchmark();
+    let message_a = hash_message(&message_for_benchmark());
     let signatures = get_benchmark_signatures();
     let raws_a = signatures[0..3].to_vec();
 
     let slot_b = BENCHMARK_SLOT + 1;
     let mut rng_b: StdRng = StdRng::seed_from_u64(17);
-    let message_b: [_; 8] = std::array::from_fn(|_| rng_b.random());
+    let message_b_bytes: [u8; 32] = rng_b.random();
+    let message_b = hash_message(&message_b_bytes);
 
     assert!(message_b != message_a && slot_b != slot_a);
 
     let raws_b: Vec<_> = (0..2)
         .map(|_| {
-            let (sk, pk) = xmss_key_gen(rng_b.random(), slot_b, slot_b, false).unwrap();
-            let sig = xmss_sign(&mut rng_b, &sk, &message_b, slot_b).unwrap();
+            let (pk, sk) = xmss_key_gen(&mut rng_b, u64::from(slot_b), 1).unwrap();
+            let sig = xmss_sign(&sk, slot_b, &message_b_bytes).unwrap();
             (pk, sig)
         })
         .collect();
