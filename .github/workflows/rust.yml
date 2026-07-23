@@ -76,6 +76,10 @@ jobs:
         uses: Swatinem/rust-cache@v2
       - name: Clippy Check
         run: cargo clippy --workspace --all-targets -- -Dwarnings
+      # The workspace build always enables xmss's 'test-utils' feature (rec_aggregation turns
+      # it on); this checks the default-features configuration downstream users get.
+      - name: Clippy Check (xmss standalone, default features)
+        run: cargo clippy -p xmss --all-targets -- -Dwarnings
 
   cargo-fmt:
     runs-on: ubuntu-latest
