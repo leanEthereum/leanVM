@@ -1,7 +1,7 @@
 use std::sync::Mutex;
 
 use backend::*;
-use rand::{CryptoRng, SeedableRng, rngs::StdRng};
+use rand::{CryptoRng, RngExt, SeedableRng, rngs::StdRng};
 use serde::{Deserialize, Serialize};
 
 use crate::*;
@@ -184,21 +184,31 @@ fn build_subtree_layers(
     layers
 }
 
-pub fn xmss_key_gen(
-    seed: [u8; 32],
-    slot_start: u32,
-    slot_end: u32,
-    sequential: bool,
-) -> Result<(XmssSecretKey, XmssPublicKey), XmssKeyGenError> {
-    if slot_start > slot_end || slot_end as u64 >= (1 << LOG_LIFETIME) {
+/// Generates a new key pair, active for the `num_active_slots` slots starting at
+/// `activation_slot` (both ends must stay within the `2^LOG_LIFETIME` lifetime).
+pub fn xmss_key_gen<R: CryptoRng>(
+    rng: &mut R,
+    activation_slot: u64,
+    num_active_slots: u64,
+) -> Result<(XmssPublicKey, XmssSecretKey), XmssKeyGenError> {
+    let activation_end = activation_slot
+        .checked_add(num_active_slots)
+        .ok_or(XmssKeyGenError::InvalidRange)?;
+    if num_active_slots == 0 || activation_end > 1 << LOG_LIFETIME {
         return Err(XmssKeyGenError::InvalidRange);
     }
+    let seed: [u8; 32] = rng.random();
+
+    // The pool forbids nested dispatch: build sequentially when key gen itself already runs
+    // inside a pool task (e.g. generating many keys in a parallel batch).
+    let sequential = parallel::is_in_pool_task();
+
     let public_param: PublicParam = gen_public_param(&seed);
-    let lo = slot_start as u64;
-    let hi = slot_end as u64;
+    let lo = activation_slot;
+    let hi = activation_end - 1;
 
     // ~sqrt(R) leaves per bottom subtree; always <= LOG_LIFETIME/2 since R <= 2^LOG_LIFETIME.
-    let split_level = log2_ceil_usize((hi - lo + 1) as usize).div_ceil(2);
+    let split_level = log2_ceil_usize(num_active_slots as usize).div_ceil(2);
 
     // Roots of each bottom subtree, built one at a time so peak memory stays O(sqrt(R)).
     let first_subtree = lo >> split_level;
@@ -227,15 +237,15 @@ pub fn xmss_key_gen(
         public_param,
     };
     let secret_key = XmssSecretKey {
-        slot_start,
-        slot_end,
+        slot_start: activation_slot as u32,
+        slot_end: hi as u32,
         public_param,
         seed,
         split_level,
         top,
         cache: Mutex::new(None),
     };
-    Ok((secret_key, pub_key))
+    Ok((pub_key, secret_key))
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
@@ -293,7 +303,9 @@ impl XmssSecretKey {
         }
     }
 
-    /// (Re)build the bottom subtree with the given index.
+    /// (Re)build the bottom subtree with the given index. Always sequential: signing must
+    /// never wait on the thread pool while it holds the signing-cache mutex (a pool task
+    /// blocked on the same key would deadlock the pool, and hence the signer).
     fn build_bottom_subtree(&self, subtree_index: u64) -> BottomSubtree {
         let (lo, hi) = subtree_bounds(
             self.slot_start as u64,

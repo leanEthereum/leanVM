@@ -6,13 +6,10 @@ type F = KoalaBear;
 
 #[test]
 fn test_xmss_serialize_deserialize() {
-    let keygen_seed: [u8; 32] = std::array::from_fn(|i| i as u8);
     let message: [F; MESSAGE_LEN_FE] = std::array::from_fn(|i| F::from_usize(i * 3 + 7));
-    let slot_start = 100;
-    let slot_end = 115;
     let slot = 110;
 
-    let (sk, pk) = xmss_key_gen(keygen_seed, slot_start, slot_end, false).unwrap();
+    let (pk, sk) = xmss_key_gen(&mut StdRng::seed_from_u64(0), 100, 16).unwrap();
     let sig = xmss_sign(&mut StdRng::seed_from_u64(slot as u64), &sk, &message, slot).unwrap();
 
     let pk_bytes = postcard::to_allocvec(&pk).unwrap();
@@ -28,14 +25,30 @@ fn test_xmss_serialize_deserialize() {
 
 #[test]
 fn keygen_sign_verify() {
-    let keygen_seed: [u8; 32] = std::array::from_fn(|i| i as u8);
     let message: [F; MESSAGE_LEN_FE] = std::array::from_fn(|i| F::from_usize(i * 3 + 7));
 
     for slot in [0, 1234, u32::MAX] {
-        let (sk, pk) = xmss_key_gen(keygen_seed, slot.saturating_sub(1), slot.saturating_add(2), false).unwrap();
-        let sig = xmss_sign(&mut StdRng::seed_from_u64(slot as u64), &sk, &message, slot).unwrap();
+        let activation_slot = (slot as u64).saturating_sub(1);
+        let num_active_slots = (slot as u64 + 3).min(1 << LOG_LIFETIME) - activation_slot;
+        let mut rng = StdRng::seed_from_u64(slot as u64);
+        let (pk, sk) = xmss_key_gen(&mut rng, activation_slot, num_active_slots).unwrap();
+        let sig = xmss_sign(&mut rng, &sk, &message, slot).unwrap();
         xmss_verify(&pk, &message, &sig, slot).unwrap();
     }
+}
+
+#[test]
+fn keygen_rejects_invalid_ranges() {
+    let mut rng = StdRng::seed_from_u64(0);
+    assert_eq!(xmss_key_gen(&mut rng, 0, 0).unwrap_err(), XmssKeyGenError::InvalidRange);
+    assert_eq!(
+        xmss_key_gen(&mut rng, (1 << LOG_LIFETIME) - 1, 2).unwrap_err(),
+        XmssKeyGenError::InvalidRange
+    );
+    assert_eq!(
+        xmss_key_gen(&mut rng, u64::MAX, u64::MAX).unwrap_err(),
+        XmssKeyGenError::InvalidRange
+    );
 }
 
 #[test]

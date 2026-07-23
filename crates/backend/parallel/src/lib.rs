@@ -58,6 +58,13 @@ pub(crate) fn current_worker_id() -> usize {
     WORKER_ID.with(Cell::get)
 }
 
+/// True while the calling thread is running a pool task, where a nested dispatch would panic.
+/// Lets code that runs both from the dispatcher and from within tasks pick a sequential path.
+#[must_use]
+pub fn is_in_pool_task() -> bool {
+    IN_TASK.get()
+}
+
 /// Type-erased work unit. The `&dyn Fn` lifetime is erased to `'static`; it is dereferenced
 /// only inside a dispatch window during which the dispatcher blocks, so the borrow outlives
 /// every call. Range-based (`f(start, end)`) so a reduction looks up its per-worker
