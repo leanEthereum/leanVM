@@ -21,6 +21,18 @@ fn test_xmss_serialize_deserialize() {
     assert_eq!(sig, sig2);
 
     xmss_verify(&pk2, slot, &message, &sig2).unwrap();
+
+    // Secret key: persist and reload, then check the reloaded key behaves identically.
+    let sk_bytes = postcard::to_allocvec(&sk).unwrap();
+    let sk2: XmssSecretKey = postcard::from_bytes(&sk_bytes).unwrap();
+    assert_eq!(sk2.public_key(), pk);
+    assert_eq!(xmss_sign(&sk2, slot, &message).unwrap(), sig);
+
+    // A top tree whose shape does not match the slot range must be rejected.
+    let (seed, start, end, mut top): ([u8; 32], u32, u32, Vec<Vec<[F; 4]>>) = postcard::from_bytes(&sk_bytes).unwrap();
+    top.pop();
+    let corrupted = postcard::to_allocvec(&(seed, start, end, top)).unwrap();
+    assert!(postcard::from_bytes::<XmssSecretKey>(&corrupted).is_err());
 }
 
 #[test]

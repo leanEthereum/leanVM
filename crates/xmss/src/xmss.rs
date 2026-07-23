@@ -29,6 +29,22 @@ pub(crate) struct BottomSubtree {
     layers: Vec<Vec<Digest>>,
 }
 
+/// Persists (seed, slot range, top tree). The top tree is stored so that loading a key is
+/// cheap (no re-hashing of the whole range); the derived fields (public_param, split_level)
+/// are recomputed and the tree shape revalidated. The bottom-subtree cache restarts empty.
+impl Serialize for XmssSecretKey {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        (&self.seed, self.slot_start, self.slot_end, &self.top).serialize(s)
+    }
+}
+
+impl<'de> Deserialize<'de> for XmssSecretKey {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        let (seed, slot_start, slot_end, top) = <([u8; 32], u32, u32, Vec<Vec<Digest>>)>::deserialize(d)?;
+        Self::from_parts(seed, slot_start, slot_end, top).map_err(serde::de::Error::custom)
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct XmssSignature {
     pub wots_signature: WotsSignature,
@@ -333,6 +349,40 @@ impl XmssSecretKey {
         }
         drop(self.cached_bottom_subtree(slot));
         Ok(())
+    }
+
+    /// Rebuild a secret key from its persisted parts, recomputing the derived fields and
+    /// revalidating the top tree's shape (its content is trusted, exactly like the seed).
+    pub(crate) fn from_parts(
+        seed: [u8; 32],
+        slot_start: u32,
+        slot_end: u32,
+        top: Vec<Vec<Digest>>,
+    ) -> Result<Self, &'static str> {
+        if slot_start > slot_end {
+            return Err("invalid slot range");
+        }
+        let (lo, hi) = (slot_start as u64, slot_end as u64);
+        let split_level = log2_ceil_usize((hi - lo + 1) as usize).div_ceil(2);
+        let expected_layer_lens =
+            (split_level..=LOG_LIFETIME).map(|level| ((hi >> level) - (lo >> level) + 1) as usize);
+        if top.len() != LOG_LIFETIME - split_level + 1
+            || top
+                .iter()
+                .zip(expected_layer_lens)
+                .any(|(layer, len)| layer.len() != len)
+        {
+            return Err("top tree shape does not match the slot range");
+        }
+        Ok(Self {
+            slot_start,
+            slot_end,
+            public_param: gen_public_param(&seed),
+            seed,
+            split_level,
+            top,
+            cache: Mutex::new(None),
+        })
     }
 
     fn cached_bottom_subtree(&self, slot: u32) -> std::sync::MutexGuard<'_, Option<BottomSubtree>> {
