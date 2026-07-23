@@ -23,7 +23,7 @@ pub fn message_for_benchmark() -> [u8; MESSAGE_LEN_BYTES] {
     std::array::from_fn(|i| i as u8)
 }
 
-const CACHE_SCHEMA_VERSION: u32 = 5;
+const CACHE_SCHEMA_VERSION: u32 = 6;
 
 #[derive(Serialize, Deserialize)]
 struct SignersCacheFile {
@@ -61,7 +61,7 @@ fn cache_path(first_pubkey: &XmssPublicKey) -> PathBuf {
 fn compute_signer(index: usize) -> (XmssPublicKey, XmssSignature) {
     let mut rng = StdRng::seed_from_u64(index as u64);
     let (pk, sk) = xmss_key_gen(&mut rng, BENCHMARK_SLOT as u64, 2).unwrap();
-    let sig = xmss_sign(&mut rng, &sk, BENCHMARK_SLOT, &message_for_benchmark()).unwrap();
+    let sig = xmss_sign(&sk, BENCHMARK_SLOT, &message_for_benchmark()).unwrap();
     (pk, sig)
 }
 

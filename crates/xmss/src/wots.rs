@@ -114,22 +114,6 @@ pub fn iterate_hash(
     })
 }
 
-pub fn find_randomness_for_wots_encoding(
-    message: &[F; MESSAGE_LEN_FE],
-    slot: u32,
-    xmss_pub_key: &XmssPublicKey,
-    rng: &mut impl CryptoRng,
-) -> (Randomness, [u8; V], usize) {
-    let mut num_iters = 0;
-    loop {
-        num_iters += 1;
-        let randomness = rng.random();
-        if let Some(encoding) = wots_encode(message, slot, xmss_pub_key, &randomness) {
-            return (randomness, encoding, num_iters);
-        }
-    }
-}
-
 pub fn wots_encode(
     message: &[F; MESSAGE_LEN_FE],
     slot: u32,

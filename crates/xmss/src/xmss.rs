@@ -251,22 +251,42 @@ pub fn xmss_key_gen<R: CryptoRng>(
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 pub enum XmssSignatureError {
     SlotOutOfRange,
+    EncodingAttemptsExceeded,
 }
 
 impl std::fmt::Display for XmssSignatureError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::SlotOutOfRange => write!(f, "slot is outside the key's valid range"),
+            Self::EncodingAttemptsExceeded => {
+                write!(f, "no valid WOTS encoding found within {MAX_SIGNING_ATTEMPTS} attempts")
+            }
         }
     }
 }
 
 impl std::error::Error for XmssSignatureError {}
 
-/// WARNING: XMSS is statefull signature, you should never sign with the same same `slot` twice.
-/// (Even signing twice with the same message, at the same slot, is insecure, due to the non-determinism of the randomness part of the signature)
-pub fn xmss_sign<R: CryptoRng>(
-    rng: &mut R,
+/// Deterministic encoding randomness: a seed-keyed Poseidon PRF over (slot, attempt), mixed
+/// with the hashed message by one more compression.
+fn derive_signature_randomness(
+    seed: &[u8; 32],
+    slot: u32,
+    message_fe: &[F; MESSAGE_LEN_FE],
+    attempt: usize,
+) -> Randomness {
+    let prf = poseidon_prf(PRF_DOMAINSEP_SIGNATURE_RANDOMNESS, seed, [slot as usize, attempt]);
+    let mut input = [F::ZERO; POSEIDON1_WIDTH];
+    input[..DIGEST_LEN_FE].copy_from_slice(&prf);
+    input[DIGEST_LEN_FE..].copy_from_slice(message_fe);
+    poseidon16_compress(input)[..RANDOMNESS_LEN_FE].try_into().unwrap()
+}
+
+/// WARNING: XMSS is a stateful signature scheme, never sign two different messages at the same
+/// `slot`. Signing is derandomized (the encoding randomness is derived from the secret key,
+/// slot, and message), so calling this twice with the same (slot, message) pair returns the
+/// same signature and is harmless.
+pub fn xmss_sign(
     secret_key: &XmssSecretKey,
     slot: u32,
     message: &[u8; MESSAGE_LEN_BYTES],
@@ -275,8 +295,13 @@ pub fn xmss_sign<R: CryptoRng>(
         return Err(XmssSignatureError::SlotOutOfRange);
     }
     let message_fe = hash_message(message);
-    let (randomness, encoding, _) =
-        find_randomness_for_wots_encoding(&message_fe, slot, &secret_key.public_key(), rng);
+    let pub_key = secret_key.public_key();
+    let (randomness, encoding) = (0..MAX_SIGNING_ATTEMPTS)
+        .find_map(|attempt| {
+            let randomness = derive_signature_randomness(&secret_key.seed, slot, &message_fe, attempt);
+            wots_encode(&message_fe, slot, &pub_key, &randomness).map(|encoding| (randomness, encoding))
+        })
+        .ok_or(XmssSignatureError::EncodingAttemptsExceeded)?;
     let wots_secret_key = gen_wots_secret_key(&secret_key.seed, slot, secret_key.public_param);
     let wots_signature = wots_secret_key.sign_with_encoding(randomness, &encoding, secret_key.public_param, slot);
     // Cache the bottom subtree covering `slot` (reused across its 2^split_level slots), then read the path.

@@ -53,7 +53,12 @@ const _: () = assert!(1 + MESSAGE_EMBEDDING_LEN_FE <= POSEIDON1_WIDTH); // Domai
 pub(crate) const PRF_DOMAINSEP_WOTS_SECRET_KEY: u32 = 1000;
 pub(crate) const PRF_DOMAINSEP_PUBLIC_PARAM: u32 = 1001;
 pub(crate) const PRF_DOMAINSEP_RANDOM_NODE: u32 = 1002;
+pub(crate) const PRF_DOMAINSEP_SIGNATURE_RANDOMNESS: u32 = 1003;
 pub(crate) const DOMAINSEP_MESSAGE_HASH: u32 = 1004;
+
+/// Signing grinds the encoding randomness until the encoding is valid (expected: a few hundred
+/// attempts); this bound only exists so a broken configuration fails instead of looping forever.
+pub const MAX_SIGNING_ATTEMPTS: usize = 100_000;
 
 /// Injective embedding of a message into `MESSAGE_EMBEDDING_LEN_FE` field elements:
 /// little-endian base-p decomposition of the message read as a little-endian integer

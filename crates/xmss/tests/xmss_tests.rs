@@ -1,5 +1,5 @@
 use backend::*;
-use rand::{SeedableRng, rngs::StdRng};
+use rand::{RngExt, SeedableRng, rngs::StdRng};
 use xmss::*;
 
 type F = KoalaBear;
@@ -10,7 +10,7 @@ fn test_xmss_serialize_deserialize() {
     let slot = 110;
 
     let (pk, sk) = xmss_key_gen(&mut StdRng::seed_from_u64(0), 100, 16).unwrap();
-    let sig = xmss_sign(&mut StdRng::seed_from_u64(slot as u64), &sk, slot, &message).unwrap();
+    let sig = xmss_sign(&sk, slot, &message).unwrap();
 
     let pk_bytes = postcard::to_allocvec(&pk).unwrap();
     let pk2: XmssPublicKey = postcard::from_bytes(&pk_bytes).unwrap();
@@ -32,13 +32,31 @@ fn keygen_sign_verify() {
         let num_active_slots = (slot as u64 + 3).min(1 << LOG_LIFETIME) - activation_slot;
         let mut rng = StdRng::seed_from_u64(slot as u64);
         let (pk, sk) = xmss_key_gen(&mut rng, activation_slot, num_active_slots).unwrap();
-        let sig = xmss_sign(&mut rng, &sk, slot, &message).unwrap();
+        let sig = xmss_sign(&sk, slot, &message).unwrap();
         xmss_verify(&pk, slot, &message, &sig).unwrap();
 
         let mut other_message = message;
         other_message[0] ^= 1;
         assert!(xmss_verify(&pk, slot, &other_message, &sig).is_err());
     }
+}
+
+#[test]
+fn signing_is_deterministic() {
+    let message: [u8; MESSAGE_LEN_BYTES] = std::array::from_fn(|i| i as u8);
+    let (_, sk) = xmss_key_gen(&mut StdRng::seed_from_u64(7), 40, 10).unwrap();
+    assert_eq!(
+        xmss_sign(&sk, 42, &message).unwrap(),
+        xmss_sign(&sk, 42, &message).unwrap()
+    );
+    assert_eq!(
+        xmss_sign(&sk, 39, &message).unwrap_err(),
+        XmssSignatureError::SlotOutOfRange
+    );
+    assert_eq!(
+        xmss_sign(&sk, 50, &message).unwrap_err(),
+        XmssSignatureError::SlotOutOfRange
+    );
 }
 
 #[test]
@@ -70,9 +88,14 @@ fn encoding_grinding_bits() {
             let message: [F; MESSAGE_LEN_FE] = Default::default();
             let slot = i as u32;
             let mut rng = StdRng::seed_from_u64(i as u64);
-            let (_randomness, _encoding, num_iters) =
-                find_randomness_for_wots_encoding(&message, slot, &xmss_pub_key, &mut rng);
-            num_iters
+            let mut num_iters = 0;
+            loop {
+                num_iters += 1;
+                let randomness: [F; RANDOMNESS_LEN_FE] = rng.random();
+                if wots_encode(&message, slot, &xmss_pub_key, &randomness).is_some() {
+                    break num_iters;
+                }
+            }
         },
         |a, b| a + b,
     );
