@@ -92,7 +92,7 @@ rec_aggregation.workspace = true
 zk-alloc.workspace = true
 sub_protocols.workspace = true
 lean_vm.workspace = true
-xmss.workspace = true
+xmss = { workspace = true, features = ["test-utils"] }
 backend.workspace = true
 serde_json.workspace = true
 system-info.workspace = true

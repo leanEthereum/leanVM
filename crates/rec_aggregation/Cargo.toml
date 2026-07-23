@@ -10,7 +10,7 @@ workspace = true
 prox-gaps-conjecture = ["lean_prover/prox-gaps-conjecture"]
 
 [dependencies]
-xmss.workspace = true
+xmss = { workspace = true, features = ["test-utils"] }
 tracing.workspace = true
 include_dir.workspace = true
 sub_protocols.workspace = true

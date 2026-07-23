@@ -1,6 +1,7 @@
 #![cfg_attr(not(test), warn(unused_crate_dependencies))]
 use backend::{DIGEST_LEN_FE, KoalaBear, POSEIDON1_WIDTH, PrimeCharacteristicRing, PrimeField32, poseidon16_compress};
 
+#[cfg(any(test, feature = "test-utils"))]
 pub mod signers_cache;
 mod ssz_serialization;
 pub use ssz_serialization::{PUB_KEY_SSZ_LEN, SIGNATURE_SSZ_LEN};
