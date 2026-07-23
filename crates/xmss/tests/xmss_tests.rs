@@ -29,10 +29,16 @@ fn test_xmss_serialize_deserialize() {
     assert_eq!(xmss_sign(&sk2, slot, &message).unwrap(), sig);
 
     // A top tree whose shape does not match the slot range must be rejected.
-    let (seed, start, end, mut top): ([u8; 32], u32, u32, Vec<Vec<[F; 4]>>) = postcard::from_bytes(&sk_bytes).unwrap();
+    let (version, seed, start, end, mut top): (u8, [u8; 32], u32, u32, Vec<Vec<Digest>>) =
+        postcard::from_bytes(&sk_bytes).unwrap();
     top.pop();
-    let corrupted = postcard::to_allocvec(&(seed, start, end, top)).unwrap();
+    let corrupted = postcard::to_allocvec(&(version, seed, start, end, top)).unwrap();
     assert!(postcard::from_bytes::<XmssSecretKey>(&corrupted).is_err());
+
+    // An unknown format version must be rejected.
+    let mut wrong_version = sk_bytes.clone();
+    wrong_version[0] ^= 1;
+    assert!(postcard::from_bytes::<XmssSecretKey>(&wrong_version).is_err());
 }
 
 #[test]

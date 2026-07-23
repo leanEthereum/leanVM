@@ -39,18 +39,34 @@ pub(crate) struct BottomSubtree {
     layers: Vec<Vec<Digest>>,
 }
 
-/// Persists (seed, slot range, top tree). The top tree is stored so that loading a key is
-/// cheap (no re-hashing of the whole range); the derived fields (public_param, split_level)
-/// are recomputed and the tree shape revalidated. The bottom-subtree cache restarts empty.
+/// Format version of the persisted secret key; bump on layout changes.
+const SECRET_KEY_FORMAT_VERSION: u8 = 1;
+
+/// Persists (version, seed, slot range, top tree). The top tree is stored so that loading a
+/// key is cheap (no re-hashing of the whole range); the derived fields (public_param,
+/// split_level) are recomputed and the tree shape revalidated. The bottom-subtree cache
+/// restarts empty.
 impl Serialize for XmssSecretKey {
     fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
-        (&self.seed, self.slot_start, self.slot_end, &self.top).serialize(s)
+        (
+            SECRET_KEY_FORMAT_VERSION,
+            &self.seed,
+            self.slot_start,
+            self.slot_end,
+            &self.top,
+        )
+            .serialize(s)
     }
 }
 
 impl<'de> Deserialize<'de> for XmssSecretKey {
     fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
-        let (seed, slot_start, slot_end, top) = <([u8; 32], u32, u32, Vec<Vec<Digest>>)>::deserialize(d)?;
+        let (version, seed, slot_start, slot_end, top) = <(u8, [u8; 32], u32, u32, Vec<Vec<Digest>>)>::deserialize(d)?;
+        if version != SECRET_KEY_FORMAT_VERSION {
+            return Err(serde::de::Error::custom(format!(
+                "unsupported secret key format version {version} (expected {SECRET_KEY_FORMAT_VERSION})"
+            )));
+        }
         Self::from_parts(seed, slot_start, slot_end, top).map_err(serde::de::Error::custom)
     }
 }
