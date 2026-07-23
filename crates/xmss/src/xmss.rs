@@ -72,7 +72,7 @@ pub struct XmssPublicKey {
 }
 
 impl XmssPublicKey {
-    pub fn flaten(&self) -> [F; PUB_KEY_FLAT_SIZE] {
+    pub fn flatten(&self) -> [F; PUB_KEY_FLAT_SIZE] {
         let mut output = [F::default(); PUB_KEY_FLAT_SIZE];
         output[..XMSS_DIGEST_LEN].copy_from_slice(&self.merkle_root);
         output[XMSS_DIGEST_LEN..].copy_from_slice(&self.public_param);

@@ -117,7 +117,7 @@ impl SingleMessageInfo {
 }
 
 pub(crate) fn hash_pubkeys(pub_keys: &[XmssPublicKey]) -> [F; DIGEST_LEN] {
-    let flat: Vec<F> = pub_keys.iter().flat_map(|pk| pk.flaten().into_iter()).collect();
+    let flat: Vec<F> = pub_keys.iter().flat_map(|pk| pk.flatten().into_iter()).collect();
     poseidon_hash_slice(&flat)
 }
 
@@ -369,10 +369,10 @@ pub(crate) fn aggregate_single_message_signatures_with_min_padding(
 
     let mut pubkeys_blob: ArenaVec<F> = ArenaVec::with_capacity((n_sigs + n_dup) * PUB_KEY_FLAT_SIZE);
     for pk in &global_pub_keys {
-        pubkeys_blob.extend_from_slice(&pk.flaten());
+        pubkeys_blob.extend_from_slice(&pk.flatten());
     }
     for pk in &dup_pub_keys {
-        pubkeys_blob.extend_from_slice(&pk.flaten());
+        pubkeys_blob.extend_from_slice(&pk.flatten());
     }
 
     let (merkle_leaf_blobs, merkle_path_blobs) =
