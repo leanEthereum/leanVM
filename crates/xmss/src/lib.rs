@@ -5,7 +5,9 @@ pub mod signers_cache;
 mod ssz_serialization;
 pub use ssz_serialization::{PUB_KEY_SSZ_LEN, SIGNATURE_SSZ_LEN};
 mod wots;
-pub use wots::*;
+// The rest of the WOTS layer (one-time secret keys, chain walking, encoding) is a private
+// building block of xmss_sign / xmss_verify; only the signature type is part of the API.
+pub use wots::WotsSignature;
 mod xmss;
 pub use xmss::*;
 

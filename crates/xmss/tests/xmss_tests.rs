@@ -1,5 +1,5 @@
 use backend::*;
-use rand::{RngExt, SeedableRng, rngs::StdRng};
+use rand::{SeedableRng, rngs::StdRng};
 use xmss::*;
 
 type F = KoalaBear;
@@ -160,34 +160,4 @@ fn ssz_roundtrip() {
     // Wrong lengths are rejected.
     assert!(XmssPublicKey::from_ssz_bytes(&pk_bytes[1..]).is_err());
     assert!(XmssSignature::from_ssz_bytes(&sig_bytes[..SIGNATURE_SSZ_LEN - 1]).is_err());
-}
-
-#[test]
-#[ignore]
-fn encoding_grinding_bits() {
-    let n = 100;
-    let xmss_pub_key = XmssPublicKey {
-        merkle_root: Default::default(),
-        public_param: Default::default(),
-    };
-    let total_iters = parallel::map_reduce(
-        n,
-        || 0usize,
-        |i| {
-            let message: [F; MESSAGE_LEN_FE] = Default::default();
-            let slot = i as u32;
-            let mut rng = StdRng::seed_from_u64(i as u64);
-            let mut num_iters = 0;
-            loop {
-                num_iters += 1;
-                let randomness: [F; RANDOMNESS_LEN_FE] = rng.random();
-                if wots_encode(&message, slot, &xmss_pub_key, &randomness).is_some() {
-                    break num_iters;
-                }
-            }
-        },
-        |a, b| a + b,
-    );
-    let grinding = ((total_iters as f64) / (n as f64)).log2();
-    println!("Average grinding bits: {:.1}", grinding);
 }

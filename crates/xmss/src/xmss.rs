@@ -4,6 +4,7 @@ use backend::*;
 use rand::{CryptoRng, RngExt, SeedableRng, rngs::StdRng};
 use serde::{Deserialize, Serialize};
 
+use crate::wots::*;
 use crate::*;
 
 /// Memory-optimized secret key for a range of R = slot_end - slot_start + 1 slots: O(sqrt(R) +
