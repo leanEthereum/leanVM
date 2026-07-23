@@ -118,6 +118,24 @@ fn concurrent_signing_on_shared_key() {
 }
 
 #[test]
+fn keygen_from_seed_is_deterministic() {
+    let message: [u8; MESSAGE_LEN_BYTES] = std::array::from_fn(|i| i as u8);
+    let seed = [42u8; 32];
+
+    let (pk1, sk1) = xmss_key_gen_from_seed(seed, 100, 16).unwrap();
+    let (pk2, sk2) = xmss_key_gen_from_seed(seed, 100, 16).unwrap();
+    assert_eq!(pk1, pk2);
+    assert_eq!(
+        xmss_sign(&sk1, 110, &message).unwrap(),
+        xmss_sign(&sk2, 110, &message).unwrap()
+    );
+
+    // Same seed, different activation range: a different key.
+    let (pk3, _) = xmss_key_gen_from_seed(seed, 100, 32).unwrap();
+    assert_ne!(pk1, pk3);
+}
+
+#[test]
 fn keygen_rejects_invalid_ranges() {
     let mut rng = StdRng::seed_from_u64(0);
     assert_eq!(xmss_key_gen(&mut rng, 0, 0).unwrap_err(), XmssKeyGenError::InvalidRange);

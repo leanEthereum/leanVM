@@ -217,13 +217,22 @@ pub fn xmss_key_gen<R: CryptoRng>(
     activation_slot: u64,
     num_active_slots: u64,
 ) -> Result<(XmssPublicKey, XmssSecretKey), XmssKeyGenError> {
+    xmss_key_gen_from_seed(rng.random(), activation_slot, num_active_slots)
+}
+
+/// Deterministic [`xmss_key_gen`]: the same (seed, activation range) always regenerates the
+/// same key pair. The seed is the key's entire secret material.
+pub fn xmss_key_gen_from_seed(
+    seed: [u8; 32],
+    activation_slot: u64,
+    num_active_slots: u64,
+) -> Result<(XmssPublicKey, XmssSecretKey), XmssKeyGenError> {
     let activation_end = activation_slot
         .checked_add(num_active_slots)
         .ok_or(XmssKeyGenError::InvalidRange)?;
     if num_active_slots == 0 || activation_end > 1 << LOG_LIFETIME {
         return Err(XmssKeyGenError::InvalidRange);
     }
-    let seed: [u8; 32] = rng.random();
 
     // The pool forbids nested dispatch: build sequentially when key gen itself already runs
     // inside a pool task (e.g. generating many keys in a parallel batch).
