@@ -103,6 +103,37 @@ fn keygen_rejects_invalid_ranges() {
 }
 
 #[test]
+fn ssz_roundtrip() {
+    use ssz::{Decode, Encode};
+
+    let message: [u8; MESSAGE_LEN_BYTES] = std::array::from_fn(|i| i as u8);
+    let slot = 110;
+    let (pk, sk) = xmss_key_gen(&mut StdRng::seed_from_u64(1), 100, 16).unwrap();
+    let sig = xmss_sign(&sk, slot, &message).unwrap();
+
+    // Public key: fixed 32 bytes.
+    let pk_bytes = pk.as_ssz_bytes();
+    assert_eq!(pk_bytes.len(), PUB_KEY_SSZ_LEN);
+    assert_eq!(pk_bytes.len(), 32);
+    assert_eq!(XmssPublicKey::from_ssz_bytes(&pk_bytes).unwrap(), pk);
+
+    // Signature: fixed 1208 bytes.
+    let sig_bytes = sig.as_ssz_bytes();
+    assert_eq!(sig_bytes.len(), SIGNATURE_SSZ_LEN);
+    assert_eq!(sig_bytes.len(), 1208);
+    assert_eq!(XmssSignature::from_ssz_bytes(&sig_bytes).unwrap(), sig);
+
+    // Non-canonical field elements are rejected.
+    let mut bad_pk = pk_bytes.clone();
+    bad_pk[..4].copy_from_slice(&u32::MAX.to_le_bytes());
+    assert!(XmssPublicKey::from_ssz_bytes(&bad_pk).is_err());
+
+    // Wrong lengths are rejected.
+    assert!(XmssPublicKey::from_ssz_bytes(&pk_bytes[1..]).is_err());
+    assert!(XmssSignature::from_ssz_bytes(&sig_bytes[..SIGNATURE_SSZ_LEN - 1]).is_err());
+}
+
+#[test]
 #[ignore]
 fn encoding_grinding_bits() {
     let n = 100;

@@ -2,6 +2,8 @@
 use backend::{DIGEST_LEN_FE, KoalaBear, POSEIDON1_WIDTH, PrimeCharacteristicRing, PrimeField32, poseidon16_compress};
 
 pub mod signers_cache;
+mod ssz_serialization;
+pub use ssz_serialization::{PUB_KEY_SSZ_LEN, SIGNATURE_SSZ_LEN};
 mod wots;
 pub use wots::*;
 mod xmss;

@@ -11,6 +11,7 @@ rand.workspace = true
 backend.workspace = true
 serde.workspace = true
 postcard.workspace = true
+ssz.workspace = true
 
 [dev-dependencies]
 postcard.workspace = true
