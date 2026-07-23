@@ -88,6 +88,35 @@ fn prepare_warms_the_signing_cache() {
     assert_eq!(sk.prepare(1300).unwrap_err(), XmssSignatureError::SlotOutOfRange);
 }
 
+/// One key shared between signers inside pool tasks and on a plain thread. Bottom-subtree
+/// builds during signing are always sequential, so a signer holding the cache mutex never
+/// waits on the pool (which would deadlock with the pool tasks blocked on the same key).
+/// Derandomization makes the signatures identical regardless of who produced them.
+#[test]
+fn concurrent_signing_on_shared_key() {
+    let message: [u8; MESSAGE_LEN_BYTES] = std::array::from_fn(|i| i as u8);
+    let (pk, sk) = xmss_key_gen(&mut StdRng::seed_from_u64(9), 0, 1 << 10).unwrap();
+    let (pk, sk) = (&pk, &sk);
+
+    std::thread::scope(|scope| {
+        let plain_thread = scope.spawn(move || {
+            (0..1024u32)
+                .step_by(97)
+                .map(|slot| (slot, xmss_sign(sk, slot, &message).unwrap()))
+                .collect::<Vec<_>>()
+        });
+        parallel::for_each_index(64, |i| {
+            let slot = (i * 61 % 1024) as u32;
+            let sig = xmss_sign(sk, slot, &message).unwrap();
+            xmss_verify(pk, slot, &message, &sig).unwrap();
+        });
+        for (slot, sig) in plain_thread.join().unwrap() {
+            xmss_verify(pk, slot, &message, &sig).unwrap();
+            assert_eq!(sig, xmss_sign(sk, slot, &message).unwrap());
+        }
+    });
+}
+
 #[test]
 fn keygen_rejects_invalid_ranges() {
     let mut rng = StdRng::seed_from_u64(0);
