@@ -1,6 +1,8 @@
 #![cfg_attr(not(test), warn(unused_crate_dependencies))]
 use backend::{DIGEST_LEN_FE, KoalaBear, POSEIDON1_WIDTH, PrimeCharacteristicRing, PrimeField32, poseidon16_compress};
 
+#[cfg(test)]
+mod benchmark_sign;
 #[cfg(any(test, feature = "test-utils"))]
 pub mod signers_cache;
 mod ssz_serialization;
@@ -30,7 +32,12 @@ pub const W: usize = 3;
 pub const CHAIN_LENGTH: usize = 1 << W;
 pub const NUM_CHAIN_HASHES: usize = 110;
 pub const TARGET_SUM: usize = V * (CHAIN_LENGTH - 1) - NUM_CHAIN_HASHES;
-pub const NUM_ENCODING_FE: usize = V.div_ceil(24 / W);
+/// Bits taken from each encoding field element. Below the 31-bit modulus, and a multiple of `W`
+/// so that a chunk never straddles two field elements.
+pub const ENCODING_BITS_PER_FE: usize = 24;
+/// `W`-bit chunks carried by one encoding field element.
+pub const CHUNKS_PER_FE: usize = ENCODING_BITS_PER_FE / W;
+pub const NUM_ENCODING_FE: usize = V.div_ceil(CHUNKS_PER_FE);
 pub const RANDOMNESS_LEN_FE: usize = 6;
 /// Byte length of the messages being signed.
 pub const MESSAGE_LEN_BYTES: usize = 32;
@@ -52,6 +59,8 @@ pub const TWEAK_TYPE_MERKLE: usize = 2;
 pub const TWEAK_TYPE_ENCODING: usize = 3;
 
 const _: () = assert!(V.is_multiple_of(2)); // For efficiency of the snark (we can batch chains in pairs)
+const _: () = assert!(ENCODING_BITS_PER_FE.is_multiple_of(W)); // A codeword chunk never straddles two field elements
+const _: () = assert!(CHAIN_LENGTH.is_power_of_two()); // CHAIN_LENGTH - 1 is the chunk bit mask
 const _: () = assert!(MESSAGE_EMBEDDING_LEN_FE * 30 >= MESSAGE_LEN_BYTES * 8); // Injective embedding
 const _: () = assert!(MESSAGE_LEN_FE == DIGEST_LEN_FE); // hash_message output is one Poseidon digest
 const _: () = assert!(MESSAGE_EMBEDDING_LEN_FE < POSEIDON1_WIDTH); // Domain sep + embedding fit
