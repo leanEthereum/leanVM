@@ -45,10 +45,10 @@ pub fn run_product_sumcheck<EF: KoalaBearExtension>(
     assert!(n_rounds >= 1);
     let first_sumcheck_poly = match (pol_a, pol_b) {
         (MleRef::BasePacked(evals), MleRef::ExtensionPacked(weights)) => {
-            compute_product_sumcheck_polynomial(evals, weights, sum, |e| EFPacking::<EF>::to_ext_iter([e]).collect())
+            compute_product_sumcheck_polynomial(evals, weights, sum, |e| (e).to_ext_lanes().collect())
         }
         (MleRef::ExtensionPacked(evals), MleRef::ExtensionPacked(weights)) => {
-            compute_product_sumcheck_polynomial(evals, weights, sum, |e| EFPacking::<EF>::to_ext_iter([e]).collect())
+            compute_product_sumcheck_polynomial(evals, weights, sum, |e| (e).to_ext_lanes().collect())
         }
         (MleRef::Base(evals), MleRef::Extension(weights)) => {
             compute_product_sumcheck_polynomial(evals, weights, sum, |e| vec![e])
@@ -85,16 +85,12 @@ pub fn run_product_sumcheck_from_round1<EF: KoalaBearExtension>(
     let (second_sumcheck_poly, folded) = match (pol_a, pol_b) {
         (MleRef::BasePacked(evals), MleRef::ExtensionPacked(weights)) => {
             let (second_sumcheck_poly, folded) =
-                fold_and_compute_product_sumcheck_polynomial(evals, weights, r1, sum, |e| {
-                    EFPacking::<EF>::to_ext_iter([e]).collect()
-                });
+                fold_and_compute_product_sumcheck_polynomial(evals, weights, r1, sum, |e| (e).to_ext_lanes().collect());
             (second_sumcheck_poly, MleGroupOwned::ExtensionPacked(folded))
         }
         (MleRef::ExtensionPacked(evals), MleRef::ExtensionPacked(weights)) => {
             let (second_sumcheck_poly, folded) =
-                fold_and_compute_product_sumcheck_polynomial(evals, weights, r1, sum, |e| {
-                    EFPacking::<EF>::to_ext_iter([e]).collect()
-                });
+                fold_and_compute_product_sumcheck_polynomial(evals, weights, r1, sum, |e| (e).to_ext_lanes().collect());
             (second_sumcheck_poly, MleGroupOwned::ExtensionPacked(folded))
         }
         (MleRef::Base(evals), MleRef::Extension(weights)) => {

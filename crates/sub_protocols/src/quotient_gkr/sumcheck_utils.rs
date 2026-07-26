@@ -94,9 +94,8 @@ fn finalize_round<EF: KoalaBearExtension>(
     mmf: &mut EF,
     padding_correction: EF,
 ) -> EF {
-    let c0_raw: EF =
-        EFPacking::<EF>::to_ext_iter([coeffs.c0_num + coeffs.c0_den * alpha]).sum::<EF>() + padding_correction;
-    let c2_raw: EF = EFPacking::<EF>::to_ext_iter([coeffs.c2_num + coeffs.c2_den * alpha]).sum();
+    let c0_raw: EF = (coeffs.c0_num + coeffs.c0_den * alpha).to_ext_lanes().sum::<EF>() + padding_correction;
+    let c2_raw: EF = (coeffs.c2_num + coeffs.c2_den * alpha).to_ext_lanes().sum();
     let bare = build_bare_from_coeffs(c0_raw, c2_raw, eq_alpha, *sum, *mmf);
     prover_state.add_sumcheck_polynomial(&bare.coeffs, Some(eq_alpha));
     let r = prover_state.sample();

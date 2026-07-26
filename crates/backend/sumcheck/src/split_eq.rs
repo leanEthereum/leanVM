@@ -54,7 +54,12 @@ impl<EF: KoalaBearExtension> SplitEq<EF> {
             self.log_packed_hi = new_len.trailing_zeros();
         } else {
             // eq_hi_packed has 0 or 1 element — unpack to remainder and halve
-            let mut unpacked: ArenaVec<EF> = EFPacking::<EF>::to_ext_iter(self.eq_hi_packed.iter().copied()).collect();
+            let mut unpacked: ArenaVec<EF> = self
+                .eq_hi_packed
+                .iter()
+                .copied()
+                .flat_map(EFPacking::<EF>::to_ext_lanes)
+                .collect();
             let scale = self.eq_lo[0];
             for v in &mut unpacked {
                 *v *= scale;
@@ -98,7 +103,7 @@ impl<EF: KoalaBearExtension> SplitEq<EF> {
         } else {
             let width = packing_width::<EF>();
             let packed_val = self.get_packed(i / width);
-            EFPacking::<EF>::to_ext_iter([packed_val]).nth(i % width).unwrap()
+            (packed_val).to_ext_lanes().nth(i % width).unwrap()
         }
     }
 }

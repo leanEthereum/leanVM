@@ -85,12 +85,12 @@ pub(crate) fn identity_decompose<EF: Field>(e: EF) -> Vec<EF> {
 
 #[inline(always)]
 pub(crate) fn packing_decompose<EF: KoalaBearExtension>(e: EFPacking<EF>) -> Vec<EF> {
-    EFPacking::<EF>::to_ext_iter([e]).collect()
+    (e).to_ext_lanes().collect()
 }
 
 #[inline(always)]
 pub fn packing_unpack_sum<EF: KoalaBearExtension>(s: EFPacking<EF>) -> EF {
-    EFPacking::<EF>::to_ext_iter([s]).sum::<EF>()
+    (s).to_ext_lanes().sum::<EF>()
 }
 
 fn handle_product_computation<'a, EF: KoalaBearExtension>(group: &MleGroupRef<'a, EF>, sum: EF) -> Vec<EF> {

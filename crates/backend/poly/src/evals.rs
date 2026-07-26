@@ -187,7 +187,7 @@ where
         for (&a, &b) in part.iter().zip(eq_lo.iter()) {
             acc += b * a;
         }
-        EFPacking::<EF>::to_ext_iter([acc]).sum::<EF>() * eq_hi[i]
+        (acc).to_ext_lanes().sum::<EF>() * eq_hi[i]
     };
 
     let work_size: usize = (1 << 15) / std::mem::size_of::<PF<EF>>();

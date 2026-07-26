@@ -167,7 +167,7 @@ impl<EF: KoalaBearExtension> MleOwned<EF> {
             }
             Self::ExtensionPacked(v) => {
                 assert_eq!(packing_width::<EF>(), 1);
-                EFPacking::<EF>::to_ext_iter([v[0]]).nth(0).unwrap()
+                (v[0]).to_ext_lanes().nth(0).unwrap()
             }
         }
     }

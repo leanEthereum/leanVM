@@ -304,7 +304,7 @@ fn column_evals<EF: KoalaBearExtension>(multilinears: &MleGroupRef<'_, EF>, i: u
         MleGroupRef::ExtensionPacked(cols) => {
             let (packed_i, lane) = (i >> packing_log_width::<EF>(), i & (packing_width::<EF>() - 1));
             cols.iter()
-                .map(|c| EFPacking::<EF>::to_ext_iter([c[packed_i]]).nth(lane).unwrap())
+                .map(|c| (c[packed_i]).to_ext_lanes().nth(lane).unwrap())
                 .collect()
         }
     }
@@ -325,7 +325,7 @@ where
     A::ExtraData: AlphaPowers<EF>,
 {
     let unpack_sum_packed =
-        |s: EFPacking<EF>| -> EF { <EFPacking<EF> as PackedFieldExtension<PF<EF>, EF>>::to_ext_iter([s]).sum::<EF>() };
+        |s: EFPacking<EF>| -> EF { <EFPacking<EF> as PackedFieldExtension<PF<EF>, EF>>::to_ext_lanes(s).sum::<EF>() };
 
     if let Some((low_degree, low_n_constraints)) = computation.low_degree_air() {
         match multilinears {

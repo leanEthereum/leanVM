@@ -704,21 +704,27 @@ fn eval_eq_with_packed_scalar<F: Field, EF: ExtensionField<F>, const INITIALIZED
 
     match eval.len() {
         0 => {
-            let result: Vec<EF> = EF::ExtensionPacking::to_ext_iter([scalar]).collect();
+            let result: Vec<EF> = (scalar).to_ext_lanes().collect();
             add_or_set_f::<_, INITIALIZED>(out, &result);
         }
         1 => {
             // Manually unroll for single variable case
             let eq_evaluations = eval_eq_1(eval, scalar);
 
-            let result: Vec<EF> = EF::ExtensionPacking::to_ext_iter(eq_evaluations).collect();
+            let result: Vec<EF> = eq_evaluations
+                .into_iter()
+                .flat_map(EF::ExtensionPacking::to_ext_lanes)
+                .collect();
             add_or_set_f::<_, INITIALIZED>(out, &result);
         }
         2 => {
             // Manually unroll for two variables case
             let eq_evaluations = eval_eq_2(eval, scalar);
 
-            let result: Vec<EF> = EF::ExtensionPacking::to_ext_iter(eq_evaluations).collect();
+            let result: Vec<EF> = eq_evaluations
+                .into_iter()
+                .flat_map(EF::ExtensionPacking::to_ext_lanes)
+                .collect();
             add_or_set_f::<_, INITIALIZED>(out, &result);
         }
         3 => {
@@ -735,15 +741,18 @@ fn eval_eq_with_packed_scalar<F: Field, EF: ExtensionField<F>, const INITIALIZED
             // This avoids the allocation used to accumulate `result` in the other branches. We could
             // do a similar strategy in those branches but, those branches should only be hit
             // infrequently in small cases which are already sufficiently fast.
-            iter_array_chunks_padded::<_, EVAL_LEN>(EF::ExtensionPacking::to_ext_iter(eq_evaluations), EF::ZERO)
-                .zip(out.as_chunks_mut::<EVAL_LEN>().0.iter_mut())
-                .for_each(|(res, out_chunk)| {
-                    if INITIALIZED {
-                        EF::add_slices(out_chunk, &res);
-                    } else {
-                        out_chunk.copy_from_slice(&res);
-                    }
-                });
+            iter_array_chunks_padded::<_, EVAL_LEN>(
+                eq_evaluations.into_iter().flat_map(EF::ExtensionPacking::to_ext_lanes),
+                EF::ZERO,
+            )
+            .zip(out.as_chunks_mut::<EVAL_LEN>().0.iter_mut())
+            .for_each(|(res, out_chunk)| {
+                if INITIALIZED {
+                    EF::add_slices(out_chunk, &res);
+                } else {
+                    out_chunk.copy_from_slice(&res);
+                }
+            });
         }
         _ => {
             let (&x, tail) = eval.split_first().unwrap();

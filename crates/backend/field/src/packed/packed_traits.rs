@@ -326,7 +326,7 @@ pub unsafe trait PackedFieldPow2: PackedField {
 ///
 /// This is interpreted by taking a transpose to get `[[F; D]; W]` which can then be reinterpreted
 /// as `[EF; W]` by making use of the chosen basis `B` again.
-pub trait PackedFieldExtension<BaseField: Field, ExtField: ExtensionField<BaseField, ExtensionPacking = Self>>:
+pub trait PackedFieldExtension<BaseField: Field, ExtField: ExtensionField<BaseField>>:
     Algebra<ExtField> + Algebra<BaseField::Packing> + BasedVectorSpace<BaseField::Packing>
 {
     /// Given a slice of extension field `EF` elements of length `W`,
@@ -335,12 +335,10 @@ pub trait PackedFieldExtension<BaseField: Field, ExtField: ExtensionField<BaseFi
     #[must_use]
     fn from_ext_slice(ext_slice: &[ExtField]) -> Self;
 
-    /// Given a iterator of packed extension field elements, convert to an iterator of
-    /// extension field elements.
-    ///
-    /// This performs the inverse transformation to `from_ext_slice`.
+    /// Unpack one packed element into the `BaseField::Packing::WIDTH` extension field elements
+    /// it holds. Use `.flat_map(Self::to_ext_lanes)` to unpack an iterator of packed elements.
     #[must_use]
-    fn to_ext_iter(iter: impl IntoIterator<Item = Self>) -> impl Iterator<Item = ExtField>;
+    fn to_ext_lanes(self) -> impl Iterator<Item = ExtField>;
 
     /// Given a iterator of packed extension field elements, convert to an iterator of
     /// extension field elements.
@@ -349,7 +347,7 @@ pub trait PackedFieldExtension<BaseField: Field, ExtField: ExtensionField<BaseFi
     #[inline]
     #[must_use]
     fn to_ext_iter_vec(iter: Vec<Self>) -> Vec<ExtField> {
-        Self::to_ext_iter(iter).collect()
+        iter.into_iter().flat_map(Self::to_ext_lanes).collect()
     }
 
     /// Similar to `packed_powers`, construct an iterator which returns
@@ -425,9 +423,8 @@ impl<F: Field> PackedFieldExtension<F, F> for F::Packing {
     }
 
     #[inline]
-    fn to_ext_iter(iter: impl IntoIterator<Item = Self>) -> impl Iterator<Item = F> {
-        iter.into_iter()
-            .flat_map(|x| (0..F::Packing::WIDTH).map(move |i| x.as_slice()[i]))
+    fn to_ext_lanes(self) -> impl Iterator<Item = F> {
+        (0..F::Packing::WIDTH).map(move |i| self.as_slice()[i])
     }
 
     #[inline]
