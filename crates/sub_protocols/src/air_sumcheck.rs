@@ -45,6 +45,7 @@ pub trait OuterSumcheckSession<EF: KoalaBearExtension>: Debug {
 pub struct AirSumcheckSession<'a, EF: KoalaBearExtension, A: Air>
 where
     A::ExtraData: AlphaPowers<EF>,
+    EFPacking<EF>: Algebra<KoalaBear>,
 {
     multilinears: MleGroup<'a, EF>,
     eq_factor: Vec<EF>, // The last element is removed at each round
@@ -63,6 +64,7 @@ where
 impl<'a, EF: KoalaBearExtension, A: Air> AirSumcheckSession<'a, EF, A>
 where
     A::ExtraData: AlphaPowers<EF> + AlphaPowersMut<EF>,
+    EFPacking<EF>: Algebra<KoalaBear>,
 {
     pub fn new(
         packed_multilinears: MleGroup<'a, EF>,
@@ -126,6 +128,7 @@ where
 impl<'a, EF, A> AirSumcheckSession<'a, EF, A>
 where
     EF: KoalaBearExtension,
+    EFPacking<EF>: Algebra<KoalaBear>,
     A: Air + 'static,
     A::ExtraData: AlphaPowers<EF>,
 {
@@ -201,6 +204,7 @@ where
 impl<'a, EF, A> OuterSumcheckSession<EF> for AirSumcheckSession<'a, EF, A>
 where
     EF: KoalaBearExtension,
+    EFPacking<EF>: Algebra<KoalaBear>,
     A: Air + Debug + 'static,
     A::ExtraData: AlphaPowers<EF> + AlphaPowersMut<EF> + Debug,
 {
@@ -316,10 +320,12 @@ fn compute_raw_poly<'a, EF, A>(
 ) -> Vec<EF>
 where
     EF: KoalaBearExtension,
+    EFPacking<EF>: Algebra<KoalaBear>,
     A: Air + 'static,
     A::ExtraData: AlphaPowers<EF>,
 {
-    let unpack_sum_packed = |s: EFPacking<EF>| -> EF { EFPacking::<EF>::to_ext_iter([s]).sum::<EF>() };
+    let unpack_sum_packed =
+        |s: EFPacking<EF>| -> EF { <EFPacking<EF> as PackedFieldExtension<PF<EF>, EF>>::to_ext_iter([s]).sum::<EF>() };
 
     if let Some((low_degree, low_n_constraints)) = computation.low_degree_air() {
         match multilinears {
@@ -411,9 +417,18 @@ fn compute_raw_poly_degree_split<EF, A, IF, GetEq, UnpackSum>(
 ) -> Vec<EF>
 where
     EF: KoalaBearExtension,
+    EFPacking<EF>: Algebra<KoalaBear>,
     A: Air + 'static,
     A::ExtraData: AlphaPowers<EF>,
-    IF: Algebra<PFPacking<EF>> + Copy + Send + Sync + Sub<Output = IF> + AddAssign + PrimeCharacteristicRing + 'static,
+    IF: Algebra<PFPacking<EF>>
+        + Algebra<KoalaBear>
+        + Copy
+        + Send
+        + Sync
+        + Sub<Output = IF>
+        + AddAssign
+        + PrimeCharacteristicRing
+        + 'static,
     EFPacking<EF>: PrimeCharacteristicRing
         + Mul<IF, Output = EFPacking<EF>>
         + Add<IF, Output = EFPacking<EF>>
@@ -559,9 +574,10 @@ fn compute_raw_poly_impl<EF, A, IF, EFT, GetEq, UnpackSum>(
 ) -> Vec<EF>
 where
     EF: KoalaBearExtension,
+    EFPacking<EF>: Algebra<KoalaBear>,
     A: Air + 'static,
     A::ExtraData: AlphaPowers<EF>,
-    IF: Copy + Send + Sync + Sub<Output = IF> + AddAssign + PrimeCharacteristicRing,
+    IF: Copy + Send + Sync + Sub<Output = IF> + AddAssign + PrimeCharacteristicRing + Algebra<KoalaBear>,
     EFT: Copy + Send + Sync + Add<Output = EFT> + AddAssign + Mul<Output = EFT> + PrimeCharacteristicRing,
     GetEq: Fn(usize) -> EFT + Sync + Send,
     UnpackSum: Fn(EFT) -> EF + Sync + Send,

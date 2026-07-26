@@ -6,6 +6,7 @@ edition.workspace = true
 [dependencies]
 field = { path = "../field", package = "field" }
 air = { path = "../air", package = "air" }
+koala-bear = { path = "../koala-bear", package = "koala-bear" }
 poly = { path = "../poly", package = "poly" }
 zk-alloc.workspace = true
 fiat-shamir = { path = "../fiat-shamir", package = "fiat-shamir" }

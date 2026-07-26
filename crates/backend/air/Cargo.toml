@@ -5,4 +5,5 @@ edition.workspace = true
 
 [dependencies]
 field = { path = "../field", package = "field" }
+koala-bear = { path = "../koala-bear", package = "koala-bear" }
 poly = { path = "../poly", package = "poly" }

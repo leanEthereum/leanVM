@@ -2,6 +2,7 @@
 
 use core::ops::{Add, Mul, Sub};
 use field::{Algebra, PrimeCharacteristicRing};
+use koala_bear::KoalaBear;
 
 mod symbolic;
 pub use symbolic::*;
@@ -36,7 +37,7 @@ pub trait AirBuilder: Sized {
     type F: PrimeCharacteristicRing + 'static;
     /// Intermediate field: equals F in base-field rounds, EF in extension rounds
     /// (or their respective SIMD packings).
-    type IF: Algebra<Self::F> + 'static;
+    type IF: Algebra<Self::F> + Algebra<KoalaBear> + 'static;
     /// Always the extension field (or its SIMD packing).
     type EF: PrimeCharacteristicRing
         + 'static

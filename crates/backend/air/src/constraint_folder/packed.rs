@@ -1,11 +1,8 @@
 use crate::*;
 use field::*;
+use koala_bear::KoalaBear;
 use poly::*;
 
-// Keeps `ExtensionField<PF<EF>>` where the rest of the stack uses `KoalaBearExtension`: the
-// `low_degree_block` override below names `&mut Self` in a higher-ranked closure bound, and there
-// the solver won't see through a blanket-implemented alias, so every bound on the impl stops
-// applying. Callers using `KoalaBearExtension` satisfy this weaker bound anyway.
 #[derive(Debug)]
 pub struct ConstraintFolderPacked<'a, IF, EF: ExtensionField<PF<EF>>, ExtraData: AlphaPowers<EF>> {
     pub flat: &'a [IF],
@@ -42,7 +39,7 @@ where
 
 impl<'a, IF, EF, ExtraData> AirBuilder for ConstraintFolderPacked<'a, IF, EF, ExtraData>
 where
-    IF: Algebra<PFPacking<EF>> + 'static,
+    IF: Algebra<PFPacking<EF>> + Algebra<KoalaBear> + 'static,
     EF: Field + ExtensionField<PF<EF>>,
     EFPacking<EF>: PrimeCharacteristicRing + Mul<IF, Output = EFPacking<EF>> + Add<IF, Output = EFPacking<EF>>,
     ExtraData: AlphaPowers<EF>,

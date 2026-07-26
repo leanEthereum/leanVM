@@ -1,6 +1,7 @@
 use crate::*;
 use air::*;
 use field::*;
+use koala_bear::KoalaBear;
 use poly::*;
 use std::any::TypeId;
 use std::ops::{Add, AddAssign, Mul, MulAssign, Sub};
@@ -35,6 +36,7 @@ macro_rules! impl_air_eval {
 impl<EF, A> SumcheckComputation<EF> for A
 where
     EF: KoalaBearExtension,
+    EFPacking<EF>: Algebra<KoalaBear>,
     A: Send + Sync + Air,
     A::ExtraData: AlphaPowers<EF>,
 {

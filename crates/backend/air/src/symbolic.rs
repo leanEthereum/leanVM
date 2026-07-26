@@ -7,6 +7,7 @@ use core::marker::PhantomData;
 use core::ops::{Add, AddAssign, Deref, Mul, MulAssign, Neg, Sub, SubAssign};
 
 use field::{Algebra, Field, InjectiveMonomial, PrimeCharacteristicRing};
+use koala_bear::KoalaBear;
 
 use crate::{Air, AirBuilder};
 
@@ -284,7 +285,10 @@ impl<F: Field> SymbolicAirBuilder<F> {
     }
 }
 
-impl<F: Field> AirBuilder for SymbolicAirBuilder<F> {
+impl<F: Field> AirBuilder for SymbolicAirBuilder<F>
+where
+    SymbolicExpression<F>: Algebra<KoalaBear>,
+{
     type F = F;
     type IF = SymbolicExpression<F>;
     type EF = SymbolicExpression<F>;
@@ -325,6 +329,7 @@ pub type SymbolicAirData<F> = (
 pub fn get_symbolic_constraints_and_bus_data_values<F: Field, A: Air>(air: &A) -> SymbolicAirData<F>
 where
     A::ExtraData: Default,
+    SymbolicExpression<F>: Algebra<KoalaBear>,
 {
     let mut builder = SymbolicAirBuilder::<F>::new(air.n_columns(), air.n_shift_columns());
     air.eval(&mut builder, &Default::default());

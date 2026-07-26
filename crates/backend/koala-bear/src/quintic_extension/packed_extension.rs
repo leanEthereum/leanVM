@@ -132,6 +132,15 @@ macro_rules! impl_packed_ext_scalar_ops {
                 }
             }
         }
+
+        impl From<KoalaBear> for PackedQuinticExtensionField<KoalaBear, $pf> {
+            #[inline]
+            fn from(x: KoalaBear) -> Self {
+                Self::from(<$pf>::from(x))
+            }
+        }
+
+        impl Algebra<KoalaBear> for PackedQuinticExtensionField<KoalaBear, $pf> {}
     };
 }
 

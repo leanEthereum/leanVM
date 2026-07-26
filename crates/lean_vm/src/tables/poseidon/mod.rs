@@ -4,28 +4,15 @@ use crate::*;
 use crate::{execution::memory::MemoryAccess, tables::poseidon::trace_gen::generate_trace_rows_for_perm};
 use backend::*;
 
-/// Dispatch `mds_fft_16` through concrete types.
 /// For `SymbolicExpression` we use the dense form so the zkDSL generator can
 /// emit `dot_product_be` precompile calls instead of Karatsuba arithmetic.
 #[inline(always)]
-fn mds_air_16<A: PrimeCharacteristicRing + 'static>(state: &mut [A; WIDTH]) {
+fn mds_air_16<A: Algebra<KoalaBear> + 'static>(state: &mut [A; WIDTH]) {
     if TypeId::of::<A>() == TypeId::of::<SymbolicExpression<KoalaBear>>() {
         dense_mat_vec_air_16(mds_dense_16(), state);
-        return;
+    } else {
+        mds_fft_16(state);
     }
-    macro_rules! dispatch {
-        ($t:ty) => {
-            if TypeId::of::<A>() == TypeId::of::<$t>() {
-                mds_fft_16::<$t>(unsafe { &mut *(state as *mut [A; WIDTH] as *mut [$t; WIDTH]) });
-                return;
-            }
-        };
-    }
-    dispatch!(F);
-    dispatch!(EF);
-    dispatch!(FPacking<F>);
-    dispatch!(EFPacking<EF>);
-    unreachable!()
 }
 
 fn mds_dense_16() -> &'static [[F; 16]; 16] {
@@ -40,44 +27,6 @@ fn mds_dense_16() -> &'static [[F; 16]; 16] {
         });
         std::array::from_fn(|i| std::array::from_fn(|j| cols[j][i]))
     })
-}
-
-/// Add a `KoalaBear` constant to any AIR type.
-#[inline(always)]
-fn add_kb<A: 'static>(a: &mut A, value: F) {
-    macro_rules! dispatch {
-        ($t:ty) => {
-            if TypeId::of::<A>() == TypeId::of::<$t>() {
-                *unsafe { &mut *(a as *mut A as *mut $t) } += value;
-                return;
-            }
-        };
-    }
-    dispatch!(F);
-    dispatch!(EF);
-    dispatch!(FPacking<F>);
-    dispatch!(EFPacking<EF>);
-    dispatch!(SymbolicExpression<KoalaBear>);
-    unreachable!()
-}
-
-/// Multiply any AIR type by a `KoalaBear` constant.
-#[inline(always)]
-fn mul_kb<A: PrimeCharacteristicRing + 'static>(a: A, value: F) -> A {
-    macro_rules! dispatch {
-        ($t:ty) => {
-            if TypeId::of::<A>() == TypeId::of::<$t>() {
-                let r = unsafe { std::ptr::read(&a as *const A as *const $t) } * value;
-                return unsafe { std::ptr::read(&r as *const $t as *const A) };
-            }
-        };
-    }
-    dispatch!(F);
-    dispatch!(EF);
-    dispatch!(FPacking<F>);
-    dispatch!(EFPacking<EF>);
-    dispatch!(SymbolicExpression<KoalaBear>);
-    unreachable!()
 }
 
 mod trace_gen;
@@ -405,7 +354,7 @@ fn eval_poseidon1_16<AB: AirBuilder>(builder: &mut AB, local: &Poseidon1Cols16<A
 
         let frc = poseidon1_sparse_first_round_constants();
         for (s, &c) in state.iter_mut().zip(frc.iter()) {
-            add_kb(s, c);
+            *s += c;
         }
         dense_mat_vec_air_16(poseidon1_sparse_m_i(), state);
 
@@ -419,7 +368,7 @@ fn eval_poseidon1_16<AB: AirBuilder>(builder: &mut AB, local: &Poseidon1Cols16<A
             state[0] = local.partial_rounds[round];
             // Scalar round constant (not on last round)
             if round < PARTIAL_ROUNDS - 1 {
-                add_kb(&mut state[0], scalar_rc[round]);
+                state[0] += scalar_rc[round];
             }
             // Sparse matrix: new_s0 = dot(first_row, state), state[i] += old_s0 * v[i-1]
             sparse_mat_air_16(state, &first_rows[round], &v_vecs[round]);
@@ -469,12 +418,12 @@ fn eval_2_full_rounds_16<AB: AirBuilder>(
     builder: &mut AB,
 ) {
     for (s, r) in state.iter_mut().zip(round_constants_1.iter()) {
-        add_kb(s, *r);
+        *s += *r;
         *s = s.cube();
     }
     mds_air_16(state);
     for (s, r) in state.iter_mut().zip(round_constants_2.iter()) {
-        add_kb(s, *r);
+        *s += *r;
         *s = s.cube();
     }
     mds_air_16(state);
@@ -499,12 +448,12 @@ fn eval_last_2_full_rounds_16<AB: AirBuilder>(
     builder: &mut AB,
 ) {
     for (s, r) in state.iter_mut().zip(round_constants_1.iter()) {
-        add_kb(s, *r);
+        *s += *r;
         *s = s.cube();
     }
     mds_air_16(state);
     for (s, r) in state.iter_mut().zip(round_constants_2.iter()) {
-        add_kb(s, *r);
+        *s += *r;
         *s = s.cube();
     }
     mds_air_16(state);
@@ -523,30 +472,26 @@ fn eval_last_2_full_rounds_16<AB: AirBuilder>(
 }
 
 #[inline]
-fn dense_mat_vec_air_16<A: PrimeCharacteristicRing + 'static>(mat: &[[F; 16]; 16], state: &mut [A; WIDTH]) {
+fn dense_mat_vec_air_16<A: Algebra<KoalaBear>>(mat: &[[F; 16]; 16], state: &mut [A; WIDTH]) {
     let input = *state;
     for i in 0..WIDTH {
         let mut acc = A::ZERO;
         for j in 0..WIDTH {
-            acc += mul_kb(input[j], mat[i][j]);
+            acc += input[j] * mat[i][j];
         }
         state[i] = acc;
     }
 }
 
 #[inline]
-fn sparse_mat_air_16<A: PrimeCharacteristicRing + 'static>(
-    state: &mut [A; WIDTH],
-    first_row: &[F; WIDTH],
-    v: &[F; WIDTH],
-) {
+fn sparse_mat_air_16<A: Algebra<KoalaBear>>(state: &mut [A; WIDTH], first_row: &[F; WIDTH], v: &[F; WIDTH]) {
     let old_s0 = state[0];
     let mut new_s0 = A::ZERO;
     for j in 0..WIDTH {
-        new_s0 += mul_kb(state[j], first_row[j]);
+        new_s0 += state[j] * first_row[j];
     }
     state[0] = new_s0;
     for i in 1..WIDTH {
-        state[i] += mul_kb(old_s0, v[i - 1]);
+        state[i] += old_s0 * v[i - 1];
     }
 }
