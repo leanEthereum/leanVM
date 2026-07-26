@@ -339,16 +339,8 @@ pub trait PackedFieldExtension<BaseField: Field, ExtField: ExtensionField<BaseFi
     /// extension field elements.
     ///
     /// This performs the inverse transformation to `from_ext_slice`.
-    #[inline]
     #[must_use]
-    fn to_ext_iter(iter: impl IntoIterator<Item = Self>) -> impl Iterator<Item = ExtField> {
-        iter.into_iter().flat_map(|x| {
-            (0..BaseField::Packing::WIDTH).map(move |i| {
-                let packed_coeffs = x.as_basis_coefficients_slice();
-                ExtField::from_basis_coefficients_fn(|j| packed_coeffs[j].as_slice()[i])
-            })
-        })
-    }
+    fn to_ext_iter(iter: impl IntoIterator<Item = Self>) -> impl Iterator<Item = ExtField>;
 
     /// Given a iterator of packed extension field elements, convert to an iterator of
     /// extension field elements.
@@ -430,6 +422,12 @@ impl<F: Field> PackedFieldExtension<F, F> for F::Packing {
     #[inline]
     fn from_ext_slice(ext_slice: &[F]) -> Self {
         *F::Packing::from_slice(ext_slice)
+    }
+
+    #[inline]
+    fn to_ext_iter(iter: impl IntoIterator<Item = Self>) -> impl Iterator<Item = F> {
+        iter.into_iter()
+            .flat_map(|x| (0..F::Packing::WIDTH).map(move |i| x.as_slice()[i]))
     }
 
     #[inline]

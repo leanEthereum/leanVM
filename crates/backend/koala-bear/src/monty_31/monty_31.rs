@@ -9,13 +9,12 @@ use core::hash::Hash;
 use core::iter::{Product, Sum};
 use core::marker::PhantomData;
 use core::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
-use core::{array, iter};
 
 use field::integers::QuotientMap;
 use field::op_assign_macros::{impl_add_assign, impl_div_methods, impl_mul_methods, impl_sub_assign};
 use field::{
     Field, InjectiveMonomial, Packable, PermutationMonomial, PrimeCharacteristicRing, PrimeField, PrimeField32,
-    PrimeField64, RawDataSerializable, TwoAdicField, impl_raw_serializable_primefield32, quotient_map_small_int,
+    PrimeField64, TwoAdicField, quotient_map_small_int,
 };
 use rand::Rng;
 use rand::distr::{Distribution, StandardUniform};
@@ -369,10 +368,6 @@ impl<FP: FieldParameters + RelativelyPrimePower<D>, const D: u64> PermutationMon
     fn injective_exp_root_n(&self) -> Self {
         FP::exp_root_d(*self)
     }
-}
-
-impl<FP: FieldParameters> RawDataSerializable for MontyField31<FP> {
-    impl_raw_serializable_primefield32!();
 }
 
 impl<FP: FieldParameters> Field for MontyField31<FP> {
