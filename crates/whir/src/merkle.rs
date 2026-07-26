@@ -2,14 +2,11 @@
 // - whir-p3 (https://github.com/tcoratger/whir-p3) (MIT and Apache-2.0 licenses).
 // - Plonky3 (https://github.com/Plonky3/Plonky3) (MIT and Apache-2.0 licenses).
 
-use std::any::TypeId;
-
 use field::BasedVectorSpace;
 use field::ExtensionField;
-use field::Field;
 use field::PackedValue;
 use field::PrimeCharacteristicRing;
-use koala_bear::{KoalaBear, QuinticExtensionFieldKB, default_koalabear_poseidon1_16};
+use koala_bear::{KoalaBear, default_koalabear_poseidon1_16};
 use poly::*;
 
 use symetric::merkle::unpack_array;
@@ -24,37 +21,16 @@ pub use symetric::DIGEST_ELEMS;
 
 pub(crate) type RoundMerkleTree<F> = WhirMerkleTree<F, DIGEST_ELEMS>;
 
-#[allow(clippy::missing_transmute_annotations)]
-pub(crate) fn merkle_commit<F: Field, EF: ExtensionField<F>>(
+pub(crate) fn merkle_commit<EF: ExtensionField<KoalaBear>>(
     matrix: Matrix<EF, ArenaVec<EF>>,
     full_n_cols: usize,
     effective_n_cols: usize,
-) -> ([F; DIGEST_ELEMS], RoundMerkleTree<F>) {
-    if TypeId::of::<(F, EF)>() == TypeId::of::<(KoalaBear, QuinticExtensionFieldKB)>() {
-        let matrix = unsafe {
-            std::mem::transmute::<_, Matrix<QuinticExtensionFieldKB, ArenaVec<QuinticExtensionFieldKB>>>(matrix)
-        };
-        let dim = <QuinticExtensionFieldKB as BasedVectorSpace<KoalaBear>>::DIMENSION;
-        let dft_base_width = matrix.width * dim;
-        let full_base_width = full_n_cols * dim;
-        let effective_base_width = effective_n_cols * dim;
-        let base_values = flatten_to_base_arena::<KoalaBear, QuinticExtensionFieldKB>(matrix.values);
-        let base_matrix = Matrix::new(base_values, dft_base_width);
-        let tree = build_merkle_tree_koalabear(base_matrix, full_base_width, effective_base_width);
-        let root: [_; DIGEST_ELEMS] = tree.root();
-        let root = unsafe { std::mem::transmute_copy::<_, [F; DIGEST_ELEMS]>(&root) };
-        let tree = unsafe { std::mem::transmute::<_, RoundMerkleTree<F>>(tree) };
-        (root, tree)
-    } else if TypeId::of::<(F, EF)>() == TypeId::of::<(KoalaBear, KoalaBear)>() {
-        let matrix = unsafe { std::mem::transmute::<_, Matrix<KoalaBear, ArenaVec<KoalaBear>>>(matrix) };
-        let tree = build_merkle_tree_koalabear(matrix, full_n_cols, effective_n_cols);
-        let root: [_; DIGEST_ELEMS] = tree.root();
-        let root = unsafe { std::mem::transmute_copy::<_, [F; DIGEST_ELEMS]>(&root) };
-        let tree = unsafe { std::mem::transmute::<_, RoundMerkleTree<F>>(tree) };
-        (root, tree)
-    } else {
-        unimplemented!()
-    }
+) -> ([KoalaBear; DIGEST_ELEMS], RoundMerkleTree<KoalaBear>) {
+    let dim = <EF as BasedVectorSpace<KoalaBear>>::DIMENSION;
+    let base_values = flatten_to_base_arena::<KoalaBear, EF>(matrix.values);
+    let base_matrix = Matrix::new(base_values, matrix.width * dim);
+    let tree = build_merkle_tree_koalabear(base_matrix, full_n_cols * dim, effective_n_cols * dim);
+    (tree.root(), tree)
 }
 
 #[instrument(name = "build merkle tree", skip_all)]
@@ -89,71 +65,33 @@ fn build_merkle_tree_koalabear(
     }
 }
 
-#[allow(clippy::missing_transmute_annotations)]
-pub(crate) fn merkle_open<F: Field, EF: ExtensionField<F>>(
-    merkle_tree: &RoundMerkleTree<F>,
+pub(crate) fn merkle_open<EF: ExtensionField<KoalaBear>>(
+    merkle_tree: &RoundMerkleTree<KoalaBear>,
     index: usize,
-) -> (Vec<EF>, Vec<[F; DIGEST_ELEMS]>) {
-    if TypeId::of::<(F, EF)>() == TypeId::of::<(KoalaBear, QuinticExtensionFieldKB)>() {
-        let merkle_tree = unsafe { std::mem::transmute::<_, &RoundMerkleTree<KoalaBear>>(merkle_tree) };
-        let (inner_leaf, proof) = merkle_tree.open(index);
-        let leaf = QuinticExtensionFieldKB::reconstitute_from_base(inner_leaf);
-        let leaf = unsafe { std::mem::transmute::<_, Vec<EF>>(leaf) };
-        let proof = unsafe { std::mem::transmute::<_, Vec<[F; DIGEST_ELEMS]>>(proof) };
-        (leaf, proof)
-    } else if TypeId::of::<(F, EF)>() == TypeId::of::<(KoalaBear, KoalaBear)>() {
-        let merkle_tree = unsafe { std::mem::transmute::<_, &RoundMerkleTree<KoalaBear>>(merkle_tree) };
-        let (inner_leaf, proof) = merkle_tree.open(index);
-        let leaf = KoalaBear::reconstitute_from_base(inner_leaf);
-        let leaf = unsafe { std::mem::transmute::<_, Vec<EF>>(leaf) };
-        let proof = unsafe { std::mem::transmute::<_, Vec<[F; DIGEST_ELEMS]>>(proof) };
-        (leaf, proof)
-    } else {
-        unimplemented!()
-    }
+) -> (Vec<EF>, Vec<[KoalaBear; DIGEST_ELEMS]>) {
+    let (inner_leaf, proof) = merkle_tree.open(index);
+    (EF::reconstitute_from_base(inner_leaf), proof)
 }
 
-#[allow(clippy::missing_transmute_annotations)]
-pub(crate) fn merkle_verify<F: Field, EF: ExtensionField<F>>(
-    merkle_root: [F; DIGEST_ELEMS],
+pub(crate) fn merkle_verify<EF: ExtensionField<KoalaBear>>(
+    merkle_root: [KoalaBear; DIGEST_ELEMS],
     index: usize,
     dimension: Dimensions,
     data: Vec<EF>,
-    proof: &Vec<[F; DIGEST_ELEMS]>,
+    proof: &Vec<[KoalaBear; DIGEST_ELEMS]>,
 ) -> bool {
     let perm = default_koalabear_poseidon1_16();
     let log_max_height = utils::log2_strict_usize(dimension.height);
-    if TypeId::of::<(F, EF)>() == TypeId::of::<(KoalaBear, QuinticExtensionFieldKB)>() {
-        let merkle_root = unsafe { std::mem::transmute_copy::<_, [KoalaBear; DIGEST_ELEMS]>(&merkle_root) };
-        let data = unsafe { std::mem::transmute::<_, Vec<QuinticExtensionFieldKB>>(data) };
-        let proof = unsafe { std::mem::transmute::<_, &Vec<[KoalaBear; DIGEST_ELEMS]>>(proof) };
-        let base_data = QuinticExtensionFieldKB::flatten_to_base(data);
-        symetric::merkle::merkle_verify::<_, _, _, DIGEST_ELEMS, 16, 8>(
-            &perm,
-            &perm,
-            &merkle_root,
-            log_max_height,
-            index,
-            &base_data,
-            proof,
-        )
-    } else if TypeId::of::<(F, EF)>() == TypeId::of::<(KoalaBear, KoalaBear)>() {
-        let merkle_root = unsafe { std::mem::transmute_copy::<_, [KoalaBear; DIGEST_ELEMS]>(&merkle_root) };
-        let data = unsafe { std::mem::transmute::<_, Vec<KoalaBear>>(data) };
-        let proof = unsafe { std::mem::transmute::<_, &Vec<[KoalaBear; DIGEST_ELEMS]>>(proof) };
-        let base_data = KoalaBear::flatten_to_base(data);
-        symetric::merkle::merkle_verify::<_, _, _, DIGEST_ELEMS, 16, 8>(
-            &perm,
-            &perm,
-            &merkle_root,
-            log_max_height,
-            index,
-            &base_data,
-            proof,
-        )
-    } else {
-        unimplemented!()
-    }
+    let base_data = EF::flatten_to_base(data);
+    symetric::merkle::merkle_verify::<_, _, _, DIGEST_ELEMS, 16, 8>(
+        &perm,
+        &perm,
+        &merkle_root,
+        log_max_height,
+        index,
+        &base_data,
+        proof,
+    )
 }
 
 #[derive(Debug, Clone)]

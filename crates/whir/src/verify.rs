@@ -322,7 +322,7 @@ where
             }
 
             for (i, &index) in indices.iter().enumerate() {
-                if !merkle_verify::<PF<EF>, F>(*root, index, dimensions[0], answers[i].clone(), &merkle_proofs[i]) {
+                if !merkle_verify::<F>(*root, index, dimensions[0], answers[i].clone(), &merkle_proofs[i]) {
                     return Err(ProofError::InvalidProof);
                 }
             }
@@ -344,7 +344,7 @@ where
             }
 
             for (i, &index) in indices.iter().enumerate() {
-                if !merkle_verify::<PF<EF>, EF>(*root, index, dimensions[0], answers[i].clone(), &merkle_proofs[i]) {
+                if !merkle_verify::<EF>(*root, index, dimensions[0], answers[i].clone(), &merkle_proofs[i]) {
                     return Err(ProofError::InvalidProof);
                 }
             }
