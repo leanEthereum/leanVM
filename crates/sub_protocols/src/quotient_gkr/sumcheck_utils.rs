@@ -85,7 +85,7 @@ fn within_pt<EF: Copy>(remaining_eq: &[EF], head_len: usize) -> Vec<EF> {
         .collect()
 }
 
-fn finalize_round<EF: ExtensionField<PF<EF>>>(
+fn finalize_round<EF: KoalaBearExtension>(
     prover_state: &mut impl FSProver<EF>,
     coeffs: RoundCoeffs<EFPacking<EF>>,
     alpha: EF,
@@ -107,7 +107,7 @@ fn finalize_round<EF: ExtensionField<PF<EF>>>(
 }
 
 #[allow(clippy::too_many_arguments)]
-pub(super) fn quotient_sumcheck_prove_packed_br_base<EF: ExtensionField<PF<EF>>>(
+pub(super) fn quotient_sumcheck_prove_packed_br_base<EF: KoalaBearExtension>(
     prover_state: &mut impl FSProver<EF>,
     packed_nums: &[PFPacking<EF>],
     packed_dens: &[EFPacking<EF>],
@@ -181,7 +181,7 @@ pub(super) fn quotient_sumcheck_prove_packed_br_base<EF: ExtensionField<PF<EF>>>
 
 /// bit-reversed by chunk + Packed
 #[allow(clippy::too_many_arguments)]
-pub(super) fn run_phase1_sumcheck<'a, EF: ExtensionField<PF<EF>>>(
+pub(super) fn run_phase1_sumcheck<'a, EF: KoalaBearExtension>(
     prover_state: &mut impl FSProver<EF>,
     mut nums: ArenaCow<'a, EFPacking<EF>>,
     mut dens: ArenaCow<'a, EFPacking<EF>>,
@@ -277,7 +277,7 @@ pub(super) fn run_phase1_sumcheck<'a, EF: ExtensionField<PF<EF>>>(
 
 // Normal ordering (not bit-reversed) + not packed
 #[allow(clippy::too_many_arguments)]
-pub(super) fn run_phase2_sumcheck<EF: ExtensionField<PF<EF>>>(
+pub(super) fn run_phase2_sumcheck<EF: KoalaBearExtension>(
     prover_state: &mut impl FSProver<EF>,
     mut num_l: ArenaVec<EF>,
     mut num_r: ArenaVec<EF>,
@@ -372,7 +372,7 @@ pub(super) fn run_phase2_sumcheck<EF: ExtensionField<PF<EF>>>(
     (q_natural, evals)
 }
 
-fn fold_normal_with_padding<EF: ExtensionField<PF<EF>>>(m: &[EF], r: EF, pad_value: EF) -> ArenaVec<EF> {
+fn fold_normal_with_padding<EF: KoalaBearExtension>(m: &[EF], r: EF, pad_value: EF) -> ArenaVec<EF> {
     let active = m.len();
     let new_active = active.div_ceil(2);
     assert!(new_active != 0);
@@ -392,7 +392,7 @@ fn fold_normal_with_padding<EF: ExtensionField<PF<EF>>>(m: &[EF], r: EF, pad_val
     out
 }
 
-fn compute_round_packed<EF: ExtensionField<PF<EF>>, N>(
+fn compute_round_packed<EF: KoalaBearExtension, N>(
     nums: &[N],
     dens: &[EFPacking<EF>],
     layer_chunk_log: usize,
@@ -437,7 +437,7 @@ where
 }
 
 #[allow(clippy::type_complexity)]
-fn fold_and_compute_round_packed<EF: ExtensionField<PF<EF>>, N>(
+fn fold_and_compute_round_packed<EF: KoalaBearExtension, N>(
     nums: &[N],
     dens: &[EFPacking<EF>],
     layer_chunk_log_old: usize,
@@ -510,7 +510,7 @@ where
     (new_nums, new_dens, coeffs)
 }
 
-fn build_bare_from_coeffs<EF: ExtensionField<PF<EF>>>(
+fn build_bare_from_coeffs<EF: KoalaBearExtension>(
     c0_raw: EF,
     c2_raw: EF,
     eq_alpha: EF,

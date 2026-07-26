@@ -13,7 +13,7 @@ fn add_assign_vec<T: AddAssign>(mut a: Vec<T>, b: Vec<T>) -> Vec<T> {
     a
 }
 
-pub trait SumcheckComputation<EF: ExtensionField<PF<EF>>>: Sync {
+pub trait SumcheckComputation<EF: KoalaBearExtension>: Sync {
     type ExtraData: Send + Sync + 'static;
 
     fn degree(&self) -> usize;
@@ -34,7 +34,7 @@ macro_rules! impl_air_eval {
 
 impl<EF, A> SumcheckComputation<EF> for A
 where
-    EF: ExtensionField<PF<EF>>,
+    EF: KoalaBearExtension,
     A: Send + Sync + Air,
     A::ExtraData: AlphaPowers<EF>,
 {
@@ -65,17 +65,14 @@ where
     }
 }
 
-fn build_evals<EF: ExtensionField<PF<EF>>>(
-    sums: impl IntoIterator<Item = EF>,
-    missing_mul_factor: Option<EF>,
-) -> Vec<EF> {
+fn build_evals<EF: KoalaBearExtension>(sums: impl IntoIterator<Item = EF>, missing_mul_factor: Option<EF>) -> Vec<EF> {
     sums.into_iter()
         .map(|sum| missing_mul_factor.map_or(sum, |f| sum * f))
         .collect()
 }
 
 #[inline(always)]
-fn poly_to_evals<EF: ExtensionField<PF<EF>>>(poly: &DensePolynomial<EF>) -> Vec<EF> {
+fn poly_to_evals<EF: KoalaBearExtension>(poly: &DensePolynomial<EF>) -> Vec<EF> {
     vec![poly.coeffs[0], poly.evaluate(EF::TWO)]
 }
 
@@ -85,16 +82,16 @@ pub(crate) fn identity_decompose<EF: Field>(e: EF) -> Vec<EF> {
 }
 
 #[inline(always)]
-pub(crate) fn packing_decompose<EF: ExtensionField<PF<EF>>>(e: EFPacking<EF>) -> Vec<EF> {
+pub(crate) fn packing_decompose<EF: KoalaBearExtension>(e: EFPacking<EF>) -> Vec<EF> {
     EFPacking::<EF>::to_ext_iter([e]).collect()
 }
 
 #[inline(always)]
-pub fn packing_unpack_sum<EF: ExtensionField<PF<EF>>>(s: EFPacking<EF>) -> EF {
+pub fn packing_unpack_sum<EF: KoalaBearExtension>(s: EFPacking<EF>) -> EF {
     EFPacking::<EF>::to_ext_iter([s]).sum::<EF>()
 }
 
-fn handle_product_computation<'a, EF: ExtensionField<PF<EF>>>(group: &MleGroupRef<'a, EF>, sum: EF) -> Vec<EF> {
+fn handle_product_computation<'a, EF: KoalaBearExtension>(group: &MleGroupRef<'a, EF>, sum: EF) -> Vec<EF> {
     let poly = match group {
         MleGroupRef::Extension(multilinears) => {
             compute_product_sumcheck_polynomial(multilinears[0], multilinears[1], sum, identity_decompose)
@@ -108,7 +105,7 @@ fn handle_product_computation<'a, EF: ExtensionField<PF<EF>>>(group: &MleGroupRe
 }
 
 #[allow(clippy::type_complexity)]
-fn handle_product_computation_with_fold<'a, EF: ExtensionField<PF<EF>>>(
+fn handle_product_computation_with_fold<'a, EF: KoalaBearExtension>(
     group: &MleGroupRef<'a, EF>,
     prev_folding_factor: EF,
     sum: EF,
@@ -139,7 +136,7 @@ fn handle_product_computation_with_fold<'a, EF: ExtensionField<PF<EF>>>(
     (poly_to_evals(&poly), folded_f)
 }
 
-pub struct SumcheckComputeParams<'a, EF: ExtensionField<PF<EF>>, SC: SumcheckComputation<EF>> {
+pub struct SumcheckComputeParams<'a, EF: KoalaBearExtension, SC: SumcheckComputation<EF>> {
     pub split_eq: Option<&'a SplitEq<EF>>,
     pub computation: &'a SC,
     pub extra_data: &'a SC::ExtraData,
@@ -147,7 +144,7 @@ pub struct SumcheckComputeParams<'a, EF: ExtensionField<PF<EF>>, SC: SumcheckCom
     pub sum: EF,
 }
 
-pub fn sumcheck_compute<'a, EF: ExtensionField<PF<EF>>, SC>(
+pub fn sumcheck_compute<'a, EF: KoalaBearExtension, SC>(
     group: &MleGroupRef<'a, EF>,
     params: SumcheckComputeParams<'a, EF, SC>,
     degree: usize,
@@ -250,7 +247,7 @@ where
 }
 
 #[allow(clippy::type_complexity)]
-pub fn fold_and_sumcheck_compute<'a, EF: ExtensionField<PF<EF>>, SC>(
+pub fn fold_and_sumcheck_compute<'a, EF: KoalaBearExtension, SC>(
     prev_folding_factor: EF,
     group: &MleGroupRef<'a, EF>,
     params: SumcheckComputeParams<'a, EF, SC>,
@@ -388,7 +385,7 @@ fn sumcheck_compute_core<EF, IF, EFT, SC>(
     unpack_sum: impl Fn(EFT) -> EF,
 ) -> Vec<EF>
 where
-    EF: ExtensionField<PF<EF>>,
+    EF: KoalaBearExtension,
     IF: Copy + Sub<Output = IF> + Add<Output = IF> + AddAssign + Send + Sync,
     EFT: PrimeCharacteristicRing
         + Copy
@@ -460,7 +457,7 @@ fn sumcheck_fold_and_compute_core<EF, IF, FT, SC>(
     wrap_f: impl FnOnce(Vec<ArenaVec<FT>>) -> MleGroupOwned<EF>,
 ) -> (Vec<EF>, MleGroupOwned<EF>)
 where
-    EF: ExtensionField<PF<EF>>,
+    EF: KoalaBearExtension,
     IF: Copy + Send + Sync,
     FT: PrimeCharacteristicRing + Copy + Sub<Output = FT> + Add<Output = FT> + Send + Sync,
     SC: SumcheckComputation<EF>,
@@ -533,7 +530,7 @@ fn sumcheck_compute_with_split_eq<EF, SC>(
     unpack_sum: impl Fn(EFPacking<EF>) -> EF,
 ) -> Vec<EF>
 where
-    EF: ExtensionField<PF<EF>>,
+    EF: KoalaBearExtension,
     SC: SumcheckComputation<EF>,
 {
     let n_lo = split_eq.n_lo();
@@ -614,7 +611,7 @@ fn sumcheck_fold_and_compute_with_split_eq<EF, IF, SC>(
     wrap_f: impl FnOnce(Vec<ArenaVec<EFPacking<EF>>>) -> MleGroupOwned<EF>,
 ) -> (Vec<EF>, MleGroupOwned<EF>)
 where
-    EF: ExtensionField<PF<EF>>,
+    EF: KoalaBearExtension,
     IF: Copy + Send + Sync,
     SC: SumcheckComputation<EF>,
 {

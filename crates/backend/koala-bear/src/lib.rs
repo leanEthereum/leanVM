@@ -4,6 +4,7 @@
 
 extern crate alloc;
 
+mod extension_bound;
 mod koala_bear;
 pub mod monty_31;
 mod poseidon1_koalabear_16;
@@ -22,6 +23,7 @@ mod x86_64_avx2;
 #[cfg(all(target_arch = "x86_64", target_feature = "avx512f"))]
 mod x86_64_avx512;
 
+pub use extension_bound::*;
 pub use koala_bear::*;
 pub use monty_31::*;
 pub use poseidon1_koalabear_16::*;

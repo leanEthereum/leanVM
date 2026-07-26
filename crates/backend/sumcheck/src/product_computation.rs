@@ -9,7 +9,7 @@ use crate::{SumcheckComputation, packing_unpack_sum, sumcheck_prove_many_rounds}
 #[derive(Debug)]
 pub struct ProductComputation;
 
-impl<EF: ExtensionField<PF<EF>>> SumcheckComputation<EF> for ProductComputation {
+impl<EF: KoalaBearExtension> SumcheckComputation<EF> for ProductComputation {
     type ExtraData = Vec<EF>;
 
     fn degree(&self) -> usize {
@@ -34,7 +34,7 @@ impl<EF: ExtensionField<PF<EF>>> SumcheckComputation<EF> for ProductComputation 
 }
 
 #[instrument(skip_all)]
-pub fn run_product_sumcheck<EF: ExtensionField<PF<EF>>>(
+pub fn run_product_sumcheck<EF: KoalaBearExtension>(
     pol_a: &MleRef<'_, EF>, // evals
     pol_b: &MleRef<'_, EF>, // weights
     prover_state: &mut impl FSProver<EF>,
@@ -69,7 +69,7 @@ pub fn run_product_sumcheck<EF: ExtensionField<PF<EF>>>(
 
 /// Rounds 1+ of the product sumcheck, for callers that computed round 0 themselves.
 /// `sum` is the running sum after binding `r1`.
-pub fn run_product_sumcheck_from_round1<EF: ExtensionField<PF<EF>>>(
+pub fn run_product_sumcheck_from_round1<EF: KoalaBearExtension>(
     pol_a: &MleRef<'_, EF>, // evals
     pol_b: &MleRef<'_, EF>, // weights
     prover_state: &mut impl FSProver<EF>,
@@ -273,7 +273,7 @@ where
 
 /// Algo 3 of https://eprint.iacr.org/2024/1046.pdf. Requires n_rounds >= 3.
 #[allow(clippy::too_many_arguments)]
-pub fn run_product_sumcheck_from_round1_delayed<EF: ExtensionField<PF<EF>>>(
+pub fn run_product_sumcheck_from_round1_delayed<EF: KoalaBearExtension>(
     evals: &[PFPacking<EF>],
     weights: &[EFPacking<EF>],
     prover_state: &mut impl FSProver<EF>,

@@ -3,7 +3,7 @@ use field::*;
 use poly::*;
 
 #[derive(Debug)]
-pub struct ConstraintFolder<'a, IF, EF: ExtensionField<PF<EF>>, ExtraData: AlphaPowers<EF>> {
+pub struct ConstraintFolder<'a, IF, EF: KoalaBearExtension, ExtraData: AlphaPowers<EF>> {
     pub flat: &'a [IF],
     pub shift: &'a [IF],
     pub extra_data: &'a ExtraData,
@@ -13,7 +13,7 @@ pub struct ConstraintFolder<'a, IF, EF: ExtensionField<PF<EF>>, ExtraData: Alpha
 
 impl<'a, IF, EF, ExtraData> ConstraintFolder<'a, IF, EF, ExtraData>
 where
-    EF: ExtensionField<PF<EF>>,
+    EF: KoalaBearExtension,
     ExtraData: AlphaPowers<EF>,
 {
     pub fn new(flat: &'a [IF], shift: &'a [IF], extra_data: &'a ExtraData) -> Self {
@@ -30,7 +30,7 @@ where
 impl<'a, IF, EF, ExtraData> AirBuilder for ConstraintFolder<'a, IF, EF, ExtraData>
 where
     IF: Algebra<PF<EF>> + 'static,
-    EF: Field + ExtensionField<PF<EF>> + Mul<IF, Output = EF> + Add<IF, Output = EF>,
+    EF: Field + KoalaBearExtension + Mul<IF, Output = EF> + Add<IF, Output = EF>,
     ExtraData: AlphaPowers<EF>,
 {
     type F = PF<EF>;

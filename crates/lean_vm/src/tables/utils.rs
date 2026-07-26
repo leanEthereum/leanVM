@@ -2,7 +2,7 @@ use backend::*;
 
 use crate::ExtraDataForBuses;
 
-pub(crate) fn eval_bus_virtual<AB: AirBuilder, EF: ExtensionField<PF<EF>>>(
+pub(crate) fn eval_bus_virtual<AB: AirBuilder, EF: KoalaBearExtension>(
     builder: &mut AB,
     extra_data: &ExtraDataForBuses<EF>,
     multiplicity: AB::IF,

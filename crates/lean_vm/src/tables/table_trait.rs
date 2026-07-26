@@ -159,13 +159,13 @@ pub fn sort_tables_by_height(tables_log_heights: &BTreeMap<Table, usize>) -> Vec
 }
 
 #[derive(Debug, Default)]
-pub struct ExtraDataForBuses<EF: ExtensionField<PF<EF>>> {
+pub struct ExtraDataForBuses<EF: KoalaBearExtension> {
     // GKR quotient challenges
     pub logup_alphas_eq_poly: Vec<EF>,
     pub logup_alphas_eq_poly_packed: Vec<EFPacking<EF>>,
     pub alpha_powers: Vec<EF>,
 }
-impl<EF: ExtensionField<PF<EF>>> ExtraDataForBuses<EF> {
+impl<EF: KoalaBearExtension> ExtraDataForBuses<EF> {
     pub fn new(logup_alphas_eq_poly: &[EF], alpha_powers: Vec<EF>) -> Self {
         let logup_alphas_eq_poly_packed = logup_alphas_eq_poly.iter().map(|a| EFPacking::<EF>::from(*a)).collect();
         Self {
@@ -188,7 +188,7 @@ impl AlphaPowers<EF> for ExtraDataForBuses<EF> {
     }
 }
 
-impl<EF: ExtensionField<PF<EF>>> ExtraDataForBuses<EF> {
+impl<EF: KoalaBearExtension> ExtraDataForBuses<EF> {
     pub fn transmute_bus_data<NewEF: 'static>(&self) -> &Vec<NewEF> {
         if TypeId::of::<NewEF>() == TypeId::of::<EF>() {
             unsafe { transmute::<&Vec<EF>, &Vec<NewEF>>(&self.logup_alphas_eq_poly) }

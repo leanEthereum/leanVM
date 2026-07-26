@@ -1,6 +1,5 @@
 use air::AlphaPowers;
 use fiat_shamir::*;
-use field::ExtensionField;
 use field::PrimeCharacteristicRing;
 use poly::*;
 
@@ -18,7 +17,7 @@ pub fn sumcheck_fold_and_prove<'a, EF, SC, M: Into<MleGroup<'a, EF>>>(
     store_intermediate_foldings: bool,
 ) -> (MultilinearPoint<EF>, Vec<EF>, EF)
 where
-    EF: ExtensionField<PF<EF>>,
+    EF: KoalaBearExtension,
     SC: SumcheckComputation<EF> + 'static,
     SC::ExtraData: AlphaPowers<EF>,
 {
@@ -70,7 +69,7 @@ pub fn sumcheck_prove_many_rounds<'a, EF, SC, M: Into<MleGroup<'a, EF>>>(
     pow_bits: usize,
 ) -> (MultilinearPoint<EF>, MleGroupOwned<EF>, EF)
 where
-    EF: ExtensionField<PF<EF>>,
+    EF: KoalaBearExtension,
     SC: SumcheckComputation<EF> + 'static,
     SC::ExtraData: AlphaPowers<EF>,
 {
@@ -137,7 +136,7 @@ pub fn compute_round_polynomial<'a, EF, SC>(
     missing_mul_factor: Option<EF>,
 ) -> DensePolynomial<EF>
 where
-    EF: ExtensionField<PF<EF>>,
+    EF: KoalaBearExtension,
     SC: SumcheckComputation<EF> + 'static,
     SC::ExtraData: AlphaPowers<EF>,
 {
@@ -197,7 +196,7 @@ fn compute_and_send_polynomial<'a, EF, SC>(
     missing_mul_factor: Option<EF>,
 ) -> DensePolynomial<EF>
 where
-    EF: ExtensionField<PF<EF>>,
+    EF: KoalaBearExtension,
     SC: SumcheckComputation<EF> + 'static,
     SC::ExtraData: AlphaPowers<EF>,
 {
@@ -216,7 +215,7 @@ where
 }
 
 #[allow(clippy::too_many_arguments)]
-pub fn on_challenge_received<'a, EF: ExtensionField<PF<EF>>>(
+pub fn on_challenge_received<'a, EF: KoalaBearExtension>(
     multilinears: &mut MleGroup<'a, EF>,
     n_vars: &mut usize,
     eq_factor: &mut Option<(Vec<EF>, SplitEq<EF>)>,

@@ -1,9 +1,9 @@
-use field::{ExtensionField, PackedFieldExtension};
+use field::PackedFieldExtension;
 use poly::*;
 use zk_alloc::ArenaVec;
 
 #[derive(Debug)]
-pub struct SplitEq<EF: ExtensionField<PF<EF>>> {
+pub struct SplitEq<EF: KoalaBearExtension> {
     pub eq_lo: ArenaVec<EF>,
     pub eq_hi_packed: ArenaVec<EFPacking<EF>>,
     pub log_packed_hi: u32, // = log2(eq_hi_packed.len()), cached for bit-shift in get_packed
@@ -11,7 +11,7 @@ pub struct SplitEq<EF: ExtensionField<PF<EF>>> {
     pub remainder: ArenaVec<EF>,
 }
 
-impl<EF: ExtensionField<PF<EF>>> SplitEq<EF> {
+impl<EF: KoalaBearExtension> SplitEq<EF> {
     pub fn new(eq_point: &[EF]) -> Self {
         let n = eq_point.len();
 

@@ -3,7 +3,7 @@
 use ::utils::log2_strict_usize;
 use fiat_shamir::{FSProver, MerklePath, ProofResult};
 use field::PrimeCharacteristicRing;
-use field::{ExtensionField, Field, TwoAdicField};
+use field::{Field, TwoAdicField};
 use sumcheck::{
     ProductComputation, packing_unpack_sum, run_product_sumcheck_from_round1, run_product_sumcheck_from_round1_delayed,
     sumcheck_prove_many_rounds,
@@ -15,8 +15,7 @@ use crate::{config::WhirConfig, *};
 
 impl<EF> WhirConfig<EF>
 where
-    EF: ExtensionField<PF<EF>>,
-    PF<EF>: TwoAdicField,
+    EF: KoalaBearExtension,
 {
     fn validate_parameters(&self) -> bool {
         self.num_variables == self.folding_factor.total_number(self.n_rounds()) + self.final_sumcheck_rounds
@@ -279,7 +278,7 @@ where
     }
 }
 
-fn open_merkle_tree_at_challenges<EF: ExtensionField<PF<EF>>>(
+fn open_merkle_tree_at_challenges<EF: KoalaBearExtension>(
     merkle_tree: &MerkleData<EF>,
     prover_state: &mut impl FSProver<EF>,
     stir_challenges_indexes: &[usize],
@@ -322,7 +321,7 @@ fn open_merkle_tree_at_challenges<EF: ExtensionField<PF<EF>>>(
 }
 
 #[derive(Debug, Clone)]
-pub struct SumcheckSingle<EF: ExtensionField<PF<EF>>> {
+pub struct SumcheckSingle<EF: KoalaBearExtension> {
     /// Evaluations of the polynomial `p(X)`.
     pub(crate) evals: MleOwned<EF>,
     /// Evaluations of the equality polynomial used for enforcing constraints.
@@ -333,7 +332,7 @@ pub struct SumcheckSingle<EF: ExtensionField<PF<EF>>> {
 
 impl<EF: Field> SumcheckSingle<EF>
 where
-    EF: ExtensionField<PF<EF>>,
+    EF: KoalaBearExtension,
 {
     #[instrument(skip_all)]
     pub(crate) fn add_new_equality(
@@ -463,7 +462,7 @@ where
 #[derive(Debug)]
 pub(crate) struct RoundState<EF>
 where
-    EF: ExtensionField<PF<EF>>,
+    EF: KoalaBearExtension,
 {
     domain_size: usize,
     next_domain_gen: PF<EF>,
@@ -476,8 +475,7 @@ where
 #[allow(clippy::mismatching_type_param_order)]
 impl<EF> RoundState<EF>
 where
-    EF: ExtensionField<PF<EF>>,
-    PF<EF>: TwoAdicField,
+    EF: KoalaBearExtension,
 {
     pub(crate) fn initialize_first_round_state(
         prover: &WhirConfig<EF>,
@@ -534,21 +532,21 @@ where
 
 const LAZY_OVERLAY_SPAN_MAX: usize = 8; // packed words; small blocks are pre-expanded
 
-struct LazyFullTerm<EF: ExtensionField<PF<EF>>> {
+struct LazyFullTerm<EF: KoalaBearExtension> {
     left: ArenaVec<EF>,             // prefix eq-table, scalar folded in
     right: ArenaVec<EFPacking<EF>>, // packed suffix eq-table
     rshift: usize,                  // hi = j >> rshift, lo = j & ((1 << rshift) - 1)
 }
 
 /// scalar·eq(point,·) on the packed range [start, start + 2^ishift).
-struct LazyBlock<EF: ExtensionField<PF<EF>>> {
+struct LazyBlock<EF: KoalaBearExtension> {
     start: usize,
     ishift: usize,
     inner_id: u32,
     scalar: EF,
 }
 
-pub(crate) struct LazyCombineTerms<EF: ExtensionField<PF<EF>>> {
+pub(crate) struct LazyCombineTerms<EF: KoalaBearExtension> {
     full: Vec<LazyFullTerm<EF>>,
     inners: Vec<ArenaVec<EFPacking<EF>>>,
     grid_blocks: Vec<LazyBlock<EF>>,
@@ -558,7 +556,7 @@ pub(crate) struct LazyCombineTerms<EF: ExtensionField<PF<EF>>> {
     pub(crate) combined_sum: EF,
 }
 
-impl<EF: ExtensionField<PF<EF>>> LazyCombineTerms<EF> {
+impl<EF: KoalaBearExtension> LazyCombineTerms<EF> {
     #[inline(always)]
     fn value_at(&self, j: usize) -> EFPacking<EF> {
         let mut acc = EFPacking::<EF>::ZERO;
@@ -579,7 +577,7 @@ impl<EF: ExtensionField<PF<EF>>> LazyCombineTerms<EF> {
 /// Builds the lazy term tables; `combined_sum` is the exact combined value.
 pub(crate) fn build_lazy_combine_terms<EF>(statements: &[SparseStatement<EF>], gamma: EF) -> LazyCombineTerms<EF>
 where
-    EF: ExtensionField<PF<EF>>,
+    EF: KoalaBearExtension,
 {
     let num_variables = statements[0].total_num_variables;
     assert!(statements.iter().all(|e| e.total_num_variables == num_variables));
@@ -709,7 +707,7 @@ const MAX_RUN_TERMS: usize = 12;
 /// (packed slice, scalar) contributing `slice[t] * scalar` to the weight at offset t.
 /// Returns the term count, or None if more than `MAX_RUN_TERMS` cover the run.
 #[inline]
-fn gather_run_terms<'a, EF: ExtensionField<PF<EF>>>(
+fn gather_run_terms<'a, EF: KoalaBearExtension>(
     terms: &'a LazyCombineTerms<EF>,
     base: usize,
     run: usize,
@@ -744,7 +742,7 @@ fn combine_and_compute_first_round<EF>(
     terms: &LazyCombineTerms<EF>,
 ) -> (DensePolynomial<EF>, ArenaVec<EFPacking<EF>>)
 where
-    EF: ExtensionField<PF<EF>>,
+    EF: KoalaBearExtension,
     EFPacking<EF>: std::ops::Mul<PFPacking<EF>, Output = EFPacking<EF>> + std::ops::Mul<EF, Output = EFPacking<EF>>,
 {
     let n = evals.len();

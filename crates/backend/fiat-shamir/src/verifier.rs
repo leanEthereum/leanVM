@@ -5,17 +5,17 @@ use crate::{
     *,
 };
 use field::PrimeCharacteristicRing;
-use field::{ExtensionField, PrimeField64};
+use field::PrimeField64;
+use koala_bear::KoalaBearExtension;
 use koala_bear::symmetric::Permutation;
 use koala_bear::{KoalaBear, default_koalabear_poseidon1_16};
-use std::any::TypeId;
 use std::collections::VecDeque;
 use std::iter::repeat_n;
 use symetric::CAPACITY;
 use symetric::RATE;
 use symetric::WIDTH;
 
-pub struct VerifierState<EF: ExtensionField<PF<EF>>, P> {
+pub struct VerifierState<EF: KoalaBearExtension, P> {
     challenger: Challenger<PF<EF>, P>,
     transcript: Vec<PF<EF>>,
     transcript_offset: usize,
@@ -25,10 +25,7 @@ pub struct VerifierState<EF: ExtensionField<PF<EF>>, P> {
     raw_transcript: Vec<PF<EF>>, // reconstructed during the proof verification, it's the format that the zkVM recursion program expects (no Merkle pruning, no sumcheck optimization to send less data, etc)
 }
 
-impl<EF: ExtensionField<PF<EF>>, P: Permutation<[PF<EF>; WIDTH]>> VerifierState<EF, P>
-where
-    PF<EF>: PrimeField64,
-{
+impl<EF: KoalaBearExtension, P: Permutation<[PF<EF>; WIDTH]>> VerifierState<EF, P> {
     pub fn new(proof: Proof<PF<EF>>, permutation: P, capacity: [PF<EF>; CAPACITY]) -> Result<Self, ProofError> {
         Ok(Self {
             challenger: Challenger::new(permutation, capacity),
@@ -75,16 +72,12 @@ where
         Ok(scalars)
     }
 
-    #[allow(clippy::missing_transmute_annotations)]
     fn restore_merkle_paths(
-        paths: PrunedMerklePaths<PF<EF>, PF<EF>>,
+        paths: PrunedMerklePaths<KoalaBear, KoalaBear>,
         indices: &[usize],
         merkle_height: usize,
         leaf_len: usize,
-    ) -> Option<Vec<MerkleOpening<PF<EF>>>> {
-        assert_eq!(TypeId::of::<PF<EF>>(), TypeId::of::<KoalaBear>());
-        // SAFETY: We've confirmed PF<EF> == KoalaBear
-        let paths: PrunedMerklePaths<KoalaBear, KoalaBear> = unsafe { std::mem::transmute(paths) };
+    ) -> Option<Vec<MerkleOpening<KoalaBear>>> {
         let perm = default_koalabear_poseidon1_16();
         let hash_fn = |data: &[KoalaBear]| symetric::hash_slice_rtl::<_, _, 16, 8, DIGEST_LEN_FE>(&perm, data);
         let combine_fn = |left: &[KoalaBear; DIGEST_LEN_FE], right: &[KoalaBear; DIGEST_LEN_FE]| {
@@ -100,15 +93,11 @@ where
                 path: path.sibling_hashes,
             })
             .collect();
-        // SAFETY: PF<EF> == KoalaBear
-        Some(unsafe { std::mem::transmute(openings) })
+        Some(openings)
     }
 }
 
-impl<EF: ExtensionField<PF<EF>>, P: Permutation<[PF<EF>; WIDTH]>> ChallengeSampler<EF> for VerifierState<EF, P>
-where
-    PF<EF>: PrimeField64,
-{
+impl<EF: KoalaBearExtension, P: Permutation<[PF<EF>; WIDTH]>> ChallengeSampler<EF> for VerifierState<EF, P> {
     fn sample_vec(&mut self, len: usize) -> Vec<EF> {
         sample_vec(&mut self.challenger, len)
     }
@@ -117,10 +106,7 @@ where
     }
 }
 
-impl<EF: ExtensionField<PF<EF>>, P: Permutation<[PF<EF>; WIDTH]>> FSVerifier<EF> for VerifierState<EF, P>
-where
-    PF<EF>: PrimeField64,
-{
+impl<EF: KoalaBearExtension, P: Permutation<[PF<EF>; WIDTH]>> FSVerifier<EF> for VerifierState<EF, P> {
     fn state(&self) -> String {
         format!(
             "state {} (offset: {}, merkle_idx: {})",

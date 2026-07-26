@@ -5,7 +5,7 @@ use field::BasedVectorSpace;
 use field::Field;
 use field::PackedValue;
 use field::PrimeCharacteristicRing;
-use field::{ExtensionField, TwoAdicField};
+use field::TwoAdicField;
 use poly::*;
 use std::any::{Any, TypeId};
 use std::collections::HashMap;
@@ -69,7 +69,7 @@ pub(crate) fn get_challenge_stir_queries<F: Field, Chal: ChallengeSampler<F>>(
 /// A utility function to sample Out-of-Domain (OOD) points and evaluate them.
 ///
 /// This should be used on the prover side.
-pub(crate) fn sample_ood_points<EF: ExtensionField<PF<EF>>, E>(
+pub(crate) fn sample_ood_points<EF: KoalaBearExtension, E>(
     prover_state: &mut impl FSProver<EF>,
     num_samples: usize,
     num_variables: usize,
@@ -108,14 +108,13 @@ pub(crate) enum DftOutput<EF: Field> {
     Extension(Matrix<EF, ArenaVec<EF>>),
 }
 
-pub(crate) fn reorder_and_dft<EF: ExtensionField<PF<EF>>>(
+pub(crate) fn reorder_and_dft<EF: KoalaBearExtension>(
     evals: &MleRef<'_, EF>,
     folding_factor: usize,
     log_inv_rate: usize,
     dft_n_cols: usize,
 ) -> DftOutput<EF>
 where
-    PF<EF>: TwoAdicField,
 {
     let prepared_evals = prepare_evals_for_fft(evals, folding_factor, log_inv_rate, dft_n_cols);
     let dft = global_dft::<PF<EF>>();
@@ -131,7 +130,7 @@ where
     }
 }
 
-fn prepare_evals_for_fft<EF: ExtensionField<PF<EF>>>(
+fn prepare_evals_for_fft<EF: KoalaBearExtension>(
     evals: &MleRef<'_, EF>,
     folding_factor: usize,
     log_inv_rate: usize,
@@ -202,7 +201,7 @@ fn prepare_evals_for_fft_unpacked<A: Copy + Send + Sync>(
     out
 }
 
-fn prepare_evals_for_fft_packed_extension<EF: ExtensionField<PF<EF>>>(
+fn prepare_evals_for_fft_packed_extension<EF: KoalaBearExtension>(
     evals: &[EFPacking<EF>],
     folding_factor: usize,
     log_inv_rate: usize,

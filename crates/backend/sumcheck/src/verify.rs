@@ -1,8 +1,7 @@
 use fiat_shamir::*;
-use field::*;
 use poly::*;
 
-pub fn sumcheck_verify<EF: ExtensionField<PF<EF>>>(
+pub fn sumcheck_verify<EF: KoalaBearExtension>(
     verifier_state: &mut impl FSVerifier<EF>,
     n_vars: usize,
     degree: usize,

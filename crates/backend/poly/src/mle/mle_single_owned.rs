@@ -1,23 +1,26 @@
-use crate::{EFPacking, Mle, MleRef, MultilinearPoint, PF, PFPacking, pack_extension, packing_width, unpack_extension};
+use crate::{
+    EFPacking, KoalaBearExtension, Mle, MleRef, MultilinearPoint, PF, PFPacking, pack_extension, packing_width,
+    unpack_extension,
+};
+use field::PackedFieldExtension;
 use field::PackedValue;
-use field::{ExtensionField, PackedFieldExtension};
 use zk_alloc::ArenaVec;
 
 #[derive(Debug, Clone)]
-pub enum MleOwned<EF: ExtensionField<PF<EF>>> {
+pub enum MleOwned<EF: KoalaBearExtension> {
     Base(ArenaVec<PF<EF>>),
     Extension(ArenaVec<EF>),
     BasePacked(ArenaVec<PFPacking<EF>>),
     ExtensionPacked(ArenaVec<EFPacking<EF>>),
 }
 
-impl<EF: ExtensionField<PF<EF>>> Default for MleOwned<EF> {
+impl<EF: KoalaBearExtension> Default for MleOwned<EF> {
     fn default() -> Self {
         Self::Base(ArenaVec::new())
     }
 }
 
-impl<EF: ExtensionField<PF<EF>>> MleOwned<EF> {
+impl<EF: KoalaBearExtension> MleOwned<EF> {
     pub fn by_ref<'a>(&'a self) -> MleRef<'a, EF> {
         match self {
             Self::Base(v) => MleRef::Base(v),

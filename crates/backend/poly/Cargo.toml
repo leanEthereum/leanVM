@@ -5,6 +5,7 @@ edition.workspace = true
 
 [dependencies]
 field = { path = "../field", package = "field" }
+koala-bear = { path = "../koala-bear", package = "koala-bear" }
 utils = { path = "../utils", package = "utils" }
 system-info.workspace = true
 parallel.workspace = true
@@ -14,4 +15,3 @@ rand.workspace = true
 serde.workspace = true
 
 [dev-dependencies]
-koala-bear = { path = "../koala-bear", package = "koala-bear" }

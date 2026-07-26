@@ -1,7 +1,7 @@
-use field::{ExtensionField, Field, PrimeCharacteristicRing};
+use field::Field;
 use zk_alloc::ArenaVec;
 
-use crate::{PF, eval_eq_scaled};
+use crate::{KoalaBearExtension, eval_eq_scaled};
 
 /// Evaluates the "next" multilinear polynomial at two n-variable points (x, y).
 ///
@@ -33,9 +33,8 @@ pub fn next_mle<F: Field>(x: &[F], y: &[F]) -> F {
 ///
 /// This is the "folded" version: the first argument (outer_challenges) is fixed,
 /// and the result is a vector indexed by the second argument.
-pub fn matrix_next_mle_folded<F: ExtensionField<PF<F>>>(outer_challenges: &[F]) -> ArenaVec<F>
+pub fn matrix_next_mle_folded<F: KoalaBearExtension>(outer_challenges: &[F]) -> ArenaVec<F>
 where
-    PF<F>: PrimeCharacteristicRing,
 {
     let n = outer_challenges.len();
     let mut res = unsafe { ArenaVec::<F>::zeroed(1 << n) };

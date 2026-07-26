@@ -26,7 +26,7 @@ mod sumcheck_utils;
 pub const ENDIANNESS_PIVOT_GKR: usize = 12;
 
 #[instrument(skip_all, name = "prove GKR")]
-pub fn prove_gkr_quotient<'a, EF: ExtensionField<PF<EF>>>(
+pub fn prove_gkr_quotient<'a, EF: KoalaBearExtension>(
     prover_state: &mut impl FSProver<EF>,
     nums_br: &'a [PFPacking<EF>], // already bit-reversed at `pivot`, ACTIVE prefix only (i.e. length may not be a power of 2)
     dens_br: &'a [EFPacking<EF>], // same as above
@@ -75,7 +75,7 @@ pub fn prove_gkr_quotient<'a, EF: ExtensionField<PF<EF>>>(
     (quotient, point)
 }
 
-fn prove_gkr_layer<EF: ExtensionField<PF<EF>>>(
+fn prove_gkr_layer<EF: KoalaBearExtension>(
     prover_state: &mut impl FSProver<EF>,
     layer: &LayerStorage<'_, EF>,
     claim_point: &MultilinearPoint<EF>, // K coords, natural order
@@ -138,7 +138,7 @@ fn prove_gkr_layer<EF: ExtensionField<PF<EF>>>(
     (MultilinearPoint(q_natural), next_num, next_den)
 }
 
-fn compute_quotient<EF: ExtensionField<PF<EF>>>(numerators: &[EF], denominators: &[EF]) -> Option<EF> {
+fn compute_quotient<EF: KoalaBearExtension>(numerators: &[EF], denominators: &[EF]) -> Option<EF> {
     let mut acc = EF::ZERO;
     for (&n, &d) in numerators.iter().zip(denominators) {
         acc += n * d.try_inverse()?;
@@ -146,7 +146,7 @@ fn compute_quotient<EF: ExtensionField<PF<EF>>>(numerators: &[EF], denominators:
     Some(acc)
 }
 
-pub fn verify_gkr_quotient<EF: ExtensionField<PF<EF>>>(
+pub fn verify_gkr_quotient<EF: KoalaBearExtension>(
     verifier_state: &mut impl FSVerifier<EF>,
     n_vars: usize,
 ) -> Result<(EF, MultilinearPoint<EF>, EF, EF), ProofError> {
@@ -164,7 +164,7 @@ pub fn verify_gkr_quotient<EF: ExtensionField<PF<EF>>>(
     Ok((quotient, point, claims_num, claims_den))
 }
 
-fn verify_gkr_quotient_step<EF: ExtensionField<PF<EF>>>(
+fn verify_gkr_quotient_step<EF: KoalaBearExtension>(
     verifier_state: &mut impl FSVerifier<EF>,
     n_vars: usize,
     point: &MultilinearPoint<EF>,
@@ -207,14 +207,11 @@ mod tests {
         nums.iter().zip(den).map(|(&n, &d)| EF::from(n) / d).sum()
     }
 
-    fn bit_reverse_chunks_and_pack_ext<EF: ExtensionField<PF<EF>>>(v: &[EF], chunk_log: usize) -> Vec<EFPacking<EF>> {
+    fn bit_reverse_chunks_and_pack_ext<EF: KoalaBearExtension>(v: &[EF], chunk_log: usize) -> Vec<EFPacking<EF>> {
         pack_extension(&bit_reverse_chunks(v, chunk_log))
     }
 
-    fn bit_reverse_chunks_and_pack_base<EF: ExtensionField<PF<EF>>>(
-        v: &[PF<EF>],
-        chunk_log: usize,
-    ) -> Vec<PFPacking<EF>> {
+    fn bit_reverse_chunks_and_pack_base<EF: KoalaBearExtension>(v: &[PF<EF>], chunk_log: usize) -> Vec<PFPacking<EF>> {
         let width: usize = packing_width::<EF>();
         let mut res = unsafe { uninitialized_vec::<PFPacking<EF>>(v.len() / width) };
         let unpacked = PFPacking::<EF>::unpack_slice_mut(&mut res);

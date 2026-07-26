@@ -31,7 +31,7 @@ use tracing::info_span;
 
 const ENDIANNESS_PIVOT_AIR: usize = 12;
 
-pub trait OuterSumcheckSession<EF: ExtensionField<PF<EF>>>: Debug {
+pub trait OuterSumcheckSession<EF: KoalaBearExtension>: Debug {
     fn initial_n_vars(&self) -> usize;
     fn sum(&self) -> EF;
     fn bare_degree(&self) -> usize;
@@ -42,7 +42,7 @@ pub trait OuterSumcheckSession<EF: ExtensionField<PF<EF>>>: Debug {
 }
 
 #[derive(Debug)]
-pub struct AirSumcheckSession<'a, EF: ExtensionField<PF<EF>>, A: Air>
+pub struct AirSumcheckSession<'a, EF: KoalaBearExtension, A: Air>
 where
     A::ExtraData: AlphaPowers<EF>,
 {
@@ -60,7 +60,7 @@ where
     rounds_done: usize,
 }
 
-impl<'a, EF: ExtensionField<PF<EF>>, A: Air> AirSumcheckSession<'a, EF, A>
+impl<'a, EF: KoalaBearExtension, A: Air> AirSumcheckSession<'a, EF, A>
 where
     A::ExtraData: AlphaPowers<EF> + AlphaPowersMut<EF>,
 {
@@ -125,7 +125,7 @@ where
 
 impl<'a, EF, A> AirSumcheckSession<'a, EF, A>
 where
-    EF: ExtensionField<PF<EF>>,
+    EF: KoalaBearExtension,
     A: Air + 'static,
     A::ExtraData: AlphaPowers<EF>,
 {
@@ -200,7 +200,7 @@ where
 
 impl<'a, EF, A> OuterSumcheckSession<EF> for AirSumcheckSession<'a, EF, A>
 where
-    EF: ExtensionField<PF<EF>>,
+    EF: KoalaBearExtension,
     A: Air + Debug + 'static,
     A::ExtraData: AlphaPowers<EF> + AlphaPowersMut<EF> + Debug,
 {
@@ -289,7 +289,7 @@ where
     }
 }
 
-fn column_evals<EF: ExtensionField<PF<EF>>>(multilinears: &MleGroupRef<'_, EF>, i: usize) -> Vec<EF> {
+fn column_evals<EF: KoalaBearExtension>(multilinears: &MleGroupRef<'_, EF>, i: usize) -> Vec<EF> {
     match multilinears {
         MleGroupRef::Base(cols) => cols.iter().map(|c| EF::from(c[i])).collect(),
         MleGroupRef::Extension(cols) => cols.iter().map(|c| c[i]).collect(),
@@ -315,7 +315,7 @@ fn compute_raw_poly<'a, EF, A>(
     active_count_pairs: usize,
 ) -> Vec<EF>
 where
-    EF: ExtensionField<PF<EF>>,
+    EF: KoalaBearExtension,
     A: Air + 'static,
     A::ExtraData: AlphaPowers<EF>,
 {
@@ -410,7 +410,7 @@ fn compute_raw_poly_degree_split<EF, A, IF, GetEq, UnpackSum>(
     unpack_sum: UnpackSum,
 ) -> Vec<EF>
 where
-    EF: ExtensionField<PF<EF>>,
+    EF: KoalaBearExtension,
     A: Air + 'static,
     A::ExtraData: AlphaPowers<EF>,
     IF: Algebra<PFPacking<EF>> + Copy + Send + Sync + Sub<Output = IF> + AddAssign + PrimeCharacteristicRing + 'static,
@@ -558,7 +558,7 @@ fn compute_raw_poly_impl<EF, A, IF, EFT, GetEq, UnpackSum>(
     unpack_sum: UnpackSum,
 ) -> Vec<EF>
 where
-    EF: ExtensionField<PF<EF>>,
+    EF: KoalaBearExtension,
     A: Air + 'static,
     A::ExtraData: AlphaPowers<EF>,
     IF: Copy + Send + Sync + Sub<Output = IF> + AddAssign + PrimeCharacteristicRing,
@@ -612,7 +612,7 @@ where
     acc.into_iter().map(unpack_sum).collect()
 }
 
-pub fn prove_batched_air_sumcheck<'a, EF: ExtensionField<PF<EF>>>(
+pub fn prove_batched_air_sumcheck<'a, EF: KoalaBearExtension>(
     prover_state: &mut impl FSProver<EF>,
     sessions: &mut [Box<dyn OuterSumcheckSession<EF> + 'a>],
 ) -> MultilinearPoint<EF> {
@@ -678,7 +678,7 @@ pub fn natural_ordering_point_for_session<EF: Copy>(sumcheck_air_point: &[EF], l
         .collect()
 }
 
-pub fn columns_evals_flat_and_shift<EF: ExtensionField<PF<EF>>, A: Air>(
+pub fn columns_evals_flat_and_shift<EF: KoalaBearExtension, A: Air>(
     air: &A,
     col_evals: &[EF],
     natural_ordering_point: &[EF],

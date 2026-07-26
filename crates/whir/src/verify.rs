@@ -5,6 +5,7 @@ use std::{fmt::Debug, marker::PhantomData};
 use ::utils::log2_strict_usize;
 use fiat_shamir::{FSVerifier, ProofError, ProofResult, try_pack_scalars_to_extension};
 use field::{ExtensionField, Field, PrimeCharacteristicRing, TwoAdicField};
+use koala_bear::KoalaBear;
 
 use crate::*;
 
@@ -26,7 +27,7 @@ impl<F: Field, EF: ExtensionField<F>> ParsedCommitment<F, EF> {
     where
         F: TwoAdicField,
         EF: ExtensionField<F> + TwoAdicField,
-        EF: ExtensionField<PF<EF>>,
+        EF: KoalaBearExtension,
     {
         let root = verifier_state.next_base_scalars_vec(DIGEST_ELEMS)?.try_into().unwrap();
         let mut ood_points = vec![];
@@ -61,7 +62,7 @@ impl<F: Field, EF: ExtensionField<F>> ParsedCommitment<F, EF> {
 
 impl<EF> WhirConfig<EF>
 where
-    EF: TwoAdicField + ExtensionField<PF<EF>>,
+    EF: TwoAdicField + KoalaBearExtension,
 {
     pub fn parse_commitment<F: TwoAdicField>(
         &self,
@@ -76,8 +77,7 @@ where
 
 impl<EF> WhirConfig<EF>
 where
-    EF: TwoAdicField + ExtensionField<PF<EF>>,
-    PF<EF>: TwoAdicField,
+    EF: TwoAdicField + KoalaBearExtension,
 {
     #[allow(clippy::too_many_lines)]
     pub fn verify<F>(
@@ -87,7 +87,7 @@ where
         statement: Vec<SparseStatement<EF>>,
     ) -> ProofResult<MultilinearPoint<EF>>
     where
-        F: TwoAdicField + ExtensionField<PF<EF>>,
+        F: TwoAdicField + ExtensionField<KoalaBear>,
         EF: ExtensionField<F>,
     {
         statement
@@ -235,7 +235,7 @@ where
         round_index: usize,
     ) -> ProofResult<Vec<SparseStatement<EF>>>
     where
-        F: Field + ExtensionField<PF<EF>>,
+        F: Field + ExtensionField<KoalaBear>,
         EF: ExtensionField<F>,
     {
         let leafs_base_field = round_index == 0;
@@ -298,7 +298,7 @@ where
         _var_shift: usize,
     ) -> ProofResult<Vec<Vec<EF>>>
     where
-        F: Field + ExtensionField<PF<EF>>,
+        F: Field + ExtensionField<KoalaBear>,
         EF: ExtensionField<F>,
     {
         let merkle_height = log2_strict_usize(dimensions[0].height);
@@ -422,7 +422,7 @@ pub(crate) fn verify_sumcheck_rounds<F, EF>(
 ) -> ProofResult<SumcheckRandomness<EF>>
 where
     F: TwoAdicField,
-    EF: ExtensionField<F> + TwoAdicField + ExtensionField<PF<EF>>,
+    EF: ExtensionField<F> + TwoAdicField + KoalaBearExtension,
 {
     // Preallocate vector to hold the randomness values
     let mut randomness = Vec::with_capacity(rounds);

@@ -3,13 +3,13 @@ use std::ops::{Add, Sub};
 use field::*;
 use zk_alloc::{ArenaVec, OwnedBuffer};
 
-use crate::{EFPacking, PF, PFPacking};
+use crate::{EFPacking, KoalaBearExtension, PFPacking};
 
 pub const PARALLEL_THRESHOLD: usize = 1 << 9;
 
 /// AoS->SoA transpose of `slice` into the already-sized packed buffer `out` (`out.len()`
 /// packed elements, each consuming `packing_width` scalars).
-fn fill_packed_extension<EF: ExtensionField<PF<EF>>>(slice: &[EF], out: &mut [EFPacking<EF>]) {
+fn fill_packed_extension<EF: KoalaBearExtension>(slice: &[EF], out: &mut [EFPacking<EF>]) {
     let width = packing_width::<EF>();
     let write = |slot: &mut EFPacking<EF>, chunk: &[EF]| {
         *slot = EFPacking::<EF>::from_ext_slice(chunk);
@@ -25,13 +25,13 @@ fn fill_packed_extension<EF: ExtensionField<PF<EF>>>(slice: &[EF], out: &mut [EF
     }
 }
 
-pub fn pack_extension<EF: ExtensionField<PF<EF>>, B: OwnedBuffer<EFPacking<EF>>>(slice: &[EF]) -> B {
+pub fn pack_extension<EF: KoalaBearExtension, B: OwnedBuffer<EFPacking<EF>>>(slice: &[EF]) -> B {
     B::build(slice.len() / packing_width::<EF>(), |out| {
         fill_packed_extension(slice, out)
     })
 }
 
-fn fill_unpacked_extension<EF: ExtensionField<PF<EF>>>(vec: &[EFPacking<EF>], out: &mut [EF]) {
+fn fill_unpacked_extension<EF: KoalaBearExtension>(vec: &[EFPacking<EF>], out: &mut [EF]) {
     let width = packing_width::<EF>();
     let total = out.len();
     let write = |out_chunk: &mut [EF], x: &EFPacking<EF>| {
@@ -56,7 +56,7 @@ fn fill_unpacked_extension<EF: ExtensionField<PF<EF>>>(vec: &[EFPacking<EF>], ou
     }
 }
 
-pub fn unpack_extension<EF: ExtensionField<PF<EF>>, B: OwnedBuffer<EF>>(vec: &[EFPacking<EF>]) -> B {
+pub fn unpack_extension<EF: KoalaBearExtension, B: OwnedBuffer<EF>>(vec: &[EFPacking<EF>]) -> B {
     B::build(vec.len() * packing_width::<EF>(), |out| {
         fill_unpacked_extension(vec, out)
     })

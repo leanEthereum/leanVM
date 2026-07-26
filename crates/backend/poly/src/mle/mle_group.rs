@@ -1,25 +1,24 @@
 use crate::*;
-use field::ExtensionField;
 
 #[derive(Debug)]
-pub enum MleGroup<'a, EF: ExtensionField<PF<EF>>> {
+pub enum MleGroup<'a, EF: KoalaBearExtension> {
     Owned(MleGroupOwned<EF>),
     Ref(MleGroupRef<'a, EF>),
 }
 
-impl<'a, EF: ExtensionField<PF<EF>>> From<MleGroupOwned<EF>> for MleGroup<'a, EF> {
+impl<'a, EF: KoalaBearExtension> From<MleGroupOwned<EF>> for MleGroup<'a, EF> {
     fn from(owned: MleGroupOwned<EF>) -> Self {
         MleGroup::Owned(owned)
     }
 }
 
-impl<'a, EF: ExtensionField<PF<EF>>> From<MleGroupRef<'a, EF>> for MleGroup<'a, EF> {
+impl<'a, EF: KoalaBearExtension> From<MleGroupRef<'a, EF>> for MleGroup<'a, EF> {
     fn from(r: MleGroupRef<'a, EF>) -> Self {
         MleGroup::Ref(r)
     }
 }
 
-impl<'a, EF: ExtensionField<PF<EF>>> MleGroup<'a, EF> {
+impl<'a, EF: KoalaBearExtension> MleGroup<'a, EF> {
     pub fn by_ref(&'a self) -> MleGroupRef<'a, EF> {
         match self {
             Self::Owned(owned) => owned.by_ref(),

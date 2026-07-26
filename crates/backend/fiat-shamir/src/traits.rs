@@ -1,4 +1,4 @@
-use field::ExtensionField;
+use koala_bear::KoalaBearExtension;
 
 use crate::{
     MerkleOpening, MerklePath, PF, ProofError, ProofResult, flatten_scalars_to_base, pack_scalars_to_extension,
@@ -12,7 +12,7 @@ pub trait ChallengeSampler<EF> {
     fn sample_in_range(&mut self, bits: usize, n_samples: usize) -> Vec<usize>;
 }
 
-pub trait FSProver<EF: ExtensionField<PF<EF>>>: ChallengeSampler<EF> {
+pub trait FSProver<EF: KoalaBearExtension>: ChallengeSampler<EF> {
     fn state(&self) -> String;
     fn add_base_scalars(&mut self, scalars: &[PF<EF>]);
     fn observe_scalars(&mut self, scalars: &[PF<EF>]);
@@ -43,7 +43,7 @@ pub trait FSProver<EF: ExtensionField<PF<EF>>>: ChallengeSampler<EF> {
     }
 }
 
-pub trait FSVerifier<EF: ExtensionField<PF<EF>>>: ChallengeSampler<EF> {
+pub trait FSVerifier<EF: KoalaBearExtension>: ChallengeSampler<EF> {
     fn state(&self) -> String;
     fn next_base_scalars_vec(&mut self, n: usize) -> Result<Vec<PF<EF>>, ProofError>;
     fn observe_scalars(&mut self, scalars: &[PF<EF>]);

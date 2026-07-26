@@ -1,7 +1,7 @@
 use field::{ExtensionField, Field, dot_product};
 use utils::*;
 
-use crate::{EFPacking, EvaluationsList as _, MultilinearPoint, PF, PFPacking};
+use crate::{EFPacking, EvaluationsList as _, KoalaBearExtension, MultilinearPoint, PFPacking};
 
 pub fn multilinear_eval_constants_at_right<F: Field>(limit: usize, point: &[F]) -> F {
     let n_vars = point.len();
@@ -68,7 +68,7 @@ pub fn finger_print<EF: Field>(domainsep: EF, data: &[EF], alphas_eq_poly: &[EF]
 
 /// Packed variant of [`finger_print`].
 #[inline(always)]
-pub fn finger_print_packed<EF: ExtensionField<PF<EF>>>(
+pub fn finger_print_packed<EF: KoalaBearExtension>(
     domainsep: PFPacking<EF>,
     data: &[PFPacking<EF>],
     alphas_packed: &[EFPacking<EF>],

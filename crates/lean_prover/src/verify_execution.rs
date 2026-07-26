@@ -231,7 +231,7 @@ pub fn verify_execution(
     ))
 }
 
-fn back_loaded_table_contribution<EF: ExtensionField<PF<EF>>>(
+fn back_loaded_table_contribution<EF: KoalaBearExtension>(
     bus_point: &[EF],
     sumcheck_air_point: &[EF],
     natural_ordering_point: &[EF],

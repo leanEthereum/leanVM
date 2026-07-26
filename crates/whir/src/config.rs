@@ -134,6 +134,8 @@ pub struct WhirConfig<EF: Field> {
 impl<EF> WhirConfig<EF>
 where
     EF: Field,
+    // Not implied here: this impl only requires `EF: Field`, so `PF<EF>` stays an opaque
+    // projection rather than normalizing to `KoalaBear`.
     PF<EF>: TwoAdicField,
 {
     /// `log_c` controls the proximity parameter `η` (η = √ρ/c for JB, η = ρ/c for CB).

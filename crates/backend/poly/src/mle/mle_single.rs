@@ -1,13 +1,12 @@
 use crate::*;
-use field::ExtensionField;
 
 #[derive(Debug)]
-pub enum Mle<'a, EF: ExtensionField<PF<EF>>> {
+pub enum Mle<'a, EF: KoalaBearExtension> {
     Owned(MleOwned<EF>),
     Ref(MleRef<'a, EF>),
 }
 
-impl<EF: ExtensionField<PF<EF>>> Clone for Mle<'_, EF> {
+impl<EF: KoalaBearExtension> Clone for Mle<'_, EF> {
     fn clone(&self) -> Self {
         match self {
             Self::Owned(o) => Self::Owned(o.clone()),
@@ -15,19 +14,19 @@ impl<EF: ExtensionField<PF<EF>>> Clone for Mle<'_, EF> {
         }
     }
 }
-impl<EF: ExtensionField<PF<EF>>> From<MleOwned<EF>> for Mle<'_, EF> {
+impl<EF: KoalaBearExtension> From<MleOwned<EF>> for Mle<'_, EF> {
     fn from(value: MleOwned<EF>) -> Self {
         Self::Owned(value)
     }
 }
 
-impl<'a, EF: ExtensionField<PF<EF>>> From<MleRef<'a, EF>> for Mle<'a, EF> {
+impl<'a, EF: KoalaBearExtension> From<MleRef<'a, EF>> for Mle<'a, EF> {
     fn from(value: MleRef<'a, EF>) -> Self {
         Self::Ref(value)
     }
 }
 
-impl<'a, EF: ExtensionField<PF<EF>>> Mle<'a, EF> {
+impl<'a, EF: KoalaBearExtension> Mle<'a, EF> {
     pub fn by_ref(&'a self) -> MleRef<'a, EF> {
         match self {
             Self::Owned(owned) => owned.by_ref(),

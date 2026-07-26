@@ -1,17 +1,16 @@
 use crate::*;
 use ::utils::log2_strict_usize;
-use field::ExtensionField;
 use zk_alloc::ArenaVec;
 
 #[derive(Debug)]
-pub enum MleGroupOwned<EF: ExtensionField<PF<EF>>> {
+pub enum MleGroupOwned<EF: KoalaBearExtension> {
     Base(Vec<ArenaVec<PF<EF>>>),
     Extension(Vec<ArenaVec<EF>>),
     BasePacked(Vec<ArenaVec<PFPacking<EF>>>),
     ExtensionPacked(Vec<ArenaVec<EFPacking<EF>>>),
 }
 
-impl<EF: ExtensionField<PF<EF>>> MleGroupOwned<EF> {
+impl<EF: KoalaBearExtension> MleGroupOwned<EF> {
     pub fn as_extension_packed_mut(&mut self) -> Option<&mut Vec<ArenaVec<EFPacking<EF>>>> {
         match self {
             Self::ExtensionPacked(e) => Some(e),

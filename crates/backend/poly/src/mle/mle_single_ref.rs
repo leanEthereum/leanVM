@@ -1,18 +1,17 @@
 use crate::*;
 use ::utils::log2_strict_usize;
-use field::ExtensionField;
 use field::PackedValue;
 use zk_alloc::ArenaVec;
 
 #[derive(Debug)]
-pub enum MleRef<'a, EF: ExtensionField<PF<EF>>> {
+pub enum MleRef<'a, EF: KoalaBearExtension> {
     Base(&'a [PF<EF>]),
     Extension(&'a [EF]),
     BasePacked(&'a [PFPacking<EF>]),
     ExtensionPacked(&'a [EFPacking<EF>]),
 }
 
-impl<'a, EF: ExtensionField<PF<EF>>> MleRef<'a, EF> {
+impl<'a, EF: KoalaBearExtension> MleRef<'a, EF> {
     pub const fn packed_len(&self) -> usize {
         match self {
             Self::Base(v) => v.len(),

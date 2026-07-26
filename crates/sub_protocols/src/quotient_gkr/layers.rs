@@ -2,7 +2,7 @@ use backend::PackedValue;
 
 use backend::*;
 
-pub(super) enum LayerStorage<'a, EF: ExtensionField<PF<EF>>> {
+pub(super) enum LayerStorage<'a, EF: KoalaBearExtension> {
     Initial {
         nums: ArenaCow<'a, PFPacking<EF>>,
         dens: ArenaCow<'a, EFPacking<EF>>,
@@ -19,7 +19,7 @@ pub(super) enum LayerStorage<'a, EF: ExtensionField<PF<EF>>> {
     },
 }
 
-impl<'a, EF: ExtensionField<PF<EF>>> LayerStorage<'a, EF> {
+impl<'a, EF: KoalaBearExtension> LayerStorage<'a, EF> {
     pub(super) fn convert_to_natural(&self) -> Self {
         match self {
             Self::Initial { nums, dens, chunk_log } => {
@@ -119,7 +119,7 @@ pub(super) fn bit_reverse_chunks<T: Copy + Send + Sync>(v: &[T], chunk_log: usiz
     out
 }
 
-fn sum_quotients_2_by_2<EF: ExtensionField<PF<EF>>>(nums: &[EF], dens: &[EF]) -> (ArenaVec<EF>, ArenaVec<EF>) {
+fn sum_quotients_2_by_2<EF: KoalaBearExtension>(nums: &[EF], dens: &[EF]) -> (ArenaVec<EF>, ArenaVec<EF>) {
     assert_eq!(nums.len(), dens.len());
     let active_len = nums.len();
     let new_active = active_len.div_ceil(2);
@@ -150,7 +150,7 @@ fn sum_quotients_2_by_2<EF: ExtensionField<PF<EF>>>(nums: &[EF], dens: &[EF]) ->
     (new_nums, new_dens)
 }
 
-fn sum_quotients_2_by_2_packed_br<EF: ExtensionField<PF<EF>>, N>(
+fn sum_quotients_2_by_2_packed_br<EF: KoalaBearExtension, N>(
     nums: &[N],
     dens: &[EFPacking<EF>],
     chunk_log: usize,
@@ -182,14 +182,14 @@ where
     (new_nums, new_dens)
 }
 
-pub(super) fn unpack_and_unreverse_active<EF: ExtensionField<PF<EF>>>(
+pub(super) fn unpack_and_unreverse_active<EF: KoalaBearExtension>(
     v: &[EFPacking<EF>],
     chunk_log: usize,
 ) -> ArenaVec<EF> {
     bit_reverse_chunks(&unpack_extension::<EF, ArenaVec<_>>(v), chunk_log)
 }
 
-fn unpack_base_and_unreverse_active<EF: ExtensionField<PF<EF>>>(v: &[PFPacking<EF>], chunk_log: usize) -> ArenaVec<EF> {
+fn unpack_base_and_unreverse_active<EF: KoalaBearExtension>(v: &[PFPacking<EF>], chunk_log: usize) -> ArenaVec<EF> {
     let active_unpacked: ArenaVec<EF> = PFPacking::<EF>::unpack_slice(v).iter().map(|x| EF::from(*x)).collect();
     bit_reverse_chunks(&active_unpacked, chunk_log)
 }

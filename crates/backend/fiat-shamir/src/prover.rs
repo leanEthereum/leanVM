@@ -3,8 +3,9 @@ use crate::{MerklePaths, PrunedMerklePaths, *};
 use field::Field;
 use field::PackedValue;
 use field::PrimeCharacteristicRing;
+use field::PrimeField64;
 use field::integers::QuotientMap;
-use field::{ExtensionField, PrimeField64};
+use koala_bear::KoalaBearExtension;
 use koala_bear::symmetric::Permutation;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::time::Duration;
@@ -24,16 +25,13 @@ pub fn reset_pow_grinding_time() {
 }
 
 #[derive(Debug)]
-pub struct ProverState<EF: ExtensionField<PF<EF>>, P> {
+pub struct ProverState<EF: KoalaBearExtension, P> {
     challenger: Challenger<PF<EF>, P>,
     transcript: Vec<PF<EF>>,
     merkle_paths: Vec<PrunedMerklePaths<PF<EF>, PF<EF>>>,
 }
 
-impl<EF: ExtensionField<PF<EF>>, P: Permutation<[PF<EF>; WIDTH]>> ProverState<EF, P>
-where
-    PF<EF>: PrimeField64,
-{
+impl<EF: KoalaBearExtension, P: Permutation<[PF<EF>; WIDTH]>> ProverState<EF, P> {
     #[must_use]
     pub fn new(permutation: P, capacity: [PF<EF>; CAPACITY]) -> Self {
         assert!(EF::DIMENSION <= RATE);
@@ -52,10 +50,7 @@ where
     }
 }
 
-impl<EF: ExtensionField<PF<EF>>, P: Permutation<[PF<EF>; WIDTH]>> ChallengeSampler<EF> for ProverState<EF, P>
-where
-    PF<EF>: PrimeField64,
-{
+impl<EF: KoalaBearExtension, P: Permutation<[PF<EF>; WIDTH]>> ChallengeSampler<EF> for ProverState<EF, P> {
     fn sample_vec(&mut self, len: usize) -> Vec<EF> {
         sample_vec(&mut self.challenger, len)
     }
@@ -65,10 +60,8 @@ where
     }
 }
 
-impl<EF: ExtensionField<PF<EF>>, P: Permutation<[PF<EF>; WIDTH]> + Permutation<[<PF<EF> as Field>::Packing; WIDTH]>>
+impl<EF: KoalaBearExtension, P: Permutation<[PF<EF>; WIDTH]> + Permutation<[<PF<EF> as Field>::Packing; WIDTH]>>
     FSProver<EF> for ProverState<EF, P>
-where
-    PF<EF>: PrimeField64,
 {
     fn add_base_scalars(&mut self, scalars: &[PF<EF>]) {
         self.challenger.observe_many(scalars);
