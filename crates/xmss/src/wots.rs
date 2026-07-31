@@ -7,7 +7,6 @@ use crate::*;
 /// No Debug: `pre_images` are the one-time secret keys.
 pub struct WotsSecretKey {
     pre_images: [Digest; V],
-    public_key: WotsPublicKey,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -24,21 +23,23 @@ pub struct WotsSignature {
 }
 
 impl WotsSecretKey {
-    pub fn random(rng: &mut impl CryptoRng, public_param: PublicParam, slot: u32) -> Self {
-        Self::new(rng.random(), public_param, slot)
+    pub fn random(rng: &mut impl CryptoRng) -> Self {
+        Self::new(rng.random())
     }
 
-    pub fn new(pre_images: [Digest; V], public_param: PublicParam, slot: u32) -> Self {
-        Self {
-            pre_images,
-            public_key: WotsPublicKey(std::array::from_fn(|i| {
-                iterate_hash(&pre_images[i], CHAIN_LENGTH - 1, public_param, slot, i, 0)
-            })),
-        }
+    pub const fn new(pre_images: [Digest; V]) -> Self {
+        Self { pre_images }
     }
 
-    pub const fn public_key(&self) -> &WotsPublicKey {
-        &self.public_key
+    /// Derives the public key by walking every chain to its final element.
+    ///
+    /// This is intentionally computed on demand. Signing only needs the secret
+    /// pre-images, so eagerly deriving and storing these chain ends would add
+    /// `V * (CHAIN_LENGTH - 1)` unnecessary hashes to every signature.
+    pub fn public_key(&self, public_param: PublicParam, slot: u32) -> WotsPublicKey {
+        WotsPublicKey(std::array::from_fn(|i| {
+            iterate_hash(&self.pre_images[i], CHAIN_LENGTH - 1, public_param, slot, i, 0)
+        }))
     }
 
     pub(crate) fn sign_with_encoding(
