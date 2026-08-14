@@ -1506,6 +1506,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "lean_multisig_api"
+version = "0.1.0"
+dependencies = [
+ "backend",
+ "ethereum_ssz",
+ "lean_vm",
+ "postcard",
+ "rand 0.10.1",
+ "rec_aggregation",
+ "xmss",
+]
+
+[[package]]
 name = "lean_prover"
 version = "0.1.0"
 dependencies = [

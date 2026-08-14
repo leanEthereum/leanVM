@@ -18,6 +18,16 @@
 - Rewrite the compiler, it's bad right now.
 - double check single-message / multi-message dispatch, and try to simplify the various data layouts
 
+## Tooling
+
+- The clippy config never reaches the member crates. Root `Cargo.toml` has `[lints.clippy]`
+  (`all`/`nursery`/`pedantic` at warn, plus the `allow` list), but that is a *package*-level
+  table, so it applies only to the root `lean-multisig` package. `[workspace.lints]` carries
+  just the `rust.*` and `rustdoc.*` keys, so every crate under `crates/` writing
+  `[lints] workspace = true` inherits those alone and gets no clippy nursery/pedantic.
+  Moving the table to `[workspace.lints.clippy]` would fix it, but surfaces a backlog across
+  the 19 member crates, so it wants doing deliberately rather than as a drive-by.
+
 # Ideas
 
 - About range checks, that can currently be done in 3 cycles (see 2.5.3 of the zkVM pdf) + 3 memory cells used. For small ranges we can save 2 memory cells.
