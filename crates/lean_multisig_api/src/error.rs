@@ -16,15 +16,22 @@ pub enum Error {
     Proof(backend::ProofError),
     /// A serialized [`crate::Signature`] envelope was malformed or unsupported.
     MalformedSignature,
+    /// A serialized [`crate::MultiClaimSignature`] envelope was malformed or unsupported.
+    MalformedMultiClaimSignature,
     /// Secret-key bytes failed their format or integrity checks.
     MalformedSecretKey,
     TooManySigners {
         got: usize,
         max: usize,
     },
+    TooManyClaims {
+        got: usize,
+        max: usize,
+    },
     Empty,
     MessageMismatch,
     SignerSetMismatch,
+    ClaimSetMismatch,
 }
 
 impl From<xmss::XmssKeyGenError> for Error {
@@ -63,11 +70,16 @@ impl Display for Error {
             Self::Aggregation(_) => write!(f, "Aggregation failed"),
             Self::Proof(_) => write!(f, "Proof error"),
             Self::MalformedSignature => write!(f, "The supplied bytes are not a well-formed signature"),
+            Self::MalformedMultiClaimSignature => {
+                write!(f, "The supplied bytes are not a well-formed multi-claim signature")
+            }
             Self::MalformedSecretKey => write!(f, "Secret key bytes failed validation"),
             Self::TooManySigners { got, max } => write!(f, "Too many signers: {got} (max {max})"),
+            Self::TooManyClaims { got, max } => write!(f, "Too many distinct claims: {got} (max {max})"),
             Self::Empty => write!(f, "Nothing to aggregate: no signatures were supplied"),
             Self::MessageMismatch => write!(f, "The signature proves a different claim than the one supplied"),
             Self::SignerSetMismatch => write!(f, "The proved signer set differs from the expected one"),
+            Self::ClaimSetMismatch => write!(f, "The proved claims or signer sets differ from the expected ones"),
         }
     }
 }
@@ -81,11 +93,14 @@ impl std::error::Error for Error {
             Self::Aggregation(err) => Some(err),
             Self::Proof(err) => Some(err),
             Self::MalformedSignature
+            | Self::MalformedMultiClaimSignature
             | Self::MalformedSecretKey
             | Self::TooManySigners { .. }
+            | Self::TooManyClaims { .. }
             | Self::Empty
             | Self::MessageMismatch
-            | Self::SignerSetMismatch => None,
+            | Self::SignerSetMismatch
+            | Self::ClaimSetMismatch => None,
         }
     }
 }

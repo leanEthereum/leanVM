@@ -12,7 +12,7 @@ const HEADER_LEN: usize = MAGIC.len() + 2;
 const RAW_LEN: usize = HEADER_LEN + 32 + 4 + xmss::PUB_KEY_SSZ_LEN + xmss::SIGNATURE_SSZ_LEN;
 
 /// The statement signed by every input to one aggregation.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Claim {
     message: [u8; 32],
     slot: u32,

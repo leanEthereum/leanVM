@@ -66,7 +66,7 @@ fn verification_binds_the_claim_and_signer_set() {
 
     let outsider = lone_key(200).public_key();
     assert!(matches!(
-        verify(base(), &[base_public_keys()[0].clone(), outsider], &CLAIM),
+        verify(base(), &[base_public_keys()[0], outsider], &CLAIM),
         Err(Error::SignerSetMismatch)
     ));
 }

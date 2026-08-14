@@ -1,12 +1,14 @@
 //! A small, opinionated facade over XMSS and recursive aggregation.
 //!
-//! [`Signature`] hides whether a contribution is a raw XMSS signature or an aggregate. The
-//! recursion topology, proof parameters, bytecode initialization, public-key pairing, and proof
-//! representation are all internal choices.
+//! [`Signature`] hides whether one-claim contribution is a raw XMSS signature or an aggregate.
+//! [`MultiClaimSignature`] groups any mixture of those contributions by claim and binds the
+//! resulting groups in one self-contained proof. The recursion topology, proof parameters,
+//! bytecode initialization, public-key pairing, and proof representations are internal choices.
 #![cfg_attr(not(test), warn(unused_crate_dependencies))]
 
 mod error;
 mod key;
+mod multi_signature;
 mod plan;
 mod signature;
 
@@ -22,6 +24,7 @@ use xmss::{XmssPublicKey, XmssSignature, xmss_verify};
 
 pub use error::Error;
 pub use key::SecretKey;
+pub use multi_signature::{ClaimSigners, MultiClaimSignature, merge_claims, verified_claims, verify_claims};
 pub use signature::{Claim, Signature};
 
 /// A canonically encoded, 32-byte XMSS public key.
@@ -29,6 +32,9 @@ pub use signature::{Claim, Signature};
 /// This alias documents where public-key bytes are expected without imposing a wrapper on
 /// callers' storage or serialization types.
 pub type PublicKey = [u8; 32];
+
+/// Maximum number of distinct claim components in one [`MultiClaimSignature`].
+pub const MAX_CLAIMS: usize = rec_aggregation::MAX_RECURSIONS;
 
 const _: () = assert!(xmss::PUB_KEY_SSZ_LEN == size_of::<PublicKey>());
 
