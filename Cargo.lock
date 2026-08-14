@@ -1515,6 +1515,7 @@ dependencies = [
  "postcard",
  "rand 0.10.1",
  "rec_aggregation",
+ "sha2",
  "xmss",
 ]
 

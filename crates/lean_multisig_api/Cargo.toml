@@ -16,10 +16,8 @@ backend.workspace = true
 ssz.workspace = true
 postcard.workspace = true
 rand.workspace = true
+sha2.workspace = true
 
-# Integration tests also see `[dependencies]`, so only feature additions belong here.
-# `tests/unprovable_child.rs` hand-builds an aggregate envelope from `lean_vm`'s field types,
-# which `[dependencies]` already provides.
 [dev-dependencies]
 # `round_trip.rs`'s `#[ignore]`d LEAF_TARGET tests need 1501 real signatures, which
 # `xmss::signers_cache` has pre-generated and cached on disk. The feature is already on in any
