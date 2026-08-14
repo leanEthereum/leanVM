@@ -7,7 +7,7 @@
 //! cargo test --release -p lean_multisig_api --test round_trip -- --ignored
 //! ```
 
-use lean_multisig_api::{Claim, Error, SecretKey, Signature, aggregate, verified_signers, verify};
+use lean_multisig_api::{Claim, Error, PublicKey, SecretKey, Signature, aggregate, verified_signers, verify};
 use ssz::Encode;
 use std::collections::BTreeSet;
 use std::sync::{Mutex, OnceLock};
@@ -39,11 +39,11 @@ fn base() -> &'static Signature {
     })
 }
 
-fn base_public_keys() -> Vec<Vec<u8>> {
+fn base_public_keys() -> Vec<PublicKey> {
     signers(2).iter().map(SecretKey::public_key).collect()
 }
 
-fn signer_set(signature: &Signature, claim: &Claim) -> BTreeSet<Vec<u8>> {
+fn signer_set(signature: &Signature, claim: &Claim) -> BTreeSet<PublicKey> {
     verified_signers(signature, claim).unwrap().into_iter().collect()
 }
 
@@ -76,7 +76,7 @@ fn folding_an_aggregate_with_a_fresh_signature_hides_the_representation_split() 
     let fresh = lone_key(201);
     let combined = prove(vec![base().clone(), fresh.sign(&CLAIM).unwrap()], &CLAIM).unwrap();
 
-    let mut expected: BTreeSet<Vec<u8>> = base_public_keys().into_iter().collect();
+    let mut expected: BTreeSet<PublicKey> = base_public_keys().into_iter().collect();
     expected.insert(fresh.public_key());
     assert_eq!(signer_set(&combined, &CLAIM), expected);
 }
@@ -111,7 +111,7 @@ fn a_signer_shared_by_a_child_and_fresh_input_appears_once() {
     )
     .unwrap();
 
-    let mut expected: BTreeSet<Vec<u8>> = base_public_keys().into_iter().collect();
+    let mut expected: BTreeSet<PublicKey> = base_public_keys().into_iter().collect();
     expected.insert(fresh.public_key());
     assert_eq!(signer_set(&combined, &CLAIM), expected);
 }
@@ -172,7 +172,7 @@ fn a_multi_level_tree_round_trips() {
 
 const LEAF_TARGET: usize = 1500;
 
-fn cached_batch(n: usize) -> (Vec<Signature>, Vec<Vec<u8>>, Claim) {
+fn cached_batch(n: usize) -> (Vec<Signature>, Vec<PublicKey>, Claim) {
     let cached = xmss::signers_cache::get_benchmark_signatures();
     assert!(cached.len() >= n);
     let claim = Claim::new(
@@ -184,7 +184,7 @@ fn cached_batch(n: usize) -> (Vec<Signature>, Vec<Vec<u8>>, Claim) {
         .iter()
         .map(|(public_key, signature)| {
             let public_key_bytes = public_key.as_ssz_bytes();
-            public_keys.push(public_key_bytes.clone());
+            public_keys.push(public_key_bytes.as_slice().try_into().unwrap());
             let mut bytes = b"LMSI\x01\x00".to_vec();
             bytes.extend_from_slice(claim.message());
             bytes.extend_from_slice(&claim.slot().to_le_bytes());

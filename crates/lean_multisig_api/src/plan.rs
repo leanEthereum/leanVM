@@ -41,15 +41,23 @@ pub(crate) const RATE_INTERNAL: usize = 2;
 /// Smallest proof. Only the root goes on the wire.
 pub(crate) const RATE_ROOT: usize = 4;
 
-// The three rates above are literals restating the band `lean_prover::default_whir_config`
-// accepts, and it `assert!`s rather than erroring — so a narrowed band upstream would abort
-// every aggregation at proving time with no compile-time or test-time signal. Same guard the
-// two constants above get, for the same reason: this crate does not own the value.
+// Proving and verification report an out-of-band rate as a typed error at runtime. Keep this
+// compile-time guard as an earlier signal if the accepted band changes upstream.
 const _: () = assert!(
     RATE_LEAF >= lean_vm::MIN_WHIR_LOG_INV_RATE
-        && RATE_ROOT <= lean_vm::MAX_WHIR_LOG_INV_RATE
-        && RATE_LEAF <= RATE_INTERNAL
-        && RATE_INTERNAL <= RATE_ROOT
+        && RATE_LEAF <= lean_vm::MAX_WHIR_LOG_INV_RATE
+        && RATE_INTERNAL >= lean_vm::MIN_WHIR_LOG_INV_RATE
+        && RATE_INTERNAL <= lean_vm::MAX_WHIR_LOG_INV_RATE
+        && RATE_ROOT >= lean_vm::MIN_WHIR_LOG_INV_RATE
+        && RATE_ROOT <= lean_vm::MAX_WHIR_LOG_INV_RATE,
+    "aggregation rates must remain inside the accepted WHIR rate band"
+);
+
+// Intermediate proofs trade progressively more proving time for smaller proofs as they approach
+// the root. Keep that topology policy independent of the upstream validity band above.
+const _: () = assert!(
+    RATE_LEAF <= RATE_INTERNAL && RATE_INTERNAL <= RATE_ROOT,
+    "aggregation rates must be nondecreasing from leaves to root"
 );
 
 /// One node of the recursion tree, or a caller-supplied aggregate reused as-is.

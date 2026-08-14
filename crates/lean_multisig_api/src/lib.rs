@@ -24,7 +24,22 @@ pub use error::Error;
 pub use key::SecretKey;
 pub use signature::{Claim, Signature};
 
+/// A canonically encoded, 32-byte XMSS public key.
+///
+/// This alias documents where public-key bytes are expected without imposing a wrapper on
+/// callers' storage or serialization types.
+pub type PublicKey = [u8; 32];
+
+const _: () = assert!(xmss::PUB_KEY_SSZ_LEN == size_of::<PublicKey>());
+
 type Raw = (XmssPublicKey, XmssSignature);
+
+pub(crate) fn encode_public_key(public_key: &XmssPublicKey) -> PublicKey {
+    public_key
+        .as_ssz_bytes()
+        .try_into()
+        .expect("XMSS public-key SSZ encoding must be 32 bytes")
+}
 
 fn proves(signature: &SingleMessageAggregateSignature, claim: &Claim) -> bool {
     signature.info.core.message == *claim.message() && signature.info.core.slot == claim.slot()
@@ -134,7 +149,7 @@ fn execute<'a>(
 /// This is the inspection-oriented operation. Most callers should use [`verify`], which also
 /// checks the expected signer set and cannot accidentally omit that authorization decision.
 #[must_use = "a valid signature is useful only after checking who signed it"]
-pub fn verified_signers(signature: &Signature, claim: &Claim) -> Result<Vec<Vec<u8>>, Error> {
+pub fn verified_signers(signature: &Signature, claim: &Claim) -> Result<Vec<PublicKey>, Error> {
     if signature.claim() != *claim {
         return Err(Error::MessageMismatch);
     }
@@ -144,7 +159,7 @@ pub fn verified_signers(signature: &Signature, claim: &Claim) -> Result<Vec<Vec<
         } => {
             xmss_verify(public_key, claim.slot(), claim.message(), signature)
                 .map_err(|source| Error::InvalidSignature { index: 0, source })?;
-            Ok(vec![public_key.as_ssz_bytes()])
+            Ok(vec![encode_public_key(public_key)])
         }
         Kind::Aggregate(signature) => {
             init_aggregation_bytecode();
@@ -152,7 +167,7 @@ pub fn verified_signers(signature: &Signature, claim: &Claim) -> Result<Vec<Vec<
                 return Err(Error::MessageMismatch);
             }
             verify_single_message_aggregate(signature)?;
-            Ok(signature.info.pubkeys.iter().map(Encode::as_ssz_bytes).collect())
+            Ok(signature.info.pubkeys.iter().map(encode_public_key).collect())
         }
     }
 }
@@ -160,10 +175,10 @@ pub fn verified_signers(signature: &Signature, claim: &Claim) -> Result<Vec<Vec<
 /// Verifies a signature against its claim and exact expected signer set.
 ///
 /// Ordering and duplicate entries in `expected` are ignored; both sides are compared as sets.
-pub fn verify(signature: &Signature, expected: &[Vec<u8>], claim: &Claim) -> Result<(), Error> {
+pub fn verify(signature: &Signature, expected: &[PublicKey], claim: &Claim) -> Result<(), Error> {
     let proved = verified_signers(signature, claim)?;
-    let expected: BTreeSet<&[u8]> = expected.iter().map(Vec::as_slice).collect();
-    if proved.len() == expected.len() && proved.iter().all(|key| expected.contains(key.as_slice())) {
+    let expected: BTreeSet<&PublicKey> = expected.iter().collect();
+    if proved.len() == expected.len() && proved.iter().all(|key| expected.contains(key)) {
         Ok(())
     } else {
         Err(Error::SignerSetMismatch)

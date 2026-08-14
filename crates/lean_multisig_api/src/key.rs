@@ -3,9 +3,8 @@
 //! Unlike the inert persistence bytes returned by `to_bytes`, this handle retains the signing
 //! cache that makes repeated use practical.
 
-use crate::{Claim, Error, Signature};
+use crate::{Claim, Error, PublicKey, Signature, encode_public_key};
 use sha2::{Digest, Sha256};
-use ssz::Encode;
 use std::ops::RangeInclusive;
 use xmss::{XmssKeyGenError, XmssSecretKey, xmss_key_gen, xmss_key_gen_from_seed, xmss_sign};
 
@@ -187,8 +186,8 @@ impl SecretKey {
     /// The matching public key, SSZ-encoded: exactly `xmss::PUB_KEY_SSZ_LEN` bytes, ready for an
     /// expected-signer set passed to [`crate::verify`]. Raw signatures already carry this key.
     #[must_use]
-    pub fn public_key(&self) -> Vec<u8> {
-        self.0.public_key().as_ssz_bytes()
+    pub fn public_key(&self) -> PublicKey {
+        encode_public_key(&self.0.public_key())
     }
 
     /// The inclusive range of slots this key can sign for.

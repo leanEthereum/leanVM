@@ -1,4 +1,4 @@
-use lean_multisig_api::{Claim, SecretKey, Signature, aggregate, verified_signers, verify};
+use lean_multisig_api::{Claim, PublicKey, SecretKey, Signature, aggregate, verified_signers, verify};
 use std::collections::BTreeSet;
 
 #[test]
@@ -14,7 +14,8 @@ fn signatures_and_aggregates_share_one_opaque_api() {
     let aggregate = aggregate(vec![alice_signature, bob_signature], &claim).unwrap();
     let aggregate = Signature::from_bytes(&aggregate.to_bytes()).unwrap();
 
-    let expected = vec![alice.public_key(), bob.public_key()];
+    let _: [u8; 32] = alice.public_key();
+    let expected: Vec<PublicKey> = vec![alice.public_key(), bob.public_key()];
     verify(&aggregate, &expected, &claim).unwrap();
 
     assert_eq!(
