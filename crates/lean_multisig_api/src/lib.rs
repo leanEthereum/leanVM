@@ -3,7 +3,8 @@
 //! [`Signature`] hides whether one-claim contribution is a raw XMSS signature or an aggregate.
 //! [`MultiClaimProof`] groups any mixture of those contributions by claim and binds the
 //! resulting groups in one self-contained proof. The recursion topology, proof parameters,
-//! bytecode initialization, public-key pairing, and proof representations are internal choices.
+//! public-key pairing, and proof representations are internal choices. Call [`setup`] once before
+//! using operations involving recursive proofs.
 #![cfg_attr(not(test), warn(unused_crate_dependencies))]
 
 mod error;
@@ -20,6 +21,7 @@ use signature::Kind;
 use ssz::Encode;
 use std::borrow::Cow;
 use std::collections::BTreeSet;
+use std::sync::OnceLock;
 use xmss::{XmssPublicKey, XmssSignature, xmss_verify};
 
 pub use error::Error;
@@ -39,6 +41,7 @@ pub const MAX_CLAIMS: usize = rec_aggregation::MAX_RECURSIONS;
 const _: () = assert!(xmss::PUB_KEY_SSZ_LEN == size_of::<PublicKey>());
 
 type Raw = (XmssPublicKey, XmssSignature);
+static INITIALIZED: OnceLock<()> = OnceLock::new();
 
 pub(crate) fn encode_public_key(public_key: &XmssPublicKey) -> PublicKey {
     public_key
@@ -51,15 +54,22 @@ fn proves(signature: &SingleMessageAggregateSignature, claim: &Claim) -> bool {
     signature.info.core.message == *claim.message() && signature.info.core.slot == claim.slot()
 }
 
-/// Pays the one-time aggregation-bytecode compilation cost at startup.
+/// Initializes the process-wide resources used by recursive proofs.
 ///
-/// Calling this is optional. Aggregation and aggregate verification initialize the bytecode
-/// lazily themselves.
-pub fn warm_up() {
+/// Call this once before aggregating, decoding an aggregate, or verifying an aggregate. It is
+/// safe and inexpensive to call repeatedly after the first initialization.
+pub fn setup() {
     init_aggregation_bytecode();
+    INITIALIZED.get_or_init(|| ());
+}
+
+pub(crate) fn require_setup() -> Result<(), Error> {
+    INITIALIZED.get().copied().ok_or(Error::NotInitialized)
 }
 
 /// Combines raw and previously aggregated signatures proving one [`Claim`].
+///
+/// Call [`setup`] before using this function.
 ///
 /// Every input is self-contained: a raw signature already owns its public key, while an aggregate
 /// already owns its signer set. Callers neither classify entries nor maintain a parallel public-key
@@ -68,7 +78,7 @@ pub fn aggregate(signatures: Vec<Signature>, claim: &Claim) -> Result<Signature,
     if signatures.is_empty() {
         return Err(Error::Empty);
     }
-    init_aggregation_bytecode();
+    require_setup()?;
 
     let mut raw = Vec::new();
     let mut children = Vec::new();
@@ -152,6 +162,8 @@ fn execute<'a>(
 
 /// Verifies a signature and returns the canonical, deduplicated signer set it proves.
 ///
+/// Verifying an aggregate requires [`setup`]; verifying a raw signature does not.
+///
 /// This is the inspection-oriented operation. Most callers should use [`verify`], which also
 /// checks the expected signer set and cannot accidentally omit that authorization decision.
 #[must_use = "a valid signature is useful only after checking who signed it"]
@@ -168,7 +180,7 @@ pub fn verified_signers(signature: &Signature, claim: &Claim) -> Result<Vec<Publ
             Ok(vec![encode_public_key(public_key)])
         }
         Kind::Aggregate(signature) => {
-            init_aggregation_bytecode();
+            require_setup()?;
             if !proves(signature, claim) {
                 return Err(Error::MessageMismatch);
             }
@@ -202,6 +214,7 @@ mod tests {
 
     #[test]
     fn aggregate_rejects_a_wrong_raw_public_key_before_proving() {
+        setup();
         let alice = SecretKey::from_seed([1u8; 32], 100..=115).unwrap();
         let bob = SecretKey::from_seed([2u8; 32], 100..=115).unwrap();
         let Kind::Raw { signature, .. } = alice.sign(&CLAIM).unwrap().0 else {
@@ -245,7 +258,7 @@ mod tests {
     }
 
     fn unprovable_aggregate() -> Signature {
-        warm_up();
+        setup();
         let point = vec![EF::default(); rec_aggregation::get_aggregation_bytecode().cumulated_n_vars()];
         let mut public_key = vec![0u8; xmss::PUB_KEY_SSZ_LEN];
         public_key[0] = 1;

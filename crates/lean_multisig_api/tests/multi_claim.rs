@@ -1,6 +1,6 @@
 use lean_multisig_api::{
-    Claim, ClaimSigners, Error, MAX_CLAIMS, MultiClaimProof, SecretKey, aggregate, merge_claims, verified_claims,
-    verify_claims,
+    Claim, ClaimSigners, Error, MAX_CLAIMS, MultiClaimProof, SecretKey, aggregate, merge_claims, setup,
+    verified_claims, verify_claims,
 };
 use std::sync::OnceLock;
 
@@ -15,6 +15,7 @@ struct Fixture {
 fn fixture() -> &'static Fixture {
     static FIXTURE: OnceLock<Fixture> = OnceLock::new();
     FIXTURE.get_or_init(|| {
+        setup();
         let alice = SecretKey::from_seed([1; 32], 100..=115).unwrap();
         let bob = SecretKey::from_seed([2; 32], 100..=115).unwrap();
         let proposer = SecretKey::from_seed([3; 32], 100..=115).unwrap();
@@ -122,6 +123,7 @@ fn merging_no_signatures_is_rejected_before_proving() {
 
 #[test]
 fn a_proposer_only_bundle_can_contain_one_claim() {
+    setup();
     let claim = Claim::new([0xc3; 32], 200);
     let proposer = SecretKey::from_seed([4; 32], 200..=215).unwrap();
     let proof = merge_claims(vec![proposer.sign(&claim).unwrap()]).unwrap();

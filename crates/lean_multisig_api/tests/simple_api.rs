@@ -1,12 +1,13 @@
 use lean_multisig_api::{
-    Claim, ClaimSigners, MultiClaimProof, PublicKey, SecretKey, Signature, aggregate, merge_claims, verified_signers,
-    verify, verify_claims,
+    Claim, ClaimSigners, MultiClaimProof, PublicKey, SecretKey, Signature, aggregate, merge_claims, setup,
+    verified_signers, verify, verify_claims,
 };
 use std::collections::BTreeSet;
 use std::sync::Barrier;
 
 #[test]
 fn signatures_and_aggregates_share_one_opaque_api() {
+    setup();
     let claim = Claim::new([42u8; 32], 100);
     let alice = SecretKey::from_seed([1u8; 32], 100..=115).unwrap();
     let bob = SecretKey::from_seed([2u8; 32], 100..=115).unwrap();
@@ -33,6 +34,7 @@ fn signatures_and_aggregates_share_one_opaque_api() {
 
 #[test]
 fn multiple_claims_share_one_self_contained_proof() {
+    setup();
     let attestation = Claim::new([0xa1; 32], 100);
     let proposal = Claim::new([0xb2; 32], 101);
     let alice = SecretKey::from_seed([1; 32], 100..=115).unwrap();
@@ -65,6 +67,7 @@ fn multiple_claims_share_one_self_contained_proof() {
 
 #[test]
 fn a_single_claim_aggregate_can_be_merged_with_another_claim() {
+    setup();
     let attestation = Claim::new([0xc1; 32], 100);
     let proposal = Claim::new([0xd2; 32], 101);
     let alice = SecretKey::from_seed([4; 32], 100..=115).unwrap();
@@ -97,6 +100,7 @@ fn a_single_claim_aggregate_can_be_merged_with_another_claim() {
 
 #[test]
 fn concurrent_proving_without_the_arena_does_not_panic() {
+    setup();
     const THREADS: usize = 2;
     let barrier = Barrier::new(THREADS);
 

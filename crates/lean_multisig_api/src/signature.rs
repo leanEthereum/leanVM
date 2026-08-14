@@ -1,5 +1,5 @@
-use crate::Error;
-use rec_aggregation::{SingleMessageAggregateSignature, init_aggregation_bytecode};
+use crate::{Error, require_setup};
+use rec_aggregation::SingleMessageAggregateSignature;
 use ssz::{Decode, Encode};
 use std::fmt::{Debug, Formatter};
 use xmss::{XmssPublicKey, XmssSignature};
@@ -119,6 +119,9 @@ impl Signature {
 
     /// Restores a signature produced by [`Self::to_bytes`].
     ///
+    /// Call [`crate::setup`] first when decoding an aggregate. Raw signatures do not require
+    /// setup.
+    ///
     /// This checks framing and canonical encodings only. Use [`crate::verify`] or
     /// [`crate::aggregate`] to establish cryptographic validity.
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
@@ -146,7 +149,7 @@ impl Signature {
                 Ok(Self::raw(Claim::new(message, slot), public_key, signature))
             }
             AGGREGATE => {
-                init_aggregation_bytecode();
+                require_setup()?;
                 SingleMessageAggregateSignature::from_bytes(&bytes[HEADER_LEN..])
                     .map(Self::aggregate)
                     .ok_or(Error::MalformedSignature)

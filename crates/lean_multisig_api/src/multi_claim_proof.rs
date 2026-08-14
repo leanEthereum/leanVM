@@ -1,8 +1,7 @@
 use crate::signature::Kind;
-use crate::{Claim, Error, PublicKey, Signature, aggregate, encode_public_key};
+use crate::{Claim, Error, PublicKey, Signature, aggregate, encode_public_key, require_setup};
 use rec_aggregation::{
-    MultiMessageAggregateSignature, init_aggregation_bytecode, merge_single_message_aggregates,
-    verify_multi_message_aggregate,
+    MultiMessageAggregateSignature, merge_single_message_aggregates, verify_multi_message_aggregate,
 };
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::{Debug, Formatter};
@@ -49,13 +48,15 @@ impl MultiClaimProof {
 
     /// Restores a self-contained multi-claim proof produced by [`Self::to_bytes`].
     ///
+    /// Call [`crate::setup`] before using this function.
+    ///
     /// This checks framing, canonical encodings, and unique claims only. Use
     /// [`verify_claims`] or [`verified_claims`] to establish cryptographic validity.
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
         if bytes.len() <= HEADER_LEN || &bytes[..MAGIC.len()] != MAGIC || bytes[MAGIC.len()] != VERSION {
             return Err(Error::MalformedMultiClaimProof);
         }
-        init_aggregation_bytecode();
+        require_setup()?;
         let proof =
             MultiMessageAggregateSignature::from_bytes(&bytes[HEADER_LEN..]).ok_or(Error::MalformedMultiClaimProof)?;
         let claims = proof
@@ -71,6 +72,8 @@ impl MultiClaimProof {
 }
 
 /// Groups signatures by claim and proves all groups in one self-contained bundle.
+///
+/// Call [`crate::setup`] before using this function.
 ///
 /// Raw and already aggregated signatures may be mixed freely. Signatures for the same claim
 /// are combined before the resulting per-claim proofs are merged.
@@ -108,11 +111,13 @@ pub fn merge_claims(signatures: Vec<Signature>) -> Result<MultiClaimProof, Error
 
 /// Verifies a multi-claim proof and returns its canonical claim-to-signer mapping.
 ///
+/// Call [`crate::setup`] before using this function.
+///
 /// Most callers should use [`verify_claims`] so the expected authorization decision cannot be
 /// accidentally omitted.
 #[must_use = "a valid signature is useful only after checking its claims and signers"]
 pub fn verified_claims(proof: &MultiClaimProof) -> Result<Vec<ClaimSigners>, Error> {
-    init_aggregation_bytecode();
+    require_setup()?;
     verify_multi_message_aggregate(&proof.0)?;
     let mut groups = proof
         .0

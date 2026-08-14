@@ -4,6 +4,8 @@ use std::fmt::{Display, Formatter};
 #[non_exhaustive]
 #[derive(Debug)]
 pub enum Error {
+    /// [`crate::setup`] must be called before operations involving recursive proofs.
+    NotInitialized,
     KeyGen(xmss::XmssKeyGenError),
     Sign(xmss::XmssSignatureError),
     /// A raw signature did not verify. The index refers to the input of [`crate::aggregate`],
@@ -64,6 +66,7 @@ impl From<backend::ProofError> for Error {
 impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
+            Self::NotInitialized => write!(f, "Call lean_multisig_api::setup() before using recursive proofs"),
             Self::KeyGen(_) => write!(f, "Key generation failed"),
             Self::Sign(_) => write!(f, "XMSS signing operation failed"),
             Self::InvalidSignature { index, .. } => write!(f, "Signature {index} is invalid"),
@@ -87,6 +90,7 @@ impl Display for Error {
 impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
+            Self::NotInitialized => None,
             Self::KeyGen(err) => Some(err),
             Self::Sign(err) => Some(err),
             Self::InvalidSignature { source, .. } => Some(source),

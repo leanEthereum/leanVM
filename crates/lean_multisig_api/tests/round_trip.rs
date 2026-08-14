@@ -7,13 +7,12 @@
 //! cargo test --release -p lean_multisig_api --test round_trip -- --ignored
 //! ```
 
-use lean_multisig_api::{Claim, Error, PublicKey, SecretKey, Signature, aggregate, verified_signers, verify};
+use lean_multisig_api::{Claim, Error, PublicKey, SecretKey, Signature, aggregate, setup, verified_signers, verify};
 use ssz::Encode;
 use std::collections::BTreeSet;
-use std::sync::{Mutex, OnceLock};
+use std::sync::OnceLock;
 
 const CLAIM: Claim = Claim::new([42u8; 32], 100);
-static PROVE_LOCK: Mutex<()> = Mutex::new(());
 static BASE: OnceLock<Signature> = OnceLock::new();
 
 fn signers(n: u8) -> Vec<SecretKey> {
@@ -28,7 +27,7 @@ fn lone_key(seed: u8) -> SecretKey {
 }
 
 fn prove(signatures: Vec<Signature>, claim: &Claim) -> Result<Signature, Error> {
-    let _guard = PROVE_LOCK.lock().unwrap();
+    setup();
     aggregate(signatures, claim)
 }
 
