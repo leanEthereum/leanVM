@@ -1,6 +1,6 @@
 use lean_multisig_api::{
-    Claim, ClaimSigners, MultiClaimSignature, PublicKey, SecretKey, Signature, aggregate, merge_claims,
-    verified_signers, verify, verify_claims,
+    Claim, ClaimSigners, MultiClaimProof, PublicKey, SecretKey, Signature, aggregate, merge_claims, verified_signers,
+    verify, verify_claims,
 };
 use std::collections::BTreeSet;
 use std::sync::Barrier;
@@ -32,23 +32,23 @@ fn signatures_and_aggregates_share_one_opaque_api() {
 }
 
 #[test]
-fn multiple_claims_share_one_self_contained_signature() {
+fn multiple_claims_share_one_self_contained_proof() {
     let attestation = Claim::new([0xa1; 32], 100);
     let proposal = Claim::new([0xb2; 32], 101);
     let alice = SecretKey::from_seed([1; 32], 100..=115).unwrap();
     let bob = SecretKey::from_seed([2; 32], 100..=115).unwrap();
     let proposer = SecretKey::from_seed([3; 32], 100..=115).unwrap();
 
-    let signature = merge_claims(vec![
+    let proof = merge_claims(vec![
         alice.sign(&attestation).unwrap(),
         bob.sign(&attestation).unwrap(),
         proposer.sign(&proposal).unwrap(),
     ])
     .unwrap();
-    let signature = MultiClaimSignature::from_bytes(&signature.to_bytes()).unwrap();
+    let proof = MultiClaimProof::from_bytes(&proof.to_bytes()).unwrap();
 
     verify_claims(
-        &signature,
+        &proof,
         &[
             ClaimSigners {
                 claim: attestation,
@@ -76,11 +76,11 @@ fn a_single_claim_aggregate_can_be_merged_with_another_claim() {
         &attestation,
     )
     .unwrap();
-    let signature = merge_claims(vec![attestation_signature, proposer.sign(&proposal).unwrap()]).unwrap();
-    let signature = MultiClaimSignature::from_bytes(&signature.to_bytes()).unwrap();
+    let proof = merge_claims(vec![attestation_signature, proposer.sign(&proposal).unwrap()]).unwrap();
+    let proof = MultiClaimProof::from_bytes(&proof.to_bytes()).unwrap();
 
     verify_claims(
-        &signature,
+        &proof,
         &[
             ClaimSigners {
                 claim: attestation,

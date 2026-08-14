@@ -25,17 +25,17 @@ pub struct ClaimSigners {
 /// Build this from any mixture of raw and aggregated [`Signature`] values with
 /// [`merge_claims`]. Inputs sharing a claim are grouped automatically.
 #[derive(Clone)]
-pub struct MultiClaimSignature(pub(crate) MultiMessageAggregateSignature);
+pub struct MultiClaimProof(pub(crate) MultiMessageAggregateSignature);
 
-impl Debug for MultiClaimSignature {
+impl Debug for MultiClaimProof {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("MultiClaimSignature")
+        f.debug_struct("MultiClaimProof")
             .field("claims", &self.0.info.len())
             .finish_non_exhaustive()
     }
 }
 
-impl MultiClaimSignature {
+impl MultiClaimProof {
     /// Serializes the proof, claims, and signer sets into one versioned envelope.
     #[must_use]
     pub fn to_bytes(&self) -> Vec<u8> {
@@ -47,27 +47,26 @@ impl MultiClaimSignature {
         bytes
     }
 
-    /// Restores a self-contained multi-claim signature produced by [`Self::to_bytes`].
+    /// Restores a self-contained multi-claim proof produced by [`Self::to_bytes`].
     ///
     /// This checks framing, canonical encodings, and unique claims only. Use
     /// [`verify_claims`] or [`verified_claims`] to establish cryptographic validity.
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
         if bytes.len() <= HEADER_LEN || &bytes[..MAGIC.len()] != MAGIC || bytes[MAGIC.len()] != VERSION {
-            return Err(Error::MalformedMultiClaimSignature);
+            return Err(Error::MalformedMultiClaimProof);
         }
         init_aggregation_bytecode();
-        let signature = MultiMessageAggregateSignature::from_bytes(&bytes[HEADER_LEN..])
-            .ok_or(Error::MalformedMultiClaimSignature)?;
-        let claims = signature
+        let proof =
+            MultiMessageAggregateSignature::from_bytes(&bytes[HEADER_LEN..]).ok_or(Error::MalformedMultiClaimProof)?;
+        let claims = proof
             .info
             .iter()
             .map(|info| Claim::new(info.core.message, info.core.slot))
             .collect::<BTreeSet<_>>();
-        if signature.info.is_empty() || signature.info.len() > crate::MAX_CLAIMS || claims.len() != signature.info.len()
-        {
-            return Err(Error::MalformedMultiClaimSignature);
+        if proof.info.is_empty() || proof.info.len() > crate::MAX_CLAIMS || claims.len() != proof.info.len() {
+            return Err(Error::MalformedMultiClaimProof);
         }
-        Ok(Self(signature))
+        Ok(Self(proof))
     }
 }
 
@@ -75,7 +74,7 @@ impl MultiClaimSignature {
 ///
 /// Raw and already aggregated signatures may be mixed freely. Signatures for the same claim
 /// are combined before the resulting per-claim proofs are merged.
-pub fn merge_claims(signatures: Vec<Signature>) -> Result<MultiClaimSignature, Error> {
+pub fn merge_claims(signatures: Vec<Signature>) -> Result<MultiClaimProof, Error> {
     if signatures.is_empty() {
         return Err(Error::Empty);
     }
@@ -103,7 +102,7 @@ pub fn merge_claims(signatures: Vec<Signature>) -> Result<MultiClaimSignature, E
         .collect::<Result<Vec<_>, Error>>()?;
 
     merge_single_message_aggregates(single_claims, crate::plan::RATE_ROOT)
-        .map(MultiClaimSignature)
+        .map(MultiClaimProof)
         .map_err(Into::into)
 }
 
@@ -112,10 +111,10 @@ pub fn merge_claims(signatures: Vec<Signature>) -> Result<MultiClaimSignature, E
 /// Most callers should use [`verify_claims`] so the expected authorization decision cannot be
 /// accidentally omitted.
 #[must_use = "a valid signature is useful only after checking its claims and signers"]
-pub fn verified_claims(signature: &MultiClaimSignature) -> Result<Vec<ClaimSigners>, Error> {
+pub fn verified_claims(proof: &MultiClaimProof) -> Result<Vec<ClaimSigners>, Error> {
     init_aggregation_bytecode();
-    verify_multi_message_aggregate(&signature.0)?;
-    let mut groups = signature
+    verify_multi_message_aggregate(&proof.0)?;
+    let mut groups = proof
         .0
         .info
         .iter()
@@ -143,8 +142,8 @@ fn canonical_groups(groups: &[ClaimSigners]) -> Option<BTreeMap<Claim, BTreeSet<
 ///
 /// Claim-group and signer ordering are ignored, as are duplicate signers within one expected
 /// group. Repeating an expected claim as a second group is rejected.
-pub fn verify_claims(signature: &MultiClaimSignature, expected: &[ClaimSigners]) -> Result<(), Error> {
-    let proved = verified_claims(signature)?;
+pub fn verify_claims(proof: &MultiClaimProof, expected: &[ClaimSigners]) -> Result<(), Error> {
+    let proved = verified_claims(proof)?;
     let Some(proved) = canonical_groups(&proved) else {
         return Err(Error::ClaimSetMismatch);
     };

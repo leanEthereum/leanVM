@@ -1,27 +1,25 @@
 use lean_multisig_api::{
-    Claim, ClaimSigners, Error, MAX_CLAIMS, MultiClaimSignature, SecretKey, aggregate, merge_claims, verified_claims,
+    Claim, ClaimSigners, Error, MAX_CLAIMS, MultiClaimProof, SecretKey, aggregate, merge_claims, verified_claims,
     verify_claims,
 };
-use std::sync::{Mutex, OnceLock};
+use std::sync::OnceLock;
 
 const ATTESTATION: Claim = Claim::new([0xa1; 32], 100);
 const PROPOSAL: Claim = Claim::new([0xb2; 32], 101);
-static PROVE_LOCK: Mutex<()> = Mutex::new(());
 
 struct Fixture {
-    signature: MultiClaimSignature,
+    proof: MultiClaimProof,
     expected: Vec<ClaimSigners>,
 }
 
 fn fixture() -> &'static Fixture {
     static FIXTURE: OnceLock<Fixture> = OnceLock::new();
     FIXTURE.get_or_init(|| {
-        let _guard = PROVE_LOCK.lock().unwrap();
         let alice = SecretKey::from_seed([1; 32], 100..=115).unwrap();
         let bob = SecretKey::from_seed([2; 32], 100..=115).unwrap();
         let proposer = SecretKey::from_seed([3; 32], 100..=115).unwrap();
         let attestation_child = aggregate(vec![alice.sign(&ATTESTATION).unwrap()], &ATTESTATION).unwrap();
-        let signature = merge_claims(vec![
+        let proof = merge_claims(vec![
             proposer.sign(&PROPOSAL).unwrap(),
             bob.sign(&ATTESTATION).unwrap(),
             attestation_child,
@@ -37,16 +35,16 @@ fn fixture() -> &'static Fixture {
                 signers: vec![proposer.public_key()],
             },
         ];
-        Fixture { signature, expected }
+        Fixture { proof, expected }
     })
 }
 
 #[test]
 fn mixed_signatures_are_grouped_by_claim_and_verified_as_one_bundle() {
-    let Fixture { signature, expected } = fixture();
+    let Fixture { proof, expected } = fixture();
 
-    verify_claims(signature, expected).unwrap();
-    let proved = verified_claims(signature).unwrap();
+    verify_claims(proof, expected).unwrap();
+    let proved = verified_claims(proof).unwrap();
     assert_eq!(proved.len(), 2);
     assert!(
         proved
@@ -62,60 +60,57 @@ fn mixed_signatures_are_grouped_by_claim_and_verified_as_one_bundle() {
 
 #[test]
 fn self_contained_bundle_round_trips_without_external_claim_context() {
-    let Fixture { signature, expected } = fixture();
+    let Fixture { proof, expected } = fixture();
 
-    let restored = MultiClaimSignature::from_bytes(&signature.to_bytes()).unwrap();
+    let restored = MultiClaimProof::from_bytes(&proof.to_bytes()).unwrap();
 
     verify_claims(&restored, expected).unwrap();
 }
 
 #[test]
 fn authorization_rejects_a_wrong_claim_signer_mapping() {
-    let Fixture { signature, expected } = fixture();
+    let Fixture { proof, expected } = fixture();
     let mut wrong = expected.clone();
     wrong[0].signers.pop();
 
-    assert!(matches!(verify_claims(signature, &wrong), Err(Error::ClaimSetMismatch)));
+    assert!(matches!(verify_claims(proof, &wrong), Err(Error::ClaimSetMismatch)));
 }
 
 #[test]
 fn authorization_is_order_independent_but_rejects_repeated_claim_groups() {
-    let Fixture { signature, expected } = fixture();
+    let Fixture { proof, expected } = fixture();
     let mut reordered = expected.clone();
     reordered.reverse();
     reordered[1].signers.reverse();
     let duplicate = reordered[1].signers[0];
     reordered[1].signers.push(duplicate);
-    verify_claims(signature, &reordered).unwrap();
+    verify_claims(proof, &reordered).unwrap();
 
     let mut repeated = expected.clone();
     repeated.push(expected[0].clone());
-    assert!(matches!(
-        verify_claims(signature, &repeated),
-        Err(Error::ClaimSetMismatch)
-    ));
+    assert!(matches!(verify_claims(proof, &repeated), Err(Error::ClaimSetMismatch)));
 }
 
 #[test]
 fn malformed_multi_claim_envelopes_are_rejected() {
     assert!(matches!(
-        MultiClaimSignature::from_bytes(b"not a multi-claim signature"),
-        Err(Error::MalformedMultiClaimSignature)
+        MultiClaimProof::from_bytes(b"not a multi-claim proof"),
+        Err(Error::MalformedMultiClaimProof)
     ));
     assert!(matches!(
-        MultiClaimSignature::from_bytes(b"LMCM\x01"),
-        Err(Error::MalformedMultiClaimSignature)
+        MultiClaimProof::from_bytes(b"LMCM\x01"),
+        Err(Error::MalformedMultiClaimProof)
     ));
 }
 
 #[test]
 fn decoding_is_structural_and_verification_rejects_a_tampered_bundle() {
-    let mut bytes = fixture().signature.to_bytes();
+    let mut bytes = fixture().proof.to_bytes();
     *bytes.last_mut().unwrap() ^= 1;
 
-    match MultiClaimSignature::from_bytes(&bytes) {
-        Err(Error::MalformedMultiClaimSignature) => {}
-        Ok(signature) => assert!(verified_claims(&signature).is_err()),
+    match MultiClaimProof::from_bytes(&bytes) {
+        Err(Error::MalformedMultiClaimProof) => {}
+        Ok(proof) => assert!(verified_claims(&proof).is_err()),
         Err(other) => panic!("unexpected error: {other:?}"),
     }
 }
@@ -127,13 +122,12 @@ fn merging_no_signatures_is_rejected_before_proving() {
 
 #[test]
 fn a_proposer_only_bundle_can_contain_one_claim() {
-    let _guard = PROVE_LOCK.lock().unwrap();
     let claim = Claim::new([0xc3; 32], 200);
     let proposer = SecretKey::from_seed([4; 32], 200..=215).unwrap();
-    let signature = merge_claims(vec![proposer.sign(&claim).unwrap()]).unwrap();
+    let proof = merge_claims(vec![proposer.sign(&claim).unwrap()]).unwrap();
 
     verify_claims(
-        &signature,
+        &proof,
         &[ClaimSigners {
             claim,
             signers: vec![proposer.public_key()],

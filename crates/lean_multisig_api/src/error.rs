@@ -16,8 +16,8 @@ pub enum Error {
     Proof(backend::ProofError),
     /// A serialized [`crate::Signature`] envelope was malformed or unsupported.
     MalformedSignature,
-    /// A serialized [`crate::MultiClaimSignature`] envelope was malformed or unsupported.
-    MalformedMultiClaimSignature,
+    /// A serialized [`crate::MultiClaimProof`] envelope was malformed or unsupported.
+    MalformedMultiClaimProof,
     /// Secret-key bytes failed their format or integrity checks.
     MalformedSecretKey,
     TooManySigners {
@@ -70,8 +70,8 @@ impl Display for Error {
             Self::Aggregation(_) => write!(f, "Aggregation failed"),
             Self::Proof(_) => write!(f, "Proof error"),
             Self::MalformedSignature => write!(f, "The supplied bytes are not a well-formed signature"),
-            Self::MalformedMultiClaimSignature => {
-                write!(f, "The supplied bytes are not a well-formed multi-claim signature")
+            Self::MalformedMultiClaimProof => {
+                write!(f, "The supplied bytes are not a well-formed multi-claim proof")
             }
             Self::MalformedSecretKey => write!(f, "Secret key bytes failed validation"),
             Self::TooManySigners { got, max } => write!(f, "Too many signers: {got} (max {max})"),
@@ -93,7 +93,7 @@ impl std::error::Error for Error {
             Self::Aggregation(err) => Some(err),
             Self::Proof(err) => Some(err),
             Self::MalformedSignature
-            | Self::MalformedMultiClaimSignature
+            | Self::MalformedMultiClaimProof
             | Self::MalformedSecretKey
             | Self::TooManySigners { .. }
             | Self::TooManyClaims { .. }
