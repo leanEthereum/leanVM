@@ -1355,6 +1355,29 @@ mod tests {
         }
     }
 
+    /// `par_eval_eq` hands the kernel a middle slice of any length >= 2, so the hardcoded arms
+    /// below `log_packing_width` must agree with the unpacked-output twin. Calling the kernel
+    /// directly keeps this independent of the SIMD width and thread count.
+    #[test]
+    fn base_packed_kernel_handles_short_slices() {
+        let mut rng = StdRng::seed_from_u64(11);
+        let scalar: EF = rng.random();
+        let eq_evals = <F as Field>::Packing::from_fn(|_| rng.random());
+
+        for len in 1..=3 {
+            let points: Vec<F> = (0..len).map(|_| rng.random()).collect();
+
+            let mut expected = EF::zero_vec(<F as Field>::Packing::WIDTH << len);
+            base_eval_eq_packed::<F, EF, false>(&points, &mut expected, eq_evals, scalar);
+
+            let mut packed = EFPacking::<EF>::zero_vec(1 << len);
+            let packed_scalar = EFPacking::<EF>::from(scalar);
+            base_eval_eq_packed_with_packed_output::<F, EF, false>(&points, &mut packed, eq_evals, packed_scalar);
+
+            assert_eq!(expected, EFPacking::<EF>::to_ext_iter_vec(packed), "len = {len}");
+        }
+    }
+
     #[test]
     fn test_compute_eval_eq_packed_dual() {
         let packing_width = <F as Field>::Packing::WIDTH;
