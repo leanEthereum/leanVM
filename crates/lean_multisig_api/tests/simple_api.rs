@@ -3,13 +3,10 @@ use lean_multisig_api::{
     verified_signers, verify, verify_claims,
 };
 use std::collections::BTreeSet;
-use std::sync::Mutex;
-
-static PROVE_LOCK: Mutex<()> = Mutex::new(());
+use std::sync::Barrier;
 
 #[test]
 fn signatures_and_aggregates_share_one_opaque_api() {
-    let _guard = PROVE_LOCK.lock().unwrap();
     let claim = Claim::new([42u8; 32], 100);
     let alice = SecretKey::from_seed([1u8; 32], 100..=115).unwrap();
     let bob = SecretKey::from_seed([2u8; 32], 100..=115).unwrap();
@@ -36,7 +33,6 @@ fn signatures_and_aggregates_share_one_opaque_api() {
 
 #[test]
 fn multiple_claims_share_one_self_contained_signature() {
-    let _guard = PROVE_LOCK.lock().unwrap();
     let attestation = Claim::new([0xa1; 32], 100);
     let proposal = Claim::new([0xb2; 32], 101);
     let alice = SecretKey::from_seed([1; 32], 100..=115).unwrap();
@@ -69,7 +65,6 @@ fn multiple_claims_share_one_self_contained_signature() {
 
 #[test]
 fn a_single_claim_aggregate_can_be_merged_with_another_claim() {
-    let _guard = PROVE_LOCK.lock().unwrap();
     let attestation = Claim::new([0xc1; 32], 100);
     let proposal = Claim::new([0xd2; 32], 101);
     let alice = SecretKey::from_seed([4; 32], 100..=115).unwrap();
@@ -98,4 +93,32 @@ fn a_single_claim_aggregate_can_be_merged_with_another_claim() {
         ],
     )
     .unwrap();
+}
+
+#[test]
+fn concurrent_proving_without_the_arena_does_not_panic() {
+    const THREADS: usize = 2;
+    let barrier = Barrier::new(THREADS);
+
+    std::thread::scope(|scope| {
+        let handles = (0..THREADS)
+            .map(|index| {
+                let barrier = &barrier;
+                scope.spawn(move || {
+                    let byte = u8::try_from(index + 10).unwrap();
+                    let slot = u32::try_from(index + 200).unwrap();
+                    let claim = Claim::new([byte; 32], slot);
+                    let key = SecretKey::from_seed([byte; 32], slot..=slot).unwrap();
+                    let signature = key.sign(&claim).unwrap();
+
+                    barrier.wait();
+                    aggregate(vec![signature], &claim).unwrap()
+                })
+            })
+            .collect::<Vec<_>>();
+
+        for handle in handles {
+            handle.join().unwrap();
+        }
+    });
 }
