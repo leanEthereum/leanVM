@@ -10,10 +10,17 @@
 use rec_aggregation::MAX_RECURSIONS;
 use std::ops::Range;
 
-/// Raw signatures per leaf. Taken from `src/main.rs`'s tuned topology (leaves of 508..1550):
-/// 1500 sits just under the largest leaf that topology proves successfully (1550); the 2^22
-/// table height is the underlying bound but has not been computed against. See the design
-/// doc's open questions: this wants measuring.
+/// Raw signatures per leaf.
+///
+/// Originally taken from `src/main.rs`'s tuned topology (leaves of 508..1550), then measured:
+/// `round_trip.rs`'s two `#[ignore]`d boundary tests prove a full 1500-signature leaf and the
+/// 1501 split, so this is a size the prover demonstrably accepts rather than a number inherited
+/// from a benchmark.
+///
+/// Still unmeasured: the *largest* leaf that proves. 1500 sits under that topology's observed
+/// 1550 for inherited reasons, so this is known-good, not known-optimal, and the headroom above
+/// it is unknown. The 2^22 table height is the underlying bound but has never been computed
+/// against. Raising it is a measurement task, and those two tests are where to do it.
 pub(crate) const LEAF_TARGET: usize = 1500;
 
 /// Most children one node may recurse over. Upstream rejects `children.len() > MAX_RECURSIONS`,
@@ -57,7 +64,10 @@ pub(crate) enum Plan {
         /// `LEAF_TARGET` was tuned for raw-only nodes and the combined trace size is unmeasured.
         /// Upstream permits mixing (`src/main.rs` does it at raw counts of 10 and 25), so folding
         /// a small raw batch directly into a merging node — one proving job instead of two — is
-        /// open as a Task 6 tuning question.
+        /// still open. It is roughly a 2x on the incremental "add my signatures to an existing
+        /// aggregate" path, which is the likeliest real call shape. What blocks it is that
+        /// whether `LEAF_TARGET` raw plus a full fan-in of children fits the trace bound has
+        /// never been measured, and guessing wrong means a failed proof after minutes of work.
         raw: Range<usize>,
         children: Vec<Plan>,
         log_inv_rate: usize,
@@ -92,7 +102,11 @@ pub(crate) fn plan(n_raw: usize, n_children: usize) -> Plan {
     // of 1500 and 1, a whole proving job for one signature. `execute` proves nodes one after
     // another, so wall-clock is the sum over nodes and a greedy split is not itself worse
     // than a balanced 751 + 750 — the open question is whether per-node trace padding makes the
-    // degenerate leaf cost more than balancing would. Unmeasured; a Task 6 tuning question.
+    // degenerate leaf cost more than balancing would. Unmeasured.
+    //
+    // One data point against balancing: proving 1501 as [1500, 1] plus a root measures *faster*
+    // than proving 1500 as a single node (6.7s vs 8.2s), because leaves run at `RATE_LEAF` and
+    // only the root pays `RATE_ROOT`. The rate a node is assigned dominates the node count.
     let mut pool: Vec<Plan> = (0..n_raw)
         .step_by(LEAF_TARGET)
         .map(|start| Plan::Node {

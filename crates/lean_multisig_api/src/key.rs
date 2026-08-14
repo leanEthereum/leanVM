@@ -207,7 +207,7 @@ mod tests {
         // That `sign` and `public_key` agree is the type's functional contract, and it is the
         // one thing length checks and self-relative comparisons cannot see: a `public_key`
         // returning the wrong tree root, or a `sign` encoding against a slot other than the one
-        // asked for, leaves every other test in this module green. Task 6's `aggregate` consumes
+        // asked for, leaves every other test in this module green. `aggregate` consumes
         // both, where a disagreement costs a whole tree of proving before surfacing as something
         // unreadable.
         let sk = SecretKey::from_seed([1u8; 32], 100..=115).unwrap();
