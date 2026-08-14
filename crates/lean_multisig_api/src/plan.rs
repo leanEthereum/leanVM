@@ -34,6 +34,17 @@ pub(crate) const RATE_INTERNAL: usize = 2;
 /// Smallest proof. Only the root goes on the wire.
 pub(crate) const RATE_ROOT: usize = 4;
 
+// The three rates above are literals restating the band `lean_prover::default_whir_config`
+// accepts, and it `assert!`s rather than erroring — so a narrowed band upstream would abort
+// every aggregation at proving time with no compile-time or test-time signal. Same guard the
+// two constants above get, for the same reason: this crate does not own the value.
+const _: () = assert!(
+    RATE_LEAF >= lean_vm::MIN_WHIR_LOG_INV_RATE
+        && RATE_ROOT <= lean_vm::MAX_WHIR_LOG_INV_RATE
+        && RATE_LEAF <= RATE_INTERNAL
+        && RATE_INTERNAL <= RATE_ROOT
+);
+
 /// One node of the recursion tree, or a caller-supplied aggregate reused as-is.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum Plan {

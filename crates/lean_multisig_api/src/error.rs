@@ -6,7 +6,6 @@ use std::fmt::{Display, Formatter};
 pub enum Error {
     KeyGen(xmss::XmssKeyGenError),
     Sign(xmss::XmssSignatureError),
-    Verify(xmss::XmssVerifyError),
     Aggregation(rec_aggregation::AggregationError),
     Proof(backend::ProofError),
     /// A `proof_or_sig` entry was not `SIGNATURE_SSZ_LEN` bytes and did not parse as an
@@ -61,12 +60,6 @@ impl From<xmss::XmssSignatureError> for Error {
     }
 }
 
-impl From<xmss::XmssVerifyError> for Error {
-    fn from(err: xmss::XmssVerifyError) -> Self {
-        Self::Verify(err)
-    }
-}
-
 impl From<rec_aggregation::AggregationError> for Error {
     fn from(err: rec_aggregation::AggregationError) -> Self {
         Self::Aggregation(err)
@@ -88,7 +81,6 @@ impl Display for Error {
             // Not "Signing failed": `SecretKey::prepare` maps through this variant too, and it
             // signs nothing. The wording has to fit every entry point that can raise it.
             Self::Sign(_) => write!(f, "XMSS signing operation failed"),
-            Self::Verify(_) => write!(f, "Signature verification failed"),
             Self::Aggregation(_) => write!(f, "Aggregation failed"),
             Self::Proof(_) => write!(f, "Proof error"),
             Self::MalformedEntry { index } => {
@@ -121,7 +113,6 @@ impl std::error::Error for Error {
         match self {
             Self::KeyGen(e) => Some(e),
             Self::Sign(e) => Some(e),
-            Self::Verify(e) => Some(e),
             Self::Aggregation(e) => Some(e),
             Self::Proof(e) => Some(e),
             // Spelled out rather than `_`: `#[non_exhaustive]` does not apply inside the

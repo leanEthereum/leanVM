@@ -111,6 +111,12 @@ fn base_pubkeys() -> Vec<Vec<u8>> {
     signers(2).iter().map(SecretKey::public_key).collect()
 }
 
+/// [`base_pubkeys`] as a set, which is how every comparison against a proved signer set wants
+/// it — `proved_set` is the other half of the same pairing.
+fn base_set() -> BTreeSet<Vec<u8>> {
+    base_pubkeys().into_iter().collect()
+}
+
 /// A real aggregate over `(MSG, SLOT)` signed by `base_pubkeys()`.
 fn base() -> &'static [u8] {
     BASE.get_or_init(|| {
@@ -263,7 +269,7 @@ fn folding_an_aggregate_with_fresh_signatures_unions_the_signers() {
     )
     .unwrap();
 
-    let mut expected: BTreeSet<Vec<u8>> = base_pubkeys().into_iter().collect();
+    let mut expected = base_set();
     expected.insert(fresh.public_key());
     assert_eq!(expected.len(), 3, "the fresh signer must be a genuinely new key");
     assert_eq!(proved_set(&outer), expected);
@@ -292,7 +298,7 @@ fn duplicate_raw_signatures_collapse_to_one_signer() {
     let agg = prove(entries, pks, MSG, SLOT).unwrap();
     assert_eq!(
         proved_set(&agg),
-        base_pubkeys().into_iter().collect::<BTreeSet<_>>(),
+        base_set(),
         "a repeated signer must prove exactly once, and must not take the other one down with it"
     );
 }
@@ -317,7 +323,7 @@ fn a_signer_present_in_both_a_child_and_a_raw_batch_appears_once() {
 
     let agg = prove(entries, pks, MSG, SLOT).unwrap();
 
-    let mut expected: BTreeSet<Vec<u8>> = base_pubkeys().into_iter().collect();
+    let mut expected = base_set();
     expected.insert(fresh.public_key());
     assert_eq!(expected.len(), 3, "two from the child plus one new one");
     assert_eq!(
@@ -380,11 +386,7 @@ fn a_lone_valid_aggregate_is_passed_through_unchanged() {
     // which is what shows the check does not reject *valid* aggregates too).
     let out = prove(vec![base().to_vec()], vec![], MSG, SLOT).unwrap();
 
-    assert_eq!(
-        proved_set(&out),
-        base_pubkeys().into_iter().collect::<BTreeSet<_>>(),
-        "a passthrough must not change who signed"
-    );
+    assert_eq!(proved_set(&out), base_set(), "a passthrough must not change who signed");
     // Decode/re-encode is the identity, so the passthrough is a passthrough in bytes and not
     // merely in meaning. `rebuild_bytecode_claim` recomputes the claim's value on the way in and
     // `to_bytes` never writes it, so the round trip has nothing to drift on.

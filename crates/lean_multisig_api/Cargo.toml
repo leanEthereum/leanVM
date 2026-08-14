@@ -7,6 +7,9 @@ edition.workspace = true
 workspace = true
 
 [dependencies]
+# `lean_vm` is here only for the compile-time assertion in `plan.rs` that the crate's
+# `log_inv_rate` choices sit inside the band `lean_prover::default_whir_config` accepts.
+lean_vm.workspace = true
 xmss.workspace = true
 rec_aggregation.workspace = true
 backend.workspace = true
@@ -14,11 +17,10 @@ ssz.workspace = true
 postcard.workspace = true
 rand.workspace = true
 
-# `tests/unprovable_child.rs` hand-builds an aggregate envelope, which needs the field types its
-# wire format is made of. Everything else the tests use comes from `[dependencies]`, which
-# integration tests can also see.
+# Integration tests also see `[dependencies]`, so only feature additions belong here.
+# `tests/unprovable_child.rs` hand-builds an aggregate envelope from `lean_vm`'s field types,
+# which `[dependencies]` already provides.
 [dev-dependencies]
-lean_vm.workspace = true
 # `round_trip.rs`'s `#[ignore]`d LEAF_TARGET tests need 1501 real signatures, which
 # `xmss::signers_cache` has pre-generated and cached on disk. The feature is already on in any
 # workspace build because `rec_aggregation` enables it, so this line changes nothing today — it

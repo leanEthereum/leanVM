@@ -25,19 +25,31 @@ use rec_aggregation::{
 use ssz::Encode;
 use std::borrow::Cow;
 use std::collections::BTreeSet;
-use xmss::{XmssPublicKey, XmssSignature};
+use xmss::XmssPublicKey;
 
+use crate::codec::Raw;
 pub use error::Error;
 pub use key::SecretKey;
 
-/// A raw signature paired with the public key that produced it.
-type Raw = (XmssPublicKey, XmssSignature);
+/// Whether `sig` proves the `(message, slot)` asked for.
+///
+/// One rule, one spelling: `aggregate` applies it to every supplied child and `verify` to the
+/// aggregate handed in, and both raise [`Error::MessageMismatch`] from it. Also the only place
+/// reaching two levels into `rec_aggregation`'s struct, so a layout change lands here alone.
+fn proves(sig: &SingleMessageAggregateSignature, message: &[u8; 32], slot: u32) -> bool {
+    &sig.info.core.message == message && sig.info.core.slot == slot
+}
 
 /// Pays the one-time aggregation-bytecode compile up front.
 ///
 /// Entirely optional: [`aggregate`], [`verify`] and [`verify_with_signers`] all do this
 /// themselves, and it is idempotent, so this only moves *when* the cost lands. A long-running
 /// service calls it at startup rather than paying it inside its first real request.
+///
+/// It warms the bytecode compile and nothing else. The worker pool and the DFT twiddle table
+/// are also built lazily on first use, and this does not touch either — an embedder that wants
+/// those paid at startup too calls `lean_multisig::setup_prover_without_arena` (or
+/// `setup_prover`, which additionally engages the arena; see [`aggregate`]'s `# Cost`).
 ///
 /// # Panics
 ///
@@ -133,10 +145,7 @@ pub fn aggregate(
     // sibling is a passthrough, but only after proving them if any sibling is a node this call
     // has to prove first. Checking the flat vector here covers every child wherever the
     // planner later puts it.
-    if children
-        .iter()
-        .any(|c| c.info.core.message != message || c.info.core.slot != slot)
-    {
+    if !children.iter().all(|c| proves(c, &message, slot)) {
         return Err(Error::MessageMismatch);
     }
 
@@ -277,7 +286,7 @@ pub fn verify(aggregate: &[u8], message: &[u8; 32], slot: u32) -> Result<Vec<Vec
     // uninitialized, which would report a perfectly good aggregate as malformed.
     init_aggregation_bytecode();
     let sig = SingleMessageAggregateSignature::from_bytes(aggregate).ok_or(Error::MalformedAggregate)?;
-    if &sig.info.core.message != message || sig.info.core.slot != slot {
+    if !proves(&sig, message, slot) {
         return Err(Error::MessageMismatch);
     }
     verify_single_message_aggregate(&sig)?;
@@ -301,9 +310,12 @@ pub fn verify_with_signers(aggregate: &[u8], expected: &[Vec<u8>], message: &[u8
     // Inherits the bytecode initialization from `verify`, which is the first thing this calls
     // and which initializes before it parses anything.
     let proved = verify(aggregate, message, slot)?;
-    let proved: BTreeSet<&[u8]> = proved.iter().map(Vec::as_slice).collect();
+    // Only `expected` needs collecting: `verify` returns a set that `check_single_message_pubkeys`
+    // already enforced to be strictly sorted, so it holds no repeats and a length match plus
+    // containment is exact. Building a second tree of up to 32768 nodes only to compare it
+    // against the first is work this path runs per gossiped aggregate.
     let expected: BTreeSet<&[u8]> = expected.iter().map(Vec::as_slice).collect();
-    if proved == expected {
+    if proved.len() == expected.len() && proved.iter().all(|p| expected.contains(p.as_slice())) {
         Ok(())
     } else {
         Err(Error::SignerSetMismatch)
@@ -314,6 +326,7 @@ pub fn verify_with_signers(aggregate: &[u8], expected: &[Vec<u8>], message: &[u8
 mod tests {
     use super::*;
     use ssz::Decode;
+    use xmss::XmssSignature;
 
     const MSG: [u8; 32] = [42u8; 32];
     const SLOT: u32 = 100;

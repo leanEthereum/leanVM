@@ -10,7 +10,10 @@ use ssz::Decode;
 use xmss::{SIGNATURE_SSZ_LEN, XmssPublicKey, XmssSignature};
 
 /// A raw signature paired with the public key that produced it.
-type Raw = (XmssPublicKey, XmssSignature);
+///
+/// Shared with `lib.rs` rather than restated there: the two only ever typechecked against each
+/// other because the tuples happened to be written identically.
+pub(crate) type Raw = (XmssPublicKey, XmssSignature);
 
 /// A raw XMSS signature is exactly `SIGNATURE_SSZ_LEN` bytes; anything else is parsed as an
 /// aggregate. Counted once and dispatched on once, so the two cannot drift apart.

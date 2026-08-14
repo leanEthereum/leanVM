@@ -28,6 +28,16 @@
   Moving the table to `[workspace.lints.clippy]` would fix it, but surfaces a backlog across
   the 19 member crates, so it wants doing deliberately rather than as a drive-by.
 
+- `#[ignore]` carries two meanings, so CI selects slow tests by naming a binary. It marks both
+  "this is a benchmark, never run it in CI" (`benchmark_poseidons.rs`, `benchmark.rs`,
+  `grinding.rs`, `wots.rs`, `quotient_gkr`, `test_zkvm.rs`) and "this is a real test, too slow
+  for a local run, but CI must run it" (`lean_multisig_api`'s two `LEAF_TARGET` boundary tests).
+  Because `--include-ignored` cannot tell them apart, `rust.yml`'s `Ignored slow tests` step
+  names one test binary explicitly. That is correct today but is a hand-maintained allowlist:
+  the next ignored-but-required test is silently not run, with nothing failing to say so.
+  Distinguishing them — keep `#[ignore]` for benchmarks, gate slow-but-required tests behind a
+  `slow-tests` feature — would let CI run one command with no per-binary list.
+
 # Ideas
 
 - About range checks, that can currently be done in 3 cycles (see 2.5.3 of the zkVM pdf) + 3 memory cells used. For small ranges we can save 2 memory cells.
