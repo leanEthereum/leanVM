@@ -91,7 +91,8 @@ fn test_single_message_aggregation() {
     let without_pubkeys = final_sig.to_bytes_without_pubkeys();
     assert!(without_pubkeys.len() < serialized_proof.len());
     let reattached =
-        SingleMessageAggregateSignature::from_bytes_without_pubkeys(&without_pubkeys, final_sig.info.pubkeys).unwrap();
+        SingleMessageAggregateSignature::from_bytes_without_pubkeys(&without_pubkeys, final_sig.info.pubkeys.clone())
+            .unwrap();
     verify_single_message_aggregate(&reattached).unwrap();
 
     // A wrong signer set makes verification fail.
@@ -99,6 +100,25 @@ fn test_single_message_aggregation() {
         SingleMessageAggregateSignature::from_bytes_without_pubkeys(&without_pubkeys, vec![signatures[7].0.clone()])
             .unwrap();
     assert!(verify_single_message_aggregate(&wrong_set).is_err());
+
+    // Context-free serialization relies on the outer protocol container for all semantics.
+    let without_context = final_sig.to_bytes_without_context();
+    let reattached = SingleMessageAggregateSignature::from_bytes_without_context(
+        &without_context,
+        message,
+        slot,
+        final_sig.info.pubkeys.clone(),
+    )
+    .unwrap();
+    verify_single_message_aggregate(&reattached).unwrap();
+    let wrong_context = SingleMessageAggregateSignature::from_bytes_without_context(
+        &without_context,
+        [0xff; xmss::MESSAGE_LEN_BYTES],
+        slot,
+        final_sig.info.pubkeys,
+    )
+    .unwrap();
+    assert!(verify_single_message_aggregate(&wrong_context).is_err());
 }
 
 #[test]
@@ -152,6 +172,16 @@ fn test_multi_message_aggregation() {
     let pubkeys_per_info: Vec<_> = multi_message.info.iter().map(|i| i.pubkeys.clone()).collect();
     let reattached =
         MultiMessageAggregateSignature::from_bytes_without_pubkeys(&without_pubkeys, pubkeys_per_info).unwrap();
+    verify_multi_message_aggregate(&reattached).unwrap();
+
+    // Context-free serialization relies on one externally resolved context per component.
+    let without_context = multi_message.to_bytes_without_context();
+    let contexts = multi_message
+        .info
+        .iter()
+        .map(|info| (info.core.message, info.core.slot, info.pubkeys.clone()))
+        .collect();
+    let reattached = MultiMessageAggregateSignature::from_bytes_without_context(&without_context, contexts).unwrap();
     verify_multi_message_aggregate(&reattached).unwrap();
 
     let time = Instant::now();

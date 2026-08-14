@@ -15,12 +15,15 @@ fn signatures_and_aggregates_share_one_opaque_api() {
     let alice_signature = alice.sign(&claim).unwrap();
     let bob_signature = bob.sign(&claim).unwrap();
 
-    let alice_signature = Signature::from_bytes(&alice_signature.to_bytes()).unwrap();
+    let alice_bytes = alice_signature.to_bytes();
+    assert_eq!(alice_bytes.len(), 6 + xmss::SIGNATURE_SSZ_LEN);
+    assert_eq!(alice_bytes[4], 1);
+    let alice_signature = Signature::from_bytes(&alice_bytes, &claim, &[alice.public_key()]).unwrap();
     let aggregate = aggregate(vec![alice_signature, bob_signature], &claim).unwrap();
-    let aggregate = Signature::from_bytes(&aggregate.to_bytes()).unwrap();
 
     let _: [u8; 32] = alice.public_key();
     let expected: Vec<PublicKey> = vec![alice.public_key(), bob.public_key()];
+    let aggregate = Signature::from_bytes(&aggregate.to_bytes(), &claim, &expected).unwrap();
     verify(&aggregate, &expected, &claim).unwrap();
 
     assert_eq!(
@@ -33,7 +36,7 @@ fn signatures_and_aggregates_share_one_opaque_api() {
 }
 
 #[test]
-fn multiple_claims_share_one_self_contained_proof() {
+fn multiple_claims_use_context_resolved_from_the_outer_container() {
     setup();
     let attestation = Claim::new([0xa1; 32], 100);
     let proposal = Claim::new([0xb2; 32], 101);
@@ -47,22 +50,21 @@ fn multiple_claims_share_one_self_contained_proof() {
         proposer.sign(&proposal).unwrap(),
     ])
     .unwrap();
-    let proof = MultiClaimProof::from_bytes(&proof.to_bytes()).unwrap();
+    let groups = [
+        ClaimSigners {
+            claim: attestation,
+            signers: vec![alice.public_key(), bob.public_key()],
+        },
+        ClaimSigners {
+            claim: proposal,
+            signers: vec![proposer.public_key()],
+        },
+    ];
+    let proof_bytes = proof.to_bytes();
+    assert_eq!(proof_bytes[4], 1);
+    let proof = MultiClaimProof::from_bytes(&proof_bytes, &groups).unwrap();
 
-    verify_claims(
-        &proof,
-        &[
-            ClaimSigners {
-                claim: attestation,
-                signers: vec![alice.public_key(), bob.public_key()],
-            },
-            ClaimSigners {
-                claim: proposal,
-                signers: vec![proposer.public_key()],
-            },
-        ],
-    )
-    .unwrap();
+    verify_claims(&proof, &groups).unwrap();
 }
 
 #[test]
@@ -80,22 +82,19 @@ fn a_single_claim_aggregate_can_be_merged_with_another_claim() {
     )
     .unwrap();
     let proof = merge_claims(vec![attestation_signature, proposer.sign(&proposal).unwrap()]).unwrap();
-    let proof = MultiClaimProof::from_bytes(&proof.to_bytes()).unwrap();
+    let groups = [
+        ClaimSigners {
+            claim: attestation,
+            signers: vec![alice.public_key(), bob.public_key()],
+        },
+        ClaimSigners {
+            claim: proposal,
+            signers: vec![proposer.public_key()],
+        },
+    ];
+    let proof = MultiClaimProof::from_bytes(&proof.to_bytes(), &groups).unwrap();
 
-    verify_claims(
-        &proof,
-        &[
-            ClaimSigners {
-                claim: attestation,
-                signers: vec![alice.public_key(), bob.public_key()],
-            },
-            ClaimSigners {
-                claim: proposal,
-                signers: vec![proposer.public_key()],
-            },
-        ],
-    )
-    .unwrap();
+    verify_claims(&proof, &groups).unwrap();
 }
 
 #[test]

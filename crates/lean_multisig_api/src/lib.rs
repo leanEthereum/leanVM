@@ -1,10 +1,11 @@
 //! A small, opinionated facade over XMSS and recursive aggregation.
 //!
 //! [`Signature`] hides whether one-claim contribution is a raw XMSS signature or an aggregate.
-//! [`MultiClaimProof`] groups any mixture of those contributions by claim and binds the
-//! resulting groups in one self-contained proof. The recursion topology, proof parameters,
-//! public-key pairing, and proof representations are internal choices. Call [`setup`] once before
-//! using operations involving recursive proofs.
+//! [`MultiClaimProof`] groups any mixture of those contributions by claim and binds the resulting
+//! groups in one proof. Wire encodings contain cryptographic material only; claims and signer sets
+//! are supplied from the outer protocol container when decoding. The recursion topology, proof
+//! parameters, public-key pairing, and proof representations are internal choices. Call [`setup`]
+//! once before using operations involving recursive proofs.
 #![cfg_attr(not(test), warn(unused_crate_dependencies))]
 
 mod error;
@@ -18,7 +19,7 @@ use rec_aggregation::{
     init_aggregation_bytecode, verify_single_message_aggregate,
 };
 use signature::Kind;
-use ssz::Encode;
+use ssz::{Decode, Encode};
 use std::borrow::Cow;
 use std::collections::BTreeSet;
 use std::sync::OnceLock;
@@ -50,6 +51,16 @@ pub(crate) fn encode_public_key(public_key: &XmssPublicKey) -> PublicKey {
         .expect("XMSS public-key SSZ encoding must be 32 bytes")
 }
 
+pub(crate) fn decode_public_keys(public_keys: &[PublicKey]) -> Result<Vec<XmssPublicKey>, Error> {
+    let mut decoded = public_keys
+        .iter()
+        .map(|bytes| XmssPublicKey::from_ssz_bytes(bytes).map_err(|_| Error::MalformedPublicKey))
+        .collect::<Result<Vec<_>, _>>()?;
+    decoded.sort();
+    decoded.dedup();
+    Ok(decoded)
+}
+
 fn proves(signature: &SingleMessageAggregateSignature, claim: &Claim) -> bool {
     signature.info.core.message == *claim.message() && signature.info.core.slot == claim.slot()
 }
@@ -71,9 +82,9 @@ pub(crate) fn require_setup() -> Result<(), Error> {
 ///
 /// Call [`setup`] before using this function.
 ///
-/// Every input is self-contained: a raw signature already owns its public key, while an aggregate
-/// already owns its signer set. Callers neither classify entries nor maintain a parallel public-key
-/// vector. Raw signatures and supplied aggregate proofs are verified before proving begins.
+/// Every in-memory input owns its context: a raw signature has its public key, while an aggregate
+/// has its signer set. Callers neither classify entries nor maintain a parallel public-key vector.
+/// Raw signatures and supplied aggregate proofs are verified before proving begins.
 pub fn aggregate(signatures: Vec<Signature>, claim: &Claim) -> Result<Signature, Error> {
     if signatures.is_empty() {
         return Err(Error::Empty);
@@ -262,15 +273,11 @@ mod tests {
         let point = vec![EF::default(); rec_aggregation::get_aggregation_bytecode().cumulated_n_vars()];
         let mut public_key = vec![0u8; xmss::PUB_KEY_SSZ_LEN];
         public_key[0] = 1;
-        let public_keys = vec![XmssPublicKey::from_ssz_bytes(&public_key).unwrap()];
-        let payload = postcard::to_allocvec(&(
-            (*CLAIM.message(), CLAIM.slot(), point),
-            public_keys,
-            (Vec::<F>::new(), Vec::<u8>::new()),
-        ))
-        .unwrap();
+        let public_keys = [XmssPublicKey::from_ssz_bytes(&public_key).unwrap()];
+        let payload = postcard::to_allocvec(&(point, (Vec::<F>::new(), Vec::<u8>::new()))).unwrap();
         let mut envelope = b"LMSI\x01\x01".to_vec();
         envelope.extend(payload);
-        Signature::from_bytes(&envelope).unwrap()
+        let public_keys = public_keys.iter().map(encode_public_key).collect::<Vec<_>>();
+        Signature::from_bytes(&envelope, &CLAIM, &public_keys).unwrap()
     }
 }

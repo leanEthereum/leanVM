@@ -143,6 +143,38 @@ impl SingleMessageAggregateSignature {
         let info = core.with_pubkeys(pubkeys)?;
         Some(Self { info, proof })
     }
+
+    /// Serialize only the cryptographic proof material. The message, slot, and signer set must
+    /// come from the protocol container that carries these bytes.
+    #[doc(hidden)]
+    pub fn to_bytes_without_context(&self) -> Vec<u8> {
+        postcard::to_allocvec(&(&self.info.core.bytecode_claim.point, &self.proof))
+            .expect("postcard serialization failed")
+    }
+
+    /// Inverse of [`Self::to_bytes_without_context`]; the caller supplies the protocol context.
+    /// Context different from the one aggregated makes verification fail.
+    #[doc(hidden)]
+    pub fn from_bytes_without_context(
+        bytes: &[u8],
+        message: [u8; MESSAGE_LEN_BYTES],
+        slot: u32,
+        pubkeys: Vec<XmssPublicKey>,
+    ) -> Option<Self> {
+        let _forbid = parallel::forbid_parallelism();
+        let ((bytecode_claim_point, proof), rest) =
+            postcard::take_from_bytes::<(MultilinearPoint<EF>, ExecutionProof)>(bytes).ok()?;
+        if !rest.is_empty() {
+            return None;
+        }
+        let core = SingleMessageCore {
+            message,
+            slot,
+            bytecode_claim: rebuild_bytecode_claim(bytecode_claim_point).ok()?,
+        };
+        let info = core.with_pubkeys(pubkeys)?;
+        Some(Self { info, proof })
+    }
 }
 
 impl SingleMessageInfo {

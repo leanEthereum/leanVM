@@ -48,8 +48,8 @@ fn signer_set(signature: &Signature, claim: &Claim) -> BTreeSet<PublicKey> {
 
 #[test]
 fn aggregate_round_trips_through_the_public_wire_format() {
-    let aggregate = Signature::from_bytes(&base().to_bytes()).unwrap();
     let expected = base_public_keys();
+    let aggregate = Signature::from_bytes(&base().to_bytes(), &CLAIM, &expected).unwrap();
 
     verify(&aggregate, &expected, &CLAIM).unwrap();
     assert_eq!(signer_set(&aggregate, &CLAIM), expected.into_iter().collect());
@@ -67,6 +67,33 @@ fn verification_binds_the_claim_and_signer_set() {
     assert!(matches!(
         verify(base(), &[base_public_keys()[0], outsider], &CLAIM),
         Err(Error::SignerSetMismatch)
+    ));
+}
+
+#[test]
+fn decoded_aggregate_is_bound_to_the_supplied_outer_context() {
+    let bytes = base().to_bytes();
+    let expected = base_public_keys();
+    let wrong_claim = Claim::new([7u8; 32], CLAIM.slot());
+    let wrong_claim_signature = Signature::from_bytes(&bytes, &wrong_claim, &expected).unwrap();
+    assert!(verified_signers(&wrong_claim_signature, &wrong_claim).is_err());
+
+    let wrong_signers = [expected[0], lone_key(200).public_key()];
+    let wrong_signer_signature = Signature::from_bytes(&bytes, &CLAIM, &wrong_signers).unwrap();
+    assert!(verified_signers(&wrong_signer_signature, &CLAIM).is_err());
+}
+
+#[test]
+fn decoding_rejects_missing_or_malformed_signer_context() {
+    assert!(matches!(
+        Signature::from_bytes(&base().to_bytes(), &CLAIM, &[]),
+        Err(Error::SignerSetMismatch)
+    ));
+
+    let raw = lone_key(205).sign(&CLAIM).unwrap();
+    assert!(matches!(
+        Signature::from_bytes(&raw.to_bytes(), &CLAIM, &[[0xff; 32]]),
+        Err(Error::MalformedPublicKey)
     ));
 }
 
@@ -130,13 +157,20 @@ fn mismatched_inputs_are_rejected_before_a_new_proof() {
 #[test]
 fn malformed_and_tampered_envelopes_are_rejected() {
     assert!(matches!(
-        Signature::from_bytes(b"not a signature"),
+        Signature::from_bytes(b"not a signature", &CLAIM, &[]),
+        Err(Error::MalformedSignature)
+    ));
+
+    let mut unsupported_version = base().to_bytes();
+    unsupported_version[4] = 0;
+    assert!(matches!(
+        Signature::from_bytes(&unsupported_version, &CLAIM, &base_public_keys()),
         Err(Error::MalformedSignature)
     ));
 
     let mut bytes = base().to_bytes();
     *bytes.last_mut().unwrap() ^= 0xff;
-    match Signature::from_bytes(&bytes) {
+    match Signature::from_bytes(&bytes, &CLAIM, &base_public_keys()) {
         Err(Error::MalformedSignature) => {}
         Ok(signature) => assert!(verified_signers(&signature, &CLAIM).is_err()),
         Err(other) => panic!("unexpected error: {other:?}"),
@@ -149,7 +183,8 @@ fn decoding_is_structural_and_verification_rejects_a_tampered_raw_signature() {
     let mut bytes = key.sign(&CLAIM).unwrap().to_bytes();
     *bytes.last_mut().unwrap() ^= 1;
 
-    let signature = Signature::from_bytes(&bytes).expect("the tagged envelope is still structurally valid");
+    let signature = Signature::from_bytes(&bytes, &CLAIM, &[key.public_key()])
+        .expect("the tagged envelope is still structurally valid");
     assert!(matches!(
         verify(&signature, &[key.public_key()], &CLAIM),
         Err(Error::InvalidSignature { index: 0, .. })
@@ -184,12 +219,10 @@ fn cached_batch(n: usize) -> (Vec<Signature>, Vec<PublicKey>, Claim) {
         .map(|(public_key, signature)| {
             let public_key_bytes = public_key.as_ssz_bytes();
             public_keys.push(public_key_bytes.as_slice().try_into().unwrap());
+            let public_key: PublicKey = public_key_bytes.as_slice().try_into().unwrap();
             let mut bytes = b"LMSI\x01\x00".to_vec();
-            bytes.extend_from_slice(claim.message());
-            bytes.extend_from_slice(&claim.slot().to_le_bytes());
-            bytes.extend(public_key_bytes);
             bytes.extend(signature.as_ssz_bytes());
-            Signature::from_bytes(&bytes).unwrap()
+            Signature::from_bytes(&bytes, &claim, &[public_key]).unwrap()
         })
         .collect();
     (signatures, public_keys, claim)

@@ -1,4 +1,4 @@
-use crate::{Error, require_setup};
+use crate::{Error, PublicKey, decode_public_keys, require_setup};
 use rec_aggregation::SingleMessageAggregateSignature;
 use ssz::{Decode, Encode};
 use std::fmt::{Debug, Formatter};
@@ -9,7 +9,7 @@ const VERSION: u8 = 1;
 const RAW: u8 = 0;
 const AGGREGATE: u8 = 1;
 const HEADER_LEN: usize = MAGIC.len() + 2;
-const RAW_LEN: usize = HEADER_LEN + 32 + 4 + xmss::PUB_KEY_SSZ_LEN + xmss::SIGNATURE_SSZ_LEN;
+const RAW_LEN: usize = HEADER_LEN + xmss::SIGNATURE_SSZ_LEN;
 
 /// The statement signed by every input to one aggregation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -40,7 +40,8 @@ impl Claim {
 /// The representation is deliberately private. Values produced by [`crate::SecretKey::sign`]
 /// and [`crate::aggregate`] can be mixed in one vector, serialized with [`Self::to_bytes`], and
 /// restored with [`Self::from_bytes`] without the caller identifying which representation they
-/// contain.
+/// contain. Serialized values rely on the claim and signer set carried by the outer protocol
+/// container.
 #[derive(Clone)]
 pub struct Signature(pub(crate) Kind);
 
@@ -90,69 +91,73 @@ impl Signature {
         }
     }
 
-    /// Serializes this facade signature into a tagged, self-describing envelope.
+    /// Serializes the cryptographic material into a tagged envelope.
+    ///
+    /// The claim and signer set are intentionally omitted. They belong in the outer protocol
+    /// container and must be supplied to [`Self::from_bytes`].
     #[must_use]
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut out = Vec::new();
         out.extend_from_slice(MAGIC);
         out.push(VERSION);
         match &self.0 {
-            Kind::Raw {
-                claim,
-                public_key,
-                signature,
-            } => {
+            Kind::Raw { signature, .. } => {
                 out.reserve(RAW_LEN - out.len());
                 out.push(RAW);
-                out.extend_from_slice(claim.message());
-                out.extend_from_slice(&claim.slot().to_le_bytes());
-                out.extend_from_slice(&public_key.as_ssz_bytes());
                 out.extend_from_slice(&signature.as_ssz_bytes());
             }
             Kind::Aggregate(signature) => {
                 out.push(AGGREGATE);
-                out.extend_from_slice(&signature.to_bytes());
+                out.extend_from_slice(&signature.to_bytes_without_context());
             }
         }
         out
     }
 
-    /// Restores a signature produced by [`Self::to_bytes`].
+    /// Restores a signature produced by [`Self::to_bytes`] using context resolved from the outer
+    /// protocol container.
     ///
     /// Call [`crate::setup`] first when decoding an aggregate. Raw signatures do not require
     /// setup.
     ///
-    /// This checks framing and canonical encodings only. Use [`crate::verify`] or
-    /// [`crate::aggregate`] to establish cryptographic validity.
-    pub fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
+    /// Signer ordering and duplicates are ignored. A raw signature requires exactly one distinct
+    /// signer. When signers originate in a validator bitlist, resolve that bitlist to public keys
+    /// before calling this method. This checks framing and canonical encodings only; use
+    /// [`crate::verify`] or [`crate::aggregate`] to establish that the supplied context is the one
+    /// proved.
+    pub fn from_bytes(bytes: &[u8], claim: &Claim, signers: &[PublicKey]) -> Result<Self, Error> {
         if bytes.len() < HEADER_LEN || &bytes[..MAGIC.len()] != MAGIC || bytes[MAGIC.len()] != VERSION {
             return Err(Error::MalformedSignature);
         }
+        let public_keys = decode_public_keys(signers)?;
+        if public_keys.len() > rec_aggregation::MAX_XMSS_AGGREGATED {
+            return Err(Error::TooManySigners {
+                got: public_keys.len(),
+                max: rec_aggregation::MAX_XMSS_AGGREGATED,
+            });
+        }
+        if public_keys.is_empty() {
+            return Err(Error::SignerSetMismatch);
+        }
         match bytes[MAGIC.len() + 1] {
             RAW if bytes.len() == RAW_LEN => {
-                let mut offset = HEADER_LEN;
-                let message = bytes[offset..offset + 32]
-                    .try_into()
-                    .map_err(|_| Error::MalformedSignature)?;
-                offset += 32;
-                let slot = u32::from_le_bytes(
-                    bytes[offset..offset + 4]
-                        .try_into()
-                        .map_err(|_| Error::MalformedSignature)?,
-                );
-                offset += 4;
-                let public_key = XmssPublicKey::from_ssz_bytes(&bytes[offset..offset + xmss::PUB_KEY_SSZ_LEN])
-                    .map_err(|_| Error::MalformedSignature)?;
-                offset += xmss::PUB_KEY_SSZ_LEN;
+                let [public_key] = public_keys.as_slice() else {
+                    return Err(Error::SignerSetMismatch);
+                };
                 let signature =
-                    XmssSignature::from_ssz_bytes(&bytes[offset..]).map_err(|_| Error::MalformedSignature)?;
-                Ok(Self::raw(Claim::new(message, slot), public_key, signature))
+                    XmssSignature::from_ssz_bytes(&bytes[HEADER_LEN..]).map_err(|_| Error::MalformedSignature)?;
+                Ok(Self::raw(*claim, public_key.clone(), signature))
             }
             AGGREGATE => {
                 require_setup()?;
-                SingleMessageAggregateSignature::from_bytes(&bytes[HEADER_LEN..])
-                    .map(Self::aggregate)
-                    .ok_or(Error::MalformedSignature)
+                SingleMessageAggregateSignature::from_bytes_without_context(
+                    &bytes[HEADER_LEN..],
+                    *claim.message(),
+                    claim.slot(),
+                    public_keys,
+                )
+                .map(Self::aggregate)
+                .ok_or(Error::MalformedSignature)
             }
             _ => Err(Error::MalformedSignature),
         }

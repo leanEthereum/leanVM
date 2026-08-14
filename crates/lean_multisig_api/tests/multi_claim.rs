@@ -60,12 +60,28 @@ fn mixed_signatures_are_grouped_by_claim_and_verified_as_one_bundle() {
 }
 
 #[test]
-fn self_contained_bundle_round_trips_without_external_claim_context() {
+fn bundle_round_trips_with_context_from_the_outer_container() {
     let Fixture { proof, expected } = fixture();
+    let mut outer_context = expected.clone();
+    outer_context.reverse();
+    outer_context[1].signers.reverse();
+    let duplicate = outer_context[1].signers[0];
+    outer_context[1].signers.push(duplicate);
 
-    let restored = MultiClaimProof::from_bytes(&proof.to_bytes()).unwrap();
+    let restored = MultiClaimProof::from_bytes(&proof.to_bytes(), &outer_context).unwrap();
 
     verify_claims(&restored, expected).unwrap();
+}
+
+#[test]
+fn decoded_bundle_is_bound_to_the_supplied_outer_context() {
+    let Fixture { proof, expected } = fixture();
+    let mut wrong = expected.clone();
+    wrong[0].claim = Claim::new([0xff; 32], wrong[0].claim.slot());
+
+    let restored = MultiClaimProof::from_bytes(&proof.to_bytes(), &wrong).unwrap();
+
+    assert!(verified_claims(&restored).is_err());
 }
 
 #[test]
@@ -95,11 +111,17 @@ fn authorization_is_order_independent_but_rejects_repeated_claim_groups() {
 #[test]
 fn malformed_multi_claim_envelopes_are_rejected() {
     assert!(matches!(
-        MultiClaimProof::from_bytes(b"not a multi-claim proof"),
+        MultiClaimProof::from_bytes(b"not a multi-claim proof", &fixture().expected),
         Err(Error::MalformedMultiClaimProof)
     ));
     assert!(matches!(
-        MultiClaimProof::from_bytes(b"LMCM\x01"),
+        MultiClaimProof::from_bytes(b"LMCM\x01", &fixture().expected),
+        Err(Error::MalformedMultiClaimProof)
+    ));
+    let mut unsupported_version = fixture().proof.to_bytes();
+    unsupported_version[4] = 0;
+    assert!(matches!(
+        MultiClaimProof::from_bytes(&unsupported_version, &fixture().expected),
         Err(Error::MalformedMultiClaimProof)
     ));
 }
@@ -109,7 +131,7 @@ fn decoding_is_structural_and_verification_rejects_a_tampered_bundle() {
     let mut bytes = fixture().proof.to_bytes();
     *bytes.last_mut().unwrap() ^= 1;
 
-    match MultiClaimProof::from_bytes(&bytes) {
+    match MultiClaimProof::from_bytes(&bytes, &fixture().expected) {
         Err(Error::MalformedMultiClaimProof) => {}
         Ok(proof) => assert!(verified_claims(&proof).is_err()),
         Err(other) => panic!("unexpected error: {other:?}"),

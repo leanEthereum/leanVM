@@ -20,6 +20,8 @@ pub enum Error {
     MalformedSignature,
     /// A serialized [`crate::MultiClaimProof`] envelope was malformed or unsupported.
     MalformedMultiClaimProof,
+    /// A caller-supplied public key was not canonically encoded.
+    MalformedPublicKey,
     /// Secret-key bytes failed their format or integrity checks.
     MalformedSecretKey,
     TooManySigners {
@@ -76,6 +78,7 @@ impl Display for Error {
             Self::MalformedMultiClaimProof => {
                 write!(f, "The supplied bytes are not a well-formed multi-claim proof")
             }
+            Self::MalformedPublicKey => write!(f, "A supplied public key is not canonically encoded"),
             Self::MalformedSecretKey => write!(f, "Secret key bytes failed validation"),
             Self::TooManySigners { got, max } => write!(f, "Too many signers: {got} (max {max})"),
             Self::TooManyClaims { got, max } => write!(f, "Too many distinct claims: {got} (max {max})"),
@@ -98,6 +101,7 @@ impl std::error::Error for Error {
             Self::Proof(err) => Some(err),
             Self::MalformedSignature
             | Self::MalformedMultiClaimProof
+            | Self::MalformedPublicKey
             | Self::MalformedSecretKey
             | Self::TooManySigners { .. }
             | Self::TooManyClaims { .. }

@@ -1,4 +1,4 @@
-use lean_multisig_api::{Claim, Error, MultiClaimProof, SecretKey, Signature, aggregate, setup};
+use lean_multisig_api::{Claim, ClaimSigners, Error, MultiClaimProof, SecretKey, Signature, aggregate, setup};
 
 #[test]
 fn proof_operations_require_explicit_setup_without_initializing_themselves() {
@@ -10,11 +10,17 @@ fn proof_operations_require_explicit_setup_without_initializing_themselves() {
         Err(Error::NotInitialized)
     ));
     assert!(matches!(
-        Signature::from_bytes(b"LMSI\x01\x01proof"),
+        Signature::from_bytes(b"LMSI\x01\x01proof", &claim, &[key.public_key()]),
         Err(Error::NotInitialized)
     ));
     assert!(matches!(
-        MultiClaimProof::from_bytes(b"LMCM\x01proof"),
+        MultiClaimProof::from_bytes(
+            b"LMCM\x01proof",
+            &[ClaimSigners {
+                claim,
+                signers: vec![key.public_key()],
+            }],
+        ),
         Err(Error::NotInitialized)
     ));
     setup();
