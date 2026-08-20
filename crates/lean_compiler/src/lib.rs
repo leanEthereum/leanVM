@@ -145,6 +145,23 @@ pub struct CompilationFlags {
     pub replacements: BTreeMap<String, String>,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct CompileAndRunOptions {
+    /// Include VM profiling metadata in the execution summary.
+    pub profiler: bool,
+    /// Print a source-level stack trace to stderr when VM execution fails.
+    pub stack_trace: bool,
+}
+
+impl Default for CompileAndRunOptions {
+    fn default() -> Self {
+        Self {
+            profiler: false,
+            stack_trace: true,
+        }
+    }
+}
+
 pub fn try_compile_program_with_flags(
     input: &ProgramSource,
     flags: CompilationFlags,
@@ -182,7 +199,35 @@ pub fn try_compile_and_run(
     Ok(result.metadata.display())
 }
 
+pub fn try_compile_and_run_with_options(
+    input: &ProgramSource,
+    public_input: &[F; PUBLIC_INPUT_LEN],
+    options: CompileAndRunOptions,
+) -> Result<String, Error> {
+    let bytecode = try_compile_program(input)?;
+    let witness = ExecutionWitness::default();
+    let result = try_execute_bytecode_with_options(
+        &bytecode,
+        public_input,
+        &witness,
+        ExecutionOptions {
+            profiling: options.profiler,
+            stack_trace: options.stack_trace,
+        },
+    )?;
+    Ok(result.metadata.display())
+}
+
 pub fn compile_and_run(input: &ProgramSource, public_input: &[F; PUBLIC_INPUT_LEN], profiler: bool) {
     let summary = try_compile_and_run(input, public_input, profiler).unwrap();
+    println!("{summary}");
+}
+
+pub fn compile_and_run_with_options(
+    input: &ProgramSource,
+    public_input: &[F; PUBLIC_INPUT_LEN],
+    options: CompileAndRunOptions,
+) {
+    let summary = try_compile_and_run_with_options(input, public_input, options).unwrap();
     println!("{summary}");
 }

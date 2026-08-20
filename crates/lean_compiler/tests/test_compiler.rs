@@ -1,4 +1,4 @@
-use std::time::Instant;
+use std::{process::Command, time::Instant};
 
 use backend::{ArenaVec, BasedVectorSpace, PrimeCharacteristicRing, arena_vec};
 use lean_compiler::*;
@@ -255,6 +255,200 @@ def main():
     return
    "#;
     compile_and_run(&ProgramSource::Raw(program.to_string()), &[F::ZERO; DIGEST_LEN], false);
+}
+
+#[test]
+fn nested_runtime_failure_prints_full_call_stack() {
+    let current_exe = std::env::current_exe().expect("current test executable path");
+    let output = Command::new(current_exe)
+        .arg("--exact")
+        .arg("child_nested_runtime_failure_prints_stack_trace")
+        .arg("--nocapture")
+        .env("LEANVM_STACK_TRACE_CHILD", "1")
+        .output()
+        .expect("run child stack trace test");
+
+    assert!(
+        output.status.success(),
+        "child test failed\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr),
+    );
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert_stack_frames(&stderr, &["d()", "c()", "b()", "a()", "main()"]);
+    assert!(
+        stderr.contains("pc="),
+        "stack trace should include pc values\nstderr:\n{stderr}",
+    );
+    assert!(
+        stderr.contains(":15"),
+        "stack trace should include the failing source line\nstderr:\n{stderr}",
+    );
+}
+
+#[test]
+fn parallel_runtime_failure_prints_worker_call_stack() {
+    let current_exe = std::env::current_exe().expect("current test executable path");
+    let output = Command::new(current_exe)
+        .arg("--exact")
+        .arg("child_parallel_runtime_failure_prints_stack_trace")
+        .arg("--nocapture")
+        .env("LEANVM_STACK_TRACE_CHILD", "1")
+        .output()
+        .expect("run child parallel stack trace test");
+
+    assert!(
+        output.status.success(),
+        "child test failed\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr),
+    );
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert_stack_frames(&stderr, &["fail()", "main()"]);
+    assert!(
+        stderr.contains("pc="),
+        "parallel stack trace should include pc values\nstderr:\n{stderr}",
+    );
+}
+
+fn assert_stack_frames(stderr: &str, expected_frames: &[&str]) {
+    let stack = stderr
+        .split("CALL STACK")
+        .nth(1)
+        .unwrap_or_else(|| panic!("stderr should contain a CALL STACK section\nstderr:\n{stderr}"));
+    let frame_lines: Vec<&str> = stack.lines().filter(|line| line.contains("pc=")).collect();
+
+    assert_eq!(
+        frame_lines.len(),
+        expected_frames.len(),
+        "stack trace should contain exactly the expected frames\nframes:\n{}\nstderr:\n{stderr}",
+        frame_lines.join("\n"),
+    );
+    for (line, expected) in frame_lines.iter().zip(expected_frames) {
+        assert!(
+            line.contains(expected),
+            "stack frame should contain {expected}\nframe: {line}\nstderr:\n{stderr}",
+        );
+    }
+}
+
+#[test]
+fn child_nested_runtime_failure_prints_stack_trace() {
+    if std::env::var_os("LEANVM_STACK_TRACE_CHILD").is_none() {
+        return;
+    }
+
+    let program = r#"def main():
+    _ = a()
+    return
+
+def a():
+    return b()
+
+def b():
+    return c()
+
+def c():
+    return d()
+
+def d():
+    debug_assert(0 == 1)
+    return 0
+"#;
+
+    let result = try_compile_and_run_with_options(
+        &ProgramSource::Raw(program.to_string()),
+        &[F::ZERO; DIGEST_LEN],
+        CompileAndRunOptions {
+            profiler: false,
+            stack_trace: true,
+        },
+    );
+
+    assert!(
+        matches!(result, Err(Error::Runtime(_))),
+        "program should fail at VM runtime inside d(), got {result:?}",
+    );
+}
+
+#[test]
+fn child_parallel_runtime_failure_prints_stack_trace() {
+    if std::env::var_os("LEANVM_STACK_TRACE_CHILD").is_none() {
+        return;
+    }
+
+    let program = r#"def main():
+    n = 4
+    for i in parallel_range(0, n):
+        fail(i)
+    return
+
+def fail(i):
+    if i == 2:
+        debug_assert(0 == 1)
+    return
+"#;
+
+    let result = try_compile_and_run_with_options(
+        &ProgramSource::Raw(program.to_string()),
+        &[F::ZERO; DIGEST_LEN],
+        CompileAndRunOptions {
+            profiler: false,
+            stack_trace: true,
+        },
+    );
+
+    assert!(
+        matches!(result, Err(Error::Runtime(_))),
+        "parallel program should fail at VM runtime inside fail(), got {result:?}",
+    );
+}
+
+#[test]
+fn legacy_runtime_failure_respects_stack_trace_env_var() {
+    let current_exe = std::env::current_exe().expect("current test executable path");
+    let output = Command::new(current_exe)
+        .arg("--exact")
+        .arg("child_legacy_runtime_failure_respects_stack_trace_env_var")
+        .arg("--nocapture")
+        .env("LEANVM_STACK_TRACE_CHILD", "1")
+        .env("LEANVM_STACK_TRACE", "0")
+        .output()
+        .expect("run child legacy env-var stack trace test");
+
+    assert!(
+        output.status.success(),
+        "child test failed\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr),
+    );
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        !stderr.contains("CALL STACK"),
+        "LEANVM_STACK_TRACE=0 should disable legacy stack trace printing\nstderr:\n{stderr}",
+    );
+}
+
+#[test]
+fn child_legacy_runtime_failure_respects_stack_trace_env_var() {
+    if std::env::var_os("LEANVM_STACK_TRACE_CHILD").is_none() {
+        return;
+    }
+
+    let program = r#"def main():
+    debug_assert(0 == 1)
+    return
+"#;
+
+    let result = try_compile_and_run(&ProgramSource::Raw(program.to_string()), &[F::ZERO; DIGEST_LEN], false);
+
+    assert!(
+        matches!(result, Err(Error::Runtime(_))),
+        "program should fail at VM runtime, got {result:?}",
+    );
 }
 
 #[test]
