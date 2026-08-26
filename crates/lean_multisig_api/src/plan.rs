@@ -38,8 +38,8 @@ pub(crate) const RATE_LEAF: usize = 1;
 /// so they can afford a slower rate for a smaller intermediate proof.
 pub(crate) const RATE_INTERNAL: usize = 2;
 
-/// Smallest proof. Only the root goes on the wire.
-pub(crate) const RATE_ROOT: usize = 4;
+/// The root goes on the wire, but uses the same balanced rate as internal proofs.
+pub(crate) const RATE_ROOT: usize = 2;
 
 // Proving and verification report an out-of-band rate as a typed error at runtime. Keep this
 // compile-time guard as an earlier signal if the accepted band changes upstream.
@@ -53,8 +53,8 @@ const _: () = assert!(
     "aggregation rates must remain inside the accepted WHIR rate band"
 );
 
-// Intermediate proofs trade progressively more proving time for smaller proofs as they approach
-// the root. Keep that topology policy independent of the upstream validity band above.
+// Proof rates never decrease toward the root. Keep that topology policy independent of the
+// upstream validity band above.
 const _: () = assert!(
     RATE_LEAF <= RATE_INTERNAL && RATE_INTERNAL <= RATE_ROOT,
     "aggregation rates must be nondecreasing from leaves to root"
@@ -354,7 +354,7 @@ mod tests {
     }
 
     #[test]
-    fn log_inv_rate_rises_toward_the_root() {
+    fn log_inv_rate_is_nondecreasing_toward_the_root() {
         for n in SHAPES {
             assert_rates(&plan(n, 0), true);
         }
