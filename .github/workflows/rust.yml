@@ -61,6 +61,23 @@ jobs:
         env:
           RUSTFLAGS: ${{ matrix.rustflags }}
           SIGNERS_CACHE_DIR: ${{ github.workspace }}/.signers-cache
+      # `lean_multisig_api`'s two `#[ignore]`d tests prove real 1500- and 1501-signature batches,
+      # which is the only check that `plan::LEAF_TARGET` is a leaf size the prover accepts. Without
+      # them a bad constant means every aggregation past 1500 signers fails in production while the
+      # default suite stays green — its largest single node holds three signatures.
+      #
+      # Scoped to one test binary rather than `--include-ignored` across the workspace, which would
+      # also drag in six unrelated ignored tests, several of them benchmarks.
+      #
+      # ~12s here: the step above already generates or loads the 10,000-signer cache (non-ignored
+      # tests in `tests/test_multisignatures.rs` call `get_benchmark_signatures`), so the marginal
+      # cost is the proving alone.
+      - name: Ignored slow tests
+        if: ${{ matrix.run_tests == true }}
+        run: cargo test --release -p lean_multisig_api --test round_trip --verbose -- --ignored
+        env:
+          RUSTFLAGS: ${{ matrix.rustflags }}
+          SIGNERS_CACHE_DIR: ${{ github.workspace }}/.signers-cache
 
   cargo-clippy:
     runs-on: ubuntu-latest

@@ -1,0 +1,26 @@
+[package]
+name = "lean_multisig_api"
+version.workspace = true
+edition.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+# `lean_vm` is here only for the compile-time assertion in `plan.rs` that the crate's
+# `log_inv_rate` choices sit inside the band `lean_prover::default_whir_config` accepts.
+lean_vm.workspace = true
+xmss.workspace = true
+rec_aggregation.workspace = true
+backend.workspace = true
+ssz.workspace = true
+postcard.workspace = true
+rand.workspace = true
+sha2.workspace = true
+
+[dev-dependencies]
+# `round_trip.rs`'s `#[ignore]`d LEAF_TARGET tests need 1501 real signatures, which
+# `xmss::signers_cache` has pre-generated and cached on disk. The feature is already on in any
+# workspace build because `rec_aggregation` enables it, so this line changes nothing today — it
+# states the dependency this crate's own tests have, rather than borrowing another crate's.
+xmss = { workspace = true, features = ["test-utils"] }

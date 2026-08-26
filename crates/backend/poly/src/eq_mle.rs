@@ -1021,8 +1021,14 @@ fn base_eval_eq_packed_with_packed_output<F, EF, const INITIALIZED: bool>(
     F: Field,
     EF: ExtensionField<F>,
 {
-    // `eval_points` is the middle slice from `par_eval_eq`, so its length says nothing about the
-    // packing width (the callers assert that against the full point).
+    // Ensure that the output buffer size is correct:
+    // It should be of size `2^n`, where `n` is the number of variables.
+    //
+    // `eval_points` is the *middle* slice handed over by `par_eval_eq`, not the full point:
+    // the `log_packing_width` suffix is already folded into `eq_evals` and the `log_chunks`
+    // prefix into `packed_scalar`. Its length is therefore unrelated to the packing width,
+    // and asserting `log_packing_width <= eval_points.len()` here is wrong — that invariant
+    // belongs to the callers, which check it against the *full* point.
     debug_assert_eq!(out.len(), 1 << eval_points.len());
 
     match eval_points.len() {
@@ -1314,6 +1320,38 @@ mod tests {
 
                 assert_eq!(out_2, out_3_packed);
             }
+        }
+    }
+
+    /// `base_eval_eq_packed_with_packed_output` receives the *middle* slice of the eval
+    /// points: `par_eval_eq` strips a `log_chunks` prefix and a `log_packing_width` suffix,
+    /// leaving `n - log_packing_width - log_chunks` variables. The packed path only requires
+    /// that to be at least 2, so the middle slice is routinely *shorter* than
+    /// `log_packing_width` and the kernel must not assume otherwise.
+    ///
+    /// This covers the narrow band of `n_vars` just above the packed-path threshold, where
+    /// that happens. Both the assertion and the band are machine-dependent (they move with
+    /// the thread count and SIMD width), so the bounds are computed rather than hardcoded.
+    #[test]
+    fn base_packed_handles_middle_slice_shorter_than_packing_width() {
+        let log_packing_width = log2_strict_usize(<F as Field>::Packing::WIDTH);
+        let (log_chunks, _) = parallel_split();
+        let mut rng = StdRng::seed_from_u64(11);
+
+        // Lower bound: first `n_vars` taking the packed path (see `compute_eval_eq_base_packed`).
+        // Upper bound: first `n_vars` whose middle slice reaches `log_packing_width`.
+        for n_vars in (log_packing_width + log_chunks + 2)..=(2 * log_packing_width + log_chunks) {
+            let eval: Vec<F> = (0..n_vars).map(|_| rng.random()).collect();
+            let scalar: EF = rng.random();
+
+            let mut expected = EF::zero_vec(1 << n_vars);
+            compute_eval_eq_base::<F, EF, true>(&eval, &mut expected, scalar);
+
+            let mut packed = <EF as ExtensionField<F>>::ExtensionPacking::zero_vec(1 << (n_vars - log_packing_width));
+            compute_eval_eq_base_packed::<F, EF, true>(&eval, &mut packed, scalar);
+
+            let unpacked: Vec<EF> = <EF as ExtensionField<F>>::ExtensionPacking::to_ext_iter_vec(packed);
+            assert_eq!(expected, unpacked, "n_vars = {n_vars}");
         }
     }
 

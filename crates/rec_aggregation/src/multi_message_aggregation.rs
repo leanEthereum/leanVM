@@ -18,7 +18,7 @@ use crate::single_message_aggregation::{
     extract_merkle_hint_blobs, rebuild_bytecode_claim, verify_single_message_aggregate,
 };
 use crate::verify_inner;
-use xmss::XmssPublicKey;
+use xmss::{MESSAGE_LEN_BYTES, XmssPublicKey};
 
 /// A bundle of `n` single-message aggregate signatures with potentially distinct (message, slot) per component, attested by a single snark.
 #[derive(Debug, Clone)]
@@ -75,6 +75,52 @@ impl MultiMessageAggregateSignature {
             .into_iter()
             .zip(pubkeys_per_info)
             .map(|(core, pubkeys)| core.with_pubkeys(pubkeys))
+            .collect::<Option<Vec<_>>>()?;
+        Some(Self {
+            info,
+            bytecode_claim: rebuild_bytecode_claim(bytecode_claim_point).ok()?,
+            proof,
+        })
+    }
+
+    /// Serialize only the cryptographic proof material. Per-component messages, slots, and signer
+    /// sets must come from the protocol container that carries these bytes.
+    #[doc(hidden)]
+    pub fn to_bytes_without_context(&self) -> Vec<u8> {
+        let component_points = self
+            .info
+            .iter()
+            .map(|info| &info.core.bytecode_claim.point)
+            .collect::<Vec<_>>();
+        postcard::to_allocvec(&(component_points, &self.bytecode_claim.point, &self.proof))
+            .expect("postcard serialization failed")
+    }
+
+    /// Inverse of [`Self::to_bytes_without_context`]; the caller supplies one protocol context per
+    /// component, in the same order. Different context makes verification fail.
+    #[doc(hidden)]
+    pub fn from_bytes_without_context(
+        bytes: &[u8],
+        contexts: Vec<([u8; MESSAGE_LEN_BYTES], u32, Vec<XmssPublicKey>)>,
+    ) -> Option<Self> {
+        let _forbid = parallel::forbid_parallelism();
+        let ((component_points, bytecode_claim_point, proof), rest) =
+            postcard::take_from_bytes::<(Vec<MultilinearPoint<EF>>, MultilinearPoint<EF>, ExecutionProof)>(bytes)
+                .ok()?;
+        if !rest.is_empty() || component_points.len() != contexts.len() {
+            return None;
+        }
+        let info = component_points
+            .into_iter()
+            .zip(contexts)
+            .map(|(point, (message, slot, pubkeys))| {
+                SingleMessageCore {
+                    message,
+                    slot,
+                    bytecode_claim: rebuild_bytecode_claim(point).ok()?,
+                }
+                .with_pubkeys(pubkeys)
+            })
             .collect::<Option<Vec<_>>>()?;
         Some(Self {
             info,
