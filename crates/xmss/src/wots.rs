@@ -7,7 +7,6 @@ use crate::*;
 /// No Debug: `pre_images` are the one-time secret keys.
 pub struct WotsSecretKey {
     pre_images: [Digest; V],
-    public_key: WotsPublicKey,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -24,21 +23,21 @@ pub struct WotsSignature {
 }
 
 impl WotsSecretKey {
-    pub fn random(rng: &mut impl CryptoRng, public_param: PublicParam, slot: u32) -> Self {
-        Self::new(rng.random(), public_param, slot)
+    pub fn random(rng: &mut impl CryptoRng) -> Self {
+        Self::new(rng.random())
     }
 
-    pub fn new(pre_images: [Digest; V], public_param: PublicParam, slot: u32) -> Self {
-        Self {
-            pre_images,
-            public_key: WotsPublicKey(std::array::from_fn(|i| {
-                iterate_hash(&pre_images[i], CHAIN_LENGTH - 1, public_param, slot, i, 0)
-            })),
-        }
+    pub const fn new(pre_images: [Digest; V]) -> Self {
+        Self { pre_images }
     }
 
-    pub const fn public_key(&self) -> &WotsPublicKey {
-        &self.public_key
+    /// Walks all `V` chains to their ends. Only key generation needs this (it hashes the WOTS
+    /// public key into a Merkle leaf); signing walks each chain part-way instead, so it must not
+    /// pay for the full walk.
+    pub fn public_key(&self, public_param: PublicParam, slot: u32) -> WotsPublicKey {
+        WotsPublicKey(std::array::from_fn(|i| {
+            iterate_hash(&self.pre_images[i], CHAIN_LENGTH - 1, public_param, slot, i, 0)
+        }))
     }
 
     pub(crate) fn sign_with_encoding(
@@ -134,35 +133,23 @@ pub fn wots_encode(
         // ensures uniformity of encoding
         return None;
     }
-    let all_indices: Vec<_> = compressed[..NUM_ENCODING_FE]
-        .iter()
-        .flat_map(|kb| to_little_endian_bits(kb.to_usize(), 24))
-        .collect::<Vec<_>>()
-        .as_chunks::<W>()
-        .0
-        .iter()
-        .take(V)
-        .map(|chunk| {
-            chunk
-                .iter()
-                .enumerate()
-                .fold(0u8, |acc, (i, &bit)| acc | (u8::from(bit) << i))
-        })
-        .collect();
-    is_valid_encoding(&all_indices).then(|| all_indices[..V].try_into().unwrap())
-}
-
-fn is_valid_encoding(encoding: &[u8]) -> bool {
-    if encoding.len() != V {
-        return false;
+    // Signing grinds this function until the encoding hits `TARGET_SUM`, so it runs on the
+    // order of a thousand times per signature: keep it allocation-free.
+    let mut words = [0usize; NUM_ENCODING_FE];
+    for (word, &kb) in words.iter_mut().zip(&compressed[..NUM_ENCODING_FE]) {
+        *word = kb.to_usize();
     }
-    if !encoding.iter().all(|&x| (x as usize) < CHAIN_LENGTH) {
-        return false;
+    let mut encoding = [0u8; V];
+    let mut sum = 0usize;
+    for (i, out) in encoding.iter_mut().enumerate() {
+        // Chunk i lives in word i / CHUNKS_PER_FE, at bit offset W * (i % CHUNKS_PER_FE).
+        let chunk = ((words[i / CHUNKS_PER_FE] >> (W * (i % CHUNKS_PER_FE))) & (CHAIN_LENGTH - 1)) as u8;
+        *out = chunk;
+        sum += usize::from(chunk);
     }
-    if encoding.iter().map(|&x| x as usize).sum::<usize>() != TARGET_SUM {
-        return false;
-    }
-    true
+    // Masking to W bits already guarantees every entry is below CHAIN_LENGTH, so the target sum
+    // is the only remaining validity condition.
+    (sum == TARGET_SUM).then_some(encoding)
 }
 
 #[cfg(test)]
