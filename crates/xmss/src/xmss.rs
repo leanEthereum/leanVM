@@ -96,14 +96,14 @@ impl XmssPublicKey {
     }
 }
 
-fn gen_wots_secret_key(seed: &[u8; 32], slot: u32, public_param: PublicParam) -> WotsSecretKey {
+fn gen_wots_secret_key(seed: &[u8; 32], slot: u32) -> WotsSecretKey {
     let rng_seed_fe = poseidon_prf(PRF_DOMAINSEP_WOTS_SECRET_KEY, seed, [slot as usize, 0]);
     let mut rng_seed = [0u8; 32];
     for (chunk, f) in rng_seed.as_chunks_mut::<4>().0.iter_mut().zip(rng_seed_fe) {
         *chunk = f.as_canonical_u32().to_le_bytes();
     }
     let mut rng = StdRng::from_seed(rng_seed);
-    WotsSecretKey::random(&mut rng, public_param, slot)
+    WotsSecretKey::random(&mut rng)
 }
 
 fn gen_public_param(seed: &[u8; 32]) -> PublicParam {
@@ -150,8 +150,8 @@ fn leaf_layer(seed: &[u8; 32], public_param: &PublicParam, lo: u64, hi: u64, seq
     let mut leaves: Vec<Digest> = unsafe { uninitialized_vec((hi - lo + 1) as usize) };
     fill(sequential, &mut leaves, |k, out| {
         let slot = (lo + k as u64) as u32;
-        let wots = gen_wots_secret_key(seed, slot, *public_param);
-        *out = wots.public_key().hash(*public_param, slot);
+        let wots = gen_wots_secret_key(seed, slot);
+        *out = wots.public_key(*public_param, slot).hash(*public_param, slot);
     });
     leaves
 }
@@ -353,7 +353,7 @@ pub fn xmss_sign(
             wots_encode(&message_fe, slot, &pub_key, &randomness).map(|encoding| (randomness, encoding))
         })
         .ok_or(XmssSignatureError::EncodingAttemptsExceeded)?;
-    let wots_secret_key = gen_wots_secret_key(&secret_key.seed, slot, secret_key.public_param);
+    let wots_secret_key = gen_wots_secret_key(&secret_key.seed, slot);
     let wots_signature = wots_secret_key.sign_with_encoding(randomness, &encoding, secret_key.public_param, slot);
     let cache = secret_key.cached_bottom_subtree(slot);
     let sub = cache.as_ref().unwrap();
