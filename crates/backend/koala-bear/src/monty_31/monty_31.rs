@@ -690,3 +690,36 @@ impl<FP: MontyParameters> Sum for MontyField31<FP> {
         Self::new_monty((sum % FP::PRIME as u64) as u32)
     }
 }
+
+#[cfg(test)]
+mod canonicity_tests {
+    use crate::KoalaBear;
+    use serde::Deserialize;
+    use serde::de::IntoDeserializer;
+    use serde::de::value::{Error as ValueError, U32Deserializer};
+
+    /// KoalaBear modulus p (mirrors `koala_bear::KoalaBearParameters::PRIME`).
+    const KOALA_BEAR_PRIME: u32 = 0x7f00_0001;
+
+    fn deserialize_limb(limb: u32) -> Result<KoalaBear, ValueError> {
+        let deserializer: U32Deserializer<ValueError> = limb.into_deserializer();
+        KoalaBear::deserialize(deserializer)
+    }
+
+    #[test]
+    fn deserialize_rejects_non_canonical_field_element() {
+        // Regression test for audit finding F-01 (non-canonical MontyField31
+        // deserialization). A serialized value >= p must be rejected; otherwise it
+        // is silently reduced mod p, so distinct encodings would alias to the same
+        // element. The quintic extension and packed types deserialize each of their
+        // coefficients through this same checked base-field path.
+        assert!(deserialize_limb(KOALA_BEAR_PRIME).is_err(), "accepted value == p");
+        assert!(deserialize_limb(KOALA_BEAR_PRIME + 1).is_err(), "accepted value > p");
+        assert!(deserialize_limb(u32::MAX).is_err(), "accepted u32::MAX");
+
+        // Canonical values in [0, p) are accepted.
+        assert!(deserialize_limb(0).is_ok());
+        assert!(deserialize_limb(1).is_ok());
+        assert!(deserialize_limb(KOALA_BEAR_PRIME - 1).is_ok());
+    }
+}
