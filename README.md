@@ -21,7 +21,7 @@ Minimal hash-based zkVM, for a Post-Quantum Ethereum.
 
 Warning: highly experimental.
 
-leanVM was originally designed over the [KoalaBear prime](https://crates.io/crates/p3-koala-bear) and [Poseidon](https://eprint.iacr.org/2019/458), still available in the branch [koalabear]([koalabear](https://github.com/leanEthereum/leanVM/tree/koalabear)); it is being rewritten over binary fields and BLAKE2s.
+leanVM was originally designed over the [KoalaBear prime](https://crates.io/crates/p3-koala-bear) and [Poseidon](https://eprint.iacr.org/2019/458), still available in the [koalabear](https://github.com/leanEthereum/leanVM/tree/koalabear) branch; it is now using binary fields and BLAKE2s.
 
 # Benchmarks
 
