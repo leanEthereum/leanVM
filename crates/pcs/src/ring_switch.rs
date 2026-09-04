@@ -461,19 +461,31 @@ pub(crate) fn combine_deferred_into(outputs: &[DeferredRingSwitchOutput], out: &
     );
 
     parallel::chunks_mut(out, block_len, |hi, out_block| {
-        for (claim_idx, claim) in outputs.iter().enumerate() {
-            let e_hi = claim.eq_hi[hi];
-            if claim_idx == 0 {
-                for (slot, &e_lo) in out_block.iter_mut().zip(&claim.eq_lo) {
-                    *slot = fold_one_slot_ext(e_lo * e_hi, &claim.table);
-                }
-            } else {
-                for (slot, &e_lo) in out_block.iter_mut().zip(&claim.eq_lo) {
-                    *slot += fold_one_slot_ext(e_lo * e_hi, &claim.table);
+        combine_deferred_chunk(outputs, hi * block_len, out_block);
+    });
+}
+
+pub(crate) fn combine_deferred_chunk(outputs: &[DeferredRingSwitchOutput], start: usize, out: &mut [F192]) {
+    for (claim_idx, claim) in outputs.iter().enumerate() {
+        let block_len = claim.eq_lo.len();
+        assert!(start + out.len() <= block_len * claim.eq_hi.len());
+        let mut done = 0;
+        while done < out.len() {
+            let index = start + done;
+            let lo = index % block_len;
+            let len = (block_len - lo).min(out.len() - done);
+            let e_hi = claim.eq_hi[index / block_len];
+            for (slot, &e_lo) in out[done..done + len].iter_mut().zip(&claim.eq_lo[lo..lo + len]) {
+                let value = fold_one_slot_ext(e_lo * e_hi, &claim.table);
+                if claim_idx == 0 {
+                    *slot = value;
+                } else {
+                    *slot += value;
                 }
             }
+            done += len;
         }
-    });
+    }
 }
 
 /// Split point for the factored eq build: low half sized ~n/2 (min 4, the

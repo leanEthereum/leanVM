@@ -66,6 +66,8 @@ use super::ring_switch;
 use super::whir::{ProverConfig, VerifierConfig};
 use super::whir::{ProverData, recursive_prover_with_basis, recursive_verifier_with_basis_succinct};
 
+mod basis;
+
 // ---------------------------------------------------------------------------
 // Claim types
 // ---------------------------------------------------------------------------
@@ -413,6 +415,27 @@ pub fn open_batch_mixed_whir_stacked(
     let mut target = rs_outputs
         .iter()
         .fold(F192::ZERO, |acc, out| acc + out.batched_sumcheck_claim);
+    if stack.len() >= 1 << 16 {
+        target += point_claims
+            .iter()
+            .zip(lambdas_pd)
+            .fold(F192::ZERO, |sum, (claim, &lambda)| sum + lambda * claim.value());
+        let lane_block = 1usize << (log_n - config.initial_k);
+        let (b_stack, message) = basis::build(stack, lane_block, point_claims, lambdas_pd, ring, &rs_outputs);
+        mark("basis + initial message", &mut t);
+        super::whir::recursive_prover_with_prepared_basis(
+            config,
+            log_n,
+            stack,
+            b_stack,
+            target,
+            &prover_data.codeword,
+            &prover_data.merkle_tree,
+            Some(message),
+            ps,
+        );
+        return;
+    }
     // Parallel first-touch wins for the tower stack: its many scattered point
     // claims otherwise fault pages one claim at a time. A scatter that lands on
     // slots an earlier one already touched has to accumulate, so those slots
@@ -562,6 +585,77 @@ mod tests {
     use primitives::test_rng::Rng;
 
     const DOMAIN: &[u8] = b"stack-open-test";
+
+    #[test]
+    fn fused_basis_matches_dense_weights() {
+        let mut rng = Rng::new(0xBA515);
+        for (lane_vars, lanes) in [(6usize, 1usize), (6, 3), (10, 15), (10, 37)] {
+            let lane_block = 1 << lane_vars;
+            let stack: Vec<F64> = (0..lanes * lane_block).map(|_| F64(rng.next_u64())).collect();
+            let qflock_vars = lane_vars + usize::from(lanes > 1);
+            let qflock_len = 1 << qflock_vars;
+            let offset = if stack.len() >= 2 * qflock_len { qflock_len } else { 0 };
+            let ring = RingSwitchOpen {
+                offset,
+                qflock_vars,
+                claims: (0..2)
+                    .map(|_| RingSwitchClaim {
+                        suffix_point: rng.ext_vec(qflock_vars),
+                        s_hat_v: None,
+                    })
+                    .collect(),
+            };
+            let coordinates = rng.ext_vec(192);
+            let rs_outputs: Vec<_> = ring
+                .claims
+                .iter()
+                .map(|claim| {
+                    let state =
+                        ring_switch::prove_prepare(&stack[offset..offset + qflock_len], &claim.suffix_point, None);
+                    ring_switch::prove_finish_deferred(state, &coordinates, rng.ext())
+                })
+                .collect();
+            let mut claims: Vec<_> = [
+                (offset, qflock_vars),
+                ((lanes - 1) * lane_block, lane_vars),
+                (8, 3),
+                (0, 0),
+            ]
+            .into_iter()
+            .map(|(offset, vars)| StackClaim::Point {
+                offset,
+                low_point: rng.ext_vec(vars),
+                value: rng.ext(),
+            })
+            .collect();
+            for stride_log in [0, 1, 3, qflock_vars - 1, qflock_vars] {
+                claims.push(StackClaim::Strided {
+                    offset,
+                    slot: (1 << stride_log) - 1,
+                    stride_log,
+                    point: rng.ext_vec(qflock_vars - stride_log),
+                    value: rng.ext(),
+                });
+            }
+            let lambdas = rng.ext_vec(claims.len());
+            let mut expected = vec![F192::ZERO; stack.len()];
+            ring_switch::combine_deferred_into(&rs_outputs, &mut expected[offset..offset + qflock_len]);
+            let mut target = F192::ZERO;
+            fold_stacked_point_claims(
+                &mut expected,
+                &mut target,
+                &claims,
+                &lambdas,
+                &vec![false; claims.len()],
+            );
+            let (actual, message) = basis::build(&stack, lane_block, &claims, &lambdas, &ring, &rs_outputs);
+            assert_eq!(&*actual, expected, "lane_vars={lane_vars}, lanes={lanes}");
+            let (_, expected_message) = super::super::whir::build_initial_basis(&stack, lane_block, |start, dst| {
+                dst.copy_from_slice(&expected[start..start + dst.len()]);
+            });
+            assert_eq!(message, expected_message);
+        }
+    }
 
     struct Instance {
         vc: VerifierConfig,

@@ -496,8 +496,8 @@ pub(crate) fn ligero_commit_ext(
 // lifts the witness into E and all later rounds are pure E.
 
 /// (u_0, u_2) per round in E.
-#[derive(Clone, Copy, Debug)]
-struct SumcheckMessage {
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct SumcheckMessage {
     u_0: F192,
     u_2: F192,
 }
@@ -887,6 +887,52 @@ fn round_msg_blocks<T: RoundWitness>(f: &[T], b: &[F192], block: usize) -> Sumch
     }
 }
 
+pub(crate) const INITIAL_BASIS_CHUNK: usize = 256;
+
+pub(crate) fn build_initial_basis(
+    f: &[F64],
+    block: usize,
+    fill: impl Fn(usize, &mut [F192]) + Sync,
+) -> (ArenaVec<F192>, SumcheckMessage) {
+    assert!(block.is_power_of_two() && f.len().is_multiple_of(block));
+    let n_blocks = f.len() / block;
+    let per = block.div_ceil(INITIAL_BASIS_CHUNK);
+    // SAFETY: each task fills and publishes its disjoint lane windows before returning.
+    let mut basis = unsafe { ArenaVec::<F192>::uninitialized(f.len()) };
+    let dst = parallel::SendPtr(basis.as_mut_ptr());
+    let task = |t: usize| {
+        let (pair, chunk) = (t / per, t % per);
+        let offset = chunk * INITIAL_BASIS_CHUNK;
+        let len = INITIAL_BASIS_CHUNK.min(block - offset);
+        let lo = 2 * pair * block + offset;
+        let mut b0 = [F192::ZERO; INITIAL_BASIS_CHUNK];
+        let mut b1 = [F192::ZERO; INITIAL_BASIS_CHUNK];
+        fill(lo, &mut b0[..len]);
+        let stream = Stream::new();
+        let message = if 2 * pair + 1 < n_blocks {
+            let hi = lo + block;
+            fill(hi, &mut b1[..len]);
+            let message = msg_terms_pair(&f[lo..lo + len], &f[hi..hi + len], &b0[..len], &b1[..len]);
+            // SAFETY: this task owns the high lane window, disjoint from every other task.
+            unsafe { stream.copy(dst.slice(hi, len), &b1[..len]) };
+            message
+        } else {
+            msg_terms_lone(&f[lo..lo + len], &b0[..len])
+        };
+        // SAFETY: this task owns the low lane window, disjoint from every other task.
+        unsafe { stream.copy(dst.slice(lo, len), &b0[..len]) };
+        message
+    };
+    let (u_0, u_2) = accumulate_msg(n_blocks.div_ceil(2) * per, f.len() / 2, F192BaseUnreduced::ZERO, task);
+    (
+        basis,
+        SumcheckMessage {
+            u_0: u_0.reduce(),
+            u_2: u_2.reduce(),
+        },
+    )
+}
+
 /// Fused lane fold + next-round message. Mirror of [`fold_and_msg_lsb`] for the
 /// block pairing: a task owns one output *pair* (so four input blocks), because
 /// that is the smallest unit the next round's message is local to.
@@ -1024,10 +1070,16 @@ impl<'a> SumcheckProver<'a> {
     /// `block` is the lane block size `2^(log_n - initial_k)`: the first
     /// `initial_k` rounds are the lane fold, so round 0's message already pairs
     /// whole blocks rather than adjacent words.
-    fn new(f: &'a [F64], b1: ArenaVec<F192>, h1: F192, block: usize) -> (Self, SumcheckMessage) {
+    fn new(
+        f: &'a [F64],
+        b1: ArenaVec<F192>,
+        h1: F192,
+        block: usize,
+        initial_message: Option<SumcheckMessage>,
+    ) -> (Self, SumcheckMessage) {
         let _span = tracing::info_span!("Sumcheck round", round = 0, log_size = f.len().ilog2()).entered();
         assert_eq!(f.len(), b1.len());
-        let msg = round_msg_blocks(f, &b1, block);
+        let msg = initial_message.unwrap_or_else(|| round_msg_blocks(f, &b1, block));
         let inst = Self {
             f: Witness::Base(f),
             combined_basis: b1,
@@ -1251,6 +1303,30 @@ pub fn recursive_prover_with_basis(
     l0_tree: &[Hash],
     ps: &mut impl Transmitter,
 ) {
+    recursive_prover_with_prepared_basis(
+        config,
+        log_n,
+        witness,
+        b_initial,
+        target,
+        l0_codeword,
+        l0_tree,
+        None,
+        ps,
+    );
+}
+
+pub(crate) fn recursive_prover_with_prepared_basis(
+    config: &ProverConfig,
+    log_n: usize,
+    witness: &[F64],
+    b_initial: ArenaVec<F192>,
+    target: F192,
+    l0_codeword: &[F64],
+    l0_tree: &[Hash],
+    initial_message: Option<SumcheckMessage>,
+    ps: &mut impl Transmitter,
+) {
     let r = config.level_steps;
     let initial_k = config.initial_k;
 
@@ -1322,7 +1398,7 @@ pub fn recursive_prover_with_basis(
     let _t = std::time::Instant::now();
     let sumcheck_span = tracing::info_span!("Sumcheck");
     let (mut sc_prover, start_msg) =
-        sumcheck_span.in_scope(|| SumcheckProver::new(witness, b_initial, target, lane_block));
+        sumcheck_span.in_scope(|| SumcheckProver::new(witness, b_initial, target, lane_block, initial_message));
     send_msg(ps, start_msg, target);
 
     let mut r_lane_fold = Vec::with_capacity(initial_k);
@@ -2768,5 +2844,47 @@ mod tests {
         forward_transform_interleaved_ext_scalar_from_layer(&ntt, &mut a, lanes, 1);
         forward_transform_interleaved_ext_parallel_from_layer(&ntt, &mut b, lanes, 1);
         assert_eq!(a, b);
+    }
+
+    #[test]
+    fn ext_ntt_coefficient_view_matches_scalar() {
+        let mut rng = Rng::new(0xE192);
+        for (log_d, lanes) in [(3usize, 1usize), (8, 4), (12, 16), (14, 16)] {
+            let ntt = AdditiveNttF64::standard(log_d);
+            let original = rng.ext_vec((1 << log_d) * lanes);
+            for start_layer in [0, 1, 2, 3, 4, log_d / 2, log_d] {
+                if start_layer > log_d {
+                    continue;
+                }
+                let mut expected = original.clone();
+                forward_transform_interleaved_ext_scalar_from_layer(&ntt, &mut expected, lanes, start_layer);
+                let mut actual = original.clone();
+                crate::whir_ntt_ext::forward_transform_interleaved_ext_via_base(&ntt, &mut actual, lanes, start_layer);
+                assert_eq!(
+                    actual, expected,
+                    "log_d={log_d}, lanes={lanes}, start_layer={start_layer}"
+                );
+                let mut dispatched = original.clone();
+                forward_transform_interleaved_ext_from_layer(&ntt, &mut dispatched, lanes, start_layer);
+                assert_eq!(dispatched, expected);
+            }
+        }
+    }
+
+    #[test]
+    fn initial_basis_message_matches_materialized_weights() {
+        let mut rng = Rng::new(0xBA515);
+        for block in [1, 16, INITIAL_BASIS_CHUNK, 4 * INITIAL_BASIS_CHUNK] {
+            for lanes in [1, 2, 3, 37] {
+                let f: Vec<F64> = (0..block * lanes).map(|_| F64(rng.next_u64())).collect();
+                let expected = rng.ext_vec(f.len());
+                let expected_message = round_msg_blocks(&f, &expected, block);
+                let (actual, message) = build_initial_basis(&f, block, |start, out| {
+                    out.copy_from_slice(&expected[start..start + out.len()]);
+                });
+                assert_eq!(&*actual, expected, "block={block}, lanes={lanes}");
+                assert_eq!(message, expected_message, "block={block}, lanes={lanes}");
+            }
+        }
     }
 }
