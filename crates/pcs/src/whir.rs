@@ -138,54 +138,10 @@ impl EqTableSlot for std::mem::MaybeUninit<F192> {
     }
 }
 
-/// Add `seed * eq(point, .)` into `dst` (length `2^point.len()`), with `scratch`
-/// holding the table for all but the last coordinate (length `2^(point.len()-1)`).
-///
-/// The last doubling level is half the whole table, and it writes straight into
-/// `dst`: materializing it in scratch and adding it afterwards would move that
-/// half three times (write it, read it back, read-modify-write `dst`) where this
-/// moves it once. Same field operations in the same order, so `dst` ends
-/// bit-identical to the build-then-add form.
-pub(crate) fn add_eq_table_ext_seeded(
-    point: &[F192],
-    seed: F192,
-    scratch: &mut [std::mem::MaybeUninit<F192>],
-    dst: &mut [F192],
-) {
-    let n = point.len();
-    assert_eq!(dst.len(), 1usize << n, "dst must have length 2^point.len()");
-    let Some((&r, head)) = point.split_last() else {
-        dst[0] += seed;
-        return;
-    };
-    let half = 1usize << head.len();
-    build_eq_table_ext_seeded(head, seed, &mut scratch[..half]);
-    // SAFETY: the build above initialized exactly this prefix.
-    let eq = unsafe { std::slice::from_raw_parts(scratch.as_ptr().cast::<F192>(), half) };
-    let (lo, hi) = dst.split_at_mut(half);
-    // Same floor as the seeded build: below it, dispatch costs more than the work.
-    const PAR_THRESHOLD: usize = 1 << 12;
-    let expand = |lo: &mut [F192], hi: &mut [F192], eq: &[F192]| {
-        for ((l, h), &v) in lo.iter_mut().zip(hi.iter_mut()).zip(eq) {
-            let high = v * r;
-            *h += high;
-            *l += v + high;
-        }
-    };
-    if half < PAR_THRESHOLD {
-        expand(lo, hi, eq);
-    } else {
-        let chunk = parallel::recommended_chunk_size(half);
-        parallel::chunks_mut2(lo, hi, chunk, |ci, lo_c, hi_c| {
-            expand(lo_c, hi_c, &eq[ci * chunk..ci * chunk + lo_c.len()]);
-        });
-    }
-}
-
 /// In-place seeded core of [`build_eq_table_ext_parallel`]: fills
-/// `out[..2^point.len()]` with `seed * eq(point, .)`. Write-only, so it also
-/// serves the first claim landing on a range of `stack_open`'s `b_stack`, which
-/// then needs no prior zeroing.
+/// `out[..2^point.len()]` with `seed * eq(point, .)`. Write-only, which is what
+/// lets `stack_open`'s fused basis build each claim's table straight into a
+/// reused scratch buffer.
 ///
 /// Seeding folds a batching scalar into the table for free: every entry is
 /// `seed` times a product of point factors, and field multiplication is
