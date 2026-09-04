@@ -445,12 +445,12 @@ pub(crate) fn prove_finish_deferred(
     }
 }
 
-/// Fold several deferred claims directly into their final combined dense basis.
-/// No per-claim dense vector is allocated or read back, and the first claim
-/// **writes** rather than accumulates, so the caller need not pre-zero `out`.
-///
+/// Fold several deferred claims into `out[start..]` of their combined dense
+/// basis, accumulating, so `out` arrives zeroed. No per-claim dense vector is
+/// allocated or read back. `start` is an offset into the basis, which lets a
+/// caller cover it one cache-resident window at a time.
 pub(crate) fn combine_deferred_chunk(outputs: &[DeferredRingSwitchOutput], start: usize, out: &mut [F192]) {
-    for (claim_idx, claim) in outputs.iter().enumerate() {
+    for claim in outputs {
         let block_len = claim.eq_lo.len();
         assert!(start + out.len() <= block_len * claim.eq_hi.len());
         let mut done = 0;
@@ -460,12 +460,7 @@ pub(crate) fn combine_deferred_chunk(outputs: &[DeferredRingSwitchOutput], start
             let len = (block_len - lo).min(out.len() - done);
             let e_hi = claim.eq_hi[index / block_len];
             for (slot, &e_lo) in out[done..done + len].iter_mut().zip(&claim.eq_lo[lo..lo + len]) {
-                let value = fold_one_slot_ext(e_lo * e_hi, &claim.table);
-                if claim_idx == 0 {
-                    *slot = value;
-                } else {
-                    *slot += value;
-                }
+                *slot += fold_one_slot_ext(e_lo * e_hi, &claim.table);
             }
             done += len;
         }

@@ -395,6 +395,9 @@ pub fn prove_product_triple(leaves: [ArenaVec<F192>; 3], ps: &mut ProverState, s
             if round + 1 < round_count {
                 messages = trees.each_mut().map(|tree| tree.fold_and_message(challenge, &equality));
             } else {
+                // The last shrink exhausts `equality`, so the final round has no
+                // table to weight a message by and needs the fold alone. Both
+                // kernels stay for that reason; `fold` is not dead.
                 for tree in &mut trees {
                     tree.fold(challenge);
                 }
