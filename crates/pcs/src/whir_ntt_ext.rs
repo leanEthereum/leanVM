@@ -35,7 +35,31 @@ pub(crate) fn forward_transform_interleaved_ext_from_layer(
     assert!(log_d <= ntt.log_domain_size());
     assert!(start_layer <= log_d);
 
-    forward_transform_interleaved_ext_parallel_from_layer(ntt, data, num_ntts, start_layer);
+    // Keep the dedicated NEON and AVX-512 kernels; other x86 targets share the base NTT's larger groups.
+    if log_d >= 12
+        && cfg!(all(
+            target_arch = "x86_64",
+            not(all(target_feature = "vpclmulqdq", target_feature = "avx512f"))
+        ))
+    {
+        forward_transform_interleaved_ext_via_base(ntt, data, num_ntts, start_layer);
+    } else {
+        forward_transform_interleaved_ext_parallel_from_layer(ntt, data, num_ntts, start_layer);
+    }
+}
+
+pub(crate) fn forward_transform_interleaved_ext_via_base(
+    ntt: &AdditiveNttF64,
+    data: &mut [F192],
+    num_ntts: usize,
+    start_layer: usize,
+) {
+    const _: () = assert!(size_of::<F192>() == 3 * size_of::<F64>());
+    const _: () = assert!(align_of::<F192>() == align_of::<F64>());
+    // SAFETY: F192 is repr(C) over three u64 coefficients, and F64 is transparent over u64.
+    // Base-field twiddles act independently on each coefficient, preserving the row layout.
+    let coefficients = unsafe { std::slice::from_raw_parts_mut(data.as_mut_ptr().cast::<F64>(), 3 * data.len()) };
+    ntt.forward_transform_interleaved_parallel_from_layer(coefficients, 3 * num_ntts, start_layer);
 }
 
 /// Scalar reference for the E-valued interleaved forward NTT (test oracle and

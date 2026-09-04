@@ -445,35 +445,26 @@ pub(crate) fn prove_finish_deferred(
     }
 }
 
-/// Fold several deferred claims directly into their final combined dense basis.
-/// No per-claim dense vector is allocated or read back, and the first claim
-/// **writes** rather than accumulates, so the caller need not pre-zero `out`.
-///
-/// Use one pass per claim because interleaving tables increases lookup pressure.
-pub(crate) fn combine_deferred_into(outputs: &[DeferredRingSwitchOutput], out: &mut [F192]) {
-    assert!(!outputs.is_empty());
-    let block_len = outputs[0].eq_lo.len();
-    assert!(block_len.is_power_of_two());
-    assert!(
-        outputs
-            .iter()
-            .all(|o| { o.eq_lo.len() == block_len && o.eq_lo.len() * o.eq_hi.len() == out.len() })
-    );
-
-    parallel::chunks_mut(out, block_len, |hi, out_block| {
-        for (claim_idx, claim) in outputs.iter().enumerate() {
-            let e_hi = claim.eq_hi[hi];
-            if claim_idx == 0 {
-                for (slot, &e_lo) in out_block.iter_mut().zip(&claim.eq_lo) {
-                    *slot = fold_one_slot_ext(e_lo * e_hi, &claim.table);
-                }
-            } else {
-                for (slot, &e_lo) in out_block.iter_mut().zip(&claim.eq_lo) {
-                    *slot += fold_one_slot_ext(e_lo * e_hi, &claim.table);
-                }
+/// Fold several deferred claims into `out[start..]` of their combined dense
+/// basis, accumulating, so `out` arrives zeroed. No per-claim dense vector is
+/// allocated or read back. `start` is an offset into the basis, which lets a
+/// caller cover it one cache-resident window at a time.
+pub(crate) fn combine_deferred_chunk(outputs: &[DeferredRingSwitchOutput], start: usize, out: &mut [F192]) {
+    for claim in outputs {
+        let block_len = claim.eq_lo.len();
+        assert!(start + out.len() <= block_len * claim.eq_hi.len());
+        let mut done = 0;
+        while done < out.len() {
+            let index = start + done;
+            let lo = index % block_len;
+            let len = (block_len - lo).min(out.len() - done);
+            let e_hi = claim.eq_hi[index / block_len];
+            for (slot, &e_lo) in out[done..done + len].iter_mut().zip(&claim.eq_lo[lo..lo + len]) {
+                *slot += fold_one_slot_ext(e_lo * e_hi, &claim.table);
             }
+            done += len;
         }
-    });
+    }
 }
 
 /// Split point for the factored eq build: low half sized ~n/2 (min 4, the
@@ -669,7 +660,7 @@ mod tests {
             .iter()
             .fold(F192::ZERO, |acc, out| acc + out.batched_sumcheck_claim);
         let mut deferred_basis = vec![F192::ZERO; expected_basis.len()];
-        combine_deferred_into(&deferred, &mut deferred_basis);
+        combine_deferred_chunk(&deferred, 0, &mut deferred_basis);
 
         assert_eq!(deferred_target, expected_target);
         assert_eq!(deferred_basis, expected_basis);
@@ -759,7 +750,7 @@ mod tests {
         assert_eq!(apply_composed_map(value, &challenges), expanded);
     }
 
-    /// The byte-table fold of a dense tensor: the kernel `combine_deferred_into`
+    /// The byte-table fold of a dense tensor: the kernel `combine_deferred_chunk`
     /// runs per slot, without its factored-eq slot generation.
     fn fold_dense(tensor: &[F192], coordinate_weights: &[F192]) -> Vec<F192> {
         let tables = build_fold_byte_table_ext(coordinate_weights);
@@ -870,7 +861,7 @@ mod tests {
         );
     }
 
-    /// The byte-table fold behind `combine_deferred_into` must match the naive
+    /// The byte-table fold behind `combine_deferred_chunk` must match the naive
     /// bit-scan on arbitrary (not necessarily eq-structured) input.
     #[test]
     fn rs_eq_ind_fast_matches_naive() {
@@ -947,7 +938,7 @@ mod tests {
         let out = prove_finish_deferred(state, &coordinate_weights, F192::ONE);
         let sumcheck_claim = out.batched_sumcheck_claim;
         let mut rs_eq_ind = vec![F192::ZERO; packed.len()];
-        combine_deferred_into(&[out], &mut rs_eq_ind);
+        combine_deferred_chunk(&[out], 0, &mut rs_eq_ind);
         assert_eq!(inner_product_base_ext(&packed, &rs_eq_ind), sumcheck_claim);
         recursive_prover_with_basis(
             &pc,

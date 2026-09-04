@@ -10,7 +10,6 @@ use crate::PAR_THRESHOLD;
 use crate::transcript::{Challenger, ProverState, Receiver, Transmitter, VerifierState};
 use primitives::field::{F192, F192Unreduced, mul_unreduced4, mul2, mul4};
 use primitives::multilinear::{eq_table, interp, poly_eval, shrink_eq_low};
-#[cfg(target_arch = "x86_64")]
 use primitives::stream::Stream;
 use zk_alloc::ArenaVec;
 
@@ -226,6 +225,68 @@ impl QuaternaryLayerState {
         self.logical_rows /= 2;
     }
 
+    fn fold_and_message(&mut self, challenge: F192, equality: &[F192]) -> [F192; 4] {
+        let stored_rows = self.values.len() / 4;
+        let rows = stored_rows.div_ceil(2);
+        self.next.truncate(4 * rows);
+        let values = &self.values;
+        let dst = parallel::SendPtr(self.next.as_mut_ptr());
+        const PAIRS: usize = 16;
+        let pairs = rows.div_ceil(2);
+        let task = |index: usize| {
+            let first = index * PAIRS;
+            let end = (first + PAIRS).min(pairs);
+            let mut stage = [F192::ZERO; 8 * PAIRS];
+            let end_row = (2 * end).min(rows);
+            for row in 2 * first..end_row {
+                let lo = 8 * row;
+                let left = &values[lo..lo + 4];
+                let right = values.get(lo + 4..lo + 8).unwrap_or(&[F192::ONE; 4]);
+                let product = mul4(std::array::from_fn(|i| left[i] + right[i]), [challenge; 4]);
+                let offset = 4 * (row - 2 * first);
+                for i in 0..4 {
+                    stage[offset + i] = left[i] + product[i];
+                }
+            }
+            let mut message = [F192Unreduced::ZERO; 4];
+            for pair in first..end {
+                let lo = 8 * (pair - first);
+                let left = &stage[lo..lo + 4];
+                let right = if 2 * pair + 1 < rows {
+                    &stage[lo + 4..lo + 8]
+                } else {
+                    &[F192::ONE; 4]
+                };
+                let lines = std::array::from_fn(|i| [left[i], left[i] + right[i]]);
+                let terms = quartic_summand(lines, equality[pair]);
+                for i in 0..4 {
+                    message[i] ^= terms[i];
+                }
+            }
+            // The next round reads the destination; this round reads only the local stage.
+            let stream = Stream::new();
+            let len = 4 * (end_row - 2 * first);
+            // SAFETY: tasks own disjoint initialized prefixes of the output, covering every row.
+            unsafe { stream.copy(dst.slice(8 * first, len), &stage[..len]) };
+            message
+        };
+        let xor = |mut a: [F192Unreduced; 4], b: [F192Unreduced; 4]| {
+            for i in 0..4 {
+                a[i] ^= b[i];
+            }
+            a
+        };
+        let tasks = pairs.div_ceil(PAIRS);
+        let message = if rows >= PAR_THRESHOLD {
+            parallel::map_reduce(tasks, || [F192Unreduced::ZERO; 4], task, xor)
+        } else {
+            (0..tasks).map(task).fold([F192Unreduced::ZERO; 4], xor)
+        };
+        std::mem::swap(&mut self.values, &mut self.next);
+        self.logical_rows /= 2;
+        message.map(F192Unreduced::reduce)
+    }
+
     fn children(&self) -> [F192; 4] {
         debug_assert_eq!(self.values.len(), 4);
         debug_assert_eq!(self.logical_rows, 1);
@@ -314,8 +375,12 @@ pub fn prove_product_triple(leaves: [ArenaVec<F192>; 3], ps: &mut ProverState, s
             Vec::new()
         };
         let mut round_point = Vec::with_capacity(round_count);
-        for _ in 0..round_count {
-            let messages = [0, 1, 2].map(|tree| trees[tree].round_message(&equality));
+        let mut messages = if round_count > 0 {
+            trees.each_ref().map(|tree| tree.round_message(&equality))
+        } else {
+            [[F192::ZERO; 4]; 3]
+        };
+        for round in 0..round_count {
             let mut coeffs = [0, 1, 2, 3].map(|coefficient| {
                 messages[0][coefficient] + lambda * (messages[1][coefficient] + lambda * messages[2][coefficient])
             });
@@ -326,10 +391,17 @@ pub fn prove_product_triple(leaves: [ArenaVec<F192>; 3], ps: &mut ProverState, s
             ps.add_scalars(&coeffs);
             let challenge = ps.sample();
             round_point.push(challenge);
-            for tree in &mut trees {
-                tree.fold(challenge);
-            }
             shrink_eq_low(&mut equality);
+            if round + 1 < round_count {
+                messages = trees.each_mut().map(|tree| tree.fold_and_message(challenge, &equality));
+            } else {
+                // The last shrink exhausts `equality`, so the final round has no
+                // table to weight a message by and needs the fold alone. Both
+                // kernels stay for that reason; `fold` is not dead.
+                for tree in &mut trees {
+                    tree.fold(challenge);
+                }
+            }
         }
 
         for tree in &trees {
@@ -471,6 +543,37 @@ mod tests {
                     c0 + point * (c1 + point * (c2 + point * (c3 + point * c4))),
                     direct(point)
                 );
+            }
+        }
+    }
+
+    #[test]
+    fn fused_fold_matches_separate_fold_and_message() {
+        for width in [4usize, 16, 1 << 14] {
+            for len in [1, 4, 5, 7, 8, 9, 31, 32, 33, 4 * width - 5, 4 * width - 1, 4 * width] {
+                if len > 4 * width {
+                    continue;
+                }
+                let values: ArenaVec<F192> = (0..len)
+                    .map(|i| F192::new((17 * i + 1) as u64, (i * i + 3) as u64, (5 * i + 7) as u64))
+                    .collect();
+                let mut reference = QuaternaryLayerState::new(ArenaVec::from_slice(&values), width);
+                let mut fused = QuaternaryLayerState::new(values, width);
+                let point: Vec<F192> = (0..width.ilog2() - 1)
+                    .map(|i| F192::new(31 + u64::from(i), 7, 11))
+                    .collect();
+                let mut equality = eq_table(&point);
+                while reference.logical_rows > 2 {
+                    let challenge = F192::new(reference.logical_rows as u64, 13, 19);
+                    reference.fold(challenge);
+                    shrink_eq_low(&mut equality);
+                    let message = fused.fold_and_message(challenge, &equality);
+                    assert_eq!(message, reference.round_message(&equality), "width={width}, len={len}");
+                    assert_eq!(&*fused.values, &*reference.values, "width={width}, len={len}");
+                }
+                reference.fold(F192::Y);
+                fused.fold(F192::Y);
+                assert_eq!(fused.children(), reference.children());
             }
         }
     }
