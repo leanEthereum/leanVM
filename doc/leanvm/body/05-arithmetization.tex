@@ -13,7 +13,7 @@ The arithmetization is inspired by the M3 model (multi-multiset matching)~\cite{
 
 \paragraph{Balance.} The bus balances when its pushed tuples and its pulled tuples form the same multiset (\ref{def:multiset}).
 
-\paragraph{Domain separation.} The first coordinate of every tuple is a \emph{domain separator}, a fixed constant naming its interaction: $\dsep{ST}=\gen^{0}$ for VM state, $\dsep{MEM}=\gen^{1}$ for memory, $\dsep{BC}=\gen^{2}$ for bytecode. (They are needed since all interactions share a common bus.)
+\paragraph{Domain separation.} When several interactions share the bus, the first coordinate of every tuple is a \emph{domain separator}, a fixed constant naming its interaction: $\dsep{ST}=\gen^{0}$ for VM state, $\dsep{MEM}=\gen^{1}$ for memory, $\dsep{BC}=\gen^{2}$ for bytecode. (They are needed since all interactions share a common bus.)
 
 \subsection{Balancing the bus: grand product}\label{sec:gp}
 
@@ -21,9 +21,9 @@ Both multisets (\emph{pulls} and \emph{pushes}) carry the same number of tuples,
 
 \emph{Fingerprint.} The verifier samples $\alpha=(\alpha_0,\dots,\alpha_3)\in\E^{4}$ and maps each tuple $\btup \in \K^{16}$ to a single $\E$-element:
 \[
-\pi_\alpha(\btup)\;=\;\sum_{i=0}^{15}\eq(\alpha,i)\,\btup_i ,
+\pi_\alpha(\btup)\;=\;\sum_{\iota\in\cube{4}}\eq(\alpha,\iota)\,\btup_\iota ,
 \]
-(smaller tuples are padded to $16$ entries with $0$).
+the sixteen slots indexed by their bits, low bit first, and smaller tuples padded with $0$.
 
 \emph{Product check.} The verifier samples $\beta\in\E$, and checks:
 \begin{equation}
@@ -60,7 +60,7 @@ TODO
 
 \subsection{Proving the grand product}\label{sec:gkr}
 
-Take one side of \eqref{eq:gp}. Its tuples give its $2^{\mu}$ leaves $v_k=\beta-\pi_\alpha(\btup_k)$, the ones past the last tuple being $1$. Multiply the leaves two by two, then multiply the results two by two, and so on: after $\mu$ layers one value is left, the root $P=\prod_kv_k$. Layer $0$ is the leaves, layer $i$ has $2^{\mu-i}$ nodes, and layer $\mu$ is the root. The prover announces $P$. GKR proves it by walking back down the tree, turning a claim about one layer into a claim about the layer below, until it reaches the leaves and \S\ref{sec:leafstack} takes over.
+Take one side of \eqref{eq:gp}. Its tuples give its $2^{\mu}$ leaves $V_0(x)=\beta-\pi_\alpha(\btup_x)$, the ones past the last tuple being $1$. Multiply the leaves two by two, then multiply the results two by two, and so on: after $\mu$ layers one value is left, the root $P=\prod_xV_0(x)$. Layer $0$ is the leaves, layer $i$ has $2^{\mu-i}$ nodes, and layer $\mu$ is the root. The prover announces $P$. GKR proves it by walking back down the tree, turning a claim about one layer into a claim about the layer below, until it reaches the leaves and \S\ref{sec:leafstack} takes over.
 
 \subsubsection{Grand-Product argument via GKR}
 
@@ -98,13 +98,13 @@ All $\nside$ trees leave the pass on claims at one shared terminal point $\zeta$
 
 The GKR grand-product argument reduces each side of \eqref{eq:gp} to a single evaluation $\widetilde V_0(\zeta)$ of its \emph{leaves}, the product's factors $\beta-\pi_\alpha(\btup)$, one per bus tuple $\btup$.
 
-\paragraph{Flush blocks.} The leaves split into \emph{blocks}, one per flush rule and one per boundary set. A block of a $2^{\kappa}$-row table holds $2^{\kappa}$ leaves; the row-$z$ leaf is $\beta-\sum_{i}\eq(\alpha,i)\,c_{i}(z)$, with $c_{i}(z)$ coordinate $i$ of the row's tuple. Each $c_i$ is a polynomial of degree at most $d = 2$ in the columns (at the corresponding row) (\S\ref{sec:m3}).
+\paragraph{Flush blocks.} The leaves split into \emph{blocks}, one per flush rule and one per boundary set. A block of a $2^{\kappa}$-row table holds $2^{\kappa}$ leaves; the row-$z$ leaf is $\beta-\sum_{\iota}\eq(\alpha,\iota)\,c_{\iota}(z)$, with $c_{\iota}(z)$ slot $\iota$ of the row's tuple. Each $c_\iota$ is a polynomial of degree at most $d = 2$ in the columns (at the corresponding row) (\S\ref{sec:m3}).
 
 \paragraph{Layout.} Order the blocks largest first at aligned offsets, padding to $2^{\mu}$ leaves with $1$s, which leave the product unchanged. This is the stacking of \S\ref{sec:stacking} applied to blocks: block $b$, of $2^{\kappa_b}$ leaves, occupies the subcube $\{(z,\mathsf{sel}_b):z\in\cube{\kappa_b}\}$ for a fixed selector $\mathsf{sel}_b$ (that depends only on the table, bytecode and memory sizes).
 
 \paragraph{Decomposition.} Split $\zeta=(\zeta^{b}_{\mathrm{lo}},\zeta^{b}_{\mathrm{hi}})$ at block $b$'s boundary. Each block is a subcube, so the leaf MLE splits into a public selector times the block's own MLE, plus what the padding contributes:
 \begin{equation}\label{eq:gkr_leaves}
-  \widetilde V_0(\zeta)\;=\;\sum_b \eq(\mathsf{sel}_b,\zeta^{b}_{\mathrm{hi}})\Bigl(\beta-\sum_{i}\eq(\alpha,i)\,\widetilde c_{b,i}(\zeta^{b}_{\mathrm{lo}})\Bigr)\;+\;\Bigl(1+\sum_b\eq(\mathsf{sel}_b,\zeta^{b}_{\mathrm{hi}})\Bigr).
+  \widetilde V_0(\zeta)\;=\;\sum_b \eq(\mathsf{sel}_b,\zeta^{b}_{\mathrm{hi}})\Bigl(\beta-\sum_{\iota}\eq(\alpha,\iota)\,\widetilde c_{b,\iota}(\zeta^{b}_{\mathrm{lo}})\Bigr)\;+\;\Bigl(1+\sum_b\eq(\mathsf{sel}_b,\zeta^{b}_{\mathrm{hi}})\Bigr).
 \end{equation}
 That last term is the padding's weight, for the final $\dots 1111$.
 
@@ -112,9 +112,9 @@ That last term is the padding's weight, for the final $\dots 1111$.
 
 Let $\mathcal B$ be the blocks of $T_j$'s flushes in this leaf vector, one per flush rule (\S\ref{sec:m3}). Each holds one leaf per row of $T_j$, so each is $2^{\tau_j}$ tall and all of them split $\zeta$ at the same place, $\zeta^{b}_{\mathrm{lo}}=\zeta_{<\tau_j}$ and $\zeta^{b}_{\mathrm{hi}}=\zeta_{\ge\tau_j}$, differing only through their selector. Exchanging the two sums,
 \begin{align*}
-  \sum_{b\in\mathcal B}\eq(\mathsf{sel}_b,\zeta^{b}_{\mathrm{hi}})\sum_{x\in\cube{\tau_j}}\eq(\zeta_{<\tau_j},x)\Bigl(\beta-\sum_{i}\eq(\alpha,i)\,c_{b,i}(x)\Bigr)
+  \sum_{b\in\mathcal B}\eq(\mathsf{sel}_b,\zeta^{b}_{\mathrm{hi}})\sum_{x\in\cube{\tau_j}}\eq(\zeta_{<\tau_j},x)\Bigl(\beta-\sum_{\iota}\eq(\alpha,\iota)\,c_{b,\iota}(x)\Bigr)
   &\;=\;\sum_{x\in\cube{\tau_j}}\eq(\zeta_{<\tau_j},x)\,B^{s}_j(x),\\
-  B^{s}_j&\;=\;\sum_{b\in\mathcal B}\eq(\mathsf{sel}_b,\zeta^{b}_{\mathrm{hi}})\Bigl(\beta-\sum_i\eq(\alpha,i)\,c_{b,i}\Bigr).
+  B^{s}_j&\;=\;\sum_{b\in\mathcal B}\eq(\mathsf{sel}_b,\zeta^{b}_{\mathrm{hi}})\Bigl(\beta-\sum_\iota\eq(\alpha,\iota)\,c_{b,\iota}\Bigr).
 \end{align*}
 $B^{s}_j$ has degree at most $d$ in $T_j$'s columns, and the verifier builds its coefficients from $\alpha$, $\beta$ and the selectors. What remains to prove is
 \[
@@ -142,14 +142,111 @@ There is one such equation per side. Nothing is sent for these blocks. Each cons
 \end{equation}
 Both \eqref{eq:cons} and \eqref{eq:bus} are built from $\eq(\zeta_{<\tau_j},\cdot)$-weighted sums over one table's rows of a polynomial of degree at most $d$ in its columns: we batch them in a single sumcheck.
 
-\paragraph{Back-loaded batched sumcheck.} The verifier samples $\xi\in\E$ and gives each claim its own power of it: $\xi^{\,o_j+i-1}$ for $C_{j,i}$, with $o_j=\ncons{1}+\dots+\ncons{j-1}$ numbering the constraints table by table, and then $\xi^{\,B+s-1}$ for side $s$, with $B=\sum_j\ncons{j}$ the constraint count. A sumcheck runs over one cube, so write $\taumax=\max_j\tau_j$, let $X_{<\tau_j}=(X_0,\dots,X_{\tau_j-1})$ be the variables $T_j$ uses, and multiply in the ones it does not:
+\paragraph{Back-loaded batched sumcheck.} The verifier samples $\xi\in\E$ and gives each claim its own power of it: $\xi^{\,o_j+i-1}$ for $C_{j,i}$, with $o_j=\ncons{1}+\dots+\ncons{j-1}$ numbering the constraints table by table, and then $\xi^{\,\nconstot+s-1}$ for side $s$, with $\nconstot=\sum_j\ncons{j}$ the constraint count. A sumcheck runs over one cube, so write $\taumax=\max_j\tau_j$, let $X_{<\tau_j}=(X_0,\dots,X_{\tau_j-1})$ be the variables $T_j$ uses, and multiply in the ones it does not:
 \[
-  F(X_0,\dots,X_{\taumax-1})\;=\;\sum_{j=1}^{\ntab}\eq(\zeta_{<\tau_j},X_{<\tau_j})
-  \Bigl(\sum_{i=1}^{\ncons{j}}\xi^{\,o_j+i-1}C_{j,i}+\sum_{s=1}^{\nside}\xi^{\,B+s-1}B^{s}_j\Bigr)(X_{<\tau_j})
+  F(X_0,\dots,X_{\taumax-1})\;=\;\sum_{j=1}^{\ntab}\eq(\zeta_{<\tau_j},X_{<\tau_j})\!
+  \Bigl(\sum_{i=1}^{\ncons{j}}\xi^{\,o_j+i-1}C_{j,i}+\sum_{s=1}^{\nside}\xi^{\,\nconstot+s-1}B^{s}_j\Bigr)(X_{<\tau_j})
   \prod_{k=\tau_j}^{\taumax-1}X_k .
 \]
 Since $\sum_{x\in\cube{m}}x_0\cdots x_{m-1}=1$, the padded variables contribute a factor $1$, so summing $F$ over $\cube{\taumax}$ gives back what each table owes. We thus run a single sumcheck:
 \[
-  \sum_{x\in\cube{\taumax}}F(x)\;\qeq\;\sum_{s=1}^{\nside}\xi^{\,B+s-1}\mathsf{rem}_{s},
+  \sum_{x\in\cube{\taumax}}F(x)\;\qeq\;\sum_{s=1}^{\nside}\xi^{\,\nconstot+s-1}\mathsf{rem}_{s},
 \]
-the verifier computing the right side itself. Each summand of $F$ has individual degree $d+1=3$, the constraint contributing $d$ and the $\eq$ factor one, so the soundness error is $(3\taumax+\nside+B)/|\E|$: $3\taumax$ for the rounds (Fact~\ref{fact:sumcheck}) and $\nside+B$ for the $\xi$-batching (Corollary~\ref{cor:idtest}). Rounds bind $X_{\taumax-1}$ first, so $T_j$ joins only at round $\taumax-\tau_j$: hence \emph{back-loaded}. The end yields one claim per column, $T_j$'s at $\fc_{<\tau_j}$, settled by the PCS opening (\S\ref{sec:stacking}).
+the verifier computing the right side itself. Each summand of $F$ has individual degree $d+1=3$, the constraint contributing $d$ and the $\eq$ factor one, so the soundness error is $(3\taumax+\nside+\nconstot)/|\E|$: $3\taumax$ for the rounds (Fact~\ref{fact:sumcheck}) and $\nside+\nconstot$ for the $\xi$-batching (Corollary~\ref{cor:idtest}). Rounds bind $X_{\taumax-1}$ first, so $T_j$ joins only at round $\taumax-\tau_j$: hence \emph{back-loaded}. The end yields one claim per column, $T_j$'s at $\fc_{<\tau_j}$, settled by the PCS opening (\S\ref{sec:stacking}).
+
+\subsection{Example: proving elliptic curve multiplication}\label{sec:arith-example}
+
+\subsubsection{Statement}
+
+\paragraph{The claim.} Over $\K$, with $\gen=\mathtt{2}$, fix the elliptic curve $t^{2}+e\,t=e^{3}+\gen$ and the two public points
+\begin{align*}
+  G=(e_G,t_G)&=\bigl(\mathtt{1},\ \mathtt{9d7b84b595b2e2e6}\bigr),\\
+  Q=(e_Q,t_Q)&=\bigl(\mathtt{bbde619e481ba9dd},\ \mathtt{c7dc5bdf1e3477f9}\bigr).
+\end{align*}
+The group law gives:
+\begin{align*}
+  [2](e,t)&=\bigl(e',\,e^{2}+(w+1)\,e'\bigr), &&w=e+t/e, &&e'=w^{2}+w,\\
+  (e,t)+G&=\bigl(e',\,w\,(e+e')+e'+t\bigr), &&w=(t+t_G)/(e+e_G), &&e'=w^{2}+w+e+e_G .
+\end{align*}
+
+The statement is: $Q=[66067]G$. We prove it via a double-and-add walk. Since $66067=2^{16}+2^{9}+2^{4}+2+1$, there are sixteen doublings and four additions of $G$.
+
+\subsubsection{Arithmetization}
+
+\paragraph{The tables.}
+
+\begin{itemize}[itemsep=3pt,topsep=3pt]
+\item $T_1=\texttt{DOUBLE}$, height $2^{4}$.
+  \begin{itemize}[itemsep=1pt,topsep=1pt,label={}]
+  \item \textbf{Columns:} $\mathsf{tag},e,t,w,e'$.
+  \item \textbf{Constraints:} $C_{1,1}: w\,e=e^{2}+t$ and $C_{1,2}: e'=w^{2}+w$.
+  \item \textbf{Flushes:} \pull\ $\tup{\mathsf{tag},e,t}$ and \push\ $\tup{\mathsf{tag}^{2},\ e',\ e^{2}+(w+1)\,e'}$.
+  \end{itemize}
+\item $T_2=\texttt{ADD}$, height $2^{2}$.
+  \begin{itemize}[itemsep=1pt,topsep=1pt,label={}]
+  \item \textbf{Columns:} $\mathsf{tag},e,t,w,e',v$.
+  \item \textbf{Constraints:} $C_{2,1}: v\,(e+e_G)=1$, $C_{2,2}: w\,(e+e_G)=t+t_G$ and $C_{2,3}: e'=w^{2}+w+e+e_G$.
+  \item \textbf{Flushes:} \pull\ $\tup{\mathsf{tag},e,t}$ and \push\ $\tup{\gen\cdot\mathsf{tag},\ e',\ w\,(e+e')+e'+t}$.
+  \end{itemize}
+\end{itemize}
+The column $v$ in $T_2$ is required to prevent a row at the point $G$, where $e+e_G=0$ and $w\,(e+e_G)=t+t_G$ holds for any $w$. So $\ntab=2$ and $\nconstot=5$.
+
+\paragraph{Boundary flushes.} \push\ $\tup{\gen,e_G,t_G}$ and \pull\ $\tup{\gen^{66067},e_Q,t_Q}$.
+
+\vspace{5mm}
+
+The existence of $T_1$ and $T_2$ verifying the constraints, and balancing the bus (including the boundary flushes) proves the statement.
+
+\subsubsection{The interactive protocol, unrolled}
+
+\begin{enumerate}[itemsep=1pt,topsep=3pt]
+\item \textbf{Prover.} Commits the eleven columns. In this example, the two log heights are fixed, $\tau_1=4$ and $\tau_2=2$.
+\item \textbf{Verifier.} Samples and sends $\alpha_0,\alpha_1,\alpha_2,\alpha_3$ and $\beta$.
+\item \textbf{Prover.} Builds the leaves $\beta-\pi_\alpha(\btup)$, $16+4+1=21$ per side ($\push$ / $\pull$), and pads to $\mu=5$ with eleven $1$s. The two sides share the same layout (largest blocks first):
+\begin{center}
+\setlength{\tabcolsep}{0pt}
+\begin{tabular}{@{}r@{\ \ }*{32}{p{0.0255\linewidth}}@{}}
+ &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & \\[-2.6ex]
+{\footnotesize $V^{s}_{5}$} & \multicolumn{32}{c}{\framebox[0.0255\linewidth]{\rule{0pt}{1.5ex}$P$}}\\[0.3ex]
+ & \multicolumn{8}{c}{} & \multicolumn{16}{c}{$\overbrace{\hspace{0.4080\linewidth}}^{\uparrow}$} & \multicolumn{8}{c}{}\\[0.3ex]
+{\footnotesize $V^{s}_{4}$} & \multicolumn{16}{c}{\framebox[0.0255\linewidth]{\rule{0pt}{1.5ex}}} & \multicolumn{16}{c}{\framebox[0.0255\linewidth]{\rule{0pt}{1.5ex}}}\\[0.3ex]
+ & \multicolumn{2}{c}{} & \multicolumn{12}{c}{$\overbrace{\hspace{0.3060\linewidth}}^{\uparrow}$} & \multicolumn{2}{c}{} & \multicolumn{2}{c}{} & \multicolumn{12}{c}{$\overbrace{\hspace{0.3060\linewidth}}^{\uparrow}$} & \multicolumn{2}{c}{}\\[0.3ex]
+{\footnotesize $V^{s}_{2}$} & \multicolumn{4}{c}{\framebox[0.0255\linewidth]{\rule{0pt}{1.5ex}}} & \multicolumn{4}{c}{\framebox[0.0255\linewidth]{\rule{0pt}{1.5ex}}} & \multicolumn{4}{c}{\framebox[0.0255\linewidth]{\rule{0pt}{1.5ex}}} & \multicolumn{4}{c}{\framebox[0.0255\linewidth]{\rule{0pt}{1.5ex}}} & \multicolumn{4}{c}{\framebox[0.0255\linewidth]{\rule{0pt}{1.5ex}}} & \multicolumn{4}{c}{\framebox[0.0255\linewidth]{\rule{0pt}{1.5ex}}} & \multicolumn{4}{c}{\framebox[0.0255\linewidth]{\rule{0pt}{1.5ex}}} & \multicolumn{4}{c}{\framebox[0.0255\linewidth]{\rule{0pt}{1.5ex}}}\\[0.3ex]
+ & \multicolumn{4}{c}{$\overbrace{\hspace{0.1020\linewidth}}^{\uparrow}$} & \multicolumn{4}{c}{$\overbrace{\hspace{0.1020\linewidth}}^{\uparrow}$} & \multicolumn{4}{c}{$\overbrace{\hspace{0.1020\linewidth}}^{\uparrow}$} & \multicolumn{4}{c}{$\overbrace{\hspace{0.1020\linewidth}}^{\uparrow}$} & \multicolumn{4}{c}{$\overbrace{\hspace{0.1020\linewidth}}^{\uparrow}$} & \multicolumn{4}{c}{$\overbrace{\hspace{0.1020\linewidth}}^{\uparrow}$} & \multicolumn{4}{c}{$\overbrace{\hspace{0.1020\linewidth}}^{\uparrow}$} & \multicolumn{4}{c}{$\overbrace{\hspace{0.1020\linewidth}}^{\uparrow}$}\\[0.3ex]
+\cline{2-33}
+{\footnotesize $V^{s}_{0}$} & \multicolumn{1}{|c|}{\rule{0pt}{2.1ex}} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{}\\
+\cline{2-33}
+ & \multicolumn{16}{c}{$\underbrace{\hspace{0.4080\linewidth}}_{\texttt{DOUBLE}}$} & \multicolumn{4}{c}{$\underbrace{\hspace{0.1020\linewidth}}_{\texttt{ADD}}$} & \multicolumn{1}{c}{\makebox[0pt]{\raisebox{-4.0ex}[0pt][0pt]{\shortstack{$\Big\uparrow$\\[0.3ex]{\footnotesize boundary}}}}} & \multicolumn{11}{c}{$\underbrace{\hspace{0.2805\linewidth}}_{\text{padding }1\text{s}}$}\\
+\end{tabular}
+\end{center}
+The boundary block is leaf $20$, and the three selectors are $(0)$, $(0,0,1)$ and $(0,0,1,0,1)$.
+\item \textbf{Prover.} Sends one root $P$ shared by both sides.
+\item \textbf{Prover \& Verifier.} For each side, run Grand-Product GKR on the tree above: $\mu$ is odd, so a binary layer first, then two radix-four steps. The sumchecks of each side are batched together, with final point $\zeta\in\E^{5}$.
+\item \textbf{Verifier.} Evaluates leaf $20$, whose entries are public, and the weight of the eleven padding leaves. Subtracting both from $\mle V^{s}_0(\zeta)$ leaves $\mathsf{rem}_{\push}$ and $\mathsf{rem}_{\pull}$.
+\item \textbf{Verifier.} Samples and sends the batching scalar $\xi$.
+\item \textbf{Prover \& Verifier.} Seven claims are now open, and every one of them is a sum over one table's rows against its own weight $\eq(\zeta_{<\tau_j},\cdot)$. The five constraints have to vanish, and the two sides have to return what step~6 left:
+\begin{align*}
+  \sum_{x\in\cube{\tau_j}}\eq(\zeta_{<\tau_j},x)\,C_{j,i}(x)&\qeq0 \qquad\text{for the five } C_{j,i},\\
+  \sum_{j=1}^{2}\ \sum_{x\in\cube{\tau_j}}\eq(\zeta_{<\tau_j},x)\,B^{s}_{j}(x)&\qeq\mathsf{rem}_{s} \qquad\text{for } s\in\{\push,\pull\},
+\end{align*}
+where $B^{s}_{j}$ is what $T_j$ owes on side $s$. Writing a column's value at row $x$ as $e(x)$ and so on:
+\begin{align*}
+  B^{\push}_{1}(x)&=\eq\bigl((0),\zeta_{\ge4}\bigr)\Bigl(\beta-\pi_\alpha\tup{\mathsf{tag}(x)^{2},\ e'(x),\ e(x)^{2}+(w(x)+1)\,e'(x)}\Bigr),\\
+  B^{\pull}_{1}(x)&=\eq\bigl((0),\zeta_{\ge4}\bigr)\Bigl(\beta-\pi_\alpha\tup{\mathsf{tag}(x),\ e(x),\ t(x)}\Bigr),\\
+  B^{\push}_{2}(x)&=\eq\bigl((0,0,1),\zeta_{\ge2}\bigr)\Bigl(\beta-\pi_\alpha\tup{\gen\cdot\mathsf{tag}(x),\ e'(x),\ w(x)\,\bigl(e(x)+e'(x)\bigr)+e'(x)+t(x)}\Bigr),\\
+  B^{\pull}_{2}(x)&=\eq\bigl((0,0,1),\zeta_{\ge2}\bigr)\Bigl(\beta-\pi_\alpha\tup{\mathsf{tag}(x),\ e(x),\ t(x)}\Bigr).
+\end{align*}
+
+They run over different cubes, $\cube{4}$ for \texttt{DOUBLE} and $\cube{2}$ for \texttt{ADD}, so \texttt{ADD}'s part is multiplied by $X_2X_3$, the two variables it does not use, whose sum over $\cube{2}$ is $1$ and so leaves its own sum untouched:
+\begin{align*}
+  F(X_0,\dots,X_3)&=\eq\bigl(\zeta_{<4},(X_0,\dots,X_3)\bigr)\Bigl(\xi^{0}C_{1,1}+\xi^{1}C_{1,2}+\xi^{5}B^{\push}_{1}+\xi^{6}B^{\pull}_{1}\Bigr)\\
+                  &\quad+\eq\bigl(\zeta_{<2},(X_0,X_1)\bigr)\Bigl(\xi^{2}C_{2,1}+\xi^{3}C_{2,2}+\xi^{4}C_{2,3}+\xi^{5}B^{\push}_{2}+\xi^{6}B^{\pull}_{2}\Bigr)X_2X_3 .
+\end{align*}
+One sumcheck over $\cube{4}$ then proves all seven claims at once:
+\[
+  \sum_{x\in\cube{4}}F(x)\qeq\xi^{5}\mathsf{rem}_{\push}+\xi^{6}\mathsf{rem}_{\pull}.
+\]
+\item \textbf{Prover.} Sends its eleven column values: $\mle{\mathsf{tag}},\mle e,\mle t,\mle w,\mle{e'}$ at $\fc=(\fc_0,\dots,\fc_3)$ for \texttt{DOUBLE}, and $\mle{\mathsf{tag}},\mle e,\mle t,\mle w,\mle{e'},\mle v$ at $\fc_{<2}=(\fc_0,\fc_1)$ for \texttt{ADD}.
+\item \textbf{Verifier.} Rebuilds every $C_{j,i}$ and $B^{s}_{j}$ from those eleven values, forms $F(\fc)$, and checks it against the sumcheck's last round.
+\item \textbf{Prover \& Verifier.} Verify each of the eleven column claims against their initial commitment.
+\end{enumerate}

@@ -11,6 +11,8 @@ Define the following two finite fields:
 
 And fix a generator $\gen$ of the multiplicative group $\K^{\times}$, of order $2^{64}-1$.
 
+An element of $\K$ is a polynomial in $x$ of degree below $64$, written in hex with the coefficient of $x^{i}$ in bit $i$, so $\mathtt{2}$ is $x$ and $\mathtt{3}$ is $x+1$. An element of $\E$ is three of those, its coefficients on $1,y,y^{2}$.
+
 \vspace{5mm}
 
 LeanVM ISA, also known as leanISA, is inspired by \cite{cairo}. The Virtual Machine takes as input a bytecode (padded to a power of two, $\nprog = 2^{\kbc}$) and some public input $\textsf{input} \in \cube{256} \simeq (\textsf{input}_0, \dots, \textsf{input}_3) \in (\cube{64})^4$. The Virtual Machine then initializes its two $\K$-valued registers:

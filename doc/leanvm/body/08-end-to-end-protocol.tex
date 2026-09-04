@@ -41,7 +41,7 @@ A table is proven over a power-of-two number of rows. The prover reaches one by 
 \end{itemize}
 The prover can thus leverage these \emph{closed walks} to fill every table to its next power of 2. (important for completeness, but not for soundness)
 
-\subsection{Fiat Shamir instanciation}\label{sec:e2e-fiat-shamir}
+\subsection{Fiat Shamir instantiation}\label{sec:e2e-fiat-shamir}
 
 TODO
 
@@ -72,7 +72,7 @@ The Fiat-Shamir initial state (\S\ref{sec:e2e-fiat-shamir}) is seeded by the pub
 
 \paragraph{Table sumcheck.} One run proves the six tables' constraints together with their share of the bus (\S\ref{sec:air}).
 \begin{enumerate}
-\item \textbf{Verifier.} Samples and sends the batch challenge $\xi\in\E$. Its first $B=\sum_j\ncons{j}$ powers weight the constraints, a disjoint range per table; the last $\nside$ weight the bus forms, one per side and shared by every table. It draws no point: the batch runs at the bus point, $T_j$ tested at $\zeta_{<\tau_j}$.
+\item \textbf{Verifier.} Samples and sends the batch challenge $\xi\in\E$. Its first $\nconstot=\sum_j\ncons{j}$ powers weight the constraints, a disjoint range per table; the last $\nside$ weight the bus forms, one per side and shared by every table. It draws no point: the batch runs at the bus point, $T_j$ tested at $\zeta_{<\tau_j}$.
 \item \textbf{Prover \& Verifier.} Run the sumcheck, $\taumax=\max_j\tau_j$ rounds with $T_j$ joining at round $\taumax-\tau_j$, against the target the verifier derived from the three leaf claims. Its summand has individual degree three and the round check pins one of the four coefficients (\S\ref{sec:prelim}), so a round costs three $\E$-elements.
 \item \textbf{Prover \& Verifier.} The prover sends one value per column of every table. The verifier rebuilds each $C_{j,i}$ and $B^{s}_j$ from them and checks that they reproduce the sumcheck's final value; the column values then enter the claim pool, $T_j$'s at $\fc_{<\tau_j}$. \texttt{BLAKE2S}'s eighteen value limbs are columns of its table but live in $\qflock$, not the stack, so their claims route there (\S\ref{sec:tab-blake2s}).
 \end{enumerate}
