@@ -1,0 +1,81 @@
+% !TeX root = zk-count-middle-rounds.tex
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\input{../leanvm/preamble/macros.tex}
+\newtheorem{lemma}{Lemma}
+\title{Closing the gaps between the first round and the children}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\paragraph{Status.} The joint first-round and final-child theorem in \path{zk-count-first-round.tex} is not a complete-layer theorem. Its particular mask library leaves a witness-dependent coefficient in the second round unchanged. A second invariant persists even with more variable backgrounds. Both have valid-padding repair candidates below, checked in exact GKR replays. Joint statistical hiding of all the intermediate messages remains unproved.
+
+\section{Backgrounds must vary beyond the first coordinate}
+
+The six-bank library's two background children depend only on the first folded coordinate. After that fold they are constants inside every affected second-round pair. The other two children are linear in the new variable, so the mask-dependent part of their product has degree at most two. Tags have not yet been folded, and both values of this next sparse coordinate are reserved. Consequently the second-round cubic and quartic coefficients are independent of \emph{all} the library's random bits.
+
+This is an actual obstruction to that library, not merely a failed uniform-rank test. \path{zk_count_middle_audit.py} constructs two valid fixed complements with identical memory/code images, final counters, count-column products and count ancestors. A balanced trade in the complement uses a background that varies in the \emph{second} folded coordinate, duplicated across the first coordinate. The first message is unchanged, but the second-round cubic coefficient changes. The six-bank random masks leave this coefficient untouched. Complete count-channel GKR replays accept both cases; the replay's fingerprint trees are identities, not a full VM proof.
+
+\paragraph{An all-coordinate background.} Replace the background $\gen^t$ by a complete counter chain $\gen^j$ indexed by every Boolean position $j$ of the sparse and separator coordinates. Its multilinear extension is
+\[
+ C(X)=\prod_{k=0}^{m-1}\left(1+(1+\gen^{2^k})X_k\right).
+\]
+It varies in every such coordinate. The existing three types become $(1,1),(C,1),(C,C)$. This is realizable: repeat one fresh self-loop $2^m$ times and assign its condition counters in index order. Use a separate loop for the other background child when needed. The complete chain must be present, not just its entries at sparse mask positions.
+
+For the six-bank shape, $m=14$. The two background children across all banks reserve $6\cdot2\cdot2^{14}=196608$ rows, and the sparse trade positions reserve $21504$ more, totaling $218112$. This is a size calculation and a valid cycle prescription, not a claim of compatibility with the other layouts or a full-size audit. Small exact ISA instances confirm that these backgrounds restore randomness to both high coefficients of the second round.
+
+\section{A common separator creates another invariant}
+
+Ordinary balanced trades change a selected child by the same amount at both values of their separating coordinate $X_\sigma$. Thus their change polynomials are independent of $X_\sigma$.
+
+\begin{lemma}[Separator derivative invariant]
+If every child change is independent of $X_\sigma$, the quartic coefficient in the round folding $X_\sigma$ is independent of those masks, regardless of the fixed complementary rows and backgrounds.
+\end{lemma}
+\begin{proof}
+Write the current four child lines as $A_i+B_iT$. The quartic coefficient of their product is $\prod_i B_i$. Earlier folds commute with taking the multilinear difference in $X_\sigma$, so they do not change the mask-independence of any $B_i$. Equality-weighted summation preserves the invariant.
+\end{proof}
+
+Moving the separator therefore moves an unmasked coefficient; geometric backgrounds alone do not fix this. The invariant is again verified in the complete GKR replay.
+
+\section{Twist the exchange instead of duplicating its direction}
+
+Reverse the order of the two labels in the second quartet:
+\[
+\begin{array}{c|cc}
+ &X_\sigma=0&X_\sigma=1\\ \hline
+0 &(1,\gen^3)&(\gen^2,\gen)\\
+1 &(\gen,\gen^2)&(\gen^3,1).
+\end{array}
+\]
+Each quartet product remains $\gen^3$, and the complete label multiset is still $\{0,1,2,3\}$. The same four valid repeated rows realize this exchange. Its two changes are proportional to
+\[
+ L(X_\sigma)=1+(1+\gen^2)X_\sigma,
+ \qquad R(X_\sigma)=\gen^2+(1+\gen^2)X_\sigma.
+\]
+They now have nonzero slopes in the separating coordinate. Combined with the all-coordinate backgrounds, exact valid-cycle replays show randomness entering the previously invariant quartic coefficient. This observation is not a statistical hiding bound.
+
+\paragraph{The useful linear structure survives.} Within one fixed bank, absorb the factor $1+\gen$ and its support selector into a binary-linear mask polynomial $U$, independent of $X_\sigma$. Then $\Delta a_i=LU$, $\Delta a_j=RU$, and the layer-product change is
+\[
+ a_k a_l\left[(Ra_i+La_j)U+LRU^2\right].
+\]
+Squaring is additive in characteristic two, so the \emph{entire} layer view remains affine over $\Ftwo$ in that bank's bits, for fixed coins and other banks. This identity is checked against complete replayed transcripts. Different banks can still introduce cross terms.
+
+The terminal child directions are not lost: four cyclic pair directions have determinant
+\[
+ L(\fc_\sigma)^4+R(\fc_\sigma)^4=(1+\gen^2)^4\ne0.
+\]
+Thus twisting avoids the separator invariant without introducing a terminal directional degeneracy. The remaining task is a cumulative binary-rank or triangular simulation argument for \emph{all} rounds, with a uniform statistical bound. Counting changed coefficients, or adding the ranks from separately conditioned banks, would not prove it.
+
+\paragraph{An exact scope for the cumulative audit.} With coins fixed, the count-only last-layer view is a Boolean polynomial of total degree at most four in the mask bits: each child is affine, and each sumcheck message is a linear combination of products of four children. Since it is separately affine in each bank, every nonconstant monomial uses bits from at most four \emph{distinct} banks. An audit looking for a linear witness disclosure must therefore include these mixed-bank coefficient vectors, not only single-bit derivatives. A linear functional annihilating all of them removes every random bit exactly. Absence of such a functional would rule out this class of leakage, not prove statistical simulation.
+
+The continuation \path{zk-count-mixed.tex} performs this audit. It finds a common-root leak even in twisted banks, derives an explicit extraction formula, and gives a joint repair for the two root evaluations using different fixed valid anchors. Its larger finite anchored instance has only the known first-endpoint affine constraint; full statistical simulation remains open.
+
+\paragraph{Evidence.} \path{zk_count_middle_audit.py} tests the original, geometric and twisted-geometric libraries using $512$ actual valid JUMP rows, complete count-channel GKR replays, and identical counter totals within each pair of fixed complements. It isolates the two invariants and verifies that the successive repairs add noise where specified. No production verifier changes, full VM proofs, Fiat-Shamir analysis or full-size security claim are made.
+
+\end{document}

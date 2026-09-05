@@ -1,0 +1,99 @@
+% !TeX root = zk-count-children.tex
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\input{../leanvm/preamble/macros.tex}
+\newtheorem{proposition}{Proposition}
+\newtheorem{theorem}{Theorem}
+\title{Balanced counter trades below the public products}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\paragraph{Scope.} Normalizing column products leaves GKR's observations inside each column unresolved. This note identifies an invariant of local permutations and replaces them with valid balanced trades. Four sparse banks hide the final count-channel child packet, with statistical error below $2^{-157}$ for tree depth at most $40$. This is a marginal packet theorem, not a simulator for its preceding sumcheck, the shared bus channels or the complete proof.
+
+\section{What quartet permutations cannot hide}
+
+Write the count leaves as four child arrays $a_0,\ldots,a_3$, where $a_i(j)$ is leaf $4j+i$. In its last radix-four step the existing GKR verifier receives each $\mle a_i(\fc)$ separately, for a fresh sumcheck point $\fc$. Their sum is
+\[
+ \sum_{i=0}^3\mle a_i(\fc)
+ =\widetilde{\left(\sum_{i=0}^3 a_i\right)}(\fc).
+\]
+Permuting leaves inside each quartet preserves this entire quartet-sum array. In particular, permutations can change individual children without adding any randomness to this observable. If two fixed quartet-sum arrays differ, their evaluations differ except on at most a degree-over-field fraction of independent field points. This is an obstruction to that local mask family, not to arbitrary row permutations or additional cycles.
+
+\section{A trade that preserves products, not sums}
+
+Four accesses to one fresh memory cell use labels $0,1,2,3$. Assign two of them to each of two quartets. An independent fair bit selects between the following assignments to child positions $i,j$:
+\[
+\begin{array}{c|cc}
+ &\text{first quartet}&\text{second quartet}\\ \hline
+0 &(1,\gen^3)&(\gen,\gen^2)\\
+1 &(\gen,\gen^2)&(1,\gen^3).
+\end{array}
+\]
+Every pair product is $\gen^3$, and the multiset of all four labels is unchanged. Consequently both quartet products, every count ancestor, the column product and the cell's final counter are unchanged. The change in the two child arrays is the fixed direction
+\[
+ (1+\gen)(e_i+\gen^2 e_j)
+\]
+at both quartet positions. Its child-sum is $(1+\gen)(1+\gen^2)\ne0$.
+
+\paragraph{Valid rows.} Realize the four accesses by four repetitions of a fresh unconditional JUMP self-loop with three distinct memory operands. Trade only its condition-counter labels. Put each repetition at the indicated position in the JUMP table; fill the other four positions with fresh one-row self-loops whose condition counters are one. The other counters retain their original complete chains. Each eight-row block therefore implements the displayed trade without changing any memory value, instruction, final counter, constraint or bus multiset identity. This does not keep intermediate \emph{fingerprint} tree products fixed: those are not products of bare count labels.
+
+\section{Four directions hide the child packet}
+
+Let $S\subset\cube{12}$ have arbitrary first six bits and Hamming weight at most one on the last six, so $|S|=448$. Use four banks, indexed by $b\in\{0,1,2,3\}$, with directions
+\[
+ (i,j)=(0,1),(1,2),(2,3),(3,0),
+ \qquad v_b=e_i+\gen^2e_j.
+\]
+Inside a $2^{17}$-row count column, reserve each block
+\[
+ 8(2^{12}b+s)+\{0,\ldots,7\},\qquad s\in S.
+\]
+The two quartets differ in row bit $2$; the next twelve bits encode $s$, and the highest two encode $b$. This reserves $4\cdot448\cdot8=14336$ rows and supplies $1792$ independent fair bits. All unreserved rows may be arbitrary fixed valid data.
+
+For the four child evaluations, summing the two quartet-position weights cancels dependence on their distinguishing coordinate. Thus bank $b$ contributes
+\[
+ (1+\gen)\eq(\fc_{\mathrm{tag}},b)v_b
+ \sum_{s\in S}\eq(\fc_{\mathrm{sparse}},s)u_{b,s}.
+\]
+The sparse-span lemma in \path{zk-stacked-padding.tex} makes each inner sum uniform in $\E$, independently across banks, except with probability $\delta_{\mathrm{span}}+12/|\E|$. The same span event serves all four banks, so this term is not multiplied by four. Exclude the two tag coordinates in $\{0,1\}$, costing $4/|\E|$. The four directions are independent because their matrix has determinant $1+\gen^8\ne0$.
+
+\begin{theorem}[Final count children]
+For independent honest field coins and arbitrary fixed complementary trace data, the four child evaluations are jointly uniform on good coins under the above valid trades. If the column is an aligned $2^{17}$-leaf block in a count tree of depth $D\ge17$, their simulation error is at most
+\[
+ \delta_{\mathrm{span}}+\frac{D-1}{|\E|}<2^{-157}
+ \qquad(D\le40).
+\]
+All count-tree nodes above the leaf quartets are independent of the trade bits.
+\end{theorem}
+\begin{proof}
+The preceding span and determinant argument gives uniformity in four independent extension coordinates, regardless of the fixed contribution from real rows. Embedding the column introduces a common selector on $D-17$ higher coordinates. Excluding its zeros costs at most $(D-17)/|\E|$, giving $12+4+D-17=D-1$ in total. Products are preserved separately within every affected quartet, hence at every higher node. On good coins the simulator samples four independent uniform extension elements.
+\end{proof}
+
+\paragraph{The missing joint statement.} The final layer's sumcheck uses these same trade bits and precedes the child packet. Conditioning on that sumcheck need not leave its children uniform. Earlier \emph{count-only} layers depend just on unchanged ancestors, but the push and pull channels can depend on the bits already in earlier layers. Neither that shared prefix nor the last sumcheck is covered by the theorem. Fiat-Shamir coins and commitments are also excluded. A full proof must hide those messages jointly, not compose their marginal bounds.
+
+\paragraph{A useful exact linearity.} Restrict a collection of trades to one fixed pair of child positions. Write their simultaneous changes as $a_i\mapsto a_i+U$ and $a_j\mapsto a_j+\gen^2 U$, absorbing the common factor into $U$. For the other two fixed child polynomials $a_k,a_l$, the layer-product change is
+\[
+ a_k a_l\left[(\gen^2 a_i+a_j)U+\gen^2 U^2\right].
+\]
+Since characteristic two makes squaring additive, the entire last-layer sumcheck and child packet are affine over $\Ftwo$ in these bits, for fixed coins and other trace data. Their cumulative binary observation map can therefore be tested exactly for a padding-annihilating witness observation. Different pair directions introduce cross terms; one cannot pool their separately computed linear ranks without conditioning or a triangular argument.
+
+\paragraph{A first-message obstruction and its repair direction.} In the displayed packet layout, the exchanged quartets are paired in the \emph{first} sumcheck round. Their interpolated pair product is $\gen^3+\gen^2(1+\gen)^2(T+T^2)$ under either trade choice. The other children are one. Hence every trade bit is absent from that whole first message, although the final child packet is hidden. Separating the exchanged quartets along a later coordinate avoids this particular cancellation, but constant other children still leave the cubic and quartic coefficients unmasked.
+
+For a separated trade, vary the two other children along the first folded coordinate using three fixed backgrounds: $(1,1)$, $(1+(1+\gen)T,1)$ and $(1+(1+\gen)T,1+(1+\gen)T)$. The Boolean values are $1$ or $\gen$, realizable by fixed assignments to pairs of reads of fresh cells. The resulting first-message noise directions are proportional to
+\[
+ T+T^2,\qquad
+ (T+T^2)(1+(1+\gen)T),\qquad
+ (T+T^2)(1+(1+\gen)^2T^2).
+\]
+They span the three-dimensional space of quartics vanishing at $0$ and $1$. Exact GKR replays verify these directions and the unchanged ancestors. The continuation \path{zk-count-first-round.tex} realizes this repair and proves joint hiding of the first count polynomial and final children. It also shows that the first endpoints are already determined by the preceding GKR child packet, not an additional leakage channel. Uniformly handling the intervening rounds and the fingerprint channels remains necessary.
+
+\paragraph{Evidence.} \path{zk_count_children_audit.py} replays complete algebraic GKR transcripts against the Python verifier, extracts the quartet-sum invariant and checks its change under a balanced trade while every preceding count layer is fixed. It verifies the four-bank binary rank $768$ in the actual fields and both original and randomized valid-cycle libraries against the actual bus forms. It also checks affine dependence for one direction and a nonzero cross term for two different directions. The replay's push and pull trees are identities, so it is not a complete VM proof. The rational privacy bound comes from the cited span theorem, not from sampled ranks.
+
+\end{document}

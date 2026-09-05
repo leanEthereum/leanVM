@@ -1,0 +1,101 @@
+% !TeX root = zk-pcs-padding.tex
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\input{../leanvm/preamble/macros.tex}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\title{A padding-only simulator for the PCS algebraic view}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\paragraph{Result and scope.} Five fully random initial lanes, plus a fixed low-degree padding prefix in every other lane, suffice to hide the entire algebraic WHIR opening of one random-point claim. This uses leanVM's actual fields and encoder, covers separate introduction polynomials and all later levels, and adds no verifier messages or masking weights. It assumes freely chosen padding coefficients, not valid VM executions. Merkle authentication, Fiat-Shamir, the preceding reductions, and the actual batch of stacked claims are outside the theorem.
+
+\section{Construction}
+
+Write the committed vector as $L=2^k$ initial lanes $f_l\in\K^H$, with $H=2^m$. Entries of $f_l$ are the novel-basis coefficients of $\Enc(f_l)$, exactly as in the current PCS. The first $k$ folds bind the lane coordinates, leaving
+\[
+ F=\sum_{l=0}^{L-1}\alpha_l f_l\in\E^H,
+ \qquad \alpha_l=\eq(\fc,l).
+\]
+Let $q$ bound the number of initial queries, set $P=2^{\lceil\log_2(q+1)\rceil}$, and assume $k\ge3$ and $H\ge8P$. Reserve the fixed positions
+\[
+ D=\bigl(\{0,\ldots,4\}\times\{0,\ldots,H-1\}\bigr)
+ \cup\bigl(\{5,\ldots,L-1\}\times\{0,\ldots,5P-1\}\bigr).
+\]
+Sample every reserved coefficient independently uniformly in $\K$. All other coefficients are arbitrary fixed real data.
+
+\begin{theorem}\label{thm:pcs-padding}
+Over $\K=\F_{2^{64}}$ and $\E=\F_{2^{192}}$, consider an initial claim $\mle f(r)$ at an independent uniform point $r\in\E^{k+m}$. Its value is generated from the padded vector and included in the view, not prescribed externally. With honest independent verifier coins, the unchanged PCS algebraic transcript has an efficient witness-independent simulator with statistical error at most
+\[
+ \varepsilon\le \frac{k+m+6}{|\E|}.
+\]
+The bound holds uniformly for every fixed initial query list of length at most $q$, including repetitions and zero, provided that list is independent of $r$ and $\fc$. It therefore holds for the actual uniform query distribution. For $k+m\le28$, it is below $2^{-186}$.
+\end{theorem}
+
+\section{Proof}
+
+The key is to simulate a \emph{larger} view: all initial query answers, one column evaluation from each lane, and the entire first-folded table $F$. Everything the PCS sends afterwards is determined by these data and the verifier coins.
+
+\begin{lemma}[Five Boolean weights]\label{lem:five}
+For three independent uniform $t_0,t_1,t_2\in\E\setminus\{1\}$, the elements $1,t_0,t_1,t_0t_1,t_2$ span $\E$ over $\K$ except with probability at most $3/|\E|$.
+\end{lemma}
+\begin{proof}
+If $t_0,t_1\notin\K$, the first four elements span $\E$: either $1,t_0,t_1$ are independent, or $t_1=a+bt_0$ with $b\ne0$, and the product supplies $t_0^2$. Every element outside $\K$ has degree three. If exactly one is outside $\K$, their span has dimension two, so failure requires $t_2$ in that span. If both are in $\K$, failure is unavoidable. Writing $Q=|\K|$, the failure probability is at most
+\[
+ \left(\frac{Q-1}{Q^3-1}\right)^2
+ +2\frac{Q-1}{Q^3-1}\frac{Q^2-1}{Q^3-1}
+ =\frac{2Q+3}{(Q^2+Q+1)^2}
+ \le\frac3{Q^3}.
+\]
+\end{proof}
+
+Let $\qset$ be the set of distinct initial query points, $d=|\qset|\le q$, and write $r=(r_{\mathrm{lane}},r_{\mathrm{col}})$. Define the common $\K$-linear map
+\[
+ V:\K^H\longrightarrow\K^d\times\E,
+ \qquad V(h)=\bigl((\Enc(h)[x])_{x\in\qset},\ \mle h(r_{\mathrm{col}})\bigr),
+\]
+where the last component is expanded into three $\K$ coordinates. Let $T$ be the coordinate subspace supported on the first $5P$ coefficients.
+
+\begin{lemma}[A query-safe padding prefix]\label{lem:prefix}
+For every fixed $\qset$, the restriction $V|_T$ is onto except with probability at most $(m+3)/|\E|$ over $r_{\mathrm{col}}$.
+\end{lemma}
+\begin{proof}
+The first $d$ novel-basis polynomials span all polynomials of degree less than $d$, so the query map on $T$ is onto. It remains to supply three extension coordinates inside its kernel. Let $Z(X)=\prod_{x\in\qset}(X+x)$. Since $\deg Z=d<P$, its novel-basis coefficient vector $z$ is supported on the first $P$ positions. For $j=0,1,2,3,4$, the polynomials $Z(X)\novel_{jP}(X)$ vanish at every query and have coefficient vectors in $T$: their low and high index bits occupy disjoint factors of the novel basis.
+
+Put $b=\log_2 P$ and split the column point into $b$ low coordinates, three middle coordinates, and the remaining coordinates. The five coefficient-vector MLEs are
+\[
+ \mle z(r_{\mathrm{low}})\,
+ \eq(r_{\mathrm{tail}},0)\,
+ \eq(r_{\mathrm{middle}},j),\qquad j=0,\ldots,4.
+\]
+The nonzero multilinear $\mle z$ vanishes with probability at most $b/|\E|$. Exclude any middle or tail coordinate equal to $1$, costing at most $(m-b)/|\E|$. After dividing by a nonzero common factor, the five values become those of Lemma~\ref{lem:five}, with $t_i=r_i/(1+r_i)$. Conditional on $r_i\ne1$, these are independent uniform elements of $\E\setminus\{1\}$. The total failure bound follows.
+\end{proof}
+
+Likewise, $\alpha_0,\ldots,\alpha_4$ span $\E$ over $\K$ except with probability at most $(k+3)/|\E|$: exclude lane-fold coordinates equal to $1$ and apply Lemma~\ref{lem:five} to their first three coordinates. On the complement of these two bad events, the following translation argument proves exact joint hiding.
+
+\paragraph{Coupling the entire view.} Take any difference between two real vectors. In each lane, add a correction in $T$ to cancel its image under $V$, using Lemma~\ref{lem:prefix}. Every resulting lane difference lies in $\ker V$. Its contribution to $F$, expressed in the three $\K$ coordinates of $\E$, consequently consists of three vectors in $\ker V$. Because $\alpha_0,\ldots,\alpha_4$ span $\E$, corrections in the five fully random lanes cancel these three vectors. Those corrections can themselves be chosen in $\ker V$, so they preserve every lane's query answers and column evaluation. Every correction is supported on $D$.
+
+Thus a fixed translation of the uniform padding coins cancels any real-data difference while leaving
+\[
+ \bigl((V(f_l))_{l=0}^{L-1},F\bigr)
+\]
+unchanged. Translation is a bijection of the padding space. The enlarged view therefore has exactly the same distribution for all real data on good coins. The simulator simply sets the real entries to zero, samples the padding, and computes the transcript; it need not detect the good event or solve linear systems.
+
+\paragraph{Why this covers the actual messages.} Before the first fold finishes, each sumcheck coefficient and the initial claim depend on the lanes only through $\mle f_l(r_{\mathrm{col}})$: the initial equality weight factors into lane and column parts. The boundary polynomial is determined by $F$. The initial oracle answers are present explicitly. After this boundary, every witness polynomial is a fold of $F$, so all later round polynomials, OOD values, separate OOD and query introduction polynomials, oracle entries and final plaintext coefficients are deterministic functions of the enlarged view and the coins. Statistical distance cannot increase under this computation. A union bound gives Theorem~\ref{thm:pcs-padding}.
+
+\section{Cost, verification, and the remaining gap}
+
+The exact padding cost is $5H+(L-5)5P$ base-field coefficients, leaving $(L-5)(H-5P)$ real coefficients. With the current $L=64$, the padding fraction tends to $5/64$ as $H/P$ grows. This is an allocation formula, not a proving-time estimate; power-of-two sizing and actual VM layouts still matter. The verifier algorithm and transcript format are unchanged.
+
+\paragraph{Executable evidence.} \path{zk_pcs_audit.py} checks the five-direction lemma exhaustively over $\F_4\subset\F_{64}$ and constructs padding-only translations over the actual $\K\subset\E$. These translations cancel every observation in a small multilevel wire model, including separate introduction polynomials. Its generated algebraic transcript is also replayed through the actual Python WHIR verifier with small configuration parameters; Merkle authentication and proof-of-work checks are explicitly stubbed. These checks support the derivation, not a claim of an implemented ZK PCS.
+
+\paragraph{Extension and remaining gap.} The translation argument works for any common $\K$-linear row map $V$, provided $V|_T$ is onto its full image and the five lane weights span $\E$. The companion \path{zk-stacked-padding.tex} now proves this for all $64$ Frobenius forms at one point, with a larger structured bank. It also gives a counterexample to applying the present padding layout directly to arbitrary block selectors and identifies entropy sources in valid VM rows. The full stacked weight family, valid realization of every required coefficient and joint simulation with zerocheck, bus and Flock remain open, as do commitments and Fiat-Shamir.
+
+\end{document}

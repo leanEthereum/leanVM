@@ -1,0 +1,101 @@
+% !TeX root = zk-count-mixed.tex
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,booktabs}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\input{../leanvm/preamble/macros.tex}
+\newtheorem{theorem}{Theorem}
+\title{Mixed-bank leakage and fixed counter anchors}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\paragraph{Result.} The complete mixed-bank audit finds a common-root leak in unanchored twisted trades. Two different fixed valid anchors remove that leak, with a joint statistical theorem for the two exposed root evaluations. A larger anchored finite instance has no unexplained extension-linear affine constraint in the whole layer view. Neither result proves full-layer statistical hiding.
+
+\section{Audit every mixed term}
+
+With honest coins fixed, expand the complete count-only last-layer view as
+\[
+ V_w(u)=c_{w,\varnothing}+\sum_{\varnothing\ne I}c_{w,I}\prod_{i\in I}u_i,
+ \qquad u_i\in\Ftwo.
+\]
+Boolean reduction uses $u_i^2=u_i$. The degree is at most four, and a monomial contains at most one bit from each bank. The audit computes \emph{all} these coefficients, not a Jacobian at one mask assignment. If an $\E$-linear functional annihilates every nonconstant coefficient for two fixed complements but distinguishes their constant coefficients, it is an exact disclosure for every mask assignment. Individual affine spans must also be checked: a functional could be constant for only one complement.
+
+\section{Twisting still leaves a common factor}
+
+Let $a=1+\gen$, and retain the separator polynomials
+\[
+ L(T)=1+(1+\gen^2)T,
+ \qquad R(T)=\gen^2+(1+\gen^2)T.
+\]
+Consider a valid completion in which every bank's selected child slots use the canonical twisted pattern, with arbitrary random bits on any subset of positions and fixed zero bits elsewhere. After the sparse coordinates are folded, the selected children factor as
+\[
+ A(T)=L(T)(1+aU),\qquad B(T)=R(T)(\gen+aU).
+\]
+Thus every bank product, including its geometric backgrounds, is divisible by $L(T)R(T)$. This hypothesis is about the fixed completion as well as the masks; arbitrary real rows inside a bank need not have this factorization. Such completions are nevertheless valid cycles, so a wrapper claiming uniform privacy for arbitrary fixed complements must handle them.
+
+At the separator round, all tags are still Boolean. The bank contributions vanish at
+\[
+ t_L=(1+\gen^2)^{-1},\qquad t_R=\gen^2(1+\gen^2)^{-1},
+\]
+leaving only fixed-complement contributions. More entropy with the same factorized structure cannot change these two evaluations. This obstruction persists for arbitrarily many mask positions when the banks are completed as described; it is not just the small audit's shortage of random bits.
+
+\paragraph{The evaluations are public functions of the wire.} Let $c$ be the incoming claim, $r_j$ the equality coordinate and $d_{j,k}$ the four transmitted tail coefficients in round $j$. The normalized polynomial is $q_j(T)=c_j+\sum_{k=1}^4(r_j+T^k)d_{j,k}$, with $c_{j+1}=q_j(\fc_j)$. Hence its value at any $t$ in round $s$ is
+\[
+ q_s(t)=c+
+ \sum_{j<s}\sum_{k=1}^4(r_j+\fc_j^k)d_{j,k}
+ +\sum_{k=1}^4(r_s+t^k)d_{s,k}.
+\]
+The common-root leak is therefore a known linear combination of the transmitted coefficients and incoming claim. Exact valid-complement replays distinguish the two complements at these evaluations, while the coefficient audit verifies cancellation of every mixed term.
+
+\section{Two fixed anchors repair the root pair}
+
+Use two type-zero banks, whose other two children are identically one. At the same public sparse-coordinate position outside the random support, install different fixed anchors. In the first bank use four fresh one-read loops, giving both selected child counters one at both separator values. In the second bank use the untwisted fixed pairs $(1,\gen^3)$ and $(\gen,\gen^2)$, realized by four repetitions of a fresh loop. No anchor bit is sampled. This reserves eight additional rows when the anchor slots were previously unreserved; all count ancestors remain independent of the random trade bits.
+
+At the two roots, the relevant fixed selected-child values at that Boolean anchor position are the columns of
+\[
+ \begin{pmatrix}
+ 1&\gen/(1+\gen)\\
+ 1&\gen^3/(1+\gen)
+ \end{pmatrix},
+ \qquad \det=\gen(1+\gen)\ne0.
+\]
+The first row is the child that multiplies the surviving mask at $t_L$; the second is its counterpart at $t_R$. Distinct anchors matter: breaking each individual zero does not automatically hide the pair jointly.
+
+\begin{theorem}[Joint common-root repair]
+Use the $13$-coordinate random support with seven arbitrary low bits and six further bits of weight at most one, and put both anchors at one position outside it. For arbitrary fixed complementary data and independent honest field coins, the two separator-root evaluations are jointly statistically hidden by these two anchored banks, with error at most
+\[
+ \delta_{\mathrm{span}}+\frac{D+26}{|\E|}<2^{-157}
+ \qquad(19\le D\le40).
+\]
+This is a theorem about the pair of evaluations, not their joint distribution with the rest of the layer or the fingerprint channels.
+\end{theorem}
+\begin{proof}
+At $t_L$ a bank changes only its second selected child; at $t_R$ it changes only its first. The pair of changes is therefore linear in that bank's one sparse mask evaluation. A $448$-point slice of its support spans $\E/\Ftwo$ except with probability $\delta_{\mathrm{span}}+13/|\E|$. The same event serves both independent banks.
+
+The determinant of the two output directions is a polynomial of degree at most $26$ in the thirteen folded sparse coordinates. It is nonzero for every fixed complement: evaluating these coordinates at the anchor position gives the displayed nonzero determinant, irrespective of other rows. Exclude its zeros at cost $26/|\E|$, the tag selector zeros at cost at most $6/|\E|$, and the larger column selector zeros at cost $(D-19)/|\E|$. On good coins the two independent mask evaluations map invertibly to $\E^2$. Fixed contributions merely translate this uniform pair. The total is the stated bound.
+\end{proof}
+
+\section{What the complete-layer certificates establish}
+
+\path{zk_count_mixed_audit.py} derives its leaves from valid ISA cycles, expands the full normalized sumcheck and final children, and compares symbolic evaluations with complete reference GKR replays. Fingerprint trees are identities in those replays. The following are exact extension-field affine-span certificates, not security parameters:
+\[
+\begin{array}{lrrrr}
+\toprule
+\text{instance}&\text{bits}&\text{observations}&\text{single-bit rank}&\text{mixed rank}\\
+\midrule
+\text{unanchored, one sparse bit}&24&28&24&25\\
+\text{anchored, one sparse bit}&18&28&22&25\\
+\text{anchored, two sparse bits}&42&32&28&31\\
+\bottomrule
+\end{array}
+\]
+Ranks shown combine both fixed complements. The last instance additionally has rank $31$ for \emph{each} complement: its sole affine constraint is the already-known sum of the first four tail coefficients. The smaller anchored instance still has an unexplained separating form. Increasing the instance does not constitute a statistical error estimate, and matching affine spans does not imply matching distributions.
+
+The script also checks binary rank $384$ for the full-support two-anchor root pair, the rational bound, and valid anchor placements outside the random support. The remaining task is a simulator or quantitative distribution bound for the complete mixed-bank view. The restricted root repair must not be composed with earlier marginal results by reusing the same randomness.
+
+\end{document}

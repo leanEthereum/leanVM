@@ -1,0 +1,116 @@
+% !TeX root = zk-jump-metadata.tex
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\input{../leanvm/preamble/macros.tex}
+\newtheorem{lemma}{Lemma}
+\newtheorem{theorem}[lemma]{Theorem}
+\title{Hiding every JUMP column by valid permutations}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\paragraph{Result and scope.} Adding $19392$ fixed padding rows and randomizing only row order and read-counter assignments hides the eleven JUMP metadata evaluations, jointly with the isolated constraint sumcheck already treated in \path{zk-jump-rank.tex}. The combined error is below $2^{-155}$ for honest independent verifier coins. These permutations preserve the memory image, its final counters, bytecode final counters and all constraint columns. This covers all fourteen terminal JUMP evaluations, but not the actual bus-batched sumcheck, GKR, PCS, commitments or Fiat-Shamir. No verifier change is proposed.
+
+\section{A leak that constant-frame cycles cannot mask}
+
+The verifier transmits every JUMP column evaluation, including $\mle{\mathsf{fp}}(\fc)$ and $\mle{\mathsf{v\_fp}}(\fc)$. Every constant-frame padding row satisfies $\mathsf{fp}+\mathsf{v\_fp}=0$. Consider two real executions of the same two unconditional JUMPs, with the same initial and final states: one stays in frame $1$, and the other changes to a fresh frame $B\ne1$ and returns. Private memory supplies the intermediate frame, and both executions can have the same read multiplicities and public bytecode. The exposed difference is always zero for the first execution. For the second it is
+\[
+ (1+B)\bigl(\eq(\fc,i)+\eq(\fc,j)\bigr),\qquad i\ne j.
+\]
+This is a nonzero multilinear polynomial of degree at most $n$. Its zero probability is at most $n/|\E|$, even after arbitrary row shuffling independent of the honest coins. Thus these two views have distance at least $1-n/|\E|$. Constant-frame padding is not a full construction, regardless of the number of its random inverse values. The actual bus identities for this pair are checked in \path{zk_frame_audit.py}.
+
+\section{The scalar entropy lemma}
+
+Use the sparse set $S\subset\cube{12}$ from \path{zk-stacked-padding.tex}: the first six bits are arbitrary and the last six have Hamming weight at most one. It has $448$ elements. That note proves a normalized binary-span failure bound $\delta_{\mathrm{span}}<2^{-158}$; the ordinary weights $\eq(r,s)$ span $\E/\mathbb F_2$ except with probability $\delta_{\mathrm{span}}+12/|\E|$.
+
+\begin{lemma}[Geometrically weighted span]\label{lem:metadata-span}
+For fixed nonzero $\lambda_0,\ldots,\lambda_{11}\in\K$, the weights
+\[
+ \left(\prod_i\lambda_i^{s_i}\right)\eq(r,s),\qquad s\in S,
+\]
+span $\E/\mathbb F_2$ except with probability $\delta_{\mathrm{span}}+36/|\E|$ over uniform independent $r\in\E^{12}$.
+\end{lemma}
+\begin{proof}
+Put $d_i=1+(1+\lambda_i)r_i$ and $r'_i=\lambda_i r_i/d_i$. Excluding the poles costs at most $12/|\E|$. Direct substitution gives the identity
+\[
+ \left(\prod_i\lambda_i^{s_i}\right)\eq(r,s)
+ =\left(\prod_i d_i\right)\eq(r',s).
+\]
+For $\lambda_i\ne1$, this fractional linear map bijects the non-pole inputs with $\E$ minus one value. For $\lambda_i=1$ it is the identity. Conditional on no pole, the transformed product distribution has distance at most $12/|\E|$ from uniform $\E^{12}$. Add the ordinary span failure bound.
+\end{proof}
+
+Keep $n=20$ and eight low tag bits as in the earlier layout. Swapping two fixed rows $a_s,b_s$ at adjacent tags $t,t+1$, with $t$ even and high index $s$, changes their column evaluations by
+\[
+ u_s\,\eq(\fc_{1:8},t/2)\eq(\fc_{8:20},s)(a_s+b_s),
+ \qquad u_s\gets\mathbb F_2.
+\]
+The two weights on bit zero add to one. Hence a bank with $a_s+b_s=\gen^{Ls}v$ supplies a uniform $\E$ multiple of $v$ on the weighted-span good event, since $\gen^{Ls}=\prod_i(\gen^{L2^i})^{s_i}$. For $L=0$ use the ordinary span bound. Independent swap bits supply independent uniform multiples.
+
+\section{A fixed valid library with eleven directions}
+
+All rows introduced here have $(c,b,w)=(1,1,1)$. An edge $(P,A)\to(Q,B)$ denotes an unconditional JUMP from program counter $P$, frame $A$, with destination counter $Q$ and destination frame $B$. Its three memory cells contain $1,Q,B$. Each bank has fresh public code locations and fresh frames; offsets below are integer exponents of $\gen$. Code is fixed before the witness is chosen and must contain these side blocks.
+
+\paragraph{Five program directions.} For each bank $j=0,1,2,3$, choose distinct counters $P_j,Q_j,R_j$ and two fresh frames $A_s,B_s$. Include the two cycles
+\[
+ (P_j,A_s)\to(R_j,A_s)\to(P_j,A_s),\qquad
+ (Q_j,B_s)\to(R_j,B_s)\to(Q_j,B_s).
+\]
+Swap their first rows. At $P_j$ use offsets $(0,1,2)$; at $R_j$ use $(3,4,5)$. At $Q_0$ use $(0,1,2)$, and at $Q_j$ for $j=1,2,3$ replace respectively the first, second or third offset by $6$. The fifth bank instead uses cycles $P_4\to Q_4\to P_4$ in frame $A_s$ and $P_4\to R_4\to P_4$ in frame $B_s$, again swapping the first rows. Its forward offsets are $(0,1,2)$ and return offsets are $(3,4,5)$.
+
+Projected to $(\mathsf{pc},\mathsf{o_c},\mathsf{o_d},\mathsf{o_f},\mathsf{v\_pc})$, the five differences are independent of $s$. Their matrix has rows
+\[
+ \begin{pmatrix}
+ P_0+Q_0&0&0&0&0\\
+ P_1+Q_1&1+\gen^6&0&0&0\\
+ P_2+Q_2&0&\gen+\gen^6&0&0\\
+ P_3+Q_3&0&0&\gen^2+\gen^6&0\\
+ 0&0&0&0&Q_4+R_4
+ \end{pmatrix}.
+\]
+It is invertible. The five banks can also affect frame and bytecode-counter evaluations; later banks mask these correlations.
+
+\paragraph{Two frame directions.} Set $A_s=\gen^{a_j+32s}$, $B_s=\gen^8 A_s$, $C_s=\gen^{16}A_s$, with fresh base exponents $a_j$. Use one bank of two-cycles $A_s\to B_s\to A_s$, and one of three-cycles $A_s\to B_s\to C_s\to A_s$, each at its own fixed self-jumping program counter and offsets $(0,1,2)$. Swap the first two rows. Their frame differences, after removing the nonzero common scales, are $(1,1)$ and $(1,\gen^8)$ in $(\mathsf{fp},\mathsf{v\_fp})$. They are independent. These banks do not change the five program columns or the memory read counts.
+
+\paragraph{Four counter directions.} At a further fixed self-jumping counter, use two identical self-loop rows in each fresh frame $A_s$, now for all $0\le s<4096$. Their three memory addresses are distinct and are read exactly twice. Assign each memory counter the labels $1,\gen$. Assign the two bytecode labels $\gen^{2s},\gen^{2s+1}$, so this counter's global chain covers all $8192$ reads. For each $s\in S$, independently exchange the two labels in each of the four counter columns. Each exchange preserves its complete lookup chain. Memory-counter differences are $1+\gen$; the bytecode-counter difference is $\gen^{2s}(1+\gen)$. No other column changes. Counter labels need not follow execution order: the verified identities are the counted bus multisets, which these exchanges preserve exactly.
+
+\paragraph{Placement and validity.} The eight adjacent tag pairs start at 14, 18, 20, 22, 30, 34, 36 and 38, in the order above. The first seven banks use $s\in S$; the counter bank occupies its two full planes. Put the $4928$ remaining return rows in free positions of tags $29,45$. These positions avoid the earlier inverse and endpoint layout. The count is
+\[
+ 5\cdot4\cdot448+2\cdot448+3\cdot448+2\cdot4096=19392.
+\]
+For example, $a_j=1000000+200000j$ gives disjoint $32$-cell frame groups, including every offset used above; fresh code counters may be $\gen^{256+4j+k}$. The public memory and bytecode bounds must accommodate these choices and keep them disjoint from the real execution and earlier padding. Every row belongs to a closed cycle. A whole-row swap preserves every bus multiset; a counter-label swap preserves its counted chain. Thus all swap choices share the same memory, final counters and count root. Read counts at shared code locations are assigned one complete chain, not all set to one.
+
+\section{Joint simulation and its boundary}
+
+\begin{theorem}\label{thm:jump-metadata}
+For arbitrary fixed valid real rows and the combined layout, the isolated JUMP constraint sumcheck together with all fourteen terminal column evaluations has an efficient honest-verifier simulator with statistical error at most
+\[
+ 4\delta_{\mathrm{span}}+\frac{371}{|\E|}<2^{-155}.
+\]
+The statement assumes independent honest equality and fold coins and no externally prescribed private evaluations.
+\end{theorem}
+\begin{proof}
+The metadata good event requires the ordinary sparse span, the weighted spans with $L=32$ and $L=2$, and seven low fold coordinates outside $\{0,1\}$ so that every tag selector is nonzero. A union bound gives failure at most
+\[
+ 3\delta_{\mathrm{span}}+(12+36+36+14)/|\E|
+ =3\delta_{\mathrm{span}}+98/|\E|.
+\]
+On good coins, the first five independent banks make their five projected evaluations uniform in $\E^5$. Conditional on all their swap bits, the two frame banks make the frame pair uniform in $\E^2$. Conditional on all seven banks' bits, the four counter-label banks make the counts uniform in $\E^4$. This triangular sampling shows that the eleven metadata evaluations are jointly uniform, even conditional on every earlier constraint-padding coin and the resulting isolated constraint view. Fixed real rows merely translate each block.
+
+None of these new bits changes the condition, inverse or flag columns. The theorem of \path{zk-jump-rank.tex} therefore still applies to that isolated view, treating the new fixed triples as part of its arbitrary valid complement. Use its simulator, then sample eleven independent uniform extension-field evaluations. Add its error $\delta_{\mathrm{span}}+273/|\E|$ to the metadata failure bound. This is a conditional composition argument, not an addition of unrelated marginal guarantees.
+\end{proof}
+
+\paragraph{What this does not prove.} The actual verifier's sumcheck also contains bus forms and begins with claims from GKR. Those messages depend on the same permutations, even though the global memory arrays stay fixed. The theorem does not condition on them. It also does not hide the real execution's memory, access-count root or any PCS opening. The full reserved layout now uses $313792$ rows of a $2^{20}$-row JUMP table. Its size is a construction parameter, not a performance claim. Ordinary proofs and all three production verifiers remain unchanged.
+
+\paragraph{Penultimate variant.} The preceding adjacent-tag swaps preserve the sum of the two penultimate halves. To hide these halves separately, replace the metadata library by two independent copies, one for each parity $a\in\{0,1\}$. In each copy swap tags $t+a,t+2+a$, for $t$ running through 20, 36, 68, 132, 136, 140, 144 and 148. Return rows occupy tags $152+2a,153+2a$. Use disjoint frames and bytecode for the two copies. The swapped bit is now bit one, while bit zero remains fixed. Each bank affects only its own penultimate half, with selector $\eq(\fc_{2:8},t/4)$. The same three span events and six selector coordinates give metadata failure at most $3\delta_{\mathrm{span}}+96/|\E|$. Thus both eleven-column halves are jointly uniform, conditional on all earlier constraint-padding coins. The two copies use $38784$ new rows and preserve the same memory and counter arrays under every permutation. They replace, rather than supplement, the terminal-only library.
+
+The earlier isolated-sumcheck proof simulates $Z$ internally, so it also covers the enlarged view containing the penultimate condition and flag values. Composing as above gives error $4\delta_{\mathrm{span}}+369/|\E|<2^{-155}$ for that isolated view together with the twenty-two penultimate metadata values. This is still an unconditional honest-coin statement, not one conditioned on the preceding bus transcript. The conditional reduction in \path{zk-table-batch.tex} explains exactly where those earlier messages enter.
+
+\paragraph{Executable evidence.} \path{zk_metadata_audit.py} constructs every new row, checks original and randomized bus multisets against the actual Python forms and the same memory and counter arrays, checks disjoint placement, verifies the two direction matrices and all scalar binary ranks over the actual fields, and certifies the displayed probability inequalities with exact rational arithmetic. Its \path{--penultimate} variant checks the two-copy construction and joint binary rank $4224$. The symbolic span and triangular arguments give the uniform bound; sampled ranks alone would not.
+
+\end{document}

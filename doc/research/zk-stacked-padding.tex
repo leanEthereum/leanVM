@@ -1,0 +1,163 @@
+% !TeX root = zk-stacked-padding.tex
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\input{../leanvm/preamble/macros.tex}
+\newtheorem{lemma}{Lemma}
+\newtheorem{theorem}[lemma]{Theorem}
+\title{Toward valid padding for stacked leanVM claims}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\paragraph{Progress and scope.} The one-point theorem in \path{zk-pcs-padding.tex} extends to all $64$ Frobenius forms at one point, with statistical error below $2^{-157}$ and no new verifier weights. The construction is large and still assumes freely random coefficients. Separately, valid closed JUMP cycles and free inverse witnesses jointly hide the condition, flag and inverse terminal evaluations with the same error bound; unused memory supplies further field entropy. These results do not yet compose into a zero-knowledge VM. All probability bounds below use honest independent interactive coins, not Fiat-Shamir.
+
+\section{What the stacked opening actually asks}
+
+An ordinary column claim has a weight consisting of an equality polynomial on its variable coordinates times selectors fixing its other stack coordinates. The selectors include both high block bits and, for interleaved BLAKE2s columns, low slot bits. Ring switching contributes a different weight on the packed Flock block:
+\[
+ \sum_{j=0}^{63} c_j\eq(r,u)^{2^j}.
+\]
+Here $u$ is Boolean; at extension-field arguments the PCS uses the multilinear extension of these weights, not their literal Frobenius powers in $u$. The coefficients $c_j$ are determined by its six fresh coins. Ring switching itself sends no new witness message: its target is computed from Flock's already exposed $64$ values. This removes a separate ring-switch message-simulation problem, but neither hides those values nor the PCS opening of the resulting weight.
+
+\paragraph{A concrete obstruction.} Take $16$ lanes of length $32$, with five complete random lanes and the first $20$ random coefficients in every other lane, as in the one-point construction with $P=4$. A column placed at stack indices $184,\ldots,191$ lies in lane $5$, outside this padding. Its selector weight vanishes on every mask, but not on its own block. Its generated evaluation therefore cannot be hidden by these masks. If a claim is externally fixed and public, the test instead concerns differences of witnesses satisfying that claim. Either way, an arbitrary stack selector cannot be treated as a global random-point equality weight.
+
+\section{A sparse source of binary extension-field entropy}
+
+Throughout, $\K=\F_{2^{64}}$ and $\E=\F_{2^{192}}$. Identify Boolean strings with their little-endian integer indices. Let
+\[
+ S=\{s\in\cube{12}:s_0,\ldots,s_5\text{ arbitrary},\quad
+                     s_6+\cdots+s_{11}\le1\},\qquad |S|=448,
+\]
+where the inequality is over the integers. Define
+\[
+ \delta_{\mathrm{span}}=
+ \sum_{d\in\{1,2,4,8,16\}}\frac{(2^d-1)^2}{2^{192}-1}
+ +\frac{(2^{32}-1)^2}{2^{192}-1}\,2^{-32}+2^{-256}
+ <2^{-158}.
+\]
+
+\begin{lemma}[Sparse binary span]\label{lem:binary-span}
+For independent uniform $r\in\E^{12}$, the weights $\{\eq(r,s):s\in S\}$ span $\E$ over $\Ftwo$ except with probability at most $\delta_{\mathrm{span}}+12/|\E|$.
+\end{lemma}
+\begin{proof}
+Exclude coordinates equal to $1$. Divide the weights by $\prod_i(1+r_i)$ and put $t_i=r_i/(1+r_i)$, independently uniform in $\E\setminus\{1\}$. Their span becomes
+\[
+ V+t_6V+\cdots+t_{11}V,
+ \qquad V=\operatorname{span}_{\Ftwo}\left\{\prod_{i=0}^5t_i^{s_i}:s_i\in\{0,1\}\right\}.
+\]
+For a fixed $d$-dimensional binary subspace containing $1$, adjoining its random scalar multiple fails to double the dimension only when that scalar is zero or a ratio of two nonzero subspace elements. Since the ratio $1$ is excluded, at most $(2^d-1)^2$ allowed scalars are bad. The first five doublings therefore reach dimension $32$ except with probability bounded by the sum in $\delta_{\mathrm{span}}$. Conditional on success, the sixth fails to reach $64$ with probability at most $(2^{32}-1)^2/(2^{192}-1)$, but still leaves dimension at least $32$.
+
+For any fixed $d$-dimensional $V$ containing $1$, six independent extra multiples fail to span $\E$ with probability at most $2^{192-7d}$. Indeed, use the nondegenerate absolute-trace pairing. A nonzero annihilator must lie in $V^\perp$, and each extra scalar must lie in its inverse multiple of $V^\perp$. This set has size $2^{192-d}$ and contains $1$, so each scalar meets the condition with probability less than $2^{-d}$. Union bound over fewer than $2^{192-d}$ annihilators. For $d=64$ this gives $2^{-256}$; for $d\ge32$ it gives $2^{-32}$. Combining the two sixth-step cases proves the bound.
+\end{proof}
+
+\begin{lemma}[All Frobenius forms at once]\label{lem:moore}
+If $\beta_1,\ldots,\beta_D$ span $\E$ over $\Ftwo$, then the following $\K$-linear map is onto:
+\[
+ \K^D\longrightarrow\E^{64},\qquad
+ (x_v)_v\longmapsto\left(\sum_v x_v\beta_v^{2^j}\right)_{j=0}^{63}.
+\]
+\end{lemma}
+\begin{proof}
+Select $192$ binary-independent $\beta_v$. A vector in the kernel satisfies the $64$ displayed equations. Raising them to $2^{64}$ and $2^{128}$ leaves $x_v\in\K$ unchanged and supplies all $192$ consecutive Frobenius equations. Their Moore matrix is invertible: a nonzero linearized polynomial of degree at most $2^{191}$ cannot vanish on the $2^{192}$ elements spanned by a binary basis. The selected map is thus injective between spaces of equal $\K$-dimension $192$, hence onto.
+\end{proof}
+
+\section{A query-safe bank for the ring-shaped weight}
+
+Keep the previous note's $L=2^k$ lanes of length $H=2^m$, initial query bound $q$, and power of two $P>q$. Put $b=\log_2P$ and assume $m\ge b+12$. In each lane reserve the coefficient positions
+\[
+ T=\{a+Ps:0\le a<P,\ s\in S\},\qquad |T|=448P;
+\]
+coordinates above $b+12$ are zero. As before, reserve five complete lanes, numbered $0,\ldots,4$, as well. All reserved coefficients are independent uniform elements of $\K$.
+
+For a fixed list of distinct initial query points $\qset$, $d=|\qset|\le q$, and an independent uniform column point $r\in\E^m$, set
+\[
+ \psi_j(h)=\sum_{u=0}^{H-1}h_u\eq(r,u)^{2^j},\qquad
+ V(h)=\bigl((\Enc(h)[x])_{x\in\qset},\ (\psi_j(h))_{j=0}^{63}\bigr).
+\]
+The last $64$ entries represent $192$ base-field coordinates.
+
+\begin{lemma}[Query-safe Frobenius bank]\label{lem:ring-bank}
+The restriction of $V$ to coefficients supported on $T$ is onto $\K^d\times\E^{64}$ except with probability at most
+\[
+ \delta_{\mathrm{span}}+\frac{63b+m}{|\E|}.
+\]
+The bound is uniform in the fixed query set, including sets containing zero.
+\end{lemma}
+\begin{proof}
+The query map is onto using just the first $P$ coefficients. Let $Z(X)=\prod_{x\in\qset}(X+x)$, whose novel-basis coefficients $z_a$ vanish for $a\ge P$. Each $Z(X)\novel_{Ps}(X)$, $s\in S$, vanishes at every query and is supported on $T$, by disjoint low and high novel-basis index bits. Split $r$ into $b$ low coordinates, $12$ middle coordinates, and a tail. Its $j$th Frobenius form is
+\[
+ \left(\sum_{a<P}z_a\eq(r_{\mathrm{low}},a)^{2^j}\right)
+ \eq(r_{\mathrm{tail}},0)^{2^j}\eq(r_{\mathrm{middle}},s)^{2^j}.
+\]
+For each $j$, the parenthesized expression is a nonzero multilinear polynomial in the independent uniform variables $r_{\mathrm{low},i}^{2^j}$. Its zero probability is at most $b/|\E|$, not $b2^j/|\E|$. Exclude these $64$ events and any middle or tail coordinate equal to $1$. Lemmas~\ref{lem:binary-span} and~\ref{lem:moore} then make all $64$ Frobenius forms onto within the query kernel. The total bound is $64b/|\E|+(m-b)/|\E|+\delta_{\mathrm{span}}$.
+\end{proof}
+
+\begin{theorem}[PCS algebraic hiding for one Frobenius orbit]\label{thm:ring-pcs}
+Suppose $k\ge3$ and the initial weight's Boolean slice in every lane is a linear combination of the $64$ column weights $\eq(r,\cdot)^{2^j}$ above, extended multilinearly for sumcheck. The coefficients of these combinations are fixed or determined by coins independently of the witness. The claim values are generated from the padded vector, not prescribed externally. Then the unchanged PCS algebraic view, jointly with all per-lane Frobenius-form values, has an efficient witness-independent simulator with error at most
+\[
+ \delta_{\mathrm{span}}+\frac{63b+m+k+3}{|\E|}<2^{-157}
+ \qquad\text{when }k+m\le28.
+\]
+The initial query list must be independent of the column point and the first $k$ fold coins. Authentication and Fiat-Shamir are excluded.
+\end{theorem}
+\begin{proof}
+Apply the previous note's translation argument to this common $\K$-linear map $V$. In every lane a correction supported on $T$ cancels its image under $V$. The residual differences lie in $\ker V$. Five full lanes then cancel their contribution to the entire first-folded table while staying in $\ker V$: their five fold weights span $\E/\K$ except with probability $(k+3)/|\E|$. Thus all $(V(f_l))_l$ and the first-folded table are jointly hidden. The initial messages depend only on these per-lane forms; every later algebraic message is determined by that folded table and the coins. Set real entries to zero and sample padding to simulate. The stated bound follows by union bound.
+\end{proof}
+
+\paragraph{Cost and limitation.} The bank costs $5H+(L-5)448P$ base-field coefficients and requires $H\ge4096P$. For example, $P=256$ requires $H\ge2^{20}$ and reserves $114688$ positions in every non-full lane; with $k=6$ the stack must have at least $2^{26}$ entries. This is a conservative existence construction, not an efficiency claim. It handles a single common Frobenius orbit, not the full stack's block selectors, multiple points or public pins. Nor can its coins be assumed independent after conditioning on an unsimulated Flock transcript.
+
+\section{Which randomness can the VM really supply?}
+
+\paragraph{Unused memory: full field entropy.} A memory cell never accessed by the real execution or any padding cycle may contain an arbitrary $\E$ word, with three independent $\K$ limbs. Its seed and finalization tuples agree, both with count $1$, so this choice preserves bus balance and the count root. Exclude the public cells and all accessed addresses. In a memory-dominant stack, one limb column can contain five complete initial lanes. The lane set may be an aligned translate of $\{0,1,2,3,4\}$ by bitwise exclusive-or: complementing the corresponding fold coordinates preserves the five-weight argument. The audit checks one such layout using the actual placement algorithm. This realizes a source of full-lane entropy, not a simulator for its bus GKR messages or a guarantee that all other required padding positions are free.
+
+\paragraph{Zero-condition jumps: a free auxiliary column.} A JUMP row has condition $c$, flag $b$ and inverse witness $w$, with constraints
+\[
+ b+cw=0,\qquad c(b+1)=0.
+\]
+When $c=b=0$, any $w\in\K$ is valid. The inverse column occurs in no bus tuple. The native builder currently chooses $w=0$, including for existing zero-condition filler jumps; this is a prover convention, not a verifier constraint. An optional ZK prover could sample these entries without changing the ISA, verifier equations or message format. This is arithmetization-witness freedom, not an independent semantic memory value. It does not randomize the flag or the other columns, and its off-cube zerocheck contributions still require joint simulation.
+
+\paragraph{Closed jumps: genuine random flags.} Put a JUMP in a public side block whose destination is its ordinary successor $\gen\pc$ and whose destination frame is its current frame. Set $c=b$ to a fair bit and $w=1$. Both flag values satisfy the constraints and give exactly the same next state. A second unconditional JUMP returns to the first instruction, producing a closed two-row execution. Fresh frames provide independent condition cells; every choice has the same access schedule. This needs suitable public bytecode, not merely different values in the present filler block.
+
+If $448$ such random-flag rows occupy the positions $S$ of a $4096$-row JUMP table, Lemma~\ref{lem:binary-span} makes its single flag MLE uniform in $\E$ on good coins, regardless of the other fixed flags. This proves statistical hiding of that one evaluation, with error below $2^{-157}$. It does not hide the joint condition and flag evaluations: these padding rows have $c=b$, so their difference has no randomness. This illustrates why a valid-cycle library needs several independent directions, not just many random rows.
+
+\begin{theorem}[Three jointly hidden JUMP evaluations]\label{thm:jump-terminals}
+In a $2^{14}$-row JUMP table, reserve the following variable rows, each realizable as the first row of a fixed-successor closed cycle:
+\[
+\begin{array}{c|c|c}
+\text{positions} & (c,b,w) & \text{independent coins}\\\hline
+S & (u,u,1) & u\text{ a fair bit per row}\\
+4096+S & (\gen u,u,\gen^{-1}) & u\text{ a fair bit per row}\\
+8192+\{0,1,2,3,4\} & (0,0,v) & v\text{ uniform in }\K\text{ per row}
+\end{array}
+\]
+All $901$ triples satisfy the JUMP constraints. Allocate their return rows outside these sets with fixed choices of $(c,b,w)$; distinct frames provide disjoint condition cells. For an independent uniform terminal point $\fc\in\E^{14}$, the joint view
+\[
+ \bigl(\fc,\ \mle c(\fc),\ \mle b(\fc),\ \mle w(\fc)\bigr)
+\]
+has a witness-independent simulator with statistical error at most $\delta_{\mathrm{span}}+19/|\E|<2^{-157}$, for arbitrary fixed valid triples at the other rows. No other column evaluations, sumcheck messages, bus messages or commitments are included.
+\end{theorem}
+\begin{proof}
+Exclude the first $12$ coordinates equal to $1$ and the two high coordinates in $\{0,1\}$, costing at most $16/|\E|$. All three block selectors are then nonzero. On the sparse-span event, the two bit families give independent uniform $U_0,U_1\in\E$, including their selector factors. Their contributions to $(\mle c,\mle b)$ are
+\[
+ (U_0+\gen U_1,\ U_0+U_1),
+\]
+an invertible transformation because $\gen\ne1$. Their inverse witnesses are fixed. Independently, the five free inverses make $\mle w$ uniform when their five evaluation weights span $\E/\K$, which fails with probability at most $3/|\E|$ after normalization, by the previous note's five-weight lemma. Fixed real and return rows only translate this uniform triple. A simulator samples the point and three independent uniform extension elements; bad coins contribute the stated statistical error.
+\end{proof}
+
+\paragraph{Other opcodes.} The current filler identities, such as MUL's $s\cdot s=s$ and XOR's $s+s=s$, do not provide independent random multiplication triples. Suitable public side blocks must use distinct operand cells. Random BLAKE2s inputs likewise determine all internal Flock wires; those wires cannot be declared independently uniform. No full Flock-padding theorem follows from the field-entropy lemmas above.
+
+\section{The next composition target}
+
+The continuation \path{zk-jump-sumcheck.tex} identifies the last-round invariant missed by terminal-only analysis. Its conditional simulator is now instantiated by the uniform rank proof and combined valid-cycle layout in \path{zk-jump-rank.tex}, covering the complete isolated JUMP constraint sumcheck. The separate \path{zk-bus-root.tex} proves that eight random unused words hide the shared bus product root, but not its GKR or openings. These results still require joint analysis with the other exposed columns and protocol messages; they do not compose merely by adding marginal hiding bounds.
+
+For full leanVM, the same argument must then cover every opcode, secret-dependent access counts, the shared bus GKR and the complete Boolean Flock transcript. Finally specify a commitment/random-oracle simulation model and handle Fiat-Shamir and externally visible deferred claims. Public resource bounds must be fixed or padded independently of secrets. These are substantive remaining obligations; no production prover or any of the three verifiers has been changed.
+
+\paragraph{Executable evidence.} \path{zk_stacked_audit.py} checks the probability bound with exact rational arithmetic, Moore ranks in small towers, a binary basis over the actual $\E$, query-kernel factors, the selector obstruction, memory geometry and the actual JUMP constraints and flush forms. It certifies binary rank $576$ for the three-evaluation construction. It also constructs ring and ordinary column weights through the reference verifier and replays a complete small PCS algebraic transcript; Merkle and proof-of-work checks are explicitly stubbed. Sampled field checks support the derivations, not their statistical bounds. The new claims are research lemmas, not a novelty assertion or an end-to-end implementation.
+
+\end{document}

@@ -1,0 +1,94 @@
+% !TeX root = zk-count-first-round.tex
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\input{../leanvm/preamble/macros.tex}
+\newtheorem{lemma}{Lemma}
+\newtheorem{theorem}{Theorem}
+\title{Jointly hiding the first count round and the final children}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\paragraph{Result and limit.} Six valid counter-trade banks jointly hide the three free coefficients of the last GKR layer's first count polynomial and its four final count children. Every quartet product, hence the preceding count-only GKR transcript, is unchanged by the masks. The intervening sumcheck rounds and the fingerprint channels are excluded. This is progress toward their joint simulator, not a full GKR or VM privacy theorem.
+
+\section{The first endpoints are already known}
+
+Let the preceding GKR step send children $z_0,z_1,z_2,z_3$ for one channel, then sample its two combination coins $y_0,y_1$. The next incoming point is $(y_0,y_1,x)$, where $x$ was the preceding sumcheck point. Write $p$ for the next layer's parent array and $q(T)$ for its first normalized sumcheck polynomial. At Boolean $T$, the product of the current child entries equals $p$, so
+\[
+ q(0)=(1+y_1)z_0+y_1z_2,
+ \qquad q(1)=(1+y_1)z_1+y_1z_3.
+\]
+If the preceding step was binary, these endpoints are simply its two children. The statement holds separately for all three channels, hence for their batch as well.
+
+\begin{lemma}
+The first polynomial's two endpoints are determined by the preceding wire packet and coins. Conditional on that prefix, a quartic has exactly three free coefficients, which may be chosen as $[T]q,[T^3]q,[T^4]q$.
+\end{lemma}
+\begin{proof}
+The displayed formulas are multilinear interpolation of the already transmitted parent restrictions. The constant coefficient is $q(0)$; the quadratic coefficient equals $q(0)+q(1)+[T]q+[T^3]q+[T^4]q$. Thus the sum of the four transmitted tail coefficients, previously identified as an invariant of product-preserving masks, is not an additional disclosure.
+\end{proof}
+
+\section{Six separated banks}
+
+Use the $448$-point set $S\subset\cube{12}$ from \path{zk-stacked-padding.tex}: six arbitrary low bits and six further bits of weight at most one. Each bank has two trade bits $u_{b,0,s},u_{b,1,s}$ for every $s\in S$. In an aligned $2^{19}$-row count column, the positions are
+\[
+ 2^{16}b+8s+4t+2^{15}\sigma+i,
+ \quad t,\sigma\in\{0,1\},\quad i\in\{0,1,2,3\}.
+\]
+Here $t$ is the first folded coordinate, $\sigma$ separates the exchanged quartets, and the top three bits select one of six banks. For each fixed $(b,s,t)$, a fair bit exchanges the ordered counter pairs $(1,\gen^3)$ and $(\gen,\gen^2)$ between $\sigma=0,1$, in the selected child positions $(i,j)$. This is the balanced trade of \path{zk-count-children.tex}.
+
+The first three banks use $(i,j)=(0,1)$ with background types $0,1,2$, respectively. The last three use $(1,2),(2,3),(3,0)$ with background type zero. The other two child counters, interpolated in $t$, have the fixed values
+\[
+ (1,1),\quad (1+(1+\gen)T,1),\quad
+ (1+(1+\gen)T,1+(1+\gen)T)
+\]
+for the three types. Realize each background pair $(1,\gen)$ by two repetitions of a fresh self-loop, at the two values of $t$; realize constant-one entries by independent fresh self-loops. Four repetitions of another fresh self-loop realize each trade, modifying only its condition-counter labels. All remaining labels retain their original chains.
+
+There are $6\cdot448\cdot16=43008$ reserved rows and $5376$ independent bits. The backgrounds are fixed, so each quartet product is fixed under the trades, even though different quartets can have products $\gen^3,\gen^4$ or $\gen^5$. All other count columns, memory values, instructions and final counters are unchanged. Unreserved rows may be arbitrary fixed valid data; integration with another reserved layout is a separate obligation.
+
+\section{A triangular joint simulation}
+
+Put $a_{b,s}=u_{b,0,s}+u_{b,1,s}$ and $h_{b,s}=u_{b,0,s}$. These are independent fair bits. Let $r$ be the incoming GKR point and $\fc$ the last layer's new sumcheck point. For local coordinates, their twelve-coordinate subvectors on $s$ are $r_{1:13}$ and $\fc_{1:13}$; their three tag coordinates are $r_{14:17}$ and $\fc_{14:17}$. The intervening coordinate on $\sigma$ cancels from the mask weights.
+
+\paragraph{First use the parities.} The change to the first polynomial from bank $b$ is
+\[
+ \gen^2(1+\gen)^2\eq(r_{\mathrm{tag}},b)
+ \sum_{s\in S}\eq(r_{\mathrm{sparse}},s)a_{b,s}\;f_b(T),
+\]
+where its type selects one of
+\[
+ T+T^2,\qquad
+ (T+T^2)(1+(1+\gen)T),\qquad
+ (T+T^2)(1+(1+\gen)^2T^2).
+\]
+In the three selected coefficient coordinates, their determinant is $(1+\gen)^3\ne0$. The sparse-span lemma therefore makes the first three banks' contributions uniform in $\E^3$ on good coins. The remaining banks only add independent translations. None of these first-message changes depends on $h$.
+
+\paragraph{Then use the remaining bits.} Condition on \emph{all} parities $a$. In a trade direction $v_b=e_i+\gen^2e_j$, the change to the final children is
+\[
+ (1+\gen)\eq(\fc_{\mathrm{tag}},b)v_b
+ \sum_{s\in S}\eq(\fc_{\mathrm{sparse}},s)
+ \bigl(h_{b,s}+\fc_0a_{b,s}\bigr).
+\]
+Banks $0,3,4,5$ give four independent directions: their determinant is $1+\gen^8$. The same sparse-span lemma at $\fc$ makes the remaining bits in these four banks hide all four children jointly, even conditional on every parity and the other banks. They therefore hide the children independently of the first message, not just marginally.
+
+\begin{theorem}[A seven-coordinate conditional view]
+Fix complementary trace data and use independent honest field coins. For the count channel, the first quartic and the final four children have an efficient joint simulator given the preceding count-only prefix: sample the three free coefficients and the four children independently uniformly in $\E$, then reconstruct the first polynomial's two fixed endpoints. The simulation error for an aligned block in a tree of depth $19\le D\le40$ is at most
+\[
+ 2\delta_{\mathrm{span}}+\frac{2D-2}{|\E|}<2^{-157}.
+\]
+The simulator omits every intervening sumcheck message.
+\end{theorem}
+\begin{proof}
+The two sparse-span events cost $2\delta_{\mathrm{span}}+24/|\E|$. Exclude zeros of all tag selectors by excluding $0,1$ at the six tag coordinates, costing $12/|\E|$. A larger count tree adds two common selectors on $D-19$ coordinates, costing $2(D-19)/|\E|$. Their sum is $2D-2$. The preceding count-only transcript depends on unchanged parent products and coins, not on these bits. On good coins the triangular argument gives the stated conditional distribution. The bound is unconditional over the honest coins; it is not asserted for arbitrary malicious choices or each fixed prefix separately. The strict inequality follows from the explicit sparse-span bound by exact rational arithmetic.
+\end{proof}
+
+\paragraph{Remaining work.} This particular library does not hide the entire layer: its backgrounds become constant after the first fold, leaving a witness-dependent second-round cubic coefficient unmasked. \path{zk-count-middle-rounds.tex} gives the valid-complement counterexample and develops all-coordinate backgrounds with twisted label exchanges to address this and a separator invariant. The intervening rounds consume both bit families, so the seven-coordinate theorem cannot be composed by treating those bits as fresh. Trades also change fingerprint-tree messages; the actual batched bus prefix, commitments and Fiat-Shamir remain outside this model.
+
+\paragraph{Evidence.} \path{zk_count_first_round_audit.py} checks the endpoint identities in odd- and even-depth complete GKR replays, the actual-field joint binary rank $1344$, the rational error bound, and the original and randomized $43008$-row libraries against the actual ISA bus forms. The replays use identity fingerprint trees, not a full VM proof. The script imports the reusable wire replay from \path{zk_count_children_audit.py}.
+
+\end{document}

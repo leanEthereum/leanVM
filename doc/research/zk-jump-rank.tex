@@ -1,0 +1,112 @@
+% !TeX root = zk-jump-rank.tex
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\input{../leanvm/preamble/macros.tex}
+\newtheorem{lemma}{Lemma}
+\newtheorem{theorem}[lemma]{Theorem}
+\title{Padding-only zero knowledge for the isolated JUMP sumcheck}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\paragraph{Result and scope.} A structured family of valid closed cycles hides both JUMP constraints' sumcheck and its three terminal evaluations, with honest-verifier statistical error below $2^{-157}$. The rank proof is uniform over the real trace. It closes the conditional criterion in \path{zk-jump-sumcheck.tex}, using a new combined layout. There is substantial padding, but no new verifier weight or message. The actual table batch, bus, PCS, commitments and Fiat-Shamir are not included; full leanVM zero knowledge remains open.
+
+\section{The combined layout}
+
+Use $n=20$ row variables, with $d=8$ low \emph{tag} bits and $h=12$ high bits. A tag plane contains all $2^h$ rows with a fixed low tag $t$. Write
+\[
+ D_{\mathrm{tail}}=\{0,1\}\cup\{2^i,2^i+1:1\le i<d\}.
+\]
+Choose $h-1$ aligned groups $8q+\{0,\ldots,4\}$ disjoint from $D_{\mathrm{tail}}$, and assign one to each high variable $j=d+1,\ldots,n-1$. Use, in order, $q\in\{3,5,6,7,9,10,11,12,13,14,15\}$. All following random choices are independent and made before verifier coins.
+
+\paragraph{Prefix planes.} On the five planes assigned to $j$, set $c=b=X_j$. Set $w=1$ where $X_j=1$ and $w=0$ elsewhere, except at the ten positions
+\[
+ t,\quad t+2^{j-1},\qquad t\in8q+\{0,\ldots,4\},
+\]
+where $w$ is uniform in $\K$. In particular $c=0$ at every random inverse position.
+
+\paragraph{Tail planes.} For $t\in D_{\mathrm{tail}}$, put $a_0=a_1=1$, $a_{2^i}=1$ and $a_{2^i+1}=\gen$. On plane $t$ set $c=a_tX_d$, $b=X_d$, and $w=a_t^{-1}$ when $X_d=1$. When $X_d=0$ use $w=0$, except at
+\[
+ t+\ell 2^{d+1},\qquad \ell=0,\ldots,4,
+\]
+where $w$ is uniform in $\K$. There are $110$ prefix inverse coins and $80$ tail inverse coins.
+
+\paragraph{Endpoint rows.} Let $S\subset\cube{12}$ be the $448$-position sparse set in \path{zk-stacked-padding.tex}, with normalized binary-span failure bound $\delta_{\mathrm{span}}<2^{-158}$. At positions $t+2^d s$, $s\in S$, use fair bits $u$ and triples $(c,b,w)=(u,u,1)$ for $t=6,7$, and $(\gen u,u,\gen^{-1})$ for $t=10,11$. These four tags avoid every reserved plane. Reserve $1792$ fixed return rows elsewhere, for example the first $1792$ positions of tag $12$. All remaining rows are arbitrary fixed valid real data.
+
+\paragraph{Valid executions.} In each reserved plane, pair a row with $X_j=0$ with its corresponding row with $X_j=1$. The first is a zero-condition JUMP to its ordinary successor; the second is an unconditional JUMP back. Use a distinct fresh frame for each pair. Endpoint rows use fixed-successor conditional jumps and their separate fixed return rows. Suitable public side-block bytecode and fresh memory addresses realize these cycles with an access schedule independent of all padding coins. The triples obey $b+cw=c(b+1)=0$. This is a valid-row construction, not a production prover implementation.
+
+\section{The early-round rank}
+
+Use the analysis coordinates of \path{zk-jump-sumcheck.tex}: a first quadratic cofactor coefficient, then $G(1)$ and a quadratic coefficient per later round, omitting the last quadratic coefficient. Call this vector $Y\in\E^{2n-2}$. Write $Z=(C_0,C_1,B_0,B_1)$ for the condition and flag evaluations just before the last fold. Conditional on the condition and flag columns, $Y$ is affine in the zero-condition inverse coins. It suffices to show that their map onto $Y$ has full base-field rank and to hide $Z$.
+
+\begin{lemma}[Prefix rank]\label{lem:jump-prefix}
+The prefix inverse coins span the first $2h-2$ coordinates of $Y$ over $\E$, except with probability at most $(2n+2h+3)/|\E|$ over honest independent coins.
+\end{lemma}
+\begin{proof}
+Take inverse differences, so all other terms vanish. On a plane assigned to $j$, $\mle c=X_j$ throughout the high folds. Its differences contribute nothing before round $j$: at every remaining Boolean $X_j$, $\mle c\,\delta\mle w=0$. Let $A,B$ be the equality-weighted sums of its five coins with $X_{j-1}=0,1$. Up to a common nonzero factor, its contributions to the quadratic coefficient in round $j$ and to $G(1)$ in round $j-1$ are
+\[
+ ((1+r_{j-1})A+r_{j-1}B,\quad \fc_j(1+\fc_j)B).
+\]
+The common factor is the product of earlier zero-branch fold weights and equality weights on the other fixed zero high coordinates. Exclude equality coordinates and high fold coordinates in $\{0,1\}$. The five tag weights span $\E/\K$ simultaneously for every group except with probability $3/|\E|$, by the five-weight lemma in \path{zk-pcs-padding.tex}; only their nonzero group selector changes. Thus each displayed pair is onto $\E^2$. Ordering the banks from high to low makes the map block triangular with onto diagonal blocks. No condition value outside these planes enters them.
+\end{proof}
+
+\section{A tail minor that real data cannot cancel}
+
+\begin{lemma}[Triangular tail minor]\label{lem:jump-tail}
+Let $v$ vary over $\E$ on $D_{\mathrm{tail}}$. Let a fixed condition table satisfy $c_t=C a_t$ there, with $C\ne0$, and be arbitrary elsewhere. In the equality-weighted sumcheck of $\mle c\mle v$ on $d$ variables, the map to the initial sum and all cofactor coordinates except the last quadratic coefficient is onto $\E^{2d}$ except with probability at most
+\[
+ (3d^2-4d+2)/|\E|
+\]
+over independent uniform equality and fold points.
+\end{lemma}
+\begin{proof}
+Take the square matrix on these $2d$ positions. Specialize every fold coin to zero. A column at $2^i$ or $2^i+1$ disappears after round $i$; that round's diagonal block consists of its $G(1)$ and quadratic rows. Its determinant is
+\[
+ \eq(r_{<i},0)\eq(r_{<i},1)
+       (c_{2^i}c_1+c_{2^i+1}c_0).
+\]
+Subtract suitable multiples of the $G(1)$ rows from the initial-sum row. It becomes $c_0\eq(r,0)v_0$; the last $G(1)$ row is $c_1v_1$. The determinant at this specialization is therefore
+\[
+ c_0c_1\eq(r,0)\prod_{i=1}^{d-1}
+ \eq(r_{<i},0)\eq(r_{<i},1)
+       (c_{2^i}c_1+c_{2^i+1}c_0).
+\]
+Every parenthesized factor is $C^2(1+\gen)\ne0$. Equality coordinates outside $\{0,1\}$ make the determinant nonzero. Values of $c$ outside the reserved set occur only off the block diagonal and cannot change this certificate.
+
+The initial-sum row has degree $d$ in the coins. Each of the two rows for coordinate $i\ge1$ has degree at most $2d-2-i$, and the final $G(1)$ row has degree at most $2d-2$. The determinant has degree at most $3d^2-4d+2$. Schwartz-Zippel over $\E$, not $\K$, gives the uniform bound.
+\end{proof}
+
+\paragraph{Effective extension-field inverses.} Tail inverse differences contribute nothing to the first $2h-2$ coordinates of $Y$. Before $X_d$ is folded, their five high-prefix replicas produce an independent uniform effective $\E$ inverse at each tail tag, except with probability $(h+2)/|\E|$. This is the five-weight lemma on the $h-1$ high fold coordinates, with a common nonzero zero-tail factor. The same good event works for every tag; their base-field coins are disjoint.
+
+\paragraph{Joining the blocks.} Put $C=\fc_d$. After this fold, tail conditions equal $C a_t$ and inverse differences acquire a factor $1+C$. The quadratic coefficient of this high round is the tail initial sum divided by $C(1+C)$. On $C\notin\{0,1\}$, Lemma~\ref{lem:jump-tail} therefore supplies the remaining $2d$ coordinates of $Y$. Condition on the high coins first: every other tail condition value is an arbitrary fixed element of $\E$, independent of the still-unbound low fold coins and of the equality point. Hence the tail lemma applies even when those entries depend on the high coins. The full inverse map is block triangular and has rank $3(2n-2)$ except with probability
+\[
+ \frac{2n+2h+3+h+2+3d^2-4d+2}{|\E|}
+ =\frac{243}{|\E|}.
+\]
+
+\section{The isolated JUMP theorem}
+
+\begin{theorem}\label{thm:jump-padding}
+For the combined layout above and arbitrary fixed valid real rows outside it, the unchanged isolated JUMP constraint sumcheck and its three terminal evaluations have an efficient honest-verifier simulator with statistical error
+\[
+ \varepsilon\le\delta_{\mathrm{span}}+\frac{273}{|\E|}<2^{-157}.
+\]
+The initial claim is zero; no private column evaluation is prescribed externally.
+\end{theorem}
+\begin{proof}
+The endpoint rows make $Z$ uniform in $\E^4$, conditional on verifier coins, outside a coin event of probability at most $\delta_{\mathrm{span}}+26/|\E|$. Indeed, the $12$ high fold coins supply the sparse binary-span weights. Exclude these coordinates equal to $1$ and the seven remaining low fold coins in $\{0,1\}$. All four tag selectors are then nonzero. For each endpoint, the two independent bit families give $(U_0+\gen U_1,U_0+U_1)$, an invertible transform of uniform $\E^2$. Fixed real and plane rows only translate $Z$.
+
+The simulator samples honest coins, uniform $Z\in\E^4$ and uniform $Y\in\E^{2n-2}$, then uses the reconstruction in \path{zk-jump-sumcheck.tex}. Full inverse rank makes real $Y$ uniform even conditional on the entire condition and flag columns. On endpoint-good coins, each of $C_0=0$, $C_1=0$, $C_0=C_1$ and a zero terminal condition has probability $1/|\E|$. Equality degeneracies are already included in the prefix bound. Count the endpoint bad event only once, then add the $243/|\E|$ rank failure and $4/|\E|$ reconstruction degeneracies: $26+243+4=273$. Degenerate simulated views may be assigned arbitrary fixed-format output.
+\end{proof}
+
+\paragraph{Cost and remaining work.} There are $71$ complete reserved planes, $1792$ random endpoint rows and $1792$ fixed return rows: $294400$ of the $2^{20}$ rows. The prover samples $190$ independent base-field inverse values and $1792$ independent bits. This is an allocation formula, not a runtime estimate. The extension in \path{zk-jump-metadata.tex} adds valid permutations and hides all fourteen terminal JUMP columns jointly with this isolated sumcheck. Joint simulation with the actual bus batch, preceding GKR and subsequent PCS is still required; a marginal root theorem cannot be composed with these results without that analysis.
+
+\paragraph{Executable evidence.} \path{zk_jump_audit.py --structured --actual-field} checks full rank $114$ over $\K$ on the complete $20$-variable layout, including zero and arbitrary extension-field boundary data, using a compressed map verified against dense folding at a smaller size. Its \path{--tail --actual-field} mode checks the exact determinant formula and the probability bound. The default mode checks reconstruction and replays synthetic cubic messages through the actual Python sumcheck. These certificates support the derivation, not a full leanVM ZK claim.
+
+\end{document}

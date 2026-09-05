@@ -1,0 +1,81 @@
+% !TeX root = zk-two-point-span.tex
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\input{../leanvm/preamble/macros.tex}
+\newtheorem{theorem}{Theorem}
+\title{Binary padding that hides two extension-field evaluations}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\paragraph{Purpose.} Counter-label swaps supply fair bits, not uniform extension-field values. To preserve entropy after an earlier bus evaluation, one needs a \emph{joint} two-point span theorem. The single-point lemma cannot be applied twice to the same bits. The construction below gives a uniform statistical bound using $576$ bits; no computational pseudorandomness is assumed.
+
+Let $Q=|\E|=2^{192}$ and let $S\subset\cube{14}$ have arbitrary first six bits and Hamming weight at most one on the last eight. Thus $|S|=64\cdot9=576$.
+
+\begin{theorem}\label{thm:two-point-span}
+For independent uniform $r,u\in\E^{14}$, the vectors
+\[
+ (\eq(r,s),\eq(u,s)),\qquad s\in S,
+\]
+span $\E^2/\mathbb F_2$ except with probability below $2^{-148}$. The same bound holds after multiplying both coordinates at position $s$ by $\prod_i\lambda_i^{s_i}$, for arbitrary fixed nonzero $\lambda_i\in\K$. Independent fair bits at these positions therefore give a uniform pair of evaluations on good coins, not merely two uniform marginals.
+\end{theorem}
+
+\section{A product-space span argument}
+
+First work with normalized monomial weights and independent scalars in $\E^*$. The first six coordinates generate a binary subspace $V\subset\E^2$. Its two projected dimensions are $d_1,d_2$ and its full dimension is $d_{12}\ge\max(d_1,d_2)$. The last eight coordinates give eight independent random diagonal multiples of $V$, in addition to $V$ itself.
+
+Use the nondegenerate trace pairing on $\E^2$. For a nonempty coordinate support $I\subseteq\{1,2\}$, at most $2^{192|I|-d_I}$ dual vectors supported there annihilate $V$. A fixed such nonzero vector annihilates one random diagonal multiple with probability at most
+\[
+ \frac{2^{192|I|-d_I}}{(Q-1)^{|I|}}.
+\]
+After eight independent multiples, a union bound gives the support-$I$ failure bound
+\[
+ \left(\frac Q{Q-1}\right)^{8|I|}2^{192|I|-9d_I}
+ \le 2^{192|I|+1-9d_I}.
+\]
+Cap each probability at one. The two singleton supports are controlled by their own projected dimensions; the two-coordinate support can conservatively use $d_{12}\ge d_1$.
+
+\section{Averaging the sixth doubling}
+
+For each projection, the first five doublings reach dimension $32$ except with probability
+\[
+ B=\sum_{d\in\{1,2,4,8,16\}}\frac{(2^d-1)^2}{Q-1}.
+\]
+Indeed, a bad multiplier is a ratio of two nonzero elements of the current subspace. Condition on both projections reaching dimension $32$, costing at most $2B$. For an arbitrary fixed $32$-dimensional subspace $W\subset\E$, let $D=\dim(W+tW)$ after the sixth scalar $t\gets\E^*$. Then $32\le D\le64$, and for $32\le d<64$,
+\begin{equation}\label{eq:two-dimension-tail}
+ \Pr[D=d]\le\Pr[D\le d]
+ \le p_d:=\frac{(2^{32}-1)^2}{(Q-1)(2^{64-d}-1)}.
+\end{equation}
+To see this, an intersection of dimension at least $64-d$ contains at least $2^{64-d}-1$ nonzero pairs satisfying $v=tw$. Across all $t$, there are only $(2^{32}-1)^2$ such pairs. This tail bound is sharper than discarding every failed sixth doubling, which would lose the required statistical margin.
+
+Define
+\[
+ A_a=\min\{1,2^{a+1-9\cdot64}\}
+ +\sum_{d=32}^{63}p_d\min\{1,2^{a+1-9d}\}.
+\]
+The normalized two-point failure probability is at most
+\[
+ B_2=2B+2A_{192}+A_{384}.
+\]
+No independence between projected dimensions is needed: the argument bounds each singleton term separately and uses just one projection for the last term.
+
+\section{Returning to equality weights}
+
+For each of the $28$ point coordinates, exclude $r_i=1$ and normalize with $t_i=r_i/(1+r_i)$. Excluding zero normalized values costs at most $28/(Q-1)$; their remaining distribution differs from uniform $\E^*$ by at most another $28/(Q-1)$ in total. Nonzero common factors on the two output coordinates do not affect rank. Thus ordinary equality weights have failure at most
+\[
+ B_2+\frac{28}{Q}+\frac{56}{Q-1}.
+\]
+For geometric multipliers, use the coordinate substitution from \path{zk-jump-metadata.tex}, simultaneously at the two points. Poles and the distance of the transformed points from uniform contribute at most another $56/Q$. Exact rational arithmetic verifies
+\[
+ B_2+\frac{84}{Q}+\frac{56}{Q-1}<2^{-148}.
+\]
+
+\paragraph{Evidence and boundary.} \path{zk_two_point_audit.py} checks this rational inequality and binary rank $384$ for ordinary and geometrically weighted evaluations over the actual fields. The theorem requires two independent honest field points. It does not automatically cover a third query, an adaptive earlier transcript or arbitrary PCS selectors. Its intended first use is a counter bank whose lower-half swaps affect two evaluations while leaving a separately masked upper-half bus target unchanged.
+
+\end{document}

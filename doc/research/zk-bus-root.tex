@@ -1,0 +1,85 @@
+% !TeX root = zk-bus-root.tex
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\input{../leanvm/preamble/macros.tex}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\title{Hiding the bus product root with unused memory}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\paragraph{Result and scope.} Eight independent random unused memory words statistically hide leanVM's shared push/pull product root, without new instructions, constraints, weights or verifier messages. For the bound below the error is less than $2^{-151}$. This is a marginal theorem: the count root, GKR messages, memory openings, commitment and Fiat-Shamir are not included. The purpose is to remove one actual nonlinear message from the list of unresolved marginal distributions, not to claim full bus zero knowledge.
+
+\section{The actual memory fingerprint}
+
+Write $Q=|\K|=2^{64}$, $|\E|=Q^3$, and let $e_i=\eq(\alpha,i)$ for the four independent uniform bus coins $\alpha\in\E^4$. The additional shift $\beta\in\E$ is independent uniform. An unused memory cell at fixed address $a$ has seed and finalization count $1$. Its factor on either side is
+\[
+ X=\beta+e_0\sep+e_1a+e_2+e_3v_0+e_4v_1+e_5v_2,
+ \qquad (v_0,v_1,v_2)\gets\K^3.
+\]
+Thus $X$ is uniform on an affine translate of $U=\operatorname{span}_{\K}\{e_3,e_4,e_5\}$. It is \emph{not} automatically uniform in $\E$. All unused memory words have the same subspace $U$, so this issue cannot be ignored by simply adding their linear contributions.
+
+\begin{lemma}[Memory fingerprint dimension]\label{lem:bus-dim}
+The probability that $\dim_{\K}U<2$ is at most
+\[
+ \frac8{|\E|}+\frac{Q^2}{(|\E|-2)^2}.
+\]
+\end{lemma}
+\begin{proof}
+Exclude the four $\alpha$ coordinates in $\{0,1\}$ and write $t_i=\alpha_i/(1+\alpha_i)$, independently uniform in $\E\setminus\{0,1\}$. Up to a common nonzero scale, the three weights are $(t_0t_1,t_2,t_0t_2)$; divide by $t_2$. Their span has dimension one exactly when both $t_0\in\K$ and $t_0t_1/t_2\in\K$. The first condition has probability at most $Q/(|\E|-2)$; conditional on it and on $t_2$, the second allows at most $Q$ choices of $t_1$. This proves the bound. Dimension two must be handled, not discarded as a negligible rank failure.
+\end{proof}
+
+\section{Products mix even when a single factor does not}
+
+\begin{lemma}[Affine-subspace product mixing]\label{lem:bus-mix}
+Let $U\subseteq\E$ be a $\K$-linear subspace of dimension at least two. Let $X_1,\ldots,X_t$ be independent uniform elements of arbitrary nonempty sets $(a_i+U)\setminus\{0\}$. Their product is within statistical distance
+\[
+ \frac12\sqrt{|\E|-2}
+ \left(\frac{\sqrt{|\E|}}{Q^2-1}\right)^t
+\]
+of uniform on $\E^\times$.
+\end{lemma}
+\begin{proof}
+For any nontrivial multiplicative character $\theta$ of $\E^\times$, extend $\theta(0)=0$. Expand the indicator of $a_i+U$ using the additive characters annihilating $U$. The zero-frequency term vanishes since $\sum_x\theta(x)=0$; each other term is a Gauss sum of absolute value $\sqrt{|\E|}$~\cite{conrad}. There are at most $|\E|/|U|$ terms, each with prefactor $|U|/|\E|$. Hence
+\[
+ \left|\sum_{x\in a_i+U}\theta(x)\right|\le\sqrt{|\E|},
+ \qquad |\mathbb E\theta(X_i)|\le\frac{\sqrt{|\E|}}{Q^2-1}.
+\]
+Independence multiplies these Fourier coefficients. Parseval and Cauchy-Schwarz on the multiplicative group bound statistical distance by one half the square root of the sum of squared nontrivial coefficients. There are $|\E|-2$ such characters, giving the result.
+\end{proof}
+
+\section{A simulator for the shared root}
+
+\begin{theorem}[Eight unused words]\label{thm:bus-root}
+Reserve eight distinct memory addresses that are neither public cells nor accessed by any real or padding instruction. Independently sample their three limbs uniformly in $\K$ before the bus coins. Fix all other trace data, and let $M$ bound the number of other nonconstant push-side factors. The joint view of $(\alpha,\beta)$ and the shared product root has a witness-independent simulator with error at most
+\[
+ \varepsilon_{\mathrm{root}}\le
+ \frac{M+16}{|\E|}+\frac{Q^2}{(|\E|-2)^2}
+ +\frac12\sqrt{|\E|-2}
+       \left(\frac{\sqrt{|\E|}}{Q^2-1}\right)^8.
+\]
+For $M\le2^{40}$ this is below $2^{-151}$.
+\end{theorem}
+\begin{proof}
+Write the root as $A\prod_{i=1}^8X_i$, where $A$ is the product of all other factors and depends on none of the eight sampled words. Conditional on $\alpha$, each other factor is $\beta$ plus a fixed fingerprint. A union bound over uniform $\beta$ gives $\Pr[A=0]\le M/|\E|$. Likewise, each sampled factor is zero with probability $1/|\E|$ over $\beta$ and the sampled words, so $\Pr[\exists i:X_i=0]\le8/|\E|$. This bound is averaged over $\beta$; conditioning first on a particular affine coset and bounding by $1/Q^2$ would be needlessly weaker.
+
+Fix coins for which $A\ne0$ and $\dim U\ge2$. Condition on all eight sampled factors being nonzero. They remain independent uniform elements of their nonzero affine cosets. Lemma~\ref{lem:bus-mix} makes their product statistically close to uniform on $\E^\times$; multiplying by $A$ preserves uniformity and statistical distance. Sum the two zero-event bounds and Lemma~\ref{lem:bus-dim}. The simulator samples the honest coins and an independent uniform element of $\E^\times$. It does not need the real trace or to identify good coins.
+\end{proof}
+
+\paragraph{What is genuinely free.} No additional execution rows are needed if eight suitable cells are already available in the announced memory domain. Otherwise enlarging the public memory allocation has a prover and commitment cost. The randomized cell appears once among push seeds and once among pull finalizations, with identical tuple and count $1$. Bus balance is preserved and the count product is unchanged. There is no pseudorandomness assumption: the proof uses independent uniform limbs and finite-field character sums. The bound $M\le2^{40}$ is a sufficient public resource condition, not a timing measurement.
+
+\paragraph{What remains.} The count root can still reveal access multiplicities; unused values cannot change it. GKR reveals intermediate products of subsets of these same factors, and memory decomposition and the PCS reveal linear measurements of their words. The product-mixing lemma does not survive arbitrary conditioning on those measurements. Extending it requires a joint character-sum or conditional-fiber argument for the actual observations, including both correlated bus trees. Neither this theorem nor the conditional JUMP simulator in \path{zk-jump-sumcheck.tex} supplies that argument yet.
+
+\paragraph{Executable evidence.} \path{zk_bus_audit.py} checks the concrete bound by exact rational arithmetic, exhaustively verifies the normalized low-rank criterion over $\F_4\subset\F_{64}$, computes exact eight-factor coset convolutions in the small field, and checks the memory fingerprint against the reference verifier over the actual fields. These checks are independent of the asymptotic character-sum derivation; they do not replay or simulate GKR.
+
+\begin{thebibliography}{1}
+\bibitem{conrad} K.~Conrad. \emph{Gauss and Jacobi sums on finite fields and $\mathbb Z/m\mathbb Z$}, Theorem~2.2(2). \href{https://kconrad.math.uconn.edu/blurbs/gradnumthy/Gauss-Jacobi-sums.pdf}{Author's notes}.
+\end{thebibliography}
+\end{document}

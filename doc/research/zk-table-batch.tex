@@ -1,0 +1,122 @@
+% !TeX root = zk-table-batch.tex
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\input{../leanvm/preamble/macros.tex}
+\newtheorem{proposition}{Proposition}
+\title{One inverse bank for the complete table sumcheck}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\paragraph{Result and scope.} The existing JUMP inverse bank suffices to hide the free round coordinates of the actual six-table sumcheck, not just its isolated JUMP constraint component. Unequal table heights cause known linear terms, which can be reconstructed from six initial table bus targets. This is a conditional simulation reduction: the preceding bus view, those targets and certain endpoint data still need a joint simulator. It is not a full ZK theorem. All changes here concern padding and analysis, not verifier weights or messages.
+
+\section{The polynomial the verifier actually checks}
+
+Index tables by $t$, let their log heights be $h_t$, and require the JUMP table $J$ to have maximal log height $h_J=n$. Write $z_t$ for its vector of multilinear column extensions. With the verifier's existing batch coins, let
+\[
+ F_t(z_t)=\sum_{s=0}^2\theta^s\,\mathsf{bus}_{t,s}(z_t)
+ +\mathbf1_{t=J}\bigl(b+cw+\eta c(b+1)\bigr).
+\]
+This matches the implementation: JUMP is the only table with explicit constraints, its first constraint coefficient is one, and every bus form has degree at most two and omits $w$. Arithmetic results are derived inside the other tables' bus tuples. All forms are fixed by honest coins and the public layout. Their dependence on the GKR point does not involve inverse coins.
+
+For equality point $r$, the sumcheck polynomial is
+\begin{equation}\label{eq:batch-poly}
+ P(X)=\sum_t\left(\prod_{i=h_t}^{n-1}X_i\right)
+ \eq(r_{<h_t},X_{<h_t})F_t(z_t(X_{<h_t})).
+\end{equation}
+Its initial target is $\sum_t T_t$, where
+\[
+ T_t=\sum_{x\in\cube{h_t}}\eq(r_{<h_t},x)F_t(z_t(x)).
+\]
+On valid rows the JUMP constraints vanish, so these are table bus targets, independent of the zero-condition inverse coins. The actual protocol transmits only the appropriate combined target; the individual $T_t$ are auxiliary simulation data, not proposed new messages.
+
+\section{Inactive tables contribute a known linear term}
+
+Fold high coordinates first. Before round $j$, define the public-coin factors
+\[
+ a_{t,j}=\prod_{i=j+1}^{n-1}
+ \begin{cases}
+ \fc_i,&i\ge h_t,\\
+ 1+r_i+\fc_i,&i<h_t,
+ \end{cases}
+ \qquad
+ L_j=\sum_{h_t\le j}a_{t,j}T_t.
+\]
+An inactive table, $h_t\le j$, has not folded any of its own row coordinates. Its round contribution is exactly $a_{t,j}T_t T$. Active tables have the common current equality factor. Therefore the actual cubic round polynomial has the decomposition
+\begin{equation}\label{eq:batch-round}
+ R_j(T)=L_jT+a_{J,j}(1+r_j+T)Q_j(T),\qquad\deg Q_j\le2.
+\end{equation}
+The JUMP contribution to $Q_j$ is precisely the isolated JUMP cofactor. All other contributions are independent of its inverse coins. Consequently the map from the reserved inverse coins to
+\[
+ Y=( [T^2]Q_{n-1},\ Q_{n-2}(1),[T^2]Q_{n-2},\ldots,Q_0(1))
+ \in\E^{2n-2}
+\]
+is exactly the matrix proved onto in \path{zk-jump-rank.tex}. Neither an extra masking polynomial nor a separate inverse bank per opcode is necessary for these coordinates.
+
+\paragraph{The first endpoint cannot be omitted.} Put $U=Q_{n-1}(1)$. It is generally nonzero. It is a weighted sum of the bus forms on the upper halves of maximal-height tables; the Boolean-row JUMP constraints again vanish. Inverse coins cannot change $U$. Treating it as zero, as in the isolated zerocheck, would silently omit a private observation from the simulation target.
+
+\section{Last-round reconstruction}
+
+Let $Z_t^a$ be a positive-height table's column evaluations at $(a,\fc_1,\ldots,\fc_{h_t-1})$, for $a\in\{0,1\}$. Height-zero tables instead contribute their one constant row. Omit the JUMP inverse coordinate throughout this endpoint data. Let $C_0,C_1$ be the JUMP condition pair and
+\[
+ t_* = \frac{C_0}{C_0+C_1},\qquad
+ z_t(T)=Z_t^0+T(Z_t^0+Z_t^1).
+\]
+Assume $C_0C_1(C_0+C_1)\ne0$. Evaluate the last-round cofactor after formally setting the JUMP inverse to zero:
+\[
+ H(T)=\sum_{h_t>0}\frac{a_{t,0}}{a_{J,0}}
+ F_t(z_t(T))\big|_{w=0}.
+\]
+Then $Q_0(T)=c(T)w(T)+H(T)$, and
+\begin{equation}\label{eq:batch-root}
+ Q_0(t_*)=H(t_*).
+\end{equation}
+The other tables remain inside $H$; their values need not satisfy any condition at $t_*$.
+
+\paragraph{Explicit algorithm.} Given the current actual sumcheck claim $S_j$, set $s_j=(S_j+L_j)/a_{J,j}$. Use $q_1=U$ in the first round and the next coordinate of $Y$ thereafter. Recover
+\[
+ q_0=\frac{s_j+r_jq_1}{1+r_j}.
+\]
+For $j>0$, take $q_2=[T^2]Q_j$ from $Y$. In the last round recover it from \eqref{eq:batch-root}:
+\[
+ q_2=\frac{H(t_*)+q_0+(q_0+q_1)t_*}{t_*(1+t_*)}.
+\]
+Form $Q_j(T)=q_0+(q_0+q_1+q_2)T+q_2T^2$, emit the unchanged wire coefficients of \eqref{eq:batch-round}, and update $S_{j-1}=R_j(\fc_j)$. Finally interpolate every non-inverse terminal column and set
+\[
+ W=\frac{Q_0(\fc_0)+H(\fc_0)}{C_0+\fc_0(C_0+C_1)}.
+\]
+This determines all table-sumcheck messages and column claims. The linear term $L_jT$ affects the omitted linear wire coefficient and the running claim, so it must be included even though the transmitted constant, quadratic and cubic coefficients do not name it separately.
+
+\section{The exact remaining privacy target}
+
+Let $\mathcal V$ comprise the preceding \emph{algebraic} bus transcript, all honest coins, the six $T_t$, $U$, and the non-inverse endpoint data above. It excludes the initial witness commitment, PCS and Fiat-Shamir. Once the other witness columns and coins are fixed, every component of $\mathcal V$ is independent of the free zero-condition inverses.
+
+\begin{proposition}[Conditional simulation of the full table batch]\label{prop:full-table-conditional}
+Suppose $\mathcal V$ has a simulator of statistical error $\varepsilon_{\mathcal V}$. Suppose the reserved inverses remain independent uniform $\K$ values conditional on the other columns and honest coins. Let $\varepsilon_{\mathrm{bad}}$ bound failure of full inverse rank or any reconstruction denominator. Then the algebraic bus transcript followed by the complete six-table sumcheck and all its column claims has a simulator of error at most $\varepsilon_{\mathcal V}+\varepsilon_{\mathrm{bad}}$.
+\end{proposition}
+\begin{proof}
+Condition on every non-inverse column and the coins. The map to $Y$ is the same affine full-rank map as in the isolated proof, hence $Y$ is uniform and independent of $\mathcal V$ on good data. Simulate $\mathcal V$, sample uniform $Y$, and apply the displayed deterministic reconstruction. Real and reconstructed wire messages agree on good data; bad data and the error in simulating $\mathcal V$ contribute the stated distance. The preceding algebraic bus does not inspect these inverse coins, so it does not consume their entropy. This last assertion does not extend to a commitment or Fiat-Shamir transcript containing them.
+\end{proof}
+
+For the $n=20$ inverse and condition layout already proved, honest coins give the sufficient bound
+\[
+ \varepsilon_{\mathrm{bad}}
+ \le \delta_{\mathrm{span}}+\frac{292}{|\E|}.
+\]
+The earlier rank and endpoint bound is $\delta_{\mathrm{span}}+273/|\E|$. Add $19/|\E|$ for a vanishing prior JUMP equality factor $1+r_i+\fc_i$, $i>0$, now used as a divisor. These are unconditional probabilities under honest coins; no uniform bound conditional on each possible bus transcript is claimed. In particular, the proposition does \emph{not} establish that $\varepsilon_{\mathcal V}$ is small.
+
+\paragraph{A smaller sufficient target.} Full penultimate rows are convenient but not necessary. Reconstruction only needs their non-inverse \emph{terminal} evaluations, $C_0,C_1$, and the single scalar $H(t_*)$, in addition to the preceding view, $T_t$ and $U$. The terminal values determine $H(\fc_0)$. Replacing the larger endpoint data by these smaller data preserves the proposition. This avoids requiring independent hiding of every other opcode's penultimate halves; the joint law of $H(t_*)$ must still be proved.
+
+\paragraph{Why counter slopes help.} JUMP counters occur only linearly. Write $k$ for the coefficient of one such counter in $F_J$. Given its terminal evaluation, varying its penultimate pair changes its contribution to $H(t_*)$ by a nonzero multiple of $k(t_*+\fc_0)$ whenever $k\ne0$ and the terminal condition is nonzero. Hence a spare counter slope can hide the residual without hiding every other table's penultimate columns. Moreover, $k$ is a quadratic polynomial in the existing bus batch coin $\theta$, with leading coefficient equal to its count-block selector. At GKR depth $D$, this selector vanishes with probability at most $(D-n)/|\E|$; otherwise $k=0$ costs at most $2/|\E|$. This is an honest-coin bound, not a claim conditional on the preceding GKR messages.
+
+\paragraph{Progress versus the missing theorem.} The two-copy construction in \path{zk-jump-metadata.tex} hides all JUMP non-inverse penultimate values jointly with the isolated constraint view. The subsequent \path{zk-jump-bus-padding.tex} realizes a triangular counter layout: an upper-half bank masks $U$, then lower-half banks mask the four terminal counts, $H(t_*)$ and $T_J$ without changing $U$. Together with the other JUMP masks, it proves hiding of the bus-batched JUMP component with error below $2^{-146}$. It still does not condition on the preceding GKR messages. The other table targets, GKR, memory claims, Flock and PCS remain obligations; their marginal bounds cannot be composed into full ZK.
+
+\paragraph{Executable evidence.} \path{zk_jump_bus_audit.py} checks the nonzero-target JUMP reconstruction using valid closed JUMP cycles and actual bus forms. \path{zk_table_batch_audit.py} tests all six tables at two unequal-height layouts, including height-zero tables. It derives bus forms from the actual layout placements, independently evaluates \eqref{eq:batch-poly} and interpolates its cubic messages, then compares reconstruction and replays both genuine and synthetic messages through the unchanged Python \texttt{table\_sumcheck}, without replacing its table list. Its other-table values are algebraic fixtures, not a bus-balanced VM execution or a Flock witness. The tests establish the reconstruction identities, not the missing joint hiding theorem.
+
+\end{document}

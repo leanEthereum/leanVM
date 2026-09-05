@@ -1,0 +1,140 @@
+% !TeX root = zk-padding.tex
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,booktabs}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\input{../leanvm/preamble/macros.tex}
+\newtheorem{proposition}{Proposition}
+\newtheorem{lemma}[proposition]{Lemma}
+\title{Zero knowledge from valid execution padding}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\paragraph{Objective.} Obtain statistical zero knowledge by inserting valid closed executions and choosing their row positions, without changing the verifier or charging ordinary proofs for privacy. This note establishes a scalar zerocheck result and records the remaining obstacles. The companions \path{zk-pcs-padding.tex} and \path{zk-stacked-padding.tex} prove restricted PCS and valid-cycle hiding results. Their continuations \path{zk-jump-sumcheck.tex} and \path{zk-bus-root.tex} give a conditional JUMP simulator and a marginal simulator for the actual shared bus root. None claims zero knowledge for the current VM.
+
+\paragraph{Model.} Resource bounds, including every table height and the memory size, are public. Unless stated otherwise, challenges are independent uniform coins of an honest interactive verifier. Simulation must cover the whole view: bus and count products, GKR, table evaluations, Flock, ring switching, PCS openings and its final plaintext table. Merkle commitments, Fiat-Shamir and externally exposed deferred claims require an additional argument. The results below do not give zero knowledge against arbitrary interactive challenges.
+
+\section{Valid padding can hide the scalar zerocheck}
+
+Let $a,b,c:\cube{\ell}\to\F$, where $\F$ is a characteristic-two field and $c_i=a_ib_i$. Run the usual zerocheck of $\mle a\mle b+\mle c$, weighted by $\eq(r,\cdot)$, folding the highest index variable first. The terminal evaluations of all three columns are included in the view; commitments and opening proofs are not.
+
+\begin{proposition}[Computer-assisted scalar result]\label{prop:scalar}
+For $2\le\ell\le32$, reserve the $2\ell$ positions
+\[
+ D_\ell=\{0,1\}\cup\bigcup_{j=1}^{\ell-1}\{2^j,2^j+1\}.
+\]
+At each reserved position sample $a_i,b_i$ independently uniformly in $\F$ and set $c_i=a_ib_i$. For arbitrary fixed valid triples at the other positions, the unchanged scalar zerocheck has an efficient witness-independent simulator with statistical error at most $(3\ell^2+2\ell)/|\F|$.
+\end{proposition}
+
+\begin{proof}
+Remove the public equality factor from each round polynomial, leaving a quadratic $G$. In round one, $G(0)=G(1)=0$, so only its quadratic coefficient is free. Each later round has two free coefficients, which may be represented as $G(1)$ and the quadratic coefficient when the corresponding equality coordinate is not $1$. Append the terminal $\mle a(\fc)$ to these coefficients, obtaining $Y\in\F^{2\ell}$. Given $Y$ and $\mle b(\fc)$, the verifier's running identities determine the remaining coefficients and $\mle c(\fc)$.
+
+Condition on $b$ and all verifier coins. Since $c_i=a_ib_i$, the entire vector is linear in $a$:
+\[
+ Y=M_D(b,r,\fc)a_D+v(a_{\overline D},b,r,\fc).
+\]
+Nonsingularity of $M_D$ therefore makes $Y$ uniform, independently of the real rows and of $b$. All but the last matrix row are homogeneous linear in $b$; the last is independent of $b$. The degree-$(2\ell-1)$ part of $\det M_D$ in the padding $b_D$ is precisely the determinant with real $b$ entries set to zero. Thus, a nonzero certificate for that specialization works for every fixed real $b$.
+
+The accompanying program exhibits nonsingular evaluations of these specialized minors in $\F_{256}$ for each $\ell=2,\ldots,32$. Their entries are formal polynomials over $\Ftwo$, so an exact nonzero evaluation certifies a nonzero polynomial over every characteristic-two field. This is a finite computer-assisted certificate, not an inference from a sampled success rate. The sparse construction is checked against an independent dense construction for small instances.
+
+The determinant has total degree at most $3\ell^2-\ell$: the first row has degree at most $\ell$, the two rows of a later round with $m$ lower variables have degree at most $2\ell-1-m$, and the last row has degree $\ell$. Schwartz-Zippel bounds singularity accordingly. Away from fold coordinates in $\{0,1\}$, a padding $b_i$ has nonzero weight in $\mle b(\fc)$, making that evaluation uniform. The simulator samples the honest coins, uniform $Y$ and uniform $\mle b(\fc)$, then reconstructs the rest. Excluding equality coordinates equal to $1$ and fold coordinates in $\{0,1\}$ adds at most $3\ell/|\F|$. On exceptional coins the simulator may output any fixed-format view. Multiplying the simulated cofactors by their public equality factors also simulates the full round polynomials, by deterministic postprocessing.
+\end{proof}
+
+For $|\F|=2^{192}$ the bound is below $2^{-180}$. This does not apply directly to leanVM, whose committed columns are over $\K=\F_{2^{64}}$ and whose challenges are over $\E=\F_{2^{192}}$. Applying the same argument over $\K$ gives an insufficient bound for $128$-bit statistical privacy.
+
+\paragraph{Why positions matter.} One real row and one random valid row do not suffice: the first round reveals $(a+u)(b+v)$ while the terminal evaluations reveal $a+t(a+u)$ and $b+t(b+v)$. Their joint distribution depends on the real row. Nor does putting all randomness in a short suffix give the same rank as $D_\ell$: early folds repeatedly use the same small patch. The successful pattern puts randomness on different branches of the folding tree; the padding positions need not be secret.
+
+\section{Opening the tables consumes more randomness}
+
+\begin{lemma}[Exact criterion for linear observations]\label{lem:linear}
+For fixed public observation matrix $L$, write a vector as fixed real entries $w$ and independent uniform padding $u$ over a field $\F$. The view
+\[
+ y=L_{\mathrm{real}}w+L_Du
+\]
+has the same distribution for every $w$ if and only if
+\[
+ \operatorname{im}L_{\mathrm{real}}\subseteq\operatorname{im}L_D,
+ \qquad\text{equivalently}\qquad
+ \operatorname{rank}L_D=\operatorname{rank}L.
+\]
+If the condition fails, a linear combination of the observations cancels every padding value while retaining real data.
+\end{lemma}
+
+\begin{proof}
+The view is uniform on the coset $L_{\mathrm{real}}w+\operatorname{im}L_D$. These cosets coincide exactly under the stated condition. Otherwise a linear functional annihilating $\operatorname{im}L_D$ separates two cosets. On the good event the simulator can take $w=0$ and sample $u$.
+\end{proof}
+
+For adaptive linear queries the analogous sufficient condition must hold for every cumulative query matrix along every reachable history. Conditional uniform sampling subject to previous answers gives an online simulator. A rank check on a few completed transcripts is not such a proof. If a public claim restricts the allowed witnesses, the criterion applies only to differences of witnesses satisfying that claim.
+
+\paragraph{A joint zerocheck test.} Suppose $L$ specifies $t$ further linear measurements of each of $a,b,c$, independently of their entries. Conditional on $b$, the zerocheck and these openings expose
+\[
+ \begin{pmatrix}Y\\La\\Lc\end{pmatrix}
+ =
+ \begin{pmatrix}M_D\\L_D\\(L\operatorname{diag}b)_D\end{pmatrix}a_D
+ +\text{a fixed offset}.
+\]
+The square minor in Proposition~\ref{prop:scalar} leaves no unused $a_D$ randomness when it is invertible. The stronger sufficient condition is full row rank $2\ell+2t$ here, together with full row rank of the map $b_D\mapsto(\mle b(\fc),Lb)$. Then the same two-stage simulation works. A uniform bound on failure, including its dependence on the chosen queries, is still required.
+
+An exact small-field certificate succeeds for $64$ rows, two Reed-Solomon evaluations and four plaintext folded coefficients, using $D_4$ inside each of the four $16$-row slices. It fails with the original $D_6$ or a half-table prefix. This certifies generic rank for that particular algebraic observation family; it is not a theorem about the discrete WHIR query distribution. At a query to the field point zero, full uniformity is impossible because the revealed triple satisfies $c_0=a_0b_0$. When row zero is padding, one can instead sample that valid random triple and check the remaining conditional rank. The program verifies this repair for the same example.
+
+\paragraph{WHIR's linear observations.} With verifier coins and initial weight functions fixed independently of the witness, WHIR's algebraic observations are linear in the committed vector. The original experiment below models the batched algebraic schedule; it omits the implementation's separately transmitted OOD and query introduction polynomials. The newer \path{zk_pcs_audit.py} includes them and the boundary messages, and checks its transcript against the Python verifier. Thus the old counterexamples remain obstructions, but its successful ranks do not certify hiding of the actual wire view.
+
+The earlier experiment follows the batched algebraic schedule in a small instance: two high-coordinate folds, then one low-coordinate fold per level, two queries per level, and four final plaintext coefficients. It includes \emph{every pre-fold lane} exposed by each query; hashes are omitted. A prefix of random coefficients inside every final slice still fails. The program explicitly constructs a linear combination that cancels all these masks and retains real data. The following observation explains the failure without relying on the small-field experiment.
+
+\begin{proposition}[An unmasked pre-fold lane]\label{prop:lane}
+Suppose all random padding coefficients have index bit $j$ equal to zero, and a later PCS level uses bit $j$ as a lane coordinate. That level's lane with bit $j$ equal to one contains no padding randomness, even after earlier folds. Its queried codeword values are unmasked linear observations of the real vector.
+\end{proposition}
+\begin{proof}
+Earlier folds eliminate other coordinates and preserve the support condition at bit $j$. The code encodes each pre-fold lane separately, and its queries reveal these lanes before combining them. Thus the other lane cannot hide this observation. For example, changing its constant coefficient changes every queried value by the same amount.
+\end{proof}
+
+Padding positions of even binary parity intersect every positive-dimensional Boolean subcube and avoid this particular support obstruction. They behave better in the experiments, but still have failing query configurations. They are a candidate placement, not a construction with a security bound. A successful layout must cover the whole folding tree and the discrete query distribution, not only its final slices.
+
+\paragraph{Random sprinkling has a concrete leakage floor.} The current novel-basis encoder satisfies $\Enc(f)[0]=f_0$. Consider a single lane with $N-d$ real coefficients all equal to a secret bit, and $d$ independent uniform padding coefficients, randomly permuted together. On a uniform query to a domain containing zero, the two secrets give views at statistical distance at least
+\[
+ \frac{1-d/N}{|\dom|}.
+\]
+Indeed, conditional on querying zero, the answer is the secret with probability $1-d/N$ and a uniform field element otherwise. The query is part of the view. These two messages can also be columns of valid triples by taking real $b=c=0$. Any common simulator has error at least half this distance for one secret. Since $\dom\subseteq\K$, modest random sprinkling cannot give $128$-bit statistical privacy even in this restricted model. This is not a pair of complete VM executions.
+
+\paragraph{A local repair without exceptional queries.} Reserve the first $t$ novel-basis coefficients of a lane as independent uniform masks. Any $t$ distinct evaluation queries are then perfectly hidden: those basis polynomials have degrees $0,\ldots,t-1$, so their evaluation matrix is invertible by interpolation. Repeated queries merely repeat answers. This also handles adaptive evaluation queries, but not additional observations of the same masks. It gives a deterministic placement rule for one layer; preserving sufficient independent low-degree entropy jointly through the entire folding tree remains the construction problem.
+
+\section{Generating extension-field entropy}
+
+Rank over $\E$ is insufficient when padding is sampled over $\K$: each $\E$-valued observation has three $\K$ coordinates. Expand the observation matrix over $\K$ before testing rank. A nonzero determinant and Schwartz-Zippel over $\K$ alone typically give only an error proportional to $2^{-64}$; a sharper argument is needed.
+
+\begin{lemma}[A small subcube spans a cubic extension]
+Let $\E/\K$ be cubic. For $r_0,r_1\notin\{0,1\}$, the four Boolean evaluation weights $\eq((r_0,r_1),\cdot)$ span $\E$ over $\K$ if and only if both $r_0,r_1$ are outside $\K$.
+\end{lemma}
+
+\begin{proof}
+Up to a nonzero common factor, the weights are $1,t_0,t_1,t_0t_1$, where $t_j=r_j/(1+r_j)$. If both $t_j\notin\K$, either $1,t_0,t_1$ are independent or $t_1=a+bt_0$ with $b\ne0$, and $t_0t_1$ supplies $t_0^2$. Every element outside $\K$ has degree three. If either $t_j\in\K$, the span has dimension at most two.
+\end{proof}
+
+With three coordinates, the eight weights span $\E$ whenever at least two coordinates are outside $\K$. Uniform independent $\E$ challenges fail this latter condition with probability at most $3\cdot2^{-256}$; coordinates in $\{0,1\}$ may be excluded separately with probability at most $6/2^{192}$. Thus a small number of independent $\K$ values can perfectly mask one $\E$ evaluation except on rare coins. The companion note improves the count to five for a slightly larger error and uses it to handle a complete one-point PCS algebraic view. The joint VM transcript remains open.
+
+\section{What must still be realized by VM cycles}
+
+\paragraph{Counts.} The existing count root is $R_c=\gen^S$, where $S=\sum_i\binom{a_i}{2}$ for memory and bytecode access multiplicities $a_i$. Row permutations and random values do not hide it. The earlier abstract triangular-number construction~\cite{ewell} has been replaced by valid fixed-length cycle normalization in \path{zk-count-root.tex}. The newer \path{zk-count-columns.tex} fixes all twenty-eight count-column products: normalize bytecode totals, normalize the total memory exponent, then route the remaining column exponents into one absorbing MUL column using valid counter-label assignments. The finite ISA audit includes all six opcodes and public power-of-two row counts. This repairs the exhibited coarse GKR leak from JUMP-only normalization, not observations inside the count blocks.
+
+\paragraph{Inside the count tree.} GKR's final four child messages expose an evaluation of the quartet-sum array, which shuffling within quartets cannot mask. \path{zk-count-first-round.tex} proves joint hiding of the first count polynomial and final four children below $2^{-157}$, using $43008$ valid rows; its first endpoints are already known from the preceding packet. Intermediate-round leaks require geometric backgrounds and twisted trades, developed in \path{zk-count-middle-rounds.tex}. The full mixed-term audit in \path{zk-count-mixed.tex} then finds a common-root leak, repairs the pair of root evaluations with fixed valid anchors, and checks a finite full-layer affine span. This does not prove statistical hiding of that layer. Each bank is binary-affine separately, but the joint view has mixed terms of degree up to four. Full distributional simulation and the fingerprint channels remain open.
+
+\paragraph{Bus and Flock.} Eight unused random memory words now provably hide the shared bus product root: \path{zk-bus-root.tex} derives a bound below $2^{-151}$ using the actual fingerprint and multiplicative character sums. Their joint distribution with GKR and memory openings remains unproved. Flock is harder: a padding compression must satisfy the fixed Boolean BLAKE2s circuit, and its univariate skip already exposes $64$ field elements. Random inputs are not a proof of statistical hiding. A possible algebraic approach is a library of valid compression witnesses whose differences provide certified Boolean directions, followed by analysis of their nonlinear messages. Treating compression as a pseudorandom expander would not establish the requested statistical guarantee.
+
+\paragraph{Current proved components.} The uniform rank bound in \path{zk-jump-rank.tex} hides the isolated JUMP constraint sumcheck and its three terminal evaluations with error below $2^{-157}$. The valid permutations in \path{zk-jump-metadata.tex} extend this to all fourteen terminal JUMP columns, or to their non-inverse penultimate pairs, with error below $2^{-155}$. They preserve the memory image and final counters. Constant-frame-only padding has an almost perfectly distinguishing frame-column leak. Separately, \path{zk-two-point-span.tex} proves that $576$ fair bits jointly hide two independent extension-field evaluations with failure below $2^{-148}$, including geometric counter weights.
+
+\paragraph{The full table batch and the next step.} \path{zk-table-batch.tex} gives an exact conditional simulator for the actual six-table sumcheck, including unequal heights. One JUMP inverse bank covers its free round coordinates: JUMP is the only table with explicit constraints, while the other tables contribute quadratic bus forms. The triangular counter construction in \path{zk-jump-bus-padding.tex} now hides the JUMP component's bus-batched sumcheck, initial target and all fourteen terminal evaluations with error below $2^{-146}$. It does not condition on preceding GKR messages. The missing full-batch input is still a joint simulator for GKR, table bus targets and terminal/residual data. Memory claims, other tables' terminal data, access counts, Flock and PCS need joint treatment as well. No full ZK or novelty claim is made; production protocol code remains unchanged.
+
+\paragraph{Evidence and prior work.} The accompanying Python scripts contain the exact finite-field certificates, simulator checks and counterexamples: \path{zk_padding_experiments.py} and \path{zk_joint_experiments.py}. Sampled ranks are diagnostics, not cryptographic error estimates. Valid random R1CS padding has precedent in Bootle, Chiesa and Liu~\cite{bcl}, who also treat subprotocol privacy separately. Hab\"ock and Kindi~\cite{hk} explain why all PCS-derived observations must be counted. No novelty claim is made here.
+
+\begin{thebibliography}{3}
+\bibitem{bcl} J.~Bootle, A.~Chiesa and S.~Liu. \emph{Zero-Knowledge IOPs with Linear-Time Prover and Polylogarithmic-Time Verifier}. \href{https://eprint.iacr.org/2020/1527}{ePrint 2020/1527}.
+\bibitem{hk} U.~Hab\"ock and Al Kindi. \emph{A note on adding zero-knowledge to STARKs}. \href{https://eprint.iacr.org/2024/1037}{ePrint 2024/1037}.
+\bibitem{ewell} J.~A.~Ewell. \emph{On Sums of Three Triangular Numbers}. \href{https://www.fq.math.ca/Scanned/26-4/ewell.pdf}{The Fibonacci Quarterly 26(4)}, 1988.
+\end{thebibliography}
+\end{document}

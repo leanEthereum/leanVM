@@ -1,0 +1,69 @@
+% !TeX root = zk-count-columns.tex
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\input{../leanvm/preamble/macros.tex}
+\newtheorem{lemma}{Lemma}
+\newtheorem{theorem}{Theorem}
+\title{Making every count-column product public}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\paragraph{Result and boundary.} Valid cycles can normalize all twenty-eight count-column products: six bytecode columns and twenty-two memory columns. This repairs the coarse count-tree leak in \path{zk-count-root.tex}, not the internal GKR transcript. The construction uses witness-dependent padding multiplicities and counter-label assignments, with public per-opcode row budgets. It introduces no verifier operation. Capacity, reserved addresses and compatibility with the other masking layouts remain explicit preconditions.
+
+\section{A label router}
+
+For each count column, track the integer sum of its labels, so that its product is $\gen$ to that sum. Fix the memory column \texttt{MUL.cnt\_a} as an absorber. For any other memory column, choose a known valid instance of its opcode with distinct memory operands. Follow it by a MUL reading the selected cell as its first input, multiplying by a fresh zero cell and writing zero to another fresh cell. A closing JUMP makes the block a cycle. For several selected operands of the same opcode, use one adapter per operand in the same cycle. This includes BLAKE2s: repeat one known valid compression and read any selected input or output cell with the adapter; no inversion or pseudorandomness assumption is needed.
+
+Repeat the cycle $R$ times in the same fresh frame. Each selected cell has $2R$ accesses, half in the target column and half in the absorber. Its labels may be assigned in any order, provided they are exactly $0,\ldots,2R-1$.
+
+\begin{lemma}[An interval of exact transfers]
+The target accesses can receive any label sum $\binom R2+u$, for $0\le u\le R^2$, while their union with the absorber accesses retains the same labels and final counter.
+\end{lemma}
+\begin{proof}
+Write $u=qR+s$, with $0\le s<R$. Assign the target labels
+\[
+ q+i+\mathbf 1_{i\ge R-s},\qquad 0\le i<R,
+\]
+and assign their complement in $\{0,\ldots,2R-1\}$ to the absorber. The target labels are distinct and in range, including $u=R^2$. Their sum is $\binom R2+qR+s$. Increasing $u$ transfers exactly that exponent from the absorber, with no change to another column, bytecode count or final counter.
+\end{proof}
+
+Six grouped cycle templates implement twenty-one such routes. Their number of traversals is public. The union of complete counter chains, hence the bus multiset identity, is unchanged by routing.
+
+\section{Normalize the totals before routing}
+
+\paragraph{Bytecode first.} Normalize the five non-JUMP bytecode exponents, then the JUMP exponent. For a selected opcode use eight fresh instruction blocks, each containing that opcode and, when necessary, a closing JUMP. For each of four pairs choose traversal counts $A+x_i,A-x_i$, but use a fresh frame and fresh memory on \emph{every traversal}. Every memory label is then zero. The selected bytecode exponent increases by
+\[
+ \sum_{i=1}^4\left[\binom{A+x_i}{2}+\binom{A-x_i}{2}\right]
+ =4A(A-1)+\sum_{i=1}^4x_i^2.
+\]
+Represent the deficit below a public upper bound by four squares. Choosing $A$ at least the square root of the largest deficit ensures nonnegative multiplicities. There are exactly $8A$ target rows. The closing JUMPs introduce the same variable exponent into their bytecode column, which is why JUMP is normalized last. Every subsequent bank has fixed instruction-visit counts and changes these public products only by public factors.
+
+\paragraph{The total memory exponent.} Install the routers at transfer zero. Their contribution to the total memory exponent is a public constant, which belongs in the fixed offset. Normalize the remaining uncertain total with eight fresh frames of \emph{one} JUMP self-loop instruction, using multiplicities $A+x_i,A-x_i$. Its bytecode is accessed $8A$ times regardless of the squares. The three distinct memory cells in each frame contribute together
+\[
+ 12A(A-1)+3\sum_{i=1}^4x_i^2.
+\]
+Write the memory deficit as $3M+k$, $0\le k<3$, and represent $M$ by four squares. Two further fixed-length DEREF cycles supply the residue. Use local offsets $(0,1,2)$ and a zero result. With frame $F$, pointer $F\gen$ makes the dereferenced address coincide with the local result cell, adding one to the memory exponent; pointer $F\gen^3$ makes them distinct, adding zero. Use preinstalled disjoint frames for the alternatives and a closing JUMP with fresh operands. Both alternatives have exactly the same bytecode visits. Select the unit alternative in $k$ of the two slots. The total memory exponent is now public.
+
+\paragraph{Finally route the columns.} Every nonabsorbing memory exponent lies in a public integer interval after the preceding stages. Choose its router capacity $R^2$ at least the interval width. With the router initially at transfer zero, raise that column to its public upper endpoint. All twenty-one target exponents become public; the absorber equals the public total minus their sum. This subtraction is an argument about integer exponents, not a discrete-log computation by the verifier.
+
+\begin{theorem}[Conditional construction]
+Suppose the base trace has public per-opcode row budgets and public intervals bounding the indicated exponents. If all reserved instructions, memory locations, counter chains and final table sizes fit the VM, the construction makes every count-column product public with a public number of rows per opcode. Its cycles preserve the statement and the existing bus constraints. A common memory image can be preinstalled for all normalization alternatives when their base memory image is common.
+\end{theorem}
+\begin{proof}
+Bytecode normalization has zero memory exponent contribution. Later stages have fixed bytecode visit counts. Memory normalization fixes the sum of all memory exponents; routing preserves this sum and fixes every summand except the absorber. All repetitions have fixed total length, and routing changes no rows or visits. Fresh addresses make the stated increments additive. Every selected block is a closed valid cycle, and each address retains a complete counter chain.
+\end{proof}
+
+\paragraph{Scheduling.} The router's fixed contribution may be large, but does not enlarge the uncertain interval to be corrected. Compute it as an offset. After normalization, deterministic fresh fillers may round the non-JUMP tables to public powers of two, followed by rounding JUMP after all their return rows are counted. Such fillers add only public factors. This establishes a scheduling option, not compatibility with the previously reserved sumcheck and PCS positions.
+
+\paragraph{Asymptotic cost.} If $T$ bounds the base trace's uncertain counted accesses, all uncertain exponents are $O(T^2)$. The square-root choices above therefore use $O(T)$ repetitions in each of a constant number of banks, and $O(T)$ reserved memory cells. Fresh-memory bytecode normalization introduces no new uncertain memory exponent; the routers' fixed offsets do not enlarge the correction intervals. Thus this normalization has linear padding overhead in that capacity bound. Its constant can be large, and the additional table heights still affect proof and recursion costs.
+
+\paragraph{Evidence and next obligation.} \path{zk_column_count_audit.py} checks eight base traces spanning all six opcodes against the actual bus forms. All twenty-eight integer exponents, per-opcode row counts and full memory/code images agree after normalization and deterministic power-of-two filling. It checks every address's complete label chain and each transmitted column product. This is an ISA-level finite audit, not a full VM proof or a Flock privacy test. Products of unions of whole count blocks are consequently public; products and evaluations inside those blocks can still depend on the witness. The next obligation is their joint GKR simulation.
+
+\end{document}

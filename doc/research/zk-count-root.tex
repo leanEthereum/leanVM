@@ -1,0 +1,91 @@
+% !TeX root = zk-count-root.tex
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\input{../leanvm/preamble/macros.tex}
+\newtheorem{theorem}{Theorem}
+\title{A fixed-length cycle library that fixes the count root}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\paragraph{Result and scope.} The access-count root can be made exactly public using valid JUMP cycles, with a public number of added rows and a constant number of side-block instructions. The memory image can remain fixed across every normalization choice. This closes the earlier abstract count-root construction at the ISA level. It does not hide the final-counter arrays or the internal count-channel GKR messages. Integrating its row budget with all existing masking layouts remains necessary; no full ZK claim or production implementation is made.
+
+\section{The exponent and a public interval}
+
+For memory and bytecode access multiplicities $a_i$, the current count root is
+\[
+ R_c=\gen^S,\qquad S=\sum_i\binom{a_i}{2}.
+\]
+The exponent is an integer; its field interpretation automatically reduces modulo the order of $\gen$. Assume public integers $S_0,B$ satisfy $0\le S-S_0\le B$. A known fixed padding contribution belongs in $S_0$, rather than inflating the uncertainty bound $B$. This distinction matters for the dense inverse-mask library, whose counts are fixed despite its random values. With disjoint memory and code addresses, its known exponent adds independently of the real computation's exponent.
+
+Choose a public integer $A\ge0$ with $B\le4A^2$. Write
+\[
+ B-(S-S_0)=4M+k,\qquad 0\le k<4,
+ \qquad M=x_1^2+x_2^2+x_3^2+x_4^2.
+\]
+Lagrange's theorem supplies the four squares, including the zero case; each $|x_i|\le\sqrt M\le A$. Efficient unconditional randomized algorithms are available~\cite{pt}. The normalization identity below does not depend on which representation is used or on any number-theoretic conjecture.
+
+\section{The two valid cycle primitives}
+
+\paragraph{A repeatable four-read loop.} At a fresh public JUMP instruction $P$, use a fixed fresh frame $F$ and three distinct memory addresses containing $1,P,F$. The row is the unconditional self-loop $(P,F)\to(P,F)$, with $(c,b,w)=(1,1,1)$. Repeating it $r$ times reads each memory cell and its bytecode instruction $r$ times, contributing
+\[
+ 4\binom r2
+\]
+to $S$. Allocate eight such loops with distinct code counters and disjoint memory. For each $i$, repeat its two loops $A+x_i$ and $A-x_i$ times. Zero repetitions are allowed: their unused memory and bytecode entries retain final counter one.
+
+\paragraph{A one-row unit or zero.} At a further public counter $P$, choose frame $F=P$ and offsets $(L,L+1,L+1)$. The two memory cells contain $1,P$. The same unconditional self-loop now reads the first cell once, the second twice, and bytecode once. Thus one row contributes exactly one to $S$. The large public offset $L$ places its memory cells beyond the real execution's reserved region; the equality $F=P$ does not require a large code address. An alternative instruction uses three distinct fresh cells and contributes zero with one self-loop row. Reserve three independent pairs of these alternatives and select the unit alternative in exactly $k$ pairs. There are always three rows, regardless of $k$.
+
+All alternatives can be installed simultaneously in a fixed memory image. They use fourteen public instructions in total: eight repeatable loops and six unit/zero alternatives. Their thirty-nine reserved memory cells contain only the appropriate fixed loop values. Final counters, but not these values, depend on the normalization choice. Reserving these cells may still enlarge the padded memory domain and must be accounted for in the public layout.
+
+\section{Exact normalization with fixed length}
+
+\begin{theorem}
+Assume the indicated code and memory locations are fresh relative to the base trace, and the resulting sizes and counter chains fit the VM's supported bounds. The construction adds exactly $8A+3$ JUMP rows and makes the honest prover's count root equal to the public value
+\[
+ \gen^{S_0+16A(A-1)+B}.
+\]
+No new verifier check is required for this privacy property.
+\end{theorem}
+\begin{proof}
+For each pair of repeated loops,
+\[
+ \binom{A+x_i}{2}+\binom{A-x_i}{2}=A(A-1)+x_i^2.
+\]
+The eight repeatable loops contribute $16A(A-1)+4M$, and the three alternatives contribute $k$. Fresh code and memory addresses make these increments additive to the base exponent, without cross terms from previously accessed addresses. Hence the final exponent is
+\[
+ S+16A(A-1)+4M+k=S_0+16A(A-1)+B.
+\]
+Each repetition pair has $2A$ rows, so their total is $8A$, plus the three alternatives. Every row belongs to a closed cycle and all counted chains are complete. Their multisets therefore preserve the VM statement. The verifier need not enforce this normalization: it is a property of the honest ZK-mode sampler, while the existing checks retain their original soundness.
+\end{proof}
+
+\paragraph{Power-of-two scheduling.} Choose a public base JUMP row budget $\ell\equiv5\pmod8$, inserting any required fixed-budget fillers before measuring $S$. Given $A_0$ with $B\le4A_0^2$, choose a supported power of two $N\ge\ell+8A_0+3$ and set
+\[
+ A=(N-\ell-3)/8.
+\]
+Then $A$ is an integer, $A\ge A_0$, and the final table has exactly $N$ rows. The cap $B$ must cover the uncertain exponent of the entire base trace, including its fillers and all other tables. If $R$ bounds its uncertain counted reads in disjoint lookup domains, $\binom R2$ is a conservative cap. Known fixed-mask counts should be removed into $S_0$ first. Announced sizes and these choices depend only on public capacity, not on $S$.
+
+\paragraph{Integration boundary.} This is a marginal root repair, not a GKR simulator. Loop repetition counts and the unit choices still affect final-counter arrays, bus fingerprints and GKR messages. The root normalization preserves fixed memory values but does not hide those observations. Its row cost can be substantial; the public capacity must accommodate it and the other masks together. In particular, appending it to a completed $n=20$ layout does not preserve that layout's rank theorem automatically. One must reserve its slots beforehand or extend the inverse-bank analysis to the final height. Ordinary proofs need not use this optional sampler.
+
+\paragraph{The two-root packet can now be composed.} Add the eight independent unused random memory words from \path{zk-bus-root.tex}, outside every accessed address. They do not affect $S$ or the public count root. The shared-root theorem is uniform conditional on all other fixed trace data, including the normalization choice. Thus the two root messages jointly have the same statistical simulation bound as that shared root alone, below $2^{-151}$ under its stated factor bound. This composition is valid because the second root is now a public constant; it says nothing about the later child messages.
+
+\paragraph{An explicit GKR obstruction to JUMP-only padding.} For table log heights $(0,1,0,0,20,3)$, memory log size $24$ and bytecode log size $12$, the actual push tree has depth $25$. The four JUMP count blocks occupy the first $4\cdot2^{20}$ leaves of the count tree, and all other count blocks fit in the next such interval. At the depth-three frontier the count products are therefore $(P_J,P_{\mathrm{other}},1,\ldots,1)$. The second GKR child packet discloses, for its honest sumcheck coin $x$,
+\[
+ C_1=(1+x)P_{\mathrm{other}}+x,
+ \qquad P_{\mathrm{other}}=\frac{C_1+x}{1+x}.
+\]
+Thus the non-JUMP product is recoverable except with probability $1/|\E|$, even when $P_JP_{\mathrm{other}}$ is fixed publicly. Its privacy needs more than JUMP normalization. This is an obstruction to a JUMP-only GKR wrapper, not to valid padding distributed among the other tables. The distributed construction in \path{zk-count-columns.tex} now fixes every individual count-column product, repairing this coarse leak. GKR observations inside the columns remain open; \path{zk-count-children.tex} handles its final count-child packet alone with product-preserving counter trades.
+
+\paragraph{Executable evidence.} \path{zk_count_root_audit.py} exhaustively checks the normalization arithmetic for deficits through $1024$, then builds sixteen actual ISA instances, including zero loop multiplicities and all four residues. Each has the same row count and memory image; the actual bus identities and product of transmitted count labels give the public root. It also checks the integer power-of-two scheduling formula. Its small four-square search is an audit helper, not a production algorithm or a claim that every example fits current PCS limits.
+
+The separate \path{zk_count_gkr_audit.py} checks the actual block placements and replays two accepted layers of the reference GKR verifier for two different non-JUMP products with the same total root. It then recovers each product from the displayed child value. These intentionally incomplete algebraic prefixes certify the extraction formula; they are not full bus-balanced VM proofs.
+
+\begin{thebibliography}{1}
+\bibitem{pt} P.~Pollack and E.~Trevi\~no. \emph{Finding the Four Squares in Lagrange's Theorem}. Integers 18A (2018), A15. \href{https://math.colgate.edu/~integers/sjs15/sjs15.pdf}{Paper}, especially Sections 1 and 4.
+\end{thebibliography}
+\end{document}

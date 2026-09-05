@@ -1,0 +1,97 @@
+% !TeX root = zk-jump-sumcheck.tex
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\input{../leanvm/preamble/macros.tex}
+\newtheorem{proposition}{Proposition}
+\newtheorem{lemma}[proposition]{Lemma}
+\title{Composing JUMP padding with its sumcheck}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\paragraph{Result and scope.} The terminal-only result in \path{zk-stacked-padding.tex} does not directly extend to the sumcheck. This note identifies the missing last-round invariant and gives an explicit conditional simulator for both JUMP constraints together. The continuation \path{zk-jump-rank.tex} now closes its quantitative rank hypothesis using a different, combined layout and proves statistical hiding of the complete isolated JUMP constraint sumcheck. Neither result covers the full table batch, bus or PCS.
+
+\section{The invariant that inverse randomness cannot hide}
+
+Let $c,b,w:\cube n\to\K$ be valid JUMP columns, so $b+cw=c(b+1)=0$ on rows. With public batching scalar $\eta\in\E$, consider zerocheck of
+\[
+ \mle b+\mle c\,\mle w+\eta\mle c(\mle b+1),
+\]
+weighted by $\eq(r,\cdot)$, with high coordinates folded first. The actual cubic round polynomial factors into a known scalar, the current equality factor, and a quadratic cofactor $G$. Its coefficients can be represented by the first round's quadratic coefficient and, for each later round, $G(1)$ and its quadratic coefficient: $2n-1$ extension elements altogether. No new messages or weights are being proposed; these are analysis coordinates for the existing messages.
+
+Condition on the entire $c,b$ columns and vary only $w$ on a reserved set $D$ of zero-condition rows. These are independent uniform $\K$ coins and affect no bus tuple. Just before the last fold, write the two remaining condition and flag values as
+\[
+ (C_0,C_1),\qquad (B_0,B_1),\qquad
+ Z=(C_0,C_1,B_0,B_1).
+\]
+These are evaluations at $(a,\fc_1,\ldots,\fc_{n-1})$, $a\in\{0,1\}$, not the original row values. Assume $C_0,C_1$ are distinct and nonzero and put $t_*=C_0/(C_0+C_1)$. At this point the folded condition vanishes. Consequently the last cofactor satisfies
+\begin{equation}\label{eq:jump-root}
+ G(t_*)=B_0+t_*(B_0+B_1),
+\end{equation}
+independently of \emph{every} inverse witness and of $\eta$. Thus conditioning on $c,b$ leaves an unavoidable affine relation among the $2n-1$ cofactor coordinates. Expecting rank $3(2n-1)$ over $\K$ was incorrect; the relevant target is $3(2n-2)$. This is not an unconditional distinguisher, since $Z$ is not normally public. It says which additional correlated evaluations a conditional simulator must cover.
+
+\section{An exact conditional simulation criterion}
+
+Let $Y\in\E^{2n-2}$ contain all the cofactor coordinates except the last quadratic coefficient. For fixed $c,b,r,\fc,\eta$, dependence on the zero-branch inverse coins is affine:
+\[
+ Y=A_D(c,r,\fc)\,w_D+\text{offset}.
+\]
+Expand the output into $3(2n-2)$ base-field coordinates. The matrix is independent of $b$, $\eta$ and all inverse values.
+
+\begin{proposition}[Conditional JUMP simulator]\label{prop:jump-conditional}
+Suppose a padding sampler admits a simulator for $(r,\fc,\eta,Z)$ with statistical error $\varepsilon_Z$. Suppose further that, under its real distribution, except with probability $\varepsilon_{\mathrm{bad}}$, all equality coordinates differ from $1$, $C_0C_1(C_0+C_1)\ne0$, the terminal condition is nonzero, and
+\[
+ \operatorname{rank}_{\K} A_D=3(2n-2).
+\]
+The reserved $w_D$ must remain independent uniform $\K$ values after conditioning on the other columns and the coins. Then the complete isolated JUMP constraint sumcheck, together with its three terminal column evaluations, has a simulator with error at most $\varepsilon_Z+\varepsilon_{\mathrm{bad}}$.
+\end{proposition}
+\begin{proof}
+On full-rank coins, $Y$ is uniform in $\E^{2n-2}$ even after conditioning on the entire $c,b$ columns. It is therefore independent of $Z$. Sample the simulated endpoint view, then uniform $Y$. Reconstruct each cofactor in order from the running identity
+\[
+ (1+r_j)G(0)+r_jG(1)=\text{current cofactor claim}.
+\]
+Before the last round this determines $G(0)$ from the two supplied coordinates (and from $G(1)=0$ in the first round). In the last round, write $G(T)=g_0+(g_0+g_1+g_2)T+g_2T^2$. The already sampled $g_1$ and running identity give $g_0$, while \eqref{eq:jump-root} gives
+\[
+ g_2=\frac{B_0+t_*(B_0+B_1)+g_0+(g_0+g_1)t_*}{t_*(1+t_*)}.
+\]
+The terminal condition and flag are $C=C_0+\fc_0(C_0+C_1)$ and $B=B_0+\fc_0(B_0+B_1)$. Recover the inverse evaluation as
+\[
+ W=\frac{G(\fc_0)+B}{C}+\eta(B+1).
+\]
+Multiplying every cofactor by its known equality factors produces the actual cubic wire messages. All reconstruction depends on $c,b$ only through $Z$. Conditional uniformity followed by deterministic postprocessing proves the claim; use arbitrary fixed-format output on degenerate simulated endpoints.
+\end{proof}
+
+\paragraph{Closing the criterion.} Sampled rank certificates are not a uniform probability bound for arbitrary real traces. A generic nonzero minor over base-field variables alone would give an error proportional to $2^{-64}$, which is insufficient. The combined construction in \path{zk-jump-rank.tex} instead generates effective extension-field inverses, then proves a triangular minor nonzero independently of the real data. The smaller endpoint family below remains useful as a separate lemma. At least $3(2n-2)$ independent base-field inverse coins are necessary for this conditional strategy, before PCS observations are added.
+
+\section{Valid cycles can supply the four endpoint masks}
+
+The sparse set $S\subset\cube{12}$ from \path{zk-stacked-padding.tex} has $448$ positions; its Boolean evaluation weights span $\E$ over $\Ftwo$ except with probability $\delta_{\mathrm{span}}+12/|\E|$, where $\delta_{\mathrm{span}}<2^{-158}$. In a $2^{15}$-row table, reserve, for each $a\in\{0,1\}$,
+\[
+\begin{array}{c|c}
+\text{positions} & (c,b,w)\\\hline
+a+2S & (u,u,1)\\
+8192+a+2S & (\gen u,u,\gen^{-1})
+\end{array}
+\]
+with independent fair bits $u$. Each row is the first half of the fixed-successor closed JUMP cycle already described; place its fixed return row outside these sets, using fresh frames. All other triples may be fixed arbitrarily subject to validity.
+
+\begin{lemma}[Joint penultimate evaluations]\label{lem:jump-endpoints}
+This family makes $Z=(C_0,C_1,B_0,B_1)$ jointly uniform in $\E^4$ on good high-fold coins, with statistical error at most $\delta_{\mathrm{span}}+15/|\E|<2^{-157}$.
+\end{lemma}
+\begin{proof}
+The low bit selects $a$ and is not yet folded. Bits $1,\ldots,12$ supply the sparse binary-span weights; bit $13$ selects the two families and bit $14$ is zero. Exclude the middle coordinates equal to $1$, bit $13$ in $\{0,1\}$ and bit $14$ equal to $1$. All selector factors are nonzero. For each $a$, the two independent families contribute $(U_0+\gen U_1,U_0+U_1)$ to $(C_a,B_a)$, an invertible transform of two independent uniform extension elements. The coins for the two $a$ values are disjoint. The same span event works for both.
+\end{proof}
+
+For this smaller layout, the lemma closes only the endpoint part of Proposition~\ref{prop:jump-conditional}. Reconstruction degeneracies are inexpensive when endpoints are uniform: $C_0=0$, $C_1=0$, $C_0=C_1$ or $C=0$ cost at most $4/|\E|$. Equality coordinates equal to $1$ cost at most $n/|\E|$. The combined construction accounts for these events jointly with its rank and endpoint bounds.
+
+\paragraph{Bus and opening boundary.} All inverse-only changes leave the preceding algebraic bus transcript unchanged when honest coins are fixed, but not its initial witness commitment or a Fiat-Shamir execution. Conditioning on the algebraic bus can still destroy endpoint uniformity. Bus terms also give the table sumcheck a nonzero target: its first cofactor endpoint sums are weighted sums of bus leaves and cannot be altered by inverse-only masks. The conditional reduction in \path{zk-table-batch.tex} handles these terms and the actual six-table batch with unequal heights, using the same inverse map; its required joint bus-and-endpoint simulator is still missing. Finally, opening the inverse column consumes additional information about the same coins. These messages cannot be appended under a separate marginal argument. The separate \path{zk-bus-root.tex} addresses only the shared product root.
+
+\paragraph{Executable evidence.} \path{zk_jump_audit.py} derives the inverse-to-message matrix independently of a direct evaluation of both batched constraints, checks the last-round reconstruction and certifies the corrected ranks at small heights over both toy and actual fields. Reconstructed synthetic cubic messages pass the actual Python sumcheck routine and its terminal identity. These are algebraic certificates, not a full proof or a claimed statistical failure rate.
+
+\end{document}

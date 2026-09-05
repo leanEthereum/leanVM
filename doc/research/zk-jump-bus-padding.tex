@@ -1,0 +1,96 @@
+% !TeX root = zk-jump-bus-padding.tex
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\input{../leanvm/preamble/macros.tex}
+\newtheorem{theorem}{Theorem}
+\title{Valid counter padding for the bus-batched JUMP component}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\paragraph{Result and scope.} A triangular library of valid counter-label swaps hides the JUMP component's bus-batched sumcheck, its initial target and all fourteen terminal column evaluations with statistical error below $2^{-146}$. This extends the isolated-constraint result: the first cofactor and last-round bus residual are now included jointly. The preceding GKR transcript, memory claims, other table components, commitments, PCS and Fiat-Shamir remain excluded. Suitable fixed public side blocks and fresh memory are assumptions of the construction, not an implemented compiler feature. No verifier weight or message is added.
+
+\section{The observations to hide}
+
+Use $n=20$ row variables and the inverse and endpoint layout from \path{zk-jump-rank.tex}. Let $r\in\E^{20}$ be the honest equality point and $\fc$ the independent fold point. Fix the actual JUMP bus form
+\[
+ B=\mathsf{bus}_{J,0}+\theta\mathsf{bus}_{J,1}
+       +\theta^2\mathsf{bus}_{J,2},
+\]
+where the forms come from the existing layout and honest bus coins. The component checks $F=b+cw+\eta c(b+1)+B$, equality-weighted over its row cube. Following \path{zk-table-batch.tex}, write $T_J$ for its initial target, $U=Q_{n-1}(1)$ for its first cofactor endpoint, and $H_*=H(t_*)$ for its last-round residual after setting $w=0$, at $t_*=C_0/(C_0+C_1)$.
+
+It suffices to hide jointly the eleven terminal metadata values and $(T_J,U,H_*)$, conditional on the old condition, flag and inverse columns. The old inverse bank then hides $Y\in\E^{38}$, and reconstruction determines every wire message and the terminal inverse. No GKR messages are conditioned on in this assertion.
+
+\paragraph{A usable count coefficient.} Let $k_j$ be the coefficient of counter column $j$ in $B$. Counters occur only linearly. For $j=\mathsf{cnt_c}$, the coefficient of $\theta^2$ in $k_j$ is its count-block selector, a product of $D-n$ equality factors at the GKR point, where $D$ is the bus depth. Thus
+\[
+ \Pr[k_{\mathsf{cnt_c}}=0]\le\frac{D-n+2}{|\E|}.
+\]
+The first term excludes a zero selector. On a nonzero selector, this is a nonzero quadratic in the fresh honest batch coin $\theta$, which has at most two roots. The proof does not assume that all counter coefficients are nonzero.
+
+\section{Two counter banks with different jobs}
+
+Every new row is an unconditional self-loop, with $(c,b,w)=(1,1,1)$, at a public self-jumping instruction with offsets $(0,1,2)$. In a fresh frame $A$, its memory cells contain $(1,P,A)$. Use two identical copies of the row: each of the three memory cells is read twice, so its counter labels are $1,\gen$. The two bytecode labels are consecutive members of one complete chain. Swapping labels independently in any counter column preserves that chain, all row constraints, the memory image and final counters.
+
+\paragraph{Lower-half banks.} Let $S_2\subset\cube{14}$ be the $576$-position set from \path{zk-two-point-span.tex}. For each branch $a\in\{0,1\}$ and every integer $0\le s<2^{14}$, put a duplicate pair at row positions
+\[
+ i_{a,s}=160+4\lfloor s/2048\rfloor+a+256(s\bmod2048),
+ \qquad i_{a,s}+2.
+\]
+Bit $19$ is zero. Bits $8,\ldots,18,2,3,4$, in that order, encode $s$; bit zero fixes the branch, and bit one is the swapped coordinate. Give each branch its own public self-loop counter $P_a$ and use fresh frames $A_{a,s}=\gen^{a_a+32s}$. Assign bytecode labels $\gen^{2s},\gen^{2s+1}$, covering all $32768$ reads of $P_a$. For $s\in S_2$, independently exchange the labels in each of the four counter columns. The memory-counter differences are $1+\gen$; the bytecode-counter difference is $\gen^{2s}(1+\gen)$.
+
+For each branch and each counter, these swaps give two jointly uniform extension-field sums, evaluated at the restrictions of $\fc$ and $r$ to the fourteen displayed coordinates. This uses the two-point theorem, geometrically weighted for the bytecode counter. The ordinary and weighted good events serve all eight independent coin families. Fixed-coordinate selectors cost at most $8/|\E|$: bits $5,6,7,19$ at each point. Branch weights are handled by linear combinations below and need not individually be nonzero. Crucially, all these swaps leave $U$ unchanged because their rows lie in the lower half.
+
+\paragraph{Upper-half bank.} Let $S_1\subset\cube{12}$ be the earlier $448$-position sparse set. At positions
+\[
+ j_s=192+4\lfloor s/2048\rfloor+256(s\bmod2048)+2^{19},
+ \qquad j_s+2,\qquad s\in S_1,
+\]
+put duplicate self-loop pairs in fresh frames, at a further public instruction. Only the $\mathsf{cnt_c}$ labels are randomly exchanged. The twelve sparse coordinates are bits $8,\ldots,18,2$; bit $19$ is fixed to one and bit one is swapped. Its contribution to $U$ is a nonzero selector times $k_{\mathsf{cnt_c}}(1+\gen)$ times the sparse evaluation sum. Hence $U$ is uniform outside failure $\delta_{\mathrm{span}}+18/|\E|$, provided this coefficient is nonzero. The $18$ consists of the sparse span's $12$ and six fixed-coordinate selectors. This bank can also change the other observations; the lower banks erase those correlations.
+
+\paragraph{Compatibility and cost.} Keep the first seven metadata-bank families from each branch of \path{zk-jump-metadata.tex}, but remove its two old counter banks. Their program and frame directions use $22400$ rows. The new lower banks use $65536$ rows and the upper bank uses $896$. Thus there are $88832$ new rows and $383232$ reserved rows in total, inside the $2^{20}$-row JUMP table. The new tags do not intersect the old inverse or endpoint planes. For example, counters $\gen^{1024},\gen^{1025},\gen^{1026}$ and fresh frame exponents starting at $10000000,11000000,13000000$ realize the counter blocks when the public code and memory allocation reserve these locations. All code and memory ranges must be made disjoint from the real execution and older padding. Installing these blocks and choosing practical parameters remain implementation work.
+
+\section{Why the joint map is onto}
+
+Condition on the entire earlier constraint padding and on the program/frame swap bits. On their good event, the latter have supplied seven jointly uniform terminal metadata values. Next the upper bank makes $U$ uniform, conditional on all other fixed data. Condition on all its bits as well.
+
+For each counter $j$, denote the lower banks' two penultimate values by $X_j^0,X_j^1$. Independently, their evaluations at the equality point give values $R_j^0,R_j^1$. The two-point theorem makes all sixteen values jointly uniform, up to known nonzero selectors. In these coordinates the four terminal counts and the count part of $H_*$ are
+\[
+ (1+\fc_0)X_j^0+\fc_0X_j^1,
+ \qquad
+ \sum_j k_j\bigl((1+t_*)X_j^0+t_*X_j^1\bigr).
+\]
+This is onto $\E^5$ whenever $k_{\mathsf{cnt_c}}\ne0$ and $t_*\ne\fc_0$. For that counter the relevant determinant is $k_{\mathsf{cnt_c}}(t_*+\fc_0)$; the other three terminal counts are independent. The non-count part of $H_*$, however nonlinear in the other columns, is a fixed translation under this conditioning.
+
+The lower-bank contribution to $T_J$ is an independent linear combination
+\[
+ \sum_j k_j\bigl((1+r_0)R_j^0+r_0R_j^1\bigr),
+\]
+with a common nonzero selector absorbed into the $R$ coordinates. It is onto $\E$ because $k_{\mathsf{cnt_c}}\ne0$ and $r_0,1+r_0$ cannot both vanish. The upper-half target is unaffected. Consequently the eleven terminal metadata values and $(T_J,U,H_*)$ are jointly uniform, conditional on the older constraint columns, on the combined good event. This is a triangular joint argument, not the composition of marginal hiding claims.
+
+\section{The restricted statistical-ZK statement}
+
+\begin{theorem}
+Assume the indicated fixed public side blocks and fresh memory are available, $n=20$, $D\le40$, and all verifier coins are honest and independent. For arbitrary valid real JUMP rows outside the reserved layout, the equality-weighted sumcheck of its actual bus-batched component, including its initial target and all fourteen terminal column evaluations, has an efficient simulator with error below $2^{-146}$.
+\end{theorem}
+\begin{proof}
+The endpoint coins make $Z=(C_0,C_1,B_0,B_1)$ uniform as before. Sample this $Z$, the fourteen jointly uniform metadata/target/residual values, and uniform $Y\in\E^{38}$. The inverse rank theorem applies conditional on every non-inverse column, since none of these counter or row permutations touches its reserved positions. Reconstruct the first and later cofactors using $T_J,U,Y$, the last cofactor using $H_*$, and the terminal inverse from the terminal identity. Only the condition and flag pairs and the terminal metadata are needed; unobserved penultimate counter values need not be sampled explicitly.
+
+Let $\varepsilon_2,\varepsilon_{2,w}<2^{-148}$ be the ordinary and weighted two-point failure bounds. The combined error is at most
+\[
+ 4\delta_{\mathrm{span}}+\varepsilon_2+\varepsilon_{2,w}
+       +\frac{361+D-n}{|\E|}<2^{-146}.
+\]
+The old endpoint, inverse-rank and reconstruction terms total $\delta_{\mathrm{span}}+273/|\E|$. The retained program/frame banks cost $2\delta_{\mathrm{span}}+60/|\E|$; the upper bank costs $\delta_{\mathrm{span}}+18/|\E|$. Add the two lower-bank span bounds, $8/|\E|$ for their selectors, and $(D-n+2)/|\E|$ for the count coefficient. The old terminal-condition check ensures $t_*\ne\fc_0$. Exact rational arithmetic gives the final inequality.
+\end{proof}
+
+\paragraph{What remains.} The theorem includes the formerly omitted $T_J,U,H_*$ but does not condition on the preceding GKR messages, which depend on the same swaps. It also covers only the JUMP component of the six-table batch. The reduction in \path{zk-table-batch.tex} still needs the other table targets and terminal data, jointly with GKR and memory claims; commitments, Flock and PCS require further work. The count root is invariant under this new randomization and is not hidden by it. No complete VM ZK claim follows from this theorem.
+
+\paragraph{Executable evidence.} \path{zk_counter_audit.py} builds every new row, checks original and randomized bus multisets against identical memory and final counters, checks disjoint placement, and certifies binary rank $1152$ for the lower observations and $1344$ after adding the upper target. It also samples independent targets, residual and metadata, reconstructs twenty rounds, and replays them through the reference table-sumcheck routine restricted to its JUMP table. This last restriction is explicit: it is not a replay of the full six-table protocol or a production proof.
+
+\end{document}
