@@ -1,0 +1,81 @@
+% !TeX root = zk-flock-middle.tex
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\input{../leanvm/preamble/macros.tex}
+\title{The missing sparse batch rounds of Flock}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\paragraph{Result.} For the canonical completion, fixing every pair of folded mask evaluations leaves two independent relations in the first fourteen batch rounds, not just the verifier's one relation. Their remaining binary rank reaches the exact maximum $26\cdot192=4992$. A separate rank-$80$ certificate shows how to retain the one extra field of randomness needed for a less restrictive conditioning. These are ingredients for the missing joint argument, not a statistical theorem for the batch rounds.
+
+\section{The local quadratic has a constant cofactor}
+
+Use the $128$ valid compression pairs and fourteen-coordinate support of \path{zk-flock-endpoints.tex}. In this diagnostic completion, every nonrandom compression is the zero-message baseline. After the within-block folds its values are $(A_*,B_*,C_*)$. The other member of bank $b$ has differences $(\Delta A_b,\Delta B_b,\Delta C_b)$. Put
+\[
+ \beta_b=A_*\Delta B_b+B_*\Delta A_b+\Delta C_b,
+ \qquad \gamma_b=\Delta A_b\Delta B_b.
+\]
+Let $r,\fc\in\E^{14}$ be the low batch equality and fold points, and let $\eta_b$ be the bank equality weight. Before the banks mix, flipping bit $\varepsilon_{b,s}$ in round $j$ changes the local product by
+\[
+ \beta_b D(T)+\gamma_b D(T)^2,
+ \qquad D(T)=\eq(\fc_{<j},s_{<j})\eq(T,s_j).
+\]
+Other bits in the same bank do not change this formula: their common $\Delta A_b:\Delta B_b$ direction cancels mixed terms in characteristic two. Thus the two transmitted coefficients have exact bit columns
+\[
+ \eta_b\beta_b L_j(s),\quad \eta_b\gamma_b H_j(s),
+ \qquad
+ \begin{cases}
+ L_j(s)=\eq(r_{>j},s_{>j})\eq(\fc_{<j},s_{<j}),\\
+ H_j(s)=\eq(r_{>j},s_{>j})\eq(\fc_{<j},s_{<j})^2.
+ \end{cases}
+\]
+Fixed real rows inside these banks would alter the folded cofactor. The constant-cofactor identities below are for the stated completion; they also apply to complete reserved baseline banks placed separately from real rows.
+
+\section{Two telescoping identities survive conditioning}
+
+For each bank write $U_b=\sum_s\eq(r,s)\varepsilon_{b,s}$ and $V_b=\sum_s\eq(\fc,s)\varepsilon_{b,s}$. Multilinear interpolation gives, for every supported index,
+\[
+ \sum_j(r_j+\fc_j)L_j(s)=\eq(r,s)+\eq(\fc,s),
+ \qquad
+ \sum_j(r_j+\fc_j^2)H_j(s)=\eq(r,s)+\eq(\fc,s)^2.
+\]
+The second identity uses Boolean source bits when passing to mask sums. If $q_{j,1},q_{j,2}$ are the random changes in the fourteen round messages, then
+\[
+ \sum_j(r_j+\fc_j)q_{j,1}=\sum_b\eta_b\beta_b(U_b+V_b),
+\]
+\[
+ \sum_j(r_j+\fc_j^2)q_{j,2}=\sum_b\eta_b\gamma_b(U_b+V_b^2).
+\]
+Their sum is the ordinary sumcheck relation between the incoming and outgoing claims. Separately fixing all $U_b,V_b$ fixes both right-hand sides. Away from degenerate point coincidences, the two equations are independent because they involve disjoint coefficient coordinates. Therefore conditional rank is at most $192(28-2)=4992$, not the superficially expected $192(28-1)=5184$.
+
+The exact audit first eliminates the common $384$-bit endpoint map from the $576$ input bits of one bank. Its $192$ remaining binary directions are then scaled by the actual $(\eta_b\beta_b,\eta_b\gamma_b)$. The first $27$ banks already attain rank $4992$, certifying the maximum for the entire $128$-bank map at these coins. This is not a transcript distinguisher: the actual protocol does not disclose every $U_b,V_b$.
+
+\section{Keep the missing scalar private}
+
+Define the auxiliary source value
+\[
+ J=\sum_b\eta_b\beta_b U_b.
+\]
+The prefix determines the incoming-claim combination with coefficients $\beta_b+\gamma_b$, but need not determine $J$ separately. Indeed, augmenting the $79$ prefix feature coordinates by $\beta_b$ gives exact extension rank $80$ for the same valid compression library. The added row has degree at most $142$: each folded $A,B,C$ evaluation has degree at most $71$. The prefix minor degree rises from $2205$ to $2347$. The two-point proof therefore also hides $J$ jointly with the prefix and terminal disclosures, with error
+\[
+ \delta_2+\frac{2347+1918+28+1}{2^{192}}
+ =\delta_2+\frac{4294}{2^{192}}<2^{-148}.
+\]
+This auxiliary value is for analysis only; it is not added to the proof stream.
+
+At the certified coins, these ranks give a triangular certificate for the actual sparse bits. The paired evaluation map is onto $\E^{256}$. Prefix plus $J$ has rank $80$ in the $U$ variables; all $128$ values $V_b$ can be retained. Fixing those data leaves precisely the two coefficient relations above, and the residual directions attain their full $26$-field kernel. Hence the joint rank of prefix, fourteen sparse rounds and all $V_b$ is
+\[
+ 192(80+128+26)=44928.
+\]
+The sparse messages and the $V_b$ recover $J$ by the first identity, so including $J$ does not artificially raise this rank. Conditional on prefix and all $V_b$, the sparse rounds thus reach the desired $27$-field rank at this instance.
+
+\paragraph{Remaining obligation.} The rank-$80$ minor has a uniform degree bound; the $4992$-bit residual certificate does not yet have a uniform failure-probability bound. That is the missing step for a sparse-round simulator, together with an appropriate reservation of the fixed completion. The seven subsequent bank-mixing rounds remain quadratic in different banks' evaluations and require their own joint argument. \path{zk_flock_middle_audit.py} checks both identities, single and joint valid-compression flips against dense folding, the residual rank and the augmented prefix minor. No full Flock or VM ZK claim follows yet.
+
+\end{document}
