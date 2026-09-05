@@ -1,0 +1,64 @@
+% !TeX root = zk-bus-gkr-boundary.tex
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\input{../leanvm/preamble/macros.tex}
+\newtheorem{proposition}{Proposition}
+\title{The disclosure boundary of batched bus GKR}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\paragraph{Purpose.} GKR mixes push, pull and count in its round messages but reveals their child packets separately. We isolate a payload-free disclosure in those packets and obtain jointly uniform internal noise nodes from unused memory. Neither result gives a joint GKR simulator. Coins are independent honest interactive challenges throughout.
+
+\section{What is mixed and what is not}
+
+In a radix-four layer, let $P_{\push}(T),P_{\pull}(T),P_c(T)$ be the three degree-four sumcheck cofactors after summing over the remaining Boolean coordinates. The existing combiner $\lambda$ exposes only
+\[
+ P_{\push}(T)+\lambda P_{\pull}(T)+\lambda^2P_c(T).
+\]
+Memory randomness might hide these coefficients even when the count contribution alone is not hidden. The prover then sends all twelve child evaluations separately; their products satisfy the mixed terminal identity. A fresh point and combiner begin the next layer. These packets and all mixed messages need joint hiding; marginal packet theorems do not suffice.
+
+\paragraph{An exact cancellation.} The push and pull blocks have identical order, owners and heights, so their stack placements agree, including the framework blocks and identity padding. Write $e_i=\eq(\alpha,i)$ for the fingerprint weights. At a paired memory or bytecode read, the payload and address coordinates are identical; only slot $2$ changes from $\cnt$ to $\gen\cnt$. Consequently the sum of the two fingerprint leaves is $e_2(1+\gen)\cnt$. At a state transition it is $e_1(\mathit{npc}+\mathit{pc})+e_2(\mathit{nfp}+\mathit{fp})$. Memory and bytecode framework leaves contribute $e_2(1+\cntfin)$, the boundary state contributes a public value, and identity padding contributes zero. The common shift cancels everywhere.
+
+Let $D$ be this leafwise sum of the push and pull trees. Ordinary memory payloads are absent from $D$: its private dependence is confined to counters and control-state metadata, including the JUMP branch bit and destination state. In particular, changing an unused cell contributes zero to $D$. If $u_i,v_i$ are the final push and pull child evaluations and $\fc$ is that layer's sumcheck point, the verifier knows
+\[
+ u_i+v_i=\widetilde{D_i}(\fc),\qquad D_i(j)=D(4j+i),\quad 0\le i<4.
+\]
+Payload randomization with fixed metadata cannot hide a change in these observations. This does not rule out padding that randomizes counters, control data or row placements. The bare count tree has different placements, so hiding its child packet does not automatically hide these count-weighted observations.
+
+\section{Unused memory supplies common internal noise}
+
+Write $Q=|\K|=2^{64}$ and $|\E|=Q^3$. Reserve $n$ disjoint aligned blocks of sixteen memory cells, none public or accessed by any instruction. Sample all three limbs of each cell independently uniformly in $\K$. For address $a$, the identical seed and finalization factor is
+\[
+ X_a=\beta+e_0\dsep{mem}+e_1a+e_2+e_3v_{a,0}+e_4v_{a,1}+e_5v_{a,2}.
+\]
+The product $Z_b=\prod_{a\text{ in block }b}X_a$ is an actual tree node four binary levels above the leaves, after two radix-four contractions. Eight cells suffice for the earlier root-mixing bound, but their three-level product is not a layer of the verifier's radix-four schedule.
+
+\begin{proposition}[Joint internal nodes]
+The joint view $(\alpha,\beta,Z_1,\ldots,Z_n)$ is within statistical distance
+\[
+ \frac{8+16n}{|\E|}+\frac{Q^2}{(|\E|-2)^2}
+ +\frac n2\sqrt{|\E|-2}
+       \left(\frac{\sqrt{|\E|}}{Q^2-1}\right)^{16}
+\]
+of honest coins and $n$ independent uniform elements of $\E^\times$. For $n\le2^{24}$ this is below $2^{-163}$. The nodes appear identically in the two bus trees; they are not independent push and pull masks. No count value changes.
+\end{proposition}
+\begin{proof}
+Put $U=\operatorname{span}_{\K}\{e_3,e_4,e_5\}$. The dimension lemma in \path{zk-bus-root.tex} bounds $\Pr[\dim_{\K}U<2]$ by $8/|\E|$ plus the displayed dimension term. This is one shared event. Averaging over the independent shift $\beta$, each factor is zero with probability $1/|\E|$, costing $16n/|\E|$ in total.
+
+Fix coins of adequate dimension and condition on all factors being nonzero. They remain independent uniform elements of their nonzero affine cosets. The product-mixing lemma in that note bounds each sixteen-factor product by the displayed mixing term without $n$. Disjoint inputs give conditional independence between products, so a hybrid multiplies this error by $n$. Integrate the conditional distances and charge the excluded events. The simulator samples honest coins and independent uniform nonzero extension elements.
+\end{proof}
+
+\paragraph{Use and limitation.} Above this cut, replace the reserved nodes by independent uniform nonzero extension scalars, shared between the bus sides. For each fixed real trace, any computation depending on the sampled cells only through these nodes changes distribution by at most the same bound. This is not witness independence: other nodes contain real data, and common noise can preserve private ratios or differences. The two lower radix-four reductions and memory openings depend on individual cells, so their joint view is not covered.
+
+\paragraph{Next joint target.} Hide the count packets and payload-free bus differences jointly with the mixed coefficients, using the justified extension-field source above this cut and actual base-field limbs below it. Retain correlations with memory evaluations and PCS openings. No verifier weights or instructions are added, but enlarging memory has a prover and commitment cost.
+
+\paragraph{Evidence.} \path{zk_bus_gkr_audit.py} checks symbolic cancellation for all six opcodes and twenty-eight counted reads, matched layouts, and the rational bound. Accepted three-channel replays show that unused payloads change mixed messages and individual bus children but preserve their sums and count packet. They use actual unused-memory fingerprints with abstract balanced complementary leaves, not a full VM trace. The helper in \path{zk_count_children_audit.py} checks all three returned leaf evaluations.
+
+\end{document}

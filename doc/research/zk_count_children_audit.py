@@ -32,11 +32,14 @@ def known_first_endpoints(verifier, previous_children, previous_low):
     return tuple(previous_children[bit] + high * (previous_children[bit] + previous_children[bit + 2]) for bit in (0, 1))
 
 
-def gkr_replay(verifier, count_leaves, seed=128, details=False):
+def gkr_replay(verifier, count_leaves, seed=128, details=False, *, bus_leaves=None):
     depth, rng = verifier.log2_strict(len(count_leaves)), Random(seed)
     sample = lambda: verifier.E(*(rng.getrandbits(64) for _ in range(3)))
+    if bus_leaves is None:
+        bus_leaves = ([verifier.ONE] * len(count_leaves), [verifier.ONE] * len(count_leaves))
+    assert len(bus_leaves) == 2 and all(len(leaves) == len(count_leaves) for leaves in bus_leaves)
     layers = []
-    for leaves in ([verifier.ONE] * len(count_leaves), [verifier.ONE] * len(count_leaves), count_leaves):
+    for leaves in (*bus_leaves, count_leaves):
         tree = {0: leaves}
         for level in range(2, depth + 1, 2):
             below = tree[level - 2]
@@ -44,7 +47,8 @@ def gkr_replay(verifier, count_leaves, seed=128, details=False):
         if depth % 2:
             tree[depth] = [reduce(mul, tree[depth - 1])]
         layers.append(tree)
-    wire, coins = [verifier.ONE, layers[2][depth][0]], []
+    assert layers[0][depth][0] == layers[1][depth][0]
+    wire, coins = [layers[0][depth][0], layers[2][depth][0]], []
 
     def coin():
         value = sample()
@@ -83,7 +87,13 @@ def gkr_replay(verifier, count_leaves, seed=128, details=False):
         wire.extend(value for children in packet for value in children)
         if height == 2:
             final = prefix, tuple(folded_point), tuple(packet[2]), tuple(wire[len(prefix) :])
-            final_details = {"view": final, "equality": tuple(point), "challenge": tuple(folded_point), "combiner": combiner}
+            final_details = {
+                "view": final,
+                "equality": tuple(point),
+                "challenge": tuple(folded_point),
+                "combiner": combiner,
+                "children": tuple(tuple(children) for children in packet),
+            }
         low = [coin() for _ in range(step)]
         combiner = coin()
         point = [*low, *folded_point]
@@ -111,7 +121,7 @@ def gkr_replay(verifier, count_leaves, seed=128, details=False):
     stream = Stream()
     result = verifier.verify_gkr_grand_products(depth, stream)
     assert next(stream.values, None) is None and next(stream.coins, None) is None
-    assert result[2][2] == verifier.multilinear_eval(count_leaves, result[1])
+    assert result[2] == tuple(verifier.multilinear_eval(leaves, result[1]) for leaves in (*bus_leaves, count_leaves))
     return final_details if details else final
 
 
