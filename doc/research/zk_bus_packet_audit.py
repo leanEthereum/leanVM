@@ -52,13 +52,8 @@ def placement_certificate(verifier):
     )
 
 
-def field_rank(verifier):
-    rng = Random(159)
-    sample = lambda: verifier.E(*(rng.getrandbits(64) for _ in range(3)))
-    layout, bus, counter, reader = geometry(verifier, [4, 4, 4, 4, 17, 3])
-    point = [sample() for _ in range(bus.depth - 2)]
+def counter_columns(verifier, counter, reader, point, e):
     full_point = [verifier.ZERO, verifier.ZERO, *point]
-    e = verifier.eq_kernel([sample() for _ in range(4)])
     local = verifier.eq_kernel(point[1:13])
     tags = verifier.eq_kernel(point[13:15])
     vectors = []
@@ -66,14 +61,25 @@ def field_rank(verifier):
         col = verifier.JUMP_COLUMNS.index(name)
         c = counter[verifier.OP_JUMP, col].eq_above(full_point)
         b = reader[verifier.OP_JUMP, col].eq_above(full_point)
+        embedding = weight(verifier, point[15 : counter[verifier.OP_JUMP, col].variables - 2], 0)
         for bank, (first, second) in enumerate(EDGES):
             for index in SPARSE:
-                delta = (verifier.ONE + verifier.GEN) * tags[bank] * local[index]
+                delta = (verifier.ONE + verifier.GEN) * tags[bank] * local[index] * embedding
                 outputs = [verifier.ZERO] * 12
                 for offset, scale in ((0, c), (4, e[2] * (verifier.ONE + verifier.GEN) * b), (8, e[2] * verifier.GEN * b)):
                     outputs[offset + first] = scale * delta
                     outputs[offset + second] = scale * delta * verifier.GEN**2
                 vectors.append(sum(int(value) << (192 * i) for i, value in enumerate(outputs)))
+    return vectors
+
+
+def field_rank(verifier):
+    rng = Random(159)
+    sample = lambda: verifier.E(*(rng.getrandbits(64) for _ in range(3)))
+    layout, bus, counter, reader = geometry(verifier, [4, 4, 4, 4, 17, 3])
+    point = [sample() for _ in range(bus.depth - 2)]
+    e = verifier.eq_kernel([sample() for _ in range(4)])
+    vectors = counter_columns(verifier, counter, reader, point, e)
     one_bank = 4 * len(SPARSE)
     assert len(binary_basis(vectors[:one_bank])) == 768
     assert len(binary_basis(vectors)) == 1536

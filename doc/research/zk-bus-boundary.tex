@@ -1,0 +1,77 @@
+% !TeX root = zk-bus-boundary.tex
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\input{../leanvm/preamble/macros.tex}
+\newtheorem{theorem}{Theorem}
+\title{Joint hiding at the GKR-to-table boundary}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\paragraph{Result and scope.} Valid counter trades, XOR cycles and loop-occupancy choices jointly hide the twelve final GKR children and all five following framework evaluations, with statistical error below $2^{-156}$. This repairs the memory-disclosure residual of \path{zk-bus-packet.tex} and hides the resulting bus targets. The continuation \path{zk-bus-root-joint.tex} additionally hides the shared root jointly. Intervening GKR messages, subsequent table proofs, Flock and PCS remain excluded. Challenges are independent honest interactive coins; this is not full leanVM ZK.
+
+\section{Repair the payload residual}
+
+Keep the two JUMP counter banks of \path{zk-bus-packet.tex}. Write $D$ for bus depth, $H\ge17$ for JUMP log height, $(C,P,Q)$ for the three child packets, $B=P+Q$, $z=(y,\fc)$ for the final leaf point, $a_i=\eq(y,i)$ and $e_i=\eq(\alpha,i)$. The two counter banks hide $(C,B)\in\E^8$ with error $\delta_{\mathrm{span}}+(2D-H+3)/|\E|$.
+
+Now randomize \emph{all three limbs} of the thirty-two unused cells. On the same three-coordinate span event, their twelve limb/child evaluations $U_{i,j}$ are independent uniform in $\E$. If $m_j$ are the memory evaluations and $\sigma$ is the memory framework selector, this noise maps to
+\[
+ \Delta P_i=\sigma\sum_{j=0}^2e_{3+j}U_{i,j},\qquad
+ \Delta m_j=\sum_{i=0}^3a_iU_{i,j}.
+\]
+For $\sigma e_3\ne0$ its image has dimension six, exactly the hyperplane $\sum_i a_i\Delta P_i+\sigma\sum_j e_{3+j}\Delta m_j=0$. Indeed, $\sum_i a_i=1$, and a basis change sending $(e_3,e_4,e_5)$ to its first coordinate leaves four free child values and two further free memory sums. Thus the old residual is the only missing field coordinate of $(C,B,P,m)$.
+
+Reserve eight XOR rows at an aligned three-coordinate subcube of the XOR table. Each uses a fresh frame, takes $(s,0,0)$ and zero as its two inputs, and derives $(s,0,0)$ as output, with independent $s\gets\K$. A fixed closing JUMP returns to the XOR instruction. Code, addresses and counters do not depend on $s$. Let $h_X\ge3$ be the XOR log height, and let $\tau_a,\tau_c$ select its input and output read blocks. These payloads change the previously exposed residual by
+\[
+ e_3(\tau_a+\tau_c)\sum_{t=0}^7\eq(z_{<h_X},t)s_t.
+\]
+The two read selectors are distinct, so their sum is a nonzero polynomial of degree at most $D-h_X$. The row embedding costs $(h_X-3)/|\E|$. Three low coordinates supply extension-field entropy from the eight base-field values except with probability $3\cdot2^{-256}+6/|\E|$. Together with the unused-memory event, the fifteen values $(C,P,Q,m)$ therefore have error at most
+\[
+ \varepsilon_{15}=\delta_{\mathrm{span}}+
+ \frac{4D-H+11}{|\E|}+6\cdot2^{-256}<2^{-157}\qquad(D\le40).
+\]
+This is a conditional argument: first hide $(C,B)$, then the residual with XOR values, then its six-dimensional fiber with unused limbs. The latter source is uniform even after fixing every counter bit and XOR value. All remaining trace data may be arbitrary fixed valid data.
+
+\section{Hide both final-counter evaluations}
+
+The last two framework values are the memory and bytecode final-counter evaluations at $z_{<\kmem}$ and $z_{<\kbc}$. Label permutations leave them unchanged, so use fresh optional self-loops. All alternatives are installed in the same fixed code and memory images; each fair bit chooses one alternative to execute twice, leaving the other unused. Every active lookup has labels $1,\gen$ and final counter $\gen^2$; an unused entry has final counter $1$. There are always two rows per bit. Indices below are integer exponents of $\gen$.
+
+Let $S\subset\cube{12}$ be the $448$-point support from \path{zk-stacked-padding.tex}. The two banks use independent bits and disjoint addresses. They do not change any count leaf as their bits vary.
+
+\paragraph{Bytecode bank.} For $s\in S$, use self-loop instructions at code indices $P_0+2s$ and $P_0+2s+1$, where $P_0$ is aligned to $2^{13}$. Each has a fresh frame and three distinct cells containing its condition, destination counter and frame. Switching the active instruction changes the bytecode final-counter evaluation by
+\[
+ (1+\gen^2)\eq(z_{1:\kbc},P_0/2+s).
+\]
+The lowest coordinate cancels. This masks that evaluation with error $\delta_{\mathrm{span}}+(\kbc-1)/|\E|$. Its correlated changes to memory counters and other messages are retained, not assumed independent.
+
+\paragraph{Memory bank.} Use one fixed fresh self-loop instruction. For each $s\in S$, its alternative frame indices are $F_0+8s$ and $F_0+8s+4$, with $F_0$ aligned to $2^{15}$ and offsets $(0,1,2)$. The six installed cells contain the appropriate fixed loop values. The instruction is read exactly $2|S|$ times regardless of the bits, so its bytecode final counter is fixed. Switching the active frame changes the memory final-counter evaluation by
+\[
+ (1+\gen^2)(1+z_0z_1)\eq(z_{3:\kmem},F_0/8+s).
+\]
+The two frame selectors cancel coordinate $2$; summing offsets $0,1,2$ leaves $1+z_0z_1$. Its degree-two exceptional event and the sparse/embedding bounds give error $\delta_{\mathrm{span}}+(\kmem-1)/|\E|$. Conditional on every bytecode-bank bit, this source hides the memory counter without changing the bytecode counter. Hence both final-counter values are jointly uniform on good coins, despite their correlations with the rest of the trace.
+
+\section{The complete boundary theorem}
+
+\begin{theorem}[Seventeen-value boundary]
+Assume $17\le H\le D\le40$, $h_X\ge3$, $\kmem\ge15$, $\kbc\ge13$, and public sizes admitting the disjoint reservations and their fixed valid completion. The final GKR child packet and all five framework evaluations have a witness-independent honest-coin simulator with error at most
+\[
+ \varepsilon_{17}=3\delta_{\mathrm{span}}+
+ \frac{4D-H+\kmem+\kbc+9}{|\E|}+6\cdot2^{-256}<2^{-156}.
+\]
+The simulator samples the honest coins and seventeen independent uniform extension elements. The three bus targets, bus forms and five framework claims returned by the reference verifier are deterministic functions of this view and public data, so they are hidden jointly as well.
+\end{theorem}
+\begin{proof}
+Condition on all bits of both occupancy banks. The fifteen-value theorem is uniform over that fixed valid complement, and none of its masks changes final counters. Its output is therefore uniform independently of the occupancy bits on its good event. Separately, the bytecode bank masks its final counter and the memory bank masks the other conditional on every bytecode choice. Combine these two conditional statements and charge their three shared sparse-span bounds and the displayed exceptional events. Since $\kmem,\kbc\le D$, the numerical bound follows. No claim conditions on earlier GKR messages.
+\end{proof}
+
+\paragraph{Reservation and remaining work.} The construction reserves $16136$ JUMP rows, eight XOR rows and thirty-two unused cells. It samples $4480$ fair bits and $104$ base-field elements. Every source has fixed count-column products across its random choices; a normalization can account for its contribution before sampling these coins. Return rows and occupancy rows must avoid the earlier counter-trade slots, and all addresses must avoid real/public data and other masks. The verifier is unchanged. The main unresolved step is joint hiding with the earlier GKR roots, rounds and child packets; the later table, Flock and opening transcripts reuse these sources and also need joint treatment.
+
+\paragraph{Evidence.} \path{zk_bus_boundary_audit.py} checks the actual binary source ranks: $1536$ from counters, $1152$ from unused memory, $2880$ jointly after the XOR repair, and $384$ in the final-counter quotient, giving a triangular rank certificate of $3264$. Valid-cycle libraries check simultaneous payload changes, occupancy formulas, fixed images and unchanged count leaves. A small-code probe checks the reference reader's five framework claims with the GKR endpoint supplied externally; it does not replay preceding GKR. Exact rational arithmetic checks both statistical bounds. These are algebraic and local ISA certificates, not an implemented ZK proof mode.
+
+\end{document}

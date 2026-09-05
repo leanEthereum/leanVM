@@ -1,0 +1,66 @@
+% !TeX root = zk-bus-root-joint.tex
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\input{../leanvm/preamble/macros.tex}
+\newtheorem{lemma}{Lemma}
+\title{The shared bus root jointly with its linear disclosures}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\paragraph{Result and scope.} The thirty-two unused words in \path{zk-bus-boundary.tex} hide the shared bus root jointly with that note's complete seventeen-value boundary, below $2^{-151}$ under the stated resource bounds. No extra padding is needed. The argument retains the actual linear disclosures of these words, rather than adding marginal privacy bounds. The intervening GKR rounds and child packets remain excluded, as do later table proofs, Flock, PCS, commitments and Fiat-Shamir.
+
+\section{Mixed characters retain an arbitrary linear view}
+
+Put $Q=|\K|$ and $|\E|=Q^3$. For independent uniform words $v_i\in\K^3$, let $X_i=b_i+L(v_i)$, where $L:\K^3\to\E$ is linear with image dimension at least two over $\K$. Let $Y=\sum_i A_i v_i\in\E^d$ for arbitrary fixed $\K$-linear maps $A_i$. Condition each word on $X_i\ne0$; the words remain independent. The offsets and maps are fixed independently of these sampled words.
+
+\begin{lemma}[Product with linear observations]
+For $t$ words, the distance between $(\prod_iX_i,Y)$ and an independent uniform element of $\E^\times$ together with the \emph{actual marginal law of $Y$} is at most
+\[
+ \frac12\sqrt{(|\E|-2)|\E|^d}
+ \left(\frac{\sqrt{|\E|}}{Q^2-1}\right)^t.
+\]
+No uniformity or rank assumption on $Y$ is required.
+\end{lemma}
+\begin{proof}
+Fix a nontrivial multiplicative character $\theta$ and any additive character $\psi$ of $\E^d$. For one word, average $\theta(X_i)\psi(A_iv_i)$ over fibers of $L$. If the additive phase is nontrivial on $\ker L$, this average is zero. Otherwise it descends to an additive phase on the affine coset $b_i+\operatorname{im}L$ and extends to an additive character of $\E$, up to a constant phase.
+
+Expand the coset indicator using its annihilating additive characters. Each resulting complete field sum is either zero or a Gauss sum of absolute value $\sqrt{|\E|}$~\cite{conrad}. The number of terms cancels the indicator's prefactor, bounding the unnormalized coset sum by $\sqrt{|\E|}$. After conditioning away zero, the one-word mixed coefficient has magnitude at most $\sqrt{|\E|}/(Q^2-1)$. This also covers observation maps that see the fingerprint kernel.
+
+Independence multiplies these bounds across all $t$ words. On $\E^\times\times\E^d$, the Fourier coefficients with trivial multiplicative character agree exactly with those of uniform-root times the actual $Y$ marginal. Only $(|\E|-2)|\E|^d$ coefficients remain. Parseval and Cauchy-Schwarz give the displayed total-variation bound.
+\end{proof}
+
+\section{Apply the lemma to the actual unused words}
+
+Condition on all other trace data and every honest verifier coin. The shared root is $A\prod_{i=1}^{32}X_i$, where each $X_i$ is the actual unused-memory fingerprint, and $A$ contains no sampled unused limb. Those limbs affect the seventeen-value boundary through only seven linear observations: their contributions to the four push children and the three memory evaluations. Their pull contributions equal their push contributions, and neither the count children nor either final-counter value changes. Thus take $t=32,d=7$. The maps may depend on the coins; the lemma is uniform over all such fixed maps.
+
+The fingerprint image has dimension at least two except with probability $8/|\E|+Q^2/(|\E|-2)^2$, by \path{zk-bus-root.tex}. Let $M$ bound the other nonconstant push-side factors. Averaging over the independent uniform bus shift, $A=0$ costs at most $M/|\E|$, and any sampled factor being zero costs at most $32/|\E|$. Therefore the joint view of root, boundary, coins and all other padding choices is within
+\[
+ \varepsilon_{\mathrm{decouple}}\le
+ \frac{M+40}{|\E|}+\frac{Q^2}{(|\E|-2)^2}
+ +\frac12\sqrt{(|\E|-2)|\E|^7}
+ \left(\frac{\sqrt{|\E|}}{Q^2-1}\right)^{32}
+\]
+of the same view with an independent uniform nonzero root. This hybrid retains the actual boundary distribution; it is not yet a witness-independent simulator. Nonzero multiplication by $A$ preserves uniformity. Charging a bad branch once suffices: both joint distributions decompose with the same branch weights and the same conditional boundary marginals, so convexity costs at most the bad probability, not a second conditioning penalty.
+
+\paragraph{Compose with the boundary simulator.} After replacing the root, discard the auxiliary padding choices and apply the seventeen-value theorem. The simulator samples honest coins, an independent uniform element of $\E^\times$ for the shared root, and seventeen independent uniform extension elements for the boundary. For $M\le2^{40}$ and the bounds of that theorem,
+\[
+ \varepsilon_{\mathrm{joint}}\le
+ \varepsilon_{\mathrm{decouple}}+\varepsilon_{17}<2^{-151}.
+\]
+The mixed-character term alone is below $2^{-256}$. If the count root has been fixed publicly by a compatible normalization, it can be adjoined without further error. Otherwise that root remains outside the claim.
+
+\paragraph{Why this does not yet cover GKR.} The argument holds for linear observations with coefficients fixed independently of the sampled words, conditional on honest coins and the other trace data. Intermediate product-tree nodes and mixed sumcheck messages are nonlinear in these words. Their inclusion requires a further joint argument; neither replacing their individual marginals nor conditioning on arbitrary previous messages is justified by this lemma. Adaptive observation coefficients depending on the words are also outside its statement.
+
+\paragraph{Evidence.} \path{zk_bus_root_joint_audit.py} computes exact product/observation convolutions in $\F_{64}/\F_4$, including maps that see the fingerprint kernel and a nonuniform observation marginal. It compares the joint distribution to an independent uniform root times that actual marginal, not to a uniformly sampled pair. Exact rational arithmetic checks the concrete mixed-character and combined bounds. The actual-field linear boundary map and valid cycles are checked separately by \path{zk_bus_boundary_audit.py}; no complete ZK-mode proof is implemented.
+
+\begin{thebibliography}{1}
+\bibitem{conrad} K.~Conrad. \emph{Gauss and Jacobi sums on finite fields and $\mathbb Z/m\mathbb Z$}, Theorem~2.2(2). \href{https://kconrad.math.uconn.edu/blurbs/gradnumthy/Gauss-Jacobi-sums.pdf}{Author's notes}.
+\end{thebibliography}
+\end{document}
