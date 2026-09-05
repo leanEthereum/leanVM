@@ -71,4 +71,6 @@ Schwartz-Zippel bounds false acceptance by $(8n-4)/|\E|$, uniformly over mask as
 
 The next layout must supply joint entropy to the penultimate child values on both sides of the final fold. Merely placing more random bits in the same six banks cannot change the missing endpoint direction. Reordering banks can remove this particular missing coordinate, but is not a privacy proof: after all nontag coordinates are folded, each bank still contributes only one extension-field scalar, and the last-message map has at most $24$ preimages when terminal values are nonzero. A useful next target is a witness-independent joint distribution for all eight penultimate values, followed by simulation of the earlier rounds using separate remaining entropy. This changes padding placement and generation only; no production verifier change has been made.
 
+The continuation \path{zk-count-suffix.tex} meets that restricted target with four independent directions per suffix group and gives a conditional binary-rank formulation for the preceding head. It does not yet prove full-layer hiding.
+
 \end{document}

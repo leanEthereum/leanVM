@@ -1,0 +1,92 @@
+% !TeX root = zk-count-suffix.tex
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\input{../leanvm/preamble/macros.tex}
+\newtheorem{proposition}{Proposition}
+\title{Blockwise count padding and a conditional head map}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\paragraph{Result.} Four independent trade directions in every suffix group hide the entire child table feeding the remaining GKR rounds. This gives a joint simulator for those rounds and their incoming claim, repairing the unmasked endpoint in \path{zk-count-tail.tex}. It does not hide preceding messages jointly. Redundant same-edge banks give an exact binary-affine formulation of that missing joint problem; its required rank bound is not yet proved.
+
+\section{Four directions per suffix group}
+
+Use the twisted counter trade with step $a=1+\gen$ and separator polynomials
+\[
+ L(T)=1+(1+\gen^2)T,\qquad R(T)=\gen^2+(1+\gen^2)T.
+\]
+Each bank's random bits change its two selected children by $aL(T)U$ and $aR(T)U$. They preserve every Boolean quartet product, the complete counter-label chain and all memory and bytecode images. Fixed geometric backgrounds and anchors change only the offsets in this formula.
+
+Index the banks by $(d,v,g)$: direction $d\in\{0,1,2,3\}$ chooses edges $(0,1),(1,2),(2,3),(3,0)$, replica $v\in\cube{j}$ supplies optional redundancy, and group $g\in\cube{t}$ is the suffix index. Their integer tag is $d+4v+2^{j+2}g$. Fold coordinates in this order:
+\[
+ \underbrace{13\text{ sparse bits},\ 1\text{ separator},\ 2\text{ direction bits},\ j\text{ replica bits}}_{h=16+j\text{ head rounds}},\quad
+ \underbrace{t\text{ group bits}}_{\text{suffix rounds}}.
+\]
+The count column has depth $18+j+t$. Every bank uses the same $896$-point support: seven free bits and six further bits of weight at most one. The bits themselves are independent across all banks. Write $\delta_{\mathrm{span}}$ for the sparse-span error defined in \path{zk-stacked-padding.tex}.
+
+Let $U_{d,v,g}$ be its sparse mask evaluation, $\eta_d$ the two direction-bit equality weights, and $\xi_v$ the replica-bit equality weights, all at the fold challenges. Immediately before the suffix, the four child values in group $g$ have the form
+\[
+ Y_g=b_g+
+ a\sum_{d=0}^3\eta_d D_d\sum_{v\in\cube j}\xi_vU_{d,v,g},
+ \qquad D_d=L(\fc_s)e_{d}+R(\fc_s)e_{d+1\bmod4}.
+\]
+Here $b_g$ contains all fixed contributions and $\fc_s$ is the separator challenge. The direction determinant is
+\[
+ \det(D_0,D_1,D_2,D_3)=L(\fc_s)^4+R(\fc_s)^4=(1+\gen^2)^4\ne0.
+\]
+
+\begin{proposition}[Joint suffix simulation]
+For arbitrary fixed complementary rows, independent honest field coins, and independent fair trade bits, the full array $(Y_g)_{g\in\cube t}$ is statistically close to uniform on $\E^{4\cdot2^t}$, jointly with the coins, with error at most
+\[
+ \delta_{\mathrm{span}}+17/|\E|<2^{-157}.
+\]
+The same bound holds for the last $t$ count sumcheck rounds, their four terminal values, and their incoming count claim jointly. It is independent of the numbers of replicas and groups. Earlier messages and the actual fingerprint channels are excluded.
+\end{proposition}
+\begin{proof}
+The sparse-span lemma of \path{zk-stacked-padding.tex}, applied to a $448$-point slice, makes every $U_{d,v,g}$ uniform on $\E$ except with probability $\delta_{\mathrm{span}}+13/|\E|$. All banks share the same weight matrix, so there is one failure event, not one event per bank. On good coins these variables are independent.
+
+The replica weights sum to one, so at least one is nonzero. Each replica aggregate is therefore uniform, independently for each direction and group. Exclude Boolean values of the two direction challenges at cost $4/|\E|$. All $\eta_d$ are then nonzero, and the displayed determinant makes the four-child map invertible. The offsets $b_g$ disappear under translation of a uniform vector.
+
+Sample a uniform array $Y$ and run the unchanged suffix prover on it. Its incoming claim is $\sum_g\eq(r,g)\prod_iY_{g,i}$, where $r$ contains the remaining equality coordinates. All suffix coefficients and terminal values are deterministic functions of this array and the coins. Statistical distance cannot increase under this postprocessing. This samples the incoming claim jointly; it does not condition on the preceding head transcript.
+\end{proof}
+
+\paragraph{Realization.} Geometric banks may use background types $0,1,2$ on any selected edge. With no replicas, types $(0,1,2,0)$ on the four successive edges already supply the three first-round background shapes. With replicas, vary the type of edge $(0,1)$ across replicas when seeking the head rank. Two distinct fixed anchors per four-direction block are allowed outside the random support. The full geometric construction reserves $145408$ rows per four-direction block, plus eight for two such anchors when their slots were previously unreserved. These are layout counts, not a full-size execution audit.
+
+\section{Why four banks are still insufficient for the head}
+
+With $j=0$, the four-child map in a group is invertible in its four bank evaluations. Fixing the pre-suffix array therefore fixes all bank evaluations, once the complement is fixed. The separator round and the two direction rounds depend only on those evaluations and the fixed bank data. There is no remaining mask freedom in these twelve tail coefficients. This prevents a uniform-head argument that conditions on the pre-suffix table and tries to hide all earlier free coefficients. More sparse bits do not fix this loss of freedom; replicas are needed for the following route.
+
+\section{Redundant same-edge banks restore an affine problem}
+
+Choose as pivots \emph{all} banks on edge $(0,1)$, across replicas and groups; condition on the bits of the other three directions. A pivot contribution affects only children $0,1$, always in the common ratio $L(T):R(T)$. Before the separator is folded, disjoint bank tags keep different banks separate. Afterwards their contributions combine as $L(\fc_s)V$ and $R(\fc_s)V$. Their product is a fixed part plus a term linear in $V$ and a multiple of $V^2$.
+
+Consequently every head coefficient is jointly affine over $\Ftwo$ in \emph{all} pivot bits. Squaring is binary-linear, so cross terms between pivot bits cancel even across replicas. This is not an extension-linear assertion, and it does not extend to arbitrary mixtures of pivot edges. Different selected edges have genuine mixed terms.
+
+Write $M$ for the binary matrix mapping pivot bits to the $4h$ head tail coefficients. For each group, keeping the pre-suffix table fixed imposes just the one extension-valued condition
+\[
+ (Bu)_g=\sum_v\xi_vU_{0,v,g}=\text{fixed}.
+\]
+It does \emph{not} fix every replica's evaluation separately. On the suffix good-coin event, $B$ has binary rank $192\cdot2^t$.
+
+There are two known extension-linear constraints on the head coefficients when the pre-suffix table is fixed. The first round's two endpoints are determined by the preceding GKR packet, and the running claim at the end of the head is determined by that table. If $d_{m,k}$ are the normalized count tails, the latter relation is
+\[
+ c_h=c_0+\sum_{m<h}\sum_{k=1}^4(r_m+\fc_m^k)d_{m,k}.
+\]
+Away from degenerate coins these are independent. Thus the precise sufficient rank target is
+\[
+ \operatorname{rank}_{\Ftwo}\!\begin{pmatrix}M\\B\end{pmatrix}
+ -\operatorname{rank}_{\Ftwo}B
+ =192(4h-2).
+\]
+If this target holds with a uniformly small failure probability over coins and conditioned nonpivot bits, the head is uniform on the affine space defined by those two public relations, conditional on the pre-suffix table. Combining this statement with the suffix theorem would simulate the complete last count layer, given its preceding packet. The statistical proof must bound rank failure uniformly over admissible fixed complements; a sampled rank does not suffice.
+
+\paragraph{Current evidence and next test.} \path{zk_count_suffix_audit.py} checks the full-support $768$-bit direction rank and exact rational error bound. A smaller valid-cycle library checks suffix reconstruction including its incoming claim, complete reference GKR acceptance, and the bus/counter invariants. Same-edge mixed derivatives vanish within banks, across replicas, and across groups; a different-edge control is nonlinear. The next task is to construct $M$ and $B$ efficiently, test the displayed conditional rank, and either certify a uniform bound or extract its remaining invariant. No rank-success claim for this matrix, full-layer theorem, or production protocol change is made here.
+
+\end{document}

@@ -13,7 +13,7 @@ from zk_stacked_audit import binary_basis
 BANKS = ((0, EDGES[0]), (1, EDGES[0]), (2, EDGES[0]), *((0, edge) for edge in EDGES[1:]))
 
 
-def library_rows(verifier, sparse=SPARSE, sparse_bits=12, geometric=False, twist=False, anchors=None):
+def library_rows(verifier, sparse=SPARSE, sparse_bits=12, geometric=False, twist=False, anchors=None, banks=BANKS):
     library, positions, switches = Library(verifier), {}, []
     column = verifier.JUMP_COLUMNS.index("cnt_c")
     anchors = {} if anchors is None else anchors
@@ -22,7 +22,7 @@ def library_rows(verifier, sparse=SPARSE, sparse_bits=12, geometric=False, twist
         template = library.templates(library.block(verifier.OP_JUMP), library.fresh_frame())
         return [library.append(template)[0] for _ in range(count)]
 
-    for bank, (kind, edge) in enumerate(BANKS):
+    for bank, (kind, edge) in enumerate(banks):
         indices = sorted(set(sparse) | {index // 2 for source, index in anchors if source == bank})
         for index in indices:
             base = (bank << (sparse_bits + 4)) + 8 * index
