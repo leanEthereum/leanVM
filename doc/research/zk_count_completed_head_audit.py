@@ -231,6 +231,7 @@ def full_rank(verifier):
     print(f"Joint rank {rank}, suffix rank {suffix_rank}, conditional head {rank - suffix_rank}/{192 * (4 * (count + 4) - 2)}", flush=True)
     print(f"Early rank conditioned on all pivot evaluations: {strong_rank - evaluation_rank}/{192 * (4 * count - 2)}", flush=True)
     assert (rank, suffix_rank) == (15744, 3072)
+    assert (strong_rank, evaluation_rank) == (21888, 12288)
     print("One actual-bit instance with all required prefix reads; neither calculation is a uniform statistical bound", flush=True)
 
 

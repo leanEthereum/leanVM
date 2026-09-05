@@ -15,6 +15,8 @@
 
 \paragraph{Purpose.} The statistical tail theorem in \path{zk-count-uniform-tail.tex} changes the anchors and geometric chains of the earlier head experiment. This note gives the corresponding exact sparse-bit matrix, including every extra read needed to realize an offset anchor. The goal is a joint count-layer simulator; marginal head and tail bounds cannot simply be added when they reuse the same bits.
 
+\paragraph{Exact result.} The full $57344$-bit calculation reaches joint head-tail rank $15744$, suffix rank $3072$, and conditional head rank $12672$. The stronger early-head test also reaches its target $9600$ after conditioning on all pivot evaluations, whose rank is $12288$. Both certificates use the same complete offset-chain padding and the fixed \texttt{Random(150)} coin assignment. These are exact finite-instance ranks, not statistical error bounds.
+
 \section{Complete the offset chains}
 
 Keep the $128$ banks, $13$ sparse coordinates, $896$-point random support and anchor index $384$ of the tail theorem. Away from the support and reserved positions, use fixed canonical twisted quartets with exponent pattern $(0,3,2,1)$. An equal-offset anchor $(k,k,k,k)$ uses four separate $(k+1)$-read chains, leaving four copies of labels $0,\ldots,k-1$ to place. A translated permutation anchor uses one $(k+4)$-read chain, leaving one such prefix. Put these prefix rows in the first available selected-child slots outside the support and anchor, consuming whole groups of four slots and filling any final vacancy with a fresh one-read loop. All remaining canonical quartets use fresh addresses. The other children retain their complete bit-permuted geometric chains.
@@ -52,7 +54,8 @@ Let $H$ consist only of the $52$ coefficients in the first thirteen rounds, and 
 \[
  \operatorname{rank}_{\mathbb F_2}(H,U)
  -\operatorname{rank}_{\mathbb F_2}U
- \stackrel{?}{=}192(52-2)=9600.
+ =192(52-2)=9600
+ \quad\text{at the certified instance}.
 \]
 The two relations fix the first endpoint and the final running claim. A uniform high-probability proof of this equality would make $H$ uniform on that affine fiber even after disclosing $U$ and all nonpivot bits. Since all later count messages depend on the pivot bits only through $U$, this is sufficient for a clean composition with the existing tail theorem. Given the incoming count-layer packet, the simulator would first sample the tail and its incoming claim, then sample the early coefficients subject to their two endpoint relations. Hiding that incoming packet jointly requires the earlier GKR layers and is a separate obligation. A failure of this stronger rank test would rule out that factorization, not joint hiding by the original approach.
 
