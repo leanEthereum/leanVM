@@ -1,6 +1,6 @@
 //! Recursive aggregation of XMSS and SPHINCS signatures ([`aggregation`]) and
 //! the harnesses that measure it ([`benchmark`]), plus the Fibonacci demo. One
-//! zkDSL guest (`guests/aggregate.py`) serves every node of an aggregation tree,
+//! zkDSL guest (`guests/lean_ethereum.py`) serves every node of an aggregation tree,
 //! and knows both schemes.
 
 pub mod aggregation;

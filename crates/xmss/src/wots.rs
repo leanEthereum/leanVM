@@ -133,7 +133,7 @@ pub fn find_randomness_for_wots_encoding(
 /// digest word exactly `sum(e_i * 2^{3i})` of its 21 digits, so both words
 /// decompose into the chunks with no slack term. In-circuit this is checked
 /// over GF(2^64) per word by accumulating the dispatched digit literals against
-/// `8^i` monomial weights (see `verify_sig` in `rec_aggregation`'s `guests/aggregate.py`).
+/// `8^i` monomial weights (see `verify_sig` in `rec_aggregation`'s `guests/lean_ethereum.py`).
 pub fn wots_encode(
     message: &Message,
     epoch: Epoch,

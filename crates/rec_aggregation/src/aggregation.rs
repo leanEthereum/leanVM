@@ -1,5 +1,5 @@
 //! Recursive aggregation of XMSS and SPHINCS signatures: one bytecode
-//! (`guests/aggregate.py`) for every node of an aggregation tree.
+//! (`guests/lean_ethereum.py`) for every node of an aggregation tree.
 //!
 //! A node verifies `n_raw_xmss` XMSS signatures, `n_raw_sphincs` SPHINCS
 //! signatures and `n_children` sub-proofs **of this same bytecode**, and
@@ -1259,7 +1259,7 @@ enum ClaimSite {
     MemoryLimb { column: usize },
 }
 
-/// The guest's `COORD_KIND_*` code for a coordinate (`guests/aggregate.py`),
+/// The guest's `COORD_KIND_*` code for a coordinate (`guests/lean_ethereum.py`),
 /// shared by its `COORD_TYPE` and `TERM_TYPE` arrays.
 fn coord_kind(c: &Coord) -> usize {
     match c {
@@ -1365,7 +1365,7 @@ fn walk_claims(layout: &lean_vm::cpu::Layout, kbc: usize, mut visit: impl FnMut(
     }
 }
 
-/// Config + hints for the recursion guest (`guests/aggregate.py`), built
+/// Config + hints for the recursion guest (`guests/lean_ethereum.py`), built
 /// from the REAL `cpu::layout` of the inner program and the summary of a real
 /// `cpu::verify` run (zero hand-mirroring drift).
 fn gen_verify(
@@ -2934,7 +2934,7 @@ fn compile_guest(kbc: usize) -> Program {
         std::fs::write(&path, dump).expect("write DBG_PLACEHOLDERS");
     }
     let guest = compile(
-        &parse_with_replacements(include_str!("../guests/aggregate.py"), &replacements)
+        &parse_with_replacements(include_str!("../guests/lean_ethereum.py"), &replacements)
             .expect("the repository aggregation guest must parse"),
     );
     // `DBG_DISASM=path`: dump the guest's disassembly, to read alongside a

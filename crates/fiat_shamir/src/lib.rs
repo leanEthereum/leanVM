@@ -42,7 +42,7 @@ const DS_POW_NONCE: F64 = F64(4);
 /// bits zero: the grinding predicate over the VM compression. A CONTIGUOUS
 /// low-bit window (rather than byte-wise leading zeros) so a recursive verifier
 /// re-checks it with a single loop over the bit decomposition of the digest word
-/// (`grind_check` in `guests/aggregate.py`). `bits` is always `< 64`.
+/// (`grind_check` in `guests/lean_ethereum.py`). `bits` is always `< 64`.
 #[inline]
 fn pow_bits_ok(base: [F64; 4], nonce: F192, bits: u32) -> bool {
     debug_assert!(bits < 64, "grinding deficit fits the digest's low word");

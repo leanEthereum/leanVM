@@ -162,7 +162,7 @@ fn read_public(vs: &mut VerifierState, prog: &Program, public_input: &[F192; 2])
         // flock sizes its argument to at least `n_blocks_log(1)` instances, and the
         // BLAKE2s table's value columns share that instance cube, so a height below the
         // floor describes a layout the arithmetization cannot express. The other two
-        // verifiers reject it here too (`python-verifier`, `guests/aggregate.py`).
+        // verifiers reject it here too (`python-verifier`, `guests/lean_ethereum.py`).
         || taus[tables::BLAKE2S_TABLE] < crate::hash_flock::n_blocks_log(1)
         || ::pcs::whir::validate_log_inv_rate(log_inv_rate).is_err()
     {
