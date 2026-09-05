@@ -16,6 +16,8 @@
 
 \paragraph{Result.} Four independent trade directions in every suffix group hide the entire child table feeding the remaining GKR rounds. This gives a joint simulator for those rounds and their incoming claim, repairing the unmasked endpoint in \path{zk-count-tail.tex}. It does not hide preceding messages jointly. Redundant same-edge banks give an exact binary-affine formulation of that missing joint problem; its required rank bound is not yet proved.
 
+\paragraph{Subsequent correction.} \path{zk-count-head.tex} proves that the original block placement leaves two further conditional endpoint invariants, making the full-head rank target below impossible for those pivots. The suffix theorem and binary-affine formulation remain valid. A parity placement removes the missing faces and passes a restricted post-sparse conditional binary-rank test; the full-head bound remains open.
+
 \section{Four directions per suffix group}
 
 Use the twisted counter trade with step $a=1+\gen$ and separator polynomials
@@ -87,6 +89,6 @@ Away from degenerate coins these are independent. Thus the precise sufficient ra
 \]
 If this target holds with a uniformly small failure probability over coins and conditioned nonpivot bits, the head is uniform on the affine space defined by those two public relations, conditional on the pre-suffix table. Combining this statement with the suffix theorem would simulate the complete last count layer, given its preceding packet. The statistical proof must bound rank failure uniformly over admissible fixed complements; a sampled rank does not suffice.
 
-\paragraph{Current evidence and next test.} \path{zk_count_suffix_audit.py} checks the full-support $768$-bit direction rank and exact rational error bound. A smaller valid-cycle library checks suffix reconstruction including its incoming claim, complete reference GKR acceptance, and the bus/counter invariants. Same-edge mixed derivatives vanish within banks, across replicas, and across groups; a different-edge control is nonlinear. The next task is to construct $M$ and $B$ efficiently, test the displayed conditional rank, and either certify a uniform bound or extract its remaining invariant. No rank-success claim for this matrix, full-layer theorem, or production protocol change is made here.
+\paragraph{Current evidence and continuation.} \path{zk_count_suffix_audit.py} checks the full-support $768$-bit direction rank and exact rational error bound. A smaller valid-cycle library checks suffix reconstruction including its incoming claim, complete reference GKR acceptance, and the bus/counter invariants. Same-edge mixed derivatives vanish within banks, across replicas, and across groups; a different-edge control is nonlinear. The conditional invariants and parity replacement are developed in \path{zk-count-head.tex}. No full-head rank-success claim, full-layer theorem, or production protocol change is made here.
 
 \end{document}

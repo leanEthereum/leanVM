@@ -35,24 +35,29 @@ def pre_suffix(verifier, leaves, point):
     return work
 
 
-def span_certificate(verifier):
+def span_certificate(verifier, parity=False):
     rng = Random(142)
     sample = lambda: verifier.E(*(rng.getrandbits(64) for _ in range(3)))
-    sparse_weights, tags, separator = verifier.eq_kernel([sample() for _ in range(13)]), verifier.eq_kernel([sample(), sample()]), sample()
+    directions = (EDGES[0], EDGES[1], EDGES[2], EDGES[0], EDGES[3], EDGES[0], EDGES[0], EDGES[1]) if parity else EDGES
+    sparse_weights, tags, separator = (
+        verifier.eq_kernel([sample() for _ in range(13)]),
+        verifier.eq_kernel([sample() for _ in range(3 if parity else 2)]),
+        sample(),
+    )
     g, step = verifier.GEN, verifier.ONE + verifier.GEN
     left, right = verifier.ONE + (verifier.ONE + g**2) * separator, g**2 + (verifier.ONE + g**2) * separator
     assert left**4 + right**4 == (verifier.ONE + g**2) ** 4 != verifier.ZERO
     columns = []
-    for bank, (first, second) in enumerate(EDGES):
+    for bank, (first, second) in enumerate(directions):
         for index in SPARSE:
-            for parity in (0, 1):
-                scale = step * tags[bank] * sparse_weights[2 * index + parity]
+            for low_bit in (0, 1):
+                scale = step * tags[bank] * sparse_weights[2 * index + low_bit]
                 columns.append((int(scale * left) << (192 * first)) ^ (int(scale * right) << (192 * second)))
     assert len(binary_basis(columns)) == 768
     size = 1 << 192
     delta = sum((Fraction(((1 << d) - 1) ** 2, size - 1) for d in (1, 2, 4, 8, 16)), Fraction())
     delta += Fraction(((1 << 32) - 1) ** 2, (size - 1) * (1 << 32)) + Fraction(1, 1 << 256)
-    assert delta + Fraction(17, size) < Fraction(1, 1 << 157)
+    assert delta + Fraction(19 if parity else 17, size) < Fraction(1, 1 << 157)
     print("Full support: rank 768 per suffix group; common good-coin bound below 2^-157, independent of the number of groups", flush=True)
 
 

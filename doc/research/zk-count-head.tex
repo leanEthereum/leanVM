@@ -1,0 +1,99 @@
+% !TeX root = zk-count-head.tex
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,booktabs}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\input{../leanvm/preamble/macros.tex}
+\newtheorem{proposition}{Proposition}
+\title{Conditional count-head rank and parity pivots}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\paragraph{Result.} The same-edge conditioning proposed in \path{zk-count-suffix.tex} has two additional invariant endpoint evaluations in its original block placement. Its full-head rank target is therefore impossible there. A parity placement removes those unmasked faces, preserves binary affinity, and passes an exact conditional rank test for the post-sparse head in a relaxed extension-scalar model. Full-head statistical hiding remains unproved.
+
+\section{A conditional invariant is not necessarily a leak}
+
+In the original layout the pivot banks all have direction tag $00$. Fix every nonpivot bit. The first direction round has no pivot randomness at $T=1$. After it is folded, the second direction round also has no pivot randomness at $T=1$. Thus both endpoint evaluations are fixed by the conditioned data, independently of the number of replicas and groups.
+
+For any round $s$, the endpoint is a public linear function of the head coefficients and incoming claim:
+\[
+ q_s(1)=c_0+
+ \sum_{m<s}\sum_{k=1}^4(r_m+\fc_m^k)d_{m,k}
+ +\sum_{k=1}^4(r_s+1)d_{s,k}.
+\]
+Its value need not be public before the transcript: it depends on the nonpivot masks. These invariants disprove the proposed \emph{conditional uniform-head argument}, not the unconditional ZK of the construction.
+
+\begin{proposition}[The original pivot rank target cannot hold]
+With at least one replica bit, the original block placement generically satisfies
+\[
+ \operatorname{rank}_{\Ftwo}\!\begin{pmatrix}M\\B\end{pmatrix}
+ -\operatorname{rank}_{\Ftwo}B
+ \le192(4h-4),
+\]
+rather than the sufficient target $192(4h-2)$ of \path{zk-count-suffix.tex}. This holds regardless of the number of sparse mask bits.
+\end{proposition}
+\begin{proof}
+On $\ker B$, the first-round endpoint relation and the final running claim are fixed. The two direction-round upper endpoints give two further extension-linear relations. The four coefficient forms are independent whenever the two direction equality coordinates differ from $1$ and the last head fold challenge is outside $\{0,1\}$. Indeed, order the forms by their last supported round: first round, first direction round, second direction round, last replica round. Each has a nonzero coefficient in that new round. Their four independent extension equations give $768$ independent binary equations. The excluded coins have probability at most $4/|\E|$.
+\end{proof}
+
+\section{Put the pivots on a parity plane}
+
+Use three direction-tag bits instead of two. Tags with even parity carry the pivot edge $(0,1)$; odd-parity tags supply the remaining directions. One concrete eight-bank block is
+\[
+\begin{array}{c|rrrrrrrr}
+\text{tag}&0&1&2&3&4&5&6&7\\
+\hline
+\text{edge}&01&12&23&01&30&01&01&12\\
+\text{background type}&0&1&2&1&0&2&0&0
+\end{array}
+\]
+Repeat this block over the replica and suffix-group coordinates. Each direction-bit face intersects the pivot support. After the first direction bit is folded at a non-Boolean challenge, every remaining Boolean tag position receives a pivot contribution. Hence the two earlier missing-face invariants do not persist. Coverage alone is not a rank theorem.
+
+All pivots still affect only children $0,1$ with the same ratio $L:R$. Their joint effect therefore remains affine over $\Ftwo$, including across different pivot tags. The suffix theorem survives as well: each of the four edge directions has a nonzero selector when the three direction challenges are non-Boolean. The common error bound becomes
+\[
+ \delta_{\mathrm{span}}+19/|\E|<2^{-157},
+\]
+independently of the number of replicas and groups. This follows from the same shared sparse-span event as before, plus $6/|\E|$ for the three direction coordinates. It still excludes the preceding head messages.
+
+\section{An exact post-sparse rank certificate}
+
+After all sparse coordinates have folded, replace each pivot bank's mask evaluation by an independent formal extension scalar $U_b$. Fix the other bank data and honest coins. The post-sparse head coefficients and the child-$0$ value in each suffix group form a linearized map
+\[
+ V(U)=v_0+\sum_b\bigl(\alpha_bU_b+\beta_bU_b^2\bigr).
+\]
+The suffix coordinates have $\beta_b=0$. Since the pivot direction is nonzero, fixing these child-$0$ values fixes the entire pre-suffix table under the conditioning. Let $N$ be the binary matrix of this map and $C$ its suffix rows. The conditional rank is $\operatorname{rank}N-\operatorname{rank}C$.
+
+The coefficients can be recovered with two evaluations per pivot. If $\Delta_b(u)=V(ue_b)+V(0)$, then
+\[
+ \beta_b=\frac{\Delta_b(\gen)+\gen\Delta_b(1)}{\gen^2+\gen},
+ \qquad \alpha_b=\Delta_b(1)+\beta_b.
+\]
+Expanding $\alpha_bu+\beta_bu^2$ on all $192$ binary basis vectors computes the binary matrix exactly. Squaring must not be treated as extension-linear.
+
+The finite audits use eight suffix groups, thirty-two extension-scalar pivots and the actual field $\E=\F_{2^{192}}$:
+\[
+\begin{array}{lrrrrr}
+\toprule
+\text{placement}&\text{head rounds}&\operatorname{rank}N&\operatorname{rank}C&\text{conditional}&\text{maximum}\\
+\midrule
+\text{block, two replica bits}&5&4992&1536&3456&3840\\
+\text{parity, no replicas}&4&4608&1536&3072&3072\\
+\bottomrule
+\end{array}
+\]
+In the parity instance, all sixteen extension-valued post-sparse head tails are uniform conditional on the suffix table \emph{in this relaxed experiment at these fixed parameters and coins}. The block instance has a $384$-bit deficiency. Its extension-affine hull has codimension only one, so an extension-rank check would miss half of that binary deficiency.
+
+\paragraph{What was checked.} \path{zk_count_head_audit.py} obtains each baseline from valid ISA cycles with two sparse coordinates, checks actual counter and bus consistency, and matches the post-sparse messages to an accepted complete reference GKR replay. Flipping all pivot bits leaves the block layout's two upper endpoints unchanged but changes all three in the parity layout. It verifies the linearized formula on extension-valued inputs and expands its exact binary matrix. The full-support suffix direction rank and rational error bound are checked separately.
+
+\paragraph{What was not checked.} The small valid baseline does not supply thirty-two independent extension scalars: the audit explicitly relaxes its sparse bits. Full-support banks can supply extension entropy, but their geometry and preceding messages must be analyzed together. These ranks certify neither that full-support head matrix nor a uniform failure bound over fixed complements and nonpivot data.
+
+\section{Next: restore the sparse rounds}
+
+Use the parity placement with thirteen sparse coordinates. Build one binary matrix for the entire head together with the pre-suffix constraints, using actual sparse trade bits rather than abstract scalars. A single bit affects only two separator branches during each sparse round, so its coefficient column can be computed locally instead of replaying a millions-row trace for every bit. Append the post-sparse columns through $U_b=\sum_s\eq(\fc,s)u_{b,s}$, including the Frobenius square term. Only then test the full conditional rank $192(4h-2)$ and seek a uniform statistical bound. Preceding GKR layers, fingerprint channels and the rest of the VM remain separate unresolved obligations.
+
+\end{document}
