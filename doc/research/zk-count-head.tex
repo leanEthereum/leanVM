@@ -96,4 +96,6 @@ In the parity instance, all sixteen extension-valued post-sparse head tails are 
 
 Use the parity placement with thirteen sparse coordinates. Build one binary matrix for the entire head together with the pre-suffix constraints, using actual sparse trade bits rather than abstract scalars. A single bit affects only two separator branches during each sparse round, so its coefficient column can be computed locally instead of replaying a millions-row trace for every bit. Append the post-sparse columns through $U_b=\sum_s\eq(\fc,s)u_{b,s}$, including the Frobenius square term. Only then test the full conditional rank $192(4h-2)$ and seek a uniform statistical bound. Preceding GKR layers, fingerprint channels and the rest of the VM remain separate unresolved obligations.
 
+The continuation \path{zk-count-full-head.tex} constructs this matrix from $28672$ actual pivot bits and reaches conditional head rank $12672$, exactly the target for $h=17$. It verifies the local formulas against complete small GKR replays. The remaining step is a uniform failure bound, not another relaxed rank test.
+
 \end{document}

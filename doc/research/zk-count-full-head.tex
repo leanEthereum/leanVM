@@ -1,0 +1,74 @@
+% !TeX root = zk-count-full-head.tex
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\input{../leanvm/preamble/macros.tex}
+\title{Actual sparse-bit columns for the count head}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\paragraph{Scope.} This note restores the sparse rounds omitted by the extension-scalar experiment in \path{zk-count-head.tex}. The same parity pivots give a binary-affine map for the entire head, conditional on the other edges. The audit constructs its columns from actual Boolean trade bits, including the pre-suffix constraints. A uniform statistical rank bound is still required for full-layer hiding.
+
+\paragraph{Exact result.} The full-support matrix reaches joint binary rank $14208$, suffix rank $1536$, and conditional head rank $12672$, exactly the target. This is a certificate for one specified completion and one honest-format coin and nonpivot-bit assignment, not a statistical error estimate. Unlike the preceding experiment, no pivot bits are replaced by independent extension scalars.
+
+\section{A concrete valid completion}
+
+Use the eight-bank parity block, with geometric background types as in the preceding note. Complete every bank's selected slots with the canonical twisted counter pattern, with fixed zero bits outside the designated random support. Put an all-one anchor in each pivot bank and a plain anchor in each edge-$(3,0)$ bank. Each canonical quartet pair is four repetitions of a fresh self-loop; an all-one anchor uses four fresh one-read loops. These choices preserve valid counter chains. Real complementary rows are not varied in the certificate below.
+
+For $m=13$ sparse coordinates, the random support is
+\[
+ S=\{2s+b:s\in S_{12},\ b\in\{0,1\}\},\qquad |S|=896,
+\]
+where $S_{12}$ is the $448$-point support of \path{zk-stacked-padding.tex}. Put the anchors at index $384\notin S$. Eight suffix groups give $64$ banks, of which $32$ are pivots. There are $28672$ pivot bits and $h=17$ head rounds. A fully populated completion has $2^{22}$ count rows; the audit does not instantiate or verify that entire VM trace. It checks the same local construction and formulas on a small complete valid-cycle library.
+
+\section{Compute each sparse-round column locally}
+
+Write $a=1+\gen$, $\gamma=a^2\gen^2$ and $\kappa=a(1+\gen^2)+\gamma$. Fix a pivot position $s$, anchor position $z$, sparse round $j$, and background type $k\in\{0,1,2\}$. Its folded bit contributes the line
+\[
+ D(T)=\eq(\fc_{<j},s_{<j})\eq(T,s_j).
+\]
+The folded anchor line $F(T)$ is zero unless $s_{>j}=z_{>j}$; otherwise it equals $\eq(\fc_{<j},z_{<j})\eq(T,z_j)$. At either Boolean separator branch, toggling the bit changes the product of the two selected children by
+\[
+ \Gamma(T)=(\gamma+\kappa F(T))D(T)+\gamma D(T)^2.
+\]
+The same expression applies to both branches. Indeed, their selected-child factors have $LR=\gen^2$ and $L+R=1+\gen^2$; the all-one anchor gives the correction $\kappa F$.
+
+The geometric background line, before including the separator branch, is
+\[
+ C(T)=\gen^{2^{j+1}\lfloor s/2^{j+1}\rfloor}
+ \prod_{\ell<j}\left(1+(1+\gen^{2^\ell})\fc_\ell\right)
+ \left(1+(1+\gen^{2^j})T\right).
+\]
+Multiply $C(T)^k\Gamma(T)$ by the remaining sparse equality weight, the bank's incoming tag weight, and the separator factor
+\[
+ 1+r_{\mathrm{sep}}(1+\gen^{k2^m}),
+\]
+where $r_{\mathrm{sep}}$ is the incoming separator coordinate. Its four nonconstant coefficients are the bit's contribution to that round. The degree is at most four. This requires only two local separator branches, not a replay of the whole trace. The formula is specific to the stated completion; arbitrary fixed data would enter the selected-child cofactor instead.
+
+\section{Append the post-sparse columns}
+
+Let $w_s=\eq(\fc_{<m},s)$. The post-sparse linearized map of the preceding note has coefficients $\alpha_b,\beta_b$ for pivot bank $b$. Substituting the actual mask evaluation $U_b=\sum_s w_su_{b,s}$ gives the bit column
+\[
+ \alpha_bw_s+\beta_bw_s^2.
+\]
+Append this vector to the local sparse-round coefficients. Its last coordinates are the child-$0$ changes in each suffix group. Under the same-edge conditioning these fix the entire pre-suffix table, since the child-$1$ change has the common proportional direction and the other two children do not change.
+
+Thus one binary matrix contains all $68$ head tail coefficients and the eight pre-suffix constraints. The target joint rank is
+\[
+ 192\bigl((4h-2)+8\bigr)=14208,
+\]
+with suffix rank $1536$ and conditional head rank $12672$. The two excluded extension coordinates are the first endpoint relation and the final running claim, both already determined under this conditioning.
+
+The computed ranks equal all three targets. Since the head map is binary-affine, this establishes uniformity on the affine space defined by the two relations, conditional on the pre-suffix table, at the certified fixed data and coins. It does not establish that this conditional rank succeeds with high probability when the conditioned data vary.
+
+\paragraph{Independent checks.} \path{zk_count_full_head_audit.py} compares the analytic folded-bank table to direct folding of a complete small ISA-derived trace. Single-bit and joint flips, covering all three geometric background types, match every head coefficient in accepted reference GKR replays and the pre-suffix table changes. The checker verifies the bus and counter chains after each flip. It then constructs the full-support binary matrix without substituting independent extension scalars for the pivot bits. Its fixed nonpivot evaluations are sums of the actual support weights selected by Boolean bits.
+
+\paragraph{Remaining security obligation.} An exact rank at one completion and one independent coin choice is not a failure-probability bound. A full-layer simulator needs a uniformly small probability of rank failure over the honest coins and nonpivot bits, for every admissible fixed complement. Preceding GKR layers, the fingerprint channels, and the remaining VM reductions are not covered by this matrix.
+
+\end{document}
