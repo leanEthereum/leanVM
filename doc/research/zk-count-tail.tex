@@ -1,0 +1,74 @@
+% !TeX root = zk-count-tail.tex
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\input{../leanvm/preamble/macros.tex}
+\newtheorem{proposition}{Proposition}
+\title{A nonlinear endpoint leak in count GKR}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\paragraph{Result and scope.} The anchored six-bank construction in \path{zk-count-mixed.tex} is not statistically hiding for the standalone count layer, despite its successful extension-affine-span certificate. The last quartic and terminal children test a guessed unmasked endpoint with almost perfect accuracy. This is a layout obstruction, not an impossibility of valid-padding ZK. The audit uses identity push and pull trees: the actual VM batches three nonconstant products, so this is not a full-VM transcript distinguisher.
+
+\section{The last quartic remembers its factors}
+
+Let $n$ be the number of sumcheck rounds in the final radix-four layer. Immediately before its last fold, the four count children are affine lines $A_i(T)$, $0\le i<4$. Write
+\[
+ P(T)=\prod_{i=0}^3 A_i(T),\qquad
+ z_i=A_i(\fc),\qquad e_i=A_i(1).
+\]
+The verifier receives the four nonconstant coefficients of $P$ and all $z_i$. Its constant coefficient follows from $P(\fc)=\prod_i z_i$. In the identity-fingerprint replay, divide the transmitted tails by the nonzero count batching coefficient; the fingerprint products contribute only a known constant.
+
+For a candidate endpoint $h$ of child $1$, define the homogeneous evaluation
+\[
+ H(h)=\sum_{k=0}^4 [T^k]P(T)\,
+ (\fc h+z_1)^k(h+z_1)^{4-k}.
+\]
+This is a public function of the wire and the guess. Affine interpolation gives the exact identity
+\[
+ H(h)=\prod_{i=0}^3(hz_i+z_1e_i).
+\]
+Consequently $H(e_1)=0$. No division by $h+z_1$ is needed, so the test remains valid when that quantity vanishes.
+
+\paragraph{More generally.} When all $z_i\ne0$, the polynomial $P(\fc+X)/\prod_i z_i$ equals $\prod_i(1+s_iX)$, where $s_i=A_i'/z_i$. It determines the multiset of four normalized slopes, including zero slopes. Assigning these slopes to the four labeled terminal values gives at most $4!$ possible tuples of affine lines. Thus the last message and terminal packet determine the eight penultimate child values up to a bounded permutation ambiguity. Matching affine hulls of these observations cannot establish privacy.
+
+\section{The six-bank layout leaves an endpoint unmasked}
+
+The bank tags, in binary index order, use selected-child pairs
+\[
+ (0,1),\ (0,1),\ (0,1),\ (1,2),\ (2,3),\ (3,0).
+\]
+The last tag bit partitions tags $0,\ldots,3$ from $4,\ldots,7$. Only tags $4$ and $5$ contain random trades in the upper half, and neither touches child $1$. All anchors and geometric backgrounds are fixed. Therefore $e_1$ is independent of every mask bit, regardless of the random support size.
+
+Two valid fixed complements in tag $6$ change a child-$1$ counter using a balanced untwisted trade. They preserve all quartet products, preceding count-GKR messages, memory and bytecode images, and final access counts. Let $h_0(x),h_1(x)$ denote their two upper-half child-$1$ evaluations, where $x$ contains the first $n-1$ fold challenges. These are efficiently computable multilinear polynomials for the two candidate complements.
+
+\begin{proposition}[Near-perfect endpoint distinction]
+For the anchored six-bank count-only construction and these two complements, the transcript distributions have statistical distance at least
+\[
+ 1-\frac{8n-3}{|\E|}.
+\]
+Challenges are independent honest field coins, and the mask distribution may be arbitrary provided it is chosen before these coins. The claim concerns this count-only experiment, not its joint realization with the actual fingerprint channels.
+\end{proposition}
+\begin{proof}
+Test $H(h_0)=0$. For complement $0$ it always holds when the count batching coefficient is nonzero. Fix any mask assignment under complement $1$. Each $e_i$ and $h_0$ has total degree at most $n-1$ in $x$, and each $z_i$ has degree at most $n$ in $(x,\fc)$. Hence $H(h_0)$ has total degree at most $8n-4$.
+
+This polynomial is nonzero for every fixed mask assignment. Set $x$ to a Boolean position selecting a changed real quartet in upper tag $6$, and set $\fc=1$. The masks disappear at this position; all four endpoints are nonzero powers of $\gen$, and $h_0\ne h_1=e_1$. Thus
+\[
+ H(h_0)=\left(\prod_i e_i\right)(h_0+h_1)^4\ne0.
+\]
+Schwartz-Zippel bounds false acceptance by $(8n-4)/|\E|$, uniformly over mask assignments. The batching coefficient is zero with probability $1/|\E|$; declare rejection there. The difference between the two acceptance probabilities is at least the stated bound.
+\end{proof}
+
+\section{Consequence for the next construction}
+
+\path{zk_count_tail_audit.py} checks the homogeneous identity against complete accepted reference GKR transcripts from the anchored $512$-row instance. It verifies actual ISA constraints and bus/counter consistency after each mask assignment, identical preceding count messages, a changed unmasked endpoint, the Boolean nonvanishing certificate, and the denominator-zero case. The theorem's error bound follows from the polynomial argument, not from the sampled replays.
+
+The next layout must supply joint entropy to the penultimate child values on both sides of the final fold. Merely placing more random bits in the same six banks cannot change the missing endpoint direction. Reordering banks can remove this particular missing coordinate, but is not a privacy proof: after all nontag coordinates are folded, each bank still contributes only one extension-field scalar, and the last-message map has at most $24$ preimages when terminal values are nonzero. A useful next target is a witness-independent joint distribution for all eight penultimate values, followed by simulation of the earlier rounds using separate remaining entropy. This changes padding placement and generation only; no production verifier change has been made.
+
+\end{document}
