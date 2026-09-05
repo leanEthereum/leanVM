@@ -1,0 +1,63 @@
+% !TeX root = zk-bus-packet.tex
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\input{../leanvm/preamble/macros.tex}
+\newtheorem{theorem}{Theorem}
+\title{Joint hiding of the final three-channel GKR packet}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\paragraph{Result and limit.} Two independent JUMP counter-label masks and thirty-two unused memory cells jointly hide the twelve final GKR child values below $2^{-157}$. This uses the existing stack placements and no new verifier messages. The preceding GKR transcript is excluded. Moreover, the subsequent memory evaluations expose an exact residual that cancels every mask in this construction. Thus this is a packet theorem, not full bus ZK; executed-payload or metadata randomness is still necessary.
+
+\section{Two counter columns hide both count and bus difference}
+
+Let $D$ be the bus depth and $H\ge17$ the JUMP log height. Use the four-bank layout of \path{zk-count-children.tex}: $14336$ reserved valid JUMP rows in an aligned $2^{17}$-row block, with four repeated self-loops per eight-row unit. Independently trade the labels of \texttt{cnt\_f} and \texttt{cnt\_bc}, instead of only \texttt{cnt\_c}. Each self-loop has its own bytecode address and a fresh frame, so both four-read chains admit independent assignments $(0,3,1,2)$ or $(1,2,0,3)$. All quartet products, count ancestors, memory images, final counters and bus balance are preserved. The same rows now supply $3584$ fair bits. The announced memory and bytecode domains must accommodate these cycles and their fixed completion.
+
+Write $C_i$ for the count children, $P_i,Q_i$ for the push and pull children, and $B_i=P_i+Q_i$. At a read, $B$ changes by $d$ times the counter change, where $d=e_2(1+\gen)$ and $e_i=\eq(\alpha,i)$. Let $\tau^c_j,\tau^b_j$ be the selectors of counter column $j$ in the count tree and its read block in the bus. The two masks contribute local four-vectors $W_f,W_{bc}$ through
+\[
+ \begin{pmatrix}\Delta C\\\Delta B\end{pmatrix}
+ =\begin{pmatrix}\tau^c_f&\tau^c_{bc}\\d\tau^b_f&d\tau^b_{bc}\end{pmatrix}
+   \begin{pmatrix}W_f\\W_{bc}\end{pmatrix}.
+\]
+On the shared sparse-span event, each $W_j$ is independent uniform in $\E^4$: the four trade directions have determinant $1+\gen^8\ne0$. Using one counter column supplies only four fields of noise, not the eight needed here.
+
+\paragraph{The selector determinant never vanishes identically.} In units of $2^H$, the count placements of $f,bc$ are $A+2,A+3$ with $A$ even. Every opcode has an even number of count columns, so all taller blocks and preceding equal-height tables contribute an even offset. The bus placements are $T+4,T+1$, because state and bytecode precede the three memory reads. The count indices differ only in their lowest bit; the two bus indices, three apart, differ in a higher bit. Hence the selector products $\tau^c_f\tau^b_{bc}$ and $\tau^c_{bc}\tau^b_f$ have different multiplicities of some factor $z_j$ or $1+z_j$. They are distinct polynomials over $\Ftwo$. Their sum has degree at most $2(D-H)$, uniformly over every admissible announced layout. The polynomial identity bound gives zero probability at most $2(D-H)/|\E|$.
+
+The sparse evaluation weights cost $\delta_{\mathrm{span}}+12/|\E|$, the two bank tags cost $4/|\E|$, embedding within the JUMP column costs $(H-17)/|\E|$, and $e_2=0$ costs $4/|\E|$. Thus $(C,B)$ is uniform on good coins with error at most $\delta_{\mathrm{span}}+(2D-H+3)/|\E|$, independently of arbitrary fixed complementary trace data.
+
+\section{Unused memory supplies the remaining four coordinates}
+
+Reserve an aligned block of thirty-two unused, nonpublic cells and randomize their first limbs independently in $\K$. For each child $i$, its eight cells have three-coordinate Boolean weights. These weights span $\E$ over $\K$ whenever at least two coordinates lie outside $\K$ and none is $0$ or $1$, by the cubic-extension lemma in \path{zk-padding.tex}. This fails with probability at most $3\cdot2^{-256}+6/|\E|$. The common placement selector has degree $D-5$, and the limb fingerprint coefficient $e_3$ vanishes with probability at most $4/|\E|$.
+
+Consequently these cells give four independent uniform increments to $P$, even conditional on every counter bit. They give the same increments to $Q$ and leave $(C,B)$ unchanged. The transformation $(C,B,P)\leftrightarrow(C,P,Q)$ is invertible.
+
+\begin{theorem}[Final packet only]
+For $17\le H\le D\le40$ and any layout admitting the stated reservations, the honest coins and all twelve final GKR children have a witness-independent simulator with error at most
+\[
+ \delta_{\mathrm{span}}+\frac{3D-H+8}{|\E|}+3\cdot2^{-256}<2^{-157}.
+\]
+The simulator samples honest coins and twelve independent uniform extension elements. Roots, round messages, memory evaluations, commitments and Fiat-Shamir are not included.
+\end{theorem}
+
+\section{The next disclosures cancel this whole mask family}
+
+After the child packet, let $y\in\E^2$ be the fresh point and $z=(y,\fc)$ the final leaf point. The prover then reveals the three memory evaluations $m_0,m_1,m_2$ at the memory coordinates of $z$. Let $\sigma$ select the memory framework block. The verifier can compute
+\[
+ \mathit{leak}=\sum_{i=0}^3\eq(y,i)
+       \left(P_i+\frac{\gen}{1+\gen}(P_i+Q_i)\right)
+       +\sigma\sum_{j=0}^2e_{3+j}m_j.
+\]
+At every counted read, a label change contributes $e_2\gen\Delta\cnt$ to $P$ and $e_2(1+\gen)\Delta\cnt$ to $P+Q$, so it cancels in this residual. All final counters are fixed under our trades. Every unused-memory payload change cancels between its push seed and the revealed memory evaluation. Thus the residual is independent of every mask above, including additional unused cells or all three randomized limbs.
+
+This residual can depend on private data. A valid XOR followed by a closing JUMP can have first input limb $s\in\{0,1\}$, second input zero and derived output $s$, with identical code, addresses and counts for both choices. After removing the memory framework contribution, changing $s$ changes the residual by $e_3$ times the sum of the two distinct input/output read-position weights. This is a nonzero polynomial of degree at most $D+4$. The local cycle audit verifies both witnesses and the invariant; it does not instantiate an entire VM execution. This same XOR family is a candidate source for masking the residual, but needs a joint rank argument with memory evaluations and earlier GKR. The packet theorem alone cannot be composed with the memory openings.
+
+\paragraph{Evidence.} \path{zk_bus_packet_audit.py} checks the placement identities, exact binary ranks $768$, $1536$ and $2304$ for one counter column, both columns and the complete packet, and the rational error bound. Small valid-cycle libraries check the actual flush-derived columns, independent simultaneous trades, unchanged count ancestors and the memory-removal residual. These finite checks support the uniform arguments above; they are not a full VM ZK certificate.
+
+\end{document}
