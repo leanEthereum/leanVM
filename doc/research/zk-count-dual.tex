@@ -1,0 +1,74 @@
+% !TeX root = zk-count-dual.tex
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\input{../leanvm/preamble/macros.tex}
+\newtheorem{proposition}{Proposition}
+\title{A trace-dual route to a uniform count-head bound}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\paragraph{Result and limitation.} The post-sparse map from the actual full-head certificate admits a short two-sided Frobenius elimination certificate. Its possible dual space shrinks from dimension $24$ to $2$ and then to zero. This proves surjectivity at those fixed data without expanding a $4608$-row binary matrix. It does not yet prove a uniform failure bound: numerical elimination can rely on identities that hold only at the sampled point. The counterexample below rules out that shortcut.
+
+\section{The exact dual equations}
+
+For fixed coins and nonpivot data, write the post-sparse map as
+\[
+ F(u)=Au+Bu^{[2]},\qquad A,B\in\E^{m\times n},
+\]
+where brackets denote entrywise Frobenius. Translations do not affect rank. In the tested count instance $m=24$ and $n=32$.
+
+\begin{proposition}[Trace-dual criterion]
+The binary-linear map $F$ is onto $\E^m$ if and only if
+\[
+ A^{[2]\mathsf T}z^{[2]}+B^{\mathsf T}z=0
+\]
+has no nonzero solution $z\in\E^m$.
+\end{proposition}
+\begin{proof}
+Every binary-linear functional on $\E^m$ has the form $y\mapsto\operatorname{Tr}_{\E/\Ftwo}(z^{\mathsf T}y)$. Its pullback through $F$ has coefficient $A^{\mathsf T}z+(B^{\mathsf T}z)^{[2^{191}]}$. The trace pairing is nondegenerate, so the functional annihilates the image exactly when this coefficient vanishes. Squaring gives the displayed equation. Surjectivity is equivalent to having no nonzero annihilating functional.
+\end{proof}
+
+An ordinary extension-rank sufficient condition is
+\[
+ \operatorname{rank}_{\E}\!\begin{pmatrix}A^{[2]}\\B\end{pmatrix}
+ -\operatorname{rank}_{\E}B=m.
+\]
+Indeed, restrict $u$ to the square roots of $\ker B$; then $F(u)^{[2]}=A^{[2]}u^{[2]}$ covers the output. This condition fails in the count instance: the ranks are $31$ and $14$, giving only $17$ of $24$ directions. It is sufficient, not necessary; cancelling the quadratic part discards useful entropy here.
+
+\section{Eliminate in both Frobenius directions}
+
+Maintain an extension subspace containing every possible dual solution, with basis matrix $W\in\E^{m\times d}$. Substituting $z=Wv$ gives
+\[
+ Pv^{[2]}+Qv=0,\qquad
+ P=A^{[2]\mathsf T}W^{[2]},\quad Q=B^{\mathsf T}W.
+\]
+Every left-null vector of $P$ gives an ordinary linear constraint on $v$ through $Q$. Conversely, a left-null vector of $Q$ gives a linear constraint on $v^{[2]}$ through $P$; take entrywise square roots of that constraint to obtain one on $v$. Intersect the kernels of both families, replace $W$ by a basis for the resulting smaller subspace, and repeat. Every step retains all actual dual solutions. Reaching zero therefore certifies surjectivity. Stopping at positive dimension is inconclusive.
+
+\paragraph{Exact count certificate.} \path{zk_count_dual_audit.py} reconstructs the same full-support completion, coins and nonpivot bit assignment as \path{zk-count-full-head.tex}. Using only the first elimination direction stalls at dimensions $24,14,12,12$. Using both gives $24,2,0$. The script independently expands the linearized map over $\Ftwo$ and checks binary rank $4608$. This is the post-sparse map; the earlier thirteen rounds still require their actual sparse-bit matrix.
+
+\section{Why a good specialization is not a probability bound}
+
+Consider the one-dimensional family
+\[
+ F_t(u)=u^2+tu.
+\]
+At $t=0$ it is a Frobenius automorphism, and the dual elimination immediately reaches zero. At every $t\ne0$, both $0$ and $t$ lie in its kernel, which has exactly two elements. Its binary rank is then $191$. Thus an invertible specialization can coexist with failure probability $1-1/|\E|$.
+
+In numerical elimination, a row declared to annihilate $P$ or $Q$ may do so only because that matrix has dropped rank at the chosen parameters. Such a row cannot be promoted to a polynomial identity using the successful evaluation alone. The same warning applies to specializing sparse fold coins to an anchor position to remove the complement: this is useful only after a certificate valid throughout the parameter family has been established.
+
+\section{What would complete the uniform argument}
+
+A usable symbolic certificate must provide fixed rational identities producing the successive dual constraints, with explicit denominators and nonzero terminal minors. All asserted nullspace relations must hold identically whenever those denominators are nonzero. Clearing denominators then gives ordinary polynomials whose zeros contain the exceptional parameter choices. To obtain a uniform bound, their nonvanishing must be proved for every permitted fixed complement, and their degrees must be bounded.
+
+Square roots do not intrinsically force degree $2^{191}$ in such a proof. If the rational expressions use parameter Frobenius powers from $2^{-a}$ through $2^b$, substitute $\theta=\eta^{[2^a]}$ in all independent field parameters. This preserves their uniform distribution and turns every negative Frobenius power into a nonnegative one, with exponent at most $2^{a+b}$. The same substitution acts on coefficients by field automorphisms. One must still establish the identities and account for their actual degrees; reparameterization alone is not a rank bound.
+
+The next task is therefore a symbolic, rank-safe elimination certificate, or a construction whose fixed minors provide one directly. More successful numerical ranks cannot supply the missing probability estimate. The full sparse-head bound, earlier GKR layers and complete VM composition remain open.
+
+\end{document}
