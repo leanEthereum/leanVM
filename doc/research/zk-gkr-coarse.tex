@@ -1,0 +1,69 @@
+% !TeX root = zk-gkr-coarse.tex
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\input{../leanvm/preamble/macros.tex}
+\title{A first-packet GKR leak and an executed-payload repair}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\paragraph{Result and scope.} The root/boundary construction of \path{zk-bus-root-joint.tex} does not hide the first GKR packet in every admissible layout: an entire MUL block product can be untouched by its masks. Thirty-two random valid MUL cycles repair one such push-side child, jointly with the shared root and all seventeen boundary values. The matching pull child and other intermediate GKR messages remain open. All statements use independent honest interactive coins, not Fiat-Shamir.
+
+\section{An actual unmasked child}
+
+Take table log heights $(4,18,4,4,17,3)$ in opcode order, and memory and bytecode log sizes both $20$. The reference layout has bus depth $22$ and committed stack log $24$, within the supported range. Set $N=2^{18}$. The first radix-four packet reveals four products per channel without a sumcheck round. Its push child $2$ covers exactly four consecutive MUL blocks:
+\[
+ [2\cdot2^{20},3\cdot2^{20})
+ =\text{state}\;\Vert\;\text{bytecode read}\;\Vert\;\text{input }a\;\Vert\;\text{input }b.
+\]
+The output-$c$ block starts in child $3$. All framework, JUMP and XOR blocks lie outside child $2$. Thus every random choice used by the earlier root/boundary construction leaves this child unchanged. Row permutations inside MUL also preserve these four complete block products.
+
+\paragraph{A valid private-data pair.} Reserve $32$ MUL slots as initially fixed zero-input padding. Let the other $N-32$ instructions form a straight MUL chain followed by one closing JUMP. Each multiplies the same private word $(s,0,0)$ by $(1,0,0)$ and derives $(s,0,0)$, for $s\in\{0,1\}$. Three distinct fresh cells suffice for the chain; their complete labels are $1,\gen,\ldots,\gen^{N-33}$. Both witnesses have identical code, control states, addresses and access multiplicities. The zero-padding slots likewise multiply zero by one in fresh frames and have fixed closing JUMPs. A common base path and fixed completion can be adjoined in disjoint slots. No full-size execution is instantiated by the audit.
+
+Write $e_i=\eq(\alpha,i)$ and $\beta$ for the bus shift. To certify that the exposed products differ as polynomials, specialize to the Boolean fingerprint point with $e_3=1$ and all other $e_i=0$. The state, bytecode, and input-$b$ blocks then contribute respectively $\beta^N$, $(\beta+\gen)^N$ and $(\beta+1)^N$. The exposed child becomes
+\[
+ T_s=\bigl[\beta(\beta+\gen)(\beta+1)\bigr]^N
+       \beta^{32}(\beta+s)^{N-32}.
+\]
+The difference $T_0+T_1$ is not the zero polynomial: the common factor is nonzero, and $\beta^{N-32}+(\beta+1)^{N-32}$ is nonzero at $\beta=0$. Before specialization the difference has total degree at most $16N$, since there are $4N$ degree-at-most-four fingerprint factors. Hence the two exposed values differ except with probability at most
+\[
+ \frac{16N}{|\E|}=2^{-170}.
+\]
+Including the coins, this gives distance at least $1-2^{-170}$ for this private-data pair under the stated mask family. It is not an impossibility result for execution padding: it identifies where that family's entropy is absent. Count-root normalization cannot repair this pair's payload leak by itself, since its two count profiles already agree.
+
+\section{Random MUL payloads repair this push child}
+
+Replace the $32$ fixed zero-input cycles by valid MUL cycles with independent uniform words $v_i\in\K^3$ multiplied by $(1,0,0)$. The output is the same word. Every input cell is fresh and read once, so its push factor is
+\[
+ X_i=\beta+e_0\dsep{mem}+e_1a_i+e_2\gen+
+       e_3v_{i,0}+e_4v_{i,1}+e_5v_{i,2}.
+\]
+Only the input-$a$ factor in this child depends on $v_i$: its state, bytecode and input-$b$ factors are fixed, and its output is in another child. Therefore $T=A\prod_iX_i$, with $A$ independent of all $32$ sampled words. The new words affect the final boundary through seven linear observations, namely four push-child contributions and three memory evaluations. Their pull contributions are identical, and all counters are fixed. This is exactly the setting of the mixed-character lemma in \path{zk-bus-root-joint.tex}, including its rank-two fingerprint case.
+
+Define, for at most $m$ other fingerprint factors,
+\[
+ \varepsilon_*(m)=\frac{m+40}{|\E|}
+ +\frac{|\K|^2}{(|\E|-2)^2}
+ +\frac12\sqrt{(|\E|-2)|\E|^7}
+   \left(\frac{\sqrt{|\E|}}{|\K|^2-1}\right)^{32}.
+\]
+Here $m=4N-32$. The lemma replaces $T$ by an independent uniform element of $\E^\times$ while retaining the actual boundary and all other padding choices, with error at most $\varepsilon_*(4N-32)$.
+
+\paragraph{Include the shared root without losing the correlation argument.} First use the original thirty-two unused words to replace the shared root, retaining the new MUL words among the other padding choices. The new child $T$ does not depend on those unused words. Next use the new MUL words to replace $T$, retaining the actual boundary. The first replaced root is already independent and can be carried through this second hybrid. Finally apply the boundary simulator, whose sources hide arbitrary fixed complementary MUL data. The resulting joint simulator covers the shared root, this first push child and all seventeen boundary values, with error
+\[
+ \varepsilon_{17}+\varepsilon_*(2^{22})+
+ \varepsilon_*(4N-32)<2^{-155}.
+\]
+It samples the two product values independently uniformly in $\E^\times$ and the boundary uniformly in $\E^{17}$. A compatible publicly normalized count root can again be adjoined. All exclusions of the earlier boundary theorem remain in force.
+
+\paragraph{Reservation and next step.} The MUL cycles consume $32$ pre-reserved MUL slots, $32$ closing JUMP slots and $96$ base-field payload coins. Their count-column products are fixed across random choices. Compact frame allocations fit the displayed memory bound; the audit checks disjoint frame ranges and free JUMP slots. The corresponding \emph{pull} child contains the differently shifted factors with count $1$ rather than $\gen$. The next target is therefore a joint bound for $(\prod_iX_i,\prod_i(X_i+d),Y)$, where $d=e_2(1+\gen)$ and $Y$ is the retained linear view. The second product is not a linear observation, so the current lemma does not cover it. The remaining first packet and deeper layers also remain open; no verifier change or full GKR simulator is claimed.
+
+\paragraph{Evidence.} \path{zk_gkr_coarse_audit.py} checks the actual layout, valid small MUL chains with the same count profile, the full-size polynomial specialization, and accepted algebraic first packets with identical roots. Those packets certify the reference verifier's disclosure, not full VM proofs. Independent payload assignments check the one-factor-per-word identity and the seven-coordinate linear view against actual flush forms. Exact rational arithmetic checks the composed error bound.
+
+\end{document}
