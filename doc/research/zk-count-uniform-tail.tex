@@ -1,0 +1,109 @@
+% !TeX root = zk-count-uniform-tail.tex
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\input{../leanvm/preamble/macros.tex}
+\newtheorem{theorem}{Theorem}
+\title{A uniform statistical bound for the post-sparse count tail}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\paragraph{Result.} Fixed counter-offset anchors, permuted geometric backgrounds, and a triangular rank argument give a uniform statistical theorem for the last eight rounds of the count-only GKR layer, including their incoming claim. The proof uses one ordinary polynomial minor, not a numerical nullspace identity. The preceding thirteen sparse rounds, earlier GKR layers, fingerprint channels and full VM composition remain unproved. This modified padding is not the library of the earlier full-head rank certificate.
+
+\section{The padding and the claim}
+
+Use $m=13$ sparse coordinates, one separator, three parity-direction bits and four suffix-group bits. The count column has depth $23$. Its $128$ banks are indexed $b=8g+d$, with $0\le g<16$ and $0\le d<8$. The edges and background types are
+\[
+\begin{array}{c|rrrrrrrr}
+d&0&1&2&3&4&5&6&7\\\hline
+\text{edge}&01&12&23&01&30&01&01&12\\
+\text{type}&0&1&2&1&0&2&0&0.
+\end{array}
+\]
+Every bank has independent fair twisted-trade bits on the common $896$-point support $S=\{2s+e:s\in S_{12},\ e\in\{0,1\}\}$. Reserve sparse index $384\notin S$ as an anchor in every bank, at both separator values. Selected counter exponents are listed in separator-major, selected-child order. Set $k_b=b+1$ for pivot banks, whose edge is $01$:
+\[
+\begin{array}{ll}
+d=0,\ g\text{ even}:&(k_b,k_b,k_b,k_b),\\
+d=0,\ g\text{ odd}:&k_b+(0,3,2,1),\\
+d\in\{3,5,6\}:&k_b+(0,3,1,2).
+\end{array}
+\]
+Nonpivot anchors use $(0,3,2,1)$, except edge $30$, which uses $(0,3,1,2)$. In every active geometric background chain, place label $\sum_{\ell=0}^{13}x_\ell2^{(\ell+b)\bmod14}$ at Boolean index $x$. This is only a permutation of the complete $2^{14}$-read chain. Inactive backgrounds use fresh one-read loops.
+
+All these anchors are valid cycles. Four identical offset values use four fresh loops with $k_b+1$ reads each; an offset permutation uses one loop with $k_b+4$ reads. Keep the preceding labels at other fixed positions. At most $512$ such prefix rows are needed in any bank, while $29180$ selected-child positions remain outside its random support and anchor. Place those rows there and use valid fixed data in the remaining positions. The mask loops, anchors and background chains use distinct fresh addresses. The theorem permits arbitrary fixed complementary data subject to these reservations and validity.
+
+Let $Q=2^{192}$ and let $\delta_{\mathrm{span}}$ be the sparse-span error of \path{zk-stacked-padding.tex}.
+
+\begin{theorem}[Uniform post-sparse count-tail hiding]
+For the prescribed padding and independent honest interactive field coins, the final eight normalized count sumcheck rounds, their four terminal count values and their incoming count claim have a witness-independent simulator with statistical error at most
+\[
+ \delta_{\mathrm{span}}+\frac{4087}{Q}<2^{-157}.
+\]
+The bound is uniform over admissible fixed complements. It concerns the count-only experiment, not its joint distribution with the preceding messages or the actual fingerprint channels.
+\end{theorem}
+
+\section{Choose root evaluations as proof coordinates}
+
+Write $a=1+\gen$, $L(T)=1+(1+\gen^2)T$, $R(T)=\gen^2+(1+\gen^2)T$, and let $t_L,t_R$ be their roots. After the sparse coordinates fold, each bank has one mask evaluation $U_b$. These evaluations are independent uniform elements of $\E$, except on one shared event of probability at most $\delta_{\mathrm{span}}+13/Q$.
+
+Consider the four head rounds consisting of the separator and three direction folds. Let $Y\in\E^{4\times16}$ be the table immediately after them. For analysis only, strengthen the view to include this entire table. Replace the first two separator tail coefficients by the separator polynomial's values at $t_L,t_R$. Keep its other two coefficients, the next twelve head coefficients, and $Y$.
+
+This is an invertible change of coordinates away from the separator challenge $\fc_s\in\{t_L,t_R\}$. Recover the head's final claim from $Y$ and run the sumcheck identities backward. The matrix for recovering the two replaced coefficients has rows $(\fc_s+t,\fc_s^2+t^2)$ for $t=t_L,t_R$, with determinant $(\fc_s+t_L)(\fc_s+t_R)$ because $t_L+t_R=1$.
+
+Condition on all nonpivot bits. At either root a pivot changes only one selected child, so both root evaluations are affine over $\E$ in the $64$ pivot evaluations. The $16$ entries $Y_{0,g}$ are also extension-affine. Denote these $18$ pure-linear outputs by $Z$. The remaining $14$ head outputs are binary-affine. Ignoring translations, the transformed map is
+\[
+ F(U)=AU+BU^{[2]},\qquad A,B\in\E^{32\times64},
+ \qquad B_Z=0.
+\]
+The common pivot ratio $L:R$ makes all mixed pivot terms cancel. No verifier algorithm or transcript field is changed by this analysis.
+
+\section{The missing quadratic row is an identity}
+
+Let $C_g(T),D_g(T)$ be the other two child lines before the last head fold, and let $V_g(T)$ be the pivot-induced change in child $0$. With $L_s=L(\fc_s)$ and $R_s=R(\fc_s)$, the quadratic part of that round is
+\[
+ \sum_g\eq(r,g)\frac{R_s}{L_s}C_g(T)D_g(T)V_g(T)^2.
+\]
+Differentiate formally in characteristic two and evaluate at the last head challenge $\fc_h$. Since $(V_g^2)'=0$, its first and third coefficients satisfy
+\[
+ B_{h,1}+\fc_h^2 B_{h,3}
+ =\sum_g\eq(r,g)\frac{R_s}{L_s}(C_gD_g)'\,A_{Y_{0,g}}^{[2]}.
+\]
+This row identity holds for every fixed complement and nonpivot assignment. Its only denominator is $L_s$, already nonzero on the coordinate-change event.
+
+Delete $B_{h,1}$ and call the remaining $13$ potentially nonzero quadratic rows $B_*$. Define
+\[
+ K=\begin{pmatrix}A_Z^{[2]}\\B_*\end{pmatrix},
+ \qquad
+ N=\begin{pmatrix}A^{[2]}\\B_*\end{pmatrix}.
+\]
+If $N$ has full row rank $45$, then $K$ has rank $31$. First sample the $18$ pure-linear outputs $Z$, which are uniform. In their input fiber, restrict noise to $U=v^{[1/2]}$ with $Kv=0$. The derivative identity kills the deleted quadratic row as well. The remaining fourteen outputs then square to $A_{\overline Z}^{[2]}v$, which is onto $\E^{14}$ because $\operatorname{rank}N-\operatorname{rank}K=14$. Thus all $32$ transformed outputs are jointly uniform conditional on the nonpivot data. This uses fixed identities and a full-row minor, not an assumed rank upper bound from a sample.
+
+\section{A minor that is nonzero for every complement}
+
+Treat the nonpivot evaluations as independent field variables. The entries of $A,B$ are polynomials in them and the honest coins. Before the separator, a fixed child evaluation has total degree at most $13$; a mask term has degree one in its evaluation variable. Before head round $\ell$, with $0\le\ell\le3$, these bounds become $13+\ell$ and $\ell$ for a fixed child and a pivot coefficient. The remaining equality weight has degree $7-\ell$. Consequently
+\[
+ \deg A\le\max_\ell\{3(13+\ell)+\ell+7-\ell\}=55,
+ \qquad
+ \deg B\le\max_\ell\{2(13+\ell)+2\ell+7-\ell\}=42.
+\]
+Root-output coefficients have degree at most $46$, and $Y_0$ coefficients at most four, so the same bounds cover every row. A $45$-row minor of $N$ has degree at most $32\cdot110+13\cdot42=4066$.
+
+Specialize the thirteen sparse fold coordinates to Boolean index $384$. Every fixed child entry used by the subsequent folds is then an explicitly reserved anchor or background value. The complementary trace disappears. The independent formal nonpivot evaluation variables remain free in this polynomial specialization. The exact field audit exhibits rank $45$ for $N$ at one fixed assignment of the remaining parameters. It therefore selects a nonzero minor \emph{common to every admissible complement}, with degree at most $4066$. Schwartz-Zippel bounds its failure by $4066/Q$.
+
+This specialization may lie outside the sparse-span event. That is harmless: the polynomial is tested in an ideal experiment with independent extension evaluations, which agrees with the actual bits on the span event. Unlike a favorable nullspace specialization, the nonzero minor here certifies a sufficient condition throughout the parameter family.
+
+\section{Finish the simulator and the error bound}
+
+The other three edge directions, modulo the pivot direction, make the remaining three coordinates of each $Y_g$ uniform. The four-direction determinant is $(1+\gen^2)^4\ne0$. Exclude Boolean values of the three direction challenges at cost $6/Q$. Conditional uniformity of the head outputs and $Y_0$, established above, then gives uniform root values, fourteen remaining head coefficients and the full table $Y$, jointly. Replacing the exceptional cases by ideal samples costs at most the determinant failure probability, even though that event can depend on the nonpivot evaluations.
+
+The simulator samples this uniform tuple, inverts the root-coordinate change, recovers the incoming claim by the backward identities, and runs the remaining four count rounds on $Y$. Summing the sparse-span event, determinant zeros, direction corners and the two separator roots gives $\delta_{\mathrm{span}}+(13+4066+6+2)/Q$, as claimed.
+
+\paragraph{Evidence and boundary.} \path{zk_count_uniform_tail_audit.py} checks the offset-anchor and background-permutation cycles, the derivative identity, the root-coordinate map and inverse, ranks $31$ and $45$, and the exact rational bound. It does not instantiate the full depth-$23$ trace or certify its embedding in the complete stacked VM count layout. The preceding sparse-head argument must be redone jointly for this modified padding before these results can yield a full-layer theorem. The linearized-polynomial viewpoint itself is standard, see \href{https://arxiv.org/abs/1211.5475}{Wu and Liu, \emph{Linearized polynomials over finite fields revisited}}; the padding and certificate above are specific to this construction.
+
+\end{document}
