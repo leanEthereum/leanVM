@@ -182,15 +182,13 @@ N_ETA_POWS = N_ETA_POWS_PLACEHOLDER
 
 # ------------------------------------------------------------ flock (the R1CS)
 # Univariate skip: K_SKIP variables fold in one skip round (half-domain 2^K_SKIP
-# phi8 nodes), then N_FIXED_CHALLENGE_ROUNDS fixed inner rounds (FIXED_CHALLENGES),
-# then sampled outer rounds. LAGRANGE_INV_* are the one baked inverse barycentric
+# phi8 nodes), then the sampled rounds. LAGRANGE_INV_* are the one baked inverse
+# barycentric
 # denominator per domain (combined, S). The zerocheck point/round buffers are sized
 # at runtime in the exponent (m = K_LOG + tau_5 and m - 6, both certified);
 # LINCHECK_ROUNDS = K_LOG - K_SKIP is protocol-fixed and PIN_COLUMN is the
 # const-pin column.
 K_SKIP = K_SKIP_PLACEHOLDER
-N_FIXED_CHALLENGE_ROUNDS = N_FIXED_CHALLENGE_ROUNDS_PLACEHOLDER
-FIXED_CHALLENGES = FIXED_CHALLENGES_PLACEHOLDER
 PHI8_NODES = PHI8_NODES_PLACEHOLDER
 LAGRANGE_INV_COMBINED = LAGRANGE_INV_COMBINED_PLACEHOLDER
 LAGRANGE_INV_S = LAGRANGE_INV_S_PLACEHOLDER
@@ -1700,20 +1698,17 @@ def verify_flock(fs0, fs1, cursor, tau_blake2s_g, zerocheck_chis, lincheck_rs, z
     # sized for that), and q_flock's committed kappa = K_LOG + tau feeds the
     # certified size m, whose dispatch bound caps tau below any baked structure. The
     # first K_SKIP Boolean rounds are replaced by the univariate skip and consume no
-    # equality challenges; the remaining r coordinates are N_FIXED_CHALLENGE_ROUNDS
-    # fixed inner values then sampled outer ones. The prover builds round 1 from
-    # this equality tail, so its sampled part is squeezed before round 1 is fetched,
+    # equality challenges; every remaining r coordinate is sampled. The prover builds
+    # round 1 from this equality tail, so it is squeezed before round 1 is fetched,
     # and round 1 before z, which evaluates it.
     fs = [fs0, fs1]
     mr1cs_g = tau_blake2s_g * GEN ** K_LOG  # runtime m = K_LOG + tau_5, in the exponent
     zerocheck_r = HeapBuf(mr1cs_g)
-    for i in unroll(0, N_FIXED_CHALLENGE_ROUNDS):
-        zerocheck_r[GEN ** (K_SKIP + i)] = FIXED_CHALLENGES[i]
     flock_pts = HeapBuf((mr1cs_g * GEN ** 2) ** PAIR_SLOTS)
-    seed = flock_pts * (GEN ** (K_SKIP + N_FIXED_CHALLENGE_ROUNDS)) ** PAIR_SLOTS
+    seed = flock_pts * (GEN ** K_SKIP) ** PAIR_SLOTS
     seed[GEN ** 0] = fs[0]
     seed[GEN ** 1] = fs[1]
-    for xi in mul_range(GEN ** (K_SKIP + N_FIXED_CHALLENGE_ROUNDS), mr1cs_g):
+    for xi in mul_range(GEN ** K_SKIP, mr1cs_g):
         row = flock_pts * xi ** PAIR_SLOTS
         point_fs = [row[GEN ** 0], row[GEN ** 1]]
         point_fs, zerocheck_challenge = squeeze(point_fs)
@@ -1742,23 +1737,15 @@ def verify_flock(fs0, fs1, cursor, tau_blake2s_g, zerocheck_chis, lincheck_rs, z
         zc_running += lagrange_nums[i] * zc_round1[GEN ** i]
     zc_running *= s_half_product * LAGRANGE_INV_COMBINED
     mr1cs_rounds_g = mr1cs_g * INV_GEN ** 6  # the multilinear rounds: m - 6
-    for i in unroll(0, N_FIXED_CHALLENGE_ROUNDS):
-        r_eq = zerocheck_r[GEN ** (K_SKIP + i)]
-        fs, g_1, cursor = fs_next(fs, cursor)  # G's coefficients, bar the constant one
-        fs, g_2, cursor = fs_next(fs, cursor)
-        g_0 = zc_running + r_eq * (g_1 + g_2)  # the eq-weighted split fixes it
-        fs, chi_v = squeeze(fs)
-        zerocheck_chis[GEN ** i] = chi_v
-        zc_running = g_0 + chi_v * (g_1 + chi_v * g_2)
-    # the sampled rounds: K_LOG + tau_5 - K_SKIP in all, certified
+    # K_LOG + tau_5 - K_SKIP rounds in all, certified
     nmlv_g = tau_blake2s_g * GEN ** (K_LOG - K_SKIP)
     flock_rounds = HeapBuf((mr1cs_rounds_g * GEN ** 2) ** ROUND_SLOTS)
-    seed = flock_rounds * (GEN ** N_FIXED_CHALLENGE_ROUNDS) ** ROUND_SLOTS
+    seed = flock_rounds * (GEN ** 0) ** ROUND_SLOTS
     seed[GEN ** ROUND_FS0] = fs[0]
     seed[GEN ** ROUND_FS1] = fs[1]
     seed[GEN ** ROUND_CURSOR] = cursor
     seed[GEN ** ROUND_CLAIM] = zc_running
-    for xi in mul_range(GEN ** N_FIXED_CHALLENGE_ROUNDS, nmlv_g):
+    for xi in mul_range(GEN ** 0, nmlv_g):
         rd = flock_rounds * xi ** ROUND_SLOTS
         round_fs = [rd[GEN ** ROUND_FS0], rd[GEN ** ROUND_FS1]]
         r_eq = zerocheck_r[GEN ** K_SKIP * xi]

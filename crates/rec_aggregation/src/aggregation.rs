@@ -2464,14 +2464,8 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
         .collect();
     ps("N_TABLE_COLS", ints(&committed));
     ps("TABLE_COLS_CAP", (committed.iter().max().unwrap() + 1).to_string());
-    let fixed_challenges: Vec<F192> = flock::zerocheck::univariate_skip_optimized::small_challenges()
-        .into_iter()
-        .chain(flock::zerocheck::univariate_skip_optimized::medium_challenges())
-        .collect();
-    ps("FIXED_CHALLENGES", flds(&fixed_challenges));
-    // Flock univariate skip: 6 skipped variables, then the fixed inner rounds.
-    ps("K_SKIP", "6".to_string());
-    ps("N_FIXED_CHALLENGE_ROUNDS", fixed_challenges.len().to_string());
+    // Flock univariate skip: 6 skipped variables, then the sampled rounds.
+    ps("K_SKIP", flock::zerocheck::K_SKIP.to_string());
     let phi: Vec<F192> = primitives::field::PHI_8_TABLE_192[..128].to_vec();
     ps("PHI8_NODES", flds(&phi));
     // Tower F192 = F64[Y]/(Y^3+Y+1), Y = new(0,1,0). Y_TOWER embeds Y for

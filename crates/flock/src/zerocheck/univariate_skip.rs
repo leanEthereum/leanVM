@@ -5,8 +5,8 @@
 //! The module is two disjoint halves:
 //!
 //! - **Live in production**: the [`build_eq`] re-export, [`SplitEq`] and [`ntt_extend_vec`].
-//!   The optimized round-1 kernel ([`super::univariate_skip_optimized`]) and the round-2
-//!   kernel ([`super::multilinear`]) are built on these.
+//!   The round-1 kernel ([`super::round1`]) and the round-2 kernel
+//!   ([`super::multilinear`]) are built on these.
 //! - **Test-only oracles**, below the banner and all `#[cfg(test)]`: `pack_bits`,
 //!   `round1_naive` and `round1_extract_c_packed`. They translate the protocol
 //!   formula directly, so the optimized kernels can be diffed against something obviously
@@ -25,9 +25,6 @@
 //! recovered via `inv_NTT_S`; we then evaluate on `Λ = {2^k_skip, …}` via
 //! `fwd_NTT_Λ`.
 //!
-//! The oracles keep the constant F₈ factor `C_s = φ₈(0x1C)` in the eq-on-S weights;
-//! [`super::univariate_skip_optimized`] drops it and the caller restores it before the message
-//! goes on the wire.
 
 #[cfg(test)]
 use pcs::ntt::AdditiveNttGf8;

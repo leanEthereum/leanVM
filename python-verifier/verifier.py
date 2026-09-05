@@ -1092,13 +1092,6 @@ def verify_whir(transcript: Transcript, log_n: int, log_inv_rate: int, target: E
 PHI_BASIS = (E(0x0000000000000001), E(0x033CE8BEDDC8A656), E(0x512620375ED2A108), E(0x0C9E636090AAFC01), E(0xBA4F3CD82801769C), E(0xBA26E7904ADB4A47), E(0x467698598926DC01), E(0x4418AE808B28BDD0))  # fmt: skip
 PHI = tuple(E.sum(PHI_BASIS[bit] for bit in range(8) if value >> bit & 1) for value in range(256))
 
-_MEDIUM_GENERATOR = E(0x243F6A8885A308D3, 0x13198A2E03707344, 0xA4093822299F31D0)
-
-FIXED_CHALLENGES = (
-    PHI[0xF7], PHI[0x53], PHI[0xB5],
-    *tuple(_MEDIUM_GENERATOR ** (2**power) / (ONE + _MEDIUM_GENERATOR ** (2**power)) for power in range(4)),
-)  # fmt: skip
-
 
 @cache
 def _window_denominator(count: int) -> E:
@@ -1135,8 +1128,8 @@ class ZerocheckResult:
 def verify_flock_zerocheck(log_n: int, transcript: Transcript) -> ZerocheckResult:
     """The zerocheck: one univariate skip round, then nflock quadratic ones.
     C rides those rounds with AB, so all three claims come out at one point."""
-    # The point r: seven fixed coordinates, the rest sampled.
-    r = (*FIXED_CHALLENGES, *transcript.samples(log_n - FLOCK_K_SKIP - len(FIXED_CHALLENGES)))
+    # The point r, every coordinate sampled.
+    r = transcript.samples(log_n - FLOCK_K_SKIP)
 
     # P = P^AB + P^C on the coset, then z_skip; the 64 zeros on Lambda are assumed.
     p_coset = transcript.next_scalars(K_BITS)

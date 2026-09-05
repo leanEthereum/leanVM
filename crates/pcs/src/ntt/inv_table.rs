@@ -183,9 +183,8 @@ impl InvNttTableByteSingleGf8 {
     /// implement the `π_b(i') = i' ⊕ 8b` permutation that the §2.1 collapse
     /// requires.
     ///
-    /// This is the URM round-1 inner loop and it must inline into flock's
-    /// `shift_reduce_inner_ab_gfni`, hence `#[inline(always)]` here and on
-    /// every [`Vec128`] method.
+    /// This is flock's round-1 inner loop and it must inline into its caller,
+    /// hence `#[inline(always)]` here and on every [`Vec128`] method.
     ///
     /// # Safety
     /// `V`'s target features must be available (statically true at the

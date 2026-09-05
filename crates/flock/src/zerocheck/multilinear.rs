@@ -1035,20 +1035,17 @@ mod tests {
         }
     }
 
-    /// **The URM kernel's C side**: `C_s · interpolate(round1_c, k_skip, z)`
+    /// **The round-1 kernel's C side**: `interpolate(round1_c, k_skip, z)`
     /// equals `ĉ(z, r_rest)` computed by direct folding (Lagrange at z, then
     /// bind each `r_rest` value). The protocol sends `round1_c` only inside its
     /// sum with the AB half, so this is what pins that half on its own.
     #[test]
     fn c_eval_from_round1_c_matches_direct_fold() {
-        use crate::zerocheck::univariate_skip_optimized::{
-            c_s, medium_challenges, round1_shift_reduce_extract_c_packed_padded, small_challenges,
-        };
+        use crate::zerocheck::round1::round1_message_packed_padded;
         use pcs::ntt::{AdditiveNttGf8, InvNttTableByteSingleGf8};
         use primitives::field::F8;
 
         const K_SKIP: usize = 6;
-        const N_INNER: usize = 7;
 
         for &m in &[14usize, 15, 16] {
             let mut rng = Rng::new(500 + m as u64);
@@ -1056,18 +1053,7 @@ mod tests {
             let b = rng.bits(1 << m);
             let c = rng.bits(1 << m);
 
-            // Build the equality tail with the seven protocol-fixed constants,
-            // matching how `prove` constructs it.
-            let mut r = vec![F192::ZERO; m - K_SKIP];
-            for (i, v) in small_challenges().iter().enumerate() {
-                r[i] = *v;
-            }
-            for (i, v) in medium_challenges().iter().enumerate() {
-                r[3 + i] = *v;
-            }
-            for slot in r[N_INNER..].iter_mut() {
-                *slot = rng.ext();
-            }
+            let r: Vec<F192> = (0..m - K_SKIP).map(|_| rng.ext()).collect();
             let z = rng.ext();
 
             let a_packed = pack_bits(&a);
@@ -1077,7 +1063,7 @@ mod tests {
             let ntt_s = AdditiveNttGf8::new(K_SKIP, F8::ZERO);
             let ntt_l = AdditiveNttGf8::new(K_SKIP, F8(1u8 << K_SKIP));
             let inv_table = InvNttTableByteSingleGf8::new(&ntt_s, &ntt_l);
-            let (_round1_ab, round1_c) = round1_shift_reduce_extract_c_packed_padded(
+            let (_round1_ab, round1_c) = round1_message_packed_padded(
                 &a_packed,
                 &b_packed,
                 &c_packed,
@@ -1088,8 +1074,8 @@ mod tests {
                 &PaddingSpec::dense(m),
             );
 
-            // Path A: interpolate round1_c at z, scale by C_s.
-            let c_eval_via_interpolation = c_s() * interpolate_at_z_on_lambda(&round1_c, K_SKIP, z);
+            // Path A: interpolate round1_c at z.
+            let c_eval_via_interpolation = interpolate_at_z_on_lambda(&round1_c, K_SKIP, z);
 
             // Path B: direct fold of c at z (Lagrange) then bind each
             // r_rest element with fold_in_place_single.

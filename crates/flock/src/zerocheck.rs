@@ -29,33 +29,20 @@ use zk_alloc::ArenaVec;
 use pcs::ntt::{AdditiveNttGf8, InvNttTableByteSingleGf8};
 
 pub mod multilinear;
+pub mod round1;
 pub mod univariate_skip;
-pub mod univariate_skip_optimized;
 
 use multilinear::{
     UniSkipFoldTable, fold_and_compute_round_pair_into, fold_and_compute_round_single_into, fold_in_place_pair,
     fold_in_place_single, interpolate_at_z_combined, round_pair_naive, round_single_naive,
     uni_skip_fold_and_round_pair_optimized_packed_padded, uni_skip_fold_and_round_single_optimized_packed_padded,
 };
-use univariate_skip_optimized::{
-    c_s, medium_challenges, round1_shift_reduce_extract_c_packed_padded, small_challenges,
-};
+use round1::{N_INNER, round1_message_packed_padded};
 
 /// Number of variables folded in round 1 via the additive-NTT univariate skip.
 /// |Λ| = 2^K_SKIP = 64 elements, which is the round-1 prover message: one
 /// length-64 vector of F192, the AB and C halves already summed.
 pub const K_SKIP: usize = 6;
-const N_INNER: usize = 7; // 3 small + 4 medium fixed-constant eq dimensions
-
-/// Build the equality coordinates that remain after the univariate skip.
-fn equality_tail(m: usize, mut sample_vec: impl FnMut(usize) -> Vec<F192>) -> Vec<F192> {
-    let outer = sample_vec(m - K_SKIP - N_INNER);
-    small_challenges()
-        .into_iter()
-        .chain(medium_challenges())
-        .chain(outer)
-        .collect()
-}
 
 /// Witness padding descriptor for URM work-skipping.
 ///
@@ -144,41 +131,20 @@ pub fn prove_packed_padded(
     assert_eq!(c_packed.len(), expected_bytes);
     let n_mlv = m - k_skip;
 
-    // ---- Construct the equality tail (with fixed constants in the inner 7 dims) ----
-    //
-    // r_rest layout:
-    //   r_rest[0..3]               : protocol small-eq constants φ_8(0xF7..)
-    //   r_rest[3..7]               : protocol medium-eq constants β_i
-    //   r_rest[7..m-k_skip]        : sampled outer equality coordinates
-    // Prover and verifier use the same tower-valued challenges directly.
-    let r_rest = equality_tail(m, |n| ps.sample_vec(n));
+    // The equality tail, every coordinate sampled.
+    let r_rest = ps.sample_vec(m - K_SKIP);
 
-    // ---- Round 1: URM (extract_c, parallel) ----
-    //
-    // The optimized URM drops a `C_s = φ_8(0x1C)` scalar from its accumulators
-    // (a prover-side optimization tied to the small-eq trick: see the
-    // C_s factor analysis in `univariate_skip_optimized`). The wire format
-    // must be in "naive" convention so the verifier doesn't need to know
-    // about this internal optimization; we restore the C_s factor here.
+    // ---- Round 1: the univariate skip message ----
     let zc_timing = std::env::var_os("FLOCK_ZC_TIMING").is_some();
     let t_round1 = std::time::Instant::now();
     let ntt_s = AdditiveNttGf8::new(k_skip, F8::ZERO);
     let ntt_l = AdditiveNttGf8::new(k_skip, F8(1u8 << k_skip));
     let inv_table = InvNttTableByteSingleGf8::new(&ntt_s, &ntt_l);
-    let (round1_ab_opt, round1_c_opt) = round1_shift_reduce_extract_c_packed_padded(
-        a_packed, b_packed, c_packed, m, k_skip, &r_rest, &inv_table, padding,
-    );
-    let c_s = c_s();
-    let round1: Vec<F192> = round1_ab_opt
-        .iter()
-        .zip(&round1_c_opt)
-        .map(|(x, y)| c_s * (*x + *y))
-        .collect();
+    let (round1_ab, round1_c) =
+        round1_message_packed_padded(a_packed, b_packed, c_packed, m, k_skip, &r_rest, &inv_table, padding);
+    let round1: Vec<F192> = round1_ab.iter().zip(&round1_c).map(|(x, y)| *x + *y).collect();
     if zc_timing {
-        eprintln!(
-            "[zc-timing] round1 URM: {:.2} ms",
-            t_round1.elapsed().as_secs_f64() * 1e3
-        );
+        eprintln!("[zc-timing] round1: {:.2} ms", t_round1.elapsed().as_secs_f64() * 1e3);
     }
 
     // ---- Transmit + bind round-1 message on the stream, sample z ----
@@ -357,9 +323,8 @@ pub fn verify(log_n: usize, vs: &mut VerifierState<'_>) -> Result<ZerocheckClaim
     let n_mlv = m - k_skip;
     let ell = 1usize << k_skip;
 
-    // ---- Re-derive the equality tail (in lockstep with prove_packed) ----
-    // The verifier samples tower challenges directly, matching the prover.
-    let r_rest = equality_tail(m, |n| vs.sample_vec(n));
+    // The equality tail, in lockstep with `prove_packed_padded`.
+    let r_rest = vs.sample_vec(m - K_SKIP);
 
     // ---- Read + bind the round-1 message off the stream, sample z ----
     let round1: Vec<F192> = vs.next_scalars(ell).map_err(VerifyError::Transcript)?;
@@ -473,8 +438,8 @@ mod tests {
         (pack_bits(a), pack_bits(b), pack_bits(c))
     }
 
-    /// `prove` runs end-to-end at the smallest valid m (= k_skip + N_INNER = 13)
-    /// without panicking, and produces output of the right shape.
+    /// `prove` runs end-to-end from the smallest valid m (= k_skip + N_INNER)
+    /// up without panicking, and produces output of the right shape.
     ///
     /// structural sanity here catches:
     ///   - mismatched observe/sample sequence
@@ -482,7 +447,7 @@ mod tests {
     ///   - any unreachable assert in the underlying functions
     #[test]
     fn prove_runs_end_to_end() {
-        for &m in &[13usize, 14, 15, 16] {
+        for &m in &[10usize, 13, 14, 15, 16] {
             let mut rng = Rng::new(m as u64);
             let a = rng.bits(1 << m);
             let b = rng.bits(1 << m);
@@ -650,7 +615,7 @@ mod tests {
         // log_n too small.
         let mut ch = pcs::VerifierState::from_label(b"flock-test-v0", &proof_t);
         assert!(matches!(
-            verify(K_SKIP + 6, &mut ch),
+            verify(K_SKIP + N_INNER - 1, &mut ch),
             Err(VerifyError::LogNTooSmall { .. })
         ));
     }

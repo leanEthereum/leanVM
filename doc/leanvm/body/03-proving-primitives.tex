@@ -92,21 +92,6 @@ To prove that a polynomial $P$ vanishes on $\cube{\kappa}$, the verifier samples
 By Fact~\ref{fact:eq} that sum is $\mle{g}(r)$, for $g$ the restriction of $P$ to the boolean hypercube: the zero polynomial if $P$ vanishes there, and otherwise a nonzero multilinear, which a random $r$ sends to $0$ with probability at most $\kappa/|\E|$ (Lemma~\ref{lem:sz}).
 \end{definition}
 
-\begin{lemma}[Partially fixed zerocheck~\cite{DT24}]\label{lem:fixed-zerocheck}
-Let $g:\cube{\ell}\times\cube{m}\to\Ftwo$ be a nonzero Boolean multilinear. Fix $a\in\E^{\ell}$ such that the values $\{\eq(a,b):b\in\cube{\ell}\}$ are linearly independent over $\Ftwo$. If $s\leftarrow\E^m$ is sampled uniformly after $g$ is fixed, then
-\[
-  \Pr_s\bigl[\mle{g}(a,s)=0\bigr]\leq\frac{m}{|\E|}.
-\]
-\end{lemma}
-
-\begin{proof}
-Partially evaluate the first $\ell$ variables at $a$. By Fact~\ref{fact:eq}, the resulting multilinear $h:\cube{m}\to\E$ has values
-\[
-  h(y)=\mle{g}(a,y)=\sum_{b\in\cube{\ell}}g(b,y)\eq(a,b).
-\]
-Because $g$ is nonzero, there is some $y\in\cube{m}$ for which the coefficients $\{g(b,y):b\in\cube{\ell}\}$ are not all zero. These coefficients lie in $\Ftwo$, so the assumed $\Ftwo$-linear independence of the values $\eq(a,b)$ gives $h(y)\neq0$. Thus $h$ is a nonzero multilinear. Its extension satisfies $\mle{h}(s)=\mle{g}(a,s)$, and Lemma~\ref{lem:sz} gives the claimed probability bound.
-\end{proof}
-
 \paragraph{Two savings on a round message~\cite{Gru24}.} A round polynomial of degree $D$ travels as its coefficients, and would take $D+1$ of them, but the round check $h_j(0)+h_j(1)\qeq s_{j-1}$ already pins one to the incoming claim, so $D$ are enough. The same idea applies to the known factor: a zerocheck's summand carries $\eq(r,\cdot)$, which the verifier can form itself, so only the cofactor travels and it is one degree lower. A zerocheck round on a degree-$d$ cofactor therefore costs $d$ field elements.
 
 \begin{definition}[Inner-product commitment scheme]\label{def:ipcs}

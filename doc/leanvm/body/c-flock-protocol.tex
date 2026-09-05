@@ -49,13 +49,7 @@ For $f:\cube{\kskip}\times\cube{n}\to\Ftwo$, its \emph{quirky extension} interpo
 so $\qext f$ has degree $63$ in $Y$, degree one in every other variable, and $\qext f(\fembed(i),v)=\mle f(i,v)$ for every $i\in\cube{\kskip}$. Below $f$ is $a$, $b$ or $c$, with $n=\nflock$, or $A_0$ or $B_0$ read as a row followed by a column, with $n=2\kblock-\kskip$. Its argument $(Y,v)$ is a \emph{quirky point}.
 \end{definition}
 
-The zerocheck point $r \in \E^{\nflock}$ is defined as follows:
-\begin{itemize}
-  \item Its first seven coordinates $r_0, \dots, r_6$ are fixed to $\fembed(\mathtt{0xf7}),\fembed(\mathtt{0x53}),\fembed(\mathtt{0xb5})$ and $g_0^{2^j}/(1+g_0^{2^j})$ for $0\leq j<4$, where $g_0\in\E$ is public. Lemma~\ref{lem:fixed-zerocheck} applies.
-  \item The remaining coordinates $r_7,\dots,r_{\nflock-1}$ are sampled at random by the verifier.
-\end{itemize}
-
-Define
+The verifier samples the zerocheck point $r\in\E^{\nflock}$ uniformly. Define
 \begin{equation}\label{flock:eq:pskip}
 P(Y)=\sum_{v\in\cube{\nflock}}\eq(r,v)\bigl(\qext a(Y,v)\qext b(Y,v)+\qext c(Y,v)\bigr),
 \end{equation}
@@ -170,7 +164,7 @@ s_i \qeq \mle z(i,\fc'_{\mathrm{in}},\fc_{\mathrm{out}})\qquad\text{for }i\in\cu
 \begin{protocol}[Flock summary]\label{flock:protocol}
 After the witness $z$ has been committed, and its size announced:
 \begin{enumerate}
-\item The verifier forms the zerocheck point $r$: seven fixed coordinates, the rest sampled. The $\kskip$ variables the univariate skip replaced consume no equality challenge.
+\item The verifier samples the zerocheck point $r$. The $\kskip$ variables the univariate skip replaced consume no equality challenge.
 \item The prover sends $P|_{\skipcoset}$, $64$ values. The verifier samples $\zskip$ and reconstructs $v_P$.
 \item The parties run $\nflock$ quadratic zerocheck rounds on \eqref{flock:eq:pskip}, which the prover ends by sending $v_a,v_b$; the terminal identity \eqref{flock:eq:zc-terminal} then fixes $v_c$.
 \item The verifier samples $\lcalpha$ and the parties run the $8$ quadratic lincheck rounds on \eqref{flock:eq:lincheck}. The prover sends $(s_0,\ldots,s_{63})$, and the verifier checks \eqref{flock:eq:lincheck-terminal}: one circuit walk natively, the hint \eqref{flock:eq:matpart} in recursion.
@@ -275,10 +269,10 @@ degree three in $\lcalpha$, all four coefficients fixed before $\lcalpha$ is dra
 
 With all three pinned, the zerocheck's terminal identity \eqref{flock:eq:zc-terminal} becomes a real check again: it fixes $R_{\mathrm{zc}}$ to the true value of the summand at $\fc$.
 
-Now let $z$ violate \eqref{flock:eq:r1cs} at $u=(i,v)$. Then $P(\fembed(i))$ is the extension at $r$ of a nonzero Boolean multilinear (Definition~\ref{def:quirky}, Fact~\ref{fact:eq}), and the seven fixed coordinates of $r$ carry $\Ftwo$-independent weights, so it stays nonzero except with $(\nflock-7)/|\E|$ (Lemma~\ref{lem:fixed-zerocheck}): the $64$ zeros the verifier assumes on $\skipdom$ are false. Let $\hat P$ interpolate those zeros together with the received coset values. It vanishes on $\skipdom$ while $P$ does not, so $\hat P\neq P$ and $v_P\neq P(\zskip)$ except with $127/|\E|$ (Corollary~\ref{cor:idtest}). The $\nflock$ zerocheck rounds then run on a false initial claim with a true terminal value, and reject except with $2\nflock/|\E|$.
+Now let $z$ violate \eqref{flock:eq:r1cs} at $u=(i,v)$. Then $P(\fembed(i))$ is the extension at $r$ of a nonzero Boolean multilinear (Definition~\ref{def:quirky}, Fact~\ref{fact:eq}), so it stays nonzero except with $\nflock/|\E|$ (Lemma~\ref{lem:sz}): the $64$ zeros the verifier assumes on $\skipdom$ are false. Let $\hat P$ interpolate those zeros together with the received coset values. It vanishes on $\skipdom$ while $P$ does not, so $\hat P\neq P$ and $v_P\neq P(\zskip)$ except with $127/|\E|$ (Corollary~\ref{cor:idtest}). The $\nflock$ zerocheck rounds then run on a false initial claim with a true terminal value, and reject except with $2\nflock/|\E|$.
 
 Summing those terms, such a $z$ is accepted with probability at most
 \[
-\frac{16+3+\kbatch+(\nflock-7)+127+2\nflock}{|\E|}=\frac{4\kbatch+163}{|\E|}<2^{-183},
+\frac{16+3+\kbatch+\nflock+127+2\nflock}{|\E|}=\frac{4\kbatch+170}{|\E|}<2^{-183},
 \]
 on top of the two errors granted above.
