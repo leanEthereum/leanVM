@@ -1,0 +1,71 @@
+% !TeX root = zk-flock-endpoints.tex
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\input{../leanvm/preamble/macros.tex}
+\newtheorem{theorem}{Theorem}
+\title{Joint hiding of Flock's prefix and terminal disclosures}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\paragraph{Scope.} The valid-compression library now hides the within-block prefix jointly with the terminal evaluations, complete lincheck and $64$ slices sent to ring switching. This uses a genuine two-point span theorem, not two applications of a marginal bound. The intervening batch-coordinate zerocheck rounds are omitted. Commitments, earlier VM messages and the ring-switching proof remain outside the claim.
+
+\section{The terminal map is linear}
+
+Condition on all honest public coins. Let $\bar z(j)=\sum_t\eq(\fc_{\rm batch},t)z(j,t)$ be the batch-folded witness block. Strengthen the terminal view to include $v_c$, even though the protocol derives it rather than sending it. The following $83$ field values are linear functions of $\bar z$:
+\[
+ (v_a,v_b,v_c),\qquad
+ (c_{j,0},c_{j,2})_{j=0}^{7},\qquad
+ (s_i)_{i=0}^{63}.
+\]
+Here $c_{j,0},c_{j,2}$ are the coefficients actually sent by lincheck. With public row weight $e$ and batching challenge $\alpha$, its public column weight is
+\[
+ w=A_0^{\mathsf T}e+\alpha B_0^{\mathsf T}e+\alpha^2e+\alpha^3[\,j=512\,].
+\]
+Lincheck is an ordinary inner-product sumcheck between $w$ and $\bar z$, so its entire coefficient stream is linear in $\bar z$. The constant wire remains one because the batch equality weights sum to one.
+
+The terminal identity imposes one affine relation on these $83$ values. Its coefficient on the last $c_{7,0}$ is exactly one: the last running claim is $c_{7,0}+\fc'_7 R_{\rm prev}+(\fc'_7+(\fc'_7)^2)c_{7,2}$. Delete $c_{7,0}$ to obtain $82$ free coordinates, with no exceptional denominator. Denote the full public affine hyperplane by $\mathcal L$. The strengthened values also determine the final zerocheck claim $v_av_b+v_c$.
+
+\section{A uniform terminal-rank certificate}
+
+Use the same $128$ valid compression witnesses and zero-message baseline as \path{zk-flock-skip.tex}. Their terminal-feature differences, projected to the $82$ free coordinates, have exact extension rank $82$ at the audit's fixed coins. The checker constructs $A_0^{\mathsf T}e,B_0^{\mathsf T}e$ by reversing the actual Python verifier's addition-only circuit walk; it does not materialize the dense matrices. Its generated streams pass that verifier's complete lincheck.
+
+Each coefficient defining $v_a,v_b,v_c$ has total degree at most $63+8=71$ in the skip and within-block fold challenges. Thus $w$ has degree at most $73$. In lincheck round $j$, the public weight and the witness basis have each undergone $j$ folds, so a transmitted coefficient has degree at most $73+2j$. Each terminal slice has degree eight. A full $82$-row minor therefore has degree at most
+\[
+ 3\cdot71+2\sum_{j=0}^7(73+2j)+64\cdot8-(73+14)=1918.
+\]
+The subtraction removes the last constant coefficient. The exact rank certificate proves that this ordinary polynomial minor is nonzero, so terminal rank fails with probability at most $1918/2^{192}$. This bound is independent of the real complementary compressions.
+
+\section{Independent noise at two points from the same valid choices}
+
+Change the sparse layout, but not the compression library. Use fourteen low batch coordinates, seven bank coordinates, and a public batch of $2^{21}$ compressions. In each bank reserve the $576$-point support $S$ of \path{zk-two-point-span.tex}: arbitrary first six bits and weight at most one on the remaining eight. Independently choose the baseline or that bank's library compression at each reserved position. There are $73728$ random-choice compressions; all other positions may contain arbitrary fixed valid witnesses.
+
+Let $r_{\rm low}$ be the fourteen low batch equality coins and $\fc_{\rm low}$ the corresponding zerocheck fold coins. For bank $b$ define
+\[
+ U_b=\sum_{s\in S}\eq(r_{\rm low},s)\varepsilon_{b,s},\qquad
+ V_b=\sum_{s\in S}\eq(\fc_{\rm low},s)\varepsilon_{b,s}.
+\]
+The points are independent under the honest interactive coin model. The shared two-point span event makes all $128$ pairs $(U_b,V_b)$ independent uniform elements of $\E^2$. Write $\delta_2$ for the explicit ordinary-equality error bound in the two-point note.
+
+The prefix uses only the $U_b$, multiplied by their bank equality weights and the $79$-dimensional feature differences of the preceding note. The terminal data use only the $V_b$, multiplied by their bank fold weights and the $82$-dimensional differences above. Exclude Boolean values of the two seven-coordinate bank points at cost $28/2^{192}$. Both weighted maps are then surjective outside their respective minor-zero events. Their noise is independent, so the joint view is uniform on the product of the prefix space and $\mathcal L$. Arbitrary fixed complementary witnesses merely translate this product space.
+
+\begin{theorem}[Joint Flock endpoints]
+For this valid padding and independent honest interactive coins, the skip message, eight within-block zerocheck rounds, strengthened terminal triple, complete lincheck and $64$ terminal slices have a joint witness-independent simulator with error at most
+\[
+ \delta_2+\frac{2205+1918+28+1}{2^{192}}
+ =\delta_2+\frac{4152}{2^{192}}<2^{-148}.
+\]
+The extra one excludes the existing prover's within-block equality denominator. The bound is uniform over fixed valid complementary compressions.
+\end{theorem}
+
+The simulator samples the prefix as before, samples the $82$ free terminal coordinates independently, and reconstructs the omitted lincheck constant by its final identity. In particular, both running claims on either side of the omitted batch rounds are simulated. This does not simulate the messages between those claims. The local closed-cycle realization and its fixed bytecode, addresses and counter exponents are unchanged; the larger public batch is a cost of this construction, not a claim of practical efficiency.
+
+\paragraph{Evidence and remaining obligation.} \path{zk_flock_terminal_audit.py} checks the reverse circuit walk against actual witness row evaluations, replays both real and simulated terminal streams through the reference verifier, certifies rank $82$, and checks the exact rational error bound. The prefix certificate is \path{zk_flock_prefix_audit.py}. A full Flock proof still needs the $21$ batch-coordinate rounds jointly with this endpoint view. Their quadratic cross terms cannot be discarded or hidden by applying the two-point lemma again to the same bits. No production protocol or verifier is changed.
+
+\end{document}
