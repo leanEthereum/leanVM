@@ -1,0 +1,61 @@
+% !TeX root = zk-count-completed-head.tex
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\input{../leanvm/preamble/macros.tex}
+\title{Joining the sparse head to the uniform count tail}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\paragraph{Purpose.} The statistical tail theorem in \path{zk-count-uniform-tail.tex} changes the anchors and geometric chains of the earlier head experiment. This note gives the corresponding exact sparse-bit matrix, including every extra read needed to realize an offset anchor. The goal is a joint count-layer simulator; marginal head and tail bounds cannot simply be added when they reuse the same bits.
+
+\section{Complete the offset chains}
+
+Keep the $128$ banks, $13$ sparse coordinates, $896$-point random support and anchor index $384$ of the tail theorem. Away from the support and reserved positions, use fixed canonical twisted quartets with exponent pattern $(0,3,2,1)$. An equal-offset anchor $(k,k,k,k)$ uses four separate $(k+1)$-read chains, leaving four copies of labels $0,\ldots,k-1$ to place. A translated permutation anchor uses one $(k+4)$-read chain, leaving one such prefix. Put these prefix rows in the first available selected-child slots outside the support and anchor, consuming whole groups of four slots and filling any final vacancy with a fresh one-read loop. All remaining canonical quartets use fresh addresses. The other children retain their complete bit-permuted geometric chains.
+
+This is a deterministic valid completion, not an instruction to discard prefix reads. Only the $896$ designated twisted quartets in each bank are randomized. Their two quartet products, every ancestor count value, the bus and the final counter exponents remain unchanged. The full layout has $2^{23}$ count rows. The audit instantiates a smaller complete library to check the construction against the ISA and the reference GKR verifier; it does not instantiate the full VM trace.
+
+\section{The local formula with arbitrary fixed corrections}
+
+Fix a pivot bank, a supported bit at sparse index $s$, and sparse round $j$. Write $a=1+\gen$ and
+\[
+ D(T)=\eq(\fc_{<j},s_{<j})\eq(T,s_j).
+\]
+At Boolean separator branch $\sigma$, let $A_\sigma(T),B_\sigma(T)$ be the two selected-child lines in the fixed zero-mask completion, with all offset-prefix corrections included. Set $(L_0,R_0)=(1,\gen^2)$ and $(L_1,R_1)=(\gen^2,1)$. Flipping the bit changes their product by exactly
+\[
+ \Gamma_\sigma(T)
+ =a\bigl(R_\sigma A_\sigma(T)+L_\sigma B_\sigma(T)\bigr)D(T)
+  +a^2L_\sigma R_\sigma D(T)^2.
+\]
+Other pivot bits do not affect this cofactor: their common $L_\sigma:R_\sigma$ ratio cancels the mixed term in characteristic two.
+
+For bank $b$, put $\pi_b(\ell)=(\ell+b)\bmod14$. Its active background line is
+\[
+ C_{b,\sigma}(T)=
+ \gen^{\sum_{\ell>j}s_\ell2^{\pi_b(\ell)}+\sigma2^{\pi_b(13)}}
+ \prod_{\ell<j}\left(1+(1+\gen^{2^{\pi_b(\ell)}})\fc_\ell\right)
+ \left(1+(1+\gen^{2^{\pi_b(j)}})T\right).
+\]
+If the bank has background type $k\in\{0,1,2\}$, sum $\eq(r_{\rm sep},\sigma)C_{b,\sigma}(T)^k\Gamma_\sigma(T)$ over the two separator branches. Multiply by the remaining sparse equality weight and the bank's incoming tag weight. Its four nonconstant coefficients are the bit's exact sparse-round column. The product degree is at most four. Fixed corrections enter only when their remaining high sparse coordinates equal $s_{>j}$, so the calculation needs no dense full-trace replay.
+
+Append the tail column $\alpha_bw_s+\beta_bw_s^2$, where $w_s=\eq(\fc_{<13},s)$ and $\alpha_b,\beta_b$ are the linearized coefficients of the post-sparse map at this same completion. This yields a single binary matrix for the $68$ head coefficients and $16$ child-$0$ pre-suffix values. Conditional on the nonpivot bits, those $16$ values determine all pivot-induced pre-suffix changes. There are $64\cdot896=57344$ input bits. The full conditional-head target is $192\cdot66=12672$, with joint target $15744$ and suffix target $3072$.
+
+\section{A stronger composition target}
+
+Let $H$ consist only of the $52$ coefficients in the first thirteen rounds, and let $U\in\E^{64}$ contain \emph{all} pivot mask evaluations immediately after them. Besides the joint head-tail matrix, test the stronger conditional rank
+\[
+ \operatorname{rank}_{\mathbb F_2}(H,U)
+ -\operatorname{rank}_{\mathbb F_2}U
+ \stackrel{?}{=}192(52-2)=9600.
+\]
+The two relations fix the first endpoint and the final running claim. A uniform high-probability proof of this equality would make $H$ uniform on that affine fiber even after disclosing $U$ and all nonpivot bits. Since all later count messages depend on the pivot bits only through $U$, this is sufficient for a clean composition with the existing tail theorem. Given the incoming count-layer packet, the simulator would first sample the tail and its incoming claim, then sample the early coefficients subject to their two endpoint relations. Hiding that incoming packet jointly requires the earlier GKR layers and is a separate obligation. A failure of this stronger rank test would rule out that factorization, not joint hiding by the original approach.
+
+\paragraph{Evidence and remaining work.} \path{zk_count_completed_head_audit.py} checks complete counter chains, the exact folded table, single-bit and joint changes to every head coefficient, and unchanged preceding GKR packets in accepted reference replays. Its optional full-support mode computes both ranks from actual Boolean mask columns, without replacing their source bits by independent extension scalars. A finite rank certificate is not a statistical theorem. A bound uniform over honest coins and admissible fixed complements is still required, followed by earlier GKR layers, fingerprints and the other VM reductions.
+
+\end{document}
