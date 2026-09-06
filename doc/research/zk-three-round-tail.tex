@@ -1,0 +1,106 @@
+% !TeX root = zk-three-round-tail.tex
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\input{../leanvm/preamble/macros.tex}
+\newtheorem{lemma}{Lemma}
+\newtheorem{theorem}[lemma]{Theorem}
+\title{Three joint GKR rounds with native channel coupling}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\paragraph{Result and scope.} A replacement sparse row-swap library extends the terminal-boundary theorem to the last three sumcheck rounds of the final GKR layer, their incoming claim and the full boundary, with statistical error below $2^{-152}$. The new step respects a native push/pull/count relation rather than incorrectly making all intermediate values independent. A coupled-quartic smoothing lemma and one joint fine-cut rank bound justify the backwards sampling order. Honest interactive coins, the supported depth-$22$ layout and disjoint valid completion are still assumed. The first seventeen rounds of this layer, earlier-layer composition, downstream proofs, commitments and Fiat-Shamir remain open; no production protocol is changed.
+
+\section{The refined cut has one unavoidable coupling}
+
+Keep the geometry and notation of \path{zk-penultimate-round.tex}. After folding the first seventeen coordinates $x_{0:17}$, each child has eight sector values. Write $P_{i,j},Q_{i,j},C_{i,j}$ for the push, pull and count values in sector $i$ and child $j$. The new round folds sector pairs at $t=x_{17}$; the remaining challenges are $x_{18}$ and $\fc=x_{19}$.
+
+MUL and JUMP swaps can affect bus sectors $4,5,6,7$ and count sectors $0,1,2$. Count sector $3$ is fixed under these swaps. Moreover, with $\Delta=e_2(1+\gen)$, the actual MUL placements give
+\[
+ P_{5,j}+Q_{5,j}=\Delta C_{0,j}.
+\]
+Indeed, bus sector $5$ contains the two MUL input-read blocks, while count sector $0$ contains their count columns in the same order. Their common weights are $1+x_{16},x_{16}$, and each push/pull difference is $\Delta$ times its read label. Thus eleven independent sector values are an impossible target, even after folding: that proposed distribution would satisfy the relation with probability only $1/|\E|$.
+
+Instead retain ten coordinates per child, omitting $Q_{5,j}$:
+\[
+ (P_{4,j},P_{5,j},P_{6,j},P_{7,j},\ Q_{4,j},Q_{6,j},Q_{7,j},\ C_{0,j},C_{1,j},C_{2,j}).
+\]
+Whole-row swaps preserve the sum across the four children in each sector, so only three children are free. The required fine-cut noise therefore has dimension thirty over $\E$.
+
+\paragraph{What remains free after retaining the coarser cut.} For each child, interpolate the sector pairs at $t$, obtaining the six coarser active values of the previous theorem. Define $h_{P,0}=P_4+P_5$, $h_{P,1}=P_6+P_7$, $h_{Q,1}=Q_6+Q_7$ and $h_{C,0}=C_0+C_1$. The map from the ten fine coordinates to these six coarse values and four slopes has determinant $(1+t)^2$. Thus, away from $t=1$, the four slope vectors are independent uniform on their fixed-sum hyperplanes, conditional on the coarse values. The missing pull slope obeys
+\[
+ h_{Q,0,j}=h_{P,0,j}+k_j,\qquad
+ k_j=\frac{p_j+q_j+\Delta c_j+\Delta t h_{C,0,j}}{1+t},
+\]
+where $p_j,q_j,c_j$ are the corresponding coarse values. A fixed offset in the sector relation would merely add a fixed term to $k_j$; the smoothing argument below also permits that case. The count slope in sector pair $(2,3)$ is determined by its coarse value and fixed sector $3$.
+
+\section{A coupled pair can replace an independent quartic}
+
+Put $q=|\E|$. Fix endpoint tuples $u=(a,b,c,d)$ and $u'=(a',b',c',d')$, an arbitrary slope sum $\sigma$ and an arbitrary offset vector $k\in\E^4$. Let $H_0,H_1,H_2$ be independent uniform and $H_3=\sigma+H_0+H_1+H_2$. Consider the four nonconstant coefficients of
+\[
+ F(Z)=\prod_{j=0}^3(u_j+H_jZ)
+       +\lambda\prod_{j=0}^3(u'_j+(H_j+k_j)Z).
+\]
+The two products share their randomness; their coefficients are not independent.
+
+\begin{lemma}[Coupled-pair character bound]
+Every nontrivial additive character of this coefficient vector has bias at most $6/q$, provided all four quantities below are nonzero:
+\[
+\begin{aligned}
+ G_4&=1+\lambda, &G_3&=c+\lambda c',\\
+ G_2&=c(a+b+d)+\lambda c'(a'+b'+d'),\\
+ G_1&=bc(a+d)+\lambda b'c'(a'+d').
+\end{aligned}
+\]
+The bound is uniform in the slope offset $k$ and sum $\sigma$.
+\end{lemma}
+\begin{proof}
+Apply a character with frequency $(z_1,z_2,z_3,z_4)\ne0$. Its field-valued phase is quadratic in $H_0$, say $UH_0^2+VH_0+W$. Averaging over $H_0$ vanishes unless $V^2+U=0$, as in the previous quartic lemma. This polynomial in $H_1,H_2$ has degree at most six. Its successive leading coefficients are $z_4^2G_4^2$ at $H_1^4H_2^2$; if $z_4=0$, $z_3^2G_3^2$ at $H_1^4$; if also $z_3=0$, $z_2^2G_2^2$ at $H_1^2$; and otherwise the nonzero constant $z_1^2G_1^2$. Translating the slopes by $k$ does not change these leading coefficients. Hence it is nonzero and vanishes with probability at most $6/q$.
+\end{proof}
+
+Conditional on the coarse values and $h_{C,0}$, the actual round contains this coupled push/pull pair, plus two independent ordinary quartics from $h_{P,1}$ and $h_{Q,1}$. All remaining contributions are fixed. Their three character bounds multiply, giving distance at most $108/q$ from uniform on the four transmitted coefficients. The active weights are proportional to $(1+\eta_{18})\eta_{19}$ for the pair and $\eta_{18}\eta_{19}$ for the other branch, with pull additionally scaled by $\lambda$. Here $\eta_{18},\eta_{19}$ are the two remaining incoming equality coordinates.
+
+\paragraph{Endpoint exceptions are small even with fixed sums.} Write $d=S+a+b+c$ and $d'=S'+a'+b'+c'$, where $S,S'$ are fixed child sums. For fixed $\lambda\ne1$, $G_3,G_2,G_1$ are nonzero polynomials of degrees one, two and three in the independent free endpoints: their monic terms include respectively $c$, $c^2$ and $b^2c$. Their total exceptional probability is at most $6/q$. Excluding $\lambda=1$ adds $1/q$; the two ordinary quartics cost $8/q$; and nonzero active weights cost at most $5/q$. Thus this round's smoothing and exclusions cost at most $128/q$. No private endpoint sum or offset $k$ is required as simulator input.
+
+\section{A replacement library makes the fine cut uniform}
+
+Replace the eighteen banks by thirty, keeping the same $448$-point support and reflected sparse row-swap sources. For each child-pair direction $(0,1),(0,2),(0,3)$, use ten profiles:
+\begin{itemize}
+\item Three MUL counter profiles, with the selected-label change in \texttt{cnt\_a}, \texttt{cnt\_c} or \texttt{cnt\_bc}; and two JUMP counter profiles, changing \texttt{cnt\_c} or \texttt{cnt\_f}.
+\item Four MUL payload/control profiles: two constant-word $(7,0,0)\cdot1$ profiles at different fixed PC/frame bases, one $(j,0,0)\cdot1$ profile, and one $1\cdot(j,0,0)$ profile, where $j$ is the child. One JUMP profile uses four fixed self-loops at distinct PCs and frames.
+\end{itemize}
+Counter profiles repeat one cycle $4|S|$ times, with label exponents $4o(s)+\pi(j)$; the special column assigns $0,2$ to the selected children and other columns assign $0,1$. Payload profiles repeat four distinct cycles $|S|$ times, so their selected count labels agree and their row differences are constant. All code, frames and words are fixed; only the row-order bits are random. As before, the scalar source weights are $\eq(x_{0:12},s\mathbin{\mathrm{xor}}t_b)$, optionally multiplied by $\gen^{4o(s)}$. Each bank fails to span $\E$ with probability at most $\delta_{\rm span}+36/q$.
+
+After removing this scalar weight, each profile gives a ten-vector of actual fine-sector changes. Its entries contain at most five remaining placement factors and four fingerprint factors, hence have degree at most nine. For each pair direction, the ten profiles give a $10\times10$ matrix. The audit's three nonzero native-field determinant certificates establish nonvanishing; each determinant has degree at most ninety. Therefore the thirty free fine coordinates are jointly uniform on their affine fiber, uniformly over fixed valid complements, except with probability at most
+\[
+ \varepsilon_{\rm fine}=30\delta_{\rm span}+1350/q.
+\]
+This is an ordinary polynomial determinant bound combined with the sparse binary-span theorem, not a sampled-rank heuristic. All three pair directions act linearly on the fine values despite their nonlinear joint wire.
+
+\section{Sample backwards without reusing hidden randomness}
+
+\begin{theorem}[Three-round tail and boundary]
+Assume the replacement banks and terminal-boundary banks admit a disjoint fixed valid completion in the supported layout. The last three sumcheck rounds of the final GKR layer, their incoming claim, final children and five framework evaluations have a public-data honest-coin simulator with error at most
+\[
+ 33\delta_{\rm span}+1739/q+3\cdot2^{-256}<2^{-152}.
+\]
+\end{theorem}
+\begin{proof}
+Fix the complementary trace and all other padding randomness. On good fine-cut coins, exclude $x_{17}=1$, costing $1/q$. The thirty-coordinate uniform fiber factors into eighteen coarse coordinates and twelve slopes. Conditional on the coarse coordinates and the three count slopes, the coupled-pair lemma replaces round $17$'s four nonconstant coefficients by independent uniforms, costing $128/q$.
+
+The coarse coordinates retain their actual uniform law. Factor them into the nine endpoint and nine slope coordinates of the penultimate theorem. Carry the already uniform round-$17$ coefficients while applying its $123/q$ smoothing step to round $18$. No new row bits are postulated: these are two conditional factorizations of the same thirty-dimensional uniform fiber, and the fine-cut failure event is charged only once.
+
+Both replacements retain the actual last quartic and boundary, as well as all GKR layers before the final one. Discard that unsimulated prefix. Conditional on each fixed row-permutation choice, the terminal-boundary theorem applies with the replacement gadgets as valid complement. Its error is $3\delta_{\rm span}+137/q+3\cdot2^{-256}$. Generate each earlier constant coefficient from its sampled nonconstant coefficients and the next round's incoming claim, then derive the preceding incoming claim by the unchanged sumcheck identity. Summing the displayed bounds gives the result. The first seventeen rounds within the final layer are not retained or generated.
+\end{proof}
+
+\paragraph{Reservations and evidence.} The thirty banks use $13440$ fair bits, $37632$ MUL rows and $53760$ JUMP rows, including fixed MUL closings. Together with the terminal construction, there are $72608$ JUMP rows and $32$ XOR rows. PCs start at $206000$ and frames at $910000$; the audit gives the exact profiles, disjoint translated supports and closing slots. The old eighteen swap banks are \emph{replaced}, not added. Public count normalization and full valid completion remain assumptions. \path{zk_three_round_tail_audit.py} checks valid local chains, native source coupling, scalar factorization, three nonzero determinants, the coarse-coordinate determinant, reservations and the exact error bound. \path{zk_coupled_quartic_audit.py} checks arbitrary slope shifts, exhaustive small-field convolutions and the actual three-round reference reader. Neither is a full-size VM proof.
+
+\paragraph{Next step.} Refine the folded-row interface again, keeping its native relations and the entire current tail. More independent sector values cannot simply be assumed as column boundaries become visible. The useful advance here is a smoothing argument for \emph{coupled} channels and a single retained-state factorization; it does not establish full GKR or composition with the other VM reductions.
+
+\end{document}
