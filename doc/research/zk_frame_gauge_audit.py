@@ -223,12 +223,12 @@ def packet_incidence(v, e, beta, words):
         replay = gkr_replay(v, count, seed=182, details=True, bus_leaves=(push, pull))
         full_depth_prefix(v, replay, 182)
         assert replay["children"][0][1] == v.dot(v.eq_kernel(replay["challenge"]), push[1::4])
-        frontiers.append(push)
-        packets.append(replay["children"][0])
-    assert all(frontiers[0][index] == frontiers[1][index] for index in (1, 5, 9, 13))
-    assert packets[0][1] == packets[1][1] and packets[0] != packets[1]
+        frontiers.append((push, pull))
+        packets.append(replay["children"][:2])
+    assert all(frontiers[0][side][index] == frontiers[1][side][index] for side in (0, 1) for index in (1, 5, 9, 13))
+    assert all(packets[0][side][1] == packets[1][side][1] for side in (0, 1)) and packets[0] != packets[1]
     print(
-        "Actual depth-22 GKR prefix accepts sparse valid-cycle products: second push child 1 is unchanged by all three private payload families at fixed occupancy",
+        "Actual depth-22 GKR prefix accepts sparse valid-cycle products: second push/pull child 1 is unchanged by all three private payload families at fixed occupancy",
         flush=True,
     )
 

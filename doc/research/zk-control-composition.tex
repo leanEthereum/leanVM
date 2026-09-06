@@ -1,0 +1,112 @@
+% !TeX root = zk-control-composition.tex
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\input{../leanvm/preamble/macros.tex}
+\newtheorem{proposition}{Proposition}
+\title{Composing word and control randomness}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\paragraph{Result and scope.} The public-word and frame-scaling constructions compose in a definite order, reducing the enlarged first-packet/boundary view from thirteen actual residual fields to seven. Projecting out the two JUMP state products also permits joint simulation of the actual second push/pull child-$1$ pair. The other second-layer children and sumcheck polynomials remain excluded. This is not full GKR zero knowledge: the seven-field residual law is still unsimulated. The optional honest public setup and unsupported native field-valued frame/offset representation remain assumptions, not adopted protocol changes.
+
+\section{The dependencies permit an ordered composition}
+
+Use the same four $3840$-bit SET/JUMP banks in both constructions. Each public SET word in $W$ is uniform in $\K^3$ and each frame scale in $\Gamma$ is uniform in $\K^\times$, independently across both libraries. The private fair choice bits $A$ are independent of both. Put $q=|\E|$, $Q=|\K|$ and $N=4\cdot3840$. Let
+\[
+\begin{aligned}
+ Z&=(D_0,D_1,D_2,D_3,C_-,M_+,M_-),\\
+ T&=(S_+,S_-,J_+,J_-,F_+,F_-),\\
+ Y&=(H_{c,+},H_{d,+},H_{c,-},H_{d,-},F_{\rm mem},F_{\rm bc}).
+\end{aligned}
+\]
+Here $D_j$ are bytecode finalization quarters; $C_-$ is SET bytecode pull; $M_\pm$ are SET payload-memory products. The six $T$ coordinates are JUMP state, bytecode and frame-memory push/pull products. The four $H$ coordinates are its condition-memory and destination-memory products, followed in $Y$ by the two framework final-counter evaluations. Initially consider padding contributions alone. At fixed honest coins their dependence is
+\[
+ Z=Z(W,\Gamma,A),\qquad T=T(\Gamma,A),\qquad Y=Y(A).
+\]
+No independence between these three computed vectors is assumed.
+
+\paragraph{Words first.} Fix the scales. A scaled SET changes the bytecode fingerprint's word-independent constant from a term $e_4$ to $e_4/a$, but leaves its word coefficients $(e_5,e_6,e_7)$ unchanged. Accessed memory addresses do not move, so their coefficients remain $(e_3,e_4,e_5)$. The six-root word argument of \path{zk-set-payload-products.tex} is uniform in these constants. Its JUMP multiplier is fixed given $\Gamma$ and independent of $W$. Consequently its seven-product hybrid still applies, retaining all twelve fields $(T,Y)$.
+
+\paragraph{Scales second.} After the first hybrid, $Z$ has been replaced by seven independent uniform nonzero coordinates, independent of the actual $(T,Y)$ and the public seeds. The theorem of \path{zk-frame-gauge.tex}, projected from its eight retained fields to $Y$, now replaces $T$ by six independent uniform nonzero coordinates while retaining $Y$'s actual law. Carry the already independent $Z$ coordinates through this step. Thus
+\[
+ (Z,T,Y)\ \longrightarrow\ (U_7,T,Y)\
+           \longrightarrow\ (U_7,U_6,Y),
+\]
+with the full public seeds present throughout. Applying the scale theorem directly while retaining the original $Z$ would not be justified: $Z$ depends jointly on scales and bits. The order removes exactly that dependence.
+
+\paragraph{One setup exception.} The mean mixing contributions over independent public seeds are bounded by $\eta_W<2^{-383}$ and $\eta_\Gamma<2^{-571}$. For the first, average the bound valid at every fixed scale library; for the second, the projected retained map $Y$ is independent of both seeds. Average over good honest coins, sum the distances by the triangle inequality, then apply Markov once. Outside a fraction below
+\[
+ \frac{\eta_W+\eta_\Gamma}{2^{-160}}<2^{-222}
+\]
+of public libraries, the combined mixing contribution is below $2^{-160}$. Denote the two notes' explicit bad-coin bounds by $\delta_W,\delta_\Gamma$. Charge their zero-factor exclusions separately for every fixed library, including complementary factors bounded by $M\le2^{24}$ in each hybrid. A conservative combined bound is
+\[
+ \varepsilon_{\rm prod}
+ =2^{-160}+\delta_W+\delta_\Gamma+\frac{2M+56N}{q}
+ <2^{-159}.
+\]
+These are joint distances averaged over the retained law, not bounds conditional on every retained value. Fixed disjoint completion acts by nonzero product cofactors and evaluation offsets; this postprocessing does not change the setup exception or require simulating the complementary witness.
+
+\section{The enlarged view now retains seven fields}
+
+From here all products are full-table products. Keep the complementary bytecode ratio
+\[
+ \Omega=\prod_{t\notin\{\mathrm{SET},\mathrm{JUMP}\}}
+ \frac{\text{bytecode push product of }t}{\text{bytecode pull product of }t}.
+\]
+It is independent of SET choices, words and scales, but may depend on the witness. Public bytecode seed product $B$ and lookup balance reconstruct the remaining SET bytecode product:
+\[
+ D=\prod_jD_j,\qquad C_+=\frac{D C_-J_-}{B\Omega J_+}.
+\]
+The local MUL separating pair from \path{zk-control-residual.tex} still changes $\Omega$ with common images and count products, so the stronger setup does not justify dropping it.
+
+\begin{proposition}[Seven-field residual]
+Under the supported layout, compatible count-column normalization, earlier private payload/boundary masks, and valid disjoint completion, the enlarged view consisting of the roots, first GKR packet, seventeen boundary fields, four $D_j$, four SET payload products and ten JUMP products has a sampler from public data, honest coins and the actual residual $(Y,\Omega)$ with error below $2^{-155}$, outside the setup exception above.
+\end{proposition}
+\begin{proof}
+The MUL-word and unused-word hybrids retain all the added SET/JUMP products, quarters and counters, since those do not depend on their private payloads. The fifteen-field boundary hybrid also retains them: its counter trades permute labels among identical JUMPs, preserving every whole product, and its XOR and unused-memory sources touch no SET or JUMP control value. These invariances still hold with the disjoint scaled SET banks. Apply those three hybrids first, then the ordered public-seed hybrid above. Conditional on the complementary trace, $\Omega$ is constant and adds no entropy cost to either public-seed argument. The error is
+\[
+ \varepsilon_4+\varepsilon_1+\varepsilon_{15}+\varepsilon_{\rm prod}<2^{-155}.
+\]
+The sampler draws thirteen independent nonzero values for $(Z,T)$, reconstructs $C_+$, and inserts the four retained $H$ products to recover all ten JUMP products. Draw five nonzero first-packet coordinates $(P_0,P_2,P_3,Q_2,Q_3)$ and set
+\[
+ P_1=B,\qquad Q_1=D,\qquad
+ Q_0=\frac{BP_0P_2P_3}{DQ_2Q_3},\qquad R=BP_0P_2P_3.
+\]
+Draw fifteen independent field values for the final child packet and three memory evaluations, retaining the two final counters from $Y$. Append the public normalized count data. Zero branches use fixed-format conventions charged above. This samples $33$ coordinates and retains seven actual fields; the retained law is not proved witness-independent.
+\end{proof}
+
+\section{A pair of actual second-layer children}
+
+Let $v_+,v_-$ be child $1$ of the second push/pull packets, at the two fresh sumcheck challenges $x$. In the actual depth-$22$ layout they combine frontier nodes $1,5,9,13$. Node $13$ is exactly JUMP state times JUMP bytecode. There exist fixed complementary cofactors $K_+,K_-,L_+,L_-$ such that
+\[
+\begin{aligned}
+ v_+&=a_++\lambda J_+S_+,&
+ a_+&=\eq(x,0)K_++\eq(x,1)B_1+\eq(x,2)L_+,\\
+ v_-&=a_-+\lambda J_-S_-,&
+ a_-&=\eq(x,0)K_-\mathcal R+\eq(x,1)D_1+\eq(x,2)L_-,\\
+ \lambda&=\eq(x,3),&
+ \mathcal R&=\frac{M_+F_+H_{c,+}H_{d,+}}{M_-F_-H_{c,-}H_{d,-}}.
+\end{aligned}
+\]
+Here $B_1$ is public bytecode quarter $1$'s seed product, $K_+$ is memory quarter $1$'s seed product, and $L_\pm$ are MUL bytecode products. All scaled banks lie in memory quarter $1$; complete memory chains give its pull product $K_-\mathcal R$. Cofactors may depend on the public seeds and witness, but not on the private SET choices. Crucially, neither offset $a_\pm$ depends on $S_+$ or $S_-$ once the other coordinates are fixed.
+
+\paragraph{Retain the actual pair through the early hybrids.} Neither child depends on the MUL/XOR private payloads in quarter $0$ or unused words in quarter $2$. Counter trades preserve the whole JUMP products and final counters. Thus the early packet/boundary hybrids retain the pair. During the public-seed hybrids it is reconstructed from $(Z,T,Y)$ and the fixed cofactors, so no additional bit-dependent observation is introduced. The cofactors can be supplied to the analysis temporarily; the affine masking below removes the sampler's need to know them.
+
+\begin{proposition}[Joint simulation of child $1$]
+Take the preceding proposition's enlarged view, remove the two JUMP state products $S_+,S_-$, and append the actual second-layer pair $(v_+,v_-)$. This projected view has a sampler from the same seven-field residual with error below $2^{-155}$ and the same setup exception. The pair may be sampled as two independent uniform elements of $\E$.
+\end{proposition}
+\begin{proof}
+In the thirteen-product hybrid, $S_+,S_-$ are independent uniform elements of $\E^\times$, independent of every other retained coordinate. The SET bytecode reconstruction uses $J_+/J_-$ but not the state products. On $\lambda\ne0$ and nonzero bytecode products, each child is uniform on $\E\setminus\{a_\pm\}$. Replacing both by independent full-field uniforms costs at most $2/q$, uniformly in the unknown offsets. Honest independent $x$ has $\lambda=x_0x_1=0$ with probability at most $2/q$. The additional $4/q$ fits the preceding total bound. Remove the two state products from the sampler, append the two fresh full-field values, and keep the remaining reconstruction unchanged.
+\end{proof}
+
+\paragraph{The exclusion is essential.} Retaining $S_\pm$ as well would expose the offsets through $v_\pm+\lambda J_\pm S_\pm$; the affine argument would fail. The other second-layer children and mixed sumcheck polynomials also reuse these state masks and are not covered. The next obligation is their joint simulation, not composing additional marginal child theorems.
+
+\paragraph{Evidence.} \path{zk_control_composition_audit.py} checks both seed dependencies, unchanged word coefficients, valid local cycles, common images and count products, full-table balance, the seven-field residual, both layers through the actual depth-$22$ reader, the child-pair affine formulas and choice-independent cofactors, and rational bounds. \path{zk_frame_gauge_audit.py} checks both children's private-payload invariance. No full-size completed VM trace, complete second-layer simulator, commitment simulation or production ZK proof is claimed.
+\end{document}
