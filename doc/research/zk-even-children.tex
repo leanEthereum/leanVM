@@ -99,7 +99,7 @@ At fixed first packet and cofactors, nodes $0$ and $2$ are already determined. C
 \]
 where all $d$ coefficients are fixed under this conditioning. It cannot be appended as fresh independent randomness. The audit verifies every frontier factor, recovers the nine coordinates from the four terminal children, and reconstructs the complete second-layer wire after changing the free coordinates at a fixed prefix.
 
-\paragraph{Consequence, not an impossibility theorem.} Adding words to these same banks improves mixing, not their nine-coordinate footprint. Finishing the layer requires a different footprint or joint simulation with the control padding. Recovery uses witness-dependent cofactors: it is neither a public extractor nor a distinguishing pair of VM executions. The seven-field residual, later GKR layers, table/Flock composition, the full PCS and Fiat-Shamir remain open.
+\paragraph{Consequence, not an impossibility theorem.} More words in these banks improve mixing, not their nine-coordinate footprint. Recovery uses witness-dependent cofactors, so it is not a public extractor or VM attack. The continuation \path{zk-second-frontier.tex} spreads three further MUL banks across the other memory quarters and combines all control masks. It covers the full first/second-layer wire and boundary from a different eight-field residual; full ZK remains open.
 
 \begin{thebibliography}{1}
 \bibitem{winger} M.~Winger. \href{https://people.math.ethz.ch/~pinkri/Theses/2020-Bachelor-Moritz-Winger.pdf}{\emph{A proof of Weil's bound on general character sums}}, Theorem~1.1 (2020).

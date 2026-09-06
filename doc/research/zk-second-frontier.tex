@@ -1,0 +1,98 @@
+% !TeX root = zk-second-frontier.tex
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,booktabs}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\input{../leanvm/preamble/macros.tex}
+\newtheorem{proposition}{Proposition}
+\title{A complete second-frontier leakage reduction}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\paragraph{Result and scope.} Spreading valid MUL payload banks across all four memory quarters gives a simulator for the \emph{entire} first two GKR layers, jointly with the final GKR child packet and following framework evaluations, from eight actual residual fields. Unlike the preceding child-only results, this includes both second-layer mixed round polynomials and all terminal children. The error stays below $2^{-155}$ outside the same public-setup exception below $2^{-222}$. The residual law, intervening/later GKR messages and all subsequent protocols remain open. Honest interactive coins, compatible count-column normalization, valid disjoint completion, honest public preprocessing and unsupported native field-valued frame/offset support remain assumptions. No full ZK or production implementation is claimed.
+
+\section{Mask the frontier before deriving its wire}
+
+Here $P_i,Q_i$, $0\le i<16$, denote \emph{second-frontier nodes}, not first-packet children. Nodes $0$ through $3$ are memory quarters, $4$ through $7$ bytecode quarters, $8$ MUL state, $9$ MUL bytecode, $10,11,12$ its input/output memory blocks, $13$ JUMP state times bytecode, $14$ JUMP condition times destination memory, and $15$ the remaining smaller blocks. Count nodes are public under compatible column normalization. Balance is
+\[
+ \prod_{i=0}^{15}P_i=\prod_{i=0}^{15}Q_i.
+\]
+The four $P_4,\ldots,P_7$ are public bytecode seed products. Our masks leave six further nodes fixed:
+\[
+ T=(P_8,P_9,P_{14},Q_8,Q_9,Q_{14}).
+\]
+There are therefore $21$ multiplicative degrees of freedom after balance. Making this \emph{whole frontier} uniform subject to the ten fixed nodes avoids separately uniformizing correlated round coefficients.
+
+\paragraph{Why new positions matter.} The preceding $96$ MUL cycles, $44$ XOR rows and unused-memory bank, combined with all thirteen public-word/control product masks, have an integer exponent map of rank only $17$ at this frontier. Extra unused words in memory quarters $1$ and $3$ raise that to $19$; they affect seed and finalization products equally. Instead add three $48$-word MUL-by-one banks, one in each memory quarter $j=1,2,3$. For each bank let $(A_{j,1},A_{j,g},C_{j,1},C_{j,g})$ be its four input/output products. Their frontier factors are
+\[
+\begin{array}{c|ccc}
+ &\text{memory node }j&\text{input node }10&\text{output node }12\\\hline
+ \text{push}&A_{j,1}C_{j,1}&A_{j,g}&C_{j,g}\\
+ \text{pull}&A_{j,g}C_{j,g}&A_{j,1}&C_{j,1}
+\end{array}
+\]
+Fresh input/output addresses still have counts $1,\gen$. Every new bank has the same four-shift character bound and seven-field retained linear boundary as the original MUL bank. Only its memory placement changes.
+
+\section{An exact integer surjection, not a sampled rank}
+
+Start with the nine private product coordinates of \path{zk-even-children.tex}, the twelve new products above and the thirteen product coordinates of \path{zk-control-composition.tex}: $34$ independent nonzero uniforms in the joint product hybrid. The following equations specify the control contribution to the frontier, alongside the preceding note's private-product table and the new table above. Use that composition note's $(D_0,\ldots,D_3,C_-,M_+,M_-,S_+,S_-,J_+,J_-,F_+,F_-)$, retained condition/destination products $H_{c,\pm},H_{d,\pm}$, public bytecode seed product $B$ and complementary ratio $\Omega$. Put
+\[
+ D=\prod_jD_j,\qquad C_+=\frac{DC_-J_-}{B\Omega J_+}.
+\]
+The control factors multiply the private factors componentwise:
+\[
+\begin{array}{c|cc}
+ \text{node}&\text{push factor}&\text{pull factor}\\\hline
+ 1&1&\displaystyle\frac{M_+F_+H_{c,+}H_{d,+}}{M_-F_-H_{c,-}H_{d,-}}\\[1ex]
+ 4+j&1&D_j\quad(0\le j<4)\\
+ 13&S_+J_+&S_-J_-\\
+ 14&H_{c,+}H_{d,+}&H_{c,-}H_{d,-}\\
+ 15&S_-C_+M_+F_+&S_+C_-M_-F_-
+\end{array}
+\]
+All unlisted control factors equal one. Fixed complementary cofactors multiply the resulting nodes. In particular the reversed state factors at node $15$ follow from the closed SET/JUMP cycles; they must not be omitted.
+
+\begin{proposition}[Uniform balanced frontier, computer-assisted]
+In the joint product hybrid, the full frontier is uniform on the set of nonzero balanced frontiers with the ten stated nodes fixed. Its law depends on no other complementary cofactor.
+\end{proposition}
+\begin{proof}
+Form the integer exponent matrix with $32$ node rows and $34$ product columns from these formulas. Its ten fixed rows vanish, and the sum of its push rows equals the sum of its pull rows. Delete the ten fixed rows and row $Q_{15}$. The audit reduces the remaining $21\times34$ matrix to $[I_{21}\ 0]$ using only integer row/column swaps, sign changes and additions of integer multiples. All pivots are units. These are invertible operations on powers of any finite abelian group, so the map surjects onto $(\E^\times)^{21}$ even when $|\E^\times|$ is composite. Uniform input maps to uniform output because all fibers have equal size. Nonzero cofactor multiplication preserves this target, and balance uniquely supplies $Q_{15}$. Thus neither a finite-index subgroup nor an unaccounted cofactor remains. This finite integer certificate has no exceptional-coin probability.
+\end{proof}
+
+\section{Compose without exposing the masks twice}
+
+Let $F_{\rm mem},F_{\rm bc}$ be the final-counter evaluations and set
+\[
+ R=(T,F_{\rm mem},F_{\rm bc})\in\E^8.
+\]
+This is a different residual for a different view: the auxiliary SET/JUMP product disclosures of the earlier seven-field reduction are no longer retained.
+
+\begin{proposition}[Complete two-layer wire and boundary]
+Under the stated assumptions, the roots, complete first/second-layer wire and seventeen-field final boundary have an efficient sampler from public data, honest coins and the actual $R$, with joint statistical error below $2^{-155}$ outside a public-library exception below $2^{-222}$. The law of $R$ itself is not simulated.
+\end{proposition}
+\begin{proof}
+First apply the five four-product MUL hybrids, the two-product XOR hybrid and the unused-word hybrid, retaining the actual boundary and all control sources. Each word family contributes only seven linear fields to that boundary. The first pair of MUL banks shares a memory quarter, so its independent output products may still be multiplied together, leaving the stated $21$ private product coordinates. Their frontier image is uniform on a translate of the private-product subgroup, whose integer rank is $15$.
+
+Now apply the fifteen-field boundary theorem. Counter trades preserve every whole-block product. Changes of the original eight single-limb XOR words act on the frontier by the same two product directions as the full-word XOR bank; changes of the unused words act by its unused-product direction. Both translations lie in the private-product subgroup. Its uniform law is therefore unchanged, even though individual nodes need not remain fixed. This permits retaining the \emph{whole} frontier through boundary uniformization. No later mixed polynomial is separately retained or conditioned on at this step.
+
+Finally apply the ordered public-word then frame-scale hybrids. The actual four condition/destination products, two final counters and complementary ratio may be retained as before, together with the word-independent MUL state/bytecode nodes. Carry the already uniform private-product image and boundary through these hybrids. The integer surjection gives the full uniform frontier conditional on $T$. Project away the extra retained control fields and $\Omega$: the target depends on them only through $T$ and the final counters. Uniform cofactor absorption here does not assert that their original laws were uniform.
+
+Derive every first/second-layer message from the sampled frontier and public normalized count frontier. This deterministic postprocessing includes both mixed quartic cofactors and all children, at the actual honest coins, so it needs no additional exclusion of fold coordinates. The total error is
+\[
+ 5\varepsilon_M+\varepsilon_X+\varepsilon_W+\varepsilon_{15}
+      +2^{-159}<2^{-155},
+\]
+using the preceding private-product and boundary bounds and the unchanged public-product bound. Distances are joint and averaged over the retained residual law, not worst-case conditional bounds for each residual value.
+\end{proof}
+
+\paragraph{Explicit sampler.} Insert the four public bytecode seed nodes and the six supplied nodes $T$. Sample every other node except $Q_{15}$ independently in $\E^\times$, and set $Q_{15}=\prod_iP_i/\prod_{i<15}Q_i$. Compute the first two layers from these nodes. Independently sample the fifteen free boundary fields and append the supplied final counters. Degenerate branches use fixed-format conventions charged in the earlier bounds. The omitted intervening layers are not filled by this sampler.
+
+\paragraph{Reservation and evidence.} The new frame indices are $b_j+128i$, $0\le i<48$, with $(b_1,b_2,b_3)=(393216,557056,819200)$. They lie in the intended quarters, avoid existing reservations and use the same MUL/closing-JUMP instructions $32768,32769$. The three banks occupy MUL slots $2^{18}-240$ through $2^{18}-97$ and JUMP slots $60097$ through $60240$. All table heights, bus depth $22$ and stack log $24$ stay unchanged. \path{zk_frontier_entropy_audit.py} checks the integer unit certificate, actual full-frontier factors across payload and occupancy changes, local-cycle validity, count invariance, reservations, rational bounds and both complete layers through the reference verifier. Its separate wire-Jacobian ranks are diagnostics, not the statistical proof. No full-size completed trace is instantiated.
+
+\paragraph{Next obligation.} Hide the joint law of $R$ or remove its dependence directly in the wire. The present payload banks leave $R$ untouched. Closing it would still leave the intermediate GKR transcript, table/Flock composition, full PCS and Fiat-Shamir unresolved.
+\end{document}
