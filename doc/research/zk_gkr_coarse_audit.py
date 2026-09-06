@@ -17,7 +17,7 @@ REAL_PC, REAL_FRAME = 1 << 19, 32
 PAD_PC, PAD_FRAME = 32768, 3 << 16
 
 
-def layout_certificate(verifier):
+def layout_certificate(verifier, noise=NOISE):
     layout = verifier.build_layout(range(16 << 20), 20, (4, HEIGHT, 4, 4, 17, 3))
     bus = verifier.bus_layout((0, 20, 20), layout.push)
     assert bus.depth == 22 and layout.stack_log <= verifier.MAX_STACKED_LOG
@@ -36,16 +36,16 @@ def layout_certificate(verifier):
             assert place.index + (1 << place.variables) <= low or place.index >= high
     assert bus.framework[1].index == 0 and bus.framework[2].index == 1 << 20
     counter_rows = {8 * ((bank << 12) + s) + bit for bank in range(4) for s in SPARSE for bit in range(8)}
-    assert counter_rows.isdisjoint(range(60000, 60000 + NOISE + 1))
+    assert counter_rows.isdisjoint(range(60000, 60000 + noise + 1))
     frame_intervals = [
         (65536, 65536 + 4 * 5 * 4 * len(SPARSE)),
         (1 << 17, (1 << 17) + 8 * 128),
-        (PAD_FRAME, PAD_FRAME + NOISE * 128),
+        (PAD_FRAME, PAD_FRAME + noise * 128),
         (1 << 18, (1 << 18) + (1 << 16)),
         (1 << 19, (1 << 19) + 32),
     ]
     assert all(left[1] <= right[0] for left, right in pairwise(frame_intervals))
-    assert frame_intervals[-1][1] < 1 << 20 and REAL_PC + (1 << HEIGHT) - NOISE < 1 << 20
+    assert frame_intervals[-1][1] < 1 << 20 and REAL_PC + (1 << HEIGHT) - noise < 1 << 20
     print(
         "Supported actual layout: first push child 2 is exactly MUL state, bytecode, input-a and input-b; all earlier mask families lie outside it",
         flush=True,
@@ -74,29 +74,30 @@ def cycles(verifier, secret, payloads):
             templates[0][1][verifier.ARITH_COLUMNS.index(f"va_{lane}")] = verifier.E(value)
         templates[0][1][verifier.ARITH_COLUMNS.index("vb_0")] = verifier.ONE
         row_id, jump = library.append(templates)
-        positions[row_id], positions[jump] = (1 << HEIGHT) - NOISE + index, 60001 + index
+        positions[row_id], positions[jump] = (1 << HEIGHT) - len(payloads) + index, 60001 + index
         mask_rows.append(row_id)
     library.verify()
     return library, positions, mask_rows
 
 
-def block_product(verifier, library, e, beta):
+def block_product(verifier, library, e, beta, side="push"):
     return reduce(
         mul,
         (
             beta + verifier.dot(e[: len(block)], [form.evaluate(row.__getitem__) for form in block])
             for opcode, row in library.rows
             if opcode == verifier.OP_MUL
-            for block in verifier.TABLES[opcode].flushes.push[:4]
+            for block in getattr(verifier.TABLES[opcode].flushes, side)[:4]
         ),
         verifier.ONE,
     )
 
 
-def first_packet(verifier, child):
+def first_packet(verifier, child, pull_child=None):
+    pull_child = child if pull_child is None else pull_child
     root, count = verifier.E(3, 5, 7), verifier.GEN**19
     push = [verifier.GEN, verifier.GEN**2, child, root / (verifier.GEN**3 * child)]
-    pull = [verifier.GEN**4, verifier.GEN**5, child, root / (verifier.GEN**9 * child)]
+    pull = [verifier.GEN**4, verifier.GEN**5, pull_child, root / (verifier.GEN**9 * pull_child)]
     values, samples = iter([root, count, *push, *pull, count, verifier.ONE, verifier.ONE, verifier.ONE]), 0
 
     class EndOfPrefix(Exception):

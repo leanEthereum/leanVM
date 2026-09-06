@@ -1,0 +1,73 @@
+% !TeX root = zk-gkr-paired.tex
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\input{../leanvm/preamble/macros.tex}
+\newtheorem{lemma}{Lemma}
+\title{Jointly hiding a push/pull pair of coarse GKR products}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\paragraph{Result and scope.} Forty random valid MUL cycles hide the selected push/pull pair jointly with the shared root and seventeen boundary values, below $2^{-155}$. This extends \path{zk-gkr-coarse.tex} by eight cycles. Other first-packet children, intervening messages and subsequent proofs remain excluded. Coins are honest interactive challenges, not Fiat-Shamir.
+
+\section{Two shifted products with linear disclosures}
+
+Write $Q=|\K|$, $q=|\E|$. Let $L:\K^3\to\E$ be linear with image dimension at least two, let $d\in\E^\times$, and fix offsets $b_i$ and linear maps $A_i:\K^3\to\E^h$. Independently sample $v_i\in\K^3$, conditional on $X_i=b_i+L(v_i)\notin\{0,d\}$, and put $Y=\sum_i A_iv_i$.
+
+\begin{lemma}[Paired product mixing]
+The joint law of $(\prod_{i=1}^tX_i,\prod_{i=1}^t(X_i+d),Y)$ is within distance
+\[
+ \eta_{t,h}=\frac12\sqrt{\bigl((q-1)^2-1\bigr)q^h}
+ \left(\frac{2\sqrt q}{Q^2-2}\right)^t
+\]
+of two independent uniform elements of $\E^\times$, independent of the \emph{actual marginal law} of $Y$. No rank or uniformity assumption on $Y$ is needed.
+\end{lemma}
+\begin{proof}
+For multiplicative characters $(\theta_1,\theta_2)\ne(1,1)$ and any additive character $\psi$ of $\E$, the complete sum satisfies
+\[
+ \left|\sum_{x\notin\{0,d\}}\theta_1(x)\theta_2(x+d)\psi(x)\right|
+ \le 2\sqrt q.
+\]
+For nontrivial $\psi$ and both multiplicative characters nontrivial, choose a generator $\chi$ of their generated subgroup, of order $n$, and write $\theta_1=\chi^a$, $\theta_2=\chi^b$. Then $\gcd(n,a,b)=1$, so $Z^n-X^a(X+d)^b$ is absolutely irreducible. Weil's mixed bound applies with two distinct roots and additive polynomial $X$, giving $2\sqrt q$~\cite{winger}. With one multiplicative character trivial, a Gauss sum minus one omitted term is bounded by $\sqrt q+1$. For trivial $\psi$, Jacobi sums give at most $\sqrt q$, including inverse characters~\cite{conrad}.
+
+For one word and an additive character of its observation, average over fibers of $L$. A nontrivial phase on $\ker L$ gives zero; otherwise it descends to an additive phase on $b_i+\operatorname{im}L$ and extends to $\E$. Expanding this coset's indicator in annihilating additive characters bounds the unnormalized sum by $2\sqrt q$. Excluding its at most two forbidden points leaves at least $Q^2-2$ elements. Thus every mixed coefficient with a nontrivial multiplicative pair has magnitude at most $2\sqrt q/(Q^2-2)$ per word.
+
+Independence raises this bound to the $t$th power. On $(\E^\times)^2\times\E^h$, coefficients with both multiplicative characters trivial agree exactly with the proposed target, since it retains the actual $Y$ marginal. There are $((q-1)^2-1)q^h$ remaining coefficients. Parseval and Cauchy-Schwarz give the result.
+\end{proof}
+
+\section{The actual MUL pair and its exceptional events}
+
+In the preceding note's supported layout, $N=2^{18}$ and bus depth is $22$. Reserve $t=40$ MUL slots for random $v_i\in\K^3$ multiplied by $(1,0,0)$ in fresh frames. Both child-$2$ blocks contain state, bytecode, input-$a$ and input-$b$, but not output-$c$. Their products are
+\[
+ T_+=A_+\prod_i X_i,\qquad T_-=A_-\prod_i(X_i+d),
+ \qquad d=e_2(1+\gen),
+\]
+where $X_i$ is the push input-$a$ fingerprint and both cofactors contain no sampled word. Each input is read once: its pull count is $1$, versus $\gen$ on push. Boundary changes occupy seven linear fields: four push children and three memory evaluations. Pull changes equal push changes; counters are unchanged. Thus $h=7$.
+
+Exclude fingerprint coins with a coordinate in $\{0,1\}$ or $\operatorname{rank}_{\K}L<2$: \path{zk-bus-root.tex} bounds this by $8/q+Q^2/(q-2)^2$, also excluding $d=0$. If both cofactors together contain at most $m$ other factors, their zeros cost $m/q$; sampled zeros cost $2t/q$, averaged over uniform $\beta$. Conditioning on no sampled zero preserves independence. The lemma then replaces the pair while retaining the actual boundary and complementary padding, at cost
+\[
+ \varepsilon_{\rm pair}(m)
+ =\frac{m+2t+8}{q}+\frac{Q^2}{(q-2)^2}+\eta_{t,7}.
+\]
+This charges bad branches once: the target and real distributions have the same conditional boundary marginals on each branch. The nonzero shift is essential; at $d=0$ the two unscaled products coincide.
+
+\paragraph{Joint simulator.} First replace the shared root using the original thirty-two unused words, retaining all forty MUL words and hence both selected children. Next replace the pair using the lemma, retaining the actual boundary. Finally apply \path{zk-bus-boundary.tex}, conditional on arbitrary fixed MUL data. The independent replaced root is carried through both later hybrids. If $\varepsilon_*$ denotes the original root-decoupling bound, the total error is
+\[
+ \varepsilon_{17}+\varepsilon_*(2^{22})
+ +\varepsilon_{\rm pair}(8N-80)<2^{-155}.
+\]
+Here $\eta_{40,7}<2^{-376}$. The simulator samples honest coins, three independent uniform nonzero field elements for the root and pair, and seventeen independent uniform boundary fields. A compatible publicly normalized count root may be adjoined. Sampling independent roots for the \emph{entire} first packet would violate its product identities; the other children are outside this view.
+
+\paragraph{Evidence and next obligation.} \path{zk_gkr_paired_audit.py} checks exact small-field distributions, including kernel-sensitive views and failure at zero shift; actual layouts, factors and linear disclosures; valid local cycles and reservations; and rational error bounds. No full-size trace is instantiated. Next include the other first-packet children with their shared factors and product identities, then the subsequent layers.
+
+\begin{thebibliography}{2}
+\bibitem{winger} M.~Winger. \emph{A proof of Weil's bound on general character sums}, Theorem~1.1. ETH Z\"urich, 2020. \href{https://people.math.ethz.ch/~pinkri/Theses/2020-Bachelor-Moritz-Winger.pdf}{Proof and hypotheses}.
+\bibitem{conrad} K.~Conrad. \emph{Gauss and Jacobi sums on finite fields and $\mathbb Z/m\mathbb Z$}, Theorem~2.2, Corollary~2.5 and Theorem~2.6. \href{https://kconrad.math.uconn.edu/blurbs/gradnumthy/Gauss-Jacobi-sums.pdf}{Author's notes}.
+\end{thebibliography}
+\end{document}

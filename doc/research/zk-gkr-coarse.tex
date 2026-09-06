@@ -13,7 +13,7 @@
 \maketitle
 \vspace{-2em}
 
-\paragraph{Result and scope.} The root/boundary construction of \path{zk-bus-root-joint.tex} does not hide the first GKR packet in every admissible layout: an entire MUL block product can be untouched by its masks. Thirty-two random valid MUL cycles repair one such push-side child, jointly with the shared root and all seventeen boundary values. The matching pull child and other intermediate GKR messages remain open. All statements use independent honest interactive coins, not Fiat-Shamir.
+\paragraph{Result and scope.} The masks of \path{zk-bus-root-joint.tex} can leave an entire MUL block product untouched in the first GKR packet. Thirty-two random valid MUL cycles hide that push child jointly with the shared root and seventeen boundary values. The continuation \path{zk-gkr-paired.tex} adds its pull counterpart. Other GKR messages remain open; coins are honest interactive challenges, not Fiat-Shamir.
 
 \section{An actual unmasked child}
 
