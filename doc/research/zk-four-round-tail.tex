@@ -1,0 +1,121 @@
+% !TeX root = zk-four-round-tail.tex
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\input{../leanvm/preamble/macros.tex}
+\newtheorem{lemma}{Lemma}
+\newtheorem{theorem}[lemma]{Theorem}
+\title{Four joint GKR rounds with a retained native invariant}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\paragraph{Result and scope.} Forty-eight replacement row-swap banks jointly hide the last four sumcheck rounds of the final GKR layer, their incoming claim and terminal boundary, with statistical error below $2^{-152}$. A finer interface reveals five universal read relations and one additional invariant of the chosen self-loop masks. Retaining this invariant still leaves four independent coupled-quartic sources for the new round. The theorem assumes honest interactive coins, the same depth-$22$ layout, compatible count normalization and disjoint valid completion. The first sixteen rounds of this layer, earlier-layer composition, downstream proofs, commitments and Fiat-Shamir remain open. No production protocol changes.
+
+\section{Six relations leave sixteen coordinates per child}
+
+Keep the notation of \path{zk-three-round-tail.tex}. Fold $x_{0:16}$, leaving sixteen sectors per child, each of physical size $2^{18}$. The new challenge is $t=x_{16}$. Write $P_{i,j},Q_{i,j},C_{i,j}$ for sector $i$ in child $j$, and put $\Delta=e_2(1+\gen)$. MUL and JUMP swaps affect only bus sectors $8,\ldots,15$ and count sectors $0,\ldots,5$. Their twenty-two values satisfy the five universal relations
+\[
+\begin{aligned}
+ P_9+Q_9&=\Delta C_3,& P_{10}+Q_{10}&=\Delta C_0,\\
+ P_{11}+Q_{11}&=\Delta C_1,& P_{12}+Q_{12}&=\Delta C_2,\\
+ P_{14}+Q_{14}&=\Delta C_4.
+\end{aligned}
+\]
+Child indices are suppressed. The first four are individual MUL reads. The fifth combines the JUMP condition and destination reads with the same selector weights as their count columns.
+
+\paragraph{An invariant need not be made public.} Define
+\[
+ I_j=P_{13,j}+Q_{13,j}+P_{15,j}+Q_{15,j}+\Delta C_{5,j}.
+\]
+The JUMP bytecode and frame-read differences cancel their corresponding count contributions. What remains is its weighted state-transition difference. This vanishes for a self-loop, so the proposed swaps leave every $I_j$ fixed. For an arbitrary complementary execution, $I_j$ may be nonzero and witness-dependent. We retain it in the analysis, not as simulator input. Requiring seventeen fully independent coordinates would ignore this mask invariant.
+
+Instead retain sixteen coordinates per child:
+\[
+ (P_8,\ldots,P_{15},\ Q_8,Q_{13},\ C_0,\ldots,C_5).
+\]
+The six relations reconstruct every omitted pull value, using the fixed $I_j$. Whole-row permutations within quartets fix each coordinate's child sum, leaving forty-eight free extension-field coordinates over the first three children.
+
+\section{The conditional kernel supplies four coupled pairs}
+
+Fold adjacent sectors at $t$, obtaining exactly the previous ten-coordinate interface
+\[
+ (p_4,p_5,p_6,p_7,\ q_4,q_6,q_7,\ c_0,c_1,c_2),
+ \qquad q_5=p_5+\Delta c_0.
+\]
+Let $h_{P,i}=P_{2i}+P_{2i+1}$ for $i=4,\ldots,7$, and $h_{C,i}=C_{2i}+C_{2i+1}$ for $i=0,1,2$. The affine change of coordinates from the sixteen fine values to the ten coarse values and
+\[
+ (h_{P,4},h_{P,5},h_{P,6},h_{P,7},h_{C,0},h_{C,2})
+\]
+has determinant $\Delta t^2(1+t)^2$. Consequently, away from $\Delta=0$ and $t\in\{0,1\}$, these six slope vectors are independent uniform on their fixed-sum hyperplanes, conditional on the coarse interface and arbitrary invariant vector $I$.
+
+\paragraph{The missing count slope is determined.} Direct substitution gives
+\[
+ h_{C,1,j}=\frac{tI_j+p_{6,j}+q_{6,j}+p_{7,j}+q_{7,j}
+             +\Delta((1+t)c_{1,j}+c_{2,j})}{\Delta t(1+t)}.
+\]
+For example, after changing each push and count pair to its coarse value and slope, only $h_{C,1},Q_8,Q_{13}$ remain to be recovered from $q_4,q_6,q_7$. Their coefficient matrix has determinant $\Delta t^2(1+t)^2$, which also proves the stated change-of-coordinates formula.
+
+Conditional on the coarse interface and the two free count slopes, every count polynomial is fixed. The four pull slopes have the form $h_{Q,i,j}=h_{P,i,j}+k_{i,j}$, where
+\[
+\begin{aligned}
+ k_{4,j}&=\Delta h_{C,1,j}+(p_{4,j}+q_{4,j}+\Delta c_{1,j})/(1+t),\\
+ k_{5,j}&=\Delta h_{C,0,j},\\
+ k_{6,j}&=\Delta h_{C,1,j}+(p_{6,j}+q_{6,j}+\Delta c_{1,j})/t,\\
+ k_{7,j}&=\Delta h_{C,2,j}+(p_{7,j}+q_{7,j}+\Delta c_{2,j})/t.
+\end{aligned}
+\]
+All dependence on $I$ is confined to these fixed offsets. Each of the four independent push-slope vectors therefore supplies one coupled push/pull quartic, exactly of the form treated in \path{zk-three-round-tail.tex}.
+
+\begin{lemma}[One more wire round]
+When the fine interface is uniform on its native affine fiber, the new round's four nonconstant coefficients are within $30/q+648/q^2$ of independent uniforms, retaining the entire coarse interface, where $q=|\E|$. This excludes the separate change-of-coordinates exceptions.
+\end{lemma}
+\begin{proof}
+Condition on the coarse interface and free count slopes. The inactive bus sectors and all count contributions are fixed polynomials. The four active sector pairs have weights $\eta_{19}\eq((\eta_{17},\eta_{18}),i-4)$ for $i=4,\ldots,7$, with pull additionally weighted by $\lambda$. Four independent coupled-pair character bounds multiply to $(6/q)^4$. Fourier inversion and Cauchy-Schwarz bound the distance on $\E^4$ by $\tfrac12\sqrt{q^4(6/q)^8}=648/q^2$.
+
+For each pair, its two endpoint tuples have independent free child coordinates, with their fourth entries fixed by their respective sums. This is immediate for pairs $4,6,7$. For pair $5$, use $q_5=p_5+\Delta c_0$ and $\Delta\ne0$: uniform independent $(p_5,c_0)$ give uniform independent $(p_5,q_5)$. The three endpoint polynomials in the coupled-pair lemma have total degree six, costing at most $6/q$ per pair. They need not be independent across pairs. Excluding $\lambda=1$ costs $1/q$; nonzero active weights cost at most $5/q$. Summing gives $30/q+648/q^2$. The bound is uniform in every fixed $I_j$ and slope sum.
+\end{proof}
+
+\section{Valid cycles realize the whole affine fiber}
+
+For each child-pair direction $(0,1),(0,2),(0,3)$, use sixteen profiles on disjoint translated copies of the same $448$-point sparse support. As before, counter profiles permute complete labels $\gen^{4o(s)+j}$ in one repeated cycle; payload profiles repeat four fixed cycles with equal read labels and use private whole-row swaps. All program instructions and memory words in these swap banks are fixed.
+
+\paragraph{Ten MUL profiles.} Four counter profiles distinguish \texttt{cnt\_a}, \texttt{cnt\_b}, \texttt{cnt\_c}, \texttt{cnt\_bc}. Put $(u_0,u_1,u_2,u_3)=(0,1,\gen,1+\gen)$. Six payload/control profiles use two distinct fixed-PC/frame families multiplying $1+\gen+\gen^2$ by one, the operand patterns $u_j\cdot1$, $1\cdot u_j$ and $u_j\cdot u_j$, and another constant-word family with first-operand offset $\gen^{6+j}$. All words have zero upper limbs. Each MUL closes through a fixed JUMP with operand offsets $\gen^3,\gen^4,\gen^5$. The square pattern and varying offset supply directions absent from the previous library; no private nonlinear values are sampled.
+
+\paragraph{Six JUMP profiles.} Three counter profiles distinguish \texttt{cnt\_c}, \texttt{cnt\_f}, \texttt{cnt\_bc}. Two payload/control profiles use fixed self-loops at different PC/frame bases. A third uses the four nonzero conditions $1,\gen,1+\gen,\gen^2$ with their inverses and branch flag one, still returning to their own states. The condition/destination count combination needs only one independent counter direction at this cut.
+
+Stripping each bank's scalar source leaves a sixteen-vector whose entries have degree at most eight: four high placement factors and four fingerprint factors. The audit certifies three nonzero $16\times16$ determinants, each of degree at most $128$. Together with the geometric sparse-span bound, this makes the forty-eight free fine coordinates jointly uniform except with probability at most
+\[
+ \varepsilon_{\rm fine}=48\delta_{\rm span}+2112/q,
+ \qquad 2112=48\cdot36+3\cdot128.
+\]
+The coefficients are fixed independently of the real execution, so the failure bound is uniform over disjoint fixed valid complements. No sampled binary-rank success rate is used as a security estimate.
+
+\section{Joint backward simulation}
+
+\begin{theorem}[Four-round tail and boundary]
+Assume these banks and the terminal-boundary banks admit a disjoint fixed valid completion in the supported layout. The last four sumcheck rounds of the final GKR layer, their incoming claim, final children and five framework evaluations have a public-data honest-coin simulator with error at most
+\[
+ 51\delta_{\rm span}+2537/q+648/q^2+3\cdot2^{-256}<2^{-152}.
+\]
+\end{theorem}
+\begin{proof}
+Fix the complementary execution and all other padding randomness. Charge $\varepsilon_{\rm fine}$ once. The change-of-coordinates exceptions cost at most $6/q$, since $e_2$ has four factors and $t$ has two excluded values. Apply the new smoothing lemma, retaining the coarse interface and carrying four fresh uniform wire coefficients.
+
+The retained coarse interface has the same thirty-dimensional uniform law used by the previous theorem. Apply its conditional factorization and round-$17$ smoothing, costing $1/q+128/q$, then the round-$18$ factorization and smoothing, costing $123/q$. These are successive factorizations of one fine-cut uniform distribution, not new independent sources or a composition of marginal simulators. They retain the last quartic, actual boundary and all GKR layers before the final one.
+
+Discard that unsimulated prefix. For each fixed swap choice, the terminal-boundary construction applies with the replacement gadgets as valid complement, costing $3\delta_{\rm span}+137/q+3\cdot2^{-256}$. Carry all three already uniform coefficient quartets through this last hybrid. Sample backwards: determine each polynomial's constant from its value at its challenge, supplied by the next incoming claim, and then derive the preceding incoming claim. Adding the bounds yields the theorem. The simulator neither receives nor reconstructs the private invariant $I$.
+\end{proof}
+
+\paragraph{Reservations and evidence.} The forty-eight banks replace the preceding thirty. They use $21504$ fair bits, $53760$ MUL rows and $86016$ new JUMP rows, including MUL closings. With terminal padding the JUMP count is $104864$, below its $2^{17}$ capacity. PCs start at $207000$ and frames at $920000$, with strides $16$ per bank for PCs and $128$ per bank, $16$ per child for frames. The exact reflected supports and closing slots are given in \path{zk_four_round_tail_audit.py}. It checks symbolic native relations, valid local read chains, sparse scalar factorization, all three determinants, the conditional determinant and arbitrary-invariant slope formulas, reservations, the rational error bound and the actual four-round reference reader. The determinant certificates also reproduce with unmodified reference field arithmetic. These checks are not a complete VM execution or a full-protocol ZK proof.
+
+\paragraph{What this says about continuing.} A fixed mask invariant does not by itself block simulation: it can determine an unused slope while leaving enough independent coupled products to smooth the wire. This is a reusable criterion, not yet an induction through the whole layer. Finer cuts split actual opcode blocks and require a new rank and capacity argument. Full GKR must also retain the downstream table interface and compose with the earlier layers; advancing the tail alone does not settle either obligation.
+
+\paragraph{A targeted next candidate.} At the next cut, try adding only JUMP directions while keeping the unmasked MUL half fixed. The newly separated JUMP blocks suggest three additional coordinates per child, rather than uniformizing every finer sector. Their conditional wire would combine a coupled state/bytecode pair with a push/pull/count triple satisfying $Q=P+\Delta C$ along the whole line. A sufficiently strong character bound for this triple could avoid conditioning away its count slope. Both that bound and the required native rank are unproved. A design with nine additional sparse banks would cost $120992$ total JUMP rows under the present closing rule, still within capacity, if its placements and profiles can be realized.
+
+\end{document}
