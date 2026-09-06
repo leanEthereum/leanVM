@@ -1,0 +1,79 @@
+% !TeX root = zk-control-residual.tex
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\input{../leanvm/preamble/macros.tex}
+\newtheorem{proposition}{Proposition}
+\title{Composing the product masks with the GKR boundary}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\paragraph{Result and scope.} The counter-label trades preserve all ten whole JUMP products. This permits a composition previously left open: the first packet, boundary, bytecode quarters, SET payload products and JUMP products reduce jointly to thirteen actual residual fields. Twelve are the retained controls; the last is a bytecode ratio from the other opcodes. The optional public SET library does not hide that ratio. This is a leakage reduction under honest independent coins, not full GKR zero knowledge or an attack on its mixed messages.
+
+\section{The fifteen-field boundary retains whole JUMP products}
+
+The counter masks in \path{zk-bus-packet.tex} assign labels $(0,3,1,2)$ or $(1,2,0,3)$ to four identical JUMP self-loop rows, separately in \texttt{cnt\_f} and \texttt{cnt\_bc}. Within either read block, the four non-counter tuple coordinates are identical and the multiset of counter labels is unchanged. Every whole push/pull block product is therefore unchanged, including its nonlinear fingerprint factors. State and the other memory blocks are untouched. Quartet count products are also unchanged, by the equal label sums.
+
+The XOR payloads and unused words in \path{zk-bus-boundary.tex} do not change any JUMP row, final counter or SET payload. The random MUL words from \path{zk-gkr-first-packet.tex} likewise leave their closing JUMPs and all bytecode visits unchanged. Thus the fifteen-field boundary theorem may retain the ten whole JUMP products, both final-counter evaluations, all SET payload products and all four bytecode finalization quarters, after the earlier packet-product hybrids have removed their dependence on the MUL and unused words. This is an invariance argument for these specific sources, not conditioning a marginal theorem on arbitrary extra observations.
+
+\section{One complementary cofactor cannot be discarded}
+
+From now on products refer to \emph{full tables}, not just padding contributions. Let $D_j$ be the four full bytecode finalization quarters, $B$ the public full bytecode seed product, $C_+,C_-$ the SET bytecode products, and $M_+,M_-$ its memory products. The ten JUMP products determine their bytecode ratio $J_{\rm c}$. Define
+\[
+ \Omega=\prod_{t\notin\{\mathrm{SET},\mathrm{JUMP}\}}
+ \frac{\text{bytecode push product of table }t}
+      {\text{bytecode pull product of table }t}.
+\]
+Complete bytecode lookup chains give
+\[
+ D:=\prod_jD_j=B\,\Omega\,\frac{C_+}{C_-}J_{\rm c},
+ \qquad
+ C_+=\frac{D C_-}{B\Omega J_{\rm c}}.
+\]
+Hence the enlarged view recovers $\Omega$. It is not a public constant: the SET library changes none of its factors. The earlier note's statement about multiplying padding contributions by fixed complementary cofactors did not simulate those cofactors; $\Omega$ identifies exactly the one needed here. Ratios are used on the nonzero event, with arbitrary fixed-format conventions elsewhere.
+
+\paragraph{A valid local separating pair.} Install two MUL instructions at $p,p+2$, each followed by a JUMP closing its own cycle, with fresh frames and identical MUL offsets. Execute one alternative twice. Both choices have common code and memory images and identical count-column products. If $f_0,f_1$ are the two MUL seed fingerprints and $\delta=e_2(1+\gen^2)$, their outside ratios satisfy
+\[
+ \Omega_0=\frac{f_0+\delta}{f_0},\quad
+ \Omega_1=\frac{f_1+\delta}{f_1},\quad
+ \Omega_0+\Omega_1=\frac{\delta(f_0+f_1)}{f_0f_1},
+ \qquad f_0+f_1=e_1(\gen^p+\gen^{p+2}).
+\]
+They differ outside an event of probability at most $10/q$, where $q=|\E|$: exclude four fingerprint coordinates in $\{0,1\}$ and the two zero seed fingerprints. Fixed additional outside products only multiply this difference by a common cofactor; its zeros must also be charged. SET occupancy, the specific counter trades and the existing payload masks leave the ratio unchanged. This rules out dropping it from the strengthened view's residual. It is a local valid-cycle example, not a claim that the actual second GKR layer reveals the ratio.
+
+\section{A joint reduction to thirteen fields}
+
+Let $Y$ contain the ten full JUMP products and the memory and bytecode final-counter evaluations. Let $V$ consist of the full first GKR packet and roots, all seventeen boundary fields, four $D_j$, four SET payload products and ten JUMP products. Include the honest coins and public normalized count values.
+
+\begin{proposition}[Enlarged-view leakage reduction]
+Use the supported depth-$22$ layout, the earlier $48$ MUL cycles and boundary masks, and the four $3840$-bit public SET banks. Assume compatible count-column normalization and valid disjoint completion. Outside the preceding note's setup exception below $2^{-223}$, there is an efficient sampler $S$ receiving the public data, honest coins and the \emph{actual} residual $(Y,\Omega)$ such that
+\[
+ \operatorname{TV}\bigl(V,S(Y,\Omega)\bigr)<2^{-155}.
+\]
+This is joint distance averaged over the actual residual law, not a pointwise guarantee conditional on each residual value.
+\end{proposition}
+\begin{proof}
+First apply the four-MUL-product and unused-word hybrids from \path{zk-gkr-first-packet.tex}. Their retained data now include all SET products, JUMP products, bytecode quarters, final counters and $\Omega$. None depends on these payload words. They make the five free first-packet coordinates uniform independently of the actual fifteen-field boundary and this enlarged residual.
+
+Next apply the fifteen-field boundary theorem. Its counter trades preserve every newly retained product, by the first section; XOR and unused-memory noise preserve them as well. All fifteen coordinates become uniform independently of the retained actual data. Do not apply the memory-occupancy uniformization: its control correlations are still in $Y$.
+
+Finally apply \path{zk-set-payload-products.tex}. Conditional on the complementary trace, its seven free product coordinates become independent uniform nonzero elements, retaining $Y$ and $\Omega$. The latter is fixed by that complement and independent of SET occupancy, so retaining it does not increase the twelve-field entropy cost. Full control fields are obtained from the padding controls by fixed cofactor and offset postprocessing. The setup exceptional set is uniform over these transformations. Carry the earlier uniform coordinates through this hybrid and recover $C_+$ from balance.
+
+The total error is $\varepsilon_4+\varepsilon_1+\varepsilon_{15}+2^{-159}<2^{-155}$, with the same zero-factor bounds as the preceding notes. This last hybrid does not simulate the residual's law.
+\end{proof}
+
+\paragraph{Explicit sampler.} Sample seven independent nonzero values for $(D_0,D_1,D_2,D_3,C_-,M_+,M_-)$ and reconstruct $C_+$. Sample five further nonzero values $(P_0,P_2,P_3,Q_2,Q_3)$ for the first packet and reconstruct
+\[
+ P_1=B,\quad Q_1=D,\quad
+ Q_0=\frac{BP_0P_2P_3}{DQ_2Q_3},\quad R=BP_0P_2P_3.
+\]
+Sample fifteen independent field values for the final child packet and three memory evaluations. Retain the two final-counter evaluations and JUMP products from $Y$, and append the public normalized count packet. Degenerate denominators use an arbitrary fixed-format branch charged above. This description uses $27$ sampled coordinates and $13$ retained fields; the retained fields are not assumed independent.
+
+\paragraph{Evidence and next obligation.} \path{zk_control_residual_audit.py} checks the actual counter trades' whole-product invariance and changed boundary messages, MUL/XOR invariance, full-table balance with mixed opcode libraries, the separating pair, the reconstruction through the reference first-packet reader and rational bounds. No intervening GKR transcript is replayed. Hiding $(Y,\Omega)$ is necessary for this strengthened-view route, but failure there would not establish a fundamental obstruction to hiding the actual mixed GKR messages. A direct simulator for those messages may avoid revealing $\Omega$ at all. The honest setup assumption and all later protocol obligations remain open.
+\end{document}
