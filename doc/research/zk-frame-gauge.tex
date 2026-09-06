@@ -1,0 +1,120 @@
+% !TeX root = zk-frame-gauge.tex
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\input{../leanvm/preamble/macros.tex}
+\newtheorem{lemma}{Lemma}
+\title{Address-preserving randomness for control products}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\paragraph{Result and scope.} Public random frame scalings and private cycle choices can jointly hide six JUMP products while retaining eight correlated fields. This supplies control randomness absent from the previous private payload masks. The construction uses the optional honest public setup and the documented field-valued ISA, but requires raw field-valued bytecode and padding-row support beyond the current native prover. It is a restricted statistical decoupling theorem under honest independent verifier coins, not a full GKR simulator or an implemented ZK mode.
+
+\section{Where payload randomness has no effect}
+
+In the depth-$22$ layout of \path{zk-gkr-second-wire.tex}, the second push packet's child $1$ is
+\[
+ \eq(x,0)P_1+\eq(x,1)P_5+\eq(x,2)P_9+\eq(x,3)P_{13}.
+\]
+Here $P_1$ is memory quarter $1$'s seed product, $P_5$ is public bytecode quarter $1$, $P_9$ is MUL bytecode, and $P_{13}$ multiplies the JUMP state and bytecode blocks. Fix the coins, public SET library and private occupancy choices. The previous MUL-by-one and XOR-by-zero payloads occupy memory quarter $0$, while unused private words occupy quarter $2$; none changes these four products. Increasing those payload banks alone therefore cannot randomize this scalar. The audit replays both layers through the actual verifier using products of valid local cycles, with all omitted factors set to one. It is not a complete VM trace or an attack on the remaining occupancy randomness.
+
+\paragraph{Frame scaling.} At SET address $p$, choose a physical frame $h\in\K^\times$ and a public scale $a\in\K^\times$. Use
+\[
+ \fp=ha,\qquad o_{\rm SET}=a^{-1},\qquad
+ (o_c,o_d,o_f)=(\gen,\gen^2,\gen^3)/a.
+\]
+The closing JUMP at $\gen p$ reads condition $1$, destination $p$ and frame value $ha$. Every accessed address remains one of $h,h\gen,h\gen^2,h\gen^3$. Install both alternatives' bytecode and memory values before choosing either privately, then execute the chosen SET/JUMP cycle twice. Images are fixed across private choices, all count leaves are unchanged, and the state multiset is balanced. The scales are independent uniform public values; private fair occupancy bits supply the hiding entropy.
+
+\paragraph{Representation boundary.} The ISA uses $\K$-valued frames and operands and bounds accessed addresses. Its equations permit this scaling. In contrast, \path{crates/lean_vm/src/cpu/isa.rs} and \path{trace.rs} represent offsets and frame indices as \texttt{u32}. For example $a=\gen^{2^{40}}$ gives frame exponent $2^{18}+2^{40}$ and SET offset exponent $2^{64}-1-2^{40}$, although their product accesses $\gen^{2^{18}}$. Both exponents exceed the native types. No verifier equation or weight is added here, but native trace construction is not yet supported, and no implementation cost claim follows.
+
+\section{Jointly treat the control fingerprints}
+
+Write $Q=|\K|$, $q=|\E|=Q^3$, $e_i=\eq(\alpha,i)$ and $t_i=\alpha_i/(1+\alpha_i)$. Exclude $\alpha_i\in\{0,1\}$ and put $z=\beta/e_0$. Conditional on $\alpha$, $z$ is uniform in $\E$. Let $\sigma_{\rm s},\sigma_{\rm c},\sigma_{\rm m}$ be the distinct state, bytecode and memory tags, and let $\omega=\gen^{\texttt{OP\_JUMP}}$. Define
+\[
+\begin{aligned}
+ s_0(a)&=e_0(z+\sigma_{\rm s}+t_0p+t_1ha),&
+ s_1(a)&=s_0(a)+e_0t_0(\gen+1)p,\\
+ B&=z+\sigma_{\rm c}+t_0\gen p+t_0t_1\omega,&
+ D&=\gen+t_0\gen^2+t_1\gen^3,\\
+ X_\ell(a)&=e_0(B+t_1\gen^\ell+t_2D/a),&
+ L_\ell(a)&=e_0(z+\sigma_{\rm m}+t_0h\gen^3+t_1\gen^\ell+t_0t_1ha).
+\end{aligned}
+\]
+The two executions contribute, in state, bytecode and frame-memory push/pull order,
+\[
+ U(a)=\bigl(s_0^2,s_1^2,X_1X_2,X_0X_1,L_1L_2,L_0L_1\bigr).
+\]
+The normalized roots in $a$ comprise two state roots, three reciprocal bytecode roots and three frame roots:
+\[
+ \xi_0=\frac{z+\sigma_{\rm s}+t_0p}{t_1h},\quad
+ \xi_1=\frac{z+\sigma_{\rm s}+t_0\gen p}{t_1h},\quad
+ \zeta_\ell=\frac{t_2D}{B+t_1\gen^\ell},\quad
+ \nu_\ell=\frac{z+\sigma_{\rm m}+t_0h\gen^3+t_1\gen^\ell}{t_0t_1h}.
+\]
+
+\begin{lemma}[Regular control factors]
+Suppose $D$ and all three bytecode denominators are nonzero, all eight roots have degree three over $\K$, and their Frobenius orbits are pairwise disjoint. For uniform $a\in\K^\times$, every nontrivial character of $U(a)\in(\E^\times)^6$ has mean of magnitude at most $\kappa=24\sqrt Q/(Q-1)$.
+\end{lemma}
+\begin{proof}
+Adjoin the root $0$ to handle the reciprocal factors. The eight roots and zero generate the finite \'etale $\K$-algebra $\E^8\times\K$, of dimension $25$. A character with exponents $(c_0,\ldots,c_5)$ induces root exponents
+\[
+ (2c_0,2c_1,c_3,c_2+c_3,c_2,c_5,c_4+c_5,c_4,-2c_2-2c_3).
+\]
+This character remains nontrivial: multiplication by $2$ is invertible modulo the odd order $q-1$, and the other four exponents appear directly. Leading coefficients only contribute phases. Katz's finite \'etale character-sum theorem gives $24\sqrt Q$ for the sum over $a\in\K$, extending by zero at $a=0$~\cite{katz}. Divide by $Q-1$. All other factors are nonzero on $\K$ by regularity.
+\end{proof}
+
+\section{Avoid a base-field-sized exceptional probability}
+
+Consider $N$ private choice bits, with distinct SET and closing-JUMP addresses across their $2N$ alternatives, and distinct physical frames. Outside a coin event of probability at most
+\[
+ \delta=\frac{8+6N}{q}+\frac{1+158N}{q-2}
+              +\frac{7Q^2}{q(q-2)},
+\]
+discarding at most seven bits makes every remaining alternative regular. Discarding here means conditioning on those bits in the analysis, not deleting trace rows. The discarded indices depend on the coins and fixed addresses, not on the public scales.
+
+\paragraph{Small-field roots.} A state root belongs to $\K$ precisely when $u+rp'\in\K$, where $r=t_0/t_1$, $u=(z+\sigma_{\rm s})/t_1$, and $p'$ runs over distinct instruction addresses. Unless both $r,u\in\K$, at most one address qualifies: two would force $r\in\K$. The joint exception costs at most $Q^2/[q(q-2)]$, because $r$ has point masses at most $1/(q-2)$ and $u$ is independently uniform. For each $\ell$, bytecode roots satisfy the same test with slope $t_0/(t_2D)$ and variable address $\gen p$; frame roots use slope $1/t_1$ and address $h\gen^3$, after multiplying the root by $h\in\K^\times$. Each family has the same joint exception bound. There are $1+3+3$ families, hence at most seven bad addresses, and therefore seven bad bits. Excluding $D=0$ costs $1/(q-2)$; the $6N$ zero bytecode denominators cost $6N/q$.
+
+\paragraph{Within-family conjugacy.} The two state roots differ by $t_0(\gen+1)p/(t_1h)$; a frame-root pair differs by $(\gen^\ell+\gen^m)/(t_0h)$. In each case one root is uniform independently of the ratio in that difference, whose point masses are at most $1/(q-2)$. Each nontrivial Frobenius equality therefore costs at most $1/(q-2)$. This gives two comparisons for states and six for frame roots.
+
+For a bytecode pair, put $b_\ell=B+t_1\gen^\ell$. The equation $(t_2D/b_\ell)^{Q^j}=t_2D/b_m$, $j=1,2$, has at most $Q-1$ solutions in $t_2$. It is soluble only if $\operatorname{Norm}(b_\ell)=\operatorname{Norm}(b_m)$. As $z$ varies uniformly, $b_\ell/b_m$ ranges bijectively over $\E\setminus\{1\}$, apart from the pole. Exactly $Q^2+Q$ of these ratios have norm one. Thus the probability is at most $(Q^2+Q)(Q-1)/[q(q-2)]<1/(q-2)$. There are six comparisons; unconjugated roots within each three-root family are distinct.
+
+\paragraph{Cross-family conjugacy.} State and frame roots are independent of $t_2$, while each bytecode root is a nonzero multiple of $t_2$. Each equality with any of three Frobenius conjugates fixes at most one $t_2$, giving $18+27$ comparisons per alternative. For a state root $x$ at address $p'\in\{p,\gen p\}$, set
+\[
+ C=\sigma_{\rm m}+\sigma_{\rm s}+t_0(h\gen^3+p').
+ \qquad
+ \nu_\ell=\frac{x}{t_0}+\frac{C}{t_0t_1h}+\frac{\gen^\ell}{t_0h}.
+\]
+The distinct tags ensure that $C=0$ excludes at most one $t_0$ per state address. After excluding it, each equation $x^{Q^j}=\nu_\ell$ fixes at most one $t_1$ conditional on $(x,t_0)$; $x$ is uniform independently of these challenges. This gives $18$ further comparisons and two degeneracy exclusions per alternative. Altogether the conjugacy and degeneracy cost is $2N(2+6+6+18+27+18+2)/(q-2)=158N/(q-2)$. These union bounds are taken before conditioning on the other good events.
+
+\section{A six-product statistical reduction}
+
+Use the four banks with $n=3840$ bits each from \path{zk-set-payload-products.tex}, so $N=4n$. Fix their SET immediate words before sampling independent public scales. Retain eight actual fields: the JUMP condition-memory and destination-memory push/pull products, the SET payload-memory push/pull products, and the memory and bytecode final-counter evaluations. For fixed coins and private bits, none depends on the scales. Their joint law is retained, not simulated.
+
+Two independent alternatives give a ratio character bound $b=\kappa^2<2^{-54}$. Apply the nonlinear-side-information lemma of \path{zk-public-seed-leakage.tex} with $G=(\E^\times)^6$, $m=q^8$, $c=(1+b)/2$, and conservatively $n-7$ usable bits in every bank. In this intermediate hybrid replace zero factors in discarded bits by one; the final zero bound pays for that change. Conditioning on discarded bits and their scales then only changes nonzero fixed cofactors and the retained map; averaging them back preserves the bound. The mean conditional distance satisfies
+\[
+ \eta^2\le\frac{q^8}{4}
+ \left[\bigl(1+((q-1)^6-1)c^{3833}\bigr)^4-1\right]
+ <2^{-1142}.
+\]
+Multiplying each of the six coordinates across banks preserves its independent uniform nonzero target. Averaging over good honest coins and applying Markov, the distance contribution is below $2^{-160}$ outside a fraction below $2^{-411}$ of honestly sampled scale libraries. Public SET words are fixed independently of those scales; choosing them after seeing the scales would invalidate the retained-map hypothesis.
+
+For each fixed library, zeros among the alternatives' $16N$ state, bytecode and frame-memory factors, and at most $M\le2^{24}$ complementary factors, cost at most $(M+16N)/q$ over uniform $\beta$. This is charged separately, not used to condition setup on a witness. Consequently the six full JUMP products decouple from the actual retained eight-field law with error
+\[
+ 2^{-160}+\delta+\frac{M+16N}{q}<2^{-159}.
+\]
+Nonzero multiplication by fixed disjoint complementary products and addition of fixed evaluation contributions preserve the bound. Those contributions may still depend on the witness. The setup exception concerns the fixed padding family and retained map, not a witness-dependent selection of good libraries.
+
+\paragraph{What this does not compose.} The six products determine the banks' contribution to both node-$13$ products, and the SET state products are the reversed JUMP state products. But SET bytecode products, memory finalization and later messages still depend jointly on the scales and private choices. They cannot be retained by merely counting their output bits. Nor does the old public-word theorem, which conditions on a different view, automatically compose with this theorem. Full first/second-layer simulation with the previous boundary remains the next obligation.
+
+\paragraph{Evidence and size.} \path{zk_frame_gauge_audit.py} checks exact small-field root and conjugacy counts, actual-field formulas for all six products, valid cycles and unchanged count leaves, retained and excluded fields, the second-layer payload blind spot, and rational bounds. The $30720$ SET and closing-JUMP rows fit the previous heights $15$ and $17$, with memory and bytecode logs $20$ and stack log $24$. Scales add no rows or physical addresses to that reservation; they do change the public bytecode and padding memory. No full trace or production proof is generated.
+
+\begin{thebibliography}{1}
+\bibitem{katz} N.~M.~Katz. \emph{An Estimate for Character Sums}, Theorem~2. Journal of the American Mathematical Society 2(2), 1989, pp.~197 to 200. \href{https://web.math.princeton.edu/~nmk/old/estcharsums.pdf}{Author's copy}.
+\end{thebibliography}
+\end{document}

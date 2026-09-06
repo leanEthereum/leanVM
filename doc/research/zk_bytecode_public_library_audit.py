@@ -52,16 +52,20 @@ def public_seed_mixing():
     )
 
 
-def set_library(v, support, words, bits, *, code_base=CODE_BASE, frame_base=FRAME_BASE, compact=False):
+def set_library(v, support, words, bits, *, code_base=CODE_BASE, frame_base=FRAME_BASE, compact=False, gauges=None):
     library, indices = Library(v), {"memory": set(), "code": set()}
     stride, offsets = (4, (1, 2, 3)) if compact else (128, (64, 65, 66))
     for ordinal, (s, alternatives_words, choice) in enumerate(zip(support, words, bits, strict=True)):
         alternatives = []
         for alternative, payload in enumerate(alternatives_words):
             pc, frame = code_base + 4 * s + 2 * alternative, frame_base + 2 * stride * ordinal + stride * alternative
-            templates = library.templates((v.OP_SET, pc, [], True), v.GEN**frame)
+            gauge = v.E(gauges[ordinal][alternative]) if gauges is not None else v.ONE
+            assert gauge
+            inverse = gauge.inv() if gauge != v.ONE else v.ONE
+            templates = library.templates((v.OP_SET, pc, [], True), v.GEN**frame * gauge)
+            templates[0][1][v.SET_COLUMNS.index("o")] = inverse
             for name, offset in zip(("o_c", "o_d", "o_f"), offsets, strict=True):
-                templates[1][1][v.JUMP_COLUMNS.index(name)] = v.GEN**offset
+                templates[1][1][v.JUMP_COLUMNS.index(name)] = v.GEN**offset * inverse
             for lane, value in enumerate(payload):
                 templates[0][1][v.SET_COLUMNS.index(f"k_{lane}")] = v.E(value)
             library.register(templates)
