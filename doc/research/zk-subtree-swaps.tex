@@ -67,6 +67,6 @@ The audit also checks nonzero mixed derivatives for both composition failures ab
 python3 zk_subtree_swap_audit.py --rank-rows 2048 --packed-field
 \end{verbatim}
 
-\paragraph{Continuation.} \path{zk-swap-terminal.tex} shows that the last quartic adds no information about these bits after the boundary: the $448$ surviving bits randomize earlier rounds. It extracts an unmoved-half product that row order cannot hide and formulates a six-field joint endpoint extension for the last message.
+\paragraph{Continuation.} The last quartic is handled jointly with its boundary in \path{zk-terminal-boundary.tex}. A further step uses three pair directions on disjoint quartets. Its wire is nonlinear, but eighteen sparse scalar sources make the endpoint/slope map jointly uniform with a bounded-degree determinant proof. This is developed in \path{zk-penultimate-round.tex}: quartic smoothing hides the penultimate round jointly with the terminal view below $2^{-153}$. Earlier rounds within the final layer remain excluded.
 
 \end{document}

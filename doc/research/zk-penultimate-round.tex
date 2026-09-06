@@ -1,0 +1,108 @@
+% !TeX root = zk-penultimate-round.tex
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\input{../leanvm/preamble/macros.tex}
+\newtheorem{lemma}{Lemma}
+\newtheorem{theorem}[lemma]{Theorem}
+\title{A jointly hidden two-round GKR tail}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\paragraph{Result and scope.} Valid whole-row swaps extend \path{zk-terminal-boundary.tex} to the \emph{last two sumcheck rounds of the final GKR layer}, their incoming claim and the full boundary, with error below $2^{-153}$. The new rank bound is uniform over honest coins and arbitrary disjoint valid complements. It uses eighteen sparse sources and three degree-$66$ determinant certificates, not a large sampled binary rank. The swaps preserve every GKR layer before the final one; the first eighteen rounds within the final layer remain excluded. No random public library, new verifier weight or production protocol change is needed. A completed VM trace, full GKR, downstream composition and Fiat-Shamir remain open.
+
+\section{Reduce the penultimate round to nine slopes}
+
+Keep the depth-$22$ layout of the terminal-boundary theorem. Write $x\in\E^{20}$ for the final layer's challenges, $\tau=x_{18}$, $\fc=x_{19}$, $\eta$ for its last incoming equality coordinate, and $\lambda$ for the three-channel combiner. After folding $x_{0:18}$, the upper bus half consists of two table quarters; the lower count half consists of two count quarters. These are the \emph{active} halves. Row permutations leave the lower memory/code half and upper all-one count half unchanged.
+
+In channel $s\in\{+,-,c\}$, let the four active lines be
+\[
+ L_{s,j}(T)=u_{s,j}+h_{s,j}(T+\tau),\qquad 0\le j<4.
+\]
+Their values $u_{s,j}$ at $\tau$ determine the active contribution to the terminal packet. Whole-row swaps within aligned quartets preserve both $\sum_j u_{s,j}$ and $\sigma_s=\sum_j h_{s,j}$. They also preserve every parent product and earlier GKR layer. The target is therefore \emph{nine} free slope coordinates, three per channel, conditional on the twelve active terminal values and the fixed slope sums. One common child-pair direction gives at most one slope per channel and cannot meet this target. Three directions, $(0,1),(0,2),(0,3)$ on disjoint quartets, supply the full zero-sum child space. The wire need not be affine in their combined bits; the lines remain affine, which is enough below.
+
+\section{Three quartics hide their four coefficients}
+
+Put $q=|\E|$. Fix endpoints $(a,b,c,d)$ with $bc\ne0$, $b\ne c$ and $a\ne d$, and an arbitrary slope sum $\sigma$. For independent uniform $A,B,C\in\E$, define
+\[
+ F(Z)=(a+AZ)(b+BZ)(c+CZ)(d+(\sigma+A+B+C)Z).
+\]
+
+\begin{lemma}[Fixed-sum quartic smoothing]
+Every nontrivial additive character of the four nonconstant coefficients of $F$ has bias at most $6/q$. Consequently the sum of three independent such coefficient vectors, each multiplied by any fixed nonzero scalar, is within $108/q$ of uniform on $\E^4$. Any fixed additional coefficient vector may be added.
+\end{lemma}
+\begin{proof}
+Write a character as $(-1)^{\operatorname{Tr}(\sum_{j=1}^4t_j[Z^j]F)}$, with $t\ne0$. As a polynomial in $A$, its field-valued phase has quadratic coefficient $U$ and linear coefficient $V$, where
+\[
+\begin{aligned}
+ U&=t_2bc+t_3(bC+cB)+t_4BC,\\
+ V&=(a+d)\bigl(t_1bc+t_2(bC+cB)+t_3BC\bigr)
+       +(\sigma+B+C)U.
+\end{aligned}
+\]
+Averaging over $A$ vanishes unless $V^2+U=0$, since $\operatorname{Tr}(UA^2)=\operatorname{Tr}(U^{q/2}A)$. This is a nonzero polynomial in $B,C$ of degree at most six. Indeed, its $B^4C^2$ coefficient forces $t_4=0$ if it vanishes identically; then its $B^4$ coefficient forces $t_3=0$. Next its $B^2,C^2$ coefficients are $t_2^2c^2(a+b+d)^2$ and $t_2^2b^2(a+c+d)^2$, which cannot both vanish unless $t_2=0$. The remaining constant is $t_1^2(a+d)^2b^2c^2$, nonzero for $t_1\ne0$. Thus the character bias is at most $6/q$. Three independent channels multiply the biases. Fourier inversion and Cauchy-Schwarz bound the distance by $\tfrac12\sqrt{q^4(6/q)^6}=108/q$.
+\end{proof}
+
+For the actual penultimate polynomial, the three active weights are $\eta,\lambda\eta,\lambda^2(1+\eta)$. Everything from the inactive halves is a fixed additive polynomial when the complementary trace is fixed. Centering at $\tau$ is an invertible linear transformation on the four nonconstant coefficients; the constant at $\tau$ is determined by the last round and its incoming claim. Thus independent slopes on the three fixed-sum hyperplanes hide the transmitted quartet even if the inactive polynomial and slope sums remain private. We do \emph{not} need to make those invariants public or independently uniform.
+
+\section{Native sparse gadgets supply the slopes}
+
+For each selected pair $(0,k)$, use six banks: two counter patterns and one payload pattern for each of MUL and JUMP. Let $S$ be the $448$-point support of \path{zk-stacked-padding.tex}, in its specified order, and write $o(s)$ for the ordinal of $s$. Each bank reserves a quartet at every row index $4(2^{12}b+(s\mathbin{\mathrm{xor}}t))$, with a fixed band $b$ and translation $t$. A private fair bit exchanges the \emph{whole} rows at children $0,k$. All quartets and banks are disjoint.
+
+\paragraph{Counter pattern.} Repeat one fixed valid cycle $4|S|$ times. In quartet $s$, independently assign each read column the complete four labels $\gen^{4o(s)+j}$, $0\le j<4$. The first pattern puts labels $0,1$ on children $0,k$; the second changes the latter to label $2$ only for MUL's \texttt{cnt\_a} or JUMP's \texttt{cnt\_f}. Remaining children take the remaining labels in order. Every read chain is complete, including bytecode. Fixed metadata cancel in the selected-row difference, so the entire six-coordinate column is multiplied by $\gen^{4o(s)}$. MUL multiplies a fixed word by one and closes through a fixed JUMP; a JUMP cycle is a self-loop. Closing rows are not swapped by that bank.
+
+\paragraph{Payload pattern.} Use four fixed cycles, one per child, with distinct PCs and frames, each visited $|S|$ times. In quartet $s$, all four selected-opcode rows have the same read labels $\gen^{o(s)}$ in every count column. Their count differences vanish, while their fixed control/payload differences are independent of $s$. MUL's first input word is $(j,0,0)$ in child $j$, multiplied by one; JUMP uses four self-loops. This makes the selected-row difference constant across copies. Both sides' \emph{actual} state/read fingerprints are used; MUL control differences are not assumed equal on push and pull.
+
+\paragraph{Compact geometric weights.} The two scalar source types are
+\[
+ Z_b=\sum_{s\in S}\eq(x_{0:12},s\mathbin{\mathrm{xor}}t)b_s,
+ \qquad
+ Z_b=\sum_{s\in S}\eq(x_{0:12},s\mathbin{\mathrm{xor}}t)
+                    \gen^{4o(s)}b_s.
+\]
+The ordinal weights factor by bits: $o(s)=\sum_{i<6}2^is_i+\sum_{i=6}^{11}64(i-5)s_i$ on $S$. Reflect the translated coordinates, writing $r_i=x_i+t_i$, and put $\gamma_i=\gen^{4\cdot2^i}$ for $i<6$ and $\gamma_i=\gen^{256(i-5)}$ otherwise. Then
+\[
+ \eq(r,s)\prod_i\gamma_i^{s_i}
+ =\prod_i(1+r_i+\gamma_i r_i)\;
+   \eq\left(\left(\frac{\gamma_i r_i}{1+r_i+\gamma_i r_i}\right)_i,s\right).
+\]
+Each fractional-linear transform has at most one pole and, away from it, maps uniform input to uniform field elements with one value omitted. Coupling these twelve transformed coordinates to independent uniform coins costs at most $24/q$, including poles. The sparse-span lemma then fails with probability at most $\delta_{\rm span}+36/q$. The unweighted source needs only $\delta_{\rm span}+12/q$; use the larger bound for all eighteen banks. On good coins their scalar outputs are independent uniform in $\E$, because their private bits are independent.
+
+\paragraph{Three small determinant certificates.} For a bank, strip off its twelve-coordinate scalar weight and form its six-vector of changes to the three active values at $\tau$ and the three slopes. A block at placement $p$ contributes its actual selected-row fingerprint difference, multiplied by
+\[
+ \eq\left(x_{12:18},\left\lfloor
+          \frac{p+2^{14}b}{2^{14}}\right\rfloor\bmod64\right),
+\]
+and, for its value coordinate, by $1+\tau$ in the even quarter or $\tau$ in the odd quarter. Each entry is a polynomial of degree at most eleven in $x_{12:19}$ and the four fingerprint challenges: six placement factors, four fingerprint factors, and one interpolation factor. For each pair direction the six banks give a $6\times6$ matrix. The exact audit evaluates all three determinants nonzero at its fixed native-field point, establishing polynomial nonvanishing. Their degrees are at most $66$, so their joint failure probability is at most $198/q$ by Schwartz-Zippel. This use of a finite certificate is valid because the matrices are small ordinary field-polynomial matrices with an explicit degree bound; it is not a probability estimate inferred from a sampled binary rank.
+
+Consequently the eighteen free coordinates, nine active values and nine slopes, are jointly uniform on their affine fiber except with probability at most
+\[
+ \varepsilon_{\rm slope}=18\delta_{\rm span}+846/q.
+\]
+Conditional on the active values, the nine slopes are independent uniform. The real complement affects only the fixed offsets, not these source matrices. All earlier GKR layers, images, final counters and the sums of both active values and slopes remain unchanged under the swaps.
+
+\section{Joint simulation and its boundary}
+
+\begin{theorem}[Two-round tail and boundary]
+Assume the stated banks and the terminal-boundary banks admit a disjoint fixed valid completion in the supported layout. The last two sumcheck rounds of the final GKR layer, their incoming claim, final children and five framework evaluations have a public-data honest-coin simulator with error at most
+\[
+ 21\delta_{\rm span}+1106/q+3\cdot2^{-256}<2^{-153}.
+\]
+\end{theorem}
+\begin{proof}
+Fix all other padding randomness and the complementary trace. On good rank coins, the active values in each channel have three independent uniform coordinates, with the fourth determined by their fixed sum. Each of the quartic lemma's four endpoint exceptions therefore has probability at most $1/q$, even for an arbitrary fixed sum. The twelve endpoint exceptions and $\lambda=0$ or $\eta\in\{0,1\}$ cost at most $15/q$. Conditional on the active values, the slope theorem and smoothing lemma replace the penultimate four coefficients by independent uniforms, with error at most $\varepsilon_{\rm slope}+123/q$. This replacement retains the actual terminal-boundary view, last quartic and every GKR layer before the final one. It does not retain earlier rounds within the final layer.
+
+Now discard the unsimulated prefix. Conditional on each fixed row-permutation choice, the terminal-boundary theorem applies with the new gadgets as disjoint valid complement. It supplies the last quartic and augmented boundary with error $\varepsilon_{\rm terminal}=3\delta_{\rm span}+137/q+3\cdot2^{-256}$. Carry the already uniform penultimate coefficients through this hybrid. Their constant coefficient is determined by their value at $\tau$, which is the last round's incoming claim; the preceding incoming claim then follows from the unchanged sumcheck identity. Adding the two bounds gives the result. All honest coins may be sampled in advance; no online or Fiat-Shamir simulation is claimed.
+\end{proof}
+
+\paragraph{Reservations and evidence.} The new banks use $8064$ fair bits, $16128$ MUL rows and $32256$ JUMP rows; together with the previous terminal construction there are $51104$ JUMP rows and $32$ XOR rows. Their fixed PCs start at $205000$ and frames at $900000$, beyond the previous reservations. Nine banks per opcode are packed using disjoint translates of $S$: the six-bit centers $(0,7,25,30,42,45,51,52)$ have pairwise distance at least three. The audit specifies the bands, translations, exact cycle constants and closing-row allocation, avoiding the earlier counter, occupancy and XOR slots. Public count-column normalization and full valid completion remain assumptions. \path{zk_penultimate_slopes_audit.py} checks complete local read chains, actual source factorization, the three nonzero determinants, geometric span identities, reservations and rational bounds. \path{zk_quartic_smoothing_audit.py} checks exhaustive small-field convolutions, native-field phase identities and the actual two-round sumcheck reader. Neither constructs a full-size VM proof.
+
+\paragraph{Next obstruction to resolve.} Extending this argument backward is not automatic. At the next cut, an active half splits into more blocks, and conditioning on already disclosed rounds consumes linear observations of these same row bits. A new joint rank argument must retain the current tail while controlling those additional observations. The first eighteen rounds of the final layer, its joint law with the preceding GKR layers, table/Flock proofs, PCS and commitments remain outside this theorem. The useful change in method is that nonlinear wire messages can be smoothed without hiding every preserved intermediate invariant.
+
+\end{document}
