@@ -1,0 +1,68 @@
+% !TeX root = zk-gkr-second-wire.tex
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\input{../leanvm/preamble/macros.tex}
+\newtheorem{proposition}{Proposition}
+\title{What the second GKR layer actually reveals}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\paragraph{Result and scope.} The outside bytecode ratio of \path{zk-control-residual.tex} is exposed by its strengthened auxiliary view, not automatically by the actual mixed messages. At the compressed product-tree level, an exact symmetry changes the MUL bytecode-node ratio while preserving every first/second-layer message. Exact Jacobian certificates find further infinitesimal ambiguity even if the entire push frontier is supplied. Neither result proves statistical hiding: these are arbitrary balanced frontiers, not two full valid VM traces or the distribution produced by our padding.
+
+\section{Use the actual observation map}
+
+At depth $22$, let $P_{k,j},Q_{k,j}$ denote push/pull products at frontier indices $4k+j$, each covering $2^{18}$ leaves. The first packet reveals their four row products. The four push bytecode entries $P_{1,j}$ are public. Under compatible count-column normalization, all sixteen count entries are also public, because every count block fits wholly inside one frontier node. Their contribution can be subtracted from the mixed messages.
+
+For a channel $s$, extend each column to a bilinear polynomial and take their product:
+\[
+ F_{s,j}(T,U)=\sum_{a,b\in\{0,1\}}\eq((T,U),(a,b))\,N_{s,2b+a,j},
+ \qquad H_s(T,U)=\prod_{j=0}^3F_{s,j}(T,U).
+\]
+Write $H=H_P+\lambda H_Q+\lambda^2H_C$ for the mixed product polynomial, with the preceding two-coordinate point $r$ and current combiner $\lambda$. The second layer's two cofactors and terminal packet are
+\[
+ G_0(T)=\sum_{b\in\{0,1\}}\eq(r_1,b)H(T,b),\qquad
+ G_1(U)=H(x_0,U),\qquad F_{s,j}(x_0,x_1)
+\]
+The cofactors are mixed; terminal values are sent separately for each channel. Here $x_0,x_1$ are the two fresh sumcheck challenges. Four nonconstant coefficients of each cofactor and twelve terminal values are transmitted. The omitted constants are recovered by the running identities. These are the actual reference-verifier messages, including the count channel; no separate $D_j$, SET product or JUMP product is sent at this step.
+
+\section{An exact symmetry of the transmitted view}
+
+Fix the coins and write $F_j=F_{Q,j}$ for the pull channel, with nonzero terminal values $v_j=F_j(x_0,x_1)$. For any permutation $\pi$ of the four children, set
+\[
+ F'_j=\frac{v_j}{v_{\pi(j)}}F_{\pi(j)},\qquad
+ Q'_{k,j}=\frac{v_j}{v_{\pi(j)}}Q_{k,\pi(j)}.
+\]
+
+\begin{proposition}[Terminal-normalized permutation]
+Keeping push and count fixed, this transformation preserves both roots, the entire first packet, both second-layer cofactors and all twelve terminal children. It preserves the public bytecode push nodes and global bus balance.
+\end{proposition}
+\begin{proof}
+The four scale factors multiply to one, so $\prod_jF'_j=\prod_jF_j$ as a polynomial, not merely at the sampled points. Every row product and both mixed cofactors are unchanged. Also $F'_j(x_0,x_1)=v_j$ for each $j$. The push and count channels are untouched.
+\end{proof}
+
+In the actual layout, node $9$ is the whole MUL bytecode block. Its ratio is $\tau=P_{2,1}/Q_{2,1}$. Swapping children $0,1$ replaces its denominator by $v_1Q_{2,0}/v_0$, which generally differs from $Q_{2,1}$. The audit constructs exact collisions with different $\tau$ over the actual $\E$ and replays both through the verifier's first two layers, including the depth-$22$ reader up to its request for the third layer. Thus there is no function of this wire view that recovers $\tau$ on every arbitrary balanced frontier. If all other opcode bytecode ratios were known and fixed, $\Omega$ would differ from $\tau$ only by their product; that restricted model still needs a VM realization.
+
+\paragraph{Why this is not a ZK argument.} The transformed frontier depends on the challenges through $v$, and may not come from any valid padded VM trace. A coupling may depend on coins, but it must still preserve the honest prover's conditional distribution; that has not been shown here. The permutation ambiguity has at most $24$ possibilities and preserves symmetric information, for example
+\[
+ \prod_j\frac{Q_{2,j}}{v_j}
+   =\frac{\text{first-packet pull child }2}{\prod_jv_j}.
+\]
+Failure to recover an exact scalar does not imply that its witness information is hidden.
+
+\section{The ambiguity is not just a discrete permutation}
+
+Treat the twelve nonpublic push entries and sixteen pull entries as $28$ field variables. Keep the public push bytecode row, count frontier and coins fixed. Differentiate the balance equation, first-packet parent products and all second-layer wire coefficients and terminal children. At one exact actual-field instance, the resulting Jacobian has rank $21$, while adjoining the derivative of $\tau$ raises it to $22$. If the entire push frontier is also retained, the corresponding ranks are $26$ and $27$.
+
+\paragraph{Checks and interpretation.} The audit supplies exact kernel vectors annihilating every retained derivative but not $d\tau$; in the stronger case they change no push entry. The rank ceilings follow from the wire identities. With both channels variable, seven nonpublic parent products are followed by at most fourteen independent second-layer coordinates: the first cofactor has three free coefficients, the second has four, and its terminal identity removes one from the eight nonpublic children. Giving the push frontier leaves four pull parents and ten second-layer coordinates, besides the twelve supplied push entries. The balance derivative is already in the span of the parent-product derivatives.
+
+The nonzero minors certify that these generic algebraic rank ceilings are attained, and that $\tau$ can vary to first order inside the same observation fiber. This is not a failure-probability bound or a count of finite-field preimages. In particular, no uniformity or independence of the VM's frontier products is inferred from it.
+
+\paragraph{Next obligation.} Construct an actual padding-induced distribution, or a measure-preserving coupling of valid padded traces, on these wire fibers. It must retain the preceding first packet and later boundary jointly. The earlier thirteen-field reduction alone cannot be used: its simulated coordinates omit second-layer cofactors, which reuse the same masks. This supports testing direct simulation instead of treating the enlarged residual as an unavoidable disclosure; it does not yet remove that residual from a joint simulator. \path{zk_gkr_second_wire_audit.py} pins the layout, exact wire formulas, symmetry, verifier prefix, derivative ranks and their limitations. Commitments, Fiat-Shamir and later layers remain outside the analysis.
+\end{document}
