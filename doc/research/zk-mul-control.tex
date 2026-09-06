@@ -1,0 +1,127 @@
+% !TeX root = zk-mul-control.tex
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\input{../leanvm/preamble/macros.tex}
+\newtheorem{lemma}{Lemma}
+\newtheorem{theorem}{Theorem}
+\title{Closing the coarse GKR residual}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\paragraph{Result and scope.} The complete first two GKR layers and final seventeen-field boundary now have a joint public-data simulator, below $2^{-155}$ outside a public-setup exception below $2^{-222}$. No witness-dependent residual is supplied. The added ingredients are an independent public MUL frame-scale library and fresh private nonzero conditions for some closing JUMPs. This covers a \emph{projection} of the protocol: the omitted intermediate GKR transcript, table/Flock proofs, PCS, commitments and Fiat-Shamir remain open. All previous honest-coin, compatible count-normalization, disjoint-completion and honest public-preprocessing assumptions persist. Native field-valued frame/offset support is still missing; no production change or full VM ZK is claimed.
+
+\section{Four MUL products from independent public scales}
+
+The previous residual in \path{zk-second-frontier.tex} consists of MUL state/bytecode products on both channels, JUMP condition-times-destination products on both channels, and two final-counter evaluations. Add $N=3840$ independent private fair bits. Each bit chooses one of two preinstalled MUL/JUMP alternatives and executes that cycle twice. A public scale $a\gets\K^\times$ is sampled independently for every alternative and independently of the earlier public libraries. At MUL address $p$, with fixed physical frame $h\in\K^\times$, use
+\[
+ \fp=ha,\qquad (o_a,o_b,o_c)=(1,\gen,\gen^2)/a,
+ \qquad (o_c,o_d,o_f)_{\rm JUMP}=(\gen^3,\gen^4,\gen^5)/a.
+\]
+The MUL computes $1\cdot1=1$; the closing JUMP returns to $(p,ha)$. All six physical addresses stay fixed. Initially its condition is one. The alternatives have common images for each fixed public library and unchanged count leaves across private choices.
+
+Put $e_i=\eq(\alpha,i)$, $q=|\E|=2^{192}$, $Q=|\K|=2^{64}$. The variable state and bytecode factors are
+\[
+\begin{aligned}
+ s_0(a)&=\beta+e_0\dsep{ST}+e_1p+e_2ha,&s_1(a)&=s_0(a)+e_1(1+\gen)p,\\
+ X_\ell(a)&=b_\ell+d/a,&
+ b_\ell&=\beta+e_0\dsep{BC}+e_1p+e_2\gen^\ell+e_3\opc{MUL},\\
+ d&=e_4+e_5\gen+e_6\gen^2,&\ell&=0,1,2.
+\end{aligned}
+\]
+Two traversals contribute
+\[
+ U(a)=\bigl(s_1(a)^2,s_0(a)^2,X_1(a)X_2(a),X_0(a)X_1(a)\bigr).
+\]
+The order is state push/pull, then bytecode push/pull. The four retained fields are the two JUMP condition/destination products and final counters. They are independent of $a$.
+
+\paragraph{Character bound.} Normalize the two state roots and three reciprocal bytecode roots in $a$. When their degrees over $\K$ are three and their Frobenius orbits are disjoint, they and zero generate $\E^5\times\K$, of dimension $16$. A target character with exponents $(u,v,w,z)$ gives root exponents
+\[
+ (2v,2u,z,w+z,w,-2w-2z).
+\]
+It is nontrivial for every nontrivial target character: $q-1$ is odd. Katz's finite \'etale estimate~\cite{katz}, extending by zero at $a=0$, bounds its mean by $\kappa_M=15\sqrt Q/(Q-1)$.
+
+\paragraph{Uniform good-coin bound.} The root argument of \path{zk-frame-gauge.tex} applies with the frame-memory roots removed. Excluding $\alpha_i\in\{0,1\}$, write $t_i=\alpha_i/(1+\alpha_i)$. The reciprocal numerator is proportional to $t_2(1+t_0\gen+t_1\gen^2)$. Its zero event costs $1/(q-2)$, and the $6N$ bytecode denominators cost $6N/q$. A state root lies in $\K$ only when $u+rp'\in\K$ for a fixed affine pair and one of the distinct state addresses $p'$. Outside $u,r\in\K$, at most one address qualifies. Each of the three bytecode-root families has the same property after inversion. Their four joint exceptions total at most $4Q^2/[q(q-2)]$. Thus at most four bits need be fixed in the analysis. Within an alternative, the state pair has two conjugacy comparisons, the three bytecode roots have six, and state/bytecode pairs have eighteen. Each costs at most $1/(q-2)$, using the earlier norm-one argument for reciprocal pairs. Altogether
+\[
+ \delta_M=\frac{8+6N}{q}+\frac{1+52N}{q-2}
+                +\frac{4Q^2}{q(q-2)}.
+\]
+The discarded indices depend on coins and fixed addresses, not on public scales.
+
+\begin{lemma}[Four-product decoupling]
+With the four retained fields' actual joint law, the mean mixing contribution over public scales is at most
+\[
+ \eta_M=\frac12\sqrt{q^4\bigl((q-1)^4-1\bigr)
+       \left(\frac{1+\kappa_M^2}{2}\right)^{N-4}}<2^{-1150}.
+\]
+For any fixed library, bad coins and zeros add at most $\delta_M+(2^{24}+10N)/q$.
+\end{lemma}
+\begin{proof}
+Independent alternatives give ratio-character bias at most $\kappa_M^2$. Apply the bounded-side-information lemma of \path{zk-public-seed-leakage.tex} with group $(\E^\times)^4$ and at most $q^4$ retained values, fixing the at most four discarded bits and their scales. Repair zero factors there by one, then charge the five factors at each of $2N$ alternatives and complementary factors separately. Nonzero completion cofactors preserve the uniform target. The retained fields need not be uniform.
+\end{proof}
+
+\section{Private conditions hide both remaining JUMP products}
+
+For the first $t=48$ bits of this same bank, sample independent private $c\gets\K^\times$ for \emph{both} alternatives, independently of the choice bits and public scales. Use condition $c$, inverse column $c^{-1}$ and branch bit one in the closing JUMP. Other conditions stay one. Its branch, destination, physical addresses, MUL products and all counters are unchanged. No condition seed is public. The two variable condition-memory products come from
+\[
+ Z_\ell(c)=\beta+e_0\dsep{MEM}+e_1h\gen^3+e_2\gen^\ell+e_3c,
+ \qquad V(c)=(Z_1Z_2,Z_0Z_1).
+\]
+Destination products supply fixed nonzero cofactors conditional on the choice bits.
+
+\paragraph{Mixing on private conditions.} The three roots have character exponents $(v,u+v,u)$, so every nontrivial target character survives. On regular roots, Katz's estimate in $\E^3$ gives $8\sqrt Q$ over all $c\in\K$. Removing $c=0$ costs one, hence
+\[
+ \kappa_C=\frac{8\sqrt Q+1}{Q-1}.
+\]
+Each normalized root has the form $u_\ell+rh$, with $r=\gen^3/t_1$ and $u_\ell=(\beta/e_0+\dsep{MEM}+t_1\gen^\ell)/(t_0t_1)$. The same affine test discards at most three bits, outside three joint subfield exceptions. The three root pairs have two conjugacy comparisons each. Their differences are nonzero multiples of $1/t_0$, with point masses at most $1/(q-2)$, independently of one uniform root. Thus
+\[
+ \delta_C=\frac8q+\frac{12t}{q-2}+\frac{3Q^2}{q(q-2)}.
+\]
+This excludes bad alternatives globally, so every fixed choice vector retains at least $t-3$ regular private conditions. Multiplying their character bounds and applying Parseval gives
+\[
+ \eta_C\le\frac12\sqrt{(q-1)^2-1}\,\kappa_C^{t-3}<2^{-1090}.
+\]
+Fix discarded conditions in the analysis and charge all zeros separately. The two full JUMP condition/destination products therefore decouple from the actual counters with error
+\[
+ \varepsilon_C\le\delta_C+\frac{2^{24}+6t}{q}+\eta_C<2^{-167}.
+\]
+This step does \emph{not} retain the private conditions or their original linear boundary disclosures.
+
+\section{The order removes the residual without spending it twice}
+
+\begin{theorem}[Coarse layers and boundary, no residual]
+Under the stated assumptions, the roots, complete first/second-layer wire and final seventeen-field boundary have a public-data honest-coin simulator with error below $2^{-155}$, outside a public-library exception below $2^{-222}$.
+\end{theorem}
+\begin{proof}
+First apply \path{zk-second-frontier.tex}, conditional on the new scale-bank choices and private conditions. It supplies a uniform balanced frontier with four public bytecode nodes and six supplied nodes fixed, together with fifteen independent uniform boundary fields and the actual final counters. The new bank is valid disjoint completion for that theorem.
+
+Next apply the MUL scale lemma. For each fixed private-condition vector, the four-field retained map is independent of the public MUL scales; averaging over those private vectors preserves the lemma's bound. The four MUL nodes become independent uniforms. Project away the private conditions used to justify this step. The target can now be realized by sampling the honest choice bits and conditions to generate the remaining JUMP products and counters, independently of the already uniform MUL nodes and boundary. Apply the private-condition lemma in this realization, conditional on the choice bits. Its two new uniforms leave only the actual final-counter pair. No marginal theorem was conditioned on an extra disclosure of the same mask.
+
+The resulting frontier is uniform subject only to balance and the four public bytecode seed nodes: $27$ independent nonzero coordinates, with $Q_{15}$ reconstructed. Its law is independent of the final-counter pair. Use the existing memory-occupancy bank to hide $F_{\rm mem}$ first, retaining $F_{\rm bc}$ since that bank has fixed bytecode visits. Then the first SET bank's sparse subset hides $F_{\rm bc}$, carrying the already uniform memory counter. The exact bit coefficients at the common $20$-coordinate point $z$ are
+\[
+\begin{aligned}
+ \ell_s^{\rm bc}&=(1+\gen^2)\eq(z_{2:20},2^{14}+s),\\
+ \ell_s^{\rm mem}&=(1+\gen^2)(1+z_0z_1)\eq(z_{3:20},3\cdot2^{15}+s).
+\end{aligned}
+\]
+The existing sparse-span theorem applies because $S\subset\{0,\ldots,3839\}$. Extra SET/MUL choices give fixed offsets when applying each conditional argument. The two counter steps cost $2\delta_{\rm span}+37/q$. Derive both complete coarse layers from the sampled frontier and public normalized count nodes. Sample all seventeen boundary fields independently. The omitted GKR layers are not generated.
+\end{proof}
+
+\paragraph{Setup and error accounting.} The earlier public-word and frame-scale mean contributions are below $2^{-383}$ and $2^{-571}$. Add $\eta_M$, average over the independent public libraries and apply Markov once at threshold $2^{-160}$; the common exceptional fraction stays below $2^{-222}$. This also averages the new private conditions, not a witness-dependent choice of a good library. The old public-product and new MUL-product exclusions each fit below $2^{-159}$ with that threshold. With the preceding private-word errors, a conservative total is
+\[
+ 5\varepsilon_M+\varepsilon_X+\varepsilon_W+\varepsilon_{15}
+ +2^{-158}+\varepsilon_C+2\delta_{\rm span}+37/q<2^{-155}.
+\]
+
+\paragraph{Reservation and evidence.} MUL PCs are $131072+4i+2a$, with closing JUMPs at the next PC, and physical frame indices are $589824+16i+8a$, for $0\le i<3840$, $a\in\{0,1\}$. They avoid all earlier reservations. The bank adds $7680$ MUL and closing-JUMP rows each; the $96$ private conditions add no rows. Table heights, bus depth $22$ and stack log $24$ remain unchanged. \path{zk_mul_control_audit.py} checks valid cycles, both product formulas, seed/condition independence, unchanged counts, the actual frontier and complete coarse reader, sparse counter formulas, reservations, finite-field certificates and rational bounds. Its concrete instances are local libraries, not a full-size completed VM trace. Later GKR layers, shared table/Flock masks, PCS observations and Fiat-Shamir still require joint simulation.
+
+\begin{thebibliography}{1}
+\bibitem{katz} N.~M.~Katz. \href{https://web.math.princeton.edu/~nmk/old/estcharsums.pdf}{\emph{An Estimate for Character Sums}}, Theorem~2, Journal of the American Mathematical Society 2(2), 1989.
+\end{thebibliography}
+\end{document}
