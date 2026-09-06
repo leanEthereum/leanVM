@@ -1,0 +1,100 @@
+% !TeX root = zk-bytecode-public-library.tex
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\input{../leanvm/preamble/macros.tex}
+\newtheorem{lemma}{Lemma}
+\title{A public-randomness route through the bytecode residual}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\paragraph{Additional assumption.} Fix public sizes, code positions and frame addresses, then install independent, uniformly random public constants in reserved bytecode blocks once. Private coins choose which blocks to execute. The library remains public and fixed for subsequent proofs. This changes bytecode and its digest, but not verifier equations. No such setup has been adopted or implemented in production, and no ordinary-proof cost claim is made.
+
+\paragraph{Result.} With $1024$ occupancy bits, this setup model hides the bytecode residual pair from the preceding first-packet note. Except for fewer than a $2^{-160}$ fraction of honestly generated libraries, the first-packet/boundary view is hidden below $2^{-154}$ under honest interactive coins, compatible count normalization and valid disjoint completion. This is a single-proof marginal, not full GKR, PCS or Fiat-Shamir zero knowledge.
+
+\section{Public random ratios and private choice bits}
+
+Let $G$ be a finite abelian group and $V$ a binary vector space. Public independent seeds determine independent $H_i\in G$, with
+\[
+ |\mathbb E\theta(H_i)|\le b
+ \quad\text{for every nontrivial character }\theta\text{ of }G.
+\]
+For private independent fair bits $B_i$ and arbitrary fixed $\ell_i\in V$, put $Z=\prod_iH_i^{B_i}$ and $Y=\sum_i\ell_iB_i$. The coefficients must be independent of the public seeds. Write $\Delta(H)$ for the distance of $(Z,Y)$, conditional on the \emph{revealed} seeds, from uniform $G$ times the actual $Y$ marginal.
+
+\begin{lemma}[Public-seed joint mixing]
+For $n$ bits,
+\[
+ \mathbb E_H\Delta(H)^2\le
+ \frac{(|G|-1)|V|}{4}\left(\frac{1+b}{2}\right)^n,
+ \qquad
+ \mathbb E_H\Delta(H)\le
+ \frac12\sqrt{(|G|-1)|V|}\left(\frac{1+b}{2}\right)^{n/2}.
+\]
+\end{lemma}
+\begin{proof}
+For a nontrivial $\theta$ and any additive character $\psi$ of $V$, the conditional Fourier coefficient is $\prod_i(1+\theta(H_i)\psi(\ell_i))/2$. Since $\psi(\ell_i)\in\{\pm1\}$, its squared modulus has expectation
+\[
+ \prod_i\frac{1+\psi(\ell_i)\operatorname{Re}\mathbb E\theta(H_i)}2
+ \le\left(\frac{1+b}{2}\right)^n.
+\]
+Coefficients with trivial $\theta$ cancel against the target, which retains the actual $Y$ law. Parseval and Cauchy-Schwarz give the first bound, then Jensen gives the second. Revealing the full seeds, rather than just $H$, is harmless: conditional bit distributions depend on those seeds only through $H$.
+\end{proof}
+
+\section{Realize the ratios with valid SET cycles}
+
+Let $T\subseteq\{0,\ldots,4095\}$ contain the earlier $448$-point sparse support $S$, and enlarge it deterministically to $|T|=1024$. At each $s\in T$, install two alternatives: a SET at $P_0+4s+2a$, followed by a JUMP returning to that SET, for $a\in\{0,1\}$. Each alternative has a fresh fixed frame. Its three SET immediates are sampled independently uniformly in $\K$ during setup. Install both alternatives' memory images, then privately execute one chosen two-instruction cycle twice. Both choices give two SET and two JUMP rows and identical count-column products; all active lookup labels are $1,\gen$. Code and memory images do not depend on the choice bit.
+
+Put $Q=|\K|$, $q=|\E|$ and $e_j=\eq(\alpha,j)$. The two random SET seed fingerprints are $X_{s,a}=c_{s,a}+L(w_{s,a})$, with $L(w)=e_5w_0+e_6w_1+e_7w_2$. Excluding fingerprint coordinates in $\{0,1\}$, divide by $e_7$: the coefficient span becomes $\langle t_1^{-1},t_0^{-1},1\rangle_{\K}$, where $t_i=\alpha_i/(1+\alpha_i)$. Rank below two therefore costs at most
+\[
+ \delta_L=8/q+Q^2/(q-2)^2.
+\]
+On these good coins, $\delta=e_2(1+\gen^2)\ne0$. The bytecode-product ratio for switching alternatives is
+\[
+ H_s=J_s\,
+ \frac{X_{s,0}(X_{s,1}+\delta)}{(X_{s,0}+\delta)X_{s,1}},
+\]
+where $J_s$ is the nonzero ratio from the two closing JUMPs and contains no random SET constant. Condition the public SET fingerprints away from $0,\delta$, independently for each word. The affine-coset character argument in \path{zk-gkr-paired.tex} bounds each ratio's character mean by $2\sqrt q/(Q^2-2)$. The two independent words consequently give
+\[
+ b=\frac{4q}{(Q^2-2)^2}<2^{-61}.
+\]
+Crucially, this averaging is over \emph{public setup constants}, not over hidden words after revealing those constants. The preceding lemma accounts for their disclosure.
+
+The final bytecode-counter evaluation changes by
+\[
+ \ell_s=(1+\gen^2)\eq(z_{2:\kbc},P_0/4+s).
+\]
+All four low-bit selectors sum to one, since switching exchanges two adjacent active instructions with the other two. Thus the residual has the exact form $D=D_0\prod_sH_s^{B_s}$ and $F_{\rm bc}=F_0+\sum_s\ell_sB_s$, with coefficients independent of the public SET constants. The subset $S$ makes the evaluation uniform except with probability $\delta_{\rm span}+18/q$ when $\kbc=20$; the other $576$ bits can be fixed in that argument.
+
+\section{Fixed public libraries and composition}
+
+Taking $G=\E^\times$, $V=\E$, $n=1024$ gives mean conditional product-decoupling error
+\[
+ \eta=\frac12\sqrt{(q-2)q}
+       \left(\frac{1+b}{2}\right)^{512}<2^{-320}.
+\]
+For each library $\Gamma$, let $a(\Gamma)$ be this conditional distance averaged over honest coins, restricted to good rank and nonzero \emph{public library} factors. At each fixed good coin choice, conditioning those factors nonzero preserves independent setup words, so $\mathbb E_\Gamma a(\Gamma)\le\eta$. Markov gives
+\[
+ \Pr_\Gamma[a(\Gamma)>2^{-160}]<2^{-160}.
+\]
+This does not certify every fixed library and is not a test for identifying bad ones. Fresh independent choice bits are needed for every proof.
+
+For \emph{each} fixed library, all public-library zero events cost at most $8n/q$ over uniform $\beta$. Other bytecode factors cost at most $M/q$, with $M\le2^{20}$. Do not condition setup words on the latter event: a real witness may depend on the library. Instead charge it separately for each library and witness. On its complement, multiplication by $D_0$ and translation by $F_0$ preserve the distance bound. Thus $a(\Gamma)$ is a common bound for all eligible witnesses, including those chosen after setup but before verifier coins.
+
+For a library outside the exceptional set, the residual simulator samples independent uniform $D\in\E^\times$ and $F_{\rm bc}\in\E$, with error at most
+\[
+ 2^{-160}+\delta_L+\frac{M+8n}{q}
+ +\delta_{\rm span}+\frac{18}{q}.
+\]
+The first-packet leakage reduction holds conditional on every fixed setup library. Adding its error below $2^{-155}$ gives the claimed $2^{-154}$ bound. Equivalently, one can retain the randomly generated public library in the joint view and use the averaged bound $\eta$ directly. These are explicit setup-dependent statements, not a replacement of statistical privacy by computational pseudorandomness.
+
+\paragraph{Layout and remaining obligations.} Raise SET log height to $12$ in the previous layout. Its $2048$ reserved SET rows leave room for real SETs; the $2048$ closing JUMPs fit height $17$. Memory/bytecode log sizes remain $20$, bus depth $22$, and stack log size $24$. First-packet ownership and whole-count-block containment are unchanged. Use $P_0=2^{16}$, SET frames in $[2^{18},2^{19})$ and the existing unused words at $2^{19}$. Move the memory-occupancy frames to $3\cdot2^{18}$ and their shared PC to $5\cdot2^{14}$, outside the SET code block. The deterministic-library branch, intervening GKR messages, later table/Flock/PCS views and Fiat-Shamir remain unresolved. Setup acceptability is a separate design choice; replacing the independent public constants by a short pseudorandom seed is not justified statistically.
+
+\paragraph{Evidence.} \path{zk_bytecode_public_library_audit.py} checks the public-seed Fourier bound in exact small-group distributions, including a bad fixed seed and a nonuniform retained view; actual SET/JUMP cycles and ratio/evaluation formulas; the extended layout and disjoint reservations; the evaluation rank at one instance; and rational error bounds. It does not instantiate a full VM proof or certify a particular library's privacy.
+
+\end{document}
