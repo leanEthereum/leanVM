@@ -1,0 +1,100 @@
+% !TeX root = zk-odd-children.tex
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\input{../leanvm/preamble/macros.tex}
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposition}
+\title{Joint hiding of the second GKR packet's odd children}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\paragraph{Result and scope.} Continue \path{zk-control-composition.tex} with thirty-six valid XOR-by-zero cycles using independent uniform full-word payloads. Their two memory-product masks permit joint simulation of children $1$ and $3$ on both channels, together with the earlier first packet, boundary and projected control view. The error remains below $2^{-155}$ given the actual seven-field residual, under the preceding notes' honest-coin, public-setup and disjoint-completion assumptions. The even children, mixed round polynomials and residual law remain unsimulated. No production protocol is changed.
+
+\section{Why a second affine argument is not enough}
+
+The state masks used for child $1$ also enter node $15$, hence child $3$. With the other products fixed, an idealized control-only extension leads, after affine normalization, to
+\[
+ (u,r,s,v+c\,ur/(vs)),\qquad u,v,r,s\gets\E^\times,
+ \qquad c\in\E^\times.
+\]
+Condition on $(u,r,s)$ and put $k=cur/s$. A fourth coordinate $y$ requires $v^2+yv+k=0$. For $y\ne0$, this holds exactly when the absolute trace $\operatorname{Tr}_{\E/\F_2}(k/y^2)$ vanishes. The image has size $q/2$, where $q=|\E|$; $y=0$ has one preimage and every other attainable value has two. Its distance from a uniform fourth coordinate is exactly $1/2$. Distinct coefficients $c,c'$ give joint distance $q/[2(q-1)]$: the two distinct trace functionals have independent kernels. This is an obstruction to that idealized independent-uniform extension, not a pair of full VM witnesses or an attack on all available padding. We instead give child $3$ a separate source of product randomness.
+
+\section{Two products from full-word XOR payloads}
+
+Keep the original eight single-limb XOR masks for the boundary. Add $t=36$ fresh XOR rows with input $w_i\gets\K^3$, second input zero and output $w_i$. A closing JUMP returns to the fixed XOR instruction. Each input/output cell is read once, with counts $1$ and $\gen$ on pull and push. The four variable factors are
+\[
+ X_i,\quad X_i+d,\quad X_i+h_i,\quad X_i+h_i+d,
+ \qquad d=e_2(1+\gen),\quad h_i=e_1(a_i+c_i),
+\]
+where $e_j=\eq(\alpha,j)$, $a_i,c_i=a_i\gen^2$ are the two addresses, and
+\[
+ X_i=\beta+e_0\dsep{mem}+e_1a_i+e_2+
+       \sum_{j=0}^2e_{3+j}w_{i,j}.
+\]
+Define only the two products needed by node $15$:
+\[
+ U_+=\prod_i(X_i+d)(X_i+h_i+d),\qquad
+ U_-=\prod_iX_i(X_i+h_i).
+\]
+
+\begin{lemma}[Two products with a retained linear view]
+On rank-at-least-two fingerprint coins and distinct shifts, conditional on nonzero factors, $(U_+,U_-)$ is within
+\[
+ \eta=\frac12\sqrt{\bigl((q-1)^2-1\bigr)q^7}
+       \left(\frac{4\sqrt q}{Q^2-4}\right)^{36}<2^{-216},
+ \qquad Q=|\K|,
+\]
+of two independent uniform nonzero elements together with the actual marginal of any seven-field linear observation of the words.
+\end{lemma}
+\begin{proof}
+A nontrivial character pair induces root exponents $(b,a,b,a)$ on the four factors. These are not all trivial. The mixed character argument of \path{zk-gkr-first-packet.tex}, using Weil's bound~\cite{winger}, bounds each word's multiplicative character with any additive phase by $4\sqrt q/(Q^2-4)$. Explicitly, average first over the kernel of the word fingerprint; the phase either cancels or descends to its affine image. Expand that image by additive characters of $\E$ and apply the four-root bound, paying for excluded zeros. Independent words multiply these bounds. Fourier coefficients with both product characters trivial cancel against the retained observation's actual marginal. There are $((q-1)^2-1)q^7$ remaining coefficients; Parseval and Cauchy-Schwarz give the result. The output alphabet has two multiplicative coordinates, not four: applying the earlier four-product numerical bound unchanged would be insufficient at this row count.
+\end{proof}
+
+\paragraph{Actual boundary and exceptions.} Full-word XOR changes contribute linearly to four final push children and three memory evaluations. Pull-child changes equal the push changes, while count leaves and final counters do not change. These are exactly seven field-valued disclosures of the new words. The rank and shift exclusions are the same as for the MUL-by-one bank: rank failure costs $Q^2/(q-2)^2$, fingerprint-coordinate exclusions cost $8/q$, and the possible collision $h_i=d$ costs at most $4t/q$. Charging sampled zeros and at most $2^{23}$ complementary factors gives
+\[
+ \varepsilon_X\le\frac{2^{23}+8t+8}{q}
+             +\frac{Q^2}{(q-2)^2}+2^{-216}<2^{-168}.
+\]
+
+\section{Use the XOR masks before the boundary hybrid}
+
+At bus depth $22$, child $3$ combines frontier nodes $3,7,11,15$. All XOR blocks lie in node $15$. For the two channels, write
+\[
+ P_{15}=k_+U_+,\quad Q_{15}=k_-U_-,\qquad
+ v_{3,\pm}=a_{3,\pm}+\eq(x,3)k_\pm U_\pm.
+\]
+The cofactors include the other XOR rows, SET/JUMP factors and other small tables. They and the offsets are independent of the new words. The offsets use memory quarter $3$, bytecode quarter $3$ and MUL input-$b$ products. The new words occupy memory quarter $0$ and therefore also leave child $1$ unchanged. They change neither SET/JUMP products, bytecode data nor the retained seven-field residual.
+
+\begin{proposition}[Both odd-child pairs jointly]
+Extend the preceding composition theorem's projected view, which omits the two JUMP state products and includes child $1$ on both channels, by child $3$ on both channels. With the enlarged XOR reservation below, it has a sampler from public data, honest coins and the same actual seven-field residual with error below $2^{-155}$, outside a public-setup exception below $2^{-222}$. All four odd-child values may be sampled as independent uniform elements of $\E$.
+\end{proposition}
+\begin{proof}
+First apply the MUL-word and unused-word hybrids to make the five free first-packet coordinates uniform. Both odd-child pairs may be retained: nodes $1,3,5,7,9,11,13,15$ contain neither the MUL input-$a$/output payload products nor the unused words in memory quarter $2$. Retain the new XOR products and the actual boundary too.
+
+Next apply the two-product XOR lemma, retaining the boundary and every other source. It makes $P_{15},Q_{15}$ independent uniform nonzero elements, independently of the actual boundary, SET/JUMP products and child $1$. Nonzero cofactor multiplication preserves this target. Replacing child $3$ by two full-field uniforms costs at most $2/q$; excluding $\eq(x,3)=0$ costs at most another $2/q$. The unknown offsets no longer need to be simulated.
+
+Now apply the fifteen-field boundary theorem, retaining these two already uniform children. Its original eight XOR masks remain independent; they need not preserve the replaced node-$15$ products. They do preserve child $1$ and all SET/JUMP products. The counter trades and unused limbs retain those fields as before. The boundary theorem holds for every XOR log height at least three, so increasing it to six does not change its bound.
+
+Finally apply the ordered public-word/frame-scale hybrid and the child-$1$ affine replacement from the preceding note, carrying the two uniform child-$3$ values through both steps. Omit the state products as required there. The total error is
+\[
+ \varepsilon_4+\varepsilon_1+\varepsilon_X+\varepsilon_{15}
+       +\varepsilon_{\rm prod}+8/q<2^{-155}.
+\]
+The sampler is the previous seven-residual-field sampler with two additional independent field elements. This is a joint reduction, not a pointwise claim conditional on every residual value. The residual law itself is not proved witness-independent.
+\end{proof}
+
+\paragraph{Reservation.} Use XOR rows $8$ through $43$ for the new words, after the original aligned eight-row block. Frame indices are $2^{17}+128i$, $i=0,\ldots,43$; the unchanged two instruction addresses are $2048,2049$, and closing JUMPs occupy slots $1536$ through $1579$. These slots avoid the counter trades. XOR log height grows from $4$ to $6$, leaving twenty slots for completion. All MUL, JUMP and SET bus placements remain unchanged, while XOR blocks remain wholly in node $15$. Memory and bytecode logs stay $20$, bus depth $22$ and stack log $24$. The existing general boundary selector argument and compatible count-column-normalization hypothesis still apply. This is a checked reservation, not an implemented padding pass or a performance claim.
+
+\paragraph{Evidence and remaining work.} \path{zk_odd_children_audit.py} checks the control-only quadratic example exhaustively in two small fields, actual XOR factors and seven-field linearity, choice-independent cofactors, retained products and counters, both GKR layers through the reference reader, reservations and rational bounds. The even children observe memory quarter $0$ and the MUL payload blocks, so these same hybrids cannot simply retain them. All second-layer mixed polynomials are also excluded. Full GKR, the residual law, later proofs, commitments and Fiat-Shamir remain open; the earlier public setup and native frame/offset support caveats persist.
+
+\begin{thebibliography}{1}
+\bibitem{winger} M.~Winger. \href{https://people.math.ethz.ch/~pinkri/Theses/2020-Bachelor-Moritz-Winger.pdf}{\emph{A proof of Weil's bound on general character sums}}, Theorem~1.1 (2020).
+\end{thebibliography}
+\end{document}

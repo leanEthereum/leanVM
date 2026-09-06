@@ -114,8 +114,8 @@ def word_coefficients(v, library, words, gauges, e, beta):
             assert memory == memory_constant + v.dot(e[3:6], [v.E(value) for value in word])
 
 
-def frontier(v, library, indices, e, beta):
-    layout = v.build_layout(range(16 << 20), 20, (4, 18, 15, 4, 17, 3))
+def frontier(v, library, indices, e, beta, *, xor_log=4):
+    layout = v.build_layout(range(16 << 20), 20, (xor_log, 18, 15, 4, 17, 3))
     bus, counts = v.bus_layout((0, 20, 20), layout.push), v.bus_layout((), layout.count)
     assert bus == v.bus_layout((0, 20, 20), layout.pull)
     channels = [[v.ONE] * 16 for _ in range(3)]
