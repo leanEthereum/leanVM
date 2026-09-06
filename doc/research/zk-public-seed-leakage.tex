@@ -1,0 +1,85 @@
+% !TeX root = zk-public-seed-leakage.tex
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\input{../leanvm/preamble/macros.tex}
+\newtheorem{lemma}{Lemma}
+\title{Retaining nonlinear controls while hiding bytecode products}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\paragraph{Result and scope.} The optional public SET library can decouple four bytecode products from twelve correlated control fields, including nonlinear JUMP products. The key extension of \path{zk-bytecode-frontier.tex} allows arbitrary bounded side information independent of the public seeds. It retains that information's actual law: it does not simulate the controls, extend the earlier boundary simulator to them, or prove the next GKR layer private. Honest public preprocessing remains an additional, unadopted assumption.
+
+\section{Side information need not be linear}
+
+Let independent public seeds $\Gamma$ determine independent ratios $H_{j,i}\in G$, where $G$ is a finite abelian group. Suppose every nontrivial character $\theta$ satisfies $|\mathbb E_\Gamma\theta(H_{j,i})|\le b$. In bank $j$, choose $n_j$ private independent fair bits $A_{j,i}$, independently of $\Gamma$, and set
+\[
+ Z_j=\prod_i H_{j,i}^{A_{j,i}},\qquad
+ Y=f(A),\qquad c=(1+b)/2.
+\]
+The function $f$ is independent of $\Gamma$ and takes at most $m$ values. It may be nonlinear, and its output need not be uniform. Given the full public seeds, let $\Delta_\Gamma$ be the statistical distance between $(Z_1,\ldots,Z_k,Y)$ and independent uniform $G$ coordinates together with the actual $Y$ marginal.
+
+\begin{lemma}[Decoupling with bounded side information]
+\[
+ \mathbb E_\Gamma\Delta_\Gamma^2\le
+ \frac m4\left[\prod_{j=1}^k\bigl(1+(|G|-1)c^{n_j}\bigr)-1\right].
+\]
+\end{lemma}
+\begin{proof}
+Embed the output alphabet of $f$ in $\mathbb Z/m\mathbb Z$. Put $N=\sum_j n_j$. For a multiplicative character tuple $\theta$ supported on a nonempty bank set $J$ and an alphabet character $\psi$, the conditional Fourier coefficient is
+\[
+ \widehat P_\Gamma(\theta,\psi)
+ =2^{-N}\sum_a\theta(Z(a))\psi(f(a)).
+\]
+Expand its squared modulus using two bitstrings $a,a'$. Each differing bit in an active bank contributes an independent character mean of magnitude at most $b$; equal bits and inactive banks contribute one. Since the factor involving $f$ has unit modulus and is seed-independent,
+\[
+ \mathbb E_\Gamma|\widehat P_\Gamma(\theta,\psi)|^2
+ \le 2^{-2N}\sum_{a,a'}b^{d_J(a,a')}
+ =c^{\sum_{j\in J}n_j},
+\]
+where $d_J$ counts differences in active banks. Coefficients with all multiplicative characters trivial cancel against the target's actual marginal. Summing the other coefficients, then applying Parseval and Cauchy-Schwarz, gives the result.
+\end{proof}
+
+This is a privacy-amplification argument, not a novelty claim; extraction with retained side information is standard~\cite{dors}. The useful point here is the explicit multi-bank bound for our public-ratio family. Jensen bounds the mean distance by the square root of its right-hand side.
+
+\paragraph{The independence boundary.} Seed-dependent postprocessing $T_\Gamma(Y)$ is allowed by data processing, including multiplication by fixed witness-dependent cofactors. Multiplying each $Z_j$ by a nonzero function of $(\Gamma,Y)$ also preserves the uniform target conditional on $Y$. Arbitrary seed-dependent side information is not allowed: choosing $Y=Z_1$ gives distance exactly $1-1/|G|$ for every seed. The lemma also does not extend the earlier private-word character bounds to arbitrary nonlinear disclosures: those have a different source of randomness.
+
+\section{The controls present in valid SET/JUMP banks}
+
+Use the four disjoint compact banks of \path{zk-bytecode-frontier.tex}, with fresh fixed frames and two executions of one privately chosen SET/JUMP alternative per bit. At fixed honest fingerprint and evaluation coins, retain the following padding contributions:
+\begin{enumerate}
+\item The five JUMP push products and five JUMP pull products, ordered as state, bytecode, condition memory, destination memory and frame memory.
+\item The final memory-counter and bytecode-counter evaluations.
+\end{enumerate}
+These twelve $\E$ fields depend on the occupancy bits but not on the random public SET immediates. JUMP rows contain only fixed control values and choice-dependent addresses; both counter maps depend on access counts, not payloads. In contrast, the products are generally nonlinear in the bits. The SET push-state product equals the JUMP pull-state product, and conversely, since each chosen SET/JUMP cycle is closed. Thus SET state adds no field to this retained view. Fixed disjoint completion changes full control products by cofactors and counter evaluations by offsets, all allowed postprocessing.
+
+\paragraph{Relation to the actual frontier.} At bus depth $22$, frontier nodes have $2^{18}$ leaves. JUMP state and bytecode blocks occupy node $13$, condition and destination memory blocks occupy node $14$, and frame memory shares node $15$ with the SET blocks and other tables. The retained products determine the banks' control contributions to these nodes on both channels. SET bytecode and payload-memory products and the memory finalization product depend jointly on the bits and public immediates: they are excluded. The mixed GKR messages depend on these excluded factors too.
+
+\section{A concrete larger reservation}
+
+Write $q=|\E|=2^{192}$ and $Q=|\K|=2^{64}$. The earlier affine-coset argument gives $b=4q/(Q^2-2)^2<2^{-61}$ on good fingerprint coins and nonzero public factors. Take $3328$ bits per bank, $G=\E^\times$ and $m=q^{12}$. Then the mean conditional distance is at most
+\[
+ \eta=\frac12\sqrt{q^{12}\left[(1+(q-2)c^{3328})^4-1\right]}<2^{-415}.
+\]
+Indeed, putting $t=(q-2)c^{3328}<1/4$ gives $\eta^2\le2q^{12}t<2^{-830}$. Average over honest coins, restricting to good rank and nonzero public-library factors as in the preceding notes. Markov gives distance at most $2^{-160}$ outside a fraction below $2^{-255}$ of honestly sampled libraries. This exceptional set depends only on the padding control map, not a witness's completion.
+
+For each fixed library, rank and zero exclusions cost at most
+\[
+ \frac8q+\frac{Q^2}{(q-2)^2}+\frac{M+8\cdot4\cdot3328}{q},\qquad M\le2^{20}.
+\]
+Other bytecode cofactors are charged separately over honest coins, not used to condition setup. Their nonzero multiplication and the completion's control postprocessing preserve the bound, uniformly for eligible witnesses chosen before those coins. Thus the four full bytecode-quarter products are within $2^{-159}$ of independent uniform nonzero elements together with the \emph{actual} twelve-field control law, for every nonexceptional library. No evaluation-span exclusion is needed, because neither counter evaluation is uniformized.
+
+\paragraph{Geometry.} Use support $\{0,\ldots,3327\}$ in each bank; it contains the previous sparse support. The $26624$ SET rows fit log height $15$; the same number of closing JUMPs fits log height $17$ alongside the existing reservations. Compact frames occupy $[2^{18},2^{18}+106496)$, disjoint from other banks. The four code holes remain $[j2^{18}+2^{16},j2^{18}+2^{16}+2^{14})$. Memory and bytecode log sizes stay $20$, bus depth $22$, and stack log size $24$. This is a reservation certificate, not a production implementation or an ordinary-proof cost claim.
+
+\paragraph{Evidence and remaining obligation.} \path{zk_public_seed_leakage_audit.py} checks exact nonlinear small-group distributions, a seed-dependent counterexample, actual valid-cycle control formulas, excluded seed-dependent ratios, reservations and rational bounds. The retained controls still need a simulator jointly with the memory and SET payload products. In particular, earlier counter-trade and memory-occupancy hybrids cannot simply be conditioned on these new controls. This result removes a linearity restriction; it does not remove that composition obligation.
+
+\begin{thebibliography}{1}
+\bibitem{dors} Y.~Dodis, R.~Ostrovsky, L.~Reyzin and A.~Smith. \emph{Fuzzy Extractors: How to Generate Strong Keys from Biometrics and Other Noisy Data}, Sections 2.4 and 2.5. \href{https://arxiv.org/abs/cs/0602007}{SIAM Journal on Computing 38(1), 2008}.
+\end{thebibliography}
+\end{document}
