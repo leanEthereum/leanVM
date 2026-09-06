@@ -1,0 +1,107 @@
+% !TeX root = zk-even-children.tex
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\input{../leanvm/preamble/macros.tex}
+\newtheorem{proposition}{Proposition}
+\title{Keeping input randomness after the first GKR packet}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\paragraph{Result and scope.} Add a second MUL payload bank, computing $1\cdot w=w$ instead of $w\cdot1=w$. Jointly with the preceding first-packet/boundary view, second children $1,2,3$ on both fingerprint channels reduce to the same actual seven-field residual, below $2^{-155}$. This is not a complete second-layer simulator: child $0$ and both mixed round polynomials remain excluded. Honest independent coins, compatible count-column normalization, valid disjoint completion, honest public preprocessing and the earlier unsupported native frame/offset representation remain explicit assumptions. No production protocol is changed.
+
+\section{Nine products and an invertible first-packet map}
+
+Retain the $48$ original MUL-by-one words, $36$ full-word XOR masks, eight older single-limb XOR masks and $32$ unused-memory words. Add $48$ independent words in MUL input $b$, keeping input $a$ equal to one. Let $A_1,A_g$ and $B_1,B_g$ be the two banks' input pull/push products. Each bank also has two output products; write their products across the banks as $C_1,C_g$. Finally let $X_+,X_-$ be the full-word XOR push/pull products and $W$ the unused-memory product.
+
+\paragraph{Joint product hybrid.} Apply the four-product lemma of \path{zk-gkr-first-packet.tex} separately to the two MUL banks, the two-product lemma of \path{zk-odd-children.tex} to XOR, and the unused-word lemma. Each retains the actual seven-field linear boundary contribution of its own words and every other private source. The new MUL bank has the same four shifts $0,d,h,h+d$: now $h=e_1(b+c)$ with $c=\gen b$, instead of $c=\gen^2a$. Its collision polynomial is again nonzero of degree at most four. The same character-sum bound~\cite{winger} therefore applies. The four hybrids give independent uniform nonzero raw products; multiplying the independent output pairs leaves nine independent coordinates
+\[
+ (A_1,A_g,B_1,B_g,C_1,C_g,X_+,X_-,W)\in(\E^\times)^9.
+\]
+Their independence includes the actual retained boundary marginal, not an assumed uniform boundary. The later fifteen-field boundary hybrid has not yet been applied.
+
+Let $P_j,Q_j$ be the first push/pull children. With nonzero cofactors independent of all these private words, the exact incidence is
+\[
+\begin{aligned}
+ P_0&=k_0WA_1B_1C_1X_-,& P_2&=k_2A_gB_g,& P_3&=k_3C_gX_+,\\
+ Q_2&=l_2A_1B_1,& Q_3&=l_3C_1X_-.
+\end{aligned}
+\]
+The other children satisfy $P_1=B$, $Q_1=D$ and $Q_0=BP_0P_2P_3/(DQ_2Q_3)$, with public bytecode seed product $B$ and bytecode finalization product $D$. For every choice of the cofactors, the map to
+\[
+ (P_0,P_2,P_3,Q_2,Q_3,A_1,A_g,X_+,X_-)
+\]
+is a bijection on $(\E^\times)^9$. Its inverse is explicit:
+\[
+\begin{aligned}
+ B_1&=\frac{Q_2}{l_2A_1},& B_g&=\frac{P_2}{k_2A_g},\\
+ C_1&=\frac{Q_3}{l_3X_-},& C_g&=\frac{P_3}{k_3X_+},&
+ W&=\frac{P_0l_2l_3}{k_0Q_2Q_3}.
+\end{aligned}
+\]
+The first packet leaves four independent uniform masks: $A_1,A_g,X_+,X_-$. No divisibility assumption on $|\E^\times|$ is needed.
+
+\section{Use the four surviving masks in a triangular order}
+
+At bus depth $22$, second child $2$ combines frontier nodes $2,6,10,14$, while child $3$ combines $3,7,11,15$. Write $\lambda_j=\eq(x,j)$ for the fresh two-coordinate fold point. At fixed first packet and complementary data, their exact forms are
+\[
+\begin{aligned}
+ v_{2,+}&=a_{2,+}+b_{2,+}W+c_{2,+}A_g,&
+ v_{2,-}&=a_{2,-}+b_{2,-}W+c_{2,-}A_1,\\
+ v_{3,+}&=a_{3,+}+b_{3,+}B_g+c_{3,+}X_+,&
+ v_{3,-}&=a_{3,-}+b_{3,-}B_1+c_{3,-}X_-.
+\end{aligned}
+\]
+All coefficients are independent of the four private word families. The $c_{2,\pm}$ are nonzero on $\lambda_2\ne0$ and the nonzero-factor event; similarly $c_{3,\pm}$ are nonzero on $\lambda_3\ne0$. The inverse above fixes $W$ from the first packet, and fixes $B_1,B_g$ once $A_1,A_g$ are supplied.
+
+\begin{proposition}[Six terminal children jointly]
+Take the preceding composition note's projected view, omitting the two JUMP state products and including second child $1$ on both channels. Append both channels of children $2$ and $3$. With the added MUL bank, this view has a sampler from public data, honest coins and the same actual seven-field residual with error below $2^{-155}$, outside a public-setup exception below $2^{-222}$. The six child coordinates can be sampled as independent uniform elements of $\E$.
+\end{proposition}
+\begin{proof}
+Start with the raw product hybrids above, retaining the actual boundary, child $1$, SET/JUMP products, bytecode data and residual. All first-packet coordinates and children $2,3$ factor through those raw products and complementary data. Child $1$ involves nodes $1,5,9,13$, none depending on these private words. The bijection then gives the five uniform first-packet coordinates and four independent surviving masks.
+
+Conditional on $A_1,A_g$, use $X_+,X_-$ to replace child $3$ by two full-field uniforms, at cost $2/q$ on nonzero slopes, where $q=|\E|$. Carry child $2$ through this replacement. Next use $A_g,A_1$ to replace child $2$ by two full-field uniforms at another $2/q$, now carrying the already independent child-$3$ pair. Excluding $\lambda_2\lambda_3=0$ costs at most $3/q$, since $\lambda_2=(1+x_0)x_1$ and $\lambda_3=x_0x_1$. Budget $8/q$ for both steps. This conditional order is essential: child $3$ originally depends on the input masks used by child $2$.
+
+The new child coordinates and first-packet coordinates are now independent uniforms, so the original fifteen-field boundary theorem can be applied to the actual boundary marginal. Its eight single-limb XOR masks are still available; counter trades and unused limbs retain child $1$ and all SET/JUMP products. Finally apply the ordered public-word/frame-scale hybrids and the child-$1$ affine replacement of the preceding composition note. Carry all earlier uniform coordinates through these steps. Drop the two JUMP state products as required there and retain the same four condition/destination products, two final counters and complementary bytecode ratio. Their joint law is not simulated by this argument.
+\end{proof}
+
+\paragraph{Error budget.} Each MUL bank has the earlier four-product error $\varepsilon_M=\varepsilon_4$, with $48$ words and mixing below $2^{-384}$. The XOR and unused-word bounds $\varepsilon_X,\varepsilon_W$ have mixing terms below $2^{-216},2^{-256}$. With the fifteen-field boundary error $\varepsilon_{15}$, public-product error below $2^{-159}$ and another $4/q$ for child $1$, the total is
+\[
+ 2\varepsilon_M+\varepsilon_X+\varepsilon_W+\varepsilon_{15}
+       +2^{-159}+12/q<2^{-155}.
+\]
+This is joint distance averaged over the actual residual, not a bound conditional on every residual value. The public-seed exception is unchanged.
+
+\paragraph{Reservation and evidence.} Both banks use instructions $32768,32769$ and frames $3\cdot2^{16}+128i$, $0\le i<96$. The new MUL rows are $2^{18}-96$ through $2^{18}-49$, with closing JUMPs $60049$ through $60096$. All reservations stay disjoint, with unchanged table heights, bus depth and stack log. \path{zk_even_children_audit.py} checks actual factors, inverse maps, retained data, boundary linearity, the depth-$22$ reader, reservations and rational bounds. No full-size completed VM trace is instantiated.
+
+\section{Why the same masks do not finish the layer}
+
+\paragraph{Exact recovery in the product hybrid.} Fix the first packet, coins and complementary cofactors, including the control padding. On nonzero slopes, child $2$ gives $A_g,A_1$; the packet gives $B_g,B_1,W$; child $3$ gives $X_+,X_-$; the packet then gives $C_g,C_1$. All nine products, hence the entire second-layer wire, are determined by these four terminal values and the fixed complementary data.
+
+For clarity, the only nonconstant second-frontier factors of these nine products are
+\[
+\begin{array}{c|rrrrrr}
+ \text{node}&0&2&10&11&12&15\\\hline
+ \text{push}&A_1B_1C_1X_-&W&A_g&B_g&C_g&X_+\\
+ \text{pull}&A_gB_gC_gX_+&W&A_1&B_1&C_1&X_-
+\end{array}
+\]
+At fixed first packet and cofactors, nodes $0$ and $2$ are already determined. Child $0$ combines nodes $0,4,8,12$, so it has the reciprocal form
+\[
+ v_{0,+}=d_{0,+}+\frac{d_{1,+}}{X_+},\qquad
+ v_{0,-}=d_{0,-}+\frac{d_{1,-}}{X_-},
+\]
+where all $d$ coefficients are fixed under this conditioning. It cannot be appended as fresh independent randomness. The audit verifies every frontier factor, recovers the nine coordinates from the four terminal children, and reconstructs the complete second-layer wire after changing the free coordinates at a fixed prefix.
+
+\paragraph{Consequence, not an impossibility theorem.} Adding words to these same banks improves mixing, not their nine-coordinate footprint. Finishing the layer requires a different footprint or joint simulation with the control padding. Recovery uses witness-dependent cofactors: it is neither a public extractor nor a distinguishing pair of VM executions. The seven-field residual, later GKR layers, table/Flock composition, the full PCS and Fiat-Shamir remain open.
+
+\begin{thebibliography}{1}
+\bibitem{winger} M.~Winger. \href{https://people.math.ethz.ch/~pinkri/Theses/2020-Bachelor-Moritz-Winger.pdf}{\emph{A proof of Weil's bound on general character sums}}, Theorem~1.1 (2020).
+\end{thebibliography}
+\end{document}

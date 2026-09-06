@@ -150,10 +150,10 @@ def control_classification(v):
     )
 
 
-def reservations(v, bits=BITS, *, xor_rows=8):
+def reservations(v, bits=BITS, *, xor_rows=8, mul_rows=48):
     support = range(bits)
     assert set(SPARSE) <= set(support)
-    assert xor_rows >= 8
+    assert xor_rows >= 8 and mul_rows >= 48
     xor_log = max(4, (xor_rows - 1).bit_length())
     layout = v.build_layout(range(16 << 20), 20, (xor_log, 18, 15, 4, 17, 3))
     bus, count = v.bus_layout((0, 20, 20), layout.push), v.bus_layout((), layout.count)
@@ -165,7 +165,7 @@ def reservations(v, bits=BITS, *, xor_rows=8):
         assert [place.index >> 18 for place in placements] == expected
         assert all(place.index >> 18 == (place.index + (1 << place.variables) - 1) >> 18 for place in placements)
     counter_slots = {8 * ((bank << 12) + s) + low for bank in range(4) for s in SPARSE for low in range(8)}
-    xor_returns, mul_returns = set(range(1536, 1536 + xor_rows)), set(range(60000, 60049))
+    xor_returns, mul_returns = set(range(1536, 1536 + xor_rows)), set(range(60000, 60001 + mul_rows))
     occupied = counter_slots | xor_returns | mul_returns
     assert len(occupied) == len(counter_slots) + len(xor_returns) + len(mul_returns)
     needed = 2 * BANKS * bits + 2 * len(SPARSE)
@@ -174,7 +174,7 @@ def reservations(v, bits=BITS, *, xor_rows=8):
     frames = [
         (65536, 65536 + 4 * 5 * 4 * len(SPARSE)),
         (1 << 17, (1 << 17) + xor_rows * 128),
-        (3 << 16, (3 << 16) + 48 * 128),
+        (3 << 16, (3 << 16) + mul_rows * 128),
         (FRAME_BASE, FRAME_BASE + 8 * BANKS * bits),
         (1 << 19, (1 << 19) + 32),
         (MEMORY_FRAME, MEMORY_FRAME + (1 << 15)),
@@ -186,7 +186,8 @@ def reservations(v, bits=BITS, *, xor_rows=8):
     assert all(base <= base + 4 * s + offset < end for base, end in holes for s in support for offset in range(4))
     assert all((base + 4 * s + offset) >> 18 == bank for bank, base in enumerate(CODE_BASES) for s in support for offset in range(4))
     print(
-        f"Four public banks and {xor_rows} XOR rows fit with unchanged frontier ownership and disjoint code, frame and JUMP reservations", flush=True
+        f"Four public banks, {xor_rows} XOR rows and {mul_rows} MUL padding rows fit with unchanged frontier ownership and disjoint reservations",
+        flush=True,
     )
 
 
