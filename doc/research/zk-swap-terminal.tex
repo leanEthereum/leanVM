@@ -1,0 +1,75 @@
+% !TeX root = zk-swap-terminal.tex
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\input{../leanvm/preamble/macros.tex}
+\newtheorem{lemma}{Lemma}
+\title{The last GKR quartic needs framework entropy}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\paragraph{Result and scope.} In the supported layouts, row permutations supply no fresh last-quartic randomness after the final boundary is fixed. We identify a publicly recoverable, permutation-invariant mixed product of the unmoved half, and reduce simulation of the last quartic to a joint six-field extension of the boundary. Thus the $448$ surviving bits in \path{zk-subtree-swaps.tex} belong to earlier rounds, not to this last message. This is a limitation of row-order noise, not of valid random memory padding or of the overall ZK approach. All statements use honest interactive coins; no full-GKR simulation is claimed.
+
+\section{The last fold separates tables from unmoved data}
+
+Let the bus depth be $D$, and write the final GKR layer's sumcheck point as $x\in\E^{D-2}$, with last coordinate $\fc$. After its preceding folds, each channel has four affine lines $L_{s,j}(T)$, with $s\in\{+,-,c\}$ and $0\le j<4$. The normalized last quartic and terminal children are
+\[
+ q(T)=\sum_{s=0}^2\lambda^s\prod_{j=0}^3 L_{s,j}(T),
+ \qquad u_{s,j}=L_{s,j}(\fc),
+\]
+where $s=0,1,2$ means push, pull and count. Its four nonconstant coefficients ride the wire, and $q(\fc)=\sum_s\lambda^s\prod_j u_{s,j}$ determines the constant coefficient.
+
+\paragraph{Actual support.} At depth $22$, memory/code logs are $20$ and table logs are $(6,18,15,4,17,3)$. Every push/pull table block is in the upper half, while every count block is in the lower half. The lower bus half consists exactly of memory and bytecode; the upper count half is all ones. The depth-$17$ audit layout has the same table/count support, with memory alone filling the lower bus half. These are exact placement checks, not assumptions about arbitrary layouts.
+
+Define the eight unchanged bus endpoints $f_{s,j}=L_{s,j}(0)$, $s\in\{+,-\}$. For fixed images and final counters, \emph{any} permutation within opcode tables leaves them unchanged. Also $L_{c,j}(1)=1$. If $\fc\notin\{0,1\}$, interpolation gives
+\[
+\begin{aligned}
+ L_{s,j}(T)&=f_{s,j}+\frac{u_{s,j}+f_{s,j}}{\fc} T,
+ &&s\in\{+,-\},\\
+ L_{c,j}(T)&=\frac{u_{c,j}+\fc}{1+\fc}
+             +\frac{1+u_{c,j}}{1+\fc}T.
+\end{aligned}
+\]
+
+\begin{lemma}[No fresh terminal-quartic noise]
+At fixed unmoved endpoints and noncorner coins, the twelve terminal children determine the entire last quartic. Consequently, in the one-direction affine family of \path{zk-subtree-swaps.tex}, adjoining the last quartic to the retained boundary does not increase its binary rank.
+\end{lemma}
+\begin{proof}
+Interpolate the twelve lines and multiply them. For the rank claim, a boundary-kernel permutation fixes every terminal child, hence the quartic. Its kernel therefore remains unchanged when these four output coordinates are appended. The corner event costs at most $2/|\E|$.
+\end{proof}
+
+In particular, the certified $2048$-cycle instance still has $448$ bits of conditional wire entropy after retaining \emph{both} the seventeen-field boundary and the last quartic. They randomize the earlier rounds. This statement conditions on the fixed trace and coins, not on a witness-independent distribution of the endpoints.
+
+\section{An exposed mixed product that row order cannot hide}
+
+For $\fc\ne1$, the count polynomial $q_c(T)=\prod_j L_{c,j}(T)$ is computable from the public wire by the second interpolation formula. Hence the wire exposes
+\[
+ R_{\rm fix}=q(0)+\lambda^2q_c(0)
+       =\prod_j f_{+,j}+\lambda\prod_j f_{-,j}.
+\]
+This scalar is unchanged by all within-table row permutations, regardless of their number, directions or distribution. It need not be public: changing an unused private memory word changes it in the exact audit. This is not a full-VM distinguisher, since the experiment does not include the other padding sources and does not hold every earlier disclosure fixed between different memory images. It is an explicit observation that a complete padding proof must hide jointly with the boundary and preceding wire. More row-order bits cannot do that conditional on fixed images and counts.
+
+\section{Only six extra endpoint coordinates are needed}
+
+The eight bus endpoints are not independent of the five framework fields already in the final boundary. Let $y\in\E^2$ be the final child-combination coins and $w_j=\eq(y,j)$. Let $\Phi_{{\rm mem},s}$ and $\Phi_{{\rm bc},s}$ denote the full framework fingerprint evaluations, including $\beta$, computed from the public data and boundary fields by the existing verifier. In the depth-$22$ layout, interpolation over the memory/bytecode selector $x_{18}$ gives
+\[
+ \sum_j w_j f_{s,j}=S_s,
+ \qquad S_s=(1+x_{18})\Phi_{{\rm mem},s}+x_{18}\Phi_{{\rm bc},s},
+ \qquad s\in\{+,-\}.
+\]
+In the depth-$17$ audit layout the corresponding total is simply $S_s=\Phi_{{\rm mem},s}$. Thus, away from $w_3=0$, three endpoints per side suffice:
+\[
+ f_{s,3}=\frac{S_s+\sum_{j=0}^2w_jf_{s,j}}{w_3}.
+\]
+
+\paragraph{A joint extension contract, not a residual simulator.} If a public-data simulator covers the preceding wire, final boundary and the \emph{actual joint law} of these six extra endpoint fields, then deterministic interpolation supplies the last quartic. The additional corner budget is at most $4/|\E|$, including $\fc\in\{0,1\}$ and either coordinate of $y$ equal to zero. These endpoints are not six independently sampled uniforms; their law and correlations remain to be proved. Honest coins may be sampled in advance for this transcript argument, although $y$ is revealed later in the protocol. This is not an online simulator against arbitrary interactive challenges.
+
+\paragraph{Evidence and next step.} \path{zk_swap_terminal_audit.py} checks both production layouts, reconstructs the actual last polynomial, extracts $R_{\rm fix}$ from accepted three-channel replays, verifies its permutation invariance and memory sensitivity, and checks the two endpoint constraints against coherent full-framework evaluations. Sparse GKR replays use identity complementary factors; separate framework checks restore the default-image contributions. Neither is a completed VM proof. Next prove a joint framework-endpoint masking lemma while retaining the earlier GKR and boundary disclosures, then use row-order entropy for the remaining earlier rounds. The PCS, table/Flock composition and Fiat-Shamir remain open.
+
+\end{document}

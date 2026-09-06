@@ -41,10 +41,15 @@ def apply_columns(columns, mask):
     return value
 
 
-def native_library(v, rows=16):
+def fingerprint_parameters(v):
     rng = Random(206)
     sample = lambda: v.E(*(rng.getrandbits(64) for _ in range(3)))
     e, beta = v.eq_kernel([sample() for _ in range(4)]), sample()
+    return rng, e, beta
+
+
+def native_library(v, rows=16, unused_word=None):
+    rng, e, beta = fingerprint_parameters(v)
     library, positions = Library(v), {}
     indices = {"memory": set(), "code": {32, 33}}
     for index in range(rows):
@@ -58,6 +63,9 @@ def native_library(v, rows=16):
         for row in library.append(templates):
             positions[row] = index
         indices["memory"].update(frame + offset for offset in range(6))
+    if unused_word is not None:
+        indices["memory"].add(65535)
+        library.images["memory"][int(v.GEN**65535)] = tuple(unused_word)
     library.verify()
     log_rows = v.log2_strict(rows)
     assert 8 + 8 * rows < 1 << 16
@@ -89,7 +97,7 @@ def permute(v, library, original_positions, channels, placements, swaps):
     result, positions = [dict(nodes) for nodes in channels], dict(original_positions)
     for opcode, start, width, edge in swaps:
         left, right = (start + child * width for child in edge)
-        assert start % (4 * width) == 0 and edge[0] < edge[1]
+        assert start % (4 * width) == 0 and 0 <= edge[0] < edge[1] < 4
         for row_id, (owner, _) in enumerate(library.rows):
             if owner == opcode:
                 position = positions[row_id]
@@ -219,6 +227,8 @@ def larger_rank(v, rows):
     boundary_columns = [encode(column[-12:]) for column in columns]
     wire_rank = len(binary_basis(wire_columns))
     boundary_rank = len(binary_basis(boundary_columns))
+    endpoint_rank = len(binary_basis([encode(column[-16:]) for column in columns]))
+    assert endpoint_rank == boundary_rank
     assert wire_rank > boundary_rank
     if rows == 2048:
         assert (wire_rank, boundary_rank) == (1024, 576)
@@ -239,6 +249,7 @@ def larger_rank(v, rows):
         "An explicit boundary-kernel permutation preserves the full earlier wire and all seventeen boundary fields while changing the last-layer wire",
         flush=True,
     )
+    print("The last quartic adds no rank after the final boundary: all surviving conditional noise lies in earlier rounds", flush=True)
 
 
 def audit(v):
