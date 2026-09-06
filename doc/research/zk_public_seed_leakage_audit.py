@@ -150,8 +150,8 @@ def control_classification(v):
     )
 
 
-def reservations(v):
-    support = range(BITS)
+def reservations(v, bits=BITS):
+    support = range(bits)
     assert set(SPARSE) <= set(support)
     layout = v.build_layout(range(16 << 20), 20, (4, 18, 15, 4, 17, 3))
     bus, count = v.bus_layout((0, 20, 20), layout.push), v.bus_layout((), layout.count)
@@ -164,14 +164,14 @@ def reservations(v):
         assert all(place.index >> 18 == (place.index + (1 << place.variables) - 1) >> 18 for place in placements)
     counter_slots = {8 * ((bank << 12) + s) + low for bank in range(4) for s in SPARSE for low in range(8)}
     occupied = counter_slots | set(range(1536, 1544)) | set(range(60000, 60049))
-    needed = 2 * BANKS * BITS + 2 * len(SPARSE)
+    needed = 2 * BANKS * bits + 2 * len(SPARSE)
     assert len(list(islice((row for row in range(1 << 17) if row not in occupied), needed))) == needed
-    assert 2 * BANKS * BITS == 26624 < 1 << layout.table_log_heights[v.OP_SET]
+    assert 2 * BANKS * bits < 1 << layout.table_log_heights[v.OP_SET]
     frames = [
         (65536, 65536 + 4 * 5 * 4 * len(SPARSE)),
         (1 << 17, (1 << 17) + 8 * 128),
         (3 << 16, (3 << 16) + 48 * 128),
-        (FRAME_BASE, FRAME_BASE + 8 * BANKS * BITS),
+        (FRAME_BASE, FRAME_BASE + 8 * BANKS * bits),
         (1 << 19, (1 << 19) + 32),
         (MEMORY_FRAME, MEMORY_FRAME + (1 << 15)),
     ]

@@ -1,0 +1,89 @@
+% !TeX root = zk-set-payload-products.tex
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\input{../leanvm/preamble/macros.tex}
+\newtheorem{lemma}{Lemma}
+\title{Joint bytecode and memory products from public SET padding}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\paragraph{Result and scope.} The optional four-bank public library can handle the SET payload products excluded by \path{zk-public-seed-leakage.tex}. Seven free product coordinates decouple from its twelve control fields, while exact balance reconstructs the dependent products. A subfield character bound handles the correlated bytecode and memory fingerprints of the same word. This is a joint padding-view reduction, not a simulator for the controls, complementary trace or full second GKR layer. The additional honest public setup remains unadopted.
+
+\section{Count the independent disclosures first}
+
+All products in this section are contributions of the reserved banks alone. Let $D_j$ be bank $j$'s bytecode finalization product. Write $C_+,C_-$ for the SET bytecode push/pull products over all four banks, and $M_+,M_-$ for their memory counterparts. Let $B_{\rm c},B_{\rm m}$ be the banks' seed products, determined by their public images. The JUMP products give ratios $J_{\rm c}$ on bytecode and $J_{\rm m}$ over the three memory blocks. Complete lookup chains give the exact identities
+\[
+ \prod_{j=0}^3D_j=B_{\rm c}\frac{C_+}{C_-}J_{\rm c},
+ \qquad D_{\rm m}=B_{\rm m}\frac{M_+}{M_-}J_{\rm m}.
+\]
+Consequently the seven coordinates $(D_0,D_1,D_2,D_3,C_-,M_+,M_-)$ and the earlier twelve-field control view determine all four SET payload products, bytecode finalization and memory finalization. Their dependent products must be reconstructed, not sampled independently.
+
+\paragraph{One public word.} Put $e_i=\eq(\alpha,i)$, $Q=|\K|$, $q=|\E|=Q^3$. For a SET immediate $w\in\K^3$, its bytecode and memory fingerprints at count $\gen^\ell$ are
+\[
+ X_\ell=a_{\rm c}+e_2\gen^\ell+e_5w_0+e_6w_1+e_7w_2,
+ \quad
+ Z_\ell=a_{\rm m}+e_2\gen^\ell+e_3w_0+e_4w_1+e_5w_2,
+ \quad \ell=0,1,2.
+\]
+The constants include addresses, tags and $\beta$. Two executions of the chosen alternative contribute the four-coordinate word map
+\[
+ U(w)=\left(X_2/X_0,\ X_0X_1,\ Z_1Z_2,\ Z_0Z_1\right).
+\]
+Switching alternatives gives $U(w_1)/U(w_0)$ componentwise, with a fixed JUMP ratio multiplying its first coordinate. The two public words are independent. A character with exponents $(a,b,c,d)$ induces six root exponents $(-a+b,b,a,d,c+d,c)$. The entries $(a,b,c,d)$ occur among these, so no nontrivial character disappears, for any character order.
+
+\section{A character bound for both fingerprint maps}
+
+Exclude $\alpha_i\in\{0,1\}$ and put $t_i=\alpha_i/(1+\alpha_i)$. After dividing $X_\ell$ by $e_5$ and $Z_\ell$ by $e_3$, their roots as affine functions of $w_0$ have coefficient pairs in $(w_1,w_2)$
+\[
+ (A,B)=(t_1/t_0,t_1),\qquad
+ (C,D)=(t_2/(t_0t_1),t_2/t_1).
+\]
+Require neither pair to belong to $\K^2$, and require $(A,B)\ne(C^{Q^h},D^{Q^h})$ for $h=0,1,2$. These exclusions, including the original bad coordinates, cost at most
+\[
+ \delta_{\rm coeff}=\frac8q+\frac1{q-2}
+       +\frac{2Q^2+2Q}{(q-2)^2}.
+\]
+Indeed, the first two failures respectively require $t_0,t_1\in\K$ and $t_0,t_2/t_1\in\K$. The $h=0$ cross-pair equality is $t_2=t_1^2$. For $h=1,2$, the ratios $B/A=D/C=t_0$ force $t_0\in\K$, after which $t_2$ is uniquely determined by $t_0,t_1$. Conditional on the initial exclusions, the $t_i$ are independent uniform elements of $\E\setminus\{0,1\}$.
+
+\begin{lemma}[Six correlated factors]
+On these good coins, for $Q>6$ and uniform $w\in\K^3$ conditioned on all six fingerprints being nonzero, every nontrivial character of $U(w)\in(\E^\times)^4$ has mean of magnitude at most
+\[
+ \kappa=\frac{17\sqrt Q+51}{Q-6}.
+\]
+\end{lemma}
+\begin{proof}
+Fix $w_1,w_2$. The six normalized roots define an element of the finite \'etale $\K$-algebra $\E^6$, of dimension $18$. It generates that algebra exactly when every root has degree three and their Frobenius orbits are pairwise disjoint. For uniform $(w_1,w_2)$, each root lies in $\K$ with probability at most $1/Q$: its Frobenius-fixed equation is a nonconstant affine $\K$-linear equation. Each equality of one root with a conjugate of another also costs at most $1/Q$. Good coefficients ensure this equation is nonconstant, except within one family with no conjugation, where distinct count shifts make equality impossible. Six degree failures and three conjugacy comparisons for each of fifteen pairs give a total at most $51/Q$.
+
+For the remaining pairs, Katz's theorem for a generating element in a finite \'etale algebra bounds the sum over $w_0\in\K$ by $(18-1)\sqrt Q$~\cite{katz}. The induced character is nontrivial by the exponent observation above; constant leading coefficients only add phases. Extend the character by zero whenever any fingerprint vanishes. Bad pairs contribute at most one to the normalized average, giving $17/\sqrt Q+51/Q$. At most six values of $w_0$ are forbidden for any pair, so the nonzero event has probability at least $1-6/Q$. Dividing by this probability proves the bound.
+\end{proof}
+
+For two independent alternatives conditioned separately away from zeros, every nontrivial character of their ratio has mean at most $b=\kappa^2<2^{-55}$ at the actual fields. The deterministic JUMP multiplier does not affect its magnitude. This treats the two fingerprint maps jointly; they are not independent.
+
+\section{Joint mixing and its precise remaining scope}
+
+Take $3840$ independent occupancy bits per bank and use the nonlinear-side-information lemma with $G=(\E^\times)^4$ and $m=q^{12}$. In each bank the four coordinates are its $D_j$ and its three SET products contributing to $(C_-,M_+,M_-)$. The twelve retained fields are the ten JUMP products and two final-counter evaluations. They remain seed-independent. With $c=(1+b)/2$, the mean conditional distance is at most
+\[
+ \eta=\frac12\sqrt{q^{12}\left[
+  \bigl(1+((q-1)^4-1)c^{3840}\bigr)^4-1\right]}<2^{-383}.
+\]
+Multiplying the latter three coordinates across banks sends sixteen independent uniform nonzero coordinates to the seven independent uniform coordinates above. Keep the actual controls and reconstruct the dependent products by balance. Averaging over good honest coins and applying Markov, the conditional error is below $2^{-160}$ outside a fraction below $2^{-223}$ of honestly sampled public libraries.
+
+\paragraph{Zero factors and fixed completion.} Each bit's public alternatives have at most forty distinct relevant factors: twelve SET factors, six JUMP bytecode factors, eighteen JUMP memory factors and four state factors. Charge their zeros over uniform $\beta$, separately for each fixed library. Up to $M\le2^{24}$ complementary factors may also be charged, without conditioning the setup on the witness. Together with $\delta_{\rm coeff}$, this gives
+\[
+ 2^{-160}+\delta_{\rm coeff}+\frac{M+40\cdot4\cdot3840}{q}<2^{-159}.
+\]
+For any fixed disjoint complementary trace, multiplying the reconstructed padding contributions by its cofactors preserves this distance. Those cofactors and the actual control law can still depend on the witness: no witness-independent simulator for them has been proved. In particular, this does not justify composing the new view with the earlier boundary simulator or uniformizing the memory finalization product independently of the SET products.
+
+\paragraph{Reservation and evidence.} The $30720$ SET rows fit log height $15$, leaving $2048$ slots; their closing JUMPs fit the existing height $17$. Support $\{0,\ldots,3839\}$ fits the unchanged four code holes. Compact frames end at $2^{18}+122880$, before the unused-word bank. The stack remains at log size $24$ and the bus at depth $22$. \path{zk_set_payload_products_audit.py} checks the coefficient exclusions exhaustively in $\F_{64}/\F_4$, affine root-collision bounds, the integer character minor, actual-field fingerprints and valid-cycle balance, reservations and rational bounds. These are not a full VM proof. The next obligation is joint simulation of the retained control and complementary frontier products and their mixed GKR messages.
+
+\begin{thebibliography}{1}
+\bibitem{katz} N.~M.~Katz. \emph{An Estimate for Character Sums}, Theorem~2. Journal of the American Mathematical Society 2(2), 1989, pp.~197 to 200. \href{https://web.math.princeton.edu/~nmk/old/estcharsums.pdf}{Author's copy}.
+\end{thebibliography}
+\end{document}
