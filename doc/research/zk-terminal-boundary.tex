@@ -1,0 +1,89 @@
+% !TeX root = zk-terminal-boundary.tex
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\input{../leanvm/preamble/macros.tex}
+\newtheorem{theorem}{Theorem}
+\title{Joint hiding of the last GKR round and boundary}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\paragraph{Result and scope.} An enlarged valid-padding construction hides the last GKR quartic, its incoming claim and the seventeen-field boundary jointly, with error below $2^{-156}$. It closes the six-endpoint target of \path{zk-swap-terminal.tex} \emph{without retaining preceding GKR messages}. No random public word/scale library is needed for this result. Public reserved loop instructions, disjoint valid completion and honest interactive coins are still assumed. This is a terminal projection theorem, not full GKR or VM ZK, and it does not automatically compose with the first-two-layer theorem.
+
+\section{Twenty-three independent coordinates suffice}
+
+Fix the actual layout with memory/code logs $20$, table logs $(6,18,15,4,17,3)$, bus depth $D=22$ and JUMP height $H=17$. Write $x\in\E^{20}$ for the final layer's sumcheck point, $\fc=x_{19}$, $\tau=x_{18}$, $y\in\E^2$ for its child-combination point and $a_j=\eq(y,j)$. Memory and bytecode occupy the lower bus half; all bus table blocks occupy the upper half; the upper count half is identically one. These are checked placements, not a claim about arbitrary layouts.
+
+Use $(C,P,Q)\in\E^{12}$ for the final count/push/pull packets, $B=P+Q$, $m\in\E^3$ for the memory payload evaluations, and $F_{\rm mem},F_{\rm bc}$ for the final-counter evaluations. Let $f_{+,j},f_{-,j}$ be the lower-half push/pull endpoints from \path{zk-swap-terminal.tex}, and put $d_j=f_{+,j}+f_{-,j}$. The twenty-three coordinates to hide are
+\[
+ (C,B,P,\ m,F_{\rm mem},F_{\rm bc},\ f_{+,0:3},d_{0:3}).
+\]
+The omitted endpoints are recovered from $\sum_j a_j f_{\pm,j}=S_\pm$, where $S_\pm$ are computed from the five framework fields and public data. This requires $a_3\ne0$. Thus independent uniform samples of these twenty-three coordinates specify the entire enlarged view, including its required endpoint relations. The reconstructed fourth endpoints are not independently sampled.
+
+\section{Word noise supplies ten coordinates}
+
+Reserve thirty-two aligned unused nonpublic memory cells and randomize all three limbs independently in $\K$. Their twelve limb/slice evaluations $U_{j,l}$ are independent uniform in $\E$ on the three-coordinate span event of \path{zk-padding.tex}. With $e_i=\eq(\alpha,i)$, their increments obey
+\[
+ \Delta f_{+,j}=(1+\tau)\sum_{l=0}^2 e_{3+l}U_{j,l},
+ \qquad \Delta m_l=\sum_{j=0}^3a_jU_{j,l}.
+\]
+When $(1+\tau)e_3a_3\ne0$, the map onto $(m,f_{+,0:3})\in\E^6$ is surjective: choose the first three limb vectors to obtain the three endpoints, then use the fourth vector to obtain all three memory sums.
+
+Define $T_j=P_j+(1+\fc)f_{+,j}$. This removes the lower bus half exactly. Unused memory therefore leaves $T$ unchanged. Reserve thirty-two XOR rows, with row $j+4t$ computing $(s_{j,t},0,0)\mathbin{\mathrm{XOR}}0=(s_{j,t},0,0)$, for independent $s_{j,t}\gets\K$ and $0\le t<8$. Fresh frames and fixed closing JUMPs make valid cycles with fixed code and counters. If $h_X=6$ and $\theta_a,\theta_c$ select the XOR input/output read blocks, their contribution to $T_j$ is
+\[
+ e_3(\theta_a+\theta_c)
+ \eq(x_{3:h_X-2},0)
+ \sum_{t=0}^7\eq(x_{0:3},t)s_{j,t}.
+\]
+The selectors are distinct, so their sum is a nonzero polynomial. All four sums are independent uniform on the \emph{same} three-coordinate span event used by the unused cells. The four residue classes have separate random words.
+
+First condition on every XOR word and all counter/occupancy bits, and replace $(m,f_{+,0:3})$ by six independent uniforms. Then average out the XOR words, replacing $T$ by four further independent uniforms. Transform back using the reconstructed $f_{+,3}$ and $P=T+(1+\fc)f_+$. This gives ten uniform coordinates $(P,m,f_{+,0:3})$, independent of the remaining mask bits. It changes neither $(C,B)$ nor $(F_{\rm mem},F_{\rm bc},d_{0:3})$.
+
+The common span event costs $3\cdot2^{-256}+6/|\E|$; the XOR coefficient/selector/embedding costs $(D-1)/|\E|$; unused-cell embedding costs $(20-5)/|\E|$; and $\tau=1$ or $a_3=0$ costs $3/|\E|$. Hence this step has error at most $3\cdot2^{-256}+45/|\E|$.
+
+\section{Counter labels and occupancy supply thirteen more}
+
+\paragraph{Table counters.} The independent label trades in \path{zk-bus-packet.tex}, on \texttt{cnt\_f} and \texttt{cnt\_bc}, hide $(C,B)\in\E^8$ with error $\delta_{\rm span}+30/|\E|$. Here $\delta_{\rm span}<2^{-158}$ is the sparse binary-span bound of \path{zk-stacked-padding.tex}. The trades preserve images and final counters, hence all five remaining coordinates $(F_{\rm mem},F_{\rm bc},d_{0:3})$. Apply this step after the word hybrid, carrying its ten independent uniform outputs. Arbitrary offsets from occupancy choices are harmless because these choices are still fixed in this argument.
+
+\paragraph{Memory occupancy: four coordinates.} Let $A_j$ and $A'_j$ be the four memory and bytecode final-counter slices at $x_{0:18}$. Then
+\[
+ F_{\rm mem}=\sum_j a_jA_j,\qquad F_{\rm bc}=\sum_j a_jA'_j,
+ \qquad d_j=e_2\bigl((1+\tau)(1+A_j)+\tau(1+A'_j)\bigr).
+\]
+Unlike the earlier boundary construction, reserve \emph{four} independent memory-occupancy banks. In bank $j$, the three JUMP operand-offset exponents are the elements of $\{0,1,2,3\}\setminus\{j\}$, in increasing order. For each $s$ in the $448$-point sparse support $S\subset\{0,\ldots,4095\}$, install both alternative frames $F_j+8s$ and $F_j+8s+4$, with $F_j$ aligned to $2^{15}$. A fair bit selects one frame to execute twice. Each bank uses one fixed fresh self-loop instruction. Its code read multiplicity is independent of all choices; both alternative memory images are installed in advance. All table count leaves remain fixed.
+
+Switching this bit changes $A$ by
+\[
+ (1+\gen^2)\eq(x_{1:18},F_j/8+s)\,v_j,
+ \qquad (v_j)_l=\begin{cases}0&l=j,\\1&l\ne j.\end{cases}
+\]
+The choice bit cancels coordinate $x_0$ after the two low address bits have been sliced off. The four vectors form an invertible matrix: in characteristic two, the $4\times4$ matrix with zeros on the diagonal and ones elsewhere squares to the identity. The four banks consequently make $A\in\E^4$ uniform, using independent bits and one shared sparse-span event. Four embedding factors of degree five and twelve corner exclusions cost $32/|\E|$ in addition to $\delta_{\rm span}$.
+
+Conditional on all bytecode-occupancy choices, the map $A\mapsto(d_{0:3},F_{\rm mem})$ is invertible if $e_2(1+\tau)a_3\ne0$. This adds at most $7/|\E|$, giving error $\delta_{\rm span}+39/|\E|$. Those four outputs become independent uniforms even though the fixed bytecode choices also contribute to the actual memory slices.
+
+\paragraph{Bytecode occupancy: one coordinate.} Finally retain one bytecode-occupancy bank from \path{zk-bus-boundary.tex}, using alternative PCs $P_0+2s$ and $P_0+2s+1$, $P_0$ aligned to $2^{13}$. Its scalar $F_{\rm bc}$ becomes uniform with error $\delta_{\rm span}+19/|\E|$. Its correlated effects on the other four metadata coordinates have already been removed by the preceding conditional memory step. No assertion conditions on a disclosure of the same unused mask bits.
+
+\section{Terminal simulator and exact scope}
+
+\begin{theorem}[Last round and boundary]
+Assume the supported layout admits the disjoint banks above and a fixed valid complementary trace. The honest coins, final GKR quartic, its incoming claim, final child packets and five framework evaluations have a public-data simulator with statistical error at most
+\[
+ 3\delta_{\rm span}+137/|\E|+3\cdot2^{-256}<2^{-156}.
+\]
+Neither preceding GKR messages nor subsequent table, Flock, PCS, commitment or Fiat-Shamir observations are included.
+\end{theorem}
+\begin{proof}
+The ordered conditional hybrids above make the twenty-three coordinates jointly independent uniform, with error at most $3\delta_{\rm span}+133/|\E|+3\cdot2^{-256}$. Sample them and reconstruct both missing endpoints. For each bus channel interpolate the affine line through its lower-half endpoint at zero and its terminal child at $\fc$. For the count channel interpolate through its terminal child at $\fc$ and the public endpoint one at one. Their mixed product is the actual last quartic $q$, by \path{zk-swap-terminal.tex}. If $\xi$ is the last equality coordinate, its incoming claim is $(1+\xi)q(0)+\xi q(1)$. All are deterministic postprocessing. A conservative additional $4/|\E|$ covers interpolation corners, including the already charged endpoint corner. The simulator samples all honest coins in advance; it is not an online simulator against arbitrary interactive challenges.
+\end{proof}
+
+\paragraph{Reservations and evidence.} Use unused cells $524288,\ldots,524319$, XOR frames $131072+128i$ and PCs $32776,32777$, memory-bank bases $F_j=(20+j)2^{15}$ and PCs $204800+j$, and code-bank frame base $851968$ with PC base $196608$. Counter trades retain their earlier compact reservations. The construction uses $18848$ JUMP rows, $32$ XOR rows, $5824$ fair bits and $128$ base-field words, with fixed count-column products across all choices. Compatible count normalization and disjoint completion remain assumptions, not a full-trace certificate. \path{zk_terminal_boundary_audit.py} checks exact word/counter/metadata ranks, valid simultaneous cycle changes, invariant images/count leaves, placements and reservations, the actual last-round sumcheck reader and rational error bounds. Sampled ranks support, but do not replace, the uniform span arguments.
+
+\paragraph{What this does not solve.} The preceding GKR wire is not fixed in these hybrids: changing XOR words or occupancy also changes earlier products and round messages. To compose with \path{zk-mul-control.tex}, those disclosures must be retained throughout a new joint argument. A last-round simulator cannot simply be appended to an independently simulated prefix. The next substantive target remains the complete joint GKR transcript, not additional marginal hiding statements.
+
+\end{document}
