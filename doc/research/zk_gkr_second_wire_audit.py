@@ -9,7 +9,8 @@ from zk_pcs_audit import verifier_module
 
 
 def parent_products(nodes):
-    return [reduce(mul, nodes[start : start + 4]) for start in range(0, 16, 4)]
+    assert len(nodes) % 4 == 0
+    return [reduce(mul, nodes[start : start + 4]) for start in range(0, len(nodes), 4)]
 
 
 def multiply_lines(lines):
@@ -46,6 +47,8 @@ def stage_wire(v, channels, equality, challenges, combiner):
 def full_depth_prefix(v, replay, seed):
     prefix, _, _, wire = replay["view"]
     values, rng, samples = iter((*prefix, *wire)), Random(seed), 0
+    assert len(replay["challenge"]) % 2 == 0
+    expected_samples = (len(replay["challenge"]) // 2 + 2) ** 2
 
     class EndOfPrefix(Exception):
         pass
@@ -55,7 +58,7 @@ def full_depth_prefix(v, replay, seed):
             try:
                 return next(values)
             except StopIteration:
-                assert samples == 9
+                assert samples == expected_samples
                 raise EndOfPrefix from None
 
         def next_scalars(self, count):
@@ -64,7 +67,7 @@ def full_depth_prefix(v, replay, seed):
         def sample(self):
             nonlocal samples
             samples += 1
-            assert samples <= 9
+            assert samples <= expected_samples
             return v.E(*(rng.getrandbits(64) for _ in range(3)))
 
         def samples(self, count):
@@ -76,7 +79,7 @@ def full_depth_prefix(v, replay, seed):
         v.verify_gkr_grand_products(22, Stream())
     except EndOfPrefix:
         return
-    raise AssertionError("the actual verifier should request its third-layer message")
+    raise AssertionError("the actual verifier should request the next layer's message")
 
 
 def exact_symmetry(v, push, pull, count, seed):

@@ -121,6 +121,8 @@ The existing sparse-span theorem applies because $S\subset\{0,\ldots,3839\}$. Ex
 
 \paragraph{Reservation and evidence.} MUL PCs are $131072+4i+2a$, with closing JUMPs at the next PC, and physical frame indices are $589824+16i+8a$, for $0\le i<3840$, $a\in\{0,1\}$. They avoid all earlier reservations. The bank adds $7680$ MUL and closing-JUMP rows each; the $96$ private conditions add no rows. Table heights, bus depth $22$ and stack log $24$ remain unchanged. \path{zk_mul_control_audit.py} checks valid cycles, both product formulas, seed/condition independence, unchanged counts, the actual frontier and complete coarse reader, sparse counter formulas, reservations, finite-field certificates and rational bounds. Its concrete instances are local libraries, not a full-size completed VM trace. Later GKR layers, shared table/Flock masks, PCS observations and Fiat-Shamir still require joint simulation.
 
+\paragraph{Continuation.} \path{zk-frontier-lifting.tex} formulates the next-layer lifting condition and supplies twelve product-preserving directions using four striped MUL banks. Refined counts remain private, and exact leaf relations prevent unrestricted uniform-frontier induction to full depth. The coarse theorem above is unchanged.
+
 \begin{thebibliography}{1}
 \bibitem{katz} N.~M.~Katz. \href{https://web.math.princeton.edu/~nmk/old/estcharsums.pdf}{\emph{An Estimate for Character Sums}}, Theorem~2, Journal of the American Mathematical Society 2(2), 1989.
 \end{thebibliography}

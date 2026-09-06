@@ -1,0 +1,85 @@
+% !TeX root = zk-frontier-lifting.tex
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\input{../leanvm/preamble/macros.tex}
+\newtheorem{lemma}{Lemma}
+\title{Lifting GKR privacy beyond the coarse frontier}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\paragraph{Result and scope.} Four new banks of valid MUL cycles supply twelve independent product-preserving directions at the next fingerprint frontier, retaining its other nodes, the actual count frontier and final boundary, with joint error below $2^{-165}$. This is not yet a simulator for the third GKR layer. We give an exact sufficient lifting condition, isolate the missing refined-count argument, and show why unrestricted uniform-frontier induction cannot extend to the leaves. Honest coins, compatible count normalization, disjoint completion and the optional public-preprocessing assumptions of \path{zk-mul-control.tex} remain in force. No production protocol is changed.
+
+\section{A sufficient lifting contract}
+
+The current theorem simulates the first two layers and final seventeen-field boundary. Its proof supplies a stronger latent view: sixteen products on each fingerprint channel, with four public push-bytecode nodes and global push/pull balance. The next layer refines each node into four children, yielding $64$ nodes per channel. It transmits four sumcheck rounds and twelve terminal children, $28$ field elements in total. Put $G=\E^\times$, $q=|\E|=2^{192}$ and $Q=|\K|=2^{64}$.
+
+\paragraph{The product fiber.} Write $\pi$ for multiplication of consecutive quartets. Sixteen fine push-bytecode nodes are public. In every other quartet, fixing the parent leaves three free units:
+\[
+ (z_0,z_1,z_2,p/(z_0z_1z_2)),\qquad z_i\gets G.
+\]
+There are $28$ such quartets, hence $84$ independent coordinates. Equivalently, the balanced fine frontier has $111$ coordinates versus $27$ at the coarse frontier. The integer kernel has a unit minor: three coordinate vectors minus the quartet's fourth vector in each group. This avoids assumptions about prime factors of $q-1$. Fiber formulas apply on nonzero branches; exceptional branches use a fixed-format fallback and must be charged in the distance bounds.
+
+\begin{lemma}[Lifting contract]
+Let $X$ contain the honest coins, coarse fingerprint frontier, final boundary and the \emph{fine} count frontier. Let $K(X)$ retain $X$ and sample the fingerprint product fiber above. If the actual joint fine view $V$ satisfies
+\[
+ \operatorname{TV}(V,K(X))\le\varepsilon_{\rm lift},
+ \qquad \operatorname{TV}(X,S)\le\varepsilon_0
+\]
+for a public-data simulator $S$, then the first three GKR layers and boundary have a simulator with error at most $\varepsilon_0+\varepsilon_{\rm lift}$.
+\end{lemma}
+\begin{proof}
+Apply the triangle inequality and contraction of total variation under $K$, then generate the wire deterministically from the sampled frontiers and coins. The earlier layers depend only on the quartet products. Public fine-bytecode data is understood as part of the statement and coins.
+\end{proof}
+
+If the fine count frontier were public, the previous coarse theorem would supply $S$. Whole-column count normalization does not establish this: a column is now split between nodes. When refined counts are private, we instead need a simulator for their \emph{joint} law with the coarse frontier and boundary. A marginal counter simulator cannot simply be appended or conditioned on these disclosures. The full product-fiber target is sufficient, not necessary for wire privacy.
+
+\section{Twelve directions realized by valid cycles}
+
+Reserve four banks of $48$ independent words $v_{j,i}\gets\K^3$, one in each MUL row stripe $j\in\{0,1,2,3\}$. Each cycle multiplies its word by one, writes the same word at a different address, and returns through a JUMP. All physical frames lie in fine memory node $7$. Let $(A_{j,1},A_{j,g},C_{j,1},C_{j,g})$ be the four shifted input/output products of \path{zk-gkr-first-packet.tex}. Omitting fixed cofactors, the only word-dependent fine nodes are
+\[
+\begin{array}{c|ccc}
+ &7&40+j&48+j\\\hline
+ \text{push}&\prod_j A_{j,1}C_{j,1}&A_{j,g}&C_{j,g}\\
+ \text{pull}&\prod_j A_{j,g}C_{j,g}&A_{j,1}&C_{j,1}
+\end{array}
+\]
+The four aggregate products across stripes determine every changed coarse node and both fine memory-node factors. Fixing these aggregates leaves twelve independent units, precisely the four product fibers of input-$a$ and output parents $10,12$ on both channels. No other fine node or count depends on the words beyond these aggregates.
+
+\paragraph{Retaining the actual coarse law costs a factor two.} Each bank's four-product lemma retains its actual seven-field linear boundary contribution: four push-child changes, equal pull changes, and three memory evaluations. Its character-sum argument uses Weil's bound~\cite{winger}. Conditional on all complementary padding, four successive hybrids give a law $U$ with sixteen independent unit products, independent of the actual boundary, at distance at most $4\varepsilon_4$ from the real law $V$. Let $R$ resample only the twelve fiber coordinates, preserving the four aggregates, all other fine nodes, counts and boundary. Then $R(U)=U$, and
+\[
+ \operatorname{TV}(V,R(V))
+ \le\operatorname{TV}(V,U)+\operatorname{TV}(R(U),R(V))
+ \le8\varepsilon_4<2^{-165},
+\]
+where the previous bound is
+\[
+ \varepsilon_4\le\frac{2^{23}+8\cdot48+8}{q}
+       +\frac{Q^2}{(q-2)^2}+2^{-384}.
+\]
+Unlike $U$, the target $R(V)$ retains the \emph{actual} coarse-product marginal. Define $R$ as the identity if a selected node is zero; the preceding error budget includes this event. The guarantee is joint distance averaged over retained data, not a bound for every conditioning value. Resampling is a simulator operation; the honest prover samples all padding words before the challenges. The construction supplies twelve of the $84$ directions in the sufficient contract, not all of them.
+
+\paragraph{Reservation.} Use PCs $32770,32771$, physical frame indices $7\cdot2^{16}+128(48j+i)$, and MUL row positions $j2^{16}+2^{15}+i$, $0\le i<48$. Operand-offset exponents are $0,1,2$, with closing-JUMP exponents $64,65,66$. Reserve the first $192$ available JUMP slots below $2^{16}$ after the counter, XOR and earlier MUL-return reservations; allocate other control closings afterward. These frames and rows avoid the preceding libraries, and the remaining closing-row capacity suffices. The banks add $192$ MUL and $192$ JUMP rows without increasing table heights. Compatible normalization and a full valid complement remain hypotheses.
+
+\section{Two limits on the induction}
+
+\paragraph{Counts really refine.} Place four identical JUMP self-loops at row positions $0,2^{16},1,2^{16}+1$. Assign read labels $0,1,2,3$ in each count column. Swapping labels $0,1$ of the frame-read column on the first two rows preserves valid count chains, every whole-column product and all final access counts. Both rows lie in one coarse node but different fine nodes. Their coarse push/pull/count frontiers and complete first-two-layer wire agree; the fine count frontier and third-layer wire can differ. The audit checks this using the actual depth-$22$ reader. This demonstrates missing information, not witness leakage: the example does not fix the final boundary, and different valid random padding outcomes may legitimately have different wires.
+
+\paragraph{Uniform product fibers cannot reach the leaves.} At a MUL input-memory leaf, the same address and word occur on both channels; only the counter is multiplied by $\gen$. For $e_2(1+\gen)\ne0$, actual fingerprints obey
+\[
+ \frac{\mathrm{push}_i+\mathrm{pull}_i}{e_2(1+\gen)}=\mathrm{cnt}_i\in\K.
+\]
+Two independent uniform units satisfy this relation with probability at most $Q/(q-1)$. The unrestricted product-fiber target gives just such a pair for a first child of a nonpublic quartet, even after fixing its parents. Its distance from the actual leaf-frontier law is therefore at least $1-Q/(q-1)$. This rules out repeating the \emph{same strong invariant} down to individual rows. It does not rule out padding-based ZK: GKR exposes folded messages, not the whole leaf frontier. A full-depth argument must preserve native leaf relations or simulate only the disclosed combinations.
+
+\paragraph{Evidence and next step.} \path{zk_frontier_lifting_audit.py} checks the integer kernel, exact cycle incidence, retained linear boundary, count refinement, reservations, rational error bounds and all three wire layers against the reference reader. The instances are sparse local libraries, not complete VM proofs; ranks and successful replays are not statistical-security proofs. Next seek a joint count/fingerprint invariant for the disclosed GKR messages, with the remaining coarse fiber directions as a possible intermediate step. Table/Flock composition, the PCS, commitments and Fiat-Shamir remain outside this result.
+
+\begin{thebibliography}{1}
+\bibitem{winger} M.~Winger. \href{https://people.math.ethz.ch/~pinkri/Theses/2020-Bachelor-Moritz-Winger.pdf}{\emph{A proof of Weil's bound on general character sums}}, Theorem~1.1 (2020).
+\end{thebibliography}
+\end{document}
