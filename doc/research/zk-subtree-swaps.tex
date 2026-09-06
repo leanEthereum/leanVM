@@ -1,0 +1,70 @@
+% !TeX root = zk-subtree-swaps.tex
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\input{../leanvm/preamble/macros.tex}
+\newtheorem{lemma}{Lemma}
+\title{Prefix-preserving row swaps for joint bus GKR}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\paragraph{Result and scope.} Whole-row subtree swaps give a binary-affine noise family for a complete GKR layer, jointly across push, pull and count, while preserving every earlier GKR message exactly. The final boundary is also affine in these bits. This supplies a direct conditional-rank target, not a statistical-ZK theorem: terminal invariants and later nonlinear disclosures still need masking. It complements the product-fiber approach of \path{zk-frontier-lifting.tex} without asking native leaf fingerprints to become independent units. Coins are fixed honest interactive coins; commitments and Fiat-Shamir are excluded.
+
+\section{One swap direction, all three channels}
+
+Fix a radix-four GKR step whose input nodes are products of $w=4^h$ consecutive leaves. In an opcode table with at least $4w$ rows, partition selected rows into aligned groups of $4w$. For each group independently, a fair bit swaps its first two $w$-row subblocks. Move \emph{whole rows}, including their read-counter labels. The other two subblocks stay fixed. The stack placement of each affected bus and count block is a multiple of $4w$, so all channels see the same child-pair direction $(0,1)$ despite their different block layouts.
+
+\begin{lemma}[Joint affine noise with an unchanged prefix]
+For arbitrary fixed valid rows, the swaps preserve the memory/code images, final access counts and every ancestor product at size $4w$ or larger. Consequently the entire earlier three-channel GKR transcript is unchanged. The current layer's wire and any fixed linear observations of the reordered leaves are jointly affine over $\Ftwo$ in all these swap bits.
+\end{lemma}
+\begin{proof}
+Row permutation preserves every per-row constraint and bus multiset. Each affected ancestor contains both exchanged subblocks, so its product is unchanged separately in every fingerprint and count block. Earlier GKR layers are deterministic functions of those products and the fixed coins.
+
+In one channel, write the current interpolated children as $A,B,C,D$. Swapping child nodes $a_s,b_s$ changes each of children $0,1$ by the same amount $a_s+b_s$. After any partial folding, their changes are still a common polynomial $U=\sum_s b_s U_s$, linear in the swap bits. The product change is
+\[
+ (A+U)(B+U)CD-ABCD=CD\bigl((A+B)U+U^2\bigr).
+\]
+In characteristic two, $U^2=\sum_s b_sU_s^2$. Equality-weighted summation, extraction of round coefficients and the existing three-channel combiner preserve binary affinity. Terminal children and fixed linear leaf observations are affine as well. In particular, with every other permutation fixed, disjoint subtree swaps act affinely on the original leaves, hence on the final GKR children. The five memory/code framework evaluations are unchanged. This proves the claim for the final seventeen-field boundary too.
+\end{proof}
+
+This realizes the standard \href{https://arxiv.org/abs/1211.5475}{linearized-polynomial mechanism} by whole-row permutations. Unlike the earlier count-label trades, it preserves the \emph{fingerprint} prefix too. Disjoint groups or opcode tables may share one affine family if their selected child pair is common.
+
+\section{The exact remaining simulation condition}
+
+Expand field outputs in a binary basis. For the current wire $W$ and a retained linear view $B$, including the final boundary when desired, write
+\[
+ W=w_0+M b,\qquad B=b_0+N b,\qquad b\gets\Ftwo^t.
+\]
+Conditional on an attainable boundary value, the wire is exactly uniform on an affine coset of $M(\ker N)$, of dimension
+\[
+ \dim_{\Ftwo}M(\ker N)
+ =\operatorname{rank}_{\Ftwo}\begin{pmatrix}M\\N\end{pmatrix}
+  -\operatorname{rank}_{\Ftwo}N.
+\]
+Indeed, the conditional bit law is uniform on a coset of $\ker N$. A public-data simulator therefore needs this image \emph{and its translated coset} to be determined by the public data and already simulated disclosures, or needs all remaining witness-dependent translations to lie inside the image. A large rank alone is insufficient. A uniform exceptional-coin bound and a joint simulator for any retained private view are separate obligations.
+
+\paragraph{Invariant coordinates cannot be counted as fresh noise.} For the fixed pair $(0,1)$, terminal children $2,3$ and the sum of children $0,1$ are unchanged in each channel. Even arbitrary within-quartet permutations preserve the quartet sum. The terminal-child sum is the multilinear evaluation of these quartet sums at the current fold point. These invariant evaluations are generally not determined by parent \emph{products}; they need another masking source. Thus a layer-by-layer proof that fixes every other source and asks these swaps alone to hide the full layer cannot work.
+
+\paragraph{Two different kinds of composition fail automatically.} Changing the child-pair direction in another bank introduces mixed terms between the two mask polynomials; separate bank ranks cannot be added. Also, a swap of $w>1$ rows affects all four finer children below this cut. Its next-layer wire need not be affine in the same bits. Therefore the lemma cannot be iterated by treating previously disclosed swap bits as fresh noise. Either retain sufficient hidden state in a joint simulator or bound the mixed observations directly.
+
+\paragraph{A positive conditional-rank certificate.} \path{zk_subtree_swap_audit.py} uses actual bus/count placements at depth $17$ and the production memory minimum. Sixteen valid MUL/JUMP cycles give ranks $(8,8,8)$ and $(2,2,2)$ for wire, boundary and joint view under width-one and width-four swaps: their boundary exhausts the bits. Increasing to $2048$ cycles supplies $1024$ independent width-one swaps, with exact ranks
+\[
+ \operatorname{rank}M=1024,\qquad \operatorname{rank}N=576,
+ \qquad\dim M(\ker N)=448.
+\]
+The boundary rank attains its structural maximum: only one field value per channel varies, because the two changed children move equally. Thus the current wire has exactly $448$ bits of conditional entropy for this fixed trace and coin instance, even after retaining the whole preceding GKR wire and final boundary. The reference-arithmetic audit verifies analytic columns against individual and multi-bit full-reader replays. The packed-field run also constructs an explicit kernel permutation: the unchanged reader accepts its different last-layer wire with identical prefix and seventeen-field boundary. This is an exact instance, not a uniform rank or privacy bound. The entire swap-bit vector is determined by the wire when the fixed trace and coins are supplied; it cannot be budgeted again as fresh noise for later proofs.
+
+The audit also checks nonzero mixed derivatives for both composition failures above. Its sparse replay agrees with independent dense replay at odd and even depths, including zero nodes. Uninstantiated complementary factors are one, so this is not a complete VM trace. The next proof must make the conditional image and translated coset witness-independent, account for invariant child sums, and bound exceptional coins uniformly over valid complements. No production protocol, public preprocessing or new frame/offset support is needed for the swap operation itself.
+
+\paragraph{Arithmetic for larger audits.} The optional \path{zk_audit_field.py} replaces multiplication only in the loaded research instance. It spreads polynomial bits into base-$256$ digits before integer multiplication. Every convolution coefficient is at most $64<256$, so no carry crosses a digit; selecting each digit's low bit and gathering them recovers the exact carryless product. The reduction is unchanged. All basis products, carry-heavy patterns and seeded random inputs are checked against the original reference kernel. This optimization changes no proof or security assumption.
+\begin{verbatim}
+python3 zk_subtree_swap_audit.py --rank-rows 2048 --packed-field
+\end{verbatim}
+
+\end{document}

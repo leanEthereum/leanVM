@@ -122,6 +122,9 @@ def gkr_replay(verifier, count_leaves, seed=128, details=False, *, bus_leaves=No
     result = verifier.verify_gkr_grand_products(depth, stream)
     assert next(stream.values, None) is None and next(stream.coins, None) is None
     assert result[2] == tuple(verifier.multilinear_eval(leaves, result[1]) for leaves in (*bus_leaves, count_leaves))
+    if details:
+        final_details["result"] = result
+        final_details["coins"] = tuple(coins)
     return final_details if details else final
 
 
