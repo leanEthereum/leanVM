@@ -1,0 +1,93 @@
+% !TeX root = zk-gkr-first-packet.tex
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\input{../leanvm/preamble/macros.tex}
+\newtheorem{lemma}{Lemma}
+\title{The first GKR packet reduces to two bytecode disclosures}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\paragraph{Result and scope.} In the supported layout of \path{zk-gkr-coarse.tex}, forty-eight random MUL cycles and the existing boundary masks reduce the joint first-packet/boundary view to two residual bytecode values. Given their \emph{actual joint law}, every other disclosure in this view has a simulator below $2^{-155}$. This is a leakage reduction, not zero knowledge: the residual law is not yet proved witness-independent. Intervening GKR messages and later protocols are still excluded; coins are honest interactive challenges.
+
+\section{All multiplicative degrees of freedom}
+
+The bus depth is $22$, memory and bytecode log sizes are $20$, and MUL log height is $18$. Let $P_i,Q_i$ be the first push/pull children. Child $0$ is memory, child $1$ is bytecode, child $2$ contains MUL state, bytecode and both inputs, and child $3$ contains its output and all remaining blocks. In particular $P_1=B$ is publicly determined. Write $Q_1=D$; it depends on bytecode access counts.
+
+For each fresh MUL frame, put a random word $v_i\in\K^3$ in input $a$, multiply by $(1,0,0)$, and write the same word at a distinct output $c$. Each cell is read once. Let $a_i,c_i$ be their field addresses and define
+\[
+ X_i=\beta+e_0\dsep{mem}+e_1a_i+e_2+\sum_{j=0}^2e_{3+j}v_{i,j},
+ \qquad d=e_2(1+\gen),\quad h_i=e_1(a_i+c_i).
+\]
+The four factors at addresses $a,c$ and counts $1,\gen$ are $X_i$, $X_i+d$, $X_i+h_i$, $X_i+h_i+d$. Denote their products over $48$ cycles by $A_1,A_g,C_1,C_g$. Let $W$ be the product of the original thirty-two unused-memory factors. With lowercase cofactors independent of these sampled payloads, the exact incidence is
+\[
+\begin{array}{lll}
+ P_0=p_0WA_1C_1,&P_2=p_2A_g,&P_3=p_3C_g,\\
+ Q_0=q_0WA_gC_g,&Q_2=q_2A_1,&Q_3=q_3C_1.
+\end{array}
+\]
+The five noise coordinates give a unimodular exponent map onto $(P_0,P_2,P_3,Q_2,Q_3)$. Thus there is no hidden finite-index subgroup obstruction, even though $|\E^\times|$ is composite. Bus balance supplies the sixth coordinate:
+\[
+ Q_0=\frac{BP_0P_2P_3}{DQ_2Q_3},\qquad
+ R=BP_0P_2P_3.
+\]
+Here $R$ is the shared root. All four count children are also public \emph{if} the compatible twenty-eight-column normalization of \path{zk-count-columns.tex} has been applied: every count block fits wholly inside one first-layer child, and unoccupied leaves equal $1$. This normalization and a fixed valid completion are explicit hypotheses, not implemented by the audit.
+
+\section{Four products mix while retaining the boundary}
+
+Put $Q=|\K|$, $q=|\E|$. Generalize the lemma of \path{zk-gkr-paired.tex} to $s<Q^2$ distinct shifts per word. For rank-at-least-two $L:\K^3\to\E$, independent words, and any retained $h$-field linear view, the $s$ shifted products are jointly independent uniform nonzero values, independent of the actual linear-view marginal, up to
+\[
+ \eta_{s,t,h}=\frac12\sqrt{\bigl((q-1)^s-1\bigr)q^h}
+ \left(\frac{s\sqrt q}{Q^2-s}\right)^t,
+\]
+after conditioning away zeros. Shifts and observation maps are fixed independently of the sampled words; shifts may differ between words.
+
+\paragraph{Justification.} For a nontrivial tuple of multiplicative characters, combine its nontrivial entries into one character of a polynomial with $j\le s$ distinct roots. Choosing the generator of their generated subgroup makes the corresponding Kummer cover irreducible. With a nontrivial additive phase, Weil's mixed bound is $j\sqrt q$~\cite{winger}; with trivial phase, the multiplicative bound is $(j-1)\sqrt q$~\cite{kowalski}. Omitting the other $s-j$ roots costs at most $s-j$, hence at most $s\sqrt q$ in either case. The same kernel averaging, affine-coset expansion and Fourier argument as in the paired lemma gives the formula. It retains the actual linear marginal, not an assumed uniform one.
+
+For these MUL cycles, $s=4$, $t=48$, $h=7$: the linear view consists of four final push-child changes and three memory evaluations. Final pull-child changes are equal, and counters do not change. Thus $\eta_{4,48,7}<2^{-384}$. Excluding fingerprint coordinates in $\{0,1\}$ and rank below two costs $8/q+Q^2/(q-2)^2$. Since $c_i=a_i\gen^2$, the remaining shift collision is $h_i=d$, a nonzero degree-at-most-four polynomial in the fingerprint coins. Its union bound is $4t/q$.
+
+\paragraph{Two joint hybrids.} First replace $(A_1,A_g,C_1,C_g)$ by four independent uniforms while retaining the actual boundary and all complementary padding. Conditional on the latter, $(P_2,P_3,Q_2,Q_3)$ become independent uniform, but
+\[
+ U=\frac{P_0}{Q_2Q_3}=\frac{p_0}{q_2q_3}W
+\]
+still contains the unused words. Apply the original product/linear-view lemma to replace $U$, retaining its seven linear boundary disclosures. The four already uniform child coordinates can be carried through this hybrid. This makes all five free packet coordinates uniform independently of the actual boundary and both occupancy banks.
+
+Bound all other fingerprint factors, including denominator factors, by $2^{23}$. Charging their zeros and the $4t$ sampled zeros, the first hybrid costs at most
+\[
+ \varepsilon_4=\frac{2^{23}+8t+8}{q}+\frac{Q^2}{(q-2)^2}+\eta_{4,t,7}.
+\]
+The second costs $\varepsilon_1=(2^{23}+40)/q+Q^2/(q-2)^2+\eta_{1,32,7}$. Conditioning on nonzero factors preserves word independence within each hybrid. Bad branches are charged once per hybrid by retaining the actual conditional boundary marginal.
+
+\section{Exactly what remains hidden, and what does not}
+
+Let $F_{\rm bc}$ be the final bytecode-counter evaluation. The residual is the \emph{pair} $(D,F_{\rm bc})$, not just the scalar $D$. All counter-label trades, XOR/MUL payloads, unused words and memory-occupancy choices leave this pair unchanged. The bytecode-occupancy bank can change both components.
+
+After the two packet hybrids, apply the fifteen-value boundary theorem conditional on both occupancy banks and the complementary MUL data. Its sources do not change either final-counter evaluation. Then use the memory-occupancy bank to hide the memory final-counter evaluation conditional on every bytecode-occupancy choice. Its total bytecode access count is fixed, so it leaves $(D,F_{\rm bc})$ unchanged. These steps hide sixteen boundary fields jointly; the seventeenth is retained in the residual. Their error is at most $\varepsilon_{15}+\delta_{\rm span}+19/q$, bounded conservatively by $\varepsilon_{17}$.
+
+Consequently, if $V$ is this first-packet/boundary view and $S$ receives the public data, honest coins and the \emph{actual} residual pair, then
+\[
+ \operatorname{TV}\bigl(V,S(D,F_{\rm bc})\bigr)
+ \le \varepsilon_4+\varepsilon_1+\varepsilon_{17}<2^{-155}.
+\]
+The simulator samples five independent nonzero packet coordinates and sixteen independent field-valued boundary coordinates, reconstructs $P_1,Q_0,Q_1,R$ as above, and retains $F_{\rm bc}$. When $BD=0$, it uses arbitrary fixed-format remaining coordinates. It appends public normalized count values. The bound is joint with the residual, averaged over its actual law; it is not a worst-case conditional bound for every residual value.
+
+\paragraph{Next obligation.} Establish joint hiding of the bytecode finalization product and evaluation under valid execution choices. The old marginal theorem for $F_{\rm bc}$ cannot simply be conditioned on $D$. For a bytecode-occupancy bit $b_s$, both disclosures have the explicit form
+\[
+ D=D_0\prod_{s\in S}H_s^{b_s},\qquad
+ F_{\rm bc}=F_0+\sum_{s\in S}\ell_s b_s,
+\]
+For seed fingerprints $f_{s,0},f_{s,1}$ at the two candidate PCs and $\Delta=e_2(1+\gen^2)$, the ratio is $H_s=f_{s,0}(f_{s,1}+\Delta)/((f_{s,0}+\Delta)f_{s,1})$; $\ell_s$ is the existing linear evaluation coefficient. The same bits occur in both expressions. A simulator for this residual pair would complete this first-packet/boundary view, not the intervening GKR transcript.
+
+\paragraph{Evidence.} \path{zk_gkr_first_packet_audit.py} checks actual factor incidence, its integer determinant, valid local traces and sparse framework products, the reference first-packet reader, count-block containment, occupancy residual formulas and rational error bounds. The large trace's uninstantiated complement remains in the symbolic cofactors; no complete VM proof is generated.
+
+\begin{thebibliography}{2}
+\bibitem{winger} M.~Winger. \href{https://people.math.ethz.ch/~pinkri/Theses/2020-Bachelor-Moritz-Winger.pdf}{\emph{A proof of Weil's bound on general character sums}}, Theorem~1.1 (2020).
+\bibitem{kowalski} E.~Kowalski. \href{https://people.math.ethz.ch/~kowalski/exponential-sums-elementary.pdf}{\emph{Exponential sums over finite fields: elementary methods}}, Theorem~3.1.
+\end{thebibliography}
+\end{document}

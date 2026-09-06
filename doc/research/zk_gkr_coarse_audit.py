@@ -98,7 +98,14 @@ def first_packet(verifier, child, pull_child=None):
     root, count = verifier.E(3, 5, 7), verifier.GEN**19
     push = [verifier.GEN, verifier.GEN**2, child, root / (verifier.GEN**3 * child)]
     pull = [verifier.GEN**4, verifier.GEN**5, pull_child, root / (verifier.GEN**9 * pull_child)]
-    values, samples = iter([root, count, *push, *pull, count, verifier.ONE, verifier.ONE, verifier.ONE]), 0
+    check_first_packet(verifier, push, pull, [count, verifier.ONE, verifier.ONE, verifier.ONE])
+    return push[2]
+
+
+def check_first_packet(verifier, push, pull, counts):
+    root, count = (reduce(mul, values, verifier.ONE) for values in (push, counts))
+    assert reduce(mul, pull, verifier.ONE) == root
+    values, samples = iter([root, count, *push, *pull, *counts]), 0
 
     class EndOfPrefix(Exception):
         pass
@@ -127,7 +134,6 @@ def first_packet(verifier, child, pull_child=None):
         raise AssertionError("an incomplete prefix returned")
     except EndOfPrefix:
         assert next(values, None) is None
-    return push[2]
 
 
 def leak_certificate(verifier):
