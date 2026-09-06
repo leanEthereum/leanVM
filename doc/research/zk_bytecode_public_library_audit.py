@@ -52,19 +52,22 @@ def public_seed_mixing():
     )
 
 
-def set_library(v, support, words, bits):
+def set_library(v, support, words, bits, *, code_base=CODE_BASE, frame_base=FRAME_BASE, compact=False):
     library, indices = Library(v), {"memory": set(), "code": set()}
+    stride, offsets = (4, (1, 2, 3)) if compact else (128, (64, 65, 66))
     for ordinal, (s, alternatives_words, choice) in enumerate(zip(support, words, bits, strict=True)):
         alternatives = []
         for alternative, payload in enumerate(alternatives_words):
-            pc, frame = CODE_BASE + 4 * s + 2 * alternative, FRAME_BASE + 256 * ordinal + 128 * alternative
+            pc, frame = code_base + 4 * s + 2 * alternative, frame_base + 2 * stride * ordinal + stride * alternative
             templates = library.templates((v.OP_SET, pc, [], True), v.GEN**frame)
+            for name, offset in zip(("o_c", "o_d", "o_f"), offsets, strict=True):
+                templates[1][1][v.JUMP_COLUMNS.index(name)] = v.GEN**offset
             for lane, value in enumerate(payload):
                 templates[0][1][v.SET_COLUMNS.index(f"k_{lane}")] = v.E(value)
             library.register(templates)
             alternatives.append(templates)
             indices["code"].update((pc, pc + 1))
-            indices["memory"].update(frame + offset for offset in (0, 64, 65, 66))
+            indices["memory"].update(frame + offset for offset in (0, *offsets))
         library.append(alternatives[choice])
         library.append(alternatives[choice])
     library.verify()

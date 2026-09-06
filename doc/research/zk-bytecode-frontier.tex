@@ -1,0 +1,71 @@
+% !TeX root = zk-bytecode-frontier.tex
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\input{../leanvm/preamble/macros.tex}
+\title{Splitting the bytecode product without spending its privacy twice}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\paragraph{Scope.} This continues the optional honest public preprocessing of \path{zk-bytecode-public-library.tex}; it does not adopt that setup assumption. Four banks hide the bytecode finalization product's four grandchildren jointly with its evaluation and the preceding first-packet/boundary view. The four grandchildren are a strengthened observation, not four individually transmitted values in the next GKR layer. Its mixed sumcheck and terminal packet remain unproved.
+
+\section{What the next layer actually consumes}
+
+At bus depth $22$, the first layer groups leaves into blocks of $2^{20}$. Its second child is exactly the bytecode table. The next frontier consists of $16$ products of blocks of $2^{18}$ leaves. Write $D_j$ for the four bytecode finalization products at frontier indices $4+j$, and $B_j$ for their public seed counterparts, $0\le j<4$. The preceding residual was only
+\[
+ D=\prod_{j=0}^3D_j,\qquad F_{\rm bc}.
+\]
+The next GKR step runs two sumcheck rounds, then sends four folded values per channel. For its pull packet, the $j$th value is $\sum_{k=0}^3\eq(x,k)N_{4k+j}$, where $N$ is the pull frontier and $x$ its two new challenges. Thus $D_j=N_{4+j}$ participates with other memory and instruction products. Hiding $D$ alone says nothing about these four inputs.
+
+\paragraph{A limitation of the single bank.} Its PCs lie entirely in bytecode quarter $0$. The other three $D_j$ are untouched by every source used there: payload masks and counter-label trades do not change bytecode final counts, and the memory-occupancy PC also lies in quarter $0$. A private choice of which of two fresh JUMP self-loops in quarter $3$ executes twice changes $D_3$, while preserving code, public sizes and count-column products. If their seed fingerprints are $f_0,f_1$ and $\delta=e_2(1+\gen^2)$, the two products differ by the nonzero polynomial $\delta(f_0+f_1)$ times their common cofactor. This obstructs reusing the old theorem for the strengthened frontier view. It is \emph{not} a distinguisher for the actually transmitted mixed GKR layer.
+
+\section{A joint public-seed bound for several products}
+
+Let $G$ be a finite abelian group and $V$ a binary vector space. Bank $j$ has $n_j$ independent public ratios $H_{j,i}$, whose nontrivial character means have magnitude at most $b$. All public seeds are independent. With fresh private fair bits $A_{j,i}$, define
+\[
+ Z_j=\prod_iH_{j,i}^{A_{j,i}},\qquad
+ Y=\sum_{j,i}\ell_{j,i}A_{j,i},\qquad c=(1+b)/2.
+\]
+The fixed coefficients $\ell_{j,i}\in V$ must be independent of the public seeds. Conditional on the revealed seeds, let $\Delta$ be the distance from independent uniform $G$ coordinates together with the actual $Y$ marginal. Then
+\[
+ \mathbb E\Delta^2\le
+ \frac{|V|}{4}\left[\prod_j\bigl(1+(|G|-1)c^{n_j}\bigr)-1\right].
+\]
+Indeed, for a tuple of multiplicative characters supported on banks $J$ and any additive character of $V$, the public-seed expectation of its squared Fourier coefficient is at most $c^{\sum_{j\in J}n_j}$. Banks with trivial multiplicative character contribute factors at most one. Summing the nonempty supports gives the displayed product; all-trivial multiplicative tuples cancel against the retained marginal. Parseval and Cauchy-Schwarz finish the proof. This bounds all products jointly, not the sum of their marginal privacy errors.
+
+\section{Four compact valid-cycle banks}
+
+Use the earlier $1024$-point support $T\supset S$ in each quarter, with
+\[
+ P_j=j2^{18}+2^{16},\qquad
+ \text{SET PCs }P_j+4s+2a,\quad a\in\{0,1\}.
+\]
+Each SET is followed by its fixed closing JUMP. The three public SET constants per alternative are independent uniform elements of $\K$. Privately choose one alternative and execute its two-instruction cycle twice. Both choices preserve public images and every count leaf. For compact frames, SET uses cell $0$ and the closing JUMP uses offsets $1,2,3$. Allocate four cells per alternative, eight per bit. This is a change to the reserved public library, not the verifier.
+
+The same character estimate gives $b=4q/(Q^2-2)^2$, where $q=|\E|$, $Q=|\K|$. The four residual products and evaluation have the form
+\[
+ D_j=C_j\prod_{s\in T}H_{j,s}^{A_{j,s}},\qquad
+ F_{\rm bc}=F_0+\sum_{j,s}\ell_{j,s}A_{j,s},\qquad
+ \ell_{j,s}=(1+\gen^2)\eq(z_{2:20},P_j/4+s).
+\]
+Coefficients are independent of the setup constants. The first bank's sparse subset $S$ alone makes the evaluation uniform except with probability $\delta_{\rm span}+18/q$, even after fixing all other bits.
+
+For four banks of $1024$ bits, the public-seed mean distance is at most
+\[
+ \eta_4=\frac12\sqrt{q\left[(1+(q-2)c^{1024})^4-1\right]}<2^{-319}.
+\]
+As in the preceding note, restrict to good rank and nonzero public-library factors before averaging over honest coins. Markov shows that the resulting distance is below $2^{-159}$ for all but a fraction below $2^{-160}$ of honest setup libraries. All other exclusions are uniform for each fixed library and witness: rank costs $8/q+Q^2/(q-2)^2$, and zero factors cost at most $(M+8\cdot4096)/q$, with $M\le2^{20}$. No setup conditioning on witness-dependent cofactors is used.
+
+\paragraph{Compose with the first-packet reduction.} Retain $(D_0,D_1,D_2,D_3,F_{\rm bc})$ instead of just $(D,F_{\rm bc})$. The four MUL-product and unused-memory hybrids still apply: these bytecode values are unchanged by their words. Counter-label trades, XOR payloads and memory occupancy also leave all four bytecode finalization products unchanged. Thus the same sixteen-coordinate boundary argument works conditional on all four SET banks. Its earlier leakage-reduction error stays below $2^{-155}$. Simulate four independent nonzero $D_j$, one independent $F_{\rm bc}$, and feed their product into that reduction. Outside the exceptional setup set, the combined error is below $2^{-154}$. This covers the first packet, boundary and four bytecode grandchildren jointly under the stated normalization and completion assumptions.
+
+\paragraph{Supported reservations.} Raise SET log height to $14$, leaving room beyond the $8192$ reserved SET rows; the $8192$ closing JUMPs fit height $17$ alongside the other masks. Memory and bytecode log sizes stay $20$, bus depth $22$, and stack log size $24$. The bytecode bank intervals occupy $[P_j,P_j+2^{14})$; the real program must be compiled around these fixed reserved holes before setup. Compact SET frames occupy $[2^{18},2^{18}+32768)$, disjoint from the unchanged unused words and the relocated memory-occupancy bank. First-packet ownership and whole-count-block containment remain unchanged. No ordinary-proof cost or production implementation is claimed.
+
+\paragraph{Evidence and next obligation.} \path{zk_bytecode_frontier_audit.py} checks the multi-bank Fourier inequality by exact public-seed averaging, the single-bank limitation in a valid local library, compact multi-bank cycles and formulas, source rank, block ownership, reservations and rational bounds. A reference GKR replay checks that these four nodes enter the next packet at the stated weight; it does not simulate that packet. The next obligation is joint treatment of the memory and instruction frontier and the mixed two-round GKR messages. The deterministic-library branch and later protocols remain open.
+
+\end{document}
