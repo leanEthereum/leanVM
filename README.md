@@ -88,12 +88,12 @@ cargo run --release -- aggregate --blobs 16 --log-inv-rate 1 --repeat 3
 
 ```
 aggregation, 16 blobs
-  cycles (VM steps)           : 4,500,298 = 2^22.102
-    details                   : DEREF 2^20.845 (41.9%)  XOR 2^20.029 (23.8%)  MUL 2^19.993 (23.2%)  JUMP 2^18.093 (6.2%)  SET 2^17.244(3.4%)  BLAKE2S 2^16.056 (1.5%)  MEMORY 2^22.21  TOTAL_COMMITTED 2^27.237
-  proof size                  : 322.8 KiB
-  proving time                : 1.652 s ± 0.9%      peak memory 18.965 GiB
-  blob throughput             : 9.685 blobs/s, 1.211 MiB/s
-  verifying                   : 0.0171 s
+  cycles (VM steps)           : 3,711,235 = 2^21.823
+    details                   : DEREF 2^20.209 (32.7%)  MUL 2^19.928 (26.9%)  XOR 2^19.869 (25.8%)  JUMP 2^18.335 (8.9%)  SET 2^17.026 (3.6%)  BLAKE2S 2^16.295 (2.2%)  MEMORY 2^21.976  TOTAL_COMMITTED 2^26.905
+  proof size                  : 335.9 KiB
+  proving time                : 1.185 s ± 4.4%      peak memory 14.631 GiB
+  blob throughput             : 13.498 blobs/s, 1.687 MiB/s
+  verifying                   : 0.0207 s
 ```
 
 ### Fibonacci

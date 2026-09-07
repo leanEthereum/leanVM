@@ -14,12 +14,12 @@
 mod commit;
 mod encode;
 mod membership;
-mod stream;
 
 pub use commit::{DaCommitment, DaWitness, commit, commit_codewords, padding_digests};
 pub use encode::encode_rows;
-pub use membership::{challenge_seed, check_membership, dual_codeword, membership_challenges, row_residuals};
-pub use stream::{StreamTables, expand_block, streaming_residuals};
+pub use membership::{
+    check_membership, dual_codeword, membership_challenges, membership_vector, row_residuals, vector_digest,
+};
 
 /// Payload symbols per blob, as a logarithm (128 KiB).
 pub const DA_LOG_K: usize = 14;

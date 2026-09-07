@@ -11,8 +11,8 @@
 //!
 //! For a fixed invalid row `w`, `⟨L,w⟩` is a nonzero multilinear polynomial in
 //! `z`. Fresh independent uniform challenges accept it with probability at most
-//! `log2(k)/2^192`. The guest derives challenges from the commitment and checks
-//! both the inner products and the hashes of the same symbols.
+//! `log2(k)/2^192`. The external verifier derives the vector from the commitment.
+//! The guest binds its hinted vector by hashing it and checks the inner products.
 
 use fiat_shamir::FiatShamirState;
 use fiat_shamir::merkle::hash_to_scalars;
@@ -27,25 +27,29 @@ const LABEL: &[u8] = b"leanDA/rs-membership/v1";
 
 /// `z_0 … z_{log k - 1}`, bound to the commitment.
 ///
-/// Only `root` is observed. It is `H(root_row, root_col)`, so it already binds
-/// both branches, and it is the one value the guest carries: the guest seeds this
-/// same label, observes the root's two canonical cells, and squeezes `log k`
-/// times, so the two derivations are the same transcript.
-pub fn membership_challenges(commitment: &DaCommitment) -> Vec<F192> {
+/// The matrix root binds both commitment branches. The vector hash is not observed,
+/// avoiding a circular dependency between the challenges and the vector.
+pub fn membership_challenges(root: &[u8; 32]) -> Vec<F192> {
     let mut fs = FiatShamirState::from_label(LABEL);
-    for scalar in hash_to_scalars(&commitment.root) {
+    for scalar in hash_to_scalars(root) {
         fs.observe(scalar);
     }
     fs.sample_vec(DA_LOG_K)
 }
 
-/// The transcript seed the guest bakes as `DA_SEED_0`, `DA_SEED_1`.
-pub fn challenge_seed() -> [F192; 2] {
-    let state = FiatShamirState::from_label(LABEL).state();
-    [
-        F192::new(state[0].0, state[1].0, 0),
-        F192::new(state[2].0, state[3].0, 0),
-    ]
+/// The test vector deterministically derived from a matrix root.
+pub fn membership_vector(root: &[u8; 32]) -> Vec<F192> {
+    dual_codeword(&membership_challenges(root))
+}
+
+/// BLAKE2s of the vector's three little-endian 64-bit limbs per entry, in domain order.
+pub fn vector_digest(vector: &[F192]) -> [u8; 32] {
+    assert_eq!(vector.len(), CODEWORD_SYMBOLS);
+    let bytes: Vec<u8> = vector
+        .iter()
+        .flat_map(|v| [v.c0, v.c1, v.c2].into_iter().flat_map(u64::to_le_bytes))
+        .collect();
+    primitives::hash::hash(&bytes)
 }
 
 /// `L` over the whole domain: the tensor `⊗_j (1, z_j)` encoded as a codeword.
@@ -95,8 +99,7 @@ pub fn row_residuals(codewords: &[u64], dual: &[F192]) -> Vec<F192> {
 /// The caller must separately bind `codewords` to the commitment.
 #[tracing::instrument(name = "RS membership", skip_all)]
 pub fn check_membership(commitment: &DaCommitment, codewords: &[u64]) -> bool {
-    let z = membership_challenges(commitment);
-    let dual = dual_codeword(&z);
+    let dual = membership_vector(&commitment.root);
     row_residuals(codewords, &dual).iter().all(|&r| r == F192::ZERO)
 }
 

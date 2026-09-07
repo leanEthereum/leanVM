@@ -423,11 +423,8 @@ MAX_EPOCHS = MAX_EPOCHS_PLACEHOLDER
 
 
 # ---------------------------------- LeanDA ------------------------------------------
-# The blob's WIDTH is baked, because the two tables below are sized by it: one
-# bytecode serves one (log_k, log_cell), and the guest being self-referential fixes
-# that for a whole tree. Its HEIGHT is not: the row count rides a hint, bounded by
-# DA_MAX_ROWS, and only the two Merkle trees need a compile-time shape, which the
-# `match` on the padded count's log gives them.
+# Blob and cell widths are fixed. The row count is hinted and bounded by DA_MAX_ROWS;
+# the Merkle trees dispatch on the checked log of its padded value.
 DA_LOG_K = DA_LOG_K_PLACEHOLDER
 DA_LOG_CELL = DA_LOG_CELL_PLACEHOLDER
 DA_MAX_ROWS = DA_MAX_ROWS_PLACEHOLDER
@@ -436,10 +433,6 @@ DA_PAD_CELL_0 = DA_PAD_CELL_0_PLACEHOLDER
 DA_PAD_CELL_1 = DA_PAD_CELL_1_PLACEHOLDER
 DA_PAD_ROW_0 = DA_PAD_ROW_0_PLACEHOLDER
 DA_PAD_ROW_1 = DA_PAD_ROW_1_PLACEHOLDER
-DA_SEED_0 = DA_SEED_0_PLACEHOLDER
-DA_SEED_1 = DA_SEED_1_PLACEHOLDER
-DA_TWIDDLES = DA_TWIDDLES_PLACEHOLDER
-DA_NOVEL = DA_NOVEL_PLACEHOLDER
 
 DA_CELL = 2 ** DA_LOG_CELL                      # symbols in a cell
 DA_BLOCK_BITS = DA_LOG_K + 1 - DA_LOG_CELL      # log of the cells per row
@@ -3110,13 +3103,12 @@ def rebuild_child_groups(nsub_e_g, run_ptr, base, epochs, msgs, group_base, grou
 
 
 # ================================ LeanDA ===============================
-# Hash the encoded rows first, then derive membership challenges from the root
-# and check the same stored symbols (doc/leanvm §Data availability: LeanDA).
-# `crates/lean_da` derives DA_TWIDDLES and DA_NOVEL from the encoder.
+# Hash the encoded rows and the hinted membership vector, then check their inner products.
+# The external verifier derives the vector hash from the root; recursion preserves both.
 
 
 def da_verify(g_squares):
-    # Returns the commitment this node attests to, as its two canonical cells.
+    # Returns the matrix root and membership-vector hash, two canonical cells each.
     # The row count is a run-time parameter. The trees need a compile-time depth,
     # so the rows are padded to a power of two and the two `match`es below dispatch
     # on its log; everything else walks the real rows only. A padding row is the
@@ -3165,13 +3157,9 @@ def da_verify(g_squares):
 
     root = StackBuf(2)
     blake2s([rr0, rr1], [rc0, rc1], root)
-    fs = [DA_SEED_0, DA_SEED_1]
-    fs = obs(fs, root[0])
-    fs = obs(fs, root[1])
-    z = HeapBuf(DA_LOG_K)
-    for j in unroll(0, DA_LOG_K):
-        fs, ch = squeeze(fs)
-        z[GEN ** j] = ch
+    hashes = HeapBuf(2 * (DA_CELLS + 1))
+    hashes[1] = BLAKE2S_IV_0
+    hashes[GEN] = BLAKE2S_IV_1
 
     # Each row's running sum uses a fresh write-once cell per column.
     acc = HeapBuf(n_blob_g ** (DA_CELLS + 1))
@@ -3181,7 +3169,11 @@ def da_verify(g_squares):
         rowbase[xi] = chain
         chain[1] = 0
     for xb in mul_range(1, GEN ** DA_CELLS):
-        lvals = da_block(xb, z, g_squares)
+        st = hashes * (xb ** 2)
+        h0, h1, lvals = da_vector_dispatch(xb, st[1], st[GEN], g_squares)
+        nxt = hashes * ((xb * GEN) ** 2)
+        nxt[1] = h0
+        nxt[GEN] = h1
         column = cells[xb]
         for xi in mul_range(1, n_blob_g):
             sym = column[xi]
@@ -3191,7 +3183,7 @@ def da_verify(g_squares):
     for xi in mul_range(1, n_blob_g):
         chain = rowbase[xi]
         assert chain[GEN ** DA_CELLS] == 0
-    return root[0], root[1]
+    return root[0], root[1], hashes[GEN ** (2 * DA_CELLS)], hashes[GEN ** (2 * DA_CELLS + 1)]
 
 
 def da_row_shape(n_blob_g, g_log_pad, g_squares):
@@ -3267,49 +3259,57 @@ def da_levels(tree, n: Const, log_n: Const):
     return tree[GEN ** (4 * n - 4)], tree[GEN ** (4 * n - 3)]
 
 
-def da_block(xb, z, g_squares):
-    # L over block B, where xb = g^B. The bits of B are advice, tied back by
-    # rebuilding g^B, and they select which generators enter A_j(B).
-    bits = StackBuf(DA_BLOCK_BITS)
-    hint_decompose_bits_exponent(bits, xb, DA_BLOCK_BITS)
-    chk = 1
-    for i in unroll(0, DA_BLOCK_BITS):
-        b = bits[i]
-        bits[i] = b * b
-        chk = chk * (1 + b * (g_squares[GEN ** i] + 1))
-    assert chk == xb
+def da_vector_dispatch(xb, h0, h1, g_squares):
+    out = StackBuf(3)
+    if xb == GEN ** (DA_CELLS - 1):
+        a, b, weights = da_vector_cell(xb, h0, h1, g_squares, 1)
+        out[0] = a
+        out[1] = b
+        out[2] = weights
+    else:
+        a, b, weights = da_vector_cell(xb, h0, h1, g_squares, 0)
+        out[0] = a
+        out[1] = b
+        out[2] = weights
+    return out[0], out[1], out[2]
 
-    coef = StackBuf(DA_LOG_K)
-    for j in unroll(0, DA_LOG_K):
-        a = 0
-        for i in unroll(0, DA_BLOCK_BITS):
-            a = a + bits[i] * DA_NOVEL[j * DA_BLOCK_BITS + i]
-        coef[j] = 1 + z[GEN ** j] * a
 
-    head = 1
-    for j in unroll(DA_LOG_CELL, DA_LOG_K):
-        head = head * coef[j]
-
-    stage = HeapBuf(2 * DA_CELL)
-    stage[1] = head
-    for j in unroll(0, DA_LOG_CELL):
-        for e in unroll(0, 2 ** j):
-            lo = stage[GEN ** (2 ** j - 1 + e)]
-            stage[GEN ** (2 ** (j + 1) - 1 + e)] = lo * coef[j]
-            stage[GEN ** (2 ** (j + 1) - 1 + e + 2 ** j)] = lo * z[GEN ** j]
-
-    ntt = HeapBuf((DA_LOG_CELL + 1) * DA_CELL)
-    for e in unroll(0, DA_CELL):
-        ntt[GEN ** e] = stage[GEN ** (DA_CELL - 1 + e)]
-    for layer in unroll(0, DA_LOG_CELL):
-        for b in unroll(0, 2 ** layer):
-            for i in unroll(0, 2 ** (DA_LOG_CELL - layer - 1)):
-                u = ntt[GEN ** (layer * DA_CELL + b * 2 ** (DA_LOG_CELL - layer) + i)]
-                v = ntt[GEN ** (layer * DA_CELL + b * 2 ** (DA_LOG_CELL - layer) + i + 2 ** (DA_LOG_CELL - layer - 1))]
-                nu = u + v * DA_TWIDDLES[2 ** layer - 1 + b]
-                ntt[GEN ** ((layer + 1) * DA_CELL + b * 2 ** (DA_LOG_CELL - layer) + i)] = nu
-                ntt[GEN ** ((layer + 1) * DA_CELL + b * 2 ** (DA_LOG_CELL - layer) + i + 2 ** (DA_LOG_CELL - layer - 1))] = v + nu
-    return ntt * (GEN ** (DA_LOG_CELL * DA_CELL))
+def da_vector_cell(xb, h0, h1, g_squares, final: Const):
+    weights = HeapBuf(DA_CELL)
+    hint_witness(weights[0:DA_CELL], "da_weights")
+    packed = StackBuf(3 * DA_CELL // 2)
+    # Two extension-field entries become three canonical 128-bit cells, without padding.
+    for p in unroll(0, DA_CELL // 2):
+        s = weights[GEN ** (2 * p)]
+        t = weights[GEN ** (2 * p + 1)]
+        slo = StackBuf(2)
+        tlo = StackBuf(2)
+        hint_f192_limbs(slo, s)
+        hint_f192_limbs(tlo, t)
+        packed[3 * p] = pack64x2(slo[0], slo[1])
+        packed[3 * p + 1] = pack64x2(((s + slo[0]) * Y_INV + slo[1]) * Y_INV, tlo[0])
+        packed[3 * p + 2] = pack64x2(tlo[1], ((t + tlo[0]) * Y_INV + tlo[1]) * Y_INV)
+    st = StackBuf(2)
+    st[0] = h0
+    st[1] = h1
+    # Three power-of-two byte windows per cell keep counter offsets disjoint from the base.
+    for w in unroll(0, 3):
+        window = xb ** 3 * GEN ** w
+        base = scaled_log(window, g_squares, const(DA_LOG_CELL + 3))
+        end = scaled_log(window * GEN, g_squares, const(DA_LOG_CELL + 3))
+        for b in unroll(0, DA_CELL_BLOCKS):
+            out = StackBuf(2)
+            if const(b + 1 == DA_CELL_BLOCKS):
+                md = end
+            else:
+                md = base + const(64 * (b + 1))
+            if const(final == 1):
+                if const(w == 2):
+                    if const(b + 1 == DA_CELL_BLOCKS):
+                        md = md + MD_FINAL
+            blake2s(packed[w * (DA_CELL // 2) + 4 * b:w * (DA_CELL // 2) + 4 * b + 2], packed[w * (DA_CELL // 2) + 4 * b + 2:w * (DA_CELL // 2) + 4 * b + 4], out, cv=st, md=md)
+            st = out
+    return st[0], st[1], weights
 
 # ================================ the aggregation node ==============================
 
@@ -3325,19 +3325,16 @@ def da_hash_roots(roots, n: Const):
     if const(n == 0):
         blake2s([0, 0], [0, 0], digest, counter=0, final=1)
     else:
-        state = StackBuf(2)
-        state[0] = BLAKE2S_IV_0
-        state[1] = BLAKE2S_IV_1
-        for b in unroll(0, (n - 1) // 2):
-            block = roots * (GEN ** (4 * b))
-            nxt = StackBuf(2)
-            blake2s(block[0:2], block[2:4], nxt, cv=state, counter=64 * (b + 1), final=0)
-            state = nxt
-        last = roots * (GEN ** (4 * ((n - 1) // 2)))
-        if const(n % 2 == 0):
-            blake2s(last[0:2], last[2:4], digest, cv=state, counter=32 * n, final=1)
-        else:
-            blake2s(last[0:2], [0, 0], digest, cv=state, counter=32 * n, final=1)
+        st = StackBuf(2)
+        st[0] = BLAKE2S_IV_0
+        st[1] = BLAKE2S_IV_1
+        for i in unroll(0, n):
+            claim = roots * GEN ** (4 * i)
+            out = StackBuf(2)
+            blake2s(claim[0:2], claim[2:4], out, cv=st, counter=64 * (i + 1), final=(i + 1) // n)
+            st = out
+        digest[0] = st[0]
+        digest[1] = st[1]
     return digest[0], digest[1]
 
 
@@ -3345,8 +3342,8 @@ def cover_da_root(roots, cover, n_slots_g, mark):
     index = hint_witness("da_index")
     assert log(index) < log(n_slots_g)
     cover[index] = mark
-    root = roots * (index ** 2)
-    return root[1], root[GEN]
+    root = roots * (index ** 4)
+    return root[1], root[GEN], root[GEN ** 2], root[GEN ** 3]
 
 
 def main():
@@ -3461,10 +3458,10 @@ def main():
     g_logs_pow2, g_squares = exponent_tables()
 
     # ---- data availability ----
-    da_roots = HeapBuf(da_slots_g ** 2)
+    da_roots = HeapBuf(da_slots_g ** 4)
     for xd in mul_range(1, da_slots_g):
-        root = da_roots * (xd ** 2)
-        hint_witness(root[0:2], "da_roots")
+        root = da_roots * (xd ** 4)
+        hint_witness(root[0:4], "da_roots")
     da_0, da_1 = da_list_digest(da_roots, n_da_g)
     # One table per scheme, the XMSS one an epoch group at a time: each group its
     # declared list (strictly sorted, checked by the outer verifier, which holds it)
@@ -3577,10 +3574,12 @@ def main():
         verify_sig_sphincs(sphincs_table * (off_hint ** 4))
 
     if n_direct_da_g == GEN:
-        root_0, root_1 = da_verify(g_squares)
-        expected_0, expected_1 = cover_da_root(da_roots, da_cover, da_slots_g, n_raw_x_g * n_raw_s_g)
+        root_0, root_1, vector_0, vector_1 = da_verify(g_squares)
+        expected_0, expected_1, expected_v0, expected_v1 = cover_da_root(da_roots, da_cover, da_slots_g, n_raw_x_g * n_raw_s_g)
         assert root_0 == expected_0
         assert root_1 == expected_1
+        assert vector_0 == expected_v0
+        assert vector_1 == expected_v1
 
     # ---- children ----
     child_pi = HeapBuf(n_children_g * n_children_g)
@@ -3621,12 +3620,14 @@ def main():
         hint_witness(carried[0:DEFER_STMT_CELLS], "child_defer")
         nsub_da_g = hint_witness("child_da_count")
         assert log(nsub_da_g) < MAX_DA_ROOTS + 1
-        child_da = HeapBuf(nsub_da_g ** 2)
+        child_da = HeapBuf(nsub_da_g ** 4)
         for xd in mul_range(1, nsub_da_g):
-            root = child_da * (xd ** 2)
-            root_0, root_1 = cover_da_root(da_roots, da_cover, da_slots_g, base * nsub_g * xd)
+            root = child_da * (xd ** 4)
+            root_0, root_1, vector_0, vector_1 = cover_da_root(da_roots, da_cover, da_slots_g, base * nsub_g * xd)
             root[1] = root_0
             root[GEN] = root_1
+            root[GEN ** 2] = vector_0
+            root[GEN ** 3] = vector_1
         child_da_0, child_da_1 = da_list_digest(child_da, nsub_da_g)
         pi_0, pi_1 = statement_digest(seed_0, seed_1, sub_hash, child_da_0, child_da_1, carried)
         pi = xc * xc

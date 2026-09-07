@@ -9,7 +9,7 @@ A signature claim identifies what was signed and by whom. For XMSS~\cite{rfc8391
 
 A node may publish any subset of the signature claims supported by its raw signatures and verified children. The default is their sorted, deduplicated union. The essential condition is coverage: every published claim must be justified, either directly at this node or recursively through a child.
 
-The DA claim is a sorted, duplicate-free list of at most $16$ LeanDA (see \S\ref{sec:leanda}) roots, possibly empty. Each root must come from a direct blob check at this node or occur in a verified child's list.
+The DA claim is a sorted, duplicate-free list of at most $16$ LeanDA roots, possibly empty. Each root is paired with the hash of its membership test vector $\dual$ (\S\ref{sec:da-membership}). 
 
 \subsubsection{The public input}\label{sec:rec-stmt}
 
@@ -27,7 +27,7 @@ $30\times24$ bytes & deferred matrix point and two values\\
 \end{center}
 The deferred claims let recursion postpone expensive polynomial evaluations until the final verification (\S\ref{sec:deferred-claims}).
 
-The DA list digest is BLAKE2s of the concatenated $32$-byte DA roots (at most 16 of them).
+The DA list digest is BLAKE2s of the concatenated pairs $(\daroot,\davechash)$, each a $32$-byte DA root $\daroot$ followed by a $32$-byte hash $\davechash$ of the membership test vector $\dual$.
 
 The signer-set digest is BLAKE2s of the following, where each cell is $16$ bytes and a count is encoded as $\gen^{\text{count}}$ (8 bytes, zero-padded to one cell):
 \begin{center}
@@ -57,11 +57,10 @@ A node combines the claims carried by its children with the new claims produced 
 
 \subsection{Data availability: LeanDA}\label{sec:leanda}
 
-Erasure coding makes data recoverable from a subset of its encoded symbols. Sampling checks whether those symbols can be retrieved, but does not establish that they form a valid encoding. LeanDA~\cite{LeanDA}, by Meng, Wagner, Kadianakis and Risitano, separates these tasks: commit to an encoded matrix and prove every row is a codeword, then sample authenticated cells.
+Erasure coding makes data recoverable from a subset of its encoded symbols. Sampling checks whether those symbols can be retrieved, but does not establish that they form a valid encoding. LeanDA~\cite{LeanDA}, by Meng, Wagner, Kadianakis and Risitano, separates these tasks: commit to an encoded matrix and prove every row is a codeword, then sample authenticated cells. A formal securty proof can be found in \cite{LeanDASecurity}.
 
 Our construction uses BLAKE2s and the additive Reed-Solomon encoder over $\K$ already used by the PCS, with a different codeword membership test from LeanDA's (\S\ref{sec:da-membership}). The polynomial basis, transform, and membership lemmas are collected in Annex~\ref{app:ntt}.
 
-The guest derives the test vector (the evaluations of $\dual$) from the commitment via Fiat-Shamir and checks its dot product with each row. This vector is not part of the public input. Wagner's formal security proof~\cite{LeanDASecurity} assumes that the check randomness is derived outside the SNARK and supplied in its public statement, so it does not apply directly to our construction (TODO: benchmark the other approach).
 
 \subsubsection{The commitment}\label{sec:da-commit}
 
@@ -169,10 +168,16 @@ The matrix root is $\daroot=H(\darow,\dacol)$ (Figure~\ref{fig:da-hashing}). See
 
 A row is valid exactly when it consists of evaluations of a polynomial of degree less than $\kdim$. On our additive domain at rate $1/2$, such rows are orthogonal to every codeword, and this condition also characterizes them: the code is self-dual (Corollary~\ref{cor:rs-dual}). This gives an efficient membership test.
 
-After computing the matrix root $\daroot$, the guest binds it in a domain-separated Fiat-Shamir transcript. It derives $\log_2\kdim$ challenges in $\E$ and uses them to construct the test polynomial $\dual$ of \eqref{eq:dual-product}. Its evaluations form a codeword. For every encoded row $w_i$, the guest checks
+The Fiat-Shamir challenges $\log_2\kdim$ in $\E$ are derived from the matrix root $\daroot$. These define the polynomial $\dual$ of \eqref{eq:dual-product} and its evaluation vector $\davec=(\dual(x))_{x\in\dom}$. Let $\davechash=H(\davec)$, serializing each entry as its three little-endian $64$-bit limbs, in domain order.
+
+The guest recomputes $\daroot$ from the encoded rows, receives $\davec$ as a hinted vector, checks its hash against $\davechash$, and uses it to check membership:
 \[
-  \inner{\dual}{w_i}
+  \inner{\davec}{w_i}
   =\sum_{x\in\dom}\dual(x)w_i(x)
   \;\qeq\;0.
 \]
+for every row $w_i$. The vector is shared across all rows and hashed once. It contains $32768$ entries, or $768$ KiB.
+
+Recursive nodes preserve the pair $(\daroot,\davechash)$ for each retained claim. The final native verifier recomputes $\davechash$ from every retained root (outside of the snark).
+
 Every valid row passes. Under uniform challenges, a fixed invalid matrix passes with probability at most $\log_2\kdim/|\E|=14/2^{192}$ (Proposition~\ref{prop:rs-membership}).

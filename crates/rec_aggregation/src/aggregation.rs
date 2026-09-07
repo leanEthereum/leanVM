@@ -622,8 +622,16 @@ fn check_da_roots(roots: &[[u8; 32]]) -> Result<(), AggregateVerifyError> {
     Ok(())
 }
 
+fn da_claim_cells(root: &[u8; 32]) -> Vec<F192> {
+    let vector_hash = lean_da::vector_digest(&lean_da::membership_vector(root));
+    [pack_hash_state(root), pack_hash_state(&vector_hash)].concat()
+}
+
 fn da_list_digest(roots: &[[u8; 32]]) -> [u8; 32] {
-    primitives::hash::hash(roots.as_flattened())
+    // Recompute vector hashes from the roots, including when verifying a received proof.
+    // Trusting prover-supplied hashes would let zero weights certify any matrix.
+    let cells = roots.iter().flat_map(da_claim_cells);
+    primitives::hash::hash(&cell_bytes(cells))
 }
 
 impl EthereumProof {
@@ -653,7 +661,8 @@ impl EthereumProof {
         &self.da_roots
     }
 
-    /// BLAKE2s of the concatenated 32-byte roots, including BLAKE2s of empty input.
+    /// BLAKE2s of the concatenated `(root, vector hash)` pairs, or of empty input.
+    /// Each vector hash is derived from its root outside the SNARK.
     /// This digest is bound into the public statement.
     pub fn da_commitments_digest(&self) -> [u8; 32] {
         da_list_digest(&self.da_roots)
@@ -2303,6 +2312,12 @@ pub(crate) fn aggregate_tampered(
         let _span = tracing::info_span!("LeanDA commit").entered();
         let n_rows = rows.len() / BLOB_SYMBOLS;
         let (commitment, witness) = lean_da::commit(rows);
+        for block in lean_da::membership_vector(&commitment.root)
+            .as_chunks::<CELL_SYMBOLS>()
+            .0
+        {
+            hints.push("da_weights", block.to_vec());
+        }
         hints.push(
             "da_shape",
             vec![count(n_rows), count(n_rows.next_power_of_two().ilog2() as usize)],
@@ -2349,7 +2364,7 @@ pub(crate) fn aggregate_tampered(
     }
     hints.push("da_meta", vec![count(da_roots.len()), count(da_dups.len())]);
     for root in da_roots.iter().chain(&da_dups) {
-        hints.push("da_roots", pack_hash_state(root).to_vec());
+        hints.push("da_roots", da_claim_cells(root));
     }
 
     let public_input = statement_digest(
@@ -2986,16 +3001,8 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     ps("AGG_SEED_1", dsl_u128(agg_state[1]).to_string());
 
     // ---- LeanDA (`doc/leanvm` §sec:leanda) ----
-    // Both tables are derived from the encoder by `lean_da`, never restated here,
-    // so the guest's block expansion cannot drift from the code it tests.
-    let da_tables = lean_da::StreamTables::default();
-    let da_seed = lean_da::challenge_seed();
     let (pad_cell, pad_row) = lean_da::padding_digests();
     let (pad_cell, pad_row) = (pack_hash_state(&pad_cell), pack_hash_state(&pad_row));
-    let da_array = |values: &[F64]| {
-        let body: Vec<String> = values.iter().map(|&v| f192_literal(F192::from(v))).collect();
-        format!("[{}]", body.join(","))
-    };
     ps("DA_LOG_K", DA_LOG_K.to_string());
     ps("DA_LOG_CELL", DA_LOG_CELL.to_string());
     ps("DA_MAX_ROWS", DA_MAX_ROWS.to_string());
@@ -3004,11 +3011,6 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     ps("DA_PAD_CELL_1", f192_literal(pad_cell[1]));
     ps("DA_PAD_ROW_0", f192_literal(pad_row[0]));
     ps("DA_PAD_ROW_1", f192_literal(pad_row[1]));
-    ps("DA_SEED_0", f192_literal(da_seed[0]));
-    ps("DA_SEED_1", f192_literal(da_seed[1]));
-    ps("DA_TWIDDLES", da_array(&da_tables.twiddles));
-    let novel: Vec<F64> = da_tables.novel_at_basis.iter().flatten().copied().collect();
-    ps("DA_NOVEL", da_array(&novel));
     let defer_cells = kbc + log2_bc_cols + 1 + 2 * flock::hash::K_LOG + 2;
     ps("STMT_HEADER", STATEMENT_HEADER.to_string());
     let (off, pairs) = (STATEMENT_HEADER, defer_cells.div_ceil(2));
@@ -3491,10 +3493,7 @@ mod tests {
             expected.sort();
             expected.dedup();
             assert_eq!(node.da_roots, expected);
-            assert_eq!(
-                node.da_commitments_digest(),
-                primitives::hash::hash(expected.as_flattened())
-            );
+            assert_eq!(node.da_commitments_digest(), da_list_digest(&expected));
             let mut tampered = node.clone();
             tampered.da_roots = vec![[0xa5; 32]];
             assert!(
@@ -3681,7 +3680,7 @@ mod tests {
                     LOG_INV_RATE,
                     |h| {
                         h.entries("da_meta")[0] = vec![count(declared), count(duplicates)];
-                        h.entries("da_roots").push(pack_hash_state(&second).to_vec());
+                        h.entries("da_roots").push(da_claim_cells(&second));
                     },
                 )
             });
@@ -3703,15 +3702,42 @@ mod tests {
                         let root = h
                             .entries("da_roots")
                             .iter_mut()
-                            .find(|r| **r == pack_hash_state(&second))
+                            .find(|r| **r == da_claim_cells(&second))
                             .unwrap();
-                        *root = pack_hash_state(&first).to_vec();
+                        *root = da_claim_cells(&first);
                     },
                 )
             });
             assert!(
                 !matches!(outcome, Ok(Ok(_))),
                 "every child's complete DA list must be authenticated"
+            );
+        }
+        for limb in [2, 3] {
+            let outcome = std::panic::catch_unwind(|| {
+                aggregate_tampered(
+                    &children,
+                    vec![],
+                    vec![],
+                    None,
+                    DaInput {
+                        rows: &[],
+                        roots: Some(&[second]),
+                    },
+                    LOG_INV_RATE,
+                    |h| {
+                        let omitted = h
+                            .entries("da_roots")
+                            .iter_mut()
+                            .find(|claim| claim[..2] == pack_hash_state(&first))
+                            .unwrap();
+                        omitted[limb] += F192::ONE;
+                    },
+                )
+            });
+            assert!(
+                !matches!(outcome, Ok(Ok(_))),
+                "a child's vector hash cannot change, even for an omitted root"
             );
         }
         for roots in [
@@ -3784,10 +3810,10 @@ mod tests {
 def main():
     n_g = hint_witness("n")
     assert log(n_g) < MAX_DA_ROOTS + 1
-    roots = HeapBuf((n_g * GEN) ** 2)
+    roots = HeapBuf((n_g * GEN) ** 4)
     for x in mul_range(1, n_g):
-        root = roots * (x ** 2)
-        hint_witness(root[0:2], "root")
+        root = roots * (x ** 4)
+        hint_witness(root[0:4], "root")
     a, b = da_list_digest(roots, n_g)
     public = GEN ** 0
     assert public[1] == a
@@ -3803,7 +3829,7 @@ def main():
             let mut hints = Hints::default();
             hints.push("n", vec![count(n)]);
             for root in &roots {
-                hints.push("root", pack_hash_state(root).to_vec());
+                hints.push("root", da_claim_cells(root));
             }
             let mut program = guest.clone();
             hints.install(&mut program);
@@ -3826,17 +3852,19 @@ def main():
         let source = format!(
             r#"{helpers}
 def main():
-    roots = HeapBuf(6)
-    hint_witness(roots[0:6], "roots")
+    roots = HeapBuf(12)
+    hint_witness(roots[0:12], "roots")
     n_slots = hint_witness("n_slots")
     assert log(n_slots) < 3
     cover = HeapBuf(4)
     # Adjacent signature slots must stay outside the DA writer's range.
     cover[1] = 1
-    a, b = cover_da_root(roots, cover * GEN, n_slots, GEN)
+    a, b, v0, v1 = cover_da_root(roots, cover * GEN, n_slots, GEN)
+    digest = StackBuf(2)
+    blake2s([a, b], [v0, v1], digest)
     public = GEN ** 0
-    assert public[1] == a
-    assert public[GEN] == b
+    assert public[1] == digest[0]
+    assert public[GEN] == digest[1]
     return
 "#
         );
@@ -3849,9 +3877,9 @@ def main():
             hints.push(
                 "roots",
                 [
-                    pack_hash_state(&first),
-                    pack_hash_state(&second),
-                    pack_hash_state(&outside),
+                    da_claim_cells(&first),
+                    da_claim_cells(&second),
+                    da_claim_cells(&outside),
                 ]
                 .concat(),
             );
@@ -3859,7 +3887,7 @@ def main():
             hints.push("da_index", vec![index]);
             let mut program = guest.clone();
             hints.install(&mut program);
-            program.execute(pack_hash_state(&claimed))
+            program.execute(pack_hash_state(&da_list_digest(&[claimed])))
         };
         assert!(run(2, count(0), first).unconstrained_reads.is_empty());
         assert!(run(2, count(1), second).unconstrained_reads.is_empty());
@@ -3882,14 +3910,14 @@ def main():
         let source = include_str!("../guests/lean_ethereum.py");
         let (helpers, _) = source.split_once("\ndef main():").unwrap();
         let source = format!(
-            "{helpers}\ndef main():\n    _, squares = exponent_tables()\n    a, b = da_verify(squares)\n    public = GEN ** 0\n    assert public[1] == a\n    assert public[GEN] == b\n    return\n"
+            "{helpers}\ndef main():\n    _, squares = exponent_tables()\n    a, b, v0, v1 = da_verify(squares)\n    digest = StackBuf(2)\n    blake2s([a, b], [v0, v1], digest)\n    public = GEN ** 0\n    assert public[1] == digest[0]\n    assert public[GEN] == digest[1]\n    return\n"
         );
         let guest = compile(&parse_with_replacements(&source, &placeholder_map(20)).unwrap());
         let n_rows = 3usize;
         let codewords = lean_da::encode_rows(&da_rows(3, 101));
         let run = |words: &[u64], tamper: &dyn Fn(&mut Hints, &mut [F192; 2])| {
             let (commitment, _) = lean_da::commit_codewords(words.to_vec());
-            let mut public = pack_hash_state(&commitment.root);
+            let mut public = pack_hash_state(&da_list_digest(&[commitment.root]));
             let mut hints = Hints::default();
             hints.push(
                 "da_shape",
@@ -3907,6 +3935,12 @@ def main():
                     );
                 }
             }
+            for block in lean_da::membership_vector(&commitment.root)
+                .as_chunks::<CELL_SYMBOLS>()
+                .0
+            {
+                hints.push("da_weights", block.to_vec());
+            }
             tamper(&mut hints, &mut public);
             let mut program = guest.clone();
             hints.install(&mut program);
@@ -3914,6 +3948,27 @@ def main():
         };
         let honest = run(&codewords, &|_, _| {});
         assert!(honest.unconstrained_reads.is_empty());
+
+        // Every vector is orthogonal to zero rows: only hashing can reject these changes.
+        let zeros = vec![0; codewords.len()];
+        for limb in [F192::ONE, F192::new(0, 1, 0), F192::new(0, 0, 1)] {
+            assert!(
+                std::panic::catch_unwind(|| run(&zeros, &|h, _| {
+                    h.entries("da_weights")[0][0] += limb;
+                }))
+                .is_err(),
+                "every limb of L must be bound by its hash"
+            );
+        }
+        assert!(
+            std::panic::catch_unwind(|| run(&zeros, &|h, _| {
+                for block in h.entries("da_weights") {
+                    block.fill(F192::ZERO);
+                }
+            }))
+            .is_err(),
+            "zero weights must not bypass the external vector hash"
+        );
 
         // Recommit the corrupted matrix and use that root as the public input.
         // Hashing and statement binding now pass; only membership can reject it.
@@ -3928,6 +3983,21 @@ def main():
             bad[position] ^= 1;
             assert!(std::panic::catch_unwind(|| run(&bad, &|_, _| {})).is_err());
         }
+        // A zero vector with its own hash passes the guest even for bad data.
+        // The verifier must derive the expected hash from the root, never trust this hash.
+        let mut bad = codewords.clone();
+        bad[0] ^= 1;
+        let bad_root = lean_da::commit_codewords(bad.clone()).0.root;
+        let zero_hash = lean_da::vector_digest(&vec![F192::ZERO; CODEWORD_SYMBOLS]);
+        let forged_digest = primitives::hash::hash([bad_root, zero_hash].as_flattened());
+        assert_ne!(forged_digest, da_list_digest(&[bad_root]));
+        let unchecked = run(&bad, &|h, public| {
+            for block in h.entries("da_weights") {
+                block.fill(F192::ZERO);
+            }
+            *public = pack_hash_state(&forged_digest);
+        });
+        assert!(unchecked.unconstrained_reads.is_empty());
         assert!(
             std::panic::catch_unwind(|| run(&codewords, &|_, public| {
                 public[0] += F192::ONE;
@@ -3948,12 +4018,11 @@ def main():
         assert!(
             std::panic::catch_unwind(|| run(&codewords, &|h, public| {
                 h.entries("da_shape")[0][1] = count(3);
-                *public = pack_hash_state(&padded_commitment.root);
+                *public = pack_hash_state(&da_list_digest(&[padded_commitment.root]));
             }))
             .is_err(),
             "three rows must not use an eight-row tree, even with a matching root"
         );
-        let zeros = vec![0; codewords.len()];
         assert!(
             std::panic::catch_unwind(|| run(&zeros, &|h, _| {
                 h.entries("da_shape")[0][0] = count(0);
@@ -4005,59 +4074,6 @@ def main():
                 assert!(std::panic::catch_unwind(|| guest.execute(public)).is_err());
             }
         }
-    }
-
-    #[test]
-    fn da_block_weights_bind_column_bits() {
-        lean_vm::init_prover_pool();
-        let (helpers, _) = include_str!("../guests/lean_ethereum.py")
-            .split_once("\ndef main():")
-            .unwrap();
-        // Supply malicious advice without changing the checks on those bits.
-        assert!(helpers.contains("hint_decompose_bits_exponent(bits, xb, DA_BLOCK_BITS)"));
-        let helpers = helpers.replace(
-            "hint_decompose_bits_exponent(bits, xb, DA_BLOCK_BITS)",
-            "hint_witness(bits, \"block_bits\")",
-        );
-        let source = format!(
-            "{helpers}\ndef main():\n    _, squares = exponent_tables()\n    z = HeapBuf(DA_LOG_K)\n    hint_witness(z[0:DA_LOG_K], \"z\")\n    public = GEN ** 0\n    weights = da_block(public[1], z, squares)\n    expected = HeapBuf(DA_CELL)\n    hint_witness(expected[0:DA_CELL], \"expected\")\n    for i in unroll(0, DA_CELL):\n        assert weights[GEN ** i] == expected[GEN ** i]\n    return\n"
-        );
-        let guest = compile(&parse_with_replacements(&source, &placeholder_map(20)).unwrap());
-        let tables = lean_da::StreamTables::default();
-        let mut rng = <rand::rngs::StdRng as rand::SeedableRng>::seed_from_u64(417);
-        let z: Vec<F192> = (0..DA_LOG_K)
-            .map(|_| {
-                F192::new(
-                    rand::Rng::random(&mut rng),
-                    rand::Rng::random(&mut rng),
-                    rand::Rng::random(&mut rng),
-                )
-            })
-            .collect();
-        let run = |column: usize, bits: Vec<F192>, expected_column: usize| {
-            let mut expected = vec![F192::ZERO; CELL_SYMBOLS];
-            lean_da::expand_block(&tables, &z, expected_column, &mut expected);
-            let mut program = guest.clone();
-            program.set_witness("z", vec![z.clone()]);
-            program.set_witness("block_bits", vec![bits]);
-            program.set_witness("expected", vec![expected]);
-            program.execute([count(column), F192::ZERO])
-        };
-        let bits = |column: usize| -> Vec<F192> {
-            (0..CELLS_PER_ROW.ilog2())
-                .map(|j| F192::from(F64(((column >> j) & 1) as u64)))
-                .collect()
-        };
-        for column in 0..CELLS_PER_ROW {
-            assert!(run(column, bits(column), column).unconstrained_reads.is_empty());
-        }
-        // Even weights matching the false column must not bypass reconstruction.
-        for bit in 0..CELLS_PER_ROW.ilog2() {
-            assert!(std::panic::catch_unwind(|| run(0, bits(1 << bit), 1 << bit)).is_err());
-        }
-        let mut non_boolean = bits(0);
-        non_boolean[0] = F192::from(F64(2));
-        assert!(std::panic::catch_unwind(|| run(0, non_boolean, 0)).is_err());
     }
 
     #[test]
