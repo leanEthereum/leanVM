@@ -256,6 +256,29 @@ A formal Lean4 proof of this theorem, using the VCVio framework \cite{VCVio}, ca
 TODO
 \end{proof}
 
+\begin{remark}[Why not 128 bits?]
+The following classical attack demonstrates that security $\leq 127,3$ bits. The same idea also applies to SLH-DSA.
+\begin{enumerate}[leftmargin=2em]
+  \item \textbf{Get a signature.} Ask for a signature and read its encoding $x$.
+  \item \textbf{Find a nearby encoding.} For a new message at the same epoch, try $2^{121}$ distinct randomness values. Seek an encoding that decreases one digit $x_i$ by one and increases another digit $x_j$ by one, leaving the rest unchanged. The sum stays 195. At least 28 digits are nonzero, and at least 15 are below 7, so there are at least $28\cdot14=392$ choices of $(i,j)$ with $i\neq j$. Each choice specifies one 128-bit digest. A trial therefore succeeds with probability at least $392/2^{128}$, and independent trials give
+  \[
+    \begin{aligned}
+      \Pr[\text{encoding found}] &\geq 1-\left(1-\frac{392}{2^{128}}\right)^{2^{121}} \geq 1-\exp\!\left(-\frac{392\cdot2^{121}}{2^{128}}\right)
+       \approx0.953.
+    \end{aligned}
+  \]
+  \item \textbf{Go back one chain step.} For the selected chain $i$, try $2^{124}$ distinct preimages of its signature value under the preceding chain step. A random guess has two ways to succeed: guess the genuine predecessor, or find another input with the same hash, each contributing about $2^{-128}$. The guesses contain the genuine predecessor with probability $2^{124}/2^{128}=1/16$. Otherwise, they find a collision with probability about $1-e^{-1/16}$. Thus
+  \[
+    \Pr[\text{preimage found}]\approx\frac{1}{16}+\frac{15}{16}\left(1-e^{-1/16}\right)\approx0.1193.
+  \]
+  \item \textbf{Forge.} Use the preimage on chain $i$ and hash forward once on chain $j$. Reuse the other signature values and the authentication path.
+\end{enumerate}
+The total success probability is at least about $0.953\cdot0.1193\approx0.114$, so
+\[
+  \frac{q}{\Pr[\text{success}]}\lesssim\frac{2^{121}+2^{124}}{0.953\cdot0.1193}\approx1.24\cdot2^{127}\approx2^{127.3}.
+\]
+\end{remark}
+
 \subsection{Quantum security}
 \label{sec:quantum}
 
