@@ -3120,20 +3120,38 @@ def da_verify(g_squares):
     g_log_pad = shape[1]
     n_pad_g, gap_g = da_row_shape(n_blob_g, g_log_pad, g_squares)
 
-    cells = HeapBuf(DA_CELLS)
     prefix_digests = HeapBuf(n_pad_g ** (2 * DA_PREFIX_CELLS))
     prefix_bases = HeapBuf(n_blob_g)
     for xi in mul_range(1, n_blob_g):
         prefix_bases[xi] = prefix_digests * (xi ** (2 * DA_PREFIX_CELLS))
 
+    hashes = HeapBuf(2 * (DA_CELLS + 1))
+    hashes[1] = BLAKE2S_IV_0
+    hashes[GEN] = BLAKE2S_IV_1
+    counter_values = StackBuf(3 * DA_CELLS + 1)
+    for w in unroll(0, 3 * DA_CELLS + 1):
+        counter_values[w] = const(w * 2 ** (DA_LOG_CELL + 3))
+    counters = addr(counter_values)
+
+    # Each row's running sum uses a fresh write-once cell per column.
+    acc = HeapBuf(n_blob_g ** (DA_CELLS + 1))
+    rowbase = HeapBuf(n_blob_g)
+    for xi in mul_range(1, n_blob_g):
+        chain = acc * (xi ** (DA_CELLS + 1))
+        rowbase[xi] = chain
+        chain[1] = 0
+
     # Prefix blocks first, so the digests the row branch needs are stored by a
     # loop that knows it is inside the prefix, with no per-block branch.
     coltree = HeapBuf(4 * DA_CELLS)
     for xb in mul_range(1, GEN ** DA_PREFIX_CELLS):
-        da_commit_column(xb, n_blob_g, n_pad_g, gap_g, g_log_pad, cells, prefix_bases, coltree, 1)
+        da_verify_column(xb, n_blob_g, n_pad_g, gap_g, g_log_pad, prefix_bases, coltree, rowbase, hashes, counters, 1)
     for xb in mul_range(GEN ** DA_PREFIX_CELLS, GEN ** DA_CELLS):
-        da_commit_column(xb, n_blob_g, n_pad_g, gap_g, g_log_pad, cells, prefix_bases, coltree, 0)
+        da_verify_column(xb, n_blob_g, n_pad_g, gap_g, g_log_pad, prefix_bases, coltree, rowbase, hashes, counters, 0)
 
+    for xi in mul_range(1, n_blob_g):
+        chain = rowbase[xi]
+        assert chain[GEN ** DA_CELLS] == 0
     rc0, rc1 = da_levels(coltree, DA_CELLS, DA_BLOCK_BITS)
 
     # The row branch: each row's prefix digests, hashed as one string.
@@ -3157,32 +3175,6 @@ def da_verify(g_squares):
 
     root = StackBuf(2)
     blake2s([rr0, rr1], [rc0, rc1], root)
-    hashes = HeapBuf(2 * (DA_CELLS + 1))
-    hashes[1] = BLAKE2S_IV_0
-    hashes[GEN] = BLAKE2S_IV_1
-
-    # Each row's running sum uses a fresh write-once cell per column.
-    acc = HeapBuf(n_blob_g ** (DA_CELLS + 1))
-    rowbase = HeapBuf(n_blob_g)
-    for xi in mul_range(1, n_blob_g):
-        chain = acc * (xi ** (DA_CELLS + 1))
-        rowbase[xi] = chain
-        chain[1] = 0
-    for xb in mul_range(1, GEN ** DA_CELLS):
-        st = hashes * (xb ** 2)
-        h0, h1, lvals = da_vector_dispatch(xb, st[1], st[GEN], g_squares)
-        nxt = hashes * ((xb * GEN) ** 2)
-        nxt[1] = h0
-        nxt[GEN] = h1
-        column = cells[xb]
-        for xi in mul_range(1, n_blob_g):
-            sym = column[xi]
-            s = da_cell_residual(sym, lvals)
-            chain = rowbase[xi] * xb
-            chain[GEN] = chain[1] + s
-    for xi in mul_range(1, n_blob_g):
-        chain = rowbase[xi]
-        assert chain[GEN ** DA_CELLS] == 0
     return root[0], root[1], hashes[GEN ** (2 * DA_CELLS)], hashes[GEN ** (2 * DA_CELLS + 1)]
 
 
@@ -3198,13 +3190,17 @@ def da_row_shape(n_blob_g, g_log_pad, g_squares):
     return n_pad_g, gap_g
 
 
-def da_commit_column(xb, n_blob_g, n_pad_g, gap_g, g_log_pad, cells, prefix_bases, coltree, store: Const):
-    column = HeapBuf(n_blob_g)
-    cells[xb] = column
+def da_verify_column(xb, n_blob_g, n_pad_g, gap_g, g_log_pad, prefix_bases, coltree, rowbase, hashes, counters, store: Const):
+    st = hashes * (xb ** 2)
+    h0, h1, lvals = da_vector_dispatch(xb, st[1], st[GEN], counters)
+    nxt = hashes * ((xb * GEN) ** 2)
+    nxt[1] = h0
+    nxt[GEN] = h1
     node = HeapBuf(n_pad_g ** 4)
     for xi in mul_range(1, n_blob_g):
-        d0, d1, sym = da_root_cell()
-        column[xi] = sym
+        d0, d1, s = da_verify_cell(lvals)
+        chain = rowbase[xi] * xb
+        chain[GEN] = chain[1] + s
         leaf = node * (xi ** 2)
         leaf[1] = d0
         leaf[GEN] = d1
@@ -3223,29 +3219,23 @@ def da_commit_column(xb, n_blob_g, n_pad_g, gap_g, g_log_pad, cells, prefix_base
     return
 
 
-def da_root_cell():
-    # Packing checks that each symbol is in K. Retain the address of these exact
-    # symbols for the membership pass; VM frames live in write-once memory.
+def da_verify_cell(lvals):
+    # Packing checks that each symbol used by both the hash and dot product is in K.
     sym = StackBuf(DA_CELL)
     hint_witness(sym, "da_symbols")
     packed = StackBuf(DA_CELL // 2)
+    s = 0
     for e in unroll(0, DA_CELL // 2):
         packed[e] = pack64x2(sym[2 * e], sym[2 * e + 1])
+        s = s + lvals[GEN ** (2 * e)] * sym[2 * e]
+        s = s + lvals[GEN ** (2 * e + 1)] * sym[2 * e + 1]
     st = StackBuf(2)
     blake2s(packed[0:2], packed[2:4], st, counter=64, final=1 // DA_CELL_BLOCKS)
     for b in unroll(1, DA_CELL_BLOCKS):
         nxt = StackBuf(2)
         blake2s(packed[4 * b:4 * b + 2], packed[4 * b + 2:4 * b + 4], nxt, cv=st, counter=64 * (b + 1), final=(b + 1) // DA_CELL_BLOCKS)
         st = nxt
-    symbols = addr(sym)
-    return st[0], st[1], symbols
-
-
-def da_cell_residual(sym, lvals):
-    s = 0
-    for e in unroll(0, DA_CELL):
-        s = s + lvals[GEN ** e] * sym[GEN ** e]
-    return s
+    return st[0], st[1], s
 
 
 def da_levels(tree, n: Const, log_n: Const):
@@ -3259,29 +3249,29 @@ def da_levels(tree, n: Const, log_n: Const):
     return tree[GEN ** (4 * n - 4)], tree[GEN ** (4 * n - 3)]
 
 
-def da_vector_dispatch(xb, h0, h1, g_squares):
+def da_vector_dispatch(xb, h0, h1, counters):
     out = StackBuf(3)
     if xb == GEN ** (DA_CELLS - 1):
-        a, b, weights = da_vector_cell(xb, h0, h1, g_squares, 1)
+        a, b, weights = da_vector_cell(xb, h0, h1, counters, 1)
         out[0] = a
         out[1] = b
         out[2] = weights
     else:
-        a, b, weights = da_vector_cell(xb, h0, h1, g_squares, 0)
+        a, b, weights = da_vector_cell(xb, h0, h1, counters, 0)
         out[0] = a
         out[1] = b
         out[2] = weights
     return out[0], out[1], out[2]
 
 
-def da_vector_cell(xb, h0, h1, g_squares, final: Const):
-    weights = HeapBuf(DA_CELL)
+def da_vector_cell(xb, h0, h1, counters, final: Const):
+    weights = StackBuf(DA_CELL)
     hint_witness(weights[0:DA_CELL], "da_weights")
     packed = StackBuf(3 * DA_CELL // 2)
     # Two extension-field entries become three canonical 128-bit cells, without padding.
     for p in unroll(0, DA_CELL // 2):
-        s = weights[GEN ** (2 * p)]
-        t = weights[GEN ** (2 * p + 1)]
+        s = weights[2 * p]
+        t = weights[2 * p + 1]
         slo = StackBuf(2)
         tlo = StackBuf(2)
         hint_f192_limbs(slo, s)
@@ -3293,10 +3283,10 @@ def da_vector_cell(xb, h0, h1, g_squares, final: Const):
     st[0] = h0
     st[1] = h1
     # Three power-of-two byte windows per cell keep counter offsets disjoint from the base.
+    base = counters[xb ** 3]
     for w in unroll(0, 3):
         window = xb ** 3 * GEN ** w
-        base = scaled_log(window, g_squares, const(DA_LOG_CELL + 3))
-        end = scaled_log(window * GEN, g_squares, const(DA_LOG_CELL + 3))
+        end = counters[window * GEN]
         for b in unroll(0, DA_CELL_BLOCKS):
             out = StackBuf(2)
             if const(b + 1 == DA_CELL_BLOCKS):
@@ -3309,7 +3299,9 @@ def da_vector_cell(xb, h0, h1, g_squares, final: Const):
                         md = md + MD_FINAL
             blake2s(packed[w * (DA_CELL // 2) + 4 * b:w * (DA_CELL // 2) + 4 * b + 2], packed[w * (DA_CELL // 2) + 4 * b + 2:w * (DA_CELL // 2) + 4 * b + 4], out, cv=st, md=md)
             st = out
-    return st[0], st[1], weights
+        base = end
+    weights_ptr = addr(weights)
+    return st[0], st[1], weights_ptr
 
 # ================================ the aggregation node ==============================
 
