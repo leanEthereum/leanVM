@@ -900,7 +900,7 @@ impl FnLower<'_> {
     }
 
     /// `assert log x < log GEN ** k`: the 3-cycle range check in the exponent
-    /// (`doc/leanvm/body/10-isa-programming.tex` §sec:prog-range-checks). With
+    /// (`doc/leanvm/body/09-isa-programming.tex` §sec:prog-range-checks). With
     /// `x = g^e`:
     ///
     /// 1. `DEREF` through `x`, so the bus proves `x = g^e` with `e < 2^h`;

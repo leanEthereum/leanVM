@@ -1415,6 +1415,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "lean_da"
+version = "0.1.0"
+dependencies = [
+ "fiat_shamir",
+ "parallel",
+ "pcs",
+ "primitives",
+ "rand 0.9.4",
+ "serde",
+ "tracing",
+]
+
+[[package]]
 name = "lean_vm"
 version = "0.1.0"
 dependencies = [
@@ -1434,6 +1447,7 @@ name = "leanvm"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "lean_da",
  "lean_vm",
  "primitives",
  "rand 0.9.4",
@@ -1808,6 +1822,7 @@ dependencies = [
  "bincode",
  "flock",
  "lean_compiler",
+ "lean_da",
  "lean_vm",
  "parallel",
  "pcs",

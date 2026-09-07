@@ -1,0 +1,178 @@
+% !TeX root = ../drafts/10-ethereum.tex
+\section{Ethereum use cases}\label{sec:ethereum}
+
+An aggregate proof certifies signature claims and the correct encoding of blob data. One guest program establishes these claims by checking raw signatures, checking a blob matrix, or recursively verifying child proofs of the same program.
+
+\subsection{Recursive aggregation}\label{sec:recursion}\label{sec:xmss-agg}\label{sec:sphincs-agg}
+
+A signature claim identifies what was signed and by whom. For XMSS~\cite{rfc8391}, it is a public key, an epoch, and a message; each epoch has one message across the aggregate, and its keys form one group. For SPHINCS+~\cite{sphincs}, it is a $(\text{key},\text{message})$ pair.
+
+A node may publish any subset of the signature claims supported by its raw signatures and verified children. The default is their sorted, deduplicated union. The essential condition is coverage: every published claim must be justified, either directly at this node or recursively through a child.
+
+The DA claim is a sorted, duplicate-free list of at most $16$ LeanDA (see \S\ref{sec:leanda}) roots, possibly empty. Each root must come from a direct blob check at this node or occur in a verified child's list.
+
+\subsubsection{The public input}\label{sec:rec-stmt}
+
+The proof carries the signature claims and DA root list. Their digests bind these variable-length lists into a fixed-size statement. The VM's public input is BLAKE2s of the following fields, in order:
+\begin{center}
+\begin{tabular}{@{}rl@{}}
+\hline
+$32$ bytes & Fiat-Shamir IV\\
+$32$ bytes & signer-set digest\\
+$32$ bytes & DA list digest\\
+$(\kbc+5)\times24$ bytes & deferred bytecode point and value\\
+$30\times24$ bytes & deferred matrix point and two values\\
+\hline
+\end{tabular}
+\end{center}
+The deferred claims let recursion postpone expensive polynomial evaluations until the final verification (\S\ref{sec:deferred-claims}).
+
+The DA list digest is BLAKE2s of the concatenated $32$-byte DA roots (at most 16 of them).
+
+The signer-set digest is BLAKE2s of the following, where each cell is $16$ bytes and a count is encoded as $\gen^{\text{count}}$ (8 bytes, zero-padded to one cell):
+\begin{center}
+\begin{tabular}{@{}ll@{}}
+\hline
+block $0$ & XMSS group count, SPHINCS+ claim count, SPHINCS+ list digest\\
+per XMSS group & epoch, key count, $32$-byte message\\
+& key list digest, two zero cells\\
+\hline
+\end{tabular}
+\end{center}
+Each inner list digest is BLAKE2s of the list alone: $32$ bytes per XMSS key or $64$ bytes per SPHINCS+ $(\text{key},\text{message})$ pair.
+
+\subsubsection{Checking coverage}
+
+Every published claim needs support from a direct check or a recursively verified child. The guest builds a table with a region per XMSS (epoch, message) group and separate regions for SPHINCS+ and DA. Each region starts with the claims the parent publishes, followed by extra slots for duplicates and omitted claims.
+
+Each occurrence of a supporting claim needs its own slot. If two children prove the same published claim, one occurrence uses its published slot and the other uses an extra slot. Every occurrence of a claim the parent omits uses an extra slot. These claims are still verified; only the published prefixes enter the parent's list digests.
+
+The prover supplies the extra claims and assigns each supporting occurrence to a slot. The guest checks that they match, confines the assignment to the correct region, and writes a distinct counter value there. Write-once memory prevents slot reuse. Requiring as many writes as slots ensures that every slot is covered, including every published claim.
+
+\subsubsection{Deferred evaluation claims}\label{sec:deferred-claims}
+
+Verifying a child requires evaluations of three fixed polynomials: the bytecode multilinear, in $\kbc+4$ variables (\S\ref{sec:e2e-bc}), and flock's R1CS matrix multilinears $\widetilde A_0,\widetilde B_0$, each in $28$ variables (Annex~\ref{annex:flock}). Computing them inside the guest would be very expensive. Instead, the guest carries evaluation claims in its statement. These expensive computations are moved 'outside of the snark'.
+
+A node combines the claims carried by its children with the new claims produced while verifying them. Two sumchecks reduce these to three evaluations: one of the bytecode polynomial and one of each matrix polynomial, batched. The Fiat-Shamir for batching and sumchecks is seeded by all child and running claims.
+
+\subsection{Data availability: LeanDA}\label{sec:leanda}
+
+Erasure coding makes data recoverable from a subset of its encoded symbols. Sampling checks whether those symbols can be retrieved, but does not establish that they form a valid encoding. LeanDA~\cite{LeanDA}, by Meng, Wagner, Kadianakis and Risitano, separates these tasks: commit to an encoded matrix and prove every row is a codeword, then sample authenticated cells.
+
+Our construction uses BLAKE2s and the additive Reed-Solomon encoder over $\K$ already used by the PCS, with a different codeword membership test from LeanDA's (\S\ref{sec:da-membership}). The polynomial basis, transform, and membership lemmas are collected in Annex~\ref{app:ntt}.
+
+The guest derives the test vector (the evaluations of $\dual$) from the commitment via Fiat-Shamir and checks its dot product with each row. This vector is not part of the public input. Wagner's formal security proof~\cite{LeanDASecurity} assumes that the check randomness is derived outside the SNARK and supplied in its public statement, so it does not apply directly to our construction (TODO: benchmark the other approach).
+
+\subsubsection{The commitment}\label{sec:da-commit}
+
+A blob is a polynomial in $\K[X]$ of degree less than $\kdim$, represented by its $\kdim$ evaluations on $\subsp_{\log_2\kdim}$. Its Reed-Solomon encoding is the vector of evaluations on the larger domain $\dom=\subsp_{\log_2\blen}$, where $\blen=2\kdim$. The first $\kdim$ symbols are the original blob, so the encoding is systematic; the remaining symbols provide redundancy. Any $\kdim$ encoded evaluations recover the blob.
+
+One commitment covers a nonempty matrix of $\nblob$ encoded blobs, one per row.
+
+Split each encoded row into cells of $\cellsz$ symbols. The guest fixes these dimensions, matching the byte sizes of an \href{https://eips.ethereum.org/EIPS/eip-4844}{EIP-4844} blob and an \href{https://eips.ethereum.org/EIPS/eip-7594}{EIP-7594} sampling cell:
+\begin{center}
+\begin{tabular}{@{}rll@{}}
+\hline
+$\kdim$ & $2^{14}$ symbols & $128$ KiB of payload per row\\
+$\blen$ & $2^{15}$ symbols & $256$ KiB per encoded row\\
+$\cellsz$ & $2^8$ symbols & $2$ KiB per cell\\
+$\blen/\cellsz$ & $128$ cells & any $64$ reconstruct a row\\
+$\nblob$ & $1$ to $1024$ & dynamic parameter\\
+\hline
+\end{tabular}
+\end{center}
+Zero codewords pad the row count to the next power of two. The root binds this padded matrix.
+
+Let $H$ denote BLAKE2s and $e_{i,j}$ the hash of cell $j$ in row $i$. The same cell digests feed two branches:
+\begin{itemize}[itemsep=1pt,topsep=3pt]
+\item \textbf{Row branch.} Hash the first $\kdim/\cellsz$ cell digests of each row into $r_i$, then Merkle-commit these row digests into $\darow$.
+\item \textbf{Column branch.} Merkle-commit each column of cell digests into $C_j$, then Merkle-commit the column roots into $\dacol$.
+\end{itemize}
+The matrix root is $\daroot=H(\darow,\dacol)$ (Figure~\ref{fig:da-hashing}). See \cite{LeanDA} for details.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+  font=\footnotesize,
+  >={Stealth[length=1.5mm]},
+  edge/.style={semithick,draw=black!65},
+  rowedge/.style={semithick,draw=blue!65!black},
+  digest/.style={circle,fill=black!65,inner sep=1.5pt},
+  rowdigest/.style={circle,fill=blue!65!black,inner sep=1.5pt}
+]
+\node[anchor=west,font=\small\bfseries] at (0,1.3) {Encoded blobs: one row per blob, $128$ cells per row};
+\node[blue!65!black] at (2,0.75) {First $64$ cells};
+\node at (6,0.75) {Remaining $64$ cells};
+\foreach \j/\label in {0/0,1/1,2/\cdots,3/63,4/64,5/\cdots,6/126,7/127} {
+  \node at (\j+0.5,0.25) {$\label$};
+}
+\foreach \i in {0,1,2,3} {
+  \fill[blue!8] (0,-\i*0.65) rectangle (4,-\i*0.65-0.65);
+  \foreach \j/\label in {0/0,1/1,2/\cdots,3/63,4/64,5/\cdots,6/126,7/127} {
+    \draw[black!35] (\j,-\i*0.65) rectangle (\j+1,-\i*0.65-0.65);
+    \ifnum\j=2
+      \node at (\j+0.5,-\i*0.65-0.325) {$\cdots$};
+    \else\ifnum\j=5
+      \node at (\j+0.5,-\i*0.65-0.325) {$\cdots$};
+    \else
+      \node at (\j+0.5,-\i*0.65-0.325) {$e_{\i,\label}$};
+    \fi\fi
+  }
+  \node[rowdigest,label=above:{$r_\i$}] (row\i) at (-0.9,-\i*0.65-0.325) {};
+  \draw[rowedge,->] (0,-\i*0.65-0.325) -- (row\i);
+}
+\draw[blue!65!black,thick] (0,0) rectangle (4,-2.6);
+\draw[orange!85!black,thick] (1,0) rectangle (2,-2.6);
+\node[align=center,blue!65!black] at (-1.8,0.75) {$r_i=H(e_{i,0},\ldots,e_{i,63})$};
+\node[rowdigest] (row01) at (-1.8,-0.65) {};
+\node[rowdigest] (row23) at (-1.8,-1.95) {};
+\node[rowdigest,label=above:{$\darow$}] (rowroot) at (-2.9,-1.3) {};
+\draw[rowedge] (row0) -- (row01) -- (row1);
+\draw[rowedge] (row2) -- (row23) -- (row3);
+\draw[rowedge] (row01) -- (rowroot) -- (row23);
+\node[align=center] at (5,-3.05) {Each rectangle: one $2$ KiB cell, labelled by\\its digest $e_{i,j}=H(\text{cell}_{i,j})$.};
+
+\draw[orange!85!black,dashed,->] (1.5,-2.6) -- (1.5,-3.65);
+\node[anchor=west,font=\small\bfseries] at (-0.3,-4) {Expand column $1$};
+\node[anchor=west] at (3.1,-4) {The same tree is built for every column.};
+\foreach \i in {0,1,2,3} {
+  \node[draw=orange!85!black,fill=orange!8,minimum width=1.05cm,minimum height=0.45cm] (colleaf\i) at (\i*1.6,-4.65) {$e_{\i,1}$};
+}
+\node[digest] (col01) at (0.8,-5.4) {};
+\node[digest] (col23) at (4,-5.4) {};
+\node[digest,label=below right:{$C_1$}] (col1) at (2.4,-6.15) {};
+\draw[edge] (colleaf0) -- (col01) -- (colleaf1);
+\draw[edge] (colleaf2) -- (col23) -- (colleaf3);
+\draw[edge] (col01) -- (col1) -- (col23);
+
+\node[digest,label=above:{$C_0$}] (col0) at (0.4,-6.15) {};
+\node[digest,label=above:{$C_{126}$}] (col126) at (6.4,-6.15) {};
+\node[digest,label=above:{$C_{127}$}] (col127) at (8.4,-6.15) {};
+\node at (4.4,-6.15) {$\cdots$};
+\node[digest] (cols01) at (1.4,-6.9) {};
+\node[digest] (cols126127) at (7.4,-6.9) {};
+\draw[edge] (col0) -- (cols01) -- (col1);
+\draw[edge] (col126) -- (cols126127) -- (col127);
+\node[digest,label=below:{$\dacol$}] (colroot) at (4.4,-8.2) {};
+\draw[edge,dashed] (cols01) -- (colroot) -- (cols126127);
+\node[fill=white,inner sep=3pt] at (4.4,-7.35) {Merkle tree over all $128$ column roots};
+
+\node[draw,rounded corners=2pt,fill=black!4,inner sep=5pt] (root) at (0.5,-9.35) {$\daroot=H(\darow,\dacol)$};
+\draw[rowedge,->] (rowroot) -- (-2.9,-9.35) -- (root.west);
+\draw[edge,->] (colroot) -- (4.9,-8.2) |- (root.east);
+\end{tikzpicture}
+\caption{Example of encoding of 4 blobs.}
+\label{fig:da-hashing}
+\end{figure}
+
+\subsubsection{Codeword membership}\label{sec:da-membership}\label{sec:da-circuit}
+
+A row is valid exactly when it consists of evaluations of a polynomial of degree less than $\kdim$. On our additive domain at rate $1/2$, such rows are orthogonal to every codeword, and this condition also characterizes them: the code is self-dual (Corollary~\ref{cor:rs-dual}). This gives an efficient membership test.
+
+After computing the matrix root $\daroot$, the guest binds it in a domain-separated Fiat-Shamir transcript. It derives $\log_2\kdim$ challenges in $\E$ and uses them to construct the test polynomial $\dual$ of \eqref{eq:dual-product}. Its evaluations form a codeword. For every encoded row $w_i$, the guest checks
+\[
+  \inner{\dual}{w_i}
+  =\sum_{x\in\dom}\dual(x)w_i(x)
+  \;\qeq\;0.
+\]
+Every valid row passes. Under uniform challenges, a fixed invalid matrix passes with probability at most $\log_2\kdim/|\E|=14/2^{192}$ (Proposition~\ref{prop:rs-membership}).

@@ -12,7 +12,7 @@ fn repeated_proofs_survive_phase_resets() {
         "this test is meaningless unless the arena is engaged"
     );
 
-    rec_aggregation::run_aggregation(3, 1, lean_vm::pcs::TEST_LOG_INV_RATE, Plan::new(2, 0));
+    rec_aggregation::run_aggregation(3, 1, 1, lean_vm::pcs::TEST_LOG_INV_RATE, Plan::new(2, 0));
 
     let stats = zk_alloc::stats();
     assert!(stats.phases >= 3, "expected one phase per proof, got {stats:?}");

@@ -1,4 +1,4 @@
-//! Benchmark CLI for signature aggregation, recursion, and the Fibonacci demo.
+//! Benchmark CLI for signature and blob proofs, recursion, and the Fibonacci demo.
 
 use clap::{Parser, Subcommand};
 
@@ -36,8 +36,7 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
-    /// Aggregate signatures of either scheme, or of both, inside the VM and
-    /// verify the proof. At least one count must be nonzero.
+    /// Prove signatures and blobs, then verify the proof. At least one count must be nonzero.
     Aggregate {
         /// XMSS signatures to aggregate.
         #[arg(long, default_value = "0")]
@@ -45,8 +44,15 @@ enum Command {
         /// SPHINCS signatures to aggregate.
         #[arg(long, default_value = "0")]
         sphincs: usize,
+        /// Blobs in one LeanDA commitment (128 KiB each).
+        #[arg(
+            long,
+            default_value_t = 0,
+            value_parser = clap::builder::RangedU64ValueParser::<usize>::new().range(0..=leanvm::lean_da::DA_MAX_ROWS as u64)
+        )]
+        blobs: usize,
     },
-    /// Aggregate n previously aggregated signatures into one proof.
+    /// Aggregate n child proofs into one proof.
     Recursion {
         /// Number of child aggregates.
         #[arg(long, default_value = "2")]
@@ -58,6 +64,13 @@ enum Command {
         /// SPHINCS signatures in each child, on top of the XMSS ones.
         #[arg(long, default_value = "0")]
         sphincs_per_leaf: usize,
+        /// Blobs in each child's LeanDA commitment. Use --xmss-per-leaf 0 for blobs alone.
+        #[arg(
+            long,
+            default_value_t = 0,
+            value_parser = clap::builder::RangedU64ValueParser::<usize>::new().range(0..=leanvm::lean_da::DA_MAX_ROWS as u64)
+        )]
+        blobs_per_leaf: usize,
     },
     /// Prove and verify Fibonacci in the exponent (demo).
     Fibonacci {
@@ -75,15 +88,24 @@ fn main() {
         primitives::init_tracing();
     }
     match cli.command {
-        Command::Aggregate { xmss, sphincs } => {
-            rec_aggregation::run_aggregation(xmss, sphincs, cli.log_inv_rate, plan);
+        Command::Aggregate { xmss, sphincs, blobs } => {
+            rec_aggregation::run_aggregation(xmss, sphincs, blobs, cli.log_inv_rate, plan);
         }
         Command::Recursion {
             n,
             xmss_per_leaf,
             sphincs_per_leaf,
+            blobs_per_leaf,
         } => {
-            rec_aggregation::run_recursion(n, xmss_per_leaf, sphincs_per_leaf, cli.log_inv_rate, cli.tracing, plan);
+            rec_aggregation::run_recursion(
+                n,
+                xmss_per_leaf,
+                sphincs_per_leaf,
+                blobs_per_leaf,
+                cli.log_inv_rate,
+                cli.tracing,
+                plan,
+            );
         }
         Command::Fibonacci { n } => {
             rec_aggregation::run_fibonacci(n, cli.log_inv_rate, plan);

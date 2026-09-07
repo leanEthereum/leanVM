@@ -1,4 +1,4 @@
-% !TeX root = ../drafts/10-isa-programming.tex
+% !TeX root = ../drafts/09-isa-programming.tex
 \section{ISA programming}\label{sec:isa-programming}
 
 How the zkDSL compiler (\path{crates/lean_compiler}; surface language in \path{crates/lean_compiler/zkDSL.md}) programs the six-instruction ISA. Two themes run through every pattern: \emph{write-once memory is an assertion mechanism} (a second write of a cell is an equality check, an unwritten cell is prover-chosen), and \emph{indices live in the exponent} (a logical index $i$ is the element $\gen^{i}$, so incrementing, offsetting, and address formation are single field multiplications).

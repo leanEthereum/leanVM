@@ -1,7 +1,7 @@
 % =====================================================================
 %  Notation.  One definition per notion, for the whole document.
 %
-%  A symbol means the same thing in the main matter and in both annexes.
+%  A symbol means the same thing in the main matter and in the annexes.
 %  Where the source notes were merged, the annexes were adapted to the
 %  main matter, and where a letter was already taken the annex object was
 %  given a free symbol through the semantic macros below.  The map back to
@@ -123,6 +123,9 @@
 \newcommand{\mcanumi}[1]{A_{\mathrm{mca},#1}}  % ... at level #1
 \newcommand{\polyset}{\mathcal{G}}       % polynomials bound by a commitment
 \newcommand{\relopen}{\mathsf{R}_{\mathrm{open}}}
+\newcommand{\aset}{\mathcal{A}}          % Johnson agreement set       (was A_j)
+
+% ---------- novel basis and additive NTT (Annex D) ----------
 \newcommand{\subsp}{\mathcal{U}}         % F_2-subspace                (was U_i)
 \newcommand{\vansub}{\mathcal{V}}        % subspace vanishing poly     (was W_i)
 \newcommand{\Wn}[1]{\widehat{\vansub}_{#1}} % its normalization (hat = normalized)
@@ -130,7 +133,16 @@
 \newcommand{\ntmap}{\psi}                % linearized NTT map          (was q_d)
 \newcommand{\bfarr}{\mathsf{B}}          % NTT butterfly array         (was B)
 \newcommand{\mpoly}{\mathcal{P}}         % message polynomial          (was P_u)
-\newcommand{\aset}{\mathcal{A}}          % Johnson agreement set       (was A_j)
+
+% ---------- data availability (\S\ref{sec:leanda}) ----------
+% The code itself reuses the PCS letters: k = message dimension, n = block
+% length, rho = rate, D = domain, X_j = novel basis.
+\newcommand{\nblob}{N_{\mathrm{blob}}}   % rows of the payload matrix, one per blob
+\newcommand{\cellsz}{N_{\mathrm{cell}}}  % symbols in one cell, the sampling unit
+\newcommand{\daroot}{\mathsf{root}}       % the commitment
+\newcommand{\darow}{\mathsf{root}_{\mathrm{row}}}  % its repairability branch
+\newcommand{\dacol}{\mathsf{root}_{\mathrm{col}}}  % its sampling branch
+\newcommand{\dual}{L}                    % the random dual codeword membership tests against
 
 % ---------- ring switching (Annex A) ----------
 \newcommand{\pair}{\Omega}               % error pairing values        (was V_k)

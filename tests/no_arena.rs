@@ -21,6 +21,6 @@ fn aggregate_without_the_arena() {
         })
         .collect();
 
-    let aggregated = aggregate(&[], signers, vec![], None, 2).unwrap();
+    let aggregated = aggregate(&[], signers, vec![], &[], None, 2).unwrap();
     aggregated.verify().unwrap();
 }

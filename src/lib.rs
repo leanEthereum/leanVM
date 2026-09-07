@@ -1,18 +1,26 @@
-//! leanVM aggregates XMSS and SPHINCS signatures into one proof.
+//! leanVM proves XMSS and SPHINCS signature claims and LeanDA blob well-formedness.
 //!
 //! Release only: the zkDSL compiler [`setup_verifier`] runs overflows the debug stack.
 //!
 //! End to end in [`tests/api.rs`](https://github.com/leanEthereum/leanVM/blob/main/tests/api.rs).
 
 pub use rec_aggregation::{
-    AggregateSignature, AggregateVerifyError, AggregationError, MAX_EPOCHS, MAX_KEYS, MAX_RECURSIONS, SphincsSigner,
-    WireKeys, XmssGroup, aggregate,
+    AggregateVerifyError, AggregationError, ClaimSelection, DA_LOG_CELL, DA_LOG_K, DA_MAX_ROWS, EthereumProof,
+    MAX_DA_ROOTS, MAX_EPOCHS, MAX_KEYS, MAX_RECURSIONS, SignatureClaims, SphincsClaim, XmssClaimGroup, aggregate,
 };
 
 pub use lean_vm::{
     cpu::CpuError,
     pcs::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE},
 };
+
+/// LeanDA commitments. Blob symbols are `u64` words read in little-endian byte order.
+pub mod lean_da {
+    pub use ::lean_da::{
+        BLOB_SYMBOLS, CELL_SYMBOLS, CELLS_PER_ROW, CODEWORD_SYMBOLS, DA_LOG_CELL, DA_LOG_K, DA_MAX_ROWS, DaCommitment,
+        DaWitness, commit,
+    };
+}
 
 pub mod xmss {
     /// The SSZ traits [`XmssPublicKey`] and [`XmssSignature`] implement: import
@@ -35,7 +43,7 @@ pub mod sphincs {
 
 pub use rand;
 
-/// Call once before verifying an aggregate signature. Idempotent, and
+/// Call once before verifying an [`EthereumProof`]. Idempotent, and
 /// [`setup_prover`] does it for you.
 pub fn setup_verifier() {
     lean_vm::init_prover_pool();

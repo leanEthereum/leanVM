@@ -14,6 +14,7 @@ workspace = true
 primitives.workspace = true
 rec_aggregation.workspace = true
 lean_vm.workspace = true
+lean_da.workspace = true
 xmss.workspace = true
 sphincs.workspace = true
 zk_alloc.workspace = true
@@ -39,6 +40,7 @@ pcs = { path = "crates/pcs" }
 flock = { path = "crates/flock" }
 lean_vm = { path = "crates/lean_vm" }
 lean_compiler = { path = "crates/lean_compiler" }
+lean_da = { path = "crates/lean_da" }
 rec_aggregation = { path = "crates/rec_aggregation" }
 xmss = { path = "crates/xmss" }
 sphincs = { path = "crates/sphincs" }

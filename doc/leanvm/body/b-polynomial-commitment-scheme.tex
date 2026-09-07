@@ -1,7 +1,7 @@
 % !TeX root = ../drafts/b-polynomial-commitment-scheme.tex
 \section{The polynomial commitment scheme: WHIR \slash Ligerito}\label{annex:pcs}
 
-A self-contained description of the WHIR\slash Ligerito polynomial commitment scheme \cite{ACFY25,NA25} over binary fields, with a round-by-round soundness analysis in the Johnson list-decoding regime. The two schemes coincide when WHIR is instantiated with interleaved codes and Ligerito with the Reed--Solomon codes described here. Reed--Solomon encoding is by the additive NTT in the novel polynomial basis~\cite{LCH14}, as used in~\cite{DP24}. Following Flock~\cite{Flock26}, we do not use out-of-domain (OOD) sampling at commitment, so our PCS is only list binding. The two fields are those of \S\ref{sec:vm}: we commit to a $\K$-valued multilinear, and opening claims are in $\E$.
+A self-contained description of the WHIR\slash Ligerito polynomial commitment scheme \cite{ACFY25,NA25} over binary fields, with a round-by-round soundness analysis in the Johnson list-decoding regime. The two schemes coincide when WHIR is instantiated with interleaved codes and Ligerito with the Reed-Solomon codes of Annex~\ref{app:ntt}, which gives the novel polynomial basis and additive NTT used for encoding. Following Flock~\cite{Flock26}, we do not use out-of-domain (OOD) sampling at commitment, so our PCS is only list binding. The two fields are those of \S\ref{sec:vm}: we commit to a $\K$-valued multilinear, and opening claims are in $\E$.
 
 \paragraph{Symbols.}
 
@@ -51,7 +51,7 @@ $e_c$          & $\beta_c$    & the fixed $\Ftwo$-basis, as in Annex \ref{annex:
 
 \subsubsection{Codes, interleaving, and list decoding}\label{sec:codes}
 
-For an $\Ftwo$-subspace $\dom \subseteq \K$, $|\dom| = \blen$, and $\kdim \le \blen$, let $\RS[\E, \dom, \kdim] := \{ (p(x))_{x \in \dom} : p \in \E[X],\ \deg p < \kdim \}$, of rate $\rate := \kdim/\blen$, and let $\RS[\K, \dom, \kdim]$ be its subcode of $\K$-valued words. Message lengths are powers of two, $\kdim = 2^{\kappa}$, messages are indexed by $\cube{\kappa}$, and an \emph{encoder} is a linear injection $\Enc : \E^{\cube{\kappa}} \to \E^{\dom}$ onto the code, carrying $\K$-valued messages to $\K$-valued words (fixed concretely in \S\ref{sec:binary-rs}).
+We use the Reed-Solomon code $\RS[\E,\dom,\kdim]$ of Definition~\ref{def:rs-code}, with $|\dom|=\blen$, dimension $\kdim=2^\kappa$, and rate $\rate=\kdim/\blen$. Messages are indexed by $\cube{\kappa}$; the linear encoder $\Enc$ of \S\ref{sec:binary-rs} maps them onto the code and preserves $\K$-valued words.
 
 \begin{definition}[Interleaved words, lists, folds]\label{def:interleaved}
 An \emph{interleaved word} is a matrix $\orc \in \E^{\cube{\ell} \times \dom}$; it is an \emph{interleaved codeword} if every row $\orc[u, \cdot]$ is a codeword $(u \in \cube{\ell})$. $\orc$ \emph{agrees} with an interleaved codeword $U$ on $\aset \subseteq \dom$ if $\orc[u,x] = U[u,x]$ for all $u \in \cube{\ell}$ and all $x \in \aset$; it is \emph{$\rad$-close} to $U$ if they agree on some $\aset$ with $|\aset| \ge (1-\rad)\blen$; and $\lst_\rad(\orc)$ is the set of interleaved codewords $\rad$-close to $\orc$. A single word \emph{agrees with the code} on $\aset$ if some codeword equals it there, and $\orc$ \emph{agrees with the interleaved code} on $\aset$ if some interleaved codeword equals its rows there. An interleaved codeword $U$ \emph{decodes} to the multilinear $g_U : \cube{\ell + \kappa} \to \E$ with $U[u, \cdot] = \Enc(g_U(u, \cdot))$; distinct $U$ decode to distinct $g_U$, hence distinct $\mle{g_U}$. For $\fc \in \E^{j}$, $j \le \ell$, the \emph{fold} $\orc_\fc \in \E^{\cube{\ell - j} \times \dom}$ is $\orc_\fc[u, x] := \sum_{\iota \in \cube{j}} \eq(\fc, \iota)\, \orc[(\iota, u), x]$ (for $j = \ell$, a single word in $\E^{\dom}$).
@@ -87,10 +87,10 @@ Interactive soundness error is then at most $\sum_i \varepsilon_i$. After Fiat--
 \subsection{Reed--Solomon codes over binary fields}\label{sec:binary-rs}
 %=====================================================================
 
-For $\rexp \ge 1$ and $\kappa + \rexp \le 64$, \S\ref{app:ntt} constructs, following~\cite{LCH14} as presented in~\cite{DP24}, an $\Ftwo$-subspace $\dom \subseteq \K$ of size $\blen = 2^{\kappa+\rexp}$ and an encoder $\Enc_{\kappa,\rexp} : \E^{\cube{\kappa}} \to \E^{\dom}$ onto $\RS[\E, \dom, 2^{\kappa}]$, of rate $\rate = 2^{-\rexp}$, with the two properties the protocol uses:
+The encoder $\Enc_{\kappa,\rexp}$ of Definition~\ref{def:enc} evaluates $2^\kappa$ novel-basis coefficients on an additive domain of size $\blen=2^{\kappa+\rexp}$. Here $\rexp\ge1$ and $\kappa+\rexp\le64$. The protocol uses two properties, proved in Annex~\ref{app:ntt}:
 \begin{itemize}[itemsep=2pt]
 \item \emph{fast encoding, for the prover:} $\Enc_{\kappa,\rexp}$ is computed by the additive NTT with $\tfrac12 \kappa \blen$ multiplications and fewer than $(\kappa + 1)\, \blen$ additions (Proposition~\ref{prop:ntt});
-\item \emph{MLE-friendly columns, for the verifier:} for every $x \in \dom$, the weight $W_x : \cube{\kappa} \to \K$, defined by $\Enc_{\kappa,\rexp}(g)[x] = \inner{W_x}{g}$ (the relation being valid for arbitrary $g$), admits an MLE efficiently evaluable anywhere in $\E^{\kappa}$ ($O(\kappa)$ multiplications and additions (Lemma~\ref{lem:colweight})).
+\item \emph{MLE-friendly columns, for the verifier:} for every $x \in \dom$, the weight $W_x : \cube{\kappa} \to \K$, defined by $\Enc_{\kappa,\rexp}(g)[x] = \inner{W_x}{g}$ (the relation being valid for arbitrary $g$), admits an MLE efficiently evaluable anywhere in $\E^{\kappa}$ in $O(\kappa)$ field operations (Lemma~\ref{lem:colweight}).
 \end{itemize}
 
 %=====================================================================
@@ -270,108 +270,6 @@ At level $\nlev - 1$ the fold challenges end as above: every codeword within $\r
 
 \end{proof}
 
-
-%=====================================================================
-\subsection{Novel polynomial basis and additive NTT}\label{app:ntt}
-%=====================================================================
-
-Fix the $\Ftwo$-basis $e_c := x^c$, $0 \le c < 64$, of $\K$, the first $64$ vectors of Annex~\ref{annex:rs}'s basis of $\E$, so that $e_0 = 1$. This appendix constructs the encoder of \S\ref{sec:binary-rs} and proves its two properties; the material follows~\cite{LCH14} as presented in~\cite{DP24}. For $u \in \cube{\nv}$ we write $\langle u \rangle := \sum_i u_i 2^i$ for the integer with bits $u$ (bit $0$ first).
-
-\subsubsection{Subspace polynomials, novel basis, encoder}
-
-For $0 \le i \le 64$ let $\subsp_i := \langle e_0, \dots, e_{i-1} \rangle_{\Ftwo}$ and define the \emph{subspace vanishing polynomial} $\vansub_i(X) := \prod_{u \in \subsp_i}(X + u)$, of degree $2^i$.
-
-\begin{lemma}\label{lem:subspace}
-For $i < 64$: (i) $\vansub_{i+1}(X) = \vansub_i(X)\bigl(\vansub_i(X) + \vansub_i(e_i)\bigr)$ with $\vansub_i(e_i) \neq 0$; (ii) $\vansub_i(X + Y) = \vansub_i(X) + \vansub_i(Y)$ as a polynomial identity; in particular the map $\vansub_i : \K \to \K$ is $\Ftwo$-linear.
-\end{lemma}
-
-\begin{proof}
-By induction on $i$; the base case is $\vansub_0(X) = X$. For (i), split the product defining $\vansub_{i+1}$ along $\subsp_{i+1} = \subsp_i \sqcup (e_i + \subsp_i)$:
-\[
-\vansub_{i+1}(X) \;=\; \prod_{u \in \subsp_i} (X + u) \cdot \prod_{u \in \subsp_i} \bigl(X + e_i + u\bigr) \;=\; \vansub_i(X) \cdot \vansub_i(X + e_i) \;=\; \vansub_i(X) \bigl( \vansub_i(X) + \vansub_i(e_i) \bigr),
-\]
-where the middle step recognizes the second product as $\vansub_i$ evaluated at $X + e_i$, and the last step is the identity (ii) for $\vansub_i$ with $Y = e_i$. Moreover $\vansub_i(e_i) \neq 0$, since the roots of $\vansub_i$ are exactly $\subsp_i$ and $e_i \notin \subsp_i$. For (ii) at $i + 1$, write $\vansub_{i+1} = \vansub_i^2 + \vansub_i(e_i)\, \vansub_i$ by (i): the second term satisfies the identity by induction, and so does the first, since in characteristic $2$
-\[
-\vansub_i(X+Y)^2 \;=\; \bigl(\vansub_i(X) + \vansub_i(Y)\bigr)^2 \;=\; \vansub_i(X)^2 + \vansub_i(Y)^2 . \qedhere
-\]
-\end{proof}
-
-Let $\Wn{i} := \vansub_i / \vansub_i(e_i)$ (the hat on $W$ denotes normalization, not multilinear extension), so $\Wn{i}(e_i) = 1$ and $\Wn{0} = X$ (using $e_0 = 1$). By linearity, $\Wn{i}(x) = \sum_c x_c \Wn{i}(e_c)$ for $x = \sum_c x_c e_c$, so given the values $\Wn{i}(e_c)$ (precomputed via the recursion (i)), $\Wn{i}$ is evaluated anywhere in $\K$ in at most $64$ additions.
-
-\begin{definition}[Novel basis and encoder~\cite{LCH14}]\label{def:enc}
-For $0 \le j < 2^{\kappa}$ with bits $j_i$, let $\novel_j(X) := \prod_i \Wn{i}(X)^{j_i}$; then $\deg \novel_j = j$, so $(\novel_j)_{j < 2^\kappa}$ is a (triangular) basis of the polynomials of degree less than $2^{\kappa}$. Let $\dom := \langle e_0, \dots, e_{\kappa+\rexp-1} \rangle_{\Ftwo}$ and, for a message $g : \cube{\kappa} \to \E$,
-\[
-\mpoly_g(X) := \sum_{u \in \cube{\kappa}} g(u) \cdot \novel_{\langle u \rangle}(X), \qquad \Enc_{\kappa,\rexp}(g) := \bigl(\mpoly_g(x)\bigr)_{x \in \dom},
-\]
-a linear injection onto $\RS[\E, \dom, 2^{\kappa}]$ of rate $\rate = 2^{-\rexp}$; the $\novel_j$ take their values on $\dom \subseteq \K$, so a $\K$-valued message gives a $\K$-valued word. (The message is read \emph{directly} as novel-basis coefficients; no conversion is applied.)
-\end{definition}
-
-\begin{lemma}[Column weights are tensors]\label{lem:colweight}
-For $x \in \dom$ let $W_x(u) := \prod_i \Wn{i}(x)^{u_i}$. Then $\Enc_{\kappa,\rexp}(g)[x] = \inner{W_x}{g} := \sum_u W_x(u) g(u)$, and
-\[
-\mle{W_x}(r) \;=\; \prod_{i=0}^{\kappa-1} \bigl( (1+r_i) + r_i \Wn{i}(x) \bigr),
-\]
-so one evaluation of $\mle{W_x}$ costs $O(\kappa)$ multiplications and additions in total: the values $\Wn{i}(x)$ follow the chain of Lemma~\ref{lem:chain}, $\Wn{0}(x) = x$ and $\Wn{i+1}(x) = \ntmap_i\bigl(\Wn{i}(x)\bigr)$, at two multiplications and one addition per step (the constants of the $\ntmap_i$ are precomputed once, shared by all levels and queries), and the $\kappa$-factor product costs the same again.
-\end{lemma}
-
-\begin{proof}
-The first identity is Definition~\ref{def:enc} expanded: $\mpoly_g(x) = \sum_u g(u) \prod_i \Wn{i}(x)^{u_i} = \inner{W_x}{g}$. For the second, start from the definition of the multilinear extension and factor $\eq$ coordinate-wise:
-\[
-\mle{W_x}(r) \;=\; \sum_{u \in \cube{\kappa}} \eq(u, r)\, W_x(u) \;=\; \sum_{u \in \cube{\kappa}} \prod_{i=0}^{\kappa-1} \eq(u_i, r_i)\, \Wn{i}(x)^{u_i} .
-\]
-Each factor of the summand depends on a single bit $u_i$, so by distributivity the sum over $\cube{\kappa}$ factors into a product of one-bit sums:
-\[
-\mle{W_x}(r) \;=\; \prod_{i=0}^{\kappa-1} \; \sum_{u_i \in \{0,1\}} \eq(u_i, r_i)\, \Wn{i}(x)^{u_i} \;=\; \prod_{i=0}^{\kappa-1} \bigl( (1+r_i) \cdot 1 + r_i \cdot \Wn{i}(x) \bigr),
-\]
-using $\eq(0, r_i) = 1 + r_i$ and $\eq(1, r_i) = r_i$.
-\end{proof}
-
-\subsubsection{The additive NTT}\label{sec:ntt}
-
-The encoder is computed by the additive NTT of~\cite{LCH14}, a Cooley--Tukey-style butterfly network in which the squaring map is replaced by degree-$2$ linearized maps $\ntmap_d$ collapsing the domain, and the twiddles are evaluations of the $\Wn{d}$. For $0 \le d < \kappa$ define
-\[
-\ntmap_d(X) \;:=\; \frac{\vansub_d(e_d)^2}{\vansub_{d+1}(e_{d+1})} \cdot X(X+1).
-\]
-
-\begin{lemma}[Chain structure]\label{lem:chain}
-Each $\ntmap_d$ is $\Ftwo$-linear with kernel $\{0,1\}$, and $\ntmap_d \circ \Wn{d} = \Wn{d+1}$, hence $\Wn{d} = \ntmap_{d-1} \circ \dots \circ \ntmap_0$. Setting $\dom^{(d)} := \Wn{d}(\dom)$ for $0 \le d \le \kappa$, each $\dom^{(d)}$ is an $\Ftwo$-subspace of dimension $\kappa + \rexp - d$ containing $1 = \Wn{d}(e_d)$, and $\ntmap_d$ maps $\dom^{(d)}$ onto $\dom^{(d+1)}$ two-to-one with fibers $\{x, x+1\}$.
-\end{lemma}
-
-\begin{proof}
-$X(X+1) = X^2 + X$ is linear with kernel $\{0,1\}$. By Lemma~\ref{lem:subspace}(i), $\Wn{d+1} = \tfrac{\vansub_d (\vansub_d + \vansub_d(e_d))}{\vansub_{d+1}(e_{d+1})} = \tfrac{\vansub_d(e_d)^2}{\vansub_{d+1}(e_{d+1})} \Wn{d}(\Wn{d} + 1) = \ntmap_d \circ \Wn{d}$; the chain follows from $\Wn{0} = X$. $\Wn{d}|_\dom$ is linear with kernel $\subsp_d \subseteq \dom$, so its image has dimension $\kappa + \rexp - d$, and $\ntmap_d(\dom^{(d)}) = \Wn{d+1}(\dom) = \dom^{(d+1)}$ with $\ker \ntmap_d = \{0,1\} \subseteq \dom^{(d)}$.
-\end{proof}
-
-\begin{lemma}[Even--odd refinement]\label{lem:evenodd}
-For $0 \le d \le \kappa$ define $\Wn{b}^{(d)} := \ntmap_{d+b-1} \circ \dots \circ \ntmap_d$ (and $\Wn{0}^{(d)} := X$), and $\novel^{(d)}_j := \prod_b (\Wn{b}^{(d)})^{j_b}$, so $\novel^{(0)}_j = \novel_j$. If $d < \kappa$, $\mpoly = \sum_{j < 2^{\kappa-d}} a_j \novel^{(d)}_j$, and $\mpoly_\iota := \sum_j a_{2j+\iota} \novel^{(d+1)}_j$, then
-\[
-\mpoly(X) \;=\; \mpoly_0\bigl(\ntmap_d(X)\bigr) + X \cdot \mpoly_1\bigl(\ntmap_d(X)\bigr).
-\]
-\end{lemma}
-
-\begin{proof}
-$\Wn{b+1}^{(d)} = \Wn{b}^{(d+1)} \circ \ntmap_d$, so $\novel^{(d)}_{2j} = \novel^{(d+1)}_j \circ \ntmap_d$ and $\novel^{(d)}_{2j+1} = X \cdot \novel^{(d)}_{2j}$; split the sum by parity.
-\end{proof}
-
-\begin{center}
-\fbox{\parbox{0.92\textwidth}{
-\textbf{Additive NTT}~\cite{LCH14}. \emph{Input:} coefficients $a_0, \dots, a_{2^{\kappa}-1}$ of $\mpoly = \sum_j a_j \novel_j$. \emph{Output:} $(\mpoly(x))_{x \in \dom}$, identifying $\cube{\kappa+\rexp} \cong \dom$ via $v \mapsto x_v := \sum_c v_c e_c$.
-\begin{enumerate}[itemsep=1pt]
-\item Initialize $\bfarr(v) := a_{\langle (v_0, \dots, v_{\kappa-1}) \rangle}$ for all $v \in \cube{\kappa+\rexp}$ (the coefficient array, tiled $2^\rexp$ times).
-\item For $d = \kappa - 1$ down to $0$: for every $v$ with $v_d = 0$, with $v' := v \oplus \mathbf{1}_d$ and twiddle $t := \sum_{c > d} v_c \Wn{d}(e_c)$:\quad $\bfarr(v) \mathrel{+}= t \cdot \bfarr(v')$;\quad then\quad $\bfarr(v') \mathrel{+}= \bfarr(v)$.
-\item Output $\bfarr$; then $\bfarr(v) = \mpoly(x_v)$.
-\end{enumerate}
-}}
-\end{center}
-
-\begin{proposition}[Correctness and cost]\label{prop:ntt}
-The algorithm computes $\Enc_{\kappa,\rexp}$ with exactly $\tfrac12 \kappa \blen$ multiplications and $\kappa \blen$ additions in the butterflies, plus fewer than $\blen$ additions for the twiddles: $t$ depends only on $(v_c)_{c > d}$, so stage $d$ has $2^{\kappa + \rexp - 1 - d}$ distinct twiddles, shared by the $2^{d}$ butterflies of a block and enumerable with one addition each, $\sum_{d < \kappa} 2^{\kappa + \rexp - 1 - d} < \blen$ in total.
-\end{proposition}
-
-\begin{proof}[Proof sketch]
-For $\ell \in \cube{d}$ let $\mpoly^{(d)}_{\ell} := \sum_{j < 2^{\kappa-d}} a_{\langle \ell \rangle + 2^d j} \novel^{(d)}_j$ collect the coefficients congruent to $\langle \ell \rangle$ modulo $2^d$. Downward induction on $d$ maintains the invariant that after stages $\kappa-1, \dots, d$, $\ \bfarr(v) = \mpoly^{(d)}_{(v_0,\dots,v_{d-1})}\bigl(\Wn{d}(x_v)\bigr)$, where by linearity $\Wn{d}(x_v) = v_d + t$ with $t$ the twiddle of the algorithm (coordinates $c < d$ lie in $\ker \Wn{d} = \subsp_d$, and $\Wn{d}(e_d) = 1$). The base $d = \kappa$ is the tiled initialization. For the step, let $\ell := (v_0, \dots, v_{d-1})$: the order-$(d{+}1)$ even and odd parts of $\mpoly^{(d)}_{\ell}$ are $\mpoly^{(d+1)}_{(\ell,0)}$ and $\mpoly^{(d+1)}_{(\ell,1)}$ (as $\langle \ell \rangle + 2^d(2j+\iota) = \langle (\ell,\iota) \rangle + 2^{d+1} j$), whose values at $\Wn{d+1}(x_v) = \Wn{d+1}(x_{v'})$ are the pre-stage entries $\bfarr(v)$ and $\bfarr(v')$; Lemma~\ref{lem:evenodd} at the fiber $\{t, t+1\}$ of $\ntmap_d$ over this point (Lemma~\ref{lem:chain}) gives $\mpoly^{(d)}_{\ell}(t) = \bfarr(v) + t\,\bfarr(v')$ and $\mpoly^{(d)}_{\ell}(t+1) = \mpoly^{(d)}_{\ell}(t) + \bfarr(v')$, exactly the butterfly. At $d = 0$, $\bfarr(v) = \mpoly(x_v)$. Each of the $\kappa$ stages does $\blen/2$ butterflies of one multiplication and two additions.
-\end{proof}
-
-The verifier never runs the NTT: by Lemma~\ref{lem:colweight} it touches the code only through per-column weight evaluations.
 
 %=====================================================================
 \subsection{Optimizations}\label{sec:pcs-opt}

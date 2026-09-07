@@ -32,16 +32,43 @@ fn public_api_end_to_end() {
     }
 
     // 3. Two leaves, then a root over both. The leaves carry different epochs and the root's groups are their union.
-    let left = aggregate(&[], xmss_input[..4].to_vec(), sphincs_input[..1].to_vec(), None, 2).unwrap();
-    let right = aggregate(&[], xmss_input[4..7].to_vec(), sphincs_input[1..].to_vec(), None, 2).unwrap();
-    let root = aggregate(&[left, right], xmss_input[7..].to_vec(), vec![], None, 2).unwrap();
-    assert_eq!(root.num_total_sigs(), 11);
+    let blobs: Vec<_> = (0..lean_da::BLOB_SYMBOLS).map(|i| i as u64).collect();
+    let (commitment, _) = lean_da::commit(&blobs);
+    let left = aggregate(
+        &[],
+        xmss_input[..4].to_vec(),
+        sphincs_input[..1].to_vec(),
+        &blobs,
+        None,
+        2,
+    )
+    .unwrap();
+    let left = EthereumProof::from_bytes(&left.to_bytes()).unwrap();
+    left.verify().unwrap();
+    assert_eq!(left.da_commitments(), &[commitment.root]);
+    let other_blobs: Vec<_> = blobs.iter().map(|x| x ^ 42).collect();
+    let (other_commitment, _) = lean_da::commit(&other_blobs);
+    let right = aggregate(
+        &[],
+        xmss_input[4..7].to_vec(),
+        sphincs_input[1..].to_vec(),
+        &other_blobs,
+        None,
+        2,
+    )
+    .unwrap();
+    let mut roots = vec![commitment.root, other_commitment.root];
+    roots.sort();
+    let root = aggregate(&[left, right], xmss_input[7..].to_vec(), vec![], &[], None, 2).unwrap();
+    assert_eq!(root.num_signature_claims(), 11);
+    assert_eq!(root.da_commitments(), roots);
 
     // 4. Onto the wire, and back to a receiver, which checks the statement itself:
     //    verifying says these keys signed, the epochs and messages being the prover's.
     let bytes = root.to_bytes();
-    let received = AggregateSignature::from_bytes(&bytes).unwrap();
+    let received = EthereumProof::from_bytes(&bytes).unwrap();
     received.verify().unwrap();
+    assert_eq!(received.da_commitments(), roots);
     let pairs: Vec<_> = received.xmss_signers().iter().map(|(e, m, _)| (*e, *m)).collect();
     assert_eq!(pairs, vec![(EPOCH_0, MSG_0), (EPOCH_1, MSG_1), (EPOCH_2, MSG_2)]);
 
@@ -50,12 +77,42 @@ fn public_api_end_to_end() {
     let mut sphincs_signers = received.sphincs_signers().to_vec();
     let dropped_group = groups.remove(0);
     let dropped_signer = sphincs_signers.remove(0);
-    let narrowed = aggregate(&[received], vec![], vec![], Some(&(groups, sphincs_signers)), 2).unwrap();
+    let retained_signatures = (groups, sphincs_signers);
+    let narrowed = aggregate(
+        &[received],
+        vec![],
+        vec![],
+        &[],
+        Some(ClaimSelection {
+            signatures: &retained_signatures,
+            da_commitments: &[commitment.root],
+        }),
+        2,
+    )
+    .unwrap();
     narrowed.verify().unwrap();
-    assert_eq!(narrowed.num_total_sigs(), 11 - dropped_group.2.len() - 1);
+    assert_eq!(narrowed.da_commitments(), &[commitment.root]);
+    assert_eq!(narrowed.num_signature_claims(), 11 - dropped_group.2.len() - 1);
     assert!(
         !narrowed.xmss_signers().contains(&dropped_group),
         "unpublished, epoch and message included"
     );
     assert!(!narrowed.sphincs_signers().contains(&dropped_signer));
+
+    let dropped = aggregate(
+        &[narrowed],
+        vec![],
+        vec![],
+        &[],
+        Some(ClaimSelection {
+            signatures: &retained_signatures,
+            da_commitments: &[],
+        }),
+        2,
+    )
+    .unwrap();
+    dropped.verify().unwrap();
+    assert!(dropped.da_commitments().is_empty());
+    assert_eq!(dropped.xmss_signers(), retained_signatures.0);
+    assert_eq!(dropped.sphincs_signers(), retained_signatures.1);
 }

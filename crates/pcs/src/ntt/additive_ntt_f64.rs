@@ -451,9 +451,7 @@ impl AdditiveNttF64 {
         }
     }
 
-    /// Inverse additive NTT in place (scalar). Exact inverse of the forward
-    /// transform; used by tests.
-    #[cfg(test)]
+    /// Recover novel-basis coefficients from evaluations with a scalar inverse NTT.
     pub fn inverse_transform(&self, data: &mut [F64]) {
         let log_d = log2_strict_usize(data.len());
         assert!(log_d <= self.log_domain_size());

@@ -1,7 +1,9 @@
 # The recursive aggregation guest: zkDSL, not runnable Python (see
 # crates/lean_compiler/zkDSL.md). One node of an aggregation tree verifies raw XMSS
 # and SPHINCS+ signatures and sub-proofs OF THIS SAME BYTECODE, and publishes the
-# statement digest binding the signer set it covers. Reading order: `main` is the
+# statement digest binding its signature claims and a possibly empty list of LeanDA roots.
+# It may check a blob matrix directly and retain any roots proved by its children.
+# Reading order: `main` is the
 # node, `verify_sub` the in-circuit copy of `lean_vm::cpu::verify`, and
 # `open_stacked` the WHIR opening it dispatches into.
 #
@@ -322,10 +324,6 @@ SIGNERS_COUNT_BITS = SIGNERS_COUNT_BITS_PLACEHOLDER
 BLAKE2S_IV_0 = BLAKE2S_IV_0_PLACEHOLDER
 BLAKE2S_IV_1 = BLAKE2S_IV_1_PLACEHOLDER
 MD_FINAL = MD_FINAL_PLACEHOLDER
-# The two cells that tag the set's own string, so its hash cannot be confused with
-# either list's or with a Fiat-Shamir state.
-SIGNERS_TAG_0 = SIGNERS_TAG_0_PLACEHOLDER
-SIGNERS_TAG_1 = SIGNERS_TAG_1_PLACEHOLDER
 
 # ---------------------------------------------------------- XMSS (host-supplied)
 # Every 16-byte native value (tweak, digest, chain tip, sibling, public parameter)
@@ -418,9 +416,38 @@ SP_COUNTER_BITS = 32
 # MAX_RECURSIONS is the arity of an aggregation tree; MAX_EPOCHS caps the runtime
 # number of XMSS epoch groups.
 MAX_KEYS = MAX_KEYS_PLACEHOLDER
+MAX_DA_ROOTS = MAX_DA_ROOTS_PLACEHOLDER
+DA_ROOT_COUNTS = DA_ROOT_COUNTS_PLACEHOLDER
 MAX_RECURSIONS = MAX_RECURSIONS_PLACEHOLDER
 MAX_EPOCHS = MAX_EPOCHS_PLACEHOLDER
 
+
+# ---------------------------------- LeanDA ------------------------------------------
+# The blob's WIDTH is baked, because the two tables below are sized by it: one
+# bytecode serves one (log_k, log_cell), and the guest being self-referential fixes
+# that for a whole tree. Its HEIGHT is not: the row count rides a hint, bounded by
+# DA_MAX_ROWS, and only the two Merkle trees need a compile-time shape, which the
+# `match` on the padded count's log gives them.
+DA_LOG_K = DA_LOG_K_PLACEHOLDER
+DA_LOG_CELL = DA_LOG_CELL_PLACEHOLDER
+DA_MAX_ROWS = DA_MAX_ROWS_PLACEHOLDER
+DA_LOG_MAX_ROWS = DA_LOG_MAX_ROWS_PLACEHOLDER
+DA_PAD_CELL_0 = DA_PAD_CELL_0_PLACEHOLDER
+DA_PAD_CELL_1 = DA_PAD_CELL_1_PLACEHOLDER
+DA_PAD_ROW_0 = DA_PAD_ROW_0_PLACEHOLDER
+DA_PAD_ROW_1 = DA_PAD_ROW_1_PLACEHOLDER
+DA_SEED_0 = DA_SEED_0_PLACEHOLDER
+DA_SEED_1 = DA_SEED_1_PLACEHOLDER
+DA_TWIDDLES = DA_TWIDDLES_PLACEHOLDER
+DA_NOVEL = DA_NOVEL_PLACEHOLDER
+
+DA_CELL = 2 ** DA_LOG_CELL                      # symbols in a cell
+DA_BLOCK_BITS = DA_LOG_K + 1 - DA_LOG_CELL      # log of the cells per row
+DA_CELLS = 2 ** DA_BLOCK_BITS                   # cells per row
+DA_PREFIX_CELLS = 2 ** (DA_LOG_K - DA_LOG_CELL)    # cells in the first half
+DA_CELL_BLOCKS = DA_CELL // 8                   # BLAKE2s blocks in one cell
+DA_ROW_BLOCKS = DA_PREFIX_CELLS // 2               # BLAKE2s blocks in one row digest
+DA_TREE_ARMS = DA_LOG_MAX_ROWS + 1              # tree depths the row count can dispatch to
 
 # =================================== field packing ==================================
 # Serializing a word means exposing its three K limbs, and the tower representation
@@ -582,7 +609,7 @@ def verify_log2_ceil(bits_buf, g_logs_pow2, g_squares, floor: Const, nbits: Cons
     # (waived at floor). Callers fill the bits and tie word or exp_prod to their
     # value. NB: log2 here is the base-2 log of the integer word, not the discrete
     # log base g that `log(...)` means.
-    psum_buf = HeapBuf(GEN ** (nbits + 1))  # psum_buf[g^j] = value of bits [0, j)
+    psum_buf = HeapBuf(SIZE_BITS + 1)  # psum_buf[g^j] = value of bits [0, j)
     psum_buf[GEN ** 0] = 0
     word = 0
     exp_prod = GEN ** 0
@@ -592,8 +619,11 @@ def verify_log2_ceil(bits_buf, g_logs_pow2, g_squares, floor: Const, nbits: Cons
         exp_prod *= (1 + bit * (g_squares[GEN ** j] + 1))
         word += bit * (2 ** j)
         psum_buf[GEN ** (j + 1)] = word
+    for j in unroll(nbits + 1, SIZE_BITS + 1):
+        psum_buf[GEN ** j] = word
     g_log = hint_log2_ceil(bits_buf, nbits, floor)  # prover advice; verified below
     assert log(g_log) < SIZE_BITS
+    assert log(g_log / (GEN ** floor)) < SIZE_BITS
     low_bits = psum_buf[g_log]                  # value of bits [0, log)
     high_bits = low_bits + word                 # value of bits [log, nbits)
     assert high_bits * low_bits == 0            # word < 2^log (high bits clear) OR ...
@@ -2577,10 +2607,11 @@ def verify_sig_sphincs(signer):
 # =========================== statements and the signer set ==========================
 
 
-def statement_digest(seed_0, seed_1, signers_hash, defer):
+def statement_digest(seed_0, seed_1, signers_hash, da_0, da_1, defer):
     # A node's statement, hashed to the two words the VM publishes, over the
     # proving environment's Fiat-Shamir seed (flock's R1CS and this bytecode), the
-    # two-cell signer-set digest, and the DEFER_STMT_CELLS deferred-claim cells. A
+    # two-cell signer-set digest, the digest of its possibly empty DA root list,
+    # and the DEFER_STMT_CELLS deferred-claim cells. A
     # parent rebuilds a child's statement with this same call, over a signer-set
     # digest it re-absorbed itself, which forces the child to be a proof of THIS
     # bytecode over groups checked against the parent's own.
@@ -2595,6 +2626,8 @@ def statement_digest(seed_0, seed_1, signers_hash, defer):
     cells[1] = seed_1
     cells[2] = signers_hash[1]
     cells[3] = signers_hash[GEN]
+    cells[4] = da_0
+    cells[5] = da_1
     for p in unroll(0, STMT_PAIRS):
         s = defer[GEN ** (2 * p)]
         if const(2 * p + 1 == DEFER_STMT_CELLS):
@@ -2999,12 +3032,12 @@ def plain_tail(state_0, state_1, base, run_ptr, k: Const):
 
 
 def signer_set_digest(run_ptr, n_epochs_g, g_squares):
-    # BLAKE2s of the signer set: the tag block carrying both list lengths, the
-    # SPHINCS list's digest, then two blocks a group, its (epoch, count, message)
+    # BLAKE2s of the signer set: both list lengths and the SPHINCS list's digest
+    # in the first block, then two blocks a group, its (epoch, count, message)
     # and its key list's digest. Every block is full, so the hash is over exactly
-    # 64·(2 + 2·epochs) bytes, and leading with both lengths makes the encoding
+    # 64·(1 + 2·epochs) bytes, and leading with both lengths makes the encoding
     # prefix-free: no set's string is a prefix of another's.
-    blocks = n_epochs_g * n_epochs_g * (GEN ** 2)  # g^(2 + 2·epochs)
+    blocks = n_epochs_g * n_epochs_g * GEN  # g^(1 + 2·epochs)
     split = StackBuf(2)
     hint_witness(split, "signers_split")
     windows = split[0]
@@ -3063,7 +3096,7 @@ def rebuild_child_groups(nsub_e_g, run_ptr, base, epochs, msgs, group_base, grou
         gb = group_base[parent]
         prefix = counts[xj]
         kd_0, kd_1 = child_key_list_digest(xmss_table * (gb * gb), cover, base * prefix, gb, group_slots[parent], halves[0], halves[1], n_keys, g_squares)
-        slot = run_ptr * (xj ** 8) * (GEN ** 8)
+        slot = run_ptr * (xj ** 8) * (GEN ** 4)
         slot[1] = grp[0]
         slot[GEN] = n_keys
         slot[GEN ** 2] = grp[1]
@@ -3076,7 +3109,244 @@ def rebuild_child_groups(nsub_e_g, run_ptr, base, epochs, msgs, group_base, grou
     return counts[nsub_e_g]
 
 
+# ================================ LeanDA ===============================
+# Hash the encoded rows first, then derive membership challenges from the root
+# and check the same stored symbols (doc/leanvm §Data availability: LeanDA).
+# `crates/lean_da` derives DA_TWIDDLES and DA_NOVEL from the encoder.
+
+
+def da_verify(g_squares):
+    # Returns the commitment this node attests to, as its two canonical cells.
+    # The row count is a run-time parameter. The trees need a compile-time depth,
+    # so the rows are padded to a power of two and the two `match`es below dispatch
+    # on its log; everything else walks the real rows only. A padding row is the
+    # zero codeword, so its cell digest and its row digest are constants, and the
+    # gap loop writes them without hashing anything.
+    shape = StackBuf(2)
+    hint_witness(shape, "da_shape")  # n_blob, then log2 of the padded count
+    n_blob_g = shape[0]
+    g_log_pad = shape[1]
+    n_pad_g, gap_g = da_row_shape(n_blob_g, g_log_pad, g_squares)
+
+    cells = HeapBuf(DA_CELLS)
+    prefix_digests = HeapBuf(n_pad_g ** (2 * DA_PREFIX_CELLS))
+    prefix_bases = HeapBuf(n_blob_g)
+    for xi in mul_range(1, n_blob_g):
+        prefix_bases[xi] = prefix_digests * (xi ** (2 * DA_PREFIX_CELLS))
+
+    # Prefix blocks first, so the digests the row branch needs are stored by a
+    # loop that knows it is inside the prefix, with no per-block branch.
+    coltree = HeapBuf(4 * DA_CELLS)
+    for xb in mul_range(1, GEN ** DA_PREFIX_CELLS):
+        da_commit_column(xb, n_blob_g, n_pad_g, gap_g, g_log_pad, cells, prefix_bases, coltree, 1)
+    for xb in mul_range(GEN ** DA_PREFIX_CELLS, GEN ** DA_CELLS):
+        da_commit_column(xb, n_blob_g, n_pad_g, gap_g, g_log_pad, cells, prefix_bases, coltree, 0)
+
+    rc0, rc1 = da_levels(coltree, DA_CELLS, DA_BLOCK_BITS)
+
+    # The row branch: each row's prefix digests, hashed as one string.
+    rowtree = HeapBuf(n_pad_g ** 4)
+    for xi in mul_range(1, n_blob_g):
+        run = prefix_bases[xi]
+        st = StackBuf(2)
+        blake2s(run[0:2], run[2:4], st, counter=64, final=1 // DA_ROW_BLOCKS)
+        for b in unroll(1, DA_ROW_BLOCKS):
+            nxt = StackBuf(2)
+            blake2s(run[4 * b:4 * b + 2], run[4 * b + 2:4 * b + 4], nxt, cv=st, counter=64 * (b + 1), final=(b + 1) // DA_ROW_BLOCKS)
+            st = nxt
+        slot = rowtree * (xi ** 2)
+        slot[1] = st[0]
+        slot[GEN] = st[1]
+    for xd in mul_range(1, gap_g):
+        pad = rowtree * (n_blob_g ** 2) * (xd ** 2)
+        pad[1] = DA_PAD_ROW_0
+        pad[GEN] = DA_PAD_ROW_1
+    rr0, rr1 = match(log(g_log_pad), range(0, DA_TREE_ARMS), lambda k: da_levels(rowtree, 2 ** k, k))
+
+    root = StackBuf(2)
+    blake2s([rr0, rr1], [rc0, rc1], root)
+    fs = [DA_SEED_0, DA_SEED_1]
+    fs = obs(fs, root[0])
+    fs = obs(fs, root[1])
+    z = HeapBuf(DA_LOG_K)
+    for j in unroll(0, DA_LOG_K):
+        fs, ch = squeeze(fs)
+        z[GEN ** j] = ch
+
+    # Each row's running sum uses a fresh write-once cell per column.
+    acc = HeapBuf(n_blob_g ** (DA_CELLS + 1))
+    rowbase = HeapBuf(n_blob_g)
+    for xi in mul_range(1, n_blob_g):
+        chain = acc * (xi ** (DA_CELLS + 1))
+        rowbase[xi] = chain
+        chain[1] = 0
+    for xb in mul_range(1, GEN ** DA_CELLS):
+        lvals = da_block(xb, z, g_squares)
+        column = cells[xb]
+        for xi in mul_range(1, n_blob_g):
+            sym = column[xi]
+            s = da_cell_residual(sym, lvals)
+            chain = rowbase[xi] * xb
+            chain[GEN] = chain[1] + s
+    for xi in mul_range(1, n_blob_g):
+        chain = rowbase[xi]
+        assert chain[GEN ** DA_CELLS] == 0
+    return root[0], root[1]
+
+
+def da_row_shape(n_blob_g, g_log_pad, g_squares):
+    assert n_blob_g != 1
+    assert log(n_blob_g) < DA_MAX_ROWS + 1
+    assert log(g_log_pad) < DA_LOG_MAX_ROWS + 1
+    n_pad_g = g_squares[g_log_pad]
+    # n_blob <= n_pad < 2*n_blob: both differences must be nonnegative.
+    gap_g = n_pad_g / n_blob_g
+    assert log(gap_g) < DA_MAX_ROWS + 1
+    assert log(n_blob_g * n_blob_g / (n_pad_g * GEN)) < DA_MAX_ROWS
+    return n_pad_g, gap_g
+
+
+def da_commit_column(xb, n_blob_g, n_pad_g, gap_g, g_log_pad, cells, prefix_bases, coltree, store: Const):
+    column = HeapBuf(n_blob_g)
+    cells[xb] = column
+    node = HeapBuf(n_pad_g ** 4)
+    for xi in mul_range(1, n_blob_g):
+        d0, d1, sym = da_root_cell()
+        column[xi] = sym
+        leaf = node * (xi ** 2)
+        leaf[1] = d0
+        leaf[GEN] = d1
+        if const(store == 1):
+            slot = prefix_bases[xi] * (xb * xb)
+            slot[1] = d0
+            slot[GEN] = d1
+    for xd in mul_range(1, gap_g):
+        pad = node * (n_blob_g ** 2) * (xd ** 2)
+        pad[1] = DA_PAD_CELL_0
+        pad[GEN] = DA_PAD_CELL_1
+    c0, c1 = match(log(g_log_pad), range(0, DA_TREE_ARMS), lambda k: da_levels(node, 2 ** k, k))
+    out = coltree * (xb * xb)
+    out[1] = c0
+    out[GEN] = c1
+    return
+
+
+def da_root_cell():
+    # Packing checks that each symbol is in K. Retain the address of these exact
+    # symbols for the membership pass; VM frames live in write-once memory.
+    sym = StackBuf(DA_CELL)
+    hint_witness(sym, "da_symbols")
+    packed = StackBuf(DA_CELL // 2)
+    for e in unroll(0, DA_CELL // 2):
+        packed[e] = pack64x2(sym[2 * e], sym[2 * e + 1])
+    st = StackBuf(2)
+    blake2s(packed[0:2], packed[2:4], st, counter=64, final=1 // DA_CELL_BLOCKS)
+    for b in unroll(1, DA_CELL_BLOCKS):
+        nxt = StackBuf(2)
+        blake2s(packed[4 * b:4 * b + 2], packed[4 * b + 2:4 * b + 4], nxt, cv=st, counter=64 * (b + 1), final=(b + 1) // DA_CELL_BLOCKS)
+        st = nxt
+    symbols = addr(sym)
+    return st[0], st[1], symbols
+
+
+def da_cell_residual(sym, lvals):
+    s = 0
+    for e in unroll(0, DA_CELL):
+        s = s + lvals[GEN ** e] * sym[GEN ** e]
+    return s
+
+
+def da_levels(tree, n: Const, log_n: Const):
+    # The internal levels of a Merkle tree whose leaves already sit at level 0 of
+    # `tree` (2 cells a node, level lvl at 4n - 4n//2**lvl). Returns the root pair.
+    for lvl in unroll(0, log_n):
+        for xp in mul_range(1, GEN ** (n // 2 ** (lvl + 1))):
+            a = tree * (GEN ** (4 * n - 4 * n // 2 ** lvl)) * (xp ** 4)
+            b = tree * (GEN ** (4 * n - 4 * n // 2 ** (lvl + 1))) * (xp * xp)
+            blake2s(a[0:2], a[2:4], b[0:2])
+    return tree[GEN ** (4 * n - 4)], tree[GEN ** (4 * n - 3)]
+
+
+def da_block(xb, z, g_squares):
+    # L over block B, where xb = g^B. The bits of B are advice, tied back by
+    # rebuilding g^B, and they select which generators enter A_j(B).
+    bits = StackBuf(DA_BLOCK_BITS)
+    hint_decompose_bits_exponent(bits, xb, DA_BLOCK_BITS)
+    chk = 1
+    for i in unroll(0, DA_BLOCK_BITS):
+        b = bits[i]
+        bits[i] = b * b
+        chk = chk * (1 + b * (g_squares[GEN ** i] + 1))
+    assert chk == xb
+
+    coef = StackBuf(DA_LOG_K)
+    for j in unroll(0, DA_LOG_K):
+        a = 0
+        for i in unroll(0, DA_BLOCK_BITS):
+            a = a + bits[i] * DA_NOVEL[j * DA_BLOCK_BITS + i]
+        coef[j] = 1 + z[GEN ** j] * a
+
+    head = 1
+    for j in unroll(DA_LOG_CELL, DA_LOG_K):
+        head = head * coef[j]
+
+    stage = HeapBuf(2 * DA_CELL)
+    stage[1] = head
+    for j in unroll(0, DA_LOG_CELL):
+        for e in unroll(0, 2 ** j):
+            lo = stage[GEN ** (2 ** j - 1 + e)]
+            stage[GEN ** (2 ** (j + 1) - 1 + e)] = lo * coef[j]
+            stage[GEN ** (2 ** (j + 1) - 1 + e + 2 ** j)] = lo * z[GEN ** j]
+
+    ntt = HeapBuf((DA_LOG_CELL + 1) * DA_CELL)
+    for e in unroll(0, DA_CELL):
+        ntt[GEN ** e] = stage[GEN ** (DA_CELL - 1 + e)]
+    for layer in unroll(0, DA_LOG_CELL):
+        for b in unroll(0, 2 ** layer):
+            for i in unroll(0, 2 ** (DA_LOG_CELL - layer - 1)):
+                u = ntt[GEN ** (layer * DA_CELL + b * 2 ** (DA_LOG_CELL - layer) + i)]
+                v = ntt[GEN ** (layer * DA_CELL + b * 2 ** (DA_LOG_CELL - layer) + i + 2 ** (DA_LOG_CELL - layer - 1))]
+                nu = u + v * DA_TWIDDLES[2 ** layer - 1 + b]
+                ntt[GEN ** ((layer + 1) * DA_CELL + b * 2 ** (DA_LOG_CELL - layer) + i)] = nu
+                ntt[GEN ** ((layer + 1) * DA_CELL + b * 2 ** (DA_LOG_CELL - layer) + i + 2 ** (DA_LOG_CELL - layer - 1))] = v + nu
+    return ntt * (GEN ** (DA_LOG_CELL * DA_CELL))
+
 # ================================ the aggregation node ==============================
+
+
+def da_list_digest(roots, n_g):
+    # At most 16 roots: every BLAKE2s byte counter and final flag is constant.
+    a, b = match(log(n_g), range(0, DA_ROOT_COUNTS), lambda n: da_hash_roots(roots, n))
+    return a, b
+
+
+def da_hash_roots(roots, n: Const):
+    digest = StackBuf(2)
+    if const(n == 0):
+        blake2s([0, 0], [0, 0], digest, counter=0, final=1)
+    else:
+        state = StackBuf(2)
+        state[0] = BLAKE2S_IV_0
+        state[1] = BLAKE2S_IV_1
+        for b in unroll(0, (n - 1) // 2):
+            block = roots * (GEN ** (4 * b))
+            nxt = StackBuf(2)
+            blake2s(block[0:2], block[2:4], nxt, cv=state, counter=64 * (b + 1), final=0)
+            state = nxt
+        last = roots * (GEN ** (4 * ((n - 1) // 2)))
+        if const(n % 2 == 0):
+            blake2s(last[0:2], last[2:4], digest, cv=state, counter=32 * n, final=1)
+        else:
+            blake2s(last[0:2], [0, 0], digest, cv=state, counter=32 * n, final=1)
+    return digest[0], digest[1]
+
+
+def cover_da_root(roots, cover, n_slots_g, mark):
+    index = hint_witness("da_index")
+    assert log(index) < log(n_slots_g)
+    cover[index] = mark
+    root = roots * (index ** 2)
+    return root[1], root[GEN]
 
 
 def main():
@@ -3084,14 +3354,14 @@ def main():
     # were made at (a RUNTIME number of groups), n_raw_sphincs SPHINCS signatures
     # and n_children sub-proofs OF THIS SAME BYTECODE. Each XMSS group carries its
     # own (epoch, message) pair, and each SPHINCS signature is against the message
-    # in its own coverage slot.
+    # in its own coverage slot. DA roots occupy a separate region of the same table.
     #
     # The declared lists are the signer set; the duplicate slots absorb keys a child
     # covers that the set does not declare. The coverage table is one region per
-    # epoch group, each its declared keys then its own duplicates, then the SPHINCS
-    # region shaped the same way:
+    # epoch group, each its declared keys then its own duplicates, then SPHINCS
+    # and DA regions shaped the same way:
     #
-    #   [group 0: declared | dup]...[group n_epochs-1: declared | dup][SPHINCS: declared | dup]
+    #   [group 0: declared | dup]...[group n_epochs-1: declared | dup][SPHINCS: declared | dup][DA: declared | dup]
     #
     # The first n_decl groups are the signer set's; the n_drop after them declare
     # nothing, holding a child group's (epoch, message) without publishing it.
@@ -3099,8 +3369,8 @@ def main():
     # so one range check per write keeps each writer inside its own region: that is
     # what makes the statement's split mean which scheme verified which key against
     # which (epoch, message). An XMSS slot is two cells, a SPHINCS slot four: a key
-    # and the message that key signed.
-    meta = StackBuf(6)
+    # and the message that key signed. A DA root occupies two cells.
+    meta = StackBuf(7)
     hint_witness(meta, "meta")  # every count in the exponent
     n_decl_g = meta[0]
     n_drop_g = meta[1]
@@ -3108,6 +3378,7 @@ def main():
     n_sdup_g = meta[3]
     n_raw_s_g = meta[4]
     n_children_g = meta[5]
+    n_direct_da_g = meta[6]
     # Declared plus dropped, so bounding each side pins n_decl <= n_epochs.
     assert log(n_decl_g) < MAX_EPOCHS + 1
     assert log(n_drop_g) < MAX_EPOCHS + 1
@@ -3117,6 +3388,15 @@ def main():
     assert log(n_sdup_g) < MAX_KEYS
     assert log(n_raw_s_g) < MAX_KEYS
     assert log(n_children_g) < MAX_RECURSIONS + 1
+    assert log(n_direct_da_g) < 2
+    da_meta = StackBuf(2)
+    hint_witness(da_meta, "da_meta")
+    n_da_g = da_meta[0]
+    n_da_dup_g = da_meta[1]
+    assert log(n_da_g) < MAX_DA_ROOTS + 1
+    assert log(n_da_dup_g) < MAX_RECURSIONS * MAX_DA_ROOTS + 2
+    da_slots_g = n_da_g * n_da_dup_g
+    assert log(da_slots_g) < MAX_RECURSIONS * MAX_DA_ROOTS + 2
 
     # ---- the epoch groups: geometry pass ----
     # Per group: its epoch, its two message cells, and its declared, duplicate and
@@ -3164,7 +3444,8 @@ def main():
     sphincs_slots_g = n_sphincs_g * n_sdup_g
     # The sum of every region bounds the coverage indices, so it is what has to sit
     # below the minimum memory size.
-    n_total_g = xmss_slots_g * sphincs_slots_g
+    da_base_g = xmss_slots_g * sphincs_slots_g
+    n_total_g = da_base_g * da_slots_g
     assert log(n_total_g) < MAX_KEYS
 
     # The proving environment (flock's R1CS and this bytecode) as one digest. It
@@ -3178,13 +3459,20 @@ def main():
 
     # ---- the signer set ----
     g_logs_pow2, g_squares = exponent_tables()
+
+    # ---- data availability ----
+    da_roots = HeapBuf(da_slots_g ** 2)
+    for xd in mul_range(1, da_slots_g):
+        root = da_roots * (xd ** 2)
+        hint_witness(root[0:2], "da_roots")
+    da_0, da_1 = da_list_digest(da_roots, n_da_g)
     # One table per scheme, the XMSS one an epoch group at a time: each group its
     # declared list (strictly sorted, checked by the outer verifier, which holds it)
     # followed by its own duplicate slots. The coverage indices below run over one
-    # space: the group regions in order, then the SPHINCS one.
+    # space: the group regions in order, then SPHINCS, then DA.
     #
-    # The digest is a plain BLAKE2s of one string, in whole blocks: a tag block with
-    # both lengths, the SPHINCS list's digest, then per group its (epoch, count,
+    # The digest is a plain BLAKE2s of one string, in whole blocks: both lengths
+    # and the SPHINCS list's digest, then per group its (epoch, count,
     # message) and its key list's digest, each list hashed plainly in turn. Leading
     # with both lengths makes the encoding prefix-free, so no set's string is a
     # prefix of another's and the digest binds its own lengths. `half` and `odd` are
@@ -3192,14 +3480,12 @@ def main():
     # leaves half = n // 2 and odd = n % 2 as the only solution.
     xmss_table = HeapBuf(xmss_slots_g * xmss_slots_g)
     sphincs_table = HeapBuf(sphincs_slots_g ** 4)
-    # The run the set's hash covers: the tag block with both lengths, a block for the
-    # SPHINCS list's digest, then two a group. Eight cells a group, so a group's
+    # The run the set's hash covers: both lengths and the SPHINCS list's digest
+    # in one block, then two a group. Eight cells a group, so a group's
     # header and its key digest are one block each.
-    signers_run = HeapBuf(n_decl_g ** 8 * GEN ** 8)
-    signers_run[1] = SIGNERS_TAG_0
-    signers_run[GEN] = SIGNERS_TAG_1
-    signers_run[GEN ** 2] = n_decl_g
-    signers_run[GEN ** 3] = n_sphincs_g
+    signers_run = HeapBuf(n_decl_g ** 8 * GEN ** 4)
+    signers_run[1] = n_decl_g
+    signers_run[GEN] = n_sphincs_g
     decl_keys = HeapBuf(n_decl_g * GEN)
     decl_keys[GEN ** 0] = 1
     for xe in mul_range(1, n_decl_g):
@@ -3213,7 +3499,7 @@ def main():
         assert halves[0] * halves[0] * halves[1] == n_keys
         kd_0, kd_1 = key_list_digest(xmss_table * (base * base), halves[0], halves[1], n_keys, g_squares)
         group_msg = msgs * (xe * xe)
-        slot = signers_run * (xe ** 8) * (GEN ** 8)
+        slot = signers_run * (xe ** 8) * (GEN ** 4)
         slot[1] = epochs[xe]
         slot[GEN] = n_keys
         slot[GEN ** 2] = group_msg[1]
@@ -3232,13 +3518,10 @@ def main():
             dup = dup_ptr * (xd * xd)
             hint_witness(dup[0:2], "dup_pubkeys")
     sp_0, sp_1 = sphincs_list_digest(sphincs_table, n_sphincs_g, g_squares)
-    signers_run[GEN ** 4] = sp_0
-    signers_run[GEN ** 5] = sp_1
-    signers_run[GEN ** 6] = 0
-    signers_run[GEN ** 7] = 0
-    # Over the declared prefix, since a dropped group's count is advice. Ahead of
-    # `cover` below, so it also rules out a zero-slot table.
-    assert decl_keys[n_decl_g] * n_sphincs_g != 1  # a signer set is never empty
+    signers_run[GEN ** 2] = sp_0
+    signers_run[GEN ** 3] = sp_1
+    # At least one published signature claim or DA root also ensures a nonempty coverage table.
+    assert decl_keys[n_decl_g] * n_sphincs_g * n_da_g != 1
     set_0, set_1 = signer_set_digest(signers_run, n_decl_g, g_squares)
     signers_hash = HeapBuf(WORDS_PER_BLOCK)
     signers_hash[1] = set_0
@@ -3251,12 +3534,13 @@ def main():
     # Every one of the n_total slots is written exactly once: write-once memory
     # rejects a second write (the value written is the running count, so two writes
     # to one slot disagree), and the count below rejects a missed one. So every
-    # declared signer is covered by a signature of ITS OWN scheme, at ITS OWN epoch,
-    # or by a verified child, which is the whole security claim of the aggregate.
+    # declared claim is covered by a direct check of its own kind or by a verified
+    # child. Each writer is confined to its own region, including DA roots.
     # The raw XMSS walk runs one loop per epoch group, each signature verified
     # against that group's tables (built here, only for a group that holds raw
     # signatures); a stride-1 chain threads the running count across the groups.
     cover = HeapBuf(n_total_g)
+    da_cover = cover * da_base_g
     merkle_bits = HeapBuf(n_epochs_g ** MERKLE_BIT_CELLS)
     tweak_tables = HeapBuf(n_epochs_g ** N_TWEAK_CELLS)
     raw_count = HeapBuf(n_epochs_g * GEN)
@@ -3292,12 +3576,18 @@ def main():
         cover[xmss_slots_g * off_hint] = n_raw_x_g * xj
         verify_sig_sphincs(sphincs_table * (off_hint ** 4))
 
+    if n_direct_da_g == GEN:
+        root_0, root_1 = da_verify(g_squares)
+        expected_0, expected_1 = cover_da_root(da_roots, da_cover, da_slots_g, n_raw_x_g * n_raw_s_g)
+        assert root_0 == expected_0
+        assert root_1 == expected_1
+
     # ---- children ----
     child_pi = HeapBuf(n_children_g * n_children_g)
     child_fresh = HeapBuf(n_children_g ** DEFER_SIZE)
     child_carried = HeapBuf(n_children_g ** DEFER_STMT_CELLS)
     written = HeapBuf(n_children_g * GEN)  # loop-carried write count, one per child
-    written[GEN ** 0] = n_raw_x_g * n_raw_s_g
+    written[GEN ** 0] = n_raw_x_g * n_raw_s_g * n_direct_da_g
     for xc in mul_range(1, n_children_g):
         base = written[xc]
         # The child's two list lengths, then its groups, rebuilt into its signer-set
@@ -3312,34 +3602,38 @@ def main():
         nsub_s_g = child_meta[1]
         assert log(nsub_e_g) < MAX_EPOCHS + 1
         assert log(nsub_s_g) < MAX_KEYS
-        sub_run = HeapBuf(nsub_e_g ** 8 * GEN ** 8)
-        sub_run[1] = SIGNERS_TAG_0
-        sub_run[GEN] = SIGNERS_TAG_1
-        sub_run[GEN ** 2] = nsub_e_g
-        sub_run[GEN ** 3] = nsub_s_g
+        sub_run = HeapBuf(nsub_e_g ** 8 * GEN ** 4)
+        sub_run[1] = nsub_e_g
+        sub_run[GEN] = nsub_s_g
         nsub_x_g = rebuild_child_groups(nsub_e_g, sub_run, base, epochs, msgs, group_base, group_slots, n_epochs_g, xmss_table, cover, g_squares)
         # Implied by the per-group bounds and the child's own n_total assert; stands
         # as documentation.
         assert log(nsub_x_g) < MAX_KEYS
         nsub_g = nsub_x_g * nsub_s_g
-        assert nsub_g != 1
         csp_0, csp_1 = child_sphincs_list_digest(sphincs_table, cover, base * nsub_x_g, xmss_slots_g, sphincs_slots_g, nsub_s_g, g_squares)
-        sub_run[GEN ** 4] = csp_0
-        sub_run[GEN ** 5] = csp_1
-        sub_run[GEN ** 6] = 0
-        sub_run[GEN ** 7] = 0
+        sub_run[GEN ** 2] = csp_0
+        sub_run[GEN ** 3] = csp_1
         sub_set_0, sub_set_1 = signer_set_digest(sub_run, nsub_e_g, g_squares)
         sub_hash = HeapBuf(WORDS_PER_BLOCK)
         sub_hash[1] = sub_set_0
         sub_hash[GEN] = sub_set_1
         carried = child_carried * xc ** DEFER_STMT_CELLS
         hint_witness(carried[0:DEFER_STMT_CELLS], "child_defer")
-        pi_0, pi_1 = statement_digest(seed_0, seed_1, sub_hash, carried)
+        nsub_da_g = hint_witness("child_da_count")
+        assert log(nsub_da_g) < MAX_DA_ROOTS + 1
+        child_da = HeapBuf(nsub_da_g ** 2)
+        for xd in mul_range(1, nsub_da_g):
+            root = child_da * (xd ** 2)
+            root_0, root_1 = cover_da_root(da_roots, da_cover, da_slots_g, base * nsub_g * xd)
+            root[1] = root_0
+            root[GEN] = root_1
+        child_da_0, child_da_1 = da_list_digest(child_da, nsub_da_g)
+        pi_0, pi_1 = statement_digest(seed_0, seed_1, sub_hash, child_da_0, child_da_1, carried)
         pi = xc * xc
         child_pi[pi] = pi_0
         child_pi[pi * GEN] = pi_1
         verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, child_fresh * xc ** DEFER_SIZE)
-        written[xc * GEN] = base * nsub_g
+        written[xc * GEN] = base * nsub_g * nsub_da_g
     assert written[n_children_g] == n_total_g
 
     # ---- this node's own deferred claims ----
@@ -3361,7 +3655,7 @@ def main():
     else:
         aggregate_claims(n_children_g, child_pi, child_fresh, child_carried, defer_stmt)
 
-    own_0, own_1 = statement_digest(seed_0, seed_1, signers_hash, defer_stmt)
+    own_0, own_1 = statement_digest(seed_0, seed_1, signers_hash, da_0, da_1, defer_stmt)
     pub_ptr = GEN ** 0
     assert pub_ptr[1] == own_0
     assert pub_ptr[GEN] == own_1

@@ -1,8 +1,3 @@
-//! Recursive aggregation of XMSS and SPHINCS signatures ([`aggregation`]) and
-//! the harnesses that measure it ([`benchmark`]), plus the Fibonacci demo. One
-//! zkDSL guest (`guests/lean_ethereum.py`) serves every node of an aggregation tree,
-//! and knows both schemes.
-
 pub mod aggregation;
 pub mod benchmark;
 pub mod fibonacci;
@@ -14,8 +9,9 @@ mod hash_chain;
 pub mod signers_cache;
 
 pub use aggregation::{
-    AggregateSignature, AggregateVerifyError, AggregationError, MAX_EPOCHS, MAX_KEYS, MAX_RECURSIONS, SphincsSigner,
-    WireKeys, XmssGroup, aggregate, warm_up,
+    AggregateVerifyError, AggregationError, ClaimSelection, DA_LOG_CELL, DA_LOG_K, DA_MAX_ROWS, EthereumProof,
+    MAX_DA_ROOTS, MAX_EPOCHS, MAX_KEYS, MAX_RECURSIONS, SignatureClaims, SphincsClaim, XmssClaimGroup, aggregate,
+    warm_up,
 };
 pub use benchmark::{run_aggregation, run_recursion};
 pub use fibonacci::run_fibonacci;

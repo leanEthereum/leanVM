@@ -79,6 +79,23 @@ recursion 2→1, over leaves of 900 XMSS signatures
   verifying                   : 0.0146 s
 ```
 
+### Data Availability
+
+
+```bash
+cargo run --release -- aggregate --blobs 16 --log-inv-rate 1 --repeat 3
+```
+
+```
+aggregation, 16 blobs
+  cycles (VM steps)           : 4,500,298 = 2^22.102
+    details                   : DEREF 2^20.845 (41.9%)  XOR 2^20.029 (23.8%)  MUL 2^19.993 (23.2%)  JUMP 2^18.093 (6.2%)  SET 2^17.244(3.4%)  BLAKE2S 2^16.056 (1.5%)  MEMORY 2^22.21  TOTAL_COMMITTED 2^27.237
+  proof size                  : 322.8 KiB
+  proving time                : 1.652 s ± 0.9%      peak memory 18.965 GiB
+  blob throughput             : 9.685 blobs/s, 1.211 MiB/s
+  verifying                   : 0.0171 s
+```
+
 ### Fibonacci
 
 

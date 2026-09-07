@@ -1,0 +1,213 @@
+% !TeX root = ../drafts/d-novel-basis.tex
+\section{Novel polynomial basis and additive NTT}\label{app:ntt}
+
+This annex collects the algebra shared by the PCS (Annex~\ref{annex:pcs}) and LeanDA (\S\ref{sec:leanda}): additive domains, the novel polynomial basis, its additive FFT (called an NTT over a finite field), and codeword membership. The basis and transform follow~\cite{LCH14}, as presented in~\cite{DP24}.
+
+Fix the $\Ftwo$-basis $e_c:=x^c$, $0\le c<64$, of $\K$, the first $64$ vectors of the basis of $\E$ in Annex~\ref{annex:rs}. In particular $e_0=1$. For a bit vector $u$, write $\langle u\rangle:=\sum_i u_i2^i$ for its integer index, with bit $0$ first.
+
+\subsection{Additive domains and subspace polynomials}\label{sec:ntt-subspaces}
+
+For $0 \le i \le 64$ let $\subsp_i := \langle e_0, \dots, e_{i-1} \rangle_{\Ftwo}$ and define the \emph{subspace vanishing polynomial} $\vansub_i(X) := \prod_{u \in \subsp_i}(X + u)$, of degree $2^i$.
+
+\begin{lemma}[Subspace polynomials]\label{lem:subspace}
+Each $\vansub_i$ is linearized: it contains only powers $X^{2^j}$. For $i < 64$: (i) $\vansub_{i+1}(X) = \vansub_i(X)\bigl(\vansub_i(X) + \vansub_i(e_i)\bigr)$ with $\vansub_i(e_i) \neq 0$; (ii) $\vansub_i(X + Y) = \vansub_i(X) + \vansub_i(Y)$ as a polynomial identity; in particular the map $\vansub_i : \K \to \K$ is $\Ftwo$-linear.
+\end{lemma}
+
+\begin{proof}
+By induction on $i$; the base case is $\vansub_0(X) = X$. For (i), split the product defining $\vansub_{i+1}$ along $\subsp_{i+1} = \subsp_i \sqcup (e_i + \subsp_i)$:
+\[
+\vansub_{i+1}(X) \;=\; \prod_{u \in \subsp_i} (X + u) \cdot \prod_{u \in \subsp_i} \bigl(X + e_i + u\bigr) \;=\; \vansub_i(X) \cdot \vansub_i(X + e_i) \;=\; \vansub_i(X) \bigl( \vansub_i(X) + \vansub_i(e_i) \bigr),
+\]
+where the middle step recognizes the second product as $\vansub_i$ evaluated at $X + e_i$, and the last step is the identity (ii) for $\vansub_i$ with $Y = e_i$. Moreover $\vansub_i(e_i) \neq 0$, since the roots of $\vansub_i$ are exactly $\subsp_i$ and $e_i \notin \subsp_i$. The recurrence also preserves the linearized form: squaring doubles each exponent, and the other term is a scalar multiple of $\vansub_i$. For (ii) at $i + 1$, write $\vansub_{i+1} = \vansub_i^2 + \vansub_i(e_i)\, \vansub_i$ by (i): the second term satisfies the identity by induction, and so does the first, since in characteristic $2$
+\[
+\vansub_i(X+Y)^2 \;=\; \bigl(\vansub_i(X) + \vansub_i(Y)\bigr)^2 \;=\; \vansub_i(X)^2 + \vansub_i(Y)^2 . \qedhere
+\]
+\end{proof}
+
+For $i<64$, let $\Wn{i} := \vansub_i / \vansub_i(e_i)$ (the hat denotes normalization, not multilinear extension), so $\Wn{i}(e_i) = 1$ and $\Wn{0} = X$ (using $e_0 = 1$). By linearity, $\Wn{i}(x) = \sum_c x_c \Wn{i}(e_c)$ for $x = \sum_c x_c e_c$, so given the values $\Wn{i}(e_c)$ (precomputed via the recursion (i)), $\Wn{i}$ is evaluated anywhere in $\K$ in at most $64$ additions.
+
+\subsection{Novel basis and Reed-Solomon encoding}\label{sec:ntt-encoding}
+
+\begin{definition}[Reed-Solomon code]\label{def:rs-code}
+For an additive domain $\dom\subseteq\K$ of size $\blen$ and $1\le\kdim\le\blen$, let
+\[
+  \RS[\E,\dom,\kdim]
+  :=\{(p(x))_{x\in\dom}:p\in\E[X],\ \deg p<\kdim\}.
+\]
+It has dimension $\kdim$ and rate $\rate=\kdim/\blen$. Its $\K$-valued subcode is $\RS[\K,\dom,\kdim]$.
+\end{definition}
+
+\begin{definition}[Novel basis and encoder~\cite{LCH14}]\label{def:enc}
+Let $0\le\kappa<64$, $\rexp\ge0$, and $\kappa+\rexp\le64$. For $0 \le j < 2^{\kappa}$ with bits $j_i$, let $\novel_j(X) := \prod_i \Wn{i}(X)^{j_i}$; then $\deg \novel_j = j$, so $(\novel_j)_{j < 2^\kappa}$ is a (triangular) basis of the polynomials of degree less than $2^{\kappa}$. Let $\dom := \langle e_0, \dots, e_{\kappa+\rexp-1} \rangle_{\Ftwo}$ and, for a message $g : \cube{\kappa} \to \E$,
+\[
+\mpoly_g(X) := \sum_{u \in \cube{\kappa}} g(u) \cdot \novel_{\langle u \rangle}(X), \qquad \Enc_{\kappa,\rexp}(g) := \bigl(\mpoly_g(x)\bigr)_{x \in \dom},
+\]
+a linear injection onto $\RS[\E, \dom, 2^{\kappa}]$ of rate $\rate = 2^{-\rexp}$; the $\novel_j$ take their values on $\dom \subseteq \K$, so a $\K$-valued message gives a $\K$-valued word. (The message is read \emph{directly} as novel-basis coefficients; no conversion is applied.)
+\end{definition}
+
+The payload consists of polynomial coefficients. Any $\kdim=2^\kappa$ distinct evaluations determine those coefficients by interpolation, but an evaluation prefix need not equal the payload.
+
+\subsection{The additive NTT}\label{sec:ntt}
+
+The encoder is computed by the additive NTT of~\cite{LCH14}, a Cooley-Tukey-style butterfly network in which the squaring map is replaced by degree-$2$ linearized maps $\ntmap_d$ collapsing the domain, and the twiddles are evaluations of the $\Wn{d}$. For $0 \le d < \kappa$ define
+\[
+\ntmap_d(X) \;:=\; \frac{\vansub_d(e_d)^2}{\vansub_{d+1}(e_{d+1})} \cdot X(X+1).
+\]
+
+\begin{lemma}[Chain structure]\label{lem:chain}
+Each $\ntmap_d$ is $\Ftwo$-linear with kernel $\{0,1\}$, and $\ntmap_d \circ \Wn{d} = \Wn{d+1}$, hence $\Wn{d} = \ntmap_{d-1} \circ \dots \circ \ntmap_0$. Setting $\dom^{(d)} := \Wn{d}(\dom)$ for $0 \le d \le \kappa$, each $\dom^{(d)}$ is an $\Ftwo$-subspace of dimension $\kappa + \rexp - d$. For $d<\kappa$, it contains $1 = \Wn{d}(e_d)$, and $\ntmap_d$ maps $\dom^{(d)}$ onto $\dom^{(d+1)}$ two-to-one with fibers $\{x, x+1\}$.
+\end{lemma}
+
+\begin{proof}
+$X(X+1) = X^2 + X$ is linear with kernel $\{0,1\}$. By Lemma~\ref{lem:subspace}(i), $\Wn{d+1} = \tfrac{\vansub_d (\vansub_d + \vansub_d(e_d))}{\vansub_{d+1}(e_{d+1})} = \tfrac{\vansub_d(e_d)^2}{\vansub_{d+1}(e_{d+1})} \Wn{d}(\Wn{d} + 1) = \ntmap_d \circ \Wn{d}$; the chain follows from $\Wn{0} = X$. $\Wn{d}|_\dom$ is linear with kernel $\subsp_d \subseteq \dom$, so its image has dimension $\kappa + \rexp - d$, and $\ntmap_d(\dom^{(d)}) = \Wn{d+1}(\dom) = \dom^{(d+1)}$ with $\ker \ntmap_d = \{0,1\} \subseteq \dom^{(d)}$.
+\end{proof}
+
+\begin{lemma}[Even-odd refinement]\label{lem:evenodd}
+For $0 \le d \le \kappa$ define $\Wn{b}^{(d)} := \ntmap_{d+b-1} \circ \dots \circ \ntmap_d$ (and $\Wn{0}^{(d)} := X$), and $\novel^{(d)}_j := \prod_b (\Wn{b}^{(d)})^{j_b}$, so $\novel^{(0)}_j = \novel_j$. If $d < \kappa$, $\mpoly = \sum_{j < 2^{\kappa-d}} a_j \novel^{(d)}_j$, and $\mpoly_\iota := \sum_j a_{2j+\iota} \novel^{(d+1)}_j$, then
+\[
+\mpoly(X) \;=\; \mpoly_0\bigl(\ntmap_d(X)\bigr) + X \cdot \mpoly_1\bigl(\ntmap_d(X)\bigr).
+\]
+\end{lemma}
+
+\begin{proof}
+$\Wn{b+1}^{(d)} = \Wn{b}^{(d+1)} \circ \ntmap_d$, so $\novel^{(d)}_{2j} = \novel^{(d+1)}_j \circ \ntmap_d$ and $\novel^{(d)}_{2j+1} = X \cdot \novel^{(d)}_{2j}$; split the sum by parity.
+\end{proof}
+
+\begin{center}
+\fbox{\parbox{0.92\textwidth}{
+\textbf{Additive NTT}~\cite{LCH14}. \emph{Input:} coefficients $a_0, \dots, a_{2^{\kappa}-1}$ of $\mpoly = \sum_j a_j \novel_j$. \emph{Output:} $(\mpoly(x))_{x \in \dom}$, identifying $\cube{\kappa+\rexp} \cong \dom$ via $v \mapsto x_v := \sum_c v_c e_c$.
+\begin{enumerate}[itemsep=1pt]
+\item Initialize $\bfarr(v) := a_{\langle (v_0, \dots, v_{\kappa-1}) \rangle}$ for all $v \in \cube{\kappa+\rexp}$ (the coefficient array, tiled $2^\rexp$ times).
+\item For $d = \kappa - 1$ down to $0$: for every $v$ with $v_d = 0$, with $v' := v \oplus \mathbf{1}_d$ and twiddle $t := \sum_{c > d} v_c \Wn{d}(e_c)$:\quad $\bfarr(v) \mathrel{+}= t \cdot \bfarr(v')$;\quad then\quad $\bfarr(v') \mathrel{+}= \bfarr(v)$.
+\item Output $\bfarr$; then $\bfarr(v) = \mpoly(x_v)$.
+\end{enumerate}
+}}
+\end{center}
+
+\begin{proposition}[Correctness and cost]\label{prop:ntt}
+The algorithm computes $\Enc_{\kappa,\rexp}$ with exactly $\tfrac12 \kappa \blen$ multiplications and $\kappa \blen$ additions in the butterflies, plus fewer than $\blen$ additions for the twiddles: $t$ depends only on $(v_c)_{c > d}$, so stage $d$ has $2^{\kappa + \rexp - 1 - d}$ distinct twiddles, shared by the $2^{d}$ butterflies of a block and enumerable with one addition each, $\sum_{d < \kappa} 2^{\kappa + \rexp - 1 - d} < \blen$ in total.
+\end{proposition}
+
+\begin{proof}[Proof sketch]
+For $\ell \in \cube{d}$ let $\mpoly^{(d)}_{\ell} := \sum_{j < 2^{\kappa-d}} a_{\langle \ell \rangle + 2^d j} \novel^{(d)}_j$ collect the coefficients congruent to $\langle \ell \rangle$ modulo $2^d$. Downward induction on $d$ maintains the invariant that after stages $\kappa-1, \dots, d$, $\ \bfarr(v) = \mpoly^{(d)}_{(v_0,\dots,v_{d-1})}\bigl(\Wn{d}(x_v)\bigr)$, where by linearity $\Wn{d}(x_v) = v_d + t$ with $t$ the twiddle of the algorithm (coordinates $c < d$ lie in $\ker \Wn{d} = \subsp_d$, and $\Wn{d}(e_d) = 1$). The base $d = \kappa$ is the tiled initialization. For the step, let $\ell := (v_0, \dots, v_{d-1})$: the order-$(d{+}1)$ even and odd parts of $\mpoly^{(d)}_{\ell}$ are $\mpoly^{(d+1)}_{(\ell,0)}$ and $\mpoly^{(d+1)}_{(\ell,1)}$ (as $\langle \ell \rangle + 2^d(2j+\iota) = \langle (\ell,\iota) \rangle + 2^{d+1} j$), whose values at $\Wn{d+1}(x_v) = \Wn{d+1}(x_{v'})$ are the pre-stage entries $\bfarr(v)$ and $\bfarr(v')$; Lemma~\ref{lem:evenodd} at the fiber $\{t, t+1\}$ of $\ntmap_d$ over this point (Lemma~\ref{lem:chain}) gives $\mpoly^{(d)}_{\ell}(t) = \bfarr(v) + t\,\bfarr(v')$ and $\mpoly^{(d)}_{\ell}(t+1) = \mpoly^{(d)}_{\ell}(t) + \bfarr(v')$, exactly the butterfly. At $d = 0$, $\bfarr(v) = \mpoly(x_v)$. Each of the $\kappa$ stages does $\blen/2$ butterflies of one multiplication and two additions.
+\end{proof}
+
+\subsection{Column weights}\label{sec:ntt-weights}
+
+A codeword coordinate is a linear combination of the message coefficients. The following factorization lets the PCS verifier evaluate that combination's multilinear weight without running a transform.
+
+\begin{lemma}[Column weights are tensors]\label{lem:colweight}
+For $x \in \dom$ let $W_x(u) := \prod_i \Wn{i}(x)^{u_i}$. Then $\Enc_{\kappa,\rexp}(g)[x] = \inner{W_x}{g} := \sum_u W_x(u) g(u)$, and
+\[
+\mle{W_x}(r) \;=\; \prod_{i=0}^{\kappa-1} \bigl( (1+r_i) + r_i \Wn{i}(x) \bigr),
+\]
+so one evaluation of $\mle{W_x}$ costs $O(\kappa)$ multiplications and additions in total: the values $\Wn{i}(x)$ follow the chain of Lemma~\ref{lem:chain}, $\Wn{0}(x) = x$ and $\Wn{i+1}(x) = \ntmap_i\bigl(\Wn{i}(x)\bigr)$, at two multiplications and one addition per step (the constants of the $\ntmap_i$ are precomputed once, shared by all levels and queries), and the $\kappa$-factor product costs the same again.
+\end{lemma}
+
+\begin{proof}
+The first identity is Definition~\ref{def:enc} expanded: $\mpoly_g(x) = \sum_u g(u) \prod_i \Wn{i}(x)^{u_i} = \inner{W_x}{g}$. For the second, start from the definition of the multilinear extension and factor $\eq$ coordinate-wise:
+\[
+\mle{W_x}(r) \;=\; \sum_{u \in \cube{\kappa}} \eq(u, r)\, W_x(u) \;=\; \sum_{u \in \cube{\kappa}} \prod_{i=0}^{\kappa-1} \eq(u_i, r_i)\, \Wn{i}(x)^{u_i} .
+\]
+Each factor of the summand depends on a single bit $u_i$, so by distributivity the sum over $\cube{\kappa}$ factors into a product of one-bit sums:
+\[
+\mle{W_x}(r) \;=\; \prod_{i=0}^{\kappa-1} \; \sum_{u_i \in \{0,1\}} \eq(u_i, r_i)\, \Wn{i}(x)^{u_i} \;=\; \prod_{i=0}^{\kappa-1} \bigl( (1+r_i) \cdot 1 + r_i \cdot \Wn{i}(x) \bigr),
+\]
+using $\eq(0, r_i) = 1 + r_i$ and $\eq(1, r_i) = r_i$.
+\end{proof}
+
+\subsection{Duality and codeword membership}\label{sec:ntt-duality}
+
+\begin{lemma}[Summation on an additive domain]\label{lem:domain-sum}
+Let $\dom=\subsp_{\log_2\blen}$, with $\blen\ge2$ a power of two. The derivative $\vansub_{\log_2\blen}'$ is a nonzero constant. For every polynomial $h$ of degree less than $\blen$,
+\begin{equation}\label{eq:da-sum}
+  \sum_{x\in\dom} h(x)
+  = \vansub_{\log_2\blen}'\,[X^{\blen-1}]\,h,
+\end{equation}
+where $[X^{\blen-1}]\,h$ denotes the coefficient of $X^{\blen-1}$ in $h$. In particular, the sum is zero if $\deg h\le\blen-2$.
+\end{lemma}
+
+\begin{proof}
+The vanishing polynomial $\vansub_{\log_2\blen}(X)=\prod_{x\in\dom}(X-x)$ is linearized (Lemma~\ref{lem:subspace}): its only powers of $X$ are $X,X^2,X^4,\ldots$. In characteristic two, the derivative of every term except the $X$ term is zero. Its derivative is therefore constant, equal to the coefficient of $X$. This constant is nonzero: at any root $x\in\dom$, differentiating the product gives $\vansub_{\log_2\blen}'(x)=\prod_{y\in\dom\setminus\{x\}}(x-y)$, a product of nonzero factors.
+
+Now let $h$ have degree less than $\blen$. Its values at the $\blen$ domain points determine it by Lagrange interpolation:
+\[
+  h(X)=\sum_{x\in\dom}
+    \frac{h(x)}{\vansub_{\log_2\blen}'(x)}
+    \frac{\vansub_{\log_2\blen}(X)}{X-x}.
+\]
+Each quotient $\vansub_{\log_2\blen}(X)/(X-x)$ is monic of degree $\blen-1$, so its coefficient of $X^{\blen-1}$ is $1$. Taking that coefficient on both sides, and using the fact that the derivative is the same constant at every $x$, gives
+\[
+  [X^{\blen-1}]\,h
+  =\sum_{x\in\dom}\frac{h(x)}{\vansub_{\log_2\blen}'(x)}
+  =\frac{1}{\vansub_{\log_2\blen}'}\sum_{x\in\dom}h(x).
+\]
+Multiplying by the nonzero derivative gives \eqref{eq:da-sum}.
+\end{proof}
+
+\begin{corollary}[Dual code]\label{cor:rs-dual}
+For $1\le\kdim<\blen$ on the domain of Lemma~\ref{lem:domain-sum},
+\[
+  \RS[\E,\dom,\kdim]^\perp=\RS[\E,\dom,\blen-\kdim].
+\]
+At rate $1/2$, the code equals its dual.
+\end{corollary}
+
+\begin{proof}
+If $f$ and $g$ have degrees less than $\kdim$ and $\blen-\kdim$, then $\deg(fg)\le\blen-2$. Lemma~\ref{lem:domain-sum} gives $\sum_{x\in\dom}f(x)g(x)=0$, so the two codes are orthogonal. Their dimensions sum to $\blen$, giving equality with the dual.
+\end{proof}
+
+\begin{proposition}[Membership with tensor weights]\label{prop:rs-membership}
+Let $\kdim=2^\kappa$, $\blen=2\kdim$, and $\dom=\subsp_{\kappa+1}$. For $z=(z_0,\ldots,z_{\kappa-1})\in\E^\kappa$, define
+\begin{equation}\label{eq:dual-product}
+  \dual(X):=\prod_{j<\kappa}\bigl(1+z_j\Wn{j}(X)\bigr).
+\end{equation}
+Its evaluation vector is a codeword. For any fixed $w\in\E^\dom$, the inner product $\inner{\dual}{w}:=\sum_{x\in\dom}\dual(x)w(x)$ vanishes identically as a polynomial in $z$ if and only if $w$ is a codeword. If $w$ is not a codeword and the $z_j$ are independent and uniform, then
+\[
+  \Pr_z[\inner{\dual}{w}=0]\le\frac{\kappa}{|\E|}.
+\]
+\end{proposition}
+
+\begin{proof}
+Since $\Wn{j}=\novel_{2^j}$, expanding \eqref{eq:dual-product} gives the novel-basis polynomials of index less than $\kdim$, with coefficient tensor $\bigotimes_j(1,z_j)$. Thus $\deg\dual<\kdim$, and Corollary~\ref{cor:rs-dual} makes it orthogonal to every codeword.
+
+Conversely, the coefficient of $\prod_j z_j^{u_j}$ in $\inner{\dual}{w}$ is $\inner{\novel_{\langle u\rangle}}{w}$. If the inner product vanished identically, $w$ would be orthogonal to every basis codeword, hence would itself belong to the code. For an invalid $w$, it is therefore a nonzero multilinear polynomial of total degree at most $\kappa$. The probability bound follows from Lemma~\ref{lem:sz}.
+\end{proof}
+
+\subsection{Evaluation by blocks}\label{sec:ntt-blocks}
+
+LeanDA checks the inner products $\inner{\dual}{w_i}$ by processing the encoded rows one cell column at a time (\S\ref{sec:da-circuit}). It therefore needs the weights $\dual(x)$ for one cell column, shared across all rows. The following lemma computes just those weights with a small transform. The higher-degree factors of $\dual$ are constant within the cell, so they require no transform layers.
+
+\begin{lemma}[Cost of evaluating a block]\label{lem:ntt-blocks}
+Let $\dual$ be the polynomial of \eqref{eq:dual-product}, on a domain of size $\blen=2\kdim$. Let $\cellsz\le\kdim$ be a power of two. After precomputing tables of $O(\cellsz+\log_2^2\blen)$ field elements, depending only on the basis and dimensions, all $\cellsz$ values of $\dual$ on any block $b+\subsp_{\log_2\cellsz}$ can be computed in
+\[
+  O\bigl(\cellsz\log_2\cellsz+\log_2^2\blen\bigr)
+\]
+field operations. The transform part is one size-$\cellsz$ additive NTT, with exactly $\tfrac12\cellsz\log_2\cellsz$ butterflies.
+\end{lemma}
+
+\begin{proof}
+Choose the block offset $b$ with zero coordinates below $\log_2\cellsz$, and write each point as $x=b+u$ with $u\in\subsp_{\log_2\cellsz}$. Linearity gives $\Wn{j}(b+u)=\Wn{j}(b)+\Wn{j}(u)$. For $j\ge\log_2\cellsz$, the polynomial $\Wn{j}$ vanishes on this subspace, so
+\[
+\begin{split}
+  \dual(b+u)
+  ={}&\prod_{\log_2\cellsz\le j<\log_2\kdim}
+       \bigl(1+z_j\Wn{j}(b)\bigr)\\
+     &\quad\cdot\prod_{j<\log_2\cellsz}
+       \bigl(1+z_j\Wn{j}(b)+z_j\Wn{j}(u)\bigr).
+\end{split}
+\]
+The first product is a scalar shared by the whole block. The second has coefficient tensor $\bigotimes_{j<\log_2\cellsz}(1+z_j\Wn{j}(b),z_j)$ in the novel basis on the fixed subspace $\subsp_{\log_2\cellsz}$.
+
+Precompute the transform's $\cellsz-1$ twiddles and the values $\Wn{j}(e_c)$ for $j<\log_2\kdim$ and $\log_2\cellsz\le c<\log_2\blen$. For each block, summing the entries selected by the bits of $b$ computes all $\Wn{j}(b)$ in $O(\log_2\kdim\,\log_2(\blen/\cellsz))\subseteq O(\log_2^2\blen)$ additions. Forming the scalar prefactor costs $O(\log_2\kdim)$ operations. Expanding the tensor, with that scalar as its initial coefficient, costs $O(\cellsz)$ operations. Finally, Proposition~\ref{prop:ntt} evaluates it on the block in $\tfrac12\cellsz\log_2\cellsz$ butterflies. The same twiddles serve every block.
+\end{proof}
+
+There are $\blen/\cellsz$ blocks. Computing each block's weights once and using them for all $\nblob$ rows therefore evaluates every membership inner product in
+\[
+  O\!\left(
+    \blen\log_2\cellsz
+    +\frac{\blen}{\cellsz}\log_2^2\blen
+    +\nblob\blen
+  \right)
+\]
+field operations, after precomputation. The last term is one multiplication and one addition per matrix entry. For LeanDA, each block contains $256$ symbols, so the shared weight computation uses $256$-point transforms instead of one transform over all $32768$ domain points. This avoids the upper transform layers and their intermediate writes in the VM's write-once memory.

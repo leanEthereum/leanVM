@@ -1,5 +1,5 @@
 [package]
-name = "rec_aggregation"
+name = "lean_da"
 version.workspace = true
 edition.workspace = true
 publish = false
@@ -11,16 +11,9 @@ workspace = true
 primitives.workspace = true
 parallel.workspace = true
 pcs.workspace = true
-flock.workspace = true
-lean_vm.workspace = true
-lean_compiler.workspace = true
-xmss.workspace = true
-sphincs.workspace = true
-lean_da.workspace = true
-rand.workspace = true
-bincode.workspace = true
+fiat_shamir.workspace = true
 serde.workspace = true
 tracing.workspace = true
 
 [dev-dependencies]
-zk_alloc.workspace = true
+rand.workspace = true
