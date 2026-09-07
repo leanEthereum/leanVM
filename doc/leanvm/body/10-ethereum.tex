@@ -57,7 +57,7 @@ A node combines the claims carried by its children with the new claims produced 
 
 \subsection{Data availability: LeanDA}\label{sec:leanda}
 
-Erasure coding makes data recoverable from a subset of its encoded symbols. Sampling checks whether those symbols can be retrieved, but does not establish that they form a valid encoding. LeanDA~\cite{LeanDA}, by Meng, Wagner, Kadianakis and Risitano, separates these tasks: commit to an encoded matrix and prove every row is a codeword, then sample authenticated cells. A formal securty proof can be found in \cite{LeanDASecurity}.
+Erasure coding makes data recoverable from a subset of its encoded symbols. Sampling checks whether those symbols can be retrieved, but does not establish that they form a valid encoding. An approach using leanVM was introduced in \href{https://frisitano.github.io/slides/presentations/leanvm-fold-in-circuit-das-2026-05-08/index.html}{Risitano's presentation} and developed in LeanDA~\cite{LeanDA} by Meng, Wagner, Kadianakis and Risitano: commit to an encoded matrix and prove every row is a codeword, then sample authenticated cells. A formal security proof can be found in \cite{LeanDASecurity}.
 
 Our construction uses BLAKE2s and the additive Reed-Solomon encoder over $\K$ already used by the PCS, with a different codeword membership test from LeanDA's (\S\ref{sec:da-membership}). The polynomial basis, transform, and membership lemmas are collected in Annex~\ref{app:ntt}.
 
