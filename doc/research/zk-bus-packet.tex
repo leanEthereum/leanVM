@@ -34,7 +34,7 @@ The sparse evaluation weights cost $\delta_{\mathrm{span}}+12/|\E|$, the two ban
 
 \section{Unused memory supplies the remaining four coordinates}
 
-Reserve an aligned block of thirty-two unused, nonpublic cells and randomize their first limbs independently in $\K$. For each child $i$, its eight cells have three-coordinate Boolean weights. These weights span $\E$ over $\K$ whenever at least two coordinates lie outside $\K$ and none is $0$ or $1$, by the cubic-extension lemma in \path{zk-padding.tex}. This fails with probability at most $3\cdot2^{-256}+6/|\E|$. The common placement selector has degree $D-5$, and the limb fingerprint coefficient $e_3$ vanishes with probability at most $4/|\E|$.
+Reserve an aligned block of thirty-two unused, nonpublic cells and randomize their first limbs independently in $\K$. For each child $i$, its eight cells have three-coordinate Boolean weights. These weights span $\E$ over $\K$ whenever at least two coordinates lie outside $\K$ and none is $0$ or $1$, by the cubic-extension lemma in \path{zk-padding-foundations.tex}. This fails with probability at most $3\cdot2^{-256}+6/|\E|$. The common placement selector has degree $D-5$, and the limb fingerprint coefficient $e_3$ vanishes with probability at most $4/|\E|$.
 
 Consequently these cells give four independent uniform increments to $P$, even conditional on every counter bit. They give the same increments to $Q$ and leave $(C,B)$ unchanged. The transformation $(C,B,P)\leftrightarrow(C,P,Q)$ is invertible.
 
