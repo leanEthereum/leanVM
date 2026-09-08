@@ -10,7 +10,7 @@
 \theoremstyle{definition}
 \newtheorem{definition}{Definition}
 \newcommand{\researchnote}[1]{\href{../#1.tex}{\nolinkurl{#1.tex}}}
-\title{Statistical zero knowledge for leanVM\\Goal, security model and research map}
+\title{Honest-verifier statistical ZK for leanVM\\Goal, security model and research map}
 \author{}
 \date{}
 
@@ -18,17 +18,17 @@
 \maketitle
 \vspace{-2em}
 
-\paragraph{Status.} Full statistical ZK for leanVM is not proved. We have explicit valid-padding constructions and statistical simulators for selected algebraic views, supported by exact finite-field audits. These results do not yet compose into one simulator for a complete proof. Production protocol code is unchanged. This file is the entry point; detailed proofs live in the indexed companion notes.
+\paragraph{Status.} Full honest-verifier statistical ZK for leanVM is not proved. We have explicit valid-padding constructions and statistical simulators for selected algebraic views, supported by exact finite-field audits. These results do not yet compose into one simulator for the complete honest verifier's view. Production protocol code is unchanged. This file is the entry point; detailed proofs live in the indexed companion notes.
 
 \section{The goal and the proposed mechanism}\label{sec:zk-goal}
 
-The objective is an optional statistically zero-knowledge prover for leanVM, obtained by changing the witness through valid execution padding, not by adding random masking weights to the verifier. Ordinary non-ZK proofs should retain their existing protocol and cost. ZK proofs may pay for additional rows, memory and prover randomness. \emph{For free} refers to avoiding mandatory privacy machinery on the ordinary path, not to a proved zero-overhead construction.
+The objective is an optional honest-verifier statistically zero-knowledge prover for leanVM, obtained by changing the witness through valid execution padding, not by adding random masking weights to the verifier. The verifier follows the prescribed protocol and samples its coins honestly; privacy against a deviating interactive verifier is not a requirement of this investigation. Here \emph{full} means the complete honest-verifier view, not malicious-verifier ZK. Ordinary non-ZK proofs should retain their existing protocol and cost. ZK proofs may pay for additional rows, memory and prover randomness. \emph{For free} refers to avoiding mandatory privacy machinery on the ordinary path, not to a proved zero-overhead construction.
 
 The starting observation is that table rows are unordered and closed execution cycles can be inserted without changing the public computation. We seek public reservations of valid cycles, unused memory and legal counter-label permutations whose private random choices hide every witness-dependent disclosure. Randomness must be distributed across the actual folding and opening geometry. Merely permuting rows, appending a random suffix, or making a trace look pseudorandom is insufficient.
 
 The padded witness must preserve the intended relation, public inputs and outputs, every local constraint, bus balance and complete read chains. Reserved instructions and resource bounds are public; choosing a program or announced size as a function of a secret would disclose that choice. Some notes assume a disjoint valid completion without constructing it. That assumption remains a proof obligation, not an implementation detail.
 
-\section{What statistical zero knowledge means}\label{sec:zk-definition}
+\section{What honest-verifier statistical ZK means}\label{sec:zk-definition}
 
 \paragraph{Statement and witness.} Write $\zkRel(\zkStmt,\zkWit)=1$ for the intended VM execution relation. The public statement $\zkStmt$ includes the program identity, public inputs and outputs, parameters and declared resource bounds. The private witness $\zkWit$ contains the execution data being proved. Any permitted public preprocessing must be included in the model and bound to the statement. Privacy is required for every admissible witness for the same statement, not for an average witness distribution.
 
@@ -42,24 +42,24 @@ For discrete random variables $X,Y$ on the same space,
 Thus distance at most $\epsilon$ bounds the distinguishing advantage of every test, including computationally unbounded tests~\cite{distance}.
 \end{definition}
 
-\begin{definition}[Interactive statistical ZK target]\label{def:zk-target}
-Let $\zkSec$ index a family of protocol parameters and let $\zkProver_{\mathrm{pad}}$ be the honest padded prover. For every probabilistic polynomial-time verifier $\zkVerifier^*$, there must exist an expected polynomial-time simulator $\zkSim_{\zkVerifier^*}$ and a negligible error $\zkErr$ such that, for every admissible $\zkStmt,\zkWit$ with $\zkRel(\zkStmt,\zkWit)=1$ and every polynomially bounded auxiliary input $\zkAux$,
+\begin{definition}[Honest-verifier statistical ZK target]\label{def:zk-target}
+Let $\zkSec$ index a family of protocol parameters, let $\zkProver_{\mathrm{pad}}$ be the honest padded prover, and fix the prescribed efficient honest verifier $\zkVerifier$ of the interactive protocol. There must exist an expected polynomial-time simulator $\zkSim$ and a negligible error $\zkErr$ such that, for every admissible $\zkStmt,\zkWit$ with $\zkRel(\zkStmt,\zkWit)=1$,
 \[
  \zkSD\!\left(
- \zkView_{\zkVerifier^*}^{\zkProver_{\mathrm{pad}}}
-      (1^{\zkSec},\zkStmt,\zkWit;\zkAux),
- \zkSim_{\zkVerifier^*}(1^{\zkSec},\zkStmt;\zkAux)
+ \zkView_{\zkVerifier}^{\zkProver_{\mathrm{pad}}}
+      (1^{\zkSec},\zkStmt,\zkWit),
+ \zkSim(1^{\zkSec},\zkStmt)
  \right)
  \le \zkErr(\zkSec).
 \]
-Statement and witness lengths are bounded polynomially in $\zkSec$. The view includes the verifier's input, auxiliary input, private coins and all received messages. The simulator receives no witness, secret execution, or unsimulated witness-dependent residual. This is the auxiliary-input simulation formulation, with statistical rather than computational closeness~\cite{zk-definition}.
+Statement and witness lengths are bounded polynomially in $\zkSec$. The view includes the honest verifier's input, random coins and all received messages. Its coins follow the protocol's prescribed distribution, including independent uniform field challenges in our algebraic model. The simulator receives no witness, secret execution, or unsimulated witness-dependent residual. It may generate the coins and messages together; it need not answer adversarially chosen challenges online. This is honest-verifier statistical ZK~\cite{zk-definition}, with no quantification over alternative verifier strategies.
 \end{definition}
 
 A negligible error eventually falls below every inverse polynomial in $\zkSec$. The current concrete notes instead bound error at leanVM's fixed fields $\K=\F_{2^{64}}$ and $\E=\F_{2^{192}}$, aiming for a total privacy error at most $2^{-128}$ over the stated resource range. A bound at one parameter choice is not by itself an asymptotic theorem. Statistical privacy also does not imply statistical soundness: a statistically ZK argument may still rely on computational assumptions for binding and knowledge soundness.
 
-\paragraph{What the current lemmas actually establish.} Unless stated otherwise, they sample independent uniform coins of an honest interactive verifier and simulate only a specified projection of the algebraic transcript. Coins may be sampled in advance; an online simulator against adaptively chosen challenges is not claimed. A theorem for such a projection is weaker even than honest-verifier ZK for the complete interactive protocol, and much weaker than Definition~\ref{def:zk-target}. Error bounds are meaningful only with the note's layout, completion, query and setup assumptions.
+\paragraph{What the current lemmas actually establish.} Unless stated otherwise, they sample independent uniform coins of the honest interactive verifier and simulate only a specified projection of the algebraic transcript. Their verifier model matches our target; the missing step is coverage of the complete joint view in Definition~\ref{def:zk-target}, not an upgrade to malicious-verifier ZK. Error bounds are meaningful only with the note's layout, completion, query and setup assumptions.
 
-\paragraph{The deployed noninteractive target.} leanVM uses Merkle commitments and Fiat-Shamir. Its ultimate claim must therefore specify a noninteractive simulation experiment, including public setup, any random-oracle access, simulator programming permissions and query bounds. The observable experiment must cover the actual proof and any exposed deferred claims, together with the relevant oracle interaction. Definition~\ref{def:zk-target} states the interactive benchmark; it is not a definition or proof of Fiat-Shamir ZK. Replacing hash-derived challenges by independent coins without justification, or appealing to collision resistance alone, does not close this gap.
+\paragraph{Separate deployment obligation.} leanVM uses Merkle commitments and Fiat-Shamir. Commitments and authentication data must be included in a complete honest-verifier view. Transferring an interactive honest-verifier theorem to the deployed Fiat-Shamir proof additionally requires a specified noninteractive simulation experiment, including any public setup, random-oracle access, simulator programming permissions and query bounds. This is separate from Definition~\ref{def:zk-target}, not a requirement to prove malicious-verifier interactive ZK. Replacing hash-derived challenges by independent coins without justification, or appealing to collision resistance alone, does not establish that transfer.
 
 \section{How a complete proof would have to work}\label{sec:zk-composition}
 
@@ -87,17 +87,17 @@ The following are the main entry points, not pieces of an already composable con
 
 \paragraph{PCS: restricted algebraic openings.} \researchnote{zk-pcs-padding} hides a complete algebraic WHIR opening for one independent random-point claim, assuming freely random padding coefficients. \researchnote{zk-stacked-padding} extends this to one common Frobenius orbit. Neither covers the full actual stacked claim family jointly with the VM reductions, nor realizes every required coefficient with valid cycles. Commitments and Fiat-Shamir are excluded.
 
-\section{What remains before claiming full ZK}\label{sec:zk-remaining}
+\section{What remains before claiming full honest-verifier ZK}\label{sec:zk-remaining}
 
 \begin{enumerate}
 \item \emph{One realizable padded prover.} Fix a public resource policy and compatible reservations for every component; construct the complete valid trace for every supported execution. Establish that padding preserves the intended statement and does not introduce a soundness loophole.
 \item \emph{Complete joint algebraic simulation.} Cover all bus/count GKR layers and their table interface, then the complete table, Flock and ring-switching transcripts. Replace residual numerical rank evidence with uniform statistical bounds where required.
 \item \emph{All opening disclosures.} Handle the actual stacked weights, multiple evaluation points, pre-fold query lanes, introduction polynomials and final plaintext table, jointly with the preceding transcript.
-\item \emph{The noninteractive security model.} Prove the appropriate commitment and Fiat-Shamir simulation theorem, including externally exposed recursive/deferred claims and the intended repeated-proof use. State setup and oracle assumptions explicitly.
+\item \emph{The complete honest-verifier view.} Include commitments, authentication data and externally exposed recursive/deferred claims in the same simulation, with explicit setup assumptions. No malicious-verifier interactive simulator is required.
 \item \emph{End-to-end validation.} Account for total privacy error and padding cost, implement the optional prover, and test against the Rust, Python and recursive verifiers. A change to their shared protocol would require a separate design decision; it is not part of the padding-only claim.
 \end{enumerate}
 
-The immediate algebraic target is a complete joint bus/count GKR simulator retaining what the table proof needs. The four-round note proposes a coupled push/pull/count analysis to extend the tail within the current capacity. That is a candidate, not a general induction. The full PCS and noninteractive obligations remain independent sources of risk; another tail round alone does not resolve them.
+The immediate algebraic target is a complete joint bus/count GKR simulator retaining what the table proof needs. The four-round note proposes a coupled push/pull/count analysis to extend the tail within the current capacity. That is a candidate, not a general induction. The full PCS remains an independent obligation. A claim about deployed Fiat-Shamir proofs or their repeated use also needs the separate transfer argument above; it does not follow automatically from completing the honest-verifier target.
 
 \section{Guide to the companion notes}\label{sec:zk-index}
 
