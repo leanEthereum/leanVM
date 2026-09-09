@@ -99,8 +99,9 @@ impl FnLower<'_> {
         // would name two different cells. An index built from `GEN` is fine, and
         // `1` is `g^0` either way.
         let bare_int = matches!(self.try_lit(idx), Some(n) if n != 1);
-        if (bare_int || self.gaddr_of(idx).is_none())
-            && let Some(c) = self.try_field_const(idx)
+        let known = self.eval(idx);
+        if (bare_int || known.addr.is_none())
+            && let Some(c) = known.field
         {
             // Two reasons reach here and they read differently. A bare integer
             // index may well BE a g-power (4 is g²), and is rejected for being
@@ -118,7 +119,7 @@ impl FnLower<'_> {
             };
             self.fail(format!("heap index {why}"));
         }
-        match self.gaddr_of(idx) {
+        match known.addr {
             Some(GAddr { base: None, exp, .. }) => return self.heap_base(arr, exp),
             // A runtime-base index carrying a constant g-power shift
             // (`buf[cursor * GEN ** k]`): fold the whole constant part (the
@@ -140,13 +141,6 @@ impl FnLower<'_> {
         // Fall back to the constant-g-power-factor fold (a runtime index still
         // materializes the pointer `MUL`, with any constant factor in `β`).
         self.array_ptr(arr, idx)
-    }
-
-    /// Write `val` into the stack cell `dst`. Always an instruction: if `dst`
-    /// already holds a value the store is the write-once equality ASSERTION of
-    /// `zkDSL.md` §Memory, and if it does not, this is what gives it one.
-    pub(super) fn stack_store(&mut self, dst: Off, val: &Expr) {
-        self.expr_into(val, dst);
     }
 
     /// Compile-time bounds check: when `arr` resolves to a sized `HeapBuf`

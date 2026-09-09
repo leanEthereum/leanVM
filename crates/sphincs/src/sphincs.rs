@@ -85,7 +85,7 @@ pub struct SphincsSecretKey {
 }
 
 impl SphincsSecretKey {
-    /// SECRET KEY MATERIAL: the two secrets a key pair is generated from.
+    /// SECRET KEY MATERIAL: public parameter and master secret.
     pub fn to_bytes(&self) -> [u8; SECRET_KEY_SIZE] {
         let mut out = [0; SECRET_KEY_SIZE];
         out[..PUBLIC_PARAM_LEN].copy_from_slice(&self.public_param);

@@ -4,7 +4,7 @@
 //! calls.
 //!
 //! That specification is the reference and every symbol here carries its name:
-//! `n`, `w`, `v`, `T`, `d`, `h_lay`, `a`, `k`. Every hash is standard BLAKE2s of
+//! `n`, `w`, `v`, `T`, `d`, `h_lay`, `a`, `k`. `Th` is standard BLAKE2s of
 //! the exact byte string `tweak | P | payload` truncated to `n = 128` bits (the
 //! `hash` module), and the tweak names one hash call in the whole structure.
 //!

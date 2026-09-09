@@ -26,11 +26,11 @@ So $P(z,1,1,0,0)$ is instruction $z$'s opcode, $P(z,0,0,1,0)$ its first operand,
 
 \subsection{Public input}\label{sec:e2e-pi}
 
-The public input is the first two memory cells $\mem[\gen^{0}],\mem[\gen^{1}]$, two $192$-bit words (with top limb $0$) both parties know. The verifier samples $r_m\in\E$, the prover sends $c_0,c_1$ claiming $c_\ell=\mle{\mem_\ell}(r_m,0,\dots,0)$, and the verifier checks
+The public input is the first two memory cells $\mem[\gen^{0}],\mem[\gen^{1}]$, two $192$-bit words (with top limb $0$) both parties know. The verifier samples $r_m\in\E$, the prover sends $c_0,c_1\in\E$ claiming $c_\ell=\mle{\mem_\ell}(r_m,0,\dots,0)$, and the verifier checks
 \[
-  c_\ell\;\qeq\;(1+r_m)\,\mem[\gen^{0}]_\ell+r_m\,\mem[\gen^{1}]_\ell,\qquad \ell\in\{0,1\}.
+  c_0+y c_1\;\qeq\;(1+r_m)\,\mem[\gen^{0}]+r_m\,\mem[\gen^{1}].
 \]
-Both sides are degree one in $r_m$, so a limb disagreeing with the public words survives with probability at most $1/|\E|$ (Lemma~\ref{lem:sz}). The claims $c_0$, $c_1$ are discharged to the PCS.
+The PCS binds $(c_0,c_1,0)$ to the three memory limbs at $(r_m,0,\dots,0)$. A mismatch gives a nonzero polynomial of degree at most one, so it passes with probability at most $1/|\E|$ (Lemma~\ref{lem:sz}).
 
 \subsection{Filling the tables}\label{sec:e2e-pad}
 
@@ -65,7 +65,7 @@ The Fiat-Shamir initial state (\S\ref{sec:e2e-fiat-shamir}) is seeded by the pub
 
 \begin{enumerate}
 \item \textbf{Verifier.} Samples and sends the fingerprint challenge $\alpha\in\E^{4}$ and the multiset challenge $\beta\in\E$ (\S\ref{sec:gp}).
-\item \textbf{Prover.} Forms the push, pull, and \emph{count} leaf vectors (\S\ref{sec:leafstack}; the count leaves are the count columns themselves, \S\ref{sec:lookup}), stacked into blocks and padded with $1$s. Sends the count root $R_c$ and one bus root $R$.
+\item \textbf{Prover.} Forms the push, pull, and \emph{count} leaf vectors (\S\ref{sec:leafstack}; the count leaves are the count columns themselves, \S\ref{sec:lookup}), stacked into blocks and padded with $1$s. Sends one bus root $R$, then the count root $R_c$.
 \item \textbf{Prover \& Verifier.} Run the one batched GKR (\S\ref{sec:gkr}) over all three trees. For the bus, the verifier checks each side's product against $R$; one $R$ for both sides is the balance check (\S\ref{sec:gp}). For the counts it checks $R_c\neq0$ (no read self-cancels, \S\ref{sec:lookup}). The pass yields three leaf claims $\widetilde V^{s}_0(\zeta)$ at one shared $\zeta$.
 \item \textbf{Prover \& Verifier.} Decompose each leaf claim (\S\ref{sec:leafstack}). The verifier forms every public part itself: the block selectors, the constant entries, the index column (\S\ref{sec:idxcol}), and the program's whole share of the two bytecode blocks, one evaluation at $(\zeta,\alpha)$ (\S\ref{sec:e2e-bc}). Three blocks per side belong to no table: the state boundary, plus each array's (memory / bytecode) seed (push side) or finalization (pull side). For their committed columns the prover sends one evaluation each, entering the claim pool. Every other block belongs to a table, and is discharged by the table sumcheck (\S\ref{sec:air}).
 \end{enumerate}
@@ -80,8 +80,8 @@ The Fiat-Shamir initial state (\S\ref{sec:e2e-fiat-shamir}) is seeded by the pub
 \paragraph{Public input.}
 
 \begin{enumerate}
-\item \textbf{Verifier.} Sends $r_m\in\E$ and forms the line $\widetilde{\mathrm{PI}}_\ell(r_m)$ from the public words.
-\item \textbf{Prover \& Verifier.} The prover sends $c_0,c_1$; the verifier checks them against the line and pools them, with $0$ for the top limb, as claims on $\mem_0,\mem_1,\mem_2$ at $(r_m,0,\dots,0)$ (\S\ref{sec:e2e-pi}).
+\item \textbf{Verifier.} Sends $r_m\in\E$ and forms the line $(1+r_m)\mem[\gen^0]+r_m\mem[\gen^1]$ from the public words.
+\item \textbf{Prover \& Verifier.} The prover sends $c_0,c_1$; the verifier checks $c_0+y c_1$ against the line and pools $(c_0,c_1,0)$ as claims on $\mem_0,\mem_1,\mem_2$ at $(r_m,0,\dots,0)$ (\S\ref{sec:e2e-pi}).
 \end{enumerate}
 
 \paragraph{BLAKE2s validity.}

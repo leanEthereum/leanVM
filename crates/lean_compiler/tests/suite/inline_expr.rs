@@ -8,7 +8,6 @@
 
 use lean_compiler::{compile, parse};
 use lean_vm::cpu::{prove, verify};
-use lean_vm::hash_flock::warm_setup;
 use primitives::field::{F64, F192};
 
 #[test]
@@ -40,7 +39,6 @@ def main():
     return
 ";
     let program = compile(&parse(src).expect("parse"));
-    warm_setup(1);
 
     let (f3, f5, f7) = (F64(3), F64(5), F64(7));
     let one = F64::ONE;

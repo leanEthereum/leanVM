@@ -26,6 +26,7 @@
 //! runs the body and recurses on `i·g`.
 
 use std::collections::HashMap;
+use std::fmt::Write;
 
 use lean_vm::cpu::hints::{BitsDest, RHint};
 use lean_vm::cpu::{DerefMode, Op, Program};
@@ -54,8 +55,7 @@ pub fn compile(ast: &Ast) -> Program {
 }
 
 /// [`compile`] without the fill blocks, so the program's own instruction mix is what
-/// runs. For tests that measure that mix: a proof of such a program still verifies, its
-/// tables padding as they did before the blocks existed.
+/// runs. Used by tests of instruction selection and execution.
 pub fn compile_without_filler(ast: &Ast) -> Program {
     compile_inner(ast, false)
 }
@@ -68,7 +68,7 @@ fn compile_inner(ast: &Ast, with_filler: bool) -> Program {
         .iter()
         .find(|f| f.name == "main")
         .expect("program needs a `main`");
-    assert!(!main.const_params.contains(&true), "main cannot take Const parameters");
+    assert!(!main.has_const_params(), "main cannot take Const parameters");
     assert!(!main.inline, "main cannot be `@inline`");
     queue.push(main.clone());
     for f in &ast.funcs {
@@ -77,23 +77,28 @@ fn compile_inner(ast: &Ast, with_filler: bool) -> Program {
         }
     }
     // Definitions by name, for Const-parameter specialization at call sites.
-    let defs: HashMap<String, Func> = ast.funcs.iter().map(|f| (f.name.clone(), f.clone())).collect();
+    let defs: HashMap<&str, &Func> = ast.funcs.iter().map(|f| (f.name.as_str(), f)).collect();
     // Constant arrays by name, resolved at lowering (`NAME[i]`, `len(NAME)`).
-    let const_arrays: HashMap<String, Vec<F192>> = ast.const_arrays.iter().cloned().collect();
+    let const_arrays: HashMap<&str, &[F192]> = ast
+        .const_arrays
+        .iter()
+        .map(|(name, values)| (name.as_str(), values.as_slice()))
+        .collect();
     let dbg_lower = std::env::var("DBG_LOWER").is_ok();
 
     let mut loop_ctr = 0usize;
     let mut lowered: Vec<Lowered> = Vec::new();
     let mut i = 0;
     while i < queue.len() {
-        let f = queue[i].clone();
+        let f = &queue[i];
         i += 1;
         // A function with Const parameters is a template (only its call-site
         // specializations are lowered); an `@inline` function is expanded at
         // each call site ([`FnLower::try_inline`]), never lowered standalone.
-        if f.const_params.contains(&true) || f.inline {
+        if f.has_const_params() || f.inline {
             continue;
         }
+        let f = f.clone();
         let low = lower_func(&f, &mut queue, &mut loop_ctr, &defs, &const_arrays, with_filler);
         if dbg_lower {
             eprintln!("== fn {} (frame {}) ==", low.name, pretty_integer(low.frame_size));
@@ -129,26 +134,26 @@ fn compile_inner(ast: &Ast, with_filler: bool) -> Program {
     // Source line per pc, so a run-time failure can name a line instead of a pc.
     let mut src_lines: Vec<u32> = Vec::new();
     let mut hints: HashMap<u32, Vec<RHint>> = HashMap::new();
-    for l in &lowered {
+    for l in &mut lowered {
         let base = entry[&l.name];
-        for ins in &l.code {
+        for ins in &mut l.code {
             let here = prog.len() as u32;
             if !ins.hints.is_empty() {
                 let rhs = ins
                     .hints
-                    .iter()
+                    .drain(..)
                     .map(|h| match h {
                         Hint::AllocFrame { ptr, callee } => RHint::Alloc {
-                            ptr: *ptr,
-                            size: frame_size[callee],
+                            ptr,
+                            size: frame_size[&callee],
                         },
                         Hint::AllocFrameMax { ptr, callees } => RHint::Alloc {
-                            ptr: *ptr,
+                            ptr,
                             size: callees.iter().map(|c| frame_size[c]).max().unwrap(),
                         },
-                        Hint::AllocBuffer { ptr, size } => RHint::Alloc { ptr: *ptr, size: *size },
-                        Hint::AllocBufferDyn { ptr, size } => RHint::AllocDyn { ptr: *ptr, size: *size },
-                        Hint::Resolved(r) => r.clone(),
+                        Hint::AllocBuffer { ptr, size } => RHint::Alloc { ptr, size },
+                        Hint::AllocBufferDyn { ptr, size } => RHint::AllocDyn { ptr, size },
+                        Hint::Resolved(r) => r,
                     })
                     .collect();
                 hints.insert(here, rhs);
@@ -168,15 +173,7 @@ fn compile_inner(ast: &Ast, with_filler: bool) -> Program {
         .collect();
     // The blocks are `main`'s, and `main` is lowered first, so its entry pc is 0 and the
     // block pcs are already the global ones.
-    program.filler = lowered
-        .iter()
-        .flat_map(|l| {
-            l.filler.iter().map(|b| lean_vm::cpu::filler::Block {
-                pc: entry[&l.name] + b.pc,
-                ..b.clone()
-            })
-        })
-        .collect();
+    program.filler = std::mem::take(&mut lowered[0].filler);
     program
 }
 
@@ -223,7 +220,7 @@ pub fn disassemble(prog: &[Op]) -> String {
                 )
             }
         };
-        out.push_str(&format!("{:>6}  {line}\n", pretty_integer(pc)));
+        writeln!(out, "{:>6}  {line}", pretty_integer(pc)).unwrap();
     }
     out
 }

@@ -1,6 +1,5 @@
 use lean_compiler::{compile, parse};
 use lean_vm::cpu::{prove, verify};
-use lean_vm::hash_flock::warm_setup;
 use primitives::field::{F64, F192};
 
 use crate::common::mix;
@@ -23,7 +22,6 @@ def main():
     return
 ";
     let program = compile(&parse(src).expect("parse"));
-    warm_setup(1);
     let want = [F192::new(5, 7, 0), F192::new(5, 7, 0)];
     let (proof, _) = prove(&program, want, lean_vm::pcs::TEST_LOG_INV_RATE);
     let counts = mix(src, want);

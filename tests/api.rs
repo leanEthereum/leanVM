@@ -69,7 +69,11 @@ fn public_api_end_to_end() {
     let received = EthereumProof::from_bytes(&bytes).unwrap();
     received.verify().unwrap();
     assert_eq!(received.da_commitments(), roots);
-    let pairs: Vec<_> = received.xmss_signers().iter().map(|(e, m, _)| (*e, *m)).collect();
+    let pairs: Vec<_> = received
+        .xmss_signers()
+        .iter()
+        .map(|group| (group.epoch, group.message))
+        .collect();
     assert_eq!(pairs, vec![(EPOCH_0, MSG_0), (EPOCH_1, MSG_1), (EPOCH_2, MSG_2)]);
 
     // 5. Removing some signatures from the aggregate: `declare` is what we keep. Here the first epoch group goes whole.
@@ -77,7 +81,10 @@ fn public_api_end_to_end() {
     let mut sphincs_signers = received.sphincs_signers().to_vec();
     let dropped_group = groups.remove(0);
     let dropped_signer = sphincs_signers.remove(0);
-    let retained_signatures = (groups, sphincs_signers);
+    let retained_signatures = SignatureClaims {
+        xmss: groups,
+        sphincs: sphincs_signers,
+    };
     let narrowed = aggregate(
         &[received],
         vec![],
@@ -92,7 +99,7 @@ fn public_api_end_to_end() {
     .unwrap();
     narrowed.verify().unwrap();
     assert_eq!(narrowed.da_commitments(), &[commitment.root]);
-    assert_eq!(narrowed.num_signature_claims(), 11 - dropped_group.2.len() - 1);
+    assert_eq!(narrowed.num_signature_claims(), 11 - dropped_group.keys.len() - 1);
     assert!(
         !narrowed.xmss_signers().contains(&dropped_group),
         "unpublished, epoch and message included"
@@ -113,6 +120,6 @@ fn public_api_end_to_end() {
     .unwrap();
     dropped.verify().unwrap();
     assert!(dropped.da_commitments().is_empty());
-    assert_eq!(dropped.xmss_signers(), retained_signatures.0);
-    assert_eq!(dropped.sphincs_signers(), retained_signatures.1);
+    assert_eq!(dropped.xmss_signers(), retained_signatures.xmss);
+    assert_eq!(dropped.sphincs_signers(), retained_signatures.sphincs);
 }

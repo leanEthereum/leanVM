@@ -11,7 +11,7 @@
 
 use lean_compiler::{compile, parse};
 use lean_vm::cpu::{Op, prove, verify};
-use lean_vm::hash_flock::{compression, digest, metadata, unpack_metadata, warm_setup};
+use lean_vm::hash_flock::{compression, digest, metadata, unpack_metadata};
 use lean_vm::vmhash::compress;
 use primitives::field::{F64, F192, g_pow};
 
@@ -43,7 +43,6 @@ def main():
     return
 ";
     let program = compile(&parse(src).expect("parse"));
-    warm_setup(1);
 
     // Each cell holds one scalar in its low lane, so the hashed words are [5,0,7,0].
     let h = [F64(5), F64(0), F64(7), F64(0)];
@@ -76,7 +75,6 @@ def main():
     return
 ";
     let program = compile(&parse(src).expect("parse"));
-    warm_setup(2);
     let mut input = Vec::new();
     for value in 1u64..=5 {
         input.extend_from_slice(&value.to_le_bytes());
@@ -115,7 +113,6 @@ def main():
 ";
     let mut program = compile(&parse(src).expect("parse"));
     program.set_witness("high", vec![vec![F192::new(64, 0, 0)]]);
-    warm_setup(2);
     let mut input = Vec::new();
     for value in 1u64..=5 {
         input.extend_from_slice(&value.to_le_bytes());
@@ -194,7 +191,6 @@ def main():
     return
 ";
     let want = digest_cells([F64(1), F64(0), F64(2), F64(0)], [F64(3), F64(0), F64(4), F64(0)]);
-    warm_setup(2);
     for flag in [0, 1] {
         let mut program = compile(&parse(src).expect("parse"));
         program.set_witness("flag", vec![vec![F192::new(flag, 0, 0)]]);
@@ -223,7 +219,6 @@ def main():
     return
 ";
     let want = digest_cells([F64(1), F64(0), F64(2), F64(0)], [F64(3), F64(0), F64(4), F64(0)]);
-    warm_setup(1);
     for flag in [0, 1] {
         let mut program = compile(&parse(src).expect("parse"));
         program.set_witness("flag", vec![vec![F192::new(flag, 0, 0)]]);
@@ -258,7 +253,6 @@ def main():
     );
     let d = digest(&block);
     let want = [F192::new(d[0].0, d[1].0, 0), F192::new(d[2].0, d[3].0, 0)];
-    warm_setup(1);
     let (proof, _) = prove(&program, want, lean_vm::pcs::TEST_LOG_INV_RATE);
     verify(&program, &want, &proof).expect("materialized custom CV verifies");
 }
@@ -431,7 +425,6 @@ fn stack_buf_loop_capture_rejected() {
 /// `state, x = read_obs(state, cursor)` shape the recursion guest relies on.
 #[test]
 fn inline_returns_stackbuf_and_scalar() {
-    warm_setup(1);
     let src = "\
 def main():
     s = StackBuf(2)
@@ -520,7 +513,6 @@ def select_pair(flag, a, b):
 /// manual `cur *= GEN`. This is the shape `fs_next` uses to walk the stream.
 #[test]
 fn inline_returns_advanced_cursor() {
-    warm_setup(1);
     let src = "\
 def main():
     hb = HeapBuf(4)
@@ -564,7 +556,6 @@ def step(state, cursor):
 /// per the let-rebind rule).
 #[test]
 fn stack_buf_list_literal() {
-    warm_setup(1);
     let src = "\
 def main():
     s = [5, 7]
@@ -654,7 +645,6 @@ def main():
 /// The last in-bounds index still compiles and runs.
 #[test]
 fn heap_index_boundary_ok() {
-    warm_setup(1);
     let src = "def main():\n    hb = HeapBuf(8)\n    hb[GEN ** 7] = 5\n    row = hb * GEN ** 4\n    y = row[GEN ** 3]\n    assert y == 5\n    return\n";
     let program = compile(&parse(src).expect("parse"));
     let pi = [F192::from(F64(3)), F192::from(F64(4))];

@@ -466,10 +466,10 @@ def assert_canonical(word):
 
 @inline
 def challenge_from_state(state):
-    # `hash_state_to_words` with the second word dropped, written out because a
-    # tuple-unpacking call is not inlinable and `squeeze` is @inline. Both words are
-    # BLAKE2s outputs, so their top limbs are already zero; only d2 is needed
-    # separately, so hint it, derive d3 = (state[1] + d2)/Y, and prove both in K.
+    # Both words are BLAKE2s outputs with zero top limbs.
+    # Hint d2 and derive d3 = (state[1] + d2)/Y.
+    # Requiring both in K binds d2 by the tower representation.
+    # The challenge uses d2; d3 is checked and discarded.
     d2 = StackBuf(1)
     hint_f192_limbs(d2, state[1])
     d3 = (state[1] + d2[0]) * Y_INV
@@ -865,7 +865,7 @@ def sumcheck_round5(state_0, state_1, msg_cursor, claim, prev_challenge):
 
 
 def batch_sumcheck(fs0, fs1, msgs, running, point, n_rounds: Const):
-    # The rounds of a claim-batching sumcheck: two hinted coefficients a round
+    # The rounds of a claim-batching sumcheck: two hinted values per round
     # (g(1) and g(inf)), the split fixing the third against the running claim, and
     # the challenges collected into `point`.
     fs = [fs0, fs1]

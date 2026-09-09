@@ -1,15 +1,12 @@
 // CREDIT: https://github.com/succinctlabs/flock (flock-core), MIT OR Apache-2.0.
 //! Lincheck PIOP for **block-diagonal** R1CS over GF(2).
 //!
-//! Reduces three MLE evaluation claims (`â(x)=v`, `b̂(x')=v'`, `ĉ(x'')=v''`)
-//! plus the linear constraints (`a = Az`, `b = Bz`, `c = Cz`) to three MLE
-//! evaluation claims on `z`, all sharing a fresh random inner coord.
+//! Reduces the zerocheck's three evaluation claims, together with the linear constraints `a = Az`, `b = Bz`, `c = z`, to one family of committed witness slices at a fresh inner point.
 //!
 //! ## Matrix structure (the assumption we exploit)
 //!
 //! `A = I_{2^n_log} ⊗ A_0` (block-diagonal with `A_0` repeated `2^n_log`
-//! times along the diagonal). Same for B, C. Storage is `O(k²)` for the
-//! small base matrices, not `O(N²)`.
+//! times along the diagonal), and likewise for B. The circuit supplies the base matrices' linear maps without materializing them.
 //!
 //! With the row/col index decomposed as `(i_inner, i_outer)` with `k_log`
 //! inner bits and `n_log` outer bits (`m = k_log + n_log`), the bilinear MLE
@@ -32,33 +29,7 @@
 //! circuits `C = I`, so the c-claim is a direct `z`-claim and enters the same
 //! batch as A and B rather than travelling to the PCS on its own.
 //!
-//! 1. **Prover sends** one length-`k = 2^k_log` F192 vector
-//!    `z_vec[i_inner] = ẑ(i_inner, x_ab.x_outer)`.
-//! 2. **Verifier checks** *three* consistency equations against the same
-//!    `z_vec`:
-//!    ```text
-//!    Σ_{i_inner}  Â_0_quirky(z_skip, x_inner_rest, i_inner) · z_vec[i_inner]  ==  v_a
-//!    Σ_{i_inner}  B̂_0_quirky(z_skip, x_inner_rest, i_inner) · z_vec[i_inner]  ==  v_b
-//!    Σ_{i_inner}  eq_inner(z_skip, x_inner_rest, i_inner)   · z_vec[i_inner]  ==  v_c
-//!    ```
-//!    batched in powers of one challenge α (A at 1, B at α, C at α², the
-//!    constant-wire pin at α³).
-//! 3. **The output claim IS `z_partial`**: the `2^k_skip` bit-slice values of
-//!    `z` at `(r_inner_rest, x_ab.x_outer)`, pinned by the checks above. Ring
-//!    switching binds every one of them against the commitment.
-//!
-//! So the PCS sees **one** ring-switched claim, not two.
-//!
-//! ## Soundness
-//!
-//! - The three scalar checks tie `z_vec` to `v_a`, `v_b` and `v_c` from the
-//!   upstream layer; without them a malicious prover could send any vector.
-//!   They ride distinct powers of α, drawn after all three were bound, so
-//!   acceptance pins each of them except with 3/|F|.
-//! - `z_partial` itself travels to the PCS, and ring switching binds every one
-//!   of its entries to the commitment (error below `2⁻¹⁶⁰`), so a vector that
-//!   passes the three checks yet differs from the true partial fold of `z` is
-//!   caught by the opening downstream.
+//! The prover partially folds the witness at the shared outer point and forms the column marginal of `A + α B + α² I`, with a constant-wire pin at `α³`. A product sumcheck reduces its inner product to the final `2^k_skip` witness slices, which the prover sends after the rounds. The verifier reconstructs the terminal marginal through the circuit's bilinear form; ring switching binds the slices to the commitment.
 //!
 //! ## Quirky (univariate-skip) claim points
 //!
@@ -142,7 +113,7 @@ use zk_alloc::ArenaVec;
 
 /// Per-block linear structure consumed by lincheck. Implementations produce
 /// the α-batched column marginal `comb_vec[c] = ξ_A(c) + α · ξ_B(c)` either
-/// by sparse-matrix iteration (default) or by walking the circuit directly.
+/// by walking the circuit or another representation of its linear maps.
 pub trait LincheckCircuit: Sync {
     /// Number of columns in the per-block matrices A_0, B_0 (= k = 2^k_log).
     fn n_cols(&self) -> usize;
@@ -1037,10 +1008,7 @@ pub fn prove_padded_capture_s_hat_v(
     //    consistency checks v_a, v_b, v_c into a single sumcheck.
     let alpha = ps.sample();
 
-    // 2. Build the α-batched comb_vec via the circuit's per-block fold. For
-    //    the sparse-matrix default this is the fused single-pass row-fold;
-    //    per-hash circuit walkers compute the same `comb_vec` directly from
-    //    the constraint graph.
+    // 2. Build the α-batched column marginal through the circuit.
     let t = std::time::Instant::now();
     let eq_inner = build_quirky_eq_table(x_ab.z_skip, &x_ab.x_inner_rest, k_skip);
     stage("build_quirky_eq", t);
@@ -1075,8 +1043,7 @@ pub fn prove_padded_capture_s_hat_v(
 
     // 6. Standard multilinear product-sumcheck over the high `inner_rest_len`
     //    bits of `i`. Each round binds the TOP remaining bit. After `inner_rest_len` rounds, both
-    //    tables collapse to length `2^k_skip`. Per-round work is parallel via
-    //    rayon when the residual table is large enough.
+    //    tables collapse to length `2^k_skip`. Large rounds use the worker pool.
     let mut r_rounds = Vec::with_capacity(inner_rest_len);
     if inner_rest_len > 0 {
         // Round 0's message is the only standalone evaluation pass; every later
@@ -1285,7 +1252,7 @@ mod tests {
         k_skip: usize,
         circuit: &dyn LincheckCircuit,
         x_ab: &QuirkyPoint,
-        ps: &mut pcs::ProverState,
+        ps: &mut fiat_shamir::transcript::ProverState,
     ) -> LincheckClaim {
         prove_padded_capture_s_hat_v(z_packed, m, k_log, k_skip, 1 << k_log, circuit, x_ab, ps)
     }
@@ -1672,11 +1639,11 @@ mod tests {
                 b_0: b_0.clone(),
                 pin: PIN_COL,
             };
-            let mut ch_p = pcs::ProverState::from_label(b"flock-test-v0");
+            let mut ch_p = fiat_shamir::transcript::ProverState::from_label(b"flock-test-v0");
             let claim_p = prove(&z_packed, m, k_log, k_skip, &circuit, &x_ab, &mut ch_p);
 
             let proof_t = ch_p.into_proof();
-            let mut ch_v = pcs::VerifierState::from_label(b"flock-test-v0", &proof_t);
+            let mut ch_v = fiat_shamir::transcript::VerifierState::from_label(b"flock-test-v0", &proof_t);
             let claim_v = verify(m, k_log, k_skip, &circuit, &x_ab, v_a, v_b, v_c, &mut ch_v).unwrap_or_else(|e| {
                 panic!("verify rejected honest proof at m={m},k_log={k_log},k_skip={k_skip}: {e:?}")
             });
@@ -1737,7 +1704,7 @@ mod tests {
             b_0: b_0.clone(),
             pin: PIN_COL,
         };
-        let mut ch_p = pcs::ProverState::from_label(b"flock-test-v0");
+        let mut ch_p = fiat_shamir::transcript::ProverState::from_label(b"flock-test-v0");
         let _ = prove(&z_packed, m, k_log, k_skip, &circuit, &x_ab, &mut ch_p);
         let proof_t = ch_p.into_proof();
 
@@ -1766,7 +1733,7 @@ mod tests {
             } else {
                 bad.stream[zp_word].c0 ^= 1;
             }
-            let mut ch = pcs::VerifierState::from_label(b"flock-test-v0", &bad);
+            let mut ch = fiat_shamir::transcript::VerifierState::from_label(b"flock-test-v0", &bad);
             let res = verify(m, k_log, k_skip, &circuit, &x_ab, v_a, v_b, v_c, &mut ch);
             assert!(
                 matches!(res, Err(VerifyError::ConsistencyFailed { .. })),
@@ -1799,21 +1766,21 @@ mod tests {
             b_0: b_0.clone(),
             pin: PIN_COL,
         };
-        let mut ch_p = pcs::ProverState::from_label(b"flock-test-v0");
+        let mut ch_p = fiat_shamir::transcript::ProverState::from_label(b"flock-test-v0");
         let _ = prove(&z_packed, m, k_log, k_skip, &circuit, &x_ab, &mut ch_p);
         let proof_t = ch_p.into_proof();
 
         // Truncated stream (dropped last z_partial word): a clean Transcript error.
         let mut bad = proof_t.clone();
         bad.stream.pop();
-        let mut ch = pcs::VerifierState::from_label(b"flock-test-v0", &bad);
+        let mut ch = fiat_shamir::transcript::VerifierState::from_label(b"flock-test-v0", &bad);
         assert!(matches!(
             verify(m, k_log, k_skip, &circuit, &x_ab, v_a, v_b, v_c, &mut ch),
             Err(VerifyError::Transcript(_))
         ));
 
         // Wrong x_inner_rest length.
-        let mut ch = pcs::VerifierState::from_label(b"flock-test-v0", &proof_t);
+        let mut ch = fiat_shamir::transcript::VerifierState::from_label(b"flock-test-v0", &proof_t);
         let bad_x_ab = QuirkyPoint {
             z_skip: x_ab.z_skip,
             x_inner_rest: x_ab.x_inner_rest[..x_ab.x_inner_rest.len() - 1].to_vec(),
@@ -1825,7 +1792,7 @@ mod tests {
         ));
 
         // k_skip > k_log.
-        let mut ch = pcs::VerifierState::from_label(b"flock-test-v0", &proof_t);
+        let mut ch = fiat_shamir::transcript::VerifierState::from_label(b"flock-test-v0", &proof_t);
         assert!(matches!(
             verify(m, k_log, k_log + 1, &circuit, &x_ab, v_a, v_b, v_c, &mut ch),
             Err(VerifyError::KSkipExceedsKLog { .. })

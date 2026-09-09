@@ -29,9 +29,6 @@ mod eval;
 mod mem;
 use call::ret_binding;
 use eval::field_pow;
-/// [`FnLower::specialized_body`]'s pieces: runtime param names, runtime args,
-/// the `Const`-substituted body, and the callee's return arity.
-type SpecializedBody = (Vec<String>, Vec<Expr>, Vec<Stmt>, usize);
 
 /// A value equal to `pointer(base)·g^exp`, or the pure constant `g^exp` when
 /// `base` is `None`. Heap-address arithmetic (`ptr·gᵏ`, and constant g-power
@@ -63,16 +60,13 @@ impl Abi {
     /// Where the caller leaves the return pc and the return frame pointer.
     const RET_PC: Off = 0;
     const RET_FP: Off = 1;
-    /// Argument `i`, straight after the two return slots.
-    /// Where argument `i` starts, which depends on the WIDTHS of the ones before
-    /// it: a `StackBuf(n)` parameter occupies `n` consecutive cells, exactly as a
-    /// `StackBuf(n)` return value does.
-    fn arg(shapes: &[Shape], i: usize) -> Off {
-        2 + shapes[..i].iter().map(|s| s.cells()).sum::<u32>()
+    /// Argument `i`, after the two return slots and the preceding arguments.
+    fn arg(shapes: impl Iterator<Item = Shape>, i: usize) -> Off {
+        2 + shapes.take(i).map(Shape::cells).sum::<u32>()
     }
     /// Total width of the argument area.
-    fn arg_cells(shapes: &[Shape]) -> u32 {
-        shapes.iter().map(|s| s.cells()).sum()
+    fn arg_cells(shapes: impl Iterator<Item = Shape>) -> u32 {
+        shapes.map(Shape::cells).sum()
     }
     /// Return cell `i` of a callee whose arguments occupy `arg_cells` cells.
     fn ret(arg_cells: u32, i: u32) -> Off {
@@ -169,21 +163,9 @@ impl Scope {
     fn bound(&self, n: &str) -> Option<Bound> {
         self.names.get(n).copied()
     }
-    fn var(&self, n: &str) -> Option<Off> {
-        match self.bound(n)?.val {
-            Binding::Scalar(o) => Some(o),
-            _ => None,
-        }
-    }
     fn stack(&self, n: &str) -> Option<(Off, u32)> {
         match self.bound(n)?.val {
             Binding::Stack(base, size) => Some((base, size)),
-            _ => None,
-        }
-    }
-    fn gaddr(&self, n: &str) -> Option<GAddr> {
-        match self.bound(n)?.val {
-            Binding::Gaddr(ga) => Some(ga),
             _ => None,
         }
     }
@@ -207,7 +189,7 @@ struct FnLower<'a> {
     arg_cells: u32,
     /// Source-level return shapes for this function. Their physical cell widths
     /// determine the reserved return area immediately after the arguments.
-    return_shapes: Vec<Shape>,
+    return_shapes: &'a [Shape],
     is_main: bool,
     code: Vec<LInstr>,
     /// Declared size of each `HeapBuf`, keyed by its pointer cell. Shifted
@@ -238,16 +220,14 @@ struct FnLower<'a> {
     tail_call: bool,
     queue: &'a mut Vec<Func>,
     loop_ctr: &'a mut usize,
-    /// Name of the function being lowered. Only used to attribute a lowered
-    /// `for` loop to its source site under `DBG_LOOPS` (the profile prints bare
-    /// `__loopN` names, which are otherwise opaque).
-    fn_name: String,
+    /// Function name for diagnostics and generated-loop handling.
+    fn_name: &'a str,
     /// The program's function definitions by name, for `Const`-parameter
     /// specialization at call sites ([`Self::specialize`]).
-    defs: &'a HashMap<String, Func>,
+    defs: &'a HashMap<&'a str, &'a Func>,
     /// Top-level constant arrays, resolved at compile time: `NAME[i]` yields the
     /// element (a field value or an index), `len(NAME)` its length.
-    const_arrays: &'a HashMap<String, Vec<F192>>,
+    const_arrays: &'a HashMap<&'a str, &'a [F192]>,
 }
 
 impl FnLower<'_> {
@@ -262,7 +242,7 @@ impl FnLower<'_> {
         // is lowered through the CALLER, so its statements report the caller's
         // line. Naming the function, and the inline chain when there is one, is
         // what turns "line 19" back into somewhere to look.
-        let site = match (self.cur_line, self.fn_name.as_str()) {
+        let site = match (self.cur_line, self.fn_name) {
             (0, "main") => String::new(),
             (0, f) => format!("in {f}: "),
             (n, "main") => format!("line {n}: "),
@@ -326,21 +306,15 @@ impl FnLower<'_> {
         };
     }
 
-    /// Bind `name` to `b`, dropping whatever the other three maps held for it:
-    /// they are consulted independently, so a stale binding of another kind
-    /// would shadow this one. `consts` is deliberately NOT touched, since a
-    /// name can keep its compile-time index role across such a rebind; callers
-    /// that must drop it do so themselves.
+    /// Replace the binding, clearing its previous compile-time integer reading.
     fn rebind(&mut self, name: &str, b: Binding) {
         self.check_not_reserved(name);
-        // Every reading of the old name goes with it, the integer one included:
-        // one entry replaced, so none can be left behind.
         self.scope.names.insert(name.to_string(), Bound { val: b, int: None });
     }
 
     /// Bind each of `names` to the join cell holding its value, after a `match`
     /// dispatch: whichever arm ran wrote them, so they are plain scalars now.
-    fn bind_targets(&mut self, binds: &[(String, Off)]) {
+    fn bind_targets(&mut self, binds: &[(&str, Off)]) {
         for (name, cell) in binds {
             self.rebind(name, Binding::Scalar(*cell));
         }
@@ -376,18 +350,9 @@ impl FnLower<'_> {
     /// The frame cell `arr[idx]` names, bounds-checked, or `None` when `arr` is
     /// not a `StackBuf` and the caller should take its heap path.
     ///
-    /// The ONE place a frame index is resolved. Four sites used to repeat
-    /// `stack_of` then `const_index` then their own `k >= size`, and two of them
-    /// shipped without the check: `copy_alias`, where `c[0] = a[2]` on a
-    /// `StackBuf(2)` aliased the next buffer's first cell and its assert passed,
-    /// and a `match` target, where an arm wrote a callee's return past the end.
-    /// Asking where the cell is IS the check now.
-    ///
-    /// Emits nothing, deliberately. An earlier version resolved the heap address
-    /// here too, which moved the pointer `MUL` ahead of the caller's other work
-    /// and broke `hb[sb[0]] = f(sb, …)`, where the address reads a cell the value
-    /// writes. Each caller keeps its own evaluation order, and the heap bound
-    /// lives where the heap address is formed ([`Self::heap_addr`]).
+    /// Emits nothing, so each caller keeps its own evaluation order. In
+    /// `hb[sb[0]] = f(sb, …)`, the address may read a cell the value writes.
+    /// The heap bound lives where the address is formed ([`Self::heap_addr`]).
     fn frame_cell(&mut self, arr: &Expr, idx: &Expr) -> Option<Off> {
         let (base, size) = self.stack_of(arr)?;
         let k = self.const_index(idx);
@@ -596,12 +561,9 @@ impl FnLower<'_> {
 
     /// The cell each multi-return target names, and the names still to bind.
     ///
-    /// A plain name takes a fresh cell, as it always did. A `StackBuf` element IS
-    /// its cell, so the arms write the value where the program wants it and the
-    /// store that used to follow is gone: the ABI already returns into cells the
-    /// CALLER picks ([`Self::call_into`]), and a single-value assignment has
-    /// always exploited that, so this only lets a multi-value one say the same.
-    fn ret_targets(&mut self, targets: &[Expr]) -> (Vec<Off>, Vec<(String, Off)>) {
+    /// A plain name takes a fresh cell. A `StackBuf` element uses its existing
+    /// cell, so [`Self::call_into`] returns directly into the destination.
+    fn ret_targets<'a>(&mut self, targets: &'a [Expr]) -> (Vec<Off>, Vec<(&'a str, Off)>) {
         let mut cells = Vec::with_capacity(targets.len());
         let mut binds = Vec::new();
         for t in targets {
@@ -620,7 +582,7 @@ impl FnLower<'_> {
                 Expr::Var(n) => {
                     let c = self.fresh();
                     cells.push(c);
-                    binds.push((n.clone(), c));
+                    binds.push((n.as_str(), c));
                 }
                 other => self.fail(format!(
                     "a multi-value target must be a name or a StackBuf element, got `{other:?}`"
@@ -639,20 +601,17 @@ impl FnLower<'_> {
             if let Expr::Call(f, _) = arm
                 && self
                     .defs
-                    .get(f)
+                    .get(f.as_str())
                     .is_some_and(|d| !d.inline && d.return_shapes.iter().any(|s| matches!(s, Shape::StackBuf(_))))
             {
                 self.fail("a normal function's StackBuf return cannot cross a match join; bind it with `let`");
             }
         }
-        // Fusion: when every arm is a direct call to the same function with
-        // identical runtime args (differing only in `Const` args, the usual
-        // `lambda k: f(a, b, k)`), set up one shared callee frame and dispatch
-        // straight to the specialization's entry, which returns to the join.
-        // Collapses each arm from a full call to a two-instruction trampoline
-        // slot; see [`Self::lower_dispatched_call`].
+        // Calls with identical runtime args share one callee frame and a
+        // two-instruction trampoline per arm. Const args select specializations;
+        // see `lower_dispatched_call` for the shared argument/return layout checks.
         if arms.iter().all(|a| matches!(a, Expr::Call(..))) {
-            let specialized: Vec<(String, Vec<Expr>)> = arms
+            let specialized: Vec<(String, Vec<&Expr>)> = arms
                 .iter()
                 .map(|a| {
                     let Expr::Call(f, cargs) = a else { unreachable!() };
@@ -662,8 +621,7 @@ impl FnLower<'_> {
             let rt0 = &specialized[0].1;
             if specialized.iter().all(|(_, rt)| rt == rt0) {
                 let callees: Vec<String> = specialized.iter().map(|(c, _)| c.clone()).collect();
-                let rt_args = rt0.clone();
-                self.lower_dispatched_call(targets, x, &callees, &rt_args);
+                self.lower_dispatched_call(targets, x, &callees, rt0);
                 return;
             }
             // Not uniform: fall through (the specializations queued above are
@@ -728,17 +686,15 @@ impl FnLower<'_> {
     }
 
     /// The `n` trampoline slots themselves, each `SET c = k(j); JUMP c`.
-    /// Returns each slot's `SET` index (a [`KVal::Local`] target still needs
-    /// patching to the block it selects).
-    fn emit_slots(&mut self, n: usize, one: Off, of: Off, k: impl Fn(usize) -> KVal) -> Vec<usize> {
-        let mut slots = Vec::new();
+    /// Returns the table's start; slot `j` has its `SET` at `start + 2*j`.
+    fn emit_slots(&mut self, n: usize, one: Off, of: Off, k: impl Fn(usize) -> KVal) -> usize {
+        let start = self.code.len();
         for j in 0..n {
             let c = self.fresh();
-            slots.push(self.code.len());
             self.set(c, k(j));
             self.emit(LOp::Jump { oc: one, od: c, of });
         }
-        slots
+        start
     }
 
     /// The trampoline dispatch every `match` lowers through: jump to
@@ -756,10 +712,10 @@ impl FnLower<'_> {
         let kset = self.emit_dispatch(xo, one, sfp);
         // The trampoline table.
         self.patch_local(kset, self.code.len());
-        let slots = self.emit_slots(n, one, sfp, |_| KVal::Local(0)); // patched: its block
+        let start = self.emit_slots(n, one, sfp, |_| KVal::Local(0));
         // The arm blocks, each exiting to the join (the last falls through).
-        for (j, &slot) in slots.iter().enumerate() {
-            self.patch_local(slot, self.code.len());
+        for j in 0..n {
+            self.patch_local(start + 2 * j, self.code.len());
             body(self, j);
             if j + 1 != n {
                 self.emit(LOp::Jump {
@@ -781,7 +737,11 @@ impl FnLower<'_> {
         // XOR, and the two disagree whenever a side's readings do. Neither can
         // simply win, so an ambiguous condition is REJECTED and `const(...)` is
         // how the author names the regime (`zkDSL.md`, "`if const(...)`").
-        if let (Some(a), Some(b)) = (self.try_const_index(lhs), self.try_const_index(rhs)) {
+        let (a, b) = (self.eval(lhs), self.eval(rhs));
+        if let (Some(ai), Some(bi)) = (
+            a.int.and_then(|n| u32::try_from(n).ok()),
+            b.int.and_then(|n| u32::try_from(n).ok()),
+        ) {
             // Checked per SIDE, not by comparing the two verdicts. If each side's
             // own readings agree then integer equality and field equality say the
             // same thing, so a side that disagrees with ITSELF is the whole of the
@@ -790,8 +750,8 @@ impl FnLower<'_> {
             // `n == 3 - 1` slipped through and folded on the integer reading while
             // `n == 2`, the same condition, was rejected.
             if !force_const {
-                for e in [lhs, rhs] {
-                    if let Some((n, f)) = self.diverging_readings(e) {
+                for (e, known) in [(lhs, a), (rhs, b)] {
+                    if let Some((n, f)) = known.diverging_readings() {
                         self.fail(format!(
                             "`{e:?}` reads as the integer {n} where a condition folds, and as the field \
                              element {:#x}:{:#x} where a value is wanted, so this branch would be decided \
@@ -802,7 +762,7 @@ impl FnLower<'_> {
                     }
                 }
             }
-            for st in if (a == b) == eq { then } else { els } {
+            for st in if (ai == bi) == eq { then } else { els } {
                 self.stmt(st);
             }
             return;
@@ -812,7 +772,7 @@ impl FnLower<'_> {
         // against. A plain `if` must NOT: folding it would rescope the arm, whose
         // bindings then outlive it.
         if force_const {
-            if let (Some(fa), Some(fb)) = (self.try_field_const(lhs), self.try_field_const(rhs)) {
+            if let (Some(fa), Some(fb)) = (a.field, b.field) {
                 for st in if (fa == fb) == eq { then } else { els } {
                     self.stmt(st);
                 }
@@ -863,9 +823,8 @@ impl FnLower<'_> {
     /// `assert a != b`: `XOR` for `x = a + b`, a hinted `inv = x⁻¹`, then
     /// `MUL p = x·inv` and `SET p = 1`, the write-once conflict being the
     /// assertion (as for `assert a == b`). Sound because `x = 0` forces `p = 0`
-    /// whatever the hint, and `p` cannot then be `1`. Three rows and no `JUMP`,
-    /// against the five (`XOR`, two `SET`, two `JUMP`) a branch to the poison pc
-    /// used to cost. A compile-time-equal pair is a hard compile error.
+    /// whatever the hint, and `p` cannot then be `1`.
+    /// A compile-time-equal pair is a hard compile error.
     fn lower_assert_ne(&mut self, a: &Expr, b: &Expr) {
         // Compile-time literals (e.g. after `Const`-arg substitution): a
         // trivially-true pair emits nothing, an equal pair is a hard error.
@@ -975,14 +934,13 @@ impl FnLower<'_> {
                 self.const_cell(g_pow_u128(k).into())
             }
             Expr::Pow(b, e) => self.pow_expr(b, e),
-            Expr::Var(v) => {
-                if self.scope.stack(v).is_some() {
+            Expr::Var(v) => match self.scope.bound(v).map(|b| b.val) {
+                Some(Binding::Stack(..)) => {
                     self.fail(format!("StackBuf `{v}` used as a scalar; index it (`{v}[k]`) or pass it to blake2s"));
                 }
-                if let Some(ga) = self.scope.gaddr(v) {
-                    return self.materialize(ga);
-                }
-                self.scope.var(v).unwrap_or_else(|| {
+                Some(Binding::Gaddr(ga)) => self.materialize(ga),
+                Some(Binding::Scalar(o)) => o,
+                _ => {
                     // A `for` body that ASSIGNS to an enclosing name reads it before
                     // it binds it, and the capture set drops every name the body
                     // binds, so the read arrives here with nothing behind it. That is
@@ -999,8 +957,8 @@ impl FnLower<'_> {
                         ))
                     }
                     self.fail(format!("unbound variable `{v}`"))
-                })
-            }
+                }
+            },
             Expr::Add(a, b) => {
                 if let Some(x) = self.add_identity(a, b) {
                     return self.expr(x);
@@ -1139,10 +1097,8 @@ impl FnLower<'_> {
         acc
     }
 
-    /// Evaluate `e` writing its value straight into cell `dst`, with no temporary +
-    /// copy for the common cases (a heap read DEREFs directly into `dst`; a
-    /// constant / arithmetic emits into `dst`). Falls back to `expr` + `copy` for
-    /// vars, calls, and stack reads.
+    /// Evaluate `e` into `dst`, writing constants, arithmetic, heap reads and call results directly.
+    /// Writing an existing cell enforces equality under write-once memory.
     fn expr_into(&mut self, e: &Expr, dst: Off) {
         // A wholly compile-time expression (a literal, a constant-array element,
         // constant arithmetic) is one `SET` into `dst`, not a heap read.
@@ -1220,7 +1176,7 @@ impl FnLower<'_> {
                 Expr::ListLit(es) => {
                     let base = self.alloc_stack(es.len() as u32);
                     for (k, el) in es.iter().enumerate() {
-                        self.stack_store(base + k as u32, el);
+                        self.expr_into(el, base + k as u32);
                     }
                     self.rebind(name, Binding::Stack(base, es.len() as u32));
                 }
@@ -1246,21 +1202,21 @@ impl FnLower<'_> {
                     // that folds: `FOLDBASE[lvl] + j`, `n // 2`, `len(A) - 1`) is
                     // usable as a compile-time index / bound / exponent, and that
                     // role survives the value binding chosen below.
-                    let k_int = self.try_const_int(e);
+                    let known = self.eval(e);
                     // A symbolic g-address (a constant g-power or a shifted
                     // pointer) or a compile-time field constant stays virtual:
                     // no instruction here, folded / materialized only on demand.
-                    if let Some(ga) = self.gaddr_of(e) {
+                    if let Some(ga) = known.addr {
                         self.rebind(name, Binding::Gaddr(ga));
-                    } else if let Some(c) = self.try_field_const(e) {
+                    } else if let Some(c) = known.field {
                         self.rebind(name, Binding::FConst(c));
-                    } else if let Some(k) = k_int {
+                    } else if let Some(k) = known.int {
                         // Integer-only fold (`//`, `-`, `%` of constants): a
                         // compile-time value too, and as a scalar it is the field
                         // element with those 128 bits, materialized on demand.
                         self.rebind(name, Binding::FConst(lit_field(k)));
                     } else if let Expr::Call(cf, cargs) = e
-                        && self.defs.contains_key(cf)
+                        && self.defs.contains_key(cf.as_str())
                     {
                         // A bare `name = call(...)` of a user function: bind per
                         // the inlined return's RetBind, aliasing its StackBuf run
@@ -1269,7 +1225,6 @@ impl FnLower<'_> {
                         // real call) bind the dst cell. Embedded calls do NOT
                         // take this path: `expr` materializes theirs
                         // ([`Self::take_inline_ret_cell`]).
-                        self.inline_stack_ret = None;
                         let o = self.call(cf, cargs, 1)[0];
                         let b = ret_binding(self.inline_stack_ret.take().and_then(|b| b.into_iter().next()), o);
                         self.rebind(name, b);
@@ -1281,7 +1236,7 @@ impl FnLower<'_> {
                     // rides alongside whichever value binding was chosen above.
                     // It is attached after, because a rebind clears it, and the
                     // RHS above still had to see `name`'s old reading.
-                    if let Some(k) = k_int {
+                    if let Some(k) = known.int {
                         self.scope.set_int(name, k);
                     }
                 }
@@ -1353,7 +1308,7 @@ impl FnLower<'_> {
                 // the value writes (`hb[sb[0]] = f(sb, …)`), and Python's own
                 // evaluation order for `a[i] = v` is the same.
                 if let Some(c) = self.frame_cell(arr, idx) {
-                    self.stack_store(c, val);
+                    self.expr_into(val, c);
                 } else {
                     let v = self.expr(val);
                     let (ptr, o2) = self.heap_addr(arr, idx);
@@ -1371,7 +1326,7 @@ impl FnLower<'_> {
                 let (la, lb) = (self.expr(lhs), self.expr(rhs));
                 // x = lhs + rhs; x != 0 ⇔ lhs != rhs
                 let x = self.pure(PureOp::Xor, la, lb);
-                self.lower_call(callee, args, 0, Some(x), None, tail);
+                self.lower_call(callee, args, Some(x), &[], tail);
             }
             StmtKind::For { var, lo, hi, body } => self.lower_for(var, *lo, hi, body),
             // Compile-time unrolling: emit the body per integer, the counter
@@ -1435,7 +1390,7 @@ impl FnLower<'_> {
         // they exist in the enclosing scope (deterministic order).
         let mut referenced = Vec::new();
         let mut bound = std::collections::HashSet::new();
-        bound.insert(var.to_string());
+        bound.insert(var);
         for s in body {
             free_vars_stmt(s, &mut referenced, &mut bound);
         }
@@ -1474,9 +1429,9 @@ impl FnLower<'_> {
             if matches!(
                 self.scope.bound(r).map(|b| b.val),
                 Some(Binding::Scalar(_) | Binding::Gaddr(_) | Binding::FConst(_))
-            ) && seen.insert(r.clone())
+            ) && seen.insert(*r)
             {
-                captures.push(r.clone());
+                captures.push((*r).to_string());
             }
         }
 
@@ -1516,13 +1471,15 @@ impl FnLower<'_> {
             cap_args(Expr::Var(next_var), Expr::Var(bound_var.clone())),
         )));
         loop_body.push(at(StmtKind::Return(vec![])));
-        let const_params = vec![false; params.len()];
         self.queue.push(Func {
             name: loop_name.clone(),
-            param_shapes: vec![Shape::Scalar; params.len()],
-            params,
-            const_params,
-            n_ret: 0,
+            params: params
+                .into_iter()
+                .map(|name| Param {
+                    name,
+                    kind: ParamKind::Runtime(Shape::Scalar),
+                })
+                .collect(),
             return_shapes: vec![],
             body: loop_body,
             inline: false,
@@ -1575,31 +1532,32 @@ pub(crate) fn lower_func(
     f: &Func,
     queue: &mut Vec<Func>,
     loop_ctr: &mut usize,
-    defs: &HashMap<String, Func>,
-    const_arrays: &HashMap<String, Vec<F192>>,
+    defs: &HashMap<&str, &Func>,
+    const_arrays: &HashMap<&str, &[F192]>,
     with_filler: bool,
 ) -> Lowered {
     let mut names: HashMap<String, Bound> = HashMap::new();
     for (i, p) in f.params.iter().enumerate() {
         assert!(
-            !const_arrays.contains_key(p),
-            "`{}`: parameter `{p}` collides with a top-level constant array, whose name is \
+            !const_arrays.contains_key(p.name.as_str()),
+            "`{}`: parameter `{}` collides with a top-level constant array, whose name is \
              reserved (zkDSL.md §Global constants)",
-            f.name
+            f.name,
+            p.name
         );
         // A `StackBuf(n)` parameter binds the run the caller wrote, exactly as a
         // local `StackBuf(n)` binds one it allocated.
-        let off = Abi::arg(&f.param_shapes, i);
-        let val = match f.param_shapes.get(i).copied().unwrap_or(Shape::Scalar) {
+        let off = Abi::arg(f.param_shapes(), i);
+        let val = match p.shape() {
             Shape::StackBuf(n) => Binding::Stack(off, n),
             Shape::Scalar => Binding::Scalar(off),
         };
-        names.insert(p.clone(), Bound { val, int: None });
+        names.insert(p.name.clone(), Bound { val, int: None });
     }
     // Reserve [0,1] retpc/retfp, params, then the flattened return area, then
     // locals. A StackBuf(n) return occupies n consecutive physical slots.
     let n_ret_cells: u32 = f.return_shapes.iter().map(|s| s.cells()).sum();
-    let arg_cells = Abi::arg_cells(&f.param_shapes);
+    let arg_cells = Abi::arg_cells(f.param_shapes());
     let abi_end = Abi::end(arg_cells, n_ret_cells);
     let mut lowerer = FnLower {
         scope: Scope {
@@ -1608,9 +1566,9 @@ pub(crate) fn lower_func(
         },
         next: abi_end,
         arg_cells,
-        return_shapes: f.return_shapes.clone(),
+        return_shapes: &f.return_shapes,
         is_main: f.name == "main",
-        fn_name: f.name.clone(),
+        fn_name: &f.name,
         tail_call: false,
         code: Vec::new(),
         cur_line: 0,
@@ -1631,7 +1589,7 @@ pub(crate) fn lower_func(
         // ends exactly like this, so its self-call stops building an unwind
         // chain.
         lowerer.tail_call = !lowerer.is_main
-            && f.n_ret == 0
+            && f.return_shapes.is_empty()
             && matches!(s.kind, StmtKind::CallIfNe(..))
             && matches!(f.body.get(i + 1).map(|n| &n.kind), Some(StmtKind::Return(r)) if r.is_empty());
         lowerer.stmt(s);

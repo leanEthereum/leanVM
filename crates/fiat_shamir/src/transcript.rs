@@ -29,10 +29,8 @@ pub enum Error {
 }
 
 /// What a protocol step needs from the transcript when it only draws challenges:
-/// one implementation then serves both sides. WHIR's query sampler and every
-/// shared sub-step take `&mut impl Challenger`, so no caller outside this crate
-/// ever holds the [`FiatShamirState`] state itself: it is reachable only through these three
-/// traits and the two states that implement them.
+/// one implementation then serves both sides. WHIR's query sampler and shared
+/// sub-steps take `&mut impl Challenger`.
 pub trait Challenger {
     fn sample(&mut self) -> F192;
     fn sample_vec(&mut self, n: usize) -> Vec<F192>;

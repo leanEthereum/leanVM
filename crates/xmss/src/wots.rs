@@ -75,13 +75,9 @@ impl WotsSignature {
 
 impl WotsPublicKey {
     /// The Merkle leaf: standard BLAKE2s over the tweak, public parameter, and
-    /// 42 concatenated chain tips (704 bytes, 11 compressions in one chunk).
+    /// 42 concatenated chain tips (704 bytes, 11 compressions).
     pub fn hash(&self, public_param: &PublicParam, epoch: Epoch) -> Digest {
-        let mut data = [0u8; V * DIGEST_LEN];
-        for (chunk, tip) in data.as_chunks_mut::<DIGEST_LEN>().0.iter_mut().zip(&self.0) {
-            *chunk = *tip;
-        }
-        tweak_hash(public_param, TWEAK_TYPE_WOTS_PK, 0, epoch, &data)
+        tweak_hash(public_param, TWEAK_TYPE_WOTS_PK, 0, epoch, self.0.as_flattened())
     }
 }
 
@@ -145,20 +141,18 @@ pub fn wots_encode(
     data[MESSAGE_LEN..][..RANDOMNESS_LEN].copy_from_slice(randomness);
     let digest = tweak_hash(public_param, TWEAK_TYPE_ENCODING, 0, epoch, &data);
 
-    if digest[7] >> 7 != 0 || digest[DIGEST_LEN - 1] >> 7 != 0 {
-        return None; // the leftover top bit of each 64-bit word must be zero
-    }
-    let digest_bit = |index: usize| (digest[index / 8] >> (index % 8)) & 1;
-    let digit_offset = |index: usize| {
-        if index < V / 2 {
-            W * index
-        } else {
-            64 + W * (index - V / 2)
-        }
-    };
     let mut encoding = [0u8; V];
-    for (index, digit) in encoding.iter_mut().enumerate() {
-        *digit = (0..W).fold(0, |value, bit| value | (digest_bit(digit_offset(index) + bit) << bit));
+    let mut sum = 0;
+    for (half, bytes) in digest.as_chunks::<8>().0.iter().enumerate() {
+        let word = u64::from_le_bytes(*bytes);
+        if word >> (W * V / 2) != 0 {
+            return None;
+        }
+        for i in 0..V / 2 {
+            let digit = ((word >> (W * i)) & (CHAIN_LENGTH as u64 - 1)) as u8;
+            encoding[half * (V / 2) + i] = digit;
+            sum += digit as usize;
+        }
     }
-    (encoding.iter().map(|&x| x as usize).sum::<usize>() == TARGET_SUM).then_some(encoding)
+    (sum == TARGET_SUM).then_some(encoding)
 }

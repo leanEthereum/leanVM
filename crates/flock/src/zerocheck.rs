@@ -10,7 +10,7 @@
 //!   2. Prover sends `P(λ) = P^{AB}(λ) + P^C(λ)` for λ ∈ Λ, |Λ| = 2^k_skip.
 //!   3. Verifier samples `z ∈ F_{2^192}` (univariate-skip fold point).
 //!   4. For each of the `m - k_skip` multilinear rounds, prover sends
-//!      `(P_r(1), P_r(∞))` and verifier samples `ρ_r`.
+//!      the linear and quadratic coefficients; the verifier derives the constant from the claim and samples the round challenge.
 //!   5. Prover sends final MLE evaluations `(â, b̂)`; `ĉ` is what the terminal
 //!      identity leaves, `ĉ = claim + â·b̂`, so it never rides the wire.
 //!
@@ -81,9 +81,6 @@ pub struct ZerocheckClaim {
     pub z: F192,
     /// Sumcheck bind challenges, one per multilinear round; length = `m - K_SKIP`.
     pub mlv_challenges: Vec<F192>,
-    /// Equality coordinates for the variables left after the univariate skip.
-    /// Length = `m - K_SKIP`.
-    pub r_rest: Vec<F192>,
     /// `â(z, mlv_challenges)`.
     pub a_eval: F192,
     /// `b̂(z, mlv_challenges)`.
@@ -93,9 +90,6 @@ pub struct ZerocheckClaim {
     /// Nothing checks it here; lincheck's α-batched identity pins all three.
     pub c_eval: F192,
 }
-
-// (No ZerocheckProof struct: every round message rides the shared transcript
-// stream, in protocol order.)
 
 /// Reasons the verifier may reject a proof.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -112,7 +106,7 @@ pub enum VerifyError {
 
 /// Send one multilinear round and advance the running claim, the prover mirror
 /// of the verifier's loop. `G(0)` never rides the wire: the eq split
-/// `(1 + r_eq)·G(0) + r_eq·G(1) = claim` fixes it. All three evaluations bind.
+/// `(1 + r_eq)·G(0) + r_eq·G(1) = claim` fixes the constant coefficient.
 fn send_round(ps: &mut impl Transmitter, claim: F192, r_eq: F192, g1: F192, g_inf: F192, chis: &mut Vec<F192>) -> F192 {
     let g0 = (claim + r_eq * g1) * (F192::ONE + r_eq).inv();
     ps.add_round_poly(&[g0, g0 + g1 + g_inf, g_inf], true);
@@ -329,7 +323,6 @@ pub fn prove_packed_padded(
     ZerocheckClaim {
         z,
         mlv_challenges: mlv_chis,
-        r_rest,
         a_eval: final_a_eval,
         b_eval: final_b_eval,
         c_eval: final_c_eval,
@@ -425,7 +418,6 @@ pub fn verify(log_n: usize, vs: &mut VerifierState<'_>) -> Result<ZerocheckClaim
     Ok(ZerocheckClaim {
         z,
         mlv_challenges: mlv_chis,
-        r_rest,
         a_eval: final_a_eval,
         b_eval: final_b_eval,
         c_eval: final_c_eval,
@@ -443,7 +435,7 @@ mod tests {
         b_packed: &[u8],
         c_packed: &[u8],
         m: usize,
-        ps: &mut pcs::ProverState,
+        ps: &mut fiat_shamir::transcript::ProverState,
     ) -> ZerocheckClaim {
         prove_packed_padded(a_packed, b_packed, c_packed, m, &PaddingSpec::dense(m), ps)
     }
@@ -490,7 +482,7 @@ mod tests {
             let c: Vec<bool> = a.iter().zip(&b).map(|(x, y)| *x & *y).collect();
 
             let (a_p, b_p, c_p) = pack_abc(&a, &b, &c);
-            let mut ps = pcs::ProverState::from_label(b"flock-test-v0");
+            let mut ps = fiat_shamir::transcript::ProverState::from_label(b"flock-test-v0");
             let claim = prove_packed(&a_p, &b_p, &c_p, m, &mut ps);
 
             // Shape checks: the streamed proof is round1 ‖ (m − K_SKIP)
@@ -519,11 +511,11 @@ mod tests {
             let c: Vec<bool> = a.iter().zip(&b).map(|(x, y)| *x & *y).collect();
 
             let (a_p, b_p, c_p) = pack_abc(&a, &b, &c);
-            let mut ch_prove = pcs::ProverState::from_label(b"flock-test-v0");
+            let mut ch_prove = fiat_shamir::transcript::ProverState::from_label(b"flock-test-v0");
             let claim_p = prove_packed(&a_p, &b_p, &c_p, m, &mut ch_prove);
 
             let proof_t = ch_prove.into_proof();
-            let mut ch_verify = pcs::VerifierState::from_label(b"flock-test-v0", &proof_t);
+            let mut ch_verify = fiat_shamir::transcript::VerifierState::from_label(b"flock-test-v0", &proof_t);
             let result = verify(m, &mut ch_verify);
             let claim_v = result.unwrap_or_else(|e| panic!("verify rejected at m={m}: {e:?}"));
 
@@ -546,10 +538,10 @@ mod tests {
             let c: Vec<bool> = a.iter().zip(&b).map(|(x, y)| *x & *y).collect();
 
             let (a_p, b_p, c_p) = pack_abc(&a, &b, &c);
-            let mut ch_prove = pcs::ProverState::from_label(b"flock-test-v0");
+            let mut ch_prove = fiat_shamir::transcript::ProverState::from_label(b"flock-test-v0");
             let _ = prove_packed(&a_p, &b_p, &c_p, m, &mut ch_prove);
             let proof_t = ch_prove.into_proof();
-            let mut ch = pcs::VerifierState::from_label(b"flock-test-v0", &proof_t);
+            let mut ch = fiat_shamir::transcript::VerifierState::from_label(b"flock-test-v0", &proof_t);
             let claim = verify(m, &mut ch).expect("honest proof");
 
             let chi = &claim.mlv_challenges;
@@ -581,10 +573,10 @@ mod tests {
                     c[idx] = !c[idx];
                 }
                 let (a_p, b_p, c_p) = pack_abc(&a, &b, &c);
-                let mut ch_prove = pcs::ProverState::from_label(b"flock-test-v0");
+                let mut ch_prove = fiat_shamir::transcript::ProverState::from_label(b"flock-test-v0");
                 let _ = prove_packed(&a_p, &b_p, &c_p, m, &mut ch_prove);
                 let proof_t = ch_prove.into_proof();
-                let mut ch = pcs::VerifierState::from_label(b"flock-test-v0", &proof_t);
+                let mut ch = fiat_shamir::transcript::VerifierState::from_label(b"flock-test-v0", &proof_t);
                 let claim = verify(m, &mut ch).expect("shape is still valid");
                 let chi = &claim.mlv_challenges;
                 let all_true = claim.a_eval == quirky_eval(&a, claim.z, chi)
@@ -601,7 +593,7 @@ mod tests {
         let b = rng.bits(1 << m);
         let c: Vec<bool> = a.iter().zip(&b).map(|(x, y)| *x & *y).collect();
         let (a_p, b_p, c_p) = pack_abc(&a, &b, &c);
-        let mut ch_prove = pcs::ProverState::from_label(b"flock-test-v0");
+        let mut ch_prove = fiat_shamir::transcript::ProverState::from_label(b"flock-test-v0");
         let _ = prove_packed(&a_p, &b_p, &c_p, m, &mut ch_prove);
         let proof_t = ch_prove.into_proof();
 
@@ -618,7 +610,7 @@ mod tests {
         for (label, word) in mutations {
             let mut bad = proof_t.clone();
             bad.stream[word].c0 ^= 1;
-            let mut ch = pcs::VerifierState::from_label(b"flock-test-v0", &bad);
+            let mut ch = fiat_shamir::transcript::VerifierState::from_label(b"flock-test-v0", &bad);
             let claim = verify(m, &mut ch).expect("shape is still valid");
             let chi = &claim.mlv_challenges;
             let all_true = claim.a_eval == quirky_eval(&a, claim.z, chi)
@@ -637,18 +629,18 @@ mod tests {
         let b = rng.bits(1 << m);
         let c: Vec<bool> = a.iter().zip(&b).map(|(x, y)| *x & *y).collect();
         let (a_p, b_p, c_p) = pack_abc(&a, &b, &c);
-        let mut ch_prove = pcs::ProverState::from_label(b"flock-test-v0");
+        let mut ch_prove = fiat_shamir::transcript::ProverState::from_label(b"flock-test-v0");
         let _ = prove_packed(&a_p, &b_p, &c_p, m, &mut ch_prove);
         let proof_t = ch_prove.into_proof();
 
         // Truncated stream: a clean Transcript error, not a panic.
         let mut bad = proof_t.clone();
         bad.stream.truncate(bad.stream.len() - 3);
-        let mut ch = pcs::VerifierState::from_label(b"flock-test-v0", &bad);
+        let mut ch = fiat_shamir::transcript::VerifierState::from_label(b"flock-test-v0", &bad);
         assert!(matches!(verify(m, &mut ch), Err(VerifyError::Transcript(_))));
 
         // log_n too small.
-        let mut ch = pcs::VerifierState::from_label(b"flock-test-v0", &proof_t);
+        let mut ch = fiat_shamir::transcript::VerifierState::from_label(b"flock-test-v0", &proof_t);
         assert!(matches!(
             verify(K_SKIP + 6, &mut ch),
             Err(VerifyError::LogNTooSmall { .. })
@@ -681,13 +673,13 @@ mod tests {
         let c: Vec<bool> = a.iter().zip(&b).map(|(x, y)| *x & *y).collect();
         let (a_p, b_p, c_p) = pack_abc(&a, &b, &c);
 
-        let mut ch_prove = pcs::ProverState::from_label(b"flock-test-v0");
+        let mut ch_prove = fiat_shamir::transcript::ProverState::from_label(b"flock-test-v0");
         let claim_p = prove_packed(&a_p, &b_p, &c_p, m, &mut ch_prove);
         let proof_t = ch_prove.into_proof();
 
         // Honest verify, then capture the next challenge the transcript feeds
         // downstream: this is exactly the slot lincheck samples α from.
-        let mut ch_honest = pcs::VerifierState::from_label(b"flock-test-v0", &proof_t);
+        let mut ch_honest = fiat_shamir::transcript::VerifierState::from_label(b"flock-test-v0", &proof_t);
         assert!(verify(m, &mut ch_honest).is_ok(), "honest verify rejected");
         let alpha_honest = ch_honest.sample();
 
@@ -712,7 +704,7 @@ mod tests {
         // Replay the tampered proof to move the transcript to the same slot. Its
         // claims are as consistent as the honest ones (same product, same ĉ),
         // so nothing local distinguishes them.
-        let mut ch_tampered = pcs::VerifierState::from_label(b"flock-test-v0", &bad);
+        let mut ch_tampered = fiat_shamir::transcript::VerifierState::from_label(b"flock-test-v0", &bad);
         let tampered = verify(m, &mut ch_tampered).expect("shape is still valid");
         assert_eq!(
             tampered.a_eval * tampered.b_eval,
@@ -743,8 +735,8 @@ mod tests {
         let c: Vec<bool> = a.iter().zip(&b).map(|(x, y)| *x & *y).collect();
 
         let (a_p, b_p, c_p) = pack_abc(&a, &b, &c);
-        let mut ch1 = pcs::ProverState::from_label(b"flock-test-v0");
-        let mut ch2 = pcs::ProverState::from_label(b"flock-test-v0");
+        let mut ch1 = fiat_shamir::transcript::ProverState::from_label(b"flock-test-v0");
+        let mut ch2 = fiat_shamir::transcript::ProverState::from_label(b"flock-test-v0");
         let claim1 = prove_packed(&a_p, &b_p, &c_p, m, &mut ch1);
         let claim2 = prove_packed(&a_p, &b_p, &c_p, m, &mut ch2);
 

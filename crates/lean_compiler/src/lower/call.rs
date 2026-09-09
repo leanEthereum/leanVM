@@ -14,6 +14,7 @@
 //! valid across it and only the name bindings reset.
 
 use super::*;
+use std::borrow::Cow;
 
 /// How an inlined tail return binds in the caller: a `StackBuf` run and a folded
 /// g-address alias at zero copies, while anything else (a plain scalar, or a real
@@ -26,11 +27,13 @@ pub(super) fn ret_binding(b: Option<RetBind>, dst: Off) -> Binding {
     }
 }
 
-/// A body safe to inline: a single **tail** `return`, and no construct whose
-/// lowering needs its own frame or a dispatch: a non-inline user call, a
-/// runtime loop, or a match (which would reload a frame pointer that is no
-/// longer the callee's). Builtins and nested `@inline` calls are fine;
-/// `unroll`/`if` are compile-time / same-frame and recurse into.
+fn substitute_body<'a>(body: &'a [Stmt], substs: &[(&str, Expr)]) -> Cow<'a, [Stmt]> {
+    substs.iter().fold(Cow::Borrowed(body), |body, (name, value)| {
+        Cow::Owned(subst_stmts(&body, name, value))
+    })
+}
+
+/// A single tail return, preceded by statements that can be expanded in the caller's frame.
 fn body_inlinable(body: &[Stmt]) -> bool {
     matches!(body.split_last(), Some((last, rest)) if matches!(last.kind, StmtKind::Return(_))
         && rest.iter().all(stmt_inline_safe))
@@ -45,42 +48,26 @@ fn stmt_inline_safe(s: &Stmt) -> bool {
         | StmtKind::Print { .. }
         | StmtKind::AssertEq(..)
         | StmtKind::AssertNe(..)
-        | StmtKind::AssertLt(..) => true,
-        // Any call. The allowlist here named three of the five statement builtins
-        // and left out both `hint_decompose_bits` forms, and it excluded a real
-        // user call although the SAME call in expression position was always
-        // allowed and is sound: `lower_call` builds the callee's frame from
-        // `fresh()` and writes retfp and retpc with `DerefMode::Fp`/`Pc`, none of
-        // which assumes whose frame is current. So the rule was stricter than it
-        // needed to be in one position and leakier than it claimed in the other.
-        StmtKind::Call(..) => true,
+        | StmtKind::AssertLt(..)
+        // Ordinary calls allocate their own frames.
+        | StmtKind::Call(..) => true,
         StmtKind::If { then, els, .. } => then.iter().all(stmt_inline_safe) && els.iter().all(stmt_inline_safe),
         StmtKind::Unroll { body, .. } => body.iter().all(stmt_inline_safe),
-        // Return (non-tail), For, Match, LetTuple, CallIfNe, user Call.
         _ => false,
     }
 }
 
 impl FnLower<'_> {
-    /// Lower a call. Return values land in `dsts_in` when given (write-once, so
-    /// distinct arms of a `match` may share the same cells), else in fresh
-    /// cells, sparing the caller a temp-then-copy.
-    pub(super) fn lower_call(
-        &mut self,
-        callee: &str,
-        args: &[Expr],
-        n_ret: usize,
-        cond: Option<Off>,
-        dsts_in: Option<&[Off]>,
-        tail: bool,
-    ) -> Vec<Off> {
+    /// Lower a call into the caller's return cells. Distinct `match` arms may
+    /// share these write-once destinations.
+    pub(super) fn lower_call(&mut self, callee: &str, args: &[Expr], cond: Option<Off>, dsts: &[Off], tail: bool) {
         // Every parameter must be supplied. A missing argument leaves the
         // callee's argument cell unwritten, hence prover-chosen, so an `assert`
         // reading it is vacuous; a surplus one lands on the callee's first
         // return slot, because caller and callee place the return area from
         // their own idea of the argument count. Only `specialize` checked this,
         // and only for a callee declaring `Const` parameters.
-        match self.arity_of(callee) {
+        match self.callee_def(callee).map(|f| f.params.len()) {
             Some(want) if want != args.len() => {
                 let plural = if want == 1 { "argument" } else { "arguments" };
                 self.fail(format!("`{callee}` takes {want} {plural}, got {}", args.len()))
@@ -103,11 +90,12 @@ impl FnLower<'_> {
         // takes n consecutive cells, exactly as a `StackBuf(n)` return value
         // does. Resolved before the frame pointer is allocated, as before.
         let shapes = self
-            .param_shapes_of(callee)
+            .callee_def(callee)
+            .map(|f| f.param_shapes().collect::<Vec<_>>())
             .unwrap_or_else(|| vec![Shape::Scalar; args.len()]);
         let mut arg_offs: Vec<(Off, Off)> = Vec::new();
         for (i, a) in args.iter().enumerate() {
-            let base = Abi::arg(&shapes, i);
+            let base = Abi::arg(shapes.iter().copied(), i);
             match shapes.get(i).copied().unwrap_or(Shape::Scalar) {
                 Shape::StackBuf(n) => {
                     let (src, len) = self.stack_of(a).unwrap_or_else(|| {
@@ -131,7 +119,7 @@ impl FnLower<'_> {
                 }
             }
         }
-        let callee_arg_cells = Abi::arg_cells(&shapes);
+        let callee_arg_cells = Abi::arg_cells(shapes.iter().copied());
         let nfp = self.fresh();
         let entry = self.fresh();
         // Resolve the jump condition up front: `self.one()` may emit a `SET`, and
@@ -160,14 +148,9 @@ impl FnLower<'_> {
         }
         self.emit(LOp::Jump { oc, od: entry, of: nfp });
 
-        let dsts: Vec<Off> = match dsts_in {
-            Some(d) => d.to_vec(),
-            None => (0..n_ret).map(|_| self.fresh()).collect(),
-        };
         for (i, &d) in dsts.iter().enumerate() {
             self.deref(nfp, Abi::ret(callee_arg_cells, i as u32), d, DerefMode::Cell);
         }
-        dsts
     }
 
     /// `names = match(log(x), …, lambda k: f(args, k))` fused: the arms all
@@ -176,38 +159,32 @@ impl FnLower<'_> {
     /// dispatch jump straight into the selected entry, which returns to the join.
     /// Each taken arm is then just the trampoline's `SET entry; JUMP`: no
     /// per-arm frame setup, call, or return jump.
-    pub(super) fn lower_dispatched_call(&mut self, targets: &[Expr], x: &Expr, callees: &[String], rt_args: &[Expr]) {
+    pub(super) fn lower_dispatched_call(&mut self, targets: &[Expr], x: &Expr, callees: &[String], rt_args: &[&Expr]) {
         // The arms share ONE frame, so they must share one argument layout too:
         // a `StackBuf` parameter in one callee and a scalar in another at the
         // same position would put the return area in two places. The arity check
         // below is the count; this is the widths.
-        let shared_shapes = callees
-            .iter()
-            .find_map(|c| self.param_shapes_of(c))
-            .unwrap_or_else(|| vec![Shape::Scalar; rt_args.len()]);
-        for c in callees {
-            if let Some(shapes) = self.param_shapes_of(c)
-                && shapes != shared_shapes
-            {
+        if let Some(shared) = callees.iter().find_map(|c| self.callee_def(c)) {
+            for c in callees {
+                if let Some(def) = self.callee_def(c)
+                    && !def.param_shapes().eq(shared.param_shapes())
+                {
+                    self.fail(format!(
+                        "`{c}` does not take the same parameter shapes as the other arms of this dispatch"
+                    ))
+                }
+            }
+            // Fused dispatch writes one cell per argument; only scalar parameters fit.
+            if let Some(i) = shared.param_shapes().position(|s| s != Shape::Scalar) {
                 self.fail(format!(
-                    "`{c}` does not take the same parameter shapes as the other arms of this dispatch"
+                    "a `match` arm cannot pass a `StackBuf` parameter (parameter {i} of `{}`): the \
+                     fused dispatch writes one cell per argument. Give the arms `Const` arguments so each \
+                     specializes into its own call instead of fusing",
+                    callees.first().map(String::as_str).unwrap_or("?")
                 ))
             }
         }
-        // The arms resolve their arguments with `expr`, one cell each, so a run
-        // parameter cannot be filled here: passing a `StackBuf` fails in `expr`,
-        // and passing a SCALAR for one wrote 1 of its n cells and left the rest
-        // prover-chosen. Rejected until this path resolves by shape as an
-        // ordinary call does.
-        if let Some(i) = shared_shapes.iter().position(|s| !matches!(s, Shape::Scalar)) {
-            self.fail(format!(
-                "a `match` arm cannot pass a `StackBuf` parameter (parameter {i} of `{}`): the \
-                 fused dispatch writes one cell per argument. Give the arms `Const` arguments so each \
-                 specializes into its own call instead of fusing",
-                callees.first().map(String::as_str).unwrap_or("?")
-            ))
-        }
-        let n_args = Abi::arg_cells(&shared_shapes);
+        let n_args = rt_args.len() as u32;
         // The join below reads one return cell per bound name, so every callee has
         // to declare exactly that many. Unchecked, a name past a callee's arity
         // `DEREF`s a frame offset nothing on that path writes, and since the shared
@@ -221,7 +198,7 @@ impl FnLower<'_> {
             // and never lowered on its own. This path does not consult
             // `try_inline`, so without saying so the call reached the assembler
             // and died there indexing a HashMap, with no line and no name.
-            if self.defs.get(callee).is_some_and(|d| d.inline) {
+            if self.defs.get(callee.as_str()).is_some_and(|d| d.inline) {
                 self.fail(format!(
                     "`@inline {callee}` cannot be a `match` arm's callee: the arms dispatch to \
                      one real function, and an `@inline` body is expanded at its call site rather \
@@ -232,18 +209,18 @@ impl FnLower<'_> {
             // Arguments for the same reason as returns below: the shared frame
             // is sized to the largest callee, so a callee expecting more than
             // the arms supply reads a cell that exists and nothing writes.
-            if let Some(want) = self.arity_of(callee)
-                && want != rt_args.len()
-            {
+            let Some(def) = self.callee_def(callee) else {
+                continue;
+            };
+            let want = def.params.len();
+            if want != rt_args.len() {
                 let plural = if want == 1 { "argument" } else { "arguments" };
                 self.fail(format!(
                     "`{callee}` takes {want} {plural}, dispatched call passes {}",
                     rt_args.len()
                 ))
             }
-            let Some(shapes) = self.return_shapes_of(callee) else {
-                continue;
-            };
+            let shapes = &def.return_shapes;
             if shapes.len() != targets.len() {
                 self.fail(format!(
                     "`{callee}` returns {} values, dispatched call binds {}",
@@ -272,7 +249,12 @@ impl FnLower<'_> {
             callees: callees.to_vec(),
         });
         for (i, &ao) in arg_offs.iter().enumerate() {
-            self.deref(nfp, Abi::arg(&shared_shapes, i), ao, DerefMode::Cell);
+            self.deref(
+                nfp,
+                Abi::arg(std::iter::repeat_n(Shape::Scalar, rt_args.len()), i),
+                ao,
+                DerefMode::Cell,
+            );
         }
         self.deref(nfp, Abi::RET_FP, 0, DerefMode::Fp);
         let join_cell = self.fresh();
@@ -302,20 +284,22 @@ impl FnLower<'_> {
     /// callee (the caller emits a real call). Panics if an `@inline` function
     /// isn't inlinable ([`body_inlinable`]) or its `Const` args don't resolve.
     pub(super) fn try_inline(&mut self, callee: &str, args: &[Expr], dsts: &[Off]) -> bool {
-        if !self.defs.get(callee).is_some_and(|d| d.inline) {
+        let Some(def) = self.defs.get(callee).copied().filter(|d| d.inline) else {
             return false;
-        }
-        let (params, rt_args, body, n_ret) = self
-            .specialized_body(callee, args)
-            .unwrap_or_else(|| self.fail(format!("`@inline {callee}`: bad arity or unresolved Const argument")));
+        };
+        let substs = self
+            .const_substs(def, args)
+            .unwrap_or_else(|_| self.fail(format!("`@inline {callee}`: bad arity or unresolved Const argument")));
+        let body = substitute_body(&def.body, &substs);
+        let n_ret = def.return_shapes.len();
         if n_ret != dsts.len() {
             self.fail(format!(
                 "`@inline {callee}` returns {n_ret} values, call binds {}",
                 dsts.len()
             ))
         };
-        if !(body_inlinable(&body)) {
-            self.fail(format!("`@inline {callee}` must be a single tail `return` with only builtin or @inline calls, and no loop/match"))
+        if !body_inlinable(&body) {
+            self.fail(format!("`@inline {callee}` requires one tail `return`, with no nested returns, tuple assignments, mul_range loops, or match"))
         };
         if self.inline_calls.iter().any(|f| f == callee) {
             self.fail(format!(
@@ -330,7 +314,10 @@ impl FnLower<'_> {
         // `self_fp`, and range-check bounds stay the caller's: the inlined code
         // runs in the caller's frame, so they fit.
         let mut binds: Vec<(String, Binding)> = Vec::new();
-        for (p, a) in params.iter().zip(&rt_args) {
+        for (p, a) in def.params.iter().zip(args) {
+            if p.kind == ParamKind::Const {
+                continue;
+            }
             let b = if let Some((base, size)) = self.stack_of(a) {
                 Binding::Stack(base, size)
             } else if let Some(ga) = self.gaddr_of(a) {
@@ -338,7 +325,7 @@ impl FnLower<'_> {
             } else {
                 Binding::Scalar(self.expr(a))
             };
-            binds.push((p.clone(), b));
+            binds.push((p.name.clone(), b));
         }
         // Only the name bindings reset: the inlined body runs in the caller's
         // frame, so the caller's `one`, `self_fp`, constant and bound cells all
@@ -355,7 +342,7 @@ impl FnLower<'_> {
         // line the callee happened to end on.
         let saved_line = self.cur_line;
         self.inline_calls.push(callee.to_string());
-        for s in &body {
+        for s in body.iter() {
             self.stmt(s);
         }
         let popped = self.inline_calls.pop();
@@ -369,7 +356,7 @@ impl FnLower<'_> {
     pub(super) fn lower_return(&mut self, exprs: &[Expr]) {
         // Inlined (`@inline`): bind the return values into the caller's cells
         // and fall through: this is the body's tail return, so no jump is needed.
-        if let Some(dsts) = self.inline_ret.clone() {
+        if let Some(dsts) = self.inline_ret.take() {
             // Each returned value is bound into the caller independently, exactly
             // as a `let name = <that expr>` would: a `StackBuf` or a folded
             // g-address hands over its run/pointer (alias, not copies: allocated
@@ -407,7 +394,7 @@ impl FnLower<'_> {
         // StackBuf is copied cell-by-cell because its callee-frame offsets are
         // not meaningful after control returns to the caller.
         let mut ret = ret_base;
-        for (e, shape) in exprs.iter().zip(self.return_shapes.clone()) {
+        for (e, &shape) in exprs.iter().zip(self.return_shapes) {
             match shape {
                 Shape::Scalar => self.expr_into(e, ret),
                 Shape::StackBuf(size) => {
@@ -433,70 +420,37 @@ impl FnLower<'_> {
     /// arguments (literals, `GEN ** k`, or literal-bound names) substitute into a
     /// copy of the callee, queued once per distinct constant tuple and named
     /// `callee__L5_G3`-style, and only the runtime arguments remain.
-    pub(super) fn specialize(&mut self, callee: &str, args: &[Expr]) -> (String, Vec<Expr>) {
-        let defs: &HashMap<String, Func> = self.defs;
-        let Some(def) = defs.get(callee) else {
-            return (callee.to_string(), args.to_vec()); // loop helpers, unknown names
+    pub(super) fn specialize<'a>(&mut self, callee: &str, args: &'a [Expr]) -> (String, Vec<&'a Expr>) {
+        let Some(def) = self.defs.get(callee).copied() else {
+            return (callee.to_string(), args.iter().collect()); // loop helpers, unknown names
         };
-        if !def.const_params.contains(&true) {
-            return (callee.to_string(), args.to_vec());
+        if !def.has_const_params() {
+            return (callee.to_string(), args.iter().collect());
         }
-        if args.len() != def.params.len() {
-            self.fail(format!("call to `{callee}`: wrong arity"))
-        };
-        let mut tag = String::new();
-        let (mut rt_params, mut rt_args, mut substs) = (Vec::new(), Vec::new(), Vec::new());
-        // A retained parameter keeps its SHAPE. Dropping it made a specialization
-        // take a declared `StackBuf(n)` as one scalar cell, with no diagnostic.
-        let mut rt_shapes = Vec::new();
-        for (((p, &is_const), sh), a) in def
-            .params
-            .iter()
-            .zip(&def.const_params)
-            .zip(def.param_shapes.iter().copied())
-            .zip(args)
-        {
-            if !is_const {
-                rt_params.push(p.clone());
-                rt_shapes.push(sh);
-                rt_args.push(a.clone());
-                continue;
-            }
-            let c = self.const_arg(a).unwrap_or_else(|| {
-                self.fail(format!(
-                    "argument for Const parameter `{p}` of `{callee}` must be a compile-time \
-                     constant, got `{a:?}`"
-                ))
-            });
-            tag.push_str(&match &c {
-                Expr::Lit(n) => format!("_L{n}"),
-                Expr::GPow(k) => format!("_G{k}"),
+        let substs = self.const_substs(def, args).unwrap_or_else(|e| self.fail(e));
+        let mut name = format!("{callee}_");
+        for (_, c) in &substs {
+            match c {
+                Expr::Lit(n) => write!(name, "_L{n}"),
+                Expr::GPow(k) => write!(name, "_G{k}"),
                 _ => unreachable!(),
-            });
-            substs.push((p.clone(), c));
+            }
+            .unwrap();
         }
-        let name = format!("{callee}_{tag}");
+        let runtime = def.params.iter().zip(args).filter(|(p, _)| p.kind != ParamKind::Const);
         if !self.queue.iter().any(|f| f.name == name) {
             if self.queue.len() >= 10_000 {
                 self.fail("Const specialization explosion (recursive constants?)")
             };
-            let mut body = def.body.clone();
-            for (p, c) in &substs {
-                body = subst_stmts(&body, p, c);
-            }
-            let const_params = vec![false; rt_params.len()];
             self.queue.push(Func {
                 name: name.clone(),
-                param_shapes: rt_shapes,
-                params: rt_params,
-                const_params,
-                n_ret: def.n_ret,
+                params: runtime.clone().map(|(p, _)| p.clone()).collect(),
                 return_shapes: def.return_shapes.clone(),
-                body,
+                body: substitute_body(&def.body, &substs).into_owned(),
                 inline: false,
             });
         }
-        (name, rt_args)
+        (name, runtime.map(|(_, a)| a).collect())
     }
 
     /// Lower a call; returns one caller offset per source-level return value.
@@ -514,22 +468,20 @@ impl FnLower<'_> {
             return dsts;
         }
 
-        let shapes = self
-            .defs
-            .get(callee)
-            .map(|d| d.return_shapes.clone())
-            .unwrap_or_else(|| vec![Shape::Scalar; n_ret]);
-        if shapes.len() != n_ret {
+        let def = self.defs.get(callee).copied();
+        if let Some(def) = def
+            && def.return_shapes.len() != n_ret
+        {
             self.fail(format!(
                 "`{callee}` returns {} values, call binds {n_ret}",
-                shapes.len()
+                def.return_shapes.len()
             ))
         };
         let mut logical = Vec::with_capacity(n_ret);
         let mut physical = Vec::new();
         let mut binds = Vec::with_capacity(n_ret);
-        for shape in shapes {
-            match shape {
+        for i in 0..n_ret {
+            match def.map_or(Shape::Scalar, |d| d.return_shapes[i]) {
                 Shape::Scalar => {
                     let dst = self.fresh();
                     logical.push(dst);
@@ -547,7 +499,7 @@ impl FnLower<'_> {
                 }
             }
         }
-        self.lower_call(callee, args, physical.len(), None, Some(&physical), false);
+        self.lower_call(callee, args, None, &physical, false);
         self.inline_stack_ret = Some(binds);
         logical
     }
@@ -571,67 +523,36 @@ impl FnLower<'_> {
                     self.fail("a normal function's multi-cell StackBuf return needs a `let` binding")
                 };
             }
-            self.lower_call(callee, args, dsts.len(), None, Some(dsts), false);
+            self.lower_call(callee, args, None, dsts, false);
         }
     }
 
-    /// The runtime params, runtime args, and `Const`-substituted body of a call
-    /// to a user function: the ingredients for inlining. `None` for a builtin or
-    /// unknown callee, an arity mismatch, or an unresolved `Const` argument.
-    pub(super) fn specialized_body(&self, callee: &str, args: &[Expr]) -> Option<SpecializedBody> {
-        let def = self.defs.get(callee)?;
+    fn const_substs<'a>(&self, def: &'a Func, args: &[Expr]) -> Result<Vec<(&'a str, Expr)>, String> {
         if args.len() != def.params.len() {
-            return None;
+            return Err(format!("call to `{}`: wrong arity", def.name));
         }
-        let mut body = def.body.clone();
-        let (mut rt_params, mut rt_args) = (Vec::new(), Vec::new());
-        for ((p, &is_const), a) in def.params.iter().zip(&def.const_params).zip(args) {
-            if !is_const {
-                rt_params.push(p.clone());
-                rt_args.push(a.clone());
-                continue;
+        let mut substs = Vec::new();
+        for (p, a) in def.params.iter().zip(args) {
+            if p.kind == ParamKind::Const {
+                let c = self.const_arg(a).ok_or_else(|| {
+                    format!(
+                        "argument for Const parameter `{}` of `{}` must be a compile-time \
+                         constant, got `{a:?}`",
+                        p.name, def.name
+                    )
+                })?;
+                substs.push((p.name.as_str(), c));
             }
-            let c = self.const_arg(a)?;
-            body = subst_stmts(&body, p, &c);
         }
-        Some((rt_params, rt_args, body, def.n_ret))
+        Ok(substs)
     }
 
-    /// How many arguments `callee` takes, looked up wherever it lives: an
-    /// ordinary definition sits in `defs`, while a `Const` specialization is
-    /// registered by [`Self::specialize`] in the queue under its mangled name and
-    /// never reaches `defs`. `defs` is consulted first and answers with the
-    /// PRE-specialization count, Const parameters included, which is what a call
-    /// site passes.
-    fn arity_of(&self, callee: &str) -> Option<usize> {
+    /// Original definitions take precedence over generated functions in the queue.
+    fn callee_def(&self, callee: &str) -> Option<&Func> {
         self.defs
             .get(callee)
-            .map(|d| d.params.len())
-            .or_else(|| self.queue.iter().find(|f| f.name == callee).map(|f| f.params.len()))
-    }
-
-    /// A callee's declared PARAMETER shapes, looked up the same way as its
-    /// arity. A generated function (a loop helper, a `Const` specialization) is
-    /// all scalars.
-    fn param_shapes_of(&self, callee: &str) -> Option<Vec<Shape>> {
-        self.defs.get(callee).map(|d| d.param_shapes.clone()).or_else(|| {
-            self.queue
-                .iter()
-                .find(|f| f.name == callee)
-                .map(|f| f.param_shapes.clone())
-        })
-    }
-
-    /// A callee's declared return shapes, looked up the same way. A dispatched
-    /// `match` names specializations, so a check that consults only `defs`
-    /// silently passes on every one of them.
-    fn return_shapes_of(&self, callee: &str) -> Option<Vec<Shape>> {
-        self.defs.get(callee).map(|d| d.return_shapes.clone()).or_else(|| {
-            self.queue
-                .iter()
-                .find(|f| f.name == callee)
-                .map(|f| f.return_shapes.clone())
-        })
+            .copied()
+            .or_else(|| self.queue.iter().find(|f| f.name == callee))
     }
 
     /// Consume the [`RetBind`] a single-value inlined tail return recorded,

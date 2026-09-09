@@ -69,25 +69,32 @@ pub fn eq_table(r: &[F192]) -> Vec<F192> {
 
 /// Arena-backed [`eq_table`], for the prover's large tables. Identical output.
 pub fn eq_table_arena(r: &[F192]) -> ArenaVec<F192> {
-    // SAFETY: `fill_eq_table` writes every one of the `2^r.len()` entries.
-    let mut eq = unsafe { ArenaVec::<F192>::uninitialized(1usize << r.len()) };
-    fill_eq_table(r, &mut eq);
-    eq
+    let mut eq = zk_alloc::alloc_uninit(1usize << r.len());
+    fill_eq_table_uninit(r, F192::ONE, &mut eq);
+    // SAFETY: the doubling recurrence writes every entry.
+    unsafe { zk_alloc::assume_init(eq) }
 }
 
-/// The doubling recurrence itself, over a caller-supplied `2^r.len()` buffer.
 fn fill_eq_table(r: &[F192], eq: &mut [F192]) {
-    debug_assert_eq!(eq.len(), 1usize << r.len());
-    eq[0] = F192::ONE;
+    // SAFETY: MaybeUninit has the same layout as F192; the exclusive borrow covers the whole slice.
+    let out = unsafe { std::slice::from_raw_parts_mut(eq.as_mut_ptr().cast(), eq.len()) };
+    fill_eq_table_uninit(r, F192::ONE, out);
+}
+
+/// Fill `out` with `seed * eq(r, .)`, in LSB-first order. Every entry is written before it is read. Wide levels use the worker pool, so a caller inside a dispatch must keep the table below the parallel threshold.
+pub fn fill_eq_table_uninit(r: &[F192], seed: F192, out: &mut [std::mem::MaybeUninit<F192>]) {
+    assert_eq!(out.len(), 1usize << r.len(), "out must have length 2^r.len()");
+    out[0].write(seed);
     for (i, &rk) in r.iter().enumerate() {
         let half = 1usize << i;
-        let (lo, hi_rest) = eq.split_at_mut(half);
+        let (lo, hi_rest) = out.split_at_mut(half);
         let hi = &mut hi_rest[..half];
-        let build_pair = |lo_x: &mut F192, hi_x: &mut F192| {
-            let e = *lo_x;
+        let build_pair = |lo_x: &mut std::mem::MaybeUninit<F192>, hi_x: &mut std::mem::MaybeUninit<F192>| {
+            // SAFETY: the low half was initialized at earlier levels.
+            let e = unsafe { lo_x.assume_init_read() };
             let high = e * rk;
-            *hi_x = high;
-            *lo_x = e + high;
+            hi_x.write(high);
+            lo_x.write(e + high);
         };
         if half < PAR_THRESHOLD {
             lo.iter_mut().zip(hi.iter_mut()).for_each(|(l, h)| build_pair(l, h));

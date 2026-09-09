@@ -1,6 +1,6 @@
 //! XMSS: a Merkle tree of `2^LOG_LIFETIME` WOTS public-key hashes.
 //!
-//! Mirrors leanVM's memory-optimized secret key: for a range of R = epoch_end -
+//! For a range of R = epoch_end -
 //! epoch_start + 1 epochs, storage is O(sqrt(R) + LOG_LIFETIME) instead of O(R).
 //! The key stores the top tree (in-range band plus a thin spine) and one cached
 //! bottom subtree, cut at `split_level = ceil(log2(R)) / 2`. Out-of-range nodes
@@ -55,8 +55,7 @@ impl XmssPublicKey {
     }
 }
 
-// Prover-side PRF domains (secret derivation and filler nodes; never on the
-// verification path, so not restricted to the 64-to-32 primitive).
+// PRF domains for secret derivation and filler nodes.
 const PRF_DOMAINSEP_WOTS_SECRET_KEY: u32 = 1000;
 const PRF_DOMAINSEP_PUBLIC_PARAM: u32 = 1001;
 const PRF_DOMAINSEP_RANDOM_NODE: u32 = 1002;

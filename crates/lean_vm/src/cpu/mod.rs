@@ -421,25 +421,6 @@ fn xi_form_pows(xi: F192) -> [F192; 3] {
     [pows[base], pows[base + 1], pows[base + 2]]
 }
 
-/// Lift each table's zerocheck evals (at its point `chi`) to global column claims.
-/// The batch carries every committed column of a table, so eval `c` is local
-/// column `c`; these are the ONLY claims those columns raise, the bus having been
-/// settled inside the batch.
-fn constraint_claims(table_claims: &[constraints::Claims]) -> Vec<ColumnClaim> {
-    let sch = schema();
-    let mut v = Vec::new();
-    for (t, table) in tables::tables().iter().enumerate() {
-        for c in 0..table.n_committed_columns() {
-            v.push(ColumnClaim {
-                col: sch.base[t] + c,
-                point: table_claims[t].chi.clone(),
-                value: table_claims[t].evals[c],
-            });
-        }
-    }
-    v
-}
-
 /// If `col` is a BLAKE2s **value** column (global index), its `q_flock` packed slot.
 /// These columns are virtual (uncommitted): their memory-bus evaluation claims
 /// are re-routed to `q_flock` slot evaluations, which is the whole binding: the
@@ -540,11 +521,8 @@ pub fn prove(program: &Program, public_input: [F192; 2], log_inv_rate: usize) ->
         exec.unconstrained_reads.len(),
         &exec.unconstrained_reads[..exec.unconstrained_reads.len().min(8)]
     );
-    // Warm the shape-dependent BLAKE2s R1CS setup concurrently with the earlier proving stages. A no-BLAKE2s program still uses the padding shape.
-    let n_blake2s_warm = exec.trace.blake2s.len().max(1);
-    std::thread::spawn(move || crate::hash_flock::warm_setup(n_blake2s_warm));
     let cycles = exec.cycles;
-    let mut w = crate::stage!("Build witness", || program.build(&exec));
+    let w = crate::stage!("Build witness", || program.build(&exec));
     let counts = w.layout.taus.map(|t| 1usize << t);
     let committed_size = w.committed_size();
     // The public statement (program digest + input) seeds the transcript, so
@@ -626,10 +604,7 @@ pub fn prove(program: &Program, public_input: [F192; 2], log_inv_rate: usize) ->
     // validity claim on the committed `q_flock`, discharged by the PCS below in
     // the SAME WHIR as every leanVM point claim (the point claims become the
     // opener's `point_claims`).
-    let flock_reduction = w
-        .flock_reduction
-        .take()
-        .expect("prepared flock reduction witness is present");
+    let flock_reduction = w.flock_reduction;
     let reduced = crate::stage!("Flock reduction", || { flock_reduction.prove(&mut ps) });
     let n_blocks = flock_reduction.n_blocks();
     drop(flock_reduction);
@@ -661,9 +636,19 @@ fn finish_claims(
     pi_limbs: [F192; 3],
 ) -> Vec<pcs::SlotClaim> {
     let mut claims = bus_claims;
-    claims.extend(constraint_claims(table_claims));
+    let sch = schema();
+    claims.reserve(sch.n - N_SHARED);
+    for (t, table) in tables::tables().iter().enumerate() {
+        for c in 0..table.n_committed_columns() {
+            claims.push(ColumnClaim {
+                col: sch.base[t] + c,
+                point: table_claims[t].chi.clone(),
+                value: table_claims[t].evals[c],
+            });
+        }
+    }
     claims.extend(bind_pi_claim(r_pi, &l.placements, pi_limbs));
-    slot_claims(l, &claims)
+    slot_claims(l, claims)
 }
 
 /// The public-input binding (§sec:e2e-pi): the committed `MEM` at `(r, 0,…,0)` must
@@ -682,7 +667,7 @@ fn bind_pi_claim(r: F192, placements: &[witness::Placement], limbs: [F192; 3]) -
 }
 
 /// Everything a recursion harness needs from an accepting verify run, named
-/// and typed: the deferred bytecode claims, the count-channel root, flock's
+/// and typed: the deferred bytecode claim, flock's
 /// reduction claims, and the stacked-opening summary (ring-switch challenges +
 /// WHIR fold/query data). The sub-proof scalars themselves live on
 /// `proof.stream`, ending at `flock_stream_end`. Ordinary callers just
@@ -690,8 +675,7 @@ fn bind_pi_claim(r: F192, placements: &[witness::Placement], limbs: [F192; 3]) -
 pub struct VerifySummary {
     /// Transcript-bound inverse-rate logarithm used by this proof's PCS.
     pub log_inv_rate: usize,
-    pub bytecode_claims: Vec<leaf::BytecodeClaim>,
-    pub count_root: F192,
+    pub bytecode_claim: leaf::BytecodeClaim,
     pub zc_claim: flock::zerocheck::ZerocheckClaim,
     pub lc_claim: flock::lincheck::LincheckClaim,
     /// Stream cursor just after flock's reduction, i.e. where the PCS opening's
@@ -768,8 +752,7 @@ pub fn verify(program: &Program, public_input: &[F192; 2], proof: &Proof) -> Res
     pcs::verify(&mut vs, &slots, &ring, l.shape, log_inv_rate, &root).map_err(CpuError::Open)?;
     vs.finish().map_err(CpuError::Transcript)?;
     Ok(VerifySummary {
-        bytecode_claims: bus.bytecode_claims,
-        count_root: bus.count_root,
+        bytecode_claim: bus.bytecode_claim,
         zc_claim: replay.zc_claim,
         lc_claim: replay.lc_claim,
         log_inv_rate,
@@ -787,9 +770,9 @@ pub fn verify(program: &Program, public_input: &[F192; 2], proof: &Proof) -> Res
 /// `QFLOCK` column at the point freezing the low 8 coords to the slot's bits and
 /// the high coords to `r`. No downstream special-casing: it folds into the
 /// one opening like every other point claim.
-fn slot_claims(l: &Layout, claims: &[ColumnClaim]) -> Vec<pcs::SlotClaim> {
+fn slot_claims(l: &Layout, claims: Vec<ColumnClaim>) -> Vec<pcs::SlotClaim> {
     claims
-        .iter()
+        .into_iter()
         .map(|c| {
             // A virtual BLAKE2s value column (always virtual): its bus claim at
             // instance point `c.point` is the q_flock slot value, a boolean-selector
@@ -800,13 +783,13 @@ fn slot_claims(l: &Layout, claims: &[ColumnClaim]) -> Vec<pcs::SlotClaim> {
                     offset: l.placements[QFLOCK].offset,
                     slot,
                     stride_log: crate::hash_flock::SLOT_STRIDE_LOG,
-                    point: c.point.clone(),
+                    point: c.point,
                     value: c.value,
                 };
             }
             pcs::SlotClaim::Point {
                 offset: l.placements[c.col].offset,
-                low_point: c.point.clone(),
+                low_point: c.point,
                 value: c.value,
             }
         })

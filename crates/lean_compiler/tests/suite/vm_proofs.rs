@@ -8,7 +8,6 @@
 
 use lean_compiler::{compile, parse};
 use lean_vm::cpu::{CpuError, Proof, prove, verify};
-use lean_vm::hash_flock::warm_setup;
 use lean_vm::vmhash::compress;
 use primitives::field::{F64, F192};
 
@@ -36,7 +35,6 @@ fn hashing_pi() -> [F192; 2] {
 
 fn hashing_proof() -> (lean_vm::cpu::Program, [F192; 2], Proof) {
     let program = compile(&parse(HASHING).expect("parse"));
-    warm_setup(1);
     let pi = hashing_pi();
     let (proof, _) = prove(&program, pi, lean_vm::pcs::TEST_LOG_INV_RATE);
     verify(&program, &pi, &proof).expect("honest proof verifies");
@@ -92,7 +90,6 @@ fn a_proof_does_not_verify_against_another_program() {
     };
     let program = compile(&parse(&src(5)).expect("parse"));
     let other = compile(&parse(&src(6)).expect("parse"));
-    warm_setup(1);
     let pi = [F192::ZERO, F192::ZERO];
     let (proof, _) = prove(&program, pi, lean_vm::pcs::TEST_LOG_INV_RATE);
     verify(&program, &pi, &proof).expect("honest proof verifies");

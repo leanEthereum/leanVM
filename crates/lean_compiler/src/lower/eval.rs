@@ -1,7 +1,6 @@
 //! Compile-time evaluation: what an expression is worth before anything runs.
 //!
-//! Every function here takes `&self` and emits nothing, so asking costs nothing
-//! and a `None` has committed the program to no answer.
+//! Queries emit no instructions and leave compiler state unchanged.
 //!
 //! There are two answers and the POSITION of a use picks one:
 //! [`FnLower::try_const_int`] for a size, an index, a bound or an exponent,
@@ -14,13 +13,21 @@ use super::*;
 /// The readings of one expression: as many as its shape has. Produced by
 /// [`FnLower::eval`], which is the only walk that computes them.
 #[derive(Clone, Copy, Default)]
-struct Known {
+pub(super) struct Known {
     /// The compile-time INTEGER, wanted by a size, an index, a bound, an exponent.
-    int: Option<u128>,
+    pub(super) int: Option<u128>,
     /// The FIELD element a value position sees, where `+` is XOR.
-    field: Option<F192>,
+    pub(super) field: Option<F192>,
     /// The ADDRESS the compiler tracks: a base cell times `g^exp`.
-    addr: Option<GAddr>,
+    pub(super) addr: Option<GAddr>,
+}
+
+impl Known {
+    /// The integer and field readings when both exist and disagree.
+    pub(super) fn diverging_readings(self) -> Option<(u128, F192)> {
+        let (n, f) = (self.int?, self.field?);
+        (f != lit_field(n)).then_some((n, f))
+    }
 }
 
 /// `a·b` in the [`GAddr`] representation: exponents add, and at most one factor
@@ -39,12 +46,7 @@ fn gmul(a: GAddr, b: GAddr) -> Option<GAddr> {
     })
 }
 
-/// `b^k` for a compile-time exponent (small, so plain repeated multiplication).
-/// `b^k` by square-and-multiply, so the exponent's SIZE costs nothing.
-///
-/// It was a `for _ in 0..k` loop, and the field reading of `Expr::Pow` is computed
-/// whether or not the caller wants it, so `sa[1 ** 4294967295]` (a program that
-/// compiles) spent 39 seconds in here.
+/// `b^k` by square-and-multiply, in logarithmically many field operations.
 pub(super) fn field_pow(b: F192, mut k: u32) -> F192 {
     let (mut acc, mut sq) = (F192::ONE, b);
     while k > 0 {
@@ -68,16 +70,9 @@ impl FnLower<'_> {
     /// computes every reading a shape has and the caller takes the one its
     /// position means.
     ///
-    /// This replaced three separate walks. Each answered one question over the
-    /// same arms, and every regime bug this crate has had was two of them
-    /// disagreeing where nothing compared them: `try_gpow_index` read a name's
-    /// integer and took its bit position as a g exponent, `array_ptr` picked the
-    /// integer where the value was meant, and `lower_if` folded on the integer
-    /// while the runtime test of the same condition compared field elements. With
-    /// the readings in one value, "do these disagree?" is a comparison of two
-    /// fields at the point of use rather than an invariant spread across
-    /// functions that nothing checks.
-    fn eval(&self, e: &Expr) -> Known {
+    /// Keeping the readings together lets each use reject an ambiguous value
+    /// by comparing them, without evaluating the expression again.
+    pub(super) fn eval(&self, e: &Expr) -> Known {
         // Deliberately NO address: only a LITERAL reads as one, and only under the
         // guard below. Attaching it here gave `const(2^k)` and `len(A)` an address
         // that `Expr::Lit` alone used to have, which slipped them past
@@ -120,13 +115,10 @@ impl FnLower<'_> {
                 None => Known::default(),
             },
             Expr::Var(v) => {
-                let int = self.scope.int(v);
                 let Some(b) = self.scope.bound(v) else {
-                    return Known {
-                        int,
-                        ..Known::default()
-                    };
+                    return Known::default();
                 };
+                let int = b.int;
                 match b.val {
                     Binding::FConst(c) => Known {
                         int,
@@ -264,18 +256,12 @@ impl FnLower<'_> {
     /// A stack index or compile-time slice bound: [`Self::try_const_index`],
     /// required to succeed.
     pub(super) fn const_index(&self, idx: &Expr) -> u32 {
-        self.try_const_index(idx).unwrap_or_else(|| {
-            // An oversized index is an index-shaped mistake, not a runtime value,
-            // so diagnose it precisely (`sa[2^32]` must not wrap to `sa[0]`). Read
-            // through the integer evaluator, so `const(2 ** 33)` gets the same
-            // message a bare literal does rather than "not a compile-time integer".
-            if let Some(k) = self.try_const_int(idx) {
-                self.fail(format!("stack index {k} does not fit in u32"));
-            }
+        let k = self.try_const_int(idx).unwrap_or_else(|| {
             self.fail(format!(
                 "a StackBuf index must be a compile-time integer, got `{idx:?}`"
             ))
-        })
+        });
+        u32::try_from(k).unwrap_or_else(|_| self.fail(format!("stack index {k} does not fit in u32")))
     }
 
     /// The exponent of `GEN ** e`: a compile-time integer, required to succeed.
@@ -290,7 +276,7 @@ impl FnLower<'_> {
     fn const_array_elem(&self, e: &Expr) -> Option<F192> {
         if let Expr::Index(arr, idx) = e
             && let Expr::Var(v) = arr.as_ref()
-            && let Some(a) = self.const_arrays.get(v)
+            && let Some(a) = self.const_arrays.get(v.as_str())
         {
             let i = self.try_const_index(idx)? as usize;
             return Some(
@@ -309,7 +295,7 @@ impl FnLower<'_> {
             && args.len() == 1
             && let Expr::Var(v) = &args[0]
         {
-            return self.const_arrays.get(v).map(|a| a.len());
+            return self.const_arrays.get(v.as_str()).map(|a| a.len());
         }
         None
     }
@@ -347,20 +333,6 @@ impl FnLower<'_> {
         }
     }
 
-    /// `e`'s two readings when they DISAGREE: the compile-time integer, and the
-    /// field element a value position would see. `None` when they agree, or when
-    /// `e` has only one of them (`3 - 1` has no field reading at all, so nothing
-    /// contradicts its integer one).
-    ///
-    /// One literal cannot stand for both, so an expression like this means
-    /// different things in an index and in a value, and any construct that must
-    /// pick one has to say which.
-    pub(super) fn diverging_readings(&self, e: &Expr) -> Option<(u128, F192)> {
-        let k = self.eval(e);
-        let (n, f) = (k.int?, k.field?);
-        (f != lit_field(n)).then_some((n, f))
-    }
-
     /// Check the LEAVES of a `const(...)`. The wrapper reinterprets the
     /// OPERATORS as integer arithmetic, which is its whole purpose, so their two
     /// readings are expected to diverge (`3 + 1` is the integer 4 and the value
@@ -385,7 +357,7 @@ impl FnLower<'_> {
             }
             Expr::Call(f, args) if f == "const" && args.len() == 1 => self.check_const_leaves(&args[0]),
             leaf => {
-                if let Some((n, f)) = self.diverging_readings(leaf) {
+                if let Some((n, f)) = self.eval(leaf).diverging_readings() {
                     self.fail(format!(
                         "const(...) reads its operators as integer arithmetic, but it cannot reinterpret \
                          `{leaf:?}`, which is the integer {n} and the value {:#x}:{:#x}: two different \
@@ -400,14 +372,7 @@ impl FnLower<'_> {
     /// The exponent of `e` when it is a *constant* g-power small enough to ride a
     /// `DEREF` `β` immediate, for the constant factor of a product index.
     ///
-    /// The one g-power recognizer. A second one used to match `Expr::Var`
-    /// against the *integer* reading of a name and take that integer's bit
-    /// position as the exponent, which is a different question: `K = 3 + 1` is
-    /// the integer 4 and the field element `3 XOR 1` = 2, so it folded to `g²`
-    /// in an index position while being `g¹` everywhere else.
-    ///
-    /// The rule that replaces it never picks a reading. It folds `e` only where
-    /// the readings **agree**: either the compiler already tracks `e` as an
+    /// Folds `e` only where the readings agree: either the compiler tracks it as an
     /// address, or `e` is the integer `2^j` AND its field value is `g^j`, in
     /// which case both readings name cell `j` and folding decides nothing.
     pub(super) fn const_gpow(&self, e: &Expr) -> Option<u32> {

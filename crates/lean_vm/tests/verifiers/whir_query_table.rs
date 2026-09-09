@@ -59,9 +59,9 @@ fn whir_query_table_matches_rust() {
 
         // Python's `log_n` is the packed size; the Rust search unpacks it itself.
         let m = log_n + LOG_PACKING;
-        let (config, _) = WhirSecurityConfig::derive_config_with_log_inv_rate(m, rate)
+        let config = WhirSecurityConfig::derive_config_with_log_inv_rate(m, rate)
             .unwrap_or_else(|e| panic!("rate {rate}, log_n {log_n}: the search itself failed: {e}"))
-            .to_prover_verifier_configs()
+            .to_config()
             .unwrap_or_else(|e| panic!("rate {rate}, log_n {log_n}: {e}"));
         assert_eq!(
             config.queries, tabulated,
@@ -94,9 +94,9 @@ fn print_whir_query_table() {
         .map(|rate| {
             let rows: Vec<String> = (lean_vm::pcs::MIN_MU..=lean_vm::pcs::MAX_MU)
                 .map(|log_n| {
-                    let (config, _) = WhirSecurityConfig::derive_config_with_log_inv_rate(log_n + LOG_PACKING, rate)
+                    let config = WhirSecurityConfig::derive_config_with_log_inv_rate(log_n + LOG_PACKING, rate)
                         .unwrap()
-                        .to_prover_verifier_configs()
+                        .to_config()
                         .unwrap();
                     let queries: Vec<String> = config.queries.iter().map(usize::to_string).collect();
                     format!("({})", queries.join(","))

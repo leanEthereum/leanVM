@@ -123,32 +123,26 @@ pub(super) fn parse_gpow_bound(s: &str) -> Result<u64, String> {
 }
 
 /// Apply identifier-level **placeholder** replacements to source text before
-/// parsing: each maximal run of identifier characters (`[A-Za-z0-9_]`) that
+/// parsing: each maximal run of alphanumeric characters and underscores that
 /// equals a key of `replacements` is replaced by its value; other text,
-/// including substrings of longer identifiers, is untouched. Mirrors leanVM's
-/// `CompilationFlags::replacements`. An empty map returns the source unchanged.
+/// including substrings of longer identifiers, is untouched. An empty map
+/// returns the source unchanged.
 pub(super) fn apply_replacements(src: &str, replacements: &BTreeMap<String, String>) -> String {
     if replacements.is_empty() {
         return src.to_string();
     }
-    let is_ident_char = |c: char| c.is_alphanumeric() || c == '_';
     let mut out = String::with_capacity(src.len());
-    let mut word = String::new(); // current run of identifier characters
-    let flush = |out: &mut String, word: &mut String| {
-        match replacements.get(word.as_str()) {
-            Some(v) => out.push_str(v),
-            None => out.push_str(word),
-        }
-        word.clear();
+    let mut start = 0;
+    let flush = |out: &mut String, word: &str| {
+        out.push_str(replacements.get(word).map_or(word, String::as_str));
     };
-    for c in src.chars() {
-        if is_ident_char(c) {
-            word.push(c);
-        } else {
-            flush(&mut out, &mut word);
+    for (i, c) in src.char_indices() {
+        if !(c.is_alphanumeric() || c == '_') {
+            flush(&mut out, &src[start..i]);
             out.push(c);
+            start = i + c.len_utf8();
         }
     }
-    flush(&mut out, &mut word);
+    flush(&mut out, &src[start..]);
     out
 }

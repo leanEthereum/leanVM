@@ -93,7 +93,7 @@ use crate::witness::{
     write_lin_word_ab_packed,
 };
 use pcs::pack::{LOG_PACKING, PACKING_WIDTH};
-use pcs::stack_open::{RingSwitchClaim, RingSwitchOpen, RingSwitchVerify};
+use pcs::stack_open::{RingSwitchClaim, RingSwitchOpen, RingSwitchVerify, RingSwitchVerifyClaim};
 use primitives::field::F192;
 use zk_alloc::ArenaVec;
 
@@ -708,18 +708,12 @@ pub fn generate_witness_with_ab_packed_and_lincheck(
 /// power-of-two shape that can hold `n_blocks` compressions.
 #[derive(Clone, Debug)]
 pub struct Blake2sSetup {
-    /// The only thing a setup varies: `K_LOG`, `K_SKIP` and `USEFUL_BITS` are
-    /// fixed by the circuit, and there is nothing to precompute, both prove and
-    /// verify reading the matrices' forms off the circuit walks. The prove-cycle
-    /// buffers need no pre-faulting either, coming from the arena, which keeps
-    /// its pages resident across proofs (see `zk_alloc`).
     n_blocks_log: usize,
 }
 
 impl Blake2sSetup {
     /// Build a setup for `n_blocks` BLAKE2s compressions.
     pub fn new(n_blocks: usize) -> Self {
-        assert!(n_blocks >= 1, "n_blocks must be ≥ 1");
         Self {
             n_blocks_log: min_n_blocks_log(n_blocks),
         }
@@ -798,12 +792,20 @@ pub fn ring_switch_open(n_blocks: usize, offset: usize, reduced: &SliceClaim) ->
 /// Verifier counterpart of [`ring_switch_open`]: package the recovered claim as
 /// a [`RingSwitchVerify`], the same statement data. The transmitted opening
 /// travels separately.
-pub fn ring_switch_verify(n_blocks: usize, offset: usize, claim: &SliceClaim) -> RingSwitchVerify {
+pub fn ring_switch_verify(n_blocks: usize, offset: usize, claim: &SliceClaim) -> RingSwitchVerify<'_> {
     let qflock_vars = qflock_kappa(n_blocks);
+    assert_eq!(
+        claim.suffix_point.len(),
+        qflock_vars,
+        "ring-switch suffix must span the q_flock cube"
+    );
     RingSwitchVerify {
         offset,
         qflock_vars,
-        claims: vec![ring_claim(claim, qflock_vars)],
+        claims: vec![RingSwitchVerifyClaim {
+            suffix_point: &claim.suffix_point,
+            s_hat_v: claim.s_hat_v.as_slice().try_into().expect("ring-switch has 64 slices"),
+        }],
     }
 }
 

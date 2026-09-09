@@ -92,20 +92,6 @@ impl RowElem for F192 {
     }
 }
 
-/// `lambda^i` for `i < n_queries`: the per-query batching weights of the PCS
-/// annex, Protocol 1 step 1. Query claim `i` is claim number `n_ood + 1 + i` of
-/// the level, so the caller glues the batch with `lambda^(n_ood+1)` and these
-/// weights carry the remaining `lambda^i`.
-pub(crate) fn power_weights(lambda: F192, n_queries: usize) -> Vec<F192> {
-    let mut out = Vec::with_capacity(n_queries);
-    let mut pow = F192::ONE;
-    for _ in 0..n_queries {
-        out.push(pow);
-        pow *= lambda;
-    }
-    out
-}
-
 fn invert_sks(sks_vks: &[F64]) -> Vec<F64> {
     sks_vks
         .iter()
@@ -115,7 +101,7 @@ fn invert_sks(sks_vks: &[F64]) -> Vec<F64> {
 
 /// Dense induce: `basis_poly[j] = Σ_i w_i · W-hat_j(q_i)`,
 /// `enforced_sum = Σ_i w_i · <row_i, eq(v_challenges, ·)>`, for the per-query
-/// batching weights `w` of [`power_weights`]. Mirror of the
+/// batching weights `w` of [`primitives::field::powers`]. Mirror of the
 /// dense `whir::induce_sumcheck_poly` (per-worker accumulation).
 ///
 /// The LCH doubling recurrence runs into a HALF-size scratch and its last level

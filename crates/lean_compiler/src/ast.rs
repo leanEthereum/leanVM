@@ -212,7 +212,7 @@ pub enum LtBound {
     Runtime(Expr),
 }
 
-/// Compile-time representation of one source-level return value.
+/// Compile-time representation of a runtime parameter or return value.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Shape {
     /// One ordinary field element or address cell. Heap buffers use this shape:
@@ -223,8 +223,7 @@ pub enum Shape {
 }
 
 impl Shape {
-    /// Number of physical call-frame return cells occupied by this source-level
-    /// return value.
+    /// Number of physical call-frame cells occupied by this value.
     pub(crate) fn cells(self) -> u32 {
         match self {
             Self::StackBuf(n) => n,
@@ -233,30 +232,54 @@ impl Shape {
     }
 }
 
+/// A function parameter and its calling convention.
+#[derive(Clone, Debug)]
+pub struct Param {
+    pub name: String,
+    pub kind: ParamKind,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ParamKind {
+    /// Substituted at the call site, with no runtime argument cell.
+    Const,
+    Runtime(Shape),
+}
+
+impl Param {
+    pub(crate) fn shape(&self) -> Shape {
+        match self.kind {
+            ParamKind::Const => Shape::Scalar,
+            ParamKind::Runtime(shape) => shape,
+        }
+    }
+}
+
 /// A function definition. `main` is the entry point.
 #[derive(Clone, Debug)]
 pub struct Func {
     pub name: String,
-    pub params: Vec<String>,
-    /// Per-parameter `Const` marker (`def f(k: Const, x):`). A function with
-    /// a `Const` parameter is a *template*: it is never lowered itself, and each
-    /// call site with a distinct constant tuple queues a monomorphized copy
-    /// with the parameter substituted by its literal (see
-    /// `FnLower::specialize`).
-    pub const_params: Vec<bool>,
-    /// Number of source-level return values (tuple arity).
-    pub n_ret: usize,
+    /// A function with a `Const` parameter is a template, specialized per
+    /// distinct constant tuple before lowering.
+    pub params: Vec<Param>,
     /// Compile-time shape of each source-level return value. Stack buffers use
     /// multiple physical ABI cells; everything else uses one cell.
     pub return_shapes: Vec<Shape>,
-    /// The same for each parameter, from a `s: StackBuf(n)` annotation. One type
-    /// in both directions, it being the same question.
-    pub param_shapes: Vec<Shape>,
     pub body: Vec<Stmt>,
     /// `@inline`: expand at each call site instead of emitting a call, so the
     /// frame and the argument and return plumbing vanish. The body must be a
     /// single tail `return`, and is never lowered standalone.
     pub inline: bool,
+}
+
+impl Func {
+    pub(crate) fn has_const_params(&self) -> bool {
+        self.params.iter().any(|p| p.kind == ParamKind::Const)
+    }
+
+    pub(crate) fn param_shapes(&self) -> impl Iterator<Item = Shape> + '_ {
+        self.params.iter().map(Param::shape)
+    }
 }
 
 /// A whole program: a set of functions including `main`.
@@ -276,9 +299,9 @@ pub struct Ast {
 use std::collections::HashSet;
 
 /// Collect variable references in `e` into `refs` (in source order).
-fn free_vars_expr(e: &Expr, refs: &mut Vec<String>) {
+fn free_vars_expr<'a>(e: &'a Expr, refs: &mut Vec<&'a str>) {
     match e {
-        Expr::Var(v) => refs.push(v.clone()),
+        Expr::Var(v) => refs.push(v.as_str()),
         Expr::Add(a, b)
         | Expr::Mul(a, b)
         | Expr::Sub(a, b)
@@ -305,18 +328,18 @@ fn free_vars_expr(e: &Expr, refs: &mut Vec<String>) {
 /// Every name the block binds, ignoring scope. [`free_vars_stmt`] deliberately
 /// does not answer this: its `bound` set is scoped, so an arm-local binding is
 /// discarded with the arm.
-pub(crate) fn binds_anywhere(body: &[Stmt], out: &mut HashSet<String>) {
+pub(crate) fn binds_anywhere<'a>(body: &'a [Stmt], out: &mut HashSet<&'a str>) {
     for s in body {
         match &s.kind {
             StmtKind::Let(n, _) | StmtKind::LetHintWitness { name: n, .. } => {
-                out.insert(n.clone());
+                out.insert(n.as_str());
             }
             StmtKind::LetTuple(ns, ..) => ns.iter().for_each(|n| {
-                out.insert(n.clone());
+                out.insert(n.as_str());
             }),
             StmtKind::Match { targets, .. } => targets.iter().for_each(|t| {
                 if let Expr::Var(n) = t {
-                    out.insert(n.clone());
+                    out.insert(n.as_str());
                 }
             }),
             StmtKind::If { then, els, .. } => {
@@ -324,7 +347,7 @@ pub(crate) fn binds_anywhere(body: &[Stmt], out: &mut HashSet<String>) {
                 binds_anywhere(els, out);
             }
             StmtKind::For { var, body, .. } | StmtKind::Unroll { var, body, .. } => {
-                out.insert(var.clone());
+                out.insert(var.as_str());
                 binds_anywhere(body, out);
             }
             _ => {}
@@ -332,25 +355,24 @@ pub(crate) fn binds_anywhere(body: &[Stmt], out: &mut HashSet<String>) {
     }
 }
 
-/// Free variables of a block whose bindings do NOT escape it: it sees everything
-/// bound so far, and anything it binds stays inside.
-fn scoped_vars(body: &[Stmt], refs: &mut Vec<String>, bound: &HashSet<String>) {
-    let mut inner = bound.clone();
+/// Collect references from a block whose bindings do not escape.
+fn scoped_vars<'a>(body: &'a [Stmt], refs: &mut Vec<&'a str>) {
+    let mut inner = HashSet::new();
     for s in body {
         free_vars_stmt(s, refs, &mut inner);
     }
 }
 
-pub(crate) fn free_vars_stmt(s: &Stmt, refs: &mut Vec<String>, bound: &mut HashSet<String>) {
+pub(crate) fn free_vars_stmt<'a>(s: &'a Stmt, refs: &mut Vec<&'a str>, bound: &mut HashSet<&'a str>) {
     match &s.kind {
         StmtKind::Let(n, e) => {
             free_vars_expr(e, refs);
-            bound.insert(n.clone());
+            bound.insert(n.as_str());
         }
         StmtKind::LetTuple(ns, _, args) => {
             args.iter().for_each(|a| free_vars_expr(a, refs));
             ns.iter().for_each(|n| {
-                bound.insert(n.clone());
+                bound.insert(n.as_str());
             });
         }
         StmtKind::AssertEq(a, b) | StmtKind::AssertNe(a, b) => {
@@ -365,7 +387,7 @@ pub(crate) fn free_vars_stmt(s: &Stmt, refs: &mut Vec<String>, bound: &mut HashS
         }
         StmtKind::HintWitness { dest, .. } => free_vars_expr(dest, refs),
         StmtKind::LetHintWitness { name, .. } => {
-            bound.insert(name.clone());
+            bound.insert(name.as_str());
         }
         StmtKind::Print { value, .. } => free_vars_expr(value, refs),
         StmtKind::If {
@@ -393,8 +415,8 @@ pub(crate) fn free_vars_stmt(s: &Stmt, refs: &mut Vec<String>, bound: &mut HashS
                 then.iter().for_each(|s| free_vars_stmt(s, refs, bound));
                 els.iter().for_each(|s| free_vars_stmt(s, refs, bound));
             } else {
-                scoped_vars(then, refs, bound);
-                scoped_vars(els, refs, bound);
+                scoped_vars(then, refs);
+                scoped_vars(els, refs);
             }
         }
         StmtKind::Match { targets, x, arms } => {
@@ -403,7 +425,7 @@ pub(crate) fn free_vars_stmt(s: &Stmt, refs: &mut Vec<String>, bound: &mut HashS
             for t in targets {
                 match t {
                     Expr::Var(n) => {
-                        bound.insert(n.clone());
+                        bound.insert(n.as_str());
                     }
                     // A store target is READ, not bound: `sb[i], e = …` needs `sb`.
                     other => free_vars_expr(other, refs),
@@ -422,7 +444,7 @@ pub(crate) fn free_vars_stmt(s: &Stmt, refs: &mut Vec<String>, bound: &mut HashS
             free_vars_expr(val, refs);
         }
         StmtKind::Return(es) => es.iter().for_each(|e| free_vars_expr(e, refs)),
-        StmtKind::For { var, hi, body, .. } => {
+        StmtKind::For { hi, body, .. } => {
             if let ForBound::Runtime(b) = hi {
                 free_vars_expr(b, refs);
             }
@@ -430,14 +452,12 @@ pub(crate) fn free_vars_stmt(s: &Stmt, refs: &mut Vec<String>, bound: &mut HashS
             // counter nor its bindings exist out here. `unroll` below is the
             // opposite: it replicates straight-line code into THIS scope, so its
             // bindings really do persist and it keeps the shared set.
-            let mut inner = bound.clone();
-            inner.insert(var.clone());
-            body.iter().for_each(|s| free_vars_stmt(s, refs, &mut inner));
+            scoped_vars(body, refs);
         }
         StmtKind::Unroll { var, lo, hi, body } => {
             free_vars_expr(lo, refs);
             free_vars_expr(hi, refs);
-            bound.insert(var.clone());
+            bound.insert(var.as_str());
             body.iter().for_each(|s| free_vars_stmt(s, refs, bound));
         }
     }

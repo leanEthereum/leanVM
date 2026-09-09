@@ -223,20 +223,16 @@ pub fn default_config(log_n: usize, log_batch_size: usize, log_inv_rate: usize) 
     })
 }
 
-/// Configs for a K-witness of `2^log_n` words at [`LOG_INV_RATE_0`]: prefer the
-/// production Secure-profile derivation ([`crate::whir::configs_for_rate`]), and
-/// fall back to the ad-hoc [`default_config`] shape at the test sizes below its
-/// feasibility floor. `VerifierConfig` is `ProverConfig`, so the fallback pair is
-/// one derivation cloned.
+/// Shared config for a `2^log_n`-word witness, preferring the production profile at [`LOG_INV_RATE_0`] and falling back to [`default_config`] below its feasibility floor.
 #[cfg(test)]
-pub(crate) fn test_configs_for(log_n: usize) -> (ProverConfig, VerifierConfig) {
-    if let Ok(pv) = crate::whir::configs_for_rate(log_n, LOG_INV_RATE_0) {
-        return pv;
+pub(crate) fn test_config_for(log_n: usize) -> ProverConfig {
+    if let Ok(config) = crate::whir::config_for_rate(log_n, LOG_INV_RATE_0) {
+        return config;
     }
     for log_batch_size in (1..=5).rev() {
         for log_inv_rate in 1..=4 {
             if let Ok(config) = default_config(log_n, log_batch_size, log_inv_rate) {
-                return (config.clone(), config);
+                return config;
             }
         }
     }
@@ -247,7 +243,6 @@ pub(crate) fn test_configs_for(log_n: usize) -> (ProverConfig, VerifierConfig) {
 struct LadderShape {
     log_inv_rates: Vec<usize>,
     log_msg_cols: Vec<usize>,
-    log_num_interleaved: Vec<usize>,
     k_levels: Vec<usize>,
     yr_log_n: usize,
 }
@@ -269,7 +264,6 @@ fn derive_ladder(
     let mut shape = LadderShape {
         log_inv_rates: vec![log_inv_rate],
         log_msg_cols: vec![log_n - initial_k],
-        log_num_interleaved: vec![initial_k],
         k_levels: vec![initial_k],
         yr_log_n: 0,
     };
@@ -282,7 +276,6 @@ fn derive_ladder(
         let rate = next_rate(rate_running, fold_running, log_msg_cols_next)?;
         shape.log_inv_rates.push(rate);
         shape.log_msg_cols.push(log_msg_cols_next);
-        shape.log_num_interleaved.push(k);
         shape.k_levels.push(k);
         n_running -= k;
         rate_running = rate;
@@ -941,7 +934,7 @@ impl WhirSecurityConfig {
         for i in 0..n_levels {
             let rate = shape.log_inv_rates[i];
             let cols = shape.log_msg_cols[i];
-            let ilv = shape.log_num_interleaved[i];
+            let ilv = shape.k_levels[i];
             let prev_queries = prev_queries_at(&levels, i);
             let optimized = optimize_johnson_level(i, rate, cols, ilv, target_bits, query_grind, prev_queries)?;
 
@@ -974,12 +967,10 @@ impl WhirSecurityConfig {
         Ok(cfg)
     }
 
-    /// Build the `(ProverConfig, VerifierConfig)` pair from this security
-    /// config. Drops the security-only fields (eta, grinding derivation inputs)
-    /// but preserves the level shape the prover/verifier code path reads.
-    pub fn to_prover_verifier_configs(&self) -> Result<(ProverConfig, VerifierConfig), String> {
+    /// Build the shared prover/verifier config, retaining the level shape and dropping security-analysis fields.
+    pub fn to_config(&self) -> Result<ProverConfig, String> {
         self.validate()?;
-        let config = ProverConfig {
+        Ok(ProverConfig {
             log_inv_rates: self.levels.iter().map(|lv| lv.log_inv_rate).collect(),
             level_steps: self.levels.len() - 1,
             initial_k: self.initial_k,
@@ -987,8 +978,7 @@ impl WhirSecurityConfig {
             queries: self.levels.iter().map(|lv| lv.queries).collect(),
             grinding_bits: self.levels.iter().map(|lv| lv.grinding_bits).collect(),
             ood_samples: self.levels.iter().map(|lv| lv.ood_samples).collect(),
-        };
-        Ok((config.clone(), config))
+        })
     }
 }
 
