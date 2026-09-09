@@ -14,6 +14,7 @@
 //! valid across it and only the name bindings reset.
 
 use super::*;
+use std::borrow::Cow;
 
 /// How an inlined tail return binds in the caller: a `StackBuf` run and a folded
 /// g-address alias at zero copies, while anything else (a plain scalar, or a real
@@ -24,6 +25,12 @@ pub(super) fn ret_binding(b: Option<RetBind>, dst: Off) -> Binding {
         Some(RetBind::Gaddr(ga)) => Binding::Gaddr(ga),
         _ => Binding::Scalar(dst),
     }
+}
+
+fn substitute_body<'a>(body: &'a [Stmt], substs: &[(&str, Expr)]) -> Cow<'a, [Stmt]> {
+    substs.iter().fold(Cow::Borrowed(body), |body, (name, value)| {
+        Cow::Owned(subst_stmts(&body, name, value))
+    })
 }
 
 /// A single tail return, preceded by statements that can be expanded in the caller's frame.
@@ -277,12 +284,14 @@ impl FnLower<'_> {
     /// callee (the caller emits a real call). Panics if an `@inline` function
     /// isn't inlinable ([`body_inlinable`]) or its `Const` args don't resolve.
     pub(super) fn try_inline(&mut self, callee: &str, args: &[Expr], dsts: &[Off]) -> bool {
-        if !self.defs.get(callee).is_some_and(|d| d.inline) {
+        let Some(def) = self.defs.get(callee).copied().filter(|d| d.inline) else {
             return false;
-        }
-        let (params, body, n_ret) = self
-            .specialized_body(callee, args)
-            .unwrap_or_else(|| self.fail(format!("`@inline {callee}`: bad arity or unresolved Const argument")));
+        };
+        let substs = self
+            .const_substs(def, args)
+            .unwrap_or_else(|_| self.fail(format!("`@inline {callee}`: bad arity or unresolved Const argument")));
+        let body = substitute_body(&def.body, &substs);
+        let n_ret = def.return_shapes.len();
         if n_ret != dsts.len() {
             self.fail(format!(
                 "`@inline {callee}` returns {n_ret} values, call binds {}",
@@ -305,7 +314,10 @@ impl FnLower<'_> {
         // `self_fp`, and range-check bounds stay the caller's: the inlined code
         // runs in the caller's frame, so they fit.
         let mut binds: Vec<(String, Binding)> = Vec::new();
-        for (p, a) in params {
+        for (p, a) in def.params.iter().zip(args) {
+            if p.kind == ParamKind::Const {
+                continue;
+            }
             let b = if let Some((base, size)) = self.stack_of(a) {
                 Binding::Stack(base, size)
             } else if let Some(ga) = self.gaddr_of(a) {
@@ -313,7 +325,7 @@ impl FnLower<'_> {
             } else {
                 Binding::Scalar(self.expr(a))
             };
-            binds.push((p, b));
+            binds.push((p.name.clone(), b));
         }
         // Only the name bindings reset: the inlined body runs in the caller's
         // frame, so the caller's `one`, `self_fp`, constant and bound cells all
@@ -330,7 +342,7 @@ impl FnLower<'_> {
         // line the callee happened to end on.
         let saved_line = self.cur_line;
         self.inline_calls.push(callee.to_string());
-        for s in &body {
+        for s in body.iter() {
             self.stmt(s);
         }
         let popped = self.inline_calls.pop();
@@ -415,50 +427,30 @@ impl FnLower<'_> {
         if !def.has_const_params() {
             return (callee.to_string(), args.iter().collect());
         }
-        if args.len() != def.params.len() {
-            self.fail(format!("call to `{callee}`: wrong arity"))
-        };
-        let mut tag = String::new();
-        let (mut rt_params, mut rt_args, mut substs) = (Vec::new(), Vec::new(), Vec::new());
-        for (p, a) in def.params.iter().zip(args) {
-            if p.kind != ParamKind::Const {
-                rt_params.push(p.clone());
-                rt_args.push(a);
-                continue;
-            }
-            let c = self.const_arg(a).unwrap_or_else(|| {
-                self.fail(format!(
-                    "argument for Const parameter `{}` of `{callee}` must be a compile-time \
-                     constant, got `{a:?}`",
-                    p.name
-                ))
-            });
-            tag.push_str(&match &c {
-                Expr::Lit(n) => format!("_L{n}"),
-                Expr::GPow(k) => format!("_G{k}"),
+        let substs = self.const_substs(def, args).unwrap_or_else(|e| self.fail(e));
+        let mut name = format!("{callee}_");
+        for (_, c) in &substs {
+            match c {
+                Expr::Lit(n) => write!(name, "_L{n}"),
+                Expr::GPow(k) => write!(name, "_G{k}"),
                 _ => unreachable!(),
-            });
-            substs.push((p.name.as_str(), c));
+            }
+            .unwrap();
         }
-        let name = format!("{callee}_{tag}");
+        let runtime = def.params.iter().zip(args).filter(|(p, _)| p.kind != ParamKind::Const);
         if !self.queue.iter().any(|f| f.name == name) {
             if self.queue.len() >= 10_000 {
                 self.fail("Const specialization explosion (recursive constants?)")
             };
-            let ((p, c), rest) = substs.split_first().expect("callee has Const parameters");
-            let mut body = subst_stmts(&def.body, p, c);
-            for (p, c) in rest {
-                body = subst_stmts(&body, p, c);
-            }
             self.queue.push(Func {
                 name: name.clone(),
-                params: rt_params,
+                params: runtime.clone().map(|(p, _)| p.clone()).collect(),
                 return_shapes: def.return_shapes.clone(),
-                body,
+                body: substitute_body(&def.body, &substs).into_owned(),
                 inline: false,
             });
         }
-        (name, rt_args)
+        (name, runtime.map(|(_, a)| a).collect())
     }
 
     /// Lower a call; returns one caller offset per source-level return value.
@@ -535,25 +527,24 @@ impl FnLower<'_> {
         }
     }
 
-    /// The runtime parameter/argument pairs and `Const`-substituted body of a call
-    /// to a user function: the ingredients for inlining. `None` for a builtin or
-    /// unknown callee, an arity mismatch, or an unresolved `Const` argument.
-    pub(super) fn specialized_body<'a>(&self, callee: &str, args: &'a [Expr]) -> Option<SpecializedBody<'a>> {
-        let def = self.defs.get(callee)?;
+    fn const_substs<'a>(&self, def: &'a Func, args: &[Expr]) -> Result<Vec<(&'a str, Expr)>, String> {
         if args.len() != def.params.len() {
-            return None;
+            return Err(format!("call to `{}`: wrong arity", def.name));
         }
-        let mut body = def.body.clone();
-        let mut params = Vec::new();
+        let mut substs = Vec::new();
         for (p, a) in def.params.iter().zip(args) {
-            if p.kind != ParamKind::Const {
-                params.push((p.name.clone(), a));
-                continue;
+            if p.kind == ParamKind::Const {
+                let c = self.const_arg(a).ok_or_else(|| {
+                    format!(
+                        "argument for Const parameter `{}` of `{}` must be a compile-time \
+                         constant, got `{a:?}`",
+                        p.name, def.name
+                    )
+                })?;
+                substs.push((p.name.as_str(), c));
             }
-            let c = self.const_arg(a)?;
-            body = subst_stmts(&body, &p.name, &c);
         }
-        Some((params, body, def.return_shapes.len()))
+        Ok(substs)
     }
 
     /// Original definitions take precedence over generated functions in the queue.

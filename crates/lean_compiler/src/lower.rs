@@ -29,8 +29,6 @@ mod eval;
 mod mem;
 use call::ret_binding;
 use eval::field_pow;
-/// Runtime parameter/argument pairs, the `Const`-substituted body, and return arity.
-type SpecializedBody<'a> = (Vec<(String, &'a Expr)>, Vec<Stmt>, usize);
 
 /// A value equal to `pointer(base)·g^exp`, or the pure constant `g^exp` when
 /// `base` is `None`. Heap-address arithmetic (`ptr·gᵏ`, and constant g-power
