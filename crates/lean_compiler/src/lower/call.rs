@@ -26,11 +26,7 @@ pub(super) fn ret_binding(b: Option<RetBind>, dst: Off) -> Binding {
     }
 }
 
-/// A body safe to inline: a single **tail** `return`, and no construct whose
-/// lowering needs its own frame or a dispatch: a non-inline user call, a
-/// runtime loop, or a match (which would reload a frame pointer that is no
-/// longer the callee's). Builtins and nested `@inline` calls are fine;
-/// `unroll`/`if` are compile-time / same-frame and recurse into.
+/// A single tail return, preceded by statements that can be expanded in the caller's frame.
 fn body_inlinable(body: &[Stmt]) -> bool {
     matches!(body.split_last(), Some((last, rest)) if matches!(last.kind, StmtKind::Return(_))
         && rest.iter().all(stmt_inline_safe))
@@ -45,18 +41,11 @@ fn stmt_inline_safe(s: &Stmt) -> bool {
         | StmtKind::Print { .. }
         | StmtKind::AssertEq(..)
         | StmtKind::AssertNe(..)
-        | StmtKind::AssertLt(..) => true,
-        // Any call. The allowlist here named three of the five statement builtins
-        // and left out both `hint_decompose_bits` forms, and it excluded a real
-        // user call although the SAME call in expression position was always
-        // allowed and is sound: `lower_call` builds the callee's frame from
-        // `fresh()` and writes retfp and retpc with `DerefMode::Fp`/`Pc`, none of
-        // which assumes whose frame is current. So the rule was stricter than it
-        // needed to be in one position and leakier than it claimed in the other.
-        StmtKind::Call(..) => true,
+        | StmtKind::AssertLt(..)
+        // Ordinary calls allocate their own frames.
+        | StmtKind::Call(..) => true,
         StmtKind::If { then, els, .. } => then.iter().all(stmt_inline_safe) && els.iter().all(stmt_inline_safe),
         StmtKind::Unroll { body, .. } => body.iter().all(stmt_inline_safe),
-        // Return (non-tail), For, Match, LetTuple, CallIfNe, user Call.
         _ => false,
     }
 }

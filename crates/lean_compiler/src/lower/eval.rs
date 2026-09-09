@@ -1,7 +1,6 @@
 //! Compile-time evaluation: what an expression is worth before anything runs.
 //!
-//! Every function here takes `&self` and emits nothing, so asking costs nothing
-//! and a `None` has committed the program to no answer.
+//! Queries emit no instructions and leave compiler state unchanged.
 //!
 //! There are two answers and the POSITION of a use picks one:
 //! [`FnLower::try_const_int`] for a size, an index, a bound or an exponent,
@@ -108,13 +107,10 @@ impl FnLower<'_> {
                 None => Known::default(),
             },
             Expr::Var(v) => {
-                let int = self.scope.int(v);
                 let Some(b) = self.scope.bound(v) else {
-                    return Known {
-                        int,
-                        ..Known::default()
-                    };
+                    return Known::default();
                 };
+                let int = b.int;
                 match b.val {
                     Binding::FConst(c) => Known {
                         int,

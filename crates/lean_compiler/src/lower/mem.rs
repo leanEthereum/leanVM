@@ -142,13 +142,6 @@ impl FnLower<'_> {
         self.array_ptr(arr, idx)
     }
 
-    /// Write `val` into the stack cell `dst`. Always an instruction: if `dst`
-    /// already holds a value the store is the write-once equality ASSERTION of
-    /// `zkDSL.md` §Memory, and if it does not, this is what gives it one.
-    pub(super) fn stack_store(&mut self, dst: Off, val: &Expr) {
-        self.expr_into(val, dst);
-    }
-
     /// Compile-time bounds check: when `arr` resolves to a sized `HeapBuf`
     /// (directly or through shifted aliases) and the whole index is the
     /// compile-time exponent `exp`, reject `exp + span > size`. Runtime

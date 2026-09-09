@@ -55,8 +55,7 @@ impl XmssPublicKey {
     }
 }
 
-// Prover-side PRF domains (secret derivation and filler nodes; never on the
-// verification path, so not restricted to the 64-to-32 primitive).
+// PRF domains for secret derivation and filler nodes.
 const PRF_DOMAINSEP_WOTS_SECRET_KEY: u32 = 1000;
 const PRF_DOMAINSEP_PUBLIC_PARAM: u32 = 1001;
 const PRF_DOMAINSEP_RANDOM_NODE: u32 = 1002;

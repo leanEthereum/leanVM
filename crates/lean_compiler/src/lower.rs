@@ -323,15 +323,9 @@ impl FnLower<'_> {
         };
     }
 
-    /// Bind `name` to `b`, dropping whatever the other three maps held for it:
-    /// they are consulted independently, so a stale binding of another kind
-    /// would shadow this one. `consts` is deliberately NOT touched, since a
-    /// name can keep its compile-time index role across such a rebind; callers
-    /// that must drop it do so themselves.
+    /// Replace the binding, clearing its previous compile-time integer reading.
     fn rebind(&mut self, name: &str, b: Binding) {
         self.check_not_reserved(name);
-        // Every reading of the old name goes with it, the integer one included:
-        // one entry replaced, so none can be left behind.
         self.scope.names.insert(name.to_string(), Bound { val: b, int: None });
     }
 
@@ -1123,10 +1117,8 @@ impl FnLower<'_> {
         acc
     }
 
-    /// Evaluate `e` writing its value straight into cell `dst`, with no temporary +
-    /// copy for the common cases (a heap read DEREFs directly into `dst`; a
-    /// constant / arithmetic emits into `dst`). Falls back to `expr` + `copy` for
-    /// vars, calls, and stack reads.
+    /// Evaluate `e` into `dst`, writing constants, arithmetic, heap reads and call results directly.
+    /// Writing an existing cell enforces equality under write-once memory.
     fn expr_into(&mut self, e: &Expr, dst: Off) {
         // A wholly compile-time expression (a literal, a constant-array element,
         // constant arithmetic) is one `SET` into `dst`, not a heap read.
@@ -1204,7 +1196,7 @@ impl FnLower<'_> {
                 Expr::ListLit(es) => {
                     let base = self.alloc_stack(es.len() as u32);
                     for (k, el) in es.iter().enumerate() {
-                        self.stack_store(base + k as u32, el);
+                        self.expr_into(el, base + k as u32);
                     }
                     self.rebind(name, Binding::Stack(base, es.len() as u32));
                 }
@@ -1337,7 +1329,7 @@ impl FnLower<'_> {
                 // the value writes (`hb[sb[0]] = f(sb, …)`), and Python's own
                 // evaluation order for `a[i] = v` is the same.
                 if let Some(c) = self.frame_cell(arr, idx) {
-                    self.stack_store(c, val);
+                    self.expr_into(val, c);
                 } else {
                     let v = self.expr(val);
                     let (ptr, o2) = self.heap_addr(arr, idx);
