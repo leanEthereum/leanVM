@@ -10,10 +10,10 @@ from random import Random
 from zk_column_count_audit import Library
 from zk_flock_columns_audit import METADATA_ROWS, OPERANDS, PROGRAM
 from zk_flock_coset_audit import novel_factors, reordered_index
-from zk_flock_pair_opening_audit import blake_bus_forms
+from zk_flock_pair_opening_audit import blake_bus_forms, evaluate
 from zk_flock_skip_audit import check_rows, witness
 from zk_memory_frames_audit import joint_root_bound
-from zk_pcs_audit import Tower, verifier_module
+from zk_pcs_audit import RightInverse, Tower, kdot, verifier_module
 from zk_stacked_audit import binary_basis
 from zk_three_point_audit import THREE_POINT_SUPPORT, three_point_error
 from zk_two_point_audit import DENSE_FIXED, dense_fixed_error
@@ -173,7 +173,7 @@ def certificate(verifier, library, groups):
                 value = field.kmul(value, factor)
         return value
 
-    directions, counter_interface = [], []
+    directions, counter_interface, four_kernel = [], [], []
     child_pc_weights = [[] for _ in range(4)]
     for (kind, bank), group in groups.items():
         if kind == "wide":
@@ -197,6 +197,7 @@ def certificate(verifier, library, groups):
                 residuals = [field.mul(weight, residual_delta) for weight in child_weights]
                 assert a[columns.index("cnt_cv1")] + b[columns.index("cnt_cv1")] == a[columns.index("cnt_out0")] + b[columns.index("cnt_out0")]
                 directions.append(packed([*metadata, *children]))
+                four_kernel.append(packed([*metadata, *children]))
                 counter_interface.append(packed([*metadata, *prior_counts, *residuals]))
                 if kind == "pc":
                     assert all(a[column] == b[column] for column in selected[1:9])
@@ -213,16 +214,20 @@ def certificate(verifier, library, groups):
                     second_raw = field.kmul(raw, field.kinv(query)) if bank & 1 else raw
                     second_raw = field.kmul(second_raw, query ^ 1) if bank & 1 else second_raw
                     directions.append(metadata | children | (raw << (31 * 192)) | (second_raw << (31 * 192 + 64)))
+                    kernel = field.kmul(raw_weight(physical_left & ~7), difference) if columns[column] in ("cnt_cv1", "cnt_out0") else 0
+                    four_kernel.append(metadata | children | (kernel << (31 * 192 + 64 * bank)))
                     counter_interface.append(
                         metadata | (count_delta << ((19 + 10 * bank + number) * 192)) | (raw << (63 * 192)) | (second_raw << (63 * 192 + 64))
                     )
     assert all(len(binary_basis(weights)) == 384 for weights in child_pc_weights)
     assert len(binary_basis(counter_interface)) == 63 * 192 + 128 == 12224
     assert len(binary_basis(directions)) == 31 * 192 + 128 == 6080
+    assert len(binary_basis(four_kernel)) == 31 * 192 + 256 == 6208
     print(
         "Native joint ranks: 12224 for the retained count/residual map, 6080 for metadata, all twelve actual GKR children and both raw query values.",
         flush=True,
     )
+    print("The core also retains four coset-kernel coordinates jointly with the actual metadata and children, at native rank 6208.", flush=True)
     return selected, value_columns
 
 
@@ -282,6 +287,39 @@ def collapse_certificate(verifier):
     )
 
 
+def coset_certificate(verifier):
+    field = Tower(64, verifier)
+    difference = int(verifier.ONE + verifier.GEN)
+    for coset in (1 << 18, ((1 << 18) + 1234) & ~7, (1 << 19) - 8):
+        factors = novel_factors(field, 18, coset)
+
+        def coordinates(coefficients, at=factors):
+            result = [0] * 8
+            for index, value in coefficients.items():
+                for bit in range(3, 18):
+                    if index >> bit & 1:
+                        value = field.kmul(value, at[bit])
+                result[index & 7] ^= value
+            return result
+
+        matrix = [field.novel(3, coset + offset) for offset in range(8)]
+        inverse = RightInverse(field, matrix)
+        for kind in ("count", "wide"):
+            for child in range(4):
+                for index in (0, 1, 1279):
+                    left, right = map(reordered_index, pair(kind, child, index))
+                    coefficients = {left: difference, right: difference}
+                    low = coordinates(coefficients)
+                    values = [evaluate(field, coefficients, coset + offset) for offset in range(8)]
+                    assert values == [kdot(field, row, low) for row in matrix]
+                    assert inverse.solve(values) == low
+                    assert all(value == 0 for slot, value in enumerate(low) if slot not in (child, child + 4))
+                    quotient = low[child] ^ low[child + 4]
+                    assert (quotient == 0) == (kind == "count")
+                    assert low[child] or low[child + 4]
+    print("Exact eight-point interpolation: the core fills four paired-coefficient kernels, and wider banks fill their four quotients.", flush=True)
+
+
 def short_span_error():
     size = 1 << 192
     initial = sum((Fraction(((1 << dimension) - 1) ** 2, size - 1) for dimension in (1, 2, 4, 8, 16)), Fraction())
@@ -319,13 +357,27 @@ if __name__ == "__main__":
     error_bound()
     verifier = verifier_module()
     collapse_certificate(verifier)
+    if arguments.wide:
+        coset_certificate(verifier)
     if arguments.full:
         library, groups = build(verifier, arguments.wide)
         selected, value_columns = certificate(verifier, library, groups)
         randomize(verifier, library, groups, selected, value_columns)
     positions = [reordered_index(pair("count", 0, index)[0]) for index in DENSE_FIXED]
+    if arguments.wide:
+        positions += [reordered_index(pair("wide", 0, index)[0]) for index in DENSE_FIXED]
     subprocess.run(
-        ["cargo", "run", "--release", "-p", "lean_vm", "--example", "zk_flock_pair_opening_audit", "--", "--child-kernel-certificate"],
+        [
+            "cargo",
+            "run",
+            "--release",
+            "-p",
+            "lean_vm",
+            "--example",
+            "zk_flock_pair_opening_audit",
+            "--",
+            "--child-coset-certificate" if arguments.wide else "--child-kernel-certificate",
+        ],
         input=" ".join(map(str, positions)),
         text=True,
         check=True,

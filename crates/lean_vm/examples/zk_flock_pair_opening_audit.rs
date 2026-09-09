@@ -268,20 +268,38 @@ fn novel_parameters() -> ([F64; 18], [F64; 18]) {
     (roots, inverses)
 }
 
-fn child_kernel_certificate() {
+fn child_kernel_certificate(with_quotient: bool) {
     let mut input = String::new();
     std::io::stdin().read_to_string(&mut input).unwrap();
-    let positions: Vec<usize> = input.split_whitespace().map(|value| value.parse().unwrap()).collect();
-    assert_eq!(positions.len(), 1280);
+    let all_positions: Vec<usize> = input.split_whitespace().map(|value| value.parse().unwrap()).collect();
+    assert_eq!(all_positions.len(), if with_quotient { 2560 } else { 1280 });
+    let (positions, quotient_positions) = all_positions.split_at(1280);
     assert!(
         positions
             .iter()
             .all(|&position| position < 1 << 18 && position & 7 == 0)
     );
-    let mut unique = positions.clone();
+    let mut unique = positions.to_vec();
     unique.sort_unstable();
     unique.dedup();
     assert_eq!(positions.len(), unique.len());
+    if with_quotient {
+        assert!(
+            quotient_positions
+                .iter()
+                .all(|&position| position < 1 << 18 && position & 11 == 0)
+        );
+        let mut unique = quotient_positions.to_vec();
+        unique.sort_unstable();
+        unique.dedup();
+        assert_eq!(unique.len(), 1280);
+        for position in &mut unique {
+            *position &= !7;
+        }
+        unique.sort_unstable();
+        unique.dedup();
+        assert_eq!(unique.len(), 640);
+    }
     let (roots, inverses) = novel_parameters();
     let terms: Vec<_> = positions
         .iter()
@@ -330,7 +348,7 @@ fn child_kernel_certificate() {
             assert_eq!(encoded_odd[query + 1], F64((query + 1) as u64) * observed);
             let mut pivots = [0u64; 64];
             let mut rank = 0;
-            for &position in &positions {
+            for &position in positions {
                 let mut value = weight(position).0;
                 while value != 0 {
                     let bit = 63 - value.leading_zeros() as usize;
@@ -346,6 +364,27 @@ fn child_kernel_certificate() {
                 }
             }
             assert_eq!(rank, 64, "cross-parent count source at query {query}");
+            if with_quotient {
+                pivots.fill(0);
+                rank = 0;
+                for &position in quotient_positions {
+                    let position = position & !7;
+                    let mut value = ((F64::ONE + factors[3]) * low[(position >> 3) & 255] * high[position >> 11]).0;
+                    while value != 0 {
+                        let bit = 63 - value.leading_zeros() as usize;
+                        if pivots[bit] == 0 {
+                            pivots[bit] = value;
+                            rank += 1;
+                            break;
+                        }
+                        value ^= pivots[bit];
+                    }
+                    if rank == 64 {
+                        break;
+                    }
+                }
+                assert_eq!(rank, 64, "wider count quotient at query {query}");
+            }
         });
         println!(
             "Certified cross-parent query rank 64 at {} of 131072 adjacent pairs.",
@@ -355,6 +394,11 @@ fn child_kernel_certificate() {
     println!(
         "Exhaustive cross-parent certificate: every selected query has full rank; child slots zero and one supply independent raw pair directions."
     );
+    if with_quotient {
+        println!(
+            "The wider quotient maps also have rank 64 on every coset: four independent child banks fill the four missing base-field coordinates."
+        );
+    }
 }
 
 fn matching_certificate(queries: usize) {
@@ -496,7 +540,11 @@ fn main() {
             return;
         }
         Some("--child-kernel-certificate") => {
-            child_kernel_certificate();
+            child_kernel_certificate(false);
+            return;
+        }
+        Some("--child-coset-certificate") => {
+            child_kernel_certificate(true);
             return;
         }
         _ => {}
