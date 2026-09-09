@@ -1,0 +1,101 @@
+% !TeX root = ../../main.tex
+\subsection{An initial-opening obstruction for the Flock library}\label{note:zk-flock-coset}
+
+\paragraph{Conclusion.} The compact endpoint theorem does not make its former row layout suitable for full ZK. The separated layout leaves four initial Flock lanes unmasked. Merely spreading its $96$ fixed profiles into six per lane also fails: seven queries in one encoder coset cancel all six profiles. For the current size-$2^{18}$ batch, the latter attack forces common-simulator error greater than $2^{-89}$ at inverse-rate log one and greater than $2^{-120}$ even at log four. These are lower bounds, not unproved rank heuristics. A new public coordinate order avoids these two specific obstructions and preserves the endpoint theorem, but changes the still-unproved middle-round problem.
+
+\subsubsection{Why the separated layout cannot be used}
+
+Consider the size-compatible profile of Section~\ref{sec:zk-wire-ledger}, so the packed Flock column occupies sixteen initial PCS lanes, each with $2^{22}$ base-field coefficients, or $2^{14}$ complete compression blocks of $256$ coefficients. In the former layout, banks $0,\ldots,95$ contain all padding choices, whereas banks $96,\ldots,127$ contain the $65536$ real compressions. Its last four lanes contain no padding randomness.
+
+Choose two distinct valid compressions and let every real row use the first or every real row use the second, according to one private bit. A real lane's difference is a nonzero novel-basis polynomial of degree at most $2^{22}-1$. It is unaffected by every padding choice outside that lane. On a domain of size $D=2^{22+\rexp}$, at most $2^{22}-1$ query indices can make its two values agree. With $q$ independent uniform initial queries the two views therefore have distance at least
+\[
+ 1-\left(\frac{2^{22}-1}{D}\right)^q>1-2^{-226}
+\]
+for all four current rate configurations at stack log $28$. A common simulator has error at least half this quantity. This is a raw authenticated-leaf projection; memory masks in other lanes and later folds cannot change it.
+
+\paragraph{Valid execution pairs.} The two real batches can be supplied by one public straight-line program repeatedly applying BLAKE2s to a private message, with the digest kept private. All repetitions may use one small write-once frame: identical inputs produce the same output on every repetition. Public side blocks supply the padding compressions and their closing jumps, and standard fillers complete the other announced table heights. Changing the private message preserves the program, public input, addresses, visit counts and heights. A bytecode height $17$ accommodates $65536$ real BLAKE2s instructions and these public blocks; replacing the illustrative height $11$ by $17$ keeps the committed stack below log $28$. All frames can avoid the unused-memory reservation. This is an obstruction to preserving those real rows with the stated padding, not to a prover allowed to discard the supplied execution and find another witness.
+
+\subsubsection{The encoder exposes a low-dimensional profile space}
+
+For a valid compression profile $i$, let $\zkProfilePoly{i}(X)$ be the degree-at-most-$255$ novel-basis polynomial of its $256$ packed-word differences from the zero-message baseline. All higher index factors $\novel_{256j}(X)$ are constant on every coset of $\subsp_8$. Consequently, on any such coset, all copies of profile $i$ in one initial lane contribute
+\[
+ \gamma_i\zkProfilePoly{i}(X),\qquad \gamma_i\in\K,
+\]
+where the scalar incorporates their positions and choices. This statement holds for arbitrary choice distributions, not just independent fair bits. It follows from the disjoint index-bit identity $\novel_{256j+a}=\novel_{256j}\novel_a$ and invariance of the higher subspace polynomials under translation by $\subsp_8$.
+
+Thus, with six fixed padding profiles in a lane, seven queries in one coset reveal a seven-vector whose padding lies in a known subspace of dimension at most six over $\K$. Extra copies of the same six profiles do not enlarge that subspace.
+
+\subsubsection{A quantitative attack on the six-profile repair}
+
+An apparent repair permutes the seven bank bits, sending a logical bank $b$ to $4(b\bmod32)+\lfloor b/32\rfloor$. Each initial lane then has six padding banks and two real banks. In lane zero the padding profiles are $0,1,32,33,64,65$, and the real banks occupy within-lane positions $3$ and $7$. Keep their real compressions all equal to the baseline or all equal to profile $96$, according to the private bit. Use the exact valid-compression library of \noteref{zk-flock-endpoints}.
+
+The native-field audit certifies that the seven profile polynomials have coefficient rank seven. More specifically, for
+\[
+ \zkCosetOffsets=\{4,5,6,7,8,9,10\},\qquad
+ (i_0,\ldots,i_6)=(0,1,32,33,64,65,96),
+\]
+the polynomial
+\[
+ \zkCosetMinor(T)=\det\bigl(\zkProfilePoly{i_j}(T+s)\bigr)_{s\in\zkCosetOffsets,\ 0\le j\le6}
+\]
+is nonzero at $T=0$. Its degree is at most $7\cdot255$. At any other nonzero-minor centre, the private profile's evaluation vector is outside the span of the six padding vectors.
+
+The repeated real rows contribute $\zkRealFactor(X)\zkProfilePoly{96}(X)$, where $\zkRealFactor$ is a nonzero higher-index polynomial, constant on each $\subsp_8$ coset and of degree at most $256(2^{14}-1)$. In particular, it vanishes on at most $2^{14}-1$ whole cosets. This is an ordinary polynomial root bound, not an assumption that a random fingerprint has full rank.
+
+Within each coset, use the $32$ seven-point patterns obtained by translating $\zkCosetOffsets$ by $0,8,16,\ldots,248$ in binary field representation. These patterns are pairwise disjoint. Across the domain, discarding every coset with $\zkRealFactor=0$ costs at most $32(2^{14}-1)$ patterns. Since all their centres are distinct, discarding zeros of the one polynomial $\zkCosetMinor$ costs at most another $7\cdot255$ patterns. Hence at least
+\[
+ \zkPatternCount=32\left(D/256-(2^{14}-1)\right)-7\cdot255
+\]
+pairwise disjoint patterns distinguish the two witnesses exactly whenever all seven points are queried. The verifier can subtract the public baseline and test membership in the six-profile column space. All other protocol messages may be ignored.
+
+\begin{theorem}[Finite-profile statistical privacy floor]\label{thm:zk-flock-coset-floor}
+For this six-profile-per-lane repair, let
+\[
+ p_j=\sum_{a=0}^j(-1)^a\binom ja\left(\frac{D-a}{D}\right)^q.
+\]
+Every common simulator for the complete honest-interactive view has error at least
+\[
+ \frac12\left(\zkPatternCount\,p_7-\binom{\zkPatternCount}{2}p_{14}\right).
+\]
+For the actual configurations at stack log $28$, exact rational arithmetic gives the following strict lower bounds:
+\[
+\begin{array}{c|rrrr}
+ \rexp&1&2&3&4\\\hline
+ q&228&113&76&57\\
+ \text{simulator error}&>2^{-89}&>2^{-101}&>2^{-111}&>2^{-120}.
+\end{array}
+\]
+In particular, this repair cannot establish the $2^{-128}$ goal at any of the four rates.
+\end{theorem}
+\begin{proof}
+Inclusion-exclusion gives $p_j$ as the exact probability that $q$ independent queries hit every member of one fixed set of $j$ points. Distinct selected patterns are disjoint, so hitting two has probability $p_{14}$. The two-term Bonferroni bound gives the displayed lower bound on hitting at least one distinguishing pattern. On this public query event the two conditional supports are disjoint, independently of the padding's distribution. Statistical distance is at least the event probability, and the triangle inequality gives the factor one half for a common simulator. No computational restriction on the distinguishing membership test is needed.
+\end{proof}
+
+\subsubsection{An admissible next coordinate order}
+
+The failure is caused by too few profile types in a queried lane, not insufficient unused-memory randomness. A useful repair must mix profiles inside every lane, not only spread its old banks across lanes. Write the logical batch index as $s+2^{11}b$, with $s=s_0+8s_1+128s_2$, where $0\le s_0<8$ and $0\le s_1,s_2<16$. Define the public permutation
+\[
+ \zkFlockOrder(s+2^{11}b)=s_0+8s_2+128b+2^{14}s_1.
+\]
+The four high physical batch bits are now four of the unrestricted sparse bits. In each of the sixteen initial Flock lanes, every one of the $96$ profiles has forty random-choice positions. Each lane contains $3840$ choices and $4096$ real slots. Counts, total batch size and the small-frame memory geometry are unchanged.
+
+This is a permutation of whole BLAKE2s rows, applied also to their packed witness blocks, so it preserves validity, bus multisets and all count labels. The endpoint theorem is preserved exactly: permuting the corresponding coordinates of both independent honest batch points reproduces the old prefix and terminal observations, with the same distribution and error bound. This claim excludes the middle rounds. In the new order only the first seven batch folds stay inside a fixed profile; the next seven mix profiles, followed by the four remaining unrestricted sparse bits. The former eleven-round constant-cofactor certificate is therefore not a proof for this layout.
+
+The new order removes the empty-lane and six-profile mechanisms above, not every possible opening attack. Full conditional query rank, the intervening Flock rounds, the VM reductions and authentication remain unproved. In fact, the following binary-rank diagnostic shows that this coordinate change alone is not a sufficient construction principle.
+
+\subsubsection{A necessary binary-rank test}
+
+For a fixed initial query list $\qset$, expand the opened $\K$ values into binary coordinates. With fair independent padding choices the view has the form $\zkQueryMasks(\qset)\varepsilon+v(\zkWit,\qset)$, where $\varepsilon\in\Ftwo^n$ is uniform. For two fixed witnesses write $\zkQueryShift(\qset)=v(\zkWit_1,\qset)+v(\zkWit_0,\qset)$. Then
+\[
+ \zkSD\bigl((\qset,\zkView_0),(\qset,\zkView_1)\bigr)
+ =\Pr_{\qset}\!\left[
+   \zkQueryShift(\qset)\notin\operatorname{im}_{\Ftwo}\zkQueryMasks(\qset)
+ \right].
+\]
+Indeed, uniform affine cosets are either equal or disjoint. For other padding distributions the right side is still a lower bound. Thus a common simulator of error $\zkErr$ requires this probability to be at most $2\zkErr$. Counting mask bits alone is not sufficient: the witness shift must belong to their \emph{actual binary image}, not merely to the larger $\K$-linear span.
+
+In the revised order each lane has $3840$ source bits, whereas $q$ queries have up to $64q$ binary coordinates. \auditref{zk_flock_coset_audit.py}, with \texttt{--mixed-rank}, forms this binary matrix over the actual fields for $61$ points drawn with its fixed seed from the rate-one domain. Its mask rank is $3840$. Changing just the first real compression from the baseline to profile $96$ increases the rank to $3841$, hence the two conditional supports are disjoint. At the first $57$ and $60$ points the corresponding rank pairs are $(3616,3616)$ and $(3808,3808)$. These are exact fixed-query certificates, not estimates or bounds for the probability above. In particular, a single bad query list does not refute a $2^{-128}$ statistical target.
+
+\paragraph{A source of additional randomness.} The endpoint theorem is uniform over every fixed valid complementary batch. It therefore remains true if the $96(2048-640)=135168$ other positions in the padding banks are independently filled with random valid compressions, independently of the original $61440$ binary choices and honest coins. Condition on these added choices, apply the same endpoint theorem with the same witness-free target law, and average. For example, independent uniform selection from the existing $128$ profiles contributes seven bits per added position, for $1007616$ source bits in total without changing the batch height. All choices are still valid BLAKE2s computations. This removes the $3840$-bit-per-lane source ceiling, but proves neither query hiding nor a common completed VM sampler. The former constant-cofactor middle analysis no longer applies. This enriched source, with $\zkFlockOrder$, is the next candidate to test; the coordinate-only version must not be treated as a solved opening.
+
+\paragraph{Evidence and source distinction.} \auditref{zk_flock_coset_audit.py} checks valid compression witnesses against the reference R1CS, closed-cycle legality, the seven-profile determinant, the encoder factorization, explicit distinguishing subspaces, the exact event probabilities and the new permutation's profile counts. With \texttt{--native}, it additionally runs \path{crates/lean_vm/examples/zk_flock_coset_audit.rs}: every packed word is compared against the native valid witness, and the native scalar NTT and authenticated pruned paths preserve the distinguishing subspace in a small-shape certificate. This is not a complete ZK-mode VM proof. The published overview of Bootle, Chiesa and Liu~\cite{bcl}, Section~2.4, uses valid R1CS padding for oracle queries but separately rerandomizes its sumcheck subprotocols; it is not a theorem covering the unchanged leanVM GKR. That distinction reinforces the need for the full-view checks made here.
