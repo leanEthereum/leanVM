@@ -1,0 +1,69 @@
+% !TeX root = ../../main.tex
+\subsection{A long-chain repair for the low query region}\label{note:zk-flock-lowbank}
+
+\paragraph{Result.} A disjoint bank of $3840$ valid compression cycles repairs the six-query obstruction and jointly hides all sixteen lane-$59$ values in any one coset inside $\subsp_{18}\setminus\subsp_{13}$, together with the twelve final GKR children, all BLAKE2s terminal claims, the established Flock endpoints, memory envelope and shared root. The conditional joint error is below $2^{-132}$. Public heights and verifier equations are unchanged. This is one selected coset, not the complete multi-coset opening; common completion and the other full-view obligations remain open.
+
+\subsubsection{An explicit low-coordinate source}
+
+Start with the wider library of \noteref{zk-flock-children}. Among physical BLAKE2s positions below $2^{14}$, select every aligned sixteen-row block whose rows are outside that library, the mandatory binary source and the five protected general-input positions. There are exactly $240$ such blocks; their bases are below $12288$. Sort their bases, pair the first $120$ with the last $120$, and write the resulting pairs as $\zkLowPairs=\{(u_j,v_j):0\le j<120\}$. The only other free low positions are $437,438,439$, which remain unused by this bank. This rule is public and independently enumerated by the audit.
+
+Use one fresh $32$-cell frame at exponent $1280+32\cdot65535$, compression code location $1090$ and its closing return at $1091$. The frame and code are disjoint from the earlier libraries. Repeatedly execute the same baseline compression/return cycle, with return controls at offsets $16,17,18$. For pair number $n=16j+t$, place its two compressions at $u_j+t,v_j+t$, for $t<16$. Each of the ten compression count columns then has labels $\gen^{2n},\gen^{2n+1}$. Independently swap these two labels in every column. The $3840$ reads of each operand and code location form one complete chain; the return rows and their labels remain fixed. All choices preserve every local constraint, bus multiset, count-column product, memory image and compression witness.
+
+The bank replaces $3840$ general-input positions, leaving $57608$, and adds two code locations for a total of $64$. Sharing one frame instead of $3840$ distinct frames leaves at most $177413$ Flock padding frames, or $5677216$ cells. The remaining payload fits $26960$ slots of size $256$. These are reservations for the same public height profile, not a completed common-sampler theorem.
+
+\subsubsection{Sixteen uniform raw values and a retained terminal claim}
+
+For $x+\subsp_4\subseteq\subsp_{18}\setminus\subsp_{13}$, all lane-$59$ blocks except $\mathsf{cnt\_cv1}$ have zero encoder weight. A swap in the new bank's child slot $t$ contributes to its low coefficient coordinate the scalar $\gen^{2t}\zkLowWeights_j(x)$, where
+\[
+ \zkLowWeights_j(x)=(1+\gen)\gen^{32j}
+       \bigl(\novel_{u_j}(x)+\novel_{v_j}(x)\bigr).
+\]
+The native exhaustive certificate proves binary rank $64$ for these $120$ scalars at all $15872$ sixteen-point cosets in the region, and checks the same polynomial through the actual additive NTT. Independent bits for each $t$ therefore make all sixteen coefficient coordinates, and hence all sixteen raw values, exactly uniform. We must still account for the terminal $\mathsf{cnt\_cv1}$ claim made from those same bits.
+
+Split the honest terminal row point into its four low physical coordinates and fourteen high coordinates. In the latter variables define
+\[
+ \zkLowHighPoly_j(z)=(1+\gen)\gen^{32j}
+    \bigl(\eq(z,u_j/16)+\eq(z,v_j/16)\bigr).
+\]
+These $120$ degree-at-most-$14$ polynomials are linearly independent over $\K$, because their pairs of Boolean support points are disjoint. Fix $x$ and take a binary basis of the $56$-dimensional kernel of the rank-$64$ query map. Applying the same combinations to $\zkLowHighPoly_j$ gives $56$ independent polynomials. Their Moore determinant is nonzero and has degree at most $14(2^{56}-1)$: otherwise a nonzero linearized polynomial of degree at most $2^{55}$ over the rational-function field would vanish on a binary space of size $2^{56}$. Thus, outside probability $14(2^{56}-1)/2^{192}$, their evaluations span a binary space $\zkLowSpan\subseteq\E$ of dimension $56$.
+
+Every child slot has this same kernel image, up to its nonzero factor $\gen^{2t}$. After excluding low terminal coordinates in $\{0,1\}$, normalize their equality weights. The four remaining independent ratios $\zkLowRatio{0},\ldots,\zkLowRatio{3}$ are uniform on $\E$ with two specified values excluded, after nonzero geometric rescaling. If $d=\dim(\zkLowSpan+\zkLowRatio{0}\zkLowSpan)$, then
+\[
+ \Pr[d\le a]\le
+ \frac{(2^{56}-1)^2}{(2^{192}-2)(2^{112-a}-1)},
+ \qquad 56\le a<112.
+\]
+Put $S=\zkLowSpan+\zkLowRatio{0}\zkLowSpan$. A character union bound using $S$ and its three independent random multiples gives
+\[
+ h(a)=\min\left\{1,
+ \left(\frac{2^{192}}{2^{192}-2}\right)^3 2^{192-4a}\right\}.
+\]
+These four subspaces are contained in the full sixteen-term terminal image. Averaging over $d$ proves a sufficient joint failure bound
+\[
+ \begin{aligned}
+ \zkLowBankError={}&\frac{14(2^{56}-1)+8}{2^{192}}+h(112)\\
+ &+\sum_{a=56}^{111}
+ \frac{(2^{56}-1)^2h(a)}{(2^{192}-2)(2^{112-a}-1)}
+ <2^{-132}.
+ \end{aligned}
+\]
+The sum and $h(112)$ together are below $2^{-166}$. On good terminal coins, the terminal claim is uniform on every query fiber. Therefore the new bank jointly supplies sixteen independent base-field uniforms and one extension-field uniform, except with probability $\zkLowBankError$, uniformly over the selected coset and every fixed complementary contribution.
+
+\subsubsection{Joint composition with the actual children}
+
+\begin{theorem}[The repaired low-coset boundary]\label{thm:zk-lowbank-interface}
+Add this bank to the wider source, with a common valid completion respecting its disjoint reservation. The joint view consisting of all thirty-seven BLAKE2s terminal claims, twelve actual final GKR children, established Flock endpoints and all sixteen lane-$59$ values in one fixed coset in $\subsp_{18}\setminus\subsp_{13}$ has a witness-free simulator. Including the complete memory envelope and shared bus root, its error is below $2^{-132}$. The coset may be selected using only honest query indices.
+\end{theorem}
+\begin{proof}
+Keep the old good-coin ledger of Theorem~\ref{thm:zk-flock-twelve-interface}, using its fixed auxiliary coset at $\gen^{18}$ solely to certify the old span events. These events in particular give the ordinary child and joint child/terminal count spans, without retaining any auxiliary query value. Split the replacement into three independent source groups.
+
+First use the old count banks with $\mathsf{cnt\_cv1}$ excluded. They change no raw value in the selected low coset and no terminal $\mathsf{cnt\_cv1}$ value. They jointly hide the other nine terminal counts and the two count-dependent child directions in each of the four child slots. The pull/count minor using $\mathsf{cnt\_cv0}$ and $\mathsf{cnt\_out0}$ is nonzero of degree at most $20$; its block indices are $(190,192)$ in the pull channel and $(48,50)$ in the count channel. Charge another $20/2^{192}$ for this minor, conservatively retaining the preceding ledger's old minor term. The count image is still the plane $p+\gen q=0$, leaving each child residual $P_t+\gen Q_t$ fixed. Condition on every other bit during this replacement.
+
+Next use only the new bank's $\mathsf{cnt\_cv1}$ bits. By the preceding argument, they jointly hide the raw sixteen-value vector and terminal $\mathsf{cnt\_cv1}$ claim. Their effect on the children lies entirely in the count planes already replaced by independent uniforms; they change neither the four residuals nor the nine terminal program/frame coordinates. Finally use the old operand/frame/PC sources to hide those program/frame coordinates and residuals. Their changes to the already replaced count, child-plane and raw coordinates are absorbed by the corresponding uniforms. The established old span events prove this last replacement exactly as before.
+
+Now apply the memory/root and compression-value/Flock hybrids in their established order. All old and new metadata choices preserve the required multisets and Flock witness. The combined error is at most the old twelve-value ledger, plus $\zkLowBankError$, the additional $20/2^{192}$ and the memory/root term. Exact rational arithmetic bounds this sum below $2^{-132}$. No conditioning of an unconditional marginal theorem on the disclosed children or query values is used. The bound is uniform in $x$, so independent honest-query selection adds no error.
+\end{proof}
+
+The old twelve-value theorem on a coset inside $\gen^{18}+\subsp_{18}$ also remains true, with its previous error: condition on all new bits and apply its complement-uniform proof. This does not prove the two coset views jointly. Nor may a simulator publish a separate sixteen-value envelope for every actual query without a proof of their joint distribution. Indeed, the complete enlarged source has raw binary rank $1760$ out of $2048$ on the thirty-two points $12288,\ldots,12319$, and the native audit constructs a functional separating the private-pointer difference. Thus even the repaired source is not perfectly private on arbitrary query sets. This finite exceptional set does not by itself exclude the statistical target; its probability and the entire family of other exceptional sets must be controlled.
+
+\paragraph{Evidence and boundary.} \auditref{zk_flock_lowbank_audit.py} enumerates the exact free-block reservation, verifies all new cycles and randomized read chains with \texttt{--full}, checks the scalar maps exhaustively through the native NTT and checks the exact Moore, low-coordinate and combined ledgers. A separate native-field rank check gives $1216$ for the sixteen raw coordinates and their terminal extension value. The full-query audit accepts \texttt{--lowbank} to include every new mask in the actual terminal/GKR/query matrix, whose sampled sixteen-value joint rank is $6976$. Its three-group check also verifies the required zero projections and separate ranks $3264,1216,2496$. The six-query obstruction no longer applies to this enlarged source. Full multi-coset privacy, other lanes and PCS stages, omitted GKR/table/Flock messages, authentication and one common valid sampler are still required.

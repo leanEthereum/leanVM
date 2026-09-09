@@ -270,6 +270,62 @@ fn novel_parameters() -> ([F64; 18], [F64; 18]) {
 
 type QuerySource = (Vec<(usize, F64)>, Vec<(usize, u64)>);
 
+fn lowbank_certificate() {
+    let mut input = String::new();
+    std::io::stdin().read_to_string(&mut input).unwrap();
+    let positions: Vec<usize> = input.split_whitespace().map(|word| word.parse().unwrap()).collect();
+    assert_eq!(positions.len(), 240);
+    let mut unique = positions.clone();
+    unique.sort_unstable();
+    unique.dedup();
+    assert_eq!(unique.len(), 240);
+    assert!(positions.iter().all(|&index| index < 12288 && index & 15 == 0));
+    let (roots, inverses) = novel_parameters();
+    let mut coefficients = vec![F64::ZERO; 1 << 18];
+    let scales: Vec<_> = (0..120).map(|index| F64(3) * g_pow(32 * index)).collect();
+    for (pair, &scale) in positions.chunks_exact(2).zip(&scales) {
+        coefficients[pair[0]] += scale;
+        coefficients[pair[1]] += scale;
+    }
+    AdditiveNttF64::standard(18).forward_transform_scalar(&mut coefficients);
+    parallel::for_each(((1 << 18) - (1 << 13)) / 16, |coset| {
+        let query = (1 << 13) + 16 * coset;
+        let mut value = F64(query as u64);
+        let mut factors = roots;
+        for bit in 0..14 {
+            factors[bit] = value * inverses[bit];
+            value *= value + roots[bit];
+        }
+        let mut weights = [F64::ONE; 1024];
+        for index in 1usize..1024 {
+            let bit = index.trailing_zeros() as usize;
+            weights[index] = weights[index & (index - 1)] * factors[bit + 4];
+        }
+        let mut pivots = [0u64; 64];
+        let mut rank = 0;
+        let mut sum = F64::ZERO;
+        for (pair, &scale) in positions.chunks_exact(2).zip(&scales) {
+            let image = scale * (weights[pair[0] >> 4] + weights[pair[1] >> 4]);
+            sum += image;
+            let mut value = image.0;
+            while value != 0 {
+                let bit = 63 - value.leading_zeros() as usize;
+                if pivots[bit] == 0 {
+                    pivots[bit] = value;
+                    rank += 1;
+                    break;
+                }
+                value ^= pivots[bit];
+            }
+        }
+        assert_eq!(rank, 64, "low-bank scalar rank at coset {query}");
+        assert!(coefficients[query..query + 16].iter().all(|&value| value == sum));
+    });
+    println!(
+        "Exhaustive low-bank certificate: all 15872 cosets in U18 outside U13 have scalar rank 64 and match the native additive NTT."
+    );
+}
+
 fn query_map_certificate(with_public: bool, singletons: bool) {
     let mut input = String::new();
     std::io::stdin().read_to_string(&mut input).unwrap();
@@ -780,6 +836,10 @@ fn main() {
         }
         Some("--query-singleton-certificate") => {
             query_map_certificate(true, true);
+            return;
+        }
+        Some("--lowbank-certificate") => {
+            lowbank_certificate();
             return;
         }
         _ => {}

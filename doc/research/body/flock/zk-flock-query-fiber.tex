@@ -3,6 +3,8 @@
 
 \paragraph{Conclusion.} Six low queries defeat the current fixed-completion source, with common-simulator error greater than $2^{-93}$ at rate one and greater than $2^{-123}$ even at rate four. This rules out $128$-bit privacy for this construction at every supported rate, despite its successful one-coset theorems and sampled full-query ranks. The note also gives an exact conditional-rank criterion and audit for all actual initial lane-$59$ queries jointly with the terminal/GKR boundary. That criterion remains a route for a repaired source, not a theorem that the present source satisfies. Other lanes, earlier reductions and later PCS messages are excluded from its positive claim.
 
+This note analyzes the source before the extra long-chain bank of \noteref{zk-flock-lowbank}. That bank repairs the fixed six-query test and proves a larger low-coset theorem. The full-query criterion below still needs a uniform bound for the enlarged source.
+
 \subsubsection{One source for the whole query vector}
 
 The wider library has $110588$ independent metadata bits: $8\cdot1280\cdot10$ independent count swaps, $4\cdot1279$ complete PC-row swaps and $8\cdot384$ complete operand/frame-row swaps. Exactly $56700$ of these bits change lane $59$. For every count-bank pair, the four memory blocks have difference $1+\gen$, and the bytecode block has difference $(1+\gen)\gen^{2n(i)}$. Each contributes a two-term novel polynomial at its actual physical pair positions and stack-block offset. A PC-row swap contributes eight terms, one pair in each of the four memory blocks. A frame-row swap contributes two terms in the bytecode block. The other seven operand banks have zero lane difference. Compression-value choices change none of these count columns.
