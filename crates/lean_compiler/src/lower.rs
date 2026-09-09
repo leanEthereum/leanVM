@@ -204,7 +204,7 @@ struct FnLower<'a> {
     arg_cells: u32,
     /// Source-level return shapes for this function. Their physical cell widths
     /// determine the reserved return area immediately after the arguments.
-    return_shapes: Vec<Shape>,
+    return_shapes: &'a [Shape],
     is_main: bool,
     code: Vec<LInstr>,
     /// Declared size of each `HeapBuf`, keyed by its pointer cell. Shifted
@@ -624,12 +624,9 @@ impl FnLower<'_> {
                 self.fail("a normal function's StackBuf return cannot cross a match join; bind it with `let`");
             }
         }
-        // Fusion: when every arm is a direct call to the same function with
-        // identical runtime args (differing only in `Const` args, the usual
-        // `lambda k: f(a, b, k)`), set up one shared callee frame and dispatch
-        // straight to the specialization's entry, which returns to the join.
-        // Collapses each arm from a full call to a two-instruction trampoline
-        // slot; see [`Self::lower_dispatched_call`].
+        // Calls with identical runtime args share one callee frame and a
+        // two-instruction trampoline per arm. Const args select specializations;
+        // see `lower_dispatched_call` for the shared argument/return layout checks.
         if arms.iter().all(|a| matches!(a, Expr::Call(..))) {
             let specialized: Vec<(String, Vec<Expr>)> = arms
                 .iter()
@@ -641,8 +638,7 @@ impl FnLower<'_> {
             let rt0 = &specialized[0].1;
             if specialized.iter().all(|(_, rt)| rt == rt0) {
                 let callees: Vec<String> = specialized.iter().map(|(c, _)| c.clone()).collect();
-                let rt_args = rt0.clone();
-                self.lower_dispatched_call(targets, x, &callees, &rt_args);
+                self.lower_dispatched_call(targets, x, &callees, rt0);
                 return;
             }
             // Not uniform: fall through (the specializations queued above are
@@ -707,17 +703,15 @@ impl FnLower<'_> {
     }
 
     /// The `n` trampoline slots themselves, each `SET c = k(j); JUMP c`.
-    /// Returns each slot's `SET` index (a [`KVal::Local`] target still needs
-    /// patching to the block it selects).
-    fn emit_slots(&mut self, n: usize, one: Off, of: Off, k: impl Fn(usize) -> KVal) -> Vec<usize> {
-        let mut slots = Vec::new();
+    /// Returns the table's start; slot `j` has its `SET` at `start + 2*j`.
+    fn emit_slots(&mut self, n: usize, one: Off, of: Off, k: impl Fn(usize) -> KVal) -> usize {
+        let start = self.code.len();
         for j in 0..n {
             let c = self.fresh();
-            slots.push(self.code.len());
             self.set(c, k(j));
             self.emit(LOp::Jump { oc: one, od: c, of });
         }
-        slots
+        start
     }
 
     /// The trampoline dispatch every `match` lowers through: jump to
@@ -735,10 +729,10 @@ impl FnLower<'_> {
         let kset = self.emit_dispatch(xo, one, sfp);
         // The trampoline table.
         self.patch_local(kset, self.code.len());
-        let slots = self.emit_slots(n, one, sfp, |_| KVal::Local(0)); // patched: its block
+        let start = self.emit_slots(n, one, sfp, |_| KVal::Local(0));
         // The arm blocks, each exiting to the join (the last falls through).
-        for (j, &slot) in slots.iter().enumerate() {
-            self.patch_local(slot, self.code.len());
+        for j in 0..n {
+            self.patch_local(start + 2 * j, self.code.len());
             body(self, j);
             if j + 1 != n {
                 self.emit(LOp::Jump {
@@ -1587,7 +1581,7 @@ pub(crate) fn lower_func(
         },
         next: abi_end,
         arg_cells,
-        return_shapes: f.return_shapes.clone(),
+        return_shapes: &f.return_shapes,
         is_main: f.name == "main",
         fn_name: f.name.clone(),
         tail_call: false,

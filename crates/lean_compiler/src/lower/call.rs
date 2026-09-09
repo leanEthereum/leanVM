@@ -382,7 +382,7 @@ impl FnLower<'_> {
         // StackBuf is copied cell-by-cell because its callee-frame offsets are
         // not meaningful after control returns to the caller.
         let mut ret = ret_base;
-        for (e, shape) in exprs.iter().zip(self.return_shapes.clone()) {
+        for (e, &shape) in exprs.iter().zip(self.return_shapes) {
             match shape {
                 Shape::Scalar => self.expr_into(e, ret),
                 Shape::StackBuf(size) => {
