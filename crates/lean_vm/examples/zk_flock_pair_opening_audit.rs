@@ -268,6 +268,229 @@ fn novel_parameters() -> ([F64; 18], [F64; 18]) {
     (roots, inverses)
 }
 
+type QuerySource = (Vec<(usize, F64)>, Vec<(usize, u64)>);
+
+fn query_map_certificate(with_public: bool, singletons: bool) {
+    let mut input = String::new();
+    std::io::stdin().read_to_string(&mut input).unwrap();
+    let mut tokens = input.split_whitespace();
+    let query_count: usize = tokens.next().unwrap().parse().unwrap();
+    let prefix_words: usize = tokens.next().unwrap().parse().unwrap();
+    assert!((1..=if singletons { 1 << 14 } else { 256 }).contains(&query_count));
+    assert!(prefix_words <= 128);
+    let queries: Vec<usize> = (0..query_count)
+        .map(|_| tokens.next().unwrap().parse().unwrap())
+        .collect();
+    assert!(queries.iter().all(|&query| query < 1 << 26));
+    let public_count: usize = if with_public {
+        tokens.next().unwrap().parse().unwrap()
+    } else {
+        0
+    };
+    let public: Vec<usize> = (0..public_count)
+        .map(|_| tokens.next().unwrap().parse().unwrap())
+        .collect();
+    assert!(public.iter().all(|&index| index < query_count));
+    let mut read_polynomials = || {
+        let count: usize = tokens.next().unwrap().parse().unwrap();
+        (0..count)
+            .map(|_| {
+                let length: usize = tokens.next().unwrap().parse().unwrap();
+                let polynomial = (0..length)
+                    .map(|_| {
+                        let index: usize = tokens.next().unwrap().parse().unwrap();
+                        let value: u64 = tokens.next().unwrap().parse().unwrap();
+                        assert!(index < 1 << 22);
+                        (index, F64(value))
+                    })
+                    .collect::<Vec<_>>();
+                let length: usize = tokens.next().unwrap().parse().unwrap();
+                let prefix = (0..length)
+                    .map(|_| {
+                        let index: usize = tokens.next().unwrap().parse().unwrap();
+                        let value: u64 = tokens.next().unwrap().parse().unwrap();
+                        assert!(index < prefix_words);
+                        (index, value)
+                    })
+                    .collect::<Vec<_>>();
+                (polynomial, prefix)
+            })
+            .collect::<Vec<_>>()
+    };
+    let sources = read_polynomials();
+    let private = read_polynomials();
+    assert!(tokens.next().is_none());
+
+    let mut basis: Vec<_> = (0..22).map(|bit| F64(1 << bit)).collect();
+    let mut roots = [F64::ZERO; 22];
+    let mut inverses = roots;
+    for bit in 0..22 {
+        roots[bit] = basis[bit];
+        inverses[bit] = basis[bit].inv();
+        for value in &mut basis[bit + 1..] {
+            *value *= *value + roots[bit];
+        }
+    }
+    let tables: Vec<_> = queries
+        .iter()
+        .map(|&query| {
+            let mut value = F64(query as u64);
+            let mut factors = roots;
+            for bit in 0..22 {
+                factors[bit] = value * inverses[bit];
+                value *= value + roots[bit];
+            }
+            let mut low = vec![F64::ONE; 1 << 11];
+            let mut high = low.clone();
+            for index in 1usize..1 << 11 {
+                let bit = index.trailing_zeros() as usize;
+                low[index] = low[index & (index - 1)] * factors[bit];
+                high[index] = high[index & (index - 1)] * factors[bit + 11];
+            }
+            (low, high)
+        })
+        .collect();
+    let evaluate = |(polynomial, prefix): &QuerySource| {
+        let mut row = vec![0; prefix_words + query_count];
+        for &(index, value) in prefix {
+            row[index] ^= value;
+        }
+        for (value, (low, high)) in row[prefix_words..].iter_mut().zip(&tables) {
+            *value = polynomial
+                .iter()
+                .fold(F64::ZERO, |sum, &(index, value)| {
+                    sum + value * low[index & 2047] * high[index >> 11]
+                })
+                .0;
+        }
+        row
+    };
+    if singletons {
+        assert_eq!(prefix_words, 0);
+        let mut pivots = vec![[0u64; 64]; query_count];
+        let mut ranks = vec![0; query_count];
+        for polynomial in &sources {
+            for ((mut value, pivot), rank) in evaluate(polynomial).into_iter().zip(&mut pivots).zip(&mut ranks) {
+                while value != 0 {
+                    let bit = 63 - value.leading_zeros() as usize;
+                    if pivot[bit] == 0 {
+                        pivot[bit] = value;
+                        *rank += 1;
+                        break;
+                    }
+                    value ^= pivot[bit];
+                }
+            }
+        }
+        let mut counts = std::collections::BTreeMap::new();
+        for rank in ranks {
+            *counts.entry(rank).or_insert(0) += 1;
+        }
+        println!("SINGLETON_RANKS {counts:?}");
+        for (number, polynomial) in private.iter().enumerate() {
+            let mut outside = Vec::new();
+            for ((&query, mut value), pivot) in queries.iter().zip(evaluate(polynomial)).zip(&pivots) {
+                while value != 0 {
+                    let bit = 63 - value.leading_zeros() as usize;
+                    if pivot[bit] == 0 {
+                        outside.push(query);
+                        break;
+                    }
+                    value ^= pivot[bit];
+                }
+            }
+            println!(
+                "SINGLETON_OUTSIDE {number} {} {:?}",
+                outside.len(),
+                &outside[..outside.len().min(16)]
+            );
+        }
+        return;
+    }
+    let reduce = |row: &mut Vec<u64>, pivots: &[Vec<u64>]| {
+        for word in (0..row.len()).rev() {
+            while row[word] != 0 {
+                let bit = word * 64 + 63 - row[word].leading_zeros() as usize;
+                if pivots[bit].is_empty() {
+                    row.truncate(word + 1);
+                    return Some(bit);
+                }
+                for (value, &pivot) in row.iter_mut().zip(&pivots[bit]) {
+                    *value ^= pivot;
+                }
+            }
+        }
+        None
+    };
+    let mut pivots = vec![Vec::new(); (query_count + prefix_words) * 64];
+    let mut public_pivots = vec![Vec::new(); public.len() * 64];
+    let mut public_rank = 0;
+    let mut rank = 0;
+    for (number, polynomial) in sources.iter().enumerate() {
+        let mut row = evaluate(polynomial);
+        let mut projection = public.iter().map(|&index| row[prefix_words + index]).collect();
+        if let Some(bit) = reduce(&mut projection, &public_pivots) {
+            public_pivots[bit] = projection;
+            public_rank += 1;
+        }
+        if let Some(bit) = reduce(&mut row, &pivots) {
+            pivots[bit] = row;
+            rank += 1;
+        }
+        if (number + 1) % 4096 == 0 {
+            println!("Query-map rank {rank} after {} source bits.", number + 1);
+        }
+        if rank == pivots.len() {
+            assert_eq!(public_rank, public_pivots.len());
+            break;
+        }
+    }
+    println!("RANK {rank} {}", pivots.len());
+    if with_public {
+        println!("PUBLIC_RANK {public_rank} {}", public_pivots.len());
+        println!(
+            "FIBER_RANK {} {}",
+            rank - public_rank,
+            pivots.len() - public_pivots.len()
+        );
+    }
+    let parity = |left: &[u64], right: &[u64]| {
+        left.iter()
+            .zip(right)
+            .fold(0, |acc, (&a, &b)| acc ^ (a & b).count_ones())
+            & 1
+    };
+    for (number, polynomial) in private.iter().enumerate() {
+        let original = evaluate(polynomial);
+        let mut row = original.clone();
+        if let Some(missing) = reduce(&mut row, &pivots) {
+            let mut dual = vec![0; prefix_words + query_count];
+            dual[missing / 64] = 1 << (missing % 64);
+            for (bit, pivot) in pivots.iter().enumerate() {
+                if !pivot.is_empty() && parity(&dual, pivot) != 0 {
+                    dual[bit / 64] ^= 1 << (bit % 64);
+                }
+            }
+            assert_eq!(parity(&dual, &original), 1);
+            assert!(sources.iter().all(|source| parity(&dual, &evaluate(source)) == 0));
+            print!("OUTSIDE {number}");
+            for (index, &weight) in dual[..prefix_words].iter().enumerate() {
+                if weight != 0 {
+                    print!(" p{index}:{weight:x}");
+                }
+            }
+            for (&query, &weight) in queries.iter().zip(&dual[prefix_words..]) {
+                if weight != 0 {
+                    print!(" {query}:{weight:x}");
+                }
+            }
+            println!();
+        } else {
+            println!("INSIDE {number}");
+        }
+    }
+}
+
 fn child_kernel_certificate(with_quotient: bool) {
     let mut input = String::new();
     std::io::stdin().read_to_string(&mut input).unwrap();
@@ -545,6 +768,18 @@ fn main() {
         }
         Some("--child-coset-certificate") => {
             child_kernel_certificate(true);
+            return;
+        }
+        Some("--query-map-certificate") => {
+            query_map_certificate(false, false);
+            return;
+        }
+        Some("--query-map-fiber-certificate") => {
+            query_map_certificate(true, false);
+            return;
+        }
+        Some("--query-singleton-certificate") => {
+            query_map_certificate(true, true);
             return;
         }
         _ => {}

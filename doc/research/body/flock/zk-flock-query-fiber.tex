@@ -1,0 +1,91 @@
+% !TeX root = ../../main.tex
+\subsection{The complete initial lane query family}\label{note:zk-flock-query-fiber}
+
+\paragraph{Conclusion.} Six low queries defeat the current fixed-completion source, with common-simulator error greater than $2^{-93}$ at rate one and greater than $2^{-123}$ even at rate four. This rules out $128$-bit privacy for this construction at every supported rate, despite its successful one-coset theorems and sampled full-query ranks. The note also gives an exact conditional-rank criterion and audit for all actual initial lane-$59$ queries jointly with the terminal/GKR boundary. That criterion remains a route for a repaired source, not a theorem that the present source satisfies. Other lanes, earlier reductions and later PCS messages are excluded from its positive claim.
+
+\subsubsection{One source for the whole query vector}
+
+The wider library has $110588$ independent metadata bits: $8\cdot1280\cdot10$ independent count swaps, $4\cdot1279$ complete PC-row swaps and $8\cdot384$ complete operand/frame-row swaps. Exactly $56700$ of these bits change lane $59$. For every count-bank pair, the four memory blocks have difference $1+\gen$, and the bytecode block has difference $(1+\gen)\gen^{2n(i)}$. Each contributes a two-term novel polynomial at its actual physical pair positions and stack-block offset. A PC-row swap contributes eight terms, one pair in each of the four memory blocks. A frame-row swap contributes two terms in the bytecode block. The other seven operand banks have zero lane difference. Compression-value choices change none of these count columns.
+
+Fix the honest coins $\zkJointCoins$, including the fingerprint weights, final GKR parent point, table terminal point and actual initial query indices. Remove repeated indices and let $q$ be their number. The public binary matrix $\zkJointQueryMap(\zkJointCoins)$ maps the $110588$ bits to
+\[
+ \underbrace{\E^{19}}_{\text{terminal metadata}}
+ \times\underbrace{\E^{12}}_{\text{actual GKR children}}
+ \times\underbrace{\K^q}_{\text{all distinct lane queries}}.
+\]
+Its binary row count is $31\cdot192+64q$. The matrix includes the actual bus selectors and nonlinear row fingerprints evaluated at the two public library rows; their exchange is affine in its bit. It is independent of the private complement. Conditioning on that complement therefore leaves an arbitrary translation of the image of this one matrix. Uniform independent bits are exactly uniform on its image, without a hybrid per query or per coset.
+
+\subsubsection{Why ambient full rank is the wrong condition}
+
+At query zero every source polynomial vanishes. Thus the matrix cannot have full row rank whenever zero is queried, an event of probability $1-(1-1/D)^q$ for query-domain size $D$. At rate one this already exceeds $2^{-16}$. That does not establish a privacy leak: the corresponding private real-row differences vanish too. A simulator must preserve this public-prefix distribution, not replace it by a uniform field element.
+
+\paragraph{The public count-prefix contract.} Require an efficiently computable vector $\zkPublicQueryShift$ for the non-metadata contribution to every queried value in $\subsp_{13}$, independent of the witness and all remaining private choices. The current real BLAKE2s reservation supports this contract: logical banks $96,\ldots,127$ have physical row indices at least $12288$, and the bytecode-final-count block starts at $5\cdot2^{18}$. Every novel basis polynomial at those indices vanishes on $\subsp_{13}$. Consequently the contract holds for any completion whose other count coefficients are public and fixed before the metadata swaps. General compression-input randomness does not change those coefficients. A common count-normalized completion still has to respect this contract; the reservation alone does not prove that fact.
+
+Let $\zkPublicQueries$ be the distinct queried indices in $\subsp_{13}$, and let $\zkPublicQueryMap$ be the projection of $\zkJointQueryMap$ onto their $64|\zkPublicQueries|$ binary output coordinates. Their real values are exactly $\zkPublicQueryShift+\zkPublicQueryMap\zkSwapCoins$. These values may have rank below $64|\zkPublicQueries|$ and may disclose some metadata bits. Both effects must be retained.
+
+\begin{lemma}[A conditional rank criterion for the entire query family]\label{lem:zk-query-fiber}
+Under the public count-prefix contract, suppose
+\[
+ \operatorname{rank}_{\Ftwo}\zkJointQueryMap
+ -\operatorname{rank}_{\Ftwo}\zkPublicQueryMap
+ =31\cdot192+64(q-|\zkPublicQueries|).
+\]
+Then, conditional on these honest coins, the terminal metadata, children and non-prefix lane values are jointly uniform and independent of the prefix values. The complete selected interface has a witness-free sampler: draw fresh fair metadata bits to generate $\zkPublicQueryShift+\zkPublicQueryMap\zkSwapCoins$, sample every other coordinate independently and uniformly, and restore duplicate queries by copying their values.
+\end{lemma}
+\begin{proof}
+The left side is the dimension of the image of the full map on the kernel of its public projection. The equality says that this image is the entire remaining output space. Each fiber over a possible public output therefore contains every remaining output, with equal multiplicity. Uniformity on the matrix image yields the asserted product law. The private translation changes no public output and is absorbed by the full remaining space. The public-prefix sample need not use a witness, a valid real trace or an unknown affine offset.
+\end{proof}
+
+Let $\zkJointQueryDefect$ be the probability that this equality fails under the actual honest coin distribution. The product sampler has total statistical error at most $\zkJointQueryDefect$ for this interface. On bad coins it may still emit the same product distribution; the worst-case cost is just their probability. This condition is sufficient, not necessary: on a deficient matrix some private translations may still lie in its image.
+
+\paragraph{Joining the existing boundary.} All these metadata choices preserve the complete Flock witness, memory envelope and shared bus root. The same hybrid order as Theorem~\ref{thm:zk-flock-twelve-interface} consequently extends the rank criterion to all thirty-seven BLAKE2s terminal claims, established Flock endpoints, the complete memory envelope and shared root. Its error is at most
+\[
+ \zkJointQueryDefect+\zkTripleError+\frac{4187}{2^{192}}
+ +\text{the memory/root bound of Theorem~\ref{thm:zk-flock-leaf-interface}}.
+\]
+First apply the matrix replacement, retaining the real compression-value/Flock and memory/root data. The retained prefix law is public, so it survives the memory/root replacement; replace the compression-value/Flock interface last. No separate metadata-span errors are added: their failures, selectors and query dependencies are all included in $\zkJointQueryDefect$. For example, a compatible repaired source with $\zkJointQueryDefect\le2^{-140}$ would make this combined error smaller than $2^{-139}$. The audit checks this implication exactly. The obstruction below disproves that premise for the present source.
+
+\subsubsection{What the finite audits establish}
+
+\auditref{zk_flock_multicoset_audit.py} with \texttt{--query-map} enumerates all $56700$ nonzero raw-query directions and tests their actual binary image. With \texttt{--source-validity}, every direction is compared against the complete valid cycle library, including the geometric bytecode chains and vanishing operand differences. With \texttt{--joint-boundary}, the audit builds all $110588$ valid metadata directions and their actual nineteen-field/twelve-child interface too. The native helper evaluates the sparse novel polynomials using $\K$ arithmetic and performs binary Gaussian elimination. It also computes the public-projection rank, so low queries are retained rather than deleted.
+
+At rate one, seeds $601,602,603,604$ give raw-query rank $14592$ for all $228$ queries. Seed $601$ also gives full raw-query rank at rates two through four. The joint rate-one test at seed $601$ has rank $20544$, including all $5952$ terminal/child bits. These are exact certificates at the specified coins, not a bound over the honest coin distribution. Appending the six low points $0,1,32,64,4096,8191$ to seed $601$ gives raw rank $14744$ out of $14976$, with public rank $152$ out of $384$: the remaining fiber still has full rank $14592$. Thus the public-prefix correction is material even in a successful full-query diagnostic.
+
+The joint seed-$602$ test with those six extra low points has rank $20696$ out of $20928$, again with public rank $152$, giving the full remaining fiber rank $20544$. The \texttt{--singletons 8192 16384} mode certifies rank $64$ at every individual point in that interval. These successes do not exclude the following multi-query leak in the same interval.
+
+As a negative regression, thirteen queries at offsets $3,\ldots,15$ in $\gen^{18}+\subsp_4$ give rank $768$ out of $832$. The helper constructs a binary functional separating the private-pointer direction and checks that it annihilates every source direction. This reproduces the proved small-coset obstruction using the entire source, not an omitted-bank approximation. The private alias direction is zero in that region, as required by the earlier calculation.
+
+\subsubsection{A six-query impossibility certificate}
+
+Use the valid private-pointer witness pair and fixed execution-preserving completion from \noteref{zk-flock-pair-opening}, with the current wider library and physical row placement. Its lane difference is
+\[
+ \Delta f(X)=(1+\gen)\sum_{i=0}^7\gen^i\novel_{12288+i}(X).
+\]
+Let $\zkSixQuerySet=\{12290,12291,12292,12293,12294,12295\}$. Express a base-field element as its actual $64$-bit polynomial-basis word, with bit $j$ the coefficient of $\gen^j$. Define $\zkSixQueryTest$ on the six raw values by taking binary inner products with these hexadecimal masks and XORing the six resulting bits:
+\[
+ \begin{array}{c|c}
+ \text{query indices}&\text{mask}\\ \hline
+ 12290,12291&\texttt{703e981548c0890a}\\
+ 12292,12293&\texttt{ad899468bf200c90}\\
+ 12294,12295&\texttt{3f945b0914a01d51}
+ \end{array}
+\]
+This is a binary functional, not multiplication by the displayed masks in $\K$.
+
+\begin{proposition}[The current source cannot reach the statistical target]\label{prop:zk-six-query-floor}
+The test $\zkSixQueryTest$ annihilates every current private metadata direction but takes value one on $\Delta f$. For this fixed completion, every common simulator for the complete honest-interactive view therefore has error at least
+\[
+ \frac12\sum_{a=0}^6(-1)^a\binom6a\left(\frac{D-a}{D}\right)^q,
+ \qquad D=2^{22+\rexp}.
+\]
+At rates one through four, this is strictly greater than $2^{-93},2^{-105},2^{-114},2^{-123}$ respectively. Thus the $128$-bit target fails at every rate; at rate one the $101$-bit fallback fails too.
+\end{proposition}
+\begin{proof}
+Every query lies in $\subsp_{14}$, where all novel basis polynomials of index at least $2^{14}$ vanish. Truncating the complete $56700$-direction source therefore leaves exactly $956$ distinct nonzero binary polynomials. Their six-query image has binary rank $382$ out of $384$. The audit evaluates every polynomial in the reference field, verifies that the displayed functional annihilates all $956$ images and verifies its value one on the displayed private difference. This is a finite exhaustive certificate of the fixed test, not a sampled claim about unknown coins. The native helper independently reconstructs a separating functional and checks it against every untruncated source direction.
+
+All other metadata bits have zero lane difference. Arbitrary compression-input choices preserve these count columns, unused-memory masks occupy other lanes, and the fixed completion has no further variable count directions. Thus the two witnesses give different deterministic test bits, for every choice of the padding randomness, whenever all six indices are queried. The event uses only the honest query indices and has the displayed inclusion-exclusion probability. On it the two real-view supports are disjoint, so their distance is at least that probability. A common simulator incurs at least half for one witness. Exact rational arithmetic gives the stated bounds; revealing additional transcript data cannot reduce this distance.
+\end{proof}
+
+The six queries are outside the region $\gen^{18}+\subsp_{18}$ of the positive twelve-query theorem, so there is no contradiction. The obstruction is present even though every one of these six singleton maps has full rank. It concerns the specified source, real-row placement and fixed completion, not arbitrary count-normalized completions, additional legal padding randomizers or every possible small-frame programme. It is also not a transfer theorem for Fiat-Shamir challenges.
+
+\paragraph{Next proof obligation.} Repair the source or the common completion so that the six-query test no longer exposes the real difference, then analyze the complete matrix again. Adding entropy that lies in this test's kernel does nothing. A nonzero binary minor at one tuple of field coins does not by itself yield a useful probability bound: extracting binary coordinates introduces Frobenius powers. The finite $320$-bit dense-disclosure lemma likewise does not control this much larger retained view. A repaired construction needs a uniform rank or private-image theorem, the public count-prefix contract, all other initial lanes and authentication, later PCS messages and the omitted VM reductions.
