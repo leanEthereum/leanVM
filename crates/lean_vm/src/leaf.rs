@@ -13,6 +13,7 @@ use crate::gkr;
 use crate::transcript::{Challenger, ProverState, Receiver, Transmitter, VerifierState};
 use primitives::field::{F64, F192, F192BaseUnreduced, g_pow, index_mle};
 use primitives::multilinear::{eq_eval, eq_table_arena, mle_eval};
+use std::collections::HashMap;
 use std::sync::Arc;
 use zk_alloc::ArenaVec;
 
@@ -395,6 +396,7 @@ fn decompose_formula<F: FnMut(usize, &[F192]) -> Result<F192, Error>>(
     owners: &[Option<(usize, usize)>],
     forms: &mut [BusForm],
     claims: &mut Vec<ColumnClaim>,
+    public: &mut PublicEvals,
     mut fresh: F,
 ) -> Result<F192, Error> {
     assert_eq!(zeta.len(), lay.mu);
@@ -447,10 +449,7 @@ fn decompose_formula<F: FnMut(usize, &[F192]) -> Result<F192, Error>>(
                 Coord::Prod(..) | Coord::Sum(..) => {
                     unreachable!("only a table's bus block carries a degree-2 coordinate")
                 }
-                // The eight bytecode encoding columns, the largest evaluation on
-                // this path. Outermost in both `decompose_prove` and
-                // `decompose_verify`, whose own dispatches have returned by here.
-                Coord::Public(vals) => primitives::multilinear::mle_eval_par(vals.as_slice(), zeta_lo),
+                Coord::Public(vals) => public_eval(vals, zeta_lo, public),
             };
             inner += w[i] * coord_val;
         }
@@ -468,6 +467,15 @@ fn known_claim(claims: &[ColumnClaim], col: usize, point: &[F192]) -> Option<F19
         .iter()
         .find(|c| c.col == col && c.point == point)
         .map(|c| c.value)
+}
+
+// One bus GKR point per cache; its prefixes are keyed by length and shared column identity.
+type PublicEvals = HashMap<(usize, usize), F192>;
+
+fn public_eval(vals: &Arc<Vec<F64>>, point: &[F192], cache: &mut PublicEvals) -> F192 {
+    *cache
+        .entry((Arc::as_ptr(vals) as usize, point.len()))
+        .or_insert_with(|| primitives::multilinear::mle_eval_par(vals, point))
 }
 
 /// Prover-side decomposition: reads the real columns, writing each FRESH
@@ -491,6 +499,7 @@ fn decompose_prove(
     owners: &[Option<(usize, usize)>],
     forms: &mut [BusForm],
     claims: &mut Vec<ColumnClaim>,
+    public: &mut PublicEvals,
     ps: &mut ProverState,
 ) -> F192 {
     // Pass 1: enumerate the FRESH committed coords exactly as `decompose_formula`
@@ -518,15 +527,26 @@ fn decompose_prove(
 
     // Pass 2: replay in the original order; duplicates reuse the recorded claim.
     let mut fresh_iter = jobs.iter().zip(vals.iter());
-    decompose_formula(blocks, lay, zeta, w, beta, owners, forms, claims, |col, zeta_lo| {
-        let (&(jc, jk), &v) = fresh_iter
-            .next()
-            .expect("job enumeration matches decompose_formula's col_val order");
-        debug_assert_eq!((jc, jk), (col, zeta_lo.len()), "job/coord order drift");
-        debug_assert_eq!(v, mle_eval(cols[col], zeta_lo), "job/coord order drift");
-        ps.add_scalar(v);
-        Ok(v)
-    })
+    decompose_formula(
+        blocks,
+        lay,
+        zeta,
+        w,
+        beta,
+        owners,
+        forms,
+        claims,
+        public,
+        |col, zeta_lo| {
+            let (&(jc, jk), &v) = fresh_iter
+                .next()
+                .expect("job enumeration matches decompose_formula's col_val order");
+            debug_assert_eq!((jc, jk), (col, zeta_lo.len()), "job/coord order drift");
+            debug_assert_eq!(v, mle_eval(cols[col], zeta_lo), "job/coord order drift");
+            ps.add_scalar(v);
+            Ok(v)
+        },
+    )
     .expect("prover decomposition is infallible")
 }
 
@@ -543,9 +563,10 @@ fn decompose_verify(
     owners: &[Option<(usize, usize)>],
     forms: &mut [BusForm],
     claims: &mut Vec<ColumnClaim>,
+    public: &mut PublicEvals,
     vs: &mut VerifierState,
 ) -> Result<F192, Error> {
-    decompose_formula(blocks, lay, zeta, w, beta, owners, forms, claims, |_, _| {
+    decompose_formula(blocks, lay, zeta, w, beta, owners, forms, claims, public, |_, _| {
         vs.next_scalar().map_err(|_| Error::Truncated)
     })
 }
@@ -553,12 +574,9 @@ fn decompose_verify(
 /// One reduced claim on the bytecode polynomial. The eight public encoding
 /// columns (opcode plus seven operand/immediate slots), padded to sixteen slots
 /// along four selector bits, form one multilinear polynomial B̃ in `κ_bc + 4`
-/// variables. After decomposition both parties absorb the eight column
-/// evaluations (push and pull share the GKR point ζ), sample four selector
-/// challenges `s`, and reduce them to
-/// `B̃(ζ_lo, s) = Σ_c eq(s, c)·v_c`. Natively the claim is
-/// true by construction (the verifier evaluated the columns itself); a
-/// recursive verifier defers exactly this one claim to its public input.
+/// variables. The native verifier combines its column evaluations at ζ with
+/// the bus weights `eq(α⃗, ·)`, giving `B̃(ζ_lo, α⃗)`. The recursive verifier
+/// defers this claim to its public input.
 #[derive(Clone, Debug)]
 pub struct BytecodeClaim {
     /// `ζ_side_lo ++ s`, a point in `κ_bc + 4` variables.
@@ -624,12 +642,26 @@ fn sides<'a>(
 /// The program's whole share of a bus leaf, in ONE evaluation: a public column's
 /// slot is its tuple coordinate and the weights are `eq(α⃗, ·)`, so the weighted
 /// sum over the columns IS the stacked polynomial at `(ζ, α⃗)` (§sec:e2e-bc).
-fn bytecode_claim(blocks: &[Block], point: &[F192], alphas: &[F192]) -> BytecodeClaim {
-    let table = stacked_bytecode_table(blocks);
-    let kbc = crate::log2_strict_usize(table.len()) - N_BYTECODE_SELECTORS;
+fn bytecode_claim(blocks: &[Block], point: &[F192], alphas: &[F192], public: &mut PublicEvals) -> BytecodeClaim {
+    let weights = fingerprint_weights(alphas);
+    let mut kbc = 0;
+    let mut slot = BYTECODE_PUBLIC_SLOT;
+    let mut value = F192::ZERO;
+    for blk in blocks {
+        for c in &blk.coords {
+            if let Coord::Public(vals) = c {
+                if slot == BYTECODE_PUBLIC_SLOT {
+                    kbc = blk.kappa;
+                }
+                assert_eq!(vals.len(), 1 << kbc);
+                value += weights[slot] * public_eval(vals, &point[..kbc], public);
+                slot += 1;
+            }
+        }
+    }
     let claim_point = [&point[..kbc], alphas].concat();
     BytecodeClaim {
-        value: primitives::multilinear::mle_eval_par(&table, &claim_point),
+        value,
         point: claim_point,
     }
 }
@@ -720,6 +752,7 @@ pub fn prove_balance(
     // solved to satisfy, and would settle nothing.
     let mut forms = std::array::from_fn(|_| tables.iter().map(|&(_, n)| BusForm::new(n)).collect::<Vec<_>>());
     let mut frameworks = [F192::ZERO; 3];
+    let mut public = PublicEvals::new();
     crate::stage!("Bus decompose", || {
         for (s, &(blocks, lay, a, g)) in sides.iter().enumerate() {
             frameworks[s] = decompose_prove(
@@ -732,6 +765,7 @@ pub fn prove_balance(
                 &owners[s],
                 &mut forms[s],
                 &mut claims,
+                &mut public,
                 ps,
             );
         }
@@ -896,6 +930,7 @@ pub fn verify_balance(
         beta,
     );
     let mut totals = [F192::ZERO; 3];
+    let mut public = PublicEvals::new();
     for (s, &(blocks, lay, a, g)) in sides.iter().enumerate() {
         let framework = decompose_verify(
             blocks,
@@ -906,6 +941,7 @@ pub fn verify_balance(
             &owners[s],
             &mut forms[s],
             &mut claims,
+            &mut public,
             vs,
         )?;
         // What the tables owe this side: DERIVED, never read. A transmitted total
@@ -916,7 +952,7 @@ pub fn verify_balance(
 
     Ok(BusVerify {
         claims,
-        bytecode_claim: bytecode_claim(push, &bus_gkr.point, &alphas),
+        bytecode_claim: bytecode_claim(push, &bus_gkr.point, &alphas, &mut public),
         point: bus_gkr.point,
         forms,
         totals,
@@ -926,6 +962,29 @@ pub fn verify_balance(
 #[cfg(test)]
 mod tests {
     use super::soundness_bits;
+
+    #[test]
+    fn bytecode_claim_matches_dense_stacking() {
+        use super::*;
+
+        let columns: Vec<_> = (0..8)
+            .map(|col| Arc::new((0..32).map(|i| F64((i + 1) * (col + 1))).collect()))
+            .collect();
+        let blocks = [Block {
+            kappa: 5,
+            coords: columns.iter().cloned().map(Coord::Public).collect(),
+        }];
+        let point: Vec<_> = (0..5).map(|i| F192::new(i + 2, i + 17, i + 23)).collect();
+        let alphas: Vec<_> = (0..N_TUPLE_BITS).map(|i| F192::new(i as u64 + 5, 3, 7)).collect();
+        let table = stacked_bytecode_table(&blocks);
+        let mut public = PublicEvals::new();
+        for col in columns.iter().rev() {
+            public_eval(col, &point, &mut public);
+        }
+        let claim = bytecode_claim(&blocks, &point, &alphas, &mut public);
+        assert_eq!(claim.point, [point, alphas].concat());
+        assert_eq!(claim.value, mle_eval(&table, &claim.point));
+    }
 
     /// The bound is `(N_TUPLE_BITS + 1)·2^mu` plus the GKR terms: only the bus
     /// DEPTH costs bits now, the multilinear fingerprint having fixed each factor's
