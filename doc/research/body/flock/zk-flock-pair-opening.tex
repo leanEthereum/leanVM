@@ -1,7 +1,7 @@
 % !TeX root = ../../main.tex
 \subsection{Two PCS queries defeat block-local metadata swaps}\label{note:zk-flock-pair-opening}
 
-\paragraph{Conclusion.} The terminal theorem of \noteref{zk-flock-columns} is valid, but its adjacent-swap source is not sufficient for full ZK. Two initial PCS queries can cancel all its metadata randomness. A valid private frame-alias choice then gives simulator-error floors above $2^{-10},2^{-13},2^{-15},2^{-17}$ at the four supported rates. Even arbitrary permutations confined to blocks of eight do not meet $2^{-128}$ at rates one and two. A disjoint, globally permuted metadata library preserves the established partial theorem and breaks this particular cancellation; its full PCS privacy is not yet proved.
+\paragraph{Conclusion.} The terminal theorem of \noteref{zk-flock-columns} is valid, but its adjacent-swap source is not sufficient for full ZK. Two initial PCS queries cancel its metadata randomness, giving simulator-error floors above $2^{-10},2^{-13},2^{-15},2^{-17}$ at the four supported rates. Adding a globally shuffled equal-compression library still fails: equality between its memory-count columns gives floors above $2^{-15},2^{-19},2^{-22},2^{-25}$. Independent valid counter-label swaps before the shuffle repair the affected pair of lane-$59$ values below $2^{-160}$, using an exhaustive finite-field certificate for every pair in the affected coset. The established terminal theorem survives. The full query vector and its conditional law remain open.
 
 \subsubsection{The encoder reveals sums inside a coefficient block}
 
@@ -78,15 +78,88 @@ Keep the original library and its independent bits. Add a second copy at disjoin
 
 The new placement is explicit. For program rows map old logical banks $(0,1,2,4,8,16,32)$ to $(5,6,7,9,10,11,12)$ without changing $s$. For frame-bank rows map banks $64+(0,1,2,4,8,16)$ to $64+(3,5,6,7,9,10)$. For count-bank rows keep the bank and change the top-three-bit within-bank sector from $3$ to $6$. These positions avoid the original library, the mandatory three-point support and the five general metadata rows. All remain in the first $96$ banks. The new global permutation crosses the old coefficient blocks.
 
+\begin{theorem}[Whole-row shuffling retains a cross-column leak]\label{thm:zk-flock-shared-count-floor}
+Use the original adjacent-swap source and the second library with whole-row shuffling only. For an execution-preserving fixed completion, a valid private read-target choice gives common-simulator error strictly greater than $2^{-15},2^{-19},2^{-22},2^{-25}$ at rates one through four.
+\end{theorem}
+\begin{proof}
+Each second-library row has all nine memory-count columns equal: they are all $1$ in a fresh-frame row, or all $1$ or $\gen$ in a repeated-pair row. Whole-row shuffling preserves their pointwise equality. Consequently its change to lane $59$ has the form
+\[
+ (1+\novel_{2^{18}})(1+\novel_{2^{19}})S
+   +\novel_{2^{20}}T,
+ \qquad \deg S,\deg T<2^{18}.
+\]
+On the coset $\gen^{18}+\subsp_{18}$ the three displayed novel factors are respectively $1,0,0$, so this change vanishes identically. The coset is closed under $x\mapsto x+1$; the original library's contribution is still canceled by $\zkBlockCollapse{2}$.
+
+A fixed small-frame program first uses a private pointer to read either its chaining-value cell at offset $9$ or an identical decoy at offset $20$. It then performs eight identical compressions and returns to the public final state. Hint the chaining value and pointer, so initializing the chaining value does not itself consume a read label. In the first execution the earlier DEREF advances only $\mathsf{cnt\_cv1}$ among the selected BLAKE2s columns. With the same real-row placement as above, the lane difference is exactly
+\[
+ (\Delta f)_{12288+i}=\gen^i(1+\gen),\qquad 0\le i<8.
+\]
+All other lane-$59$ coefficients agree. Its adjacent collapse has degree $12294$ and leading coefficient $\gen^6(1+\gen)^2\ne0$. Thus at least $(2^{18}-12294)/2=124925$ adjacent pairs in this coset distinguish the witnesses, independently of both libraries' coins. The same Bonferroni bound as Theorem~\ref{thm:zk-flock-pair-floor}, with $G_2=124925$, gives the stated exact rational floors.
+\end{proof}
+
+The native example also verifies this second witness pair, with common public input, outputs and counts $(1,1,8,1,2,8)$. Both executions use one $32$-cell frame. For the full-layout obstruction, relocate the real frame into a disjoint payload slot, for example at integer base $3\cdot2^{22}-128$, reserving it from other fillers; the isolated native example uses base $1280$. Hence ordinary small-frame execution does not itself hide read-access patterns. The theorem retains the real counted rows and uses the fixed completion; it does not exclude arbitrary count-normalized completions or other padding sources.
+
+\paragraph{Independent labels repair this source-level defect.} For every one of the second library's $4096$ repeated pairs, independently choose whether to exchange the two labels in each of its ten count columns, then globally shuffle its $16256$ BLAKE2s rows. These are $40960$ independent fair bits in addition to the permutation. The two rows in a pair have identical instruction, addresses and values; each exchange preserves the full address-specific read chain, count-column product and bus multiset. Memory, code and every compression value remain fixed. The nine memory-count columns need no longer agree at each row. A common swap bit across columns would preserve their equality and would not repair the theorem's obstruction.
+
 \begin{proposition}[Preserving the established joint theorem]\label{prop:zk-flock-global-extension}
 The added independent library leaves the error bounds in Theorem~\ref{thm:zk-flock-all-columns} and Corollary~\ref{cor:zk-flock-memory-interface} unchanged, under their common-completion assumptions.
 \end{proposition}
 \begin{proof}
-Condition on the entire added permutation. Its compression values and all other rows are a fixed valid complement for the original library's terminal proof. Disjoint code and memory preserve that library's directions and read chains. Its independent bits therefore give the same witness-free target law with the same uniform error bound. The Flock witness does not depend on the added permutation, so the existing endpoint proof applies unchanged. Average over the added choices and use the same unused-memory root/envelope composition.
+Condition on the entire added permutation and its independent counter-label bits. Its compression values and all other rows are a fixed valid complement for the original library's terminal proof. Disjoint code and memory preserve that library's directions and read chains. Its independent bits therefore give the same witness-free target law with the same uniform error bound. The Flock witness does not depend on any added choice, so the existing endpoint proof applies unchanged. Average over those choices and use the same unused-memory root/envelope composition.
 \end{proof}
 
 This uses $32512$ of the $98304$ complementary compression positions, leaving $65792$ positions for independent general inputs. Both count banks share a frame within each repeated pair, so Flock needs at most $188416$ frames of $32$ cells, or $6029312$ cells, leaving $25585$ payload slots of size $256$. The two libraries use $72$ code locations. No table height or verifier equation changes. Common allocation with other libraries remains open.
 
-\paragraph{What is actually repaired.} The audit verifies that a global permutation changes the formerly invariant pair sums and gives nonzero changes at its three fixed native query cosets. This removes the algebraic cancellation mechanism, not all distinguishers or a quantified probability of leakage. The distribution of the full initial query vector, its conditioning on preceding messages and subsequent PCS levels still need proof. The library's all-equal compression values must be included in that analysis; one cannot reuse an independent-per-position input assumption.
+\subsubsection{A quantified repair for the exposed query pair}
 
-\paragraph{Evidence and literature boundary.} \auditref{zk_flock_pair_opening_audit.py} checks exact stack positions, coset interpolation, all displayed probabilities, disjoint library allocation and full counted-bus validity before and after the added shuffle; its \texttt{--native} option runs the native example. Flock's unused witness slots are forced to zero, as specified and implemented in \path{crates/flock/src/hash.rs}, so they cannot serve as free masks. Bootle, Chiesa and Liu~\cite{bcl}, Section~2.4, add a separately designed R1CS gadget with controlled randomness and also rerandomize their sumcheck factors; this is not a theorem for arbitrary random compressions in leanVM's unchanged circuit and PCS.
+\begin{lemma}[Random matching fills a binary image]\label{lem:zk-random-matching}
+Let $N$ vertex values lie in $\K$, with $t$ disjoint affine bases over $\Ftwo$. Choose a uniform matching of $M$ disjoint edges, leaving $U=N-2M$ vertices unmatched. With independent fair edge bits, the sum of the selected endpoint differences is within distance
+\[
+ \zkMatchingError
+ =(2^{64}-1)\max_{t\le m\le N-t}
+ \frac{[z^m](1+z^2)^M(1+z)^U}{\binom Nm}
+\]
+of uniform $\K$, even jointly with the matching.
+\end{lemma}
+\begin{proof}
+Conditional on the matching, the sum is uniform on the binary span of its endpoint differences. A nonzero binary linear functional annihilates this span exactly when all edges are monochromatic under its two-coloring of the vertices. Every affine basis contains both colors, so the number $m$ of one-colored vertices lies between $t$ and $N-t$. For a uniform matching, place these $m$ colors uniformly among its fixed edge and singleton slots. The displayed coefficient counts the assignments with zero or two colored endpoints on every edge, out of $\binom Nm$ total assignments. Union-bound over the $2^{64}-1$ nonzero functionals. Outside that event the conditional distribution is exactly uniform, proving the joint claim.
+\end{proof}
+
+\begin{theorem}[Hiding the shared-count attack projection]\label{thm:zk-flock-matching-projection}
+For the repaired library and any fixed $x\in\gen^{18}+\subsp_{18}$, the observable $\zkBlockCollapse{2}(f)(x)$ from lane $59$ is within $2^{-160}$ of uniform $\K$, for every fixed valid completion outside the added randomizers. This includes joint disclosure of the added permutation, but not other observations of its counter-label bits. The claim uses the exhaustive native-field certificate described below.
+\end{theorem}
+\begin{proof}
+Let $P$ be the $16256$ public positions of the second library and give position $s$ the value $\novel_{s-(s\bmod2)}(x)$. Its $4096$ repeated count pairs become a uniform matching on $P$ after the global shuffle. On the specified coset, the first four lane-$59$ selector weights are $(1,1,0,0)$ and the bytecode selector is zero. For each transported pair, the independent swap bits for $\mathsf{cnt\_cv1}$ and $\mathsf{cnt\_out0}$ therefore contribute their fair XOR times $(1+\gen)$ times the endpoint difference. The common whole-row part vanishes, and all remaining contributions are a fixed translation. Multiplication by $1+\gen\ne0$ preserves binary rank.
+
+For every one of the $131072$ adjacent pairs in this coset, the certificate finds $112$ disjoint affine bases among the $8128$ even positions. Each even position has its odd neighbor in $P$ with the same collapsed value, so their copies give $t=224$ disjoint affine bases among all vertices. Apply Lemma~\ref{lem:zk-random-matching} with $(N,M,U)=(16256,4096,8064)$. Exact integer arithmetic gives
+\[
+ \max_{224\le m\le N-224}
+ \frac{[z^m](1+z^2)^{4096}(1+z)^{8064}}{\binom Nm}
+ =\frac{[z^{224}](1+z^2)^{4096}(1+z)^{8064}}{\binom N{224}},
+ \qquad \zkMatchingError<2^{-160}.
+\]
+This proves the stated bound uniformly over $x$ and the fixed translated witness contribution.
+\end{proof}
+
+\begin{corollary}[The two raw lane values]\label{cor:zk-flock-matching-pair}
+For any fixed pair $x,x+1$ in the same coset, the joint lane-$59$ values $(f(x),f(x+1))$ are within $2^{-160}$ of uniform $\K^2$. This uses both the added source and the original library's independent counter-label bits. All other padding choices may be fixed. The claim can retain the added permutation, but not other observations of the masking bits.
+\end{corollary}
+\begin{proof}
+Use the original $448$ independent $\mathsf{cnt\_cv1}$ swap bits, holding every other original bit fixed. For an even pair position $s$, its contribution to the two evaluations is
+\[
+ (1+\gen)\novel_s(x)\,(1+x,x).
+\]
+The exhaustive certificate verifies that these $448$ scalars span $\K$ over $\Ftwo$, for every $x$ in the coset. Thus the original bits supply a perfectly uniform scalar in the kernel of $(u,v)\mapsto xu+(1+x)v$, independently of the entire added source. Theorem~\ref{thm:zk-flock-matching-projection} hides the quotient coordinate below $2^{-160}$. Since $x\ne0$, the map $(u,v)\mapsto(xu+(1+x)v,v)$ is invertible. Conditional uniformity of its second coordinate and approximate uniformity of its first prove the joint claim.
+\end{proof}
+
+\paragraph{Reproducible exhaustive certificate.} The audit's \texttt{--matching} option passes the exact sorted even source positions, shuffled once with fixed seed $467$ solely for the basis-search order, to the native example. It enumerates every even $x$ in the coset and greedily extracts $112$ disjoint affine bases using binary Gaussian elimination on actual $\K$ values. It also certifies rank $64$ for the original $448$ adjacent-swap scalars at every query. Odd $x$ give the same collapsed values. At every query it cross-checks a sparse polynomial against the native additive NTT. This is exhaustive finite-field evidence, not sampled rank extrapolation or a Lean formalization. The arithmetic bound uses the coefficients $a_m=[z^m](1+z^2)^M(1+z)^U$, computed exactly by
+\[
+ (m+1)a_{m+1}
+ =(U-m)a_m+(2M-m+1)a_{m-1}+(N-m+2)a_{m-2},
+ \qquad a_0=1,
+\]
+with negative indices zero. Differentiating the generating polynomial proves the recurrence. The audit checks symmetry, cross-checks selected coefficients with the binomial sum, and maximizes the exact ratios over the entire integer interval; it assumes no monotonicity.
+
+\paragraph{Scope of the repair.} The corollary also simulates the following marginal: draw all honest initial query indices, select the first complete pair in this coset by a public fixed rule, and disclose its two lane-$59$ values, or a fixed marker if there is no pair. The simulator uses two independent uniform field values, with error below $2^{-160}$; no union bound over possible selected pairs is needed. Separately, a union bound gives a single bad-permutation event below $2^{-143}$ outside which every pair's scalar map has full rank. This does not make those many scalars jointly independent. Other lanes, additional queried pairs, prior messages that constrain the same label bits, subsequent PCS levels and authentication remain excluded. In particular, preserving the earlier terminal theorem as a marginal does not prove its joint composition with this opening pair.
+
+\paragraph{Evidence and literature boundary.} \auditref{zk_flock_pair_opening_audit.py} checks exact stack positions, coset interpolation, all displayed probabilities, disjoint library allocation and full counted-bus validity before and after the added randomizers. Its \texttt{--native} option verifies the witness pairs and authenticated encoder identity; \texttt{--matching} runs the exhaustive certificate. Flock's unused witness slots are forced to zero, as specified and implemented in \path{crates/flock/src/hash.rs}, so they cannot serve as free masks. Bootle, Chiesa and Liu~\cite{bcl}, Section~2.4, add a separately designed R1CS gadget with controlled randomness and also rerandomize their sumcheck factors; this is not a theorem for arbitrary random compressions in leanVM's unchanged circuit and PCS.
