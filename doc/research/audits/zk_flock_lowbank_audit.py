@@ -150,6 +150,107 @@ def cluster_certificate(field, verifier, blocks):
         )
 
 
+def scattered_certificate(field, verifier, blocks):
+    from zk_flock_multicoset_audit import query_sources
+
+    queries = [
+        8261,
+        8414,
+        9023,
+        9086,
+        9225,
+        9337,
+        9532,
+        9768,
+        9853,
+        9913,
+        10164,
+        10206,
+        10615,
+        11141,
+        11658,
+        11753,
+        11818,
+        12440,
+        12519,
+        12543,
+        12590,
+        12631,
+        12745,
+        13029,
+        13138,
+        13245,
+        13342,
+        13351,
+        13412,
+        13506,
+        13729,
+        13987,
+        14099,
+        14461,
+        14532,
+        14770,
+        15086,
+        15450,
+        15560,
+        15691,
+        15738,
+        16150,
+    ]
+    assert len(queries) == len({query >> 4 for query in queries}) == 42
+    assert all(1 << 13 <= query < 1 << 14 for query in queries)
+    sources = query_sources(field)[0] + extra_query_sources(field, blocks)
+    assert len(sources) == 66300
+    collapsed = set()
+    for polynomial in sources:
+        coefficients = {}
+        for index, value in polynomial:
+            if index < 1 << 14:
+                index &= (1 << 13) - 1
+                coefficients[index] = coefficients.get(index, 0) ^ value
+        polynomial = tuple(sorted((index, value) for index, value in coefficients.items() if value))
+        if polynomial:
+            collapsed.add(polynomial)
+    assert len(collapsed) == 2688
+    assert all(index & 63 >= 16 for polynomial in collapsed for index, _ in polynomial)
+    columns = [sum(value << (64 * index) for index, value in polynomial) for polynomial in collapsed]
+    assert len(binary_basis(columns)) == 2688
+    del columns
+    print("The complete low-band noise code has binary dimension 2688; its coefficient support misses the private pointer direction.", flush=True)
+
+    private = [(12288 + index, field.kmul(1 << index, 3)) for index in range(8)]
+    payload = [len(queries), 0, *queries, 0]
+    for polynomials in (sources, [private]):
+        payload.append(len(polynomials))
+        for polynomial in polynomials:
+            payload.append(len(polynomial))
+            payload.extend(value for term in polynomial for value in term)
+            payload.append(0)
+    result = subprocess.run(
+        ["cargo", "run", "--release", "-p", "lean_vm", "--example", "zk_flock_pair_opening_audit", "--", "--query-map-fiber-certificate"],
+        input=" ".join(map(str, payload)),
+        text=True,
+        capture_output=True,
+        check=True,
+        cwd=Path(__file__).resolve().parents[3],
+    )
+    assert "RANK 2687 2688\n" in result.stdout
+    separating = [line for line in result.stdout.splitlines() if line.startswith("OUTSIDE 0 ")]
+    assert len(separating) == 1
+    dual = {int(query): int(weight, 16) for query, weight in (term.split(":") for term in separating[0].split()[2:])}
+    assert set(dual) == set(queries) and all(dual.values())
+    print("Scattered 42-query rank 2687/2688: the unique nonzero dual separates the private pointer and uses every query.", flush=True)
+    print("Every proper subset of this raw query set has full rank; no two points lie in the same 16-point coset.", flush=True)
+    for rate, bits in enumerate((266, 358, 432, 501), 1):
+        count = verifier.derive_config(28, rate).queries[0]
+        bound = Fraction(comb(count, 42), 1 << (42 * (9 + rate)))
+        assert bound < Fraction(1, 1 << bits)
+        print(
+            f"Rate {rate}: 42 or more queries anywhere in the low band have probability below 2^-{bits}; smaller supports remain unbounded.",
+            flush=True,
+        )
+
+
 def extra_joint_sources(field, verifier, seed, blocks):
     rng = Random(seed)
     terminal = [field.random(rng) for _ in range(18)]
@@ -313,16 +414,21 @@ def terminal_rank(field, blocks):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--full", action="store_true", help="check all valid cycles and randomized count chains")
+    parser.add_argument("--scattered", action="store_true", help="check the complete low-band noise code and its dispersed minimal support")
     arguments = parser.parse_args()
     blocks = positions()
     verifier = verifier_module()
     field = Tower(64, verifier)
+    if arguments.scattered:
+        scattered_certificate(field, verifier, blocks)
+        raise SystemExit
     sampled_rank(field, blocks)
     terminal_rank(field, blocks)
     combined_error()
     if arguments.full:
         build(verifier, blocks)
         cluster_certificate(field, verifier, blocks)
+        scattered_certificate(field, verifier, blocks)
         invariant_rank(field, blocks)
     subprocess.run(
         ["cargo", "run", "--release", "-p", "lean_vm", "--example", "zk_flock_pair_opening_audit", "--", "--lowbank-certificate"],

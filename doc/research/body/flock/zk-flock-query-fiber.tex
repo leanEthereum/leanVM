@@ -1,9 +1,9 @@
 % !TeX root = ../../main.tex
 \subsection{The complete initial lane query family}\label{note:zk-flock-query-fiber}
 
-\paragraph{Conclusion.} Six low queries defeat the current fixed-completion source, with common-simulator error greater than $2^{-93}$ at rate one and greater than $2^{-123}$ even at rate four. This rules out $128$-bit privacy for this construction at every supported rate, despite its successful one-coset theorems and sampled full-query ranks. The note also gives an exact conditional-rank criterion and audit for all actual initial lane-$59$ queries jointly with the terminal/GKR boundary. That criterion remains a route for a repaired source, not a theorem that the present source satisfies. Other lanes, earlier reductions and later PCS messages are excluded from its positive claim.
+\paragraph{Conclusion.} This note gives an exact conditional-rank criterion and a distinguishing-support bound for all initial lane-$59$ queries jointly with the terminal/GKR boundary. Neither has yet been established uniformly for the complete source. Six low queries rule out $128$-bit privacy for the earlier fixed-completion library. The balanced repair instead has a certified dispersed forty-two-query dependency inside an event below $2^{-266}$ at rate one. This does not defeat the statistical target, but shows why the proof must cover dependencies across many cosets. Other lanes, earlier reductions and later PCS messages remain excluded.
 
-This note's negative results analyze the source before the extra long-chain bank of \noteref{zk-flock-lowbank}. The balanced bank repairs the fixed six-query test and proves a thirty-two-value high-region theorem. The full-query criteria below still need a uniform bound for the enlarged source.
+The six-query negative result analyzes the source before the extra long-chain bank of \noteref{zk-flock-lowbank}. The balanced bank repairs that test and supplies the joint forty-eight-value theorem. Below we also give a dispersed forty-two-query dependency of the balanced source. Its enclosing event is sufficiently rare; the complete exceptional family still needs a uniform bound.
 
 \subsubsection{One source for the whole query vector}
 
@@ -63,6 +63,44 @@ A projected shift lies outside the projected noise space exactly when a binary l
 \end{proof}
 
 This simulator samples source bits, not the exponentially large full-domain codeword; it computes only the disclosed coordinates. The support family is a proof device, not a required simulator computation. A relevant empty support records an already distinguishing terminal/child view. A large family of sparse supports can defeat the statistical target even when each fixed support is extremely unlikely. The missing theorem must control the complete family, including dependencies spanning several cosets; the one-coset and concentrated-query bounds alone do not do so.
+
+\subsubsection{A dispersed minimal dependency of the balanced source}
+
+Put $\zkLowQueryBand=\subsp_{14}\setminus\subsp_{13}$, a band of $8192$ points. Throughout this band, $\novel_{2^{13}}=1$ and $\novel_{2^{14}}=0$. Thus the restriction of any lane polynomial is represented exactly by
+\[
+ \sum_{i<2^{13}}(f_i+f_{i+2^{13}})\novel_i(X).
+\]
+All higher coefficients vanish. Let $\zkLowBandNoiseCode\subseteq\K^{8192}$ be the binary image of every balanced-source metadata bit on this whole band, with no terminal fields retained.
+
+\begin{proposition}[Exact low-band code and a dispersed raw support]\label{prop:zk-scattered-support}
+The code $\zkLowBandNoiseCode$ has binary dimension $2688$. There is an inclusion-minimal raw distinguishing support $\zkScatteredQueries$ of size $42$, with one point in each of $42$ distinct sixteen-point cosets:
+\[
+ \zkScatteredQueries=\left\{
+ \begin{array}{rrrrrr}
+ 8261&8414&9023&9086&9225&9337\\
+ 9532&9768&9853&9913&10164&10206\\
+ 10615&11141&11658&11753&11818&12440\\
+ 12519&12543&12590&12631&12745&13029\\
+ 13138&13245&13342&13351&13412&13506\\
+ 13729&13987&14099&14461&14532&14770\\
+ 15086&15450&15560&15691&15738&16150
+ \end{array}\right\}.
+\]
+Its raw-query image has rank $2687$ out of $2688$. Its unique nonzero binary annihilator detects the same valid private-pointer difference used below, and every proper subset has full raw-query rank.
+\end{proposition}
+\begin{proof}
+Apply the displayed coefficient reduction to all $66300$ nonzero raw source directions. After discarding zeros and duplicates, exactly $2688$ coefficient vectors remain. The finite binary elimination in \auditref{zk_flock_lowbank_audit.py} certifies their independence. Evaluation at the $8192$ distinct band points is injective on polynomials of degree below $8192$, proving the complete code dimension without extrapolating from sampled queries. Every retained coefficient index has residue at least $16$ modulo $64$; the folded private-pointer difference has a nonzero coefficient at $4096$, outside this support.
+
+The audit's \texttt{--scattered} mode passes every untruncated source direction and the private difference to the native query-map checker. On the displayed set it certifies rank $2687$, constructs the nonzero annihilator, checks its value zero on every source and one on the private difference, and checks that all $42$ query-word weights are nonzero. The annihilator space has binary dimension one. A deficient proper projection would extend to a nonzero annihilator with a zero weight on an omitted query, contradicting uniqueness. The explicit points lie in distinct sixteen-point cosets.
+\end{proof}
+
+This is a minimal support for the raw view, not necessarily for the view augmented with terminal/GKR fields: those additional observations can introduce smaller supports. It nevertheless proves that actual raw dependencies need not be concentrated in a small encoder coset. In particular, this set has at most two points in every thirty-two-point coset. The earlier twenty-eight-point local concentration event cannot contain every failure of the balanced source. The dimension bound also prevents ambient full rank on any $43$ distinct band points, although rank deficiency alone need not detect a private shift.
+
+\paragraph{The enclosing event is affordable.} For the prescribed $q$ independent queries in a domain of size $D=2^{22+\rexp}$, the probability of at least $42$ queries anywhere in $\zkLowQueryBand$ is at most
+\[
+ \binom q{42}\left(\frac{8192}{D}\right)^{42}.
+\]
+Choose $42$ query positions and require each to land in the band. This bounds all such query sets, including repetitions, not just the displayed support. Exact arithmetic gives bounds below $2^{-266},2^{-358},2^{-432},2^{-501}$ at rates one through four. A future simulator may charge this whole event. The result therefore does not rule out the statistical target; it isolates a real dispersed dependency within a negligible event. It does not prove that every failure needs $42$ band queries. Smaller supports, dependencies involving other bands or public-prefix observations, and conditioning on the terminal/GKR boundary remain obligations of the global argument.
 
 \paragraph{Joining the existing boundary.} All these metadata choices preserve the complete Flock witness, memory envelope and shared bus root. The same hybrid order as Theorem~\ref{thm:zk-flock-twelve-interface} consequently extends the rank criterion to all thirty-seven BLAKE2s terminal claims, established Flock endpoints, the complete memory envelope and shared root. Its error is at most
 \[
