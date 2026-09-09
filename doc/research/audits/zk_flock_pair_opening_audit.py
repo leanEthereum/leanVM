@@ -8,12 +8,12 @@ from math import comb
 from pathlib import Path
 from random import Random
 
-from zk_flock_columns_audit import METADATA_ROWS, build, certificates
+from zk_flock_columns_audit import METADATA_ROWS, build, certificates, randomize
 from zk_flock_coset_audit import novel_factors, probability_all_hit, reordered_index
 from zk_memory_frames_audit import joint_root_bound
 from zk_pcs_audit import RightInverse, Tower, kdot, verifier_module
 from zk_three_point_audit import THREE_POINT_SUPPORT, three_point_error
-from zk_two_point_audit import fixed_observation_error
+from zk_two_point_audit import DENSE_FIXED, dense_fixed_error, fixed_observation_error
 
 
 def evaluate(field, coefficients, query):
@@ -131,6 +131,62 @@ def joint_interface_error():
         "Joint terminal/Flock interface and one selected lane-59 query pair: below 2^-154; with memory envelope and shared root, below 2^-151.",
         flush=True,
     )
+    enlarged = interface + dense_fixed_error(256) + dense_fixed_error(192) + Fraction(34, size)
+    assert enlarged < Fraction(1, 1 << 154)
+    assert joint_root_bound() + enlarged < Fraction(1, 1 << 151)
+    print("Adding all ten BLAKE2s count evaluations at the GKR leaf point preserves the joint bounds below 2^-154 and 2^-151.", flush=True)
+
+
+def bus_count_certificate(verifier, library, pairs):
+    field, rng = Tower(64, verifier), Random(503)
+    point = [verifier.E(*field.coords(field.random(rng))) for _ in range(26)]
+    alphas = [verifier.E(*field.coords(field.random(rng))) for _ in range(4)]
+    weights = [verifier.eq_eval(alphas, [verifier.E((slot >> bit) & 1) for bit in range(4)]) for slot in range(16)]
+    layout = verifier.build_layout(range(16 << 11), 25, (19, 19, 19, 19, 20, 18))
+    forms, positions = [], []
+    for side in ("push", "pull", "count"):
+        blocks = getattr(layout, side)
+        stacked = verifier.bus_layout(() if side == "count" else (0, 25, 11), blocks)
+        assert stacked.depth == (24 if side == "count" else 26)
+        form, indices = verifier.Form(), {}
+        for block, placement in zip(blocks, stacked.tables):
+            if block.owner != verifier.OP_BLAKE2S:
+                continue
+            selector = placement.eq_above(point)
+            for slot, coordinate in enumerate(block.coordinates):
+                form.add_scaled(coordinate, selector * (verifier.ONE if side == "count" else weights[slot]))
+                for monomial in coordinate.terms:
+                    if len(monomial) == 1 and monomial[0] in verifier.TABLES[verifier.OP_BLAKE2S].count_columns:
+                        indices[verifier.BLAKE2S_COLUMNS[monomial[0]]] = placement.index >> 18
+        forms.append(form)
+        positions.append(indices)
+    counts = verifier.TABLES[verifier.OP_BLAKE2S].count_columns
+    matrix = [[form.terms.get((column,), verifier.ZERO) for column in counts] for form in forms]
+    assert all(all(len(term) == 1 for term in form.terms if column in term) for form in forms for column in counts)
+    assert all(a == verifier.GEN * b for a, b in zip(matrix[0], matrix[1]))
+    assert positions[1]["cnt_cv1"] == 191 and positions[1]["cnt_out0"] == 192
+    assert positions[2]["cnt_cv1"] == 49 and positions[2]["cnt_out0"] == 50
+    left, right = (counts.index(verifier.BLAKE2S_COLUMNS.index(name)) for name in ("cnt_cv1", "cnt_out0"))
+    assert matrix[1][left] * matrix[2][right] != matrix[1][right] * matrix[2][left]
+    _, first, second, logical_left, logical_right = pairs[9][384]
+    a, b = library.rows[first][1], library.rows[second][1]
+    first_weight, second_weight = (
+        verifier.eq_eval(point[:18], [verifier.E((reordered_index(logical) >> bit) & 1) for bit in range(18)])
+        for logical in (logical_left, logical_right)
+    )
+    for index, column in enumerate(counts):
+        changed_a, changed_b = a[:], b[:]
+        changed_a[column], changed_b[column] = b[column], a[column]
+        delta = (first_weight + second_weight) * (a[column] + b[column])
+        for side, form in enumerate(forms):
+            observed = first_weight * (form.evaluate(a.__getitem__) + form.evaluate(changed_a.__getitem__))
+            observed += second_weight * (form.evaluate(b.__getitem__) + form.evaluate(changed_b.__getitem__))
+            assert observed == matrix[side][index] * delta
+    print(
+        "Actual depth-26 GKR forms: all ten counters factor linearly through their common-point evaluations; their three-side image has rank two.",
+        flush=True,
+    )
+    print("Counter swaps preserve push + g*pull, so this interface does not simulate the full GKR leaf triple.", flush=True)
 
 
 def identities(verifier, private):
@@ -162,7 +218,9 @@ def copy_position(bank, index):
 
 def actual_libraries(verifier):
     first, pairs, placement = build(verifier)
-    certificates(verifier, first, pairs, query=(1 << 18) + 1234)
+    selected, value_columns = certificates(verifier, first, pairs, query=(1 << 18) + 1234, joint_counts=True)
+    bus_count_certificate(verifier, first, pairs)
+    randomize(verifier, first, pairs, selected, value_columns, counter_support=DENSE_FIXED)
     second, second_pairs, _ = build(verifier, code_shift=64, frame_shift=1 << 22)
     extra = {
         copy_position(bank, position): row

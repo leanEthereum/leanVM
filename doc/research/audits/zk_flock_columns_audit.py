@@ -12,6 +12,7 @@ from zk_metadata_audit import SPARSE
 from zk_pcs_audit import Tower, verifier_module
 from zk_stacked_audit import binary_basis
 from zk_three_point_audit import THREE_POINT_SUPPORT, three_point_error
+from zk_two_point_audit import DENSE_FIXED
 
 OPERANDS = ("o_0", "o_1", "o_2", "o_3", "o_v", "o_out", "o_md")
 PROGRAM = ("pc", *OPERANDS)
@@ -87,7 +88,7 @@ def build(verifier, *, code_shift=0, frame_shift=0):
     return library, pairs, placement
 
 
-def certificates(verifier, library, pairs, *, query=None):
+def certificates(verifier, library, pairs, *, query=None, joint_counts=False):
     field, rng = Tower(64, verifier), Random(439)
     point = [field.random(rng) for _ in range(18)]
     physical_point = [point[bit] for bit in (0, 1, 2, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 3, 4, 5, 6)]
@@ -98,6 +99,9 @@ def certificates(verifier, library, pairs, *, query=None):
     value_columns = [column for column in range(37) if column not in selected]
     assert len(selected) == 19 and len(value_columns) == 18
     program, directions = [], []
+    leaf_point = [field.random(rng) for _ in range(18)] if joint_counts else None
+    count_support = DENSE_FIXED if joint_counts else SPARSE
+    raw_offset = (29 if joint_counts else 19) * 192
     if query is not None:
         assert 1 << 18 <= query < 1 << 19
         factors = novel_factors(field, 18, query)
@@ -114,6 +118,7 @@ def certificates(verifier, library, pairs, *, query=None):
             a, b = library.rows[first][1], library.rows[second][1]
             assert all(a[column] == b[column] for column in value_columns)
             coefficient = weight(left) ^ weight(right)
+            leaf_coefficient = weight(left, leaf_point) ^ weight(right, leaf_point) if joint_counts else 0
             if index == 0:
                 assert coefficient == weight(reordered_index(left), physical_point) ^ weight(reordered_index(right), physical_point)
             if bank < 9:
@@ -124,7 +129,10 @@ def certificates(verifier, library, pairs, *, query=None):
                 projection = difference[:8] if bank < 8 else difference[8:9]
                 normalized.append([field.kmul(value, field.kinv(scale)) for value in projection])
                 weights.append(field.mul(coefficient, scale))
-                directions.append(sum(field.mul(coefficient, value) << (192 * column) for column, value in enumerate(difference)))
+                direction = sum(field.mul(coefficient, value) << (192 * column) for column, value in enumerate(difference))
+                if joint_counts:
+                    direction |= sum(field.mul(leaf_coefficient, value) << ((19 + column) * 192) for column, value in enumerate(difference[9:]))
+                directions.append(direction)
                 if bank == 8:
                     assert not any(difference[:8])
             else:
@@ -133,15 +141,17 @@ def certificates(verifier, library, pairs, *, query=None):
                     difference = a[columns.index(count)] + b[columns.index(count)]
                     expected = (verifier.GEN ** (2 * index) if count == "cnt_bc" else verifier.ONE) * (verifier.ONE + verifier.GEN)
                     assert difference == expected
-                    if index in SPARSE:
+                    if index in count_support:
                         direction = field.mul(coefficient, int(difference)) << (192 * names.index(count))
+                        if joint_counts:
+                            direction |= field.mul(leaf_coefficient, int(difference)) << ((19 + counts.index(count)) * 192)
                         if query is not None and count in ("cnt_cv1", "cnt_out0"):
                             raw_weight = query
                             physical = reordered_index(left)
                             for bit, factor in enumerate(factors):
                                 if physical >> bit & 1:
                                     raw_weight = field.kmul(raw_weight, factor)
-                            direction |= field.kmul(raw_weight, int(difference)) << (19 * 192)
+                            direction |= field.kmul(raw_weight, int(difference)) << raw_offset
                         directions.append(direction)
         if bank < 9:
             assert all(row == normalized[0] for row in normalized)
@@ -149,13 +159,13 @@ def certificates(verifier, library, pairs, *, query=None):
             if bank < 8:
                 program.append(normalized[0])
     assert len(field.pivots(program)) == 8
-    rank = 19 * 192 + (64 if query is not None else 0)
+    rank = raw_offset + (64 if query is not None else 0)
     assert len(binary_basis(directions)) == rank
     print(f"Native joint metadata rank {rank}, including the raw PCS kernel coordinate exactly when a query is supplied.", flush=True)
     return selected, value_columns
 
 
-def randomize(verifier, library, pairs, selected, value_columns):
+def randomize(verifier, library, pairs, selected, value_columns, *, counter_support=SPARSE):
     rng = Random(443)
     original = [(opcode, row[:]) for opcode, row in library.rows]
     for bank, group in enumerate(pairs):
@@ -163,7 +173,7 @@ def randomize(verifier, library, pairs, selected, value_columns):
             if bank < 9:
                 if rng.getrandbits(1):
                     library.rows[first], library.rows[second] = library.rows[second], library.rows[first]
-            elif index in SPARSE:
+            elif index in counter_support:
                 a, b = library.rows[first][1], library.rows[second][1]
                 for column in selected[9:]:
                     if rng.getrandbits(1):

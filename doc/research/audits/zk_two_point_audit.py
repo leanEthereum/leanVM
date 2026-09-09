@@ -1,6 +1,7 @@
 """Two-point binary-span bound and actual-field certificates for padding swaps."""
 
 from fractions import Fraction
+from functools import cache
 from random import Random
 
 from zk_pcs_audit import Tower, verifier_module
@@ -9,6 +10,34 @@ from zk_stacked_audit import binary_basis
 SPARSE_TWO = list(range(64)) + [i | (1 << j) for j in range(6, 14) for i in range(64)]
 COMPACT_TWO = list(range(128)) + [i | (1 << j) for j in range(7, 11) for i in range(128)]
 SPARSE_FIXED = [index for index in SPARSE_TWO if index < 1 << 12]
+DENSE_FIXED = list(range(256)) + [low | (1 << bit) for bit in range(8, 12) for low in range(256)]
+
+
+@cache
+def dense_fixed_error(observed_bits=256):
+    assert 0 <= observed_bits <= 384
+    size = 1 << 192
+
+    @cache
+    def tail(before, after):
+        return min(Fraction(1), Fraction(((1 << before) - 1) ** 2, (size - 1) * ((1 << (2 * before - after)) - 1)))
+
+    @cache
+    def remaining(steps, dimension):
+        if steps == 0:
+            return min(Fraction(1), Fraction(size, size - 1) ** 4 * Fraction(2) ** (192 + observed_bits - 5 * dimension))
+        maximum = min(2 * dimension, 192)
+        return min(
+            Fraction(1),
+            remaining(steps - 1, maximum)
+            + sum((tail(dimension, after) * remaining(steps - 1, after) for after in range(dimension, maximum)), Fraction()),
+        )
+
+    first_five = sum((Fraction(((1 << dimension) - 1) ** 2, size - 1) for dimension in (1, 2, 4, 8, 16)), Fraction())
+    error = first_five + remaining(3, 32) + Fraction(12, size)
+    if observed_bits <= 320:
+        assert error + Fraction(24, size) < Fraction(1, 1 << 160)
+    return error
 
 
 def fixed_observation_error(observed_bits=64):
@@ -45,6 +74,18 @@ def fixed_observation_certificate(verifier):
     print("A random extension evaluation and fixed 64/128/192-bit disclosures have native joint ranks 256/320/384 on 448 bits.", flush=True)
     print("Uniform fixed-disclosure error bounds: below 2^-154, 2^-127 and 2^-63; only the 64-bit case has the target margin.", flush=True)
     print("Control: a disclosure chosen from the evaluation point can be dependent; the fixed-map hypothesis is necessary.", flush=True)
+    assert len(DENSE_FIXED) == 1280 and set(SPARSE_FIXED) < set(DENSE_FIXED)
+    for bits in (192, 256, 320):
+        observations = [1 << index if index < bits else rng.getrandbits(bits) for index in range(len(DENSE_FIXED))]
+        vectors = [weights[index] | (value << 192) for index, value in zip(DENSE_FIXED, observations)]
+        assert len(binary_basis(vectors)) == 192 + bits
+        dense_fixed_error(bits)
+    assert dense_fixed_error(352) < Fraction(1, 1 << 158)
+    assert dense_fixed_error(384) > Fraction(1, 1 << 128)
+    print(
+        "The 1280-bit support retains up to 320 fixed bits with error below 2^-160, also for geometric weights; 384 exceeds this proof budget.",
+        flush=True,
+    )
 
 
 def error_bounds():

@@ -1,7 +1,7 @@
 % !TeX root = ../../main.tex
 \subsection{Two PCS queries defeat block-local metadata swaps}\label{note:zk-flock-pair-opening}
 
-\paragraph{Conclusion.} Two initial PCS queries defeat the original adjacent metadata swaps. Whole-row shuffling alone retains a second leak through equal count columns. Independent valid counter-label swaps before the shuffle repair the affected pair of lane-$59$ values below $2^{-160}$. The fixed-disclosure span theorem now composes that pair with all $37$ BLAKE2s terminal claims and the established Flock endpoints below $2^{-154}$, and with the memory envelope and shared bus root below $2^{-151}$. This is one selected pair in the specified coset, not the full query vector or its conditioning on omitted messages.
+\paragraph{Conclusion.} Two initial PCS queries defeat the original adjacent metadata swaps, and whole-row shuffling alone retains a second leak. Independent valid counter-label swaps repair it. The current joint theorem includes all $37$ BLAKE2s terminal claims, the established Flock endpoints, one selected lane-$59$ query pair, and all ten BLAKE2s count evaluations at the GKR leaf point, below $2^{-154}$. Adding the memory envelope and shared bus root remains below $2^{-151}$. The count evaluations are an auxiliary interface, not the full GKR transcript. The larger theorem needs more random label choices in existing rows, with no height or verifier change.
 
 \subsubsection{The encoder reveals sums inside a coefficient block}
 
@@ -202,6 +202,51 @@ Repeat that corollary's hybrids: replace the shared root inside the unused-memor
 \]
 \end{proof}
 
-\paragraph{Remaining opening obligation.} This composition removes a specific shared-mask issue without extra rows, memory or verifier equations. It does not justify publishing another query pair, even in the same coset: those values impose further constraints on the same bits. The arbitrary fixed-disclosure lemma gives an explicit budget for this loss, not an unrestricted conditional oracle. The next target is the full joint linear observation map, including other lanes and the previous reductions. Common valid allocation and the missing GKR, table, Flock and authentication proofs remain separate obligations.
+\subsubsection{Retaining the actual GKR count interface}
 
-\paragraph{Evidence and literature boundary.} \auditref{zk_flock_pair_opening_audit.py} checks exact stack positions, coset interpolation, all displayed probabilities, disjoint library allocation and full counted-bus validity before and after the added randomizers. It also invokes the metadata audit to certify binary rank $3712$ for the nineteen terminal columns and raw PCS kernel coordinate together, and checks the full composition ledger exactly. Its \texttt{--native} option verifies the witness pairs and authenticated encoder identity; \texttt{--matching} runs the exhaustive certificate. Flock's unused witness slots are forced to zero, as specified and implemented in \path{crates/flock/src/hash.rs}, so they cannot serve as free masks. Bootle, Chiesa and Liu~\cite{bcl}, Section~2.4, add a separately designed R1CS gadget with controlled randomness and also rerandomize their sumcheck factors; this is not a theorem for arbitrary random compressions in leanVM's unchanged circuit and PCS.
+Use the denser support $\zkDenseSupport$ of Theorem~\ref{thm:dense-fixed-observation-span} for each of the original library's ten counter-label directions. These $1280$ pairs already exist inside its $4096$-pair count bank. This adds $10(1280-448)=8320$ independent fair bits and no rows, frames, code locations or committed coefficients. Every choice still preserves read chains, count products, memory and the packed Flock witness. The previous source is a subset; conditioning on the added bits preserves its existing theorems.
+
+Let $\zeta$ be the honest GKR leaf point. At this layout the native push/pull cube has depth $26$, with the depth-$24$ count prefix padded to the same cube. Define the auxiliary vector
+\[
+ \zkLeafCounts=
+ \bigl(\mle T_c(\zeta_{<18})\bigr)_{
+ c\in\{\mathsf{cnt\_m0},\ldots,\mathsf{cnt\_m3},
+ \mathsf{cnt\_cv0},\mathsf{cnt\_cv1},
+ \mathsf{cnt\_out0},\mathsf{cnt\_out1},\mathsf{cnt\_md},\mathsf{cnt\_bc}\}}.
+\]
+Here $T_c$ is the physical BLAKE2s count column. These ten evaluations are not sent individually: \texttt{tables\_and\_prods\_at} computes them inside the native decomposition, and their weighted combinations enter its table forms. Retaining them is an explicit enlargement of the proof interface.
+
+\begin{theorem}[Count interface, terminal claims and an opening pair]\label{thm:zk-flock-count-interface}
+Use the denser counter source and the same common-completion assumptions. The view of Theorem~\ref{thm:zk-flock-pair-interface} can also retain $\zkLeafCounts$, with joint error at most
+\[
+ \begin{aligned}
+ &\zkTripleError+3\delta_{\mathrm{span}}+\zkFixedError{64}
+ +\zkDenseError{256}+\zkDenseError{192}\\
+ &\hspace{2em}+\frac{4317}{2^{192}}+\zkMatchingError
+ <2^{-154}.
+ \end{aligned}
+\]
+With the three-limb memory envelope and shared bus root, the combined exact bound is still below $2^{-151}$. Earlier GKR messages and the count root remain excluded.
+\end{theorem}
+\begin{proof}
+The GKR row point and the subsequent table terminal point are independent honest extension points; apply the physical-to-logical coordinate permutation to each. Fix a selected query $x$, and use the original $448$-position subset first only to certify a retained map's rank. Theorem~\ref{thm:fixed-observation-span} makes the $\mathsf{cnt\_cv1}$ evaluation at $\zeta$ and its raw query-kernel coordinate a full $256$-bit map, except with probability $\zkFixedError{64}$. The exhaustive query certificate supplies the fixed $64$-bit rank for every $x$ in the coset. Consequently every other memory-count evaluation at $\zeta$ also has full rank on this subset. The weighted bytecode-count evaluation at $\zeta$ has full rank except with probability $\delta_{\mathrm{span}}+36/|\E|$. Passing to the denser source cannot reduce these ranks.
+
+Condition on $\zeta$ and $x$. Apply the dense fixed-disclosure theorem at the independent table terminal point: retain $256$ bits for $\mathsf{cnt\_cv1}$, and $192$ bits for each other count. The former event already contains the common unweighted two-point span for the other eight memory-count columns. The bytecode column needs its own dense event and geometric transformation, costing $\zkDenseError{192}+24/|\E|$. Thus each memory-count bit family jointly supplies its two extension evaluations, with the additional independent query coordinate from $\mathsf{cnt\_cv1}$; the bytecode family supplies its two evaluations too.
+
+Insert these count replacements last in the program/frame triangular proof. The two unchanged program/frame spans cost $2\delta_{\mathrm{span}}+48/|\E|$. Selectors cost at most $12/|\E|$ at the table point and $10/|\E|$ at the GKR point. Together with the earlier bytecode span and its geometric transformation, these field terms sum to $(48+36+24+12+10)/|\E|=130/|\E|$. The replacement yields nineteen terminal metadata uniforms, ten independent count-interface uniforms and an independent raw query-kernel uniform, retaining all compression data and the added library's full randomness.
+
+Now perform the same quotient replacement and value/endpoint simulation as before, adding $\zkMatchingError+\zkTripleError+4187/|\E|$. If no pair is queried, prove the enlarged statement using the fixed auxiliary pair at $\gen^{18}$ and then discard its two values. This gives the same bound without a separate fallback case. Finally, the memory/root hybrids retain $\zkLeafCounts$ exactly because unused-memory masks change no table count. Adding their existing exact bound proves the second assertion.
+\end{proof}
+
+\paragraph{What this controls in the actual bus.} Let the three native GKR leaf evaluations be $(P,Q,C)$. Extract from the actual table forms their coefficients on the ten BLAKE2s count columns. This gives a public $3\times10$ matrix mapping $\zkLeafCounts$ to the entire count-dependent part of $(P,Q,C)$. No count appears in a quadratic monomial. Its first row is $\gen$ times its second: a counted push increments a label and its corresponding pull does not, with identical block placement. Thus counter swaps leave $P+\gen Q$ fixed.
+
+The matrix generically has rank two. For $\mathsf{cnt\_cv1}$ and $\mathsf{cnt\_out0}$, the pull block indices above the $18$ row bits are $191,192$, while the count block indices are $49,50$. Their $2\times2$ minor is the common count-coordinate fingerprint weight times
+\[
+ \eq(\zeta_{18:26},191)\eq(\zeta_{18:26},50)
+ +\eq(\zeta_{18:26},192)\eq(\zeta_{18:26},49).
+\]
+The two products have different factorizations into coordinate factors and their complements, so this degree-at-most-$16$ polynomial is nonzero. The minor vanishes with probability at most $20/|\E|$, including the fingerprint weight. No extra error is needed to simulate the count contribution: the simulator can apply the actual matrix to the simulated vector even on degenerate coins. But the residual address/value contribution to $P+\gen Q$ remains an essential independent obligation; a count-only extension cannot hide it.
+
+\paragraph{Remaining opening and GKR obligations.} The auxiliary count vector now composes with the table claims and selected opening pair, not merely as a separate marginal. This does not simulate the full leaf triple, its preceding nonlinear GKR messages, the table sumcheck coefficients, additional query values or authentication. The next boundary step must include the address/value residual, and the final proof still needs a whole-layer theorem and one common valid sampler. The fixed-disclosure bounds are finite budgets, not permission to condition on an arbitrary transcript.
+
+\paragraph{Evidence and literature boundary.} \auditref{zk_flock_pair_opening_audit.py} checks exact stack positions, coset interpolation, all displayed probabilities, disjoint library allocation and full counted-bus validity before and after the added randomizers. It certifies native binary rank $5632$ for the nineteen terminal columns, ten earlier count evaluations and query-kernel coordinate together. It also extracts the actual depth-$26$ bus forms and checks their counter dependence against local label exchanges. The exact composition ledger, native valid witness pairs and exhaustive query certificate are retained. Flock's unused witness slots are forced to zero, as specified and implemented in \path{crates/flock/src/hash.rs}, so they cannot serve as free masks. Bootle, Chiesa and Liu~\cite{bcl}, Section~2.4, add a separately designed R1CS gadget with controlled randomness and also rerandomize their sumcheck factors; this is not a theorem for arbitrary random compressions in leanVM's unchanged circuit and PCS.

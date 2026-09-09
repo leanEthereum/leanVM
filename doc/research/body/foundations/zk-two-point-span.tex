@@ -146,3 +146,41 @@ The extension projection reaches dimension $32$ in five steps except with probab
 \paragraph{Conditional interpretation and limit.} On good $r$, every fiber $\zkFixedMap(\zkSwapCoins)=y$ leaves a uniform extension evaluation. Since the disclosed linear map is fixed independently of $r$ and onto, $y$ itself is uniform and independent of $r$ before conditioning. Thus the same average error bound holds for every fixed disclosed value. This does not allow an arbitrary map chosen after seeing $r$, or further disclosures of the same bits. The same formula gives only $\zkFixedError{128}<2^{-127}$ and $\zkFixedError{192}<2^{-63}$, without the required $128$-bit margin. Increasing the retained interface is not free in this lemma.
 
 \paragraph{Evidence and application.} \auditref{zk_two_point_audit.py} computes the exact rational bounds and checks native joint ranks $256,320,384$ for fixed full-rank disclosures of $64,128,192$ bits. These samples check the implementation; the uniform proof is the character and dimension-tail argument above. \noteref{zk-flock-pair-opening} applies the $64$-bit case to the actual PCS weights and the same counter bits that hide a BLAKE2s terminal evaluation.
+
+\subsubsection{A denser support for a larger retained interface}
+
+Keep the same twelve coordinates, but take
+\[
+ \zkDenseSupport=\{s\in\cube{12}:s_0,\ldots,s_7\text{ arbitrary},\quad s_8+\cdots+s_{11}\le1\},
+ \qquad |\zkDenseSupport|=1280.
+\]
+The inequality is over integers. This contains the preceding $448$-position support and fits the already allocated $4096$-pair BLAKE2s counter bank.
+
+\begin{theorem}[Dense fixed-disclosure span]\label{thm:dense-fixed-observation-span}
+Replace $S$ in Theorem~\ref{thm:fixed-observation-span} by $\zkDenseSupport$. For any fixed onto binary map to $\Ftwo^b$ with $b\le320$, the joint map fails to be onto with probability at most $\zkDenseError{b}<2^{-160}$. The same conclusion with error $\zkDenseError{b}+24/Q<2^{-160}$ holds when the extension weights are multiplied by any fixed nonzero geometric factors $\prod_i\lambda_i^{s_i}$.
+\end{theorem}
+\begin{proof}
+After normalization, the first eight coordinates generate an extension-field projected subspace, and the last four supply independent scalar multiples of it. For any fixed projected dimension $d$, the preceding character argument gives
+\[
+ H_b(d)=\min\left\{1,\left(\frac Q{Q-1}\right)^4 2^{192+b-5d}\right\}.
+\]
+It remains to average three further doublings after reaching dimension $32$ at step five. For $a\le c<\min\{2a,192\}$ put
+\[
+ p(a,c)=\min\left\{1,\frac{(2^a-1)^2}{(Q-1)(2^{2a-c}-1)}\right\},
+ \qquad m_a=\min\{2a,192\},
+\]
+and define
+\[
+ F_0(a)=H_b(a),\qquad
+ F_{j+1}(a)=\min\left\{1,F_j(m_a)+\sum_{c=a}^{m_a-1}p(a,c)F_j(c)\right\}.
+\]
+The intersection-counting bound controls each exact dimension probability by the displayed tail. Nonnegativity proves inductively that $F_j(a)$ bounds the expected final error after $j$ more doublings, uniformly over the current subspace. Hence
+\[
+ \zkDenseError{b}=B+F_3(32)+12/Q.
+\]
+The same $0$-versus-$1$ substitution as above justifies the actual normalized multiplier distribution. Exact rational evaluation proves the stated bounds, uniformly for $b\le320$ by monotonicity in $b$.
+
+For geometric weights, transform only the random extension point using $u_i=\lambda_i r_i/(1+r_i+\lambda_i r_i)$. Excluding its poles and coupling the resulting points to uniform costs at most $24/Q$, as in Lemma~\ref{lem:metadata-span}. The resulting common output factor is nonzero; the fixed disclosed map is unchanged.
+\end{proof}
+
+\paragraph{Budget and evidence.} The same formula gives $\zkDenseError{352}<2^{-158}$, but its value at $384$ exceeds $2^{-128}$. This is a limit of this estimate, not an impossibility theorem for the source. \auditref{zk_two_point_audit.py} reproduces the dimension recursion exactly and checks native joint ranks $384,448,512$ for $192,256,320$ retained bits. The use below retains one prior extension evaluation and one base-field query coordinate, requiring $256$ retained bits.
