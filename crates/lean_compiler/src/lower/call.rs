@@ -80,7 +80,7 @@ impl FnLower<'_> {
         // return slot, because caller and callee place the return area from
         // their own idea of the argument count. Only `specialize` checked this,
         // and only for a callee declaring `Const` parameters.
-        match self.arity_of(callee) {
+        match self.callee_def(callee).map(|f| f.params.len()) {
             Some(want) if want != args.len() => {
                 let plural = if want == 1 { "argument" } else { "arguments" };
                 self.fail(format!("`{callee}` takes {want} {plural}, got {}", args.len()))
@@ -103,7 +103,8 @@ impl FnLower<'_> {
         // takes n consecutive cells, exactly as a `StackBuf(n)` return value
         // does. Resolved before the frame pointer is allocated, as before.
         let shapes = self
-            .param_shapes_of(callee)
+            .callee_def(callee)
+            .map(|f| f.param_shapes().collect::<Vec<_>>())
             .unwrap_or_else(|| vec![Shape::Scalar; args.len()]);
         let mut arg_offs: Vec<(Off, Off)> = Vec::new();
         for (i, a) in args.iter().enumerate() {
@@ -181,33 +182,27 @@ impl FnLower<'_> {
         // a `StackBuf` parameter in one callee and a scalar in another at the
         // same position would put the return area in two places. The arity check
         // below is the count; this is the widths.
-        let shared_shapes = callees
-            .iter()
-            .find_map(|c| self.param_shapes_of(c))
-            .unwrap_or_else(|| vec![Shape::Scalar; rt_args.len()]);
-        for c in callees {
-            if let Some(shapes) = self.param_shapes_of(c)
-                && shapes != shared_shapes
-            {
+        if let Some(shared) = callees.iter().find_map(|c| self.callee_def(c)) {
+            for c in callees {
+                if let Some(def) = self.callee_def(c)
+                    && !def.param_shapes().eq(shared.param_shapes())
+                {
+                    self.fail(format!(
+                        "`{c}` does not take the same parameter shapes as the other arms of this dispatch"
+                    ))
+                }
+            }
+            // Fused dispatch writes one cell per argument; only scalar parameters fit.
+            if let Some(i) = shared.param_shapes().position(|s| s != Shape::Scalar) {
                 self.fail(format!(
-                    "`{c}` does not take the same parameter shapes as the other arms of this dispatch"
+                    "a `match` arm cannot pass a `StackBuf` parameter (parameter {i} of `{}`): the \
+                     fused dispatch writes one cell per argument. Give the arms `Const` arguments so each \
+                     specializes into its own call instead of fusing",
+                    callees.first().map(String::as_str).unwrap_or("?")
                 ))
             }
         }
-        // The arms resolve their arguments with `expr`, one cell each, so a run
-        // parameter cannot be filled here: passing a `StackBuf` fails in `expr`,
-        // and passing a SCALAR for one wrote 1 of its n cells and left the rest
-        // prover-chosen. Rejected until this path resolves by shape as an
-        // ordinary call does.
-        if let Some(i) = shared_shapes.iter().position(|s| !matches!(s, Shape::Scalar)) {
-            self.fail(format!(
-                "a `match` arm cannot pass a `StackBuf` parameter (parameter {i} of `{}`): the \
-                 fused dispatch writes one cell per argument. Give the arms `Const` arguments so each \
-                 specializes into its own call instead of fusing",
-                callees.first().map(String::as_str).unwrap_or("?")
-            ))
-        }
-        let n_args = Abi::arg_cells(shared_shapes.iter().copied());
+        let n_args = rt_args.len() as u32;
         // The join below reads one return cell per bound name, so every callee has
         // to declare exactly that many. Unchecked, a name past a callee's arity
         // `DEREF`s a frame offset nothing on that path writes, and since the shared
@@ -232,18 +227,18 @@ impl FnLower<'_> {
             // Arguments for the same reason as returns below: the shared frame
             // is sized to the largest callee, so a callee expecting more than
             // the arms supply reads a cell that exists and nothing writes.
-            if let Some(want) = self.arity_of(callee)
-                && want != rt_args.len()
-            {
+            let Some(def) = self.callee_def(callee) else {
+                continue;
+            };
+            let want = def.params.len();
+            if want != rt_args.len() {
                 let plural = if want == 1 { "argument" } else { "arguments" };
                 self.fail(format!(
                     "`{callee}` takes {want} {plural}, dispatched call passes {}",
                     rt_args.len()
                 ))
             }
-            let Some(shapes) = self.return_shapes_of(callee) else {
-                continue;
-            };
+            let shapes = &def.return_shapes;
             if shapes.len() != targets.len() {
                 self.fail(format!(
                     "`{callee}` returns {} values, dispatched call binds {}",
@@ -272,7 +267,12 @@ impl FnLower<'_> {
             callees: callees.to_vec(),
         });
         for (i, &ao) in arg_offs.iter().enumerate() {
-            self.deref(nfp, Abi::arg(shared_shapes.iter().copied(), i), ao, DerefMode::Cell);
+            self.deref(
+                nfp,
+                Abi::arg(std::iter::repeat_n(Shape::Scalar, rt_args.len()), i),
+                ao,
+                DerefMode::Cell,
+            );
         }
         self.deref(nfp, Abi::RET_FP, 0, DerefMode::Fp);
         let join_cell = self.fresh();
@@ -434,8 +434,7 @@ impl FnLower<'_> {
     /// copy of the callee, queued once per distinct constant tuple and named
     /// `callee__L5_G3`-style, and only the runtime arguments remain.
     pub(super) fn specialize(&mut self, callee: &str, args: &[Expr]) -> (String, Vec<Expr>) {
-        let defs: &HashMap<String, Func> = self.defs;
-        let Some(def) = defs.get(callee) else {
+        let Some(def) = self.defs.get(callee).copied() else {
             return (callee.to_string(), args.to_vec()); // loop helpers, unknown names
         };
         if !def.has_const_params() {
@@ -584,39 +583,12 @@ impl FnLower<'_> {
         Some((rt_params, rt_args, body, def.return_shapes.len()))
     }
 
-    /// How many arguments `callee` takes, looked up wherever it lives: an
-    /// ordinary definition sits in `defs`, while a `Const` specialization is
-    /// registered by [`Self::specialize`] in the queue under its mangled name and
-    /// never reaches `defs`. `defs` is consulted first and answers with the
-    /// PRE-specialization count, Const parameters included, which is what a call
-    /// site passes.
-    fn arity_of(&self, callee: &str) -> Option<usize> {
+    /// Original definitions take precedence over generated functions in the queue.
+    fn callee_def(&self, callee: &str) -> Option<&Func> {
         self.defs
             .get(callee)
-            .map(|d| d.params.len())
-            .or_else(|| self.queue.iter().find(|f| f.name == callee).map(|f| f.params.len()))
-    }
-
-    /// A callee's parameter shapes, including generated specializations.
-    fn param_shapes_of(&self, callee: &str) -> Option<Vec<Shape>> {
-        self.defs.get(callee).map(|d| d.param_shapes().collect()).or_else(|| {
-            self.queue
-                .iter()
-                .find(|f| f.name == callee)
-                .map(|f| f.param_shapes().collect())
-        })
-    }
-
-    /// A callee's declared return shapes, looked up the same way. A dispatched
-    /// `match` names specializations, so a check that consults only `defs`
-    /// silently passes on every one of them.
-    fn return_shapes_of(&self, callee: &str) -> Option<Vec<Shape>> {
-        self.defs.get(callee).map(|d| d.return_shapes.clone()).or_else(|| {
-            self.queue
-                .iter()
-                .find(|f| f.name == callee)
-                .map(|f| f.return_shapes.clone())
-        })
+            .copied()
+            .or_else(|| self.queue.iter().find(|f| f.name == callee))
     }
 
     /// Consume the [`RetBind`] a single-value inlined tail return recorded,

@@ -241,10 +241,10 @@ struct FnLower<'a> {
     fn_name: String,
     /// The program's function definitions by name, for `Const`-parameter
     /// specialization at call sites ([`Self::specialize`]).
-    defs: &'a HashMap<String, Func>,
+    defs: &'a HashMap<String, &'a Func>,
     /// Top-level constant arrays, resolved at compile time: `NAME[i]` yields the
     /// element (a field value or an index), `len(NAME)` its length.
-    const_arrays: &'a HashMap<String, Vec<F192>>,
+    const_arrays: &'a HashMap<String, &'a [F192]>,
 }
 
 impl FnLower<'_> {
@@ -1561,8 +1561,8 @@ pub(crate) fn lower_func(
     f: &Func,
     queue: &mut Vec<Func>,
     loop_ctr: &mut usize,
-    defs: &HashMap<String, Func>,
-    const_arrays: &HashMap<String, Vec<F192>>,
+    defs: &HashMap<String, &Func>,
+    const_arrays: &HashMap<String, &[F192]>,
     with_filler: bool,
 ) -> Lowered {
     let mut names: HashMap<String, Bound> = HashMap::new();

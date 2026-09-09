@@ -76,9 +76,13 @@ fn compile_inner(ast: &Ast, with_filler: bool) -> Program {
         }
     }
     // Definitions by name, for Const-parameter specialization at call sites.
-    let defs: HashMap<String, Func> = ast.funcs.iter().map(|f| (f.name.clone(), f.clone())).collect();
+    let defs: HashMap<String, &Func> = ast.funcs.iter().map(|f| (f.name.clone(), f)).collect();
     // Constant arrays by name, resolved at lowering (`NAME[i]`, `len(NAME)`).
-    let const_arrays: HashMap<String, Vec<F192>> = ast.const_arrays.iter().cloned().collect();
+    let const_arrays: HashMap<String, &[F192]> = ast
+        .const_arrays
+        .iter()
+        .map(|(name, values)| (name.clone(), values.as_slice()))
+        .collect();
     let dbg_lower = std::env::var("DBG_LOWER").is_ok();
 
     let mut loop_ctr = 0usize;
