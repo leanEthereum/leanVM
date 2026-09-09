@@ -13,10 +13,15 @@ from zk_padding_experiments import Field
 from zk_pcs_audit import verifier_module
 
 
-def witness(verifier, message):
+def witness(verifier, message, *, cv=None, counter=64, flags=((1 << 32) - 1, 0)):
     mask = (1 << 32) - 1
-    h = list(verifier.BLAKE2S_IV)
-    h[0] ^= 0x01010020
+    pinned = cv is None and counter == 64 and flags == (mask, 0)
+    h = list(verifier.BLAKE2S_IV) if cv is None else list(cv)
+    if cv is None:
+        h[0] ^= 0x01010020
+    assert len(h) == 8 and len(message) == 16 and len(flags) == 2
+    assert all(0 <= word <= mask for word in (*h, *message, *flags))
+    assert 0 <= counter < 1 << 64
     z = a = b = 1 << 512
 
     def write(position, width, left, right, value):
@@ -53,11 +58,12 @@ def witness(verifier, message):
         linear(32 * word, value)
     for word, value in enumerate(message):
         linear(640 + 32 * word, value)
-    for position, value in zip((1152, 1184, 1216, 1248), (64, 0, mask, 0)):
+    metadata = (counter & mask, counter >> 32, *flags)
+    for position, value in zip((1152, 1184, 1216, 1248), metadata):
         linear(position, value)
     state = h + list(verifier.BLAKE2S_IV)
-    state[12] ^= 64
-    state[14] ^= mask
+    for word, value in enumerate(metadata, start=12):
+        state[word] ^= value
     for round_index, sigma in enumerate(verifier.BLAKE2S_SIGMA):
         for number, (ia, ib, ic, id_) in enumerate(verifier.BLAKE2S_G_LANES):
             position = 1280 + 184 * (8 * round_index + number)
@@ -75,7 +81,8 @@ def witness(verifier, message):
     output = [h[word] ^ state[word] ^ state[word + 8] for word in range(8)]
     for word, value in enumerate(output):
         linear(256 + 32 * word, value)
-    assert pack("<8I", *output) == blake2s(pack("<16I", *message)).digest()
+    if pinned:
+        assert pack("<8I", *output) == blake2s(pack("<16I", *message)).digest()
     assert a & b == z
     return z, a, b
 

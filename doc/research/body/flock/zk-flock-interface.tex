@@ -1,0 +1,74 @@
+% !TeX root = ../../main.tex
+\subsection{Flock endpoints and the eighteen BLAKE2s value claims}\label{note:zk-flock-interface}
+
+\paragraph{Result.} All eighteen BLAKE2s value-column claims now have a joint witness-free simulator with the established Flock endpoints, below $2^{-158}$. The construction combines a three-point binary source with general compression inputs, at the same batch height. General inputs are necessary: we first prove a chaining-value obstruction to the former pinned-IV profiles, even with zero-IV fillers and arbitrary row shuffling. Non-value columns, table coefficients, middle rounds and PCS remain excluded from the positive theorem.
+
+\subsubsection{A direct table-column obstruction}
+
+The table sumcheck sends all $37$ BLAKE2s column evaluations at one honest point $r\in\E^{\tau_5}$, before Flock starts. In particular, the four chaining-value limbs and two metadata limbs are sent explicitly. Their later remapping to $\qflock$ does not hide them. This is the wire in \path{crates/lean_vm/src/constraints.rs}, \texttt{table\_sumcheck} in the Python verifier and \texttt{verify\_tables} in the recursive guest.
+
+Let $\zkPinnedCV\in\K^4$ be the standard BLAKE2s initial chaining value used by all $128$ profiles in \noteref{zk-flock-endpoints}. Its second limb is nonzero. Define
+\[
+ \zkMetadataTest(c)=(\zkPinnedCV)_1 c_0+(\zkPinnedCV)_0 c_1.
+\]
+This linear functional vanishes both at $\zkPinnedCV$ and at the ordinary filler's zero chaining value, independently of message, counter, flags and digest. It therefore vanishes on every padding row of the enriched fixed-profile proposal in \noteref{zk-flock-coset}, even when the padding choices and their multiplicities are arbitrary.
+
+\begin{theorem}[Fixed-IV padding cannot hide the full table interface]\label{thm:zk-flock-metadata-floor}
+There is a public small-frame program with two valid private witnesses such that the following holds. If every added BLAKE2s row has chaining value in $\ker\zkMetadataTest$, then every execution-preserving padding strategy has common-simulator error at least
+\[
+ \frac{1-\tau_5/|\E|}{2}.
+\]
+This allows arbitrary other padding, memory masks and row permutations sampled before the honest table point. At the proposed height $\tau_5=18$, the bound exceeds $1/2-2^{-188}$.
+\end{theorem}
+\begin{proof}
+Let the real program perform one or more identical compressions with a fixed message and metadata. Its private chaining value is $\zkPinnedCV+b(1,0,0,0)$, where $b\in\{0,1\}$; the output remains private. All executions use the same addresses and instruction counts. A repeated compression can reuse its one small write-once frame, since every repetition writes the same digest.
+
+For $b=0$, every real and padding row lies in $\ker\zkMetadataTest$. The verifier's linear combination of the two disclosed chaining-value evaluations is therefore exactly zero, for every coin choice. For $b=1$, it equals
+\[
+ (\zkPinnedCV)_1\sum_{t\in\zkRealRows}\eq(r,t),
+\]
+where $\zkRealRows$ is the nonempty set of real rows after padding and shuffling. For each fixed padded witness this is a nonzero multilinear polynomial: at a Boolean point in $\zkRealRows$ it equals $(\zkPinnedCV)_1$. Its degree is at most $\tau_5$, so its zero probability at an independent uniform honest point is at most $\tau_5/|\E|$. Averaging over every private padding choice and permutation preserves this bound. The test for zero consequently distinguishes the two real views with advantage at least $1-\tau_5/|\E|$. A common simulator incurs at least half that distance for one witness.
+\end{proof}
+
+The proof uses actual disclosed values, not an ability to choose challenges or decode unopened commitments. It applies to the proposed fixed-IV family, not to padding with arbitrary chaining values. The native example \path{crates/lean_vm/examples/zk_flock_interface_audit.rs} verifies two complete VM proofs and extracts this invariant from their scalar streams. Both executions use one $256$-cell payload slot starting at address $1280$, with only the two public bootstrap cells outside it, and identical public heights. All table counts are already powers of two, so no native filler allocation can cause an unrelated reservation conflict. These concrete Fiat-Shamir runs confirm the wire and witness pair; the probability bound above is for the honest interactive experiment.
+
+\subsubsection{Five general compressions cover the missing metadata}
+
+In a legal compression, the four chaining-value limbs, the $64$-bit byte counter and the two $32$-bit flags are free inputs. Thus their six packed $\K$ coordinates can be sampled independently and uniformly; the R1CS computes a valid digest and internal witness from them. The flags need not be Boolean or standard hash-finalization flags in a padding compression. The ISA treats their bits as compression inputs.
+
+Use the physical order $\zkFlockOrder$. Reserve the five logical rows $768+i$, $0\le i\le4$, in bank zero. They lie outside both $\zkCompactSupport$ and the enlarged support $\zkTripleSupport$ from \noteref{zk-three-point-span}. Their physical positions are
+\[
+ \zkMetadataBank=\{48,49,50,51,52\}.
+\]
+At each, independently sample all six metadata limbs from $\K$, independently of the binary choices. Messages may be fixed, and all other complementary rows may be arbitrary fixed valid compressions. These five rows are part of the existing height, not additional table slots.
+
+\begin{lemma}[A shared six-column metadata mask]\label{lem:zk-flock-metadata-bank}
+At an independent uniform honest table point in $\E^{18}$, the six chaining-value/metadata evaluations have a witness-independent uniform law on $\E^6$, except on a common coin event of probability at most $21/|\E|$.
+\end{lemma}
+\begin{proof}
+The five weights factor into the common fifteen-coordinate selector for the block starting at $48$ and the five low-coordinate weights $\eq(r_{<3},i)$, $i=0,\ldots,4$. The selector vanishes with probability at most $15/|\E|$. The five low weights span $\E$ over $\K$ outside an event of probability at most $6/|\E|$, by Lemma~\ref{lem:five} and its equality-weight normalization. On their common good event the map $\K^5\to\E$ is surjective. Each of the six input columns supplies its own independent uniform $\K^5$ vector, so their six outputs are independent uniform extension elements. This is one shared rank event, not six separately charged events. Every fixed contribution from the other rows is absorbed by translation.
+\end{proof}
+
+\subsubsection{Add the third point for message and digest claims}
+
+In each of the first $96$ logical banks, choose independently between the baseline and that bank's fixed profile at all $1024$ positions of $\zkTripleSupport$. This uses $98304$ independent bits in the same size-$2^{18}$ batch. Fill the remaining $98304$ positions of those banks with fixed or independently randomized valid general compressions, including $\zkMetadataBank$. The last $32$ banks still allow $65536$ real compressions. The new support contains the former one; no profile, instruction or table-height change is required.
+
+Express the three honest points in the logical coordinates of $\zkFlockOrder$. For each bank, its binary choices now give the three sums $U_b,V_b,T_b$ at the prefix equality point, terminal batch point and table point, respectively. Theorem~\ref{thm:zk-three-point-span} makes all $96$ triples independent uniform elements of $\E^3$ on one shared good event. The first two families supply the same prefix and terminal feature maps as before. The twelve message/digest differences of the first $96$ profiles have fixed rank twelve over $\K$, certified by \auditref{zk_three_point_audit.py}; hence the third family supplies all twelve table value claims independently. Their feature matrix has no challenge-dependent minor or exceptional denominator.
+
+\begin{theorem}[Joint Flock endpoints and all value-column claims]\label{thm:zk-flock-metadata-endpoints}
+For the enlarged binary support and the five general compressions, the established Flock endpoint view together with all eighteen BLAKE2s value-column evaluations at the honest table point has a witness-free joint simulator with error at most
+\[
+ \zkTripleError+\frac{2205+1918+42+1+21}{2^{192}}
+ =\zkTripleError+\frac{4187}{2^{192}}<2^{-158}.
+\]
+The bound is uniform over the other fixed valid compression rows. It excludes non-value table columns, the table sumcheck coefficients, the intervening Flock rounds, the bus and the packed opening.
+\end{theorem}
+\begin{proof}
+Condition on the five general compressions and any additional independent complementary randomness. On the three-point span event, the $U,V,T$ families are independent. Excluding Boolean values in their three seven-coordinate bank points costs $42/2^{192}$ and makes all bank weights nonzero. The prefix and terminal maps are surjective outside their existing minor events of costs $2205/2^{192}$ and $1918/2^{192}$. The twelve-coordinate message/digest map is always surjective. The existing within-block denominator costs another $1/2^{192}$. Thus the prefix, terminal and twelve table-value laws can be replaced jointly by their independent uniform affine target laws, uniformly in the fixed complementary compressions.
+
+The binary profiles change no chaining value, counter or flag, so the remaining six metadata evaluations are functions of that complement and public coins only. The preceding replacement consequently preserves them jointly; it does not condition on any already simulated transcript. Average over the complement and apply Lemma~\ref{lem:zk-flock-metadata-bank} to replace these six values by an independent uniform element of $\E^6$. The simulator samples the twelve message/digest values, the six metadata values and the existing prefix/terminal simulators, reconstructing the one native terminal relation as before. The union bound gives the displayed error. No claim is made about how the omitted rounds couple these data.
+\end{proof}
+
+\paragraph{Legality and capacity of the compression bank.} One BLAKE2s row and its closing JUMP fit in a $32$-cell frame: use message offsets $0,1,2,3$, chaining-value offsets $8,9$, digest offsets $10,11$, metadata offset $12$, and closing-jump controls at $16,17,18$. No address aliases another role. The inputs determine the digest; the return closes the state cycle. Fresh frames give identical address/read-count patterns for every choice of compression inputs, so all count-column products remain unchanged. At the current memory profile, allocating a distinct such frame for every one of the $196608$ padding compressions occupies $6291456$ cells, or $24576$ of the available $49137$ slots of size $256$. The remaining $24561$ slots must accommodate the real execution and other libraries. This is a Flock-only capacity certificate, not their common allocation theorem.
+
+\paragraph{Next source and evidence.} The current candidate samples all fourteen free input limbs (message, chaining value and metadata) independently in the complementary padding positions. The joint theorem remains valid because the five-row bank is included and the binary choices are independent. It gives no law for that source's full packed PCS observations. \auditref{zk_flock_interface_audit.py} checks the old family's invariant, general-compression R1CS witnesses, fixed-address closed cycles, native-field mask translations, the capacity arithmetic and the exact error ledger. The three-point rank and twelve-feature certificate are checked separately. Run the native example with \texttt{cargo run --release -p lean\_vm --example zk\_flock\_interface\_audit}.

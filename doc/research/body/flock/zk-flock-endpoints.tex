@@ -5,6 +5,8 @@
 
 \paragraph{Physical row order matters for the omitted opening.} The proof below uses logical sparse and bank coordinates. \noteref{zk-flock-coset} rules out their separated physical order for full ZK and gives an explicit replacement permutation. The present endpoint proof is invariant under that permutation, by applying it to both independent batch points. The middle-round schedule is not invariant and remains a separate obligation.
 
+\paragraph{Extension.} \noteref{zk-flock-interface} enlarges the support to hide these endpoints jointly with all eighteen BLAKE2s value-column claims at the table point. The two-point proof below remains the endpoint component, not a theorem for those additional claims on its original source.
+
 \subsubsection{The terminal map is linear}
 
 Condition on all honest public coins. Let $\bar z(j)=\sum_t\eq(\fc_{\rm batch},t)z(j,t)$ be the batch-folded witness block. Strengthen the terminal view to include $v_c$, even though the protocol derives it rather than sending it. The following $83$ field values are linear functions of $\bar z$:

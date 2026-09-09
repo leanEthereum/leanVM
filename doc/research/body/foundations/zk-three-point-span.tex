@@ -1,0 +1,65 @@
+% !TeX root = ../../main.tex
+\subsection{Three independent evaluations from one binary source}\label{note:zk-three-point-span}
+
+Flock's prefix, terminal reduction and table claims use three independent honest batch points. The two-point lemma cannot supply fresh randomness to the third. Increasing the support, but not its eleven-coordinate ambient cube, resolves this particular problem. Put
+\[
+ \zkTripleSupport=\{s\in\cube{11}:s_0,\ldots,s_7\text{ arbitrary},\quad s_8+s_9+s_{10}\le1\},
+ \qquad |\zkTripleSupport|=1024,
+\]
+where the inequality is over integers. This contains the former compact support $\zkCompactSupport$.
+
+\begin{theorem}[Compact three-point span]\label{thm:zk-three-point-span}
+For three independent uniform points in $\E^{11}$, the triples of equality weights at positions in $\zkTripleSupport$ span $\E^3$ over $\Ftwo$ outside a coin event of probability $\zkTripleError<2^{-158}$. Independent fair bits at those positions therefore give three independent uniform extension-field evaluations on good coins.
+\end{theorem}
+\begin{proof}
+Write $Q=|\E|=2^{192}$ and work first with independent nonzero monomial multipliers. Let $V_j\subseteq\E^3$ be the binary span after $j$ unrestricted coordinates, starting from $(1,1,1)$. The last three coordinates of the support supply three independent random diagonal multiples of $V_8$, alongside $V_8$ itself.
+
+\paragraph{Reach dimension $256$ jointly.} Each single-coordinate projection reaches dimension $32$ after five steps outside a combined event of probability $3B$, with $B$ from \noteref{zk-two-point-span}. On this event all three projections are injective. The same pair-intersection argument used there gives full pair-projection dimension $128$ after seven steps, outside a further event of probability at most $3(J_6+J_7)$. These are bounds on intersected good events, not bounds obtained by dividing by the probability of earlier success. The first-five failure is charged once per coordinate, not once per pair.
+
+On the resulting event, $\dim V_7=128$ and every pair projection is injective. Thus $V_7$ has no nonzero vector supported on one coordinate. Its subspace supported on any two coordinates has dimension at most $128-32=96$. A nonzero intersection with its eighth random diagonal multiple then has probability at most
+\[
+ B_8=\frac{(2^{128}-1)^2}{(Q-1)^3}
+      +3\frac{(2^{96}-1)^2}{(Q-1)^2}.
+\]
+The terms count possible pairs with support three and two, respectively; matching a specified pair on $k$ nonzero coordinates has probability $(Q-1)^{-k}$. Outside this event, $\dim V_8=256$.
+
+\paragraph{The last three multiples.} For a nonempty coordinate support of size $k$, let $d$ be the dimension of the corresponding projection of $V_8$. The trace-pairing argument of the two-point note bounds the probability of a surviving annihilator with this support by
+\[
+ h_k(d)=\min\{1,2^{192k+1-4d}\},
+\]
+using $(Q/(Q-1))^9<2$. Indeed, at most $2^{192k-d}$ characters annihilate the first copy, and each of the three independent diagonal copies costs at most $2^{-d}(Q/(Q-1))^k$ for a fixed character with that exact support. For support three, the good-event bound is $h_3(256)=2^{-447}$. Small projected ranks must be averaged, not discarded.
+
+\paragraph{Two-coordinate projections.} Before the eighth step their dimension is $128$ and each single projection has dimension at least $32$. The expected number of nonzero vectors in the intersection with a random diagonal multiple is at most
+\[
+ C_2=\frac{(2^{128}-1)^2}{(Q-1)^2}
+       +2\frac{(2^{96}-1)^2}{Q-1}.
+\]
+The second term accounts for axis-supported pairs. If the new projected dimension $D$ satisfies $D\le d<256$, the intersection contains at least $2^{256-d}-1$ nonzero vectors. Therefore its average final annihilator error is at most
+\[
+ A_2=h_2(256)+\sum_{d=128}^{255}
+       \min\!\left\{1,\frac{C_2}{2^{256-d}-1}\right\}h_2(d).
+\]
+The bound is uniform over every preceding good subspace and does not condition on eighth-step success.
+
+\paragraph{Single-coordinate projections.} For an $a$-dimensional binary subspace of $\E$ and a uniform nonzero multiplier, the new dimension has tail bound
+\[
+ p(a,b)=\min\!\left\{1,
+  \frac{(2^a-1)^2}{(Q-1)(2^{2a-b}-1)}\right\},
+ \qquad a\le b<\min\{2a,192\}.
+\]
+This is the same intersection count. Define $F_0(a)=h_1(a)$ and, with $m_a=\min\{2a,192\}$,
+\[
+ F_{j+1}(a)=F_j(m_a)+\sum_{b=a}^{m_a-1}p(a,b)F_j(b).
+\]
+Nonnegativity and the tail bound show inductively that $F_j(a)$ bounds the expected final error after $j$ further doublings from any fixed $a$-dimensional subspace. Starting at step five gives $A_1=F_3(32)$. This average is taken before restricting to any later joint success event, so there is no hidden conditioning loss.
+
+\paragraph{Total error.} Charge the first-five, pair-growth and eighth-step events, then the seven possible nonempty character supports. Returning to equality weights on the $33$ honest coordinates costs $33/Q+66/(Q-1)$, by the normalization and coupling in the two-point note. Thus we may set
+\[
+ \zkTripleError={}
+ 3B+3(J_6+J_7)+B_8+3A_1+3A_2+2^{-447}
+ +\frac{33}{Q}+\frac{66}{Q-1}.
+\]
+Exact rational arithmetic verifies $A_1,A_2<2^{-250}$ and $\zkTripleError+4187/Q<2^{-158}$. The displayed bounds are uniform over the intermediate subspaces, which completes the probability proof.
+\end{proof}
+
+\paragraph{Evidence and scope.} \auditref{zk_three_point_audit.py} reproduces the rational bound, certifies native binary rank $576$ on the stated support, and checks that the first $96$ compression profiles span the twelve message/digest features. The proof above, not the sampled rank, supplies the uniform probability claim. The theorem concerns three independent honest points, not arbitrary PCS queries or conditioning on the missing sumcheck transcript.
