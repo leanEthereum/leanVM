@@ -3,7 +3,7 @@
 
 \paragraph{Conclusion.} Six low queries defeat the current fixed-completion source, with common-simulator error greater than $2^{-93}$ at rate one and greater than $2^{-123}$ even at rate four. This rules out $128$-bit privacy for this construction at every supported rate, despite its successful one-coset theorems and sampled full-query ranks. The note also gives an exact conditional-rank criterion and audit for all actual initial lane-$59$ queries jointly with the terminal/GKR boundary. That criterion remains a route for a repaired source, not a theorem that the present source satisfies. Other lanes, earlier reductions and later PCS messages are excluded from its positive claim.
 
-This note analyzes the source before the extra long-chain bank of \noteref{zk-flock-lowbank}. That bank repairs the fixed six-query test and proves a larger low-coset theorem. The full-query criterion below still needs a uniform bound for the enlarged source.
+This note's negative results analyze the source before the extra long-chain bank of \noteref{zk-flock-lowbank}. The balanced bank repairs the fixed six-query test and proves a thirty-two-value high-region theorem. The full-query criteria below still need a uniform bound for the enlarged source.
 
 \subsubsection{One source for the whole query vector}
 
@@ -42,7 +42,7 @@ Let $\zkJointQueryDefect$ be the probability that this equality fails under the 
 
 \subsubsection{A quantitative route through distinguishing supports}
 
-The repaired source in \noteref{zk-flock-lowbank} still fails on some concentrated query sets. Perfect privacy for every query set is therefore the wrong remaining goal. The following criterion isolates precisely the exceptional sets that matter, without treating harmless public-prefix dependencies as leaks.
+The original long-chain matching in \noteref{zk-flock-lowbank} already illustrates that some concentrated query sets can distinguish a source even when they are very rare. The balanced matching has a stronger local theorem; perfect privacy for arbitrary query sets remains unproved and is not required. The following criterion isolates the exceptional sets that matter, without treating harmless public-prefix dependencies as leaks.
 
 Fix the non-query honest coins $\zkPreQueryCoins$. Evaluate the source at the entire initial domain of size $D$, retaining the $31$ terminal/child fields, and let $\zkJointNoiseCode\subseteq\E^{31}\times\K^D$ be its binary image. Choose an efficiently computable public baseline $v_0$. Let the binary space $\zkJointShiftSpace$ contain every possible complementary contribution minus $v_0$. This containment, including the public count-prefix contract, is an obligation on the common completion; arbitrary unknown offsets cannot be omitted.
 
@@ -114,4 +114,4 @@ All other metadata bits have zero lane difference. Arbitrary compression-input c
 
 The six queries are outside the region $\gen^{18}+\subsp_{18}$ of the positive twelve-query theorem, so there is no contradiction. The obstruction is present even though every one of these six singleton maps has full rank. It concerns the specified source, real-row placement and fixed completion, not arbitrary count-normalized completions, additional legal padding randomizers or every possible small-frame programme. It is also not a transfer theorem for Fiat-Shamir challenges.
 
-\paragraph{Next proof obligation.} Repair the source or the common completion so that the six-query test no longer exposes the real difference, then analyze the complete matrix again. Adding entropy that lies in this test's kernel does nothing. A nonzero binary minor at one tuple of field coins does not by itself yield a useful probability bound: extracting binary coordinates introduces Frobenius powers. The finite $320$-bit dense-disclosure lemma likewise does not control this much larger retained view. A repaired construction needs a uniform rank or private-image theorem, the public count-prefix contract, all other initial lanes and authentication, later PCS messages and the omitted VM reductions.
+\paragraph{Next proof obligation.} Analyze the complete matrix for the balanced source, not independent applications of its selected-coset theorems. A nonzero binary minor at one tuple of field coins does not by itself yield a useful probability bound: extracting binary coordinates introduces Frobenius powers. The finite $320$-bit dense-disclosure lemma likewise does not control this much larger retained view. The construction needs a uniform rank or private-image theorem, the public count-prefix contract, all other initial lanes and authentication, later PCS messages and the omitted VM reductions.

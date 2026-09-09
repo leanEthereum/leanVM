@@ -270,7 +270,7 @@ fn novel_parameters() -> ([F64; 18], [F64; 18]) {
 
 type QuerySource = (Vec<(usize, F64)>, Vec<(usize, u64)>);
 
-fn lowbank_certificate() {
+fn lowbank_positions() -> Vec<usize> {
     let mut input = String::new();
     std::io::stdin().read_to_string(&mut input).unwrap();
     let positions: Vec<usize> = input.split_whitespace().map(|word| word.parse().unwrap()).collect();
@@ -280,15 +280,20 @@ fn lowbank_certificate() {
     unique.dedup();
     assert_eq!(unique.len(), 240);
     assert!(positions.iter().all(|&index| index < 12288 && index & 15 == 0));
+    positions
+}
+
+fn lowbank_certificate() {
+    let positions = lowbank_positions();
     let (roots, inverses) = novel_parameters();
-    let mut coefficients = vec![F64::ZERO; 1 << 18];
+    let mut coefficients = vec![F64::ZERO; 1 << 19];
     let scales: Vec<_> = (0..120).map(|index| F64(3) * g_pow(32 * index)).collect();
     for (pair, &scale) in positions.chunks_exact(2).zip(&scales) {
         coefficients[pair[0]] += scale;
         coefficients[pair[1]] += scale;
     }
-    AdditiveNttF64::standard(18).forward_transform_scalar(&mut coefficients);
-    parallel::for_each(((1 << 18) - (1 << 13)) / 16, |coset| {
+    AdditiveNttF64::standard(19).forward_transform_scalar(&mut coefficients);
+    parallel::for_each(((1 << 19) - (1 << 13)) / 16, |coset| {
         let query = (1 << 13) + 16 * coset;
         let mut value = F64(query as u64);
         let mut factors = roots;
@@ -322,7 +327,56 @@ fn lowbank_certificate() {
         assert!(coefficients[query..query + 16].iter().all(|&value| value == sum));
     });
     println!(
-        "Exhaustive low-bank certificate: all 15872 cosets in U18 outside U13 have scalar rank 64 and match the native additive NTT."
+        "Exhaustive low-bank certificate: all 32256 cosets in U19 outside U13 have scalar rank 64 and match the native additive NTT."
+    );
+}
+
+fn balanced_quotient_certificate() {
+    let positions = lowbank_positions();
+    for (number, pair) in positions.chunks_exact(2).enumerate() {
+        assert_eq!(pair[0] & 16, if number < 56 { 0 } else { 16 });
+        assert_eq!(pair[1] & 16, 16);
+    }
+    let (roots, inverses) = novel_parameters();
+    let scales: Vec<_> = (0..120).map(|index| F64(3) * g_pow(32 * index)).collect();
+    parallel::for_each(1 << 13, |coset| {
+        let query = (1 << 18) + 32 * coset;
+        let mut value = F64(query as u64);
+        let mut factors = roots;
+        for bit in 0..14 {
+            factors[bit] = value * inverses[bit];
+            value *= value + roots[bit];
+        }
+        let mut weights = [F64::ONE; 512];
+        for index in 1usize..512 {
+            let bit = index.trailing_zeros() as usize;
+            weights[index] = weights[index & (index - 1)] * factors[bit + 5];
+        }
+        let mut pivots = [[0u64; 64]; 2];
+        let mut ranks = [0; 2];
+        for (number, (pair, &scale)) in positions.chunks_exact(2).zip(&scales).enumerate() {
+            let (group, image, multiplier) = if number < 56 {
+                (0, scale * weights[pair[0] >> 5], F64(1 << 16))
+            } else {
+                (1, scale * (weights[pair[0] >> 5] + weights[pair[1] >> 5]), F64(1 << 8))
+            };
+            for image in [image, multiplier * image] {
+                let mut word = image.0;
+                while word != 0 {
+                    let bit = 63 - word.leading_zeros() as usize;
+                    if pivots[group][bit] == 0 {
+                        pivots[group][bit] = word;
+                        ranks[group] += 1;
+                        break;
+                    }
+                    word ^= pivots[group][bit];
+                }
+            }
+        }
+        assert_eq!(ranks, [64, 64], "balanced quotient ranks at coset {query}");
+    });
+    println!(
+        "Exhaustive balanced quotient certificate: both triangular maps have rank 64 on all 8192 high-region 32-point cosets."
     );
 }
 
@@ -840,6 +894,10 @@ fn main() {
         }
         Some("--lowbank-certificate") => {
             lowbank_certificate();
+            return;
+        }
+        Some("--balanced-quotient-certificate") => {
+            balanced_quotient_certificate();
             return;
         }
         _ => {}

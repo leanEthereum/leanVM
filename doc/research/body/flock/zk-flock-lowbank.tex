@@ -1,11 +1,11 @@
 % !TeX root = ../../main.tex
 \subsection{A long-chain repair for the low query region}\label{note:zk-flock-lowbank}
 
-\paragraph{Result.} A disjoint bank of $3840$ valid compression cycles repairs the six-query obstruction and jointly hides all sixteen lane-$59$ values in any one coset inside $\subsp_{18}\setminus\subsp_{13}$, together with the twelve final GKR children, all BLAKE2s terminal claims, the established Flock endpoints, memory envelope and shared root. The conditional joint error is below $2^{-132}$. Public heights and verifier equations are unchanged. This is one selected coset, not the complete multi-coset opening; common completion and the other full-view obligations remain open.
+\paragraph{Result.} A disjoint bank of $3840$ valid compression cycles jointly hides all sixteen lane-$59$ values in any one coset inside $\subsp_{19}\setminus\subsp_{13}$, together with the twelve final GKR children, all BLAKE2s terminal claims, the established Flock endpoints, memory envelope and shared root, below $2^{-132}$. A balanced pairing of these same rows also hides a complete thirty-two-point coset in $\gen^{18}+\subsp_{18}$ below $2^{-151}$. The latter joins two adjacent sixteen-point cosets, not two independent simulators. Public heights and verifier equations are unchanged. Arbitrary multi-coset queries, common completion and the other full-view obligations remain open.
 
 \subsubsection{An explicit low-coordinate source}
 
-Start with the wider library of \noteref{zk-flock-children}. Among physical BLAKE2s positions below $2^{14}$, select every aligned sixteen-row block whose rows are outside that library, the mandatory binary source and the five protected general-input positions. There are exactly $240$ such blocks; their bases are below $12288$. Sort their bases, pair the first $120$ with the last $120$, and write the resulting pairs as $\zkLowPairs=\{(u_j,v_j):0\le j<120\}$. The only other free low positions are $437,438,439$, which remain unused by this bank. This rule is public and independently enumerated by the audit.
+Start with the wider library of \noteref{zk-flock-children}. Among physical BLAKE2s positions below $2^{14}$, select every aligned sixteen-row block whose rows are outside that library, the mandatory binary source and the five protected general-input positions. There are exactly $240$ such blocks; their bases are below $12288$. Sort the $56$ bases whose bit four is zero and separately the $184$ whose bit four is one. Pair the former with the first $56$ of the latter, then pair the remaining lower $64$ with the remaining upper $64$. Enumerate these $120$ pairs in that order as $\zkLowPairs=\{(u_j,v_j):0\le j<120\}$. The only other free low positions are $437,438,439$, which remain unused. This public balanced matching replaces the earlier sorted-half matching discussed below; it uses exactly the same rows.
 
 Use one fresh $32$-cell frame at exponent $1280+32\cdot65535$, compression code location $1090$ and its closing return at $1091$. The frame and code are disjoint from the earlier libraries. Repeatedly execute the same baseline compression/return cycle, with return controls at offsets $16,17,18$. For pair number $n=16j+t$, place its two compressions at $u_j+t,v_j+t$, for $t<16$. Each of the ten compression count columns then has labels $\gen^{2n},\gen^{2n+1}$. Independently swap these two labels in every column. The $3840$ reads of each operand and code location form one complete chain; the return rows and their labels remain fixed. All choices preserve every local constraint, bus multiset, count-column product, memory image and compression witness.
 
@@ -18,7 +18,7 @@ For $x+\subsp_4\subseteq\subsp_{18}\setminus\subsp_{13}$, all lane-$59$ blocks e
  \zkLowWeights_j(x)=(1+\gen)\gen^{32j}
        \bigl(\novel_{u_j}(x)+\novel_{v_j}(x)\bigr).
 \]
-The native exhaustive certificate proves binary rank $64$ for these $120$ scalars at all $15872$ sixteen-point cosets in the region, and checks the same polynomial through the actual additive NTT. Independent bits for each $t$ therefore make all sixteen coefficient coordinates, and hence all sixteen raw values, exactly uniform. We must still account for the terminal $\mathsf{cnt\_cv1}$ claim made from those same bits.
+The native exhaustive certificate proves binary rank $64$ for these $120$ scalars at all $32256$ sixteen-point cosets in $\subsp_{19}\setminus\subsp_{13}$, including all $15872$ cosets in the low region under consideration, and checks the same polynomial through the actual additive NTT. Independent bits for each $t$ therefore make all sixteen coefficient coordinates, and hence all sixteen raw values, exactly uniform. We must still account for the terminal $\mathsf{cnt\_cv1}$ claim made from those same bits.
 
 Split the honest terminal row point into its four low physical coordinates and fourteen high coordinates. In the latter variables define
 \[
@@ -64,13 +64,58 @@ Next use only the new bank's $\mathsf{cnt\_cv1}$ bits. By the preceding argument
 Now apply the memory/root and compression-value/Flock hybrids in their established order. All old and new metadata choices preserve the required multisets and Flock witness. The combined error is at most the old twelve-value ledger, plus $\zkLowBankError$, the additional $20/2^{192}$ and the memory/root term. Exact rational arithmetic bounds this sum below $2^{-132}$. No conditioning of an unconditional marginal theorem on the disclosed children or query values is used. The bound is uniform in $x$, so independent honest-query selection adds no error.
 \end{proof}
 
-The old twelve-value theorem on a coset inside $\gen^{18}+\subsp_{18}$ also remains true, with its previous error: condition on all new bits and apply its complement-uniform proof. This does not prove the two coset views jointly. Nor may a simulator publish a separate sixteen-value envelope for every actual query without a proof of their joint distribution.
+\subsubsection{Two adjacent sixteen-point cosets jointly}
 
-\paragraph{A surviving concentrated-query dependency.} The complete enlarged source has raw binary rank $1760$ out of $1792$ on the twenty-eight points $12288,\ldots,12315$, and the native audit constructs a functional separating the private-pointer difference. Its first twenty-seven points instead have full rank $1728$. The complete thirty-two-point block has rank $1760$ too. Thus the repaired source is not perfectly private on arbitrary query sets. There are $7936$ cosets of $\subsp_5$ in $\subsp_{18}\setminus\subsp_{13}$. For independent honest queries, the probability that any one receives at least twenty-eight distinct queried points is at most
+Fix $x+\subsp_5\subseteq\gen^{18}+\subsp_{18}$ and put
+\[
+ \zkThirtyTwoLow{d}=\sum_j f_{32j+d}\novel_{32j}(x),\qquad d<32.
+\]
+The thirty-two raw values are an invertible evaluation map of these coefficients. The block weights are one for $\mathsf{cnt\_cv1}$ and $\mathsf{cnt\_out0}$ and zero for the other changing blocks. All old non-count metadata changes cancel on this region. Core swaps fill the pairs $(c+16+8b,c+20+8b)$; wider swaps fill $(c+4b,c+4b+8)$, for $c<4,b<2$. Their sixteen independent kernel coordinates leave the following sixteen quotients fixed:
+\[
+ \begin{aligned}
+ \zkThirtyTwoLower{c}{b}&=\zkThirtyTwoLow{c+4b}+\zkThirtyTwoLow{c+4b+8},\\
+ \zkThirtyTwoUpper{c}{b}&=\zkThirtyTwoLow{16+c+8b}+\zkThirtyTwoLow{20+c+8b}.
+ \end{aligned}
+\]
+The two halves of each core or wider bank have the same rank-$64$ scalar maps already certified in \noteref{zk-flock-sixteen}, with the core map rescaled by the nonzero factor $\novel_{16}(x)^{-1}$. Thus their joint raw image is precisely the $16$-dimensional kernel of this quotient map over $\K$.
+
+For the balanced new bank define
+\[
+ \begin{aligned}
+ \zkBalancedLowWeight{j}&=(1+\gen)\gen^{32j}\novel_{u_j}(x),&&j<56,\\
+ \zkBalancedHighWeight{j}&=(1+\gen)\gen^{32j}
+       \bigl(\novel_{u_j-16}(x)+\novel_{v_j-16}(x)\bigr),&&56\le j<120.
+ \end{aligned}
+\]
+The native exhaustive certificate proves, at every one of the $8192$ cosets in this region,
+\[
+ \begin{aligned}
+ \operatorname{span}_{\Ftwo}\{\zkBalancedLowWeight{j},\gen^{16}\zkBalancedLowWeight{j}:j<56\}&=\K,\\
+ \operatorname{span}_{\Ftwo}\{\zkBalancedHighWeight{j},\gen^8\zkBalancedHighWeight{j}:56\le j<120\}&=\K.
+ \end{aligned}
+\]
+These are fixed query maps, not assertions about random extension points.
+
+\begin{theorem}[Thirty-two high-region values with the VM boundary]\label{thm:zk-highbank-interface}
+Under the same common-completion assumptions, all thirty-two raw lane-$59$ values in one coset inside $\gen^{18}+\subsp_{18}$ join the established terminal, final-child and Flock interface below $2^{-155}$, or below $2^{-151}$ including memory and the shared root. No additional rows, error terms or verifier equations are needed.
+\end{theorem}
+\begin{proof}
+Condition on all new-bank bits. The core replacement in Theorem~\ref{thm:zk-flock-twelve-interface} hides nineteen terminal metadata fields, twelve final GKR children and two upper kernel coordinates per child. Removing the nonzero factor $\novel_{16}(x)$ from its fixed query map changes neither the $128$-bit disclosure budget nor the $320$-bit joint budget with the earlier extension evaluation. Retain the sixteen lower coefficients and eight upper pair sums during this replacement, not the changing partners of the upper kernel coordinates. The two disjoint halves of each wider bank then fill two lower kernel coordinates, instead of only their sum. Each scalar map is onto, and all its terminal/child translations are absorbed by the first replacement. We have obtained sixteen independent kernel uniforms and the replaced boundary, while retaining the sixteen quotients and every new bit.
+
+Use only the new $\mathsf{cnt\_cv1}$ bits; condition on the other new columns. For $j\ge56$, both endpoints have bit four set, so these swaps change no lower coefficient. Slots $t=c,c+4$ jointly fill $\zkThirtyTwoUpper{c}{0}$ using the second scalar span above; slots $t=c+8,c+12$ independently fill $\zkThirtyTwoUpper{c}{1}$. All eight upper quotients therefore become uniform while the lower quotients remain fixed.
+
+Now use $j<56$. The left endpoint has bit four zero and the right endpoint has it set. Slots $t=c,c+8$ jointly fill $\zkThirtyTwoLower{c}{0}$ by the first scalar span; slots $t=c+4,c+12$ independently fill $\zkThirtyTwoLower{c}{1}$. Their upper, kernel and terminal/child changes are absorbed by the preceding uniforms. The two stages use disjoint pairs, and within each stage every displayed quotient uses disjoint slot bits. Thus all thirty-two coefficient coordinates and the preceding boundary are jointly uniform. Evaluate, discard the auxiliary bits and complete the established memory/root and compression-value/Flock hybrids. Both quotient replacements are exact, so the old error ledger is unchanged.
+\end{proof}
+
+Together with Theorem~\ref{thm:zk-lowbank-interface}, this also hides one entire sixteen-point coset chosen anywhere in $\subsp_{19}\setminus\subsp_{13}$ below $2^{-132}$. Select the corresponding simulator using the public query indices and discard unneeded high-region values. The low and high cases are alternatives, not simultaneous views. No thirteen-query occupancy exception is needed for a selected high-region coset after this repair. Arbitrary pairs of nonadjacent cosets and the complete query family remain unproved.
+
+\paragraph{Why the original matching needed replacement.} The earlier rule paired the lower $120$ sorted bases with the upper $120$. Exactly $30$ pairs then touched a base whose bit four was zero. On a high-region thirty-two-point coset, every old source fixes the eight lower quotients displayed above. Each receives contributions from only two slot families of $30$ bits; the equally weighted two count columns give the same directions, not twice the rank. Their joint binary rank is therefore at most $8\cdot60$, instead of $8\cdot64$. The full raw rank is at most $2016$, and the native check attains this bound at $x=\gen^{18}$. Reordering the old pair labels cannot fix this dimension deficit. The balanced matching uses all $56$ lower bases in distinct cross-half pairs and removes that obstruction.
+
+For the original matching, the twenty-eight points $12288,\ldots,12315$ also give raw rank $1760$ out of $1792$ and a functional separating the private-pointer difference. Its first twenty-seven points have full rank $1728$; the complete thirty-two-point block has rank $1760$. The audit preserves this historical regression and checks that the balanced source fills the displayed low thirty-two-point view. There are $7936$ cosets of $\subsp_5$ in $\subsp_{18}\setminus\subsp_{13}$. For independent honest queries, the probability that any one receives at least twenty-eight distinct queried points is at most
 \[
  7936\binom{32}{28}\frac{q(q-1)\cdots(q-27)}{D^{28}},
  \qquad D=2^{22+\rexp}.
 \]
-This is below $2^{-399},2^{-458},2^{-505},2^{-548}$ at rates one through four. The union bound chooses the coset, its twenty-eight distinct points and distinct query positions hitting them. It bounds this concentration event, not all rank defects: no theorem yet forces an arbitrary distinguishing query set to have this concentration. In particular, success on the displayed twenty-seven points does not cover all twenty-seven-point sets.
+This is below $2^{-399},2^{-458},2^{-505},2^{-548}$ at rates one through four. The union bound chooses the coset, its twenty-eight distinct points and distinct query positions hitting them. It bounds this concentration event, not all rank defects of either matching. No theorem yet forces an arbitrary distinguishing query set to have this concentration.
 
-\paragraph{Evidence and boundary.} \auditref{zk_flock_lowbank_audit.py} enumerates the exact free-block reservation, verifies all new cycles and randomized read chains with \texttt{--full}, checks the scalar maps exhaustively through the native NTT and checks the exact Moore, low-coordinate and combined ledgers. Its full mode also verifies the twenty-seven/twenty-eight-query certificates against every source direction, using exact prefix truncation, and the concentration bounds. A separate native-field rank check gives $1216$ for the sixteen raw coordinates and their terminal extension value. The full-query audit accepts \texttt{--lowbank} to include every new mask in the actual terminal/GKR/query matrix, whose sampled sixteen-value joint rank is $6976$. Its three-group check also verifies the required zero projections and separate ranks $3264,1216,2496$. The six-query obstruction no longer applies to this enlarged source. Full multi-coset privacy, other lanes and PCS stages, omitted GKR/table/Flock messages, authentication and one common valid sampler are still required.
+\paragraph{Evidence and boundary.} \auditref{zk_flock_lowbank_audit.py} enumerates the reservation and balanced matching, checks all $32256$ sixteen-point scalar maps through the native NTT, and checks both thirty-two-point quotient spans at all $8192$ high-region cosets. With \texttt{--full}, it also verifies complete read chains, historical and repaired query regressions and the old-source/new-quotient projections. The exact low-region Moore and combined ledgers remain below $2^{-132}$. A separate rank check gives $1216$ for sixteen low raw coordinates and their terminal extension value. The full-query audit's \texttt{--lowbank} mode uses the balanced source in the actual terminal/GKR/query matrix; its sampled high-region thirty-two-value joint rank is $8000$. None of these checks supplies a uniform theorem for arbitrary multi-coset queries, other lanes and PCS stages, omitted GKR/table/Flock messages, authentication or one common valid sampler.

@@ -15,7 +15,7 @@ from zk_flock_children_audit import (
     families,
     pair,
 )
-from zk_flock_coset_audit import reordered_index
+from zk_flock_coset_audit import novel_factors, reordered_index
 from zk_flock_pair_opening_audit import blake_bus_forms
 from zk_memory_frames_audit import joint_root_bound
 from zk_pcs_audit import Tower, verifier_module
@@ -33,7 +33,17 @@ def positions():
     assert len(blocks) == 240 and max(blocks) < 12288
     assert available - {base + child for base in blocks for child in range(16)} == {437, 438, 439}
     print("240 disjoint free low blocks provide 3840 rows, leaving the existing source and five general-input rows untouched.", flush=True)
-    return list(zip(blocks[:120], blocks[120:]))
+    lower = [base for base in blocks if base & 16 == 0]
+    upper = [base for base in blocks if base & 16]
+    assert len(lower) == 56 and len(upper) == 184
+    return list(zip(lower, upper[:56])) + list(zip(upper[56:120], upper[120:]))
+
+
+def sorted_matching(blocks):
+    bases = sorted(base for pair in blocks for base in pair)
+    pairs = list(zip(bases[:120], bases[120:]))
+    assert sum(left & 16 == 0 or right & 16 == 0 for left, right in pairs) == 30
+    return pairs
 
 
 def build(verifier, blocks):
@@ -102,12 +112,13 @@ def extra_query_sources(field, blocks):
 def cluster_certificate(field, verifier, blocks):
     from zk_flock_multicoset_audit import query_sources
 
-    source = query_sources(field)[0] + extra_query_sources(field, blocks)
-    source = {tuple((index, value) for index, value in polynomial if index < 1 << 14) for polynomial in source}
-    source.discard(())
-    assert len(source) == 2876
     private = [(12288 + index, field.kmul(1 << index, 3)) for index in range(8)]
-    for count, rank, membership in ((27, 1728, "INSIDE 0"), (28, 1760, "OUTSIDE 0 ")):
+    for balanced, count, rank, membership in ((False, 27, 1728, "INSIDE 0"), (False, 28, 1760, "OUTSIDE 0 "), (True, 32, 2048, "INSIDE 0")):
+        selected = blocks if balanced else sorted_matching(blocks)
+        source = query_sources(field)[0] + extra_query_sources(field, selected)
+        source = {tuple((index, value) for index, value in polynomial if index < 1 << 14) for polynomial in source}
+        source.discard(())
+        assert len(source) == 2876
         payload = [count, 0, *range(12288, 12288 + count), 0]
         for polynomials in (sorted(source), [private]):
             payload.append(len(polynomials))
@@ -126,7 +137,8 @@ def cluster_certificate(field, verifier, blocks):
         assert f"RANK {rank} {64 * count}\n" in result.stdout
         assert any(line.startswith(membership) for line in result.stdout.splitlines())
         print(
-            f"Exact low-cluster certificate: {count} queries, rank {rank}/{64 * count}, private pointer {membership.split()[0].lower()}.", flush=True
+            f"{'Balanced' if balanced else 'Historical sorted'} matching: {count} queries, rank {rank}/{64 * count}, private pointer {membership.split()[0].lower()}.",
+            flush=True,
         )
     for rate, bits in enumerate((399, 458, 505, 548), 1):
         count = verifier.derive_config(28, rate).queries[0]
@@ -222,7 +234,7 @@ def decomposition_certificate(field, verifier, old, extra):
 
 
 def sampled_rank(field, blocks):
-    for query in (8192, 12288, 16384, 65536, 262128):
+    for query in (8192, 12288, 16384, 65536, 262128, 262144, 393216, 524272):
         weights = field.novel(14, query)
         values = [field.kmul(3, weights[left] ^ weights[right]) for left, right in blocks]
         power = 1
@@ -231,6 +243,41 @@ def sampled_rank(field, blocks):
             power = field.kmul(power, 1 << 32)
         assert len(binary_basis(values)) == 64
     print("Sampled low-bank scalar maps have rank 64; the native run checks every claimed coset.", flush=True)
+
+
+def invariant_rank(field, blocks):
+    from zk_flock_multicoset_audit import query_sources
+
+    for query in (262144, 393216, 524272):
+        factors = novel_factors(field, 19, query)
+        weights = {0: 1}
+
+        def weight(index, weights=weights, factors=factors):
+            if index >= 1 << 19:
+                return 0
+            if index not in weights:
+                bit = index.bit_length() - 1
+                weights[index] = field.kmul(factors[bit], weight(index ^ (1 << bit)))
+            return weights[index]
+
+        def projections(polynomial):
+            invariant, raw, quotient = 0, 0, 0
+            for index, value in polynomial:
+                invariant ^= field.kmul(value, weight(index & ~15)) << (64 * (index & 3))
+                coefficient = field.kmul(value, weight(index & ~31))
+                low = index & 31
+                slot = 4 * (low & 3) + (((low >> 2) & 1) if low < 16 else 2 + ((low >> 3) & 1))
+                raw ^= coefficient << (64 * low)
+                quotient ^= coefficient << (64 * slot)
+            return invariant, raw, quotient
+
+        old = [projections(polynomial) for polynomial in query_sources(field)[0]]
+        new = [projections(polynomial) for polynomial in extra_query_sources(field, blocks)]
+        assert not any(invariant or quotient for invariant, _, quotient in old)
+        assert len(binary_basis([raw for _, raw, _ in old])) == 1024
+        assert len(binary_basis([invariant for invariant, _, _ in new])) == 256
+        assert len(binary_basis([quotient for _, _, quotient in new])) == 1024
+    print("Old 32-point kernel rank 1024 and balanced quotient rank 1024, with all old invariants fixed, at the tested native points.", flush=True)
 
 
 def terminal_rank(field, blocks):
@@ -262,8 +309,16 @@ if __name__ == "__main__":
     if arguments.full:
         build(verifier, blocks)
         cluster_certificate(field, verifier, blocks)
+        invariant_rank(field, blocks)
     subprocess.run(
         ["cargo", "run", "--release", "-p", "lean_vm", "--example", "zk_flock_pair_opening_audit", "--", "--lowbank-certificate"],
+        input=" ".join(str(value) for block in blocks for value in block),
+        text=True,
+        check=True,
+        cwd=Path(__file__).resolve().parents[3],
+    )
+    subprocess.run(
+        ["cargo", "run", "--release", "-p", "lean_vm", "--example", "zk_flock_pair_opening_audit", "--", "--balanced-quotient-certificate"],
         input=" ".join(str(value) for block in blocks for value in block),
         text=True,
         check=True,
