@@ -7,7 +7,7 @@ from types import FunctionType, SimpleNamespace
 from zk_count_mixed_audit import echelon
 from zk_flock_skip_audit import witness
 from zk_pcs_audit import verifier_module
-from zk_two_point_audit import error_bounds
+from zk_two_point_audit import compact_error_bounds
 
 
 def transpose_rows(verifier, row_weights):
@@ -99,9 +99,9 @@ def replay(verifier, values, public, point, challenge, alpha, lc_challenge, nati
 def bound_certificate():
     terminal_degree = 3 * 71 + sum(2 * (73 + 2 * index) for index in range(8)) + 64 * 8 - (73 + 2 * 7)
     assert terminal_degree == 1918
-    _, span, _ = error_bounds()
-    assert span + Fraction(2205 + terminal_degree + 28 + 1, 1 << 192) < Fraction(1, 1 << 148)
-    print("Joint endpoint bound: two-point span error plus 4152/2^192, below 2^-148", flush=True)
+    _, _, span = compact_error_bounds()
+    assert span + Fraction(2205 + terminal_degree + 28 + 1, 1 << 192) < Fraction(1, 1 << 158)
+    print("Compact joint endpoint bound: two-point span error plus 4152/2^192, below 2^-158", flush=True)
 
 
 def simulator_certificate(verifier, public, point, challenge, alpha, lc_challenge, rng):
@@ -138,8 +138,8 @@ def audit(verifier):
         differences.append(difference[:17] + difference[18:])
         if index % 16 == 15:
             print(f"Verified {index + 1} terminal feature directions", flush=True)
-    rank = len(echelon(verifier, differences))
-    print(f"Terminal observations with final lincheck constant removed: extension rank {rank}/82", flush=True)
+    rank = len(echelon(verifier, differences[:96]))
+    print(f"First 96 alternatives, terminal observations with final lincheck constant removed: extension rank {rank}/82", flush=True)
     assert rank == 82
     simulator_certificate(verifier, public, point, challenge, alpha, lc_challenge, terminal_rng)
     bound_certificate()

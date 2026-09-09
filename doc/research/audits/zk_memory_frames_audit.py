@@ -7,6 +7,7 @@ theorem uses independent uniform coins, not this deterministic generator.
 
 from fractions import Fraction
 from random import Random
+from types import SimpleNamespace
 
 from zk_pcs_audit import Audit, RightInverse, Tower, edot, kdot, verifier_module
 
@@ -207,6 +208,56 @@ def joint_root_bound():
     print("Shared root plus the three-limb memory envelope: exact combined bound below 2^-151 using existing reserved words.", flush=True)
 
 
+def actual_lane_schedule_certificate(field):
+    log_stack, length, memory = 11, 32, 256
+    offsets = [lane * length for lane in (16, 24, 32)]
+    for mode in ("random", "prefix"):
+        rng = Random(317)
+        memory_point = [field.random(rng) for _ in range(8)]
+        memory_weights = field.eq(memory_point)
+        public_coin = field.random(rng)
+        weights = [field.random(rng) for _ in range(1 << log_stack)]
+        for offset in offsets:
+            scale, public_scale = field.random(rng), field.random(rng)
+            weights[offset : offset + memory] = [field.mul(scale, value) for value in memory_weights]
+            weights[offset] ^= field.mul(public_scale, 1 ^ public_coin)
+            weights[offset + 1] ^= field.mul(public_scale, public_coin)
+        audit = Audit(field, log_stack, (6, 2), (1, 1), seed=17, query_mode=mode).run(initial_weights=weights)
+        local = SimpleNamespace(
+            field=field,
+            log_size=8,
+            folds=(3,),
+            queries=(1,),
+            challenges=audit.challenges[:3],
+            query_points=audit.query_points[:1],
+            initial_point=memory_point[5:] + memory_point[:5],
+        )
+        translated = [0] * (1 << log_stack)
+        for offset in offsets:
+            difference = [rng.getrandbits(field.bits) if i // length < 3 and i % length >= 20 else 0 for i in range(memory)]
+            translated[offset : offset + memory] = pinned_translation(local, difference)
+        assert any(translated)
+        assert all(edot(field, row, translated) == 0 for row in audit.rows)
+
+        alpha = field.eq(audit.challenges[:3])
+        full = list(range(3, 8))
+        lane = kernel_vector(field, [[field.coords(alpha[i])[j] for i in full] for j in range(3)])
+        observations = [list(field.novel(5, point)) for point in sorted(set(audit.query_points[0]))]
+        observations += list(zip(*(field.coords(value) for value in field.eq(memory_point[:5]))))
+        column = kernel_vector(field, [row[2:7] for row in observations])
+        parameter = field.coords(field.random(rng))
+        direction = [0] * (1 << log_stack)
+        for offset, coordinate in zip(offsets, parameter):
+            for index, coefficient in zip(full, lane):
+                for j, value in enumerate(column, start=2):
+                    direction[offset + index * length + j] = field.kmul(field.kmul(coefficient, value), coordinate)
+        assert any(direction) and all(edot(field, row, direction) == 0 for row in audit.rows)
+        print(
+            f"Six-bit lane schedule over native fields, {mode}: memory coupling and root kernels survive arbitrary non-memory weights and public pins.",
+            flush=True,
+        )
+
+
 if __name__ == "__main__":
     reference = verifier_module()
     tower = Tower(64, reference)
@@ -215,3 +266,4 @@ if __name__ == "__main__":
     frame_reservations(tower, reference)
     root_kernel_certificate(tower)
     joint_root_bound()
+    actual_lane_schedule_certificate(tower)

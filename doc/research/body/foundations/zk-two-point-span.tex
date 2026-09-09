@@ -64,3 +64,54 @@ For geometric multipliers, use the coordinate substitution from \noteref{zk-jump
 \]
 
 \paragraph{Evidence and boundary.} \auditref{zk_two_point_audit.py} checks this rational inequality and binary rank $384$ for ordinary and geometrically weighted evaluations over the actual fields. The theorem requires two independent honest field points. It does not automatically cover a third query, an adaptive earlier transcript or arbitrary PCS selectors. Its intended first use is a counter bank whose lower-half swaps affect two evaluations while leaving a separately masked upper-half bus target unchanged.
+
+\subsubsection{A compact construction within the PCS size cap}\label{sec:zk-compact-two-point}
+
+The preceding construction uses fourteen coordinates. For Flock, a denser support on eleven coordinates leaves room for the rest of the committed witness. Define
+\[
+ \zkCompactSupport=\{s\in\cube{11}:s_0,\ldots,s_6\text{ arbitrary},\quad s_7+\cdots+s_{10}\le1\},
+ \qquad |\zkCompactSupport|=640,
+\]
+where the inequality is over integers. The improvement uses the dimension of the \emph{joint} two-coordinate space, rather than bounding it by one projected dimension.
+
+\begin{theorem}[Compact two-point span]\label{thm:zk-compact-two-point}
+For two independent uniform points in $\E^{11}$, the paired equality weights on $\zkCompactSupport$ span $\E^2$ over $\Ftwo$ except with probability $\zkCompactError<2^{-158}$. The same upper bound holds with fixed nonzero geometric multipliers as in Theorem~\ref{thm:two-point-span}.
+\end{theorem}
+\begin{proof}
+Work first with independent nonzero monomial multipliers, and let $V_j\subseteq\E^2$ be the binary span after the first $j$ unrestricted coordinates. Both projections of $V_5$ have dimension $32$ except with probability $2B$, with $B$ defined above. On that event $V_5$ itself has dimension $32$ and both projections are injective. A nonzero intersection with a random diagonal multiple then requires a specified ratio in \emph{both} coordinates for some pair of nonzero vectors. Thus the probability that $\dim V_6<64$, on this event, is at most
+\[
+ J_6=\frac{(2^{32}-1)^2}{(Q-1)^2}.
+\]
+
+For a fixed $a$-dimensional projected subspace and $a\le b<2a$, the intersection-counting argument of~\eqref{eq:two-dimension-tail} gives
+\[
+ p(a,b)=\frac{(2^a-1)^2}{(Q-1)(2^{2a-b}-1)}
+\]
+as an upper bound on the probability that its next doubled dimension is at most $b$. On the event $\dim V_6=64$, an axis-supported subspace of $V_6$ has dimension $64-D$, where $D$ is the other projected dimension. Counting possible intersection pairs separately on the two axes and off the axes, then averaging over the sixth projected dimensions, bounds the additional failure to reach $\dim V_7=128$ by
+\[
+ J_7=\frac{(2^{64}-1)^2}{(Q-1)^2}
+ +2\sum_{b=32}^{63}p(32,b)\frac{(2^{64-b}-1)^2}{Q-1}.
+\]
+These are bounds on intersected good-event probabilities; no conditioning denominator is omitted. In particular, the projected dimension tails are averaged before restricting to joint-dimension success.
+
+The remaining four coordinates supply four independent random diagonal multiples of $V_7$, alongside $V_7$ itself. When $\dim V_7=128$, the two-coordinate annihilator bound is at most $2^{385-5\cdot128}=2^{-255}$, using $(Q/(Q-1))^8<2$. For a singleton coordinate support with projected dimension $D$, the corresponding bound is
+\[
+ h(D)=\min\{1,2^{193-5D}\}.
+\]
+We must average this expression, not discard a rare projected rank loss. Put
+\[
+ A(a)=h(2a)+\sum_{b=a}^{2a-1}p(a,b)h(b),
+ \qquad A=A(64)+\sum_{a=32}^{63}p(32,a)A(a).
+\]
+The first expression bounds the seventh-step average given sixth projected dimension $a$; the second bounds its average after starting with dimension $32$ at step five. The two singleton-support errors therefore sum to at most $2A$. The total normalized error is at most $2B+J_6+J_7+2A+2^{-255}$.
+
+Returning to equality weights costs $22/Q+44/(Q-1)$ by the preceding normalization argument on the $22$ coordinates of the two points. Geometric multipliers cost at most another $44/Q$. Exact rational arithmetic verifies the common bound
+\[
+ \zkCompactError:={}
+ 2B+J_6+J_7+2A+2^{-255}
+ +\frac{66}{Q}+\frac{44}{Q-1}<2^{-158}.
+\]
+The ordinary-equality bound omits $44/Q$ and is smaller. All estimates are uniform in the fixed subspaces encountered along the construction.
+\end{proof}
+
+\paragraph{Consequence for Flock.} The first $96$ alternatives suffice for the feature ranks in \noteref{zk-flock-endpoints}, using $96\cdot640=61440$ independent bits in a public batch of $2^{18}$, rather than $2^{21}$. Reserving those $96$ complete banks leaves $65536$ arbitrary real-compression slots. The packed Flock column has log size $18+8=26$. The former batch required a packed column of log size $29$, already exceeding the current stack cap $28$ before any other column was placed. The audit checks an accepted reference layout with memory log $25$, non-BLAKE table logs $(19,19,19,19,20)$ and BLAKE log $18$. This verifies size compatibility for a candidate profile, not completion of all padding libraries in that profile.

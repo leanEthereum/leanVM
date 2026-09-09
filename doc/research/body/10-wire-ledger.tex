@@ -1,0 +1,72 @@
+% !TeX root = ../main.tex
+\section{Concrete wire and resource ledger}\label{sec:zk-wire-ledger}
+
+This ledger records the present verifier, not a simplified protocol with independent replacements for its claims. It separates transmitted values from derived claims and identifies where masks are reused. The experiment is the single-proof honest interactive model of Definition~\ref{def:zk-target}: announced heights and PCS configuration are public, challenges are independent honest coins, and private padding is freshly sampled before commitment. Authentication is included in the target but not in the proved algebraic lemmas. Fiat-Shamir is a separate deployment obligation.
+
+\subsection{The reduction wire}
+
+The following order follows \path{crates/lean_vm/src/cpu/mod.rs} and \path{python-verifier/verifier.py}. An entry counts extension-field scalars unless it explicitly says otherwise. Public announcements precede the initial commitment; every later row also has the preceding wire in its conditioning context.
+
+\begin{center}
+\small
+\begin{tabular}{@{}p{.16\linewidth}p{.57\linewidth}p{.17\linewidth}@{}}
+\toprule
+Stage & Prover disclosures and reused interface & Proof owner \\
+\midrule
+Statement & Program/public-input binding, memory and six table heights, rate and derived public layout & P0, P1 \\
+Commitment & Initial Merkle root, before bus coins or queries & P6 \\
+Bus roots & One shared push/pull root and one count root, after four fingerprint coordinates and a shift & P2 \\
+GKR & For a step eliminating $s\in\{1,2\}$ variables: $2^s$ coefficients per round, then $3\cdot2^s$ children. The three channels share the fresh reduction point & P2 \\
+Framework & Three memory-value evaluations, memory final-count evaluation and bytecode final-count evaluation: five values at restrictions of the common GKR point & P2, P3, P5 \\
+Tables & Three cubic coefficients in each of $\taumax$ rounds, then $104$ column evaluations. The initial claim is derived from bus totals, not independently sent & P3, P5 \\
+Public input & Two memory-limb values at $(r_{\mathrm{pi}},0,\ldots,0)$; the third is zero. All three become physical column claims & P3, P5 \\
+Flock prefix & $64$ coset-skip values, then two coefficients in each of $8+\kbatch$ quadratic rounds & P4 \\
+Flock endpoint & Two terminal values; the third is reconstructed from the running claim & P4, P5 \\
+Lincheck & Two coefficients in each of eight rounds, then $64$ packed extension-field slices & P4, P5 \\
+Ring switching & No new prover message. Six fresh coins and the slices derive a target and weight & P4, P5 \\
+Opening batch & No new claimed scalar. A fresh coin combines the $112$ column claims and one ring-switching weight & P5 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The $112$ column claims comprise five framework claims, $104$ table claims and three public-input claims. The logical BLAKE2s value columns are remapped into the packed Flock vector; they are not extra independent committed columns. Public bytecode evaluation and the fixed Flock matrix evaluations are locally computable in the native verifier. The relevant source functions include \texttt{finish\_claims} and \texttt{verify\_balance}; the reference reduction continues through \nolinkurl{table_sumcheck}, \nolinkurl{verify_flock_zerocheck}, \nolinkurl{verify_flock_lincheck} and \nolinkurl{ring_switch}. Challenges and running claims are part of the view even when their values are derived rather than transmitted.
+
+\paragraph{The recursive interface.} The guest in \path{crates/rec_aggregation/guests/aggregate.py} follows the same reduction in \texttt{verify\_gkr}, \texttt{verify\_tables}, \texttt{verify\_flock} and \texttt{open\_stacked}. Its advice additionally supplies layout and authentication witnesses, plus evaluations deferred to the outer verifier. In particular, the bytecode value is an explicit guest hint, whereas the native verifier evaluates that public polynomial locally. The three deferred fixed-polynomial claims must be included wherever the external aggregation object exposes them. This does not make every private guest hint a public disclosure; the protected statement and its external verifier determine the view. Advice validation belongs to soundness and does not by itself prove privacy.
+
+\subsection{The PCS wire}
+
+The opening is not just its final MLE claim. \texttt{verify\_whir} receives an initial quadratic message, further quadratic fold messages, introduction polynomials for both out-of-domain claims and query constraints, later commitment roots, out-of-domain evaluations, raw queried leaf images, authentication paths, grinding nonces and the final residual plaintext table. Their exact multiplicities follow the public PCS configuration. At a nonfinal level the new root precedes its out-of-domain evaluation; the final level sends the residual instead. The level's grinding and query challenges then select the authenticated old-oracle leaves, and a fresh batching coin introduces their constraints. Subsequent fold messages retain this same committed polynomial.
+
+An initial raw leaf is the full $64$-lane base-field image, before challenge folding. Rust omits the known leading zero lanes from its serialized image; reconstruction recovers exactly the full image consumed by the reference and recursive verifiers. Later raw leaves carry three base-field limbs per folded extension value. Authentication paths are a separate byte stream, not additional independent uniform scalars. Neither compressed serialization nor later folding removes the initial raw-lane observation used in Proposition~\ref{prop:zk-memory-floor}.
+
+\paragraph{A proved conditional interface.} Proposition~\ref{prop:zk-memory-pcs-isolation} covers the actual memory contribution to this mixed algebraic opening when $\mu=\kmem+3$. Corollary~\ref{cor:zk-memory-root-wire} retains the entire non-GKR algebraic marginal while replacing the shared root. This is stronger than an isolated opening theorem but weaker than simulating that marginal: table/count/Flock data and all authentication still need their own joint proof.
+
+\subsection{A size-compatible candidate, not a completed sampler}
+
+In table order XOR, MUL, SET, DEREF, JUMP, BLAKE2s, the logical committed widths are $(15,15,8,15,14,37)$. Eighteen BLAKE2s value columns are virtual inside a packed vector with $256$ base-field coefficients per compression. Thus the exact number of placed coefficients is
+\[
+ \begin{aligned}
+ \zkPlacedSize={}&4\nmem+\nprog
+ +15\cdot2^{\tau_0}+15\cdot2^{\tau_1}
+ +8\cdot2^{\tau_2}\\
+ &+15\cdot2^{\tau_3}+14\cdot2^{\tau_4}+275\cdot2^{\tau_5},\\
+ \mu={}&\max\{15,\lceil\log_2\zkPlacedSize\rceil\}.
+ \end{aligned}
+\]
+All terms are positive. The current PCS accepts $\mu\le28$. Already the packed Flock vector alone rules out the former $\kbatch=21$ construction: its log size is $29$.
+
+\begin{proposition}[Capacity ceiling for the eight-segment memory branch]\label{prop:zk-flock-capacity}
+If $\mu=\kmem+3\le28$, the BLAKE2s batch log satisfies $\kbatch\le\kmem-7\le18$.
+\end{proposition}
+\begin{proof}
+The four memory columns occupy $4\nmem$ coefficients. Since other positive columns remain, the packed Flock column has size strictly less than $4\nmem$. Its power-of-two size is therefore at most $2\nmem$, so $\kbatch+8\le\kmem+1$. The stack cap gives $\kmem\le25$.
+\end{proof}
+
+The compact support in Theorem~\ref{thm:zk-compact-two-point} meets this necessary ceiling. One reference-accepted candidate is
+\[
+ \kmem=25,\qquad \kbc=11,\qquad
+ (\tau_0,\ldots,\tau_5)=(19,19,19,19,20,18).
+\]
+It places $\zkPlacedSize=248776704$ coefficients in a stack of log $28$, with $60$ occupied initial lanes of length $\zkLaneLen=2^{22}$. The packed Flock vector precedes memory and occupies sixteen lanes; the memory-value groups begin at lanes $16,24,32$. All four supported PCS rates admit this layout. The first $96$ Flock banks use $61440$ independent binary choices and leave $65536$ real-compression slots.
+
+For the memory reservation with $\zkPadBlock=256$, the remaining payload capacity is $3(2^{22}-1280)=12579072$ words. At fixed frame size $256$ this is $49137$ slots; smaller publicly supported frames can increase the slot count. This does not establish that every Flock padding frame, bus/count cycle, return and real allocation fits, or that the existing GKR lemmas apply at the resulting bus height. Those checks constitute the remaining common-sampler theorem. The accepted resource profile is a useful constraint on that theorem, not a replacement for it. \auditref{zk_two_point_audit.py} checks the reference layout and the compact support's exact bound and native-field span certificates.

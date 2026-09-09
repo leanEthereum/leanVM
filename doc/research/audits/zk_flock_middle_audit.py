@@ -8,7 +8,7 @@ from zk_count_mixed_audit import echelon
 from zk_flock_prefix_audit import prefix
 from zk_flock_skip_audit import skip_halves, tables, witness
 from zk_pcs_audit import verifier_module
-from zk_two_point_audit import SPARSE_TWO, error_bounds
+from zk_two_point_audit import COMPACT_TWO, compact_error_bounds
 
 
 def pack_values(values):
@@ -134,24 +134,25 @@ def library_certificate(verifier):
         directions.append((beta, gamma))
         if index % 16 == 15:
             print(f"Constructed {index + 1} actual compression cofactor pairs", flush=True)
-    rank = len(echelon(verifier, extended))
-    print(f"Prefix plus the separate linear cofactor: extension rank {rank}/80", flush=True)
+    rank = len(echelon(verifier, extended[:96]))
+    print(f"First 96 alternatives, prefix plus the separate linear cofactor: extension rank {rank}/80", flush=True)
     assert rank == 80
-    _, span, _ = error_bounds()
-    assert span + Fraction(2205 + 142 + 1918 + 28 + 1, 1 << 192) < Fraction(1, 1 << 148)
-    print("Adding the auxiliary cofactor to the joint endpoint theorem costs a degree-142 row; total bound remains below 2^-148", flush=True)
-    return directions
+    _, _, span = compact_error_bounds()
+    assert span + Fraction(2205 + 142 + 1918 + 28 + 1, 1 << 192) < Fraction(1, 1 << 158)
+    print("Adding the auxiliary cofactor to the compact endpoint theorem costs a degree-142 row; total bound remains below 2^-158", flush=True)
+    return directions[:96]
 
 
-def conditional_rank(verifier, directions):
+def conditional_rank(verifier, directions, low_bits=11, support=COMPACT_TWO):
     rng = Random(154)
     sample = lambda: verifier.E(*(rng.getrandbits(64) for _ in range(3)))
-    equality, challenge = ([sample() for _ in range(14)] for _ in range(2))
+    equality, challenge = ([sample() for _ in range(low_bits)] for _ in range(2))
     tags = verifier.eq_kernel([sample() for _ in range(7)])
     assert all(tags)
-    rank, packed = endpoint_kernel(local_columns(verifier, equality, challenge, SPARSE_TWO))
-    assert (rank, len(packed)) == (384, 192)
-    residuals = [unpack_values(verifier, value, 28) for value in packed]
+    rank, packed = endpoint_kernel(local_columns(verifier, equality, challenge, support))
+    assert (rank, len(packed)) == (384, len(support) - 384)
+    residuals = [unpack_values(verifier, value, 2 * low_bits) for value in packed]
+    target = (2 * low_bits - 2) * 192
     first_relation = [a + b for a, b in zip(equality, challenge)]
     second_relation = [a + b**2 for a, b in zip(equality, challenge)]
     assert any(first_relation) and any(second_relation)
@@ -169,12 +170,15 @@ def conditional_rank(verifier, directions):
                     pivots[bit] = packed
                     break
                 packed ^= pivots[bit]
-        if bank % 8 == 7 or len(pivots) == 26 * 192:
-            print(f"After {bank + 1} banks: conditional sparse-round binary rank {len(pivots)}/4992", flush=True)
-        if len(pivots) == 26 * 192:
+        if bank % 8 == 7 or len(pivots) == target:
+            print(f"After {bank + 1} banks: conditional sparse-round binary rank {len(pivots)}/{target}", flush=True)
+        if len(pivots) == target:
             break
-    assert len(pivots) == 26 * 192
-    print("The stronger 27-field target given all two-point evaluations is impossible here: two exact relations remain, not one", flush=True)
+    assert len(pivots) == target
+    print(
+        f"The stronger {2 * low_bits - 1}-field target given all two-point evaluations is impossible here: two exact relations remain, not one",
+        flush=True,
+    )
     print("This is a finite rank certificate for the canonical completion, not a uniform probability bound or a transcript distinguisher", flush=True)
 
 

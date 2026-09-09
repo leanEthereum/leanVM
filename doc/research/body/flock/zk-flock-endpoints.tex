@@ -21,7 +21,7 @@ The terminal identity imposes one affine relation on these $83$ values. Its coef
 
 \subsubsection{A uniform terminal-rank certificate}
 
-Use the same $128$ valid compression witnesses and zero-message baseline as \noteref{zk-flock-skip}. Their terminal-feature differences, projected to the $82$ free coordinates, have exact extension rank $82$ at the audit's fixed coins. The checker constructs $A_0^{\mathsf T}e,B_0^{\mathsf T}e$ by reversing the actual Python verifier's addition-only circuit walk; it does not materialize the dense matrices. Its generated streams pass that verifier's complete lincheck.
+Use the first $96$ of the $128$ valid compression witnesses and the zero-message baseline from \noteref{zk-flock-skip}. Their terminal-feature differences, projected to the $82$ free coordinates, have exact extension rank $82$ at the audit's fixed coins. The same subset has prefix-plus-cofactor rank $80$, as checked in \noteref{zk-flock-middle}, so its prefix rank is $79$. The checker constructs $A_0^{\mathsf T}e,B_0^{\mathsf T}e$ by reversing the actual Python verifier's addition-only circuit walk; it does not materialize the dense matrices. Its generated streams pass that verifier's complete lincheck.
 
 Each coefficient defining $v_a,v_b,v_c$ has total degree at most $63+8=71$ in the skip and within-block fold challenges. Thus $w$ has degree at most $73$. In lincheck round $j$, the public weight and the witness basis have each undergone $j$ folds, so a transmitted coefficient has degree at most $73+2j$. Each terminal slice has degree eight. A full $82$-row minor therefore has degree at most
 \[
@@ -31,26 +31,26 @@ The subtraction removes the last constant coefficient. The exact rank certificat
 
 \subsubsection{Independent noise at two points from the same valid choices}
 
-Change the sparse layout, but not the compression library. Use fourteen low batch coordinates, seven bank coordinates, and a public batch of $2^{21}$ compressions. In each bank reserve the $576$-point support $S$ of \noteref{zk-two-point-span}: arbitrary first six bits and weight at most one on the remaining eight. Independently choose the baseline or that bank's library compression at each reserved position. There are $73728$ random-choice compressions; all other positions may contain arbitrary fixed valid witnesses.
+Use eleven low batch coordinates, seven bank coordinates, and a public batch of $2^{18}$ compressions. In each of banks $0,\ldots,95$, reserve the $640$-point support $\zkCompactSupport$ of Theorem~\ref{thm:zk-compact-two-point}: arbitrary first seven bits and weight at most one on the remaining four. Independently choose the baseline or that bank's library compression at each reserved position. There are $61440$ random-choice compressions; this endpoint theorem allows arbitrary fixed valid witnesses elsewhere. For the constant-cofactor construction of \noteref{zk-flock-middle}, fill the other positions of these $96$ banks with the baseline and place real compressions in the remaining $32$ banks, leaving $65536$ real-compression slots. This replaces the former fourteen-coordinate support, whose $2^{21}$ batch could not fit the current PCS cap. The local compression alternatives and minor-degree bounds are unchanged.
 
-Let $r_{\rm low}$ be the fourteen low batch equality coins and $\fc_{\rm low}$ the corresponding zerocheck fold coins. For bank $b$ define
+Let $r_{\rm low}$ be the eleven low batch equality coins and $\fc_{\rm low}$ the corresponding zerocheck fold coins. For bank $b$ define
 \[
- U_b=\sum_{s\in S}\eq(r_{\rm low},s)\varepsilon_{b,s},\qquad
- V_b=\sum_{s\in S}\eq(\fc_{\rm low},s)\varepsilon_{b,s}.
+ U_b=\sum_{s\in\zkCompactSupport}\eq(r_{\rm low},s)\varepsilon_{b,s},\qquad
+ V_b=\sum_{s\in\zkCompactSupport}\eq(\fc_{\rm low},s)\varepsilon_{b,s}.
 \]
-The points are independent under the honest interactive coin model. The shared two-point span event makes all $128$ pairs $(U_b,V_b)$ independent uniform elements of $\E^2$. Write $\delta_2$ for the explicit ordinary-equality error bound in the two-point note.
+The points are independent under the honest interactive coin model. The shared compact two-point span event makes all $96$ pairs $(U_b,V_b)$ independent uniform elements of $\E^2$. Its failure probability is bounded by $\zkCompactError$ from the two-point note.
 
 The prefix uses only the $U_b$, multiplied by their bank equality weights and the $79$-dimensional feature differences of the preceding note. The terminal data use only the $V_b$, multiplied by their bank fold weights and the $82$-dimensional differences above. Exclude Boolean values of the two seven-coordinate bank points at cost $28/2^{192}$. Both weighted maps are then surjective outside their respective minor-zero events. Their noise is independent, so the joint view is uniform on the product of the prefix space and $\mathcal L$. Arbitrary fixed complementary witnesses merely translate this product space.
 
 \begin{theorem}[Joint Flock endpoints]
 For this valid padding and independent honest interactive coins, the skip message, eight within-block zerocheck rounds, strengthened terminal triple, complete lincheck and $64$ terminal slices have a joint witness-independent simulator with error at most
 \[
- \delta_2+\frac{2205+1918+28+1}{2^{192}}
- =\delta_2+\frac{4152}{2^{192}}<2^{-148}.
+ \zkCompactError+\frac{2205+1918+28+1}{2^{192}}
+ =\zkCompactError+\frac{4152}{2^{192}}<2^{-158}.
 \]
 The extra one excludes the existing prover's within-block equality denominator. The bound is uniform over fixed valid complementary compressions.
 \end{theorem}
 
-The simulator samples the prefix as before, samples the $82$ free terminal coordinates independently, and reconstructs the omitted lincheck constant by its final identity. In particular, both running claims on either side of the omitted batch rounds are simulated. This does not simulate the messages between those claims. The local closed-cycle realization and its fixed bytecode, addresses and counter exponents are unchanged; the larger public batch is a cost of this construction, not a claim of practical efficiency.
+The simulator samples the prefix as before, samples the $82$ free terminal coordinates independently, and reconstructs the omitted lincheck constant by its final identity. In particular, both running claims on either side of the omitted batch rounds are simulated. This does not simulate the messages between those claims. The local closed-cycle templates are unchanged; their multiplicities and reservations follow the new support. A common valid completion with the other VM padding libraries remains to be constructed.
 
-\paragraph{Evidence and remaining obligation.} \auditref{zk_flock_terminal_audit.py} checks the reverse circuit walk against actual witness row evaluations, replays both real and simulated terminal streams through the reference verifier, certifies rank $82$, and checks the exact rational error bound. The prefix certificate is \auditref{zk_flock_prefix_audit.py}. A full Flock proof still needs the $21$ batch-coordinate rounds jointly with this endpoint view. \noteref{zk-flock-middle} identifies an overconditioning obstruction in their first fourteen rounds and a finite-rank route around it. The remaining quadratic cross terms cannot be discarded or hidden by applying the two-point lemma again to the same bits. No production protocol or verifier is changed.
+\paragraph{Evidence and remaining obligation.} \auditref{zk_flock_terminal_audit.py} checks the reverse circuit walk against actual witness row evaluations, replays both real and simulated terminal streams through the reference verifier, certifies rank $82$, and checks the exact rational error bound. The prefix certificate is \auditref{zk_flock_prefix_audit.py}. A full Flock proof still needs the $18$ batch-coordinate rounds jointly with this endpoint view. \noteref{zk-flock-middle} identifies an overconditioning obstruction in the sparse rounds and a finite-rank route around it. The remaining quadratic cross terms cannot be discarded or hidden by applying the two-point lemma again to the same bits. No production protocol or verifier is changed.
