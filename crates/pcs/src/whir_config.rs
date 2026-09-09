@@ -243,7 +243,6 @@ pub(crate) fn test_config_for(log_n: usize) -> ProverConfig {
 struct LadderShape {
     log_inv_rates: Vec<usize>,
     log_msg_cols: Vec<usize>,
-    log_num_interleaved: Vec<usize>,
     k_levels: Vec<usize>,
     yr_log_n: usize,
 }
@@ -265,7 +264,6 @@ fn derive_ladder(
     let mut shape = LadderShape {
         log_inv_rates: vec![log_inv_rate],
         log_msg_cols: vec![log_n - initial_k],
-        log_num_interleaved: vec![initial_k],
         k_levels: vec![initial_k],
         yr_log_n: 0,
     };
@@ -278,7 +276,6 @@ fn derive_ladder(
         let rate = next_rate(rate_running, fold_running, log_msg_cols_next)?;
         shape.log_inv_rates.push(rate);
         shape.log_msg_cols.push(log_msg_cols_next);
-        shape.log_num_interleaved.push(k);
         shape.k_levels.push(k);
         n_running -= k;
         rate_running = rate;
@@ -937,7 +934,7 @@ impl WhirSecurityConfig {
         for i in 0..n_levels {
             let rate = shape.log_inv_rates[i];
             let cols = shape.log_msg_cols[i];
-            let ilv = shape.log_num_interleaved[i];
+            let ilv = shape.k_levels[i];
             let prev_queries = prev_queries_at(&levels, i);
             let optimized = optimize_johnson_level(i, rate, cols, ilv, target_bits, query_grind, prev_queries)?;
 

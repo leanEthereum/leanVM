@@ -26,6 +26,7 @@
 //! runs the body and recurses on `i·g`.
 
 use std::collections::HashMap;
+use std::fmt::Write;
 
 use lean_vm::cpu::hints::{BitsDest, RHint};
 use lean_vm::cpu::{DerefMode, Op, Program};
@@ -54,7 +55,7 @@ pub fn compile(ast: &Ast) -> Program {
 }
 
 /// [`compile`] without the fill blocks, so the program's own instruction mix is what
-/// runs. For tests that measure that mix: the prover pads each table as needed.
+/// runs. Used by tests of instruction selection and execution.
 pub fn compile_without_filler(ast: &Ast) -> Program {
     compile_inner(ast, false)
 }
@@ -89,7 +90,7 @@ fn compile_inner(ast: &Ast, with_filler: bool) -> Program {
     let mut lowered: Vec<Lowered> = Vec::new();
     let mut i = 0;
     while i < queue.len() {
-        let f = queue[i].clone();
+        let f = &queue[i];
         i += 1;
         // A function with Const parameters is a template (only its call-site
         // specializations are lowered); an `@inline` function is expanded at
@@ -97,6 +98,7 @@ fn compile_inner(ast: &Ast, with_filler: bool) -> Program {
         if f.has_const_params() || f.inline {
             continue;
         }
+        let f = f.clone();
         let low = lower_func(&f, &mut queue, &mut loop_ctr, &defs, &const_arrays, with_filler);
         if dbg_lower {
             eprintln!("== fn {} (frame {}) ==", low.name, pretty_integer(low.frame_size));
@@ -218,7 +220,7 @@ pub fn disassemble(prog: &[Op]) -> String {
                 )
             }
         };
-        out.push_str(&format!("{:>6}  {line}\n", pretty_integer(pc)));
+        writeln!(out, "{:>6}  {line}", pretty_integer(pc)).unwrap();
     }
     out
 }

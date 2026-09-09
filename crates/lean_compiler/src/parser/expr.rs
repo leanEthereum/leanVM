@@ -153,7 +153,7 @@ pub(super) fn parse_expr(s: &str) -> Result<Expr, String> {
 
 /// Combine one tier's operands left-associatively: `node` builds the AST node
 /// for each operator (as [`split_add`] / [`split_mul`] tag it).
-fn fold_ops(segs: &[String], ops: &[u8], node: impl Fn(u8, Box<Expr>, Box<Expr>) -> Expr) -> Result<Expr, String> {
+fn fold_ops(segs: &[&str], ops: &[u8], node: impl Fn(u8, Box<Expr>, Box<Expr>) -> Expr) -> Result<Expr, String> {
     // An empty operand is an operator missing a side: a leading `-`, a trailing
     // operator, or two in a row. Naming it beats letting `parse_expr("")` report
     // an empty backtick, which is what every one of these used to say.
@@ -176,7 +176,7 @@ fn fold_ops(segs: &[String], ops: &[u8], node: impl Fn(u8, Box<Expr>, Box<Expr>)
         };
         return Err(format!("`{shown}` has no {side} operand{hint}"));
     }
-    let mut acc = parse_expr(&segs[0])?;
+    let mut acc = parse_expr(segs[0])?;
     for (&op, seg) in ops.iter().zip(&segs[1..]) {
         let rhs = Box::new(parse_expr(seg)?);
         acc = node(op, Box::new(acc), rhs);
@@ -219,17 +219,17 @@ pub(super) fn depth0(s: &str) -> impl Iterator<Item = (usize, u8)> + '_ {
 /// Split `s` at the top-level additive tier: operands and the `+` / `-`
 /// operators between them. Left-associative; parenthesised/bracketed sub-terms
 /// are left intact.
-fn split_add(s: &str) -> (Vec<String>, Vec<u8>) {
+fn split_add(s: &str) -> (Vec<&str>, Vec<u8>) {
     let (mut segs, mut ops) = (Vec::new(), Vec::new());
     let mut start = 0usize;
     for (i, c) in depth0(s) {
         if c == b'+' || c == b'-' {
-            segs.push(s[start..i].to_string());
+            segs.push(&s[start..i]);
             ops.push(c);
             start = i + 1;
         }
     }
-    segs.push(s[start..].to_string());
+    segs.push(&s[start..]);
     (segs, ops)
 }
 
@@ -237,7 +237,7 @@ fn split_add(s: &str) -> (Vec<String>, Vec<u8>) {
 /// operators between them (`*`, `//` for floor-division, `/` for runtime field
 /// division, `%` for remainder). A `**` power is left intact (bound tighter).
 /// Left-associative.
-fn split_mul(s: &str) -> (Vec<String>, Vec<u8>) {
+fn split_mul(s: &str) -> (Vec<&str>, Vec<u8>) {
     let b = s.as_bytes();
     let (mut segs, mut ops) = (Vec::new(), Vec::new());
     let (mut start, mut next) = (0usize, 0usize);
@@ -253,12 +253,12 @@ fn split_mul(s: &str) -> (Vec<String>, Vec<u8>) {
             b'%' => (b'%', 1),
             _ => continue,
         };
-        segs.push(s[start..i].to_string());
+        segs.push(&s[start..i]);
         ops.push(op);
         next = i + len;
         start = next;
     }
-    segs.push(s[start..].to_string());
+    segs.push(&s[start..]);
     (segs, ops)
 }
 

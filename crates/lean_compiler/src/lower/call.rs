@@ -305,7 +305,7 @@ impl FnLower<'_> {
         // `self_fp`, and range-check bounds stay the caller's: the inlined code
         // runs in the caller's frame, so they fit.
         let mut binds: Vec<(String, Binding)> = Vec::new();
-        for (p, a) in params.iter().zip(&rt_args) {
+        for (p, a) in params.into_iter().zip(&rt_args) {
             let b = if let Some((base, size)) = self.stack_of(a) {
                 Binding::Stack(base, size)
             } else if let Some(ga) = self.gaddr_of(a) {
@@ -313,7 +313,7 @@ impl FnLower<'_> {
             } else {
                 Binding::Scalar(self.expr(a))
             };
-            binds.push((p.clone(), b));
+            binds.push((p, b));
         }
         // Only the name bindings reset: the inlined body runs in the caller's
         // frame, so the caller's `one`, `self_fp`, constant and bound cells all
@@ -475,22 +475,20 @@ impl FnLower<'_> {
             return dsts;
         }
 
-        let shapes = self
-            .defs
-            .get(callee)
-            .map(|d| d.return_shapes.clone())
-            .unwrap_or_else(|| vec![Shape::Scalar; n_ret]);
-        if shapes.len() != n_ret {
+        let def = self.defs.get(callee).copied();
+        if let Some(def) = def
+            && def.return_shapes.len() != n_ret
+        {
             self.fail(format!(
                 "`{callee}` returns {} values, call binds {n_ret}",
-                shapes.len()
+                def.return_shapes.len()
             ))
         };
         let mut logical = Vec::with_capacity(n_ret);
         let mut physical = Vec::new();
         let mut binds = Vec::with_capacity(n_ret);
-        for shape in shapes {
-            match shape {
+        for i in 0..n_ret {
+            match def.map_or(Shape::Scalar, |d| d.return_shapes[i]) {
                 Shape::Scalar => {
                     let dst = self.fresh();
                     logical.push(dst);

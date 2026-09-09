@@ -22,6 +22,14 @@ pub(super) struct Known {
     pub(super) addr: Option<GAddr>,
 }
 
+impl Known {
+    /// The integer and field readings when both exist and disagree.
+    pub(super) fn diverging_readings(self) -> Option<(u128, F192)> {
+        let (n, f) = (self.int?, self.field?);
+        (f != lit_field(n)).then_some((n, f))
+    }
+}
+
 /// `a·b` in the [`GAddr`] representation: exponents add, and at most one factor
 /// may carry a runtime base (two pointers can't be multiplied symbolically).
 fn gmul(a: GAddr, b: GAddr) -> Option<GAddr> {
@@ -325,20 +333,6 @@ impl FnLower<'_> {
         }
     }
 
-    /// `e`'s two readings when they DISAGREE: the compile-time integer, and the
-    /// field element a value position would see. `None` when they agree, or when
-    /// `e` has only one of them (`3 - 1` has no field reading at all, so nothing
-    /// contradicts its integer one).
-    ///
-    /// One literal cannot stand for both, so an expression like this means
-    /// different things in an index and in a value, and any construct that must
-    /// pick one has to say which.
-    pub(super) fn diverging_readings(&self, e: &Expr) -> Option<(u128, F192)> {
-        let k = self.eval(e);
-        let (n, f) = (k.int?, k.field?);
-        (f != lit_field(n)).then_some((n, f))
-    }
-
     /// Check the LEAVES of a `const(...)`. The wrapper reinterprets the
     /// OPERATORS as integer arithmetic, which is its whole purpose, so their two
     /// readings are expected to diverge (`3 + 1` is the integer 4 and the value
@@ -363,7 +357,7 @@ impl FnLower<'_> {
             }
             Expr::Call(f, args) if f == "const" && args.len() == 1 => self.check_const_leaves(&args[0]),
             leaf => {
-                if let Some((n, f)) = self.diverging_readings(leaf) {
+                if let Some((n, f)) = self.eval(leaf).diverging_readings() {
                     self.fail(format!(
                         "const(...) reads its operators as integer arithmetic, but it cannot reinterpret \
                          `{leaf:?}`, which is the integer {n} and the value {:#x}:{:#x}: two different \

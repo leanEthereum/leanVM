@@ -177,18 +177,7 @@ def combine(a, b, k: Const):
 
 An `@inline` function is **expanded at each call site** instead of emitting a real call: no frame, no argument/return `DEREF`s, no call/return `JUMP`s. The body must be a single **tail** `return`; it may contain builtins, calls to other `@inline` functions, `if`, and `unroll`, but not a call to a non-inline user function, a `for`/`match`, or any nested/early `return`. Nested inline calls expand recursively; direct or indirect recursive inline calls are rejected. An inline function is never lowered standalone; a call to a non-`@inline` function is unchanged. (Distinct from `unroll(a, b)`, which replicates a loop body: that one really does unroll.)
 
-An `@inline` function may also **return a `StackBuf`**: the caller's binding aliases the returned cell run (zero copies), and `StackBuf` arguments alias likewise. This makes chained-state helpers free, the MD-chain idiom:
-
-```python
-@inline
-def obs(cb, x):          # Fiat-Shamir absorb: cb <- compress(cb, (x, SCALAR))
-    tg = [x, DS_OBSERVE]  # a list literal: an initialized StackBuf(2)
-    nb = StackBuf(2)
-    blake2s(cb, tg, nb)
-    return nb            # the call site's `cvb = obs(cvb, v)` aliases nb
-
-cvb = obs(cvb, v)        # exactly 3 ops: two tag writes + one blake2s
-```
+An `@inline` function may also **return a `StackBuf`**: the caller's binding aliases the returned cell run (zero copies), and `StackBuf` arguments alias likewise.
 
 An `@inline` call may also sit in **expression position**: embedded in arithmetic, as a store's RHS, or as a single-target `match` arm. An aliased return (a folded g-address) then materializes into a plain cell (free for a var; one `MUL` for a shifted pointer); a multi-cell `StackBuf` return still needs a `let` binding, since only a name can alias a cell run.
 
@@ -428,20 +417,6 @@ challenge = state[0] + d2[0] * f192(0, 0, 1)
 
 Both state words are BLAKE2s outputs, so their top limbs are already zero. Only `d2` must be exposed separately; deriving `d3 = (s1+d2)/Y` and proving both values lie in GF(2^64) binds the one hinted limb by uniqueness of the tower representation. The challenge is `s0+d2·Y² = d0+d1·Y+d2·Y²`, while `d3` is checked but deliberately discarded. `challenge_from_state` is not a compiler intrinsic: this is the complete `@inline` helper used by the recursion guest.
 
-Likewise, the recursion guest's `fs_compress(state, scalar, tail, out)` is ordinary straight-line zkDSL:
-
-```python
-limbs = StackBuf(3)
-hint_f192_limbs(limbs, scalar)  # advice: scalar's three K coordinates
-block = StackBuf(2)
-block[0] = pack64x2(limbs[0], limbs[1])
-block[1] = pack64x2(limbs[2], tail)
-assert scalar == limbs[0] + Y * (limbs[1] + Y * limbs[2])
-blake2s(state, block, out)
-```
-
-The first two packing helpers range-check all four serialized lanes and form the exact 64-byte BLAKE2s block `[scalar.c0, scalar.c1, scalar.c2, tail]`; the equality prevents the advice from changing `scalar`. The final row is the VM's sole, canonical `BLAKE2s` instruction.
-
 ## BLAKE2s
 
 ```python
@@ -463,7 +438,7 @@ blake2s(tail[0:2], tail[2:4], out, cv=cv, md=high + f192(16, 4294967295, 0))
 
 The three positional arguments form a **statement**: one standard BLAKE2s compression consumes the two 256-bit message operands `a`, `b` (64 bytes) and writes its 32-byte result into the 2-cell run `out`. With no keywords it computes the standard hash of exactly 64 bytes: the parameterized BLAKE2s-256 initial chaining value (digest length 32, unkeyed, fanout and depth 1), byte counter 64, final-block flag `f0` set. That is `blake2s(a || b)`, the form every Fiat-Shamir step and Merkle node uses.
 
-Every compression also has a 256-bit chaining value and a 128-bit metadata word. BLAKE2s takes the byte counter and the two flags as ordinary compression inputs, which is why one instruction is a complete hash of any length and there is no chunk tree to drive (see `primitives::hash`). The optional keywords are:
+Every compression also has a 256-bit chaining value and a 128-bit metadata word. The optional keywords are:
 
 - `cv=<pair>`: a consecutive 2-cell chaining value, the previous block's output; omitting it selects the parameterized IV above. On each runtime path, a function emits two `SET`s at its first such hash only and reuses those cells thereafter. Supplying `cv=` also requires one of the four below, since a chained block is never the default one-block hash;
 - `counter=<u64>`: BLAKE2s's byte counter `t`, **cumulative** through this block, so `64 * whole_blocks_before + bytes_in_this_block`. Defaults to 64;

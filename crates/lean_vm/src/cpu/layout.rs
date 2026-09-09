@@ -317,7 +317,7 @@ pub fn bytecode_columns(prog: &[Op]) -> [Vec<F64>; 8] {
 pub fn bytecode_table(prog: &[Op]) -> Vec<F64> {
     let coords = bytecode_columns(prog)
         .map(|c| Coord::Public(std::sync::Arc::new(c)))
-        .to_vec();
+        .into();
     let block = Block {
         kappa: crate::log2_strict_usize(prog.len()),
         coords,

@@ -25,20 +25,14 @@ pub(crate) fn subst_stmts(stmts: &[Stmt], name: &str, to: &Expr) -> Vec<Stmt> {
             out.push(s.clone());
             continue;
         }
-        let (s, rebinds) = subst_stmt(s, name, to);
-        out.push(s);
+        let (kind, rebinds) = subst_kind(&s.kind, name, to);
+        out.push(s.at(kind));
         active = !rebinds;
     }
     out
 }
 
-/// One statement of [`subst_stmts`]; the flag says whether it rebinds `name`.
-fn subst_stmt(s: &Stmt, name: &str, to: &Expr) -> (Stmt, bool) {
-    let (kind, rebinds) = subst_kind(&s.kind, name, to);
-    (s.at(kind), rebinds)
-}
-
-/// The kind half of [`subst_stmt`]; the flag says whether it rebinds `name`.
+/// Substitute one statement kind; the flag says whether it rebinds `name`.
 fn subst_kind(s: &StmtKind, name: &str, to: &Expr) -> (StmtKind, bool) {
     let e = |x: &Expr| subst_var(x, name, to);
     match s {

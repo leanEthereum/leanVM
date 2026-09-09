@@ -629,8 +629,6 @@ fn bytecode_claim(blocks: &[Block], point: &[F192], alphas: &[F192]) -> Bytecode
     let kbc = crate::log2_strict_usize(table.len()) - N_BYTECODE_SELECTORS;
     let claim_point = [&point[..kbc], alphas].concat();
     BytecodeClaim {
-        // Outermost on both the prove and verify paths (`prove_balance` /
-        // `verify_balance`), and the largest evaluation either makes.
         value: primitives::multilinear::mle_eval_par(&table, &claim_point),
         point: claim_point,
     }
@@ -639,12 +637,11 @@ fn bytecode_claim(blocks: &[Block], point: &[F192], alphas: &[F192]) -> Bytecode
 /// Prove the bus balances; returns the per-column claims to open (§sec:leafstack). `alpha`/
 /// `beta` follow the witness commitment (the only ordering the grand product
 /// needs), and the block structure is public, so no shape is observed.
-/// Everything the bus hands on: the framework blocks' column claims, the reduced
-/// bytecode claim, the shared GKR point (the table sumcheck's eq point), and
+/// Everything the bus hands on: the framework blocks' column claims,
+/// the shared GKR point (the table sumcheck's eq point), and
 /// per side the tables' linear forms plus what each is claimed to sum to.
 pub struct BusProof {
     pub claims: Vec<ColumnClaim>,
-    pub bytecode_claims: Vec<BytecodeClaim>,
     /// The GKR point ζ: the zerocheck reuses it, so no fresh point is sampled.
     pub point: Vec<F192>,
     /// `forms[side][table]`, in `[push, pull, count]` order.
@@ -672,11 +669,6 @@ pub fn prove_balance(
     let alphas: Vec<F192> = (0..N_TUPLE_BITS).map(|_| ps.sample()).collect();
     let w = fingerprint_weights(&alphas);
     let count_w = fingerprint_weights(&[F192::ZERO; N_TUPLE_BITS]);
-    // The GKR treats the count tree as identity-padded to the pair's depth, but
-    // its prover keeps that all-one suffix implicit. Retain the smaller layout
-    // for leaf construction and the full logical layout for decomposition.
-    let count_build_lay = count_lay.clone();
-    count_lay.mu = push_lay.mu;
     let beta = ps.sample();
     // The `g^z` table backing `Coord::Index`, built once for the three sides: push
     // and pull would otherwise build the same table twice and count, which carries
@@ -695,9 +687,11 @@ pub fn prove_balance(
         [
             build_leaves(push, &push_lay, cols, &w, beta, &gpow),
             build_leaves(pull, &pull_lay, cols, &w, beta, &gpow),
-            build_leaves(count, &count_build_lay, cols, &count_w, F192::ZERO, &gpow),
+            build_leaves(count, &count_lay, cols, &count_w, F192::ZERO, &gpow),
         ]
     });
+    // Leaf construction keeps the all-one padding implicit; decomposition uses the full logical depth.
+    count_lay.mu = push_lay.mu;
     // All three trees run as ONE RLC-batched GKR (equal μ: push/pull match
     // block-for-block, count is padded), so every claim lands on ONE point ζ.
     let bus_gkr = crate::stage!("Bus GKR", || {
@@ -760,10 +754,8 @@ pub fn prove_balance(
         sigmas
     });
 
-    let bytecode_claims = vec![bytecode_claim(push, &bus_gkr.point, &alphas)];
     BusProof {
         claims,
-        bytecode_claims,
         point: bus_gkr.point,
         forms,
         sigmas,

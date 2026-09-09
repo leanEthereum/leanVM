@@ -3,7 +3,7 @@
 //!
 //! A node verifies `n_raw_xmss` XMSS signatures, `n_raw_sphincs` SPHINCS
 //! signatures and `n_children` sub-proofs **of this same bytecode**, and
-//! publishes the sorted deduplicated union of their signer sets. The XMSS
+//! by default publishes the sorted deduplicated union of their signer sets. The XMSS
 //! signers are grouped by epoch, each group
 //! carrying its own message. A SPHINCS
 //! signer carries its own message, so that half of the statement is a list of
@@ -23,8 +23,8 @@
 //! holding undeclared groups so a whole `(epoch, message)` can go unpublished.
 //! A child's groups need
 //! not equal its parent's: a hinted map, checked by the guest, ties each
-//! non-empty child group to a parent group with the same epoch and message,
-//! so a parent's list is the union of what sits below it. An XMSS slot holds the
+//! non-empty child group to a parent group with the same epoch and message.
+//! An XMSS slot holds the
 //! key's two cells and a SPHINCS slot four, its key and its message, so the
 //! guest reads each SPHINCS signature's message out of the slot it verifies.
 //!
@@ -1005,7 +1005,7 @@ fn weighted_eq_table(points: &[Vec<F192>], lambdas: &[F192], vars: usize, active
 /// per polynomial they reduce to.
 fn aggregate_deferred_claims(
     subproofs: &[DeferredSubproof],
-    carried_claims: &[DeferredClaim],
+    carried_claims: &[&DeferredClaim],
 ) -> (SubHints, DeferredClaim) {
     let child_count = subproofs.len();
     assert_eq!(child_count, carried_claims.len(), "one carried claim per child");
@@ -1445,7 +1445,7 @@ fn walk_claims(layout: &lean_vm::cpu::Layout, kbc: usize, mut visit: impl FnMut(
 fn gen_verify(
     program: &Program,
     public_input: [F192; 2],
-    summary: &lean_vm::cpu::VerifySummary,
+    summary: lean_vm::cpu::VerifySummary,
 ) -> Result<(SubHints, DeferredSubproof), AggregationError> {
     let proof_stream = &summary.raw.stream;
     let layout = lean_vm::cpu::layout(
@@ -1455,11 +1455,10 @@ fn gen_verify(
         public_input,
     );
     let sides: [&[Block]; 3] = [&layout.push, &layout.pull, &layout.count];
-    let side_layouts: Vec<lean_vm::leaf::Layout> = sides.iter().map(|blocks| lean_vm::leaf::layout(blocks)).collect();
-    let side_mus: Vec<usize> = side_layouts.iter().map(|side| side.mu).collect();
+    let side_layouts = sides.map(lean_vm::leaf::layout);
     // Fixed capacities: every buffer/stride placeholder is a global cap so
     // the placeholder map is SHAPE-INDEPENDENT (the definition of generic).
-    assert!(*side_mus.iter().max().unwrap() <= MU_CAP && proof_stream.len() <= STREAM_CAP);
+    assert!(side_layouts.iter().all(|side| side.mu <= MU_CAP) && proof_stream.len() <= STREAM_CAP);
     // The guest holds one opening arm per candidate committed size, so a child
     // outside that window has no arm to dispatch to. `min_log_committed` keeps
     // every aggregate above the low end, leaving only the ceiling reachable.
@@ -1634,7 +1633,7 @@ fn gen_verify(
             // picks it up at `msg_cursor = cursor`, which sits where the flock
             // reduction stopped; the ring-switch messages are struct-observed and
             // still do not advance that cursor.
-            let mut stream = proof_stream.clone();
+            let mut stream = summary.raw.stream;
             assert!(
                 stream.len() <= STREAM_CAP,
                 "stream {} exceeds cap {STREAM_CAP}",
@@ -2257,7 +2256,7 @@ pub(crate) fn aggregate_tampered(
 
     let mut subs = Vec::with_capacity(children.len());
     let mut carried = Vec::with_capacity(children.len());
-    for (i, child) in children.iter().enumerate() {
+    for (i, (child, (pi, summary))) in children.iter().zip(verified).enumerate() {
         hints.push(
             "child_meta",
             vec![count(child.xmss_signers.len()), count(child.sphincs_signers.len())],
@@ -2282,13 +2281,12 @@ pub(crate) fn aggregate_tampered(
         hints.push("signers_split", signers_split(1 + 2 * child.xmss_signers.len()));
         hints.push("child_defer", child.defer.cells());
         hints.push("child_da_count", vec![count(child.da_roots.len())]);
-        let (pi, summary) = &verified[i];
-        let (sub_hints, defer) = gen_verify(guest, *pi, summary)?;
+        let (sub_hints, defer) = gen_verify(guest, pi, summary)?;
         for (name, entry) in sub_hints {
             hints.push(&name, entry);
         }
         subs.push(defer);
-        carried.push(child.defer.clone());
+        carried.push(&child.defer);
     }
 
     drop(_span);

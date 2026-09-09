@@ -1746,7 +1746,7 @@ pub fn recursive_verifier_with_basis(
     let mut basis_polys: Vec<ArenaVec<F192>> = vec![ArenaVec::from_slice(b_initial), basis_0_induced];
     let mut basis_ris_starts: Vec<usize> = vec![initial_k];
     let mut basis_separations: Vec<F192> = vec![query_scalar_0];
-    let mut ris: Vec<F192> = r_lane_fold.clone();
+    let mut ris = r_lane_fold;
 
     let mut prev = PrevLevel {
         root: root_1,
@@ -2066,12 +2066,12 @@ where
     }
     let mut level_ctxs: Vec<LevelCtx> = vec![LevelCtx {
         log_msg_cols: n1,
-        queries: queries_0.clone(),
+        queries: queries_0,
         weights: weights_0,
         ris_start: initial_k,
         beta: query_scalar_0,
     }];
-    let mut ris: Vec<F192> = r_lane_fold.clone();
+    let mut ris = r_lane_fold;
 
     let mut prev = PrevLevel {
         root: root_1,
@@ -2127,7 +2127,7 @@ where
             );
             level_ctxs.push(LevelCtx {
                 log_msg_cols: n_current,
-                queries: queries_last.clone(),
+                queries: queries_last,
                 weights: weights_last,
                 ris_start: ris.len(),
                 beta: query_scalar_last,
@@ -2187,7 +2187,7 @@ where
             // point by witness variable, which is the only thing this whole
             // relayout changes for a verifier: `eval_b_at` and every closed form
             // under it stay exactly as they were.
-            let mut full_point = ris.clone();
+            let mut full_point = ris;
             full_point.extend_from_slice(&ris_tail);
             full_point.rotate_left(initial_k);
             weight += eval_b_at(&full_point);
@@ -2245,7 +2245,7 @@ where
         }
         level_ctxs.push(LevelCtx {
             log_msg_cols: n_current,
-            queries: queries_i.clone(),
+            queries: queries_i,
             weights: weights_i,
             ris_start: ris.len(),
             beta: query_scalar_i,

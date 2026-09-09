@@ -752,7 +752,11 @@ impl FnLower<'_> {
         // XOR, and the two disagree whenever a side's readings do. Neither can
         // simply win, so an ambiguous condition is REJECTED and `const(...)` is
         // how the author names the regime (`zkDSL.md`, "`if const(...)`").
-        if let (Some(a), Some(b)) = (self.try_const_index(lhs), self.try_const_index(rhs)) {
+        let (a, b) = (self.eval(lhs), self.eval(rhs));
+        if let (Some(ai), Some(bi)) = (
+            a.int.and_then(|n| u32::try_from(n).ok()),
+            b.int.and_then(|n| u32::try_from(n).ok()),
+        ) {
             // Checked per SIDE, not by comparing the two verdicts. If each side's
             // own readings agree then integer equality and field equality say the
             // same thing, so a side that disagrees with ITSELF is the whole of the
@@ -761,8 +765,8 @@ impl FnLower<'_> {
             // `n == 3 - 1` slipped through and folded on the integer reading while
             // `n == 2`, the same condition, was rejected.
             if !force_const {
-                for e in [lhs, rhs] {
-                    if let Some((n, f)) = self.diverging_readings(e) {
+                for (e, known) in [(lhs, a), (rhs, b)] {
+                    if let Some((n, f)) = known.diverging_readings() {
                         self.fail(format!(
                             "`{e:?}` reads as the integer {n} where a condition folds, and as the field \
                              element {:#x}:{:#x} where a value is wanted, so this branch would be decided \
@@ -773,7 +777,7 @@ impl FnLower<'_> {
                     }
                 }
             }
-            for st in if (a == b) == eq { then } else { els } {
+            for st in if (ai == bi) == eq { then } else { els } {
                 self.stmt(st);
             }
             return;
@@ -783,7 +787,7 @@ impl FnLower<'_> {
         // against. A plain `if` must NOT: folding it would rescope the arm, whose
         // bindings then outlive it.
         if force_const {
-            if let (Some(fa), Some(fb)) = (self.try_field_const(lhs), self.try_field_const(rhs)) {
+            if let (Some(fa), Some(fb)) = (a.field, b.field) {
                 for st in if (fa == fb) == eq { then } else { els } {
                     self.stmt(st);
                 }
@@ -1403,7 +1407,7 @@ impl FnLower<'_> {
         // they exist in the enclosing scope (deterministic order).
         let mut referenced = Vec::new();
         let mut bound = std::collections::HashSet::new();
-        bound.insert(var.to_string());
+        bound.insert(var);
         for s in body {
             free_vars_stmt(s, &mut referenced, &mut bound);
         }
@@ -1442,9 +1446,9 @@ impl FnLower<'_> {
             if matches!(
                 self.scope.bound(r).map(|b| b.val),
                 Some(Binding::Scalar(_) | Binding::Gaddr(_) | Binding::FConst(_))
-            ) && seen.insert(r.clone())
+            ) && seen.insert(*r)
             {
-                captures.push(r.clone());
+                captures.push((*r).to_string());
             }
         }
 
