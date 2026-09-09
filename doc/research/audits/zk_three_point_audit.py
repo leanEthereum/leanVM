@@ -65,7 +65,7 @@ def certificate(verifier):
         differences.append([(difference >> (64 * slot)) & ((1 << 64) - 1) for slot in slots])
     assert len(field.pivots(differences)) == 12
     assert all(768 + offset not in THREE_POINT_SUPPORT for offset in range(5))
-    assert [reordered_index(768 + offset) for offset in range(5)] == list(range(48, 53))
+    assert [reordered_index(3 * 2048 + 768 + offset) for offset in range(5)] == list(range(432, 437))
     lane_counts = [0] * 16
     for bank in range(96):
         for sparse in THREE_POINT_SUPPORT:

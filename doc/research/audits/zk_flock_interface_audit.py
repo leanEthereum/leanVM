@@ -75,11 +75,11 @@ def obstruction(verifier):
 
 def metadata_bank(verifier):
     field, rng = Tower(64, verifier), Random(419)
-    logical = [768 + offset for offset in range(5)]
-    assert all((index >> 7).bit_count() == 2 for index in logical)
-    assert all(index not in THREE_POINT_SUPPORT for index in logical)
+    logical = [3 * 2048 + 768 + offset for offset in range(5)]
+    assert all(((index & 2047) >> 7).bit_count() == 2 for index in logical)
+    assert all((index & 2047) not in THREE_POINT_SUPPORT for index in logical)
     physical = [reordered_index(index) for index in logical]
-    assert physical == list(range(48, 53))
+    assert physical == list(range(432, 437))
     point = [field.random(rng) for _ in range(18)]
     weights = []
     for index in physical:

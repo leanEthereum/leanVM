@@ -206,6 +206,7 @@ def joint_root_bound():
     assert decouple + envelope < Fraction(1, 1 << 151)
     assert 2 + banks * (queries + 4) <= 1 << 17
     print("Shared root plus the three-limb memory envelope: exact combined bound below 2^-151 using existing reserved words.", flush=True)
+    return decouple + envelope
 
 
 def unopened_leaf_certificate(field):

@@ -1,0 +1,91 @@
+% !TeX root = ../../main.tex
+\subsection{All BLAKE2s terminal columns, without changing Flock}\label{note:zk-flock-columns}
+
+\paragraph{Result.} A fixed library of $16256$ valid padding compressions, with their closing JUMPs, hides the nineteen non-value BLAKE2s column evaluations by independent permutations. It fits inside the complementary positions of the existing height-$18$ source. These permutations preserve every compression witness at its position, the other instruction tables, memory values and final read counts. Consequently all $37$ BLAKE2s terminal columns now have a joint simulator with the established Flock endpoints, below $2^{-156}$. The table coefficients, middle Flock rounds, GKR and PCS remain outside this joint theorem.
+
+\subsubsection{What the new randomness must cover}
+
+The nineteen columns are the program counter, frame pointer, seven operand offsets, nine memory-read counts and the bytecode-read count. They are sent explicitly by the actual table sumcheck. Free compression inputs do not affect these columns. For example, padding at one fixed operand tuple preserves every affine relation among those offsets; a private choice of real instructions can violate such a relation. The repair therefore changes legal row placement and count assignments, not just compression values.
+
+Let $S\subset\cube{12}$ be the $448$-position support of \noteref{zk-jump-metadata}: six arbitrary bits followed by six bits of integer Hamming weight at most one. Write $\delta_{\mathrm{span}}$ for its normalized monomial-span error, as in that note. The ordinary equality-weight span fails with probability at most $\delta_{\mathrm{span}}+12/|\E|$; weights multiplied by $\gen^{Li}$, for $i\in S$ and fixed integer $L$, have failure at most $\delta_{\mathrm{span}}+36/|\E|$ by Lemma~\ref{lem:metadata-span}. We use only $L=64,2$.
+
+\subsubsection{A disjoint placement inside the current compression source}
+
+Use logical batch index $s+2048b$, with eleven within-bank bits $s$ and seven bank bits $b$, followed by the existing physical permutation $\zkFlockOrder$. The mandatory binary source occupies the positions where the top three bits of $s$ have weight at most one, in banks $b<96$. All new rows instead have top-three-bit value in $\{3,5,6,7\}$.
+
+For each of the eight program banks $j=0,\ldots,7$, take $v_j$ to be entry $\lfloor j/2\rfloor$ of $(3,5,6,7)$ and $t_j=j\bmod2$. For each $i\in S$, the paired logical positions are
+\[
+ \ell_{j,i}=256v_j+2t_j+4(i\bmod64)+2048\lfloor i/64\rfloor,
+ \qquad \ell_{j,i}+1.
+\]
+For the frame bank and count bank, respectively use $v=5$ and $v=3$, and pairs
+\[
+ \ell_i=256v+2(i\bmod128)+2048\bigl(64+\lfloor i/128\rfloor\bigr),
+ \qquad \ell_i+1.
+\]
+The frame bank uses $i\in S$; the count bank occupies every $0\le i<4096$, but randomizes only pairs indexed by $S$. All pairs are disjoint, remain in the first $96$ banks and avoid the binary source. The five general-input rows from \noteref{zk-flock-interface} now lie at logical positions $3\cdot2048+768+i$, $0\le i\le4$; bank three is absent from the program support, so these rows are disjoint too.
+
+Each pair differs only in logical bit zero. The sum of its two equality weights cancels this bit, leaving a fixed five-coordinate selector times a twelve-coordinate equality weight. The program banks use coordinates $(s_2,\ldots,s_7,b_0,\ldots,b_5)$; the frame and count banks use $(s_1,\ldots,s_7,b_0,\ldots,b_4)$. Requiring the six coordinates $(s_1,s_8,s_9,s_{10},b_5,b_6)$ of the honest point to avoid $\{0,1\}$ makes every selector nonzero, at cost $12/|\E|$.
+
+\subsubsection{The valid library and its triangular directions}
+
+Every selected BLAKE2s row is completed by a JUMP returning from the next program counter to the row's starting state. Use the $32$-cell frame template in \noteref{zk-flock-interface}. Both members of each pair compute exactly the same compression, including identical messages, chaining values, metadata, digest and internal R1CS witness. Different pairs may use independently chosen general compressions. The five separate metadata rows remain independent of this entire library.
+
+\paragraph{Eight program directions.} In bank $j$, execute the paired compressions at integer code locations $1024+4j$ and $1026+4j$, each with its own fresh frame and its next instruction as the closing JUMP. Start from operand offsets $(0,1,2,3,8,10,12)$. In bank zero both copies use these offsets. In each of banks $1,\ldots,7$, change just operand $j-1$ of the second copy to $20$. If that operand addresses a pair of words, its partner is at $21$. These cells avoid every other operand and the closing controls $16,17,18$.
+
+Independently swap the two complete BLAKE2s rows at each designated pair, leaving their return rows in place. Projected to the program counter and seven operand columns, the eight differences form an invertible matrix: bank zero has a nonzero program-counter difference and zero operand differences; every remaining bank has just one nonzero operand difference, $\gen^{a_j}+\gen^{20}$, besides its program-counter difference. Their ordinary scalar weights therefore make these eight evaluations jointly uniform on the span event. Changes in frame and counter evaluations are handled next.
+
+\paragraph{One frame direction.} At code location $1056$, use paired constant-frame compression/return cycles in frames
+\[
+ A_i=\gen^{1280+64i},\qquad B_i=\gen^{32}A_i,\qquad i\in S.
+\]
+Whole-row swaps change no program or operand column. Their frame difference is $\gen^{1280}(1+\gen^{32})\gen^{64i}$, so this bank makes the frame evaluation uniform, independently of the program-bank randomness, by the weighted-span lemma. Its changes in bytecode counts will be covered by the last bank.
+
+\paragraph{Ten counter directions.} At code location $1058$, repeat the same compression/return cycle twice in one fresh frame for each $0\le i<4096$. Its nine compression addresses are distinct and each is read twice, giving labels $1,\gen$. Assign the two bytecode labels $\gen^{2i},\gen^{2i+1}$. Across all pairs these are one complete chain of $8192$ reads. For each $i\in S$, independently swap the two labels in each of the ten count columns, without moving other entries. Memory-count differences are $1+\gen$ and the bytecode-count difference is $(1+\gen)\gen^{2i}$. The ordinary and $L=2$ spans make all ten counter evaluations independently uniform.
+
+Each count swap exchanges two labels on the same counted tuple, preserving its complete read chain. Whole-row swaps preserve the instruction's bus multisets. No operation changes a value at a compression position, any return row, the memory image, code image, final counts or any count-column product. A count assignment need not follow execution order: the acceptance relation checks the counted multisets. All code locations and operand variants are fixed public padding code, not new instructions or verifier equations.
+
+\subsubsection{Joint simulation and resource accounting}
+
+\begin{theorem}[Complete BLAKE2s terminal interface]\label{thm:zk-flock-all-columns}
+For the combined source, all $37$ BLAKE2s column evaluations at the honest table point, jointly with the Flock endpoint view of Theorem~\ref{thm:zk-flock-metadata-endpoints}, have an efficient witness-free simulator with error at most
+\[
+ \zkTripleError+4\delta_{\mathrm{span}}+\frac{4295}{2^{192}}<2^{-156}.
+\]
+This is uniform over other fixed valid rows satisfying the disjoint frame/code reservation, and excludes the intervening table and Flock messages, bus/GKR and PCS.
+\end{theorem}
+\begin{proof}
+Fix all real rows, all compression inputs, the original binary-profile bits and every other private coin except the new permutation bits. On good honest coins, the eight program banks give independent uniform scalars along an invertible eight-dimensional projection. Conditional on all their bits, the frame bank supplies a uniform frame evaluation without changing that projection. Conditional on these nine banks' bits, the ten count swaps give independent uniform counters without changing the first nine evaluations. This triangular construction makes all nineteen non-value evaluations independent uniform elements of $\E$, for every fixed complement.
+
+The good event needs four scalar spans: the ordinary program-grid span, the $L=64$ frame-grid span, and the ordinary and $L=2$ count-grid spans. Their total failure, including selectors, is at most
+\[
+ 4\delta_{\mathrm{span}}+(12+36+12+36+12)/|\E|
+ =4\delta_{\mathrm{span}}+108/|\E|.
+\]
+The new bits preserve the complete packed Flock witness pointwise. Hence they preserve all eighteen value evaluations and every Flock algebraic message for fixed coins, not merely the already simulated endpoints. Replace the nineteen-column conditional law by independent uniforms, then apply the preceding joint value/endpoint theorem to the complement. This is a conditional replacement, not a composition of marginal privacy claims. Adding its error $\zkTripleError+4187/|\E|$ proves the bound. The simulator invokes that earlier simulator and samples nineteen independent extension elements.
+\end{proof}
+
+\paragraph{Capacity and the next obligation.} The library uses $8\cdot2\cdot448+2\cdot448+2\cdot4096=16256$ BLAKE2s rows and the same number of closing JUMPs, replacing existing complementary padding rows and returns. It uses $36$ code locations, below the candidate code height, provided these public locations are reserved. Paired count rows share their frame, so all $196608$ Flock padding compressions now need at most $192512$ distinct $32$-cell frames, or $6160384$ cells. This leaves $25073$ slots of size $256$ in the current memory payload. The frame bank's sparse geometric positions lie entirely below $2^{22}$; assign all remaining frames to the other free aligned slots, including its gaps. This allocates the Flock portion, not the other padding libraries or real execution.
+
+The new source correlates compression inputs within these pairs. Outside them the complementary general-input rows can still be independently randomized. Any future PCS argument must use this actual correlated source; the former independent-per-row description is no longer the full candidate. Next cover the table coefficients jointly with the preceding GKR interface and the complete Flock transcript. Preservation of an unproved Flock marginal is useful for that task, but does not simulate it.
+
+\subsubsection{A joint view across Flock, memory and the bus root}
+
+\begin{corollary}[Memory and Flock interface composition]\label{cor:zk-flock-memory-interface}
+Use the candidate public layout with $\kmem=25$, $\mu=28$, and the small-frame memory reservation. Assume a valid completion allocates all real and padding accesses in its payload, and samples the unused-word masks independently of all instruction data and other private choices. With independent honest coins, $q\le228$ initial queries and at most $2^{40}$ other nonconstant push factors, the following enlarged joint view has a witness-free simulator with error below $2^{-151}$: the shared bus product root, the complete three-limb memory envelope, all $37$ BLAKE2s terminal evaluations and the established Flock endpoints. Fingerprint GKR messages, count disclosures, intervening table/Flock messages, actual PCS openings and authentication are excluded.
+\end{corollary}
+\begin{proof}
+Condition on all instruction data and all private choices other than the unused-word masks. The root-kernel decomposition of \noteref{zk-memory-root} and its root-replacement proof are uniform in this fixed complement. They therefore replace the root by an independent uniform nonzero scalar while retaining the memory envelope and the actual Flock/interface view. The observation map uses honest opening coins independent of the bus fingerprint coins, as required there.
+
+Still conditional on the instruction data, apply Theorem~\ref{thm:zk-memory-envelope} to replace the three-limb envelope by its public-pin simulator. The Flock/interface view is unchanged: it depends only on the fixed compression rows, metadata and honest coins, not on unused words. Averaging over the complement gives a hybrid with independent simulated memory envelope and root, conditional on the shared public coins, alongside the original Flock/interface marginal. Apply Theorem~\ref{thm:zk-flock-all-columns} to that marginal. The order of these three replacements justifies adding their errors, despite the accessed compression values also appearing in memory.
+
+With the exact decoupling bound from Theorem~\ref{thm:zk-memory-root-decouple}, the total is
+\[
+ \varepsilon_{\mathrm{decouple}}+\frac{3(22+12)}{2^{192}}
+ +\zkTripleError+4\delta_{\mathrm{span}}+\frac{4295}{2^{192}}
+ <2^{-151}.
+\]
+The simulator samples all honest coins, invokes the memory and Flock/interface simulators with their shared coins, and independently samples the nonzero root. The bound is verified using the exact earlier ledger, not by assuming that two separate bounds below $2^{-151}$ sum to that same bound. The Flock allocation above fits this memory payload; existence of the full valid completion is still a hypothesis, not the missing P1 sampler theorem.
+\end{proof}
+
+\paragraph{Evidence.} \auditref{zk_flock_columns_audit.py} constructs every row against the actual Python table forms, verifies both bus multisets before and after randomization, checks complete read chains and unchanged count products, proves disjoint placement and allocation by enumeration, certifies native binary rank $3648$, and checks the probability ledger by exact rational arithmetic. The symbolic span and triangular arguments above supply the uniform theorem; the rank certificate alone would not.
