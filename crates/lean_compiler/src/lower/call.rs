@@ -51,18 +51,9 @@ fn stmt_inline_safe(s: &Stmt) -> bool {
 }
 
 impl FnLower<'_> {
-    /// Lower a call. Return values land in `dsts_in` when given (write-once, so
-    /// distinct arms of a `match` may share the same cells), else in fresh
-    /// cells, sparing the caller a temp-then-copy.
-    pub(super) fn lower_call(
-        &mut self,
-        callee: &str,
-        args: &[Expr],
-        n_ret: usize,
-        cond: Option<Off>,
-        dsts_in: Option<&[Off]>,
-        tail: bool,
-    ) -> Vec<Off> {
+    /// Lower a call into the caller's return cells. Distinct `match` arms may
+    /// share these write-once destinations.
+    pub(super) fn lower_call(&mut self, callee: &str, args: &[Expr], cond: Option<Off>, dsts: &[Off], tail: bool) {
         // Every parameter must be supplied. A missing argument leaves the
         // callee's argument cell unwritten, hence prover-chosen, so an `assert`
         // reading it is vacuous; a surplus one lands on the callee's first
@@ -150,14 +141,9 @@ impl FnLower<'_> {
         }
         self.emit(LOp::Jump { oc, od: entry, of: nfp });
 
-        let dsts: Vec<Off> = match dsts_in {
-            Some(d) => d.to_vec(),
-            None => (0..n_ret).map(|_| self.fresh()).collect(),
-        };
         for (i, &d) in dsts.iter().enumerate() {
             self.deref(nfp, Abi::ret(callee_arg_cells, i as u32), d, DerefMode::Cell);
         }
-        dsts
     }
 
     /// `names = match(log(x), …, lambda k: f(args, k))` fused: the arms all
@@ -522,7 +508,7 @@ impl FnLower<'_> {
                 }
             }
         }
-        self.lower_call(callee, args, physical.len(), None, Some(&physical), false);
+        self.lower_call(callee, args, None, &physical, false);
         self.inline_stack_ret = Some(binds);
         logical
     }
@@ -546,7 +532,7 @@ impl FnLower<'_> {
                     self.fail("a normal function's multi-cell StackBuf return needs a `let` binding")
                 };
             }
-            self.lower_call(callee, args, dsts.len(), None, Some(dsts), false);
+            self.lower_call(callee, args, None, dsts, false);
         }
     }
 

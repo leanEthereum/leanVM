@@ -1347,7 +1347,7 @@ impl FnLower<'_> {
                 let (la, lb) = (self.expr(lhs), self.expr(rhs));
                 // x = lhs + rhs; x != 0 ⇔ lhs != rhs
                 let x = self.pure(PureOp::Xor, la, lb);
-                self.lower_call(callee, args, 0, Some(x), None, tail);
+                self.lower_call(callee, args, Some(x), &[], tail);
             }
             StmtKind::For { var, lo, hi, body } => self.lower_for(var, *lo, hi, body),
             // Compile-time unrolling: emit the body per integer, the counter
