@@ -19,6 +19,7 @@ PROGRAM = ("pc", *OPERANDS)
 BASE_OFFSETS = (0, 1, 2, 3, 8, 10, 12)
 SECTORS = (3, 5, 6, 7)
 METADATA_ROWS = tuple(3 * 2048 + 768 + index for index in range(5))
+SHARED_PC_SUPPORT = [index for index in DENSE_FIXED if index not in (192, 193)]
 
 
 def logical_pair(bank, index):
@@ -31,7 +32,7 @@ def logical_pair(bank, index):
     return left, left + 1
 
 
-def build(verifier, *, code_shift=0, frame_shift=0):
+def build(verifier, *, code_shift=0, frame_shift=0, shared_pc=False):
     library = Library(verifier)
     reserved = {2 * index + side for index in SPARSE for side in (0, 1)}
     available = iter(slot for slot in range(1 << 16) if slot not in reserved)
@@ -43,18 +44,22 @@ def build(verifier, *, code_shift=0, frame_shift=0):
         frames.add(slot)
         return verifier.GEN ** (frame_shift + 1280 + 32 * slot)
 
-    def cycle(pc, frame, changed=None):
+    def cycle(pc, frame, changed=None, controls=16):
         pc += code_shift
         rows = library.templates((verifier.OP_BLAKE2S, pc, [], True), frame)
         if changed is not None:
             rows[0][1][verifier.BLAKE2S_COLUMNS.index(OPERANDS[changed])] = verifier.GEN**20
-        for name, offset in zip(("o_c", "o_d", "o_f"), (16, 17, 18)):
+        for name, offset in zip(("o_c", "o_d", "o_f"), range(controls, controls + 3)):
             rows[-1][1][verifier.JUMP_COLUMNS.index(name)] = verifier.GEN**offset
         return library.append(rows)[0]
 
     for bank in range(10):
-        for index in range(4096) if bank == 9 else SPARSE:
-            if bank < 8:
+        support = range(4096) if bank == 9 else SHARED_PC_SUPPORT if shared_pc and bank == 0 else SPARSE
+        for index in support:
+            if shared_pc and bank == 0:
+                frame = fresh()
+                first, second = cycle(1024, frame), cycle(1026, frame, controls=24)
+            elif bank < 8:
                 first = cycle(1024 + 4 * bank, fresh())
                 second = cycle(1026 + 4 * bank, fresh(), bank - 1 if bank else None)
             elif bank == 8:
@@ -69,8 +74,10 @@ def build(verifier, *, code_shift=0, frame_shift=0):
             assert left not in placement and right not in placement
             placement[left], placement[right] = first, second
             pairs[bank].append((index, first, second, left, right))
-    assert len(placement) == 16256 and len(library.rows) == 32512
-    assert len(frames) == 16256 - 4096 and not set(METADATA_ROWS).intersection(placement)
+    count = 16256 + (2 * (len(SHARED_PC_SUPPORT) - len(SPARSE)) if shared_pc else 0)
+    assert len(placement) == count and len(library.rows) == 2 * count
+    assert len(frames) == count - 4096 - (len(SHARED_PC_SUPPORT) if shared_pc else 0)
+    assert not set(METADATA_ROWS).intersection(placement)
     assert all((index & 2047) not in THREE_POINT_SUPPORT and index >> 11 < 96 for index in placement)
     assert [reordered_index(index) for index in METADATA_ROWS] == list(range(432, 437))
     assert max(1280 + 32 * slot + 31 for slot in frames) < 1 << 22
@@ -84,7 +91,7 @@ def build(verifier, *, code_shift=0, frame_shift=0):
     }
     assert all(int(row[column]) == value for opcode, row in library.rows if opcode == verifier.OP_BLAKE2S for column, value in expected.items())
     library.verify()
-    print("16256 BLAKE2s rows and their returns: valid fixed bytecode, closed state cycles and complete read chains.", flush=True)
+    print(f"{count} BLAKE2s rows and their returns: valid fixed bytecode, closed state cycles and complete read chains.", flush=True)
     return library, pairs, placement
 
 

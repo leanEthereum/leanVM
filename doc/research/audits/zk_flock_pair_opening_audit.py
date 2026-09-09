@@ -137,10 +137,7 @@ def joint_interface_error():
     print("Adding all ten BLAKE2s count evaluations at the GKR leaf point preserves the joint bounds below 2^-154 and 2^-151.", flush=True)
 
 
-def bus_count_certificate(verifier, library, pairs):
-    field, rng = Tower(64, verifier), Random(503)
-    point = [verifier.E(*field.coords(field.random(rng))) for _ in range(26)]
-    alphas = [verifier.E(*field.coords(field.random(rng))) for _ in range(4)]
+def blake_bus_forms(verifier, point, alphas):
     weights = [verifier.eq_eval(alphas, [verifier.E((slot >> bit) & 1) for bit in range(4)]) for slot in range(16)]
     layout = verifier.build_layout(range(16 << 11), 25, (19, 19, 19, 19, 20, 18))
     forms, positions = [], []
@@ -160,6 +157,14 @@ def bus_count_certificate(verifier, library, pairs):
                         indices[verifier.BLAKE2S_COLUMNS[monomial[0]]] = placement.index >> 18
         forms.append(form)
         positions.append(indices)
+    return forms, positions
+
+
+def bus_count_certificate(verifier, library, pairs):
+    field, rng = Tower(64, verifier), Random(503)
+    point = [verifier.E(*field.coords(field.random(rng))) for _ in range(26)]
+    alphas = [verifier.E(*field.coords(field.random(rng))) for _ in range(4)]
+    forms, positions = blake_bus_forms(verifier, point, alphas)
     counts = verifier.TABLES[verifier.OP_BLAKE2S].count_columns
     matrix = [[form.terms.get((column,), verifier.ZERO) for column in counts] for form in forms]
     assert all(all(len(term) == 1 for term in form.terms if column in term) for form in forms for column in counts)
@@ -204,10 +209,11 @@ def identities(verifier, private):
     print("Native-field coset interpolation recovers coefficient-block sums; the valid frame-alias difference survives.", flush=True)
 
 
-def copy_position(bank, index):
+def copy_position(bank, index, *, shared_pc=False):
     sparse, original = index & 2047, index >> 11
     if bank < 8:
-        destination = dict(zip((0, 1, 2, 4, 8, 16, 32), (5, 6, 7, 9, 10, 11, 12)))[original]
+        targets = (13, 14, 20, 21, 22, 23, 24) if shared_pc and bank == 0 else (5, 6, 7, 9, 10, 11, 12)
+        destination = dict(zip((0, 1, 2, 4, 8, 16, 32), targets))[original]
     elif bank == 8:
         destination = 64 + dict(zip((0, 1, 2, 4, 8, 16), (3, 5, 6, 7, 9, 10)))[original - 64]
     else:

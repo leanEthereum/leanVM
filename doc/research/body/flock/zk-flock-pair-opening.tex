@@ -1,7 +1,7 @@
 % !TeX root = ../../main.tex
 \subsection{Two PCS queries defeat block-local metadata swaps}\label{note:zk-flock-pair-opening}
 
-\paragraph{Conclusion.} Two initial PCS queries defeat the original adjacent metadata swaps, and whole-row shuffling alone retains a second leak. Independent valid counter-label swaps repair it. The current joint theorem includes all $37$ BLAKE2s terminal claims, the established Flock endpoints, one selected lane-$59$ query pair, and all ten BLAKE2s count evaluations at the GKR leaf point, below $2^{-154}$. Adding the memory envelope and shared bus root remains below $2^{-151}$. The count evaluations are an auxiliary interface, not the full GKR transcript. The larger theorem needs more random label choices in existing rows, with no height or verifier change.
+\paragraph{Conclusion.} Two initial PCS queries defeat the original adjacent metadata swaps, and whole-row shuffling alone retains a second leak. Independent valid counter-label swaps repair it. A shared-frame program bank then extends the joint theorem to all $37$ BLAKE2s terminal claims, the established Flock endpoints, one selected lane-$59$ query pair and the three actual GKR leaf evaluations, below $2^{-154}$. Adding the memory envelope and shared bus root remains below $2^{-151}$. This covers the computed leaf boundary, not the twelve transmitted GKR children or preceding rounds. The source changes only valid padding choices within the existing public heights.
 
 \subsubsection{The encoder reveals sums inside a coefficient block}
 
@@ -247,6 +247,54 @@ The matrix generically has rank two. For $\mathsf{cnt\_cv1}$ and $\mathsf{cnt\_o
 \]
 The two products have different factorizations into coordinate factors and their complements, so this degree-at-most-$16$ polynomial is nonzero. The minor vanishes with probability at most $20/|\E|$, including the fingerprint weight. No extra error is needed to simulate the count contribution: the simulator can apply the actual matrix to the simulated vector even on degenerate coins. But the residual address/value contribution to $P+\gen Q$ remains an essential independent obligation; a count-only extension cannot hide it.
 
-\paragraph{Remaining opening and GKR obligations.} The auxiliary count vector now composes with the table claims and selected opening pair, not merely as a separate marginal. This does not simulate the full leaf triple, its preceding nonlinear GKR messages, the table sumcheck coefficients, additional query values or authentication. The next boundary step must include the address/value residual, and the final proof still needs a whole-layer theorem and one common valid sampler. The fixed-disclosure bounds are finite budgets, not permission to condition on an arbitrary transcript.
+\subsubsection{A same-frame source for the full leaf triple}
+
+Counter swaps cannot move the residual $\zkLeafResidual=P+\gen Q$. A small change to the program bank supplies this missing direction. This is a new source variant; the preceding theorems retain their original source and allocation.
+
+\paragraph{Valid source and placement.} In program bank zero, replace $S$ by $\zkSharedPcSupport=\zkDenseSupport\setminus\{192,193\}$, of size $1278$. Each pair now uses one common $32$-cell frame, the same compression and baseline operands, at code locations $1024,1026$. Its closing JUMPs use control offsets $(16,17,18)$ and $(24,25,26)$ respectively. The two distinct return addresses therefore occupy disjoint cells, and both cycles are valid in write-once memory. The nine compression addresses are each read twice, so their labels are $1,\gen$; the two bytecode labels agree because each code location is used once per pair. Independently exchange the complete BLAKE2s rows at their designated adjacent positions.
+
+The two omitted pair indices are exactly the new collisions with the five existing general-input metadata rows. Keep those rows unchanged. The denser first bank also meets the second library's old program-bank-zero placement; remap that second bank's logical banks $(0,1,2,4,8,16,32)$ to $(13,14,20,21,22,23,24)$. All other banks keep their previous placements. The new positions are still adjacent pairs in the complement of the mandatory binary source, within the first $96$ banks. The exhaustive query certificate is rerun on this changed second library, rather than presumed to survive relocation.
+
+\paragraph{The actual residual direction.} Let $A_P,A_Q,A_C$ be the three BLAKE2s table forms obtained from the native depth-$26$ bus layout, including their block selectors and fingerprint weights. The residual form is $A_P+\gen A_Q$. Its state-PC term cancels, every counted-label term cancels, and its only remaining PC term is
+\[
+ (1+\gen)\eq(\alpha,1)\eq(\zeta_{18:26},185)\,\mathsf{pc},
+\]
+where $185$ is the bytecode block index above the row bits. In a same-frame pair every memory address, operand and compression value agrees. Consequently the residual change is exactly this coefficient times $\gen^{1024}+\gen^{1026}$ times the pair's equality-weight sum. The coefficient is a nonzero polynomial of degree at most $12$ in honest coins. This is a direction in the actual full leaf evaluation: framework terms and other tables are a fixed translation during these swaps.
+
+\begin{lemma}[Two evaluations after two omitted source bits]\label{lem:zk-shared-pc-span}
+The shared-PC bank jointly masks its table-PC evaluation and its residual evaluation, except with probability at most
+\[
+ \delta_{\mathrm{span}}+\zkDenseError{194}+29/|\E|,
+\]
+in addition to the already charged table selectors.
+\end{lemma}
+\begin{proof}
+The original $448$-position support avoids the omitted indices. At the earlier GKR row point it spans $\E$ except with probability $\delta_{\mathrm{span}}+12/|\E|$. On that event, the map from the full dense source to this evaluation and the two individual bits at indices $192,193$ is onto $\E\times\Ftwo^2$. It is fixed independently of the subsequent table point. Theorem~\ref{thm:dense-fixed-observation-span}, retaining $194$ bits, therefore makes its joint map with the table evaluation onto, at additional cost $\zkDenseError{194}$. Restrict the two distinguished bits to zero. Every fiber still has the full two-evaluation image, so removing these positions incurs no conditioning penalty. The GKR pair selector has five factors and the residual coefficient has degree at most twelve; their failures add at most $17/|\E|$. This proves the bound.
+\end{proof}
+
+\begin{theorem}[Full leaf boundary, terminal interface and an opening pair]\label{thm:zk-flock-leaf-interface}
+Use this shared-PC variant, the dense counter source and the remapped second library, under the same common-completion assumptions. All $37$ BLAKE2s terminal claims, the established Flock endpoints, one selected lane-$59$ query pair and the three actual GKR leaf evaluations $(P,Q,C)$ have a joint witness-free simulator with error at most
+\[
+ \begin{aligned}
+ &\zkTripleError+4\delta_{\mathrm{span}}+\zkFixedError{64}
+ +\zkDenseError{256}+\zkDenseError{192}+\zkDenseError{194}\\
+ &\hspace{2em}+\frac{4366}{2^{192}}+\zkMatchingError<2^{-154}.
+ \end{aligned}
+\]
+The full three-limb memory envelope and shared bus root can also be included, with total error below $2^{-151}$. The ten auxiliary count evaluations are not retained in this theorem.
+\end{theorem}
+\begin{proof}
+Fix all compression inputs, unused memory and private choices outside the original metadata source. The seven operand banks first mask their seven terminal operands. The frame bank masks the terminal frame pointer; their other effects are left for subsequent banks. The shared-PC bank then masks the terminal PC and $\zkLeafResidual$ jointly by the lemma, absorbing every earlier contribution to those two coordinates. It changes neither the operand nor frame terminal evaluations.
+
+Next use exactly the dense two-point counter maps established in Theorem~\ref{thm:zk-flock-count-interface}. Conditional on all preceding bank bits, they jointly mask the ten terminal counts and supply ten independent earlier count scalars, plus the raw query-kernel coordinate. Their map into $(P,Q,C)$ has rank two outside the degree-$20$ minor exception. Its image is exactly $\{(p,q,c):p+\gen q=0\}$. Applying it to the uniform count scalars fills the affine plane with the already masked residual. Discard the auxiliary scalars: the resulting full leaf triple is uniform on $\E^3$, independent of the terminal metadata and raw query-kernel coordinate. No assertion is made about retaining both the scalars and their translated leaf image.
+
+Thus the metadata replacement has the earlier count-interface cost plus $\delta_{\mathrm{span}}+\zkDenseError{194}+49/|\E|$: $29/|\E|$ from the new lemma and $20/|\E|$ from the rank-two minor. Every original pair is still physically adjacent and preserves the collapsed query coordinate. In the shared-PC bank the nine memory-count differences agree, so its two raw lane values on this coset are unchanged as well. The remapped second library has the same exhaustive $224$-affine-basis certificate, so its independent matching bits hide the quotient at the same cost $\zkMatchingError$. The value/endpoint replacement is unchanged. This gives the displayed total, with $4317+49=4366$.
+
+For the memory/root extension, perform the metadata and query replacements first. All their row permutations and same-tuple label exchanges preserve the individual push and pull multisets, hence the actual shared product root, not merely bus validity. They also preserve the entire memory image and envelope. The resulting uniform leaf absorbs its original framework translation, even though that translation depended on memory. Now apply the unused-memory root and envelope hybrids, retaining these independent uniforms and the actual compression-value/Flock interface. Finally replace that interface by its earlier simulator. This order avoids assuming that the actual leaf would remain fixed under an unused-memory change. Adding the same exact memory/root error proves the second claim.
+\end{proof}
+
+\paragraph{Resources and evidence.} The first library now uses $17916$ BLAKE2s rows and the same number of returns; the second still uses $16256$. Together they occupy $34172$ complementary positions, leaving $64132$ general-input positions, and still use $72$ code locations. Sharing the new $1278$ frames lowers the total Flock allocation to at most $187138$ frames, or $5988416$ cells. The remaining payload has $25744$ slots of size $256$. All public heights and verifier equations are unchanged. \auditref{zk_flock_leaf_audit.py} checks the actual forms, valid cycles, disjoint reservations, native binary ranks $5824$ for the intermediate counter/residual map and $4288$ for the actual leaf/terminal/kernel map, and the exact error ledger. Its \texttt{--matching} option exhaustively certifies the relocated source. The symbolic span proof, not the sampled ranks, supplies the uniform theorem.
+
+\paragraph{Remaining opening and GKR obligations.} The three leaf evaluations are the values computed after interpolating the final GKR children at two fresh coins. This theorem does not include the twelve transmitted children themselves or the preceding $24$ sumcheck rounds of the final depth-$26$ reduction. Nor does it include earlier layers, the count root, table coefficients, middle Flock rounds, other queries or authentication. Extending the joint boundary to those actual messages, and proving one common valid sampler, remain essential. The fixed-disclosure bounds are finite budgets, not permission to condition on an arbitrary transcript.
 
 \paragraph{Evidence and literature boundary.} \auditref{zk_flock_pair_opening_audit.py} checks exact stack positions, coset interpolation, all displayed probabilities, disjoint library allocation and full counted-bus validity before and after the added randomizers. It certifies native binary rank $5632$ for the nineteen terminal columns, ten earlier count evaluations and query-kernel coordinate together. It also extracts the actual depth-$26$ bus forms and checks their counter dependence against local label exchanges. The exact composition ledger, native valid witness pairs and exhaustive query certificate are retained. Flock's unused witness slots are forced to zero, as specified and implemented in \path{crates/flock/src/hash.rs}, so they cannot serve as free masks. Bootle, Chiesa and Liu~\cite{bcl}, Section~2.4, add a separately designed R1CS gadget with controlled randomness and also rerandomize their sumcheck factors; this is not a theorem for arbitrary random compressions in leanVM's unchanged circuit and PCS.
