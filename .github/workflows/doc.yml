@@ -6,12 +6,14 @@ on:
     paths:
       - 'doc/leanvm/**'
       - 'doc/xmss/**'
+      - 'doc/sphincs/**'
       - 'doc/images/**'
       - '.github/workflows/doc.yml'
   pull_request:
     paths:
       - 'doc/leanvm/**'
       - 'doc/xmss/**'
+      - 'doc/sphincs/**'
       - 'doc/images/**'
       - '.github/workflows/doc.yml'
   workflow_dispatch:
@@ -44,9 +46,17 @@ jobs:
       - name: Fail on an undefined XMSS reference or citation
         run: |
           ! grep -qE 'Reference .* undefined|Citation .* undefined|multiply defined' doc/xmss/.build/main.log
+      - name: Compile SPHINCS specification
+        uses: xu-cheng/latex-action@v3
+        with:
+          working_directory: doc/sphincs
+          root_file: main.tex
+      - name: Fail on an undefined SPHINCS reference or citation
+        run: |
+          ! grep -qE 'Reference .* undefined|Citation .* undefined|multiply defined' doc/sphincs/.build/main.log
 
   build-pdf:
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: write
