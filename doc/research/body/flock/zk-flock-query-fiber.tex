@@ -40,6 +40,30 @@ The left side is the dimension of the image of the full map on the kernel of its
 
 Let $\zkJointQueryDefect$ be the probability that this equality fails under the actual honest coin distribution. The product sampler has total statistical error at most $\zkJointQueryDefect$ for this interface. On bad coins it may still emit the same product distribution; the worst-case cost is just their probability. This condition is sufficient, not necessary: on a deficient matrix some private translations may still lie in its image.
 
+\subsubsection{A quantitative route through distinguishing supports}
+
+The repaired source in \noteref{zk-flock-lowbank} still fails on some concentrated query sets. Perfect privacy for every query set is therefore the wrong remaining goal. The following criterion isolates precisely the exceptional sets that matter, without treating harmless public-prefix dependencies as leaks.
+
+Fix the non-query honest coins $\zkPreQueryCoins$. Evaluate the source at the entire initial domain of size $D$, retaining the $31$ terminal/child fields, and let $\zkJointNoiseCode\subseteq\E^{31}\times\K^D$ be its binary image. Choose an efficiently computable public baseline $v_0$. Let the binary space $\zkJointShiftSpace$ contain every possible complementary contribution minus $v_0$. This containment, including the public count-prefix contract, is an obligation on the common completion; arbitrary unknown offsets cannot be omitted.
+
+A binary functional annihilating $\zkJointNoiseCode$ is \emph{relevant} when it does not annihilate $\zkJointShiftSpace$. Its query support is the set of domain positions on which its $\K$-word coefficient is nonzero; terminal/child coefficients cost no query. Let $\zkDualSupports$ be the inclusion-minimal supports of relevant functionals, and let $\zkDualSupportCount{t}$ count its distinct supports of size $t$, not its functionals.
+
+\begin{lemma}[The distinguishing-support bound]\label{lem:zk-query-support-bound}
+For $q$ independent uniform domain queries, the simulator that samples fresh source bits and outputs the queried projection of $v_0+\zkJointNoiseCode$ has error at most
+\[
+ \mathbb E_{\zkPreQueryCoins}\!\left[
+  \min\left\{1,\sum_{t=0}^{q}\zkDualSupportCount{t}
+       \frac{q(q-1)\cdots(q-t+1)}{D^t}\right\}
+ \right],
+\]
+uniformly over the declared complementary contributions. The empty product is one. For a fixed query set, the projected law absorbs every shift in $\zkJointShiftSpace$ exactly if that set contains no member of $\zkDualSupports$.
+\end{lemma}
+\begin{proof}
+A projected shift lies outside the projected noise space exactly when a binary linear functional separates them. Extending that functional by zero on unqueried coordinates gives a relevant full-domain functional supported on queried positions. Conversely, every such functional separates some shift. Taking an inclusion-minimal relevant support proves the equivalence. On all remaining query sets, the private translation is absorbed by the uniform projected noise, so the stated simulator agrees exactly with every real law. Charge one on the exceptional sets. Each fixed support of size $t$ is hit with probability at most $q(q-1)\cdots(q-t+1)/D^t$, by assigning its distinct points to distinct query positions. Union bound over distinct minimal supports and then average over the independent non-query coins.
+\end{proof}
+
+This simulator samples source bits, not the exponentially large full-domain codeword; it computes only the disclosed coordinates. The support family is a proof device, not a required simulator computation. A relevant empty support records an already distinguishing terminal/child view. A large family of sparse supports can defeat the statistical target even when each fixed support is extremely unlikely. The missing theorem must control the complete family, including dependencies spanning several cosets; the one-coset and concentrated-query bounds alone do not do so.
+
 \paragraph{Joining the existing boundary.} All these metadata choices preserve the complete Flock witness, memory envelope and shared bus root. The same hybrid order as Theorem~\ref{thm:zk-flock-twelve-interface} consequently extends the rank criterion to all thirty-seven BLAKE2s terminal claims, established Flock endpoints, the complete memory envelope and shared root. Its error is at most
 \[
  \zkJointQueryDefect+\zkTripleError+\frac{4187}{2^{192}}

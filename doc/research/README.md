@@ -16,6 +16,8 @@ The subsequent [low-coordinate repair](body/flock/zk-flock-lowbank.tex) adds 384
 
 Without this extra bank, [body/flock/zk-flock-query-fiber.tex](body/flock/zk-flock-query-fiber.tex) gives a six-query obstruction excluding 128-bit privacy at all four rates. The default multicoset audit preserves that negative regression. Use `--query-map --joint-boundary --lowbank` to diagnose the enlarged source with all initial lane-59 queries and terminal/GKR fields; `--include-low` retains public-prefix observations. The successful sampled ranks are not a uniform statistical bound.
 
+The repaired source still admits a concentrated twenty-eight-query distinguisher. Its particular concentration event is below `2^-399` at every rate, which does not bound all possible leaks. The same query-family note gives a precise next target: count the minimal query supports of functionals that annihilate the padding but detect an allowed private shift. The resulting bound covers the complete selected interface; its required support counts remain unproved.
+
 `preamble/` centralizes document setup and loads the VM's shared notation from `../leanvm/preamble/macros.tex`. There is one build directory and one document root. Do not restore independent document wrappers around body files.
 
 Python audits live together in `audits/`, preserving their local imports. Run a named audit from that directory, for example:

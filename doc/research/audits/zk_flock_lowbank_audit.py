@@ -3,6 +3,7 @@
 import argparse
 import subprocess
 from fractions import Fraction
+from math import comb, prod
 from pathlib import Path
 from random import Random
 
@@ -87,6 +88,56 @@ def combined_error():
     print("The new local bank, prior boundary, extra count minor and memory/root ledger together remain below 2^-132.", flush=True)
 
 
+def extra_query_sources(field, blocks):
+    result, delta = [], 3
+    for left, right in blocks:
+        for child in range(16):
+            for block in range(5):
+                result.append([(block * (1 << 18) + endpoint + child, delta) for endpoint in (left, right)])
+            delta = field.kmul(delta, 4)
+    assert len(result) == 9600
+    return result
+
+
+def cluster_certificate(field, verifier, blocks):
+    from zk_flock_multicoset_audit import query_sources
+
+    source = query_sources(field)[0] + extra_query_sources(field, blocks)
+    source = {tuple((index, value) for index, value in polynomial if index < 1 << 14) for polynomial in source}
+    source.discard(())
+    assert len(source) == 2876
+    private = [(12288 + index, field.kmul(1 << index, 3)) for index in range(8)]
+    for count, rank, membership in ((27, 1728, "INSIDE 0"), (28, 1760, "OUTSIDE 0 ")):
+        payload = [count, 0, *range(12288, 12288 + count), 0]
+        for polynomials in (sorted(source), [private]):
+            payload.append(len(polynomials))
+            for polynomial in polynomials:
+                payload.append(len(polynomial))
+                payload.extend(value for term in polynomial for value in term)
+                payload.append(0)
+        result = subprocess.run(
+            ["cargo", "run", "--release", "-p", "lean_vm", "--example", "zk_flock_pair_opening_audit", "--", "--query-map-fiber-certificate"],
+            input=" ".join(map(str, payload)),
+            text=True,
+            capture_output=True,
+            check=True,
+            cwd=Path(__file__).resolve().parents[3],
+        )
+        assert f"RANK {rank} {64 * count}\n" in result.stdout
+        assert any(line.startswith(membership) for line in result.stdout.splitlines())
+        print(
+            f"Exact low-cluster certificate: {count} queries, rank {rank}/{64 * count}, private pointer {membership.split()[0].lower()}.", flush=True
+        )
+    for rate, bits in enumerate((399, 458, 505, 548), 1):
+        count = verifier.derive_config(28, rate).queries[0]
+        bound = Fraction(7936 * comb(32, 28) * prod(range(count - 27, count + 1)), 1 << (28 * (22 + rate)))
+        assert bound < Fraction(1, 1 << bits)
+        print(
+            f"Rate {rate}: any low 32-point coset receiving 28 distinct queries has probability below 2^-{bits}; other defects remain unbounded.",
+            flush=True,
+        )
+
+
 def extra_joint_sources(field, verifier, seed, blocks):
     rng = Random(seed)
     terminal = [field.random(rng) for _ in range(18)]
@@ -118,6 +169,7 @@ def extra_joint_sources(field, verifier, seed, blocks):
                 result.append((polynomial, prefix))
             delta = field.kmul(delta, 4)
     assert len(result) == 19200
+    assert [polynomial for polynomial, _ in result if polynomial] == extra_query_sources(field, blocks)
     return result
 
 
@@ -209,6 +261,7 @@ if __name__ == "__main__":
     combined_error()
     if arguments.full:
         build(verifier, blocks)
+        cluster_certificate(field, verifier, blocks)
     subprocess.run(
         ["cargo", "run", "--release", "-p", "lean_vm", "--example", "zk_flock_pair_opening_audit", "--", "--lowbank-certificate"],
         input=" ".join(str(value) for block in blocks for value in block),

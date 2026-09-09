@@ -326,13 +326,17 @@ def query_map(field, verifier, arguments):
         from zk_flock_lowbank_audit import (
             decomposition_certificate,
             extra_joint_sources,
+            extra_query_sources,
             positions,
         )
 
-        extra = extra_joint_sources(field, verifier, arguments.seed + 1, positions())
+        blocks = positions()
         if arguments.joint_boundary:
+            extra = extra_joint_sources(field, verifier, arguments.seed + 1, blocks)
             decomposition_certificate(field, verifier, sources, extra)
-        sources += extra if arguments.joint_boundary else [(polynomial, 0) for polynomial, _ in extra if polynomial]
+            sources += extra
+        else:
+            sources += [(polynomial, 0) for polynomial in extra_query_sources(field, blocks)]
     rng.shuffle(sources)
     pointer = [(reordered_index((96 << 11) + index), field.kmul(1 << index, 3)) for index in range(8)]
     alias = [(block * (1 << 18) + reordered_index((96 << 11) + 4 + index), field.kmul(1 << index, 17)) for block in range(4) for index in range(4)]
