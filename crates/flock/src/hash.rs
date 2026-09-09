@@ -708,18 +708,12 @@ pub fn generate_witness_with_ab_packed_and_lincheck(
 /// power-of-two shape that can hold `n_blocks` compressions.
 #[derive(Clone, Debug)]
 pub struct Blake2sSetup {
-    /// The only thing a setup varies: `K_LOG`, `K_SKIP` and `USEFUL_BITS` are
-    /// fixed by the circuit, and there is nothing to precompute, both prove and
-    /// verify reading the matrices' forms off the circuit walks. The prove-cycle
-    /// buffers need no pre-faulting either, coming from the arena, which keeps
-    /// its pages resident across proofs (see `zk_alloc`).
     n_blocks_log: usize,
 }
 
 impl Blake2sSetup {
     /// Build a setup for `n_blocks` BLAKE2s compressions.
     pub fn new(n_blocks: usize) -> Self {
-        assert!(n_blocks >= 1, "n_blocks must be ≥ 1");
         Self {
             n_blocks_log: min_n_blocks_log(n_blocks),
         }

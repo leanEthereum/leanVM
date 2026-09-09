@@ -521,9 +521,6 @@ pub fn prove(program: &Program, public_input: [F192; 2], log_inv_rate: usize) ->
         exec.unconstrained_reads.len(),
         &exec.unconstrained_reads[..exec.unconstrained_reads.len().min(8)]
     );
-    // Warm the shape-dependent BLAKE2s R1CS setup concurrently with the earlier proving stages. A no-BLAKE2s program still uses the padding shape.
-    let n_blake2s_warm = exec.trace.blake2s.len().max(1);
-    std::thread::spawn(move || crate::hash_flock::warm_setup(n_blake2s_warm));
     let cycles = exec.cycles;
     let w = crate::stage!("Build witness", || program.build(&exec));
     let counts = w.layout.taus.map(|t| 1usize << t);
@@ -670,7 +667,7 @@ fn bind_pi_claim(r: F192, placements: &[witness::Placement], limbs: [F192; 3]) -
 }
 
 /// Everything a recursion harness needs from an accepting verify run, named
-/// and typed: the deferred bytecode claims, flock's
+/// and typed: the deferred bytecode claim, flock's
 /// reduction claims, and the stacked-opening summary (ring-switch challenges +
 /// WHIR fold/query data). The sub-proof scalars themselves live on
 /// `proof.stream`, ending at `flock_stream_end`. Ordinary callers just
@@ -678,7 +675,7 @@ fn bind_pi_claim(r: F192, placements: &[witness::Placement], limbs: [F192; 3]) -
 pub struct VerifySummary {
     /// Transcript-bound inverse-rate logarithm used by this proof's PCS.
     pub log_inv_rate: usize,
-    pub bytecode_claims: Vec<leaf::BytecodeClaim>,
+    pub bytecode_claim: leaf::BytecodeClaim,
     pub zc_claim: flock::zerocheck::ZerocheckClaim,
     pub lc_claim: flock::lincheck::LincheckClaim,
     /// Stream cursor just after flock's reduction, i.e. where the PCS opening's
@@ -755,7 +752,7 @@ pub fn verify(program: &Program, public_input: &[F192; 2], proof: &Proof) -> Res
     pcs::verify(&mut vs, &slots, &ring, l.shape, log_inv_rate, &root).map_err(CpuError::Open)?;
     vs.finish().map_err(CpuError::Transcript)?;
     Ok(VerifySummary {
-        bytecode_claims: bus.bytecode_claims,
+        bytecode_claim: bus.bytecode_claim,
         zc_claim: replay.zc_claim,
         lc_claim: replay.lc_claim,
         log_inv_rate,

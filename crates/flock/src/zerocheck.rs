@@ -81,9 +81,6 @@ pub struct ZerocheckClaim {
     pub z: F192,
     /// Sumcheck bind challenges, one per multilinear round; length = `m - K_SKIP`.
     pub mlv_challenges: Vec<F192>,
-    /// Equality coordinates for the variables left after the univariate skip.
-    /// Length = `m - K_SKIP`.
-    pub r_rest: Vec<F192>,
     /// `â(z, mlv_challenges)`.
     pub a_eval: F192,
     /// `b̂(z, mlv_challenges)`.
@@ -93,9 +90,6 @@ pub struct ZerocheckClaim {
     /// Nothing checks it here; lincheck's α-batched identity pins all three.
     pub c_eval: F192,
 }
-
-// (No ZerocheckProof struct: every round message rides the shared transcript
-// stream, in protocol order.)
 
 /// Reasons the verifier may reject a proof.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -329,7 +323,6 @@ pub fn prove_packed_padded(
     ZerocheckClaim {
         z,
         mlv_challenges: mlv_chis,
-        r_rest,
         a_eval: final_a_eval,
         b_eval: final_b_eval,
         c_eval: final_c_eval,
@@ -425,7 +418,6 @@ pub fn verify(log_n: usize, vs: &mut VerifierState<'_>) -> Result<ZerocheckClaim
     Ok(ZerocheckClaim {
         z,
         mlv_challenges: mlv_chis,
-        r_rest,
         a_eval: final_a_eval,
         b_eval: final_b_eval,
         c_eval: final_c_eval,

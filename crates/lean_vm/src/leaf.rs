@@ -835,11 +835,11 @@ fn tables_and_prods_at(
 }
 
 /// What [`verify_balance`] establishes: the per-column claims to open, the
-/// reduced bytecode claim (a one-element vec in practice: push and pull share ζ),
+/// reduced bytecode claim (push and pull share ζ),
 /// and the table forms with their claimed sums.
 pub struct BusVerify {
     pub claims: Vec<ColumnClaim>,
-    pub bytecode_claims: Vec<BytecodeClaim>,
+    pub bytecode_claim: BytecodeClaim,
     /// The GKR point ζ, reused as the table sumcheck's eq point.
     pub point: Vec<F192>,
     /// `forms[side][table]`, for the zerocheck to settle.
@@ -914,10 +914,9 @@ pub fn verify_balance(
         totals[s] = framework + bus_gkr.values[s];
     }
 
-    let bytecode_claims = vec![bytecode_claim(push, &bus_gkr.point, &alphas)];
     Ok(BusVerify {
         claims,
-        bytecode_claims,
+        bytecode_claim: bytecode_claim(push, &bus_gkr.point, &alphas),
         point: bus_gkr.point,
         forms,
         totals,

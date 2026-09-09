@@ -191,7 +191,7 @@ impl FnLower<'_> {
             // and never lowered on its own. This path does not consult
             // `try_inline`, so without saying so the call reached the assembler
             // and died there indexing a HashMap, with no line and no name.
-            if self.defs.get(callee).is_some_and(|d| d.inline) {
+            if self.defs.get(callee.as_str()).is_some_and(|d| d.inline) {
                 self.fail(format!(
                     "`@inline {callee}` cannot be a `match` arm's callee: the arms dispatch to \
                      one real function, and an `@inline` body is expanded at its call site rather \

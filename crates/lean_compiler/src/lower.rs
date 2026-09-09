@@ -226,10 +226,10 @@ struct FnLower<'a> {
     fn_name: &'a str,
     /// The program's function definitions by name, for `Const`-parameter
     /// specialization at call sites ([`Self::specialize`]).
-    defs: &'a HashMap<String, &'a Func>,
+    defs: &'a HashMap<&'a str, &'a Func>,
     /// Top-level constant arrays, resolved at compile time: `NAME[i]` yields the
     /// element (a field value or an index), `len(NAME)` its length.
-    const_arrays: &'a HashMap<String, &'a [F192]>,
+    const_arrays: &'a HashMap<&'a str, &'a [F192]>,
 }
 
 impl FnLower<'_> {
@@ -316,7 +316,7 @@ impl FnLower<'_> {
 
     /// Bind each of `names` to the join cell holding its value, after a `match`
     /// dispatch: whichever arm ran wrote them, so they are plain scalars now.
-    fn bind_targets(&mut self, binds: &[(String, Off)]) {
+    fn bind_targets(&mut self, binds: &[(&str, Off)]) {
         for (name, cell) in binds {
             self.rebind(name, Binding::Scalar(*cell));
         }
@@ -565,7 +565,7 @@ impl FnLower<'_> {
     ///
     /// A plain name takes a fresh cell. A `StackBuf` element uses its existing
     /// cell, so [`Self::call_into`] returns directly into the destination.
-    fn ret_targets(&mut self, targets: &[Expr]) -> (Vec<Off>, Vec<(String, Off)>) {
+    fn ret_targets<'a>(&mut self, targets: &'a [Expr]) -> (Vec<Off>, Vec<(&'a str, Off)>) {
         let mut cells = Vec::with_capacity(targets.len());
         let mut binds = Vec::new();
         for t in targets {
@@ -584,7 +584,7 @@ impl FnLower<'_> {
                 Expr::Var(n) => {
                     let c = self.fresh();
                     cells.push(c);
-                    binds.push((n.clone(), c));
+                    binds.push((n.as_str(), c));
                 }
                 other => self.fail(format!(
                     "a multi-value target must be a name or a StackBuf element, got `{other:?}`"
@@ -603,7 +603,7 @@ impl FnLower<'_> {
             if let Expr::Call(f, _) = arm
                 && self
                     .defs
-                    .get(f)
+                    .get(f.as_str())
                     .is_some_and(|d| !d.inline && d.return_shapes.iter().any(|s| matches!(s, Shape::StackBuf(_))))
             {
                 self.fail("a normal function's StackBuf return cannot cross a match join; bind it with `let`");
@@ -1218,7 +1218,7 @@ impl FnLower<'_> {
                         // element with those 128 bits, materialized on demand.
                         self.rebind(name, Binding::FConst(lit_field(k)));
                     } else if let Expr::Call(cf, cargs) = e
-                        && self.defs.contains_key(cf)
+                        && self.defs.contains_key(cf.as_str())
                     {
                         // A bare `name = call(...)` of a user function: bind per
                         // the inlined return's RetBind, aliasing its StackBuf run
@@ -1534,14 +1534,14 @@ pub(crate) fn lower_func(
     f: &Func,
     queue: &mut Vec<Func>,
     loop_ctr: &mut usize,
-    defs: &HashMap<String, &Func>,
-    const_arrays: &HashMap<String, &[F192]>,
+    defs: &HashMap<&str, &Func>,
+    const_arrays: &HashMap<&str, &[F192]>,
     with_filler: bool,
 ) -> Lowered {
     let mut names: HashMap<String, Bound> = HashMap::new();
     for (i, p) in f.params.iter().enumerate() {
         assert!(
-            !const_arrays.contains_key(&p.name),
+            !const_arrays.contains_key(p.name.as_str()),
             "`{}`: parameter `{}` collides with a top-level constant array, whose name is \
              reserved (zkDSL.md §Global constants)",
             f.name,

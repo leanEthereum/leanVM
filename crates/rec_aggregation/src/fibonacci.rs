@@ -19,9 +19,6 @@ pub fn run_fibonacci(n: usize, log_inv_rate: usize, plan: Plan) {
     let (src, pi) = fibonacci_program(n);
     let program = compile(&parse(&src).unwrap());
 
-    // Fibonacci has one padding BLAKE2s instance.
-    lean_vm::hash_flock::warm_setup(0);
-
     // Only the final measured pass of each stage is traced (see `run_recursion`).
     let ((proof, stats), prove_time) = plan.warm_then_measure(|last| {
         let _quiet = (!last).then(primitives::suppress_tracing);

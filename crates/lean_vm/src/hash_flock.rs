@@ -69,7 +69,7 @@ impl PreparedReductionWitness {
     }
 
     pub(crate) fn prove(&self, ps: &mut ProverState) -> SliceClaim {
-        setup_for(self.n_blocks).prove_reduction_precomputed(
+        Blake2sSetup::new(self.n_blocks).prove_reduction_precomputed(
             &self.z_packed,
             &self.a_packed,
             &self.b_packed,
@@ -222,33 +222,6 @@ pub(crate) fn build_qflock_prepared(blocks: &[Compression], q_flock: &mut [F64])
 /// claim on `q_flock` is thus a boolean-selector (strided) claim with this stride.
 pub const SLOT_STRIDE_LOG: usize = K_LOG - LOG_PACKING;
 
-/// Memoized BLAKE2s R1CS [`Blake2sSetup`], keyed by its power-of-two shape.
-type SetupCell = std::sync::Arc<std::sync::OnceLock<std::sync::Arc<Blake2sSetup>>>;
-
-fn setup_cache() -> &'static std::sync::Mutex<std::collections::HashMap<usize, SetupCell>> {
-    static CACHE: std::sync::OnceLock<std::sync::Mutex<std::collections::HashMap<usize, SetupCell>>> =
-        std::sync::OnceLock::new();
-    CACHE.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
-}
-
-fn setup_for(n_blocks: usize) -> std::sync::Arc<Blake2sSetup> {
-    let shape = n_blocks_log(n_blocks);
-    let cell = {
-        let mut cache = setup_cache().lock().expect("BLAKE2s setup cache poisoned");
-        std::sync::Arc::clone(
-            cache
-                .entry(shape)
-                .or_insert_with(|| std::sync::Arc::new(std::sync::OnceLock::new())),
-        )
-    };
-    std::sync::Arc::clone(cell.get_or_init(|| std::sync::Arc::new(Blake2sSetup::new(1usize << shape))))
-}
-
-/// Pre-build and cache the flock BLAKE2s R1CS setup for the executed compression count.
-pub fn warm_setup(n_blocks: usize) {
-    let _ = setup_for(n_blocks.max(1));
-}
-
 /// **Flock reduction only** (prover): run flock's BLAKE2s zerocheck + lincheck
 /// over `blocks` and return the one [`SliceClaim`] on the committed witness
 /// `q_flock`, along with the regenerated packed witness (already flattened to
@@ -259,7 +232,7 @@ pub fn warm_setup(n_blocks: usize) {
 /// [`crate::cpu`]'s prove does).
 #[cfg(test)]
 fn prove_reduction(blocks: &[Compression], ps: &mut ProverState) -> (Vec<F64>, SliceClaim) {
-    let (z_packed, reduced) = setup_for(blocks.len()).prove_reduction(blocks, ps);
+    let (z_packed, reduced) = Blake2sSetup::new(blocks.len()).prove_reduction(blocks, ps);
     let mut q_flock = vec![F64::ZERO; z_packed.len()];
     flatten_packed_into(&z_packed, &mut q_flock);
     (q_flock, reduced)
@@ -280,7 +253,7 @@ fn build_qflock(blocks: &[Compression]) -> Vec<F64> {
 /// ([`ReductionReplay`]). The statement is already bound (the seed, the announced
 /// sizes, and the commitment root on the stream), so nothing else enters here.
 pub fn verify_reduction(n_blocks: usize, vs: &mut VerifierState) -> Result<ReductionReplay, VerifyError> {
-    setup_for(n_blocks).verify_reduction(vs)
+    Blake2sSetup::new(n_blocks).verify_reduction(vs)
 }
 
 #[cfg(test)]

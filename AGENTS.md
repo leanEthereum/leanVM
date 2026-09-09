@@ -86,7 +86,7 @@ No rayon. Every parallel site is "N independent items, each writing its own disj
 
 - **Nested dispatch panics**, because it would deadlock the dispatch lock.
 - **Both core clusters share one queue** (P at `USER_INTERACTIVE`, E at `UTILITY`); guided self-scheduling means a slow core claims fewer batches. Do not add a second pool: that was `primitives::epool`, now deleted.
-- **The default holds back one performance worker when efficiency workers exist**, because `cpu::prove` also runs a setup-warming thread and a saturated small cluster stalls every barrier on any descheduled worker. The condition applies to heterogeneous hosts instead of imposing a fixed worker reduction everywhere.
+- **The default holds back one performance worker when efficiency workers exist.**
 
 `LEANVM_NUM_THREADS` sets the **performance**-worker count, leaving E-workers in place. `1` = strictly sequential.
 

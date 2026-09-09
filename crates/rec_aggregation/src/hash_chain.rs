@@ -4,7 +4,6 @@ use std::time::Instant;
 
 use lean_compiler::{compile, compile_without_filler, parse};
 use lean_vm::cpu::{prove, verify};
-use lean_vm::hash_flock::warm_setup;
 use lean_vm::vmhash::compress;
 use primitives::{
     field::{F64, F192},
@@ -83,8 +82,6 @@ fn blake2s_hash_chain() {
 
     let source = chain_source(steps, unroll);
     let program = compile(&parse(&source).expect("parse"));
-
-    warm_setup(steps);
 
     let started = Instant::now();
     let (proof, stats) = prove(&program, public_input, lean_vm::pcs::TEST_LOG_INV_RATE);

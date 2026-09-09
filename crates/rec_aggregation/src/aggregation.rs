@@ -1469,8 +1469,8 @@ fn gen_verify(
     }
 
     // ---- typed extraction: proof structs + the verifier's summary ----
-    // Bus: the bytecode claims carry the push/pull ζ_lo points and sb.
-    let kbc = summary.bytecode_claims[0].point.len() - lean_vm::leaf::N_BYTECODE_SELECTORS;
+    // Push and pull share the bytecode point.
+    let kbc = summary.bytecode_claim.point.len() - lean_vm::leaf::N_BYTECODE_SELECTORS;
 
     let taus = layout.taus;
     // Flock replay data, all named struct fields.
@@ -1528,7 +1528,7 @@ fn gen_verify(
     // The program's whole share of a bytecode leaf: ONE value, the stacked
     // polynomial at (ζ_lo, α⃗), the slot coordinates of the claim's own point being
     // the fingerprint challenges (§sec:e2e-bc).
-    let bytecode_value = summary.bytecode_claims[0].value;
+    let bytecode_value = summary.bytecode_claim.value;
     let bcv = vec![bytecode_value];
 
     // ---- per-sub HINT data (the placeholder map is built once, elsewhere) ----
@@ -1611,10 +1611,12 @@ fn gen_verify(
     let qflockv = lean_vm::hash_flock::SLOT_STRIDE_LOG + taus[5];
     let rs_nover = qflockv.saturating_sub(lenris);
 
+    let mut bytecode_row_point = summary.bytecode_claim.point;
+    let bytecode_selector_point = bytecode_row_point.split_off(kbc);
     let deferred = DeferredSubproof {
         public_input,
-        bytecode_row_point: summary.bytecode_claims[0].point[..kbc].to_vec(),
-        bytecode_selector_point: summary.bytecode_claims[0].point[kbc..].to_vec(),
+        bytecode_row_point,
+        bytecode_selector_point,
         bytecode_value,
         matrix_a_coefficient: lc_alpha,
         skip_point: zc_z,

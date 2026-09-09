@@ -276,7 +276,7 @@ impl FnLower<'_> {
     fn const_array_elem(&self, e: &Expr) -> Option<F192> {
         if let Expr::Index(arr, idx) = e
             && let Expr::Var(v) = arr.as_ref()
-            && let Some(a) = self.const_arrays.get(v)
+            && let Some(a) = self.const_arrays.get(v.as_str())
         {
             let i = self.try_const_index(idx)? as usize;
             return Some(
@@ -295,7 +295,7 @@ impl FnLower<'_> {
             && args.len() == 1
             && let Expr::Var(v) = &args[0]
         {
-            return self.const_arrays.get(v).map(|a| a.len());
+            return self.const_arrays.get(v.as_str()).map(|a| a.len());
         }
         None
     }
