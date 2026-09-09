@@ -1,7 +1,7 @@
 % !TeX root = ../../main.tex
 \subsection{A long-chain repair for the low query region}\label{note:zk-flock-lowbank}
 
-\paragraph{Result.} A disjoint bank of $3840$ valid compression cycles jointly hides one sixteen-point low coset and one thirty-two-point high coset of lane $59$, together with the twelve final GKR children, all BLAKE2s terminal claims, established Flock endpoints, memory envelope and shared root, below $2^{-132}$. Independent count columns separate the two regions; this is one joint forty-eight-value theorem, not independent per-coset simulators. The high coset alone has error below $2^{-151}$. Public heights and verifier equations are unchanged. Arbitrary query families, common completion and the other full-view obligations remain open.
+\paragraph{Result.} A disjoint bank of $3840$ valid compression cycles jointly hides one sixteen-point low coset and one thirty-two-point high coset of lane $59$, together with the twelve final GKR children, all BLAKE2s terminal claims, established Flock endpoints, memory envelope and shared root, below $2^{-142}$. The entire $512$-point public prefix can also be retained, with its actual correlated law, at the same exponent. Independent count columns separate the regions, and a smaller kernel subspace sharpens the Moore bound. The high coset alone has error below $2^{-151}$. Public heights and verifier equations are unchanged. Arbitrary query families, common completion and the other full-view obligations remain open.
 
 \subsubsection{An explicit low-coordinate source}
 
@@ -25,13 +25,13 @@ Split the honest terminal row point into its four low physical coordinates and f
  \zkLowHighPoly_j(z)=(1+\gen)\gen^{32j}
     \bigl(\eq(z,u_j/16)+\eq(z,v_j/16)\bigr).
 \]
-These $120$ degree-at-most-$14$ polynomials are linearly independent over $\K$, because their pairs of Boolean support points are disjoint. Fix $x$ and take a binary basis of the $56$-dimensional kernel of the rank-$64$ query map. Applying the same combinations to $\zkLowHighPoly_j$ gives $56$ independent polynomials. Their Moore determinant is nonzero and has degree at most $14(2^{56}-1)$: otherwise a nonzero linearized polynomial of degree at most $2^{55}$ over the rational-function field would vanish on a binary space of size $2^{56}$. Thus, outside probability $14(2^{56}-1)/2^{192}$, their evaluations span a binary space $\zkLowSpan\subseteq\E$ of dimension $56$.
+These $120$ degree-at-most-$14$ polynomials are linearly independent over $\K$, because their pairs of Boolean support points are disjoint. Fix $x$ and choose $43$ vectors from a binary basis of the $56$-dimensional kernel of the rank-$64$ query map. Applying these combinations to $\zkLowHighPoly_j$ gives $43$ independent polynomials. Their Moore determinant is nonzero and has degree at most $14(2^{43}-1)$: otherwise a nonzero linearized polynomial of degree at most $2^{42}$ over the rational-function field would vanish on a binary space of size $2^{43}$. Thus, outside probability $14(2^{43}-1)/2^{192}$, their evaluations span a binary space $\zkLowSpan\subseteq\E$ of dimension $43$. Proving that this subspace suffices is enough; using all $56$ kernel directions needlessly increases the determinant degree.
 
-Every child slot has this same kernel image, up to its nonzero factor $\gen^{2t}$. After excluding low terminal coordinates in $\{0,1\}$, normalize their equality weights. The four remaining independent ratios $\zkLowRatio{0},\ldots,\zkLowRatio{3}$ are uniform on $\E$ with two specified values excluded, after nonzero geometric rescaling. If $d=\dim(\zkLowSpan+\zkLowRatio{0}\zkLowSpan)$, then
+Every child slot's kernel image contains this same subspace, up to its nonzero factor $\gen^{2t}$. After excluding low terminal coordinates in $\{0,1\}$, normalize their equality weights. The four remaining independent ratios $\zkLowRatio{0},\ldots,\zkLowRatio{3}$ are uniform on $\E$ with two specified values excluded, after nonzero geometric rescaling. If $d=\dim(\zkLowSpan+\zkLowRatio{0}\zkLowSpan)$, then
 \[
  \Pr[d\le a]\le
- \frac{(2^{56}-1)^2}{(2^{192}-2)(2^{112-a}-1)},
- \qquad 56\le a<112.
+ \frac{(2^{43}-1)^2}{(2^{192}-2)(2^{86-a}-1)},
+ \qquad 43\le a<86.
 \]
 Put $S=\zkLowSpan+\zkLowRatio{0}\zkLowSpan$. A character union bound using $S$ and its three independent random multiples gives
 \[
@@ -41,18 +41,18 @@ Put $S=\zkLowSpan+\zkLowRatio{0}\zkLowSpan$. A character union bound using $S$ a
 These four subspaces are contained in the full sixteen-term terminal image. Averaging over $d$ proves a sufficient joint failure bound
 \[
  \begin{aligned}
- \zkLowBankError={}&\frac{14(2^{56}-1)+8}{2^{192}}+h(112)\\
- &+\sum_{a=56}^{111}
- \frac{(2^{56}-1)^2h(a)}{(2^{192}-2)(2^{112-a}-1)}
- <2^{-132}.
+ \zkLowBankError={}&\frac{14(2^{43}-1)+8}{2^{192}}+h(86)\\
+ &+\sum_{a=43}^{85}
+ \frac{(2^{43}-1)^2h(a)}{(2^{192}-2)(2^{86-a}-1)}
+ <2^{-142}.
  \end{aligned}
 \]
-The sum and $h(112)$ together are below $2^{-166}$. On good terminal coins, the terminal claim is uniform on every query fiber. Therefore the new bank jointly supplies sixteen independent base-field uniforms and one extension-field uniform, except with probability $\zkLowBankError$, uniformly over the selected coset and every fixed complementary contribution.
+The smaller Moore term and the dimension-tail sum together give the displayed bound by exact rational arithmetic. On good terminal coins, the terminal claim is uniform on every query fiber, since its image contains the sufficient subspace just proved. Therefore the new bank jointly supplies sixteen independent base-field uniforms and one extension-field uniform, except with probability $\zkLowBankError$, uniformly over the selected coset and every fixed complementary contribution.
 
 \subsubsection{Joint composition with the actual children}
 
 \begin{theorem}[The repaired low-coset boundary]\label{thm:zk-lowbank-interface}
-Add this bank to the wider source, with a common valid completion respecting its disjoint reservation. The joint view consisting of all thirty-seven BLAKE2s terminal claims, twelve actual final GKR children, established Flock endpoints and all sixteen lane-$59$ values in one fixed coset in $\subsp_{18}\setminus\subsp_{13}$ has a witness-free simulator. Including the complete memory envelope and shared bus root, its error is below $2^{-132}$. The coset may be selected using only honest query indices.
+Add this bank to the wider source, with a common valid completion respecting its disjoint reservation. The joint view consisting of all thirty-seven BLAKE2s terminal claims, twelve actual final GKR children, established Flock endpoints and all sixteen lane-$59$ values in one fixed coset in $\subsp_{18}\setminus\subsp_{13}$ has a witness-free simulator. Including the complete memory envelope and shared bus root, its error is below $2^{-142}$. The coset may be selected using only honest query indices.
 \end{theorem}
 \begin{proof}
 Keep the old good-coin ledger of Theorem~\ref{thm:zk-flock-twelve-interface}, using its fixed auxiliary coset at $\gen^{18}$ solely to certify the old span events. These events in particular give the ordinary child and joint child/terminal count spans, without retaining any auxiliary query value. Split the replacement into three independent source groups.
@@ -61,7 +61,7 @@ First use the old count banks with $\mathsf{cnt\_cv1}$ excluded. They change no 
 
 Next use only the new bank's $\mathsf{cnt\_cv1}$ bits. By the preceding argument, they jointly hide the raw sixteen-value vector and terminal $\mathsf{cnt\_cv1}$ claim. Their effect on the children lies entirely in the count planes already replaced by independent uniforms; they change neither the four residuals nor the nine terminal program/frame coordinates. Finally use the old operand/frame/PC sources to hide those program/frame coordinates and residuals. Their changes to the already replaced count, child-plane and raw coordinates are absorbed by the corresponding uniforms. The established old span events prove this last replacement exactly as before.
 
-Now apply the memory/root and compression-value/Flock hybrids in their established order. All old and new metadata choices preserve the required multisets and Flock witness. The combined error is at most the old twelve-value ledger, plus $\zkLowBankError$, the additional $20/2^{192}$ and the memory/root term. Exact rational arithmetic bounds this sum below $2^{-132}$. No conditioning of an unconditional marginal theorem on the disclosed children or query values is used. The bound is uniform in $x$, so independent honest-query selection adds no error.
+Now apply the memory/root and compression-value/Flock hybrids in their established order. All old and new metadata choices preserve the required multisets and Flock witness. The combined error is at most the old twelve-value ledger, plus $\zkLowBankError$, the additional $20/2^{192}$ and the memory/root term. Exact rational arithmetic bounds this sum below $2^{-142}$. No conditioning of an unconditional marginal theorem on the disclosed children or query values is used. The bound is uniform in $x$, so independent honest-query selection adds no error.
 \end{proof}
 
 \subsubsection{Two adjacent sixteen-point cosets jointly}
@@ -107,12 +107,12 @@ Use only the new $\mathsf{cnt\_cv1}$ bits; condition on the other new columns. F
 Now use $j<56$. The left endpoint has bit four zero and the right endpoint has it set. Slots $t=c,c+8$ jointly fill $\zkThirtyTwoLower{c}{0}$ by the first scalar span; slots $t=c+4,c+12$ independently fill $\zkThirtyTwoLower{c}{1}$. Their upper, kernel and terminal/child changes are absorbed by the preceding uniforms. The two stages use disjoint pairs, and within each stage every displayed quotient uses disjoint slot bits. Thus all thirty-two coefficient coordinates and the preceding boundary are jointly uniform. Evaluate, discard the auxiliary bits and complete the established memory/root and compression-value/Flock hybrids. Both quotient replacements are exact, so the old error ledger is unchanged.
 \end{proof}
 
-Together with Theorem~\ref{thm:zk-lowbank-interface}, this also hides one entire sixteen-point coset chosen anywhere in $\subsp_{19}\setminus\subsp_{13}$ below $2^{-132}$. Select the corresponding simulator using the public query indices and discard unneeded high-region values. This argument treats the low and high cases as alternatives; the following theorem supplies a simultaneous view. No thirteen-query occupancy exception is needed for a selected high-region coset after this repair.
+Together with Theorem~\ref{thm:zk-lowbank-interface}, this also hides one entire sixteen-point coset chosen anywhere in $\subsp_{19}\setminus\subsp_{13}$ below $2^{-142}$. Select the corresponding simulator using the public query indices and discard unneeded high-region values. This argument treats the low and high cases as alternatives; the following theorem supplies a simultaneous view. No thirteen-query occupancy exception is needed for a selected high-region coset after this repair.
 
 \subsubsection{A low coset and a high coset simultaneously}
 
 \begin{theorem}[A split-region forty-eight-value boundary]\label{thm:zk-split-region-interface}
-Under the same common-completion assumptions, jointly include all sixteen lane-$59$ values in any one coset of $\subsp_4$ inside $\subsp_{18}\setminus\subsp_{13}$ and all thirty-two values in any one coset of $\subsp_5$ inside $\gen^{18}+\subsp_{18}$. Together with the established terminal, final-child, Flock and memory/root interface, this view has a witness-free simulator below $2^{-132}$. Both cosets may be selected using only honest query indices. The source, public heights and error ledger of Theorem~\ref{thm:zk-lowbank-interface} are unchanged.
+Under the same common-completion assumptions, jointly include all sixteen lane-$59$ values in any one coset of $\subsp_4$ inside $\subsp_{18}\setminus\subsp_{13}$ and all thirty-two values in any one coset of $\subsp_5$ inside $\gen^{18}+\subsp_{18}$. Together with the established terminal, final-child, Flock and memory/root interface, this view has a witness-free simulator below $2^{-142}$. Both cosets may be selected using only honest query indices. The source, public heights and error ledger of Theorem~\ref{thm:zk-lowbank-interface} are unchanged.
 \end{theorem}
 \begin{proof}
 The two count columns separate the regions: $\mathsf{cnt\_out0}$ has zero encoder weight throughout the low region and weight one throughout the high region; $\mathsf{cnt\_cv1}$ has weight one in both. Their swap bits are independent. Use three disjoint source groups, with every unused bit fixed during each replacement.
@@ -126,6 +126,23 @@ Apply the established memory/root and compression-value/Flock hybrids in the sam
 
 This theorem joins two nonadjacent query regions, not independent per-coset simulators. It does not cover two arbitrary low cosets, two arbitrary high cosets, or queries outside the displayed union. Proposition~\ref{prop:zk-scattered-support} exhibits a dispersed forty-two-point dependency of this very source, one query per sixteen-point coset, within an event below $2^{-266}$ at rate one. The full query-family obligation remains open.
 
+\subsubsection{Retaining an entire public prefix}
+
+\begin{theorem}[The complete $512$-point prefix and split-region boundary]\label{thm:zk-prefix-split-interface}
+Assume also the public count-prefix contract of \noteref{zk-flock-query-fiber}. Theorem~\ref{thm:zk-split-region-interface} remains true after including every lane-$59$ value on $\subsp_9$, with its actual correlated distribution, below $2^{-142}$. No additional source or row is needed.
+\end{theorem}
+\begin{proof}
+Only source coefficients below $512$ affect this prefix. The complete library supplies exactly $92$ such binary directions: $32$ old core $\mathsf{cnt\_cv1}$ swaps, $32$ wider $\mathsf{cnt\_cv1}$ swaps and $28$ PC-row swaps. Their coefficient pairs are disjoint, and each has nonzero difference $1+\gen$. Consequently the full prefix is an injective public linear image of these $92$ fair bits, plus its computable public baseline. This is not a vector of $512$ independent base-field uniforms.
+
+In each PC bank, the seven exposed dense-support indices are $0,16,64,80,128,144,208$. Retain these bits explicitly; every remaining PC swap has both physical positions at least $512$. The absent index $192$ was already fixed to zero by the reservation. Apply Theorem~\ref{thm:dense-fixed-observation-span} with the eight fixed bits consisting of these seven and the absent bit. Budget $8$ gives the earlier residual evaluation uniformly on every such fiber. In bank zero, additionally retain that earlier extension evaluation when masking the terminal PC claim, using budget $192+8=200$. The free-coordinate maps and exposed indices are common to all four PC banks, so each good-coin event is charged once. The existing selector exclusions and nonzero bank factors suffice. Conservatively add $\zkDenseError{8}+\zkDenseError{200}$ to the old ledger rather than subtract its superseded PC terms.
+
+Now repeat the three replacements of the split-region theorem, conditional on the $92$ prefix bits. The other-count group is zero on $\subsp_{18}$; the new $\mathsf{cnt\_cv1}$ bank starts at physical position $1648$ and is therefore zero on $\subsp_9$. The remaining operand/frame/PC group hides its thirteen extension coordinates while fixing the prefix, by the preceding erasure argument. All its translations of already uniform coordinates are absorbed. The $64$ exposed old $\mathsf{cnt\_cv1}$ bits belong to the fixed complement already allowed by this proof. Thus the $31$ metadata/child fields and $48$ selected raw values are uniform independently of the $92$ prefix bits on good coins.
+
+Sample those $92$ fair bits to reconstruct the prefix, perform the established memory/root and compression-value/Flock hybrids, and discard unqueried prefix values if desired. The prefix law is public and independent of the complementary private data, so these hybrids preserve it. Exact rational arithmetic bounds the previous ledger plus the two added dense terms below $2^{-142}$. The argument is uniform in both selected cosets and every prefix value in its support.
+\end{proof}
+
+This establishes a conditional public-prefix theorem, not permission to reveal all $\subsp_{13}$ values or arbitrary additional linear information. Beyond the first $512$ points, further source bits can be exposed and require a new joint bound.
+
 \paragraph{Why the original matching needed replacement.} The earlier rule paired the lower $120$ sorted bases with the upper $120$. Exactly $30$ pairs then touched a base whose bit four was zero. On a high-region thirty-two-point coset, every old source fixes the eight lower quotients displayed above. Each receives contributions from only two slot families of $30$ bits; the equally weighted two count columns give the same directions, not twice the rank. Their joint binary rank is therefore at most $8\cdot60$, instead of $8\cdot64$. The full raw rank is at most $2016$, and the native check attains this bound at $x=\gen^{18}$. Reordering the old pair labels cannot fix this dimension deficit. The balanced matching uses all $56$ lower bases in distinct cross-half pairs and removes that obstruction.
 
 For the original matching, the twenty-eight points $12288,\ldots,12315$ also give raw rank $1760$ out of $1792$ and a functional separating the private-pointer difference. Its first twenty-seven points have full rank $1728$; the complete thirty-two-point block has rank $1760$. The audit preserves this historical regression and checks that the balanced source fills the displayed low thirty-two-point view. There are $7936$ cosets of $\subsp_5$ in $\subsp_{18}\setminus\subsp_{13}$. For independent honest queries, the probability that any one receives at least twenty-eight distinct queried points is at most
@@ -135,4 +152,4 @@ For the original matching, the twenty-eight points $12288,\ldots,12315$ also giv
 \]
 This is below $2^{-399},2^{-458},2^{-505},2^{-548}$ at rates one through four. The union bound chooses the coset, its twenty-eight distinct points and distinct query positions hitting them. It bounds this concentration event, not all rank defects of either matching. No theorem yet forces an arbitrary distinguishing query set to have this concentration.
 
-\paragraph{Evidence and boundary.} \auditref{zk_flock_lowbank_audit.py} enumerates the reservation and balanced matching, checks all $32256$ sixteen-point scalar maps through the native NTT, and checks both thirty-two-point quotient spans at all $8192$ high-region cosets. With \texttt{--full}, it also verifies complete read chains, historical and repaired query regressions and the old-source/new-quotient projections. The exact low-region Moore and combined ledgers remain below $2^{-132}$. The full-query audit's \texttt{--joint-boundary --lowbank} mode checks the three split-region projections, of ranks $5312$, $1216$ and $2496$, including their required zero coordinates and child-plane invariance. With query seed $601$, low points $12288,\ldots,12303$ and high points $262144,\ldots,262175$, the complete native query/terminal/child matrix has rank $9024$ out of $9024$. These sampled extension-field checks support the algebra; the preceding span proof, not the sample, supplies the uniform statistical bound. Arbitrary query families, other lanes and PCS stages, omitted GKR/table/Flock messages, authentication and one common valid sampler remain unproved.
+\paragraph{Evidence and boundary.} \auditref{zk_flock_lowbank_audit.py} checks all $32256$ sixteen-point scalar maps through the native NTT and both quotient spans at all $8192$ high-region thirty-two-point cosets. Its terminal diagnostic verifies that the selected $43$ kernel vectors suffice, and its exact ledger includes the prefix-erasure terms below $2^{-142}$. With \texttt{--full}, it also checks complete read chains and the historical, dispersed and repaired query regressions. The full-query audit's \texttt{--joint-boundary --lowbank --public-prefix9} mode encodes the whole $512$-point prefix by its $92$ independent coefficient bits and checks the three prefix-preserving projections of ranks $5312$, $1216$ and $2496$. At seed $601$, low points $12288,\ldots,12303$ and high points $262144,\ldots,262175$, the native matrix has rank $9116$, public rank $92$ and full remaining fiber rank $9024$. The two-word prefix encoding includes $36$ known zero bits; its ambient rank need not be full. These sampled extension-field checks support the algebra; the preceding proofs supply the uniform statistical bounds. Arbitrary query families, other lanes and PCS stages, omitted GKR/table/Flock messages, authentication and one common valid sampler remain unproved.

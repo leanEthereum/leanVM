@@ -380,7 +380,7 @@ fn balanced_quotient_certificate() {
     );
 }
 
-fn query_map_certificate(with_public: bool, singletons: bool) {
+fn query_map_certificate(with_public: bool, singletons: bool, with_public_prefix: bool) {
     let mut input = String::new();
     std::io::stdin().read_to_string(&mut input).unwrap();
     let mut tokens = input.split_whitespace();
@@ -397,10 +397,22 @@ fn query_map_certificate(with_public: bool, singletons: bool) {
     } else {
         0
     };
-    let public: Vec<usize> = (0..public_count)
+    let mut public: Vec<usize> = (0..public_count)
         .map(|_| tokens.next().unwrap().parse().unwrap())
         .collect();
     assert!(public.iter().all(|&index| index < query_count));
+    for index in &mut public {
+        *index += prefix_words;
+    }
+    if with_public_prefix {
+        assert!(with_public && !singletons);
+        let count: usize = tokens.next().unwrap().parse().unwrap();
+        for _ in 0..count {
+            let index: usize = tokens.next().unwrap().parse().unwrap();
+            assert!(index < prefix_words && !public.contains(&index));
+            public.push(index);
+        }
+    }
     let mut read_polynomials = || {
         let count: usize = tokens.next().unwrap().parse().unwrap();
         (0..count)
@@ -538,7 +550,7 @@ fn query_map_certificate(with_public: bool, singletons: bool) {
     let mut rank = 0;
     for (number, polynomial) in sources.iter().enumerate() {
         let mut row = evaluate(polynomial);
-        let mut projection = public.iter().map(|&index| row[prefix_words + index]).collect();
+        let mut projection = public.iter().map(|&index| row[index]).collect();
         if let Some(bit) = reduce(&mut projection, &public_pivots) {
             public_pivots[bit] = projection;
             public_rank += 1;
@@ -881,15 +893,19 @@ fn main() {
             return;
         }
         Some("--query-map-certificate") => {
-            query_map_certificate(false, false);
+            query_map_certificate(false, false, false);
             return;
         }
         Some("--query-map-fiber-certificate") => {
-            query_map_certificate(true, false);
+            query_map_certificate(true, false, false);
+            return;
+        }
+        Some("--query-prefix-fiber-certificate") => {
+            query_map_certificate(true, false, true);
             return;
         }
         Some("--query-singleton-certificate") => {
-            query_map_certificate(true, true);
+            query_map_certificate(true, true, false);
             return;
         }
         Some("--lowbank-certificate") => {

@@ -40,6 +40,8 @@ The left side is the dimension of the image of the full map on the kernel of its
 
 Let $\zkJointQueryDefect$ be the probability that this equality fails under the actual honest coin distribution. The product sampler has total statistical error at most $\zkJointQueryDefect$ for this interface. On bad coins it may still emit the same product distribution; the worst-case cost is just their probability. This condition is sufficient, not necessary: on a deficient matrix some private translations may still lie in its image.
 
+Theorem~\ref{thm:zk-prefix-split-interface} establishes one nontrivial instance: the whole prefix $\subsp_9$ can be retained jointly with the specified low and high cosets and VM boundary below $2^{-142}$. Its $512$ values encode only $92$ independent mask bits, and the proof preserves that law. It does not yet retain the rest of $\subsp_{13}$ or all other queries.
+
 \subsubsection{A quantitative route through distinguishing supports}
 
 The original long-chain matching in \noteref{zk-flock-lowbank} already illustrates that some concentrated query sets can distinguish a source even when they are very rare. The balanced matching has a stronger local theorem; perfect privacy for arbitrary query sets remains unproved and is not required. The following criterion isolates the exceptional sets that matter, without treating harmless public-prefix dependencies as leaks.

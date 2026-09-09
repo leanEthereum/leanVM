@@ -10,6 +10,7 @@ from random import Random
 from zk_column_count_audit import Library
 from zk_flock_children_audit import (
     METADATA_ROWS,
+    PC_SUPPORT,
     THREE_POINT_SUPPORT,
     error_bound,
     families,
@@ -20,6 +21,7 @@ from zk_flock_pair_opening_audit import blake_bus_forms
 from zk_memory_frames_audit import joint_root_bound
 from zk_pcs_audit import Tower, verifier_module
 from zk_stacked_audit import binary_basis
+from zk_two_point_audit import dense_fixed_error
 
 
 def positions():
@@ -30,7 +32,7 @@ def positions():
         if row & 2047 not in THREE_POINT_SUPPORT and row not in occupied and row not in METADATA_ROWS and reordered_index(row) < 1 << 14
     }
     blocks = sorted(base for base in available if base & 15 == 0 and all(base + child in available for child in range(16)))
-    assert len(blocks) == 240 and max(blocks) < 12288
+    assert len(blocks) == 240 and min(blocks) == 1648 and max(blocks) < 12288
     assert available - {base + child for base in blocks for child in range(16)} == {437, 438, 439}
     print("240 disjoint free low blocks provide 3840 rows, leaving the existing source and five general-input rows untouched.", flush=True)
     lower = [base for base in blocks if base & 16 == 0]
@@ -74,28 +76,29 @@ def build(verifier, blocks):
 
 def span_error():
     size = 1 << 192
-    moore = Fraction(14 * ((1 << 56) - 1), size)
+    moore = Fraction(14 * ((1 << 43) - 1), size)
 
     def finish(dimension):
         return min(Fraction(1), Fraction(size, size - 2) ** 3 * Fraction(2) ** (192 - 4 * dimension))
 
-    low = finish(112)
-    for dimension in range(56, 112):
-        low += Fraction(((1 << 56) - 1) ** 2, (size - 2) * ((1 << (112 - dimension)) - 1)) * finish(dimension)
-    assert low < Fraction(1, 1 << 166)
+    low = finish(86)
+    for dimension in range(43, 86):
+        low += Fraction(((1 << 43) - 1) ** 2, (size - 2) * ((1 << (86 - dimension)) - 1)) * finish(dimension)
+    assert low < Fraction(1, 1 << 142)
     total = moore + low + Fraction(8, size)
-    assert total < Fraction(1, 1 << 132)
-    print("Sixteen coset values and one terminal extension value have a joint Moore/low-coordinate error below 2^-132.", flush=True)
+    assert total < Fraction(1, 1 << 142)
+    print("A 43-dimensional kernel subspace gives a joint low-query/terminal error below 2^-142.", flush=True)
     return total
 
 
 def combined_error():
     total = span_error() + error_bound(128) + Fraction(20, 1 << 192) + joint_root_bound()
-    assert total < Fraction(1, 1 << 132)
+    assert total < Fraction(1, 1 << 142)
+    assert total + dense_fixed_error(8) + dense_fixed_error(200) < Fraction(1, 1 << 142)
     assert 181252 - 3840 + 1 == 177413
     assert 32 * 177413 == 5677216
     assert (3 * ((1 << 22) - 1280) - 5677216) // 256 == 26960
-    print("The new local bank, prior boundary, extra count minor and memory/root ledger together remain below 2^-132.", flush=True)
+    print("The split-region boundary and memory/root ledger remain below 2^-142, including the additional full 512-point public prefix.", flush=True)
 
 
 def extra_query_sources(field, blocks):
@@ -286,6 +289,28 @@ def extra_joint_sources(field, verifier, seed, blocks):
     return result
 
 
+def public_prefix_sources(sources):
+    projections = [tuple((index, value) for index, value in polynomial if index < 512) for polynomial, _ in sources]
+    basis = sorted(set(projections) - {()})
+    assert len(basis) == 92
+    assert all(len(polynomial) == 2 and all(value == 3 for _, value in polynomial) for polynomial in basis)
+    assert len({index for polynomial in basis for index, _ in polynomial}) == 184
+    assert sum(bool(polynomial) for polynomial in projections) == 92
+    for child in range(4):
+        assert [index for index in PC_SUPPORT if min(map(reordered_index, pair("pc", child, index))) < 512] == [0, 16, 64, 80, 128, 144, 208]
+        assert all(
+            sum(min(map(reordered_index, pair(kind, child, index))) < 512 for index in support) == 8
+            for kind, _, support in families(True)
+            if kind in ("count", "wide")
+        )
+    positions = {polynomial: index for index, polynomial in enumerate(basis)}
+    print("All 512 public-prefix values are encoded exactly by 92 independent coefficient bits.", flush=True)
+    return [
+        (polynomial, prefix | ((1 << (31 * 192 + positions[projection])) if projection else 0))
+        for (polynomial, prefix), projection in zip(sources, projections)
+    ]
+
+
 def decomposition_certificate(field, verifier, old, extra):
     counts = verifier.TABLES[verifier.OP_BLAKE2S].count_columns
     cv1 = counts.index(verifier.BLAKE2S_COLUMNS.index("cnt_cv1"))
@@ -330,11 +355,16 @@ def decomposition_certificate(field, verifier, old, extra):
         other_counts.append(projected_prefix | (raw << (17 * 192)))
     assert len(binary_basis(other_counts)) == 17 * 192 + 32 * 64 == 5312
     noncounts = []
-    for _, prefix in old[:noncount_size]:
+    exposed = 0
+    for polynomial, prefix in old[:noncount_size]:
+        if any(position < 512 for position, _ in polynomial):
+            exposed += 1
+            continue
         values = unpack(prefix)
         residuals = [values[19 + 3 * child] ^ field.mul(2, values[20 + 3 * child]) for child in range(4)]
         noncounts.append(pack([*values[:9], *residuals]))
     assert len(binary_basis(noncounts)) == 13 * 192 == 2496
+    assert exposed == 28
     query_weights = field.novel(14, 12288)
     low = []
     for polynomial, prefix in extra[cv1::10]:
@@ -342,10 +372,14 @@ def decomposition_certificate(field, verifier, old, extra):
         assert not any(values[index] for index in range(19) if index != 9 + cv1)
         assert all(values[19 + 3 * child] == field.mul(2, values[20 + 3 * child]) for child in range(4))
         (left, delta), (right, _) = polynomial
+        assert min(left, right) >= 512
         raw = field.kmul(delta, query_weights[left & ~15] ^ query_weights[right & ~15])
         low.append(values[9 + cv1] | (raw << (192 + 64 * (left & 15))))
     assert len(binary_basis(low)) == 1216
-    print("Split-region certificate: ranks 5312, 1216 and 2496, with every required zero projection and child-plane invariance checked.", flush=True)
+    print(
+        "Prefix-preserving split-region ranks: 5312, 1216 and 2496, with all zero projections, 28 PC erasures and child-plane invariance checked.",
+        flush=True,
+    )
 
 
 def sampled_rank(field, blocks):
@@ -400,15 +434,30 @@ def terminal_rank(field, blocks):
     point = [field.random(rng) for _ in range(18)]
     low, high = field.eq(point[:4]), field.eq(point[4:])
     query_weights = field.novel(14, 12288)
-    vectors, scale = [], 3
+    vectors, scale, pivots, kernels = [], 3, {}, []
     for left, right in blocks:
+        raw = field.kmul(scale, query_weights[left] ^ query_weights[right])
+        value = field.mul(scale, high[left >> 4] ^ high[right >> 4])
+        while raw:
+            bit = raw.bit_length() - 1
+            if bit not in pivots:
+                pivots[bit] = raw, value
+                break
+            previous_raw, previous_value = pivots[bit]
+            raw ^= previous_raw
+            value ^= previous_value
+        if not raw:
+            kernels.append(value)
         for child in range(16):
             terminal = field.mul(scale, field.mul(low[child], high[left >> 4] ^ high[right >> 4]))
             raw = field.kmul(scale, query_weights[left] ^ query_weights[right])
             vectors.append(terminal | (raw << (192 + 64 * child)))
             scale = field.kmul(scale, 4)
     assert len(binary_basis(vectors)) == 192 + 16 * 64 == 1216
+    assert len(kernels) == 56 and len(binary_basis(kernels[:43])) == 43
+    assert len(binary_basis([field.mul(value, field.mul(low[child], 1 << (2 * child))) for child in range(16) for value in kernels[:43]])) == 192
     print("Native-field diagnostic rank 1216 for the low-bank terminal value and sixteen raw coset coordinates jointly.", flush=True)
+    print("The first 43 independent query-kernel vectors already supply the full 192-bit terminal fiber in this diagnostic.", flush=True)
 
 
 if __name__ == "__main__":
