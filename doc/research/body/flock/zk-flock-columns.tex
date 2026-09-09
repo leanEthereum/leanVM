@@ -1,7 +1,7 @@
 % !TeX root = ../../main.tex
 \subsection{All BLAKE2s terminal columns, without changing Flock}\label{note:zk-flock-columns}
 
-\paragraph{Result.} A fixed library of $16256$ valid padding compressions, with their closing JUMPs, hides the nineteen non-value BLAKE2s column evaluations by independent permutations. It fits inside the complementary positions of the existing height-$18$ source. These permutations preserve every compression witness at its position, the other instruction tables, memory values and final read counts. Consequently all $37$ BLAKE2s terminal columns now have a joint simulator with the established Flock endpoints, below $2^{-156}$. The table coefficients, middle Flock rounds, GKR and PCS remain outside this joint theorem.
+\paragraph{Result.} A fixed library of $16256$ valid padding compressions, with their closing JUMPs, hides the nineteen non-value BLAKE2s column evaluations by independent permutations. It fits inside the complementary positions of the existing height-$18$ source. These permutations preserve every compression witness at its position, the other instruction tables, memory values and final read counts. Consequently all $37$ BLAKE2s terminal columns have a joint simulator with the established Flock endpoints, below $2^{-156}$. The table coefficients, middle Flock rounds, GKR and PCS are excluded. In fact, \noteref{zk-flock-pair-opening} proves a two-query PCS obstruction to this local-swap source and adds an independent global-shuffle candidate while preserving the theorem below.
 
 \subsubsection{What the new randomness must cover}
 

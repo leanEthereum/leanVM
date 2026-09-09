@@ -1,0 +1,92 @@
+% !TeX root = ../../main.tex
+\subsection{Two PCS queries defeat block-local metadata swaps}\label{note:zk-flock-pair-opening}
+
+\paragraph{Conclusion.} The terminal theorem of \noteref{zk-flock-columns} is valid, but its adjacent-swap source is not sufficient for full ZK. Two initial PCS queries can cancel all its metadata randomness. A valid private frame-alias choice then gives simulator-error floors above $2^{-10},2^{-13},2^{-15},2^{-17}$ at the four supported rates. Even arbitrary permutations confined to blocks of eight do not meet $2^{-128}$ at rates one and two. A disjoint, globally permuted metadata library preserves the established partial theorem and breaks this particular cancellation; its full PCS privacy is not yet proved.
+
+\subsubsection{The encoder reveals sums inside a coefficient block}
+
+Write one initial-lane polynomial as $f(X)=\sum_i f_i\novel_i(X)$. Since $\novel_1(X)=X$ and every higher subspace factor is invariant under $X\mapsto X+1$, two distinct queries $x,x+1$ reveal
+\[
+ x f(x)+(1+x)f(x+1)
+ =\sum_j(f_{2j}+f_{2j+1})\novel_{2j}(x)
+ =\zkBlockCollapse{2}(f)(x).
+\]
+Every exchange of two adjacent coefficients preserves this observable. Equivalently, its difference polynomial is $(1+X)G(X)$ with $G(X+1)=G(X)$, so the displayed combination cancels it exactly. This is a relation among raw authenticated initial leaves; later folding and sumcheck masking cannot erase it.
+
+More generally, for $B=2^k$ define
+\[
+ \zkBlockCollapse{B}(f)(X)
+ =\sum_j\left(\sum_{a=0}^{B-1}f_{Bj+a}\right)\novel_{Bj}(X).
+\]
+The $B$ queries in any coset $x+\subsp_k$ determine this value. Indeed, write $f=\sum_{a<B}\novel_a F_a$, where each $F_a$ is constant on that coset. The evaluation matrix $(\novel_a(x+s))_{s\in\subsp_k,a<B}$ is invertible by ordinary interpolation, so the verifier recovers all $F_a(x)$ and sums them. The collapse is constant on the coset. If it is nonzero of degree $d$, it vanishes on at most $d/B$ whole cosets. Thus any source preserving all aligned size-$B$ coefficient-block sums has a small-query invariant, regardless of its entropy within those blocks.
+
+\subsubsection{Where the actual stack exposes the invariant}
+
+At the current layout $(\kmem,\mu)=(25,28)$ with table heights $(19,19,19,19,20,18)$ and code height $11$, initial lane $59$ contains five consecutive BLAKE2s count columns, followed by the bytecode-count column and zeros. Its first five size-$2^{18}$ blocks are
+\[
+ (\mathsf{cnt\_cv1},\mathsf{cnt\_out0},\mathsf{cnt\_out1},
+   \mathsf{cnt\_md},\mathsf{cnt\_bc}).
+\]
+The reference placement algorithm certifies these exact offsets. All swaps in \noteref{zk-flock-columns} exchange physical row indices differing only in bit zero, in every affected column. The compression-input randomness changes none of these counters, and the swaps preserve the bytecode-count table. Hence the entire random contribution to this lane is annihilated by $\zkBlockCollapse{2}$. Unused-memory masks occupy other lanes.
+
+\paragraph{A valid private alias choice.} A fixed public program performs four identical compressions in a frame with integer base $a$, changes frame, performs four more identical compressions, then returns to its public final state. Its private destination has integer base either $a+32$ or $a$, encoded by pointer $\gen^{a+32}$ or $\gen^a$. Both choices are legal: message, chaining value and metadata agree, and repeated writes produce the same digest. Distinct control offsets avoid a write-once conflict when the second frame aliases the first. Each compression has its own code location, so its bytecode read count is one in both executions.
+
+For each of the first four count columns in lane $59$, the first group has counts $1,\gen,\gen^2,\gen^3$. The second group has those same counts with distinct frames, or $\gen^4,\ldots,\gen^7$ with aliasing. Place these eight real rows at logical indices $96\cdot2048+i$, $0\le i<8$. Their physical row indices are $12288+i$. Keep all other rows and padding schedules fixed, with disjoint memory and code, and let $\Delta f$ be the difference of the two lane polynomials. Its nonzero coefficients are exactly
+\[
+ (\Delta f)_{j2^{18}+12292+i}=\gen^i(1+\gen^4),
+ \qquad 0\le j<4,\quad 0\le i<4.
+\]
+The remaining bytecode-count block does not change. The adjacent collapse is nonzero of degree $798726$; its highest coefficient is $(\gen^2+\gen^3)(1+\gen^4)\ne0$. For $B=4,8,16$, its degree is respectively $798724,798720,798720$, again with nonzero leading coefficient.
+
+A fixed valid completion exists for this obstruction. Fill the other BLAKE2s positions with closed compression/return cycles on disjoint frames, respecting the prescribed random libraries. Even a distinct $32$-cell frame for each compression fits the payload. Fill each of the four other non-JUMP tables through fixed zero-operation blocks of at most sixteen rows and one return, requiring at most $4\cdot2^{15}$ additional JUMPs. Together with the compression returns and real JUMPs this is below $2^{20}$; fixed self-loops supply the remainder. Repeated dummy operations share a few separate frames, and their code blocks fit the public height $11$. The same schedules apply to both real executions. This completion deliberately does not assert any of the separate count-normalization or full-GKR theorems.
+
+The native example \path{crates/lean_vm/examples/zk_flock_pair_opening_audit.rs} verifies two complete proofs of this small-frame program with the same public input and heights. Each execution has counts $(1,1,8,1,4,8)$, so no native fillers complicate the witness pair. It separately checks the two-query identity through the native NTT and authenticated leaves in a small stack. This validates the execution and encoder mechanisms, not a full size-$28$ ZK-mode proof or a Fiat-Shamir probability transfer.
+
+\subsubsection{A quantitative honest-query obstruction}
+
+\begin{theorem}[Block-local metadata privacy floor]\label{thm:zk-flock-pair-floor}
+Retain the stated real counted rows at their prescribed positions and use the fixed completion above. Suppose all private padding choices preserve the size-$B$ block sums of lane $59$, where $B\in\{2,4,8,16\}$. Let $D=2^{22+\rexp}$, let $q$ be the actual initial query count, and let $d$ be the nonzero private collapse degree above. Put
+\[
+ G_B=(D-d)/B,\qquad
+ p_j=\sum_{a=0}^j(-1)^a\binom ja\left(\frac{D-a}{D}\right)^q.
+\]
+Every common simulator for the complete honest-interactive view incurs error at least
+\[
+ \frac12\left(G_Bp_B-\binom{G_B}{2}p_{2B}\right).
+\]
+In particular, the adjacent-swap construction cannot reach the statistical target, even with arbitrary compression-input randomness and unused-memory masks.
+\end{theorem}
+\begin{proof}
+There are at least $G_B$ disjoint cosets on which the two fixed collapsed polynomials differ. Whenever every point of one such coset is queried, interpolation recovers distinct values unaffected by the padding choices. Inclusion-exclusion gives $p_B$ for hitting one full coset and $p_{2B}$ for hitting two. Bonferroni gives the public event probability in parentheses. On this event the two supports are disjoint, so their distance is at least that probability, and a common simulator pays at least half. Additional transcript coordinates cannot decrease the distinguishing advantage.
+\end{proof}
+
+Exact rational evaluation gives these strict simulator-error lower bounds:
+\[
+\begin{array}{c|rrrr}
+ B\backslash\rexp&1&2&3&4\\\hline
+ 2&2^{-10}&2^{-13}&2^{-15}&2^{-17}\\
+ 4&2^{-41}&2^{-48}&2^{-54}&2^{-58}\\
+ 8&2^{-103}&2^{-118}&2^{-130}&2^{-141}\\
+ 16&2^{-226}&2^{-258}&2^{-283}&2^{-306}
+\end{array}
+\]
+The last line does not prove that blocks of sixteen are safe; it only ceases to exclude $2^{-128}$ by this particular event. The theorem concerns the specified execution-preserving completion and block-preserving randomizers. It is not a claim against every possible count-normalized completion, arbitrary row permutation, additional metadata source, or a prover allowed to canonicalize the real execution instead of retaining its counted rows. Its purpose is to reject the presently proved terminal-only source as a sufficient full-view construction.
+
+\subsubsection{A compatible source that is not block-local}
+
+Keep the original library and its independent bits. Add a second copy at disjoint complementary positions, with code locations shifted by $64$ and integer frame bases shifted by $2^{22}$ into the next payload interval. All $16256$ compressions in this second copy use the same fixed valid compression. Uniformly permute their complete BLAKE2s rows across the new positions, leaving their closing JUMPs in place. Whole-row permutation preserves every bus multiset, memory image and count-column product. Equal compression values make the packed Flock witness invariant pointwise.
+
+The new placement is explicit. For program rows map old logical banks $(0,1,2,4,8,16,32)$ to $(5,6,7,9,10,11,12)$ without changing $s$. For frame-bank rows map banks $64+(0,1,2,4,8,16)$ to $64+(3,5,6,7,9,10)$. For count-bank rows keep the bank and change the top-three-bit within-bank sector from $3$ to $6$. These positions avoid the original library, the mandatory three-point support and the five general metadata rows. All remain in the first $96$ banks. The new global permutation crosses the old coefficient blocks.
+
+\begin{proposition}[Preserving the established joint theorem]\label{prop:zk-flock-global-extension}
+The added independent library leaves the error bounds in Theorem~\ref{thm:zk-flock-all-columns} and Corollary~\ref{cor:zk-flock-memory-interface} unchanged, under their common-completion assumptions.
+\end{proposition}
+\begin{proof}
+Condition on the entire added permutation. Its compression values and all other rows are a fixed valid complement for the original library's terminal proof. Disjoint code and memory preserve that library's directions and read chains. Its independent bits therefore give the same witness-free target law with the same uniform error bound. The Flock witness does not depend on the added permutation, so the existing endpoint proof applies unchanged. Average over the added choices and use the same unused-memory root/envelope composition.
+\end{proof}
+
+This uses $32512$ of the $98304$ complementary compression positions, leaving $65792$ positions for independent general inputs. Both count banks share a frame within each repeated pair, so Flock needs at most $188416$ frames of $32$ cells, or $6029312$ cells, leaving $25585$ payload slots of size $256$. The two libraries use $72$ code locations. No table height or verifier equation changes. Common allocation with other libraries remains open.
+
+\paragraph{What is actually repaired.} The audit verifies that a global permutation changes the formerly invariant pair sums and gives nonzero changes at its three fixed native query cosets. This removes the algebraic cancellation mechanism, not all distinguishers or a quantified probability of leakage. The distribution of the full initial query vector, its conditioning on preceding messages and subsequent PCS levels still need proof. The library's all-equal compression values must be included in that analysis; one cannot reuse an independent-per-position input assumption.
+
+\paragraph{Evidence and literature boundary.} \auditref{zk_flock_pair_opening_audit.py} checks exact stack positions, coset interpolation, all displayed probabilities, disjoint library allocation and full counted-bus validity before and after the added shuffle; its \texttt{--native} option runs the native example. Flock's unused witness slots are forced to zero, as specified and implemented in \path{crates/flock/src/hash.rs}, so they cannot serve as free masks. Bootle, Chiesa and Liu~\cite{bcl}, Section~2.4, add a separately designed R1CS gadget with controlled randomness and also rerandomize their sumcheck factors; this is not a theorem for arbitrary random compressions in leanVM's unchanged circuit and PCS.

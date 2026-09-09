@@ -30,7 +30,7 @@ def logical_pair(bank, index):
     return left, left + 1
 
 
-def build(verifier):
+def build(verifier, *, code_shift=0, frame_shift=0):
     library = Library(verifier)
     reserved = {2 * index + side for index in SPARSE for side in (0, 1)}
     available = iter(slot for slot in range(1 << 16) if slot not in reserved)
@@ -40,9 +40,10 @@ def build(verifier):
         slot = next(available)
         assert slot not in frames
         frames.add(slot)
-        return verifier.GEN ** (1280 + 32 * slot)
+        return verifier.GEN ** (frame_shift + 1280 + 32 * slot)
 
     def cycle(pc, frame, changed=None):
+        pc += code_shift
         rows = library.templates((verifier.OP_BLAKE2S, pc, [], True), frame)
         if changed is not None:
             rows[0][1][verifier.BLAKE2S_COLUMNS.index(OPERANDS[changed])] = verifier.GEN**20
@@ -59,7 +60,7 @@ def build(verifier):
                 slots = (2 * index, 2 * index + 1)
                 assert not frames.intersection(slots)
                 frames.update(slots)
-                first, second = (cycle(1056, verifier.GEN ** (1280 + 32 * slot)) for slot in slots)
+                first, second = (cycle(1056, verifier.GEN ** (frame_shift + 1280 + 32 * slot)) for slot in slots)
             else:
                 frame = fresh()
                 first, second = cycle(1058, frame), cycle(1058, frame)
