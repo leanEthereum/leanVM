@@ -1,0 +1,43 @@
+% !TeX root = main.tex
+\documentclass[11pt]{article}
+\input{preamble/packages.tex}
+\input{preamble/macros.tex}
+\input{preamble/theorems.tex}
+\title{Statistical zero knowledge for leanVM\\A padding-only research programme}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+\vspace{-2em}
+\noindent\textbf{Status: full honest-verifier statistical ZK is not proved.} This document states the target, the remaining proof obligations and the supporting results. The concrete goal is total statistical distance at most $2^{-128}$; a separately identified $2^{-101}$ result would meet the weaker request for more than one hundred bits. Existing component bounds are not an end-to-end security estimate. Production protocol code is unchanged.
+
+\paragraph{Reading guide.} Sections~\ref{sec:zk-goal} to~\ref{sec:zk-status} are the central account: definition, proof plan and current evidence. The subsequent sections contain the detailed proofs in dependency groups; the appendices preserve earlier obstructions and the optional public-preprocessing branch. Section~\ref{sec:zk-index} maps every former standalone note to its location here. A result is proved, conditional or experimental exactly as its scope paragraph states. Later results need not use the same layout as earlier ones.
+
+\tableofcontents
+\clearpage
+\input{body/01-target.tex}
+\input{body/02-proof-plan.tex}
+\input{body/03-status.tex}
+\clearpage
+\input{body/04-foundations.tex}
+\clearpage
+\input{body/05-counts.tex}
+\clearpage
+\input{body/06-bus.tex}
+\clearpage
+\input{body/07-gkr-tail.tex}
+\clearpage
+\input{body/08-tables.tex}
+\clearpage
+\input{body/09-flock.tex}
+\clearpage
+\appendix
+\input{body/a-count-history.tex}
+\clearpage
+\input{body/b-coarse-preprocessing.tex}
+\clearpage
+\input{body/c-source-map.tex}
+\clearpage
+\input{references.tex}
+\end{document}

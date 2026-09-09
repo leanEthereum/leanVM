@@ -1,0 +1,44 @@
+% !TeX root = ../main.tex
+\section{The goal and the proposed mechanism}\label{sec:zk-goal}\label{note:zk-padding}
+
+The objective is an optional honest-verifier statistically zero-knowledge prover for leanVM, obtained by changing the witness through valid execution padding, not by adding random masking weights to the verifier. The verifier follows the prescribed protocol and samples its coins honestly; privacy against a deviating interactive verifier is not a requirement of this investigation. Here \emph{full} means the complete honest-verifier view, not malicious-verifier ZK. Ordinary non-ZK proofs should retain their existing protocol and cost. ZK proofs may pay for additional rows, memory and prover randomness. \emph{For free} refers to avoiding mandatory privacy machinery on the ordinary path, not to a proved zero-overhead construction.
+
+The starting observation is that table rows are unordered and closed execution cycles can be inserted without changing the public computation. We seek public reservations of valid cycles, unused memory and legal counter-label permutations whose private random choices hide every witness-dependent disclosure. Randomness must be distributed across the actual folding and opening geometry. Merely permuting rows, appending a random suffix, or making a trace look pseudorandom is insufficient.
+
+The padded witness must preserve the intended relation, public inputs and outputs, every local constraint, bus balance and complete read chains. Reserved instructions and resource bounds are public; choosing a program or announced size as a function of a secret would disclose that choice. Some notes assume a disjoint valid completion without constructing it. That assumption remains a proof obligation, not an implementation detail.
+
+\subsection{What honest-verifier statistical ZK means}\label{sec:zk-definition}
+
+\paragraph{Statement and witness.} Write $\zkRel(\zkStmt,\zkWit)=1$ for the intended VM execution relation. The public statement $\zkStmt$ includes the program identity, public inputs and outputs, the announced memory log-height, all six announced table log-heights, PCS parameters and any other declared layout or resource bounds. Heights are part of $\zkStmt$, not secret witness data: privacy compares executions within the same announced layout and does not hide their resource class. The private witness $\zkWit$ contains the execution data being proved. Any permitted public preprocessing must be included in the model and bound to the statement. Privacy is required for every admissible witness for the same statement, not for an average witness distribution.
+
+\begin{definition}[Statistical distance]
+For discrete random variables $X,Y$ on the same space,
+\[
+ \zkSD(X,Y)
+ =\frac12\sum_a\left|\Pr[X=a]-\Pr[Y=a]\right|
+ =\sup_A\left|\Pr[X\in A]-\Pr[Y\in A]\right|.
+\]
+Thus distance at most $\epsilon$ bounds the distinguishing advantage of every test, including computationally unbounded tests~\cite{distance}.
+\end{definition}
+
+\begin{definition}[Honest-verifier statistical ZK target]\label{def:zk-target}
+Let $\zkSec$ index a family of protocol parameters, let $\zkProver_{\mathrm{pad}}$ be the honest padded prover, and fix the prescribed efficient honest verifier $\zkVerifier$ of the interactive protocol. There must exist an expected polynomial-time simulator $\zkSim$ and a negligible error $\zkErr$ such that, for every admissible $\zkStmt,\zkWit$ with $\zkRel(\zkStmt,\zkWit)=1$,
+\[
+ \zkSD\!\left(
+ \zkView_{\zkVerifier}^{\zkProver_{\mathrm{pad}}}
+      (1^{\zkSec},\zkStmt,\zkWit),
+ \zkSim(1^{\zkSec},\zkStmt)
+ \right)
+ \le \zkErr(\zkSec).
+\]
+Statement and witness lengths are bounded polynomially in $\zkSec$. The view includes the honest verifier's input, random coins and all received messages. Its coins follow the protocol's prescribed distribution, including independent uniform field challenges in our algebraic model. The simulator receives no witness, secret execution, or unsimulated witness-dependent residual. It may generate the coins and messages together; it need not answer adversarially chosen challenges online. This is honest-verifier statistical ZK~\cite{zk-definition}, with no quantification over alternative verifier strategies.
+\end{definition}
+
+A negligible error eventually falls below every inverse polynomial in $\zkSec$. The current concrete notes instead bound error at leanVM's fixed fields $\K=\F_{2^{64}}$ and $\E=\F_{2^{192}}$, aiming for a total privacy error at most $2^{-128}$ over the stated resource range. A bound at one parameter choice is not by itself an asymptotic theorem. We seek the concrete $2^{-128}$ theorem first; $2^{-101}$ is a separately labelled fallback, not a rounding of the same claim. The supported set of public statements and layouts must be stated explicitly before either claim can be made. Statistical privacy also does not imply statistical soundness: a statistically ZK argument may still rely on computational assumptions for binding and knowledge soundness.
+
+\paragraph{What the current lemmas actually establish.} Unless stated otherwise, they sample independent uniform coins of the honest interactive verifier and simulate only a specified projection of the algebraic transcript. Their verifier model matches our target; the missing step is coverage of the complete joint view in Definition~\ref{def:zk-target}, not an upgrade to malicious-verifier ZK. Error bounds are meaningful only with the note's layout, completion, query and setup assumptions.
+
+\paragraph{Separate deployment obligation.} leanVM uses Merkle commitments and Fiat-Shamir. Commitments and authentication data must be included in a complete honest-verifier view. Transferring an interactive honest-verifier theorem to the deployed Fiat-Shamir proof additionally requires a specified noninteractive simulation experiment, including any public setup, random-oracle access, simulator programming permissions and query bounds. This is separate from Definition~\ref{def:zk-target}, not a requirement to prove malicious-verifier interactive ZK. Replacing hash-derived challenges by independent coins without justification, or appealing to collision resistance alone, does not establish that transfer.
+
+
+\paragraph{Prior work.} Valid random R1CS padding has precedent in Bootle, Chiesa and Liu~\cite{bcl}; this direction is not claimed to be novel. Hab\"ock and Kindi~\cite{hk} discuss zero knowledge for FRI-based STARKs, including the opening layer. Neither reference establishes privacy of leanVM's particular construction.

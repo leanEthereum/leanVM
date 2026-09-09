@@ -1,0 +1,94 @@
+% !TeX root = ../main.tex
+\section{Source map and audit conventions}\label{sec:zk-index}
+
+Every former standalone note is included in this PDF. The map below preserves its filename as a lookup key; links lead to the corresponding section, not to a separate PDF. The former \nolinkurl{zk-padding.tex} overview is now Sections~\ref{sec:zk-goal}, \ref{sec:zk-remaining} and~\ref{sec:zk-status}. Bibliographies and document setup are shared.
+
+\subsubsection*{Audit sources.} All sixty Python audits and their local helper modules live in \path{doc/research/audits/}. An audit link in a proof opens that source relative to this PDF's location in \path{doc/research/.build/}. Run unqualified commands in the detailed notes from the audit directory; from the repository root, prefix the script with \path{doc/research/audits/}. The source checker verifies the local import closure, but does not rerun every experiment or certify the mathematics.
+
+\begingroup
+\small
+\subsubsection*{Foundations and opening geometry.}
+\noindent\begin{tabular}{@{}p{.69\linewidth}p{.24\linewidth}@{}}
+\nolinkurl{zk-padding-foundations.tex} & \noteref{zk-padding-foundations} \\
+\nolinkurl{zk-pcs-padding.tex} & \noteref{zk-pcs-padding} \\
+\nolinkurl{zk-stacked-padding.tex} & \noteref{zk-stacked-padding} \\
+\nolinkurl{zk-two-point-span.tex} & \noteref{zk-two-point-span} \\
+\end{tabular}
+
+\subsubsection*{Count normalization and the remaining head.}
+\noindent\begin{tabular}{@{}p{.69\linewidth}p{.24\linewidth}@{}}
+\nolinkurl{zk-count-root.tex} & \noteref{zk-count-root} \\
+\nolinkurl{zk-count-columns.tex} & \noteref{zk-count-columns} \\
+\nolinkurl{zk-count-uniform-tail.tex} & \noteref{zk-count-uniform-tail} \\
+\nolinkurl{zk-count-completed-head.tex} & \noteref{zk-count-completed-head} \\
+\end{tabular}
+
+\subsubsection*{Bus roots and terminal interfaces.}
+\noindent\begin{tabular}{@{}p{.69\linewidth}p{.24\linewidth}@{}}
+\nolinkurl{zk-bus-root.tex} & \noteref{zk-bus-root} \\
+\nolinkurl{zk-bus-gkr-boundary.tex} & \noteref{zk-bus-gkr-boundary} \\
+\nolinkurl{zk-bus-packet.tex} & \noteref{zk-bus-packet} \\
+\nolinkurl{zk-bus-boundary.tex} & \noteref{zk-bus-boundary} \\
+\nolinkurl{zk-bus-root-joint.tex} & \noteref{zk-bus-root-joint} \\
+\end{tabular}
+
+\subsubsection*{Prefix-preserving swaps and the joint GKR tail.}
+\noindent\begin{tabular}{@{}p{.69\linewidth}p{.24\linewidth}@{}}
+\nolinkurl{zk-subtree-swaps.tex} & \noteref{zk-subtree-swaps} \\
+\nolinkurl{zk-swap-terminal.tex} & \noteref{zk-swap-terminal} \\
+\nolinkurl{zk-terminal-boundary.tex} & \noteref{zk-terminal-boundary} \\
+\nolinkurl{zk-penultimate-round.tex} & \noteref{zk-penultimate-round} \\
+\nolinkurl{zk-three-round-tail.tex} & \noteref{zk-three-round-tail} \\
+\nolinkurl{zk-four-round-tail.tex} & \noteref{zk-four-round-tail} \\
+\end{tabular}
+
+\subsubsection*{Valid JUMP padding and the six-table reduction.}
+\noindent\begin{tabular}{@{}p{.69\linewidth}p{.24\linewidth}@{}}
+\nolinkurl{zk-jump-sumcheck.tex} & \noteref{zk-jump-sumcheck} \\
+\nolinkurl{zk-jump-rank.tex} & \noteref{zk-jump-rank} \\
+\nolinkurl{zk-jump-metadata.tex} & \noteref{zk-jump-metadata} \\
+\nolinkurl{zk-jump-bus-padding.tex} & \noteref{zk-jump-bus-padding} \\
+\nolinkurl{zk-table-batch.tex} & \noteref{zk-table-batch} \\
+\end{tabular}
+
+\subsubsection*{Flock: established endpoints and unresolved middle.}
+\noindent\begin{tabular}{@{}p{.69\linewidth}p{.24\linewidth}@{}}
+\nolinkurl{zk-flock-skip.tex} & \noteref{zk-flock-skip} \\
+\nolinkurl{zk-flock-endpoints.tex} & \noteref{zk-flock-endpoints} \\
+\nolinkurl{zk-flock-middle.tex} & \noteref{zk-flock-middle} \\
+\end{tabular}
+
+\subsubsection*{Count-tree obstructions and earlier constructions.}
+\noindent\begin{tabular}{@{}p{.69\linewidth}p{.24\linewidth}@{}}
+\nolinkurl{zk-count-children.tex} & \noteref{zk-count-children} \\
+\nolinkurl{zk-count-first-round.tex} & \noteref{zk-count-first-round} \\
+\nolinkurl{zk-count-middle-rounds.tex} & \noteref{zk-count-middle-rounds} \\
+\nolinkurl{zk-count-tail.tex} & \noteref{zk-count-tail} \\
+\nolinkurl{zk-count-suffix.tex} & \noteref{zk-count-suffix} \\
+\nolinkurl{zk-count-head.tex} & \noteref{zk-count-head} \\
+\nolinkurl{zk-count-dual.tex} & \noteref{zk-count-dual} \\
+\nolinkurl{zk-count-mixed.tex} & \noteref{zk-count-mixed} \\
+\nolinkurl{zk-count-full-head.tex} & \noteref{zk-count-full-head} \\
+\end{tabular}
+
+\subsubsection*{Coarse GKR and the optional public-preprocessing branch.}
+\noindent\begin{tabular}{@{}p{.69\linewidth}p{.24\linewidth}@{}}
+\nolinkurl{zk-gkr-coarse.tex} & \noteref{zk-gkr-coarse} \\
+\nolinkurl{zk-gkr-paired.tex} & \noteref{zk-gkr-paired} \\
+\nolinkurl{zk-gkr-first-packet.tex} & \noteref{zk-gkr-first-packet} \\
+\nolinkurl{zk-bytecode-public-library.tex} & \noteref{zk-bytecode-public-library} \\
+\nolinkurl{zk-bytecode-frontier.tex} & \noteref{zk-bytecode-frontier} \\
+\nolinkurl{zk-public-seed-leakage.tex} & \noteref{zk-public-seed-leakage} \\
+\nolinkurl{zk-set-payload-products.tex} & \noteref{zk-set-payload-products} \\
+\nolinkurl{zk-control-residual.tex} & \noteref{zk-control-residual} \\
+\nolinkurl{zk-gkr-second-wire.tex} & \noteref{zk-gkr-second-wire} \\
+\nolinkurl{zk-frame-gauge.tex} & \noteref{zk-frame-gauge} \\
+\nolinkurl{zk-control-composition.tex} & \noteref{zk-control-composition} \\
+\nolinkurl{zk-even-children.tex} & \noteref{zk-even-children} \\
+\nolinkurl{zk-odd-children.tex} & \noteref{zk-odd-children} \\
+\nolinkurl{zk-second-frontier.tex} & \noteref{zk-second-frontier} \\
+\nolinkurl{zk-mul-control.tex} & \noteref{zk-mul-control} \\
+\nolinkurl{zk-frontier-lifting.tex} & \noteref{zk-frontier-lifting} \\
+\end{tabular}
+
+\endgroup

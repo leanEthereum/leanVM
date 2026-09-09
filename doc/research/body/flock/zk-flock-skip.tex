@@ -1,0 +1,60 @@
+% !TeX root = ../../main.tex
+\subsection{Statistical hiding of Flock's within-block prefix}\label{note:zk-flock-skip}
+
+\paragraph{Result and boundary.} A fixed library of valid BLAKE2s compressions statistically hides the $64$-value univariate-skip message and all eight following within-block zerocheck rounds, jointly. The proof uses exact finite-field rank and fair choices between valid executions, not pseudorandomness of BLAKE2s. It assumes independent honest interactive coins. The batch-coordinate rounds, lincheck, terminal slices, commitments and joint distribution with the preceding VM reductions remain outside the theorem.
+
+\subsubsection{The public space containing every first message}
+
+Follow Annex C of the leanVM specification. The quirky R1CS polynomial $P(Y)$ has degree at most $126$ and vanishes on the $64$-point additive space $\skipdom$. Its message is its evaluations on $\skipcoset$, the other coset in a $128$-point additive space. The barycentric denominators on that larger space are constant, so the coefficient of degree $127$ is a nonzero constant times the sum of its evaluations. Consequently every valid message lies in the public space
+\[
+ \mathcal W=\{v\in\E^{64}:\textstyle\sum_i v_i=0\},
+ \qquad \dim_{\E}\mathcal W=63.
+\]
+Conversely every vector in $\mathcal W$, extended by zeros on $\skipdom$, interpolates to a polynomial of degree at most $126$.
+
+The remaining within-block coordinates have length eight. Seven equality coordinates are the protocol's fixed constants; call the eighth random coordinate $u$. For one valid compression witness $z$, let $p_z(u)\in\mathcal W$ be its contribution before the batch equality weight. Splitting its $256$ groups of $64$ rows into two halves gives
+\[
+ p_z(u)=(1+u)p_z(0)+u p_z(1).
+\]
+Thus its message is affine in $u$, although it is nonlinear in the compression's inputs.
+
+\subsubsection{Add the eight within-block rounds}
+
+After the skip challenge $Y$ is sampled, the next eight rounds fold only within-block coordinates. For one compression let $q_{z,j,1},q_{z,j,2}$ be the two transmitted nonconstant coefficients in round $j$, for $0\le j<8$. Define its prefix feature
+\[
+ f_z=\bigl(p_z(u),(q_{z,j,1},q_{z,j,2})_{j=0}^7\bigr)
+ \in\mathcal W\times\E^{16}.
+\]
+At each Boolean assignment of the remaining coordinates, write the two child lines as $a_0+T\Delta a$, $b_0+T\Delta b$ and $c_0+T\Delta c$. Their contributions to the transmitted coefficients are $a_0\Delta b+b_0\Delta a+\Delta c$ and $\Delta a\Delta b$. Sum them with the remaining within-block equality weights. Since no batch coordinate has folded, the actual batch prefix is exactly the batch-equality-weighted sum of these per-compression features. There are no products between different compression choices in this prefix.
+
+Let $z_*$ be the witness for BLAKE2s-256 of $64$ zero bytes, with standard initial chaining value, byte counter $64$, final-block flag all ones and last-node flag zero. The exact audit fixes $128$ other messages and their full Boolean witnesses, using \texttt{Random(152)} for its reproducible library and certificate. The differences $d_b=f_{z_b}+f_{z_*}$ have extension rank $79$ at its fixed skip and fold challenges and $u=0$. Thus they span the entire $79$-dimensional prefix space at that specialization.
+
+In fixed coordinates on $\mathcal W\times\E^{16}$, this certifies a nonzero ordinary $79$-row minor. Its first $63$ rows have degree at most one in $u$. In round $j$, each child has degree at most $63$ in $Y$ and one in each of the $j$ preceding fold coins. The remaining equality weight includes $u$ only if $j<7$. Each transmitted coefficient therefore has total degree at most $126+2j+[j<7]$. The minor degree is at most
+\[
+ 63+2\sum_{j=0}^7\bigl(126+2j+[j<7]\bigr)=2205.
+\]
+Its failure probability over the honest coins is at most $2205/2^{192}$. The feature formulas use polynomial coefficients directly and contain no division by an equality factor.
+
+\subsubsection{Turn library directions into extension-field noise}
+
+Use a public batch of $2^{19}$ compressions. Write its index as $(s,b)$ with twelve low coordinates $s$ and seven bank coordinates $b$. In each of the $128$ banks reserve the $448$ positions of the support $S_{12}$ from \noteref{zk-stacked-padding}. At a reserved position independently choose $z_*$ or $z_b$ with one fair bit. Fill all other positions with arbitrary fixed valid compression witnesses. There are $57344$ random-choice positions; the public power-of-two batch size is part of this construction, not an optimized cost claim.
+
+Let $r_{\rm low}\in\E^{12}$ and $r_{\rm bank}\in\E^7$ be the batch equality coins. The random part of the prefix is
+\[
+ \sum_{b=0}^{127}\eq(r_{\rm bank},b)d_bU_b,
+ \qquad
+ U_b=\sum_{s\in S_{12}}\eq(r_{\rm low},s)\,\varepsilon_{b,s}.
+\]
+On the shared sparse-span event the $128$ evaluations $U_b$ are independent uniform elements of $\E$. Its failure probability is at most $\delta_{\mathrm{span}}+12/2^{192}$. Excluding Boolean bank coins costs another $14/2^{192}$ and makes every bank weight nonzero. The library minor then makes the random contribution uniform on $\mathcal W\times\E^{16}$. Every fixed complementary contribution belongs to this same space, so it only translates the uniform distribution. Exclude $u=1$ at cost $1/2^{192}$ because the existing prover reconstructs a constant coefficient by dividing by $1+u$; the seven fixed equality coordinates are not one.
+
+\begin{theorem}[Joint within-block Flock prefix]
+For this padding and independent honest interactive coins, Flock's skip message and eight within-block zerocheck rounds have a joint witness-independent simulator with statistical error at most
+\[
+ \delta_{\mathrm{span}}+\frac{2232}{2^{192}}<2^{-157},
+\]
+uniformly over the fixed valid compression witnesses at the other positions. The simulator samples a uniform vector in $\mathcal W$ and two independent uniform tail coefficients per round, reconstructing each constant coefficient and running claim by the unchanged verifier identities.
+\end{theorem}
+
+All choices precede the verifier coins. Each is a closed two-instruction execution: \texttt{BLAKE2S} followed by \texttt{JUMP} to its start, using fresh private memory for its message and correct digest. Bytecode, addresses, state transitions and read multiplicities do not depend on the choice. This establishes local VM realizability, not joint hiding of the resulting bus messages.
+
+\paragraph{Checks and next obligation.} \auditref{zk_flock_prefix_audit.py} checks all $129$ witnesses against the reference $A_0,B_0$ circuit walk and \texttt{hashlib}, replays the coefficient stream through the reference sumcheck verifier, checks rank $79$, and compares a dense four-compression replay with the weighted feature sum. The helpers in \auditref{zk_flock_skip_audit.py} check interpolation and valid VM cycles. \noteref{zk-flock-endpoints} extends joint hiding to lincheck and terminal slices using a larger two-point sparse layout. The intervening batch folds introduce products between different choices and remain unproved jointly with those endpoints and the earlier VM transcript. No production protocol or verifier is changed.

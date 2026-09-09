@@ -1,0 +1,121 @@
+% !TeX root = ../main.tex
+\section{Plan for a complete proof}\label{sec:zk-remaining}
+
+\subsection{The theorem to finish, and the order of attack}
+
+The deliverable is one explicit padded prover and one efficient witness-free simulator satisfying Definition~\ref{def:zk-target}, uniformly over a declared set of public layouts, with total distance at most $2^{-128}$. The weaker acceptable milestone is a separately stated bound at most $2^{-101}$. Neither follows from the strongest component exponent. The simulator may generate an honest transcript backwards, but the real prover must sample and commit one legal padded witness before receiving challenges; it cannot select its padding after seeing them.
+
+There are three distinct endpoints: the complete algebraic reduction and opening view; the complete authenticated honest-interactive view in a specified commitment model; and a separate transfer to deployed Fiat-Shamir proofs. The first is a major milestone, not full ZK. The second is the immediate definition's full-view target. A claim about the deployed proof additionally needs the third. No endpoint requires malicious-verifier interactive ZK.
+
+\begin{center}
+\small
+\begin{tabular}{@{}p{.08\linewidth}p{.48\linewidth}p{.34\linewidth}@{}}
+\toprule
+Step & Required proof artifact & Depends on \\
+\midrule
+P0 & Security model and complete observation ledger & Actual protocol and all three verifiers \\
+P1 & One valid padded-witness sampler and capacity theorem & P0; reservations needed by P2 to P5 \\
+P2 & Complete joint bus/count GKR simulator & P1; table interface fixed in P3 \\
+P3 & Six-table and public-input composition theorem & P2 with its larger retained interface \\
+P4 & Complete Flock and ring-switching composition & P1; the preceding VM view \\
+P5 & Actual stacked PCS conditional simulator & P1; all claims produced by P2 to P4 \\
+P6 & Commitment/authentication simulation; separate FS transfer & P0; P5; precise hash or oracle model \\
+P7 & Efficient end-to-end simulator and exact error ledger & P0 to P6 for the chosen endpoint \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+This is a dependency plan, not a promise that all steps succeed. Start P0 and the feasibility parts of P1, P5 and P6 before investing in many more tail rounds. Then fix the P3 interface and attempt a reusable P2 whole-layer theorem. P4 has an independent mathematical gap and should not be left implicit. A successful opening theorem cannot be postponed as a routine consequence of finishing GKR.
+
+\subsection{P0: freeze the experiment and record every disclosure}
+
+\paragraph{Artifact.} Specify the admissible programs, public height vector, PCS rate and folding parameters, public input convention, setup distribution if any, and supported size range. For every transmitted value, record its position in the wire, its dependence on witness and padding, the challenges already sampled, and the coordinates a later reduction reuses. Check this ledger against the Rust verifier, the Python reference verifier and the recursive guest; the protocol document alone is not enough for the deployed transcript.
+
+The ledger must include the initial commitment, announced sizes, bus and count roots, every GKR coefficient and child, framework evaluations, all table columns disclosed at the terminal point, public-input claims, Flock coefficients and endpoints, ring-switching data, opening-batch weights, every PCS introduction polynomial and query lane, final plaintext values, authentication paths and grinding data. Include carried/deferred claims whenever they are visible to the verifier of the statement being protected. A private subproof used as a witness is not automatically public, but its externally carried claims can be.
+
+\paragraph{Exit condition.} Every observable byte or scalar has a ledger entry and a proposed proof owner. Distinguish an actual disclosure from an auxiliary quantity retained only inside a proof. Fix whether the theorem is single-proof or includes reuse of public setup and multiple proofs. In particular, fixing heights as public does not authorize other witness-dependent preprocessing.
+
+\subsection{P1: construct a single legal source of randomness}
+
+\paragraph{Artifact.} Give a total randomized algorithm on every supported valid execution, with public reservations for all libraries. Prove preservation of public input/output, instruction semantics, bus multisets, all twenty-eight normalized count-column products and complete read-label chains. Prove that PC, frame and memory allocations do not collide, every return and filler row fits, and all tables and memory have exactly the declared heights. Complete every local library with an actual valid trace, not an unspecified disjoint complement.
+
+Give a randomness ledger identifying the independent private coins, which banks share values, and which later disclosures constrain each bank. The sampler must use genuine randomness for a statistical theorem. The existing depth-$22$ bus layout, count-only completed layout of size $2^{23}$ and Flock batch of size $2^{21}$ are not yet one common reservation theorem. Increasing a height changes the folding geometry and requires rechecking any layout-specific bound.
+
+\paragraph{Exit condition.} One capacity lemma covers every witness admitted by the stated public resource policy. No proof stage may consume a second independent copy of a bank already used elsewhere. Existing production verification continues to certify the intended relation: padding is a witness transformation, not a new acceptance rule. If no common construction fits, enlarge the public resource class and reprove the affected bounds, or explicitly narrow the theorem.
+
+\paragraph{Branch decision.} The baseline uses existing instruction semantics and public fixed reservations. The random-library route in Appendix~\ref{sec:coarse-preprocessing} additionally assumes public preprocessing and native field-valued frame/offset support. Its coarse-layer theorem is not a solved baseline step. Adopting that route requires an explicit model and implementation decision, including how a published setup is generated and reused.
+
+\subsection{P2: hide all bus/count GKR layers jointly}
+
+\paragraph{Starting point.} \noteref{zk-four-round-tail} proves a joint four-round final-layer tail, not its first sixteen rounds or its earlier layers. \noteref{zk-count-completed-head} provides one exact conditional head-rank certificate, not a challenge-uniform probability bound. Public count-column products do not make the internal count tree public.
+
+\paragraph{Artifact.} Establish a whole-layer simulator retaining the complete previously emitted view and the interface required by P3. A candidate is a conditional-fiber theorem for coupled push, pull and count channels: first characterize all native affine relations, then prove that legal row swaps fill the observable fiber with a witness-independent law, and finally treat the nonlinear sumcheck messages on that fiber. A private invariant may remain if it does not affect the simulated distribution; the simulator may not receive its unknown witness-dependent value.
+
+For a fixed pair of child positions, the binary-affine swap criterion in \noteref{zk-subtree-swaps} is useful: compute the conditional noise image after retaining earlier observations, and show that all admissible witness shifts lie in the same observable coset. Full rank at one choice of coins proves neither property uniformly. Mixed swap directions create nonlinear cross terms; they require their own analysis. The proposed extra coupled push/pull/count banks in \noteref{zk-four-round-tail} are a concrete next experiment, not an induction hypothesis.
+
+The count head needs a bound for the actual Boolean source matrix under the actual honest challenge distribution. The many extension-field evaluations derived from a small set of sparse coordinates cannot simply be replaced by independent uniform extension scalars. Produce a nonzero-minor certificate with a justified degree bound if that bound is small enough, or use a direct span/character argument. The result must be uniform over every allowed fixed complement and retain the coordinates used by the count tail and fingerprint channels.
+
+\paragraph{Exit condition.} A reusable induction covers every layer and all of its rounds, starting from simulatable roots and ending with the P3 interface. Its premise is established by the preceding layer, not an unproved uniform frontier distribution. Charge degeneracy events over the full supported depth range. Stop extending a particular library if an actual witness-dependent invariant survives every allowed padding choice; repair that library before adding rounds.
+
+\subsection{P3: retain exactly what the table proof needs}
+
+\paragraph{Artifact.} Discharge the hypothesis of \noteref{zk-table-batch} using the same P2 simulator and P1 sampler. Besides the preceding algebraic bus view, that reduction retains six table quantities, a further aggregate, non-inverse terminal columns, two coefficient values and a terminal evaluation specified there. The seventeen-field GKR boundary alone does not supply this interface.
+
+Then prove the conditional law of the remaining table messages with the real unequal-height batching schedule and terminal evaluations. Account for public-input memory openings at their pinned coordinates rather than assuming that every claim is at an independent random point. The free zero-condition inverse values used by the JUMP argument are invisible to certain algebraic bus observations, but not automatically to the earlier commitment or later PCS; reserve their conditional entropy explicitly.
+
+\paragraph{Exit condition.} A joint simulator for the entire bus, table and public-input reduction produces exactly the claim family handed to the opening layer. The table bound, including its exceptional coins, is valid for the chosen common layout and the distribution actually left by P2. Do not condition an unconditional marginal bound on an arbitrarily rare preceding transcript.
+
+\subsection{P4: finish Flock and ring switching}
+
+\paragraph{Starting point.} \noteref{zk-flock-endpoints} handles the within-block prefix, terminal evaluations, lincheck and sixty-four input slices. The middle zerocheck rounds are excluded. \noteref{zk-flock-middle} identifies an additional retained scalar and exact conditional-rank evidence; conditioning on all paired evaluations would impose an extra relation and invalidate the intended uniform law.
+
+\paragraph{Artifact.} Prove a uniform conditional rank or mixing bound for the first fourteen sparse batch-coordinate rounds, retaining the augmented prefix and endpoints. Then handle the seven remaining bank-mixing rounds, whose dependence on the private choices is quadratic. Prove the complete zerocheck and lincheck jointly with earlier VM disclosures: the same BLAKE2s inputs occur in the instruction tables and bus, so Flock cannot receive fresh, independent replacements for them.
+
+Next simulate the ring-switching proof, not just its sixty-four input slices, retaining the actual packed-witness claim and transparent weights. Match the eighteen BLAKE2s value-column claims and every relevant public pin to the same committed stack.
+
+\paragraph{Exit condition.} One simulator emits all Flock and ring-switching messages and their PCS inputs conditioned on the preceding VM view. Its error is uniform over the common valid completion. The existing prefix-and-endpoint exponent is not used as a bound for the missing middle.
+
+\subsection{P5: prove hiding of the actual stacked opening}
+
+\paragraph{Artifact.} Write the complete joint family of linear observations of the committed stack, including all table/memory claims, Flock packing, Frobenius slices, the public-input pins, initial-fold lanes, out-of-domain values, separate introduction polynomials, query leaves and final plaintext table. The opening-batch challenge is sampled after claim values; the weights and points depend on the earlier transcript. Retain those values and dependencies in the proof.
+
+Extend \noteref{zk-pcs-padding} and \noteref{zk-stacked-padding} from their restricted independent-point/orbit settings to this actual family. The required lemma is conditional: legal padding choices still hide all new observations after the reductions have exposed their joint view. Show that the necessary coefficient directions are realizable by valid P1 cycles. A freely random polynomial suffix is not such a realization, and replacing the real execution by zero is not generally a valid witness transformation.
+
+\paragraph{Early feasibility test.} Analyze every legal query geometry, especially unmasked lanes, queries at zero or in small subspaces, and fixed public coordinates. Either prove deterministic coverage of the private directions or bound failure under the actual query distribution tightly enough for the global budget. A query-domain failure probability or a polynomial-over-$|\K|$ estimate near $2^{-64}$ cannot support more than one hundred bits merely by increasing unrelated padding. Full $\E$-span arguments or a different legal reservation may be necessary.
+
+\paragraph{Exit condition.} The complete algebraic PCS view has a witness-free conditional simulator, with quantified error and costs, compatible with the earlier simulator and one legal committed stack. List any retained latent variables and show how the final simulator samples them without the witness. This is the completion criterion for the algebraic milestone.
+
+\subsection{P6: include authentication, and delimit Fiat-Shamir}
+
+\paragraph{Artifact.} Fix the precise commitment/hash model before asserting full statistical privacy. The first Merkle root is sent before challenges and must be jointly consistent with all later openings. Prove a simulation lemma for roots, authenticated leaf values, sibling hashes and any grinding data, retaining the entire earlier view. Identify the conditional entropy of unopened hash inputs and every event on which the verifier's oracle queries can reveal their relation to the witness.
+
+Collision resistance is a binding/soundness assumption, not a statistical-hiding proof. Treating roots as independent random strings without their opening correlations is insufficient. If the argument uses a random oracle, state the experiment, the oracle interface, the query bound, and the simulator's programming permissions. A bound for a query-limited oracle experiment must be labelled as such; it is not automatically Definition~\ref{def:zk-target} for the concrete fixed BLAKE2s function. If the chosen commitment model does not admit the required statistical statement, report that obstruction explicitly rather than silently weakening the target to computational ZK.
+
+\paragraph{Separate transfer.} For a deployed Fiat-Shamir claim, define the noninteractive simulation experiment and prove consistency of derived challenges, domain separation, oracle answers and grinding with the simulated proof. Account for its own error and any setup assumptions. An interactive honest-verifier simulator, which can choose coins jointly with messages, does not by itself prove this transfer.
+
+\paragraph{Exit condition.} Every item in the P0 ledger belongs to one complete simulated view in the declared model. If only the algebraic endpoint is achieved, the theorem title and status must continue to say so.
+
+\subsection{P7: compose, budget and certify}
+
+\paragraph{Composition lemma.} Give the actual sequence of joint hybrids. Each transition must preserve the already retained interface and replace its next conditional law by a witness-free law, with a bound under the history distribution used by that hybrid. Uniform bounds for every possible history suffice; a rigorously bounded average under the actual history distribution also suffices. Applying the same continuation kernel cannot increase statistical distance. This is what allows summing transition errors, not the existence of separately uniform marginal transcripts.
+
+For $\zkHybrids$ charged transitions and target $\zkBits$ bits, a sufficient allocation is
+\[
+ \text{error per transition}\ \le
+ 2^{-(\zkBits+\lceil\log_2\zkHybrids\rceil)}.
+\]
+For example, reserving at most sixteen charged terms of at most $2^{-132}$ gives a total at most $2^{-128}$. The corresponding $101$-bit allocation is $2^{-105}$ per term. These are prospective budget ceilings, not achieved bounds. A work package containing many rounds must first bound their combined error; it is not automatically one such term. If more terms are needed, recompute the allocation.
+
+These bits measure real-to-simulator distance as in Definition~\ref{def:zk-target}. Comparing two real witnesses through that simulator costs a factor two by the triangle inequality. If the desired bound is instead $2^{-128}$ directly between any two real-witness views, targeting simulator distance $2^{-129}$ suffices; the sixteen-term allocation becomes $2^{-133}$ per term.
+
+The final ledger must distinguish setup exceptions, valid-sampler failures if any, conditional-span defects, nonlinear mixing error, all-layer challenge degeneracies, table/Flock residual errors, PCS query failures and authentication or transfer errors. Count multiplicities over the supported range. Charge a shared bad event once, and do not omit it merely because several notes condition it away. Conditioning can magnify error; every such loss needs justification. Keep soundness and collision-resistance advantages separate from statistical privacy distance.
+
+\paragraph{Reuse.} For multiple proofs, fix which public setup and private randomness are reused. Fresh private padding per proof is the baseline. A setup exception can be charged once, while conditional per-proof simulation errors generally accumulate; adaptive statements require a corresponding conditional theorem. The number of uses must be part of any claimed aggregate privacy budget, not inferred from a one-proof exponent.
+
+\paragraph{Exit condition.} Present executable pseudocode for an expected polynomial-time simulator receiving only the public statement and allowed public setup. It must not query the true witness, unknown cofactors or unproved witness-dependent residuals. State the final concrete theorem over the full declared resource range, with an exact rational error ledger proving $2^{-128}$ or the explicitly weaker $2^{-101}$. Prove an asymptotic family separately if claiming negligible error in the formal security parameter. Exact audits should reproduce the algebra and certificates; successful samples are not substitutes for the uniform bounds.
+
+\subsection{The next concrete milestone}\label{sec:zk-next}
+
+Before another long sequence of local tail extensions, produce three linked artifacts: the P0 observation ledger; a candidate common reservation satisfying P1; and an early P5/P6 feasibility analysis for the resulting authenticated opening. In parallel as a mathematical workstream, state the precise P2 conditional whole-layer lemma with the P3 interface and test the proposed coupled banks against it. These artifacts decide whether the current route can plausibly reach a full theorem without changing the verifier.
+
+The next positive milestone is a complete joint bus/count GKR theorem under that common layout, not merely a fifth-round theorem. The next decisive negative milestone would be a witness-dependent observable that remains unchanged by all legal padding choices in the proposed construction, with two valid witnesses at the same public statement, or a proved conditional-entropy/capacity obstruction. Either would rule out that construction, not every padding-based approach. Until the missing lemmas are established, a completion date or an end-to-end privacy-bit estimate would be speculation.
