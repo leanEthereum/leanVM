@@ -1519,19 +1519,18 @@ fn recv_level_rows<T>(
     queries: &[usize],
     row_words: usize,
     leaf_words: usize,
-    decode: impl Fn(&[F64]) -> T,
+    decode: impl Fn(Vec<F64>) -> T,
 ) -> Result<Vec<T>, TranscriptError> {
     let rows = vs.next_merkle_batch(root, block_len, queries, row_words, leaf_words)?;
-    Ok(rows.iter().map(|row| decode(row)).collect())
+    Ok(rows.into_iter().map(decode).collect())
 }
 
 /// Decode for an L0 leaf image: the image is lane-DESCENDING, so that a
 /// padding-free commitment's absent lanes are its leading words, and reversing it
 /// puts stack block `b` back at index `b`, which is what the induce folds.
-fn l0_row_ascending(row: &[F64]) -> Vec<F64> {
-    let mut v = row.to_vec();
-    v.reverse();
-    v
+fn l0_row_ascending(mut row: Vec<F64>) -> Vec<F64> {
+    row.reverse();
+    row
 }
 
 /// The already-committed level whose rows the next query phase opens: its root
@@ -1792,7 +1791,7 @@ pub fn recursive_verifier_with_basis(
                 &queries_last,
                 leaf_words,
                 leaf_words,
-                ext_row_from_words,
+                |row| ext_row_from_words(&row),
             ) else {
                 return false;
             };
@@ -1897,7 +1896,7 @@ pub fn recursive_verifier_with_basis(
             &queries_i,
             leaf_words,
             leaf_words,
-            ext_row_from_words,
+            |row| ext_row_from_words(&row),
         ) else {
             return false;
         };
@@ -2111,7 +2110,7 @@ where
                 &queries_last,
                 leaf_words,
                 leaf_words,
-                ext_row_from_words,
+                |row| ext_row_from_words(&row),
             )?;
 
             let enforced_sum_last =
@@ -2223,7 +2222,7 @@ where
             &queries_i,
             leaf_words,
             leaf_words,
-            ext_row_from_words,
+            |row| ext_row_from_words(&row),
         )?;
 
         let enforced_sum_i = induce_sumcheck_enforced_sum(&ordered_rows_i, &level_rs, &queries_i, &weights_i);

@@ -663,7 +663,7 @@ fn finish_claims(
     let mut claims = bus_claims;
     claims.extend(constraint_claims(table_claims));
     claims.extend(bind_pi_claim(r_pi, &l.placements, pi_limbs));
-    slot_claims(l, &claims)
+    slot_claims(l, claims)
 }
 
 /// The public-input binding (§sec:e2e-pi): the committed `MEM` at `(r, 0,…,0)` must
@@ -787,9 +787,9 @@ pub fn verify(program: &Program, public_input: &[F192; 2], proof: &Proof) -> Res
 /// `QFLOCK` column at the point freezing the low 8 coords to the slot's bits and
 /// the high coords to `r`. No downstream special-casing: it folds into the
 /// one opening like every other point claim.
-fn slot_claims(l: &Layout, claims: &[ColumnClaim]) -> Vec<pcs::SlotClaim> {
+fn slot_claims(l: &Layout, claims: Vec<ColumnClaim>) -> Vec<pcs::SlotClaim> {
     claims
-        .iter()
+        .into_iter()
         .map(|c| {
             // A virtual BLAKE2s value column (always virtual): its bus claim at
             // instance point `c.point` is the q_flock slot value, a boolean-selector
@@ -800,13 +800,13 @@ fn slot_claims(l: &Layout, claims: &[ColumnClaim]) -> Vec<pcs::SlotClaim> {
                     offset: l.placements[QFLOCK].offset,
                     slot,
                     stride_log: crate::hash_flock::SLOT_STRIDE_LOG,
-                    point: c.point.clone(),
+                    point: c.point,
                     value: c.value,
                 };
             }
             pcs::SlotClaim::Point {
                 offset: l.placements[c.col].offset,
-                low_point: c.point.clone(),
+                low_point: c.point,
                 value: c.value,
             }
         })

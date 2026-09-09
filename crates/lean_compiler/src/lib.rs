@@ -171,15 +171,7 @@ fn compile_inner(ast: &Ast, with_filler: bool) -> Program {
         .collect();
     // The blocks are `main`'s, and `main` is lowered first, so its entry pc is 0 and the
     // block pcs are already the global ones.
-    program.filler = lowered
-        .iter()
-        .flat_map(|l| {
-            l.filler.iter().map(|b| lean_vm::cpu::filler::Block {
-                pc: entry[&l.name] + b.pc,
-                ..b.clone()
-            })
-        })
-        .collect();
+    program.filler = std::mem::take(&mut lowered[0].filler);
     program
 }
 
