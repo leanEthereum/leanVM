@@ -13,13 +13,13 @@ use super::*;
 /// The readings of one expression: as many as its shape has. Produced by
 /// [`FnLower::eval`], which is the only walk that computes them.
 #[derive(Clone, Copy, Default)]
-struct Known {
+pub(super) struct Known {
     /// The compile-time INTEGER, wanted by a size, an index, a bound, an exponent.
-    int: Option<u128>,
+    pub(super) int: Option<u128>,
     /// The FIELD element a value position sees, where `+` is XOR.
-    field: Option<F192>,
+    pub(super) field: Option<F192>,
     /// The ADDRESS the compiler tracks: a base cell times `g^exp`.
-    addr: Option<GAddr>,
+    pub(super) addr: Option<GAddr>,
 }
 
 /// `a·b` in the [`GAddr`] representation: exponents add, and at most one factor
@@ -64,7 +64,7 @@ impl FnLower<'_> {
     ///
     /// Keeping the readings together lets each use reject an ambiguous value
     /// by comparing them, without evaluating the expression again.
-    fn eval(&self, e: &Expr) -> Known {
+    pub(super) fn eval(&self, e: &Expr) -> Known {
         // Deliberately NO address: only a LITERAL reads as one, and only under the
         // guard below. Attaching it here gave `const(2^k)` and `len(A)` an address
         // that `Expr::Lit` alone used to have, which slipped them past
@@ -248,18 +248,12 @@ impl FnLower<'_> {
     /// A stack index or compile-time slice bound: [`Self::try_const_index`],
     /// required to succeed.
     pub(super) fn const_index(&self, idx: &Expr) -> u32 {
-        self.try_const_index(idx).unwrap_or_else(|| {
-            // An oversized index is an index-shaped mistake, not a runtime value,
-            // so diagnose it precisely (`sa[2^32]` must not wrap to `sa[0]`). Read
-            // through the integer evaluator, so `const(2 ** 33)` gets the same
-            // message a bare literal does rather than "not a compile-time integer".
-            if let Some(k) = self.try_const_int(idx) {
-                self.fail(format!("stack index {k} does not fit in u32"));
-            }
+        let k = self.try_const_int(idx).unwrap_or_else(|| {
             self.fail(format!(
                 "a StackBuf index must be a compile-time integer, got `{idx:?}`"
             ))
-        })
+        });
+        u32::try_from(k).unwrap_or_else(|_| self.fail(format!("stack index {k} does not fit in u32")))
     }
 
     /// The exponent of `GEN ** e`: a compile-time integer, required to succeed.

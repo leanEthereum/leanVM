@@ -132,26 +132,26 @@ fn compile_inner(ast: &Ast, with_filler: bool) -> Program {
     // Source line per pc, so a run-time failure can name a line instead of a pc.
     let mut src_lines: Vec<u32> = Vec::new();
     let mut hints: HashMap<u32, Vec<RHint>> = HashMap::new();
-    for l in &lowered {
+    for l in &mut lowered {
         let base = entry[&l.name];
-        for ins in &l.code {
+        for ins in &mut l.code {
             let here = prog.len() as u32;
             if !ins.hints.is_empty() {
                 let rhs = ins
                     .hints
-                    .iter()
+                    .drain(..)
                     .map(|h| match h {
                         Hint::AllocFrame { ptr, callee } => RHint::Alloc {
-                            ptr: *ptr,
-                            size: frame_size[callee],
+                            ptr,
+                            size: frame_size[&callee],
                         },
                         Hint::AllocFrameMax { ptr, callees } => RHint::Alloc {
-                            ptr: *ptr,
+                            ptr,
                             size: callees.iter().map(|c| frame_size[c]).max().unwrap(),
                         },
-                        Hint::AllocBuffer { ptr, size } => RHint::Alloc { ptr: *ptr, size: *size },
-                        Hint::AllocBufferDyn { ptr, size } => RHint::AllocDyn { ptr: *ptr, size: *size },
-                        Hint::Resolved(r) => r.clone(),
+                        Hint::AllocBuffer { ptr, size } => RHint::Alloc { ptr, size },
+                        Hint::AllocBufferDyn { ptr, size } => RHint::AllocDyn { ptr, size },
+                        Hint::Resolved(r) => r,
                     })
                     .collect();
                 hints.insert(here, rhs);

@@ -235,10 +235,8 @@ struct FnLower<'a> {
     tail_call: bool,
     queue: &'a mut Vec<Func>,
     loop_ctr: &'a mut usize,
-    /// Name of the function being lowered. Only used to attribute a lowered
-    /// `for` loop to its source site under `DBG_LOOPS` (the profile prints bare
-    /// `__loopN` names, which are otherwise opaque).
-    fn_name: String,
+    /// Function name for diagnostics and generated-loop handling.
+    fn_name: &'a str,
     /// The program's function definitions by name, for `Const`-parameter
     /// specialization at call sites ([`Self::specialize`]).
     defs: &'a HashMap<String, &'a Func>,
@@ -259,7 +257,7 @@ impl FnLower<'_> {
         // is lowered through the CALLER, so its statements report the caller's
         // line. Naming the function, and the inline chain when there is one, is
         // what turns "line 19" back into somewhere to look.
-        let site = match (self.cur_line, self.fn_name.as_str()) {
+        let site = match (self.cur_line, self.fn_name) {
             (0, "main") => String::new(),
             (0, f) => format!("in {f}: "),
             (n, "main") => format!("line {n}: "),
@@ -1216,15 +1214,15 @@ impl FnLower<'_> {
                     // that folds: `FOLDBASE[lvl] + j`, `n // 2`, `len(A) - 1`) is
                     // usable as a compile-time index / bound / exponent, and that
                     // role survives the value binding chosen below.
-                    let k_int = self.try_const_int(e);
+                    let known = self.eval(e);
                     // A symbolic g-address (a constant g-power or a shifted
                     // pointer) or a compile-time field constant stays virtual:
                     // no instruction here, folded / materialized only on demand.
-                    if let Some(ga) = self.gaddr_of(e) {
+                    if let Some(ga) = known.addr {
                         self.rebind(name, Binding::Gaddr(ga));
-                    } else if let Some(c) = self.try_field_const(e) {
+                    } else if let Some(c) = known.field {
                         self.rebind(name, Binding::FConst(c));
-                    } else if let Some(k) = k_int {
+                    } else if let Some(k) = known.int {
                         // Integer-only fold (`//`, `-`, `%` of constants): a
                         // compile-time value too, and as a scalar it is the field
                         // element with those 128 bits, materialized on demand.
@@ -1251,7 +1249,7 @@ impl FnLower<'_> {
                     // rides alongside whichever value binding was chosen above.
                     // It is attached after, because a rebind clears it, and the
                     // RHS above still had to see `name`'s old reading.
-                    if let Some(k) = k_int {
+                    if let Some(k) = known.int {
                         self.scope.set_int(name, k);
                     }
                 }
@@ -1583,7 +1581,7 @@ pub(crate) fn lower_func(
         arg_cells,
         return_shapes: &f.return_shapes,
         is_main: f.name == "main",
-        fn_name: f.name.clone(),
+        fn_name: &f.name,
         tail_call: false,
         code: Vec::new(),
         cur_line: 0,
