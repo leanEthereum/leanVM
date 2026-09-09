@@ -45,6 +45,8 @@ Give a randomness ledger identifying the independent private coins, which banks 
 
 \paragraph{Branch decision.} The baseline uses existing instruction semantics and public fixed reservations. The random-library route in Appendix~\ref{sec:coarse-preprocessing} additionally assumes public preprocessing and native field-valued frame/offset support. Its coarse-layer theorem is not a solved baseline step. Adopting that route requires an explicit model and implementation decision, including how a published setup is generated and reused.
 
+\paragraph{Small-frame refinement.} Proposition~\ref{prop:zk-memory-floor} rules out the unrestricted execution-preserving baseline for the current initial query domain. The proposed repair restricts the public program to relocatable bounded-size frames with a reservation-aware allocator, including its entry point, arrays and all padding cycles. \noteref{zk-memory-frames} proves legality of the unused-word bank and a pin-preserving restricted memory-opening theorem; \noteref{zk-memory-root} adds the shared root jointly below $2^{-151}$. Its capacity counts all write-once allocations. Complete this restricted P1 contract, the intermediate memory GKR view and the actual claim interface before claiming that the obstruction has been removed for a full VM construction; ordinary function calls alone are insufficient.
+
 \subsection{P2: hide all bus/count GKR layers jointly}
 
 \paragraph{Starting point.} \noteref{zk-four-round-tail} proves a joint four-round final-layer tail, not its first sixteen rounds or its earlier layers. \noteref{zk-count-completed-head} provides one exact conditional head-rank certificate, not a challenge-uniform probability bound. Public count-column products do not make the internal count tree public.
@@ -71,9 +73,9 @@ Then prove the conditional law of the remaining table messages with the real une
 
 \paragraph{Artifact.} Prove a uniform conditional rank or mixing bound for the first fourteen sparse batch-coordinate rounds, retaining the augmented prefix and endpoints. Then handle the seven remaining bank-mixing rounds, whose dependence on the private choices is quadratic. Prove the complete zerocheck and lincheck jointly with earlier VM disclosures: the same BLAKE2s inputs occur in the instruction tables and bus, so Flock cannot receive fresh, independent replacements for them.
 
-Next simulate the ring-switching proof, not just its sixty-four input slices, retaining the actual packed-witness claim and transparent weights. Match the eighteen BLAKE2s value-column claims and every relevant public pin to the same committed stack.
+Retain the actual ring-switched packed-witness claim and transparent weights jointly with the sixty-four input slices. Ring switching itself sends no additional witness message: its target and weight are determined from the slices and six fresh coins, as recorded in \noteref{zk-stacked-padding}. The remaining obligation is their joint distribution and the resulting PCS opening. Match the eighteen BLAKE2s value-column claims and every relevant public pin to the same committed stack.
 
-\paragraph{Exit condition.} One simulator emits all Flock and ring-switching messages and their PCS inputs conditioned on the preceding VM view. Its error is uniform over the common valid completion. The existing prefix-and-endpoint exponent is not used as a bound for the missing middle.
+\paragraph{Exit condition.} One simulator emits all Flock messages and derives their ring-switched PCS inputs conditioned on the preceding VM view. Its error is uniform over the common valid completion. The existing prefix-and-endpoint exponent is not used as a bound for the missing middle.
 
 \subsection{P5: prove hiding of the actual stacked opening}
 

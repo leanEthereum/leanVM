@@ -1,0 +1,76 @@
+% !TeX root = ../../main.tex
+\subsection{The bus root jointly with the small-frame memory opening}\label{note:zk-memory-root}
+
+\paragraph{Result and scope.} The memory bank of \noteref{zk-memory-frames} also hides the shared bus product root jointly with its three-limb opening envelope, with combined error below $2^{-151}$. No extra reserved words are needed. The argument finds independent private directions in the kernel of that entire linear opening view, then mixes the product root along those directions. It is not a simulator for intermediate GKR products, table messages, access counts, the full stacked claim family or authentication. All challenges are independent honest interactive coins; the memory observation map must be independent of the bus fingerprint coins.
+
+\subsubsection{Private directions left after opening}
+
+Use the memory-dominant stack in \noteref{zk-memory-frames}, with eight initial segments per value limb and five fully random segments $\zkFreeLanes$. Write their restricted global fold weights as a common selector times $\alpha_l$, $l\in\zkFreeLanes$. Let $V$ now retain \emph{all} distinct initial query answers, including $0,1$, and one common column MLE, expanded into three $\K$ coordinates. It has at most $q+3$ rows over $\K$.
+
+Choose a nonzero vector $u\in\K^5$ with $\sum_l\alpha_lu_l=0$. Such a vector always exists, since this is at most three base-field equations. In any set of $q+4$ column positions outside $\{0,1\}$ choose a nonzero vector $v$ in the kernel of the restricted map $V$. For a uniform parameter $z\in\E$, change the unused memory words by
+\[
+ \Delta\mem_{l,j}=u_l v_j z,
+ \qquad l\in\zkFreeLanes.
+\]
+The coefficients $u_lv_j$ lie in $\K$. In each value limb this preserves every query answer, MLE and retained prefix coefficient, and its contribution to the entire first-folded vector vanishes. It touches no public or accessed cell. Disjoint column sets give disjoint supports, each with at most $d=5(q+4)$ addresses.
+
+\begin{lemma}[Independent kernel parameters]\label{lem:zk-memory-root-kernel}
+If $\zkLaneLen\ge2+t(q+4)$, the existing uniform unused-word bank admits a decomposition into $t$ independent uniform parameters $z_1,\ldots,z_t\in\E$ and complementary coordinates, such that the complete three-limb memory envelope is independent of every $z_i$ conditional on those complementary coordinates and the opening coins. The supports are disjoint, with at most $d$ words each. The decomposition depends only on the opening coins, not on the witness or bus coins.
+\end{lemma}
+\begin{proof}
+Use the preceding nonzero rank-one direction on each of $t$ disjoint column sets. Multiplication by $z_i$ gives three independent base-field directions. Disjoint support makes all $3t$ directions independent. Extend them to a $\K$ basis of the reserved limb space. Uniform independent masks have uniform independent coordinates in this basis, and the selected directions lie in the kernel of the retained view. The matrices used to select the basis involve only opening coins. Their rank need not be maximal for this argument.
+\end{proof}
+
+This is a change of coordinates in the proof; the prover still samples every unused word before any challenge.
+
+\subsubsection{Product mixing inside a linear fiber}
+
+Put $Q=|\K|$ and $|\E|=Q^3$. For fixed bus coins, let $B:\E\to\E$ be the actual memory-value fingerprint map, with image $U=\operatorname{span}_{\K}\{e_3,e_4,e_5\}$. The notation and dimension bound are those of \noteref{zk-bus-root}. Conditional on the complementary coordinates, the factors in one kernel support are
+\[
+ a_i+c_iB(z),\qquad c_i\in\K^\times,
+ \qquad P(X)=\prod_i(a_i+c_iX),\quad 1\le\deg P\le d.
+\]
+Here $a_i$ is the fingerprint of that cell when its selected parameter is zero. The full shared root factors as $A\prod_{j=1}^tP_j(B(z_j))$, with $A$ independent of all selected parameters.
+
+\begin{lemma}[A squarefree polynomial on the fingerprint image]\label{lem:zk-memory-root-mixing}
+Suppose $\dim_{\K}U\ge2$ and $P$ is squarefree of degree at most $d<Q^2$. For every nontrivial multiplicative character $\theta$ of $\E^\times$, extended by zero,
+\[
+ \left|\mathbb E_{X\gets U\mid P(X)\ne0}\theta(P(X))\right|
+ \le\frac{d\sqrt{|\E|}}{Q^2-d}.
+\]
+\end{lemma}
+\begin{proof}
+Expand the indicator of $U$ in its annihilating additive characters. Each complete sum $\sum_{x\in\E}\theta(P(x))\psi(x)$ has magnitude at most $d\sqrt{|\E|}$ by the mixed Weil bound~\cite{winger}; for trivial $\psi$, the multiplicative bound suffices~\cite{kowalski}. The hypotheses hold: a simple root of $P$ makes $Y^{\operatorname{ord}\theta}-P(X)$ absolutely irreducible, and the linear additive polynomial makes $Z^{|\E|}-Z-X$ absolutely irreducible. The number of indicator terms cancels its prefactor. Finally, at most $d$ elements of $U$ are zeros, and $|U|\ge Q^2$.
+\end{proof}
+
+\paragraph{Why squarefreeness is cheap here.} In one support, two roots coincide exactly when $a_i/c_i=a_j/c_j$. If $c_i\ne c_j$, this is a nonzero linear equation in the independent uniform bus shift $\beta$, costing $1/|\E|$. If $c_i=c_j$, the common shift and fixed seed coordinates cancel. What remains is a nonzero multilinear polynomial of degree at most four in the bus mixing point: the coefficient of $e_1$ is the difference of two distinct memory addresses. The distinct equality-basis coordinates are linearly independent, so this polynomial cannot vanish identically, regardless of the fixed complementary word values. This case costs at most $4/|\E|$. A union bound over every pair in every support therefore costs at most $4t\binom d2/|\E|$. The decomposition's independence from bus coins is essential to this argument.
+
+\begin{theorem}[Root decoupling from the memory envelope]\label{thm:zk-memory-root-decouple}
+Under Lemma~\ref{lem:zk-memory-root-kernel}, let $M$ bound the other nonconstant push-side factors. The joint law of the bus coins, opening coins, actual three-limb memory envelope and shared bus root is within
+\[
+ \begin{split}
+ \varepsilon_{\mathrm{decouple}}\le{}&
+ \frac{M+8+td+4t\binom d2}{|\E|}
+ +\frac{Q^2}{(|\E|-2)^2}\\
+ &+\frac12\sqrt{|\E|-2}
+ \left(\frac{d\sqrt{|\E|}}{Q^2-d}\right)^t
+ \end{split}
+\]
+of the same law with the root replaced by an independent uniform element of $\E^\times$. The actual envelope marginal is retained, not assumed uniform.
+\end{theorem}
+\begin{proof}
+Retain the complementary coordinates as proof-only auxiliary data. The fingerprint dimension exception costs $8/|\E|+Q^2/(|\E|-2)^2$ by Lemma~\ref{lem:bus-dim}. Squarefreeness costs the preceding pair bound. Averaging over uniform $\beta$, the event $A=0$ costs at most $M/|\E|$ and a zero factor in the supports costs at most $td/|\E|$. These are averaged bounds; we do not assert that they hold after fixing an arbitrary envelope value and bus shift.
+
+Fix the remaining good coins and complementary coordinates. Conditional on all support products being nonzero, the independent parameters remain independent across supports. Lemma~\ref{lem:zk-memory-root-mixing} bounds each nontrivial multiplicative Fourier coefficient; multiplication of independent products raises the bound to power $t$. Parseval and Cauchy-Schwarz on $\E^\times$ give the displayed mixing term. Multiplication by nonzero $A$ preserves uniformity. Averaging over the retained coordinates and charging the excluded events gives the hybrid, with no assumption of uniformity for the envelope. Finally discard the proof-only coordinates.
+\end{proof}
+
+\paragraph{A genuine composition.} First replace the root by an independent uniform nonzero scalar using Theorem~\ref{thm:zk-memory-root-decouple}. Then simulate the retained memory envelope using Theorem~\ref{thm:zk-memory-envelope} and its three-limb embedding. This order justifies adding the errors. With $q\le228$, $t=12$, $d=1160$, $\zkLaneLen\ge2786$, $\mu\le28$ and $M\le2^{40}$,
+\[
+ \varepsilon_{\mathrm{joint}}
+ \le\varepsilon_{\mathrm{decouple}}
+       +\frac{3(\zkLaneLog+12)}{|\E|}
+ <2^{-151}.
+\]
+The frame example with $\kmem=20$ and $\mu=23$ meets the capacity condition. Its existing five full random segments contain every kernel support; no new reservation is introduced. The simulator samples the envelope as previously specified and an independent uniform nonzero root. Although the root precedes the opening on the real wire, an offline honest-verifier simulator may construct the joint view in this order.
+
+\paragraph{Boundary and evidence.} This proves the shared root jointly with a full restricted linear opening view, not arbitrary conditioning of the old marginal root theorem. The intermediate GKR messages are nonlinear in the selected parameters and generally destroy their kernel property; they still require a new proof. The same warning applies to the actual full stacked claim family and to hash commitments. A public normalized count root can be adjoined, but a secret-dependent count view cannot. \auditref{zk_memory_frames_audit.py} checks disjoint kernel directions over the native fields, their annihilation of the multilevel algebraic wire observations, the exact fingerprint polynomial identity and the concrete combined error bound. It does not numerically estimate a statistical error of order $2^{-151}$.

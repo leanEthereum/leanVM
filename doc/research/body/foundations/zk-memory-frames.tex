@@ -1,0 +1,121 @@
+% !TeX root = ../../main.tex
+\subsection{Memory: a fixed-prefix obstruction and a small-frame repair}\label{note:zk-memory-frames}
+
+\paragraph{Conclusion.} Restricting programs to relocatable small frames is a useful repair, provided a public allocator reserves specific addresses for genuinely unused random words. Ordinary function calls alone do not provide this guarantee. We prove an obstruction for unrestricted execution-preserving padding, then a pin-preserving memory-value construction that avoids it and hides an entire restricted PCS algebraic view. Access counts, the joint bus transcript, the full stacked claim family and authentication remain outside the positive theorem.
+
+\subsubsection{Why unrestricted memory padding fails}
+
+The current encoder treats each initial lane's entries directly as novel-basis coefficients. For the field elements whose standard binary encodings are \texttt{2} and \texttt{3}, not the integers interpreted in characteristic two, its basis satisfies
+\[
+ (\novel_0(x),\novel_1(x),\novel_2(x),\novel_3(x))=(1,x,1,x),
+ \qquad \novel_j(x)=0\quad(j\ge4).
+\]
+Indeed, $x$ lies in $\subsp_2$, the first normalized subspace polynomial is $X$, and $\Wn{1}(x)=1$. Every index $j\ge4$ has a higher nonzero bit whose subspace factor vanishes. Consequently, a lane starting with $(0,0,b,0)$ exposes $b$ at either query, regardless of every later coefficient. The verifier receives the raw pre-fold lane, so later folding cannot erase this disclosure.
+
+\begin{proposition}[An unavoidable aligned memory prefix]\label{prop:zk-memory-alignment}
+For every accepted leanVM layout with $\kmem\ge20$ and stack log $\mu\le28$, either the low or the top memory-value limb starts at an initial PCS lane boundary.
+\end{proposition}
+\begin{proof}
+Put $\nmem=2^{\kmem}$ and $\zkLaneLen=2^{\mu-6}$. The three memory-value columns and the final-memory-count column have size $\nmem$ and global indices $0,1,2,3$. Decreasing-size placement, with ties broken by index, places these four blocks consecutively. Their initial offset is a multiple of $2\nmem$, because every preceding block is strictly larger than $\nmem$. Since $\zkLaneLen\le4\nmem$, either $\zkLaneLen\le2\nmem$ and the low limb is aligned, or $\zkLaneLen=4\nmem$ and adding $2\nmem$ aligns one of the low and top limbs. This argument allows arbitrary accepted table heights.
+\end{proof}
+
+\begin{proposition}[A privacy floor for execution-preserving padding]\label{prop:zk-memory-floor}
+There is a fixed public program with two valid executions and the same public inputs and heights such that every padding strategy preserving its accessed memory values has the following property. In the honest interactive experiment with independent uniform initial queries, any common simulator has error greater than $2^{-21}$ for at least one execution, for every common accepted padded layout. This includes padding that permutes instruction rows, inserts cycles, relabels read counters and randomizes unused memory.
+\end{proposition}
+\begin{proof}
+Use public inputs zero, a private word $\mem[\gen^2]=b(1+y+y^2)$ with $b\in\{0,1\}$, and an XOR of that word with itself writing $\mem[\gen^3]=0$. A SET at index $2^{19}$ forces $\kmem\ge20$. Finish through public control cells outside the first four indices; standard filler blocks complete all table sizes. Both executions are valid, and every value limb starts with $(0,0,b,0)$.
+
+The aligned limb in Proposition~\ref{prop:zk-memory-alignment} is determined by the public layout. Let $D=2^{\mu-6+\rexp}$ be the initial query-domain size, with $1\le\rexp\le4$, and let $q$ be the number of initial queries. The observable event that one of them equals \texttt{2} or \texttt{3} has probability $p=1-(1-2/D)^q$. On this event the selected authenticated raw lane reveals $b$ exactly. The two real views therefore have statistical distance at least $p$, so a common simulator has error at least $p/2$ for one of them. Current configurations satisfy $D\le2^{26}$ and $q\ge56$, giving
+\[
+ \frac p2\ \ge\ \frac{1-(1-2^{-25})^{56}}2\ >\ 2^{-21}.
+\]
+Taking a projection of the full view cannot increase distance. Correlations with the other padding or later messages cannot remove this lower bound.
+\end{proof}
+
+\paragraph{Scope and native evidence.} This rules out a general compiler-free, execution-preserving padding transformation for the current query domain, not arbitrary ZK provers or a publicly specified restricted program class. In particular, discarding the supplied witness, recompiling or relocating its private accesses is outside the proposition. The native example \path{crates/lean_vm/examples/zk_memory_prefix_audit.rs} constructs both complete valid VM proofs with memory log $20$ and stack log $23$. Separately, it checks the exceptional leaves with the actual scalar NTT, interleaved commitment and authenticated pruned paths. The complete Fiat-Shamir proofs use their ordinary queries; those runs do not force the exceptional event or establish a Fiat-Shamir probability theorem.
+
+\subsubsection{The small-frame contract}
+
+Fix the public memory height and reservation set before seeing the witness. Every real or padding access, including frame headers, returns, arrays, indirect accesses and filler frames, must avoid the reserved addresses. Each allocation fits a public slot of size $\zkFrameSize$; larger buffers must use an explicitly supported layout. For every supported witness, prove that its execution can be relocated into these slots with frame-relative addressing and pointers preserving the program's semantics. Code that observes numerical addresses requires its own argument. The entry point must also keep private values out of the reserved initial prefix, using public compilation or a bootstrap if necessary. These are restrictions on the public program and its allocator, not new verifier checks or permission to choose a different program after seeing the witness.
+
+Current calls already receive frame addresses through allocation hints, and the executor uses an integer-index bump allocator. This is a plausible implementation location for skipping reserved blocks without changing the ISA or verification equations. It is not an implemented ZK allocator. Returning from a function does not free its committed values: leanVM memory is write-once, so the capacity bound counts all allocated frames, not just simultaneously live ones. In particular, used intermediate values cannot simply be overwritten by randomizers.
+
+\begin{lemma}[Legal unused words]\label{lem:zk-unused-frame-words}
+For any execution satisfying this contract, replacing each reserved unused word by an independent uniform element of $\E$ preserves the instruction constraints, public inputs, bus balance and all read counts.
+\end{lemma}
+\begin{proof}
+No instruction reads or writes a replaced cell. Its seed and finalization tuples contain the same address and new value, with count $1$ on both sides. The replacement therefore changes neither their balance nor any count. Its three $\K$ limbs are independent uniform elements. This is a statement about valid witnesses, not about the distribution of their bus proof messages.
+\end{proof}
+
+\subsubsection{A prefix that respects public inputs}
+
+Put $\zkLaneLen=2^{\zkLaneLog}$ and
+\[
+ \zkPinSpace=\{h\in\K^{\zkLaneLen}:h_0=h_1=0\}.
+\]
+This is the difference space needed to preserve the two public-input coefficients. Every polynomial with coefficients in $\zkPinSpace$ vanishes at $0,1$, and conversely: the encoder evaluations there are $h_0$ and $h_0+h_1$.
+
+\begin{lemma}[Perfect hiding of initial memory queries]\label{lem:zk-pinned-prefix}
+Keep $f_0,f_1$ public and reserve coefficients $2,\ldots,t+1$ as independent uniform masks. Any at most $t$ distinct initial evaluation queries have a witness-independent joint distribution. Queries at $0,1$ have their prescribed public answers; all other distinct answers are uniform and independent.
+\end{lemma}
+\begin{proof}
+The consecutive polynomials $\novel_2,\ldots,\novel_{t+1}$ form a basis for the degree-at-most-$t+1$ polynomials divisible by $X(X+1)$. Dividing by this factor leaves a degree-$0$ through degree-$t-1$ basis. Evaluation on any at most $t$ distinct points outside $\{0,1\}$ is onto by interpolation. Uniform masks therefore absorb every private-data shift. Repeated queries add no information.
+\end{proof}
+
+For the full algebraic opening, use a power of two $\zkPadBlock>q+2$, where $q$ bounds the initial query count, and assume $\zkLaneLen\ge8\zkPadBlock$. Define
+\[
+ \zkPrefixSpace=\{h\in\zkPinSpace:\operatorname{supp}(h)\subseteq\{2,\ldots,5\zkPadBlock-1\}\}.
+\]
+For a fixed distinct query set $\qset$, define the common $\K$-linear observation map
+\[
+ V(h)=\bigl((\Enc(h)[x])_{x\in\qset\setminus\{0,1\}},\ \mle h(r)\bigr),
+ \qquad r\gets\E^{\zkLaneLog}.
+\]
+The last entry represents three $\K$ coordinates.
+
+\begin{lemma}[A query-safe prefix with public pins]\label{lem:zk-pinned-envelope-prefix}
+Except with probability at most $(\zkLaneLog+3)/|\E|$ over the independent point $r$, the restriction $V|_{\zkPrefixSpace}$ is onto its displayed codomain. The bound is uniform in every fixed query set of size at most $q$, including sets containing $0,1$.
+\end{lemma}
+\begin{proof}
+Lemma~\ref{lem:zk-pinned-prefix} supplies the query coordinates. Put $Z(X)=\prod_{x\in\qset\cup\{0,1\}}(X+x)$. Its degree is at most $q+2<\zkPadBlock$ and its first two novel-basis coefficients vanish. The five coefficient vectors of $Z(X)\novel_{j\zkPadBlock}(X)$, $j=0,\ldots,4$, lie in $\zkPrefixSpace$ and in the query kernel. Disjoint low and high index bits give exactly the factorization in Lemma~\ref{lem:prefix}: a nonzero low-coordinate multilinear polynomial, a tail selector and five Boolean weights. Its proof, with the same five-weight lemma, supplies the three extension coordinates with failure at most $(\zkLaneLog+3)/|\E|$.
+\end{proof}
+
+\subsubsection{Hiding the entire first-folded memory contribution}
+
+Split one memory-value column into eight equal initial-lane segments. Reserve the five complete segments
+\[
+ \zkFreeLanes=\{3,4,5,6,7\}=7\mathbin{\oplus}\{0,1,2,3,4\},
+\]
+and the first $5\zkPadBlock$ cells of segments $0,1,2$, except global indices $0,1$. Here $\oplus$ is bitwise exclusive-or. These two excluded cells hold the public input. Let $\zkMemoryMasks$ be this address set. All its cells are unused and independently uniform; fixed real data occupies only the remaining addresses.
+
+\begin{theorem}[Pin-preserving memory envelope]\label{thm:zk-memory-envelope}
+For an independent uniform column point $r\in\E^{\zkLaneLog}$ and three independent uniform lane-fold coins, the joint view consisting of every segment's initial query answers, its first two coefficients, every $\mle f_l(r)$, and the entire folded vector $F=\sum_{l=0}^7\eq(\fc,l)f_l$ has an efficient simulator receiving only the two public coefficients, with error at most
+\[
+ \frac{\zkLaneLog+9}{|\E|}.
+\]
+The query list may be arbitrary of length at most $q$, independently of $r,\fc$. This includes all later algebraic PCS disclosures for an eight-lane vector with a single common-point initial weight, also allowing weights supported on the first two coefficients of any segment. In particular, the public-input line introduces no further error. It excludes preceding VM disclosures, authentication and Fiat-Shamir.
+\end{theorem}
+\begin{proof}
+Compare two choices of the real coefficients, with the same public pins. Their differences in every segment lie in $\zkPinSpace$, since every segment's first two coefficients are either public or reserved masks. On the event of Lemma~\ref{lem:zk-pinned-envelope-prefix}, translate masks in $\zkPrefixSpace$ to move all eight differences into $\ker V\cap\zkPinSpace$.
+
+The five fold weights on $\zkFreeLanes$ span $\E$ over $\K$ except with probability $6/|\E|$. This is Lemma~\ref{lem:five} after complementing the three fold coordinates. Each $\K$ coordinate vector of the residual folded difference is still in $\ker V\cap\zkPinSpace$. A fixed right inverse of the five fold weights therefore cancels the whole folded difference using corrections in the five fully random segments, themselves in this kernel. No correction touches either public pin or any real coefficient.
+
+The resulting translation is a bijection of the uniform mask space and preserves every component of the enlarged view, including each segment's first two coefficients because every correction lies in $\zkPinSpace$. Its law is thus identical for both real vectors on good coins. The simulator keeps the public coefficients, sets other nonreserved entries to zero, samples the masks and computes the view. The union bound gives the stated error. Before the first fold finishes, the allowed initial weights use the segments only through their retained MLEs and first two coefficients. Every later witness-dependent algebraic opening message is determined by $F$ and the honest coins, as in Theorem~\ref{thm:pcs-padding}.
+\end{proof}
+
+\paragraph{Embedding in the actual stack.} If $\mu=\kmem+3$ and no column is larger than memory, the four memory-sized columns start at stack offset zero and each consists of eight of the actual sixty-four initial lanes. Each memory-value limb has the same reserved address pattern; an unused $\E$ word supplies independent masks in all three limbs. Within any one column the eight global fold weights share a selector on the other three lane bits. Excluding its zeros costs at most $3/|\E|$, so that column's restricted envelope has error at most $(\zkLaneLog+12)/|\E|$. Three such envelopes at one common column point cost at most $3(\zkLaneLog+12)/|\E|<2^{-185}$ under $\mu\le28$. This is a memory-value projection with the other stack data held fixed, not a theorem about secret-dependent count columns or the actual collection of PCS claims.
+
+\paragraph{Frame capacity.} Choose a power-of-two slot size $\zkFrameSize\le\zkPadBlock$, so it divides both $\zkPadBlock$ and $\zkLaneLen$. All reserved regions are unions of whole slots, with the public-input exception. Allocate real and padding frames only in the three intervals $[l\zkLaneLen+5\zkPadBlock,(l+1)\zkLaneLen)$, $l=0,1,2$. This gives
+\[
+ \frac{3(\zkLaneLen-5\zkPadBlock)}{\zkFrameSize}\ \text{slots},
+ \qquad |\zkMemoryMasks|=5\zkLaneLen+15\zkPadBlock-2.
+\]
+For example, $\kmem=20$, $\mu=23$, $\zkPadBlock=\zkFrameSize=256$ allows $1521$ slots and $389376$ payload cells. The current maximum initial query count is $228$, so $\zkPadBlock>q+2$ holds. This is a conservative memory-only capacity example, not a reservation theorem for all existing bus, count and Flock libraries. The verifier equations are unchanged, but reserved memory can increase commitment size and public heights.
+
+\paragraph{Why a periodic gap is weaker.} Reserving only the first half of every power-of-two frame leaves one fixed address bit equal to zero on every mask. If a later PCS level exposes that bit as a pre-fold lane, its other lane is unmasked by Proposition~\ref{prop:lane}. The five complete random segments above instead hide the entire first-folded vector, so no separate assumption about later query geometry is needed. A mere density of random cells is not the invariant we need.
+
+\subsubsection{What the repair does not yet prove}
+
+The same masks enter the memory bus fingerprint products, GKR and memory opening claims. The continuation \noteref{zk-memory-root} proves one joint step: the shared bus root and this three-limb opening envelope, below $2^{-151}$, using independent directions in the opening's kernel. This is a new conditional argument, not an application of marginal root mixing after arbitrary conditioning. It excludes intermediate GKR messages and the actual multiple-point and selector-weight interface. We must still simulate those disclosures jointly and fit every cycle library into the nonreserved slots. Unused values do not randomize final read counts; count normalization and hiding remain separate obligations. Finally, Merkle roots and paths and the separate Fiat-Shamir experiment require their own simulation arguments.
+
+\paragraph{Executable evidence.} \auditref{zk_memory_frames_audit.py} checks the low-point encoder identity, the finite alignment cases and actual placement samples, the exact privacy lower bound, and pin-preserving mask translations over the native fields. In four query modes, including zero and small subspaces, those translations cancel every observation of a small multilevel algebraic wire schedule, including introduction polynomials and final plaintext values. It also checks the whole-frame capacity and three-limb fold geometry. These are finite certificates supporting the proofs, not sampled estimates of their error bounds or a full VM simulator. Run the separate native obstruction example with \texttt{cargo run --release -p lean\_vm --example zk\_memory\_prefix\_audit}.

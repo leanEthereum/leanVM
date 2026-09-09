@@ -1,7 +1,7 @@
 % !TeX root = ../../main.tex
 \subsection{Joint hiding of Flock's prefix and terminal disclosures}\label{note:zk-flock-endpoints}
 
-\paragraph{Scope.} The valid-compression library now hides the within-block prefix jointly with the terminal evaluations, complete lincheck and $64$ slices sent to ring switching. This uses a genuine two-point span theorem, not two applications of a marginal bound. The intervening batch-coordinate zerocheck rounds are omitted. Commitments, earlier VM messages and the ring-switching proof remain outside the claim.
+\paragraph{Scope.} The valid-compression library now hides the within-block prefix jointly with the terminal evaluations, complete lincheck and $64$ slices sent to ring switching. This uses a genuine two-point span theorem, not two applications of a marginal bound. The intervening batch-coordinate zerocheck rounds are omitted. Commitments, earlier VM messages and the resulting packed PCS opening remain outside the claim. Ring switching itself sends no additional witness message, as specified in \noteref{zk-stacked-padding}.
 
 \subsubsection{The terminal map is linear}
 
