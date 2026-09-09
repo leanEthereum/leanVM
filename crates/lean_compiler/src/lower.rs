@@ -165,21 +165,9 @@ impl Scope {
     fn bound(&self, n: &str) -> Option<Bound> {
         self.names.get(n).copied()
     }
-    fn var(&self, n: &str) -> Option<Off> {
-        match self.bound(n)?.val {
-            Binding::Scalar(o) => Some(o),
-            _ => None,
-        }
-    }
     fn stack(&self, n: &str) -> Option<(Off, u32)> {
         match self.bound(n)?.val {
             Binding::Stack(base, size) => Some((base, size)),
-            _ => None,
-        }
-    }
-    fn gaddr(&self, n: &str) -> Option<GAddr> {
-        match self.bound(n)?.val {
-            Binding::Gaddr(ga) => Some(ga),
             _ => None,
         }
     }
@@ -948,14 +936,13 @@ impl FnLower<'_> {
                 self.const_cell(g_pow_u128(k).into())
             }
             Expr::Pow(b, e) => self.pow_expr(b, e),
-            Expr::Var(v) => {
-                if self.scope.stack(v).is_some() {
+            Expr::Var(v) => match self.scope.bound(v).map(|b| b.val) {
+                Some(Binding::Stack(..)) => {
                     self.fail(format!("StackBuf `{v}` used as a scalar; index it (`{v}[k]`) or pass it to blake2s"));
                 }
-                if let Some(ga) = self.scope.gaddr(v) {
-                    return self.materialize(ga);
-                }
-                self.scope.var(v).unwrap_or_else(|| {
+                Some(Binding::Gaddr(ga)) => self.materialize(ga),
+                Some(Binding::Scalar(o)) => o,
+                _ => {
                     // A `for` body that ASSIGNS to an enclosing name reads it before
                     // it binds it, and the capture set drops every name the body
                     // binds, so the read arrives here with nothing behind it. That is
@@ -972,8 +959,8 @@ impl FnLower<'_> {
                         ))
                     }
                     self.fail(format!("unbound variable `{v}`"))
-                })
-            }
+                }
+            },
             Expr::Add(a, b) => {
                 if let Some(x) = self.add_identity(a, b) {
                     return self.expr(x);

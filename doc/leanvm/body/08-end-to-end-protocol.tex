@@ -26,11 +26,11 @@ So $P(z,1,1,0,0)$ is instruction $z$'s opcode, $P(z,0,0,1,0)$ its first operand,
 
 \subsection{Public input}\label{sec:e2e-pi}
 
-The public input is the first two memory cells $\mem[\gen^{0}],\mem[\gen^{1}]$, two $192$-bit words (with top limb $0$) both parties know. The verifier samples $r_m\in\E$, the prover sends $c_0,c_1$ claiming $c_\ell=\mle{\mem_\ell}(r_m,0,\dots,0)$, and the verifier checks
+The public input is the first two memory cells $\mem[\gen^{0}],\mem[\gen^{1}]$, two $192$-bit words (with top limb $0$) both parties know. The verifier samples $r_m\in\E$, the prover sends $c_0,c_1\in\E$ claiming $c_\ell=\mle{\mem_\ell}(r_m,0,\dots,0)$, and the verifier checks
 \[
-  c_\ell\;\qeq\;(1+r_m)\,\mem[\gen^{0}]_\ell+r_m\,\mem[\gen^{1}]_\ell,\qquad \ell\in\{0,1\}.
+  c_0+y c_1\;\qeq\;(1+r_m)\,\mem[\gen^{0}]+r_m\,\mem[\gen^{1}].
 \]
-Both sides are degree one in $r_m$, so a limb disagreeing with the public words survives with probability at most $1/|\E|$ (Lemma~\ref{lem:sz}). The claims $c_0$, $c_1$ are discharged to the PCS.
+The PCS binds $(c_0,c_1,0)$ to the three memory limbs at $(r_m,0,\dots,0)$. A mismatch gives a nonzero polynomial of degree at most one, so it passes with probability at most $1/|\E|$ (Lemma~\ref{lem:sz}).
 
 \subsection{Filling the tables}\label{sec:e2e-pad}
 
@@ -80,8 +80,8 @@ The Fiat-Shamir initial state (\S\ref{sec:e2e-fiat-shamir}) is seeded by the pub
 \paragraph{Public input.}
 
 \begin{enumerate}
-\item \textbf{Verifier.} Sends $r_m\in\E$ and forms the line $\widetilde{\mathrm{PI}}_\ell(r_m)$ from the public words.
-\item \textbf{Prover \& Verifier.} The prover sends $c_0,c_1$; the verifier checks them against the line and pools them, with $0$ for the top limb, as claims on $\mem_0,\mem_1,\mem_2$ at $(r_m,0,\dots,0)$ (\S\ref{sec:e2e-pi}).
+\item \textbf{Verifier.} Sends $r_m\in\E$ and forms the line $(1+r_m)\mem[\gen^0]+r_m\mem[\gen^1]$ from the public words.
+\item \textbf{Prover \& Verifier.} The prover sends $c_0,c_1$; the verifier checks $c_0+y c_1$ against the line and pools $(c_0,c_1,0)$ as claims on $\mem_0,\mem_1,\mem_2$ at $(r_m,0,\dots,0)$ (\S\ref{sec:e2e-pi}).
 \end{enumerate}
 
 \paragraph{BLAKE2s validity.}

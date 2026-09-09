@@ -31,7 +31,7 @@ use primitives::field::F64;
 pub use ::pcs::stack_open::{RingSwitchClaim, RingSwitchOpen, RingSwitchVerify, StackClaim as SlotClaim};
 use ::pcs::stack_open::{open_batch_mixed_whir_stacked, verify_opening_batch_mixed_whir_stacked};
 use ::pcs::whir::ProverConfig;
-use ::pcs::whir::{Commitment, ProverData, commit as whir_commit, config_for_rate};
+use ::pcs::whir::{ProverData, commit as whir_commit, config_for_rate};
 
 /// Row-batch lanes `2^LOG_BATCH`: the Merkle leaf width (`2^LOG_BATCH` F64
 /// = 512 bytes/leaf) IS WHIR's INITIAL folding factor: the L0 commit is
@@ -73,7 +73,6 @@ fn whir_config(mu: usize, log_inv_rate: usize) -> std::sync::Arc<ProverConfig> {
 /// itself is not retained (the caller still owns it and passes it back to
 /// [`open`]), so committing costs no extra full-trace copy.
 pub struct Committed {
-    pub commitment: Commitment,
     /// Codeword + Merkle tree retained for opening. Public so the single stacked
     /// WHIR opening (which also discharges flock's claim over
     /// this same commitment, §hash_flock) can reuse it.
@@ -117,7 +116,6 @@ pub fn commit(
     let (commitment, prover_data) = whir_commit(witness, mu, LOG_BATCH, log_inv_rate);
     ps.add_root(&commitment.root);
     Committed {
-        commitment,
         prover_data,
         mu,
         log_inv_rate,

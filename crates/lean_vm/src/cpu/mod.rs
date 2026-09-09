@@ -670,7 +670,7 @@ fn bind_pi_claim(r: F192, placements: &[witness::Placement], limbs: [F192; 3]) -
 }
 
 /// Everything a recursion harness needs from an accepting verify run, named
-/// and typed: the deferred bytecode claims, the count-channel root, flock's
+/// and typed: the deferred bytecode claims, flock's
 /// reduction claims, and the stacked-opening summary (ring-switch challenges +
 /// WHIR fold/query data). The sub-proof scalars themselves live on
 /// `proof.stream`, ending at `flock_stream_end`. Ordinary callers just
@@ -679,7 +679,6 @@ pub struct VerifySummary {
     /// Transcript-bound inverse-rate logarithm used by this proof's PCS.
     pub log_inv_rate: usize,
     pub bytecode_claims: Vec<leaf::BytecodeClaim>,
-    pub count_root: F192,
     pub zc_claim: flock::zerocheck::ZerocheckClaim,
     pub lc_claim: flock::lincheck::LincheckClaim,
     /// Stream cursor just after flock's reduction, i.e. where the PCS opening's
@@ -757,7 +756,6 @@ pub fn verify(program: &Program, public_input: &[F192; 2], proof: &Proof) -> Res
     vs.finish().map_err(CpuError::Transcript)?;
     Ok(VerifySummary {
         bytecode_claims: bus.bytecode_claims,
-        count_root: bus.count_root,
         zc_claim: replay.zc_claim,
         lc_claim: replay.lc_claim,
         log_inv_rate,

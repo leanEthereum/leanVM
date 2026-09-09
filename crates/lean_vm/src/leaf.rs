@@ -835,13 +835,11 @@ fn tables_and_prods_at(
 }
 
 /// What [`verify_balance`] establishes: the per-column claims to open, the
-/// reduced bytecode claim (a one-element vec in practice: push and pull share
-/// ζ), and the count-channel root (nonzero; recursion
-/// guests prove that via a hinted inverse).
+/// reduced bytecode claim (a one-element vec in practice: push and pull share ζ),
+/// and the table forms with their claimed sums.
 pub struct BusVerify {
     pub claims: Vec<ColumnClaim>,
     pub bytecode_claims: Vec<BytecodeClaim>,
-    pub count_root: F192,
     /// The GKR point ζ, reused as the table sumcheck's eq point.
     pub point: Vec<F192>,
     /// `forms[side][table]`, for the zerocheck to settle.
@@ -920,7 +918,6 @@ pub fn verify_balance(
     Ok(BusVerify {
         claims,
         bytecode_claims,
-        count_root,
         point: bus_gkr.point,
         forms,
         totals,
