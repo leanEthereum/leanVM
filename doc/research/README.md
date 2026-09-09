@@ -10,6 +10,8 @@ python3 check.py
 
 The PDF is `.build/main.pdf`. Read `body/01-target.tex`, `body/02-proof-plan.tex` and `body/03-status.tex` first. Supporting proofs are grouped under `body/`; the appendices separate count-tree history and the optional public-preprocessing branch. `body/c-source-map.tex` maps the former standalone filenames to internal sections. All note references are internal PDF links, and references are collected in `references.tex`.
 
+The latest joint theorem is [body/flock/zk-flock-sixteen.tex](body/flock/zk-flock-sixteen.tex): any twelve lane-59 values in one sixteen-point encoder coset, all twelve final GKR children and the established terminal/Flock interface, below `2^-155`, or `2^-151` including memory and the shared root. It assumes a common valid completion and does not cover multiple cosets or the full transcript. The unchanged source is specified in [body/flock/zk-flock-children.tex](body/flock/zk-flock-children.tex). Run `python3 doc/research/audits/zk_flock_multicoset_audit.py` for the exact dual identity, binary-source geometry and error bounds, and `python3 doc/research/audits/zk_flock_children_audit.py --full --wide` for complete source validity, joint ranks and exhaustive native query maps.
+
 `preamble/` centralizes document setup and loads the VM's shared notation from `../leanvm/preamble/macros.tex`. There is one build directory and one document root. Do not restore independent document wrappers around body files.
 
 Python audits live together in `audits/`, preserving their local imports. Run a named audit from that directory, for example:

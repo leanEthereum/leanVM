@@ -1,0 +1,92 @@
+% !TeX root = ../../main.tex
+\subsection{Twelve queries in one sixteen-point coset}\label{note:zk-flock-sixteen}
+
+\paragraph{Result.} The unchanged wider library of \noteref{zk-flock-children} jointly hides any twelve lane-$59$ values in one sixteen-point encoder coset, the twelve transmitted final GKR children and the established terminal/Flock interface, below $2^{-155}$. Including the memory envelope and shared root remains below $2^{-151}$. This uses a larger conditional rank budget, not more rows. Thirteen values can expose an invariant; the probability that actual queries include thirteen distinct points in any such coset inside the specified region is below $2^{-174}$ at rate one. This is not a theorem for queries spread across many cosets.
+
+\subsubsection{The exact noise space}
+
+Fix $x+\subsp_4\subseteq\gen^{18}+\subsp_{18}$ and write $N_j=\novel_{2^j}$. Define the sixteen coefficient coordinates and their four invariants by
+\[
+ \zkWideCosetLow{d}=\sum_j f_{16j+d}\novel_{16j}(x),\qquad
+ \zkWideCosetInvariant{c}=\sum_{a=0}^3\zkWideCosetLow{c+4a},
+ \quad d<16,\ c<4.
+\]
+The sixteen raw values are the invertible evaluation map $f(x+s)=\sum_{d<16}\zkWideCosetLow{d}\novel_d(x+s)$. Core and wider count swaps preserve each invariant: they exchange coefficients differing in physical bit two or three, without changing either low child bit. Every other current metadata choice leaves the entire lane polynomial unchanged on this region. In particular, PC swaps cancel between the equally weighted $\mathsf{cnt\_cv1}$ and $\mathsf{cnt\_out0}$ blocks, and frame-bank bytecode differences have zero block weight.
+
+For child $c$, the two core coordinates $\zkWideCosetLow{c+4},\zkWideCosetLow{c+12}$ are independent kernels, indexed by physical bit three of the core left position. The remaining movable coordinate is $\zkWideCosetLow{c}+\zkWideCosetLow{c+4}$. Together with $\zkWideCosetInvariant{c}$ these form an invertible change of coordinates on its four coefficients. Core swaps change either kernel and leave the latter two coordinates fixed. Wider swaps change the movable quotient and preserve the invariant; their kernel changes can be absorbed by the core.
+
+\paragraph{The binary maps really have the required ranks.} Splitting a core bank by physical bit three gives two disjoint sets of $640$ independent bits. Splitting a wider bank by physical bit two gives the same size. After clearing the four low physical bits and removing the fixed sector, all these sets have exactly the same high-coordinate positions: arbitrary bits $(14,15,16,17,7,8,9)$ and at most one of $(10,11,12,13)$. The core sector contributes $N_4(x)N_6(x)$; the wider sector contributes $N_5(x)N_6(x)$. None vanishes in the specified region.
+
+The existing exhaustive wider-query certificate gives binary rank $64$ for these $640$ weights, after multiplication by another nonzero factor $1+N_3(x)$. Hence the core's two disjoint halves supply a rank-$128$ fixed map, and a wider half supplies a rank-$64$ quotient map, at every such coset. Independent child banks realize exactly the base-field space
+\[
+ \zkWideCosetNoise
+ =\left\{v\in\K^{16}:\sum_{a=0}^3v_{c+4a}=0\ \text{for every }c<4\right\},
+ \qquad \dim_{\K}\zkWideCosetNoise=12.
+\]
+Uniform source bits are uniform on this space, after any fixed translation. This conclusion uses actual binary ranks, not merely the base-field span of swap vectors.
+
+\subsubsection{Why twelve values hide and thirteen can leak}
+
+\begin{lemma}[The invariant dual is a weighted cubic code]\label{lem:zk-sixteen-dual}
+At the sixteen points of a coset outside $\subsp_4$, every linear functional of the four invariants has query weights
+\[
+ \bigl(\novel_{12}(x+s)P(x+s)\bigr)_{s\in\subsp_4},
+ \qquad P\in\K[X],\quad\deg P\le3.
+\]
+Every nonzero such weight vector has support at least thirteen, and this minimum is attained. Consequently the projection of the evaluated noise space onto any at most twelve distinct points is onto.
+\end{lemma}
+\begin{proof}
+Put
+\[
+ \begin{aligned}
+ \zkCosetDual{0}&=(1+N_0)(1+N_1),&\quad \zkCosetDual{1}&=1+N_1,\\
+ \zkCosetDual{2}&=1+N_0,&\quad \zkCosetDual{3}&=1.
+ \end{aligned}
+\]
+The normalized subspace recurrence gives the polynomial identities
+\[
+ \sum_{s\in\subsp_4}\novel_{12}(X+s)\zkCosetDual{c}(X+s)\novel_d(X+s)
+ =\mathbf1_{d\bmod4=c},\qquad c<4,\ d<16.
+\]
+There is a short exact certificate: each difference has degree at most $30$, and it vanishes at all $32$ points of $\subsp_5$. The latter requires just the two coset evaluations at $X=0,\gen^4$, since each sum is invariant under $\subsp_4$. The audit checks the resulting two $4\times16$ matrices using the actual field arithmetic. Thirty-two distinct roots prove the identities for every $X$; this is not sampled rank extrapolation.
+
+Thus the invariant dual has basis $\novel_{12}\zkCosetDual{c}$. The four factors $\zkCosetDual{c}$ span all polynomials of degree at most three, and $\novel_{12}=N_2N_3$ is nonzero outside $\subsp_4$. A nonzero cubic has at most three roots; choosing its roots to be any three coset points attains support thirteen. If a projection onto at most twelve points were not onto, a nonzero functional supported on those points would annihilate the noise, contradicting this distance bound.
+\end{proof}
+
+The bound is a genuine limitation, not merely a missing rank estimate. For the fixed private-pointer witness pair of \noteref{zk-flock-pair-opening}, the invariant difference at this coset is
+\[
+ \left(\Delta\zkWideCosetInvariant{c}\right)_{c<4}
+ =(1+\gen)(1+\gen^4)\novel_{12288}(x)(1,\gen,\gen^2,\gen^3).
+\]
+At $x=\gen^{18}$, the audit's invariant supported on offsets $3,\ldots,15$ detects this difference exactly. All current source bits preserve it. Thus arbitrary thirteen-value disclosures cannot be replaced by independent uniforms. This local example does not exclude the target error under honest random queries.
+
+\subsubsection{Joint replacement, with the shared bits accounted for}
+
+\begin{theorem}[Twelve selected values with the VM boundary]\label{thm:zk-flock-twelve-interface}
+Under the same common-valid-completion assumptions as Theorem~\ref{thm:zk-flock-eight-interface}, replace its raw query view by any at most twelve distinct lane-$59$ values in one fixed coset $x+\subsp_4\subseteq\gen^{18}+\subsp_{18}$. The resulting joint interface has error at most
+\[
+ \begin{aligned}
+ \zkWideCosetError={}&\zkTripleError+2\zkShortError+2\delta_{\mathrm{span}}
+ +\zkDenseError{128}+\zkDenseError{192}\\
+ &+\zkDenseError{193}+\zkDenseError{320}
+ +\frac{4355}{2^{192}}<2^{-155}.
+ \end{aligned}
+\]
+The complete memory envelope and shared bus root may be included below $2^{-151}$. The subset and coset may be selected using only honest query indices. Repeated query indices reuse the same simulated value.
+\end{theorem}
+\begin{proof}
+Condition on every wider bit and the fixed complement. Strengthen the core replacement to retain two kernel scalars per child, instead of one. The common earlier count event now uses $\zkDenseError{128}$: the fixed rank-$128$ map just proved is retained alongside the honest extension evaluation. At child bank zero's final terminal-count replacement, retain that earlier $192$-bit evaluation and the two kernels, costing $\zkDenseError{320}$. This is within the dense lemma's proved budget. All other bank orderings, the terminal and residual masks, the geometric bytecode bound and the selector ledger are unchanged.
+
+The first hybrid therefore produces nineteen terminal metadata uniforms, twelve child uniforms and eight independent kernel uniforms, while retaining the actual four quotients and four invariants. Now the wider banks make the four quotients exactly uniform, by their independent rank-$64$ maps. Their kernel translations are absorbed by the first hybrid. The result is uniform on the affine sixteen-coordinate space specified by the four retained invariants. These invariants may still depend on the witness; they are not supplied to the simulator. Instead apply Lemma~\ref{lem:zk-sixteen-dual} and discard unqueried values: the selected projection is exactly uniform, independently of all four invariants and of the replaced boundary.
+
+Complete the memory/root and compression-value/Flock hybrids in the preceding theorem's order. The source and all preserved multisets are unchanged; only the two displayed dense budgets have increased. Exact rational evaluation proves both error bounds. Uniformity in the selected coset and subset permits any selection based only on independent honest query indices.
+\end{proof}
+
+\paragraph{All actual queries in one selected coset.} For $q$ initial queries in a domain of size $D=2^{22+\rexp}$, put $(q)_{13}=q(q-1)\cdots(q-12)$. A union bound over $2^{14}$ cosets in the specified region and their thirteen-point subsets gives
+\[
+ \Pr[\text{some such coset contains thirteen distinct queried points}]
+ \le 2^{14}\binom{16}{13}\frac{(q)_{13}}{D^{13}}.
+\]
+One may consequently select a single coset using the honest query indices and simulate all actual lane-$59$ values queried there. Use the theorem when there are at most twelve distinct values and charge the displayed event otherwise. At rates one through four, with $q=(228,113,76,57)$, this event is below $2^{-174},2^{-201},2^{-222},2^{-241}$ respectively. Adding it to the exact ledger still leaves the joint bound below $2^{-155}$, or $2^{-151}$ with memory/root. These are single-selected-coset bounds, not a union of independent simulators for all cosets.
+
+\paragraph{Evidence and remaining boundary.} \auditref{zk_flock_multicoset_audit.py} checks the polynomial certificate, the identical $640$-position supports, actual binary rank $768$ in selected sixteen-point cosets, the thirteen-query private-pointer test and all exact error bounds. The extended full children audit checks native joint rank $6464$ for nineteen terminal metadata fields, twelve actual children and eight kernel scalars. The exhaustive query-rank certificate and valid-cycle checks are unchanged. The proof does not simulate arbitrary auxiliary sixteen-value envelopes, multiple selected cosets, earlier GKR messages, omitted table/Flock coefficients, other PCS stages or authentication. Those remain separate full-view obligations.

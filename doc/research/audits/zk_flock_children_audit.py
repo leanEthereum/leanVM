@@ -173,7 +173,7 @@ def certificate(verifier, library, groups):
                 value = field.kmul(value, factor)
         return value
 
-    directions, counter_interface, four_kernel = [], [], []
+    directions, counter_interface, four_kernel, eight_kernel = [], [], [], []
     child_pc_weights = [[] for _ in range(4)]
     for (kind, bank), group in groups.items():
         if kind == "wide":
@@ -198,6 +198,7 @@ def certificate(verifier, library, groups):
                 assert a[columns.index("cnt_cv1")] + b[columns.index("cnt_cv1")] == a[columns.index("cnt_out0")] + b[columns.index("cnt_out0")]
                 directions.append(packed([*metadata, *children]))
                 four_kernel.append(packed([*metadata, *children]))
+                eight_kernel.append(packed([*metadata, *children]))
                 counter_interface.append(packed([*metadata, *prior_counts, *residuals]))
                 if kind == "pc":
                     assert all(a[column] == b[column] for column in selected[1:9])
@@ -216,6 +217,9 @@ def certificate(verifier, library, groups):
                     directions.append(metadata | children | (raw << (31 * 192)) | (second_raw << (31 * 192 + 64)))
                     kernel = field.kmul(raw_weight(physical_left & ~7), difference) if columns[column] in ("cnt_cv1", "cnt_out0") else 0
                     four_kernel.append(metadata | children | (kernel << (31 * 192 + 64 * bank)))
+                    kernel = field.kmul(raw_weight(physical_left & ~15), difference) if columns[column] in ("cnt_cv1", "cnt_out0") else 0
+                    slot = 2 * bank + ((physical_left >> 3) & 1)
+                    eight_kernel.append(metadata | children | (kernel << (31 * 192 + 64 * slot)))
                     counter_interface.append(
                         metadata | (count_delta << ((19 + 10 * bank + number) * 192)) | (raw << (63 * 192)) | (second_raw << (63 * 192 + 64))
                     )
@@ -223,11 +227,13 @@ def certificate(verifier, library, groups):
     assert len(binary_basis(counter_interface)) == 63 * 192 + 128 == 12224
     assert len(binary_basis(directions)) == 31 * 192 + 128 == 6080
     assert len(binary_basis(four_kernel)) == 31 * 192 + 256 == 6208
+    assert len(binary_basis(eight_kernel)) == 31 * 192 + 512 == 6464
     print(
         "Native joint ranks: 12224 for the retained count/residual map, 6080 for metadata, all twelve actual GKR children and both raw query values.",
         flush=True,
     )
     print("The core also retains four coset-kernel coordinates jointly with the actual metadata and children, at native rank 6208.", flush=True)
+    print("For a sixteen-point coset, the core retains eight kernel coordinates with the same boundary, at native rank 6464.", flush=True)
     return selected, value_columns
 
 
@@ -334,18 +340,20 @@ def short_span_error():
     return result
 
 
-def error_bound():
+def error_bound(query_bits=64):
+    assert query_bits in (64, 128)
     size = 1 << 192
     span = sum((Fraction(((1 << dimension) - 1) ** 2, size - 1) for dimension in (1, 2, 4, 8, 16)), Fraction())
     span += Fraction(((1 << 32) - 1) ** 2, (size - 1) * (1 << 32)) + Fraction(1, 1 << 256)
     result = three_point_error() + 2 * short_span_error() + 2 * span
-    result += sum((dense_fixed_error(bits) for bits in (64, 192, 193, 256)), Fraction()) + Fraction(4355, size)
+    result += sum((dense_fixed_error(bits) for bits in (query_bits, 192, 193, 192 + query_bits)), Fraction()) + Fraction(4355, size)
     assert result < Fraction(1, 1 << 155)
     assert joint_root_bound() + result < Fraction(1, 1 << 151)
     frames = 196608 - 4 * len(PC_SUPPORT) - 4 * len(DENSE_FIXED)
     assert frames == 186372 and 32 * frames == 5963904
     assert (3 * ((1 << 22) - 1280) - 32 * frames) // 256 == 25840
     print("Exact joint boundary error below 2^-155; including the memory envelope and shared root remains below 2^-151.", flush=True)
+    return result
 
 
 if __name__ == "__main__":
