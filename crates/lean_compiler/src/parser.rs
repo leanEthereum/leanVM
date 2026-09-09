@@ -191,7 +191,7 @@ pub fn parse_with_replacements(src: &str, replacements: &BTreeMap<String, String
         })
         .collect();
     let mut p = Parser {
-        lines: func_lines,
+        lines: &func_lines,
         i: 0,
     };
     let mut funcs = Vec::new();
@@ -258,12 +258,12 @@ const BUILTINS: &[&str] = &[
 fn infer_return_shapes(funcs: &mut [Func]) -> Result<(), String> {
     fn expr_shape(
         e: &Expr,
-        locals: &HashMap<String, Shape>,
+        locals: &HashMap<&str, Shape>,
         known: &HashMap<String, Vec<Shape>>,
     ) -> Result<Shape, String> {
         let fits = |n: u64| u32::try_from(n).map_err(|_| format!("StackBuf size {n} does not fit in u32"));
         Ok(match e {
-            Expr::Var(v) => locals.get(v).copied().unwrap_or(Shape::Scalar),
+            Expr::Var(v) => locals.get(v.as_str()).copied().unwrap_or(Shape::Scalar),
             Expr::StackBuf(n) => Shape::StackBuf(fits(*n)?),
             Expr::ListLit(es) => Shape::StackBuf(fits(es.len() as u64)?),
             Expr::Call(f, _) => known
@@ -285,35 +285,35 @@ fn infer_return_shapes(funcs: &mut [Func]) -> Result<(), String> {
         // Seeded from the DECLARED shapes: a `s: StackBuf(n)` parameter is a run
         // here as much as a local one is, so `return s` returns the run rather
         // than reporting it used as a scalar.
-        let mut locals: HashMap<String, Shape> = params.iter().map(|p| (p.name.clone(), p.shape())).collect();
+        let mut locals: HashMap<&str, Shape> = params.iter().map(|p| (p.name.as_str(), p.shape())).collect();
         let mut returns = vec![Shape::Scalar; n_ret];
         for stmt in body {
             match &stmt.kind {
                 StmtKind::Let(name, e) => {
                     let shape = expr_shape(e, &locals, known)?;
-                    locals.insert(name.clone(), shape);
+                    locals.insert(name.as_str(), shape);
                 }
                 StmtKind::LetTuple(names, f, _) => {
                     let shapes = known.get(f);
                     for (i, name) in names.iter().enumerate() {
                         let shape = shapes.and_then(|s| s.get(i)).copied().unwrap_or(Shape::Scalar);
-                        locals.insert(name.clone(), shape);
+                        locals.insert(name.as_str(), shape);
                     }
                 }
                 // `unroll` is straight-line expansion, so a binding in its last
                 // copy remains visible afterward. One symbolic scan is enough
                 // for representation shapes (the iteration value is scalar).
                 StmtKind::Unroll { var, body, .. } => {
-                    locals.insert(var.clone(), Shape::Scalar);
+                    locals.insert(var.as_str(), Shape::Scalar);
                     for inner in body {
                         if let StmtKind::Let(name, e) = &inner.kind {
                             let shape = expr_shape(e, &locals, known)?;
-                            locals.insert(name.clone(), shape);
+                            locals.insert(name.as_str(), shape);
                         }
                     }
                 }
                 StmtKind::LetHintWitness { name, .. } => {
-                    locals.insert(name.clone(), Shape::Scalar);
+                    locals.insert(name.as_str(), Shape::Scalar);
                 }
                 StmtKind::Return(es) => {
                     returns = es
@@ -409,19 +409,18 @@ fn locate(line: usize, e: String) -> String {
     }
 }
 
-#[derive(Clone)]
 struct Line {
     src: usize,
     indent: usize,
     text: String,
 }
 
-struct Parser {
-    lines: Vec<Line>,
+struct Parser<'a> {
+    lines: &'a [Line],
     i: usize,
 }
 
-impl Parser {
+impl Parser<'_> {
     /// The source line the cursor is on, for a diagnostic raised where no
     /// `func`/`stmt` frame is open: those two stamp the line they were ENTERED
     /// on, which is an enclosing header, not the line that is actually wrong.
@@ -438,23 +437,14 @@ impl Parser {
     }
 
     fn func_inner(&mut self) -> Result<Func, String> {
-        let Line {
-            mut indent,
-            text: mut line,
-            ..
-        } = self.lines[self.i].clone();
+        let mut line = &self.lines[self.i];
         // Optional `@inline` decorator on its own line before `def`.
-        let inline = if let Some(dec) = line.strip_prefix('@') {
+        let inline = if let Some(dec) = line.text.strip_prefix('@') {
             if dec.trim() != "inline" {
                 return Err(format!("unknown decorator `@{}` (only `@inline`)", dec.trim()));
             }
             self.i += 1;
-            let next = self
-                .lines
-                .get(self.i)
-                .cloned()
-                .ok_or("`@inline` must precede a `def`")?;
-            (indent, line) = (next.indent, next.text);
+            line = self.lines.get(self.i).ok_or("`@inline` must precede a `def`")?;
             true
         } else {
             false
@@ -462,10 +452,11 @@ impl Parser {
         // Re-stamped here: the decorator path advanced past its own line, so
         // `func`'s frame would name the `@inline` while quoting the `def`.
         let at_def = self.here();
-        self.func_header(inline, indent, line).map_err(|e| locate(at_def, e))
+        self.func_header(inline, line.indent, &line.text)
+            .map_err(|e| locate(at_def, e))
     }
 
-    fn func_header(&mut self, inline: bool, indent: usize, line: String) -> Result<Func, String> {
+    fn func_header(&mut self, inline: bool, indent: usize, line: &str) -> Result<Func, String> {
         let header = line
             .strip_prefix("def ")
             .ok_or_else(|| format!("expected `def`, got `{line}`"))?;
@@ -560,7 +551,7 @@ impl Parser {
     }
 
     fn stmt_inner(&mut self, indent: usize) -> Result<StmtKind, String> {
-        let line = self.lines[self.i].text.clone();
+        let line = self.lines[self.i].text.as_str();
         if let Some(rest) = line.strip_prefix("for ") {
             // for VAR in mul_range(START, STOP): the counter walks gᵏ from START
             // to STOP, ×g each iteration (STOP is exclusive). Bounds are field
@@ -574,7 +565,7 @@ impl Parser {
                 if parts.len() != 2 {
                     return Err("unroll needs `a, b` (compile-time integers)".into());
                 }
-                let (lo, hi) = (parse_expr(&parts[0])?, parse_expr(&parts[1])?);
+                let (lo, hi) = (parse_expr(parts[0])?, parse_expr(parts[1])?);
                 self.i += 1;
                 let body = self.block(indent)?;
                 return Ok(StmtKind::Unroll {
@@ -588,10 +579,10 @@ impl Parser {
             if parts.len() != 2 {
                 return Err("mul_range needs `start, stop`".into());
             }
-            let lo = parse_gpow_bound(&parts[0])?;
+            let lo = parse_gpow_bound(parts[0])?;
             // The stop bound: a compile-time power of GEN, or any expression,
             // a runtime g-power element the walk must be able to reach.
-            let hi = match parse_gpow_bound(&parts[1]) {
+            let hi = match parse_gpow_bound(parts[1]) {
                 Ok(hi) => {
                     if lo > hi {
                         return Err(format!("mul_range: start GEN**{lo} must not exceed stop GEN**{hi}"));
@@ -599,7 +590,7 @@ impl Parser {
                     ForBound::Const(hi)
                 }
                 Err(_) => {
-                    let stop = parse_expr(&parts[1])?;
+                    let stop = parse_expr(parts[1])?;
                     // A compile-time value that is not a power of GEN can never be
                     // REACHED: the counter walks by multiplication and exits on
                     // equality, so the loop runs forever at witness generation with
@@ -631,8 +622,7 @@ impl Parser {
             });
         }
         if let Some(rest) = line.strip_prefix("if ") {
-            let rest = rest.to_string();
-            return self.if_stmt(&rest, indent);
+            return self.if_stmt(rest, indent);
         }
         self.i += 1;
         if line == "return" {
@@ -648,7 +638,7 @@ impl Parser {
         }
         // `print(expr)` / `print("label", expr)`: prover-side debug print;
         // the label defaults to the argument's source text.
-        if let Some(parts) = call_args(&line, "print") {
+        if let Some(parts) = call_args(line, "print") {
             let (label, value) = match parts.as_slice() {
                 [l, v] if l.trim().starts_with('"') => {
                     let l = string_lit(l).ok_or("print's label is a string literal: print(\"label\", expr)")?;
@@ -666,7 +656,7 @@ impl Parser {
         // expression; parsed here. `whole_call` for the same reason as the
         // scalar form: the string arg is what lets a trailing `* f("b")`
         // vanish into the stream name instead of failing to parse.
-        if let Some(parts) = call_args(&line, "hint_witness").filter(|_| whole_call(&line)) {
+        if let Some(parts) = call_args(line, "hint_witness").filter(|_| whole_call(line)) {
             let [dest, name] = parts.as_slice() else {
                 return Err("hint_witness(dest, \"name\") takes two arguments".into());
             };
@@ -678,18 +668,18 @@ impl Parser {
         }
         if let Some(rest) = line.strip_prefix("assert ") {
             if let Some((a, b)) = split_once_top(rest, "==") {
-                return Ok(StmtKind::AssertEq(parse_expr(&a)?, parse_expr(&b)?));
+                return Ok(StmtKind::AssertEq(parse_expr(a)?, parse_expr(b)?));
             }
             if let Some((a, b)) = split_once_top(rest, "!=") {
-                return Ok(StmtKind::AssertNe(parse_expr(&a)?, parse_expr(&b)?));
+                return Ok(StmtKind::AssertNe(parse_expr(a)?, parse_expr(b)?));
             }
             // `assert log X < log Y` (`Y` a compile-time g-power, or any runtime
             // g-power) or `assert log X < k` (`k` an integer exponent) is a
             // range check in the exponent: proves `log_g(X) < k`.
             if let Some((a, b)) = split_once_top(rest, "<") {
                 let x =
-                    strip_log(&a).ok_or("a `<` assert compares logs: `assert log X < log Y` or `assert log X < k`")?;
-                let bound = match strip_log(&b) {
+                    strip_log(a).ok_or("a `<` assert compares logs: `assert log X < log Y` or `assert log X < k`")?;
+                let bound = match strip_log(b) {
                     // `log GEN ** k = k` when the bound folds to a power of GEN;
                     // otherwise it is a runtime g-power and the gadget derives
                     // `g^{k-1}` from it. A bound that folds to something else is a
@@ -705,7 +695,7 @@ impl Parser {
                         }
                     }
                     // An integer bound folds like any parse-time size (`CAP + 1`).
-                    None => match const_int_expr(&parse_expr(&b)?) {
+                    None => match const_int_expr(&parse_expr(b)?) {
                         Some(k) => {
                             LtBound::Const(u64::try_from(k).map_err(|_| format!("log bound {k} does not fit in u64"))?)
                         }
@@ -722,16 +712,14 @@ impl Parser {
         }
         // Augmented assignment `x OP= rhs` (Python `*=`, `+=`, `//=`, `%=`,
         // `-=`) desugars to `x = x OP (rhs)`.
-        let line = match split_aug(&line)? {
-            Some((lhs, op, rhs)) => format!("{lhs} = {lhs} {op} ({rhs})"),
-            None => line,
-        };
+        let expanded = split_aug(line)?.map(|(lhs, op, rhs)| format!("{lhs} = {lhs} {op} ({rhs})"));
+        let line = expanded.as_deref().unwrap_or(line);
         // Assignment or bare call.
-        if let Some((lhs, rhs)) = split_assign(&line) {
+        if let Some((lhs, rhs)) = split_assign(line) {
             // `names = match(…)` carries lambdas, which `parse_expr`
             // does not speak, so it gets its own parser.
             if rhs.trim_start().starts_with("match(") {
-                return parse_match(&lhs, &rhs);
+                return parse_match(lhs, rhs);
             }
             // `x = hint_witness("stream")`: one hinted value, no buffer. The
             // string is not an expression, so like the run form it is parsed
@@ -746,11 +734,11 @@ impl Parser {
                 };
                 let stream = string_lit(stream).ok_or("hint_witness's argument is a string literal: \"stream\"")?;
                 return Ok(StmtKind::LetHintWitness {
-                    name: binding_name(&lhs, "binding name")?,
+                    name: binding_name(lhs, "binding name")?,
                     stream: stream.to_string(),
                 });
             }
-            let rhs_expr = parse_expr(&rhs)?;
+            let rhs_expr = parse_expr(rhs)?;
             // Indexed LHS `arr[idx] = value` is a heap store.
             if lhs.trim_end().ends_with(']') {
                 let lhs = lhs.trim();
@@ -759,9 +747,9 @@ impl Parser {
                 let idx = parse_expr(&lhs[open + 1..lhs.len() - 1])?;
                 return Ok(StmtKind::Store(arr, idx, rhs_expr));
             }
-            let targets = split_top(&lhs, ',');
+            let targets = split_top(lhs, ',');
             if targets.len() == 1 {
-                return Ok(StmtKind::Let(binding_name(&targets[0], "binding name")?, rhs_expr));
+                return Ok(StmtKind::Let(binding_name(targets[0], "binding name")?, rhs_expr));
             }
             // Tuple assignment: RHS must be a call.
             if let Expr::Call(f, args) = rhs_expr {
@@ -782,7 +770,7 @@ impl Parser {
         let keyword = ["while ", "elif ", "else", "for ", "def "]
             .iter()
             .any(|k| line.starts_with(k));
-        if let Some(op) = top_level_cmp(&line).filter(|_| !keyword) {
+        if let Some(op) = top_level_cmp(line).filter(|_| !keyword) {
             let fix = if matches!(op, "==" | "!=") {
                 format!("write `assert {line}`")
             } else {
@@ -791,7 +779,7 @@ impl Parser {
             return Err(format!("`{line}` is a comparison, not a statement: {fix}"));
         }
         // Bare call statement.
-        if let Expr::Call(f, args) = parse_expr(&line)? {
+        if let Expr::Call(f, args) = parse_expr(line)? {
             return Ok(StmtKind::Call(f, args));
         }
         Err(format!("statement has no effect: `{line}`"))
@@ -832,7 +820,7 @@ impl Parser {
         } else {
             return Err("an `if` condition must be `a == b` or `a != b`".into());
         };
-        let (lhs, rhs) = (parse_expr(&l)?, parse_expr(&r)?);
+        let (lhs, rhs) = (parse_expr(l)?, parse_expr(r)?);
         self.i += 1;
         let then = self.block(indent)?;
         let mut els = Vec::new();
@@ -840,20 +828,19 @@ impl Parser {
             indent: ind,
             text: line,
             ..
-        }) = self.lines.get(self.i).cloned()
-            && ind == indent
+        }) = self.lines.get(self.i)
+            && *ind == indent
         {
             if line == "else:" {
                 self.i += 1;
                 els = self.block(indent)?;
             } else if let Some(rest) = line.strip_prefix("elif ") {
-                let rest = rest.to_string();
                 // `if_stmt` recurses into ITSELF for an `elif`, so no `stmt`
                 // frame opens and the whole chain would report the first `if`.
                 let at_elif = self.here();
                 els = vec![Stmt::new(
                     at_elif as u32,
-                    self.if_stmt(&rest, indent).map_err(|e| locate(at_elif, e))?,
+                    self.if_stmt(rest, indent).map_err(|e| locate(at_elif, e))?,
                 )];
             }
         }
@@ -868,7 +855,7 @@ impl Parser {
     }
 }
 
-type Aug = Option<(String, &'static str, String)>;
+type Aug<'a> = Option<(&'a str, &'static str, &'a str)>;
 
 /// Strip a leading `log` token (`log x`, `log(x)`), if present. The token must
 /// end at a boundary, so a variable named `logx` is not a log of `x`.
@@ -905,7 +892,7 @@ fn parse_match(lhs: &str, rhs: &str) -> Result<StmtKind, String> {
     }
     let mut arms = Vec::new();
     for pair in pairs.chunks(2) {
-        let (lo, hi) = match parse_expr(&pair[0])? {
+        let (lo, hi) = match parse_expr(pair[0])? {
             Expr::Call(f, args) if f == "range" => match args.as_slice() {
                 [Expr::Lit(a), Expr::Lit(b)] if a < b => (*a, *b),
                 _ => return Err("match needs `range(a, b)` with integer literals, a < b".into()),
@@ -923,7 +910,7 @@ fn parse_match(lhs: &str, rhs: &str) -> Result<StmtKind, String> {
             .strip_prefix("lambda ")
             .ok_or("expected `lambda i: …` after each range")?;
         let (param, body) = split_once_top(lam, ":").ok_or("`lambda` needs `:`")?;
-        let body = parse_expr(&body)?;
+        let body = parse_expr(body)?;
         for j in lo..hi {
             arms.push(subst_var(&body, param.trim(), &Expr::Lit(j)));
         }

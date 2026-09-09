@@ -344,7 +344,7 @@ impl FnLower<'_> {
     pub(super) fn lower_return(&mut self, exprs: &[Expr]) {
         // Inlined (`@inline`): bind the return values into the caller's cells
         // and fall through: this is the body's tail return, so no jump is needed.
-        if let Some(dsts) = self.inline_ret.clone() {
+        if let Some(dsts) = self.inline_ret.take() {
             // Each returned value is bound into the caller independently, exactly
             // as a `let name = <that expr>` would: a `StackBuf` or a folded
             // g-address hands over its run/pointer (alias, not copies: allocated

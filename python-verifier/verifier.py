@@ -555,6 +555,9 @@ def verify_bus_balance(layout: Layout, transcript: Transcript) -> BusResult:
     claims = [ColumnClaim(column, memory_low, memory[column]) for column in (MEMORY_0, MEMORY_1, MEMORY_2)]
     claims.append(ColumnClaim(MEMORY_FINAL_COUNTERS, memory_low, memory_final))
     claims.append(ColumnClaim(BYTECODE_FINAL_COUNTERS, bytecode_low, bytecode_final))
+    memory_index = index_mle(memory_low)
+    bytecode_index = index_mle(bytecode_low)
+    bytecode_value = multilinear_eval(layout.bytecode, (*bytecode_low, *alphas))
 
     def fingerprints(pc: E, memory_count: E, bytecode_count: E) -> tuple[E, E, E]:
         """The three framework tuples, each its coordinates weighted by eq(alpha, .); slots past the ones
@@ -562,8 +565,8 @@ def verify_bus_balance(layout: Layout, transcript: Transcript) -> BusResult:
         with the committed final count and ends at the last pc. Both boundaries sit in frame 0."""
         return (
             dot(weights[:3], (SEP_STATE, pc, _gpow(0))),
-            dot(weights[:6], (SEP_MEM, index_mle(memory_low), memory_count, *memory)),
-            dot(weights[:3], (SEP_BYTECODE, index_mle(bytecode_low), bytecode_count)) + multilinear_eval(layout.bytecode, (*bytecode_low, *alphas)),
+            dot(weights[:6], (SEP_MEM, memory_index, memory_count, *memory)),
+            dot(weights[:3], (SEP_BYTECODE, bytecode_index, bytecode_count)) + bytecode_value,
         )
 
     final_pc = _gpow(2**layout.log_bytecode - 1)  # the execution ends at the bytecode's last instruction
@@ -621,7 +624,8 @@ def table_sumcheck(
         summand = dot(constraint_powers[cursor : cursor + table.n_constraints], table.constraints(evaluations))
         final += weight * (summand + dot(form_powers, [form.evaluate(evaluations.__getitem__) for form in forms]))
         cursor += table.n_constraints
-        claims.extend(ColumnClaim(GLOBAL_COLUMN_BASES[table.opcode] + local, tuple(point[:height]), value) for local, value in enumerate(evaluations))
+        table_point = tuple(point[:height])
+        claims.extend(ColumnClaim(GLOBAL_COLUMN_BASES[table.opcode] + local, table_point, value) for local, value in enumerate(evaluations))
     require(final == claim, "table sumcheck terminal mismatch")
     return claims
 
@@ -1071,11 +1075,11 @@ def verify_whir(transcript: Transcript, log_n: int, log_inv_rate: int, target: E
                     running_quad = transcript.sumcheck_round_poly(3, running_target)
             # Each glued claim is rebound at the terminal point: the fold
             # challenges its level fixed after it was made, then the tail.
-            point = list(folds) + tail_folds
+            point = folds + tail_folds
             lane_folds = config.folds[0]
             weight = evaluate_basis(point[lane_folds:] + point[:lane_folds])
             for claim in glued:
-                weight += claim.scalar * claim.weight_at(list(folds[claim.fold_start :]) + tail_folds)
+                weight += claim.scalar * claim.weight_at(folds[claim.fold_start :] + tail_folds)
             terminal = weight * multilinear_eval(residual, tail_folds)
             require(terminal == running_target, "WHIR terminal check failed")
             return
@@ -1191,8 +1195,6 @@ def blake2s_row_values(column_weights: Sequence[E]) -> tuple[list[E], list[E]]:
     def slots(base: int) -> tuple[E, ...]:
         return tuple(column_weights[base + bit] for bit in range(32))
 
-    empty_word = (ZERO,) * 32
-
     def literal(value: int) -> tuple[E, ...]:
         return tuple(column_weights[constant] if value >> bit & 1 else ZERO for bit in range(32))
 
@@ -1252,13 +1254,9 @@ def blake2s_row_values(column_weights: Sequence[E]) -> tuple[list[E], list[E]]:
             right_values[row] = column_weights[constant]
 
     # v[0..8] = h, v[8..12] = IV[0..4], v[12..16] = IV[4..8] ^ (t_lo, t_hi, f0, f1).
-    state = [empty_word for _ in range(16)]
-    for word in range(8):
-        state[word] = slots(32 * word)
-    for word in range(4):
-        state[8 + word] = literal(BLAKE2S_IV[word])
-    for word, base in enumerate((counter_low, counter_high, final_flag, last_node_flag)):
-        state[12 + word] = xor(literal(BLAKE2S_IV[4 + word]), slots(base))
+    state = [slots(32 * word) for word in range(8)]
+    state.extend(literal(BLAKE2S_IV[word]) for word in range(4))
+    state.extend(xor(literal(BLAKE2S_IV[4 + word]), slots(base)) for word, base in enumerate((counter_low, counter_high, final_flag, last_node_flag)))
 
     for round_index in range(10):
         sigma = BLAKE2S_SIGMA[round_index]

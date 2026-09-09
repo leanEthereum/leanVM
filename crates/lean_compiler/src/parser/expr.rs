@@ -44,8 +44,8 @@ pub(super) fn parse_expr(s: &str) -> Result<Expr, String> {
     // integer expression like `GEN ** (2 * s + 1)`, evaluated at lowering,
     // so it can reference `unroll` counters and constants.
     if let Some((base, exp)) = split_once_top(s, "**") {
-        let base = parse_expr(&base)?;
-        let exp_e = parse_expr(&exp)?;
+        let base = parse_expr(base)?;
+        let exp_e = parse_expr(exp)?;
         return match base {
             // `GEN ** k`: a compile-time integer exponent (a literal or a
             // constant expression like `K_SKIP + 1`) folds to `g^k`; a runtime
@@ -91,8 +91,8 @@ pub(super) fn parse_expr(s: &str) -> Result<Expr, String> {
         if let Some((lo, hi)) = split_once_top(inner, ":") {
             return Ok(Expr::Slice(
                 Box::new(base),
-                Box::new(parse_expr(&lo)?),
-                Box::new(parse_expr(&hi)?),
+                Box::new(parse_expr(lo)?),
+                Box::new(parse_expr(hi)?),
             ));
         }
         let idx = parse_expr(inner)?;
@@ -114,7 +114,7 @@ pub(super) fn parse_expr(s: &str) -> Result<Expr, String> {
                         if key.is_empty() || !key.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
                             return Err(format!("invalid keyword argument `{key}`"));
                         }
-                        Ok(Expr::Call(format!("__kw_{key}"), vec![parse_expr(&value)?]))
+                        Ok(Expr::Call(format!("__kw_{key}"), vec![parse_expr(value)?]))
                     } else {
                         parse_expr(a)
                     }
@@ -263,28 +263,28 @@ fn split_mul(s: &str) -> (Vec<&str>, Vec<u8>) {
 }
 
 /// Split `s` once on a top-level multi-char operator `op`.
-pub(super) fn split_once_top(s: &str, op: &str) -> Option<(String, String)> {
+pub(super) fn split_once_top<'a>(s: &'a str, op: &str) -> Option<(&'a str, &'a str)> {
     let b = s.as_bytes();
     for (i, _) in depth0(s) {
         if b[i..].starts_with(op.as_bytes()) {
-            return Some((s[..i].to_string(), s[i + op.len()..].to_string()));
+            return Some((&s[..i], &s[i + op.len()..]));
         }
     }
     None
 }
 
 /// Split `s` on every top-level occurrence of the ASCII char `sep`.
-pub(super) fn split_top(s: &str, sep: char) -> Vec<String> {
+pub(super) fn split_top(s: &str, sep: char) -> Vec<&str> {
     let sep = sep as u8;
     let mut parts = Vec::new();
     let mut start = 0;
     for (i, c) in depth0(s) {
         if c == sep {
-            parts.push(s[start..i].to_string());
+            parts.push(&s[start..i]);
             start = i + 1;
         }
     }
-    parts.push(s[start..].to_string());
+    parts.push(&s[start..]);
     parts
 }
 
@@ -293,7 +293,7 @@ pub(super) fn split_top(s: &str, sep: char) -> Vec<String> {
 /// ([`split_aug`] owns those, and rejects the ones this language lacks).
 /// Without the last two exclusions a bare `x != y` split into a binding named
 /// `x !`, which in a verifier is an `assert` that compiled to nothing.
-pub(super) fn split_assign(s: &str) -> Option<(String, String)> {
+pub(super) fn split_assign(s: &str) -> Option<(&str, &str)> {
     let b = s.as_bytes();
     for (i, c) in depth0(s) {
         if c != b'=' || b.get(i + 1) == Some(&b'=') {
@@ -302,7 +302,7 @@ pub(super) fn split_assign(s: &str) -> Option<(String, String)> {
         if i > 0 && matches!(b[i - 1], b'=' | b'<' | b'>' | b'!' | b'+' | b'-' | b'*' | b'/' | b'%') {
             continue;
         }
-        return Some((s[..i].to_string(), s[i + 1..].to_string()));
+        return Some((&s[..i], &s[i + 1..]));
     }
     None
 }
@@ -316,7 +316,7 @@ pub(super) fn split_assign(s: &str) -> Option<(String, String)> {
 /// The unsupported spellings must be REJECTED rather than declined: falling
 /// through left [`split_assign`] to split the bare `=`, so `x /= 2` became a
 /// binding named `x /` and the program silently kept the old `x`.
-pub(super) fn split_aug(s: &str) -> Result<Aug, String> {
+pub(super) fn split_aug(s: &str) -> Result<Aug<'_>, String> {
     let b = s.as_bytes();
     for (i, c) in depth0(s) {
         if c != b'=' {
@@ -350,11 +350,7 @@ pub(super) fn split_aug(s: &str) -> Result<Aug, String> {
             }
             _ => return Ok(None),
         };
-        return Ok(Some((
-            s[..i - plen].trim().to_string(),
-            op,
-            s[i + 1..].trim().to_string(),
-        )));
+        return Ok(Some((s[..i - plen].trim(), op, s[i + 1..].trim())));
     }
     Ok(None)
 }
@@ -362,7 +358,7 @@ pub(super) fn split_aug(s: &str) -> Result<Aug, String> {
 /// The top-level arguments of a `name(a, b, …)` call, or `None` when `line` is
 /// not one. Zero arguments come back as one empty string, as [`split_top`]
 /// gives them.
-pub(super) fn call_args(line: &str, name: &str) -> Option<Vec<String>> {
+pub(super) fn call_args<'a>(line: &'a str, name: &str) -> Option<Vec<&'a str>> {
     let inner = line.trim().strip_prefix(name)?.strip_prefix('(')?.strip_suffix(')')?;
     Some(split_top(inner, ','))
 }

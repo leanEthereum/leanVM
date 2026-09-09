@@ -77,11 +77,7 @@ impl WotsPublicKey {
     /// The Merkle leaf: standard BLAKE2s over the tweak, public parameter, and
     /// 42 concatenated chain tips (704 bytes, 11 compressions).
     pub fn hash(&self, public_param: &PublicParam, epoch: Epoch) -> Digest {
-        let mut data = [0u8; V * DIGEST_LEN];
-        for (chunk, tip) in data.as_chunks_mut::<DIGEST_LEN>().0.iter_mut().zip(&self.0) {
-            *chunk = *tip;
-        }
-        tweak_hash(public_param, TWEAK_TYPE_WOTS_PK, 0, epoch, &data)
+        tweak_hash(public_param, TWEAK_TYPE_WOTS_PK, 0, epoch, self.0.as_flattened())
     }
 }
 

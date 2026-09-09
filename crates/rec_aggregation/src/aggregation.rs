@@ -2440,17 +2440,11 @@ struct OpeningShape {
     ood_samples: Vec<usize>,
 }
 
-/// The recursion program's placeholder map (the SHAPE-INDEPENDENT constants the
-/// generic guest is compiled from), built from the inner program's STRUCTURE and
-/// bytecode SIZE alone: no proof. Dummy layout sizes are fine: `rep` reads only the
-/// size-independent block/coord structure and `kbc = log2(bytecode)`, so the guest
-/// can be compiled BEFORE any inner proof exists. Because the map is a function of
-/// the inner bytecode size alone, one compiled guest serves every shape.
+/// The recursion program's placeholder map depends on table structure and bytecode
+/// size, so one compiled guest serves every proof layout.
 fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
-    // Any valid sizes drive the layout: rep depends only on structure + kbc,
-    // and the layout reads a program's length, never its instructions, so a
-    // stand-in of the right size is what lets the map exist before the bytecode
-    // it describes does.
+    // Only block and coordinate structure is used here; dummy instructions and
+    // table sizes let us derive it before the guest's bytecode exists.
     let stand_in = vec![lean_vm::cpu::Op::Xor { a: 0, b: 0, c: 0 }; 1 << kbc];
     let layout = lean_vm::cpu::layout(
         &stand_in,
@@ -2474,8 +2468,7 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     // `Σ_terms`, so a derived value (an XOR/MUL result, a DEREF store, a JUMP
     // successor) costs terms rather than columns. A framework coordinate has none:
     // it decomposes into pooled claims instead.
-    // A table's blocks raise no claim any more: the table sumcheck settles them
-    //, so only the framework blocks stream column values.
+    // The table sumcheck settles table claims; only framework blocks stream column values.
     let sch_pm = lean_vm::cpu::schema();
     let owner_pm: Vec<Option<usize>> = lean_vm::cpu::block_kappa_sources(kbc)
         .into_iter()
@@ -2712,7 +2705,6 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
         let (cd, cp) = (&shape.depth, &shape.per_squeeze);
         let cs: Vec<usize> = (0..cn).map(|i| cq[i].div_ceil(cp[i])).collect();
         let cni: Vec<usize> = ck.iter().map(|&k| 1usize << k).collect();
-        let cqb: Vec<usize> = (0..cn).map(|lvl| vc.grinding_bits[lvl]).collect();
         assert!(
             cni.iter().enumerate().all(|(lv, &n)| {
                 let (bytes, whole_blocks) = if lv == 0 {
@@ -2762,7 +2754,7 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
             positions_per_squeeze: shape.per_squeeze,
             squeezes: cs,
             interleaving: cni,
-            query_grinding_bits: cqb,
+            query_grinding_bits: shape.config.grinding_bits,
             row_offsets: c_rowoff,
             path_offsets: c_pathoff,
             positions_offsets: c_qpoff,
