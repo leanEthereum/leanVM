@@ -617,7 +617,7 @@ mod tests {
     use crate::whir::{
         commit, recursive_prover_with_basis, recursive_verifier_with_basis, recursive_verifier_with_basis_succinct,
     };
-    use crate::whir_config::test_configs_for;
+    use crate::whir_config::test_config_for;
     use primitives::test_rng::Rng;
 
     /// Number of Frobenius terms the composed batching map expands to: the
@@ -916,7 +916,7 @@ mod tests {
         let bits = rng.bits(1usize << m);
         let packed = pack_witness(&bits, m);
         let log_n = m - LOG_PACKING;
-        let (pc, vc) = test_configs_for(log_n);
+        let pc = test_config_for(log_n);
         let (cm, pd) = commit(&packed, log_n, pc.initial_k, pc.log_inv_rates[0]);
 
         let suffix_point = rng.ext_vec(log_n);
@@ -951,7 +951,7 @@ mod tests {
             &mut ps,
         );
         E2e {
-            vc,
+            vc: pc,
             log_n,
             prefix_weights,
             suffix_point,

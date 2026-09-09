@@ -1305,10 +1305,7 @@ struct WhirShape {
 }
 
 fn whir_shape(mu: usize, log_inv_rate: usize) -> WhirShape {
-    let config = pcs::whir::WhirSecurityConfig::derive_config_with_log_inv_rate(mu + pcs::LOG_PACKING, log_inv_rate)
-        .and_then(|s| s.to_prover_verifier_configs())
-        .expect("stacked whir config")
-        .1;
+    let config = pcs::whir::config_for_rate(mu, log_inv_rate).expect("stacked whir config");
     let levels = config.level_shapes(mu);
     let depth: Vec<usize> = levels.block_len.iter().map(|b| b.trailing_zeros() as usize).collect();
     let per_squeeze = depth.iter().map(|&d| 192 / d).collect();

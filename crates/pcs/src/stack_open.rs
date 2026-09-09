@@ -408,7 +408,7 @@ mod tests {
     use crate::pack::{LOG_PACKING, pack_witness};
     use crate::ring_switch::fold_1b_rows;
     use crate::whir::{build_eq_table_ext, commit, default_config, inner_product_base_ext};
-    use crate::whir_config::test_configs_for;
+    use crate::whir_config::test_config_for;
     use primitives::test_rng::Rng;
 
     const DOMAIN: &[u8] = b"stack-open-test";
@@ -589,7 +589,7 @@ mod tests {
             s_hat_v: Some(s_hat_v.clone()),
         }];
 
-        let (pc, vc) = test_configs_for(log_n);
+        let pc = test_config_for(log_n);
         // Pin the intended residual regime: the residual cube must sit
         // entirely above the q_flock coords, with at least one selector coord
         // covered by ris (the E-valued sel prefix) and the rest by y bits.
@@ -603,7 +603,7 @@ mod tests {
         open_batch_mixed_whir_stacked(&mut ps, log_n, &stack, &pd, &pc, &point_claims, &ring);
 
         Instance {
-            vc,
+            vc: pc,
             log_n,
             root: cm.root,
             point_claims,
@@ -747,7 +747,6 @@ mod tests {
         // Fixed fallback config so the residual cube size is known: the
         // crossing regime needs qflock_vars > log_n - yr_log_n.
         let pc = default_config(log_n, 5, 1).unwrap();
-        let vc = pc.clone();
         let yr_log_n = log_n - pc.initial_k - pc.level_ks.iter().sum::<usize>();
         assert!(
             qflock_vars > log_n - yr_log_n,
@@ -773,9 +772,9 @@ mod tests {
         assert!(
             verify_opening_batch_mixed_whir_stacked(
                 &mut vs,
-                &vc,
+                &pc,
                 log_n,
-                1 << vc.initial_k,
+                1 << pc.initial_k,
                 &cm.root,
                 &point_claims,
                 &ring_v
@@ -796,9 +795,9 @@ mod tests {
         assert!(
             verify_opening_batch_mixed_whir_stacked(
                 &mut vs,
-                &vc,
+                &pc,
                 log_n,
-                1 << vc.initial_k,
+                1 << pc.initial_k,
                 &cm.root,
                 &point_claims,
                 &bad_ring

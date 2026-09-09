@@ -140,12 +140,12 @@ pub fn inner_product_base_ext(witness: &[F64], b: &[F192]) -> F192 {
 // Config reuse
 // ===================================================================
 
-/// Derive `(ProverConfig, VerifierConfig)` for a K-witness of `2^log_n` F64
+/// Derive the shared prover/verifier config for a K-witness of `2^log_n` F64
 /// elements at L0 inverse-rate logarithm `log_inv_rate`, using the production
 /// 128-bit Johnson/OOD profile at `m = log_n + LOG_PACKING`.
-pub fn configs_for_rate(log_n: usize, log_inv_rate: usize) -> Result<(ProverConfig, VerifierConfig), String> {
+pub fn config_for_rate(log_n: usize, log_inv_rate: usize) -> Result<ProverConfig, String> {
     let sec = WhirSecurityConfig::derive_config_with_log_inv_rate(log_n + crate::LOG_PACKING, log_inv_rate)?;
-    sec.to_prover_verifier_configs()
+    sec.to_config()
 }
 
 // ===================================================================
@@ -2272,7 +2272,7 @@ where
 mod tests {
     use super::*;
     use crate::whir::QUERY_GRINDING_BITS;
-    use crate::whir_config::test_configs_for;
+    use crate::whir_config::test_config_for;
     use primitives::test_rng::Rng;
 
     struct Instance {
@@ -2288,7 +2288,7 @@ mod tests {
     }
 
     fn prove_instance(log_n: usize, seed: u64) -> Instance {
-        let (pc, vc) = test_configs_for(log_n);
+        let pc = test_config_for(log_n);
         let mut rng = Rng::new(seed);
         let witness: Vec<F64> = (0..1usize << log_n).map(|_| F64(rng.next_u64())).collect();
         let (cm, pd) = commit(&witness, log_n, pc.initial_k, pc.log_inv_rates[0]);
@@ -2307,7 +2307,7 @@ mod tests {
             &mut ps,
         );
         Instance {
-            vc,
+            vc: pc,
             log_n,
             point,
             b_initial,
@@ -2358,16 +2358,15 @@ mod tests {
     /// size test fallback.
     #[test]
     fn configs_johnson_profile_shape() {
-        let (pc, vc) = configs_for_rate(16, LOG_INV_RATE_0).expect("Johnson profile feasible at log_n = 16");
+        let pc = config_for_rate(16, LOG_INV_RATE_0).expect("Johnson profile feasible at log_n = 16");
         assert_eq!(pc.initial_k, 6);
         assert!(pc.level_steps >= 1);
-        assert_eq!(vc.initial_k, pc.initial_k);
         assert_eq!(pc.ood_samples[0], 0);
         assert!(pc.ood_samples.iter().skip(1).all(|&s| s >= 1));
         assert!(pc.grinding_bits.iter().all(|&b| b == QUERY_GRINDING_BITS));
         // And log_n = 12 is below the production ladder's feasibility floor, so
         // the tests there use the default_config fallback.
-        assert!(configs_for_rate(12, LOG_INV_RATE_0).is_err());
+        assert!(config_for_rate(12, LOG_INV_RATE_0).is_err());
     }
 
     /// The parallel eq builder must be byte-identical to the serial one, and
@@ -2400,13 +2399,13 @@ mod tests {
     /// prover and the dense verifier; pin the heuristic, then roundtrip.
     #[test]
     fn roundtrip_log_n_18_sparse_induce() {
-        let (pc, _) = configs_for_rate(18, LOG_INV_RATE_0).expect("Johnson profile feasible at log_n = 18");
+        let pc = config_for_rate(18, LOG_INV_RATE_0).expect("Johnson profile feasible at log_n = 18");
         assert!(
             induce_use_ntt_heuristic(18 - pc.initial_k, pc.log_inv_rates[0], pc.queries[0]),
             "shape must select the sparse transposed-NTT induce at L0"
         );
         // And the smaller roundtrips stay on the dense path (cols < 12).
-        let (pc16, _) = configs_for_rate(16, LOG_INV_RATE_0).unwrap();
+        let pc16 = config_for_rate(16, LOG_INV_RATE_0).unwrap();
         assert!(!induce_use_ntt_heuristic(
             16 - pc16.initial_k,
             pc16.log_inv_rates[0],
@@ -2523,7 +2522,7 @@ mod tests {
         // path is what production takes, and it is where a message pair could straddle
         // a task.
         for (log_n, lanes) in [(13usize, &[1usize, 5, 64][..]), (18, &[5, 64][..])] {
-            let (pc, _vc) = test_configs_for(log_n);
+            let pc = test_config_for(log_n);
             let lane_block = 1usize << (log_n - pc.initial_k);
             for &n_lanes in lanes {
                 let mut rng = Rng::new(0x5AFE + n_lanes as u64);

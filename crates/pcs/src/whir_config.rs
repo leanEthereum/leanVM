@@ -223,20 +223,16 @@ pub fn default_config(log_n: usize, log_batch_size: usize, log_inv_rate: usize) 
     })
 }
 
-/// Configs for a K-witness of `2^log_n` words at [`LOG_INV_RATE_0`]: prefer the
-/// production Secure-profile derivation ([`crate::whir::configs_for_rate`]), and
-/// fall back to the ad-hoc [`default_config`] shape at the test sizes below its
-/// feasibility floor. `VerifierConfig` is `ProverConfig`, so the fallback pair is
-/// one derivation cloned.
+/// Shared config for a `2^log_n`-word witness, preferring the production profile at [`LOG_INV_RATE_0`] and falling back to [`default_config`] below its feasibility floor.
 #[cfg(test)]
-pub(crate) fn test_configs_for(log_n: usize) -> (ProverConfig, VerifierConfig) {
-    if let Ok(pv) = crate::whir::configs_for_rate(log_n, LOG_INV_RATE_0) {
-        return pv;
+pub(crate) fn test_config_for(log_n: usize) -> ProverConfig {
+    if let Ok(config) = crate::whir::config_for_rate(log_n, LOG_INV_RATE_0) {
+        return config;
     }
     for log_batch_size in (1..=5).rev() {
         for log_inv_rate in 1..=4 {
             if let Ok(config) = default_config(log_n, log_batch_size, log_inv_rate) {
-                return (config.clone(), config);
+                return config;
             }
         }
     }
@@ -974,12 +970,10 @@ impl WhirSecurityConfig {
         Ok(cfg)
     }
 
-    /// Build the `(ProverConfig, VerifierConfig)` pair from this security
-    /// config. Drops the security-only fields (eta, grinding derivation inputs)
-    /// but preserves the level shape the prover/verifier code path reads.
-    pub fn to_prover_verifier_configs(&self) -> Result<(ProverConfig, VerifierConfig), String> {
+    /// Build the shared prover/verifier config, retaining the level shape and dropping security-analysis fields.
+    pub fn to_config(&self) -> Result<ProverConfig, String> {
         self.validate()?;
-        let config = ProverConfig {
+        Ok(ProverConfig {
             log_inv_rates: self.levels.iter().map(|lv| lv.log_inv_rate).collect(),
             level_steps: self.levels.len() - 1,
             initial_k: self.initial_k,
@@ -987,8 +981,7 @@ impl WhirSecurityConfig {
             queries: self.levels.iter().map(|lv| lv.queries).collect(),
             grinding_bits: self.levels.iter().map(|lv| lv.grinding_bits).collect(),
             ood_samples: self.levels.iter().map(|lv| lv.ood_samples).collect(),
-        };
-        Ok((config.clone(), config))
+        })
     }
 }
 

@@ -30,8 +30,8 @@ use primitives::field::F64;
 
 pub use ::pcs::stack_open::{RingSwitchClaim, RingSwitchOpen, RingSwitchVerify, StackClaim as SlotClaim};
 use ::pcs::stack_open::{open_batch_mixed_whir_stacked, verify_opening_batch_mixed_whir_stacked};
-use ::pcs::whir::{Commitment, ProverData, commit as whir_commit, configs_for_rate};
-use ::pcs::whir::{ProverConfig, VerifierConfig};
+use ::pcs::whir::ProverConfig;
+use ::pcs::whir::{Commitment, ProverData, commit as whir_commit, config_for_rate};
 
 /// Row-batch lanes `2^LOG_BATCH`: the Merkle leaf width (`2^LOG_BATCH` F64
 /// = 512 bytes/leaf) IS WHIR's INITIAL folding factor: the L0 commit is
@@ -50,12 +50,11 @@ pub const MIN_MU: usize = 15;
 /// Largest committed size accepted by all verifiers and compiled into the recursion guest.
 pub const MAX_MU: usize = 28;
 
-/// The WHIR (prover, verifier) config pair for a `2^μ`-word witness,
-/// derived from the security analysis and memoized per `(μ, log_inv_rate)`.
-fn whir_configs(mu: usize, log_inv_rate: usize) -> std::sync::Arc<(ProverConfig, VerifierConfig)> {
+/// The shared WHIR config for a `2^μ`-word witness, memoized per `(μ, log_inv_rate)`.
+fn whir_config(mu: usize, log_inv_rate: usize) -> std::sync::Arc<ProverConfig> {
     use std::collections::HashMap;
     use std::sync::{Arc, Mutex, OnceLock};
-    type Cache = Mutex<HashMap<(usize, usize), Arc<(ProverConfig, VerifierConfig)>>>;
+    type Cache = Mutex<HashMap<(usize, usize), Arc<ProverConfig>>>;
     static CACHE: OnceLock<Cache> = OnceLock::new();
     let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
     let mut map = cache.lock().expect("whir config cache poisoned");
@@ -64,9 +63,9 @@ fn whir_configs(mu: usize, log_inv_rate: usize) -> std::sync::Arc<(ProverConfig,
             mu >= MIN_MU,
             "witness must be ≥ 2^{MIN_MU} elements (padded by placements_of)"
         );
-        let pair = configs_for_rate(mu, log_inv_rate)
+        let config = config_for_rate(mu, log_inv_rate)
             .unwrap_or_else(|e| panic!("whir config for mu={mu}, log_inv_rate={log_inv_rate}: {e}"));
-        Arc::new(pair)
+        Arc::new(config)
     }))
 }
 
@@ -151,8 +150,8 @@ pub fn open(ps: &mut ProverState, c: &Committed, q: &[F64], points: &[SlotClaim]
     let lane_block = 1usize << (c.mu - LOG_BATCH);
     assert_eq!(q.len() % lane_block, 0, "witness must be whole committed lanes");
     assert!(q.len() <= 1usize << c.mu, "witness must fit the announced size");
-    let cfg = whir_configs(c.mu, c.log_inv_rate);
-    open_batch_mixed_whir_stacked(ps, c.mu, q, &c.prover_data, &cfg.0, points, ring)
+    let cfg = whir_config(c.mu, c.log_inv_rate);
+    open_batch_mixed_whir_stacked(ps, c.mu, q, &c.prover_data, &cfg, points, ring)
 }
 
 /// Verify the opening (mirror of [`open`]): flock's ring-switched claim
@@ -166,9 +165,8 @@ pub fn verify(
     log_inv_rate: usize,
     root: &[u8; 32],
 ) -> Result<(), Error> {
-    let cfg = whir_configs(shape.mu, log_inv_rate);
-    verify_opening_batch_mixed_whir_stacked(vs, &cfg.1, shape.mu, shape.n_lanes, root, points, ring)
-        .map_err(Error::Whir)
+    let cfg = whir_config(shape.mu, log_inv_rate);
+    verify_opening_batch_mixed_whir_stacked(vs, &cfg, shape.mu, shape.n_lanes, root, points, ring).map_err(Error::Whir)
 }
 
 #[cfg(test)]
@@ -181,7 +179,7 @@ mod tests {
     fn supported_window_is_configurable() {
         for rate in ::pcs::whir::MIN_LOG_INV_RATE..=::pcs::whir::MAX_LOG_INV_RATE {
             for mu in MIN_MU..=MAX_MU {
-                assert!(configs_for_rate(mu, rate).is_ok(), "mu={mu} rate={rate}");
+                assert!(config_for_rate(mu, rate).is_ok(), "mu={mu} rate={rate}");
             }
         }
     }
