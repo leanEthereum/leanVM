@@ -1008,7 +1008,6 @@ def verify_whir(transcript: Transcript, log_n: int, log_inv_rate: int, target: E
     config = derive_config(log_n, log_inv_rate)
     levels = len(config.folds)
 
-    running_target = target
     running_quad = transcript.sumcheck_round_poly(3, target)
     folds: list[E] = []
     glued: list[GluedClaim] = []
@@ -1020,21 +1019,20 @@ def verify_whir(transcript: Transcript, log_n: int, log_inv_rate: int, target: E
             challenge = transcript.sample()
             folds.append(challenge)
             level_folds.append(challenge)
-            running_target = poly_eval(running_quad, challenge)
-            running_quad = transcript.sumcheck_round_poly(3, running_target)
+            running_quad = transcript.sumcheck_round_poly(3, poly_eval(running_quad, challenge))
 
         message_log = log_n - len(folds)
         final_level = level == levels - 1
         # The level's claims, held until its batching challenge is drawn: the
         # OOD claims first, then the query batch (Annex B, Protocol 1 step 1).
-        pending: list[tuple[E, Sequence[E], Callable[[Sequence[E]], E]]] = []
+        pending: list[tuple[Sequence[E], Callable[[Sequence[E]], E]]] = []
         if final_level:
             residual = tuple(transcript.next_scalars(2**message_log))
         else:
             next_root = Digest.from_halves(*transcript.next_scalars(2))
             ood_point = tuple(transcript.samples(message_log))
             ood_value = transcript.next_scalar()
-            pending.append((ood_value, transcript.sumcheck_round_poly(3, ood_value), lambda x, z=ood_point: eq_eval(z, x)))
+            pending.append((transcript.sumcheck_round_poly(3, ood_value), lambda x, z=ood_point: eq_eval(z, x)))
 
         transcript.grind_check(QUERY_GRINDING_BITS)
         block_length = 2 ** (message_log + level_rate)
@@ -1054,12 +1052,11 @@ def verify_whir(transcript: Transcript, log_n: int, log_inv_rate: int, target: E
         # message; the level's claims are then batched with powers of `lam`,
         # the running claim keeping lam^0 = 1.
         batch = (message_log, tuple(queries), tuple(query_weights))
-        pending.append((enforced, transcript.sumcheck_round_poly(3, enforced), lambda x, b=batch: _induced_weight(*b, x)))
+        pending.append((transcript.sumcheck_round_poly(3, enforced), lambda x, b=batch: _induced_weight(*b, x)))
         scalar = ONE
-        for value, intro, weight_at in pending:
+        for intro, weight_at in pending:
             scalar *= lam
             running_quad = [q + scalar * i for q, i in zip(running_quad, intro, strict=True)]
-            running_target += scalar * value
             glued.append(GluedClaim(scalar, len(folds), weight_at))
 
         if final_level:

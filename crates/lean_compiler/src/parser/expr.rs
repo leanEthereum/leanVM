@@ -103,7 +103,7 @@ pub(super) fn parse_expr(s: &str) -> Result<Expr, String> {
     {
         let name = s[..open].trim().to_string();
         let args_str = s[open + 1..s.len() - 1].trim();
-        let args = if args_str.is_empty() {
+        let mut args = if args_str.is_empty() {
             vec![]
         } else {
             split_top(args_str, ',')
@@ -127,23 +127,18 @@ pub(super) fn parse_expr(s: &str) -> Result<Expr, String> {
         // A cell count is a frame/heap size: reject one that does not fit rather
         // than wrapping it into a plausible small buffer.
         let cells = |n: u128| u64::try_from(n).map_err(|_| format!("{name} size {n} does not fit in u64"));
-        if name == "HeapBuf" {
-            if let Ok(n) = eval_const_int(args_str) {
-                return Ok(Expr::HeapBuf(cells(n)?));
-            }
-            return match args.as_slice() {
-                // A literal size is baked into the bytecode; any other
-                // expression is a runtime size (its low word is the count).
-                [Expr::Lit(n)] => Ok(Expr::HeapBuf(cells(*n)?)),
-                [e] => Ok(Expr::HeapBufDyn(Box::new(e.clone()))),
-                _ => Err("HeapBuf(size) takes one argument".into()),
+        if name == "HeapBuf" || name == "StackBuf" {
+            let size = match args.as_slice() {
+                [arg] => const_int_expr(arg),
+                _ => None,
             };
-        }
-        if name == "StackBuf" {
-            if let Ok(n) = eval_const_int(args_str) {
-                return Ok(Expr::StackBuf(cells(n)?));
-            }
-            return Err("StackBuf(n) needs a parse-time integer size".into());
+            return match (name.as_str(), size) {
+                ("HeapBuf", Some(n)) => Ok(Expr::HeapBuf(cells(n)?)),
+                ("StackBuf", Some(n)) => Ok(Expr::StackBuf(cells(n)?)),
+                ("HeapBuf", None) if args.len() == 1 => Ok(Expr::HeapBufDyn(Box::new(args.pop().unwrap()))),
+                ("HeapBuf", None) => Err("HeapBuf(size) takes one argument".into()),
+                _ => Err("StackBuf(n) needs a parse-time integer size".into()),
+            };
         }
         return Ok(Expr::Call(name, args));
     }
