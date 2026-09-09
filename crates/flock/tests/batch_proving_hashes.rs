@@ -132,7 +132,8 @@ fn hash_batch_prove_verify() {
                 &root,
                 &[],
                 &ring
-            ),
+            )
+            .is_ok(),
             "stacked PCS opening verifies"
         );
         vs.finish().expect("transcript fully consumed");

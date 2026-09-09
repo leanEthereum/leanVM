@@ -1002,6 +1002,7 @@ mod tests {
             |point| eval_rs_eq(&z, point, &coordinate_weights),
             &mut vs,
         )
+        .is_ok()
     }
 
     #[test]

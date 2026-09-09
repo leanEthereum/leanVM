@@ -1,11 +1,12 @@
 use std::mem::MaybeUninit;
 
 use primitives::field::{F64, F192};
+use primitives::multilinear::fill_eq_table_uninit;
 use zk_alloc::ArenaVec;
 
 use super::{RingSwitchOpen, StackClaim};
 use crate::ring_switch::{DeferredRingSwitchOutput, combine_deferred_chunk};
-use crate::whir::{INITIAL_BASIS_CHUNK, SumcheckMessage, build_eq_table_ext_seeded, build_initial_basis};
+use crate::whir::{INITIAL_BASIS_CHUNK, SumcheckMessage, build_initial_basis};
 
 struct PointWeight<'a> {
     offset: usize,
@@ -35,7 +36,7 @@ impl<'a> PointWeight<'a> {
         let low_vars = point.len().min(chunk_log.saturating_sub(stride_log));
         let (low, high_point) = point.split_at(low_vars);
         let mut high = zk_alloc::alloc_uninit(1 << high_point.len());
-        build_eq_table_ext_seeded(high_point, lambda, &mut high);
+        fill_eq_table_uninit(high_point, lambda, &mut high);
         // SAFETY: the seeded equality build initializes the whole table.
         let high = unsafe { zk_alloc::assume_init(high) };
         Self {
@@ -62,7 +63,7 @@ impl<'a> PointWeight<'a> {
         }
         let len = 1usize << self.low.len();
         assert!(first.is_multiple_of(len) && end - first == len);
-        build_eq_table_ext_seeded(self.low, self.high[first / len], &mut scratch[..len]);
+        fill_eq_table_uninit(self.low, self.high[first / len], &mut scratch[..len]);
         // SAFETY: the build above initializes this prefix before the scatter reads it.
         let eq = unsafe { std::slice::from_raw_parts(scratch.as_ptr().cast::<F192>(), len) };
         let dst_offset = base + first * self.stride - start;

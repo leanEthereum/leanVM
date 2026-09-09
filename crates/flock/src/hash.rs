@@ -93,7 +93,7 @@ use crate::witness::{
     write_lin_word_ab_packed,
 };
 use pcs::pack::{LOG_PACKING, PACKING_WIDTH};
-use pcs::stack_open::{RingSwitchClaim, RingSwitchOpen, RingSwitchVerify};
+use pcs::stack_open::{RingSwitchClaim, RingSwitchOpen, RingSwitchVerify, RingSwitchVerifyClaim};
 use primitives::field::F192;
 use zk_alloc::ArenaVec;
 
@@ -798,12 +798,20 @@ pub fn ring_switch_open(n_blocks: usize, offset: usize, reduced: &SliceClaim) ->
 /// Verifier counterpart of [`ring_switch_open`]: package the recovered claim as
 /// a [`RingSwitchVerify`], the same statement data. The transmitted opening
 /// travels separately.
-pub fn ring_switch_verify(n_blocks: usize, offset: usize, claim: &SliceClaim) -> RingSwitchVerify {
+pub fn ring_switch_verify(n_blocks: usize, offset: usize, claim: &SliceClaim) -> RingSwitchVerify<'_> {
     let qflock_vars = qflock_kappa(n_blocks);
+    assert_eq!(
+        claim.suffix_point.len(),
+        qflock_vars,
+        "ring-switch suffix must span the q_flock cube"
+    );
     RingSwitchVerify {
         offset,
         qflock_vars,
-        claims: vec![ring_claim(claim, qflock_vars)],
+        claims: vec![RingSwitchVerifyClaim {
+            suffix_point: &claim.suffix_point,
+            s_hat_v: claim.s_hat_v.as_slice().try_into().expect("ring-switch has 64 slices"),
+        }],
     }
 }
 

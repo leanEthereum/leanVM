@@ -63,16 +63,13 @@ impl Abi {
     /// Where the caller leaves the return pc and the return frame pointer.
     const RET_PC: Off = 0;
     const RET_FP: Off = 1;
-    /// Argument `i`, straight after the two return slots.
-    /// Where argument `i` starts, which depends on the WIDTHS of the ones before
-    /// it: a `StackBuf(n)` parameter occupies `n` consecutive cells, exactly as a
-    /// `StackBuf(n)` return value does.
-    fn arg(shapes: &[Shape], i: usize) -> Off {
-        2 + shapes[..i].iter().map(|s| s.cells()).sum::<u32>()
+    /// Argument `i`, after the two return slots and the preceding arguments.
+    fn arg(shapes: impl Iterator<Item = Shape>, i: usize) -> Off {
+        2 + shapes.take(i).map(Shape::cells).sum::<u32>()
     }
     /// Total width of the argument area.
-    fn arg_cells(shapes: &[Shape]) -> u32 {
-        shapes.iter().map(|s| s.cells()).sum()
+    fn arg_cells(shapes: impl Iterator<Item = Shape>) -> u32 {
+        shapes.map(Shape::cells).sum()
     }
     /// Return cell `i` of a callee whose arguments occupy `arg_cells` cells.
     fn ret(arg_cells: u32, i: u32) -> Off {
@@ -376,18 +373,9 @@ impl FnLower<'_> {
     /// The frame cell `arr[idx]` names, bounds-checked, or `None` when `arr` is
     /// not a `StackBuf` and the caller should take its heap path.
     ///
-    /// The ONE place a frame index is resolved. Four sites used to repeat
-    /// `stack_of` then `const_index` then their own `k >= size`, and two of them
-    /// shipped without the check: `copy_alias`, where `c[0] = a[2]` on a
-    /// `StackBuf(2)` aliased the next buffer's first cell and its assert passed,
-    /// and a `match` target, where an arm wrote a callee's return past the end.
-    /// Asking where the cell is IS the check now.
-    ///
-    /// Emits nothing, deliberately. An earlier version resolved the heap address
-    /// here too, which moved the pointer `MUL` ahead of the caller's other work
-    /// and broke `hb[sb[0]] = f(sb, …)`, where the address reads a cell the value
-    /// writes. Each caller keeps its own evaluation order, and the heap bound
-    /// lives where the heap address is formed ([`Self::heap_addr`]).
+    /// Emits nothing, so each caller keeps its own evaluation order. In
+    /// `hb[sb[0]] = f(sb, …)`, the address may read a cell the value writes.
+    /// The heap bound lives where the address is formed ([`Self::heap_addr`]).
     fn frame_cell(&mut self, arr: &Expr, idx: &Expr) -> Option<Off> {
         let (base, size) = self.stack_of(arr)?;
         let k = self.const_index(idx);
@@ -596,11 +584,8 @@ impl FnLower<'_> {
 
     /// The cell each multi-return target names, and the names still to bind.
     ///
-    /// A plain name takes a fresh cell, as it always did. A `StackBuf` element IS
-    /// its cell, so the arms write the value where the program wants it and the
-    /// store that used to follow is gone: the ABI already returns into cells the
-    /// CALLER picks ([`Self::call_into`]), and a single-value assignment has
-    /// always exploited that, so this only lets a multi-value one say the same.
+    /// A plain name takes a fresh cell. A `StackBuf` element uses its existing
+    /// cell, so [`Self::call_into`] returns directly into the destination.
     fn ret_targets(&mut self, targets: &[Expr]) -> (Vec<Off>, Vec<(String, Off)>) {
         let mut cells = Vec::with_capacity(targets.len());
         let mut binds = Vec::new();
@@ -863,9 +848,8 @@ impl FnLower<'_> {
     /// `assert a != b`: `XOR` for `x = a + b`, a hinted `inv = x⁻¹`, then
     /// `MUL p = x·inv` and `SET p = 1`, the write-once conflict being the
     /// assertion (as for `assert a == b`). Sound because `x = 0` forces `p = 0`
-    /// whatever the hint, and `p` cannot then be `1`. Three rows and no `JUMP`,
-    /// against the five (`XOR`, two `SET`, two `JUMP`) a branch to the poison pc
-    /// used to cost. A compile-time-equal pair is a hard compile error.
+    /// whatever the hint, and `p` cannot then be `1`.
+    /// A compile-time-equal pair is a hard compile error.
     fn lower_assert_ne(&mut self, a: &Expr, b: &Expr) {
         // Compile-time literals (e.g. after `Const`-arg substitution): a
         // trivially-true pair emits nothing, an equal pair is a hard error.
@@ -1516,13 +1500,15 @@ impl FnLower<'_> {
             cap_args(Expr::Var(next_var), Expr::Var(bound_var.clone())),
         )));
         loop_body.push(at(StmtKind::Return(vec![])));
-        let const_params = vec![false; params.len()];
         self.queue.push(Func {
             name: loop_name.clone(),
-            param_shapes: vec![Shape::Scalar; params.len()],
-            params,
-            const_params,
-            n_ret: 0,
+            params: params
+                .into_iter()
+                .map(|name| Param {
+                    name,
+                    kind: ParamKind::Runtime(Shape::Scalar),
+                })
+                .collect(),
             return_shapes: vec![],
             body: loop_body,
             inline: false,
@@ -1582,24 +1568,25 @@ pub(crate) fn lower_func(
     let mut names: HashMap<String, Bound> = HashMap::new();
     for (i, p) in f.params.iter().enumerate() {
         assert!(
-            !const_arrays.contains_key(p),
-            "`{}`: parameter `{p}` collides with a top-level constant array, whose name is \
+            !const_arrays.contains_key(&p.name),
+            "`{}`: parameter `{}` collides with a top-level constant array, whose name is \
              reserved (zkDSL.md §Global constants)",
-            f.name
+            f.name,
+            p.name
         );
         // A `StackBuf(n)` parameter binds the run the caller wrote, exactly as a
         // local `StackBuf(n)` binds one it allocated.
-        let off = Abi::arg(&f.param_shapes, i);
-        let val = match f.param_shapes.get(i).copied().unwrap_or(Shape::Scalar) {
+        let off = Abi::arg(f.param_shapes(), i);
+        let val = match p.shape() {
             Shape::StackBuf(n) => Binding::Stack(off, n),
             Shape::Scalar => Binding::Scalar(off),
         };
-        names.insert(p.clone(), Bound { val, int: None });
+        names.insert(p.name.clone(), Bound { val, int: None });
     }
     // Reserve [0,1] retpc/retfp, params, then the flattened return area, then
     // locals. A StackBuf(n) return occupies n consecutive physical slots.
     let n_ret_cells: u32 = f.return_shapes.iter().map(|s| s.cells()).sum();
-    let arg_cells = Abi::arg_cells(&f.param_shapes);
+    let arg_cells = Abi::arg_cells(f.param_shapes());
     let abi_end = Abi::end(arg_cells, n_ret_cells);
     let mut lowerer = FnLower {
         scope: Scope {
@@ -1631,7 +1618,7 @@ pub(crate) fn lower_func(
         // ends exactly like this, so its self-call stops building an unwind
         // chain.
         lowerer.tail_call = !lowerer.is_main
-            && f.n_ret == 0
+            && f.return_shapes.is_empty()
             && matches!(s.kind, StmtKind::CallIfNe(..))
             && matches!(f.body.get(i + 1).map(|n| &n.kind), Some(StmtKind::Return(r)) if r.is_empty());
         lowerer.stmt(s);

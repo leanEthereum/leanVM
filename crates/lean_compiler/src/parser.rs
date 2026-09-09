@@ -278,19 +278,14 @@ fn infer_return_shapes(funcs: &mut [Func]) -> Result<(), String> {
 
     fn scan(
         body: &[Stmt],
-        params: &[String],
-        param_shapes: &[Shape],
+        params: &[Param],
         known: &HashMap<String, Vec<Shape>>,
         n_ret: usize,
     ) -> Result<Vec<Shape>, String> {
         // Seeded from the DECLARED shapes: a `s: StackBuf(n)` parameter is a run
         // here as much as a local one is, so `return s` returns the run rather
         // than reporting it used as a scalar.
-        let mut locals: HashMap<String, Shape> = params
-            .iter()
-            .cloned()
-            .zip(param_shapes.iter().copied().chain(std::iter::repeat(Shape::Scalar)))
-            .collect();
+        let mut locals: HashMap<String, Shape> = params.iter().map(|p| (p.name.clone(), p.shape())).collect();
         let mut returns = vec![Shape::Scalar; n_ret];
         for stmt in body {
             match &stmt.kind {
@@ -334,7 +329,7 @@ fn infer_return_shapes(funcs: &mut [Func]) -> Result<(), String> {
 
     let mut known: HashMap<String, Vec<Shape>> = funcs
         .iter()
-        .map(|f| (f.name.clone(), vec![Shape::Scalar; f.n_ret]))
+        .map(|f| (f.name.clone(), f.return_shapes.clone()))
         .collect();
     // A shape can only move from Scalar to one of the finite constructor
     // shapes (or acquire one through a call), so `funcs.len() + 1` rounds are
@@ -342,12 +337,7 @@ fn infer_return_shapes(funcs: &mut [Func]) -> Result<(), String> {
     for _ in 0..=funcs.len() {
         let next: HashMap<String, Vec<Shape>> = funcs
             .iter()
-            .map(|f| {
-                Ok((
-                    f.name.clone(),
-                    scan(&f.body, &f.params, &f.param_shapes, &known, f.n_ret)?,
-                ))
-            })
+            .map(|f| Ok((f.name.clone(), scan(&f.body, &f.params, &known, f.return_shapes.len())?)))
             .collect::<Result<_, String>>()?;
         if next == known {
             break;
@@ -355,7 +345,9 @@ fn infer_return_shapes(funcs: &mut [Func]) -> Result<(), String> {
         known = next;
     }
     for f in funcs {
-        f.return_shapes = known.remove(&f.name).unwrap_or_else(|| vec![Shape::Scalar; f.n_ret]);
+        f.return_shapes = known
+            .remove(&f.name)
+            .expect("every function has inferred return shapes");
     }
     Ok(())
 }
@@ -481,8 +473,7 @@ impl Parser {
         let open = header.find('(').ok_or("function header needs `(`")?;
         let name = header[..open].trim().to_string();
         let params_str = header[open + 1..header.rfind(')').ok_or("missing `)`")?].trim();
-        let (mut params, mut const_params) = (Vec::new(), Vec::new());
-        let mut param_shapes = Vec::new();
+        let mut params = Vec::new();
         if !params_str.is_empty() {
             for part in params_str.split(',') {
                 if part.trim().is_empty() {
@@ -490,40 +481,33 @@ impl Parser {
                 }
                 // `x`, `x: Const` (compile-time, specialized), or
                 // `x: StackBuf(n)` (a run of n cells, passed whole).
-                let Some((n, ann)) = part.split_once(':') else {
-                    params.push(binding_name(part, "parameter name")?);
-                    const_params.push(false);
-                    param_shapes.push(Shape::Scalar);
-                    continue;
-                };
-                let ann = ann.trim();
-                if ann == "Const" {
-                    params.push(binding_name(n, "parameter name")?);
-                    const_params.push(true);
-                    param_shapes.push(Shape::Scalar);
-                } else if let Some(size) = ann.strip_prefix("StackBuf(").and_then(|r| r.strip_suffix(')')) {
-                    let k = eval_const_int(size).map_err(|e| format!("`def {name}`: StackBuf parameter size: {e}"))?;
-                    let k = u32::try_from(k).map_err(|_| format!("`def {name}`: StackBuf({k}) is too large"))?;
-                    if k == 0 {
-                        return Err(format!("`def {name}`: a StackBuf parameter needs at least one cell"));
+                let (param_name, annotation) = part.split_once(':').map_or((part, None), |(n, a)| (n, Some(a.trim())));
+                let kind = match annotation {
+                    None => ParamKind::Runtime(Shape::Scalar),
+                    Some("Const") => ParamKind::Const,
+                    Some(ann) => {
+                        let size = ann.strip_prefix("StackBuf(").and_then(|r| r.strip_suffix(')')).ok_or_else(|| {
+                            format!("unsupported parameter annotation `{ann}` (`Const`, or `StackBuf(n)` to pass a run of cells)")
+                        })?;
+                        let k =
+                            eval_const_int(size).map_err(|e| format!("`def {name}`: StackBuf parameter size: {e}"))?;
+                        let k = u32::try_from(k).map_err(|_| format!("`def {name}`: StackBuf({k}) is too large"))?;
+                        if k == 0 {
+                            return Err(format!("`def {name}`: a StackBuf parameter needs at least one cell"));
+                        }
+                        ParamKind::Runtime(Shape::StackBuf(k))
                     }
-                    params.push(binding_name(n, "parameter name")?);
-                    const_params.push(false);
-                    param_shapes.push(Shape::StackBuf(k));
-                } else {
-                    return Err(format!(
-                        "unsupported parameter annotation `{ann}` (`Const`, or `StackBuf(n)` to pass a run of cells)"
-                    ));
-                }
+                };
+                params.push(Param {
+                    name: binding_name(param_name, "parameter name")?,
+                    kind,
+                });
             }
         }
-        // A repeated parameter name binds twice, and the second binding used to
-        // land in a different one of the scope's maps than the first, so `a` was
-        // a StackBuf and a scalar at once inside the body.
         if let Some(dup) = params
             .iter()
             .enumerate()
-            .find_map(|(i, p)| params[..i].contains(p).then_some(p))
+            .find_map(|(i, p)| params[..i].iter().any(|q| q.name == p.name).then_some(&p.name))
         {
             return Err(format!("parameter `{dup}` is declared twice"));
         }
@@ -543,10 +527,7 @@ impl Parser {
         Ok(Func {
             name,
             params,
-            const_params,
-            n_ret,
             return_shapes: vec![Shape::Scalar; n_ret],
-            param_shapes,
             body,
             inline,
         })

@@ -1,5 +1,5 @@
-//! XMSS over BLAKE2s (inspired by leanVM's `xmss` crate, byte-oriented). The
-//! concrete scheme is defined in the [XMSS specification].
+//! XMSS over BLAKE2s, with byte-oriented keys and signatures.
+//! The concrete scheme is defined in the [XMSS specification].
 //!
 //! Every hash is standard BLAKE2s of the exact byte string
 //! `tweak | pp | payload`, truncated to n = 128 bits. See the `hash` module for the

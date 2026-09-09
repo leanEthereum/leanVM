@@ -339,7 +339,7 @@ A key pair as specified holds one secret per chain and per few-time leaf, which 
   \qquad
   s_{\idx,\kappa,j}=\Th\!\left(P,\mathsf{tw}_{\mathrm{ftsprf}}(\idx,\kappa,j),S\right),
 \]
-leaving $\sk=(P,\rootnode,S)$, 48 bytes. The specification samples rather than derives because the security statement is about independent uniform secrets and a derivation is an implementation of it, sound in the ROM; every cost in Section~\ref{sec:costs} assumes the derivation, since the alternative is unimplementable. By the same argument $P$ and $S$ may themselves be the two halves of a keyed hash of one $32$-byte seed, which is what \texttt{sphincs::key\_gen} takes, leaving a key pair one seed to store.
+leaving $\sk=(P,\rootnode,S)$, 48 bytes. The specification samples rather than derives because the security statement is about independent uniform secrets and a derivation is an implementation of it, sound in the ROM; every cost in Section~\ref{sec:costs} assumes the derivation, since the alternative is unimplementable. By the same argument $P$ and $S$ may themselves be the two halves of a keyed hash of one $32$-byte seed, which is what \texttt{sphincs::key\_gen\_from\_seed} takes, leaving a key pair one seed to store.
 \end{remark}
 
 \begin{remark}[Signer state]
@@ -454,7 +454,7 @@ Call $\mathcal A$ $q$-bounded if the experiment makes at most $q$ random-oracle 
 \]
 \end{definition}
 
-TODO prove 127 bits of classical strong unforgeability in the ROM at $\qs=2^{24}$ signatures.
+Target (unproved): 127 bits of classical strong unforgeability in the ROM at $\qs=2^{24}$ signatures.
 
 \subsection{Quantum security}
 \label{sec:quantum}

@@ -54,8 +54,7 @@ pub fn compile(ast: &Ast) -> Program {
 }
 
 /// [`compile`] without the fill blocks, so the program's own instruction mix is what
-/// runs. For tests that measure that mix: a proof of such a program still verifies, its
-/// tables padding as they did before the blocks existed.
+/// runs. For tests that measure that mix: the prover pads each table as needed.
 pub fn compile_without_filler(ast: &Ast) -> Program {
     compile_inner(ast, false)
 }
@@ -68,7 +67,7 @@ fn compile_inner(ast: &Ast, with_filler: bool) -> Program {
         .iter()
         .find(|f| f.name == "main")
         .expect("program needs a `main`");
-    assert!(!main.const_params.contains(&true), "main cannot take Const parameters");
+    assert!(!main.has_const_params(), "main cannot take Const parameters");
     assert!(!main.inline, "main cannot be `@inline`");
     queue.push(main.clone());
     for f in &ast.funcs {
@@ -91,7 +90,7 @@ fn compile_inner(ast: &Ast, with_filler: bool) -> Program {
         // A function with Const parameters is a template (only its call-site
         // specializations are lowered); an `@inline` function is expanded at
         // each call site ([`FnLower::try_inline`]), never lowered standalone.
-        if f.const_params.contains(&true) || f.inline {
+        if f.has_const_params() || f.inline {
             continue;
         }
         let low = lower_func(&f, &mut queue, &mut loop_ctr, &defs, &const_arrays, with_filler);

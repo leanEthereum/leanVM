@@ -107,7 +107,7 @@ impl FnLower<'_> {
             .unwrap_or_else(|| vec![Shape::Scalar; args.len()]);
         let mut arg_offs: Vec<(Off, Off)> = Vec::new();
         for (i, a) in args.iter().enumerate() {
-            let base = Abi::arg(&shapes, i);
+            let base = Abi::arg(shapes.iter().copied(), i);
             match shapes.get(i).copied().unwrap_or(Shape::Scalar) {
                 Shape::StackBuf(n) => {
                     let (src, len) = self.stack_of(a).unwrap_or_else(|| {
@@ -131,7 +131,7 @@ impl FnLower<'_> {
                 }
             }
         }
-        let callee_arg_cells = Abi::arg_cells(&shapes);
+        let callee_arg_cells = Abi::arg_cells(shapes.iter().copied());
         let nfp = self.fresh();
         let entry = self.fresh();
         // Resolve the jump condition up front: `self.one()` may emit a `SET`, and
@@ -207,7 +207,7 @@ impl FnLower<'_> {
                 callees.first().map(String::as_str).unwrap_or("?")
             ))
         }
-        let n_args = Abi::arg_cells(&shared_shapes);
+        let n_args = Abi::arg_cells(shared_shapes.iter().copied());
         // The join below reads one return cell per bound name, so every callee has
         // to declare exactly that many. Unchecked, a name past a callee's arity
         // `DEREF`s a frame offset nothing on that path writes, and since the shared
@@ -272,7 +272,7 @@ impl FnLower<'_> {
             callees: callees.to_vec(),
         });
         for (i, &ao) in arg_offs.iter().enumerate() {
-            self.deref(nfp, Abi::arg(&shared_shapes, i), ao, DerefMode::Cell);
+            self.deref(nfp, Abi::arg(shared_shapes.iter().copied(), i), ao, DerefMode::Cell);
         }
         self.deref(nfp, Abi::RET_FP, 0, DerefMode::Fp);
         let join_cell = self.fresh();
@@ -438,7 +438,7 @@ impl FnLower<'_> {
         let Some(def) = defs.get(callee) else {
             return (callee.to_string(), args.to_vec()); // loop helpers, unknown names
         };
-        if !def.const_params.contains(&true) {
+        if !def.has_const_params() {
             return (callee.to_string(), args.to_vec());
         }
         if args.len() != def.params.len() {
@@ -446,26 +446,17 @@ impl FnLower<'_> {
         };
         let mut tag = String::new();
         let (mut rt_params, mut rt_args, mut substs) = (Vec::new(), Vec::new(), Vec::new());
-        // A retained parameter keeps its SHAPE. Dropping it made a specialization
-        // take a declared `StackBuf(n)` as one scalar cell, with no diagnostic.
-        let mut rt_shapes = Vec::new();
-        for (((p, &is_const), sh), a) in def
-            .params
-            .iter()
-            .zip(&def.const_params)
-            .zip(def.param_shapes.iter().copied())
-            .zip(args)
-        {
-            if !is_const {
+        for (p, a) in def.params.iter().zip(args) {
+            if p.kind != ParamKind::Const {
                 rt_params.push(p.clone());
-                rt_shapes.push(sh);
                 rt_args.push(a.clone());
                 continue;
             }
             let c = self.const_arg(a).unwrap_or_else(|| {
                 self.fail(format!(
-                    "argument for Const parameter `{p}` of `{callee}` must be a compile-time \
-                     constant, got `{a:?}`"
+                    "argument for Const parameter `{}` of `{callee}` must be a compile-time \
+                     constant, got `{a:?}`",
+                    p.name
                 ))
             });
             tag.push_str(&match &c {
@@ -473,7 +464,7 @@ impl FnLower<'_> {
                 Expr::GPow(k) => format!("_G{k}"),
                 _ => unreachable!(),
             });
-            substs.push((p.clone(), c));
+            substs.push((p.name.clone(), c));
         }
         let name = format!("{callee}_{tag}");
         if !self.queue.iter().any(|f| f.name == name) {
@@ -484,13 +475,9 @@ impl FnLower<'_> {
             for (p, c) in &substs {
                 body = subst_stmts(&body, p, c);
             }
-            let const_params = vec![false; rt_params.len()];
             self.queue.push(Func {
                 name: name.clone(),
-                param_shapes: rt_shapes,
                 params: rt_params,
-                const_params,
-                n_ret: def.n_ret,
                 return_shapes: def.return_shapes.clone(),
                 body,
                 inline: false,
@@ -585,16 +572,16 @@ impl FnLower<'_> {
         }
         let mut body = def.body.clone();
         let (mut rt_params, mut rt_args) = (Vec::new(), Vec::new());
-        for ((p, &is_const), a) in def.params.iter().zip(&def.const_params).zip(args) {
-            if !is_const {
-                rt_params.push(p.clone());
+        for (p, a) in def.params.iter().zip(args) {
+            if p.kind != ParamKind::Const {
+                rt_params.push(p.name.clone());
                 rt_args.push(a.clone());
                 continue;
             }
             let c = self.const_arg(a)?;
-            body = subst_stmts(&body, p, &c);
+            body = subst_stmts(&body, &p.name, &c);
         }
-        Some((rt_params, rt_args, body, def.n_ret))
+        Some((rt_params, rt_args, body, def.return_shapes.len()))
     }
 
     /// How many arguments `callee` takes, looked up wherever it lives: an
@@ -610,15 +597,13 @@ impl FnLower<'_> {
             .or_else(|| self.queue.iter().find(|f| f.name == callee).map(|f| f.params.len()))
     }
 
-    /// A callee's declared PARAMETER shapes, looked up the same way as its
-    /// arity. A generated function (a loop helper, a `Const` specialization) is
-    /// all scalars.
+    /// A callee's parameter shapes, including generated specializations.
     fn param_shapes_of(&self, callee: &str) -> Option<Vec<Shape>> {
-        self.defs.get(callee).map(|d| d.param_shapes.clone()).or_else(|| {
+        self.defs.get(callee).map(|d| d.param_shapes().collect()).or_else(|| {
             self.queue
                 .iter()
                 .find(|f| f.name == callee)
-                .map(|f| f.param_shapes.clone())
+                .map(|f| f.param_shapes().collect())
         })
     }
 

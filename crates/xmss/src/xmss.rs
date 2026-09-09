@@ -1,6 +1,6 @@
 //! XMSS: a Merkle tree of `2^LOG_LIFETIME` WOTS public-key hashes.
 //!
-//! Mirrors leanVM's memory-optimized secret key: for a range of R = epoch_end -
+//! For a range of R = epoch_end -
 //! epoch_start + 1 epochs, storage is O(sqrt(R) + LOG_LIFETIME) instead of O(R).
 //! The key stores the top tree (in-range band plus a thin spine) and one cached
 //! bottom subtree, cut at `split_level = ceil(log2(R)) / 2`. Out-of-range nodes

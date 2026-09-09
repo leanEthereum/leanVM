@@ -212,7 +212,7 @@ pub enum LtBound {
     Runtime(Expr),
 }
 
-/// Compile-time representation of one source-level return value.
+/// Compile-time representation of a runtime parameter or return value.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Shape {
     /// One ordinary field element or address cell. Heap buffers use this shape:
@@ -223,8 +223,7 @@ pub enum Shape {
 }
 
 impl Shape {
-    /// Number of physical call-frame return cells occupied by this source-level
-    /// return value.
+    /// Number of physical call-frame cells occupied by this value.
     pub(crate) fn cells(self) -> u32 {
         match self {
             Self::StackBuf(n) => n,
@@ -233,30 +232,54 @@ impl Shape {
     }
 }
 
+/// A function parameter and its calling convention.
+#[derive(Clone, Debug)]
+pub struct Param {
+    pub name: String,
+    pub kind: ParamKind,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ParamKind {
+    /// Substituted at the call site, with no runtime argument cell.
+    Const,
+    Runtime(Shape),
+}
+
+impl Param {
+    pub(crate) fn shape(&self) -> Shape {
+        match self.kind {
+            ParamKind::Const => Shape::Scalar,
+            ParamKind::Runtime(shape) => shape,
+        }
+    }
+}
+
 /// A function definition. `main` is the entry point.
 #[derive(Clone, Debug)]
 pub struct Func {
     pub name: String,
-    pub params: Vec<String>,
-    /// Per-parameter `Const` marker (`def f(k: Const, x):`). A function with
-    /// a `Const` parameter is a *template*: it is never lowered itself, and each
-    /// call site with a distinct constant tuple queues a monomorphized copy
-    /// with the parameter substituted by its literal (see
-    /// `FnLower::specialize`).
-    pub const_params: Vec<bool>,
-    /// Number of source-level return values (tuple arity).
-    pub n_ret: usize,
+    /// A function with a `Const` parameter is a template, specialized per
+    /// distinct constant tuple before lowering.
+    pub params: Vec<Param>,
     /// Compile-time shape of each source-level return value. Stack buffers use
     /// multiple physical ABI cells; everything else uses one cell.
     pub return_shapes: Vec<Shape>,
-    /// The same for each parameter, from a `s: StackBuf(n)` annotation. One type
-    /// in both directions, it being the same question.
-    pub param_shapes: Vec<Shape>,
     pub body: Vec<Stmt>,
     /// `@inline`: expand at each call site instead of emitting a call, so the
     /// frame and the argument and return plumbing vanish. The body must be a
     /// single tail `return`, and is never lowered standalone.
     pub inline: bool,
+}
+
+impl Func {
+    pub(crate) fn has_const_params(&self) -> bool {
+        self.params.iter().any(|p| p.kind == ParamKind::Const)
+    }
+
+    pub(crate) fn param_shapes(&self) -> impl Iterator<Item = Shape> + '_ {
+        self.params.iter().map(Param::shape)
+    }
 }
 
 /// A whole program: a set of functions including `main`.

@@ -39,12 +39,7 @@ fn gmul(a: GAddr, b: GAddr) -> Option<GAddr> {
     })
 }
 
-/// `b^k` for a compile-time exponent (small, so plain repeated multiplication).
-/// `b^k` by square-and-multiply, so the exponent's SIZE costs nothing.
-///
-/// It was a `for _ in 0..k` loop, and the field reading of `Expr::Pow` is computed
-/// whether or not the caller wants it, so `sa[1 ** 4294967295]` (a program that
-/// compiles) spent 39 seconds in here.
+/// `b^k` by square-and-multiply, in logarithmically many field operations.
 pub(super) fn field_pow(b: F192, mut k: u32) -> F192 {
     let (mut acc, mut sq) = (F192::ONE, b);
     while k > 0 {
@@ -68,15 +63,8 @@ impl FnLower<'_> {
     /// computes every reading a shape has and the caller takes the one its
     /// position means.
     ///
-    /// This replaced three separate walks. Each answered one question over the
-    /// same arms, and every regime bug this crate has had was two of them
-    /// disagreeing where nothing compared them: `try_gpow_index` read a name's
-    /// integer and took its bit position as a g exponent, `array_ptr` picked the
-    /// integer where the value was meant, and `lower_if` folded on the integer
-    /// while the runtime test of the same condition compared field elements. With
-    /// the readings in one value, "do these disagree?" is a comparison of two
-    /// fields at the point of use rather than an invariant spread across
-    /// functions that nothing checks.
+    /// Keeping the readings together lets each use reject an ambiguous value
+    /// by comparing them, without evaluating the expression again.
     fn eval(&self, e: &Expr) -> Known {
         // Deliberately NO address: only a LITERAL reads as one, and only under the
         // guard below. Attaching it here gave `const(2^k)` and `len(A)` an address
@@ -400,14 +388,7 @@ impl FnLower<'_> {
     /// The exponent of `e` when it is a *constant* g-power small enough to ride a
     /// `DEREF` `β` immediate, for the constant factor of a product index.
     ///
-    /// The one g-power recognizer. A second one used to match `Expr::Var`
-    /// against the *integer* reading of a name and take that integer's bit
-    /// position as the exponent, which is a different question: `K = 3 + 1` is
-    /// the integer 4 and the field element `3 XOR 1` = 2, so it folded to `g²`
-    /// in an index position while being `g¹` everywhere else.
-    ///
-    /// The rule that replaces it never picks a reading. It folds `e` only where
-    /// the readings **agree**: either the compiler already tracks `e` as an
+    /// Folds `e` only where the readings agree: either the compiler tracks it as an
     /// address, or `e` is the integer `2^j` AND its field value is `g^j`, in
     /// which case both readings name cell `j` and folding decides nothing.
     pub(super) fn const_gpow(&self, e: &Expr) -> Option<u32> {

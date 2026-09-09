@@ -87,7 +87,7 @@ pub struct Committed {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Error {
-    Whir,
+    Whir(::pcs::whir::VerifyError),
 }
 
 /// Commit a `K`-valued witness of `2^μ` words (`μ ≥ MIN_MU`, from
@@ -161,15 +161,14 @@ pub fn open(ps: &mut ProverState, c: &Committed, q: &[F64], points: &[SlotClaim]
 pub fn verify(
     vs: &mut VerifierState,
     points: &[SlotClaim],
-    ring: &RingSwitchVerify,
+    ring: &RingSwitchVerify<'_>,
     shape: crate::witness::StackShape,
     log_inv_rate: usize,
     root: &[u8; 32],
 ) -> Result<(), Error> {
     let cfg = whir_configs(shape.mu, log_inv_rate);
     verify_opening_batch_mixed_whir_stacked(vs, &cfg.1, shape.mu, shape.n_lanes, root, points, ring)
-        .then_some(())
-        .ok_or(Error::Whir)
+        .map_err(Error::Whir)
 }
 
 #[cfg(test)]
