@@ -254,6 +254,109 @@ fn encoder_and_authentication() {
     );
 }
 
+fn novel_parameters() -> ([F64; 18], [F64; 18]) {
+    let mut basis: Vec<_> = (0..18).map(|bit| F64(1 << bit)).collect();
+    let mut roots = [F64::ZERO; 18];
+    let mut inverses = roots;
+    for bit in 0..18 {
+        roots[bit] = basis[bit];
+        inverses[bit] = basis[bit].inv();
+        for value in &mut basis[bit + 1..] {
+            *value *= *value + roots[bit];
+        }
+    }
+    (roots, inverses)
+}
+
+fn child_kernel_certificate() {
+    let mut input = String::new();
+    std::io::stdin().read_to_string(&mut input).unwrap();
+    let positions: Vec<usize> = input.split_whitespace().map(|value| value.parse().unwrap()).collect();
+    assert_eq!(positions.len(), 1280);
+    assert!(
+        positions
+            .iter()
+            .all(|&position| position < 1 << 18 && position & 7 == 0)
+    );
+    let mut unique = positions.clone();
+    unique.sort_unstable();
+    unique.dedup();
+    assert_eq!(positions.len(), unique.len());
+    let (roots, inverses) = novel_parameters();
+    let terms: Vec<_> = positions
+        .iter()
+        .step_by(320)
+        .copied()
+        .zip([F64(3), F64(5), F64(17), F64(257)])
+        .collect();
+    let mut encoded = vec![F64::ZERO; 1 << 19];
+    let mut encoded_odd = vec![F64::ZERO; 1 << 19];
+    for &(position, coefficient) in &terms {
+        encoded[position] += coefficient;
+        encoded[position ^ 4] += coefficient;
+        encoded_odd[position ^ 1] += coefficient;
+        encoded_odd[position ^ 5] += coefficient;
+    }
+    AdditiveNttF64::standard(19).forward_transform_scalar(&mut encoded);
+    AdditiveNttF64::standard(19).forward_transform_scalar(&mut encoded_odd);
+    for start in (0..1 << 17).step_by(4096) {
+        parallel::for_each(4096, |offset| {
+            let query = (1 << 18) + 2 * (start + offset);
+            let mut value = F64(query as u64);
+            let mut factors = roots;
+            for bit in 0..18 {
+                factors[bit] = value * inverses[bit];
+                assert_ne!(factors[bit], F64::ZERO);
+                assert_ne!(factors[bit], F64::ONE);
+                value *= value + roots[bit];
+            }
+            let mut low = [F64::ONE; 256];
+            let mut high = [F64::ONE; 128];
+            for index in 1usize..256 {
+                let bit = index.trailing_zeros() as usize;
+                low[index] = low[index & (index - 1)] * factors[bit + 3];
+            }
+            for index in 1usize..128 {
+                let bit = index.trailing_zeros() as usize;
+                high[index] = high[index & (index - 1)] * factors[bit + 11];
+            }
+            let weight = |position: usize| (F64::ONE + factors[2]) * low[(position >> 3) & 255] * high[position >> 11];
+            let observed = terms.iter().fold(F64::ZERO, |sum, &(position, coefficient)| {
+                sum + coefficient * weight(position)
+            });
+            assert_eq!(observed, encoded[query]);
+            assert_eq!(observed, encoded[query + 1]);
+            assert_eq!(encoded_odd[query], F64(query as u64) * observed);
+            assert_eq!(encoded_odd[query + 1], F64((query + 1) as u64) * observed);
+            let mut pivots = [0u64; 64];
+            let mut rank = 0;
+            for &position in &positions {
+                let mut value = weight(position).0;
+                while value != 0 {
+                    let bit = 63 - value.leading_zeros() as usize;
+                    if pivots[bit] == 0 {
+                        pivots[bit] = value;
+                        rank += 1;
+                        break;
+                    }
+                    value ^= pivots[bit];
+                }
+                if rank == 64 {
+                    break;
+                }
+            }
+            assert_eq!(rank, 64, "cross-parent count source at query {query}");
+        });
+        println!(
+            "Certified cross-parent query rank 64 at {} of 131072 adjacent pairs.",
+            start + 4096
+        );
+    }
+    println!(
+        "Exhaustive cross-parent certificate: every selected query has full rank; child slots zero and one supply independent raw pair directions."
+    );
+}
+
 fn matching_certificate(queries: usize) {
     assert!((1..=1 << 17).contains(&queries));
     let mut input = String::new();
@@ -280,16 +383,7 @@ fn matching_certificate(queries: usize) {
         })
         .collect();
     assert_eq!(kernel_positions.len(), 448);
-    let mut basis: Vec<_> = (0..18).map(|bit| F64(1 << bit)).collect();
-    let mut roots = [F64::ZERO; 18];
-    let mut inverses = roots;
-    for bit in 0..18 {
-        roots[bit] = basis[bit];
-        inverses[bit] = basis[bit].inv();
-        for value in &mut basis[bit + 1..] {
-            *value *= *value + roots[bit];
-        }
-    }
+    let (roots, inverses) = novel_parameters();
     let check_terms: Vec<_> = positions
         .iter()
         .step_by(2032)
@@ -395,10 +489,17 @@ fn matching_certificate(queries: usize) {
 fn main() {
     lean_vm::init_prover_pool();
     let mut arguments = std::env::args().skip(1);
-    if arguments.next().as_deref() == Some("--matching-certificate") {
-        let queries = arguments.next().map_or(1 << 17, |value| value.parse().unwrap());
-        matching_certificate(queries);
-        return;
+    match arguments.next().as_deref() {
+        Some("--matching-certificate") => {
+            let queries = arguments.next().map_or(1 << 17, |value| value.parse().unwrap());
+            matching_certificate(queries);
+            return;
+        }
+        Some("--child-kernel-certificate") => {
+            child_kernel_certificate();
+            return;
+        }
+        _ => {}
     }
     valid_witnesses();
     valid_pointer_witnesses();

@@ -1,0 +1,122 @@
+% !TeX root = ../../main.tex
+\subsection{All twelve GKR children, without a global shuffle}\label{note:zk-flock-children}
+
+\paragraph{Result.} A redesigned local source jointly hides the twelve transmitted final GKR children, all $37$ BLAKE2s terminal claims, the established Flock endpoints and one selected lane-$59$ PCS query pair, below $2^{-155}$. The complete memory envelope and shared bus root join this view below $2^{-151}$. Its $26616$-row core still has an eight-query PCS obstruction, so four additional wider banks are reserved below. They preserve the proved bound and break that invariant. The resulting candidate uses $36856$ padding compressions and $62$ code locations, within unchanged public heights, replacing the previous two metadata libraries. Full PCS privacy and the preceding GKR messages remain open.
+
+\subsubsection{From an interpolated boundary to transmitted children}
+
+At depth $26$, the final two-level GKR reduction has $24$ sumcheck challenges $\zkChildPoint$. It then sends four children per channel. Write their vector as $\zkGkrChildren=(P_t,Q_t,C_t)_{0\le t<4}$, in a fixed public reordering of the wire. Two fresh coins interpolate these children to the three leaf evaluations of Theorem~\ref{thm:zk-flock-leaf-interface}. That theorem does not hide the child vector: adjacent row swaps preserve sibling sums.
+
+Instead, preserve the child's two low physical row bits and exchange rows differing in physical bit two. These are different parents of the same child slot. The pair's equality-weight sum cancels the first coordinate of $\zkChildPoint$, not a child-selector coin. Separate banks for $t=0,1,2,3$ can therefore change all four child coordinates. Every exchange is still between complete valid rows or two labels on the same counted tuple.
+
+\subsubsection{One disjoint, explicit library}
+
+Keep the logical-to-physical permutation $\zkFlockOrder$ and the five general-input rows at logical positions $3\cdot2048+768+i$, $0\le i<5$. In addition to $\zkDenseSupport$, define
+\[
+ \begin{gathered}
+ \zkShortSupport=\{i\in\cube{11}:i_0,\ldots,i_5\text{ arbitrary},\quad i_6+\cdots+i_{10}\le1\},\\
+ |\zkShortSupport|=384,
+ \qquad \zkChildPcSupport=\zkDenseSupport\setminus\{192\}.
+ \end{gathered}
+\]
+All Hamming-weight inequalities are over integers. The table specifies each logical left index: start from the fixed prefix, and insert the bits of $i$ into the listed positions in order. The right index sets the indicated paired bit to one.
+
+\begin{center}
+\small
+\begin{tabular}{@{}lllll@{}}
+\toprule
+Bank & Index set & Fixed prefix & Free bit positions & Paired bit\\
+\midrule
+Operands/frame, $j<8$ & $\zkShortSupport$ & $7\cdot256+2j$ & $4,5,6,7,11,\ldots,17$ & $0$\\
+PC, $t<4$ & $\zkChildPcSupport$ & $3\cdot256+t$ & $3,4,5,6,7,13,11,12,14,\ldots,17$ & $2$\\
+Counts, $t<4$ & $\zkDenseSupport$ & $5\cdot256+t$ & $3,4,5,6,7,11,\ldots,17$ & $2$\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The three sectors are disjoint and avoid the mandatory binary source. All banks remain below logical bank $96$. The omitted PC index $192$ is exactly the collision with the five protected rows, accounting for four omitted pairs. It is outside the original $448$-position support in the displayed PC coordinate order. Physical bits zero, one and two equal their logical counterparts, so every PC/count bank occupies its specified GKR child slot and swaps across parents.
+
+\paragraph{Operand and frame cycles.} For $j<7$, use the two public code locations $1024+4j,1026+4j$, fresh frames, and the original baseline offsets. Change just operand $j$ of the second row to offset $20$. Each next instruction returns to its row's initial state, using control cells $16,17,18$. Bank seven uses one compression code location $1052$ and frames $\gen^{1280+64i}$ and $\gen^{1280+64i+32}$. Independently swap each complete BLAKE2s row pair, leaving returns in place. These are seven independent operand directions and one frame direction; the PC and count changes are masked later.
+
+\paragraph{PC cycles.} In child bank $t$, use code locations $1056+4t,1058+4t$ in a common fresh frame. Both compressions have identical operands and values. Their return controls use $16,17,18$ and $24,25,26$, so distinct return addresses do not conflict. Swap the complete compression rows independently. Each pair changes the corresponding residual $P_t+\gen Q_t$ through the same nonzero bytecode-address coefficient as before, now evaluated at $\zkChildPoint_{16:24}$. It changes no operand or frame terminal value.
+
+\paragraph{Count cycles and the sparse bytecode chain.} For child $t$, use code location $1072+2t$ and repeat the same compression/return cycle twice in a fresh frame for every $i\in\zkDenseSupport$. Independently exchange each of its ten count labels. The nine memory-count differences are $1+\gen$. There are $1280$ pairs, not $4096$: enumerate the dense support by $i=a$ followed by $i=a+2^{8+j}$, for $0\le a<256$, $0\le j<4$. If $n(i)$ is this zero-based enumeration index, the two bytecode labels are $\gen^{2n(i)},\gen^{2n(i)+1}$. They form one complete $2560$-read chain.
+
+These bytecode weights still have the needed geometric form. The low eight bit multipliers are $\gen^{2^{k+1}}$, and the four remaining multipliers are $\gen^{512(j+1)}$. At most one of those four bits is set, giving exactly $\gen^{2n(i)}$. No missing read labels or extra filler rows are assumed. All randomizers preserve individual bus multisets, every count-column product, memory and code images, return rows, and the compression witness at every position.
+
+\subsubsection{The selected query pair needs no random matching}
+
+Fix $x\in\gen^{18}+\subsp_{18}$ and let $N_j(x)=\novel_{2^j}(x)$. For $j<18$, neither $N_j(x)=0$ nor $N_j(x)=1$ is possible: their solution sets are $\subsp_j$ and $\gen^j+\subsp_j$, respectively, both contained in $\subsp_{18}$. Thus the new factor $1+N_2(x)$ never vanishes in this coset.
+
+For an even count-bank left position $s$ with its lowest three physical bits zero, a label exchange at $s,s+4$ contributes the scalar
+\[
+ a_s=(1+\gen)(1+N_2(x))\novel_s(x)
+\]
+to both raw lane values. Child slot one instead supplies $a_s(x,x+1)$. The two directions $(1,1)$ and $(x,x+1)$ have determinant one. On this coset only $\mathsf{cnt\_cv1}$ and $\mathsf{cnt\_out0}$ contribute to the changing part of lane $59$, with equal block weights. Their label choices remain independent. The PC banks have equal changes in these columns and the operand/frame banks change neither, so their raw pair contribution is zero.
+
+The native exhaustive certificate proves that the $1280$ scalars $a_s$ span $\K$ over $\Ftwo$, for every one of the $131072$ adjacent query pairs in the coset. It checks the same sparse differences through the native additive NTT. Therefore child banks zero and one supply the two raw pair directions on fixed full-rank maps, without a permutation, a matching failure term or an honest-query exception. This is still one selected pair, not all pairs simultaneously.
+
+\subsubsection{Joint span and simulation}
+
+\paragraph{The shorter ordinary span.} Write $B$ and $p_d$ for the first-five failure and sixth-dimension tails in \noteref{zk-two-point-span}. The $384$-position support has normalized one-point failure at most
+\[
+ h(d)=\min\left\{1,\left(\frac{|\E|}{|\E|-1}\right)^5 2^{192-6d}\right\},
+ \qquad \zkShortError=B+h(64)+\sum_{d=32}^{63}p_dh(d).
+\]
+This is the same character argument with five extra scalar blocks. Ordinary equality weights cost another $11/|\E|$, and fixed geometric weights cost at most $33/|\E|$ in total. Exact rational arithmetic gives $\zkShortError+33/|\E|<2^{-158}$. The seven operand banks share one ordinary span event; the frame bank uses one weighted event.
+
+\begin{theorem}[Transmitted GKR children and the joint downstream boundary]\label{thm:zk-flock-children-interface}
+Use this library in place of the two preceding metadata libraries, with the same valid-completion, compression-source and memory-reservation assumptions. The joint view consisting of $\zkGkrChildren$, all $37$ BLAKE2s terminal evaluations, the established Flock endpoints and the selected lane-$59$ query pair has a witness-free simulator with error at most
+\[
+ \begin{aligned}
+ &\zkTripleError+2\zkShortError+2\delta_{\mathrm{span}}
+ +\zkDenseError{64}+\zkDenseError{192}\\
+ &\hspace{2em}+\zkDenseError{193}+\zkDenseError{256}
+ +\frac{4355}{2^{192}}<2^{-155}.
+ \end{aligned}
+\]
+The complete memory envelope and shared bus root may also be included, with total error below $2^{-151}$. The interpolated leaf triple is obtained by its actual deterministic postprocessing, not sampled independently of the children.
+\end{theorem}
+\begin{proof}
+Fix compression data, unused memory and all other private choices. First use the seven operand banks and frame bank. Their terminal projections are triangular and cost $2\zkShortError+44/|\E|$, before selectors. All their other contributions will be absorbed below.
+
+For the four PC banks, the common earlier span on the original $448$-position subset costs $\delta_{\mathrm{span}}+12/|\E|$. It makes each residual scalar available. In bank zero, additionally retain the omitted bit at index $192$ as a fixed zero. The dense fixed-disclosure theorem with $193$ retained bits makes its terminal-PC and earlier-residual evaluations jointly uniform, at cost $\zkDenseError{193}$. The other three PC banks can be used first, with bank zero absorbing their terminal-PC contributions. Thus all four child residuals and all nine terminal program/frame coordinates are jointly uniform.
+
+Use the count banks last. At the child point, the dense fixed-disclosure theorem with $64$ retained bits makes the common unweighted evaluation and raw scalar map jointly onto $\E\times\K$, at cost $\zkDenseError{64}$. The query certificate supplies the fixed rank. This event also supplies every ordinary child-count span. The geometric bytecode child span costs $\delta_{\mathrm{span}}+36/|\E|$ on the original subset. In child bank zero, retain the earlier evaluation and raw scalar when masking the terminal count: the dense budgets are $256$ bits for $\mathsf{cnt\_cv1}$ and $192$ for bytecode, costing $\zkDenseError{256}+\zkDenseError{192}+24/|\E|$. The former event already contains the two-point span for the other eight memory counts.
+
+Order child banks two and three first, then bank one, then bank zero; within each bank use $\mathsf{cnt\_cv1}$ last. Bank one masks its raw direction jointly with its earlier count, and bank zero masks the other raw direction jointly with its earlier count and all terminal counts. Every preceding raw or terminal shift is absorbed in these final replacements. The ten earlier count scalars in each child map onto the plane $p+\gen q=0$ through the same rank-two matrix audited previously. Its degree-$20$ minor exception is common to all four children. Combining these planes with the four independent residual uniforms, then discarding the auxiliary count scalars, yields twelve independent child uniforms, nineteen terminal metadata uniforms and two independent raw query uniforms.
+
+Terminal selectors cost $14/|\E|$, by excluding $\{0,1\}$ in logical coordinates $0,1,2,3,8,9,10$. Child selectors cost $6/|\E|$ on the three sector coordinates. The residual coefficient and count minor cost $12/|\E|$ and $20/|\E|$. The complete field ledger is therefore
+\[
+ 44+12+36+24+14+6+12+20=168.
+\]
+Finally replace the eighteen value claims and established Flock endpoints at cost $\zkTripleError+4187/|\E|$. This gives $4187+168=4355$. If no pair is queried, use a fixed auxiliary pair at $\gen^{18}$ and discard its values; selection otherwise depends only on independent honest query coins.
+
+For memory/root composition, first perform the metadata, child and raw-query replacements. Their actual randomizers preserve the shared root and memory envelope exactly. The resulting uniforms are independent of the original framework translation. Apply the unused-memory root/envelope hybrids next, retaining those uniforms and the actual compression-value/Flock interface, and simulate the latter last. The exact added bound is the same as in Theorem~\ref{thm:zk-flock-leaf-interface}. This proves the second assertion without claiming that actual children remain unchanged under memory masking.
+\end{proof}
+
+\paragraph{Capacity and evidence.} The source occupies $8\cdot2\cdot384+4\cdot2\cdot1279+4\cdot2\cdot1280=26616$ complementary rows and the same number of returns, leaving $71688$ general-input positions. There are $54$ code locations. Shared PC and count frames leave at most $186372$ Flock padding frames, or $5963904$ cells, and $25840$ remaining payload slots of size $256$. With \texttt{--full}, \auditref{zk_flock_children_audit.py} enumerates complete valid read chains, checks unchanged bus multisets and products after randomization, and certifies native binary ranks $12224$ for the intermediate count/residual map and $6080$ for the actual child/metadata/raw-pair map. Its default run checks the exact bound, placement and exhaustive native query certificate. Sampled extension-field ranks only check the algebra; the displayed span proof supplies its uniform probability bound.
+
+\subsubsection{An eight-query obstruction and a compatible wider source}
+
+\begin{proposition}[The core still preserves an exposed block sum]\label{prop:zk-children-eight-floor}
+Every private metadata choice in the $26616$-row core preserves all aligned eight-row sums in lane $59$. For the fixed execution-preserving completion and private alias pair of Theorem~\ref{thm:zk-flock-pair-floor}, common-simulator error therefore exceeds $2^{-103}$ and $2^{-118}$ at rates one and two respectively.
+\end{proposition}
+\begin{proof}
+All core exchanges differ only in physical bit zero or two, hence stay in one aligned block of eight. Every other compression-value choice changes none of the lane's count columns, and unused-memory masks occupy other lanes. The same private counted rows at logical bank $96$ remain disjoint from this source. Its collapse $\zkBlockCollapse{8}$ has the same nonzero degree $798720$ for the fixed completion. Apply the earlier exact honest-query bound. As there, a different count-normalized completion that changes these block sums is not excluded.
+\end{proof}
+
+Thus the core's positive child theorem is not evidence that its full PCS view meets the target. Add four independent count banks in the unused sector $6$, one per child $t$. Their left logical prefix is $6\cdot256+t$, their free positions are $(2,3,4,5,6,11,\ldots,17)$ with index set $\zkDenseSupport$, and the paired bit is logical seven, or physical three. Use code locations $1080+2t$ and the same repeated-frame, complete-label-chain template as the other count banks. Every pair now crosses an aligned eight-row block, without changing the child slot. Independently swap each of its ten count labels.
+
+\begin{corollary}[Wider banks preserve the proved boundary]\label{cor:zk-children-wide-extension}
+Theorem~\ref{thm:zk-flock-children-interface}, including its memory/root extension, holds with the same bound after adding these four banks. The enlarged source no longer preserves $\zkBlockCollapse{8}$ on lane $59$.
+\end{corollary}
+\begin{proof}
+Condition on all added label choices. Their code, frames and positions are disjoint, and their compression values are fixed at each position. They are an allowed fixed complement for the core's uniform proof. Average over them. Memory/root composition uses the same multiset invariance. For an added $\mathsf{cnt\_cv1}$ exchange at $s,s+8$, the collapsed difference is $(1+\gen)(1+N_3(x))\novel_{s-(s\bmod8)}(x)$. It is nonzero for every $x\in\gen^{18}+\subsp_{18}$, so the previous invariant is genuinely broken.
+\end{proof}
+
+The extra $10240$ compressions and their returns use eight code locations. The enlarged source occupies $36856$ complementary compression positions, leaving $61448$ general-input positions, and uses $62$ code locations. Shared frames leave at most $181252$ Flock padding frames, or $5800064$ cells, and $26480$ remaining payload slots of size $256$. The audit's \texttt{--full --wide} option checks this larger allocation and all its read chains and randomizers. Breaking the invariant is not yet a quantitative simulator for eight query values. All pairs still stay within aligned blocks of sixteen; the earlier sixteen-query estimate alone does not rule out the target, but does not establish it either.
+
+\paragraph{Next query interface.} On a fixed eight-point encoder coset inside $\gen^{18}+\subsp_{18}$, interpolation gives eight low-bit coefficient sums. For each child $t$, the core changes its two coefficients by the same scalar, while the wider bank changes their sum. This gives a concrete four-kernel/four-quotient route to a joint eight-value simulator. It requires the core span with one retained base-field coordinate in every child bank, and an exhaustive rank certificate for the wider quotient maps. These must be proved jointly with the current child/terminal interface before replacing the two-query theorem by an eight-query claim.
+
+\paragraph{Boundary.} These are twelve actual wire scalars, not twelve extra independent sources. The preceding $24$ final-layer sumcheck rounds, earlier GKR layers and count root remain unproved jointly. Cross-parent exchanges preserve the shared product root but generally change internal product-tree nodes, so no preceding-message invariance is assumed. Common valid completion, table coefficients, middle Flock rounds, other PCS queries and authentication still require their own joint proofs.
