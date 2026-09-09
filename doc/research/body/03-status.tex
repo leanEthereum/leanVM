@@ -17,6 +17,8 @@ The following are the main entry points, not pieces of an already composable con
 
 \paragraph{PCS: restricted algebraic openings.} \noteref{zk-pcs-padding} hides a complete algebraic WHIR opening for one independent random-point claim, assuming freely random padding coefficients. \noteref{zk-stacked-padding} extends this to one common Frobenius orbit. Neither covers the full actual stacked claim family jointly with the VM reductions, nor realizes every required coefficient with valid cycles. Commitments and Fiat-Shamir are excluded.
 
+\paragraph{Authentication feasibility.} \noteref{zk-memory-leaf-entropy} proves that ordinary unopened initial leaves retain at least $384$ bits of conditional entropy after the memory envelope, outside a common event below $2^{-161}$. The averaged probability of any coinciding initial input images is below $2^{-909}$. The entropy statement does not yet survive conditioning on the full GKR transcript and is not a hash-simulation theorem. The two low encoder points remain a separate opening obligation.
+
 
 \subsection{How the local results may be used}\label{sec:zk-composition}
 

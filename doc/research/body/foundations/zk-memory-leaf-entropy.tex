@@ -1,0 +1,45 @@
+% !TeX root = ../../main.tex
+\subsection{Randomness left in an unopened initial leaf}\label{note:zk-memory-leaf-entropy}
+
+\paragraph{Result and boundary.} The small-frame bank leaves at least $384$ bits of conditional entropy in each ordinary unopened initial PCS leaf, even after revealing the entire three-limb memory envelope. The two encoder points $0,1$ are exceptional because that envelope explicitly retains their coefficients. This is an authentication-feasibility lemma, not a Merkle simulation theorem: it does not condition on the nonlinear fingerprint GKR transcript or the hashes themselves. No random-oracle assumption is used in this lemma.
+
+Use the reservation of \noteref{zk-memory-frames}, a fixed initial query set $\qset$ of size at most $q$, and a query domain of size $D$. Let $\zkMemoryAux$ denote the three memory envelopes, all honest coins and fixed non-memory-value data. Real accessed words are arbitrary fixed constants. Write $\zkInitialImage(x)$ for the complete raw initial leaf image at $x$, with known zero lanes reconstructed. It contains each memory-value limb's eight base-field evaluations. The query list is independent of the common memory point and the first three fold coins.
+
+\begin{theorem}[Conditional entropy of hidden leaf images]\label{thm:zk-memory-leaf-entropy}
+Assume $\zkPadBlock>q+3$ and $\zkLaneLen\ge8\zkPadBlock$. Except on a common coin event of probability at most
+\[
+ \zkLeafError\le\frac{D(\zkLaneLog+3)}{|\E|},
+\]
+the following holds simultaneously for every $x\notin\qset\cup\{0,1\}$ and every attainable value of $\zkMemoryAux$: the conditional law of $\zkInitialImage(x)$ is uniform on an affine base-field space of dimension at least six. In particular, every individual image has conditional probability at most $|\K|^{-6}=2^{-384}$. One may choose the index $x$ after seeing $\zkMemoryAux$.
+\end{theorem}
+\begin{proof}
+Apply Lemma~\ref{lem:zk-pinned-envelope-prefix} to the augmented query set $\qset\cup\{x\}$. Its size is at most $q+1$, and the stricter prefix inequality meets its hypothesis. Off an event of probability at most $(\zkLaneLog+3)/|\E|$, there exists a prefix vector $v$ that vanishes at every old query, has zero common-point MLE, preserves the first two coefficients, and satisfies $\Enc(v)[x]=1$.
+
+Let $C$ be the three-by-five base-field matrix of the first-three-fold weights on the fully random memory segments. Its kernel has dimension at least two for every choice of fold coins. For any $u\in\ker C$, change a value limb in these segments by $\Delta f_{l,j}=u_l v_j$. This preserves every component of its envelope, including the whole first-folded vector, but changes the five corresponding entries of the raw leaf by $u$. Two independent kernel vectors give two independent base-field directions. The three limbs supply six independent directions in disjoint leaf coordinates.
+
+All retained observations are base-field linear in the independent uniform unused-word masks. Every nonempty conditional fiber is therefore uniform on an affine space. The displayed directions lie in its kernel and have six independent leaf images, proving the pointwise atom bound without conditioning on a rare transcript. A union bound over all domain indices gives the common exceptional event. On that event's complement the statement holds in every fiber and at every index, so choosing an index from the retained view does not change the bound.
+\end{proof}
+
+\paragraph{No additional randomness is required.} These directions use only the existing five fully random memory segments; their prefix support leaves all public pins fixed. For $q\le228$, $\zkPadBlock=256$, $\mu\le28$ and inverse-rate log at most four, we have $D\le2^{26}$ and $\zkLaneLog\le22$. Consequently $\zkLeafError<2^{-161}$. A list of $T$ raw-image guesses, chosen using $\zkMemoryAux$ and specifying the target index for each guess, succeeds with probability at most $\zkLeafError+T2^{-384}$. If a guess may match any hidden index, the corresponding union bound is $\zkLeafError+TD2^{-384}$. These are bounds on guesses from the stated view, not on an adversary additionally supplied a hash oracle or the omitted GKR messages.
+
+\paragraph{Adding the shared bus root.} One may adjoin an arbitrary extra scalar in $\E$, including the actual shared bus root, at a factor $|\E|$ in the averaged guessing bound. Indeed, for each possible scalar value, fix the guesses it selects and drop the event that the scalar equals that value; the original atom bound applies, and summing costs at most $|\E|$. Thus $T$ guesses at unspecified hidden indices, after the actual root and $\zkMemoryAux$, succeed with probability at most
+\[
+ \zkLeafError+TD2^{-192}<2^{-133}
+ \qquad\text{if }T\le2^{32},\quad D\le2^{26}.
+\]
+The count root adds no leakage here because the counts are fixed in $\zkMemoryAux$. The displayed bound is averaged over the extra scalar, not a claim of $192$ bits in every conditional fiber. It does not extend to the whole GKR transcript by simply repeating the argument: two arbitrary extension scalars already exhaust this generic bound.
+
+\begin{corollary}[Distinct initial input images]\label{cor:zk-memory-leaf-collisions}
+Over the original mask distribution, the probability that any two distinct domain indices have equal raw initial images is at most
+\[
+ \binom D2|\K|^{-15}<2^{-909}.
+\]
+This bound includes $0,1$, uses the same concrete range and has no exceptional coin event. It is an averaged input-equality bound, not a pointwise conditional bound after every transcript, or a collision-resistance claim about the hashes.
+\end{corollary}
+\begin{proof}
+Fix distinct $x,y$. In each of the five fully random memory segments, the coefficient of index one in each of its three limbs is an independent uniform base-field value. Its coefficient in the difference of the two encoded evaluations is $\novel_1(x)+\novel_1(y)=x+y\ne0$. Conditional on every other mask, the corresponding fifteen leaf-coordinate differences are independent uniforms. Equality of the complete images requires all fifteen to vanish, with probability $|\K|^{-15}$. Union bound over all pairs. Since the event concerns the original images, its averaged probability can be charged in a larger joint experiment without conditioning it on a selected transcript.
+\end{proof}
+
+\paragraph{What remains for authentication.} Later PCS trees are deterministic functions of the retained first-folded vectors, fixed other columns and coins, so a memory-envelope coupling preserves those trees and their authentication data exactly, even for the concrete hash. The unresolved memory-dependent tree is the initial one. Its two exceptional leaves must either be jointly simulated or made public by a valid common reservation; the current definition does not hide them by decree. For the other leaves, the theorem supplies a concrete entropy margin, but a random-oracle authentication lemma would still have to specify oracle access, prior queries, consistency of internal nodes and the simulator's permissions. Conditioning on the full GKR view could consume these directions; $384$ bits cannot simply be carried into that larger view without proof. The separate fixed-BLAKE2s and Fiat-Shamir questions remain as stated in P6.
+
+\paragraph{Evidence.} \auditref{zk_memory_frames_audit.py} constructs the hidden-leaf directions over the native fields, checks that they annihilate all algebraic opening rows, certifies their six-dimensional leaf image, checks the independent index-one differences and verifies both exact rational inequalities. It does not audit a hash simulator or estimate tiny error probabilities by sampling.

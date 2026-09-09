@@ -208,6 +208,58 @@ def joint_root_bound():
     print("Shared root plus the three-limb memory envelope: exact combined bound below 2^-151 using existing reserved words.", flush=True)
 
 
+def unopened_leaf_certificate(field):
+    audit = Audit(field, 9, (3, 2), (1, 1), seed=17, query_mode="prefix").run()
+    full, length, prefix = list(range(3, 8)), 64, 40
+    alpha = field.eq(audit.challenges[:3])
+    lane_rows = [[field.coords(alpha[lane])[j] for lane in full] for j in range(3)]
+    lane_inverse = RightInverse(field, lane_rows)
+    pivots = field.pivots(lane_rows)
+    lane_kernel = []
+    for free in range(5):
+        if free not in pivots:
+            vector = lane_inverse.solve([row[free] for row in lane_rows])
+            vector[free] ^= 1
+            assert all(kdot(field, row, vector) == 0 for row in lane_rows)
+            lane_kernel.append(vector)
+    assert len(field.pivots(lane_kernel)) == 2
+
+    queries = set(audit.query_points[0]) - {0, 1}
+    rows = [list(field.novel(6, point)) for point in sorted(queries)]
+    rows += list(zip(*(field.coords(value) for value in field.eq(audit.initial_point[3:]))))
+    for left, right in ((2, 3), (7, 8), (19, 63), (64, 127)):
+        assert left not in queries | {0, 1} and right not in queries | {0, 1}
+        assert field.novel(6, left)[1] ^ field.novel(6, right)[1] == left ^ right
+        augmented = rows + [field.novel(6, left), field.novel(6, right)]
+        inverse = RightInverse(field, [row[2:prefix] for row in augmented])
+        column = [0, 0] + inverse.solve([0] * len(rows) + [1, 0]) + [0] * (length - prefix)
+        leaf_basis = []
+        for lane in lane_kernel:
+            direction = [0] * (8 * length)
+            for index, coefficient in zip(full, lane):
+                direction[index * length : (index + 1) * length] = [field.kmul(coefficient, value) for value in column]
+            assert all(edot(field, row, direction) == 0 for row in audit.rows)
+            at_left = [kdot(field, field.novel(6, left), direction[i * length : (i + 1) * length]) for i in range(8)]
+            at_right = [kdot(field, field.novel(6, right), direction[i * length : (i + 1) * length]) for i in range(8)]
+            assert at_left == [0] * 3 + lane and not any(at_right)
+            for limb in range(3):
+                image = [0] * 24
+                image[limb * 8 : (limb + 1) * 8] = at_left
+                leaf_basis.append(image)
+        assert len(field.pivots(leaf_basis)) == 6
+
+    domain, extension = 1 << 26, 1 << 192
+    prefix_error = Fraction(25, extension)
+    assert domain * prefix_error < Fraction(1, 1 << 161)
+    assert domain * prefix_error + (1 << 32) * domain * Fraction(1, extension) < Fraction(1, 1 << 133)
+    assert domain * (domain - 1) // 2 * Fraction(1, 1 << 960) < Fraction(1, 1 << 909)
+    assert 256 > 228 + 4
+    print(
+        "Unopened leaves: six independent base-field directions preserve the opening; uniform-point and averaged input-equality bounds are below 2^-161 and 2^-909.",
+        flush=True,
+    )
+
+
 def actual_lane_schedule_certificate(field):
     log_stack, length, memory = 11, 32, 256
     offsets = [lane * length for lane in (16, 24, 32)]
@@ -266,4 +318,5 @@ if __name__ == "__main__":
     frame_reservations(tower, reference)
     root_kernel_certificate(tower)
     joint_root_bound()
+    unopened_leaf_certificate(tower)
     actual_lane_schedule_certificate(tower)
