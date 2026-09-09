@@ -29,9 +29,8 @@ mod eval;
 mod mem;
 use call::ret_binding;
 use eval::field_pow;
-/// [`FnLower::specialized_body`]'s pieces: runtime param names, runtime args,
-/// the `Const`-substituted body, and the callee's return arity.
-type SpecializedBody = (Vec<String>, Vec<Expr>, Vec<Stmt>, usize);
+/// Runtime parameter/argument pairs, the `Const`-substituted body, and return arity.
+type SpecializedBody<'a> = (Vec<(String, &'a Expr)>, Vec<Stmt>, usize);
 
 /// A value equal to `pointer(base)·g^exp`, or the pure constant `g^exp` when
 /// `base` is `None`. Heap-address arithmetic (`ptr·gᵏ`, and constant g-power
@@ -626,7 +625,7 @@ impl FnLower<'_> {
         // two-instruction trampoline per arm. Const args select specializations;
         // see `lower_dispatched_call` for the shared argument/return layout checks.
         if arms.iter().all(|a| matches!(a, Expr::Call(..))) {
-            let specialized: Vec<(String, Vec<Expr>)> = arms
+            let specialized: Vec<(String, Vec<&Expr>)> = arms
                 .iter()
                 .map(|a| {
                     let Expr::Call(f, cargs) = a else { unreachable!() };
@@ -1241,7 +1240,6 @@ impl FnLower<'_> {
                         // real call) bind the dst cell. Embedded calls do NOT
                         // take this path: `expr` materializes theirs
                         // ([`Self::take_inline_ret_cell`]).
-                        self.inline_stack_ret = None;
                         let o = self.call(cf, cargs, 1)[0];
                         let b = ret_binding(self.inline_stack_ret.take().and_then(|b| b.into_iter().next()), o);
                         self.rebind(name, b);

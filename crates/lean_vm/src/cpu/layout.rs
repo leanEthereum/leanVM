@@ -94,9 +94,8 @@ pub(crate) struct Witness {
     pub(crate) virt: Vec<(usize, zk_alloc::ArenaVec<F64>)>,
     pub(crate) layout: Layout,
     pub(crate) log_mem: usize,
-    /// `Option` lets `prove` take and free the large reduction-only buffers
-    /// immediately after reduction, before the mixed PCS opening.
-    pub(crate) flock_reduction: Option<crate::hash_flock::PreparedReductionWitness>,
+    /// Freed immediately after reduction, before the mixed PCS opening.
+    pub(crate) flock_reduction: crate::hash_flock::PreparedReductionWitness,
 }
 
 impl Witness {
@@ -553,7 +552,7 @@ impl Program {
             virt,
             layout: l,
             log_mem,
-            flock_reduction: Some(flock_reduction),
+            flock_reduction,
         }
     }
 }

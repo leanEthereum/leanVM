@@ -125,8 +125,8 @@ pub(super) fn parse_gpow_bound(s: &str) -> Result<u64, String> {
 /// Apply identifier-level **placeholder** replacements to source text before
 /// parsing: each maximal run of alphanumeric characters and underscores that
 /// equals a key of `replacements` is replaced by its value; other text,
-/// including substrings of longer identifiers, is untouched. Mirrors leanVM's
-/// `CompilationFlags::replacements`. An empty map returns the source unchanged.
+/// including substrings of longer identifiers, is untouched. An empty map
+/// returns the source unchanged.
 pub(super) fn apply_replacements(src: &str, replacements: &BTreeMap<String, String>) -> String {
     if replacements.is_empty() {
         return src.to_string();

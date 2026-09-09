@@ -421,25 +421,6 @@ fn xi_form_pows(xi: F192) -> [F192; 3] {
     [pows[base], pows[base + 1], pows[base + 2]]
 }
 
-/// Lift each table's zerocheck evals (at its point `chi`) to global column claims.
-/// The batch carries every committed column of a table, so eval `c` is local
-/// column `c`; these are the ONLY claims those columns raise, the bus having been
-/// settled inside the batch.
-fn constraint_claims(table_claims: &[constraints::Claims]) -> Vec<ColumnClaim> {
-    let sch = schema();
-    let mut v = Vec::new();
-    for (t, table) in tables::tables().iter().enumerate() {
-        for c in 0..table.n_committed_columns() {
-            v.push(ColumnClaim {
-                col: sch.base[t] + c,
-                point: table_claims[t].chi.clone(),
-                value: table_claims[t].evals[c],
-            });
-        }
-    }
-    v
-}
-
 /// If `col` is a BLAKE2s **value** column (global index), its `q_flock` packed slot.
 /// These columns are virtual (uncommitted): their memory-bus evaluation claims
 /// are re-routed to `q_flock` slot evaluations, which is the whole binding: the
@@ -544,7 +525,7 @@ pub fn prove(program: &Program, public_input: [F192; 2], log_inv_rate: usize) ->
     let n_blake2s_warm = exec.trace.blake2s.len().max(1);
     std::thread::spawn(move || crate::hash_flock::warm_setup(n_blake2s_warm));
     let cycles = exec.cycles;
-    let mut w = crate::stage!("Build witness", || program.build(&exec));
+    let w = crate::stage!("Build witness", || program.build(&exec));
     let counts = w.layout.taus.map(|t| 1usize << t);
     let committed_size = w.committed_size();
     // The public statement (program digest + input) seeds the transcript, so
@@ -626,10 +607,7 @@ pub fn prove(program: &Program, public_input: [F192; 2], log_inv_rate: usize) ->
     // validity claim on the committed `q_flock`, discharged by the PCS below in
     // the SAME WHIR as every leanVM point claim (the point claims become the
     // opener's `point_claims`).
-    let flock_reduction = w
-        .flock_reduction
-        .take()
-        .expect("prepared flock reduction witness is present");
+    let flock_reduction = w.flock_reduction;
     let reduced = crate::stage!("Flock reduction", || { flock_reduction.prove(&mut ps) });
     let n_blocks = flock_reduction.n_blocks();
     drop(flock_reduction);
@@ -661,7 +639,17 @@ fn finish_claims(
     pi_limbs: [F192; 3],
 ) -> Vec<pcs::SlotClaim> {
     let mut claims = bus_claims;
-    claims.extend(constraint_claims(table_claims));
+    let sch = schema();
+    claims.reserve(sch.n - N_SHARED);
+    for (t, table) in tables::tables().iter().enumerate() {
+        for c in 0..table.n_committed_columns() {
+            claims.push(ColumnClaim {
+                col: sch.base[t] + c,
+                point: table_claims[t].chi.clone(),
+                value: table_claims[t].evals[c],
+            });
+        }
+    }
     claims.extend(bind_pi_claim(r_pi, &l.placements, pi_limbs));
     slot_claims(l, claims)
 }

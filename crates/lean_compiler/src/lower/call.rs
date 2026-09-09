@@ -152,7 +152,7 @@ impl FnLower<'_> {
     /// dispatch jump straight into the selected entry, which returns to the join.
     /// Each taken arm is then just the trampoline's `SET entry; JUMP`: no
     /// per-arm frame setup, call, or return jump.
-    pub(super) fn lower_dispatched_call(&mut self, targets: &[Expr], x: &Expr, callees: &[String], rt_args: &[Expr]) {
+    pub(super) fn lower_dispatched_call(&mut self, targets: &[Expr], x: &Expr, callees: &[String], rt_args: &[&Expr]) {
         // The arms share ONE frame, so they must share one argument layout too:
         // a `StackBuf` parameter in one callee and a scalar in another at the
         // same position would put the return area in two places. The arity check
@@ -280,7 +280,7 @@ impl FnLower<'_> {
         if !self.defs.get(callee).is_some_and(|d| d.inline) {
             return false;
         }
-        let (params, rt_args, body, n_ret) = self
+        let (params, body, n_ret) = self
             .specialized_body(callee, args)
             .unwrap_or_else(|| self.fail(format!("`@inline {callee}`: bad arity or unresolved Const argument")));
         if n_ret != dsts.len() {
@@ -289,8 +289,8 @@ impl FnLower<'_> {
                 dsts.len()
             ))
         };
-        if !(body_inlinable(&body)) {
-            self.fail(format!("`@inline {callee}` must be a single tail `return` with only builtin or @inline calls, and no loop/match"))
+        if !body_inlinable(&body) {
+            self.fail(format!("`@inline {callee}` requires one tail `return`, with no nested returns, tuple assignments, mul_range loops, or match"))
         };
         if self.inline_calls.iter().any(|f| f == callee) {
             self.fail(format!(
@@ -305,7 +305,7 @@ impl FnLower<'_> {
         // `self_fp`, and range-check bounds stay the caller's: the inlined code
         // runs in the caller's frame, so they fit.
         let mut binds: Vec<(String, Binding)> = Vec::new();
-        for (p, a) in params.into_iter().zip(&rt_args) {
+        for (p, a) in params {
             let b = if let Some((base, size)) = self.stack_of(a) {
                 Binding::Stack(base, size)
             } else if let Some(ga) = self.gaddr_of(a) {
@@ -408,12 +408,12 @@ impl FnLower<'_> {
     /// arguments (literals, `GEN ** k`, or literal-bound names) substitute into a
     /// copy of the callee, queued once per distinct constant tuple and named
     /// `callee__L5_G3`-style, and only the runtime arguments remain.
-    pub(super) fn specialize(&mut self, callee: &str, args: &[Expr]) -> (String, Vec<Expr>) {
+    pub(super) fn specialize<'a>(&mut self, callee: &str, args: &'a [Expr]) -> (String, Vec<&'a Expr>) {
         let Some(def) = self.defs.get(callee).copied() else {
-            return (callee.to_string(), args.to_vec()); // loop helpers, unknown names
+            return (callee.to_string(), args.iter().collect()); // loop helpers, unknown names
         };
         if !def.has_const_params() {
-            return (callee.to_string(), args.to_vec());
+            return (callee.to_string(), args.iter().collect());
         }
         if args.len() != def.params.len() {
             self.fail(format!("call to `{callee}`: wrong arity"))
@@ -423,7 +423,7 @@ impl FnLower<'_> {
         for (p, a) in def.params.iter().zip(args) {
             if p.kind != ParamKind::Const {
                 rt_params.push(p.clone());
-                rt_args.push(a.clone());
+                rt_args.push(a);
                 continue;
             }
             let c = self.const_arg(a).unwrap_or_else(|| {
@@ -438,15 +438,16 @@ impl FnLower<'_> {
                 Expr::GPow(k) => format!("_G{k}"),
                 _ => unreachable!(),
             });
-            substs.push((p.name.clone(), c));
+            substs.push((p.name.as_str(), c));
         }
         let name = format!("{callee}_{tag}");
         if !self.queue.iter().any(|f| f.name == name) {
             if self.queue.len() >= 10_000 {
                 self.fail("Const specialization explosion (recursive constants?)")
             };
-            let mut body = def.body.clone();
-            for (p, c) in &substs {
+            let ((p, c), rest) = substs.split_first().expect("callee has Const parameters");
+            let mut body = subst_stmts(&def.body, p, c);
+            for (p, c) in rest {
                 body = subst_stmts(&body, p, c);
             }
             self.queue.push(Func {
@@ -534,26 +535,25 @@ impl FnLower<'_> {
         }
     }
 
-    /// The runtime params, runtime args, and `Const`-substituted body of a call
+    /// The runtime parameter/argument pairs and `Const`-substituted body of a call
     /// to a user function: the ingredients for inlining. `None` for a builtin or
     /// unknown callee, an arity mismatch, or an unresolved `Const` argument.
-    pub(super) fn specialized_body(&self, callee: &str, args: &[Expr]) -> Option<SpecializedBody> {
+    pub(super) fn specialized_body<'a>(&self, callee: &str, args: &'a [Expr]) -> Option<SpecializedBody<'a>> {
         let def = self.defs.get(callee)?;
         if args.len() != def.params.len() {
             return None;
         }
         let mut body = def.body.clone();
-        let (mut rt_params, mut rt_args) = (Vec::new(), Vec::new());
+        let mut params = Vec::new();
         for (p, a) in def.params.iter().zip(args) {
             if p.kind != ParamKind::Const {
-                rt_params.push(p.name.clone());
-                rt_args.push(a.clone());
+                params.push((p.name.clone(), a));
                 continue;
             }
             let c = self.const_arg(a)?;
             body = subst_stmts(&body, &p.name, &c);
         }
-        Some((rt_params, rt_args, body, def.return_shapes.len()))
+        Some((params, body, def.return_shapes.len()))
     }
 
     /// Original definitions take precedence over generated functions in the queue.

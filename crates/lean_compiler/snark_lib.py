@@ -219,8 +219,8 @@ def blake2s(
     For a longer message, drive the blocks yourself. `counter` is the CUMULATIVE
     byte count through this block (`64 * whole_blocks_before + bytes_in_this_block`)
     and `final=1` marks the last block; `cv` carries the previous block's output
-    and requires `counter`, since a chained block is never the default one-block
-    hash. Setting any of `counter`, `final` or `last_node` makes `final` default
+    and requires one of `counter`, `final`, `last_node` or `md`. Setting any of
+    `counter`, `final` or `last_node` makes `final` default
     to 0, so a single short block needs `counter=<len>, final=1`. Bytes past the
     block's real length must be zero-filled by the program. `last_node` is
     BLAKE2s's tree-mode `f1` and is 0 everywhere here.

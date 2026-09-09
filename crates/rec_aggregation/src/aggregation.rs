@@ -1274,10 +1274,10 @@ fn aggregate_deferred_claims(
 
     drop(_span);
     let hints = vec![
-        ("bc_sumcheck_msgs".to_string(), bscr),
-        ("mat_sumcheck_msgs".to_string(), mscr),
-        ("bc_star_hint".to_string(), vec![v_bc]),
-        ("mat_stars_hint".to_string(), vec![v_a, v_b]),
+        ("bc_sumcheck_msgs", bscr),
+        ("mat_sumcheck_msgs", mscr),
+        ("bc_star_hint", vec![v_bc]),
+        ("mat_stars_hint", vec![v_a, v_b]),
     ];
     (
         hints,
@@ -1560,7 +1560,7 @@ fn gen_verify(
     for (compact, &global) in committed_globals.iter().enumerate() {
         compact_col[global] = compact;
     }
-    let mut col_order = committed_globals.clone();
+    let mut col_order = committed_globals;
     col_order.sort_by_key(|&global| layout.placements[global].offset);
     let col_sort_order: Vec<F192> = col_order
         .iter()
@@ -1619,13 +1619,13 @@ fn gen_verify(
         matrix_a_coefficient: lc_alpha,
         skip_point: zc_z,
         zerocheck_row_point: zchi[..lcrounds].to_vec(),
-        lincheck_round_point: lrr.to_vec(),
-        lincheck_terminal_values: lcz.to_vec(),
+        lincheck_round_point: summary.lc_claim.r_rounds,
+        lincheck_terminal_values: summary.lc_claim.s_hat_v,
         matrix_claim: matpart,
     };
 
     let hints = vec![
-        ("stream".to_string(), {
+        ("stream", {
             // The guest replays the WHIR opening off the same stream the native
             // verifier reads: every transmitted scalar (sumcheck messages, level
             // roots, OOD claims, grind nonces, `yr`) is already there in protocol
@@ -1642,31 +1642,28 @@ fn gen_verify(
             stream.resize(STREAM_CAP, F192::ZERO);
             stream
         }),
-        ("bytecode_val".to_string(), bcv),
-        ("matpart".to_string(), vec![matpart]),
-        ("merkle_leaf_rows".to_string(), lrows_flat),
-        ("merkle_paths".to_string(), lpaths_flat),
+        ("bytecode_val", bcv),
+        ("matpart", vec![matpart]),
+        ("merkle_leaf_rows", lrows_flat),
+        ("merkle_paths", lpaths_flat),
         // per-claim overlap count, for the exact length pin: nover = the
         // amount by which the claim's total vars exceed the fold rounds.
         (
-            "claim_nover".to_string(),
+            "claim_nover",
             nover_v.iter().map(|&n| F192::new(g_pow(n).0, 0, 0)).collect(),
         ),
         // the pi claim's low dimension is min(log_mem, lenris); certify it as
         // a min (<= both, == one) so pi is pinned like every other claim.
-        (
-            "pi_cplen".to_string(),
-            vec![F192::new(g_pow(log_mem.min(lenris)).0, 0, 0)],
-        ),
+        ("pi_cplen", vec![F192::new(g_pow(log_mem.min(lenris)).0, 0, 0)]),
         // the table sumcheck's round count: max_t tau_t, certified in-guest as a
         // maximum (one of the taus, and dominating them all).
         (
-            "zc_tau_max".to_string(),
+            "zc_tau_max",
             vec![F192::new(g_pow(*taus.iter().max().unwrap()).0, 0, 0)],
         ),
-        ("rs_nover".to_string(), vec![F192::new(g_pow(rs_nover).0, 0, 0)]),
-        ("col_sort_order".to_string(), col_sort_order),
-        ("sort_order".to_string(), sort_order),
+        ("rs_nover", vec![F192::new(g_pow(rs_nover).0, 0, 0)]),
+        ("col_sort_order", col_sort_order),
+        ("sort_order", sort_order),
     ];
     Ok((hints, deferred))
 }
@@ -1685,7 +1682,7 @@ const _: () = assert!(MU_MIN >= lean_vm::pcs::MIN_MU);
 const MU_CAP: usize = 40;
 const STREAM_CAP: usize = 8192;
 /// One entry per named hint stream, for a single sub-proof.
-type SubHints = Vec<(String, Vec<F192>)>;
+type SubHints = Vec<(&'static str, Vec<F192>)>;
 
 /// One `hint_witness` stream: a name and its entries, in the order the guest
 /// pops them.
@@ -2283,7 +2280,7 @@ pub(crate) fn aggregate_tampered(
         hints.push("child_da_count", vec![count(child.da_roots.len())]);
         let (sub_hints, defer) = gen_verify(guest, pi, summary)?;
         for (name, entry) in sub_hints {
-            hints.push(&name, entry);
+            hints.push(name, entry);
         }
         subs.push(defer);
         carried.push(&child.defer);
@@ -2302,7 +2299,7 @@ pub(crate) fn aggregate_tampered(
         let _span = tracing::info_span!("Batch deferred claims").entered();
         let (agg_hints, reduced) = aggregate_deferred_claims(&subs, &carried);
         for (name, entry) in agg_hints {
-            hints.push(&name, entry);
+            hints.push(name, entry);
         }
         reduced
     };
@@ -2931,15 +2928,14 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
         ps("LIG_ROWS_OFF", flat(&|c| c.row_offsets.clone()));
         ps("LIG_PATHS_OFF", flat(&|c| c.path_offsets.clone()));
         ps("LIG_VANISH_OFF", flat(&|c| c.vanish_offsets.clone()));
-        let mut svk2 = Vec::new();
-        let mut ivk2 = Vec::new();
+        let mut svk2 = Vec::with_capacity(cands.len() * maxsvk);
+        let mut ivk2 = Vec::with_capacity(cands.len() * maxsvk);
         for candidate in &cands {
-            let mut values = candidate.vanish_values.clone();
-            let mut inverses = candidate.vanish_inverses.clone();
-            values.resize(maxsvk, F192::ZERO);
-            inverses.resize(maxsvk, F192::ZERO);
-            svk2.extend(values);
-            ivk2.extend(inverses);
+            let padded_len = svk2.len() + maxsvk;
+            svk2.extend_from_slice(&candidate.vanish_values);
+            ivk2.extend_from_slice(&candidate.vanish_inverses);
+            svk2.resize(padded_len, F192::ZERO);
+            ivk2.resize(padded_len, F192::ZERO);
         }
         ps("LIG_VANISH_VALS", flds(&svk2));
         ps("LIG_VANISH_INVS", flds(&ivk2));
