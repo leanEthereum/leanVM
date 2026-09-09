@@ -1,7 +1,7 @@
 % !TeX root = ../../main.tex
 \subsection{Two PCS queries defeat block-local metadata swaps}\label{note:zk-flock-pair-opening}
 
-\paragraph{Conclusion.} The terminal theorem of \noteref{zk-flock-columns} is valid, but its adjacent-swap source is not sufficient for full ZK. Two initial PCS queries cancel its metadata randomness, giving simulator-error floors above $2^{-10},2^{-13},2^{-15},2^{-17}$ at the four supported rates. Adding a globally shuffled equal-compression library still fails: equality between its memory-count columns gives floors above $2^{-15},2^{-19},2^{-22},2^{-25}$. Independent valid counter-label swaps before the shuffle repair the affected pair of lane-$59$ values below $2^{-160}$, using an exhaustive finite-field certificate for every pair in the affected coset. The established terminal theorem survives. The full query vector and its conditional law remain open.
+\paragraph{Conclusion.} Two initial PCS queries defeat the original adjacent metadata swaps. Whole-row shuffling alone retains a second leak through equal count columns. Independent valid counter-label swaps before the shuffle repair the affected pair of lane-$59$ values below $2^{-160}$. The fixed-disclosure span theorem now composes that pair with all $37$ BLAKE2s terminal claims and the established Flock endpoints below $2^{-154}$, and with the memory envelope and shared bus root below $2^{-151}$. This is one selected pair in the specified coset, not the full query vector or its conditioning on omitted messages.
 
 \subsubsection{The encoder reveals sums inside a coefficient block}
 
@@ -160,6 +160,48 @@ The exhaustive certificate verifies that these $448$ scalars span $\K$ over $\Ft
 \]
 with negative indices zero. Differentiating the generating polynomial proves the recurrence. The audit checks symmetry, cross-checks selected coefficients with the binomial sum, and maximizes the exact ratios over the entire integer interval; it assumes no monotonicity.
 
-\paragraph{Scope of the repair.} The corollary also simulates the following marginal: draw all honest initial query indices, select the first complete pair in this coset by a public fixed rule, and disclose its two lane-$59$ values, or a fixed marker if there is no pair. The simulator uses two independent uniform field values, with error below $2^{-160}$; no union bound over possible selected pairs is needed. Separately, a union bound gives a single bad-permutation event below $2^{-143}$ outside which every pair's scalar map has full rank. This does not make those many scalars jointly independent. Other lanes, additional queried pairs, prior messages that constrain the same label bits, subsequent PCS levels and authentication remain excluded. In particular, preserving the earlier terminal theorem as a marginal does not prove its joint composition with this opening pair.
+\paragraph{Scope of the isolated repair.} The corollary also simulates the following marginal: draw all honest initial query indices, select the first complete pair in this coset by a public fixed rule, and disclose its two lane-$59$ values, or a fixed marker if there is no pair. The simulator uses two independent uniform field values, with error below $2^{-160}$; no union bound over possible selected pairs is needed. Separately, a union bound gives a single bad-permutation event below $2^{-143}$ outside which every pair's scalar map has full rank. This does not make those many scalars jointly independent. Preserving the earlier terminal theorem as a marginal does not by itself prove its joint composition with this opening pair; the next theorem accounts for the shared bits.
 
-\paragraph{Evidence and literature boundary.} \auditref{zk_flock_pair_opening_audit.py} checks exact stack positions, coset interpolation, all displayed probabilities, disjoint library allocation and full counted-bus validity before and after the added randomizers. Its \texttt{--native} option verifies the witness pairs and authenticated encoder identity; \texttt{--matching} runs the exhaustive certificate. Flock's unused witness slots are forced to zero, as specified and implemented in \path{crates/flock/src/hash.rs}, so they cannot serve as free masks. Bootle, Chiesa and Liu~\cite{bcl}, Section~2.4, add a separately designed R1CS gadget with controlled randomness and also rerandomize their sumcheck factors; this is not a theorem for arbitrary random compressions in leanVM's unchanged circuit and PCS.
+\subsubsection{Joint composition with the terminal and memory interfaces}
+
+\begin{theorem}[Terminal interface with one actual query pair]\label{thm:zk-flock-pair-interface}
+Use the two libraries above and the common-completion assumptions of Theorem~\ref{thm:zk-flock-all-columns}. Include all honest coins and, when present, the first complete query pair in $\gen^{18}+\subsp_{18}$ under a fixed public ordering. Its two lane-$59$ values, all $37$ BLAKE2s terminal evaluations and the established Flock endpoints have a joint witness-free simulator with error at most
+\[
+ \zkTripleError+3\delta_{\mathrm{span}}+\zkFixedError{64}
+ +\frac{4283}{2^{192}}+\zkMatchingError<2^{-154}.
+\]
+The same statement holds for any one fixed pair in this coset. This is an enlarged algebraic projection: all other query values, omitted table/Flock messages, GKR and authentication remain excluded.
+\end{theorem}
+\begin{proof}
+Write the two lane values as $(u,v)$ and use coordinates $(xu+(1+x)v,v)$. Every original adjacent swap preserves the first coordinate. Condition on the complete added library's permutation and label bits, all compression values and all other private coins except the original metadata bits. Its first coordinate is then fixed.
+
+The original $448$ $\mathsf{cnt\_cv1}$ bits contribute to its terminal evaluation a common nonzero selector times the twelve-coordinate equality weights. They contribute to $v$ the fixed $64$-bit linear map with column weights
+\[
+ (1+\gen)x\novel_{\zkFlockOrder(\ell_i)}(x),\qquad i\in S,
+\]
+where $\ell_i$ are the count-bank pair positions. This map is onto $\K$ for every $x$ in the coset, by the exhaustive kernel-rank certificate. It depends on $x$ but not on the honest table point. Theorem~\ref{thm:fixed-observation-span} therefore makes the terminal $\mathsf{cnt\_cv1}$ evaluation and $v$ jointly uniform on good table coins. No new source bits are required.
+
+Use these bits last in the earlier triangular argument. The eight program directions, frame direction, and other nine counter directions make their respective terminal coordinates uniform first; their changes to $v$ are absorbed by the final joint replacement. The mixed span also supplies the ordinary count span for the other eight memory-count columns. The remaining span events are the ordinary program grid and the two geometrically weighted frame/bytecode grids. Including their selectors, the complete metadata replacement costs
+\[
+ 3\delta_{\mathrm{span}}+\frac{96}{|\E|}+\zkFixedError{64}.
+\]
+It yields nineteen independent uniform extension elements and an independent uniform $v$, while retaining the actual collapse, Flock values and endpoints, and the added library's full randomness.
+
+Now replace the collapse using Theorem~\ref{thm:zk-flock-matching-projection}, at cost $\zkMatchingError$. The first replacement was uniform in every fixed added choice, so this second hybrid does not condition a marginal bound on disclosed terminal values. The added randomizers preserve the Flock witness pointwise. Apply the value/endpoint simulator of Theorem~\ref{thm:zk-flock-metadata-endpoints}, costing $\zkTripleError+4187/|\E|$, and invert the two-coordinate transformation. All bounds are uniform in $x$; its public selection uses only independent honest query coins. If there is no pair, use the earlier terminal simulator and a fixed marker. Adding the three costs proves the formula.
+\end{proof}
+
+\begin{corollary}[Memory, bus root and the selected opening pair]\label{cor:zk-flock-pair-memory}
+Under the same layout, reservation and common-completion assumptions as Corollary~\ref{cor:zk-flock-memory-interface}, its joint view can also retain the selected lane-$59$ query pair, with total error below $2^{-151}$.
+\end{corollary}
+\begin{proof}
+Repeat that corollary's hybrids: replace the shared root inside the unused-memory kernel, then replace the three-limb memory envelope conditional on all instruction data. Lane $59$ contains no memory-value coefficients, so these replacements retain the two new values exactly. Finally apply Theorem~\ref{thm:zk-flock-pair-interface}, not the former marginal terminal theorem. The exact bound is
+\[
+ \varepsilon_{\mathrm{decouple}}+\frac{3(22+12)}{2^{192}}
+ +\zkTripleError+3\delta_{\mathrm{span}}+\zkFixedError{64}
+ +\frac{4283}{2^{192}}+\zkMatchingError<2^{-151}.
+\]
+\end{proof}
+
+\paragraph{Remaining opening obligation.} This composition removes a specific shared-mask issue without extra rows, memory or verifier equations. It does not justify publishing another query pair, even in the same coset: those values impose further constraints on the same bits. The arbitrary fixed-disclosure lemma gives an explicit budget for this loss, not an unrestricted conditional oracle. The next target is the full joint linear observation map, including other lanes and the previous reductions. Common valid allocation and the missing GKR, table, Flock and authentication proofs remain separate obligations.
+
+\paragraph{Evidence and literature boundary.} \auditref{zk_flock_pair_opening_audit.py} checks exact stack positions, coset interpolation, all displayed probabilities, disjoint library allocation and full counted-bus validity before and after the added randomizers. It also invokes the metadata audit to certify binary rank $3712$ for the nineteen terminal columns and raw PCS kernel coordinate together, and checks the full composition ledger exactly. Its \texttt{--native} option verifies the witness pairs and authenticated encoder identity; \texttt{--matching} runs the exhaustive certificate. Flock's unused witness slots are forced to zero, as specified and implemented in \path{crates/flock/src/hash.rs}, so they cannot serve as free masks. Bootle, Chiesa and Liu~\cite{bcl}, Section~2.4, add a separately designed R1CS gadget with controlled randomness and also rerandomize their sumcheck factors; this is not a theorem for arbitrary random compressions in leanVM's unchanged circuit and PCS.

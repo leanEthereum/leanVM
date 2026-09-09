@@ -115,3 +115,34 @@ The ordinary-equality bound omits $44/Q$ and is smaller. All estimates are unifo
 \end{proof}
 
 \paragraph{Consequence for Flock.} The first $96$ alternatives suffice for the feature ranks in \noteref{zk-flock-endpoints}, using $96\cdot640=61440$ independent bits in a public batch of $2^{18}$, rather than $2^{21}$. Reserving those $96$ complete banks leaves $65536$ arbitrary real-compression slots. The packed Flock column has log size $18+8=26$. The former batch required a packed column of log size $29$, already exceeding the current stack cap $28$ before any other column was placed. The audit checks an accepted reference layout with memory log $25$, non-BLAKE table logs $(19,19,19,19,20)$ and BLAKE log $18$. This verifies size compatibility for a candidate profile, not completion of all padding libraries in that profile.
+
+\subsubsection{A random evaluation after fixed binary disclosures}
+
+An initial PCS query lives in $\K$, not at a uniform extension-field point. The following lemma handles its fixed linear disclosure directly. It does not assume a second honest random point or ask for fresh source bits.
+
+\begin{theorem}[Fixed-disclosure span]\label{thm:fixed-observation-span}
+Let $S\subset\cube{12}$ be the $448$-position support with six arbitrary bits and at most one of the last six bits set. Fix any surjective binary linear map $\zkFixedMap:\Ftwo^S\to\Ftwo^b$, independently of an honest uniform $r\in\E^{12}$. Except with probability at most $\zkFixedError{b}$, the map
+\[
+ \zkSwapCoins\longmapsto
+ \left(\sum_{s\in S}\zkSwapCoins_s\eq(r,s),\,
+       \zkFixedMap(\zkSwapCoins)\right)
+\]
+is onto $\E\times\Ftwo^b$. For $Q=2^{192}$, the first-five error $B$ and sixth-step tails $p_d$ defined above, a uniform bound is
+\[
+ h_b(d)=\min\left\{1,\left(\frac Q{Q-1}\right)^6 2^{192+b-7d}\right\},
+ \qquad
+ \zkFixedError{b}=B+h_b(64)+\sum_{d=32}^{63}p_dh_b(d)+\frac{12}{Q}.
+\]
+In particular $\zkFixedError{64}<2^{-154}$. Uniform independent source bits therefore jointly hide an extension-field evaluation and any such fixed $64$-bit disclosure, including arbitrary fixed translations of both outputs.
+\end{theorem}
+\begin{proof}
+Exclude coordinates $r_i=1$, costing at most $12/Q$. Normalize only the extension-field output by its nonzero common factor and set $t_i=r_i/(1+r_i)$, independently uniform in $\E\setminus\{1\}$. The first $64$ columns have extension coordinates $a_s=\prod_{i<6}t_i^{s_i}$; the six further blocks have coordinates $t_j a_s$ for $6\le j<12$. Their fixed binary coordinates are arbitrary columns of $\zkFixedMap$ and need no product structure.
+
+Condition on the first six multipliers and let $d$ be the binary dimension of the span of the $a_s$. Under the trace pairing on $\E$ and ordinary binary pairing on $\Ftwo^b$, at most $2^{192+b-d}$ joint characters annihilate the first block. For a character with nonzero extension component, annihilating any further block imposes $d$ independent affine binary equations on its single multiplier $t_j$. There are at most $Q2^{-d}$ solutions in $\E$, hence probability at most $(Q/(Q-1))2^{-d}$ on the actual domain. The six multipliers are independent, giving $h_b(d)$ by a union bound. A character with zero extension component cannot annihilate all blocks because $\zkFixedMap$ is onto.
+
+The extension projection reaches dimension $32$ in five steps except with probability $B$. After that, the sixth-step dimension lies in $[32,64]$ and has tails $p_d$. These bounds also apply on $\E\setminus\{1\}$: replacing multiplier $1$ by $0$ leaves $V+tV$ equal to $V$, so its subspace distribution is the same as on $\E^*$. Averaging $h_b(d)$ over the sixth dimension, rather than discarding every failed doubling, proves the formula. All estimates are uniform over the fixed map and intermediate subspaces.
+\end{proof}
+
+\paragraph{Conditional interpretation and limit.} On good $r$, every fiber $\zkFixedMap(\zkSwapCoins)=y$ leaves a uniform extension evaluation. Since the disclosed linear map is fixed independently of $r$ and onto, $y$ itself is uniform and independent of $r$ before conditioning. Thus the same average error bound holds for every fixed disclosed value. This does not allow an arbitrary map chosen after seeing $r$, or further disclosures of the same bits. The same formula gives only $\zkFixedError{128}<2^{-127}$ and $\zkFixedError{192}<2^{-63}$, without the required $128$-bit margin. Increasing the retained interface is not free in this lemma.
+
+\paragraph{Evidence and application.} \auditref{zk_two_point_audit.py} computes the exact rational bounds and checks native joint ranks $256,320,384$ for fixed full-rank disclosures of $64,128,192$ bits. These samples check the implementation; the uniform proof is the character and dimension-tail argument above. \noteref{zk-flock-pair-opening} applies the $64$-bit case to the actual PCS weights and the same counter bits that hide a BLAKE2s terminal evaluation.

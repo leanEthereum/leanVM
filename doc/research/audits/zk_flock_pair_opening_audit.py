@@ -8,10 +8,12 @@ from math import comb
 from pathlib import Path
 from random import Random
 
-from zk_flock_columns_audit import METADATA_ROWS, build
+from zk_flock_columns_audit import METADATA_ROWS, build, certificates
 from zk_flock_coset_audit import novel_factors, probability_all_hit, reordered_index
+from zk_memory_frames_audit import joint_root_bound
 from zk_pcs_audit import RightInverse, Tower, kdot, verifier_module
-from zk_three_point_audit import THREE_POINT_SUPPORT
+from zk_three_point_audit import THREE_POINT_SUPPORT, three_point_error
+from zk_two_point_audit import fixed_observation_error
 
 
 def evaluate(field, coefficients, query):
@@ -118,6 +120,19 @@ def matching_bound():
     return bound
 
 
+def joint_interface_error():
+    size = 1 << 192
+    sparse = sum((Fraction(((1 << dimension) - 1) ** 2, size - 1) for dimension in (1, 2, 4, 8, 16)), Fraction())
+    sparse += Fraction(((1 << 32) - 1) ** 2, (size - 1) * (1 << 32)) + Fraction(1, 1 << 256)
+    interface = three_point_error() + 3 * sparse + fixed_observation_error() + Fraction(4283, size) + matching_bound()
+    assert interface < Fraction(1, 1 << 154)
+    assert joint_root_bound() + interface < Fraction(1, 1 << 151)
+    print(
+        "Joint terminal/Flock interface and one selected lane-59 query pair: below 2^-154; with memory envelope and shared root, below 2^-151.",
+        flush=True,
+    )
+
+
 def identities(verifier, private):
     field, rng = Tower(64, verifier), Random(449)
     for size in (2, 4, 8):
@@ -147,6 +162,7 @@ def copy_position(bank, index):
 
 def actual_libraries(verifier):
     first, pairs, placement = build(verifier)
+    certificates(verifier, first, pairs, query=(1 << 18) + 1234)
     second, second_pairs, _ = build(verifier, code_shift=64, frame_shift=1 << 22)
     extra = {
         copy_position(bank, position): row
@@ -233,7 +249,7 @@ if __name__ == "__main__":
     private = witness_difference(verifier)
     probabilities(verifier, private)
     pointer_probabilities(verifier)
-    matching_bound()
+    joint_interface_error()
     identities(verifier, private)
     positions = actual_libraries(verifier)
     if arguments.native:

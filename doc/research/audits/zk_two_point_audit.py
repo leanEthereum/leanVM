@@ -8,6 +8,43 @@ from zk_stacked_audit import binary_basis
 
 SPARSE_TWO = list(range(64)) + [i | (1 << j) for j in range(6, 14) for i in range(64)]
 COMPACT_TWO = list(range(128)) + [i | (1 << j) for j in range(7, 11) for i in range(128)]
+SPARSE_FIXED = [index for index in SPARSE_TWO if index < 1 << 12]
+
+
+def fixed_observation_error(observed_bits=64):
+    assert 0 <= observed_bits <= 192
+    size = 1 << 192
+    first_five = sum((Fraction(((1 << dimension) - 1) ** 2, size - 1) for dimension in (1, 2, 4, 8, 16)), Fraction())
+
+    def remaining(dimension):
+        return min(Fraction(1), Fraction(size, size - 1) ** 6 * Fraction(2) ** (192 + observed_bits - 7 * dimension))
+
+    averaged = remaining(64)
+    for dimension in range(32, 64):
+        probability = Fraction(((1 << 32) - 1) ** 2, (size - 1) * ((1 << (64 - dimension)) - 1))
+        averaged += probability * remaining(dimension)
+    error = first_five + averaged + Fraction(12, size)
+    if observed_bits in (64, 128, 192):
+        assert error < Fraction(1, 1 << {64: 154, 128: 127, 192: 63}[observed_bits])
+    return error
+
+
+def fixed_observation_certificate(verifier):
+    field, rng = Tower(64, verifier), Random(479)
+    weights = field.eq([field.random(rng) for _ in range(12)])
+    assert len(SPARSE_FIXED) == 448
+    for bits in (64, 128, 192):
+        observations = [1 << index if index < bits else rng.getrandbits(bits) for index in range(len(SPARSE_FIXED))]
+        assert len(binary_basis(observations)) == bits
+        vectors = [weights[index] | (value << 192) for index, value in zip(SPARSE_FIXED, observations)]
+        assert len(binary_basis(vectors)) == 192 + bits
+        fixed_observation_error(bits)
+    adaptive = [weights[index] & 1 for index in SPARSE_FIXED]
+    assert len(binary_basis(adaptive)) == 1
+    assert len(binary_basis([weights[index] | (value << 192) for index, value in zip(SPARSE_FIXED, adaptive)])) == 192
+    print("A random extension evaluation and fixed 64/128/192-bit disclosures have native joint ranks 256/320/384 on 448 bits.", flush=True)
+    print("Uniform fixed-disclosure error bounds: below 2^-154, 2^-127 and 2^-63; only the 64-bit case has the target margin.", flush=True)
+    print("Control: a disclosure chosen from the evaluation point can be dependent; the fixed-map hypothesis is necessary.", flush=True)
 
 
 def error_bounds():
@@ -109,3 +146,4 @@ if __name__ == "__main__":
     print("Exact rational bound: ordinary and geometrically weighted two-point failure probabilities are below 2^-148", flush=True)
     certificate(verifier_module())
     compact_certificate(verifier_module())
+    fixed_observation_certificate(verifier_module())
