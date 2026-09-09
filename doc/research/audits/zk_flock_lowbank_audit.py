@@ -188,6 +188,7 @@ def extra_joint_sources(field, verifier, seed, blocks):
 def decomposition_certificate(field, verifier, old, extra):
     counts = verifier.TABLES[verifier.OP_BLAKE2S].count_columns
     cv1 = counts.index(verifier.BLAKE2S_COLUMNS.index("cnt_cv1"))
+    out0 = counts.index(verifier.BLAKE2S_COLUMNS.index("cnt_out0"))
     mask = (1 << 192) - 1
 
     def unpack(prefix):
@@ -196,24 +197,37 @@ def decomposition_certificate(field, verifier, old, extra):
     def pack(values):
         return sum(value << (192 * index) for index, value in enumerate(values))
 
+    high_factors = novel_factors(field, 19, 262144)
+    high_weights = {0: 1}
+
+    def high_weight(index):
+        if index >= 1 << 19:
+            return 0
+        if index not in high_weights:
+            bit = index.bit_length() - 1
+            high_weights[index] = field.kmul(high_factors[bit], high_weight(index ^ (1 << bit)))
+        return high_weights[index]
+
     noncount_size = 8 * 384 + 4 * 1279
+    other_sources = [source for index, source in enumerate(old[noncount_size:]) if index % 10 != cv1]
+    other_sources.extend(extra[out0::10])
     other_counts = []
-    for index, (polynomial, prefix) in enumerate(old[noncount_size : noncount_size + 4 * 1280 * 10]):
-        if index % 10 == cv1:
-            continue
+    for polynomial, prefix in other_sources:
         values = unpack(prefix)
         assert not any(values[:9]) and values[9 + cv1] == 0
         assert all(values[19 + 3 * child] == field.mul(2, values[20 + 3 * child]) for child in range(4))
         assert all(position >= 1 << 18 for position, _ in polynomial)
-        other_counts.append(
-            pack(
-                [
-                    *[values[9 + number] for number in range(10) if number != cv1],
-                    *[values[20 + 3 * child + side] for child in range(4) for side in range(2)],
-                ]
-            )
+        projected_prefix = pack(
+            [
+                *[values[9 + number] for number in range(10) if number != cv1],
+                *[values[20 + 3 * child + side] for child in range(4) for side in range(2)],
+            ]
         )
-    assert len(binary_basis(other_counts)) == 17 * 192 == 3264
+        raw = 0
+        for position, delta in polynomial:
+            raw ^= field.kmul(delta, high_weight(position & ~31)) << (64 * (position & 31))
+        other_counts.append(projected_prefix | (raw << (17 * 192)))
+    assert len(binary_basis(other_counts)) == 17 * 192 + 32 * 64 == 5312
     noncounts = []
     for _, prefix in old[:noncount_size]:
         values = unpack(prefix)
@@ -230,7 +244,7 @@ def decomposition_certificate(field, verifier, old, extra):
         raw = field.kmul(delta, query_weights[left & ~15] ^ query_weights[right & ~15])
         low.append(values[9 + cv1] | (raw << (192 + 64 * (left & 15))))
     assert len(binary_basis(low)) == 1216
-    print("Three-group certificate: ranks 3264, 1216 and 2496, with every required zero projection and child-plane invariance checked.", flush=True)
+    print("Split-region certificate: ranks 5312, 1216 and 2496, with every required zero projection and child-plane invariance checked.", flush=True)
 
 
 def sampled_rank(field, blocks):
