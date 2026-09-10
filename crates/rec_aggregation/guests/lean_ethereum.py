@@ -236,6 +236,9 @@ LIG_MAX_INTERLEAVE = LIG_MAX_INTERLEAVE_PLACEHOLDER
 LIG_POSITIONS_LEN = LIG_POSITIONS_LEN_PLACEHOLDER
 LIG_ROWS_LEN = LIG_ROWS_LEN_PLACEHOLDER
 LIG_PATHS_LEN = LIG_PATHS_LEN_PLACEHOLDER
+LIG_CAP_DEPTH = LIG_CAP_DEPTH_PLACEHOLDER
+LIG_CAP_OFF = LIG_CAP_OFF_PLACEHOLDER
+LIG_CAP_LEN = LIG_CAP_LEN_PLACEHOLDER
 LIG_QUERY_GRIND_BITS = LIG_QUERY_GRIND_BITS_PLACEHOLDER
 LIG_OOD_SAMPLES = LIG_OOD_SAMPLES_PLACEHOLDER
 LIG_QUERIES = LIG_QUERIES_PLACEHOLDER
@@ -912,6 +915,29 @@ def verify_merkle_path(leaf_0, leaf_1, path_ptr, direction_bits, depth: Const):
     return node_0, node_1
 
 
+@inline
+def hash_cap_node(cap, index):
+    children = cap * index ** 4
+    parent = StackBuf(2)
+    blake2s([children[1], children[GEN]], [children[GEN ** 2], children[GEN ** 3]], parent)
+    cap[index * index] = parent[0]
+    cap[GEN * index * index] = parent[1]
+    return
+
+
+def verify_merkle_cap(cap, flags, depth: Const):
+    if depth != 0:
+        hash_cap_node(cap, GEN)
+        flags[GEN] = 1
+        for parent in mul_range(GEN, GEN ** (2 ** (depth - 1))):
+            for side in unroll(0, 2):
+                child = parent * parent * GEN ** side
+                if flags[child] != 0:
+                    flags[parent] = 1  # every active node forces its parent to be hashed
+                    hash_cap_node(cap, child)
+    return cap[GEN ** 2], cap[GEN ** 3]
+
+
 # ============================== the stacked WHIR opening ============================
 
 
@@ -959,11 +985,12 @@ def open_stacked(m_idx: Const, fs0, fs1, target, commit_root_0, commit_root_1, c
     hint_witness(merkle_leaf_rows[0:LIG_ROWS_LEN[m_idx]], "merkle_leaf_rows")
     merkle_paths = HeapBuf(GEN ** (LIG_PATHS_LEN[m_idx]))
     hint_witness(merkle_paths[0:LIG_PATHS_LEN[m_idx]], "merkle_paths")
+    merkle_caps = HeapBuf(GEN ** (4 * LIG_CAP_LEN[m_idx]))
+    hint_witness(merkle_caps[0:4 * LIG_CAP_LEN[m_idx]], "merkle_caps")
+    cap_flags = HeapBuf(GEN ** LIG_CAP_LEN[m_idx])
+    hint_witness(cap_flags[0:LIG_CAP_LEN[m_idx]], "merkle_cap_active")
     final_msg = HeapBuf(GEN ** yr_len)  # filled from the stream at the last level
-    # Level roots, two cells a level: slot 0 is the commitment root (bound above),
-    # the rest are filled as each root is read off the stream. Every query then
-    # checks its walk with ONE heap store per digest cell, the write-once equality,
-    # with no level-0 special case.
+    # Each cap root is checked against its transcript-bound level root.
     level_roots = HeapBuf(GEN ** (2 * n_levels))
     level_roots[GEN ** 0] = commit_root_0
     level_roots[GEN ** 1] = commit_root_1
@@ -1073,6 +1100,13 @@ def open_stacked(m_idx: Const, fs0, fs1, target, commit_root_0, commit_root_1, c
                 slot = i
             row_eq_weights[GEN ** i] = eq_weight(fold_challenges * GEN ** folds_off, LIG_FOLDS[ml], slot, 0)
 
+        cap_depth = LIG_CAP_DEPTH[ml]
+        cap = merkle_caps * GEN ** (4 * LIG_CAP_OFF[ml])
+        flags = cap_flags * GEN ** LIG_CAP_OFF[ml]
+        root_0, root_1 = verify_merkle_cap(cap, flags, cap_depth)
+        level_roots[GEN ** (2 * lvl)] = root_0
+        level_roots[GEN ** (2 * lvl + 1)] = root_1
+
         query_sum_chain = HeapBuf(GEN ** (max_q + 1))
         query_sum_chain[GEN ** 0] = 0
         for xe in mul_range(1, GEN ** n_queries):
@@ -1134,14 +1168,19 @@ def open_stacked(m_idx: Const, fs0, fs1, target, commit_root_0, commit_root_1, c
                 leaf_hash_state = leaf_digest
             query_sum_chain[xe * GEN] = query_sum_chain[xe] + query_weights[GEN ** (lvl * max_q) * xe] * row_dot
             direction_bits = query_bit_ptrs[GEN ** pos_off * xe]
-            path_ptr = merkle_paths * GEN ** LIG_PATHS_OFF[ml] * xe ** (2 * depth)
-            # walk the query's Merkle path to the level root. A heap store IS the
-            # equality assert here (`DerefMode::Cell` unifies the two cells, and the
-            # slot holds this level's bound root already), at one instruction
-            # instead of three.
-            root_0, root_1 = verify_merkle_path(leaf_hash_state[0], leaf_hash_state[1], path_ptr, direction_bits, depth)
-            level_roots[GEN ** (2 * lvl)] = root_0
-            level_roots[GEN ** (2 * lvl + 1)] = root_1
+            path_depth = depth - LIG_CAP_DEPTH[ml]
+            path_ptr = merkle_paths * GEN ** LIG_PATHS_OFF[ml] * xe ** (2 * path_depth)
+            node_0, node_1 = verify_merkle_path(leaf_hash_state[0], leaf_hash_state[1], path_ptr, direction_bits, path_depth)
+            if LIG_CAP_DEPTH[ml] != 0:
+                parent = GEN ** (2 ** (LIG_CAP_DEPTH[ml] - 1))
+                for bit in unroll(0, LIG_CAP_DEPTH[ml] - 1):
+                    parent *= 1 + direction_bits[GEN ** (path_depth + 1 + bit)] * (1 + GEN ** (2 ** bit))
+                flags[parent] = 1  # the cap check propagates this obligation to the root
+                cap_index = parent * parent * (1 + direction_bits[GEN ** path_depth] * (1 + GEN))
+            else:
+                cap_index = GEN
+            cap[cap_index * cap_index] = node_0
+            cap[GEN * cap_index * cap_index] = node_1
         level_query_sum = query_sum_chain[GEN ** n_queries]
 
         # Every level, including the last, ties its commitment in through an intro

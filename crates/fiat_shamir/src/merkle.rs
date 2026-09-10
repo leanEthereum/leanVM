@@ -227,6 +227,7 @@ impl PrunedMerklePaths {
             .map(|q| {
                 let slot = sorted.binary_search(q).ok()?;
                 Some(RawMerklePath {
+                    leaf_index: *q,
                     leaf_data: leaf_image(&self.leaf_data[slot], leaf_words),
                     path: per_distinct[slot].clone(),
                 })
@@ -240,11 +241,13 @@ impl PrunedMerklePaths {
 ///
 /// The redundant form. Several queries of one phase repeat whatever siblings
 /// they share, which is exactly what makes it simple to consume: recomputing
-/// the root is a walk up one path, with no dedup bookkeeping. The recursion
-/// guest and the Python verifier read this; the wire format ([`PrunedMerklePaths`])
-/// sends each shared sibling once.
+/// the root is a walk up one path, with no dedup bookkeeping. Recursive witness
+/// construction and the Python verifier consume this; the wire format
+/// ([`PrunedMerklePaths`]) sends each shared sibling once.
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct RawMerklePath {
+    /// Transcript-derived position, retained for recursive witness construction.
+    pub leaf_index: usize,
     pub leaf_data: Vec<F64>,
     pub path: Vec<Hash>,
 }
