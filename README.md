@@ -14,9 +14,9 @@ Minimal hash-based zkVM, for a Post-Quantum Ethereum.
 </p>
 
 <p align="center">
-  <a href="#xmss-aggregation"><img src="https://img.shields.io/badge/Aggregation-1100%20XMSS%2Fs-brightgreen?style=for-the-badge"></a>
-  <a href="#sphincs-aggregation"><img src="https://img.shields.io/badge/Aggregation-230%20SPHINCS%2Fs-green?style=for-the-badge"></a>
-  <a href="#recursion"><img src="https://img.shields.io/badge/2%20to%201%20recursion-0.40s-orange?style=for-the-badge"></a>
+  <a href="#xmss-aggregation"><img src="https://img.shields.io/badge/Aggregation-1150%20XMSS%2Fs-brightgreen?style=for-the-badge"></a>
+  <a href="#sphincs-aggregation"><img src="https://img.shields.io/badge/Aggregation-240%20SPHINCS%2Fs-green?style=for-the-badge"></a>
+  <a href="#recursion"><img src="https://img.shields.io/badge/2%20to%201%20recursion-0.32s-orange?style=for-the-badge"></a>
 </p>
 
 Warning: highly experimental.
