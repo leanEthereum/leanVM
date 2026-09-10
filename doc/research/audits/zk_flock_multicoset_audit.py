@@ -226,8 +226,8 @@ def query_sources(field):
     return result, labels
 
 
-def source_certificate(verifier, sources, labels):
-    library, groups = build(verifier, True)
+def source_certificate(verifier, sources, labels, library_groups=None):
+    library, groups = build(verifier, True) if library_groups is None else library_groups
     columns = [verifier.BLAKE2S_COLUMNS.index(name) for name in ("cnt_cv1", "cnt_out0", "cnt_out1", "cnt_md", "cnt_bc")]
     for polynomial, (kind, child, number, block) in zip(sources, labels):
         _, first, second, logical_left, logical_right = groups[kind, child][number]

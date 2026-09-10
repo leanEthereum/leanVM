@@ -48,9 +48,10 @@ def sorted_matching(blocks):
     return pairs
 
 
-def build(verifier, blocks):
+def build(verifier, blocks, frame_shift=0):
     library = Library(verifier)
-    frame = verifier.GEN ** (1280 + 32 * 65535)
+    assert 0 <= frame_shift and frame_shift + 1280 + 32 * 65536 <= 1 << 22
+    frame = verifier.GEN ** (frame_shift + 1280 + 32 * 65535)
     templates = library.templates((verifier.OP_BLAKE2S, 1090, [], True), frame)
     for name, offset in zip(("o_c", "o_d", "o_f"), range(16, 19)):
         templates[-1][1][verifier.JUMP_COLUMNS.index(name)] = verifier.GEN**offset
@@ -499,13 +500,16 @@ def prefix_limit_certificate(field, verifier, blocks):
                 assert f"RANK {rank} {64 * count}\n" in result.stdout and "OUTSIDE 0 " in result.stdout
             else:
                 assert f"RANK {64 * (count - 1)} {64 * (count - 1)}\n" in result.stdout and "INSIDE 0\n" in result.stdout
-        print(f"The entire {cutoff}-point prefix reveals {bits} mask bits and leaves a minimal {count}-query private-pointer distinguisher.", flush=True)
+        print(
+            f"The entire {cutoff}-point prefix reveals {bits} mask bits and leaves a minimal {count}-query private-pointer distinguisher.", flush=True
+        )
     for rate, bits in enumerate((329, 379, 419, 455), 1):
         count = verifier.derive_config(28, rate).queries[0]
         bound = Fraction(7936 * comb(32, 24) * prod(range(count - 23, count + 1)), 1 << (24 * (22 + rate)))
         assert bound < Fraction(1, 1 << bits)
         print(f"Rate {rate}: 24 distinct queries in any low 32-point coset cost below 2^-{bits}; other defects remain unbounded.", flush=True)
     print("These are limits on enlarged envelopes, not impossibility results for statistical privacy under actual honest queries.", flush=True)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)

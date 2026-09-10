@@ -68,7 +68,7 @@ def placement_certificate(wide=False):
     return occupied
 
 
-def build(verifier, wide=False):
+def build(verifier, wide=False, frame_shift=0):
     library, groups = Library(verifier), {}
     reserved = {2 * index + side for index in SHORT_SUPPORT for side in (0, 1)}
     available = iter(slot for slot in range(1 << 16) if slot not in reserved)
@@ -79,7 +79,7 @@ def build(verifier, wide=False):
             slot = next(available)
         assert slot not in frames
         frames.add(slot)
-        return verifier.GEN ** (1280 + 32 * slot)
+        return verifier.GEN ** (frame_shift + 1280 + 32 * slot)
 
     def cycle(pc, address, changed=None, controls=16):
         rows = library.templates((verifier.OP_BLAKE2S, pc, [], True), address)
@@ -115,7 +115,7 @@ def build(verifier, wide=False):
     assert len(library.rows) == 2 * size and len(library.images["code"]) == 54 + (8 if wide else 0)
     assert len(frames) == 16380 + (5120 if wide else 0)
     assert frames == set(range(16380 + (5120 if wide else 0)))
-    assert max(1280 + 32 * slot + 31 for slot in frames) < 1 << 22
+    assert frame_shift >= 0 and max(frame_shift + 1280 + 32 * slot + 31 for slot in frames) < 1 << 22
     baseline = witness(verifier, [0] * 16)
     check_rows(verifier, baseline)
     values = {
