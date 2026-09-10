@@ -332,16 +332,21 @@ impl BusForm {
     /// This is what the zerocheck evaluates, per row while a table is unfolded and
     /// at the sumcheck point after, so a table's several forms share one reduction
     /// rather than paying one per term.
-    pub fn eval_unreduced<T: ColVal>(&self, evals: &[T]) -> T::Unreduced {
+    /// `quadratic` selects only degree-two terms, for a sumcheck round coefficient.
+    pub fn eval_unreduced<T: ColVal>(&self, evals: &[T], quadratic: bool) -> T::Unreduced {
         self.prods.iter().fold(
-            T::dot_unreduced(&self.coeffs, evals) ^ T::lift(self.constant),
+            if quadratic {
+                T::lift(F192::ZERO)
+            } else {
+                T::dot_unreduced(&self.coeffs, evals) ^ T::lift(self.constant)
+            },
             |acc, &(a, b, c)| acc ^ (evals[a] * evals[b]).mul_e_unreduced(c),
         )
     }
 
     /// [`eval_unreduced`](Self::eval_unreduced) on its own.
     pub fn eval<T: ColVal>(&self, evals: &[T]) -> F192 {
-        T::reduce(self.eval_unreduced(evals))
+        T::reduce(self.eval_unreduced(evals, false))
     }
 
     /// What the form sums to over the table's rows against `eq(ζ, ·)`, the target the
