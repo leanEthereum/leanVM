@@ -216,7 +216,30 @@ cargo run --release -p lean_vm --features zk-research \
     --example zk_allocator_audit
 \end{verbatim}
 
-\paragraph{Remaining common-sampler obligation.} Certify the address discipline and total allocation for the actual aggregation guest after wrapping, recheck its code reservation and static read cap, and replace ordinary filler by the common ZK cycle libraries. The candidate's free runs already exclude those libraries, so their cells cannot be charged twice. The public wrapper and allocation mechanism now exist, but a public resource theorem for every supported private execution and an integrated normalizing sampler do not. The all-layer GKR, remaining count/table/Flock, full PCS and authentication gaps are unchanged.
+\paragraph{The actual aggregation guest.}\label{par:zk-guest-allocation-audit} The research example \path{crates/rec_aggregation/examples/zk_guest_allocation_audit.rs} now applies the wrapper to the full aggregation source, using its real placeholder map and native witness builder. It checks the bytecode-log-$19$ fixed point, the unused translated code interval and the static per-cell BLAKE2s incidence bound $256$, excluding ordinary filler from that real-execution bound. The public statement digest and leaf's deferred bytecode value are rebuilt for the wrapped program; retaining the old digest would not test the intended program. Witness preparation is shared with the ordinary aggregation path, and no verifier equation changes.
+
+For each tested leaf, the audit executes the same wrapped program and witness with a dense allocator and with the candidate's four reserved runs. It checks equal allocation requests, corresponding instruction PCs and frame identities, no repeated instruction in one real frame, identical compression values, and an identical public memory prefix. Every instruction access outside that prefix must lie inside a requested object, not merely its rounded allocation; every address outside the free runs has unchanged count one. The populated mask bank is preserved. A one-XMSS wrapped leaf also produces a valid native proof. These are execution and soundness-path checks, not comparisons of full views with a common public height or measurements of statistical privacy.
+
+The audited cached witnesses have the following demands, including ordinary filler allocations. The displayed largest request is observed on that execution, not certified as a public program-wide bound.
+\begin{center}
+\begin{tabular}{lrrrr}
+Leaf & Allocations & Slots & Largest request & Real BLAKE2s rows \\
+\hline
+One XMSS & $129$ & $146$ & $8$ & $172$ \\
+One SPHINCS & $214$ & $253$ & $24$ & $556$ \\
+Six XMSS, one SPHINCS & $500$ & $578$ & $24$ & $1425$ \\
+$453$ XMSS & $20486$ & $22774$ & $8$ & $65486$
+\end{tabular}
+\end{center}
+Thus a substantial leaf fits the current memory reservation and the $65536$-row private compression budget: its actual $22774$ slots satisfy the sufficient next-fit inequality $22774\le26703-3(8-1)=26682$. This is not yet a resource theorem for all signatures, epoch groupings or recursive children. The diagnostic allocations, addresses and control flow remain private and are not added to the public statement. The audit uses ordinary filler and does not instantiate the complete height-$25$ memory mask source or the common ZK cycle libraries. Run, for example:
+\begin{verbatim}
+cargo run --release -p rec_aggregation --features zk-research \
+    --example zk_guest_allocation_audit -- 453 0
+cargo run --release -p rec_aggregation --features zk-research \
+    --example zk_guest_allocation_audit -- 1 0 --prove
+\end{verbatim}
+
+\paragraph{Remaining common-sampler obligation.} Certify the address discipline and a public total-allocation bound for every supported private execution of the wrapped guest, including its recursive branch, then replace ordinary filler by the common ZK cycle libraries. The candidate's free runs already exclude those libraries, so their cells cannot be charged twice. Wrapping, code reservation, static read-cap compatibility and concrete leaf allocations are now checked, but a universal resource theorem and an integrated normalizing sampler remain absent. The all-layer GKR, remaining count/table/Flock, full PCS and authentication gaps are unchanged.
 
 \subsubsection{What the repair does not yet prove}
 

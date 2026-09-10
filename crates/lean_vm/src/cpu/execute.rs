@@ -42,6 +42,18 @@ impl Execution {
     pub fn memory_read_counts(&self) -> &[F64] {
         &self.trace.mem_count
     }
+
+    /// Private (PC, frame base) diagnostics in table order, excluding filler.
+    pub fn instruction_sites(&self) -> impl Iterator<Item = (u32, u32)> + '_ {
+        self.trace.xor[..self.base_counts[0]]
+            .iter()
+            .map(|r| (r.pc, r.fp))
+            .chain(self.trace.mul[..self.base_counts[1]].iter().map(|r| (r.pc, r.fp)))
+            .chain(self.trace.set[..self.base_counts[2]].iter().map(|r| (r.pc, r.fp)))
+            .chain(self.trace.deref[..self.base_counts[3]].iter().map(|r| (r.pc, r.fp)))
+            .chain(self.trace.jump[..self.base_counts[4]].iter().map(|r| (r.pc, r.fp)))
+            .chain(self.trace.blake2s[..self.base_counts[5]].iter().map(|r| (r.pc, r.fp)))
+    }
 }
 
 /// A memory word interpreted as a K-valued address: valid only when both

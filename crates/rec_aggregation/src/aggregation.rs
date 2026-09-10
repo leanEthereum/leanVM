@@ -58,6 +58,9 @@ use xmss::{XmssPublicKey, XmssSignature};
 
 use sphincs::{SphincsPublicKey, SphincsSignature};
 
+#[cfg(feature = "zk-research")]
+pub mod zk_research;
+
 /// One SPHINCS claim: a key, and the message it signed. Where an XMSS group
 /// shares one message, every SPHINCS signer carries its own.
 pub type SphincsSigner = (SphincsPublicKey, sphincs::Message);
@@ -392,7 +395,11 @@ fn lane_hash(lanes: impl Iterator<Item = u64>) -> [F192; 2] {
 /// lanes each, whence the assert, the guest being unable to hash a third), then
 /// all three lanes of each deferred cell.
 fn statement_digest(signers_hash: [F192; 2], defer: &DeferredClaim) -> [F192; 2] {
-    let seed = lean_vm::cpu::fs_seed(unified_guest());
+    statement_digest_for(unified_guest(), signers_hash, defer)
+}
+
+fn statement_digest_for(program: &Program, signers_hash: [F192; 2], defer: &DeferredClaim) -> [F192; 2] {
+    let seed = lean_vm::cpu::fs_seed(program);
     let header = [seed[0], seed[1], signers_hash[0], signers_hash[1]];
     assert_eq!(header.len(), STATEMENT_HEADER);
     let mut cells = defer.cells();
@@ -2011,6 +2018,44 @@ pub(crate) fn aggregate_tampered(
     log_inv_rate: usize,
     tamper: impl FnOnce(&mut Hints),
 ) -> Result<(AggregateSignature, lean_vm::cpu::Stats), AggregationError> {
+    let PreparedAggregate {
+        mut program,
+        mut hints,
+        public_input,
+        xmss_signers,
+        sphincs_signers,
+        defer,
+    } = prepare_aggregate(children, raw_xmss, raw_sphincs, declare, log_inv_rate)?;
+    tamper(&mut hints);
+    hints.install(&mut program);
+    let (proof, stats) = prove(&program, public_input, log_inv_rate);
+    Ok((
+        AggregateSignature {
+            xmss_signers,
+            sphincs_signers,
+            defer,
+            proof,
+        },
+        stats,
+    ))
+}
+
+struct PreparedAggregate {
+    program: Program,
+    hints: Hints,
+    public_input: [F192; 2],
+    xmss_signers: Vec<XmssGroup>,
+    sphincs_signers: Vec<SphincsSigner>,
+    defer: DeferredClaim,
+}
+
+fn prepare_aggregate(
+    children: &[AggregateSignature],
+    raw_xmss: Vec<(XmssPublicKey, xmss::Epoch, xmss::Message, XmssSignature)>,
+    raw_sphincs: Vec<(SphincsPublicKey, sphincs::Message, SphincsSignature)>,
+    declare: Option<&WireKeys>,
+    log_inv_rate: usize,
+) -> Result<PreparedAggregate, AggregationError> {
     // Otherwise this reaches `cpu::prove`, which asserts rather than reporting.
     if !(lean_vm::pcs::MIN_LOG_INV_RATE..=lean_vm::pcs::MAX_LOG_INV_RATE).contains(&log_inv_rate) {
         return Err(AggregationError::InvalidRate { log_inv_rate });
@@ -2194,18 +2239,14 @@ pub(crate) fn aggregate_tampered(
     // `2^MU_MIN`. A run smaller than that (a leaf of a few dozen signatures) grows
     // its SET table until it clears the floor.
     program.min_log_committed = MU_MIN;
-    tamper(&mut hints);
-    hints.install(&mut program);
-    let (proof, stats) = prove(&program, public_input, log_inv_rate);
-    Ok((
-        AggregateSignature {
-            xmss_signers: cover.declared().to_vec(),
-            sphincs_signers: cover.sphincs_signers,
-            defer,
-            proof,
-        },
-        stats,
-    ))
+    Ok(PreparedAggregate {
+        program,
+        hints,
+        public_input,
+        xmss_signers: cover.declared().to_vec(),
+        sphincs_signers: cover.sphincs_signers,
+        defer,
+    })
 }
 
 struct OpeningShape {

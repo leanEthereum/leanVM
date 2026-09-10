@@ -7,6 +7,13 @@ publish = false
 [lints]
 workspace = true
 
+[features]
+zk-research = ["lean_vm/zk-research"]
+
+[[example]]
+name = "zk_guest_allocation_audit"
+required-features = ["zk-research"]
+
 [dependencies]
 primitives.workspace = true
 parallel.workspace = true
