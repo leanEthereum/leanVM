@@ -22,6 +22,8 @@ use crate::transcript::{Challenger, ProverState, Receiver, Transmitter, Verifier
 use crate::witness;
 use primitives::field::{F64, F192, g_pow};
 
+#[cfg(feature = "zk-research")]
+pub mod allocation;
 mod execute;
 pub mod filler;
 pub mod hints;
@@ -191,6 +193,8 @@ pub struct Program {
     /// run the program. Public verification (§ `verify`) ignores them.
     pub(crate) hints: HashMap<u32, Vec<hints::RHint>>,
     pub(crate) main_frame: u32,
+    #[cfg(feature = "zk-research")]
+    pub(crate) allocation_layout: Option<allocation::AllocationLayout>,
     /// Named prover witness streams for the program's `hint_witness` calls
     /// ([`Program::set_witness`]): a stream is a sequence of *entries* (one
     /// slice of values per `hint_witness` call; the same symbol may be
@@ -247,6 +251,8 @@ impl Program {
             bytecode_hash,
             hints,
             main_frame,
+            #[cfg(feature = "zk-research")]
+            allocation_layout: None,
             witness: HashMap::new(),
             filler: Vec::new(),
             fn_ranges: Vec::new(),
@@ -281,6 +287,31 @@ impl Program {
     /// invisible to verification.
     pub fn set_witness(&mut self, name: impl Into<String>, entries: Vec<Vec<F192>>) {
         self.witness.insert(name.into(), entries);
+    }
+
+    /// Research-only allocation policy for hints and filler frames. The caller
+    /// must separately establish memory safety, public entry cells and capacity.
+    /// Verification ignores this policy; enabling it does not make a proof ZK.
+    #[cfg(feature = "zk-research")]
+    pub fn set_allocation_layout(&mut self, layout: allocation::AllocationLayout) {
+        assert!(
+            self.main_frame.max(2) <= layout.first(),
+            "the entry frame overlaps allocation space"
+        );
+        self.allocation_layout = Some(layout);
+    }
+
+    #[inline]
+    fn allocate(&self, cursor: &mut u32, size: u32) -> u32 {
+        #[cfg(feature = "zk-research")]
+        if let Some(layout) = &self.allocation_layout {
+            return layout
+                .allocate(cursor, size)
+                .expect("reserved allocation space exhausted");
+        }
+        let base = *cursor;
+        *cursor += size;
+        base
     }
 
     /// Assemble a program directly from a fixed bytecode vector, starting at

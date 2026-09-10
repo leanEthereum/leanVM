@@ -31,6 +31,17 @@ pub struct Execution {
     /// operand before reading it.
     pub unconstrained_reads: Vec<u32>,
     pub(crate) trace: Trace, // rows + final access-count columns, emitted in the same walk
+    /// Research-only private diagnostics: (base, requested cells, reserved cells).
+    #[cfg(feature = "zk-research")]
+    pub allocations: Vec<(u32, u32, u32)>,
+}
+
+#[cfg(feature = "zk-research")]
+impl Execution {
+    /// Final read counters, for checking that a proposed mask bank is untouched.
+    pub fn memory_read_counts(&self) -> &[F64] {
+        &self.trace.mem_count
+    }
 }
 
 /// A memory word interpreted as a K-valued address: valid only when both
@@ -180,6 +191,8 @@ impl Program {
         let mut bytecode_count: Vec<F64> = vec![F64::ONE; self.prog.len()];
 
         let mut next_free = self.main_frame;
+        #[cfg(feature = "zk-research")]
+        let mut allocations = Vec::new();
         let (mut pc, mut fp) = (0u32, 0u32);
         let mut steps = 0usize;
         // Per-pc hint index. `self.hints` is keyed by pc, so probing it each step
@@ -379,8 +392,11 @@ impl Program {
                     // A hand-assembled program carries no blocks and has to land on
                     // powers of two by itself, which `Layout` checks.
                     if !self.filler.is_empty() {
-                        let mut frame = (1u32 << crate::cpu::MIN_LOG_MEM).max(next_free);
+                        next_free = (1u32 << crate::cpu::MIN_LOG_MEM).max(next_free);
                         for (block_pc, size, n) in super::filler::cycles(&self.filler, counts, fill_floors) {
+                            let frame = self.allocate(&mut next_free, fr::CELLS);
+                            #[cfg(feature = "zk-research")]
+                            allocations.push((frame, fr::CELLS, next_free - frame));
                             g.grow_to(frame as usize);
                             g.note(frame as usize);
                             // What the closing jump reads: back to the block's own first
@@ -390,9 +406,7 @@ impl Program {
                             m.put(frame + fr::NEXT_FP, F192::from(g.pow(frame as usize)));
                             m.put(frame + fr::PTR, F192::ONE);
                             runs.push((block_pc, frame, n * (size as usize + 1)));
-                            frame += fr::CELLS;
                         }
-                        next_free = frame;
                     }
                     cycles = runs.into_iter();
                 }
@@ -455,12 +469,20 @@ impl Program {
                             let cell = fp + ptr;
                             m.ensure(cell as usize);
                             if !m.written[cell as usize] {
-                                let base = next_free;
-                                next_free += size;
-                                g.grow_to((base + size) as usize);
+                                let base = self.allocate(&mut next_free, size);
+                                #[cfg(feature = "zk-research")]
+                                allocations.push((base, size, next_free - base));
+                                let (grow_until, storage_last) = (base + size, next_free);
+                                #[cfg(feature = "zk-research")]
+                                let (grow_until, storage_last) = if self.allocation_layout.is_some() {
+                                    (next_free - 1, next_free - 1)
+                                } else {
+                                    (grow_until, storage_last)
+                                };
+                                g.grow_to(grow_until as usize);
                                 // The base is about to become a pointer in memory.
                                 g.note(base as usize);
-                                m.ensure(next_free as usize);
+                                m.ensure(storage_last as usize);
                                 m.cells[cell as usize] = F192::from(g.pow(base as usize));
                                 m.written[cell as usize] = true;
                             }
@@ -937,6 +959,8 @@ impl Program {
             base_counts: base_counts.expect("the run halted, so its own counts were taken"),
             unconstrained_reads,
             trace,
+            #[cfg(feature = "zk-research")]
+            allocations,
         }
     }
 }
