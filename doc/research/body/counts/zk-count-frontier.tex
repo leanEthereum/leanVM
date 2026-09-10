@@ -1,0 +1,60 @@
+% !TeX root = ../../main.tex
+\subsection{The balanced source leaves the coarse count tree unmasked}\label{note:zk-count-frontier}
+
+\paragraph{Result.} The $129788$ metadata bits of \noteref{zk-flock-lowbank}, compression-input choices and unused-memory masks do not randomize any count-tree node of height $14$ or above. A fixed completion with witness-dependent products at that frontier therefore leaks through the sixth GKR child packet with probability at least $1-10/2^{192}$, even if all twenty-eight count-column products agree. This is an obstruction to completing that fixed-completion wrapper, not to every padding-only approach. It requires a repair before the selected terminal/query theorems can become a full proof.
+
+\subsubsection{The exact invariant and its wire projection}
+
+Use the public profile of Section~\ref{sec:zk-wire-ledger}. The count tree is identity-padded from depth $24$ to the push/pull depth $26$. Define its $4096$ height-$14$ products by
+\[
+ \zkCountFrontier{j}=\prod_{i=j2^{14}}^{(j+1)2^{14}-1}\cnt_i,
+ \qquad 0\le j<2^{12}.
+\]
+
+\begin{lemma}[A frozen coarse frontier]\label{lem:zk-frozen-count-frontier}
+Conditional on the complementary count assignment, every current private mask choice leaves the entire vector $(\zkCountFrontier{j})_j$ unchanged.
+\end{lemma}
+\begin{proof}
+Every old whole-row or count-label exchange stays inside one aligned $2^{14}$-row interval: its physical paired bit is zero, two or three. The new long-chain pairs have both endpoints below $12288$, hence inside the first such interval. Every count-column start is aligned to $2^{14}$, so a swap preserves its count multiset within each interval and therefore its product. This covers all $129788$ independent metadata bits. The compression-input and unused-memory choices change values but no count assignments. The field entries are nonzero count labels, including the identity padding. Every coarser product is a product of these unchanged nodes.
+\end{proof}
+
+The sixth radix-four packet reduces height $16$ to height $14$. After its ten honest sumcheck challenges $\fc\in\E^{10}$, the verifier receives four count children
+\[
+ \zkCountHeadChild{t}(\fc)=
+ \sum_{j<2^{10}}\eq(\fc,j)\zkCountFrontier{4j+t},
+ \qquad t<4.
+\]
+These are individual transmitted values, not just their randomly batched combination. The Rust, reference and recursive verifiers all read them before sampling the two interpolation coins. Push/pull randomness therefore cannot hide their count-channel projection.
+
+\begin{proposition}[Different fixed frontiers are almost perfectly distinguishable]\label{prop:zk-frozen-count-head}
+Suppose two witnesses at the same public statement have different deterministic coarse count frontiers, and the prover randomizes only by choices covered by Lemma~\ref{lem:zk-frozen-count-frontier}. Their full honest-interactive views have distance at least $1-10/|\E|$. Any common simulator has error at least $(1-10/|\E|)/2$ for one witness. Equal count roots or equal whole-column products do not change this conclusion.
+\end{proposition}
+\begin{proof}
+At least one of the four displayed child polynomials differs. Uniqueness of multilinear interpolation makes its difference a nonzero polynomial of total degree at most ten. The ten challenges are independent uniform honest coins, even though the other channels and their messages may depend on private masks. Except with probability at most $10/|\E|$, the child values differ. A test evaluates the first witness's public-coin polynomial and checks the transmitted child against it. Its acceptance probabilities differ by at least the stated amount. Projection and the triangle inequality give the full-view and simulator bounds.
+\end{proof}
+
+\subsubsection{A private-address example with all column products fixed}
+
+Use two disjoint $32$-cell frames, each holding the same valid baseline compression inputs. Both local offsets $9$ and $20$ contain the second chaining-value word. In each frame, privately read one of these two cells by DEREF, then perform eight identical compressions. The first frame reads offset $9$ and the second offset $20$, or vice versa. Both local DEREF results and all sixteen digests are identical. Fixed returns close the cycles; the differing pointer words are private witness data.
+
+The eight $\mathsf{cnt\_cv1}$ labels in one group have exponents $0,\ldots,7$, and the other group has $1,\ldots,8$. Interchanging the private pointers swaps these two multisets. Their joint column product is always $\gen^{64}$, and every other count-column product also agrees. Place the first eight compressions at logical rows $96\cdot2048+i$ and the second eight at $96\cdot2048+8+i$, for $i<8$. The physical permutation sends these to $12288+i$ and $28672+i$. They lie in different $2^{14}$-row intervals and outside every current padding bank.
+
+The native count layout places $\mathsf{cnt\_cv1}$ at leaf offset $49\cdot2^{18}$. Its two affected coarse nodes are thus $784$ and $785$. Before any common fixed factors, their values are $(\gen^{36},\gen^{28})$ or $(\gen^{28},\gen^{36})$. All other coarse products agree. For any common count completion whose product in the first affected interval is the nonzero factor $\zkCountCompletionFactor$, the sixth packet satisfies
+\[
+ \zkCountHeadChild{0}(\fc;0)+\zkCountHeadChild{0}(\fc;1)
+ =\zkCountCompletionFactor(\gen^{36}+\gen^{28})\eq(\fc,196).
+\]
+Its nonzero factor follows from $\gen^8\ne1$. The two views consequently differ whenever none of the ten equality factors vanishes, an event of probability $(1-1/|\E|)^{10}$.
+
+\paragraph{Evidence and scope.} \auditref{zk_count_frontier_audit.py} enumerates the source geometry, checks the native count-block placement, builds both cycle unions against every ISA constraint and counted bus identity, and checks equality of all twenty-eight integer column exponents. Its sparse replay passes the first six packets through the actual depth-$26$ reference GKR verifier and verifies the displayed difference. Those prefixes are not full VM proofs. With \texttt{--native}, the audit also verifies two complete small-frame VM proofs with opposite private pointer choices, the same public statement and heights, identical compression outputs and the same transmitted count root. These native proofs validate the semantic witness pair at their smaller layout; they do not instantiate the complete height-$28$ padded sampler or establish a Fiat-Shamir privacy bound.
+
+\paragraph{Required repair.} Normalizing whole-column products is insufficient for this source. Either construct a common sampler whose entire frozen count frontier is public, or add valid count choices that cross its block boundaries and prove their joint conditional hiding. Randomness in a separately unspecified normalization procedure cannot be silently credited to the present source. The existing selected-coset and terminal/Flock theorems remain valid for their stated projections; none includes this earlier packet. This obstruction takes priority over further enlarging those projections.
+
+\begin{lemma}[A sufficient localization contract]\label{lem:zk-localized-count-normalization}
+Before applying the listed masks, reserve for each opcode one public aligned $2^{14}$-row interval containing every witness-dependent count assignment, including the real rows and normalization choices. Suppose every other interval product is public and fixed, and the all-column normalization of \noteref{zk-count-columns} fits inside these reservations. Then the entire coarse count frontier is public, without any further randomness or verifier operation.
+\end{lemma}
+\begin{proof}
+In each column, the product of its one possibly private interval equals its public whole-column product divided by the product of all other intervals. The denominator is public and nonzero. The existing randomizers preserve every interval product, so this remains true after masking. The verifier coins and public frontier determine all count children and count contributions to sumcheck coefficients down through height $14$. The push/pull contributions still need simulation.
+\end{proof}
+
+This is a sufficient placement rule, not an implemented or capacity-checked completion. In the BLAKE2s table each such interval has only $4096$ positions outside the first $96$ padding banks. Real compressions and all witness-dependent BLAKE2s normalization rows would have to fit there jointly. Other opcodes have at most $16384$ positions before their own reservations. If that localization is too restrictive, distributing private rows among several intervals requires explicit per-interval normalization or new cross-interval masks; the whole-column quotient argument alone then fails.

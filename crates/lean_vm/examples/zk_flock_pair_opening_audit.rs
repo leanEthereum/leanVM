@@ -117,7 +117,7 @@ fn valid_witnesses() {
     }
 }
 
-fn valid_pointer_witnesses() {
+fn valid_pointer_witnesses(balanced: bool) {
     let mut code = vec![Op::Jump { oc: 0, od: 0, of: 1 }];
     for offset in 0..4 {
         code.push(Op::Set {
@@ -131,10 +131,13 @@ fn valid_pointer_witnesses() {
             k: F192::new(64, u32::MAX as u64, 0),
         },
         Op::Set {
-            o: 14,
-            k: F192::from(g_pow(31)),
+            o: if balanced { 24 } else { 14 },
+            k: if balanced { F192::ZERO } else { F192::from(g_pow(31)) },
         },
-        Op::Set { o: 15, k: F192::ONE },
+        Op::Set {
+            o: if balanced { 25 } else { 15 },
+            k: if balanced { F192::ZERO } else { F192::ONE },
+        },
         Op::Set { o: 20, k: IV_CELLS[1] },
         Op::Xor { a: 0, b: 0, c: 16 },
         Op::Mul { a: 0, b: 0, c: 17 },
@@ -155,35 +158,79 @@ fn valid_pointer_witnesses() {
         8,
     ));
     code.push(Op::Jump { oc: 14, od: 14, of: 15 });
+    if balanced {
+        code.push(Op::Jump { oc: 22, od: 22, of: 23 });
+    }
     code.resize(32, Op::Set { o: 0, k: F192::ZERO });
-    let hints = HashMap::from([(
-        1,
-        vec![
-            RHint::WitnessStack {
-                name: "cv".into(),
-                base: 8,
-                len: 2,
-            },
-            RHint::WitnessStack {
-                name: "pointer".into(),
-                base: 18,
-                len: 1,
-            },
-        ],
-    )]);
-    let mut program = Program::assemble(code, hints, FRAME + 32);
+    let mut frame_hints = vec![
+        RHint::WitnessStack {
+            name: "cv".into(),
+            base: 8,
+            len: 2,
+        },
+        RHint::WitnessStack {
+            name: "pointer".into(),
+            base: 18,
+            len: 1,
+        },
+    ];
+    if balanced {
+        frame_hints.push(RHint::WitnessStack {
+            name: "next".into(),
+            base: 14,
+            len: 2,
+        });
+        frame_hints.push(RHint::WitnessStack {
+            name: "finish".into(),
+            base: 22,
+            len: 2,
+        });
+    }
+    let copies = if balanced { 2 } else { 1 };
+    let mut program = Program::assemble(code, HashMap::from([(1, frame_hints)]), FRAME + 32 * copies);
     let public = [F192::from(g_pow(1)), F192::from(g_pow(FRAME as usize))];
     let mut common = None;
+    let mut common_count_root = None;
     for offset in [9, 20] {
-        program.set_witness("cv", vec![IV_CELLS.to_vec()]);
-        program.set_witness("pointer", vec![vec![F192::from(g_pow((FRAME + offset) as usize))]]);
+        program.set_witness("cv", vec![IV_CELLS.to_vec(); copies as usize]);
+        let mut pointers = vec![vec![F192::from(g_pow((FRAME + offset) as usize))]];
+        if balanced {
+            pointers.push(vec![F192::from(g_pow((FRAME + 32 + 29 - offset) as usize))]);
+            program.set_witness(
+                "next",
+                vec![
+                    vec![F192::from(g_pow(1)), F192::from(g_pow((FRAME + 32) as usize))],
+                    vec![F192::from(g_pow(21)), F192::from(g_pow((FRAME + 32) as usize))],
+                ],
+            );
+            program.set_witness("finish", vec![vec![F192::from(g_pow(31)), F192::ONE]; 2]);
+        }
+        program.set_witness("pointer", pointers);
         let execution = program.execute(public);
-        assert_eq!(execution.base_counts, [1, 1, 8, 1, 2, 8]);
+        assert_eq!(
+            execution.base_counts,
+            if balanced {
+                [2, 2, 16, 2, 4, 16]
+            } else {
+                [1, 1, 8, 1, 2, 8]
+            }
+        );
         assert!(execution.unconstrained_reads.is_empty());
         assert_eq!(execution.mem[FRAME as usize + 19], IV_CELLS[1]);
         let (proof, stats) = prove(&program, public, 1);
         verify(&program, &public, &proof).expect("valid private read-target proof");
-        assert_eq!(stats.counts, execution.base_counts);
+        if balanced {
+            assert_eq!(execution.mem[FRAME as usize + 32 + 19], IV_CELLS[1]);
+            assert_eq!(stats.counts, [2, 2, 16, 2, 4, 16]);
+            // Eight public announcements, two commitment scalars, then the two bus roots.
+            let count_root = proof.stream[11];
+            if let Some(previous) = common_count_root {
+                assert_eq!(previous, count_root);
+            }
+            common_count_root = Some(count_root);
+        } else {
+            assert_eq!(stats.counts, execution.base_counts);
+        }
         let observed = (
             stats.log_mem,
             stats.counts,
@@ -194,7 +241,7 @@ fn valid_pointer_witnesses() {
         }
         common = Some(observed);
         println!(
-            "Native proof verifies for private read offset {offset}, with common compression values, public input and heights."
+            "Native proof verifies for private read offset {offset}, balanced={balanced}, with common compression values, public input and heights."
         );
     }
 }
@@ -923,9 +970,13 @@ fn main() {
             balanced_quotient_certificate();
             return;
         }
+        Some("--balanced-pointer-witnesses") => {
+            valid_pointer_witnesses(true);
+            return;
+        }
         _ => {}
     }
     valid_witnesses();
-    valid_pointer_witnesses();
+    valid_pointer_witnesses(false);
     encoder_and_authentication();
 }

@@ -44,7 +44,7 @@ def stage_wire(v, channels, equality, challenges, combiner):
     return tuple(wire)
 
 
-def full_depth_prefix(v, replay, seed):
+def full_depth_prefix(v, replay, seed, depth=22):
     prefix, _, _, wire = replay["view"]
     values, rng, samples = iter((*prefix, *wire)), Random(seed), 0
     assert len(replay["challenge"]) % 2 == 0
@@ -76,7 +76,7 @@ def full_depth_prefix(v, replay, seed):
         sumcheck_round_poly = v.Transcript.sumcheck_round_poly
 
     try:
-        v.verify_gkr_grand_products(22, Stream())
+        v.verify_gkr_grand_products(depth, Stream())
     except EndOfPrefix:
         return
     raise AssertionError("the actual verifier should request the next layer's message")
