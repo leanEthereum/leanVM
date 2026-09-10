@@ -125,6 +125,23 @@ For example, $\kmem=20$, $\mu=23$, $\zkPadBlock=\zkFrameSize=256$ allows $1521$ 
 
 \paragraph{Why a periodic gap is weaker.} Reserving only the first half of every power-of-two frame leaves one fixed address bit equal to zero on every mask. If a later PCS level exposes that bit as a pre-fold lane, its other lane is unmasked by Proposition~\ref{prop:lane}. The five complete random segments above instead hide the entire first-folded vector, so no separate assumption about later query geometry is needed. A mere density of random cells is not the invariant we need.
 
+\begin{proposition}[Larger frames in consecutive payload slots]\label{prop:zk-multislot-allocation}
+The memory-envelope and memory/root theorems do not require each allocation to fit one $256$-cell slot. In the reservation of Section~\ref{sec:zk-flock-reservation}, the wholly free slots form four runs of lengths $5503,8187,9178,4091$. Round each requested allocation up to whole slots. If every rounded request has at most $\zkAllocationCap$ slots and their total is at most
+\[
+ 26959-3(\zkAllocationCap-1),
+\]
+a forward allocator, skipping to the next run when a request does not fit, completes without entering any reserved cell. The guarantee includes all allocated objects, not only live frames.
+\end{proposition}
+\begin{proof}
+Segment zero has free slot intervals $[2688,8191)$ and $[8192,16379)$; the other two have $[7201,16379)$ and $[12288,16379)$. These follow directly from the reserved frame sets. At each of the three possible run transitions the allocator abandons fewer than $\zkAllocationCap$ slots. If some request failed in the last run, the total rounded demand would exceed total free space minus this abandoned space, contradicting the displayed bound. Every granted allocation is contiguous and disjoint, so ordinary relative offsets remain available within it. The privacy proofs use only that the designated mask set is unused; its geometry and random dimension have not changed.
+\end{proof}
+
+This is a capacity theorem, not a relocation theorem for code inspecting numerical addresses or dereferencing fixed absolute addresses. The current range-check lowering in \path{crates/lean_compiler/src/lower.rs} touches the address represented by its operand and by its complementary exponent, even when all call frames are fresh. Those accesses can hit the mask prefix. A shifted or replaced range-check gadget needs its own soundness and capacity argument; simply declaring those read words unused is invalid. The public entry point, heap operations and ordinary filler also remain part of the allocator contract.
+
+Another possible repair is to randomize these semantically unconstrained probe values and propagate each change to its local DEREF copy. This preserves the instruction's value equality, but couples the memory masks to additional committed words and table columns. It would require a new joint masking theorem; the present proof, which fixes all non-memory-value coefficients, does not establish it.
+
+In particular, shifting both range-check dereferences by a positive public exponent $b$ while keeping the test $xy=\gen^{k-1}$ is unsound. The invalid input $x=\gen^{-1}$ and complement $y=\gen^k$ pass that product test, and their shifted addresses have valid integer exponents $b-1,b+k$ whenever $1\le b$ and $b+k<\nmem$. The unshifted gadget used nonnegative address exponents to exclude this case; the shift loses that lower bound. \auditref{zk_memory_count_coarse_audit.py} checks the multi-slot allocator and a complete five-instruction shifted-check cycle with $b=4096,k=8$ against the reference ISA and counted buses. Both probe addresses are outside the mask prefix, yet the asserted range is false. This rejects the naive shifted gadget, not a different range-check construction.
+
 \subsubsection{What the repair does not yet prove}
 
 The same masks enter the memory bus fingerprint products, GKR and memory opening claims. The continuation \noteref{zk-memory-root} proves one joint step: the shared bus root and this three-limb opening envelope, below $2^{-151}$, using independent directions in the opening's kernel. Proposition~\ref{prop:zk-memory-pcs-isolation} extends the root-decoupling hybrid to the actual algebraic PCS while retaining the other reductions' actual marginal. It does not simulate that marginal or the intermediate fingerprint GKR messages. We must still simulate those disclosures jointly and fit every cycle library into the nonreserved slots. Unused values do not randomize final read counts; count normalization and hiding remain separate obligations. Finally, Merkle roots and paths and the separate Fiat-Shamir experiment require their own simulation arguments.

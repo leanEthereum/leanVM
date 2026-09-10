@@ -35,11 +35,40 @@ def label_pairs(exponents, cap):
     return target, result
 
 
+def label_groups(exponents, cap, width=32):
+    assert width >= 2 and width % 2 == 0
+    radius = len(exponents) * width - 1
+    target = cap + width * radius
+    length = cap // width + 2 * radius + width
+    length += length % 2
+    used, result = set(), []
+    for exponent in exponents:
+        assert 0 <= exponent <= cap
+        center, residue = divmod(target - exponent, width)
+        selected = []
+        for _ in range(width // 2 - 1):
+            gap = next(value for value in range(1, radius + 1) if center - value not in used and center + value not in used)
+            pair = (center - gap, center + gap)
+            selected.extend(pair)
+            used.update(pair)
+        gap = next(value for value in range(1, radius + 1) if center - value not in used and center + value + residue not in used)
+        pair = (center - gap, center + gap + residue)
+        selected.extend(pair)
+        used.update(pair)
+        assert len(set(selected)) == width and sum(selected) + exponent == target
+        assert all(0 <= value < length for value in selected)
+        result.append(selected)
+    assert len(used) == len(exponents) * width
+    return target, length, result
+
+
 def transfers():
     for bins in range(1, 5):
         for cap in range(6):
             for exponents in product(range(cap + 1), repeat=bins):
                 label_pairs(exponents, cap)
+                for width in (2, 4, 6):
+                    label_groups(exponents, cap, width)
     rng = Random(701)
     cap = 4096 * 15
     for _ in range(9):
@@ -51,9 +80,22 @@ def transfers():
             assert sum(complement) + 16 * target - sum(values) == target * (target + 1) // 2
             assert len(selected) == 32
     print("Exact two-label routing covers every bin vector: exhaustive small cases and all nine maximum-profile chains pass.", flush=True)
+    for load in (16, 213, 256, 906):
+        cap = 4096 * (load - 1)
+        for values in ([0] * 16, [cap] * 16, [cap * (index % 2) for index in range(16)], [rng.randrange(cap + 1) for _ in range(16)]):
+            target, length, labels = label_groups(values, cap)
+            selected = {label for group in labels for label in group}
+            complement = set(range(length)) - selected
+            assert length == 128 * (load - 1) + 1054
+            assert len(complement) == 2 * (64 * (load - 1) + 271)
+            assert sum(complement) + 16 * target - sum(values) == length * (length - 1) // 2
+    print(
+        "Thirty-two-label groups pass exact endpoint, concentrated and mixed transfers up to load 906; no statistical assumption is used.", flush=True
+    )
 
 
-def geometry(verifier):
+def geometry(verifier, width):
+    assert width in (2, 32)
     blocks = low_positions()
     mandatory = {reordered_index(2048 * bank + index) for bank in range(96) for index in THREE_POINT_SUPPORT}
     metadata = {
@@ -68,24 +110,32 @@ def geometry(verifier):
     general = universe - mandatory - metadata - old_low
     protected = set(map(reordered_index, METADATA_ROWS))
     assert [sum(row >> 14 == slab for row in general) for slab in range(16)] == [8] + [3840] * 15
-    vacated = tuple(base + 15 for base in blocks[119])
-    assert vacated == (9567, 12287) and {437, 438} <= general - protected
-    low = old_low - set(vacated) | {437, 438}
-    general = general - {437, 438} | set(vacated)
-    routers = [tuple(sorted(row for row in general if row >> 14 == slab and row >= 4096)[:2]) for slab in range(16)]
-    assert routers[0] == vacated and all(len(rows) == 2 for rows in routers)
+    assert tuple(base + 15 for base in blocks[119]) == (9567, 12287) and {437, 438} <= general - protected
+    destinations = sorted(row for row in general if row >> 14 == 1)[:30]
+    moved = [(15, (437, 438))]
+    if width == 32:
+        moved += [(child, tuple(destinations[2 * child : 2 * child + 2])) for child in range(15)]
+    vacated = {base + child for child, _ in moved for base in blocks[119]}
+    relocated = {row for _, endpoints in moved for row in endpoints}
+    assert len(vacated) == len(relocated) == width and relocated <= general - protected
+    low = old_low - vacated | relocated
+    general = general - relocated | vacated
+    routers = [tuple(sorted(row for row in general if row >> 14 == slab and row >= 4096)[:width]) for slab in range(16)]
+    assert set(routers[0]) == vacated and all(len(rows) == width for rows in routers)
     selected = {row for rows in routers for row in rows}
-    assert len(selected) == 32 and selected <= general - protected
+    assert len(selected) == 16 * width and selected <= general - protected
     assert len(low) == 3840 and len(general) == 57608 and len(mandatory | metadata | low | general) == len(universe)
-    assert all(row % 64 >= 16 for row in (*vacated, 437, 438, *selected))
+    assert all(row % 64 >= 16 for row in vacated | relocated | selected)
 
     field = Tower(64, verifier)
     extra = extra_query_sources(field, blocks)
-    for block in range(5):
-        index = 5 * (16 * 119 + 15) + block
-        polynomial = extra[index]
-        assert [row for row, _ in polynomial] == [(block << 18) + row for row in vacated]
-        extra[index] = [((block << 18) + row, value) for row, (_, value) in zip((437, 438), polynomial, strict=True)]
+    for child, endpoints in moved:
+        assert endpoints[0] >> 14 == endpoints[1] >> 14
+        for block in range(5):
+            index = 5 * (16 * 119 + child) + block
+            polynomial = extra[index]
+            assert [row for row, _ in polynomial] == [(block << 18) + base + child for base in blocks[119]]
+            extra[index] = [((block << 18) + row, value) for row, (_, value) in zip(endpoints, polynomial, strict=True)]
     sources = query_sources(field)[0] + extra
     sources += [[(row, 3) for row in rows] for _, rows, _ in adapter_positions()]
     prefix = [tuple((row, value) for row, value in polynomial if row < 4096) for polynomial in sources]
@@ -93,7 +143,9 @@ def geometry(verifier):
     assert len(prefix) == len(set(prefix)) == 1117
     assert len({row for polynomial in prefix for row, _ in polynomial}) == sum(map(len, prefix))
     assert all(value for polynomial in prefix for _, value in polynomial)
-    print("Two low-bank rows move within interval zero; the 32 router rows avoid the prefix, mandatory source and protected rows.", flush=True)
+    print(
+        f"Relocating {width} low-bank rows frees {16 * width} router positions outside the prefix, mandatory source and protected rows.", flush=True
+    )
     print("The retained 4096-point prefix now encodes exactly 1117 independent bits; the adapter-child residue exclusion survives.", flush=True)
 
     payload = " ".join(str(value) for endpoints in blocks for value in endpoints)
@@ -116,18 +168,25 @@ def geometry(verifier):
     count_bus = verifier.bus_layout((), layout.count)
     count_bases = [placement.index for block, placement in zip(layout.count, count_bus.tables, strict=True) if block.owner == verifier.OP_BLAKE2S]
     assert [index >> 14 for index in count_bases] == list(range(704, 864, 16))
-    assert all(((index + row) >> 4) % 4 != 0 for index in count_bases for row in (*vacated, 437, 438))
-    cap = 4096 * 15
-    repeats = cap // 2 + 15
-    assert repeats == 30735 and 9 * repeats == 276615
-    assert 524288 - 9 * repeats == 247673
-    assert 1048576 - 196608 - repeats == 821233
+    assert all(((index + row) >> 4) % 4 != 0 for index in count_bases for row in vacated | relocated)
+    load = 16 if width == 2 else 256
+    cap = 4096 * (load - 1)
+    length = cap + 62 if width == 2 else label_groups([0] * 16, cap, width)[1]
+    repeats = (length - 16 * width) // 2
+    assert 9 * repeats == (276615 if width == 2 else 149319)
+    assert (1 << layout.table_log_heights[verifier.OP_XOR]) - 9 * repeats == (247673 if width == 2 else 374969)
+    assert (1 << layout.table_log_heights[verifier.OP_JUMP]) - len(universe) - repeats == (821233 if width == 2 else 835377)
     old_codes = {*range(1024, 1054), *range(1056, 1088), 1090, 1091, 1110, 1111, 1112, *range(1120, 1142)}
     added_codes = set(range(1142, 1152))
     assert old_codes.isdisjoint(added_codes) and len(old_codes | added_codes) == 99 and max(added_codes) < 1 << 11
     new_returns = set(range(1 << 18, (1 << 18) + repeats))
-    assert new_returns.isdisjoint(universe) and len(universe | new_returns) == 227343 and max(new_returns) < 1 << 20
-    print("Load cap 16 uses 276615 XOR rows, 30735 additional JUMPs and ten new codes, with no extra BLAKE2s rows or reserved frames.", flush=True)
+    assert new_returns.isdisjoint(universe) and len(universe | new_returns) == len(universe) + repeats and max(new_returns) < 1 << 20
+    if width == 32:
+        assert sum(range(3808, 3838)) == 114675
+        assert len(general - selected) == 57096
+    print(
+        f"Load cap {load}, width {width}: {9 * repeats} XOR rows, {repeats} additional JUMPs, ten new codes and no new reserved frames.", flush=True
+    )
     return routers
 
 
@@ -165,7 +224,87 @@ def prioritize(library):
         library.set_labels(locations, range(len(locations)))
 
 
-def valid_cycles(verifier):
+def allocation():
+    frames = ({*range(21500), 65535}, set(range(57608)), set(range(98304)))
+    limit = ((1 << 22) - 1280) // 256
+    runs = []
+    for segment, allocated in enumerate(frames):
+        occupied = {frame // 8 for frame in allocated}
+        start = None
+        for slot in range(limit + 1):
+            if slot < limit and slot not in occupied:
+                if start is None:
+                    start = slot
+            elif start is not None:
+                runs.append((segment, start, slot))
+                start = None
+    assert runs == [(0, 2688, 8191), (0, 8192, 16379), (1, 7201, 16379), (2, 12288, 16379)]
+    capacity = sum(end - start for _, start, end in runs)
+    assert capacity == 26959
+    rng = Random(709)
+    for largest in (1, 2, 25, 64, 256, 4091):
+        budget = capacity - (len(runs) - 1) * (largest - 1)
+        quotient, residue = divmod(budget, largest)
+        packed = [largest] * quotient + ([residue] if residue else [])
+        remaining, mixed = budget, []
+        while remaining:
+            size = rng.randrange(1, min(largest, remaining) + 1)
+            mixed.append(size)
+            remaining -= size
+        for requests in ([1] * budget, packed, packed[::-1], mixed):
+            run, cursor, wasted = 0, runs[0][1], 0
+            for size in requests:
+                assert 1 <= size <= largest
+                while size > runs[run][2] - cursor:
+                    wasted += runs[run][2] - cursor
+                    run += 1
+                    assert run < len(runs)
+                    cursor = runs[run][1]
+                segment, start, end = runs[run]
+                assert start <= cursor < cursor + size <= end
+                first = (segment << 22) + 1280 + 256 * cursor
+                assert first % (1 << 22) >= 1280 and first + 256 * size <= (segment + 1) << 22
+                cursor += size
+            assert wasted <= (len(runs) - 1) * (largest - 1)
+    print(
+        "Four actual payload runs support next-fit multi-slot allocations up to the proved rounded-demand bound, including large frames.", flush=True
+    )
+
+
+def shifted_range_counterexample(verifier):
+    library = Library(verifier)
+    frame = verifier.GEN ** ((1 << 22) + 1280 + 32 * 60000)
+    bound, shift = 8, 4096
+    value, complement = verifier.ONE / verifier.GEN, verifier.GEN**bound
+    assert value not in [verifier.GEN**exponent for exponent in range(bound)]
+    assert value * complement == verifier.GEN ** (bound - 1)
+    rows = []
+    fixed = library.row(verifier.OP_SET, 1200, frame)
+    fixed[verifier.SET_COLUMNS.index("o")] = verifier.GEN**2
+    fixed[verifier.SET_COLUMNS.index("k_0")] = verifier.GEN ** (bound - 1)
+    rows.append((verifier.OP_SET, fixed))
+    for pc, source, destination, pointer in ((1201, 0, 3, value), (1203, 1, 4, complement)):
+        row = library.row(verifier.OP_DEREF, pc, frame, pointer=pointer)
+        for name, exponent in (("o1", source), ("o2", shift), ("o3", destination)):
+            row[verifier.DEREF_COLUMNS.index(name)] = verifier.GEN**exponent
+        rows.append((verifier.OP_DEREF, row))
+    multiply = library.row(verifier.OP_MUL, 1202, frame)
+    multiply[verifier.ARITH_COLUMNS.index("va_0")] = value
+    multiply[verifier.ARITH_COLUMNS.index("vb_0")] = complement
+    rows.insert(2, (verifier.OP_MUL, multiply))
+    closing = library.row(verifier.OP_JUMP, 1204, frame, 1200)
+    for name, offset in zip(("o_c", "o_d", "o_f"), (16, 17, 18), strict=True):
+        closing[verifier.JUMP_COLUMNS.index(name)] = verifier.GEN**offset
+    rows.append((verifier.OP_JUMP, closing))
+    library.append(rows)
+    library.verify()
+    assert all(int(verifier.GEN**address) in library.images["memory"] for address in (shift - 1, shift + bound))
+    print(
+        "Naively shifting both range probes accepts g^-1: the invalid range witness passes the reference ISA and complete counted buses.", flush=True
+    )
+
+
+def valid_cycles(verifier, width):
     snapshots = []
     for allocation in (list(range(32)), [index // 4 for index in range(32)], [index % 8 for index in range(32)]):
         library = Library(verifier)
@@ -187,23 +326,29 @@ def valid_cycles(verifier):
         frame = verifier.GEN ** ((1 << 22) + 1280 + 32 * 5)
         template = compression(library, 1140, frame)
         copies = self_copies(library, template[0][1], 1142, frame)
-        selected = [library.append(template)[0] for _ in range(32)]
-        cap, repeats = 6, 18
+        selected = [library.append(template)[0] for _ in range(16 * width)]
+        cap = 6 if width == 2 else 64
+        length = cap + 62 if width == 2 else label_groups([0] * 16, cap, width)[1]
+        repeats = (length - len(selected)) // 2
         absorbers = [library.append(copies) for _ in range(repeats)]
         before = dict(library.reads)
         expected = []
         columns = [column for column, _, _ in library.memory_reads(verifier.OP_BLAKE2S, template[0][1])]
         for index, column in enumerate(columns):
             exponents = [sum(library.labels[row, column][1] for row in real[2 * slab : 2 * slab + 2]) for slab in range(16)]
-            target, labels = label_pairs(exponents, cap)
-            flattened = [label for pair in labels for label in pair]
-            assert 32 + 2 * repeats == target + 1
-            complement = sorted(set(range(target + 1)) - set(flattened))
+            if width == 2:
+                target, labels = label_pairs(exponents, cap)
+            else:
+                target, check_length, labels = label_groups(exponents, cap, width)
+                assert check_length == length
+            flattened = [label for group in labels for label in group]
+            assert len(selected) + 2 * repeats == length
+            complement = sorted(set(range(length)) - set(flattened))
             library.set_labels([(row, column) for row in selected], flattened)
             receiver = [(rows[index], verifier.ARITH_COLUMNS.index(name)) for rows in absorbers for name in ("cnt_a", "cnt_c")]
             library.set_labels(receiver, complement)
             for slab in range(16):
-                rows = real[2 * slab : 2 * slab + 2] + selected[2 * slab : 2 * slab + 2]
+                rows = real[2 * slab : 2 * slab + 2] + selected[width * slab : width * slab + width]
                 exponent = sum(library.labels[row, column][1] for row in rows)
                 assert exponent == target
                 expected.append(int(verifier.GEN**exponent))
@@ -213,7 +358,7 @@ def valid_cycles(verifier):
     assert all(snapshot[:3] == snapshots[0][:3] for snapshot in snapshots)
     assert snapshots[0][3] != snapshots[1][3]
     print(
-        "Three valid private frame-allocation patterns yield the same 144 frontier products and public sizes, with distinct final read counts.",
+        f"Width {width}: three valid private allocations yield the same 144 frontier products and public sizes, with distinct final read counts.",
         flush=True,
     )
     print("XOR self-copies, BLAKE-first labeling, code/memory images, all ISA constraints, counted buses and complete label chains pass.", flush=True)
@@ -222,5 +367,8 @@ def valid_cycles(verifier):
 if __name__ == "__main__":
     verifier = verifier_module()
     transfers()
-    geometry(verifier)
-    valid_cycles(verifier)
+    allocation()
+    shifted_range_counterexample(verifier)
+    for width in (2, 32):
+        geometry(verifier, width)
+        valid_cycles(verifier, width)
