@@ -234,8 +234,6 @@ LIG_MAX_QUERIES = LIG_MAX_QUERIES_PLACEHOLDER
 LIG_MAX_SQUEEZES = LIG_MAX_SQUEEZES_PLACEHOLDER
 LIG_MAX_INTERLEAVE = LIG_MAX_INTERLEAVE_PLACEHOLDER
 LIG_POSITIONS_LEN = LIG_POSITIONS_LEN_PLACEHOLDER
-LIG_ROWS_LEN = LIG_ROWS_LEN_PLACEHOLDER
-LIG_PATHS_LEN = LIG_PATHS_LEN_PLACEHOLDER
 LIG_CAP_DEPTH = LIG_CAP_DEPTH_PLACEHOLDER
 LIG_CAP_OFF = LIG_CAP_OFF_PLACEHOLDER
 LIG_CAP_LEN = LIG_CAP_LEN_PLACEHOLDER
@@ -246,6 +244,8 @@ LIG_FOLDS = LIG_FOLDS_PLACEHOLDER
 LIG_INTERLEAVE = LIG_INTERLEAVE_PLACEHOLDER
 LIG_LEAF_BLOCKS = LIG_LEAF_BLOCKS_PLACEHOLDER
 LIG_PACKED_ROW_CAP = LIG_PACKED_ROW_CAP_PLACEHOLDER
+LIG_ROW_CAP = LIG_ROW_CAP_PLACEHOLDER
+LIG_PATH_CAP = LIG_PATH_CAP_PLACEHOLDER
 LIG_TREE_DEPTH = LIG_TREE_DEPTH_PLACEHOLDER
 LIG_SQUEEZES = LIG_SQUEEZES_PLACEHOLDER
 LIG_POSITIONS_OFF = LIG_POSITIONS_OFF_PLACEHOLDER
@@ -253,8 +253,6 @@ LIG_LOG_MSG_COLS = LIG_LOG_MSG_COLS_PLACEHOLDER
 LIG_RESIDUAL_FOLD_OFF = LIG_RESIDUAL_FOLD_OFF_PLACEHOLDER
 LIG_RESIDUAL_PREFIX_LEN = LIG_RESIDUAL_PREFIX_LEN_PLACEHOLDER
 LIG_FOLDS_OFF = LIG_FOLDS_OFF_PLACEHOLDER
-LIG_ROWS_OFF = LIG_ROWS_OFF_PLACEHOLDER
-LIG_PATHS_OFF = LIG_PATHS_OFF_PLACEHOLDER
 LIG_VANISH_OFF = LIG_VANISH_OFF_PLACEHOLDER
 LIG_VANISH_VALS = LIG_VANISH_VALS_PLACEHOLDER
 LIG_VANISH_INVS = LIG_VANISH_INVS_PLACEHOLDER
@@ -899,15 +897,17 @@ def order_children(node, sibling, bit):
 
 
 @inline
-def verify_merkle_path(leaf_0, leaf_1, path_ptr, direction_bits, depth: Const):
+def verify_merkle_path(leaf_0, leaf_1, direction_bits, depth: Const):
     # A two-cell PCS leaf up to its level root; the query index's bit at each level
     # orders the two children.
+    path = StackBuf(LIG_PATH_CAP)
+    hint_witness(path[0:2 * depth], "merkle_paths")
     node_0 = leaf_0
     node_1 = leaf_1
     for level in unroll(0, depth):
         dir_bit = direction_bits[GEN ** level]
-        diff_0 = node_0 + path_ptr[GEN ** (2 * level)]
-        diff_1 = node_1 + path_ptr[GEN ** (2 * level + 1)]
+        diff_0 = node_0 + path[2 * level]
+        diff_1 = node_1 + path[2 * level + 1]
         left = [node_0 + dir_bit * diff_0, node_1 + dir_bit * diff_1]
         right = [diff_0 + left[0], diff_1 + left[1]]
         parent = StackBuf(2)
@@ -985,43 +985,41 @@ def opening_row_weights(point, out, folds: Const, reverse: Const):
     return
 
 
-def opening_queries(rows, paths, cap, flags, query_weights, query_bit_ptrs, row_eq_weights, n_queries_g, base: Const, interleave: Const, blocks: Const, depth: Const, cap_depth: Const):
+def opening_queries(cap, flags, query_weights, query_bit_ptrs, row_eq_weights, n_queries_g, base: Const, interleave: Const, blocks: Const, depth: Const, cap_depth: Const):
     # Specialize by row and path shape so opening configurations share query code.
     query_sum_chain = HeapBuf(n_queries_g * GEN)
     query_sum_chain[GEN ** 0] = 0
     for xe in mul_range(1, n_queries_g):
         if base == 1:
-            row_base = xe ** interleave
+            row_len = interleave
         else:
-            row_base = xe ** (3 * interleave)
-        row_ptr = rows * row_base
+            row_len = 3 * interleave
+        row = StackBuf(LIG_ROW_CAP)
+        hint_witness(row[0:row_len], "merkle_leaf_rows")
         row_dot = 0
         packed_row = StackBuf(LIG_PACKED_ROW_CAP)
         if base == 1:
             # Packing proves each hinted lane is in K before hashing or folding it.
             for jb in unroll(0, interleave // 4):
-                e0 = row_ptr[GEN ** (4 * jb)]
-                e1 = row_ptr[GEN ** (4 * jb + 1)]
-                e2 = row_ptr[GEN ** (4 * jb + 2)]
-                e3 = row_ptr[GEN ** (4 * jb + 3)]
+                e0 = row[4 * jb]
+                e1 = row[4 * jb + 1]
+                e2 = row[4 * jb + 2]
+                e3 = row[4 * jb + 3]
                 packed_row[2 * jb] = pack64x2(e0, e1)
                 packed_row[2 * jb + 1] = pack64x2(e2, e3)
                 row_dot += e0 * row_eq_weights[GEN ** (4 * jb)] + e1 * row_eq_weights[GEN ** (4 * jb + 1)] + e2 * row_eq_weights[GEN ** (4 * jb + 2)] + e3 * row_eq_weights[GEN ** (4 * jb + 3)]
         else:
             # Pack the checked tower limbs into the leaf's contiguous byte image.
-            lanes = StackBuf(LIG_PACKED_ROW_CAP)  # >= 3 limbs per word for every candidate
-            for jl in unroll(0, 3 * interleave):
-                lanes[jl] = row_ptr[GEN ** jl]
             for jb in unroll(0, 3 * interleave // 4):
-                packed_row[2 * jb] = pack64x2(lanes[4 * jb], lanes[4 * jb + 1])
-                packed_row[2 * jb + 1] = pack64x2(lanes[4 * jb + 2], lanes[4 * jb + 3])
+                packed_row[2 * jb] = pack64x2(row[4 * jb], row[4 * jb + 1])
+                packed_row[2 * jb + 1] = pack64x2(row[4 * jb + 2], row[4 * jb + 3])
             for jw in unroll(0, interleave):
                 if 3 * jw % 2 == 0:
                     # limbs (3w, 3w+1) are a pack; add Y^2 * limb(3w+2).
-                    row_word = packed_row[3 * jw // 2] + Y_TOWER * Y_TOWER * lanes[3 * jw + 2]
+                    row_word = packed_row[3 * jw // 2] + Y_TOWER * Y_TOWER * row[3 * jw + 2]
                 else:
                     # limbs (3w+1, 3w+2) are a pack; shift it by Y and add limb(3w).
-                    row_word = lanes[3 * jw] + Y_TOWER * packed_row[(3 * jw + 1) // 2]
+                    row_word = row[3 * jw] + Y_TOWER * packed_row[(3 * jw + 1) // 2]
                 row_dot += row_word * row_eq_weights[GEN ** jw]
         # Hash the packed row as full BLAKE2s blocks.
         leaf_hash_state = StackBuf(2)
@@ -1033,8 +1031,7 @@ def opening_queries(rows, paths, cap, flags, query_weights, query_bit_ptrs, row_
         query_sum_chain[xe * GEN] = query_sum_chain[xe] + query_weights[xe] * row_dot
         direction_bits = query_bit_ptrs[xe]
         path_depth = depth - cap_depth
-        path_ptr = paths * xe ** (2 * path_depth)
-        node_0, node_1 = verify_merkle_path(leaf_hash_state[0], leaf_hash_state[1], path_ptr, direction_bits, path_depth)
+        node_0, node_1 = verify_merkle_path(leaf_hash_state[0], leaf_hash_state[1], direction_bits, path_depth)
         if cap_depth != 0:
             parent = GEN ** (2 ** (cap_depth - 1))
             for bit in unroll(0, cap_depth - 1):
@@ -1084,14 +1081,7 @@ def open_stacked(m_idx: Const, fs0, fs1, target, commit_root_0, commit_root_1, c
     round_quad_b = target + round_quad_a
     sumcheck_target = target
 
-    # Opening data for every level, all consumed by the level loop below (each
-    # buffer is one flat run indexed by the baked LIG_*_OFF[ml] offsets). It lives
-    # here, before the loop, because the loop is unrolled per level, so a per-level
-    # declaration inside would be replicated. Hinted proof data:
-    merkle_leaf_rows = HeapBuf(GEN ** (LIG_ROWS_LEN[m_idx]))
-    hint_witness(merkle_leaf_rows[0:LIG_ROWS_LEN[m_idx]], "merkle_leaf_rows")
-    merkle_paths = HeapBuf(GEN ** (LIG_PATHS_LEN[m_idx]))
-    hint_witness(merkle_paths[0:LIG_PATHS_LEN[m_idx]], "merkle_paths")
+    # Caps are shared across queries; rows and paths are hinted in each query's frame.
     merkle_caps = HeapBuf(GEN ** (4 * LIG_CAP_LEN[m_idx]))
     hint_witness(merkle_caps[0:4 * LIG_CAP_LEN[m_idx]], "merkle_caps")
     cap_flags = HeapBuf(GEN ** LIG_CAP_LEN[m_idx])
@@ -1204,7 +1194,7 @@ def open_stacked(m_idx: Const, fs0, fs1, target, commit_root_0, commit_root_1, c
         level_roots[GEN ** (2 * lvl)] = root_0
         level_roots[GEN ** (2 * lvl + 1)] = root_1
 
-        level_query_sum = opening_queries(merkle_leaf_rows * GEN ** LIG_ROWS_OFF[ml], merkle_paths * GEN ** LIG_PATHS_OFF[ml], cap, flags, query_weights * GEN ** (lvl * max_q), query_bit_ptrs * GEN ** pos_off, row_eq_weights, GEN ** n_queries, 1 // (lvl + 1), interleave, LIG_LEAF_BLOCKS[ml], depth, cap_depth)
+        level_query_sum = opening_queries(cap, flags, query_weights * GEN ** (lvl * max_q), query_bit_ptrs * GEN ** pos_off, row_eq_weights, GEN ** n_queries, 1 // (lvl + 1), interleave, LIG_LEAF_BLOCKS[ml], depth, cap_depth)
 
         # Every level, including the last, ties its commitment in through an intro
         # message. The level's claims then enter the running one with powers of

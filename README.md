@@ -16,7 +16,7 @@ Minimal hash-based zkVM, for a Post-Quantum Ethereum.
 <p align="center">
   <a href="#xmss-aggregation"><img src="https://img.shields.io/badge/Aggregation-1150%20XMSS%2Fs-brightgreen?style=for-the-badge"></a>
   <a href="#sphincs-aggregation"><img src="https://img.shields.io/badge/Aggregation-240%20SPHINCS%2Fs-green?style=for-the-badge"></a>
-  <a href="#recursion"><img src="https://img.shields.io/badge/2%20to%201%20recursion-0.32s-orange?style=for-the-badge"></a>
+  <a href="#recursion"><img src="https://img.shields.io/badge/2%20to%201%20recursion-0.31s-orange?style=for-the-badge"></a>
 </p>
 
 Warning: highly experimental.
@@ -72,11 +72,11 @@ cargo run --release -- recursion --n 2 --xmss-per-leaf 900 --log-inv-rate 2 --re
 
 ```
 recursion 2→1, over leaves of 900 XMSS signatures
-  cycles (VM steps)           : 692,869 = 2^19.402
-    details                   : MUL 2^17.767 (32.2%)  DEREF 2^17.728 (31.3%)  XOR 2^17.28 (23.0%)  SET 2^15.574 (7.0%)  JUMP 2^14.807 (4.1%)  BLAKE2S 2^13.978 (2.3%)  MEMORY 2^19.681  TOTAL_COMMITTED 2^24.374
-  proof size                  : 196.8 KiB
-  proving time                : 0.329 s ± 2.5%      peak memory 10.146 GiB
-  verifying                   : 0.00393 s
+  cycles (VM steps)           : 648,441 = 2^19.307
+    details                   : MUL 2^17.738 (33.7%)  DEREF 2^17.434 (27.3%)  XOR 2^17.28 (24.5%)  SET 2^15.574 (7.5%)  JUMP 2^14.806 (4.4%)  BLAKE2S 2^13.978 (2.5%)  MEMORY 2^19.603  TOTAL_COMMITTED 2^24.374
+  proof size                  : 197.8 KiB
+  proving time                : 0.317 s ± 3.3%      peak memory 10.165 GiB
+  verifying                   : 0.00403 s
 ```
 
 ### Data Availability
