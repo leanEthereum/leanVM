@@ -458,55 +458,60 @@ def terminal_rank(field):
     print("The normalized old count terminal has full 192-bit fiber rank after retaining the low raw map and 4096-point prefix.", flush=True)
 
 
-def prefix_limit_certificate(field, blocks):
+def prefix_limit_certificate(field, verifier, blocks):
     from zk_flock_multicoset_audit import query_sources
 
     sources = query_sources(field)[0] + extra_query_sources(field, blocks)
-    exposed = [tuple((index, value) for index, value in polynomial if index < 8192) for polynomial in sources]
-    exposed = [polynomial for polynomial in exposed if polynomial]
-    assert len(exposed) == len(set(exposed)) == 2492
-    assert len({index for polynomial in exposed for index, _ in polynomial}) == sum(map(len, exposed))
-    kernel = sorted(
-        {
-            tuple((index, value) for index, value in polynomial if index < 16384)
-            for polynomial in sources
-            if all(index >= 8192 for index, _ in polynomial)
-        }
-        - {()}
-    )
-    assert len(kernel) == 384
     private = [(12288 + index, field.kmul(1 << index, 3)) for index in range(8)]
-    assert all(index >= 8192 for index, _ in private)
-    for omitted in (None, *range(12290, 12296)):
-        queries = [query for query in range(12290, 12296) if query != omitted]
-        payload = [len(queries), 0, *queries, 0]
-        for polynomials in (kernel, [private]):
-            payload.append(len(polynomials))
-            for polynomial in polynomials:
-                payload.append(len(polynomial))
-                payload.extend(value for term in polynomial for value in term)
-                payload.append(0)
-        result = subprocess.run(
-            ["cargo", "run", "--release", "-p", "lean_vm", "--example", "zk_flock_pair_opening_audit", "--", "--query-map-fiber-certificate"],
-            input=" ".join(map(str, payload)),
-            text=True,
-            capture_output=True,
-            check=True,
-            cwd=Path(__file__).resolve().parents[3],
+    for cutoff, bits, size, start, count, rank in ((4096, 1084, 1792, 12288, 24, 1530), (8192, 2492, 384, 12290, 6, 382)):
+        exposed = [tuple((index, value) for index, value in polynomial if index < cutoff) for polynomial in sources]
+        exposed = [polynomial for polynomial in exposed if polynomial]
+        assert len(exposed) == len(set(exposed)) == bits
+        assert all(value for polynomial in exposed for _, value in polynomial)
+        assert len({index for polynomial in exposed for index, _ in polynomial}) == sum(map(len, exposed))
+        kernel = sorted(
+            {
+                tuple((index, value) for index, value in polynomial if index < 16384)
+                for polynomial in sources
+                if all(index >= cutoff for index, _ in polynomial)
+            }
+            - {()}
         )
-        if omitted is None:
-            assert "RANK 382 384\n" in result.stdout and "OUTSIDE 0 " in result.stdout
-        else:
-            assert "RANK 320 320\n" in result.stdout and "INSIDE 0\n" in result.stdout
-    print("The entire 8192-point prefix reveals 2492 mask bits and leaves a minimal six-query private-pointer distinguisher.", flush=True)
-    print("This refutes the larger full-prefix envelope, not statistical privacy under the actual honest query distribution.", flush=True)
-
+        assert len(kernel) == size and all(index >= cutoff for index, _ in private)
+        for omitted in (None, *range(start, start + count)):
+            queries = [query for query in range(start, start + count) if query != omitted]
+            payload = [len(queries), 0, *queries, 0]
+            for polynomials in (kernel, [private]):
+                payload.append(len(polynomials))
+                for polynomial in polynomials:
+                    payload.append(len(polynomial))
+                    payload.extend(value for term in polynomial for value in term)
+                    payload.append(0)
+            result = subprocess.run(
+                ["cargo", "run", "--release", "-p", "lean_vm", "--example", "zk_flock_pair_opening_audit", "--", "--query-map-fiber-certificate"],
+                input=" ".join(map(str, payload)),
+                text=True,
+                capture_output=True,
+                check=True,
+                cwd=Path(__file__).resolve().parents[3],
+            )
+            if omitted is None:
+                assert f"RANK {rank} {64 * count}\n" in result.stdout and "OUTSIDE 0 " in result.stdout
+            else:
+                assert f"RANK {64 * (count - 1)} {64 * (count - 1)}\n" in result.stdout and "INSIDE 0\n" in result.stdout
+        print(f"The entire {cutoff}-point prefix reveals {bits} mask bits and leaves a minimal {count}-query private-pointer distinguisher.", flush=True)
+    for rate, bits in enumerate((329, 379, 419, 455), 1):
+        count = verifier.derive_config(28, rate).queries[0]
+        bound = Fraction(7936 * comb(32, 24) * prod(range(count - 23, count + 1)), 1 << (24 * (22 + rate)))
+        assert bound < Fraction(1, 1 << bits)
+        print(f"Rate {rate}: 24 distinct queries in any low 32-point coset cost below 2^-{bits}; other defects remain unbounded.", flush=True)
+    print("These are limits on enlarged envelopes, not impossibility results for statistical privacy under actual honest queries.", flush=True)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--full", action="store_true", help="check all valid cycles and randomized count chains")
     parser.add_argument("--scattered", action="store_true", help="check the complete low-band noise code and its dispersed minimal support")
-    parser.add_argument("--prefix-limit", action="store_true", help="certify why the full 8192-point public prefix is an unsafe envelope")
+    parser.add_argument("--prefix-limit", action="store_true", help="certify the limits of retaining entire public-prefix envelopes")
     arguments = parser.parse_args()
     blocks = positions()
     verifier = verifier_module()
@@ -515,7 +520,7 @@ if __name__ == "__main__":
         scattered_certificate(field, verifier, blocks)
         raise SystemExit
     if arguments.prefix_limit:
-        prefix_limit_certificate(field, blocks)
+        prefix_limit_certificate(field, verifier, blocks)
         raise SystemExit
     sampled_rank(field, blocks)
     terminal_rank(field)
@@ -524,7 +529,7 @@ if __name__ == "__main__":
         build(verifier, blocks)
         cluster_certificate(field, verifier, blocks)
         scattered_certificate(field, verifier, blocks)
-        prefix_limit_certificate(field, blocks)
+        prefix_limit_certificate(field, verifier, blocks)
         invariant_rank(field, blocks)
     subprocess.run(
         ["cargo", "run", "--release", "-p", "lean_vm", "--example", "zk_flock_pair_opening_audit", "--", "--lowbank-certificate", "4096"],
