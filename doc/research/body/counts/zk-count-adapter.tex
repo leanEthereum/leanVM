@@ -1,0 +1,78 @@
+% !TeX root = ../../main.tex
+\subsection{In-frame adapters for an untouched count child}\label{note:zk-count-adapter}
+
+\paragraph{Result.} Adding $3072$ zero-multiplication adapters to existing compression cycles supplies $1536$ independent count bits in the residue class missed by the balanced source. They hide the actual eleventh-packet child $\zkFineCountChild$ with error below $2^{-160}$, retaining the complete $4096$-point lane-$59$ prefix. This child also joins the established restricted terminal/query/Flock/memory boundary below $2^{-151}$. The adapters add neither compression rows nor allocated frames and change no verifier equation. They do not repair the earlier coarse-frontier obstruction or simulate the intervening GKR messages.
+
+\subsubsection{A legal source inside existing small frames}
+
+For each profile bank $b<96$ and slot $s<16$, select the two physical compression rows
+\[
+ 128b+16384s,\qquad 128b+16384s+64.
+\]
+Their logical positions are $2048b+8s$ and $2048b+8s+1024$, both in the mandatory binary source. Keep their two independent baseline/profile choices. Each row already has its own $32$-cell frame. Between the compression and its return, insert a MUL reading the chaining-value word at offset nine, multiplying by zero at offset thirty and writing zero at offset thirty-one. These offsets are disjoint from the existing operands and return controls. The baseline and every profile have the same chaining value, so the new row is independent of their input-choice bits.
+
+Reserve three public code locations, $1110,1111,1112$, for compression, adapter and return, using the existing return-control offsets $16,17,18$. The selected cycles replace their former compression/return cycles. They do not add return rows. Their two zero cells were already inside allocated frames. Frame and code identities are independent of every private choice; the common completion must keep these cells and instructions reserved.
+
+Each selected offset-nine cell is read exactly twice. For a fair bit $\sigma_{b,s}$, assign the two compression labels, in the displayed pair order, as
+\[
+ (\gen^{\sigma_{b,s}},\gen^{1-\sigma_{b,s}}),
+ \qquad\text{and the two adapter }\mathsf{cnt\_a}\text{ labels as }
+ (\gen^{1-\sigma_{b,s}},\gen^{\sigma_{b,s}}).
+\]
+Every address retains its complete labels $1,\gen$; swapping their ownership preserves the counted bus multiset. Both affected column products gain the fixed factor $\gen$ per pair. Memory images, final read counts, compression witnesses and all other column products are independent of $\sigma$. Labels need not be chronological, as in the existing valid count routers. This is a valid arithmetization sampler, not a claim that the current interpreter emits these labels automatically.
+
+Enumerate pairs by $n=96s+b$ and place their adapters at MUL rows $16+64(2n)$ and $16+64(2n+1)$. These are residue sixteen modulo sixty-four. Their height-four count nodes therefore belong to child one, not the target child zero. Every pair is inside one aligned $128$-row interval in both tables. The adapters consequently preserve all height-eight and coarser count products: they cannot fix the sixth-packet obstruction by themselves.
+
+\subsubsection{The exact affine image at the actual child}
+
+Every other compression in each selected sixteen-row block has a fresh offset-nine cell read once, hence label one. A selected block's product is exactly its selected label. The native count-column offset is $49\cdot2^{18}$, so flipping $\sigma_{b,s}$ changes $\zkFineCountChild$, at its honest twenty-coordinate point $\fc$, by
+\[
+ (1+\gen)\eq(\fc_{12:20},49)
+       \eq(\fc_{1:8},b)\eq(\fc_{8:12},s).
+\]
+The paired coordinate $\fc_0$ cancels; the adapter contribution is zero. This formula uses the transmitted child of the actual depth-$26$ count tree, not an independently invented evaluation.
+
+The eleven remaining variable coordinates have nine free bits and two bits of weight at most one: five low bank bits and four slot bits are free, while the two high bank bits take $(0,0),(1,0),(0,1)$. After excluding eleven denominator values and the eight zero selector factors, at cost $19/|\E|$, normalize the common nonzero factor. The columns are the three blocks
+\[
+ \{a_t:t<512\},\qquad \{u a_t:t<512\},\qquad
+ \{v a_t:t<512\},
+\]
+where the $a_t$ are all subset products of nine independent multipliers and $u,v$ are two further independent multipliers. Each is uniform on $\E\setminus\{1\}$.
+
+Only $s=0,b<32$ meet the coefficient prefix below $4096$. Those $32$ bits have disjoint nonzero coefficient supports, at residues zero modulo sixty-four, separate from all $1084$ prefix-visible old bits. The triangular encoder map therefore makes the full prefix equivalent to $1116$ independent source bits plus its public baseline. This statement uses the same public-prefix completion contract as Theorem~\ref{thm:zk-prefix-split-interface}; it does not give a witness-free law for an arbitrary complementary prefix.
+
+\begin{lemma}[A conditional adapter span]\label{lem:zk-count-adapter-span}
+Except with probability $\zkAdapterError<2^{-160}$ over the honest point, the map from the $1536$ bits to $\zkFineCountChild$ is onto $\E$ on every fiber of any fixed surjective $32$-bit linear disclosure independent of that point. In particular this holds after retaining all newly visible prefix bits.
+\end{lemma}
+\begin{proof}
+Use the trace-character proof of Theorem~\ref{thm:fixed-observation-span}. If the span of the $a_t$ has binary dimension $d$, at most $2^{192+32-d}$ joint characters annihilate the first block. For any character with nonzero extension component, each further multiplier satisfies $d$ independent affine binary equations with probability at most $(Q/(Q-1))2^{-d}$, where $Q=2^{192}$. The two multipliers are independent. Characters with zero extension component cannot annihilate the whole onto disclosure. Thus the conditional failure bound is
+\[
+ h(d)=\min\{1,(Q/(Q-1))^2 2^{224-3d}\}.
+\]
+The first five subset-product doublings reach dimension $32$ outside
+\[
+ B=\sum_{d\in\{1,2,4,8,16\}}\frac{(2^d-1)^2}{Q-1}.
+\]
+For $d\le c<m_d=\min(2d,192)$, the next-dimension tail is bounded by
+\[
+ p(d,c)=\min\left\{1,\frac{(2^d-1)^2}{(Q-1)(2^{2d-c}-1)}\right\}.
+\]
+Starting with $F_0=h$, let $F_{j+1}(d)=\min\{1,F_j(m_d)+\sum_{c=d}^{m_d-1}p(d,c)F_j(c)\}$. The same intersection-counting argument as in Theorem~\ref{thm:dense-fixed-observation-span} bounds the four remaining doublings uniformly over every intermediate subspace. It also justifies the actual multiplier domain by replacing multiplier one with zero, which gives the same doubled subspace. Therefore
+\[
+ \zkAdapterError=B+F_4(32)+19/Q<2^{-160}.
+\]
+The inequality is certified by exact rational arithmetic. On good coins an onto binary map sends every fixed-disclosure fiber to uniform $\E$. The disclosure is independent of the coins, so the same average bound holds for every disclosed value.
+\end{proof}
+
+\subsubsection{Composition and the remaining obligations}
+
+\begin{theorem}[One earlier count child with the restricted boundary]\label{thm:zk-count-adapter-interface}
+Assume a common valid completion satisfying the preceding reservations and the public-prefix contract. Add these adapters to the source of Theorem~\ref{thm:zk-prefix-split-interface}. The view in that theorem, enlarged by $\zkFineCountChild$ and its honest coins, has a joint witness-free simulator with error below $2^{-151}$. Its prefix retains the actual correlated law of all $1116$ visible bits.
+\end{theorem}
+\begin{proof}
+Condition first on all adapter bits. Every old metadata bit fixes $\zkFineCountChild$: the BLAKE2s residue argument still applies, and old rows in other tables do not move. Apply the four old metadata replacements while retaining this child and all adapter bits. The old $31$ extension uniforms and $48$ raw base-field uniforms absorb the fixed translations caused by the new rows. The old prefix remains determined by its $1084$ bits.
+
+Now retain the $32$ visible adapter bits and apply Lemma~\ref{lem:zk-count-adapter-span}. This replaces the target child by an independent extension uniform. Its possible translations of the already uniform old coordinates are absorbed; both prefix components stay fixed. Complete the established memory/root and compression-value/Flock hybrids. Their random choices change no counts, and the adapters neither change the packed compression witnesses nor reduce the reserved unused-memory masks. Thus these hybrids retain the new child. The exact old ledger plus $\zkAdapterError$ is still below $2^{-151}$.
+\end{proof}
+
+\paragraph{Limits and evidence.} This joint projection excludes the preceding GKR coefficients and other nonterminal children. Conditioning the lemma on those messages is not justified. It also excludes the new MUL-column disclosures and their PCS lanes; their privacy belongs to the missing full proof. The $3072$ new MUL rows and three code positions must fit the eventual common sampler, and normalization must account for their public count offsets. The adapter positions fit the announced MUL height, and no new compression rows or frame allocations are required, but global disjointness remains a P1 obligation. \auditref{zk_count_adapter_audit.py} checks the exact row geometry, native count placements, prefix support and rational error ledger; its sampled native-field joint rank is $224$. With \texttt{--full}, it checks all $3072$ compression/MUL/return cycles, including independent profile choices, against ISA constraints, counted buses and complete read chains. These are algebraic certificates, not a complete padded VM proof or a full-view ZK theorem.

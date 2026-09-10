@@ -30,9 +30,11 @@ def geometry(verifier):
             for index in support:
                 left, right = map(reordered_index, pair(kind, bank, index))
                 assert left >> 14 == right >> 14
+                assert left % 64 >= 16 and right % 64 >= 16
                 swaps += 10 if kind in ("count", "wide") else 1
     for left, right in positions():
         assert left >> 14 == right >> 14 == 0
+        assert left % 64 >= 16 and right % 64 >= 16
         swaps += 16 * 10
     assert swaps == 129788
     cv1 = verifier.BLAKE2S_COLUMNS.index("cnt_cv1")
@@ -41,7 +43,7 @@ def geometry(verifier):
     return offsets
 
 
-def cycles(verifier, secret, offsets):
+def cycles(verifier, secret, offsets, *, localized=False, frontier_height=14):
     library, placement = Library(verifier), {}
     for group, target in enumerate((9, 20) if secret == 0 else (20, 9)):
         frame = verifier.GEN ** ((1 << 22) + 1280 + 32 * group)
@@ -56,7 +58,7 @@ def cycles(verifier, secret, offsets):
         for index in range(8):
             row = library.row(verifier.OP_BLAKE2S, 101 + index, frame)
             row_id = library.append([(verifier.OP_BLAKE2S, row)])[0]
-            placement[row_id] = reordered_index((96 << 11) + 8 * group + index)
+            placement[row_id] = reordered_index((96 << 11) + (1024 if localized else 8) * group + index)
         row = library.row(verifier.OP_JUMP, 109, frame, 100)
         for name, offset in zip(("o_c", "o_d", "o_f"), (24, 25, 26)):
             row[verifier.JUMP_COLUMNS.index(name)] = verifier.GEN**offset
@@ -65,7 +67,7 @@ def cycles(verifier, secret, offsets):
     frontier = {}
     for row_id, (opcode, row) in enumerate(library.rows):
         for column in verifier.TABLES[opcode].count_columns:
-            index = (offsets[opcode, column] + placement[row_id]) >> 14
+            index = (offsets[opcode, column] + placement[row_id]) >> frontier_height
             frontier[index] = frontier.get(index, verifier.ONE) * row[column]
     products = tuple(library.exponents[table.opcode, column] for table in verifier.TABLES for column in table.count_columns)
     return {index: value for index, value in frontier.items() if value != verifier.ONE}, products
@@ -96,6 +98,22 @@ def certificate(verifier):
     )
     print("Two valid small-frame cycle unions have identical 28 column products but different coarse nodes 784 and 785.", flush=True)
     print("Six accepted depth-26 GKR packets expose their nonzero degree-10 difference; this replay excludes the later VM proof.", flush=True)
+    fine, roots = cycles(verifier, 0, offsets, localized=True, frontier_height=4)
+    other_fine, other_roots = cycles(verifier, 1, offsets, localized=True, frontier_height=4)
+    assert roots == other_roots
+    assert cycles(verifier, 0, offsets, localized=True)[0] == cycles(verifier, 1, offsets, localized=True)[0]
+    differences = {index for index in fine.keys() | other_fine.keys() if fine.get(index, verifier.ONE) != other_fine.get(index, verifier.ONE)}
+    assert differences == {803584, 803588} and all(index % 4 == 0 for index in differences)
+    fine_views = []
+    for frontier in (fine, other_fine):
+        view = replay(verifier, ({}, {}, frontier), 22, seed)
+        full_depth_prefix(verifier, view, seed, depth=26)
+        fine_views.append(view)
+    assert fine_views[0]["coins"] == fine_views[1]["coins"]
+    assert len(fine_views[0]["challenge"]) == 20
+    expected = (verifier.GEN**36 + verifier.GEN**28) * weight(verifier, fine_views[0]["challenge"][1:], 100448)
+    assert fine_views[0]["children"][2][0] + fine_views[1]["children"][2][0] == expected != verifier.ZERO
+    print("Localizing both gadgets fixes the entire height-14 frontier but still leaks through count child zero in packet eleven.", flush=True)
 
 
 if __name__ == "__main__":

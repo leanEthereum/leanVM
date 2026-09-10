@@ -1,5 +1,5 @@
 % !TeX root = ../../main.tex
-\subsection{The balanced source leaves the coarse count tree unmasked}\label{note:zk-count-frontier}
+\subsection{Two frozen count projections of the balanced source}\label{note:zk-count-frontier}
 
 \paragraph{Result.} The $129788$ metadata bits of \noteref{zk-flock-lowbank}, compression-input choices and unused-memory masks do not randomize any count-tree node of height $14$ or above. A fixed completion with witness-dependent products at that frontier therefore leaks through the sixth GKR child packet with probability at least $1-10/2^{192}$, even if all twenty-eight count-column products agree. This is an obstruction to completing that fixed-completion wrapper, not to every padding-only approach. It requires a repair before the selected terminal/query theorems can become a full proof.
 
@@ -58,3 +58,26 @@ In each column, the product of its one possibly private interval equals its publ
 \end{proof}
 
 This is a sufficient placement rule, not an implemented or capacity-checked completion. In the BLAKE2s table each such interval has only $4096$ positions outside the first $96$ padding banks. Real compressions and all witness-dependent BLAKE2s normalization rows would have to fit there jointly. Other opcodes have at most $16384$ positions before their own reservations. If that localization is too restrictive, distributing private rows among several intervals requires explicit per-interval normalization or new cross-interval masks; the whole-column quotient argument alone then fails.
+
+\subsubsection{Localization alone does not hide a later child}
+
+\begin{proposition}[An untouched residue class]\label{prop:zk-frozen-fine-count}
+Under the current source, the eleventh GKR packet's count child zero is deterministic conditional on the complementary count assignment, even after applying the sufficient coarse-localization contract. There are two valid localized cycle unions with equal whole-column products and equal coarse frontiers for which this child differs except on an event of probability at most $20/|\E|$.
+\end{proposition}
+\begin{proof}
+Every metadata-changing BLAKE2s row has physical residue at least $16$ modulo $64$. The rows at residues $0,\ldots,15$ in the first $96$ banks belong to the mandatory binary compression source: their logical sparse bits eight and nine are zero, and bit ten is unrestricted. Their input choices do not change counts. The old exchanges remain inside sixteen-row blocks, and every new low-bank block also avoids the untouched residue class. Other opcodes receive no count randomness from this source. Count-column starts are aligned to $2^{18}$.
+
+Let $\zkFineCountFrontier{j}$ be the product of count leaves $16j,\ldots,16j+15$. The eleventh packet reduces height six to four and, after twenty fresh honest challenges, transmits
+\[
+ \zkFineCountChild(\fc)=\sum_{j<2^{20}}\eq(\fc,j)\zkFineCountFrontier{4j},
+ \qquad \fc\in\E^{20}.
+\]
+Every term is unchanged by the current private masks. Place the two preceding eight-compression groups instead at physical rows $12288+i$ and $12352+i$, for $i<8$. They now lie in one aligned $256$-row interval. Their whole-column products and every count node at height eight or above agree, hence so does the entire coarse frontier. Nevertheless their height-four nodes $803584$ and $803588$, both zero modulo four, interchange $\gen^{36}$ and $\gen^{28}$. With identity complementary factors their child difference is
+\[
+ \zkFineCountChild(\fc;0)+\zkFineCountChild(\fc;1)
+ =(\gen^{36}+\gen^{28})\eq(\fc_{1:20},100448).
+\]
+The first challenge cancels, giving nonzero probability $(1-1/|\E|)^{19}$. Arbitrary common nonzero complementary block factors instead give a nonzero multilinear difference of degree at most twenty. The same projection test as before proves the asserted bound, and a common-simulator error floor of at least $(1-20/|\E|)/2$.
+\end{proof}
+
+\auditref{zk_count_frontier_audit.py} checks the untouched residue class, both localized valid cycle unions and equality of their coarse frontiers, then passes their first eleven packets through the actual depth-$26$ reference verifier. This is not a completed padded VM proof. Lemma~\ref{lem:zk-localized-count-normalization} remains sufficient for its stated coarse frontier only. A full count-head repair also needs randomness at finer scales; \noteref{zk-count-adapter} reaches the particular child above with valid in-frame adapters.
