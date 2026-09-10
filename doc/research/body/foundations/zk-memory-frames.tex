@@ -142,6 +142,46 @@ Another possible repair is to randomize these semantically unconstrained probe v
 
 In particular, shifting both range-check dereferences by a positive public exponent $b$ while keeping the test $xy=\gen^{k-1}$ is unsound. The invalid input $x=\gen^{-1}$ and complement $y=\gen^k$ pass that product test, and their shifted addresses have valid integer exponents $b-1,b+k$ whenever $1\le b$ and $b+k<\nmem$. The unshifted gadget used nonnegative address exponents to exclude this case; the shift loses that lower bound. \auditref{zk_memory_count_coarse_audit.py} checks the multi-slot allocator and a complete five-instruction shifted-check cycle with $b=4096,k=8$ against the reference ISA and counted buses. Both probe addresses are outside the mask prefix, yet the asserted range is false. This rejects the naive shifted gadget, not a different range-check construction.
 
+\subsubsection{Keep the range probes public, move the masks}
+
+\paragraph{A repair without new instructions.} The range-check problem does not require shifting its probes or bit-decomposing its operand. Instead, make their entire possible address prefix public and move the unused mask bank beyond it. Only the first memory segment needs this change. The following variant proves the memory envelope and its shared-root composition; it does not yet port every table-mask argument to the relocated padding frames.
+
+Let $\zkProbePrefix=2^{\zkProbeLog}$ satisfy $5\zkPadBlock\le\zkProbePrefix$ and $\zkProbePrefix+5\zkPadBlock\le\zkLaneLen$. Fix the first $\zkProbePrefix$ words to a public vector, namely the two public inputs followed by zeros. In segment zero replace the old reserved prefix by the $5\zkPadBlock$ unused words at offsets $\zkProbePrefix,\ldots,\zkProbePrefix+5\zkPadBlock-1$. Leave segments one through seven unchanged. All remaining accesses avoid these random banks, but may probe the fixed public prefix.
+
+\begin{lemma}[An unused mask bank after a public prefix]\label{lem:zk-probe-prefix}
+Fix any query set of size at most $q$. On the coefficient space supported in $[\zkProbePrefix,\zkProbePrefix+5\zkPadBlock)$, the joint map of evaluations outside $\subsp_{\zkProbeLog}$ and one independent uniform-point MLE is onto, except with probability at most $(\zkLaneLog+3)/|\E|$. Evaluations inside $\subsp_{\zkProbeLog}$ vanish for every difference of coefficient vectors agreeing on their first $\zkProbePrefix$ entries.
+\end{lemma}
+\begin{proof}
+The novel-basis polynomials with indices at least $\zkProbePrefix$ span the polynomials of degree below $\zkLaneLen$ divisible by $\Wn{\zkProbeLog}$. For $0\le i<5\zkPadBlock\le\zkProbePrefix$, disjoint index bits give
+\[
+ \novel_{\zkProbePrefix+i}(X)=\Wn{\zkProbeLog}(X)\novel_i(X).
+\]
+The first factor is nonzero outside $\subsp_{\zkProbeLog}$. Interpolation therefore supplies all displayed query coordinates. Put $Z(X)=\prod_{x\in\qset\setminus\subsp_{\zkProbeLog}}(X+x)$. Its degree is below $\zkPadBlock$. The five polynomials $\Wn{\zkProbeLog}Z\novel_{j\zkPadBlock}$, $0\le j\le4$, lie in the shifted mask bank and the query kernel. Their coefficient MLEs have the factorization of Lemma~\ref{lem:prefix}, except that the tail selector uses $r_{\zkProbeLog}$ in place of $1+r_{\zkProbeLog}$. Exclude zero rather than one for that coordinate. The same five-weight span and degree argument gives $(\zkLaneLog+3)/|\E|$.
+\end{proof}
+
+\begin{theorem}[Memory privacy with public range probes]\label{thm:zk-public-probe-envelope}
+For this modified reservation, the entire envelope of Theorem~\ref{thm:zk-memory-envelope} has a simulator given only the public prefix, with error at most
+\[
+ \frac{2\zkLaneLog+12}{|\E|}
+\]
+per value limb. Proposition~\ref{prop:zk-memory-pcs-isolation} still applies. With the parameters of Theorem~\ref{thm:zk-memory-root-decouple}, the three-limb envelope jointly with the shared bus root still has total error below $2^{-151}$.
+\end{theorem}
+\begin{proof}
+For segment zero, use Lemma~\ref{lem:zk-probe-prefix} to cancel the query and MLE difference. Queries in $\subsp_{\zkProbeLog}$ already have their fixed public answers. For the other segments use Lemma~\ref{lem:zk-pinned-envelope-prefix}. Both corrections preserve the first two coefficients. Every segment difference now lies in the common full observation kernel and in $\zkPinSpace$, so the unchanged five fully random segments cancel the entire folded difference exactly as before. Two prefix exceptions and the $6/|\E|$ fold-span exception give the displayed bound. The simulator retains the public prefix and sets all other nonreserved coefficients to zero before sampling masks.
+
+The root-kernel construction uses only segments three through seven, which have not changed. Their words remain unused even though the low public prefix is read. The root-decoupling theorem therefore retains its original error, uniformly in the accessed words, read labels and non-memory data. Add $3(2\zkLaneLog+12)/|\E|$ for the new envelope; with $\zkLaneLog\le22$ the sum remains below $2^{-151}$. This is the memory/root marginal, not simulation of the retained table data or intermediate GKR.
+\end{proof}
+
+\paragraph{The current range-check contract.} The compiler caps constant bounds at $2^{\texttt{MIN\_LOG\_MEM}}=2^{16}$. Runtime bounds retain their existing program obligation $1\le k\le2^{16}$. On an honest successful check, both probed exponents $e,k-1-e$ lie in $[0,2^{16})$. Thus $\zkProbePrefix=65536$ covers every such probe without changing a single range-check instruction or its soundness argument. Every copied word is an entry of the public prefix, including the possibly nonzero inputs at exponents zero and one. Which entry is copied, and its access count, may still be private; hiding that selection remains part of the table/count obligations. Every local destination belongs to the relocated private frame, and no random word is read by this gadget.
+
+\paragraph{Capacity at the candidate height.} Keep $\kmem=25$, $\mu=28$ and $\zkPadBlock=256$. Translate every segment-zero payload frame by $65536$ address exponents, leaving the other segments alone. The conservative padding-frame sets still fit. In slot coordinates relative to the new segment-zero payload base $65536+1280$, its free runs become $[2688,8191)$ and $[8192,16123)$; the other runs remain $[7201,16379)$ and $[12288,16379)$. Their total is $26703$ slots, exactly $256$ fewer than before. The next-fit guarantee is consequently
+\[
+ \text{total rounded demand}\ \le\ 26703-3(\zkAllocationCap-1).
+\]
+This relocation preserves each existing padding frame's internal relative offsets and count-chain lengths, but changes its address-dependent table coefficients. The capacity calculation alone does not certify all previous joint table-mask spans or a semantics-preserving transformation of the real program. The existing restricted Flock theorem must not silently be relabelled as a theorem for this variant.
+
+\paragraph{Evidence and remaining integration.} \auditref{zk_memory_probe_prefix_audit.py} checks the shifted native-basis identity, all four allocation runs, legal translations annihilating a multilevel algebraic wire, and the actual six-bit lane schedule with arbitrary non-memory weights and public-input terms. It checks the revised root/envelope bound exactly. The native example \path{crates/lean_vm/examples/zk_memory_probe_prefix_audit.rs} uses a three-instruction public bootstrap to enter a payload frame, keeps the ordinary range gadget, and supplies seven exponents including both endpoints and both public-input probes. Two complete proofs and a separate scalar-NTT check test legality, not a full ZK distribution. The bootstrap shows that private entry cells need not occupy the public prefix; compiling a general entry point, relocating pointers and all padding libraries, proving total allocation and covering the other committed columns remain P1 obligations. No production prover or verifier is changed.
+
 \subsubsection{What the repair does not yet prove}
 
 The same masks enter the memory bus fingerprint products, GKR and memory opening claims. The continuation \noteref{zk-memory-root} proves one joint step: the shared bus root and this three-limb opening envelope, below $2^{-151}$, using independent directions in the opening's kernel. Proposition~\ref{prop:zk-memory-pcs-isolation} extends the root-decoupling hybrid to the actual algebraic PCS while retaining the other reductions' actual marginal. It does not simulate that marginal or the intermediate fingerprint GKR messages. We must still simulate those disclosures jointly and fit every cycle library into the nonreserved slots. Unused values do not randomize final read counts; count normalization and hiding remain separate obligations. Finally, Merkle roots and paths and the separate Fiat-Shamir experiment require their own simulation arguments.

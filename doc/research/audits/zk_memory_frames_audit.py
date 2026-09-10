@@ -51,7 +51,7 @@ def prefix_obstruction(field, verifier):
     print(f"Prefix leak: native basis identity, all alignment cases, {checked} reference layouts and exact privacy lower bound checked.", flush=True)
 
 
-def pinned_translation(audit, difference):
+def pinned_translation(audit, difference, public_prefix=2):
     field, k = audit.field, audit.folds[0]
     length, lanes = 1 << (audit.log_size - k), 1 << k
     prefix = 5 * (1 << (audit.queries[0] + 2).bit_length())
@@ -67,9 +67,17 @@ def pinned_translation(audit, difference):
     original = [difference[lane * length : (lane + 1) * length] for lane in range(lanes)]
     adjusted = [row[:] for row in original]
     assert all(row[:2] == [0, 0] for row in original)
-    for row in adjusted:
-        target = [kdot(field, weight, row) for weight in observations]
-        for i, value in enumerate(row_inverse.solve(target), start=2):
+    if public_prefix > 2:
+        assert public_prefix & (public_prefix - 1) == 0 and prefix <= public_prefix and public_prefix + prefix <= length
+        assert original[0][:public_prefix] == [0] * public_prefix
+        shifted_observations = [row for query, row in zip(points, observations) if query >= public_prefix] + observations[len(points) :]
+        shifted_inverse = RightInverse(field, [row[public_prefix : public_prefix + prefix] for row in shifted_observations])
+    for lane, row in enumerate(adjusted):
+        shifted = lane == 0 and public_prefix > 2
+        selected = shifted_observations if shifted else observations
+        inverse = shifted_inverse if shifted else row_inverse
+        target = [kdot(field, weight, row) for weight in selected]
+        for i, value in enumerate(inverse.solve(target), start=public_prefix if shifted else 2):
             row[i] ^= value
     for i in range(length):
         folded = edot(field, alpha, [row[i] for row in adjusted])
@@ -79,7 +87,11 @@ def pinned_translation(audit, difference):
         assert row[:2] == [0, 0]
         assert all(kdot(field, weight, row) == 0 for weight in observations)
         if lane not in full:
-            assert row[prefix:] == original[lane][prefix:]
+            if lane == 0 and public_prefix > 2:
+                assert row[:public_prefix] == original[lane][:public_prefix]
+                assert row[public_prefix + prefix :] == original[lane][public_prefix + prefix :]
+            else:
+                assert row[prefix:] == original[lane][prefix:]
     assert all(edot(field, alpha, [row[i] for row in adjusted]) == 0 for i in range(length))
     return [value for row in adjusted for value in row]
 
@@ -193,14 +205,14 @@ def root_kernel_certificate(field):
         print(f"Root kernel, {mode}: four disjoint E-valued banks preserve every audited opening and have the asserted bus polynomial.", flush=True)
 
 
-def joint_root_bound():
+def joint_root_bound(envelope_numerator=3 * (22 + 12)):
     base, extension, queries, banks = 1 << 64, 1 << 192, 228, 12
     degree = 5 * (queries + 4)
     collisions = 4 * banks * degree * (degree - 1) // 2
     character = Fraction(degree * (1 << 96), base**2 - degree)
     mixing = Fraction(1 << 95) * character**banks
     decouple = Fraction((1 << 40) + 8 + banks * degree + collisions, extension) + Fraction(base**2, (extension - 2) ** 2) + mixing
-    envelope = Fraction(3 * (22 + 12), extension)
+    envelope = Fraction(envelope_numerator, extension)
     assert character < Fraction(1, 1 << 21)
     assert mixing < Fraction(1, 1 << 157)
     assert decouple + envelope < Fraction(1, 1 << 151)
@@ -261,12 +273,14 @@ def unopened_leaf_certificate(field):
     )
 
 
-def actual_lane_schedule_certificate(field):
-    log_stack, length, memory = 11, 32, 256
+def actual_lane_schedule_certificate(field, public_prefix=2):
+    log_stack = 11 if public_prefix == 2 else 12
+    log_length = log_stack - 6
+    length, memory = 1 << log_length, 1 << (log_length + 3)
     offsets = [lane * length for lane in (16, 24, 32)]
     for mode in ("random", "prefix"):
         rng = Random(317)
-        memory_point = [field.random(rng) for _ in range(8)]
+        memory_point = [field.random(rng) for _ in range(log_length + 3)]
         memory_weights = field.eq(memory_point)
         public_coin = field.random(rng)
         weights = [field.random(rng) for _ in range(1 << log_stack)]
@@ -278,25 +292,30 @@ def actual_lane_schedule_certificate(field):
         audit = Audit(field, log_stack, (6, 2), (1, 1), seed=17, query_mode=mode).run(initial_weights=weights)
         local = SimpleNamespace(
             field=field,
-            log_size=8,
+            log_size=log_length + 3,
             folds=(3,),
             queries=(1,),
             challenges=audit.challenges[:3],
             query_points=audit.query_points[:1],
-            initial_point=memory_point[5:] + memory_point[:5],
+            initial_point=memory_point[log_length:] + memory_point[:log_length],
         )
         translated = [0] * (1 << log_stack)
         for offset in offsets:
-            difference = [rng.getrandbits(field.bits) if i // length < 3 and i % length >= 20 else 0 for i in range(memory)]
-            translated[offset : offset + memory] = pinned_translation(local, difference)
+            difference = [
+                rng.getrandbits(field.bits)
+                if i // length < 3 and i % length >= (public_prefix + 20 if i < length and public_prefix > 2 else 20)
+                else 0
+                for i in range(memory)
+            ]
+            translated[offset : offset + memory] = pinned_translation(local, difference, public_prefix)
         assert any(translated)
         assert all(edot(field, row, translated) == 0 for row in audit.rows)
 
         alpha = field.eq(audit.challenges[:3])
         full = list(range(3, 8))
         lane = kernel_vector(field, [[field.coords(alpha[i])[j] for i in full] for j in range(3)])
-        observations = [list(field.novel(5, point)) for point in sorted(set(audit.query_points[0]))]
-        observations += list(zip(*(field.coords(value) for value in field.eq(memory_point[:5]))))
+        observations = [list(field.novel(log_length, point)) for point in sorted(set(audit.query_points[0]))]
+        observations += list(zip(*(field.coords(value) for value in field.eq(memory_point[:log_length]))))
         column = kernel_vector(field, [row[2:7] for row in observations])
         parameter = field.coords(field.random(rng))
         direction = [0] * (1 << log_stack)
@@ -306,7 +325,7 @@ def actual_lane_schedule_certificate(field):
                     direction[offset + index * length + j] = field.kmul(field.kmul(coefficient, value), coordinate)
         assert any(direction) and all(edot(field, row, direction) == 0 for row in audit.rows)
         print(
-            f"Six-bit lane schedule over native fields, {mode}: memory coupling and root kernels survive arbitrary non-memory weights and public pins.",
+            f"Six-bit lane schedule over native fields, {mode}, public prefix {public_prefix}: memory coupling and root kernels survive arbitrary non-memory weights and public pins.",
             flush=True,
         )
 
