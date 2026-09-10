@@ -137,13 +137,22 @@ def joint_interface_error():
     print("Adding all ten BLAKE2s count evaluations at the GKR leaf point preserves the joint bounds below 2^-154 and 2^-151.", flush=True)
 
 
-def blake_bus_forms(verifier, point, alphas):
+def lane_count_columns(verifier, code_log=11):
+    assert code_log in (11, 19)
+    layout = verifier.build_layout(range(16 << code_log), 25, (19, 19, 19, 19, 20, 18))
+    base = verifier.GLOBAL_COLUMN_BASES[verifier.OP_BLAKE2S]
+    columns = [column for column in verifier.TABLES[verifier.OP_BLAKE2S].count_columns if layout.placements[base + column].index >> 22 == 59]
+    assert all(layout.placements[base + column].index == (59 << 22) + (block << 18) for block, column in enumerate(columns))
+    return columns
+
+
+def blake_bus_forms(verifier, point, alphas, code_log=11):
     weights = [verifier.eq_eval(alphas, [verifier.E((slot >> bit) & 1) for bit in range(4)]) for slot in range(16)]
-    layout = verifier.build_layout(range(16 << 11), 25, (19, 19, 19, 19, 20, 18))
+    layout = verifier.build_layout(range(16 << code_log), 25, (19, 19, 19, 19, 20, 18))
     forms, positions = [], []
     for side in ("push", "pull", "count"):
         blocks = getattr(layout, side)
-        stacked = verifier.bus_layout(() if side == "count" else (0, 25, 11), blocks)
+        stacked = verifier.bus_layout(() if side == "count" else (0, 25, code_log), blocks)
         assert stacked.depth == (24 if side == "count" else 26)
         form, indices = verifier.Form(), {}
         for block, placement in zip(blocks, stacked.tables):

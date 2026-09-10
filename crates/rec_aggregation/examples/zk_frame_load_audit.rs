@@ -61,6 +61,39 @@ fn inspect(program: &Program) -> Vec<FunctionLoad<'_>> {
     result
 }
 
+fn code_reservation(program: &Program) {
+    assert_eq!(
+        program.prog.len(),
+        1 << 19,
+        "the candidate ZK layout assumes bytecode log 19"
+    );
+    let code_shift = program.prog.len() - (1 << 11);
+    let first = code_shift + 1024;
+    let last = code_shift + 1151;
+    let emitted_end = program
+        .fn_ranges
+        .iter()
+        .map(|(_, entry, length)| (entry + length) as usize)
+        .max()
+        .expect("compiled functions");
+    assert!(emitted_end <= first && last < program.prog.len() - 1);
+    assert!(
+        program
+            .filler
+            .iter()
+            .all(|block| (block.pc + block.size) < first as u32)
+    );
+    assert!(
+        program.prog[first..=last]
+            .iter()
+            .all(|op| matches!(op, Op::Set { o: 0, k } if *k == F192::ZERO))
+    );
+    println!(
+        "Emitted code ends at {emitted_end}; translated padding codes fit in the unused interval {first}..={last}."
+    );
+    println!("This checks code-space disjointness, not the larger-code ZK theorem or a modified program digest.");
+}
+
 fn main() {
     let alias_source = r#"
 from snark_lib import *
@@ -108,6 +141,7 @@ def main():
             functions.iter().all(|row| row.max_load <= 256),
             "the aggregation guest exceeds the current static BLAKE2s load budget"
         );
+        code_reservation(program);
     }
     println!("Public bytecode log: {}", program.prog.len().trailing_zeros());
     println!("Functions containing BLAKE2s: {}", functions.len());

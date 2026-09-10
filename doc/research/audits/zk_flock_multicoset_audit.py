@@ -19,7 +19,7 @@ from zk_flock_children_audit import (
     pair,
 )
 from zk_flock_coset_audit import novel_factors, probability_all_hit, reordered_index
-from zk_flock_pair_opening_audit import blake_bus_forms, evaluate
+from zk_flock_pair_opening_audit import blake_bus_forms, evaluate, lane_count_columns
 from zk_memory_frames_audit import joint_root_bound
 from zk_pcs_audit import RightInverse, Tower, kdot, verifier_module
 from zk_stacked_audit import binary_basis
@@ -199,7 +199,8 @@ def six_query_obstruction(field, verifier):
         print(f"Rate {rate}: every common simulator for this fixed-completion source has error greater than 2^-{bits}.", flush=True)
 
 
-def query_sources(field):
+def query_sources(field, lane_blocks=5):
+    assert lane_blocks in (5, 7)
     geometric, value = [], 3
     for _ in DENSE_FIXED:
         geometric.append(value)
@@ -209,26 +210,26 @@ def query_sources(field):
         for child in range(4):
             for number, index in enumerate(DENSE_FIXED):
                 left, right = map(reordered_index, pair(kind, child, index))
-                for block in range(5):
-                    difference = geometric[number] if block == 4 else 3
+                for block in range(lane_blocks):
+                    difference = geometric[number] if block == lane_blocks - 1 else 3
                     result.append([(block * (1 << 18) + endpoint, difference) for endpoint in (left, right)])
                     labels.append((kind, child, number, block))
     for child in range(4):
         for number, index in enumerate(PC_SUPPORT):
             left, right = map(reordered_index, pair("pc", child, index))
-            result.append([(block * (1 << 18) + endpoint, 3) for block in range(4) for endpoint in (left, right)])
+            result.append([(block * (1 << 18) + endpoint, 3) for block in range(lane_blocks - 1) for endpoint in (left, right)])
             labels.append(("pc", child, number, None))
     for number, index in enumerate(SHORT_SUPPORT):
         left, right = map(reordered_index, pair("operand", 7, index))
-        result.append([(4 * (1 << 18) + endpoint, geometric[number]) for endpoint in (left, right)])
+        result.append([((lane_blocks - 1) * (1 << 18) + endpoint, geometric[number]) for endpoint in (left, right)])
         labels.append(("operand", 7, number, None))
-    assert len(result) == 56700
+    assert len(result) == 8 * 1280 * lane_blocks + 4 * 1279 + 384
     return result, labels
 
 
-def source_certificate(verifier, sources, labels, library_groups=None):
+def source_certificate(verifier, sources, labels, library_groups=None, code_log=11):
     library, groups = build(verifier, True) if library_groups is None else library_groups
-    columns = [verifier.BLAKE2S_COLUMNS.index(name) for name in ("cnt_cv1", "cnt_out0", "cnt_out1", "cnt_md", "cnt_bc")]
+    columns = lane_count_columns(verifier, code_log)
     for polynomial, (kind, child, number, block) in zip(sources, labels):
         _, first, second, logical_left, logical_right = groups[kind, child][number]
         a, b = library.rows[first][1], library.rows[second][1]
@@ -241,20 +242,20 @@ def source_certificate(verifier, sources, labels, library_groups=None):
     for child in range(7):
         for _, first, second, _, _ in groups["operand", child]:
             assert all(library.rows[first][1][column] == library.rows[second][1][column] for column in columns)
-    print("All 56700 nonzero lane-source directions agree with complete valid cycles; the other operand swaps vanish.", flush=True)
+    print(f"All {len(sources)} nonzero lane-source directions agree with complete valid cycles; the other operand swaps vanish.", flush=True)
 
 
-def joint_query_sources(field, verifier, seed):
-    library, groups = build(verifier, True)
+def joint_query_sources(field, verifier, seed, library_groups=None, code_log=11):
+    library, groups = build(verifier, True) if library_groups is None else library_groups
     rng = Random(seed)
     terminal = [field.random(rng) for _ in range(18)]
     parent = [verifier.E(*field.coords(field.random(rng))) for _ in range(24)]
     alphas = [verifier.E(*field.coords(field.random(rng))) for _ in range(4)]
-    forms, _ = blake_bus_forms(verifier, [verifier.ZERO, verifier.ZERO, *parent], alphas)
+    forms, _ = blake_bus_forms(verifier, [verifier.ZERO, verifier.ZERO, *parent], alphas, code_log)
     columns = verifier.BLAKE2S_COLUMNS
     counts = verifier.TABLES[verifier.OP_BLAKE2S].count_columns
     selected = [columns.index(name) for name in (*PROGRAM, "fp")] + list(counts)
-    lane_columns = [columns.index(name) for name in ("cnt_cv1", "cnt_out0", "cnt_out1", "cnt_md", "cnt_bc")]
+    lane_columns = lane_count_columns(verifier, code_log)
     parent_weights = field.eq([int(value) for value in parent[:16]])
     terminal_weights = field.eq(terminal)
     matrix = [[int(form.terms.get((column,), verifier.ZERO)) for column in counts] for form in forms]
@@ -293,7 +294,7 @@ def joint_query_sources(field, verifier, seed):
                 result.append((polynomial, prefix))
     assert len(result) == 110588
     assert Counter(tuple(polynomial) for polynomial, _ in result if polynomial) == Counter(
-        tuple(polynomial) for polynomial in query_sources(field)[0]
+        tuple(polynomial) for polynomial in query_sources(field, len(lane_columns))[0]
     )
     print(
         "All 110588 legal metadata bits retain nineteen terminal fields, twelve actual GKR children and the complete lane-59 query source.",

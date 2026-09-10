@@ -156,7 +156,7 @@ def larger_code_geometry(verifier):
         assert depths == [26, 26, 24]
         print(f"Bytecode log {code_log}: stack log 28 and bus depths {depths}, but lane 59 starts with {first}, {second}.", flush=True)
     assert layout.placements[verifier.BYTECODE_FINAL_COUNTERS].index == 51 * lane + (1 << 21)
-    print("The larger code image fits in size; its changed lane/prefix masks still need a separate proof.", flush=True)
+    print("The larger code image fits in size; zk_large_code_audit.py checks its changed lane/prefix masks separately.", flush=True)
 
 
 if __name__ == "__main__":

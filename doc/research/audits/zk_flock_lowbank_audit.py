@@ -17,7 +17,7 @@ from zk_flock_children_audit import (
     pair,
 )
 from zk_flock_coset_audit import novel_factors, reordered_index
-from zk_flock_pair_opening_audit import blake_bus_forms
+from zk_flock_pair_opening_audit import blake_bus_forms, lane_count_columns
 from zk_memory_frames_audit import joint_root_bound
 from zk_pcs_audit import Tower, verifier_module
 from zk_stacked_audit import binary_basis
@@ -48,11 +48,11 @@ def sorted_matching(blocks):
     return pairs
 
 
-def build(verifier, blocks, frame_shift=0):
+def build(verifier, blocks, frame_shift=0, code_shift=0):
     library = Library(verifier)
     assert 0 <= frame_shift and frame_shift + 1280 + 32 * 65536 <= 1 << 22
     frame = verifier.GEN ** (frame_shift + 1280 + 32 * 65535)
-    templates = library.templates((verifier.OP_BLAKE2S, 1090, [], True), frame)
+    templates = library.templates((verifier.OP_BLAKE2S, code_shift + 1090, [], True), frame)
     for name, offset in zip(("o_c", "o_d", "o_f"), range(16, 19)):
         templates[-1][1][verifier.JUMP_COLUMNS.index(name)] = verifier.GEN**offset
     counts = verifier.TABLES[verifier.OP_BLAKE2S].count_columns
@@ -85,14 +85,16 @@ def combined_error():
     print("Independent old-terminal and new-query masks give the split-region boundary and full 4096-point prefix below 2^-151.", flush=True)
 
 
-def extra_query_sources(field, blocks):
+def extra_query_sources(field, blocks, lane_blocks=5, row_pairs=None):
+    if row_pairs is None:
+        row_pairs = [(left + child, right + child) for left, right in blocks for child in range(16)]
+    assert len(row_pairs) == 1920
     result, delta = [], 3
-    for left, right in blocks:
-        for child in range(16):
-            for block in range(5):
-                result.append([(block * (1 << 18) + endpoint + child, delta) for endpoint in (left, right)])
-            delta = field.kmul(delta, 4)
-    assert len(result) == 9600
+    for left, right in row_pairs:
+        for block in range(lane_blocks):
+            result.append([(block * (1 << 18) + endpoint, delta) for endpoint in (left, right)])
+        delta = field.kmul(delta, 4)
+    assert len(result) == 1920 * lane_blocks
     return result
 
 
@@ -238,44 +240,51 @@ def scattered_certificate(field, verifier, blocks):
         )
 
 
-def extra_joint_sources(field, verifier, seed, blocks):
+def extra_joint_sources(field, verifier, seed, blocks, code_log=11, row_pairs=None):
     rng = Random(seed)
     terminal = [field.random(rng) for _ in range(18)]
     parent = [verifier.E(*field.coords(field.random(rng))) for _ in range(24)]
     alphas = [verifier.E(*field.coords(field.random(rng))) for _ in range(4)]
-    forms, _ = blake_bus_forms(verifier, [verifier.ZERO, verifier.ZERO, *parent], alphas)
+    forms, _ = blake_bus_forms(verifier, [verifier.ZERO, verifier.ZERO, *parent], alphas, code_log)
     counts = verifier.TABLES[verifier.OP_BLAKE2S].count_columns
     columns = verifier.BLAKE2S_COLUMNS
     matrix = [[int(form.terms.get((column,), verifier.ZERO)) for column in counts] for form in forms]
-    first, second = [counts.index(columns.index(name)) for name in ("cnt_cv0", "cnt_out0")]
+    minor = ("cnt_cv0", "cnt_out0") if code_log == 11 else ("cnt_m2", "cnt_cv0")
+    first, second = [counts.index(columns.index(name)) for name in minor]
     assert field.mul(matrix[1][first], matrix[2][second]) != field.mul(matrix[1][second], matrix[2][first])
     terminal_weights = field.eq(terminal)
     parent_weights = field.eq([int(value) for value in parent[:16]])
     inverse = {reordered_index(logical): logical for logical in range(1 << 18)}
-    lane_columns = [columns.index(name) for name in ("cnt_cv1", "cnt_out0", "cnt_out1", "cnt_md", "cnt_bc")]
+    lane_columns = lane_count_columns(verifier, code_log)
+    if row_pairs is None:
+        row_pairs = [(left + child, right + child) for left, right in blocks for child in range(16)]
     result, delta = [], 3
-    for left, right in blocks:
-        for child in range(16):
-            a, b = left + child, right + child
-            terminal_delta = field.mul(delta, terminal_weights[inverse[a]] ^ terminal_weights[inverse[b]])
-            child_delta = field.mul(delta, parent_weights[a >> 2] ^ parent_weights[b >> 2])
-            for number, column in enumerate(counts):
-                prefix = terminal_delta << (192 * (9 + number))
-                prefix |= sum(field.mul(matrix[side][number], child_delta) << (192 * (19 + 3 * (child & 3) + side)) for side in range(3))
-                polynomial = []
-                if column in lane_columns:
-                    block = lane_columns.index(column)
-                    polynomial = [(block * (1 << 18) + endpoint, delta) for endpoint in (a, b)]
-                result.append((polynomial, prefix))
-            delta = field.kmul(delta, 4)
+    for a, b in row_pairs:
+        terminal_delta = field.mul(delta, terminal_weights[inverse[a]] ^ terminal_weights[inverse[b]])
+        child_deltas = [0] * 4
+        for endpoint in (a, b):
+            child_deltas[endpoint & 3] ^= field.mul(delta, parent_weights[endpoint >> 2])
+        for number, column in enumerate(counts):
+            prefix = terminal_delta << (192 * (9 + number))
+            prefix |= sum(
+                field.mul(matrix[side][number], child_delta) << (192 * (19 + 3 * child + side))
+                for child, child_delta in enumerate(child_deltas)
+                for side in range(3)
+            )
+            polynomial = []
+            if column in lane_columns:
+                block = lane_columns.index(column)
+                polynomial = [(block * (1 << 18) + endpoint, delta) for endpoint in (a, b)]
+            result.append((polynomial, prefix))
+        delta = field.kmul(delta, 4)
     assert len(result) == 19200
-    assert [polynomial for polynomial, _ in result if polynomial] == extra_query_sources(field, blocks)
+    assert [polynomial for polynomial, _ in result if polynomial] == extra_query_sources(field, blocks, len(lane_columns), row_pairs)
     return result
 
 
-def public_prefix_sources(sources, prefix_log=12):
+def public_prefix_sources(sources, prefix_log=12, expected_bits=None):
     cutoff = 1 << prefix_log
-    expected = {9: 92, 10: 188, 11: 444, 12: 1084}[prefix_log]
+    expected = {9: 92, 10: 188, 11: 444, 12: 1084}[prefix_log] if expected_bits is None else expected_bits
     projections = [tuple((index, value) for index, value in polynomial if index < cutoff) for polynomial, _ in sources]
     basis = sorted(set(projections) - {()})
     assert len(basis) == expected
@@ -302,12 +311,12 @@ def public_prefix_sources(sources, prefix_log=12):
     return encoded, expected
 
 
-def decomposition_certificate(field, verifier, old, extra, prefix_log=12):
+def decomposition_certificate(field, verifier, old, extra, prefix_log=12, code_log=11, omitted_pairs=()):
     cutoff = 1 << prefix_log
     count_erased = {9: 8, 10: 16, 11: 32, 12: 48}[prefix_log]
     counts = verifier.TABLES[verifier.OP_BLAKE2S].count_columns
-    cv1 = counts.index(verifier.BLAKE2S_COLUMNS.index("cnt_cv1"))
-    out0 = counts.index(verifier.BLAKE2S_COLUMNS.index("cnt_out0"))
+    low_count, high_count = [counts.index(column) for column in lane_count_columns(verifier, code_log)[:2]]
+    extra = [source for index, source in enumerate(extra) if index // 160 not in omitted_pairs]
     mask = (1 << 192) - 1
 
     def unpack(prefix):
@@ -328,17 +337,17 @@ def decomposition_certificate(field, verifier, old, extra, prefix_log=12):
         return high_weights[index]
 
     noncount_size = 8 * 384 + 4 * 1279
-    other_sources = [source for index, source in enumerate(old[noncount_size:]) if index % 10 != cv1]
-    other_sources.extend(extra[out0::10])
+    other_sources = [source for index, source in enumerate(old[noncount_size:]) if index % 10 != low_count]
+    other_sources.extend(extra[high_count::10])
     other_counts = []
     for polynomial, prefix in other_sources:
         values = unpack(prefix)
-        assert not any(values[:9]) and values[9 + cv1] == 0
+        assert not any(values[:9]) and values[9 + low_count] == 0
         assert all(values[19 + 3 * child] == field.mul(2, values[20 + 3 * child]) for child in range(4))
         assert all(position >= 1 << 18 for position, _ in polynomial)
         projected_prefix = pack(
             [
-                *[values[9 + number] for number in range(10) if number != cv1],
+                *[values[9 + number] for number in range(10) if number != low_count],
                 *[values[20 + 3 * child + side] for child in range(4) for side in range(2)],
             ]
         )
@@ -361,7 +370,7 @@ def decomposition_certificate(field, verifier, old, extra, prefix_log=12):
     query_weights = field.novel(14, 12288)
     retained, terminal = [], []
     erased = 0
-    for polynomial, prefix in old[noncount_size : noncount_size + 1280 * 10][cv1::10]:
+    for polynomial, prefix in old[noncount_size : noncount_size + 1280 * 10][low_count::10]:
         (left, delta), (right, _) = polynomial
         assert left ^ right == 4 and left & 7 == 0
         if min(left, right) < cutoff:
@@ -370,16 +379,16 @@ def decomposition_certificate(field, verifier, old, extra, prefix_log=12):
         raw = field.kmul(delta, query_weights[left & ~15]) if left < 1 << 14 else 0
         fixed = raw << (64 * ((left >> 3) & 1))
         values = unpack(prefix)
-        assert not any(values[index] for index in range(19) if index != 9 + cv1)
+        assert not any(values[index] for index in range(19) if index != 9 + low_count)
         assert all(values[19 + 3 * child] == field.mul(2, values[20 + 3 * child]) for child in range(4))
         retained.append(fixed)
-        terminal.append(fixed | (values[9 + cv1] << 128))
+        terminal.append(fixed | (values[9 + low_count] << 128))
     assert erased == count_erased
     assert len(binary_basis(terminal)) - len(binary_basis(retained)) == 192
     low = []
-    for polynomial, prefix in extra[cv1::10]:
+    for polynomial, prefix in extra[low_count::10]:
         values = unpack(prefix)
-        assert not any(values[index] for index in range(19) if index != 9 + cv1)
+        assert not any(values[index] for index in range(19) if index != 9 + low_count)
         assert all(values[19 + 3 * child] == field.mul(2, values[20 + 3 * child]) for child in range(4))
         (left, delta), (right, _) = polynomial
         if min(left, right) < cutoff:
