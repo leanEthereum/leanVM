@@ -244,7 +244,6 @@ LIG_OOD_SAMPLES = LIG_OOD_SAMPLES_PLACEHOLDER
 LIG_QUERIES = LIG_QUERIES_PLACEHOLDER
 LIG_FOLDS = LIG_FOLDS_PLACEHOLDER
 LIG_INTERLEAVE = LIG_INTERLEAVE_PLACEHOLDER
-LIG_LEAF_PAIRS = LIG_LEAF_PAIRS_PLACEHOLDER
 LIG_LEAF_BLOCKS = LIG_LEAF_BLOCKS_PLACEHOLDER
 LIG_PACKED_ROW_CAP = LIG_PACKED_ROW_CAP_PLACEHOLDER
 LIG_TREE_DEPTH = LIG_TREE_DEPTH_PLACEHOLDER
@@ -820,8 +819,11 @@ def rs_eq_run(chain, z_vals, point, count_g):
     return
 
 
-@inline
-def fold_final_msg(msg, weights, log_len: Const):
+def fold_final_msg(msg, point, log_len: Const):
+    weights = StackBuf(2 * YR_LOG_CAP)
+    for j in unroll(0, log_len):
+        weights[2 * j] = 1 + point[GEN ** j]
+        weights[2 * j + 1] = point[GEN ** j]
     # Weighted fold of the final_msg multilinear over 2^log_len values (log_len is
     # the candidate's yr_log_n; the frame buffers use the global max size).
     l0 = StackBuf(2 ** YR_LOG_CAP)
@@ -941,6 +943,111 @@ def verify_merkle_cap(cap, flags, depth: Const):
 # ============================== the stacked WHIR opening ============================
 
 
+def opening_fold(fs0, fs1, cursor, c0, c1, c2):
+    fs = [fs0, fs1]
+    fs, r = squeeze(fs)
+    claim = (c2 * r + c1) * r + c0
+    fs, c0, cursor = fs_next(fs, cursor)
+    fs, c2, cursor = fs_next(fs, cursor)
+    return fs[0], fs[1], cursor, claim, c0, c2, r
+
+
+def opening_ood_point(fs0, fs1, point, n_g):
+    # Share the squeeze loop across point dimensions.
+    states = HeapBuf((n_g * GEN) ** 2)
+    states[1] = fs0
+    states[GEN] = fs1
+    for x in mul_range(1, n_g):
+        state = states * x * x
+        r, f0, f1 = squeeze_step(state[1], state[GEN])
+        point[x] = r
+        state[GEN ** 2] = f0
+        state[GEN ** 3] = f1
+    last = states * n_g * n_g
+    return last[1], last[GEN]
+
+
+def opening_final_message(fs0, fs1, cursor, out, n: Const):
+    fs = [fs0, fs1]
+    for i in unroll(0, n):
+        fs, value, cursor = fs_next(fs, cursor)
+        out[GEN ** i] = value
+    return fs[0], fs[1], cursor
+
+
+def opening_row_weights(point, out, folds: Const, reverse: Const):
+    for i in unroll(0, 2 ** folds):
+        if reverse == 1:
+            slot = 2 ** folds - 1 - i
+        else:
+            slot = i
+        out[GEN ** i] = eq_weight(point, folds, slot, 0)
+    return
+
+
+def opening_queries(rows, paths, cap, flags, query_weights, query_bit_ptrs, row_eq_weights, n_queries_g, base: Const, interleave: Const, blocks: Const, depth: Const, cap_depth: Const):
+    # Specialize by row and path shape so opening configurations share query code.
+    query_sum_chain = HeapBuf(n_queries_g * GEN)
+    query_sum_chain[GEN ** 0] = 0
+    for xe in mul_range(1, n_queries_g):
+        if base == 1:
+            row_base = xe ** interleave
+        else:
+            row_base = xe ** (3 * interleave)
+        row_ptr = rows * row_base
+        row_dot = 0
+        packed_row = StackBuf(LIG_PACKED_ROW_CAP)
+        if base == 1:
+            # Packing proves each hinted lane is in K before hashing or folding it.
+            for jb in unroll(0, interleave // 4):
+                e0 = row_ptr[GEN ** (4 * jb)]
+                e1 = row_ptr[GEN ** (4 * jb + 1)]
+                e2 = row_ptr[GEN ** (4 * jb + 2)]
+                e3 = row_ptr[GEN ** (4 * jb + 3)]
+                packed_row[2 * jb] = pack64x2(e0, e1)
+                packed_row[2 * jb + 1] = pack64x2(e2, e3)
+                row_dot += e0 * row_eq_weights[GEN ** (4 * jb)] + e1 * row_eq_weights[GEN ** (4 * jb + 1)] + e2 * row_eq_weights[GEN ** (4 * jb + 2)] + e3 * row_eq_weights[GEN ** (4 * jb + 3)]
+        else:
+            # Pack the checked tower limbs into the leaf's contiguous byte image.
+            lanes = StackBuf(LIG_PACKED_ROW_CAP)  # >= 3 limbs per word for every candidate
+            for jl in unroll(0, 3 * interleave):
+                lanes[jl] = row_ptr[GEN ** jl]
+            for jb in unroll(0, 3 * interleave // 4):
+                packed_row[2 * jb] = pack64x2(lanes[4 * jb], lanes[4 * jb + 1])
+                packed_row[2 * jb + 1] = pack64x2(lanes[4 * jb + 2], lanes[4 * jb + 3])
+            for jw in unroll(0, interleave):
+                if 3 * jw % 2 == 0:
+                    # limbs (3w, 3w+1) are a pack; add Y^2 * limb(3w+2).
+                    row_word = packed_row[3 * jw // 2] + Y_TOWER * Y_TOWER * lanes[3 * jw + 2]
+                else:
+                    # limbs (3w+1, 3w+2) are a pack; shift it by Y and add limb(3w).
+                    row_word = lanes[3 * jw] + Y_TOWER * packed_row[(3 * jw + 1) // 2]
+                row_dot += row_word * row_eq_weights[GEN ** jw]
+        # Hash the packed row as full BLAKE2s blocks.
+        leaf_hash_state = StackBuf(2)
+        blake2s(packed_row[0:2], packed_row[2:4], leaf_hash_state, counter=64, final=1 // blocks)
+        for jb in unroll(1, blocks):
+            leaf_digest = StackBuf(2)
+            blake2s(packed_row[4 * jb:4 * jb + 2], packed_row[4 * jb + 2:4 * jb + 4], leaf_digest, cv=leaf_hash_state, counter=64 * (jb + 1), final=(jb + 1) // blocks)
+            leaf_hash_state = leaf_digest
+        query_sum_chain[xe * GEN] = query_sum_chain[xe] + query_weights[xe] * row_dot
+        direction_bits = query_bit_ptrs[xe]
+        path_depth = depth - cap_depth
+        path_ptr = paths * xe ** (2 * path_depth)
+        node_0, node_1 = verify_merkle_path(leaf_hash_state[0], leaf_hash_state[1], path_ptr, direction_bits, path_depth)
+        if cap_depth != 0:
+            parent = GEN ** (2 ** (cap_depth - 1))
+            for bit in unroll(0, cap_depth - 1):
+                parent *= 1 + direction_bits[GEN ** (path_depth + 1 + bit)] * (1 + GEN ** (2 ** bit))
+            flags[parent] = 1  # the cap check propagates this obligation to the root
+            cap_index = parent * parent * (1 + direction_bits[GEN ** path_depth] * (1 + GEN))
+        else:
+            cap_index = GEN
+        cap[cap_index * cap_index] = node_0
+        cap[GEN * cap_index * cap_index] = node_1
+    return query_sum_chain[n_queries_g]
+
+
 def open_stacked(m_idx: Const, fs0, fs1, target, commit_root_0, commit_root_1, cursor):
     # The stacked WHIR opening, one specialization per (rate, committed log-size)
     # candidate: every LIG_* table reads row m_idx, per level row `ml`, and all
@@ -1015,18 +1122,14 @@ def open_stacked(m_idx: Const, fs0, fs1, target, commit_root_0, commit_root_1, c
         folds_off = LIG_FOLDS_OFF[ml]
         pos_off = LIG_POSITIONS_OFF[ml]
         for j in unroll(0, LIG_FOLDS[ml]):
-            fs, fold_challenge = squeeze(fs)
+            f0, f1, msg_cursor, sumcheck_target, round_quad_c, round_quad_a, fold_challenge = opening_fold(fs[0], fs[1], msg_cursor, round_quad_c, round_quad_b, round_quad_a)
+            fs = [f0, f1]
             fold_challenges[GEN ** (folds_off + j)] = fold_challenge
-            # evaluate this level's folded quadratic at the fold challenge
-            sumcheck_target = (round_quad_a * fold_challenge + round_quad_b) * fold_challenge + round_quad_c
-            fs, round_quad_c, msg_cursor = fs_next(fs, msg_cursor)  # the round polynomial in coefficients
-            fs, round_quad_a, msg_cursor = fs_next(fs, msg_cursor)  # bar the linear one
-            round_quad_b = sumcheck_target + round_quad_a  # the split fixes it against the running claim
+            round_quad_b = sumcheck_target + round_quad_a
 
         if lvl == yr_level:
-            for iy in unroll(0, yr_len):
-                fs, yv, msg_cursor = fs_next(fs, msg_cursor)
-                final_msg[GEN ** iy] = yv
+            f0, f1, msg_cursor = opening_final_message(fs[0], fs[1], msg_cursor, final_msg, yr_len)
+            fs = [f0, f1]
         else:
             fs, next_root_a, msg_cursor = fs_next(fs, msg_cursor)
             fs, next_root_b, msg_cursor = fs_next(fs, msg_cursor)
@@ -1042,9 +1145,8 @@ def open_stacked(m_idx: Const, fs0, fs1, target, commit_root_0, commit_root_1, c
             # level's message-column dimension.
             for os in unroll(0, LIG_OOD_SAMPLES[ml + 1]):
                 oz = ood_z * GEN ** (((lvl + 1) * LIG_MAX_OOD_SAMPLES + os) * LIG_LOG_MSG_COLS_CAP)
-                for t in unroll(0, LIG_LOG_MSG_COLS[ml]):
-                    fs, oz_challenge = squeeze(fs)
-                    oz[GEN ** t] = oz_challenge
+                f0, f1 = opening_ood_point(fs[0], fs[1], oz, GEN ** LIG_LOG_MSG_COLS[ml])
+                fs = [f0, f1]
                 sample = ood * GEN ** ((lvl + 1) * ood_stride + os * OOD_SLOTS)
                 fs, ood_y, msg_cursor = fs_next(fs, msg_cursor)
                 fs, ood_c0, msg_cursor = fs_next(fs, msg_cursor)
@@ -1093,12 +1195,7 @@ def open_stacked(m_idx: Const, fs0, fs1, target, commit_root_0, commit_root_1, c
         # once for all leaves. The flip is a compile-time index and the guest still
         # hashes the full image. Deeper levels commit every lane, ascending.
         row_eq_weights = HeapBuf(GEN ** (LIG_MAX_INTERLEAVE[m_idx]))
-        for i in unroll(0, interleave):
-            if lvl == 0:
-                slot = interleave - 1 - i
-            else:
-                slot = i
-            row_eq_weights[GEN ** i] = eq_weight(fold_challenges * GEN ** folds_off, LIG_FOLDS[ml], slot, 0)
+        opening_row_weights(fold_challenges * GEN ** folds_off, row_eq_weights, LIG_FOLDS[ml], 1 // (lvl + 1))
 
         cap_depth = LIG_CAP_DEPTH[ml]
         cap = merkle_caps * GEN ** (4 * LIG_CAP_OFF[ml])
@@ -1107,81 +1204,7 @@ def open_stacked(m_idx: Const, fs0, fs1, target, commit_root_0, commit_root_1, c
         level_roots[GEN ** (2 * lvl)] = root_0
         level_roots[GEN ** (2 * lvl + 1)] = root_1
 
-        query_sum_chain = HeapBuf(GEN ** (max_q + 1))
-        query_sum_chain[GEN ** 0] = 0
-        for xe in mul_range(1, GEN ** n_queries):
-            ml = m_idx * LIG_MAX_LEVELS + lvl  # rebound: the body captures by value
-            interleave = LIG_INTERLEAVE[ml]
-            depth = LIG_TREE_DEPTH[ml]
-            pos_off = LIG_POSITIONS_OFF[ml]
-            max_q = LIG_MAX_QUERIES[m_idx]
-            if lvl == 0:
-                row_base = xe ** interleave
-            else:
-                row_base = xe ** (3 * interleave)
-            row_ptr = merkle_leaf_rows * GEN ** LIG_ROWS_OFF[ml] * row_base
-            row_dot = 0
-            packed_row = StackBuf(LIG_PACKED_ROW_CAP)
-            if lvl == 0:
-                # Level-0 rows are base-field F64, embedded one per word. Pack the
-                # lanes into a contiguous run of canonical 128-bit cells for the
-                # standard leaf hash; the dot consumes the individual lanes. The
-                # untaken JUMP reads both source cells through the memory bus as
-                # `(lo, 0, 0)`, so the packing helpers also prove every hinted lane
-                # is genuinely F64 before it enters the hash or row_dot.
-                for jb in unroll(0, interleave // 4):
-                    e0 = row_ptr[GEN ** (4 * jb)]
-                    e1 = row_ptr[GEN ** (4 * jb + 1)]
-                    e2 = row_ptr[GEN ** (4 * jb + 2)]
-                    e3 = row_ptr[GEN ** (4 * jb + 3)]
-                    packed_row[2 * jb] = pack64x2(e0, e1)
-                    packed_row[2 * jb + 1] = pack64x2(e2, e3)
-                    row_dot += e0 * row_eq_weights[GEN ** (4 * jb)] + e1 * row_eq_weights[GEN ** (4 * jb + 1)] + e2 * row_eq_weights[GEN ** (4 * jb + 2)] + e3 * row_eq_weights[GEN ** (4 * jb + 3)]
-            else:
-                # Higher-level F192 rows arrive as flat F64 tower limbs (three per
-                # word); every serialized limb is constrained before reassembly and
-                # packed into the contiguous 24-byte-per-word image the leaf hashes.
-                # A pack holds `lane(2k) + Y*lane(2k+1)` exactly, so word w (limbs
-                # 3w..3w+2) is one multiply-add off the pack covering its even
-                # limb pair.
-                lanes = StackBuf(LIG_PACKED_ROW_CAP)  # >= 3 limbs per word for every candidate
-                for jl in unroll(0, 3 * interleave):
-                    lanes[jl] = row_ptr[GEN ** jl]
-                for jb in unroll(0, LIG_LEAF_PAIRS[ml]):
-                    packed_row[2 * jb] = pack64x2(lanes[4 * jb], lanes[4 * jb + 1])
-                    packed_row[2 * jb + 1] = pack64x2(lanes[4 * jb + 2], lanes[4 * jb + 3])
-                for jw in unroll(0, interleave):
-                    if 3 * jw % 2 == 0:
-                        # limbs (3w, 3w+1) are a pack; add Y^2 * limb(3w+2).
-                        row_word = packed_row[3 * jw // 2] + Y_TOWER * Y_TOWER * lanes[3 * jw + 2]
-                    else:
-                        # limbs (3w+1, 3w+2) are a pack; shift it by Y and add limb(3w).
-                        row_word = lanes[3 * jw] + Y_TOWER * packed_row[(3 * jw + 1) // 2]
-                    row_dot += row_word * row_eq_weights[GEN ** jw]
-            # Standard BLAKE2s of the packed row (a power of two of full 64-byte
-            # blocks, within one 1024-byte chunk).
-            leaf_hash_state = StackBuf(2)
-            blake2s(packed_row[0:2], packed_row[2:4], leaf_hash_state, counter=64, final=1 // LIG_LEAF_BLOCKS[ml])
-            for jb in unroll(1, LIG_LEAF_BLOCKS[ml]):
-                leaf_digest = StackBuf(2)
-                blake2s(packed_row[4 * jb:4 * jb + 2], packed_row[4 * jb + 2:4 * jb + 4], leaf_digest, cv=leaf_hash_state, counter=64 * (jb + 1), final=(jb + 1) // LIG_LEAF_BLOCKS[ml])
-                leaf_hash_state = leaf_digest
-            query_sum_chain[xe * GEN] = query_sum_chain[xe] + query_weights[GEN ** (lvl * max_q) * xe] * row_dot
-            direction_bits = query_bit_ptrs[GEN ** pos_off * xe]
-            path_depth = depth - LIG_CAP_DEPTH[ml]
-            path_ptr = merkle_paths * GEN ** LIG_PATHS_OFF[ml] * xe ** (2 * path_depth)
-            node_0, node_1 = verify_merkle_path(leaf_hash_state[0], leaf_hash_state[1], path_ptr, direction_bits, path_depth)
-            if LIG_CAP_DEPTH[ml] != 0:
-                parent = GEN ** (2 ** (LIG_CAP_DEPTH[ml] - 1))
-                for bit in unroll(0, LIG_CAP_DEPTH[ml] - 1):
-                    parent *= 1 + direction_bits[GEN ** (path_depth + 1 + bit)] * (1 + GEN ** (2 ** bit))
-                flags[parent] = 1  # the cap check propagates this obligation to the root
-                cap_index = parent * parent * (1 + direction_bits[GEN ** path_depth] * (1 + GEN))
-            else:
-                cap_index = GEN
-            cap[cap_index * cap_index] = node_0
-            cap[GEN * cap_index * cap_index] = node_1
-        level_query_sum = query_sum_chain[GEN ** n_queries]
+        level_query_sum = opening_queries(merkle_leaf_rows * GEN ** LIG_ROWS_OFF[ml], merkle_paths * GEN ** LIG_PATHS_OFF[ml], cap, flags, query_weights * GEN ** (lvl * max_q), query_bit_ptrs * GEN ** pos_off, row_eq_weights, GEN ** n_queries, 1 // (lvl + 1), interleave, LIG_LEAF_BLOCKS[ml], depth, cap_depth)
 
         # Every level, including the last, ties its commitment in through an intro
         # message. The level's claims then enter the running one with powers of
@@ -1213,11 +1236,9 @@ def open_stacked(m_idx: Const, fs0, fs1, target, commit_root_0, commit_root_1, c
     # ---- finish the sumcheck over the tail coordinates ----
     tail_challenges = HeapBuf(GEN ** YR_LOG_CAP)
     for j in unroll(0, yr_log - 1):
-        fs, tail_c = squeeze(fs)
+        f0, f1, msg_cursor, sumcheck_target, round_quad_c, round_quad_a, tail_c = opening_fold(fs[0], fs[1], msg_cursor, round_quad_c, round_quad_b, round_quad_a)
+        fs = [f0, f1]
         tail_challenges[GEN ** j] = tail_c
-        sumcheck_target = round_quad_c + tail_c * round_quad_b + tail_c * tail_c * round_quad_a
-        fs, round_quad_c, msg_cursor = fs_next(fs, msg_cursor)
-        fs, round_quad_a, msg_cursor = fs_next(fs, msg_cursor)
         round_quad_b = sumcheck_target + round_quad_a
     # The closing round sends no following message.
     fs, tail_last = squeeze(fs)
@@ -1226,11 +1247,7 @@ def open_stacked(m_idx: Const, fs0, fs1, target, commit_root_0, commit_root_1, c
     for j in unroll(yr_log, YR_LOG_CAP):
         tail_challenges[GEN ** j] = 0
 
-    tail_w = StackBuf(2 * YR_LOG_CAP)
-    for j in unroll(0, yr_log):
-        tail_w[2 * j] = 1 + tail_challenges[GEN ** j]
-        tail_w[2 * j + 1] = tail_challenges[GEN ** j]
-    yr_at_tail = fold_final_msg(final_msg, tail_w, yr_log)
+    yr_at_tail = fold_final_msg(final_msg, tail_challenges, yr_log)
 
     # ---- the same point, indexed by committed-witness coordinate ----
     # The folds bind coordinates in ROUND order, and level 0's folds are the lane

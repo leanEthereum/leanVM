@@ -2914,16 +2914,6 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
         ps("LIG_QUERIES", flat(&|c| c.queries.clone()));
         ps("LIG_FOLDS", flat(&|c| c.folds.clone()));
         ps("LIG_INTERLEAVE", flat(&|c| c.interleaving.clone()));
-        ps(
-            "LIG_LEAF_PAIRS",
-            flat(&|c| {
-                c.interleaving
-                    .iter()
-                    .enumerate()
-                    .map(|(level, &n)| if level == 0 { n / 4 } else { 3 * n / 4 })
-                    .collect()
-            }),
-        );
         // 64-byte BLAKE2s blocks per leaf row: level 0's committed rows are
         // base-field F64 (8 bytes/lane); deeper levels are native F192
         // (24 bytes/word, received as three embedded K limbs each). Rows are
