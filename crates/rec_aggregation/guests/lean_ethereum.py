@@ -898,20 +898,20 @@ def order_children(node, sibling, bit):
 
 @inline
 def verify_merkle_path(leaf_0, leaf_1, direction_bits, depth: Const):
-    # A two-cell PCS leaf up to its level root; the query index's bit at each level
-    # orders the two children.
+    # Hinted child pairs are hashed in order; the boolean query bit selects the
+    # child that must equal the running node, binding each link of the path.
     path = StackBuf(LIG_PATH_CAP)
-    hint_witness(path[0:2 * depth], "merkle_paths")
+    hint_witness(path[0:4 * depth], "merkle_children")
+    path_ptr = addr(path)
     node_0 = leaf_0
     node_1 = leaf_1
     for level in unroll(0, depth):
         dir_bit = direction_bits[GEN ** level]
-        diff_0 = node_0 + path[2 * level]
-        diff_1 = node_1 + path[2 * level + 1]
-        left = [node_0 + dir_bit * diff_0, node_1 + dir_bit * diff_1]
-        right = [diff_0 + left[0], diff_1 + left[1]]
+        selected = path_ptr * GEN ** (4 * level) * (1 + dir_bit * (1 + GEN ** 2))
+        selected[1] = node_0
+        selected[GEN] = node_1
         parent = StackBuf(2)
-        blake2s(left, right, parent)
+        blake2s(path[4 * level:4 * level + 2], path[4 * level + 2:4 * level + 4], parent)
         node_0 = parent[0]
         node_1 = parent[1]
     return node_0, node_1

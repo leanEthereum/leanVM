@@ -16,10 +16,10 @@ Minimal hash-based zkVM, for a Post-Quantum Ethereum.
 <p align="center">
   <a href="#xmss-aggregation"><img src="https://img.shields.io/badge/Aggregation-1150%20XMSS%2Fs-brightgreen?style=for-the-badge"></a>
   <a href="#sphincs-aggregation"><img src="https://img.shields.io/badge/Aggregation-240%20SPHINCS%2Fs-green?style=for-the-badge"></a>
-  <a href="#recursion"><img src="https://img.shields.io/badge/2%20to%201%20recursion-0.31s-orange?style=for-the-badge"></a>
+  <a href="#recursion"><img src="https://img.shields.io/badge/2%20to%201%20recursion-0.30s-orange?style=for-the-badge"></a>
 </p>
 
-Warning: highly experimental.
+Warning: not (yet) production ready.
 
 leanVM was originally designed over the [KoalaBear prime](https://crates.io/crates/p3-koala-bear) and [Poseidon](https://eprint.iacr.org/2019/458), still available in the [koalabear](https://github.com/leanEthereum/leanVM/tree/koalabear) branch; it is now using binary fields and BLAKE2s.
 
@@ -72,11 +72,11 @@ cargo run --release -- recursion --n 2 --xmss-per-leaf 900 --log-inv-rate 2 --re
 
 ```
 recursion 2→1, over leaves of 900 XMSS signatures
-  cycles (VM steps)           : 648,441 = 2^19.307
-    details                   : MUL 2^17.738 (33.7%)  DEREF 2^17.434 (27.3%)  XOR 2^17.28 (24.5%)  SET 2^15.574 (7.5%)  JUMP 2^14.806 (4.4%)  BLAKE2S 2^13.978 (2.5%)  MEMORY 2^19.603  TOTAL_COMMITTED 2^24.374
-  proof size                  : 197.8 KiB
-  proving time                : 0.317 s ± 3.3%      peak memory 10.165 GiB
-  verifying                   : 0.00403 s
+  cycles (VM steps)           : 641,559 = 2^19.291
+    details                   : MUL 2^17.784 (35.2%)  DEREF 2^17.552 (29.9%)  XOR 2^16.918 (19.3%)  SET 2^15.753 (8.6%)  JUMP 2^14.807 (4.5%)  BLAKE2S 2^13.978 (2.5%)  MEMORY 2^19.598 TOTAL_COMMITTED 2^24.237
+  proof size                  : 194.0 KiB
+  proving time                : 0.302 s ± 1.2%      peak memory 10.157 GiB
+  verifying                   : 0.00375 s
 ```
 
 ### Data Availability

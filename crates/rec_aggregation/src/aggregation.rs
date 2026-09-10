@@ -1590,10 +1590,7 @@ fn gen_verify(
                 "merkle_leaf_rows",
                 opening.leaf_data.iter().map(|x| F192::from(*x)).collect(),
             ));
-            query_hints.push((
-                "merkle_paths",
-                opening.path[..path_depth].iter().flat_map(pack_hash_state).collect(),
-            ));
+            let mut path_children = Vec::with_capacity(4 * path_depth);
             let bytes: Vec<_> = opening.leaf_data.iter().flat_map(|x| x.0.to_le_bytes()).collect();
             let mut node = pcs::merkle::hash_leaf(&bytes);
             let mut index = (1 << depth) + opening.leaf_index;
@@ -1603,14 +1600,20 @@ fn gen_verify(
                     nodes[index ^ 1] = *sibling;
                     active[index >> 1] = F192::ONE;
                 }
-                node = if index & 1 == 0 {
-                    pcs::merkle::hash_pair(&node, sibling)
+                let (left, right) = if index & 1 == 0 {
+                    (&node, sibling)
                 } else {
-                    pcs::merkle::hash_pair(sibling, &node)
+                    (sibling, &node)
                 };
+                if height < path_depth {
+                    path_children.extend(pack_hash_state(left));
+                    path_children.extend(pack_hash_state(right));
+                }
+                node = pcs::merkle::hash_pair(left, right);
                 index >>= 1;
             }
             nodes[1] = node;
+            query_hints.push(("merkle_children", path_children));
         }
         caps.extend(nodes.iter().flat_map(pack_hash_state));
         cap_active.extend(active);
@@ -2887,7 +2890,7 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
                     c.tree_depths
                         .iter()
                         .zip(&c.cap_depths)
-                        .map(|(depth, cap)| 2 * (depth - cap))
+                        .map(|(depth, cap)| 4 * (depth - cap))
                 })
                 .max()
                 .unwrap()
@@ -3376,6 +3379,89 @@ mod tests {
         let (first, second) = (aggregate.sphincs_signers[0], aggregate.sphincs_signers[1]);
         assert_eq!(first.0, second.0, "the same key, twice");
         assert!(first.1 < second.1, "ordered by the message");
+    }
+
+    #[test]
+    fn guest_merkle_children_bind_every_link() {
+        lean_vm::init_prover_pool();
+        let (helpers, _) = include_str!("../guests/lean_ethereum.py")
+            .split_once("\ndef main():")
+            .unwrap();
+        let source = format!(
+            r#"{helpers}
+def main():
+    bits = StackBuf(3)
+    hint_witness(bits[0:3], "bits")
+    for k in unroll(0, 3):
+        bits[k] = bits[k] * bits[k]
+    direction = addr(bits)
+    leaf = StackBuf(2)
+    hint_witness(leaf[0:2], "leaf")
+    a, b = verify_merkle_path(leaf[0], leaf[1], direction, 3)
+    public = GEN ** 0
+    assert public[1] == a
+    assert public[GEN] == b
+    return
+"#
+        );
+        let guest = compile(&parse_with_replacements(&source, &placeholder_map(18)).unwrap());
+        let mut tree = vec![[0u8; 32]; 16];
+        for (i, leaf) in tree[8..].iter_mut().enumerate() {
+            *leaf = pcs::merkle::hash_leaf(&[i as u8; 64]);
+        }
+        for i in (1..8).rev() {
+            tree[i] = pcs::merkle::hash_pair(&tree[2 * i], &tree[2 * i + 1]);
+        }
+        let run = |index: usize, leaf: [u8; 32], pairs: &[[[u8; 32]; 2]], root: [u8; 32]| {
+            let mut hints = Hints::default();
+            hints.push(
+                "bits",
+                (0..3).map(|k| F192::from(F64(((index >> k) & 1) as u64))).collect(),
+            );
+            hints.push("leaf", pack_hash_state(&leaf).to_vec());
+            hints.push(
+                "merkle_children",
+                pairs.iter().flatten().flat_map(pack_hash_state).collect(),
+            );
+            let mut program = guest.clone();
+            hints.install(&mut program);
+            program.execute(pack_hash_state(&root))
+        };
+        for index in 0..8 {
+            let pairs: Vec<_> = (0..3)
+                .map(|level| {
+                    let left = ((8 + index) >> level) & !1;
+                    [tree[left], tree[left + 1]]
+                })
+                .collect();
+            assert!(
+                run(index, tree[8 + index], &pairs, tree[1])
+                    .unconstrained_reads
+                    .is_empty()
+            );
+            for level in 0..3 {
+                for side in 0..2 {
+                    for byte in [0, 16] {
+                        let mut forged = pairs.clone();
+                        forged[level][side][byte] ^= 1;
+                        assert!(std::panic::catch_unwind(|| run(index, tree[8 + index], &forged, tree[1])).is_err());
+                    }
+                }
+                // Rehash a forged running child all the way to a matching public root.
+                // Root equality alone passes; the selected child must still bind to its predecessor.
+                for byte in [0, 16] {
+                    let mut forged = pairs.clone();
+                    forged[level][(index >> level) & 1][byte] ^= 1;
+                    let mut root = pcs::merkle::hash_pair(&forged[level][0], &forged[level][1]);
+                    for (height, pair) in forged.iter_mut().enumerate().skip(level + 1) {
+                        pair[(index >> height) & 1] = root;
+                        root = pcs::merkle::hash_pair(&pair[0], &pair[1]);
+                    }
+                    assert!(std::panic::catch_unwind(|| run(index, tree[8 + index], &forged, root)).is_err());
+                }
+            }
+            assert!(std::panic::catch_unwind(|| run(index ^ 1, tree[8 + index], &pairs, tree[1])).is_err());
+        }
     }
 
     /// The right leaf holds more keys than one absorb window of its list hash
@@ -4859,8 +4945,13 @@ def main():
             ("merkle cap (subtree)", &|h: &mut Hints| {
                 h.entries("merkle_caps")[0][4] += F192::ONE;
             }),
+            ("merkle children (reversed)", &|h: &mut Hints| {
+                let children = &mut h.entries("merkle_children")[0];
+                children.swap(0, 2);
+                children.swap(1, 3);
+            }),
             ("merkle path (below cap)", &|h: &mut Hints| {
-                h.entries("merkle_paths")[0][0] += F192::ONE;
+                h.entries("merkle_children")[0][0] += F192::ONE;
             }),
             ("merkle leaf", &|h: &mut Hints| {
                 h.entries("merkle_leaf_rows")[0][0] += F192::ONE;
@@ -4874,7 +4965,7 @@ def main():
                 row[0] += F192::new(0, 1, 0);
             }),
             ("merkle path (last query)", &|h: &mut Hints| {
-                let paths = h.entries("merkle_paths");
+                let paths = h.entries("merkle_children");
                 *paths.last_mut().unwrap().last_mut().unwrap() += F192::ONE;
             }),
             ("child_index (duplicate slot)", &|h: &mut Hints| {
