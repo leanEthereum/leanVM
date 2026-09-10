@@ -330,14 +330,15 @@ fn lowbank_positions() -> Vec<usize> {
     positions
 }
 
-fn lowbank_certificate(retained_prefix: usize) {
+fn lowbank_certificate(retained_prefix: usize, omitted: Option<usize>) {
     assert!(retained_prefix == 0 || (retained_prefix.is_power_of_two() && retained_prefix <= 8192));
+    assert!(omitted.is_none_or(|index| index < 120));
     let positions = lowbank_positions();
     let (roots, inverses) = novel_parameters();
     let mut coefficients = vec![F64::ZERO; 1 << 19];
     let scales: Vec<_> = (0..120).map(|index| F64(3) * g_pow(32 * index)).collect();
-    for (pair, &scale) in positions.chunks_exact(2).zip(&scales) {
-        if pair.iter().any(|&index| index < retained_prefix) {
+    for (number, (pair, &scale)) in positions.chunks_exact(2).zip(&scales).enumerate() {
+        if omitted == Some(number) || pair.iter().any(|&index| index < retained_prefix) {
             continue;
         }
         coefficients[pair[0]] += scale;
@@ -360,8 +361,8 @@ fn lowbank_certificate(retained_prefix: usize) {
         let mut pivots = [0u64; 64];
         let mut rank = 0;
         let mut sum = F64::ZERO;
-        for (pair, &scale) in positions.chunks_exact(2).zip(&scales) {
-            if pair.iter().any(|&index| index < retained_prefix) {
+        for (number, (pair, &scale)) in positions.chunks_exact(2).zip(&scales).enumerate() {
+            if omitted == Some(number) || pair.iter().any(|&index| index < retained_prefix) {
                 continue;
             }
             let image = scale * (weights[pair[0] >> 4] + weights[pair[1] >> 4]);
@@ -381,11 +382,12 @@ fn lowbank_certificate(retained_prefix: usize) {
         assert!(coefficients[query..query + 16].iter().all(|&value| value == sum));
     });
     println!(
-        "Exhaustive low-bank certificate: all 32256 cosets in U19 outside U13 have scalar rank 64 after retaining the prefix below {retained_prefix}, and match the native additive NTT."
+        "Exhaustive low-bank certificate: all 32256 cosets in U19 outside U13 have scalar rank 64 after retaining the prefix below {retained_prefix}, with omitted pair {omitted:?}, and match the native additive NTT."
     );
 }
 
-fn balanced_quotient_certificate() {
+fn balanced_quotient_certificate(omitted: Option<usize>) {
+    assert!(omitted.is_none_or(|index| index < 120));
     let positions = lowbank_positions();
     for (number, pair) in positions.chunks_exact(2).enumerate() {
         assert_eq!(pair[0] & 16, if number < 56 { 0 } else { 16 });
@@ -409,6 +411,9 @@ fn balanced_quotient_certificate() {
         let mut pivots = [[0u64; 64]; 2];
         let mut ranks = [0; 2];
         for (number, (pair, &scale)) in positions.chunks_exact(2).zip(&scales).enumerate() {
+            if omitted == Some(number) {
+                continue;
+            }
             let (group, image, multiplier) = if number < 56 {
                 (0, scale * weights[pair[0] >> 5], F64(1 << 16))
             } else {
@@ -430,7 +435,7 @@ fn balanced_quotient_certificate() {
         assert_eq!(ranks, [64, 64], "balanced quotient ranks at coset {query}");
     });
     println!(
-        "Exhaustive balanced quotient certificate: both triangular maps have rank 64 on all 8192 high-region 32-point cosets."
+        "Exhaustive balanced quotient certificate: both triangular maps have rank 64 on all 8192 high-region 32-point cosets, with omitted pair {omitted:?}."
     );
 }
 
@@ -963,11 +968,12 @@ fn main() {
             return;
         }
         Some("--lowbank-certificate") => {
-            lowbank_certificate(arguments.next().map_or(0, |value| value.parse().unwrap()));
+            let prefix = arguments.next().map_or(0, |value| value.parse().unwrap());
+            lowbank_certificate(prefix, arguments.next().map(|value| value.parse().unwrap()));
             return;
         }
         Some("--balanced-quotient-certificate") => {
-            balanced_quotient_certificate();
+            balanced_quotient_certificate(arguments.next().map(|value| value.parse().unwrap()));
             return;
         }
         Some("--balanced-pointer-witnesses") => {
