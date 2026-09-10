@@ -289,10 +289,31 @@ fn transpose_forward_ntt_ext(ntt: &AdditiveNttF64, data: &mut [F192], log_d: usi
     transpose_layers_ext(ntt, data, log_d, (0..log_d).rev());
 }
 
+/// Elements per cache-resident window of the layer-blocked run below.
+const TRANSPOSE_CHUNK: usize = 1 << 16;
+
 /// The transposed-butterfly sweep over `layers`, in the order given: parallel
 /// over blocks once there are enough of them, over rows within a block
 /// otherwise.
+///
+/// Layers arrive in descending order, so blocks GROW along the run and the ones
+/// that fit a cache-resident window are a prefix. Blocks also nest, so such a
+/// window holds complete blocks of every layer in that prefix and the whole
+/// prefix runs back-to-back inside it: one read and one write of DRAM traffic
+/// for the run instead of one sweep per layer. This is the sub-group
+/// decomposition the interleaved encode already uses for its deep layers,
+/// applied in the transpose direction.
 fn transpose_layers_ext(ntt: &AdditiveNttF64, data: &mut [F192], log_d: usize, layers: impl Iterator<Item = usize>) {
+    transpose_layers_ext_windowed(ntt, data, log_d, layers, TRANSPOSE_CHUNK);
+}
+
+fn transpose_layers_ext_windowed(
+    ntt: &AdditiveNttF64,
+    data: &mut [F192],
+    log_d: usize,
+    layers: impl Iterator<Item = usize>,
+    window_len: usize,
+) {
     let n_threads = parallel::num_threads();
     let butterfly = |t: F64, top: &mut [F192], bot: &mut [F192]| {
         for (a_ref, b_ref) in top.iter_mut().zip(bot.iter_mut()) {
@@ -303,7 +324,32 @@ fn transpose_layers_ext(ntt: &AdditiveNttF64, data: &mut [F192], log_d: usize, l
             *b_ref = s.mul_base(t) + b;
         }
     };
-    for layer in layers {
+    let layers: Vec<usize> = layers.collect();
+    debug_assert!(layers.windows(2).all(|w| w[0] > w[1]), "layers descend");
+    // Keep a window per worker, or the blocked run costs more in lost
+    // parallelism than it saves in traffic.
+    let blocked = if data.len() >= window_len.saturating_mul(n_threads) {
+        layers
+            .iter()
+            .position(|&l| (1usize << (log_d - l)) > window_len)
+            .unwrap_or(layers.len())
+    } else {
+        0
+    };
+    if blocked > 1 {
+        parallel::chunks_mut(data, window_len, |c, window: &mut [F192]| {
+            let base = c * window_len;
+            for &layer in &layers[..blocked] {
+                let block_size = 1usize << (log_d - layer);
+                let bsh = block_size >> 1;
+                for (b, block) in window.chunks_mut(block_size).enumerate() {
+                    let (top, bot) = block.split_at_mut(bsh);
+                    butterfly(ntt.twiddle(layer, base / block_size + b), top, bot);
+                }
+            }
+        });
+    }
+    for &layer in &layers[if blocked > 1 { blocked } else { 0 }..] {
         let num_blocks = 1usize << layer;
         let block_size = 1usize << (log_d - layer);
         let bsh = block_size >> 1;
