@@ -114,6 +114,7 @@ def build(verifier, wide=False):
     size = 26616 + (10240 if wide else 0)
     assert len(library.rows) == 2 * size and len(library.images["code"]) == 54 + (8 if wide else 0)
     assert len(frames) == 16380 + (5120 if wide else 0)
+    assert frames == set(range(16380 + (5120 if wide else 0)))
     assert max(1280 + 32 * slot + 31 for slot in frames) < 1 << 22
     baseline = witness(verifier, [0] * 16)
     check_rows(verifier, baseline)

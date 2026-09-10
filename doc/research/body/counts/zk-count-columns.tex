@@ -51,3 +51,83 @@ Bytecode normalization has zero memory exponent contribution. Later stages have 
 \paragraph{Asymptotic cost.} If $T$ bounds the base trace's uncertain counted accesses, all uncertain exponents are $O(T^2)$. The square-root choices above therefore use $O(T)$ repetitions in each of a constant number of banks, and $O(T)$ reserved memory cells. Fresh-memory bytecode normalization introduces no new uncertain memory exponent; the routers' fixed offsets do not enlarge the correction intervals. Thus this normalization has linear padding overhead in that capacity bound. Its constant can be large, and the additional table heights still affect proof and recursion costs.
 
 \paragraph{Evidence and next obligation.} \auditref{zk_column_count_audit.py} checks eight base traces spanning all six opcodes against the actual bus forms. All twenty-eight integer exponents, per-opcode row counts and full memory/code images agree after normalization and deterministic power-of-two filling. It checks every address's complete label chain and each transmitted column product. This is an ISA-level finite audit, not a full VM proof or a Flock privacy test. Products of unions of whole count blocks are consequently public; products and evaluations inside those blocks can still depend on the witness. The next obligation is their joint GKR simulation.
+
+\subsubsection{A capacity repair: unequal centers and reused compression rows}
+
+The equal-center formula is unnecessarily expensive for the BLAKE2s budget. With $8A$ available traversals it covers deficits at most $4A^2$, even if every four-square representation fits that bound. The $95232$ mandatory binary-compression rows not used by \noteref{zk-count-adapter} therefore cannot cover every deficit up to $\binom{65536}{2}$ with that formula. The following replacement does fit, without adding compression rows or discarding binary choices.
+
+\begin{lemma}[Five squares with unequal public centers]\label{lem:zk-unequal-centers}
+For a public integer cap $\zkCalibrationCap\ge0$, set $\zkCalibrationLarge=\lfloor\sqrt{\zkCalibrationCap}\rfloor$ and $\zkCalibrationSmall=\lfloor\sqrt{2\zkCalibrationLarge}\rfloor$. Every integer deficit $D\in[0,\zkCalibrationCap]$ has five squares $D=x_0^2+\cdots+x_4^2$ with $x_0\le\zkCalibrationLarge$ and $x_i\le\zkCalibrationSmall$ for $i>0$. The ten traversal counts $\zkCalibrationLarge\pm x_0$ and $\zkCalibrationSmall\pm x_i$, $i=1,\ldots,4$, have fixed total $2\zkCalibrationLarge+8\zkCalibrationSmall$ and satisfy
+\[
+ \sum_{j=1}^{10}\binom{n_j}{2}
+ =\zkCalibrationLarge(\zkCalibrationLarge-1)
+   +4\zkCalibrationSmall(\zkCalibrationSmall-1)+D.
+\]
+\end{lemma}
+\begin{proof}
+Choose $x_0=\lfloor\sqrt D\rfloor$. The remaining integer $D-x_0^2$ is at most $2x_0\le2\zkCalibrationLarge$. Represent it by four squares; each root is at most $\zkCalibrationSmall$. The paired binomial identity proves both claims. The two-square-table search used by the audit needs $O(\sqrt{\zkCalibrationCap})$ entries, so this is an efficient sampler in the trace-size parameter. The row cost is $2\sqrt{\zkCalibrationCap}+O(\zkCalibrationCap^{1/4})$.
+\end{proof}
+
+\begin{proposition}[BLAKE2s bytecode normalization inside the mandatory pool]\label{prop:zk-bc-pool-normalization}
+Reserve $65536$ rows for the real compression trace and its residual fillers, with instruction addresses disjoint from the fixed padding libraries. Suppose every other uncertain BLAKE2s instruction-visit contribution has been included in that budget; fixed-visit libraries contribute only public offsets. Then the uncertain BLAKE2s bytecode exponent can be normalized by reassigning code locations to $95112$ existing mandatory compression rows. All $98304$ independent baseline/profile choices, the $3072$ adapted rows, every allocated frame and all $57608$ general-input positions are preserved. This changes no verifier equation.
+\end{proposition}
+\begin{proof}
+If the budgeted visits to instruction $p$ number $t_p$, their exponent is $u=\sum_p\binom{t_p}{2}\le\zkCalibrationCap=\binom{65536}{2}$. Secretly varying numbers of real rows are allowed: fill their unused budget with a known valid compression cycle and include its visits in the same sum. The pool's fresh code locations are disjoint from these addresses and from all fixed libraries.
+
+Here $\zkCalibrationCap=2147450880$, $\zkCalibrationLarge=46340$ and $\zkCalibrationSmall=304$. Lemma~\ref{lem:zk-unequal-centers}, with deficit $\zkCalibrationCap-u$, gives exactly $95112$ traversals. Each of the sixteen coarse intervals has $5952$ eligible mandatory positions. Select the first $5945$ in intervals zero through seven, and the first $5944$ in the other eight, leaving $120$ positions overall. Assign the selected rows to the ten multiplicity groups. Use compression/return code pairs $1120+2j,1121+2j$, for $j<10$, with the same operand offsets and return controls as before. The twenty instructions are public and present even for a group visited zero times.
+
+Each selected row keeps its allocated $32$-cell frame and its independent baseline/profile choice. Changing its compression PC and the return's destination closes a valid cycle at the new code pair, without changing its message, chaining value, digest, metadata or memory counts. Both visits in each cycle use fresh memory relative to other cycles. The compression instruction at group $j$ receives its complete bytecode labels $0,\ldots,n_j-1$. Thus, excluding fixed public offsets, the normalized exponent is
+\[
+ \zkCalibrationTarget=u+\sum_j\binom{n_j}{2}
+ =\zkCalibrationCap+\zkCalibrationLarge(\zkCalibrationLarge-1)
+   +4\zkCalibrationSmall(\zkCalibrationSmall-1)=4295168588.
+\]
+The deficits and code assignments depend on the real trace but not on any independent compression-input choice or metadata swap. No row or allocated word is added.
+\end{proof}
+
+\paragraph{Compatibility with the proved projection.} The packed compression witness and every old randomizer row are unchanged. The $3072$ in-frame adapters keep their original code and label assignments. The calibration changes only the selected compression PCs and bytecode labels, their return PCs/destinations and bytecode labels, the existing frame-control words, and bytecode final counts. The native layout places the changed BLAKE2s bytecode coefficients in lane $59$ at offset $2^{20}$ and bytecode final counts at $5\cdot2^{18}$. Both vanish on the two proved raw-query regions inside $\subsp_{19}$, including the entire $4096$-point prefix. The changed PC and return columns occupy other lanes; their memory words stay inside the previously allocated frames.
+
+Consequently, under its common-completion assumptions, Theorem~\ref{thm:zk-count-adapter-interface} still applies. Condition on the real trace and calibration assignment before using the independent old masks. Their affine coefficient maps and the adapter span are unchanged; they absorb the new terminal and child translations. The memory/root hybrid allows the changed frame-control values, and the Flock hybrids use the unchanged independent profile choices. This argument retains the same restricted projection and error bound, not the newly changing columns' full opening.
+
+\paragraph{Transferred uncertainty.} The closing JUMPs receive exactly the same added bytecode exponent. Their uncertain total therefore becomes their old total minus $u$, plus a public offset. It must still be normalized; this is a transfer, not disappearance, of uncertainty. The other count columns, the bytecode-final-count evaluation, and the changed PC/MUL/return lanes also need their full-view proofs. The following refinement fixes this BLAKE2s column's sixteen coarse products, but not the other twenty-seven columns.
+
+\subsubsection{Public coarse bytecode products without further rows}
+
+\begin{lemma}[Balanced cyclic placement]\label{lem:zk-cyclic-label-balance}
+Sort any finite list of nonnegative integers bounded by $M$ and distribute it cyclically among $m$ bins. The bin sizes differ by at most one and their label sums differ by at most $M$.
+\end{lemma}
+\begin{proof}
+Prepend fewer than $m$ zeros to make the length divisible by $m$. This only rotates the original bin sums. For the resulting sorted list, the difference between any two bin sums is a sum of disjoint ordered gaps, bounded by the largest entry minus the smallest. This is at most $M$.
+\end{proof}
+
+\begin{theorem}[The BLAKE2s bytecode frontier is public]\label{thm:zk-bc-coarse-normalization}
+Under Proposition~\ref{prop:zk-bc-pool-normalization}, the real BLAKE2s rows can be placed in their existing $65536$ positions and the calibration labels assigned so that every height-fourteen product of this bytecode-count column is public. The same rows, code locations, frames and independent private masks suffice. Perform this placement before any memory-count interval normalization that depends on real-row positions.
+\end{theorem}
+\begin{proof}
+Keep the mandatory and other padding positions fixed. Sort the $65536$ real/filler rows by their integer bytecode label and distribute them cyclically among the sixteen intervals, using the $4096$ real-bank positions in each. Apply the same row permutation to their packed compression witnesses. This preserves every execution constraint and counter chain. The interval exponent sums $u_j$ differ by at most $65535$ by Lemma~\ref{lem:zk-cyclic-label-balance}.
+
+The first calibration code has at least $\zkCalibrationLarge=46340$ visits. Put $\zkBcRouterHalf=720$. Reserve, from its complete label chain, the two blocks
+\[
+ [2e\zkBcRouterHalf,2(e+1)\zkBcRouterHalf),\qquad
+ [\zkCalibrationLarge-2(e+1)\zkBcRouterHalf,
+   \zkCalibrationLarge-2e\zkBcRouterHalf),\quad e<16.
+\]
+These $46080$ labels are distinct; the middle $260$ labels of the guaranteed prefix remain unreserved. Each pair of blocks will connect two intervals, giving each endpoint $\zkBcRouterHalf$ labels from each block. Its endpoint sum can be any integer within $\zkBcRouterHalf^2=518400$ of the common center $\zkBcRouterHalf(\zkCalibrationLarge-1)$. Indeed, apply the exact interval-transfer lemma separately in the two length-$2\zkBcRouterHalf$ blocks and split the desired total transfer between them. The other endpoint receives the complement.
+
+Sort the $49032$ unreserved calibration labels, retaining their instruction addresses, and distribute them cyclically among the sixteen intervals. Their largest label is at most $2\zkCalibrationLarge-1=92679$, so their sums $p_j$ differ by at most that amount. Reserve two incident block pairs for every interval. It then receives $2880$ additional labels, exactly filling the selected $5945$ or $5944$ calibration positions. At their common centers its real-plus-calibration exponent would be
+\[
+ w_j=u_j+p_j+2\zkBcRouterHalf(\zkCalibrationLarge-1).
+\]
+The sum of the $w_j$ is $\zkCalibrationTarget=4295168588$, independently of the witness. Set $\zkBcCoarseTarget{j}$ to $\lfloor\zkCalibrationTarget/16\rfloor+1$ for $j<12$, and to $\lfloor\zkCalibrationTarget/16\rfloor$ otherwise. The integer deficits $d_j=\zkBcCoarseTarget{j}-w_j$ sum to zero and satisfy
+\[
+ |d_j|\le65535+92679+1=158215<\zkBcRouterHalf^2.
+\]
+
+Order the intervals around a cycle by repeatedly choosing a remaining deficit of sign opposite to the current partial sum. Such a choice exists because all deficits sum to zero. Every partial sum stays between the smallest and largest deficit. Assign block pair $e$ to the corresponding cycle edge and transfer its partial sum to the first endpoint, with the negative transfer to the next. Each interval's net change is its deficit. Every edge transfer is in the available range, and every reserved label is assigned exactly once. The final exponent in interval $j$ is therefore $\zkBcCoarseTarget{j}$, plus its fixed public padding offset.
+
+Code assignments and return destinations are chosen as in the preceding proposition; only complete labels of the same instruction are redistributed. All choices precede the independent profile and metadata coins. The old swaps preserve each coarse interval product, and the adapters do too. The sixteen products are consequently public for every private mask choice. In the native count tree they occupy height-fourteen nodes $848,\ldots,863$.
+\end{proof}
+
+This construction uses witness-dependent placement, not public addresses or control flow. It neither changes the real memory image nor moves a real row into a mandatory source position. The proved restricted interface remains valid: real rows still occupy only the last thirty-two logical banks, and the fixed masking maps are unchanged. It supplies public products for one count column, not a simulator conditional on all GKR messages. The other nine BLAKE2s count columns and the remaining opcodes still require coarse normalization. If calibration returns are placed in the corresponding coarse intervals, the same algorithm transfers the real bytecode exponent $u_j$ into the JUMP column there; it does not normalize that column independently.
+
+\paragraph{Evidence.} \auditref{zk_count_reuse_audit.py} checks the exact maximum-profile budget and native stacked offsets, and enumerates the reusable pool while excluding every adapted row. Its finite valid-cycle checks use six deficit values, identical compression inputs and one common twenty-instruction code image. They verify all ISA constraints, complete bytecode/memory chains, the constant BLAKE2s exponent and the exact JUMP transfer. Five maximum-size private instruction histograms also pass the complete integer-label routing algorithm: every calibration chain is used exactly once and all sixteen native bytecode-frontier products agree. The uniform guarantees are the preceding proofs, not estimates from those samples. Section~\ref{sec:zk-flock-reservation} gives a shared Flock-side row/frame/code reservation, also audited there. These checks are not a full padded VM execution or a certificate for all count columns.
