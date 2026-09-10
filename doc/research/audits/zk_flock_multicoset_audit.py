@@ -333,21 +333,21 @@ def query_map(field, verifier, arguments):
         blocks = positions()
         if arguments.joint_boundary:
             extra = extra_joint_sources(field, verifier, arguments.seed + 1, blocks)
-            decomposition_certificate(field, verifier, sources, extra)
+            decomposition_certificate(field, verifier, sources, extra, arguments.public_prefix_log or 12)
             sources += extra
         else:
             sources += [(polynomial, 0) for polynomial in extra_query_sources(field, blocks)]
-    if arguments.public_prefix9:
+    if arguments.public_prefix_log is not None:
         assert arguments.joint_boundary and arguments.lowbank and not arguments.singletons
         from zk_flock_lowbank_audit import public_prefix_sources
 
-        sources = public_prefix_sources(sources)
+        sources, public_prefix_bits = public_prefix_sources(sources, arguments.public_prefix_log)
     rng.shuffle(sources)
     pointer = [(reordered_index((96 << 11) + index), field.kmul(1 << index, 3)) for index in range(8)]
     alias = [(block * (1 << 18) + reordered_index((96 << 11) + 4 + index), field.kmul(1 << index, 17)) for block in range(4) for index in range(4)]
     prefix_words = 93 if arguments.joint_boundary else 0
-    if arguments.public_prefix9:
-        prefix_words += 2
+    if arguments.public_prefix_log is not None:
+        prefix_words += (public_prefix_bits + 63) // 64
     if arguments.singletons:
         bound = 1 << max(queries).bit_length()
         sources = list({(tuple((index, value) for index, value in polynomial if index < bound), prefix) for polynomial, prefix in sources})
@@ -355,8 +355,8 @@ def query_map(field, verifier, arguments):
         print(f"Exact prefix truncation leaves {len(sources)} distinct nonzero binary source polynomials.", flush=True)
     public = [index for index, query in enumerate(queries) if query < 1 << 13]
     payload = [len(queries), prefix_words, *queries, len(public), *public]
-    if arguments.public_prefix9:
-        payload.extend([2, 93, 94])
+    if arguments.public_prefix_log is not None:
+        payload.extend([prefix_words - 93, *range(93, prefix_words)])
     for polynomials in (sources, [] if arguments.joint_boundary else [(pointer, 0), (alias, 0)]):
         payload.append(len(polynomials))
         for polynomial, prefix in polynomials:
@@ -368,7 +368,7 @@ def query_map(field, verifier, arguments):
     mode = "Exhaustive singleton" if arguments.singletons else ("Explicit query" if arguments.points is not None else "Sampled query")
     print(f"{mode} diagnostic: rate {arguments.rate}, seed {arguments.seed}, region {arguments.region}, {len(queries)} distinct queries.", flush=True)
     certificate = "--query-singleton-certificate" if arguments.singletons else "--query-map-fiber-certificate"
-    if arguments.public_prefix9:
+    if arguments.public_prefix_log is not None:
         certificate = "--query-prefix-fiber-certificate"
     subprocess.run(
         [
@@ -401,7 +401,11 @@ if __name__ == "__main__":
     parser.add_argument("--joint-boundary", action="store_true", help="also retain all nineteen terminal metadata fields and twelve GKR children")
     parser.add_argument("--include-low", action="store_true", help="append fixed low query points to check the public-prefix fiber")
     parser.add_argument("--lowbank", action="store_true", help="include the disjoint 3840-row long-chain low-coordinate bank")
-    parser.add_argument("--public-prefix9", action="store_true", help="retain all 512 low public-prefix values through their exact 92-bit encoding")
+    prefix_group = parser.add_mutually_exclusive_group()
+    prefix_group.add_argument("--public-prefix9", dest="public_prefix_log", action="store_const", const=9, help="retain the 512-point public prefix")
+    prefix_group.add_argument(
+        "--public-prefix-log", type=int, choices=range(9, 13), help="retain the complete public prefix through its coefficient bits"
+    )
     parser.add_argument(
         "--singletons", type=int, nargs=2, metavar=("START", "END"), help="exhaustively test individual points in this half-open interval"
     )

@@ -21,7 +21,7 @@ from zk_flock_pair_opening_audit import blake_bus_forms
 from zk_memory_frames_audit import joint_root_bound
 from zk_pcs_audit import Tower, verifier_module
 from zk_stacked_audit import binary_basis
-from zk_two_point_audit import dense_fixed_error
+from zk_two_point_audit import DENSE_FIXED, dense_fixed_error
 
 
 def positions():
@@ -74,31 +74,14 @@ def build(verifier, blocks):
     print("A single 32-cell frame and two code locations support all 3840 compression/return cycles and independent valid count swaps.", flush=True)
 
 
-def span_error():
-    size = 1 << 192
-    moore = Fraction(14 * ((1 << 43) - 1), size)
-
-    def finish(dimension):
-        return min(Fraction(1), Fraction(size, size - 2) ** 3 * Fraction(2) ** (192 - 4 * dimension))
-
-    low = finish(86)
-    for dimension in range(43, 86):
-        low += Fraction(((1 << 43) - 1) ** 2, (size - 2) * ((1 << (86 - dimension)) - 1)) * finish(dimension)
-    assert low < Fraction(1, 1 << 142)
-    total = moore + low + Fraction(8, size)
-    assert total < Fraction(1, 1 << 142)
-    print("A 43-dimensional kernel subspace gives a joint low-query/terminal error below 2^-142.", flush=True)
-    return total
-
-
 def combined_error():
-    total = span_error() + error_bound(128) + Fraction(20, 1 << 192) + joint_root_bound()
-    assert total < Fraction(1, 1 << 142)
-    assert total + dense_fixed_error(8) + dense_fixed_error(200) < Fraction(1, 1 << 142)
+    total = error_bound(128) + Fraction(20, 1 << 192) + joint_root_bound()
+    total += dense_fixed_error(176) + dense_fixed_error(48) + dense_fixed_error(240)
+    assert total < Fraction(1, 1 << 151)
     assert 181252 - 3840 + 1 == 177413
     assert 32 * 177413 == 5677216
     assert (3 * ((1 << 22) - 1280) - 5677216) // 256 == 26960
-    print("The split-region boundary and memory/root ledger remain below 2^-142, including the additional full 512-point public prefix.", flush=True)
+    print("Independent old-terminal and new-query masks give the split-region boundary and full 4096-point prefix below 2^-151.", flush=True)
 
 
 def extra_query_sources(field, blocks):
@@ -289,29 +272,38 @@ def extra_joint_sources(field, verifier, seed, blocks):
     return result
 
 
-def public_prefix_sources(sources):
-    projections = [tuple((index, value) for index, value in polynomial if index < 512) for polynomial, _ in sources]
+def public_prefix_sources(sources, prefix_log=12):
+    cutoff = 1 << prefix_log
+    expected = {9: 92, 10: 188, 11: 444, 12: 1084}[prefix_log]
+    projections = [tuple((index, value) for index, value in polynomial if index < cutoff) for polynomial, _ in sources]
     basis = sorted(set(projections) - {()})
-    assert len(basis) == 92
-    assert all(len(polynomial) == 2 and all(value == 3 for _, value in polynomial) for polynomial in basis)
-    assert len({index for polynomial in basis for index, _ in polynomial}) == 184
-    assert sum(bool(polynomial) for polynomial in projections) == 92
+    assert len(basis) == expected
+    assert all(1 <= len(polynomial) <= 2 and all(value for _, value in polynomial) for polynomial in basis)
+    assert len({index for polynomial in basis for index, _ in polynomial}) == sum(map(len, basis))
+    assert sum(bool(polynomial) for polynomial in projections) == expected
     for child in range(4):
-        assert [index for index in PC_SUPPORT if min(map(reordered_index, pair("pc", child, index))) < 512] == [0, 16, 64, 80, 128, 144, 208]
+        selected = [index for index in PC_SUPPORT if min(map(reordered_index, pair("pc", child, index))) < cutoff]
+        if prefix_log == 9:
+            assert selected == [0, 16, 64, 80, 128, 144, 208]
+        else:
+            assert selected == [16 * index for index in range({10: 16, 11: 32, 12: 48}[prefix_log]) if 16 * index != 192]
         assert all(
-            sum(min(map(reordered_index, pair(kind, child, index))) < 512 for index in support) == 8
+            sum(min(map(reordered_index, pair(kind, child, index))) < cutoff for index in support) == len(selected) + 1
             for kind, _, support in families(True)
             if kind in ("count", "wide")
         )
     positions = {polynomial: index for index, polynomial in enumerate(basis)}
-    print("All 512 public-prefix values are encoded exactly by 92 independent coefficient bits.", flush=True)
-    return [
+    print(f"All {cutoff} public-prefix values are encoded exactly by {expected} independent coefficient bits.", flush=True)
+    encoded = [
         (polynomial, prefix | ((1 << (31 * 192 + positions[projection])) if projection else 0))
         for (polynomial, prefix), projection in zip(sources, projections)
     ]
+    return encoded, expected
 
 
-def decomposition_certificate(field, verifier, old, extra):
+def decomposition_certificate(field, verifier, old, extra, prefix_log=12):
+    cutoff = 1 << prefix_log
+    count_erased = {9: 8, 10: 16, 11: 32, 12: 48}[prefix_log]
     counts = verifier.TABLES[verifier.OP_BLAKE2S].count_columns
     cv1 = counts.index(verifier.BLAKE2S_COLUMNS.index("cnt_cv1"))
     out0 = counts.index(verifier.BLAKE2S_COLUMNS.index("cnt_out0"))
@@ -357,27 +349,45 @@ def decomposition_certificate(field, verifier, old, extra):
     noncounts = []
     exposed = 0
     for polynomial, prefix in old[:noncount_size]:
-        if any(position < 512 for position, _ in polynomial):
+        if any(position < cutoff for position, _ in polynomial):
             exposed += 1
             continue
         values = unpack(prefix)
         residuals = [values[19 + 3 * child] ^ field.mul(2, values[20 + 3 * child]) for child in range(4)]
         noncounts.append(pack([*values[:9], *residuals]))
     assert len(binary_basis(noncounts)) == 13 * 192 == 2496
-    assert exposed == 28
+    assert exposed == 4 * (count_erased - 1)
     query_weights = field.novel(14, 12288)
+    retained, terminal = [], []
+    erased = 0
+    for polynomial, prefix in old[noncount_size : noncount_size + 1280 * 10][cv1::10]:
+        (left, delta), (right, _) = polynomial
+        assert left ^ right == 4 and left & 7 == 0
+        if min(left, right) < cutoff:
+            erased += 1
+            continue
+        raw = field.kmul(delta, query_weights[left & ~15]) if left < 1 << 14 else 0
+        fixed = raw << (64 * ((left >> 3) & 1))
+        values = unpack(prefix)
+        assert not any(values[index] for index in range(19) if index != 9 + cv1)
+        assert all(values[19 + 3 * child] == field.mul(2, values[20 + 3 * child]) for child in range(4))
+        retained.append(fixed)
+        terminal.append(fixed | (values[9 + cv1] << 128))
+    assert erased == count_erased
+    assert len(binary_basis(terminal)) - len(binary_basis(retained)) == 192
     low = []
     for polynomial, prefix in extra[cv1::10]:
         values = unpack(prefix)
         assert not any(values[index] for index in range(19) if index != 9 + cv1)
         assert all(values[19 + 3 * child] == field.mul(2, values[20 + 3 * child]) for child in range(4))
         (left, delta), (right, _) = polynomial
-        assert min(left, right) >= 512
+        if min(left, right) < cutoff:
+            continue
         raw = field.kmul(delta, query_weights[left & ~15] ^ query_weights[right & ~15])
-        low.append(values[9 + cv1] | (raw << (192 + 64 * (left & 15))))
-    assert len(binary_basis(low)) == 1216
+        low.append(raw << (64 * (left & 15)))
+    assert len(binary_basis(low)) == 1024
     print(
-        "Prefix-preserving split-region ranks: 5312, 1216 and 2496, with all zero projections, 28 PC erasures and child-plane invariance checked.",
+        f"Prefix {cutoff}: ranks 5312, conditional terminal 192, raw 1024 and residual 2496; {erased} count and {exposed} PC erasures checked.",
         flush=True,
     )
 
@@ -390,8 +400,8 @@ def sampled_rank(field, blocks):
         for index in range(len(values)):
             values[index] = field.kmul(values[index], power)
             power = field.kmul(power, 1 << 32)
-        assert len(binary_basis(values)) == 64
-    print("Sampled low-bank scalar maps have rank 64; the native run checks every claimed coset.", flush=True)
+        assert len(binary_basis([value for value, (left, right) in zip(values, blocks) if min(left, right) >= 4096])) == 64
+    print("Sampled low-bank scalar maps retain rank 64 after the 4096-point prefix; the native run checks every claimed coset.", flush=True)
 
 
 def invariant_rank(field, blocks):
@@ -429,41 +439,74 @@ def invariant_rank(field, blocks):
     print("Old 32-point kernel rank 1024 and balanced quotient rank 1024, with all old invariants fixed, at the tested native points.", flush=True)
 
 
-def terminal_rank(field, blocks):
+def terminal_rank(field):
     rng = Random(643)
-    point = [field.random(rng) for _ in range(18)]
-    low, high = field.eq(point[:4]), field.eq(point[4:])
+    weights = field.eq([field.random(rng) for _ in range(12)])
     query_weights = field.novel(14, 12288)
-    vectors, scale, pivots, kernels = [], 3, {}, []
-    for left, right in blocks:
-        raw = field.kmul(scale, query_weights[left] ^ query_weights[right])
-        value = field.mul(scale, high[left >> 4] ^ high[right >> 4])
-        while raw:
-            bit = raw.bit_length() - 1
-            if bit not in pivots:
-                pivots[bit] = raw, value
-                break
-            previous_raw, previous_value = pivots[bit]
-            raw ^= previous_raw
-            value ^= previous_value
-        if not raw:
-            kernels.append(value)
-        for child in range(16):
-            terminal = field.mul(scale, field.mul(low[child], high[left >> 4] ^ high[right >> 4]))
-            raw = field.kmul(scale, query_weights[left] ^ query_weights[right])
-            vectors.append(terminal | (raw << (192 + 64 * child)))
-            scale = field.kmul(scale, 4)
-    assert len(binary_basis(vectors)) == 192 + 16 * 64 == 1216
-    assert len(kernels) == 56 and len(binary_basis(kernels[:43])) == 43
-    assert len(binary_basis([field.mul(value, field.mul(low[child], 1 << (2 * child))) for child in range(16) for value in kernels[:43]])) == 192
-    print("Native-field diagnostic rank 1216 for the low-bank terminal value and sixteen raw coset coordinates jointly.", flush=True)
-    print("The first 43 independent query-kernel vectors already supply the full 192-bit terminal fiber in this diagnostic.", flush=True)
+    retained, joint = [], []
+    for index in DENSE_FIXED:
+        left, right = map(reordered_index, pair("count", 0, index))
+        assert left ^ right == 4 and left & 7 == 0
+        if left < 4096:
+            continue
+        raw = field.kmul(3, query_weights[left & ~15]) if left < 1 << 14 else 0
+        fixed = raw << (64 * ((left >> 3) & 1))
+        retained.append(fixed)
+        joint.append(fixed | (field.mul(3, weights[index]) << 128))
+    assert len(retained) == 1280 - 48
+    assert len(binary_basis(joint)) - len(binary_basis(retained)) == 192
+    print("The normalized old count terminal has full 192-bit fiber rank after retaining the low raw map and 4096-point prefix.", flush=True)
+
+
+def prefix_limit_certificate(field, blocks):
+    from zk_flock_multicoset_audit import query_sources
+
+    sources = query_sources(field)[0] + extra_query_sources(field, blocks)
+    exposed = [tuple((index, value) for index, value in polynomial if index < 8192) for polynomial in sources]
+    exposed = [polynomial for polynomial in exposed if polynomial]
+    assert len(exposed) == len(set(exposed)) == 2492
+    assert len({index for polynomial in exposed for index, _ in polynomial}) == sum(map(len, exposed))
+    kernel = sorted(
+        {
+            tuple((index, value) for index, value in polynomial if index < 16384)
+            for polynomial in sources
+            if all(index >= 8192 for index, _ in polynomial)
+        }
+        - {()}
+    )
+    assert len(kernel) == 384
+    private = [(12288 + index, field.kmul(1 << index, 3)) for index in range(8)]
+    assert all(index >= 8192 for index, _ in private)
+    for omitted in (None, *range(12290, 12296)):
+        queries = [query for query in range(12290, 12296) if query != omitted]
+        payload = [len(queries), 0, *queries, 0]
+        for polynomials in (kernel, [private]):
+            payload.append(len(polynomials))
+            for polynomial in polynomials:
+                payload.append(len(polynomial))
+                payload.extend(value for term in polynomial for value in term)
+                payload.append(0)
+        result = subprocess.run(
+            ["cargo", "run", "--release", "-p", "lean_vm", "--example", "zk_flock_pair_opening_audit", "--", "--query-map-fiber-certificate"],
+            input=" ".join(map(str, payload)),
+            text=True,
+            capture_output=True,
+            check=True,
+            cwd=Path(__file__).resolve().parents[3],
+        )
+        if omitted is None:
+            assert "RANK 382 384\n" in result.stdout and "OUTSIDE 0 " in result.stdout
+        else:
+            assert "RANK 320 320\n" in result.stdout and "INSIDE 0\n" in result.stdout
+    print("The entire 8192-point prefix reveals 2492 mask bits and leaves a minimal six-query private-pointer distinguisher.", flush=True)
+    print("This refutes the larger full-prefix envelope, not statistical privacy under the actual honest query distribution.", flush=True)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--full", action="store_true", help="check all valid cycles and randomized count chains")
     parser.add_argument("--scattered", action="store_true", help="check the complete low-band noise code and its dispersed minimal support")
+    parser.add_argument("--prefix-limit", action="store_true", help="certify why the full 8192-point public prefix is an unsafe envelope")
     arguments = parser.parse_args()
     blocks = positions()
     verifier = verifier_module()
@@ -471,16 +514,20 @@ if __name__ == "__main__":
     if arguments.scattered:
         scattered_certificate(field, verifier, blocks)
         raise SystemExit
+    if arguments.prefix_limit:
+        prefix_limit_certificate(field, blocks)
+        raise SystemExit
     sampled_rank(field, blocks)
-    terminal_rank(field, blocks)
+    terminal_rank(field)
     combined_error()
     if arguments.full:
         build(verifier, blocks)
         cluster_certificate(field, verifier, blocks)
         scattered_certificate(field, verifier, blocks)
+        prefix_limit_certificate(field, blocks)
         invariant_rank(field, blocks)
     subprocess.run(
-        ["cargo", "run", "--release", "-p", "lean_vm", "--example", "zk_flock_pair_opening_audit", "--", "--lowbank-certificate"],
+        ["cargo", "run", "--release", "-p", "lean_vm", "--example", "zk_flock_pair_opening_audit", "--", "--lowbank-certificate", "4096"],
         input=" ".join(str(value) for block in blocks for value in block),
         text=True,
         check=True,

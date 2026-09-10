@@ -283,12 +283,16 @@ fn lowbank_positions() -> Vec<usize> {
     positions
 }
 
-fn lowbank_certificate() {
+fn lowbank_certificate(retained_prefix: usize) {
+    assert!(retained_prefix == 0 || (retained_prefix.is_power_of_two() && retained_prefix <= 8192));
     let positions = lowbank_positions();
     let (roots, inverses) = novel_parameters();
     let mut coefficients = vec![F64::ZERO; 1 << 19];
     let scales: Vec<_> = (0..120).map(|index| F64(3) * g_pow(32 * index)).collect();
     for (pair, &scale) in positions.chunks_exact(2).zip(&scales) {
+        if pair.iter().any(|&index| index < retained_prefix) {
+            continue;
+        }
         coefficients[pair[0]] += scale;
         coefficients[pair[1]] += scale;
     }
@@ -310,6 +314,9 @@ fn lowbank_certificate() {
         let mut rank = 0;
         let mut sum = F64::ZERO;
         for (pair, &scale) in positions.chunks_exact(2).zip(&scales) {
+            if pair.iter().any(|&index| index < retained_prefix) {
+                continue;
+            }
             let image = scale * (weights[pair[0] >> 4] + weights[pair[1] >> 4]);
             sum += image;
             let mut value = image.0;
@@ -327,7 +334,7 @@ fn lowbank_certificate() {
         assert!(coefficients[query..query + 16].iter().all(|&value| value == sum));
     });
     println!(
-        "Exhaustive low-bank certificate: all 32256 cosets in U19 outside U13 have scalar rank 64 and match the native additive NTT."
+        "Exhaustive low-bank certificate: all 32256 cosets in U19 outside U13 have scalar rank 64 after retaining the prefix below {retained_prefix}, and match the native additive NTT."
     );
 }
 
@@ -909,7 +916,7 @@ fn main() {
             return;
         }
         Some("--lowbank-certificate") => {
-            lowbank_certificate();
+            lowbank_certificate(arguments.next().map_or(0, |value| value.parse().unwrap()));
             return;
         }
         Some("--balanced-quotient-certificate") => {
