@@ -1,6 +1,6 @@
 //! Column operations shared by the `F64` joining round and subsequent `F192` rounds.
 
-use primitives::field::{F64, F192, F192BaseUnreduced, F192Unreduced, mul_by_g, mul_by_g_e};
+use primitives::field::{F64, F192, F192BaseUnreduced, F192Unreduced};
 use std::ops::{Add, BitXor, BitXorAssign, Mul};
 
 /// A value a constraint reads out of a column.
@@ -11,10 +11,6 @@ pub trait ColVal: Copy + Send + Sync + Add<Output = Self> + Mul<Output = Self> {
     /// Where this column's products XOR-accumulate before the one reduction that
     /// ends a form.
     type Unreduced: Copy + Send + Sync + BitXor<Output = Self::Unreduced> + BitXorAssign;
-
-    /// The third interpolation node of a sumcheck round, `lo + g·(lo + hi)`, in the
-    /// column's own field: no lift, so a `K` round pays a `mul_by_g` and an add.
-    fn at_g(lo: Self, hi: Self) -> Self;
 
     /// Times an `E` value: an `η`-power, a bus coefficient, a machine word.
     fn mul_e(self, e: F192) -> F192;
@@ -43,11 +39,6 @@ impl ColVal for F64 {
     const ONE: Self = F64::ONE;
 
     type Unreduced = F192BaseUnreduced;
-
-    #[inline(always)]
-    fn at_g(lo: Self, hi: Self) -> Self {
-        lo + mul_by_g(lo + hi)
-    }
 
     #[inline(always)]
     fn mul_e(self, e: F192) -> F192 {
@@ -87,11 +78,6 @@ impl ColVal for F192 {
     const ONE: Self = F192::ONE;
 
     type Unreduced = F192Unreduced;
-
-    #[inline(always)]
-    fn at_g(lo: Self, hi: Self) -> Self {
-        lo + mul_by_g_e(lo + hi)
-    }
 
     #[inline(always)]
     fn mul_e(self, e: F192) -> F192 {

@@ -137,15 +137,34 @@ impl FiatShamirState {
                 n = n.wrapping_add(1);
             }
         } else {
-            // `find_first` returns the globally smallest satisfying nonce, so the
-            // proof is deterministic regardless of how the scan is claimed.
+            const BATCH: usize = 2 * primitives::hash::LANES;
+            let mut template = [[0u8; 64]; BATCH];
+            for input in &mut template {
+                for (slot, word) in input[..32].as_chunks_mut::<8>().0.iter_mut().zip(base) {
+                    *slot = word.0.to_le_bytes();
+                }
+                input[56..].copy_from_slice(&DS_POW_NONCE.0.to_le_bytes());
+            }
+            let batch = |first: u64| {
+                let mut inputs = template;
+                for (i, input) in inputs.iter_mut().enumerate() {
+                    input[32..40].copy_from_slice(&(first + i as u64).to_le_bytes());
+                }
+                let mut digests = [[0u8; 32]; BATCH];
+                primitives::hash::hash_many::<64>(inputs.as_flattened(), digests.as_flattened_mut());
+                digests
+                    .iter()
+                    .position(|d| u64::from_le_bytes(d[..8].try_into().unwrap()) & ((1u64 << bits) - 1) == 0)
+            };
+            // The smallest matching batch and its first match give the smallest nonce.
             let block: u64 = 1 << (bits.min(24) + 1);
             let mut start: u64 = 0;
             loop {
-                if let Some(n) = parallel::find_first(block as usize, |i| {
-                    pow_bits_ok(base, F192::new(start + i as u64, 0, 0), bits)
-                }) {
-                    break start + n as u64;
+                if let Some(i) =
+                    parallel::find_first(block as usize / BATCH, |i| batch(start + (i * BATCH) as u64).is_some())
+                {
+                    let first = start + (i * BATCH) as u64;
+                    break first + batch(first).unwrap() as u64;
                 }
                 start = start.saturating_add(block);
             }
@@ -216,16 +235,16 @@ mod tests {
     fn pow_predicate() {
         let sp = FiatShamirState::new(digest_words(&primitives::hash::hash(b"t")), pi(1));
         let base = sp.pow_base();
-        let good = {
+        for bits in [0, 8, 13, 17] {
             let mut clone = sp.clone();
-            clone.grind_pow(8)
-        };
-        assert!(pow_bits_ok(base, F192::new(good, 0, 0), 8));
-        for n in 0..good {
-            assert!(
-                !pow_bits_ok(base, F192::new(n, 0, 0), 8),
-                "nonce {n} < {good} also clears"
-            );
+            let good = clone.grind_pow(bits);
+            let expected = (0..=good)
+                .find(|&n| pow_bits_ok(base, F192::new(n, 0, 0), bits))
+                .unwrap();
+            assert_eq!(good, expected, "smallest nonce at {bits} bits");
+            let mut verifier = sp.clone();
+            assert!(verifier.verify_pow_field(F192::new(good, 0, 0), bits));
+            assert_eq!(clone.state(), verifier.state());
         }
     }
 

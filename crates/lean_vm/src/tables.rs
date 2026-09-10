@@ -67,10 +67,14 @@ fn tower_lane<T: ColVal>(lane: usize, x: [T; 3], y: [T; 3]) -> T {
 /// The condition is `K`-valued, so both identities are single-lane. Its memory
 /// flush carries literal zeros above the low limb (`memory_k`), so a word outside
 /// `K` cannot balance the bus; the interpreter rejects one outright.
-fn jump_identity<T: ColVal>(pows: &[F192], cols: &[T]) -> F192 {
+fn jump_identity<T: ColVal>(pows: &[F192], cols: &[T], quadratic: bool) -> F192 {
     use jump::*;
-    let b1 = cols[B] + T::ONE;
-    T::dot(pows, &[cols[B] + cols[V_COND] * cols[W], cols[V_COND] * b1], F192::ZERO)
+    let (b, b1) = if quadratic {
+        (T::ZERO, cols[B])
+    } else {
+        (cols[B], cols[B] + T::ONE)
+    };
+    T::dot(pows, &[b + cols[V_COND] * cols[W], cols[V_COND] * b1], F192::ZERO)
 }
 
 // ---- shared bus vocabulary ---------------------------------------------------
@@ -325,17 +329,18 @@ pub trait Table: Sync {
     /// is exactly [`n_constraints`](Table::n_constraints) long: an identity indexed
     /// past its end panics rather than silently reaching into the next table's
     /// range. The table sumcheck carries every committed column of a table, in
-    /// local order, so `cols` is indexed directly. Returns `0` on every valid row (§sec:air).
+    /// local order, so `cols` is indexed directly. With `quadratic=false` it returns
+    /// `0` on every valid row (§sec:air); `true` selects only the degree-two terms.
     /// The default is the constraint-free case; a table that declares constraints
     /// and forgets to evaluate them trips the assert instead of dropping them.
-    fn eval_constraint(&self, pows: &[F192], _cols: &[F192]) -> F192 {
+    fn eval_constraint(&self, pows: &[F192], _cols: &[F192], _quadratic: bool) -> F192 {
         assert!(pows.is_empty(), "a table with constraints must evaluate them");
         F192::ZERO
     }
     /// The same identity over `K`-valued columns, for the round a table joins the
     /// batch, before its columns have been folded into `E` (§sec:air). Both entry
     /// points delegate to one generic definition per table, so they cannot drift.
-    fn eval_constraint_k(&self, pows: &[F192], _cols: &[F64]) -> F192 {
+    fn eval_constraint_k(&self, pows: &[F192], _cols: &[F64], _quadratic: bool) -> F192 {
         assert!(pows.is_empty(), "a table with constraints must evaluate them");
         F192::ZERO
     }
@@ -722,11 +727,11 @@ impl Table for JumpTable {
     fn n_constraints(&self) -> usize {
         2 // the two indicator identities; the selections ride the state push
     }
-    fn eval_constraint(&self, pows: &[F192], cols: &[F192]) -> F192 {
-        jump_identity(pows, cols)
+    fn eval_constraint(&self, pows: &[F192], cols: &[F192], quadratic: bool) -> F192 {
+        jump_identity(pows, cols, quadratic)
     }
-    fn eval_constraint_k(&self, pows: &[F192], cols: &[F64]) -> F192 {
-        jump_identity(pows, cols)
+    fn eval_constraint_k(&self, pows: &[F192], cols: &[F64], quadratic: bool) -> F192 {
+        jump_identity(pows, cols, quadratic)
     }
     fn flushes(&self, f: &mut FlushBuilder) {
         use jump::*;
@@ -986,7 +991,7 @@ mod tests {
             row[jump::V_COND] = cond;
             row[jump::W] = w;
             row[jump::B] = if cond.is_zero() { F64::ZERO } else { F64::ONE };
-            assert_eq!(jump_identity(&pows, &row), F192::ZERO, "cond = {cond:?}");
+            assert_eq!(jump_identity(&pows, &row, false), F192::ZERO, "cond = {cond:?}");
             // On a zero condition the inverse is unconstrained, being multiplied by
             // zero: what has to be pinned there is the indicator alone.
             let forgeable: &[usize] = if cond.is_zero() {
@@ -998,7 +1003,7 @@ mod tests {
                 let mut forged = row.clone();
                 forged[col] += F64::ONE;
                 assert_ne!(
-                    jump_identity(&pows, &forged),
+                    jump_identity(&pows, &forged, false),
                     F192::ZERO,
                     "column {col}, cond = {cond:?}"
                 );

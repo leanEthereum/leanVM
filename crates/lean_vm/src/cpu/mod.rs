@@ -377,15 +377,15 @@ fn airs(
                 tau,
                 n_cols: table.n_committed_columns(),
                 n_constraints: table.n_constraints(),
-                eval: Box::new(move |p, vals| {
-                    let air = <F192 as ColVal>::lift(table.eval_constraint(p, vals));
-                    <F192 as ColVal>::reduce(air ^ bus.eval_unreduced(vals))
+                eval: Box::new(move |p, vals, quadratic| {
+                    let air = <F192 as ColVal>::lift(table.eval_constraint(p, vals, quadratic));
+                    <F192 as ColVal>::reduce(air ^ bus.eval_unreduced(vals, quadratic))
                 }),
                 // The same expression over K columns: the identity's K-only products
                 // stay 64-bit and the bus form becomes a mixed dot product.
-                eval_k: Box::new(move |p, vals| {
-                    let air = <F64 as ColVal>::lift(table.eval_constraint_k(p, vals));
-                    <F64 as ColVal>::reduce(air ^ bus_k.eval_unreduced(vals))
+                eval_k: Box::new(move |p, vals, quadratic| {
+                    let air = <F64 as ColVal>::lift(table.eval_constraint_k(p, vals, quadratic));
+                    <F64 as ColVal>::reduce(air ^ bus_k.eval_unreduced(vals, quadratic))
                 }),
             }
         })

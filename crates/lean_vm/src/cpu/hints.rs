@@ -51,6 +51,8 @@ impl GPow {
         let mut g = Self::default();
         g.pow.push(F64::ONE);
         g.grow_to(upto);
+        g.index = vec![0; (2 * (upto + 1)).next_power_of_two().max(1 << 13)];
+        g.noted.reserve((upto + 1).next_power_of_two());
         for k in 0..=upto {
             g.note(k);
         }

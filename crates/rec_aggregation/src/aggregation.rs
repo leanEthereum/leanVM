@@ -1317,6 +1317,10 @@ fn whir_shape(mu: usize, log_inv_rate: usize) -> WhirShape {
     }
 }
 
+fn merkle_cap_depth(queries: usize, depth: usize) -> usize {
+    (queries.next_power_of_two().ilog2() as usize).min(depth)
+}
+
 /// The BLAKE2s table's virtual value columns, in `hash_flock::SLOTS` order.
 fn blake2s_value_columns() -> Vec<usize> {
     let base = lean_vm::cpu::schema().base[5];
@@ -1570,16 +1574,42 @@ fn gen_verify(
 
     // ---- Phase E2 hints (the stacked WHIR opening) ----
     let lenris: usize = klvl.iter().sum();
-    // The verifier already authenticated every queried row and expanded the
-    // pruned phases into one full path per query, in level order. The guest
-    // re-hashes exactly that: a leaf is its `F64` words (one per interleaved K
-    // value at level 0, three per `E` value deeper), then a walk up the path.
-    let (mut lrows_flat, mut lpaths_flat): (Vec<F192>, Vec<F192>) = (Vec::new(), Vec::new());
-    for opening in &summary.raw.merkle {
-        lrows_flat.extend(opening.leaf_data.iter().map(|x| F192::new(x.0, 0, 0)));
-        for h in &opening.path {
-            lpaths_flat.extend_from_slice(&pack_hash_state(h));
+    // Share the upper Merkle tree across queries. Unknown, unused subtrees stay
+    // opaque; the guest authenticates every cap leaf a query reaches.
+    let (mut lrows_flat, mut lpaths_flat) = (Vec::new(), Vec::new());
+    let (mut caps, mut cap_active) = (Vec::new(), Vec::new());
+    let mut openings = summary.raw.merkle.iter();
+    for (&queries, &depth) in stack.config.queries.iter().zip(&stack.depth) {
+        let cap_depth = merkle_cap_depth(queries, depth);
+        let n = 1 << cap_depth;
+        let path_depth = depth - cap_depth;
+        let mut nodes = vec![[0u8; 32]; 2 * n];
+        let mut active = vec![F192::ZERO; n];
+        for opening in openings.by_ref().take(queries) {
+            lrows_flat.extend(opening.leaf_data.iter().map(|x| F192::from(*x)));
+            for h in &opening.path[..path_depth] {
+                lpaths_flat.extend_from_slice(&pack_hash_state(h));
+            }
+            let bytes: Vec<_> = opening.leaf_data.iter().flat_map(|x| x.0.to_le_bytes()).collect();
+            let mut node = pcs::merkle::hash_leaf(&bytes);
+            let mut index = (1 << depth) + opening.leaf_index;
+            for (height, sibling) in opening.path.iter().enumerate() {
+                if height >= path_depth {
+                    nodes[index] = node;
+                    nodes[index ^ 1] = *sibling;
+                    active[index >> 1] = F192::ONE;
+                }
+                node = if index & 1 == 0 {
+                    pcs::merkle::hash_pair(&node, sibling)
+                } else {
+                    pcs::merkle::hash_pair(sibling, &node)
+                };
+                index >>= 1;
+            }
+            nodes[1] = node;
         }
+        caps.extend(nodes.iter().flat_map(pack_hash_state));
+        cap_active.extend(active);
     }
     // claim descriptors, in exact clv order.
     let mut nover_v = Vec::new();
@@ -1648,6 +1678,8 @@ fn gen_verify(
         ("matpart", vec![matpart]),
         ("merkle_leaf_rows", lrows_flat),
         ("merkle_paths", lpaths_flat),
+        ("merkle_caps", caps),
+        ("merkle_cap_active", cap_active),
         // per-claim overlap count, for the exact length pin: nover = the
         // amount by which the claim's total vars exceed the fold rounds.
         (
@@ -2433,6 +2465,8 @@ struct OpeningShape {
     query_grinding_bits: Vec<usize>,
     row_offsets: Vec<usize>,
     path_offsets: Vec<usize>,
+    cap_depths: Vec<usize>,
+    cap_offsets: Vec<usize>,
     positions_offsets: Vec<usize>,
     vanish_offsets: Vec<usize>,
     fold_offsets: Vec<usize>,
@@ -2696,11 +2730,7 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
         let shape = whir_shape(m, log_inv_rate);
         let (vc, sh) = (&shape.config, &shape.levels);
         let (cn, cr) = (sh.levels, vc.level_steps);
-        // The final message sits at the LAST level. The guest fills level_roots slot 0
-        // with the commitment root and every later slot from that level's root read,
-        // then checks each query's Merkle walk with a write-once store into its slot.
-        // A slot no read had filled would turn that check into a write, so this
-        // relation is what keeps the query phase binding.
+        // Every cap root must match a transcript-bound root, including the final level.
         assert_eq!(cr, cn - 1, "the yr level must be the last one");
         let (ck, cl, cyr) = (&sh.ks, &sh.log_msg_cols, sh.yr_log_n);
         let cq = &vc.queries;
@@ -2728,7 +2758,9 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
             offsets
         };
         let c_rowoff = psum(&|lv| cq[lv] * cni[lv] * if lv == 0 { 1 } else { 3 });
-        let c_pathoff = psum(&|lv| cq[lv] * cd[lv] * 2);
+        let cap_depths: Vec<_> = (0..cn).map(|lv| merkle_cap_depth(cq[lv], cd[lv])).collect();
+        let c_pathoff = psum(&|lv| cq[lv] * (cd[lv] - cap_depths[lv]) * 2);
+        let cap_offsets = psum(&|lv| 1 << cap_depths[lv]);
         let c_qpoff = psum(&|lv| cs[lv] * cp[lv]);
         let c_svkoff = psum(&|lv| cl[lv] + 1);
         let c_foldbase = psum(&|lv| ck[lv]);
@@ -2759,6 +2791,8 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
             query_grinding_bits: shape.config.grinding_bits,
             row_offsets: c_rowoff,
             path_offsets: c_pathoff,
+            cap_depths,
+            cap_offsets,
             positions_offsets: c_qpoff,
             vanish_offsets: c_svkoff,
             fold_offsets: c_foldbase,
@@ -2871,7 +2905,7 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
             "LIG_PATHS_LEN",
             scal(&|c| {
                 (0..c.n_levels)
-                    .map(|level| c.queries[level] * c.tree_depths[level] * 2)
+                    .map(|level| c.queries[level] * (c.tree_depths[level] - c.cap_depths[level]) * 2)
                     .sum()
             }),
         );
@@ -2880,16 +2914,6 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
         ps("LIG_QUERIES", flat(&|c| c.queries.clone()));
         ps("LIG_FOLDS", flat(&|c| c.folds.clone()));
         ps("LIG_INTERLEAVE", flat(&|c| c.interleaving.clone()));
-        ps(
-            "LIG_LEAF_PAIRS",
-            flat(&|c| {
-                c.interleaving
-                    .iter()
-                    .enumerate()
-                    .map(|(level, &n)| if level == 0 { n / 4 } else { 3 * n / 4 })
-                    .collect()
-            }),
-        );
         // 64-byte BLAKE2s blocks per leaf row: level 0's committed rows are
         // base-field F64 (8 bytes/lane); deeper levels are native F192
         // (24 bytes/word, received as three embedded K limbs each). Rows are
@@ -2905,6 +2929,9 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
             }),
         );
         ps("LIG_TREE_DEPTH", flat(&|c| c.tree_depths.clone()));
+        ps("LIG_CAP_DEPTH", flat(&|c| c.cap_depths.clone()));
+        ps("LIG_CAP_OFF", flat(&|c| c.cap_offsets.clone()));
+        ps("LIG_CAP_LEN", scal(&|c| c.cap_depths.iter().map(|&d| 1 << d).sum()));
         ps("LIG_SQUEEZES", flat(&|c| c.squeezes.clone()));
         ps("LIG_POSITIONS_OFF", flat(&|c| c.positions_offsets.clone()));
         ps("LIG_LOG_MSG_COLS", flat(&|c| c.log_message_columns.clone()));
@@ -4836,6 +4863,26 @@ def main():
         let children = vec![left, right];
         aggregate(&children, vec![], vec![], &[], None, LOG_INV_RATE).expect("the honest node aggregates");
         let node_cases: &[Tamper] = &[
+            ("merkle cap (all hashes skipped)", &|h: &mut Hints| {
+                h.entries("merkle_cap_active")[0].fill(F192::ZERO);
+            }),
+            ("merkle cap (one ancestor skipped)", &|h: &mut Hints| {
+                let flags = &mut h.entries("merkle_cap_active")[0];
+                let active = flags.iter_mut().skip(2).find(|x| **x == F192::ONE).unwrap();
+                *active = F192::ZERO;
+            }),
+            ("merkle cap (root)", &|h: &mut Hints| {
+                h.entries("merkle_caps")[0][2] += F192::ONE;
+            }),
+            ("merkle cap (subtree)", &|h: &mut Hints| {
+                h.entries("merkle_caps")[0][4] += F192::ONE;
+            }),
+            ("merkle path (below cap)", &|h: &mut Hints| {
+                h.entries("merkle_paths")[0][0] += F192::ONE;
+            }),
+            ("merkle leaf", &|h: &mut Hints| {
+                h.entries("merkle_leaf_rows")[0][0] += F192::ONE;
+            }),
             ("child_index (duplicate slot)", &|h: &mut Hints| {
                 let entries = h.entries("child_index");
                 entries[1] = entries[0].clone();
