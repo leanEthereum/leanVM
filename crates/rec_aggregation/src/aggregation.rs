@@ -1329,15 +1329,11 @@ fn blake2s_value_columns() -> Vec<usize> {
 
 /// One entry of the guest's claim pool.
 enum ClaimSite {
-    /// A framework bus block reads a committed column at this kappa.
-    Framework { column: usize, kappa: usize },
-    /// A committed column of `table`; `is_virtual` marks the q_flock-backed value
+    /// A committed column read by a framework bus block.
+    Framework { column: usize },
+    /// A table column; `is_virtual` marks the q_flock-backed value
     /// columns, whose claim is a strided slot rather than a plain column.
-    TableColumn {
-        table: usize,
-        column: usize,
-        is_virtual: bool,
-    },
+    TableColumn { column: usize, is_virtual: bool },
     /// One of the three PI memory limbs (MEM_LO, MEM_HI, MEM_TOP).
     MemoryLimb { column: usize },
 }
@@ -1392,9 +1388,8 @@ fn push_coord_terms(c: &Coord, base: usize, terms: &mut Vec<Term>) {
 
 /// Visit the claim pool in the exact order the guest indexes it: the framework
 /// bus claims (deduped by `(column, kappa)`, as `leaf.rs` pools them), then every
-/// table's committed columns, then the PI memory triple. Both the per-sub hints
-/// and the placeholder map descriptors are built from this one walk, so the two
-/// stay index-aligned by construction rather than by two matching count asserts.
+/// table's committed columns, then the PI memory triple. The placeholder map's
+/// claim descriptors follow this order.
 fn walk_claims(layout: &lean_vm::cpu::Layout, kbc: usize, mut visit: impl FnMut(ClaimSite)) {
     let sides: [&[Block]; 3] = [&layout.push, &layout.pull, &layout.count];
     let valcols = blake2s_value_columns();
@@ -1419,10 +1414,7 @@ fn walk_claims(layout: &lean_vm::cpu::Layout, kbc: usize, mut visit: impl FnMut(
                         continue; // deduped: pooled once at its first occurrence
                     }
                     assert!(!valcols.contains(i), "{VALCOL_FRAMEWORK}");
-                    visit(ClaimSite::Framework {
-                        column: *i,
-                        kappa: blk.kappa,
-                    });
+                    visit(ClaimSite::Framework { column: *i });
                 }
             }
         }
@@ -1432,7 +1424,6 @@ fn walk_claims(layout: &lean_vm::cpu::Layout, kbc: usize, mut visit: impl FnMut(
         for c in 0..table.n_committed_columns() {
             let column = sch.base[t] + c;
             visit(ClaimSite::TableColumn {
-                table: t,
                 column,
                 is_virtual: layout.placements[column].is_virtual(),
             });
@@ -1488,7 +1479,6 @@ fn gen_verify(
 
     // ---- the stacked opening: config + the opening summary ----
     let stack = whir_shape(layout.shape.mu, summary.log_inv_rate);
-    let klvl = &stack.levels.ks;
 
     // flock's reduction ends at `flock_stream_end`, where the WHIR opening's own
     // scalars start: its last 64 scalars are lincheck's `z_partial` (which the
@@ -1570,10 +1560,8 @@ fn gen_verify(
         .iter()
         .map(|&global| F192::new(g_pow(compact_col[global]).0, 0, 0))
         .collect();
-    let log_mem = proof_stream[0].c0 as usize;
 
     // ---- Phase E2 hints (the stacked WHIR opening) ----
-    let lenris: usize = klvl.iter().sum();
     // Share the upper Merkle tree across queries. Unknown, unused subtrees stay
     // opaque; the guest authenticates every cap leaf a query reaches.
     let mut query_hints = Vec::new();
@@ -1618,36 +1606,6 @@ fn gen_verify(
         caps.extend(nodes.iter().flat_map(pack_hash_state));
         cap_active.extend(active);
     }
-    // claim descriptors, in exact clv order.
-    let mut nover_v = Vec::new();
-    walk_claims(&layout, program.prog.len().trailing_zeros() as usize, |site| {
-        // Per claim, `nvt` is the full low span; when it exceeds `lenris` the point
-        // overlaps the residual y region by `nover` coords. Stack selectors are not
-        // emitted: the guest derives them from the certified committed-column offsets.
-        let nvt = match site {
-            ClaimSite::Framework { kappa, .. } => kappa,
-            ClaimSite::TableColumn { table, is_virtual, .. } => {
-                if is_virtual {
-                    lean_vm::hash_flock::SLOT_STRIDE_LOG + taus[table]
-                } else {
-                    taus[table]
-                }
-            }
-            // The three PI memory lanes share one point [r_m, 0, 0, ...]; the coords
-            // beyond `lenris` are const zero, so they fold into the y pattern instead
-            // of a runtime overlap factor.
-            ClaimSite::MemoryLimb { column } => layout.placements[column].n_vars.min(lenris),
-        };
-        nover_v.push(nvt.saturating_sub(lenris));
-    });
-
-    // The ring-switch weight's own residual overlap: the q_flock claim spans
-    // `qflockv` coordinates, and a BLAKE2s-dominated inner proof pushes that past
-    // the fold rounds. Same quantity as the q_flock point claim's `nover`, but
-    // the guest pins it independently, in the rs block.
-    let qflockv = lean_vm::hash_flock::SLOT_STRIDE_LOG + taus[5];
-    let rs_nover = qflockv.saturating_sub(lenris);
-
     let mut bytecode_row_point = summary.bytecode_claim.point;
     let bytecode_selector_point = bytecode_row_point.split_off(kbc);
     let deferred = DeferredSubproof {
@@ -1685,22 +1643,12 @@ fn gen_verify(
         ("matpart", vec![matpart]),
         ("merkle_caps", caps),
         ("merkle_cap_active", cap_active),
-        // per-claim overlap count, for the exact length pin: nover = the
-        // amount by which the claim's total vars exceed the fold rounds.
-        (
-            "claim_nover",
-            nover_v.iter().map(|&n| F192::new(g_pow(n).0, 0, 0)).collect(),
-        ),
-        // the pi claim's low dimension is min(log_mem, lenris); certify it as
-        // a min (<= both, == one) so pi is pinned like every other claim.
-        ("pi_cplen", vec![F192::new(g_pow(log_mem.min(lenris)).0, 0, 0)]),
         // the table sumcheck's round count: max_t tau_t, certified in-guest as a
         // maximum (one of the taus, and dominating them all).
         (
             "zc_tau_max",
             vec![F192::new(g_pow(*taus.iter().max().unwrap()).0, 0, 0)],
         ),
-        ("rs_nover", vec![F192::new(g_pow(rs_nover).0, 0, 0)]),
         ("col_sort_order", col_sort_order),
         ("sort_order", sort_order),
     ];
@@ -2817,6 +2765,7 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     ps("LIG_MIN_LOG_SIZE", minm.to_string());
     let cks: Vec<(usize, usize)> = lean_vm::cpu::col_kappa_sources(kbc).into_iter().flatten().collect();
     ps("N_COMMITTED_COLS", cks.len().to_string());
+    ps("N_COLUMN_LOGS", (MU_MAX + 1).to_string());
     ps("COL_KAPPA_SRC", literals(cks.iter().map(|&(s, _)| s)));
     ps("COL_KAPPA_ADJ", literals(cks.iter().map(|&(_, a)| a)));
     ps("PCS_MIN_MU", lean_vm::pcs::MIN_MU.to_string());
@@ -3379,6 +3328,61 @@ mod tests {
         let (first, second) = (aggregate.sphincs_signers[0], aggregate.sphincs_signers[1]);
         assert_eq!(first.0, second.0, "the same key, twice");
         assert!(first.1 < second.1, "ordered by the message");
+    }
+
+    #[test]
+    fn guest_column_selectors_match_native_eq() {
+        lean_vm::init_prover_pool();
+        let (helpers, _) = include_str!("../guests/lean_ethereum.py")
+            .split_once("\ndef main():")
+            .unwrap();
+        let source = format!(
+            r#"{helpers}
+def main():
+    point = HeapBuf(MAX_STACK_LOG)
+    hint_witness(point[0:MAX_STACK_LOG], "point")
+    offset = hint_witness("offset")
+    kappa_g = hint_witness("kappa")
+    weight = match(log(kappa_g), range(0, N_COLUMN_LOGS), lambda kappa: column_selector(offset, point, kappa))
+    public = GEN ** 0
+    assert public[1] == weight
+    return
+"#
+        );
+        let guest = compile(&parse_with_replacements(&source, &placeholder_map(18)).unwrap());
+        let run = |point: &[F192], offset: usize, kappa: usize, expected: F192| {
+            let mut hints = Hints::default();
+            hints.push("point", point.to_vec());
+            hints.push("offset", vec![count(offset)]);
+            hints.push("kappa", vec![count(kappa)]);
+            let mut program = guest.clone();
+            hints.install(&mut program);
+            program.execute([expected, F192::ZERO])
+        };
+        let mut rng = StdRng::seed_from_u64(813);
+        for mu in MU_MIN..=MU_MAX {
+            let mut point: Vec<F192> = (0..mu)
+                .map(|_| {
+                    let (c0, c1, c2) = rand::Rng::random(&mut rng);
+                    F192::new(c0, c1, c2)
+                })
+                .collect();
+            point.resize(MU_MAX, F192::ZERO);
+            for kappa in 0..=mu {
+                let mask = ((1usize << mu) - 1) & !((1usize << kappa) - 1);
+                for offset in [0, mask, 0x0555_5555 & mask] {
+                    let selector: Vec<_> = (kappa..mu)
+                        .map(|k| F192::from(F64(((offset >> k) & 1) as u64)))
+                        .collect();
+                    let expected = primitives::multilinear::eq_eval(&selector, &point[kappa..mu]);
+                    assert!(run(&point, offset, kappa, expected).unconstrained_reads.is_empty());
+                    if kappa != 0 {
+                        assert!(std::panic::catch_unwind(|| run(&point, offset + 1, kappa, expected)).is_err());
+                    }
+                }
+            }
+            assert!(std::panic::catch_unwind(|| run(&point, 1usize << MU_MAX, 0, F192::ZERO)).is_err());
+        }
     }
 
     #[test]
@@ -4931,6 +4935,17 @@ def main():
         let children = vec![left, right];
         aggregate(&children, vec![], vec![], &[], None, LOG_INV_RATE).expect("the honest node aggregates");
         let node_cases: &[Tamper] = &[
+            ("column placement (swapped)", &|h: &mut Hints| {
+                h.entries("col_sort_order")[0].swap(0, 1);
+            }),
+            ("column placement (duplicate)", &|h: &mut Hints| {
+                let order = &mut h.entries("col_sort_order")[0];
+                order[1] = order[0];
+            }),
+            ("column placement (out of range)", &|h: &mut Hints| {
+                let order = &mut h.entries("col_sort_order")[0];
+                order[0] = count(order.len());
+            }),
             ("merkle cap (all hashes skipped)", &|h: &mut Hints| {
                 h.entries("merkle_cap_active")[0].fill(F192::ZERO);
             }),
@@ -4994,9 +5009,6 @@ def main():
             }),
             ("mat_stars_hint", &|h: &mut Hints| {
                 h.entries("mat_stars_hint")[0][0] += F192::ONE;
-            }),
-            ("rs_nover", &|h: &mut Hints| {
-                h.entries("rs_nover")[0][0] *= F192::from(primitives::field::G);
             }),
             // The one hint carrying flock's whole lincheck terminal. Pinned not
             // by the guest's own assert (which merely defines it) but by the
