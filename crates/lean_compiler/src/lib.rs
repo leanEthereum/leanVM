@@ -86,6 +86,7 @@ fn compile_inner(ast: &Ast, with_filler: bool) -> Program {
         .collect();
     let dbg_lower = std::env::var("DBG_LOWER").is_ok();
 
+    let mut loop_bounds = HashMap::new();
     let mut loop_ctr = 0usize;
     let mut lowered: Vec<Lowered> = Vec::new();
     let mut i = 0;
@@ -99,7 +100,15 @@ fn compile_inner(ast: &Ast, with_filler: bool) -> Program {
             continue;
         }
         let f = f.clone();
-        let low = lower_func(&f, &mut queue, &mut loop_ctr, &defs, &const_arrays, with_filler);
+        let low = lower_func(
+            &f,
+            &mut queue,
+            &mut loop_ctr,
+            &defs,
+            &const_arrays,
+            with_filler,
+            &mut loop_bounds,
+        );
         if dbg_lower {
             eprintln!("== fn {} (frame {}) ==", low.name, pretty_integer(low.frame_size));
             for (i, ins) in low.code.iter().enumerate() {
@@ -143,6 +152,24 @@ fn compile_inner(ast: &Ast, with_filler: bool) -> Program {
                     .hints
                     .drain(..)
                     .map(|h| match h {
+                        Hint::NextFrameAddress => RHint::FrameAddress { offset: l.frame_size },
+                        Hint::AllocLoopFrames { ptr, callee, count } => {
+                            let size = frame_size[&callee];
+                            match count {
+                                LoopCount::Constant(n) => RHint::Alloc {
+                                    ptr,
+                                    size: size
+                                        .checked_mul(u32::try_from(n).expect("loop range too large"))
+                                        .expect("loop frames overflow"),
+                                },
+                                LoopCount::Bound { cell, start } => RHint::AllocFrames {
+                                    ptr,
+                                    size,
+                                    end: cell,
+                                    start_inverse: g_pow_u128(u128::from(start)).inv(),
+                                },
+                            }
+                        }
                         Hint::AllocFrame { ptr, callee } => RHint::Alloc {
                             ptr,
                             size: frame_size[&callee],
@@ -159,7 +186,7 @@ fn compile_inner(ast: &Ast, with_filler: bool) -> Program {
                 hints.insert(here, rhs);
             }
             src_lines.push(ins.line);
-            prog.push(resolve(&ins.op, &entry, sentinel, base));
+            prog.push(resolve(&ins.op, &entry, sentinel, base, l.frame_size));
         }
     }
 
@@ -246,9 +273,10 @@ fn g_pow_u128(mut e: u128) -> F64 {
     result
 }
 
-fn resolve(op: &LOp, entry: &HashMap<String, u32>, sentinel: u32, base: u32) -> Op {
+fn resolve(op: &LOp, entry: &HashMap<String, u32>, sentinel: u32, base: u32, frame_size: u32) -> Op {
     let resolve_kval = |kv: &KVal| -> F192 {
         match kv {
+            KVal::FrameSize => g_pow(frame_size as usize).into(),
             KVal::Const(c) => *c,
             // Address / entry / sentinel constants are K-valued g-powers;
             // embed them canonically as (c0, 0, 0).
@@ -258,6 +286,11 @@ fn resolve(op: &LOp, entry: &HashMap<String, u32>, sentinel: u32, base: u32) -> 
         }
     };
     match op {
+        LOp::MulNextFrame { a, b, c } => Op::Mul {
+            a: *a,
+            b: *b,
+            c: frame_size.checked_add(*c).expect("frame offset overflow"),
+        },
         LOp::Set { o, k: kv } => Op::Set {
             o: *o,
             k: resolve_kval(kv),

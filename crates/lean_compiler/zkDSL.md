@@ -234,7 +234,7 @@ A **list literal** `x = [a, b, …]` is an initialized `StackBuf`: it allocates 
 
 Stack indexes and slice bounds are **compile-time integers**, and index arithmetic (`+ * // %`) is *integer* arithmetic (`x + 1` above is 2, `k // 2` floor-divides, `k % 2` is a remainder: index space, not the field, where XOR is what `+` means and `//`/`%` have no meaning at all: using one as a runtime field value is a compile error). Bounds are checked at compile time. A `StackBuf` name is a run of cells, not a scalar: using it as one is an error, and it cannot be captured into a `for` loop body (carry state through a `HeapBuf` instead).
 
-`p = addr(sb)` names the run's first cell as a **pointer** (`GEN ** k` times the frame pointer), so `p[i]` reads the same cells at a runtime index, `p` can be passed to a callee or stored, and `sb[k]` stays a direct frame cell throughout. Only valid as a whole right-hand side. It costs one materialization of `fp` per function (2 `DEREF`s, amortized with `if`'s; free in `main`), which is the price of the ISA having no fp-read. This is what lets a bit buffer live in the frame and still be walked by a `mul_range` loop.
+`p = addr(sb)` names the run's first cell as a **pointer** (`GEN ** k` times the frame pointer), so `p[i]` reads the same cells at a runtime index, `p` can be passed to a callee or stored, and `sb[k]` stays a direct frame cell throughout. Only valid as a whole right-hand side. It costs one materialization of `fp` per function (2 `DEREF`s, amortized with `if`'s; free in `main` and in loops with reserved frames), which is the price of the ISA having no fp-read. This is what lets a bit buffer live in the frame and still be walked by a `mul_range` loop.
 
 A runtime index through such a pointer is unchecked, as on the heap, but it fails more quietly: every frame cell is a real cell, so `p[i]` with a hinted `i` reaches any of them and usually neither faults nor conflicts. The program owes the range check itself (`assert log i < n`) wherever `i` is not a loop counter the compiler produced.
 
@@ -269,6 +269,8 @@ for j in mul_range(1, n):   # bound its log first, or it never does
 A runtime bound is evaluated once at entry and threaded through the loop as an extra parameter (+1 argument per iteration call); entry itself is the same `!=` test, so a bound equal to the start runs zero iterations.
 
 Lowering: the body becomes a tail-recursive helper function whose exit test is folded into the recursion's `JUMP` condition: one call per iteration, no separate is-zero gadget. Free variables of the body are captured **by value** as extra parameters; a `HeapBuf` pointer threads through fine, a `StackBuf` does not (compile error).
+
+The compiler reserves consecutive frames for a loop that has no early return and does not rebind its counter. Its back edge advances by the frame size and copies arguments directly into the next frame, while ordinary function calls and heap allocations remain disjoint from the reserved run. Each iteration still owns fresh write-once cells, so a pointer to an earlier iteration remains valid. Loops with an early return or counter rebinding keep incremental allocation.
 
 ### `for i in unroll(a, b)`: compile-time unrolling
 

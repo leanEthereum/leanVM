@@ -147,6 +147,9 @@ struct Scope {
     /// backward edge, or a `patch_local` that jumps backwards, would need this
     /// cleared at the target.
     pure_cells: HashMap<(PureOp, Off, Off), Off>,
+    /// Dominating memory equalities. Reads reuse the frame cell; stores still
+    /// emit their equality checks. Branch joins restore this with the scope.
+    load_cells: HashMap<(Off, u32), Off>,
     /// Every lazily-`SET` constant cell: field value (as bits) → the frame cell
     /// holding it. Cells are write-once and read-many, so one `SET` serves every
     /// use in scope. A `SET` first emitted inside a branch must not be named from
@@ -218,6 +221,8 @@ struct FnLower<'a> {
     /// position; consumed by the next [`Self::stmt`] call, so nested lowering
     /// never inherits it.
     tail_call: bool,
+    /// Generated loops that can reserve their complete run of frames.
+    loop_bounds: &'a mut HashMap<String, (u64, Option<u64>)>,
     queue: &'a mut Vec<Func>,
     loop_ctr: &'a mut usize,
     /// Function name for diagnostics and generated-loop handling.
@@ -279,6 +284,17 @@ impl FnLower<'_> {
 
     fn deref(&mut self, o1: Off, o2: u32, o3: Off, mode: DerefMode) {
         self.emit(LOp::Deref { o1, o2, o3, mode });
+        if mode == DerefMode::Cell {
+            self.scope.load_cells.entry((o1, o2)).or_insert(o3);
+        }
+    }
+
+    fn cached_load(&mut self, ptr: Off, offset: u32) -> Option<Off> {
+        let &dst = self.scope.load_cells.get(&(ptr, offset))?;
+        // The dominating DEREF may have deferred an equality between unwritten cells.
+        self.pending
+            .push(Hint::Resolved(RHint::ResolveDeref { ptr, offset, dst }));
+        Some(dst)
     }
 
     /// A no-op instruction to hang a pending hint on, so it fires exactly here
@@ -871,8 +887,8 @@ impl FnLower<'_> {
     /// Then `e + f ≡ k-1 (mod 2^64-1)` with `e, f < 2^h`, and a negative `k-1-e`
     /// wraps to `≈ 2^64 ≫ 2^h`, so `e ≤ k-1` for ANY announced memory size,
     /// provided `k ≤ 2^MIN_LOG_MEM`. Both `DEREF` destinations are unconstrained
-    /// touches, back-filled at the end of execution: only the ADDRESS matters, so
-    /// nothing reading their results is correct rather than an omission.
+    /// touches, back-filled at the end of execution unless a cached read needs
+    /// their value sooner. Only the ADDRESS matters to the range check itself.
     ///
     /// A [`LtBound::Runtime`] bound reaches the same gadget through one extra
     /// `MUL` for `g^{k-1} = Y·g^{-1}`, still back-solved rather than hinted, and
@@ -1055,6 +1071,9 @@ impl FnLower<'_> {
                     return c;
                 }
                 let (ptr, o2) = self.heap_addr(arr, idx);
+                if let Some(cell) = self.cached_load(ptr, o2) {
+                    return cell;
+                }
                 let dst = self.fresh();
                 self.deref(ptr, o2, dst, DerefMode::Cell);
                 dst
@@ -1115,6 +1134,7 @@ impl FnLower<'_> {
                 Some(c) => self.copy(c, dst),
                 None => {
                     let (ptr, o2) = self.heap_addr(arr, idx);
+                    // A DEREF can defer two unwritten sides; a MUL copy would write zero.
                     self.deref(ptr, o2, dst, DerefMode::Cell);
                 }
             },
@@ -1370,6 +1390,21 @@ impl FnLower<'_> {
         let id = *self.loop_ctr;
         *self.loop_ctr += 1;
         let loop_name = format!("__loop{id}");
+        let mut shadowed = std::collections::HashSet::new();
+        binds_anywhere(body, &mut shadowed);
+        // Returns and counter rebinding can change the number of iterations.
+        if !contains_return(body) && !shadowed.contains(var) {
+            self.loop_bounds.insert(
+                loop_name.clone(),
+                (
+                    lo,
+                    match hi {
+                        ForBound::Const(end) => Some(*end),
+                        ForBound::Runtime(_) => None,
+                    },
+                ),
+            );
+        }
         if std::env::var("DBG_LOOPS").is_ok() {
             let bound = match hi {
                 ForBound::Const(h) => format!("g^{lo}..g^{h}"),
@@ -1400,8 +1435,6 @@ impl FnLower<'_> {
         // StackBuf rejection below needs: a body that merely SHADOWS an enclosing
         // `StackBuf` never touches it, so rejecting it names a capture that is
         // not happening.
-        let mut shadowed = std::collections::HashSet::new();
-        binds_anywhere(body, &mut shadowed);
         let mut captures = Vec::new();
         let mut seen = std::collections::HashSet::new();
         for r in &referenced {
@@ -1514,6 +1547,15 @@ impl FnLower<'_> {
     }
 }
 
+fn contains_return(body: &[Stmt]) -> bool {
+    body.iter().any(|stmt| match &stmt.kind {
+        StmtKind::Return(_) => true,
+        StmtKind::If { then, els, .. } => contains_return(then) || contains_return(els),
+        StmtKind::For { body, .. } | StmtKind::Unroll { body, .. } => contains_return(body),
+        _ => false,
+    })
+}
+
 /// The literal `k` when `hi` is syntactically `lo + k` (either operand order):
 /// the shape of a runtime slice, whose bounds cannot be evaluated at compile
 /// time.
@@ -1535,6 +1577,7 @@ pub(crate) fn lower_func(
     defs: &HashMap<&str, &Func>,
     const_arrays: &HashMap<&str, &[F192]>,
     with_filler: bool,
+    loop_bounds: &mut HashMap<String, (u64, Option<u64>)>,
 ) -> Lowered {
     let mut names: HashMap<String, Bound> = HashMap::new();
     for (i, p) in f.params.iter().enumerate() {
@@ -1559,12 +1602,16 @@ pub(crate) fn lower_func(
     let n_ret_cells: u32 = f.return_shapes.iter().map(|s| s.cells()).sum();
     let arg_cells = Abi::arg_cells(f.param_shapes());
     let abi_end = Abi::end(arg_cells, n_ret_cells);
+    // Loop callers write the callee's own fp just past its arguments. That
+    // equality is tied to the JUMP target, so the loop can use it directly.
+    let loop_frame = loop_bounds.contains_key(&f.name);
     let mut lowerer = FnLower {
         scope: Scope {
+            self_fp_off: loop_frame.then_some(abi_end),
             names,
             ..Default::default()
         },
-        next: abi_end,
+        next: abi_end + u32::from(loop_frame),
         arg_cells,
         return_shapes: &f.return_shapes,
         is_main: f.name == "main",
@@ -1578,6 +1625,7 @@ pub(crate) fn lower_func(
 
         pending: Vec::new(),
         inline_calls: Vec::new(),
+        loop_bounds,
         queue,
         loop_ctr,
         defs,

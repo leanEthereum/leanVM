@@ -231,3 +231,100 @@ def main():
     let (proof, _) = prove(&program, want, lean_vm::pcs::TEST_LOG_INV_RATE);
     verify(&program, &want, &proof).expect("each compression absorbs its own chaining value");
 }
+
+#[test]
+fn cached_loads_do_not_cross_branches_or_erase_stores() {
+    let source = r#"
+def main():
+    h = HeapBuf(3)
+    hint_witness(h[0:3], "values")
+    public = 1
+    if public[1] == 0:
+        a = h[1] + h[GEN]
+    else:
+        b = h[1] + h[GEN]
+    h[GEN ** 2] = h[1]
+    assert h[GEN ** 2] == h[1]
+    h[1] = public[GEN]
+    return
+"#;
+    let value = F192::new(17, 31, 43);
+    let mut program = compile(&parse(source).unwrap());
+    program.set_witness("values", vec![vec![value, F192::ONE, value]]);
+    for branch in [F192::ZERO, F192::ONE] {
+        assert!(program.execute([branch, value]).unconstrained_reads.is_empty());
+        assert!(std::panic::catch_unwind(|| program.execute([branch, value + F192::ONE])).is_err());
+    }
+}
+
+#[test]
+fn cached_loads_resolve_deferred_equalities_before_use() {
+    lean_vm::init_prover_pool();
+    let source = r#"
+def fill(h):
+    value = hint_witness("value")
+    h[1] = value
+    return
+
+def main():
+    h = HeapBuf(1)
+    TOUCH
+    FILL
+    out = StackBuf(2)
+    out[0] = h[1] * h[1]
+    out[1] = h[1]
+    public = 1
+    assert public[1] == out[0]
+    assert public[GEN] == out[1]
+    return
+"#;
+    let value = F192::from(F64(7));
+    let public = [value * value, value];
+    for touch in ["assert log(h) < 1024", "early = StackBuf(1)\n    early[0] = h[1]"] {
+        for fill in ["hint_witness(h[0:1], \"value\")", "fill(h)"] {
+            let source = source.replace("TOUCH", touch).replace("FILL", fill);
+            let mut program = compile(&parse(&source).unwrap());
+            program.set_witness("value", vec![vec![value]]);
+            assert!(program.execute(public).unconstrained_reads.is_empty());
+            let (proof, _) = prove(&program, public, lean_vm::pcs::TEST_LOG_INV_RATE);
+            verify(&program, &public, &proof).unwrap();
+            assert!(std::panic::catch_unwind(|| program.execute([public[0] + F192::ONE, value])).is_err());
+        }
+    }
+}
+
+#[test]
+fn cached_copies_resolve_deferred_stores() {
+    lean_vm::init_prover_pool();
+    let source = r#"
+def square(h):
+    return h[GEN] * h[GEN]
+
+def main():
+    h = HeapBuf(2)
+    early = StackBuf(1)
+    other = StackBuf(1)
+    early[0] = h[GEN]
+    value = hint_witness("value")
+    FILL_DEST
+    DEST[0] = h[GEN]
+    result = square(h)
+    public = 1
+    assert public[1] == result
+    return
+"#;
+    let value = F192::from(F64(7));
+    let public = [value * value, F192::ZERO];
+    for (dest, fill) in [
+        ("early", "early[0] = value"),
+        ("other", "other[0] = value"),
+        ("other", "other[0] = h[GEN]\n    h[GEN] = value"),
+    ] {
+        let source = source.replace("FILL_DEST", fill).replace("DEST", dest);
+        let mut program = compile(&parse(&source).unwrap());
+        program.set_witness("value", vec![vec![value]]);
+        assert!(program.execute(public).unconstrained_reads.is_empty());
+        let (proof, _) = prove(&program, public, lean_vm::pcs::TEST_LOG_INV_RATE);
+        verify(&program, &public, &proof).unwrap();
+    }
+}

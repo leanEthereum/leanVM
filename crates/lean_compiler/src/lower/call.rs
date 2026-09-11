@@ -120,6 +120,37 @@ impl FnLower<'_> {
             }
         }
         let callee_arg_cells = Abi::arg_cells(shapes.iter().copied());
+        if tail && callee == self.fn_name && self.loop_bounds.contains_key(callee) {
+            let own_fp = self.self_fp();
+            let scale = self.fresh();
+            self.set(scale, KVal::FrameSize);
+            self.pending.push(Hint::NextFrameAddress);
+            let nfp = self.pure(PureOp::Mul, own_fp, scale);
+            let entry = self.fresh();
+            let oc = cond.unwrap_or_else(|| self.one());
+            let one = self.one();
+            self.set(entry, KVal::Entry(callee.to_string()));
+            for &(off, ao) in &arg_offs {
+                self.emit(LOp::MulNextFrame { a: ao, b: one, c: off });
+            }
+            self.emit(LOp::MulNextFrame {
+                a: nfp,
+                b: one,
+                c: Abi::end(callee_arg_cells, 0),
+            });
+            self.emit(LOp::MulNextFrame {
+                a: 1,
+                b: one,
+                c: Abi::RET_FP,
+            });
+            self.emit(LOp::MulNextFrame {
+                a: 0,
+                b: one,
+                c: Abi::RET_PC,
+            });
+            self.emit(LOp::Jump { oc, od: entry, of: nfp });
+            return;
+        }
         let nfp = self.fresh();
         let entry = self.fresh();
         // Resolve the jump condition up front: `self.one()` may emit a `SET`, and
@@ -129,12 +160,30 @@ impl FnLower<'_> {
         self.set(entry, KVal::Entry(callee.to_string()));
 
         // The frame-pointer hint fires before the first DEREF that reads `nfp`.
-        self.pending.push(Hint::AllocFrame {
-            ptr: nfp,
-            callee: callee.to_string(),
-        });
+        if let Some(&(start, end)) = self.loop_bounds.get(callee) {
+            let count = match end {
+                Some(end) => LoopCount::Constant(end - start + 1),
+                None => LoopCount::Bound {
+                    cell: arg_offs[1].1,
+                    start,
+                },
+            };
+            self.pending.push(Hint::AllocLoopFrames {
+                ptr: nfp,
+                callee: callee.to_string(),
+                count,
+            });
+        } else {
+            self.pending.push(Hint::AllocFrame {
+                ptr: nfp,
+                callee: callee.to_string(),
+            });
+        }
         for &(off, ao) in &arg_offs {
             self.deref(nfp, off, ao, DerefMode::Cell);
+        }
+        if self.loop_bounds.contains_key(callee) {
+            self.deref(nfp, Abi::end(callee_arg_cells, 0), nfp, DerefMode::Cell);
         }
         if tail {
             // Tail call: hand the callee OUR return target, so it returns to our

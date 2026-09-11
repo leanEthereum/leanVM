@@ -116,7 +116,10 @@ fn blake2s_hash_chain() {
     let proof_bytes = bincode::serialized_size(&proof).expect("proof is serializable");
     println!("  proof size                  : {:.1} KiB", proof_bytes as f64 / 1024.0);
     println!("  proving                     : {prove_time:?}");
-    println!("  verifying                   : {verify_time:?}");
+    println!(
+        "  verifying                   : {} ms",
+        pretty_f64(verify_time.as_secs_f64() * 1000.0)
+    );
     let hashes_per_second = (steps as f64 / prove_time.as_secs_f64()).round() as u64;
     println!(
         "  throughput                  : {} hashes/s",

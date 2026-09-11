@@ -149,7 +149,10 @@ pub fn run_aggregation(n_xmss: usize, n_sphincs: usize, n_blobs: usize, log_inv_
             pretty_f64(payload_mib / prove_time.mean())
         );
     }
-    println!("  verifying                   : {} s", pretty_f64(verify_time.mean()));
+    println!(
+        "  verifying                   : {} ms",
+        pretty_f64(verify_time.mean() * 1000.0)
+    );
 }
 
 /// Prove `n` leaves with signatures and distinct blob payloads, then aggregate them in one
@@ -242,5 +245,8 @@ pub fn run_recursion(
         );
         println!("  retained DA roots           : {n}");
     }
-    println!("  verifying                   : {} s", pretty_f64(verify_time.mean()));
+    println!(
+        "  verifying                   : {} ms",
+        pretty_f64(verify_time.mean() * 1000.0)
+    );
 }

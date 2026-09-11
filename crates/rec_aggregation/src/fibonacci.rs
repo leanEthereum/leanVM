@@ -46,7 +46,10 @@ pub fn run_fibonacci(n: usize, log_inv_rate: usize, plan: Plan) {
         pretty_integer(cycles_per_second),
         crate::report::peak_gib()
     );
-    println!("  verifying                   : {} s", pretty_f64(verify_time.mean()));
+    println!(
+        "  verifying                   : {} ms",
+        pretty_f64(verify_time.mean() * 1000.0)
+    );
 }
 
 /// Build the demo program: Fibonacci in the exponent over `fib_n` steps (an

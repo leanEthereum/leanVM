@@ -14,9 +14,9 @@ Minimal hash-based zkVM, for a Post-Quantum Ethereum.
 </p>
 
 <p align="center">
-  <a href="#xmss-aggregation"><img src="https://img.shields.io/badge/Aggregation-1150%20XMSS%2Fs-brightgreen?style=for-the-badge"></a>
-  <a href="#sphincs-aggregation"><img src="https://img.shields.io/badge/Aggregation-240%20SPHINCS%2Fs-green?style=for-the-badge"></a>
-  <a href="#recursion"><img src="https://img.shields.io/badge/2%20to%201%20recursion-0.29s-orange?style=for-the-badge"></a>
+  <a href="#xmss-aggregation"><img src="https://img.shields.io/badge/Aggregation-1200%20XMSS%2Fs-brightgreen?style=for-the-badge"></a>
+  <a href="#sphincs-aggregation"><img src="https://img.shields.io/badge/Aggregation-250%20SPHINCS%2Fs-green?style=for-the-badge"></a>
+  <a href="#recursion"><img src="https://img.shields.io/badge/2%20to%201%20recursion-0.28s-orange?style=for-the-badge"></a>
 </p>
 
 Warning: not (yet) production ready.
@@ -37,12 +37,12 @@ cargo run --release -- aggregate --xmss 900 --log-inv-rate 1 --repeat 3
 
 ```
 aggregation, 900 XMSS signatures
-  cycles (VM steps)           : 1,571,100 = 2^20.583
-    details                   : DEREF 2^18.978 (32.9%)  SET 2^18.525 (24.0%)  MUL 2^18.199 (19.2%)  BLAKE2S 2^16.989 (8.3%)  XOR 2^16.979 (8.2%)  JUMP 2^16.839 (7.5%)  MEMORY 2^21.304  TOTAL_COMMITTED 2^26.195
-  proof size                  : 294.9 KiB
-  proving time                : 0.765 s ± 6.9%      peak memory 8.812 GiB
-  per signature               : 1,177.218 signatures/s
-  verifying                   : 0.00416 s
+  cycles (VM steps)           : 1,573,849 = 2^20.586
+    details                   : DEREF 2^18.947 (32.1%)  SET 2^18.528 (24.0%)  MUL 2^18.259 (19.9%)  BLAKE2S 2^16.989 (8.3%) XOR 2^16.979 (8.2%)  JUMP 2^16.839 (7.4%)  MEMORY 2^21.305  TOTAL_COMMITTED 2^26.195
+  proof size                  : 295.4 KiB
+  proving time                : 0.749 s ± 2.1%      peak memory 8.769 GiB
+  per signature               : 1,201.795 signatures/s
+  verifying                   : 3.799 ms
 ```
 
 ### SPHINCS aggregation
@@ -55,12 +55,12 @@ cargo run --release -- aggregate --sphincs 245 --log-inv-rate 1 --repeat 3
 
 ```
 aggregation, 245 SPHINCS signatures
-  cycles (VM steps)           : 2,629,937 = 2^21.327
-    details                   : DEREF 2^19.438 (27.0%)  XOR 2^19.239 (23.5%)  MUL 2^19.215 (23.1%)  SET 2^18.833 (17.8%)  BLAKE2S 2^16.992 (5.0%)  JUMP 2^16.543 (3.6%)  MEMORY 2^21.794  TOTAL_COMMITTED 2^26.664
-  proof size                  : 320.1 KiB
-  proving time                : 1.007 s ± 3.7%      peak memory 12.507 GiB
-  per signature               : 243.224 signatures/s
-  verifying                   : 0.00426 s
+  cycles (VM steps)           : 2,351,886 = 2^21.165
+    details                   : XOR 2^19.239 (26.3%)  MUL 2^19.222 (26.0%)  SET 2^18.833 (19.9%)  DEREF 2^18.711 (18.2%)  BLAKE2S 2^16.992 (5.5%)  JUMP 2^16.543 (4.1%)  MEMORY 2^21.679  TOTAL_COMMITTED 2^26.553
+  proof size                  : 313.8 KiB
+  proving time                : 0.972 s ± 3.4%      peak memory 11.476 GiB
+  per signature               : 252.028 signatures/s
+  verifying                   : 3.969 ms
 ```
 
 ### Recursion
@@ -72,11 +72,11 @@ cargo run --release -- recursion --n 2 --xmss-per-leaf 900 --log-inv-rate 2 --re
 
 ```
 recursion 2→1, over leaves of 900 XMSS signatures
-  cycles (VM steps)           : 585,312 = 2^19.159
-    details                   : MUL 2^17.652 (35.2%)  DEREF 2^17.328 (28.1%)  XOR 2^16.827 (19.9%)  SET 2^15.739 (9.3%)  JUMP 2^14.761 (4.7%)  BLAKE2S 2^13.978 (2.8%)  MEMORY 2^19.533  TOTAL_COMMITTED 2^24.237 TOTAL_COMMITTED 2^24.237
-  proof size                  : 195.0 KiB
-  proving time                : 0.295 s ± 2.3%      peak memory 10.129 GiB
-  verifying                   : 0.0042 s
+  cycles (VM steps)           : 570,113 = 2^19.121
+    details                   : MUL 2^17.838 (41.1%)  DEREF 2^16.988 (22.8%)  XOR 2^16.747 (19.3%)  SET 2^15.79 (9.9%)  JUMP 2^14.488 (4.0%)  BLAKE2S 2^13.978 (2.8%)  MEMORY 2^19.507  TOTAL_COMMITTED 2^24.086
+  proof size                  : 191.3 KiB
+  proving time                : 0.287 s ± 15.9%      peak memory 10.124 GiB
+  verifying                   : 4.121 ms
 ```
 
 ### Data Availability
@@ -88,12 +88,12 @@ cargo run --release -- aggregate --blobs 16 --log-inv-rate 1 --repeat 3
 
 ```
 aggregation, 16 blobs
-  cycles (VM steps)           : 2,974,203 = 2^21.504
-    details                   : MUL 2^19.84 (31.6%)  XOR 2^19.809 (30.9%)  DEREF 2^19.211 (20.4%)  JUMP 2^18.299 (10.8%)  SET 2^16.71 (3.6%)  BLAKE2S 2^16.295 (2.7%)  MEMORY 2^21.692  TOTAL_COMMITTED 2^26.695
-  proof size                  : 323.8 KiB
-  proving time                : 0.994 s ± 2.5%      peak memory 12.643 GiB
-  blob throughput             : 16.101 blobs/s, 2.013 MiB/s
-  verifying                   : 0.00657 s
+  cycles (VM steps)           : 2,989,506 = 2^21.511
+    details                   : MUL 2^19.899 (32.7%)  XOR 2^19.809 (30.7%)  DEREF 2^19.138 (19.3%)  JUMP 2^18.299 (10.8%)  SET 2^16.787 (3.8%)  BLAKE2S 2^16.295 (2.7%)  MEMORY 2^21.696  TOTAL_COMMITTED 2^26.695
+  proof size                  : 322.4 KiB
+  proving time                : 0.998 s ± 0.9%      peak memory 12.646 GiB
+  blob throughput             : 16.032 blobs/s, 2.004 MiB/s
+  verifying                   : 6.659 ms
 ```
 
 ### Fibonacci
@@ -106,10 +106,10 @@ cargo run --release -- fibonacci --n 2000000 --log-inv-rate 1 --repeat 3
 ```
 Fibonacci (in the exponent, i.e. modulo 2^64 - 1), N = 2,000,000
   cycles (VM steps)           : 2,127,880
-    details                   : MUL 2^20.936 (98.7%)  DEREF 2^13.967 (0.8%)  SET 2^12.552 (0.3%)  JUMP 2^10.968 (0.1%)  XOR 2^10.966 (0.1%)  MEMORY 2^20.957  TOTAL_COMMITTED 2^25.263
-  proof size                  : 285.8 KiB
-  proving                     : 0.393 s ± 1.5%   5,416,521 cycles/s      peak memory 5.019 GiB
-  verifying                   : 0.00227 s
+    details                   : MUL 2^20.944 (98.9%)  SET 2^13.288 (0.5%)  DEREF 2^12.967 (0.4%)  JUMP 2^10.968 (0.1%)  XOR2^10.966 (0.1%)  MEMORY 2^20.96  TOTAL_COMMITTED 2^25.26
+  proof size                  : 285.4 KiB
+  proving                     : 0.391 s ± 1.1%   5,442,734 cycles/s      peak memory 5.203 GiB
+  verifying                   : 2.092 ms
 ```
 
 ### Batch proving BLAKE2s
@@ -121,17 +121,17 @@ BENCH_REPEAT=3 BENCH_COOLDOWN=2 FLOCK_N_LOG=18 cargo test --release --package fl
 ```
 Flock BLAKE2s batch proving, 262,144 compressions (2^18 slots)
   setup (preprocessing, excluded) :      0.0 ms
-  witness-gen                     :     64.1 ms ± 8.1%   10.6%
-  commit                          :    100.5 ms ± 0.7%   16.6%
-  zerocheck                       :    243.6 ms ± 7.5%   40.3%
-  lincheck                        :     20.7 ms ± 16.6%   3.4%
-  pcs opening                     :    175.6 ms ± 2.4%   29.1%
+  witness-gen                     :     64.6 ms ± 7.8%   10.6%
+  commit                          :    101.2 ms ± 0.4%   16.6%
+  zerocheck                       :    238.3 ms ± 3.9%   39.0%
+  lincheck                        :     20.3 ms ± 12.2%   3.3%
+  pcs opening                     :    186.0 ms ± 2.9%   30.5%
   other                           :      0.0 ms           0.0%
   ------------------------------------------
-  prove TOTAL (witness excluded)  :    540.5 ms ± 4.6%   89.4%
+  prove TOTAL (witness excluded)  :    545.8 ms ± 1.1%   89.4%
   verify                          :      1.9 ms
-  throughput                      :        485,033 compressions/s ± 4.6%
-  (~3322.1 XMSS/s equivalent at 146 compressions/signature)
+  throughput                      :        480,319 compressions/s ± 1.1%
+  (~3289.9 XMSS/s equivalent at 146 compressions/signature)
 ```
 
 ## Security

@@ -482,16 +482,13 @@ def challenge_from_state(state):
 
 @inline
 def fs_compress(state, scalar, tail, out):
-    # Absorb [scalar.c0, scalar.c1, scalar.c2, tail] as two canonical cells. Only
-    # the two LOW limbs are advice: pack64x2 proves them in K and makes block[0]
-    # their packing lo + Y·hi, which leaves the top limb determined as
-    # (scalar + block[0])·Y⁻², the second pack proving that is in K too.
-    lo = StackBuf(2)
-    hint_f192_limbs(lo, scalar)
+    # BLAKE2s requires block[0] to have zero top limb, binding the hinted top.
+    limbs = StackBuf(3)
+    hint_f192_limbs(limbs, scalar)
+    assert_in_k(limbs[2], tail)
     block = StackBuf(2)
-    block[0] = pack64x2(lo[0], lo[1])
-    top = (scalar + block[0]) * (Y_INV * Y_INV)
-    block[1] = pack64x2(top, tail)
+    block[0] = scalar + Y_TOWER * Y_TOWER * limbs[2]
+    block[1] = limbs[2] + Y_TOWER * tail
     blake2s(state, block, out)
     return
 
@@ -518,11 +515,17 @@ def fs_next(state, cursor):
 
 
 @inline
+def squeeze_state(state):
+    nb = StackBuf(2)
+    blake2s(state, [0, Y_TOWER * DS_SQ], nb)
+    return nb
+
+
+@inline
 def squeeze(state):
     # Ratchet: the canonical 128+128 digest is the new state; its first three K
     # lanes are reassembled as the F192 challenge.
-    nb = StackBuf(2)
-    fs_compress(state, 0, DS_SQ, nb)
+    nb = squeeze_state(state)
     challenge = challenge_from_state(nb)
     return nb, challenge
 
@@ -535,11 +538,13 @@ def absorb_nonce(state, x):
     return nb
 
 
+@inline
 def squeeze_step(state_0, state_1):
     # `squeeze` exposing BOTH output words, so a query-squeeze loop can chain the
     # state through a heap buffer. Returns (challenge, next_state_0, next_state_1).
     state = [state_0, state_1]
-    next_state, challenge = squeeze(state)
+    next_state = squeeze_state(state)
+    challenge = challenge_from_state(next_state)
     return challenge, next_state[0], next_state[1]
 
 
@@ -702,7 +707,7 @@ def grind_check(state_0, state_1, nonce, nbits_g):
         assert nonce == 0  # native canonical zero-work nonce
     st = [state_0, state_1]
     base = StackBuf(2)
-    fs_compress(st, 0, DS_POW_BASE, base)
+    blake2s(st, [0, Y_TOWER * DS_POW_BASE], base)
     out = StackBuf(2)
     fs_compress(base, nonce, DS_POW_NONCE, out)
     lanes = StackBuf(1)

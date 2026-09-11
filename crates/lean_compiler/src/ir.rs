@@ -8,6 +8,8 @@ pub(crate) type Off = u32;
 /// once entry program counters are fixed.
 #[derive(Clone, Debug)]
 pub(crate) enum KVal {
+    /// The stride to the next frame in a reserved loop run.
+    FrameSize,
     /// A 192-bit machine-word constant. Source literals fill only c0/c1, while
     /// compiler-generated constants may use the full field.
     Const(F192),
@@ -35,6 +37,12 @@ pub(crate) struct LInstr {
 
 #[derive(Clone, Debug)]
 pub(crate) enum LOp {
+    /// A copy into the next loop frame, outside this frame's own allocation.
+    MulNextFrame {
+        a: Off,
+        b: Off,
+        c: Off,
+    },
     Set {
         o: Off,
         k: KVal,
@@ -77,6 +85,10 @@ pub(crate) enum LOp {
 /// since their size is only known once every function's frame is laid out.
 #[derive(Clone, Debug)]
 pub(crate) enum Hint {
+    /// Index the next frame address without allocating it again.
+    NextFrameAddress,
+    /// Reserve the loop run, including the final untaken call's argument frame.
+    AllocLoopFrames { ptr: Off, callee: String, count: LoopCount },
     /// `m[fp·g^ptr] = g^{fresh base}`: a fresh, disjoint frame for `callee`.
     AllocFrame { ptr: Off, callee: String },
     /// `AllocFrame` sized to the **largest** of several callees, a shared frame
@@ -118,4 +130,10 @@ impl CellRun {
             CellRun::Stack { len, .. } | CellRun::Heap { len, .. } => len,
         }
     }
+}
+
+#[derive(Clone, Debug)]
+pub(crate) enum LoopCount {
+    Constant(u64),
+    Bound { cell: Off, start: u64 },
 }

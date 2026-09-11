@@ -420,6 +420,9 @@ impl Program {
                 let hs = hint_lists[hint_at[pc as usize] as usize - 1];
                 for h in hs {
                     m.dbg_hint = Some(match h {
+                        RHint::ResolveDeref { .. } => "ResolveDeref",
+                        RHint::FrameAddress { .. } => "FrameAddress",
+                        RHint::AllocFrames { .. } => "AllocFrames",
                         RHint::Alloc { .. } => "Alloc",
                         RHint::AllocDyn { .. } => "AllocDyn",
                         RHint::WitnessStack { .. } => "WitnessStack",
@@ -432,12 +435,44 @@ impl Program {
                         RHint::Print { .. } => "Print",
                     });
                     match h {
+                        RHint::ResolveDeref { ptr, offset, dst } => {
+                            let base = heap_base(&m, &mut g, fp + ptr, "cached DEREF");
+                            let src = base + offset;
+                            let dst = fp + dst;
+                            match (m.written[src as usize], m.written[dst as usize]) {
+                                (true, false) => m.put(dst, m.cells[src as usize]),
+                                (false, true) => m.put(src, m.cells[dst as usize]),
+                                _ => {}
+                            }
+                        }
+                        RHint::FrameAddress { offset } => {
+                            g.note((fp + offset) as usize);
+                        }
                         // A fresh region: write its base `g^{next_free}` into the
                         // pointer cell (once) and reserve `size` cells. `AllocDyn`
                         // reads the size from a cell at runtime.
-                        RHint::Alloc { .. } | RHint::AllocDyn { .. } => {
+                        RHint::Alloc { .. } | RHint::AllocDyn { .. } | RHint::AllocFrames { .. } => {
                             let (ptr, size) = match *h {
                                 RHint::Alloc { ptr, size } => (ptr, size),
+                                RHint::AllocFrames {
+                                    ptr,
+                                    size,
+                                    end,
+                                    start_inverse,
+                                } => {
+                                    let span =
+                                        as_addr(m.get(fp + end)).expect("loop bound is not in K") * start_inverse;
+                                    assert!(!span.is_zero(), "loop bound is zero");
+                                    let max_frames = ((1u64 << 28) - u64::from(next_free)) / u64::from(size);
+                                    let max_span = max_frames.saturating_sub(1) as usize;
+                                    let mut exponent = g.log(span);
+                                    while exponent.is_none() && g.covered() <= max_span {
+                                        g.grow_to((2 * g.covered()).min(max_span));
+                                        exponent = g.log(span);
+                                    }
+                                    let n = exponent.expect("loop bound exceeds the address space") + 1;
+                                    (ptr, size.checked_mul(n).expect("loop frames overflow"))
+                                }
                                 // A runtime size is carried in the exponent:
                                 // the cell holds g^k, allocate k cells (reverse
                                 // g-power lookup, growing the index if needed).
