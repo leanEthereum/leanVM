@@ -1,23 +1,34 @@
 <h1 align="center">leanVM</h1>
 
-
-
 <p align="center">
   <img src="./doc/images/banner.svg" alt="leanVM">
 </p>
 
-Minimal hash-based zkVM, for a Post-Quantum Ethereum.
+<h3 align="center">Minimal hash-based zkVM, for a Post-Quantum Ethereum.</h3>
 
 <p align="center">
   <a href="https://github.com/leanEthereum/leanVM/releases/download/doc-latest/leanVM.pdf"><img src="https://img.shields.io/badge/Documentation-PDF-blue?style=for-the-badge&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0id2hpdGUiPjxwYXRoIGQ9Ik0xNCAySDZjLTEuMSAwLTIgLjktMiAydjE2YzAgMS4xLjg5IDIgMS45OSAySDE4YzEuMSAwIDItLjkgMi0yVjhsLTYtNnpNOC41IDE0LjVoMS4yNWMuOTcgMCAxLjc1LS43OCAxLjc1LTEuNzVTMTAuNzIgMTEgOS43NSAxMUg3LjV2Nmgxdi0yLjV6bTAtMVYxMmgxLjI1Yy40MSAwIC43NS4zNC43NS43NXMtLjM0Ljc1LS43NS43NUg4LjV6bTUuNSAzLjVoMnYtMWgtMnYtMWgydi0xaC0ydi0xLjVjMC0uMjguMjItLjUuNS0uNUgxN3YtMWgtMmMtLjgzIDAtMS41LjY3LTEuNSAxLjVWMTd6TTEzIDlWMy41TDE4LjUgOUgxM3oiLz48L3N2Zz4=" alt="Documentation"></a>
   <a href="./python-verifier/verifier.py"><img src="https://img.shields.io/badge/verifier-python-yellow?style=for-the-badge&logo=python&logoColor=white" alt="Python verifier"></a>
 </p>
 
-<p align="center">
-  <a href="#xmss-aggregation"><img src="https://img.shields.io/badge/Aggregation-1200%20XMSS%2Fs-brightgreen?style=for-the-badge"></a>
-  <a href="#sphincs-aggregation"><img src="https://img.shields.io/badge/Aggregation-250%20SPHINCS%2Fs-green?style=for-the-badge"></a>
-  <a href="#recursion"><img src="https://img.shields.io/badge/2%20to%201%20recursion-0.28s-orange?style=for-the-badge"></a>
-</p>
+<table align="center">
+  <tr>
+    <td><a href="#xmss-aggregation">XMSS aggregation</a></td>
+    <td align="right"><b>1,200 XMSS/s</b></td>
+  </tr>
+  <tr>
+    <td><a href="#sphincs-aggregation">SPHINCS aggregation</a></td>
+    <td align="right"><b>250 SPHINCS/s</b></td>
+  </tr>
+  <tr>
+    <td><a href="#recursion">Recursion 2 → 1</a></td>
+    <td align="right"><b>0.29 s</b></td>
+  </tr>
+  <tr>
+    <td><a href="#data-availability">Data availability</a></td>
+    <td align="right"><b>16 blobs/s</b></td>
+  </tr>
+</table>
 
 Warning: not (yet) production ready.
 
