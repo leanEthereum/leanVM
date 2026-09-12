@@ -8,9 +8,8 @@
 //! the exact byte string `tweak | P | payload` truncated to `n = 128` bits (the
 //! `hash` module), and the tweak names one hash call in the whole structure.
 //!
-//! Secrets are the seed-derived implementation of the specification's "Seed
-//! derivation" remark: a key pair is one master secret, and a signer holds the
-//! 1024-byte layer-0 cache of its "Signer state" remark.
+//! One 32-byte master seed derives the public parameter and all signing secrets.
+//! The signer caches public nodes of the top tree.
 
 #![cfg_attr(not(test), warn(unused_crate_dependencies))]
 
@@ -27,7 +26,7 @@ pub use sphincs::*;
 pub const N: usize = 16;
 pub type Digest = [u8; N];
 
-/// The public parameter, sampled per key pair, which separates users.
+/// The public parameter derived from the master seed.
 pub const PUBLIC_PARAM_LEN: usize = 16;
 pub type PublicParam = [u8; PUBLIC_PARAM_LEN];
 
