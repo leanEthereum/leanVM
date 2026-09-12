@@ -2450,13 +2450,19 @@ def verify_sig_sphincs(signer):
         secret = StackBuf(WORDS_PER_BLOCK)
         hint_witness(secret[0:1], "sp_fts_secrets")
         fts_leaf = StackBuf(WORDS_PER_BLOCK)
-        blake2s([SP_TW_FTS_LEAF + kappa * SP_LAY_MUL + idx_tau + sp_bit_field(bits, leaf_off, SP_A, SP_J_POS), pp], [secret[0], 0], fts_leaf, counter=48, final=1)
+        node_index = sp_bit_field(bits, leaf_off, SP_A, SP_J_POS)
+        blake2s([SP_TW_FTS_LEAF + kappa * SP_LAY_MUL + idx_tau + node_index, pp], [secret[0], 0], fts_leaf, counter=48, final=1)
         node = fts_leaf[0]
         for level in unroll(0, SP_A):
             sibling = hint_witness("sp_fts_paths")
             children = order_children(node, sibling, bits[GEN ** (leaf_off + level)])
             parent = StackBuf(WORDS_PER_BLOCK)
-            blake2s([SP_TW_FTS_NODE + kappa * SP_LAY_MUL + const((level + 1) * SP_P_MUL) + idx_tau + sp_bit_field(bits, leaf_off + level + 1, SP_A - level - 1, SP_J_POS), pp], children, parent)
+            if const(level + 1 == SP_A):
+                node_index = 0
+            else:
+                # The index fits in one lane; clearing its low bit makes division by GEN a right shift.
+                node_index = (node_index + bits[GEN ** (leaf_off + level)] * COORD_BASIS[SP_J_POS]) / GEN
+            blake2s([SP_TW_FTS_NODE + kappa * SP_LAY_MUL + const((level + 1) * SP_P_MUL) + idx_tau + node_index, pp], children, parent)
             node = parent[0]
         roots[kappa] = node
     fts_key = StackBuf(WORDS_PER_BLOCK)
@@ -2474,13 +2480,18 @@ def verify_sig_sphincs(signer):
         lay = SP_D - 1 - step
         leaf_index_off = SP_SUFFIX[lay + 1]
         tau_field = sp_bit_field(bits, SP_SUFFIX[lay], SP_H - SP_SUFFIX[lay], SP_TAU_POS)
-        tw_pos = tau_field + sp_bit_field(bits, leaf_index_off, SP_HEIGHTS[lay], SP_J_POS) + lay * SP_LAY_MUL
+        node_index = sp_bit_field(bits, leaf_index_off, SP_HEIGHTS[lay], SP_J_POS)
+        tw_pos = tau_field + node_index + lay * SP_LAY_MUL
         node = sp_ots_leaf(tw_pos, pp, signed)
         for level in unroll(0, SP_HEIGHTS[lay]):
             sibling = hint_witness("sp_siblings")
             children = order_children(node, sibling, bits[GEN ** (leaf_index_off + level)])
             parent = StackBuf(WORDS_PER_BLOCK)
-            blake2s([SP_TW_NODE + lay * SP_LAY_MUL + const((level + 1) * SP_P_MUL) + tau_field + sp_bit_field(bits, leaf_index_off + level + 1, SP_HEIGHTS[lay] - level - 1, SP_J_POS), pp], children, parent)
+            if const(level + 1 == SP_HEIGHTS[lay]):
+                node_index = 0
+            else:
+                node_index = (node_index + bits[GEN ** (leaf_index_off + level)] * COORD_BASIS[SP_J_POS]) / GEN
+            blake2s([SP_TW_NODE + lay * SP_LAY_MUL + const((level + 1) * SP_P_MUL) + tau_field + node_index, pp], children, parent)
             node = parent[0]
         signed = node
     assert signed == signer[1]
