@@ -389,13 +389,34 @@ fn transpose_layers_ext_windowed(
     }
 }
 
-/// Sparse-prefix transposed NTT: the input has only
-/// `positions.len()` nonzeros and the first `k` transpose steps (forward
-/// layers `log_d-1 .. log_d-k`, pairing distances `1 .. 2^(k-1)`) mix only
-/// WITHIN `2^k`-aligned windows. We process just the windows that contain a
-/// nonzero (a dense `2^k` transpose each, disjoint so window-parallel),
-/// then densify and finish the retained output prefix. Output is
-/// identical to the low `2^log_output` coefficients of a full transposed NTT.
+/// Expand the low novel-basis coefficients for the queries in one aligned
+/// window. The first `k` transpose layers cannot cross this window, and their
+/// column at `q` is `product_j normalized_s_j(q)` over the coefficient's bits.
+fn expand_transpose_window(ntt: &AdditiveNttF64, queries: &[(usize, F192)], log_d: usize, output: &mut [F192]) {
+    let k = output.len().ilog2() as usize;
+    let half = output.len() / 2;
+    let mut scratch = vec![F192::ZERO; half];
+    for &(q, value) in queries {
+        let factor = |j: usize| ntt.twiddle(log_d - 1 - j, q >> (j + 1)) + F64(((q >> j) & 1) as u64);
+        scratch[0] = value;
+        for j in 0..k - 1 {
+            let t = factor(j);
+            let (low, high) = scratch.split_at_mut(1 << j);
+            for (dst, &src) in high.iter_mut().zip(low.iter()) {
+                *dst = src.mul_base(t);
+            }
+        }
+        let t = factor(k - 1);
+        let (low, high) = output.split_at_mut(half);
+        for ((low, high), &value) in low.iter_mut().zip(high.iter_mut()).zip(&scratch) {
+            *low += value;
+            *high += value.mul_base(t);
+        }
+    }
+}
+
+/// Expand the sparse prefix directly in active windows, then finish the dense
+/// transpose. Output is the low `2^log_output` coefficients of a full transpose.
 fn transpose_forward_ntt_sparse_ext(
     ntt: &AdditiveNttF64,
     positions: &[usize],
@@ -404,6 +425,8 @@ fn transpose_forward_ntt_sparse_ext(
     log_output: usize,
 ) -> ArenaVec<F192> {
     assert!(log_output <= log_d);
+    assert_eq!(positions.len(), values.len());
+    assert!(positions.iter().all(|&p| p < 1usize << log_d));
     let _span = tracing::info_span!(
         "NTT",
         kind = "transpose induce",
@@ -413,59 +436,32 @@ fn transpose_forward_ntt_sparse_ext(
     .entered();
     use std::collections::HashMap;
     let n = 1usize << log_d;
-    // Small domains scatter directly before the retained transpose.
-    let k = if log_d >= 12 { 8usize.min(log_output) } else { 0 };
-
+    // Balance sparse expansion against dense butterfly work, bounding scratch
+    // so a window and its expansion fit in cache together.
+    let gap = n / positions.len().max(1);
+    let k = if log_d >= 12 {
+        (gap.max(1).ilog2().saturating_sub(1) as usize).min(14).min(log_output)
+    } else {
+        0
+    };
+    // SAFETY: zero is a valid F192; inactive windows must remain zero.
+    let mut data = unsafe { ArenaVec::<F192>::zeroed(n) };
     if k == 0 {
-        // SAFETY: zero is a valid F192, and the scatter below reads these slots.
-        let mut data = unsafe { ArenaVec::<F192>::zeroed(n) };
         for (&p, &v) in positions.iter().zip(values) {
             data[p] += v;
         }
         return finish_transpose_prefix(ntt, data, log_d, log_d, log_output);
     }
 
-    let wmask = (1usize << k) - 1;
-    // Group nonzeros into 2^k windows.
-    let mut windows: HashMap<usize, Vec<F192>> = HashMap::new();
-    for (&p, &v) in positions.iter().zip(values) {
-        let buf = windows.entry(p >> k).or_insert_with(|| vec![F192::ZERO; 1 << k]);
-        buf[p & wmask] += v;
+    let mut windows: HashMap<usize, Vec<(usize, F192)>> = HashMap::new();
+    for (&position, &value) in positions.iter().zip(values) {
+        windows.entry(position >> k).or_default().push((position, value));
     }
-
-    // Steps s = 0..k-1 within each active window, in parallel (windows disjoint).
-    let mut win_vec: Vec<(usize, Vec<F192>)> = windows.into_iter().collect();
-    parallel::chunks_mut(&mut win_vec, 1, |_, win| {
-        let (w, buf) = &mut win[0];
-        let w = *w;
-        for s in 0..k {
-            let layer = log_d - 1 - s;
-            let bsh = 1usize << s; // pairing distance
-            let block_size = bsh << 1;
-            let nblocks = (1usize << k) / block_size;
-            for jb in 0..nblocks {
-                // global block index = ((w<<k) + jb*block_size) >> (s+1).
-                let t = ntt.twiddle(layer, (w << (k - s - 1)) + jb);
-                let base = jb * block_size;
-                for r in 0..bsh {
-                    let a = buf[base + r];
-                    let b = buf[base + r + bsh];
-                    let sab = a + b;
-                    buf[base + r] = sab;
-                    buf[base + r + bsh] = sab.mul_base(t) + b;
-                }
-            }
+    parallel::chunks_mut(&mut data, 1 << k, |window, output| {
+        if let Some(queries) = windows.get(&window) {
+            expand_transpose_window(ntt, queries, log_d, output);
         }
     });
-
-    // Densify (active windows only; the rest stay zero, which is the correct
-    // post-step-(k-1) state for an all-zero window).
-    // SAFETY: zero is a valid F192, and the inactive windows must read as zero.
-    let mut data = unsafe { ArenaVec::<F192>::zeroed(n) };
-    for (w, buf) in &win_vec {
-        data[(w << k)..((w + 1) << k)].copy_from_slice(buf);
-    }
-
     finish_transpose_prefix(ntt, data, log_d, log_d - k, log_output)
 }
 
@@ -483,7 +479,6 @@ pub(crate) fn induce_sumcheck_poly_via_ntt_base(
     weights: &[F192],
 ) -> (ArenaVec<F192>, F192) {
     let log_block = log_msg_cols + log_inv_rate;
-    let block_len = 1usize << log_block;
     let n_queries = queries.len();
     assert_eq!(opened_rows.len(), n_queries);
 
@@ -495,17 +490,9 @@ pub(crate) fn induce_sumcheck_poly_via_ntt_base(
         enforced_sum += F64::dot(&opened_rows[i], &eq) * weights[i];
     }
 
-    let coeffs = if log_block == 0 {
-        // SAFETY: zero is a valid F192, and the loop below reads these slots.
-        let mut c = unsafe { ArenaVec::<F192>::zeroed(block_len) };
-        for i in 0..n_queries {
-            c[queries[i]] += weights[i];
-        }
-        c
-    } else {
-        let ntt = AdditiveNttF64::standard(log_block);
-        transpose_forward_ntt_sparse_ext(&ntt, queries, weights, log_block, log_msg_cols)
-    };
+    // The size-one transform reads no twiddles.
+    let ntt = AdditiveNttF64::standard(log_block.max(1));
+    let coeffs = transpose_forward_ntt_sparse_ext(&ntt, queries, weights, log_block, log_msg_cols);
     (coeffs, enforced_sum)
 }
 
@@ -564,10 +551,22 @@ mod tests {
     #[test]
     fn retained_transpose_matches_full_scalar_transform() {
         let mut rng = Rng::new(0x71A45);
-        for (log_d, log_output) in [(0, 0), (3, 0), (3, 1), (3, 3), (9, 6), (12, 9), (13, 11), (14, 14)] {
+        for (log_d, log_output, n_random) in [
+            (0, 0, 17),
+            (3, 0, 17),
+            (3, 1, 17),
+            (3, 3, 17),
+            (9, 6, 17),
+            (12, 1, 17),
+            (12, 9, 17),
+            (13, 11, 17),
+            (14, 14, 17),
+            (17, 13, 17),
+            (18, 16, 0),
+        ] {
             let n = 1usize << log_d;
             let ntt = AdditiveNttF64::standard(log_d.max(1));
-            let mut positions: Vec<_> = (0..17).map(|_| rng.next_u64() as usize % n).collect();
+            let mut positions: Vec<_> = (0..n_random).map(|_| rng.next_u64() as usize % n).collect();
             positions.extend([0, 0, n / 2, n - 1]);
             let weights = rng.ext_vec(positions.len());
             for (queries, weights) in [(&positions[..], &weights[..]), (&[][..], &[][..])] {
@@ -584,5 +583,18 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn dense_transpose_input_matches_full_scalar_transform() {
+        let log_d = 12;
+        let ntt = AdditiveNttF64::standard(log_d);
+        let mut rng = Rng::new(0xDE45E);
+        let weights = rng.ext_vec(1 << log_d);
+        let positions: Vec<_> = (0..weights.len()).collect();
+        let mut expected = weights.clone();
+        scalar_transpose(&ntt, &mut expected, log_d);
+        let actual = transpose_forward_ntt_sparse_ext(&ntt, &positions, &weights, log_d, log_d - 2);
+        assert_eq!(&*actual, &expected[..expected.len() / 4]);
     }
 }
