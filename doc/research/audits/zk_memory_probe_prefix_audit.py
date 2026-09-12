@@ -2,6 +2,7 @@
 
 import argparse
 from fractions import Fraction
+from itertools import product
 from random import Random
 
 from zk_flock_coset_audit import novel_factors
@@ -11,6 +12,76 @@ from zk_memory_frames_audit import (
     pinned_translation,
 )
 from zk_pcs_audit import Audit, Tower, edot, verifier_module
+
+
+def count_prefix_obstruction(verifier, field):
+    layout = verifier.build_layout(range(16 << 19), 25, (19, 19, 19, 19, 20, 18))
+    placement = layout.placements[verifier.MEMORY_FINAL_COUNTERS]
+    assert layout.stack_log == 28 and placement.index == 40 << 22
+    assert field.novel(8, 0) == (1,) + (0,) * 255
+    for rate, expected_queries, lower_bits in ((1, 228, 17), (2, 113, 19), (3, 76, 20), (4, 57, 22)):
+        queries = verifier.derive_config(28, rate).queries[0]
+        assert queries == expected_queries
+        domain = 1 << (22 + rate)
+        floor = (1 - Fraction(domain - 1, domain) ** queries) / 2
+        assert floor > Fraction(1, 1 << lower_bits)
+        print(f"Unrepaired count-zero projection: rate {rate}, {queries} queries, simulator error exceeds 2^-{lower_bits}.", flush=True)
+    for query in range(128):
+        weights = field.novel(8, query)
+        assert not any(weights[128:])
+    print("Lane 40 starts with the memory final counters; fixing its first 128 coefficients fixes every U7 answer.", flush=True)
+
+
+def count_completion_cycles(verifier):
+    from zk_column_count_audit import Library
+
+    v = verifier
+    quotas = (2, 2, 2)
+    public = (v.E(17, 19, 0), v.E(29, 31, 0), v.ZERO)
+    mask_addresses = {int(v.GEN**index) for index in range(65536, 65536 + 1280)}
+    roots = {}
+    for accessed in product(range(3), repeat=3):
+        library = Library(v)
+        helper_rows = []
+        for address, (value, seen, target) in enumerate(zip(public, accessed, quotas, strict=True)):
+            # Existing reads are valid two-instruction cycles too, but have separate code and frames.
+            for pc, frame_index, real, dummy in (
+                (4000, 200000 + 16 * address, seen, 0),
+                (4004, 210000 + 16 * address, target - seen, seen),
+            ):
+                frame = v.GEN**frame_index
+                for branch, repetitions in ((0, real), (1, dummy)):
+                    read = library.row(v.OP_DEREF, pc + 2 * branch, frame)
+                    fields = {
+                        "o1": v.GEN**branch,
+                        "o2": v.ONE,
+                        "o3": v.GEN**2,
+                        "ptr": v.GEN**address if branch == 0 else frame * v.GEN**2,
+                        **{f"v3_{limb}": v.E(word) for limb, word in enumerate((value.c0, value.c1, value.c2))},
+                    }
+                    for name, entry in fields.items():
+                        read[v.DEREF_COLUMNS.index(name)] = entry
+                    jump = library.row(v.OP_JUMP, pc + 2 * branch + 1, frame, pc + 2 * branch)
+                    for name, offset in (("o_c", 3), ("o_d", 4 + branch), ("o_f", 6)):
+                        jump[v.JUMP_COLUMNS.index(name)] = v.GEN**offset
+                    library.register([(v.OP_DEREF, read), (v.OP_JUMP, jump)])
+                    for _ in range(repetitions):
+                        rows = library.append([(v.OP_DEREF, read), (v.OP_JUMP, jump)])
+                        if pc == 4004:
+                            helper_rows.extend(rows)
+        library.verify()
+        roots[accessed] = sum(library.exponents.values())
+        assert len(helper_rows) == 2 * sum(quotas)
+        for address, target in enumerate(quotas):
+            assert library.reads["memory", int(v.GEN**address)] == target
+        assert mask_addresses.isdisjoint(library.images["memory"])
+    assert (roots[2, 0, 0], roots[1, 1, 0]) == (44, 34)
+    assert v.GEN ** roots[2, 0, 0] != v.GEN ** roots[1, 1, 0]
+    print(
+        "Every bounded three-cell count vector: fixed-cost real/dummy cycles satisfy native ISA, complete counted buses and prefix quotas.",
+        flush=True,
+    )
+    print("The completed vectors (2,0,0) and (1,1,0) still have count roots g^44 and g^34: helper normalization is mandatory.", flush=True)
 
 
 def shifted_wire(field):
@@ -164,9 +235,14 @@ if __name__ == "__main__":
     parser.add_argument(
         "--relocated-library", action="store_true", help="check every relocated metadata cycle, raw direction and joint boundary rank"
     )
+    parser.add_argument("--count-prefix", action="store_true", help="check the count-prefix obstruction and fixed-cost completion cycles")
     arguments = parser.parse_args()
     reference = verifier_module()
     tower = Tower(64, reference)
+    if arguments.count_prefix:
+        count_prefix_obstruction(reference, tower)
+        count_completion_cycles(reference)
+        raise SystemExit(0)
     basis_and_allocation(tower)
     larger_code_geometry(reference)
     shifted_wire(tower)
