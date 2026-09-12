@@ -1646,6 +1646,10 @@ fn gen_verify(
         ("matpart", vec![matpart]),
         ("merkle_caps", caps),
         ("merkle_cap_active", cap_active),
+        (
+            "merkle_zero_prefix",
+            vec![count(((1 << stack.levels.ks[0]) - layout.shape.n_lanes) / 8)],
+        ),
         // the table sumcheck's round count: max_t tau_t, certified in-guest as a
         // maximum (one of the taus, and dominating them all).
         (
@@ -2834,6 +2838,19 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
             .unwrap();
         ps("LIG_ROW_CAP", row_cap.to_string());
         ps("LIG_PACKED_ROW_CAP", (row_cap / 2).to_string());
+        let zero_prefix_cvs: Vec<_> = (0..row_cap / 8)
+            .flat_map(|blocks| {
+                let state = primitives::hash::zero_prefix_state(blocks);
+                pack_state(std::array::from_fn(|i| {
+                    F64(u64::from(state[2 * i]) | (u64::from(state[2 * i + 1]) << 32))
+                }))
+            })
+            .collect();
+        ps("LIG_ZERO_PREFIX_CVS", flds(&zero_prefix_cvs));
+        ps(
+            "LIG_ZERO_PREFIX_ARMS",
+            (1usize << pcs::whir::INITIAL_FOLDING_FACTOR).div_ceil(16).to_string(),
+        );
         ps(
             "LIG_PATH_CAP",
             cands
@@ -3389,6 +3406,88 @@ def main():
     }
 
     #[test]
+    fn guest_merkle_zero_prefixes_match_full_leaves() {
+        let (helpers, _) = include_str!("../guests/lean_ethereum.py")
+            .split_once("\ndef main():")
+            .unwrap();
+        let source = format!(
+            r#"{helpers}
+def main():
+    weights = HeapBuf(64)
+    hint_witness(weights[0:64], "weights")
+    cap = HeapBuf(4)
+    public = GEN ** 0
+    cap[GEN ** 2] = public[1]
+    cap[GEN ** 3] = public[GEN]
+    flags = HeapBuf(1)
+    query_weights = HeapBuf(1)
+    query_weights[1] = 1
+    bits = HeapBuf(1)
+    bits[1] = 0
+    bit_ptrs = HeapBuf(1)
+    bit_ptrs[1] = bits
+    zero_prefix = hint_witness("prefix")
+    assert log(zero_prefix) < 4
+    value = match(log(zero_prefix), range(0, 4), lambda zero_blocks: opening_queries(cap, flags, query_weights, bit_ptrs, weights, GEN, 1, 64, 8, 1, 0, zero_blocks))
+    expected = hint_witness("expected")
+    assert value == expected
+    return
+"#
+        );
+        let guest = compile(&parse_with_replacements(&source, &placeholder_map(18)).unwrap());
+        let mut rng = StdRng::seed_from_u64(8471);
+        let weights: Vec<F192> = (0..64)
+            .map(|_| {
+                let (c0, c1, c2) = rand::Rng::random(&mut rng);
+                F192::new(c0, c1, c2)
+            })
+            .collect();
+        let run = |row: &[F64], hinted: &[F192], prefix: usize, expected: F192| {
+            let bytes: Vec<_> = row.iter().flat_map(|x| x.0.to_le_bytes()).collect();
+            let leaf = primitives::hash::hash(&bytes);
+            let sibling = [0u8; 32];
+            let root = pcs::merkle::hash_pair(&leaf, &sibling);
+            let mut hints = Hints::default();
+            hints.push("weights", weights.clone());
+            hints.push("prefix", vec![count(prefix)]);
+            hints.push("expected", vec![expected]);
+            hints.push("merkle_leaf_rows", hinted.to_vec());
+            hints.push(
+                "merkle_children",
+                [pack_hash_state(&leaf), pack_hash_state(&sibling)].concat(),
+            );
+            let mut program = guest.clone();
+            hints.install(&mut program);
+            program.execute(pack_hash_state(&root))
+        };
+        for n_lanes in 33..=64 {
+            let mut row = vec![F64::ZERO; 64];
+            for x in &mut row[64 - n_lanes..] {
+                *x = F64(rand::Rng::random(&mut rng));
+            }
+            let expected = row
+                .iter()
+                .zip(&weights)
+                .fold(F192::ZERO, |acc, (&x, &w)| acc + w.mul_base(x));
+            let mut hinted: Vec<_> = row.iter().copied().map(F192::from).collect();
+            for prefix in 0..=(64 - n_lanes) / 8 {
+                assert!(run(&row, &hinted, prefix, expected).unconstrained_reads.is_empty());
+            }
+            let prefix = (64 - n_lanes) / 8;
+            hinted[..8 * prefix].fill(F192::new(1, 2, 3));
+            assert!(run(&row, &hinted, prefix, expected).unconstrained_reads.is_empty());
+            for delta in [F192::ONE, F192::new(0, 1, 0), F192::new(0, 0, 1)] {
+                let mut forged = hinted.clone();
+                *forged.last_mut().unwrap() += delta;
+                assert!(std::panic::catch_unwind(|| run(&row, &forged, prefix, expected)).is_err());
+            }
+            let hinted: Vec<_> = row.iter().copied().map(F192::from).collect();
+            assert!(std::panic::catch_unwind(|| run(&row, &hinted, prefix + 1, expected)).is_err());
+            assert!(std::panic::catch_unwind(|| run(&row, &hinted, prefix, expected + F192::ONE)).is_err());
+        }
+    }
+
+    #[test]
     fn guest_merkle_children_bind_every_link() {
         lean_vm::init_prover_pool();
         let (helpers, _) = include_str!("../guests/lean_ethereum.py")
@@ -3469,6 +3568,31 @@ def main():
             }
             assert!(std::panic::catch_unwind(|| run(index ^ 1, tree[8 + index], &pairs, tree[1])).is_err());
         }
+    }
+
+    #[test]
+    #[ignore]
+    fn aggregate_all_pcs_rates() {
+        lean_vm::init_prover_pool();
+        let rates = pcs::whir::MIN_LOG_INV_RATE..=pcs::whir::MAX_LOG_INV_RATE;
+        let signers = get_signers(rates.clone().count());
+        let children: Vec<_> = rates
+            .zip(&signers)
+            .map(|(rate, signer)| {
+                aggregate(
+                    &[],
+                    at_epoch(std::slice::from_ref(signer), XMSS_EPOCH_A),
+                    vec![],
+                    &[],
+                    None,
+                    rate,
+                )
+                .expect("leaf aggregates")
+            })
+            .collect();
+        let node = aggregate(&children, vec![], vec![], &[], None, 2).expect("mixed-rate node aggregates");
+        node.verify().expect("mixed-rate node verifies");
+        assert_eq!(xmss_claims(&node), signers.len());
     }
 
     /// The right leaf holds more keys than one absorb window of its list hash
@@ -4963,6 +5087,9 @@ def main():
             ("merkle cap (subtree)", &|h: &mut Hints| {
                 h.entries("merkle_caps")[0][4] += F192::ONE;
             }),
+            ("merkle zero prefix (out of range)", &|h: &mut Hints| {
+                h.entries("merkle_zero_prefix")[0][0] = count((1 << pcs::whir::INITIAL_FOLDING_FACTOR) / 8);
+            }),
             ("merkle children (reversed)", &|h: &mut Hints| {
                 let children = &mut h.entries("merkle_children")[0];
                 children.swap(0, 2);
@@ -4972,7 +5099,7 @@ def main():
                 h.entries("merkle_children")[0][0] += F192::ONE;
             }),
             ("merkle leaf", &|h: &mut Hints| {
-                h.entries("merkle_leaf_rows")[0][0] += F192::ONE;
+                *h.entries("merkle_leaf_rows")[0].last_mut().unwrap() += F192::ONE;
             }),
             ("merkle leaf (extension limb outside K)", &|h: &mut Hints| {
                 let rows = h.entries("merkle_leaf_rows");

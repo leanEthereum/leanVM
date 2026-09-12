@@ -244,6 +244,8 @@ LIG_FOLDS = LIG_FOLDS_PLACEHOLDER
 LIG_INTERLEAVE = LIG_INTERLEAVE_PLACEHOLDER
 LIG_LEAF_BLOCKS = LIG_LEAF_BLOCKS_PLACEHOLDER
 LIG_PACKED_ROW_CAP = LIG_PACKED_ROW_CAP_PLACEHOLDER
+LIG_ZERO_PREFIX_CVS = LIG_ZERO_PREFIX_CVS_PLACEHOLDER
+LIG_ZERO_PREFIX_ARMS = LIG_ZERO_PREFIX_ARMS_PLACEHOLDER
 LIG_ROW_CAP = LIG_ROW_CAP_PLACEHOLDER
 LIG_PATH_CAP = LIG_PATH_CAP_PLACEHOLDER
 LIG_TREE_DEPTH = LIG_TREE_DEPTH_PLACEHOLDER
@@ -990,7 +992,7 @@ def opening_row_weights(point, out, folds: Const, reverse: Const):
     return
 
 
-def opening_queries(cap, flags, query_weights, query_bit_ptrs, row_eq_weights, n_queries_g, base: Const, interleave: Const, blocks: Const, depth: Const, cap_depth: Const):
+def opening_queries(cap, flags, query_weights, query_bit_ptrs, row_eq_weights, n_queries_g, base: Const, interleave: Const, blocks: Const, depth: Const, cap_depth: Const, zero_blocks: Const):
     # Specialize by row and path shape so opening configurations share query code.
     query_sum_chain = HeapBuf(n_queries_g * GEN)
     query_sum_chain[GEN ** 0] = 0
@@ -1005,7 +1007,7 @@ def opening_queries(cap, flags, query_weights, query_bit_ptrs, row_eq_weights, n
         packed_row = StackBuf(LIG_PACKED_ROW_CAP)
         if base == 1:
             # Packing proves each hinted lane is in K before hashing or folding it.
-            for jb in unroll(0, interleave // 4):
+            for jb in unroll(2 * zero_blocks, interleave // 4):
                 e0 = row[4 * jb]
                 e1 = row[4 * jb + 1]
                 e2 = row[4 * jb + 2]
@@ -1026,10 +1028,12 @@ def opening_queries(cap, flags, query_weights, query_bit_ptrs, row_eq_weights, n
                     # limbs (3w+1, 3w+2) are a pack; shift it by Y and add limb(3w).
                     row_word = row[3 * jw] + Y_TOWER * packed_row[(3 * jw + 1) // 2]
                 row_dot += row_word * row_eq_weights[GEN ** jw]
-        # Hash the packed row as full BLAKE2s blocks.
+        # Omitted lanes are zero in both the authenticated leaf and its dot product.
+        # The prefix choice is advice: a false choice changes the authenticated leaf.
         leaf_hash_state = StackBuf(2)
-        blake2s(packed_row[0:2], packed_row[2:4], leaf_hash_state, counter=64, final=1 // blocks)
-        for jb in unroll(1, blocks):
+        prefix = [LIG_ZERO_PREFIX_CVS[2 * zero_blocks], LIG_ZERO_PREFIX_CVS[2 * zero_blocks + 1]]
+        blake2s(packed_row[4 * zero_blocks:4 * zero_blocks + 2], packed_row[4 * zero_blocks + 2:4 * zero_blocks + 4], leaf_hash_state, cv=prefix, counter=64 * (zero_blocks + 1), final=(zero_blocks + 1) // blocks)
+        for jb in unroll(zero_blocks + 1, blocks):
             leaf_digest = StackBuf(2)
             blake2s(packed_row[4 * jb:4 * jb + 2], packed_row[4 * jb + 2:4 * jb + 4], leaf_digest, cv=leaf_hash_state, counter=64 * (jb + 1), final=(jb + 1) // blocks)
             leaf_hash_state = leaf_digest
@@ -1177,8 +1181,7 @@ def open_stacked(m_idx: Const, fs0, fs1, target, commit_root_0, commit_root_1, c
         # At level 0, slot i of a leaf image is interleaving index n-1-i: the image
         # reads its lanes from the top down, so the lanes a padding-free commitment
         # leaves out are its LEADING words, whose whole blocks the committer hashes
-        # once for all leaves. The flip is a compile-time index and the guest still
-        # hashes the full image. Deeper levels commit every lane, ascending.
+        # once for all leaves. Deeper levels commit every lane, ascending.
         row_eq_weights = HeapBuf(GEN ** (LIG_MAX_INTERLEAVE[m_idx]))
         opening_row_weights(fold_challenges * GEN ** folds_off, row_eq_weights, LIG_FOLDS[ml], 1 // (lvl + 1))
 
@@ -1189,7 +1192,12 @@ def open_stacked(m_idx: Const, fs0, fs1, target, commit_root_0, commit_root_1, c
         level_roots[GEN ** (2 * lvl)] = root_0
         level_roots[GEN ** (2 * lvl + 1)] = root_1
 
-        level_query_sum = opening_queries(cap, flags, query_weights * GEN ** (lvl * max_q), query_bit_ptrs * GEN ** pos_off, row_eq_weights, GEN ** n_queries, 1 // (lvl + 1), interleave, LIG_LEAF_BLOCKS[ml], depth, cap_depth)
+        if lvl == 0:
+            zero_prefix = hint_witness("merkle_zero_prefix")
+            assert log(zero_prefix) < LIG_ZERO_PREFIX_ARMS
+            level_query_sum = match(log(zero_prefix), range(0, LIG_ZERO_PREFIX_ARMS), lambda zero_blocks: opening_queries(cap, flags, query_weights * GEN ** (lvl * max_q), query_bit_ptrs * GEN ** pos_off, row_eq_weights, GEN ** n_queries, 1, interleave, LIG_LEAF_BLOCKS[ml], depth, cap_depth, zero_blocks))
+        else:
+            level_query_sum = opening_queries(cap, flags, query_weights * GEN ** (lvl * max_q), query_bit_ptrs * GEN ** pos_off, row_eq_weights, GEN ** n_queries, 0, interleave, LIG_LEAF_BLOCKS[ml], depth, cap_depth, 0)
 
         # Every level, including the last, ties its commitment in through an intro
         # message. The level's claims then enter the running one with powers of
