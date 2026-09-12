@@ -69,13 +69,13 @@
 We present, as an example, a SPHINCS$^+$-based signature with the following properties:
 
 \begin{itemize}
-  \item \textbf{stateless}: supporting up to $2^{24}$ signatures.
-  \item \textbf{NIST security level~1}~\cite{NISTPQC} (TODO prove it)
+  \item \textbf{stateless} with a lifetime of $2^{24}$ signatures.
+  \item \textbf{NIST security level~1}~\cite{NISTPQC}, $\approx 128$-bit (resp. $\approx 64$-bit) of classical (resp. quantum) security, in the Random Oracle model, ROM (resp. Quantum Random Oracle model, QROM).\footnote{The classical bound is proved (Section~\ref{sec:security}); the quantum one is a target, not a proved statement (Section~\ref{sec:quantum}).}
   \item \textbf{public key: 32 bytes}.
   \item \textbf{signature: 4924 bytes}.
   \item \textbf{497 hashes per verification}.
-  \item signing costs 190K hashes with 1024 bytes of cached signer state, or 1.55M without.
-  \item \textbf{key generation costs 1.38M hashes}.
+  \item \textbf{1.38M hashes at key generation}.
+  \item \textbf{190K hashes at signing}, with 1024 bytes of cached state at key generation (not secret)
 \end{itemize}
 \end{abstract}
 
@@ -100,7 +100,7 @@ Byte strings are concatenated with $\concat$. Bits and integer encodings are lit
 \toprule
 Symbol & Value & Meaning\\
 \midrule
-$n$ & $128$ bits & hash value and Merkle node length\\
+$n$ & $128$ bits & hash digest size\\
 $\lpar$ & $128$ bits & public parameter length\\
 $\ltwk$ & $128$ bits & tweak length\\
 $\lmsg$ & $256$ bits & message length\\
