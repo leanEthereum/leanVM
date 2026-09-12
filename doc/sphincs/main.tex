@@ -144,9 +144,12 @@ Let $\hash:\bits{*}\to\bits{256}$ be a cryptographic hash function, $\Truncate_\
 \]
 
 \begin{definition}[Tweak encoding]
-For one-byte $t$ and $\lay$, and unsigned 32-bit integers $\tau$, $p$ and $j$, define the 16-byte tweak
+Let $\mathsf{protocol\_domain\_sep}=1$. For one-byte $t$ and $\lay$, and unsigned 32-bit integers $\tau$, $p$ and $j$, define the 16-byte tweak
 \[
-  \mathsf{enc}(t,\lay,\tau,p,j)=\LE_8(t)\concat\LE_8(\lay)\concat\LE_{32}(\tau)\concat\LE_{32}(p)\concat\LE_{32}(j)\concat\LE_{16}(0).
+\begin{aligned}
+  \mathsf{enc}(t,\lay,\tau,p,j)={}&\LE_8(\mathsf{protocol\_domain\_sep})\concat\LE_8(t)\concat\LE_8(\lay)\concat\LE_8(0)\\
+  &{}\concat\LE_{32}(p)\concat\LE_{32}(\tau)\concat\LE_{32}(j).
+\end{aligned}
 \]
 \end{definition}
 
@@ -412,13 +415,6 @@ $\Ver(\pk,m,\bot)=0$. Otherwise, parse $\pk=(\rootnode,P)$ and $\sigma$ as above
 \]
 \item Accept if and only if $M_{-1}=\rootnode$.
 \end{enumerate}
-
-\begin{figure}[p]
-\centering
-\input{figures/verification.tex}
-\caption{Complete verification, read from bottom to top. FORS recovers a few-time key; each WOTS block turns the current message $M_\lay$ into a leaf, and the Merkle path recovers the next root $M_{\lay-1}$. All blocks use $P$. Reject if the digest is inadmissible or any WOTS encoding fails.}
-\label{fig:verification}
-\end{figure}
 
 \section{Costs}
 \label{sec:costs}

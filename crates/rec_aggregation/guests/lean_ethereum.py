@@ -380,30 +380,21 @@ SP_ROOT_BLOCKS = (2 + SP_N_FTS) / 4
 # them, so the buffer holds three lanes and the top 16 are never read.
 SP_BIT_LANES = 3
 SP_BIT_CELLS = SP_BIT_LANES * BASE_FIELD_BITS
-# Tweak types (the tweak's first byte). Types 0 and 5 are the seed derivation's,
-# which is a signer's own business: nothing in-circuit ever verifies one.
-SP_TW_PRF = 0
-SP_TW_CHAIN = 1
-SP_TW_LEAF = 2
-SP_TW_NODE = 3
-SP_TW_ENC = 4
-SP_TW_FTS_PRF = 5
-SP_TW_FTS_LEAF = 6
-SP_TW_FTS_NODE = 7
-SP_TW_FTS_ROOTS = 8
-SP_TW_MSG = 9
-# enc(t, lay, tau, p, j) packs t at bit 0, lay at 8, tau at 16, p at 48 and j at
-# 80, fourteen bytes of fields and two of padding. Every field this instance uses
-# is small enough that none straddles the 64-bit lane boundary (tau < 2^26 at bit
-# 16, p <= 334 at bit 48, j < 2^12 at bit 80), so a tweak cell is
-# `t + lay*2^8 + tau*2^16 + p*2^48` in lane 0 plus `j*2^16` in lane 1, and every
-# term is one field addition. SP_TAU_POS and SP_J_POS are where a bit of tau or of
-# j weighs in the coordinate basis, the j position already carrying the lane, so
-# nothing has to be multiplied by Y afterwards.
-SP_LAY_MUL = 2 ** 8
-SP_P_MUL = 2 ** 48
-SP_TAU_POS = 16
-SP_J_POS = BASE_FIELD_BITS + 16
+# Native tweak prefixes, including the protocol domain separator and type.
+SP_TW_CHAIN = SP_TW_CHAIN_PLACEHOLDER
+SP_TW_LEAF = SP_TW_LEAF_PLACEHOLDER
+SP_TW_NODE = SP_TW_NODE_PLACEHOLDER
+SP_TW_ENC = SP_TW_ENC_PLACEHOLDER
+SP_TW_FTS_LEAF = SP_TW_FTS_LEAF_PLACEHOLDER
+SP_TW_FTS_NODE = SP_TW_FTS_NODE_PLACEHOLDER
+SP_TW_FTS_ROOTS = SP_TW_FTS_ROOTS_PLACEHOLDER
+SP_TW_MSG = SP_TW_MSG_PLACEHOLDER
+# Tweak layout: protocol_domain_sep | type | layer | zero | p | tree | index.
+# Each 32-bit field stays within one 64-bit lane.
+SP_LAY_MUL = 2 ** 16
+SP_P_MUL = 2 ** 32
+SP_TAU_POS = BASE_FIELD_BITS
+SP_J_POS = BASE_FIELD_BITS + 32
 SP_CHAIN_MUL = SP_CHAIN_LENGTH * SP_P_MUL   # chain i's tweaks start at p = 2^w * i
 # The encoding counter, LE_32 in the low four bytes of its cell: bounded by
 # decomposing exactly that many bits, so the guest accepts no preimage the native

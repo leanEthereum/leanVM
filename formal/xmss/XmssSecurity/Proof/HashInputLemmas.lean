@@ -8,10 +8,10 @@ open OracleSpec
 namespace XmssSecurity
 
 def hashDomainTag : HashDomain → Nat
-  | .chain .. => 0
-  | .leaf .. => 1
-  | .merkle .. => 2
-  | .encoding .. => 3
+  | .chain .. => 1
+  | .leaf .. => 2
+  | .merkle .. => 3
+  | .encoding .. => 4
 
 @[simp]
 theorem length_bytesLE (byteCount : Nat) (value : BitVec (8 * byteCount)) :
@@ -41,9 +41,12 @@ theorem length_fieldBytes (fields : TweakFields) : (fieldBytes fields).length = 
 
 theorem fieldBytes_injective : Function.Injective fieldBytes := by
   intro left right heq
-  have hfields := List.append_left_injective (List.replicate 7 0) heq
-  obtain ⟨hfront, hepochBytes⟩ := List.append_inj hfields (by simp)
-  obtain ⟨htagBytes, hpositionBytes⟩ := List.append_inj hfront (by simp)
+  simp only [fieldBytes] at heq
+  obtain ⟨hfront, hepochBytes⟩ := List.append_inj heq (by simp)
+  have hfields := List.append_left_injective (List.replicate 4 0) hfront
+  obtain ⟨hheader, hpositionBytes⟩ := List.append_inj hfields (by simp)
+  have htagPrefix := List.append_left_injective [0, 0] hheader
+  have htagBytes := List.append_right_injective [protocolDomainSep] htagPrefix
   have htag : left.tag = right.tag := bytesLE_injective 1 htagBytes
   have hposition : left.position = right.position := bytesLE_injective 4 hpositionBytes
   have hepoch : left.epoch = right.epoch := bytesLE_injective 4 hepochBytes

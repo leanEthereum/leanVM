@@ -18,7 +18,7 @@
   </tr>
   <tr>
     <td><a href="#sphincs-aggregation">SPHINCS aggregation</a></td>
-    <td align="right"><b>250 SPHINCS/s</b></td>
+    <td align="right"><b>280 SPHINCS/s</b></td>
   </tr>
   <tr>
     <td><a href="#recursion">Recursion 2 → 1</a></td>
@@ -66,12 +66,12 @@ cargo run --release -- aggregate --sphincs 245 --log-inv-rate 1 --repeat 3
 
 ```
 aggregation, 245 SPHINCS signatures
-  cycles (VM steps)           : 2,351,886 = 2^21.165
-    details                   : XOR 2^19.239 (26.3%)  MUL 2^19.222 (26.0%)  SET 2^18.833 (19.9%)  DEREF 2^18.711 (18.2%)  BLAKE2S 2^16.992 (5.5%)  JUMP 2^16.543 (4.1%)  MEMORY 2^21.679  TOTAL_COMMITTED 2^26.553
-  proof size                  : 313.8 KiB
-  proving time                : 0.972 s ± 3.4%      peak memory 11.476 GiB
-  per signature               : 252.028 signatures/s
-  verifying                   : 3.969 ms
+  cycles (VM steps)           : 2,132,425 = 2^21.024
+    details                   : XOR 2^18.951 (23.8%)  MUL 2^18.93 (23.4%)  SET 2^18.847 (22.1%)  DEREF 2^18.711 (20.1%)  BLAKE2S 2^16.992 (6.1%)  JUMP 2^16.543 (4.5%)  MEMORY 2^21.564  TOTAL_COMMITTED 2^26.301
+  proof size                  : 300.1 KiB
+  proving time                : 0.861 s ± 1.5%      peak memory 9.348 GiB
+  per signature               : 284.603 signatures/s
+  verifying                   : 3.841 ms
 ```
 
 ### Recursion

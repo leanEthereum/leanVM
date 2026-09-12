@@ -131,10 +131,13 @@ structure TweakFields where
   index : BitVec 32
 deriving DecidableEq
 
-/-- The specification's 16 tweak bytes `tag || layer || tree || position || index || 0^2`, each field serialized least significant byte first. -/
+/-- The protocol domain separator. -/
+def protocolDomainSep : UInt8 := 1
+
+/-- The specification's 16 tweak bytes `protocol_domain_sep || tag || layer || 0 || position || tree || index`, each field serialized least significant byte first. -/
 def fieldBytes (fields : TweakFields) : HashInput :=
-  bytesLE 1 fields.tag ++ bytesLE 1 fields.layer ++ bytesLE 4 fields.tree ++
-    bytesLE 4 fields.position ++ bytesLE 4 fields.index ++ List.replicate 2 0
+  [protocolDomainSep] ++ bytesLE 1 fields.tag ++ bytesLE 1 fields.layer ++ [0] ++
+    bytesLE 4 fields.position ++ bytesLE 4 fields.tree ++ bytesLE 4 fields.index
 
 /-- Every domain-separated hash call the instance makes. Tweak types `0` and `5` of the specification are absent: they belong to the seed derivation, and this key samples its secrets. -/
 inductive HashDomain where

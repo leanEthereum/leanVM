@@ -106,19 +106,22 @@ Let $\hash:\bits{*}\to\bits{256}$ be a cryptographic hash function, and let $\Tr
 \]
 
 \begin{definition}[Tweak encoding]
-For a one-byte type $t$ and unsigned 32-bit integers $p$ and $j$, define the 16-byte tweak
+Let $\mathsf{protocol\_domain\_sep}=0$. For a one-byte type $t$ and unsigned 32-bit integers $p$ and $j$, define the 16-byte tweak
 \[
-  \mathsf{enc}(t,p,j)=\LE_8(t)\concat\LE_{32}(p)\concat\LE_{32}(j)\concat 0^{56}.
+\begin{aligned}
+  \mathsf{enc}(t,p,j)={}&\LE_8(\mathsf{protocol\_domain\_sep})\concat\LE_8(t)\concat0^{16}\\
+  &{}\concat\LE_{32}(p)\concat0^{32}\concat\LE_{32}(j).
+\end{aligned}
 \]
 \end{definition}
 
 Define
 \[
 \begin{aligned}
-  \mathsf{tweak}_{\mathrm{chain}}(\ep,i,k) &= \mathsf{enc}(0,2^wi+k-1,\ep), &&0\leq i<v,\ 1\leq k\leq2^w-1,\\
-  \mathsf{tweak}_{\mathrm{leaf}}(\ep) &= \mathsf{enc}(1,0,\ep),\\
-  \mathsf{tweak}_{\mathrm{merkle}}(\ell,j) &= \mathsf{enc}(2,\ell,j), &&1\leq\ell\leq h,\ 0\leq j<2^{h-\ell},\\
-  \mathsf{tweak}_{\mathrm{enc}}(\ep) &= \mathsf{enc}(3,0,\ep).
+  \mathsf{tweak}_{\mathrm{chain}}(\ep,i,k) &= \mathsf{enc}(1,2^wi+k-1,\ep), &&0\leq i<v,\ 1\leq k\leq2^w-1,\\
+  \mathsf{tweak}_{\mathrm{leaf}}(\ep) &= \mathsf{enc}(2,0,\ep),\\
+  \mathsf{tweak}_{\mathrm{merkle}}(\ell,j) &= \mathsf{enc}(3,\ell,j), &&1\leq\ell\leq h,\ 0\leq j<2^{h-\ell},\\
+  \mathsf{tweak}_{\mathrm{enc}}(\ep) &= \mathsf{enc}(4,0,\ep).
 \end{aligned}
 \]
 
@@ -319,7 +322,7 @@ At $w=3$, $v=42$ and $T=195$,
   |\mathcal D|=11539185377238682781344003244544752,\qquad \alpha=2^{-14.8479\ldots}\geq2^{-15}+2^{-128}.
 \]
 
-\emph{One attempt.} The map $I$ is injective, and no query of $\Gen$ reaches its image, $\Gen$ using tweak types $0$, $1$ and $2$, not $3$. So a $\rho$ not drawn before is a fresh oracle point, making $D$ uniform on $\bits n$ and independent of the history, and the attempt succeeds with probability exactly $\alpha$.
+\emph{One attempt.} The map $I$ is injective, and no query of $\Gen$ reaches its image, $\Gen$ using tweak types $1$, $2$ and $3$, not $4$. So a $\rho$ not drawn before is a fresh oracle point, making $D$ uniform on $\bits n$ and independent of the history, and the attempt succeeds with probability exactly $\alpha$.
 
 \emph{Exhausting the attempts.} Let $\mathcal F_a$ be the event that the first $a$ attempts all fail. The signer then samples a new $\rho$, uniformly at random and independently of the earlier attempts. This $\rho$ equals one of the $a$ earlier ones with probability at most $a2^{-\lrnd}$, and otherwise the attempt fails with probability $1-\alpha$, so $\Pr[\mathcal F_{a+1}\mid\mathcal F_a]\leq1-\alpha+a2^{-\lrnd}$. Multiplying over $0\leq a<\amax$, and since $\amax2^{-\lrnd}=2^{-169}\leq2^{-128}$,
 \[

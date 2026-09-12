@@ -88,12 +88,15 @@ structure TweakFields where
   epoch : BitVec 32
 deriving DecidableEq
 
-/-- The specification's 16 tweak bytes `tag || position || epoch || 0^7`, each field serialized least significant byte first. -/
-def fieldBytes (fields : TweakFields) : List UInt8 :=
-  bytesLE 1 fields.tag ++ bytesLE 4 fields.position ++ bytesLE 4 fields.epoch ++
-    List.replicate 7 0
+/-- The protocol domain separator. -/
+def protocolDomainSep : UInt8 := 0
 
-/-- Every domain-separated hash call the instance makes, tweak types `0` to `3`. -/
+/-- The specification's 16 tweak bytes `protocol_domain_sep || tag || 0 || 0 || position || 0^4 || epoch`, each field serialized least significant byte first. -/
+def fieldBytes (fields : TweakFields) : List UInt8 :=
+  [protocolDomainSep] ++ bytesLE 1 fields.tag ++ [0, 0] ++ bytesLE 4 fields.position ++
+    List.replicate 4 0 ++ bytesLE 4 fields.epoch
+
+/-- Every domain-separated hash call the instance makes, tweak types `1` to `4`. -/
 inductive HashDomain where
   | chain (epoch : Epoch) (chain : ChainIndex) (step : ChainStep)
   | leaf (epoch : Epoch)
@@ -104,11 +107,11 @@ deriving DecidableEq
 /-- Serialize a typed hash domain into the fields of a tweak. -/
 def hashDomainFields : HashDomain → TweakFields
   | .chain epoch chain step =>
-      ⟨0#8, BitVec.ofNat 32 (chainLength * chain.val + step.val), BitVec.ofNat 32 epoch.val⟩
-  | .leaf epoch => ⟨1#8, 0#32, BitVec.ofNat 32 epoch.val⟩
+      ⟨1#8, BitVec.ofNat 32 (chainLength * chain.val + step.val), BitVec.ofNat 32 epoch.val⟩
+  | .leaf epoch => ⟨2#8, 0#32, BitVec.ofNat 32 epoch.val⟩
   | .merkle level node =>
-      ⟨2#8, BitVec.ofNat 32 (level.val + 1), BitVec.ofNat 32 node.val⟩
-  | .encoding epoch => ⟨3#8, 0#32, BitVec.ofNat 32 epoch.val⟩
+      ⟨3#8, BitVec.ofNat 32 (level.val + 1), BitVec.ofNat 32 node.val⟩
+  | .encoding epoch => ⟨4#8, 0#32, BitVec.ofNat 32 epoch.val⟩
 
 /-- The exact 16 bytes supplied by the specification as a hash tweak. -/
 def tweakBytes (domain : HashDomain) : List UInt8 :=

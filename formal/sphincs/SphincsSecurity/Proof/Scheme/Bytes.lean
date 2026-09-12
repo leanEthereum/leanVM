@@ -39,11 +39,12 @@ theorem fieldBytes_injective {t1 t2 : TweakFields} (h : fieldBytes t1 = fieldByt
   obtain ⟨tag1, layer1, tree1, position1, index1⟩ := t1
   obtain ⟨tag2, layer2, tree2, position2, index2⟩ := t2
   simp only [fieldBytes] at h
-  obtain ⟨h, _⟩ := List.append_inj' h (by simp)
   obtain ⟨h, hindex⟩ := List.append_inj' h (by simp [bytesLE_length])
-  obtain ⟨h, hposition⟩ := List.append_inj' h (by simp [bytesLE_length])
   obtain ⟨h, htree⟩ := List.append_inj' h (by simp [bytesLE_length])
+  obtain ⟨h, hposition⟩ := List.append_inj' h (by simp [bytesLE_length])
+  have h := List.append_left_injective [0] h
   obtain ⟨htag, hlayer⟩ := List.append_inj' h (by simp [bytesLE_length])
+  have htag := List.append_right_injective [protocolDomainSep] htag
   simp only [bytesLE_injective htag, bytesLE_injective hlayer, bytesLE_injective htree,
     bytesLE_injective hposition, bytesLE_injective hindex]
 

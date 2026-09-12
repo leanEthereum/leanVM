@@ -148,11 +148,10 @@ const _: () = assert!((2 + sphincs::NUM_FTS_TREES).is_multiple_of(4));
 // dynamically sized `HeapBuf` gets no compile-time index check, so a wider
 // digest would read leaf indices from cells nothing writes.
 const _: () = assert!(sphincs::DIGEST_BITS <= 3 * 64);
-// Every tweak field the guest packs must stay inside the byte range the native
-// `enc` gives it: `tau` at bit 16 below `p` at 48, `p` below the 64-bit lane
-// boundary, and `j` inside its four bytes at bit 80.
+// The guest packs each tweak field into its own 32-bit word: p at bit 32,
+// tau at bit 64, and j at bit 96.
 const _: () = assert!(sphincs::H <= 32);
-const _: () = assert!(sphincs::CHAIN_LEN * sphincs::V < 1 << 16);
+const _: () = assert!(sphincs::CHAIN_LEN * sphincs::V < 1 << 32);
 const _: () = assert!(sphincs::A <= 32 && sphincs::HEIGHTS[0] <= 32);
 
 /// A count as the guest carries it: in the exponent, `g^n`.
@@ -263,10 +262,9 @@ fn tweak_cell(tweak_type: u8, sub_position: u32) -> F192 {
 
 /// What bit `b` of the epoch weighs in a tweak's index field, so an index is its
 /// set bits summed. The one property of the layout this assumes is that the
-/// index field is linear in the index, which a leaf proof at the benchmark epoch
-/// exercises for every bit.
+/// index field is linear in the index. Subtract the constant protocol prefix.
 fn tweak_index_weight(b: usize) -> F192 {
-    pack_16_bytes(&xmss::make_tweak(0, 0, 1 << b))
+    pack_16_bytes(&xmss::make_tweak(0, 0, 1 << b)) + pack_16_bytes(&xmss::make_tweak(0, 0, 0))
 }
 /// The signer-set digest: plain BLAKE2s of one byte string, laid out in whole
 /// 64-byte blocks so the guest can absorb it four cells at a time
@@ -3002,7 +3000,7 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
 
     // The SPHINCS instance. Its tweaks are derived per signature from the index
     // the message digest picks, where XMSS's come from one public epoch, so the
-    // guest needs only the shape.
+    // guest receives the shape and the native tweak prefixes.
     let dsl_list = |values: &[usize]| {
         let inner: Vec<String> = values.iter().map(usize::to_string).collect();
         format!("[{}]", inner.join(", "))
@@ -3016,6 +3014,21 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     ps("SP_H", sphincs::H.to_string());
     ps("SP_HEIGHTS", dsl_list(&sphincs::HEIGHTS));
     ps("SP_SUFFIX", dsl_list(&sphincs::SUFFIX));
+    for (name, tag) in [
+        ("SP_TW_CHAIN", sphincs::TWEAK_CHAIN),
+        ("SP_TW_LEAF", sphincs::TWEAK_LEAF),
+        ("SP_TW_NODE", sphincs::TWEAK_NODE),
+        ("SP_TW_ENC", sphincs::TWEAK_ENC),
+        ("SP_TW_FTS_LEAF", sphincs::TWEAK_FTS_LEAF),
+        ("SP_TW_FTS_NODE", sphincs::TWEAK_FTS_NODE),
+        ("SP_TW_FTS_ROOTS", sphincs::TWEAK_FTS_ROOTS),
+        ("SP_TW_MSG", sphincs::TWEAK_MSG),
+    ] {
+        ps(
+            name,
+            dsl_u128(pack_16_bytes(&sphincs::tweak(tag, 0, 0, 0, 0))).to_string(),
+        );
+    }
     rep
 }
 
@@ -3226,6 +3239,32 @@ mod tests {
 
     fn prove_leaf(signers: &[(XmssPublicKey, XmssSignature)]) -> EthereumProof {
         aggregate(&[], at_epoch(signers, XMSS_EPOCH_A), vec![], &[], None, LOG_INV_RATE).expect("leaf aggregates")
+    }
+
+    #[test]
+    fn signature_tweaks_align_with_distinct_domains() {
+        for (xmss_tag, sphincs_tag) in [
+            (xmss::TWEAK_TYPE_CHAIN, sphincs::TWEAK_CHAIN),
+            (xmss::TWEAK_TYPE_WOTS_PK, sphincs::TWEAK_LEAF),
+            (xmss::TWEAK_TYPE_MERKLE, sphincs::TWEAK_NODE),
+            (xmss::TWEAK_TYPE_ENCODING, sphincs::TWEAK_ENC),
+        ] {
+            for position in [0, 1, u32::MAX] {
+                for index in [0, 1, 3, 0xa0b0_c0d0, u32::MAX] {
+                    let xmss_tweak = xmss::make_tweak(xmss_tag, position, index);
+                    let sphincs_tweak = sphincs::tweak(sphincs_tag, 0, 0, position, index);
+                    assert_eq!(&xmss_tweak[1..], &sphincs_tweak[1..]);
+                    assert_ne!(xmss_tweak[0], sphincs_tweak[0]);
+                    let mut guest_tweak = tweak_cell(xmss_tag, position);
+                    for bit in 0..32 {
+                        if index & (1 << bit) != 0 {
+                            guest_tweak += tweak_index_weight(bit);
+                        }
+                    }
+                    assert_eq!(guest_tweak, pack_16_bytes(&xmss_tweak));
+                }
+            }
+        }
     }
 
     type RawSphincs = (SphincsPublicKey, sphincs::Message, SphincsSignature);
