@@ -263,7 +263,7 @@ pub fn commit(message: &[F64], log_n: usize, log_batch_size: usize, log_inv_rate
 
 /// Codeword + Merkle tree for one deeper WHIR commitment level.
 /// `mat[pos * num_interleaved + lane]`; each row (one `pos` across all lanes)
-/// is one Merkle leaf of `num_interleaved * 16` bytes.
+/// is one Merkle leaf of `num_interleaved * 24` bytes.
 pub(crate) struct LigeroWitness {
     pub mat: ArenaVec<F192>,
     pub tree: ArenaVec<Hash>,
@@ -302,14 +302,22 @@ pub(crate) fn ligero_commit_ext(
     assert!(log_block_len <= ntt.log_domain_size());
 
     let codeword_len = block_len * num_interleaved;
-    // Replicated up front rather than gathered by the first pass, unlike the base
-    // encode ([`AdditiveNttF64::encode_interleaved_in_place`]): the fused width here is
-    // radix 4 over `num_interleaved` = 8 F192 lanes, so a gather writes four 192-byte
-    // rows at a stride, against the base encode's radix 8 over 512-byte rows. A
-    // contiguous copy is the better shape at this granularity.
+    let fused_base = cfg!(target_arch = "x86_64")
+        && log_block_len >= 8
+        && log_inv_rate + 2 < AdditiveNttF64::cache_split(log_block_len, 3 * num_interleaved);
     let mut mat = zk_alloc::alloc_uninit(codeword_len);
-    replicate_message_fill_uninit(&mut mat, poly);
-    // SAFETY: the replicate fill initializes every matrix element.
+    if fused_base {
+        parallel::chunks_mut_zip(&mut mat[..poly.len()], poly, 1 << 14, |_, dst, src| {
+            for (slot, &value) in dst.iter_mut().zip(src) {
+                slot.write(value);
+            }
+        });
+    } else {
+        replicate_message_fill_uninit(&mut mat, poly);
+    }
+    // SAFETY: the replicate fill initializes the whole matrix. The fused path
+    // initializes its message region here and the encoder writes all remaining
+    // elements before reading them, as in the base-field commitment.
     let mut mat = unsafe { zk_alloc::assume_init(mat) };
 
     // Optional per-level NTT/Merkle split (WHIR_TRACE): one env lookup per
@@ -322,7 +330,16 @@ pub(crate) fn ligero_commit_ext(
         log_domain = log_block_len,
         lanes = num_interleaved
     )
-    .in_scope(|| forward_transform_interleaved_ext_from_layer(ntt, &mut mat, num_interleaved, log_inv_rate));
+    .in_scope(|| {
+        if fused_base {
+            // SAFETY: F192 is repr(C) over three u64 coefficients; F64 is
+            // transparent over u64. Every coefficient shares the same twiddle.
+            let coefficients = unsafe { std::slice::from_raw_parts_mut(mat.as_mut_ptr().cast::<F64>(), 3 * mat.len()) };
+            ntt.encode_interleaved_in_place(coefficients, 3 * num_interleaved, log_inv_rate);
+        } else {
+            forward_transform_interleaved_ext_from_layer(ntt, &mut mat, num_interleaved, log_inv_rate);
+        }
+    });
     let ntt_elapsed = t_ntt.elapsed();
     let t_merkle = std::time::Instant::now();
 
@@ -2699,6 +2716,32 @@ mod tests {
                 forward_transform_interleaved_ext_from_layer(&ntt, &mut dispatched, lanes, start_layer);
                 assert_eq!(dispatched, expected);
             }
+        }
+    }
+
+    #[test]
+    fn extension_commit_matches_replicated_scalar_codeword() {
+        let mut rng = Rng::new(0xE11C0DE);
+        for (log_d, log_lanes, log_inv_rate) in [(8usize, 0usize, 2usize), (16, 4, 1)] {
+            let lanes = 1 << log_lanes;
+            if cfg!(target_arch = "x86_64") && log_d == 16 {
+                assert!(log_inv_rate + 2 < AdditiveNttF64::cache_split(log_d, 3 * lanes));
+            }
+            let ntt = AdditiveNttF64::standard(log_d);
+            let poly = rng.ext_vec((1 << (log_d - log_inv_rate)) * lanes);
+            let mut expected = poly.repeat(1 << log_inv_rate);
+            forward_transform_interleaved_ext_scalar_from_layer(&ntt, &mut expected, lanes, log_inv_rate);
+            let actual = ligero_commit_ext(&poly, log_d - log_inv_rate, log_lanes, log_inv_rate, &ntt);
+            assert_eq!(&*actual.mat, expected);
+            // SAFETY: F192 is repr(C) over three u64 coefficients, without padding.
+            let bytes = unsafe {
+                std::slice::from_raw_parts(
+                    expected.as_ptr().cast::<u8>(),
+                    std::mem::size_of_val(expected.as_slice()),
+                )
+            };
+            let expected_tree = merkle::merkle_tree(bytes, 1 << log_d);
+            assert_eq!(&*actual.tree, &*expected_tree);
         }
     }
 

@@ -156,7 +156,7 @@ impl AdditiveNttF64 {
     /// How many leading layers sweep the whole buffer before the rest run as cache-resident sub-NTTs.
     ///
     /// Round the position size up because padding-free commitments need not have a power-of-two lane count.
-    fn cache_split(log_d: usize, num_ntts: usize) -> usize {
+    pub(crate) fn cache_split(log_d: usize, num_ntts: usize) -> usize {
         const TARGET_SUBGROUP_LOG_BYTES: usize = 21;
         let log_bytes_per_position = 3 + num_ntts.next_power_of_two().ilog2() as usize;
         let target_log_positions = TARGET_SUBGROUP_LOG_BYTES.saturating_sub(log_bytes_per_position);
