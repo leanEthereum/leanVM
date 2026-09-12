@@ -185,17 +185,17 @@ impl AdditiveNttF64 {
     /// read and write of the message rather than of the whole codeword.
     ///
     /// The replication is fused into the first pass. Each block at layer
-    /// `log_inv_rate` IS one replica, so a block's eight participating rows are eight
+    /// `log_inv_rate` IS one replica, so a block's participating rows are
     /// message rows, and the pass can gather them itself instead of reading back a
-    /// codeword someone else just filled. That turns three sweeps of the whole
-    /// codeword (fill it, read it, write it) into one gather and one write: at the
-    /// XMSS scale, three gigabytes moved instead of seven. Replica 0 IS the message,
+    /// codeword someone else just filled. Each transformed window is published
+    /// once. Replica 0 IS the message,
     /// so the blocks run in descending order and it is transformed in place last,
     /// once every other replica has read it.
     ///
-    /// Falls back to replicating and transforming when the first pass is not the
-    /// fused radix-8 group (tiny transforms, or a rate deep enough to leave fewer
-    /// than three whole-buffer layers).
+    /// On x86 the first pass gathers up to 128 rows, tiling columns to keep its
+    /// scratch in L1, and publishes each output window once with streaming stores.
+    /// Falls back to replicating and transforming for tiny transforms or a rate
+    /// deep enough to leave fewer than three whole-buffer layers.
     pub fn encode_interleaved_in_place(&self, data: &mut [F64], num_ntts: usize, log_inv_rate: usize) {
         assert!(num_ntts > 0);
         assert_eq!(data.len() % num_ntts, 0);
@@ -210,62 +210,85 @@ impl AdditiveNttF64 {
             return;
         }
 
-        let eighth = block_rows >> 3;
-        let tw: Vec<[F64; 7]> = (0..1usize << log_inv_rate)
-            .map(|block| self.twiddles_radix8(log_inv_rate, block))
-            .collect();
-        let dst = parallel::SendPtr(data.as_mut_ptr());
         #[cfg(target_arch = "x86_64")]
-        parallel::for_each_chunk(eighth, |lo, hi| {
-            const STAGE_LANES: usize = 64;
-            let mut stage = [F64::ZERO; 8 * STAGE_LANES];
-            let stream = primitives::stream::Stream::new();
-            for r in lo..hi {
-                for lane in (0..num_ntts).step_by(STAGE_LANES) {
-                    let len = (num_ntts - lane).min(STAGE_LANES);
-                    for (block, t) in tw.iter().enumerate().rev() {
-                        let mut chunks = stage[..8 * len].chunks_exact_mut(len);
-                        let mut rows: [&mut [F64]; 8] = std::array::from_fn(|_| chunks.next().unwrap());
+        {
+            let log_radix = (n_top - log_inv_rate).min(7);
+            self.encode_first_pass(data, num_ntts, log_inv_rate, log_radix);
+            self.forward_transform_interleaved_parallel_from_layer(data, num_ntts, log_inv_rate + log_radix);
+        }
+        #[cfg(not(target_arch = "x86_64"))]
+        {
+            let dst = parallel::SendPtr(data.as_mut_ptr());
+            let eighth = block_rows >> 3;
+            let tw: Vec<[F64; 7]> = (0..1usize << log_inv_rate)
+                .map(|block| self.twiddles_radix8(log_inv_rate, block))
+                .collect();
+            parallel::for_each(eighth, |r| {
+                for (block, t) in tw.iter().enumerate().rev() {
+                    let base = (block * block_rows + r) * num_ntts;
+                    // SAFETY: row group `r` of block `block` owns the eight windows
+                    // `base + i * eighth * num_ntts`, disjoint across `r` and across
+                    // blocks, and `data` outlives the dispatch.
+                    let mut rows: [&mut [F64]; 8] =
+                        std::array::from_fn(|i| unsafe { dst.slice(base + i * eighth * num_ntts, num_ntts) });
+                    if block > 0 {
+                        // Replica 0 still holds the message: read it, and note that this
+                        // loop reaches block 0 last, so no replica reads it transformed.
                         for (i, row) in rows.iter_mut().enumerate() {
-                            // SAFETY: replica zero remains the source until this
-                            // group's last iteration, and every group owns distinct rows.
-                            let src = unsafe { dst.slice((i * eighth + r) * num_ntts + lane, len) };
+                            // SAFETY: the message region is `data[..msg_len]`, read-only
+                            // until block 0 transforms it in place below.
+                            let src = unsafe { dst.slice((i * eighth + r) * num_ntts, num_ntts) };
                             row.copy_from_slice(src);
                         }
-                        radix8_butterflies(&mut rows, t);
-                        for (i, row) in rows.iter().enumerate() {
-                            let base = (block * block_rows + i * eighth + r) * num_ntts + lane;
+                    }
+                    radix8_butterflies(&mut rows, t);
+                }
+            });
+            self.forward_transform_interleaved_parallel_from_layer(data, num_ntts, log_inv_rate + 3);
+        }
+    }
+
+    #[cfg(target_arch = "x86_64")]
+    fn encode_first_pass(&self, data: &mut [F64], num_ntts: usize, log_inv_rate: usize, log_radix: usize) {
+        assert!((3..=7).contains(&log_radix));
+        let block_rows = (data.len() / num_ntts) >> log_inv_rate;
+        let dst = parallel::SendPtr(data.as_mut_ptr());
+        const STAGE_WORDS: usize = 4096;
+        let rows = 1usize << log_radix;
+        assert!(block_rows >= rows);
+        let step = block_rows >> log_radix;
+        let stage_lanes = STAGE_WORDS / rows;
+        let tw: Vec<Vec<F64>> = (0..1usize << log_inv_rate)
+            .map(|block| {
+                let mut tw = vec![F64::ZERO; rows - 1];
+                self.twiddles_radix(log_inv_rate, block, log_radix, &mut tw);
+                tw
+            })
+            .collect();
+        parallel::for_each_chunk(step, |lo, hi| {
+            let mut stage = [F64::ZERO; STAGE_WORDS];
+            let stream = primitives::stream::Stream::new();
+            for r in lo..hi {
+                for lane in (0..num_ntts).step_by(stage_lanes) {
+                    let len = (num_ntts - lane).min(stage_lanes);
+                    for (block, tw) in tw.iter().enumerate().rev() {
+                        for i in 0..rows {
+                            // SAFETY: replica zero remains the source until this
+                            // group's last iteration, and groups own distinct rows.
+                            let src = unsafe { dst.slice((i * step + r) * num_ntts + lane, len) };
+                            stage[i * len..][..len].copy_from_slice(src);
+                        }
+                        radix_butterflies(&mut stage[..rows * len], len, log_radix, tw);
+                        for i in 0..rows {
+                            let base = (block * block_rows + i * step + r) * num_ntts + lane;
                             // SAFETY: this group owns each output window, which is
-                            // read again only after the dispatch's streaming stores finish.
-                            stream.copy(unsafe { dst.slice(base, len) }, row);
+                            // read again after the dispatch's streaming stores finish.
+                            stream.copy(unsafe { dst.slice(base, len) }, &stage[i * len..][..len]);
                         }
                     }
                 }
             }
         });
-        #[cfg(not(target_arch = "x86_64"))]
-        parallel::for_each(eighth, |r| {
-            for (block, t) in tw.iter().enumerate().rev() {
-                let base = (block * block_rows + r) * num_ntts;
-                // SAFETY: row group `r` of block `block` owns the eight windows
-                // `base + i * eighth * num_ntts`, disjoint across `r` and across
-                // blocks, and `data` outlives the dispatch.
-                let mut rows: [&mut [F64]; 8] =
-                    std::array::from_fn(|i| unsafe { dst.slice(base + i * eighth * num_ntts, num_ntts) });
-                if block > 0 {
-                    // Replica 0 still holds the message: read it, and note that this
-                    // loop reaches block 0 last, so no replica reads it transformed.
-                    for (i, row) in rows.iter_mut().enumerate() {
-                        // SAFETY: the message region is `data[..msg_len]`, read-only
-                        // until block 0 transforms it in place below.
-                        let src = unsafe { dst.slice((i * eighth + r) * num_ntts, num_ntts) };
-                        row.copy_from_slice(src);
-                    }
-                }
-                radix8_butterflies(&mut rows, t);
-            }
-        });
-        self.forward_transform_interleaved_parallel_from_layer(data, num_ntts, log_inv_rate + 3);
     }
 
     /// Scalar reference for the interleaved forward NTT (test oracle).
@@ -1083,6 +1106,27 @@ mod tests {
                     );
                 }
             }
+        }
+    }
+
+    #[cfg(target_arch = "x86_64")]
+    #[test]
+    fn gathered_encode_prefix_matches_scalar() {
+        let mut rng = Rng::new(0x81CE_0443);
+        for (log_radix, lanes, rate) in [(3, 3, 1), (4, 17, 2), (5, 65, 1), (6, 34, 2), (7, 34, 2), (7, 65, 1)] {
+            let log_d = rate + log_radix + 2;
+            let ntt = AdditiveNttF64::standard(log_d);
+            let msg_len = lanes << (log_d - rate);
+            let message: Vec<F64> = (0..msg_len).map(|_| F64(rng.next_u64())).collect();
+            let mut expected = vec![F64::ZERO; lanes << log_d];
+            replicate_rows(&mut expected, &message);
+            ntt.forward_transform_interleaved_scalar_from_layer(&mut expected, lanes, rate);
+
+            let mut actual = vec![F64::ZERO; expected.len()];
+            actual[..msg_len].copy_from_slice(&message);
+            ntt.encode_first_pass(&mut actual, lanes, rate, log_radix);
+            ntt.forward_transform_interleaved_scalar_from_layer(&mut actual, lanes, rate + log_radix);
+            assert_eq!(actual, expected, "radix={log_radix}, lanes={lanes}, rate={rate}");
         }
     }
 
