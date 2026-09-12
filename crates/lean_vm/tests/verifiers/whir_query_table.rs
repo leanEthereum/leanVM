@@ -1,4 +1,4 @@
-//! Pins `python-verifier`'s `WHIR_QUERIES` against the Rust query search. The
+//! Pins `python-verifier`'s WHIR geometry and queries against the Rust config. The
 //! Python verifier tabulates rather than repeating that search, which would make
 //! cross-language float identity part of the protocol.
 
@@ -7,19 +7,19 @@ use pcs::whir_config::WhirSecurityConfig;
 use std::path::Path;
 use std::process::Command;
 
-/// The range, then `rate log_n q0 q1 …` per entry.
+/// The range, then the level count, queries, rates, and folds for each shape.
 const DUMP: &str = "\
 import sys; sys.path.insert(0, '.')
 import verifier as v
 print(v.MIN_STACKED_LOG, v.MAX_STACKED_LOG)
 for rate in range(1, 5):
     for log_n in range(v.MIN_STACKED_LOG, v.MAX_STACKED_LOG + 1):
-        row = v.WHIR_QUERIES[rate - 1][log_n - v.MIN_STACKED_LOG]
-        print(rate, log_n, ' '.join(map(str, row)))
+        cfg = v.derive_config(log_n, rate)
+        print(rate, log_n, len(cfg.queries), *cfg.queries, *cfg.log_inv_rates, *cfg.folds)
 ";
 
 #[test]
-fn whir_query_table_matches_rust() {
+fn whir_config_matches_rust() {
     let directory = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../python-verifier");
     let output = Command::new("python3")
         .arg("-c")
@@ -55,7 +55,10 @@ fn whir_query_table_matches_rust() {
         let mut fields = line.split_whitespace().map(|f| f.parse::<usize>().expect("an integer"));
         let rate = fields.next().expect("rate");
         let log_n = fields.next().expect("log_n");
-        let tabulated: Vec<usize> = fields.collect();
+        let levels = fields.next().expect("level count");
+        let tabulated: Vec<usize> = fields.by_ref().take(levels).collect();
+        let log_inv_rates: Vec<usize> = fields.by_ref().take(levels).collect();
+        let folds: Vec<usize> = fields.collect();
 
         // Python's `log_n` is the packed size; the Rust search unpacks it itself.
         let m = log_n + LOG_PACKING;
@@ -66,6 +69,17 @@ fn whir_query_table_matches_rust() {
         assert_eq!(
             config.queries, tabulated,
             "rate {rate}, log_n {log_n}: WHIR_QUERIES is stale, regenerate it with print_whir_query_table"
+        );
+        assert_eq!(
+            config.log_inv_rates, log_inv_rates,
+            "rate {rate}, log_n {log_n}: the Python RS domain schedule differs from Rust"
+        );
+        let expected_folds: Vec<_> = std::iter::once(config.initial_k)
+            .chain(config.level_ks.iter().copied())
+            .collect();
+        assert_eq!(
+            expected_folds, folds,
+            "rate {rate}, log_n {log_n}: the Python folding schedule differs from Rust"
         );
         // Hardcoded on the Python side, so it must hold wherever the table does.
         let expected_ood: Vec<usize> = std::iter::once(0)
