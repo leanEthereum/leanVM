@@ -1,0 +1,53 @@
+% !TeX root = ../../main.tex
+\subsection{Local range checks remove the private probe prefix}\label{note:zk-local-ranges}
+
+\paragraph{Purpose and scope.} The leaf-specific quotas in \noteref{zk-leaf-probes} do not cover private recursive metadata. A public optional compilation step can instead replace every bounded-exponent range probe by local arithmetic. Unlike the degree-eight digit check, this costs only logarithmically many operations in the bound. The following lemmas prove its exact range relation and its effect on prefix counts, under the stated address discipline and capacity contract. They do not hide the new arithmetic columns or prove full ZK. The compiled program and its digest change publicly; the default program, ISA and three SNARK verification algorithms do not.
+
+\begin{lemma}[A local bounded-exponent certificate]\label{lem:zk-local-exponent}
+Let $0\le\zkRangeBits\le16$. A field element $v\in\E$ has the form $\gen^e$ for a unique integer $0\le e<2^{\zkRangeBits}$ if and only if it admits field-valued advice $b_0,\ldots,b_{\zkRangeBits-1}$ satisfying
+\[
+ b_i^2=b_i\quad(0\le i<\zkRangeBits),
+ \qquad v=\prod_{i=0}^{\zkRangeBits-1}
+       \bigl(1+b_i(\gen^{2^i}+1)\bigr).
+\]
+Both the bits and every intermediate product can be kept in local frame cells. The empty product certifies $v=1$.
+\end{lemma}
+\begin{proof}
+Over the field $\E$, $b_i(b_i+1)=0$ forces $b_i\in\{0,1\}$. The corresponding factor is $1$ or $\gen^{2^i}$, so the product equals $\gen^{\sum_i b_i2^i}$. The generator has order $2^{64}-1>2^{16}$, making these exponents injective. Conversely the ordinary binary digits of any allowed exponent satisfy all identities. Boolean pins and the product use only existing MUL, XOR and constant-cell operations; no field-valued advice is trusted without a constraint.
+\end{proof}
+
+\begin{proposition}[Constant and private runtime bounds]\label{prop:zk-local-range}
+Suppose $0\le k\le2^{\zkRangeBits}$ and the runtime bound is represented by $\gen^k$. Enforce the preceding certificate on $v$ and on a complement $u$, together with
+\[
+ vu=\gen^{k-1}.
+\]
+This is equivalent to $v=\gen^e$ with $0\le e<k$. In particular $k=0$ is rejected. For a public power-of-two bound $k=2^{\zkRangeBits}$, the complement is unnecessary. For other positive public bounds choose $\zkRangeBits=\lceil\log_2 k\rceil$; for runtime bounds at most $65536$, use $\zkRangeBits=16$.
+\end{proposition}
+\begin{proof}
+The certificates give $v=\gen^e$, $u=\gen^f$ with $0\le e,f<2^{\zkRangeBits}$. For $k\ge1$, the product identity implies $e+f=k-1$ as integers, because both sides lie below the generator order. Hence $e<k$. When $k=0$, the required exponent is $2^{64}-2$, outside the possible sum interval. Conversely, for $e<k$, choose $f=k-1-e$, which lies in the same bounded interval.
+\end{proof}
+
+The runtime-bound premise is exactly the existing compiler contract: the calling program must establish the bound's exponent cap. It is not a newly public value. Without that premise the two certificates only force the bound's exponent to be $e+f+1\le2^{\zkRangeBits+1}-1$; they do not independently certify $k\le2^{\zkRangeBits}$. The optional transformation must not be advertised as supplying the caller's missing cap. In witness generation the existing \texttt{hint\_decompose\_bits\_exponent} supplies the advice, and the complement is obtained by the constrained field division $(\gen^k/\gen)/v$. The field proof covers arbitrary malicious advice, not merely the honest hint algorithm.
+
+\begin{corollary}[Public prefix counts without public child geometry]\label{cor:zk-range-free-prefix}
+Fix the public entry wrapper, frame-local filler and reservation-aware address discipline of \noteref{zk-memory-frames}. Replace all range-check sites as above. Assume all other non-bootstrap accesses belong to allocated objects outside the protected prefix, except for the two prescribed final public-input reads. Then the complete final-count vector on that prefix is determined by the public bootstrap and those two reads, independently of signature data, child count, child geometry, addresses and control flow. No prefix-count top-up library is required.
+\end{corollary}
+\begin{proof}
+The replacement checks use only their own frame cells; out-of-line versions add only ordinary calls to allocated frames. The rewritten filler is local. Thus no additional execution step accesses the protected prefix, beyond the fixed bootstrap and two final input reads. Its integer access counts, and consequently their encoded values $\gen^{\mathrm{count}}$, are fixed public functions. Native initial count-encoder answers on the corresponding low subspace are public functions of this prefix too. These coordinates can be appended to any already simulated joint view at zero additional statistical error, provided it describes the same compiled program and completion.
+\end{proof}
+
+This corollary does not require the canonical-leaf policy or disclose the child geometry. It does require a valid common allocation and padding source: all other count columns, intermediate GKR messages and arbitrary PCS queries remain outside its conclusion. The earlier probe-budget impossibilities concerned preserving the old probe accesses; replacing those instructions publicly is outside their hypotheses, not a contradiction.
+
+\paragraph{An executable transformation.} The feature-only module \path{crates/rec_aggregation/src/aggregation/zk_research/range.rs} traverses the source AST, including branches and both loop forms, replacing all $70$ range-check sites in the current guest. Checks of at most four bits are inlined. Larger checks share ordinary functions, with the Boolean/product kernels inlined inside each function. Inlining every check exceeded bytecode log $19$; sharing the larger checks restores that height. No production compiler option or verifier branch is added. A mixed native leaf proof verifies with zero digit and coverage probes and exactly two non-bootstrap prefix reads. The $453$-XMSS leaf uses $23696$ of its $26682$ guaranteed slots, with real opcode counts
+\[
+ (157365,328500,200507,223284,59996,65486).
+\]
+These are finite program/allocation certificates, not a universal cost theorem or a reservation for every remaining count normalizer.
+
+\paragraph{Masked reads are still reads.} The first recursive allocation audit found physical accesses beyond the requested GKR-point buffer in \texttt{check\_opening\_terminal}. Its term $\texttt{mask\_bit}\cdot\texttt{overlap\_ptr}[\gen^j]$ evaluates the memory read even when the mask is zero. The values are algebraically irrelevant, but the accesses violate the claimed object boundary. The optional source transformation therefore allocates the logical $\mu$ coordinates plus \texttt{YR\_LOG\_CAP} extra words. Each read starts at a low length no greater than the claim-point length, itself at most $\mu$, and adds an index strictly below that tail cap. Thus all its reads belong to the extended object.
+
+A second failure came from \texttt{eq\_prefix\_chain}: the verifier computes shared equality-product prefixes longer than a particular opening's meaningful fold point, including a version shifted by \texttt{SLOT\_STRIDE\_LOG}. Only shorter certified prefixes are used in its final equation, but the longer computation still reads the tail. The optional \texttt{point\_fold} allocation now reserves \texttt{SIZE\_BITS + SLOT\_STRIDE\_LOG} cells. Its meaningful point and tail, every bus/table prefix length, and the shifted reads fit this extent under the existing public size caps. The extra cells are owned payload, not designated unused masks; their contents affect no consumed equality prefix. Both changes retain the mathematical verification equations. They repair an allocation-contract gap, not an exhibited soundness forgery. The ownership audit still requires every access to lie within the requested object, not merely somewhere in its rounded slot.
+
+\paragraph{Validation and boundary.} The release regression \nolinkurl{local_ranges_bind_untrusted_bits_and_complements} replaces computed advice by arbitrary witness streams. It checks valid endpoints at widths $1,3,16$ and rejects invalid exponents, an empty bound, inconsistent complements and non-Boolean base- and extension-field advice, even when that forged advice reconstructs the submitted value. It also checks that the arithmetic helper bodies have no DEREF instructions. Run the native allocation example with \texttt{--local-ranges} for leaves. Its \texttt{--children=N} mode constructs an optional outer wrapper for ordinary non-ZK children: their original program seed is fixed publicly in the wrapper, while the wrapper's own statement uses its own program identity. This is a legitimate separate program, not a self-recursive ZK implementation. The child's deferred bytecode claims continue to refer to the original child program and must be discharged there.
+
+One- and two-child wrappers pass the ownership audit and produce valid native proofs, with exactly the two prescribed non-bootstrap prefix reads. The second case repeats the child, so it also exercises duplicate coverage and private duplicate-count metadata. Their rounded demands are $5717$ and $11289$ slots against the sufficient bound $26472$, with largest allocation $78$ slots. The two-child real opcode counts are $(228896,302416,60961,253959,37956,19084)$; all meet the candidate's necessary private row ceilings. Its dense/reserved comparison preserves all instruction/frame correspondences and compression data, with each real instruction visited once per frame and maximum per-cell compression load $177\le256$. These samples do not bound all allowed children or the remaining padding libraries. A whole-program address/resource theorem, self-recursive compatibility if required, all-layer joint simulation and authentication remain open.

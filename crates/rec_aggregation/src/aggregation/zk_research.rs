@@ -6,6 +6,8 @@ use lean_vm::cpu::{Execution, Op, allocation::AllocationLayout};
 
 use super::*;
 
+mod range;
+
 const PREFIX: u32 = 1 << lean_vm::cpu::MIN_LOG_MEM;
 const MASK: u32 = 1280;
 const SLOT: u32 = 256;
@@ -29,9 +31,42 @@ fn candidate_runs() -> Vec<Range<u32>> {
     ]
 }
 
-fn wrapped_guest(local_digits: bool) -> Program {
+fn wrapped_guest(local_digits: bool, local_ranges: bool, ordinary_children: bool) -> Program {
     let mut source = include_str!("../../guests/aggregate.py").to_string();
-    if local_digits {
+    if local_ranges {
+        for (old, new) in [
+            (
+                "zeta = HeapBuf(g_bus_mu)",
+                "zeta = HeapBuf(g_bus_mu * GEN ** YR_LOG_CAP)",
+            ),
+            (
+                "point_fold = HeapBuf(GEN ** (n_folds + YR_LOG_CAP))",
+                "point_fold = HeapBuf(SIZE_BITS + SLOT_STRIDE_LOG)",
+            ),
+        ] {
+            assert_eq!(source.matches(old).count(), 1);
+            source = source.replace(old, new);
+        }
+    }
+    if ordinary_children {
+        let [seed0, seed1] = lean_vm::cpu::fs_seed(unified_guest()).map(dsl_u128);
+        for (old, new) in [
+            (
+                "pi_0, pi_1 = statement_digest(seed_0, seed_1, sub_hash, carried)",
+                format!("pi_0, pi_1 = statement_digest({seed0}, {seed1}, sub_hash, carried)"),
+            ),
+            (
+                "verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, child_fresh * xc ** DEFER_SIZE)",
+                format!(
+                    "verify_sub(pi_0, pi_1, {seed0}, {seed1}, g_logs_pow2, g_squares, child_fresh * xc ** DEFER_SIZE)"
+                ),
+            ),
+        ] {
+            assert_eq!(source.matches(old).count(), 1);
+            source = source.replace(old, &new);
+        }
+    }
+    if local_digits && !local_ranges {
         for check in [
             "assert log(digit) < CHAIN_LENGTH",
             "assert log(digit) < SP_CHAIN_LENGTH",
@@ -42,6 +77,10 @@ fn wrapped_guest(local_digits: bool) -> Program {
         source.push_str(LOCAL_DIGIT_CHECK);
     }
     let mut ast = parse_with_replacements(&source, &placeholder_map(19)).expect("aggregation source");
+    if local_ranges {
+        let sites = range::eliminate_probes(&mut ast);
+        println!("Replaced {sites} source range-check sites by local exponent checks.");
+    }
     assert!(ast.funcs.iter().all(|f| f.name != "zk_private_entry"));
     let main = ast.funcs.iter_mut().find(|f| f.name == "main").expect("main");
     assert!(main.params.is_empty() && main.n_ret == 0 && !main.inline);
@@ -106,7 +145,7 @@ fn blake_cells(op: &Op) -> Option<[u32; 9]> {
     }
 }
 
-fn check_accesses(execution: &Execution, runs: &[Range<u32>], masks: &[F192]) {
+fn check_accesses(program: &Program, execution: &Execution, runs: &[Range<u32>], masks: &[F192]) {
     assert!(execution.unconstrained_reads.is_empty());
     assert_eq!(&execution.mem[PREFIX as usize..(PREFIX + MASK) as usize], masks);
     let mut end = 0;
@@ -125,10 +164,32 @@ fn check_accesses(execution: &Execution, runs: &[Range<u32>], masks: &[F192]) {
         }
         if *count != F64::ONE {
             let &(base, size, _) = execution.allocations.get(object).expect("access past all objects");
-            assert!(
-                base <= address && address < base + size,
-                "access outside requested object at {address}"
-            );
+            if !(base <= address && address < base + size) {
+                let mut sites = BTreeSet::new();
+                for (pc, fp) in execution.instruction_sites() {
+                    let op = &program.prog[pc as usize];
+                    let cells = match *op {
+                        Op::Xor { a, b, c } | Op::Mul { a, b, c } => vec![a, b, c],
+                        Op::Set { o, .. } => vec![o],
+                        Op::Deref { o1, o3, .. } => vec![o1, o3],
+                        Op::Jump { oc, od, of } => vec![oc, od, of],
+                        Op::Blake2s { .. } => blake_cells(op).unwrap().to_vec(),
+                    };
+                    let indirect = if let Op::Deref { o1, o2, .. } = *op {
+                        let ptr = execution.mem[(fp + o1) as usize];
+                        ptr.c1 == 0 && ptr.c2 == 0 && F64(ptr.c0) * g_pow(o2 as usize) == g_pow(address as usize)
+                    } else {
+                        false
+                    };
+                    if indirect || cells.iter().any(|&cell| fp + cell == address) {
+                        sites.insert(format!("{}; fp={fp}, {op:?}", program.site_at(pc)));
+                    }
+                }
+                panic!(
+                    "access at {address} before object {base}..{}, sites {sites:?}",
+                    base + size
+                );
+            }
         }
         if !runs.iter().any(|r| r.contains(&address)) {
             assert_eq!(*count, F64::ONE, "mask reservation accessed at {address}");
@@ -203,12 +264,13 @@ fn public_leaf_probes(group_sizes: &[usize], sphincs: usize) -> Vec<usize> {
     counts
 }
 
-fn audit_leaf_probes(
+fn audit_prefix_probes(
     program: &Program,
     execution: &Execution,
     group_sizes: &[usize],
     sphincs: usize,
     local_digits: bool,
+    local_ranges: bool,
 ) {
     use lean_vm::cpu::filler::{NO_FLOORS, filled, solve};
 
@@ -290,7 +352,14 @@ fn audit_leaf_probes(
         })
         .collect();
     assert_eq!(bootstrap_pcs, main_pcs);
-    let expected_other = public_leaf_probes(group_sizes, sphincs);
+    let expected_other = if local_ranges {
+        let mut fixed = vec![0; PREFIX as usize];
+        fixed[0] = 1;
+        fixed[1] = 1;
+        fixed
+    } else {
+        public_leaf_probes(group_sizes, sphincs)
+    };
     let differences: Vec<_> = expected_other
         .iter()
         .zip(&profiles[3])
@@ -302,7 +371,12 @@ fn audit_leaf_probes(
         "public probe remainder differs: {differences:?}; sources {other_sources:?}"
     );
     let mut expected_coverage = vec![0; PREFIX as usize];
-    for size in group_sizes.iter().copied().chain(std::iter::once(sphincs)) {
+    for size in group_sizes
+        .iter()
+        .copied()
+        .chain(std::iter::once(sphincs))
+        .filter(|_| !local_ranges)
+    {
         for count in &mut expected_coverage[..size] {
             *count += 2;
         }
@@ -338,12 +412,14 @@ fn audit_leaf_probes(
         assert_eq!(execution.memory_read_counts()[j], g_pow(count));
     }
     println!(
-        "Canonical leaf probes: {} digit reads, {} coverage reads, {} public remainder reads; {filler} local filler rows leave the prefix unchanged.",
+        "Prefix probes: {} digit reads, {} coverage reads, {} public remainder reads; {filler} local filler rows leave the prefix unchanged.",
         profiles[1].iter().sum::<usize>(),
         profiles[2].iter().sum::<usize>(),
         profiles[3].iter().sum::<usize>()
     );
-    if local_digits {
+    if local_ranges {
+        println!("All range probes are local; prefix counts depend only on the public bootstrap and two input reads.");
+    } else if local_digits {
         println!("Local digit membership eliminates all private prefix-count contributions on this canonical leaf.");
     } else {
         println!(
@@ -357,7 +433,7 @@ fn audit_leaf_probes(
 
 /// Execute a real leaf witness with dense and reservation-aware allocation.
 /// This does not exercise recursive children or construct the common ZK padding.
-pub fn audit_leaf(n_xmss: usize, n_sphincs: usize, native_proof: bool, local_digits: bool) {
+pub fn audit_leaf(n_xmss: usize, n_sphincs: usize, native_proof: bool, local_digits: bool, local_ranges: bool) {
     use crate::signers_cache::{XMSS_EPOCH_A, get_signers, get_sphincs_signers, message};
 
     assert!(n_xmss + n_sphincs > 0);
@@ -367,7 +443,7 @@ pub fn audit_leaf(n_xmss: usize, n_sphincs: usize, native_proof: bool, local_dig
         .collect();
     let mut prepared = prepare_aggregate(&[], raw_xmss, get_sphincs_signers(n_sphincs), None, MIN_LOG_INV_RATE)
         .expect("prepare real leaf witness");
-    let mut program = wrapped_guest(local_digits);
+    let mut program = wrapped_guest(local_digits, local_ranges, false);
     let mut defer = prepared.defer;
     defer.bytecode_value = F192::from(lean_vm::cpu::layout::bytecode_table(&program.prog)[0]);
     let seed = lean_vm::cpu::fs_seed(&program);
@@ -396,15 +472,16 @@ pub fn audit_leaf(n_xmss: usize, n_sphincs: usize, native_proof: bool, local_dig
     let dense = dense.execute(public_input);
     program.set_allocation_layout(AllocationLayout::new(runs.clone(), SLOT));
     let reserved = program.execute(public_input);
-    check_accesses(&reserved, &runs, &masks);
+    check_accesses(&program, &reserved, &runs, &masks);
     compare_relocations(&program, &dense, &reserved);
     let group_sizes: Vec<_> = prepared.xmss_signers.iter().map(|(_, _, keys)| keys.len()).collect();
-    audit_leaf_probes(
+    audit_prefix_probes(
         &program,
         &reserved,
         &group_sizes,
         prepared.sphincs_signers.len(),
-        local_digits,
+        local_digits || local_ranges,
+        local_ranges,
     );
     let slots: u32 = reserved.allocations.iter().map(|&(_, _, n)| n / SLOT).sum();
     let largest = reserved
@@ -428,7 +505,7 @@ pub fn audit_leaf(n_xmss: usize, n_sphincs: usize, native_proof: bool, local_dig
         "Real opcode counts [XOR, MUL, SET, DEREF, JUMP, BLAKE2s]: {:?}.",
         reserved.base_counts
     );
-    assert!(reserved.base_counts[5] <= 65536, "real BLAKE2s padding budget exceeded");
+    check_opcode_budget(&reserved);
     println!("Mask bank untouched; all accesses belong to requested objects or the public prefix.");
     drop(dense);
     drop(reserved);
@@ -438,6 +515,96 @@ pub fn audit_leaf(n_xmss: usize, n_sphincs: usize, native_proof: bool, local_dig
         println!("A native proof verifies against the wrapped bytecode and its own statement digest.");
     }
     println!("These are finite leaf execution checks, not a universal relocation theorem or a ZK proof.");
+}
+
+/// Audit an optional outer wrapper that verifies ordinary non-ZK children.
+/// Its child program identity is public and separate from the wrapper's identity.
+pub fn audit_recursion(n_xmss: usize, n_sphincs: usize, children: usize, native_proof: bool) {
+    use crate::signers_cache::{XMSS_EPOCH_A, get_signers, get_sphincs_signers, message};
+
+    assert!((1..=MAX_RECURSIONS).contains(&children) && n_xmss + n_sphincs > 0);
+    let raw = get_signers(n_xmss)
+        .into_iter()
+        .map(|(key, signature)| (key, XMSS_EPOCH_A, message(), signature))
+        .collect();
+    let child = aggregate(&[], raw, get_sphincs_signers(n_sphincs), None, MIN_LOG_INV_RATE).expect("ordinary child");
+    child.verify().expect("complete ordinary child verifies");
+    let mut prepared = prepare_aggregate(&vec![child; children], vec![], vec![], None, MIN_LOG_INV_RATE)
+        .expect("prepare recursive witness");
+    assert_eq!(
+        DeferredClaim::recompute(
+            prepared.defer.bytecode_point.clone(),
+            prepared.defer.matrix_point.clone()
+        )
+        .unwrap(),
+        prepared.defer
+    );
+    let mut program = wrapped_guest(false, true, true);
+    let seed = lean_vm::cpu::fs_seed(&program);
+    let public_input = statement_digest_for(
+        &program,
+        signers_hash(&prepared.xmss_signers, &prepared.sphincs_signers),
+        &prepared.defer,
+    );
+    for (name, entries) in &mut prepared.hints.0 {
+        if name == "fs_seed" {
+            *entries = vec![seed.to_vec()];
+        }
+    }
+    prepared.hints.install(&mut program);
+    let masks: Vec<_> = (0..MASK).map(|i| F192::new(i as u64 + 1, i as u64, 1)).collect();
+    program.set_witness("zk_masks", vec![masks.clone()]);
+    let runs = candidate_runs();
+    let mut dense_program = program.clone();
+    dense_program.set_allocation_layout(AllocationLayout::new(
+        std::iter::once(runs[0].start..1 << 25).collect(),
+        1,
+    ));
+    let dense_execution = dense_program.execute(public_input);
+    program.set_allocation_layout(AllocationLayout::new(runs.clone(), SLOT));
+    let execution = program.execute(public_input);
+    check_accesses(&program, &execution, &runs, &masks);
+    compare_relocations(&program, &dense_execution, &execution);
+    drop(dense_execution);
+    let groups: Vec<_> = prepared.xmss_signers.iter().map(|(_, _, keys)| keys.len()).collect();
+    audit_prefix_probes(
+        &program,
+        &execution,
+        &groups,
+        prepared.sphincs_signers.len(),
+        true,
+        true,
+    );
+    let slots: u32 = execution.allocations.iter().map(|&(_, _, n)| n / SLOT).sum();
+    let largest = execution.allocations.iter().map(|&(_, _, n)| n / SLOT).max().unwrap();
+    let budget = 26703u32.checked_sub(3 * (largest - 1)).expect("allocation bound");
+    assert!(slots <= budget);
+    println!(
+        "Recursive wrapper: {children} ordinary children, {slots}/{budget} guaranteed slots, largest {largest} slots."
+    );
+    println!("Real opcode counts: {:?}.", execution.base_counts);
+    check_opcode_budget(&execution);
+    drop(execution);
+    if native_proof {
+        let (proof, _) = prove(&program, public_input, MIN_LOG_INV_RATE);
+        verify(&program, &public_input, &proof).expect("recursive wrapper proof");
+        println!(
+            "Native wrapper proof verifies; its carried claims on the ordinary child program were discharged separately."
+        );
+    }
+    println!(
+        "This is a recursive execution certificate, not a self-recursive ZK construction or a joint privacy proof."
+    );
+}
+
+fn check_opcode_budget(execution: &Execution) {
+    let caps = [1 << 19, 1 << 19, 1 << 19, 1 << 19, 1 << 20, 1 << 16];
+    for (table, (actual, cap)) in execution.base_counts.iter().zip(caps).enumerate() {
+        assert!(
+            *actual <= cap,
+            "real table {table} exceeds the candidate's private row budget"
+        );
+    }
 }
 
 #[cfg(test)]
