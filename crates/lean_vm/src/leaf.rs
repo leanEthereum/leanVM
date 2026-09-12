@@ -159,11 +159,34 @@ pub fn layout(blocks: &[Block]) -> Layout {
 /// A non-constant coordinate as `(source, coefficient)`: its leaf contribution is
 /// the mixed product `coeff · source(z)` with `source(z) ∈ K`, `coeff ∈ E`.
 /// `GCol` folds the `g^k` factor into the coefficient.
+#[derive(Clone, Copy)]
 enum Term<'a> {
     Col(usize, F192),
     Prod(usize, usize, F192),
     Index(F192),
     Public(&'a [F64], F192),
+}
+
+impl Term<'_> {
+    fn matches(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Col(a, x), Self::Col(b, y)) => a == b && x == y,
+            (Self::Prod(a, b, x), Self::Prod(c, d, y)) => a == c && b == d && x == y,
+            (Self::Index(x), Self::Index(y)) => x == y,
+            (Self::Public(a, x), Self::Public(b, y)) => std::ptr::eq(*a, *b) && x == y,
+            _ => false,
+        }
+    }
+
+    #[inline]
+    fn eval(&self, row: usize, cols: &[&[F64]], gpow: &[F64]) -> F192BaseUnreduced {
+        match self {
+            Self::Col(i, c) => c.mul_base_unreduced(cols[*i][row]),
+            Self::Prod(i, j, c) => c.mul_base_unreduced(cols[*i][row] * cols[*j][row]),
+            Self::Index(c) => c.mul_base_unreduced(gpow[row]),
+            Self::Public(vals, c) => c.mul_base_unreduced(vals[row]),
+        }
+    }
 }
 
 /// Flatten one coordinate into leaf terms at coefficient `w`. A [`Coord::Sum`]
@@ -185,6 +208,44 @@ fn push_terms<'a>(c: &'a Coord, w: F192, terms: &mut Vec<Term<'a>>, constant: &m
     }
 }
 
+/// # Safety
+/// The caller must fill every block's range before reading the result.
+unsafe fn leaf_buffer(blocks: &[Block], lay: &Layout) -> ArenaVec<F192> {
+    let mut ranges: Vec<_> = blocks
+        .iter()
+        .enumerate()
+        .map(|(b, block)| (lay.offsets[b], 1usize << block.kappa))
+        .collect();
+    let explicit = ranges
+        .iter()
+        .map(|&(offset, len)| offset.checked_add(len).expect("leaf layout size overflow"))
+        .max()
+        .unwrap_or(1);
+    debug_assert!(explicit <= 1usize << lay.mu);
+    // `stack_offsets` packs the power-of-two blocks contiguously from zero, so the
+    // blocks tile `0..explicit` and every slot below is written by one of them: the
+    // identity fill would be overwritten in full, and this is the largest buffer in
+    // the proof. Check the actual ranges because a caller can supply another public
+    // layout: equal total lengths alone do not exclude overlaps and holes.
+    // Capacity is rounded to whole four-tuples because `gkr::QuaternaryLayerState`
+    // pads this level to that before reading it, and growing it here would copy it.
+    ranges.sort_unstable_by_key(|&(offset, _)| offset);
+    let covered = ranges
+        .iter()
+        .try_fold(0usize, |end, &(offset, len)| (offset == end).then_some(offset + len));
+    if covered == Some(explicit) {
+        let mut values = ArenaVec::with_capacity(explicit.next_multiple_of(4));
+        // SAFETY: the checked ranges tile the allocation, and the caller fills
+        // every range before reading any element.
+        unsafe { values.set_len(explicit) };
+        values
+    } else {
+        let mut values = ArenaVec::with_capacity(explicit.next_multiple_of(4));
+        values.resize(explicit, F192::ONE);
+        values
+    }
+}
+
 /// Build one side's leaf vector: block `b` row `z` holds `β − Σ_i w_i c_i(z)` for
 /// the fingerprint weights `w = eq(α⃗, ·)`, followed implicitly by the identity `1`
 /// up to `2^μ`. The row-invariant weights and constant coordinates are folded once
@@ -198,38 +259,16 @@ pub fn build_leaves(
     beta: F192,
     gpow: &[F64],
 ) -> ArenaVec<F192> {
-    let explicit = blocks
-        .iter()
-        .enumerate()
-        .map(|(b, block)| lay.offsets[b] + (1usize << block.kappa))
-        .max()
-        .unwrap_or(1);
-    debug_assert!(explicit <= 1usize << lay.mu);
-    // `stack_offsets` packs the power-of-two blocks contiguously from zero, so the
-    // blocks tile `0..explicit` and every slot below is written by one of them: the
-    // identity fill would be overwritten in full, and this is the largest buffer in
-    // the proof. The `covered` test is what licenses skipping it, so a layout that
-    // ever left a hole falls back to filling rather than reading uninitialized rows.
-    // Capacity is rounded to whole four-tuples because `gkr::QuaternaryLayerState`
-    // pads this level to that before reading it, and growing it here would copy it.
-    let covered: usize = blocks.iter().map(|blk| 1usize << blk.kappa).sum();
-    let mut leaves = if covered == explicit {
-        let mut values = ArenaVec::with_capacity(explicit.next_multiple_of(4));
-        // SAFETY: the per-block fills below cover `0..explicit` exactly, and each
-        // joins before this function returns.
-        unsafe { values.set_len(explicit) };
-        values
-    } else {
-        let mut values = ArenaVec::with_capacity(explicit.next_multiple_of(4));
-        values.resize(explicit, F192::ONE);
-        values
-    };
+    // SAFETY: the per-block fills below initialize every range and join before return.
+    let mut leaves = unsafe { leaf_buffer(blocks, lay) };
     for (b, blk) in blocks.iter().enumerate() {
         let mut const_part = beta;
         let mut terms: Vec<Term> = Vec::with_capacity(blk.coords.len());
         for (i, c) in blk.coords.iter().enumerate() {
             push_terms(c, w[i], &mut terms, &mut const_part);
         }
+        let off = lay.offsets[b];
+        let dst = &mut leaves[off..off + (1usize << blk.kappa)];
         let row = |z: usize| -> F192 {
             // The α-weighted coordinate sum defers its reductions: each mixed
             // product contributes its three raw limb products (3 PMULL, no
@@ -237,26 +276,88 @@ pub fn build_leaves(
             // bit-identical to summing reduced `mul_base` terms.
             let mut acc = F192BaseUnreduced::ZERO;
             for t in &terms {
-                acc ^= match t {
-                    Term::Col(i, c) => c.mul_base_unreduced(cols[*i][z]),
-                    Term::Prod(i, j, c) => c.mul_base_unreduced(cols[*i][z] * cols[*j][z]),
-                    Term::Index(c) => c.mul_base_unreduced(gpow[z]),
-                    Term::Public(vals, c) => c.mul_base_unreduced(vals[z]),
-                };
+                acc ^= t.eval(z, cols, gpow);
             }
             const_part + acc.reduce()
         };
-        let off = lay.offsets[b];
         // Every row of every block is a real row: a table's height is exactly the
         // number of rows it executed (`cpu::filler`), so no block has padding rows
         // whose tuples would have to be divided back out of the product.
-        let dst = &mut leaves[off..off + (1usize << blk.kappa)];
         if dst.len() >= PAR_THRESHOLD {
             parallel::fill(dst, row);
         } else {
             for (z, slot) in dst.iter_mut().enumerate() {
                 *slot = row(z);
             }
+        }
+    }
+    leaves
+}
+
+/// Paired flushes share their tuple except for the access count or next state.
+/// Accumulate equal terms once, then add each side's remaining terms before reduction.
+fn build_paired_leaves(
+    push: &[Block],
+    pull: &[Block],
+    lays: [&Layout; 2],
+    cols: &[&[F64]],
+    w: &[F192],
+    beta: F192,
+    gpow: &[F64],
+) -> [ArenaVec<F192>; 2] {
+    if push.len() != pull.len() || push.iter().zip(pull).any(|(a, b)| a.kappa != b.kappa) {
+        return [
+            build_leaves(push, lays[0], cols, w, beta, gpow),
+            build_leaves(pull, lays[1], cols, w, beta, gpow),
+        ];
+    }
+    // SAFETY: both sides' block ranges are filled below before either vector is read.
+    let mut leaves = unsafe { [leaf_buffer(push, lays[0]), leaf_buffer(pull, lays[1])] };
+    for (block, (push, pull)) in push.iter().zip(pull).enumerate() {
+        let mut constants = [beta; 2];
+        let mut terms: [Vec<Term>; 2] = std::array::from_fn(|_| Vec::new());
+        for (side, blk) in [push, pull].iter().enumerate() {
+            for (i, coord) in blk.coords.iter().enumerate() {
+                push_terms(coord, w[i], &mut terms[side], &mut constants[side]);
+            }
+        }
+        let mut shared = Vec::new();
+        let [push_terms, pull_terms] = &mut terms;
+        push_terms.retain(|term| {
+            if let Some(index) = pull_terms.iter().position(|other| term.matches(other)) {
+                shared.push(*term);
+                pull_terms.swap_remove(index);
+                false
+            } else {
+                true
+            }
+        });
+        let row = |z: usize| {
+            let common = shared
+                .iter()
+                .fold(F192BaseUnreduced::ZERO, |acc, term| acc ^ term.eval(z, cols, gpow));
+            std::array::from_fn::<_, 2, _>(|side| {
+                constants[side]
+                    + terms[side]
+                        .iter()
+                        .fold(common, |acc, term| acc ^ term.eval(z, cols, gpow))
+                        .reduce()
+            })
+        };
+        let [push_out, pull_out] = &mut leaves;
+        let len = 1 << push.kappa;
+        let push_out = &mut push_out[lays[0].offsets[block]..][..len];
+        let pull_out = &mut pull_out[lays[1].offsets[block]..][..len];
+        let fill = |first: usize, a: &mut [F192], b: &mut [F192]| {
+            for (offset, (a, b)) in a.iter_mut().zip(b).enumerate() {
+                [*a, *b] = row(first + offset);
+            }
+        };
+        if len >= PAR_THRESHOLD {
+            let chunk = parallel::recommended_chunk_size(len);
+            parallel::chunks_mut2(push_out, pull_out, chunk, |index, a, b| fill(index * chunk, a, b));
+        } else {
+            fill(0, push_out, pull_out);
         }
     }
     leaves
@@ -734,13 +835,11 @@ pub fn prove_balance(
         .map(|b| b.kappa)
         .max();
     let gpow = index_k.map_or_else(Vec::new, |k| primitives::field::g_powers(1usize << k));
-    // Three independent leaf vectors, built one after another: each `build_leaves`
-    // already fans its own blocks out across the whole pool, so nesting a
-    // three-way outer split on top would only add a barrier.
     let [push_leaves, pull_leaves, count_leaves] = crate::stage!("Bus leaves", || {
+        let [push_leaves, pull_leaves] = build_paired_leaves(push, pull, [&push_lay, &pull_lay], cols, &w, beta, &gpow);
         [
-            build_leaves(push, &push_lay, cols, &w, beta, &gpow),
-            build_leaves(pull, &pull_lay, cols, &w, beta, &gpow),
+            push_leaves,
+            pull_leaves,
             build_leaves(count, &count_lay, cols, &count_w, F192::ZERO, &gpow),
         ]
     });
@@ -984,6 +1083,103 @@ pub fn verify_balance(
 #[cfg(test)]
 mod tests {
     use super::soundness_bits;
+
+    #[test]
+    fn leaf_layout_gaps_keep_identity_with_overlapping_blocks() {
+        use super::*;
+
+        let blocks: Vec<_> = [2, 3, 5]
+            .map(|value| Block {
+                kappa: 0,
+                coords: vec![Coord::Const(F64(value))],
+            })
+            .into();
+        let weights = fingerprint_weights(&[F192::ZERO; N_TUPLE_BITS]);
+        for offsets in [vec![0, 0, 2], vec![0, 2, 3], vec![2, 0, 1]] {
+            let lay = Layout { mu: 2, offsets };
+            let mut expected = vec![F192::ONE; lay.offsets.iter().max().unwrap() + 1];
+            for (&offset, value) in lay.offsets.iter().zip([2, 3, 5]) {
+                expected[offset] = F192::from(F64(value));
+            }
+            let leaves = build_leaves(&blocks, &lay, &[], &weights, F192::ZERO, &[]);
+            assert_eq!(&*leaves, expected);
+            let paired = build_paired_leaves(&blocks, &blocks, [&lay, &lay], &[], &weights, F192::ZERO, &[]);
+            for side in paired {
+                assert_eq!(&*side, expected);
+            }
+        }
+    }
+
+    #[test]
+    fn paired_leaves_match_independent_fingerprints() {
+        use super::*;
+        use Coord::{Col, Const, GCol, Index, Prod, Public, Sum};
+
+        let mut rng = primitives::test_rng::Rng::new(8241);
+        for kappa in [0, 3, 12] {
+            let len = 1 << kappa;
+            let columns: Vec<Vec<_>> = (0..4)
+                .map(|_| (0..len).map(|_| F64(rng.next_u64())).collect())
+                .collect();
+            let cols: Vec<_> = columns.iter().map(Vec::as_slice).collect();
+            let public = Arc::new((0..len).map(|_| F64(rng.next_u64())).collect::<Vec<_>>());
+            let same_values = Arc::new(public.as_ref().clone());
+            let push = vec![
+                Block {
+                    kappa,
+                    coords: vec![
+                        Const(F64::ONE),
+                        GCol(0, 1),
+                        Sum(vec![Col(1), Prod(2, 3, 1), Col(1)]),
+                        Index,
+                        Public(public.clone()),
+                        Public(same_values),
+                    ],
+                },
+                Block {
+                    kappa: kappa.saturating_sub(1),
+                    coords: vec![Prod(0, 1, 2), Col(2), GCol(3, 0)],
+                },
+                Block {
+                    kappa: 0,
+                    coords: vec![Const(F64(5))],
+                },
+            ];
+            let pull = vec![
+                Block {
+                    kappa,
+                    coords: vec![
+                        Const(F64(7)),
+                        Col(0),
+                        Sum(vec![Prod(2, 3, 1), Col(1), Col(1)]),
+                        Index,
+                        Public(public.clone()),
+                        Public(public),
+                    ],
+                },
+                Block {
+                    kappa: kappa.saturating_sub(1),
+                    coords: vec![Col(1), Prod(2, 0, 0), Col(3)],
+                },
+                Block {
+                    kappa: 0,
+                    coords: Vec::new(),
+                },
+            ];
+            let w = fingerprint_weights(&rng.ext_vec(N_TUPLE_BITS));
+            let beta = rng.ext();
+            let gpow = primitives::field::g_powers(len);
+            let shorter = pull[..2].to_vec();
+            for pull in [pull.clone(), pull.into_iter().rev().collect(), shorter] {
+                let layouts = [layout(&push), layout(&pull)];
+                let paired = build_paired_leaves(&push, &pull, [&layouts[0], &layouts[1]], &cols, &w, beta, &gpow);
+                for (side, blocks) in [&push, &pull].into_iter().enumerate() {
+                    let independent = build_leaves(blocks, &layouts[side], &cols, &w, beta, &gpow);
+                    assert_eq!(&*paired[side], &*independent);
+                }
+            }
+        }
+    }
 
     #[test]
     fn factored_bus_form_matches_expanded_products() {
