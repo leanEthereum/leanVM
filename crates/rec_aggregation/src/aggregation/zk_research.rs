@@ -1,6 +1,6 @@
 //! Allocation feasibility checks, not a ZK prover or a program-wide certificate.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 use lean_vm::cpu::{Execution, Op, allocation::AllocationLayout};
 
@@ -40,7 +40,10 @@ def main():
         .expect("public wrapper")
         .funcs,
     );
-    let program = compile(&ast);
+    let mut program = compile(&ast);
+    let original_seed = lean_vm::cpu::fs_seed(&program);
+    program.use_local_deref_fillers();
+    assert_ne!(lean_vm::cpu::fs_seed(&program), original_seed);
     assert_eq!(program.prog.len(), 1 << 19, "wrapped code fixed point changed");
     let first_code = (1 << 19) - (1 << 11) + 1024;
     let last_code = first_code + 127;
@@ -145,6 +148,178 @@ fn compare_relocations(program: &Program, dense: &Execution, reserved: &Executio
     println!("Actual BLAKE2s load {maximum}; compression data and instruction choices agree after relocation.");
 }
 
+fn public_leaf_probes(group_sizes: &[usize], sphincs: usize) -> Vec<usize> {
+    let mut counts = vec![0; PREFIX as usize];
+    let mut check = |value: usize, bound: usize| {
+        assert!(value < bound && bound <= PREFIX as usize);
+        counts[value] += 1;
+        counts[bound - 1 - value] += 1;
+    };
+    for value in [group_sizes.len(), 0, group_sizes.len()] {
+        check(value, MAX_EPOCHS + 1);
+    }
+    for value in [sphincs, 0, sphincs] {
+        check(value, MAX_KEYS);
+    }
+    check(0, MAX_RECURSIONS + 1);
+    for &size in group_sizes {
+        for value in [size, 0, size] {
+            check(value, MAX_KEYS);
+        }
+        check(size % 2, 2);
+        check(size / 2, MAX_KEYS);
+    }
+    check(group_sizes.iter().sum::<usize>() + sphincs, MAX_KEYS);
+    for blocks in group_sizes
+        .iter()
+        .map(|size| size.div_ceil(2))
+        .chain((sphincs != 0).then_some(sphincs))
+        .chain(std::iter::once(2 + 2 * group_sizes.len()))
+    {
+        check((blocks - 1) % SIGNERS_WINDOW, SIGNERS_WINDOW);
+        check((blocks - 1) / SIGNERS_WINDOW, SIGNERS_MAX_WINDOWS);
+    }
+    counts[0] += 1;
+    counts[1] += 1;
+    counts
+}
+
+fn audit_leaf_probes(program: &Program, execution: &Execution, group_sizes: &[usize], sphincs: usize) {
+    use lean_vm::cpu::filler::{NO_FLOORS, filled, solve};
+
+    let source = include_str!("../../guests/aggregate.py");
+    let line_of = |needle: &str| {
+        let matches: Vec<_> = source
+            .lines()
+            .enumerate()
+            .filter(|(_, line)| line.trim() == needle)
+            .collect();
+        assert_eq!(matches.len(), 1, "probe source anchor {needle}");
+        matches[0].0 as u32 + 1
+    };
+    let digits = [
+        line_of("assert log(digit) < CHAIN_LENGTH"),
+        line_of("assert log(digit) < SP_CHAIN_LENGTH"),
+    ];
+    let coverage = [
+        line_of("assert log(idx) < log(slots)"),
+        line_of("assert log(off_hint) < log(sphincs_slots_g)"),
+    ];
+    let addresses: HashMap<_, _> = (0..PREFIX as usize).map(|j| (g_pow(j).0, j)).collect();
+    let mut profiles: [Vec<usize>; 4] = std::array::from_fn(|_| vec![0; PREFIX as usize]);
+    let mut other_sources = BTreeMap::<u32, usize>::new();
+    let mut bootstrap_pcs = BTreeSet::new();
+    for (pc, fp) in execution.instruction_sites() {
+        let line = program.src_lines[pc as usize];
+        let kind = if fp == 0 {
+            0
+        } else if digits.contains(&line) {
+            1
+        } else if coverage.contains(&line) {
+            2
+        } else {
+            3
+        };
+        if fp == 0 {
+            assert_eq!(program.fn_at(pc), "main");
+            assert!(bootstrap_pcs.insert(pc));
+        } else {
+            assert!(fp >= PREFIX);
+        }
+        let mut count = |address: usize| {
+            if address < PREFIX as usize {
+                profiles[kind][address] += 1;
+                if kind == 3 {
+                    *other_sources.entry(line).or_default() += 1;
+                }
+            }
+        };
+        let op = &program.prog[pc as usize];
+        if fp == 0 {
+            let cells = match *op {
+                Op::Xor { a, b, c } | Op::Mul { a, b, c } => vec![a, b, c],
+                Op::Set { o, .. } => vec![o],
+                Op::Deref { o1, o3, .. } => vec![o1, o3],
+                Op::Jump { oc, od, of } => vec![oc, od, of],
+                Op::Blake2s { .. } => blake_cells(op).unwrap().to_vec(),
+            };
+            for cell in cells {
+                count(cell as usize);
+            }
+        }
+        if let Op::Deref { o1, o2, .. } = *op {
+            let pointer = execution.mem[(fp + o1) as usize];
+            assert_eq!((pointer.c1, pointer.c2), (0, 0));
+            if let Some(&address) = addresses.get(&(F64(pointer.c0) * g_pow(o2 as usize)).0) {
+                count(address);
+            }
+        }
+    }
+    let (_, main_pc, main_len) = program.fn_ranges.iter().find(|(name, _, _)| name == "main").unwrap();
+    let main_pcs = (*main_pc..main_pc + main_len)
+        .filter(|pc| {
+            !program
+                .filler
+                .iter()
+                .any(|block| (block.pc..=block.pc + block.size).contains(pc))
+        })
+        .collect();
+    assert_eq!(bootstrap_pcs, main_pcs);
+    let expected_other = public_leaf_probes(group_sizes, sphincs);
+    let differences: Vec<_> = expected_other
+        .iter()
+        .zip(&profiles[3])
+        .enumerate()
+        .filter(|(_, (a, b))| a != b)
+        .collect();
+    assert!(
+        differences.is_empty(),
+        "public probe remainder differs: {differences:?}; sources {other_sources:?}"
+    );
+    let mut expected_coverage = vec![0; PREFIX as usize];
+    for size in group_sizes.iter().copied().chain(std::iter::once(sphincs)) {
+        for count in &mut expected_coverage[..size] {
+            *count += 2;
+        }
+    }
+    assert_eq!(profiles[2], expected_coverage);
+    assert!(profiles[1][8..].iter().all(|&count| count == 0));
+    assert_eq!(
+        profiles[1].iter().sum::<usize>(),
+        2 * xmss::V * group_sizes.iter().sum::<usize>() + 2 * sphincs::V * sphincs::D * sphincs
+    );
+    assert!((0..8).all(|j| profiles[1][j] == profiles[1][7 - j]));
+    const _: () = assert!(xmss::V == 42 && xmss::CHAIN_LENGTH == 8 && xmss::TARGET_SUM == 195);
+    const _: () = assert!(sphincs::V == 42 && sphincs::CHAIN_LEN == 8 && sphincs::TARGET_SUM == 191 && sphincs::D == 3);
+    let xmss = group_sizes.iter().sum::<usize>();
+    let caps: Vec<_> = [41, 41, 42, 33, 33, 42, 41, 41]
+        .into_iter()
+        .zip([41, 41, 41, 34, 34, 41, 41, 41])
+        .map(|(x, s)| x * xmss + s * sphincs::D * sphincs)
+        .collect();
+    assert!((0..8).all(|j| profiles[1][j] <= caps[j]));
+    let topups = (0..8).map(|j| caps[j] - profiles[1][j]).sum::<usize>();
+    assert_eq!(topups, 230 * (xmss + sphincs::D * sphincs));
+    let padded = filled(execution.base_counts, &solve(execution.base_counts, NO_FLOORS).unwrap());
+    let filler = padded[3] - execution.base_counts[3];
+    for j in 0..PREFIX as usize {
+        let count = profiles.iter().map(|part| part[j]).sum::<usize>();
+        assert_eq!(execution.memory_read_counts()[j], g_pow(count));
+    }
+    println!(
+        "Canonical leaf probes: {} digit reads, {} coverage reads, {} public remainder reads; {filler} local filler rows leave the prefix unchanged.",
+        profiles[1].iter().sum::<usize>(),
+        profiles[2].iter().sum::<usize>(),
+        profiles[3].iter().sum::<usize>()
+    );
+    println!(
+        "All private prefix-count contributions are confined to indices 0..7 on this leaf; public geometry predicts the other 65528 counts exactly."
+    );
+    println!(
+        "Eight-address completion would add {topups} DEREF/JUMP cycles; those cycles are not installed by this audit."
+    );
+}
+
 /// Execute a real leaf witness with dense and reservation-aware allocation.
 /// This does not exercise recursive children or construct the common ZK padding.
 pub fn audit_leaf(n_xmss: usize, n_sphincs: usize, native_proof: bool) {
@@ -188,6 +363,8 @@ pub fn audit_leaf(n_xmss: usize, n_sphincs: usize, native_proof: bool) {
     let reserved = program.execute(public_input);
     check_accesses(&reserved, &runs, &masks);
     compare_relocations(&program, &dense, &reserved);
+    let group_sizes: Vec<_> = prepared.xmss_signers.iter().map(|(_, _, keys)| keys.len()).collect();
+    audit_leaf_probes(&program, &reserved, &group_sizes, prepared.sphincs_signers.len());
     let slots: u32 = reserved.allocations.iter().map(|&(_, _, n)| n / SLOT).sum();
     let largest = reserved
         .allocations

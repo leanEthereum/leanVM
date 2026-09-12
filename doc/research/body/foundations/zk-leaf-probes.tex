@@ -1,0 +1,67 @@
+% !TeX root = ../../main.tex
+\subsection{Public probe counts for canonical aggregation leaves}\label{note:zk-leaf-probes}
+
+\paragraph{Scope.} The generic probe-budget obstruction does not make every aggregation leaf infeasible. Here a \emph{canonical leaf} has no recursive children, no dropped or duplicate claims, and exactly one raw signature for each declared claim. Its public auxiliary input includes the externally published signer geometry: nonempty XMSS group sizes and the SPHINCS claim count, denoted in total by $\zkLeafXmss$ and $\zkLeafSphincs$. This geometry is not generally recoverable from the VM's two-field input digest; it must actually be available to the simulator. Private signature data, ordering, frames and control flow are not declared public. The result below isolates and equalizes the leaf's final prefix counters. It is neither a generic-VM theorem nor a full ZK simulator.
+
+\begin{lemma}[Frame-local DEREF filler]\label{lem:zk-local-deref-filler}
+In each ordinary DEREF filler block, replace the operand offsets $(2,0,4)$ by $(1,4,4)$, in cell mode. The filler remains valid with the existing frame initialization and closing jump, with exactly the same opcode totals. When its frame is outside the protected prefix, none of its reads touches that prefix.
+\end{lemma}
+\begin{proof}
+The interpreter initializes frame offset $1$ to the frame address. The new indirect address is therefore frame offset $4$, also the local output address. Both read occurrences carry the same scratch value, initially zero, and receive successive count labels. The state transition and closing jump are unchanged. All three memory reads are local. More generally the scratch could carry any common $\E$ value, but this lemma does not prove privacy from randomizing it.
+\end{proof}
+
+This is a public optional bytecode transformation, with a correspondingly recomputed program digest, not a new verifier equation. It changes neither the ordinary range-check gadget nor the default program. Filler for the other five opcodes already uses only its own frame. This removes a potentially private number of ordinary filler reads at prefix index zero.
+
+\begin{proposition}[Leaf prefix decomposition]\label{prop:zk-leaf-probe-profile}
+Assume the public wrapper and address discipline of \noteref{zk-memory-frames}, the canonical leaf policy above, and frame-local filler. Let $\zkProbeAccess(j)$ count all accesses to prefix address $\gen^j$, including the fixed bootstrap. Then
+\[
+ \zkProbeAccess(j)=\zkLeafPublicProbes(\zkStmt,j)+\zkLeafDigitProbes(\zkWit,j),
+ \qquad \zkLeafDigitProbes(\zkWit,j)=0\quad(j\ge8),
+\]
+where $\zkLeafPublicProbes$ is efficiently computable from the public code and geometry. Writing $\zkLeafWords=\zkLeafXmss+3\zkLeafSphincs$,
+\[
+ \zkLeafDigitProbes(\zkWit,j)=\zkLeafDigitProbes(\zkWit,7-j),
+ \qquad \sum_{j=0}^7\zkLeafDigitProbes(\zkWit,j)=84\zkLeafWords.
+\]
+\end{proposition}
+\begin{proof}
+The native range check $0\le e<k$ reads indices $e$ and $k-1-e$. Every declared coverage region of length $n$ is filled exactly once per slot: distinct raw marks follow from write-once consistency and the guest's distinct mark counters, and the final total equals the region size. Consequently its two range probes contribute exactly two reads at every index below $n$, independent of the order of signatures. Canonical metadata uses only public group sizes, zero child counts and the declared raw counts. The signer-hash range checks use the quotient and remainder of public block lengths; the two final public-input checks are fixed. Bootstrap reads are fixed by its straight-line public code. All other indirect accesses stay within allocated objects by the address discipline, and filler is local by Lemma~\ref{lem:zk-local-deref-filler}.
+
+The remaining prefix accesses are the digit range checks in \texttt{verify\_sig} and \texttt{sp\_ots\_leaf}. Each of their $42$ digits lies in $\{0,\ldots,7\}$ and contributes the pair $e,7-e$. There is one such word per XMSS signature and three per SPHINCS signature. This gives the support, symmetry and total. The source-site audit below checks the classification against the compiled guest; the argument assumes the stated pointer discipline rather than asserting that arbitrary hinted addresses satisfy it.
+\end{proof}
+
+\paragraph{Tight arithmetic quotas.} For one word, the maximum number of reads of index $j$ is the maximum number of digits in $\{j,7-j\}$ subject to its target sum. The first four maxima are
+\[
+ \begin{array}{c|rrrr|r}
+ \text{target sum}&0,7&1,6&2,5&3,4&\text{sum over all eight indices}\\ \hline
+ 195\ (\text{XMSS})&41&41&42&33&314\\
+ 191\ (\text{SPHINCS})&41&41&41&34&314
+ \end{array}
+\]
+The other four entries are obtained by reflection. For the first three pairs, $42$ selected digits have sums $7m$, $42+5m$ and $84+3m$, respectively. These congruences exclude $42$ except for the third pair at target $195$. For the last pair, $k$ selected digits give a sum at most $4k+7(42-k)=294-3k$, proving the displayed upper bounds. They are attained by the following digit multisets, listed in pair order:
+\[
+ \begin{array}{c|llll}
+ 195&7^{[27]}0^{[14]}6&6^{[30]}1^{[11]}4&5^{[37]}2^{[5]}&4^{[33]}7^{[9]}\\
+ 191&7^{[27]}0^{[14]}2&6^{[30]}1^{[11]}0&5^{[36]}2^{[5]}1&4^{[33]}3\,7^{[8]}
+ \end{array}
+\]
+Here a bracketed exponent denotes multiplicity, not exponentiation. These are exact maxima in the arithmetic encoding class; no claim is made that each extremal word is realized by a signature of a fixed public key and message.
+
+\begin{corollary}[Eight-address count completion]\label{cor:zk-leaf-probe-completion}
+Let $\zkLeafDigitCap(j)$ be $\zkLeafXmss$ times the XMSS quota plus $3\zkLeafSphincs$ times the SPHINCS quota at $j$. With eight disjoint helper frames outside the prefix and one fixed public DEREF/JUMP code pair, a valid completion adds exactly $230\zkLeafWords$ rows to each of those two tables and no rows to the other four, making every final prefix count public:
+\[
+ \zkProbeCompleted(j)=
+ \begin{cases}
+ \zkLeafPublicProbes(\zkStmt,j)+\zkLeafDigitCap(j),&j<8,\\
+ \zkLeafPublicProbes(\zkStmt,j),&8\le j<\zkProbePrefix.
+ \end{cases}
+\]
+The helper requirement does not grow with the number of signatures. Subsequent padding that stays outside the prefix preserves this result.
+\end{corollary}
+\begin{proof}
+For index $j$, a helper frame holds $\gen^j$, the public word $\mem[\gen^j]$, a nonzero jump condition, the public entry PC and its own frame address. A DEREF copies that public word to its local copy; a JUMP closes the cycle. Repeat it $\zkLeafDigitCap(j)-\zkLeafDigitProbes(\zkWit,j)$ times. The quotas make these repetitions nonnegative. Assign complete successive read-label chains to all occurrences, including the real prefix accesses. Each repetition adds one prefix read, two local DEREF reads and three local JUMP reads, so the usual seed/final tuples balance every memory chain and the closed state cycle. The total number of repetitions is $(314-84)\zkLeafWords$, independently of the private digit histogram.
+\end{proof}
+
+\paragraph{Capacity and remaining leakage.} Eight eight-cell frames occupy $64$ cells if packed, or eight $256$-cell slots with the current research allocator. Their locations and the two code addresses must be reserved publicly. At the $453$-XMSS example, this adds $104190$ DEREF rows to the $260412$ real ones, leaving $159686$ of the candidate $2^{19}$ table for other DEREF normalization; it does not certify the other tables or the common reservation. Helper and instruction counts remain private, as do their internal GKR trees. The noncompression normalization of Corollary~\ref{cor:zk-noncompression-completion} can follow without reopening these prefix counters or compression products, subject to its public incoming row totals, exponent intervals and capacity conditions. If incoming totals vary, first fill them to common public sizes using local filler, before applying this completion and the subsequent normalization. No complete capacity certificate for this composition is asserted.
+
+\paragraph{Executable evidence.} \auditref{zk_leaf_probe_audit.py} computes all eight arithmetic maxima by exact dynamic programming and checks the complete ISA and counted buses for extremal range-check cycles and their eight-address completions. Final opcode heights and protected counters agree; full count-column roots still vary, exposing the omitted helper obligation. The optional native \path{crates/rec_aggregation/examples/zk_guest_allocation_audit.rs} classifies every real prefix access by source site and checks the predicted final counters after local filler, including XMSS-only, SPHINCS-only and mixed leaves. Its \texttt{--prove} mode also verifies the wrapped program under its recomputed bytecode digest. These are finite execution checks, not a proof for recursive children, arbitrary allocations or the full transcript. Recursive metadata, child signer geometry and proof-dependent range checks require a separate public-load theorem or a different masking construction.

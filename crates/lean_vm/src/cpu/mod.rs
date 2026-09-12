@@ -185,8 +185,8 @@ pub struct Program {
     /// BLAKE2s over the stacked bytecode multilinear, computed once at assembly
     /// so proving and verifying the same program do not rehash it (that table is
     /// 16·2^kbc words, tens of megabytes at production sizes). Trusted to match
-    /// `prog`: always set by [`Program::assemble`] from the bytecode, so a
-    /// `Program` cannot carry a hash inconsistent with its own `prog`.
+    /// `prog`: assembly and research bytecode rewrites use the same hash routine.
+    /// Directly mutating the public `prog` field does not refresh this cache.
     pub(crate) bytecode_hash: [u8; 32],
     /// Prover-side frame/buffer allocation hints (keyed by global pc) and the
     /// size of `main`'s frame: the nondeterminism [`Program::execute`] needs to
@@ -238,14 +238,7 @@ impl Program {
     /// from `prog`. The single funnel for construction, so the digest is always
     /// consistent with the bytecode.
     pub fn assemble(prog: Vec<Op>, hints: HashMap<u32, Vec<hints::RHint>>, main_frame: u32) -> Self {
-        let bytecode_hash = {
-            let table = layout::bytecode_table(&prog);
-            // SAFETY: F64 is #[repr(transparent)] over u64, so the slice's byte image is
-            // exactly the concatenation of its `to_le_bytes` on little-endian targets.
-            let bytes: &[u8] =
-                unsafe { core::slice::from_raw_parts(table.as_ptr().cast::<u8>(), core::mem::size_of_val(&table[..])) };
-            primitives::hash::Hasher::new().update(bytes).finalize()
-        };
+        let bytecode_hash = Self::hash_bytecode(&prog);
         Self {
             prog,
             bytecode_hash,
@@ -259,6 +252,49 @@ impl Program {
             src_lines: Vec::new(),
             min_log_committed: 0,
         }
+    }
+
+    fn hash_bytecode(prog: &[Op]) -> [u8; 32] {
+        let table = layout::bytecode_table(prog);
+        // SAFETY: F64 is #[repr(transparent)] over u64, so the slice's byte image is
+        // exactly the concatenation of its `to_le_bytes` on little-endian targets.
+        let bytes: &[u8] =
+            unsafe { core::slice::from_raw_parts(table.as_ptr().cast::<u8>(), core::mem::size_of_val(&table[..])) };
+        primitives::hash::Hasher::new().update(bytes).finalize()
+    }
+
+    /// Replace ordinary DEREF filler by frame-local self-copies, changing the public bytecode digest.
+    /// This research-only transformation does not change row counts or verifier equations.
+    #[cfg(feature = "zk-research")]
+    pub fn use_local_deref_fillers(&mut self) {
+        use filler::frame;
+
+        let positions: Vec<_> = self
+            .filler
+            .iter()
+            .filter(|block| block.table == 3)
+            .flat_map(|block| block.pc as usize..(block.pc + block.size) as usize)
+            .collect();
+        for &position in &positions {
+            assert!(matches!(
+                self.prog[position],
+                Op::Deref {
+                    o1: frame::PTR,
+                    o2: 0,
+                    o3: frame::SCRATCH,
+                    mode: DerefMode::Cell
+                }
+            ));
+        }
+        for position in positions {
+            self.prog[position] = Op::Deref {
+                o1: frame::NEXT_FP,
+                o2: frame::SCRATCH,
+                o3: frame::SCRATCH,
+                mode: DerefMode::Cell,
+            };
+        }
+        self.bytecode_hash = Self::hash_bytecode(&self.prog);
     }
 
     /// Where `pc` came from: `"verify_sub (line 2204)"` when the compiler left a
