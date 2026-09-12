@@ -986,6 +986,9 @@ fn weighted_eq_table(points: &[Vec<F192>], lambdas: &[F192], vars: usize, active
     parallel::chunks_mut(&mut weights, lo_len, |high_index, chunk| {
         for (low, high) in &halves {
             let scale = high[first + high_index];
+            if scale.is_zero() {
+                continue;
+            }
             for (output, &low_weight) in chunk.iter_mut().zip(low) {
                 *output += scale * low_weight;
             }
