@@ -66,35 +66,34 @@ fn for_each_hash_group(
     });
 }
 
-fn hash_leaves_batched_uninit(data: &[u8], leaf_size: usize, out: &mut [std::mem::MaybeUninit<Hash>]) {
-    fn batched<const N: usize>(data: &[u8], out: &mut [std::mem::MaybeUninit<Hash>]) {
-        // Leaf hashing is the purest embarrassingly parallel phase here:
-        // fixed-size independent groups, no cross-group dependency, one join
-        // at the end. The pool's efficiency-core workers pull from the same claim
-        // counter as the performance ones, so this is also where the otherwise
-        // idle E-cores get spent (see the `parallel` crate).
-        for_each_hash_group(out, |lo, outputs| {
-            let len = outputs.len();
-            hash_many_uninit::<N>(&data[lo * N..(lo + len) * N], outputs);
-        });
-    }
+pub(crate) fn hash_leaves_serial_uninit(data: &[u8], leaf_size: usize, out: &mut [std::mem::MaybeUninit<Hash>]) {
+    assert_eq!(data.len(), leaf_size * out.len());
     match leaf_size {
-        64 => batched::<64>(data, out),
-        128 => batched::<128>(data, out),
-        256 => batched::<256>(data, out),
-        512 => batched::<512>(data, out),
+        64 => hash_many_uninit::<64>(data, out),
+        128 => hash_many_uninit::<128>(data, out),
+        256 => hash_many_uninit::<256>(data, out),
+        512 => hash_many_uninit::<512>(data, out),
         // The WHIR recursion levels commit F192 rows, so their leaves are
         // `num_interleaved * 24` bytes, a multiple of 64 but not a power of
         // two, which used to miss every batched arm and fall through to the
         // one-leaf-at-a-time path with no cross-leaf SIMD at all.
-        192 => batched::<192>(data, out),
-        384 => batched::<384>(data, out),
-        768 => batched::<768>(data, out),
-        1024 => batched::<1024>(data, out),
-        _ => parallel::for_each_mut(out, |i, slot| {
-            slot.write(hash_leaf(&data[i * leaf_size..(i + 1) * leaf_size]));
-        }),
+        192 => hash_many_uninit::<192>(data, out),
+        384 => hash_many_uninit::<384>(data, out),
+        768 => hash_many_uninit::<768>(data, out),
+        1024 => hash_many_uninit::<1024>(data, out),
+        _ => {
+            for (i, slot) in out.iter_mut().enumerate() {
+                slot.write(hash_leaf(&data[i * leaf_size..(i + 1) * leaf_size]));
+            }
+        }
     }
+}
+
+fn hash_leaves_batched_uninit(data: &[u8], leaf_size: usize, out: &mut [std::mem::MaybeUninit<Hash>]) {
+    for_each_hash_group(out, |lo, outputs| {
+        let bytes = &data[lo * leaf_size..][..outputs.len() * leaf_size];
+        hash_leaves_serial_uninit(bytes, leaf_size, outputs);
+    });
 }
 
 fn hash_pairs_level_uninit(read: &[Hash], write: &mut [std::mem::MaybeUninit<Hash>]) {
@@ -135,7 +134,8 @@ pub fn merkle_tree(data: &[u8], num_leaves: usize) -> ArenaVec<Hash> {
     hash_leaves_batched_uninit(data, leaf_size, &mut tree[..num_leaves]);
 
     // 2. Internal levels: parallel within a level, sequential across levels.
-    internal_levels_uninit(&mut tree, num_leaves);
+    // SAFETY: leaf hashing initialized the complete leaf prefix.
+    unsafe { internal_levels_uninit(&mut tree, num_leaves) };
 
     // SAFETY: leaves and each successive internal level initialize the full tree.
     unsafe { zk_alloc::assume_init(tree) }
@@ -186,7 +186,8 @@ pub fn merkle_tree_padded_rows(data: &[F64], num_leaves: usize, row_words: usize
     let total_nodes = 2 * num_leaves - 1;
     let mut tree = zk_alloc::alloc_uninit(total_nodes);
     hash_leaves_padded_rows_uninit(data, row_words, leaf_words, &mut tree[..num_leaves]);
-    internal_levels_uninit(&mut tree, num_leaves);
+    // SAFETY: leaf hashing initialized the complete leaf prefix.
+    unsafe { internal_levels_uninit(&mut tree, num_leaves) };
     // SAFETY: leaves and each successive internal level initialize the full tree.
     unsafe { zk_alloc::assume_init(tree) }
 }
@@ -203,6 +204,32 @@ const BATCH_LEAVES: usize = primitives::hash::LANES * 2;
 const _: () = assert!(HASH_GROUP.is_multiple_of(BATCH_LEAVES));
 
 fn hash_leaves_padded_rows_uninit(
+    data: &[F64],
+    row_words: usize,
+    leaf_words: usize,
+    out: &mut [std::mem::MaybeUninit<Hash>],
+) {
+    hash_padded_rows_uninit::<true>(data, row_words, leaf_words, out);
+}
+
+pub(crate) fn hash_padded_rows_serial_uninit(
+    data: &[F64],
+    row_words: usize,
+    leaf_words: usize,
+    out: &mut [std::mem::MaybeUninit<Hash>],
+) {
+    assert_eq!(data.len(), row_words * out.len());
+    assert!(0 < row_words && row_words <= leaf_words && leaf_words <= STAGE_TILE_WORDS);
+    if row_words == leaf_words {
+        // SAFETY: F64 is a transparent u64 and the complete initialized slice is covered.
+        let bytes = unsafe { core::slice::from_raw_parts(data.as_ptr().cast::<u8>(), std::mem::size_of_val(data)) };
+        hash_leaves_serial_uninit(bytes, leaf_words * 8, out);
+    } else {
+        hash_padded_rows_uninit::<false>(data, row_words, leaf_words, out);
+    }
+}
+
+fn hash_padded_rows_uninit<const PAR: bool>(
     data: &[F64],
     row_words: usize,
     leaf_words: usize,
@@ -234,7 +261,7 @@ fn hash_leaves_padded_rows_uninit(
     } else {
         per_tile
     };
-    for_each_hash_group(out, |lo, outputs| {
+    let group = |lo: usize, outputs: &mut [std::mem::MaybeUninit<Hash>]| {
         // Zeroed once per task: the words before each row are the padding the image
         // carries, so those columns of the tile are never written again.
         let mut tile = [F64::ZERO; STAGE_TILE_WORDS];
@@ -264,13 +291,22 @@ fn hash_leaves_padded_rows_uninit(
                 }
             }
         }
-    });
+    };
+    if PAR {
+        for_each_hash_group(out, group);
+    } else {
+        group(0, out);
+    }
 }
 
 /// Words of `F64` per BLAKE2s block.
 const WORDS_PER_BLOCK: usize = 8;
 
-fn internal_levels_uninit(tree: &mut [std::mem::MaybeUninit<Hash>], num_leaves: usize) {
+/// # Safety
+/// The first `num_leaves` hashes must be initialized.
+pub(crate) unsafe fn internal_levels_uninit(tree: &mut [std::mem::MaybeUninit<Hash>], num_leaves: usize) {
+    assert!(num_leaves.is_power_of_two());
+    assert_eq!(tree.len(), 2 * num_leaves - 1);
     let mut read_start = 0usize;
     let mut read_len = num_leaves;
     while read_len > 1 {

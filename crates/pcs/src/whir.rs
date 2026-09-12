@@ -233,26 +233,41 @@ pub fn commit(message: &[F64], log_n: usize, log_batch_size: usize, log_inv_rate
     // asserted to), and `encode_interleaved_in_place` writes every other replica from
     // it before transforming that region in place.
     let mut codeword = unsafe { zk_alloc::ArenaVec::<F64>::uninitialized(codeword_len) };
+    let mut merkle_tree = zk_alloc::alloc_uninit(2 * n_positions - 1);
+    let leaves = parallel::SendPtr(merkle_tree.as_mut_ptr());
 
     // Optional phase timing (WHIR_TRACE): one env lookup per commit, no
     // work when unset.
     let trace = std::env::var_os("WHIR_TRACE").is_some();
     let t_ntt = std::time::Instant::now();
-    tracing::info_span!("NTT", kind = "base encode", log_domain = k_code, lanes = n_lanes).in_scope(|| {
+    tracing::info_span!(
+        "Encode and hash leaves",
+        kind = "base",
+        log_domain = k_code,
+        lanes = n_lanes
+    )
+    .in_scope(|| {
         crate::ntt::transpose_lane_major(&mut codeword[..message.len()], message, n_lanes, log_rows);
         let ntt = AdditiveNttF64::standard(k_code);
-        ntt.encode_interleaved_in_place(&mut codeword, n_lanes, log_inv_rate);
+        ntt.encode_interleaved_with_output(&mut codeword, n_lanes, log_inv_rate, |offset, rows| {
+            // SAFETY: the encoder emits disjoint complete row ranges exactly once.
+            let out = unsafe { leaves.slice(offset, rows.len() / n_lanes) };
+            merkle::hash_padded_rows_serial_uninit(rows, n_lanes, 1usize << log_batch_size, out);
+        });
     });
     let ntt_elapsed = t_ntt.elapsed();
     let t_merkle = std::time::Instant::now();
 
-    let merkle_tree = merkle::merkle_tree_padded_rows(&codeword, n_positions, n_lanes, 1usize << log_batch_size);
+    // SAFETY: every encoder output block initialized its leaf hashes.
+    unsafe { merkle::internal_levels_uninit(&mut merkle_tree, n_positions) };
+    // SAFETY: each encoded block initialized its leaves, then all internal levels were written.
+    let merkle_tree = unsafe { zk_alloc::assume_init(merkle_tree) };
     let root = *merkle_tree.last().expect("merkle tree non-empty");
     if trace {
         let k_code = pretty_integer(k_code);
         let lanes = pretty_integer(n_lanes);
         eprintln!(
-            "[lig-commit] k_code={k_code} lanes={lanes}: ntt = {:.4} s, merkle = {:.4} s",
+            "[lig-commit] k_code={k_code} lanes={lanes}: encode and leaves = {:.4} s, internal hashes = {:.4} s",
             ntt_elapsed.as_secs_f64(),
             t_merkle.elapsed().as_secs_f64(),
         );
@@ -319,14 +334,16 @@ pub(crate) fn ligero_commit_ext(
     // initializes its message region here and the encoder writes all remaining
     // elements before reading them, as in the base-field commitment.
     let mut mat = unsafe { zk_alloc::assume_init(mat) };
+    let mut fused_tree = fused_base.then(|| zk_alloc::alloc_uninit(2 * block_len - 1));
 
     // Optional per-level NTT/Merkle split (WHIR_TRACE): one env lookup per
     // commit level, no work when unset.
     let trace = std::env::var_os("WHIR_TRACE").is_some();
     let t_ntt = std::time::Instant::now();
     tracing::info_span!(
-        "NTT",
-        kind = "extension encode",
+        "Encode",
+        kind = "extension",
+        hash_leaves = fused_base,
         log_domain = log_block_len,
         lanes = num_interleaved
     )
@@ -335,7 +352,14 @@ pub(crate) fn ligero_commit_ext(
             // SAFETY: F192 is repr(C) over three u64 coefficients; F64 is
             // transparent over u64. Every coefficient shares the same twiddle.
             let coefficients = unsafe { std::slice::from_raw_parts_mut(mat.as_mut_ptr().cast::<F64>(), 3 * mat.len()) };
-            ntt.encode_interleaved_in_place(coefficients, 3 * num_interleaved, log_inv_rate);
+            let leaves = parallel::SendPtr(fused_tree.as_mut().unwrap().as_mut_ptr());
+            ntt.encode_interleaved_with_output(coefficients, 3 * num_interleaved, log_inv_rate, |offset, rows| {
+                // SAFETY: F64 is a transparent u64 and the encoder emits disjoint complete row ranges.
+                let bytes =
+                    unsafe { core::slice::from_raw_parts(rows.as_ptr().cast::<u8>(), std::mem::size_of_val(rows)) };
+                let out = unsafe { leaves.slice(offset, rows.len() / (3 * num_interleaved)) };
+                merkle::hash_leaves_serial_uninit(bytes, 24 * num_interleaved, out);
+            });
         } else {
             forward_transform_interleaved_ext_from_layer(ntt, &mut mat, num_interleaved, log_inv_rate);
         }
@@ -352,13 +376,20 @@ pub(crate) fn ligero_commit_ext(
     let data_bytes: &[u8] =
         unsafe { core::slice::from_raw_parts(mat.as_ptr() as *const u8, mat.len() * core::mem::size_of::<F192>()) };
     debug_assert_eq!(data_bytes.len(), block_len * leaf_size_bytes);
-    let tree = merkle::merkle_tree(data_bytes, block_len);
+    let tree = if let Some(mut tree) = fused_tree {
+        // SAFETY: every encoder output block initialized its leaf hashes.
+        unsafe { merkle::internal_levels_uninit(&mut tree, block_len) };
+        // SAFETY: the encoder initialized every leaf before internal levels were written.
+        unsafe { zk_alloc::assume_init(tree) }
+    } else {
+        merkle::merkle_tree(data_bytes, block_len)
+    };
     if trace {
         let log_block_len = pretty_integer(log_block_len);
         let num_interleaved = pretty_integer(num_interleaved);
         eprintln!(
             "[lig] recursive_commit(log_block={log_block_len}, lanes={num_interleaved}): \
-             ntt = {:.4} s, merkle = {:.4} s",
+             encode = {:.4} s, remaining hashes = {:.4} s",
             ntt_elapsed.as_secs_f64(),
             t_merkle.elapsed().as_secs_f64(),
         );

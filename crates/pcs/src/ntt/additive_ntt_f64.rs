@@ -197,6 +197,18 @@ impl AdditiveNttF64 {
     /// Falls back to replicating and transforming for tiny transforms or a rate
     /// deep enough to leave fewer than three whole-buffer layers.
     pub fn encode_interleaved_in_place(&self, data: &mut [F64], num_ntts: usize, log_inv_rate: usize) {
+        self.encode_interleaved_with_output(data, num_ntts, log_inv_rate, |_, _| {});
+    }
+
+    /// Publish each complete row interval once, with its starting row index.
+    /// Callbacks can run on pool workers and must not dispatch nested work.
+    pub(crate) fn encode_interleaved_with_output(
+        &self,
+        data: &mut [F64],
+        num_ntts: usize,
+        log_inv_rate: usize,
+        output: impl Fn(usize, &[F64]) + Sync,
+    ) {
         assert!(num_ntts > 0);
         assert_eq!(data.len() % num_ntts, 0);
         let log_d = log2_strict_usize(data.len() / num_ntts);
@@ -206,7 +218,7 @@ impl AdditiveNttF64 {
 
         if n_top == 0 || log_d < 8 || log_inv_rate + 2 >= n_top || block_rows < 8 {
             replicate_in_place(data, msg_len);
-            self.forward_transform_interleaved_parallel_from_layer(data, num_ntts, log_inv_rate);
+            self.forward_interleaved_with_output(data, num_ntts, log_inv_rate, output);
             return;
         }
 
@@ -214,7 +226,7 @@ impl AdditiveNttF64 {
         {
             let log_radix = (n_top - log_inv_rate).min(7);
             self.encode_first_pass(data, num_ntts, log_inv_rate, log_radix);
-            self.forward_transform_interleaved_parallel_from_layer(data, num_ntts, log_inv_rate + log_radix);
+            self.forward_interleaved_with_output(data, num_ntts, log_inv_rate + log_radix, output);
         }
         #[cfg(not(target_arch = "x86_64"))]
         {
@@ -244,7 +256,7 @@ impl AdditiveNttF64 {
                     radix8_butterflies(&mut rows, t);
                 }
             });
-            self.forward_transform_interleaved_parallel_from_layer(data, num_ntts, log_inv_rate + 3);
+            self.forward_interleaved_with_output(data, num_ntts, log_inv_rate + 3, output);
         }
     }
 
@@ -341,6 +353,16 @@ impl AdditiveNttF64 {
         num_ntts: usize,
         start_layer: usize,
     ) {
+        self.forward_interleaved_with_output(data, num_ntts, start_layer, |_, _| {});
+    }
+
+    fn forward_interleaved_with_output(
+        &self,
+        data: &mut [F64],
+        num_ntts: usize,
+        start_layer: usize,
+        output: impl Fn(usize, &[F64]) + Sync,
+    ) {
         // `num_ntts` is a plain interleaving stride here: a padding-free L0
         // commitment interleaves only the lanes that carry data, so it is not a
         // power of two, while `n_total / num_ntts` (the transform's domain) still is.
@@ -354,6 +376,7 @@ impl AdditiveNttF64 {
         let n_top = Self::cache_split(log_d, num_ntts);
         if n_top == 0 || log_d < 8 {
             self.forward_transform_interleaved_scalar_from_layer(data, num_ntts, start_layer);
+            output(0, data);
             return;
         }
 
@@ -379,6 +402,7 @@ impl AdditiveNttF64 {
                 sub_idx,
                 false,
             );
+            output(sub_idx * (sub_elems / num_ntts), sub_data);
         });
     }
 
