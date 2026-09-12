@@ -97,7 +97,7 @@ fn tampered_signatures_rejected() {
 fn ots_counter_is_the_least_admissible() {
     let mut rng = StdRng::seed_from_u64(4);
     let public_param: PublicParam = rng.random();
-    let master: Digest = rng.random();
+    let master: MasterSecret = rng.random();
     let pos = Pos::new(2, 1234, 56);
     let message: Digest = rng.random();
 
@@ -137,7 +137,7 @@ fn index_decomposition_is_a_bijection_onto_the_bottom_layer() {
 fn grinding_bits() {
     let mut rng = StdRng::seed_from_u64(6);
     let public_param: PublicParam = rng.random();
-    let master: Digest = rng.random();
+    let master: MasterSecret = rng.random();
 
     let samples = 200;
     let counters: u64 = (0..samples)
@@ -188,6 +188,21 @@ fn secret_key_survives_a_round_trip() {
     let message = test_message();
     let sig = sign(&mut StdRng::seed_from_u64(1), &reloaded, &message).unwrap();
     verify(&pk, &message, &sig).unwrap();
+}
+
+#[test]
+fn secret_derivation_uses_full_master() {
+    let pp = [3; PUBLIC_PARAM_LEN];
+    let master = [7; MASTER_SECRET_LEN];
+    let pos = Pos::new(2, 5, 6);
+    let ots = ots_secret(&pp, &master, pos, 4);
+    let (fts, _) = fts_open(&pp, &master, 5, &[0; K]);
+    for byte in 0..MASTER_SECRET_LEN {
+        let mut changed = master;
+        changed[byte] ^= 1;
+        assert_ne!(ots_secret(&pp, &changed, pos, 4), ots);
+        assert_ne!(fts_open(&pp, &changed, 5, &[0; K]).0, fts);
+    }
 }
 
 /// The split between the two entry points: the seed alone determines the key,

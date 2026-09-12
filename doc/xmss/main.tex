@@ -185,11 +185,17 @@ This specification deliberately uses an ideal precomputed secret key. It stores 
 \end{remark}
 
 \begin{remark}[Seed derivation]
-The sampled secret values may instead be generated from a master secret using a pseudorandom function. For simplicity the theorem of Section~\ref{sec:security} does not cover that case. One could for instance reuse $\hash$ itself, under a fresh tweak type, and we expect the security proof to adapt easily.
+Sample a master secret $S\getsr\bits{256}$ and derive
+\[
+  P=\Th\!\left(0^{\lpar},\mathsf{enc}(10,0,0),S\right),
+  \qquad
+  \mathit{sk}_{\ep,i}=\Th\!\left(P,\mathsf{enc}(0,i,\ep),S\right).
+\]
+The theorem of Section~\ref{sec:security} does not yet cover this derivation.
 \end{remark}
 
 \begin{remark}[Restricted key generation]
-Key generation may be restricted to a smaller interval of epochs by replacing subtrees outside that interval with random nodes. The resulting key signs only epochs in that interval. The theorem of Section~\ref{sec:security} does not cover this variant either, but we also expect the security proof to adapt easily.
+Key generation may be restricted to a smaller interval of epochs by replacing subtrees outside that interval with filler nodes $\Th(P,\mathsf{enc}(11,\ell,j),S)$ at height $\ell$ and index $j$. The resulting key signs only epochs in that interval. The theorem of Section~\ref{sec:security} does not cover this variant either, but we also expect the security proof to adapt easily.
 \end{remark}
 
 \section{Signing}

@@ -21,7 +21,7 @@ use xmss::*;
 
 type CachedSignature = (XmssPublicKey, XmssSignature);
 
-const SCHEMA_VERSION: u32 = 2;
+const SCHEMA_VERSION: u32 = 3;
 
 /// The epoch `get_signers` signs at. SPHINCS has none.
 pub const XMSS_EPOCH_A: Epoch = 3_000_000_007;
@@ -220,6 +220,7 @@ fn sphincs_footprint() -> u64 {
     sphincs_message(0).hash(&mut hasher);
     sphincs_message(1).hash(&mut hasher);
     (
+        sphincs::MASTER_SECRET_LEN,
         sphincs::V,
         sphincs::W,
         sphincs::TARGET_SUM,

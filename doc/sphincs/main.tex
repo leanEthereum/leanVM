@@ -165,10 +165,11 @@ Use the following tweaks, where $(\lay,\tau)$ identifies a hypertree layer and t
   \mathsf{tw}_{\mathrm{ftsleaf}}(\idx,\kappa,j) &= \mathsf{enc}(6,\kappa,\idx,0,j),\\
   \mathsf{tw}_{\mathrm{ftsnode}}(\idx,\kappa,\lambda,j) &= \mathsf{enc}(7,\kappa,\idx,\lambda,j), &&1\leq\lambda\leq a,\ j<2^{a-\lambda},\\
   \mathsf{tw}_{\mathrm{ftsroots}}(\idx) &= \mathsf{enc}(8,0,\idx,0,0),\\
-  \mathsf{tw}_{\mathrm{msg}} &= \mathsf{enc}(9,0,0,0,0).
+  \mathsf{tw}_{\mathrm{msg}} &= \mathsf{enc}(9,0,0,0,0),\\
+  \mathsf{tw}_{\mathrm{parameter}} &= \mathsf{enc}(10,0,0,0,0).
 \end{aligned}
 \]
-Types $0$ and $5$ are used only for seed derivation (Remark~\ref{rem:seed}).
+Types $0$, $5$ and $10$ are used only for seed derivation (Remark~\ref{rem:seed}).
 
 \section{The index}
 
@@ -364,13 +365,13 @@ Serialize the public key as $\rootnode\concat P$, 32 bytes.
 
 \begin{remark}[Seed derivation]
 \label{rem:seed}
-To avoid storing all secrets, derive them from a master secret $S\getsr\mathcal H$:
+Sample a master secret $S\getsr\bits{256}$. Set $P=\Th(0^{\lpar},\mathsf{tw}_{\mathrm{parameter}},S)$ and derive the signing secrets as
 \[
   \sk_{\lay,\tau,e,i}=\Th\!\left(P,\mathsf{tw}_{\mathrm{prf}}(\lay,\tau,i,e),S\right),
   \qquad
   s_{\idx,\kappa,j}=\Th\!\left(P,\mathsf{tw}_{\mathrm{ftsprf}}(\idx,\kappa,j),S\right).
 \]
-This gives $\sk=(P,\rootnode,S)$, 48 bytes. The formal theorem assumes independent secrets; the costs in Section~\ref{sec:costs} assume this derivation.
+This gives $\sk=(P,\rootnode,S)$. Store $P\concat S$, 48 bytes; the root is recomputed from them. The formal theorem assumes independent secrets; the costs in Section~\ref{sec:costs} assume this derivation.
 \end{remark}
 
 \begin{remark}[Signer cache]

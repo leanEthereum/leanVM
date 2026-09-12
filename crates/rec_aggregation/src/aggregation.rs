@@ -3242,6 +3242,38 @@ mod tests {
     }
 
     #[test]
+    fn keygen_and_verification_hash_domains_are_disjoint() {
+        let xmss_tags = [
+            xmss::TWEAK_TYPE_PRF,
+            xmss::TWEAK_TYPE_CHAIN,
+            xmss::TWEAK_TYPE_WOTS_PK,
+            xmss::TWEAK_TYPE_MERKLE,
+            xmss::TWEAK_TYPE_ENCODING,
+            xmss::TWEAK_TYPE_PARAMETER,
+            xmss::TWEAK_TYPE_FILLER,
+        ];
+        let sphincs_tags = [
+            sphincs::TWEAK_PRF,
+            sphincs::TWEAK_CHAIN,
+            sphincs::TWEAK_LEAF,
+            sphincs::TWEAK_NODE,
+            sphincs::TWEAK_ENC,
+            sphincs::TWEAK_FTS_PRF,
+            sphincs::TWEAK_FTS_LEAF,
+            sphincs::TWEAK_FTS_NODE,
+            sphincs::TWEAK_FTS_ROOTS,
+            sphincs::TWEAK_MSG,
+            sphincs::TWEAK_PARAMETER,
+        ];
+        let domains: BTreeSet<_> = xmss_tags
+            .into_iter()
+            .map(|tag| xmss::make_tweak(tag, 0, 0))
+            .chain(sphincs_tags.into_iter().map(|tag| sphincs::tweak(tag, 0, 0, 0, 0)))
+            .collect();
+        assert_eq!(domains.len(), xmss_tags.len() + sphincs_tags.len());
+    }
+
+    #[test]
     fn signature_tweaks_align_with_distinct_domains() {
         for (xmss_tag, sphincs_tag) in [
             (xmss::TWEAK_TYPE_CHAIN, sphincs::TWEAK_CHAIN),

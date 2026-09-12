@@ -35,9 +35,9 @@ pub mod xmss {
 
 pub mod sphincs {
     pub use ::sphincs::{
-        Digest, FtsOpening, MESSAGE_LEN, Message, PUB_KEY_SIZE, PublicParam, SECRET_KEY_SIZE, SIG_SIZE,
-        SphincsPublicKey, SphincsSecretKey, SphincsSignError, SphincsSignature, SphincsVerifyError, key_gen,
-        key_gen_from, key_gen_from_seed, sign, verify,
+        Digest, FtsOpening, MASTER_SECRET_LEN, MESSAGE_LEN, MasterSecret, Message, PUB_KEY_SIZE, PublicParam,
+        SECRET_KEY_SIZE, SIG_SIZE, SphincsPublicKey, SphincsSecretKey, SphincsSignError, SphincsSignature,
+        SphincsVerifyError, key_gen, key_gen_from, key_gen_from_seed, sign, verify,
     };
 }
 

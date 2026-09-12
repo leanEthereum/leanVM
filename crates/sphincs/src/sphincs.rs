@@ -80,7 +80,7 @@ impl SphincsPublicKey {
 pub struct SphincsSecretKey {
     pub public_param: PublicParam,
     pub root: Digest,
-    master: Digest,
+    master: MasterSecret,
     cache: [Digest; CACHE_LEN],
 }
 
@@ -283,7 +283,7 @@ fn build_up(
 
 /// `Gen`, on given `P` and master secret. Only layer 0 is built; the trees below
 /// it are built when a signature needs them.
-pub fn key_gen_from(public_param: PublicParam, master: Digest) -> (SphincsSecretKey, SphincsPublicKey) {
+pub fn key_gen_from(public_param: PublicParam, master: MasterSecret) -> (SphincsSecretKey, SphincsPublicKey) {
     let leaves = parallel::map_collect(1 << HEIGHTS[0], |e| {
         ots_public_leaf(&public_param, &master, Pos::new(0, 0, e as u32))
     });
@@ -301,27 +301,17 @@ pub fn key_gen_from(public_param: PublicParam, master: Digest) -> (SphincsSecret
     )
 }
 
-/// The domain string the seed is expanded under, so a seed shared with
-/// `xmss::key_gen_from_seed` gives unrelated keys.
-const KEY_GEN_DOMAINSEP: &[u8] = b"sphincs/key-gen/v1";
-
 /// `Gen`, on a fresh key: the seed comes from `rng`, so nothing can regenerate
 /// the key.
 pub fn key_gen(rng: &mut impl CryptoRng) -> (SphincsSecretKey, SphincsPublicKey) {
     key_gen_from_seed(rng.random())
 }
 
-/// Deterministic [`key_gen`]: one seed always regenerates the same key pair.
-/// `P` and the master secret are the two halves of a keyed hash of it, which is
-/// uniform and independent in the random-oracle model the spec's sampling is
-/// stated in (`doc/sphincs` Remark "Seed derivation").
-pub fn key_gen_from_seed(seed: [u8; 32]) -> (SphincsSecretKey, SphincsPublicKey) {
-    const _: () = assert!(PUBLIC_PARAM_LEN + N == primitives::hash::OUT_LEN);
-    let expanded = primitives::hash::keyed_hash(&seed, KEY_GEN_DOMAINSEP);
-    key_gen_from(
-        expanded[..PUBLIC_PARAM_LEN].try_into().unwrap(),
-        expanded[PUBLIC_PARAM_LEN..].try_into().unwrap(),
-    )
+/// Deterministic [`key_gen`]: the seed is the master secret, and a dedicated
+/// tweak derives the public parameter from it.
+pub fn key_gen_from_seed(seed: MasterSecret) -> (SphincsSecretKey, SphincsPublicKey) {
+    let parameter = th(&[0; PUBLIC_PARAM_LEN], &tweak(TWEAK_PARAMETER, 0, 0, 0, 0), &seed);
+    key_gen_from(parameter, seed)
 }
 
 impl SphincsSecretKey {

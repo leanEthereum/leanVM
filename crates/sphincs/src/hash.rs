@@ -24,6 +24,7 @@ pub const TWEAK_FTS_LEAF: u8 = 6;
 pub const TWEAK_FTS_NODE: u8 = 7;
 pub const TWEAK_FTS_ROOTS: u8 = 8;
 pub const TWEAK_MSG: u8 = 9;
+pub const TWEAK_PARAMETER: u8 = 10;
 
 /// `[protocol_domain_sep:1 | type:1 | layer:1 | zero:1 | p:4 | tree:4 | index:4]`, little endian.
 /// `lay` identifies a hypertree layer or a tree of a few-time forest.

@@ -26,7 +26,7 @@ impl Pos {
 }
 
 /// `sk_{lay,tau,e,i} = Th(P, tw_prf(lay,tau,i,e), S)`.
-pub fn ots_secret(pp: &PublicParam, master: &Digest, pos: Pos, i: usize) -> Digest {
+pub fn ots_secret(pp: &PublicParam, master: &MasterSecret, pos: Pos, i: usize) -> Digest {
     th(pp, &tweak(TWEAK_PRF, pos.lay, pos.tau, i as u32, pos.e), master)
 }
 
@@ -77,7 +77,7 @@ fn codeword(digest: &Digest) -> Option<[u8; V]> {
 /// opens. Deterministic in its inputs, which is what keeps one key to one
 /// codeword: a resumed or randomized search would leak two incomparable
 /// codewords and drop forgery to about `2^53`.
-pub fn ots_sign(pp: &PublicParam, master: &Digest, pos: Pos, m: &Digest) -> Option<(u32, [Digest; V])> {
+pub fn ots_sign(pp: &PublicParam, master: &MasterSecret, pos: Pos, m: &Digest) -> Option<(u32, [Digest; V])> {
     let (c, x) = (0..MAX_ENCODING_ATTEMPTS).find_map(|c| encode(pp, pos, m, c as u32).map(|x| (c as u32, x)))?;
     let signature = std::array::from_fn(|i| chain(pp, pos, i, 0, x[i] as usize, ots_secret(pp, master, pos, i)));
     Some((c, signature))
@@ -97,7 +97,7 @@ pub fn ots_leaf(pp: &PublicParam, pos: Pos, m: &Digest, c: u32, signature: &[Dig
 
 /// The leaf of the one-time key at `pos`, from the master secret: what key
 /// generation and every tree rebuild spend their hashes on.
-pub fn ots_public_leaf(pp: &PublicParam, master: &Digest, pos: Pos) -> Digest {
+pub fn ots_public_leaf(pp: &PublicParam, master: &MasterSecret, pos: Pos) -> Digest {
     let tips = std::array::from_fn(|i| chain(pp, pos, i, 0, CHAIN_LEN - 1, ots_secret(pp, master, pos, i)));
     ots_leaf_hash(pp, pos, &tips)
 }
