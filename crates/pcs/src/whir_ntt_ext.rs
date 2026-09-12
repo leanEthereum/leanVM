@@ -315,10 +315,8 @@ fn radix8_butterflies_ext(rows: &mut [&mut [F192]; 8], t: &[F64; 7]) {
 }
 
 /// Run one fused pass's butterflies over `N` rows. The AVX-512 path holds all
-/// `N` rows in SoA registers for the whole schedule, so each row pays the AoS
-/// transpose once per pass rather than once per butterfly; fusing three layers
-/// instead of two therefore buys both a third fewer passes over the codeword and
-/// a third fewer transposes per butterfly.
+/// `N` rows in registers for the whole schedule. Base-field twiddles act on
+/// every coefficient independently, so the registers preserve memory order.
 #[inline]
 fn fused_butterflies_ext<const N: usize, const P: usize, const T: usize>(
     rows: &mut [&mut [F192]; N],
@@ -343,8 +341,8 @@ fn fused_butterflies_ext<const N: usize, const P: usize, const T: usize>(
     }
     // A butterfly at a time, each over whole rows, as the F64 twin's
     // `radix8_butterflies` does. Holding a tile of every row in registers for
-    // the whole schedule instead (the shape the AVX-512 arm takes, since it has
-    // to transpose anyway) saves the reloads, but the rows never leave L1 and a
+    // the whole schedule instead (the shape the AVX-512 arm takes) saves the
+    // reloads, but the rows never leave L1 and a
     // tile leaves only its own width of independent work to cover the
     // reduction's dependent PMULL folds, where a row leaves the whole lane
     // count. Measured both directions: the tile is worse here, and worse again
@@ -402,9 +400,8 @@ fn butterfly_interleaved_ext_block(block: &mut [F192], twiddle: F64, block_size_
     }
 }
 
-/// Butterfly all extension-field lanes in a row pair. The production layout
-/// has eight interleaved NTTs, which the AVX-512 path transposes from eight
-/// AoS `F192`s into three coefficient vectors before multiplying.
+/// Butterfly all extension-field lanes in a row pair, scaling their base-field
+/// coefficients without changing the interleaving.
 #[inline]
 fn butterfly_ext_lanes(top: &mut [F192], bot: &mut [F192], twiddle: F64) {
     debug_assert_eq!(top.len(), bot.len());
@@ -457,9 +454,8 @@ fn butterfly_ext_lanes(top: &mut [F192], bot: &mut [F192], twiddle: F64) {
 ///
 /// `mul_base` scales all three coefficients of an `F192` by the same twiddle and
 /// the adds are elementwise, so a butterfly over `n` interleaved F192 lanes is
-/// exactly the base field's over `3n` u64. The AoS layout therefore needs no
-/// transpose here, unlike the AVX-512 arm, whose register holds one coefficient
-/// of eight lanes at a time and so has to gather them.
+/// exactly the base field's over `3n` u64. Both SIMD backends therefore
+/// preserve the coefficients' memory order.
 ///
 /// Four 128-bit pairs an iteration: eight products in flight cover the latency
 /// of the reduction's dependent folds, as the F64 twin's eight-lane kernel does.
@@ -514,9 +510,9 @@ unsafe fn butterfly_row_neon(top: *mut u64, bot: *mut u64, twiddle: u64, n: usiz
 #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
 #[derive(Clone, Copy)]
 struct F192x8 {
-    c0: core::arch::x86_64::__m512i,
-    c1: core::arch::x86_64::__m512i,
-    c2: core::arch::x86_64::__m512i,
+    words0: core::arch::x86_64::__m512i,
+    words1: core::arch::x86_64::__m512i,
+    words2: core::arch::x86_64::__m512i,
 }
 
 #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
@@ -525,26 +521,12 @@ struct F192x8 {
 unsafe fn load_f192x8_avx512(ptr: *const F192) -> F192x8 {
     use core::arch::x86_64::*;
 
-    // The 24 coefficients occupy three contiguous ZMM registers. Each result
-    // first selects from the first two registers, then fills its tail from the
-    // third register.
     unsafe {
         let p = ptr.cast::<u64>();
-        let x0 = _mm512_loadu_si512(p.cast());
-        let x1 = _mm512_loadu_si512(p.add(8).cast());
-        let x2 = _mm512_loadu_si512(p.add(16).cast());
-
-        let c0_head = _mm512_permutex2var_epi64(x0, _mm512_set_epi64(0, 0, 15, 12, 9, 6, 3, 0), x1);
-        let c0_tail = _mm512_permutexvar_epi64(_mm512_set_epi64(5, 2, 0, 0, 0, 0, 0, 0), x2);
-        let c1_head = _mm512_permutex2var_epi64(x0, _mm512_set_epi64(0, 0, 0, 13, 10, 7, 4, 1), x1);
-        let c1_tail = _mm512_permutexvar_epi64(_mm512_set_epi64(6, 3, 0, 0, 0, 0, 0, 0), x2);
-        let c2_head = _mm512_permutex2var_epi64(x0, _mm512_set_epi64(0, 0, 0, 14, 11, 8, 5, 2), x1);
-        let c2_tail = _mm512_permutexvar_epi64(_mm512_set_epi64(7, 4, 1, 0, 0, 0, 0, 0), x2);
-
         F192x8 {
-            c0: _mm512_mask_mov_epi64(c0_head, 0xc0, c0_tail),
-            c1: _mm512_mask_mov_epi64(c1_head, 0xe0, c1_tail),
-            c2: _mm512_mask_mov_epi64(c2_head, 0xe0, c2_tail),
+            words0: _mm512_loadu_si512(p.cast()),
+            words1: _mm512_loadu_si512(p.add(8).cast()),
+            words2: _mm512_loadu_si512(p.add(16).cast()),
         }
     }
 }
@@ -556,19 +538,10 @@ unsafe fn store_f192x8_avx512(ptr: *mut F192, value: F192x8) {
     use core::arch::x86_64::*;
 
     unsafe {
-        let x0_head = _mm512_permutex2var_epi64(value.c0, _mm512_set_epi64(10, 2, 0, 9, 1, 0, 8, 0), value.c1);
-        let x0_tail = _mm512_permutexvar_epi64(_mm512_set_epi64(0, 0, 1, 0, 0, 0, 0, 0), value.c2);
-
-        let x1_head = _mm512_permutex2var_epi64(value.c0, _mm512_set_epi64(5, 0, 12, 4, 0, 11, 3, 0), value.c1);
-        let x1_tail = _mm512_permutexvar_epi64(_mm512_set_epi64(0, 4, 0, 0, 3, 0, 0, 2), value.c2);
-
-        let x2_head = _mm512_permutex2var_epi64(value.c0, _mm512_set_epi64(0, 15, 7, 0, 14, 6, 0, 13), value.c1);
-        let x2_tail = _mm512_permutexvar_epi64(_mm512_set_epi64(7, 0, 0, 6, 0, 0, 5, 0), value.c2);
-
         let p = ptr.cast::<u64>();
-        _mm512_storeu_si512(p.cast(), _mm512_mask_mov_epi64(x0_head, 0x24, x0_tail));
-        _mm512_storeu_si512(p.add(8).cast(), _mm512_mask_mov_epi64(x1_head, 0x49, x1_tail));
-        _mm512_storeu_si512(p.add(16).cast(), _mm512_mask_mov_epi64(x2_head, 0x92, x2_tail));
+        _mm512_storeu_si512(p.cast(), value.words0);
+        _mm512_storeu_si512(p.add(8).cast(), value.words1);
+        _mm512_storeu_si512(p.add(16).cast(), value.words2);
     }
 }
 
@@ -597,9 +570,9 @@ unsafe fn mul_base_f192x8_avx512(value: F192x8, twiddle: u64) -> F192x8 {
         let tw = _mm512_set1_epi64(twiddle as i64);
         let r = _mm512_set1_epi64(0x1b);
         F192x8 {
-            c0: mul_coeff(value.c0, tw, r),
-            c1: mul_coeff(value.c1, tw, r),
-            c2: mul_coeff(value.c2, tw, r),
+            words0: mul_coeff(value.words0, tw, r),
+            words1: mul_coeff(value.words1, tw, r),
+            words2: mul_coeff(value.words2, tw, r),
         }
     }
 }
@@ -613,21 +586,21 @@ unsafe fn butterfly_f192x8_avx512(top: F192x8, bot: F192x8, twiddle: u64) -> (F1
     unsafe {
         let p = mul_base_f192x8_avx512(bot, twiddle);
         let top = F192x8 {
-            c0: _mm512_xor_si512(top.c0, p.c0),
-            c1: _mm512_xor_si512(top.c1, p.c1),
-            c2: _mm512_xor_si512(top.c2, p.c2),
+            words0: _mm512_xor_si512(top.words0, p.words0),
+            words1: _mm512_xor_si512(top.words1, p.words1),
+            words2: _mm512_xor_si512(top.words2, p.words2),
         };
         let bot = F192x8 {
-            c0: _mm512_xor_si512(bot.c0, top.c0),
-            c1: _mm512_xor_si512(bot.c1, top.c1),
-            c2: _mm512_xor_si512(bot.c2, top.c2),
+            words0: _mm512_xor_si512(bot.words0, top.words0),
+            words1: _mm512_xor_si512(bot.words1, top.words1),
+            words2: _mm512_xor_si512(bot.words2, top.words2),
         };
         (top, bot)
     }
 }
 
 /// One fused pass's butterflies over `N` rows of eight lanes, the rows loaded
-/// into SoA registers once and stored once.
+/// into registers once and stored once.
 ///
 /// # Safety
 /// Requires VPCLMULQDQ + AVX-512F; the `N` pointers must address pairwise
