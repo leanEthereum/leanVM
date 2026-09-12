@@ -187,14 +187,6 @@ Set $\rootnode=X_{h,0}$ and return
 
 The public key is serialized as $\rootnode\concat P$.
 
-\begin{remark}[Precomputed secret key]
-The secret key caches the full Merkle tree and every intermediate chain value. Signing reads these tables without hashing them again. Implementations may recompute cached values from $S$ and $P$; those computations contribute to their hash-query cost.
-\end{remark}
-
-\begin{remark}[Restricted key generation]
-Key generation may be restricted to a smaller interval of epochs by replacing subtrees outside that interval with filler nodes $\Th(P,\mathsf{enc}(11,\ell,j),S)$ at height $\ell$ and index $j$. The resulting key signs only epochs in that interval. This variant is outside the theorem of Section~\ref{sec:security}.
-\end{remark}
-
 \section{Signing}
 
 $\Sig(\sk,\ep,m)$ returns $\bot$ if epoch $\ep$ has already been used and otherwise marks it used. It makes at most $\amax=2^{23}$ attempts. In each attempt it independently samples $\rho\getsr\bits{\lrnd}$ and computes $x=\IncEnc(P,m,\rho,\ep)$. If $x\neq\bot$, it immediately computes

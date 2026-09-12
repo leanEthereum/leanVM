@@ -48,11 +48,11 @@
   \node[align=center] at (11,-0.35)
     {$x=\Enc(P,\lay,\tau,e,M,c)$\\[3pt]$\sum_{i=0}^{41}x_i=T=191$};
   \draw[-{Stealth[length=1.5mm]}, diagramMuted, thick] (0.7,-1.7) -- (0.7,-1.05);
-  \node[anchor=west] at (1,-1.375) {signing: $x_i$ steps};
+  \node[anchor=west, text width=4cm] at (1,-1.375) {signing: $x_i$ steps};
   \draw[flow] (5.6,-1.7) -- (5.6,-1.05);
-  \node[anchor=west] at (5.9,-1.375) {verification: $7-x_i$ steps};
-  \node[carried, inner sep=2pt] at (11.3,-1.375) {$\sigma_i$};
-  \node[anchor=west] at (11.75,-1.375) {disclosed value};
+  \node[anchor=west, text width=4.5cm] at (5.9,-1.375) {verification: $7-x_i$ steps};
+  \node[carried, inner sep=2pt] at (11.6,-1.375) {$\sigma_i$};
+  \node[anchor=west, text width=2.5cm] at (12.05,-1.375) {disclosed value};
   \node[anchor=west, diagram note] at (0,-2.15)
     {Each arrow into position $\mu$ hashes with $\mathsf{tw}_{\mathrm{chain}}(\lay,\tau,e,i,\mu)$.};
 \end{tikzpicture}

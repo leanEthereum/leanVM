@@ -21,8 +21,9 @@
   \node[diagram note, anchor=west] at (11.2,10.6) {high to low bits};
 
   \foreach \y/\l/\count/\height/\trees in {8.8/0/1/12/tree,6.1/1/2^{12}/7/trees,3.35/2/2^{19}/7/trees} {
-    \node[diagram heading, anchor=west] at (0,\y+0.35) {Layer $\l$};
-    \node[anchor=west, align=left] at (0,\y-0.15) {$\count$ \trees\\height $h_{\l}=\height$};
+    \node[diagram heading, anchor=north west] at (0,\y+0.55) {Layer $\l$};
+    \node[anchor=north west, align=left, text width=2.3cm] at (0,\y)
+      {$\count$ \trees\\[3pt]height $h_{\l}=\height$};
   }
   \node[diagram heading, anchor=west] at (0,1.05) {FORS};
   \node[anchor=west] at (0,0.6) {$2^{26}$ instances};
@@ -44,7 +45,6 @@
       \node[value, inner sep=2pt, font=\fontsize{7}{8}\selectfont] (\name-f\side) at (\x+\offset,1.1) {FORS};
       \draw[branch, dashed] (\name-f\side) -- (\name-l\leaf);
     }
-    \node[text=diagramMuted] at (\x,1.1) {$\cdot$};
   }
   \foreach \name in {top,m2,b5} {
     \draw[flow] (\name-l3) -- (\name-right);

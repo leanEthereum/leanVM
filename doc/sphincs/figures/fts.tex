@@ -26,7 +26,8 @@
     \end{scope}
   }
   \node[value, dashed, align=center, inner sep=5pt] at (14.35,8.25) {$u_{14}=0$\\[3pt]no tree};
-  \node[diagram note] at (6.7,6.75) {Each tree has height $a=10$ and $2^a=1024$ leaves. One leaf is opened in each tree.};
+  \node[diagram note, align=center, text width=14cm] at (7.5,6.75)
+    {Each tree has height $a=10$ and $2^a=1024$ leaves. One leaf is opened in each tree.};
   \draw[diagramMuted] (0,6.35) -- (15,6.35);
   \node[diagram heading, anchor=west] at (0,5.95) {ONE OPENING, EXPANDED};
   \node[computed, label=above:{$Y^{\idx,\kappa}_{a,0}$}] (root) at (8.5,5.55) {};
@@ -34,12 +35,13 @@
   \node[computed] (topPath) at (11.2,4.6) {};
   \draw[flow] (topSibling) -- (root);
   \draw[flow] (topPath) -- (root);
-  \node[anchor=west] at (11.5,4.6) {$Y^{\idx,\kappa}_{a-1,\lfloor u_\kappa/2^{a-1}\rfloor}$};
+  \node[anchor=west] at (11.65,4.6) {$Y^{\idx,\kappa}_{a-1,\lfloor u_\kappa/2^{a-1}\rfloor}$};
   \draw[branch, fill=diagramMuted!6] (topSibling.south) -- (4.85,3.5) -- (6.75,3.5) -- cycle;
   \node[text=diagramMuted] at (5.8,3.7) {$\cdots$};
   \node[computed] (level2) at (9.2,2.9) {};
   \draw[flow, dashed] (level2) -- (topPath);
-  \node[anchor=west, align=left] at (11,3.6) {intermediate levels\\and siblings omitted};
+  \node[anchor=north west, align=left, text width=3.5cm] at (11.2,3.9)
+    {intermediate levels\\and siblings omitted};
   \node[carried, label=right:{$B_{\kappa,1}$}] (sibling1) at (11.1,1.85) {};
   \node[computed] (parent) at (7.3,1.85) {};
   \draw[flow] (sibling1) -- (level2);
