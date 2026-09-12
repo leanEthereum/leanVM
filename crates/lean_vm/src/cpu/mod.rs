@@ -379,7 +379,7 @@ fn airs(
                 n_constraints: table.n_constraints(),
                 eval: Box::new(move |p, vals, quadratic| {
                     let air = <F192 as ColVal>::lift(table.eval_constraint(p, vals, quadratic));
-                    <F192 as ColVal>::reduce(air ^ bus.eval_unreduced(vals, quadratic))
+                    <F192 as ColVal>::reduce(air ^ bus.eval_ext_unreduced(vals, quadratic))
                 }),
                 // The same expression over K columns: the identity's K-only products
                 // stay 64-bit and the bus form becomes a mixed dot product.

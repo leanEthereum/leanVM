@@ -11,7 +11,7 @@ use crate::PAR_THRESHOLD;
 use crate::colval::ColVal;
 use crate::gkr;
 use crate::transcript::{Challenger, ProverState, Receiver, Transmitter, VerifierState};
-use primitives::field::{F64, F192, F192BaseUnreduced, g_pow, index_mle};
+use primitives::field::{F64, F192, F192BaseUnreduced, F192Unreduced, g_pow, index_mle};
 use primitives::multilinear::{eq_eval, eq_table_arena, mle_eval};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -325,7 +325,24 @@ impl BusForm {
             }
         }
         out.prods.retain(|p| p.2 != F192::ZERO);
+        out.prods.sort_unstable_by_key(|p| (p.0, p.1));
         out
+    }
+
+    /// Factor common left operands once columns have lifted into E. The K round
+    /// keeps its cheap K-only products through `eval_unreduced`.
+    pub(crate) fn eval_ext_unreduced(&self, evals: &[F192], quadratic: bool) -> F192Unreduced {
+        let linear = if quadratic {
+            F192Unreduced::ZERO
+        } else {
+            F192::dot_unreduced(&self.coeffs, evals) ^ F192::lift(self.constant)
+        };
+        self.prods.chunk_by(|a, b| a.0 == b.0).fold(linear, |acc, terms| {
+            let right = terms
+                .iter()
+                .fold(F192Unreduced::ZERO, |sum, &(_, b, c)| sum ^ evals[b].mul_unreduced(c));
+            acc ^ evals[terms[0].0].mul_unreduced(right.reduce())
+        })
     }
 
     /// The form at one point, unreduced: `evals` are the columns' values there.
@@ -967,6 +984,36 @@ pub fn verify_balance(
 #[cfg(test)]
 mod tests {
     use super::soundness_bits;
+
+    #[test]
+    fn factored_bus_form_matches_expanded_products() {
+        use super::*;
+
+        let mut rng = primitives::test_rng::Rng::new(73);
+        for n_cols in 1..=16 {
+            let mut form = BusForm::new(n_cols);
+            form.coeffs = rng.ext_vec(n_cols);
+            form.constant = rng.ext();
+            for a in 0..n_cols {
+                for b in a..n_cols {
+                    form.prods.push((a, b, rng.ext()));
+                }
+            }
+            let mut cancel = BusForm::new(n_cols);
+            cancel.prods = form.prods.iter().step_by(3).copied().collect();
+            let forms = [form, cancel];
+            let summed = BusForm::sum(forms.iter().cloned());
+            for _ in 0..8 {
+                let values = rng.ext_vec(n_cols);
+                for quadratic in [false, true] {
+                    let expected = forms.iter().fold(F192::ZERO, |acc, form| {
+                        acc + form.eval_unreduced(&values, quadratic).reduce()
+                    });
+                    assert_eq!(summed.eval_ext_unreduced(&values, quadratic).reduce(), expected);
+                }
+            }
+        }
+    }
 
     #[test]
     fn bytecode_claim_matches_dense_stacking() {

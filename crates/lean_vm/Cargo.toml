@@ -17,5 +17,6 @@ tracing.workspace = true
 zk_alloc.workspace = true
 
 [dev-dependencies]
+primitives = { workspace = true, features = ["test-util"] }
 lean_compiler.workspace = true
 bincode.workspace = true
