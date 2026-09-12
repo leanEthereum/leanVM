@@ -3,7 +3,7 @@ import XmssSecurity.Proof.CacheReplayEval
 import XmssSecurity.Proof.DetailedExecution
 import XmssSecurity.Proof.CappedChain.EncodingQueryBound
 import XmssSecurity.Proof.QueryBoundSupport
-import XmssSecurity.Statement
+import XmssSecurity.Proof.IdealStatement
 import XmssSecurity.Proof.StatementLemmas
 import VCVio.OracleComp.QueryTracking.SubSpec
 

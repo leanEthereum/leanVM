@@ -1,4 +1,4 @@
-import XmssSecurity.Statement
+import XmssSecurity.Proof.IdealStatement
 import VCVio.OracleComp.QueryTracking.RandomOracle.DeferredSampling
 import VCVio.OracleComp.QueryTracking.Unpredictability
 

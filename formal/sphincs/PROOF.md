@@ -1,6 +1,9 @@
 # The 127-bit proof
 
-`sphincs_has_127_bits_of_classical_security` in [SphincsSecurity.lean](SphincsSecurity.lean) proves `HasClassicalSecurityBits scheme 127` for the concrete SPHINCS instance of [Statement.lean](SphincsSecurity/Statement.lean): every adversary whose whole experiment, key generation and signing included, makes at most $q\ge1$ random-oracle queries produces a strong forgery with probability at most $q/2^{127}$. The proof uses only `propext`, `Classical.choice` and `Quot.sound`, which the root module pins with `#guard_msgs` on every build.
+`sphincs_has_127_bits_of_classical_security` in [SphincsSecurity.lean](SphincsSecurity.lean) proves `HasClassicalSecurityBits scheme 127` for the seeded scheme in [Statement.lean](SphincsSecurity/Statement.lean): every adversary whose whole experiment, key generation and signing included, makes at most $q\ge1$ random-oracle queries produces a strong forgery with probability at most $q/2^{127}$. The proof uses only `propext`, `Classical.choice` and `Quot.sound`, which the root module pins with `#guard_msgs` on every build.
+
+[Proof/Seeded](SphincsSecurity/Proof/Seeded) reduces seed derivation to the independent-secret game used below. It presamples the derivation answers inside the proof, erases honest derivation calls with known answers, and couples the programmed oracle to an empty cache until a query names the master seed. The loss is at most $q'/2^{256}$, where $q'=q-1$ because public-parameter derivation already consumed one call. That loss fits within the one-query slack of the final $q/2^{127}$ bound. Presampling is a proof device; its calls are not charged to the actual experiment.
+
 
 Throughout, $N=2^{128}$, $x=q/N$, $\delta=11/65536$ and $r_{\rm cache}=1023/2^{186}+2^{-170}$. The proof splits the budget at $q_0=3\cdot2^{114}$: budgets at least $q_0$ are closed by the retained residual monitor, smaller positive budgets by the forced few-time-signature (FTS) games.
 

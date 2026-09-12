@@ -1,6 +1,6 @@
 import SphincsSecurity.Proof.Base.Prelude
 import SphincsSecurity.Proof.Base.FirstSuccessTable
-import SphincsSecurity.Statement
+import SphincsSecurity.Proof.IdealStatement
 
 namespace SphincsSecurity.Concrete
 

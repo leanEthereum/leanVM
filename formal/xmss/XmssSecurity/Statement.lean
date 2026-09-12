@@ -4,11 +4,11 @@ import VCVio.OracleComp.QueryTracking.QueryBound
 import VCVio.OracleComp.QueryTracking.WriterCost
 
 /-!
-# Classical random-oracle security of the concrete XMSS instance
+# XMSS with a 256-bit master seed
 
-This single module is the reviewer-facing statement of the formalization. It contains everything the statement depends on: the concrete parameters and types, the byte layout of every hash input, the three algorithms exactly as run in the security experiment, the strong-unforgeability experiment, and the security claim `XmssSecurityStatement`. Nothing here imports proof machinery, and nothing below describes a reduction or an intermediate game. The theorem itself is stated and proved in the root module `XmssSecurity`.
+This module contains the complete seeded scheme: parameters, types, serialized hash inputs, key generation, signing, verification, the consistent random-oracle experiment, and the target `XmssSecurityStatement`. Key generation samples one 32-byte secret seed and derives the public parameter and every signing secret through the same random oracle. Derivation and verification use disjoint domains.
 
-The concrete instance has 32-byte messages, 32-bit epochs, 128-bit digests, a 256-bit random-oracle output truncated to 128 bits, 42 Winternitz chains of length 8, and a Merkle tree of height 32.
+The theorem `xmss_has_127_bits_of_classical_security` proves the `127`-bit bound, counting every hash call in the experiment.
 -/
 
 open OracleComp OracleSpec ENNReal
@@ -31,6 +31,8 @@ def winternitzBits : Nat := 3
 def chainLength : Nat := 2 ^ winternitzBits
 def numChains : Nat := 42
 def targetSum : Nat := 195
+
+abbrev MasterSeed := BitVec 256
 
 abbrev Digest := BitVec digestBits
 abbrev HashOutput := BitVec hashOutputBits
@@ -62,7 +64,7 @@ structure PublicKey where
   parameter : PublicParameter
 deriving DecidableEq
 
-/-- The ideal precomputed key of the specification: `P`, the sampled `sk_{ep,i}`, every chain value `C_{ep,i,k}` and every Merkle node `X_{ℓ,j}`. -/
+/-- Cached chain starts, chain values and Merkle nodes, together with the public parameter. -/
 structure SecretKey where
   parameter : PublicParameter
   chainStart : Epoch → ChainIndex → Digest
@@ -96,7 +98,7 @@ def fieldBytes (fields : TweakFields) : List UInt8 :=
   [protocolDomainSep] ++ bytesLE 1 fields.tag ++ [0, 0] ++ bytesLE 4 fields.position ++
     List.replicate 4 0 ++ bytesLE 4 fields.epoch
 
-/-- Every domain-separated hash call the instance makes, tweak types `1` to `4`. -/
+/-- The verification hash domains, tweak types `1` to `4`. -/
 inductive HashDomain where
   | chain (epoch : Epoch) (chain : ChainIndex) (step : ChainStep)
   | leaf (epoch : Epoch)
@@ -121,6 +123,20 @@ def tweakBytes (domain : HashDomain) : List UInt8 :=
 def tweakableHashInput (parameter : PublicParameter) (domain : HashDomain)
     (message : HashInput) : HashInput :=
   tweakBytes domain ++ bytesLE 16 parameter ++ message
+
+inductive KeygenDomain where
+  | parameter
+  | chain (epoch : Epoch) (chain : ChainIndex)
+deriving DecidableEq
+
+def keygenDomainFields : KeygenDomain → TweakFields
+  | .parameter => ⟨10#8, 0#32, 0#32⟩
+  | .chain epoch chain => ⟨0#8, BitVec.ofNat 32 chain.val, BitVec.ofNat 32 epoch.val⟩
+
+/-- `tweak || P || S`; parameter derivation uses `P = 0`. -/
+def keygenHashInput (parameter : PublicParameter) (domain : KeygenDomain)
+    (seed : MasterSeed) : HashInput :=
+  fieldBytes (keygenDomainFields domain) ++ bytesLE 16 parameter ++ bytesLE 32 seed
 
 /-! ### The target-sum code
 
@@ -157,7 +173,7 @@ end TargetSum
 
 /-! ## The algorithms
 
-Key generation, signing and verification as run in the experiment, with every oracle hash call they make. Everything under `Concrete` is the instance; the experiment after it is generic over `Scheme`. The hashing algorithms are written for any monad `m` that can query the hash, and key generation and signing run them with `liftM` inside the world that also samples. Key generation computes the Merkle root through the oracle and stores every chain value and node as the replay of that computation against its own query log, so reading them while signing is not an oracle query; signing makes at most `signingAttemptLimit` encoding attempts, each sampling fresh randomness and hashing once; verification is the ordinary verifier. Branches that return `0` out of range exist only to make the definitions total; the honest algorithms never take them and verification never reads them. The `irreducible` attributes at the end of the namespace only seal definitions against accidental unfolding in proofs, and Lean restricts global reducibility attributes to the defining module. -/
+`Concrete` contains the hash and verification routines; `Seeded` contains key generation and signing. Hashing routines work in any monad with access to `HashSpec`. The experiment adds uniform sampling through `OracleWorld` and charges every hash call, including repeated calls. Out-of-range branches only make the definitions total; honest algorithms never reach them. -/
 
 /-- A hash query takes an arbitrary byte string and returns 32 bytes. -/
 abbrev HashSpec := HashInput →ₒ HashOutput
@@ -312,15 +328,7 @@ def verify (publicKey : PublicKey) (epoch : Epoch)
       let leaf ← leafHash publicKey.parameter epoch endpoints
       verifyAfterLeaf publicKey epoch signature leaf
 
-/-! ### Key generation
-
-Uniform sampling of the parameter and of every one-time secret; `$ᵗ X` draws a uniform element of `X`. -/
-
-noncomputable local instance : SampleableType PublicParameter :=
-  SampleableType.ofFintype PublicParameter
-
-noncomputable local instance : SampleableType (Epoch → ChainIndex → Digest) :=
-  SampleableType.ofFintype (Epoch → ChainIndex → Digest)
+/-! ### Precomputed chains and tree -/
 
 /-- `pk_{ep,i} = Chain(P, 0, 2^w - 1, sk_{ep,i})` for every chain. -/
 def oneTimePublicKey (parameter : PublicParameter) (secret : Epoch → ChainIndex → Digest)
@@ -359,17 +367,11 @@ def treeNode (parameter : PublicParameter) (secret : Epoch → ChainIndex → Di
 def rootNode : MerkleNode :=
   ⟨0, by simp [lifetime]⟩
 
-noncomputable def samplePublicParameter : ProbComp PublicParameter :=
-  $ᵗ PublicParameter
-
-noncomputable def sampleSecret : ProbComp (Epoch → ChainIndex → Digest) :=
-  $ᵗ (Epoch → ChainIndex → Digest)
-
 /-- Answer a hash query from a recorded query cache, and by 0 for an unrecorded input. -/
 def replayHash (cache : QueryCache HashSpec) : QueryImpl HashSpec Id :=
   fun input => (cache input).getD 0
 
-/-- The ideal precomputed secret key. Every stored table entry is the corresponding oracle computation from this module, replayed against the recorded key-generation cache. -/
+/-- Compute the stored chain values and Merkle nodes by replaying the key-generation query log. -/
 def precomputedSecretKey (parameter : PublicParameter)
     (secret : Epoch → ChainIndex → Digest) (cache : QueryCache HashSpec) :
     SecretKey where
@@ -382,17 +384,6 @@ def precomputedSecretKey (parameter : PublicParameter)
   treeValue := fun height node =>
     evalWithAnswerFn (replayHash cache)
       (treeNode parameter secret height.val node : OracleComp HashSpec Digest)
-
-/-- `Gen`: sample the parameter and the secrets, compute the root through the oracle, and store every chain value and node as the replay of that computation. -/
-noncomputable def precomputedKeygen :
-    OracleComp OracleWorld (PublicKey × SecretKey) := do
-  let parameter ← liftM samplePublicParameter
-  let secret ← liftM sampleSecret
-  let result ← liftM
-    (treeNode parameter secret treeHeight rootNode :
-      OracleComp HashSpec Digest).withQueryLog
-  let cache := hashCacheOfLog result.2
-  return (⟨result.1, parameter⟩, precomputedSecretKey parameter secret cache)
 
 /-! ### Signing -/
 
@@ -452,10 +443,39 @@ noncomputable def precomputedCappedSign (secretKey : SecretKey)
     OracleComp OracleWorld (Option Signature) :=
   precomputedSignBoundedAttempts signingAttemptLimit secretKey epoch message
 
-attribute [irreducible] verifyAfterLeaf treeNode samplePublicParameter sampleSecret
-  precomputedKeygen signingRandomness precomputedCappedSign
+attribute [irreducible] verifyAfterLeaf treeNode signingRandomness precomputedCappedSign
 
 end Concrete
+
+def deriveKey {m : Type → Type} [Monad m] [HasQuery HashSpec m]
+    (parameter : PublicParameter) (domain : KeygenDomain) (seed : MasterSeed) : m Digest := do
+  return truncateHash (← Concrete.oracleHash (keygenHashInput parameter domain seed))
+
+noncomputable def sampleMasterSeed : ProbComp MasterSeed :=
+  letI := SampleableType.ofFintype MasterSeed
+  $ᵗ MasterSeed
+
+namespace Seeded
+
+/-- The seed and the chain and tree values computed during key generation. -/
+structure SecretKey where
+  seed : MasterSeed
+  precomputed : XmssSecurity.SecretKey
+
+noncomputable def keygen : OracleComp OracleWorld (PublicKey × SecretKey) := do
+  let seed ← liftM sampleMasterSeed
+  let parameter ← liftM (deriveKey 0 .parameter seed : OracleComp HashSpec Digest)
+  let secret ← liftM
+    (Concrete.sequenceFin fun epoch => Concrete.sequenceFin fun chain =>
+      deriveKey parameter (.chain epoch chain) seed :
+        OracleComp HashSpec (Epoch → ChainIndex → Digest))
+  let result ← liftM
+    (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
+      OracleComp HashSpec Digest).withQueryLog
+  let precomputed := Concrete.precomputedSecretKey parameter secret (hashCacheOfLog result.2)
+  return (⟨result.1, parameter⟩, ⟨seed, precomputed⟩)
+
+end Seeded
 
 /-! ## The security experiment -/
 
@@ -482,9 +502,9 @@ def Forgery.request (forgery : Forgery) : SignRequest :=
   ⟨forgery.epoch, forgery.message⟩
 
 /-- The interface of a synchronized signature scheme in the random-oracle experiment. -/
-structure Scheme where
-  keygen : OracleComp OracleWorld (PublicKey × SecretKey)
-  sign : SecretKey → Epoch → Message → OracleComp OracleWorld (Option Signature)
+structure Scheme (Key : Type := Seeded.SecretKey) where
+  keygen : OracleComp OracleWorld (PublicKey × Key)
+  sign : Key → Epoch → Message → OracleComp OracleWorld (Option Signature)
   verify : PublicKey → Epoch → Message → Signature → OracleComp OracleWorld Bool
 
 /-- The signing oracle answers a request with either a signature or `none` if the signer fails. -/
@@ -514,7 +534,7 @@ instance (log : QueryLog SigningSpec) (forgery : Forgery) : Decidable (Contains 
 end SigningTranscript
 
 /-- The signing oracle used in the game. It records every request and response while forwarding the request to the scheme's signer. -/
-def signingOracle (scheme : Scheme) (sk : SecretKey) :
+def signingOracle {Key : Type} (scheme : Scheme Key) (sk : Key) :
     QueryImpl SigningSpec (WriterT (QueryLog SigningSpec) (OracleComp OracleWorld)) :=
   QueryImpl.withLogging fun request => scheme.sign sk request.epoch request.message
 
@@ -526,7 +546,7 @@ def forwardOracles :
 /-- The complete strong-unforgeability experiment.
 
 The random oracle is sampled lazily by the semantics of `OracleWorld`. Key generation, the adversary, the signing oracle, and final verification all share the same oracle. The game returns `true` precisely when the signing transcript uses every epoch at most once, the claimed forgery is not an exact replay, and the signature verifies. -/
-noncomputable def gameCore (scheme : Scheme) (adversary : Adversary) :
+noncomputable def gameCore {Key : Type} (scheme : Scheme Key) (adversary : Adversary) :
     OracleComp OracleWorld Bool := do
   let (pk, sk) ← scheme.keygen
   let ((forgery, log) : Forgery × QueryLog SigningSpec) ←
@@ -535,7 +555,7 @@ noncomputable def gameCore (scheme : Scheme) (adversary : Adversary) :
   return decide (SigningTranscript.Valid log ∧ ¬SigningTranscript.Contains log forgery) && verified
 
 /-- The probability that the adversary wins, over key generation, signer randomness, and the random oracle, which starts from the empty cache. The final cache is discarded. -/
-noncomputable def forgeAdvantage (scheme : Scheme) (adversary : Adversary) : ℝ≥0∞ :=
+noncomputable def forgeAdvantage {Key : Type} (scheme : Scheme Key) (adversary : Adversary) : ℝ≥0∞ :=
   Pr[= true | (simulateQ romImpl (gameCore scheme adversary)).run' ∅]
 
 /-- Count one per hash call, including cache hits, and zero per uniform sample. -/
@@ -543,24 +563,23 @@ noncomputable def countedRomImpl :=
   romImpl.withAddCost (fun | .inl _ => (0 : Nat) | .inr _ => 1)
 
 /-- Every execution of the consistent random oracle uses at most `q` hash calls, including key generation, adversarial hashing, signing, and final verification. -/
-def HasHashQueryBound (scheme : Scheme) (adversary : Adversary) (q : Nat) : Prop :=
+def HasHashQueryBound {Key : Type} (scheme : Scheme Key) (adversary : Adversary) (q : Nat) : Prop :=
   ∀ result ∈ support ((simulateQ countedRomImpl (gameCore scheme adversary)).run.run' ∅),
     result.2 ≤ q
 
 /-- Having `bits` bits of classical security means that every classical adaptive adversary whose complete experiment stays within a nonzero hash-query budget `q` forges with probability at most `q / 2^bits`. -/
-def HasClassicalSecurityBits (scheme : Scheme) (bits : Nat) : Prop :=
+def HasClassicalSecurityBits {Key : Type} (scheme : Scheme Key) (bits : Nat) : Prop :=
   ∀ q, 1 ≤ q → ∀ adversary, HasHashQueryBound scheme adversary q →
     forgeAdvantage scheme adversary ≤ q / ((2 ^ bits : Nat) : ℝ≥0∞)
 
-/-- The concrete XMSS scheme: the precomputed key generation, the capped retry signer, and the ordinary verifier defined above. -/
-noncomputable def Concrete.scheme : Scheme where
-  keygen := Concrete.precomputedKeygen
-  sign := Concrete.precomputedCappedSign
+noncomputable def Seeded.scheme : Scheme Seeded.SecretKey where
+  keygen := Seeded.keygen
+  sign := fun sk => Concrete.precomputedCappedSign sk.precomputed
   verify := fun publicKey epoch message signature =>
     liftM (Concrete.verify publicKey epoch message signature : OracleComp HashSpec Bool)
 
-/-- The security claim: `127` bits of classical strong unforgeability in the random-oracle model. -/
+/-- The security claim for the scheme with a 256-bit master seed. -/
 abbrev XmssSecurityStatement : Prop :=
-  HasClassicalSecurityBits Concrete.scheme 127
+  HasClassicalSecurityBits Seeded.scheme 127
 
 end XmssSecurity

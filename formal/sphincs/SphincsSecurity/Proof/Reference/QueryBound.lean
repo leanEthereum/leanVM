@@ -1,5 +1,5 @@
 import SphincsSecurity.Proof.Base.QueryCap
-import SphincsSecurity.Statement
+import SphincsSecurity.Proof.IdealStatement
 
 namespace SphincsSecurity
 
@@ -118,7 +118,7 @@ theorem simulateQ_countHashQueries {α : Type} (computation : OracleComp OracleW
         WriterT.run_tell, map_eq_bind_pure_comp, bind_assoc] <;>
         first | rfl | simp only [Function.comp_def, bind_pure]
 
-theorem hasHashQueryBound_iff (scheme : Scheme) (adversary : Adversary) (q : Nat) :
+theorem hasHashQueryBound_iff {Key : Type} (scheme : Scheme Key) (adversary : Adversary) (q : Nat) :
     HasHashQueryBound scheme adversary q ↔ HashQueryBound (gameCore scheme adversary) ∅ q := by
   simp only [HasHashQueryBound, HashQueryBound, simulateQ_countHashQueries]
   rfl

@@ -3,13 +3,11 @@ import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
 import VCVio.OracleComp.QueryTracking.WriterCost
 
 /-!
-# Classical random-oracle security of the concrete SPHINCS instance
+# SPHINCS with a 256-bit master seed
 
-The reviewer-facing statement of what is proven: the concrete parameters and types, the byte layout of every hash input, the three algorithms exactly as run in the security experiment, the strong-unforgeability experiment, and the claim `SphincsSecurityStatement`. Nothing here is a reduction or an intermediate game, and nothing instantiates the hash: it is a random oracle throughout. The arithmetic the parameters fix about the layout, the index decomposition and the authentication path offsets, is checked in `Proof/Scheme/StatementLemmas.lean`.
+This module contains the complete seeded scheme: parameters, types, serialized hash inputs, key generation, signing, verification, the consistent random-oracle experiment, and the target `SphincsSecurityStatement`. Key generation samples one 32-byte secret seed and derives the public parameter and every signing secret through the same random oracle. Derivation and verification use disjoint domains.
 
-The instance is the one specified in `doc/sphincs/main.tex`: 32-byte messages, 128-bit digests truncated from a 256-bit random-oracle output, 42 Winternitz chains of length 8 at target sum 191, a hypertree of height 26 over 3 layers of heights 12, 7 and 7, and a few-time forest of 14 trees of `2^10` leaves selected by a 176-bit message digest. A key answers for all `2^26` indices and signs at most `2^24` messages. The scheme is stateless, so a signing request is a message alone and the game caps the number of signing queries; signing is randomized, a fresh randomizer per digest attempt, so a second signature on a signed message is a strong forgery; and the secret key holds the sampled secrets rather than precomputed tables, so signing recomputes through the random oracle whatever tree it reads, as `Sig` is specified.
-
-The claim is `127` bits: every adversary whose whole experiment, key generation, signing and verification included, makes at most `q ≥ 1` hash queries forges with probability at most `q / 2^127`. The model is the classical random-oracle model with independently sampled secrets; the seed derivation of the secrets and the instantiation with BLAKE2s are outside it.
+The theorem `sphincs_has_127_bits_of_classical_security` proves the `127`-bit bound, counting every hash call in the experiment.
 -/
 
 open OracleComp OracleSpec ENNReal
@@ -41,6 +39,8 @@ def signatureLimit : Nat := 2 ^ 24
 def digestAttemptLimit : Nat := 2 ^ 32
 /-- Encoding counters tried per layer, `C_max`. -/
 def encodingAttemptLimit : Nat := 2 ^ 32
+
+abbrev MasterSeed := BitVec 256
 
 abbrev Digest := BitVec digestBits
 abbrev HashOutput := BitVec hashOutputBits
@@ -100,13 +100,6 @@ structure PublicKey where
   parameter : PublicParameter
 deriving DecidableEq
 
-/-- The key of the specification: the public parameter, the layer-`0` root that every digest binds, and every sampled secret. `Gen` samples them independently and uniformly, at every position of the index types, so positions a layer does not have hold secrets nothing reads; the seed derivation of the specification is an implementation of this key, not this key. -/
-structure SecretKey where
-  parameter : PublicParameter
-  root : Digest
-  otsSecret : Layer → TreeIndex → LeafIndex → ChainIndex → Digest
-  ftsSecret : Index → FtsTree → FtsLeaf → Digest
-
 /-- A signature, with every component the verifier reads and no other: the randomizer, one few-time secret and its `a` path nodes per held tree, and per layer a counter, `v` chain values, and its share of the `h` path nodes. That is `16 + 14 * 16 + 140 * 16 + 3 * 4 + 126 * 16 + 26 * 16 = 4924` bytes. -/
 structure Signature where
   randomness : Randomness
@@ -139,7 +132,7 @@ def fieldBytes (fields : TweakFields) : HashInput :=
   [protocolDomainSep] ++ bytesLE 1 fields.tag ++ bytesLE 1 fields.layer ++ [0] ++
     bytesLE 4 fields.position ++ bytesLE 4 fields.tree ++ bytesLE 4 fields.index
 
-/-- Every domain-separated hash call the instance makes. Tweak types `0` and `5` of the specification are absent: they belong to the seed derivation, and this key samples its secrets. -/
+/-- The verification hash domains. Seed derivation uses `KeygenDomain`. -/
 inductive HashDomain where
   | chain (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (chainIdx : ChainIndex) (step : ChainStep)
   | leaf (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
@@ -180,6 +173,25 @@ def tweakableHashInput (parameter : PublicParameter) (domain : HashDomain)
     (message : HashInput) : HashInput :=
   tweakBytes domain ++ bytesLE 16 parameter ++ message
 
+inductive KeygenDomain where
+  | parameter
+  | ots (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (chain : ChainIndex)
+  | fts (index : Index) (tree : FtsTree) (leaf : FtsLeaf)
+deriving DecidableEq
+
+def keygenDomainFields : KeygenDomain → TweakFields
+  | .parameter => ⟨10#8, 0#8, 0#32, 0#32, 0#32⟩
+  | .ots lay tree leaf chain =>
+      ⟨0#8, BitVec.ofNat 8 lay.val, BitVec.ofNat 32 tree.val,
+        BitVec.ofNat 32 chain.val, BitVec.ofNat 32 leaf.val⟩
+  | .fts index tree leaf =>
+      ⟨5#8, BitVec.ofNat 8 tree.val, BitVec.ofNat 32 index.val, 0#32, BitVec.ofNat 32 leaf.val⟩
+
+/-- `tweak || P || S`; parameter derivation uses `P = 0`. -/
+def keygenHashInput (parameter : PublicParameter) (domain : KeygenDomain)
+    (seed : MasterSeed) : HashInput :=
+  fieldBytes (keygenDomainFields domain) ++ bytesLE 16 parameter ++ bytesLE 32 seed
+
 /-! ### The target-sum code
 
 `v = 42` chunks of `w = 3` bits, 21 in each half of the digest, one pinned bit per half, and the code is the words of digit sum `T = 191`. Two distinct words of equal sum are incomparable, which is what removes the Winternitz checksum and forces the counter. -/
@@ -215,7 +227,7 @@ end TargetSum
 
 /-! ## The algorithms
 
-Key generation, signing and verification as run in the experiment, with every oracle hash call they make. Key generation samples the parameter and every secret and builds layer `0`'s tree; signing rebuilds whatever tree it reads rather than caching anything; verification is the ordinary verifier. Everything under `Concrete` is the instance; the experiment after it is generic over `Scheme`. The hashing algorithms are written for any monad `m` that can query the hash, and key generation and signing run them with `liftM` inside the world that also samples. Branches that return `0` out of range exist only to make the definitions total; the honest algorithms never take them and verification never reads them. The `irreducible` attributes at the end of the namespace only seal definitions against accidental unfolding in proofs, and Lean restricts global reducibility attributes to the defining module. -/
+`Concrete` contains the hash and verification routines; `Seeded` contains key generation and signing. Hashing routines work in any monad with access to `HashSpec`. The experiment adds uniform sampling through `OracleWorld` and charges every hash call, including repeated calls. Out-of-range branches only make the definitions total; honest algorithms never reach them. -/
 
 /-- A hash query takes an arbitrary byte string and returns 32 bytes. -/
 abbrev HashSpec := HashInput →ₒ HashOutput
@@ -291,12 +303,6 @@ def recoverChain (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) 
     (chainIdx : ChainIndex) (digit : Digit) (value : Digest) : m Digest :=
   chainWalk parameter lay tree leaf chainIdx digit.val (chainLength - 1 - digit.val) value
 
-/-- `pk_i = Chain(P, 0, 2^w - 1, sk_i)` for every chain. -/
-def oneTimePublicKey (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
-    (leaf : LeafIndex) (secret : ChainIndex → Digest) : m (ChainIndex → Digest) :=
-  sequenceFin fun chainIdx =>
-    chainWalk parameter lay tree leaf chainIdx 0 (chainLength - 1) (secret chainIdx)
-
 /-- `pk_0 || ... || pk_{v-1}`. -/
 def leafPayload (endpoints : ChainIndex → Digest) : HashInput :=
   (List.ofFn endpoints).flatMap digestBytes
@@ -312,24 +318,6 @@ def encode (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf 
   let digest ← tweakableHash parameter (.encoding lay tree leaf)
     (digestBytes message ++ counterBytes counter)
   return TargetSum.decodeDigest digest
-
-/-- `OtsSign`: the least admissible counter, and the chain values it dictates. The search starts at `0` and stops after `encodingAttemptLimit` counters. -/
-def otsSignFrom (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
-    (secret : ChainIndex → Digest) (message : Digest) :
-    Nat → Nat → m (Option (Counter × (ChainIndex → Digest)))
-  | 0, _ => pure none
-  | attempts + 1, counter => do
-      match ← encode parameter lay tree leaf message (BitVec.ofNat counterBits counter) with
-      | some encoding => do
-          let values ← sequenceFin fun chainIdx =>
-            chainWalk parameter lay tree leaf chainIdx 0 (encoding chainIdx).val (secret chainIdx)
-          return some (BitVec.ofNat counterBits counter, values)
-      | none => otsSignFrom parameter lay tree leaf secret message attempts (counter + 1)
-
-def otsSign (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
-    (secret : ChainIndex → Digest) (message : Digest) :
-    m (Option (Counter × (ChainIndex → Digest))) :=
-  otsSignFrom parameter lay tree leaf secret message encodingAttemptLimit 0
 
 /-- `OtsLeaf`: the verifier's leaf, or nothing if the counter does not encode the message. -/
 def otsLeaf (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
@@ -347,32 +335,6 @@ def otsLeaf (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf
 /-- The two children of a Merkle node. -/
 def nodePayload (left right : Digest) : HashInput :=
   digestBytes left ++ digestBytes right
-
-/-- `X^{lay,tau}_{level,nodeIdx}`, the Merkle tree over the layer's one-time leaves. -/
-def treeNode (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
-    (secret : LeafIndex → ChainIndex → Digest) : Nat → Nat → m Digest
-  | 0, nodeIdx => do
-      let leaf := leafOfNat nodeIdx
-      let endpoints ← oneTimePublicKey parameter lay tree leaf (secret leaf)
-      leafHash parameter lay tree leaf endpoints
-  | level + 1, nodeIdx => do
-      let left ← treeNode parameter lay tree secret level (2 * nodeIdx)
-      let right ← treeNode parameter lay tree secret level (2 * nodeIdx + 1)
-      tweakableHash parameter (.node lay tree (level + 1) nodeIdx) (nodePayload left right)
-
-/-- `TreeRoot(P, lay, tau) = X^{lay,tau}_{h_lay, 0}`. -/
-def treeRoot (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
-    (secret : LeafIndex → ChainIndex → Digest) : m Digest :=
-  treeNode parameter lay tree secret (layerHeight lay) 0
-
-/-- `TreePath`: `A_level = X^{lay,tau}_{level, floor(e / 2^level) xor 1}` for the layer's own `h_lay` levels, and nothing above them. -/
-def treePath (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
-    (secret : LeafIndex → ChainIndex → Digest) (leaf : LeafIndex) : m (Fin maxLayerHeight → Digest) :=
-  sequenceFin fun level =>
-    if level.val < layerHeight lay then
-      treeNode parameter lay tree secret level (Nat.xor (leaf.val / 2 ^ level.val) 1)
-    else
-      pure 0
 
 /-- `TreeFold`: fold a leaf and a path into the layer's root. -/
 def treeFold (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
@@ -405,35 +367,9 @@ def ftsLeafHash (parameter : PublicParameter) (index : Index) (tree : FtsTree) (
     (secret : Digest) : m Digest :=
   tweakableHash parameter (.ftsLeaf index tree leaf) (digestBytes secret)
 
-/-- `Y^{idx,kappa}_{level,nodeIdx}`, one tree of the forest. -/
-def ftsNode (parameter : PublicParameter) (index : Index) (tree : FtsTree)
-    (secret : FtsLeaf → Digest) : Nat → Nat → m Digest
-  | 0, nodeIdx => do
-      let leaf := ftsLeafOfNat nodeIdx
-      ftsLeafHash parameter index tree leaf (secret leaf)
-  | level + 1, nodeIdx => do
-      let left ← ftsNode parameter index tree secret level (2 * nodeIdx)
-      let right ← ftsNode parameter index tree secret level (2 * nodeIdx + 1)
-      tweakableHash parameter (.ftsNode index tree (level + 1) nodeIdx) (nodePayload left right)
-
 /-- The `k - 1` roots of the forest. -/
 def ftsRootsPayload (roots : FtsTree → Digest) : HashInput :=
   (List.ofFn roots).flatMap digestBytes
-
-/-- `FtsKey(P, idx)`, the hash of the forest's `k - 1` roots. -/
-def ftsKey (parameter : PublicParameter) (index : Index)
-    (secret : FtsTree → FtsLeaf → Digest) : m Digest := do
-  let roots ← sequenceFin fun tree =>
-    ftsNode parameter index tree (secret tree) ftsTreeHeight 0
-  tweakableHash parameter (.ftsRoots index) (ftsRootsPayload roots)
-
-/-- `FtsOpen`: the opened secrets and, per tree, the `a` siblings of the opened leaf. -/
-def ftsOpen (parameter : PublicParameter) (index : Index) (leaves : IndexGroup → FtsLeaf)
-    (secret : FtsTree → FtsLeaf → Digest) : m (FtsTree → Fin ftsTreeHeight → Digest) :=
-  sequenceFin fun tree =>
-    sequenceFin fun level =>
-      ftsNode parameter index tree (secret tree) level.val
-        (Nat.xor ((leaves (ftsIndexOf tree)).val / 2 ^ level.val) 1)
 
 /-- The verifier's half of one few-time tree. -/
 def ftsFold (parameter : PublicParameter) (index : Index) (tree : FtsTree) (leaf : FtsLeaf)
@@ -527,40 +463,10 @@ def verify (publicKey : PublicKey) (message : Message) (signature : Signature) :
     | none => return false
     | some root => return decide (root = publicKey.root)
 
-/-! ### Key generation
-
-Uniform sampling of the parameter, of every one-time secret, of every few-time secret and of a randomizer; `$ᵗ X` draws a uniform element of `X`. The two `opaque` wrappers only keep Lean from unfolding the samplers of the two large function types. -/
-
-noncomputable local instance : SampleableType PublicParameter :=
-  SampleableType.ofFintype PublicParameter
-
-noncomputable opaque otsSecretsSampleableType :
-    SampleableType (Layer → TreeIndex → LeafIndex → ChainIndex → Digest) :=
-  SampleableType.ofFintype (Layer → TreeIndex → LeafIndex → ChainIndex → Digest)
-
-noncomputable local instance :
-    SampleableType (Layer → TreeIndex → LeafIndex → ChainIndex → Digest) :=
-  otsSecretsSampleableType
-
-noncomputable opaque ftsSecretsSampleableType :
-    SampleableType (Index → FtsTree → FtsLeaf → Digest) :=
-  SampleableType.ofFintype (Index → FtsTree → FtsLeaf → Digest)
-
-noncomputable local instance : SampleableType (Index → FtsTree → FtsLeaf → Digest) :=
-  ftsSecretsSampleableType
+/-! ### Signing randomness and path assembly -/
 
 noncomputable local instance : SampleableType Randomness :=
   SampleableType.ofFintype Randomness
-
-noncomputable def sampleParameter : ProbComp PublicParameter :=
-  $ᵗ PublicParameter
-
-noncomputable def sampleOtsSecrets :
-    ProbComp (Layer → TreeIndex → LeafIndex → ChainIndex → Digest) :=
-  $ᵗ (Layer → TreeIndex → LeafIndex → ChainIndex → Digest)
-
-noncomputable def sampleFtsSecrets : ProbComp (Index → FtsTree → FtsLeaf → Digest) :=
-  $ᵗ (Index → FtsTree → FtsLeaf → Digest)
 
 noncomputable def sampleRandomness : ProbComp Randomness :=
   $ᵗ Randomness
@@ -568,60 +474,7 @@ noncomputable def sampleRandomness : ProbComp Randomness :=
 /-- Layer `0` holds one tree, at index `0`. -/
 def rootTree : TreeIndex := ⟨0, Nat.two_pow_pos _⟩
 
-/-- `Gen`: sample the parameter and every secret, and build layer `0`'s tree for the root. The trees below it are built when a signature needs them, so nothing else is computed here. -/
-noncomputable def keygen : OracleComp OracleWorld (PublicKey × SecretKey) := do
-  let parameter ← liftM sampleParameter
-  let otsSecret ← liftM sampleOtsSecrets
-  let ftsSecret ← liftM sampleFtsSecrets
-  let root ← liftM
-    (treeRoot parameter topLayer rootTree (otsSecret topLayer rootTree) :
-      OracleComp HashSpec Digest)
-  return (⟨root, parameter⟩, ⟨parameter, root, otsSecret, ftsSecret⟩)
-
 /-! ### Signing -/
-
-/-- One digest attempt: one hash, keeping the index and the leaf indices if the digest is admissible. -/
-def signAttempt (secretKey : SecretKey) (message : Message) (randomness : Randomness) :
-    m (Option (Index × (IndexGroup → FtsLeaf))) := do
-  let digest ← messageDigest secretKey.parameter secretKey.root message randomness
-  if Admissible digest then
-    return some (digestIndex digest, digestLeaves digest)
-  else
-    return none
-
-/-- The digest loop: at most `digestAttemptLimit` attempts, each sampling a fresh randomizer, stopping at the first admissible digest. It takes `2^a` attempts on average. -/
-noncomputable def signDigestLoop : Nat → SecretKey → Message →
-    OracleComp OracleWorld (Option (Randomness × Index × (IndexGroup → FtsLeaf)))
-  | 0, _secretKey, _message => pure none
-  | attempts + 1, secretKey, message => do
-      let randomness ← liftM sampleRandomness
-      let attempt ← liftM
-        (signAttempt secretKey message randomness :
-          OracleComp HashSpec (Option (Index × (IndexGroup → FtsLeaf))))
-      match attempt with
-      | some (index, leaves) => pure (some (randomness, index, leaves))
-      | none => signDigestLoop attempts secretKey message
-
-/-- The message layer `lay` signs: the root of the tree below it, or the few-time public key at the bottom. Every layer's message is fixed by the index alone, which is what makes the layers independent. -/
-def layerMessage (secretKey : SecretKey) (index : Index) (lay : Layer) : m Digest :=
-  if hbelow : lay.val + 1 < numLayers then
-    let below : Layer := ⟨lay.val + 1, hbelow⟩
-    treeRoot secretKey.parameter below (treeIndexAt index below)
-      (secretKey.otsSecret below (treeIndexAt index below))
-  else
-    ftsKey secretKey.parameter index (secretKey.ftsSecret index)
-
-/-- One layer's contribution: its counter, its chain values, and its authentication path. -/
-def signLayer (secretKey : SecretKey) (index : Index) (lay : Layer) :
-    m (Option (Counter × (ChainIndex → Digest) × (Fin maxLayerHeight → Digest))) := do
-  let tree := treeIndexAt index lay
-  let leaf := leafIndexAt index lay
-  let message ← layerMessage secretKey index lay
-  match ← otsSign secretKey.parameter lay tree leaf (secretKey.otsSecret lay tree leaf) message with
-  | none => return none
-  | some (counter, values) => do
-      let path ← treePath secretKey.parameter lay tree (secretKey.otsSecret lay tree) leaf
-      return some (counter, values, path)
 
 /-- Run layers from bottom to top, stopping on failure and indexing the results in serialization order. -/
 def sequenceLayers {α : Type} (computation : Layer → m (Option α)) : m (Option (Layer → α)) := do
@@ -648,14 +501,157 @@ def flattenPaths (paths : Layer → Fin maxLayerHeight → Digest) : PathIndex �
     let level := position.val - heightAbove lay
     if hlevel : level < maxLayerHeight then paths lay ⟨level, hlevel⟩ else 0
 
-/-- `Sig(sk, m)`: the digest loop, the few-time opening, one one-time signature per layer, and the assembled signature, or nothing as soon as one layer fails. -/
+attribute [irreducible] verify sampleRandomness
+
+end Concrete
+
+def deriveKey {m : Type → Type} [Monad m] [HasQuery HashSpec m]
+    (parameter : PublicParameter) (domain : KeygenDomain) (seed : MasterSeed) : m Digest := do
+  return truncateHash (← Concrete.oracleHash (keygenHashInput parameter domain seed))
+
+noncomputable def sampleMasterSeed : ProbComp MasterSeed :=
+  letI := SampleableType.ofFintype MasterSeed
+  $ᵗ MasterSeed
+
+namespace Seeded
+
+open Concrete
+
+structure SecretKey where
+  seed : MasterSeed
+  parameter : PublicParameter
+  root : Digest
+
+variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
+
+def oneTimePublicKey (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
+    (leaf : LeafIndex) (seed : MasterSeed) : m (ChainIndex → Digest) :=
+  sequenceFin fun chainIdx => do
+    let secret ← deriveKey parameter (.ots lay tree leaf chainIdx) seed
+    chainWalk parameter lay tree leaf chainIdx 0 (chainLength - 1) secret
+
+def otsSignFrom (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
+    (seed : MasterSeed) (message : Digest) :
+    Nat → Nat → m (Option (Counter × (ChainIndex → Digest)))
+  | 0, _ => pure none
+  | attempts + 1, counter => do
+      match ← encode parameter lay tree leaf message (BitVec.ofNat counterBits counter) with
+      | some encoding => do
+          let values ← sequenceFin fun chainIdx => do
+            let secret ← deriveKey parameter (.ots lay tree leaf chainIdx) seed
+            chainWalk parameter lay tree leaf chainIdx 0 (encoding chainIdx).val secret
+          return some (BitVec.ofNat counterBits counter, values)
+      | none => otsSignFrom parameter lay tree leaf seed message attempts (counter + 1)
+
+def otsSign (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
+    (seed : MasterSeed) (message : Digest) :
+    m (Option (Counter × (ChainIndex → Digest))) :=
+  otsSignFrom parameter lay tree leaf seed message encodingAttemptLimit 0
+
+def treeNode (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
+    (seed : MasterSeed) : Nat → Nat → m Digest
+  | 0, nodeIdx => do
+      let leaf := leafOfNat nodeIdx
+      let endpoints ← oneTimePublicKey parameter lay tree leaf seed
+      leafHash parameter lay tree leaf endpoints
+  | level + 1, nodeIdx => do
+      let left ← treeNode parameter lay tree seed level (2 * nodeIdx)
+      let right ← treeNode parameter lay tree seed level (2 * nodeIdx + 1)
+      tweakableHash parameter (.node lay tree (level + 1) nodeIdx) (nodePayload left right)
+
+def treeRoot (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
+    (seed : MasterSeed) : m Digest :=
+  treeNode parameter lay tree seed (layerHeight lay) 0
+
+def treePath (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
+    (seed : MasterSeed) (leaf : LeafIndex) : m (Fin maxLayerHeight → Digest) :=
+  sequenceFin fun level =>
+    if level.val < layerHeight lay then
+      treeNode parameter lay tree seed level (Nat.xor (leaf.val / 2 ^ level.val) 1)
+    else
+      pure 0
+
+def ftsNode (parameter : PublicParameter) (index : Index) (tree : FtsTree)
+    (seed : MasterSeed) : Nat → Nat → m Digest
+  | 0, nodeIdx => do
+      let leaf := ftsLeafOfNat nodeIdx
+      let secret ← deriveKey parameter (.fts index tree leaf) seed
+      ftsLeafHash parameter index tree leaf secret
+  | level + 1, nodeIdx => do
+      let left ← ftsNode parameter index tree seed level (2 * nodeIdx)
+      let right ← ftsNode parameter index tree seed level (2 * nodeIdx + 1)
+      tweakableHash parameter (.ftsNode index tree (level + 1) nodeIdx) (nodePayload left right)
+
+def ftsKey (parameter : PublicParameter) (index : Index)
+    (seed : MasterSeed) : m Digest := do
+  let roots ← sequenceFin fun tree =>
+    ftsNode parameter index tree seed ftsTreeHeight 0
+  tweakableHash parameter (.ftsRoots index) (ftsRootsPayload roots)
+
+def ftsOpen (parameter : PublicParameter) (index : Index) (leaves : IndexGroup → FtsLeaf)
+    (seed : MasterSeed) : m (FtsTree → Fin ftsTreeHeight → Digest) :=
+  sequenceFin fun tree =>
+    sequenceFin fun level =>
+      ftsNode parameter index tree seed level.val
+        (Nat.xor ((leaves (ftsIndexOf tree)).val / 2 ^ level.val) 1)
+
+/-- Sample the master seed, derive the public parameter, and build the top tree. -/
+noncomputable def keygen : OracleComp OracleWorld (PublicKey × SecretKey) := do
+  let seed ← liftM sampleMasterSeed
+  let parameter ← liftM (deriveKey 0 .parameter seed : OracleComp HashSpec Digest)
+  let root ← liftM (treeRoot parameter topLayer rootTree seed : OracleComp HashSpec Digest)
+  return (⟨root, parameter⟩, ⟨seed, parameter, root⟩)
+
+def signAttempt (secretKey : SecretKey) (message : Message) (randomness : Randomness) :
+    m (Option (Index × (IndexGroup → FtsLeaf))) := do
+  let digest ← messageDigest secretKey.parameter secretKey.root message randomness
+  if Admissible digest then
+    return some (digestIndex digest, digestLeaves digest)
+  else
+    return none
+
+noncomputable def signDigestLoop : Nat → SecretKey → Message →
+    OracleComp OracleWorld (Option (Randomness × Index × (IndexGroup → FtsLeaf)))
+  | 0, _secretKey, _message => pure none
+  | attempts + 1, secretKey, message => do
+      let randomness ← liftM sampleRandomness
+      let attempt ← liftM
+        (signAttempt secretKey message randomness :
+          OracleComp HashSpec (Option (Index × (IndexGroup → FtsLeaf))))
+      match attempt with
+      | some (index, leaves) => pure (some (randomness, index, leaves))
+      | none => signDigestLoop attempts secretKey message
+
+def layerMessage (secretKey : SecretKey) (index : Index) (lay : Layer) : m Digest :=
+  if hbelow : lay.val + 1 < numLayers then
+    let below : Layer := ⟨lay.val + 1, hbelow⟩
+    treeRoot secretKey.parameter below (treeIndexAt index below)
+      secretKey.seed
+  else
+    ftsKey secretKey.parameter index secretKey.seed
+
+def signLayer (secretKey : SecretKey) (index : Index) (lay : Layer) :
+    m (Option (Counter × (ChainIndex → Digest) × (Fin maxLayerHeight → Digest))) := do
+  let tree := treeIndexAt index lay
+  let leaf := leafIndexAt index lay
+  let message ← layerMessage secretKey index lay
+  match ← otsSign secretKey.parameter lay tree leaf secretKey.seed message with
+  | none => return none
+  | some (counter, values) => do
+      let path ← treePath secretKey.parameter lay tree secretKey.seed leaf
+      return some (counter, values, path)
+
 noncomputable def sign (secretKey : SecretKey) (message : Message) :
     OracleComp OracleWorld (Option Signature) := do
   match ← signDigestLoop digestAttemptLimit secretKey message with
   | none => return none
   | some (randomness, index, leaves) => do
+      let secrets ← liftM
+        (sequenceFin fun tree =>
+          deriveKey secretKey.parameter (.fts index tree (leaves (ftsIndexOf tree))) secretKey.seed :
+            OracleComp HashSpec (FtsTree → Digest))
       let ftsPath ← liftM
-        (ftsOpen secretKey.parameter index leaves (secretKey.ftsSecret index) :
+        (ftsOpen secretKey.parameter index leaves secretKey.seed :
           OracleComp HashSpec (FtsTree → Fin ftsTreeHeight → Digest))
       let layers ← liftM
         (sequenceLayers (fun lay => signLayer secretKey index lay) :
@@ -665,20 +661,17 @@ noncomputable def sign (secretKey : SecretKey) (message : Message) :
       | none => return none
       | some parts => do
           let _ ← liftM
-            (treeRoot secretKey.parameter topLayer rootTree (secretKey.otsSecret topLayer rootTree) :
+            (treeRoot secretKey.parameter topLayer rootTree secretKey.seed :
               OracleComp HashSpec Digest)
           return some
             { randomness := randomness
-              ftsSecret := fun tree => secretKey.ftsSecret index tree (leaves (ftsIndexOf tree))
+              ftsSecret := secrets
               ftsPath := ftsPath
               counter := fun lay => (parts lay).1
               chainValue := fun lay => (parts lay).2.1
               authPath := flattenPaths fun lay => (parts lay).2.2 }
 
-attribute [irreducible] treeNode ftsNode verify sampleParameter sampleOtsSecrets sampleFtsSecrets
-  sampleRandomness keygen sign
-
-end Concrete
+end Seeded
 
 /-! ## The security experiment -/
 
@@ -694,9 +687,9 @@ structure Forgery where
 deriving DecidableEq
 
 /-- The interface of a stateless signature scheme in the random-oracle experiment. Signing is randomized and may fail, so it returns an option. -/
-structure Scheme where
-  keygen : OracleComp OracleWorld (PublicKey × SecretKey)
-  sign : SecretKey → Message → OracleComp OracleWorld (Option Signature)
+structure Scheme (Key : Type := Seeded.SecretKey) where
+  keygen : OracleComp OracleWorld (PublicKey × Key)
+  sign : Key → Message → OracleComp OracleWorld (Option Signature)
   verify : PublicKey → Message → Signature → OracleComp OracleWorld Bool
 
 /-- A signing request is a message alone, the scheme being stateless, and the answer is a signature or `none` if the signer fails. -/
@@ -725,7 +718,7 @@ instance (log : QueryLog SigningSpec) (forgery : Forgery) : Decidable (Contains 
 end SigningTranscript
 
 /-- The signing oracle used in the game. It records every request and response while forwarding the request to the scheme's signer. -/
-def signingOracle (scheme : Scheme) (sk : SecretKey) :
+def signingOracle {Key : Type} (scheme : Scheme Key) (sk : Key) :
     QueryImpl SigningSpec (WriterT (QueryLog SigningSpec) (OracleComp OracleWorld)) :=
   QueryImpl.withLogging fun request => scheme.sign sk request
 
@@ -737,7 +730,7 @@ def forwardOracles :
 /-- The complete strong-unforgeability experiment.
 
 The random oracle is sampled lazily by the semantics of `OracleWorld`. Key generation, the adversary, the signing oracle, and final verification all share the same oracle. The game returns `true` precisely when the transcript holds at most `q_s` signatures, the claimed forgery is not one the signer returned for that message, and the signature verifies. -/
-noncomputable def gameCore (scheme : Scheme) (adversary : Adversary) :
+noncomputable def gameCore {Key : Type} (scheme : Scheme Key) (adversary : Adversary) :
     OracleComp OracleWorld Bool := do
   let (pk, sk) ← scheme.keygen
   let ((forgery, log) : Forgery × QueryLog SigningSpec) ←
@@ -746,7 +739,7 @@ noncomputable def gameCore (scheme : Scheme) (adversary : Adversary) :
   return decide (SigningTranscript.Valid log ∧ ¬SigningTranscript.Contains log forgery) && verified
 
 /-- The probability that the adversary wins, over key generation, signer randomness, and the random oracle, which starts from the empty cache. The final cache is discarded. -/
-noncomputable def forgeAdvantage (scheme : Scheme) (adversary : Adversary) : ℝ≥0∞ :=
+noncomputable def forgeAdvantage {Key : Type} (scheme : Scheme Key) (adversary : Adversary) : ℝ≥0∞ :=
   Pr[= true | (simulateQ romImpl (gameCore scheme adversary)).run' ∅]
 
 /-- Count one per hash call, including cache hits, and zero per uniform sample. -/
@@ -754,24 +747,23 @@ noncomputable def countedRomImpl :=
   romImpl.withAddCost (fun | .inl _ => (0 : Nat) | .inr _ => 1)
 
 /-- Every execution of the consistent random oracle uses at most `q` hash calls, including key generation, adversarial hashing, signing, and final verification. -/
-def HasHashQueryBound (scheme : Scheme) (adversary : Adversary) (q : Nat) : Prop :=
+def HasHashQueryBound {Key : Type} (scheme : Scheme Key) (adversary : Adversary) (q : Nat) : Prop :=
   ∀ result ∈ support ((simulateQ countedRomImpl (gameCore scheme adversary)).run.run' ∅),
     result.2 ≤ q
 
 /-- Having `bits` bits of classical security means that every classical adaptive adversary whose complete experiment stays within a nonzero hash-query budget `q` forges with probability at most `q / 2^bits`. The bound is a slope, so it bounds what a query buys and not what the first one does; a budget below what the honest experiment alone spends admits no adversary and the bound is vacuous there. -/
-def HasClassicalSecurityBits (scheme : Scheme) (bits : Nat) : Prop :=
+def HasClassicalSecurityBits {Key : Type} (scheme : Scheme Key) (bits : Nat) : Prop :=
   ∀ q, 1 ≤ q → ∀ adversary, HasHashQueryBound scheme adversary q →
     forgeAdvantage scheme adversary ≤ q / ((2 ^ bits : Nat) : ℝ≥0∞)
 
-/-- The concrete SPHINCS scheme: key generation, the stateless randomized signer, and the verifier defined above. -/
-noncomputable def Concrete.scheme : Scheme where
-  keygen := Concrete.keygen
-  sign := Concrete.sign
+noncomputable def Seeded.scheme : Scheme Seeded.SecretKey where
+  keygen := Seeded.keygen
+  sign := Seeded.sign
   verify := fun publicKey message signature =>
     liftM (Concrete.verify publicKey message signature : OracleComp HashSpec Bool)
 
-/-- The security claim: `127` bits of classical strong unforgeability in the random-oracle model, at `2^24` signing requests per key pair. -/
+/-- The security claim for the scheme with a 256-bit master seed. -/
 abbrev SphincsSecurityStatement : Prop :=
-  HasClassicalSecurityBits Concrete.scheme 127
+  HasClassicalSecurityBits Seeded.scheme 127
 
 end SphincsSecurity

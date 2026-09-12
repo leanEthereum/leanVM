@@ -1,4 +1,4 @@
-import XmssSecurity.Statement
+import XmssSecurity.Proof.IdealStatement
 import XmssSecurity.Proof.StatementLemmas
 import XmssSecurity.Proof.EncodingLemmas
 import Mathlib.Tactic.NormNum

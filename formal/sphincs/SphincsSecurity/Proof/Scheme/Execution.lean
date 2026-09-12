@@ -1,5 +1,5 @@
 import SphincsSecurity.Proof.Base.Prelude
-import SphincsSecurity.Statement
+import SphincsSecurity.Proof.IdealStatement
 
 /-!
 # Winning execution frame

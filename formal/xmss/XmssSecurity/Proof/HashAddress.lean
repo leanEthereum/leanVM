@@ -1,5 +1,5 @@
 import XmssSecurity.Proof.CacheQuerySupport
-import XmssSecurity.Statement
+import XmssSecurity.Proof.IdealStatement
 import XmssSecurity.Proof.HashInputLemmas
 
 open OracleComp OracleSpec

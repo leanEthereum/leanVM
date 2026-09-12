@@ -169,7 +169,7 @@ Use the following tweaks, where $(\lay,\tau)$ identifies a hypertree layer and t
   \mathsf{tw}_{\mathrm{parameter}} &= \mathsf{enc}(10,0,0,0,0).
 \end{aligned}
 \]
-Types $0$, $5$ and $10$ are used only for seed derivation (Remark~\ref{rem:seed}).
+Types $0$, $5$ and $10$ are used only for seed derivation (Section~\ref{rem:seed}).
 
 \section{The index}
 
@@ -223,7 +223,7 @@ For a chain index $i$ at position $(\lay,\tau,e)$, a start $\mu$, a number of st
 valid for $0\leq\mu<2^w$ and $0\leq s\leq2^w-1-\mu$.
 \end{definition}
 
-The secrets $\sk_{\lay,\tau,e,i}$ for $0\leq i<v$ are sampled by $\Gen$. Their chain endpoints and Merkle leaf are
+The secrets $\sk_{\lay,\tau,e,i}$ for $0\leq i<v$ are derived by $\Gen$. Their chain endpoints and Merkle leaf are
 \[
 \begin{aligned}
   \pk_{\lay,\tau,e,i}&=\Chain_{\lay,\tau,e,i}\!\left(P,0,2^w-1,\sk_{\lay,\tau,e,i}\right),\\
@@ -296,7 +296,7 @@ and returns $V_{h_\lay}$.
 
 A few-time key has $k-1$ Merkle trees of $2^a$ secrets. A signature opens one secret per tree at indices selected by the message digest (Figure~\ref{fig:fts}). An adversary can combine previous openings whenever all selected secrets have been revealed. FORS$^+$C omits the last of $k$ trees by requiring the last digest index to be zero.
 
-The secrets $s_{\idx,\kappa,j}$ for $0\leq\kappa<k-1$ and $0\leq j<2^a$ are sampled by $\Gen$. Their trees are
+The secrets $s_{\idx,\kappa,j}$ for $0\leq\kappa<k-1$ and $0\leq j<2^a$ are derived by $\Gen$. Their trees are
 \[
 \begin{aligned}
   Y^{\idx,\kappa}_{0,j} &= \Th\!\left(P,\mathsf{tw}_{\mathrm{ftsleaf}}(\idx,\kappa,j),s_{\idx,\kappa,j}\right),\\
@@ -355,24 +355,19 @@ Sampling $\rho$ randomizes the digest after the adversary chooses the message. F
 \end{remark}
 
 \section{Key generation}
-
-$\Gen$ independently samples $P\getsr\bits{\lpar}$, the one-time secrets $\sk_{\lay,\tau,e,i}\getsr\mathcal H$ for every layer, tree, leaf and chain, and the few-time secrets $s_{\idx,\kappa,j}\getsr\mathcal H$ for every instance, tree and leaf. It returns
-\[
-  \pk=(\rootnode,P),\qquad \rootnode=\TreeRoot(P,0,0),\qquad
-  \sk=\left(P,\rootnode,(\sk_{\lay,\tau,e,i}),(s_{\idx,\kappa,j})\right).
-\]
-Serialize the public key as $\rootnode\concat P$, 32 bytes.
-
-\begin{remark}[Seed derivation]
 \label{rem:seed}
-Sample a master secret $S\getsr\bits{256}$. Set $P=\Th(0^{\lpar},\mathsf{tw}_{\mathrm{parameter}},S)$ and derive the signing secrets as
+
+$\Gen$ samples a master secret $S\getsr\bits{256}$, sets $P=\Th(0^{\lpar},\mathsf{tw}_{\mathrm{parameter}},S)$, and defines the signing secrets by
 \[
   \sk_{\lay,\tau,e,i}=\Th\!\left(P,\mathsf{tw}_{\mathrm{prf}}(\lay,\tau,i,e),S\right),
   \qquad
   s_{\idx,\kappa,j}=\Th\!\left(P,\mathsf{tw}_{\mathrm{ftsprf}}(\idx,\kappa,j),S\right).
 \]
-This gives $\sk=(P,\rootnode,S)$. Store $P\concat S$, 48 bytes; the root is recomputed from them. The formal theorem assumes independent secrets; the costs in Section~\ref{sec:costs} assume this derivation.
-\end{remark}
+It computes the top tree and returns
+\[
+  \pk=(\rootnode,P),\qquad \rootnode=\TreeRoot(P,0,0),\qquad \sk=(P,\rootnode,S).
+\]
+Serialize the public key as $\rootnode\concat P$, 32 bytes. Store the secret key as $P\concat S$, 48 bytes; the root is recomputed from them. Other secrets are derived when needed.
 
 \begin{remark}[Signer cache]
 \label{rem:cache}
@@ -464,7 +459,7 @@ Call $\mathcal A$ $q$-bounded if every execution of this experiment makes at mos
 \end{definition}
 
 \begin{theorem}[SPHINCS security]
-The ideal SPHINCS scheme specified above, with independently sampled secrets, has 127 bits of classical strong unforgeability in the ROM at $\qs=2^{24}$ signing requests.
+The SPHINCS scheme specified above, with a 256-bit master seed, has 127 bits of classical strong unforgeability in the ROM at $\qs=2^{24}$ signing requests.
 \end{theorem}
 
 A formal Lean 4 proof using VCVio \cite{VCVio} is in \texttt{./formal/sphincs/}. The claim is stated in \texttt{SphincsSecurity/Statement.lean} and proved in \texttt{SphincsSecurity.lean}. The theorem depends only on Lean's three standard axioms.

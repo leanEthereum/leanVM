@@ -161,7 +161,14 @@ The one-time public key and its Merkle leaf are
 
 \section{Key generation}
 
-The algorithm $\Gen$ independently samples $P\getsr\bits{\lpar}$ and $\mathit{sk}_{\ep,i}\getsr\mathcal H$ for $0\leq\ep<L$ and $0\leq i<v$. It computes and stores every chain value
+The algorithm $\Gen$ samples a master secret $S\getsr\bits{256}$ and derives
+\[
+  P=\Th\!\left(0^{\lpar},\mathsf{enc}(10,0,0),S\right),
+  \qquad
+  \mathit{sk}_{\ep,i}=\Th\!\left(P,\mathsf{enc}(0,i,\ep),S\right),
+  \qquad 0\leq\ep<L,\quad 0\leq i<v.
+\]
+It computes and stores every chain value
 \[
   C_{\ep,i,k}=\Chain_{\Th,i,\ep}(P,0,k,\mathit{sk}_{\ep,i}),
   \qquad 0\leq k<2^w.
@@ -175,27 +182,17 @@ Set $\rootnode=X_{h,0}$ and return
 \[
   \pk=(\rootnode,P),
   \qquad
-  \sk=\left(P,(C_{\ep,i,k})_{\substack{0\leq\ep<L,\,0\leq i<v,\\0\leq k<2^w}},(X_{\ell,j})_{\substack{0\leq\ell\leq h,\\0\leq j<2^{h-\ell}}}\right).
+  \sk=\left(S,P,(C_{\ep,i,k})_{\substack{0\leq\ep<L,\,0\leq i<v,\\0\leq k<2^w}},(X_{\ell,j})_{\substack{0\leq\ell\leq h,\\0\leq j<2^{h-\ell}}}\right).
 \]
 
 The public key is serialized as $\rootnode\concat P$.
 
-\begin{remark}[Ideal precomputed secret key]
-This specification deliberately uses an ideal precomputed secret key. It stores the full Merkle tree and all intermediate one-time-signature chain values so that signing does not recompute them. Repeated access to such a value is a table read, not a fresh random-oracle query. An implementation may store or recompute those values as it sees fit, provided the sampled ones keep the distribution above.
-\end{remark}
-
-\begin{remark}[Seed derivation]
-Sample a master secret $S\getsr\bits{256}$ and derive
-\[
-  P=\Th\!\left(0^{\lpar},\mathsf{enc}(10,0,0),S\right),
-  \qquad
-  \mathit{sk}_{\ep,i}=\Th\!\left(P,\mathsf{enc}(0,i,\ep),S\right).
-\]
-The theorem of Section~\ref{sec:security} does not yet cover this derivation.
+\begin{remark}[Precomputed secret key]
+The secret key caches the full Merkle tree and every intermediate chain value. Signing reads these tables without hashing them again. Implementations may recompute cached values from $S$ and $P$; those computations contribute to their hash-query cost.
 \end{remark}
 
 \begin{remark}[Restricted key generation]
-Key generation may be restricted to a smaller interval of epochs by replacing subtrees outside that interval with filler nodes $\Th(P,\mathsf{enc}(11,\ell,j),S)$ at height $\ell$ and index $j$. The resulting key signs only epochs in that interval. The theorem of Section~\ref{sec:security} does not cover this variant either, but we also expect the security proof to adapt easily.
+Key generation may be restricted to a smaller interval of epochs by replacing subtrees outside that interval with filler nodes $\Th(P,\mathsf{enc}(11,\ell,j),S)$ at height $\ell$ and index $j$. The resulting key signs only epochs in that interval. This variant is outside the theorem of Section~\ref{sec:security}.
 \end{remark}
 
 \section{Signing}
@@ -328,7 +325,7 @@ At $w=3$, $v=42$ and $T=195$,
   |\mathcal D|=11539185377238682781344003244544752,\qquad \alpha=2^{-14.8479\ldots}\geq2^{-15}+2^{-128}.
 \]
 
-\emph{One attempt.} The map $I$ is injective, and no query of $\Gen$ reaches its image, $\Gen$ using tweak types $1$, $2$ and $3$, not $4$. So a $\rho$ not drawn before is a fresh oracle point, making $D$ uniform on $\bits n$ and independent of the history, and the attempt succeeds with probability exactly $\alpha$.
+\emph{One attempt.} The map $I$ is injective, and no query of $\Gen$ reaches its image, $\Gen$ using tweak types $0$, $1$, $2$, $3$ and $10$, not $4$. So a $\rho$ not drawn before is a fresh oracle point, making $D$ uniform on $\bits n$ and independent of the history, and the attempt succeeds with probability exactly $\alpha$.
 
 \emph{Exhausting the attempts.} Let $\mathcal F_a$ be the event that the first $a$ attempts all fail. The signer then samples a new $\rho$, uniformly at random and independently of the earlier attempts. This $\rho$ equals one of the $a$ earlier ones with probability at most $a2^{-\lrnd}$, and otherwise the attempt fails with probability $1-\alpha$, so $\Pr[\mathcal F_{a+1}\mid\mathcal F_a]\leq1-\alpha+a2^{-\lrnd}$. Multiplying over $0\leq a<\amax$, and since $\amax2^{-\lrnd}=2^{-169}\leq2^{-128}$,
 \[

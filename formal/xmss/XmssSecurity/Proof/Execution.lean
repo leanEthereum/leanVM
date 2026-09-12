@@ -1,4 +1,4 @@
-import XmssSecurity.Statement
+import XmssSecurity.Proof.IdealStatement
 import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
 import VCVio.OracleComp.SimSemantics.StateT.PreservesInv
 
@@ -60,12 +60,12 @@ theorem xmssRom_cache_le {α : Type} (computation : OracleComp OracleWorld α)
     computation initialCache le_rfl result hmem
 
 /-- The full security game with the final lazy random-oracle cache kept in its output. -/
-noncomputable def gameWithCache (scheme : Scheme) (adversary : Adversary) :
+noncomputable def gameWithCache (scheme : Scheme SecretKey) (adversary : Adversary) :
     ProbComp (Bool × QueryCache HashSpec) :=
   (simulateQ romImpl (gameCore scheme adversary)).run ∅
 
 /-- Keeping the final cache does not change the winning probability. -/
-theorem forgeAdvantage_eq_gameWithCache (scheme : Scheme) (adversary : Adversary) :
+theorem forgeAdvantage_eq_gameWithCache (scheme : Scheme SecretKey) (adversary : Adversary) :
     forgeAdvantage scheme adversary =
       Pr[fun outcome => outcome.1 = true | gameWithCache scheme adversary] := by
   unfold forgeAdvantage gameWithCache
