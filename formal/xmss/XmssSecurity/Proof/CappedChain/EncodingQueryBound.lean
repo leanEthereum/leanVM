@@ -102,29 +102,4 @@ theorem detailedGameAfterKeygen_unlogged_projection
     unloggedAdversary >>= finish
   rw [← bind_map_left, hprojection]
 
-theorem sourceUnloggedDetailedGameAfterKeygen_hashQueryBound
-    (q : Nat) (adversary : Adversary)
-    (hbound : HasHashQueryBound Concrete.scheme adversary q)
-    (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
-    (hkeyResult : keyResult ∈ support
-      ((simulateQ romImpl Concrete.scheme.keygen).run ∅)) :
-    (sourceUnloggedDetailedGameAfterKeygen adversary keyResult.1.1 keyResult.1.2)
-      |>.IsQueryBoundP (· matches .inr _) q := by
-  have hdetailed :=
-    (hasHashQueryBound_iff_detailedGameCore Concrete.scheme adversary q).mp hbound
-  have hkeySupport : keyResult.1 ∈ support Concrete.scheme.keygen := by
-    apply support_simulateQ_run'_subset romImpl Concrete.scheme.keygen ∅
-    rw [StateT.run'_eq, support_map]
-    exact ⟨keyResult, hkeyResult, rfl⟩
-  have hcontinuation :
-      (detailedGameAfterKeygen Concrete.scheme adversary keyResult.1.1
-        keyResult.1.2).IsQueryBoundP (· matches .inr _) q := by
-    apply OracleComp.IsQueryBoundP.bind_right_of_mem_support
-      (head := Concrete.scheme.keygen)
-      (next := fun key => detailedGameAfterKeygen Concrete.scheme adversary key.1 key.2)
-      hdetailed keyResult.1 hkeySupport
-  exact (OracleComp.isQueryBoundP_iff_of_map_eq
-    (detailedGameAfterKeygen_unlogged_projection adversary keyResult.1.1
-      keyResult.1.2)).mp hcontinuation
-
 end XmssSecurity.CappedChain

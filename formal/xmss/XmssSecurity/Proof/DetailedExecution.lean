@@ -1,4 +1,5 @@
 import XmssSecurity.Proof.Execution
+import XmssSecurity.Proof.ConsistentQueryBound
 
 open OracleComp OracleSpec ENNReal
 
@@ -63,13 +64,11 @@ theorem forgeAdvantage_eq_detailedGameWithCache
     probEvent_map]
   rfl
 
-/-- Retaining the detailed outcome does not change the structural hash-query bound. -/
+/-- Retaining the detailed outcome does not change the hash-query count. -/
 theorem hasHashQueryBound_iff_detailedGameCore
     (scheme : Scheme) (adversary : Adversary) (q : Nat) :
     HasHashQueryBound scheme adversary q ↔
-      (detailedGameCore scheme adversary).IsQueryBoundP (· matches .inr _) q := by
-  unfold HasHashQueryBound
-  rw [gameCore_eq_map_detailedGameCore]
-  exact OracleComp.isQueryBoundP_map_iff _ _ _
+      HashQueryBound (detailedGameCore scheme adversary) ∅ q := by
+  rw [hasHashQueryBound_iff, gameCore_eq_map_detailedGameCore, hashQueryBound_map_iff]
 
 end XmssSecurity

@@ -47,15 +47,15 @@ theorem originalProposalRecord_query_bound {α : Type} (key : SecretKey)
     (input : (OracleWorld + SigningSpec).Domain)
     (next : (OracleWorld + SigningSpec).Range input → OracleComp (OracleWorld + SigningSpec) α)
     (q : Nat)
-    (hbound : (simulateQ (expandedAdversaryImpl key) (OracleSpec.query input >>= next)).IsQueryBoundP (· matches .inr _) q)
-    (cache : QueryCache HashSpec) (record : ProposalExecutionRecord input)
+    (cache : QueryCache HashSpec)
+    (hbound : HashQueryBound (simulateQ (expandedAdversaryImpl key) (OracleSpec.query input >>= next)) cache q) (record : ProposalExecutionRecord input)
     (hr : record ∈ (originalProposalRecord key input cache).support) :
     record.trace.hashCalls ≤ q ∧
-      (simulateQ (expandedAdversaryImpl key) (next record.output)).IsQueryBoundP (· matches .inr _)
+      HashQueryBound (simulateQ (expandedAdversaryImpl key) (next record.output)) record.cache
         (q - record.trace.hashCalls) := by
   rw [simulateQ_bind, simulateQ_spec_query] at hbound
   exact boundaryRun_bind_query_bound key.parameter (expandedAdversaryImpl key input)
-    (fun output => simulateQ (expandedAdversaryImpl key) (next output)) q hbound cache _
+    (fun output => simulateQ (expandedAdversaryImpl key) (next output)) q cache hbound _
     (originalProposalRecord_boundary_support key input cache record hr)
 
 theorem originalProposalRecord_sign_hashCalls (key : SecretKey) (message : Message)

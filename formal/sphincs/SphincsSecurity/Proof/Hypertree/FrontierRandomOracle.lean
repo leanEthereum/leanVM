@@ -84,14 +84,6 @@ theorem evalDist_gameCore_frontier (inputs : Finset HashInput) (dummy : OtsRefer
     (evalDist_boundaryGameCore_frontier inputs dummy adversary hinputs)
   simpa only [StateT.run'_eq, evalDist_map, ← LawfulFunctor.comp_map, Function.comp_def] using h
 
-theorem boundaryRun_hashCalls_le {α : Type} (parameter : PublicParameter)
-    (computation : OracleComp OracleWorld α) (q : Nat) (hbound : computation.IsQueryBoundP (· matches .inr _) q)
-    (cache : QueryCache HashSpec) (result : (α × SigningBoundaryTrace) × QueryCache HashSpec)
-    (hresult : result ∈ support (boundaryRun parameter computation cache)) : result.1.2.hashCalls ≤ q := by
-  have h := boundaryRun_bind_query_bound parameter computation (pure : α → OracleComp OracleWorld α) q
-    (by rw [bind_pure]; exact hbound) cache result hresult
-  exact h.1
-
 theorem boundaryGameCore_hashCalls_le (adversary : Adversary) (q : Nat)
     (hbound : HasHashQueryBound scheme adversary q) (result : Bool × SigningBoundaryTrace)
     (hresult : result ∈ support ((simulateQ romImpl (boundaryGameCore adversary)).run' ∅)) :
@@ -104,7 +96,7 @@ theorem boundaryGameCore_hashCalls_le (adversary : Adversary) (q : Nat)
   obtain ⟨ftsSecret, hfts, hresult⟩ := hresult
   rw [← boundaryRun_fst_eq_boundaryComputation, support_map] at hresult
   obtain ⟨record, hrecord, rfl⟩ := hresult
-  exact boundaryRun_hashCalls_le parameter _ q
-    (isQueryBoundP_gameAfterSecrets adversary q hbound hparameter hots hfts) ∅ record hrecord
+  exact (hashQueryBound_iff_boundaryRun parameter _ ∅ q).mp
+    (hashQueryBound_gameAfterSecrets adversary q hbound hparameter hots hfts) record hrecord
 
 end SphincsSecurity.Concrete

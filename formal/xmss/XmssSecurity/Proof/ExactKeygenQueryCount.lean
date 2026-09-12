@@ -163,72 +163,48 @@ theorem precomputedKeygen_hashCount :
 
 end ExactQueryCount.ExactPredicateQueryCount
 
-theorem detailedGameAfterKeygen_hashQueryBound_sub_keygen
-    (adversary : Adversary) (q : Nat)
-    (hbound : HasHashQueryBound Concrete.scheme adversary q)
-    (key : PublicKey × SecretKey) (hkey : key ∈ support Concrete.precomputedKeygen) :
-    (detailedGameAfterKeygen Concrete.scheme adversary key.1 key.2).IsQueryBoundP
-      IsHashQuery (q - treeHashQueryCount treeHeight) := by
-  have hdetailed :=
-    (hasHashQueryBound_iff_detailedGameCore Concrete.scheme adversary q).mp hbound
-  have hdetailedHash :
-      (detailedGameCore Concrete.scheme adversary).IsQueryBoundP IsHashQuery q :=
-    (OracleComp.isQueryBoundP_congr_pred (p' := IsHashQuery)
-      (fun input => by cases input <;> simp [IsHashQuery])).mp hdetailed
-  unfold detailedGameCore Concrete.scheme at hdetailedHash
-  change (Concrete.precomputedKeygen >>= fun key =>
-    detailedGameAfterKeygen Concrete.scheme adversary key.1 key.2).IsQueryBoundP
-      IsHashQuery q at hdetailedHash
-  exact (ExactQueryCount.ExactPredicateQueryCount.bind_right_of_mem_support
-    ExactQueryCount.ExactPredicateQueryCount.precomputedKeygen_hashCount
-    hdetailedHash key hkey).2
+theorem countHashQueries_of_exact {α : Type} {computation : OracleComp OracleWorld α} {count : Nat}
+    (hexact : ExactPredicateQueryCount IsHashQuery computation count) :
+    countHashQueries computation = (fun value => (value, count)) <$> computation := by
+  induction hexact with
+  | pure value => simp only [countHashQueries_pure, map_pure]
+  | query input next count hnext ih =>
+      simp only [countHashQueries_query_bind, ih, map_bind, bind_pure_comp, Functor.map_map]
+      cases input <;> simp [IsHashQuery, Nat.add_comm]
 
-theorem keygen_hashQueryCount_le
-    (adversary : Adversary) (q : Nat)
-    (hbound : HasHashQueryBound Concrete.scheme adversary q) :
-    treeHashQueryCount treeHeight ≤ q := by
-  have hdetailed :=
-    (hasHashQueryBound_iff_detailedGameCore Concrete.scheme adversary q).mp hbound
-  have hdetailedHash :
-      (detailedGameCore Concrete.scheme adversary).IsQueryBoundP IsHashQuery q :=
-    (OracleComp.isQueryBoundP_congr_pred (p' := IsHashQuery)
-      (fun input => by cases input <;> simp [IsHashQuery])).mp hdetailed
-  unfold detailedGameCore Concrete.scheme at hdetailedHash
-  change (Concrete.precomputedKeygen >>= fun key =>
-    detailedGameAfterKeygen Concrete.scheme adversary key.1 key.2).IsQueryBoundP
-      IsHashQuery q at hdetailedHash
-  exact ExactQueryCount.ExactPredicateQueryCount.le_of_isQueryBoundP
-    ExactQueryCount.ExactPredicateQueryCount.precomputedKeygen_hashCount
-    (OracleComp.IsQueryBoundP.of_bind_left hdetailedHash)
+theorem keygen_hashQueryBound_split (adversary : Adversary) (q : Nat)
+    (hbound : HasHashQueryBound Concrete.scheme adversary q)
+    (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
+    (hkeyResult : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅)) :
+    treeHashQueryCount treeHeight ≤ q ∧
+      HashQueryBound (detailedGameAfterKeygen Concrete.scheme adversary keyResult.1.1 keyResult.1.2)
+        keyResult.2 (q - treeHashQueryCount treeHeight) := by
+  have hdetailed := (hasHashQueryBound_iff_detailedGameCore Concrete.scheme adversary q).mp hbound
+  apply hashQueryBound_bind Concrete.scheme.keygen
+    (fun key => detailedGameAfterKeygen Concrete.scheme adversary key.1 key.2) ∅ q hdetailed
+    ((keyResult.1, treeHashQueryCount treeHeight), keyResult.2)
+  have hcount : countHashQueries Concrete.scheme.keygen =
+      (fun key => (key, treeHashQueryCount treeHeight)) <$> Concrete.scheme.keygen :=
+    countHashQueries_of_exact ExactQueryCount.ExactPredicateQueryCount.precomputedKeygen_hashCount
+  rw [hcount, simulateQ_map, StateT.run_map, support_map]
+  exact ⟨keyResult, hkeyResult, rfl⟩
+
+theorem keygen_hashQueryCount_le (adversary : Adversary) (q : Nat)
+    (hbound : HasHashQueryBound Concrete.scheme adversary q) : treeHashQueryCount treeHeight ≤ q := by
+  obtain ⟨keyResult, hkeyResult⟩ := probComp_support_nonempty ((simulateQ romImpl Concrete.scheme.keygen).run ∅)
+  exact (keygen_hashQueryBound_split adversary q hbound keyResult hkeyResult).1
 
 namespace CappedChain
 
 theorem sourceUnloggedDetailedGameAfterKeygen_hashQueryBound_sub_keygen
-    (q : Nat) (adversary : Adversary)
-    (hbound : HasHashQueryBound Concrete.scheme adversary q)
+    (q : Nat) (adversary : Adversary) (hbound : HasHashQueryBound Concrete.scheme adversary q)
     (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
-    (hkeyResult : keyResult ∈ support
-      ((simulateQ romImpl Concrete.scheme.keygen).run ∅)) :
-    (sourceUnloggedDetailedGameAfterKeygen adversary keyResult.1.1 keyResult.1.2)
-      |>.IsQueryBoundP (· matches .inr _)
-        (q - treeHashQueryCount treeHeight) := by
-  have hkeySupport : keyResult.1 ∈ support Concrete.scheme.keygen := by
-    apply support_simulateQ_run'_subset romImpl Concrete.scheme.keygen ∅
-    rw [StateT.run'_eq, support_map]
-    exact ⟨keyResult, hkeyResult, rfl⟩
-  have hkeyPrecomputed : keyResult.1 ∈ support Concrete.precomputedKeygen := by
-    simpa [Concrete.scheme] using hkeySupport
-  have hcontinuation := detailedGameAfterKeygen_hashQueryBound_sub_keygen
-    adversary q hbound keyResult.1 hkeyPrecomputed
-  have hcontinuationStandard :
-      (detailedGameAfterKeygen Concrete.scheme adversary keyResult.1.1
-        keyResult.1.2).IsQueryBoundP (· matches .inr _)
-          (q - treeHashQueryCount treeHeight) :=
-    (OracleComp.isQueryBoundP_congr_pred (p' := IsHashQuery)
-      (fun input => by cases input <;> simp [IsHashQuery])).mpr hcontinuation
-  exact (OracleComp.isQueryBoundP_iff_of_map_eq
-    (detailedGameAfterKeygen_unlogged_projection adversary keyResult.1.1
-      keyResult.1.2)).mp hcontinuationStandard
+    (hkeyResult : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅)) :
+    HashQueryBound (sourceUnloggedDetailedGameAfterKeygen adversary keyResult.1.1 keyResult.1.2)
+      keyResult.2 (q - treeHashQueryCount treeHeight) :=
+  (hashQueryBound_iff_of_map_eq
+    (detailedGameAfterKeygen_unlogged_projection adversary keyResult.1.1 keyResult.1.2) _ _).mp
+      (keygen_hashQueryBound_split adversary q hbound keyResult hkeyResult).2
 
 end CappedChain
 

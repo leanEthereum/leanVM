@@ -67,8 +67,8 @@ theorem certificateCacheLength_run_prefixOverflow {α : Type} (key : SecretKey) 
 theorem certificateCacheLength_withSigningLog_clean {α : Type} (key : SecretKey) (budget : Nat)
     (required : Finset FtsTree) (hbudget : budget ≤ 2 ^ 127)
     (computation : OracleComp (OracleWorld + SigningSpec) α) (q : Nat)
-    (hbound : (simulateQ (expandedAdversaryImpl key) computation).IsQueryBoundP (· matches .inr _) q)
     (state : CertificateCacheMonitorState)
+    (hbound : HashQueryBound (simulateQ (expandedAdversaryImpl key) computation) state.1 q)
     (hready : CertificateMonitorReady key budget (certificateCacheMonitorProject state))
     (halive : state.2.1.stopped = false) (hroom : state.2.1.spent + q ≤ budget)
     (result : (α × QueryLog SigningSpec) × CertificateCacheMonitorState)
@@ -92,7 +92,7 @@ theorem certificateCacheLength_withSigningLog_clean {α : Type} (key : SecretKey
         certificateCacheLengthImpl_support key budget required proposalPrefixStop input state middle hmiddle
       let after := originalProposalAdvance (certificateCacheMonitorUpdate key budget required proposalPrefixStop)
         input state length record
-      have hquery := originalProposalRecord_query_bound key input next q hbound state.1 record hrecord
+      have hquery := originalProposalRecord_query_bound key input next q state.1 hbound record hrecord
       have hlogLength := withSigningLog_run_length_le
         (certificateCacheLengthImpl key budget required proposalPrefixStop) (next record.output)
         (state.2.1.log ++ signingLogFragment input record.output) after result hr
@@ -154,7 +154,7 @@ theorem certificateCacheLength_withSigningLog_clean {α : Type} (key : SecretKey
           (certificateCacheMonitorProject state) length record hactive]
         change state.2.1.spent + record.trace.hashCalls + (q - record.trace.hashCalls) ≤ budget
         omega
-      apply ih record.output (q - record.trace.hashCalls) hquery.2 after hafterReady hafterAlive hafterRoom result
+      apply ih record.output (q - record.trace.hashCalls) after hquery.2 hafterReady hafterAlive hafterRoom result
       · simpa only [hafterLog] using hr
       · exact hvalid
       · exact hhit

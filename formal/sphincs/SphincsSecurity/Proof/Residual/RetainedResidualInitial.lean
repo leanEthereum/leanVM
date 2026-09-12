@@ -56,15 +56,16 @@ theorem Context.rest_queryBound {inputs : Finset HashInput} (context : Context i
     (hroot : context.key.root = canonicalGraphRoot context.graph)
     (hparameter : context.key.parameter ∈ support sampleParameter) (adversary : Adversary) (q : Nat)
     (hq : HasHashQueryBound scheme adversary q) :
-    1212415 ≤ q ∧ (gameRest scheme adversary ⟨context.key.root, context.key.parameter⟩ context.key).IsQueryBoundP
-      (· matches .inr _) (q - 1212415) := by
+    1212415 ≤ q ∧ FixedHashQueryBound context.oracle
+      (gameRest scheme adversary ⟨context.key.root, context.key.parameter⟩ context.key) (q - 1212415) := by
   have hots : context.key.otsSecret ∈ support sampleOtsSecrets := by
     unfold sampleOtsSecrets
     exact otsSecretsSampleableType.mem_support_selectElem _
   have hfts : context.key.ftsSecret ∈ support sampleFtsSecrets := by
     unfold sampleFtsSecrets
     exact ftsSecretsSampleableType.mem_support_selectElem _
-  have hbound := isQueryBoundP_gameAfterSecrets adversary q hq hparameter hots hfts
+  have hbound := hashQueryBound_fixed context.oracle _ q
+    (hashQueryBound_gameAfterSecrets adversary q hq hparameter hots hfts)
   rw [gameAfterSecrets] at hbound
   have hresult : 𝒟[fixedBoundaryRun context.key.parameter context.oracle
       (liftM (treeRoot context.key.parameter topLayer rootTree (context.key.otsSecret topLayer rootTree) : OracleComp HashSpec Digest))]

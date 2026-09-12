@@ -1,4 +1,5 @@
 import SphincsSecurity.Proof.Base.Prelude
+import SphincsSecurity.Proof.Reference.FixedQueryBound
 import SphincsSecurity.Proof.Fts.FtsProbeProbability
 import SphincsSecurity.Proof.Fts.FewTimeSource
 import SphincsSecurity.Proof.Fts.FtsProbeOrigin
@@ -30,15 +31,13 @@ theorem retainedGameRestComputation_verdict_projection
       tracedGameRestComputation adversary publicKey := by
   simp [retainedGameRestComputation, tracedGameRestComputation]
 
-theorem simulateQ_expanded_retainedGameRestComputation_isQueryBoundP
-    (adversary : Adversary) (secretKey : SecretKey) (q : Nat)
-    (hbound : (gameRest scheme adversary
-      ⟨secretKey.root, secretKey.parameter⟩ secretKey).IsQueryBoundP
-        (· matches Sum.inr _) q) :
-    (simulateQ (expandedAdversaryImpl secretKey)
+theorem simulateQ_expanded_retainedGameRestComputation_fixedHashQueryBound
+    (oracle : QueryImpl HashSpec Id) (adversary : Adversary) (secretKey : SecretKey) (q : Nat)
+    (hbound : FixedHashQueryBound oracle (gameRest scheme adversary
+      ⟨secretKey.root, secretKey.parameter⟩ secretKey) q) :
+    FixedHashQueryBound oracle (simulateQ (expandedAdversaryImpl secretKey)
       (retainedGameRestComputation adversary
-        ⟨secretKey.root, secretKey.parameter⟩)).IsQueryBoundP
-          (· matches Sum.inr _) q := by
+        ⟨secretKey.root, secretKey.parameter⟩)) q := by
   let verdict := fun result : RetainedRestResult =>
         decide (SigningTranscript.Valid result.1.2 ∧
           ¬SigningTranscript.Contains result.1.2 result.1.1) && result.2
@@ -51,14 +50,13 @@ theorem simulateQ_expanded_retainedGameRestComputation_isQueryBoundP
           ⟨secretKey.root, secretKey.parameter⟩) := by
             rw [← retainedGameRestComputation_verdict_projection]
             simp [verdict]
-  have hmap : (verdict <$>
+  have hmap : FixedHashQueryBound oracle (verdict <$>
       simulateQ (expandedAdversaryImpl secretKey)
         (retainedGameRestComputation adversary
-          ⟨secretKey.root, secretKey.parameter⟩)).IsQueryBoundP
-            (· matches Sum.inr _) q := by
+          ⟨secretKey.root, secretKey.parameter⟩)) q := by
     rw [heq, simulateQ_expanded_tracedGameRestComputation adversary secretKey]
     exact hbound
-  exact (isQueryBoundP_map_iff _ verdict q).mp hmap
+  exact (fixedHashQueryBound_map_iff oracle _ verdict q).mp hmap
 
 end Concrete.FtsProbeSimulation
 

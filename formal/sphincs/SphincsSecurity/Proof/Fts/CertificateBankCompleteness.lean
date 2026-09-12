@@ -75,9 +75,9 @@ theorem initialCertificateMonitor_bank_complete (key : SecretKey) (spent : Nat)
 
 theorem certificateCacheProposal_rest_clean_certificate (adversary : Adversary) (publicKey : PublicKey)
     (key : SecretKey) (budget q spent : Nat) (required : Finset FtsTree) (hbudget : budget ≤ 2 ^ 127)
-    (hbound : (simulateQ (expandedAdversaryImpl key)
-      (retainedGameRestComputation adversary publicKey)).IsQueryBoundP (· matches .inr _) q)
-    (cache : QueryCache HashSpec) (hroom : spent + q ≤ budget)
+    (cache : QueryCache HashSpec)
+    (hbound : HashQueryBound (simulateQ (expandedAdversaryImpl key)
+      (retainedGameRestComputation adversary publicKey)) cache q) (hroom : spent + q ≤ budget)
     (hcache : QueryCache.enncard cache ≤ spent)
     (hnone : ∀ input, FtsProbeSimulation.MessageHashInput key.parameter input → cache input = none)
     (result : CertificateCacheGameResult)
@@ -88,8 +88,8 @@ theorem certificateCacheProposal_rest_clean_certificate (adversary : Adversary) 
     (input : HashInput) (hcertificate : TargetCertificateAt key required (result.2.2.1, result.1.1.2) input) :
     1 ≤ certificateBankCount result.2.2.2.1.bank := by
   have hready := initialCertificateMonitor_ready key budget spent cache false hbudget (by omega) hcache hnone
-  have hresult := certificateCacheProposal_rest_clean adversary publicKey key budget q required hbudget hbound
-    ([], cache, initialCertificateMonitor spent false, false) hready rfl rfl hroom result hr hvalid hclean
+  have hresult := certificateCacheProposal_rest_clean adversary publicKey key budget q required hbudget
+    ([], cache, initialCertificateMonitor spent false, false) hbound hready rfl rfl hroom result hr hvalid hclean
   have hbank := certificateCacheProposal_run_bank_complete key budget required proposalPrefixStop
     (retainedGameRestComputation adversary publicKey) ([], cache, initialCertificateMonitor spent false, false)
     (fun _ => initialCertificateMonitor_bank_complete key spent required cache false hnone) result hr hresult.1

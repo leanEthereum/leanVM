@@ -2,7 +2,7 @@
 
 The public theorem proves **127 bits of classical strong unforgeability in the random-oracle model** for the concrete SPHINCS instance of `doc/sphincs`, with at most `2^24` signing requests per key pair: every adversary whose whole experiment makes at most $q\ge1$ hash queries forges with probability at most $q/2^{127}$.
 
-[Statement.lean](SphincsSecurity/Statement.lean) defines the concrete parameters, serialized hash inputs, algorithms, the SUF game and the claim. The claim uses independently sampled secret leaves and a random oracle; instantiating that oracle with BLAKE2s or deriving all secrets from a seed is outside this theorem. The whole-experiment query budget includes key generation, signing failures, repeated calls and final verification.
+[Statement.lean](SphincsSecurity/Statement.lean) defines the concrete parameters, serialized hash inputs, algorithms, the SUF game and the claim. The claim uses independently sampled secret leaves and a random oracle; instantiating that oracle with BLAKE2s or deriving all secrets from a seed is outside this theorem. The whole-experiment query budget bounds every execution of the consistent random oracle and includes key generation, signing failures, repeated calls and final verification.
 
 ## Build and audit
 

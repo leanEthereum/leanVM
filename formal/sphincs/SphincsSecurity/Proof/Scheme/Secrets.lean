@@ -64,21 +64,19 @@ theorem simulateQ_romImpl_liftM_bind_run' {α β : Type} (oa : ProbComp α)
 
 /-- The query bound survives the split: what bounds the whole experiment bounds what follows the
 secrets. -/
-theorem isQueryBoundP_gameAfterSecrets (adversary : Adversary) (q : Nat)
+theorem hashQueryBound_gameAfterSecrets (adversary : Adversary) (q : Nat)
     (hq : HasHashQueryBound scheme adversary q) {parameter : PublicParameter}
     (hparameter : parameter ∈ support sampleParameter)
     {otsSecret : Layer → TreeIndex → LeafIndex → ChainIndex → Digest}
     (hots : otsSecret ∈ support sampleOtsSecrets)
     {ftsSecret : Index → FtsTree → FtsLeaf → Digest}
     (hfts : ftsSecret ∈ support sampleFtsSecrets) :
-    (gameAfterSecrets adversary parameter otsSecret ftsSecret).IsQueryBoundP
-      (· matches Sum.inr _) q := by
-  rw [HasHashQueryBound, gameCore_eq_secrets] at hq
-  exact isQueryBoundP_of_bind
-    (isQueryBoundP_of_bind
-      (isQueryBoundP_of_bind hq parameter (mem_support_liftM_of_mem_support hparameter))
-      otsSecret (mem_support_liftM_of_mem_support hots))
-    ftsSecret (mem_support_liftM_of_mem_support hfts)
+    HashQueryBound (gameAfterSecrets adversary parameter otsSecret ftsSecret) ∅ q := by
+  rw [hasHashQueryBound_iff, gameCore_eq_secrets] at hq
+  exact hashQueryBound_of_sampling_bind _ _ ∅ q
+    (hashQueryBound_of_sampling_bind _ _ ∅ q
+      (hashQueryBound_of_sampling_bind _ _ ∅ q hq parameter hparameter) otsSecret hots)
+    ftsSecret hfts
 
 end Concrete
 

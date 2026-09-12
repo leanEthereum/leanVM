@@ -85,12 +85,12 @@ theorem certificateContextGame_full_count (adversary : Adversary) (q : Nat)
   rw [PMF.monad_pure_eq_pure, PMF.mem_support_pure_iff] at hr
   subst result
   rw [probCompLift_support] at hgenerated
-  have hwhole : (scheme.keygen >>= fun keys => gameRest scheme adversary keys.1 keys.2).IsQueryBoundP
-      (· matches .inr _) q := hbound
+  have hwhole : HashQueryBound (scheme.keygen >>= fun keys => gameRest scheme adversary keys.1 keys.2)
+      ∅ q := (hasHashQueryBound_iff scheme adversary q).mp hbound
   have hkeygen := boundaryRun_bind_query_bound 0 scheme.keygen
-    (fun keys => gameRest scheme adversary keys.1 keys.2) q hwhole ∅ generated hgenerated
+    (fun keys => gameRest scheme adversary keys.1 keys.2) q ∅ hwhole generated hgenerated
   have hrest := hkeygen.2
-  rw [OtsProbeSimulation.gameRest_eq_map_retained, isQueryBoundP_map_iff] at hrest
+  rw [OtsProbeSimulation.gameRest_eq_map_retained, hashQueryBound_map_iff] at hrest
   have hretained : OtsProbeSimulation.retainedGameRestComputation adversary generated.1.1.1 =
       retainedGameRestComputation adversary generated.1.1.1 := by
     unfold OtsProbeSimulation.retainedGameRestComputation retainedGameRestComputation
@@ -104,7 +104,7 @@ theorem certificateContextGame_full_count (adversary : Adversary) (q : Nat)
   dsimp only [OriginalFullCertificate, CertificateContextResult.original] at hfull
   obtain ⟨hvalid, input, hcertificate⟩ := hfull
   exact certificateCacheProposal_rest_clean_certificate adversary generated.1.1.1 generated.1.1.2
-    q (q - generated.1.2.hashCalls) generated.1.2.hashCalls Finset.univ hbudget hrest generated.2
+    q (q - generated.1.2.hashCalls) generated.1.2.hashCalls Finset.univ hbudget generated.2 hrest
     (Nat.add_sub_of_le hkeygen.1).le hcache (keygen_cache_message_none (generated.1.1, generated.2) hg) output houtput hvalid hclean input hcertificate
 
 private theorem probOutput_probCompLift {Result : Type} (computation : ProbComp Result) (result : Result) :

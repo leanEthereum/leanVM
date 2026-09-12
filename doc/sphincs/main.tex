@@ -14,6 +14,7 @@
 \theoremstyle{definition}
 \newtheorem{definition}{Definition}[section]
 \theoremstyle{plain}
+\newtheorem{theorem}[definition]{Theorem}
 \theoremstyle{remark}
 \newtheorem{remark}[definition]{Remark}
 
@@ -450,7 +451,11 @@ Call $\mathcal A$ $q$-bounded if the experiment makes at most $q$ random-oracle 
 \]
 \end{definition}
 
-Target (unproved): 127 bits of classical strong unforgeability in the ROM at $\qs=2^{24}$ signatures.
+\begin{theorem}[SPHINCS security]
+The ideal SPHINCS scheme specified above, with independently sampled secrets, has 127 bits of classical strong unforgeability in the ROM at $\qs=2^{24}$ signatures.
+\end{theorem}
+
+A formal Lean 4 proof using VCVio \cite{VCVio} is in \texttt{./formal/sphincs/}. The claim is stated in \texttt{SphincsSecurity/Statement.lean} and proved in \texttt{SphincsSecurity.lean}. The theorem depends only on Lean's three standard axioms.
 
 \subsection{Quantum security}
 \label{sec:quantum}

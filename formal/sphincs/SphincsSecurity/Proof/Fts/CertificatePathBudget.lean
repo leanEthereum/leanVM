@@ -44,8 +44,8 @@ theorem certificateMonitorUpdate_le_hashCalls (key : SecretKey) (budget : Nat)
 theorem certificateLength_run_cost_le {α : Type} (key : SecretKey) (budget : Nat)
     (required : Finset FtsTree) (stopAfter : CertificateStopRule)
     (computation : OracleComp (OracleWorld + SigningSpec) α) (q : Nat)
-    (hbound : (simulateQ (expandedAdversaryImpl key) computation).IsQueryBoundP (· matches .inr _) q)
-    (state : CertificateMonitorState) (result : α × CertificateMonitorState)
+    (state : CertificateMonitorState)
+    (hbound : HashQueryBound (simulateQ (expandedAdversaryImpl key) computation) state.1 q) (result : α × CertificateMonitorState)
     (hr : result ∈ ((simulateQ (certificateLengthImpl key budget required stopAfter) computation).run state).support) :
     result.2.2.spent ≤ state.2.spent + q ∧ result.2.2.creationMass ≤ state.2.creationMass + q := by
   induction computation using OracleComp.inductionOn generalizing q state result with
@@ -59,9 +59,9 @@ theorem certificateLength_run_cost_le {α : Type} (key : SecretKey) (budget : Na
       obtain ⟨middle, hmiddle, hr⟩ := hr
       obtain ⟨length, record, hrecord, rfl⟩ :=
         certificateLengthImpl_support key budget required stopAfter input state middle hmiddle
-      have hquery := originalProposalRecord_query_bound key input next q hbound state.1 record hrecord
+      have hquery := originalProposalRecord_query_bound key input next q state.1 hbound record hrecord
       have hstep := certificateMonitorUpdate_le_hashCalls key budget required stopAfter input state length record hrecord
-      have htail := ih record.output _ hquery.2 _ result hr
+      have htail := ih record.output _ _ hquery.2 result hr
       simp only [originalProposalAdvance] at htail
       constructor
       · omega
@@ -76,14 +76,14 @@ theorem certificateLength_run_cost_le {α : Type} (key : SecretKey) (budget : Na
 theorem certificateProposal_run_cost_le {α : Type} (key : SecretKey) (budget : Nat)
     (required : Finset FtsTree) (stopAfter : CertificateStopRule)
     (computation : OracleComp (OracleWorld + SigningSpec) α) (q : Nat)
-    (hbound : (simulateQ (expandedAdversaryImpl key) computation).IsQueryBoundP (· matches .inr _) q)
-    (state : List Index × CertificateMonitorState) (result : α × (List Index × CertificateMonitorState))
+    (state : List Index × CertificateMonitorState)
+    (hbound : HashQueryBound (simulateQ (expandedAdversaryImpl key) computation) state.2.1 q) (result : α × (List Index × CertificateMonitorState))
     (hr : result ∈ ((simulateQ (certificateProposalImpl key budget required stopAfter) computation).run state).support) :
     result.2.2.2.spent ≤ state.2.2.spent + q ∧
       result.2.2.2.creationMass ≤ state.2.2.creationMass + q := by
   have hprojection := simulateQ_certificateProposalImpl_length key budget required stopAfter computation state
   have hm := (PMF.mem_support_map_iff (Prod.map id Prod.snd) _ _).mpr ⟨result, hr, rfl⟩
   rw [← PMF.monad_map_eq_map, hprojection] at hm
-  exact certificateLength_run_cost_le key budget required stopAfter computation q hbound state.2 _ hm
+  exact certificateLength_run_cost_le key budget required stopAfter computation q state.2 hbound _ hm
 
 end SphincsSecurity.Concrete

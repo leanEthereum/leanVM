@@ -75,15 +75,15 @@ theorem certificateGame_cost_le (adversary : Adversary) (q : Nat) (required : Fi
   rw [certificateGame, PMF.monad_bind_eq_bind, PMF.mem_support_bind_iff] at hr
   obtain ⟨generated, hgenerated, hr⟩ := hr
   rw [probCompLift_support] at hgenerated
-  have hwhole : (scheme.keygen >>= fun keys => gameRest scheme adversary keys.1 keys.2).IsQueryBoundP
-      (· matches .inr _) q := hbound
+  have hwhole : HashQueryBound (scheme.keygen >>= fun keys => gameRest scheme adversary keys.1 keys.2)
+      ∅ q := (hasHashQueryBound_iff scheme adversary q).mp hbound
   have hkeygen := boundaryRun_bind_query_bound 0 scheme.keygen
-    (fun keys => gameRest scheme adversary keys.1 keys.2) q hwhole ∅ generated hgenerated
+    (fun keys => gameRest scheme adversary keys.1 keys.2) q ∅ hwhole generated hgenerated
   have hrest := hkeygen.2
-  rw [OtsProbeSimulation.gameRest_eq_map_retained, isQueryBoundP_map_iff] at hrest
+  rw [OtsProbeSimulation.gameRest_eq_map_retained, hashQueryBound_map_iff] at hrest
   have hcost := certificateProposal_run_cost_le generated.1.1.2 q required (stopAfter generated.1.1.2)
-    (retainedGameRestComputation adversary generated.1.1.1) (q - generated.1.2.hashCalls) hrest
-    ([], generated.2, initialCertificateMonitor generated.1.2.hashCalls stopped) result hr
+    (retainedGameRestComputation adversary generated.1.1.1) (q - generated.1.2.hashCalls)
+    ([], generated.2, initialCertificateMonitor generated.1.2.hashCalls stopped) hrest result hr
   simp only [initialCertificateMonitor, zero_add] at hcost
   exact ⟨by omega, hcost.2.trans (Nat.cast_le.mpr (Nat.sub_le _ _))⟩
 

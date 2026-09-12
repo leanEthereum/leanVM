@@ -115,7 +115,7 @@ theorem observedInitialSource_hashCalls_le (parameter : PublicParameter) (hparam
   have hroot : context.key.root = canonicalGraphRoot context.graph :=
     initialKnown_root (referenceFamilyWords encoding.selections dummy) exposed labels hlabels high
   obtain ⟨hcost, hbound⟩ := context.rest_queryBound hroot hparameter adversary q hq
-  have hsource := FtsProbeSimulation.expanded_unloggedRetainedRest_queryBound adversary context.key (q - 1212415) hbound
+  have hsource := FtsProbeSimulation.expanded_unloggedRetainedRest_queryBound context.oracle adversary context.key (q - 1212415) hbound
   have hcompatible : Compatible context (initialState inputs (referenceFamilyWords encoding.selections dummy) exposed).memory := by
     refine ⟨?_, ?_, ?_, ?_, ?_⟩
     · simpa only [context, auxiliary, Context.words, Context.actual, initialContext, coordinateGraphLabels_value, initialState, initialMemory] using

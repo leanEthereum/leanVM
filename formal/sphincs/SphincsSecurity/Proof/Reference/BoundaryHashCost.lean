@@ -61,34 +61,41 @@ theorem boundaryHashAtLeast_tweakableHash (traceParameter parameter : PublicPara
   exact boundaryHashAtLeast_bind traceParameter _ _ 1 0 (boundaryHashAtLeast_hash _ _)
     (fun _ => boundaryHashAtLeast_zero _ _)
 
-theorem boundaryRun_bind_query_bound {α β : Type} (parameter : PublicParameter)
-    (computation : OracleComp OracleWorld α) (next : α → OracleComp OracleWorld β)
-    (q : Nat) (hbound : (computation >>= next).IsQueryBoundP (· matches .inr _) q)
-    (cache : QueryCache HashSpec) (result : (α × SigningBoundaryTrace) × QueryCache HashSpec)
-    (hr : result ∈ support (boundaryRun parameter computation cache)) :
-    result.1.2.hashCalls ≤ q ∧ (next result.1.1).IsQueryBoundP (· matches .inr _) (q - result.1.2.hashCalls) := by
-  induction computation using OracleComp.inductionOn generalizing q cache result with
+theorem boundaryRun_count {α : Type} (parameter : PublicParameter)
+    (computation : OracleComp OracleWorld α) (cache : QueryCache HashSpec) :
+    (fun result => ((result.1.1, result.1.2.hashCalls), result.2)) <$> boundaryRun parameter computation cache =
+      (simulateQ romImpl (countHashQueries computation)).run cache := by
+  induction computation using OracleComp.inductionOn generalizing cache with
   | pure value =>
       simp only [boundaryRun, simulateQ_pure, WriterT.run_pure, StateT.run_pure,
-        support_pure, Set.mem_singleton_iff] at hr
-      subst result
-      simpa only [SigningBoundaryTrace.hashCalls, FreeMonoid.toList_one, List.length_nil,
-        Nat.sub_zero, pure_bind] using And.intro (Nat.zero_le q) hbound
-  | query_bind input continuation ih =>
-      rw [bind_assoc, isQueryBoundP_query_bind_iff] at hbound
-      rw [boundaryRun_bind, boundaryRun_query, mem_support_bind_iff] at hr
-      obtain ⟨middle, hmiddle, hr⟩ := hr
-      rw [support_map] at hmiddle
-      obtain ⟨source, _, rfl⟩ := hmiddle
-      rw [support_map] at hr
-      obtain ⟨last, hlast, rfl⟩ := hr
-      have htail := ih source.1 _ (hbound.2 source.1) source.2 last hlast
-      rw [SigningBoundaryTrace.hashCalls_mul, signingBoundaryTrace_hashCalls_eq]
-      cases input with
-      | inl sample => simpa only [Bool.false_eq_true, ↓reduceIte, Nat.sub_zero, Nat.zero_add] using htail
-      | inr input =>
-          have hpositive : 0 < q := hbound.1.resolve_left (by simp)
-          simp only [↓reduceIte] at htail ⊢
-          exact ⟨by omega, by simpa only [Nat.sub_sub] using htail.2⟩
+        map_pure, countHashQueries_pure]
+      rfl
+  | query_bind input next ih =>
+      rw [boundaryRun_bind, boundaryRun_query, map_bind, bind_map_left,
+        countHashQueries_query_bind, simulateQ_bind, simulateQ_spec_query, StateT.run_bind]
+      apply bind_congr
+      intro reply
+      simp only [Functor.map_map, bind_pure_comp, simulateQ_map, StateT.run_map]
+      rw [← ih]
+      simp only [Functor.map_map, SigningBoundaryTrace.hashCalls_mul,
+        signingBoundaryTrace_hashCalls_eq]
+      cases input <;> rfl
+
+theorem hashQueryBound_iff_boundaryRun {α : Type} (parameter : PublicParameter)
+    (computation : OracleComp OracleWorld α) (cache : QueryCache HashSpec) (q : Nat) :
+    HashQueryBound computation cache q ↔
+      ∀ result ∈ support (boundaryRun parameter computation cache), result.1.2.hashCalls ≤ q := by
+  rw [hashQueryBound_iff_run, ← boundaryRun_count parameter computation cache]
+  simp only [support_map, Set.forall_mem_image]
+
+theorem boundaryRun_bind_query_bound {α β : Type} (parameter : PublicParameter)
+    (computation : OracleComp OracleWorld α) (next : α → OracleComp OracleWorld β)
+    (q : Nat) (cache : QueryCache HashSpec) (hbound : HashQueryBound (computation >>= next) cache q)
+    (result : (α × SigningBoundaryTrace) × QueryCache HashSpec)
+    (hr : result ∈ support (boundaryRun parameter computation cache)) :
+    result.1.2.hashCalls ≤ q ∧ HashQueryBound (next result.1.1) result.2 (q - result.1.2.hashCalls) := by
+  apply hashQueryBound_bind computation next cache q hbound ((result.1.1, result.1.2.hashCalls), result.2)
+  rw [← boundaryRun_count parameter computation cache, support_map]
+  exact ⟨result, hr, rfl⟩
 
 end SphincsSecurity.Concrete

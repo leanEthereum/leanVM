@@ -1,6 +1,6 @@
 import VCVio.OracleComp.QueryTracking.LoggingOracle
 import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
-import VCVio.OracleComp.QueryTracking.QueryBound
+import VCVio.OracleComp.QueryTracking.WriterCost
 
 /-!
 # Classical random-oracle security of the concrete SPHINCS instance
@@ -746,9 +746,14 @@ noncomputable def gameCore (scheme : Scheme) (adversary : Adversary) :
 noncomputable def forgeAdvantage (scheme : Scheme) (adversary : Adversary) : ℝ≥0∞ :=
   Pr[= true | (simulateQ romImpl (gameCore scheme adversary)).run' ∅]
 
-/-- The whole experiment makes at most `q` random-oracle queries on every execution path. The count includes queries during key generation, adversarial hashing, signing, and final verification. Uniform sampling operations are not hash queries. -/
+/-- Count one per hash call, including cache hits, and zero per uniform sample. -/
+noncomputable def countedRomImpl :=
+  romImpl.withAddCost (fun | .inl _ => (0 : Nat) | .inr _ => 1)
+
+/-- Every execution of the consistent random oracle uses at most `q` hash calls, including key generation, adversarial hashing, signing, and final verification. -/
 def HasHashQueryBound (scheme : Scheme) (adversary : Adversary) (q : Nat) : Prop :=
-  (gameCore scheme adversary).IsQueryBoundP (· matches .inr _) q
+  ∀ result ∈ support ((simulateQ countedRomImpl (gameCore scheme adversary)).run.run' ∅),
+    result.2 ≤ q
 
 /-- Having `bits` bits of classical security means that every classical adaptive adversary whose complete experiment stays within a nonzero hash-query budget `q` forges with probability at most `q / 2^bits`. The bound is a slope, so it bounds what a query buys and not what the first one does; a budget below what the honest experiment alone spends admits no adversary and the bound is vacuous there. -/
 def HasClassicalSecurityBits (scheme : Scheme) (bits : Nat) : Prop :=

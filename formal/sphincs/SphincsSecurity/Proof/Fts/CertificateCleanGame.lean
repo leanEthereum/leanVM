@@ -32,8 +32,8 @@ theorem initialCertificateMonitor_ready (key : SecretKey) (budget spent : Nat)
 theorem certificateCacheProposal_withSigningLog_clean {α : Type} (key : SecretKey) (budget : Nat)
     (required : Finset FtsTree) (hbudget : budget ≤ 2 ^ 127)
     (computation : OracleComp (OracleWorld + SigningSpec) α) (q : Nat)
-    (hbound : (simulateQ (expandedAdversaryImpl key) computation).IsQueryBoundP (· matches .inr _) q)
     (state : List Index × CertificateCacheMonitorState)
+    (hbound : HashQueryBound (simulateQ (expandedAdversaryImpl key) computation) state.2.1 q)
     (hready : CertificateMonitorReady key budget (certificateCacheMonitorProject state.2))
     (halive : state.2.2.1.stopped = false) (hroom : state.2.2.1.spent + q ≤ budget)
     (result : (α × QueryLog SigningSpec) × (List Index × CertificateCacheMonitorState))
@@ -45,14 +45,14 @@ theorem certificateCacheProposal_withSigningLog_clean {α : Type} (key : SecretK
       CertificateMonitorReady key budget (certificateCacheMonitorProject result.2.2) := by
   have hm := (PMF.mem_support_map_iff (Prod.map id Prod.snd) _ _).mpr ⟨result, hr, rfl⟩
   rw [← PMF.monad_map_eq_map, simulateQ_certificateCacheProposalImpl_length] at hm
-  exact certificateCacheLength_withSigningLog_clean key budget required hbudget computation q hbound
-    state.2 hready halive hroom _ hm hvalid hhit hprefix
+  exact certificateCacheLength_withSigningLog_clean key budget required hbudget computation q
+    state.2 hbound hready halive hroom _ hm hvalid hhit hprefix
 
 theorem certificateCacheProposal_rest_clean (adversary : Adversary) (publicKey : PublicKey)
     (key : SecretKey) (budget q : Nat) (required : Finset FtsTree) (hbudget : budget ≤ 2 ^ 127)
-    (hbound : (simulateQ (expandedAdversaryImpl key)
-      (retainedGameRestComputation adversary publicKey)).IsQueryBoundP (· matches .inr _) q)
     (state : List Index × CertificateCacheMonitorState)
+    (hbound : HashQueryBound (simulateQ (expandedAdversaryImpl key)
+      (retainedGameRestComputation adversary publicKey)) state.2.1 q)
     (hready : CertificateMonitorReady key budget (certificateCacheMonitorProject state.2))
     (halive : state.2.2.1.stopped = false) (hlog : state.2.2.1.log = [])
     (hroom : state.2.2.1.spent + q ≤ budget) (result : CertificateCacheGameResult)
@@ -61,12 +61,12 @@ theorem certificateCacheProposal_rest_clean (adversary : Adversary) (publicKey :
     (hvalid : SigningTranscript.Valid result.1.1.2) (hclean : ¬ CertificateGameExceptional result) :
     result.2.2.2.1.stopped = false ∧ result.2.2.2.1.log = result.1.1.2 ∧
       CertificateMonitorReady key budget (certificateCacheMonitorProject result.2.2) := by
-  rw [retainedGameRestComputation_eq_signingTrace, simulateQ_map, isQueryBoundP_map_iff] at hbound
+  rw [retainedGameRestComputation_eq_signingTrace, simulateQ_map, hashQueryBound_map_iff] at hbound
   have hforget : Prod.fst <$> simulateQ (expandedAdversaryImpl key)
       (signingTraceComputation (unloggedRetainedRestComputation adversary publicKey)) =
         simulateQ (expandedAdversaryImpl key) (unloggedRetainedRestComputation adversary publicKey) := by
     rw [← simulateQ_map, signingTraceComputation_fst]
-  have hunlogged := (isQueryBoundP_iff_of_map_eq (p := (· matches Sum.inr _)) hforget).mp hbound
+  have hunlogged := (hashQueryBound_iff_of_map_eq hforget _ _).mp hbound
   rw [retainedGameRestComputation_eq_signingTrace, simulateQ_map, StateT.run_map,
     PMF.monad_map_eq_map, PMF.mem_support_map_iff] at hr
   obtain ⟨source, hsource, rfl⟩ := hr
@@ -75,7 +75,7 @@ theorem certificateCacheProposal_rest_clean (adversary : Adversary) (publicKey :
     simp only [withSigningLog, hlog, List.nil_append, Prod.mk.eta]
     exact id_map _
   have hresult := certificateCacheProposal_withSigningLog_clean key budget required hbudget
-    (unloggedRetainedRestComputation adversary publicKey) q hunlogged state hready halive hroom source
+    (unloggedRetainedRestComputation adversary publicKey) q state hunlogged hready halive hroom source
     (by rwa [htrace]) hvalid (Bool.eq_false_iff.mpr (fun h => hclean (Or.inl h)))
     (fun h => hclean (Or.inr h))
   exact hresult
