@@ -2,7 +2,7 @@
 
 import argparse
 from fractions import Fraction
-from itertools import product
+from itertools import combinations, product
 from random import Random
 
 from zk_flock_coset_audit import novel_factors
@@ -69,6 +69,88 @@ def count_completion_library(verifier, accessed):
                         helper_rows.extend(rows)
     assert len(helper_rows) == 2 * sum(quotas)
     return library
+
+
+def count_prefix_budget(verifier, field):
+    length, repetitions, budget = 65536, 9, 1 << 19
+    capacity = budget // repetitions
+    floor = 1 - Fraction(capacity, length)
+    assert capacity == 58254 and floor == Fraction(3641, 32768) and floor > Fraction(1, 9)
+    assert 0 < Fraction(1, 1 << 128) < floor
+    for log_size in range(1, 6):
+        size = 1 << log_size
+        rows = [field.novel(log_size + 1, query) for query in range(size)]
+        assert all(not any(row[size:]) for row in rows)
+        assert len(field.pivots([row[:size] for row in rows])) == size
+    print(
+        "Full-count-prefix envelope: L=65536, nine forced reads per possible address and 2^19 total reads imply simulator error >= 3641/32768 > 1/9.",
+        flush=True,
+    )
+
+    length, repetitions, budget = 8, 2, 10
+    capacity = budget // repetitions
+    subsets = tuple(combinations(range(length), capacity))
+    uniform = Fraction(1, len(subsets))
+    for witness in range(length):
+        supported = sum(witness in subset for subset in subsets)
+        law = [Fraction(int(witness in subset), supported) for subset in subsets]
+        distance = sum((abs(probability - uniform) for probability in law), Fraction()) / 2
+        assert distance == 1 - Fraction(capacity, length) == Fraction(3, 8)
+        assert all(repetitions * len(subset) <= budget for subset in subsets)
+        assert sum(probability for probability, subset in zip(law, subsets, strict=True) if witness in subset) == 1
+    print("The abstract budget bound is sharp on an eight-address family, including genuinely random completions.", flush=True)
+    print("This rejects the fully disclosed prefix envelope at that budget, not the actual sparse honest-query view.", flush=True)
+
+    from zk_column_count_audit import Library, power_two_fill
+
+    code_image = None
+    for private_address in range(2):
+        for extra in product(range(4), repeat=3):
+            if sum(extra) != 3:
+                continue
+            library = Library(verifier)
+            frame = verifier.GEN**1990000
+            base = []
+            for pc in range(4000, 4005):
+                row = library.row(verifier.OP_DEREF, pc, frame, pointer=verifier.GEN**private_address)
+                row[verifier.DEREF_COLUMNS.index("o2")] = verifier.ONE
+                base.append((verifier.OP_DEREF, row))
+            closing = library.templates((verifier.OP_DEREF, 4004, [], True), frame)[-1]
+            closing[1][verifier.JUMP_COLUMNS.index("v_pc")] = verifier.GEN**4000
+            base.append(closing)
+            library.append(base)
+            for address, repetitions in enumerate(extra):
+                template = library.templates(
+                    (verifier.OP_DEREF, 4020 + 4 * address, [], True),
+                    verifier.GEN ** (2000000 + 128 * address),
+                    pointer=verifier.GEN**address,
+                )
+                template[0][1][verifier.DEREF_COLUMNS.index("o2")] = verifier.ONE
+                library.register(template)
+                for _ in range(repetitions):
+                    library.append(template)
+            for opcode in (verifier.OP_XOR, verifier.OP_MUL, verifier.OP_SET, verifier.OP_BLAKE2S):
+                template = library.templates(library.block(opcode), library.fresh_frame())
+                for _ in range(8 if opcode == verifier.OP_BLAKE2S else 1):
+                    library.append(template)
+            power_two_fill(library, (verifier.OP_JUMP,))
+            library.verify()
+            assert tuple(sum(opcode == table.opcode for opcode, _ in library.rows) for table in verifier.TABLES) == (1, 1, 1, 8, 16, 8)
+            counts = [library.reads["memory", int(verifier.GEN**j)] for j in range(3)]
+            assert sum(counts) == 8 and (counts[0] >= 5) == (private_address == 0)
+            assert all(library.images["memory"][int(verifier.GEN**j)] == (0, 0, 0) for j in range(3))
+            if code_image is not None:
+                assert library.images["code"] == code_image
+            code_image = library.images["code"]
+    assert 2 * ((1 << 18) + 1) > 1 << 19
+    print(
+        "Twenty valid cycle unions at common code/heights: a five-read private pointer defeats every three-read prefix allocation at query zero.",
+        flush=True,
+    )
+    print(
+        "The budget obstruction scales to 2^18+1 forced reads per alternative with at most 2^19 prefix accesses, regardless of padding randomness.",
+        flush=True,
+    )
 
 
 def count_completion_cycles(verifier):
@@ -319,9 +401,13 @@ if __name__ == "__main__":
     )
     parser.add_argument("--count-prefix", action="store_true", help="check the count-prefix obstruction and fixed-cost completion cycles")
     parser.add_argument("--count-products", action="store_true", help="jointly normalize protected counters and all count-column products")
+    parser.add_argument("--count-budget", action="store_true", help="check the statistical full-prefix envelope capacity obstruction")
     arguments = parser.parse_args()
     reference = verifier_module()
     tower = Tower(64, reference)
+    if arguments.count_budget:
+        count_prefix_budget(reference, tower)
+        raise SystemExit(0)
     if arguments.count_prefix:
         count_prefix_obstruction(reference, tower)
         count_completion_cycles(reference)

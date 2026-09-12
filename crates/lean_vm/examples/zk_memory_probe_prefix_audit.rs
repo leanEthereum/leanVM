@@ -87,6 +87,10 @@ fn program(count_prefix: usize) -> Program {
         k: F192::from(g_pow(code_size - 1)),
     };
     code.resize(code_size, Op::Set { o: 0, k: F192::ZERO });
+    Program::assemble(code, probe_hints(count_prefix), FRAME)
+}
+
+fn probe_hints(count_prefix: usize) -> HashMap<u32, Vec<RHint>> {
     let mut hints = HashMap::from([
         (
             0,
@@ -133,7 +137,7 @@ fn program(count_prefix: usize) -> Program {
             ],
         );
     }
-    Program::assemble(code, hints, FRAME)
+    hints
 }
 
 fn encoder_certificate() {
@@ -162,7 +166,12 @@ fn main() {
             count_prefix_audit();
             return;
         }
-        _ => panic!("the optional --count-prefix mode requires --features zk-research"),
+        #[cfg(feature = "zk-research")]
+        Some("--count-budget") => {
+            count_budget_audit();
+            return;
+        }
+        _ => panic!("optional --count-prefix and --count-budget modes require --features zk-research"),
     }
     encoder_certificate();
     let public_input = [F192::new(17, 19, 0), F192::new(29, 31, 0)];
@@ -204,6 +213,133 @@ fn main() {
     );
     println!(
         "This is a native legality certificate, not a full ZK sampler or a privacy estimate for the Fiat-Shamir proofs."
+    );
+}
+
+#[cfg(feature = "zk-research")]
+fn count_budget_program(repetitions: usize) -> Program {
+    use lean_vm::cpu::filler::{Block, SIZES, frame};
+
+    let original = program(0);
+    let mut code = original.prog;
+    let read = code[4];
+    code.splice(4..5, std::iter::repeat_n(read, repetitions));
+    let mut blocks = Vec::new();
+    for table in [3, 4] {
+        let dummy = if table == 3 {
+            Op::Deref {
+                o1: frame::PTR,
+                o2: 0,
+                o3: frame::SCRATCH,
+                mode: DerefMode::Cell,
+            }
+        } else {
+            Op::Jump {
+                oc: frame::ZERO,
+                od: frame::DEST,
+                of: frame::NEXT_FP,
+            }
+        };
+        for size in SIZES {
+            blocks.push(Block {
+                pc: code.len() as u32,
+                size: size as u32,
+                table,
+            });
+            code.extend(std::iter::repeat_n(dummy, size));
+            code.push(Op::Jump {
+                oc: frame::DEST,
+                od: frame::DEST,
+                of: frame::NEXT_FP,
+            });
+        }
+    }
+    let code_size = code.len().next_power_of_two();
+    code[18 + repetitions] = Op::Set {
+        o: 20,
+        k: F192::from(g_pow(code_size - 1)),
+    };
+    code.resize(code_size, Op::Set { o: 0, k: F192::ZERO });
+    let mut result = Program::assemble(code, probe_hints(0), FRAME);
+    result.filler = blocks;
+    result
+}
+
+#[cfg(feature = "zk-research")]
+fn count_budget_audit() {
+    use lean_vm::cpu::filler::{NO_FLOORS, filled, solve};
+
+    let public_input = [F192::new(17, 19, 0), F192::new(29, 31, 0)];
+    for repetitions in [5, (1 << 18) + 1] {
+        let mut program = count_budget_program(repetitions);
+        let budget = (repetitions + 1).next_power_of_two();
+        assert!(2 * repetitions > budget);
+        assert!(program.prog.len() <= 1 << 19);
+        program.set_witness("masks", vec![vec![F192::new(7, 11, 13); MASK_WORDS]]);
+        let mut shape = None;
+        for exponent in [0, 1] {
+            program.set_witness("exponent", vec![vec![F192::from(g_pow(exponent))]]);
+            let execution = program.execute(public_input);
+            assert_eq!(execution.base_counts, [1, 1, 8, repetitions + 1, 2, 8]);
+            let padded = filled(execution.base_counts, &solve(execution.base_counts, NO_FLOORS).unwrap());
+            assert_eq!(padded[3], budget);
+            assert_eq!(execution.cycles, padded.iter().sum());
+            let current = (execution.mem.len().ilog2() as usize, padded);
+            if let Some(previous) = shape {
+                assert_eq!(current, previous);
+            }
+            shape = Some(current);
+            assert!(execution.unconstrained_reads.is_empty());
+            assert!(execution.allocations.iter().all(|&(base, _, _)| base >= FRAME));
+            assert_eq!(execution.mem[..2], public_input);
+            assert!(execution.mem[2..PROBE_PREFIX].iter().all(|value| *value == F192::ZERO));
+            assert!(
+                execution.mem[PROBE_PREFIX..PROBE_PREFIX + MASK_WORDS]
+                    .iter()
+                    .all(|value| *value == F192::new(7, 11, 13))
+            );
+            assert!(
+                execution.memory_read_counts()[PROBE_PREFIX..PROBE_PREFIX + MASK_WORDS]
+                    .iter()
+                    .all(|value| *value == F64::ONE)
+            );
+            let zero_reads = budget - repetitions - 1 + if exponent == 0 { repetitions } else { 0 };
+            assert_eq!(execution.memory_read_counts()[0], g_pow(zero_reads));
+            assert_eq!(
+                execution.memory_read_counts()[1],
+                g_pow(if exponent == 1 { repetitions } else { 0 })
+            );
+            assert_eq!(
+                execution.memory_read_counts()[..PROBE_PREFIX]
+                    .iter()
+                    .copied()
+                    .fold(F64::ONE, |a, b| a * b),
+                g_pow(budget)
+            );
+            assert_eq!(zero_reads >= repetitions, exponent == 0);
+            if repetitions == 5 {
+                let (proof, stats) = prove(&program, public_input, 1);
+                verify(&program, &public_input, &proof).expect("native tight-probe-budget proof");
+                assert_eq!((stats.log_mem, stats.counts), current);
+                let layout = lean_vm::cpu::layout(
+                    &program.prog,
+                    stats.log_mem,
+                    stats.counts.map(|n| n.ilog2() as usize),
+                    public_input,
+                );
+                assert_eq!(count_openings(&execution, &layout)[0], g_pow(zero_reads));
+            }
+            println!(
+                "Native probe budget: {repetitions} private reads, {budget} total DEREF rows, exponent {exponent}, {zero_reads} reads at zero, code log {}.",
+                program.prog.len().ilog2()
+            );
+        }
+    }
+    println!(
+        "Two small native proofs and authenticated encoder projections pass; both large-code executions meet the obstruction's read thresholds."
+    );
+    println!(
+        "The large executions do not instantiate the complete candidate layout or ZK padding sampler; their privacy floor is proved from its separate query geometry."
     );
 }
 
