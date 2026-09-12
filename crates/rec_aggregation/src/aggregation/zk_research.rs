@@ -9,6 +9,15 @@ use super::*;
 const PREFIX: u32 = 1 << lean_vm::cpu::MIN_LOG_MEM;
 const MASK: u32 = 1280;
 const SLOT: u32 = 256;
+const LOCAL_DIGIT_CHECK: &str = r#"
+@inline
+def zk_digit_check(digit):
+    product = digit + 1
+    for k in unroll(1, 8):
+        product = product * (digit + GEN ** k)
+    assert product == 0
+    return
+"#;
 
 fn candidate_runs() -> Vec<Range<u32>> {
     let lane = 1 << 22;
@@ -20,9 +29,19 @@ fn candidate_runs() -> Vec<Range<u32>> {
     ]
 }
 
-fn wrapped_guest() -> Program {
-    let mut ast = parse_with_replacements(include_str!("../../guests/aggregate.py"), &placeholder_map(19))
-        .expect("aggregation source");
+fn wrapped_guest(local_digits: bool) -> Program {
+    let mut source = include_str!("../../guests/aggregate.py").to_string();
+    if local_digits {
+        for check in [
+            "assert log(digit) < CHAIN_LENGTH",
+            "assert log(digit) < SP_CHAIN_LENGTH",
+        ] {
+            assert_eq!(source.matches(check).count(), 1);
+            source = source.replace(check, "zk_digit_check(digit)");
+        }
+        source.push_str(LOCAL_DIGIT_CHECK);
+    }
+    let mut ast = parse_with_replacements(&source, &placeholder_map(19)).expect("aggregation source");
     assert!(ast.funcs.iter().all(|f| f.name != "zk_private_entry"));
     let main = ast.funcs.iter_mut().find(|f| f.name == "main").expect("main");
     assert!(main.params.is_empty() && main.n_ret == 0 && !main.inline);
@@ -184,7 +203,13 @@ fn public_leaf_probes(group_sizes: &[usize], sphincs: usize) -> Vec<usize> {
     counts
 }
 
-fn audit_leaf_probes(program: &Program, execution: &Execution, group_sizes: &[usize], sphincs: usize) {
+fn audit_leaf_probes(
+    program: &Program,
+    execution: &Execution,
+    group_sizes: &[usize],
+    sphincs: usize,
+    local_digits: bool,
+) {
     use lean_vm::cpu::filler::{NO_FLOORS, filled, solve};
 
     let source = include_str!("../../guests/aggregate.py");
@@ -286,7 +311,11 @@ fn audit_leaf_probes(program: &Program, execution: &Execution, group_sizes: &[us
     assert!(profiles[1][8..].iter().all(|&count| count == 0));
     assert_eq!(
         profiles[1].iter().sum::<usize>(),
-        2 * xmss::V * group_sizes.iter().sum::<usize>() + 2 * sphincs::V * sphincs::D * sphincs
+        if local_digits {
+            0
+        } else {
+            2 * xmss::V * group_sizes.iter().sum::<usize>() + 2 * sphincs::V * sphincs::D * sphincs
+        }
     );
     assert!((0..8).all(|j| profiles[1][j] == profiles[1][7 - j]));
     const _: () = assert!(xmss::V == 42 && xmss::CHAIN_LENGTH == 8 && xmss::TARGET_SUM == 195);
@@ -299,7 +328,9 @@ fn audit_leaf_probes(program: &Program, execution: &Execution, group_sizes: &[us
         .collect();
     assert!((0..8).all(|j| profiles[1][j] <= caps[j]));
     let topups = (0..8).map(|j| caps[j] - profiles[1][j]).sum::<usize>();
-    assert_eq!(topups, 230 * (xmss + sphincs::D * sphincs));
+    if !local_digits {
+        assert_eq!(topups, 230 * (xmss + sphincs::D * sphincs));
+    }
     let padded = filled(execution.base_counts, &solve(execution.base_counts, NO_FLOORS).unwrap());
     let filler = padded[3] - execution.base_counts[3];
     for j in 0..PREFIX as usize {
@@ -312,17 +343,21 @@ fn audit_leaf_probes(program: &Program, execution: &Execution, group_sizes: &[us
         profiles[2].iter().sum::<usize>(),
         profiles[3].iter().sum::<usize>()
     );
-    println!(
-        "All private prefix-count contributions are confined to indices 0..7 on this leaf; public geometry predicts the other 65528 counts exactly."
-    );
-    println!(
-        "Eight-address completion would add {topups} DEREF/JUMP cycles; those cycles are not installed by this audit."
-    );
+    if local_digits {
+        println!("Local digit membership eliminates all private prefix-count contributions on this canonical leaf.");
+    } else {
+        println!(
+            "All private prefix-count contributions are confined to indices 0..7 on this leaf; public geometry predicts the other 65528 counts exactly."
+        );
+        println!(
+            "Eight-address completion would add {topups} DEREF/JUMP cycles; those cycles are not installed by this audit."
+        );
+    }
 }
 
 /// Execute a real leaf witness with dense and reservation-aware allocation.
 /// This does not exercise recursive children or construct the common ZK padding.
-pub fn audit_leaf(n_xmss: usize, n_sphincs: usize, native_proof: bool) {
+pub fn audit_leaf(n_xmss: usize, n_sphincs: usize, native_proof: bool, local_digits: bool) {
     use crate::signers_cache::{XMSS_EPOCH_A, get_signers, get_sphincs_signers, message};
 
     assert!(n_xmss + n_sphincs > 0);
@@ -332,7 +367,7 @@ pub fn audit_leaf(n_xmss: usize, n_sphincs: usize, native_proof: bool) {
         .collect();
     let mut prepared = prepare_aggregate(&[], raw_xmss, get_sphincs_signers(n_sphincs), None, MIN_LOG_INV_RATE)
         .expect("prepare real leaf witness");
-    let mut program = wrapped_guest();
+    let mut program = wrapped_guest(local_digits);
     let mut defer = prepared.defer;
     defer.bytecode_value = F192::from(lean_vm::cpu::layout::bytecode_table(&program.prog)[0]);
     let seed = lean_vm::cpu::fs_seed(&program);
@@ -364,7 +399,13 @@ pub fn audit_leaf(n_xmss: usize, n_sphincs: usize, native_proof: bool) {
     check_accesses(&reserved, &runs, &masks);
     compare_relocations(&program, &dense, &reserved);
     let group_sizes: Vec<_> = prepared.xmss_signers.iter().map(|(_, _, keys)| keys.len()).collect();
-    audit_leaf_probes(&program, &reserved, &group_sizes, prepared.sphincs_signers.len());
+    audit_leaf_probes(
+        &program,
+        &reserved,
+        &group_sizes,
+        prepared.sphincs_signers.len(),
+        local_digits,
+    );
     let slots: u32 = reserved.allocations.iter().map(|&(_, _, n)| n / SLOT).sum();
     let largest = reserved
         .allocations
@@ -397,4 +438,32 @@ pub fn audit_leaf(n_xmss: usize, n_sphincs: usize, native_proof: bool) {
         println!("A native proof verifies against the wrapped bytecode and its own statement digest.");
     }
     println!("These are finite leaf execution checks, not a universal relocation theorem or a ZK proof.");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn local_digit_membership_rejects_nonroots() {
+        let source = format!(
+            "{LOCAL_DIGIT_CHECK}\ndef main():\n    digit = hint_witness(\"digit\")\n    zk_digit_check(digit)\n    return\n"
+        );
+        let mut program = compile(&lean_compiler::parse(&source).unwrap());
+        for digit in 0..8 {
+            program.set_witness("digit", vec![vec![F192::from(g_pow(digit))]]);
+            let execution = program.execute([F192::ZERO; 2]);
+            assert!(execution.unconstrained_reads.is_empty());
+            assert_eq!(execution.base_counts[3], 0);
+        }
+        for value in [
+            F192::ZERO,
+            F192::from(g_pow(8)),
+            F192::from(G.inv()),
+            F192::new(0, 1, 0),
+        ] {
+            program.set_witness("digit", vec![vec![value]]);
+            assert!(std::panic::catch_unwind(|| program.execute([F192::ZERO; 2])).is_err());
+        }
+    }
 }

@@ -65,3 +65,25 @@ For index $j$, a helper frame holds $\gen^j$, the public word $\mem[\gen^j]$, a 
 \paragraph{Capacity and remaining leakage.} Eight eight-cell frames occupy $64$ cells if packed, or eight $256$-cell slots with the current research allocator. Their locations and the two code addresses must be reserved publicly. At the $453$-XMSS example, this adds $104190$ DEREF rows to the $260412$ real ones, leaving $159686$ of the candidate $2^{19}$ table for other DEREF normalization; it does not certify the other tables or the common reservation. Helper and instruction counts remain private, as do their internal GKR trees. The noncompression normalization of Corollary~\ref{cor:zk-noncompression-completion} can follow without reopening these prefix counters or compression products, subject to its public incoming row totals, exponent intervals and capacity conditions. If incoming totals vary, first fill them to common public sizes using local filler, before applying this completion and the subsequent normalization. No complete capacity certificate for this composition is asserted.
 
 \paragraph{Executable evidence.} \auditref{zk_leaf_probe_audit.py} computes all eight arithmetic maxima by exact dynamic programming and checks the complete ISA and counted buses for extremal range-check cycles and their eight-address completions. Final opcode heights and protected counters agree; full count-column roots still vary, exposing the omitted helper obligation. The optional native \path{crates/rec_aggregation/examples/zk_guest_allocation_audit.rs} classifies every real prefix access by source site and checks the predicted final counters after local filler, including XMSS-only, SPHINCS-only and mixed leaves. Its \texttt{--prove} mode also verifies the wrapped program under its recomputed bytecode digest. These are finite execution checks, not a proof for recursive children, arbitrary allocations or the full transcript. Recursive metadata, child signer geometry and proof-dependent range checks require a separate public-load theorem or a different masking construction.
+
+\subsubsection{An optional local membership check avoids the eight quotas}
+
+\begin{proposition}[Probe-free digit membership]\label{prop:zk-local-digit-membership}
+Replace each of the two digit range-check sites, before its dispatch, by the local arithmetic assertion
+\[
+ \zkDigitPolynomial(d)=0,
+ \qquad \zkDigitPolynomial(X)=\prod_{j=0}^7(X+\gen^j).
+\]
+This is equivalent over $\E$ to $d\in\{1,\gen,\ldots,\gen^7\}$. It can be implemented entirely with ordinary XOR, MUL and constant cells in the caller's frame, with no indirect probe and no new verifier equation. Under the remaining hypotheses of Proposition~\ref{prop:zk-leaf-probe-profile}, every final prefix counter is exactly $\zkLeafPublicProbes(\zkStmt,j)$, without the eight helper frames or any count top-ups.
+\end{proposition}
+\begin{proof}
+A product over a field vanishes if and only if some factor vanishes. The eight displayed roots are distinct, so this assertion enforces exactly the original digit set, also excluding extension-field inputs outside $\K$. Start the product with $d+1$, multiply successively by $d+\gen^j$ for $1\le j\le7$, and assert that the result is zero. All intermediate cells are local and the code is straight-line; its checks occur before the secret-dependent dispatch. The prefix decomposition now has $\zkLeafDigitProbes=0$. Every other contribution was already public, and frame-local filler does not change it.
+\end{proof}
+
+\paragraph{Tradeoff, not zero cost.} This is an optional public guest rewrite, not padding that preserves the old rows verbatim. Ordinary proofs and all three verifier algorithms remain unchanged; proofs of the rewritten guest bind its new public bytecode digest. It moves work into the arithmetic tables and grows frames, but avoids the probe helper library and its transferred count uncertainty. It does not make the arithmetic table counts or internal GKR messages public.
+
+The native audit's \texttt{--local-digits} mode installs the straight-line check by inlining it at both sites. The $453$-XMSS leaf has real counts, in order XOR, MUL, SET, DEREF, JUMP, BLAKE2s,
+\[
+ (236835,266211,191656,222360,59058,65486),
+\]
+and uses $23681$ of the $26682$ guaranteed slots under its eight-slot maximum allocation. Code height remains $19$ and the compression load cap is unchanged. In particular, the real XOR count plus the already budgeted $149319$-row compression-count router is $386154<2^{19}$. This checks two necessary capacities, not the full common padding budget. Mixed and SPHINCS-only runs also have exactly the public prefix profile, and a mixed native proof verifies. The release regression \texttt{local\_digit\_membership\_rejects\_nonroots} accepts all eight roots, checks that their compiled execution has no real DEREF, and rejects zero, $\gen^8$, $\gen^{-1}$ and a non-base-field input. The field argument, not those finitely many negative tests, proves soundness of the membership relation. Recursive child probes and all other joint-transcript obligations remain open.
