@@ -1,5 +1,6 @@
 """Valid-cycle normalization of every count-column product, excluding internal GKR."""
 
+import sys
 from collections import Counter, defaultdict
 from random import Random
 from struct import pack, unpack
@@ -34,9 +35,23 @@ class Library:
         elif opcode == v.OP_SET:
             values.update(o=v.ONE)
         elif opcode == v.OP_DEREF:
-            values.update(o1=v.ONE, o2=v.GEN, o3=v.GEN**2, ptr=frame if pointer is None else pointer)
+            values.update(
+                o1=v.ONE,
+                o2=v.GEN,
+                o3=v.GEN**2,
+                ptr=frame if pointer is None else pointer,
+            )
         elif opcode == v.OP_JUMP:
-            values.update(o_c=v.ONE, o_d=v.GEN, o_f=v.GEN**2, v_cond=v.ONE, v_pc=v.GEN**destination, v_fp=frame, w=v.ONE, b=v.ONE)
+            values.update(
+                o_c=v.ONE,
+                o_d=v.GEN,
+                o_f=v.GEN**2,
+                v_cond=v.ONE,
+                v_pc=v.GEN**destination,
+                v_fp=frame,
+                w=v.ONE,
+                b=v.ONE,
+            )
         else:
             assert opcode == v.OP_BLAKE2S
             values.update({f"o_{index}": v.GEN**index for index in range(4)})
@@ -45,7 +60,12 @@ class Library:
             iv[0] ^= 0x01010020
             chaining = pack("<8I", *iv)
             digest = v.blake2s_hash(bytes(64)).value
-            for name, data in (("cv0", chaining[:16]), ("cv1", chaining[16:]), ("out0", digest[:16]), ("out1", digest[16:])):
+            for name, data in (
+                ("cv0", chaining[:16]),
+                ("cv1", chaining[16:]),
+                ("out0", digest[:16]),
+                ("out1", digest[16:]),
+            ):
                 low, high = unpack("<2Q", data)
                 values[f"{name}_lo"], values[f"{name}_hi"] = v.E(low), v.E(high)
             values.update(md_lo=v.E(64), md_hi=v.E(0xFFFFFFFF))
@@ -157,12 +177,22 @@ class Library:
         for opcode, row in self.rows:
             table = v.TABLES[opcode]
             assert all(value == v.ZERO for value in table.constraints(row))
-            for counter, blocks in ((pushes, table.flushes.push), (pulls, table.flushes.pull)):
+            for counter, blocks in (
+                (pushes, table.flushes.push),
+                (pulls, table.flushes.pull),
+            ):
                 counter.update(tuple(int(form.evaluate(row.__getitem__)) for form in block) for block in blocks)
         for kind, separator in (("memory", v.SEP_MEM), ("code", v.SEP_BYTECODE)):
             for address, values in self.images[kind].items():
                 pushes[(int(separator), address, 1, *values)] += 1
-                pulls[(int(separator), address, int(v.GEN ** self.reads[kind, address]), *values)] += 1
+                pulls[
+                    (
+                        int(separator),
+                        address,
+                        int(v.GEN ** self.reads[kind, address]),
+                        *values,
+                    )
+                ] += 1
         assert pushes == pulls
         grouped = defaultdict(list)
         for address, label in self.labels.values():
@@ -184,33 +214,39 @@ def repeats(cap, value, center, scale=1):
     return [count for square in squares for count in (center + square, center - square)], residue
 
 
-def base_trace(library, multiplicities):
+def base_trace(library, multiplicities, scatter=False):
     for opcode, repeated in enumerate(multiplicities):
-        main = library.templates(library.block(opcode), library.fresh_frame())
+        block = library.block(opcode)
+        main = library.templates(block, library.fresh_frame())
+        alternate = library.templates(block, library.fresh_frame())
         fillers = [library.templates(library.block(opcode), library.fresh_frame()) for _ in range(3)]
-        for template in (main, *fillers):
+        for template in (main, alternate, *fillers):
             library.register(template)
-        for _ in range(repeated):
-            library.append(main)
+        for index in range(repeated):
+            library.append(alternate if scatter and index % 2 else main)
         for template in fillers[: 3 - repeated]:
             library.append(template)
 
 
-def normalize_bytecode(library, opcode, cap, center):
+def normalize_bytecode(library, opcode, cap, center, reuse_frames=False):
     v = library.v
     column = v.TABLES[opcode].columns.index("cnt_bc")
     counts, residue = repeats(cap, library.exponents[opcode, column], center)
     assert not residue
     before_memory = library.memory_exponents()
+    before_code = library.exponents[opcode, column]
     for count in counts:
         block = library.block(opcode)
-        candidates = [library.templates(block, library.fresh_frame()) for _ in range(2 * center)]
+        candidates = [library.templates(block, library.fresh_frame()) for _ in range(1 if reuse_frames else 2 * center)]
         for template in candidates:
             library.register(template)
-        for template in candidates[:count]:
+        for template in candidates * count if reuse_frames else candidates[:count]:
             library.append(template)
     assert library.exponents[opcode, column] == 4 * center * (center - 1) + cap
-    assert library.memory_exponents() == before_memory
+    increment = 4 * center * (center - 1) + cap - before_code
+    for (source, target), value in library.memory_exponents().items():
+        expected = increment if reuse_frames and source in (opcode, v.OP_JUMP) else 0
+        assert value - before_memory[source, target] == expected
 
 
 def router_banks(library, size, opcodes=range(6)):
@@ -242,7 +278,10 @@ def normalize_memory(library, uncertain, cap=111, center=7):
     for slot in range(2):
         block = library.block(v.OP_DEREF)
         alias, neutral = library.fresh_frame(), library.fresh_frame()
-        alternatives = (library.templates(block, neutral, neutral * v.GEN**3), library.templates(block, alias, alias * v.GEN))
+        alternatives = (
+            library.templates(block, neutral, neutral * v.GEN**3),
+            library.templates(block, alias, alias * v.GEN),
+        )
         for template in alternatives:
             library.register(template)
         library.append(alternatives[int(slot < residue)])
@@ -250,7 +289,7 @@ def normalize_memory(library, uncertain, cap=111, center=7):
     assert uncertain + difference == 12 * center * (center - 1) + cap
 
 
-def power_two_fill(library, opcodes=None):
+def power_two_fill(library, opcodes=None, reuse_frames=False):
     v = library.v
     if opcodes is None:
         opcodes = (v.OP_XOR, v.OP_MUL, v.OP_SET, v.OP_DEREF, v.OP_BLAKE2S, v.OP_JUMP)
@@ -258,8 +297,11 @@ def power_two_fill(library, opcodes=None):
         count = sum(source == opcode for source, _ in library.rows)
         target = 1 << (count - 1).bit_length()
         block = library.block(opcode)
+        template = library.templates(block, library.fresh_frame()) if reuse_frames else None
+        if template is not None:
+            library.register(template)
         for _ in range(target - count):
-            library.append(library.templates(block, library.fresh_frame()))
+            library.append(template if reuse_frames else library.templates(block, library.fresh_frame()))
 
 
 def run(verifier, multiplicities, preserve_compression=False):
@@ -273,7 +315,13 @@ def run(verifier, multiplicities, preserve_compression=False):
             library.append(library.templates(block, library.fresh_frame()))
     preserved = [(opcode, row[:]) for opcode, row in library.rows if opcode not in active]
     original = library.memory_exponents()
-    for opcode in (verifier.OP_XOR, verifier.OP_MUL, verifier.OP_SET, verifier.OP_DEREF, verifier.OP_BLAKE2S):
+    for opcode in (
+        verifier.OP_XOR,
+        verifier.OP_MUL,
+        verifier.OP_SET,
+        verifier.OP_DEREF,
+        verifier.OP_BLAKE2S,
+    ):
         if opcode in active:
             normalize_bytecode(library, opcode, 3, 2)
     normalize_bytecode(library, verifier.OP_JUMP, 73, 9)
@@ -290,7 +338,13 @@ def run(verifier, multiplicities, preserve_compression=False):
         library.route(target, receiver, shift)
         assert library.exponents[opcode, column] == constant + bound
     assert sum(library.memory_exponents().values()) == total
-    power_two_fill(library, (*[opcode for opcode in active if opcode != verifier.OP_JUMP], verifier.OP_JUMP))
+    power_two_fill(
+        library,
+        (
+            *[opcode for opcode in active if opcode != verifier.OP_JUMP],
+            verifier.OP_JUMP,
+        ),
+    )
     library.verify()
     assert preserved == [(opcode, row) for opcode, row in library.rows if opcode not in active]
     counts = tuple(sum(opcode == table.opcode for opcode, _ in library.rows) for table in verifier.TABLES)
@@ -300,10 +354,95 @@ def run(verifier, multiplicities, preserve_compression=False):
     return counts, roots, images
 
 
+def run_reused(verifier, multiplicities, scatter):
+    library = Library(verifier)
+    assert multiplicities[verifier.OP_BLAKE2S] == 1
+    base_trace(library, multiplicities, scatter)
+    block = library.block(verifier.OP_BLAKE2S)
+    for _ in range(5):
+        library.append(library.templates(block, library.fresh_frame()))
+    preserved = [row[:] for opcode, row in library.rows if opcode == verifier.OP_BLAKE2S]
+    original = library.memory_exponents()
+    initial_code = {table.opcode: library.exponents[table.opcode, table.columns.index("cnt_bc")] for table in verifier.TABLES}
+    assert initial_code[verifier.OP_JUMP] <= 28
+    active = tuple(opcode for opcode in range(6) if opcode != verifier.OP_BLAKE2S)
+    frame_start = library.frame
+    for opcode in active:
+        cap, center = (73, 9) if opcode == verifier.OP_JUMP else (3, 2)
+        normalize_bytecode(library, opcode, cap, center, reuse_frames=True)
+    assert library.frame - frame_start == 40 * 128
+    bounds = {}
+    for (opcode, column), value in library.memory_exponents().items():
+        if opcode == verifier.OP_BLAKE2S:
+            assert value == original[opcode, column] == 0
+            bounds[opcode, column] = 0, 0
+            continue
+        constant = 361 if opcode == verifier.OP_JUMP else 11
+        assert value == original[opcode, column] + constant - initial_code[opcode]
+        low, high = (333, 416) if opcode == verifier.OP_JUMP else (8, 14)
+        assert low <= value <= high
+        bounds[opcode, column] = low, high
+    low_total = sum(low for low, _ in bounds.values())
+    high_total = sum(high for _, high in bounds.values())
+    assert (low_total, high_total) == (1079, 1388)
+    before_routers = library.memory_exponents()
+    banks = router_banks(library, 14, active)
+    fixed_router = {column: value - before_routers[column] for column, value in library.memory_exponents().items()}
+    uncertain = sum(before_routers.values()) - low_total
+    normalize_memory(library, uncertain, cap=high_total - low_total, center=11)
+    total = sum(library.memory_exponents().values())
+    assert total == sum(fixed_router.values()) + low_total + 12 * 11 * 10 + 309
+    for (opcode, column), target, receiver in banks:
+        upper = bounds[opcode, column][1]
+        if opcode == verifier.OP_JUMP:
+            upper += 543
+        elif opcode == verifier.OP_DEREF and verifier.TABLES[opcode].columns[column] == "cnt_local":
+            upper += 2
+        shift = fixed_router[opcode, column] + upper - library.exponents[opcode, column]
+        assert 0 <= shift <= 186 < 14 * 14
+        library.route(target, receiver, shift)
+        assert library.exponents[opcode, column] == fixed_router[opcode, column] + upper
+    assert sum(library.memory_exponents().values()) == total
+    power_two_fill(library, active, reuse_frames=True)
+    assert library.frame - frame_start == 62 * 128
+    library.verify()
+    assert preserved == [row for opcode, row in library.rows if opcode == verifier.OP_BLAKE2S]
+    counts = tuple(sum(opcode == table.opcode for opcode, _ in library.rows) for table in verifier.TABLES)
+    roots = tuple(library.exponents[table.opcode, column] for table in verifier.TABLES for column in table.count_columns)
+    images = tuple(library.images[kind] for kind in ("memory", "code"))
+    return (counts, roots, images), (tuple(initial_code.values()), tuple(original.values()))
+
+
 if __name__ == "__main__":
     verifier, rng = verifier_module(), Random(127)
     expected = None
-    cases = [(0,) * 6, (1,) * 6, (2,) * 6, (3,) * 6, *(tuple(rng.randrange(4) for _ in range(6)) for _ in range(4))]
+    cases = [
+        (0,) * 6,
+        (1,) * 6,
+        (2,) * 6,
+        (3,) * 6,
+        *(tuple(rng.randrange(4) for _ in range(6)) for _ in range(4)),
+    ]
+    if sys.argv[1:] == ["--reuse-frames"]:
+        for case in cases:
+            case = (*case[: verifier.OP_BLAKE2S], 1)
+            previous_input = None
+            for scatter in (False, True):
+                result, before = run_reused(verifier, case, scatter)
+                if previous_input is not None:
+                    assert before[0] == previous_input[0]
+                    if max(case) >= 2:
+                        assert before[1] != previous_input[1]
+                previous_input = before
+                if expected is not None:
+                    assert result == expected
+                expected = result
+                print(
+                    f"Reused-frame completion: base {case}, scatter={scatter}, fixed rows {result[0]}, all 28 products and images agree; 62 added frames, BLAKE2s unchanged",
+                    flush=True,
+                )
+        sys.exit(0)
+    assert not sys.argv[1:], "optional flag: --reuse-frames"
     for case in cases:
         result = run(verifier, case)
         if expected is not None:
