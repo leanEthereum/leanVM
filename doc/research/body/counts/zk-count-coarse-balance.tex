@@ -1,0 +1,81 @@
+% !TeX root = ../../main.tex
+\subsection{A simultaneous repair of the remaining coarse count columns}\label{note:zk-count-coarse-balance}
+
+\paragraph{Result and boundary.} Whole-column normalization does not hide the internal count tree. This note gives an explicit conditional next step: balance all count columns of each noncompression table simultaneously, then correct the residual block sums with repeated valid cycles. Existing masking rows can remain fixed. Unlike the one-interval localization rule, the construction can distribute real rows throughout the table. Its remaining premises are quantitative: public integer column sums, bounds on individual labels, room for the routers and an incoming completion that fits. Those premises have not yet been established jointly for the aggregation guest.
+
+\subsubsection{Bound every prefix in all columns at once}
+
+For one table, let $\zkCoarseDim$ be its number of count columns, including bytecode. Let $\zkCoarseRow{1},\ldots,\zkCoarseRow{\zkCoarseRows}\in\{0,\ldots,\zkCoarseCap\}^{\zkCoarseDim}$ be the integer count-label vectors of its movable rows, and write $\zkCoarseTotal{c}=\sum_i\zkCoarseRow{i,c}$. Require these integer sums to be public, as supplied by the explicit normalization formulas, not merely their field-valued powers.
+
+\begin{lemma}[Simultaneously balanced row prefixes]\label{lem:zk-vector-count-order}
+There is a permutation $\pi$ such that, for every prefix length $k$ and every column $c$,
+\[
+ \left|\sum_{i=1}^{k}\zkCoarseRow{\pi(i),c}
+       -\frac{k\zkCoarseTotal{c}}{\zkCoarseRows}\right|
+ \le\zkCoarseDim\zkCoarseCap.
+\]
+A permutation can be found in polynomial time using exact rational linear programming. No verifier challenge is involved.
+\end{lemma}
+\begin{proof}
+Subtract the common vector of column averages. The centered vectors sum to zero and have infinity norm at most $\zkCoarseCap$. Apply the Steinitz rearrangement bound with constant $\zkCoarseDim$; its constructive linear-programming proof is recalled in \cite[Section~1.2]{steinitz}. Rescale and restore the averages. If $\zkCoarseCap=0$, every order works.
+\end{proof}
+
+The number of rows does not multiply this discrepancy bound. Sorting independently in each column would not be legal: the same permutation must move every field of a row. The lemma supplies exactly that common permutation. Its polynomial-time guarantee is not a fast-prover implementation claim.
+
+\subsubsection{A cycle can route every count column independently}
+
+Consider XOR, MUL, SET or DEREF with distinct memory operands in a fresh frame, followed by a closing JUMP with disjoint controls. Use known valid operands, with a frame-local indirect target for DEREF. For JUMP itself use a self-loop with three distinct control cells. Give the selected instruction and its frame to no other cycle. Repeat it $2\zkCoarseHalf$ times, where $\zkCoarseHalf$ is even. Each selected memory cell and the selected bytecode address then has exactly the labels $0,\ldots,2\zkCoarseHalf-1$.
+
+\begin{lemma}[An independent transfer in every count coordinate]\label{lem:zk-coarse-cycle-transfer}
+Place $\zkCoarseHalf$ target rows in each of two blocks. For every count column, independently, its first block can receive the exponent
+\[
+ \frac{\zkCoarseHalf(2\zkCoarseHalf-1)}2+f,
+ \qquad |f|\le\frac{\zkCoarseHalf^2}2,
+\]
+and the second block receives the same center minus $f$. Row values, final counters and complete chains are preserved. The closing JUMP labels, if present, can remain fixed.
+\end{lemma}
+\begin{proof}
+The interval-transfer lemma in \noteref{zk-count-columns} assigns any sum from $\binom{\zkCoarseHalf}{2}$ through $\binom{\zkCoarseHalf}{2}+\zkCoarseHalf^2$ to the first half of a complete chain. Center this interval at its midpoint. Distinct operands and the separate bytecode address give independent chains for all coordinates, including bytecode. The other half receives the complement. Labels do not enter instruction semantics; their complete chains certify the counted bus identity. Return controls use different cells and their instruction uses a different code address.
+\end{proof}
+
+\begin{theorem}[A public coarse frontier for one noncompression table]\label{thm:zk-vector-coarse-frontier}
+Split the table into $\zkCoarseBlocks\ge2$ aligned blocks of power-of-two width $\zkCoarseWidth$. Some rows are fixed in place, with public count-exponent sum $\zkCoarseFixed{j}{c}$ in each block and column. Reserve $2\zkCoarseHalf$ other positions in every block. Suppose all remaining positions are filled by the movable rows above, with public integer totals, and
+\[
+ \zkCoarseDim\zkCoarseCap\le\zkCoarseHalf^2/2.
+\]
+Then $\zkCoarseBlocks$ disjoint routing cycles make every block product public in every count column. The cost is $2\zkCoarseBlocks\zkCoarseHalf$ target rows, the same number of closing JUMPs for a non-JUMP target, $\zkCoarseBlocks$ fresh frames, and respectively $2\zkCoarseBlocks$ or $\zkCoarseBlocks$ code locations. No fixed row moves or changes its label.
+\end{theorem}
+\begin{proof}
+Use a balanced order for the movable rows and fill the unreserved positions block by block. Let $\zkCoarseCut{j}$ count the movable positions through block $j$, with $\zkCoarseCut{-1}=0$. Define the integer flow
+\[
+ \zkCoarseFlow{j}{c}
+ =\left\lfloor\frac{\zkCoarseCut{j}\zkCoarseTotal{c}}{\zkCoarseRows}\right\rfloor
+  -\sum_{i=1}^{\zkCoarseCut{j}}\zkCoarseRow{\pi(i),c}.
+\]
+It has absolute value at most $\zkCoarseDim\zkCoarseCap$: the prefix lemma bounds its unrounded discrepancy, and both the prefix sum and this bound are integers. Its last value is zero. Put one routing cycle on each edge $j\to j+1$ of the cyclic block order. In column $c$, give its first endpoint the center plus $\zkCoarseFlow{j}{c}$, and the second the center minus that flow. Every block receives two half-cycles; the previous flow is subtracted and the next added. Its final exponent is exactly
+\[
+ \zkCoarseFixed{j}{c}
+ +\left\lfloor\frac{\zkCoarseCut{j}\zkCoarseTotal{c}}{\zkCoarseRows}\right\rfloor
+ -\left\lfloor\frac{\zkCoarseCut{j-1}\zkCoarseTotal{c}}{\zkCoarseRows}\right\rfloor
+ +\zkCoarseHalf(2\zkCoarseHalf-1).
+\]
+All terms are public. The flow fits every routing interval, and each address retains its complete chain. Unequal numbers of fixed rows merely change the public cut lengths. If there are no movable rows, use zero flows and omit the two floor terms. All choices precede commitment and honest challenges.
+\end{proof}
+
+\paragraph{Scheduling all five tables.} Normalize the incoming integer column sums first, reserving the coarse routers before final filling. Apply the theorem to XOR, MUL, SET and DEREF; their return rows have public totals and products and join the movable JUMP pool. Finish JUMP last. Public-length fillers can be split among multiple fresh code/frame pairs so that no filler label exceeds the chosen cap. Include their closing returns before choosing the JUMP fill length. Such fillers add public offsets, but consume code and frames beyond the coarse routers. An already power-of-two-filled table cannot simply receive the new rows without changing its height. These costs belong in the one common ledger.
+
+\subsubsection{The native candidate and the masks that must stay fixed}
+
+At the active layout the noncompression columns have dimensions $(4,4,2,4,4)$ and block counts $(32,32,32,32,64)$ at height $14$. There are $704$ such products. Together with the $160$ already normalized BLAKE2s products and identity padding, making these public fixes the entire $4096$-node frontier in \noteref{zk-count-frontier}. Consequently the count-channel children and its sumcheck contributions down through that frontier are publicly computable. This does not simulate the mixed fingerprint/count packets or any lower layer.
+
+The fixed MUL backdrop comprises the $3072$ in-frame adapters. Their pairwise swaps preserve each coarse sum. The fixed JUMP backdrop comprises the $36856$ wider-library returns, $3840$ relocated low-bank returns and $3072$ adapter returns, at their prescribed positions. Their count products are public block by block. The calibration returns and other mask-independent rows need not remain at their former positions; they belong in the movable pool. In particular, treating the private calibration-return contribution as a public fixed backdrop would violate the theorem's premise.
+
+To retain the earlier restricted privacy proofs, require the movable count vectors and all new filling/normalization decisions to be independent of their retained masking coins. Then the existing changing rows, their locations and their affine source maps stay intact. Count-invariant whole-column normalizers satisfy the needed independence only after their complete input and return schedules have been checked. A common sampler must establish this fact, not infer it from the new products being public. The theorem itself is an exact legality and coarse-count result, not a new statistical-error bound.
+
+\paragraph{A concrete router reservation.} Taking $\zkCoarseHalf=1152$ for each table supports every movable label at most $165888$, including bytecode. It requires added opcode rows
+\[
+ (73728,73728,73728,73728,442368,0),
+\]
+where the JUMP entry includes all four other tables' returns. Its $192$ frames of at most $128$ cells fit $96$ aligned slots; its $320$ instruction indices $523392,\ldots,523711$ lie after the current $99$ reserved instructions and below the log-$19$ sentinel. Installing them would change the public program and digest. The most occupied fixed JUMP block contains $6298$ rows and the most occupied fixed MUL block $256$, leaving room for all router endpoints. This certifies the router's own geometry, not the complete row budget or the label cap after normalization and filling. Alongside the previous $62$ normalization frames the two components use $127$ packed slots, excluding public-total prefilling and any extra split fillers. The large JUMP row cost remains a real feasibility constraint.
+
+\paragraph{Exact certificates.} \auditref{zk_count_coarse_balance_audit.py} implements rational Steinitz elimination and checks its prefix bound, including degenerate inputs. Its full cycle certificates use two private pointer alternatives with equal incoming column sums, independently permuted labels within each opcode/role, unequal fixed backdrops and native table heights $(7,7,7,7,11,4)$. All $28$ products and every native height-six count node agree in four completed libraries; code images agree, while the private pointer words need not. Every ISA constraint, counted bus and complete chain passes, and compression rows are unchanged. A faster greedy order is accepted only after checking the exact bound; exact elimination is the fallback. These certificates do not constitute full native VM proofs or a height-$28$ common sampler. The candidate audit separately enumerates the fixed backdrop, router endpoint capacity and row/frame/code costs above.
