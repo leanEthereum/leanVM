@@ -605,6 +605,22 @@ fn check_opcode_budget(execution: &Execution) {
             "real table {table} exceeds the candidate's private row budget"
         );
     }
+    let profile = execution.real_count_profile();
+    let mut sites = execution.instruction_sites();
+    for (table, rows) in execution.base_counts.iter().enumerate() {
+        let mut visits = HashMap::<u32, u64>::new();
+        for (pc, _) in sites.by_ref().take(*rows) {
+            *visits.entry(pc).or_default() += 1;
+        }
+        let bytecode_sum: u64 = visits.values().map(|count| count * (count - 1) / 2).sum();
+        let bytecode_max = visits.values().max().copied().unwrap_or(1) - 1;
+        assert_eq!(*profile[table].last().unwrap(), (bytecode_sum, bytecode_max as u32));
+        println!(
+            "Private real count profile {table} (sum, max; bytecode last): {:?}.",
+            profile[table]
+        );
+    }
+    assert!(sites.next().is_none());
 }
 
 #[cfg(test)]

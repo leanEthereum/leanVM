@@ -72,10 +72,54 @@ The fixed MUL backdrop comprises the $3072$ in-frame adapters. Their pairwise sw
 
 To retain the earlier restricted privacy proofs, require the movable count vectors and all new filling/normalization decisions to be independent of their retained masking coins. Then the existing changing rows, their locations and their affine source maps stay intact. Count-invariant whole-column normalizers satisfy the needed independence only after their complete input and return schedules have been checked. A common sampler must establish this fact, not infer it from the new products being public. The theorem itself is an exact legality and coarse-count result, not a new statistical-error bound.
 
-\paragraph{A concrete router reservation.} Taking $\zkCoarseHalf=1152$ for each table supports every movable label at most $165888$, including bytecode. It requires added opcode rows
+\paragraph{The separate-cycle reservation.} Taking $\zkCoarseHalf=1152$ for each table supports every movable label at most $165888$, including bytecode. Separate cycles require added opcode rows
 \[
  (73728,73728,73728,73728,442368,0),
 \]
-where the JUMP entry includes all four other tables' returns. Its $192$ frames of at most $128$ cells fit $96$ aligned slots; its $320$ instruction indices $523392,\ldots,523711$ lie after the current $99$ reserved instructions and below the log-$19$ sentinel. Installing them would change the public program and digest. The most occupied fixed JUMP block contains $6298$ rows and the most occupied fixed MUL block $256$, leaving room for all router endpoints. This certifies the router's own geometry, not the complete row budget or the label cap after normalization and filling. Alongside the previous $62$ normalization frames the two components use $127$ packed slots, excluding public-total prefilling and any extra split fillers. The large JUMP row cost remains a real feasibility constraint.
+where the JUMP entry includes all four other tables' returns. Its $192$ frames and $320$ instructions fit individually, but its return cost is unnecessarily high. The following shared construction supersedes that reservation without changing any router's transfer interval.
+
+\subsubsection{Share returns and close the residual resource ledger}
+
+\begin{proposition}[One return for four coarse routers]\label{prop:zk-shared-coarse-routers}
+When XOR, MUL, SET and DEREF have the same block count and router size, their four edge cycles can share one frame and one closing JUMP. Every target count coordinate retains its independent transfer interval in Lemma~\ref{lem:zk-coarse-cycle-transfer}. The candidate's complete coarse routers then cost
+\[
+ (73728,73728,73728,73728,221184,0)
+\]
+rows, $96$ frames of at most $128$ cells and $224$ instructions.
+\end{proposition}
+\begin{proof}
+For each edge use consecutive XOR, MUL, SET and DEREF instructions followed by a JUMP to the first instruction. Assign local offsets $(0,1,2)$ to XOR, $(3,4,5)$ to MUL, $6$ to SET, $(7,8,9)$ to the DEREF pointer, indirect target and local result, and $(10,11,12)$ to the return controls. Arithmetic values are zero; the pointer names the local target; the return has condition one, the first PC as destination and its own frame as next frame. Repeat this cycle $2\zkCoarseHalf$ times. All memory roles and all five instruction addresses are distinct, so every chain remains independent. Assign the four tables' rows to their coarse endpoints separately and leave the JUMP labels fixed. The $32$ mixed cycles contribute $73728$ rows in each of five tables. The $64$ later JUMP-only routers contribute another $147456$ JUMPs. Hence there are $32+64=96$ frames and $5\cdot32+64=224$ instructions. The return rows have public count sums and enter the movable JUMP pool before its balancing step.
+\end{proof}
+
+\begin{lemma}[Public-length fillers with bounded labels]\label{lem:zk-batched-local-filler}
+Any public number of target rows can be supplied by a block of sixteen distinct selected-opcode instructions, using at most two frames of $64$ cells. A non-JUMP target needs one closing JUMP per traversal, including a partial traversal, and $17$ code locations; JUMP needs $16$ locations and no extra rows. Its maximum count label is at most the ceiling of the target length divided by sixteen, minus one, for positive length.
+\end{lemma}
+\begin{proof}
+Give instruction $i$ distinct local operands at offsets $3i,3i+1,3i+2$, omitting unused operands. For DEREF use the second cell as its local indirect target. A non-JUMP block closes through cells $48,49,50$. A JUMP block has sixteen successive transfers, its last returning to the first. Execute the quotient number of full traversals in one frame. If the remainder is nonzero, execute the corresponding suffix once in a second frame, whose last transfer returns to that suffix's first instruction. The two frames may use the same code: return destinations and frame pointers are memory operands, not instruction immediates. Every code location is visited either the quotient or the quotient plus one times. Memory chains are no longer than those code chains. All cycles and operands are local and valid. Zero length uses neither frame nor rows. Longer fillers can be split across fresh blocks if a smaller label cap is required.
+\end{proof}
+
+\begin{corollary}[An exact common residual budget]\label{cor:zk-common-coarse-budget}
+Suppose an incoming completion has public integer column sums and public row totals $\zkCoarseBase{t}$ for the five noncompression opcodes, with every movable label at most $165888$. Suppose it includes the prescribed fixed backdrops, leaves those masks unchanged, and satisfies the earlier independence and disjoint-reservation premises. For $t\in\{\mathrm{X},\mathrm{M},\mathrm{S},\mathrm{D}\}$ set
+\[
+ \zkCoarseFill{t}=2^{19}-73728-\zkCoarseBase{t}.
+\]
+The shared routers and final fillers fit exactly within the current heights if and only if
+\[
+ \zkCoarseFill{t}\ge0\quad\text{for all four }t,
+ \qquad
+ \zkCoarseBase{\mathrm{J}}+221184+
+ \sum_t\left\lceil\frac{\zkCoarseFill{t}}{16}\right\rceil\le2^{20}.
+\]
+Under these inequalities all $704$ coarse products become public with no changes to compression rows. Beyond the incoming completion, this costs at most $96$ router frames of $128$ cells, ten filler frames of $64$ cells and $308$ code locations. Every new count label is below $65536$ or is a router label below $2304$, so the incoming cap suffices.
+\end{corollary}
+\begin{proof}
+Install the $32$ mixed cycles, reserve all endpoints and add the four public-length fillers. Their exact return count is the displayed sum. Reserve the $147456$ JUMP-only router rows and fill JUMP to height $20$ with the remaining public number of rows. This is possible precisely under the displayed inequalities. Filler lengths are at most the table capacities, proving the new label bound. Each filler has public count sums because its length, code visits, frame visits and disjoint operands are public. Thus the whole-column sums needed by Theorem~\ref{thm:zk-vector-coarse-frontier} remain public. Balance the four smaller tables and then JUMP, with all returns present. The most occupied fixed JUMP block contains $6298$ rows and the most occupied fixed MUL block $256$, leaving room for both endpoints in every block. The code cost is $224+4\cdot17+16=308$; positions $523392,\ldots,523699$ fit after the current $99$ reserved codes and below the log-$19$ sentinel. As elsewhere, installing this code changes the public program and digest.
+\end{proof}
+
+The corollary composes with the small-frame whole-column normalizer at its pre-filler boundary. That normalizer has $57$ non-filler frames; the new construction replaces its five simple fillers. Conservatively packing these groups separately needs $29+48+3=80$ slots, excluding the real computation, compression libraries and completion to public incoming totals. Unlike the separate row ledgers, the displayed inequalities include every later filler return. What remains is to construct the incoming completion and prove its public totals, exponent cap, code separation and these inequalities for every supported witness. A sampled guest profile cannot supply those universal premises.
+
+\paragraph{A native diagnostic, not a public resource contract.} The research-only allocation audit now decodes the real trace's integer count labels and checks each bytecode exponent independently as the sum of triangular PC-visit counts. For the two-ordinary-child fixture, the real opcode totals are $(228896,302416,60961,253959,37956,19084)$. Apart from the existing bank of $149319$ XOR rows and $16591$ returns, suppose every added XOR, SET or DEREF row gets a separate closing JUMP. Filling just these three tables then needs $881729$ further returns. Adding the $196608$ mandatory compression returns, the bank's $16591$ returns and $37956$ real JUMPs gives $1132884$, above $2^{20}$, even before MUL and JUMP normalization. This rules out that particular return policy for this fixture, not padding-only ZK. Shared routers and batched fillers evade it. The diagnostic's per-column integer sums and maxima are private, not added to the statement, and do not prove a uniform bound after label reassignment or normalization.
 
 \paragraph{Exact certificates.} \auditref{zk_count_coarse_balance_audit.py} implements rational Steinitz elimination and checks its prefix bound, including degenerate inputs. Its full cycle certificates use two private pointer alternatives with equal incoming column sums, independently permuted labels within each opcode/role, unequal fixed backdrops and native table heights $(7,7,7,7,11,4)$. All $28$ products and every native height-six count node agree in four completed libraries; code images agree, while the private pointer words need not. Every ISA constraint, counted bus and complete chain passes, and compression rows are unchanged. A faster greedy order is accepted only after checking the exact bound; exact elimination is the fallback. These certificates do not constitute full native VM proofs or a height-$28$ common sampler. The candidate audit separately enumerates the fixed backdrop, router endpoint capacity and row/frame/code costs above.
+
+The \texttt{--batched} mode repeats those full certificates with shared routers and sixteen-instruction fillers, including exact remainder and label-cap boundary tests. The \texttt{--integrated} mode first runs the reused-frame whole-column normalizer on four traces with independently varying code multiplicities and memory reuse, then applies the shared coarse construction at heights $(9,9,9,9,12,3)$. All final column products, native height-seven nodes and memory/code images agree, while compression rows are unchanged. This checks the two stages together rather than assuming the normalizer's output already has suitable coarse products. It remains a finite ISA certificate, not a proof that the native aggregation guest satisfies the corollary's incoming premises or a simulation of the complete transcript.

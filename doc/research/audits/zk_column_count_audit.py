@@ -354,7 +354,7 @@ def run(verifier, multiplicities, preserve_compression=False):
     return counts, roots, images
 
 
-def run_reused(verifier, multiplicities, scatter):
+def prepare_reused(verifier, multiplicities, scatter):
     library = Library(verifier)
     assert multiplicities[verifier.OP_BLAKE2S] == 1
     base_trace(library, multiplicities, scatter)
@@ -403,14 +403,24 @@ def run_reused(verifier, multiplicities, scatter):
         library.route(target, receiver, shift)
         assert library.exponents[opcode, column] == fixed_router[opcode, column] + upper
     assert sum(library.memory_exponents().values()) == total
+    assert library.frame - frame_start == 57 * 128
+    assert preserved == [row for opcode, row in library.rows if opcode == verifier.OP_BLAKE2S]
+    return library, (tuple(initial_code.values()), tuple(original.values()))
+
+
+def run_reused(verifier, multiplicities, scatter):
+    library, before = prepare_reused(verifier, multiplicities, scatter)
+    active = tuple(opcode for opcode in range(6) if opcode != verifier.OP_BLAKE2S)
+    preserved = [row[:] for opcode, row in library.rows if opcode == verifier.OP_BLAKE2S]
+    frame_start = library.frame
     power_two_fill(library, active, reuse_frames=True)
-    assert library.frame - frame_start == 62 * 128
+    assert library.frame - frame_start == 5 * 128
     library.verify()
     assert preserved == [row for opcode, row in library.rows if opcode == verifier.OP_BLAKE2S]
     counts = tuple(sum(opcode == table.opcode for opcode, _ in library.rows) for table in verifier.TABLES)
     roots = tuple(library.exponents[table.opcode, column] for table in verifier.TABLES for column in table.count_columns)
     images = tuple(library.images[kind] for kind in ("memory", "code"))
-    return (counts, roots, images), (tuple(initial_code.values()), tuple(original.values()))
+    return (counts, roots, images), before
 
 
 if __name__ == "__main__":

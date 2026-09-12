@@ -54,6 +54,68 @@ impl Execution {
             .chain(self.trace.jump[..self.base_counts[4]].iter().map(|r| (r.pc, r.fp)))
             .chain(self.trace.blake2s[..self.base_counts[5]].iter().map(|r| (r.pc, r.fp)))
     }
+
+    /// Private diagnostics: (integer exponent sum, maximum label) per real count column.
+    /// Columns follow table order, with bytecode last. Ordinary filler rows are excluded.
+    pub fn real_count_profile(&self) -> Vec<Vec<(u64, u32)>> {
+        let mut remaining = std::collections::HashSet::new();
+        self.visit_real_counts(|_, counts| remaining.extend(counts.iter().map(|value| value.0)));
+        let mut decoded = HashMap::with_capacity(remaining.len());
+        let mut power = F64::ONE;
+        for exponent in 0..=10 * self.base_counts.iter().sum::<usize>() {
+            if remaining.remove(&power.0) {
+                decoded.insert(power.0, u32::try_from(exponent).expect("real count label exceeds u32"));
+            }
+            if remaining.is_empty() {
+                break;
+            }
+            power = mul_by_g(power);
+        }
+        assert!(remaining.is_empty(), "a real count label exceeded the access bound");
+        let mut result: Vec<_> = [4, 4, 2, 4, 4, 10].map(|width| vec![(0u64, 0u32); width]).into();
+        self.visit_real_counts(|table, counts| {
+            for (output, count) in result[table].iter_mut().zip(counts) {
+                let exponent = decoded[&count.0];
+                output.0 += u64::from(exponent);
+                output.1 = output.1.max(exponent);
+            }
+        });
+        result
+    }
+
+    fn visit_real_counts(&self, mut visit: impl FnMut(usize, &[F64])) {
+        for (table, rows) in [(0, &self.trace.xor), (1, &self.trace.mul)] {
+            for row in &rows[..self.base_counts[table]] {
+                visit(table, &[row.ra, row.rb, row.rc, row.bytecode_read]);
+            }
+        }
+        for row in &self.trace.set[..self.base_counts[2]] {
+            visit(2, &[row.r, row.bytecode_read]);
+        }
+        for row in &self.trace.deref[..self.base_counts[3]] {
+            visit(3, &[row.r1, row.r2, row.r3, row.bytecode_read]);
+        }
+        for row in &self.trace.jump[..self.base_counts[4]] {
+            visit(4, &[row.rc, row.rd, row.rf, row.bytecode_read]);
+        }
+        for row in &self.trace.blake2s[..self.base_counts[5]] {
+            visit(
+                5,
+                &[
+                    row.ra[0],
+                    row.ra[1],
+                    row.rb[0],
+                    row.rb[1],
+                    row.rcv[0],
+                    row.rcv[1],
+                    row.rc[0],
+                    row.rc[1],
+                    row.rmd,
+                    row.bytecode_read,
+                ],
+            );
+        }
+    }
 }
 
 /// A memory word interpreted as a K-valued address: valid only when both
