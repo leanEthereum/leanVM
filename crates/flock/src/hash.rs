@@ -89,7 +89,7 @@ use crate::gf2::{
 use crate::verifier;
 use crate::witness::packed_bytes;
 use crate::witness::{
-    BitRecord, add_carry_parts, add3_fused_parts, drive_witness_packed_and_lincheck, or_bit_at,
+    BitRecord, add_carry_parts, add3_fused_parts, drive_witness_packed_and_lincheck_into, or_bit_at,
     write_lin_word_ab_packed,
 };
 use pcs::pack::{LOG_PACKING, PACKING_WIDTH};
@@ -684,18 +684,31 @@ fn build_block_witness_ab_packed_into(
 }
 
 /// Produce `(z, a, b, z_lincheck)` for `blocks.len()` compressions padded to
-/// `2^n_blocks_log` slots. Mirror of `blake2s`'s generator; see it for the
-/// buffer shapes and the lincheck stripe indexing.
+/// `2^n_blocks_log` slots. The packed tables use `K / 64` words per instance.
 pub fn generate_witness_with_ab_packed_and_lincheck(
     blocks: &[Compression],
     n_blocks_log: usize,
 ) -> (ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u8>) {
+    // SAFETY: the builder zeros and fills every packed word before reading it.
+    let mut z = unsafe { ArenaVec::<u64>::uninitialized(1 << (n_blocks_log + K_LOG - LOG_PACKING)) };
+    let (a, b, z_lincheck) = generate_witness_with_ab_packed_and_lincheck_into(blocks, n_blocks_log, &mut z);
+    (z, a, b, z_lincheck)
+}
+
+/// Fill the packed witness `z` in its final destination and return `(a, b, z_lincheck)`.
+/// `z` must contain `(K / 64) * 2^n_blocks_log` words; its previous contents are overwritten.
+pub fn generate_witness_with_ab_packed_and_lincheck_into(
+    blocks: &[Compression],
+    n_blocks_log: usize,
+    z: &mut [u64],
+) -> (ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u8>) {
     let padding = padding_block();
-    drive_witness_packed_and_lincheck(
+    drive_witness_packed_and_lincheck_into(
         blocks,
         Some(&padding),
         n_blocks_log,
         K_LOG,
+        z,
         |&(ref h, ref m, t, f0, f1), z, a, b| build_block_witness_ab_packed_into(h, m, t, f0, f1, z, a, b),
     )
 }

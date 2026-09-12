@@ -34,11 +34,11 @@
 use crate::transcript::{ProverState, VerifierState};
 use ::pcs::pack::LOG_PACKING;
 use flock::hash::{
-    Blake2sSetup, Compression, K_LOG, ReductionReplay, blake2s_compress, generate_witness_with_ab_packed_and_lincheck,
+    Blake2sSetup, Compression, K_LOG, ReductionReplay, blake2s_compress,
+    generate_witness_with_ab_packed_and_lincheck_into,
 };
 use flock::verifier::VerifyError;
 use primitives::field::{F64, F192};
-use primitives::stream::Stream;
 use zk_alloc::ArenaVec;
 
 pub use flock::hash::{
@@ -57,7 +57,6 @@ pub const PINNED_T: u64 = flock::hash::PINNED_T;
 /// constraint proving so reduction needs no second witness pass.
 pub(crate) struct PreparedReductionWitness {
     n_blocks: usize,
-    z_packed: ArenaVec<u64>,
     a_packed: ArenaVec<u64>,
     b_packed: ArenaVec<u64>,
     z_lincheck: ArenaVec<u8>,
@@ -68,9 +67,11 @@ impl PreparedReductionWitness {
         self.n_blocks
     }
 
-    pub(crate) fn prove(&self, ps: &mut ProverState) -> SliceClaim {
+    pub(crate) fn prove(&self, q_flock: &[F64], ps: &mut ProverState) -> SliceClaim {
+        // SAFETY: F64 is transparent over u64; q_flock stays borrowed throughout reduction.
+        let z_packed = unsafe { std::slice::from_raw_parts(q_flock.as_ptr().cast(), q_flock.len()) };
         Blake2sSetup::new(self.n_blocks).prove_reduction_precomputed(
-            &self.z_packed,
+            z_packed,
             &self.a_packed,
             &self.b_packed,
             &self.z_lincheck,
@@ -184,18 +185,6 @@ pub fn digest(block: &Compression) -> [F64; 4] {
     std::array::from_fn(|k| pack_words([h[2 * k], h[2 * k + 1]]))
 }
 
-/// Lift flock's packed witness (64 bits per word, bit `i` at position `i`) into
-/// the committed `F64` column: word for word, which is exactly `pack_witness`'s
-/// convention on the same bit string.
-fn flatten_packed_into(packed: &[u64], out: &mut [F64]) {
-    assert_eq!(out.len(), packed.len(), "q_flock's window is the wrong size");
-    // Write directly into the committed window and publish it with streaming stores.
-    // SAFETY: `F64` is `repr(transparent)` over `u64`, so the two slices are the
-    // same bytes.
-    let words: &mut [u64] = unsafe { std::slice::from_raw_parts_mut(out.as_mut_ptr().cast(), out.len()) };
-    parallel::chunks_mut_zip(words, packed, 1 << 14, |_, dst, src| Stream::new().copy(dst, src));
-}
-
 /// Build the committed `q_flock` column (flock's packed witness) for `blocks`, padded
 /// to `2^n_blocks_log(max(blocks.len(),1))` instances (the unused ones flock's own
 /// `padding_block`), and retain the Flock-native layouts produced by that same fused pass so
@@ -204,12 +193,12 @@ fn flatten_packed_into(packed: &[u64], out: &mut [F64]) {
 /// padding).
 pub(crate) fn build_qflock_prepared(blocks: &[Compression], q_flock: &mut [F64]) -> PreparedReductionWitness {
     let n_blocks = blocks.len().max(1);
-    let (z_packed, a_packed, b_packed, z_lincheck) =
-        generate_witness_with_ab_packed_and_lincheck(blocks, n_blocks_log(n_blocks));
-    flatten_packed_into(&z_packed, q_flock);
+    // SAFETY: F64 is transparent over u64, and the builder writes every word before reading it.
+    let z_packed = unsafe { std::slice::from_raw_parts_mut(q_flock.as_mut_ptr().cast(), q_flock.len()) };
+    let (a_packed, b_packed, z_lincheck) =
+        generate_witness_with_ab_packed_and_lincheck_into(blocks, n_blocks_log(n_blocks), z_packed);
     PreparedReductionWitness {
         n_blocks,
-        z_packed,
         a_packed,
         b_packed,
         z_lincheck,
@@ -232,10 +221,8 @@ pub const SLOT_STRIDE_LOG: usize = K_LOG - LOG_PACKING;
 /// [`crate::cpu`]'s prove does).
 #[cfg(test)]
 fn prove_reduction(blocks: &[Compression], ps: &mut ProverState) -> (Vec<F64>, SliceClaim) {
-    let (z_packed, reduced) = Blake2sSetup::new(blocks.len()).prove_reduction(blocks, ps);
-    let mut q_flock = vec![F64::ZERO; z_packed.len()];
-    flatten_packed_into(&z_packed, &mut q_flock);
-    (q_flock, reduced)
+    let (z_packed, reduced) = Blake2sSetup::new(blocks.len().max(1)).prove_reduction(blocks, ps);
+    (z_packed.iter().copied().map(F64).collect(), reduced)
 }
 
 /// `q_flock` on its own, for the tests that only need the committed column.
@@ -333,6 +320,28 @@ mod tests {
         }
         assert_eq!(slot(0, 18), pack_words([PINNED_T as u32, 0]));
         assert_eq!(slot(0, 19), pack_words([FINAL_FLAG, 0]));
+    }
+
+    #[test]
+    fn prepared_reduction_uses_the_committed_window() {
+        const GUARD: F64 = F64(0x9a713d524be608fc);
+        for n_blocks in [0, 9, 16] {
+            let blocks = sample_blocks(n_blocks);
+            let n_words = 1 << qflock_kappa(n_blocks);
+            let mut storage = vec![GUARD; n_words + 2];
+            let prepared = build_qflock_prepared(&blocks, &mut storage[1..1 + n_words]);
+            let mut ps = ProverState::from_label(b"prepared-window");
+            let reduced = prepared.prove(&storage[1..1 + n_words], &mut ps);
+            drop(prepared);
+
+            let mut reference_ps = ProverState::from_label(b"prepared-window");
+            let (reference_q, reference_claim) = prove_reduction(&blocks, &mut reference_ps);
+            assert_eq!(storage[0], GUARD);
+            assert_eq!(storage[n_words + 1], GUARD);
+            assert_eq!(&storage[1..1 + n_words], reference_q.as_slice());
+            assert_eq!(reduced, reference_claim);
+            assert_eq!(ps.into_proof(), reference_ps.into_proof());
+        }
     }
 
     /// The Flock reduction (zerocheck + lincheck) is a clean, self-contained

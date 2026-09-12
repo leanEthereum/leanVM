@@ -126,9 +126,8 @@ pub(crate) fn packed_bytes(words: &[u64]) -> &[u8] {
 // ---------------------------------------------------------------------------
 
 /// Drive the parallel chunked witness build for `n_blocks` instances padded
-/// to `2^n_blocks_log` slots. Returns `(z, a, b, z_lincheck)`: the three
-/// bit-packed `u64` tables (`K / 64` words per instance) and the lincheck
-/// byte stripe.
+/// to `2^n_blocks_log` slots. Fills `z` and returns `(a, b, z_lincheck)`:
+/// the bit-packed tables use `K / 64` words per instance.
 ///
 /// `per_block(initial, z_u64, a_u64, b_u64)` populates one block's worth of
 /// `(z, a, b)` data: 3 zero-initialized `u64`-buffers of length `K / 64`.
@@ -141,13 +140,14 @@ pub(crate) fn packed_bytes(words: &[u64]) -> &[u8] {
 /// - `Some(p)`: build a real block from `p` in every padding slot. Encoders
 ///   that pin a constant wire need this so the constant column is all-ones
 ///   across *every* batched instance (see `lincheck's `LincheckCircuit::const_pin_col``).
-pub(crate) fn drive_witness_packed_and_lincheck<S: Sync, F>(
+pub(crate) fn drive_witness_packed_and_lincheck_into<S: Sync, F>(
     initial_states: &[S],
     padding: Option<&S>,
     n_blocks_log: usize,
     k_log: usize,
+    z: &mut [u64],
     per_block: F,
-) -> (ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u8>)
+) -> (ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u8>)
 where
     F: Fn(&S, &mut [u64], &mut [u64], &mut [u64]) + Sync,
 {
@@ -165,10 +165,10 @@ where
     );
 
     let total_words = n_total * u64_per_block;
+    assert_eq!(z.len(), total_words, "wrong packed witness length");
     // Zero inside the parallel loop because the builders OR bits into each group.
-    // SAFETY (x3): the parallel loop below writes every element of z/a/b before
-    // any is read: each group memsets its own slice, then ORs bits into it.
-    let mut z = unsafe { ArenaVec::<u64>::uninitialized(total_words) };
+    // SAFETY (x2): the parallel loop writes every element of a/b before any is
+    // read: each group memsets its own slice, then ORs bits into it.
     let mut a = unsafe { ArenaVec::<u64>::uninitialized(total_words) };
     let mut b = unsafe { ArenaVec::<u64>::uninitialized(total_words) };
     // SAFETY: group `g` writes chunk `g` of the stripe table in full, since the
@@ -179,7 +179,7 @@ where
 
     // Four output tables at two widths, indexed by the same group: `z`/`a`/`b`
     // take eight blocks' packed words, `z_lincheck` takes one byte stripe.
-    let z_chunks = parallel::Chunks::new(&mut z, 8 * u64_per_block);
+    let z_chunks = parallel::Chunks::new(z, 8 * u64_per_block);
     let a_chunks = parallel::Chunks::new(&mut a, 8 * u64_per_block);
     let b_chunks = parallel::Chunks::new(&mut b, 8 * u64_per_block);
     let stripe_chunks = parallel::Chunks::new(&mut z_lincheck, k);
@@ -227,5 +227,5 @@ where
         }
     });
 
-    (z, a, b, z_lincheck)
+    (a, b, z_lincheck)
 }
