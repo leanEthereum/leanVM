@@ -261,12 +261,7 @@ impl Program {
             // Read a cell; an unwritten cell reads as ZERO.
             #[inline(always)]
             fn get(&self, cell: u32) -> F192 {
-                let c = cell as usize;
-                if c < self.written.len() && self.written[c] {
-                    self.cells[c]
-                } else {
-                    F192::ZERO
-                }
+                self.cells.get(cell as usize).copied().unwrap_or(F192::ZERO)
             }
             // Write-once store: writing a different value to an already-set cell panics.
             #[inline(always)]
