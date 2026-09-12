@@ -210,7 +210,7 @@ fn push_terms<'a>(c: &'a Coord, w: F192, terms: &mut Vec<Term<'a>>, constant: &m
 
 /// # Safety
 /// The caller must fill every block's range before reading the result.
-unsafe fn leaf_buffer(blocks: &[Block], lay: &Layout) -> ArenaVec<F192> {
+unsafe fn leaf_buffer<T: Copy>(blocks: &[Block], lay: &Layout, identity: T) -> ArenaVec<T> {
     let mut ranges: Vec<_> = blocks
         .iter()
         .enumerate()
@@ -241,7 +241,7 @@ unsafe fn leaf_buffer(blocks: &[Block], lay: &Layout) -> ArenaVec<F192> {
         values
     } else {
         let mut values = ArenaVec::with_capacity(explicit.next_multiple_of(4));
-        values.resize(explicit, F192::ONE);
+        values.resize(explicit, identity);
         values
     }
 }
@@ -260,7 +260,7 @@ pub fn build_leaves(
     gpow: &[F64],
 ) -> ArenaVec<F192> {
     // SAFETY: the per-block fills below initialize every range and join before return.
-    let mut leaves = unsafe { leaf_buffer(blocks, lay) };
+    let mut leaves = unsafe { leaf_buffer(blocks, lay, F192::ONE) };
     for (b, blk) in blocks.iter().enumerate() {
         let mut const_part = beta;
         let mut terms: Vec<Term> = Vec::with_capacity(blk.coords.len());
@@ -312,7 +312,12 @@ fn build_paired_leaves(
         ];
     }
     // SAFETY: both sides' block ranges are filled below before either vector is read.
-    let mut leaves = unsafe { [leaf_buffer(push, lays[0]), leaf_buffer(pull, lays[1])] };
+    let mut leaves = unsafe {
+        [
+            leaf_buffer(push, lays[0], F192::ONE),
+            leaf_buffer(pull, lays[1], F192::ONE),
+        ]
+    };
     for (block, (push, pull)) in push.iter().zip(pull).enumerate() {
         let mut constants = [beta; 2];
         let mut terms: [Vec<Term>; 2] = std::array::from_fn(|_| Vec::new());
@@ -358,6 +363,38 @@ fn build_paired_leaves(
             parallel::chunks_mut2(push_out, pull_out, chunk, |index, a, b| fill(index * chunk, a, b));
         } else {
             fill(0, push_out, pull_out);
+        }
+    }
+    leaves
+}
+
+/// At the Boolean fingerprint point zero, only the first K-valued coordinate contributes.
+fn build_count_leaves(blocks: &[Block], lay: &Layout, cols: &[&[F64]], gpow: &[F64]) -> ArenaVec<F64> {
+    if !blocks
+        .iter()
+        .all(|block| matches!(block.coords.as_slice(), [Coord::Col(_)]))
+    {
+        let weights = fingerprint_weights(&[F192::ZERO; N_TUPLE_BITS]);
+        return build_leaves(blocks, lay, cols, &weights, F192::ZERO, gpow)
+            .iter()
+            .map(|value| F64(value.c0))
+            .collect();
+    }
+    // SAFETY: the copies below initialize every block range and join before return.
+    let mut leaves = unsafe { leaf_buffer(blocks, lay, F64::ONE) };
+    for (index, block) in blocks.iter().enumerate() {
+        let Coord::Col(col) = block.coords[0] else {
+            unreachable!()
+        };
+        let len = 1 << block.kappa;
+        let dst = &mut leaves[lay.offsets[index]..][..len];
+        let source = &cols[col][..len];
+        if len >= PAR_THRESHOLD {
+            parallel::chunks_mut_zip(dst, source, parallel::recommended_chunk_size(len), |_, dst, src| {
+                dst.copy_from_slice(src);
+            });
+        } else {
+            dst.copy_from_slice(source);
         }
     }
     leaves
@@ -835,24 +872,19 @@ pub fn prove_balance(
         .map(|b| b.kappa)
         .max();
     let gpow = index_k.map_or_else(Vec::new, |k| primitives::field::g_powers(1usize << k));
-    let [push_leaves, pull_leaves, count_leaves] = crate::stage!("Bus leaves", || {
+    let (leaves, count_leaves) = crate::stage!("Bus leaves", || {
         let [push_leaves, pull_leaves] = build_paired_leaves(push, pull, [&push_lay, &pull_lay], cols, &w, beta, &gpow);
-        [
-            push_leaves,
-            pull_leaves,
-            build_leaves(count, &count_lay, cols, &count_w, F192::ZERO, &gpow),
-        ]
+        (
+            [push_leaves, pull_leaves],
+            build_count_leaves(count, &count_lay, cols, &gpow),
+        )
     });
     // Leaf construction keeps the all-one padding implicit; decomposition uses the full logical depth.
     count_lay.mu = push_lay.mu;
     // All three trees run as ONE RLC-batched GKR (equal μ: push/pull match
     // block-for-block, count is padded), so every claim lands on ONE point ζ.
     let bus_gkr = crate::stage!("Bus GKR", || {
-        gkr::prove_product_triple(
-            [push_leaves, pull_leaves, count_leaves],
-            ps,
-            gkr::RootShape::FirstTwoShared,
-        )
+        gkr::prove_product_triple_with_base_count(leaves, count_leaves, ps, gkr::RootShape::FirstTwoShared)
     });
 
     // Framework blocks keep their per-column claims (deduped: push/pull share ζ);
@@ -1106,6 +1138,39 @@ mod tests {
             let paired = build_paired_leaves(&blocks, &blocks, [&lay, &lay], &[], &weights, F192::ZERO, &[]);
             for side in paired {
                 assert_eq!(&*side, expected);
+            }
+        }
+    }
+
+    #[test]
+    fn base_count_leaves_match_generic_fingerprints() {
+        use super::*;
+        use Coord::{Col, Const, GCol, Index, Prod, Public, Sum};
+
+        let mut rng = primitives::test_rng::Rng::new(9773);
+        let weights = fingerprint_weights(&[F192::ZERO; N_TUPLE_BITS]);
+        for kappa in [0, 3, 12] {
+            let len = 1 << kappa;
+            let columns: [Vec<_>; 2] = std::array::from_fn(|_| (0..len).map(|_| F64(rng.next_u64())).collect());
+            let cols = columns.each_ref().map(|column| column.as_slice());
+            let gpow = primitives::field::g_powers(len);
+            let coordinates = [
+                vec![Col(0)],
+                vec![Col(0), Col(1)],
+                vec![Sum(vec![Const(F64(5)), GCol(0, 1), Prod(0, 1, 2)])],
+                vec![Index],
+                vec![Public(Arc::new(columns[1].clone()))],
+                Vec::new(),
+            ];
+            for coords in coordinates {
+                let blocks = [Block { kappa, coords }];
+                let lay = layout(&blocks);
+                let base = build_count_leaves(&blocks, &lay, &cols, &gpow);
+                let generic = build_leaves(&blocks, &lay, &cols, &weights, F192::ZERO, &gpow);
+                assert_eq!(base.len(), generic.len());
+                for (&base, &generic) in base.iter().zip(&generic) {
+                    assert_eq!(F192::from(base), generic);
+                }
             }
         }
     }
