@@ -2427,11 +2427,8 @@ struct OpeningShape {
     cap_depths: Vec<usize>,
     cap_offsets: Vec<usize>,
     positions_offsets: Vec<usize>,
-    vanish_offsets: Vec<usize>,
     fold_offsets: Vec<usize>,
     residual_fold_offsets: Vec<usize>,
-    vanish_values: Vec<F192>,
-    vanish_inverses: Vec<F192>,
     ood_samples: Vec<usize>,
 }
 
@@ -2691,7 +2688,7 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
         let (cn, cr) = (sh.levels, vc.level_steps);
         // Every cap root must match a transcript-bound root, including the final level.
         assert_eq!(cr, cn - 1, "the yr level must be the last one");
-        let (ck, cl, cyr) = (&sh.ks, &sh.log_msg_cols, sh.yr_log_n);
+        let (ck, cyr) = (&sh.ks, sh.yr_log_n);
         let cq = &vc.queries;
         let (cd, cp) = (&shape.depth, &shape.per_squeeze);
         let cs: Vec<usize> = (0..cn).map(|i| cq[i].div_ceil(cp[i])).collect();
@@ -2719,21 +2716,8 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
         let cap_depths: Vec<_> = (0..cn).map(|lv| merkle_cap_depth(cq[lv], cd[lv])).collect();
         let cap_offsets = psum(&|lv| 1 << cap_depths[lv]);
         let c_qpoff = psum(&|lv| cs[lv] * cp[lv]);
-        let c_svkoff = psum(&|lv| cl[lv] + 1);
         let c_foldbase = psum(&|lv| ck[lv]);
         let c_risstart: Vec<usize> = (0..cn).map(|k| c_foldbase[k] + ck[k]).collect();
-        let mut c_svk = Vec::new();
-        let mut c_ivk = Vec::new();
-        for &cl_lv in cl.iter().take(cn) {
-            for &v in &pcs::whir::eval_sk_at_vks(cl_lv) {
-                c_svk.push(F192::new(v.0, 0, 0));
-                c_ivk.push(if v == F64::ZERO {
-                    F192::ZERO
-                } else {
-                    F192::new(v.inv().0, 0, 0)
-                });
-            }
-        }
         OpeningShape {
             n_levels: cn,
             yr_level: cr,
@@ -2749,11 +2733,8 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
             cap_depths,
             cap_offsets,
             positions_offsets: c_qpoff,
-            vanish_offsets: c_svkoff,
             fold_offsets: c_foldbase,
             residual_fold_offsets: c_risstart,
-            vanish_values: c_svk,
-            vanish_inverses: c_ivk,
             ood_samples: shape.config.ood_samples,
         }
     };
@@ -2764,10 +2745,14 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
         .flat_map(|r| (minm..=maxm).map(move |m| oshape(m, r)))
         .collect();
     let maxlev = cands.iter().map(|c| c.n_levels).max().unwrap();
-    let maxsvk = cands.iter().map(|c| c.vanish_values.len()).max().unwrap();
+    let maxcols = cands
+        .iter()
+        .flat_map(|c| &c.log_message_columns)
+        .copied()
+        .max()
+        .unwrap();
     let maxood = cands.iter().flat_map(|c| &c.ood_samples).copied().max().unwrap_or(0);
     ps("LIG_MAX_LEVELS", maxlev.to_string());
-    ps("LIG_MAX_VANISH_LEN", maxsvk.to_string());
     ps("LIG_MAX_OOD_SAMPLES", maxood.to_string());
     ps("LIG_MIN_LOG_SIZE", minm.to_string());
     let cks: Vec<(usize, usize)> = lean_vm::cpu::col_kappa_sources(kbc).into_iter().flatten().collect();
@@ -2776,15 +2761,7 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     ps("COL_KAPPA_SRC", literals(cks.iter().map(|&(s, _)| s)));
     ps("COL_KAPPA_ADJ", literals(cks.iter().map(|&(_, a)| a)));
     ps("PCS_MIN_MU", lean_vm::pcs::MIN_MU.to_string());
-    ps(
-        "LIG_LOG_MSG_COLS_CAP",
-        cands
-            .iter()
-            .map(|c| *c.log_message_columns.iter().max().unwrap())
-            .max()
-            .unwrap()
-            .to_string(),
-    );
+    ps("LIG_LOG_MSG_COLS_CAP", maxcols.to_string());
     ps(
         "YR_LOG_CAP",
         cands.iter().map(|c| c.yr_log_len).max().unwrap().to_string(),
@@ -2886,6 +2863,26 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
         );
         ps("LIG_TREE_DEPTH", flat(&|c| c.tree_depths.clone()));
         ps("LIG_CAP_DEPTH", flat(&|c| c.cap_depths.clone()));
+        let mut auth_shapes: Vec<_> = cands
+            .iter()
+            .flat_map(|c| c.tree_depths.iter().copied().zip(c.cap_depths.iter().copied()))
+            .collect();
+        auth_shapes.sort_unstable();
+        auth_shapes.dedup();
+        ps("LIG_AUTH_SHAPES", auth_shapes.len().to_string());
+        ps("LIG_AUTH_DEPTH", literals(auth_shapes.iter().map(|&(depth, _)| depth)));
+        ps("LIG_AUTH_CAP_DEPTH", literals(auth_shapes.iter().map(|&(_, cap)| cap)));
+        ps(
+            "LIG_AUTH_SHAPE",
+            flat(&|c| {
+                c.tree_depths
+                    .iter()
+                    .copied()
+                    .zip(c.cap_depths.iter().copied())
+                    .map(|shape| auth_shapes.binary_search(&shape).unwrap())
+                    .collect()
+            }),
+        );
         ps("LIG_CAP_OFF", flat(&|c| c.cap_offsets.clone()));
         ps("LIG_CAP_LEN", scal(&|c| c.cap_depths.iter().map(|&d| 1 << d).sum()));
         ps("LIG_SQUEEZES", flat(&|c| c.squeezes.clone()));
@@ -2902,18 +2899,18 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
             }),
         );
         ps("LIG_FOLDS_OFF", flat(&|c| c.fold_offsets.clone()));
-        ps("LIG_VANISH_OFF", flat(&|c| c.vanish_offsets.clone()));
-        let mut svk2 = Vec::with_capacity(cands.len() * maxsvk);
-        let mut ivk2 = Vec::with_capacity(cands.len() * maxsvk);
-        for candidate in &cands {
-            let padded_len = svk2.len() + maxsvk;
-            svk2.extend_from_slice(&candidate.vanish_values);
-            ivk2.extend_from_slice(&candidate.vanish_inverses);
-            svk2.resize(padded_len, F192::ZERO);
-            ivk2.resize(padded_len, F192::ZERO);
+        let vanish = pcs::whir::eval_sk_at_vks(maxcols);
+        for log_cols in 0..maxcols {
+            assert_eq!(pcs::whir::eval_sk_at_vks(log_cols), vanish[..=log_cols]);
         }
-        ps("LIG_VANISH_VALS", flds(&svk2));
-        ps("LIG_VANISH_INVS", flds(&ivk2));
+        ps(
+            "LIG_VANISH_VALS",
+            flds(&vanish.iter().copied().map(F192::from).collect::<Vec<_>>()),
+        );
+        ps(
+            "LIG_VANISH_INVS",
+            flds(&vanish.iter().map(|v| F192::from(v.inv())).collect::<Vec<_>>()),
+        );
     }
     let n_log_sizes = maxm - minm + 1;
     let n_rates = MAX_LOG_INV_RATE - MIN_LOG_INV_RATE + 1;
@@ -3406,6 +3403,117 @@ def main():
     }
 
     #[test]
+    fn guest_signer_tails_match_native_hashes() {
+        let (helpers, _) = include_str!("../guests/lean_ethereum.py")
+            .split_once("\ndef main():")
+            .unwrap();
+        let mut rng = StdRng::seed_from_u64(718);
+        let cells: Vec<_> = (0..4 * SIGNERS_WINDOW)
+            .map(|_| F192::new(rand::Rng::random(&mut rng), rand::Rng::random(&mut rng), 0))
+            .collect();
+        for (name, stride) in [
+            ("plain_tail", 0),
+            ("keys_tail", 0),
+            ("sphincs_tail", 0),
+            ("child_keys_tail", 2),
+            ("child_sphincs_tail", 1),
+        ] {
+            let call = if stride == 0 {
+                format!(
+                    "s0, s1, last = match(log(tail), range(0, SIGNERS_WINDOW), lambda k: {name}(state[0], state[1], base, run, k))\n    assert last == run * tail ** 4"
+                )
+            } else {
+                let results = if stride == 2 { "s0, s1, marks" } else { "s0, s1" };
+                let mark_check = if stride == 2 {
+                    "\n    assert marks == GEN ** 7 * tail ** 2"
+                } else {
+                    ""
+                };
+                format!(
+                    "{results} = match(log(tail), range(0, SIGNERS_WINDOW), lambda k: {name}(state[0], state[1], base, run, cover, GEN ** 7, GEN ** 5, GEN ** (SIGNERS_WINDOW * {stride}), k)){mark_check}\n    for x in mul_range(1, tail ** {stride}):\n        assert cover[GEN ** 5 * x] == GEN ** 7 * x\n    last = run * tail ** 4"
+                )
+            };
+            let source = format!(
+                r#"{helpers}
+def main():
+    run = HeapBuf(4 * SIGNERS_WINDOW)
+    hint_witness(run[0:4 * SIGNERS_WINDOW], "run")
+    cover = HeapBuf(2 * SIGNERS_WINDOW + 8)
+    state = StackBuf(2)
+    hint_witness(state, "state")
+    base = hint_witness("base")
+    final = hint_witness("final")
+    tail = hint_witness("tail")
+    assert log(tail) < SIGNERS_WINDOW
+    {call}
+    digest = StackBuf(2)
+    blake2s(last[0:2], last[2:4], digest, cv=[s0, s1], md=final)
+    public = GEN ** 0
+    assert public[1] == digest[0]
+    assert public[GEN] == digest[1]
+    return
+"#
+            );
+            let guest = compile(&parse_with_replacements(&source, &placeholder_map(17)).unwrap());
+            for prefix_blocks in [0, 3 * SIGNERS_WINDOW] {
+                let state = primitives::hash::zero_prefix_state(prefix_blocks);
+                let state = pack_state(std::array::from_fn(|i| {
+                    F64(u64::from(state[2 * i]) | (u64::from(state[2 * i + 1]) << 32))
+                }));
+                for k in 0..SIGNERS_WINDOW {
+                    let mut bytes = vec![0; 64 * prefix_blocks];
+                    bytes.extend(cell_bytes(cells[..4 * (k + 1)].iter().copied()));
+                    let public = pack_hash_state(&primitives::hash::hash(&bytes));
+                    let mut hints = Hints::default();
+                    hints.push("run", cells.clone());
+                    hints.push("state", state.to_vec());
+                    hints.push("base", vec![F192::from(F64((64 * prefix_blocks) as u64))]);
+                    hints.push(
+                        "final",
+                        vec![lean_vm::hash_flock::metadata(
+                            bytes.len() as u64,
+                            lean_vm::hash_flock::FINAL_FLAG,
+                            0,
+                        )],
+                    );
+                    hints.push("tail", vec![count(k)]);
+                    for j in 0..k {
+                        match name {
+                            "keys_tail" => hints.push("pubkeys", cells[4 * j..4 * j + 4].to_vec()),
+                            "sphincs_tail" => hints.push("sphincs_signers", cells[4 * j..4 * j + 4].to_vec()),
+                            "child_keys_tail" => hints.push("child_index", vec![count(2 * j), count(2 * j + 1)]),
+                            "child_sphincs_tail" => hints.push("child_sphincs_index", vec![count(j)]),
+                            _ => {}
+                        }
+                    }
+                    let mut program = guest.clone();
+                    hints.install(&mut program);
+                    assert!(
+                        program.execute(public).unconstrained_reads.is_empty(),
+                        "{name}, prefix={prefix_blocks}, tail={k}"
+                    );
+                    if stride != 0 && k == SIGNERS_WINDOW - 1 {
+                        let (stream, mut entries) = if stride == 2 {
+                            (
+                                "child_index",
+                                (0..k).map(|j| vec![count(2 * j), count(2 * j + 1)]).collect::<Vec<_>>(),
+                            )
+                        } else {
+                            (
+                                "child_sphincs_index",
+                                (0..k).map(|j| vec![count(j)]).collect::<Vec<_>>(),
+                            )
+                        };
+                        entries[0][0] = count(stride * SIGNERS_WINDOW);
+                        program.set_witness(stream, entries);
+                        assert!(std::panic::catch_unwind(|| program.execute(public)).is_err());
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
     fn guest_merkle_zero_prefixes_match_full_leaves() {
         let (helpers, _) = include_str!("../guests/lean_ethereum.py")
             .split_once("\ndef main():")
@@ -3428,13 +3536,17 @@ def main():
     bit_ptrs[1] = bits
     zero_prefix = hint_witness("prefix")
     assert log(zero_prefix) < 4
-    value = match(log(zero_prefix), range(0, 4), lambda zero_blocks: opening_queries(cap, flags, query_weights, bit_ptrs, weights, GEN, 1, 64, 8, 1, 0, zero_blocks))
+    value = match(log(zero_prefix), range(0, 4), lambda zero_blocks: opening_queries(cap, flags, query_weights, bit_ptrs, weights, GEN, 1, 1, 64, 8, zero_blocks))
     expected = hint_witness("expected")
     assert value == expected
     return
 "#
         );
-        let guest = compile(&parse_with_replacements(&source, &placeholder_map(18)).unwrap());
+        let mut placeholders = placeholder_map(18);
+        placeholders.insert("LIG_AUTH_SHAPES_PLACEHOLDER".into(), "1".into());
+        placeholders.insert("LIG_AUTH_DEPTH_PLACEHOLDER".into(), "[1]".into());
+        placeholders.insert("LIG_AUTH_CAP_DEPTH_PLACEHOLDER".into(), "[0]".into());
+        let guest = compile(&parse_with_replacements(&source, &placeholders).unwrap());
         let mut rng = StdRng::seed_from_u64(8471);
         let weights: Vec<F192> = (0..64)
             .map(|_| {
