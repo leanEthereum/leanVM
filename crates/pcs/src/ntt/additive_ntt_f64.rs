@@ -215,6 +215,35 @@ impl AdditiveNttF64 {
             .map(|block| self.twiddles_radix8(log_inv_rate, block))
             .collect();
         let dst = parallel::SendPtr(data.as_mut_ptr());
+        #[cfg(target_arch = "x86_64")]
+        parallel::for_each_chunk(eighth, |lo, hi| {
+            const STAGE_LANES: usize = 64;
+            let mut stage = [F64::ZERO; 8 * STAGE_LANES];
+            let stream = primitives::stream::Stream::new();
+            for r in lo..hi {
+                for lane in (0..num_ntts).step_by(STAGE_LANES) {
+                    let len = (num_ntts - lane).min(STAGE_LANES);
+                    for (block, t) in tw.iter().enumerate().rev() {
+                        let mut chunks = stage[..8 * len].chunks_exact_mut(len);
+                        let mut rows: [&mut [F64]; 8] = std::array::from_fn(|_| chunks.next().unwrap());
+                        for (i, row) in rows.iter_mut().enumerate() {
+                            // SAFETY: replica zero remains the source until this
+                            // group's last iteration, and every group owns distinct rows.
+                            let src = unsafe { dst.slice((i * eighth + r) * num_ntts + lane, len) };
+                            row.copy_from_slice(src);
+                        }
+                        radix8_butterflies(&mut rows, t);
+                        for (i, row) in rows.iter().enumerate() {
+                            let base = (block * block_rows + i * eighth + r) * num_ntts + lane;
+                            // SAFETY: this group owns each output window, which is
+                            // read again only after the dispatch's streaming stores finish.
+                            stream.copy(unsafe { dst.slice(base, len) }, row);
+                        }
+                    }
+                }
+            }
+        });
+        #[cfg(not(target_arch = "x86_64"))]
         parallel::for_each(eighth, |r| {
             for (block, t) in tw.iter().enumerate().rev() {
                 let base = (block * block_rows + r) * num_ntts;
@@ -1034,7 +1063,7 @@ mod tests {
     fn fused_encode_matches_replicate_then_transform() {
         let mut rng = Rng::new(0xE0C0DE);
         for log_d in [9usize, 12, 14] {
-            for lanes in [8usize, 64] {
+            for lanes in [8usize, 64, 65] {
                 for log_inv_rate in [1usize, 2] {
                     let ntt = AdditiveNttF64::standard(log_d);
                     let msg_len = ((1usize << log_d) * lanes) >> log_inv_rate;
