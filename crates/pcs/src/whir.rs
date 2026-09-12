@@ -514,27 +514,37 @@ fn round_msg_and_eval_lsb_ext(f: &[F192], b: &[F192]) -> (SumcheckMessage, F192)
     debug_assert!(n.is_power_of_two() && n >= 2);
     debug_assert_eq!(b.len(), n);
 
-    let term = |j: usize| {
-        let f0 = f[2 * j];
-        let f1 = f[2 * j + 1];
-        let b0 = b[2 * j];
-        let b1 = b[2 * j + 1];
-        let e0 = f0 * b0;
-        (e0, (f0 + f1) * (b0 + b1), e0 + f1 * b1)
+    let half = n / 2;
+    let chunk = |ci: usize| {
+        let mut u_0 = F192Unreduced::ZERO;
+        let mut u_2 = F192Unreduced::ZERO;
+        let mut at_one = F192Unreduced::ZERO;
+        let start = ci * ROUND_CHUNK;
+        for j in start..(start + ROUND_CHUNK).min(half) {
+            let f0 = f[2 * j];
+            let f1 = f[2 * j + 1];
+            let b0 = b[2 * j];
+            let b1 = b[2 * j + 1];
+            u_0 ^= f0.mul_unreduced(b0);
+            u_2 ^= (f0 + f1).mul_unreduced(b0 + b1);
+            at_one ^= f1.mul_unreduced(b1);
+        }
+        let u_0 = u_0.reduce();
+        (u_0, u_2.reduce(), u_0 + at_one.reduce())
     };
     const PAR_THRESHOLD: usize = 4096;
-    let half = n / 2;
+    let chunks = half.div_ceil(ROUND_CHUNK);
     let (u_0, u_2, y) = if half < PAR_THRESHOLD {
-        (0..half)
-            .map(term)
+        (0..chunks)
+            .map(chunk)
             .fold((F192::ZERO, F192::ZERO, F192::ZERO), |(a0, a2, ay), (b0, b2, by)| {
                 (a0 + b0, a2 + b2, ay + by)
             })
     } else {
         parallel::map_reduce(
-            half,
+            chunks,
             || (F192::ZERO, F192::ZERO, F192::ZERO),
-            term,
+            chunk,
             |(a0, a2, ay), (b0, b2, by)| (a0 + b0, a2 + b2, ay + by),
         )
     };
