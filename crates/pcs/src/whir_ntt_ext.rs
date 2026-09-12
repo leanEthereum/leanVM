@@ -116,13 +116,22 @@ pub(crate) fn forward_transform_interleaved_ext_parallel_from_layer(
 
     const PARALLEL_FLOOR_LOG_D: usize = 12;
     const MIN_SUB_LOG: usize = 8;
-    let n_top = if log_d >= PARALLEL_FLOOR_LOG_D {
+    let mut n_top = if log_d >= PARALLEL_FLOOR_LOG_D {
         let want_subs_log = log2_strict_usize(parallel::num_threads().next_power_of_two());
         let max_n_top = log_d.saturating_sub(MIN_SUB_LOG);
         cache_n_top.max(want_subs_log.min(max_n_top))
     } else {
         cache_n_top
     };
+    // Absorb a lone remaining top layer into the subgroups instead of paying
+    // another full-buffer pass, while retaining at least one subgroup per worker.
+    if cfg!(target_arch = "x86_64")
+        && n_top > start_layer
+        && (n_top - start_layer) % 3 == 1
+        && n_top > log2_ceil_usize(parallel::num_threads()).max(1)
+    {
+        n_top -= 1;
+    }
     if n_top == 0 || log_d < 8 {
         forward_transform_interleaved_ext_scalar_from_layer(ntt, data, num_ntts, start_layer);
         return;
@@ -664,6 +673,18 @@ unsafe fn butterfly_ext_lanes_avx512(top: *mut F192, bot: *mut F192, twiddle: u6
 mod tests {
     use super::*;
     use primitives::test_rng::Rng;
+
+    #[test]
+    fn cache_split_with_skipped_layers_matches_scalar() {
+        let (log_d, lanes, start_layer) = (17, 16, 2);
+        let ntt = AdditiveNttF64::standard(log_d);
+        let mut rng = Rng::new(0x1281_8a9e);
+        let mut actual: Vec<_> = (0..lanes << log_d).map(|_| rng.ext()).collect();
+        let mut expected = actual.clone();
+        forward_transform_interleaved_ext_scalar_from_layer(&ntt, &mut expected, lanes, start_layer);
+        forward_transform_interleaved_ext_parallel_from_layer(&ntt, &mut actual, lanes, start_layer);
+        assert_eq!(actual, expected);
+    }
 
     /// Both fused schedules against a butterfly-at-a-time oracle. The AVX-512
     /// path holds every row of a pass in registers at once, so a mispaired row
