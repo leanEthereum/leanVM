@@ -114,6 +114,28 @@ theorem boundaryEval_sequenceFin {α : Type} {n : Nat} (parameter : PublicParame
       simp only [boundaryEval_bind, boundaryEval_pure, mul_one, hcost, ht,
         Fin.sum_univ_succ, pow_add]
 
+def sequenceLayersHashCost {α : Type} (layers : Layer → Option α × Nat) : Nat :=
+  (layers bottomLayer).2 + if (layers bottomLayer).1.isSome then
+    (layers middleLayer).2 + if (layers middleLayer).1.isSome then (layers topLayer).2 else 0
+  else 0
+
+theorem boundaryEval_sequenceLayers {α : Type} (parameter : PublicParameter)
+    (f : QueryImpl HashSpec Id) (computation : Layer → OracleComp HashSpec (Option α))
+    (layers : Layer → Option α × Nat)
+    (hlayers : ∀ lay, boundaryEval parameter f (computation lay) =
+      ((layers lay).1, (FreeMonoid.of none) ^ (layers lay).2)) :
+    boundaryEval parameter f (sequenceLayers computation) =
+      (evalWithAnswerFn f (sequenceLayers computation),
+        (FreeMonoid.of none) ^ sequenceLayersHashCost layers) := by
+  have hvalues (lay : Layer) : evalWithAnswerFn f (computation lay) = (layers lay).1 := by
+    rw [← boundaryEval_fst parameter f, hlayers]
+  apply boundaryEval_eq_of_snd
+  cases hb : (layers bottomLayer).1 <;>
+    cases hm : (layers middleLayer).1 <;>
+    cases ht : (layers topLayer).1 <;>
+    simp [sequenceLayers, boundaryEval_bind, hvalues, hlayers, hb, hm, ht,
+      sequenceLayersHashCost, pow_add]
+
 theorem boundaryEval_chainWalk (parameter : PublicParameter) (f : QueryImpl HashSpec Id)
     (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (chainIdx : ChainIndex)
     (start steps : Nat) (value : Digest) (hsteps : start + steps ≤ chainLength - 1) :

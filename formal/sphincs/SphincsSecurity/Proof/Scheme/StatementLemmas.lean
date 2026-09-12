@@ -134,13 +134,15 @@ theorem sign_eq (secretKey : SecretKey) (message : Message) :
                 (ftsOpen secretKey.parameter index leaves (secretKey.ftsSecret index) :
                   OracleComp HashSpec (FtsTree → Fin ftsTreeHeight → Digest))
               let layers ← liftM
-                (sequenceFin (fun lay => signLayer secretKey index lay) :
+                (sequenceLayers (fun lay => signLayer secretKey index lay) :
                   OracleComp HashSpec
-                    (Layer →
-                      Option (Counter × (ChainIndex → Digest) × (Fin maxLayerHeight → Digest))))
-              match sequenceFin (m := Option) layers with
+                    (Option (Layer → Counter × (ChainIndex → Digest) × (Fin maxLayerHeight → Digest))))
+              match layers with
               | none => return none
-              | some parts =>
+              | some parts => do
+                  let _ ← liftM
+                    (treeRoot secretKey.parameter topLayer rootTree (secretKey.otsSecret topLayer rootTree) :
+                      OracleComp HashSpec Digest)
                   return some
                     { randomness := randomness
                       ftsSecret := fun tree =>
@@ -152,6 +154,13 @@ theorem sign_eq (secretKey : SecretKey) (message : Message) :
 
 theorem sampleRandomness_eq :
     sampleRandomness = ($ᵗ Randomness : ProbComp Randomness) := rfl
+
+example : ∀ failure : Fin 4,
+    let result := (sequenceLayers (m := WriterT (List Nat) Id) fun lay =>
+      WriterT.mk (pure (if lay.val = failure.val then none else some lay.val, [lay.val]))).run
+    (result.2, result.1.map List.ofFn) =
+      ![([2, 1, 0], none), ([2, 1], none), ([2], none), ([2, 1, 0], some [0, 1, 2])] failure := by
+  decide
 
 /-! ## Parameter arithmetic -/
 

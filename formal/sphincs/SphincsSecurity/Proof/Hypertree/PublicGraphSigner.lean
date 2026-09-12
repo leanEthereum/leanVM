@@ -36,7 +36,8 @@ def publicSignPlan (known : Labels) (words : OtsReferenceWords) (selections : Re
   let layers := fun lay => publicSignLayer known words selections index lay
   ((sequenceFin (m := Option) (fun lay => (layers lay).1)).map (fun parts =>
       ⟨randomness, knownFtsPath known index leaves, parts⟩),
-    28504 + ∑ lay, (layers lay).2)
+    28504 + sequenceLayersHashCost layers +
+      if (sequenceFin (m := Option) (fun lay => (layers lay).1)).isSome then 1212415 else 0)
 
 variable (key : SecretKey) (f : QueryImpl HashSpec Id) (words : OtsReferenceWords)
   (disclosed : Index → FtsTree → FtsLeaf → Prop) (known : Labels)

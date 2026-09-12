@@ -214,10 +214,11 @@ theorem avoidsMessage_signLayer (f : QueryImpl HashSpec Id) (secretKey : SecretK
 def signAfterDigest (secretKey : SecretKey) (randomness : Randomness) (index : Index)
     (leaves : IndexGroup → FtsLeaf) : OracleComp HashSpec (Option Signature) := do
   let ftsPath ← ftsOpen secretKey.parameter index leaves (secretKey.ftsSecret index)
-  let layers ← sequenceFin fun lay => signLayer secretKey index lay
-  match sequenceFin (m := Option) layers with
+  let layers ← sequenceLayers fun lay => signLayer secretKey index lay
+  match layers with
   | none => return none
-  | some parts =>
+  | some parts => do
+      let _ ← treeRoot secretKey.parameter topLayer rootTree (secretKey.otsSecret topLayer rootTree)
       return some
         { randomness := randomness
           ftsSecret := fun tree => secretKey.ftsSecret index tree (leaves (ftsIndexOf tree))
@@ -234,10 +235,20 @@ theorem avoidsMessage_signAfterDigest (f : QueryImpl HashSpec Id) (secretKey : S
   apply AvoidsMessageQueries.bind
   · exact avoidsMessage_ftsOpen secretKey.parameter f index leaves (secretKey.ftsSecret index)
   apply AvoidsMessageQueries.bind
-  · apply avoidsMessage_sequenceFin
-    intro lay
-    exact avoidsMessage_signLayer f secretKey index lay
-  · split <;> exact AvoidsMessageQueries.pure secretKey.parameter f _
+  · unfold sequenceLayers
+    apply AvoidsMessageQueries.bind (avoidsMessage_signLayer f secretKey index bottomLayer)
+    split
+    · exact AvoidsMessageQueries.pure secretKey.parameter f _
+    · apply AvoidsMessageQueries.bind (avoidsMessage_signLayer f secretKey index middleLayer)
+      split
+      · exact AvoidsMessageQueries.pure secretKey.parameter f _
+      · apply AvoidsMessageQueries.bind (avoidsMessage_signLayer f secretKey index topLayer)
+        split <;> exact AvoidsMessageQueries.pure secretKey.parameter f _
+  · split
+    · exact AvoidsMessageQueries.pure secretKey.parameter f _
+    · apply AvoidsMessageQueries.bind
+      · exact avoidsMessage_treeRoot secretKey.parameter f topLayer rootTree _
+      · exact AvoidsMessageQueries.pure secretKey.parameter f _
 
 theorem sign_eq_digestLoop_afterDigest (secretKey : SecretKey) (message : Message) :
     sign secretKey message = (do
@@ -257,7 +268,7 @@ theorem sign_eq_digestLoop_afterDigest (secretKey : SecretKey) (message : Messag
       intro ftsPath
       apply bind_congr
       intro layers
-      split <;> simp_all
+      cases layers <;> simp
 
 end Concrete
 

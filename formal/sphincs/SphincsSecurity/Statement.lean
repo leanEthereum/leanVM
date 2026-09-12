@@ -620,6 +620,18 @@ def signLayer (secretKey : SecretKey) (index : Index) (lay : Layer) :
       let path ← treePath secretKey.parameter lay tree (secretKey.otsSecret lay tree) leaf
       return some (counter, values, path)
 
+/-- Run layers from bottom to top, stopping on failure and indexing the results in serialization order. -/
+def sequenceLayers {α : Type} (computation : Layer → m (Option α)) : m (Option (Layer → α)) := do
+  match ← computation bottomLayer with
+  | none => return none
+  | some bottom =>
+      match ← computation middleLayer with
+      | none => return none
+      | some middle =>
+          match ← computation topLayer with
+          | none => return none
+          | some top => return some ![top, middle, bottom]
+
 /-- Which layer's path an entry of the `h` belongs to. -/
 def layerOfPath (position : Nat) : Layer :=
   if position < heightAbove middleLayer then topLayer
@@ -643,12 +655,15 @@ noncomputable def sign (secretKey : SecretKey) (message : Message) :
         (ftsOpen secretKey.parameter index leaves (secretKey.ftsSecret index) :
           OracleComp HashSpec (FtsTree → Fin ftsTreeHeight → Digest))
       let layers ← liftM
-        (sequenceFin (fun lay => signLayer secretKey index lay) :
+        (sequenceLayers (fun lay => signLayer secretKey index lay) :
           OracleComp HashSpec
-            (Layer → Option (Counter × (ChainIndex → Digest) × (Fin maxLayerHeight → Digest))))
-      match sequenceFin (m := Option) layers with
+            (Option (Layer → Counter × (ChainIndex → Digest) × (Fin maxLayerHeight → Digest))))
+      match layers with
       | none => return none
-      | some parts =>
+      | some parts => do
+          let _ ← liftM
+            (treeRoot secretKey.parameter topLayer rootTree (secretKey.otsSecret topLayer rootTree) :
+              OracleComp HashSpec Digest)
           return some
             { randomness := randomness
               ftsSecret := fun tree => secretKey.ftsSecret index tree (leaves (ftsIndexOf tree))
