@@ -278,15 +278,34 @@ pub(crate) fn induce_sumcheck_evaluate_at_residual(
     }
 }
 
-/// Transposed forward additive NTT, `F^T`, in place over `2^log_d` E-values
-/// with K-twiddles. Forward butterfly is `M = [[1, t], [1, t+1]]`; transpose
-/// `M^T = [[1, 1], [t, t+1]]` is `s = a + b; top = s; bot = t*s + b` (here
-/// `s.mul_base(t) + b`), applied in reverse layer order. Mirror of
-/// `whir::transpose_forward_ntt` (one parallel sweep per layer).
-fn transpose_forward_ntt_ext(ntt: &AdditiveNttF64, data: &mut [F192], log_d: usize) {
-    debug_assert_eq!(data.len(), 1usize << log_d);
-    debug_assert!(log_d <= ntt.log_domain_size());
-    transpose_layers_ext(ntt, data, log_d, (0..log_d).rev());
+/// Finish a transposed NTT, retaining its low `2^log_output` coefficients.
+/// The omitted top layers contribute only XORs to this prefix; their scaled
+/// upper branches are discarded, so reduce replicas directly instead.
+fn finish_transpose_prefix(
+    ntt: &AdditiveNttF64,
+    mut data: ArenaVec<F192>,
+    log_d: usize,
+    remaining_layers: usize,
+    log_output: usize,
+) -> ArenaVec<F192> {
+    let skip_top = log_d - log_output;
+    transpose_layers_ext(ntt, &mut data, log_d, (skip_top..remaining_layers).rev());
+    let output_len = 1usize << log_output;
+    let (output, replicas) = data.split_at_mut(output_len);
+    if !replicas.is_empty() {
+        const CHUNK: usize = 4096;
+        parallel::chunks_mut(output, CHUNK, |index, chunk| {
+            let start = index * CHUNK;
+            let end = start + chunk.len();
+            for replica in replicas.chunks(output_len) {
+                for (dst, &value) in chunk.iter_mut().zip(&replica[start..end]) {
+                    *dst += value;
+                }
+            }
+        });
+    }
+    data.truncate(output_len);
+    data
 }
 
 /// Elements per cache-resident window of the layer-blocked run below.
@@ -370,20 +389,21 @@ fn transpose_layers_ext_windowed(
     }
 }
 
-/// Sparse-prefix variant of [`transpose_forward_ntt_ext`]: the input has only
+/// Sparse-prefix transposed NTT: the input has only
 /// `positions.len()` nonzeros and the first `k` transpose steps (forward
 /// layers `log_d-1 .. log_d-k`, pairing distances `1 .. 2^(k-1)`) mix only
 /// WITHIN `2^k`-aligned windows. We process just the windows that contain a
 /// nonzero (a dense `2^k` transpose each, disjoint so window-parallel),
-/// densify, then run the remaining steps as full dense sweeps. Output is
-/// identical to `transpose_forward_ntt_ext` on the scattered input. Mirror
-/// of `whir::transpose_forward_ntt_sparse`.
+/// then densify and finish the retained output prefix. Output is
+/// identical to the low `2^log_output` coefficients of a full transposed NTT.
 fn transpose_forward_ntt_sparse_ext(
     ntt: &AdditiveNttF64,
     positions: &[usize],
     values: &[F192],
     log_d: usize,
+    log_output: usize,
 ) -> ArenaVec<F192> {
+    assert!(log_output <= log_d);
     let _span = tracing::info_span!(
         "NTT",
         kind = "transpose induce",
@@ -393,8 +413,8 @@ fn transpose_forward_ntt_sparse_ext(
     .entered();
     use std::collections::HashMap;
     let n = 1usize << log_d;
-    // No prefix for small domains: just scatter + full dense transpose.
-    let k = if log_d >= 12 { 8usize.min(log_d) } else { 0 };
+    // Small domains scatter directly before the retained transpose.
+    let k = if log_d >= 12 { 8usize.min(log_output) } else { 0 };
 
     if k == 0 {
         // SAFETY: zero is a valid F192, and the scatter below reads these slots.
@@ -402,10 +422,7 @@ fn transpose_forward_ntt_sparse_ext(
         for (&p, &v) in positions.iter().zip(values) {
             data[p] += v;
         }
-        if log_d > 0 {
-            transpose_forward_ntt_ext(ntt, &mut data, log_d);
-        }
-        return data;
+        return finish_transpose_prefix(ntt, data, log_d, log_d, log_output);
     }
 
     let wmask = (1usize << k) - 1;
@@ -449,9 +466,7 @@ fn transpose_forward_ntt_sparse_ext(
         data[(w << k)..((w + 1) << k)].copy_from_slice(buf);
     }
 
-    // Remaining steps s = k..log_d-1 = forward layers (log_d-1-k) .. 0, dense.
-    transpose_layers_ext(ntt, &mut data, log_d, (0..(log_d - k)).rev());
-    data
+    finish_transpose_prefix(ntt, data, log_d, log_d - k, log_output)
 }
 
 /// `F^T`-based fast path for [`induce_sumcheck_poly`]: scatter per-query
@@ -467,7 +482,6 @@ pub(crate) fn induce_sumcheck_poly_via_ntt_base(
     queries: &[usize],
     weights: &[F192],
 ) -> (ArenaVec<F192>, F192) {
-    let n = 1usize << log_msg_cols;
     let log_block = log_msg_cols + log_inv_rate;
     let block_len = 1usize << log_block;
     let n_queries = queries.len();
@@ -481,7 +495,7 @@ pub(crate) fn induce_sumcheck_poly_via_ntt_base(
         enforced_sum += F64::dot(&opened_rows[i], &eq) * weights[i];
     }
 
-    let mut coeffs = if log_block == 0 {
+    let coeffs = if log_block == 0 {
         // SAFETY: zero is a valid F192, and the loop below reads these slots.
         let mut c = unsafe { ArenaVec::<F192>::zeroed(block_len) };
         for i in 0..n_queries {
@@ -490,9 +504,8 @@ pub(crate) fn induce_sumcheck_poly_via_ntt_base(
         c
     } else {
         let ntt = AdditiveNttF64::standard(log_block);
-        transpose_forward_ntt_sparse_ext(&ntt, queries, weights, log_block)
+        transpose_forward_ntt_sparse_ext(&ntt, queries, weights, log_block, log_msg_cols)
     };
-    coeffs.truncate(n);
     (coeffs, enforced_sum)
 }
 
@@ -525,5 +538,51 @@ pub(crate) fn induce_sumcheck_poly_auto_base(
         induce_sumcheck_poly_via_ntt_base(log_msg_cols, log_inv_rate, opened_rows, v_challenges, queries, weights)
     } else {
         induce_sumcheck_poly(log_msg_cols, sks_vks, opened_rows, v_challenges, queries, weights)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use primitives::test_rng::Rng;
+
+    fn scalar_transpose(ntt: &AdditiveNttF64, data: &mut [F192], log_d: usize) {
+        for layer in (0..log_d).rev() {
+            let block_len = 1usize << (log_d - layer);
+            for (block, values) in data.chunks_mut(block_len).enumerate() {
+                let twiddle = ntt.twiddle(layer, block);
+                let (a, b) = values.split_at_mut(block_len / 2);
+                for (a, b) in a.iter_mut().zip(b) {
+                    let sum = *a + *b;
+                    *b += sum.mul_base(twiddle);
+                    *a = sum;
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn retained_transpose_matches_full_scalar_transform() {
+        let mut rng = Rng::new(0x71A45);
+        for (log_d, log_output) in [(0, 0), (3, 0), (3, 1), (3, 3), (9, 6), (12, 9), (13, 11), (14, 14)] {
+            let n = 1usize << log_d;
+            let ntt = AdditiveNttF64::standard(log_d.max(1));
+            let mut positions: Vec<_> = (0..17).map(|_| rng.next_u64() as usize % n).collect();
+            positions.extend([0, 0, n / 2, n - 1]);
+            let weights = rng.ext_vec(positions.len());
+            for (queries, weights) in [(&positions[..], &weights[..]), (&[][..], &[][..])] {
+                let mut expected = vec![F192::ZERO; n];
+                for (&q, &w) in queries.iter().zip(weights) {
+                    expected[q] += w;
+                }
+                scalar_transpose(&ntt, &mut expected, log_d);
+                let actual = transpose_forward_ntt_sparse_ext(&ntt, queries, weights, log_d, log_output);
+                assert_eq!(
+                    &*actual,
+                    &expected[..1 << log_output],
+                    "log_d={log_d}, log_output={log_output}"
+                );
+            }
+        }
     }
 }
