@@ -52,6 +52,66 @@ Bytecode normalization has zero memory exponent contribution. Later stages have 
 
 \paragraph{Evidence and next obligation.} \auditref{zk_column_count_audit.py} checks eight base traces spanning all six opcodes against the actual bus forms. All twenty-eight integer exponents, per-opcode row counts and full memory/code images agree after normalization and deterministic power-of-two filling. It checks every address's complete label chain and each transmitted column product. This is an ISA-level finite audit, not a full VM proof or a Flock privacy test. Products of unions of whole count blocks are consequently public; products and evaluations inside those blocks can still depend on the witness. The next obligation is their joint GKR simulation.
 
+\subsubsection{Complete the probe prefix without reopening compression counts}
+
+The fixed-cost repair in Lemma~\ref{lem:zk-probe-count-completion} preserves public memory values but can change the count root, as its two explicit completed witnesses show. The following composition removes that residual without introducing another compression library. It is still conditional on capacity, and does not hide intermediate count nodes.
+
+\begin{proposition}[Protected counters and all column products]\label{prop:zk-probe-column-completion}
+Suppose a base trace has public exact opcode totals, with XOR, SET and BLAKE2s already at their declared heights, and all count-column products of those three tables are public. Assume public probe quotas as in Lemma~\ref{lem:zk-probe-count-completion}, public bounds on the uncertain exponents, and disjoint capacity for the following cycles and final fillers. Then one completion makes both the protected final-memory counters and all twenty-eight count-column products public. It adds only MUL, DEREF and JUMP rows. Every existing XOR, SET and BLAKE2s row and label is unchanged, as are their internal count-tree nodes if their positions stay fixed. No cycle accesses an unused value mask.
+\end{proposition}
+\begin{proof}
+First apply the fixed-cost prefix completion, counting every earlier access in its quotas. Its only new table rows are DEREF and JUMP. From this point on, every new memory location and every indirect target lies outside the protected prefix and the value-mask banks.
+
+Normalize the DEREF and MUL bytecode exponents with the fresh-memory paired-loop construction above, then JUMP after including their closing returns. These stages touch no other opcode and give zero additional memory-label exponent. Every later instruction has a public visit count, so all six bytecode products are now public up to fixed later factors.
+
+Install grouped routers only for MUL, DEREF and JUMP. There are eight routes: two for MUL's nonabsorbing memory columns, three for DEREF and three for JUMP. Their absorber is still \texttt{MUL.cnt\_a}. Place every routing frame and indirect target outside the protected prefix. The target JUMP in its grouped block enters its three adapters and a closing JUMP returns to the start. All selected cells thus have the required two-role label chains, including JUMP's control values.
+
+With routers at transfer zero, normalize the uncertain total memory exponent using the eight-frame JUMP bank and two DEREF residue cycles. Their code visit counts are fixed and all their addresses are fresh. The other opcodes' memory products were already public, so the sum of the nine modified memory exponents is public. The same interval-transfer lemma raises the eight nonabsorbing exponents to public endpoints; their absorber is the public difference. Routing changes only labels in the new banks. Finally use fresh local fillers for MUL and DEREF and then JUMP to reach public powers of two. They never touch the prefix, add only public factors, and cannot change the existing XOR, SET or compression rows.
+
+Every stage consists of valid closed cycles and complete read chains. Once a prefix count reaches its quota, no later stage changes it. The existing value masks are never read, and none of the normalization choices depends on them. This proves joint legality and public values for the asserted count coordinates, not independence of the other transcript messages.
+\end{proof}
+
+\paragraph{Explicit row ledger.} Let $\zkPatchBcCenter{D},\zkPatchBcCenter{M},\zkPatchBcCenter{J}$ be sufficient public equal centers for the three bytecode stages, $\zkPatchMemCenter$ the center for total-memory normalization, and $\zkPatchRouter{D},\zkPatchRouter{M},\zkPatchRouter{J}$ the traversal counts of the three grouped routers. Before final power-of-two filling, the added rows are
+\[
+\begin{aligned}
+ \mathrm{DEREF}:\quad& \sum_j\zkProbeCountQuota(j)+8\zkPatchBcCenter{D}+\zkPatchRouter{D}+2,\\
+ \mathrm{MUL}:\quad&8\zkPatchBcCenter{M}+3\bigl(\zkPatchRouter{M}+\zkPatchRouter{D}+\zkPatchRouter{J}\bigr),\\
+ \mathrm{JUMP}:\quad&\sum_j\zkProbeCountQuota(j)
+  +8\bigl(\zkPatchBcCenter{D}+\zkPatchBcCenter{M}+\zkPatchBcCenter{J}+\zkPatchMemCenter\bigr)\\
+ &+\zkPatchRouter{M}+\zkPatchRouter{D}+2\zkPatchRouter{J}+2.
+\end{aligned}
+\]
+An already-public bytecode exponent can omit its stage. Every omitted stage must be justified from the incoming law, not a sampled trace. If the real opcode totals vary, complete them to public totals before this proposition and include that completion's exponents and prefix accesses in its input bounds. Otherwise the final filler length, and therefore its bytecode product, could remain private. These costs are additions to the earlier reservation, including the $149319$ XOR rows of the BLAKE2s router, not replacements for it. The fresh-memory bytecode stages also allocate fresh frames on each traversal; the table ledger alone does not prove the memory budget. Thus no candidate-wide feasibility claim follows without program-specific public intervals and a packing certificate.
+
+\paragraph{An exact joint certificate for the residual pair.} The \texttt{--count-products} mode of \auditref{zk_memory_probe_prefix_audit.py} checks all six three-cell access vectors with total two and quota two per cell. It starts with the previous leaking completion and fixed nontrivial XOR, SET and BLAKE2s cycles, then installs only the three grouped routers, total-memory normalization and fresh fillers. The existing bytecode products are already fixed for this family, so no bytecode-normalization rows are needed. Before fixed offsets the uncertain total-memory exponent is either $18$ or $28$; subtract $18$ and use cap $10$, center $2$ and router size $2$. After memory normalization the upper endpoints of the eight routed columns are
+\[
+ (0,0;\ 4,5,7;\ 14,12,14),
+\]
+in MUL $(b,c)$, DEREF $(\mathsf{ptr},\mathsf{target},\mathsf{local})$ and JUMP $(c,d,f)$ order, excluding fixed offsets. Their widths are at most three, so the available transfer interval $[0,4]$ suffices. The audit checks exact equality of all twenty-eight products, all protected final counts, full memory/code values and public row counts $(2,32,2,16,64,8)$. The formerly different roots are both $\gen^{876}$ after the fixed background and filling. The compression rows and labels agree pointwise before and after the repair. This is a complete ISA/bus certificate for these cycle unions, not an end-to-end VM proof, a universal candidate budget, or a joint GKR simulator.
+
+\paragraph{Private total access counts.} The same audit additionally checks all $27$ vectors in $\{0,1,2\}^3$. Append $6-\sum_j\zkProbeAccess(j)$ fresh DEREF/return cycles chosen from six publicly preinstalled frames. Both opcode totals become twelve, without changing any memory exponent. Their common bytecode exponent is
+\[
+ 2\binom{\sum_j\zkProbeAccess(j)}{2}
+ +2\binom{6-\sum_j\zkProbeAccess(j)}{2}\ \le\ 30.
+\]
+Normalize DEREF with cap $30$ and center $6$. Its closing JUMPs have matching visit multiplicities, so both bytecode exponents become $150$: no separate JUMP correction is needed in this family. The original memory exponent is $18+10\#\{j:\zkProbeAccess(j)=2\}$. Use cap $30$, center $4$ for its uncertain part and router size $4$. The routed upper endpoints are $(0,0;6,9,15;61,61,61)$, with required shifts at most twelve. All $27$ completed traces have opcode totals $(2,64,2,128,256,8)$, count root $\gen^{7342}$, the same twenty-eight products and the same full memory/code values. The previous XOR, SET and compression rows and labels remain unchanged. Thus this certificate does not assume that the total number of original protected accesses is public.
+
+\begin{corollary}[Compression-stable all-column completion]\label{cor:zk-noncompression-completion}
+Suppose only the BLAKE2s count-column products have already been made public. Under public exact incoming opcode totals, probe quotas, exponent bounds and sufficient disjoint capacity, a completion can make the protected final counters and all twenty-eight column products public without adding or relabeling any compression row. If existing compression positions remain fixed, all their internal count-tree nodes remain fixed too.
+\end{corollary}
+\begin{proof}
+First normalize XOR and SET bytecode counts using fresh-memory loops. Install their grouped routers: three routes for XOR and one for SET, all into \texttt{MUL.cnt\_a}. Raise these four exponents to public upper endpoints using their public interval widths. Neither the total memory exponent nor the absorber needs to be public yet. Complete XOR and SET to their public heights with fresh fillers of public lengths. Their four memory products and two bytecode products are now public. All new indirect targets avoid the protected prefix and unused masks. This preprocessing adds only XOR, SET, MUL and JUMP rows. Apply Proposition~\ref{prop:zk-probe-column-completion} to normalize the remaining uncertainty, including its MUL absorber and JUMP returns. Both stages leave BLAKE2s unchanged.
+\end{proof}
+
+Equivalently, the joint construction uses five noncompression bytecode stages and twelve memory routes. The noncompression mode of \auditref{zk_column_count_audit.py} checks this schedule against eight varied base traces with fixed nontrivial compression rows, including all products, complete label chains and common value/code images. This removes the need to redo compression normalization when fixing the other products. It does not fix the eighteen other coarse frontiers, prove the remaining reservation fits, or preserve an earlier joint masking law automatically: new rows can depend on choices that supplied earlier masks.
+
+\begin{corollary}[A joint root and protected-prefix marginal]\label{cor:zk-probe-count-memory-root}
+Under the reservation, alignment, honest-coin and independence hypotheses of Theorem~\ref{thm:zk-public-probe-envelope}, suppose the completion of Proposition~\ref{prop:zk-probe-column-completion} fits that reservation. Then the three-limb memory-value envelope and shared bus root can be simulated jointly with all twenty-eight column products and all protected low-subspace count-lane answers, with error below $2^{-151}$ at that theorem's parameters. Framework final-count MLEs, intermediate GKR messages and other raw count-lane queries are excluded.
+\end{corollary}
+\begin{proof}
+The new count coordinates are public constants. Conditional on the completed instruction rows and labels, the unused-word bank remains independent uniform and the root/envelope theorem is uniform in that fixed complement. Apply it and append the publicly computable count coordinates. This adds no distance. Do not append the actual GKR children: they constrain the root and are not public constants.
+\end{proof}
+
 \subsubsection{A capacity repair: unequal centers and reused compression rows}
 
 The equal-center formula is unnecessarily expensive for the BLAKE2s budget. With $8A$ available traversals it covers deficits at most $4A^2$, even if every four-square representation fits that bound. The $95232$ mandatory binary-compression rows not used by \noteref{zk-count-adapter} therefore cannot cover every deficit up to $\binom{65536}{2}$ with that formula. The following replacement does fit, without adding compression rows or discarding binary choices.

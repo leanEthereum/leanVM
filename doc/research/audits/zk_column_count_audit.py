@@ -213,9 +213,10 @@ def normalize_bytecode(library, opcode, cap, center):
     assert library.memory_exponents() == before_memory
 
 
-def router_banks(library, size):
+def router_banks(library, size, opcodes=range(6)):
+    opcodes = tuple(opcodes)
     banks = []
-    for opcode in range(6):
+    for opcode in opcodes:
         block = library.block(opcode, adapters=True)
         template = library.templates(block, library.fresh_frame())
         occurrences = [library.append(template) for _ in range(size)]
@@ -224,7 +225,7 @@ def router_banks(library, size):
             receiver = [(rows[index + 1], library.absorber[1]) for rows in occurrences]
             library.route(target, receiver, 0)
             banks.append(((opcode, column), target, receiver))
-    assert len(banks) == 21
+    assert len(banks) == sum(len(library.v.TABLES[opcode].count_columns) - 1 - int(opcode == library.absorber[0]) for opcode in opcodes)
     return banks
 
 
@@ -249,9 +250,11 @@ def normalize_memory(library, uncertain, cap=111, center=7):
     assert uncertain + difference == 12 * center * (center - 1) + cap
 
 
-def power_two_fill(library):
+def power_two_fill(library, opcodes=None):
     v = library.v
-    for opcode in (v.OP_XOR, v.OP_MUL, v.OP_SET, v.OP_DEREF, v.OP_BLAKE2S, v.OP_JUMP):
+    if opcodes is None:
+        opcodes = (v.OP_XOR, v.OP_MUL, v.OP_SET, v.OP_DEREF, v.OP_BLAKE2S, v.OP_JUMP)
+    for opcode in opcodes:
         count = sum(source == opcode for source, _ in library.rows)
         target = 1 << (count - 1).bit_length()
         block = library.block(opcode)
@@ -259,14 +262,22 @@ def power_two_fill(library):
             library.append(library.templates(block, library.fresh_frame()))
 
 
-def run(verifier, multiplicities):
+def run(verifier, multiplicities, preserve_compression=False):
     library = Library(verifier)
     base_trace(library, multiplicities)
+    active = tuple(table.opcode for table in verifier.TABLES if not preserve_compression or table.opcode != verifier.OP_BLAKE2S)
+    if preserve_compression:
+        assert multiplicities[verifier.OP_BLAKE2S] == 1
+        block = library.block(verifier.OP_BLAKE2S)
+        for _ in range(5):
+            library.append(library.templates(block, library.fresh_frame()))
+    preserved = [(opcode, row[:]) for opcode, row in library.rows if opcode not in active]
     original = library.memory_exponents()
     for opcode in (verifier.OP_XOR, verifier.OP_MUL, verifier.OP_SET, verifier.OP_DEREF, verifier.OP_BLAKE2S):
-        normalize_bytecode(library, opcode, 3, 2)
+        if opcode in active:
+            normalize_bytecode(library, opcode, 3, 2)
     normalize_bytecode(library, verifier.OP_JUMP, 73, 9)
-    banks = router_banks(library, 8)
+    banks = router_banks(library, 8, active)
     baseline = {column: value - original[column] for column, value in library.memory_exponents().items()}
     normalize_memory(library, sum(original.values()))
     total = sum(library.memory_exponents().values())
@@ -279,8 +290,9 @@ def run(verifier, multiplicities):
         library.route(target, receiver, shift)
         assert library.exponents[opcode, column] == constant + bound
     assert sum(library.memory_exponents().values()) == total
-    power_two_fill(library)
+    power_two_fill(library, (*[opcode for opcode in active if opcode != verifier.OP_JUMP], verifier.OP_JUMP))
     library.verify()
+    assert preserved == [(opcode, row) for opcode, row in library.rows if opcode not in active]
     counts = tuple(sum(opcode == table.opcode for opcode, _ in library.rows) for table in verifier.TABLES)
     assert all(count > 0 and count & (count - 1) == 0 for count in counts)
     roots = tuple(library.exponents[table.opcode, column] for table in verifier.TABLES for column in table.count_columns)
@@ -299,5 +311,16 @@ if __name__ == "__main__":
         expected = result
         print(
             f"All-column normalization: base repetition choices {case}, fixed row counts {result[0]}, all 28 count products and full memory/code images agree",
+            flush=True,
+        )
+    expected = None
+    for case in cases:
+        case = (*case[: verifier.OP_BLAKE2S], 1)
+        result = run(verifier, case, preserve_compression=True)
+        if expected is not None:
+            assert result == expected
+        expected = result
+        print(
+            f"Noncompression normalization: base choices {case}, fixed rows {result[0]}, all 28 products and images agree; BLAKE2s rows unchanged",
             flush=True,
         )

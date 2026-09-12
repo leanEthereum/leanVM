@@ -32,48 +32,55 @@ def count_prefix_obstruction(verifier, field):
     print("Lane 40 starts with the memory final counters; fixing its first 128 coefficients fixes every U7 answer.", flush=True)
 
 
-def count_completion_cycles(verifier):
+def count_completion_library(verifier, accessed):
     from zk_column_count_audit import Library
 
     v = verifier
     quotas = (2, 2, 2)
     public = (v.E(17, 19, 0), v.E(29, 31, 0), v.ZERO)
+    assert len(accessed) == 3 and all(0 <= a <= t for a, t in zip(accessed, quotas, strict=True))
+    library = Library(v)
+    helper_rows = []
+    for address, (value, seen, target) in enumerate(zip(public, accessed, quotas, strict=True)):
+        # Existing reads are valid two-instruction cycles too, but have separate code and frames.
+        for pc, frame_index, real, dummy in (
+            (4000, 200000 + 16 * address, seen, 0),
+            (4004, 210000 + 16 * address, target - seen, seen),
+        ):
+            frame = v.GEN**frame_index
+            for branch, repetitions in ((0, real), (1, dummy)):
+                read = library.row(v.OP_DEREF, pc + 2 * branch, frame)
+                fields = {
+                    "o1": v.GEN**branch,
+                    "o2": v.ONE,
+                    "o3": v.GEN**2,
+                    "ptr": v.GEN**address if branch == 0 else frame * v.GEN**2,
+                    **{f"v3_{limb}": v.E(word) for limb, word in enumerate((value.c0, value.c1, value.c2))},
+                }
+                for name, entry in fields.items():
+                    read[v.DEREF_COLUMNS.index(name)] = entry
+                jump = library.row(v.OP_JUMP, pc + 2 * branch + 1, frame, pc + 2 * branch)
+                for name, offset in (("o_c", 3), ("o_d", 4 + branch), ("o_f", 6)):
+                    jump[v.JUMP_COLUMNS.index(name)] = v.GEN**offset
+                library.register([(v.OP_DEREF, read), (v.OP_JUMP, jump)])
+                for _ in range(repetitions):
+                    rows = library.append([(v.OP_DEREF, read), (v.OP_JUMP, jump)])
+                    if pc == 4004:
+                        helper_rows.extend(rows)
+    assert len(helper_rows) == 2 * sum(quotas)
+    return library
+
+
+def count_completion_cycles(verifier):
+    v = verifier
     mask_addresses = {int(v.GEN**index) for index in range(65536, 65536 + 1280)}
     roots = {}
     for accessed in product(range(3), repeat=3):
-        library = Library(v)
-        helper_rows = []
-        for address, (value, seen, target) in enumerate(zip(public, accessed, quotas, strict=True)):
-            # Existing reads are valid two-instruction cycles too, but have separate code and frames.
-            for pc, frame_index, real, dummy in (
-                (4000, 200000 + 16 * address, seen, 0),
-                (4004, 210000 + 16 * address, target - seen, seen),
-            ):
-                frame = v.GEN**frame_index
-                for branch, repetitions in ((0, real), (1, dummy)):
-                    read = library.row(v.OP_DEREF, pc + 2 * branch, frame)
-                    fields = {
-                        "o1": v.GEN**branch,
-                        "o2": v.ONE,
-                        "o3": v.GEN**2,
-                        "ptr": v.GEN**address if branch == 0 else frame * v.GEN**2,
-                        **{f"v3_{limb}": v.E(word) for limb, word in enumerate((value.c0, value.c1, value.c2))},
-                    }
-                    for name, entry in fields.items():
-                        read[v.DEREF_COLUMNS.index(name)] = entry
-                    jump = library.row(v.OP_JUMP, pc + 2 * branch + 1, frame, pc + 2 * branch)
-                    for name, offset in (("o_c", 3), ("o_d", 4 + branch), ("o_f", 6)):
-                        jump[v.JUMP_COLUMNS.index(name)] = v.GEN**offset
-                    library.register([(v.OP_DEREF, read), (v.OP_JUMP, jump)])
-                    for _ in range(repetitions):
-                        rows = library.append([(v.OP_DEREF, read), (v.OP_JUMP, jump)])
-                        if pc == 4004:
-                            helper_rows.extend(rows)
+        library = count_completion_library(v, accessed)
         library.verify()
         roots[accessed] = sum(library.exponents.values())
-        assert len(helper_rows) == 2 * sum(quotas)
-        for address, target in enumerate(quotas):
-            assert library.reads["memory", int(v.GEN**address)] == target
+        for address in range(3):
+            assert library.reads["memory", int(v.GEN**address)] == 2
         assert mask_addresses.isdisjoint(library.images["memory"])
     assert (roots[2, 0, 0], roots[1, 1, 0]) == (44, 34)
     assert v.GEN ** roots[2, 0, 0] != v.GEN ** roots[1, 1, 0]
@@ -82,6 +89,81 @@ def count_completion_cycles(verifier):
         flush=True,
     )
     print("The completed vectors (2,0,0) and (1,1,0) still have count roots g^44 and g^34: helper normalization is mandatory.", flush=True)
+
+
+def count_prefix_products(verifier, variable_total=False):
+    from zk_column_count_audit import (
+        normalize_bytecode,
+        normalize_memory,
+        power_two_fill,
+        router_banks,
+    )
+
+    v, expected = verifier, None
+    mask_addresses = {int(v.GEN**index) for index in range(65536, 65536 + 1280)}
+    endpoints = (6, 9, 15, 61, 61, 61) if variable_total else (4, 5, 7, 14, 12, 14)
+    bounds = {
+        (v.OP_MUL, "cnt_b"): 0,
+        (v.OP_MUL, "cnt_c"): 0,
+        **dict(zip(((v.OP_DEREF, name) for name in ("cnt_ptr", "cnt_target", "cnt_local")), endpoints[:3], strict=True)),
+        **dict(zip(((v.OP_JUMP, name) for name in ("cnt_c", "cnt_d", "cnt_f")), endpoints[3:], strict=True)),
+    }
+    cases = [a for a in product(range(3), repeat=3) if variable_total or sum(a) == 2]
+    assert len(cases) == (27 if variable_total else 6)
+    router_size, cap, center = (4, 30, 4) if variable_total else (2, 10, 2)
+    for accessed in cases:
+        library = count_completion_library(v, accessed)
+        original = library.memory_exponents()
+        uncertain = sum(original.values()) - 18
+        assert uncertain == 10 * accessed.count(2)
+        if variable_total:
+            block = library.block(v.OP_DEREF)
+            fillers = [library.templates(block, library.fresh_frame()) for _ in range(6)]
+            for template in fillers:
+                library.register(template)
+            for template in fillers[: 6 - sum(accessed)]:
+                library.append(template)
+            assert library.memory_exponents() == original
+            assert all(sum(source == opcode for source, _ in library.rows) == 12 for opcode in (v.OP_DEREF, v.OP_JUMP))
+            exponent = 2 * sum(accessed) ** 2 - 12 * sum(accessed) + 30
+            for opcode in (v.OP_DEREF, v.OP_JUMP):
+                assert library.exponents[opcode, v.TABLES[opcode].columns.index("cnt_bc")] == exponent
+            normalize_bytecode(library, v.OP_DEREF, cap=30, center=6)
+            assert library.memory_exponents() == original
+            for opcode in (v.OP_DEREF, v.OP_JUMP):
+                assert library.exponents[opcode, v.TABLES[opcode].columns.index("cnt_bc")] == 150
+        for opcode in (v.OP_XOR, v.OP_SET, v.OP_BLAKE2S):
+            template = library.templates(library.block(opcode), library.fresh_frame())
+            for _ in range(8 if opcode == v.OP_BLAKE2S else 2):
+                library.append(template)
+        fixed = {key: value - original[key] for key, value in library.memory_exponents().items()}
+        original = library.memory_exponents()
+        preserved = [(opcode, row[:]) for opcode, row in library.rows if opcode in (v.OP_XOR, v.OP_SET, v.OP_BLAKE2S)]
+        banks = router_banks(library, router_size, (v.OP_MUL, v.OP_DEREF, v.OP_JUMP))
+        offsets = {key: value - original[key] for key, value in library.memory_exponents().items()}
+        normalize_memory(library, uncertain, cap=cap, center=center)
+        total = sum(library.memory_exponents().values())
+        for (opcode, column), target, receiver in banks:
+            upper = offsets[opcode, column] + fixed[opcode, column] + bounds[opcode, v.TABLES[opcode].columns[column]]
+            shift = upper - library.exponents[opcode, column]
+            assert 0 <= shift <= router_size**2
+            library.route(target, receiver, shift)
+            assert library.exponents[opcode, column] == upper
+        assert sum(library.memory_exponents().values()) == total
+        power_two_fill(library, (v.OP_MUL, v.OP_DEREF, v.OP_JUMP))
+        library.verify()
+        assert preserved == [(opcode, row) for opcode, row in library.rows if opcode in (v.OP_XOR, v.OP_SET, v.OP_BLAKE2S)]
+        assert mask_addresses.isdisjoint(library.images["memory"])
+        assert all(library.reads["memory", int(v.GEN**address)] == 2 for address in range(3))
+        counts = tuple(sum(opcode == table.opcode for opcode, _ in library.rows) for table in v.TABLES)
+        assert all(n > 0 and n & (n - 1) == 0 for n in counts)
+        roots = tuple(library.exponents[table.opcode, column] for table in v.TABLES for column in table.count_columns)
+        result = counts, roots, library.images
+        if expected is not None:
+            assert result == expected
+        expected = result
+        print(f"Prefix plus all-column products: {accessed}, public row counts {counts}, common count-root exponent {sum(roots)}.", flush=True)
+    print("All 28 products, protected final counters and full value/code images agree; XOR/SET/BLAKE2s rows and labels are unchanged.", flush=True)
 
 
 def shifted_wire(field):
@@ -236,12 +318,17 @@ if __name__ == "__main__":
         "--relocated-library", action="store_true", help="check every relocated metadata cycle, raw direction and joint boundary rank"
     )
     parser.add_argument("--count-prefix", action="store_true", help="check the count-prefix obstruction and fixed-cost completion cycles")
+    parser.add_argument("--count-products", action="store_true", help="jointly normalize protected counters and all count-column products")
     arguments = parser.parse_args()
     reference = verifier_module()
     tower = Tower(64, reference)
     if arguments.count_prefix:
         count_prefix_obstruction(reference, tower)
         count_completion_cycles(reference)
+        raise SystemExit(0)
+    if arguments.count_products:
+        count_prefix_products(reference)
+        count_prefix_products(reference, variable_total=True)
         raise SystemExit(0)
     basis_and_allocation(tower)
     larger_code_geometry(reference)
