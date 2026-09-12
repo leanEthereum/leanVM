@@ -1,0 +1,11 @@
+name = "sphincs-security"
+version = "0.1.0"
+defaultTargets = ["SphincsSecurity"]
+
+[[require]]
+name = "VCVio"
+git = "https://github.com/Verified-zkEVM/VCVio.git"
+rev = "cbd4144"
+
+[[lean_lib]]
+name = "SphincsSecurity"
