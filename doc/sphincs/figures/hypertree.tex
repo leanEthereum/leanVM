@@ -1,0 +1,83 @@
+\begin{tikzpicture}[font=\footnotesize, text=diagramInk]
+  \tikzset{pics/htree/.style={code={
+    \coordinate (-root) at (0,0);
+    \coordinate (-left) at (-0.55,-0.55);
+    \coordinate (-right) at (0.55,-0.55);
+    \foreach \i/\x in {0/-0.9,1/-0.3,2/0.3,3/0.9}
+      \coordinate (-l\i) at (\x,-1.1);
+    \draw[branch] (-root) -- (-left) -- (-l0)
+      (-left) -- (-l1) (-root) -- (-right) -- (-l2) (-right) -- (-l3);
+    \foreach \n in {root,left,right}
+      \node[circle, draw=diagramMuted, fill=white, inner sep=1.5pt] at (-\n) {};
+    \foreach \i in {0,1,2,3}
+      \node[rectangle, draw=diagramMuted, fill=white, minimum width=4pt, minimum height=4pt, inner sep=0pt] at (-l\i) {};
+  }}}
+  \node[diagram heading, anchor=west] at (0,11.35) {ONE INDEX SELECTS ONE ROUTE};
+  \node[anchor=east] at (5,10.6) {$\idx$:};
+  \foreach \lo/\hi/\mid/\e/\bitscount in {5.2/7.84/6.52/0/12,7.84/9.38/8.61/1/7,9.38/10.92/10.15/2/7} {
+    \draw[draw=diagramMuted, fill=diagramMuted!7] (\lo,10.2) rectangle (\hi,11);
+    \node[align=center] at (\mid,10.6) {$e_{\e}$\\\bitscount\ bits};
+  }
+  \node[diagram note, anchor=west] at (11.2,10.6) {high to low bits};
+
+  \foreach \y/\l/\count/\height/\trees in {8.8/0/1/12/tree,6.1/1/2^{12}/7/trees,3.35/2/2^{19}/7/trees} {
+    \node[diagram heading, anchor=west] at (0,\y+0.35) {Layer $\l$};
+    \node[anchor=west, align=left] at (0,\y-0.15) {$\count$ \trees\\height $h_{\l}=\height$};
+  }
+  \node[diagram heading, anchor=west] at (0,1.05) {FORS};
+  \node[anchor=west] at (0,0.6) {$2^{26}$ instances};
+
+  \pic[xscale=1.8] (top) at (8.3,9.35) {htree};
+  \foreach \name/\x in {m0/4.4,m1/8.5,m2/12.65}
+    \pic[xscale=1.15] (\name) at (\x,6.65) {htree};
+  \foreach \name/\x in {b0/3.4,b1/5.45,b2/7.5,b3/9.55,b4/11.6,b5/13.65}
+    \pic[xscale=0.82] (\name) at (\x,3.9) {htree};
+  \foreach \child/\parent in {m0/top-l0,m1/top-l1,m2/top-l3,b0/m0-l0,b1/m0-l3,b2/m1-l0,b3/m1-l3,b4/m2-l0,b5/m2-l3}
+    \draw[branch, dashed] (\child-root) -- (\parent);
+  \node[text=diagramMuted] at (6.45,6.3) {$\cdots$};
+  \node[text=diagramMuted] at (10.55,6.3) {$\cdots$};
+  \node[text=diagramMuted] at (6.45,3.55) {$\cdots$};
+  \node[text=diagramMuted] at (10.55,3.55) {$\cdots$};
+
+  \foreach \name/\x in {b0/3.4,b1/5.45,b2/7.5,b3/9.55,b4/11.6,b5/13.65} {
+    \foreach \side/\offset/\leaf in {L/-0.5/0,R/0.5/3} {
+      \node[value, inner sep=2pt, font=\fontsize{7}{8}\selectfont] (\name-f\side) at (\x+\offset,1.1) {FORS};
+      \draw[branch, dashed] (\name-f\side) -- (\name-l\leaf);
+    }
+    \node[text=diagramMuted] at (\x,1.1) {$\cdot$};
+  }
+  \foreach \name in {top,m2,b5} {
+    \draw[flow] (\name-l3) -- (\name-right);
+    \draw[flow] (\name-right) -- (\name-root);
+    \node[computed] at (\name-root) {};
+    \node[rectangle, draw=diagramPath, fill=diagramPath!15, minimum width=5pt, minimum height=5pt, inner sep=0pt] at (\name-l3) {};
+    \node[carried, inner sep=1.7pt] at (\name-left) {};
+    \node[carried, inner sep=1.7pt] at (\name-l2) {};
+  }
+  \draw[link] (m2-root) -- (top-l3)
+    node[midway, right=4pt, fill=white, inner sep=2pt] {$(c_0,\sigma_0)$};
+  \draw[link] (b5-root) -- (m2-l3)
+    node[midway, right=4pt, fill=white, inner sep=2pt] {$(c_1,\sigma_1)$};
+  \node[value, draw=diagramPath, fill=diagramPath!10, inner sep=2pt, font=\fontsize{7}{8}\selectfont] at (b5-fR) {FORS};
+  \draw[link] (b5-fR) -- (b5-l3)
+    node[midway, left=4pt, fill=white, inner sep=2pt] {$(c_2,\sigma_2)$};
+  \node[above=4pt] at (top-root) {$M_{-1}=\rootnode$};
+  \node[right=4pt] at (m2-root) {$M_0$};
+  \node[right=4pt] at (b5-root) {$M_1$};
+  \node[anchor=east] at (11.85,6.85) {tree $\tau_1$};
+  \node[anchor=east] at (13.15,4.15) {tree $\tau_2$};
+  \node[right=3pt] at (top-l3) {$e_0$};
+  \node[right=3pt] at (m2-l3) {$e_1$};
+  \node[right=3pt] at (b5-l3) {$e_2$};
+  \node[text=diagramSignature, left=4pt] at (top-left) {$A_0$};
+  \node[text=diagramSignature, left=4pt] at (m2-left) {$A_1$};
+  \node[text=diagramSignature, left=4pt] at (b5-left) {$A_2$};
+  \node[anchor=east] at (14.6,0.15) {$M_2=\FtsKey(P,\idx)$};
+  \draw[diagramPath, thin] (b5-fR.south) -- (14.15,0.4);
+  \draw[flow] (0,-0.75) -- (0.8,-0.75);
+  \node[anchor=west] at (1,-0.75) {Merkle verification};
+  \node[carried, inner sep=1.7pt] at (5.3,-0.75) {};
+  \node[anchor=west] at (5.6,-0.75) {siblings $A_\lay$};
+  \draw[link] (9.2,-0.75) -- (10,-0.75);
+  \node[anchor=west] at (10.2,-0.75) {WOTS signature $(c_\lay,\sigma_\lay)$};
+\end{tikzpicture}

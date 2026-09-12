@@ -1,0 +1,58 @@
+\begin{tikzpicture}[font=\footnotesize, text=diagramInk]
+  \node[diagram heading, anchor=west] at (0,12.3) {FROM A MESSAGE AND SIGNATURE TO THE PUBLIC ROOT};
+  \foreach \l/\y in {2/3.1,1/6.2,0/9.3} {
+    \fill[diagramPath!3, rounded corners=4pt] (1.35,\y-1.1) rectangle (14.45,\y+1.45);
+    \node[diagram heading, anchor=west] (address\l) at (1.65,\y+1.15)
+      {Layer $\l$\qquad$(\tau_{\l}(\idx),e_{\l}(\idx))$};
+    \node[circle, draw=diagramPath, fill=white, line width=0.8pt, minimum size=1.5cm, align=center, inner sep=2pt] (ots\l) at (6,\y)
+      {\textsf{\textbf{WOTS}}\\$\OtsLeaf$};
+    \coordinate (leaf\l) at (10.1,\y-0.65);
+    \coordinate (root\l) at (10.1,\y+0.65);
+    \draw[draw=diagramPath, fill=white, line width=0.8pt]
+      (root\l) -- (8.95,\y-0.65) -- (11.25,\y-0.65) -- cycle;
+    \node[align=center, font=\scriptsize] at (10.1,\y-0.15)
+      {\textsf{\textbf{MERKLE}}\\$\TreeFold$};
+    \node[computed, inner sep=1.5pt] at (leaf\l) {};
+    \node[computed, inner sep=1.5pt] at (root\l) {};
+    \draw[flow] (ots\l.east) -- (8,\y) -- (8,\y-0.65) -- (leaf\l)
+      node[pos=0.6, below=3pt] {$X$};
+    \node[carried, inner sep=5pt] (sig\l) at (3.05,\y) {$(c_{\l},\sigma_{\l})$};
+    \draw[link] (sig\l) -- (ots\l);
+    \node[carried, inner sep=5pt] (path\l) at (13.3,\y-0.35) {$A_{\l}$};
+    \draw[link] (path\l.west) -- (11.5,\y-0.35) -- (11.25,\y-0.65);
+  }
+  \draw[flow] (root2) -- (10.1,4.85) -- (6,4.85) -- (ots1.south);
+  \draw[flow] (root1) -- (10.1,7.95) -- (6,7.95) -- (ots0.south);
+  \node[above=3pt, text=diagramPath] at (8.05,4.85) {$M_1$};
+  \node[above=3pt, text=diagramPath] at (8.05,7.95) {$M_0$};
+  \node[value, draw=diagramPath, fill=diagramPath!8, align=center, inner sep=7pt] (accept) at (10.1,11.4)
+    {\textsf{\textbf{ACCEPT}}\\[3pt]if $M_{-1}=\rootnode$};
+  \draw[flow] (root0) -- (accept);
+
+  \node[value, draw=diagramPath, fill=diagramPath!8, align=center, minimum width=2.3cm, minimum height=1cm] (fors) at (6,0.65)
+    {\textsf{\textbf{FORS}}\\$\FtsRec$};
+  \draw[flow] (fors) -- (ots2.south)
+    node[midway, left=5pt, align=right] {$M_2$\\recovered FORS key};
+  \node[carried, align=center, inner sep=5pt] (ftsSignature) at (2.95,0.65)
+    {$(s_\kappa,B_\kappa)_{\kappa<14}$};
+  \draw[link] (ftsSignature) -- (fors);
+  \node[value, align=center, minimum width=2.3cm, minimum height=1cm] (digest) at (6,-1.5)
+    {\textsf{\textbf{DIGEST}}\\$\Digest(P,\rootnode,m,\rho)$};
+  \node[value, inner sep=5pt] (input) at (2.1,-1.5) {$P,\rootnode,m$};
+  \draw[flow] (input) -- (digest);
+  \node[carried, inner sep=5pt] (randomizer) at (9.1,-1.5) {$\rho$};
+  \draw[link] (randomizer) -- (digest);
+  \draw[flow] (digest) -- (fors)
+    node[midway, right=5pt] {$\idx,\ u_0,\ldots,u_{13}$};
+  \node[anchor=west, align=left] at (10.15,-1.5)
+    {require $u_{14}=0$\\before recovering FORS};
+  \draw[diagramMuted, dashed, line width=0.7pt] (digest.south) -- (6,-2.55) -- (0.3,-2.55) -- (0.3,10.45);
+  \node[fill=white, inner sep=3pt] at (3.2,-2.55) {$\idx$ selects all three addresses};
+  \foreach \l/\y in {2/3.1,1/6.2,0/9.3}
+    \draw[-{Stealth[length=1.5mm]}, diagramMuted, dashed] (0.3,\y+1.15) -- (address\l.west);
+
+  \node[carried, inner sep=2pt] at (1.65,-3.2) {};
+  \node[anchor=west] at (2,-3.2) {signature components};
+  \draw[flow] (8.3,-3.2) -- (9,-3.2);
+  \node[anchor=west] at (9.2,-3.2) {recovered values};
+\end{tikzpicture}
