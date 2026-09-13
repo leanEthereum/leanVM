@@ -16,7 +16,7 @@ from zk_count_coarse_balance_audit import (
     native_frontier,
 )
 from zk_count_reuse_audit import counts as unequal_counts
-from zk_memory_count_coarse_audit import compression
+from zk_memory_count_coarse_audit import complement_certificates, compression, valid_cycles
 from zk_pcs_audit import verifier_module
 
 
@@ -625,6 +625,63 @@ def visit_bound(rows, frames):
     return quotient * frames * (frames - 1) // 2 + remainder * (remainder - 1) // 2
 
 
+def compression_router_certificates(verifier):
+    complement_certificates()
+    for width in (2, 32):
+        libraries = valid_cycles(verifier, width)
+        incoming = None
+        for case, library in enumerate(libraries):
+            before = [sum(opcode == table for opcode, _ in library.rows) for table in range(5)]
+            for opcode in range(5):
+                template = library.templates(library.block(opcode), library.fresh_frame())
+                library.register(template)
+                for _ in range(case):
+                    library.append(template)
+            for opcode in range(4):
+                tiled_prefill(library, opcode, 15 - case, blocks=2, width=4)
+            jump_rows = sum(opcode == verifier.OP_JUMP for opcode, _ in library.rows)
+            tiled_prefill(library, verifier.OP_JUMP, before[4] + 40 - jump_rows, blocks=2, width=4)
+            counts = tuple(sum(opcode == table for opcode, _ in library.rows) for table in range(5))
+            assert counts == tuple(count + (15 if table < 4 else 40) for table, count in enumerate(before))
+            assert incoming is None or counts == incoming
+            incoming = counts
+        columns = [[column for column in table.count_columns if table.columns[column] != "cnt_bc"] for table in verifier.TABLES]
+        bytecode = [[library.exponents[table.opcode, table.columns.index("cnt_bc")] for table in verifier.TABLES] for library in libraries]
+        differences = [
+            [[library.exponents[table, column] - code[table] for column in columns[table]] for table in range(5)]
+            for library, code in zip(libraries, bytecode, strict=True)
+        ]
+
+        def interval(values):
+            values = list(values)
+            return min(values), max(values)
+
+        code_intervals = tuple(interval(code[table] for code in bytecode) for table in range(5))
+        difference_intervals = tuple(
+            tuple(interval(row[table][column] for row in differences) for column in range(len(columns[table]))) for table in range(4)
+        )
+        reference = interval(row[4][0] for row in differences)
+        jump = tuple(interval(row[4][column] - row[4][0] for row in differences) for column in range(3))
+        budget = plan(code_intervals, difference_intervals, reference, jump, (17, 32, 31, 33, 19), 16)
+        expected, original_reads = None, []
+        for library in libraries:
+            frozen = [row[:] for opcode, row in library.rows if opcode == verifier.OP_BLAKE2S]
+            original_reads.append(dict(library.reads))
+            normalize(library, budget)
+            library.verify()
+            assert frozen == [row for opcode, row in library.rows if opcode == verifier.OP_BLAKE2S]
+            products = tuple(library.exponents[table.opcode, column] for table in verifier.TABLES for column in table.count_columns)
+            snapshot = (products, library.images["code"], tuple(sum(opcode == table for opcode, _ in library.rows) for table in range(6)))
+            assert expected is None or snapshot == expected
+            expected = snapshot
+        assert original_reads[0] != original_reads[1]
+        print(
+            f"Width {width}: compression-memory repair, private-length initial filling and noncompression normalization jointly fix all 28 products in three complete ISA certificates.",
+            flush=True,
+        )
+    print("These common intervals cover the finite fixtures only; they are not a universal guest input certificate.", flush=True)
+
+
 def revised_contract():
     incoming = (390000, 335000, 230000, 300000, 380000)
     fixed = (149319, 3072, 0, 0, 213199)
@@ -647,6 +704,22 @@ def revised_contract():
     j_reference_width = 2 * real_code + 517 * 65536 + 256 * 256 * 255 // 2 + small_loss
     assert j_code_width == 1567291494 and j_code_width < 1600000000
     assert j_reference_width == 1590925974 and j_reference_width < 1600000000
+    code_widths = (150000000, 150000000, 200000000, 150000000)
+    raw_code = tuple(width - tiled_exponents(length)[0] for width, length in zip(code_widths, filler_caps[:4], strict=True))
+    losses = tuple(31 * (length // 4096) for length in filler_caps[:4])
+    raw_upper = tuple(
+        tuple(
+            (250000000 if table == 0 else 200000000) - cap - losses[table] - (37603584 if table == 0 and column != 1 else 0)
+            for column in range(1 if table == 2 else 3)
+        )
+        for table, cap in enumerate(raw_code)
+    )
+    assert raw_code == (143048758, 136716648, 193657216, 139163296)
+    assert losses == (1798, 2511, 1736, 2263)
+    assert raw_upper == ((69345860, 106949444, 69345860), (63280841,) * 3, (6341048,), (60834441,) * 3)
+    assert 9 * 65536 + 3 * 65536 == 786432 < raw_upper[2][0]
+    assert 113 * 331928 == 37507864 < raw_upper[1][2]
+    print(f"Residual original-execution certificate: bytecode caps {raw_code}; difference upper endpoints {raw_upper}.", flush=True)
     bytecode = ((0, 150000000),) * 2 + ((0, 200000000), (0, 150000000), (0, 1600000000))
     differences = (((0, 250000000),) * 3, ((0, 200000000),) * 3, ((0, 200000000),), ((0, 200000000),) * 3)
     jump = ((0, 0), (-517 * 65536, 65536), (-517 * 65536, 350 * 65536))
@@ -660,8 +733,14 @@ def revised_contract():
     unbatched = plan(bytecode, differences, (-1600000000, 0), jump, targets)
     assert unbatched["added"][4] - budget["added"][4] == 311040
     assert incoming[4] + unbatched["added"][4] + 221184 + returns > 1 << 20
-    print(f"Revised incoming totals {incoming}: added rows {budget['added']}, final fillers {fillers}, {returns} returns; maximum new label {budget['new_label']}.", flush=True)
-    print(f"Initial completion: {slots} reserved slots and {codes} code locations; uniform JUMP code/reference widths {j_code_width}/{j_reference_width}.", flush=True)
+    print(
+        f"Revised incoming totals {incoming}: added rows {budget['added']}, final fillers {fillers}, {returns} returns; maximum new label {budget['new_label']}.",
+        flush=True,
+    )
+    print(
+        f"Initial completion: {slots} reserved slots and {codes} code locations; uniform JUMP code/reference widths {j_code_width}/{j_reference_width}.",
+        flush=True,
+    )
     print("The four other bytecode ranges, local/indirect count ranges and uniform guest resource contract remain unproved.", flush=True)
 
 
@@ -670,8 +749,15 @@ if __name__ == "__main__":
     parser.add_argument("--coarse", action="store_true", help="also check the integrated native coarse frontier")
     parser.add_argument("--rectangular", action="store_true", help="use unequal target/adapter cycles with batched MUL returns")
     parser.add_argument("--batched-targets", action="store_true", help="also batch rectangular target returns in sixteen-instruction cycles")
+    parser.add_argument("--compression-router", action="store_true", help="compose compression-memory repair with noncompression normalization")
     args = parser.parse_args()
-    budget, verifier, expected = interval_certificates(args.rectangular or args.batched_targets, 16 if args.batched_targets else 1), verifier_module(), None
+    budget, verifier, expected = (
+        interval_certificates(args.rectangular or args.batched_targets, 16 if args.batched_targets else 1),
+        verifier_module(),
+        None,
+    )
+    if args.compression_router:
+        compression_router_certificates(verifier)
     wide_contract()
     prefill_certificates(verifier)
     if args.batched_targets:

@@ -14,6 +14,8 @@ const SLOT: u32 = 256;
 const COUNT_COMPLETION_SLOTS: u32 = 35 + 48 + 3 + 323 + 32;
 const COUNT_COMPLETION_CODES: u32 = 486 + 308 + 20992 + 2;
 const COUNT_COMPLETION_PC: u32 = 400000;
+const INITIAL_COUNTS: [usize; 5] = [390000, 335000, 230000, 300000, 380000];
+const FIXED_COUNTS: [usize; 5] = [149319, 3072, 0, 0, 213199];
 const LOCAL_DIGIT_CHECK: &str = r#"
 @inline
 def zk_digit_check(digit):
@@ -135,6 +137,7 @@ def main():
     let mut maximum = 0;
     let mut priority_caps = [[0usize; 3]; 5];
     let mut local_caps = [[0usize; 3]; 5];
+    let mut role_multiplicity = [0usize; 13];
     for (_, pc, size) in &program.fn_ranges {
         let mut loads = BTreeMap::<u32, usize>::new();
         let mut local_loads = BTreeMap::<u32, [usize; 13]>::new();
@@ -156,6 +159,11 @@ def main():
             }
         }
         maximum = maximum.max(loads.values().copied().max().unwrap_or(0));
+        for counts in local_loads.values() {
+            for (cap, count) in role_multiplicity.iter_mut().zip(counts) {
+                *cap = (*cap).max(*count);
+            }
+        }
         for address in *pc..pc + size {
             if program.filler.iter().any(|b| (b.pc..=b.pc + b.size).contains(&address)) {
                 continue;
@@ -177,6 +185,11 @@ def main():
         }
     }
     assert!(maximum <= 256, "static per-cell BLAKE2s load cap exceeded");
+    assert!(
+        role_multiplicity[4] <= 1,
+        "the SET total-count bound requires distinct local SET cells"
+    );
+    assert!(local_caps[1][2] <= 113);
     println!("Wrapped code: log 19, emitted end {emitted_end}, static BLAKE2s load cap {maximum}.");
     priority_caps[3][1] = maximum;
     if local_ranges && ordinary_children {
@@ -201,6 +214,7 @@ def main():
         "These are public incidence bounds under fresh-frame single-visit execution; the indirect DEREF role uses the global cap."
     );
     println!("Static local-first label caps per memory role (X/M/S/D/J): {local_caps:?}; indirect DEREF excluded.");
+    println!("Static per-cell role multiplicities in local-priority order: {role_multiplicity:?}.");
     program
 }
 
@@ -298,6 +312,17 @@ fn compare_relocations(program: &Program, dense: &Execution, reserved: &Executio
     }
     let mut sites = BTreeSet::new();
     let mut loads = BTreeMap::<u32, usize>::new();
+    let mut function_of = vec![usize::MAX; program.prog.len()];
+    for (index, (_, pc, size)) in program.fn_ranges.iter().enumerate() {
+        function_of[*pc as usize..(pc + size) as usize].fill(index);
+    }
+    let mut frame_owners = HashMap::new();
+    let mut frame_sizes: HashMap<_, _> = reserved
+        .allocations
+        .iter()
+        .map(|&(base, size, _)| (base, size))
+        .collect();
+    assert!(frame_sizes.insert(0, PREFIX).is_none());
     for ((pc, old), (new_pc, new)) in dense.instruction_sites().zip(reserved.instruction_sites()) {
         assert_eq!(pc, new_pc, "instruction choices depend on relocation");
         assert_eq!(
@@ -306,6 +331,28 @@ fn compare_relocations(program: &Program, dense: &Execution, reserved: &Executio
             "frame does not follow allocation renaming"
         );
         assert!(sites.insert((pc, new)), "instruction repeats within one frame");
+        let function = function_of[pc as usize];
+        assert_ne!(function, usize::MAX, "real instruction is outside the public functions");
+        assert_eq!(
+            *frame_owners.entry(new).or_insert(function),
+            function,
+            "one frame executes instructions from different owning functions"
+        );
+        let cells: Vec<_> = blake_cells(&program.prog[pc as usize]).map_or_else(
+            || {
+                noncompression_cells(&program.prog[pc as usize])
+                    .unwrap()
+                    .1
+                    .into_iter()
+                    .flatten()
+                    .collect()
+            },
+            |cells| cells.to_vec(),
+        );
+        assert!(
+            cells.iter().all(|cell| *cell < frame_sizes[&new]),
+            "a local operand escapes its owning frame"
+        );
         if let Some(cells) = blake_cells(&program.prog[pc as usize]) {
             for cell in cells {
                 assert_eq!(dense.mem[(old + cell) as usize], reserved.mem[(new + cell) as usize]);
@@ -689,7 +736,7 @@ pub fn audit_recursion(n_xmss: usize, n_sphincs: usize, children: usize, native_
     );
 }
 
-fn local_count_profile(program: &Program, execution: &Execution, original: &[Vec<(u64, u32)>]) {
+fn local_count_profile(program: &Program, execution: &Execution, original: &[Vec<(u64, u32)>]) -> Vec<Vec<(u64, u32)>> {
     let mut phases: [Vec<(u32, usize, usize)>; 13] = std::array::from_fn(|_| Vec::new());
     let mut indirect = Vec::new();
     for (pc, fp) in execution.instruction_sites() {
@@ -773,6 +820,38 @@ fn local_count_profile(program: &Program, execution: &Execution, original: &[Vec
     println!(
         "This reconstructs legal count labels only; it does not emit a padded native proof or certify guest-wide resource bounds."
     );
+    profile
+}
+
+fn check_count_intervals(original: &[Vec<(u64, u32)>], local: &[Vec<(u64, u32)>]) {
+    let code_widths = [150000000u64, 150000000, 200000000, 150000000];
+    for table in 0..4 {
+        let length = (INITIAL_COUNTS[table] - FIXED_COUNTS[table]) as u64;
+        let (quotient, remainder) = (length / 4096, length % 4096);
+        let filler_code = 4096 * quotient * (quotient - 1) / 2 + quotient * remainder;
+        let real_cap = code_widths[table] - filler_code;
+        let code = original[table].last().unwrap().0;
+        assert!(
+            code <= real_cap,
+            "real bytecode count exceeds its residual input interval"
+        );
+        let input_width = if table == 0 { 250000000 } else { 200000000 };
+        for (column, &(memory, _)) in local[table].iter().enumerate() {
+            let transfer = if table == 0 && column != 1 { 37603584 } else { 0 };
+            let upper = input_width - 31 * quotient - transfer - real_cap;
+            let difference = memory as i64 - code as i64;
+            assert!(
+                -(real_cap as i64) <= difference && difference <= upper as i64,
+                "real memory-minus-code count exceeds its residual input interval"
+            );
+        }
+    }
+    assert!(local.iter().flatten().all(|&(_, label)| label <= 165888));
+    assert!(original.iter().all(|row| row.last().unwrap().1 <= 165888));
+    println!(
+        "Residual non-JUMP input intervals and the real label cap pass, including worst-case compression-router transfers and initial fills."
+    );
+    println!("These are checks of this private execution, not uniform bounds for all guest witnesses or a ZK proof.");
 }
 
 fn check_opcode_budget(program: &Program, execution: &Execution) {
@@ -787,18 +866,16 @@ fn check_opcode_budget(program: &Program, execution: &Execution) {
         execution.base_counts[4] <= 1 << 16,
         "the revised count contract requires at most 65536 real JUMP rows"
     );
-    let initial = [390000usize, 335000, 230000, 300000, 380000];
-    let fixed = [149319usize, 3072, 0, 0, 213199];
     let compression_fill = (1 << 16) - execution.base_counts[5];
     let mut fills = [0usize; 5];
     for table in 0..4 {
-        fills[table] = initial[table]
-            .checked_sub(execution.base_counts[table] + fixed[table])
+        fills[table] = INITIAL_COUNTS[table]
+            .checked_sub(execution.base_counts[table] + FIXED_COUNTS[table])
             .expect("real rows and existing libraries exceed the initial completion budget");
     }
     let returns: usize = fills[..4].iter().map(|rows| rows.div_ceil(32)).sum();
-    fills[4] = initial[4]
-        .checked_sub(execution.base_counts[4] + fixed[4] + compression_fill + returns)
+    fills[4] = INITIAL_COUNTS[4]
+        .checked_sub(execution.base_counts[4] + FIXED_COUNTS[4] + compression_fill + returns)
         .expect("the initial JUMP budget cannot hold every filler return");
     println!(
         "Initial completion: {compression_fill} BLAKE2s fillers, target fillers {fills:?}, {returns} non-JUMP filler returns."
@@ -820,7 +897,10 @@ fn check_opcode_budget(program: &Program, execution: &Execution) {
         );
     }
     assert!(sites.next().is_none());
-    local_count_profile(program, execution, &profile);
+    let local = local_count_profile(program, execution, &profile);
+    assert!(local[2][0].0 <= (9 * execution.base_counts[5] + 3 * execution.base_counts[4]) as u64);
+    assert!(local[1][2].0 <= 113 * execution.base_counts[1] as u64);
+    check_count_intervals(&profile, &local);
 }
 
 #[cfg(test)]

@@ -79,6 +79,30 @@ Set $\zkRouterWidth=32$ and use $512$ shared-frame compressions. The same nine X
 \]
 repetitions. Lemma~\ref{lem:zk-group-label-router} assigns their compression labels independently in each operand chain; the XOR reads receive the complement. The total memory exponent is still transferred into XOR, but its correction capacity now grows with the number of compression labels per interval. At $\zkBlakeLoad=256$ the cost is $149319$ XOR rows and $16591$ extra JUMPs, leaving $374969$ and $835377$ respective positions in the candidate layout.
 
+\begin{lemma}[The complementary XOR uncertainty splits almost equally]\label{lem:zk-copy-complement-bound}
+In each target chain, sort the $2\zkCopyRepeats$ labels not assigned to compression and give successive labels alternately to \texttt{XOR.cnt\_a} and \texttt{XOR.cnt\_c}. Let $\zkCopySum{a},\zkCopySum{c}$ be the resulting sums over the nine router operands. At load $256$ and width $32$, each lies in a public interval of width $37603584$, regardless of the real trace and the choices made by Lemma~\ref{lem:zk-group-label-router}. The zero-input column and router bytecode exponents are public constants.
+\end{lemma}
+\begin{proof}
+Remove $512$ labels from a chain of length $2\zkCopyRepeats+512$, leaving $\zkCopyLabel{0}<\cdots<\zkCopyLabel{2\zkCopyRepeats-1}$. Each difference $\zkCopyLabel{2i+1}-\zkCopyLabel{2i}$ is one plus the number of removed labels strictly between its endpoints. These intervals are disjoint, so
+\[
+ \zkCopyRepeats\le\sum_{i=0}^{\zkCopyRepeats-1}(\zkCopyLabel{2i+1}-\zkCopyLabel{2i})\le\zkCopyRepeats+512.
+\]
+Here $\zkCopyRepeats=16591$ in each of nine chains. If $\zkBlakeTotal$ is the sum of all real/filler compression memory exponents after compression-priority labeling, complement conservation gives
+\[
+ \zkCopySum{a}+\zkCopySum{c}=\zkCopyConstant+\zkBlakeTotal,
+ \qquad \zkCopyGap:=\zkCopySum{c}-\zkCopySum{a}\in[9\zkCopyRepeats,9(\zkCopyRepeats+512)],
+\]
+where $\zkCopyConstant=9\binom{33694}{2}-144\cdot1060832=4955873931$. At a real/filler cell with $k\le256$ compression reads, the sum of their labels is $\binom{k}{2}\le255k/2$. There are $9\cdot65536$ accesses in total, so $0\le\zkBlakeTotal\le75202560$. Solving the two identities, retaining integer endpoints, gives
+\[
+ \zkCopySum{a}\in[2477860002,2515463586],
+ \qquad
+ \zkCopySum{c}\in[2478011625,2515615209].
+\]
+Both widths are $37603584$. The zero cell and all router instruction locations have fixed visits, independently of the selected labels.
+\end{proof}
+
+This is the existing alternating assignment, not an extra masking bank. It bounds transferred uncertainty; it does not make either XOR exponent public. The audit checks every deleted-label subset in chains through length twelve, the full-budget endpoints and conservation in complete compression/XOR/return libraries. The \texttt{--compression-router} mode of \auditref{zk_count_budget_audit.py} composes those libraries with the batched noncompression normalizer, obtaining equal products in all twenty-eight columns while preserving each input's compression rows and labels. Its intervals are common to the finite fixtures, not certified for every aggregation witness.
+
 \paragraph{Freeing the first interval's thirty-two rows.} The preceding privacy proof already discards all sixteen slots of block pair $119$ from its spanning sets. Move its other thirty rows to the first thirty general-input positions of interval one, assigning each original pair to two consecutive selected positions. Keep slot fifteen at $437,438$. Use all $32$ vacated positions, $9552,\ldots,9567$ and $12272,\ldots,12287$, for the first interval's routers, and the first thirty-two remaining general-input positions in each other interval. The low bank keeps its original complete chains and all independent swaps; each moved pair stays inside a single coarse interval. Its public coarse offset moves by $\sum_{n=3808}^{3837}n=114675$ from interval zero to interval one in each of the ten columns. Its returns follow the same permutation. General-code visits and mandatory calibration are unchanged.
 
 No new proof erasure is needed: the same $87$ low scalar weights and the same high quotient maps suffice. The relocated positions still avoid count-child-zero residues, and only the same one bit reaches the prefix. Thus Theorem~\ref{thm:zk-memory-coarse-normalization}, its $1117$-bit prefix law and its error below $2^{-151}$ all extend to this variant. It uses the same $99$ code locations and conservative frame reservation, leaving $57096$ general-input positions. The audit checks both router widths, their full chains in three finite valid libraries each, and the exact maximum-profile geometry. This construction supersedes the two-row variant for the active capacity plan, but still excludes the other eighteen count columns and the full transcript.

@@ -87,4 +87,42 @@ For JUMP's reference difference, the original local memory exponent is at most $
 \]
 All these memory increments are equal in the three JUMP roles. Its two column-difference widths remain bounded by $518\cdot65536$ and $867\cdot65536$. This supplies all four JUMP bounds used in Proposition~\ref{prop:zk-revised-count-budget}, conditional on the explicit row/frame and public-library-offset hypotheses, without knowing the private call trace.
 
-\paragraph{Verification and what remains.} The \texttt{--batched-targets} mode of \auditref{zk_count_budget_audit.py} checks full and partial target cycles, eighty distributed-filler cases with one common code image per opcode, capped compression-fill chains and eight complete ISA certificates for the quadratic cancellation. It checks the revised row/code/slot ledger and both numerical JUMP width bounds exactly; add \texttt{--coarse} for native coarse-frontier compositions. The research allocator checks the reservation, real-row inequalities and initial return ledger on the actual guest. None of these checks certifies the four remaining bytecode widths or local/indirect memory ranges for every supported witness. The real indirect-label cap, complete code installation, common randomness sampler, full joint reductions and authenticated opening remain necessary.
+\subsubsection{Reduce the remaining intervals to the original execution}
+
+Lemma~\ref{lem:zk-copy-complement-bound} bounds the earlier library's only uncertain non-JUMP count sums: the compression router contributes width $37603584$ to each of XOR's first and third memory columns. Its second memory column and bytecode counts are fixed. The $3072$ MUL adapters have public whole-column products by \noteref{zk-count-adapter}; the old libraries add no SET or DEREF rows. Their possibly large exponents are therefore public offsets, not new interval widths.
+
+Define $\zkRealDiff{t}{c}$ as the original memory-minus-bytecode exponent after local-priority relabeling, before disjoint padding. For a maximum initial filler length $\zkInitialFillCap{t}$, incoming bytecode is a public offset plus $\zkRealBc{t}+\zkTiledCode{\zkInitialFill{t}}$. Every incoming difference is a public offset plus $\zkRealDiff{t}{c}$, the corresponding XOR transfer if any, and a tile loss in $[-31\lfloor\zkInitialFillCap{t}/4096\rfloor,0]$. Thus the following checks on the original execution suffice for all fourteen non-JUMP input intervals of Proposition~\ref{prop:zk-revised-count-budget}:
+\[
+\begin{array}{c|r|rrr}
+ t&\text{upper bound on }\zkRealBc{t}&\multicolumn{3}{c}{\text{upper bounds on }\zkRealDiff{t}{c}}\\\hline
+ \mathrm X&143048758&69345860&106949444&69345860\\
+ \mathrm M&136716648&63280841&63280841&63280841\\
+ \mathrm S&193657216&6341048&\cdot&\cdot\\
+ \mathrm D&139163296&60834441&60834441&60834441
+\end{array}
+\]
+Bytecode is nonnegative, and the lower bound for each difference is minus its table's displayed bytecode cap. These lower bounds follow from nonnegative memory labels. The remaining displayed upper bounds are obligations, not consequences of the row/frame contract already proved.
+
+To verify the arithmetic, the maximum tile-code costs are $(6951242,13283352,6342784,10836704)$ and the tile-loss bounds are $(1798,2511,1736,2263)$. Add the first vector to the bytecode caps to obtain widths $(150000000,150000000,200000000,150000000)$. For each difference add its bytecode cap, displayed upper bound, tile-loss bound and, in XOR columns zero and two, $37603584$. This gives exactly $250000000$ for XOR and $200000000$ otherwise. Interval offsets remain public throughout. No private count profile is announced as part of the statement.
+
+The native research audit now checks these sufficient inequalities, the real label cap, one owning function per frame, absence of repeated frame/PC pairs and containment of local operands in their own allocation. These are stronger certificates for the executions tested, not a proof that all supported executions pass. Establishing those uniform original-execution bounds is now the precise residual count-input task; checking only opcode totals would miss it.
+
+\begin{lemma}[Two residual memory bounds follow from public incidence]\label{lem:zk-set-mul-residual-bounds}
+Under the preceding row and owned-frame contracts, the actual local-range wrapper meets the displayed upper bounds for $\zkRealDiff{\mathrm S}{0}$ and $\zkRealDiff{\mathrm M}{2}$. This does not establish their bytecode caps.
+\end{lemma}
+\begin{proof}
+The public bytecode has at most one SET occurrence per relative cell in each function, as checked by the static audit. Since frames are disjoint and occurrences do not repeat, a real cell receives at most one SET access. In local-priority order only BLAKE2s and JUMP precede it, so the sum of SET labels is at most their total number of real accesses:
+\[
+ \zkRealDiff{\mathrm S}{0}+\zkRealBc{\mathrm S}
+ \le9\zkExecutedRows{\mathrm B}+3\zkExecutedRows{\mathrm J}
+ \le786432<6341048.
+\]
+This bound counts each preceding access at most once, instead of multiplying the worst SET label by every SET row. For MUL's last memory column, the public local-priority label cap is $113$. Hence
+\[
+ \zkRealDiff{\mathrm M}{2}+\zkRealBc{\mathrm M}
+ \le113\cdot331928=37507864<63280841.
+\]
+Subtracting the nonnegative real bytecode exponent cannot increase either quantity. Both arguments ignore foreign indirect loads because those labels come last.
+\end{proof}
+
+\paragraph{Verification and what remains.} The \texttt{--batched-targets} mode of \auditref{zk_count_budget_audit.py} checks full and partial target cycles, eighty distributed-filler cases with one common code image per opcode, capped compression-fill chains and eight complete ISA certificates for the quadratic cancellation. It checks the revised row/code/slot ledger, both numerical JUMP width bounds and the residual non-JUMP arithmetic exactly; add \texttt{--coarse} for native coarse-frontier compositions. The research allocator checks the reservation, real-row inequalities and initial return ledger on the actual guest. Four real bytecode caps, eight remaining memory-minus-code upper bounds, the indirect-label cap and uniform ownership/resources still need proof for every supported witness. Complete code installation, the common randomness sampler, full joint reductions and authenticated opening remain necessary.

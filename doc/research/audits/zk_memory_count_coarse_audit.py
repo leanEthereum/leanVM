@@ -2,7 +2,7 @@
 
 import subprocess
 from collections import Counter, defaultdict
-from itertools import product
+from itertools import combinations, product
 from pathlib import Path
 from random import Random
 
@@ -62,6 +62,34 @@ def label_groups(exponents, cap, width=32):
     return target, length, result
 
 
+def alternating_complement(length, selected):
+    selected = set(selected)
+    assert selected <= set(range(length)) and (length - len(selected)) % 2 == 0
+    complement = sorted(set(range(length)) - selected)
+    repeats = len(complement) // 2
+    gap = sum(complement[1::2]) - sum(complement[::2])
+    assert repeats <= gap <= repeats + len(selected)
+    assert sum(complement) + sum(selected) == length * (length - 1) // 2
+    return complement
+
+
+def complement_certificates():
+    for length in range(13):
+        for removed in range(length % 2, length + 1, 2):
+            for selected in combinations(range(length), removed):
+                alternating_complement(length, selected)
+    length, repeats, target = 33694, 16591, 1060832
+    constant = 9 * (length * (length - 1) // 2 - 16 * target)
+    total_cap = 9 * 65536 * 255 // 2
+    intervals = (
+        (-(-(constant - 9 * (repeats + 512)) // 2), (constant + total_cap - 9 * repeats) // 2),
+        (-(-(constant + 9 * repeats) // 2), (constant + total_cap + 9 * (repeats + 512)) // 2),
+    )
+    assert total_cap == 75202560 and all(high - low == 37603584 for low, high in intervals)
+    assert intervals == ((2477860002, 2515463586), (2478011625, 2515615209))
+    print(f"Alternating XOR complements: exhaustive deleted-label subsets pass; full-budget count intervals {intervals}.", flush=True)
+
+
 def transfers():
     for bins in range(1, 5):
         for cap in range(6):
@@ -85,7 +113,7 @@ def transfers():
         for values in ([0] * 16, [cap] * 16, [cap * (index % 2) for index in range(16)], [rng.randrange(cap + 1) for _ in range(16)]):
             target, length, labels = label_groups(values, cap)
             selected = {label for group in labels for label in group}
-            complement = set(range(length)) - selected
+            complement = alternating_complement(length, selected)
             assert length == 128 * (load - 1) + 1054
             assert len(complement) == 2 * (64 * (load - 1) + 271)
             assert sum(complement) + 16 * target - sum(values) == length * (length - 1) // 2
@@ -305,7 +333,7 @@ def shifted_range_counterexample(verifier):
 
 
 def valid_cycles(verifier, width):
-    snapshots = []
+    snapshots, libraries = [], []
     for allocation in (list(range(32)), [index // 4 for index in range(32)], [index % 8 for index in range(32)]):
         library = Library(verifier)
         real = []
@@ -332,10 +360,12 @@ def valid_cycles(verifier, width):
         repeats = (length - len(selected)) // 2
         absorbers = [library.append(copies) for _ in range(repeats)]
         before = dict(library.reads)
-        expected = []
+        expected, real_total = [], 0
+        router_sums = [0, 0]
         columns = [column for column, _, _ in library.memory_reads(verifier.OP_BLAKE2S, template[0][1])]
         for index, column in enumerate(columns):
             exponents = [sum(library.labels[row, column][1] for row in real[2 * slab : 2 * slab + 2]) for slab in range(16)]
+            real_total += sum(exponents)
             if width == 2:
                 target, labels = label_pairs(exponents, cap)
             else:
@@ -343,7 +373,8 @@ def valid_cycles(verifier, width):
                 assert check_length == length
             flattened = [label for group in labels for label in group]
             assert len(selected) + 2 * repeats == length
-            complement = sorted(set(range(length)) - set(flattened))
+            complement = alternating_complement(length, flattened)
+            router_sums = [total + sum(complement[role::2]) for role, total in enumerate(router_sums)]
             library.set_labels([(row, column) for row in selected], flattened)
             receiver = [(rows[index], verifier.ARITH_COLUMNS.index(name)) for rows in absorbers for name in ("cnt_a", "cnt_c")]
             library.set_labels(receiver, complement)
@@ -352,9 +383,13 @@ def valid_cycles(verifier, width):
                 exponent = sum(library.labels[row, column][1] for row in rows)
                 assert exponent == target
                 expected.append(int(verifier.GEN**exponent))
+        assert sum(router_sums) == 9 * (length * (length - 1) // 2 - 16 * target) + real_total
+        assert 9 * repeats <= router_sums[1] - router_sums[0] <= 9 * (repeats + 16 * width)
+        assert real_total <= 9 * len(real) * (max(multiplicities.values()) - 1) // 2
         library.verify()
         assert dict(library.reads) == before
         snapshots.append((expected, library.images, Counter(opcode for opcode, _ in library.rows), dict(library.reads)))
+        libraries.append(library)
     assert all(snapshot[:3] == snapshots[0][:3] for snapshot in snapshots)
     assert snapshots[0][3] != snapshots[1][3]
     print(
@@ -362,10 +397,12 @@ def valid_cycles(verifier, width):
         flush=True,
     )
     print("XOR self-copies, BLAKE-first labeling, code/memory images, all ISA constraints, counted buses and complete label chains pass.", flush=True)
+    return libraries
 
 
 if __name__ == "__main__":
     verifier = verifier_module()
+    complement_certificates()
     transfers()
     allocation()
     shifted_range_counterexample(verifier)
