@@ -197,23 +197,17 @@ def hashCacheOfLog (log : QueryLog HashSpec) : QueryCache HashSpec :=
 
 namespace Concrete
 
-def digestBytes (value : Digest) : HashInput := bytesLE 16 value
-
-def messageBytes (message : Message) : HashInput := bytesLE 32 message
-
-def randomnessBytes (randomness : Randomness) : HashInput := bytesLE 24 randomness
-
 /-- `m || rho || 0^64`. -/
 def encodingPayload (message : Message) (randomness : Randomness) : HashInput :=
-  messageBytes message ++ randomnessBytes randomness ++ List.replicate 8 0
+  bytesLE 32 message ++ bytesLE 24 randomness ++ List.replicate 8 0
 
 /-- `pk_0 || ... || pk_{v-1}`. -/
 def leafPayload (endpoints : ChainIndex → Digest) : HashInput :=
-  (List.ofFn endpoints).flatMap digestBytes
+  (List.ofFn endpoints).flatMap (bytesLE 16)
 
 /-- The two children of a Merkle node. -/
 def nodePayload (left right : Digest) : HashInput :=
-  digestBytes left ++ digestBytes right
+  bytesLE 16 left ++ bytesLE 16 right
 
 /-- Run the `n` computations in index order and collect their results. -/
 def sequenceFin {m : Type → Type} [Monad m] {n : Nat}
@@ -245,7 +239,7 @@ def encodingHash (parameter : PublicParameter) (epoch : Epoch)
 /-- One chain step, under `tweak_chain(ep, i, step + 1)`. -/
 def chainHash (parameter : PublicParameter) (epoch : Epoch) (chain : ChainIndex)
     (step : ChainStep) (value : Digest) : m Digest :=
-  tweakableHash parameter (.chain epoch chain step) (digestBytes value)
+  tweakableHash parameter (.chain epoch chain step) (bytesLE 16 value)
 
 /-- `X_{0,ep}`, the hash of the `v` public values. -/
 def leafHash (parameter : PublicParameter) (epoch : Epoch)

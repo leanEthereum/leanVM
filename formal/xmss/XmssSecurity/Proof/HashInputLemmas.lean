@@ -213,7 +213,7 @@ theorem leafPayload_injective : Function.Injective leafPayload := by
 theorem nodePayload_injective :
     Function.Injective fun input : Digest × Digest => nodePayload input.1 input.2 := by
   rintro ⟨leftFirst, leftSecond⟩ ⟨rightFirst, rightSecond⟩ heq
-  obtain ⟨hfirst, hsecond⟩ := List.append_inj heq (by simp [digestBytes])
+  obtain ⟨hfirst, hsecond⟩ := List.append_inj heq (by simp)
   exact Prod.ext (digestBytes_injective hfirst) (digestBytes_injective hsecond)
 
 namespace CacheView

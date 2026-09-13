@@ -41,7 +41,7 @@ theorem gameCore_deterministic_eq (adversary : Adversary) :
       let seed ← liftM sampleMasterSeed
       let (parameter, secret) ← liftM (deriveParametersAndSecrets seed)
       deterministicGameAfterSecrets adversary seed parameter secret) := by
-  simp only [gameCore, scheme, keygen, deterministicGameAfterSecrets, gameRest,
+  simp only [gameCore, scheme, keygen, keygenFromSeed, deterministicGameAfterSecrets, gameRest,
     deriveParametersAndSecrets, deriveChainSecrets, liftM_bind, liftM_pure, bind_assoc, pure_bind]
 
 theorem erases_deterministicGameRest (known : QueryCache HashSpec) (seed : MasterSeed)

@@ -18,7 +18,7 @@ theorem messageDigestPayload_injective (root : Digest) {leftMessage rightMessage
       = messageDigestPayload root rightMessage rightRandomness) :
     leftMessage = rightMessage ∧ leftRandomness = rightRandomness := by
   simp only [messageDigestPayload] at h
-  obtain ⟨hrandomness, hrest⟩ := List.append_inj h (by simp [randomnessBytes, bytesLE_length])
+  obtain ⟨hrandomness, hrest⟩ := List.append_inj h (by simp [bytesLE_length])
   have hrandomness' := List.append_cancel_right hrandomness
   exact ⟨bytesLE_injective hrest, bytesLE_injective hrandomness'⟩
 

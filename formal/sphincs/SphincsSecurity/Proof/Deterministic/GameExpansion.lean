@@ -25,8 +25,8 @@ theorem gameCore_deterministic_eq (adversary : Adversary) :
       let seed ← liftM sampleMasterSeed
       let parameter ← liftM (deriveKey 0 .parameter seed : OracleComp HashSpec Digest)
       deterministicGameAfterParameter adversary parameter seed) := by
-  simp only [gameCore, scheme, keygen, deterministicGameAfterParameter, gameRest,
-    bind_assoc, pure_bind]
+  simp only [gameCore, scheme, keygen, keygenFromSeed, deterministicGameAfterParameter, gameRest,
+    bind_assoc, pure_bind, liftM_bind, liftM_pure]
 
 theorem erases_deterministicGameRest (known : QueryCache HashSpec) (parameter : PublicParameter)
     (seed : MasterSeed) (root : Digest) (outputs : SecretOutputs) (randomizers : RandomizerOutputs)

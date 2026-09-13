@@ -109,15 +109,10 @@ theorem hashQueryBound_of_sampling_bind {α β : Type} (first : ProbComp α)
 
 theorem simulateQ_countHashQueries {α : Type} (computation : OracleComp OracleWorld α) :
     simulateQ romImpl (countHashQueries computation) = (simulateQ countedRomImpl computation).run := by
-  induction computation using OracleComp.inductionOn with
-  | pure value => simp only [countHashQueries_pure, simulateQ_pure, WriterT.run_pure]; rfl
-  | query_bind input next ih =>
-      simp only [countHashQueries_query_bind, simulateQ_bind, simulateQ_spec_query,
-        simulateQ_pure, ih, WriterT.run_bind]
-      cases input <;> simp [countedRomImpl, QueryImpl.withAddCost, QueryImpl.withCost,
-        QueryImpl.withTraceBefore_apply, WriterT.run_bind, WriterT.run_liftM,
-        WriterT.run_tell, map_eq_bind_pure_comp, bind_assoc] <;>
-        first | rfl | simp only [Function.comp_def, bind_pure]
+  rw [countHashQueries, QueryCounting.simulate_withCost]
+  congr 2
+  funext input
+  cases input <;> rfl
 
 theorem hasHashQueryBound_iff {Key : Type} (scheme : Scheme Key) (adversary : Adversary) (q : Nat) :
     HasHashQueryBound scheme adversary q ↔ HashQueryBound (gameCore scheme adversary) ∅ q := by

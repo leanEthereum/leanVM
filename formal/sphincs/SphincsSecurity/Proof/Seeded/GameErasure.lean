@@ -21,13 +21,6 @@ theorem Erases.simulateQ_writer {ι κ : Type} {source : OracleSpec ι} {target 
       intro result
       exact (ih result.1).map _
 
-noncomputable def gameRest {Key : Type} (randomizedScheme : Scheme Key) (adversary : Adversary)
-    (pk : PublicKey) (sk : Key) : OracleComp OracleWorld Bool := do
-  let ((forgery, log) : Forgery × QueryLog SigningSpec) ←
-    (simulateQ (forwardOracles + signingOracle randomizedScheme sk) (adversary.main pk)).run
-  let verified ← randomizedScheme.verify pk forgery.message forgery.signature
-  return decide (SigningTranscript.Valid log ∧ ¬SigningTranscript.Contains log forgery) && verified
-
 noncomputable def gameAfterParameter (adversary : Adversary) (parameter : PublicParameter)
     (seed : MasterSeed) : OracleComp OracleWorld Bool := do
   let root ← liftM (treeRoot parameter topLayer Concrete.rootTree seed : OracleComp HashSpec Digest)
@@ -38,8 +31,8 @@ theorem gameCore_seeded_eq (adversary : Adversary) :
       let seed ← liftM sampleMasterSeed
       let parameter ← liftM (deriveKey 0 .parameter seed : OracleComp HashSpec Digest)
       gameAfterParameter adversary parameter seed) := by
-  simp only [gameCore, randomizedScheme, keygen, gameAfterParameter, gameRest,
-    bind_assoc, pure_bind]
+  simp only [gameCore, randomizedScheme, keygen, keygenFromSeed, gameAfterParameter, gameRest,
+    bind_assoc, pure_bind, liftM_bind, liftM_pure]
 
 section Game
 

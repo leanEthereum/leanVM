@@ -4,27 +4,22 @@ open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity
 
+namespace Concrete
+
+abbrev digestBytes (value : Digest) : HashInput := bytesLE 16 value
+
+abbrev messageBytes (message : Message) : HashInput := bytesLE 32 message
+
+abbrev randomnessBytes (randomness : Randomness) : HashInput := bytesLE 24 randomness
+
+end Concrete
+
 /-- `unifSpec` for uniform sampling, `HashSpec` for the random oracle (hash). A query is `.inl` to sample or `.inr` to hash, so `HasHashQueryBound` counts only the hash side. -/
 abbrev OracleWorld := unifSpec + HashSpec
 
-namespace Seeded
-
-open Concrete
-
-noncomputable def keygen : OracleComp OracleWorld (PublicKey × SecretKey) := do
+noncomputable def Seeded.keygen : OracleComp OracleWorld (PublicKey × Seeded.SecretKey) := do
   let seed ← liftM sampleMasterSeed
-  let parameter ← liftM (deriveKey 0 .parameter seed : OracleComp HashSpec Digest)
-  let secret ← liftM
-    (Concrete.sequenceFin fun epoch => Concrete.sequenceFin fun chain =>
-      deriveKey parameter (.chain epoch chain) seed :
-        OracleComp HashSpec (Epoch → ChainIndex → Digest))
-  let result ← liftM
-    (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
-      OracleComp HashSpec Digest).withQueryLog
-  let precomputed := Concrete.precomputedSecretKey parameter secret (hashCacheOfLog result.2)
-  return (⟨result.1, parameter⟩, ⟨seed, precomputed⟩)
-
-end Seeded
+  liftM (Seeded.keygenFromSeed seed)
 
 /-- The random-oracle semantics: hash queries are answered lazily and consistently by uniform sampling and cached; uniform-sampling queries are forwarded unchanged. -/
 noncomputable def romImpl : QueryImpl OracleWorld (StateT (QueryCache HashSpec) ProbComp) :=
@@ -51,18 +46,20 @@ def forwardOracles :
     QueryImpl OracleWorld (WriterT (QueryLog SigningSpec) (OracleComp OracleWorld)) :=
   fun input => liftM (OracleWorld.query input)
 
-/-- The complete strong-unforgeability experiment.
+noncomputable def Seeded.gameRest {Key : Type} (randomizedScheme : Scheme Key) (adversary : Adversary)
+    (pk : PublicKey) (sk : Key) : OracleComp OracleWorld Bool := do
+  let ((forgery, log) : Forgery × QueryLog SigningSpec) ←
+    (simulateQ (forwardOracles + signingOracle randomizedScheme sk) (adversary.main pk)).run
+  let verified ← randomizedScheme.verify pk forgery.epoch forgery.message forgery.signature
+  return decide (SigningTranscript.Valid log ∧ ¬SigningTranscript.Contains log forgery) && verified
 
-The random oracle is sampled lazily by the semantics of `OracleWorld`. Key generation, the adversary, the signing oracle, and final verification all share the same oracle. The game returns `true` precisely when the signing transcript uses every epoch at most once, the claimed forgery is not an exact replay, and the signature verifies. -/
+/-- Key generation, followed by the adversary and final verification. -/
 noncomputable def gameCore {Key : Type} (scheme : Scheme Key) (adversary : Adversary) :
     OracleComp OracleWorld Bool := do
   let (pk, sk) ← scheme.keygen
-  let ((forgery, log) : Forgery × QueryLog SigningSpec) ←
-    (simulateQ (forwardOracles + signingOracle scheme sk) (adversary.main pk)).run
-  let verified ← scheme.verify pk forgery.epoch forgery.message forgery.signature
-  return decide (SigningTranscript.Valid log ∧ ¬SigningTranscript.Contains log forgery) && verified
+  Seeded.gameRest scheme adversary pk sk
 
-/-- The probability that the adversary wins, over key generation, the adversary, and the random oracle, which starts from the empty cache. The final cache is discarded. -/
+/-- Success probability from an empty random-oracle cache. -/
 noncomputable def forgeAdvantage {Key : Type} (scheme : Scheme Key) (adversary : Adversary) : ℝ≥0∞ :=
   Pr[= true | (simulateQ romImpl (gameCore scheme adversary)).run' ∅]
 
@@ -75,7 +72,7 @@ def HasHashQueryBound {Key : Type} (scheme : Scheme Key) (adversary : Adversary)
   ∀ result ∈ support ((simulateQ countedRomImpl (gameCore scheme adversary)).run.run' ∅),
     result.2 ≤ q
 
-/-- Having `bits` bits of classical security means that every classical adaptive adversary whose complete experiment stays within a nonzero hash-query budget `q` forges with probability at most `q / 2^bits`. -/
+/-- The security bound for an intermediate scheme. -/
 def HasClassicalSecurityBits {Key : Type} (scheme : Scheme Key) (bits : Nat) : Prop :=
   ∀ q, 1 ≤ q → ∀ adversary, HasHashQueryBound scheme adversary q →
     forgeAdvantage scheme adversary ≤ q / ((2 ^ bits : Nat) : ℝ≥0∞)

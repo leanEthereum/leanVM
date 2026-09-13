@@ -149,7 +149,7 @@ theorem digestBytes_length (x : Digest) : (Concrete.digestBytes x).length = 16 :
 theorem nodePayload_injective {left right left' right' : Digest}
     (h : Concrete.nodePayload left right = Concrete.nodePayload left' right') :
     left = left' ∧ right = right' := by
-  obtain ⟨hleft, hright⟩ := List.append_inj h (by simp [Concrete.digestBytes, bytesLE_length])
+  obtain ⟨hleft, hright⟩ := List.append_inj h (by simp [bytesLE_length])
   exact ⟨digestBytes_injective hleft, digestBytes_injective hright⟩
 
 end SphincsSecurity

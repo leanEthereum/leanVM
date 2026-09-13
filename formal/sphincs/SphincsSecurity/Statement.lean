@@ -240,14 +240,6 @@ abbrev HashSpec := HashInput →ₒ HashOutput
 
 namespace Concrete
 
-def digestBytes (value : Digest) : HashInput := bytesLE 16 value
-
-def messageBytes (message : Message) : HashInput := bytesLE 32 message
-
-def randomnessBytes (randomness : Randomness) : HashInput := bytesLE 16 randomness
-
-def counterBytes (counter : Counter) : HashInput := bytesLE 4 counter
-
 /-- Run the `n` computations in index order and collect their results. -/
 def sequenceFin {m : Type → Type} [Monad m] {α : Type} {n : Nat}
     (computation : Fin n → m α) : m (Fin n → α) :=
@@ -297,7 +289,7 @@ def chainWalk (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (le
       let previous ← chainWalk parameter lay tree leaf chainIdx start steps value
       if hstep : start + steps < chainLength - 1 then
         tweakableHash parameter (.chain lay tree leaf chainIdx ⟨start + steps, hstep⟩)
-          (digestBytes previous)
+          (bytesLE 16 previous)
       else
         pure 0
 
@@ -308,7 +300,7 @@ def recoverChain (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) 
 
 /-- `pk_0 || ... || pk_{v-1}`. -/
 def leafPayload (endpoints : ChainIndex → Digest) : HashInput :=
-  (List.ofFn endpoints).flatMap digestBytes
+  (List.ofFn endpoints).flatMap (bytesLE 16)
 
 /-- `X^{lay,tau}_{0,e}`, the one-time leaf: the hash of the `v` public values. -/
 def leafHash (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
@@ -319,7 +311,7 @@ def leafHash (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (lea
 def encode (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
     (message : Digest) (counter : Counter) : m (Option Encoding) := do
   let digest ← tweakableHash parameter (.encoding lay tree leaf)
-    (digestBytes message ++ counterBytes counter)
+    (bytesLE 16 message ++ bytesLE 4 counter)
   return TargetSum.decodeDigest digest
 
 /-- `OtsLeaf`: the verifier's leaf, or nothing if the counter does not encode the message. -/
@@ -337,7 +329,7 @@ def otsLeaf (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf
 
 /-- The two children of a Merkle node. -/
 def nodePayload (left right : Digest) : HashInput :=
-  digestBytes left ++ digestBytes right
+  bytesLE 16 left ++ bytesLE 16 right
 
 /-- `TreeFold`: fold a leaf and a path into the layer's root. -/
 def treeFold (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
@@ -368,11 +360,11 @@ def lastIndexGroup : IndexGroup := ⟨ftsTrees - 1, by decide⟩
 /-- `Y^{idx,kappa}_{0,j}`, the hash of one few-time secret. -/
 def ftsLeafHash (parameter : PublicParameter) (index : Index) (tree : FtsTree) (leaf : FtsLeaf)
     (secret : Digest) : m Digest :=
-  tweakableHash parameter (.ftsLeaf index tree leaf) (digestBytes secret)
+  tweakableHash parameter (.ftsLeaf index tree leaf) (bytesLE 16 secret)
 
 /-- The `k - 1` roots of the forest. -/
 def ftsRootsPayload (roots : FtsTree → Digest) : HashInput :=
-  (List.ofFn roots).flatMap digestBytes
+  (List.ofFn roots).flatMap (bytesLE 16)
 
 /-- The verifier's half of one few-time tree. -/
 def ftsFold (parameter : PublicParameter) (index : Index) (tree : FtsTree) (leaf : FtsLeaf)
@@ -402,7 +394,7 @@ def ftsRecover (parameter : PublicParameter) (index : Index) (leaves : IndexGrou
 
 /-- `rho || root || m`, what the message digest hashes after the tweak and the parameter. -/
 def messageDigestPayload (root : Digest) (message : Message) (randomness : Randomness) : HashInput :=
-  randomnessBytes randomness ++ digestBytes root ++ messageBytes message
+  bytesLE 16 randomness ++ bytesLE 16 root ++ bytesLE 32 message
 
 /-- `Digest(P, root, m, rho)`, truncated to `h + k * a` bits. -/
 def messageDigest (parameter : PublicParameter) (root : Digest) (message : Message)

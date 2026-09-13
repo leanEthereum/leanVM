@@ -1,3 +1,4 @@
+import VCVio.OracleComp.QueryTracking.WriterCost
 import SphincsSecurity.Proof.Base.Prelude
 namespace SphincsSecurity.QueryCap
 
@@ -21,6 +22,19 @@ theorem counted_query_bind (input : spec.Domain) (next : spec.Range input → Or
       let answer ← liftM (spec.query input)
       let result ← counted selected (next answer)
       pure (result.1, (if selected input then 1 else 0) + result.2)) := rfl
+
+theorem simulate_withCost {m : Type → Type} [Monad m] [LawfulMonad m]
+    (impl : QueryImpl spec m) (computation : OracleComp spec α) :
+    simulateQ impl (counted selected computation) =
+      (simulateQ (impl.withAddCost (fun input => if selected input then 1 else (0 : Nat))) computation).run := by
+  induction computation using OracleComp.inductionOn with
+  | pure value => rfl
+  | query_bind input next ih =>
+      simp only [counted_query_bind, simulateQ_bind, simulateQ_spec_query, simulateQ_pure, ih,
+        WriterT.run_bind]
+      simp [QueryImpl.withAddCost, QueryImpl.withCost, QueryImpl.withTraceBefore_apply,
+        WriterT.run_bind, WriterT.run_liftM, WriterT.run_tell, map_eq_bind_pure_comp, bind_assoc]
+      rfl
 
 theorem counted_forget (computation : OracleComp spec Result) :
     Prod.fst <$> counted selected computation = computation := by

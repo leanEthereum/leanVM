@@ -40,7 +40,7 @@ noncomputable def detailedGameCore (scheme : Scheme SecretKey) (adversary : Adve
 theorem gameCore_eq_map_detailedGameCore (scheme : Scheme SecretKey) (adversary : Adversary) :
     gameCore scheme adversary = GameOutcome.won <$> detailedGameCore scheme adversary := by
   classical
-  simp [gameCore, detailedGameCore, detailedGameAfterKeygen, GameOutcome.won]
+  simp [gameCore, Seeded.gameRest, detailedGameCore, detailedGameAfterKeygen, GameOutcome.won]
 
 noncomputable def detailedGameWithCache (scheme : Scheme SecretKey) (adversary : Adversary) :
     ProbComp (GameOutcome × QueryCache HashSpec) :=

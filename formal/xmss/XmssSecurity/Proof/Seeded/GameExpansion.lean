@@ -6,13 +6,6 @@ namespace XmssSecurity.Seeded
 
 set_option backward.isDefEq.respectTransparency false
 
-noncomputable def gameRest {Key : Type} (randomizedScheme : Scheme Key) (adversary : Adversary)
-    (pk : PublicKey) (sk : Key) : OracleComp OracleWorld Bool := do
-  let ((forgery, log) : Forgery × QueryLog SigningSpec) ←
-    (simulateQ (forwardOracles + signingOracle randomizedScheme sk) (adversary.main pk)).run
-  let verified ← randomizedScheme.verify pk forgery.epoch forgery.message forgery.signature
-  return decide (SigningTranscript.Valid log ∧ ¬SigningTranscript.Contains log forgery) && verified
-
 noncomputable def gameAfterSecrets (adversary : Adversary) (parameter : PublicParameter)
     (secret : ChainSecrets) : OracleComp OracleWorld Bool := do
   let result ← liftM
@@ -25,7 +18,7 @@ theorem gameCore_seeded_eq (adversary : Adversary) :
       let seed ← liftM sampleMasterSeed
       let (parameter, secret) ← liftM (deriveParametersAndSecrets seed)
       gameAfterSecrets adversary parameter secret) := by
-  simp only [gameCore, randomizedScheme, keygen, gameAfterSecrets, gameRest, Concrete.scheme,
+  simp only [gameCore, randomizedScheme, keygen, keygenFromSeed, gameAfterSecrets, gameRest, Concrete.scheme,
     deriveParametersAndSecrets, deriveChainSecrets, liftM_bind, liftM_pure,
     bind_assoc, pure_bind, signingOracle]
 
