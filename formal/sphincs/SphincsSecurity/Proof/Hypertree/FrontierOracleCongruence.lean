@@ -20,9 +20,9 @@ theorem eval_frontierTreeNode_eq_of_agree (lay : Layer) (tree : TreeIndex)
   · intro leaf chainIdx step hstep input
     exact congrArg truncateHash (h.chain lay tree leaf chainIdx step hstep (digestBytes input))
   · intro leaf payload
-    exact congrArg truncateHash (h.other (.leaf lay tree leaf) (by simp only [hashDomainFields]; decide) payload)
+    exact congrArg truncateHash (h.other (.leaf lay tree leaf) (by simp only [hashDomainFields, tweakFields]; decide) payload)
   · intro level nodeIdx payload
-    exact congrArg truncateHash (h.other (.node lay tree level nodeIdx) (by simp only [hashDomainFields]; decide) payload)
+    exact congrArg truncateHash (h.other (.node lay tree level nodeIdx) (by simp only [hashDomainFields, tweakFields]; decide) payload)
 
 theorem eval_frontierTreePath_eq_of_agree (lay : Layer) (tree : TreeIndex)
     (frontier : LeafIndex → ChainIndex → Digest) (leaf : LeafIndex) :
@@ -41,16 +41,16 @@ theorem eval_ftsNode_eq_of_agree (index : Index) (tree : FtsTree) (secret : FtsL
   induction level generalizing nodeIdx with
   | zero =>
       simp only [ftsNode_zero_eq, ftsLeafHash, eval_tweakableHash]
-      exact congrArg truncateHash (h.other (.ftsLeaf index tree _) (by simp only [hashDomainFields]; decide) _)
+      exact congrArg truncateHash (h.other (.ftsLeaf index tree _) (by simp only [hashDomainFields, tweakFields]; decide) _)
   | succ level ih =>
       simp only [ftsNode_succ_eq, evalWithAnswerFn_bind, ih, eval_tweakableHash]
-      exact congrArg truncateHash (h.other (.ftsNode index tree (level + 1) nodeIdx) (by simp only [hashDomainFields]; decide) _)
+      exact congrArg truncateHash (h.other (.ftsNode index tree (level + 1) nodeIdx) (by simp only [hashDomainFields, tweakFields]; decide) _)
 
 theorem eval_ftsKey_eq_of_agree (index : Index) (secret : FtsTree → FtsLeaf → Digest) :
     evalWithAnswerFn f (ftsKey parameter index secret) = evalWithAnswerFn g (ftsKey parameter index secret) := by
   simp only [ftsKey, evalWithAnswerFn_bind, evalWithAnswerFn_sequenceFin,
     eval_ftsNode_eq_of_agree parameter words f g h, eval_tweakableHash]
-  exact congrArg truncateHash (h.other (.ftsRoots index) (by simp only [hashDomainFields]; decide) _)
+  exact congrArg truncateHash (h.other (.ftsRoots index) (by simp only [hashDomainFields, tweakFields]; decide) _)
 
 theorem eval_ftsOpen_eq_of_agree (index : Index) (leaves : IndexGroup → FtsLeaf)
     (secret : FtsTree → FtsLeaf → Digest) :
@@ -72,7 +72,7 @@ theorem eval_encode_eq_of_agree (lay : Layer) (tree : TreeIndex) (leaf : LeafInd
     evalWithAnswerFn f (encode parameter lay tree leaf message counter) =
       evalWithAnswerFn g (encode parameter lay tree leaf message counter) := by
   simp only [encode, evalWithAnswerFn_bind, evalWithAnswerFn_pure, eval_tweakableHash,
-    h.other (.encoding lay tree leaf) (by simp only [hashDomainFields]; decide)]
+    h.other (.encoding lay tree leaf) (by simp only [hashDomainFields, tweakFields]; decide)]
 
 theorem referenceEncodingSearch_eq_of_agree (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
     (message : Digest) (attempts start : Nat) :

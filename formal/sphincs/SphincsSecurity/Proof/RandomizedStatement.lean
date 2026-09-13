@@ -1,4 +1,4 @@
-import SphincsSecurity.Statement
+import SphincsSecurity.Proof.SignatureLayout
 
 open OracleComp OracleSpec ENNReal
 

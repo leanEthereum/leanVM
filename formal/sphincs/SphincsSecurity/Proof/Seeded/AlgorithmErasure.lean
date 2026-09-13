@@ -1,3 +1,4 @@
+import SphincsSecurity.Proof.LayerAssembly
 import SphincsSecurity.Proof.Seeded.Erasure
 import SphincsSecurity.Proof.Seeded.DerivationTable
 import SphincsSecurity.Proof.Scheme.StatementLemmas
@@ -36,8 +37,8 @@ theorem Erases.sequenceFin {ι : Type} {spec : OracleSpec ι} {α : Type} {n : N
       intro tail
       exact .pure _
 
-theorem Erases.sequenceLayers {α : Type} (known : QueryCache HashSpec)
-    (left right : Layer → OracleComp HashSpec (Option α))
+theorem Erases.sequenceLayers {α : Layer → Type} (known : QueryCache HashSpec)
+    (left right : (lay : Layer) → OracleComp HashSpec (Option (α lay)))
     (h : ∀ lay, Erases known (left lay) (right lay)) :
     Erases known (Concrete.sequenceLayers left) (Concrete.sequenceLayers right) := by
   unfold Concrete.sequenceLayers
@@ -54,6 +55,15 @@ theorem Erases.sequenceLayers {α : Type} (known : QueryCache HashSpec)
           apply (h topLayer).bind
           intro top
           cases top <;> exact .pure _
+
+theorem Erases.bind_map_right {ι : Type} {spec : OracleSpec ι} {α β γ : Type}
+    {known : QueryCache spec} {left : OracleComp spec α} {right : OracleComp spec β}
+    {f : β → α} (h : Erases known left (f <$> right))
+    (nextLeft : α → OracleComp spec γ) (nextRight : β → OracleComp spec γ)
+    (hnext : ∀ value, Erases known (nextLeft (f value)) (nextRight value)) :
+    Erases known (left >>= nextLeft) (right >>= nextRight) := by
+  apply Erases.trans (h.bind nextLeft nextLeft (fun _ => Erases.refl known _))
+  simpa only [bind_map_left] using (Erases.refl known right).bind _ _ hnext
 
 def tableOts (outputs : SecretOutputs) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
     (chain : ChainIndex) : Digest := truncateHash (outputs (.inl (lay, tree, leaf, chain)))
@@ -142,13 +152,12 @@ theorem erases_treeRoot (lay : Layer) (tree : TreeIndex) :
 
 theorem erases_treePath (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) :
     Erases known (treePath parameter lay tree seed leaf : OracleComp HashSpec _)
-      (Concrete.treePath parameter lay tree (tableOts outputs lay tree) leaf) := by
+      (restrictPath lay <$> Concrete.treePath parameter lay tree (tableOts outputs lay tree) leaf) := by
   unfold treePath Concrete.treePath
+  rw [sequenceFin_restrictPath]
   apply Erases.sequenceFin
   intro level
-  split
-  · exact erases_treeNode known parameter seed outputs hknown lay tree _ _
-  · exact .pure _
+  exact erases_treeNode known parameter seed outputs hknown lay tree _ _
 
 theorem erases_ftsNode (index : Index) (tree : FtsTree) (level node : Nat) :
     Erases known (ftsNode parameter index tree seed level node : OracleComp HashSpec _)
@@ -196,18 +205,23 @@ theorem erases_layerMessage (root : Digest) (index : Index) (lay : Layer) :
 
 theorem erases_signLayer (root : Digest) (index : Index) (lay : Layer) :
     Erases known (signLayer ⟨seed, parameter, root⟩ index lay : OracleComp HashSpec _)
-      (Concrete.signLayer (tableKey parameter root outputs) index lay) := by
-  simp only [signLayer, Concrete.signLayer]
+      (Option.map (LayerSignature.ofPadded lay) <$> Concrete.signLayer (tableKey parameter root outputs) index lay) := by
+  simp only [signLayer, Concrete.signLayer, map_bind]
   apply (erases_layerMessage known parameter seed outputs hknown root index lay).bind
   intro message
   apply (erases_otsSign known parameter seed outputs hknown lay _ _ message).bind
   intro signed
   cases signed with
-  | none => exact .pure _
+  | none => simpa only [map_pure, Option.map_none] using Erases.pure (known := known) none
   | some signed =>
-      apply (erases_treePath known parameter seed outputs hknown lay _ _).bind
-      intro path
-      exact .pure _
+      rcases signed with ⟨counter, values⟩
+      have h := (erases_treePath known parameter seed outputs hknown lay
+        (Concrete.treeIndexAt index lay) (Concrete.leafIndexAt index lay)).map
+          (fun path => some (LayerSignature.mk counter values path))
+      simp only [Option.map_some, LayerSignature.ofPadded,
+        bind_pure_comp, Functor.map_map, tableKey] at h ⊢
+      convert h using 2
+      rfl
 
 theorem erases_selectedSecrets (index : Index) (leaves : IndexGroup → FtsLeaf) :
     Erases known
@@ -243,8 +257,12 @@ theorem erases_sign (root : Digest) (message : Message) :
       apply hselected.bind_known
       apply (erases_ftsOpen known parameter seed outputs hknown index leaves).lift_hash.bind
       intro path
-      apply (Erases.sequenceLayers known _ _
-        (fun lay => erases_signLayer known parameter seed outputs hknown root index lay)).lift_hash.bind
+      have hlayers := Erases.sequenceLayers known _ _
+        (fun lay => erases_signLayer known parameter seed outputs hknown root index lay)
+      rw [sequenceLayers_map] at hlayers
+      have hlift := hlayers.lift_hash
+      simp only [liftM_map] at hlift
+      apply hlift.bind_map_right
       intro layers
       cases layers with
       | none => exact .pure _

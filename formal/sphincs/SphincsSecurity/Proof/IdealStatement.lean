@@ -206,9 +206,7 @@ noncomputable def sign (secretKey : SecretKey) (message : Message) :
             { randomness := randomness
               ftsSecret := fun tree => secretKey.ftsSecret index tree (leaves (ftsIndexOf tree))
               ftsPath := ftsPath
-              counter := fun lay => (parts lay).1
-              chainValue := fun lay => (parts lay).2.1
-              authPath := flattenPaths fun lay => (parts lay).2.2 }
+              layers := fun lay => LayerSignature.ofPadded lay (parts lay) }
 
 attribute [irreducible] treeNode ftsNode sampleParameter sampleOtsSecrets sampleFtsSecrets keygen sign
 
@@ -256,7 +254,7 @@ noncomputable def randomizedSign (secretKey : SecretKey) (message : Message) :
       let layers ← liftM
         (sequenceLayers (fun lay => signLayer secretKey index lay) :
           OracleComp HashSpec
-            (Option (Layer → Counter × (ChainIndex → Digest) × (Fin maxLayerHeight → Digest))))
+            (Option ((lay : Layer) → LayerSignature lay)))
       match layers with
       | none => return none
       | some parts => do
@@ -267,9 +265,7 @@ noncomputable def randomizedSign (secretKey : SecretKey) (message : Message) :
             { randomness := randomness
               ftsSecret := secrets
               ftsPath := ftsPath
-              counter := fun lay => (parts lay).1
-              chainValue := fun lay => (parts lay).2.1
-              authPath := flattenPaths fun lay => (parts lay).2.2 }
+              layers := parts }
 
 end Seeded
 

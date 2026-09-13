@@ -23,7 +23,7 @@ theorem boundaryEval_encode (parameter : PublicParameter) (f : QueryImpl HashSpe
       (evalWithAnswerFn f (encode parameter lay tree leaf message counter), FreeMonoid.of none) := by
   apply boundaryEval_eq_of_snd
   rw [encode, boundaryEval_bind,
-    boundaryEval_tweakableHash _ _ _ _ (by simp [hashDomainFields]), boundaryEval_pure, mul_one]
+    boundaryEval_tweakableHash _ _ _ _ (by simp [hashDomainFields, tweakFields]), boundaryEval_pure, mul_one]
 
 theorem boundaryEval_otsValues (parameter : PublicParameter) (f : QueryImpl HashSpec Id)
     (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (secret : ChainIndex → Digest)

@@ -223,9 +223,7 @@ def signAfterDigest (secretKey : SecretKey) (randomness : Randomness) (index : I
         { randomness := randomness
           ftsSecret := fun tree => secretKey.ftsSecret index tree (leaves (ftsIndexOf tree))
           ftsPath := ftsPath
-          counter := fun lay => (parts lay).1
-          chainValue := fun lay => (parts lay).2.1
-          authPath := flattenPaths fun lay => (parts lay).2.2 }
+          layers := fun lay => LayerSignature.ofPadded lay (parts lay) }
 
 theorem avoidsMessage_signAfterDigest (f : QueryImpl HashSpec Id) (secretKey : SecretKey)
     (randomness : Randomness) (index : Index) (leaves : IndexGroup → FtsLeaf) :
@@ -238,12 +236,12 @@ theorem avoidsMessage_signAfterDigest (f : QueryImpl HashSpec Id) (secretKey : S
   · unfold sequenceLayers
     apply AvoidsMessageQueries.bind (avoidsMessage_signLayer f secretKey index bottomLayer)
     split
-    · exact AvoidsMessageQueries.pure secretKey.parameter f _
     · apply AvoidsMessageQueries.bind (avoidsMessage_signLayer f secretKey index middleLayer)
       split
-      · exact AvoidsMessageQueries.pure secretKey.parameter f _
       · apply AvoidsMessageQueries.bind (avoidsMessage_signLayer f secretKey index topLayer)
         split <;> exact AvoidsMessageQueries.pure secretKey.parameter f _
+      · exact AvoidsMessageQueries.pure secretKey.parameter f _
+    · exact AvoidsMessageQueries.pure secretKey.parameter f _
   · split
     · exact AvoidsMessageQueries.pure secretKey.parameter f _
     · apply AvoidsMessageQueries.bind

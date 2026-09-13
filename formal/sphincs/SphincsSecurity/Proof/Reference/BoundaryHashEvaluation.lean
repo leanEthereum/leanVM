@@ -148,7 +148,7 @@ theorem boundaryEval_chainWalk (parameter : PublicParameter) (f : QueryImpl Hash
   | succ steps ih =>
       have hstep : start + steps < chainLength - 1 := by omega
       rw [chainWalk, boundaryEval_bind, dif_pos hstep,
-        boundaryEval_tweakableHash _ _ _ _ (by simp [hashDomainFields]), ih (by omega), pow_succ]
+        boundaryEval_tweakableHash _ _ _ _ (by simp [hashDomainFields, tweakFields]), ih (by omega), pow_succ]
 
 theorem boundaryEval_oneTimePublicKey (parameter : PublicParameter) (f : QueryImpl HashSpec Id)
     (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (secret : ChainIndex → Digest) :
@@ -172,13 +172,13 @@ theorem boundaryEval_treeNode (parameter : PublicParameter) (f : QueryImpl HashS
   | zero =>
       rw [treeNode_zero_eq, boundaryEval_bind, boundaryEval_oneTimePublicKey]
       simp only [leafHash, boundaryEval_tweakableHash parameter f (.leaf lay tree (leafOfNat nodeIdx)) _
-        (by simp [hashDomainFields])]
+        (by simp [hashDomainFields, tweakFields])]
       rw [← pow_succ]
       congr 1
   | succ level ih =>
       rw [treeNode_succ_eq, boundaryEval_bind]
       simp only [boundaryEval_bind, ih, boundaryEval_tweakableHash parameter f (.node lay tree (level + 1) nodeIdx) _
-        (by simp [hashDomainFields])]
+        (by simp [hashDomainFields, tweakFields])]
       rw [← pow_succ, ← pow_add]
       congr 1
       have hp : 0 < 2 ^ level := by positivity
@@ -206,13 +206,13 @@ theorem boundaryEval_ftsNode (parameter : PublicParameter) (f : QueryImpl HashSp
   apply boundaryEval_eq_of_snd
   induction level generalizing nodeIdx with
   | zero =>
-      rw [ftsNode_zero_eq, ftsLeafHash, boundaryEval_tweakableHash _ _ _ _ (by simp [hashDomainFields])]
+      rw [ftsNode_zero_eq, ftsLeafHash, boundaryEval_tweakableHash _ _ _ _ (by simp [hashDomainFields, tweakFields])]
       simp
   | succ level ih =>
       rw [ftsNode_succ_eq, boundaryEval_bind]
       simp only [boundaryEval_bind, ih,
         boundaryEval_tweakableHash parameter f (.ftsNode index tree (level + 1) nodeIdx) _
-          (by simp [hashDomainFields])]
+          (by simp [hashDomainFields, tweakFields])]
       rw [← pow_succ, ← pow_add]
       congr 1
       have hp : 0 < 2 ^ (level + 1) := by positivity
@@ -232,7 +232,7 @@ theorem boundaryEval_ftsKey (parameter : PublicParameter) (f : QueryImpl HashSpe
     rfl
   apply boundaryEval_eq_of_snd
   rw [ftsKey, boundaryEval_bind, hroots, hcost,
-    boundaryEval_tweakableHash _ _ _ _ (by simp [hashDomainFields]), ← pow_succ]
+    boundaryEval_tweakableHash _ _ _ _ (by simp [hashDomainFields, tweakFields]), ← pow_succ]
 
 theorem boundaryEval_ftsOpen (parameter : PublicParameter) (f : QueryImpl HashSpec Id)
     (index : Index) (leaves : IndexGroup → FtsLeaf) (secret : FtsTree → FtsLeaf → Digest) :

@@ -33,27 +33,26 @@ theorem known_honest_public_plan (key : SecretKey) (f : QueryImpl HashSpec Id) (
     funext tree level
     simp only [ftsOpen, evalWithAnswerFn_sequenceFin]
     exact ((hfull.2.1 tree).2 level.val level.isLt).symm
-  have hauthPath : flattenPaths (fun lay => (parts lay).2.2) = signature.authPath := by
-    funext position
-    obtain ⟨lay, level, hlevel, hposition⟩ := authPath_exhausted position
-    rw [flattenPaths_apply _ lay level hlevel position hposition.symm]
-    change knownTreePath known lay (treeIndexAt index lay) (leafIndexAt index lay) level = signature.authPath position
-    rw [knownTreePath_eq key.parameter key.otsSecret key.ftsSecret f words disclosed known hagrees]
-    simp only [treePath, evalWithAnswerFn_sequenceFin, if_pos hlevel]
-    obtain ⟨_, _, _, hpath⟩ := (hfull.1 lay).1
-    have hp := hpath level.val hlevel
-    have hsum : heightAbove lay + level.val < totalHeight := by rw [hposition]; exact position.isLt
-    simp only [signaturePath, dif_pos hsum] at hp
-    have hfin : (⟨heightAbove lay + level.val, hsum⟩ : PathIndex) = position := Fin.ext hposition
-    simpa only [hfin, honestNode] using hp.symm
+  have hparts : (fun lay => LayerSignature.ofPadded lay (parts lay)) = signature.layers := by
+    funext lay
+    apply LayerSignature.ext
+    · rfl
+    · rfl
+    · funext level
+      change knownTreePath known lay (treeIndexAt index lay) (leafIndexAt index lay)
+        (level.castLE (layerHeight_le lay)) = (signature.layers lay).path level
+      rw [knownTreePath_eq key.parameter key.otsSecret key.ftsSecret f words disclosed known hagrees]
+      simp only [treePath, evalWithAnswerFn_sequenceFin, Fin.val_castLE, if_pos level.isLt]
+      obtain ⟨_, _, _, hpath⟩ := (hfull.1 lay).1
+      simpa only [signaturePath, dif_pos level.isLt, Fin.eta, honestNode] using
+        (hpath level.val level.isLt).symm
   simp only [publicSignPlan, hlayers, sequenceFin_some, Option.map_some, hftsPath, PublicSigningPlan.finish, parts]
   congr 1
   change Signature.mk signature.randomness (fun tree => key.ftsSecret index tree (leaves (ftsIndexOf tree)))
-    signature.ftsPath signature.counter signature.chainValue
-      (flattenPaths fun lay => knownTreePath known lay (treeIndexAt index lay) (leafIndexAt index lay)) = signature
+    signature.ftsPath (fun lay => LayerSignature.ofPadded lay (parts lay)) = signature
   have hsecrets : (fun tree => key.ftsSecret index tree (leaves (ftsIndexOf tree))) = signature.ftsSecret :=
     funext fun tree => ((hfull.2.1 tree).1).symm
-  rw [hsecrets, hauthPath]
+  rw [hsecrets, hparts]
 
 theorem honest_signAfterDigest (key : SecretKey) (f : QueryImpl HashSpec Id) (dummy : OtsReferenceWords)
     (cache : QueryCache HashSpec) (index : Index) (leaves : IndexGroup → FtsLeaf) (signature : Signature)

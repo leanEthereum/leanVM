@@ -24,9 +24,7 @@ def signatureAfterTrial (secretKey : SphincsSecurity.SecretKey) (attempt : Trial
             { randomness := randomness
               ftsSecret := fun tree => secretKey.ftsSecret index tree (leaves (Concrete.ftsIndexOf tree))
               ftsPath := ftsPath
-              counter := fun lay => (parts lay).1
-              chainValue := fun lay => (parts lay).2.1
-              authPath := Concrete.flattenPaths fun lay => (parts lay).2.2 }
+              layers := fun lay => LayerSignature.ofPadded lay (parts lay) }
 
 theorem tableSign_eq_finish (randomizers : RandomizerOutputs) (secretKey : SphincsSecurity.SecretKey) (message : Message) :
     (tableSign randomizers secretKey message : OracleComp HashSpec (Option Signature)) =

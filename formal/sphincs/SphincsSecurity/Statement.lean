@@ -61,8 +61,6 @@ abbrev FtsTree := Fin (ftsTrees - 1)
 /-- An index group of the message digest, `kappa < k`. The first `k - 1` select a tree's leaf; the last is pinned to zero. -/
 abbrev IndexGroup := Fin ftsTrees
 abbrev FtsLeaf := Fin (2 ^ ftsTreeHeight)
-/-- A position in the signature's authentication path, the `h` nodes of the `d` layers concatenated top layer first. -/
-abbrev PathIndex := Fin totalHeight
 abbrev Encoding := ChainIndex → Digit
 abbrev HashInput := List UInt8
 
@@ -98,14 +96,19 @@ structure PublicKey where
   parameter : PublicParameter
 deriving DecidableEq
 
-/-- A signature, with every component the verifier reads and no other: the randomizer, one few-time secret and its `a` path nodes per held tree, and per layer a counter, `v` chain values, and its share of the `h` path nodes. That is `16 + 14 * 16 + 140 * 16 + 3 * 4 + 126 * 16 + 26 * 16 = 4924` bytes. -/
+/-- One layer's WOTS signature and authentication path. -/
+structure LayerSignature (lay : Layer) where
+  counter : Counter
+  chainValues : ChainIndex → Digest
+  path : Fin (layerHeight lay) → Digest
+deriving DecidableEq
+
+/-- The randomizer, FORS openings, and three layer signatures, totaling 4924 bytes. -/
 structure Signature where
   randomness : Randomness
   ftsSecret : FtsTree → Digest
   ftsPath : FtsTree → Fin ftsTreeHeight → Digest
-  counter : Layer → Counter
-  chainValue : Layer → ChainIndex → Digest
-  authPath : PathIndex → Digest
+  layers : (lay : Layer) → LayerSignature lay
 deriving DecidableEq
 
 /-- Serialize a bit vector into a fixed number of bytes, least significant byte first. -/
@@ -130,6 +133,11 @@ def fieldBytes (fields : TweakFields) : HashInput :=
   [protocolDomainSep] ++ bytesLE 1 fields.tag ++ bytesLE 1 fields.layer ++ [0] ++
     bytesLE 4 fields.position ++ bytesLE 4 fields.tree ++ bytesLE 4 fields.index
 
+/-- Convert the specification's five integer fields to their fixed widths. -/
+def tweakFields (tag layer tree position index : Nat) : TweakFields :=
+  ⟨BitVec.ofNat 8 tag, BitVec.ofNat 8 layer, BitVec.ofNat 32 tree,
+    BitVec.ofNat 32 position, BitVec.ofNat 32 index⟩
+
 /-- The verification hash domains. Seed derivation uses `KeygenDomain`. -/
 inductive HashDomain where
   | chain (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (chainIdx : ChainIndex) (step : ChainStep)
@@ -144,23 +152,14 @@ deriving DecidableEq
 
 /-- Serialize a typed hash domain into the fields of a tweak. Inside the hypertree the layer field is the layer and the tree field the tree; inside a few-time key they are the tree of the forest and the index that selects the instance. -/
 def hashDomainFields : HashDomain → TweakFields
-  | .chain lay tree leaf chainIdx step =>
-      ⟨1#8, BitVec.ofNat 8 lay.val, BitVec.ofNat 32 tree.val,
-        BitVec.ofNat 32 (chainLength * chainIdx.val + step.val), BitVec.ofNat 32 leaf.val⟩
-  | .leaf lay tree leaf =>
-      ⟨2#8, BitVec.ofNat 8 lay.val, BitVec.ofNat 32 tree.val, 0#32, BitVec.ofNat 32 leaf.val⟩
-  | .node lay tree level nodeIdx =>
-      ⟨3#8, BitVec.ofNat 8 lay.val, BitVec.ofNat 32 tree.val,
-        BitVec.ofNat 32 level, BitVec.ofNat 32 nodeIdx⟩
-  | .encoding lay tree leaf =>
-      ⟨4#8, BitVec.ofNat 8 lay.val, BitVec.ofNat 32 tree.val, 0#32, BitVec.ofNat 32 leaf.val⟩
-  | .ftsLeaf index tree leaf =>
-      ⟨6#8, BitVec.ofNat 8 tree.val, BitVec.ofNat 32 index.val, 0#32, BitVec.ofNat 32 leaf.val⟩
-  | .ftsNode index tree level nodeIdx =>
-      ⟨7#8, BitVec.ofNat 8 tree.val, BitVec.ofNat 32 index.val,
-        BitVec.ofNat 32 level, BitVec.ofNat 32 nodeIdx⟩
-  | .ftsRoots index => ⟨8#8, 0#8, BitVec.ofNat 32 index.val, 0#32, 0#32⟩
-  | .message => ⟨9#8, 0#8, 0#32, 0#32, 0#32⟩
+  | .chain lay tree leaf chainIdx step => tweakFields 1 lay tree (chainLength * chainIdx + step) leaf
+  | .leaf lay tree leaf => tweakFields 2 lay tree 0 leaf
+  | .node lay tree level nodeIdx => tweakFields 3 lay tree level nodeIdx
+  | .encoding lay tree leaf => tweakFields 4 lay tree 0 leaf
+  | .ftsLeaf index tree leaf => tweakFields 6 tree index 0 leaf
+  | .ftsNode index tree level nodeIdx => tweakFields 7 tree index level nodeIdx
+  | .ftsRoots index => tweakFields 8 0 index 0 0
+  | .message => tweakFields 9 0 0 0 0
 
 /-- The exact 16 bytes supplied by the specification as a hash tweak. -/
 def tweakBytes (domain : HashDomain) : HashInput :=
@@ -184,12 +183,9 @@ inductive KeygenDomain where
 deriving DecidableEq
 
 def keygenDomainFields : KeygenDomain → TweakFields
-  | .parameter => ⟨10#8, 0#8, 0#32, 0#32, 0#32⟩
-  | .ots lay tree leaf chain =>
-      ⟨0#8, BitVec.ofNat 8 lay.val, BitVec.ofNat 32 tree.val,
-        BitVec.ofNat 32 chain.val, BitVec.ofNat 32 leaf.val⟩
-  | .fts index tree leaf =>
-      ⟨5#8, BitVec.ofNat 8 tree.val, BitVec.ofNat 32 index.val, 0#32, BitVec.ofNat 32 leaf.val⟩
+  | .parameter => tweakFields 10 0 0 0 0
+  | .ots lay tree leaf chain => tweakFields 0 lay tree chain leaf
+  | .fts index tree leaf => tweakFields 5 tree index 0 leaf
 
 /-- `tweak || P || S`; parameter derivation uses `P = 0`. -/
 def keygenHashInput (parameter : PublicParameter) (domain : KeygenDomain)
@@ -315,13 +311,11 @@ def encode (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf 
 /-- `OtsLeaf`: the verifier's leaf, or nothing if the counter does not encode the message. -/
 def otsLeaf (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
     (message : Digest) (counter : Counter) (values : ChainIndex → Digest) : m (Option Digest) := do
-  match ← encode parameter lay tree leaf message counter with
-  | none => pure none
-  | some encoding => do
-      let endpoints ← sequenceFin fun chainIdx =>
-        recoverChain parameter lay tree leaf chainIdx (encoding chainIdx) (values chainIdx)
-      let value ← leafHash parameter lay tree leaf endpoints
-      return some value
+  let some encoding ← encode parameter lay tree leaf message counter | return none
+  let endpoints ← sequenceFin fun chainIdx =>
+    recoverChain parameter lay tree leaf chainIdx (encoding chainIdx) (values chainIdx)
+  let value ← leafHash parameter lay tree leaf endpoints
+  return some value
 
 /-! ### A layer -/
 
@@ -417,12 +411,9 @@ instance (digest : MessageDigest) : Decidable (Admissible digest) :=
 
 /-! ### Verification -/
 
-/-- Layer `lay`'s share of the signature's authentication path, its `h_lay` nodes starting at offset `sum_{j < lay} h_j`. -/
+/-- Read a layer's path, returning zero outside its height. -/
 def signaturePath (signature : Signature) (lay : Layer) (level : Nat) : Digest :=
-  if hlevel : heightAbove lay + level < totalHeight then
-    signature.authPath ⟨heightAbove lay + level, hlevel⟩
-  else
-    0
+  if hlevel : level < layerHeight lay then (signature.layers lay).path ⟨level, hlevel⟩ else 0
 
 /-- The hypertree walk, from the bottom layer up: `remaining + 1` enters at layer `remaining`, and layer `0`'s fold returns the value compared against the public root. -/
 def verifyLayers (parameter : PublicParameter) (index : Index) (signature : Signature) :
@@ -433,60 +424,37 @@ def verifyLayers (parameter : PublicParameter) (index : Index) (signature : Sign
         let lay : Layer := ⟨remaining, hlayer⟩
         let tree := treeIndexAt index lay
         let leaf := leafIndexAt index lay
-        match ← otsLeaf parameter lay tree leaf message (signature.counter lay)
-          (signature.chainValue lay) with
-        | none => pure none
-        | some value => do
-            let root ← treeFold parameter lay tree leaf (signaturePath signature lay)
-              (layerHeight lay) value
-            verifyLayers parameter index signature remaining root
+        let part := signature.layers lay
+        let some value ← otsLeaf parameter lay tree leaf message part.counter part.chainValues
+          | return none
+        let root ← treeFold parameter lay tree leaf (signaturePath signature lay) (layerHeight lay) value
+        verifyLayers parameter index signature remaining root
       else
         pure none
 
 /-- `Ver(pk, m, sigma)`: recompute the digest, recover the few-time key, walk the layers and compare with the root. -/
 def verify (publicKey : PublicKey) (message : Message) (signature : Signature) : m Bool := do
   let digest ← messageDigest publicKey.parameter publicKey.root message signature.randomness
-  if ¬ Admissible digest then
-    return false
+  if ¬ Admissible digest then return false
   else
     let index := digestIndex digest
     let ftsPublicKey ← ftsRecover publicKey.parameter index (digestLeaves digest)
       signature.ftsSecret signature.ftsPath
-    match ← verifyLayers publicKey.parameter index signature numLayers ftsPublicKey with
-    | none => return false
-    | some root => return decide (root = publicKey.root)
+    let some root ← verifyLayers publicKey.parameter index signature numLayers ftsPublicKey | return false
+    return decide (root = publicKey.root)
 
-/-! ### Signing randomness and path assembly -/
+/-! ### Signing -/
 
 /-- Layer `0` holds one tree, at index `0`. -/
 def rootTree : TreeIndex := ⟨0, Nat.two_pow_pos _⟩
 
-/-! ### Signing -/
-
-/-- Run layers from bottom to top, stopping on failure and indexing the results in serialization order. -/
-def sequenceLayers {α : Type} (computation : Layer → m (Option α)) : m (Option (Layer → α)) := do
-  match ← computation bottomLayer with
-  | none => return none
-  | some bottom =>
-      match ← computation middleLayer with
-      | none => return none
-      | some middle =>
-          match ← computation topLayer with
-          | none => return none
-          | some top => return some ![top, middle, bottom]
-
-/-- Which layer's path an entry of the `h` belongs to. -/
-def layerOfPath (position : Nat) : Layer :=
-  if position < heightAbove middleLayer then topLayer
-  else if position < heightAbove bottomLayer then middleLayer
-  else bottomLayer
-
-/-- Lay the `d` layers' paths end to end, top layer first, so that every one of the `h` entries is read by verification. -/
-def flattenPaths (paths : Layer → Fin maxLayerHeight → Digest) : PathIndex → Digest :=
-  fun position =>
-    let lay := layerOfPath position.val
-    let level := position.val - heightAbove lay
-    if hlevel : level < maxLayerHeight then paths lay ⟨level, hlevel⟩ else 0
+/-- Run layers from bottom to top, stopping on failure. -/
+def sequenceLayers {α : Layer → Type}
+    (computation : (lay : Layer) → m (Option (α lay))) : m (Option ((lay : Layer) → α lay)) := do
+  let some bottom ← computation bottomLayer | return none
+  let some middle ← computation middleLayer | return none
+  let some top ← computation topLayer | return none
+  return some (Fin.cases top (Fin.cases middle (Fin.cases bottom (fun i => Fin.elim0 i))))
 
 attribute [irreducible] verify
 
@@ -556,12 +524,9 @@ def treeRoot (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
   treeNode parameter lay tree seed (layerHeight lay) 0
 
 def treePath (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
-    (seed : MasterSeed) (leaf : LeafIndex) : m (Fin maxLayerHeight → Digest) :=
+    (seed : MasterSeed) (leaf : LeafIndex) : m (Fin (layerHeight lay) → Digest) :=
   sequenceFin fun level =>
-    if level.val < layerHeight lay then
-      treeNode parameter lay tree seed level (Nat.xor (leaf.val / 2 ^ level.val) 1)
-    else
-      pure 0
+    treeNode parameter lay tree seed level.val (Nat.xor (leaf.val / 2 ^ level.val) 1)
 
 def ftsNode (parameter : PublicParameter) (index : Index) (tree : FtsTree)
     (seed : MasterSeed) : Nat → Nat → m Digest
@@ -609,16 +574,14 @@ def layerMessage (secretKey : SecretKey) (index : Index) (lay : Layer) : m Diges
   else
     ftsKey secretKey.parameter index secretKey.seed
 
-def signLayer (secretKey : SecretKey) (index : Index) (lay : Layer) :
-    m (Option (Counter × (ChainIndex → Digest) × (Fin maxLayerHeight → Digest))) := do
+def signLayer (secretKey : SecretKey) (index : Index) (lay : Layer) : m (Option (LayerSignature lay)) := do
   let tree := treeIndexAt index lay
   let leaf := leafIndexAt index lay
   let message ← layerMessage secretKey index lay
-  match ← otsSign secretKey.parameter lay tree leaf secretKey.seed message with
-  | none => return none
-  | some (counter, values) => do
-      let path ← treePath secretKey.parameter lay tree secretKey.seed leaf
-      return some (counter, values, path)
+  let some (counter, values) ← otsSign secretKey.parameter lay tree leaf secretKey.seed message
+    | return none
+  let path ← treePath secretKey.parameter lay tree secretKey.seed leaf
+  return some ⟨counter, values, path⟩
 
 /-- Derive trials in increasing order, stopping at the first admissible digest. -/
 def signDigestLoop (secretKey : SecretKey) (message : Message) : Nat → Nat →
@@ -631,23 +594,14 @@ def signDigestLoop (secretKey : SecretKey) (message : Message) : Nat → Nat →
       | none => signDigestLoop secretKey message attempts (trial + 1)
 
 def sign (secretKey : SecretKey) (message : Message) : m (Option Signature) := do
-  match ← signDigestLoop secretKey message digestAttemptLimit 0 with
-  | none => return none
-  | some (randomness, index, leaves) => do
-      let secrets ← sequenceFin fun tree =>
-        deriveKey secretKey.parameter (.fts index tree (leaves (ftsIndexOf tree))) secretKey.seed
-      let ftsPath ← ftsOpen secretKey.parameter index leaves secretKey.seed
-      match ← sequenceLayers (fun lay => signLayer secretKey index lay) with
-      | none => return none
-      | some parts => do
-          let _ ← treeRoot secretKey.parameter topLayer rootTree secretKey.seed
-          return some
-            { randomness := randomness
-              ftsSecret := secrets
-              ftsPath := ftsPath
-              counter := fun lay => (parts lay).1
-              chainValue := fun lay => (parts lay).2.1
-              authPath := flattenPaths fun lay => (parts lay).2.2 }
+  let some (randomness, index, leaves) ← signDigestLoop secretKey message digestAttemptLimit 0
+    | return none
+  let secrets ← sequenceFin fun tree =>
+    deriveKey secretKey.parameter (.fts index tree (leaves (ftsIndexOf tree))) secretKey.seed
+  let ftsPath ← ftsOpen secretKey.parameter index leaves secretKey.seed
+  let some layers ← sequenceLayers (fun lay => signLayer secretKey index lay) | return none
+  let _ ← treeRoot secretKey.parameter topLayer rootTree secretKey.seed
+  return some ⟨randomness, secrets, ftsPath, layers⟩
 
 end Seeded
 

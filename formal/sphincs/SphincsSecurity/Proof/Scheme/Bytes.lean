@@ -78,7 +78,7 @@ theorem tweakBytes_injective {d1 d2 : HashDomain} (h1 : d1.InRange) (h2 : d2.InR
     (h : tweakBytes d1 = tweakBytes d2) : d1 = d2 := by
   rw [tweakBytes_eq_iff] at h
   cases d1 <;> cases d2 <;>
-    simp_all [hashDomainFields, HashDomain.InRange, TweakFields.mk.injEq]
+    simp_all [hashDomainFields, tweakFields, HashDomain.InRange, TweakFields.mk.injEq]
   case chain.chain lay1 tree1 leaf1 i1 s1 lay2 tree2 leaf2 i2 s2 =>
     obtain ⟨hl, ht, hp, hlf⟩ := h
     have hbound : ∀ (i : ChainIndex) (s : ChainStep), chainLength * i.val + s.val < 2 ^ 32 := by
@@ -130,7 +130,7 @@ theorem tweakableHashInput_ne_message (parameter : PublicParameter) (domain : Ha
   obtain ⟨htweak, _⟩ := List.append_inj' hprefix (by simp [bytesLE_length])
   apply hdomain
   cases domain <;>
-    simp_all [tweakBytes_eq_iff, hashDomainFields, TweakFields.mk.injEq]
+    simp_all [tweakBytes_eq_iff, hashDomainFields, tweakFields, TweakFields.mk.injEq]
 
 /-! ### Payloads
 

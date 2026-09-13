@@ -34,11 +34,11 @@ theorem frontierTreeNode (lay : Layer) (tree : TreeIndex) (words : LeafIndex →
       evalWithAnswerFn g (Concrete.frontierTreeNode parameter lay tree words frontier level nodeIdx) := by
   apply eval_frontierTreeNode_congr
   · intro leaf chainIdx step _ input
-    exact congrArg truncateHash (h.domain (.chain lay tree leaf chainIdx step) (by simp only [hashDomainFields]; decide) (digestBytes input))
+    exact congrArg truncateHash (h.domain (.chain lay tree leaf chainIdx step) (by simp only [hashDomainFields, tweakFields]; decide) (digestBytes input))
   · intro leaf payload
-    exact congrArg truncateHash (h.domain (.leaf lay tree leaf) (by simp only [hashDomainFields]; decide) payload)
+    exact congrArg truncateHash (h.domain (.leaf lay tree leaf) (by simp only [hashDomainFields, tweakFields]; decide) payload)
   · intro level nodeIdx payload
-    exact congrArg truncateHash (h.domain (.node lay tree level nodeIdx) (by simp only [hashDomainFields]; decide) payload)
+    exact congrArg truncateHash (h.domain (.node lay tree level nodeIdx) (by simp only [hashDomainFields, tweakFields]; decide) payload)
 
 theorem frontierTreePath (lay : Layer) (tree : TreeIndex) (words : LeafIndex → Encoding)
     (frontier : LeafIndex → ChainIndex → Digest) (leaf : LeafIndex) :
@@ -56,10 +56,10 @@ theorem ftsNode (index : Index) (tree : FtsTree) (secret : FtsLeaf → Digest) (
   induction level generalizing nodeIdx with
   | zero =>
       simp only [ftsNode_zero_eq, ftsLeafHash, eval_tweakableHash]
-      exact congrArg truncateHash (h.domain (.ftsLeaf index tree _) (by simp only [hashDomainFields]; decide) _)
+      exact congrArg truncateHash (h.domain (.ftsLeaf index tree _) (by simp only [hashDomainFields, tweakFields]; decide) _)
   | succ level ih =>
       simp only [ftsNode_succ_eq, evalWithAnswerFn_bind, ih, eval_tweakableHash]
-      exact congrArg truncateHash (h.domain (.ftsNode index tree (level + 1) nodeIdx) (by simp only [hashDomainFields]; decide) _)
+      exact congrArg truncateHash (h.domain (.ftsNode index tree (level + 1) nodeIdx) (by simp only [hashDomainFields, tweakFields]; decide) _)
 
 theorem ftsOpen (index : Index) (leaves : IndexGroup → FtsLeaf) (secret : FtsTree → FtsLeaf → Digest) :
     evalWithAnswerFn f (Concrete.ftsOpen parameter index leaves secret) =
@@ -72,7 +72,7 @@ theorem publicDigestLoop (root : Digest) (message : Message) (attempts : Nat) :
   have hattempt (randomness : Randomness) :
       boundaryEval parameter f (publicSignAttempt parameter root message randomness) =
         boundaryEval parameter g (publicSignAttempt parameter root message randomness) := by
-    have hinput := h.domain .message (by simp only [hashDomainFields]; decide) (messageDigestPayload root message randomness)
+    have hinput := h.domain .message (by simp only [hashDomainFields, tweakFields]; decide) (messageDigestPayload root message randomness)
     simp [publicSignAttempt, messageDigest, oracleHash, boundaryEval, QueryImpl.withTrace_apply, hinput]
   induction attempts with
   | zero => simp only [Concrete.publicDigestLoop, fixedBoundaryRun_pure]

@@ -115,9 +115,7 @@ def frontierSignAfterDigest (parameter : PublicParameter) (f : QueryImpl HashSpe
       { randomness := randomness
         ftsSecret := fun tree => ftsSecret index tree (leaves (ftsIndexOf tree))
         ftsPath := paths
-        counter := fun lay => (parts lay).1
-        chainValue := fun lay => (parts lay).2.1
-        authPath := flattenPaths fun lay => (parts lay).2.2 }),
+        layers := fun lay => LayerSignature.ofPadded lay (parts lay) }),
     28504 + sequenceLayersHashCost layers +
       if (sequenceFin (m := Option) (fun lay => (layers lay).1)).isSome then 1212415 else 0)
 

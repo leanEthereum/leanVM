@@ -27,9 +27,7 @@ def PublicSigningPlan.finish (plan : PublicSigningPlan) (secrets : FtsTree → D
   randomness := plan.randomness
   ftsSecret := secrets
   ftsPath := plan.ftsPath
-  counter := fun lay => (plan.parts lay).1
-  chainValue := fun lay => (plan.parts lay).2.1
-  authPath := flattenPaths fun lay => (plan.parts lay).2.2
+  layers := fun lay => LayerSignature.ofPadded lay (plan.parts lay)
 
 def publicSignPlan (known : Labels) (words : OtsReferenceWords) (selections : ReferenceFamily)
     (randomness : Randomness) (index : Index) (leaves : IndexGroup → FtsLeaf) : Option PublicSigningPlan × Nat :=

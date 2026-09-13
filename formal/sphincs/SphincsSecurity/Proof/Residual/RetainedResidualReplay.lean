@@ -43,28 +43,27 @@ theorem Compatible.honest_public_plan {inputs : Finset HashInput} {context : Con
     funext tree level
     simp only [ftsOpen, evalWithAnswerFn_sequenceFin]
     exact ((hfull.2.1 tree).2 level.val level.isLt).symm
-  have hauthPath : flattenPaths (fun lay => (parts lay).2.2) = signature.authPath := by
-    funext position
-    obtain ⟨lay, level, hlevel, hposition⟩ := authPath_exhausted position
-    rw [flattenPaths_apply _ lay level hlevel position hposition.symm]
-    change knownTreePath memory.routing.known lay (treeIndexAt index lay) (leafIndexAt index lay) level = signature.authPath position
-    rw [knownTreePath_eq context.key.parameter context.key.otsSecret context.key.ftsSecret context.oracle context.words
-      memory.routing.disclosed memory.routing.known hagrees]
-    simp only [treePath, evalWithAnswerFn_sequenceFin, if_pos hlevel]
-    obtain ⟨_, _, _, hpath⟩ := (hfull.1 lay).1
-    have hpath := hpath level.val hlevel
-    have hsum : heightAbove lay + level.val < totalHeight := by rw [hposition]; exact position.isLt
-    simp only [signaturePath, dif_pos hsum] at hpath
-    have hfin : (⟨heightAbove lay + level.val, hsum⟩ : PathIndex) = position := Fin.ext hposition
-    simpa only [hfin, honestNode] using hpath.symm
+  have hparts : (fun lay => LayerSignature.ofPadded lay (parts lay)) = signature.layers := by
+    funext lay
+    apply LayerSignature.ext
+    · rfl
+    · rfl
+    · funext level
+      change knownTreePath memory.routing.known lay (treeIndexAt index lay) (leafIndexAt index lay)
+        (level.castLE (layerHeight_le lay)) = (signature.layers lay).path level
+      rw [knownTreePath_eq context.key.parameter context.key.otsSecret context.key.ftsSecret context.oracle context.words
+        memory.routing.disclosed memory.routing.known hagrees]
+      simp only [treePath, evalWithAnswerFn_sequenceFin, Fin.val_castLE, if_pos level.isLt]
+      obtain ⟨_, _, _, hpath⟩ := (hfull.1 lay).1
+      simpa only [signaturePath, dif_pos level.isLt, Fin.eta, honestNode] using
+        (hpath level.val level.isLt).symm
   simp only [publicSignPlan, hlayers, sequenceFin_some, Option.map_some, hftsPath, PublicSigningPlan.finish, parts]
   congr 1
   change Signature.mk signature.randomness (fun tree => context.key.ftsSecret index tree (leaves (ftsIndexOf tree)))
-    signature.ftsPath signature.counter signature.chainValue
-      (flattenPaths fun lay => knownTreePath memory.routing.known lay (treeIndexAt index lay) (leafIndexAt index lay)) = signature
+    signature.ftsPath (fun lay => LayerSignature.ofPadded lay (parts lay)) = signature
   have hsecrets : (fun tree => context.key.ftsSecret index tree (leaves (ftsIndexOf tree))) = signature.ftsSecret :=
     funext fun tree => ((hfull.2.1 tree).1).symm
-  rw [hsecrets, hauthPath]
+  rw [hsecrets, hparts]
 
 theorem Compatible.honest_signAfterDigest {inputs : Finset HashInput} {context : Context inputs} {memory : Memory}
     (hcompatible : Compatible context memory) (hdummy : ∀ lay tree leaf, TargetSum.Valid (context.dummy lay tree leaf))

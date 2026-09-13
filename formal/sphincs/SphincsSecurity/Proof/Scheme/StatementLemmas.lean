@@ -9,10 +9,6 @@ import SphincsSecurity.Proof.IdealStatement
 
 namespace SphincsSecurity.Concrete
 
-theorem _root_.SphincsSecurity.layerHeight_le (lay : Layer) : layerHeight lay ≤ maxLayerHeight := by
-  unfold layerHeight maxLayerHeight
-  split <;> omega
-
 attribute [local semireducible] treeNode ftsNode verify sign sampleRandomness
 
 noncomputable local instance instSampleableTypeRandomness_1 : SampleableType Randomness :=
@@ -108,7 +104,15 @@ theorem verifyLayers_succ_eq (parameter : PublicParameter) (index : Index) (sign
                   (signaturePath signature ⟨remaining, hlayer⟩) (layerHeight ⟨remaining, hlayer⟩)
                   value
                 verifyLayers parameter index signature remaining root)
-        else pure none) := rfl
+        else pure none) := by
+  rw [verifyLayers]
+  split
+  · apply bind_congr
+    intro result
+    cases result <;> rfl
+  · rfl
+
+attribute [local irreducible] verifyLayers
 
 theorem verify_eq (publicKey : PublicKey) (message : Message) (signature : Signature) :
     verify (m := m) publicKey message signature
@@ -122,7 +126,17 @@ theorem verify_eq (publicKey : PublicKey) (message : Message) (signature : Signa
             match ← verifyLayers publicKey.parameter (digestIndex digest) signature numLayers
                 ftsPublicKey with
             | none => return false
-            | some root => return decide (root = publicKey.root)) := rfl
+            | some root => return decide (root = publicKey.root)) := by
+  unfold verify
+  apply bind_congr
+  intro digest
+  split
+  · rfl
+  · apply bind_congr
+    intro key
+    apply bind_congr
+    intro result
+    cases result <;> rfl
 
 theorem sign_eq (secretKey : SecretKey) (message : Message) :
     sign secretKey message
@@ -148,9 +162,7 @@ theorem sign_eq (secretKey : SecretKey) (message : Message) :
                       ftsSecret := fun tree =>
                         secretKey.ftsSecret index tree (leaves (ftsIndexOf tree))
                       ftsPath := ftsPath
-                      counter := fun lay => (parts lay).1
-                      chainValue := fun lay => (parts lay).2.1
-                      authPath := flattenPaths fun lay => (parts lay).2.2 }) := rfl
+                      layers := fun lay => LayerSignature.ofPadded lay (parts lay) }) := rfl
 
 theorem sampleRandomness_eq :
     sampleRandomness = ($ᵗ Randomness : ProbComp Randomness) := rfl
@@ -221,26 +233,5 @@ theorem leafIndexAt_bottomLayer (index : Index) :
     (leafIndexAt index bottomLayer).val = index.val % 2 ^ layerHeight bottomLayer := by
   have hb : heightBelow bottomLayer = 0 := by decide
   simp [leafIndexAt_val, hb]
-
-/-- An entry at a layer's own offset belongs to that layer. -/
-theorem layerOfPath_eq (lay : Layer) (level : Fin maxLayerHeight) (hlevel : level.val < layerHeight lay) :
-    layerOfPath (heightAbove lay + level.val) = lay := by
-  revert hlevel
-  revert level
-  revert lay
-  decide
-
-theorem flattenPaths_apply (paths : Layer → Fin maxLayerHeight → Digest) (lay : Layer)
-    (level : Fin maxLayerHeight) (hlevel : level.val < layerHeight lay) (position : PathIndex)
-    (hposition : position.val = heightAbove lay + level.val) :
-    flattenPaths paths position = paths lay level := by
-  simp only [flattenPaths, hposition, layerOfPath_eq lay level hlevel, Nat.add_sub_cancel_left,
-    dif_pos level.isLt, Fin.eta]
-
-/-- Every one of the `h` entries is read by some layer: the offsets partition `0..h-1` into the `d` layers, so the path carries no entry verification skips and none twice. This is arithmetic about the offsets, not a statement about `verifyLayers`. -/
-theorem authPath_exhausted (position : PathIndex) : ∃ lay : Layer, ∃ level : Fin maxLayerHeight,
-    level.val < layerHeight lay ∧ heightAbove lay + level.val = position.val := by
-  revert position
-  decide
 
 end SphincsSecurity.Concrete

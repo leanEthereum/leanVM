@@ -33,9 +33,7 @@ def tableSign (randomizers : RandomizerOutputs) (secretKey : SphincsSecurity.Sec
             { randomness := randomness
               ftsSecret := fun tree => secretKey.ftsSecret index tree (leaves (ftsIndexOf tree))
               ftsPath := ftsPath
-              counter := fun lay => (parts lay).1
-              chainValue := fun lay => (parts lay).2.1
-              authPath := flattenPaths fun lay => (parts lay).2.2 }
+              layers := fun lay => LayerSignature.ofPadded lay (parts lay) }
 
 noncomputable def tableScheme (randomizers : RandomizerOutputs) : Scheme SphincsSecurity.SecretKey where
   keygen := Concrete.scheme.keygen
@@ -81,8 +79,10 @@ theorem erases_deterministicSign (known : QueryCache HashSpec) (parameter : Publ
       apply (erases_selectedSecrets known parameter seed outputs hsecrets index leaves).bind_known
       apply (erases_ftsOpen known parameter seed outputs hsecrets index leaves).bind
       intro path
-      apply (Erases.sequenceLayers known _ _
-        (fun lay => erases_signLayer known parameter seed outputs hsecrets root index lay)).bind
+      have hlayers := Erases.sequenceLayers known _ _
+        (fun lay => erases_signLayer known parameter seed outputs hsecrets root index lay)
+      rw [sequenceLayers_map] at hlayers
+      apply hlayers.bind_map_right
       intro layers
       cases layers with
       | none => exact .pure _
