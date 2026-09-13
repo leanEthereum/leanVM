@@ -21,7 +21,7 @@ def messageBits : Nat := 256
 def publicParameterBits : Nat := 128
 def randomnessBits : Nat := 192
 /-- Encoding attempts per signature, `A_max`. -/
-def signingAttemptLimit : Nat := 2 ^ 23
+def signingAttemptLimit : Nat := 2 ^ 32
 /-- The Merkle tree height `h`; the lifetime is `L = 2^h` epochs. -/
 def treeHeight : Nat := 32
 def lifetime : Nat := 2 ^ treeHeight

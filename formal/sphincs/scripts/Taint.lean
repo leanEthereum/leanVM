@@ -30,13 +30,13 @@ def ftsSeeds : Array Name := #[``SphincsSecurity.ftsTreeHeight, ``SphincsSecurit
   ``SphincsSecurity.Concrete.signAttempt, ``SphincsSecurity.Concrete.signDigestLoop]
 
 def treeSeeds : Array Name := #[``SphincsSecurity.numLayers, ``SphincsSecurity.totalHeight, ``SphincsSecurity.maxLayerHeight,
-  ``SphincsSecurity.PathIndex, ``SphincsSecurity.layerHeight, ``SphincsSecurity.topLayer, ``SphincsSecurity.middleLayer,
+  ``SphincsSecurity.LayerSignature, ``SphincsSecurity.layerHeight, ``SphincsSecurity.topLayer, ``SphincsSecurity.middleLayer,
   ``SphincsSecurity.bottomLayer, ``SphincsSecurity.heightAbove, ``SphincsSecurity.heightBelow, ``SphincsSecurity.HashDomain.leaf,
   ``SphincsSecurity.HashDomain.node, ``SphincsSecurity.Concrete.treeIndexAt, ``SphincsSecurity.Concrete.leafIndexAt,
   ``SphincsSecurity.Concrete.leafOfNat, ``SphincsSecurity.Concrete.nodePayload, ``SphincsSecurity.Concrete.treeNode,
   ``SphincsSecurity.Concrete.treeRoot, ``SphincsSecurity.Concrete.treePath, ``SphincsSecurity.Concrete.treeFold,
   ``SphincsSecurity.Concrete.signaturePath, ``SphincsSecurity.Concrete.verifyLayers, ``SphincsSecurity.Concrete.layerMessage,
-  ``SphincsSecurity.Concrete.signLayer, ``SphincsSecurity.Concrete.layerOfPath, ``SphincsSecurity.Concrete.flattenPaths,
+  ``SphincsSecurity.Concrete.signLayer, ``SphincsSecurity.Concrete.sequenceLayers,
   ``SphincsSecurity.Concrete.rootTree]
 
 def tagOf (n : Name) : Nat :=

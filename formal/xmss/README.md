@@ -8,7 +8,7 @@ The theorem `xmss_has_127_bits_of_classical_security` proves this claim. The red
 
 The adversary has access to the shared random oracle and a signing oracle. Signing responses are logged. Reusing a signing epoch invalidates the transcript, and the strong-forgery check rejects only an exact replay for the claimed message and epoch. The query bound applies to every execution of the consistent random oracle and covers the entire experiment, including key generation, adversarial queries, signing, repeated hash calls, and final verification.
 
-The theorem covers full-tree key generation and at most `2^23` randomizer trials per signing request. Rust also supports restricted epoch ranges, which are outside this statement.
+The theorem covers full-tree key generation and at most `2^32` randomizer trials per signing request. Rust also supports restricted epoch ranges, which are outside this statement.
 
 The theorem's axiom footprint is limited to Lean's standard `propext`, `Classical.choice`, and `Quot.sound`. It contains no `sorryAx` or compiler-evaluation axiom. The root module pins this footprint with `#guard_msgs`, so the build fails if it ever grows.
 

@@ -129,7 +129,7 @@ fn tampered_signatures_rejected() {
 fn encoding_grinding_bits() {
     let n = 200;
     let pp = [0u8; PUBLIC_PARAM_LEN];
-    let mut total_iters = 0usize;
+    let mut total_iters = 0u64;
     for i in 0..n {
         let mut rng = StdRng::seed_from_u64(i as u64);
         let message: Message = rng.random();

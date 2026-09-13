@@ -106,14 +106,13 @@ pub fn find_randomness_for_wots_encoding(
     epoch: Epoch,
     public_param: &PublicParam,
     seed: &[u8; 32],
-) -> Option<(Randomness, [u8; V], usize)> {
+) -> Option<(Randomness, [u8; V], u64)> {
     (0..MAX_RANDOMIZER_TRIALS).find_map(|trial| {
         let mut hasher = primitives::hash::Hasher::new();
-        hasher.update(&make_tweak(TWEAK_TYPE_RANDOMIZER, trial, epoch));
+        hasher.update(&make_tweak(TWEAK_TYPE_RANDOMIZER, trial as u32, epoch));
         hasher.update(public_param).update(seed).update(message);
         let randomness = hasher.finalize()[..RANDOMNESS_LEN].try_into().unwrap();
-        wots_encode(message, epoch, public_param, &randomness)
-            .map(|encoding| (randomness, encoding, trial as usize + 1))
+        wots_encode(message, epoch, public_param, &randomness).map(|encoding| (randomness, encoding, trial + 1))
     })
 }
 

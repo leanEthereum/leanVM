@@ -95,7 +95,7 @@ $v$ & $42$ & code length\\
 $T$ & $195$ & target sum\\
 $h$ & $32$ & Merkle tree height\\
 $L$ & $2^{32}$ & lifetime\\
-$\amax$ & $2^{23}$ & maximum encoding attempts per signature\\
+$\amax$ & $2^{32}$ & maximum randomizer trials per signature\\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -190,7 +190,7 @@ The public key is serialized as $\rootnode\concat P$.
 
 \section{Signing}
 
-$\Sig(\sk,\ep,m)$ is deterministic. The caller must ensure that an epoch signs only one message. The signer makes at most $\amax=2^{23}$ randomizer trials. For $a=0,\ldots,\amax-1$, it derives
+$\Sig(\sk,\ep,m)$ is deterministic. The caller must ensure that an epoch signs only one message. The signer makes at most $\amax=2^{32}$ randomizer trials. For $a=0,\ldots,\amax-1$, it derives
 \[
   \rho_a=\Truncate_{\lrnd\text{ bits}}\!\left(\hash(\mathsf{tweak}_{\mathrm{rnd}}(\ep,a)\concat P\concat S\concat m)\right)
 \]
@@ -299,7 +299,7 @@ over the oracle and the master seed sampled by $\Gen$. The scheme is $\varepsilo
 \end{definition}
 
 \begin{theorem}[XMSS completeness]
-The XMSS specified above is $2^{-256}$-complete in the ROM. Consequently a single key answers all $L=2^{32}$ of its epochs with a signature, except with probability at most $2^{-224}$.
+With probability at least $1-2^{-256}$ over the master seed and random oracle, one key can sign every 256-bit message at every epoch successfully. In particular, XMSS is $2^{-256}$-complete.
 \end{theorem}
 
 \begin{proof}
@@ -325,11 +325,16 @@ At $w=3$, $v=42$ and $T=195$,
 
 \emph{One attempt.} The map $I$ is injective, and no query of $\Gen$ reaches its image, $\Gen$ using tweak types $0$, $1$, $2$, $3$ and $10$, not $4$. So a $\rho$ not drawn before is a fresh oracle point, making $D$ uniform on $\bits n$ and independent of the history, and the attempt succeeds with probability exactly $\alpha$.
 
-\emph{Exhausting the attempts.} Let $\mathcal F_a$ be the event that the first $a$ attempts all fail. The next derivation uses a fresh type-12 input, so its truncated output $\rho_a$ is uniform and independent of the earlier attempts. This $\rho_a$ equals one of the $a$ earlier randomizers with probability at most $a2^{-\lrnd}$, and otherwise the attempt fails with probability $1-\alpha$, so $\Pr[\mathcal F_{a+1}\mid\mathcal F_a]\leq1-\alpha+a2^{-\lrnd}$. Multiplying over $0\leq a<\amax$, and since $\amax2^{-\lrnd}=2^{-169}\leq2^{-128}$,
+\emph{Exhausting the attempts.} Let $\mathcal F_a$ be the event that the first $a$ attempts all fail. The next derivation uses a fresh type-12 input, so its truncated output $\rho_a$ is uniform and independent of the earlier attempts. This $\rho_a$ equals one of the $a$ earlier randomizers with probability at most $a2^{-\lrnd}$, and otherwise the attempt fails with probability $1-\alpha$, so $\Pr[\mathcal F_{a+1}\mid\mathcal F_a]\leq1-\alpha+a2^{-\lrnd}$. Multiplying over $0\leq a<\amax$, and since $\amax2^{-\lrnd}=2^{-160}\leq2^{-128}$,
 \[
   \Pr[\sigma=\bot]=\Pr[\mathcal F_{\amax}]\leq\left(1-\alpha+\amax2^{-\lrnd}\right)^{\amax}\leq\left(1-2^{-15}\right)^{\amax}.
 \]
-As $\left(1-2^{-15}\right)^{2^{15}}\leq2^{-1}$ and $\amax=2^{15}\cdot2^{8}$, this gives $\varepsilon_{\SIG}\leq2^{-2^{8}}=2^{-256}$. Finally $\mathsf{tweak}_{\mathrm{enc}}(\ep)$ carries the epoch, so calls at distinct epochs query disjoint oracle points and the bound holds for each of a key's $L$ epochs; a union bound over them gives the second claim.
+As $\left(1-2^{-15}\right)^{2^{15}}\leq2^{-1}$ and $\amax=2^{15}\cdot2^{17}$, each fixed pair $(\ep,m)$ fails with probability at most $2^{-2^{17}}$. There are $L\cdot2^{256}=2^{288}$ epoch-message pairs. A union bound therefore gives
+\[
+  \Pr[\exists\,\ep,m:\Sig(\sk,\ep,m)=\bot]
+  \leq2^{288}\cdot2^{-2^{17}}
+  =2^{-130784}<2^{-256}.
+\]
 \end{proof}
 
 \bibliographystyle{alphaurl}

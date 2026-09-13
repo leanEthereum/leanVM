@@ -41,7 +41,7 @@ pub const NUM_CHAIN_HASHES: usize = 99;
 /// average.
 pub const TARGET_SUM: usize = V * (CHAIN_LENGTH - 1) - NUM_CHAIN_HASHES; // 195
 /// Maximum randomizer trials per signature.
-pub const MAX_RANDOMIZER_TRIALS: u32 = 1 << 23;
+pub const MAX_RANDOMIZER_TRIALS: u64 = 1 << 32;
 pub const RANDOMNESS_LEN: usize = 24;
 pub const MESSAGE_LEN: usize = 32;
 pub const PUBLIC_PARAM_LEN: usize = 16;
