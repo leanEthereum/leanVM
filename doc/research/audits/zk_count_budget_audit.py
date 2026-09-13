@@ -743,6 +743,22 @@ def revised_contract():
     )
     print("The four other bytecode ranges, local/indirect count ranges and uniform guest resource contract remain unproved.", flush=True)
 
+    refined = (differences[0], ((0, 220000000), (0, 200000000), (0, 140000000)), *differences[2:])
+    budget = plan(bytecode, refined, (-1600000000, 0), jump, targets, 16)
+    normalized = tuple(value + added for value, added in zip(incoming, budget["added"], strict=True))
+    fillers, returns = completion_budget(normalized)
+    assert budget["added"] == (58510, 112058, 185276, 148624, 442844)
+    assert fillers == (2050, 3502, 35284, 1936, 1873) and returns == 2675
+    assert budget["new_label"] == 156932
+    refined_upper = ((69345860, 106949444, 69345860), (83280841, 63280841, 3280841), (6341048,), (60834441,) * 3)
+    for table, row in enumerate(refined):
+        for column, (low, high) in enumerate(row):
+            transfer = 37603584 if table == 0 and column != 1 else 0
+            assert high - low == raw_code[table] + refined_upper[table][column] + losses[table] + transfer
+    for table, column, bound in ((0, 1, 58000000), (0, 2, 59400000), (1, 0, 83100000), (1, 1, 45300000), (1, 2, 300000), (2, 0, 786432)):
+        assert bound <= refined_upper[table][column]
+    print(f"Incidence-refined contract: normalizer {budget['added']}, final fillers {fillers}, {returns} returns; unchanged geometry and reservations.", flush=True)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)

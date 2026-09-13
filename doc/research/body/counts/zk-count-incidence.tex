@@ -1,0 +1,72 @@
+% !TeX root = ../../main.tex
+\subsection{Public incidence certificates for memory-minus-code counts}\label{note:zk-count-incidence}
+
+\paragraph{Result and boundary.} Repeated code visits incur a quadratic bytecode exponent. Charging memory collisions to their participating instructions exploits that cost and proves further upper bounds without knowing the private call trace. A small redistribution of the preceding count rectangle then covers all three MUL columns, two XOR columns and SET. The first XOR column, all three DEREF columns, four bytecode caps and uniform ownership/resources remain open. This is a capacity result, not a statistical-transcript theorem.
+
+Use the local-priority assignment of Lemma~\ref{lem:zk-local-role-priority}. A real frame belongs to one public function, its local operands stay inside its disjoint allocation, and each executed instruction occurs at most once there. Ordinary filler instructions are excluded. These are the same owned-frame premises as before; no complete function path or public call multiplicity is assumed. Indirect DEREF targets come last and are not local occurrences.
+
+\subsubsection{Subtract bytecode before maximizing}
+
+For a selected local memory column $(t,c)$, let $\zkPcVisits{p}$ count real visits to its opcode-$t$ instruction at PC $p$. Its real bytecode exponent is $\sum_p\binom{\zkPcVisits{p}}2$. Suppose public nonnegative integer coefficients $\zkIncWeights=(\zkIncWeight{p})_p$ and a public constant $\zkIncConstant$ satisfy
+\[
+ \zkRealDiff{t}{c}
+ \le\zkIncConstant+\sum_p\left(\zkIncWeight{p}\zkPcVisits{p}-\binom{\zkPcVisits{p}}2\right).
+\]
+
+\begin{lemma}[Exact row-budget bound]\label{lem:zk-incidence-conjugate}
+If there are at most $\zkPriorityRows{t}$ real rows of opcode $t$, the right-hand side is at most $\zkIncConstant+\zkIncGain{\zkPriorityRows{t}}{\zkIncWeights}$, where $\zkIncGain{n}{\zkIncWeights}$ is the sum of the $n$ largest positive entries, or all positive entries if fewer exist, in the multiset
+\[
+ \biguplus_p\{\zkIncWeight{p},\zkIncWeight{p}-1,\ldots,1\}.
+\]
+\end{lemma}
+\begin{proof}
+The marginal contribution of the $j$th visit to $p$ is $\zkIncWeight{p}-j+1$. Positive marginals decrease strictly within each instruction, so selecting the largest ones selects an initial segment at each PC. It realizes the exact integer maximum subject to $\sum_p\zkPcVisits{p}\le n$; nonpositive extra marginals cannot increase it. A histogram of coefficient values computes the sum exactly by descending gains, without enumerating visits or executions.
+\end{proof}
+
+\subsubsection{Build the public coefficients from read pairs}
+
+At one relative cell of one function, the selected role's label sum counts pairs of its accesses and pairs with earlier-priority accesses. Two static occurrences at PCs $p,q$ can coexist in at most $\min(\zkPcVisits{p},\zkPcVisits{q})$ real frames. This remains true when two roles of one instruction alias: then $p=q$ and the bound is its visit count. Analyze different functions separately, since their real frames cannot overlap.
+
+Let $\zkIncTargetLoad$ be the number of selected-role occurrences at this cell. Charge its internal pairs symmetrically, giving each occurrence coefficient $\lceil(\zkIncTargetLoad-1)/2\rceil$. For an earlier role of the same opcode, with $\zkIncEarlierLoad$ occurrences, give each occurrence in both roles coefficient
+\[
+ \left\lceil\frac{\zkIncEarlierLoad\zkIncTargetLoad}{\zkIncEarlierLoad+\zkIncTargetLoad}\right\rceil.
+\]
+Indeed, for each earlier/selected pair,
+\[
+ \min(\zkPcVisits{p},\zkPcVisits{q})
+ \le\frac{\zkIncEarlierLoad\zkPcVisits{p}+\zkIncTargetLoad\zkPcVisits{q}}{\zkIncEarlierLoad+\zkIncTargetLoad}.
+\]
+There are $\zkIncTargetLoad$ partners per earlier occurrence and $\zkIncEarlierLoad$ per selected occurrence. Sum all charges reaching the same PC, including aliased roles. Rounding each nonnegative coefficient upwards preserves the bound.
+
+For an earlier role $s$ of a different opcode, choose a public integer price $\zkIncPrice{s}\ge0$. Charge each earlier occurrence at most this price, leaving each selected occurrence coefficient
+\[
+ \left\lceil\frac{\zkIncEarlierLoad\max(\zkIncTargetLoad-\zkIncPrice{s},0)}{\zkIncTargetLoad}\right\rceil.
+\]
+This follows by assigning fraction $\min(1,\zkIncPrice{s}/\zkIncTargetLoad)$ of every pair to its earlier endpoint. Its total charge contributes at most $\zkIncPrice{s}\zkIncRoleRows{s}$ to $\zkIncConstant$, where $\zkIncRoleRows{s}$ bounds the number of real accesses in that role. It is the corresponding opcode row cap, except that the grouped BLAKE2s role has nine accesses per row. Cells with no selected occurrence contribute nothing. These rules prove the preceding linear inequality for every permitted private subset of occurrences; they do not prescribe new labels or padding randomness.
+
+\begin{proposition}[Six public residual upper bounds]\label{prop:zk-public-incidence-differences}
+For both local-range wrapper identities used by the native audit, the public coefficient construction and Lemma~\ref{lem:zk-incidence-conjugate} give
+\[
+\begin{array}{c|rrr}
+ t&\multicolumn{3}{c}{\text{upper bounds on }\zkRealDiff{t}{c}}\\\hline
+ \mathrm X&\text{open}&58000000&59400000\\
+ \mathrm M&83100000&45300000&300000\\
+ \mathrm S&786432&\cdot&\cdot
+\end{array}
+\]
+under the real-row and ownership premises of \noteref{zk-count-prefill}. These upper bounds do not assume its four unproved bytecode caps.
+\end{proposition}
+\begin{proof}
+Use zero foreign prices except when bounding MUL's first column: there give the local DEREF pointer role price $90$, contributing at most $90\cdot300000=27000000$. Exhausting the public bytecode's occurrences gives respective integer bounds $57910289,59318982,83047905,45206169,265903$ for the five displayed XOR/MUL entries, strictly below the rounded ceilings. The static native audit computes the coefficients and descending-gain sums before executing the guest and checks these ceilings. This enumeration is over public code, not sampled private traces. SET uses its sharper single-occurrence bound from Lemma~\ref{lem:zk-set-mul-residual-bounds}.
+\end{proof}
+
+\subsubsection{Fit the enlarged MUL allowance without larger tables}
+
+\begin{corollary}[An incidence-refined common count budget]\label{cor:zk-incidence-count-budget}
+Keep Proposition~\ref{prop:zk-revised-count-budget}'s incoming totals, bytecode widths, targets, JUMP intervals and other premises. Replace only the three MUL difference widths by $(220000000,200000000,140000000)$. All row, code, frame and label budgets still fit. Its sufficient original-execution upper bounds for MUL become $(83280841,63280841,3280841)$, all covered by Proposition~\ref{prop:zk-public-incidence-differences}.
+\end{corollary}
+\begin{proof}
+The same formulas give normalizer rows $(58510,112058,185276,148624,442844)$, final target fillers $(2050,3502,35284,1936,1873)$ and $2675$ further non-JUMP filler returns. The maximum new label remains $156932$. All residuals are nonnegative, and the existing $441$ slots and $21788$ code locations suffice. Adding each original MUL bytecode cap and tile-loss bound to its new residual upper endpoint gives the corresponding new width. Other sufficient intervals are unchanged. Their lower endpoints still require the separately stated real bytecode caps.
+\end{proof}
+
+\paragraph{Verification and next obligation.} Two exhaustive release regressions check the optimization and charging rules, including absent visits, aliases and foreign prices. A third compiles both wrapper identities and checks the public coefficient ceilings. The native allocation audit additionally checks the remaining private-execution inequalities. The \texttt{--batched-targets} mode of \auditref{zk_count_budget_audit.py} checks both numerical rectangles, including every return. What remains for the refined input contract is explicit: four real bytecode caps, the first XOR difference and all three DEREF differences, the real indirect-label cap and uniform ownership/resources. The complete sampler, joint GKR/table/Flock/PCS simulation and authentication remain unproved.

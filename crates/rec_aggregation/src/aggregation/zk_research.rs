@@ -138,9 +138,11 @@ def main():
     let mut priority_caps = [[0usize; 3]; 5];
     let mut local_caps = [[0usize; 3]; 5];
     let mut role_multiplicity = [0usize; 13];
+    let mut count_cells = Vec::new();
     for (_, pc, size) in &program.fn_ranges {
         let mut loads = BTreeMap::<u32, usize>::new();
         let mut local_loads = BTreeMap::<u32, [usize; 13]>::new();
+        let mut occurrences = BTreeMap::<u32, Vec<(usize, usize)>>::new();
         for address in *pc..pc + size {
             if program.filler.iter().any(|b| (b.pc..=b.pc + b.size).contains(&address)) {
                 continue;
@@ -149,11 +151,16 @@ def main():
                 for cell in cells {
                     *loads.entry(cell).or_default() += 1;
                     local_loads.entry(cell).or_default()[0] += 1;
+                    occurrences.entry(cell).or_default().push((address as usize, 0));
                 }
             } else if let Some((table, cells)) = noncompression_cells(&program.prog[address as usize]) {
                 for (column, cell) in cells.into_iter().enumerate() {
                     if let Some(cell) = cell {
                         local_loads.entry(cell).or_default()[local_priority(table, column)] += 1;
+                        occurrences
+                            .entry(cell)
+                            .or_default()
+                            .push((address as usize, local_priority(table, column)));
                     }
                 }
             }
@@ -183,6 +190,7 @@ def main():
                 }
             }
         }
+        count_cells.extend(occurrences.into_iter().map(|(cell, sites)| (local_loads[&cell], sites)));
     }
     assert!(maximum <= 256, "static per-cell BLAKE2s load cap exceeded");
     assert!(
@@ -215,7 +223,117 @@ def main():
     );
     println!("Static local-first label caps per memory role (X/M/S/D/J): {local_caps:?}; indirect DEREF excluded.");
     println!("Static per-cell role multiplicities in local-priority order: {role_multiplicity:?}.");
+    let rows = std::array::from_fn(|table| {
+        if table < 4 {
+            INITIAL_COUNTS[table] - FIXED_COUNTS[table]
+        } else {
+            1 << 16
+        }
+    });
+    let balanced: Vec<_> = (0..4)
+        .map(|table| {
+            (0..if table == 2 { 1 } else { 3 })
+                .map(|column| {
+                    if (table, column) == (3, 1) {
+                        None
+                    } else {
+                        let mut prices = [0usize; 13];
+                        if (table, column) == (1, 0) {
+                            prices[local_priority(3, 0)] = 90;
+                        }
+                        Some(balanced_count_bound(
+                            &count_cells,
+                            local_priority(table, column),
+                            &prices,
+                            &rows,
+                            program.prog.len(),
+                        ))
+                    }
+                })
+                .collect::<Vec<_>>()
+        })
+        .collect();
+    println!("Public pair-charged memory-minus-code upper bounds: {balanced:?}.");
+    if local_ranges {
+        for (table, column, cap) in [
+            (0, 1, 58000000),
+            (0, 2, 59400000),
+            (1, 0, 83100000),
+            (1, 1, 45300000),
+            (1, 2, 300000),
+        ] {
+            assert!(
+                balanced[table][column].unwrap() <= cap,
+                "the public incidence count certificate changed"
+            );
+        }
+    }
     program
+}
+
+fn concave_count_bound(caps: &[usize], mut rows: usize) -> u64 {
+    let mut histogram = vec![0usize; caps.iter().copied().max().unwrap_or(0) + 1];
+    for &cap in caps {
+        histogram[cap] += 1;
+    }
+    let (mut locations, mut total) = (0usize, 0u64);
+    for gain in (1..histogram.len()).rev() {
+        locations += histogram[gain];
+        let count = rows.min(locations);
+        total += count as u64 * gain as u64;
+        rows -= count;
+    }
+    total
+}
+
+type CountCell = ([usize; 13], Vec<(usize, usize)>);
+
+fn balanced_count_bound(
+    cells: &[CountCell],
+    target: usize,
+    prices: &[usize; 13],
+    rows: &[usize; 6],
+    code_size: usize,
+) -> u64 {
+    let mut opcodes = [5; 13];
+    for table in 0..5 {
+        for column in 0..if table == 2 { 1 } else { 3 } {
+            if (table, column) != (3, 1) {
+                opcodes[local_priority(table, column)] = table;
+            }
+        }
+    }
+    let table = opcodes[target];
+    let mut caps = vec![0usize; code_size];
+    for (counts, sites) in cells {
+        let selected = counts[target];
+        if selected == 0 {
+            continue;
+        }
+        let mut weights = [0usize; 13];
+        weights[target] = (selected - 1).div_ceil(2);
+        for role in 0..target {
+            let count = counts[role];
+            if count == 0 {
+                continue;
+            }
+            if opcodes[role] == table {
+                let weight = (count * selected).div_ceil(count + selected);
+                weights[role] += weight;
+                weights[target] += weight;
+            } else {
+                weights[target] += (count * selected.saturating_sub(prices[role])).div_ceil(selected);
+            }
+        }
+        for &(pc, role) in sites {
+            caps[pc] += weights[role];
+        }
+    }
+    let foreign: usize = (0..target)
+        .filter(|&role| opcodes[role] != table)
+        .map(|role| prices[role] * rows[opcodes[role]] * if role == 0 { 9 } else { 1 })
+        .sum();
+    concave_count_bound(&caps, rows[table]) + foreign as u64
 }
 
 fn noncompression_cells(op: &Op) -> Option<(usize, [Option<u32>; 3])> {
@@ -315,6 +433,9 @@ fn compare_relocations(program: &Program, dense: &Execution, reserved: &Executio
     let mut function_of = vec![usize::MAX; program.prog.len()];
     for (index, (_, pc, size)) in program.fn_ranges.iter().enumerate() {
         function_of[*pc as usize..(pc + size) as usize].fill(index);
+    }
+    for block in &program.filler {
+        function_of[block.pc as usize..=(block.pc + block.size) as usize].fill(usize::MAX);
     }
     let mut frame_owners = HashMap::new();
     let mut frame_sizes: HashMap<_, _> = reserved
@@ -835,8 +956,13 @@ fn check_count_intervals(original: &[Vec<(u64, u32)>], local: &[Vec<(u64, u32)>]
             code <= real_cap,
             "real bytecode count exceeds its residual input interval"
         );
-        let input_width = if table == 0 { 250000000 } else { 200000000 };
         for (column, &(memory, _)) in local[table].iter().enumerate() {
+            let input_width = match (table, column) {
+                (0, _) => 250000000,
+                (1, 0) => 220000000,
+                (1, 2) => 140000000,
+                _ => 200000000,
+            };
             let transfer = if table == 0 && column != 1 { 37603584 } else { 0 };
             let upper = input_width - 31 * quotient - transfer - real_cap;
             let difference = memory as i64 - code as i64;
@@ -906,6 +1032,80 @@ fn check_opcode_budget(program: &Program, execution: &Execution) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn local_range_public_count_contract() {
+        wrapped_guest(false, true, false);
+        wrapped_guest(false, true, true);
+    }
+
+    #[test]
+    fn concave_count_budget_matches_exhaustive_visits() {
+        for count in 0..=3 {
+            for encoded in 0..4usize.pow(count) {
+                let caps: Vec<_> = (0..count).map(|index| (encoded / 4usize.pow(index)) % 4).collect();
+                for rows in 0..=7usize {
+                    let expected = (0..(rows + 1).pow(count))
+                        .filter_map(|value| {
+                            let visits: Vec<_> = (0..count)
+                                .map(|index| (value / (rows + 1).pow(index)) % (rows + 1))
+                                .collect();
+                            (visits.iter().sum::<usize>() <= rows).then(|| {
+                                visits
+                                    .iter()
+                                    .zip(&caps)
+                                    .map(|(&v, &cap)| {
+                                        let v = v as i64;
+                                        cap as i64 * v - v * (v - 1) / 2
+                                    })
+                                    .sum::<i64>()
+                            })
+                        })
+                        .max()
+                        .unwrap();
+                    assert_eq!(concave_count_bound(&caps, rows), expected as u64);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn pair_charges_cover_private_frame_subsets_and_aliases() {
+        let sites = vec![(0, 10), (1, 12), (2, 5), (2, 12), (3, 6), (4, 0), (4, 0)];
+        let mut counts = [0usize; 13];
+        for &(_, role) in &sites {
+            counts[role] += 1;
+        }
+        let cells = vec![(counts, sites)];
+        for price in 0..=3 {
+            let mut prices = [0; 13];
+            prices[10] = price;
+            prices[0] = price;
+            for encoded in 0..1usize << 10 {
+                let mut visits = [0usize; 5];
+                let mut memory = 0i64;
+                for frame in 0..2 {
+                    let mut local = [0i64; 13];
+                    for (pc, visit) in visits.iter_mut().enumerate() {
+                        *visit += (encoded >> (5 * frame + pc)) & 1;
+                    }
+                    for &(pc, role) in &cells[0].1 {
+                        local[role] += ((encoded >> (5 * frame + pc)) & 1) as i64;
+                    }
+                    memory += local[12] * local[..12].iter().sum::<i64>() + local[12] * (local[12] - 1) / 2;
+                }
+                let code: i64 = visits[1..4]
+                    .iter()
+                    .map(|&v| {
+                        let v = v as i64;
+                        v * (v - 1) / 2
+                    })
+                    .sum();
+                let rows = [0, visits[1..4].iter().sum(), 0, visits[0], 0, visits[4]];
+                assert!(memory - code <= balanced_count_bound(&cells, 12, &prices, &rows, 5) as i64);
+            }
+        }
+    }
 
     #[test]
     fn local_digit_membership_rejects_nonroots() {
