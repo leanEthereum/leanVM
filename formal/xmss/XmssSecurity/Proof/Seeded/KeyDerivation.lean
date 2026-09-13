@@ -14,7 +14,7 @@ private theorem fin_of_ofNat32_eq {n : Nat} {a b : Fin n} (hn : n ≤ 2 ^ 32)
 theorem keygenDomainFields_injective : Function.Injective keygenDomainFields := by
   intro left right h
   cases left <;> cases right <;>
-    simp_all only [keygenDomainFields, TweakFields.mk.injEq, BitVec.reduceEq, false_and,
+    simp_all only [keygenDomainFields, tweakFields, TweakFields.mk.injEq, BitVec.reduceEq, false_and,
       true_and, KeygenDomain.chain.injEq]
   obtain ⟨hchain, hepoch⟩ := h
   exact ⟨fin_of_ofNat32_eq (by decide) hepoch, fin_of_ofNat32_eq (by decide) hchain⟩
@@ -37,7 +37,7 @@ theorem keygenHashInput_ne_tweakableHashInput (p₁ p₂ : PublicParameter)
   obtain ⟨hprefix, _⟩ := List.append_inj h (by simp)
   obtain ⟨htweak, _⟩ := List.append_inj' hprefix (by simp)
   have htag := congrArg TweakFields.tag (fieldBytes_injective htweak)
-  cases d₁ <;> cases d₂ <;> simp [keygenDomainFields, hashDomainFields] at htag
+  cases d₁ <;> cases d₂ <;> simp [keygenDomainFields, hashDomainFields, tweakFields] at htag
 
 /-- One raw oracle query can name at most one master seed. -/
 theorem keygenHashInput_seed_unique (input : HashInput) {s₁ s₂ : MasterSeed}

@@ -6,7 +6,7 @@ import VCVio.OracleComp.QueryTracking.WriterCost
 /-!
 # XMSS
 
-127 bits of clasical security, for Strong Unforgeability under Chosen-Message Attacks (SUF-CMA), in the ROM, for the XMSS instance defined in ./doc/xmss/main.tex.
+127 bits of classical security, for Strong Unforgeability under Chosen-Message Attacks (SUF-CMA), in the ROM, for the XMSS instance defined in ./doc/xmss/main.tex.
 -/
 
 open OracleComp OracleSpec ENNReal
@@ -96,6 +96,10 @@ def fieldBytes (fields : TweakFields) : List UInt8 :=
   [protocolDomainSep] ++ bytesLE 1 fields.tag ++ [0, 0] ++ bytesLE 4 fields.position ++
     List.replicate 4 0 ++ bytesLE 4 fields.epoch
 
+/-- Convert the specification's three integer fields to their fixed widths. -/
+def tweakFields (tag position epoch : Nat) : TweakFields :=
+  ⟨BitVec.ofNat 8 tag, BitVec.ofNat 32 position, BitVec.ofNat 32 epoch⟩
+
 /-- The verification hash domains, tweak types `1` to `4`. -/
 inductive HashDomain where
   | chain (epoch : Epoch) (chain : ChainIndex) (step : ChainStep)
@@ -106,12 +110,10 @@ deriving DecidableEq
 
 /-- Serialize a typed hash domain into the fields of a tweak. -/
 def hashDomainFields : HashDomain → TweakFields
-  | .chain epoch chain step =>
-      ⟨1#8, BitVec.ofNat 32 (chainLength * chain.val + step.val), BitVec.ofNat 32 epoch.val⟩
-  | .leaf epoch => ⟨2#8, 0#32, BitVec.ofNat 32 epoch.val⟩
-  | .merkle level node =>
-      ⟨3#8, BitVec.ofNat 32 (level.val + 1), BitVec.ofNat 32 node.val⟩
-  | .encoding epoch => ⟨4#8, 0#32, BitVec.ofNat 32 epoch.val⟩
+  | .chain epoch chain step => tweakFields 1 (chainLength * chain + step) epoch
+  | .leaf epoch => tweakFields 2 0 epoch
+  | .merkle level node => tweakFields 3 (level.val + 1) node
+  | .encoding epoch => tweakFields 4 0 epoch
 
 /-- The exact 16 bytes supplied by the specification as a hash tweak. -/
 def tweakBytes (domain : HashDomain) : List UInt8 :=
@@ -134,8 +136,8 @@ inductive KeygenDomain where
 deriving DecidableEq
 
 def keygenDomainFields : KeygenDomain → TweakFields
-  | .parameter => ⟨10#8, 0#32, 0#32⟩
-  | .chain epoch chain => ⟨0#8, BitVec.ofNat 32 chain.val, BitVec.ofNat 32 epoch.val⟩
+  | .parameter => tweakFields 10 0 0
+  | .chain epoch chain => tweakFields 0 chain epoch
 
 /-- `tweak || P || S`; parameter derivation uses `P = 0`. -/
 def keygenHashInput (parameter : PublicParameter) (domain : KeygenDomain)
@@ -253,10 +255,7 @@ def nodeHash (parameter : PublicParameter) (level : MerkleLevel) (node : MerkleN
 
 /-- `A_level`, or `0` above the tree. -/
 def signaturePath (signature : Signature) (level : Nat) : Digest :=
-  if hlevel : level < treeHeight then
-    signature.authPath ⟨level, hlevel⟩
-  else
-    0
+  if hlevel : level < treeHeight then signature.authPath ⟨level, hlevel⟩ else 0
 
 /-- `Chain_{i,ep}(P, start, steps, value)`: the step onto position `start + steps + 1` carries tweak position `2^w * i + start + steps`. -/
 def chainWalk (parameter : PublicParameter) (epoch : Epoch) (chain : ChainIndex) :
@@ -316,12 +315,10 @@ def verifyAfterLeaf
 def verify (publicKey : PublicKey) (epoch : Epoch)
     (message : Message) (signature : Signature) : m Bool := do
   let digest ← encodingHash publicKey.parameter epoch message signature.randomness
-  match TargetSum.decodeDigest digest with
-  | none => pure false
-  | some encoding => do
-      let endpoints ← recoverEndpoints publicKey.parameter epoch encoding signature
-      let leaf ← leafHash publicKey.parameter epoch endpoints
-      verifyAfterLeaf publicKey epoch signature leaf
+  let some encoding := TargetSum.decodeDigest digest | return false
+  let endpoints ← recoverEndpoints publicKey.parameter epoch encoding signature
+  let leaf ← leafHash publicKey.parameter epoch endpoints
+  verifyAfterLeaf publicKey epoch signature leaf
 
 /-! ### Precomputed chains and tree -/
 
@@ -386,41 +383,30 @@ def precomputedSecretKey (parameter : PublicParameter)
 def authenticationPathNode (epoch : Epoch) (level : MerkleLevel) : MerkleNode :=
   merkleNodeOfNat (Nat.xor (epoch.val / 2 ^ level.val) 1)
 
-/-- `sigma_OTS,i = C_{ep,i,x_i}`. -/
-def precomputedSignedChainValues (secretKey : SecretKey) (epoch : Epoch)
-    (encoding : Encoding) : ChainIndex → Digest :=
-  fun chain => secretKey.chainValue epoch chain (encoding chain)
-
-/-- `path_ep = (A_0, ..., A_{h-1})`, read from the stored tree. -/
-def precomputedAuthenticationPath (secretKey : SecretKey) (epoch : Epoch) :
-    Fin treeHeight → Digest :=
-  fun level => secretKey.treeValue level.castSucc (authenticationPathNode epoch level)
-
 /-- The signature once the encoding is found. -/
 def precomputedSignWithEncoding (secretKey : SecretKey) (epoch : Epoch)
     (randomness : Randomness) (encoding : Encoding) : Signature :=
-  ⟨randomness, precomputedSignedChainValues secretKey epoch encoding,
-    precomputedAuthenticationPath secretKey epoch⟩
+  { randomness := randomness
+    chainValue := fun chain => secretKey.chainValue epoch chain (encoding chain)
+    authPath := fun level => secretKey.treeValue level.castSucc (authenticationPathNode epoch level) }
 
 /-- One attempt: hash once, and sign if the digest encodes. -/
 def precomputedSignAttempt (secretKey : SecretKey) (epoch : Epoch)
     (message : Message) (randomness : Randomness) : m (Option Signature) := do
   let digest ← encodingHash secretKey.parameter epoch message randomness
-  match TargetSum.decodeDigest digest with
-  | none => pure none
-  | some encoding =>
-      pure (some (precomputedSignWithEncoding secretKey epoch randomness encoding))
+  let some encoding := TargetSum.decodeDigest digest | return none
+  return some (precomputedSignWithEncoding secretKey epoch randomness encoding)
 
 attribute [irreducible] verifyAfterLeaf treeNode
 
 end Concrete
 
-def deriveKey {m : Type → Type} [Monad m] [HasQuery HashSpec m]
-    (parameter : PublicParameter) (domain : KeygenDomain) (seed : MasterSeed) : m Digest := do
+variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
+
+def deriveKey (parameter : PublicParameter) (domain : KeygenDomain) (seed : MasterSeed) : m Digest := do
   return truncateHash (← Concrete.oracleHash (keygenHashInput parameter domain seed))
 
-def deriveRandomizer {m : Type → Type} [Monad m] [HasQuery HashSpec m]
-    (parameter : PublicParameter) (seed : MasterSeed) (epoch : Epoch)
+def deriveRandomizer (parameter : PublicParameter) (seed : MasterSeed) (epoch : Epoch)
     (message : Message) (trial : BitVec 32) : m Randomness := do
   return (← Concrete.oracleHash (randomizerHashInput parameter seed epoch message trial)).extractLsb' 0 randomnessBits
 
@@ -445,8 +431,7 @@ def keygenFromSeed (seed : MasterSeed) : OracleComp HashSpec (PublicKey × Secre
   return (⟨result.1, parameter⟩, ⟨seed, precomputed⟩)
 
 /-- Derive trials in increasing order, stopping at the first admissible encoding. -/
-def signFrom {m : Type → Type} [Monad m] [HasQuery HashSpec m]
-    (secretKey : SecretKey) (epoch : Epoch) (message : Message) : Nat → Nat → m (Option Signature)
+def signFrom (secretKey : SecretKey) (epoch : Epoch) (message : Message) : Nat → Nat → m (Option Signature)
   | 0, _ => pure none
   | attempts + 1, trial => do
       let randomness ← deriveRandomizer secretKey.precomputed.parameter secretKey.seed epoch message (BitVec.ofNat 32 trial)
@@ -454,8 +439,7 @@ def signFrom {m : Type → Type} [Monad m] [HasQuery HashSpec m]
       | some signature => return some signature
       | none => signFrom secretKey epoch message attempts (trial + 1)
 
-def sign {m : Type → Type} [Monad m] [HasQuery HashSpec m]
-    (secretKey : SecretKey) (epoch : Epoch) (message : Message) : m (Option Signature) :=
+def sign (secretKey : SecretKey) (epoch : Epoch) (message : Message) : m (Option Signature) :=
   signFrom secretKey epoch message signingAttemptLimit 0
 
 end Seeded

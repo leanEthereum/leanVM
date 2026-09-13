@@ -84,7 +84,6 @@ theorem Concrete.precomputedSignBoundedAttempts_success_replay
   unfold Concrete.precomputedSignAttempt at heval
   simp only [evalWithAnswerFn_bind, Concrete.CacheReplay.eval_encodingHash] at heval
   split at heval
-  · simp at heval
   · rename_i _ encoding hdecode
     simp only [evalWithAnswerFn_pure, Option.some.injEq] at heval
     have hrandomness : randomness = signature.randomness := by
@@ -95,6 +94,7 @@ theorem Concrete.precomputedSignBoundedAttempts_success_replay
       exact hdecode
     · rw [← hrandomness, ← heval]
       exact hconsistent largerCache hkeygenLe request.epoch randomness encoding
+  · simp at heval
 
 theorem Concrete.precomputedCappedSign_success_replay
     (secretKey : SecretKey) (request : SignRequest)

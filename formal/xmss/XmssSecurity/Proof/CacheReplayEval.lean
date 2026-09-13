@@ -218,8 +218,7 @@ def signWithEncoding (cache : QueryCache HashSpec) (secretKey : SecretKey)
 theorem precomputedSignedChainValues_eq (parameter : PublicParameter)
     (secret : Epoch → ChainIndex → Digest) (cache : QueryCache HashSpec)
     (epoch : Epoch) (encoding : Encoding) :
-    Concrete.precomputedSignedChainValues
-        (Concrete.precomputedSecretKey parameter secret cache) epoch encoding =
+    (fun chain => (Concrete.precomputedSecretKey parameter secret cache).chainValue epoch chain (encoding chain)) =
       signedChainValues cache (Concrete.precomputedSecretKey parameter secret cache)
         epoch encoding := by
   funext chain
@@ -227,8 +226,8 @@ theorem precomputedSignedChainValues_eq (parameter : PublicParameter)
 
 theorem precomputedAuthenticationPath_eq (parameter : PublicParameter)
     (secret : Epoch → ChainIndex → Digest) (cache : QueryCache HashSpec) (epoch : Epoch) :
-    Concrete.precomputedAuthenticationPath
-        (Concrete.precomputedSecretKey parameter secret cache) epoch =
+    (fun level : Fin treeHeight => (Concrete.precomputedSecretKey parameter secret cache).treeValue
+        level.castSucc (Concrete.authenticationPathNode epoch level)) =
       authenticationPath cache (Concrete.precomputedSecretKey parameter secret cache)
         epoch := by
   funext level
@@ -277,7 +276,8 @@ theorem eval_verify (cache : QueryCache HashSpec) (publicKey : PublicKey)
   classical
   unfold Concrete.verify Concrete.verifyFromCache
   simp only [evalWithAnswerFn_bind, eval_encodingHash]
-  split <;> rename_i hdecode <;> simp [hdecode]
+  cases TargetSum.decodeDigest
+    (CacheView.encodingHash cache publicKey.parameter epoch (message, signature.randomness)) <;> simp
 
 theorem randomOracle_query_caches (input : HashInput)
     (initialCache : QueryCache HashSpec) (output : HashOutput)

@@ -102,7 +102,7 @@ theorem hashDomainFields_injective : Function.Injective hashDomainFields := by
   rw [hashDomainFields_tag, hashDomainFields_tag] at htagBits
   have htag := ofNat8_eq_of_lt (hashDomainTag_lt_8 left) (hashDomainTag_lt_8 right) htagBits
   cases left <;> cases right <;> simp [hashDomainTag] at htag
-  all_goals simp only [hashDomainFields] at heq
+  all_goals simp only [hashDomainFields, tweakFields] at heq
   · rename_i leftEpoch leftChain leftStep rightEpoch rightChain rightStep
     have hposition := congrArg TweakFields.position heq
     have hepoch := congrArg TweakFields.epoch heq

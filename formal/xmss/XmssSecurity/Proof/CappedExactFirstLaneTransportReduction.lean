@@ -1248,7 +1248,9 @@ theorem concreteVerify_eq_encodingHash_bind_afterDigest
         signature.randomness
       concreteVerificationAfterDigest publicKey epoch signature digest) := by
   unfold Concrete.verify concreteVerificationAfterDigest
-  rfl
+  apply bind_congr
+  intro digest
+  cases TargetSum.decodeDigest digest <;> rfl
 
 theorem globalFirstLaneVerifier_eq_hashExecution
     (keyView : ProgrammedGlobalChainKeygenView)

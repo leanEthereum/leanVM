@@ -37,7 +37,7 @@ theorem randomizerHashInput_ne_tweakableHashInput (p₁ p₂ : PublicParameter)
   simp only [randomizerHashInput, tweakableHashInput, tweakBytes, List.append_assoc] at h
   obtain ⟨htweak, _⟩ := List.append_inj h (by simp [fieldBytes, length_bytesLE])
   have htag := congrArg TweakFields.tag (fieldBytes_injective htweak)
-  cases domain <;> simp [hashDomainFields] at htag
+  cases domain <;> simp [hashDomainFields, tweakFields] at htag
 
 /-- Every seed-derived input puts the complete seed in bytes 32 through 63. -/
 def DerivationSeedHit (input : HashInput) (seed : MasterSeed) : Prop :=

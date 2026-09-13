@@ -78,10 +78,10 @@ theorem Concrete.precomputedSignAttempt_some_randomness
   unfold Concrete.precomputedSignAttempt at heval
   simp only [evalWithAnswerFn_bind, Concrete.CacheReplay.eval_encodingHash] at heval
   split at heval
-  · simp at heval
   · simp only [evalWithAnswerFn_pure, Option.some.injEq] at heval
     simpa only [Concrete.precomputedSignWithEncoding] using
       congrArg Signature.randomness heval.symm
+  · simp at heval
 
 theorem Concrete.precomputedSignAttempt_some_preserves_other_encodingInput
     (secretKey : SecretKey) (epoch targetEpoch : Epoch)
@@ -317,13 +317,13 @@ theorem Concrete.precomputedCappedSign_success_decode
   unfold Concrete.precomputedSignAttempt at heval
   simp only [evalWithAnswerFn_bind, Concrete.CacheReplay.eval_encodingHash] at heval
   split at heval
-  · simp at heval
   · rename_i _ encoding hdecode
     simp only [evalWithAnswerFn_pure, Option.some.injEq] at heval
     have hrandomness : randomness = signature.randomness := by
       simpa only [Concrete.precomputedSignWithEncoding] using
         congrArg Signature.randomness heval
     exact ⟨encoding, by simpa only [hrandomness] using hdecode⟩
+  · simp at heval
 
 theorem Concrete.precomputedCappedSign_success_encodingInput_cached
     (secretKey : SecretKey)
