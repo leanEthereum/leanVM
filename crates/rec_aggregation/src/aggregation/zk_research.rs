@@ -120,8 +120,10 @@ def main():
     );
     let mut maximum = 0;
     let mut priority_caps = [[0usize; 3]; 5];
+    let mut local_caps = [[0usize; 3]; 5];
     for (_, pc, size) in &program.fn_ranges {
         let mut loads = BTreeMap::<u32, usize>::new();
+        let mut local_loads = BTreeMap::<u32, [usize; 13]>::new();
         for address in *pc..pc + size {
             if program.filler.iter().any(|b| (b.pc..=b.pc + b.size).contains(&address)) {
                 continue;
@@ -129,6 +131,13 @@ def main():
             if let Some(cells) = blake_cells(&program.prog[address as usize]) {
                 for cell in cells {
                     *loads.entry(cell).or_default() += 1;
+                    local_loads.entry(cell).or_default()[0] += 1;
+                }
+            } else if let Some((table, cells)) = noncompression_cells(&program.prog[address as usize]) {
+                for (column, cell) in cells.into_iter().enumerate() {
+                    if let Some(cell) = cell {
+                        local_loads.entry(cell).or_default()[local_priority(table, column)] += 1;
+                    }
                 }
             }
         }
@@ -137,17 +146,18 @@ def main():
             if program.filler.iter().any(|b| (b.pc..=b.pc + b.size).contains(&address)) {
                 continue;
             }
-            let (table, cells) = match program.prog[address as usize] {
-                Op::Xor { a, b, c } => (0, [Some(a), Some(b), Some(c)]),
-                Op::Mul { a, b, c } => (1, [Some(a), Some(b), Some(c)]),
-                Op::Set { o, .. } => (2, [Some(o), None, None]),
-                Op::Deref { o1, o3, .. } => (3, [Some(o1), None, Some(o3)]),
-                Op::Jump { oc, od, of } => (4, [Some(oc), Some(od), Some(of)]),
-                Op::Blake2s { .. } => continue,
+            let Some((table, cells)) = noncompression_cells(&program.prog[address as usize]) else {
+                continue;
             };
             for (column, cell) in cells.into_iter().enumerate() {
                 if let Some(cell) = cell {
                     priority_caps[table][column] = priority_caps[table][column].max(*loads.get(&cell).unwrap_or(&0));
+                    local_caps[table][column] = local_caps[table][column].max(
+                        local_loads[&cell][..=local_priority(table, column)]
+                            .iter()
+                            .sum::<usize>()
+                            - 1,
+                    );
                 }
             }
         }
@@ -165,12 +175,43 @@ def main():
                 .all(|(actual, cap)| actual <= cap),
             "the local-range wrapper exceeds its BLAKE-priority shift certificate"
         );
+        assert!(
+            local_caps[4]
+                .into_iter()
+                .zip([517, 1, 350])
+                .all(|(actual, cap)| actual <= cap)
+        );
     }
     println!("Static BLAKE-priority shift caps per memory role (X/M/S/D/J): {priority_caps:?}.");
     println!(
         "These are public incidence bounds under fresh-frame single-visit execution; the indirect DEREF role uses the global cap."
     );
+    println!("Static local-first label caps per memory role (X/M/S/D/J): {local_caps:?}; indirect DEREF excluded.");
     program
+}
+
+fn noncompression_cells(op: &Op) -> Option<(usize, [Option<u32>; 3])> {
+    Some(match *op {
+        Op::Xor { a, b, c } => (0, [Some(a), Some(b), Some(c)]),
+        Op::Mul { a, b, c } => (1, [Some(a), Some(b), Some(c)]),
+        Op::Set { o, .. } => (2, [Some(o), None, None]),
+        Op::Deref { o1, o3, .. } => (3, [Some(o1), None, Some(o3)]),
+        Op::Jump { oc, od, of } => (4, [Some(oc), Some(od), Some(of)]),
+        Op::Blake2s { .. } => return None,
+    })
+}
+
+fn local_priority(table: usize, column: usize) -> usize {
+    match (table, column) {
+        (4, column) => 1 + column,
+        (2, 0) => 4,
+        (1, 1 | 2) => 4 + column,
+        (0, column) => 7 + column,
+        (3, 0) => 10,
+        (3, 2) => 11,
+        (1, 0) => 12,
+        _ => panic!("not a local noncompression role"),
+    }
 }
 
 fn blake_cells(op: &Op) -> Option<[u32; 9]> {
@@ -540,7 +581,7 @@ pub fn audit_leaf(n_xmss: usize, n_sphincs: usize, native_proof: bool, local_dig
         "Real opcode counts [XOR, MUL, SET, DEREF, JUMP, BLAKE2s]: {:?}.",
         reserved.base_counts
     );
-    check_opcode_budget(&reserved);
+    check_opcode_budget(&program, &reserved);
     println!("Mask bank untouched; all accesses belong to requested objects or the public prefix.");
     drop(dense);
     drop(reserved);
@@ -618,7 +659,7 @@ pub fn audit_recursion(n_xmss: usize, n_sphincs: usize, children: usize, native_
         "Recursive wrapper: {children} ordinary children, {slots}/{budget} guaranteed slots, largest {largest} slots."
     );
     println!("Real opcode counts: {:?}.", execution.base_counts);
-    check_opcode_budget(&execution);
+    check_opcode_budget(&program, &execution);
     drop(execution);
     if native_proof {
         let (proof, _) = prove(&program, public_input, MIN_LOG_INV_RATE);
@@ -632,7 +673,93 @@ pub fn audit_recursion(n_xmss: usize, n_sphincs: usize, children: usize, native_
     );
 }
 
-fn check_opcode_budget(execution: &Execution) {
+fn local_count_profile(program: &Program, execution: &Execution, original: &[Vec<(u64, u32)>]) {
+    let mut phases: [Vec<(u32, usize, usize)>; 13] = std::array::from_fn(|_| Vec::new());
+    let mut indirect = Vec::new();
+    for (pc, fp) in execution.instruction_sites() {
+        let op = &program.prog[pc as usize];
+        if let Some(cells) = blake_cells(op) {
+            for (column, cell) in cells.into_iter().enumerate() {
+                phases[0].push((fp + cell, 5, column));
+            }
+        } else if let Some((table, cells)) = noncompression_cells(op) {
+            for (column, cell) in cells.into_iter().enumerate() {
+                if let Some(cell) = cell {
+                    phases[local_priority(table, column)].push((fp + cell, table, column));
+                }
+            }
+        }
+        if let Op::Deref { o1, o2, .. } = *op {
+            let pointer = execution.mem[(fp + o1) as usize];
+            assert_eq!((pointer.c1, pointer.c2), (0, 0));
+            indirect.push((F64(pointer.c0) * g_pow(o2 as usize)).0);
+        }
+    }
+    let mut profile: Vec<_> = original.iter().map(|row| vec![(0u64, 0u32); row.len() - 1]).collect();
+    let mut counts = HashMap::<u32, u32>::new();
+    for phase in phases {
+        for (address, table, column) in phase {
+            let count = counts.entry(address).or_default();
+            let output = &mut profile[table][column];
+            output.0 += u64::from(*count);
+            output.1 = output.1.max(*count);
+            *count += 1;
+        }
+    }
+    let mut encoded: HashMap<_, _> = counts
+        .into_iter()
+        .map(|(address, count)| (g_pow(address as usize).0, count))
+        .collect();
+    for address in indirect {
+        let count = encoded.entry(address).or_default();
+        profile[3][1].0 += u64::from(*count);
+        profile[3][1].1 = profile[3][1].1.max(*count);
+        *count += 1;
+    }
+    let old_sum: u64 = original
+        .iter()
+        .flat_map(|row| &row[..row.len() - 1])
+        .map(|entry| entry.0)
+        .sum();
+    let new_sum: u64 = profile.iter().flatten().map(|entry| entry.0).sum();
+    assert_eq!(
+        old_sum, new_sum,
+        "local-first routing changed the total memory exponent"
+    );
+    assert_eq!(
+        new_sum,
+        encoded
+            .values()
+            .map(|&count| u64::from(count) * u64::from(count - 1) / 2)
+            .sum::<u64>()
+    );
+    let mut address = F64::ONE;
+    for actual in execution.memory_read_counts() {
+        if let Some(count) = encoded.remove(&address.0) {
+            assert_eq!(
+                *actual,
+                g_pow(count as usize),
+                "a reconstructed real chain has the wrong final count"
+            );
+        }
+        if encoded.is_empty() {
+            break;
+        }
+        address = primitives::field::mul_by_g(address);
+    }
+    assert!(
+        encoded.is_empty(),
+        "a reconstructed indirect address is outside native memory"
+    );
+    for (table, row) in profile.iter().enumerate() {
+        println!("Private local-first count profile {table} (sum, max): {row:?}.");
+    }
+    println!(
+        "This reconstructs legal count labels only; it does not emit a padded native proof or certify guest-wide resource bounds."
+    );
+}
+
+fn check_opcode_budget(program: &Program, execution: &Execution) {
     let caps = [1 << 19, 1 << 19, 1 << 19, 1 << 19, 1 << 20, 1 << 16];
     for (table, (actual, cap)) in execution.base_counts.iter().zip(caps).enumerate() {
         assert!(
@@ -656,6 +783,7 @@ fn check_opcode_budget(execution: &Execution) {
         );
     }
     assert!(sites.next().is_none());
+    local_count_profile(program, execution, &profile);
 }
 
 #[cfg(test)]

@@ -170,6 +170,50 @@ Under the same fresh-frame, owned-local-operand and single-instruction-visit con
 \]
 In particular the two JUMP-column differences shift within $[-16\zkPriorityRows{\mathrm J},\zkPriorityRows{\mathrm J}]$ and $[-16\zkPriorityRows{\mathrm J},2\zkPriorityRows{\mathrm J}]$, rather than intervals based on the global $256$ cap for every role. The research allocator example checks these public incidences before execution; its native two-child execution still passes. This is a conditional static bound for the relabeling increment, not a bound on the original differences or a proof that every hinted execution obeys the ownership contract. Apply it before the disjoint initial fillers and include all earlier count libraries in the incoming intervals.
 
+\subsubsection{Local-role priority bounds the original JUMP differences}
+
+The preceding increment bound retains the original chronological memory counts as a premise. A different canonical assignment removes that dependence for local roles. At every real memory address, keep the BLAKE2s accesses first, then place \texttt{JUMP.cnt\_c}, \texttt{JUMP.cnt\_d} and \texttt{JUMP.cnt\_f}, in that order. Put all remaining local roles next, in any fixed public role order, and indirect \texttt{DEREF.cnt\_target} last. Within a role retain the previous order. Apply this only to the real execution; disjoint padding libraries keep their own assignments. In particular the BLAKE2s labels agree exactly with the earlier stable compression-priority assignment.
+
+\begin{lemma}[Local counts do not inherit foreign indirect loads]\label{lem:zk-local-role-priority}
+Suppose each real call owns a disjoint frame, every local operand stays in that frame, and its executed local occurrences form a subset of those in its owning public function, without repetition. For a noncompression local role $(t,c)$, let $\zkLocalCountCap{t}{c}$ be the maximum, over public functions and operand occurrences in that role, of the number of local occurrences at the same relative cell in that or an earlier priority class, minus one. Include all BLAKE2s occurrences, but exclude indirect DEREF targets. The new label of each such access is at most $\zkLocalCountCap{t}{c}$, regardless of the number or destinations of indirect reads. Consequently
+\[
+ 0\le\zkReuseMemInput{t}{c}
+ \le\zkLocalCountCap{t}{c}\zkPriorityRows{t}.
+\]
+If $\zkLocalReads{a}$ and $\zkIndirectReads{a}$ are the real local and indirect read counts at cell $a$, the remaining indirect exponent is exactly
+\[
+ \zkReuseMemInput{\mathrm D}{1}
+ =\sum_a\left(\zkLocalReads{a}\zkIndirectReads{a}
+                    +\binom{\zkIndirectReads{a}}2\right).
+\]
+All memory values, final counters, code labels and the total memory exponent are unchanged.
+\end{lemma}
+\begin{proof}
+Assign the complete chain by the prescribed priority. A local label counts only earlier local occurrences. Ownership and single visits inject these occurrences into those counted in the public function body; omitting a private branch cannot increase their number. The indirect labels at a cell are exactly $\zkLocalReads{a},\ldots,\zkLocalReads{a}+\zkIndirectReads{a}-1$, whose sum is the displayed expression. Each address still has the same complete chain, so legality and the conserved quantities follow. This includes aliased operand roles. The statement does not bound indirect multiplicity through frame size.
+\end{proof}
+
+\paragraph{Two incoming widths now follow from the actual public bytecode.} The optional local-range ordinary-child wrapper statically certifies
+\[
+ (\zkLocalCountCap{\mathrm J}{0},\zkLocalCountCap{\mathrm J}{1},\zkLocalCountCap{\mathrm J}{2})
+ \le(517,1,350).
+\]
+Therefore its original, real-execution differences satisfy the public intervals
+\[
+ \zkNormDelta{1}\in[-517\zkPriorityRows{\mathrm J},\zkPriorityRows{\mathrm J}],
+ \qquad
+ \zkNormDelta{2}\in[-517\zkPriorityRows{\mathrm J},350\zkPriorityRows{\mathrm J}].
+\]
+Their widths are at most $518\zkPriorityRows{\mathrm J}$ and $867\zkPriorityRows{\mathrm J}$. A real JUMP budget of $40000$ gives widths $20720000$ and $34680000$, both below the earlier $4\cdot10^7$ contract; both remain below that cap through $46136$ real JUMPs. These are program-wide conditional bounds, not intervals centered on measured exponents. Lemma~\ref{lem:zk-prefill-count-differences} preserves them under the initial sixteen-instruction fillers. Earlier disjoint libraries with public JUMP-difference increments contribute public offsets only; any library with private increments must still be charged. In particular $330000$ in the incoming row ledger includes padding and must not be substituted for the real-row premise.
+
+For the other local differences, a public bytecode interval immediately gives
+\[
+ \zkNormDiff{t}{c}\in\left[-\overline{\zkReuseBcInput{t}},
+ \zkLocalCountCap{t}{c}\zkPriorityRows{t}-\underline{\zkReuseBcInput{t}}\right]
+\]
+before the disjoint libraries and fillers. These bounds can be loose: constant pooling creates large static incidences, and the indirect column still depends on the displayed collision sum. This lemma resolves the two original JUMP-difference intervals under a concrete real-row cap, not the five bytecode intervals, the full incoming capacity contract or joint statistical privacy. Ownership and uniform real-row bounds remain proof obligations for the intended recursive program class.
+
+\paragraph{Certificates.} The budget audit checks eight complete ISA libraries with privately varying foreign reads into JUMP controls, aliased local/indirect accesses and compression cycles. Priority routing preserves all complete chains, BLAKE2s priority, bytecode exponents and the total memory exponent, and it verifies the exact indirect formula. The native allocator audit additionally reconstructs this label assignment for the real wrapped guest, including resolved indirect addresses, checks every real final counter against the native memory image, and checks its total against both the original trace and the complete-chain identity. This is a label-legality and count-profile check, not a native padded proof. The static JUMP caps are checked before running the witness and therefore do not depend on its private trace.
+
 \paragraph{Exact certificates and the remaining premise.} \auditref{zk_count_budget_audit.py} checks all small signed interval/residue cases, exact filler remainders, the row/code/frame/label ledger and eight complete cycle libraries with independent memory reuse and instruction multiplicities. A MUL reading a JUMP control cell also gives genuinely unequal, privately varying JUMP-column sums. A separate private choice changes only the incoming JUMP bytecode exponent; the three postnormalization JUMP exponents and the residue remain exactly unchanged, as the cancellation predicts. All final column products and memory/code images agree. Its \texttt{--coarse} mode composes four of these libraries with the shared coarse routers and checks every native height-seven count node. All ISA constraints and full read chains pass, with compression unchanged.
 
 As an algebraic stress case, widen JUMP's bytecode interval to $[0,2147450880]$ and its reference-difference interval to $[-2147450880,70]$, retaining the small fixture's other intervals. The router sizes remain $(3,4,3,3,6)$; the normalizer adds $(13,71,13,15,190301)$ rows and its maximum new label is $95111$. This is an exact conditional ledger, not an aggregation resource theorem: the fixture's small non-JUMP and JUMP-column difference bounds are not being attributed to the native guest. Next certify those invariant intervals after BLAKE2s-priority label assignment and initial public-total filling, include every existing library and apply the common residual inequalities. Full joint GKR, other reductions and authentication remain open independently of this capacity progress.

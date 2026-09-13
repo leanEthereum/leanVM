@@ -404,6 +404,70 @@ def priority_certificates(verifier):
     print("Stable BLAKE-priority labels: inversion counts, aliased operand roles, complete chains and conserved total exponent pass.", flush=True)
 
 
+def local_priority(verifier, opcode, column):
+    if opcode == verifier.OP_BLAKE2S:
+        return 0
+    role = verifier.TABLES[opcode].count_columns[:-1].index(column)
+    return ((7, 8, 9), (12, 5, 6), (4,), (10, 13, 11), (1, 2, 3))[opcode][role]
+
+
+def local_priority_certificates(verifier):
+    for count, target, seed in product((3, 20), (0, 1), (0, 19)):
+        library = Library(verifier)
+        block = library.block(verifier.OP_JUMP, adapters=True)
+        frames = [library.fresh_frame() for _ in range(2)]
+        templates = [library.templates(block, frame) for frame in frames]
+        for template in templates:
+            library.register(template)
+        block = library.block(verifier.OP_DEREF)
+        for _ in range(count):
+            template = library.templates(block, library.fresh_frame(), frames[target] / verifier.GEN)
+            template[0][1][verifier.DEREF_COLUMNS.index("v3_0")] = verifier.ONE
+            library.append(template)
+        frame = library.fresh_frame()
+        library.append(library.templates(block, frame, frame * verifier.GEN))
+        for template in templates:
+            library.append(template)
+        template = library.templates(library.block(verifier.OP_BLAKE2S, adapters=True), library.fresh_frame())
+        library.append(template)
+        groups = defaultdict(list)
+        for location, (address, _) in library.labels.items():
+            if address[0] == "memory":
+                groups[address].append(location)
+        random = Random(seed)
+        for locations in groups.values():
+            labels = [library.labels[location][1] for location in locations]
+            random.shuffle(labels)
+            library.set_labels(locations, labels)
+        library.verify()
+        before = dict(library.reads), sum(library.memory_exponents().values())
+        bytecode = tuple(library.exponents[t.opcode, t.columns.index("cnt_bc")] for t in verifier.TABLES)
+        indirect_sum = 0
+        for locations in groups.values():
+            rank = {location: local_priority(verifier, library.rows[location[0]][0], location[1]) for location in locations}
+            indirect = sum(rank[location] == 13 for location in locations)
+            local = len(locations) - indirect
+            indirect_sum += local * indirect + indirect * (indirect - 1) // 2
+            ordered = sorted(locations, key=lambda location: (rank[location], library.labels[location][1]))
+            blake_order = [location for location in ordered if rank[location] == 0]
+            library.set_labels(ordered, range(len(ordered)))
+            assert [library.labels[location][1] for location in blake_order] == list(range(len(blake_order)))
+            for location in locations:
+                if rank[location] < 13:
+                    bound = sum(rank[other] <= rank[location] for other in locations) - 1
+                    assert library.labels[location][1] <= bound
+        library.verify()
+        assert before == (dict(library.reads), sum(library.memory_exponents().values()))
+        assert bytecode == tuple(library.exponents[t.opcode, t.columns.index("cnt_bc")] for t in verifier.TABLES)
+        assert library.exponents[verifier.OP_DEREF, verifier.DEREF_COLUMNS.index("cnt_target")] == indirect_sum
+        jump = verifier.OP_JUMP
+        assert all(library.exponents[jump, column] == 0 for column in verifier.TABLES[jump].count_columns[:-1])
+    rows = 40000
+    assert ((517 + 1) * rows, (517 + 350) * rows) == (20720000, 34680000)
+    assert (517 + 350) * 46136 <= 40000000 < (517 + 350) * 46137
+    print("Local-role priority: eight complete ISA libraries preserve BLAKE priority and isolate JUMP labels from private foreign reads.", flush=True)
+
+
 def wide_contract():
     bytecode = ((0, 100000000),) * 4 + ((0, 2300000000),)
     differences = (((0, 200000000),) * 3, ((0, 100000000),) * 3, ((0, 100000000),), ((0, 100000000),) * 3)
@@ -440,6 +504,7 @@ if __name__ == "__main__":
     wide_contract()
     prefill_certificates(verifier)
     priority_certificates(verifier)
+    local_priority_certificates(verifier)
     for multiplicity, scatter in ((2, False), (3, True)) if args.coarse else ((2, False), (2, True), (3, False), (3, True)):
         previous = None
         for skew in (0, 2):
