@@ -3,7 +3,7 @@ import SphincsSecurity.Proof.Adversary.Security
 
 namespace SphincsSecurity
 
-/-- The SPHINCS scheme with a 256-bit master seed has 127 bits of classical security. -/
+/-- The SPHINCS scheme has 127 bits of classical security. -/
 theorem sphincs_has_127_bits_of_classical_security : SphincsSecurityStatement :=
   Security.security127
 

@@ -4,11 +4,9 @@ import VCVio.OracleComp.QueryTracking.QueryBound
 import VCVio.OracleComp.QueryTracking.WriterCost
 
 /-!
-# XMSS with a 256-bit master seed
+# XMSS
 
-This module contains the complete seeded scheme: parameters, types, serialized hash inputs, key generation, signing, verification, the consistent random-oracle experiment, and the target `XmssSecurityStatement`. The experiment samples one 32-byte secret seed; key generation derives the public parameter and every signing secret through the same random oracle. Derivation and verification use disjoint domains.
-
-The theorem `xmss_has_127_bits_of_classical_security` proves the `127`-bit bound, counting every hash call in the experiment.
+127 bits of clasical security, for Strong Unforgeability under Chosen-Message Attacks (SUF-CMA), in the ROM, for the XMSS instance defined in ./doc/xmss/main.tex.
 -/
 
 open OracleComp OracleSpec ENNReal

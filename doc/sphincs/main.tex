@@ -13,6 +13,8 @@
 
 \theoremstyle{plain}
 \newtheorem{theorem}{Theorem}[section]
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
 
 \newcommand{\bits}[1]{\{0,1\}^{#1}}
 \newcommand{\getsr}{\stackrel{\$}{\gets}}
@@ -368,6 +370,61 @@ The Lean 4 proof using VCVio~\cite{VCVio} is in \texttt{formal/sphincs/}. Its co
 \paragraph{Quantum security.}
 \label{sec:quantum}
 Approximately 64 bits of security in the quantum random-oracle model is a target. No quantum security bound is proved here.
+
+\section{Completeness}
+\label{sec:completeness}
+
+\begin{definition}[Completeness]
+In the random-oracle model, the completeness error is
+\[
+  \varepsilon=\max_{m\in\bits{256}}\Pr\!\left[\Sig(\sk,m)=\bot\right],
+  \qquad (\pk,\sk)\gets\Gen,
+\]
+where the probability is over the master seed and the random oracle. The scheme is $\varepsilon_0$-complete if $\varepsilon\leq\varepsilon_0$.
+\end{definition}
+
+\begin{theorem}[SPHINCS completeness]
+With probability at least $1-2^{-256}$ over the master seed and the random oracle, one key signs every 256-bit message successfully. In particular, the scheme is $2^{-256}$-complete.
+\end{theorem}
+
+\begin{proof}
+Fix a message $m$. Signing fails only if the randomizer search or one of the $d=3$ WOTS counter searches is exhausted. Whenever signing succeeds, verification accepts by the recovery argument in Section~\ref{sec:ver}.
+
+\emph{Randomizer search.} Fix the seed and the oracle answers used by key generation. These calls use neither the randomizer-derivation tweak (type~12) nor the message-digest tweak (type~9). Each trial uses a distinct derivation input, so its 128-bit randomizer is uniform and independent of the earlier trials. After $j$ failed trials, the next randomizer repeats an earlier value with probability at most $j2^{-128}$. Otherwise its digest query is fresh, and the last FORS index is zero with probability $2^{-a}=2^{-10}$. Thus
+\[
+\begin{aligned}
+  \Pr[\text{randomizer search fails}]
+  &\leq\left(1-2^{-10}+\amax2^{-128}\right)^{\amax}\\
+  &\leq\left(1-2^{-11}\right)^{2^{32}}
+  \leq 2^{-2^{21}}.
+\end{aligned}
+\]
+Here $\amax2^{-128}=2^{-96}$, and we use $(1-p)^N\leq e^{-pN}\leq2^{-pN}$.
+
+\emph{WOTS counter search.} An encoding accepts exactly when its 42 three-bit positions sum to 191 and its two remaining bits are zero. Hence a uniform 128-bit digest is accepted with probability
+\[
+  \alpha=\frac{[z^{191}](1+z+\cdots+z^7)^{42}}{2^{128}}
+  =\frac{27362001415540541846731060490886528}{2^{128}}
+  \geq2^{-14},
+\]
+where $[z^r]$ denotes the coefficient of $z^r$. Condition on the seed and all oracle answers outside the encoding domain (type~4). If the randomizer search succeeds, this fixes the selected route and the value signed by each WOTS key: a FORS public key or a child-tree root. For the analysis, consider all three searches even if signing would stop at an earlier failure. At each of these keys, distinct counters give distinct encoding inputs, whose answers remain independent and uniform. The probability that all $\cmax=2^{32}$ counters fail is therefore
+\[
+  (1-\alpha)^{\cmax}\leq2^{-\alpha\cmax}\leq2^{-2^{18}}.
+\]
+The bound applies to each of the three layers; it does not require their failures to be independent.
+
+\emph{Combining the searches.} A union bound gives, for every fixed message,
+\[
+  \Pr[\Sig(\sk,m)=\bot]
+  \leq2^{-2^{21}}+3\cdot2^{-2^{18}}
+  \leq2^{-2^{18}+2}.
+\]
+There are $2^{256}$ possible messages. A second union bound shows that the probability of any message failing under one key is at most
+\[
+  2^{256}\cdot2^{-2^{18}+2}=2^{-2^{18}+258}<2^{-256}.
+\]
+Since signing is deterministic and stateless, this conclusion also covers repeated messages and messages chosen adaptively.
+\end{proof}
 
 \appendix
 \section{Tweak encoding}

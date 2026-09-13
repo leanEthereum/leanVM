@@ -3,7 +3,7 @@ import XmssSecurity.Proof.Adversary.Security
 
 namespace XmssSecurity
 
-/-- XMSS with a 256-bit master seed has 127 bits of classical security. -/
+/-- XMSS has 127 bits of classical security. -/
 theorem xmss_has_127_bits_of_classical_security : XmssSecurityStatement :=
   Security.security127
 

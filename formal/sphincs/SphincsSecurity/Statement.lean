@@ -3,11 +3,9 @@ import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
 import VCVio.OracleComp.QueryTracking.WriterCost
 
 /-!
-# SPHINCS with a 256-bit master seed
+# SPHINCS
 
-This module contains the complete seeded scheme: parameters, types, serialized hash inputs, key generation, signing, verification, the consistent random-oracle experiment, and the target `SphincsSecurityStatement`. The experiment samples one 32-byte secret seed; key generation derives the public parameter and every signing secret through the same random oracle. Derivation and verification use disjoint domains.
-
-The theorem `sphincs_has_127_bits_of_classical_security` proves the `127`-bit bound, counting every hash call in the experiment.
+127 bits of clasical security, for Strong Unforgeability under Chosen-Message Attacks (SUF-CMA), in the ROM, for the Sphincs+ instance defined in ./doc/sphincs/main.tex.
 -/
 
 open OracleComp OracleSpec ENNReal
@@ -200,7 +198,7 @@ def keygenHashInput (parameter : PublicParameter) (domain : KeygenDomain)
 
 /-! ### The target-sum code
 
-`v = 42` chunks of `w = 3` bits, 21 in each half of the digest, one pinned bit per half, and the code is the words of digit sum `T = 191`. Two distinct words of equal sum are incomparable, which is what removes the Winternitz checksum and forces the counter. -/
+`v = 42` chunks of `w = 3` bits, 21 in each half of the digest, one pinned bit per half, and the code is the words of digit sum `T = 191`. Two distinct words of equal sum are incomparable, which is what removes the Winternitz checksum and the reason why we need the counter. -/
 
 namespace TargetSum
 
