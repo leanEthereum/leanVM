@@ -63,6 +63,15 @@ For an explicit tighter interval, put $\zkNormHWithout{c}=\zkNormH-\zkNormDelta{
 \]
 This retains the occurrence of the selected coordinate inside the total rather than charging it twice as independent uncertainty. Non-JUMP intervals are simply those of $\zkNormDiff{t}{c}+\zkReuseBcTarget{t}$, enlarged by at most two at the upper endpoint for DEREF's local-result column.
 
+If $\zkNormHWidth$ and $\zkNormDeltaWidth{c}$ are the widths of these $\zkNormH$ and $\zkNormDelta{c}$ intervals, the displayed JUMP interval has width exactly
+\[
+ \zkNormColumnWidth{\mathrm J}{c}
+ =\zkNormDeltaWidth{c}
+   +\left\lfloor\frac{\zkNormHWidth-\zkNormDeltaWidth{c}}3\right\rfloor
+   -\left\lfloor\frac{\zkNormDeltaWidth{c}}3\right\rfloor.
+\]
+Indeed, substituting the summed upper bound for $\overline{\zkNormS}$ makes the two endpoints respectively $\underline{\zkNormDelta{c}}+\overline{\zkNormDiff{\mathrm J}{0}}+\lfloor\zkNormDeltaWidth{c}/3\rfloor$ and $\overline{\zkNormDelta{c}}+\overline{\zkNormDiff{\mathrm J}{0}}+\lfloor(\zkNormHWidth-\zkNormDeltaWidth{c})/3\rfloor$, apart from their common square/code offset. Thus all router widths are computable from interval widths alone, regardless of the public offsets.
+
 \subsubsection{Rows, frames and maximum labels in one ledger}
 
 Let $\zkNormWidth{t}$ be the incoming bytecode interval widths. The selected bytecode rows and total-memory rows are
@@ -92,6 +101,47 @@ These stages need $50$ bytecode frames, five router frames, ten total-memory fra
 
 Add this row vector to the public incoming totals and apply Corollary~\ref{cor:zk-common-coarse-budget}, checking its inequalities and the maximum label $165888$. The two stages together reserve at most $175+308=483$ code positions after the existing $99$ codes, still within log $19$, and conservatively $35+48+3=86$ free slots for these normalizers, routers and final fillers. This excludes the incoming completion, real execution and compression libraries. Their public resource bounds remain necessary; the displayed formulas make that obligation explicit rather than discharging it.
 
+\subsubsection{Unequal-size routers trade spare target rows for fewer MULs}
+
+\begin{lemma}[Rectangular count transfers]\label{lem:zk-rectangular-count-transfer}
+A selected memory column with $\zkNormRouter{t}$ reads and its MUL absorber with $\zkNormAdapters{t}{c}$ reads of the same cell can transfer any integer from zero through $\zkNormRouter{t}\zkNormAdapters{t}{c}$ above the selected column's minimal exponent $\binom{\zkNormRouter{t}}2$. The final counter is unchanged, and every label is below $\zkNormRouter{t}+\zkNormAdapters{t}{c}$.
+\end{lemma}
+\begin{proof}
+Use the increasing-sequence construction in Lemma~\ref{lem:zk-square-label-transfer}, now taking the complement inside a chain of length $\zkNormRouter{t}+\zkNormAdapters{t}{c}$. The quotient of the desired transfer by $\zkNormRouter{t}$ is at most $\zkNormAdapters{t}{c}$; equality forces zero remainder. Hence all selected labels remain in this chain, their sum has the required increment, and their complement has exactly $\zkNormAdapters{t}{c}$ labels. Their union is still the complete chain.
+\end{proof}
+
+\paragraph{A valid shared-frame implementation.} Put the selected opcode in its own cycle, using a closing JUMP unless it is already a self-loop. In the same frame, give each selected operand a separate cycle of eight MUL instructions that read it as their first input and multiply by zero. The MUL zero-input and output cells are disjoint from the selected operands and have public total accesses. Full traversals supply the quotient of $\zkNormAdapters{t}{c}$ by eight; a separate cycle of at most seven MULs supplies its public remainder. Full and remainder cycles have different return controls, so their destinations coexist in write-once memory. The selected cycle and these absorber cycles need not be traversals of one common path: each is a closed valid component of the state bus. All labels are assigned jointly afterwards. Target operands at offsets below three, zero/output helpers below $38$, target return controls at $64,65,66$, and absorber return controls at $68,\ldots,76$ and $80,\ldots,88$ fit one $128$-cell frame. Every column's shared cell is distinct, so its transfer is independent.
+
+For a public postnormalization width $\zkNormColumnWidth{t}{c}$, choose any public target length $\zkNormRouter{t}\ge1$ and set
+\[
+ \zkNormAdapters{t}{c}
+ =\max\left(1,\left\lceil\frac{\zkNormColumnWidth{t}{c}}{\zkNormRouter{t}}\right\rceil\right),
+ \qquad
+ \zkNormAdapterTotal=\sum_{t,c}\zkNormAdapters{t}{c},
+\]
+where the sum runs over the twelve nonabsorbing memory columns. The complete noncompression normalizer now adds
+\[
+\begin{aligned}
+ \mathrm X:&\quad\zkNormBcRows{\mathrm X}+\zkNormRouter{\mathrm X},\\
+ \mathrm M:&\quad\zkNormBcRows{\mathrm M}+\zkNormRouter{\mathrm M}+\zkNormAdapterTotal,\\
+ \mathrm S:&\quad\zkNormBcRows{\mathrm S}+\zkNormRouter{\mathrm S},\\
+ \mathrm D:&\quad\zkNormBcRows{\mathrm D}+\zkNormRouter{\mathrm D}+2,\\
+ \mathrm J:&\quad\sum_t\zkNormBcRows{t}+\zkNormMemRows+\sum_t\zkNormRouter{t}
+  +\sum_{t,c}\left\lceil\frac{\zkNormAdapters{t}{c}}8\right\rceil+2.
+\end{aligned}
+\]
+This is an alternative to the preceding square-router ledger, not an additional bank. There are still $69$ normalizer frames. Each absorber uses at most seventeen code locations, including both returns; the five target cycles use fourteen including their existing gaps. With bytecode and residue stages, at most $366$ positions suffice. Add $308$ for coarse routers and final fillers, giving $674$ after the old code reservation. For maximum labels replace the square-router term by $\max_{t,c}(\zkNormRouter{t}+\zkNormAdapters{t}{c}-1)$. Absorber-only helper chains and both return chains are shorter. Their fixed contributions do not enlarge the input intervals, and the common-component cancellation still applies.
+
+\paragraph{A large-interval common contract.} The following is a uniform conditional feasibility certificate, not a claim about all real guest witnesses. Suppose the initial noncompression row totals, already including real work, initial filling and earlier libraries, are
+\[
+ (400000,320000,120000,300000,330000).
+\]
+Suppose their bytecode widths are bounded by $(10^8,10^8,10^8,10^8,23\cdot10^8)$; each XOR difference width is at most $2\cdot10^8$, each other non-JUMP difference width at most $10^8$, the JUMP reference width at most $25\cdot10^8$, and each of its two nonzero column-difference widths at most $4\cdot10^7$. All interval endpoints must be public, including the offsets from earlier libraries. Extend narrower intervals to these public widths. Set target lengths to
+\[
+ (24576,16384,16384,32768,49152).
+\]
+The new normalizer then adds $(45704,118016,37512,53898,451785)$ rows. The shared coarse routers and final fillers fit exactly: their final target-filler lengths are $(4856,12544,293048,96662,20161)$, with $25446$ extra returns from the four non-JUMP fillers. The largest new normalization label is $111441<165888$. Thus all row inequalities and the new-label bound hold for every valid incoming completion satisfying this contract, independently of its interval offsets. By comparison, the previous square-router ledger would require $592559$ MUL rows after coarse routing, exceeding height $19$. The unequal-size construction removes that ledger's bottleneck; it does not certify the incoming trace, memory allocation or statistical privacy.
+
 \subsubsection{Private-length prefilling need not create quadratic differences}
 
 \begin{lemma}[Linear difference cost for the initial fillers]\label{lem:zk-prefill-count-differences}
@@ -103,6 +153,25 @@ Each target memory column contributes $16\binom{\zkNormFillQuotient}{2}$, becaus
 
 Thus completing private real-row counts to public initial totals can be budgeted through small difference intervals even when absolute code and memory sums are quadratic. One must still bound the private filler lengths, their bytecode intervals and all their closing returns before fixing the initial JUMP total. This lemma neither makes those intermediate sums public nor hides their transcript disclosures.
 
+\subsubsection{Account for BLAKE2s-priority relabeling explicitly}
+
+At each real memory cell, stably move its BLAKE2s accesses before its other accesses, preserving the old label order inside both groups. A noncompression access gains exactly the number of BLAKE2s accesses whose old label was larger than its own. All gains are nonnegative. Every cell still uses the same complete label chain, so the total memory exponent and all final counters are unchanged; the total gain outside BLAKE2s equals its exponent loss. Bytecode counts do not change. Consequently, if a memory role can share its cell with at most $\zkPriorityCap{t}{c}$ BLAKE2s accesses, this relabeling shifts that column's exponent, and its memory-minus-code difference, by an integer in $[0,\zkPriorityCap{t}{c}\zkPriorityRows{t}]$, where $\zkPriorityRows{t}$ bounds its real rows.
+
+Under the same fresh-frame, owned-local-operand and single-instruction-visit contract as the static BLAKE2s load bound, the public function bodies bound $\zkPriorityCap{t}{c}$ for every local role. DEREF's indirect role instead uses the largest BLAKE2s cell load. The actual optional local-range recursive wrapper passes the following checked upper bounds, in its native memory-column order:
+\[
+\begin{array}{c|rrr}
+ t&\multicolumn{3}{c}{\zkPriorityCap{t}{c}}\\\hline
+ \mathrm X&2&16&16\\
+ \mathrm M&2&2&1\\
+ \mathrm S&213&\cdot&\cdot\\
+ \mathrm D&0&213&182\\
+ \mathrm J&16&1&2
+\end{array}
+\]
+In particular the two JUMP-column differences shift within $[-16\zkPriorityRows{\mathrm J},\zkPriorityRows{\mathrm J}]$ and $[-16\zkPriorityRows{\mathrm J},2\zkPriorityRows{\mathrm J}]$, rather than intervals based on the global $256$ cap for every role. The research allocator example checks these public incidences before execution; its native two-child execution still passes. This is a conditional static bound for the relabeling increment, not a bound on the original differences or a proof that every hinted execution obeys the ownership contract. Apply it before the disjoint initial fillers and include all earlier count libraries in the incoming intervals.
+
 \paragraph{Exact certificates and the remaining premise.} \auditref{zk_count_budget_audit.py} checks all small signed interval/residue cases, exact filler remainders, the row/code/frame/label ledger and eight complete cycle libraries with independent memory reuse and instruction multiplicities. A MUL reading a JUMP control cell also gives genuinely unequal, privately varying JUMP-column sums. A separate private choice changes only the incoming JUMP bytecode exponent; the three postnormalization JUMP exponents and the residue remain exactly unchanged, as the cancellation predicts. All final column products and memory/code images agree. Its \texttt{--coarse} mode composes four of these libraries with the shared coarse routers and checks every native height-seven count node. All ISA constraints and full read chains pass, with compression unchanged.
 
 As an algebraic stress case, widen JUMP's bytecode interval to $[0,2147450880]$ and its reference-difference interval to $[-2147450880,70]$, retaining the small fixture's other intervals. The router sizes remain $(3,4,3,3,6)$; the normalizer adds $(13,71,13,15,190301)$ rows and its maximum new label is $95111$. This is an exact conditional ledger, not an aggregation resource theorem: the fixture's small non-JUMP and JUMP-column difference bounds are not being attributed to the native guest. Next certify those invariant intervals after BLAKE2s-priority label assignment and initial public-total filling, include every existing library and apply the common residual inequalities. Full joint GKR, other reductions and authentication remain open independently of this capacity progress.
+
+The \texttt{--rectangular} mode checks the same private families with unequal target and absorber lengths, including both directions of imbalance and batched remainder cycles; combining it with \texttt{--coarse} checks the resulting native frontier. The audit also certifies the large-interval contract above, including the failed square-router comparison, and checks stable BLAKE2s-priority relabeling on eight complete cycle libraries with aliased operands and varied prior label orders. These are legality and exact-budget certificates. They neither assert that the native guest satisfies the large-interval contract nor extend the proved statistical view.

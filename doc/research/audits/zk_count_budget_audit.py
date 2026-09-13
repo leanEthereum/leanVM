@@ -1,14 +1,17 @@
 """Exact correlated bounds and a row/label ledger for noncompression normalization."""
 
 import argparse
+from collections import defaultdict
 from itertools import product
 from math import isqrt
+from random import Random
 
 from zk_column_count_audit import Library, base_trace, router_banks
 from zk_count_coarse_balance_audit import (
     coarse_table,
     completion_budget,
     fill_block,
+    local_row,
     mixed_routers,
     native_frontier,
 )
@@ -31,7 +34,7 @@ def interval_sum(intervals):
     return tuple(map(sum, zip(*intervals, strict=True)))
 
 
-def plan(bytecode, differences, jump_reference, jump_differences):
+def plan(bytecode, differences, jump_reference, jump_differences, target_sizes=None):
     assert len(bytecode) == 5 and tuple(map(len, differences)) == (3, 3, 1, 3) and len(jump_differences) == 3
     assert jump_differences[0] == (0, 0)
     assert all(low <= high for low, high in (*bytecode, *(entry for row in differences for entry in row), jump_reference, *jump_differences))
@@ -60,6 +63,8 @@ def plan(bytecode, differences, jump_reference, jump_differences):
         rest_low, rest_high = h_low - low, h_high - high
         constant = targets[4] + memory_offset
         jump_post.append((constant + (s_high + 2 * low - rest_high) // 3, constant + (s_high + 2 * high - rest_low) // 3))
+        width = high - low
+        assert jump_post[-1][1] - jump_post[-1][0] == width + (h_high - h_low - width) // 3 - width // 3
     post.append(jump_post)
     radii = [max(1, ceil_sqrt(max(high - low for c, (low, high) in enumerate(row) if (t, c) != (1, 0)))) for t, row in enumerate(post)]
     rx, rm, rs, rd, rj = radii
@@ -70,6 +75,24 @@ def plan(bytecode, differences, jump_reference, jump_differences):
         bc_rows[3] + rd + 2,
         sum(bc_rows) + memory_rows + rx + rm + rs + rd + 2 * rj + 2,
     )
+    adapters = None
+    new_label = max(*bc_labels, memory_rows - 1, 2 * max(radii) - 1, 1)
+    if target_sizes is not None:
+        assert len(target_sizes) == 5 and all(size >= 1 for size in target_sizes)
+        radii = list(target_sizes)
+        adapters = [
+            [max(1, (high - low + size - 1) // size) for c, (low, high) in enumerate(row) if (t, c) != (1, 0)]
+            for t, (size, row) in enumerate(zip(radii, post, strict=True))
+        ]
+        adapter_total = sum(map(sum, adapters))
+        added = (
+            bc_rows[0] + radii[0],
+            bc_rows[1] + radii[1] + adapter_total,
+            bc_rows[2] + radii[2],
+            bc_rows[3] + radii[3] + 2,
+            sum(bc_rows) + memory_rows + sum(radii) + sum((count + 7) // 8 for row in adapters for count in row) + 2,
+        )
+        new_label = max(*bc_labels, memory_rows - 1, *(size + max(row) - 1 for size, row in zip(radii, adapters, strict=True)), 1)
     return {
         "bytecode": tuple(bytecode),
         "differences": tuple(differences),
@@ -84,9 +107,49 @@ def plan(bytecode, differences, jump_reference, jump_differences):
         "memory_offset": memory_offset,
         "post": post,
         "radii": radii,
+        "adapters": adapters,
         "added": added,
-        "new_label": max(*bc_labels, memory_rows - 1, 2 * max(radii) - 1, 1),
+        "new_label": new_label,
     }
+
+
+def rectangular_banks(library, target_sizes, adapter_sizes):
+    v, banks = library.v, []
+    for opcode, (size, sizes) in enumerate(zip(target_sizes, adapter_sizes, strict=True)):
+        frame = library.fresh_frame()
+        template = library.templates(library.block(opcode), frame)
+        target_rows = [library.append(template)[0] for _ in range(size)]
+        reads = [
+            (column, address, values)
+            for column, address, values in library.memory_reads(opcode, template[0][1])
+            if (opcode, column) != library.absorber
+        ]
+        for index, ((column, address, values), count) in enumerate(zip(reads, sizes, strict=True)):
+            receivers = []
+            full, tail = divmod(count, 8)
+            for width, repetitions, controls in ((8, full, 68 + 3 * index), (tail, int(tail > 0), 80 + 3 * index)):
+                if not width:
+                    continue
+                pc = library.pc
+                library.pc += width + 1
+                rows = []
+                for offset in range(width):
+                    row = library.row(v.OP_MUL, pc + offset, frame)
+                    row[v.ARITH_COLUMNS.index("o_a")] = address / frame
+                    row[v.ARITH_COLUMNS.index("o_b")] = v.GEN ** (32 + 2 * index)
+                    row[v.ARITH_COLUMNS.index("o_c")] = v.GEN ** (33 + 2 * index)
+                    for limb, value in enumerate(values):
+                        row[v.ARITH_COLUMNS.index(f"va_{limb}")] = value
+                    rows.append((v.OP_MUL, row))
+                rows.append(local_row(library, v.OP_JUMP, pc + width, frame, controls, pc))
+                library.register(rows)
+                for _ in range(repetitions):
+                    receivers.extend((row, library.absorber[1]) for row in library.append(rows)[:-1])
+            target = [(row, column) for row in target_rows]
+            assert len(receivers) == count
+            library.route(target, receivers, 0)
+            banks.append(((opcode, column), target, receivers))
+    return banks
 
 
 def code_normalizer(library, opcode, low, high):
@@ -157,7 +220,11 @@ def normalize(library, budget):
         for column in row:
             assert library.exponents[t, column] == original[t, column] + budget["targets"][t] - bc[t]
     before_router = library.memory_exponents()
-    banks = [bank for opcode, size in enumerate(budget["radii"]) for bank in router_banks(library, size, (opcode,))]
+    banks = (
+        [bank for opcode, size in enumerate(budget["radii"]) for bank in router_banks(library, size, (opcode,))]
+        if budget["adapters"] is None
+        else rectangular_banks(library, budget["radii"], budget["adapters"])
+    )
     fixed = {column: value - before_router[column] for column, value in library.memory_exponents().items()}
     residue = memory_normalizer(library, budget["s_interval"][1] - s, budget)
     before_route = library.memory_exponents()
@@ -180,7 +247,11 @@ def normalize(library, budget):
         library.route(target, receiver, shift)
         assert library.exponents[opcode, column] == high + fixed[opcode, column]
     assert sum(library.memory_exponents().values()) == sum(before_route.values())
-    assert library.frame - before_frame == 69 * 128 and library.pc - before_pc == 175
+    assert library.frame - before_frame == 69 * 128
+    if budget["adapters"] is None:
+        assert library.pc - before_pc == 175
+    else:
+        assert library.pc - before_pc <= 366
     assert [sum(source == opcode for source, _ in library.rows) - before_rows[opcode] for opcode in range(5)] == list(budget["added"])
     assert all(label <= budget["new_label"] for (index, _), (_, label) in library.labels.items() if index >= sum(before_rows) + len(preserved))
     assert preserved == [row for opcode, row in library.rows if opcode == v.OP_BLAKE2S]
@@ -241,14 +312,15 @@ def fixture(verifier, multiplicity, scatter, skew, budget, coarse):
     return (products, frontier, library.images), (incoming_bc, jump_result)
 
 
-def interval_certificates():
+def interval_certificates(rectangular=False):
     bytecode = ((0, 3), (0, 6), (0, 3), (0, 3), (0, 48))
     differences = (((-3, 3),) * 3, ((-6, 9),) * 3, ((-3, 3),), ((-3, 3),) * 3)
     jump_differences = ((0, 0), (-3, 0), (-3, 0))
-    budget = plan(bytecode, differences, (-48, 70), jump_differences)
-    assert budget["radii"] == [3, 4, 3, 3, 6]
+    targets = (2, 7, 1, 8, 3) if rectangular else None
+    budget = plan(bytecode, differences, (-48, 70), jump_differences, targets)
+    assert budget["radii"] == (list(targets) if rectangular else [3, 4, 3, 3, 6])
     for width in (0, 48, (1 << 31) - (1 << 15)):
-        enlarged = plan((*bytecode[:4], (0, width)), differences, (-width, 70), jump_differences)
+        enlarged = plan((*bytecode[:4], (0, width)), differences, (-width, 70), jump_differences, targets)
         assert enlarged["radii"] == budget["radii"]
         assert [high - low for low, high in enlarged["post"][4]] == [high - low for low, high in budget["post"][4]]
         assert enlarged["new_label"] <= 165888
@@ -292,12 +364,82 @@ def prefill_certificates(verifier):
     print("Private-length prefilling: exact linear memory-minus-code increments and equal JUMP-memory increments pass for all opcodes.", flush=True)
 
 
+def priority_certificates(verifier):
+    for aliases, repetitions, seed in product((False, True), (1, 3), (0, 19)):
+        library = Library(verifier)
+        template = library.templates(library.block(verifier.OP_BLAKE2S, adapters=True), library.fresh_frame())
+        if aliases:
+            template[0][1][verifier.BLAKE2S_COLUMNS.index("o_1")] = verifier.ONE
+            template[2][1][verifier.ARITH_COLUMNS.index("o_a")] = verifier.ONE
+        for _ in range(repetitions):
+            library.append(template)
+        groups = defaultdict(list)
+        for location, (address, _) in library.labels.items():
+            if address[0] == "memory":
+                groups[address].append(location)
+        random = Random(seed)
+        for locations in groups.values():
+            labels = [library.labels[location][1] for location in locations]
+            random.shuffle(labels)
+            library.set_labels(locations, labels)
+        library.verify()
+        before = library.memory_exponents()
+        reads = dict(library.reads)
+        for locations in groups.values():
+            blake_locations = {location for location in locations if library.rows[location[0]][0] == verifier.OP_BLAKE2S}
+            old = {location: library.labels[location][1] for location in locations}
+            blake_labels = [old[location] for location in blake_locations]
+            ordered = sorted(locations, key=lambda location: (location not in blake_locations, old[location]))
+            library.set_labels(ordered, range(len(ordered)))
+            for location in locations:
+                label = library.labels[location][1]
+                if location in blake_locations:
+                    assert label == sum(other < old[location] for other in blake_labels)
+                else:
+                    delta = label - old[location]
+                    assert delta == sum(other > old[location] for other in blake_labels)
+                    assert 0 <= delta <= len(blake_labels)
+        assert reads == library.reads and sum(before.values()) == sum(library.memory_exponents().values())
+        library.verify()
+    print("Stable BLAKE-priority labels: inversion counts, aliased operand roles, complete chains and conserved total exponent pass.", flush=True)
+
+
+def wide_contract():
+    bytecode = ((0, 100000000),) * 4 + ((0, 2300000000),)
+    differences = (((0, 200000000),) * 3, ((0, 100000000),) * 3, ((0, 100000000),), ((0, 100000000),) * 3)
+    reference = (-2500000000, 0)
+    jump = ((0, 0), (-20000000, 20000000), (-20000000, 20000000))
+    incoming = (400000, 320000, 120000, 300000, 330000)
+    targets = (24576, 16384, 16384, 32768, 49152)
+    budget = plan(bytecode, differences, reference, jump, targets)
+    normalized = tuple(value + added for value, added in zip(incoming, budget["added"], strict=True))
+    fillers, returns = completion_budget(normalized)
+    assert budget["added"] == (45704, 118016, 37512, 53898, 451785)
+    assert fillers == (4856, 12544, 293048, 96662, 20161) and returns == 25446
+    assert budget["new_label"] == 111441
+    assert budget["new_label"] < 165888
+    square = plan(bytecode, differences, reference, jump)
+    assert incoming[1] + square["added"][1] + 73728 == 592559 > 1 << 19
+    for offset in range(3):
+        shifted = (((offset, 200000000 + offset), *differences[0][1:]), *differences[1:])
+        other = plan(bytecode, shifted, reference, jump, targets)
+        assert all(other[key] == budget[key] for key in ("added", "adapters", "new_label"))
+    print(f"Large-interval conditional contract: normalizer rows {budget['added']}; final fillers {fillers}; filler returns {returns}.", flush=True)
+    print(
+        "All five table budgets and the label cap fit. The same square-router ledger overfills MUL; the real guest's input contract remains unproved.",
+        flush=True,
+    )
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--coarse", action="store_true", help="also check the integrated native coarse frontier")
+    parser.add_argument("--rectangular", action="store_true", help="use unequal target/adapter cycles with batched MUL returns")
     args = parser.parse_args()
-    budget, verifier, expected = interval_certificates(), verifier_module(), None
+    budget, verifier, expected = interval_certificates(args.rectangular), verifier_module(), None
+    wide_contract()
     prefill_certificates(verifier)
+    priority_certificates(verifier)
     for multiplicity, scatter in ((2, False), (3, True)) if args.coarse else ((2, False), (2, True), (3, False), (3, True)):
         previous = None
         for skew in (0, 2):

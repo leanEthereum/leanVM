@@ -119,6 +119,7 @@ def main():
             .all(|op| matches!(op, Op::Set { o: 0, k } if *k == F192::ZERO))
     );
     let mut maximum = 0;
+    let mut priority_caps = [[0usize; 3]; 5];
     for (_, pc, size) in &program.fn_ranges {
         let mut loads = BTreeMap::<u32, usize>::new();
         for address in *pc..pc + size {
@@ -132,9 +133,43 @@ def main():
             }
         }
         maximum = maximum.max(loads.values().copied().max().unwrap_or(0));
+        for address in *pc..pc + size {
+            if program.filler.iter().any(|b| (b.pc..=b.pc + b.size).contains(&address)) {
+                continue;
+            }
+            let (table, cells) = match program.prog[address as usize] {
+                Op::Xor { a, b, c } => (0, [Some(a), Some(b), Some(c)]),
+                Op::Mul { a, b, c } => (1, [Some(a), Some(b), Some(c)]),
+                Op::Set { o, .. } => (2, [Some(o), None, None]),
+                Op::Deref { o1, o3, .. } => (3, [Some(o1), None, Some(o3)]),
+                Op::Jump { oc, od, of } => (4, [Some(oc), Some(od), Some(of)]),
+                Op::Blake2s { .. } => continue,
+            };
+            for (column, cell) in cells.into_iter().enumerate() {
+                if let Some(cell) = cell {
+                    priority_caps[table][column] = priority_caps[table][column].max(*loads.get(&cell).unwrap_or(&0));
+                }
+            }
+        }
     }
     assert!(maximum <= 256, "static per-cell BLAKE2s load cap exceeded");
     println!("Wrapped code: log 19, emitted end {emitted_end}, static BLAKE2s load cap {maximum}.");
+    priority_caps[3][1] = maximum;
+    if local_ranges && ordinary_children {
+        let certificate = [[2, 16, 16], [2, 2, 1], [213, 0, 0], [0, 213, 182], [16, 1, 2]];
+        assert!(
+            priority_caps
+                .iter()
+                .flatten()
+                .zip(certificate.iter().flatten())
+                .all(|(actual, cap)| actual <= cap),
+            "the local-range wrapper exceeds its BLAKE-priority shift certificate"
+        );
+    }
+    println!("Static BLAKE-priority shift caps per memory role (X/M/S/D/J): {priority_caps:?}.");
+    println!(
+        "These are public incidence bounds under fresh-frame single-visit execution; the indirect DEREF role uses the global cap."
+    );
     program
 }
 

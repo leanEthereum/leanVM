@@ -153,14 +153,15 @@ class Library:
 
     def route(self, target, receiver, shift):
         size = len(target)
-        assert len(receiver) == size and 0 <= shift <= size * size
+        total = size + len(receiver)
+        assert size > 0 and receiver and 0 <= shift <= size * len(receiver)
         addresses = {self.labels[location][0] for location in (*target, *receiver)}
-        assert len(addresses) == 1 and self.reads[next(iter(addresses))] == 2 * size
+        assert len(addresses) == 1 and self.reads[next(iter(addresses))] == total
         quotient, remainder = divmod(shift, size)
         selected = [quotient + index + int(index >= size - remainder) for index in range(size)]
-        complement = [index for index in range(2 * size) if index not in selected]
+        complement = [index for index in range(total) if index not in selected]
         assert sum(selected) == size * (size - 1) // 2 + shift
-        assert sorted(selected + complement) == list(range(2 * size))
+        assert sorted(selected + complement) == list(range(total))
         self.set_labels(target, selected)
         self.set_labels(receiver, complement)
 

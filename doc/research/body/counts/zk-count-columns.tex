@@ -9,7 +9,7 @@ For each count column, track the integer sum of its labels, so that its product 
 
 Repeat the cycle $R$ times in the same fresh frame. Each selected cell has $2R$ accesses, half in the target column and half in the absorber. Its labels may be assigned in any order, provided they are exactly $0,\ldots,2R-1$.
 
-\begin{lemma}[An interval of exact transfers]
+\begin{lemma}[An interval of exact transfers]\label{lem:zk-square-label-transfer}
 The target accesses can receive any label sum $\binom R2+u$, for $0\le u\le R^2$, while their union with the absorber accesses retains the same labels and final counter.
 \end{lemma}
 \begin{proof}
