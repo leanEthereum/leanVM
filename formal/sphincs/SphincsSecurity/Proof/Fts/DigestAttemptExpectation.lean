@@ -4,7 +4,7 @@ namespace SphincsSecurity.Concrete
 
 open _root_.OracleComp OracleSpec ENNReal
 attribute [local instance] Classical.propDecidable
-noncomputable local instance instSampleableTypeRandomness_2 : SampleableType Randomness := SampleableType.ofFintype Randomness
+noncomputable local instance instSampleableTypeRandomness_2 : SampleableType Randomness := Concrete.randomnessSampleableType
 attribute [local irreducible] signAttempt signDigestAttemptPrefix
 
 abbrev DigestAttemptResult := Randomness × (Option (Index × (IndexGroup → FtsLeaf)) × QueryCache HashSpec)

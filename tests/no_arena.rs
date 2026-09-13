@@ -16,7 +16,7 @@ fn aggregate_without_the_arena() {
     let signers = (0..2)
         .map(|_| {
             let (secret_key, pub_key) = xmss::key_gen(rng, EPOCH, EPOCH).unwrap();
-            let signature = xmss::sign(rng, &secret_key, &message, EPOCH).unwrap();
+            let signature = xmss::sign(&secret_key, &message, EPOCH).unwrap();
             (pub_key, EPOCH, message, signature)
         })
         .collect();

@@ -15,7 +15,7 @@ namespace SphincsSecurity
 open OracleComp OracleSpec ENNReal
 
 noncomputable local instance instSampleableTypeRandomness_1 : SampleableType Randomness :=
-  SampleableType.ofFintype Randomness
+  Concrete.randomnessSampleableType
 
 def cachedMessageInputSetWhere (cache : QueryCache HashSpec) (parameter : PublicParameter)
     (root : Digest) (message : Message) (P : Concrete.FewTimeView → Prop) :

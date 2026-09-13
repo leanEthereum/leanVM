@@ -14,17 +14,16 @@ fn keygen_sign_verify() {
     let (sk, pk) = test_key(0);
     assert_eq!(sk.public_key(), pk);
     let message = test_message();
-    for round in 0..2 {
-        let signature = sign(&mut StdRng::seed_from_u64(round), &sk, &message).unwrap();
-        verify(&pk, &message, &signature).unwrap();
-    }
+    let signature = sign(&sk, &message).unwrap();
+    verify(&pk, &message, &signature).unwrap();
+    assert_eq!(sign(&sk, &message).unwrap(), signature);
 }
 
 #[test]
 fn serialized_sizes_and_roundtrip() {
     let (sk, pk) = test_key(1);
     let message = test_message();
-    let signature = sign(&mut StdRng::seed_from_u64(7), &sk, &message).unwrap();
+    let signature = sign(&sk, &message).unwrap();
 
     let public_key_bytes = pk.flatten();
     assert_eq!(public_key_bytes.len(), 32);
@@ -41,7 +40,7 @@ fn serialized_sizes_and_roundtrip() {
 fn tampered_signatures_rejected() {
     let (sk, pk) = test_key(2);
     let message = test_message();
-    let signature = sign(&mut StdRng::seed_from_u64(3), &sk, &message).unwrap();
+    let signature = sign(&sk, &message).unwrap();
     verify(&pk, &message, &signature).unwrap();
 
     let mut other_message = message;
@@ -186,7 +185,7 @@ fn secret_key_survives_a_round_trip() {
 
     assert_eq!(reloaded.public_key(), pk);
     let message = test_message();
-    let sig = sign(&mut StdRng::seed_from_u64(1), &reloaded, &message).unwrap();
+    let sig = sign(&reloaded, &message).unwrap();
     verify(&pk, &message, &sig).unwrap();
 }
 

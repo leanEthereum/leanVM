@@ -13,7 +13,7 @@ noncomputable def gameAfterSeed (adversary : Adversary) (seed : MasterSeed) :
   gameAfterParameter adversary parameter seed
 
 theorem gameCore_seeded_split (adversary : Adversary) :
-    gameCore scheme adversary = ((liftM sampleMasterSeed : OracleComp OracleWorld _) >>=
+    gameCore randomizedScheme adversary = ((liftM sampleMasterSeed : OracleComp OracleWorld _) >>=
       gameAfterSeed adversary) := gameCore_seeded_eq adversary
 
 theorem afterSeed_first_query (adversary : Adversary) (seed : MasterSeed) :
@@ -34,7 +34,7 @@ theorem mem_support_secretOutputs (outputs : SecretOutputs) : outputs ∈ suppor
   exact ENNReal.inv_ne_zero.mpr (ENNReal.natCast_ne_top _)
 
 theorem hashQueryBound_after_derivation (adversary : Adversary) (q : Nat)
-    (hbound : HasHashQueryBound scheme adversary q) (seed : MasterSeed)
+    (hbound : HasHashQueryBound randomizedScheme adversary q) (seed : MasterSeed)
     (parameterOutput : HashOutput) (outputs : SecretOutputs) :
     1 ≤ q ∧ HashQueryBound
       (Concrete.gameAfterSecrets adversary (truncateHash parameterOutput) (tableOts outputs) (tableFts outputs))
@@ -66,7 +66,7 @@ theorem hashQueryBound_after_derivation (adversary : Adversary) (q : Nat)
     (derivationCache_secret seed parameterOutput outputs) adversary).hashQueryBound _ le_rfl _ hprepared⟩
 
 theorem hashQueryBound_programmed_from_seeded (adversary : Adversary) (q : Nat)
-    (hbound : HasHashQueryBound scheme adversary q) (seed : MasterSeed)
+    (hbound : HasHashQueryBound randomizedScheme adversary q) (seed : MasterSeed)
     (parameter : PublicParameter) (secret : Secrets) (parameterHigh : Digest) (secretHigh : Secrets) :
     HashQueryBound (Concrete.gameAfterSecrets adversary parameter secret.1 secret.2)
       (programmedCache seed parameter secret parameterHigh secretHigh) (q - 1) := by
@@ -81,7 +81,7 @@ theorem programmedCache_agreeOutside (seed : MasterSeed) (parameter : PublicPara
   derivationCache_agreeOutside seed _ _
 
 theorem hashQueryBound_independent_from_seeded (adversary : Adversary) (q : Nat)
-    (hsmall : q < 2 ^ 256) (hbound : HasHashQueryBound scheme adversary q) :
+    (hsmall : q < 2 ^ 256) (hbound : HasHashQueryBound randomizedScheme adversary q) :
     HasHashQueryBound Concrete.scheme adversary (q - 1) := by
   rw [hasHashQueryBound_iff, Concrete.gameCore_eq_secrets]
   have htail (parameter : PublicParameter) (ots : OtsSecrets) (fts : FtsSecrets) :

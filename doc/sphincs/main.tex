@@ -232,7 +232,7 @@ At height $\lambda$, combine $W_{\kappa,\lambda}$ with $B_{\kappa,\lambda}$, put
   \Th\!\left(P,\mathsf{tw}_{\mathrm{ftsroots}}(\idx),W_{0,a}\concat\cdots\concat W_{k-2,a}\right).
 \]
 
-A FORS instance may sign several sets of indices. Reuse reveals more leaves, so its protection decreases as openings accumulate. The randomized digest and the limit on signing requests are part of the security bound.
+A FORS instance may sign several sets of indices. Reuse reveals more leaves, so its protection decreases as openings accumulate.
 
 \section{Connecting the layers}
 
@@ -263,7 +263,7 @@ Interpret these $h+ka=176$ bits as a little-endian integer $N$ and extract
   u_\kappa=\left\lfloor N/2^{h+\kappa a}\right\rfloor\bmod2^a,
   \quad 0\leq\kappa<k.
 \]
-The digest is \emph{admissible} when $u_{k-1}=0$. The signer searches by sampling $\rho$. For a uniform digest, requiring this last index to be zero leaves all other indices uniform, since they use disjoint bits.
+The digest is \emph{admissible} when $u_{k-1}=0$. The signer searches over randomizers derived from $S$ and $m$, as defined below. For a uniform digest, requiring this last index to be zero leaves all other indices uniform, since they use disjoint bits.
 
 \section{The complete signature scheme}
 
@@ -281,7 +281,11 @@ Only the top tree is built at key generation. Lower trees are computed as signin
 
 Given $\sk=(P,\rootnode,S)$ and a 256-bit message $m$, $\Sig(\sk,m)$ proceeds as follows:
 \begin{enumerate}
-\item Sample independent $\rho\getsr\bits{128}$ until $\Digest(P,\rootnode,m,\rho)$ is admissible. Stop after at most $\amax$ attempts, returning $\bot$ if none succeeds. Extract $\idx$ and $u$ from the successful digest.
+\item For $a=0,\ldots,\amax-1$, derive
+\[
+  \rho_a=\Th(P,\mathsf{tw}_{\mathrm{rnd}}(a),S\concat m).
+\]
+Stop at the first $a$ for which $\Digest(P,\rootnode,m,\rho_a)$ is admissible, set $\rho=\rho_a$, and extract $\idx,u$. Return $\bot$ if no trial succeeds.
 \item Compute $(s,B)=\FtsOpen(P,\idx,u)$ and $M_{d-1}=\FtsKey(P,\idx)$.
 \item For $\lay=d-1,d-2,\ldots,0$, set $\tau=\tau_\lay(\idx)$ and $e=e_\lay(\idx)$. Compute $(c_\lay,\sigma_\lay)=\OtsSign(P,\lay,\tau,e,M_\lay)$, returning $\bot$ immediately on failure. Then compute
 \[
@@ -294,7 +298,7 @@ Given $\sk=(P,\rootnode,S)$ and a 256-bit message $m$, $\Sig(\sk,m)$ proceeds as
     (c_\lay,\sigma_\lay,A_\lay)_{\lay<d}\right).
 \]
 \end{enumerate}
-The final value $M_{-1}=\rootnode$ is computed and discarded. Signing changes no secret state. Repeated messages are allowed, with fresh randomness for each request.
+The final value $M_{-1}=\rootnode$ is computed and discarded. Signing is deterministic and changes no secret state. Repeating a message returns the same signature, or the same failure.
 
 \subsection{Verification}
 \label{sec:ver}
@@ -393,11 +397,12 @@ $\mathsf{tw}_{\mathrm{ftsnode}}(\idx,\kappa,\lambda,j)$ & $\mathsf{enc}(7,\kappa
 $\mathsf{tw}_{\mathrm{ftsroots}}(\idx)$ & $\mathsf{enc}(8,0,\idx,0,0)$\\
 $\mathsf{tw}_{\mathrm{msg}}$ & $\mathsf{enc}(9,0,0,0,0)$\\
 $\mathsf{tw}_{\mathrm{parameter}}$ & $\mathsf{enc}(10,0,0,0,0)$\\
+$\mathsf{tw}_{\mathrm{rnd}}(a)$ & $\mathsf{enc}(12,0,0,a,0)$\\
 \bottomrule
 \end{tabular}
 \end{center}
 
-In the chain tweak, $\mu\in\{1,\ldots,7\}$ is the destination position, so the step from $\mu-1$ to $\mu$ uses $p=8i+\mu-1$. Types $0$, $5$ and $10$ are reserved for seed derivation.
+In the chain tweak, $\mu\in\{1,\ldots,7\}$ is the destination position, so the step from $\mu-1$ to $\mu$ uses $p=8i+\mu-1$. Types $0$, $5$, $10$ and $12$ are reserved for seed derivation.
 
 \bibliographystyle{alphaurl}
 \bibliography{refs}

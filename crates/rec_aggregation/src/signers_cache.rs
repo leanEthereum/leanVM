@@ -53,13 +53,7 @@ fn compute_signer(index: usize, epoch: Epoch) -> CachedSignature {
     let mut seed = [10u8; 32];
     seed[..8].copy_from_slice(&(index as u64).to_le_bytes());
     let (sk, pk) = xmss::key_gen_from_seed(seed, KEY_START, KEY_END).expect("keygen");
-    let sig = xmss::sign(
-        &mut StdRng::seed_from_u64(index as u64),
-        &sk,
-        &message_for(epoch),
-        epoch,
-    )
-    .expect("sign");
+    let sig = xmss::sign(&sk, &message_for(epoch), epoch).expect("sign");
     (pk, sig)
 }
 
@@ -207,7 +201,7 @@ fn compute_sphincs_signer(index: usize) -> CachedSphincsSignature {
     let mut rng = StdRng::seed_from_u64(0x5F1A_C500 ^ index as u64);
     let (secret_key, public_key) = sphincs::key_gen(&mut rng);
     let message = sphincs_message(index);
-    let signature = sphincs::sign(&mut rng, &secret_key, &message).expect("sign");
+    let signature = sphincs::sign(&secret_key, &message).expect("sign");
     (public_key, message, signature)
 }
 

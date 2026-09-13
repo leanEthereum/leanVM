@@ -42,9 +42,9 @@ theorem derivationCache_of_not_seedHit (seed : MasterSeed) (parameterOutput : Ha
   rw [cacheRows_apply_of_not_mem]
   · apply QueryCache.cacheQuery_of_ne
     intro h
-    exact hinput ⟨0, .parameter, h.symm⟩
+    exact hinput (h.symm ▸ derivationSeedHit_keygen 0 .parameter seed)
   · intro epoch chain h
-    exact hinput ⟨truncateHash parameterOutput, .chain epoch chain, h.symm⟩
+    exact hinput (h.symm ▸ derivationSeedHit_keygen (truncateHash parameterOutput) (.chain epoch chain) seed)
 
 def deriveChainSecrets (parameter : PublicParameter) (seed : MasterSeed) :
     OracleComp HashSpec (Epoch → ChainIndex → Digest) :=

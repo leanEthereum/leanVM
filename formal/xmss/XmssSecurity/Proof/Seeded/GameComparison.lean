@@ -69,7 +69,7 @@ theorem hashQueryBound_gameAfterSecrets (adversary : Adversary) (q : Nat)
 /-- The seeded game differs from the independent game by at most one 256-bit guess per hash call. -/
 theorem forgeAdvantage_seeded_le_of_independent_budget (adversary : Adversary) (q : Nat)
     (hbound : HasHashQueryBound Concrete.scheme adversary q) :
-    forgeAdvantage scheme adversary ≤ forgeAdvantage Concrete.scheme adversary +
+    forgeAdvantage randomizedScheme adversary ≤ forgeAdvantage Concrete.scheme adversary +
       q / ((2 ^ 256 : Nat) : ℝ≥0∞) := by
   classical
   unfold forgeAdvantage

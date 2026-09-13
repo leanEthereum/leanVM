@@ -14,7 +14,7 @@ namespace SphincsSecurity
 open OracleComp OracleSpec ENNReal
 
 noncomputable local instance instSampleableTypeRandomness_2 : SampleableType Randomness :=
-  SampleableType.ofFintype Randomness
+  Concrete.randomnessSampleableType
 
 theorem cachedMessageEntryCount_le_enncard
     (cache : QueryCache HashSpec) (parameter : PublicParameter)

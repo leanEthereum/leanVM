@@ -30,7 +30,7 @@ theorem seed_loss_absorbed (q : Nat) (hq : 1 ≤ q) (hsmall : q < 2 ^ 127) :
       congr 1
       exact_mod_cast Nat.sub_add_cancel hq
 
-theorem scheme_has_127_bits_of_classical_security : HasClassicalSecurityBits scheme 127 := by
+theorem randomizedScheme_has_127_bits_of_classical_security : HasClassicalSecurityBits randomizedScheme 127 := by
   intro q hq adversary hbound
   by_cases hsmall : q < 2 ^ 127
   · have hindependent := hashQueryBound_independent_from_seeded adversary q
@@ -50,7 +50,7 @@ theorem scheme_has_127_bits_of_classical_security : HasClassicalSecurityBits sch
       exact hcomparison.trans ((add_le_add hsecurity le_rfl).trans (seed_loss_absorbed q hq hsmall))
   · have hlarge : 2 ^ 127 ≤ q := Nat.le_of_not_gt hsmall
     calc
-      forgeAdvantage scheme adversary ≤ 1 := probOutput_le_one
+      forgeAdvantage randomizedScheme adversary ≤ 1 := probOutput_le_one
       _ = ((2 ^ 127 : Nat) : ℝ≥0∞) / ((2 ^ 127 : Nat) : ℝ≥0∞) :=
         (ENNReal.div_self (by norm_num) (ENNReal.natCast_ne_top _)).symm
       _ ≤ _ := ENNReal.div_le_div (by exact_mod_cast hlarge) le_rfl

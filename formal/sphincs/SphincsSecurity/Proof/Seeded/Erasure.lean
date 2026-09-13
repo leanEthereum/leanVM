@@ -20,6 +20,10 @@ inductive Erases (known : QueryCache spec) {α : Type} :
       (hknown : known input = some answer) (next : spec.Range input → OracleComp spec α)
       (right : OracleComp spec α) (tail : Erases known (next answer) right) :
       Erases known (liftM (spec.query input) >>= next) right
+  | cached (input : spec.Domain) (answer : spec.Range input)
+      (hknown : known input = some answer) (left right : spec.Range input → OracleComp spec α)
+      (tail : Erases known (left answer) (right answer)) :
+      Erases known (liftM (spec.query input) >>= left) (liftM (spec.query input) >>= right)
   | trans {left middle right : OracleComp spec α}
       (first : Erases known left middle) (second : Erases known middle right) : Erases known left right
 
@@ -39,6 +43,8 @@ theorem Erases.bind {α β : Type} {known : QueryCache spec} {left right : Oracl
       simpa only [bind_assoc] using Erases.query input _ _ (fun answer => ih answer nextLeft nextRight hnext)
   | skip input answer hknown next right _ ih =>
       simpa only [bind_assoc] using Erases.skip input answer hknown _ _ (ih nextLeft nextRight hnext)
+  | cached input answer hknown left right _ ih =>
+      simpa only [bind_assoc] using Erases.cached input answer hknown _ _ (ih nextLeft nextRight hnext)
   | trans _ _ first second =>
       exact .trans (first nextLeft nextLeft (fun _ => Erases.refl known _))
         (second nextLeft nextRight hnext)
@@ -72,6 +78,11 @@ theorem Erases.lift_hash {α : Type} {known : QueryCache HashSpec}
       simp only [liftM_bind]
       change Erases _ (liftM (OracleWorld.query (.inr input)) >>= _) _
       exact Erases.skip (known := worldKnown known) (Sum.inr input) answer hknown _ _ ih
+  | cached input answer hknown left right _ ih =>
+      simp only [liftM_bind]
+      change Erases _ (liftM (OracleWorld.query (.inr input)) >>= _)
+        (liftM (OracleWorld.query (.inr input)) >>= _)
+      exact Erases.cached (known := worldKnown known) (Sum.inr input) answer hknown _ _ ih
   | trans _ _ first second => exact .trans first second
 
 theorem romImpl_preserves_known (known cache : QueryCache HashSpec) (h : known ≤ cache)
@@ -100,6 +111,16 @@ theorem Erases.evalDist_run {α : Type} {known : QueryCache HashSpec}
           change 𝒟[(randomOracle (spec := HashSpec) input).run cache >>= _] = _
           rw [QueryImpl.withCaching_run_some _ hc, pure_bind]
           exact ih cache hcache
+  | cached input answer hknown left right _ ih =>
+      cases input with
+      | inl input => simp [worldKnown] at hknown
+      | inr input =>
+          have hc : cache input = some answer := hcache hknown
+          simp only [simulateQ_bind, simulateQ_spec_query, StateT.run_bind]
+          change 𝒟[(randomOracle (spec := HashSpec) input).run cache >>= _] =
+            𝒟[(randomOracle (spec := HashSpec) input).run cache >>= _]
+          rw [QueryImpl.withCaching_run_some _ hc, pure_bind, pure_bind]
+          exact ih cache hcache
   | trans _ _ first second => exact (first cache hcache).trans (second cache hcache)
 
 theorem Erases.hashQueryBound {α : Type} {known : QueryCache HashSpec}
@@ -125,6 +146,22 @@ theorem Erases.hashQueryBound {α : Type} {known : QueryCache HashSpec}
             rw [QueryImpl.withCaching_run_some _ hc]
             simp
           exact (ih cache hcache _ (hashQueryBound_query_bind _ _ _ _ hbound _ hstep).2).mono (Nat.sub_le _ _)
+  | cached input answer hknown left right _ ih =>
+      cases input with
+      | inl input => simp [worldKnown] at hknown
+      | inr input =>
+          have hc : cache input = some answer := hcache hknown
+          have hrun : (romImpl (.inr input)).run cache = Pure.pure (answer, cache) :=
+            QueryImpl.withCaching_run_some _ hc
+          have hstep : (answer, cache) ∈ support ((romImpl (.inr input)).run cache) := by
+            rw [hrun]
+            simp
+          have hb := hashQueryBound_query_bind (.inr input) left cache q hbound _ hstep
+          apply hashQueryBound_query_bind_of (.inr input) right cache q hb.1
+          intro result hresult
+          rw [hrun, mem_support_pure_iff] at hresult
+          subst result
+          exact ih cache hcache _ hb.2
   | trans _ _ first second => exact second cache hcache q (first cache hcache q hbound)
 
 end SphincsSecurity.Seeded

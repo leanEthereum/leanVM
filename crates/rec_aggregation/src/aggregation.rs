@@ -3389,7 +3389,7 @@ mod tests {
             .into_iter()
             .map(|tag| {
                 let signed: sphincs::Message = std::array::from_fn(|i| tag.wrapping_mul(i as u8 + 1));
-                let signature = sphincs::sign(&mut rng, &secret_key, &signed).expect("signs");
+                let signature = sphincs::sign(&secret_key, &signed).expect("signs");
                 (public_key, signed, signature)
             })
             .collect();

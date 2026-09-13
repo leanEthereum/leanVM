@@ -46,7 +46,7 @@ abbrev Digest := BitVec digestBits
 abbrev HashOutput := BitVec hashOutputBits
 abbrev Message := BitVec messageBits
 abbrev PublicParameter := BitVec publicParameterBits
-abbrev Randomness := BitVec randomnessBits
+abbrev Randomness := Digest
 abbrev Counter := BitVec counterBits
 abbrev Layer := Fin numLayers
 /-- `idx`, which few-time key signs. -/
@@ -172,6 +172,12 @@ def tweakBytes (domain : HashDomain) : HashInput :=
 def tweakableHashInput (parameter : PublicParameter) (domain : HashDomain)
     (message : HashInput) : HashInput :=
   tweakBytes domain ++ bytesLE 16 parameter ++ message
+
+/-- `tweak(12, 0, 0, trial, 0) || P || S || m`. -/
+def randomizerHashInput (parameter : PublicParameter) (seed : MasterSeed)
+    (message : Message) (trial : BitVec 32) : HashInput :=
+  fieldBytes ⟨12#8, 0#8, 0#32, trial, 0#32⟩ ++
+    bytesLE 16 parameter ++ bytesLE 32 seed ++ bytesLE 32 message
 
 inductive KeygenDomain where
   | parameter
@@ -465,12 +471,6 @@ def verify (publicKey : PublicKey) (message : Message) (signature : Signature) :
 
 /-! ### Signing randomness and path assembly -/
 
-noncomputable local instance : SampleableType Randomness :=
-  SampleableType.ofFintype Randomness
-
-noncomputable def sampleRandomness : ProbComp Randomness :=
-  $ᵗ Randomness
-
 /-- Layer `0` holds one tree, at index `0`. -/
 def rootTree : TreeIndex := ⟨0, Nat.two_pow_pos _⟩
 
@@ -501,13 +501,18 @@ def flattenPaths (paths : Layer → Fin maxLayerHeight → Digest) : PathIndex �
     let level := position.val - heightAbove lay
     if hlevel : level < maxLayerHeight then paths lay ⟨level, hlevel⟩ else 0
 
-attribute [irreducible] verify sampleRandomness
+attribute [irreducible] verify
 
 end Concrete
 
 def deriveKey {m : Type → Type} [Monad m] [HasQuery HashSpec m]
     (parameter : PublicParameter) (domain : KeygenDomain) (seed : MasterSeed) : m Digest := do
   return truncateHash (← Concrete.oracleHash (keygenHashInput parameter domain seed))
+
+def deriveRandomizer {m : Type → Type} [Monad m] [HasQuery HashSpec m]
+    (parameter : PublicParameter) (seed : MasterSeed)
+    (message : Message) (trial : BitVec 32) : m Randomness := do
+  return truncateHash (← Concrete.oracleHash (randomizerHashInput parameter seed message trial))
 
 noncomputable def sampleMasterSeed : ProbComp MasterSeed :=
   letI := SampleableType.ofFintype MasterSeed
@@ -610,18 +615,6 @@ def signAttempt (secretKey : SecretKey) (message : Message) (randomness : Random
   else
     return none
 
-noncomputable def signDigestLoop : Nat → SecretKey → Message →
-    OracleComp OracleWorld (Option (Randomness × Index × (IndexGroup → FtsLeaf)))
-  | 0, _secretKey, _message => pure none
-  | attempts + 1, secretKey, message => do
-      let randomness ← liftM sampleRandomness
-      let attempt ← liftM
-        (signAttempt secretKey message randomness :
-          OracleComp HashSpec (Option (Index × (IndexGroup → FtsLeaf))))
-      match attempt with
-      | some (index, leaves) => pure (some (randomness, index, leaves))
-      | none => signDigestLoop attempts secretKey message
-
 def layerMessage (secretKey : SecretKey) (index : Index) (lay : Layer) : m Digest :=
   if hbelow : lay.val + 1 < numLayers then
     let below : Layer := ⟨lay.val + 1, hbelow⟩
@@ -641,28 +634,27 @@ def signLayer (secretKey : SecretKey) (index : Index) (lay : Layer) :
       let path ← treePath secretKey.parameter lay tree secretKey.seed leaf
       return some (counter, values, path)
 
-noncomputable def sign (secretKey : SecretKey) (message : Message) :
-    OracleComp OracleWorld (Option Signature) := do
-  match ← signDigestLoop digestAttemptLimit secretKey message with
+/-- Derive trials in increasing order, stopping at the first admissible digest. -/
+def signDigestLoop (secretKey : SecretKey) (message : Message) : Nat → Nat →
+    m (Option (Randomness × Index × (IndexGroup → FtsLeaf)))
+  | 0, _ => pure none
+  | attempts + 1, trial => do
+      let randomness ← deriveRandomizer secretKey.parameter secretKey.seed message (BitVec.ofNat 32 trial)
+      match ← signAttempt secretKey message randomness with
+      | some (index, leaves) => return some (randomness, index, leaves)
+      | none => signDigestLoop secretKey message attempts (trial + 1)
+
+def sign (secretKey : SecretKey) (message : Message) : m (Option Signature) := do
+  match ← signDigestLoop secretKey message digestAttemptLimit 0 with
   | none => return none
   | some (randomness, index, leaves) => do
-      let secrets ← liftM
-        (sequenceFin fun tree =>
-          deriveKey secretKey.parameter (.fts index tree (leaves (ftsIndexOf tree))) secretKey.seed :
-            OracleComp HashSpec (FtsTree → Digest))
-      let ftsPath ← liftM
-        (ftsOpen secretKey.parameter index leaves secretKey.seed :
-          OracleComp HashSpec (FtsTree → Fin ftsTreeHeight → Digest))
-      let layers ← liftM
-        (sequenceLayers (fun lay => signLayer secretKey index lay) :
-          OracleComp HashSpec
-            (Option (Layer → Counter × (ChainIndex → Digest) × (Fin maxLayerHeight → Digest))))
-      match layers with
+      let secrets ← sequenceFin fun tree =>
+        deriveKey secretKey.parameter (.fts index tree (leaves (ftsIndexOf tree))) secretKey.seed
+      let ftsPath ← ftsOpen secretKey.parameter index leaves secretKey.seed
+      match ← sequenceLayers (fun lay => signLayer secretKey index lay) with
       | none => return none
       | some parts => do
-          let _ ← liftM
-            (treeRoot secretKey.parameter topLayer rootTree secretKey.seed :
-              OracleComp HashSpec Digest)
+          let _ ← treeRoot secretKey.parameter topLayer rootTree secretKey.seed
           return some
             { randomness := randomness
               ftsSecret := secrets
@@ -686,7 +678,7 @@ structure Forgery where
   signature : Signature
 deriving DecidableEq
 
-/-- The interface of a stateless signature scheme in the random-oracle experiment. Signing is randomized and may fail, so it returns an option. -/
+/-- The interface of a stateless signature scheme in the random-oracle experiment. Signing may fail, so it returns an option. -/
 structure Scheme (Key : Type := Seeded.SecretKey) where
   keygen : OracleComp OracleWorld (PublicKey × Key)
   sign : Key → Message → OracleComp OracleWorld (Option Signature)
@@ -701,7 +693,7 @@ structure Adversary where
 
 namespace SigningTranscript
 
-/-- A signing transcript is valid exactly when the key signed at most `q_s` messages. Nothing forbids repeating a message: the signer is stateless, and a fresh randomizer makes the second signature a different one. -/
+/-- A signing transcript is valid exactly when the key signed at most `q_s` messages. Repeated messages receive the same signature or failure. -/
 def Valid (log : QueryLog SigningSpec) : Prop := log.length ≤ signatureLimit
 
 instance (log : QueryLog SigningSpec) : Decidable (Valid log) :=
@@ -738,7 +730,7 @@ noncomputable def gameCore {Key : Type} (scheme : Scheme Key) (adversary : Adver
   let verified ← scheme.verify pk forgery.message forgery.signature
   return decide (SigningTranscript.Valid log ∧ ¬SigningTranscript.Contains log forgery) && verified
 
-/-- The probability that the adversary wins, over key generation, signer randomness, and the random oracle, which starts from the empty cache. The final cache is discarded. -/
+/-- The probability that the adversary wins, over key generation, the adversary, and the random oracle, which starts from the empty cache. The final cache is discarded. -/
 noncomputable def forgeAdvantage {Key : Type} (scheme : Scheme Key) (adversary : Adversary) : ℝ≥0∞ :=
   Pr[= true | (simulateQ romImpl (gameCore scheme adversary)).run' ∅]
 
@@ -758,7 +750,7 @@ def HasClassicalSecurityBits {Key : Type} (scheme : Scheme Key) (bits : Nat) : P
 
 noncomputable def Seeded.scheme : Scheme Seeded.SecretKey where
   keygen := Seeded.keygen
-  sign := Seeded.sign
+  sign := fun sk message => liftM (Seeded.sign sk message : OracleComp HashSpec _)
   verify := fun publicKey message signature =>
     liftM (Concrete.verify publicKey message signature : OracleComp HashSpec Bool)
 

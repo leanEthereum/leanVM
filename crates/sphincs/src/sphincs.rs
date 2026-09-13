@@ -368,19 +368,17 @@ impl SphincsSecretKey {
     }
 }
 
-/// `Sig`. Stateless: it may be called on any message any number of times, but
-/// security degrades with that number, the specification's claim being stated at
-/// `2^24` signatures per key pair.
-pub fn sign(
-    rng: &mut impl CryptoRng,
-    sk: &SphincsSecretKey,
-    message: &Message,
-) -> Result<SphincsSignature, SphincsSignError> {
+/// Sign at most `2^24` messages per key.
+/// Signing is deterministic and stateless.
+pub fn sign(sk: &SphincsSecretKey, message: &Message) -> Result<SphincsSignature, SphincsSignError> {
     // The digest is admissible when its last leaf index is zero, which is what
     // drops that tree from the forest; it takes 2^a attempts on average.
     let (randomizer, idx, u) = (0..MAX_DIGEST_ATTEMPTS)
-        .find_map(|_| {
-            let randomizer: Randomizer = rng.random();
+        .find_map(|trial| {
+            let mut hasher = primitives::hash::Hasher::new();
+            hasher.update(&tweak(TWEAK_RANDOMIZER, 0, 0, trial as u32, 0));
+            hasher.update(&sk.public_param).update(&sk.master).update(message);
+            let randomizer = hasher.finalize()[..RANDOMIZER_LEN].try_into().unwrap();
             let (idx, u) = message_digest(&sk.public_param, &sk.root, &randomizer, message);
             (u[K - 1] == 0).then_some((randomizer, idx, u))
         })

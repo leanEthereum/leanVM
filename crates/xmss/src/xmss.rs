@@ -159,8 +159,7 @@ impl std::fmt::Display for XmssKeyGenError {
 
 impl std::error::Error for XmssKeyGenError {}
 
-/// A fresh key pair, able to sign at each epoch of `epoch_start..=epoch_end`
-/// once. The seed comes from `rng`, so nothing can regenerate the key.
+/// A fresh key pair for `epoch_start..=epoch_end`, with its seed sampled from `rng`.
 pub fn key_gen(
     rng: &mut impl CryptoRng,
     epoch_start: Epoch,
@@ -226,31 +225,29 @@ pub fn key_gen_from_seed(
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 pub enum XmssSignError {
     EpochOutOfRange,
+    NoAdmissibleEncoding,
 }
 
 impl std::fmt::Display for XmssSignError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::EpochOutOfRange => write!(f, "the epoch is outside the key's range"),
+            Self::NoAdmissibleEncoding => write!(f, "no admissible encoding within the randomizer trial limit"),
         }
     }
 }
 
 impl std::error::Error for XmssSignError {}
 
-/// WARNING: XMSS is a stateful signature scheme, never sign twice with the same
-/// `epoch`. (Even signing the same message twice at the same epoch is insecure,
-/// because the signature randomness is drawn fresh.)
-pub fn sign(
-    rng: &mut impl CryptoRng,
-    secret_key: &XmssSecretKey,
-    message: &Message,
-    epoch: Epoch,
-) -> Result<XmssSignature, XmssSignError> {
+/// Never use the same key and epoch to sign two different messages.
+/// Signing is deterministic.
+pub fn sign(secret_key: &XmssSecretKey, message: &Message, epoch: Epoch) -> Result<XmssSignature, XmssSignError> {
     if epoch < secret_key.epoch_start || epoch > secret_key.epoch_end {
         return Err(XmssSignError::EpochOutOfRange);
     }
-    let (randomness, encoding, _) = find_randomness_for_wots_encoding(message, epoch, &secret_key.public_param, rng);
+    let (randomness, encoding, _) =
+        find_randomness_for_wots_encoding(message, epoch, &secret_key.public_param, &secret_key.seed)
+            .ok_or(XmssSignError::NoAdmissibleEncoding)?;
     let wots_secret_key = gen_wots_secret_key(&secret_key.seed, &secret_key.public_param, epoch);
     let wots_signature = wots_secret_key.sign(&encoding, randomness, epoch, &secret_key.public_param);
 
@@ -268,8 +265,7 @@ pub fn sign(
 }
 
 impl XmssSecretKey {
-    /// The epochs this key can sign at. XMSS forbids signing twice at one, so
-    /// the caller has to track which of these it has spent.
+    /// The epochs this key can sign at. The caller must ensure each epoch signs only one message.
     pub fn epoch_range(&self) -> std::ops::RangeInclusive<Epoch> {
         self.epoch_start..=self.epoch_end
     }

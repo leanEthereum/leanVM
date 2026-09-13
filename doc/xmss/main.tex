@@ -67,13 +67,13 @@ The key difference with \cite{DKKW25} is the use of short hash digests, of 16 by
 \section{Definitions and notation}
 
 \begin{definition}[Synchronized signature scheme]
-A synchronized signature scheme with lifetime $L$ is a tuple $\SIG=(\Gen,\Sig,\Ver)$, where $\Gen$ and $\Sig$ are randomized and $\Ver$ is deterministic:
+A synchronized signature scheme with lifetime $L$ is a tuple $\SIG=(\Gen,\Sig,\Ver)$, where $\Gen$ is randomized and $\Sig$ and $\Ver$ are deterministic:
 \[
   \Gen\longrightarrow(\pk,\sk),\qquad
   \Sig(\sk,\ep,m)\longrightarrow\sigma\in\Sigma\cup\{\bot\},\qquad
   \Ver(\pk,\ep,m,\sigma)\longrightarrow\{0,1\},
 \]
-where $\Sigma$ is the signature space, $m\in\bits{\lmsg}$, and $\ep\in\{0,\ldots,L-1\}$. Whenever $(\pk,\sk)$ is output by $\Gen$ and $\Sig(\sk,\ep,m)$ returns $\sigma\neq\bot$, correctness requires $\Ver(\pk,\ep,m,\sigma)=1$. For each key pair, $\Sig(\sk,\ep,\cdot)$ may be invoked at most once for any fixed epoch $\ep$.
+where $\Sigma$ is the signature space, $m\in\bits{\lmsg}$, and $\ep\in\{0,\ldots,L-1\}$. Whenever $(\pk,\sk)$ is output by $\Gen$ and $\Sig(\sk,\ep,m)$ returns $\sigma\neq\bot$, correctness requires $\Ver(\pk,\ep,m,\sigma)=1$. For each key pair, an epoch must not sign two different messages. Repeating the same input returns the same signature or failure.
 \end{definition}
 
 XMSS is a synchronized signature scheme in which epoch $\ep$ selects a Winternitz one-time key authenticated by leaf $\ep$ of a Merkle tree~\cite{RFC8391}. This specification sets $\lmsg=256$ and $L=2^h=2^{32}$.
@@ -89,7 +89,7 @@ $n$ & $128$ bits & hash value and Merkle node length\\
 $\lpar$ & $128$ bits & public parameter length\\
 $\ltwk$ & $128$ bits & tweak length\\
 $\lmsg$ & $256$ bits & message length\\
-$\lrnd$ & $192$ bits & encoding randomness length\\
+$\lrnd$ & $192$ bits & randomizer length\\
 $w$ & $3$ & chunk size in bits\\
 $v$ & $42$ & code length\\
 $T$ & $195$ & target sum\\
@@ -121,7 +121,8 @@ Define
   \mathsf{tweak}_{\mathrm{chain}}(\ep,i,k) &= \mathsf{enc}(1,2^wi+k-1,\ep), &&0\leq i<v,\ 1\leq k\leq2^w-1,\\
   \mathsf{tweak}_{\mathrm{leaf}}(\ep) &= \mathsf{enc}(2,0,\ep),\\
   \mathsf{tweak}_{\mathrm{merkle}}(\ell,j) &= \mathsf{enc}(3,\ell,j), &&1\leq\ell\leq h,\ 0\leq j<2^{h-\ell},\\
-  \mathsf{tweak}_{\mathrm{enc}}(\ep) &= \mathsf{enc}(4,0,\ep).
+  \mathsf{tweak}_{\mathrm{enc}}(\ep) &= \mathsf{enc}(4,0,\ep),\\
+  \mathsf{tweak}_{\mathrm{rnd}}(\ep,a) &= \mathsf{enc}(12,a,\ep), &&0\leq a<\amax.
 \end{aligned}
 \]
 
@@ -189,7 +190,11 @@ The public key is serialized as $\rootnode\concat P$.
 
 \section{Signing}
 
-$\Sig(\sk,\ep,m)$ returns $\bot$ if epoch $\ep$ has already been used and otherwise marks it used. It makes at most $\amax=2^{23}$ attempts. In each attempt it independently samples $\rho\getsr\bits{\lrnd}$ and computes $x=\IncEnc(P,m,\rho,\ep)$. If $x\neq\bot$, it immediately computes
+$\Sig(\sk,\ep,m)$ is deterministic. The caller must ensure that an epoch signs only one message. The signer makes at most $\amax=2^{23}$ randomizer trials. For $a=0,\ldots,\amax-1$, it derives
+\[
+  \rho_a=\Truncate_{\lrnd\text{ bits}}\!\left(\hash(\mathsf{tweak}_{\mathrm{rnd}}(\ep,a)\concat P\concat S\concat m)\right)
+\]
+and computes $x=\IncEnc(P,m,\rho_a,\ep)$. If $x\neq\bot$, it sets $\rho=\rho_a$ and computes
 \[
   \sigma_{\mathrm{OTS},i}=C_{\ep,i,x_i},
   \qquad 0\leq i<v,
@@ -207,7 +212,7 @@ and returns
 \]
 serialized as $\sigma_{\mathrm{OTS},0}\concat\cdots\concat\sigma_{\mathrm{OTS},v-1}\concat\rho\concat A_0\concat\cdots\concat A_{h-1}$. If all $\amax$ attempts produce $x=\bot$, it returns $\bot$.
 
-Consequently, signing queries the random oracle only when evaluating $\IncEnc$, once per attempt. Reading the stored chain values and authentication path makes no random-oracle query.
+Each trial makes two hash queries: one to derive $\rho_a$ and one to evaluate $\IncEnc$. Reading the stored chain values and authentication path makes no random-oracle query.
 
 \section{Verification}
 
@@ -289,7 +294,7 @@ With $\hash$ modeled as a random oracle, the completeness error of $\SIG$ is the
 \[
   \varepsilon_{\SIG}=\max_{\ep,\,m}\ \Pr\!\left[\sigma=\bot\ \middle|\ (\pk,\sk)\gets\Gen,\ \sigma\gets\Sig(\sk,\ep,m)\right],
 \]
-over the oracle and the randomness of $\Gen$ and $\Sig$. The scheme is $\varepsilon$-complete if $\varepsilon_{\SIG}\leq\varepsilon$.
+over the oracle and the master seed sampled by $\Gen$. The scheme is $\varepsilon$-complete if $\varepsilon_{\SIG}\leq\varepsilon$.
 \end{definition}
 
 \begin{theorem}[XMSS completeness]
@@ -297,7 +302,7 @@ The XMSS specified above is $2^{-256}$-complete in the ROM. Consequently a singl
 \end{theorem}
 
 \begin{proof}
-Fix $\ep$ and $m$. As $\ep$ is unused, $\Sig(\sk,\ep,m)$ returns $\bot$ only by exhausting its $\amax$ attempts. Each attempt makes one oracle query,
+Fix $\ep$ and $m$. As $\ep$ is unused, $\Sig(\sk,\ep,m)$ returns $\bot$ only by exhausting its $\amax$ attempts. Each trial derives a randomizer and then makes the encoding query
 \[
   I(\rho)=\mathsf{tweak}_{\mathrm{enc}}(\ep)\concat P\concat m\concat\rho\concat0^{64},
   \qquad D=\Truncate_{n\text{ bits}}\!\left(\hash(I(\rho))\right),
@@ -319,7 +324,7 @@ At $w=3$, $v=42$ and $T=195$,
 
 \emph{One attempt.} The map $I$ is injective, and no query of $\Gen$ reaches its image, $\Gen$ using tweak types $0$, $1$, $2$, $3$ and $10$, not $4$. So a $\rho$ not drawn before is a fresh oracle point, making $D$ uniform on $\bits n$ and independent of the history, and the attempt succeeds with probability exactly $\alpha$.
 
-\emph{Exhausting the attempts.} Let $\mathcal F_a$ be the event that the first $a$ attempts all fail. The signer then samples a new $\rho$, uniformly at random and independently of the earlier attempts. This $\rho$ equals one of the $a$ earlier ones with probability at most $a2^{-\lrnd}$, and otherwise the attempt fails with probability $1-\alpha$, so $\Pr[\mathcal F_{a+1}\mid\mathcal F_a]\leq1-\alpha+a2^{-\lrnd}$. Multiplying over $0\leq a<\amax$, and since $\amax2^{-\lrnd}=2^{-169}\leq2^{-128}$,
+\emph{Exhausting the attempts.} Let $\mathcal F_a$ be the event that the first $a$ attempts all fail. The next derivation uses a fresh type-12 input, so its truncated output $\rho_a$ is uniform and independent of the earlier attempts. This $\rho_a$ equals one of the $a$ earlier randomizers with probability at most $a2^{-\lrnd}$, and otherwise the attempt fails with probability $1-\alpha$, so $\Pr[\mathcal F_{a+1}\mid\mathcal F_a]\leq1-\alpha+a2^{-\lrnd}$. Multiplying over $0\leq a<\amax$, and since $\amax2^{-\lrnd}=2^{-169}\leq2^{-128}$,
 \[
   \Pr[\sigma=\bot]=\Pr[\mathcal F_{\amax}]\leq\left(1-\alpha+\amax2^{-\lrnd}\right)^{\amax}\leq\left(1-2^{-15}\right)^{\amax}.
 \]

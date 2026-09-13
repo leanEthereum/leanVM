@@ -6,11 +6,11 @@ namespace XmssSecurity.Seeded
 
 set_option backward.isDefEq.respectTransparency false
 
-noncomputable def gameRest {Key : Type} (scheme : Scheme Key) (adversary : Adversary)
+noncomputable def gameRest {Key : Type} (randomizedScheme : Scheme Key) (adversary : Adversary)
     (pk : PublicKey) (sk : Key) : OracleComp OracleWorld Bool := do
   let ((forgery, log) : Forgery × QueryLog SigningSpec) ←
-    (simulateQ (forwardOracles + signingOracle scheme sk) (adversary.main pk)).run
-  let verified ← scheme.verify pk forgery.epoch forgery.message forgery.signature
+    (simulateQ (forwardOracles + signingOracle randomizedScheme sk) (adversary.main pk)).run
+  let verified ← randomizedScheme.verify pk forgery.epoch forgery.message forgery.signature
   return decide (SigningTranscript.Valid log ∧ ¬SigningTranscript.Contains log forgery) && verified
 
 noncomputable def gameAfterSecrets (adversary : Adversary) (parameter : PublicParameter)
@@ -21,11 +21,11 @@ noncomputable def gameAfterSecrets (adversary : Adversary) (parameter : PublicPa
   gameRest Concrete.scheme adversary ⟨result.1, parameter⟩ sk
 
 theorem gameCore_seeded_eq (adversary : Adversary) :
-    gameCore scheme adversary = (do
+    gameCore randomizedScheme adversary = (do
       let seed ← liftM sampleMasterSeed
       let (parameter, secret) ← liftM (deriveParametersAndSecrets seed)
       gameAfterSecrets adversary parameter secret) := by
-  simp only [gameCore, scheme, keygen, gameAfterSecrets, gameRest, Concrete.scheme,
+  simp only [gameCore, randomizedScheme, keygen, gameAfterSecrets, gameRest, Concrete.scheme,
     deriveParametersAndSecrets, deriveChainSecrets, liftM_bind, liftM_pure,
     bind_assoc, pure_bind, signingOracle]
 
@@ -72,7 +72,7 @@ noncomputable def programmedGame (adversary : Adversary) : ProbComp Bool := do
 
 /-- The seeded forgery game is exactly the independent-secret game with its derivation answers installed. -/
 theorem evalDist_gameCore_eq_programmed (adversary : Adversary) :
-    𝒟[(simulateQ romImpl (gameCore scheme adversary)).run' ∅] =
+    𝒟[(simulateQ romImpl (gameCore randomizedScheme adversary)).run' ∅] =
       𝒟[programmedGame adversary] := by
   rw [gameCore_seeded_eq, run'_lift_sample_bind]
   unfold programmedGame

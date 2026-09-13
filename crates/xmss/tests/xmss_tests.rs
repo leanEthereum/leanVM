@@ -12,8 +12,9 @@ fn keygen_sign_verify() {
 
     for epoch in [0u32, 1234, u32::MAX] {
         let (sk, pk) = key_gen_from_seed(seed, epoch.saturating_sub(1), epoch.saturating_add(2)).unwrap();
-        let sig = sign(&mut StdRng::seed_from_u64(epoch as u64), &sk, &message, epoch).unwrap();
+        let sig = sign(&sk, &message, epoch).unwrap();
         verify(&pk, &message, &sig, epoch).unwrap();
+        assert_eq!(sign(&sk, &message, epoch).unwrap(), sig);
     }
 }
 
@@ -24,7 +25,7 @@ fn serialize_deserialize_and_size() {
     let epoch = 110;
 
     let (sk, pk) = key_gen_from_seed(seed, 100, 115).unwrap();
-    let sig = sign(&mut StdRng::seed_from_u64(0), &sk, &message, epoch).unwrap();
+    let sig = sign(&sk, &message, epoch).unwrap();
 
     let public_key_bytes = bincode::serialize(&pk).unwrap();
     assert_eq!(public_key_bytes.len(), PUB_KEY_SIZE);
@@ -95,7 +96,7 @@ fn tampered_signatures_rejected() {
     let message = test_message();
     let epoch = 7;
     let (sk, pk) = key_gen_from_seed(seed, 0, 15).unwrap();
-    let sig = sign(&mut StdRng::seed_from_u64(1), &sk, &message, epoch).unwrap();
+    let sig = sign(&sk, &message, epoch).unwrap();
     verify(&pk, &message, &sig, epoch).unwrap();
 
     let mut bad_message = message;
@@ -119,10 +120,7 @@ fn tampered_signatures_rejected() {
         Err(XmssVerifyError::InvalidMerklePath)
     );
 
-    assert_eq!(
-        sign(&mut StdRng::seed_from_u64(2), &sk, &message, 16),
-        Err(XmssSignError::EpochOutOfRange)
-    );
+    assert_eq!(sign(&sk, &message, 16), Err(XmssSignError::EpochOutOfRange));
 }
 
 /// Detect changes to the encoding predicate through its grinding cost.
@@ -135,7 +133,7 @@ fn encoding_grinding_bits() {
     for i in 0..n {
         let mut rng = StdRng::seed_from_u64(i as u64);
         let message: Message = rng.random();
-        let (_, _, num_iters) = find_randomness_for_wots_encoding(&message, i as u32, &pp, &mut rng);
+        let (_, _, num_iters) = find_randomness_for_wots_encoding(&message, i as u32, &pp, &rng.random()).unwrap();
         total_iters += num_iters;
     }
     let bits = (total_iters as f64 / n as f64).log2();
@@ -155,13 +153,10 @@ fn secret_key_survives_a_round_trip() {
     assert_eq!(reloaded.epoch_range(), 40..=45);
     let message = test_message();
     for epoch in [40, 43, 45] {
-        let sig = sign(&mut StdRng::seed_from_u64(epoch), &reloaded, &message, epoch as u32).unwrap();
+        let sig = sign(&reloaded, &message, epoch as u32).unwrap();
         verify(&pk, &message, &sig, epoch as u32).unwrap();
     }
-    assert_eq!(
-        sign(&mut StdRng::seed_from_u64(0), &reloaded, &message, 46),
-        Err(XmssSignError::EpochOutOfRange)
-    );
+    assert_eq!(sign(&reloaded, &message, 46), Err(XmssSignError::EpochOutOfRange));
 }
 
 /// The SSZ encoding is the container's fields concatenated, in declaration
@@ -173,7 +168,7 @@ fn ssz_layout_is_exact() {
     let message = test_message();
     let epoch = 300;
     let (sk, pk) = key_gen_from_seed(seed, 290, 310).unwrap();
-    let sig = sign(&mut StdRng::seed_from_u64(4), &sk, &message, epoch).unwrap();
+    let sig = sign(&sk, &message, epoch).unwrap();
 
     let mut expected_pk = Vec::new();
     expected_pk.extend_from_slice(&pk.merkle_root);
@@ -231,15 +226,15 @@ fn prepare_warms_without_changing_signatures() {
 
     // 0 and 200 are far enough apart to land in different bottom subtrees.
     sk.prepare(200).unwrap();
-    let after_prepare = sign(&mut StdRng::seed_from_u64(6), &sk, &message, 200).unwrap();
+    let after_prepare = sign(&sk, &message, 200).unwrap();
     verify(&pk, &message, &after_prepare, 200).unwrap();
 
-    let fresh = sign(&mut StdRng::seed_from_u64(6), &sk, &message, 200).unwrap();
+    let fresh = sign(&sk, &message, 200).unwrap();
     assert_eq!(after_prepare, fresh);
 
     // A miss on the warmed subtree rebuilds rather than reusing it.
     sk.prepare(0).unwrap();
-    let other = sign(&mut StdRng::seed_from_u64(7), &sk, &message, 0).unwrap();
+    let other = sign(&sk, &message, 0).unwrap();
     verify(&pk, &message, &other, 0).unwrap();
 
     assert_eq!(sk.prepare(256), Err(XmssSignError::EpochOutOfRange));
@@ -253,7 +248,7 @@ fn key_gen_draws_a_usable_seed() {
     let message = test_message();
     let (sk, pk) = key_gen(&mut rng, 70, 80).unwrap();
     assert_eq!(sk.epoch_range(), 70..=80);
-    let sig = sign(&mut rng, &sk, &message, 75).unwrap();
+    let sig = sign(&sk, &message, 75).unwrap();
     verify(&pk, &message, &sig, 75).unwrap();
 
     // A fresh draw is a different key.

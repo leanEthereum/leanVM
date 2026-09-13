@@ -1,8 +1,8 @@
 # SPHINCS security in Lean 4
 
-[Statement.lean](SphincsSecurity/Statement.lean) contains the complete scheme with a 32-byte master seed: parameters, serialized hash inputs, key generation, signing, verification, the consistent random-oracle game, and the 127-bit security target. Public parameters and signing secrets are derived in separate hash domains. Every hash call in the experiment counts, including derivation, signing failures, repeated calls and final verification.
+[Statement.lean](SphincsSecurity/Statement.lean) contains the complete scheme with a 32-byte master seed: parameters, serialized hash inputs, key generation, signing, verification, the consistent random-oracle game, and the 127-bit security target. Public parameters, signing secrets, and signing randomizers are derived in separate hash domains. Every hash call in the experiment counts, including derivation, signing failures, repeated calls and final verification.
 
-The theorem `sphincs_has_127_bits_of_classical_security` proves this claim for at most `2^24` signing requests per key. The reduction in [Proof/Seeded](SphincsSecurity/Proof/Seeded) couples seed derivation to the independent-secret model, bounds adaptive seed guesses, and transfers the query budget. The public-parameter derivation consumes a query, leaving enough slack to absorb the seed-guessing loss without weakening the 127-bit bound.
+The theorem `sphincs_has_127_bits_of_classical_security` proves this claim for at most `2^24` signing requests per key. The reduction in [Proof/Deterministic](SphincsSecurity/Proof/Deterministic) couples seed derivation to independent secrets and signing trials, handles repeated requests, bounds adaptive seed guesses, and transfers the query budget. The public-parameter derivation consumes a query, leaving enough slack to absorb the seed-guessing loss without weakening the 127-bit bound.
 
 ## Build and audit
 
@@ -23,7 +23,7 @@ The cache command is needed on initial setup. The root module pins the axiom foo
 | Entry | Purpose |
 | --- | --- |
 | [SphincsSecurity.lean](SphincsSecurity.lean) | The public theorem. |
-| [Proof/Seeded](SphincsSecurity/Proof/Seeded) | Seed derivation, coupling to independent secrets, and the final security bound. |
+| [Proof/Deterministic](SphincsSecurity/Proof/Deterministic) | Seed derivation, coupling to independent secrets, and the final security bound. |
 | [Proof/Security127Completion.lean](SphincsSecurity/Proof/Security127Completion.lean) | Combines the large-budget and small-budget bounds into `security127`. |
 | [Proof/Base](SphincsSecurity/Proof/Base) | Scheme-independent tooling: uniform tables and their exact adaptive posteriors, query caps, pauses and traces, oracle query charges, moment bounds. |
 | [Proof/Scheme](SphincsSecurity/Proof/Scheme) | The concrete game over a query cache, honest computation and witness extraction from an accepting signature. |

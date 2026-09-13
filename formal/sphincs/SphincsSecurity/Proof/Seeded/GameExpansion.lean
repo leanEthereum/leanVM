@@ -75,7 +75,7 @@ noncomputable def programmedGame (adversary : Adversary) : ProbComp Bool := do
     (programmedCache seed parameter secret parameterHigh secretHigh)
 
 theorem evalDist_gameCore_eq_programmed (adversary : Adversary) :
-    𝒟[(simulateQ romImpl (gameCore scheme adversary)).run' ∅] = 𝒟[programmedGame adversary] := by
+    𝒟[(simulateQ romImpl (gameCore randomizedScheme adversary)).run' ∅] = 𝒟[programmedGame adversary] := by
   rw [gameCore_seeded_eq, run'_lift_sample_bind]
   unfold programmedGame
   apply OracleComp.DeferredSampling.evalDist_bind_congr_left

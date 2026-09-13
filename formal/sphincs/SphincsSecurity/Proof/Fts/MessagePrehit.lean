@@ -14,7 +14,7 @@ open OracleComp OracleSpec ENNReal
 namespace SphincsSecurity
 
 noncomputable local instance instSampleableTypeRandomness : SampleableType Randomness :=
-  SampleableType.ofFintype Randomness
+  Concrete.randomnessSampleableType
 
 def cachedMessageInputSet (cache : QueryCache HashSpec) (parameter : PublicParameter)
     (root : Digest) (message : Message) :
@@ -28,7 +28,7 @@ noncomputable def cachedMessageEntryCount (cache : QueryCache HashSpec)
   (((cachedMessageInputSet cache parameter root message).encard : ENat) : ℝ≥0∞)
 
 theorem card_randomness : Fintype.card Randomness = 2 ^ randomnessBits := by
-  simp
+  simp [digestBits, randomnessBits]
 
 noncomputable def Concrete.signDigestLoopContinuation
     (attempts : Nat) (secretKey : SecretKey) (message : Message)

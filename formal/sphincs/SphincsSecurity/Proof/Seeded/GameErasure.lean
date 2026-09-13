@@ -21,24 +21,24 @@ theorem Erases.simulateQ_writer {ι κ : Type} {source : OracleSpec ι} {target 
       intro result
       exact (ih result.1).map _
 
-noncomputable def gameRest {Key : Type} (scheme : Scheme Key) (adversary : Adversary)
+noncomputable def gameRest {Key : Type} (randomizedScheme : Scheme Key) (adversary : Adversary)
     (pk : PublicKey) (sk : Key) : OracleComp OracleWorld Bool := do
   let ((forgery, log) : Forgery × QueryLog SigningSpec) ←
-    (simulateQ (forwardOracles + signingOracle scheme sk) (adversary.main pk)).run
-  let verified ← scheme.verify pk forgery.message forgery.signature
+    (simulateQ (forwardOracles + signingOracle randomizedScheme sk) (adversary.main pk)).run
+  let verified ← randomizedScheme.verify pk forgery.message forgery.signature
   return decide (SigningTranscript.Valid log ∧ ¬SigningTranscript.Contains log forgery) && verified
 
 noncomputable def gameAfterParameter (adversary : Adversary) (parameter : PublicParameter)
     (seed : MasterSeed) : OracleComp OracleWorld Bool := do
   let root ← liftM (treeRoot parameter topLayer Concrete.rootTree seed : OracleComp HashSpec Digest)
-  gameRest scheme adversary ⟨root, parameter⟩ ⟨seed, parameter, root⟩
+  gameRest randomizedScheme adversary ⟨root, parameter⟩ ⟨seed, parameter, root⟩
 
 theorem gameCore_seeded_eq (adversary : Adversary) :
-    gameCore scheme adversary = (do
+    gameCore randomizedScheme adversary = (do
       let seed ← liftM sampleMasterSeed
       let parameter ← liftM (deriveKey 0 .parameter seed : OracleComp HashSpec Digest)
       gameAfterParameter adversary parameter seed) := by
-  simp only [gameCore, scheme, keygen, gameAfterParameter, gameRest,
+  simp only [gameCore, randomizedScheme, keygen, gameAfterParameter, gameRest,
     bind_assoc, pure_bind]
 
 section Game
@@ -51,7 +51,7 @@ include hknown
 
 theorem erases_gameRest (adversary : Adversary) (root : Digest) :
     Erases (worldKnown known)
-      (gameRest scheme adversary ⟨root, parameter⟩ ⟨seed, parameter, root⟩)
+      (gameRest randomizedScheme adversary ⟨root, parameter⟩ ⟨seed, parameter, root⟩)
       (SphincsSecurity.gameRest Concrete.scheme adversary ⟨root, parameter⟩ (tableKey parameter root outputs)) := by
   unfold gameRest SphincsSecurity.gameRest
   apply Erases.bind _ _ _ (fun _ => Erases.refl (worldKnown known) _)

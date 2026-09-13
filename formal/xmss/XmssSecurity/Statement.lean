@@ -124,6 +124,12 @@ def tweakableHashInput (parameter : PublicParameter) (domain : HashDomain)
     (message : HashInput) : HashInput :=
   tweakBytes domain ++ bytesLE 16 parameter ++ message
 
+/-- `tweak(12, trial, epoch) || P || S || m`. -/
+def randomizerHashInput (parameter : PublicParameter) (seed : MasterSeed)
+    (epoch : Epoch) (message : Message) (trial : BitVec 32) : HashInput :=
+  fieldBytes ⟨12#8, trial, BitVec.ofNat 32 epoch.val⟩ ++
+    bytesLE 16 parameter ++ bytesLE 32 seed ++ bytesLE 32 message
+
 inductive KeygenDomain where
   | parameter
   | chain (epoch : Epoch) (chain : ChainIndex)
@@ -387,13 +393,6 @@ def precomputedSecretKey (parameter : PublicParameter)
 
 /-! ### Signing -/
 
-noncomputable local instance : SampleableType Randomness :=
-  SampleableType.ofFintype Randomness
-
-/-- `rho`, fresh per attempt. -/
-noncomputable def signingRandomness : ProbComp Randomness :=
-  $ᵗ Randomness
-
 /-- `floor(ep / 2^level) xor 1`, the sibling on the path. -/
 def authenticationPathNode (epoch : Epoch) (level : MerkleLevel) : MerkleNode :=
   merkleNodeOfNat (Nat.xor (epoch.val / 2 ^ level.val) 1)
@@ -423,33 +422,18 @@ def precomputedSignAttempt (secretKey : SecretKey) (epoch : Epoch)
   | some encoding =>
       pure (some (precomputedSignWithEncoding secretKey epoch randomness encoding))
 
-/-- At most `attempts` attempts, each with fresh randomness, stopping at the first that encodes. -/
-noncomputable def precomputedSignBoundedAttempts :
-    Nat → SecretKey → Epoch → Message →
-      OracleComp OracleWorld (Option Signature)
-  | 0, _secretKey, _epoch, _message => pure none
-  | attempts + 1, secretKey, epoch, message => do
-      let randomness ← liftM signingRandomness
-      let result ← liftM
-        (precomputedSignAttempt secretKey epoch message randomness :
-          OracleComp HashSpec (Option Signature))
-      match result with
-      | some signature => pure (some signature)
-      | none => precomputedSignBoundedAttempts attempts secretKey epoch message
-
-/-- `Sig(sk, ep, m)`, at most `A_max` attempts. The once-per-epoch discipline is the game's, in `SigningTranscript.Valid`. -/
-noncomputable def precomputedCappedSign (secretKey : SecretKey)
-    (epoch : Epoch) (message : Message) :
-    OracleComp OracleWorld (Option Signature) :=
-  precomputedSignBoundedAttempts signingAttemptLimit secretKey epoch message
-
-attribute [irreducible] verifyAfterLeaf treeNode signingRandomness precomputedCappedSign
+attribute [irreducible] verifyAfterLeaf treeNode
 
 end Concrete
 
 def deriveKey {m : Type → Type} [Monad m] [HasQuery HashSpec m]
     (parameter : PublicParameter) (domain : KeygenDomain) (seed : MasterSeed) : m Digest := do
   return truncateHash (← Concrete.oracleHash (keygenHashInput parameter domain seed))
+
+def deriveRandomizer {m : Type → Type} [Monad m] [HasQuery HashSpec m]
+    (parameter : PublicParameter) (seed : MasterSeed) (epoch : Epoch)
+    (message : Message) (trial : BitVec 32) : m Randomness := do
+  return (← Concrete.oracleHash (randomizerHashInput parameter seed epoch message trial)).extractLsb' 0 randomnessBits
 
 noncomputable def sampleMasterSeed : ProbComp MasterSeed :=
   letI := SampleableType.ofFintype MasterSeed
@@ -474,6 +458,20 @@ noncomputable def keygen : OracleComp OracleWorld (PublicKey × SecretKey) := do
       OracleComp HashSpec Digest).withQueryLog
   let precomputed := Concrete.precomputedSecretKey parameter secret (hashCacheOfLog result.2)
   return (⟨result.1, parameter⟩, ⟨seed, precomputed⟩)
+
+/-- Derive trials in increasing order, stopping at the first admissible encoding. -/
+def signFrom {m : Type → Type} [Monad m] [HasQuery HashSpec m]
+    (secretKey : SecretKey) (epoch : Epoch) (message : Message) : Nat → Nat → m (Option Signature)
+  | 0, _ => pure none
+  | attempts + 1, trial => do
+      let randomness ← deriveRandomizer secretKey.precomputed.parameter secretKey.seed epoch message (BitVec.ofNat 32 trial)
+      match ← Concrete.precomputedSignAttempt secretKey.precomputed epoch message randomness with
+      | some signature => return some signature
+      | none => signFrom secretKey epoch message attempts (trial + 1)
+
+def sign {m : Type → Type} [Monad m] [HasQuery HashSpec m]
+    (secretKey : SecretKey) (epoch : Epoch) (message : Message) : m (Option Signature) :=
+  signFrom secretKey epoch message signingAttemptLimit 0
 
 end Seeded
 
@@ -554,7 +552,7 @@ noncomputable def gameCore {Key : Type} (scheme : Scheme Key) (adversary : Adver
   let verified ← scheme.verify pk forgery.epoch forgery.message forgery.signature
   return decide (SigningTranscript.Valid log ∧ ¬SigningTranscript.Contains log forgery) && verified
 
-/-- The probability that the adversary wins, over key generation, signer randomness, and the random oracle, which starts from the empty cache. The final cache is discarded. -/
+/-- The probability that the adversary wins, over key generation, the adversary, and the random oracle, which starts from the empty cache. The final cache is discarded. -/
 noncomputable def forgeAdvantage {Key : Type} (scheme : Scheme Key) (adversary : Adversary) : ℝ≥0∞ :=
   Pr[= true | (simulateQ romImpl (gameCore scheme adversary)).run' ∅]
 
@@ -574,7 +572,7 @@ def HasClassicalSecurityBits {Key : Type} (scheme : Scheme Key) (bits : Nat) : P
 
 noncomputable def Seeded.scheme : Scheme Seeded.SecretKey where
   keygen := Seeded.keygen
-  sign := fun sk => Concrete.precomputedCappedSign sk.precomputed
+  sign := fun sk epoch message => liftM (Seeded.sign sk epoch message : OracleComp HashSpec _)
   verify := fun publicKey epoch message signature =>
     liftM (Concrete.verify publicKey epoch message signature : OracleComp HashSpec Bool)
 

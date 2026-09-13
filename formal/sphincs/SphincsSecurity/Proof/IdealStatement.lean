@@ -13,6 +13,17 @@ structure SecretKey where
 
 namespace Concrete
 
+noncomputable opaque randomnessSampleableType : SampleableType Randomness :=
+  SampleableType.ofFintype Randomness
+
+noncomputable local instance : SampleableType Randomness := randomnessSampleableType
+
+noncomputable def sampleRandomness : ProbComp Randomness :=
+  $ᵗ Randomness
+
+attribute [irreducible] sampleRandomness
+
+
 variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
 
 noncomputable local instance : SampleableType PublicParameter :=
@@ -213,5 +224,59 @@ noncomputable def Concrete.scheme : Scheme SecretKey where
 /-- The security claim: `127` bits of classical strong unforgeability in the random-oracle model, at `2^24` signing requests per key pair. -/
 abbrev IndependentSecurityStatement : Prop :=
   HasClassicalSecurityBits Concrete.scheme 127
+
+namespace Seeded
+
+open Concrete
+
+noncomputable def randomizedDigestLoop : Nat → SecretKey → Message →
+    OracleComp OracleWorld (Option (Randomness × Index × (IndexGroup → FtsLeaf)))
+  | 0, _secretKey, _message => pure none
+  | attempts + 1, secretKey, message => do
+      let randomness ← liftM sampleRandomness
+      let attempt ← liftM
+        (signAttempt secretKey message randomness :
+          OracleComp HashSpec (Option (Index × (IndexGroup → FtsLeaf))))
+      match attempt with
+      | some (index, leaves) => pure (some (randomness, index, leaves))
+      | none => randomizedDigestLoop attempts secretKey message
+
+noncomputable def randomizedSign (secretKey : SecretKey) (message : Message) :
+    OracleComp OracleWorld (Option Signature) := do
+  match ← randomizedDigestLoop digestAttemptLimit secretKey message with
+  | none => return none
+  | some (randomness, index, leaves) => do
+      let secrets ← liftM
+        (sequenceFin fun tree =>
+          deriveKey secretKey.parameter (.fts index tree (leaves (ftsIndexOf tree))) secretKey.seed :
+            OracleComp HashSpec (FtsTree → Digest))
+      let ftsPath ← liftM
+        (ftsOpen secretKey.parameter index leaves secretKey.seed :
+          OracleComp HashSpec (FtsTree → Fin ftsTreeHeight → Digest))
+      let layers ← liftM
+        (sequenceLayers (fun lay => signLayer secretKey index lay) :
+          OracleComp HashSpec
+            (Option (Layer → Counter × (ChainIndex → Digest) × (Fin maxLayerHeight → Digest))))
+      match layers with
+      | none => return none
+      | some parts => do
+          let _ ← liftM
+            (treeRoot secretKey.parameter topLayer rootTree secretKey.seed :
+              OracleComp HashSpec Digest)
+          return some
+            { randomness := randomness
+              ftsSecret := secrets
+              ftsPath := ftsPath
+              counter := fun lay => (parts lay).1
+              chainValue := fun lay => (parts lay).2.1
+              authPath := flattenPaths fun lay => (parts lay).2.2 }
+
+end Seeded
+
+noncomputable def Seeded.randomizedScheme : Scheme Seeded.SecretKey where
+  keygen := Seeded.keygen
+  sign := Seeded.randomizedSign
+  verify := fun publicKey message signature =>
+    liftM (Concrete.verify publicKey message signature : OracleComp HashSpec Bool)
 
 end SphincsSecurity

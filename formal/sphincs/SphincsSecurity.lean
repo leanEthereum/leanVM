@@ -1,5 +1,5 @@
 import SphincsSecurity.Statement
-import SphincsSecurity.Proof.Seeded.Security
+import SphincsSecurity.Proof.Deterministic.Security
 
 namespace SphincsSecurity
 

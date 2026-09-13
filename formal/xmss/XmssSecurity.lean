@@ -1,5 +1,5 @@
 import XmssSecurity.Statement
-import XmssSecurity.Proof.Seeded.Security
+import XmssSecurity.Proof.Deterministic.Security
 
 namespace XmssSecurity
 

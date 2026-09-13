@@ -1,6 +1,5 @@
 //! WOTS (Winternitz one-time signature) with target-sum encoding.
 
-use rand::{CryptoRng, Rng};
 use serde::{Deserialize, Serialize};
 
 use crate::*;
@@ -106,16 +105,16 @@ pub fn find_randomness_for_wots_encoding(
     message: &Message,
     epoch: Epoch,
     public_param: &PublicParam,
-    rng: &mut impl CryptoRng,
-) -> (Randomness, [u8; V], usize) {
-    let mut num_iters = 0;
-    loop {
-        num_iters += 1;
-        let randomness: Randomness = rng.random();
-        if let Some(encoding) = wots_encode(message, epoch, public_param, &randomness) {
-            return (randomness, encoding, num_iters);
-        }
-    }
+    seed: &[u8; 32],
+) -> Option<(Randomness, [u8; V], usize)> {
+    (0..MAX_RANDOMIZER_TRIALS).find_map(|trial| {
+        let mut hasher = primitives::hash::Hasher::new();
+        hasher.update(&make_tweak(TWEAK_TYPE_RANDOMIZER, trial, epoch));
+        hasher.update(public_param).update(seed).update(message);
+        let randomness = hasher.finalize()[..RANDOMNESS_LEN].try_into().unwrap();
+        wots_encode(message, epoch, public_param, &randomness)
+            .map(|encoding| (randomness, encoding, trial as usize + 1))
+    })
 }
 
 /// The target-sum encoding. `D = MD(msg | randomness | zeros)` under the

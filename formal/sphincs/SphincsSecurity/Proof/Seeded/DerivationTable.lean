@@ -74,9 +74,9 @@ theorem derivationCache_agreeOutside (seed : MasterSeed) (parameterOutput : Hash
   rw [cacheTable_apply_of_not_mem]
   · apply QueryCache.cacheQuery_of_ne
     intro heq
-    exact hinput ⟨0, .parameter, heq.symm⟩
+    exact hinput (heq.symm ▸ derivationSeedHit_keygen 0 .parameter seed)
   · intro position heq
-    exact hinput ⟨truncateHash parameterOutput, secretDomain position, heq.symm⟩
+    exact hinput (heq.symm ▸ derivationSeedHit_keygen (truncateHash parameterOutput) (secretDomain position) seed)
 
 noncomputable def prepareSecrets (parameter : PublicParameter) (seed : MasterSeed) :
     OracleComp HashSpec SecretOutputs := queryTable (secretInputs parameter seed)

@@ -4,7 +4,7 @@ namespace SphincsSecurity.Concrete
 
 open _root_.OracleComp OracleSpec ENNReal
 attribute [local instance] Classical.propDecidable
-noncomputable local instance instSampleableTypeRandomness_4 : SampleableType Randomness := SampleableType.ofFintype Randomness
+noncomputable local instance instSampleableTypeRandomness_4 : SampleableType Randomness := Concrete.randomnessSampleableType
 
 theorem uniform_randomness_messageInput_cacheHit_eq_count
     (key : SecretKey) (message : Message) (cache : QueryCache HashSpec) :

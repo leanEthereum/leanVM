@@ -1,27 +1,14 @@
-import XmssSecurity.Proof.Seeded.KeyDerivation
+import XmssSecurity.Proof.Deterministic.Inputs
 
 open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity
 
-def SeedHit (input : HashInput) (seed : MasterSeed) : Prop :=
-  ∃ parameter domain, keygenHashInput parameter domain seed = input
+abbrev SeedHit := DerivationSeedHit
 
 theorem probEvent_seedHit_le (input : HashInput) :
-    Pr[SeedHit input | sampleMasterSeed] ≤ 1 / ((2 ^ 256 : Nat) : ℝ≥0∞) := by
-  classical
-  by_cases hexists : ∃ seed, SeedHit input seed
-  · obtain ⟨seed, hseed⟩ := hexists
-    have hevent : SeedHit input = fun other => other = seed := by
-      funext other
-      apply propext
-      exact ⟨fun h => keygenHashInput_seed_unique input h hseed, fun h => h ▸ hseed⟩
-    rw [hevent]
-    simp [sampleMasterSeed, MasterSeed]
-  · have hempty : SeedHit input = fun _ => False := by
-      funext seed
-      exact propext ⟨fun h => hexists ⟨seed, h⟩, False.elim⟩
-    simp [hempty]
+    Pr[SeedHit input | sampleMasterSeed] ≤ 1 / ((2 ^ 256 : Nat) : ℝ≥0∞) :=
+  probEvent_derivationSeedHit_le input
 
 def SeedHitLog (inputs : List HashInput) (seed : MasterSeed) : Prop :=
   ∃ input ∈ inputs, SeedHit input seed

@@ -2,8 +2,8 @@
 //! The concrete scheme is defined in the [XMSS specification].
 //!
 //! Every hash is standard BLAKE2s of the exact byte string
-//! `tweak | pp | payload`, truncated to n = 128 bits. See the `hash` module for the
-//! constructions and per-call compression counts.
+//! `tweak | pp | payload`. Randomizer derivation retains 192 bits; other calls
+//! retain 128 bits. See the `hash` module for the constructions.
 //!
 //! [XMSS specification]: https://github.com/leanEthereum/leanVM/releases/download/doc-latest/XMSS.pdf
 
@@ -40,6 +40,8 @@ pub const NUM_CHAIN_HASHES: usize = 99;
 /// walks fewer chain steps; grinding takes fewer than 2^15 encode attempts on
 /// average.
 pub const TARGET_SUM: usize = V * (CHAIN_LENGTH - 1) - NUM_CHAIN_HASHES; // 195
+/// Maximum randomizer trials per signature.
+pub const MAX_RANDOMIZER_TRIALS: u32 = 1 << 23;
 pub const RANDOMNESS_LEN: usize = 24;
 pub const MESSAGE_LEN: usize = 32;
 pub const PUBLIC_PARAM_LEN: usize = 16;
@@ -48,7 +50,7 @@ pub const PUBLIC_PARAM_LEN: usize = 16;
 /// Merkle tree height: a key is valid for up to `2^32` epochs.
 pub const LOG_LIFETIME: usize = 32;
 
-/// When a signature was made. A key may sign at each epoch of its range once.
+/// When a signature was made. Each epoch in the key's range may sign only one message.
 pub type Epoch = u32;
 
 /// Serialized sizes (exact under bincode: fixed arrays, no length prefixes).

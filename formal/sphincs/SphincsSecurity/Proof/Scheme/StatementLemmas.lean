@@ -16,7 +16,7 @@ theorem _root_.SphincsSecurity.layerHeight_le (lay : Layer) : layerHeight lay â‰
 attribute [local semireducible] treeNode ftsNode verify sign sampleRandomness
 
 noncomputable local instance instSampleableTypeRandomness_1 : SampleableType Randomness :=
-  SampleableType.ofFintype Randomness
+  randomnessSampleableType
 
 variable {m : Type â†’ Type} [Monad m] [HasQuery HashSpec m]
 

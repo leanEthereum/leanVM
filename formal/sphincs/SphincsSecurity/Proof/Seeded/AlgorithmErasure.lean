@@ -220,18 +220,17 @@ theorem erases_selectedSecrets (index : Index) (leaves : IndexGroup → FtsLeaf)
 
 omit hknown in
 theorem signDigestLoop_tableKey (root : Digest) (message : Message) (attempts : Nat) :
-    signDigestLoop attempts ⟨seed, parameter, root⟩ message =
+    randomizedDigestLoop attempts ⟨seed, parameter, root⟩ message =
       Concrete.signDigestLoop attempts (tableKey parameter root outputs) message := by
   induction attempts with
   | zero => rfl
   | succ attempts ih =>
-      simp only [signDigestLoop, Concrete.signDigestLoop, signAttempt, Concrete.signAttempt, tableKey, ih]
-      rfl
+      simp only [randomizedDigestLoop, Concrete.signDigestLoop, signAttempt, Concrete.signAttempt, tableKey, ih]
 
 theorem erases_sign (root : Digest) (message : Message) :
-    Erases (worldKnown known) (sign ⟨seed, parameter, root⟩ message)
+    Erases (worldKnown known) (randomizedSign ⟨seed, parameter, root⟩ message)
       (Concrete.sign (tableKey parameter root outputs) message) := by
-  unfold sign Concrete.sign
+  unfold randomizedSign Concrete.sign
   rw [signDigestLoop_tableKey parameter seed outputs root message]
   apply (Erases.refl (worldKnown known) _).bind
   intro attempt
