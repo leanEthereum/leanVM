@@ -59,7 +59,7 @@
 This specification defines a SPHINCS$^+$ variant with a lifetime of $2^{24}$ signatures per key pair:
 
 \begin{itemize}
-   \item \textbf{NIST security level~1}~\cite{NISTPQC}, $\approx 128$-bit (resp. $\approx 64$-bit) of classical (resp. quantum) security, in the Random Oracle model, ROM (resp. Quantum Random Oracle model, QROM).\footnote{The classical bound is proved (Section~\ref{sec:security}); the quantum one is a target, not a proved statement (Section~\ref{sec:quantum}).}
+   \item \textbf{NIST security level~1}~\cite{NISTPQC}, $\approx 128$-bit (resp. $\approx 64$-bit) of classical (resp. quantum) security, in the Random Oracle model, ROM (resp. Quantum Random Oracle model, QROM).\footnote{NIST stands for National Institute of Standards and Technology. The classical bound is proved (Section~\ref{sec:security}); the quantum one is a target, not a proved statement (Section~\ref{sec:quantum}).}
   \item \textbf{Public key: 32 bytes.}
   \item \textbf{Signature: 4924 bytes.}
   \item \textbf{Verification: 497 hashes.}
@@ -68,7 +68,7 @@ This specification defines a SPHINCS$^+$ variant with a lifetime of $2^{24}$ sig
 \end{itemize}
 \end{abstract}
 
-The construction uses WOTS$^+$C and FORS$^+$C~\cite{HK22C,KN25} within the SPHINCS$^+$ framework~\cite{SPHINCSPLUS}. The definitions below specify the concrete variant completely.
+The construction uses compressed variants of the Winternitz one-time signature (WOTS) and forest of random subsets (FORS), called WOTS$^+$C and FORS$^+$C~\cite{HK22C,KN25}. They are combined within the SPHINCS$^+$ framework~\cite{SPHINCSPLUS}. The definitions below specify the concrete variant completely.
 
 \section{Hashing and parameters}
 \label{sec:parameters}
@@ -97,8 +97,8 @@ $h$ & $26$ & total height, $h=h_0+h_1+h_2$\\
 $a$ & $10$ & height of each FORS tree\\
 $k$ & $15$ & digest indices, of which $k-1$ open trees\\
 $\qs$ & $2^{24}$ & signing requests allowed per key pair\\
-$\amax$ & $2^{32}$ & digest attempts per signature\\
-$\cmax$ & $2^{32}$ & encoding attempts per WOTS signature\\
+$\amax$ & $2^{32}$ & maximum randomizer trials per signature\\
+$\cmax$ & $2^{32}$ & maximum encoding attempts per WOTS signature\\
 \bottomrule
 \end{tabular}
 \end{center}
