@@ -11,7 +11,9 @@ use crate::*;
 pub const TWEAK_LEN: usize = 16;
 pub type Tweak = [u8; TWEAK_LEN];
 
-// Tweak types, the tweak's first byte, so no two kinds of call can alias.
+pub const PROTOCOL_DOMAIN_SEP: u8 = 1;
+
+// Tweak types (byte 1).
 pub const TWEAK_PRF: u8 = 0;
 pub const TWEAK_CHAIN: u8 = 1;
 pub const TWEAK_LEAF: u8 = 2;
@@ -22,18 +24,19 @@ pub const TWEAK_FTS_LEAF: u8 = 6;
 pub const TWEAK_FTS_NODE: u8 = 7;
 pub const TWEAK_FTS_ROOTS: u8 = 8;
 pub const TWEAK_MSG: u8 = 9;
+pub const TWEAK_PARAMETER: u8 = 10;
 
-/// `enc(t, lay, tau, p, j)`: fourteen bytes of little-endian fields and two of
-/// padding. `lay` is a layer of the hypertree or a tree of a few-time forest,
-/// and is byte wide.
+/// `[protocol_domain_sep:1 | type:1 | layer:1 | zero:1 | p:4 | tree:4 | index:4]`, little endian.
+/// `lay` identifies a hypertree layer or a tree of a few-time forest.
 pub fn tweak(t: u8, lay: usize, tau: u32, p: u32, j: u32) -> Tweak {
     debug_assert!(lay < 256);
     let mut tw = [0u8; TWEAK_LEN];
-    tw[0] = t;
-    tw[1] = lay as u8;
-    tw[2..6].copy_from_slice(&tau.to_le_bytes());
-    tw[6..10].copy_from_slice(&p.to_le_bytes());
-    tw[10..14].copy_from_slice(&j.to_le_bytes());
+    tw[0] = PROTOCOL_DOMAIN_SEP;
+    tw[1] = t;
+    tw[2] = lay as u8;
+    tw[4..8].copy_from_slice(&p.to_le_bytes());
+    tw[8..12].copy_from_slice(&tau.to_le_bytes());
+    tw[12..16].copy_from_slice(&j.to_le_bytes());
     tw
 }
 

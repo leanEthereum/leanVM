@@ -13,11 +13,16 @@
 
 use crate::*;
 
-// Tweak types (tweak byte 0), so distinct kinds of hashes cannot alias.
-pub const TWEAK_TYPE_CHAIN: u8 = 0;
-pub const TWEAK_TYPE_WOTS_PK: u8 = 1;
-pub const TWEAK_TYPE_MERKLE: u8 = 2;
-pub const TWEAK_TYPE_ENCODING: u8 = 3;
+pub const PROTOCOL_DOMAIN_SEP: u8 = 0;
+
+// Tweak types (byte 1).
+pub const TWEAK_TYPE_PRF: u8 = 0;
+pub const TWEAK_TYPE_CHAIN: u8 = 1;
+pub const TWEAK_TYPE_WOTS_PK: u8 = 2;
+pub const TWEAK_TYPE_MERKLE: u8 = 3;
+pub const TWEAK_TYPE_ENCODING: u8 = 4;
+pub const TWEAK_TYPE_PARAMETER: u8 = 10;
+pub const TWEAK_TYPE_FILLER: u8 = 11;
 
 pub const TWEAK_LEN: usize = 16;
 pub type Tweak = [u8; TWEAK_LEN];
@@ -25,14 +30,16 @@ pub type Tweak = [u8; TWEAK_LEN];
 /// A full 32-byte BLAKE2s chaining value/output.
 pub const STATE_LEN: usize = 32;
 
-/// `[tweak_type (1) | sub_position (4) | index (4) | zeros (7)]`, little-endian.
+/// `[protocol_domain_sep:1 | type:1 | layer:1 | zero:1 | p:4 | tree:4 | index:4]`, little endian.
+/// XMSS sets `layer` and `tree` to zero.
 /// `index` is the epoch (chain / wots_pk / encoding) or the Merkle node index;
 /// `sub_position` is the chain position or the Merkle level.
 pub fn make_tweak(tweak_type: u8, sub_position: u32, index: u32) -> Tweak {
     let mut tweak = [0u8; TWEAK_LEN];
-    tweak[0] = tweak_type;
-    tweak[1..5].copy_from_slice(&sub_position.to_le_bytes());
-    tweak[5..9].copy_from_slice(&index.to_le_bytes());
+    tweak[0] = PROTOCOL_DOMAIN_SEP;
+    tweak[1] = tweak_type;
+    tweak[4..8].copy_from_slice(&sub_position.to_le_bytes());
+    tweak[12..16].copy_from_slice(&index.to_le_bytes());
     tweak
 }
 

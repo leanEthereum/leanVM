@@ -1,6 +1,7 @@
 import XmssSecurity.Proof.CappedChain.SourceDirectTrace
 
 open OracleComp OracleSpec
+set_option backward.isDefEq.respectTransparency false
 
 namespace XmssSecurity.CappedChain
 
@@ -23,83 +24,20 @@ def verifierHashQueryCost : OracleWorld.Domain → Nat
   | .inl _ => 0
   | .inr _ => 1
 
-theorem sourceDirectTracedMappedAdversaryImpl_support_info
-    (publicKey : PublicKey) (secretKey : SecretKey)
-    (input : (OracleWorld + SigningSpec).Domain)
-    (state : SourceTracedState)
-    (result : (OracleWorld + SigningSpec).Range input × SourceTracedState)
-    (hresult : result ∈ support
-      ((sourceDirectTracedMappedAdversaryImpl publicKey secretKey input).run
-        state)) :
-    result.1 ∈ support
-        (sourceUnloggedMappedAdversaryImpl publicKey secretKey input) ∧
-      result.2.2 = state.2 ++ attackerActionFragment input result.1 := by
-  unfold sourceDirectTracedMappedAdversaryImpl actionTracedStateImpl at hresult
-  change result ∈ support (do
-    let baseResult ←
-      (sourceDirectMappedAdversaryImpl publicKey secretKey input).run state.1
-    pure (baseResult.1,
-      (baseResult.2, state.2 ++ attackerActionFragment input baseResult.1)))
-      at hresult
-  rw [mem_support_bind_iff] at hresult
-  obtain ⟨baseResult, hbaseResult, hfinal⟩ := hresult
-  simp only [support_pure, Set.mem_singleton_iff] at hfinal
-  subst result
-  have hprojected : baseResult.1 ∈ support
-      ((sourceDirectMappedAdversaryImpl publicKey secretKey input).run'
-        state.1) := by
-    rw [StateT.run'_eq, support_map]
-    exact ⟨baseResult, hbaseResult, rfl⟩
-  have hsource : baseResult.1 ∈ support
-      (sourceUnloggedMappedAdversaryImpl publicKey secretKey input) := by
-    rw [sourceDirectMappedAdversaryImpl_eq_compose] at hprojected
-    exact OracleComp.support_simulateQ_run'_subset romImpl
-      (sourceUnloggedMappedAdversaryImpl publicKey secretKey input) state.1
-        hprojected
-  exact ⟨hsource, rfl⟩
-
-set_option maxRecDepth 1000000 in
-theorem sourceDirectTracedMappedAdversary_residual_hashQueryBound
-    (publicKey : PublicKey) (secretKey : SecretKey)
-    (computation : OracleComp (OracleWorld + SigningSpec) α)
-    (finish : α → OracleComp OracleWorld β) (queries : Nat)
-    (hbound : (simulateQ
-      (sourceUnloggedMappedAdversaryImpl publicKey secretKey) computation >>=
-        finish).IsQueryBoundP (· matches .inr _) queries)
-    (cache : QueryCache HashSpec)
-    (result : α × SourceTracedState)
-    (hresult : result ∈ support
-      ((simulateQ
-        (sourceDirectTracedMappedAdversaryImpl publicKey secretKey)
-          computation).run (cache, []))) :
-    result.2.2.hashInputs.length ≤ queries ∧
-      (finish result.1).IsQueryBoundP (· matches .inr _)
-        (queries - result.2.2.hashInputs.length) := by
-  rw [sourceDirectTracedMappedAdversaryImpl_run_eq] at hresult
-  rw [support_map] at hresult
-  obtain ⟨rawResult, hrawResult, heq⟩ := hresult
-  have hprojected : rawResult.1 ∈ support
-      ((simulateQ romImpl
-        ((simulateQ
-          (sourceActionTracedMappedAdversaryImpl publicKey secretKey)
-            computation).run)).run' cache) := by
-    rw [StateT.run'_eq, support_map]
-    exact ⟨rawResult, hrawResult, rfl⟩
-  have hsource : rawResult.1 ∈ support
-      ((simulateQ
-        (sourceActionTracedMappedAdversaryImpl publicKey secretKey)
-          computation).run) :=
-    OracleComp.support_simulateQ_run'_subset romImpl
-      ((simulateQ
-        (sourceActionTracedMappedAdversaryImpl publicKey secretKey)
-          computation).run) cache hprojected
-  have hresidual := sourceActionTracedMappedAdversary_residual_hashQueryBound
-    publicKey secretKey computation finish queries hbound rawResult.1 hsource
-  have hresultValue : result.1 = rawResult.1.1 := by
-    simpa using congrArg Prod.fst heq.symm
-  have hresultTrace : result.2.2 = rawResult.1.2 := by
-    simpa using congrArg (fun candidate => candidate.2.2) heq.symm
-  rw [hresultValue, hresultTrace]
-  exact hresidual
+theorem sourceUnloggedMappedAdversaryImpl_consistent_query_bound
+    (publicKey : PublicKey) (secretKey : SecretKey) (input : (OracleWorld + SigningSpec).Domain)
+    (next : (OracleWorld + SigningSpec).Range input → OracleComp OracleWorld α)
+    (cache : QueryCache HashSpec) (q : Nat)
+    (hbound : HashQueryBound (sourceUnloggedMappedAdversaryImpl publicKey secretKey input >>= next) cache q)
+    (result : (OracleWorld + SigningSpec).Range input × QueryCache HashSpec)
+    (hr : result ∈ support ((simulateQ romImpl (sourceUnloggedMappedAdversaryImpl publicKey secretKey input)).run cache)) :
+    directHashActionCost input ≤ q ∧ HashQueryBound (next result.1) result.2 (q - directHashActionCost input) := by
+  cases input with
+  | inl input =>
+      simp only [sourceUnloggedMappedAdversaryImpl, simulateQ_spec_query] at hr
+      have h := hashQueryBound_query_bind input next cache q hbound result hr
+      cases input <;> exact h
+  | inr request =>
+      exact ⟨Nat.zero_le q, hashQueryBound_bind_right _ next cache q hbound result hr⟩
 
 end XmssSecurity.CappedChain

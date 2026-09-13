@@ -53,6 +53,7 @@ def globalExactTracedCausalLens :
 
 @[irreducible]
 noncomputable def globalExactTracedNextState
+    (_keyView : ProgrammedGlobalChainKeygenView)
     (input : (OracleWorld + SigningSpec).Domain)
     (state : GlobalHighDirectTracedState)
     (output : (OracleWorld + SigningSpec).Range input)
@@ -61,6 +62,7 @@ noncomputable def globalExactTracedNextState
     (state.attackerTrace ++ attackerActionFragment input output)
 
 noncomputable def globalExactTracedLift {ι : Type} {world : OracleSpec ι}
+    (keyView : ProgrammedGlobalChainKeygenView)
     (input : (OracleWorld + SigningSpec).Domain)
     (base : StateT GlobalCausalHashState
       (OracleComp world)
@@ -70,14 +72,14 @@ noncomputable def globalExactTracedLift {ι : Type} {world : OracleSpec ι}
       ((OracleWorld + SigningSpec).Range input) :=
   StateT.mk fun state =>
     (fun result => (result.1,
-      globalExactTracedNextState input state result.1 result.2)) <$>
+      globalExactTracedNextState keyView input state result.1 result.2)) <$>
       base.run state.causalState
 
 noncomputable def globalFirstLaneExactTracedSigningImpl
     (keyView : ProgrammedGlobalChainKeygenView) : QueryImpl SigningSpec
       (StateT GlobalHighDirectTracedState
         (OracleComp GlobalFirstLaneWorld)) :=
-  fun request => globalExactTracedLift (.inr request)
+  fun request => globalExactTracedLift keyView (.inr request)
     (globalFirstLaneSigningImpl keyView request)
 
 noncomputable def globalFirstLaneExactTracedOracleImpl
@@ -85,7 +87,7 @@ noncomputable def globalFirstLaneExactTracedOracleImpl
     (edgeHigh : GlobalChainEdgeIndex → Digest) : QueryImpl OracleWorld
       (StateT GlobalHighDirectTracedState
         (OracleComp GlobalFirstLaneWorld)) :=
-  fun input => globalExactTracedLift (.inl input)
+  fun input => globalExactTracedLift keyView (.inl input)
     (StateT.mk fun state =>
       globalFirstLaneOracleExecution keyView edgeHigh input state)
 
@@ -158,6 +160,7 @@ noncomputable def globalFirstLaneExactTracedProgram
   pure (keyResult, execution)
 
 theorem globalFirstLaneErase_exactTracedLift
+    (keyView : ProgrammedGlobalChainKeygenView)
     (input : (OracleWorld + SigningSpec).Domain)
     (sourceBase : StateT GlobalCausalHashState
       (OracleComp GlobalFirstLaneWorld)
@@ -171,8 +174,8 @@ theorem globalFirstLaneErase_exactTracedLift
       (sourceBase.run state.causalState)
       (targetBase.run state.causalState)) :
     GlobalFirstLaneErases
-      ((globalExactTracedLift input sourceBase).run state)
-      ((globalExactTracedLift input targetBase).run state) := by
+      ((globalExactTracedLift keyView input sourceBase).run state)
+      ((globalExactTracedLift keyView input targetBase).run state) := by
   unfold globalExactTracedLift
   simp only [StateT.run_mk]
   apply hbase.bind
@@ -184,7 +187,7 @@ theorem globalExactTracedLift_highDirectMapped_eq
     (edgeHigh : GlobalChainEdgeIndex → Digest)
     (input : (OracleWorld + SigningSpec).Domain)
     (state : GlobalHighDirectTracedState) :
-    (globalExactTracedLift input
+    (globalExactTracedLift keyView input
       (globalHighDirectBaseMappedAdversaryImpl keyView edgeHigh input)).run
         state =
       (globalHighDirectTracedMappedAdversaryImpl keyView edgeHigh input).run
@@ -217,7 +220,7 @@ theorem globalFirstLaneErase_exactTracedMappedAdversaryImpl
           state.causalState)
       exact globalFirstLaneOracleErasure keyView edgeHigh worldInput
         state.causalState
-    have herasure := globalFirstLaneErase_exactTracedLift
+    have herasure := globalFirstLaneErase_exactTracedLift keyView
       (.inl worldInput)
       (StateT.mk fun causalState =>
         globalFirstLaneOracleExecution keyView edgeHigh worldInput causalState)
@@ -232,7 +235,7 @@ theorem globalFirstLaneErase_exactTracedMappedAdversaryImpl
       simpa [globalHighDirectBaseMappedAdversaryImpl] using
         globalFirstLaneErase_directSigningImpl keyView request
           state.causalState
-    have herasure := globalFirstLaneErase_exactTracedLift
+    have herasure := globalFirstLaneErase_exactTracedLift keyView
       (.inr request) (globalFirstLaneSigningImpl keyView request)
       (globalHighDirectBaseMappedAdversaryImpl keyView edgeHigh
         (.inr request)) state hbase
@@ -963,7 +966,7 @@ theorem globalExactTracedLift_trace_sublist
         FirstLaneOracleSimulation.ActionTrace GlobalChainValueIndex)
     (hresult : result ∈ support
       ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl table)
-        ((globalExactTracedLift input base).run state)).run))
+        ((globalExactTracedLift keyView input base).run state)).run))
     (hbaseSub : ∀ baseResult,
       baseResult ∈ support
         ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl table)
@@ -1674,6 +1677,7 @@ theorem globalFirstLaneHashRun_validSignEpochs_eq_nil
 
 theorem globalExactTracedLift_eager_support_decompose
     (table : GlobalChainValueIndex → Digest)
+    (keyView : ProgrammedGlobalChainKeygenView)
     (input : (OracleWorld + SigningSpec).Domain)
     (base : StateT GlobalCausalHashState (OracleComp GlobalFirstLaneWorld)
       ((OracleWorld + SigningSpec).Range input))
@@ -1683,7 +1687,7 @@ theorem globalExactTracedLift_eager_support_decompose
         FirstLaneOracleSimulation.ActionTrace GlobalChainValueIndex)
     (hresult : result ∈ support
       ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl table)
-        ((globalExactTracedLift input base).run state)).run)) :
+        ((globalExactTracedLift keyView input base).run state)).run)) :
     ∃ baseResult : ((OracleWorld + SigningSpec).Range input ×
         GlobalCausalHashState) ×
           FirstLaneOracleSimulation.ActionTrace GlobalChainValueIndex,
@@ -1691,7 +1695,7 @@ theorem globalExactTracedLift_eager_support_decompose
         ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl table)
           (base.run state.causalState)).run) ∧
       result = ((baseResult.1.1,
-        globalExactTracedNextState input state baseResult.1.1
+        globalExactTracedNextState keyView input state baseResult.1.1
           baseResult.1.2), baseResult.2) := by
   unfold globalExactTracedLift at hresult
   rw [StateT.run_mk, simulateQ_map, WriterT.run_map', support_map] at hresult
@@ -1703,7 +1707,7 @@ theorem globalFirstLaneExactTracedMappedAdversaryImpl_hash_eq_run
     (edgeHigh : GlobalChainEdgeIndex → Digest) (input : HashInput) :
     globalFirstLaneExactTracedMappedAdversaryImpl keyView edgeHigh
         (.inl (.inr input)) =
-      globalExactTracedLift (.inl (.inr input))
+      globalExactTracedLift keyView (.inl (.inr input))
         (StateT.mk (globalFirstLaneAttackerHashQueryFromHighRun
           (globalChainValueHighTableOfEdges edgeHigh) keyView.secretKey
             input)) := by
@@ -1711,6 +1715,7 @@ theorem globalFirstLaneExactTracedMappedAdversaryImpl_hash_eq_run
 
 theorem globalExactTracedHash_validSignEpochs_eq_nil
     (table : GlobalChainValueIndex → Digest)
+    (keyView : ProgrammedGlobalChainKeygenView)
     (input : HashInput)
     (base : StateT GlobalCausalHashState (OracleComp GlobalFirstLaneWorld)
       HashOutput)
@@ -1719,7 +1724,7 @@ theorem globalExactTracedHash_validSignEpochs_eq_nil
       FirstLaneOracleSimulation.ActionTrace GlobalChainValueIndex)
     (hresult : result ∈ support
       ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl table)
-        ((globalExactTracedLift (.inl (.inr input)) base).run
+        ((globalExactTracedLift keyView (.inl (.inr input)) base).run
           state)).run))
     (hnil : ∀ baseResult,
       baseResult ∈ support
@@ -1730,7 +1735,7 @@ theorem globalExactTracedHash_validSignEpochs_eq_nil
     CappedEncodingMonitor.validObservedSignEpochs
       result.2.encodingActions = [] := by
   obtain ⟨baseResult, hbase, hresultEq⟩ :=
-    globalExactTracedLift_eager_support_decompose table
+    globalExactTracedLift_eager_support_decompose table keyView
       (.inl (.inr input)) base state result hresult
   have htraceEq := congrArg (fun candidate =>
     CappedEncodingMonitor.validObservedSignEpochs
@@ -1739,6 +1744,7 @@ theorem globalExactTracedHash_validSignEpochs_eq_nil
 
 theorem globalExactTracedHash_validSignEpochs_step
     (table : GlobalChainValueIndex → Digest)
+    (keyView : ProgrammedGlobalChainKeygenView)
     (input : HashInput)
     (base : StateT GlobalCausalHashState (OracleComp GlobalFirstLaneWorld)
       HashOutput)
@@ -1747,7 +1753,7 @@ theorem globalExactTracedHash_validSignEpochs_step
       FirstLaneOracleSimulation.ActionTrace GlobalChainValueIndex)
     (hresult : result ∈ support
       ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl table)
-        ((globalExactTracedLift (.inl (.inr input)) base).run
+        ((globalExactTracedLift keyView (.inl (.inr input)) base).run
           state)).run))
     (hnil : ∀ baseResult,
       baseResult ∈ support
@@ -1763,10 +1769,10 @@ theorem globalExactTracedHash_validSignEpochs_step
       (result.1.2.attackerTrace.toSigningLog.map
         fun entry => entry.1.epoch) := by
   have htrace :=
-    globalExactTracedHash_validSignEpochs_eq_nil table
+    globalExactTracedHash_validSignEpochs_eq_nil table keyView
       input base state result hresult hnil
   obtain ⟨_baseResult, _hbase, hresultEq⟩ :=
-    globalExactTracedLift_eager_support_decompose table
+    globalExactTracedLift_eager_support_decompose table keyView
       (.inl (.inr input)) base state result hresult
   have hstateEq : result.1.2.attackerTrace =
       state.attackerTrace ++ [AttackerAction.hash input] := by
@@ -1782,6 +1788,7 @@ theorem globalExactTracedHash_validSignEpochs_step
 
 theorem globalExactTracedLift_oracle_validSignEpochs_step
     (table : GlobalChainValueIndex → Digest)
+    (keyView : ProgrammedGlobalChainKeygenView)
     (worldInput : OracleWorld.Domain)
     (base : StateT GlobalCausalHashState (OracleComp GlobalFirstLaneWorld)
       (OracleWorld.Range worldInput))
@@ -1791,7 +1798,7 @@ theorem globalExactTracedLift_oracle_validSignEpochs_step
         FirstLaneOracleSimulation.ActionTrace GlobalChainValueIndex)
     (hresult : result ∈ support
       ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl table)
-        ((globalExactTracedLift (.inl worldInput) base).run
+        ((globalExactTracedLift keyView (.inl worldInput) base).run
           initialState)).run))
     (hnil : ∀ baseResult,
       baseResult ∈ support
@@ -1807,7 +1814,7 @@ theorem globalExactTracedLift_oracle_validSignEpochs_step
       (result.1.2.attackerTrace.toSigningLog.map
         fun entry => entry.1.epoch) := by
   obtain ⟨baseResult, hbase, hresultEq⟩ :=
-    globalExactTracedLift_eager_support_decompose table
+    globalExactTracedLift_eager_support_decompose table keyView
       (.inl worldInput) base initialState result hresult
   have houtputEq : result.1.1 = baseResult.1.1 := by
     simpa using congrArg (fun candidate => candidate.1.1) hresultEq
@@ -1831,6 +1838,7 @@ theorem globalExactTracedLift_oracle_validSignEpochs_step
 
 theorem globalExactTracedLift_signing_validSignEpochs_step
     (table : GlobalChainValueIndex → Digest)
+    (keyView : ProgrammedGlobalChainKeygenView)
     (request : SignRequest)
     (base : StateT GlobalCausalHashState (OracleComp GlobalFirstLaneWorld)
       (SigningSpec.Range request))
@@ -1839,7 +1847,7 @@ theorem globalExactTracedLift_signing_validSignEpochs_step
       FirstLaneOracleSimulation.ActionTrace GlobalChainValueIndex)
     (hresult : result ∈ support
       ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl table)
-        ((globalExactTracedLift (.inr request) base).run
+        ((globalExactTracedLift keyView (.inr request) base).run
           initialState)).run))
     (hsub : ∀ baseResult,
       baseResult ∈ support
@@ -1855,7 +1863,7 @@ theorem globalExactTracedLift_signing_validSignEpochs_step
       (result.1.2.attackerTrace.toSigningLog.map
         fun entry => entry.1.epoch) := by
   obtain ⟨baseResult, hbase, hresultEq⟩ :=
-    globalExactTracedLift_eager_support_decompose table
+    globalExactTracedLift_eager_support_decompose table keyView
       (.inr request) base initialState result hresult
   have houtputEq : result.1.1 = baseResult.1.1 := by
     simpa using congrArg (fun candidate => candidate.1.1) hresultEq
@@ -1903,7 +1911,8 @@ theorem globalFirstLaneExactTracedMappedAdversaryImpl_uniform_validSignEpochs_st
         fun entry => entry.1.epoch) := by
   unfold globalFirstLaneExactTracedMappedAdversaryImpl
     globalFirstLaneExactTracedOracleImpl at hresult
-  apply globalExactTracedLift_oracle_validSignEpochs_step table (.inl n)
+  apply globalExactTracedLift_oracle_validSignEpochs_step table
+    keyView (.inl n)
     (StateT.mk fun causalState =>
       globalFirstLaneOracleExecution keyView edgeHigh (.inl n) causalState)
     initialState result hresult
@@ -1934,7 +1943,7 @@ theorem globalFirstLaneExactTracedMappedAdversaryImpl_signing_validSignEpochs_st
   unfold globalFirstLaneExactTracedMappedAdversaryImpl
     globalFirstLaneExactTracedSigningImpl at hresult
   apply globalExactTracedLift_signing_validSignEpochs_step table
-    request (globalFirstLaneSigningImpl keyView request)
+    keyView request (globalFirstLaneSigningImpl keyView request)
       initialState result hresult
   intro baseResult hbase
   exact globalFirstLaneSigningQuery_validSignEpochs_sublist_singleton table
@@ -1949,7 +1958,7 @@ theorem globalFirstLaneExactTracedMappedAdversary_validSignEpochs_sublist_of_has
     (hhashEq : ∀ input,
       globalFirstLaneExactTracedMappedAdversaryImpl keyView edgeHigh
           (.inl (.inr input)) =
-        globalExactTracedLift (.inl (.inr input))
+        globalExactTracedLift keyView (.inl (.inr input))
           (StateT.mk (hashRun input)))
     (hhashNil : ∀ input state result,
       result ∈ support
@@ -2000,7 +2009,7 @@ theorem globalFirstLaneExactTracedMappedAdversary_validSignEpochs_sublist_of_has
                 table keyView edgeHigh n state stepResult hstep
         | inr hashInput =>
             rw [hhashEq] at hstep
-            apply globalExactTracedHash_validSignEpochs_step table
+            apply globalExactTracedHash_validSignEpochs_step table keyView
               hashInput (StateT.mk (hashRun hashInput)) state stepResult hstep
             intro baseResult hbase
             exact hhashNil hashInput state.causalState baseResult hbase
@@ -2150,6 +2159,7 @@ theorem globalFirstLaneExactTracedVerifier_validSignEpochs_eq_nil
 set_option maxRecDepth 1000000
 
 theorem globalExactTracedLift_hazardBound
+    (keyView : ProgrammedGlobalChainKeygenView)
     (input : (OracleWorld + SigningSpec).Domain)
     (base : StateT GlobalCausalHashState
       (OracleComp GlobalFirstLaneWorld)
@@ -2158,7 +2168,7 @@ theorem globalExactTracedLift_hazardBound
     (fuel : Nat)
     (hbase : (base.run state.causalState).IsQueryBoundP
       FirstLaneOracleSimulation.IsHazardQuery fuel) :
-    ((globalExactTracedLift input base).run state)
+    ((globalExactTracedLift keyView input base).run state)
       |>.IsQueryBoundP FirstLaneOracleSimulation.IsHazardQuery fuel := by
   unfold globalExactTracedLift
   simp only [StateT.run_mk]

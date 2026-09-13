@@ -1,5 +1,5 @@
 import XmssSecurity.Proof.CacheReplayEval
-import XmssSecurity.Statement
+import XmssSecurity.Proof.IdealStatement
 import XmssSecurity.Proof.Execution
 import XmssSecurity.Proof.LazyScheme
 

@@ -24,10 +24,10 @@ jobs:
       - name: Forbid proof escapes
         run: |
           ! grep -rnE '\b(sorry|sorryAx|admit|native_decide|unsafe|implemented_by)\b|#exit' \
-              --include='*.lean' formal/xmss | grep -vE ':[0-9]+: *(--|/-)'
+              --include='*.lean' --exclude-dir=.lake formal/xmss | grep -vE ':[0-9]+: *(--|/-)'
       # Installs the toolchain from `formal/xmss/lean-toolchain`, fetches the
       # mathlib cache, and runs `lake build` on the default target, which
-      # elaborates the root module and with it both `#guard_msgs` checks. The
+      # elaborates the root module and with it the `#guard_msgs` check. The
       # checked-in manifest is used as is: no `lake update`.
       - uses: leanprover/lean-action@v1
         with:
@@ -46,4 +46,28 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: xmss-axioms
+          path: ${{ runner.temp }}/axioms.txt
+
+  sphincs-formalization:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Forbid proof escapes
+        run: |
+          ! grep -rnE '\b(sorry|sorryAx|admit|native_decide|unsafe|implemented_by)\b|#exit' \
+              --include='*.lean' --exclude-dir=.lake formal/sphincs | grep -vE ':[0-9]+: *(--|/-)'
+      - uses: leanprover/lean-action@v1
+        with:
+          lake-package-directory: formal/sphincs
+      - name: Check the axiom footprint
+        working-directory: formal/sphincs
+        run: |
+          printf 'import SphincsSecurity\n#print axioms SphincsSecurity.sphincs_has_127_bits_of_classical_security\n' \
+            > "$RUNNER_TEMP/axioms.lean"
+          lake env lean "$RUNNER_TEMP/axioms.lean" | tee "$RUNNER_TEMP/axioms.txt"
+          grep -qF "'SphincsSecurity.sphincs_has_127_bits_of_classical_security' depends on axioms: [propext, Classical.choice, Quot.sound]" \
+            "$RUNNER_TEMP/axioms.txt"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sphincs-axioms
           path: ${{ runner.temp }}/axioms.txt

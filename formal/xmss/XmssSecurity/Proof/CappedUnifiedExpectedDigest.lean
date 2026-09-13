@@ -4,6 +4,7 @@ import XmssSecurity.Proof.ExactKeygenQueryCount
 import XmssSecurity.Proof.LossDecomposition
 
 open OracleComp OracleSpec ENNReal
+set_option backward.isDefEq.respectTransparency false
 
 namespace XmssSecurity
 
@@ -92,24 +93,11 @@ theorem cappedSourceUnloggedDetailedGameAfterKeygen_hashQueryBound_sub_keygen
     (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
     (hkeyResult : keyResult ∈ support
       ((simulateQ romImpl Concrete.scheme.keygen).run ∅)) :
-    (cappedSourceUnloggedDetailedGameAfterKeygen adversary keyResult.1.1
-      keyResult.1.2).IsQueryBoundP IsHashQuery
-        (q - treeHashQueryCount treeHeight) := by
-  have hkeySupport : keyResult.1 ∈ support Concrete.scheme.keygen := by
-    apply support_simulateQ_run'_subset romImpl Concrete.scheme.keygen ∅
-    rw [StateT.run'_eq, support_map]
-    exact ⟨keyResult, hkeyResult, rfl⟩
-  have hkeyPrecomputed : keyResult.1 ∈ support Concrete.precomputedKeygen := by
-    simpa [Concrete.scheme] using hkeySupport
-  have hcontinuation := detailedGameAfterKeygen_hashQueryBound_sub_keygen
-    adversary q hbound keyResult.1 hkeyPrecomputed
-  have hstandard :
-      (detailedGameAfterKeygen Concrete.scheme adversary keyResult.1.1
-        keyResult.1.2).IsQueryBoundP IsHashQuery
-          (q - treeHashQueryCount treeHeight) := hcontinuation
-  exact (OracleComp.isQueryBoundP_iff_of_map_eq
-    (cappedDetailedGameAfterKeygen_unloggedProjection adversary keyResult.1.1
-      keyResult.1.2)).mp hstandard
+    HashQueryBound (cappedSourceUnloggedDetailedGameAfterKeygen adversary keyResult.1.1 keyResult.1.2)
+      keyResult.2 (q - treeHashQueryCount treeHeight) :=
+  (hashQueryBound_iff_of_map_eq
+    (cappedDetailedGameAfterKeygen_unloggedProjection adversary keyResult.1.1 keyResult.1.2) _ _).mp
+      (keygen_hashQueryBound_split adversary q hbound keyResult hkeyResult).2
 
 noncomputable def expectedPostKeygenStructuralQueries
     (adversary : Adversary) : ENNReal :=
@@ -159,6 +147,41 @@ theorem winningStructuralCollision_probability_le_expectedPostKeygenStructuralQu
   intro keyResult
   congr 1
   exact expectedStructuralQueries_detailed_eq_source adversary keyResult
+
+theorem expectedSimulatedHashQueryCount_le {α : Type} (computation : OracleComp OracleWorld α)
+    (cache : QueryCache HashSpec) (q : Nat) (hbound : HashQueryBound computation cache q) :
+    expectedSimulatedQueryCount romImpl IsHashQuery computation cache ≤ q := by
+  induction computation using OracleComp.inductionOn generalizing cache q with
+  | pure value => simp
+  | query_bind input next ih =>
+      let cost : Nat := if IsHashQuery input then 1 else 0
+      have hstep (result : OracleWorld.Range input × QueryCache HashSpec)
+          (hr : result ∈ support ((romImpl input).run cache)) :
+          cost ≤ q ∧ HashQueryBound (next result.1) result.2 (q - cost) := by
+        have h := hashQueryBound_query_bind input next cache q hbound result hr
+        cases input <;> simpa [cost, IsHashQuery] using h
+      obtain ⟨result, hr⟩ := probComp_support_nonempty ((romImpl input).run cache)
+      have hcost := (hstep result hr).1
+      have hsum :
+          (∑' result, Pr[= result | (romImpl input).run cache] *
+            expectedSimulatedQueryCount romImpl IsHashQuery (next result.1) result.2) ≤
+          (∑' result, Pr[= result | (romImpl input).run cache]) * (q - cost : Nat) := by
+        rw [← ENNReal.tsum_mul_right]
+        apply ENNReal.tsum_le_tsum
+        intro result
+        by_cases hr : result ∈ support ((romImpl input).run cache)
+        · exact mul_le_mul' le_rfl (ih result.1 result.2 (q - cost) (hstep result hr).2)
+        · simp only [probOutput_eq_zero_of_not_mem_support hr, zero_mul, le_refl]
+      rw [expectedSimulatedQueryCount_query_bind]
+      have hprefix : (if IsHashQuery input then (1 : ENNReal) else 0) = (cost : ENNReal) := by
+        simp only [cost, Nat.cast_ite, Nat.cast_one, Nat.cast_zero]
+      rw [hprefix]
+      calc
+        _ ≤ (cost : ENNReal) + (∑' result, Pr[= result | (romImpl input).run cache]) * (q - cost : Nat) :=
+          add_le_add le_rfl hsum
+        _ ≤ (cost : ENNReal) + 1 * (q - cost : Nat) :=
+          add_le_add le_rfl (mul_le_mul' tsum_probOutput_le_one le_rfl)
+        _ = q := by rw [one_mul, ← Nat.cast_add, Nat.add_sub_of_le hcost]
 
 theorem postKeygenEncoding_add_structural_expected_le
     (q : Nat) (adversary : Adversary)
@@ -210,7 +233,7 @@ theorem postKeygenEncoding_add_structural_expected_le
                 · simp [structuralPredicate, Rom.IsRelevantHashQuery] at hstructural
             | inr hashInput => simp [IsHashQuery]
           _ ≤ (q - treeHashQueryCount treeHeight : Nat) := by
-            apply expectedSimulatedQueryCount_le_of_isQueryBoundP
+            apply expectedSimulatedHashQueryCount_le
             exact cappedSourceUnloggedDetailedGameAfterKeygen_hashQueryBound_sub_keygen
               q adversary hbound keyResult hkeyResult
       · rw [probOutput_eq_zero_of_not_mem_support hkeyResult, zero_mul]

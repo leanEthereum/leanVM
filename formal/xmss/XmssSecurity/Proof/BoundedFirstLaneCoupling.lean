@@ -55,13 +55,13 @@ theorem relTriple_simulateQ_bind_bounded_firstLane
     (stateRel : σ₁ → σ₂ →
       FirstLaneOracleSimulation.ActionTrace Index → Prop)
     (accounted : σ₁ → Nat → Prop)
-    (Budget : OracleComp spec α → Nat → Prop)
+    (Budget : OracleComp spec α → Nat → σ₁ → Prop)
     (stepBudget : ∀ (input : spec.Domain)
       (next : spec.Range input → OracleComp spec α) (fuel : Nat)
       (leftState : σ₁) (result : spec.Range input × σ₁),
-      Budget (liftM (spec.query input) >>= next) fuel →
+      Budget (liftM (spec.query input) >>= next) fuel leftState →
       result ∈ support ((leftImpl input).run leftState) →
-      cost input ≤ fuel ∧ Budget (next result.1) (fuel - cost input))
+      cost input ≤ fuel ∧ Budget (next result.1) (fuel - cost input) result.2)
     (stepCoupling : ∀ (used : Nat) (input : spec.Domain)
       (leftState : σ₁) (rightState : σ₂)
       (trace : FirstLaneOracleSimulation.ActionTrace Index),
@@ -86,7 +86,7 @@ theorem relTriple_simulateQ_bind_bounded_firstLane
     (terminalCoupling : ∀ (value : α) (used fuel : Nat)
       (leftState : σ₁) (rightState : σ₂)
       (trace : FirstLaneOracleSimulation.ActionTrace Index),
-      Budget (pure value) fuel →
+      Budget (pure value) fuel leftState →
       stateRel leftState rightState trace →
       FirstLaneOracleSimulation.hazardCount trace ≤ used →
       accounted leftState used →
@@ -105,8 +105,8 @@ theorem relTriple_simulateQ_bind_bounded_firstLane
               (trace ++ rightResult.2))))
     (used fuel : Nat)
     (computation : OracleComp spec α)
-    (hbudget : Budget computation fuel)
     (leftState : σ₁) (rightState : σ₂)
+    (hbudget : Budget computation fuel leftState)
     (trace : FirstLaneOracleSimulation.ActionTrace Index)
     (hstate : stateRel leftState rightState trace)
     (hcount : FirstLaneOracleSimulation.hazardCount trace ≤ used)
@@ -146,14 +146,14 @@ theorem relTriple_simulateQ_bind_bounded_firstLane
       rcases hhead.1 with hgood | hhit
       · obtain ⟨hvalue, hnextState, hnextCount, hnextAccounted⟩ := hgood
         have hnextBudget' : Budget (next headRight.1.1)
-            (fuel - cost input) := by
+            (fuel - cost input) headLeft.2 := by
           rw [← hvalue]
           exact hnextBudget.2
         let appendTrace := fun result :
             ((β × σ₂) × FirstLaneOracleSimulation.ActionTrace Index) =>
           Prod.map id (fun tail => headRight.2 ++ tail) result
         have hrec := ih headRight.1.1 (used + cost input)
-          (fuel - cost input) hnextBudget' headLeft.2 headRight.1.2
+          (fuel - cost input) headLeft.2 headRight.1.2 hnextBudget'
             (trace ++ headRight.2) hnextState hnextCount hnextAccounted
               (by omega)
         rw [simulateQ_bind, WriterT.run_bind'] at hrec

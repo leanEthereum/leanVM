@@ -8,9 +8,8 @@
 //! the exact byte string `tweak | P | payload` truncated to `n = 128` bits (the
 //! `hash` module), and the tweak names one hash call in the whole structure.
 //!
-//! Secrets are the seed-derived implementation of the specification's "Seed
-//! derivation" remark: a key pair is one master secret, and a signer holds the
-//! 1024-byte layer-0 cache of its "Signer state" remark.
+//! One 32-byte master seed derives the public parameter and all signing secrets.
+//! The signer caches public nodes of the top tree.
 
 #![cfg_attr(not(test), warn(unused_crate_dependencies))]
 
@@ -27,9 +26,13 @@ pub use sphincs::*;
 pub const N: usize = 16;
 pub type Digest = [u8; N];
 
-/// The public parameter, sampled per key pair, which separates users.
+/// The public parameter derived from the master seed.
 pub const PUBLIC_PARAM_LEN: usize = 16;
 pub type PublicParam = [u8; PUBLIC_PARAM_LEN];
+
+/// The master secret used to derive all WOTS and FORS secrets.
+pub const MASTER_SECRET_LEN: usize = 32;
+pub type MasterSecret = [u8; MASTER_SECRET_LEN];
 
 /// The per-signature randomizer the message digest is computed under.
 pub const RANDOMIZER_LEN: usize = 16;
@@ -82,7 +85,7 @@ pub const DIGEST_BYTES: usize = DIGEST_BITS / 8;
 
 pub const PUB_KEY_SIZE: usize = N + PUBLIC_PARAM_LEN;
 /// A secret key is its public parameter and its master secret; the rest is derived.
-pub const SECRET_KEY_SIZE: usize = PUBLIC_PARAM_LEN + N;
+pub const SECRET_KEY_SIZE: usize = PUBLIC_PARAM_LEN + MASTER_SECRET_LEN;
 pub const SIG_SIZE: usize = RANDOMIZER_LEN + NUM_FTS_TREES * (1 + A) * N + D * (COUNTER_LEN + V * N) + H * N;
 
 /// Calls to the hash function one verification makes: the digest, `Fts.recover`,

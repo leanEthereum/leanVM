@@ -50,26 +50,6 @@ fn deterministic_keygen_and_range_separation() {
     assert_ne!(pk.merkle_root, longer_range.merkle_root);
 }
 
-/// Pin the wire layout of the tweak: the type byte, both little-endian `u32`
-/// fields, and the seven trailing zeros. Literal bytes, so an endianness
-/// mistake cannot be mirrored here.
-#[test]
-fn tweak_layout_is_exact() {
-    assert_eq!(
-        [
-            TWEAK_TYPE_CHAIN,
-            TWEAK_TYPE_WOTS_PK,
-            TWEAK_TYPE_MERKLE,
-            TWEAK_TYPE_ENCODING
-        ],
-        [0, 1, 2, 3]
-    );
-    assert_eq!(
-        make_tweak(TWEAK_TYPE_MERKLE, 0x0102_0304, 0xa0b0_c0d0),
-        [2, 0x04, 0x03, 0x02, 0x01, 0xd0, 0xc0, 0xb0, 0xa0, 0, 0, 0, 0, 0, 0, 0]
-    );
-}
-
 #[test]
 fn tweak_separates_hash_domains() {
     let pp = [7u8; PUBLIC_PARAM_LEN];

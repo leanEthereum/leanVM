@@ -18,7 +18,7 @@ pub struct FtsOpening {
 }
 
 /// `s_{idx,kappa,j} = Th(P, tw_ftsprf(idx,kappa,j), S)`.
-fn fts_secret(pp: &PublicParam, master: &Digest, idx: u64, kappa: usize, j: usize) -> Digest {
+fn fts_secret(pp: &PublicParam, master: &MasterSecret, idx: u64, kappa: usize, j: usize) -> Digest {
     th(pp, &tweak(TWEAK_FTS_PRF, kappa, idx as u32, 0, j as u32), master)
 }
 
@@ -38,7 +38,7 @@ fn fts_key_of_roots(pp: &PublicParam, idx: u64, roots: &[Digest; NUM_FTS_TREES])
 
 /// `Fts.key` and `Fts.open` together, the forest being built once. `u[k-1]` is
 /// ignored: its tree is the dropped one.
-pub fn fts_open(pp: &PublicParam, master: &Digest, idx: u64, u: &[u32; K]) -> (Digest, FtsOpening) {
+pub fn fts_open(pp: &PublicParam, master: &MasterSecret, idx: u64, u: &[u32; K]) -> (Digest, FtsOpening) {
     let mut opening = FtsOpening {
         secrets: [[0; N]; NUM_FTS_TREES],
         paths: [[[0; N]; A]; NUM_FTS_TREES],
