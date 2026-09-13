@@ -1,0 +1,108 @@
+% !TeX root = ../../main.tex
+\subsection{Correlated count bounds and the complete normalization ledger}\label{note:zk-count-budget}
+
+\paragraph{Result and boundary.} Bounding every intermediate exponent separately substantially overestimates the memory routers. The exact affine transfer in Proposition~\ref{prop:zk-reused-count-frames} has a second cancellation: total-memory normalization removes both JUMP's bytecode uncertainty and any common shift of its three memory exponents from their remaining correction widths. This note gives uniform interval formulas, smaller repetition schedules and a complete row/label ledger that feeds Corollary~\ref{cor:zk-common-coarse-budget}. It does not yet prove the incoming intervals or row totals for every aggregation witness, and it is not a statistical-transcript theorem.
+
+\subsubsection{Normalize differences, not independent absolute exponents}
+
+Use incoming integer exponents $\zkReuseBcInput{t}$ and $\zkReuseMemInput{t}{c}$, with $t\in\{\mathrm X,\mathrm M,\mathrm S,\mathrm D,\mathrm J\}$. The memory-column counts are $(3,3,1,3,3)$. Define
+\[
+ \zkNormDiff{t}{c}=\zkReuseMemInput{t}{c}-\zkReuseBcInput{t},
+ \qquad
+ \zkNormDelta{c}=\zkReuseMemInput{\mathrm J}{c}-\zkReuseMemInput{\mathrm J}{0},
+ \quad \zkNormDelta{0}=0.
+\]
+The required public intervals bound the five bytecode exponents, the ten non-JUMP differences, the single reference difference $\zkNormDiff{\mathrm J}{0}$ and the two other JUMP-column differences. They may contain negative integers. Public constants from existing libraries can be retained as offsets; their sizes do not enlarge interval widths. Compression products must already be public, and no new normalization cycle shares a counted address with the incoming trace.
+
+\paragraph{Unequal centers apply to every stage.} For the centers of Lemma~\ref{lem:zk-unequal-centers}, write
+\[
+ \zkNormCost{\zkCalibrationCap}=2\zkCalibrationLarge+8\zkCalibrationSmall,
+ \qquad
+ \zkNormOffset{\zkCalibrationCap}
+ =\zkCalibrationLarge(\zkCalibrationLarge-1)
+  +4\zkCalibrationSmall(\zkCalibrationSmall-1).
+\]
+For any deficit from zero through $\zkCalibrationCap$, ten repeated-loop blocks have this fixed row count and add its square offset plus the deficit to the selected bytecode exponent. Reuse one frame per block. Thus an incoming bytecode interval becomes its public upper endpoint plus the square offset at its interval width. The proof of Proposition~\ref{prop:zk-reused-count-frames} uses only equality of each loop's code and operand contributions, so its affine formula remains exact with these unequal centers. Normalize the four non-JUMP bytecode columns before JUMP, including their closing returns.
+
+Write $\zkReuseBcTarget{t}$ for those public normalized bytecode exponents and define
+\[
+ \zkNormH=\sum_{t\ne\mathrm J,c}\zkNormDiff{t}{c}
+              +\sum_{c=0}^{2}\zkNormDelta{c},
+ \qquad
+ \zkNormS=\zkNormH+3\zkNormDiff{\mathrm J}{0}.
+\]
+The sum of all thirteen noncompression memory exponents after bytecode normalization is $\zkNormS$ plus the public sum of the corresponding $\zkReuseBcTarget{t}$, one copy per memory column. Summing the supplied intervals gives bounds $\underline{\zkNormH},\overline{\zkNormH}$ and
+\[
+ \underline{\zkNormS}=\underline{\zkNormH}+3\underline{\zkNormDiff{\mathrm J}{0}},
+ \qquad
+ \overline{\zkNormS}=\overline{\zkNormH}+3\overline{\zkNormDiff{\mathrm J}{0}},
+ \qquad
+ \zkNormCap=\left\lfloor\frac{\overline{\zkNormS}-\underline{\zkNormS}}3\right\rfloor.
+\]
+Install the grouped routers at transfer zero, retaining their public contributions as offsets. Write the remaining deficit $\overline{\zkNormS}-\zkNormS$ as three times its quotient plus its residue in $\{0,1,2\}$. Represent the quotient by the unequal-center construction with cap $\zkNormCap$. Use its ten frames at one common JUMP instruction, so that instruction's total visits are public. The two existing DEREF residue cycles provide the residue in their local-result column. Total memory exponent is now public, with added square offset $3\zkNormOffset{\zkNormCap}$.
+
+\begin{lemma}[JUMP's common component cancels exactly]\label{lem:zk-jump-count-cancellation}
+Excluding the grouped routers' fixed contributions, each JUMP memory exponent after this normalization is
+\[
+ \zkNormPost{\mathrm J}{c}
+ =\zkReuseBcTarget{\mathrm J}+\zkNormOffset{\zkNormCap}
+  +\zkNormDelta{c}
+  +\left\lfloor\frac{\overline{\zkNormS}-\zkNormH}{3}\right\rfloor.
+\]
+Consequently its correction width depends on the non-JUMP differences and the JUMP-column differences, not on the width of $\zkNormDiff{\mathrm J}{0}$ or of the incoming JUMP bytecode exponent separately.
+\end{lemma}
+\begin{proof}
+Before total-memory normalization this column equals $\zkReuseBcTarget{\mathrm J}+\zkNormDiff{\mathrm J}{0}+\zkNormDelta{c}$. Its new memory labels contribute $\zkNormOffset{\zkNormCap}+\lfloor(\overline{\zkNormS}-\zkNormS)/3\rfloor$. Substitute $\zkNormS=\zkNormH+3\zkNormDiff{\mathrm J}{0}$ and move the integral reference difference through the floor. It cancels exactly. The residue cycles use disjoint JUMP controls, each read once, so add no JUMP memory exponent. Varying the public interval for the reference changes only common offsets, not the resulting interval widths.
+\end{proof}
+
+For an explicit tighter interval, put $\zkNormHWithout{c}=\zkNormH-\zkNormDelta{c}$ and sum all the other coordinate bounds. Lower and upper endpoints for the nonconstant part of this JUMP column are
+\[
+ \left\lfloor\frac{\overline{\zkNormS}+2\underline{\zkNormDelta{c}}-\overline{\zkNormHWithout{c}}}{3}\right\rfloor,
+ \qquad
+ \left\lfloor\frac{\overline{\zkNormS}+2\overline{\zkNormDelta{c}}-\underline{\zkNormHWithout{c}}}{3}\right\rfloor.
+\]
+This retains the occurrence of the selected coordinate inside the total rather than charging it twice as independent uncertainty. Non-JUMP intervals are simply those of $\zkNormDiff{t}{c}+\zkReuseBcTarget{t}$, enlarged by at most two at the upper endpoint for DEREF's local-result column.
+
+\subsubsection{Rows, frames and maximum labels in one ledger}
+
+Let $\zkNormWidth{t}$ be the incoming bytecode interval widths. The selected bytecode rows and total-memory rows are
+\[
+ \zkNormBcRows{t}=\zkNormCost{\zkNormWidth{t}}\ (t\ne\mathrm J),
+ \qquad
+ \zkNormBcRows{\mathrm J}=\zkNormCost{\sum_t\zkNormWidth{t}},
+ \qquad
+ \zkNormMemRows=\zkNormCost{\zkNormCap}.
+\]
+The sum in the JUMP argument includes the four earlier stages' complementary deficits, not their possibly large public offsets. Choose each integer $\zkNormRouter{t}\ge1$ so that its square bounds the largest postnormalization column width in table $t$, omitting the absorber \texttt{MUL.cnt\_a}. Then the complete noncompression normalizer adds
+\[
+\begin{aligned}
+ \mathrm X:&\quad \zkNormBcRows{\mathrm X}+\zkNormRouter{\mathrm X},\\
+ \mathrm M:&\quad \zkNormBcRows{\mathrm M}
+  +3(\zkNormRouter{\mathrm X}+\zkNormRouter{\mathrm M}+\zkNormRouter{\mathrm D}+\zkNormRouter{\mathrm J})+\zkNormRouter{\mathrm S},\\
+ \mathrm S:&\quad \zkNormBcRows{\mathrm S}+\zkNormRouter{\mathrm S},\\
+ \mathrm D:&\quad \zkNormBcRows{\mathrm D}+\zkNormRouter{\mathrm D}+2,\\
+ \mathrm J:&\quad \sum_t\zkNormBcRows{t}+\zkNormMemRows
+  +\zkNormRouter{\mathrm X}+\zkNormRouter{\mathrm M}+\zkNormRouter{\mathrm S}
+  +\zkNormRouter{\mathrm D}+2\zkNormRouter{\mathrm J}+2.
+\end{aligned}
+\]
+Here each grouped router has one selected opcode row, one MUL adapter per routed operand and a closing JUMP. A JUMP-target router therefore adds two JUMPs per traversal. The two residue cycles account for the final twos. All counts are public. After raising every nonabsorbing column to its upper endpoint, the absorber is public by subtracting the other products' integer exponents from the public total. Every compression row and label stays unchanged.
+
+These stages need $50$ bytecode frames, five router frames, ten total-memory frames and four preinstalled residue frames: $69$ frames of at most $128$ cells. The existing templates reserve $175$ code positions, including their unused gaps. For the new labels, take the maximum of the following explicit bounds: the largest traversal count minus one in each bytecode stage; $2\max_t\zkNormRouter{t}-1$ for routers; $\zkNormMemRows-1$ for the common memory-normalization instruction; and one for the residue gadgets. A bytecode stage at cap $\zkCalibrationCap$ has traversal count at most $2\max(\zkCalibrationLarge,\zkCalibrationSmall)$. Zero-length chains contribute no label. All addresses are fresh, so no missing previous count enlarges these maxima.
+
+Add this row vector to the public incoming totals and apply Corollary~\ref{cor:zk-common-coarse-budget}, checking its inequalities and the maximum label $165888$. The two stages together reserve at most $175+308=483$ code positions after the existing $99$ codes, still within log $19$, and conservatively $35+48+3=86$ free slots for these normalizers, routers and final fillers. This excludes the incoming completion, real execution and compression libraries. Their public resource bounds remain necessary; the displayed formulas make that obligation explicit rather than discharging it.
+
+\subsubsection{Private-length prefilling need not create quadratic differences}
+
+\begin{lemma}[Linear difference cost for the initial fillers]\label{lem:zk-prefill-count-differences}
+Use the sixteen-instruction filler of Lemma~\ref{lem:zk-batched-local-filler} for a possibly private length $16\zkNormFillQuotient+\zkNormFillRemainder$, $0\le\zkNormFillRemainder<16$. In every memory column of its selected opcode it changes $\zkNormDiff{t}{c}$ by exactly $-\zkNormFillQuotient\zkNormFillRemainder$. If the selected opcode is not JUMP, its closing returns change all three JUMP differences $\zkNormDiff{\mathrm J}{c}$ by $-\zkNormFillQuotient\mathbf 1_{\zkNormFillRemainder>0}$. Neither kind changes a JUMP-column difference $\zkNormDelta{c}$.
+\end{lemma}
+\begin{proof}
+Each target memory column contributes $16\binom{\zkNormFillQuotient}{2}$, because the suffix uses a second fresh frame. Its bytecode column contributes this same value plus $\zkNormFillQuotient\zkNormFillRemainder$, since the suffix revisits exactly $\zkNormFillRemainder$ of the same instruction addresses. Their difference has absolute value at most $15\zkNormFillQuotient$. For a non-JUMP filler, the single return instruction contributes $\binom{\zkNormFillQuotient+\mathbf 1_{\zkNormFillRemainder>0}}{2}$, whereas each return memory column contributes $\binom{\zkNormFillQuotient}{2}$. Their difference is the stated value, equal in all three columns. A JUMP-only filler is covered by the target calculation. Additivity follows from fresh addresses between different filler blocks.
+\end{proof}
+
+Thus completing private real-row counts to public initial totals can be budgeted through small difference intervals even when absolute code and memory sums are quadratic. One must still bound the private filler lengths, their bytecode intervals and all their closing returns before fixing the initial JUMP total. This lemma neither makes those intermediate sums public nor hides their transcript disclosures.
+
+\paragraph{Exact certificates and the remaining premise.} \auditref{zk_count_budget_audit.py} checks all small signed interval/residue cases, exact filler remainders, the row/code/frame/label ledger and eight complete cycle libraries with independent memory reuse and instruction multiplicities. A MUL reading a JUMP control cell also gives genuinely unequal, privately varying JUMP-column sums. A separate private choice changes only the incoming JUMP bytecode exponent; the three postnormalization JUMP exponents and the residue remain exactly unchanged, as the cancellation predicts. All final column products and memory/code images agree. Its \texttt{--coarse} mode composes four of these libraries with the shared coarse routers and checks every native height-seven count node. All ISA constraints and full read chains pass, with compression unchanged.
+
+As an algebraic stress case, widen JUMP's bytecode interval to $[0,2147450880]$ and its reference-difference interval to $[-2147450880,70]$, retaining the small fixture's other intervals. The router sizes remain $(3,4,3,3,6)$; the normalizer adds $(13,71,13,15,190301)$ rows and its maximum new label is $95111$. This is an exact conditional ledger, not an aggregation resource theorem: the fixture's small non-JUMP and JUMP-column difference bounds are not being attributed to the native guest. Next certify those invariant intervals after BLAKE2s-priority label assignment and initial public-total filling, include every existing library and apply the common residual inequalities. Full joint GKR, other reductions and authentication remain open independently of this capacity progress.
