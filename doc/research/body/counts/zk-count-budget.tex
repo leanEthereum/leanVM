@@ -142,6 +142,34 @@ Suppose their bytecode widths are bounded by $(10^8,10^8,10^8,10^8,23\cdot10^8)$
 \]
 The new normalizer then adds $(45704,118016,37512,53898,451785)$ rows. The shared coarse routers and final fillers fit exactly: their final target-filler lengths are $(4856,12544,293048,96662,20161)$, with $25446$ extra returns from the four non-JUMP fillers. The largest new normalization label is $111441<165888$. Thus all row inequalities and the new-label bound hold for every valid incoming completion satisfying this contract, independently of its interval offsets. By comparison, the previous square-router ledger would require $592559$ MUL rows after coarse routing, exceeding height $19$. The unequal-size construction removes that ledger's bottleneck; it does not certify the incoming trace, memory allocation or statistical privacy.
 
+\begin{lemma}[Batch the target cycles too]\label{lem:zk-batched-count-targets}
+In the rectangular construction, each non-JUMP target can use sixteen successive instructions with identical operands, all reading the same selected cells, followed by one return. A separate cycle of at most fifteen target instructions supplies its public remainder. This replaces its $\zkNormRouter{t}$ returns by $\lceil\zkNormRouter{t}/16\rceil$, without changing its transfer capacity, frame count or maximum-label bound.
+\end{lemma}
+\begin{proof}
+Repeat the full cycle the quotient number of times and traverse the remainder cycle once. Use controls $64,65,66$ for the full return and $96,97,98$ for the remainder, disjoint from all absorber controls. All target accesses still share the same cells, so Lemma~\ref{lem:zk-rectangular-count-transfer} assigns exactly the same complete label chains. Each new code visit count and control-chain length is public. The two cycles require at most $17+16=33$ code locations and still fit one $128$-cell frame. The JUMP target remains a self-loop.
+\end{proof}
+
+Thus only the JUMP line of the rectangular row ledger changes, to
+\[
+ \sum_t\zkNormBcRows{t}+\zkNormMemRows+\zkNormRouter{\mathrm J}
+ +\sum_{t\ne\mathrm J}\left\lceil\frac{\zkNormRouter{t}}{16}\right\rceil
+ +\sum_{t,c}\left\lceil\frac{\zkNormAdapters{t}{c}}8\right\rceil+2.
+\]
+The whole normalizer now needs at most $486$ code locations, still with $69$ frames. The code cost is public and does not increase the uncertain intervals. In particular it is distinct from batching initial fillers, whose lengths can be private.
+
+\begin{proposition}[A revised common count budget]\label{prop:zk-revised-count-budget}
+Suppose the incoming noncompression totals are $(390000,335000,230000,300000,380000)$. Supply public bytecode intervals of widths at most $(150000000,150000000,200000000,150000000,1600000000)$, XOR difference widths at most $250000000$ each, other non-JUMP difference widths at most $200000000$ each, JUMP reference width at most $1600000000$, and JUMP-column difference widths at most $518\cdot65536$ and $867\cdot65536$. Extend narrower intervals to these widths. Use batched target lengths
+\[
+ (32768,20480,155648,122880,110592).
+\]
+Assuming the earlier compression normalization, disjoint reservations and coarse-backdrop hypotheses, and incoming labels at most $165888$, the all-column normalizer, shared coarse routers and final fillers fit all five tables. The new normalizer's maximum label is $156932$.
+\end{proposition}
+\begin{proof}
+The exact interval and row formulas give added counts $(58510,115350,185276,148624,443540)$. Substituting in Corollary~\ref{cor:zk-common-coarse-budget} leaves target-filler lengths $(2050,210,35284,1936,1382)$ and exactly $2470$ extra non-JUMP filler returns. Every residual is nonnegative and the new labels obey the cap. The same targets without batching require $311040$ further returns and exceed JUMP capacity.
+\end{proof}
+
+The initial totals are realized by the private-length recipe in \noteref{zk-count-prefill}, under its stated real-row caps. That note reserves the necessary code and frames and derives both JUMP width bounds from the frame contract. The four other bytecode ranges, the remaining memory differences and the real indirect-label cap still need uniform certification. This revised contract therefore addresses the previously exhibited incoming MUL mismatch without asserting full candidate feasibility or extending the statistical view.
+
 \subsubsection{Private-length prefilling need not create quadratic differences}
 
 \begin{lemma}[Linear difference cost for the initial fillers]\label{lem:zk-prefill-count-differences}

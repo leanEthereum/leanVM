@@ -16,6 +16,7 @@ from zk_count_coarse_balance_audit import (
     native_frontier,
 )
 from zk_count_reuse_audit import counts as unequal_counts
+from zk_memory_count_coarse_audit import compression
 from zk_pcs_audit import verifier_module
 
 
@@ -34,7 +35,8 @@ def interval_sum(intervals):
     return tuple(map(sum, zip(*intervals, strict=True)))
 
 
-def plan(bytecode, differences, jump_reference, jump_differences, target_sizes=None):
+def plan(bytecode, differences, jump_reference, jump_differences, target_sizes=None, target_batch=1):
+    assert target_batch in (1, 16) and (target_batch == 1 or target_sizes is not None)
     assert len(bytecode) == 5 and tuple(map(len, differences)) == (3, 3, 1, 3) and len(jump_differences) == 3
     assert jump_differences[0] == (0, 0)
     assert all(low <= high for low, high in (*bytecode, *(entry for row in differences for entry in row), jump_reference, *jump_differences))
@@ -90,7 +92,12 @@ def plan(bytecode, differences, jump_reference, jump_differences, target_sizes=N
             bc_rows[1] + radii[1] + adapter_total,
             bc_rows[2] + radii[2],
             bc_rows[3] + radii[3] + 2,
-            sum(bc_rows) + memory_rows + sum(radii) + sum((count + 7) // 8 for row in adapters for count in row) + 2,
+            sum(bc_rows)
+            + memory_rows
+            + radii[4]
+            + sum((count + target_batch - 1) // target_batch for count in radii[:4])
+            + sum((count + 7) // 8 for row in adapters for count in row)
+            + 2,
         )
         new_label = max(*bc_labels, memory_rows - 1, *(size + max(row) - 1 for size, row in zip(radii, adapters, strict=True)), 1)
     return {
@@ -108,20 +115,36 @@ def plan(bytecode, differences, jump_reference, jump_differences, target_sizes=N
         "post": post,
         "radii": radii,
         "adapters": adapters,
+        "target_batch": target_batch,
         "added": added,
         "new_label": new_label,
     }
 
 
-def rectangular_banks(library, target_sizes, adapter_sizes):
+def rectangular_banks(library, target_sizes, adapter_sizes, target_batch=1):
     v, banks = library.v, []
     for opcode, (size, sizes) in enumerate(zip(target_sizes, adapter_sizes, strict=True)):
         frame = library.fresh_frame()
-        template = library.templates(library.block(opcode), frame)
-        target_rows = [library.append(template)[0] for _ in range(size)]
+        if target_batch == 1 or opcode == v.OP_JUMP:
+            template = library.templates(library.block(opcode), frame)
+            target_rows = [library.append(template)[0] for _ in range(size)]
+        else:
+            target_rows = []
+            full, tail = divmod(size, target_batch)
+            for width, repetitions, controls in ((target_batch, full, 64), (tail, int(tail > 0), 96)):
+                if not width:
+                    continue
+                pc = library.pc
+                library.pc += width + 1
+                rows = [(opcode, library.row(opcode, pc + offset, frame)) for offset in range(width)]
+                rows.append(local_row(library, v.OP_JUMP, pc + width, frame, controls, pc))
+                library.register(rows)
+                for _ in range(repetitions):
+                    target_rows.extend(library.append(rows)[:-1])
+        assert len(target_rows) == size
         reads = [
             (column, address, values)
-            for column, address, values in library.memory_reads(opcode, template[0][1])
+            for column, address, values in library.memory_reads(opcode, library.rows[target_rows[0]][1])
             if (opcode, column) != library.absorber
         ]
         for index, ((column, address, values), count) in enumerate(zip(reads, sizes, strict=True)):
@@ -223,7 +246,7 @@ def normalize(library, budget):
     banks = (
         [bank for opcode, size in enumerate(budget["radii"]) for bank in router_banks(library, size, (opcode,))]
         if budget["adapters"] is None
-        else rectangular_banks(library, budget["radii"], budget["adapters"])
+        else rectangular_banks(library, budget["radii"], budget["adapters"], budget["target_batch"])
     )
     fixed = {column: value - before_router[column] for column, value in library.memory_exponents().items()}
     residue = memory_normalizer(library, budget["s_interval"][1] - s, budget)
@@ -251,7 +274,7 @@ def normalize(library, budget):
     if budget["adapters"] is None:
         assert library.pc - before_pc == 175
     else:
-        assert library.pc - before_pc <= 366
+        assert library.pc - before_pc <= (366 if budget["target_batch"] == 1 else 486)
     assert [sum(source == opcode for source, _ in library.rows) - before_rows[opcode] for opcode in range(5)] == list(budget["added"])
     assert all(label <= budget["new_label"] for (index, _), (_, label) in library.labels.items() if index >= sum(before_rows) + len(preserved))
     assert preserved == [row for opcode, row in library.rows if opcode == v.OP_BLAKE2S]
@@ -312,15 +335,15 @@ def fixture(verifier, multiplicity, scatter, skew, budget, coarse):
     return (products, frontier, library.images), (incoming_bc, jump_result)
 
 
-def interval_certificates(rectangular=False):
+def interval_certificates(rectangular=False, target_batch=1):
     bytecode = ((0, 3), (0, 6), (0, 3), (0, 3), (0, 48))
     differences = (((-3, 3),) * 3, ((-6, 9),) * 3, ((-3, 3),), ((-3, 3),) * 3)
     jump_differences = ((0, 0), (-3, 0), (-3, 0))
-    targets = (2, 7, 1, 8, 3) if rectangular else None
-    budget = plan(bytecode, differences, (-48, 70), jump_differences, targets)
+    targets = (17, 32, 31, 33, 3) if target_batch == 16 else ((2, 7, 1, 8, 3) if rectangular else None)
+    budget = plan(bytecode, differences, (-48, 70), jump_differences, targets, target_batch)
     assert budget["radii"] == (list(targets) if rectangular else [3, 4, 3, 3, 6])
     for width in (0, 48, (1 << 31) - (1 << 15)):
-        enlarged = plan((*bytecode[:4], (0, width)), differences, (-width, 70), jump_differences, targets)
+        enlarged = plan((*bytecode[:4], (0, width)), differences, (-width, 70), jump_differences, targets, target_batch)
         assert enlarged["radii"] == budget["radii"]
         assert [high - low for low, high in enlarged["post"][4]] == [high - low for low, high in budget["post"][4]]
         assert enlarged["new_label"] <= 165888
@@ -362,6 +385,108 @@ def prefill_certificates(verifier):
                 expected = -quotient * remainder if source == opcode else -quotient * int(remainder > 0)
                 assert all(value - bc == expected for (table, _), value in library.memory_exponents().items() if table == source)
     print("Private-length prefilling: exact linear memory-minus-code increments and equal JUMP-memory increments pass for all opcodes.", flush=True)
+
+
+def tiled_prefill(library, opcode, length, blocks=128, width=32):
+    assert length >= 0 and blocks > 0 and 0 < width <= 32
+    quotient, remainder = divmod(length, blocks * width)
+    frames = [library.fresh_frame() for _ in range(blocks)]
+    tail_frame = library.fresh_frame()
+    for block in range(blocks):
+        pc = library.pc
+        library.pc += width + int(opcode != library.v.OP_JUMP)
+        short = min(width, max(0, remainder - block * width))
+        for frame, start, repeats in ((frames[block], 0, quotient + int(short == width)), (tail_frame, width - short, int(0 < short < width))):
+            if frame == tail_frame and not repeats:
+                continue
+            rows = [
+                local_row(library, opcode, pc + index, frame, 3 * index, pc + index + 1 if index + 1 < width else pc + start)
+                for index in range(start, width)
+            ]
+            if opcode != library.v.OP_JUMP:
+                rows.append(local_row(library, library.v.OP_JUMP, pc + width, frame, 3 * width, pc + start))
+            library.register(rows)
+            for _ in range(repeats):
+                library.append(rows)
+
+
+def tiled_exponents(length, blocks=128, width=32):
+    quotient, remainder = divmod(length, blocks * width)
+    tail = remainder % width
+    code = blocks * width * quotient * (quotient - 1) // 2 + quotient * remainder
+    return_code = blocks * quotient * (quotient - 1) // 2 + quotient * ((remainder + width - 1) // width)
+    return code, code - quotient * tail, return_code, return_code - quotient * int(tail > 0)
+
+
+def tiled_certificates(verifier):
+    for blocks, width in ((3, 4), (2, 32)):
+        total = blocks * width
+        code_images = {}
+        for opcode, length in product(range(5), (0, 1, width - 1, width, width + 1, total, total + 1, 2 * total + width - 1)):
+            library = Library(verifier)
+            first_pc, first_frame = library.pc, library.frame
+            tiled_prefill(library, opcode, length, blocks, width)
+            library.verify()
+            assert code_images.setdefault(opcode, library.images["code"]) == library.images["code"]
+            code, memory, return_code, return_memory = tiled_exponents(length, blocks, width)
+            assert library.exponents[opcode, verifier.TABLES[opcode].columns.index("cnt_bc")] == code
+            assert all(value == memory for (source, _), value in library.memory_exponents().items() if source == opcode)
+            if opcode != verifier.OP_JUMP:
+                assert library.exponents[verifier.OP_JUMP, verifier.JUMP_COLUMNS.index("cnt_bc")] == return_code
+                assert all(value == return_memory for (source, _), value in library.memory_exponents().items() if source == verifier.OP_JUMP)
+            assert library.pc - first_pc == blocks * (width + int(opcode != verifier.OP_JUMP))
+            assert library.frame - first_frame <= 128 * (blocks + 1)
+            assert sum(source == opcode for source, _ in library.rows) == length
+            assert len(library.rows) == length + (0 if opcode == verifier.OP_JUMP else (length + width - 1) // width)
+            assert all(label <= max(0, (length + total - 1) // total - 1) for _, label in library.labels.values())
+    print("Distributed prefilling: all five opcodes, partial/full blocks, exact code/memory exponents and return counts pass.", flush=True)
+
+
+def compression_prefill(library, length, budget=65536, load=256):
+    assert 0 <= length <= budget and load > 0
+    pc = library.pc
+    library.pc += 2
+    for block in range((budget + load - 1) // load):
+        frame = library.v.GEN ** library.frame
+        library.frame += 32
+        template = compression(library, pc, frame)
+        library.register(template)
+        for _ in range(min(load, max(0, length - block * load))):
+            library.append(template)
+
+
+def compression_prefill_certificates(verifier):
+    for length in (0, 1, 255, 256, 257, 511, 512):
+        library = Library(verifier)
+        compression_prefill(library, length, budget=512)
+        library.verify()
+        quotient, tail = divmod(length, 256)
+        memory = quotient * 256 * 255 // 2 + tail * (tail - 1) // 2
+        for opcode in (verifier.OP_JUMP, verifier.OP_BLAKE2S):
+            assert library.exponents[opcode, verifier.TABLES[opcode].columns.index("cnt_bc")] == length * (length - 1) // 2
+            assert all(value == memory for (source, _), value in library.memory_exponents().items() if source == opcode)
+        assert max((label for location, (address, label) in library.labels.items() if address[0] == "memory"), default=0) <= 255
+    for real, extra in product((0, 1, 4, 8), (2, 3)):
+        library = Library(verifier)
+        block = library.block(verifier.OP_BLAKE2S)
+        for _ in range(real):
+            library.append(library.templates(block, library.fresh_frame()))
+        block = library.block(verifier.OP_JUMP)
+        for _ in range(extra):
+            library.append(library.templates(block, library.fresh_frame()))
+        original_b = library.exponents[verifier.OP_BLAKE2S, verifier.BLAKE2S_COLUMNS.index("cnt_bc")]
+        original_j = library.exponents[verifier.OP_JUMP, verifier.JUMP_COLUMNS.index("cnt_bc")]
+        compression_prefill(library, 8 - real, budget=8, load=3)
+        incoming = library.exponents[verifier.OP_BLAKE2S, verifier.BLAKE2S_COLUMNS.index("cnt_bc")]
+        repeats, target = unequal_counts(28, incoming)
+        for count in repeats:
+            block = library.block(verifier.OP_BLAKE2S)
+            for _ in range(count):
+                library.append(library.templates(block, library.fresh_frame()))
+        library.verify()
+        assert library.exponents[verifier.OP_BLAKE2S, verifier.BLAKE2S_COLUMNS.index("cnt_bc")] == target
+        assert library.exponents[verifier.OP_JUMP, verifier.JUMP_COLUMNS.index("cnt_bc")] == target + original_j - original_b
+    print("Compression prefilling: capped local chains and exact cancellation of filler bytecode uncertainty from JUMP pass.", flush=True)
 
 
 def priority_certificates(verifier):
@@ -495,14 +620,64 @@ def wide_contract():
     )
 
 
+def visit_bound(rows, frames):
+    quotient, remainder = divmod(rows, frames)
+    return quotient * frames * (frames - 1) // 2 + remainder * (remainder - 1) // 2
+
+
+def revised_contract():
+    incoming = (390000, 335000, 230000, 300000, 380000)
+    fixed = (149319, 3072, 0, 0, 213199)
+    filler_caps = tuple(value - backdrop for value, backdrop in zip(incoming[:4], fixed[:4], strict=True)) + (incoming[4],)
+    initial_returns = sum((length + 31) // 32 for length in filler_caps[:4])
+    assert initial_returns == 34458
+    assert 65536 + fixed[4] + 65536 + initial_returns == 378729 <= incoming[4]
+    slots = 35 + 48 + 3 + 323 + 32
+    codes = 486 + 308 + 128 * (4 * 33 + 32) + 2
+    assert slots == 441 and codes == 21788 and 400000 + codes <= 523264
+    frames = 26703 - slots + 1
+    assert frames == 26263
+    for cap in range(1, 6):
+        for counts in product(range(cap + 1), repeat=4):
+            assert sum(count * (count - 1) // 2 for count in counts) <= visit_bound(sum(counts), cap)
+    real_code = visit_bound(65536, frames)
+    assert real_code == 774342451
+    j_code_width = 2 * real_code + sum(tiled_exponents(length)[2] for length in filler_caps[:4]) + tiled_exponents(filler_caps[4])[0]
+    small_loss = sum(length // 4096 for length in filler_caps[:4]) + 31 * (filler_caps[4] // 4096)
+    j_reference_width = 2 * real_code + 517 * 65536 + 256 * 256 * 255 // 2 + small_loss
+    assert j_code_width == 1567291494 and j_code_width < 1600000000
+    assert j_reference_width == 1590925974 and j_reference_width < 1600000000
+    bytecode = ((0, 150000000),) * 2 + ((0, 200000000), (0, 150000000), (0, 1600000000))
+    differences = (((0, 250000000),) * 3, ((0, 200000000),) * 3, ((0, 200000000),), ((0, 200000000),) * 3)
+    jump = ((0, 0), (-517 * 65536, 65536), (-517 * 65536, 350 * 65536))
+    targets = (32768, 20480, 155648, 122880, 110592)
+    budget = plan(bytecode, differences, (-1600000000, 0), jump, targets, 16)
+    normalized = tuple(value + added for value, added in zip(incoming, budget["added"], strict=True))
+    fillers, returns = completion_budget(normalized)
+    assert budget["added"] == (58510, 115350, 185276, 148624, 443540)
+    assert fillers == (2050, 210, 35284, 1936, 1382) and returns == 2470
+    assert budget["new_label"] == 156932 and budget["new_label"] < 165888
+    unbatched = plan(bytecode, differences, (-1600000000, 0), jump, targets)
+    assert unbatched["added"][4] - budget["added"][4] == 311040
+    assert incoming[4] + unbatched["added"][4] + 221184 + returns > 1 << 20
+    print(f"Revised incoming totals {incoming}: added rows {budget['added']}, final fillers {fillers}, {returns} returns; maximum new label {budget['new_label']}.", flush=True)
+    print(f"Initial completion: {slots} reserved slots and {codes} code locations; uniform JUMP code/reference widths {j_code_width}/{j_reference_width}.", flush=True)
+    print("The four other bytecode ranges, local/indirect count ranges and uniform guest resource contract remain unproved.", flush=True)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--coarse", action="store_true", help="also check the integrated native coarse frontier")
     parser.add_argument("--rectangular", action="store_true", help="use unequal target/adapter cycles with batched MUL returns")
+    parser.add_argument("--batched-targets", action="store_true", help="also batch rectangular target returns in sixteen-instruction cycles")
     args = parser.parse_args()
-    budget, verifier, expected = interval_certificates(args.rectangular), verifier_module(), None
+    budget, verifier, expected = interval_certificates(args.rectangular or args.batched_targets, 16 if args.batched_targets else 1), verifier_module(), None
     wide_contract()
     prefill_certificates(verifier)
+    if args.batched_targets:
+        revised_contract()
+        tiled_certificates(verifier)
+        compression_prefill_certificates(verifier)
     priority_certificates(verifier)
     local_priority_certificates(verifier)
     for multiplicity, scatter in ((2, False), (3, True)) if args.coarse else ((2, False), (2, True), (3, False), (3, True)):

@@ -1,0 +1,90 @@
+% !TeX root = ../../main.tex
+\subsection{Initial completion, shared reservation and uniform JUMP bounds}\label{note:zk-count-prefill}
+
+\paragraph{Result and boundary.} The initial completion must handle private real-row counts without creating excessive bytecode uncertainty. Distributed small-frame fillers do this with one public codebook. A separate cancellation removes the compression filler's quadratic bytecode contribution from JUMP. Together these constructions realize the initial row totals of Proposition~\ref{prop:zk-revised-count-budget} and bound all four of its JUMP input coordinates under an explicit frame and real-row contract. The remaining non-JUMP intervals, complete sampler and joint statistical privacy are not proved here.
+
+\subsubsection{Distribute initial fillers across fixed small blocks}
+
+For a private target length $\zkPrefillLength\ge0$, write $\zkPrefillLength=4096\zkPrefillQuotient+\zkPrefillRemainder$, with $0\le\zkPrefillRemainder<4096$, and put $\zkPrefillTail=\zkPrefillRemainder\bmod32$. Reserve $128$ blocks of $32$ target instructions, each with distinct local operands at offsets $3i,3i+1,3i+2$. A non-JUMP block has a closing return through $96,97,98$; a JUMP block closes within its thirty-two target instructions. Give every block a fresh $128$-cell frame, and reserve one more frame for the possible partial block. Install every block's code, even when it has no visits.
+
+\begin{lemma}[Distributed private-length completion]\label{lem:zk-tiled-prefill}
+Repeat every full block $\zkPrefillQuotient$ times, then repeat the first $\lfloor\zkPrefillRemainder/32\rfloor$ blocks once more. If $\zkPrefillTail>0$, traverse the corresponding suffix of the next block once in the extra frame. This gives exactly $\zkPrefillLength$ target rows, at most $129$ frames and, for a non-JUMP target, exactly $\lceil\zkPrefillLength/32\rceil$ returns. Its target bytecode exponent is
+\[
+ \zkTiledCode{\zkPrefillLength}
+ =4096\binom{\zkPrefillQuotient}{2}
+  +\zkPrefillQuotient\zkPrefillRemainder,
+\]
+and each target memory exponent is $\zkTiledCode{\zkPrefillLength}-\zkPrefillQuotient\zkPrefillTail$. The return bytecode exponent is
+\[
+ \zkTiledReturnCode{\zkPrefillLength}
+ =128\binom{\zkPrefillQuotient}{2}
+  +\zkPrefillQuotient\left\lceil\frac{\zkPrefillRemainder}{32}\right\rceil,
+\]
+and each of its three memory exponents is $\zkTiledReturnCode{\zkPrefillLength}-\zkPrefillQuotient\mathbf1_{\zkPrefillTail>0}$. All JUMP-column differences are preserved. No new label exceeds $\max(0,\lceil\zkPrefillLength/4096\rceil-1)$.
+\end{lemma}
+\begin{proof}
+Every target code location has either $\zkPrefillQuotient$ or $\zkPrefillQuotient+1$ visits, with exactly $\zkPrefillRemainder$ of the latter. Summing their triangular exponents gives the first identity. Full blocks reuse their own frames, so their memory and code sums agree. Only the partial block splits visits between two frames, losing exactly $\zkPrefillQuotient\zkPrefillTail$ in each memory column. The same calculation for the $128$ return codes gives the second identity and its one partial-block loss. Every component is a valid closed cycle; the extra frame permits its different return destination in write-once memory. Code words do not depend on the private length. The longest chain has the asserted length.
+\end{proof}
+
+All five initial fillers together require $4\cdot128\cdot33+128\cdot32=20992$ code locations and $645$ frames of at most $128$ cells, packable into $323$ slots. The additional code reduces the quadratic bytecode cost without enlarging the frames. It changes neither the target-row count nor the later normalizer's equations.
+
+\subsubsection{Compression filling and a second exact cancellation}
+
+Let $\zkInitialFill{\mathrm B}=65536-\zkExecutedRows{\mathrm B}$, where $\zkExecutedRows{t}$ denotes the actual private real-row count. Preallocate $256$ disjoint $32$-cell frames for one known valid compression/return code pair, disjoint from real code and the old libraries. Use at most $256$ traversals in each frame. Compression operands occupy $0,1,2,3,8,9,10,11,12$ and returns $16,17,18$. Thus every compression operand load stays at most $256$, the real/filler BLAKE2s budget stays $65536$, and the extra cost is $\zkInitialFill{\mathrm B}$ JUMPs, two code locations and $32$ slots. Unused frames may be initialized identically; they need not be executed.
+
+Each of these two code locations contributes $\binom{\zkInitialFill{\mathrm B}}2$. Every memory role contributes
+\[
+ 32640\left\lfloor\frac{\zkInitialFill{\mathrm B}}{256}\right\rfloor
+ +\binom{\zkInitialFill{\mathrm B}\bmod256}{2}
+ \le8355840.
+\]
+The three JUMP contributions are equal. The fixed code pair is part of the uncertain real/filler budget in Proposition~\ref{prop:zk-bc-pool-normalization}, not one of its fixed-visit codes.
+
+\begin{lemma}[The compression filler cancels from JUMP bytecode]\label{lem:zk-compression-fill-cancellation}
+Write $\zkRealBc{\mathrm B},\zkRealBc{\mathrm J}$ for the original real bytecode exponents. After compression filling and mandatory-pool bytecode normalization, the JUMP bytecode exponent, apart from public library offsets, is $\zkRealBc{\mathrm J}-\zkRealBc{\mathrm B}$. It does not retain a separate quadratic uncertainty in the number of filler compressions.
+\end{lemma}
+\begin{proof}
+The uncertain compression exponent is $\zkRealBc{\mathrm B}+\binom{\zkInitialFill{\mathrm B}}2$. Mandatory calibration adds a public target minus this quantity to both compression and JUMP bytecode. JUMP already gained the same filler binomial, so it cancels exactly. The code locations are disjoint, making the exponent sums additive. Coarse relabeling preserves the whole-column sums.
+\end{proof}
+
+The old libraries' other JUMP exponents are retained as public offsets. For their closing-control triples this requires disjoint controls with fixed chain lengths; calibration only changes their values and code assignments, not their memory counts. Any future library violating this property must contribute its uncertainty explicitly. The filler does leave a bounded common memory shift and private final counts; this cancellation is not a privacy theorem.
+
+\subsubsection{Uniform initial row, code and memory capacity}
+
+Take initial totals $\zkInitialTotal{t}=(390000,335000,230000,300000,380000)$ in X/M/S/D/J order. The already reserved compression libraries contribute $(149319,3072,0,0,213199)$ noncompression rows: $196608$ mandatory compression returns and $16591$ router returns are included in JUMP. Assume
+\[
+ (\zkExecutedRows{\mathrm X},\zkExecutedRows{\mathrm M},\zkExecutedRows{\mathrm S},\zkExecutedRows{\mathrm D},\zkExecutedRows{\mathrm J},\zkExecutedRows{\mathrm B})
+ \le(240681,331928,230000,300000,65536,65536).
+\]
+These are eligibility premises, not claims proved for every execution of the aggregation guest. Fill each of the four non-JUMP tables to its initial total with Lemma~\ref{lem:zk-tiled-prefill}. Their maximum filler lengths are $(240681,331928,230000,300000)$ and their returns sum to at most $34458$. Before the final initial JUMP filler, at most
+\[
+ 65536+213199+65536+34458=378729<380000
+\]
+JUMP rows are present. Therefore every permitted private combination of real-row counts has a nonnegative completion to the same public initial totals. No correlation inferred from example executions is needed for this row statement.
+
+Reserve $35$ slots for the $69$ normalizer frames, $48$ for coarse routers, three for final fillers, $323$ for initial fillers and $32$ for compression filling: $441$ slots altogether. They fit in a fixed tail of the last free payload run from \noteref{zk-memory-frames}, shortening its endpoint from slot $16379$ to $15938$. The guest retains $26262$ free slots and the same four-run next-fit bound, minus three times its largest request size less one. All reserved frames are at most $128$ cells. The corresponding fresh code budget is
+\[
+ 486+308+20992+2=21788
+\]
+locations. The public interval $[400000,421788)$ is disjoint from the old $99$-code reservation and lies inside bytecode log $19$. The research wrapper checks that it is beyond emitted functions and ordinary fillers and contains only unused zero-SET instructions. It reserves the memory tail but does not yet install this codebook or the complete cycle sampler.
+
+\subsubsection{JUMP's four input intervals follow from coarse resource bounds}
+
+Suppose each real instruction executes at most once per owned frame, each frame except the public bootstrap has its own rounded allocation, and the guest obeys the preceding slot bound. Then the number of real frames, including the bootstrap, is at most $\zkRealFrames=26263$. If an opcode has at most $n$ rows and each code location at most $\zkRealFrames$ visits, its exponent is at most
+\[
+ \zkVisitBound{n}{\zkRealFrames}
+ =\left\lfloor\frac n{\zkRealFrames}\right\rfloor\binom{\zkRealFrames}2
+  +\binom{n\bmod\zkRealFrames}2.
+\]
+To prove this, move a visit from a smaller nonempty chain to a larger unsaturated chain; the sum of binomials cannot decrease. Iterating leaves saturated chains and at most one remainder. In particular both $\zkRealBc{\mathrm J}$ and $\zkRealBc{\mathrm B}$ are at most $774342451$.
+
+After Lemma~\ref{lem:zk-compression-fill-cancellation}, the only additional uncertain JUMP bytecode terms are the four initial return sums and its own tiled filler. Bounding their lengths by $(240681,331928,230000,300000,380000)$ and using the monotone functions in Lemma~\ref{lem:zk-tiled-prefill} gives width at most $1567291494<1600000000$. All interval offsets are public and retained.
+
+For JUMP's reference difference, the original local memory exponent is at most $517\cdot65536$, by Lemma~\ref{lem:zk-local-role-priority}. Compression filling adds at most $8355840$ to memory but no surviving filler binomial to bytecode. Initial non-JUMP returns subtract at most their four tile quotients from the reference, and its own initial filler subtracts at most thirty-one times its quotient. These losses total at most $3120$. Thus its width is at most
+\[
+ 2\cdot774342451+517\cdot65536+8355840+3120
+ =1590925974<1600000000.
+\]
+All these memory increments are equal in the three JUMP roles. Its two column-difference widths remain bounded by $518\cdot65536$ and $867\cdot65536$. This supplies all four JUMP bounds used in Proposition~\ref{prop:zk-revised-count-budget}, conditional on the explicit row/frame and public-library-offset hypotheses, without knowing the private call trace.
+
+\paragraph{Verification and what remains.} The \texttt{--batched-targets} mode of \auditref{zk_count_budget_audit.py} checks full and partial target cycles, eighty distributed-filler cases with one common code image per opcode, capped compression-fill chains and eight complete ISA certificates for the quadratic cancellation. It checks the revised row/code/slot ledger and both numerical JUMP width bounds exactly; add \texttt{--coarse} for native coarse-frontier compositions. The research allocator checks the reservation, real-row inequalities and initial return ledger on the actual guest. None of these checks certifies the four remaining bytecode widths or local/indirect memory ranges for every supported witness. The real indirect-label cap, complete code installation, common randomness sampler, full joint reductions and authenticated opening remain necessary.

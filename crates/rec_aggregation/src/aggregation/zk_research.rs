@@ -11,6 +11,9 @@ mod range;
 const PREFIX: u32 = 1 << lean_vm::cpu::MIN_LOG_MEM;
 const MASK: u32 = 1280;
 const SLOT: u32 = 256;
+const COUNT_COMPLETION_SLOTS: u32 = 35 + 48 + 3 + 323 + 32;
+const COUNT_COMPLETION_CODES: u32 = 486 + 308 + 20992 + 2;
+const COUNT_COMPLETION_PC: u32 = 400000;
 const LOCAL_DIGIT_CHECK: &str = r#"
 @inline
 def zk_digit_check(digit):
@@ -27,7 +30,7 @@ fn candidate_runs() -> Vec<Range<u32>> {
         PREFIX + MASK + 2688 * SLOT..PREFIX + MASK + 8191 * SLOT,
         PREFIX + MASK + 8192 * SLOT..PREFIX + MASK + 16123 * SLOT,
         lane + MASK + 7201 * SLOT..lane + MASK + 16379 * SLOT,
-        2 * lane + MASK + 12288 * SLOT..2 * lane + MASK + 16379 * SLOT,
+        2 * lane + MASK + 12288 * SLOT..2 * lane + MASK + (16379 - COUNT_COMPLETION_SLOTS) * SLOT,
     ]
 }
 
@@ -117,6 +120,17 @@ def main():
         program.prog[first_code as usize..=last_code as usize]
             .iter()
             .all(|op| matches!(op, Op::Set { o: 0, k } if *k == F192::ZERO))
+    );
+    assert!(emitted_end <= COUNT_COMPLETION_PC);
+    assert!(program.filler.iter().all(|b| b.pc + b.size < COUNT_COMPLETION_PC));
+    assert!(COUNT_COMPLETION_PC + COUNT_COMPLETION_CODES <= first_code);
+    assert!(
+        program.prog[COUNT_COMPLETION_PC as usize..(COUNT_COMPLETION_PC + COUNT_COMPLETION_CODES) as usize]
+            .iter()
+            .all(|op| matches!(op, Op::Set { o: 0, k } if *k == F192::ZERO))
+    );
+    println!(
+        "Count completion reservation: {COUNT_COMPLETION_SLOTS} slots and {COUNT_COMPLETION_CODES} unused code locations."
     );
     let mut maximum = 0;
     let mut priority_caps = [[0usize; 3]; 5];
@@ -566,7 +580,8 @@ pub fn audit_leaf(n_xmss: usize, n_sphincs: usize, native_proof: bool, local_dig
         .map(|&(_, _, n)| n / SLOT)
         .max()
         .expect("allocations");
-    let budget = 26703u32
+    let free_slots: u32 = runs.iter().map(|r| (r.end - r.start) / SLOT).sum();
+    let budget = free_slots
         .checked_sub(3 * (largest - 1))
         .expect("no worst-case capacity guarantee");
     assert!(
@@ -653,7 +668,8 @@ pub fn audit_recursion(n_xmss: usize, n_sphincs: usize, children: usize, native_
     );
     let slots: u32 = execution.allocations.iter().map(|&(_, _, n)| n / SLOT).sum();
     let largest = execution.allocations.iter().map(|&(_, _, n)| n / SLOT).max().unwrap();
-    let budget = 26703u32.checked_sub(3 * (largest - 1)).expect("allocation bound");
+    let free_slots: u32 = runs.iter().map(|r| (r.end - r.start) / SLOT).sum();
+    let budget = free_slots.checked_sub(3 * (largest - 1)).expect("allocation bound");
     assert!(slots <= budget);
     println!(
         "Recursive wrapper: {children} ordinary children, {slots}/{budget} guaranteed slots, largest {largest} slots."
@@ -767,6 +783,27 @@ fn check_opcode_budget(program: &Program, execution: &Execution) {
             "real table {table} exceeds the candidate's private row budget"
         );
     }
+    assert!(
+        execution.base_counts[4] <= 1 << 16,
+        "the revised count contract requires at most 65536 real JUMP rows"
+    );
+    let initial = [390000usize, 335000, 230000, 300000, 380000];
+    let fixed = [149319usize, 3072, 0, 0, 213199];
+    let compression_fill = (1 << 16) - execution.base_counts[5];
+    let mut fills = [0usize; 5];
+    for table in 0..4 {
+        fills[table] = initial[table]
+            .checked_sub(execution.base_counts[table] + fixed[table])
+            .expect("real rows and existing libraries exceed the initial completion budget");
+    }
+    let returns: usize = fills[..4].iter().map(|rows| rows.div_ceil(32)).sum();
+    fills[4] = initial[4]
+        .checked_sub(execution.base_counts[4] + fixed[4] + compression_fill + returns)
+        .expect("the initial JUMP budget cannot hold every filler return");
+    println!(
+        "Initial completion: {compression_fill} BLAKE2s fillers, target fillers {fills:?}, {returns} non-JUMP filler returns."
+    );
+    println!("The row ledger fits; the complete incoming count intervals are still a separate obligation.");
     let profile = execution.real_count_profile();
     let mut sites = execution.instruction_sites();
     for (table, rows) in execution.base_counts.iter().enumerate() {
