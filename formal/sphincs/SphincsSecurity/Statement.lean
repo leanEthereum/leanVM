@@ -5,7 +5,7 @@ import VCVio.OracleComp.QueryTracking.WriterCost
 /-!
 # SPHINCS with a 256-bit master seed
 
-This module contains the complete seeded scheme: parameters, types, serialized hash inputs, key generation, signing, verification, the consistent random-oracle experiment, and the target `SphincsSecurityStatement`. Key generation samples one 32-byte secret seed and derives the public parameter and every signing secret through the same random oracle. Derivation and verification use disjoint domains.
+This module contains the complete seeded scheme: parameters, types, serialized hash inputs, key generation, signing, verification, the consistent random-oracle experiment, and the target `SphincsSecurityStatement`. The experiment samples one 32-byte secret seed; key generation derives the public parameter and every signing secret through the same random oracle. Derivation and verification use disjoint domains.
 
 The theorem `sphincs_has_127_bits_of_classical_security` proves the `127`-bit bound, counting every hash call in the experiment.
 -/
@@ -233,13 +233,10 @@ end TargetSum
 
 /-! ## The algorithms
 
-`Concrete` contains the hash and verification routines; `Seeded` contains key generation and signing. Hashing routines work in any monad with access to `HashSpec`. The experiment adds uniform sampling through `OracleWorld` and charges every hash call, including repeated calls. Out-of-range branches only make the definitions total; honest algorithms never reach them. -/
+`Concrete` contains the hash and verification routines; `Seeded` contains key generation and signing. Hashing routines work in any monad with access to `HashSpec`. The experiment samples the master seed and charges every hash call, including repeated calls. Out-of-range branches only make the definitions total; honest algorithms never reach them. -/
 
 /-- A hash query takes an arbitrary byte string and returns 32 bytes. -/
 abbrev HashSpec := HashInput →ₒ HashOutput
-
-/-- `unifSpec` for uniform sampling, `HashSpec` for the random oracle. A query is `.inl` to sample or `.inr` to hash, so `HasHashQueryBound` counts only the hash side. -/
-abbrev OracleWorld := unifSpec + HashSpec
 
 namespace Concrete
 
@@ -600,11 +597,10 @@ def ftsOpen (parameter : PublicParameter) (index : Index) (leaves : IndexGroup �
       ftsNode parameter index tree seed level.val
         (Nat.xor ((leaves (ftsIndexOf tree)).val / 2 ^ level.val) 1)
 
-/-- Sample the master seed, derive the public parameter, and build the top tree. -/
-noncomputable def keygen : OracleComp OracleWorld (PublicKey × SecretKey) := do
-  let seed ← liftM sampleMasterSeed
-  let parameter ← liftM (deriveKey 0 .parameter seed : OracleComp HashSpec Digest)
-  let root ← liftM (treeRoot parameter topLayer rootTree seed : OracleComp HashSpec Digest)
+/-- Derive the public parameter and build the top tree from the supplied seed. -/
+def keygenFromSeed (seed : MasterSeed) : OracleComp HashSpec (PublicKey × SecretKey) := do
+  let parameter ← deriveKey 0 .parameter seed
+  let root ← treeRoot parameter topLayer rootTree seed
   return (⟨root, parameter⟩, ⟨seed, parameter, root⟩)
 
 def signAttempt (secretKey : SecretKey) (message : Message) (randomness : Randomness) :
@@ -667,29 +663,14 @@ end Seeded
 
 /-! ## The security experiment -/
 
-/-- The random-oracle semantics: hash queries are answered lazily and consistently by uniform sampling and cached; uniform-sampling queries are forwarded unchanged. -/
-noncomputable def romImpl : QueryImpl OracleWorld (StateT (QueryCache HashSpec) ProbComp) :=
-  unifFwdImpl HashSpec +
-    (randomOracle : QueryImpl HashSpec (StateT (QueryCache HashSpec) ProbComp))
-
 /-- A claimed forgery: a message and a signature. -/
 structure Forgery where
   message : Message
   signature : Signature
 deriving DecidableEq
 
-/-- The interface of a stateless signature scheme in the random-oracle experiment. Signing may fail, so it returns an option. -/
-structure Scheme (Key : Type := Seeded.SecretKey) where
-  keygen : OracleComp OracleWorld (PublicKey × Key)
-  sign : Key → Message → OracleComp OracleWorld (Option Signature)
-  verify : PublicKey → Message → Signature → OracleComp OracleWorld Bool
-
 /-- A signing request is a message alone, the scheme being stateless, and the answer is a signature or `none` if the signer fails. -/
 abbrev SigningSpec := Message →ₒ Option Signature
-
-/-- A classical adaptive adversary. After receiving the public key, it may query the shared random oracle, request signatures, and finally return a claimed forgery. -/
-structure Adversary where
-  main : PublicKey → OracleComp (OracleWorld + SigningSpec) Forgery
 
 namespace SigningTranscript
 
@@ -709,53 +690,51 @@ instance (log : QueryLog SigningSpec) (forgery : Forgery) : Decidable (Contains 
 
 end SigningTranscript
 
-/-- The signing oracle used in the game. It records every request and response while forwarding the request to the scheme's signer. -/
-def signingOracle {Key : Type} (scheme : Scheme Key) (sk : Key) :
-    QueryImpl SigningSpec (WriterT (QueryLog SigningSpec) (OracleComp OracleWorld)) :=
-  QueryImpl.withLogging fun request => scheme.sign sk request
+namespace Security
 
-/-- Forward the shared random oracle and uniform sampling to the adversary unchanged, alongside the logged signing oracle. -/
-def forwardOracles :
-    QueryImpl OracleWorld (WriterT (QueryLog SigningSpec) (OracleComp OracleWorld)) :=
-  fun input => liftM (OracleWorld.query input)
+/-- A deterministic adaptive adversary with access to hashing and signing. -/
+structure Adversary where
+  main : PublicKey → OracleComp (HashSpec + SigningSpec) Forgery
 
-/-- The complete strong-unforgeability experiment.
+/-- Record each signing request and its answer. -/
+def signingOracle (sk : Seeded.SecretKey) :
+    QueryImpl SigningSpec (WriterT (QueryLog SigningSpec) (OracleComp HashSpec)) :=
+  QueryImpl.withLogging fun request => Seeded.sign sk request
 
-The random oracle is sampled lazily by the semantics of `OracleWorld`. Key generation, the adversary, the signing oracle, and final verification all share the same oracle. The game returns `true` precisely when the transcript holds at most `q_s` signatures, the claimed forgery is not one the signer returned for that message, and the signature verifies. -/
-noncomputable def gameCore {Key : Type} (scheme : Scheme Key) (adversary : Adversary) :
-    OracleComp OracleWorld Bool := do
-  let (pk, sk) ← scheme.keygen
+/-- For a fixed seed, all parties share the same hash oracle. -/
+def gameCore (seed : MasterSeed) (adversary : Adversary) : OracleComp HashSpec Bool := do
+  let (pk, sk) ← Seeded.keygenFromSeed seed
   let ((forgery, log) : Forgery × QueryLog SigningSpec) ←
-    (simulateQ (forwardOracles + signingOracle scheme sk) (adversary.main pk)).run
-  let verified ← scheme.verify pk forgery.message forgery.signature
+    (simulateQ (QueryImpl.ofLift HashSpec (WriterT (QueryLog SigningSpec) (OracleComp HashSpec)) + signingOracle sk) (adversary.main pk)).run
+  let verified ← Concrete.verify pk forgery.message forgery.signature
   return decide (SigningTranscript.Valid log ∧ ¬SigningTranscript.Contains log forgery) && verified
 
-/-- The probability that the adversary wins, over key generation, the adversary, and the random oracle, which starts from the empty cache. The final cache is discarded. -/
-noncomputable def forgeAdvantage {Key : Type} (scheme : Scheme Key) (adversary : Adversary) : ℝ≥0∞ :=
-  Pr[= true | (simulateQ romImpl (gameCore scheme adversary)).run' ∅]
+/-- Answer hash queries consistently and count every call, including cache hits. -/
+noncomputable def countedOracle :=
+  (randomOracle : QueryImpl HashSpec (StateT (QueryCache HashSpec) ProbComp)).withAddCost (fun _ => (1 : Nat))
 
-/-- Count one per hash call, including cache hits, and zero per uniform sample. -/
-noncomputable def countedRomImpl :=
-  romImpl.withAddCost (fun | .inl _ => (0 : Nat) | .inr _ => 1)
+/-- Sample the master seed and run the game with an initially empty random-oracle cache.
+The result records whether the adversary won and the total number of hash calls. -/
+noncomputable def experiment (adversary : Adversary) : ProbComp (Bool × Nat) := do
+  let seed ← sampleMasterSeed
+  (simulateQ countedOracle (gameCore seed adversary)).run.run' ∅
 
-/-- Every execution of the consistent random oracle uses at most `q` hash calls, including key generation, adversarial hashing, signing, and final verification. -/
-def HasHashQueryBound {Key : Type} (scheme : Scheme Key) (adversary : Adversary) (q : Nat) : Prop :=
-  ∀ result ∈ support ((simulateQ countedRomImpl (gameCore scheme adversary)).run.run' ∅),
-    result.2 ≤ q
+/-- The probability of a successful forgery. -/
+noncomputable def forgeAdvantage (adversary : Adversary) : ℝ≥0∞ :=
+  Pr[fun result => result.1 = true | experiment adversary]
 
-/-- Having `bits` bits of classical security means that every classical adaptive adversary whose complete experiment stays within a nonzero hash-query budget `q` forges with probability at most `q / 2^bits`. The bound is a slope, so it bounds what a query buys and not what the first one does; a budget below what the honest experiment alone spends admits no adversary and the bound is vacuous there. -/
-def HasClassicalSecurityBits {Key : Type} (scheme : Scheme Key) (bits : Nat) : Prop :=
-  ∀ q, 1 ≤ q → ∀ adversary, HasHashQueryBound scheme adversary q →
-    forgeAdvantage scheme adversary ≤ q / ((2 ^ bits : Nat) : ℝ≥0∞)
+/-- Every execution uses at most `q` hash calls, including key generation, signing, and verification. -/
+def HasHashQueryBound (adversary : Adversary) (q : Nat) : Prop :=
+  ∀ result ∈ support (experiment adversary), result.2 ≤ q
 
-noncomputable def Seeded.scheme : Scheme Seeded.SecretKey where
-  keygen := Seeded.keygen
-  sign := fun sk message => liftM (Seeded.sign sk message : OracleComp HashSpec _)
-  verify := fun publicKey message signature =>
-    liftM (Concrete.verify publicKey message signature : OracleComp HashSpec Bool)
+/-- Every adversary with nonzero query budget `q` wins with probability at most `q / 2^bits`. -/
+def HasClassicalSecurityBits (bits : Nat) : Prop :=
+  ∀ q, 1 ≤ q → ∀ adversary, HasHashQueryBound adversary q →
+    forgeAdvantage adversary ≤ q / ((2 ^ bits : Nat) : ℝ≥0∞)
+
+end Security
 
 /-- The security claim for the scheme with a 256-bit master seed. -/
-abbrev SphincsSecurityStatement : Prop :=
-  HasClassicalSecurityBits Seeded.scheme 127
+abbrev SphincsSecurityStatement : Prop := Security.HasClassicalSecurityBits 127
 
 end SphincsSecurity

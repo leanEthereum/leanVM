@@ -1,38 +1,38 @@
-import SphincsSecurity.Proof.Reference.QueryBound
-open OracleComp OracleSpec SphincsSecurity
+import SphincsSecurity.Proof.Adversary.Embedding
+open OracleComp OracleSpec SphincsSecurity SphincsSecurity.Security
 set_option backward.isDefEq.respectTransparency false
 
 namespace SphincsSecurity.QueryBudgetChecks
 
-private def inconsistentBranch : OracleComp OracleWorld Unit := do
-  let a ← liftM (OracleWorld.query (.inr []))
-  let b ← liftM (OracleWorld.query (.inr []))
+private def inconsistentBranch : OracleComp HashSpec Unit := do
+  let a ← liftM (HashSpec.query [])
+  let b ← liftM (HashSpec.query [])
   if a = b then return ()
   else
-    let _ ← liftM (OracleWorld.query (.inr [1]))
+    let _ ← liftM (HashSpec.query [1])
     return ()
 
-example : ∀ result ∈ support ((simulateQ countedRomImpl inconsistentBranch).run.run' ∅), result.2 = (2 : Nat) := by
-  have fresh : (romImpl (.inr [])).run ∅ =
+example : ∀ result ∈ support ((simulateQ countedOracle inconsistentBranch).run.run' ∅), result.2 = (2 : Nat) := by
+  have fresh : ((randomOracle : QueryImpl HashSpec (StateT (QueryCache HashSpec) ProbComp)) []).run ∅ =
       (fun answer : HashOutput => (answer, (∅ : QueryCache HashSpec).cacheQuery [] answer)) <$>
         ($ᵗ HashOutput : ProbComp _) :=
     QueryImpl.withCaching_run_none _ (QueryCache.empty_apply _)
   have cached (answer : HashOutput) :
-      (romImpl (.inr [])).run ((∅ : QueryCache HashSpec).cacheQuery [] answer) =
+      ((randomOracle : QueryImpl HashSpec (StateT (QueryCache HashSpec) ProbComp)) []).run ((∅ : QueryCache HashSpec).cacheQuery [] answer) =
         pure (answer, (∅ : QueryCache HashSpec).cacheQuery [] answer) :=
     QueryImpl.withCaching_run_some _ (by simp)
   intro result hr
-  rw [← simulateQ_countHashQueries] at hr
-  simp only [inconsistentBranch, countHashQueries_query_bind, simulateQ_bind,
+  rw [← simulate_countAll] at hr
+  simp only [inconsistentBranch, countAll, QueryCap.counted_query_bind, simulateQ_bind,
     simulateQ_spec_query, StateT.run'_eq, StateT.run_bind, fresh, bind_map_left, cached,
-    pure_bind, ite_true, countHashQueries_pure, simulateQ_pure, StateT.run_pure,
+    pure_bind, ite_true, QueryCap.counted_pure, simulateQ_pure, StateT.run_pure,
     map_bind, map_pure, Nat.add_zero, Nat.reduceAdd, bind_pure_comp,
     simulateQ_map, StateT.run_map, Functor.map_map] at hr
   rw [support_map] at hr
   obtain ⟨answer, _, rfl⟩ := hr
   rfl
 
-example : ¬ inconsistentBranch.IsQueryBoundP (fun input : OracleWorld.Domain => input matches .inr _) 2 := by
+example : ¬ inconsistentBranch.IsQueryBoundP (fun _ : HashSpec.Domain => True) 2 := by
   intro h
   have h0 := (isQueryBoundP_query_bind_iff _ _ _ _).mp h
   have h1 := (isQueryBoundP_query_bind_iff _ _ _ _).mp (h0.2 (0 : HashOutput))

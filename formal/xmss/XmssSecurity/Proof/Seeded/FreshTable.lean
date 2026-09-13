@@ -1,4 +1,4 @@
-import XmssSecurity.Statement
+import XmssSecurity.Proof.RandomizedStatement
 import XmssSecurity.Proof.UniformFiniteTable
 
 open OracleComp OracleSpec

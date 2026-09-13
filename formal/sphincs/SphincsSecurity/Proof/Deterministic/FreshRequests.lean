@@ -1,4 +1,4 @@
-import SphincsSecurity.Statement
+import SphincsSecurity.Proof.RandomizedStatement
 
 open OracleComp OracleSpec
 

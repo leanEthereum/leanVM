@@ -345,14 +345,14 @@ hash calls to verify. A WOTS leaf takes $v+v(2^w-1)+1=337$ calls to derive and b
 
 Model $\hash$ as one shared random oracle: a new input receives an independent uniform 256-bit answer, and every repetition receives that same answer. Key generation, signing, verification and the adversary all use this oracle.
 
-The challenger generates a key pair and gives $\pk$ to a classical probabilistic adversary. The adversary may adaptively query the hash on any byte string and request signatures on messages of its choice. It may make at most $\qs=2^{24}$ signing requests, counting repeated messages and failed requests. It finally returns $(m^*,\sigma^*)$ and wins exactly when
+The challenger generates a key pair and gives $\pk$ to a classical deterministic adversary. The adversary may adaptively query the hash on any byte string and request signatures on messages of its choice. It may make at most $\qs=2^{24}$ signing requests, counting repeated messages and failed requests. It finally returns $(m^*,\sigma^*)$ and wins exactly when
 \[
   \Ver(\pk,m^*,\sigma^*)=1
   \quad\text{and no signing request for $m^*$ returned $\sigma^*$.}
 \]
 This is \emph{strong unforgeability}: even a new signature on a previously signed message counts as a forgery.
 
-A query budget $q$ bounds every execution of the complete experiment, including key generation, signing, adversarial hashing and final verification. Each hash call counts, including repeated inputs. Uniform sampling is not a hash call. There is no separate time or memory bound on the adversary.
+A query budget $q$ bounds every execution of the complete experiment, including key generation, signing, adversarial hashing and final verification. Each hash call counts, including repeated inputs. There is no separate time or memory bound on the adversary.
 
 \begin{theorem}[Classical security]
 For every integer $q\geq1$ and every adversary satisfying these limits,
@@ -360,6 +360,8 @@ For every integer $q\geq1$ and every adversary satisfying these limits,
   \Pr[\text{the adversary wins}]\leq q/2^{127}.
 \]
 \end{theorem}
+
+Only the master seed and the random oracle are random in this game. The bound also applies to randomized adversaries. For any fixed sequence of an adversary's random choices, its behaviour becomes deterministic and the complete experiment still uses at most $q$ hash calls. Its overall success probability is an average of these deterministic success probabilities, each at most $q/2^{127}$.
 
 The Lean 4 proof using VCVio~\cite{VCVio} is in \texttt{formal/sphincs/}. Its complete statement, including seed derivation and the experiment above, is in \texttt{SphincsSecurity/Statement.lean}; the theorem is in \texttt{SphincsSecurity.lean}. It depends only on Lean's three standard axioms.
 

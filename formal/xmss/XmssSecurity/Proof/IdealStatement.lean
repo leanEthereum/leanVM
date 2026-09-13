@@ -1,4 +1,4 @@
-import XmssSecurity.Statement
+import XmssSecurity.Proof.RandomizedStatement
 
 open OracleComp OracleSpec ENNReal
 

@@ -231,7 +231,7 @@ $\Ver(\pk,\ep,m,\bot)=0$. For $\sigma\neq\bot$, $\Ver(\pk,\ep,m,\sigma)$ parses 
 \subsection{Classical security}
 
 \begin{definition}[strong unforgeability in the ROM]
-Let $\SIG=(\Gen,\Sig,\Ver)$ be a synchronized signature scheme whose algorithms use a hash function $\hash:\bits{*}\to\bits{256}$. Consider the following game between a signer and an adversary $\mathcal A$ (an arbitrary probabilistic algorithm with unbounded running time and memory), with $\hash$ sampled as a random oracle, that both signer and adversary can query. The signer first runs $(\pk,\sk)\gets\Gen$ and gives $\pk$ to $\mathcal A$. The adversary may then adaptively take any of the following actions:
+Let $\SIG=(\Gen,\Sig,\Ver)$ be a synchronized signature scheme whose algorithms use a hash function $\hash:\bits{*}\to\bits{256}$. Consider the following game between a signer and an adversary $\mathcal A$ (a deterministic algorithm with unbounded running time and memory), with $\hash$ sampled as a random oracle, that both signer and adversary can query. The signer first runs $(\pk,\sk)\gets\Gen$ and gives $\pk$ to $\mathcal A$. The adversary may then adaptively take any of the following actions:
 \begin{enumerate}[leftmargin=2em]
   \item Query the random oracle on any input and receive its 256-bit output.
   \item Submit a message $m\in\bits{256}$ and an epoch $\ep\in\{0,\ldots,L-1\}$ that it has not used in an earlier signing query, and receive $\sigma\gets\Sig(\sk,\ep,m)$ from the signer.
@@ -243,10 +243,11 @@ The adversary wins if $\Ver(\pk,\ep^*,m^*,\sigma^*)=1$ and the signer did not re
   \item or it did, but the signer's answer was not $\sigma^*$.
 \end{itemize}
 
-Call $\mathcal A$ $q$-bounded if the experiment makes at most $q$ random-oracle queries on every execution, counting those of key generation, signing, and the final verification of the claimed forgery. We say that $\SIG$ has $x$ bits of classical strong unforgeability in the ROM if every $q\geq1$ and every $q$-bounded $\mathcal A$ satisfy
+Call $\mathcal A$ $q$-bounded if the experiment makes at most $q$ random-oracle queries on every execution, counting every hash call by key generation, the adversary, signing, and final verification, including repeated inputs. We say that $\SIG$ has $x$ bits of classical strong unforgeability in the ROM if every $q\geq1$ and every $q$-bounded $\mathcal A$ satisfy
 \[
   \Pr[\mathcal A\text{ wins}]\leq\frac{q}{2^{x}}.
 \]
+Only the master seed and the random oracle are random in this game. The bound also applies to randomized adversaries. For any fixed sequence of an adversary's random choices, its behaviour becomes deterministic and the complete experiment still uses at most $q$ hash calls. Its overall success probability is an average of these deterministic success probabilities, each at most $q/2^{x}$.
 \end{definition}
 
 \begin{theorem}[XMSS security]

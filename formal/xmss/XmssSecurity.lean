@@ -1,11 +1,11 @@
 import XmssSecurity.Statement
-import XmssSecurity.Proof.Deterministic.Security
+import XmssSecurity.Proof.Adversary.Security
 
 namespace XmssSecurity
 
 /-- XMSS with a 256-bit master seed has 127 bits of classical security. -/
 theorem xmss_has_127_bits_of_classical_security : XmssSecurityStatement :=
-  Seeded.scheme_has_127_bits_of_classical_security
+  Security.security127
 
 /-! The build fails if the axiom footprint ever grows beyond Lean's three standard axioms, so a `sorry` or `native_decide` anywhere in the proof cannot go unnoticed. -/
 

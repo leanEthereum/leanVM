@@ -2,6 +2,8 @@
 
 [Statement.lean](SphincsSecurity/Statement.lean) contains the complete scheme with a 32-byte master seed: parameters, serialized hash inputs, key generation, signing, verification, the consistent random-oracle game, and the 127-bit security target. Public parameters, signing secrets, and signing randomizers are derived in separate hash domains. Every hash call in the experiment counts, including derivation, signing failures, repeated calls and final verification.
 
+The public adversary is deterministic and can query only the hash and signing oracles. The experiment samples the master seed once; all remaining randomness comes from the shared consistent random oracle. [Proof/Adversary](SphincsSecurity/Proof/Adversary) embeds this game into the randomized game used internally, preserving success probabilities and query counts exactly. It also proves that independently sampling a deterministic strategy preserves the bound. The existing internal theorem still covers adversaries with adaptive private sampling.
+
 The theorem `sphincs_has_127_bits_of_classical_security` proves this claim for at most `2^24` signing requests per key. The reduction in [Proof/Deterministic](SphincsSecurity/Proof/Deterministic) couples seed derivation to independent secrets and signing trials, handles repeated requests, bounds adaptive seed guesses, and transfers the query budget. The public-parameter derivation consumes a query, leaving enough slack to absorb the seed-guessing loss without weakening the 127-bit bound.
 
 ## Build and audit

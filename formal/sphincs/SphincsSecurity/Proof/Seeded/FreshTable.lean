@@ -1,4 +1,4 @@
-import SphincsSecurity.Statement
+import SphincsSecurity.Proof.RandomizedStatement
 import VCVio.OracleComp.QueryTracking.RandomOracle.DeferredSampling
 
 open OracleComp OracleSpec
