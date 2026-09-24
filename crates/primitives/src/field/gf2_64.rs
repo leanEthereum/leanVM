@@ -2,7 +2,8 @@
 //! The base field `K = GF(2)[x] / (x^64 + x^4 + x^3 + x + 1)`, in which `x` has order `2^64 - 1`.
 //!
 //! A product is one carry-less 64x64 multiplication followed by a reduction.
-//! The reduction folds the high word back with shifts and XORs, off the carry-less multiplier.
+//! The reduction folds the high word back with shifts and XORs ([`reduce`]), except in the scalar x86 product,
+//! which folds it with two more carry-less multiplications by `0x1B` ([`x86_64::mul`]).
 
 use core::ops::{Add, AddAssign, Mul, MulAssign};
 
@@ -89,7 +90,15 @@ impl Mul for F64 {
             // SAFETY: aes target feature is enabled at compile time.
             unsafe { aarch64::mul_shift_tail(self, rhs) }
         }
-        #[cfg(not(all(target_arch = "aarch64", target_feature = "aes")))]
+        #[cfg(all(target_arch = "x86_64", target_feature = "pclmulqdq"))]
+        {
+            // SAFETY: pclmulqdq is enabled at compile time.
+            unsafe { Self(x86_64::mul(self.0, rhs.0)) }
+        }
+        #[cfg(not(any(
+            all(target_arch = "aarch64", target_feature = "aes"),
+            all(target_arch = "x86_64", target_feature = "pclmulqdq")
+        )))]
         {
             Self(reduce(mul_wide(self.0, rhs.0)))
         }
@@ -247,14 +256,34 @@ pub mod aarch64 {
     }
 }
 
-/// The x86-64 widening products.
-///
-/// Only the carry-less product runs on the vector unit.
-/// The carry-less multiplier is the scarce execution unit, while shifts and XORs issue on several ports.
-/// The reduction therefore stays on the integer side.
+/// The x86-64 products.
 #[cfg(target_arch = "x86_64")]
 pub mod x86_64 {
+    use super::R64;
     use core::arch::x86_64::*;
+
+    /// One field product: the carry-less product, then two carry-less folds of its high word by `0x1B`.
+    ///
+    /// The whole product stays in one vector register. [`super::reduce`] would move both words to integer
+    /// registers and back, and on Zen 4 that round trip and its shift chain cost more than the two folds.
+    ///
+    /// Credit: binius64 <https://github.com/binius-zk/binius64>
+    /// (`crates/arith-bench/src/monbijou/clmul.rs::reduce`).
+    ///
+    /// # Safety
+    ///
+    /// Requires the `pclmulqdq` target feature.
+    #[inline]
+    #[target_feature(enable = "pclmulqdq")]
+    pub unsafe fn mul(a: u64, b: u64) -> u64 {
+        let r = _mm_cvtsi64_si128(R64 as i64);
+        let p = _mm_clmulepi64_si128::<0x00>(_mm_cvtsi64_si128(a as i64), _mm_cvtsi64_si128(b as i64));
+        // hi * 0x1B, at most 68 bits.
+        let t = _mm_clmulepi64_si128::<0x01>(p, r);
+        // Its spill past x^63, times 0x1B: at most 8 bits.
+        let u = _mm_clmulepi64_si128::<0x01>(t, r);
+        _mm_cvtsi128_si64(_mm_xor_si128(_mm_xor_si128(p, t), u)) as u64
+    }
 
     /// 64x64 carry-less product.
     ///
