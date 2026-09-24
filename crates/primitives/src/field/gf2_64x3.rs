@@ -590,7 +590,7 @@ pub mod x86_64 {
     /// # Safety
     ///
     /// Requires the `avx2` target feature.
-    #[cfg(target_feature = "avx2")]
+    #[cfg(all(target_feature = "vpclmulqdq", target_feature = "avx2"))]
     #[inline]
     #[target_feature(enable = "avx2")]
     unsafe fn reduce_lanes256(lo: __m256i, hi: __m256i) -> __m256i {
@@ -613,7 +613,7 @@ pub mod x86_64 {
     /// # Safety
     ///
     /// Requires the `avx512f` target feature.
-    #[cfg(target_feature = "avx512f")]
+    #[cfg(all(target_feature = "vpclmulqdq", target_feature = "avx512f"))]
     #[inline]
     #[target_feature(enable = "avx512f")]
     unsafe fn reduce_lanes512(lo: __m512i, hi: __m512i) -> __m512i {
