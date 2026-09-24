@@ -1,20 +1,15 @@
 // CREDIT: https://github.com/binius-zk/binius64, Apache-2.0.
-//! `K = GF(2)[x]/(x^64 + x^4 + x^3 + x + 1)`,
-//! `R64 = 0x1B = x^4 + x^3 + x + 1`, and `ord(x) = 2^64 - 1`.
-//! One multiplication = 1 product PMULL + 1
-//! fold PMULL + a ≤4-bit overflow tail; the product and fold never leave
-//! the NEON register file.
+//! The base field `K = GF(2)[x] / (x^64 + x^4 + x^3 + x + 1)`, in which `x` has order `2^64 - 1`.
 //!
-//! This is the base field for [`super::gf2_64x3`] (F192's tower base); the
-//! reduction helper [`super::gf2_64x3::base_reduce_128`] is shared.
+//! A product is one carry-less 64x64 multiplication followed by a reduction.
+//! The reduction folds the high word back with shifts and XORs, off the carry-less multiplier.
 
 use core::ops::{Add, AddAssign, Mul, MulAssign};
 
 use serde::{Deserialize, Serialize};
 
-#[cfg(target_arch = "aarch64")]
-use super::gf2_64x3::R64;
-use super::gf2_64x3::base_reduce_128;
+/// Reduction constant of the base field: `x^64 = x^4 + x^3 + x + 1 = 0x1B`.
+pub const R64: u64 = 0x1B;
 
 /// A GF(2^64) element; bit i = coefficient of x^i.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -32,38 +27,38 @@ impl F64 {
         self.0 == 0
     }
 
-    /// Squaring (cross terms vanish in char 2): same cost as mul here (the
-    /// PMULL already squares), kept for API symmetry with the other fields.
+    /// Squaring, as a bit spread followed by one reduction.
+    ///
+    /// Cross terms vanish in characteristic 2, so the square moves bit `i` to bit `2i`.
     #[inline]
     pub fn square(self) -> Self {
-        self * self
+        Self(reduce(square_wide(self.0)))
     }
 
-    /// Multiplicative inverse: x^(2^64 − 2). `ZERO.inv() == ZERO`.
+    /// Multiplicative inverse `x^(2^64 - 2)`, mapping zero to zero.
     ///
-    /// Itoh-Tsujii: x^(2^64−2) = (x^(2^63−1))², and x^(2^k−1) is built by an
-    /// addition chain on `k`. Doubling `k` costs `k` squarings and one multiply,
-    /// incrementing it one of each, so the chain 1,2,3,6,7,14,15,30,31,62,63
-    /// spends 63 squarings and 10 multiplies where the plain Fermat ladder
-    /// spends 63 and 62.
+    /// Itoh-Tsujii: with `t_k = x^(2^k - 1)`, the inverse is `t_63^2`.
+    /// Step `t_(a+b) = t_a^(2^b) * t_b` costs `b` squarings and one multiply.
+    /// The addition chain 1, 2, 3, 6, 12, 24, 48, 60, 63 spends 63 squarings and 8 multiplies.
     pub fn inv(self) -> Self {
+        // Square `v` a total of `n` times.
         let sq = |mut v: Self, n: u32| {
             for _ in 0..n {
                 v = v.square();
             }
             v
         };
-        let t1 = self; // x^(2^1−1)
+        // Each step reads t_k = x^(2^k - 1).
+        let t1 = self;
         let t2 = sq(t1, 1) * t1;
         let t3 = sq(t2, 1) * t1;
         let t6 = sq(t3, 3) * t3;
-        let t7 = sq(t6, 1) * t1;
-        let t14 = sq(t7, 7) * t7;
-        let t15 = sq(t14, 1) * t1;
-        let t30 = sq(t15, 15) * t15;
-        let t31 = sq(t30, 1) * t1;
-        let t62 = sq(t31, 31) * t31;
-        let t63 = sq(t62, 1) * t1;
+        let t12 = sq(t6, 6) * t6;
+        let t24 = sq(t12, 12) * t12;
+        let t48 = sq(t24, 24) * t24;
+        let t60 = sq(t48, 12) * t12;
+        let t63 = sq(t60, 3) * t3;
+        // (x^(2^63 - 1))^2 = x^(2^64 - 2).
         sq(t63, 1)
     }
 }
@@ -94,17 +89,9 @@ impl Mul for F64 {
             // SAFETY: aes target feature is enabled at compile time.
             unsafe { aarch64::mul_shift_tail(self, rhs) }
         }
-        #[cfg(all(target_arch = "x86_64", target_feature = "pclmulqdq"))]
+        #[cfg(not(all(target_arch = "aarch64", target_feature = "aes")))]
         {
-            // SAFETY: pclmulqdq target feature is enabled at compile time.
-            unsafe { x86_64::mul(self, rhs) }
-        }
-        #[cfg(not(any(
-            all(target_arch = "aarch64", target_feature = "aes"),
-            all(target_arch = "x86_64", target_feature = "pclmulqdq")
-        )))]
-        {
-            software::mul(self, rhs)
+            Self(reduce(mul_wide(self.0, rhs.0)))
         }
     }
 }
@@ -114,6 +101,66 @@ impl MulAssign for F64 {
     fn mul_assign(&mut self, rhs: Self) {
         *self = *self * rhs;
     }
+}
+
+/// The carry-less product of two 64-bit polynomials, as a 128-bit polynomial.
+#[inline]
+pub fn mul_wide(a: u64, b: u64) -> u128 {
+    #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
+    {
+        // SAFETY: aes is enabled at compile time; the reinterpret is between 128-bit values.
+        unsafe { core::mem::transmute::<core::arch::aarch64::uint64x2_t, u128>(aarch64::pmull(a, b)) }
+    }
+    #[cfg(all(target_arch = "x86_64", target_feature = "pclmulqdq"))]
+    {
+        // SAFETY: pclmulqdq is enabled at compile time.
+        unsafe { x86_64::clmul(a, b) }
+    }
+    #[cfg(not(any(
+        all(target_arch = "aarch64", target_feature = "aes"),
+        all(target_arch = "x86_64", target_feature = "pclmulqdq")
+    )))]
+    {
+        software::clmul(a, b)
+    }
+}
+
+/// The carry-less square of a 64-bit polynomial: bit `i` moves to bit `2i`.
+#[inline]
+pub fn square_wide(a: u64) -> u128 {
+    #[cfg(all(target_arch = "x86_64", target_feature = "bmi2"))]
+    {
+        // SAFETY: bmi2 is enabled at compile time.
+        unsafe { x86_64::spread(a) }
+    }
+    #[cfg(not(all(target_arch = "x86_64", target_feature = "bmi2")))]
+    {
+        mul_wide(a, a)
+    }
+}
+
+/// Reduce a 128-bit carry-less product modulo `x^64 + x^4 + x^3 + x + 1`.
+///
+/// Write the product as `lo + hi * x^64` and substitute `x^64 = x^4 + x^3 + x + 1`:
+///
+/// ```text
+///     hi * x^64  =  hi ^ hi<<1 ^ hi<<3 ^ hi<<4        (a 68-bit value)
+///     spill      =  hi>>63 ^ hi>>61 ^ hi>>60          (its 4 bits past x^63)
+///     spill * x^64 fits in 8 bits, so a second fold is exact and final.
+///
+///     result = lo ^ f(hi ^ spill),   f(v) = v ^ v<<1 ^ v<<3 ^ v<<4  (mod 2^64)
+/// ```
+///
+/// The two folds merge into one because the truncated map `f` is GF(2)-linear.
+#[inline]
+pub const fn reduce(p: u128) -> u64 {
+    // Split the product into its low and high words.
+    let (lo, hi) = (p as u64, (p >> 64) as u64);
+    // The bits of `hi * 0x1B` shifted past x^63, which wrap around as `spill * 0x1B`.
+    let spill = (hi >> 63) ^ (hi >> 61) ^ (hi >> 60);
+    // Fold `hi` and `spill` together: both are multiplied by the same constant.
+    let v = hi ^ spill;
+    lo ^ v ^ (v << 1) ^ (v << 3) ^ (v << 4)
 }
 
 #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
@@ -200,65 +247,61 @@ pub mod aarch64 {
     }
 }
 
-/// x86-64 `pclmulqdq` path, the twin of [`aarch64`] for AMD/Intel. GF(2^64)
-/// multiply is one CLMUL product plus a two-CLMUL fold by `R64` (= x^64 mod P),
-/// the same reduction as [`base_reduce_128`].
-#[cfg(all(target_arch = "x86_64", target_feature = "pclmulqdq"))]
+/// The x86-64 widening products.
+///
+/// Only the carry-less product runs on the vector unit.
+/// The carry-less multiplier is the scarce execution unit, while shifts and XORs issue on several ports.
+/// The reduction therefore stays on the integer side.
+#[cfg(target_arch = "x86_64")]
 pub mod x86_64 {
-    use super::F64;
-    use crate::field::gf2_64x3::R64;
     use core::arch::x86_64::*;
 
-    /// 64×64 carry-less product as a 128-bit vector `{lo, hi}`.
+    /// 64x64 carry-less product.
     ///
     /// # Safety
-    /// Requires the `pclmulqdq` target feature; only call where it is
-    /// statically enabled or has been runtime-detected.
+    ///
+    /// Requires the `pclmulqdq` target feature.
     #[inline]
-    #[target_feature(enable = "pclmulqdq", enable = "sse2")]
-    pub unsafe fn clmul(a: u64, b: u64) -> __m128i {
-        _mm_clmulepi64_si128::<0x00>(_mm_set_epi64x(0, a as i64), _mm_set_epi64x(0, b as i64))
+    #[target_feature(enable = "pclmulqdq")]
+    pub unsafe fn clmul(a: u64, b: u64) -> u128 {
+        // Move both operands into the low qword of a vector register.
+        let (a, b) = (_mm_cvtsi64_si128(a as i64), _mm_cvtsi64_si128(b as i64));
+        // SAFETY: both types are 128 bits wide with no invalid bit patterns.
+        unsafe { core::mem::transmute::<__m128i, u128>(_mm_clmulepi64_si128::<0x00>(a, b)) }
     }
 
-    /// Reduce a 128-bit carry-less product `{lo, hi}` into GF(2^64): fold the
-    /// high word by `R64` (= x^64 mod P), then fold the ≤5-bit second-order
-    /// overflow once more. Two CLMUL; the exact residue of [`base_reduce_128`].
+    /// Carry-less square by bit deposit: `pdep` spreads each 32-bit half onto the even bits of one word.
     ///
-    /// Credit: binius64 <https://github.com/binius-zk/binius64>
-    /// (`crates/arith-bench/src/monbijou/clmul.rs::reduce`), whose Monbijou
-    /// field is this same GF(2^64): a `<0x01>` CLMUL fold by `0x1B` applied
-    /// twice, XOR-ing the low halves.
+    /// Zen 1 and Zen 2 microcode `pdep`, so there this is slower than a carry-less multiply.
     ///
     /// # Safety
-    /// Requires the `pclmulqdq` target feature; see [`clmul`].
-    #[inline]
-    #[target_feature(enable = "pclmulqdq", enable = "sse2")]
-    pub unsafe fn reduce(p: __m128i) -> u64 {
-        let r = _mm_set_epi64x(0, R64 as i64);
-        let t = _mm_clmulepi64_si128::<0x01>(p, r); // clmul(p.hi, R64), ≤68 bits
-        let u = _mm_clmulepi64_si128::<0x01>(t, r); // clmul(t.hi, R64), ≤9 bits
-        _mm_cvtsi128_si64(_mm_xor_si128(_mm_xor_si128(p, t), u)) as u64
-    }
-
-    /// One GF(2^64) multiply: product + reduction (3 CLMUL).
     ///
-    /// # Safety
-    /// Requires the `pclmulqdq` target feature; see [`clmul`].
+    /// Requires the `bmi2` target feature.
     #[inline]
-    #[target_feature(enable = "pclmulqdq", enable = "sse2")]
-    pub unsafe fn mul(a: F64, b: F64) -> F64 {
-        // SAFETY: function carries the pclmulqdq+sse2 target features.
-        unsafe { F64(reduce(clmul(a.0, b.0))) }
+    #[target_feature(enable = "bmi2")]
+    pub unsafe fn spread(a: u64) -> u128 {
+        // Bits 0, 2, 4, ...: where a square puts the input bits.
+        const EVEN: u64 = 0x5555_5555_5555_5555;
+        // Low half of `a` into the low word, high half into the high word.
+        let lo = _pdep_u64(a, EVEN);
+        let hi = _pdep_u64(a >> 32, EVEN);
+        lo as u128 | (hi as u128) << 64
     }
 }
 
 pub mod software {
-    use super::{F64, base_reduce_128};
-    use crate::field::gf2_64x3::clmul64;
-
-    pub fn mul(a: F64, b: F64) -> F64 {
-        let (lo, hi) = clmul64(a.0, b.0);
-        F64(base_reduce_128(lo, hi))
+    /// Portable 64x64 carry-less product, used by fallback paths and as the reference.
+    pub const fn clmul(a: u64, b: u64) -> u128 {
+        let mut acc = 0u128;
+        let mut i = 0;
+        // Schoolbook: XOR in `b * x^i` for every set bit `i` of `a`.
+        while i < 64 {
+            if (a >> i) & 1 != 0 {
+                acc ^= (b as u128) << i;
+            }
+            i += 1;
+        }
+        acc
     }
 }
 
@@ -267,27 +310,52 @@ mod tests {
     use super::*;
     use crate::test_rng::Rng;
 
-    /// Independent Python reference vectors: (a, b, a·b).
+    /// Independent Python reference vectors: (a, b, a * b).
     const VECTORS: [(u64, u64, u64); 3] = [
         (0x01090913877ed8ed, 0x66ab35ac2768468f, 0x50c4519dc383744a),
         (0xa7715ae18f12a3b5, 0x05743059f43fa4f5, 0xeb64cd9cd9cda6df),
         (0xbd3efb4705e79ddd, 0x3aff618604de4ae0, 0xc3d7a95fa9cb59bb),
     ];
 
+    /// Operands that exercise the reduction's spill: the top bits set, all bits set, and the identities.
+    const CORNERS: [u64; 6] = [0, 1, u64::MAX, 1 << 63, 0xF000_0000_0000_0000, R64];
+
+    /// Reference product: schoolbook multiply, then bit-by-bit long division by the modulus.
+    fn reference_mul(a: u64, b: u64) -> u64 {
+        let mut p = software::clmul(a, b);
+        // Clear bits 127..64 from the top, each with one shifted copy of x^64 + 0x1B.
+        for bit in (64..128).rev() {
+            if (p >> bit) & 1 != 0 {
+                p ^= ((1u128 << 64) | R64 as u128) << (bit - 64);
+            }
+        }
+        p as u64
+    }
+
     #[test]
     fn python_vectors() {
         for (a, b, c) in VECTORS {
             assert_eq!(F64(a) * F64(b), F64(c));
-            assert_eq!(software::mul(F64(a), F64(b)), F64(c));
+            assert_eq!(reference_mul(a, b), c);
         }
     }
 
     #[test]
-    fn optimized_mul_matches_software() {
+    fn mul_and_square_match_the_reference() {
         let mut rng = Rng::new(1);
-        for _ in 0..10_000 {
-            let (a, b) = (F64(rng.next_u64()), F64(rng.next_u64()));
-            assert_eq!(a * b, software::mul(a, b));
+        // Random operands, then every pair of corners.
+        let random = (0..10_000).map(|_| (rng.next_u64(), rng.next_u64()));
+        let corners = CORNERS.iter().flat_map(|&a| CORNERS.iter().map(move |&b| (a, b)));
+        for (a, b) in random.chain(corners) {
+            let want = reference_mul(a, b);
+            // The dispatched product and the portable composition agree with the reference.
+            assert_eq!((F64(a) * F64(b)).0, want);
+            assert_eq!(reduce(software::clmul(a, b)), want);
+            // The widening product is the carry-less product on every backend.
+            assert_eq!(mul_wide(a, b), software::clmul(a, b));
+            // The bit spread is the carry-less square, and squaring is the self-product.
+            assert_eq!(square_wide(a), software::clmul(a, a));
+            assert_eq!(F64(a).square(), F64(reference_mul(a, a)));
         }
     }
 
@@ -297,11 +365,10 @@ mod tests {
     fn neon_variants_match_software() {
         let mut rng = Rng::new(5);
         for _ in 0..10_000 {
-            let (a, b) = (F64(rng.next_u64()), F64(rng.next_u64()));
-            let want = software::mul(a, b);
+            let (a, b) = (rng.next_u64(), rng.next_u64());
             // SAFETY: aes target feature is enabled at compile time.
             unsafe {
-                assert_eq!(aarch64::mul_shift_tail(a, b), want);
+                assert_eq!(aarch64::mul_shift_tail(F64(a), F64(b)).0, reference_mul(a, b));
             }
         }
     }
@@ -309,12 +376,12 @@ mod tests {
     #[test]
     fn inverses() {
         let mut rng = Rng::new(2);
-        for _ in 0..200 {
-            let a = F64(rng.next_u64());
-            if !a.is_zero() {
-                assert_eq!(a * a.inv(), F64::ONE);
-            }
+        // Random elements, then the nonzero corners.
+        let elements = (0..200).map(|_| rng.next_u64()).chain(CORNERS.into_iter().skip(1));
+        for a in elements.map(F64) {
+            assert_eq!(a * a.inv(), F64::ONE);
         }
+        // Zero has no inverse and maps to zero by convention.
         assert_eq!(F64::ZERO.inv(), F64::ZERO);
     }
 

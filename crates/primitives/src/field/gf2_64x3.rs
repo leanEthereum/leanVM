@@ -1,39 +1,34 @@
-//! `K = GF(2)[x]/(x^64 + x^4 + x^3 + x + 1)`,
-//! `R64 = 0x1B = x^4 + x^3 + x + 1`, and
-//! `F192 = K[y]/(y^3 + y + 1)`.
+//! The extension field `F192 = K[y] / (y^3 + y + 1)` over the base field `K = GF(2^64)`.
 //!
-//! Layout: coefficients `c0 + c1·y + c2·y²`, each a GF(2^64) element (bit i of
-//! `cj` = coeff of x^i).
+//! An element is `c0 + c1*y + c2*y^2`, each coefficient a base-field element.
+//! A product runs in three stages:
 //!
-//! Hardware strategy (aarch64 + AES/PMULL):
-//! - one base-field 64×64 product = one `vmull_p64`;
-//! - extension mult = 3-term Karatsuba (6 PMULL, optimal for 3-term bilinear
-//!   over GF(2)) producing 5 unreduced 128-bit coefficients;
-//! - y-fold (y³ = y+1, y⁴ = y²+y) on the unreduced coefficients: 4 NEON XORs;
-//! - base reduction per coefficient: 1 PMULL by 0x1B; the ≤4-bit overflow is
-//!   folded with 3 scalar shift-XORs (0x1B·overflow fits in 8 bits, exact).
+//! ```text
+//!     Karatsuba   6 carry-less 64x64 products  ->  5 coefficients of y^0..y^4, 128 bits each
+//!     y-fold      y^3 = y + 1, y^4 = y^2 + y   ->  3 coefficients of y^0..y^2, 128 bits each
+//!     reduce      x^64 = x^4 + x^3 + x + 1     ->  3 coefficients of y^0..y^2,  64 bits each
+//! ```
 //!
-//! Total: 9 PMULL per multiplication. Squaring uses 3 PMULL + 3 reduction
-//! PMULL = 6.
-//!
-//! Why no packed-lane tricks: PMULL is one 64×64 product per instruction; base
-//! coefficients already fill the operand exactly, so unlike GF(2^32), no
-//! width is wasted.
+//! Both folds are GF(2)-linear, so they commute with XOR.
+//! A sum of products therefore accumulates after the y-fold and reduces once.
 
 use core::ops::{Add, AddAssign, BitXor, BitXorAssign, Mul, MulAssign};
 
 use serde::{Deserialize, Serialize};
 
-use super::gf2_64::F64;
+#[cfg(not(all(target_arch = "x86_64", target_feature = "pclmulqdq")))]
+use super::gf2_64::mul_wide;
+use super::gf2_64::{F64, reduce, square_wide};
 
-/// Reduction constant of the base field: x^64 ≡ x^4 + x^3 + x + 1.
-pub const R64: u64 = 0x1B;
-
+/// An element `c0 + c1*y + c2*y^2`; bit `i` of each coefficient is its coefficient of `x^i`.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[repr(C)]
 pub struct F192 {
+    /// The coefficient of `y^0`.
     pub c0: u64,
+    /// The coefficient of `y^1`.
     pub c1: u64,
+    /// The coefficient of `y^2`.
     pub c2: u64,
 }
 
@@ -53,9 +48,7 @@ impl F192 {
         self.c0 == 0 && self.c1 == 0 && self.c2 == 0
     }
 
-    /// Unreduced product: the 5 raw 128-bit polynomial coefficients, before the
-    /// y-fold and base reductions. XOR-accumulate many of these and `.reduce()`
-    /// once. Both folds are GF(2)-linear, so they commute with XOR.
+    /// Product without the base-field reduction, for XOR accumulation.
     #[inline]
     pub fn mul_unreduced(self, rhs: Self) -> F192Unreduced {
         #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
@@ -77,29 +70,48 @@ impl F192 {
         }
     }
 
-    /// Mixed product by a base-field scalar. Since the multiplier has no
-    /// `y` component, the three coefficients multiply independently in K.
+    /// Mixed product by a base-field scalar.
+    ///
+    /// The scalar has no `y` component, so the three coefficients multiply independently in `K`.
     #[inline]
     pub fn mul_base(self, k: F64) -> Self {
-        Self {
-            c0: (F64(self.c0) * k).0,
-            c1: (F64(self.c1) * k).0,
-            c2: (F64(self.c2) * k).0,
+        #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
+        {
+            // Each base product keeps its reduction on the NEON side.
+            Self {
+                c0: (F64(self.c0) * k).0,
+                c1: (F64(self.c1) * k).0,
+                c2: (F64(self.c2) * k).0,
+            }
+        }
+        #[cfg(not(all(target_arch = "aarch64", target_feature = "aes")))]
+        {
+            self.mul_base_unreduced(k).reduce()
         }
     }
 
-    /// Unreduced mixed product for deferred inner-product accumulation.
+    /// Mixed product by a base-field scalar without the reduction, for XOR accumulation.
     #[inline]
-    pub fn mul_base_unreduced(self, k: F64) -> F192BaseUnreduced {
-        F192BaseUnreduced {
-            p0: kclmul(self.c0, k.0),
-            p1: kclmul(self.c1, k.0),
-            p2: kclmul(self.c2, k.0),
+    pub fn mul_base_unreduced(self, k: F64) -> F192Unreduced {
+        #[cfg(all(target_arch = "x86_64", target_feature = "pclmulqdq"))]
+        {
+            // SAFETY: pclmulqdq is enabled at compile time.
+            unsafe { x86_64::mul_base_unreduced(self, k) }
+        }
+        #[cfg(not(all(target_arch = "x86_64", target_feature = "pclmulqdq")))]
+        {
+            F192Unreduced::from_wide([self.c0, self.c1, self.c2].map(|c| mul_wide(c, k.0)))
         }
     }
 
-    /// Squaring. Char-2 cross terms vanish: (c0 + c1·y + c2·y²)² =
-    /// c0² + c1²·y² + c2²·y⁴, so 3 PMULL + reduction instead of 6.
+    /// Squaring, with 3 base-field squarings instead of 6 products.
+    ///
+    /// Cross terms vanish in characteristic 2:
+    ///
+    /// ```text
+    ///     (c0 + c1*y + c2*y^2)^2 = c0^2 + c1^2*y^2 + c2^2*y^4
+    ///                            = c0^2 + c2^2*y + (c1^2 + c2^2)*y^2     (y^4 = y^2 + y)
+    /// ```
     #[inline]
     pub fn square(self) -> Self {
         #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
@@ -107,17 +119,12 @@ impl F192 {
             // SAFETY: aes target feature is enabled at compile time.
             unsafe { aarch64::square_neon(self) }
         }
-        #[cfg(all(target_arch = "x86_64", target_feature = "pclmulqdq"))]
+        #[cfg(not(all(target_arch = "aarch64", target_feature = "aes")))]
         {
-            // SAFETY: pclmulqdq is enabled at compile time.
-            unsafe { x86_64::square(self) }
-        }
-        #[cfg(not(any(
-            all(target_arch = "aarch64", target_feature = "aes"),
-            all(target_arch = "x86_64", target_feature = "pclmulqdq")
-        )))]
-        {
-            software::square(self)
+            // Square each coefficient as a 128-bit polynomial.
+            let [s0, s1, s2] = [self.c0, self.c1, self.c2].map(square_wide);
+            // Fold y^4 back onto y^2 and y, then reduce each coefficient once.
+            F192Unreduced::from_wide([s0, s2, s1 ^ s2]).reduce()
         }
     }
 
@@ -189,17 +196,9 @@ impl Mul for F192 {
             // SAFETY: aes target feature is enabled at compile time.
             unsafe { aarch64::mul_karatsuba(self, rhs) }
         }
-        #[cfg(all(target_arch = "x86_64", target_feature = "pclmulqdq"))]
+        #[cfg(not(all(target_arch = "aarch64", target_feature = "aes")))]
         {
-            // SAFETY: pclmulqdq is enabled at compile time.
-            unsafe { x86_64::mul_karatsuba(self, rhs) }
-        }
-        #[cfg(not(any(
-            all(target_arch = "aarch64", target_feature = "aes"),
-            all(target_arch = "x86_64", target_feature = "pclmulqdq")
-        )))]
-        {
-            software::mul(self, rhs)
+            self.mul_unreduced(rhs).reduce()
         }
     }
 }
@@ -237,7 +236,7 @@ pub fn mul4(a: [F192; 4], b: [F192; 4]) -> [F192; 4] {
     }
 }
 
-/// [`mul4`] without the reduction, for a caller XOR-accumulating many products.
+/// Four independent products without the reduction, for a caller XOR-accumulating many products.
 #[inline(always)]
 pub fn mul_unreduced4(a: [F192; 4], b: [F192; 4]) -> [F192Unreduced; 4] {
     #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
@@ -255,41 +254,49 @@ pub fn mul_unreduced4(a: [F192; 4], b: [F192; 4]) -> [F192Unreduced; 4] {
         let hi = x86_64::mul_unreduced_vec2([a[2], a[3]], [b[2], b[3]]);
         [lo[0], lo[1], hi[0], hi[1]]
     };
-    #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
-    // SAFETY: PMULL is enabled at compile time.
-    return unsafe { std::array::from_fn(|i| aarch64::mul_unreduced_neon(a[i], b[i])) };
-    #[cfg(not(any(
-        all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"),
-        all(target_arch = "aarch64", target_feature = "aes")
-    )))]
+    #[cfg(not(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2")))]
     std::array::from_fn(|i| a[i].mul_unreduced(b[i]))
 }
 
-// ---------------------------------------------------------------------------
-// Deferred reduction: 5 unreduced 128-bit coefficients, XOR-accumulable.
-// ---------------------------------------------------------------------------
-
-/// Unreduced F192 product: the degree-4 polynomial product over K before any
-/// reduction. `w[2k], w[2k+1]` = (lo, hi) of the 128-bit coefficient of y^k.
+/// An F192 value whose coefficients are not yet reduced modulo the base polynomial.
+///
+/// Coefficient `k` is the 128-bit carry-less polynomial multiplying `y^k`, for `k < 3`.
+/// Products land here already folded by `y^3 = y + 1`, so a sum of them is a plain XOR.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct F192Unreduced {
-    pub w: [u64; 10],
+    /// The 128-bit coefficients of `y^0`, `y^1`, `y^2`, each as its `[low, high]` words.
+    ///
+    /// Words rather than `u128`, so that accumulation compiles to vector XORs.
+    coeffs: [[u64; 2]; 3],
 }
 
 impl F192Unreduced {
-    pub const ZERO: Self = Self { w: [0; 10] };
+    pub const ZERO: Self = Self { coeffs: [[0; 2]; 3] };
 
+    /// Build from three 128-bit coefficients.
+    #[inline]
+    fn from_wide(coeffs: [u128; 3]) -> Self {
+        Self {
+            coeffs: coeffs.map(|c| [c as u64, (c >> 64) as u64]),
+        }
+    }
+
+    /// Reduce each coefficient modulo the base polynomial.
     #[inline]
     pub fn reduce(self) -> F192 {
-        let w = &self.w;
-        // y-fold: y³ = y + 1, y⁴ = y² + y (on 128-bit coefficients).
-        let d0 = (w[0] ^ w[6], w[1] ^ w[7]);
-        let d1 = (w[2] ^ w[6] ^ w[8], w[3] ^ w[7] ^ w[9]);
-        let d2 = (w[4] ^ w[8], w[5] ^ w[9]);
-        F192 {
-            c0: base_reduce_128(d0.0, d0.1),
-            c1: base_reduce_128(d1.0, d1.1),
-            c2: base_reduce_128(d2.0, d2.1),
+        let [c0, c1, c2] = self
+            .coeffs
+            .map(|[lo, hi]| reduce(u128::from(hi) << 64 | u128::from(lo)));
+        F192 { c0, c1, c2 }
+    }
+}
+
+impl From<F192> for F192Unreduced {
+    /// Embed a reduced element: each coefficient is its own 128-bit polynomial.
+    #[inline]
+    fn from(e: F192) -> Self {
+        Self {
+            coeffs: [e.c0, e.c1, e.c2].map(|c| [c, 0]),
         }
     }
 }
@@ -297,169 +304,27 @@ impl F192Unreduced {
 impl BitXor for F192Unreduced {
     type Output = Self;
     #[inline]
-    fn bitxor(self, rhs: Self) -> Self {
-        let mut w = self.w;
-        for i in 0..10 {
-            w[i] ^= rhs.w[i];
-        }
-        Self { w }
+    fn bitxor(mut self, rhs: Self) -> Self {
+        self ^= rhs;
+        self
     }
 }
 
 impl BitXorAssign for F192Unreduced {
     #[inline]
     fn bitxor_assign(&mut self, rhs: Self) {
-        for i in 0..10 {
-            self.w[i] ^= rhs.w[i];
+        for (acc, x) in self.coeffs.as_flattened_mut().iter_mut().zip(rhs.coeffs.as_flattened()) {
+            *acc ^= x;
         }
     }
 }
 
-/// Three raw K products from multiplying an F192 element by an F64 scalar.
-/// They can be XOR-accumulated and reduced once per coefficient.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub struct F192BaseUnreduced {
-    pub p0: u128,
-    pub p1: u128,
-    pub p2: u128,
-}
-
-impl F192BaseUnreduced {
-    pub const ZERO: Self = Self { p0: 0, p1: 0, p2: 0 };
-
-    #[inline]
-    pub fn reduce(self) -> F192 {
-        F192 {
-            c0: kreduce_u128(self.p0),
-            c1: kreduce_u128(self.p1),
-            c2: kreduce_u128(self.p2),
-        }
-    }
-}
-
-impl BitXor for F192BaseUnreduced {
-    type Output = Self;
-
-    #[inline]
-    fn bitxor(self, rhs: Self) -> Self {
-        Self {
-            p0: self.p0 ^ rhs.p0,
-            p1: self.p1 ^ rhs.p1,
-            p2: self.p2 ^ rhs.p2,
-        }
-    }
-}
-
-impl BitXorAssign for F192BaseUnreduced {
-    #[inline]
-    fn bitxor_assign(&mut self, rhs: Self) {
-        self.p0 ^= rhs.p0;
-        self.p1 ^= rhs.p1;
-        self.p2 ^= rhs.p2;
-    }
-}
-
-#[inline]
-fn kclmul(a: u64, b: u64) -> u128 {
-    #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
-    {
-        // SAFETY: aes is enabled at compile time.
-        unsafe {
-            core::mem::transmute::<core::arch::aarch64::uint64x2_t, u128>(crate::field::gf2_64::aarch64::pmull(a, b))
-        }
-    }
-    #[cfg(all(target_arch = "x86_64", target_feature = "pclmulqdq"))]
-    {
-        // SAFETY: pclmulqdq is enabled at compile time.
-        unsafe { core::mem::transmute::<core::arch::x86_64::__m128i, u128>(crate::field::gf2_64::x86_64::clmul(a, b)) }
-    }
-    #[cfg(not(any(
-        all(target_arch = "aarch64", target_feature = "aes"),
-        all(target_arch = "x86_64", target_feature = "pclmulqdq")
-    )))]
-    {
-        let (lo, hi) = clmul64(a, b);
-        lo as u128 | ((hi as u128) << 64)
-    }
-}
-
-#[inline]
-fn kreduce_u128(v: u128) -> u64 {
-    #[cfg(all(target_arch = "x86_64", target_feature = "pclmulqdq"))]
-    {
-        // SAFETY: pclmulqdq is enabled at compile time.
-        unsafe { crate::field::gf2_64::x86_64::reduce(core::mem::transmute::<u128, core::arch::x86_64::__m128i>(v)) }
-    }
-    #[cfg(not(all(target_arch = "x86_64", target_feature = "pclmulqdq")))]
-    {
-        base_reduce_128(v as u64, (v >> 64) as u64)
-    }
-}
-
-// ---------------------------------------------------------------------------
-// Base-field reduction mod x^64 + x^4 + x^3 + x + 1. Works on any target.
-// ---------------------------------------------------------------------------
-
-/// Fold a 128-bit carry-less product (lo, hi) into GF(2^64).
-/// x^64 ≡ x^4+x^3+x+1, so U·x^64 ≡ U ^ U<<1 ^ U<<3 ^ U<<4; the ≤4 bits that
-/// shift out past position 63 are folded once more (their product with 0x1B
-/// fits in 8 bits, exactly).
-#[inline]
-pub const fn base_reduce_128(lo: u64, hi: u64) -> u64 {
-    let f = hi ^ (hi << 1) ^ (hi << 3) ^ (hi << 4);
-    let ov = (hi >> 63) ^ (hi >> 61) ^ (hi >> 60); // bits shifted past 63
-    lo ^ f ^ ov ^ (ov << 1) ^ (ov << 3) ^ (ov << 4)
-}
-
-/// Portable 64×64 carry-less product, used by setup and fallback paths.
-pub(crate) fn clmul64(a: u64, b: u64) -> (u64, u64) {
-    let (mut lo, mut hi) = (0, 0);
-    for i in 0..64 {
-        if (a >> i) & 1 != 0 {
-            lo ^= b << i;
-            if i != 0 {
-                hi ^= b >> (64 - i);
-            }
-        }
-    }
-    (lo, hi)
-}
-
-/// Portable base-field helpers, reference-grade: the irreducibility proofs below
-/// need `K` arithmetic on raw `u64`s, outside the `F64` newtype.
-#[cfg(test)]
-pub mod base {
-    use super::{base_reduce_128, clmul64};
-
-    /// GF(2^64) multiply: carry-less 64×64 then fold.
-    pub fn mul(a: u64, b: u64) -> u64 {
-        let (lo, hi) = clmul64(a, b);
-        base_reduce_128(lo, hi)
-    }
-
-    pub fn square(a: u64) -> u64 {
-        mul(a, a)
-    }
-
-    /// Fermat inverse in GF(2^64): a^(2^64 − 2).
-    pub fn inv(a: u64) -> u64 {
-        let mut cur = square(a);
-        let mut r = cur;
-        for _ in 2..64 {
-            cur = square(cur);
-            r = mul(r, cur);
-        }
-        r
-    }
-}
-
-// ---------------------------------------------------------------------------
 // aarch64 + AES: PMULL-based multiplication variants.
-// ---------------------------------------------------------------------------
 
 #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
 pub mod aarch64 {
-    use super::{F192, F192Unreduced, R64};
+    use super::{F192, F192Unreduced};
+    use crate::field::gf2_64::R64;
     use core::arch::aarch64::*;
     use core::mem::transmute;
 
@@ -481,12 +346,9 @@ pub mod aarch64 {
     /// folding the first's ≤4-bit overflow exactly, since `ov·0x1B` fits in 8
     /// bits and lands in lane 0.
     ///
-    /// The overflow used to be folded with shift-XORs on the scalar side, on the
-    /// premise that the vector pipes were PMULL-saturated and the scalar ports
-    /// free. They are not: PMULL retires at about the rate `eor` does here, so
-    /// the second product is nearly free while the three lane extractions the
-    /// scalar form needs are not. This is the fold
-    /// [`super::gf2_64::aarch64::reduce_pair_pmull4`] already uses.
+    /// PMULL retires at about the rate `eor` does here, so the second product
+    /// is nearly free while the three lane extractions a scalar fold needs are not.
+    /// The base field's NEON pair reduction uses the same fold.
     ///
     /// # Safety
     /// Requires the `aes` target feature.
@@ -537,6 +399,20 @@ pub mod aarch64 {
         }
     }
 
+    /// The y-fold of the five Karatsuba coefficients: `d0 = c0^c3, d1 = c1^c3^c4, d2 = c2^c4`.
+    ///
+    /// # Safety
+    /// Requires the `aes` target feature.
+    #[inline]
+    #[target_feature(enable = "aes")]
+    unsafe fn karatsuba_folded(a: F192, b: F192) -> [uint64x2_t; 3] {
+        // SAFETY: function carries the aes target feature.
+        unsafe {
+            let [c0, c1, c2, c3, c4] = karatsuba_coeffs(a, b);
+            [veorq_u64(c0, c3), veorq_u64(veorq_u64(c1, c3), c4), veorq_u64(c2, c4)]
+        }
+    }
+
     /// Karatsuba products, y-fold, then 3 PMULL base reductions. 9 PMULL
     /// total. Default `Mul` implementation.
     ///
@@ -548,40 +424,27 @@ pub mod aarch64 {
     pub unsafe fn mul_karatsuba(a: F192, b: F192) -> F192 {
         // SAFETY: function carries the aes target feature.
         unsafe {
-            let [c0, c1, c2, c3, c4] = karatsuba_coeffs(a, b);
-            // y-fold: d0 = c0^c3, d1 = c1^c3^c4, d2 = c2^c4.
+            let [d0, d1, d2] = karatsuba_folded(a, b);
             F192 {
-                c0: base_reduce(veorq_u64(c0, c3)),
-                c1: base_reduce(veorq_u64(veorq_u64(c1, c3), c4)),
-                c2: base_reduce(veorq_u64(c2, c4)),
+                c0: base_reduce(d0),
+                c1: base_reduce(d1),
+                c2: base_reduce(d2),
             }
         }
     }
 
-    /// Karatsuba products only, 6 PMULL, no reduction at all. The caller
-    /// XOR-accumulates the raw coefficients (inner products, sumcheck-style).
+    /// Karatsuba products and the y-fold, 6 PMULL, no base reduction.
+    /// The caller XOR-accumulates the raw coefficients (inner products, sumcheck-style).
     ///
     /// # Safety
     /// Requires the `aes` target feature; see [`mul_karatsuba`].
     #[inline]
     #[target_feature(enable = "aes")]
     pub unsafe fn mul_unreduced_neon(a: F192, b: F192) -> F192Unreduced {
-        // SAFETY: function carries the aes target feature.
+        // SAFETY: function carries the aes target feature; the reinterprets are between 128-bit values.
         unsafe {
-            let c = karatsuba_coeffs(a, b);
             F192Unreduced {
-                w: [
-                    vgetq_lane_u64::<0>(c[0]),
-                    vgetq_lane_u64::<1>(c[0]),
-                    vgetq_lane_u64::<0>(c[1]),
-                    vgetq_lane_u64::<1>(c[1]),
-                    vgetq_lane_u64::<0>(c[2]),
-                    vgetq_lane_u64::<1>(c[2]),
-                    vgetq_lane_u64::<0>(c[3]),
-                    vgetq_lane_u64::<1>(c[3]),
-                    vgetq_lane_u64::<0>(c[4]),
-                    vgetq_lane_u64::<1>(c[4]),
-                ],
+                coeffs: karatsuba_folded(a, b).map(|d| transmute::<uint64x2_t, [u64; 2]>(d)),
             }
         }
     }
@@ -610,379 +473,326 @@ pub mod aarch64 {
     }
 }
 
-// ---------------------------------------------------------------------------
-// x86-64 + PCLMULQDQ.
-// ---------------------------------------------------------------------------
-
+/// x86-64 kernels.
+///
+/// The carry-less multiplier is the scarce execution unit, so every kernel spends it only on products.
+/// Reductions run as shifts and XORs.
+/// A single product packs two operand coefficients per register and picks one with the CLMUL immediate:
+///
+/// ```text
+///     register     lo qword     hi qword       imm 0x00    imm 0x11
+///     r01          c0           c1             p0          p1
+///     s            c0 ^ c2      c1 ^ c2        p02         p12
+///     t            c2           c0 ^ c1        p2          p01
+/// ```
+///
+/// The batched kernels instead place one product per 128-bit lane and reduce every lane at once.
 #[cfg(all(target_arch = "x86_64", target_feature = "pclmulqdq"))]
 pub mod x86_64 {
-    use super::{F192, F192Unreduced, kclmul};
-    use crate::field::gf2_64::x86_64::clmul;
+    use super::{F192, F192Unreduced};
+    use crate::field::gf2_64::F64;
     use core::arch::x86_64::*;
+    use core::mem::transmute;
 
-    /// The six Karatsuba products combined into the 5 coefficients of the
-    /// degree-4 product over `K`, kept in vector registers.
-    ///
-    /// # Safety
-    ///
-    /// The caller must run on a CPU with PCLMULQDQ and SSE2 support.
-    #[inline]
-    #[target_feature(enable = "pclmulqdq", enable = "sse2")]
-    unsafe fn karatsuba_coeffs(a: F192, b: F192) -> [__m128i; 5] {
-        // SAFETY: the function carries pclmulqdq.
-        unsafe {
-            let p0 = clmul(a.c0, b.c0);
-            let p1 = clmul(a.c1, b.c1);
-            let p2 = clmul(a.c2, b.c2);
-            let p01 = clmul(a.c0 ^ a.c1, b.c0 ^ b.c1);
-            let p02 = clmul(a.c0 ^ a.c2, b.c0 ^ b.c2);
-            let p12 = clmul(a.c1 ^ a.c2, b.c1 ^ b.c2);
-
-            // c0 = p0                    c3 = p12 ^ p1 ^ p2
-            // c1 = p01 ^ p0 ^ p1         c4 = p2
-            // c2 = p02 ^ p0 ^ p1 ^ p2
-            let t01 = _mm_xor_si128(p0, p1);
-            let t12 = _mm_xor_si128(p1, p2);
-            [
-                p0,
-                _mm_xor_si128(p01, t01),
-                _mm_xor_si128(_mm_xor_si128(p02, p0), t12),
-                _mm_xor_si128(p12, t12),
-                p2,
-            ]
-        }
+    /// Two 64-bit words as one register, `lo` in the low qword.
+    #[inline(always)]
+    fn pair(lo: u64, hi: u64) -> __m128i {
+        // SAFETY: SSE2 is part of the x86-64 baseline.
+        unsafe { _mm_set_epi64x(hi as i64, lo as i64) }
     }
 
-    /// Fold one 128-bit coefficient into GF(2^64), moving it out of the vector
-    /// side once, as (lo, hi).
+    /// The y-folded Karatsuba product of one pair.
     ///
     /// # Safety
     ///
-    /// The caller must run on a CPU with SSE2 support.
+    /// Requires the `pclmulqdq` target feature.
     #[inline]
-    #[target_feature(enable = "sse2")]
-    unsafe fn base_reduce(d: __m128i) -> u64 {
-        super::base_reduce_128(
-            _mm_cvtsi128_si64(d) as u64,
-            _mm_cvtsi128_si64(_mm_unpackhi_epi64(d, d)) as u64,
-        )
+    #[target_feature(enable = "pclmulqdq")]
+    unsafe fn karatsuba(a: F192, b: F192) -> [__m128i; 3] {
+        // Operand registers, as in the module table.
+        let (a01, b01) = (pair(a.c0, a.c1), pair(b.c0, b.c1));
+        let (at, bt) = (pair(a.c2, a.c0 ^ a.c1), pair(b.c2, b.c0 ^ b.c1));
+        // XOR the broadcast c2 into both qwords of r01.
+        let a_s = _mm_xor_si128(a01, _mm_unpacklo_epi64(at, at));
+        let b_s = _mm_xor_si128(b01, _mm_unpacklo_epi64(bt, bt));
+        // The six base products, two per register pair.
+        let p0 = _mm_clmulepi64_si128::<0x00>(a01, b01);
+        let p1 = _mm_clmulepi64_si128::<0x11>(a01, b01);
+        let p02 = _mm_clmulepi64_si128::<0x00>(a_s, b_s);
+        let p12 = _mm_clmulepi64_si128::<0x11>(a_s, b_s);
+        let p2 = _mm_clmulepi64_si128::<0x00>(at, bt);
+        let p01 = _mm_clmulepi64_si128::<0x11>(at, bt);
+        fold(p0, p1, p2, p01, p02, p12, |x, y| _mm_xor_si128(x, y))
     }
 
-    /// Karatsuba-3 with the tower fold kept in vector registers: 6 CLMUL, XOR
-    /// combination, y-fold, then the three base reductions. Default `Mul`
-    /// implementation.
+    /// Karatsuba recombination and y-fold in one step, for any register width.
+    ///
+    /// Composing the two linear maps leaves a short XOR network:
+    ///
+    /// ```text
+    ///     d0 = p0 ^ p1 ^ p2 ^ p12
+    ///     d1 = p0 ^ p01 ^ p12
+    ///     d2 = p0 ^ p1 ^ p02
+    /// ```
+    #[inline(always)]
+    fn fold<V: Copy>(p0: V, p1: V, p2: V, p01: V, p02: V, p12: V, xor: impl Fn(V, V) -> V) -> [V; 3] {
+        // Shared by d0 and d1.
+        let q = xor(p0, p12);
+        [xor(xor(q, p1), p2), xor(q, p01), xor(xor(p0, p1), p02)]
+    }
+
+    /// One unreduced product.
     ///
     /// # Safety
     ///
-    /// The caller must run on a CPU with PCLMULQDQ and SSE2 support.
+    /// Requires the `pclmulqdq` target feature.
     #[inline]
-    #[target_feature(enable = "pclmulqdq", enable = "sse2")]
-    pub unsafe fn mul_karatsuba(a: F192, b: F192) -> F192 {
-        // SAFETY: the function carries pclmulqdq and sse2.
+    #[target_feature(enable = "pclmulqdq")]
+    pub unsafe fn mul_unreduced(a: F192, b: F192) -> F192Unreduced {
+        // SAFETY: the function carries pclmulqdq; the reinterprets are between 128-bit values.
         unsafe {
-            let [c0, c1, c2, c3, c4] = karatsuba_coeffs(a, b);
-            // y-fold: d0 = c0^c3, d1 = c1^c3^c4, d2 = c2^c4.
-            F192 {
-                c0: base_reduce(_mm_xor_si128(c0, c3)),
-                c1: base_reduce(_mm_xor_si128(_mm_xor_si128(c1, c3), c4)),
-                c2: base_reduce(_mm_xor_si128(c2, c4)),
+            F192Unreduced {
+                coeffs: karatsuba(a, b).map(|d| transmute::<__m128i, [u64; 2]>(d)),
             }
         }
     }
 
-    /// Six-product Karatsuba multiplication before either field reduction.
+    /// One unreduced mixed product: three base products from two operand registers.
     ///
     /// # Safety
     ///
-    /// The caller must run on a CPU with PCLMULQDQ and SSE2 support.
+    /// Requires the `pclmulqdq` target feature.
     #[inline]
-    #[target_feature(enable = "pclmulqdq", enable = "sse2")]
-    pub unsafe fn mul_unreduced(a: F192, b: F192) -> F192Unreduced {
-        let p0 = kclmul(a.c0, b.c0);
-        let p1 = kclmul(a.c1, b.c1);
-        let p2 = kclmul(a.c2, b.c2);
-        let p01 = kclmul(a.c0 ^ a.c1, b.c0 ^ b.c1);
-        let p02 = kclmul(a.c0 ^ a.c2, b.c0 ^ b.c2);
-        let p12 = kclmul(a.c1 ^ a.c2, b.c1 ^ b.c2);
-
-        let c1 = p01 ^ p0 ^ p1;
-        let c2 = p02 ^ p0 ^ p1 ^ p2;
-        let c3 = p12 ^ p1 ^ p2;
-        F192Unreduced {
-            w: [
-                p0 as u64,
-                (p0 >> 64) as u64,
-                c1 as u64,
-                (c1 >> 64) as u64,
-                c2 as u64,
-                (c2 >> 64) as u64,
-                c3 as u64,
-                (c3 >> 64) as u64,
-                p2 as u64,
-                (p2 >> 64) as u64,
-            ],
+    #[target_feature(enable = "pclmulqdq")]
+    pub unsafe fn mul_base_unreduced(a: F192, k: F64) -> F192Unreduced {
+        // [c0, c1] and [c2, 0] against [k, 0].
+        let a01 = pair(a.c0, a.c1);
+        let a2 = _mm_cvtsi64_si128(a.c2 as i64);
+        let k = _mm_cvtsi64_si128(k.0 as i64);
+        // Immediate 0x01 multiplies the high qword of the first operand by the low qword of the second.
+        let products = [
+            _mm_clmulepi64_si128::<0x00>(a01, k),
+            _mm_clmulepi64_si128::<0x01>(a01, k),
+            _mm_clmulepi64_si128::<0x00>(a2, k),
+        ];
+        // SAFETY: the reinterprets are between 128-bit values.
+        unsafe {
+            F192Unreduced {
+                coeffs: products.map(|p| transmute::<__m128i, [u64; 2]>(p)),
+            }
         }
     }
 
-    /// The six Karatsuba products of two independent pairs, combined into the
-    /// 5 coefficients of the degree-4 product over `K`, one pair per 128-bit
-    /// lane of a YMM register.
+    /// Lane-wise base reduction: qword `i` of the result is the reduction of `hi[i] * x^64 + lo[i]`.
+    ///
+    /// The same shift network as the scalar reduction, applied to every qword at once.
     ///
     /// # Safety
-    /// Requires VPCLMULQDQ and AVX2 support.
+    ///
+    /// Requires the `avx2` target feature.
+    #[cfg(target_feature = "avx2")]
+    #[inline]
+    #[target_feature(enable = "avx2")]
+    unsafe fn reduce_lanes256(lo: __m256i, hi: __m256i) -> __m256i {
+        // The bits of `hi * 0x1B` shifted past x^63.
+        let spill = _mm256_xor_si256(
+            _mm256_xor_si256(_mm256_srli_epi64::<63>(hi), _mm256_srli_epi64::<61>(hi)),
+            _mm256_srli_epi64::<60>(hi),
+        );
+        // lo ^ f(hi ^ spill), with f(v) = v ^ v<<1 ^ v<<3 ^ v<<4.
+        let v = _mm256_xor_si256(hi, spill);
+        let f = _mm256_xor_si256(
+            _mm256_xor_si256(v, _mm256_slli_epi64::<1>(v)),
+            _mm256_xor_si256(_mm256_slli_epi64::<3>(v), _mm256_slli_epi64::<4>(v)),
+        );
+        _mm256_xor_si256(lo, f)
+    }
+
+    /// Lane-wise base reduction on eight qwords; see the four-qword version.
+    ///
+    /// # Safety
+    ///
+    /// Requires the `avx512f` target feature.
+    #[cfg(target_feature = "avx512f")]
+    #[inline]
+    #[target_feature(enable = "avx512f")]
+    unsafe fn reduce_lanes512(lo: __m512i, hi: __m512i) -> __m512i {
+        // The bits of `hi * 0x1B` shifted past x^63.
+        let spill = _mm512_xor_si512(
+            _mm512_xor_si512(_mm512_srli_epi64::<63>(hi), _mm512_srli_epi64::<61>(hi)),
+            _mm512_srli_epi64::<60>(hi),
+        );
+        // lo ^ f(hi ^ spill), with f(v) = v ^ v<<1 ^ v<<3 ^ v<<4.
+        let v = _mm512_xor_si512(hi, spill);
+        let f = _mm512_xor_si512(
+            _mm512_xor_si512(v, _mm512_slli_epi64::<1>(v)),
+            _mm512_xor_si512(_mm512_slli_epi64::<3>(v), _mm512_slli_epi64::<4>(v)),
+        );
+        _mm512_xor_si512(lo, f)
+    }
+
+    /// The y-folded Karatsuba products of two pairs, one pair per 128-bit lane.
+    ///
+    /// # Safety
+    ///
+    /// Requires the `vpclmulqdq` and `avx2` target features.
     #[cfg(all(target_feature = "vpclmulqdq", target_feature = "avx2"))]
     #[inline]
     #[target_feature(enable = "vpclmulqdq", enable = "avx2")]
-    unsafe fn karatsuba_coeffs_vec2(a: [F192; 2], b: [F192; 2]) -> [__m256i; 5] {
-        let pack = |x0: u64, x1: u64| _mm256_set_epi64x(0, x1 as i64, 0, x0 as i64);
-        let (a0, a1, a2) = (pack(a[0].c0, a[1].c0), pack(a[0].c1, a[1].c1), pack(a[0].c2, a[1].c2));
-        let (b0, b1, b2) = (pack(b[0].c0, b[1].c0), pack(b[0].c1, b[1].c1), pack(b[0].c2, b[1].c2));
-        let p0 = _mm256_clmulepi64_epi128::<0x00>(a0, b0);
-        let p1 = _mm256_clmulepi64_epi128::<0x00>(a1, b1);
-        let p2 = _mm256_clmulepi64_epi128::<0x00>(a2, b2);
-        let p01 = _mm256_clmulepi64_epi128::<0x00>(_mm256_xor_si256(a0, a1), _mm256_xor_si256(b0, b1));
-        let p02 = _mm256_clmulepi64_epi128::<0x00>(_mm256_xor_si256(a0, a2), _mm256_xor_si256(b0, b2));
-        let p12 = _mm256_clmulepi64_epi128::<0x00>(_mm256_xor_si256(a1, a2), _mm256_xor_si256(b1, b2));
-        [
-            p0,
-            _mm256_xor_si256(p01, _mm256_xor_si256(p0, p1)),
-            _mm256_xor_si256(p02, _mm256_xor_si256(p0, _mm256_xor_si256(p1, p2))),
-            _mm256_xor_si256(p12, _mm256_xor_si256(p1, p2)),
-            p2,
-        ]
+    unsafe fn karatsuba_vec2(a: [F192; 2], b: [F192; 2]) -> [__m256i; 3] {
+        // One coefficient of both elements, in the low qword of each lane.
+        let pack = |c: [u64; 2]| _mm256_set_epi64x(0, c[1] as i64, 0, c[0] as i64);
+        let (a0, a1, a2) = (pack(a.map(|e| e.c0)), pack(a.map(|e| e.c1)), pack(a.map(|e| e.c2)));
+        let (b0, b1, b2) = (pack(b.map(|e| e.c0)), pack(b.map(|e| e.c1)), pack(b.map(|e| e.c2)));
+        // One instruction per base product covers both lanes.
+        let mul = |x, y| _mm256_clmulepi64_epi128::<0x00>(x, y);
+        let xor = |x, y| _mm256_xor_si256(x, y);
+        fold(
+            mul(a0, b0),
+            mul(a1, b1),
+            mul(a2, b2),
+            mul(xor(a0, a1), xor(b0, b1)),
+            mul(xor(a0, a2), xor(b0, b2)),
+            mul(xor(a1, a2), xor(b1, b2)),
+            xor,
+        )
     }
 
-    /// Two independent tower-field products in the two 128-bit lanes of a
-    /// YMM register. Each of the six Karatsuba base products is issued once
-    /// for both lanes, then the tower and base reductions stay packed.
+    /// Two independent products in the two 128-bit lanes of a YMM register.
     ///
     /// # Safety
-    /// Requires VPCLMULQDQ and AVX2 support.
+    ///
+    /// Requires the `vpclmulqdq` and `avx2` target features.
     #[cfg(all(target_feature = "vpclmulqdq", target_feature = "avx2"))]
     #[inline]
     #[target_feature(enable = "vpclmulqdq", enable = "avx2")]
     pub unsafe fn mul_vec2(a: [F192; 2], b: [F192; 2]) -> [F192; 2] {
-        #[inline]
-        #[target_feature(enable = "vpclmulqdq", enable = "avx2")]
-        unsafe fn reduce_base(value: __m256i) -> __m256i {
-            let modulus = _mm256_set1_epi64x(super::R64 as i64);
-            let first = _mm256_clmulepi64_epi128::<0x01>(value, modulus);
-            let second = _mm256_clmulepi64_epi128::<0x01>(first, modulus);
-            _mm256_xor_si256(value, _mm256_xor_si256(first, second))
-        }
-
+        // SAFETY: the function carries both features.
         unsafe {
-            let [p0, p1, p2, p3, p4] = karatsuba_coeffs_vec2(a, b);
-            let d0 = reduce_base(_mm256_xor_si256(p0, p3));
-            let d1 = reduce_base(_mm256_xor_si256(p1, _mm256_xor_si256(p3, p4)));
-            let d2 = reduce_base(_mm256_xor_si256(p2, p4));
-            let mut c0 = [0u64; 4];
-            let mut c1 = [0u64; 4];
-            let mut c2 = [0u64; 4];
-            _mm256_storeu_si256(c0.as_mut_ptr().cast(), d0);
-            _mm256_storeu_si256(c1.as_mut_ptr().cast(), d1);
-            _mm256_storeu_si256(c2.as_mut_ptr().cast(), d2);
-            [F192::new(c0[0], c1[0], c2[0]), F192::new(c0[2], c1[2], c2[2])]
+            let [d0, d1, d2] = karatsuba_vec2(a, b);
+            // Lane i of c01 is [c0_i, c1_i]; the low qword of lane i of c2 is c2_i.
+            let c01 = reduce_lanes256(_mm256_unpacklo_epi64(d0, d1), _mm256_unpackhi_epi64(d0, d1));
+            let c2 = reduce_lanes256(d2, _mm256_unpackhi_epi64(d2, d2));
+            let (w01, w2) = (transmute::<__m256i, [u64; 4]>(c01), transmute::<__m256i, [u64; 4]>(c2));
+            std::array::from_fn(|i| F192::new(w01[2 * i], w01[2 * i + 1], w2[2 * i]))
         }
     }
 
-    /// Two independent unreduced products, packed exactly as [`mul_vec2`].
+    /// Two independent unreduced products, packed as for the reduced version.
     ///
     /// # Safety
-    /// Requires VPCLMULQDQ and AVX2 support.
+    ///
+    /// Requires the `vpclmulqdq` and `avx2` target features.
     #[cfg(all(target_feature = "vpclmulqdq", target_feature = "avx2"))]
     #[inline]
     #[target_feature(enable = "vpclmulqdq", enable = "avx2")]
     pub unsafe fn mul_unreduced_vec2(a: [F192; 2], b: [F192; 2]) -> [F192Unreduced; 2] {
+        // SAFETY: the function carries both features; lane i of each register is one coefficient.
         unsafe {
-            let mut words = [[0u64; 4]; 5];
-            for (out, value) in words.iter_mut().zip(karatsuba_coeffs_vec2(a, b)) {
-                _mm256_storeu_si256(out.as_mut_ptr().cast(), value);
-            }
-            std::array::from_fn(|lane| {
-                let lo = 2 * lane;
-                F192Unreduced {
-                    w: std::array::from_fn(|word| words[word / 2][lo + word % 2]),
-                }
+            let d = karatsuba_vec2(a, b).map(|d| transmute::<__m256i, [[u64; 2]; 2]>(d));
+            std::array::from_fn(|i| F192Unreduced {
+                coeffs: [d[0][i], d[1][i], d[2][i]],
             })
         }
     }
 
-    /// The six Karatsuba products of four independent pairs, combined into the
-    /// 5 coefficients of the degree-4 product over `K`, one pair per 128-bit
-    /// lane of a ZMM register.
+    /// The y-folded Karatsuba products of four pairs, one pair per 128-bit lane.
     ///
     /// # Safety
-    /// Requires VPCLMULQDQ and AVX-512F support.
+    ///
+    /// Requires the `vpclmulqdq` and `avx512f` target features.
     #[cfg(all(target_feature = "vpclmulqdq", target_feature = "avx512f"))]
     #[inline]
     #[target_feature(enable = "vpclmulqdq", enable = "avx512f")]
-    unsafe fn karatsuba_coeffs_vec4(a: [F192; 4], b: [F192; 4]) -> [__m512i; 5] {
-        let pack = |values: [F192; 4], coefficient: usize| {
-            let get = |value: F192| [value.c0, value.c1, value.c2][coefficient] as i64;
-            _mm512_set_epi64(
-                0,
-                get(values[3]),
-                0,
-                get(values[2]),
-                0,
-                get(values[1]),
-                0,
-                get(values[0]),
-            )
-        };
-        let (a0, a1, a2) = (pack(a, 0), pack(a, 1), pack(a, 2));
-        let (b0, b1, b2) = (pack(b, 0), pack(b, 1), pack(b, 2));
-        let p0 = _mm512_clmulepi64_epi128::<0x00>(a0, b0);
-        let p1 = _mm512_clmulepi64_epi128::<0x00>(a1, b1);
-        let p2 = _mm512_clmulepi64_epi128::<0x00>(a2, b2);
-        let p01 = _mm512_clmulepi64_epi128::<0x00>(_mm512_xor_si512(a0, a1), _mm512_xor_si512(b0, b1));
-        let p02 = _mm512_clmulepi64_epi128::<0x00>(_mm512_xor_si512(a0, a2), _mm512_xor_si512(b0, b2));
-        let p12 = _mm512_clmulepi64_epi128::<0x00>(_mm512_xor_si512(a1, a2), _mm512_xor_si512(b1, b2));
-        [
-            p0,
-            _mm512_xor_si512(p01, _mm512_xor_si512(p0, p1)),
-            _mm512_xor_si512(p02, _mm512_xor_si512(p0, _mm512_xor_si512(p1, p2))),
-            _mm512_xor_si512(p12, _mm512_xor_si512(p1, p2)),
-            p2,
-        ]
+    unsafe fn karatsuba_vec4(a: [F192; 4], b: [F192; 4]) -> [__m512i; 3] {
+        // One coefficient of all four elements, in the low qword of each lane.
+        let pack = |c: [u64; 4]| _mm512_set_epi64(0, c[3] as i64, 0, c[2] as i64, 0, c[1] as i64, 0, c[0] as i64);
+        let (a0, a1, a2) = (pack(a.map(|e| e.c0)), pack(a.map(|e| e.c1)), pack(a.map(|e| e.c2)));
+        let (b0, b1, b2) = (pack(b.map(|e| e.c0)), pack(b.map(|e| e.c1)), pack(b.map(|e| e.c2)));
+        // One instruction per base product covers all four lanes.
+        let mul = |x, y| _mm512_clmulepi64_epi128::<0x00>(x, y);
+        let xor = |x, y| _mm512_xor_si512(x, y);
+        fold(
+            mul(a0, b0),
+            mul(a1, b1),
+            mul(a2, b2),
+            mul(xor(a0, a1), xor(b0, b1)),
+            mul(xor(a0, a2), xor(b0, b2)),
+            mul(xor(a1, a2), xor(b1, b2)),
+            xor,
+        )
     }
 
-    /// Four independent tower-field products in four AVX-512 128-bit lanes.
+    /// Four independent products in the four 128-bit lanes of a ZMM register.
     ///
     /// # Safety
-    /// Requires VPCLMULQDQ and AVX-512F support.
+    ///
+    /// Requires the `vpclmulqdq` and `avx512f` target features.
     #[cfg(all(target_feature = "vpclmulqdq", target_feature = "avx512f"))]
     #[inline]
     #[target_feature(enable = "vpclmulqdq", enable = "avx512f")]
     pub unsafe fn mul_vec4(a: [F192; 4], b: [F192; 4]) -> [F192; 4] {
-        #[inline]
-        #[target_feature(enable = "vpclmulqdq", enable = "avx512f")]
-        unsafe fn reduce_base(value: __m512i) -> __m512i {
-            let modulus = _mm512_set1_epi64(super::R64 as i64);
-            let first = _mm512_clmulepi64_epi128::<0x01>(value, modulus);
-            let second = _mm512_clmulepi64_epi128::<0x01>(first, modulus);
-            _mm512_xor_si512(value, _mm512_xor_si512(first, second))
-        }
-
+        // SAFETY: the function carries both features.
         unsafe {
-            let [p0, p1, p2, p3, p4] = karatsuba_coeffs_vec4(a, b);
-            let d0 = reduce_base(_mm512_xor_si512(p0, p3));
-            let d1 = reduce_base(_mm512_xor_si512(p1, _mm512_xor_si512(p3, p4)));
-            let d2 = reduce_base(_mm512_xor_si512(p2, p4));
-            let mut c0 = [0u64; 8];
-            let mut c1 = [0u64; 8];
-            let mut c2 = [0u64; 8];
-            _mm512_storeu_si512(c0.as_mut_ptr().cast(), d0);
-            _mm512_storeu_si512(c1.as_mut_ptr().cast(), d1);
-            _mm512_storeu_si512(c2.as_mut_ptr().cast(), d2);
-            std::array::from_fn(|lane| F192::new(c0[2 * lane], c1[2 * lane], c2[2 * lane]))
+            let [d0, d1, d2] = karatsuba_vec4(a, b);
+            // Lane i of c01 is [c0_i, c1_i]; the low qword of lane i of c2 is c2_i.
+            let c01 = reduce_lanes512(_mm512_unpacklo_epi64(d0, d1), _mm512_unpackhi_epi64(d0, d1));
+            let c2 = reduce_lanes512(d2, _mm512_unpackhi_epi64(d2, d2));
+            let (w01, w2) = (transmute::<__m512i, [u64; 8]>(c01), transmute::<__m512i, [u64; 8]>(c2));
+            std::array::from_fn(|i| F192::new(w01[2 * i], w01[2 * i + 1], w2[2 * i]))
         }
     }
 
-    /// Four independent unreduced products in four AVX-512 lanes.
+    /// Four independent unreduced products, packed as for the reduced version.
     ///
     /// # Safety
-    /// Requires VPCLMULQDQ and AVX-512F support.
+    ///
+    /// Requires the `vpclmulqdq` and `avx512f` target features.
     #[cfg(all(target_feature = "vpclmulqdq", target_feature = "avx512f"))]
     #[inline]
     #[target_feature(enable = "vpclmulqdq", enable = "avx512f")]
     pub unsafe fn mul_unreduced_vec4(a: [F192; 4], b: [F192; 4]) -> [F192Unreduced; 4] {
+        // SAFETY: the function carries both features; lane i of each register is one coefficient.
         unsafe {
-            let mut words = [[0u64; 8]; 5];
-            for (out, value) in words.iter_mut().zip(karatsuba_coeffs_vec4(a, b)) {
-                _mm512_storeu_si512(out.as_mut_ptr().cast(), value);
-            }
-            std::array::from_fn(|lane| {
-                let lo = 2 * lane;
-                F192Unreduced {
-                    w: std::array::from_fn(|word| words[word / 2][lo + word % 2]),
-                }
+            let d = karatsuba_vec4(a, b).map(|d| transmute::<__m512i, [[u64; 2]; 4]>(d));
+            std::array::from_fn(|i| F192Unreduced {
+                coeffs: [d[0][i], d[1][i], d[2][i]],
             })
         }
     }
-
-    /// Three carry-less squares followed by the common F192 reduction.
-    ///
-    /// # Safety
-    ///
-    /// The caller must run on a CPU with PCLMULQDQ and SSE2 support.
-    #[inline]
-    #[target_feature(enable = "pclmulqdq", enable = "sse2")]
-    pub unsafe fn square(a: F192) -> F192 {
-        let s0 = kclmul(a.c0, a.c0);
-        let s1 = kclmul(a.c1, a.c1);
-        let s2 = kclmul(a.c2, a.c2);
-        F192Unreduced {
-            w: [
-                s0 as u64,
-                (s0 >> 64) as u64,
-                0,
-                0,
-                s1 as u64,
-                (s1 >> 64) as u64,
-                0,
-                0,
-                s2 as u64,
-                (s2 >> 64) as u64,
-            ],
-        }
-        .reduce()
-    }
 }
 
-// ---------------------------------------------------------------------------
-// Software fallback: portable, also the reference the NEON path is tested
-// against.
-// ---------------------------------------------------------------------------
-
+/// Portable fallback, and the reference every accelerated path is tested against.
 pub mod software {
-    use super::{F192, F192Unreduced, base_reduce_128, clmul64};
+    use super::{F192, F192Unreduced};
+    use crate::field::gf2_64::software::clmul;
 
-    /// Schoolbook 9-product unreduced coefficients.
+    /// Schoolbook: nine base products into the five coefficients of y^0..y^4, then the y-fold.
     pub fn mul_unreduced(a: F192, b: F192) -> F192Unreduced {
-        let a_ = [a.c0, a.c1, a.c2];
-        let b_ = [b.c0, b.c1, b.c2];
-        let mut c = [(0u64, 0u64); 5];
+        let (a, b) = ([a.c0, a.c1, a.c2], [b.c0, b.c1, b.c2]);
+        let mut e = [0u128; 5];
+        // a_i * b_j lands on y^(i + j).
         for i in 0..3 {
             for j in 0..3 {
-                let (lo, hi) = clmul64(a_[i], b_[j]);
-                c[i + j].0 ^= lo;
-                c[i + j].1 ^= hi;
+                e[i + j] ^= clmul(a[i], b[j]);
             }
         }
-        F192Unreduced {
-            w: [
-                c[0].0, c[0].1, c[1].0, c[1].1, c[2].0, c[2].1, c[3].0, c[3].1, c[4].0, c[4].1,
-            ],
-        }
+        // y^3 = y + 1 and y^4 = y^2 + y.
+        F192Unreduced::from_wide([e[0] ^ e[3], e[1] ^ e[3] ^ e[4], e[2] ^ e[4]])
     }
 
     pub fn mul(a: F192, b: F192) -> F192 {
         mul_unreduced(a, b).reduce()
     }
-
-    pub fn square(a: F192) -> F192 {
-        let (l0, h0) = clmul64(a.c0, a.c0);
-        let (l1, h1) = clmul64(a.c1, a.c1);
-        let (l2, h2) = clmul64(a.c2, a.c2);
-        // Squares land on y^0, y^2, y^4; y^4 = y^2 + y.
-        F192 {
-            c0: base_reduce_128(l0, h0),
-            c1: base_reduce_128(l2, h2),
-            c2: base_reduce_128(l1 ^ l2, h1 ^ h2),
-        }
-    }
 }
 
-// ---------------------------------------------------------------------------
-// Tests: NEON vs software, independent Python vectors, field axioms, and
-// computational irreducibility proofs for both moduli.
-// ---------------------------------------------------------------------------
+// Tests: every backend against the software reference, independent Python vectors, field axioms,
+// and computational irreducibility proofs for both moduli.
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::field::gf2_64::R64;
     use crate::test_rng::Rng;
 
     /// Vectors generated by an independent Python implementation
@@ -1015,6 +825,23 @@ mod tests {
         ),
     ];
 
+    /// Elements whose products drive every reduction spill: all-ones, top bits only, identities.
+    const CORNERS: [F192; 5] = [
+        F192::ZERO,
+        F192::ONE,
+        F192::Y,
+        F192::new(u64::MAX, u64::MAX, u64::MAX),
+        F192::new(1 << 63, 1 << 63, 1 << 63),
+    ];
+
+    /// Random pairs followed by every pair of corners.
+    fn operand_pairs(seed: u64) -> Vec<(F192, F192)> {
+        let mut rng = Rng::new(seed);
+        let random = (0..10_000).map(|_| (rng.ext(), rng.ext()));
+        let corners = CORNERS.iter().flat_map(|&a| CORNERS.iter().map(move |&b| (a, b)));
+        random.chain(corners).collect()
+    }
+
     #[test]
     fn python_vectors_and_modulus() {
         for (a, b, c, s) in VECTORS {
@@ -1026,19 +853,46 @@ mod tests {
         assert_eq!(F192::Y * F192::Y * F192::Y, F192::Y + F192::ONE);
     }
 
+    #[test]
+    fn products_match_software() {
+        for (a, b) in operand_pairs(2) {
+            let want = software::mul(a, b);
+            // Dispatched product, its unreduced form, and squaring.
+            assert_eq!(a * b, want);
+            assert_eq!(a.mul_unreduced(b).reduce(), want);
+            assert_eq!(a.square(), software::mul(a, a));
+            // A mixed product is a full product by an element with no y part.
+            let k = F64(b.c1);
+            let want = software::mul(a, F192::from(k));
+            assert_eq!(a.mul_base(k), want);
+            assert_eq!(a.mul_base_unreduced(k).reduce(), want);
+        }
+    }
+
+    #[test]
+    fn batched_products_match_software() {
+        // Four consecutive pairs per batch.
+        let pairs = operand_pairs(6);
+        for batch in pairs.as_chunks::<4>().0 {
+            let a = batch.map(|(a, _)| a);
+            let b = batch.map(|(_, b)| b);
+            let want: [F192; 4] = std::array::from_fn(|i| software::mul(a[i], b[i]));
+            assert_eq!(mul4(a, b), want);
+            assert_eq!(mul_unreduced4(a, b).map(F192Unreduced::reduce), want);
+            assert_eq!(mul2([a[0], a[1]], [b[0], b[1]]), [want[0], want[1]]);
+        }
+    }
+
     #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
     #[test]
     fn neon_variants_match_software() {
-        let mut rng = Rng::new(2);
-        for _ in 0..10_000 {
-            let a = rng.ext();
-            let b = rng.ext();
+        for (a, b) in operand_pairs(3) {
             let want = software::mul(a, b);
             // SAFETY: cfg-gated on the aes target feature.
             unsafe {
                 assert_eq!(aarch64::mul_karatsuba(a, b), want);
                 assert_eq!(aarch64::mul_unreduced_neon(a, b).reduce(), want);
-                assert_eq!(aarch64::square_neon(a), software::square(a));
+                assert_eq!(aarch64::square_neon(a), software::mul(a, a));
             }
         }
     }
@@ -1087,44 +941,21 @@ mod tests {
     fn unreduced_accumulation_matches_reduced_sum() {
         let mut rng = Rng::new(5);
         for _ in 0..100 {
-            let pairs: Vec<(F192, F192)> = (0..16).map(|_| (rng.ext(), rng.ext())).collect();
-            let mut acc = F192Unreduced::ZERO;
-            let mut want = F192::ZERO;
-            for &(a, b) in &pairs {
-                acc ^= a.mul_unreduced(b);
-                want += a * b;
+            // Start from an embedded element: its unreduced form reduces to itself.
+            let start = rng.ext();
+            let mut acc = F192Unreduced::from(start);
+            let mut want = start;
+            // Sixteen full products and sixteen mixed products, summed both ways.
+            for _ in 0..16 {
+                let (a, b, k) = (rng.ext(), rng.ext(), F64(rng.next_u64()));
+                acc ^= a.mul_unreduced(b) ^ a.mul_base_unreduced(k);
+                want += a * b + a.mul_base(k);
             }
             assert_eq!(acc.reduce(), want);
         }
     }
 
-    #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
-    #[test]
-    fn x86_batch_products_match_scalar() {
-        let mut rng = Rng::new(6);
-        for _ in 0..1_000 {
-            let a: [F192; 4] = std::array::from_fn(|_| rng.ext());
-            let b: [F192; 4] = std::array::from_fn(|_| rng.ext());
-            let expected: [F192; 4] = std::array::from_fn(|lane| a[lane] * b[lane]);
-            // SAFETY: this test is compiled only when VPCLMULQDQ and AVX2 are enabled.
-            unsafe {
-                assert_eq!(x86_64::mul_vec2([a[0], a[1]], [b[0], b[1]]), [expected[0], expected[1]]);
-                let unreduced = x86_64::mul_unreduced_vec2([a[2], a[3]], [b[2], b[3]]);
-                assert_eq!(
-                    [unreduced[0].reduce(), unreduced[1].reduce()],
-                    [expected[2], expected[3]]
-                );
-            }
-            #[cfg(target_feature = "avx512f")]
-            // SAFETY: the nested cfg additionally guarantees AVX-512F.
-            unsafe {
-                assert_eq!(x86_64::mul_vec4(a, b), expected);
-                assert_eq!(x86_64::mul_unreduced_vec4(a, b).map(F192Unreduced::reduce), expected);
-            }
-        }
-    }
-
-    // -- GF(2)[x] helpers on u128 for the base-polynomial irreducibility test.
+    // GF(2)[x] helpers on u128 for the base-polynomial irreducibility test.
 
     fn gf2_mod(mut a: u128, m: u128) -> u128 {
         let dm = 127 - m.leading_zeros();
@@ -1152,18 +983,18 @@ mod tests {
     #[test]
     fn base_poly_irreducible() {
         const P64: u128 = (1u128 << 64) | (R64 as u128);
-        let mut t = 2u64; // the element x
+        let mut t = F64::G;
         for _ in 0..32 {
-            t = base::square(t);
+            t = t.square();
         }
-        assert_eq!(gf2_gcd((t as u128) ^ 2, P64), 1, "factor of degree | 32");
+        assert_eq!(gf2_gcd((t.0 as u128) ^ 2, P64), 1, "factor of degree | 32");
         for _ in 0..32 {
-            t = base::square(t);
+            t = t.square();
         }
-        assert_eq!(t, 2, "x^(2^64) != x mod p64");
+        assert_eq!(t, F64::G, "x^(2^64) != x mod p64");
     }
 
-    // -- K[y] gcd for the extension-polynomial irreducibility test.
+    // K[y] gcd for the extension-polynomial irreducibility test.
 
     fn pdeg(p: &[u64]) -> Option<usize> {
         p.iter().rposition(|&c| c != 0)
@@ -1171,14 +1002,14 @@ mod tests {
 
     fn poly_mod(mut a: Vec<u64>, b: &[u64]) -> Vec<u64> {
         let db = pdeg(b).expect("mod by zero poly");
-        let lead_inv = base::inv(b[db]);
+        let lead_inv = F64(b[db]).inv();
         while let Some(da) = pdeg(&a) {
             if da < db {
                 break;
             }
-            let q = base::mul(a[da], lead_inv);
+            let q = F64(a[da]) * lead_inv;
             for i in 0..=db {
-                a[da - db + i] ^= base::mul(q, b[i]);
+                a[da - db + i] ^= (q * F64(b[i])).0;
             }
         }
         a

@@ -8,7 +8,7 @@
 
 use std::ops::DerefMut;
 
-use crate::field::{F64, F192, F192BaseUnreduced, F192Unreduced, PHI_8_TABLE_192 as PHI_8_TABLE};
+use crate::field::{F64, F192, F192Unreduced, PHI_8_TABLE_192 as PHI_8_TABLE};
 use zk_alloc::ArenaVec;
 
 /// The one thing the in-place folds need beyond a mutable slice: the ability to
@@ -294,7 +294,7 @@ pub fn mle_eval_par(table: &[F64], point: &[F192]) -> F192 {
         let dot = low
             .iter()
             .zip(chunk)
-            .fold(F192BaseUnreduced::ZERO, |acc, (&w, &v)| acc ^ w.mul_base_unreduced(v));
+            .fold(F192Unreduced::ZERO, |acc, (&w, &v)| acc ^ w.mul_base_unreduced(v));
         high[row] * dot.reduce()
     };
     parallel::map_reduce(high.len(), || F192::ZERO, eval, |a, b| a + b)

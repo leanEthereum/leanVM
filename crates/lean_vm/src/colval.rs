@@ -1,6 +1,6 @@
 //! Column operations shared by the `F64` joining round and subsequent `F192` rounds.
 
-use primitives::field::{F64, F192, F192BaseUnreduced, F192Unreduced};
+use primitives::field::{F64, F192, F192Unreduced};
 use std::ops::{Add, BitXor, BitXorAssign, Mul};
 
 /// A value a constraint reads out of a column.
@@ -38,7 +38,7 @@ impl ColVal for F64 {
     const ZERO: Self = F64::ZERO;
     const ONE: Self = F64::ONE;
 
-    type Unreduced = F192BaseUnreduced;
+    type Unreduced = F192Unreduced;
 
     #[inline(always)]
     fn mul_e(self, e: F192) -> F192 {
@@ -52,11 +52,7 @@ impl ColVal for F64 {
 
     #[inline(always)]
     fn lift(e: F192) -> Self::Unreduced {
-        F192BaseUnreduced {
-            p0: e.c0 as u128,
-            p1: e.c1 as u128,
-            p2: e.c2 as u128,
-        }
+        e.into()
     }
 
     #[inline(always)]
@@ -69,7 +65,7 @@ impl ColVal for F64 {
         coeffs
             .iter()
             .zip(vals)
-            .fold(F192BaseUnreduced::ZERO, |acc, (&w, &v)| acc ^ w.mul_base_unreduced(v))
+            .fold(F192Unreduced::ZERO, |acc, (&w, &v)| acc ^ w.mul_base_unreduced(v))
     }
 }
 
@@ -91,9 +87,7 @@ impl ColVal for F192 {
 
     #[inline(always)]
     fn lift(e: F192) -> Self::Unreduced {
-        F192Unreduced {
-            w: [e.c0, 0, e.c1, 0, e.c2, 0, 0, 0, 0, 0],
-        }
+        e.into()
     }
 
     #[inline(always)]

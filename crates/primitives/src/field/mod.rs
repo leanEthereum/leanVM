@@ -8,7 +8,7 @@
 //! - [`F64`]: GF(2^64), polynomial x^64 + x^4 + x^3 + x + 1
 //! - [`F8`]: GF(2^8) with AES polynomial x^8 + x^4 + x^3 + x + 1
 //! - [`F192`]: `K[y]/(y^3 + y + 1)`
-//! - [`F192Unreduced`]: its deferred-reduction accumulator
+//! - [`F192Unreduced`]: its deferred-reduction accumulator, for full and mixed products alike
 
 #[cfg(target_arch = "aarch64")]
 pub mod neon;
@@ -20,7 +20,7 @@ pub mod phi8_tower;
 
 pub use gf2_8::F8;
 pub use gf2_64::F64;
-pub use gf2_64x3::{F192, F192BaseUnreduced, F192Unreduced, mul_unreduced4, mul2, mul4};
+pub use gf2_64x3::{F192, F192Unreduced, mul_unreduced4, mul2, mul4};
 pub use phi8_tower::{PHI_8_TABLE_192, phi8_192};
 
 // ---------------------------------------------------------------------------

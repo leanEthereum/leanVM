@@ -26,7 +26,7 @@ use crate::ntt::AdditiveNttF64;
 use fiat_shamir::merkle::PrunedMerklePaths;
 use fiat_shamir::transcript::{Challenger, Error as TranscriptError, Receiver, Transmitter};
 use primitives::{
-    field::{F64, F192, F192BaseUnreduced, F192Unreduced, powers},
+    field::{F64, F192, F192Unreduced, powers},
     multilinear::eq_eval,
     pretty_integer,
     stream::Stream,
@@ -442,8 +442,8 @@ trait RoundWitness: Copy + Sync + std::ops::Add<Output = Self> {
 }
 
 impl RoundWitness for F64 {
-    type Acc = F192BaseUnreduced;
-    const ZERO_ACC: Self::Acc = F192BaseUnreduced::ZERO;
+    type Acc = F192Unreduced;
+    const ZERO_ACC: Self::Acc = F192Unreduced::ZERO;
     #[inline]
     fn mul_basis_unreduced(self, b: F192) -> Self::Acc {
         b.mul_base_unreduced(self)
@@ -791,7 +791,7 @@ pub(crate) fn build_initial_basis(
         unsafe { stream.copy(dst.slice(lo, len), &b0[..len]) };
         message
     };
-    let (u_0, u_2) = accumulate_msg(n_blocks.div_ceil(2) * per, f.len() / 2, F192BaseUnreduced::ZERO, task);
+    let (u_0, u_2) = accumulate_msg(n_blocks.div_ceil(2) * per, f.len() / 2, F192Unreduced::ZERO, task);
     (
         basis,
         SumcheckMessage {

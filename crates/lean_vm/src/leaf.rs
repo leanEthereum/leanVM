@@ -11,7 +11,7 @@ use crate::PAR_THRESHOLD;
 use crate::colval::ColVal;
 use crate::gkr;
 use crate::transcript::{Challenger, ProverState, Receiver, Transmitter, VerifierState};
-use primitives::field::{F64, F192, F192BaseUnreduced, g_pow, index_mle};
+use primitives::field::{F64, F192, F192Unreduced, g_pow, index_mle};
 use primitives::multilinear::{eq_eval, eq_table_arena, mle_eval};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -235,7 +235,7 @@ pub fn build_leaves(
             // product contributes its three raw limb products (3 PMULL, no
             // reduction tail), one combined reduction per row at the end,
             // bit-identical to summing reduced `mul_base` terms.
-            let mut acc = F192BaseUnreduced::ZERO;
+            let mut acc = F192Unreduced::ZERO;
             for t in &terms {
                 acc ^= match t {
                     Term::Col(i, c) => c.mul_base_unreduced(cols[*i][z]),
@@ -839,7 +839,7 @@ fn tables_and_prods_at(
             let n_acc = n_cols + pairs.len();
             let sums = parallel::fold_reduce(
                 (1usize << tau).div_ceil(ROWS),
-                || vec![F192BaseUnreduced::ZERO; n_acc],
+                || vec![F192Unreduced::ZERO; n_acc],
                 |acc, chunk| {
                     let lo = chunk * ROWS;
                     let weights = &eq[lo..(lo + ROWS).min(1 << tau)];

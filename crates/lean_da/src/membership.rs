@@ -17,7 +17,7 @@
 use fiat_shamir::FiatShamirState;
 use fiat_shamir::merkle::hash_to_scalars;
 use pcs::ntt::AdditiveNttF64;
-use primitives::field::{F64, F192, F192BaseUnreduced};
+use primitives::field::{F64, F192, F192Unreduced};
 
 use crate::{CODEWORD_SYMBOLS, DA_LOG_K, DaCommitment, LOG_M, row_count};
 
@@ -87,7 +87,7 @@ pub fn row_residuals(codewords: &[u64], dual: &[F192]) -> Vec<F192> {
     let m = CODEWORD_SYMBOLS;
     parallel::map_collect(n_rows, |i| {
         let row = &codewords[i * m..(i + 1) * m];
-        let mut acc = F192BaseUnreduced::ZERO;
+        let mut acc = F192Unreduced::ZERO;
         for (&l, &w) in dual.iter().zip(row) {
             acc ^= l.mul_base_unreduced(F64(w));
         }
