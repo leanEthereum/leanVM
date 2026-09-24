@@ -2,8 +2,9 @@
 //! The base field `K = GF(2)[x] / (x^64 + x^4 + x^3 + x + 1)`, in which `x` has order `2^64 - 1`.
 //!
 //! A product is one carry-less 64x64 multiplication followed by a reduction.
-//! The reduction folds the high word back with shifts and XORs ([`reduce`]), except in the scalar x86 product,
-//! which folds it with two more carry-less multiplications by `0x1B` ([`x86_64::mul`]).
+//! The reduction folds the high word back with shifts and XORs ([`reduce`]), except in the scalar products
+//! (`x86_64::mul`, `aarch64::mul_shift_tail`), which fold it with two more carry-less multiplications by `0x1B`
+//! and so never leave the vector register.
 
 use core::ops::{Add, AddAssign, Mul, MulAssign};
 
@@ -31,9 +32,18 @@ impl F64 {
     /// Squaring, as a bit spread followed by one reduction.
     ///
     /// Cross terms vanish in characteristic 2, so the square moves bit `i` to bit `2i`.
+    /// On aarch64 it is the product with itself instead: its PMULL folds stay in the vector register,
+    /// where [`reduce`] would cross to integer registers and back.
     #[inline]
     pub fn square(self) -> Self {
-        Self(reduce(square_wide(self.0)))
+        #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
+        {
+            self * self
+        }
+        #[cfg(not(all(target_arch = "aarch64", target_feature = "aes")))]
+        {
+            Self(reduce(square_wide(self.0)))
+        }
     }
 
     /// Multiplicative inverse `x^(2^64 - 2)`, mapping zero to zero.

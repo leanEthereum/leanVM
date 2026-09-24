@@ -18,7 +18,9 @@ use serde::{Deserialize, Serialize};
 
 #[cfg(not(all(target_arch = "x86_64", target_feature = "pclmulqdq")))]
 use super::gf2_64::mul_wide;
-use super::gf2_64::{F64, reduce, square_wide};
+#[cfg(not(all(target_arch = "aarch64", target_feature = "aes")))]
+use super::gf2_64::square_wide;
+use super::gf2_64::{F64, reduce};
 
 /// An element `c0 + c1*y + c2*y^2`; bit `i` of each coefficient is its coefficient of `x^i`.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
