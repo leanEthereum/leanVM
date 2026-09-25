@@ -18,6 +18,14 @@ use crate::zerocheck::univariate_skip::build_eq;
 /// Rows folded per call.
 pub const BLOCK: usize = 64;
 
+/// Whether the fold runs on GFNI rather than the byte tables.
+pub const GFNI: bool = cfg!(all(
+    target_arch = "x86_64",
+    target_feature = "gfni",
+    target_feature = "avx512bw",
+    target_feature = "avx512vbmi"
+));
+
 /// The weights of every bit of a row, prepared for folding.
 #[derive(Clone, Debug)]
 pub struct BitFold {

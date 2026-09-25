@@ -54,8 +54,9 @@ const N_INNER: usize = 7; // 3 small + 4 medium fixed-constant eq dimensions
 ///
 /// - A pass re-reads the three bit tables, `3 * 2^m` bits.
 /// - Storing at level `t` writes three F192 tables, `3 * 192 * 2^(m - 6 - t)` bits, then reads them back.
-/// - Storing pays once the tables are well below the bits: level 4, after two passes.
-const PAIR_PASSES: usize = 2;
+/// - With GFNI a pass is bandwidth-bound, so storing pays once the tables are well below the bits: level 4, after two passes.
+/// - The byte-table fold is compute-bound, its tables growing with the level, so a pass costs more than the stored tables' traffic: store at once.
+const PAIR_PASSES: usize = if bit_fold::GFNI { 2 } else { 0 };
 
 /// Build the equality coordinates that remain after the univariate skip.
 fn equality_tail(m: usize, mut sample_vec: impl FnMut(usize) -> Vec<F192>) -> Vec<F192> {
@@ -215,8 +216,7 @@ pub fn prove_packed_padded(
     // `(1 + r) G(0) + r G(1) = claim` lets the wire drop `G(0)`, so the prover needs it too.
     let mut c_running = interpolate_at_z_combined(&round1, k_skip, z);
     let mut mlv_chis: Vec<F192> = Vec::with_capacity(n_mlv);
-    let materialize_level = (2 * PAIR_PASSES).min((n_mlv - 1) & !1);
-    for t in (0..materialize_level).step_by(2) {
+    for t in (0..(n_mlv - 1) & !1).step_by(2).take(PAIR_PASSES) {
         let fold = BitFold::at_level(&lagrange, &mlv_chis);
         let pair = bit_round_pair(bits, &fold, &r_rest[t + 1..], padding);
         let (g1, g_inf) = pair.first;
@@ -224,6 +224,7 @@ pub fn prove_packed_padded(
         let (g1, g_inf) = pair.second(mlv_chis[t]);
         c_running = send_round(ps, c_running, r_rest[t + 1], g1, g_inf, &mut mlv_chis);
     }
+    let materialize_level = mlv_chis.len();
     let fold = BitFold::at_level(&lagrange, &mlv_chis);
     let ((g1, g_inf), [mut a_mlv, mut b_mlv, mut c_mlv]) =
         bit_round_materialize(bits, &fold, &r_rest[materialize_level + 1..], padding);
