@@ -226,6 +226,7 @@ pub fn key_gen_from_seed(
 pub enum XmssSignError {
     EpochOutOfRange,
     NoAdmissibleEncoding,
+    EpochAlreadyUsed,
 }
 
 impl std::fmt::Display for XmssSignError {
@@ -233,14 +234,22 @@ impl std::fmt::Display for XmssSignError {
         match self {
             Self::EpochOutOfRange => write!(f, "the epoch is outside the key's range"),
             Self::NoAdmissibleEncoding => write!(f, "no admissible encoding within the randomizer trial limit"),
+            Self::EpochAlreadyUsed => write!(f, "this epoch was already signed through the guard"),
         }
     }
 }
 
 impl std::error::Error for XmssSignError {}
 
-/// Never use the same key and epoch to sign two different messages.
-/// Signing is deterministic.
+/// Sign `message` at `epoch`. Deterministic: one `(key, epoch, message)` always
+/// gives the same signature.
+///
+/// Never sign two different messages with the same key and epoch. The scheme is
+/// one-time per epoch: a second signature at an epoch already signed reveals, per
+/// WOTS chain, the tip at the lower encoding digit, and because chains only walk
+/// forward, enough same-epoch signatures let an observer forge this key on a new
+/// message that [`verify`] accepts. `sign` is stateless and does not track signed
+/// epochs; the caller enforces the invariant, directly or through [`UsedEpochs`].
 pub fn sign(secret_key: &XmssSecretKey, message: &Message, epoch: Epoch) -> Result<XmssSignature, XmssSignError> {
     if epoch < secret_key.epoch_start || epoch > secret_key.epoch_end {
         return Err(XmssSignError::EpochOutOfRange);
@@ -262,6 +271,39 @@ pub fn sign(secret_key: &XmssSecretKey, message: &Message, epoch: Epoch) -> Resu
         wots_signature,
         merkle_proof,
     })
+}
+
+/// Opt-in enforcement of the one-time-per-epoch invariant that [`sign`] documents
+/// but does not itself track. A caller that signs through this guard fails closed
+/// on a second signature at an epoch it has already signed; the bare [`sign`]
+/// stays stateless for callers that enforce the invariant elsewhere.
+#[derive(Debug, Clone, Default)]
+pub struct UsedEpochs {
+    used: std::collections::BTreeSet<Epoch>,
+}
+
+impl UsedEpochs {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Sign `message` at `epoch`, refusing any epoch already signed through this
+    /// guard. An epoch is recorded only once [`sign`] succeeds, so a rejected
+    /// out-of-range epoch does not consume it. A second call at a signed epoch is
+    /// refused even for the same message: the guard is strict one-time-per-epoch.
+    pub fn sign(
+        &mut self,
+        secret_key: &XmssSecretKey,
+        message: &Message,
+        epoch: Epoch,
+    ) -> Result<XmssSignature, XmssSignError> {
+        if self.used.contains(&epoch) {
+            return Err(XmssSignError::EpochAlreadyUsed);
+        }
+        let signature = sign(secret_key, message, epoch)?;
+        self.used.insert(epoch);
+        Ok(signature)
+    }
 }
 
 impl XmssSecretKey {
@@ -379,5 +421,33 @@ pub fn verify(
         Ok(())
     } else {
         Err(XmssVerifyError::InvalidMerklePath)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn used_epochs_guard_is_strict_one_time_per_epoch() {
+        let (secret_key, public_key) = key_gen_from_seed([7; 32], 0, 16).expect("keygen");
+        let msg_a: Message = [1; MESSAGE_LEN];
+        let msg_b: Message = [2; MESSAGE_LEN];
+        let mut guard = UsedEpochs::new();
+
+        let signature = guard.sign(&secret_key, &msg_a, 5).expect("first signature at an epoch");
+        verify(&public_key, &msg_a, &signature, 5).expect("it verifies");
+
+        // The reuse that degrades to forgery: a second, different message at a signed epoch.
+        assert_eq!(guard.sign(&secret_key, &msg_b, 5), Err(XmssSignError::EpochAlreadyUsed));
+
+        // A different epoch is unaffected.
+        guard
+            .sign(&secret_key, &msg_b, 6)
+            .expect("a different epoch still signs");
+
+        // The guard defers to `sign`'s own validation and does not record a failed
+        // attempt: an out-of-range epoch surfaces as EpochOutOfRange, not EpochAlreadyUsed.
+        assert_eq!(guard.sign(&secret_key, &msg_a, 99), Err(XmssSignError::EpochOutOfRange));
     }
 }

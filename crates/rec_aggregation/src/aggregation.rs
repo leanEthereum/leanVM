@@ -605,6 +605,13 @@ fn wire() -> impl bincode::Options {
 /// on `(epoch, message)`, non-empty (an absent pair is an absent group, the one
 /// encoding of each set) and at most [`MAX_EPOCHS`]. Either list may be empty;
 /// both may be empty for a blob proof. [`MAX_KEYS`] is exclusive here, as in the guest.
+///
+/// It also rejects an XMSS key that appears in more than one group at the same
+/// epoch. XMSS is one-time per epoch: one key signing two messages at one epoch is
+/// the reuse that degrades to existential forgery. The coverage argument counts
+/// `(epoch, message, key)` claims, not `(epoch, key)`, so it does not catch this on
+/// its own. (Distinct keys at one epoch, and one key across distinct epochs, are
+/// both fine.)
 fn check_signer_set(
     xmss_signers: &[XmssClaimGroup],
     sphincs_signers: &[SphincsClaim],
@@ -619,10 +626,37 @@ fn check_signer_set(
             .iter()
             .any(|group| group.keys.is_empty() || !group.keys.windows(2).all(|w| w[0] < w[1]))
         || !sphincs_signers.windows(2).all(|w| w[0] < w[1])
+        || xmss_key_repeats_within_an_epoch(xmss_signers)
     {
         return Err(AggregateVerifyError::MalformedSignerSet);
     }
     Ok(())
+}
+
+/// True if any XMSS key appears in more than one group at the same epoch, the
+/// one-time-per-epoch reuse that [`check_signer_set`] rejects. Groups are strictly
+/// increasing on `(epoch, message)` (checked alongside this in `check_signer_set`,
+/// and short-circuited before this runs), so groups sharing an epoch are
+/// contiguous; the keys within each group are already strictly sorted, so only the
+/// union across a run can carry a duplicate.
+fn xmss_key_repeats_within_an_epoch(groups: &[XmssClaimGroup]) -> bool {
+    let mut run_start = 0;
+    while run_start < groups.len() {
+        let mut run_end = run_start + 1;
+        while run_end < groups.len() && groups[run_end].epoch == groups[run_start].epoch {
+            run_end += 1;
+        }
+        let mut keys: Vec<&XmssPublicKey> = groups[run_start..run_end]
+            .iter()
+            .flat_map(|group| group.keys.iter())
+            .collect();
+        keys.sort_unstable();
+        if keys.windows(2).any(|w| w[0] == w[1]) {
+            return true;
+        }
+        run_start = run_end;
+    }
+    false
 }
 
 fn check_da_roots(roots: &[[u8; 32]]) -> Result<(), AggregateVerifyError> {
@@ -3217,6 +3251,46 @@ mod tests {
             plan_coverage(&spread_claims(MAX_EPOCHS + 1), &[], &[], None).err(),
             Some(AggregationError::TooManyEpochs)
         );
+    }
+
+    /// One key in two groups at one epoch is XMSS's one-time-per-epoch reuse, the
+    /// case that degrades to existential forgery. The coverage argument counts
+    /// `(epoch, message, key)`, so `check_signer_set` rejects this separately.
+    #[test]
+    fn rejects_one_xmss_key_in_two_groups_at_one_epoch() {
+        let keys = signer_set(2);
+        let msg_lo: xmss::Message = [1; xmss::MESSAGE_LEN];
+        let msg_hi: xmss::Message = [2; xmss::MESSAGE_LEN];
+        assert!(msg_lo < msg_hi);
+        let group = |epoch: xmss::Epoch, message: xmss::Message, keys: Vec<XmssPublicKey>| XmssClaimGroup {
+            epoch,
+            message,
+            keys,
+        };
+
+        // Red case: the same key in two same-epoch groups (distinct messages).
+        let reuse = vec![
+            group(5, msg_lo, vec![keys[0].clone()]),
+            group(5, msg_hi, vec![keys[0].clone()]),
+        ];
+        assert_eq!(
+            check_signer_set(&reuse, &[]),
+            Err(AggregateVerifyError::MalformedSignerSet)
+        );
+
+        // Control: distinct keys at one epoch are the safe multi-message-per-epoch case.
+        let distinct_keys = vec![
+            group(5, msg_lo, vec![keys[0].clone()]),
+            group(5, msg_hi, vec![keys[1].clone()]),
+        ];
+        check_signer_set(&distinct_keys, &[]).expect("distinct keys at one epoch are fine");
+
+        // Control: one key across distinct epochs is normal use, not reuse.
+        let across_epochs = vec![
+            group(5, msg_lo, vec![keys[0].clone()]),
+            group(6, msg_lo, vec![keys[0].clone()]),
+        ];
+        check_signer_set(&across_epochs, &[]).expect("one key at different epochs is fine");
     }
 
     fn prove_leaf(signers: &[(XmssPublicKey, XmssSignature)]) -> EthereumProof {
