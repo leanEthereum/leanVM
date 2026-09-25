@@ -324,7 +324,7 @@ pub fn dot_base(w: &[Weights8], k: &[F64]) -> F192Unreduced {
     return unsafe { x86_64::dot_base(w, k) };
     #[cfg(not(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f")))]
     w.iter()
-        .zip(k.chunks_exact(8))
+        .zip(k.as_chunks::<8>().0)
         .fold(F192Unreduced::ZERO, |acc, (w, k)| {
             (0..8).fold(acc, |acc, i| acc ^ w.get(i).mul_base_unreduced(k[i]))
         })
