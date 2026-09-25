@@ -132,26 +132,68 @@ const N_MEDIUM_VALUES: usize = 16;
 /// the address. Flat, each lookup costs a check, a branch and a multiply by the
 /// 24-byte element stride, and the branches keep the constant-trip loop around
 /// them from unrolling.
+#[cfg(any(
+    test,
+    not(all(
+        target_arch = "x86_64",
+        target_feature = "gfni",
+        target_feature = "avx512bw",
+        target_feature = "avx512vbmi"
+    ))
+))]
 type ConvertTable = [[F192; 256]; N_MEDIUM_VALUES];
 
+#[cfg(any(
+    test,
+    not(all(
+        target_arch = "x86_64",
+        target_feature = "gfni",
+        target_feature = "avx512bw",
+        target_feature = "avx512vbmi"
+    ))
+))]
 static CONVERT_TABLE_CACHE: OnceLock<Box<ConvertTable>> = OnceLock::new();
 
+/// `gamma^b` for each medium position `b`.
+fn gamma_powers() -> &'static [F192; N_MEDIUM_VALUES] {
+    static CACHE: OnceLock<[F192; N_MEDIUM_VALUES]> = OnceLock::new();
+    CACHE.get_or_init(|| {
+        let mut pow = [F192::ONE; N_MEDIUM_VALUES];
+        for b in 1..N_MEDIUM_VALUES {
+            pow[b] = pow[b - 1] * medium_generator();
+        }
+        pow
+    })
+}
+
+#[cfg(any(
+    test,
+    not(all(
+        target_arch = "x86_64",
+        target_feature = "gfni",
+        target_feature = "avx512bw",
+        target_feature = "avx512vbmi"
+    ))
+))]
 fn build_convert_table() -> Box<ConvertTable> {
-    let mut gamma_pow = [F192::ZERO; 16];
-    gamma_pow[0] = F192::ONE;
-    for b in 1..16 {
-        gamma_pow[b] = gamma_pow[b - 1] * medium_generator();
-    }
     let mut table: Box<ConvertTable> = Box::new([[F192::ZERO; 256]; N_MEDIUM_VALUES]);
-    for b in 0..N_MEDIUM_VALUES {
-        let g_b = gamma_pow[b];
-        for v in 0..256 {
-            table[b][v] = g_b * PHI_8_TABLE[v];
+    for (row, &g_b) in table.iter_mut().zip(gamma_powers()) {
+        for (entry, &phi) in row.iter_mut().zip(PHI_8_TABLE.iter()) {
+            *entry = g_b * phi;
         }
     }
     table
 }
 
+#[cfg(any(
+    test,
+    not(all(
+        target_arch = "x86_64",
+        target_feature = "gfni",
+        target_feature = "avx512bw",
+        target_feature = "avx512vbmi"
+    ))
+))]
 fn convert_table() -> &'static ConvertTable {
     CONVERT_TABLE_CACHE.get_or_init(build_convert_table)
 }
@@ -596,13 +638,167 @@ fn shift_reduce_inner_ab_scalar(
 }
 
 // ---------------------------------------------------------------------------
+// Convert: per lane, the medium bytes to F192, weighted by eq and summed.
+//
+//   partial[lane] += eq_lo * sum_b gamma^b * phi_8(byte_b[lane])
+//
+// The map from the 16 bytes of a lane to F192 is GF(2)-linear.
+// ---------------------------------------------------------------------------
+
+/// The per-`x_hi` sums of one worker, one per lane for `A B` and for `C`.
+#[cfg(not(all(
+    target_arch = "x86_64",
+    target_feature = "gfni",
+    target_feature = "avx512bw",
+    target_feature = "avx512vbmi"
+)))]
+struct Convert {
+    ab: [F192; ELL],
+    c: [F192; ELL],
+}
+
+#[cfg(not(all(
+    target_arch = "x86_64",
+    target_feature = "gfni",
+    target_feature = "avx512bw",
+    target_feature = "avx512vbmi"
+)))]
+impl Convert {
+    fn new() -> Self {
+        Self {
+            ab: [F192::ZERO; ELL],
+            c: [F192::ZERO; ELL],
+        }
+    }
+
+    /// Add one `x_outer`'s medium bytes, one 64-lane row per medium position, at weight `eq_lo`.
+    #[inline(always)]
+    fn accumulate(&mut self, ab: &[[u8; 64]], c: &[[u8; 64]], eq_lo: F192) {
+        let convert = convert_table();
+        for lane in 0..ELL {
+            let mut cf_ab = F192::ZERO;
+            let mut cf_c = F192::ZERO;
+            for ((row, ab), c) in convert.iter().zip(ab).zip(c) {
+                cf_ab += row[ab[lane] as usize];
+                cf_c += row[c[lane] as usize];
+            }
+            self.ab[lane] += cf_ab * eq_lo;
+            self.c[lane] += cf_c * eq_lo;
+        }
+    }
+
+    fn values(&self) -> ([F192; ELL], [F192; ELL]) {
+        (self.ab, self.c)
+    }
+}
+
+/// The per-`x_hi` sums of one worker, byte-sliced: register `o` holds byte `o` of every lane's sum.
+///
+/// The weight `eq_lo` rides the GFNI matrices, rebuilt for each `x_outer`:
+///
+/// ```text
+///     w[b][s] = (gamma^b * eq_lo) * phi_8(2^s)        phi_8(2^s) lies in the GF(2^64) base field
+/// ```
+///
+/// So an `x_outer` costs 16 products and 16 mixed products, not a product per lane.
+#[cfg(all(
+    target_arch = "x86_64",
+    target_feature = "gfni",
+    target_feature = "avx512bw",
+    target_feature = "avx512vbmi"
+))]
+struct Convert {
+    ab: [core::arch::x86_64::__m512i; 24],
+    c: [core::arch::x86_64::__m512i; 24],
+}
+
+#[cfg(all(
+    target_arch = "x86_64",
+    target_feature = "gfni",
+    target_feature = "avx512bw",
+    target_feature = "avx512vbmi"
+))]
+impl Convert {
+    fn new() -> Self {
+        // SAFETY: an all-zero bit pattern is a valid register value.
+        unsafe { core::mem::zeroed() }
+    }
+
+    /// Add one `x_outer`'s medium bytes, one 64-lane row per medium position, at weight `eq_lo`.
+    #[inline(always)]
+    fn accumulate(&mut self, ab: &[[u8; 64]], c: &[[u8; 64]], eq_lo: F192) {
+        // SAFETY: the module is compiled only with these target features enabled.
+        unsafe { self.accumulate_gfni(ab, c, eq_lo) }
+    }
+
+    #[target_feature(enable = "avx512f", enable = "avx512bw", enable = "avx512vbmi", enable = "gfni")]
+    fn accumulate_gfni(&mut self, ab: &[[u8; 64]], c: &[[u8; 64]], eq_lo: F192) {
+        use crate::zerocheck::bit_fold::gfni::weight_matrices;
+        use core::arch::x86_64::*;
+        use primitives::field::{F64, mul_base8, mul4};
+
+        // phi_8 of the unit bytes, as base-field scalars.
+        static PHI_UNITS: OnceLock<[F64; 8]> = OnceLock::new();
+        let units = PHI_UNITS.get_or_init(|| {
+            std::array::from_fn(|s| {
+                let phi = PHI_8_TABLE[1 << s];
+                assert!(phi.c1 == 0 && phi.c2 == 0, "phi_8 lands in the base field");
+                F64(phi.c0)
+            })
+        });
+
+        // Matrices of medium position b: the weights (gamma^b eq_lo) phi_8(2^s).
+        let gamma = gamma_powers();
+        let mut matrices = [[0u64; 24]; N_MEDIUM_VALUES];
+        for (quad, m) in gamma.as_chunks::<4>().0.iter().zip(matrices.as_chunks_mut::<4>().0) {
+            let t = mul4(*quad, [eq_lo; 4]);
+            for (t, m) in t.iter().zip(m) {
+                *m = weight_matrices(&mul_base8(*t, *units));
+            }
+        }
+
+        // Eight output bytes at a time keep sixteen accumulators in registers.
+        for g in 0..3 {
+            let mut acc_ab: [__m512i; 8] = std::array::from_fn(|l| self.ab[8 * g + l]);
+            let mut acc_c: [__m512i; 8] = std::array::from_fn(|l| self.c[8 * g + l]);
+            for ((ab, c), m) in ab.iter().zip(c).zip(&matrices) {
+                // SAFETY: each row is 64 bytes.
+                let (xa, xc) = unsafe {
+                    (
+                        _mm512_loadu_si512(ab.as_ptr().cast()),
+                        _mm512_loadu_si512(c.as_ptr().cast()),
+                    )
+                };
+                for l in 0..8 {
+                    let a = _mm512_set1_epi64(m[8 * g + l] as i64);
+                    acc_ab[l] = _mm512_xor_si512(acc_ab[l], _mm512_gf2p8affine_epi64_epi8::<0>(xa, a));
+                    acc_c[l] = _mm512_xor_si512(acc_c[l], _mm512_gf2p8affine_epi64_epi8::<0>(xc, a));
+                }
+            }
+            self.ab[8 * g..8 * g + 8].copy_from_slice(&acc_ab);
+            self.c[8 * g..8 * g + 8].copy_from_slice(&acc_c);
+        }
+    }
+
+    fn values(&self) -> ([F192; ELL], [F192; ELL]) {
+        use crate::zerocheck::bit_fold::gfni::store_f192;
+        let (mut ab, mut c) = ([F192::ZERO; ELL], [F192::ZERO; ELL]);
+        // SAFETY: the module is compiled only with these target features enabled.
+        unsafe {
+            store_f192(&self.ab, &mut ab);
+            store_f192(&self.c, &mut c);
+        }
+        (ab, c)
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Main optimized round-1 prover message.
 // ---------------------------------------------------------------------------
 
 /// Per-worker scratch and local accumulators.
 struct WorkerState {
-    partial_ab: [F192; ELL],
-    partial_c: [F192; ELL],
+    partials: Convert,
     chunk_ab_bytes: [[u8; 64]; 1 << N_MEDIUM],
     chunk_c_bytes: [[u8; 64]; 1 << N_MEDIUM],
     local_res_ab: [F192; ELL],
@@ -617,8 +813,7 @@ impl WorkerState {
 
     fn new() -> Self {
         Self {
-            partial_ab: [F192::ZERO; ELL],
-            partial_c: [F192::ZERO; ELL],
+            partials: Convert::new(),
             chunk_ab_bytes: [[0u8; 64]; 1 << N_MEDIUM],
             chunk_c_bytes: [[0u8; 64]; 1 << N_MEDIUM],
             local_res_ab: [F192::ZERO; ELL],
@@ -641,7 +836,6 @@ fn accumulate_x_outer<const FULL: bool>(
     b_packed: &[u8],
     c_packed: &[u8],
     inv_table: &InvNttTableByteSingleGf8,
-    convert: &ConvertTable,
     state: &mut WorkerState,
 ) {
     let n_b_med = if FULL { 1 << N_MEDIUM } else { n_b_med };
@@ -664,17 +858,11 @@ fn accumulate_x_outer<const FULL: bool>(
 
     // Bounded so the trip count is the constant the protocol size gives it.
     let n_b_med = n_b_med.min(N_MEDIUM_VALUES);
-    for lane in 0..ELL {
-        let mut cf_ab = F192::ZERO;
-        let mut cf_c = F192::ZERO;
-        for b_med in 0..n_b_med {
-            let row = &convert[b_med];
-            cf_ab += row[state.chunk_ab_bytes[b_med][lane] as usize];
-            cf_c += row[state.chunk_c_bytes[b_med][lane] as usize];
-        }
-        state.partial_ab[lane] += cf_ab * eq_lo_val;
-        state.partial_c[lane] += cf_c * eq_lo_val;
-    }
+    state.partials.accumulate(
+        &state.chunk_ab_bytes[..n_b_med],
+        &state.chunk_c_bytes[..n_b_med],
+        eq_lo_val,
+    );
 }
 
 /// Process one outer value.
@@ -691,11 +879,9 @@ fn process_one_x_hi(
     inv_table: &InvNttTableByteSingleGf8,
     eq_lo_scaled: &[F192],
     eq_hi_val: F192,
-    convert: &ConvertTable,
     state: &mut WorkerState,
 ) {
-    state.partial_ab.iter_mut().for_each(|p| *p = F192::ZERO);
-    state.partial_c.iter_mut().for_each(|p| *p = F192::ZERO);
+    state.partials = Convert::new();
 
     let n_lo = n_lo_and_inner - N_INNER;
 
@@ -719,7 +905,6 @@ fn process_one_x_hi(
                 b_packed,
                 c_packed,
                 inv_table,
-                convert,
                 state,
             );
         } else {
@@ -731,16 +916,16 @@ fn process_one_x_hi(
                 b_packed,
                 c_packed,
                 inv_table,
-                convert,
                 state,
             );
         }
     }
 
     // Outer fold by eq_hi.
+    let (partial_ab, partial_c) = state.partials.values();
     for lane in 0..ELL {
-        state.local_res_ab[lane] += eq_hi_val * state.partial_ab[lane];
-        state.local_res_c_s[lane] += eq_hi_val * state.partial_c[lane];
+        state.local_res_ab[lane] += eq_hi_val * partial_ab[lane];
+        state.local_res_c_s[lane] += eq_hi_val * partial_c[lane];
     }
 }
 
@@ -820,7 +1005,6 @@ pub fn round1_shift_reduce_extract_c_packed_padded(
 
     let d_inv_val = d_inv();
     let eq_lo_scaled: Vec<F192> = eq.lo.iter().map(|v| *v * d_inv_val).collect();
-    let convert = convert_table();
     let eq_hi = &eq.hi;
 
     let (within_outer_mask, b_med_counts) = build_b_med_counts(padding);
@@ -844,7 +1028,6 @@ pub fn round1_shift_reduce_extract_c_packed_padded(
                 inv_table,
                 &eq_lo_scaled,
                 eq_hi_val,
-                convert,
                 state,
             );
         },
@@ -868,6 +1051,31 @@ mod tests {
     use crate::zerocheck::univariate_skip::round1_naive;
     use pcs::ntt::AdditiveNttGf8;
     use primitives::test_rng::Rng;
+
+    /// The convert stage against the table definition, over full and boundary windows.
+    #[test]
+    fn convert_matches_table() {
+        let mut rng = Rng::new(0xC0_4E27);
+        let mut partials = Convert::new();
+        let (mut want_ab, mut want_c) = ([F192::ZERO; ELL], [F192::ZERO; ELL]);
+        // Two full windows of 16 medium positions, then a boundary window of 7.
+        for n in [16, 16, 7] {
+            let ab: Vec<[u8; 64]> = (0..n).map(|_| std::array::from_fn(|_| rng.next_u64() as u8)).collect();
+            let c: Vec<[u8; 64]> = (0..n).map(|_| std::array::from_fn(|_| rng.next_u64() as u8)).collect();
+            let eq = rng.ext();
+            partials.accumulate(&ab, &c, eq);
+            for lane in 0..ELL {
+                let conv = |rows: &[[u8; 64]]| {
+                    rows.iter()
+                        .zip(convert_table())
+                        .fold(F192::ZERO, |acc, (r, t)| acc + t[r[lane] as usize])
+                };
+                want_ab[lane] += conv(&ab) * eq;
+                want_c[lane] += conv(&c) * eq;
+            }
+        }
+        assert_eq!(partials.values(), (want_ab, want_c));
+    }
 
     #[cfg(all(target_arch = "x86_64", target_feature = "gfni"))]
     #[test]

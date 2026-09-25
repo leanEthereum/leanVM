@@ -3,6 +3,7 @@
 //! (only `hash` in this vendored subset).
 
 use primitives::bits::transpose_8_u64s_to_64_bytes;
+use primitives::stream::Stream;
 use zk_alloc::ArenaVec;
 
 /// OR the low 32 bits of `val` into `buf` starting at bit-offset `bit_off`.
@@ -165,67 +166,75 @@ where
     );
 
     let total_words = n_total * u64_per_block;
-    // Zero inside the parallel loop because the builders OR bits into each group.
-    // SAFETY (x3): the parallel loop below writes every element of z/a/b before
-    // any is read: each group memsets its own slice, then ORs bits into it.
+    // SAFETY (x4): group `g` publishes chunk `g` of every table in full below, and the chunk counts match.
+    // The z/a/b chunks are 8 blocks of packed words, and the stripe chunk is the transpose's k bytes.
     let mut z = unsafe { ArenaVec::<u64>::uninitialized(total_words) };
     let mut a = unsafe { ArenaVec::<u64>::uninitialized(total_words) };
     let mut b = unsafe { ArenaVec::<u64>::uninitialized(total_words) };
-    // SAFETY: group `g` writes chunk `g` of the stripe table in full, since the
-    // transpose stores all 64 bytes of each of the `u64_per_block` destination
-    // windows and `u64_per_block * 64 == k == stripe.len()`. The chunk counts
-    // match, so every chunk is claimed by exactly one group.
     let mut z_lincheck = unsafe { ArenaVec::<u8>::uninitialized((n_total / 8) * k) };
 
     // Four output tables at two widths, indexed by the same group: `z`/`a`/`b`
     // take eight blocks' packed words, `z_lincheck` takes one byte stripe.
-    let z_chunks = parallel::Chunks::new(&mut z, 8 * u64_per_block);
-    let a_chunks = parallel::Chunks::new(&mut a, 8 * u64_per_block);
-    let b_chunks = parallel::Chunks::new(&mut b, 8 * u64_per_block);
+    let group_words = 8 * u64_per_block;
+    let z_chunks = parallel::Chunks::new(&mut z, group_words);
+    let a_chunks = parallel::Chunks::new(&mut a, group_words);
+    let b_chunks = parallel::Chunks::new(&mut b, group_words);
     let stripe_chunks = parallel::Chunks::new(&mut z_lincheck, k);
     debug_assert_eq!(z_chunks.count(), stripe_chunks.count());
-    parallel::for_each(z_chunks.count(), |g| {
-        // SAFETY: each group `g` takes chunk `g` of each table exactly once, and
-        // all four tables stay borrowed for the whole dispatch.
-        let (z_grp, a_grp, b_grp, stripe) =
-            unsafe { (z_chunks.get(g), a_chunks.get(g), b_chunks.get(g), stripe_chunks.get(g)) };
-        z_grp.fill(0);
-        a_grp.fill(0);
-        b_grp.fill(0);
-        for k_in in 0..8 {
-            let global_idx = 8 * g + k_in;
-            let init: &S = if global_idx < n_blocks {
-                &initial_states[global_idx]
-            } else if let Some(p) = padding {
-                // Fill the padding slot with a real block so its constant
-                // wire is set (see `padding` docs above).
-                p
-            } else {
-                // No padding block, leave this slot zero.
-                continue;
-            };
-            let range = k_in * u64_per_block..(k_in + 1) * u64_per_block;
-            let z_u64 = &mut z_grp[range.clone()];
-            let a_u64 = &mut a_grp[range.clone()];
-            let b_u64 = &mut b_grp[range];
-            per_block(init, z_u64, a_u64, b_u64);
-        }
 
-        // Bit-transpose 8 z chunks into the lincheck stripe.
-        for i in 0..u64_per_block {
-            let lanes: [u64; 8] = [
-                z_grp[i],
-                z_grp[u64_per_block + i],
-                z_grp[2 * u64_per_block + i],
-                z_grp[3 * u64_per_block + i],
-                z_grp[4 * u64_per_block + i],
-                z_grp[5 * u64_per_block + i],
-                z_grp[6 * u64_per_block + i],
-                z_grp[7 * u64_per_block + i],
-            ];
-            transpose_8_u64s_to_64_bytes(&lanes, &mut stripe[i * 64..i * 64 + 64]);
-        }
-    });
+    // Each group builds in its worker's scratch, which stays in cache, then streams out.
+    //
+    //     scratch  z | a | b   8 blocks each, zeroed then ORed into
+    //     stripe               the bit transpose of the 8 z blocks
+    //
+    // Building in place instead would fetch every output line before writing it.
+    parallel::map_reduce_with_state(
+        z_chunks.count(),
+        || (vec![0u64; 3 * group_words], vec![0u8; k]),
+        || (),
+        |(scratch, stripe), (), g| {
+            scratch.fill(0);
+            let (z_grp, rest) = scratch.split_at_mut(group_words);
+            let (a_grp, b_grp) = rest.split_at_mut(group_words);
+            for k_in in 0..8 {
+                let global_idx = 8 * g + k_in;
+                let init: &S = if global_idx < n_blocks {
+                    &initial_states[global_idx]
+                } else if let Some(p) = padding {
+                    // Fill the padding slot with a real block so its constant
+                    // wire is set (see `padding` docs above).
+                    p
+                } else {
+                    // No padding block, leave this slot zero.
+                    continue;
+                };
+                let range = k_in * u64_per_block..(k_in + 1) * u64_per_block;
+                per_block(
+                    init,
+                    &mut z_grp[range.clone()],
+                    &mut a_grp[range.clone()],
+                    &mut b_grp[range],
+                );
+            }
+
+            // Bit-transpose 8 z chunks into the lincheck stripe.
+            for i in 0..u64_per_block {
+                let lanes: [u64; 8] = std::array::from_fn(|l| z_grp[l * u64_per_block + i]);
+                transpose_8_u64s_to_64_bytes(&lanes, &mut stripe[i * 64..i * 64 + 64]);
+            }
+
+            // SAFETY: each group `g` takes chunk `g` of each table exactly once, and
+            // all four tables stay borrowed for the whole dispatch.
+            let stream = Stream::new();
+            unsafe {
+                stream.copy(z_chunks.get(g), z_grp);
+                stream.copy(a_chunks.get(g), a_grp);
+                stream.copy(b_chunks.get(g), b_grp);
+                stream.copy(stripe_chunks.get(g), stripe);
+            }
+        },
+        |(), ()| (),
+    );
 
     (z, a, b, z_lincheck)
 }
