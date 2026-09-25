@@ -1,13 +1,15 @@
 % !TeX root = ../drafts/c-flock-protocol.tex
 \section{The Flock protocol}\label{annex:flock}
 
-Flock~\cite{Flock26} proves many executions of one Boolean circuit at once, in our case the Keccak step of the \texttt{SHA3} instruction (\S\ref{sec:tab-sha3}). Since we do not follow their protocol exactly, we describe our version here.
+Flock~\cite{Flock26} proves many executions of one Boolean circuit at once, in our case the BLAKE2s compression. Since we do not follow their protocol exactly, we describe our version here.
 
 \subsection{Statement and commitment}\label{flock:statement}
 
-One Keccak step has a Boolean R1CS witness block of $2^{\kblock}$ bits, where $\kblock=16$. Its fixed matrices are $A_0,B_0,C_0\in\Ftwo^{2^{\kblock}\times 2^{\kblock}}$, with $C_0=I$. The witness includes the circuit inputs, outputs, AND-gate values and one constant-one position; linear wires are substituted away. Within-block coordinates are the low-order coordinates and batch coordinates are the high-order coordinates throughout this annex, and a Boolean tuple is also read as an integer, lowest coordinate first.
+One BLAKE2s compression has a Boolean R1CS witness block of $2^{\kblock}$ bits, where $\kblock=14$. Its fixed matrices are $A_0,B_0,C_0\in\Ftwo^{2^{\kblock}\times 2^{\kblock}}$, with $C_0=I$. The witness includes the circuit inputs, outputs, AND-gate values, addition carries and one constant-one position; linear wires are substituted away. Within-block coordinates are the low-order coordinates and batch coordinates are the high-order coordinates throughout this annex, and a Boolean tuple is also read as an integer, lowest coordinate first.
 
-For $2^{\kbatch}$ independent steps, the witness is:
+leanVM runs a second circuit the same way, the Keccak step of the \texttt{SHA3} instruction (\S\ref{sec:tab-sha3}), with its own witness, its own $\qflock$ and its own run of this protocol, right after the BLAKE2s one on the same transcript. Everything in this annex applies to it with its own numbers: $\kblock=16$, the constant wire at position $3200$, $10$ lincheck rounds. Its committed wires are $1600$ free inputs, the constant, $1600$ committed $\oplus$ wires carrying the output state, and $38{,}400$ $\wedge$ wires, one per bit of $\chi$ in each of the $24$ rounds (the multiplicative complexity of $\chi$ is exactly one product per bit), so its matrix walk costs $80{,}002$ field multiplications. Its soundness error, by the argument closing this annex, is $(4\kbatch+173)/|\E|$, and the two circuits' errors add.
+
+For $2^{\kbatch}$ independent compressions, the witness is:
 \[
 z:\cube{\kbool}\longrightarrow\Ftwo,\qquad \kbool=\kblock+\kbatch,
 \]
@@ -20,12 +22,12 @@ Writing $a=Az$, $b=Bz$ and $c=Cz=z$, the R1CS statement is:
 a(u)b(u)+c(u)=0\qquad\text{for every }u\in\cube{\kbool}
 \end{equation}
 
-We also enforce the position $3200$ of every block to be $1$ (preventing the all-zero witness):
+We also enforce the position $512$ of every block to be $1$ (preventing the all-zero witness):
 \begin{equation}\label{flock:eq:const-one}
-z(0,0,0,0,0,0,0,1,0,0,1,1,0,0,0,0,\,t)=1\qquad\text{for every }t\in\cube{\kbatch}
+z(0,0,0,0,0,0,0,0,0,1,0,0,0,0,\,t)=1\qquad\text{for every }t\in\cube{\kbatch}
 \end{equation}
 
-This second condition is enforced by lincheck (\S\ref{flock:lincheck}), and position $3200=\jconst$ is where the circuit below puts its constant wire. Since it is asked of every block, the prover pads the batch out to $2^{\kbatch}$ with copies of a genuine witness block rather than with zeros.
+This second condition is enforced by lincheck (\S\ref{flock:lincheck}), and position $512=\jconst$ is where every circuit below puts its constant wire. Since it is asked of every block, the prover pads the batch out to $2^{\kbatch}$ with copies of a genuine witness block rather than with zeros.
 
 Set $\kskip=6$ and $\nflock=\kbool-\kskip$. The prover commits to $z$ by packing its low $\kskip$ coordinates, $64$ bits, to a $\K$-element, following Ring-Switching (Annex~\ref{annex:rs}). The resulting multilinear $\qflock:\cube{\nflock}\to\K$ is committed as one region of the stack (\S\ref{sec:stacking}).
 
@@ -78,7 +80,7 @@ where $\fc\in\E^{\nflock}$ is the vector of sumcheck challenges and the third cl
 
 \subsection{Lincheck}\label{flock:lincheck}
 
-Lincheck reduces the three zerocheck claims to claims on $z$. The block structure is what keeps it cheap: the matrices repeat one Keccak circuit, so lincheck runs over a single block, not over the batch. Split $\fc=(\fc_{\mathrm{in}},\fc_{\mathrm{out}})$, where $\fc_{\mathrm{in}}\in\E^{\kblock-\kskip}$ selects the remaining within-block coordinates and $\fc_{\mathrm{out}}\in\E^{\kbatch}$ selects a batch instance.
+Lincheck reduces the three zerocheck claims to claims on $z$. The block structure is what keeps it cheap: the matrices repeat one BLAKE2s circuit, so lincheck runs over a single block, not over the batch. Split $\fc=(\fc_{\mathrm{in}},\fc_{\mathrm{out}})$, where $\fc_{\mathrm{in}}\in\E^{\kblock-\kskip}$ selects the remaining within-block coordinates and $\fc_{\mathrm{out}}\in\E^{\kbatch}$ selects a batch instance.
 
 \begin{lemma}[Block diagonality folds the batch into $z$]\label{lem:flock-block-diagonal}
 For $a=Az$ with $A=I_{2^{\kbatch}}\otimes A_0$, at every point $(\zskip,\fc_{\mathrm{in}},\fc_{\mathrm{out}})\in\E\times\E^{\kblock-\kskip}\times\E^{\kbatch}$,
@@ -113,13 +115,13 @@ The verifier samples $\lcalpha\in\E$ and batches the zerocheck's three claims \e
 \begin{equation}\label{flock:eq:lincheck}
 \begin{split}
 v_a+\lcalpha v_b+\lcalpha^2v_c+\lcalpha^3\qeq\sum_{j\in\cube{\kblock}}\Bigl(&\qext A_0(\zskip,\fc_{\mathrm{in}},j)+\lcalpha\qext B_0(\zskip,\fc_{\mathrm{in}},j)\\
-&+\lcalpha^2\lag_{\jsk}(\zskip)\eq(\fc_{\mathrm{in}},\jin)+\lcalpha^3[j=3200]\Bigr)\mle z(j,\fc_{\mathrm{out}}).
+&+\lcalpha^2\lag_{\jsk}(\zskip)\eq(\fc_{\mathrm{in}},\jin)+\lcalpha^3[j=512]\Bigr)\mle z(j,\fc_{\mathrm{out}}).
 \end{split}
 \end{equation}
 
 \vspace{2mm}
 
-The parties start by running $\kblock - \kskip = 16 - 6 = 10$ sumcheck rounds on $\eqref{flock:eq:lincheck}$, binding the $\jin$ coordinates (leaving the skip index $\jsk$ unfolded), with challenges $\fc'_{\mathrm{in}}$ in coordinate order (the reverse of their round order). Let $R_{\mathrm{lc}}\in\E$ be the resulting sumcheck claim.
+The parties start by running $\kblock - \kskip = 14 - 6 = 8$ sumcheck rounds on $\eqref{flock:eq:lincheck}$, binding the $\jin$ coordinates (leaving the skip index $\jsk$ unfolded), with challenges $\fc'_{\mathrm{in}}$ in coordinate order (the reverse of their round order). Let $R_{\mathrm{lc}}\in\E$ be the resulting sumcheck claim.
 
 The prover sends $(s_0,\ldots,s_{63})\in\E^{64}$, claiming $s_i=\mle z(i,\fc'_{\mathrm{in}},\fc_{\mathrm{out}})$. These 64 claims will later be proven by Ring-Switching.
 
@@ -128,7 +130,7 @@ The verifier finally needs to check:
 \begin{equation}\label{flock:eq:lincheck-terminal}
 \begin{split}
 R_{\mathrm{lc}}\qeq\sum_{i=0}^{63}\Bigl(&\qext A_0(\zskip,\fc_{\mathrm{in}},i,\fc'_{\mathrm{in}})+\lcalpha\,\qext B_0(\zskip,\fc_{\mathrm{in}},i,\fc'_{\mathrm{in}})\\
-&+\lcalpha^2\lag_i(\zskip)\,\eq(\fc_{\mathrm{in}},\fc'_{\mathrm{in}})+\lcalpha^3[i=0]\,\eq(\fc'_{\mathrm{in}},50)\Bigr)s_i.
+&+\lcalpha^2\lag_i(\zskip)\,\eq(\fc_{\mathrm{in}},\fc'_{\mathrm{in}})+\lcalpha^3[i=0]\,\eq(\fc'_{\mathrm{in}},8)\Bigr)s_i.
 \end{split}
 \end{equation}
 
@@ -147,7 +149,7 @@ Writing $\wcol(\jsk,\jin)=s_{\jsk}\,\eq(\fc'_{\mathrm{in}},\jin)$ with $(\jsk,\j
 \sum_{i=0}^{63}\qext A_0(\zskip,\fc_{\mathrm{in}},i,\fc'_{\mathrm{in}})\,s_i=\sum_{k,j\in\cube{\kblock}}A_0(k,j)\,\erow(k)\,\wcol(j).
 \end{equation}
 
-One forward walk of the Keccak circuit returns \eqref{flock:eq:matrix-form} for both matrices (\S\ref{flock:matrices}), never touching their nonzero entries, which the substituted $\theta$ cascade makes dense. Its committed wires are $1600$ free inputs, the constant, $1600$ committed $\oplus$ wires carrying the output state, and $38{,}400$ $\wedge$ wires, one per bit of $\chi$ in each of the $24$ rounds (the multiplicative complexity of $\chi$ is exactly one product per bit, so no encoding has fewer); at one multiplication per committed wire on the $A$ side, one per $\wedge$ wire on the $B$ side, and one for the constant factor the remaining $B$ rows share, that is $80{,}002$ field multiplications in $O(\text{circuit})$ work. The $c$ term of \eqref{flock:eq:lincheck-terminal} is $\lcalpha^2\inner{\erow}{\wcol}$ in the same notation, and needs no walk: both sides are tensors, so it contracts to $\lcalpha^2\eq(\fc_{\mathrm{in}},\fc'_{\mathrm{in}})\sum_i\lag_i(\zskip)s_i$.
+One forward walk of the BLAKE2s circuit returns \eqref{flock:eq:matrix-form} for both matrices (\S\ref{flock:matrices}), never touching the roughly $89$ million nonzero entries they hold. Its committed wires are $896$ free inputs, the constant, $256$ committed $\oplus$ wires carrying the output chaining value, and $14{,}720$ $\wedge$ wires, one per product bit of the $320$ modular additions of the ten rounds; at one multiplication per committed wire on the $A$ side, one per $\wedge$ wire on the $B$ side, and one for the constant factor the remaining $B$ rows share, that is $30{,}594$ field multiplications in $O(\text{circuit})$ work. The $c$ term of \eqref{flock:eq:lincheck-terminal} is $\lcalpha^2\inner{\erow}{\wcol}$ in the same notation, and needs no walk: both sides are tensors, so it contracts to $\lcalpha^2\eq(\fc_{\mathrm{in}},\fc'_{\mathrm{in}})\sum_i\lag_i(\zskip)s_i$.
 
 \subsubsection{Concluding Lincheck for a recursive verifier}\label{flock:defer}
 
@@ -173,7 +175,7 @@ After the witness $z$ has been committed, and its size announced:
 \item The verifier forms the zerocheck point $r$: seven fixed coordinates, the rest sampled. The $\kskip$ variables the univariate skip replaced consume no equality challenge.
 \item The prover sends $P|_{\skipcoset}$, $64$ values. The verifier samples $\zskip$ and reconstructs $v_P$.
 \item The parties run $\nflock$ quadratic zerocheck rounds on \eqref{flock:eq:pskip}, which the prover ends by sending $v_a,v_b$; the terminal identity \eqref{flock:eq:zc-terminal} then fixes $v_c$.
-\item The verifier samples $\lcalpha$ and the parties run the $10$ quadratic lincheck rounds on \eqref{flock:eq:lincheck}. The prover sends $(s_0,\ldots,s_{63})$, and the verifier checks \eqref{flock:eq:lincheck-terminal}: one circuit walk natively, the hint \eqref{flock:eq:matpart} in recursion.
+\item The verifier samples $\lcalpha$ and the parties run the $8$ quadratic lincheck rounds on \eqref{flock:eq:lincheck}. The prover sends $(s_0,\ldots,s_{63})$, and the verifier checks \eqref{flock:eq:lincheck-terminal}: one circuit walk natively, the hint \eqref{flock:eq:matpart} in recursion.
 \end{enumerate}
 What Flock leaves is one family of $64$ claims for Ring-Switching (\S\ref{flock:ringswitch}): $(s_i \qeq \mle z(i, \fc'_{\mathrm{in}},\fc_{\mathrm{out}}))_{0 \leq i \leq 63}$.
 \end{protocol}
@@ -267,11 +269,11 @@ s_i=\mle z(i,\fc'_{\mathrm{in}},\fc_{\mathrm{out}}),\qquad i\in\cube{\kskip},
 \]
 up to the PCS error and the $2^{-160}$ of Annex~\ref{annex:rs}, and let us show a $z$ failing \eqref{flock:eq:r1cs} or \eqref{flock:eq:const-one} is rejected.
 
-Lincheck comes first, and it is the only thing that checks anything: the zerocheck's own terminal identity defines $v_c$ instead of testing it, so every lie upstream reaches lincheck as a wrong triple $(v_a,v_b,v_c)$. Its terminal check \eqref{flock:eq:lincheck-terminal} is evaluated from the true $s$ and the matrices themselves, by the walk of \S\ref{flock:native} natively and, in recursion, once \eqref{flock:eq:matpart} is discharged (\S\ref{sec:deferred-claims}), so a false \eqref{flock:eq:lincheck} survives the $10$ rounds with probability at most $20/|\E|$ (Fact~\ref{fact:sumcheck}, degree two in each round). And by Lemma~\ref{lem:flock-block-diagonal} and \eqref{flock:eq:c-as-column}, \eqref{flock:eq:lincheck} says
+Lincheck comes first, and it is the only thing that checks anything: the zerocheck's own terminal identity defines $v_c$ instead of testing it, so every lie upstream reaches lincheck as a wrong triple $(v_a,v_b,v_c)$. Its terminal check \eqref{flock:eq:lincheck-terminal} is evaluated from the true $s$ and the matrices themselves, by the walk of \S\ref{flock:native} natively and, in recursion, once \eqref{flock:eq:matpart} is discharged (\S\ref{sec:deferred-claims}), so a false \eqref{flock:eq:lincheck} survives the $8$ rounds with probability at most $16/|\E|$ (Fact~\ref{fact:sumcheck}, degree two in each round). And by Lemma~\ref{lem:flock-block-diagonal} and \eqref{flock:eq:c-as-column}, \eqref{flock:eq:lincheck} says
 \[
-\bigl(v_a+\qext a(\zskip,\fc)\bigr)+\lcalpha\bigl(v_b+\qext b(\zskip,\fc)\bigr)+\lcalpha^2\bigl(v_c+\qext z(\zskip,\fc)\bigr)+\lcalpha^3\bigl(1+\mle z(3200,\fc_{\mathrm{out}})\bigr)=0,
+\bigl(v_a+\qext a(\zskip,\fc)\bigr)+\lcalpha\bigl(v_b+\qext b(\zskip,\fc)\bigr)+\lcalpha^2\bigl(v_c+\qext z(\zskip,\fc)\bigr)+\lcalpha^3\bigl(1+\mle z(512,\fc_{\mathrm{out}})\bigr)=0,
 \]
-degree three in $\lcalpha$, all four coefficients fixed before $\lcalpha$ is drawn. Acceptance therefore pins them all, except with $3/|\E|$ (Lemma~\ref{lem:sz}): $v_a$, $v_b$ and $v_c$ are the true evaluations, and $\mle z(3200,\fc_{\mathrm{out}})=1$, which is \eqref{flock:eq:const-one} except with $\kbatch/|\E|$ more, $\fc_{\mathrm{out}}$ being random.
+degree three in $\lcalpha$, all four coefficients fixed before $\lcalpha$ is drawn. Acceptance therefore pins them all, except with $3/|\E|$ (Lemma~\ref{lem:sz}): $v_a$, $v_b$ and $v_c$ are the true evaluations, and $\mle z(512,\fc_{\mathrm{out}})=1$, which is \eqref{flock:eq:const-one} except with $\kbatch/|\E|$ more, $\fc_{\mathrm{out}}$ being random.
 
 With all three pinned, the zerocheck's terminal identity \eqref{flock:eq:zc-terminal} becomes a real check again: it fixes $R_{\mathrm{zc}}$ to the true value of the summand at $\fc$.
 
@@ -279,6 +281,6 @@ Now let $z$ violate \eqref{flock:eq:r1cs} at $u=(i,v)$. Then $P(\fembed(i))$ is 
 
 Summing those terms, such a $z$ is accepted with probability at most
 \[
-\frac{20+3+\kbatch+(\nflock-7)+127+2\nflock}{|\E|}=\frac{4\kbatch+173}{|\E|}<2^{-183},
+\frac{16+3+\kbatch+(\nflock-7)+127+2\nflock}{|\E|}=\frac{4\kbatch+163}{|\E|}<2^{-183},
 \]
 on top of the two errors granted above.

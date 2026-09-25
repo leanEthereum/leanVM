@@ -111,29 +111,54 @@ The store asserts that $v_2$ equals the source chosen by the mode $\dmode$ (\S\r
   \end{itemize}
 \end{itemize}
 
+\subsection{\texttt{BLAKE2S}}\label{sec:tab-blake2s}
+
+\texttt{BLAKE2S}\ $[o_{m_0},o_{m_1},o_{m_2},o_{m_3},o_{\mathit{cv}},o_{\mathit{out}},o_{\md}]$ compresses a $64$-byte message block under a $32$-byte chaining value into a $32$-byte result, with the BLAKE2s flags and byte counter in the metadata cell $\fp\cdot o_{\md}$. Each $128$-bit half occupies one cell, top limb zero: the four message chunks at $\fp\cdot o_{m_0},\dots,\fp\cdot o_{m_3}$, addressed independently, the chaining value at the consecutive pair $\fp\cdot o_{\mathit{cv}},\gen\cdot\fp\cdot o_{\mathit{cv}}$, and the result at $\fp\cdot o_{\mathit{out}},\gen\cdot\fp\cdot o_{\mathit{out}}$.
+
+Flock~\cite{Flock26} proves the compression relation with a batched R1CS over a Boolean witness (Annex~\ref{annex:flock}). The witness is packed into $\qflock$ via Ring-Switching (Annex~\ref{annex:rs}), with $64$ bits per $\K$-element.
+
+The message, result, chaining value and metadata are all committed in $\qflock$: the two low limbs $z_0,z_1$ of each of the nine cells $z\in\{m_0,\dots,m_3,\mathit{cv}_0,\mathit{cv}_1,\mathit{out}_0,\mathit{out}_1,\md\}$, eighteen in all. Linking these values to the memory interaction implicitly forces the top limb of every memory cell accessed by BLAKE2s to be zero. The generalized R1CS matrices take the chaining value, byte counter, and the two finalization flags as free input: the memory interactions via the bus bind all four.
+\begin{itemize}
+\item \textbf{Columns:} $\pc,\fp$; operands $o_{m_0},o_{m_1},o_{m_2},o_{m_3},o_{\mathit{cv}},o_{\mathit{out}},o_{\md}$; one memory count $r_z$ per cell $z$; bytecode count $r_{\mathrm{bc}}$. The eighteen limbs are committed in $\qflock$, no duplicate columns needed. The nine addresses are the products $\gen^{k}\fp\cdot o$, $k\in\{0,1\}$.
+\item \textbf{Constraints:} none. The compression relation is handled by Flock.
+\item \textbf{Flushes:}
+  \begin{itemize}
+  \item \textbf{State:} \pull\ $\tup{\dsep{ST},\pc,\fp}$, \push\ $\tup{\dsep{ST},\gen\cdot\pc,\fp}$.
+  \item \textbf{Bytecode:} $\rdf{\dsep{BC},\pc,r_{\mathrm{bc}},\opc{B2S},o_{m_0},o_{m_1},o_{m_2},o_{m_3},o_{\mathit{cv}},o_{\mathit{out}},o_{\md}}$.
+  \item \textbf{Memory:}
+    \begin{align*}
+      &\rdf{\dsep{MEM},\fp\cdot o_{m_i},r_{m_i},m_{i,0},m_{i,1},0}\quad(i=0,\dots,3),\\
+      &\rdf{\dsep{MEM},\fp\cdot o_{\mathit{cv}},r_{\mathit{cv}_0},\mathit{cv}_{0,0},\mathit{cv}_{0,1},0},\\
+      &\rdf{\dsep{MEM},\gen\cdot\fp\cdot o_{\mathit{cv}},r_{\mathit{cv}_1},\mathit{cv}_{1,0},\mathit{cv}_{1,1},0},\\
+      &\rdf{\dsep{MEM},\fp\cdot o_{\mathit{out}},r_{\mathit{out}_0},\mathit{out}_{0,0},\mathit{out}_{0,1},0},\\
+      &\rdf{\dsep{MEM},\gen\cdot\fp\cdot o_{\mathit{out}},r_{\mathit{out}_1},\mathit{out}_{1,0},\mathit{out}_{1,1},0},\\
+      &\rdf{\dsep{MEM},\fp\cdot o_{\md},r_{\md},\md_0,\md_1,0}.
+    \end{align*}
+  \end{itemize}
+\end{itemize}
+
 \subsection{\texttt{SHA3}}\label{sec:tab-sha3}
 
-\texttt{SHA3}\ $[o_{m_0},o_{m_1},o_{m_2},o_{m_3},o_{\mathit{tail}},o_{\mathit{cap}},o_{\mathit{out}}]$ is one step of the machine's hash. The hash is SHA3-256~\cite{fips202} in the \emph{cell encoding}: plain SHA3-256 of a message of at most $128$ bytes, and SHA3-256 of the message with the fixed eight bytes $\mathtt{00}^{7}\,\mathtt{80}$ after every $128$ otherwise. SHA3-256 absorbs $136$ bytes per permutation, which would split a $16$-byte cell across two blocks; the encoding makes a block eight whole cells of message, and the gap is lane $16$, the rate's last lane, whose non-final value $\mathtt{0x80}\ll 56$ is also the final block's last padding bit. So the step XORs that bit into lane $16$ and permutes, and a program hashes any message by XORing each block of eight cells into the previous state and placing the padding's first byte $\mathtt{0x06}$ where the message ends, the one thing that depends on its length.
+\texttt{SHA3}\ $[o_{m_0},\dots,o_{m_7},o_{\mathit{cap}},o_{\mathit{out}},\fdig]$ is one step of the Keccak sponge, the second hash instruction beside \texttt{BLAKE2S}: programs use it for the Keccak-256 of the SPHINCS+ profile (\S\ref{sec:sphincs-agg}). Its steps compose SHA3-256~\cite{fips202} in the \emph{cell encoding}: plain SHA3-256 of a message of at most $128$ bytes, and SHA3-256 of the message with the fixed eight bytes $\mathtt{00}^{7}\,\mathtt{80}$ after every $128$ otherwise. SHA3-256 absorbs $136$ bytes per permutation, which would split a $16$-byte cell across two blocks; the encoding makes a block eight whole cells of message, and the gap is lane $16$, the rate's last lane, whose non-final value $\mathtt{0x80}\ll 56$ is also the final block's last padding bit. So the step XORs that bit into lane $16$ and permutes, and a program hashes any message by XORing each block of eight cells into the previous state and placing the padding's first byte $\mathtt{0x06}$ where the message ends, the one thing that depends on its length.
 
-The step reads a state of $25$ lanes from thirteen cells, two lanes to a cell with its top limb zero: lanes $0..8$ at the four cells $\fp\cdot o_{m_0},\dots,\fp\cdot o_{m_3}$, addressed independently, lanes $8..16$ at the four consecutive cells $\gen^{k}\cdot\fp\cdot o_{\mathit{tail}}$, lane $16$ alone (its high limb zero too) and the capacity lanes $17..25$ at the five consecutive cells $\gen^{k}\cdot\fp\cdot o_{\mathit{cap}}$. It writes the thirteen output cells $\gen^{k}\cdot\fp\cdot o_{\mathit{out}}$, $k<13$, in the same layout. A first block reads a zero capacity; a later one reads the previous output's last five cells there and the previous output XORed with its message elsewhere.
+The step reads a state of $25$ lanes from thirteen cells, two lanes to a cell with its top limb zero: lanes $0..16$, a whole block, at the eight cells $\fp\cdot o_{m_0},\dots,\fp\cdot o_{m_7}$, addressed independently, and lane $16$ alone (its high limb zero too) and the capacity lanes $17..25$ at the five consecutive cells $\gen^{k}\cdot\fp\cdot o_{\mathit{cap}}$. It writes the thirteen output cells $\gen^{k}\cdot\fp\cdot o_{\mathit{out}}$, $k<13$, in the same layout, or with $\fdig=1$ (a \emph{digest step}) the first two alone, the digest, which is all a final block's caller reads. A first block reads a zero capacity; a later one reads the previous output's last five cells there and the previous output XORed with its message elsewhere. Independent message cells let a hash read its message where it already lies: a chaining node, a key and an address are three operands, not a run to copy them into.
 
-Flock~\cite{Flock26} proves the step with a batched R1CS over a Boolean witness (Annex~\ref{annex:flock}). The witness is packed into $\qflock$ via Ring-Switching (Annex~\ref{annex:rs}), with $64$ bits per $\K$-element.
+Flock~\cite{Flock26} proves the step with a second batched R1CS over a Boolean witness, the Keccak circuit (Annex~\ref{annex:flock}). Its witness is packed into its own $\qflock$, beside the \texttt{BLAKE2S} one, via Ring-Switching (Annex~\ref{annex:rs}), with $64$ bits per $\K$-element.
 
 The input and output lanes are all committed in $\qflock$, fifty in all. Linking these values to the memory interaction implicitly forces the top limb of every memory cell accessed by \texttt{SHA3} to be zero, and the high limb of the two lane-$16$ cells too. The R1CS takes all $25$ input lanes as free input: the memory interactions via the bus bind them.
 \begin{itemize}
-\item \textbf{Columns:} $\pc,\fp$; operands $o_{m_0},o_{m_1},o_{m_2},o_{m_3},o_{\mathit{tail}},o_{\mathit{cap}},o_{\mathit{out}}$; one memory count per cell, twenty-six; bytecode count $r_{\mathrm{bc}}$. The fifty lanes are committed in $\qflock$, no duplicate columns needed. The twenty-six addresses are the products $\gen^{k}\fp\cdot o$.
+\item \textbf{Columns:} $\pc,\fp$; operands $o_{m_0},\dots,o_{m_7},o_{\mathit{cap}},o_{\mathit{out}}$ and the flag $\fdig$; one memory count per cell, twenty-six; bytecode count $r_{\mathrm{bc}}$. The fifty lanes are committed in $\qflock$, no duplicate columns needed. The twenty-six addresses are the products $\gen^{k}\fp\cdot o$.
 \item \textbf{Constraints:} none. The step is handled by Flock.
 \item \textbf{Flushes:}
   \begin{itemize}
   \item \textbf{State:} \pull\ $\tup{\dsep{ST},\pc,\fp}$, \push\ $\tup{\dsep{ST},\gen\cdot\pc,\fp}$.
-  \item \textbf{Bytecode:} $\rdf{\dsep{BC},\pc,r_{\mathrm{bc}},\opc{S3},o_{m_0},o_{m_1},o_{m_2},o_{m_3},o_{\mathit{tail}},o_{\mathit{cap}},o_{\mathit{out}}}$.
+  \item \textbf{Bytecode:} $\rdf{\dsep{BC},\pc,r_{\mathrm{bc}},\opc{S3},o_{m_0},\dots,o_{m_7},o_{\mathit{cap}},o_{\mathit{out}},\fdig}$.
   \item \textbf{Memory:} with $s_\ell$ the input lane $\ell$, $t_\ell$ the output lane $\ell$, and one count per cell,
     \begin{align*}
-      &\rdf{\dsep{MEM},\fp\cdot o_{m_i},r,s_{2i},s_{2i+1},0}\quad(i<4),\\
-      &\rdf{\dsep{MEM},\gen^{i}\cdot\fp\cdot o_{\mathit{tail}},r,s_{8+2i},s_{9+2i},0}\quad(i<4),\\
+      &\rdf{\dsep{MEM},\fp\cdot o_{m_i},r,s_{2i},s_{2i+1},0}\quad(i<8),\\
       &\rdf{\dsep{MEM},\fp\cdot o_{\mathit{cap}},r,s_{16},0,0},\\
       &\rdf{\dsep{MEM},\gen^{1+i}\cdot\fp\cdot o_{\mathit{cap}},r,s_{17+2i},s_{18+2i},0}\quad(i<4),
     \end{align*}
-    and the same thirteen for the output lanes $t_\ell$ at $\gen^{k}\cdot\fp\cdot o_{\mathit{out}}$, in the same order.
+    and the same thirteen for the output lanes $t_\ell$ at $\gen^{k}\cdot\fp\cdot o_{\mathit{out}}$, in the same order, except that the last eleven ($k\ge2$) push the count $r\,(\gen+\fdig\,(\gen+1))$ in place of $\gen\,r$, still a degree-two coordinate. A digest step thus pushes exactly what it pulls, so the pair cancels and those eleven cells are never accessed; the count channel still requires every count to be nonzero, so a cancelled pair cannot pass off a zero count. The flag rides the bytecode flush, so the program fixes which steps are digest steps, not the prover.
   \end{itemize}
 \end{itemize}

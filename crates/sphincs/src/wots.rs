@@ -1,9 +1,8 @@
 //! WOTS+ and the Merkle trees of the hypertree.
 //!
-//! A layer's WOTS key signs an `n`-byte node through the 256-bit digest
-//! `keccak256(pkSeed ‖ ADRS ‖ node)`: its `len1 = 32` low base-16 digits, then
-//! the `len2 = 3` base-16 digits of the checksum `sum(w - 1 - digit)`, all read
-//! least significant first. Chain `i` starts at the revealed value, at hash
+//! A layer's WOTS key signs an `n`-byte node directly: its `len1 = 32` base-16
+//! digits, then the `len2 = 3` base-16 digits of the checksum `sum(w - 1 - digit)`,
+//! all read most significant first. Chain `i` starts at the revealed value, at hash
 //! address `digit_i`, and walks the `w - 1 - digit_i` remaining steps.
 
 use crate::*;
@@ -13,22 +12,16 @@ pub fn wots_adrs(layer: u32, tree: u64, kp: u32) -> Adrs {
     Adrs::new(layer, tree, WOTS_HASH, kp, 0, 0)
 }
 
-/// The WOTS digest `keccak256(pkSeed ‖ ADRS ‖ node)`, 96 bytes, in full.
-pub fn wots_digest(pp: &PublicParam, layer: u32, tree: u64, kp: u32, node: &Digest) -> [u8; 32] {
-    th_full(pp, &wots_adrs(layer, tree, kp), &[*node])
-}
-
-/// The `l` digits of a digest: `(d >> (i·log w)) & (w - 1)` for the `len1`
-/// message digits (the digest's low 128 bits, its last 16 bytes), then
-/// `(csum >> (j·log w)) & (w - 1)`.
-pub fn digits(d: &[u8; 32]) -> [u8; L] {
+/// The `l` digits a key signs `node` with: its nibbles, the high one of each
+/// byte first, then the checksum's, most significant first.
+pub fn digits(node: &Digest) -> [u8; L] {
     let mut out = [0; L];
     for (i, digit) in out[..LEN1].iter_mut().enumerate() {
-        *digit = digest_bits(d, i * LOG_W, LOG_W) as u8;
+        *digit = (node[i / 2] >> (LOG_W * (1 - i % 2))) & (W - 1) as u8;
     }
     let csum = MAX_CSUM - out[..LEN1].iter().map(|&x| usize::from(x)).sum::<usize>();
     for j in 0..LEN2 {
-        out[LEN1 + j] = ((csum >> (j * LOG_W)) & (W - 1)) as u8;
+        out[LEN1 + j] = ((csum >> (LOG_W * (LEN2 - 1 - j))) & (W - 1)) as u8;
     }
     out
 }
@@ -60,7 +53,7 @@ pub fn wots_pk_from_sig(
     node: &Digest,
     sigma: &[Digest; L],
 ) -> Digest {
-    let digits = digits(&wots_digest(pp, layer, tree, kp, node));
+    let digits = digits(node);
     let base = wots_adrs(layer, tree, kp);
     let tops = std::array::from_fn(|i| {
         let d = usize::from(digits[i]);
@@ -90,7 +83,7 @@ pub(crate) fn wots_sign(
     kp: u32,
     node: &Digest,
 ) -> [Digest; L] {
-    let digits = digits(&wots_digest(pp, layer, tree, kp, node));
+    let digits = digits(node);
     let base = wots_adrs(layer, tree, kp);
     std::array::from_fn(|i| {
         chain(

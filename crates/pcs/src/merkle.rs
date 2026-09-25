@@ -1,5 +1,5 @@
 // CREDIT: https://github.com/succinctlabs/flock (flock-core), MIT OR Apache-2.0.
-//! Binary Merkle tree with SHA3-256, SIMD-batching independent hashes across
+//! Binary Merkle tree with BLAKE2s, SIMD-batching independent hashes across
 //! leaves and internal levels through the lane-transposed multi-input hasher in
 //! [`primitives::hash`].
 //!
@@ -17,10 +17,12 @@
 //! Total nodes: `2·num_leaves − 1`. The flat layout keeps the tree contiguous
 //! in memory for cheap Merkle-path extraction later.
 //!
-//! Hashing is [`primitives::hash::hash`]. Independent hashes of equal-length
-//! inputs put their padding in the same place, so the batched hasher is
-//! byte-identical to an independent [`hash_leaf`] per input, at any leaf size.
-//! Internal 64-byte child pairs are one permutation each.
+//! Hashing is standard BLAKE2s-256. Independent hashes of equal-length inputs
+//! step their block counters in lockstep, so the batched hasher is
+//! byte-identical to an independent [`hash_leaf`] per input; the leaf-size
+//! dispatch below exists only to make the length a compile-time constant.
+//! Leaves of other sizes use the scalar path. Internal 64-byte child pairs,
+//! which are one compression each, always take the batched path.
 
 pub use fiat_shamir::merkle::{Hash, hash_leaf, hash_pair};
 use parallel::SendPtr;
@@ -32,14 +34,17 @@ use zk_alloc::ArenaVec;
 /// keeping input references and output rows cache-resident.
 const HASH_GROUP: usize = 1024;
 
-/// Batch independent hashes of contiguous `len`-byte inputs into uninitialized
-/// output slots.
-fn hash_many_uninit(data: &[u8], len: usize, out: &mut [std::mem::MaybeUninit<Hash>]) {
-    debug_assert_eq!(data.len(), out.len() * len);
+/// Batch independent BLAKE2s hashes of contiguous `N`-byte inputs into
+/// uninitialized output slots.
+fn hash_many_uninit<const N: usize>(data: &[u8], out: &mut [std::mem::MaybeUninit<Hash>]) {
+    const {
+        assert!(N > 0 && N.is_multiple_of(64));
+    }
+    debug_assert_eq!(data.len(), out.len() * N);
     // Hash is [u8; 32] with no padding; expose the contiguous output storage
     // the batched hasher writes 32 bytes per input into.
     let out_bytes = unsafe { core::slice::from_raw_parts_mut(out.as_mut_ptr().cast::<u8>(), out.len() * 32) };
-    primitives::hash::hash_many_dyn(data, len, out_bytes);
+    primitives::hash::hash_many::<N>(data, out_bytes);
 }
 
 /// Dispatch one pool task per `HASH_GROUP`-sized output group, handing each
@@ -62,15 +67,34 @@ fn for_each_hash_group(
 }
 
 fn hash_leaves_batched_uninit(data: &[u8], leaf_size: usize, out: &mut [std::mem::MaybeUninit<Hash>]) {
-    // Leaf hashing is the purest embarrassingly parallel phase here: fixed-size
-    // independent groups, no cross-group dependency, one join at the end. The
-    // pool's efficiency-core workers pull from the same claim counter as the
-    // performance ones, so this is also where the otherwise idle E-cores get spent
-    // (see the `parallel` crate).
-    for_each_hash_group(out, |lo, outputs| {
-        let len = outputs.len();
-        hash_many_uninit(&data[lo * leaf_size..(lo + len) * leaf_size], leaf_size, outputs);
-    });
+    fn batched<const N: usize>(data: &[u8], out: &mut [std::mem::MaybeUninit<Hash>]) {
+        // Leaf hashing is the purest embarrassingly parallel phase here:
+        // fixed-size independent groups, no cross-group dependency, one join
+        // at the end. The pool's efficiency-core workers pull from the same claim
+        // counter as the performance ones, so this is also where the otherwise
+        // idle E-cores get spent (see the `parallel` crate).
+        for_each_hash_group(out, |lo, outputs| {
+            let len = outputs.len();
+            hash_many_uninit::<N>(&data[lo * N..(lo + len) * N], outputs);
+        });
+    }
+    match leaf_size {
+        64 => batched::<64>(data, out),
+        128 => batched::<128>(data, out),
+        256 => batched::<256>(data, out),
+        512 => batched::<512>(data, out),
+        // The WHIR recursion levels commit F192 rows, so their leaves are
+        // `num_interleaved * 24` bytes, a multiple of 64 but not a power of
+        // two, which used to miss every batched arm and fall through to the
+        // one-leaf-at-a-time path with no cross-leaf SIMD at all.
+        192 => batched::<192>(data, out),
+        384 => batched::<384>(data, out),
+        768 => batched::<768>(data, out),
+        1024 => batched::<1024>(data, out),
+        _ => parallel::for_each_mut(out, |i, slot| {
+            slot.write(hash_leaf(&data[i * leaf_size..(i + 1) * leaf_size]));
+        }),
+    }
 }
 
 fn hash_pairs_level_uninit(read: &[Hash], write: &mut [std::mem::MaybeUninit<Hash>]) {
@@ -78,7 +102,7 @@ fn hash_pairs_level_uninit(read: &[Hash], write: &mut [std::mem::MaybeUninit<Has
     let read_bytes = unsafe { core::slice::from_raw_parts(read.as_ptr().cast::<u8>(), read.len() * 32) };
     for_each_hash_group(write, |lo, outputs| {
         let len = outputs.len();
-        hash_many_uninit(&read_bytes[lo * 64..(lo + len) * 64], 64, outputs);
+        hash_many_uninit::<64>(&read_bytes[lo * 64..(lo + len) * 64], outputs);
     });
 }
 
@@ -107,7 +131,7 @@ pub fn merkle_tree(data: &[u8], num_leaves: usize) -> ArenaVec<Hash> {
     let total_nodes = 2 * num_leaves - 1;
     let mut tree = zk_alloc::alloc_uninit(total_nodes);
 
-    // 1. Leaves: independent hashes.
+    // 1. Leaves: independent standard BLAKE2s hashes.
     hash_leaves_batched_uninit(data, leaf_size, &mut tree[..num_leaves]);
 
     // 2. Internal levels: parallel within a level, sequential across levels.
@@ -123,10 +147,10 @@ pub fn merkle_tree(data: &[u8], num_leaves: usize) -> ArenaVec<Hash> {
 /// A padding-free L0 commitment interleaves only the lanes that carry data, while
 /// the leaf image stays the full `leaf_words` the verifier expects, so the absent
 /// lanes contribute the zeros their codeword would have been. They are the image's
-/// LEADING words on purpose: whole 128-byte chunks of leading zeros leave a sponge
-/// state every leaf shares, so the committer computes it once
+/// LEADING words on purpose: whole 64-byte blocks of leading zeros have a chaining
+/// value every leaf shares, so the committer computes it once
 /// ([`primitives::hash::zero_prefix_state`]) and each leaf hashes only what
-/// follows. A zero SUFFIX could not be shared, since its permutations take
+/// follows. A zero SUFFIX could not be shared, since its compressions take
 /// whatever state the real data left, which is why the L0 leaf image is ordered
 /// with the absent lanes first.
 #[tracing::instrument(
@@ -171,7 +195,7 @@ pub fn merkle_tree_padded_rows(data: &[F64], num_leaves: usize, row_words: usize
 const STAGE_TILE_WORDS: usize = 2048;
 const _: () = assert!((1usize << crate::whir_config::INITIAL_FOLDING_FACTOR) <= STAGE_TILE_WORDS);
 
-/// Leaves the batched hasher consumes in one whole batch: the backend's lane
+/// Leaves the batched BLAKE2s consumes in one whole batch: the backend's lane
 /// count times the groups it interleaves, which is what it actually consumes
 /// without a scalar tail. Rounding the staging tile to a larger multiple than
 /// that only wastes tile capacity and makes more calls of it.
@@ -184,14 +208,22 @@ fn hash_leaves_padded_rows_uninit(
     leaf_words: usize,
     out: &mut [std::mem::MaybeUninit<Hash>],
 ) {
-    // Whole chunks of leading zeros are hashed once, for every leaf, into `state`;
+    // Whole blocks of leading zeros are hashed once, for every leaf, into `state`;
     // each leaf then hashes the `staged` words that follow, which are the rest of
-    // the zero padding and then its row. A shared chunk must be non-final, which
-    // it is: the row follows it.
-    let zero_chunks = (leaf_words - row_words) / WORDS_PER_CHUNK;
-    let staged = leaf_words - zero_chunks * WORDS_PER_CHUNK;
-    let state = primitives::hash::zero_prefix_state(zero_chunks);
-    // Leaves per tile, in whole hasher batches: the batched hasher sends its
+    // the zero padding and then its row. Both the sharing and the batched hasher
+    // need whole blocks, so an image that is not one (only the small ring-switch
+    // shapes) shares nothing and takes the scalar arm below. Every real leaf width
+    // is `2^k >= 8`.
+    let whole_blocks = leaf_words.is_multiple_of(WORDS_PER_BLOCK);
+    let zero_blocks = if whole_blocks {
+        (leaf_words - row_words) / WORDS_PER_BLOCK
+    } else {
+        0
+    };
+    let staged = leaf_words - zero_blocks * WORDS_PER_BLOCK;
+    let state = primitives::hash::zero_prefix_state(zero_blocks);
+    let t_offset = (zero_blocks * WORDS_PER_BLOCK * 8) as u64;
+    // Leaves per tile, in whole hasher batches: the batched BLAKE2s sends its
     // remainder below one batch through the scalar path, and a tile boundary is a
     // remainder. `HASH_GROUP` is a multiple of `BATCH_LEAVES`, so a full task's tiles
     // are all whole and only a short final task can leave a tail. Below one batch
@@ -219,16 +251,24 @@ fn hash_leaves_padded_rows_uninit(
             let bytes = unsafe { core::slice::from_raw_parts(tile.as_ptr().cast::<u8>(), len * staged * 8) };
             // Hash inline: this already runs inside a pool task, so
             // `hash_leaves_batched_uninit` would dispatch a nested one.
-            // SAFETY: Hash is [u8; 32] with no padding, so the output slots are
-            // `len * 32` contiguous writable bytes.
-            let out_bytes = unsafe { core::slice::from_raw_parts_mut(chunk.as_mut_ptr().cast::<u8>(), len * 32) };
-            primitives::hash::hash_many_dyn_from_state(bytes, staged * 8, &state, out_bytes);
+            if whole_blocks {
+                // SAFETY: Hash is [u8; 32] with no padding, so the output slots are
+                // `len * 32` contiguous writable bytes.
+                let out_bytes = unsafe { core::slice::from_raw_parts_mut(chunk.as_mut_ptr().cast::<u8>(), len * 32) };
+                primitives::hash::hash_many_dyn_from_state(bytes, staged * 8, &state, t_offset, out_bytes);
+            } else {
+                // Nothing was shared, so `staged == leaf_words` and this is the whole
+                // image.
+                for (i, slot) in chunk.iter_mut().enumerate() {
+                    slot.write(hash_leaf(&bytes[i * staged * 8..(i + 1) * staged * 8]));
+                }
+            }
         }
     });
 }
 
-/// Words of `F64` per non-final chunk of the hash.
-const WORDS_PER_CHUNK: usize = primitives::hash::CHUNK / 8;
+/// Words of `F64` per BLAKE2s block.
+const WORDS_PER_BLOCK: usize = 8;
 
 fn internal_levels_uninit(tree: &mut [std::mem::MaybeUninit<Hash>], num_leaves: usize) {
     let mut read_start = 0usize;
@@ -329,7 +369,7 @@ mod leaf_hash_and_tree_tests {
 
     /// The zero-extending tree must equal the tree of the full-width matrix it stands
     /// for, `zeros ‖ row` per leaf, however many whole blocks of those zeros the
-    /// shared sponge state absorbs. The cases cover every regime the prefix can
+    /// shared chaining value absorbs. The cases cover every regime the prefix can
     /// fall in, at sizes that cross the staging tile and the hash-group boundary.
     #[test]
     fn padded_rows_tree_matches_full_width() {
@@ -337,20 +377,21 @@ mod leaf_hash_and_tree_tests {
             // Nothing to pad: the short-circuit, at both leaf widths.
             (8usize, 64usize, 64usize),
             (1024, 8, 8),
-            // Zero prefixes of 1, 2 and 3 whole chunks plus a partial one, at row
+            // Zero prefixes of 3, 4, 5 and 7 whole blocks plus a partial one, at row
             // widths that are not powers of two.
             (2048, 37, 64),
             (256, 27, 64),
+            (256, 23, 64),
             (64, 1, 64),
-            // A prefix that is whole chunks exactly, so the staged part IS the row.
+            // A prefix that is whole blocks exactly, so the staged part IS the row.
             (256, 32, 64),
-            // A prefix shorter than one chunk: nothing is shared, but the image still
+            // A prefix shorter than one block: nothing is shared, but the image still
             // has to be staged.
             (32, 5, 8),
             (256, 61, 64),
-            // Leaves that are not a whole number of chunks.
+            // 40-byte leaves: not whole blocks, so the leaf hashing takes the scalar
+            // arm.
             (16, 3, 5),
-            (64, 7, 40),
         ] {
             let data: Vec<F64> = (0..row_words * num_leaves)
                 .map(|i| F64(i.wrapping_mul(0x9E37_79B9_7F4A_7C15) as u64 | 1))

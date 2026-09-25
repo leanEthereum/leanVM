@@ -43,14 +43,31 @@ pub(crate) struct Jrow {
     pub(crate) bytecode_read: F64,
 }
 
-/// `SHA3` row: the per-cell memory access counts, in the order the table flushes
-/// them (`tables::sha3_cells`): the four `m` cells, the four `tail` cells, the five
-/// `cap` cells, then the thirteen output cells. The fifty flock lanes are those
-/// cells' lanes, read back from the final memory image.
+/// `BLAKE2s` row: the nine per-cell memory access counts of the four
+/// message-chunk cells, the chaining value's two cells, the output's two and the
+/// metadata cell. The addresses are `fp·g^{ins[i]}`, `fp·g^{cv}`, `fp·g^{out}`,
+/// `fp·g^{md}` and the successors of the middle two; the eighteen flock words are
+/// those cells' lanes.
 pub(crate) struct Brow {
     pub(crate) pc: u32,
     pub(crate) fp: u32,
-    pub(crate) r: [F64; crate::hash_flock::ROW_CELLS],
+    pub(crate) ra: [F64; 2],  // per-cell counts for the two a input cells
+    pub(crate) rb: [F64; 2],  // … the two b input cells
+    pub(crate) rcv: [F64; 2], // … the two cv input cells
+    pub(crate) rc: [F64; 2],  // … the two c output cells
+    pub(crate) rmd: F64,      // … and the metadata cell
+    pub(crate) bytecode_read: F64,
+}
+
+/// `SHA3` row: the per-cell memory access counts, in the order the table flushes
+/// them (`tables::sha3_cells`): the eight `m` cells, the five `cap` cells, then the
+/// thirteen output cells (zero past the digest for a `digest` row, whose other
+/// output cells go untouched). The fifty flock lanes are the input cells' lanes,
+/// read back from the final memory image, and their step.
+pub(crate) struct Krow {
+    pub(crate) pc: u32,
+    pub(crate) fp: u32,
+    pub(crate) r: [F64; crate::hash_flock_keccak::ROW_CELLS],
     pub(crate) bytecode_read: F64,
 }
 
@@ -60,7 +77,8 @@ pub(crate) struct Trace {
     pub(crate) set: Vec<Srow>,
     pub(crate) deref: Vec<Drow>,
     pub(crate) jump: Vec<Jrow>,
-    pub(crate) sha3: Vec<Brow>,
+    pub(crate) blake2s: Vec<Brow>,
+    pub(crate) sha3: Vec<Krow>,
     pub(crate) mem_count: Vec<F64>, // per-cell running access count g^{count}; final = g^{A[i]}
     pub(crate) bytecode_count: Vec<F64>, // per-pc running execution count g^{count}; final = g^{A[pc]}
 }
@@ -74,6 +92,7 @@ impl Trace {
             self.set.len(),
             self.deref.len(),
             self.jump.len(),
+            self.blake2s.len(),
             self.sha3.len(),
         ]
     }

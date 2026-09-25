@@ -1,23 +1,23 @@
-//! The BLAKE2s circuit driven through flock's actual reduction: zerocheck then
+//! The Keccak circuit driven through flock's actual reduction: zerocheck then
 //! lincheck, prover and verifier, on the shared transcript.
 //!
 //! The unit tests in `flock::hash` establish that the circuit is the right
-//! circuit (known-answer vectors, honest witness satisfies, walk agrees with
-//! the matrices). This establishes that the ten-round encoding is *provable*
-//! with the machinery as it stands: same zerocheck, same lincheck, same
-//! `k_log = 14` and `k_skip = 6`. Only the PCS opening is left out, which is
-//! generic in the claims and covered end to end by `blake2s_batch`.
+//! circuit (honest witness satisfies, tampering does not, the two walks are
+//! transposes). This establishes that it is *provable* with the machinery as it
+//! stands: same zerocheck, same lincheck, `k_log = 16` and `k_skip = 6`. Only
+//! the PCS opening is left out, which is generic in the claims and covered end
+//! to end by the VM tests.
 
-use crate::hash::{
-    Compression, K_LOG, K_SKIP, USEFUL_BITS, WalkLincheckCircuit, generate_witness_with_ab_packed_and_lincheck,
-    min_n_blocks_log, param_iv,
+use crate::keccak::{
+    Instance, K_LOG, K_SKIP, USEFUL_BITS, WalkLincheckCircuit, generate_witness_with_ab_packed_and_lincheck,
+    min_n_blocks_log,
 };
 use crate::lincheck::QuirkyPoint;
 use crate::zerocheck::{PaddingSpec, ZerocheckClaim};
 use fiat_shamir::transcript::{ProverState, VerifierState};
 use primitives::test_rng::Rng;
 
-const LABEL: &[u8] = b"flock-blake2s-reduction-test";
+const LABEL: &[u8] = b"flock-keccak-reduction-test";
 
 fn packed_bytes(words: &[u64]) -> &[u8] {
     // SAFETY: u64 has no padding and any bit pattern is a valid u8 sequence.
@@ -32,23 +32,9 @@ fn x_ab_of(zc: &ZerocheckClaim, inner_rest_len: usize) -> QuirkyPoint {
     }
 }
 
-fn blocks_for(n: usize, seed: u64) -> Vec<Compression> {
+fn blocks_for(n: usize, seed: u64) -> Vec<Instance> {
     let mut rng = Rng::new(seed);
-    (0..n)
-        .map(|i| {
-            (
-                if i == 0 {
-                    param_iv()
-                } else {
-                    std::array::from_fn(|_| rng.next_u32())
-                },
-                std::array::from_fn(|_| rng.next_u32()),
-                64 * (i as u64 + 1),
-                if i % 3 == 0 { u32::MAX } else { 0 },
-                0,
-            )
-        })
-        .collect()
+    (0..n).map(|_| std::array::from_fn(|_| rng.next_u64())).collect()
 }
 
 /// Prove. `tamper` may corrupt the packed witness first, in which case the
@@ -56,7 +42,7 @@ fn blocks_for(n: usize, seed: u64) -> Vec<Compression> {
 fn prove(n: usize, tamper: Option<usize>) -> (usize, fiat_shamir::transcript::Proof) {
     let n_log = min_n_blocks_log(n);
     let m = K_LOG + n_log;
-    let blocks = blocks_for(n, 0xB2_5E_ED ^ n as u64);
+    let blocks = blocks_for(n, 0x5A_5E_ED ^ n as u64);
 
     let (mut z, a, b, mut z_lincheck) = generate_witness_with_ab_packed_and_lincheck(&blocks, n_log);
     if let Some(bit) = tamper {
@@ -128,23 +114,23 @@ fn run(n: usize, tamper: Option<usize>) -> bool {
     verify(m, &transcript)
 }
 
-/// Ten rounds of BLAKE2s inside a 2^14 block, proved and verified through the
-/// unmodified zerocheck and lincheck. The lincheck verifier here answers via
+/// Keccak-f inside a 2^16 block, proved and verified through the unmodified
+/// zerocheck and lincheck. The lincheck verifier here answers via
 /// [`flock::hash::bilinear_walk`], so this also exercises the circuit walk
 /// against the same transcript the walk-driven prover produced.
 #[test]
-fn blake2s_reduction_roundtrip() {
+fn keccak_reduction_roundtrip() {
     for n in [8usize, 16] {
-        assert!(run(n, None), "honest BLAKE2s reduction must verify at n = {n}");
+        assert!(run(n, None), "honest Keccak reduction must verify at n = {n}");
     }
 }
 
-/// A single flipped witness bit must not survive. Picks bits inside the deep
-/// end of the cascade (the last round's products) as well as an input bit.
+/// A single flipped witness bit must not survive. Picks input and output bits,
+/// the constant wire, and products in the first and last rounds.
 #[test]
-fn blake2s_reduction_rejects_tampering() {
-    // GS_BASE + G_STRIDE * 79 = 15,816: the last G's product block.
-    for bit in [0usize, 700, 15_816, 15_900, 15_999] {
+fn keccak_reduction_rejects_tampering() {
+    // Products run from bit 3264 to 41,664; the last round's start at 40,064.
+    for bit in [0usize, 1700, 3200, 3300, 40_100, 41_663] {
         assert!(
             !run(8, Some(bit)),
             "flipping witness bit {bit} must make the reduction reject"
@@ -158,7 +144,7 @@ fn blake2s_reduction_rejects_tampering() {
 /// and ĉ against the same witness vector, that catches it. This test is what
 /// stands behind that claim.
 #[test]
-fn blake2s_reduction_rejects_proof_mutations() {
+fn keccak_reduction_rejects_proof_mutations() {
     let n = 8;
     let (m, transcript) = prove(n, None);
     assert!(verify(m, &transcript), "honest transcript must verify");

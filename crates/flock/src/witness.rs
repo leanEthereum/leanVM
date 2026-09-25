@@ -1,10 +1,115 @@
 // CREDIT: https://github.com/succinctlabs/flock (flock-prover), MIT OR Apache-2.0.
-//! Bit-packing helpers and the parallel witness driver for the hash R1CS.
+//! Bit-packing and R1CS-row helpers for the monolithic hash R1CS modules
+//! (only `hash` in this vendored subset).
 
 use primitives::bits::transpose_8_u64s_to_64_bytes;
 use zk_alloc::ArenaVec;
 
-/// The packed witness as bytes: the little-endian image
+/// OR the low 32 bits of `val` into `buf` starting at bit-offset `bit_off`.
+/// Handles u64 straddling when `bit_off % 64 > 32`.
+#[inline(always)]
+pub(crate) fn or_u32_at_bit(buf: &mut [u64], bit_off: usize, val: u32) {
+    let u64_idx = bit_off >> 6;
+    let shift = bit_off & 63;
+    buf[u64_idx] |= (val as u64) << shift;
+    if shift > 32 {
+        buf[u64_idx + 1] |= (val as u64) >> (64 - shift);
+    }
+}
+
+/// Set bit `bit_off` of `buf` (low-bit-first within each u64).
+#[inline(always)]
+pub(crate) fn or_bit_at(buf: &mut [u64], bit_off: usize) {
+    buf[bit_off >> 6] |= 1u64 << (bit_off & 63);
+}
+
+/// A `64·NW`-bit record composed in registers and flushed into the block once.
+pub(crate) struct BitRecord<const NW: usize> {
+    w: [u64; NW],
+}
+
+impl<const NW: usize> BitRecord<NW> {
+    #[inline(always)]
+    pub(crate) fn new() -> Self {
+        Self { w: [0u64; NW] }
+    }
+
+    /// OR a (pre-masked) value into record bits `[POS, POS + width)`.
+    /// `POS` is const so the straddle branch and shifts fold at compile time.
+    #[inline(always)]
+    pub(crate) fn push<const POS: usize>(&mut self, val: u32) {
+        let v = val as u64;
+        let idx = POS >> 6;
+        let s = POS & 63;
+        self.w[idx] |= v << s;
+        if s > 32 {
+            self.w[idx + 1] |= v >> (64 - s);
+        }
+    }
+
+    /// OR the record into `buf` starting at bit `base_bit`.
+    #[inline(always)]
+    pub(crate) fn flush(&self, buf: &mut [u64], base_bit: usize) {
+        let bi = base_bit >> 6;
+        let s = base_bit & 63;
+        let mut spill = 0u64;
+        for j in 0..NW {
+            buf[bi + j] |= (self.w[j] << s) | spill;
+            // `(x >> 1) >> (63 - s)` = `x >> (64 - s)` without the s = 0 UB.
+            spill = (self.w[j] >> 1) >> (63 - s);
+        }
+        buf[bi + NW] |= spill;
+    }
+}
+
+/// One 32-bit ADD's witness parts: `(sum, left, right, carry_aux)` with
+/// `left/right/carry_aux` masked to the low 31 bits (bit 31 is the discarded
+/// mod-2³² carry-out; the carry slot is 31 bits wide).
+#[inline(always)]
+pub(crate) fn add_carry_parts(x: u32, y: u32) -> (u32, u32, u32, u32) {
+    let sum = x.wrapping_add(y);
+    let cin = sum ^ x ^ y;
+    const MASK_LO31: u32 = 0x7FFF_FFFF;
+    let left = (x ^ cin) & MASK_LO31;
+    let right = (y ^ cin) & MASK_LO31;
+    let carry_aux = left & right;
+    (sum, left, right, carry_aux)
+}
+
+/// One fused three-operand ADD's witness parts (see
+/// `gf2::walk_add3_fused` for the row algebra): the sum, then each
+/// layer's `(left, right, product)` triple.
+///
+/// The majority triple is masked to bits 0..=30. The ripple triple is masked
+/// to bits 1..=30 **and shifted down by one**, so its slot `j` holds bit
+/// `j + 1`, matching the 30-slot ripple run.
+#[inline(always)]
+pub(crate) fn add3_fused_parts(x: u32, y: u32, z: u32) -> (u32, (u32, u32, u32), (u32, u32, u32)) {
+    const MASK_LO31: u32 = 0x7FFF_FFFF;
+    const MASK_LO30: u32 = 0x3FFF_FFFF;
+    let maj_left = (x ^ z) & MASK_LO31;
+    let maj_right = (y ^ z) & MASK_LO31;
+    let maj_aux = maj_left & maj_right;
+    // p + 2·maj, where maj[i] = maj_aux[i] ⊕ z[i] is the bitwise majority.
+    let p = x ^ y ^ z;
+    let q = (maj_aux ^ (z & MASK_LO31)) << 1;
+    let sum = p.wrapping_add(q);
+    let cin = sum ^ p ^ q;
+    let rip_left = ((p ^ cin) >> 1) & MASK_LO30;
+    let rip_right = ((q ^ cin) >> 1) & MASK_LO30;
+    let rip_aux = rip_left & rip_right;
+    (sum, (maj_left, maj_right, maj_aux), (rip_left, rip_right, rip_aux))
+}
+
+/// Write a 32-bit lin-id (or input) slot: (z, a) = val, b = all-ones.
+/// **c is not written**: since `C = I`, `c == z` byte-for-byte.
+#[inline]
+pub(crate) fn write_lin_word_ab_packed(bit_off: usize, val: u32, z: &mut [u64], a: &mut [u64], b: &mut [u64]) {
+    or_u32_at_bit(z, bit_off, val);
+    or_u32_at_bit(a, bit_off, val);
+    or_u32_at_bit(b, bit_off, 0xFFFF_FFFF);
+}
+
 /// of the `u64` words on a little-endian target.
 pub(crate) fn packed_bytes(words: &[u64]) -> &[u8] {
     const _: () = assert!(

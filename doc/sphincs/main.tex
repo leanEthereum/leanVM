@@ -47,7 +47,7 @@ a standard WOTS$^+$ hypertree, with Keccak-256 as the only hash and FIPS~205's
   \item \textbf{Parameters:} $n=16$, $h=20$, $d=5$, $h'=4$, $a=9$, $k=19$, $w=16$, $\ell=32+3=35$.
   \item \textbf{Public key: 32 bytes} $(\seed,\pkroot)$, on chain two \texttt{bytes32}.
   \item \textbf{Signature: 6176 bytes.} No grinding anywhere: no randomizer search, no WOTS counter.
-  \item \textbf{Verification:} 222 hash calls plus the chain steps, $267$ per layer on average and at most $510$; about $1560$ calls and $1600$ Keccak-f permutations in all.
+  \item \textbf{Verification:} 217 hash calls plus the chain steps, $267$ per layer on average and at most $510$; about $1550$ calls and $1600$ Keccak-f permutations in all.
   \item \textbf{Budget:} $2^{20}$ FORS instances, about $10^6$ signatures per key~\cite{NICETRYDOCS}.
 \end{itemize}
 The on-chain verifier is normative. \texttt{crates/sphincs} implements this document,
@@ -68,7 +68,7 @@ a digest is read this way, least significant first.
 $\K$ is Keccak-256 as the EVM computes it: the Keccak-f[1600] sponge with rate 136
 bytes and padding $\texttt{0x01}\concat 0^*\concat\texttt{0x80}$ (not SHA3-256, whose
 first padding byte is \texttt{0x06}). Values are $n=16$ bytes. A value $v$ enters a
-hash as the 32-byte word $\slot(v)=v\concat 0^{16}$ (the value in the top half of a
+tweakable hash as the 32-byte word $\slot(v)=v\concat 0^{16}$ (the value in the top half of a
 \texttt{bytes32}), and $\trunc(D)$ keeps the first 16 bytes of a digest (the
 verifier's \texttt{N\_MASK}).
 
@@ -102,11 +102,10 @@ Types 5 and 6 are the signer's own and never reach a verifier.
 96 bytes for one value ($F$), 128 for two ($H$), $64+32m$ for the FORS roots
 ($m=19$, 672 bytes) and a WOTS key ($m=35$, 1184 bytes). The message digest is
 \[
-  \Hmsg(R,M)=\K\!\left(\slot(\seed)\concat\slot(\pkroot)\concat\slot(R)\concat M\concat\texttt{0xFF}^{32}\right),
+  \Hmsg(R,M)=\K\!\left(\texttt{0xFF}^{32}\concat R\concat\seed\concat\pkroot\concat M\right),
 \]
-160 bytes, kept whole; $M$ is the 32-byte message (an ERC-4337 \texttt{userOpHash}).
-The all-ones word separates it from every $\Th$ input, which is 96 or 128 bytes
-or ends in a value word.
+112 bytes, kept whole; $M$ is the 32-byte message (an ERC-4337 \texttt{userOpHash}).
+No $\Th$ input is 112 bytes long.
 
 \section{Parameters}
 \label{sec:parameters}
@@ -142,16 +141,13 @@ Chain $i<\ell$ starts at the secret $s_i=\PRF(A_{\lambda,t,j}(5,i,0))$ and steps
 and the key is $\mathit{pk}=\Th(A_{\lambda,t,j}(1,0,0),c_0^{(15)},\dots,c_{34}^{(15)})$.
 
 \paragraph{Digits.}
-A node $N$ is signed through $D=\K(\slot(\seed)\concat A_{\lambda,t,j}(0,0,0)\concat\slot(N))$,
-96 bytes, kept whole. Its digits are
+A node $N$ (16 bytes $N_0,\dots,N_{15}$) is signed directly. Its digits are
 \begin{gather*}
-  x_i=\mathrm{bits}(D,4i,4)\quad(i<32),\qquad
-  x_{32+j}=\lfloor\mathit{csum}/16^j\rfloor\bmod 16\quad(j<3),\\
+  x_{2m}=\lfloor N_m/16\rfloor,\quad x_{2m+1}=N_m\bmod 16\quad(m<16),\qquad
+  x_{32+j}=\lfloor\mathit{csum}/16^{2-j}\rfloor\bmod 16\quad(j<3),\\
   \mathit{csum}=\sum_{i<32}(15-x_i)=480-\sum_{i<32}x_i.
 \end{gather*}
-The message digits are the low 128 bits of $\mathrm{int}(D)$, i.e.\ its last 16 bytes,
-read least significant first: this mirrors FIPS~205's most-significant-first
-\texttt{base\_2b}, and the checksum is not shifted. Raising a message digit lowers
+Both are read most significant first, which is FIPS~205's WOTS$^+$ encoding. Raising a message digit lowers
 $\mathit{csum}$, whose base-16 value is monotone in each digit, so some checksum chain
 would have to walk backward.
 
@@ -224,15 +220,15 @@ no other check: every well-formed signature either reaches the root or does not.
 
 \paragraph{Serialization.}
 \begin{multline*}
-  R\,(16)\concat\text{19 secrets}\,(304)\concat\text{19 paths of 9 nodes}\,(2736)\\
+  R\,(16)\concat 19\times\left[\text{secret}\,(16)\concat\text{9 path nodes}\,(144)\right]\\
   \concat 5\times\left[\text{35 chains}\,(560)\concat\text{4 path nodes}\,(64)\right]
   =6176\text{ bytes}.
 \end{multline*}
 
-\paragraph{Cost.} Outside the chains a verification makes $1+19\cdot10+1+5\cdot6=222$
-hash calls: $\Hmsg$, the FORS leaves and nodes, the FORS key, and per layer the digest,
+\paragraph{Cost.} Outside the chains a verification makes $1+19\cdot10+1+5\cdot5=217$
+hash calls: $\Hmsg$, the FORS leaves and nodes, the FORS key, and per layer
 the key and four nodes. The chains add $\sum_i(15-x_i)$ per layer, 267 on average and
-at most 510. Keccak-f calls: $\Hmsg$ takes 2, the FORS key 5, a WOTS key 9, every other
+at most 510. Keccak-f calls: the FORS key takes 5, a WOTS key 9, every other
 call 1.
 
 \section{Security}
@@ -267,9 +263,9 @@ multi-block input known zeros, which cost nothing.
 The guest decomposes the last 24 bytes of $D$ into bits, and builds every address
 field from them with one multiply-add a bit into its big-endian position. A WOTS digit
 is hinted as $g^{x_i}$, range checked, and dispatched to the arm that walks
-$15-x_i$ steps. The arms return $x_i$, and $\sum_{i<32}x_i\cdot 2^{8(15-\lfloor i/2\rfloor)+4(i\bmod2)}$
-must rebuild $D$'s second cell exactly. The checksum digits satisfy the one exponent
-identity $\prod_{i<32}g^{x_i}\cdot\prod_{j<3}(g^{x_{32+j}})^{16^j}=g^{480}$. The range
+$15-x_i$ steps. The arms return $x_i$, and $\sum_{i<32}x_i\cdot 2^{8\lfloor i/2\rfloor+4(1-(i\bmod2))}$
+must rebuild the cell holding $N$ exactly. The checksum digits satisfy the one exponent
+identity $\prod_{i<32}g^{x_i}\cdot\prod_{j<3}(g^{x_{32+j}})^{16^{2-j}}=g^{480}$. The range
 checks make each $x_{32+j}<16$, so the base-16 representation, and with it every
 checksum digit, is unique.
 

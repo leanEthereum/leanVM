@@ -31,7 +31,7 @@ def fs_compress(state, scalar, tail, out):
     block[0] = pack64x2(limbs[0], limbs[1])
     block[1] = pack64x2(limbs[2], tail)
     assert scalar == limbs[0] + Y * (limbs[1] + Y * limbs[2])
-    sha3(state, block, out)
+    blake2s(state, block, out)
     return
 
 @inline

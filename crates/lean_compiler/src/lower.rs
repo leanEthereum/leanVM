@@ -156,11 +156,16 @@ struct Scope {
     /// outside it, where the other path leaves the cell unwritten and therefore
     /// prover-chosen, which is why this reverts at a join with the bindings.
     const_cells: HashMap<[u64; 3], Off>,
+    /// Two consecutive frame cells holding the standard BLAKE2s IV, emitted
+    /// lazily at the first dominating default-IV compression in this
+    /// control-flow scope.
+    blake2s_iv: Option<Off>,
     /// Per padding ([`builtins::Pad`]: SHA3's `0x06`, Keccak's `0x01`), six
     /// consecutive frame cells holding `[pad, 0, 0, 0, 0, 0]`, `pad` the
-    /// padding's first byte at the start of a cell: every constant `tail` and
-    /// `cap` a fresh `sha3` or `keccak` block needs is a window of it. Emitted
-    /// lazily at the first dominating fresh hash in this control-flow scope.
+    /// padding's first byte at the start of a cell: every zero or padding message
+    /// cell and every constant `cap` a fresh `sha3` or `keccak` block needs is one
+    /// of its cells or a window of it. Emitted lazily at the first dominating
+    /// fresh hash in this control-flow scope.
     sha3_pad: [Option<Off>; 2],
 }
 
@@ -490,15 +495,25 @@ impl FnLower<'_> {
                             od: fr::ZERO,
                             of: fr::ZERO,
                         },
+                        // Its metadata cell is one no instruction writes, like its
+                        // message cells: the interpreter leaves those zero, and a
+                        // prover choosing otherwise only picks which compression the
+                        // dummy proves, which nothing reads (`lean_vm::cpu::filler`).
+                        FillerOp::Blake2s => LOp::Blake2s {
+                            ins: [fr::DIGEST + 2, fr::DIGEST + 3, fr::DIGEST + 4, fr::DIGEST + 5],
+                            cv: fr::SCRATCH,
+                            c: fr::DIGEST,
+                            md: fr::ZERO,
+                        },
                         // Its input cells are ones no instruction writes: the
                         // interpreter leaves those zero, and a prover choosing
                         // otherwise only picks which state the dummy permutes, which
                         // nothing reads (`lean_vm::cpu::filler`).
                         FillerOp::Sha3 => LOp::Sha3 {
-                            m: [fr::SHA3_IN, fr::SHA3_IN + 1, fr::SHA3_IN + 2, fr::SHA3_IN + 3],
-                            tail: fr::SHA3_IN,
+                            m: std::array::from_fn(|i| fr::SHA3_IN + i as u32 % 4),
                             cap: fr::SHA3_IN,
                             c: fr::SHA3_OUT,
+                            digest: false,
                         },
                     });
                 }
@@ -553,7 +568,7 @@ impl FnLower<'_> {
     }
 
     /// Run `f` with branch-local scope: bindings AND the lazily cached cells
-    /// (`one`, `self_fp`, range-check bounds, the `sha3` padding run) revert
+    /// (`one`, `self_fp`, range-check bounds, the `sha3` padding run, the default BLAKE2s IV) revert
     /// afterwards, since a cell whose `SET` sits inside a conditionally-executed
     /// region must not be trusted outside it.
     fn scoped(&mut self, f: impl FnOnce(&mut Self)) {

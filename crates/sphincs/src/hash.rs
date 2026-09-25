@@ -2,7 +2,7 @@
 //! address, the message digest, and the signer's secret derivation.
 
 use crate::*;
-use primitives::hash::keccak256;
+use primitives::keccak::keccak256;
 
 /// An `n`-byte value as the word it is hashed as: top-aligned, `v ‖ 0^16`.
 pub fn word(v: &[u8; N]) -> [u8; 32] {
@@ -64,32 +64,27 @@ impl Adrs {
     }
 }
 
-/// `keccak256(pkSeed ‖ ADRS ‖ v_0 ‖ v_1 ‖ …)`, every value a top-aligned word,
-/// in full: the message digest and the WOTS digest keep all 256 bits.
-pub fn th_full(pp: &PublicParam, adrs: &Adrs, values: &[Digest]) -> [u8; 32] {
+/// The tweakable hash `keccak256(pkSeed ‖ ADRS ‖ v_0 ‖ v_1 ‖ …)[..16]`, every
+/// value a top-aligned word. `F` on one value (96 bytes), `H` on two (128), `T_l`
+/// on the FORS roots or a WOTS key.
+pub fn th(pp: &PublicParam, adrs: &Adrs, values: &[Digest]) -> Digest {
     let mut input = Vec::with_capacity(64 + 32 * values.len());
     input.extend_from_slice(&word(pp));
     input.extend_from_slice(&adrs.to_bytes());
     for v in values {
         input.extend_from_slice(&word(v));
     }
-    keccak256(&input)
+    truncate(&keccak256(&input))
 }
 
-/// The tweakable hash: [`th_full`] truncated to `n` bytes. `F` on one value
-/// (96 bytes), `H` on two (128), `T_l` on the FORS roots or a WOTS key.
-pub fn th(pp: &PublicParam, adrs: &Adrs, values: &[Digest]) -> Digest {
-    truncate(&th_full(pp, adrs, values))
-}
-
-/// `H_msg = keccak256(pkSeed ‖ pkRoot ‖ R ‖ M ‖ 0xFF…FF)`, 160 bytes, in full.
+/// `H_msg = keccak256(0xFF…FF ‖ R ‖ pkSeed ‖ pkRoot ‖ M)`, 112 bytes, in full.
 pub fn h_msg(pp: &PublicParam, root: &Digest, r: &Randomizer, m: &Message) -> [u8; 32] {
-    let mut input = [0u8; 160];
-    input[0..32].copy_from_slice(&word(pp));
-    input[32..64].copy_from_slice(&word(root));
-    input[64..96].copy_from_slice(&word(r));
-    input[96..128].copy_from_slice(m);
-    input[128..160].copy_from_slice(&HMSG_DOMAIN);
+    let mut input = [0u8; 112];
+    input[0..32].copy_from_slice(&HMSG_DOMAIN);
+    input[32..48].copy_from_slice(r);
+    input[48..64].copy_from_slice(pp);
+    input[64..80].copy_from_slice(root);
+    input[80..112].copy_from_slice(m);
     keccak256(&input)
 }
 

@@ -99,8 +99,8 @@ pub struct SphincsSignature {
 }
 
 impl SphincsSignature {
-    /// The verifier's blob, exactly [`SIG_SIZE`] bytes: `R ‖ k secrets ‖ k·a path
-    /// nodes ‖ d × [l chains ‖ h' path nodes]`.
+    /// The verifier's blob, exactly [`SIG_SIZE`] bytes: `R ‖ k × [secret ‖ a path
+    /// nodes] ‖ d × [l chains ‖ h' path nodes]`.
     pub fn to_bytes(&self) -> [u8; SIG_SIZE] {
         let mut out = [0; SIG_SIZE];
         let mut at = 0;
@@ -109,8 +109,10 @@ impl SphincsSignature {
             at += bytes.len();
         };
         put(&self.randomizer);
-        self.fors_secrets.iter().for_each(|s| put(s));
-        self.fors_paths.iter().flatten().for_each(|s| put(s));
+        for (secret, path) in self.fors_secrets.iter().zip(&self.fors_paths) {
+            put(secret);
+            path.iter().for_each(|s| put(s));
+        }
         for layer in &self.layers {
             layer.chains.iter().for_each(|s| put(s));
             layer.path.iter().for_each(|s| put(s));
@@ -128,8 +130,9 @@ impl SphincsSignature {
         };
         let digest = || -> Digest { take(N).try_into().unwrap() };
         let randomizer = digest();
-        let fors_secrets = std::array::from_fn(|_| digest());
-        let fors_paths = std::array::from_fn(|_| std::array::from_fn(|_| digest()));
+        let trees: [(Digest, [Digest; A]); K] = std::array::from_fn(|_| (digest(), std::array::from_fn(|_| digest())));
+        let fors_secrets = trees.map(|(secret, _)| secret);
+        let fors_paths = trees.map(|(_, path)| path);
         let layers = std::array::from_fn(|_| {
             let chains = std::array::from_fn(|_| digest());
             let path = std::array::from_fn(|_| digest());
@@ -178,7 +181,7 @@ pub fn key_gen(rng: &mut impl CryptoRng) -> (SphincsSecretKey, SphincsPublicKey)
 /// `"SPHINCS-v2 SK.prf"`, `"SPHINCS-v2 PK.seed"`: three hash domains, so the
 /// seeds are independent. (Signer-private: no verifier sees the derivation.)
 fn derive_seeds(master: &MasterSecret) -> ([u8; N], [u8; N], PublicParam) {
-    let seed = |tag: &[u8]| truncate(&primitives::hash::keccak256(&[tag, master].concat()));
+    let seed = |tag: &[u8]| truncate(&primitives::keccak::keccak256(&[tag, master].concat()));
     (
         seed(b"SPHINCS-v2 SK.seed"),
         seed(b"SPHINCS-v2 SK.prf"),
@@ -282,7 +285,7 @@ pub fn verify_trace(pk: &SphincsPublicKey, message: &Message, signature: &Sphinc
     signed[0] = fors_pk_from_sig(pp, ht_idx, &indices, &signature.fors_secrets, &signature.fors_paths);
     for (layer, sig) in signature.layers.iter().enumerate() {
         let (tree, leaf) = ht_position(ht_idx, layer);
-        digits_of[layer] = digits(&wots_digest(pp, layer as u32, tree, leaf, &signed[layer]));
+        digits_of[layer] = digits(&signed[layer]);
         let wots_pk = wots_pk_from_sig(pp, layer as u32, tree, leaf, &signed[layer], &sig.chains);
         signed[layer + 1] = tree_fold(pp, layer as u32, tree, leaf, wots_pk, &sig.path);
     }

@@ -10,4 +10,4 @@ Ethereum's consensus layer currently uses BLS signatures, its execution layer EC
 
 \vspace{4mm}
 
-leanVM is a candidate as the snark machinery required above. It's a verifiable virtual machine (commonly a zkVM, for "zero-knowledge virtual machine", though leanVM is not (yet) zk), with a minimalistic ISA (inspired by Cairo \cite{cairo}). It is based on binary fields, inspired by \cite{DP24} and \cite{Flock26}, currently using SHA3-256 \cite{fips202} as hash function.
+leanVM is a candidate as the snark machinery required above. It's a verifiable virtual machine (commonly a zkVM, for "zero-knowledge virtual machine", though leanVM is not (yet) zk), with a minimalistic ISA (inspired by Cairo \cite{cairo}). It is based on binary fields, inspired by \cite{DP24} and \cite{Flock26}, currently using BLAKE2s \cite{blake2} as hash function, with one Keccak-$f$~\cite{fips202} step as a second hash instruction for the Keccak-256 that an Ethereum SPHINCS+ verifier fixes.

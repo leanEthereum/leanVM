@@ -16,7 +16,7 @@
 //! `eval_constraint` takes.
 
 use crate::colval::ColVal;
-use crate::cpu::{Brow, Drow, Jrow, Op, Srow, Trace};
+use crate::cpu::{Brow, Drow, Jrow, Krow, Op, Srow, Trace};
 use crate::leaf::Coord::{self, Col, Const, GCol, Prod};
 use primitives::field::{F64, F192, mul_by_g};
 
@@ -101,7 +101,8 @@ pub(crate) const OP_MUL: F64 = g_pow(1);
 pub(crate) const OP_SET: F64 = g_pow(2);
 pub(crate) const OP_DEREF: F64 = g_pow(3);
 pub(crate) const OP_JUMP: F64 = g_pow(4);
-pub(crate) const OP_SHA3: F64 = g_pow(5);
+pub(crate) const OP_BLAKE2S: F64 = g_pow(5);
+pub(crate) const OP_SHA3: F64 = g_pow(6);
 
 // ---- flush builder -----------------------------------------------------------
 
@@ -144,7 +145,7 @@ impl FlushBuilder {
         );
     }
 
-    /// Bytecode read at `pc`: the program tuple (opcode + seven operand slots),
+    /// Bytecode read at `pc`: the program tuple (opcode + eleven operand slots),
     /// with the per-pc execution count advanced by ×g on the push side.
     pub(crate) fn bytecode(&mut self, pc: usize, count: usize, opcode: F64, operands: &[Coord]) {
         let mut push = vec![Const(SEP_BYTECODE), Col(pc), GCol(count, 1), Const(opcode)];
@@ -183,6 +184,21 @@ impl FlushBuilder {
     /// Memory access to a canonical 128-bit word `(lo, hi, 0)`.
     pub(crate) fn memory_128(&mut self, addr: Coord, count: usize, lo: usize, hi: usize) {
         self.memory_coords(addr, count, [Col(lo), Col(hi), Const(F64::ZERO)]);
+    }
+
+    /// [`Self::memory_coords`] unless the 0/1 column `skip` is 1: the push then
+    /// carries the count unadvanced, `count·(g + skip·(g+1))`, so it equals the
+    /// pull and the pair cancels, touching no cell. `skip` must be pinned by the
+    /// bus (a bytecode slot), or a prover could drop an access it owes. The count
+    /// channel still checks the count is nonzero, so a skipped one is any nonzero
+    /// value.
+    pub(crate) fn memory_coords_unless(&mut self, skip: usize, addr: Coord, count: usize, vals: [Coord; 3]) {
+        let advanced = Coord::Sum(vec![GCol(count, 1), Prod(skip, count, 1), Prod(skip, count, 0)]);
+        let mut push = vec![Const(SEP_MEM), addr.clone(), advanced];
+        let mut pull = vec![Const(SEP_MEM), addr, Col(count)];
+        push.extend_from_slice(&vals);
+        pull.extend_from_slice(&vals);
+        self.pair(push, pull);
     }
 }
 
@@ -357,9 +373,9 @@ pub trait Table: Sync {
     fn fill(&self, ctx: &FillCtx, out: &mut [ColumnOut]);
 }
 
-/// The tables in fixed order `[XOR, MUL, SET, DEREF, JUMP, SHA3]`, the
+/// The tables in fixed order `[XOR, MUL, SET, DEREF, JUMP, BLAKE2S, SHA3]`, the
 /// order of `row_counts` / `taus` throughout `cpu`.
-pub const N_TABLES: usize = 6;
+pub const N_TABLES: usize = 7;
 
 pub fn tables() -> [&'static dyn Table; N_TABLES] {
     [
@@ -368,40 +384,103 @@ pub fn tables() -> [&'static dyn Table; N_TABLES] {
         &SetTable,
         &DerefTable,
         &JumpTable,
+        &Blake2sTable,
         &Sha3Table,
     ]
 }
 
-/// Index of the SHA3 table in [`tables`].
-pub(crate) const SHA3_TABLE: usize = 5;
+/// Index of the BLAKE2s table in [`tables`].
+pub(crate) const BLAKE2S_TABLE: usize = 5;
 
-/// The twenty-six cells a `SHA3` row touches, in flush order: the four `m` cells,
-/// the four `tail` cells, the five `cap` cells, then the thirteen output cells.
+/// The seven base addresses a `BLAKE2s` row reads: the four message cells, the
+/// chaining-value base, the output base (each of those two spans that cell and
+/// its successor) and the metadata cell. Recovered from the instruction, not
+/// stored per row.
+pub(crate) fn blake2s_addresses(prog: &[Op], r: &Brow) -> [u32; 7] {
+    match prog[r.pc as usize] {
+        Op::Blake2s { ins, cv, out, md } => [
+            r.fp + ins[0],
+            r.fp + ins[1],
+            r.fp + ins[2],
+            r.fp + ins[3],
+            r.fp + cv,
+            r.fp + out,
+            r.fp + md,
+        ],
+        op => unreachable!("a BLAKE2s row's pc {} holds {op:?}", r.pc),
+    }
+}
+
+/// BLAKE2s value-column LOCAL indices in canonical slot order
+/// `[a0..a3, b0..b3, c0..c3, cv0..cv3, md_lo, md_hi]` (matches
+/// `hash_flock::SLOTS`). These columns are
+/// VIRTUAL (never committed): `q_flock` already holds those words at fixed packed
+/// slots, so `cpu` routes their memory-bus evaluation claims straight to `q_flock`
+/// (`slot_claims`): the value the bus flushes IS the flock-proven word.
+pub const BLAKE2S_VALUE_COLS: [usize; 18] = [
+    blake2st::V_M0,
+    blake2st::V_M0 + 1,
+    blake2st::V_M0 + 2,
+    blake2st::V_M0 + 3,
+    blake2st::V_M2,
+    blake2st::V_M2 + 1,
+    blake2st::V_M2 + 2,
+    blake2st::V_M2 + 3,
+    blake2st::V_OUT0,
+    blake2st::V_OUT0 + 1,
+    blake2st::V_OUT0 + 2,
+    blake2st::V_OUT0 + 3,
+    blake2st::V_CV0,
+    blake2st::V_CV0 + 1,
+    blake2st::V_CV0 + 2,
+    blake2st::V_CV0 + 3,
+    blake2st::MD0,
+    blake2st::MD1,
+];
+// The eighteen value lanes are laid out contiguously (V_M0..V_M0+17), so they map
+// 1:1 onto `hash_flock::SLOTS`.
+const _: () = assert!(
+    blake2st::V_M2 == blake2st::V_M0 + 4
+        && blake2st::V_OUT0 == blake2st::V_M0 + 8
+        && blake2st::V_CV0 == blake2st::V_M0 + 12
+        && blake2st::MD0 == blake2st::V_M0 + 16
+        && blake2st::MD1 == blake2st::V_M0 + 17
+);
+
+/// Index of the SHA3 table in [`tables`].
+pub(crate) const SHA3_TABLE: usize = 6;
+
+/// The twenty-six cells a `SHA3` row names, in flush order: the eight `m` cells,
+/// the five `cap` cells, then the thirteen output cells, and the digest flag.
 /// Recovered from the instruction, not stored per row.
-pub(crate) fn sha3_cells(prog: &[Op], pc: u32, fp: u32) -> [u32; crate::hash_flock::ROW_CELLS] {
+pub(crate) fn sha3_cells(prog: &[Op], pc: u32, fp: u32) -> ([u32; crate::hash_flock_keccak::ROW_CELLS], bool) {
     match prog[pc as usize] {
-        Op::Sha3 { m, tail, cap, out } => {
+        Op::Sha3 { m, cap, out, digest } => {
             let in_cell = |c: u32| match c {
-                0..4 => m[c as usize],
-                4..8 => tail + (c - 4),
+                0..8 => m[c as usize],
                 _ => cap + (c - 8),
             };
-            std::array::from_fn(|c| {
+            let cells = std::array::from_fn(|c| {
                 let c = c as u32;
                 fp + if c < 13 { in_cell(c) } else { out + (c - 13) }
-            })
+            });
+            (cells, digest)
         }
         op => unreachable!("a SHA3 row's pc {pc} holds {op:?}"),
     }
 }
+
+/// Output cells every `SHA3` row writes: the digest. A `digest` row writes only
+/// these; the rest of its state is flushed as a self-cancelling pair.
+pub(crate) const SHA3_DIGEST_CELLS: usize = 2;
 
 /// SHA3 value-column LOCAL indices in canonical slot order (the input lanes, then
 /// the output lanes; matches `hash_flock::SLOTS`). These columns are VIRTUAL
 /// (never committed): `q_flock` already holds those words at fixed packed slots,
 /// so `cpu` routes their memory-bus evaluation claims straight to `q_flock`
 /// (`slot_claims`): the value the bus flushes IS the flock-proven word.
-pub const SHA3_VALUE_COLS: [usize; 2 * primitives::hash::STATE_LANES] = {
-    let mut c = [0usize; 2 * primitives::hash::STATE_LANES];
+pub const SHA3_VALUE_COLS: [usize; 2 * primitives::keccak::STATE_LANES] = {
+    let mut c = [0usize; 2 * primitives::keccak::STATE_LANES];
     let mut i = 0;
     while i < c.len() {
         c[i] = sha3t::V_IN + i;
@@ -411,7 +490,7 @@ pub const SHA3_VALUE_COLS: [usize; 2 * primitives::hash::STATE_LANES] = {
 };
 // The fifty value lanes are laid out contiguously, inputs then outputs, so they
 // map 1:1 onto `hash_flock::SLOTS`.
-const _: () = assert!(sha3t::V_OUT == sha3t::V_IN + primitives::hash::STATE_LANES);
+const _: () = assert!(sha3t::V_OUT == sha3t::V_IN + primitives::keccak::STATE_LANES);
 
 // ---- XOR / MUL ---------------------------------------------------------------
 
@@ -801,17 +880,163 @@ impl Table for JumpTable {
     }
 }
 
+// ---- BLAKE2s ------------------------------------------------------------------
+
+/// `BLAKE2s` (“BLAKE2s” in `doc/leanvm/body/07-instruction-tables.tex`): one standard compression. The four 128-bit message
+/// chunks are addressed *independently* at `fp·o_i` (`o_i = g^{ins[i]}`), each a
+/// single cell, with no forced contiguity between chunks, so a caller hashing e.g.
+/// `(tweak, pp)` need not copy them into adjacent cells. The chaining value and the
+/// 32-byte output each occupy two consecutive cells, based at `fp·o_cv` and
+/// `fp·o_c`, and the metadata is one more cell at `fp·o_md`, so the row reads nine
+/// cells in all. No address is committed: each rides the bus as the product `fp·o_X`
+/// (§sec:m3). The compression relating output words to input words carries no
+/// table constraint either: it is proven by flock's R1CS validity via `q_flock`
+/// (§hash_flock), which leaves this table with no identity of its own.
+///
+/// A 128-bit chunk is two flock 64-bit words (lo, hi lanes), so the eighteen
+/// memory-borne flock words are eighteen value LANE columns over the nine cells.
+/// They are listed in `n_committed_columns` (they need a local index for the
+/// flushes and are filled from the trace for the bus), but `cpu` treats them as
+/// VIRTUAL (not committed) and routes their bus claims to `q_flock`, which already
+/// holds those words (see [`BLAKE2S_VALUE_COLS`]).
+struct Blake2sTable;
+
+pub(crate) mod blake2st {
+    pub const PC: usize = 0;
+    pub const FP: usize = 1;
+    pub const O_M0: usize = 2; // operand g-powers (offsets) of the four message cells …
+    pub const O_M1: usize = 3;
+    pub const O_M2: usize = 4;
+    pub const O_M3: usize = 5;
+    pub const O_CV: usize = 6; // … the chaining-value base …
+    pub const O_OUT: usize = 7; // … the output base …
+    pub const O_MD: usize = 8; // … and the metadata cell
+    // The eighteen flock lanes: a (lo, hi) pair for each of the nine cells,
+    // the four message cells first, then the output pair, the chaining-value
+    // pair, and last the metadata cell's counter and flag lanes.
+    pub const V_M0: usize = 9; // m0.lo, m0.hi, m1.lo, m1.hi
+    pub const V_M2: usize = 13; // m2.lo, m2.hi, m3.lo, m3.hi
+    pub const V_OUT0: usize = 17; // out0.lo, out0.hi, out1.lo, out1.hi
+    pub const V_CV0: usize = 21; // cv0.lo, cv0.hi, cv1.lo, cv1.hi
+    pub const MD0: usize = 25; // metadata: the counter lane …
+    pub const MD1: usize = 26; // … and the final ‖ last_node lane
+    pub const R_M0: usize = 27; // one read count per cell: the four message cells …
+    pub const R_M1: usize = 28;
+    pub const R_M2: usize = 29;
+    pub const R_M3: usize = 30;
+    pub const R_CV0: usize = 31; // … the two chaining-value cells …
+    pub const R_CV1: usize = 32;
+    pub const R_OUT0: usize = 33; // … the two output cells …
+    pub const R_OUT1: usize = 34;
+    pub const R_MD: usize = 35; // … and the metadata cell.
+    pub const RBC: usize = 36;
+    pub const N: usize = 37;
+}
+
+impl Table for Blake2sTable {
+    fn n_committed_columns(&self) -> usize {
+        blake2st::N
+    }
+    fn count_columns(&self) -> &'static [usize] {
+        use blake2st::*;
+        &[R_M0, R_M1, R_M2, R_M3, R_CV0, R_CV1, R_OUT0, R_OUT1, R_MD, RBC]
+    }
+    fn flushes(&self, f: &mut FlushBuilder) {
+        use blake2st::*;
+        f.state_step(PC, FP);
+        f.bytecode(
+            PC,
+            RBC,
+            OP_BLAKE2S,
+            &[
+                Col(O_M0),
+                Col(O_M1),
+                Col(O_M2),
+                Col(O_M3),
+                Col(O_CV),
+                Col(O_OUT),
+                Col(O_MD),
+            ],
+        );
+        // Nine cell reads: four independent 128-bit message cells, the chaining
+        // value's two consecutive cells (ACV, g·ACV), the output's two
+        // consecutive cells (AC, g·AC), and the metadata cell. Each carries its
+        // chunk's two lanes with a literal-zero top limb (`memory_128`), so the
+        // canonical embedding is proof-enforced and the zero limbs are never
+        // committed. A consecutive cell is a free ×g on the product's g-power.
+        f.memory_128(Prod(FP, O_M0, 0), R_M0, V_M0, V_M0 + 1);
+        f.memory_128(Prod(FP, O_M1, 0), R_M1, V_M0 + 2, V_M0 + 3);
+        f.memory_128(Prod(FP, O_M2, 0), R_M2, V_M2, V_M2 + 1);
+        f.memory_128(Prod(FP, O_M3, 0), R_M3, V_M2 + 2, V_M2 + 3);
+        f.memory_128(Prod(FP, O_CV, 0), R_CV0, V_CV0, V_CV0 + 1);
+        f.memory_128(Prod(FP, O_CV, 1), R_CV1, V_CV0 + 2, V_CV0 + 3);
+        f.memory_128(Prod(FP, O_OUT, 0), R_OUT0, V_OUT0, V_OUT0 + 1);
+        f.memory_128(Prod(FP, O_OUT, 1), R_OUT1, V_OUT0 + 2, V_OUT0 + 3);
+        // The metadata rides the memory bus like every other operand: the read
+        // is what binds flock's counter and flag inputs, so a compile-time
+        // counter is pinned by the `SET` immediate that wrote the cell.
+        f.memory_128(Prod(FP, O_MD, 0), R_MD, MD0, MD1);
+    }
+    fn fill(&self, ctx: &FillCtx, out: &mut [ColumnOut]) {
+        use blake2st::*;
+        let rows = &ctx.trace.blake2s;
+        let ad = |r: &Brow| blake2s_addresses(ctx.prog, r);
+        ctx.col(out, rows, PC, |r| ctx.g_at(r.pc));
+        ctx.col(out, rows, FP, |r| ctx.g_at(r.fp));
+        // O_M0..O_MD are the seven base addresses' offsets, from the instruction decode.
+        ctx.cols(out, rows, O_M0, |r| ad(r).map(|a| ctx.g_at(a - r.fp)));
+        // The eighteen memory-borne flock words are the nine cells' lo/hi lanes:
+        // the four message cells, then the cv pair, the output pair and the
+        // metadata. A cell's two lanes are one read, so each group of four takes two.
+        let word_pair = |c0: u32, c1: u32| {
+            let (w0, w1) = (ctx.mem[c0 as usize], ctx.mem[c1 as usize]);
+            [F64(w0.c0), F64(w0.c1), F64(w1.c0), F64(w1.c1)]
+        };
+        ctx.cols(out, rows, V_M0, |r| {
+            let a = ad(r);
+            word_pair(a[0], a[1])
+        });
+        ctx.cols(out, rows, V_M2, |r| {
+            let a = ad(r);
+            word_pair(a[2], a[3])
+        });
+        ctx.cols(out, rows, V_OUT0, |r| {
+            let a = ad(r);
+            word_pair(a[5], a[5] + 1)
+        });
+        ctx.cols(out, rows, V_CV0, |r| {
+            let a = ad(r);
+            word_pair(a[4], a[4] + 1)
+        });
+        ctx.cols(out, rows, MD0, |r| {
+            let md = ctx.mem[ad(r)[6] as usize];
+            [F64(md.c0), F64(md.c1)]
+        });
+        ctx.cols(out, rows, R_M0, |r| {
+            [
+                r.ra[0], r.ra[1], r.rb[0], r.rb[1], r.rcv[0], r.rcv[1], r.rc[0], r.rc[1], r.rmd,
+            ]
+        });
+        ctx.col(out, rows, RBC, |r| r.bytecode_read);
+    }
+}
+
 // ---- SHA3 ---------------------------------------------------------------------
 
 /// `SHA3` (“SHA3” in `doc/leanvm/body/07-instruction-tables.tex`): one step of the
-/// cell sponge. The four `m` cells are addressed *independently* at `fp·o_i`
+/// cell sponge. The eight `m` cells are addressed *independently* at `fp·o_i`
 /// (`o_i = g^{m[i]}`), so a caller hashing e.g. `(tweak, pp)` need not copy them
-/// into adjacent cells; the four `tail` cells, the five `cap` cells and the
-/// thirteen output cells are consecutive runs based at `fp·o_T`, `fp·o_C` and
+/// into adjacent cells; the five `cap` cells and the
+/// thirteen output cells are consecutive runs based at `fp·o_C` and
 /// `fp·o_O`. No address is committed: each rides the bus as the product `fp·o_X·g^k`
 /// (§sec:m3). The permutation relating output lanes to input lanes carries no
 /// table constraint either: it is proven by flock's R1CS validity via `q_flock`
 /// (§hash_flock), which leaves this table with no identity of its own.
+///
+/// A `digest` row (the bytecode's 0/1 flag, column `DIGEST`) writes only the first
+/// two output cells: the other eleven are flushed as self-cancelling pairs
+/// ([`FlushBuilder::memory_coords_unless`]), so a final block's unread state costs
+/// no memory.
 ///
 /// A cell carries two lanes with a literal-zero top limb (`memory_128`), except
 /// the lone lane-16 cell of each state, whose high lane is a literal zero too
@@ -824,16 +1049,16 @@ impl Table for JumpTable {
 struct Sha3Table;
 
 pub(crate) mod sha3t {
-    use crate::hash_flock::ROW_CELLS;
-    use primitives::hash::STATE_LANES;
+    use crate::hash_flock_keccak::ROW_CELLS;
+    use primitives::keccak::STATE_LANES;
 
     pub const PC: usize = 0;
     pub const FP: usize = 1;
-    pub const O_M0: usize = 2; // operand g-powers of the four `m` cells …
-    pub const O_TAIL: usize = 6; // … the `tail` base …
-    pub const O_CAP: usize = 7; // … the `cap` base …
-    pub const O_OUT: usize = 8; // … and the output base
-    pub const V_IN: usize = 9; // the 25 input lanes, in lane order …
+    pub const O_M0: usize = 2; // operand g-powers of the eight `m` cells …
+    pub const O_CAP: usize = 10; // … the `cap` base …
+    pub const O_OUT: usize = 11; // … the output base …
+    pub const DIGEST: usize = 12; // … and the 0/1 digest flag
+    pub const V_IN: usize = 13; // the 25 input lanes, in lane order …
     pub const V_OUT: usize = V_IN + STATE_LANES; // … and the 25 output lanes
     pub const R0: usize = V_OUT + STATE_LANES; // one read count per cell, in flush order
     pub const RBC: usize = R0 + ROW_CELLS;
@@ -845,20 +1070,20 @@ impl Table for Sha3Table {
         sha3t::N
     }
     fn count_columns(&self) -> &'static [usize] {
-        const COUNTS: [usize; crate::hash_flock::ROW_CELLS + 1] = {
-            let mut c = [0usize; crate::hash_flock::ROW_CELLS + 1];
+        const COUNTS: [usize; crate::hash_flock_keccak::ROW_CELLS + 1] = {
+            let mut c = [0usize; crate::hash_flock_keccak::ROW_CELLS + 1];
             let mut i = 0;
-            while i < crate::hash_flock::ROW_CELLS {
+            while i < crate::hash_flock_keccak::ROW_CELLS {
                 c[i] = sha3t::R0 + i;
                 i += 1;
             }
-            c[crate::hash_flock::ROW_CELLS] = sha3t::RBC;
+            c[crate::hash_flock_keccak::ROW_CELLS] = sha3t::RBC;
             c
         };
         &COUNTS
     }
     fn flushes(&self, f: &mut FlushBuilder) {
-        use crate::hash_flock::{CELL_LANES, STATE_CELLS};
+        use crate::hash_flock_keccak::{CELL_LANES, STATE_CELLS};
         use sha3t::*;
         f.state_step(PC, FP);
         f.bytecode(
@@ -870,16 +1095,19 @@ impl Table for Sha3Table {
                 Col(O_M0 + 1),
                 Col(O_M0 + 2),
                 Col(O_M0 + 3),
-                Col(O_TAIL),
+                Col(O_M0 + 4),
+                Col(O_M0 + 5),
+                Col(O_M0 + 6),
+                Col(O_M0 + 7),
                 Col(O_CAP),
                 Col(O_OUT),
+                Col(DIGEST),
             ],
         );
         // Thirteen cells read, then thirteen written, each state in `CELL_LANES`
         // order. A consecutive cell is a free ×g on the product's g-power.
         let addr = |c: usize| match c {
-            0..4 => Prod(FP, O_M0 + c, 0),
-            4..8 => Prod(FP, O_TAIL, (c - 4) as u32),
+            0..8 => Prod(FP, O_M0 + c, 0),
             _ => Prod(FP, O_CAP, (c - 8) as u32),
         };
         for (side, v) in [(0, V_IN), (1, V_OUT)] {
@@ -889,33 +1117,52 @@ impl Table for Sha3Table {
                 } else {
                     (Prod(FP, O_OUT, c as u32), R0 + STATE_CELLS + c)
                 };
-                match hi {
-                    Some(hi) => f.memory_128(a, r, v + lo, v + hi),
-                    None => f.memory_k(a, r, v + lo),
+                let vals = match hi {
+                    Some(hi) => [Col(v + lo), Col(v + hi), Const(F64::ZERO)],
+                    None => [Col(v + lo), Const(F64::ZERO), Const(F64::ZERO)],
+                };
+                if side == 1 && c >= SHA3_DIGEST_CELLS {
+                    f.memory_coords_unless(DIGEST, a, r, vals);
+                } else {
+                    f.memory_coords(a, r, vals);
                 }
             }
         }
     }
     fn fill(&self, ctx: &FillCtx, out: &mut [ColumnOut]) {
-        use crate::hash_flock::{STATE_CELLS, state_of_cells};
-        use primitives::hash::STATE_LANES;
+        use crate::hash_flock_keccak::{STATE_CELLS, state_of_cells};
+        use primitives::keccak::STATE_LANES;
         use sha3t::*;
         let rows = &ctx.trace.sha3;
-        let cells = |r: &Brow| sha3_cells(ctx.prog, r.pc, r.fp);
+        let cells = |r: &Krow| sha3_cells(ctx.prog, r.pc, r.fp);
         ctx.col(out, rows, PC, |r| ctx.g_at(r.pc));
         ctx.col(out, rows, FP, |r| ctx.g_at(r.fp));
         ctx.cols(out, rows, O_M0, |r| {
-            let c = cells(r);
-            [c[0], c[1], c[2], c[3], c[4], c[8], c[13]].map(|a| ctx.g_at(a - r.fp))
+            let (c, digest) = cells(r);
+            let g = |a: u32| ctx.g_at(a - r.fp);
+            [
+                g(c[0]),
+                g(c[1]),
+                g(c[2]),
+                g(c[3]),
+                g(c[4]),
+                g(c[5]),
+                g(c[6]),
+                g(c[7]),
+                g(c[8]),
+                g(c[13]),
+                F64(u64::from(digest)),
+            ]
         });
-        // The lanes of the thirteen cells read, then of the thirteen written.
-        let lanes = |r: &Brow, first: usize| -> [F64; STATE_LANES] {
-            let c = cells(r);
-            let state: [F192; STATE_CELLS] = std::array::from_fn(|k| ctx.mem[c[first + k] as usize]);
-            state_of_cells(&state).map(F64)
+        // The lanes of the thirteen cells read, and the permutation of them: a
+        // digest row never wrote the last eleven output cells.
+        let lanes_in = |r: &Krow| -> [u64; STATE_LANES] {
+            let (c, _) = cells(r);
+            let state: [F192; STATE_CELLS] = std::array::from_fn(|k| ctx.mem[c[k] as usize]);
+            state_of_cells(&state)
         };
-        ctx.cols(out, rows, V_IN, |r| lanes(r, 0));
-        ctx.cols(out, rows, V_OUT, |r| lanes(r, STATE_CELLS));
+        ctx.cols(out, rows, V_IN, |r| lanes_in(r).map(F64));
+        ctx.cols(out, rows, V_OUT, |r| primitives::keccak::step(&lanes_in(r)).map(F64));
         ctx.cols(out, rows, R0, |r| r.r);
         ctx.col(out, rows, RBC, |r| r.bytecode_read);
     }
@@ -975,5 +1222,42 @@ mod tests {
                 );
             }
         }
+    }
+
+    /// The digest flag decides whether a row binds its last eleven output cells,
+    /// so the program must fix it, never the prover: it rides the bytecode flush,
+    /// in the slot where `bytecode_columns` puts each op's own flag, and it gates
+    /// exactly those eleven accesses.
+    #[test]
+    fn sha3_digest_flag_rides_the_bytecode() {
+        let mut f = FlushBuilder::new();
+        Sha3Table.flushes(&mut f);
+        let bytecode = f
+            .pull
+            .iter()
+            .find(|t| matches!(t[0], Const(s) if s == SEP_BYTECODE))
+            .expect("a bytecode flush");
+        // The separator, pc, count and opcode, then the eleven slots, the flag last.
+        assert_eq!(bytecode.len(), 4 + 11);
+        assert!(matches!(bytecode[14], Col(c) if c == sha3t::DIGEST));
+        let op = |digest| Op::Sha3 {
+            m: [0; 8],
+            cap: 0,
+            out: 0,
+            digest,
+        };
+        assert_eq!(
+            crate::cpu::layout::bytecode_columns(&[op(true), op(false)])[11],
+            [F64::ONE, F64::ZERO]
+        );
+        let gated = f
+            .push
+            .iter()
+            .filter(|t| {
+                matches!(&t[2], Coord::Sum(terms)
+                    if terms.iter().any(|x| matches!(x, Prod(a, _, _) if *a == sha3t::DIGEST)))
+            })
+            .count();
+        assert_eq!(gated, crate::hash_flock_keccak::STATE_CELLS - SHA3_DIGEST_CELLS);
     }
 }

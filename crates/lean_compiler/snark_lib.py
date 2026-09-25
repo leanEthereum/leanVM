@@ -151,8 +151,8 @@ def HeapBuf(n) -> _Elt:
 
 def StackBuf(n: int) -> _Elt:
     """Allocate `n` consecutive frame (stack) cells. A size-2 StackBuf holds a
-    256-bit value and is a valid `sha3` operand; a size-13 one holds a sponge
-    state."""
+    256-bit value and is a valid `blake2s` or `sha3` operand; a size-13 one
+    holds a sponge state."""
     _ = n
     return _Elt()
 
@@ -198,6 +198,45 @@ def hint_f192_limbs(dest, value) -> None:
     _ = dest, value
 
 
+def blake2s(
+    a,
+    b,
+    out,
+    *,
+    cv=None,
+    counter: Optional[int] = None,
+    final: Optional[int] = None,
+    last_node: int = 0,
+    md=None,
+) -> None:
+    """One standard BLAKE2s compression of the two 256-bit message operands
+    `a`, `b`, written into the 2-cell run `out` (write-once: if `out` was
+    already written, this asserts it equals the chaining value).
+
+    With no keywords this hashes exactly 64 bytes: the parameterized BLAKE2s-256
+    initial chaining value, byte counter 64, final-block flag set. That is
+    `blake2s(a || b)`, the form every Fiat-Shamir step and Merkle node uses.
+
+    For a longer message, drive the blocks yourself. `counter` is the CUMULATIVE
+    byte count through this block (`64 * whole_blocks_before + bytes_in_this_block`)
+    and `final=1` marks the last block; `cv` carries the previous block's output
+    and requires one of `counter`, `final`, `last_node` or `md`. Setting any of
+    `counter`, `final` or `last_node` makes `final` default
+    to 0, so a single short block needs `counter=<len>, final=1`. Bytes past the
+    block's real length must be zero-filled by the program. `last_node` is
+    BLAKE2s's tree-mode `f1` and is 0 everywhere here.
+
+    `md` is the whole 128-bit metadata word as a value the program computed, for
+    a hash whose block count is only known at run time. It replaces `counter`,
+    `final` and `last_node` (giving both is an error), and it must not name a
+    cell of `out`.
+
+    Message, chaining-value, and output operands are size-2 StackBufs or
+    2-cell slices `buf[lo:hi]` of larger StackBufs or HeapBufs (heap inputs are
+    bridged through the stack, one DEREF per cell)."""
+    _ = a, b, out, cv, counter, final, last_node, md
+
+
 def sha3(
     a,
     b,
@@ -208,7 +247,7 @@ def sha3(
     len: Optional[int] = None,
     final: Optional[int] = None,
 ) -> None:
-    """One block of the leanVM hash (SHA3-256 in the cell encoding), one `SHA3`
+    """One block of SHA3-256 in the cell encoding, one `SHA3`
     instruction. The block's eight message cells are `a` (2 cells), `b` (2
     cells) and `tail` (4 cells, zero when omitted); `out` receives the
     13-cell sponge state, whose first two cells are the digest, or just the
@@ -216,8 +255,7 @@ def sha3(
     this asserts it equals the result).
 
     With no keywords this hashes exactly the 64 bytes `a || b` (128 with
-    `tail`) from the zero state, the form every Fiat-Shamir step and Merkle
-    node uses.
+    `tail`) from the zero state.
 
     For a longer message, drive the blocks yourself: `final=0` marks a block of
     128 message bytes that more blocks follow, and `state` carries the previous
@@ -233,9 +271,9 @@ def sha3(
 
 
 def sha3_cells(run, out) -> None:
-    """The leanVM hash of the whole run of cells `run` (a StackBuf, or a slice
-    with compile-time bounds), eight cells a `SHA3` instruction. `out` is as for
-    `sha3`."""
+    """SHA3-256 in the cell encoding of the whole run of cells `run` (a
+    StackBuf, or a slice with compile-time bounds), eight cells a `SHA3`
+    instruction. `out` is as for `sha3`."""
     _ = run, out
 
 

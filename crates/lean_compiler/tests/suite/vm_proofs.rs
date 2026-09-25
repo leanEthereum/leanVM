@@ -19,7 +19,7 @@ def main():
     a[0] = 5
     a[1] = 7
     c = StackBuf(2)
-    sha3(a, a, c)
+    blake2s(a, a, c)
     p = 1
     p[1] = c[0]
     p[GEN] = c[1]

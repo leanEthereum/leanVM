@@ -14,8 +14,143 @@
 use super::*;
 
 impl FnLower<'_> {
+    /// `blake2s(a, b, out)`: the digest of the two 256-bit operands lands in the
+    /// existing 2-cell run `out` (write-once: if `out` was already written, this
+    /// asserts the digest equals it). A heap `out` slice takes the digest via a
+    /// fresh stack pair and two `DEREF`s after the hash, the store direction
+    /// being the same instruction as the load (write-once fills the unset side).
+    /// Keyword arguments set the metadata: `counter=` / `final=` / `last_node=`
+    /// build it at compile time, `md=` takes the whole word from a value the
+    /// program computed.
+    fn lower_blake2s(&mut self, args: &[Expr]) {
+        let first_kw = args
+            .iter()
+            .position(|a| matches!(a, Expr::Call(name, _) if name.starts_with("__kw_")))
+            .unwrap_or(args.len());
+        if first_kw != 3 {
+            self.fail("blake2s takes three positional arguments: (a, b, out)")
+        };
+        if !(args[first_kw..]
+            .iter()
+            .all(|a| matches!(a, Expr::Call(name, v) if name.starts_with("__kw_") && v.len() == 1)))
+        {
+            self.fail("keyword arguments must follow the three positional blake2s arguments")
+        };
+        let mut kwargs: HashMap<&str, &Expr> = HashMap::new();
+        for kw in &args[first_kw..] {
+            let Expr::Call(name, value) = kw else { unreachable!() };
+            let key = name.strip_prefix("__kw_").unwrap();
+            if kwargs.insert(key, &value[0]).is_some() {
+                self.fail(format!("duplicate blake2s keyword `{key}`"))
+            };
+        }
+        let allowed = ["cv", "counter", "final", "last_node", "md"];
+        if !(kwargs.keys().all(|k| allowed.contains(k))) {
+            // Sorted: a `HashMap`'s order would make the same mistake report
+            // differently between builds.
+            let mut bad: Vec<&&str> = kwargs.keys().filter(|k| !allowed.contains(k)).collect();
+            bad.sort_unstable();
+            self.fail(format!("unknown blake2s keyword {bad:?}; the keywords are {allowed:?}"))
+        };
+        let customized = kwargs.keys().any(|k| matches!(*k, "counter" | "final" | "last_node"));
+        // `md=` hands over the whole metadata word as a runtime value, so it
+        // replaces the three keywords that would otherwise build it.
+        let runtime_md = kwargs.get("md").copied();
+        if runtime_md.is_some() && customized {
+            self.fail("blake2s md= is the whole metadata word, so counter=, final= and last_node= cannot come with it")
+        };
+        if kwargs.contains_key("cv") && !customized && runtime_md.is_none() {
+            self.fail(
+                "blake2s with cv= requires one of counter=, final=, last_node= or md=, since a chained \
+                 block is not the default one-block hash",
+            )
+        };
+
+        let a = self.blake2s_input(&args[0]);
+        let b = self.blake2s_input(&args[1]);
+        let (c, heap_out) = match self.blake2s_operand(&args[2]) {
+            CellRun::Stack { base, .. } => (base, None),
+            CellRun::Heap { ptr, lo, .. } => (self.alloc_stack(2), Some((ptr, lo))),
+        };
+        let cv = if let Some(value) = kwargs.get("cv") {
+            self.blake2s_cv(value)
+        } else {
+            self.default_blake2s_cv()
+        };
+        let md = match runtime_md {
+            // A metadata word the program computes, which is what lets a hash whose
+            // block count is only known at run time carry the byte counter the
+            // standard asks for (doc §sec:prog-byte-counter). It owes the same
+            // canonical embedding as every other operand: the memory interaction
+            // carries a literal zero above its two low limbs.
+            //
+            // Aliasing the digest destination is the one case write-once does not
+            // catch: the runner reads the metadata before storing the digest, while
+            // the witness reads the finished memory image, so the two disagree and
+            // the proof fails its opening rather than saying why.
+            Some(expr) => {
+                let md = self.expr(expr);
+                if md == c || md == c + 1 {
+                    self.fail("blake2s md= must not name a cell of the digest destination")
+                };
+                md
+            }
+            None => {
+                let const_kw = |this: &Self, name: &str, default: u128| -> u128 {
+                    kwargs
+                        .get(name)
+                        .map(|e| {
+                            this.try_const_int(e).unwrap_or_else(|| {
+                                self.fail(format!(
+                                    "BLAKE2s `{name}` must be a compile-time integer, got `{e:?}`; \
+                                     a metadata word computed at run time goes through md="
+                                ))
+                            })
+                        })
+                        .unwrap_or(default)
+                };
+                // BLAKE2s metadata is just the cumulative byte counter and two flags, so
+                // a multi-block hash is `counter = 64 * blocks_before + bytes_in_this_block`
+                // and `final = 1` on the last block. The default is the one-block hash of
+                // a full 64-byte input, which is what `vmhash::compress` and every Merkle
+                // node use.
+                let counter = const_kw(self, "counter", 64);
+                let counter = u64::try_from(counter)
+                    .unwrap_or_else(|_| self.fail(format!("blake2s counter= {counter} does not fit in u64")));
+                let f0 = if const_kw(self, "final", if customized { 0 } else { 1 }) != 0 {
+                    lean_vm::hash_flock::FINAL_FLAG
+                } else {
+                    0
+                };
+                let f1 = if const_kw(self, "last_node", 0) != 0 {
+                    u32::MAX
+                } else {
+                    0
+                };
+                // A compile-time metadata is a pooled `SET`: one per distinct value
+                // per frame, however many compressions read it.
+                self.const_cell(lean_vm::hash_flock::metadata(counter, f0, f1))
+            }
+        };
+        // Each operand is two 128-bit chunk cells; the flexible opcode addresses
+        // the four input cells independently (`blake2s_input` forwards the real
+        // chunk sources where it can). The digest occupies the two consecutive
+        // output cells `c, g·c`.
+        self.emit(LOp::Blake2s {
+            ins: [a[0], a[1], b[0], b[1]],
+            cv,
+            c,
+            md,
+        });
+        if let Some((ptr, lo)) = heap_out {
+            for k in 0..2 {
+                self.deref(ptr, lo + k, c + k, DerefMode::Cell);
+            }
+        }
+    }
+
     /// `sha3(a, b, out, tail=, state=, len=, final=)`: one block of
-    /// [`primitives::hash::hash`], one `SHA3` instruction.
+    /// [`primitives::keccak::hash`], one `SHA3` instruction.
     ///
     /// The block's eight message cells are `a ‖ b ‖ tail` (two, two and four
     /// cells; `tail` omitted is zero). Without `state` this is the first block of
@@ -27,9 +162,10 @@ impl FnLower<'_> {
     /// its message fills the operands given, 64 bytes without `tail` and 128 with.
     ///
     /// The output is the 13-cell state, its first two cells the digest. A 13-cell
-    /// `out` receives it (a heap run through the stack), a 2-cell `out` just the
-    /// digest (write-once: a pre-written `out` asserts it). `state` may likewise
-    /// be a heap run, bridged into the stack.
+    /// `out` receives it (a heap run through the stack); a 2-cell `out` makes this
+    /// a digest step, which writes the digest alone (write-once: a pre-written
+    /// `out` asserts it). `state` may likewise be a heap run, bridged into the
+    /// stack.
     fn lower_sha3(&mut self, args: &[Expr]) {
         let first_kw = args
             .iter()
@@ -65,11 +201,7 @@ impl FnLower<'_> {
         let [a0, a1] = self.sha3_words::<2>(&args[0]);
         let [b0, b1] = self.sha3_words::<2>(&args[1]);
         block[..4].copy_from_slice(&[a0, a1, b0, b1]);
-        let mut tail_run = None;
         if let Some(tail) = kwargs.get("tail") {
-            if let Ok(CellRun::Stack { base, len: 4 }) = self.try_cell_run(tail) {
-                tail_run = Some(base);
-            }
             block[4..].copy_from_slice(&self.sha3_words::<4>(tail));
         }
         let state = kwargs.get("state").map(|state| match self.try_cell_run(state) {
@@ -86,7 +218,7 @@ impl FnLower<'_> {
             )),
         });
         let out = self.sha3_out(&args[2]);
-        self.emit_sha3_block(block, tail_run, state, final_len, out.state, Pad::Sha3, false);
+        self.emit_sha3_block(block, state, final_len, &out, Pad::Sha3);
         self.sha3_finish(out);
     }
 
@@ -100,37 +232,36 @@ impl FnLower<'_> {
         let run = self.cell_run(&args[0]);
         let n = run.cells();
         let out = self.sha3_out(&args[1]);
-        // The chunk's cells, and its base if they are a consecutive stack run.
-        let chunk = |this: &mut Self, lo: u32, len: u32| -> (Vec<SpongeCell>, Option<Off>) {
+        // The chunk's cells, a heap run bridged through the stack.
+        let chunk = |this: &mut Self, lo: u32, len: u32| -> Vec<SpongeCell> {
             match run {
-                CellRun::Stack { base, .. } => (
-                    (0..len).map(|k| SpongeCell::Cell(base + lo + k)).collect(),
-                    Some(base + lo),
-                ),
+                CellRun::Stack { base, .. } => (0..len).map(|k| SpongeCell::Cell(base + lo + k)).collect(),
                 CellRun::Heap { ptr, lo: hlo, .. } => {
                     let t = this.alloc_stack(len);
                     for k in 0..len {
                         this.deref(ptr, hlo + lo + k, t + k, DerefMode::Cell);
                     }
-                    ((0..len).map(|k| SpongeCell::Cell(t + k)).collect(), Some(t))
+                    (0..len).map(|k| SpongeCell::Cell(t + k)).collect()
                 }
             }
         };
         let nonfinal = n.saturating_sub(1) / 8;
         let mut state = None;
         for c in 0..nonfinal {
-            let (cells, base) = chunk(self, 8 * c, 8);
-            let next = self.alloc_stack(STATE_CELLS);
-            let block: [SpongeCell; 8] = cells.try_into().unwrap();
-            self.emit_sha3_block(block, base.map(|b| b + 4), state, None, next, Pad::Sha3, false);
-            state = Some(next);
+            let block: [SpongeCell; 8] = chunk(self, 8 * c, 8).try_into().unwrap();
+            let next = Sha3Out {
+                base: self.alloc_stack(STATE_CELLS),
+                digest: false,
+                heap: None,
+            };
+            self.emit_sha3_block(block, state, None, &next, Pad::Sha3);
+            state = Some(next.base);
         }
         let last = n - 8 * nonfinal;
-        let (cells, base) = chunk(self, 8 * nonfinal, last);
+        let cells = chunk(self, 8 * nonfinal, last);
         let mut block = [SpongeCell::Zero; 8];
         block[..last as usize].copy_from_slice(&cells);
-        let tail_run = if last == 8 { base.map(|b| b + 4) } else { None };
-        self.emit_sha3_block(block, tail_run, state, Some(16 * last), out.state, Pad::Sha3, false);
+        self.emit_sha3_block(block, state, Some(16 * last), &out, Pad::Sha3);
         self.sha3_finish(out);
     }
 
@@ -162,34 +293,6 @@ impl FnLower<'_> {
         let Expr::ListLit(head) = &args[0] else {
             self.fail("keccak's head is a list of at least one cell, `[a, 0, b, ...]`")
         };
-        // One block with a tail: the tail run is fresh anyway, so its cells are
-        // evaluated straight into it (a computed cell costs no copy), the padding
-        // cell included, and the block goes out with its tail in place.
-        if !kwargs.contains_key("words") && head.len() > 4 && head.len() <= 8 {
-            let len = 16 * head.len() as u32;
-            let mut block = [SpongeCell::Zero; 8];
-            for (slot, w) in block[..4].iter_mut().zip(head) {
-                *slot = match self.try_const_int(w) {
-                    Some(0) => SpongeCell::Zero,
-                    Some(v) => SpongeCell::Const(F192::new(v as u64, (v >> 64) as u64, 0)),
-                    None => SpongeCell::Cell(self.expr(w)),
-                };
-            }
-            let tail = self.alloc_stack(4);
-            for j in 0..4u32 {
-                let pos = 4 + j as usize;
-                match head.get(pos) {
-                    Some(w) => self.expr_into(w, tail + j),
-                    None if pos == head.len() => self.set_const(tail + j, Pad::Keccak.value()),
-                    None => self.set_const(tail + j, F192::ZERO),
-                }
-                block[pos] = SpongeCell::Cell(tail + j);
-            }
-            let out = self.sha3_out(&args[1]);
-            self.emit_sha3_block(block, Some(tail), None, Some(len), out.state, Pad::Keccak, true);
-            self.sha3_finish(out);
-            return;
-        }
         let mut msg: Vec<SpongeCell> = head
             .iter()
             .map(|w| match self.try_const_int(w) {
@@ -217,16 +320,16 @@ impl FnLower<'_> {
         if len <= 128 {
             let mut block = [SpongeCell::Zero; 8];
             block[..msg.len()].copy_from_slice(&msg);
-            self.emit_sha3_block(block, None, None, Some(len), out.state, Pad::Keccak, false);
+            self.emit_sha3_block(block, None, Some(len), &out, Pad::Keccak);
         } else {
-            self.emit_keccak_blocks(&msg, out.state);
+            self.emit_keccak_blocks(&msg, &out);
         }
         self.sha3_finish(out);
     }
 
-    /// Keccak-256 of `msg` (more than one block) into the 13-cell run `c`.
-    fn emit_keccak_blocks(&mut self, msg: &[SpongeCell], c: Off) {
-        const RATE: u32 = primitives::hash::RATE as u32;
+    /// Keccak-256 of `msg` (more than one block) into `out`.
+    fn emit_keccak_blocks(&mut self, msg: &[SpongeCell], out: &Sha3Out) {
+        const RATE: u32 = primitives::keccak::RATE as u32;
         let len = 16 * msg.len() as u32;
         let n_blocks = len / RATE + 1;
         let y = F192::Y;
@@ -295,7 +398,7 @@ impl FnLower<'_> {
             if last {
                 let p = len - RATE * j;
                 let (cell, byte) = ((p / 16) as usize, p % 16);
-                let bits = u64::from(primitives::hash::KECCAK_PAD_FIRST) << (8 * (byte % 8));
+                let bits = u64::from(primitives::keccak::KECCAK_PAD_FIRST) << (8 * (byte % 8));
                 let v = if cell == 8 || byte < 8 {
                     F192::new(bits, 0, 0)
                 } else {
@@ -303,22 +406,13 @@ impl FnLower<'_> {
                 };
                 block[cell] = self.sponge_add(block[cell], v);
             } else {
-                block[8] = self.sponge_add(block[8], F192::new(primitives::hash::END_BIT, 0, 0));
+                block[8] = self.sponge_add(block[8], F192::new(primitives::keccak::END_BIT, 0, 0));
             }
 
             let pad = Pad::Keccak;
-            let (m, tail, cap) = match state {
+            let (m, cap): ([Off; 8], Off) = match state {
                 Some(st) => {
-                    let m: [Off; 4] = std::array::from_fn(|i| self.sponge_xor(st + i as u32, block[i], None, pad));
-                    let tail = if block[4..8].iter().all(|c| matches!(c, SpongeCell::Zero)) {
-                        st + 4
-                    } else {
-                        let t = self.alloc_stack(4);
-                        for i in 0..4 {
-                            self.sponge_xor(st + 4 + i as u32, block[4 + i], Some(t + i as u32), pad);
-                        }
-                        t
-                    };
+                    let m = std::array::from_fn(|i| self.sponge_xor(st + i as u32, block[i], None, pad));
                     let cap = if matches!(block[8], SpongeCell::Zero) {
                         st + 8
                     } else {
@@ -329,24 +423,29 @@ impl FnLower<'_> {
                         }
                         cap
                     };
-                    (m, tail, cap)
+                    (m, cap)
                 }
                 None => {
-                    let m: [Off; 4] = std::array::from_fn(|i| self.sponge_cell(block[i], pad));
-                    let t = self.alloc_stack(4);
-                    for i in 0..4 {
-                        self.write_sponge_cell(block[4 + i], t + i as u32);
-                    }
+                    let m = std::array::from_fn(|i| self.sponge_cell(block[i], pad));
                     let cap = self.alloc_stack(5);
                     self.write_sponge_cell(block[8], cap);
                     for k in 1..5 {
                         self.set_const(cap + k, F192::ZERO);
                     }
-                    (m, t, cap)
+                    (m, cap)
                 }
             };
-            let next = if last { c } else { self.alloc_stack(STATE_CELLS) };
-            self.emit(LOp::Sha3 { m, tail, cap, c: next });
+            let (next, digest) = if last {
+                (out.base, out.digest)
+            } else {
+                (self.alloc_stack(STATE_CELLS), false)
+            };
+            self.emit(LOp::Sha3 {
+                m,
+                cap,
+                c: next,
+                digest,
+            });
             state = Some(next);
         }
     }
@@ -424,19 +523,25 @@ impl FnLower<'_> {
         kwargs
     }
 
-    /// Where a `sha3` writes: the 13-cell stack run the instruction targets, and
-    /// what to copy out of it afterwards.
+    /// Where a `sha3` writes: the stack run the instruction targets, the whole
+    /// state or, for a 2-cell destination, the digest alone (a digest step), and
+    /// the heap run to store it to afterwards.
     fn sha3_out(&mut self, e: &Expr) -> Sha3Out {
         match self.cell_run(e) {
             CellRun::Stack { base, len } if len >= STATE_CELLS => Sha3Out {
-                state: base,
-                copy: None,
+                base,
+                digest: false,
+                heap: None,
             },
-            run @ (CellRun::Heap { len: STATE_CELLS, .. }
-            | CellRun::Stack { len: 2, .. }
-            | CellRun::Heap { len: 2, .. }) => Sha3Out {
-                state: self.alloc_stack(STATE_CELLS),
-                copy: Some(run),
+            CellRun::Stack { base, len: 2 } => Sha3Out {
+                base,
+                digest: true,
+                heap: None,
+            },
+            run @ CellRun::Heap { len, .. } if len == STATE_CELLS || len == 2 => Sha3Out {
+                base: self.alloc_stack(len),
+                digest: len == 2,
+                heap: Some(run),
             },
             _ => self.fail(format!(
                 "a sha3 destination is a {STATE_CELLS}-cell run (the state) or a 2-cell run (the digest)"
@@ -444,45 +549,35 @@ impl FnLower<'_> {
         }
     }
 
-    /// Copy what [`Self::sha3_out`] promised out of the state it wrote.
+    /// Store what [`Self::sha3_out`] wrote to the heap run it promised.
     fn sha3_finish(&mut self, out: Sha3Out) {
-        match out.copy {
-            None => {}
-            Some(CellRun::Stack { base, len }) => {
-                for k in 0..len {
-                    self.copy(out.state + k, base + k);
-                }
-            }
-            Some(CellRun::Heap { ptr, lo, len }) => {
-                for k in 0..len {
-                    self.deref(ptr, lo + k, out.state + k, DerefMode::Cell);
-                }
+        if let Some(CellRun::Heap { ptr, lo, len }) = out.heap {
+            for k in 0..len {
+                self.deref(ptr, lo + k, out.base + k, DerefMode::Cell);
             }
         }
     }
 
-    /// Emit one `SHA3` block into the 13-cell run `c`: the padding `pad` folded
-    /// into the message if `final_len` says this block ends it, the message XORed
-    /// into `state` if there is one, every constant window of a fresh block taken
-    /// from the padding run.
+    /// Emit one `SHA3` block into `out`: the padding `pad_kind` folded into the
+    /// message if `final_len` says this block ends it, the message XORed into
+    /// `state` if there is one, and every zero or padding cell of a fresh block one
+    /// of the padding run's. The eight message cells are the instruction's own
+    /// operands, so nothing is gathered into a consecutive run.
     fn emit_sha3_block(
         &mut self,
         mut block: [SpongeCell; 8],
-        mut tail_run: Option<Off>,
         state: Option<Off>,
         final_len: Option<u32>,
-        c: Off,
+        out: &Sha3Out,
         pad_kind: Pad,
-        pad_placed: bool,
     ) {
         // Padding in lane 16, the lone cell: only a final block of 128 bytes.
-        // Below that the padding byte goes into the message, unless the caller
-        // (`pad_placed`) already wrote it there.
+        // Below that the padding byte goes into the message.
         let mut lone_pad = false;
         if let Some(len) = final_len {
             if len == 128 {
                 lone_pad = true;
-            } else if !pad_placed {
+            } else {
                 let (cell, byte) = ((len / 16) as usize, len % 16);
                 let pad = u64::from(pad_kind.byte()) << (8 * (byte % 8));
                 let v = if byte < 8 {
@@ -499,28 +594,15 @@ impl FnLower<'_> {
                         SpongeCell::Cell(dst)
                     }
                 };
-                if cell >= 4 {
-                    tail_run = None;
-                }
             }
         }
 
-        let (m, tail, cap) = match state {
+        let (m, cap): ([Off; 8], Off) = match state {
             // A later block: XOR the message into the previous state's rate cells.
-            // A zero message cell passes the state's cell through, so a tail with
-            // no message keeps the previous run, and the capacity always does
-            // unless the padding lands in lane 16.
+            // A zero message cell passes the state's cell through, and the capacity
+            // is the previous run's unless the padding lands in lane 16.
             Some(st) => {
-                let m: [Off; 4] = std::array::from_fn(|i| self.sponge_xor(st + i as u32, block[i], None, pad_kind));
-                let tail = if block[4..].iter().all(|c| matches!(c, SpongeCell::Zero)) {
-                    st + 4
-                } else {
-                    let t = self.alloc_stack(4);
-                    for j in 0..4 {
-                        self.sponge_xor(st + 4 + j as u32, block[4 + j], Some(t + j as u32), pad_kind);
-                    }
-                    t
-                };
+                let m = std::array::from_fn(|i| self.sponge_xor(st + i as u32, block[i], None, pad_kind));
                 let cap = if lone_pad {
                     let cap = self.alloc_stack(5);
                     let pad = self.pad_run(pad_kind);
@@ -536,43 +618,22 @@ impl FnLower<'_> {
                 } else {
                     st + 8
                 };
-                (m, tail, cap)
+                (m, cap)
             }
             // The first block, from the zero state: every constant window comes out
             // of the one padding run.
             None => {
                 let pad = self.pad_run(pad_kind);
-                let m: [Off; 4] = std::array::from_fn(|i| self.sponge_cell(block[i], pad_kind));
-                let tail = match (tail_run, &block[4..]) {
-                    (Some(base), _) => base,
-                    (None, [SpongeCell::Zero, SpongeCell::Zero, SpongeCell::Zero, SpongeCell::Zero]) => pad + 1,
-                    (
-                        None,
-                        [
-                            SpongeCell::Const(v),
-                            SpongeCell::Zero,
-                            SpongeCell::Zero,
-                            SpongeCell::Zero,
-                        ],
-                    ) if *v == pad_kind.value() => pad,
-                    (None, cells) => {
-                        let cells: Vec<SpongeCell> = cells.to_vec();
-                        let t = self.alloc_stack(4);
-                        for (j, c) in cells.into_iter().enumerate() {
-                            let dst = t + j as u32;
-                            match c {
-                                SpongeCell::Zero => self.set_const(dst, F192::ZERO),
-                                SpongeCell::Const(v) => self.set_const(dst, v),
-                                SpongeCell::Cell(o) => self.copy(o, dst),
-                            }
-                        }
-                        t
-                    }
-                };
-                (m, tail, if lone_pad { pad } else { pad + 1 })
+                let m = std::array::from_fn(|i| self.sponge_cell(block[i], pad_kind));
+                (m, if lone_pad { pad } else { pad + 1 })
             }
         };
-        self.emit(LOp::Sha3 { m, tail, cap, c });
+        self.emit(LOp::Sha3 {
+            m,
+            cap,
+            c: out.base,
+            digest: out.digest,
+        });
     }
 
     /// The statement-position builtins, `true` if `f` was one of them (else the
@@ -599,6 +660,7 @@ impl FnLower<'_> {
                     RHint::BitDecomposeExp { value, bits, nbits }
                 }));
             }
+            "blake2s" => self.lower_blake2s(args),
             "sha3" => self.lower_sha3(args),
             "sha3_cells" => self.lower_sha3_cells(args),
             "keccak" => self.lower_keccak(args),
@@ -638,6 +700,66 @@ impl FnLower<'_> {
             _ => return false,
         }
         true
+    }
+
+    /// Resolve a `blake2s` operand: a [`Self::cell_run`] pinned to exactly 2
+    /// cells, a 256-bit value being two 128-bit cells. Stack operands are used
+    /// in place; heap operands must be bridged through the stack, since
+    /// `BLAKE2s` addresses only frame cells (see [`Self::blake2s_input`]).
+    fn blake2s_operand(&mut self, e: &Expr) -> CellRun {
+        let run = self.cell_run(e);
+        if run.cells() != 2 {
+            self.fail("a blake2s operand must span exactly 2 cells (two 128-bit words); slice a larger buffer: `buf[lo:lo + 2]`")
+        };
+        run
+    }
+
+    /// A `blake2s` *input* operand as its two independently-addressed 128-bit
+    /// chunk bases (each chunk is ONE 128-bit cell): stack runs in place; a heap
+    /// slice is pulled into a fresh stack pair first, one `DEREF` per cell
+    /// (`m[ptr·g^{lo+k}] == m[fp+t+k]`, the `β` immediate doing the pointer
+    /// offset). The heap cells must already be written.
+    ///
+    /// A LIST LITERAL names its two words directly and allocates nothing. The
+    /// opcode addresses its four input chunks independently, so an operand
+    /// assembled out of values living elsewhere never has to be gathered into a
+    /// consecutive run: `blake2s([a, b], …)` is the spelling that says so.
+    pub(super) fn blake2s_input(&mut self, e: &Expr) -> [Off; 2] {
+        if let Expr::ListLit(words) = e {
+            if words.len() != 2 {
+                self.fail(format!(
+                    "a blake2s operand written as a list needs exactly 2 words, got {}",
+                    words.len()
+                ))
+            };
+            return [self.expr(&words[0]), self.expr(&words[1])];
+        }
+        match self.blake2s_operand(e) {
+            CellRun::Stack { base, .. } => [base, base + 1],
+            CellRun::Heap { ptr, lo, .. } => {
+                let t = self.alloc_stack(2);
+                for k in 0..2 {
+                    self.deref(ptr, lo + k, t + k, DerefMode::Cell);
+                }
+                [t, t + 1]
+            }
+        }
+    }
+
+    fn default_blake2s_cv(&mut self) -> Off {
+        if let Some(o) = self.scope.blake2s_iv {
+            return o;
+        }
+        let o = self.alloc_stack(2);
+        for (k, value) in lean_vm::hash_flock::IV_CELLS.into_iter().enumerate() {
+            self.set_const(o + k as u32, value);
+            self.scope
+                .const_cells
+                .entry([value.c0, value.c1, value.c2])
+                .or_insert(o + k as u32);
+        }
+        self.scope.blake2s_iv = Some(o);
+        o
     }
 
     /// `N` message cells of a `sha3` block: a list literal of `N` words (a literal
@@ -717,8 +839,8 @@ impl FnLower<'_> {
     }
 
     /// The six cells `[pad, 0, 0, 0, 0, 0]` every fresh `sha3` (or `keccak`) in
-    /// this scope shares ([`Scope::sha3_pad`]): the zero `tail` and `cap` start
-    /// at `+1`, a 64-byte message's `tail` and a 128-byte one's `cap` at `+0`.
+    /// this scope shares ([`Scope::sha3_pad`]): a zero `cap` starts at `+1` and a
+    /// 128-byte message's at `+0`, and a zero or padding message cell is one of them.
     fn pad_run(&mut self, pad: Pad) -> Off {
         if let Some(o) = self.scope.sha3_pad[pad as usize] {
             return o;
@@ -781,10 +903,26 @@ impl FnLower<'_> {
         };
         self.pending.push(Hint::Resolved(hint));
     }
+    /// A BLAKE2s chaining value must occupy two consecutive frame cells because
+    /// the opcode carries one base offset for both words. Preserve a genuine
+    /// consecutive pair, including a heap pair already bridged by
+    /// [`Self::blake2s_input`]. A `cv` written as a two-word LIST exposes two
+    /// sources that need not be adjacent, so those are copied into a fresh
+    /// consecutive pair.
+    fn blake2s_cv(&mut self, e: &Expr) -> Off {
+        let pair = self.blake2s_input(e);
+        if pair[1] == pair[0] + 1 {
+            return pair[0];
+        }
+        let cv = self.alloc_stack(2);
+        self.copy(pair[0], cv);
+        self.copy(pair[1], cv + 1);
+        cv
+    }
 }
 
 /// Cells a sponge state occupies.
-const STATE_CELLS: u32 = lean_vm::hash_flock::STATE_CELLS as u32;
+const STATE_CELLS: u32 = lean_vm::hash_flock_keccak::STATE_CELLS as u32;
 
 /// The padding a sponge block uses: SHA3-256's (`sha3`, the leanVM hash) or
 /// Keccak-256's (`keccak`, the EVM's). They differ only in the first padding
@@ -798,8 +936,8 @@ pub(super) enum Pad {
 impl Pad {
     fn byte(self) -> u8 {
         match self {
-            Self::Sha3 => primitives::hash::PAD_FIRST,
-            Self::Keccak => primitives::hash::KECCAK_PAD_FIRST,
+            Self::Sha3 => primitives::keccak::PAD_FIRST,
+            Self::Keccak => primitives::keccak::KECCAK_PAD_FIRST,
         }
     }
 
@@ -809,11 +947,13 @@ impl Pad {
     }
 }
 
-/// Where a `sha3` writes: the 13-cell stack run its instruction targets, and a
-/// run to copy the state or the digest out to afterwards.
+/// Where a `sha3` writes: the stack run its instruction targets, the 13-cell
+/// state or with `digest` the 2-cell digest alone, and a heap run to store it to
+/// afterwards.
 struct Sha3Out {
-    state: Off,
-    copy: Option<CellRun>,
+    base: Off,
+    digest: bool,
+    heap: Option<CellRun>,
 }
 
 /// One message cell of a `sha3` block, as the lowering knows it.

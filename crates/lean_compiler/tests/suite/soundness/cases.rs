@@ -276,6 +276,82 @@ def main():
     p.execute([F192::ZERO, F192::ZERO]);
 }
 
+/// The digest-as-verification idiom: a hinted preimage, hashed, and the result
+/// pinned against a hinted digest through a heap store. This is the shape a
+/// signature verifier has, so it is the one that most needs a regression test.
+///
+/// The digest constant comes from [`print_blake2s_digest`], not from a hand
+/// computation: what the case tests is that a *wrong* digest is rejected, and
+/// for that the honest value only has to be honest.
+#[test]
+fn blake2s_digest_pins_its_preimage() {
+    check_case(&Case {
+        name: "blake2s_digest_pins_its_preimage",
+        src: BLAKE2S_PIN_SRC,
+        valid: Trial::new([k(5), k(7)])
+            .stream("msg", vec![vec![k(5), k(7), F192::ZERO, F192::ZERO]])
+            .stream("dig", vec![vec![BLAKE2S_DIGEST_5_7[0], BLAKE2S_DIGEST_5_7[1]]]),
+        pokes: vec![
+            // A different preimage hashes to something else.
+            wit("msg", 0, k(6)),
+            wit("msg", 1, k(8)),
+            wit("msg", 2, k(1)),
+            wit("msg", 3, k(1)),
+            // A wrong digest is what the write-once store has to catch.
+            wit("dig", 0, F192::ZERO),
+            wit("dig", 1, F192::ZERO),
+            wit("dig", 0, BLAKE2S_DIGEST_5_7[0] + F192::ONE),
+            wit("dig", 1, BLAKE2S_DIGEST_5_7[1] + F192::ONE),
+            // The published preimage words.
+            pi(0, k(6)),
+            pi(1, k(8)),
+        ],
+    });
+}
+
+const BLAKE2S_PIN_SRC: &str = "\
+def main():
+    m = StackBuf(4)
+    hint_witness(m, \"msg\")
+    d = StackBuf(2)
+    blake2s(m[0:2], m[2:4], d)
+    e = HeapBuf(2)
+    hint_witness(e[0:2], \"dig\")
+    e[1] = d[0]
+    e[GEN] = d[1]
+    p = GEN ** 0
+    p[1] = m[0]
+    p[GEN] = m[1]
+    return
+";
+
+/// BLAKE2s of the 64-byte block whose four canonical cells are `(5, 7, 0, 0)`.
+pub const BLAKE2S_DIGEST_5_7: [F192; 2] = [
+    F192::new(0xbbc8_c175_8cb7_7642, 0xf299_5d40_1fad_f4ff, 0),
+    F192::new(0x83ea_6ade_289a_53c8, 0x57e6_e523_12ec_734b, 0),
+];
+
+/// Regenerate [`BLAKE2S_DIGEST_5_7`]: `cargo test --release -p lean_compiler
+/// print_blake2s_digest -- --ignored --nocapture`. Kept so the constant above is
+/// reproducible rather than folklore.
+#[test]
+#[ignore = "prints a constant; not a check"]
+fn print_blake2s_digest() {
+    let src = "\
+def main():
+    m = StackBuf(4)
+    hint_witness(m, \"msg\")
+    d = StackBuf(2)
+    blake2s(m[0:2], m[2:4], d)
+    print(d[0])
+    print(d[1])
+    return
+";
+    let mut p = super::build(src);
+    p.set_witness("msg", vec![vec![k(5), k(7), F192::ZERO, F192::ZERO]]);
+    p.execute([F192::ZERO, F192::ZERO]);
+}
+
 /// The fused `match` path must reject a call that binds more names than
 /// the callee returns, exactly as the non-fused path does. Before this check the
 /// surplus name `DEREF`ed a callee-frame offset nothing on the taken path wrote,
@@ -438,6 +514,44 @@ def main():
     r[1] = v[0]
     gathered = StackBuf(2)
     sha3(l, r, gathered)
+    assert named[0] == gathered[0]
+    assert named[1] == gathered[1]
+    p = GEN ** 0
+    p[1] = v[0]
+    p[GEN] = v[1]
+    return
+",
+        valid: Trial::new([k(11), k(22)]).stream("w", vec![vec![k(11), k(22)]]),
+        pokes: vec![wit("w", 0, k(12)), wit("w", 1, k(23))],
+    });
+}
+
+/// A `blake2s` input operand written as a list is the same hash as gathering the
+/// words into a buffer, so hashing one way and the other must agree.
+///
+/// Self-comparing on purpose: an equivalence pair cannot check this, because a
+/// trial that must be ACCEPTED has to name the digest and no test should carry a
+/// hash constant. Asserting the two digests equal needs no constant, and the two
+/// operands are DIFFERENT words so that reordering within a list is visible: with
+/// both operands equal the swap would cancel out.
+#[test]
+fn a_blake2s_word_list_hashes_like_the_buffer_it_replaces() {
+    check_case(&Case {
+        name: "a_blake2s_word_list_hashes_like_the_buffer_it_replaces",
+        src: "\
+def main():
+    v = StackBuf(2)
+    hint_witness(v, \"w\")
+    named = StackBuf(2)
+    blake2s([v[0], v[1]], [v[1], v[0]], named)
+    l = StackBuf(2)
+    l[0] = v[0]
+    l[1] = v[1]
+    r = StackBuf(2)
+    r[0] = v[1]
+    r[1] = v[0]
+    gathered = StackBuf(2)
+    blake2s(l, r, gathered)
     assert named[0] == gathered[0]
     assert named[1] == gathered[1]
     p = GEN ** 0

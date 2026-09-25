@@ -223,6 +223,58 @@ def main():
     verify(&program, &want, &proof).expect("each hash absorbs into its own state");
 }
 
+/// A BLAKE2s chaining value names a CONSECUTIVE PAIR, so neither half may be
+/// folded into a canonical elsewhere and the base may not be rewritten: a
+/// substitution speaks for one cell, and redirecting the base silently redirects
+/// the second word too. `rewrite_reads` used to map `cv` like any single-cell
+/// read, so when the first of the two assembling copies duplicated an earlier
+/// copy of the same source, the compression absorbed the OTHER pair's second
+/// word. Silent, and a soundness break in a transcript.
+///
+/// The two compressions here differ in nothing but their chaining value, and
+/// their two `cv` pairs share a first word, which is what made the first copy a
+/// duplicate. If either pair is rewritten or dropped, the digests coincide and
+/// the inequality fails at witness generation.
+#[test]
+fn a_chaining_value_pair_is_neither_rewritten_nor_dropped() {
+    let src = "\
+def main():
+    hb = HeapBuf(4)
+    hb[1] = GEN ** 11
+    hb[GEN] = GEN ** 22
+    hb[GEN ** 2] = GEN ** 33
+    hb[GEN ** 3] = GEN ** 44
+    x = hb[1]
+    y = hb[GEN]
+    z = hb[GEN ** 2]
+    w = hb[GEN ** 3]
+    msg = StackBuf(4)
+    msg[0] = y
+    msg[1] = y
+    msg[2] = y
+    msg[3] = y
+    t = StackBuf(2)
+    t[0] = x
+    t[1] = z
+    o1 = StackBuf(2)
+    blake2s(msg[0:2], msg[2:4], o1, cv=t, counter=64, final=1)
+    s = StackBuf(2)
+    s[0] = x
+    s[1] = w
+    o2 = StackBuf(2)
+    blake2s(msg[0:2], msg[2:4], o2, cv=s, counter=64, final=1)
+    assert o1[0] != o2[0]
+    p = 1
+    p[1] = x
+    p[GEN] = y
+    return
+";
+    let program = compile(&parse(src).expect("parse"));
+    let want = [F192::from(g_pow(11)), F192::from(g_pow(22))];
+    let (proof, _) = prove(&program, want, lean_vm::pcs::TEST_LOG_INV_RATE).unwrap();
+    verify(&program, &want, &proof).expect("each compression absorbs its own chaining value");
+}
+
 #[test]
 fn cached_loads_do_not_cross_branches_or_erase_stores() {
     let source = r#"

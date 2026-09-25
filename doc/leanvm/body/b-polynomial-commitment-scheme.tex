@@ -279,7 +279,7 @@ The committed $f$ is the stack of \S\ref{sec:stacking}: $\nstack$ field elements
 \begin{itemize}[itemsep=1pt,topsep=2pt]
 \item the FFT-encoder only runs on $\nrows$ rows (and not the full $2^{\ell_0}$), since FFT-ing zeros gives zeros;
 \item a Merkle leaf only contains $\nrows$ elements of $\K$ (proof size optimization), we keep the convention of hashing the full $2^{\ell_0}$ values for simplicity, but we hash them in reverse order, starting from the padding zeros;
-\item the prover can thus preprocess the sponge state after hashing the whole $128$-byte blocks of those zeros, and then hash the rest of each leaf starting from this state.
+\item the prover can thus preprocess the internal state of BLAKE2s after hashing those zeros, and then hash the useful part of each leaf starting from this state.
 \end{itemize}
 
 Conclusion: at commitment, both the FFT and the Merkle leaf hashing cost are proportional to $\nstack$ (not its next power of two). Unfortunately we still pay for the padding inside the $\nstack$ field elements, because some instruction counts are not powers of two. This could be prevented using the Jagged PCS \cite{jagged_pcs}.

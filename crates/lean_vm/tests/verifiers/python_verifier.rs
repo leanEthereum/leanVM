@@ -78,7 +78,9 @@ fn python_verify(directory: &Path, bytecode: &Path, public_input: &Path, raw: &R
 
 fn public_input() -> [F192; 2] {
     let seed = [F64(5), F64::ZERO, F64(7), F64::ZERO];
-    let digest = lean_vm::vmhash::compress(seed, seed);
+    let bytes: Vec<u8> = seed.iter().chain(&seed).flat_map(|w| w.0.to_le_bytes()).collect();
+    let hash = primitives::keccak::hash(&bytes);
+    let digest: [F64; 4] = std::array::from_fn(|i| F64(u64::from_le_bytes(hash[8 * i..8 * i + 8].try_into().unwrap())));
     let digest = [
         F192::new(digest[0].0, digest[1].0, 0),
         F192::new(digest[2].0, digest[3].0, 0),

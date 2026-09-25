@@ -1,16 +1,15 @@
-//! The XMSS hash layer: [`tweak_hash`] is the leanVM hash
-//! ([`primitives::hash::hash`], SHA3-256 in the cell encoding) of the exact byte
+//! The XMSS hash layer: [`tweak_hash`] is standard BLAKE2s of the exact byte
 //! string `tweak | pp | payload`, for chain steps, Merkle nodes, WOTS public
 //! keys, and message encodings alike.
 //!
 //! The 16-byte tweak makes every call site a distinct hash function
 //! (multi-target separation, as in leanVM) and the public parameter separates
-//! users. The hash's padding binds the exact payload length.
+//! users. Standard BLAKE2s binds the exact payload length.
 //!
-//! Permutations per call: chain step 1, Merkle node 1, message encoding 1, WOTS
-//! public key 6. A full XMSS verification is a constant 138 permutations: 1
-//! (encoding) + 99 (chains, fixed by the target sum) + 6 (tips) + 32 (Merkle
-//! path).
+//! Compression counts per call: chain step 1, Merkle node 1, message encoding
+//! 2, WOTS public key 11. A full XMSS verification is a constant 144
+//! compressions: 2 (encoding) + 99 (chains, fixed by the target sum) + 11
+//! (tips) + 32 (Merkle path).
 
 use crate::*;
 
@@ -45,9 +44,9 @@ pub fn make_tweak(tweak_type: u8, sub_position: u32, index: u32) -> Tweak {
     tweak
 }
 
-/// The hash of the exact-length `tweak | pp | payload` byte string. One
-/// permutation for chain steps (48 bytes total), Merkle nodes (64 bytes total)
-/// and encodings (96 bytes total), six for the WOTS public key.
+/// Standard BLAKE2s of the exact-length `tweak | pp | payload` byte string. One
+/// compression for chain steps (48 bytes total) and Merkle nodes (64 bytes
+/// total), more for the multi-block WOTS public-key and encoding inputs.
 pub fn tweak_hash(pp: &PublicParam, tweak_type: u8, sub_position: u32, index: u32, payload: &[u8]) -> Digest {
     let mut hasher = primitives::hash::Hasher::new();
     hasher.update(&make_tweak(tweak_type, sub_position, index));

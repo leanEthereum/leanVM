@@ -1,7 +1,7 @@
 % !TeX root = ../drafts/09-isa-programming.tex
 \section{ISA programming}\label{sec:isa-programming}
 
-How the zkDSL compiler (\path{crates/lean_compiler}; surface language in \path{crates/lean_compiler/zkDSL.md}) programs the six-instruction ISA. Two themes run through every pattern: \emph{write-once memory is an assertion mechanism} (a second write of a cell is an equality check, an unwritten cell is prover-chosen), and \emph{indices live in the exponent} (a logical index $i$ is the element $\gen^{i}$, so incrementing, offsetting, and address formation are single field multiplications).
+How the zkDSL compiler (\path{crates/lean_compiler}; surface language in \path{crates/lean_compiler/zkDSL.md}) programs the seven-instruction ISA. Two themes run through every pattern: \emph{write-once memory is an assertion mechanism} (a second write of a cell is an equality check, an unwritten cell is prover-chosen), and \emph{indices live in the exponent} (a logical index $i$ is the element $\gen^{i}$, so incrementing, offsetting, and address formation are single field multiplications).
 
 \subsection{Hints}\label{sec:prog-hints}
 
@@ -50,11 +50,11 @@ The range check \emph{in the exponent} proves $x\in\{\gen^{0},\dots,\gen^{k-1}\}
 \end{enumerate}
 Then $e+f\equiv k-1\pmod{2^{64}-1}$ with $e,f<2^{\kmem}\le2^{32}$, so $e+f<2^{33}<2^{64}-1$ and the congruence is an equality over the integers; a ``negative'' $k-1-e$ would wrap to $\approx2^{64}\gg2^{\kmem}$, so $e\le k-1$, for every memory size the prover may announce, provided $k\le2^{16}$ (the minimum, \S\ref{sec:vm}). The two \texttt{DEREF} targets are deferred touches; the constant cell is one amortized \texttt{SET} per distinct bound per frame.
 
-\subsection{Hashing with \texttt{SHA3}}\label{sec:prog-hashing}
+\subsection{Counter in BLAKE2s}\label{sec:prog-byte-counter}
 
-A hash of a message whose length is fixed at compile time is a straight line of \texttt{SHA3} instructions: the first reads a zero capacity, each later one the previous state with the next eight cells of message XORed into its first eight, and the last places the padding byte $\mathtt{0x06}$ where the message ends, in a cell of message or a constant one. The zero capacity and every constant window a first block needs fit one six-cell run $[\mathtt{0x06},0,0,0,0,0]$, set once per frame: the zero tail and the zero capacity both start one cell in, the tail of a $64$-byte message and the capacity of a $128$-byte one at the start.
+Hashing a slice of constant size with BLAKE2s is straightforward, by hardcoding the counter inside each $\md$ (using the $\texttt{SET\_CONSTANT}$ instruction).
 
-A message of runtime length needs no byte counter. The encoding (\S\ref{sec:tab-sha3}) makes every block but the last a whole eight cells, and the padding depends only on where the message ends within the last. So a list of items hashes in a loop over its whole blocks, carrying the $13$-cell state from one iteration to the next through a heap chain, then a \texttt{match} on the number of items in the last block, whose arms place the padding each at its own compile-time offset. The split is prover advice, pinned by a range check on the last block's item count and a product identity in the exponent tying the two back to the length.
+Hashing slice of dynamic-size requires to reconstruct the counter at runtime. One efficient way to handle this is the following: absorb a window of $B=2^{b}$ blocks per loop iteration, unrolled, so that block $j$ of window $q$ has counter $64Bq+64(j+1)$. The two terms have disjoint bits, the base $64Bq=2^{6+b}q$ having none below $6+b$, and $\K$ is a polynomial basis, so a plain \texttt{XOR} adds them as integers: each $\md$ is one instruction against a compile-time constant, $\mathit{base}+(64(j+1)\,\Vert\,f_0\,\Vert\,f_1)$. Only a window's last block overlaps, and it takes the next window's base instead. That base is the loop counter $\gen^{q}$ decomposed into hinted bits, tied back by $\prod_j(\gen^{2^{j}})^{b_j}=\gen^{q}$ and summed weighted by $2^{6+b+j}$: one decomposition per window, so under three instructions a block at $B=32$.
 
 \subsection{Match statements}\label{sec:prog-match}
 

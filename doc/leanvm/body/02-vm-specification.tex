@@ -53,7 +53,7 @@ In particular, the memory log-size $\kmem$ is a non deterministic parameter, fre
   \mem[\fp\cdot o],\qquad \fp\cdot o\;=\;\gen^{\mathrm{base}}\cdot\gen^{\,j}\;=\;\gen^{\,\mathrm{base}+j}.
 \]
 
-\paragraph{Instruction set.} The machine implements six instructions.
+\paragraph{Instruction set.} The machine implements seven instructions.
 \begin{center}
 \begin{tabularx}{\textwidth}{@{}llX@{}}
 \hline
@@ -64,7 +64,8 @@ Instruction & Operands & Semantics\\
 \texttt{SET\_CONSTANT} & $[o,k_0,k_1,k_2]$ & $\loc{o}=k_0+k_1y+k_2y^{2}$\\
 \texttt{DEREF}         & $[o_1,o_2,o_3;\,\dmode]$ & $\mem[\loc{o_1}\cdot o_2]=\srcsel{\dmode}$ (see below)\\
 \texttt{JUMP}          & $[o_c,o_d,o_f]$ & conditional jump (see below)\\
-\texttt{SHA3}           & $[o_{m_0},o_{m_1},o_{m_2},o_{m_3},o_{\mathit{tail}},o_{\mathit{cap}},o_{\mathit{out}}]$ & one Keccak sponge step (see below)\\
+\texttt{BLAKE2S}        & $[o_{m_0},o_{m_1},o_{m_2},o_{m_3},o_{\mathit{cv}},o_{\mathit{out}},o_{\md}]$ & BLAKE2s compression (see below)\\
+\texttt{SHA3}           & $[o_{m_0},\dots,o_{m_7},o_{\mathit{cap}},o_{\mathit{out}},\fdig]$ & one Keccak sponge step (see below)\\
 \hline
 \end{tabularx}
 \end{center}
@@ -89,6 +90,11 @@ Additionally, it asserts $\loc{o_1} \in \K$.
 
 \vspace{5mm}
 
-\texttt{SHA3} is one step of the sponge behind the machine's hash, SHA3-256~\cite{fips202} in the cell encoding (\S\ref{sec:tab-sha3}). It reads a $1600$-bit state of $25$ lanes of $64$ bits from thirteen memory cells, XORs the padding's last bit $\mathtt{0x80}\ll 56$ into lane $16$, applies the Keccak-$f[1600]$ permutation, and writes the $25$ resulting lanes to thirteen cells in the same layout. A cell holds two lanes through the canonical embedding $a_0+a_1y\mapsto a_0+a_1y+0y^2$, so using it as a \texttt{SHA3} operand constrains its top limb to zero, except for the one cell holding lane $16$ alone, whose high limb is zero too. The four cells holding lanes $0..8$ are addressed \emph{independently} by references $o_{m_0},\dots,o_{m_3}$ (cell $i$ at address $\fp\cdot o_{m_i}$), the four holding lanes $8..16$ are the consecutive cells $\loc{\gen^k\cdot o_{\mathit{tail}}}$, $k<4$, and the five holding lane $16$ and the capacity lanes $17..25$ are the consecutive cells $\loc{\gen^k\cdot o_{\mathit{cap}}}$, $k<5$. The result goes to the consecutive cells $\loc{\gen^k\cdot o_{\mathit{out}}}$, $k<13$, so each row accesses twenty-six cells. The digest of a hash is the first two output cells.
+\texttt{BLAKE2S} is the standard BLAKE2s compression, consuming a $64$-byte message block and a $32$-byte chaining value and producing $32$ bytes. Each $128$-bit chunk occupies one full $\E$ memory cell through the canonical embedding $a_0+a_1y\mapsto a_0+a_1y+0y^2$; using a cell as a BLAKE2s operand therefore constrains its top limb to zero. The four message chunks are addressed \emph{independently} by references $o_{m_0},\dots,o_{m_3}$ (chunk $i$ at address $\fp\cdot o_{m_i}$), while $o_{\mathit{cv}}$ names two \emph{consecutive} chaining-value cells $\loc{o_{\mathit{cv}}},\loc{\gen\cdot o_{\mathit{cv}}}$. The $256$-bit result is written to the consecutive cells $\loc{o_{\mathit{out}}},\loc{\gen\cdot o_{\mathit{out}}}$, and $o_{\md}$ names one more cell, so each row accesses nine. That cell $\md=\loc{o_{\md}}=\md_0+\md_1y$ packs the standard compression metadata in little-endian order,
+\[
+  \md=\mathit{counter}_{64}\;\Vert\;\mathit{final}_{32}\;\Vert\;\mathit{last\_node}_{32}.
+\]
+
+\texttt{SHA3} is one step of the Keccak sponge~\cite{fips202}, the second hash instruction, there for Keccak-256 (\S\ref{sec:tab-sha3}). It reads a $1600$-bit state of $25$ lanes of $64$ bits from thirteen memory cells, XORs the padding's last bit $\mathtt{0x80}\ll 56$ into lane $16$, applies the Keccak-$f[1600]$ permutation, and writes the $25$ resulting lanes to thirteen cells in the same layout. A cell holds two lanes through the canonical embedding $a_0+a_1y\mapsto a_0+a_1y+0y^2$, so using it as a \texttt{SHA3} operand constrains its top limb to zero, except for the one cell holding lane $16$ alone, whose high limb is zero too. The eight cells holding lanes $0..16$, a whole block, are addressed \emph{independently} by references $o_{m_0},\dots,o_{m_7}$ (cell $i$ at address $\fp\cdot o_{m_i}$), and the five holding lane $16$ and the capacity lanes $17..25$ are the consecutive cells $\loc{\gen^k\cdot o_{\mathit{cap}}}$, $k<5$. The result goes to the consecutive cells $\loc{\gen^k\cdot o_{\mathit{out}}}$, $k<13$, so each row accesses twenty-six cells, or with the flag $\fdig=1$ (a \emph{digest step}) to the first two alone, $k<2$. The digest of a hash is the first two output cells, so a final block needs nothing else.
 
 

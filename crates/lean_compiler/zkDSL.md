@@ -1,8 +1,8 @@
 # zkDSL Language Reference (leanVM)
 
-The zkDSL is a Python-syntax language that compiles to the leanVM ISA: six instructions (`XOR`, `MUL`, `SET`, `DEREF`, `JUMP`, `SHA3`) over the binary field GF(2^192), with write-once memory and all indices carried "in the exponent" as powers of a fixed generator. For the underlying VM and proving system, see [`doc/leanvm/main.tex`](../../doc/leanvm/main.tex).
+The zkDSL is a Python-syntax language that compiles to the leanVM ISA: seven instructions (`XOR`, `MUL`, `SET`, `DEREF`, `JUMP`, `BLAKE2s`, `SHA3`) over the binary field GF(2^192), with write-once memory and all indices carried "in the exponent" as powers of a fixed generator. For the underlying VM and proving system, see [`doc/leanvm/main.tex`](../../doc/leanvm/main.tex).
 
-Source files use the `.py` extension and are **Python-shaped**: they import the [`snark_lib`](snark_lib.py) stub, which defines `GEN`, `log`, `mul_range`, `HeapBuf`, `StackBuf`, `assert_in_k`, `sha3` and `sha3_cells`, so editors and linters resolve the intrinsic names. The compiler skips the import. Ordinary helpers such as `pack64x2` are defined in the single-file guest. A program that uses placeholders is not a runnable Python file: its `*_PLACEHOLDER` identifiers are undefined until the host fills them in, so importing it raises `NameError`.
+Source files use the `.py` extension and are **Python-shaped**: they import the [`snark_lib`](snark_lib.py) stub, which defines `GEN`, `log`, `mul_range`, `HeapBuf`, `StackBuf`, `assert_in_k`, `blake2s`, `sha3` and `sha3_cells`, so editors and linters resolve the intrinsic names. The compiler skips the import. Ordinary helpers such as `pack64x2` are defined in the single-file guest. A program that uses placeholders is not a runnable Python file: its `*_PLACEHOLDER` identifiers are undefined until the host fills them in, so importing it raises `NameError`.
 
 Entry points: `lean_compiler::parse` / `parse_file_with_replacements` → `lean_compiler::compile` → `lean_vm::cpu::prove` / `verify`.
 
@@ -217,7 +217,7 @@ buf[i * GEN] = v      # the next cell along
 
 The index is a field element; cell `k` of the buffer lives at address `buf · g^k`. A read or store is one `DEREF`. A **runtime** index costs one extra `MUL` for the `buf·i` pointer, but a **compile-time g-power** offset (`buf[1]`, `buf[GEN ** k]`, or a cursor advanced by `× GEN ** m`) folds into the `DEREF`'s address immediate for free: no `MUL`, no `SET`, and the cursor arithmetic itself vanishes (so a `× GEN` walk over consecutive cells is zero instructions).
 
-**Compile-time indices are bounds-checked.** When the whole index is a compile-time exponent and the pointer resolves to a declared `HeapBuf` (directly, or through shifted aliases like `row = buf * GEN ** k`), the compiler rejects `index >= size`, and the same for the spans of `hint_witness` and `sha3` slices. **Runtime** indices are not checked (their value is unknown at compile time): there the buffer remains a region convention, and a stray access surfaces at proving time as a write-once conflict or wild deref.
+**Compile-time indices are bounds-checked.** When the whole index is a compile-time exponent and the pointer resolves to a declared `HeapBuf` (directly, or through shifted aliases like `row = buf * GEN ** k`), the compiler rejects `index >= size`, and the same for the spans of `hint_witness`, `blake2s` and `sha3` slices. **Runtime** indices are not checked (their value is unknown at compile time): there the buffer remains a region convention, and a stray access surfaces at proving time as a write-once conflict or wild deref.
 
 ### `StackBuf(n)`: frame-cell runs, indexed by compile-time integers
 
@@ -240,7 +240,7 @@ A runtime index through such a pointer is unchecked, as on the heap, but it fail
 
 ### Slices: `buf[lo:hi]`
 
-`buf[lo:hi]` names a run of cells (`hi` exclusive). A `sha3` operand spans exactly the cells its position takes (two, four for `tail`, thirteen for a state); `hint_witness` accepts any supported literal length. Two forms:
+`buf[lo:hi]` names a run of cells (`hi` exclusive). A `blake2s` operand spans exactly two cells, a `sha3` operand exactly the cells its position takes (two, four for `tail`, thirteen for a state); `hint_witness` accepts any supported literal length. Two forms:
 
 - **compile-time bounds** (integers, as for stack indexes): frame cells `base+lo .. base+hi` of a `StackBuf`, or heap cells `ptr·g^lo .. ptr·g^hi` of a `HeapBuf`, so `hb[2:4]` is the pair `g^2, g^3`;
 - **runtime start, heap only**: `buf[i:i + k]` with a runtime g-power index `i` (e.g. a loop counter) and literal length `k` names the cells `buf·i`, `buf·i·g`, and so on; one `MUL` folds `i` into the pointer. The `hi` bound cannot be evaluated, only shape-checked: it must be syntactically `lo + k` (`buf[b * GEN ** 2 : b * GEN ** 2 + 2]` is fine). A `StackBuf` slice cannot have a runtime start: frame offsets are baked into the bytecode operands.
@@ -419,13 +419,56 @@ challenge = state[0] + d2[0] * f192(0, 0, 1)
 
 Both state words are hash outputs, so their top limbs are already zero. Only `d2` must be exposed separately; deriving `d3 = (s1+d2)/Y` and proving both values lie in GF(2^64) binds the one hinted limb by uniqueness of the tower representation. The challenge is `s0+d2·Y² = d0+d1·Y+d2·Y²`, while `d3` is checked but deliberately discarded. `challenge_from_state` is not a compiler intrinsic: this is the complete `@inline` helper used by the recursion guest.
 
+## BLAKE2s
+
+```python
+h = StackBuf(2)
+blake2s(a, b, h)                    # digest of (a, b) written into h
+blake2s(t[0:2], t[x:x + 2], t[4:6])  # slices of one large StackBuf
+blake2s(h, hb[0:2], hb[2:4])         # HeapBuf slices, input and output
+blake2s(hb[i:i + 2], h, hb[j:j + 2])  # runtime-indexed heap slices (i, j g-powers)
+
+# A standard 80-byte hash as two blocks. Keyword values are compile-time.
+block0 = [1, 2, 3, 4]  # 64 bytes
+tail = [5, 0, 0, 0]    # 16 more, the rest of the block zero-filled
+blake2s(block0[0:2], block0[2:4], cv, counter=64, final=0)
+blake2s(tail[0:2], tail[2:4], out, cv=cv, counter=80, final=1)
+
+# The same, with the second block's metadata computed at run time.
+blake2s(tail[0:2], tail[2:4], out, cv=cv, md=high + f192(16, 4294967295, 0))
+```
+
+The three positional arguments form a **statement**: one standard BLAKE2s compression consumes the two 256-bit message operands `a`, `b` (64 bytes) and writes its 32-byte result into the 2-cell run `out`. With no keywords it computes the standard hash of exactly 64 bytes: the parameterized BLAKE2s-256 initial chaining value (digest length 32, unkeyed, fanout and depth 1), byte counter 64, final-block flag `f0` set. That is `blake2s(a || b)`, the form every Fiat-Shamir step and Merkle node uses.
+
+Every compression also has a 256-bit chaining value and a 128-bit metadata word. The optional keywords are:
+
+- `cv=<pair>`: a consecutive 2-cell chaining value, the previous block's output; omitting it selects the parameterized IV above. On each runtime path, a function emits two `SET`s at its first such hash only and reuses those cells thereafter. Supplying `cv=` also requires one of the four below, since a chained block is never the default one-block hash;
+- `counter=<u64>`: BLAKE2s's byte counter `t`, **cumulative** through this block, so `64 * whole_blocks_before + bytes_in_this_block`. Defaults to 64;
+- `final=<0|1>`: BLAKE2s's final-block flag `f0`. It defaults to 1 for the bare three-argument call, but to **0** as soon as `counter=` or `last_node=` appears, so a chained hash must set `final=1` on its last block and a single short block needs `counter=<len>, final=1`. Any compile-time expression works, nonzero meaning set, which is what lets the guests write a predicate like `final=(q + 1) // BLOCKS_PER_HASH`;
+- `last_node=<0|1>`: BLAKE2s's tree-mode flag `f1`. Defaults to 0, and nothing here uses tree mode;
+- `md=<value>`: the whole 128-bit metadata word, as a value the program computed, for a hash whose block count is only known at run time. It replaces the three keywords above (giving both is an error) and it owes the same canonical embedding as every other operand, its top limb being read as a literal zero. The cheap way to build one is the disjoint-bit split of `doc/leanvm` §Byte counters for a hash of runtime length: XOR a runtime high part against a compile-time `metadata(64·j, f0, f1)` constant, one instruction per block.
+
+The metadata is packed as `counter:u64 | f0:u32 | f1:u32`, little-endian, into one memory cell the instruction reads, like every other operand. With compile-time keywords that cell is one pooled `SET`: a frame emits it once per distinct metadata value, however many compressions read it, and the immediate that wrote it is public bytecode. There is no block-length field: the counter is what states how many of the 64 bytes are message, so only the last block may be partial and the program must zero-fill the bytes past its real length, which the compression circuit does not enforce. A multi-block hash therefore feeds each result back with `cv=`, advances `counter=` by the bytes actually absorbed, and sets `final=1` on the last block.
+
+Operands are size-2 `StackBuf`s or 2-cell slices:
+
+- an **input operand written as a list**, `blake2s([a, b], [c, d], out)`, names its two words directly and allocates nothing: the opcode addresses its four input chunks independently, so an operand whose words live in different places never has to be gathered into a consecutive run. This is the spelling to reach for instead of `p = StackBuf(2); p[0] = a; p[1] = b`;
+- **stack operands** are read in place, at zero copies; a self-hash `blake2s(h, h, out)` names one 2-cell pair as both inputs;
+- the instruction addresses its **four canonical 128-bit message chunks independently** (each is a full F192 memory cell constrained at this use to the BLAKE2s subspace `c2 = 0`), so an operand gathered into a buffer (`p = StackBuf(2); p[0] = t0; p[1] = t1; blake2s(p, …)`) costs one instruction per assembling store, which the list form above avoids entirely;
+- the chaining value has only one opcode offset and therefore must be consecutive. If a 2-cell `cv` was assembled from non-adjacent copied cells, the compiler materializes those two cells into a fresh consecutive run;
+- **heap slices** are still bridged through the stack for the *input pull* (the operand's words come from the heap): +1 `DEREF` per heap cell, and the output, if a heap slice, is stored after: write-once memory fills whichever side is unset.
+
+If `out` was already written, the statement *asserts* the digest equals it, write-once turning the hash into a verification, which is exactly what a signature verifier wants.
+
+The compression, including its chaining value and metadata, is proven by the flock-derived BLAKE2s R1CS (`crates/flock`, see `doc.pdf` §BLAKE2s); one instruction is one 64-byte-block compression.
+
 ## SHA3
 
 ```python
 h = StackBuf(13)
 sha3(a, b, h)                       # the hash of the 64 bytes (a, b); h[0:2] is the digest
 d = StackBuf(2)
-sha3(a, b, d)                       # just the digest, copied out of a fresh state
+sha3(a, b, d)                       # just the digest
 sha3(t[0:2], t[x:x + 2], t[4:6])    # slices of one large StackBuf
 sha3(h[0:2], hb[0:2], hb[2:4])      # HeapBuf slices, input and output
 sha3([tweak, pp], [word, 0], out, len=48)  # a 48-byte message, the padding in b's second cell
@@ -439,9 +482,9 @@ sha3([9, 10], [0, 0], out, state=st, len=32)
 sha3_cells(run, out)                # the hash of the whole run, however many blocks
 ```
 
-The hash is SHA3-256 in the **cell encoding** (`primitives::hash::hash`): plain SHA3-256 of messages up to 128 bytes, and past that, SHA3-256 of the message with the fixed eight bytes `00 00 00 00 00 00 00 80` after every 128. That makes one block eight whole 16-byte cells where SHA3's 136-byte rate would split a cell, and those gap bytes land in lane 16, the one lane the instruction supplies itself.
+The hash is SHA3-256 in the **cell encoding** (`primitives::keccak::hash`): plain SHA3-256 of messages up to 128 bytes, and past that, SHA3-256 of the message with the fixed eight bytes `00 00 00 00 00 00 00 80` after every 128. That makes one block eight whole 16-byte cells where SHA3's 136-byte rate would split a cell, and those gap bytes land in lane 16, the one lane the instruction supplies itself.
 
-The three positional arguments form a **statement**: one `SHA3` instruction absorbs the block `a ‖ b ‖ tail` (two, two and four cells; `tail` omitted is zero) and writes the 13-cell sponge state into `out`, whose first two cells are the digest. With no keywords it computes the hash of exactly `a ‖ b`, 64 bytes (128 with `tail`), the form every Fiat-Shamir step and Merkle node uses. A 2-cell `out` receives just the digest, at two copies.
+The three positional arguments form a **statement**: one `SHA3` instruction absorbs the block `a ‖ b ‖ tail` (two, two and four cells; `tail` omitted is zero) and writes the 13-cell sponge state into `out`, whose first two cells are the digest. With no keywords it computes the hash of exactly `a ‖ b`, 64 bytes (128 with `tail`). A 2-cell `out` receives just the digest.
 
 The optional keywords, all compile-time except `state`:
 
@@ -451,13 +494,13 @@ The optional keywords, all compile-time except `state`:
 
 With neither `len` nor `final`, a block is the final one and its message fills the operands given.
 
-The instruction reads thirteen canonical cells: its four `m` cells independently addressed, then two consecutive runs, the four `tail` cells and the five `cap` cells (lane 16 alone, then the capacity). A fresh block's constant `tail` and `cap` windows all come out of one six-cell run `[pad, 0, 0, 0, 0, 0]`, which each runtime path of a function emits once and reuses (six `SET`s, reverted at a join like every lazily-set constant).
+The instruction reads thirteen canonical cells: the block's eight message cells `a ‖ b ‖ tail`, each addressed independently, then one consecutive run, the five `cap` cells (lane 16 alone, then the capacity). A fresh block's zero and padding message cells and its constant `cap` window all come out of one six-cell run `[pad, 0, 0, 0, 0, 0]`, which each runtime path of a function emits once and reuses (six `SET`s, reverted at a join like every lazily-set constant).
 
 Operands:
 
 - an **input operand written as a list**, `sha3([a, b], [c, d], out)`, names its words directly and allocates nothing: the opcode addresses `m` independently, so an operand whose words live in different places never has to be gathered into a consecutive run;
 - **stack operands** are read in place, at zero copies; a self-hash `sha3(h, h, out)` names one 2-cell pair as both inputs;
-- `tail` is one opcode offset and so must be consecutive: a list or a heap slice there is assembled into a fresh run, one instruction a cell;
+- `tail` takes the same forms, its four cells addressed independently like the others;
 - **heap slices** are bridged through the stack: +1 `DEREF` per heap cell, a heap `state` and a 13-cell heap `out` included, which is what lets a loop frame carry a hash's state to the next through a heap chain.
 
 `sha3_cells(run, out)` hashes a whole run of compile-time length, eight cells a block, the last block padded where the run ends.
@@ -477,7 +520,7 @@ keccak([pp, 0, adrs_a, adrs_b], d, words=tips)         # 64 + 32·len(tips) byte
 
 `keccak(head, out, words=run)` is Keccak-256, the EVM's `keccak256` (padding byte `0x01`, not SHA3's `0x06`), of the byte string `head ‖ words`, a whole number of cells. It is here for the SPHINCS+ profile, whose on-chain verifier fixes the hash. `head` is a list of at least one cell: a literal `0` is known to be zero and any other integer literal is a constant (at most 128 bits). `words=` (optional) is a stack or heap run whose every cell enters as a 32-byte word, the cell then 16 zero bytes: an `n`-byte value top-aligned in a `bytes32`. `out` is as for `sha3`, and a pre-written `out` asserts the digest.
 
-Up to 128 bytes the statement is exactly one `sha3` block with Keccak's padding byte, sharing a six-cell `[0x01, 0, 0, 0, 0, 0]` run per frame. With more than four head cells, the four tail cells are evaluated straight into the fresh tail run, so a computed cell such as `node + m` costs its own instruction and no copy. Past that the 136-byte rate does not divide into cells. Block `j` starts at byte `136 j`, mid-cell when `j` is odd, and lane 16 is message data in every block but the last:
+Up to 128 bytes the statement is exactly one `sha3` block with Keccak's padding byte, sharing a six-cell `[0x01, 0, 0, 0, 0, 0]` run per frame: every head cell is read where it lies, so a computed cell such as `node + m` costs its own instruction and no copy. Past that the 136-byte rate does not divide into cells. Block `j` starts at byte `136 j`, mid-cell when `j` is odd, and lane 16 is message data in every block but the last:
 
 - a non-final block XORs the padding's last bit into lane 16 itself, cancelling the one the instruction always sets there, and passes a fresh five-cell `cap` run (one `XOR`, four copies);
 - a cell a mid-cell block splits is taken apart into its 64-bit lanes: a hinted low lane `lo`, the high lane `(x + lo)·y⁻¹`, both proved in `K` by one `assert_in_k` (three instructions a cell, once per cell), and each block cell repacked as `hi + y·lo'` (one or two instructions);
@@ -538,8 +581,9 @@ Three builtins have the prover compute the values at witness generation instead 
 | function call | ≈ `n_args + n_returns + 4` (0 when the callee is `@inline`) |
 | `mul_range` iteration | body + ≈ 1 `MUL` + 1 `XOR` + call overhead |
 | `unroll` iteration | body only (compile-time replication) |
-| `sha3(a, b, out, ...)` | 1; plus six `SET`s once per frame for the padding run (a fresh block), one `XOR` per nonzero message cell of a later block, one for a padding byte in a program cell, +1 `DEREF` per heap cell, +2 copies into a 2-cell `out`, +1 `MUL` per runtime slice start |
+| `sha3(a, b, out, ...)` | 1; plus six `SET`s once per frame for the padding run (a fresh block), one `XOR` per nonzero message cell of a later block, one for a padding byte in a program cell, +1 `DEREF` per heap cell, +1 `MUL` per runtime slice start |
 | `keccak(head, out, words=run)` | up to 128 bytes: as one `sha3` block. Past that: 1 per 136-byte block; per block about 4 to 8 `XOR`s absorbing the message, 5 for lane 16 and the capacity of a non-final block; about 4 per nonzero cell split by a mid-cell block |
+| `blake2s(a, b, out, ...)` | 1; plus one `SET` once per frame per distinct metadata value (nothing with `md=`, which costs whatever building the word costs), and two more when `cv` is omitted; message/CV words are read in place, +1 `DEREF` per heap input or CV word, +1 `MUL` per runtime slice start |
 | `hint_witness(dest, "name")` | 0 (+1 `MUL` for a runtime slice start) |
 
 Every cost above is the FIRST occurrence. Two identical pure operations in one function share one cell and the second is free, so `hb[i]` twice, or `row[i]` where `row = hb * GEN ** 2`, costs one pointer `MUL` between them. The sharing stops at a branch: a cell whose instruction sits inside an `if` is not reused after the join, because the other path leaves it unwritten and therefore prover-chosen.
@@ -570,4 +614,4 @@ def main():
 
 ## Not (yet) supported
 
-Mutable variables; conditions other than field (in)equality; `match` default and non-contiguous arms; multi-file imports; `Const` parameters as `mul_range` or range-check bounds (a substituted literal is a bit-pattern element, not the g-power a bound needs); runtime slice starts on a `StackBuf`; precompiles beyond `SHA3`.
+Mutable variables; conditions other than field (in)equality; `match` default and non-contiguous arms; multi-file imports; `Const` parameters as `mul_range` or range-check bounds (a substituted literal is a bit-pattern element, not the g-power a bound needs); runtime slice starts on a `StackBuf`; precompiles beyond `BLAKE2s` and `SHA3`.

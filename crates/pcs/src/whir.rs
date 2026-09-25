@@ -210,8 +210,8 @@ fn replicate_message_fill_uninit<T: Copy + Send + Sync>(codeword: &mut [std::mem
 /// lanes are never encoded. Their codeword is zero (the encoding is linear), so the
 /// leaf image is the one a full-width commitment would have hashed, with those
 /// zeros LEADING it: lane `t` of the codeword is message block `n_lanes-1-t`, which
-/// puts them at the front of the image where their whole chunks are one sponge
-/// state every leaf shares. Only the image's tail, the committed lanes,
+/// puts them at the front of the image where their whole blocks are one BLAKE2s
+/// chaining value every leaf shares. Only the image's tail, the committed lanes,
 /// rides the proof, so a verifier derives `n_lanes` from the announced layout to
 /// read a row and supplies the prefix itself.
 pub fn commit(message: &[F64], log_n: usize, log_batch_size: usize, log_inv_rate: usize) -> (Commitment, ProverData) {

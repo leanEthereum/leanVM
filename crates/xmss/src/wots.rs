@@ -74,13 +74,13 @@ impl WotsSignature {
 
 impl WotsPublicKey {
     /// The Merkle leaf: the hash of the tweak, public parameter, and 42
-    /// concatenated chain tips (704 bytes, 6 permutations).
+    /// concatenated chain tips (704 bytes, 11 compressions).
     pub fn hash(&self, public_param: &PublicParam, epoch: Epoch) -> Digest {
         tweak_hash(public_param, TWEAK_TYPE_WOTS_PK, 0, epoch, self.0.as_flattened())
     }
 }
 
-/// One chain step (1 permutation). The position `chain_index * CHAIN_LENGTH +
+/// One chain step (1 compression). The position `chain_index * CHAIN_LENGTH +
 /// step` identifies the edge from chain value `step` to `step + 1`.
 fn chain_step(public_param: &PublicParam, epoch: Epoch, chain_index: usize, step: usize, value: &Digest) -> Digest {
     let position = (chain_index * CHAIN_LENGTH + step) as u32;
@@ -117,8 +117,8 @@ pub fn find_randomness_for_wots_encoding(
 }
 
 /// The target-sum encoding. `D = MD(msg | randomness | zeros)` under the
-/// encoding tweak, truncated to 16 bytes: one permutation over the 96-byte exact
-/// input. `D`'s two little-endian 64-bit words each hold 21
+/// encoding tweak, truncated to 16 bytes: 2 standard BLAKE2s compressions over
+/// the 96-byte exact input. `D`'s two little-endian 64-bit words each hold 21
 /// chunks of 3 bits (the VM's word width budgets the monomial encoding at 64
 /// bits per word: `g^k = x^k` only for `k < 64`): digit `i < 21` sits at bits
 /// `3i` of word 0, digit `i >= 21` at bits `3(i-21)` of word 1. The encoding is

@@ -5,6 +5,7 @@ pub mod bench;
 pub mod bits;
 pub mod field;
 pub mod hash;
+pub mod keccak;
 pub mod multilinear;
 pub mod stream;
 

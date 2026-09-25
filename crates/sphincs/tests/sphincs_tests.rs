@@ -17,7 +17,7 @@ fn field(json: &str, key: &str) -> Vec<u8> {
     hex_bytes(&rest[open..close])
 }
 
-/// NiceTry's reference vector (Post-Quantum-AA-Infra ed41aa7,
+/// NiceTry's reference vector (Post-Quantum-AA-Infra 67b04de,
 /// `test/vectors/sphincs-v2-reference-0.json`, written by
 /// `scripts/sphincs_v2_reference.py` and accepted by `SphincsVerifier_v2` in
 /// `test/SphincsVerifier_v2.t.sol`). It verifies here, and the same seeds
@@ -83,7 +83,9 @@ fn trace_matches_the_signature() {
     );
     for digits in &trace.digits {
         let sum: usize = digits[..LEN1].iter().map(|&d| usize::from(d)).sum();
-        let csum: usize = (0..LEN2).map(|j| usize::from(digits[LEN1 + j]) << (LOG_W * j)).sum();
+        let csum: usize = (0..LEN2)
+            .map(|j| usize::from(digits[LEN1 + j]) << (LOG_W * (LEN2 - 1 - j)))
+            .sum();
         assert_eq!(sum + csum, MAX_CSUM);
     }
 }

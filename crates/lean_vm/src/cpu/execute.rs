@@ -220,7 +220,8 @@ impl Program {
         let mut set: Vec<Srow> = Vec::new();
         let mut deref: Vec<Drow> = Vec::new();
         let mut jump: Vec<Jrow> = Vec::new();
-        let mut sha3: Vec<Brow> = Vec::new();
+        let mut blake2s: Vec<Brow> = Vec::new();
+        let mut sha3: Vec<Krow> = Vec::new();
 
         // `DEREF Cell` touches whose two sides are both still unwritten (the
         // range-check gadget's unconstrained target cells), as `(a2, a3)`,
@@ -367,7 +368,15 @@ impl Program {
             if switch {
                 if left.is_none() {
                     assert_eq!((pc, fp), (ending_pc, 0), "main must halt at the sentinel pc g^{{B-1}}");
-                    let counts = [xor.len(), mul.len(), set.len(), deref.len(), jump.len(), sha3.len()];
+                    let counts = [
+                        xor.len(),
+                        mul.len(),
+                        set.len(),
+                        deref.len(),
+                        jump.len(),
+                        blake2s.len(),
+                        sha3.len(),
+                    ];
                     base_counts = Some(counts);
                     fill_base = (1usize << crate::cpu::MIN_LOG_MEM).max(next_free as usize);
                     // A frame per cycle, from the same bump allocator that serves `Alloc`
@@ -822,9 +831,62 @@ impl Program {
                         pc += 1;
                     }
                 }
+                Op::Blake2s { ins, cv, out, md } => {
+                    // Four independently-addressed 128-bit message chunks, each a
+                    // single cell; the chaining value and the output each span two
+                    // consecutive cells; the metadata is one more cell.
+                    let (aa0, aa1, ab0, ab1) = (fp + ins[0], fp + ins[1], fp + ins[2], fp + ins[3]);
+                    let acv = fp + cv;
+                    let ac = fp + out;
+                    let amd = fp + md;
+                    let words = [aa0, aa1, ab0, ab1, acv, acv + 1, amd].map(|a| m.get(a));
+                    // Naming the operand and the line matters most for the metadata,
+                    // the one a guest builds with field arithmetic rather than reads.
+                    if let Some((i, w)) = words.iter().enumerate().find(|(_, w)| w.c2 != 0) {
+                        const CELLS: [&str; 7] = ["m0", "m1", "m2", "m3", "cv0", "cv1", "md"];
+                        panic!(
+                            "BLAKE2s {} cell is not a canonical 128-bit embedding at pc {pc} (in {}): \
+                             top limb 0x{:016x}",
+                            CELLS[i],
+                            self.site_at(pc),
+                            w.c2
+                        );
+                    }
+                    let va = [F64(words[0].c0), F64(words[0].c1), F64(words[1].c0), F64(words[1].c1)];
+                    let vb = [F64(words[2].c0), F64(words[2].c1), F64(words[3].c0), F64(words[3].c1)];
+                    let vcv = [F64(words[4].c0), F64(words[4].c1), F64(words[5].c0), F64(words[5].c1)];
+                    let metadata = words[6];
+                    // Compress the 64 message bytes to the 32-byte result, then
+                    // write it to c's two cells. No table constraint covers the
+                    // digest (the relation is proven by flock, §hash_flock); the
+                    // interpreter still computes the definite digest so the output
+                    // cells are consistent for any later read.
+                    let vc = blake2s_compress(va, vb, vcv, metadata);
+                    let outputs = [F192::new(vc[0].0, vc[1].0, 0), F192::new(vc[2].0, vc[3].0, 0)];
+                    m.put(ac, outputs[0]);
+                    m.put(ac + 1, outputs[1]);
+                    let ra = [m.bump_access_count(aa0), m.bump_access_count(aa1)];
+                    let rb = [m.bump_access_count(ab0), m.bump_access_count(ab1)];
+                    let rcv = [m.bump_access_count(acv), m.bump_access_count(acv + 1)];
+                    let rc = [m.bump_access_count(ac), m.bump_access_count(ac + 1)];
+                    // Last, matching the flush order, so an md cell aliasing another
+                    // operand still pairs each read with its own count.
+                    let rmd = m.bump_access_count(amd);
+                    blake2s.push(Brow {
+                        pc,
+                        fp,
+                        ra,
+                        rb,
+                        rcv,
+                        rc,
+                        rmd,
+                        bytecode_read,
+                    });
+                    pc += 1;
+                }
                 Op::Sha3 { .. } => {
-                    use crate::hash_flock::{CELL_LANES, ROW_CELLS, STATE_CELLS};
-                    let cells = crate::tables::sha3_cells(&self.prog, pc, fp);
+                    use crate::hash_flock_keccak::{CELL_LANES, ROW_CELLS, STATE_CELLS};
+                    let (cells, digest) = crate::tables::sha3_cells(&self.prog, pc, fp);
                     let input: [F192; STATE_CELLS] = std::array::from_fn(|c| m.get(cells[c]));
                     // A cell carries two lanes, the lone lane-16 cell one: the table
                     // reads them with literal zeros above, so anything else could
@@ -843,16 +905,30 @@ impl Program {
                         }
                     }
                     // No table constraint covers the output (the relation is proven
-                    // by flock, §hash_flock); the interpreter still computes it so
-                    // the output cells are consistent for any later read.
-                    let output = crate::hash_flock::step_cells(&input);
-                    for (c, &v) in output.iter().enumerate() {
+                    // by flock, §hash_flock_keccak); the interpreter still computes it
+                    // so the output cells are consistent for any later read.
+                    let output = crate::hash_flock_keccak::step_cells(&input);
+                    // A digest step writes the digest alone and never touches the
+                    // rest of its output run.
+                    let written = if digest {
+                        crate::tables::SHA3_DIGEST_CELLS
+                    } else {
+                        STATE_CELLS
+                    };
+                    for (c, &v) in output.iter().enumerate().take(written) {
                         m.put(cells[STATE_CELLS + c], v);
                     }
                     // In flush order, so a cell two operands alias still pairs each
-                    // read with its own count.
-                    let r: [F64; ROW_CELLS] = std::array::from_fn(|c| m.bump_access_count(cells[c]));
-                    sha3.push(Brow {
+                    // read with its own count. A skipped cell's pair cancels whatever
+                    // its count, but the count channel still wants it nonzero.
+                    let r: [F64; ROW_CELLS] = std::array::from_fn(|c| {
+                        if c < STATE_CELLS + written {
+                            m.bump_access_count(cells[c])
+                        } else {
+                            F64::ONE
+                        }
+                    });
+                    sha3.push(Krow {
                         pc,
                         fp,
                         r,
@@ -955,6 +1031,7 @@ impl Program {
             set,
             deref,
             jump,
+            blake2s,
             sha3,
             mem_count: m.count,
             bytecode_count,

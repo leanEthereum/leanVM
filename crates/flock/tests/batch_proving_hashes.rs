@@ -7,7 +7,7 @@
 use std::time::Instant;
 
 use fiat_shamir::transcript::{ProverState, Receiver, Transmitter, VerifierState};
-use flock::hash::{
+use flock::keccak::{
     Instance, K_LOG, KeccakSetup, generate_witness_with_ab_packed_and_lincheck, min_n_blocks_log, ring_switch_open,
     ring_switch_verify,
 };
@@ -81,7 +81,7 @@ fn hash_batch_prove_verify() {
 
         let t = Instant::now();
         let ring = ring_switch_open(n, 0, &reduced);
-        open_batch_mixed_whir_stacked(&mut ps, mu, &q_flock, &prover_data, &config, &[], &ring);
+        open_batch_mixed_whir_stacked(&mut ps, mu, &q_flock, &prover_data, &config, &[], &[ring]);
         let open_s = t.elapsed().as_secs_f64();
         let prove_s = t_prove.elapsed().as_secs_f64();
 
@@ -128,7 +128,7 @@ fn hash_batch_prove_verify() {
                 1 << INITIAL_FOLDING_FACTOR,
                 &root,
                 &[],
-                &ring
+                &[ring]
             )
             .is_ok(),
             "stacked PCS opening verifies"

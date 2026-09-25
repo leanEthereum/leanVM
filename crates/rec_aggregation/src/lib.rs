@@ -1,7 +1,7 @@
 pub mod aggregation;
 pub mod benchmark;
 pub mod fibonacci;
-/// The SHA3 hash chain, proven end to end. A `src` module rather than its own
+/// The BLAKE2s hash chain, proven end to end. A `src` module rather than its own
 /// test binary so it shares the process, and so the slow flock circuit build,
 /// with the other workloads.
 #[cfg(test)]

@@ -7,7 +7,7 @@
 //! `l = 32 + 3 = 35`. No grinding anywhere. A public key is `(pkSeed, pkRoot)`,
 //! a signature 6,176 bytes.
 //!
-//! Every hash is `keccak256` of 32-byte words: an `n`-byte value `v` enters as
+//! Every tweakable hash is `keccak256` of 32-byte words: an `n`-byte value `v` enters as
 //! `v ‖ 0^16` (top-aligned in a `bytes32`), the 32-byte FIPS 205 address as is,
 //! and outputs are truncated to their first 16 bytes. Digests are read as
 //! big-endian 256-bit integers, fields LSB-first (`(d >> (i·a)) & (2^a - 1)`).
@@ -76,7 +76,7 @@ pub const A: usize = 9;
 /// `k`: FORS trees.
 pub const K: usize = 19;
 
-/// `H_msg`'s domain word, `0xFF…FF`: 160 bytes of hash input where every
+/// `H_msg`'s domain word, `0xFF…FF`: 112 bytes of hash input where every
 /// tweakable hash takes 96 or 128.
 pub const HMSG_DOMAIN: [u8; 32] = [0xFF; 32];
 
@@ -86,17 +86,17 @@ pub const PUB_KEY_SIZE: usize = N + PUBLIC_PARAM_LEN;
 pub const SECRET_KEY_SIZE: usize = MASTER_SECRET_LEN;
 /// One hypertree layer of a signature: the chains, then the path.
 pub const LAYER_SIZE: usize = L * N + SUBTREE_H * N;
-/// `R ‖ k secrets ‖ k paths ‖ d layers`.
+/// `R ‖ k × [secret ‖ path] ‖ d layers`.
 pub const SIG_SIZE: usize = RANDOMIZER_LEN + K * N + K * A * N + D * LAYER_SIZE;
 
 /// Hash calls a verification makes outside the chains: `H_msg`, the FORS
-/// leaves, nodes and roots, and per layer the digest, the WOTS key and the path.
+/// leaves, nodes and roots, and per layer the WOTS key and the path.
 /// Each chain adds `w - 1 - digit` calls, data-dependent.
-pub const VERIFY_FIXED_HASHES: usize = 1 + K * (1 + A) + 1 + D * (1 + 1 + SUBTREE_H);
+pub const VERIFY_FIXED_HASHES: usize = 1 + K * (1 + A) + 1 + D * (1 + SUBTREE_H);
 
 /// Keccak-f calls Keccak-256 makes on `len` bytes.
 pub const fn keccak_blocks(len: usize) -> usize {
-    len / primitives::hash::RATE + 1
+    len / primitives::keccak::RATE + 1
 }
 
 const _: () = assert!(LEN1 == 32 && MAX_CSUM < 1 << (LOG_W * LEN2) && MAX_CSUM >= 1 << (LOG_W * (LEN2 - 1)));
@@ -104,4 +104,4 @@ const _: () = assert!(K * A + H <= 256);
 const _: () = assert!(PUB_KEY_SIZE == 32);
 const _: () = assert!(LAYER_SIZE == 624);
 const _: () = assert!(SIG_SIZE == 6176);
-const _: () = assert!(VERIFY_FIXED_HASHES == 222);
+const _: () = assert!(VERIFY_FIXED_HASHES == 217);

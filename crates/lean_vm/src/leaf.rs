@@ -36,7 +36,7 @@ pub enum Coord {
     Index,
     /// A public column (the bytecode program, §sec:e2e-bc): not committed; both parties form
     /// its MLE directly, so it raises no claim. Shared rather than owned: push and
-    /// pull carry the same eight columns, tens of megabytes at production sizes.
+    /// pull carry the same twelve columns, tens of megabytes at production sizes.
     Public(Arc<Vec<F64>>),
     /// A sum of `Const`/`Col`/`GCol`/`Prod` terms: any degree-2 form over the
     /// table's columns, which is all §sec:m3 asks of a coordinate. This is what
@@ -576,8 +576,8 @@ fn decompose_verify(
     })
 }
 
-/// One reduced claim on the bytecode polynomial. The eight public encoding
-/// columns (opcode plus seven operand/immediate slots), padded to sixteen slots
+/// One reduced claim on the bytecode polynomial. The twelve public encoding
+/// columns (opcode plus eleven operand/immediate slots), padded to sixteen slots
 /// along four selector bits, form one multilinear polynomial B̃ in `κ_bc + 4`
 /// variables. The native verifier combines its column evaluations at ζ with
 /// the bus weights `eq(α⃗, ·)`, giving `B̃(ζ_lo, α⃗)`. The recursive verifier
@@ -591,7 +591,7 @@ pub struct BytecodeClaim {
 }
 
 /// Selector bits of the stacked bytecode polynomial: the public encoding
-/// columns (opcode + seven operand/immediate slots = eight) stack along
+/// columns (opcode + eleven operand/immediate slots = twelve) stack along
 /// `2^N_BYTECODE_SELECTORS` slots. A column's slot is its bus tuple coordinate,
 /// which is what fixes the width at sixteen rather than at the column count.
 pub const N_BYTECODE_SELECTORS: usize = 4;
@@ -601,7 +601,7 @@ pub const N_BYTECODE_SELECTORS: usize = 4;
 /// bus tuple coordinate.
 pub const BYTECODE_PUBLIC_SLOT: usize = 3;
 
-/// The stacked bytecode polynomial as a dense table: eight public encoding
+/// The stacked bytecode polynomial as a dense table: twelve public encoding
 /// columns at their tuple coordinates, padded to sixteen selector slots. This is
 /// the polynomial [`BytecodeClaim`]s are claims about; the outermost verifier
 /// evaluates it.

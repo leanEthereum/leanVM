@@ -5,7 +5,7 @@ An aggregate proof certifies signature claims and the correct encoding of blob d
 
 \subsection{Recursive aggregation}\label{sec:recursion}\label{sec:xmss-agg}\label{sec:sphincs-agg}
 
-A signature claim identifies what was signed and by whom. For XMSS~\cite{rfc8391}, it is a public key, an epoch, and a message; the keys claiming one $(\text{epoch},\text{message})$ pair form one group, so an epoch signed at under several messages contributes one group per message. For SPHINCS+~\cite{sphincs}, it is a $(\text{key},\text{message})$ pair; the instance is NiceTry's EVM profile over Keccak-256 (specified in \texttt{doc/sphincs}), which the guest absorbs with the same \texttt{SHA3} instruction, 136 bytes a block.
+A signature claim identifies what was signed and by whom. For XMSS~\cite{rfc8391}, it is a public key, an epoch, and a message; the keys claiming one $(\text{epoch},\text{message})$ pair form one group, so an epoch signed at under several messages contributes one group per message. For SPHINCS+~\cite{sphincs}, it is a $(\text{key},\text{message})$ pair; the instance is NiceTry's EVM profile over Keccak-256 (specified in \texttt{doc/sphincs}), which the guest absorbs with the \texttt{SHA3} instruction, 136 bytes a block.
 
 A node may publish any subset of the signature claims supported by its raw signatures and verified children. The default is their sorted, deduplicated union. The essential condition is coverage: every published claim must be justified, either directly at this node or recursively through a child.
 
@@ -13,7 +13,7 @@ The DA claim is a sorted, duplicate-free list of at most $16$ LeanDA roots, poss
 
 \subsubsection{The public input}\label{sec:rec-stmt}
 
-The proof carries the signature claims and DA root list. Their digests bind these variable-length lists into a fixed-size statement. The VM's public input is the hash (SHA3-256 in the cell encoding, \S\ref{sec:tab-sha3}) of the following fields, in order:
+The proof carries the signature claims and DA root list. Their digests bind these variable-length lists into a fixed-size statement. The VM's public input is BLAKE2s of the following fields, in order:
 \begin{center}
 \begin{tabular}{@{}rl@{}}
 \hline
@@ -21,25 +21,26 @@ $32$ bytes & Fiat-Shamir IV\\
 $32$ bytes & signer-set digest\\
 $32$ bytes & DA list digest\\
 $(\kbc+5)\times24$ bytes & deferred bytecode point and value\\
-$34\times24$ bytes & deferred matrix point and two values\\
+$30\times24$ bytes & deferred BLAKE2s matrix point and two values\\
+$34\times24$ bytes & deferred Keccak matrix point and two values\\
 \hline
 \end{tabular}
 \end{center}
 The deferred claims let recursion postpone expensive polynomial evaluations until the final verification (\S\ref{sec:deferred-claims}).
 
-The DA list digest is the hash of the concatenated pairs $(\daroot,\davechash)$, each a $32$-byte DA root $\daroot$ followed by a $32$-byte hash $\davechash$ of the membership test vector $\dual$.
+The DA list digest is BLAKE2s of the concatenated pairs $(\daroot,\davechash)$, each a $32$-byte DA root $\daroot$ followed by a $32$-byte hash $\davechash$ of the membership test vector $\dual$.
 
-The signer-set digest is the hash of the following, where each cell is $16$ bytes and a count is encoded as $\gen^{\text{count}}$ (8 bytes, zero-padded to one cell):
+The signer-set digest is BLAKE2s of the following, where each cell is $16$ bytes and a count is encoded as $\gen^{\text{count}}$ (8 bytes, zero-padded to one cell):
 \begin{center}
 \begin{tabular}{@{}ll@{}}
 \hline
-header & XMSS group count, SPHINCS+ claim count, SPHINCS+ list digest\\
+block $0$ & XMSS group count, SPHINCS+ claim count, SPHINCS+ list digest\\
 per XMSS group & epoch, key count, $32$-byte message\\
 & key list digest, two zero cells\\
 \hline
 \end{tabular}
 \end{center}
-Each inner list digest is the hash of the list alone: $32$ bytes per XMSS key or $64$ bytes per SPHINCS+ $(\text{key},\text{message})$ pair. The header is four cells and a group eight, so every hash block of the signer-set string but the last is whole, and the last is four cells whatever the group count; the lists are four keys or two claims a block, so only their last block's shape depends on their length (\S\ref{sec:prog-hashing}).
+Each inner list digest is BLAKE2s of the list alone: $32$ bytes per XMSS key or $64$ bytes per SPHINCS+ $(\text{key},\text{message})$ pair.
 
 \subsubsection{Checking coverage}
 
@@ -51,15 +52,15 @@ The prover supplies the extra claims and assigns each supporting occurrence to a
 
 \subsubsection{Deferred evaluation claims}\label{sec:deferred-claims}
 
-Verifying a child requires evaluations of three fixed polynomials: the bytecode multilinear, in $\kbc+4$ variables (\S\ref{sec:e2e-bc}), and flock's R1CS matrix multilinears $\widetilde A_0,\widetilde B_0$, each in $32$ variables (Annex~\ref{annex:flock}). Computing them inside the guest would be very expensive. Instead, the guest carries evaluation claims in its statement. These expensive computations are moved 'outside of the snark'.
+Verifying a child requires evaluations of five fixed polynomials: the bytecode multilinear, in $\kbc+4$ variables (\S\ref{sec:e2e-bc}), and each flock circuit's R1CS matrix multilinears $\widetilde A_0,\widetilde B_0$, in $28$ variables for BLAKE2s and $32$ for Keccak (Annex~\ref{annex:flock}). Computing them inside the guest would be very expensive. Instead, the guest carries evaluation claims in its statement. These expensive computations are moved 'outside of the snark'.
 
-A node combines the claims carried by its children with the new claims produced while verifying them. Two sumchecks reduce these to three evaluations: one of the bytecode polynomial and one of each matrix polynomial, batched. The Fiat-Shamir for batching and sumchecks is seeded by all child and running claims.
+A node combines the claims carried by its children with the new claims produced while verifying them. Three sumchecks reduce these to five evaluations: one of the bytecode polynomial, then per circuit one of each matrix polynomial, batched. The Fiat-Shamir for batching and sumchecks is seeded by all child and running claims.
 
 \subsection{Data availability: LeanDA}\label{sec:leanda}
 
 Erasure coding makes data recoverable from a subset of its encoded symbols. Sampling checks whether those symbols can be retrieved, but does not establish that they form a valid encoding. An approach using leanVM was introduced in \href{https://frisitano.github.io/slides/presentations/leanvm-fold-in-circuit-das-2026-05-08/index.html}{Risitano's presentation} and developed in LeanDA~\cite{LeanDA} by Meng, Wagner, Kadianakis and Risitano: commit to an encoded matrix and prove every row is a codeword, then sample authenticated cells. A formal security proof can be found in \cite{LeanDASecurity}.
 
-Our construction uses SHA3-256 and the additive Reed-Solomon encoder over $\K$ already used by the PCS, with a different codeword membership test from LeanDA's (\S\ref{sec:da-membership}). The polynomial basis, transform, and membership lemmas are collected in Annex~\ref{app:ntt}.
+Our construction uses BLAKE2s and the additive Reed-Solomon encoder over $\K$ already used by the PCS, with a different codeword membership test from LeanDA's (\S\ref{sec:da-membership}). The polynomial basis, transform, and membership lemmas are collected in Annex~\ref{app:ntt}.
 
 
 \subsubsection{The commitment}\label{sec:da-commit}
@@ -82,7 +83,7 @@ $\nblob$ & $1$ to $1024$ & dynamic parameter\\
 \end{center}
 Zero codewords pad the row count to the next power of two. The root binds this padded matrix.
 
-Let $H$ denote the hash and $e_{i,j}$ the hash of cell $j$ in row $i$. The same cell digests feed two branches:
+Let $H$ denote BLAKE2s and $e_{i,j}$ the hash of cell $j$ in row $i$. The same cell digests feed two branches:
 \begin{itemize}[itemsep=1pt,topsep=3pt]
 \item \textbf{Row branch.} Hash the first $\kdim/\cellsz$ cell digests of each row into $r_i$, then Merkle-commit these row digests into $\darow$.
 \item \textbf{Column branch.} Merkle-commit each column of cell digests into $C_j$, then Merkle-commit the column roots into $\dacol$.

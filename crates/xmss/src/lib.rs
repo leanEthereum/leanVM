@@ -1,4 +1,4 @@
-//! XMSS over SHA3-256, with byte-oriented keys and signatures.
+//! XMSS over BLAKE2s, with byte-oriented keys and signatures.
 //! The concrete scheme is defined in the [XMSS specification].
 //!
 //! Every hash is the leanVM hash ([`primitives::hash::hash`]) of the exact byte string

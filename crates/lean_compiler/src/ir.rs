@@ -68,14 +68,24 @@ pub(crate) enum LOp {
         od: Off,
         of: Off,
     },
-    /// `SHA3`: one sponge step. The four `m` cells are addressed independently,
-    /// `tail` (4 cells), `cap` (5 cells) and the output `c` (13 cells) are
-    /// consecutive runs.
+    /// `BLAKE2s`: the four 128-bit input chunks `ins` are addressed independently,
+    /// one frame cell each. The 32-byte output occupies the two consecutive
+    /// 128-bit cells `c, c+1`; `md` is the cell holding the byte counter and the
+    /// two flags.
+    Blake2s {
+        ins: [Off; 4],
+        cv: Off,
+        c: Off,
+        md: Off,
+    },
+    /// `SHA3`: one sponge step. The eight `m` cells are addressed independently,
+    /// `cap` (5 cells) and the output `c` (13 cells, or with `digest` the 2-cell
+    /// digest alone) are consecutive runs.
     Sha3 {
-        m: [Off; 4],
-        tail: Off,
+        m: [Off; 8],
         cap: Off,
         c: Off,
+        digest: bool,
     },
 }
 

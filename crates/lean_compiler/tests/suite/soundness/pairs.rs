@@ -348,6 +348,68 @@ def main():
     });
 }
 
+/// `zkDSL.md` §BLAKE2s: "If `out` was already written, the statement *asserts*
+/// the digest equals it, write-once turning the hash into a verification, which
+/// is exactly what a signature verifier wants." That has to hold for a `StackBuf`
+/// `out` as much as for a `HeapBuf` one, since the doc recommends the idiom
+/// without qualifying which.
+///
+/// Regression test: the `BLAKE2s` output arm named the raw run, so a `StackBuf`
+/// `out` whose cells had been pre-written by copies or constants had its digest
+/// written where nothing read it. The "verification" checked nothing, and the
+/// prover could put any message under the hash.
+#[test]
+fn prewritten_blake2s_out_asserts_the_digest() {
+    check_pair(&Pair {
+        name: "prewritten_blake2s_out_asserts_the_digest",
+        why: "zkDSL.md §BLAKE2s: a pre-written `out` turns the hash into a verification.",
+        a: "\
+def main():
+    v = StackBuf(2)
+    hint_witness(v, \"w\")
+    m = StackBuf(4)
+    m[0] = 5
+    m[1] = 7
+    m[2] = 0
+    m[3] = 0
+    d = StackBuf(2)
+    d[0] = v[0]
+    d[1] = v[1]
+    blake2s(m[0:2], m[2:4], d)
+    p = GEN ** 0
+    p[1] = v[0]
+    p[GEN] = v[1]
+    return
+",
+        b: "\
+def main():
+    v = StackBuf(2)
+    hint_witness(v, \"w\")
+    m = StackBuf(4)
+    m[0] = 5
+    m[1] = 7
+    m[2] = 0
+    m[3] = 0
+    d = HeapBuf(2)
+    d[1] = v[0]
+    d[GEN] = v[1]
+    blake2s(m[0:2], m[2:4], d[0:2])
+    p = GEN ** 0
+    p[1] = v[0]
+    p[GEN] = v[1]
+    return
+",
+        trials: vec![
+            // The real digest of the block whose cells are (5, 7, 0, 0).
+            two(super::cases::BLAKE2S_DIGEST_5_7[0], super::cases::BLAKE2S_DIGEST_5_7[1]),
+            // Anything else must be rejected by both spellings.
+            two(F192::ZERO, F192::ZERO),
+            two(super::cases::BLAKE2S_DIGEST_5_7[0], F192::ZERO),
+            two(g(3), g(5)),
+        ],
+    });
+}
+
 /// Two stores of different values into one cell is the write-once equality
 /// assertion of `zkDSL.md` §Memory, on a `StackBuf` cell as much as on a `HeapBuf`
 /// cell. The doc draws no distinction, and the whole "stores are assertions"

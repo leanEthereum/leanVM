@@ -29,4 +29,4 @@ via the PCS (Annex~\ref{annex:pcs}).
 
 \subsection{Committing to booleans via Ring-Switching}\label{sec:ringswitch}
 
-Flock's Keccak argument (\S\ref{sec:tab-sha3}) requires a commitment to a Boolean multilinear in $\nflock+\kskip$ variables. Ring switching~\cite{DP24} lets the prover pack its low $\kskip=6$ coordinates into the $\K$-valued multilinear $\qflock$ in $\nflock$ variables (Annex~\ref{annex:rs}), which occupies one region of the stack in \S\ref{sec:stacking}.
+Each of Flock's two arguments, for \texttt{BLAKE2S} (\S\ref{sec:tab-blake2s}) and for \texttt{SHA3} (\S\ref{sec:tab-sha3}), requires a commitment to a Boolean multilinear in $\nflock+\kskip$ variables. Ring switching~\cite{DP24} lets the prover pack its low $\kskip=6$ coordinates into a $\K$-valued multilinear $\qflock$ in $\nflock$ variables (Annex~\ref{annex:rs}), one per circuit, each occupying its own region of the stack in \S\ref{sec:stacking}.

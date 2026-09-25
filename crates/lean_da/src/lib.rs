@@ -1,4 +1,4 @@
-//! LeanDA over `K = GF(2^64)` with SHA3-256, following
+//! LeanDA over `K = GF(2^64)` with BLAKE2s, following
 //! <https://ethresear.ch/t/leanda-design-and-benchmark/25642>.
 //!
 //! Each payload row contains `k` symbols, systematically encoded to `m = 2k`

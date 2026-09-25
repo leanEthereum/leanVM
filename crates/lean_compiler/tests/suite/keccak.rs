@@ -1,7 +1,7 @@
 //! `keccak(head, out, words=run)`: Keccak-256 (the EVM's `keccak256`) of whole
 //! cells, one block up to 128 bytes and the 136-byte-rate sponge past that, where
 //! odd blocks start mid-cell and lane 16 carries message data. Every case is
-//! checked against [`primitives::hash::keccak256`] by execution, and the
+//! checked against [`primitives::keccak::keccak256`] by execution, and the
 //! multi-block shapes the SPHINCS+ verifier hashes are also proven.
 
 use lean_compiler::{compile, parse};
@@ -65,7 +65,7 @@ fn case(head: &[Cell], words: Option<(usize, usize)>, heap_words: bool) -> (Stri
             bytes.extend([0u8; 16]);
         }
     }
-    let d = primitives::hash::keccak256(&bytes);
+    let d = primitives::keccak::keccak256(&bytes);
     let word = |o: usize| u64::from_le_bytes(d[o..o + 8].try_into().unwrap());
     let digest = [F192::new(word(0), word(8), 0), F192::new(word(16), word(24), 0)];
 
@@ -130,9 +130,21 @@ fn single_block_hashes() {
     run(&[Data(0), Zero], Some((1, 4)), false, false);
 }
 
-/// `H_msg`: 160 bytes, two blocks, the all-ones domain word spanning lane 16.
+/// `H_msg`: 112 bytes, one block, the all-ones domain word first.
 #[test]
 fn message_digest_shape() {
+    run(
+        &[Ones, Ones, Data(0), Data(1), Data(2), Data(3), Data(4)],
+        None,
+        false,
+        true,
+    );
+}
+
+/// A head alone past one block: 160 bytes, two blocks, a constant cell split
+/// across lane 16.
+#[test]
+fn two_block_head() {
     let head = [
         Data(0),
         Zero,

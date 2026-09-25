@@ -12,19 +12,31 @@
 //!   4. The PCS binds that family of slices ([`hash::SliceClaim`]) to the
 //!      commitment.
 //!
-//! [`hash`] is the one circuit: the Keccak step (`SHA3` opcode) as a per-block R1CS,
-//! plus its witness generation and the leanVM-facing reduction entry points
-//! (`KeccakSetup::{prove_reduction, verify_reduction, …}`). Steps 2 to 4 above
-//! are circuit-agnostic: they take the block shape as plain numbers and reach
-//! the matrices only through [`lincheck::LincheckCircuit`], whose one live impl
-//! walks the circuit rather than reading any matrix.
+//! Two circuits, each a per-block R1CS with its witness generation and the
+//! leanVM-facing reduction entry points (`Setup::{prove_reduction,
+//! verify_reduction, …}`): [`hash`], the BLAKE2s compression (the `BLAKE2s`
+//! opcode, the VM's general hash), and [`keccak`], the Keccak-f step (the `SHA3`
+//! opcode, for the SPHINCS+ profile's Keccak-256). Steps 2 to 4 above are
+//! circuit-agnostic: they take the block shape as plain numbers and reach the
+//! matrices only through [`lincheck::LincheckCircuit`], whose impls walk the
+//! circuit rather than reading any matrix.
+//!
+//! BLAKE2s is a 32-bit ARX round whose XORs and rotations are free over GF(2),
+//! so its only nonlinear constraints are the product bits of the modular ADDs.
+//! The private `gf2` module owns that part: the wire word and the two adder
+//! gadgets, forwards and transposed, kept separate because the fused
+//! three-operand adder's bit boundaries are the subtlest thing here.
 //!
 //! Keccak-f's θ, ρ, π and ι are linear over GF(2), so its only nonlinear
-//! constraints are χ's products, one per state bit per round. The private `gf2`
+//! constraints are χ's products, one per state bit per round. The private `gf2k`
 //! module owns the symbolic lane those affine forms are carried in.
 
 mod gf2;
+mod gf2k;
 pub mod hash;
+pub mod keccak;
+#[cfg(test)]
+mod keccak_reduction_tests;
 pub mod lincheck;
 /// The circuit driven through the whole reduction. A `src` module rather than
 /// its own test binary so it shares the process with the unit tests.

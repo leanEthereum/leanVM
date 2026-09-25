@@ -68,7 +68,7 @@ fn gen_random_node(seed: &[u8; 32], public_param: &PublicParam, level: usize, in
     tweak_hash(public_param, TWEAK_TYPE_FILLER, level as u32, index as u32, seed)
 }
 
-/// Merkle parent at `level` (1 permutation: both children fill one block).
+/// Merkle parent at `level` (1 compression: both children fill one block).
 fn merkle_node(public_param: &PublicParam, level: usize, index: u64, left: &Digest, right: &Digest) -> Digest {
     let mut data = [0u8; 2 * DIGEST_LEN];
     data[..DIGEST_LEN].copy_from_slice(left);

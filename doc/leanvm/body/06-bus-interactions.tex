@@ -77,7 +77,7 @@ Under the same hypotheses every read address is an entry address $\gen^{i}$, $i<
 
 \paragraph{The count product.} All counts are nonzero exactly when their product is. The prover therefore sends that product, one $\E$-element, and the verifier checks it is nonzero. It is proven like any other grand product, by GKR over the stacking of every count column (\S\ref{sec:leafstack}), batched with the two other GKRs of the bus (push / pull) (\S\ref{sec:gkr}).
 
-\paragraph{Instance caps.} The verifier checks the announced sizes against public caps (\S\ref{sec:e2e-unrolled}): at most $2^{32}$ rows per table, at most $2^{32}$ memory cells (\S\ref{sec:memchan}) and at most $2^{32}$ bytecode instructions (\S\ref{sec:bytecode}). A row reads at most twenty-seven times (\texttt{SHA3}: twenty-six cells and its bytecode entry), so the six tables flush $\nread\le27\cdot6\cdot2^{32}<2^{40}$ reads, far under the $2^{64}-1$ that Lemma~\ref{lem:invcnt} requires.
+\paragraph{Instance caps.} The verifier checks the announced sizes against public caps (\S\ref{sec:e2e-unrolled}): at most $2^{32}$ rows per table, at most $2^{32}$ memory cells (\S\ref{sec:memchan}) and at most $2^{32}$ bytecode instructions (\S\ref{sec:bytecode}). A row reads at most twenty-seven times (\texttt{SHA3}: twenty-six cells and its bytecode entry), so the seven tables flush $\nread\le27\cdot7\cdot2^{32}<2^{40}$ reads, far under the $2^{64}-1$ that Lemma~\ref{lem:invcnt} requires.
 
 \paragraph{Relaxing the hypotheses.} A bus entry may be any polynomial of degree at most $d = 2$ in the row's columns (\S\ref{sec:m3}), so none of the three (address, count, value) need be committed. Example 1: we don't need to commit memory addresses of the form $\fp\cdot o$ (\S\ref{sec:memchan}) when $\fp$ and $o$ are already committed. Example 2: once the pull counter $\cnt$ is committed, no need to commit to the corresponding push counter $\gen\cdot\cnt$.
 
@@ -90,9 +90,9 @@ The memory is an array of $\nmem = 2^{\kmem}$ cells, $16\le\kmem\le32$ (\S\ref{s
 
 \subsection{Bytecode}\label{sec:bytecode}
 
-The bytecode is an array of $\nprog = 2^{\kbc}$ instructions, $\kbc \le 32$ (\S\ref{sec:e2e-bc}). Bus interaction uses domain separation $\sep=\dsep{BC} = \gen^{2}$. An instruction is an opcode plus seven operands, so $\ncomp=8$: with the separator, the address and the count ahead of them, this is the widest entry on the bus at $11$ coordinates, which is what forces the four index bits, hence the $m=16$ slots of \S\ref{sec:m3}. Coordinate $3$ is the opcode, naming the instruction:
+The bytecode is an array of $\nprog = 2^{\kbc}$ instructions, $\kbc \le 32$ (\S\ref{sec:e2e-bc}). Bus interaction uses domain separation $\sep=\dsep{BC} = \gen^{2}$. An instruction is an opcode plus eleven operand slots, so $\ncomp=12$: with the separator, the address and the count ahead of them, this is the widest entry on the bus at $15$ coordinates, which is what forces the four index bits, hence the $m=16$ slots of \S\ref{sec:m3}. Coordinate $3$ is the opcode, naming the instruction:
 \[
-  \opc{XOR}=\gen^{0},\quad \opc{MUL}=\gen^{1},\quad \opc{SET}=\gen^{2},\quad \opc{DRF}=\gen^{3},\quad \opc{JMP}=\gen^{4},\quad \opc{B2S}=\gen^{5}.
+  \opc{XOR}=\gen^{0},\quad \opc{MUL}=\gen^{1},\quad \opc{SET}=\gen^{2},\quad \opc{DRF}=\gen^{3},\quad \opc{JMP}=\gen^{4},\quad \opc{B2S}=\gen^{5},\quad \opc{S3}=\gen^{6}.
 \] The program is public, i.e. not committed, the verifier can evaluate it directly.
 
 \subsection{The index column}\label{sec:idxcol}

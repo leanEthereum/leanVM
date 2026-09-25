@@ -241,11 +241,16 @@ pub fn disassemble(prog: &[Op]) -> String {
             Op::Jump { oc, od, of } => {
                 format!("JUMP   if fp[{oc}]≠0: pc=fp[{od}], fp=fp[{of}]")
             }
-            Op::Sha3 { m, tail, cap, out } => {
+            Op::Blake2s { ins, cv, out, md } => {
                 format!(
-                    "SHA3   fp[{out}..+13] = step(fp[{}],fp[{}],fp[{}],fp[{}], tail=fp[{tail}..+4], cap=fp[{cap}..+5])",
-                    m[0], m[1], m[2], m[3]
+                    "BLAKE2S fp[{out}..]= compress(cv=fp[{cv}..], m=fp[{}],fp[{}],fp[{}],fp[{}], meta=fp[{md}])",
+                    ins[0], ins[1], ins[2], ins[3]
                 )
+            }
+            Op::Sha3 { m, cap, out, digest } => {
+                let m = m.map(|o| format!("fp[{o}]")).join(",");
+                let n = if *digest { 2 } else { 13 };
+                format!("SHA3   fp[{out}..+{n}] = step({m}, cap=fp[{cap}..+5])")
             }
         };
         writeln!(out, "{:>6}  {line}", pretty_integer(pc)).unwrap();
@@ -309,11 +314,17 @@ fn resolve(op: &LOp, entry: &HashMap<String, u32>, sentinel: u32, base: u32, fra
             od: *od,
             of: *of,
         },
-        LOp::Sha3 { m, tail, cap, c } => Op::Sha3 {
+        LOp::Blake2s { ins, cv, c, md } => Op::Blake2s {
+            ins: *ins,
+            cv: *cv,
+            out: *c,
+            md: *md,
+        },
+        LOp::Sha3 { m, cap, c, digest } => Op::Sha3 {
             m: *m,
-            tail: *tail,
             cap: *cap,
             out: *c,
+            digest: *digest,
         },
     }
 }

@@ -1,16 +1,16 @@
 // CREDIT: https://github.com/signalapp/libsignal/blob/main/rust/poksho/src/shosha256.rs, AGPL-3.0-only.
-//! Fiat-Shamir state and proof transport. The state is a domain-separated chain of 64-byte SHA3-256 hashes, each one VM hash instruction.
+//! Fiat-Shamir state and proof transport. The state is a domain-separated BLAKE2s chain whose 64-byte steps match the VM's hash opcode.
 
 pub mod merkle;
 pub mod transcript;
 
 use primitives::field::{F64, F192};
 
-/// `f(a, b) = SHA3-256(a‖b)` on two 256-bit halves laid out little-endian into
-/// 64 bytes, *exactly* one VM `SHA3` instruction from the zero state: 64 input
-/// bytes → 32-byte digest, split back into four field words. THE primitive; the
-/// chain is a chain of these, so a zkDSL program replays it with one `sha3(...)`
-/// per step.
+/// `f(a, b) = BLAKE2s(a‖b)` on two 256-bit halves laid out little-endian into
+/// 64 bytes, *exactly* the VM's `Blake2s` opcode: 64 input bytes → 32-byte
+/// digest, split back into four field words. THE primitive; the chain is a
+/// chain of these, so a zkDSL program replays it with one `blake2s(...)` per
+/// step.
 pub fn compress(a: [F64; 4], b: [F64; 4]) -> [F64; 4] {
     let mut input = [0u8; 64];
     for (slot, w) in input.as_chunks_mut::<8>().0.iter_mut().zip(a.into_iter().chain(b)) {
