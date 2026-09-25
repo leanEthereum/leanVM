@@ -648,7 +648,7 @@ fn partial_fold_packed_z_oblock_padded(
     out
 }
 
-/// Stripes whose matrices one all(target_arch = "x86_64", target_feature = "gfni", target_feature = "avx512bw", target_feature = "avx512vbmi") sweep holds at once.
+/// Stripes whose matrices one GFNI sweep holds at once.
 #[cfg(all(
     target_arch = "x86_64",
     target_feature = "gfni",
@@ -657,7 +657,7 @@ fn partial_fold_packed_z_oblock_padded(
 ))]
 const GFNI_TILE: usize = 8;
 
-/// The partial fold with all(target_arch = "x86_64", target_feature = "gfni", target_feature = "avx512bw", target_feature = "avx512vbmi"), outer-partitioned like the tiled fold.
+/// The partial fold with GFNI, outer-partitioned like the tiled fold.
 ///
 /// Byte `i_inner` of a stripe carries eight outer bits, so the fold is GF(2)-linear per stripe:
 ///
