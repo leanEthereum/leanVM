@@ -305,7 +305,7 @@ impl Program {
             fn written(&self, cell: u32) -> bool {
                 self.state.get(cell as usize) == Some(&State::Written)
             }
-            // A hint's read, which pins nothing: what a hint computes is advice the
+            // A hint's read, which writes nothing: what a hint computes is advice the
             // instructions go on to check.
             #[inline(always)]
             fn get(&self, cell: u32) -> F192 {

@@ -1140,7 +1140,7 @@ impl FnLower<'_> {
                 None => {
                     let (ptr, o2) = self.heap_addr(arr, idx);
                     // A DEREF links two unwritten sides; a MUL copy would read the
-                    // source, pinning it to zero.
+                    // source, writing zero to it.
                     self.deref(ptr, o2, dst, DerefMode::Cell);
                 }
             },
