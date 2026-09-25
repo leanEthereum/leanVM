@@ -125,6 +125,9 @@ pub(crate) fn packed_bytes(words: &[u64]) -> &[u8] {
 // Generic witness packing driver.
 // ---------------------------------------------------------------------------
 
+/// Packed words of the largest block the driver builds: a `k_log = 14` instance.
+const MAX_BLOCK_WORDS: usize = 256;
+
 /// Drive the parallel chunked witness build for `n_blocks` instances padded
 /// to `2^n_blocks_log` slots. Returns `(z, a, b, z_lincheck)`: the three
 /// bit-packed `u64` tables (`K / 64` words per instance) and the lincheck
@@ -162,6 +165,10 @@ where
     assert!(
         n_total >= 8 && n_total.is_multiple_of(8),
         "lincheck stripe layout requires n_total ≥ 8 and divisible by 8"
+    );
+    assert!(
+        u64_per_block <= MAX_BLOCK_WORDS,
+        "a block of 2^{k_log} bits exceeds the scratch"
     );
 
     let total_words = n_total * u64_per_block;
@@ -205,10 +212,15 @@ where
                 continue;
             };
             let range = k_in * u64_per_block..(k_in + 1) * u64_per_block;
-            let z_u64 = &mut z_grp[range.clone()];
-            let a_u64 = &mut a_grp[range.clone()];
-            let b_u64 = &mut b_grp[range];
-            per_block(init, z_u64, a_u64, b_u64);
+            // Built in an L1 scratch, then copied out: ORing each gate's bits straight
+            // into the three large tables stalls on memory once the tables grow.
+            let mut scratch = [0u64; 3 * MAX_BLOCK_WORDS];
+            let (zs, rest) = scratch[..3 * u64_per_block].split_at_mut(u64_per_block);
+            let (as_, bs) = rest.split_at_mut(u64_per_block);
+            per_block(init, zs, as_, bs);
+            z_grp[range.clone()].copy_from_slice(zs);
+            a_grp[range.clone()].copy_from_slice(as_);
+            b_grp[range].copy_from_slice(bs);
         }
 
         // Bit-transpose 8 z chunks into the lincheck stripe.
