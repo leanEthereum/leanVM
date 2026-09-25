@@ -339,16 +339,16 @@ CHAIN_LENGTH = 2 ** W
 CHAIN_STEPS = CHAIN_LENGTH - 1
 WORDS_PER_VALUE = 1
 WORDS_PER_BLOCK = 2
-# Tweak table (one 1-cell tweak per index): encoding | V·CHAIN_STEPS chain |
+# Tweak table (one 1-cell tweak per index): encoding | CHAIN_STEPS chain |
 # wots-pk | merkle. Derived in-circuit, once per epoch group the statement carries.
-N_TWEAKS = 1 + V * CHAIN_STEPS + 1 + LOG_LIFETIME
+N_TWEAKS = 1 + CHAIN_STEPS + 1 + LOG_LIFETIME
 N_TWEAK_CELLS = WORDS_PER_VALUE * N_TWEAKS
-WOTS_PK_TWEAK_IDX = 1 + V * CHAIN_STEPS
+WOTS_PK_TWEAK_IDX = 1 + CHAIN_STEPS
 MERKLE_TWEAK_IDX = WOTS_PK_TWEAK_IDX + 1
 MERKLE_BIT_CELLS = WORDS_PER_VALUE * LOG_LIFETIME  # one 1-cell bit word per level
 XM_ENC_TWEAK = XM_ENC_TWEAK_PLACEHOLDER
 XM_PK_TWEAK = XM_PK_TWEAK_PLACEHOLDER
-XM_CHAIN_TWEAKS = XM_CHAIN_TWEAKS_PLACEHOLDER   # indexed CHAIN_STEPS·i + s
+XM_STEP_TWEAKS = XM_STEP_TWEAKS_PLACEHOLDER  # indexed by chain step
 XM_MERKLE_TWEAKS = XM_MERKLE_TWEAKS_PLACEHOLDER  # indexed by level
 XM_INDEX_WEIGHT = XM_INDEX_WEIGHT_PLACEHOLDER
 # Digits packed per digest lane: W bits each in GF(2^64)'s monomial budget (the
@@ -2205,7 +2205,7 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, defer_out):
 # value (tweak, digest, chain tip, sibling, pp) is one canonical 128-bit cell.
 # Tweak table layout (tweak index t at cell g^t):
 #     0                        : encoding tweak
-#     1 + CHAIN_STEPS·i + s    : chain tweak, chain i < V, step s < CHAIN_STEPS
+#     1 + s                    : chain tweak, step s < CHAIN_STEPS
 #     WOTS_PK_TWEAK_IDX        : wots-pk tweak
 #     MERKLE_TWEAK_IDX + l     : merkle tweak, level l < LOG_LIFETIME
 
@@ -2231,9 +2231,8 @@ def fill_xmss_epoch_tables(epoch, merkle_bits, tweak_table):
         index += bit * XM_INDEX_WEIGHT[b]
     assert reconstructed == epoch
     tweak_table[1] = index + XM_ENC_TWEAK
-    for i in unroll(0, V):
-        for s in unroll(0, CHAIN_STEPS):
-            tweak_table[GEN ** (1 + CHAIN_STEPS * i + s)] = index + XM_CHAIN_TWEAKS[CHAIN_STEPS * i + s]
+    for s in unroll(0, CHAIN_STEPS):
+        tweak_table[GEN ** (1 + s)] = index + XM_STEP_TWEAKS[s]
     tweak_table[GEN ** WOTS_PK_TWEAK_IDX] = index + XM_PK_TWEAK
     # Merkle level lvl - 1 hashes the parent at `epoch >> lvl`: the epoch's bits from
     # lvl up, each weighed lvl places down. The top level gets the empty sum.
@@ -2268,9 +2267,12 @@ def verify_sig(message, tweak_table, merkle_bits, pk_ptr):
     # of the digits is the target sum (g^{Σe_i}), and the weighted digits reconstruct
     # D's first cell as `acc_lo + acc_hi·Y`.
     tips = StackBuf(TIP_CELLS)
+    # Copied into this frame once, rather than read in every arm.
     step_md = StackBuf(1)
-    step_md[0] = MD_FINAL + 48  # SET once here, not in every arm
-    chain_tweaks = tweak_table * GEN ** WORDS_PER_VALUE  # chain i at cell 1 + CHAIN_STEPS·i
+    step_md[0] = MD_FINAL + 64
+    step_tweaks = StackBuf(CHAIN_STEPS)
+    for s in unroll(0, CHAIN_STEPS):
+        step_tweaks[s] = tweak_table[GEN ** (WORDS_PER_VALUE * (1 + s))]
     digit_product = 1
     acc_lo = 0
     acc_hi = 0
@@ -2278,13 +2280,12 @@ def verify_sig(message, tweak_table, merkle_bits, pk_ptr):
         digit = hint_witness("digits")
         assert log(digit) < CHAIN_LENGTH
         chain_start = hint_witness("chain_starts")
-        term = match(log(digit), range(0, CHAIN_LENGTH), lambda k: walk(chain_start, chain_tweaks, pp, step_md[0], tips, i, k))
+        term = match(log(digit), range(0, CHAIN_LENGTH), lambda k: walk(chain_start, step_tweaks, pp, step_md[0], tips, i, k))
         digit_product = digit_product * digit
         if i // DIGITS_PER_WORD == 0:
             acc_lo = acc_lo + term
         else:
             acc_hi = acc_hi + term
-        chain_tweaks = chain_tweaks * GEN ** (WORDS_PER_VALUE * CHAIN_STEPS)
     assert digit_product == GEN ** TARGET_SUM
     assert acc_lo + acc_hi * Y_TOWER == digest[0]
 
@@ -2311,19 +2312,18 @@ def verify_sig(message, tweak_table, merkle_bits, pk_ptr):
 
 
 @inline
-def walk(value, chain_tweaks, pp, md, tips, i: Const, k: Const):
-    # Walk chain i's steps k..CHAIN_STEPS-1, value' = H(tweak|pp, value|0), the tip
-    # landing in tips[2i]. Step s reads its tweak at cell s off the chain's subtable,
-    # a compile-time offset.
+def walk(value, step_tweaks, pp, md, tips, i: Const, k: Const):
+    # Walk chain i's steps k..CHAIN_STEPS-1, value' = H(tweak_s|pp, value|i), the tip
+    # landing in tips[2i].
     if const(k == CHAIN_STEPS):
         tips[2 * i] = value
     else:
         word = value
         for s in unroll(k, CHAIN_STEPS - 1):
             out = StackBuf(WORDS_PER_BLOCK)
-            blake2s([chain_tweaks[GEN ** (WORDS_PER_VALUE * s)], pp], [word, 0], out, md=md)
+            blake2s([step_tweaks[s], pp], [word, i], out, md=md)
             word = out[0]
-        blake2s([chain_tweaks[GEN ** (WORDS_PER_VALUE * (CHAIN_STEPS - 1))], pp], [word, 0], tips[2 * i:2 * i + 2], md=md)
+        blake2s([step_tweaks[CHAIN_STEPS - 1], pp], [word, i], tips[2 * i:2 * i + 2], md=md)
     return const(k * CHAIN_LENGTH ** (i % DIGITS_PER_WORD))
 
 

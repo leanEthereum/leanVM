@@ -80,11 +80,14 @@ impl WotsPublicKey {
     }
 }
 
-/// One chain step (1 compression). The position `chain_index * CHAIN_LENGTH +
-/// step` identifies the edge from chain value `step` to `step + 1`.
+/// One chain step (1 compression), `tweak(chain, step, epoch) | pp | value | LE_128(chain_index)`:
+/// the edge from chain value `step` to `step + 1`. The chain index rides outside the tweak so
+/// that an epoch has only `CHAIN_LENGTH - 1` chain tweaks.
 fn chain_step(public_param: &PublicParam, epoch: Epoch, chain_index: usize, step: usize, value: &Digest) -> Digest {
-    let position = (chain_index * CHAIN_LENGTH + step) as u32;
-    tweak_hash(public_param, TWEAK_TYPE_CHAIN, position, epoch, value)
+    let mut payload = [0u8; 2 * DIGEST_LEN];
+    payload[..DIGEST_LEN].copy_from_slice(value);
+    payload[DIGEST_LEN..].copy_from_slice(&(chain_index as u128).to_le_bytes());
+    tweak_hash(public_param, TWEAK_TYPE_CHAIN, step as u32, epoch, &payload)
 }
 
 /// Walk chain `chain_index` for `n` steps starting at chain value `start_step`.

@@ -2951,8 +2951,8 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     ps("LOG_LIFETIME", xmss::LOG_LIFETIME.to_string());
     // Every XMSS tweak the guest builds is one of these constants plus the
     // epoch's weighed bits, so the byte layout lives in `xmss::make_tweak` and
-    // nowhere else. The chain table is indexed `CHAIN_STEPS * i + s` and the
-    // Merkle one by level, exactly as `verify_sig` walks them.
+    // nowhere else. The chain table is indexed by step and the Merkle one by
+    // level, exactly as `verify_sig` walks them.
     ps(
         "XM_ENC_TWEAK",
         dsl_u128(tweak_cell(xmss::TWEAK_TYPE_ENCODING, 0)).to_string(),
@@ -2961,13 +2961,10 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
         "XM_PK_TWEAK",
         dsl_u128(tweak_cell(xmss::TWEAK_TYPE_WOTS_PK, 0)).to_string(),
     );
-    let chain_tweaks: Vec<F192> = (0..xmss::V)
-        .flat_map(|i| {
-            (0..xmss::CHAIN_LENGTH - 1)
-                .map(move |s| tweak_cell(xmss::TWEAK_TYPE_CHAIN, (i * xmss::CHAIN_LENGTH + s) as u32))
-        })
+    let step_tweaks: Vec<F192> = (0..xmss::CHAIN_LENGTH - 1)
+        .map(|s| tweak_cell(xmss::TWEAK_TYPE_CHAIN, s as u32))
         .collect();
-    ps("XM_CHAIN_TWEAKS", flds(&chain_tweaks));
+    ps("XM_STEP_TWEAKS", flds(&step_tweaks));
     let merkle_tweaks: Vec<F192> = (0..xmss::LOG_LIFETIME)
         .map(|level| tweak_cell(xmss::TWEAK_TYPE_MERKLE, (level + 1) as u32))
         .collect();

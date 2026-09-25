@@ -34,8 +34,8 @@ theorem keygenHashInput_ne_tweakableHashInput (p₁ p₂ : PublicParameter)
     keygenHashInput p₁ d₁ seed ≠ tweakableHashInput p₂ d₂ payload := by
   intro h
   unfold keygenHashInput tweakableHashInput tweakBytes at h
-  obtain ⟨hprefix, _⟩ := List.append_inj h (by simp)
-  obtain ⟨htweak, _⟩ := List.append_inj' hprefix (by simp)
+  simp only [List.append_assoc] at h
+  obtain ⟨htweak, _⟩ := List.append_inj h (by simp)
   have htag := congrArg TweakFields.tag (fieldBytes_injective htweak)
   cases d₁ <;> cases d₂ <;> simp [keygenDomainFields, hashDomainFields, tweakFields] at htag
 

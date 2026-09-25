@@ -80,11 +80,9 @@ private theorem epoch_lt_32 (epoch : Epoch) : epoch.val < 2 ^ 32 := by
   change epoch.val < lifetime
   exact epoch.isLt
 
-private theorem chainPosition_lt_32 (chain : ChainIndex) (step : ChainStep) :
-    chainLength * chain.val + step.val < 2 ^ 32 := by
-  have hchain := chain.isLt
+private theorem chainStep_lt_32 (step : ChainStep) : step.val < 2 ^ 32 := by
   have hstep := step.isLt
-  norm_num [chainLength, winternitzBits, numChains] at hchain hstep ⊢
+  norm_num [chainLength, winternitzBits] at hstep ⊢
   omega
 
 private theorem merkleLevel_lt_32 (level : MerkleLevel) : level.val + 1 < 2 ^ 32 := by
@@ -96,70 +94,73 @@ private theorem merkleNode_lt_32 (node : MerkleNode) : node.val < 2 ^ 32 := by
   change node.val < lifetime
   exact node.isLt
 
-theorem hashDomainFields_injective : Function.Injective hashDomainFields := by
-  intro left right heq
+/-- The tweak fixes a domain up to its chain index: domains with equal tweak fields have suffixes of
+equal length, and are equal once their suffixes are. -/
+theorem domain_eq_of_hashDomainFields_eq {left right : HashDomain}
+    (heq : hashDomainFields left = hashDomainFields right) :
+    (domainSuffix left).length = (domainSuffix right).length ∧
+      (domainSuffix left = domainSuffix right → left = right) := by
   have htagBits := congrArg TweakFields.tag heq
   rw [hashDomainFields_tag, hashDomainFields_tag] at htagBits
   have htag := ofNat8_eq_of_lt (hashDomainTag_lt_8 left) (hashDomainTag_lt_8 right) htagBits
   cases left <;> cases right <;> simp [hashDomainTag] at htag
   all_goals simp only [hashDomainFields, tweakFields] at heq
   · rename_i leftEpoch leftChain leftStep rightEpoch rightChain rightStep
-    have hposition := congrArg TweakFields.position heq
-    have hepoch := congrArg TweakFields.epoch heq
-    have hpositionNat := ofNat32_eq_of_lt
-      (chainPosition_lt_32 leftChain leftStep) (chainPosition_lt_32 rightChain rightStep) hposition
-    have hepochNat := ofNat32_eq_of_lt (epoch_lt_32 leftEpoch) (epoch_lt_32 rightEpoch) hepoch
+    refine ⟨by simp [domainSuffix], fun hsuffix => ?_⟩
+    simp only [domainSuffix] at hsuffix
+    have hchain := congrArg BitVec.toNat (bytesLE_injective 16 hsuffix)
     have hleftChain := leftChain.isLt
     have hrightChain := rightChain.isLt
-    have hleftStep := leftStep.isLt
-    have hrightStep := rightStep.isLt
-    norm_num [chainLength, winternitzBits, numChains] at hpositionNat hleftChain hrightChain hleftStep hrightStep
-    congr
-    · exact Fin.ext hepochNat
-    · apply Fin.ext
-      omega
-    · apply Fin.ext
-      omega
+    norm_num [numChains] at hchain hleftChain hrightChain
+    obtain rfl : leftEpoch = rightEpoch := Fin.ext
+      (ofNat32_eq_of_lt (epoch_lt_32 leftEpoch) (epoch_lt_32 rightEpoch)
+        (congrArg TweakFields.epoch heq))
+    obtain rfl : leftChain = rightChain := Fin.ext (by omega)
+    obtain rfl : leftStep = rightStep := Fin.ext
+      (ofNat32_eq_of_lt (chainStep_lt_32 leftStep) (chainStep_lt_32 rightStep)
+        (congrArg TweakFields.position heq))
+    rfl
   · rename_i leftEpoch rightEpoch
     have hepoch := congrArg TweakFields.epoch heq
-    exact congrArg HashDomain.leaf
-      (Fin.ext (ofNat32_eq_of_lt (epoch_lt_32 leftEpoch) (epoch_lt_32 rightEpoch) hepoch))
+    exact ⟨rfl, fun _ => congrArg HashDomain.leaf
+      (Fin.ext (ofNat32_eq_of_lt (epoch_lt_32 leftEpoch) (epoch_lt_32 rightEpoch) hepoch))⟩
   · rename_i leftLevel leftNode rightLevel rightNode
     have hposition := congrArg TweakFields.position heq
     have hnode := congrArg TweakFields.epoch heq
     have hlevelNat := ofNat32_eq_of_lt
       (merkleLevel_lt_32 leftLevel) (merkleLevel_lt_32 rightLevel) hposition
     have hnodeNat := ofNat32_eq_of_lt (merkleNode_lt_32 leftNode) (merkleNode_lt_32 rightNode) hnode
+    refine ⟨rfl, fun _ => ?_⟩
     congr
     · exact Fin.ext (by omega)
     · exact Fin.ext hnodeNat
   · rename_i leftEpoch rightEpoch
     have hepoch := congrArg TweakFields.epoch heq
-    exact congrArg HashDomain.encoding
-      (Fin.ext (ofNat32_eq_of_lt (epoch_lt_32 leftEpoch) (epoch_lt_32 rightEpoch) hepoch))
-
-theorem tweakBytes_injective : Function.Injective tweakBytes :=
-  fieldBytes_injective.comp hashDomainFields_injective
+    exact ⟨rfl, fun _ => congrArg HashDomain.encoding
+      (Fin.ext (ofNat32_eq_of_lt (epoch_lt_32 leftEpoch) (epoch_lt_32 rightEpoch) hepoch))⟩
 
 theorem domain_eq_of_tweakableHashInput_eq (parameter : PublicParameter)
     {leftDomain rightDomain : HashDomain} {leftMessage rightMessage : HashInput}
     (heq : tweakableHashInput parameter leftDomain leftMessage =
       tweakableHashInput parameter rightDomain rightMessage) :
     leftDomain = rightDomain := by
-  apply tweakBytes_injective
-  have heq' :
-      tweakBytes leftDomain ++ (bytesLE 16 parameter ++ leftMessage) =
-        tweakBytes rightDomain ++ (bytesLE 16 parameter ++ rightMessage) := by
+  have hfront :
+      tweakBytes leftDomain ++ (bytesLE 16 parameter ++ leftMessage ++ domainSuffix leftDomain) =
+        tweakBytes rightDomain ++ (bytesLE 16 parameter ++ rightMessage ++ domainSuffix rightDomain) := by
     simpa [tweakableHashInput, List.append_assoc] using heq
-  exact (List.append_inj heq' (by simp [tweakBytes])).1
+  obtain ⟨hlength, hdomain⟩ := domain_eq_of_hashDomainFields_eq
+    (fieldBytes_injective (List.append_inj hfront (by simp [tweakBytes])).1)
+  unfold tweakableHashInput at heq
+  exact hdomain (List.append_inj' heq hlength).2
 
 theorem payload_eq_of_tweakableHashInput_eq (parameter : PublicParameter)
     (domain : HashDomain) {left right : HashInput}
     (heq : tweakableHashInput parameter domain left =
       tweakableHashInput parameter domain right) :
     left = right := by
-  exact List.append_right_injective
-    (tweakBytes domain ++ bytesLE 16 parameter) heq
+  unfold tweakableHashInput at heq
+  exact List.append_right_injective (tweakBytes domain ++ bytesLE 16 parameter)
+    (List.append_left_injective (domainSuffix domain) heq)
 
 namespace Concrete
 
