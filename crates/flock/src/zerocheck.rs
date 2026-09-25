@@ -28,15 +28,18 @@ use zk_alloc::ArenaVec;
 
 use pcs::ntt::{AdditiveNttGf8, InvNttTableByteSingleGf8};
 
+pub mod bit_fold;
 pub mod multilinear;
 pub mod univariate_skip;
 pub mod univariate_skip_optimized;
 
+use bit_fold::BitFold;
 use multilinear::{
-    UniSkipFoldTable, fold_and_compute_round_pair_into, fold_and_compute_round_single_into, fold_in_place_pair,
-    fold_in_place_single, interpolate_at_z_combined, round_pair_naive, round_single_naive,
-    uni_skip_fold_and_round_pair_optimized_packed_padded, uni_skip_fold_and_round_single_optimized_packed_padded,
+    PackedWitness, bit_round_materialize, bit_round_pair, fold_and_compute_round_pair_into,
+    fold_and_compute_round_single_into, fold_in_place_pair, fold_in_place_single, interpolate_at_z_combined,
+    round_pair_naive, round_single_naive,
 };
+use primitives::multilinear::lagrange_weights_naive;
 use univariate_skip_optimized::{
     c_s, medium_challenges, round1_shift_reduce_extract_c_packed_padded, small_challenges,
 };
@@ -46,6 +49,13 @@ use univariate_skip_optimized::{
 /// length-64 vector of F192, the AB and C halves already summed.
 pub const K_SKIP: usize = 6;
 const N_INNER: usize = 7; // 3 small + 4 medium fixed-constant eq dimensions
+
+/// Passes over the packed bits, two rounds each, before the folded tables are stored.
+///
+/// - A pass re-reads the three bit tables, `3 * 2^m` bits.
+/// - Storing at level `t` writes three F192 tables, `3 * 192 * 2^(m - 6 - t)` bits, then reads them back.
+/// - Storing pays once the tables are well below the bits: level 4, after two passes.
+const PAIR_PASSES: usize = 2;
 
 /// Build the equality coordinates that remain after the univariate skip.
 fn equality_tail(m: usize, mut sample_vec: impl FnMut(usize) -> Vec<F192>) -> Vec<F192> {
@@ -181,44 +191,51 @@ pub fn prove_packed_padded(
     }
     let z = ps.sample();
 
-    // ---- Round 2: fused fold + first multilinear message ----
+    // ---- Rounds 2 onwards: straight from the packed bits ----
     //
-    // The kernels take the eq challenges of the variables they do NOT bind and
-    // return the bare `(G(1), G(∞))` that goes on the wire. The verifier
-    // samples ρ_1 after observing this message. C is linear, so it contributes
-    // to `G(1)` only.
-    let t_round2 = std::time::Instant::now();
-    let fold_table = UniSkipFoldTable::new(k_skip, z);
-    let (mut a_mlv, mut b_mlv, msg_1, msg_inf) = uni_skip_fold_and_round_pair_optimized_packed_padded(
-        a_packed,
-        b_packed,
-        m,
-        k_skip,
-        &fold_table,
-        &r_rest[1..],
-        padding,
-    );
-    let (mut c_mlv, msg_c1) =
-        uni_skip_fold_and_round_single_optimized_packed_padded(c_packed, m, k_skip, &fold_table, &r_rest[1..], padding);
-    let msg_1 = msg_1 + msg_c1;
-
-    if zc_timing {
-        eprintln!(
-            "[zc-timing] round2 fused fold: {:.2} ms",
-            t_round2.elapsed().as_secs_f64() * 1e3
-        );
-    }
-    let t_tail = std::time::Instant::now();
-    // The running claim, mirrored from the verifier exactly (same interpolation
-    // of the same round-1 values at the same z). `(1+r)·G(0) + r·G(1) = claim`
-    // is what lets the wire drop `G(0)`, so the prover has to know it too.
+    // Level `t` is the round with `rho_1..rho_t` already bound.
+    //
+    //     bits of a, b, c    1 bit per slot, 3 * 2^m bits in all
+    //     one F192 table     192 bits per slot, 2^(m - 6 - t) slots each
+    //
+    // While the tables would be larger than the bits, re-reading the bits is the cheaper pass.
+    // Each such pass sends two rounds; the second waits on the first's challenge.
+    // A last single-round pass stores the three folded tables for the tail.
+    //
+    // The kernels take the eq challenges of the variables they do not bind.
+    // They return the bare `(G(1), G(inf))` that goes on the wire.
+    let t_bits = std::time::Instant::now();
+    let bits = PackedWitness {
+        a: a_packed,
+        b: b_packed,
+        c: c_packed,
+    };
+    let lagrange = lagrange_weights_naive(k_skip, z);
+    // The running claim, mirrored from the verifier (same round-1 values, same z).
+    // `(1 + r) G(0) + r G(1) = claim` lets the wire drop `G(0)`, so the prover needs it too.
     let mut c_running = interpolate_at_z_combined(&round1, k_skip, z);
     let mut mlv_chis: Vec<F192> = Vec::with_capacity(n_mlv);
-    c_running = send_round(ps, c_running, r_rest[0], msg_1, msg_inf, &mut mlv_chis);
+    let materialize_level = (2 * PAIR_PASSES).min((n_mlv - 1) & !1);
+    for t in (0..materialize_level).step_by(2) {
+        let fold = BitFold::at_level(&lagrange, &mlv_chis);
+        let pair = bit_round_pair(bits, &fold, &r_rest[t + 1..], padding);
+        let (g1, g_inf) = pair.first;
+        c_running = send_round(ps, c_running, r_rest[t], g1, g_inf, &mut mlv_chis);
+        let (g1, g_inf) = pair.second(mlv_chis[t]);
+        c_running = send_round(ps, c_running, r_rest[t + 1], g1, g_inf, &mut mlv_chis);
+    }
+    let fold = BitFold::at_level(&lagrange, &mlv_chis);
+    let ((g1, g_inf), [mut a_mlv, mut b_mlv, mut c_mlv]) =
+        bit_round_materialize(bits, &fold, &r_rest[materialize_level + 1..], padding);
+    c_running = send_round(ps, c_running, r_rest[materialize_level], g1, g_inf, &mut mlv_chis);
+    if zc_timing {
+        eprintln!("[zc-timing] bit rounds: {:.2} ms", t_bits.elapsed().as_secs_f64() * 1e3);
+    }
+    let t_tail = std::time::Instant::now();
 
-    // ---- Rounds 3..(n_mlv + 1) ----
+    // ---- Remaining rounds, on the stored tables ----
     //
-    // Iter i: fold (a, b, c) at ρ_{i+1}, compute round (i+3) message, sample
+    // Iter i: fold (a, b, c) at ρ_{i+1}, compute the next round's message, sample
     // ρ_{i+2}. Use the fused parallel path while log_n ≥ 10; below that the
     // SplitEq inner can't form lo_size ≥ 2, so we fall back to
     // fold_in_place_* + round_*_naive.
@@ -243,7 +260,7 @@ pub fn prove_packed_padded(
         (ArenaVec::new(), ArenaVec::new(), ArenaVec::new())
     };
 
-    for i in 0..(n_mlv - 1) {
+    for i in materialize_level..(n_mlv - 1) {
         let chi_prev = mlv_chis[i];
         let log_n_before = a_mlv.len().trailing_zeros() as usize;
 
@@ -314,10 +331,7 @@ pub fn prove_packed_padded(
     ps.add_scalar(final_b_eval);
 
     if zc_timing {
-        eprintln!(
-            "[zc-timing] rounds 3+ tail: {:.2} ms",
-            t_tail.elapsed().as_secs_f64() * 1e3
-        );
+        eprintln!("[zc-timing] tail: {:.2} ms", t_tail.elapsed().as_secs_f64() * 1e3);
     }
 
     ZerocheckClaim {
