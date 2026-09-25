@@ -172,9 +172,9 @@ where
     );
 
     let total_words = n_total * u64_per_block;
-    // Zero inside the parallel loop because the builders OR bits into each group.
+    // Zeroed inside the parallel loop, so a slot with no block stays zero.
     // SAFETY (x3): the parallel loop below writes every element of z/a/b before
-    // any is read: each group memsets its own slice, then ORs bits into it.
+    // any is read: each group zeroes its own slice, then copies each block over it.
     let mut z = unsafe { ArenaVec::<u64>::uninitialized(total_words) };
     let mut a = unsafe { ArenaVec::<u64>::uninitialized(total_words) };
     let mut b = unsafe { ArenaVec::<u64>::uninitialized(total_words) };
