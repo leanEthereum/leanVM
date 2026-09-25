@@ -60,15 +60,17 @@ fn hash_batch_prove_verify() {
         let t_pass = Instant::now();
         let t = Instant::now();
         let (z_packed, a_packed, b_packed, z_lincheck) = generate_witness_with_ab_packed_and_lincheck(&blocks, n_log);
-        let q_flock: Vec<F64> = z_packed.iter().map(|&w| F64(w)).collect();
         let witness_s = t.elapsed().as_secs_f64();
+        // The committed column is the packed words themselves, viewed in place.
+        // SAFETY: `F64` is `repr(transparent)` over `u64`.
+        let q_flock: &[F64] = unsafe { std::slice::from_raw_parts(z_packed.as_ptr().cast(), z_packed.len()) };
         assert_eq!(q_flock.len(), 1 << mu);
 
         let mut ps = ProverState::from_label(b"flock-blake2s-batch");
         let t_prove = Instant::now();
 
         let t = Instant::now();
-        let (commitment, prover_data) = commit(&q_flock, mu, INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0);
+        let (commitment, prover_data) = commit(q_flock, mu, INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0);
         ps.add_root(&commitment.root);
         let commit_s = t.elapsed().as_secs_f64();
 
@@ -79,14 +81,14 @@ fn hash_batch_prove_verify() {
         let t = Instant::now();
         let reduced = setup.prove_lincheck(stage, &z_lincheck, &mut ps);
         let lincheck_s = t.elapsed().as_secs_f64();
-        drop((z_packed, a_packed, b_packed, z_lincheck));
+        drop((a_packed, b_packed, z_lincheck));
 
         let t = Instant::now();
         let ring = ring_switch_open(n, 0, &reduced);
         open_batch_mixed_whir_stacked(
             &mut ps,
             mu,
-            &q_flock,
+            q_flock,
             &prover_data,
             &config,
             &[],

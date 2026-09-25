@@ -648,6 +648,109 @@ fn partial_fold_packed_z_oblock_padded(
     out
 }
 
+/// Stripes whose matrices one GFNI sweep holds at once.
+#[cfg(all(
+    target_arch = "x86_64",
+    target_feature = "gfni",
+    target_feature = "avx512bw",
+    target_feature = "avx512vbmi"
+))]
+const GFNI_TILE: usize = 8;
+
+/// The partial fold with GFNI, outer-partitioned like the tiled fold.
+///
+/// Byte `i_inner` of a stripe carries eight outer bits, so the fold is GF(2)-linear per stripe:
+///
+/// ```text
+///     out[i_inner] += sum_{r : bit r of z[stripe][i_inner]} eq_outer[8 stripe + r]
+/// ```
+///
+/// One register is 64 consecutive `i_inner` of a stripe, already byte-sliced.
+/// So a stripe costs 24 affine products per 64 outputs, into accumulators kept byte-sliced until the end.
+#[cfg(all(
+    target_arch = "x86_64",
+    target_feature = "gfni",
+    target_feature = "avx512bw",
+    target_feature = "avx512vbmi"
+))]
+fn partial_fold_packed_z_gfni(
+    z_packed: &[u8],
+    m: usize,
+    k_log: usize,
+    useful_bits: usize,
+    eq_outer: &[F192],
+) -> Vec<F192> {
+    use crate::zerocheck::bit_fold::gfni::{OUT_BYTES, store_f192, weight_matrices};
+    use core::arch::x86_64::*;
+
+    let (k, n_stripes) = (1usize << k_log, 1usize << (m - k_log - 3));
+    assert_eq!(z_packed.len(), n_stripes * k);
+    assert_eq!(eq_outer.len(), 8 * n_stripes);
+    assert!(
+        k >= 64 && n_stripes.is_multiple_of(GFNI_TILE),
+        "whole registers and whole tiles"
+    );
+    // Rows past `useful_bits` are honest zeros; a group straddling the boundary folds them in harmlessly.
+    let groups = useful_bits.div_ceil(64);
+
+    // One byte-sliced accumulator per worker, one tile of stripes per task.
+    let acc = parallel::map_reduce_with_state(
+        n_stripes / GFNI_TILE,
+        || (),
+        // SAFETY: an all-zero bit pattern is a valid register value.
+        || vec![unsafe { core::mem::zeroed::<[__m512i; OUT_BYTES]>() }; groups],
+        // SAFETY: the module is compiled only with these target features enabled.
+        |(), acc, tile| unsafe {
+            fold_tile(
+                z_packed,
+                k,
+                &eq_outer[8 * GFNI_TILE * tile..][..8 * GFNI_TILE],
+                tile,
+                acc,
+            )
+        },
+        |mut x, y| {
+            for (x, y) in x.iter_mut().flatten().zip(y.iter().flatten()) {
+                // SAFETY: as above.
+                *x = unsafe { xor(*x, *y) };
+            }
+            x
+        },
+    );
+
+    #[target_feature(enable = "avx512f")]
+    fn xor(x: __m512i, y: __m512i) -> __m512i {
+        _mm512_xor_si512(x, y)
+    }
+
+    #[target_feature(enable = "avx512f", enable = "avx512bw", enable = "avx512vbmi", enable = "gfni")]
+    fn fold_tile(z_packed: &[u8], k: usize, eq: &[F192], tile: usize, acc: &mut [[__m512i; OUT_BYTES]]) {
+        let eq: &[[F192; 8]] = eq.as_chunks().0;
+        let matrices: [[u64; OUT_BYTES]; GFNI_TILE] = std::array::from_fn(|t| weight_matrices(&eq[t]));
+        let first = tile * GFNI_TILE;
+        for (g, acc) in acc.iter_mut().enumerate() {
+            let mut r = *acc;
+            for (t, m) in matrices.iter().enumerate() {
+                let row = &z_packed[(first + t) * k + 64 * g..][..64];
+                // SAFETY: the row is 64 bytes.
+                let x = unsafe { _mm512_loadu_si512(row.as_ptr().cast()) };
+                for (r, &m) in r.iter_mut().zip(m) {
+                    *r = _mm512_xor_si512(*r, _mm512_gf2p8affine_epi64_epi8::<0>(x, _mm512_set1_epi64(m as i64)));
+                }
+            }
+            *acc = r;
+        }
+    }
+
+    // Rows past the last group stay zero.
+    let mut out = vec![F192::ZERO; k];
+    for (acc, out) in acc.iter().zip(out.as_chunks_mut::<64>().0) {
+        // SAFETY: as above.
+        unsafe { store_f192(acc, out) };
+    }
+    out
+}
+
 /// Dispatch helper: pick the fastest single-matrix partial fold available
 /// for the given (m, k_log). Threads `useful_bits` through so the kernel
 /// can skip blocks past the useful region of each block (byte-identical to
@@ -659,6 +762,15 @@ fn partial_fold_packed_z_best(
     useful_bits: usize,
     eq_outer: &[F192],
 ) -> Vec<F192> {
+    #[cfg(all(
+        target_arch = "x86_64",
+        target_feature = "gfni",
+        target_feature = "avx512bw",
+        target_feature = "avx512vbmi"
+    ))]
+    if k_log >= 6 && n_log_ok_for_tile(m, k_log, GFNI_TILE) {
+        return partial_fold_packed_z_gfni(z_packed, m, k_log, useful_bits, eq_outer);
+    }
     if n_log_ok_for_tile(m, k_log, NEON_TILE_T) {
         #[cfg(any(
             target_arch = "aarch64",
@@ -1469,6 +1581,35 @@ mod tests {
             let serial = partial_fold_packed_z(&z_packed, m, k_log, &eq);
             let fast = partial_fold_packed_z_fast_padded_dense(&z_packed, m, k_log, &eq);
             assert_eq!(serial, fast, "at m={m}, k_log={k_log}");
+        }
+    }
+
+    /// Whichever fold the dispatch picks on this target matches the scalar reference, dense and padded.
+    #[test]
+    fn partial_fold_best_matches_serial() {
+        // (m, k_log, useful_bits): small shapes on the untiled fallback, then tiled ones, padded included.
+        let cases: &[(usize, usize, usize)] = &[
+            (10, 3, 1 << 3),
+            (14, 5, 1 << 5),
+            (16, 8, 1 << 8),
+            (18, 10, 1 << 10),
+            (20, 10, 597),
+            (20, 14, 15_409),
+            (21, 14, 16_000),
+        ];
+        for &(m, k_log, useful_bits) in cases {
+            let k = 1usize << k_log;
+            let mut rng = Rng::new(0xF01D + (m * 31 + useful_bits) as u64);
+            let mut z = rng.bits(1 << m);
+            // Honest padding: zero rows [useful, k) of every block.
+            for block in z.chunks_mut(k) {
+                block[useful_bits..].fill(false);
+            }
+            let z_packed = pack_z_lincheck(&z, m, k_log);
+            let eq = build_eq(&rng.ext_vec(m - k_log));
+            let serial = partial_fold_packed_z(&z_packed, m, k_log, &eq);
+            let best = partial_fold_packed_z_best(&z_packed, m, k_log, useful_bits, &eq);
+            assert_eq!(serial, best, "m={m} k_log={k_log} useful={useful_bits}");
         }
     }
 
