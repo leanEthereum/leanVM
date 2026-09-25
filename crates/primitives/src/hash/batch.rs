@@ -32,6 +32,9 @@ pub(super) trait Lanes32: Copy {
     /// A backend whose single group leaves pipes idle asks for more.
     const GROUPS: usize = 1;
 
+    /// Whether the walk transposes each block one step ahead of its compression.
+    const TRANSPOSE_AHEAD: bool = true;
+
     /// Load `WIDTH` contiguous `u32`.
     ///
     /// # Safety
@@ -287,7 +290,7 @@ pub(super) unsafe fn compress_groups<S: Lanes32, const G: usize>(
 
 /// Hash `n_sets * G * WIDTH` consecutive inputs of `len` bytes into as many digests at `out`.
 ///
-/// Software-pipelined, one step being one block of one set:
+/// Software-pipelined if [`Lanes32::TRANSPOSE_AHEAD`], one step being one block of one set:
 ///
 /// ```text
 ///     transpose 0
@@ -341,15 +344,19 @@ unsafe fn hash_sets<S: Lanes32, const G: usize>(
     let mut h = fresh();
 
     // Prologue: the first block has no compression to hide behind.
-    transpose(0, even);
+    if S::TRANSPOSE_AHEAD {
+        transpose(0, even);
+    }
     for step in 0..steps {
-        // This step reads one buffer while the next step fills the other.
-        let (cur, next) = if step % 2 == 0 {
-            (&*even, &mut *odd)
+        // Ahead, this step reads one buffer while the next step fills the other.
+        let (cur, next) = if S::TRANSPOSE_AHEAD && step % 2 == 1 {
+            (&mut *odd, &mut *even)
         } else {
-            (&*odd, &mut *even)
+            (&mut *even, &mut *odd)
         };
-        if step + 1 < steps {
+        if !S::TRANSPOSE_AHEAD {
+            transpose(step, cur);
+        } else if step + 1 < steps {
             transpose(step + 1, next);
         }
 

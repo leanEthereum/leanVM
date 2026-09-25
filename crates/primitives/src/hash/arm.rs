@@ -16,6 +16,8 @@ impl Lanes32 for Neon {
     const WIDTH: usize = 4;
     // Independent groups cover the G dependency chain.
     const GROUPS: usize = 4;
+    // Transposing ahead measured slower here, most of all on inputs streamed from DRAM.
+    const TRANSPOSE_AHEAD: bool = false;
 
     #[inline(always)]
     unsafe fn load(p: *const u32) -> Self {
