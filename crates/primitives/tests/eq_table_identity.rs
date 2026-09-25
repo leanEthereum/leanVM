@@ -30,7 +30,7 @@ fn eq_table_old(r: &[F192]) -> Vec<F192> {
 #[test]
 fn eq_table_is_bit_identical_to_two_multiply_form() {
     let mut rng = Rng::new(0xE0_1D_5E_ED);
-    for n in [0usize, 1, 2, 3, 6, 7, 11, 12, 13, 14] {
+    for n in [0usize, 1, 2, 3, 6, 7, 11, 12, 13, 14, 16, 17] {
         for _ in 0..4 {
             let r: Vec<F192> = (0..n).map(|_| rng.ext()).collect();
             let want = eq_table_old(&r);

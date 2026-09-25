@@ -260,6 +260,76 @@ pub fn mul_unreduced4(a: [F192; 4], b: [F192; 4]) -> [F192Unreduced; 4] {
     std::array::from_fn(|i| a[i].mul_unreduced(b[i]))
 }
 
+/// Eight mixed products `t * k[i]` by one shared `E` scalar.
+///
+/// On AVX-512 this is six CLMULs for all eight, against twenty-four one at a time.
+#[inline(always)]
+pub fn mul_base8(t: F192, k: [F64; 8]) -> [F192; 8] {
+    #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
+    // SAFETY: both features are enabled at compile time.
+    return unsafe { x86_64::mul_base8(t, k) };
+    #[cfg(not(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f")))]
+    k.map(|k| t.mul_base(k))
+}
+
+/// Eight `E` weights, laid out once for [`dot_base`].
+///
+/// Pairs share a 128-bit lane, so the kernel loads them with no shuffle:
+///
+/// ```text
+///     lo  lane j = [w_2j.c0,   w_2j.c1  ]
+///     hi  lane j = [w_2j+1.c0, w_2j+1.c1]
+///     c2  lane j = [w_2j.c2,   w_2j+1.c2]
+/// ```
+#[derive(Clone, Copy, Debug, Default)]
+#[repr(C, align(64))]
+pub struct Weights8 {
+    lo: [u64; 8],
+    hi: [u64; 8],
+    c2: [u64; 8],
+}
+
+impl Weights8 {
+    /// Pack eight weights.
+    pub fn new(w: &[F192; 8]) -> Self {
+        let mut out = Self::default();
+        for j in 0..4 {
+            let (e, o) = (w[2 * j], w[2 * j + 1]);
+            out.lo[2 * j..2 * j + 2].copy_from_slice(&[e.c0, e.c1]);
+            out.hi[2 * j..2 * j + 2].copy_from_slice(&[o.c0, o.c1]);
+            out.c2[2 * j..2 * j + 2].copy_from_slice(&[e.c2, o.c2]);
+        }
+        out
+    }
+
+    /// Weight `i`, unpacked.
+    #[inline]
+    pub fn get(&self, i: usize) -> F192 {
+        let j = i / 2;
+        let pair = if i.is_multiple_of(2) { &self.lo } else { &self.hi };
+        F192::new(pair[2 * j], pair[2 * j + 1], self.c2[2 * j + i % 2])
+    }
+}
+
+/// The mixed inner product `sum_i w_i * k_i`, unreduced.
+///
+/// `k.len()` must be `8 * w.len()`.
+///
+/// On AVX-512 the sums stay in three registers for the whole slice: six CLMULs per eight terms.
+#[inline]
+pub fn dot_base(w: &[Weights8], k: &[F64]) -> F192Unreduced {
+    assert_eq!(k.len(), 8 * w.len());
+    #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
+    // SAFETY: both features are enabled at compile time; the lengths match.
+    return unsafe { x86_64::dot_base(w, k) };
+    #[cfg(not(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f")))]
+    w.iter()
+        .zip(k.chunks_exact(8))
+        .fold(F192Unreduced::ZERO, |acc, (w, k)| {
+            (0..8).fold(acc, |acc, i| acc ^ w.get(i).mul_base_unreduced(k[i]))
+        })
+}
+
 /// An F192 value whose coefficients are not yet reduced modulo the base polynomial.
 ///
 /// Coefficient `k` is the 128-bit carry-less polynomial multiplying `y^k`, for `k < 3`.
@@ -491,7 +561,7 @@ pub mod aarch64 {
 /// The batched kernels instead place one product per 128-bit lane and reduce every lane at once.
 #[cfg(all(target_arch = "x86_64", target_feature = "pclmulqdq"))]
 pub mod x86_64 {
-    use super::{F192, F192Unreduced};
+    use super::{F192, F192Unreduced, Weights8};
     use crate::field::gf2_64::F64;
     use core::arch::x86_64::*;
     use core::mem::transmute;
@@ -762,6 +832,93 @@ pub mod x86_64 {
             })
         }
     }
+    /// The six products of a shared pair of operand registers against eight packed scalars.
+    ///
+    /// `a` lane `j` meets `k_2j` through `lo` and `k_2j+1` through `hi`.
+    /// Returns the products of `(a_lo, a_hi)` by `k_2j`, then by `k_2j+1`.
+    #[cfg(all(target_feature = "vpclmulqdq", target_feature = "avx512f"))]
+    ///
+    /// # Safety
+    ///
+    /// Requires the `vpclmulqdq` and `avx512f` target features.
+    #[inline]
+    #[target_feature(enable = "vpclmulqdq", enable = "avx512f")]
+    unsafe fn mul_by_pairs(lo: __m512i, hi: __m512i, c2: __m512i, k: __m512i) -> [__m512i; 6] {
+        // Immediate bit 0 picks the qword of the first operand, bit 4 that of the second.
+        [
+            _mm512_clmulepi64_epi128::<0x00>(lo, k),
+            _mm512_clmulepi64_epi128::<0x01>(lo, k),
+            _mm512_clmulepi64_epi128::<0x10>(hi, k),
+            _mm512_clmulepi64_epi128::<0x11>(hi, k),
+            _mm512_clmulepi64_epi128::<0x00>(c2, k),
+            _mm512_clmulepi64_epi128::<0x11>(c2, k),
+        ]
+    }
+
+    /// Eight mixed products by one scalar.
+    ///
+    /// # Safety
+    ///
+    /// Requires the `vpclmulqdq` and `avx512f` target features.
+    #[cfg(all(target_feature = "vpclmulqdq", target_feature = "avx512f"))]
+    #[inline]
+    #[target_feature(enable = "vpclmulqdq", enable = "avx512f")]
+    pub unsafe fn mul_base8(t: F192, k: [F64; 8]) -> [F192; 8] {
+        // SAFETY: the function carries both features; `k` is eight qwords.
+        unsafe {
+            // `t` in every lane: [c0, c1] for both pair registers, [c2, c2] for the last.
+            let t01 = _mm512_broadcast_i32x4(pair(t.c0, t.c1));
+            let t2 = _mm512_set1_epi64(t.c2 as i64);
+            let kv = _mm512_loadu_si512(k.as_ptr().cast());
+            let [e0, e1, o0, o1, e2, o2] = mul_by_pairs(t01, t01, t2, kv);
+            // Gather each product's low and high halves into qword-wise vectors, then reduce.
+            let red = |x, y| reduce_lanes512(_mm512_unpacklo_epi64(x, y), _mm512_unpackhi_epi64(x, y));
+            let even = transmute::<__m512i, [u64; 8]>(red(e0, e1));
+            let odd = transmute::<__m512i, [u64; 8]>(red(o0, o1));
+            let c2 = transmute::<__m512i, [u64; 8]>(red(e2, o2));
+            std::array::from_fn(|i| {
+                let (j, w) = (i / 2, if i % 2 == 0 { &even } else { &odd });
+                F192::new(w[2 * j], w[2 * j + 1], c2[i])
+            })
+        }
+    }
+
+    /// The mixed inner product over packed weights.
+    ///
+    /// # Safety
+    ///
+    /// Requires the `vpclmulqdq` and `avx512f` target features, and `k.len() == 8 * w.len()`.
+    #[cfg(all(target_feature = "vpclmulqdq", target_feature = "avx512f"))]
+    #[inline]
+    #[target_feature(enable = "vpclmulqdq", enable = "avx512f")]
+    pub unsafe fn dot_base(w: &[Weights8], k: &[F64]) -> F192Unreduced {
+        // SAFETY: the function carries both features; `Weights8` is 64-byte aligned, `k` holds 8 qwords per block.
+        unsafe {
+            let xor = |x, y| _mm512_xor_si512(x, y);
+            let mut acc = [_mm512_setzero_si512(); 3];
+            for (b, w) in w.iter().enumerate() {
+                let kv = _mm512_loadu_si512(k.as_ptr().add(8 * b).cast());
+                let (lo, hi, c2) = (
+                    _mm512_load_si512(w.lo.as_ptr().cast()),
+                    _mm512_load_si512(w.hi.as_ptr().cast()),
+                    _mm512_load_si512(w.c2.as_ptr().cast()),
+                );
+                let [e0, e1, o0, o1, e2, o2] = mul_by_pairs(lo, hi, c2, kv);
+                acc = [
+                    xor(acc[0], xor(e0, o0)),
+                    xor(acc[1], xor(e1, o1)),
+                    xor(acc[2], xor(e2, o2)),
+                ];
+            }
+            // Fold the four 128-bit lanes of each sum into one.
+            let lanes = acc.map(|a| {
+                let half = _mm256_xor_si256(_mm512_castsi512_si256(a), _mm512_extracti64x4_epi64::<1>(a));
+                let q = _mm_xor_si128(_mm256_castsi256_si128(half), _mm256_extracti128_si256::<1>(half));
+                transmute::<__m128i, [u64; 2]>(q)
+            });
+            F192Unreduced { coeffs: lanes }
+        }
+    }
 }
 
 /// Portable fallback, and the reference every accelerated path is tested against.
@@ -918,6 +1075,29 @@ mod tests {
             }
         }
         assert_eq!(F192::ZERO.inv(), F192::ZERO);
+    }
+
+    #[test]
+    fn batched_mixed_products_match_scalar() {
+        let mut rng = Rng::new(9);
+        for _ in 0..200 {
+            let t = rng.ext();
+            // Edge scalars sit next to random ones, so every lane sees a zero and an all-ones word.
+            let mut k: [F64; 8] = std::array::from_fn(|_| F64(rng.ext().c0));
+            k[1] = F64(0);
+            k[6] = F64(u64::MAX);
+            assert_eq!(mul_base8(t, k), k.map(|k| t.mul_base(k)));
+
+            let w: [F192; 16] = std::array::from_fn(|_| rng.ext());
+            let packed = [
+                Weights8::new(w[..8].try_into().unwrap()),
+                Weights8::new(w[8..].try_into().unwrap()),
+            ];
+            assert!((0..16).all(|i| packed[i / 8].get(i % 8) == w[i]));
+            let k: [F64; 16] = std::array::from_fn(|_| F64(rng.ext().c0));
+            let want = (0..16).fold(F192::ZERO, |acc, i| acc + w[i].mul_base(k[i]));
+            assert_eq!(dot_base(&packed, &k).reduce(), want);
+        }
     }
 
     /// `frobenius` is the shuffle form of `self^(2^64)`, which `inv` relies on.

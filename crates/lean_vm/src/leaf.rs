@@ -352,8 +352,7 @@ impl BusForm {
     /// What the form sums to over the table's rows against `eq(ζ, ·)`, the target the
     /// zerocheck settles. The linear part factors through the columns' evaluations at
     /// `ζ`, which is the whole point of a form; a product coordinate does NOT, so
-    /// `prod_sums` supplies `Σ_z eq(ζ,z)·col_a(z)·col_b(z)` for each pair it uses
-    /// ([`mle_eval_prod`]).
+    /// `prod_sums` supplies `Σ_z eq(ζ,z)·col_a(z)·col_b(z)` for each pair it uses.
     fn sum_at(&self, evals: &[F192], prod_sums: &[(usize, usize, F192)]) -> F192 {
         self.prods
             .iter()
