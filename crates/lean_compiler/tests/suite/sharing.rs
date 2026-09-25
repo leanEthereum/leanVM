@@ -257,7 +257,7 @@ def main():
 }
 
 #[test]
-fn cached_loads_resolve_deferred_equalities_before_use() {
+fn cached_loads_see_linked_equalities_before_use() {
     lean_vm::init_prover_pool();
     let source = r#"
 def fill(h):
@@ -292,8 +292,44 @@ def main():
     }
 }
 
+/// A load that runs before its store takes the stored value, as write-once memory
+/// says, even where the loaded name is used directly rather than loaded again.
 #[test]
-fn cached_copies_resolve_deferred_stores() {
+fn a_load_before_its_store_sees_the_store() {
+    lean_vm::init_prover_pool();
+    let source = "\
+def main():
+    h = HeapBuf(1)
+    x = h[1]
+    h[1] = GEN ** 3
+    public = 1
+    assert public[1] == x * GEN
+    return
+";
+    let program = compile(&parse(source).unwrap());
+    let public = [F192::from(g_pow(4)), F192::ZERO];
+    let (proof, _) = prove(&program, public, lean_vm::pcs::TEST_LOG_INV_RATE).unwrap();
+    verify(&program, &public, &proof).unwrap();
+}
+
+/// A heap cell nothing stores to is prover-chosen, so using a value loaded from it
+/// is an unconstrained read, exactly as for a stack cell.
+#[test]
+fn a_load_of_an_unwritten_heap_cell_is_an_unconstrained_read() {
+    let source = "\
+def main():
+    h = HeapBuf(2)
+    x = h[1]
+    public = 1
+    public[1] = x * GEN
+    return
+";
+    let exec = compile(&parse(source).unwrap()).execute([F192::ZERO; 2]).unwrap();
+    assert!(!exec.unconstrained_reads.is_empty());
+}
+
+#[test]
+fn cached_copies_see_later_stores() {
     lean_vm::init_prover_pool();
     let source = r#"
 def square(h):

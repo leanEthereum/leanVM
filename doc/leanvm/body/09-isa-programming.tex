@@ -48,7 +48,7 @@ The range check \emph{in the exponent} proves $x\in\{\gen^{0},\dots,\gen^{k-1}\}
 \item \texttt{MUL} $x\cdot y$ into a write-once cell holding the constant $\gen^{k-1}$: the runner back-solves the complement $y=\gen^{k-1-e}$ (\S\ref{sec:prog-hints}), and the double write asserts $x\cdot y=\gen^{k-1}$;
 \item \texttt{DEREF} through $y$: proves $y=\gen^{f}$, $f<2^{\kmem}$.
 \end{enumerate}
-Then $e+f\equiv k-1\pmod{2^{64}-1}$ with $e,f<2^{\kmem}\le2^{32}$, so $e+f<2^{33}<2^{64}-1$ and the congruence is an equality over the integers; a ``negative'' $k-1-e$ would wrap to $\approx2^{64}\gg2^{\kmem}$, so $e\le k-1$, for every memory size the prover may announce, provided $k\le2^{16}$ (the minimum, \S\ref{sec:vm}). The two \texttt{DEREF} targets are deferred touches; the constant cell is one amortized \texttt{SET} per distinct bound per frame.
+Then $e+f\equiv k-1\pmod{2^{64}-1}$ with $e,f<2^{\kmem}\le2^{32}$, so $e+f<2^{33}<2^{64}-1$ and the congruence is an equality over the integers; a ``negative'' $k-1-e$ would wrap to $\approx2^{64}\gg2^{\kmem}$, so $e\le k-1$, for every memory size the prover may announce, provided $k\le2^{16}$ (the minimum, \S\ref{sec:vm}). The two \texttt{DEREF}s only touch their targets, whose values nothing reads; the constant cell is one amortized \texttt{SET} per distinct bound per frame.
 
 \subsection{Counter in BLAKE2s}\label{sec:prog-byte-counter}
 

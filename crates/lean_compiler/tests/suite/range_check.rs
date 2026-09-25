@@ -47,8 +47,8 @@ def main():
 }
 
 /// A check whose two touched cells (`m[300]` and the complement's `m[99]`) are
-/// never written by the program: the deferred end-of-run fill fixes them (and
-/// the DEREF rows) to ZERO, and the bus still balances.
+/// never written by the program: their `DEREF`s only link them to fresh cells,
+/// all of which stay ZERO, and the bus still balances.
 #[test]
 fn range_check_unwritten_cells() {
     let src = "\
@@ -63,12 +63,12 @@ def main():
     let program = compile(&parse(src).expect("parse"));
     let want = [F192::from(g_pow(300)), F192::from(g_pow(300))];
     let (proof, _) = prove(&program, want, lean_vm::pcs::TEST_LOG_INV_RATE).unwrap();
-    verify(&program, &want, &proof).expect("deferred-fill program verifies");
+    verify(&program, &want, &proof).expect("unwritten touches verify");
 }
 
 /// The largest allowed bound, `2^16` = the minimum prover memory, end to end:
 /// the complement cell is `g^65535`, the last cell of that memory, so an
-/// off-by-one in the bound check or in the deferred fill shows up here.
+/// off-by-one in the bound check or in the memory size shows up here.
 #[test]
 fn range_check_max_bound() {
     let src = "\
@@ -89,7 +89,7 @@ def main():
 /// Range checks inside a `mul_range` body: the check runs once per iteration in
 /// a fresh helper frame (its own `g^{k-1}` constant cell each time), and the
 /// touched low cells mix already-written ones (`m[0]`, `m[1]`: the public
-/// input) with deferred ones.
+/// input) with unwritten ones.
 #[test]
 fn range_check_in_loop() {
     let src = "\

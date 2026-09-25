@@ -203,7 +203,7 @@ A store into a stack cell is NOT virtual: `sa[k] = other` always emits. If the c
 
 ## Memory
 
-All memory is **write-once**: a cell is set once; a second write of the same value is a no-op, of a different value a proof failure. This turns stores into equality assertions and is used throughout (publishing, `blake2s` outputs). Reading a cell nobody ever writes yields an unconstrained value (fixed to zero at the end of witness generation): don't.
+All memory is **write-once**: a cell is set once; a second write of the same value is a no-op, of a different value a proof failure. This turns stores into equality assertions and is used throughout (publishing, `blake2s` outputs). Reading a cell nobody ever writes yields an unconstrained value (zero in witness generation): don't. Nor use a value before the store that gives it has run: witness generation runs forward, so the use sees zero and the run is rejected. Loading it early is fine: `x = hb[i]` before `hb[i] = v` makes `x` equal to `v`, provided `x` is used after the store.
 
 ### `HeapBuf(n)`: heap buffers, indexed in the exponent
 

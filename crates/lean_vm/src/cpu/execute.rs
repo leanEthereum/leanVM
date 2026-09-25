@@ -17,19 +17,18 @@ pub struct Execution {
     /// Rows per table before the fill blocks ran: the work the program itself does, as
     /// against the power-of-two heights that get proven. Cost measurements want this one.
     pub base_counts: [usize; crate::tables::N_TABLES],
-    /// Cells an instruction read that nothing ever wrote, so the value it read was
-    /// ZERO here and prover-chosen in a proof: memory is a committed array and the
-    /// bus only forces accesses to one address to *agree*, never that the address
-    /// was written. `zkDSL.md` says don't; this is what says whether the emitted
-    /// code did. A non-empty list means a live value came from outside the
+    /// Cells an instruction read before anything wrote them, up to the halt, so the
+    /// value it read was ZERO here and prover-chosen in a proof: memory is a committed
+    /// array and the bus only forces accesses to one address to *agree*, never that
+    /// the address was written. `zkDSL.md` says don't; this is what says whether the
+    /// emitted code did. A non-empty list means a live value came from outside the
     /// constraint system, so an `assert` on it is vacuous and a published value is
-    /// free, which is a compiler bug and not a program one: the lowering dropped a
-    /// store its source asked for.
+    /// free: the source read a cell nothing stores, or the lowering dropped or
+    /// misplaced a store the source asked for.
     ///
     /// Legitimate unconstrained cells are absent by construction, not by
-    /// exemption: a range-check touch's two cells are resolved to ZERO by the
-    /// deferred fixup before this is taken, and an arithmetic back-solve writes its
-    /// operand before reading it.
+    /// exemption: a range-check touch only links its two cells, reading neither,
+    /// and an arithmetic back-solve writes its operand before reading it.
     pub unconstrained_reads: Vec<u32>,
     pub(crate) trace: Trace, // rows + final access-count columns, emitted in the same walk
 }
@@ -48,8 +47,9 @@ pub struct ExecError {
 /// What the run asked for that the machine cannot do.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Fault {
-    /// A second value for a written cell: a failed `assert`, or two writes that
-    /// disagree. `hint` names the hint that wrote it, if one did.
+    /// A second value for a written cell: a failed `assert`, two writes that disagree,
+    /// or a write to a cell an instruction already read, unwritten, as ZERO. `hint`
+    /// names the hint that wrote it, if one did.
     Conflict {
         cell: u32,
         had: F192,
@@ -82,11 +82,10 @@ pub enum Fault {
 const MAX_STEPS: usize = 100_000_000;
 
 impl ExecError {
-    /// Located at `pc`; `Program::execute_filled` names the site.
-    fn at(pc: u32, fault: Fault) -> Self {
+    fn new(program: &Program, pc: u32, fault: Fault) -> Self {
         Self {
             pc,
-            site: String::new(),
+            site: program.site_at(pc),
             fault,
         }
     }
@@ -183,95 +182,11 @@ fn pop_witness<'a>(
 impl Program {
     /// Run the program in write-once *fill* mode to produce its [`Execution`]:
     /// the final memory image and the step count, or why it has none. The public
-    /// input seeds the first two memory cells `m[0], m[1]` (§sec:e2e-pi).
-    /// Compilation yields the `Program`; executing it (here) and proving it are
-    /// separate later phases.
+    /// input seeds the first two memory cells `m[0], m[1]` (§sec:e2e-pi), and the
+    /// fill blocks bring every table to a power of two, growing one until the
+    /// witness reaches [`Program::min_log_committed`]. Compilation yields the
+    /// `Program`; executing it (here) and proving it are separate later phases.
     pub fn execute(&self, public_input: [F192; 2]) -> Result<Execution, ExecError> {
-        self.execute_filled(public_input, super::filler::NO_FLOORS)
-    }
-
-    /// [`Self::execute`], then grow one table until the stacked witness reaches
-    /// [`Program::min_log_committed`].
-    ///
-    /// The height is solved for, not approached: the padded table is a small
-    /// share of the committed total, so doubling it moves `m` by much less than
-    /// a bit, and a geometric search would neither converge in a predictable
-    /// number of rounds nor be monotone in the request. `committed_log` is pure
-    /// and cheap, so the smallest height that reaches the floor is found without
-    /// executing anything; one re-run then realises it, and the loop only exists
-    /// because the fill's own closing jumps and frames feed back into the size.
-    /// Runs that already clear the floor (every one of consequence) execute once.
-    pub(crate) fn execute_to_floor(&self, public_input: [F192; 2]) -> Result<Execution, ExecError> {
-        let mut exec = self.execute_filled(public_input, super::filler::NO_FLOORS)?;
-        if self.min_log_committed == 0 {
-            return Ok(exec);
-        }
-        let mut floors = super::filler::NO_FLOORS;
-        for _ in 0..3 {
-            if self.committed_log(&exec) >= self.min_log_committed {
-                return Ok(exec);
-            }
-            floors[super::filler::PAD_TABLE] = 1 << self.padded_height(&exec);
-            exec = self.execute_filled(public_input, floors)?;
-        }
-        assert!(
-            self.committed_log(&exec) >= self.min_log_committed,
-            "no fill reaches the requested 2^{} committed witness",
-            self.min_log_committed
-        );
-        Ok(exec)
-    }
-
-    /// The smallest height for the padded table that takes this run's committed
-    /// witness to [`Program::min_log_committed`]. `m` is nondecreasing in every
-    /// table height, so the first one that reaches the floor is the smallest.
-    fn padded_height(&self, exec: &Execution) -> usize {
-        let mut taus = exec.trace.row_counts().map(crate::log2_strict_usize);
-        let log_bytecode = crate::log2_strict_usize(self.prog.len());
-        let log_mem = crate::log2_strict_usize(exec.mem.len());
-        let pad = super::filler::PAD_TABLE;
-        for height in taus[pad] + 1..=crate::cpu::MAX_LOG_ROWS {
-            taus[pad] = height;
-            if super::layout::committed_log(log_mem, log_bytecode, taus) >= self.min_log_committed {
-                return height;
-            }
-        }
-        panic!(
-            "even a full {} table cannot reach 2^{}",
-            crate::cpu::MAX_LOG_ROWS,
-            self.min_log_committed
-        )
-    }
-
-    /// The stacked witness this run commits to, as a log2.
-    fn committed_log(&self, exec: &Execution) -> usize {
-        super::layout::committed_log(
-            crate::log2_strict_usize(exec.mem.len()),
-            crate::log2_strict_usize(self.prog.len()),
-            exec.trace.row_counts().map(crate::log2_strict_usize),
-        )
-    }
-
-    /// [`Self::execute`] with a floor on some tables' row counts, which the fill
-    /// blocks buy on top of their natural powers of two
-    /// ([`Program::min_log_committed`]).
-    pub(crate) fn execute_filled(
-        &self,
-        public_input: [F192; 2],
-        fill_floors: [usize; crate::tables::N_TABLES],
-    ) -> Result<Execution, ExecError> {
-        self.walk(public_input, fill_floors).map_err(|e| ExecError {
-            site: self.site_at(e.pc),
-            ..e
-        })
-    }
-
-    /// [`Self::execute_filled`], its errors located by `pc` alone.
-    fn walk(
-        &self,
-        public_input: [F192; 2],
-        fill_floors: [usize; crate::tables::N_TABLES],
-    ) -> Result<Execution, ExecError> {
         // One interpretation of the program, then the fill. The blocks that bring every
         // table to a power of two are cycles no program code enters (`cpu::filler`), so
         // they run after the chain has halted, by which point the program's own row
@@ -286,20 +201,21 @@ impl Program {
         let mut g = GPow::new(self.prog.len() + 2);
 
         // Dense write-once data memory (read path stays a vector for speed), the
-        // per-cell access count (g^{count}, default g^0 = 1), and a written mask.
+        // per-cell access count (g^{count}, default g^0 = 1), and each cell's state.
         let n0 = self.main_frame.max(2) as usize;
         let mut m = Mem {
             cells: vec![F192::ZERO; n0],
-            written: vec![false; n0],
+            state: vec![State::Unwritten; n0],
             count: vec![F64::ONE; n0],
+            links: HashMap::new(),
+            unwritten_reads: Vec::new(),
+            program: self,
             dbg_pc: 0,
             dbg_hint: None,
         };
         // Seed the public input into m[0], m[1] (addresses g^0, g^1, §sec:e2e-pi).
-        m.cells[0] = public_input[0];
-        m.cells[1] = public_input[1];
-        m.written[0] = true;
-        m.written[1] = true;
+        m.put(0, public_input[0])?;
+        m.put(1, public_input[1])?;
 
         // Per-pc bytecode execution count (g^{count}).
         let mut bytecode_count: Vec<F64> = vec![F64::ONE; self.prog.len()];
@@ -327,16 +243,12 @@ impl Program {
         // Baby-step table for `hint_decompose_bits_exponent`, built on first use.
         let mut dlog_cache: Option<(GPow, F64)> = None;
 
-        // Rows per table before the fill runs, captured when the chain halts.
+        // Rows per table before the fill runs, and the cells the program read unwritten,
+        // both captured when the chain halts: the fill's rows exist to reach a
+        // power-of-two height and are soundness-neutral (doc §Filling the tables), so
+        // they read cells nobody writes as a matter of course.
         let mut base_counts: Option<[usize; crate::tables::N_TABLES]> = None;
-        // Where the fill's frames begin, captured at the same moment, so
-        // `unconstrained_reads` can speak about the program's own cells only. The
-        // fill's rows exist to reach a power-of-two height and are soundness-neutral
-        // (doc §Filling the tables), so they read cells nobody writes as a matter of
-        // course; the program's own cells are all below this mark, since the
-        // allocator serves them and a range check's absolute write lands under
-        // `2^MIN_LOG_MEM`.
-        let mut fill_base = usize::MAX;
+        let mut unconstrained_reads: Vec<u32> = Vec::new();
 
         // Per-opcode trace rows, accumulated during the walk and assembled into the
         // `Trace` once the run finishes (alongside the final count columns).
@@ -347,19 +259,27 @@ impl Program {
         let mut jump: Vec<Jrow> = Vec::new();
         let mut blake2s: Vec<Brow> = Vec::new();
 
-        // `DEREF Cell` touches whose two sides are both still unwritten (the
-        // range-check gadget's unconstrained target cells), as `(a2, a3, pc)`,
-        // resolved after the run: write-once memory is order-independent, so the
-        // value can be decided at the end (leanVM's end-of-execution deref-hint
-        // resolution).
-        let mut deferred: Vec<(usize, u32, u32)> = Vec::new();
+        // A cell that is not `Written` holds ZERO. A `DEREF` between two unwritten cells
+        // links them, and a write to either reaches the other at once.
+        #[derive(Clone, Copy, PartialEq, Eq)]
+        enum State {
+            Unwritten,
+            Linked,
+            Written,
+        }
 
-        // The three dense per-cell vectors, kept in lockstep. Every method is
-        // `#[inline(always)]`: they sit in the interpreter's hot opcode loop.
-        struct Mem {
+        // The three dense per-cell vectors, kept in lockstep. Every method on the hot
+        // path is `#[inline(always)]`: they sit in the interpreter's opcode loop.
+        struct Mem<'a> {
             cells: Vec<F192>,
-            written: Vec<bool>,
+            state: Vec<State>,
             count: Vec<F64>,
+            /// The cells a `DEREF` linked each cell to.
+            links: HashMap<u32, Vec<u32>>,
+            /// Cells an instruction read before anything wrote them.
+            unwritten_reads: Vec<u32>,
+            /// To name where a conflict happened.
+            program: &'a Program,
             /// The pc of the currently executing instruction, and the name of the
             /// computed-advice hint if the write comes from one, so a write-once
             /// conflict can report where it happened. Plain fields rather than
@@ -368,7 +288,7 @@ impl Program {
             dbg_pc: u32,
             dbg_hint: Option<&'static str>,
         }
-        impl Mem {
+        impl Mem<'_> {
             // Grow the dense vectors so `idx` is in range. All accessed cells
             // satisfy cell < next_free after their frame's allocation, so this
             // only ever extends.
@@ -377,34 +297,73 @@ impl Program {
                 if idx >= self.cells.len() {
                     let n = idx + 1;
                     self.cells.resize(n, F192::ZERO);
-                    self.written.resize(n, false);
+                    self.state.resize(n, State::Unwritten);
                     self.count.resize(n, F64::ONE);
                 }
             }
-            // Read a cell; an unwritten cell reads as ZERO.
+            #[inline(always)]
+            fn written(&self, cell: u32) -> bool {
+                self.state.get(cell as usize) == Some(&State::Written)
+            }
+            // A hint's read, which pins nothing: what a hint computes is advice the
+            // instructions go on to check.
             #[inline(always)]
             fn get(&self, cell: u32) -> F192 {
-                let c = cell as usize;
-                if c < self.written.len() && self.written[c] {
-                    self.cells[c]
-                } else {
-                    F192::ZERO
-                }
+                self.cells.get(cell as usize).copied().unwrap_or(F192::ZERO)
             }
-            // Write-once store: writing a different value to an already-set cell fails.
+            // An instruction's read. An unwritten cell reads as ZERO, which is then written
+            // there: the row is filled from the final image, which has to agree.
+            #[inline(always)]
+            fn read(&mut self, cell: u32) -> F192 {
+                let c = cell as usize;
+                self.ensure(c);
+                if self.state[c] != State::Written {
+                    self.state[c] = State::Written;
+                    self.unwritten_reads.push(cell);
+                }
+                self.cells[c]
+            }
+            // Write-once store, carried to every cell linked to this one.
             #[inline(always)]
             fn put(&mut self, cell: u32, v: F192) -> Result<(), ExecError> {
-                self.ensure(cell as usize);
-                let c = cell as usize;
-                if self.written[c] {
-                    if self.cells[c] != v {
-                        return Err(self.conflict(cell, v));
-                    }
-                } else {
-                    self.cells[c] = v;
-                    self.written[c] = true;
+                if self.store(cell, v)? {
+                    self.spread(cell, v)?;
                 }
                 Ok(())
+            }
+            // `put` on one cell; whether it was linked.
+            #[inline(always)]
+            fn store(&mut self, cell: u32, v: F192) -> Result<bool, ExecError> {
+                let c = cell as usize;
+                self.ensure(c);
+                let s = self.state[c];
+                if s == State::Written && self.cells[c] != v {
+                    return Err(self.conflict(cell, v));
+                }
+                self.cells[c] = v;
+                self.state[c] = State::Written;
+                Ok(s == State::Linked)
+            }
+            #[cold]
+            fn spread(&mut self, cell: u32, v: F192) -> Result<(), ExecError> {
+                let mut todo = vec![cell];
+                while let Some(c) = todo.pop() {
+                    for p in self.links.remove(&c).unwrap_or_default() {
+                        if self.store(p, v)? {
+                            todo.push(p);
+                        }
+                    }
+                }
+                Ok(())
+            }
+            fn link(&mut self, a: u32, b: u32) {
+                for (x, y) in [(a, b), (b, a)] {
+                    self.ensure(x as usize);
+                    if self.state[x as usize] == State::Unwritten {
+                        self.state[x as usize] = State::Linked;
+                    }
+                    self.links.entry(x).or_default().push(y);
+                }
             }
             #[cold]
             fn conflict(&self, cell: u32, v: F192) -> ExecError {
@@ -414,7 +373,7 @@ impl Program {
                     new: v,
                     hint: self.dbg_hint,
                 };
-                ExecError::at(self.dbg_pc, fault)
+                ExecError::new(self.program, self.dbg_pc, fault)
             }
             // Read the running access count and advance it by ×g (the free increment).
             // ×g is ×x, i.e. `mul_by_g`, a shift+fold rather than a PMULL; this runs on every
@@ -457,14 +416,14 @@ impl Program {
 
         // The cell a heap run starts at: read the pointer back out of memory and
         // invert it. Shared by every hint that writes through one.
-        fn heap_base(m: &Mem, g: &mut GPow, cell: u32, what: &'static str) -> Result<u32, Fault> {
+        fn heap_base(m: &Mem<'_>, g: &mut GPow, cell: u32, what: &'static str) -> Result<u32, Fault> {
             let p = in_k(what, m.get(cell))?;
             g.log(p).ok_or(Fault::NotAGPower { what, value: p })
         }
 
         // Where a computed-advice bit buffer starts: a frame run needs no lookup
         // at all, which is the point of having one.
-        fn bits_base(m: &Mem, g: &mut GPow, fp: u32, dest: BitsDest, what: &'static str) -> Result<u32, Fault> {
+        fn bits_base(m: &Mem<'_>, g: &mut GPow, fp: u32, dest: BitsDest, what: &'static str) -> Result<u32, Fault> {
             match dest {
                 BitsDest::Stack(base) => Ok(fp + base),
                 BitsDest::Heap(ptr) => heap_base(m, g, fp + ptr, what),
@@ -473,7 +432,7 @@ impl Program {
 
         // The program's own chain runs to the halt sentinel; the fill blocks then run, one
         // cycle at a time. A cycle is entered at its block's first instruction, in a frame
-        // of its own, and traversed for the rows `filler::solve` asks of it, always a whole
+        // of its own, and traversed for the rows `filler::plan` asks of it, always a whole
         // number of traversals, so the state tuples it pushes are exactly the ones it pulls
         // (doc §Filling the tables). `left` is the rows still to run in the current cycle,
         // and `None` while the chain runs.
@@ -488,24 +447,34 @@ impl Program {
             if switch {
                 if left.is_none() {
                     if fp != 0 {
-                        return Err(ExecError::at(pc, Fault::HaltOutsideMain { fp }));
+                        return Err(ExecError::new(self, pc, Fault::HaltOutsideMain { fp }));
                     }
                     let counts = [xor.len(), mul.len(), set.len(), deref.len(), jump.len(), blake2s.len()];
                     base_counts = Some(counts);
-                    fill_base = (1usize << crate::cpu::MIN_LOG_MEM).max(next_free as usize);
-                    // A frame per cycle, from the same bump allocator that serves `Alloc`
-                    // but never below the memory floor: a range check's `DEREF` writes the
-                    // absolute cell its bound names, which can be any cell under
-                    // `2^MIN_LOG_MEM` and so is nobody's to reserve (`lower_assert_lt`).
-                    use super::filler::frame as fr;
+                    unconstrained_reads = std::mem::take(&mut m.unwritten_reads);
+                    use super::filler::{self, frame as fr};
                     let mut runs: Vec<(u32, u32, usize)> = Vec::new();
                     // A hand-assembled program carries no blocks and has to land on
                     // powers of two by itself, which `Layout` checks.
                     if !self.filler.is_empty() {
-                        let mut frame = (1u32 << crate::cpu::MIN_LOG_MEM).max(next_free);
-                        for (block_pc, size, n) in super::filler::cycles(&self.filler, counts, fill_floors) {
+                        // A whole frame per cycle, past every cell the program touched, so
+                        // the memory the fill leaves is known before it runs and the plan
+                        // reaching `min_log_committed` is solved for here, once.
+                        let start = m.cells.len();
+                        let log_bytecode = crate::log2_strict_usize(self.prog.len());
+                        let plan = filler::plan(counts, self.min_log_committed, |plan| {
+                            let cells = start + filler::frames(plan) * fr::CELLS as usize;
+                            super::layout::committed_log(
+                                crate::log2_strict_usize(cells.next_power_of_two().max(1 << MIN_LOG_MEM)),
+                                log_bytecode,
+                                filler::filled(counts, plan).map(crate::log2_strict_usize),
+                            )
+                        });
+                        let mut frame = start as u32;
+                        for (block_pc, size, n) in filler::cycles(&self.filler, &plan) {
                             g.grow_to(frame as usize);
                             g.note(frame as usize);
+                            m.ensure((frame + fr::CELLS - 1) as usize);
                             // What the closing jump reads: back to the block's own first
                             // instruction, in this same frame. Then the pointer the `DEREF`
                             // dummy follows, memory cell `0`.
@@ -515,7 +484,6 @@ impl Program {
                             runs.push((block_pc, frame, n * (size as usize + 1)));
                             frame += fr::CELLS;
                         }
-                        next_free = frame;
                     }
                     cycles = runs.into_iter();
                 }
@@ -532,10 +500,10 @@ impl Program {
                 *n -= 1;
             }
             if steps >= MAX_STEPS {
-                return Err(ExecError::at(pc, Fault::StepLimit));
+                return Err(ExecError::new(self, pc, Fault::StepLimit));
             }
             m.dbg_pc = pc;
-            let fail = move |fault| ExecError::at(pc, fault);
+            let fail = move |fault| ExecError::new(self, pc, fault);
             if let Some(p) = prof.as_mut() {
                 p[pc as usize] += 1;
             }
@@ -545,7 +513,6 @@ impl Program {
                 let hs = hint_lists[hint_at[pc as usize] as usize - 1];
                 for h in hs {
                     m.dbg_hint = Some(match h {
-                        RHint::ResolveDeref { .. } => "ResolveDeref",
                         RHint::FrameAddress { .. } => "FrameAddress",
                         RHint::AllocFrames { .. } => "AllocFrames",
                         RHint::Alloc { .. } => "Alloc",
@@ -560,17 +527,6 @@ impl Program {
                         RHint::Print { .. } => "Print",
                     });
                     match h {
-                        RHint::ResolveDeref { ptr, offset, dst } => {
-                            let base = heap_base(&m, &mut g, fp + ptr, "cached DEREF pointer").map_err(fail)?;
-                            let src = base + offset;
-                            let dst = fp + dst;
-                            m.ensure(src.max(dst) as usize);
-                            match (m.written[src as usize], m.written[dst as usize]) {
-                                (true, false) => m.put(dst, m.cells[src as usize])?,
-                                (false, true) => m.put(src, m.cells[dst as usize])?,
-                                _ => {}
-                            }
-                        }
                         RHint::FrameAddress { offset } => {
                             g.note((fp + offset) as usize);
                         }
@@ -600,8 +556,8 @@ impl Program {
                                         g.grow_to((2 * g.covered()).min(max_span));
                                         exponent = g.log(span);
                                     }
-                                    let n = exponent.ok_or(fail(Fault::OutOfMemory))? + 1;
-                                    (ptr, size.checked_mul(n).ok_or(fail(Fault::OutOfMemory))?)
+                                    let n = exponent.ok_or_else(|| fail(Fault::OutOfMemory))? + 1;
+                                    (ptr, size.checked_mul(n).ok_or_else(|| fail(Fault::OutOfMemory))?)
                                 }
                                 // A runtime size is carried in the exponent:
                                 // the cell holds g^k, allocate k cells (reverse
@@ -612,10 +568,12 @@ impl Program {
                                         Some(cells) => cells,
                                         None => {
                                             g.grow_to(1 << 20);
-                                            g.log(sz).ok_or(fail(Fault::NotAGPower {
-                                                what: "HeapBuf size",
-                                                value: sz,
-                                            }))?
+                                            g.log(sz).ok_or_else(|| {
+                                                fail(Fault::NotAGPower {
+                                                    what: "HeapBuf size",
+                                                    value: sz,
+                                                })
+                                            })?
                                         }
                                     };
                                     (ptr, cells)
@@ -623,25 +581,22 @@ impl Program {
                                 _ => unreachable!(),
                             };
                             let cell = fp + ptr;
-                            m.ensure(cell as usize);
-                            if !m.written[cell as usize] {
+                            if !m.written(cell) {
                                 let base = next_free;
                                 next_free = base
                                     .checked_add(size)
                                     .filter(|&end| end < MAX_CELLS)
-                                    .ok_or(fail(Fault::OutOfMemory))?;
+                                    .ok_or_else(|| fail(Fault::OutOfMemory))?;
                                 g.grow_to((base + size) as usize);
                                 // The base is about to become a pointer in memory.
                                 g.note(base as usize);
                                 m.ensure(next_free as usize);
-                                m.cells[cell as usize] = F192::from(g.pow(base as usize));
-                                m.written[cell as usize] = true;
+                                m.put(cell, F192::from(g.pow(base as usize)))?;
                             }
                         }
                         RHint::Print { label, cell } => {
                             let c = fp + cell;
-                            m.ensure(c as usize);
-                            if m.written[c as usize] {
+                            if m.written(c) {
                                 let v = m.cells[c as usize];
                                 // Small integers and small g-powers overlap (8 = x^3
                                 // = g^3): show every reading that applies. Only a
@@ -718,7 +673,7 @@ impl Program {
                             const WHAT: &str = "hint_decompose_bits_exponent value";
                             let x = in_k(WHAT, m.get(fp + value)).map_err(fail)?;
                             let n = bounded_dlog(&mut dlog_cache, x, *nbits)
-                                .ok_or(fail(Fault::NotAGPower { what: WHAT, value: x }))?;
+                                .ok_or_else(|| fail(Fault::NotAGPower { what: WHAT, value: x }))?;
                             let bb = bits_base(&m, &mut g, fp, *bits, "hint_decompose_bits_exponent pointer")
                                 .map_err(fail)?;
                             for j in 0..*nbits {
@@ -775,9 +730,8 @@ impl Program {
                     // users are `MUL`), and an `XOR` into an already-written cell is
                     // how `assert a == b` is spelled, so deducing there would define
                     // the operand the assert exists to check instead of failing on it.
-                    let is_set = |w: &[bool], cell: u32| (cell as usize) < w.len() && w[cell as usize];
-                    if !is_xor && is_set(&m.written, ac) {
-                        let (ha, hb) = (is_set(&m.written, aa), is_set(&m.written, ab));
+                    if !is_xor && m.written(ac) {
+                        let (ha, hb) = (m.written(aa), m.written(ab));
                         if ha ^ hb {
                             let vk = m.get(if ha { aa } else { ab });
                             if vk.is_zero() {
@@ -786,8 +740,8 @@ impl Program {
                             m.put(if ha { ab } else { aa }, m.get(ac) * vk.inv())?;
                         }
                     }
-                    let va = m.get(aa);
-                    let vb = m.get(ab);
+                    let va = m.read(aa);
+                    let vb = m.read(ab);
                     let vc = if is_xor { va + vb } else { va * vb };
                     m.put(ac, vc)?;
                     let ra = m.bump_access_count(aa);
@@ -822,8 +776,8 @@ impl Program {
                 }
                 Op::Deref { o1, o2, o3, mode } => {
                     let a1 = fp + o1;
-                    let p = m.get(a1);
-                    let p_addr = as_addr(p).ok_or(fail(Fault::WildPointer { value: p }))?;
+                    let p = m.read(a1);
+                    let p_addr = as_addr(p).ok_or_else(|| fail(Fault::WildPointer { value: p }))?;
                     let base = match g.log(p_addr) {
                         Some(b) => b,
                         None => {
@@ -834,37 +788,23 @@ impl Program {
                             // pointer: a wild deref, or a failed range check
                             // (`assert log _ < _`) surfacing honestly.
                             g.grow_to(1 << MIN_LOG_MEM);
-                            g.log(p_addr).ok_or(fail(Fault::WildPointer { value: p }))?
+                            g.log(p_addr).ok_or_else(|| fail(Fault::WildPointer { value: p }))?
                         }
                     };
-                    let a2 = (base + o2) as usize;
+                    let a2 = base + o2;
                     let a3 = fp + o3;
                     match mode {
+                        // Equality m[a2] == m[a3]: carry a written side to the other
+                        // (`put` checks it when both are), or link two unwritten sides
+                        // until either is written. A range-check touch may leave both
+                        // unwritten for good: only the validity of `a2` matters there.
                         DerefMode::Cell => {
-                            // Equality m[a2] == m[a3]: fill the unset side, or let
-                            // `put` check it when both are set.
-                            m.ensure(a2);
-                            let has2 = m.written[a2];
-                            let has3 = (a3 as usize) < m.written.len() && m.written[a3 as usize];
-                            match (has2, has3) {
-                                (true, _) => {
-                                    let v = m.cells[a2];
-                                    m.put(a3, v)?;
-                                }
-                                (false, true) => {
-                                    let v = m.get(a3);
-                                    m.put(a2 as u32, v)?;
-                                }
-                                (false, false) => {
-                                    // Both sides still unwritten: a range-check
-                                    // touch (only the address validity of `a2`
-                                    // matters, not its value). Defer the equality
-                                    // to after the run, once `m[a2]`'s final value
-                                    // (a later program write, or ZERO) is known;
-                                    // the row itself needs no patch, since the
-                                    // fill reads both values out of that image.
-                                    deferred.push((a2, a3, pc));
-                                }
+                            if m.written(a2) {
+                                m.put(a3, m.cells[a2 as usize])?;
+                            } else if m.written(a3) {
+                                m.put(a2, m.cells[a3 as usize])?;
+                            } else {
+                                m.link(a2, a3);
                             }
                         }
                         DerefMode::Pc => {
@@ -872,16 +812,16 @@ impl Program {
                             // addresses, and JUMP reads them back.
                             g.note(pc as usize + 2);
                             let v = F192::from(g.pow(pc as usize + 2));
-                            m.put(a2 as u32, v)?;
+                            m.put(a2, v)?;
                         }
                         DerefMode::Fp => {
                             g.note(fp as usize);
                             let v = F192::from(g.pow(fp as usize));
-                            m.put(a2 as u32, v)?;
+                            m.put(a2, v)?;
                         }
                     }
                     let r1 = m.bump_access_count(a1);
-                    let r2 = m.bump_access_count(a2 as u32);
+                    let r2 = m.bump_access_count(a2);
                     let r3 = m.bump_access_count(a3);
                     deref.push(Drow {
                         pc,
@@ -901,9 +841,9 @@ impl Program {
                     // otherwise not balance. A guest branches on g-powers; the one
                     // idiom that once branched on a word, `assert a != b`, takes an
                     // inverse hint instead (§sec:prog-div-ne).
-                    let c = in_k("JUMP condition", m.get(ac)).map_err(fail)?;
-                    let d = in_k("JUMP target", m.get(ad)).map_err(fail)?;
-                    let f = in_k("JUMP fp", m.get(af)).map_err(fail)?;
+                    let c = in_k("JUMP condition", m.read(ac)).map_err(fail)?;
+                    let d = in_k("JUMP target", m.read(ad)).map_err(fail)?;
+                    let f = in_k("JUMP fp", m.read(af)).map_err(fail)?;
                     // The is-nonzero witness `w = c⁻¹` is never used for control
                     // flow, only recorded as a witness column, so it is not
                     // computed here at all: `JumpTable::fill` batch-inverts every
@@ -921,17 +861,18 @@ impl Program {
                         bytecode_read,
                     });
                     if taken {
-                        pc = g
-                            .log(d)
-                            .filter(|&t| (t as usize) < self.prog.len())
-                            .ok_or(fail(Fault::NotAGPower {
+                        pc = g.log(d).filter(|&t| (t as usize) < self.prog.len()).ok_or_else(|| {
+                            fail(Fault::NotAGPower {
                                 what: "JUMP target",
                                 value: d,
-                            }))?;
-                        fp = g.log(f).ok_or(fail(Fault::NotAGPower {
-                            what: "JUMP fp",
-                            value: f,
-                        }))?;
+                            })
+                        })?;
+                        fp = g.log(f).ok_or_else(|| {
+                            fail(Fault::NotAGPower {
+                                what: "JUMP fp",
+                                value: f,
+                            })
+                        })?;
                     } else {
                         pc += 1;
                     }
@@ -944,7 +885,7 @@ impl Program {
                     let acv = fp + cv;
                     let ac = fp + out;
                     let amd = fp + md;
-                    let words = [aa0, aa1, ab0, ab1, acv, acv + 1, amd].map(|a| m.get(a));
+                    let words = [aa0, aa1, ab0, ab1, acv, acv + 1, amd].map(|a| m.read(a));
                     // Naming the operand and the line matters most for the metadata,
                     // the one a guest builds with field arithmetic rather than reads.
                     if let Some((i, &value)) = words.iter().enumerate().find(|(_, w)| w.c2 != 0) {
@@ -1020,7 +961,7 @@ impl Program {
                     path
                 };
                 std::fs::write(&path, out).expect("write DBG_PROF_DUMP");
-                eprintln!("== DBG_PROF: per-pc counts m.written to {path}");
+                eprintln!("== DBG_PROF: per-pc counts written to {path}");
             }
             eprintln!("== DBG_PROF: cycles by function ({} total) ==", pretty_integer(steps));
             for (name, c) in rows.iter().filter(|(_, c)| *c > 0) {
@@ -1031,46 +972,6 @@ impl Program {
                 );
             }
         }
-
-        // Resolve the deferred DEREF touches: a fixpoint, so a touch whose cell is
-        // filled by another deferred entry picks up that value; cells nobody ever
-        // writes are fixed to ZERO. The rows need no patch: the fill reads both
-        // sides out of the finished image, and their access counts were already
-        // bumped during the walk (the memory bus is order-independent, it only
-        // needs every access to agree on the value).
-        loop {
-            let before = deferred.len();
-            let mut waiting = Vec::with_capacity(before);
-            for (a2, a3, at) in deferred {
-                if m.written[a2] {
-                    m.dbg_pc = at;
-                    m.put(a3, m.cells[a2])?;
-                } else {
-                    waiting.push((a2, a3, at));
-                }
-            }
-            deferred = waiting;
-            if deferred.len() == before {
-                break;
-            }
-        }
-        for (a2, a3, at) in deferred {
-            // Never written: the cells are genuinely unconstrained; fix them to ZERO.
-            m.dbg_pc = at;
-            m.put(a2 as u32, F192::ZERO)?;
-            m.put(a3, F192::ZERO)?;
-        }
-
-        // Cells an instruction touched that nothing ever wrote. Read off the two
-        // dense vectors rather than recorded in `Mem::get`, which is in the opcode
-        // loop: an access bumps the count, so `count != ONE` means touched, and
-        // `written` is already there. Taken AFTER the deferred fixup, so a
-        // range-check touch, whose cells are legitimately unconstrained and were
-        // just fixed to ZERO, does not appear.
-        let unconstrained_reads: Vec<u32> = (0..m.cells.len().min(fill_base))
-            .filter(|&c| !m.written[c] && m.count[c] != F64::ONE)
-            .map(|c| c as u32)
-            .collect();
 
         // Pad memory to a power of two (the boundary tables read a dense image),
         // at least 2^MIN_LOG_MEM cells (doc §Memory).

@@ -289,14 +289,6 @@ impl FnLower<'_> {
         }
     }
 
-    fn cached_load(&mut self, ptr: Off, offset: u32) -> Option<Off> {
-        let &dst = self.scope.load_cells.get(&(ptr, offset))?;
-        // The dominating DEREF may have deferred an equality between unwritten cells.
-        self.pending
-            .push(Hint::Resolved(RHint::ResolveDeref { ptr, offset, dst }));
-        Some(dst)
-    }
-
     /// A no-op instruction to hang a pending hint on, so it fires exactly here
     /// instead of drifting onto whatever is emitted next (which may sit past a
     /// branch join, or on a path this hint does not belong to).
@@ -1084,7 +1076,7 @@ impl FnLower<'_> {
                     return c;
                 }
                 let (ptr, o2) = self.heap_addr(arr, idx);
-                if let Some(cell) = self.cached_load(ptr, o2) {
+                if let Some(&cell) = self.scope.load_cells.get(&(ptr, o2)) {
                     return cell;
                 }
                 let dst = self.fresh();
@@ -1147,7 +1139,8 @@ impl FnLower<'_> {
                 Some(c) => self.copy(c, dst),
                 None => {
                     let (ptr, o2) = self.heap_addr(arr, idx);
-                    // A DEREF can defer two unwritten sides; a MUL copy would write zero.
+                    // A DEREF links two unwritten sides; a MUL copy would read the
+                    // source, pinning it to zero.
                     self.deref(ptr, o2, dst, DerefMode::Cell);
                 }
             },

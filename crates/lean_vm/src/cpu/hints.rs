@@ -184,8 +184,6 @@ pub enum BitsDest {
 /// A hint resolved to concrete offsets/sizes, keyed by global program counter.
 #[derive(Clone, Debug)]
 pub enum RHint {
-    /// Resolve a previously constrained DEREF equality before reusing its frame cell.
-    ResolveDeref { ptr: Off, offset: u32, dst: Off },
     /// Announce a pointer into a reserved run of frames.
     FrameAddress { offset: Off },
     /// Reserve `(log_g(m[end] * start_inverse) + 1)` consecutive frames.

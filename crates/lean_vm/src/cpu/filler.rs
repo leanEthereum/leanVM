@@ -90,10 +90,14 @@ pub mod frame {
 /// table `t` is traversed.
 pub type Plan = [[usize; SIZES.len()]; N_TABLES];
 
-/// Traversals in total, which is both the number of `JUMP` rows the fill costs and the
-/// number of frames it needs.
+/// Traversals in total, which is the number of `JUMP` rows the fill costs.
 pub fn traversals(plan: &Plan) -> usize {
     plan.iter().flatten().sum()
+}
+
+/// Cycles in a plan, one frame each: every block it traverses at all.
+pub fn frames(plan: &Plan) -> usize {
+    plan.iter().flatten().filter(|&&n| n > 0).count()
 }
 
 /// The fill a plan delivers to each table, not counting the closing jumps.
@@ -176,11 +180,28 @@ pub fn solve(base: [usize; N_TABLES], floors: [usize; N_TABLES]) -> Option<Plan>
     }
 }
 
-/// The cycles a run needs, in the order the interpreter should walk them: for each, the
+/// The plan filling `base` whose stacked witness, as `committed_log` measures it, is
+/// at least `2^min_log`: the natural one if it is, else the one growing [`PAD_TABLE`]
+/// the least. The witness never shrinks as a table grows, so the first to reach wins.
+pub fn plan(base: [usize; N_TABLES], min_log: usize, committed_log: impl Fn(&Plan) -> usize) -> Plan {
+    let mut floors = NO_FLOORS;
+    loop {
+        let plan = solve(base, floors).unwrap_or_else(|| panic!("no fill plan from {base:?}"));
+        if committed_log(&plan) >= min_log {
+            return plan;
+        }
+        floors[PAD_TABLE] = 2 * filled(base, &plan)[PAD_TABLE];
+        assert!(
+            floors[PAD_TABLE] <= 1 << crate::cpu::MAX_LOG_ROWS,
+            "no fill reaches a 2^{min_log} witness"
+        );
+    }
+}
+
+/// The cycles a plan runs, in the order the interpreter should walk them: for each, the
 /// block's first pc, its size, and how many times to traverse it. Panics if `blocks` is
 /// missing one the plan calls for, which can only mean bytecode the compiler did not emit.
-pub fn cycles(blocks: &[Block], base: [usize; N_TABLES], floors: [usize; N_TABLES]) -> Vec<(u32, u32, usize)> {
-    let plan = solve(base, floors).unwrap_or_else(|| panic!("no fill plan from {base:?}"));
+pub fn cycles(blocks: &[Block], plan: &Plan) -> Vec<(u32, u32, usize)> {
     let mut out = Vec::new();
     for (t, row) in plan.iter().enumerate() {
         for (k, &n) in row.iter().enumerate() {

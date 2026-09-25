@@ -316,6 +316,9 @@ pub enum ProveError {
     /// The program has no execution on this input and advice: a failed `assert`,
     /// a wild pointer, advice that does not fit, ...
     Execution(ExecError),
+    /// The run read these cells before anything wrote them, so their values would be
+    /// the prover's ([`Execution::unconstrained_reads`]).
+    UnconstrainedReads(Vec<u32>),
     /// The committed witness is `2^log_committed` words, outside the
     /// `2^MIN_MU..=2^MAX_MU` every verifier accepts
     WitnessOutOfRange { log_committed: usize },
@@ -326,6 +329,13 @@ impl std::fmt::Display for ProveError {
         match self {
             Self::InvalidRate { log_inv_rate } => write!(f, "log_inv_rate {log_inv_rate} is not supported"),
             Self::Execution(e) => write!(f, "{e}"),
+            Self::UnconstrainedReads(cells) => write!(
+                f,
+                "the program read {} cell(s) before anything wrote them, first at {:?}: a source read \
+                 of a cell nothing stores, or a store the lowering dropped or misplaced",
+                cells.len(),
+                &cells[..cells.len().min(8)]
+            ),
             Self::WitnessOutOfRange { log_committed } => write!(
                 f,
                 "the committed witness would be 2^{log_committed} words, outside the verifiable 2^{}..=2^{}",
@@ -551,22 +561,13 @@ pub fn prove(program: &Program, public_input: [F192; 2], log_inv_rate: usize) ->
     // The returned `Proof` is system-allocated (`ps.into_proof()` builds `Vec`s),
     // so it survives the next phase.
     let _phase = zk_alloc::enter_phase();
-    let exec =
-        crate::stage!("Execute program", || program.execute_to_floor(public_input)).map_err(ProveError::Execution)?;
-    // A live value that came from outside the constraint system means the emitted
-    // bytecode asserts less than its source asked for, so the proof would be about a
-    // weaker statement than the program text. That is a compiler bug and never a
-    // program one, so it is caught here, on the one path every proof takes, rather
-    // than left to whichever test happens to look. A hard assert, not a
-    // `debug_assert`: this is what makes the invariant hold in release, which is the
-    // only profile the VM is ever run in.
-    assert!(
-        exec.unconstrained_reads.is_empty(),
-        "the program read {} cell(s) nothing ever writes, first at {:?}: a constraint was \
-         dropped in lowering (see `Execution::unconstrained_reads`)",
-        exec.unconstrained_reads.len(),
-        &exec.unconstrained_reads[..exec.unconstrained_reads.len().min(8)]
-    );
+    let exec = crate::stage!("Execute program", || program.execute(public_input)).map_err(ProveError::Execution)?;
+    // A live value that came from outside the constraint system would make the proof
+    // about a weaker statement than the program text, so it is refused here, on the one
+    // path every proof takes, rather than left to whichever test happens to look.
+    if !exec.unconstrained_reads.is_empty() {
+        return Err(ProveError::UnconstrainedReads(exec.unconstrained_reads));
+    }
     let cycles = exec.cycles;
     let w = crate::stage!("Build witness", || program.build(&exec));
     if !(pcs::MIN_MU..=pcs::MAX_MU).contains(&w.layout.shape.mu) {
@@ -1031,5 +1032,22 @@ mod tests {
         let pi = [w(1), w(2)];
         let exec = program.execute(pi).unwrap();
         assert_eq!(exec.mem[4], x * y, "MUL computes the E product");
+    }
+
+    /// The `XOR` reads `m[2]` before the `SET` writes it, so it reads ZERO, and its
+    /// row, filled from the final image, would contradict any other value there.
+    #[test]
+    fn a_write_must_agree_with_an_earlier_read() {
+        let prog = vec![
+            Op::Xor { a: 2, b: 0, c: 3 },
+            Op::Set { o: 2, k: F192::ONE },
+            Op::Set { o: 4, k: F192::ZERO },
+            Op::Xor { a: 0, b: 0, c: 0 }, // sentinel (never executed)
+        ];
+        let err = Program::from_bytecode(prog, 8)
+            .execute([F192::ZERO; 2])
+            .err()
+            .expect("the run must fail");
+        assert!(matches!(err.fault, Fault::Conflict { cell: 2, .. }), "{err}");
     }
 }
