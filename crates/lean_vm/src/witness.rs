@@ -30,14 +30,6 @@ impl Placement {
     }
 }
 
-/// The stacked witness and the per-column placements (in input order).
-#[cfg(test)]
-pub(crate) struct Stacked {
-    pub shape: StackShape,
-    pub q: ArenaVec<F64>,
-    pub placements: Vec<Placement>,
-}
-
 /// The committed stack's shape. `mu` is the log size everything public is derived
 /// from (the claims' selector coords, the PCS level ladder), while `n_lanes` counts
 /// the `2^(mu - LOG_BATCH)`-word lane blocks that actually carry data: the PCS
@@ -156,27 +148,6 @@ pub fn split_stack<'a>(q: &'a mut [F64], placements: &[Placement]) -> Vec<&'a mu
     }
     parallel::chunks_mut(rest, FILL_CHUNK, |_, pad| pad.fill(F64::ZERO));
     windows
-}
-
-/// Stack the columns for a test: build the placements from their lengths, then
-/// copy each into its window.
-#[cfg(test)]
-pub(crate) fn stack(cols: &[Column]) -> Stacked {
-    let kappas: Vec<Option<usize>> = cols
-        .iter()
-        .map(|c| {
-            assert!(!c.is_empty(), "column must be non-empty");
-            Some(crate::log2_strict_usize(c.len()))
-        })
-        .collect();
-    let (placements, shape) = placements_of(&kappas);
-    // SAFETY: `split_stack` covers the whole allocation, and every window is
-    // copied into below.
-    let mut q = unsafe { alloc_stack(shape) };
-    for (w, c) in split_stack(&mut q, &placements).into_iter().zip(cols) {
-        w.copy_from_slice(c);
-    }
-    Stacked { shape, q, placements }
 }
 
 #[cfg(test)]

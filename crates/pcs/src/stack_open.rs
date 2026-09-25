@@ -11,7 +11,8 @@
 //!   `eq(low_point, .)` supported on `[offset, offset + 2^|low_point|)`; a
 //!   `Strided` claim freezes the low `stride_log` in-block coords to `slot`'s
 //!   bits, so its weight is nonzero only at `offset + slot + j * 2^stride_log`),
-//! - **ring-switched claims** ([`RingSwitchOpen`]): bit-MLE evaluation claims
+//! - **ring-switched claims** ([`RingSwitchOpen`], one per packed sub-block, each
+//!   circuit committing its own): bit-MLE evaluation claims
 //!   on the packed sub-block `q_flock = stack[offset .. offset + 2^qflock_vars]`,
 //!   reduced per claim by [`super::ring_switch::prove_prepare`] and the
 //!   deferred finish path to an inner-product
@@ -34,9 +35,10 @@
 //!
 //! ## The combined weight
 //!
-//! With `sel = offset >> qflock_vars` the selector coords of the q_flock slice,
+//! With `sel = offset >> qflock_vars` the selector coords of a q_flock slice,
 //! the lifted weight at a full-stack point `x = (x_lo, x_hi)` (split at
-//! `qflock_vars`, LSB-first) is
+//! `qflock_vars`, LSB-first) is, for one such slice (several add up, each with
+//! its own selector and its own run of `lambda` powers),
 //!
 //! ```text
 //! b(x) = eq(sel, x_hi) * sum_i lambda^i * MLE(rs_eq_ind_i)(x_lo)
@@ -224,25 +226,25 @@ pub fn open_batch_mixed_whir_stacked(
     prover_data: &ProverData,
     config: &ProverConfig,
     point_claims: &[StackClaim],
-    ring: &RingSwitchOpen,
+    rings: &[RingSwitchOpen],
 ) {
-    let qflock_len = 1usize << ring.qflock_vars;
-    assert!(
-        ring.offset.is_multiple_of(qflock_len),
-        "q_flock offset must be 2^qflock_vars-aligned"
-    );
-    assert!(
-        ring.offset + qflock_len <= stack.len(),
-        "q_flock slice must fit inside the stack"
-    );
+    for ring in rings {
+        let qflock_len = 1usize << ring.qflock_vars;
+        assert!(
+            ring.offset.is_multiple_of(qflock_len),
+            "q_flock offset must be 2^qflock_vars-aligned"
+        );
+        assert!(
+            ring.offset + qflock_len <= stack.len(),
+            "q_flock slice must fit inside the stack"
+        );
+    }
     assert!(
         point_claims.iter().all(|c| claim_range(c).1 <= stack.len()),
         "every claim must live inside the committed lanes"
     );
-    assert!(
-        !ring.claims.is_empty(),
-        "stacked PCS opening carries at least one ring-switched claim"
-    );
+    let n_rs: usize = rings.iter().map(|ring| ring.claims.len()).sum();
+    assert!(n_rs > 0, "stacked PCS opening carries at least one ring-switched claim");
     // Optional phase timing, answering to the same env var as the WHIR
     // prover/commit tracing (one env lookup per open, no work when unset).
     let trace = std::env::var_os("WHIR_TRACE").is_some();
@@ -256,19 +258,21 @@ pub fn open_batch_mixed_whir_stacked(
 
     // 1. Ring-switch reduction: prepare every claim's s_hat_v (the caller bound
     //    them upstream), then sample one shared linear map.
-    let qflock = &stack[ring.offset..ring.offset + qflock_len];
-    let mut rs_states = Vec::with_capacity(ring.claims.len());
-    for claim in &ring.claims {
-        assert_eq!(
-            claim.suffix_point.len(),
-            ring.qflock_vars,
-            "ring-switch suffix point must have qflock_vars coords"
-        );
-        rs_states.push(ring_switch::prove_prepare(
-            qflock,
-            &claim.suffix_point,
-            claim.s_hat_v.as_deref(),
-        ));
+    let mut rs_states = Vec::with_capacity(n_rs);
+    for ring in rings {
+        let qflock = &stack[ring.offset..ring.offset + (1usize << ring.qflock_vars)];
+        for claim in &ring.claims {
+            assert_eq!(
+                claim.suffix_point.len(),
+                ring.qflock_vars,
+                "ring-switch suffix point must have qflock_vars coords"
+            );
+            rs_states.push(ring_switch::prove_prepare(
+                qflock,
+                &claim.suffix_point,
+                claim.s_hat_v.as_deref(),
+            ));
+        }
     }
     let map_challenges = ring_switch::sample_map_challenges(ps);
     let coordinate_weights = ring_switch::build_coordinate_weights(&map_challenges);
@@ -276,8 +280,8 @@ pub fn open_batch_mixed_whir_stacked(
     // 2. The ONE batching challenge both families take disjoint power ranges of. Nothing is
     //    observed first: every claim value reached the caller through a binding stream read, so
     //    the challenge already depends on all of them (`lean_vm::pcs::open`).
-    let lambdas = powers(ps.sample(), ring.claims.len() + point_claims.len());
-    let (lambdas_rs, lambdas_pd) = lambdas.split_at(ring.claims.len());
+    let lambdas = powers(ps.sample(), n_rs + point_claims.len());
+    let (lambdas_rs, lambdas_pd) = lambdas.split_at(n_rs);
 
     let rs_outputs: Vec<_> = rs_states
         .into_iter()
@@ -301,7 +305,7 @@ pub fn open_batch_mixed_whir_stacked(
     // filled from the ring-switch outputs and the point claims, then feeds
     // round 0's message while it is still hot, so nothing re-reads the buffer.
     let lane_block = 1usize << (log_n - config.initial_k);
-    let (b_stack, message) = basis::build(stack, lane_block, point_claims, lambdas_pd, ring, &rs_outputs);
+    let (b_stack, message) = basis::build(stack, lane_block, point_claims, lambdas_pd, rings, &rs_outputs);
     mark("basis + initial message", &mut t);
 
     // 4. One WHIR over the full stack against the combined claim (the
@@ -335,23 +339,24 @@ pub fn verify_opening_batch_mixed_whir_stacked(
     n_lanes: usize,
     root: &Hash,
     point_claims: &[StackClaim],
-    ring: &RingSwitchVerify<'_>,
+    rings: &[RingSwitchVerify<'_>],
 ) -> Result<(), VerifyError> {
-    let n_rs = ring.claims.len();
-    let qflock_vars = ring.qflock_vars;
-    // Caller (statement) invariants: panic on misuse, like the extension-field layer.
-    assert!(qflock_vars <= log_n);
-    assert!(
-        ring.offset.is_multiple_of(1usize << qflock_vars),
-        "q_flock offset must be 2^qflock_vars-aligned"
-    );
+    let n_rs: usize = rings.iter().map(|ring| ring.claims.len()).sum();
     assert!(n_rs > 0, "stacked PCS opening carries at least one ring-switched claim");
-    for claim in &ring.claims {
-        assert_eq!(claim.suffix_point.len(), qflock_vars);
+    // Caller (statement) invariants: panic on misuse, like the extension-field layer.
+    for ring in rings {
+        assert!(ring.qflock_vars <= log_n);
+        assert!(
+            ring.offset.is_multiple_of(1usize << ring.qflock_vars),
+            "q_flock offset must be 2^qflock_vars-aligned"
+        );
+        for claim in &ring.claims {
+            assert_eq!(claim.suffix_point.len(), ring.qflock_vars);
+        }
+        // Every claim's support must lie inside the cube, or its selector coords would
+        // run off the end of the fold point (mirror of the opener's own bound).
+        assert!(ring.offset + (1usize << ring.qflock_vars) <= 1usize << log_n);
     }
-    // Every claim's support must lie inside the cube, or its selector coords would
-    // run off the end of the fold point (mirror of the opener's own bound).
-    assert!(ring.offset + (1usize << qflock_vars) <= 1usize << log_n);
     assert!(
         point_claims.iter().all(|c| claim_range(c).1 <= 1usize << log_n),
         "every claim must live inside the committed cube"
@@ -369,7 +374,7 @@ pub fn verify_opening_batch_mixed_whir_stacked(
     let (lambdas_rs, lambdas_pd) = lambdas.split_at(n_rs);
 
     let mut target = F192::ZERO;
-    for (claim, g) in ring.claims.iter().zip(lambdas_rs.iter()) {
+    for (claim, g) in rings.iter().flat_map(|ring| &ring.claims).zip(lambdas_rs.iter()) {
         target += *g * ring_switch::verify_finish(claim.s_hat_v, &coordinate_weights);
     }
     for (claim, g) in point_claims.iter().zip(lambdas_pd.iter()) {
@@ -377,18 +382,22 @@ pub fn verify_opening_batch_mixed_whir_stacked(
     }
 
     // 3. Evaluate the lifted weight once, at the terminal sumcheck point.
-    let sel = ring.offset >> qflock_vars;
     let eval_b_at = |x: &[F192]| -> F192 {
-        let (x_lo, x_hi) = x.split_at(qflock_vars);
-        let mut sel_eq = F192::ONE;
-        for (k, &xi) in x_hi.iter().enumerate() {
-            sel_eq *= if (sel >> k) & 1 == 1 { xi } else { F192::ONE + xi };
+        let mut acc = F192::ZERO;
+        let mut lambdas_rs = lambdas_rs.iter();
+        for ring in rings {
+            let (x_lo, x_hi) = x.split_at(ring.qflock_vars);
+            let sel = ring.offset >> ring.qflock_vars;
+            let mut sel_eq = F192::ONE;
+            for (k, &xi) in x_hi.iter().enumerate() {
+                sel_eq *= if (sel >> k) & 1 == 1 { xi } else { F192::ONE + xi };
+            }
+            let mut rs_part = F192::ZERO;
+            for (claim, g) in ring.claims.iter().zip(lambdas_rs.by_ref()) {
+                rs_part += *g * ring_switch::eval_rs_eq(claim.suffix_point, x_lo, &coordinate_weights);
+            }
+            acc += rs_part * sel_eq;
         }
-        let mut rs_part = F192::ZERO;
-        for (claim, g) in ring.claims.iter().zip(lambdas_rs.iter()) {
-            rs_part += *g * ring_switch::eval_rs_eq(claim.suffix_point, x_lo, &coordinate_weights);
-        }
-        let mut acc = rs_part * sel_eq;
         for (claim, g) in point_claims.iter().zip(lambdas_pd.iter()) {
             acc += *g * stack_claim_eq_at(claim, x);
         }
@@ -487,7 +496,14 @@ mod tests {
                     expected[base + (j << stride_log)] += w;
                 }
             }
-            let (actual, message) = basis::build(&stack, lane_block, &claims, &lambdas, &ring, &rs_outputs);
+            let (actual, message) = basis::build(
+                &stack,
+                lane_block,
+                &claims,
+                &lambdas,
+                std::slice::from_ref(&ring),
+                &rs_outputs,
+            );
             assert_eq!(&*actual, expected, "lane_vars={lane_vars}, lanes={lanes}");
             let (_, expected_message) = super::super::whir::build_initial_basis(&stack, lane_block, |start, dst| {
                 dst.copy_from_slice(&expected[start..start + dst.len()]);
@@ -600,7 +616,15 @@ mod tests {
         );
         let (cm, pd) = commit(&stack, log_n, pc.initial_k, pc.log_inv_rates[0]);
         let mut ps = fiat_shamir::transcript::ProverState::from_label(DOMAIN);
-        open_batch_mixed_whir_stacked(&mut ps, log_n, &stack, &pd, &pc, &point_claims, &ring);
+        open_batch_mixed_whir_stacked(
+            &mut ps,
+            log_n,
+            &stack,
+            &pd,
+            &pc,
+            &point_claims,
+            std::slice::from_ref(&ring),
+        );
 
         Instance {
             vc: pc,
@@ -642,7 +666,7 @@ mod tests {
             1 << inst.vc.initial_k,
             &inst.root,
             point_claims,
-            &ring,
+            std::slice::from_ref(&ring),
         )
         .is_ok()
     }
@@ -760,7 +784,15 @@ mod tests {
             claims,
         };
         let mut ps = fiat_shamir::transcript::ProverState::from_label(DOMAIN);
-        open_batch_mixed_whir_stacked(&mut ps, log_n, &stack, &pd, &pc, &point_claims, &ring);
+        open_batch_mixed_whir_stacked(
+            &mut ps,
+            log_n,
+            &stack,
+            &pd,
+            &pc,
+            &point_claims,
+            std::slice::from_ref(&ring),
+        );
         let fs = ps.into_proof();
 
         let ring_v = RingSwitchVerify {
@@ -777,7 +809,7 @@ mod tests {
                 1 << pc.initial_k,
                 &cm.root,
                 &point_claims,
-                &ring_v
+                std::slice::from_ref(&ring_v)
             )
             .is_ok(),
             "honest crossing-regime opening rejected"
@@ -800,7 +832,7 @@ mod tests {
                 1 << pc.initial_k,
                 &cm.root,
                 &point_claims,
-                &bad_ring
+                std::slice::from_ref(&bad_ring)
             )
             .is_err(),
             "tampered crossing-regime ring slice accepted"

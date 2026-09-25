@@ -15,8 +15,8 @@
 % ---------- fields ----------
 \newcommand{\F}{\mathbb{F}}
 \newcommand{\Ftwo}{\mathbb{F}_2}
-\newcommand{\K}{K}            % F_{2^64}:  addresses, counters, committed lanes
-\newcommand{\E}{E}            % F_{2^192} = K[y]/(y^3+y+1): words and challenges
+\newcommand{\K}{K}            % F_{2^64}:  memory words, addresses, counters, committed columns
+\newcommand{\E}{E}            % F_{2^192} = K[y]/(y^3+y+1): challenges
 \newcommand{\gen}{\mathsf{g}} % generator of K^*, order 2^64 - 1
 
 % ---------- checked relations ----------
@@ -55,17 +55,35 @@
 \newcommand{\colmar}{M_{\mathrm{col}}}           % column marginal of one matrix, A_0 or B_0
 
 % ---------- VM ----------
-\newcommand{\loc}[1]{\mem[\fp\cdot #1]}
-\newcommand{\dmode}{\mathsf{mode}}   % a DEREF store mode
+\newcommand{\intk}[1]{\underline{#1}}   % the integer #1 as the element of K with those bits
 \newcommand{\pc}{\mathbf{pc}}
-\newcommand{\fp}{\mathbf{fp}}
-\newcommand{\nxt}[1]{\mathrm{next}(#1)}   % the successor of a register: next(pc), next(fp)
-\newcommand{\mem}{\mathbf{m}}
+\newcommand{\mem}{\mathbf{m}}           % RAM
+\newcommand{\regs}{\mathbf{x}}          % the register array: x0..x31, then the sink
+\newcommand{\adv}{\mathbf{a}}           % the advice region
+\newcommand{\tbase}{\mathsf{TEXT}}      % where the text sits
+\newcommand{\rbase}{\mathsf{RAM}}       % where RAM sits
+\newcommand{\abase}{\mathsf{ADVICE}}    % where the advice sits
+\newcommand{\sink}{\mathsf{sink}}       % the register cell an instruction with no destination writes
+\newcommand{\kadv}{\kappa_{\mathrm{adv}}}   % log advice length
+\newcommand{\qcls}[1]{q_{\mathsf{#1}}}   % the packed flock witness of one instruction class
 \newcommand{\addr}{\mathit{addr}}
 \newcommand{\val}{\mathit{val}}
 \newcommand{\cnt}{\mathit{count}}
-\newcommand{\md}{\mathrm{md}}       % BLAKE2s metadata: byte counter, final and last-node flags
 \newcommand{\cntfin}{\mathit{count}^{\mathrm{fin}}}  % committed finalize-count column
+\newcommand{\ts}{\mathbf{ts}}            % the clock: g^{4 cycle}, the last component of the VM state
+\newcommand{\tsfinal}{\ts_{\mathrm{final}}} % the clock the run ends on, announced by the prover
+\newcommand{\tsprev}{\mathit{prev}}      % the timestamp of a cell's previous access, a committed column
+\newcommand{\tsfin}{\mathit{ts}^{\mathrm{fin}}}  % committed column: each cell's last timestamp
+\newcommand{\meminit}{\mem^{\mathrm{init}}} % RAM before the run, a public column
+\newcommand{\memfin}{\mem^{\mathrm{fin}}}   % committed RAM after the run
+\newcommand{\regfin}{\regs^{\mathrm{fin}}}  % committed registers after the run
+\newcommand{\advinit}{\adv^{\mathrm{init}}} % committed advice before the run
+\newcommand{\advfin}{\adv^{\mathrm{fin}}}   % committed advice after the run
+\newcommand{\genhi}{\mathsf{h}}          % g^{2^16}: the step of the high range array
+\newcommand{\glo}{\mathit{lo}}           % low chunk of an access's gap, as the range-array address g^{d_lo + 1}
+\newcommand{\ghi}{\mathit{hi}}           % high chunk of the gap, as the range-array address h^{-d_hi}
+\newcommand{\rlo}{\mathbf{R}_{\mathrm{lo}}} % the low range array
+\newcommand{\rhi}{\mathbf{R}_{\mathrm{hi}}} % the high range array
 \newcommand{\rcnts}{\mathcal{N}}          % multiset of read counts at one (address, value)
 \newcommand{\mset}[1]{\{\!\{#1\}\!\}}     % a multiset (plain braces stay sets)
 \newcommand{\lut}{\mathbf{L}}             % a lookup array (memory, or the program)
@@ -75,9 +93,9 @@
 \newcommand{\pull}{\textsc{pull}}
 \newcommand{\tup}[1]{( #1 )}
 \newcommand{\rdf}[1]{\dsep{read}\,\tup{#1}}   % a pull/push pair differing only in the count
+\newcommand{\acc}[1]{\dsep{access}_{#1}}    % a memory access in clock slot #1: pull, push and the gap's two range reads
 \newcommand{\dsep}[1]{\mathsf{#1}}
 \newcommand{\opc}[1]{\mathsf{op}_{\mathsf{#1}}}
-\newcommand{\srcsel}[1]{\mathsf{src}(#1)}
 \newcommand{\nprog}{N_{\mathrm{prog}}}   % program length
 \newcommand{\nmem}{N_{\mathrm{mem}}}    % memory length
 \newcommand{\kbc}{\kappa_{\mathrm{bc}}}   % log program length: nprog = 2^kbc 
@@ -133,18 +151,6 @@
 \newcommand{\ntmap}{\psi}                % linearized NTT map          (was q_d)
 \newcommand{\bfarr}{\mathsf{B}}          % NTT butterfly array         (was B)
 \newcommand{\mpoly}{\mathcal{P}}         % message polynomial          (was P_u)
-
-% ---------- data availability (\S\ref{sec:leanda}) ----------
-% The code itself reuses the PCS letters: k = message dimension, n = block
-% length, rho = rate, D = domain, X_j = novel basis.
-\newcommand{\nblob}{N_{\mathrm{blob}}}   % rows of the payload matrix, one per blob
-\newcommand{\cellsz}{N_{\mathrm{cell}}}  % symbols in one cell, the sampling unit
-\newcommand{\daroot}{\mathsf{root}}       % the commitment
-\newcommand{\darow}{\mathsf{root}_{\mathrm{row}}}  % its repairability branch
-\newcommand{\dacol}{\mathsf{root}_{\mathrm{col}}}  % its sampling branch
-\newcommand{\dual}{L}                    % the random dual codeword membership tests against
-\newcommand{\davec}{\mathbf{L}}         % membership vector in domain order
-\newcommand{\davechash}{\mathsf{h}_L}    % hash of the serialized membership vector
 
 % ---------- ring switching (Annex A) ----------
 \newcommand{\pair}{\Omega}               % error pairing values        (was V_k)

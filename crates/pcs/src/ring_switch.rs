@@ -96,11 +96,10 @@ pub const COMPOSITION_SHIFTS: [usize; 6] = [32, 16, 8, 4, 2, 1];
 /// `sum_w weights[w]·t_w = sum_j x^j·Phi(y_j)` for the row
 /// view `y` and the column view `t` of the same tensor-algebra element. That
 /// identity is what lets a verifier evaluate the batched claim from `Phi`'s
-/// six challenges instead of the 192 weights; the recursion guest does exactly
-/// that. Expanding the composition puts a distinct monomial at every Frobenius
+/// six challenges instead of the 192 weights. Expanding the composition puts a distinct monomial at every Frobenius
 /// exponent `0..64`: writing `k = sum_p k_p·2^(5-p)` for the binary digits of
 /// `k`, the coefficient is `C_k = prod_{p : k_p = 1} f_p^(2^(k mod 2^(5-p)))`,
-/// which is what the guest's coefficient table builds. Applying the composed
+/// which is what `python-verifier`'s coefficient table builds. Applying the composed
 /// form directly costs only 63 squarings and six multiplications.
 ///
 /// ## Soundness
@@ -667,10 +666,9 @@ mod tests {
     }
 
     /// The contract between the native opener and every verifier that batches
-    /// from `Phi`'s coefficients (the recursion guest, the Python reference
-    /// verifier): weighting the COLUMN view by `build_coordinate_weights` must
+    /// from `Phi`'s coefficients (the Python reference verifier): weighting the COLUMN view by `build_coordinate_weights` must
     /// equal applying `Phi` to the ROW view and combining with `x^j`. If this
-    /// drifts, the guest computes a different opening target than the prover.
+    /// drifts, that verifier computes a different opening target than the prover.
     #[test]
     fn column_weights_match_the_row_side_linearized_map() {
         let mut rng = Rng::new(0xF00D_BEEF_1234_5678);
@@ -682,7 +680,7 @@ mod tests {
             let columns = transpose_s_hat(&s_hat_v);
             let lhs = inner_product_base_ext(&columns, &build_coordinate_weights(&challenges));
 
-            // Row side: sum_j x^j * Phi(y_j), the guest's loop.
+            // Row side: sum_j x^j * Phi(y_j).
             let x = F192::new(2, 0, 0);
             let mut rhs = F192::ZERO;
             let mut x_pow = F192::ONE;

@@ -6,5 +6,6 @@ docall = ["doc", "--release", "--workspace", "--no-deps"]
 [build]
 rustdocflags = ["-D", "warnings"]
 
-[target.'cfg(all())']
+# Not for the RISC-V guests (`guests/`), which inherit this file: no RISC-V target accepts the host's CPU.
+[target.'cfg(not(target_arch = "riscv64"))']
 rustflags = ["-C", "target-cpu=native"]

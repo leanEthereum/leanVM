@@ -1,62 +1,37 @@
-//! leanVM proves XMSS and SPHINCS signature claims and LeanDA blob well-formedness.
+//! leanVM: a minimal zkVM for RISC-V (rv64im). A [`Program`] is a guest's ELF executable
+//! ([`Program::from_elf`], see `guests/`) or a text written by hand ([`Program::new`],
+//! with [`asm`]), [`prove`] runs it and
+//! proves the run on a public input, RAM's first four words, [`verify`] checks the proof
+//! against the program, that input and the output the run claims: `a0..a3` when it
+//! called `exit`.
 //!
-//! Release only: the zkDSL compiler [`setup_verifier`] runs overflows the debug stack.
+//! [`prove`] also takes the run's ADVICE, the words the program finds at
+//! [`ADVICE_BASE`]. The statement says nothing about them beyond how many the program's
+//! region holds, so a proof is a proof of knowledge of an advice: what a program reads
+//! there it has to check itself. Passing more words than the region holds is a
+//! programming error, and panics.
 //!
 //! End to end in [`tests/api.rs`](https://github.com/leanEthereum/leanVM/blob/main/tests/api.rs).
 
-pub use rec_aggregation::{
-    AggregateVerifyError, AggregationError, ClaimSelection, DA_LOG_CELL, DA_LOG_K, DA_MAX_ROWS, EthereumProof,
-    MAX_DA_ROOTS, MAX_EPOCHS, MAX_KEYS, MAX_RECURSIONS, SignatureClaims, SphincsClaim, XmssClaimGroup, aggregate,
-};
-
 pub use lean_vm::{
-    cpu::{CpuError, ExecError, Fault, ProveError},
+    cpu::{CpuError, Program, Proof, Stats, prove, verify},
     pcs::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE},
+    rv::ElfError,
+    rv::{ADVICE_BASE, RAM_BASE, TEXT_BASE, Trap, asm},
 };
 
-/// LeanDA commitments. Blob symbols are `u64` words read in little-endian byte order.
-pub mod lean_da {
-    pub use ::lean_da::{
-        BLOB_SYMBOLS, CELL_SYMBOLS, CELLS_PER_ROW, CODEWORD_SYMBOLS, DA_LOG_CELL, DA_LOG_K, DA_MAX_ROWS, DaCommitment,
-        DaWitness, commit,
-    };
-}
-
-pub mod xmss {
-    /// The SSZ traits [`XmssPublicKey`] and [`XmssSignature`] implement: import
-    /// them to call `as_ssz_bytes` and `from_ssz_bytes`.
-    pub use ::xmss::{Decode, DecodeError, Encode};
-    pub use ::xmss::{
-        Digest, Epoch, LOG_LIFETIME, MESSAGE_LEN, Message, PUB_KEY_SIZE, PUB_KEY_SSZ_LEN, PublicParam, SIG_SIZE,
-        SIGNATURE_SSZ_LEN, WotsSignature, XmssKeyGenError, XmssPublicKey, XmssSecretKey, XmssSignError, XmssSignature,
-        XmssVerifyError, key_gen, key_gen_from_seed, sign, verify,
-    };
-}
-
-pub mod sphincs {
-    pub use ::sphincs::{
-        Digest, FtsOpening, MASTER_SECRET_LEN, MESSAGE_LEN, MasterSecret, Message, PUB_KEY_SIZE, PublicParam,
-        SECRET_KEY_SIZE, SIG_SIZE, SphincsPublicKey, SphincsSecretKey, SphincsSignError, SphincsSignature,
-        SphincsVerifyError, key_gen, key_gen_from, key_gen_from_seed, sign, verify,
-    };
-}
-
-pub use rand;
-
-/// Call once before verifying an [`EthereumProof`]. Idempotent, and
-/// [`setup_prover`] does it for you.
+/// Call once before [`verify`]. Idempotent, and [`setup_prover`] does it for you.
 pub fn setup_verifier() {
     lean_vm::init_prover_pool();
-    rec_aggregation::warm_up();
 }
 
-/// Call once before [`aggregate`].
+/// Call once before [`prove`].
 ///
-/// There is one arena per process, so only one [`aggregate`] call may run at a
-/// time in a process: to aggregate in parallel, use separate processes.
+/// There is one arena per process, so only one [`prove`] call may run at a
+/// time in a process: to prove in parallel, use separate processes.
 pub fn setup_prover() {
     zk_alloc::enable_arena();
-    setup_prover_without_arena();
+    setup_verifier();
 }
 
 /// [`setup_prover`] for a machine with small memory.

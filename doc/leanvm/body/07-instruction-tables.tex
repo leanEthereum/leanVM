@@ -1,138 +1,57 @@
 % !TeX root = ../drafts/07-instruction-tables.tex
 \section{The instruction tables}\label{sec:tables}
 
-Each instruction has its own table.
+The instructions are grouped into eight \emph{classes}, and each class has its own table (\S\ref{sec:bytecode}). All eight tables are the same table: a row does the plumbing that every instruction needs, the state step, the bytecode read, the register accesses and the memory accesses, and what the class computes is a Boolean circuit proven by Flock (Annex~\ref{annex:flock}), one instance per row, whose words the row puts on the bus. The tables differ in which words their circuit has, whether the class has control flow, and how it touches memory.
 
-Write $\rdf{\sep,\addr,\cnt,\val_0,\val_1, \dots}$ for the pair \pull\ $\tup{\sep,\addr,\cnt,\val_0,\val_1, \dots }$, \push\ $\tup{\sep,\addr,\gen\cdot\cnt,\val_0,\val_1, \dots}$: every flush below but the state's.
+Write $\rdf{\sep,\addr,\cnt,\val_0,\val_1, \dots}$ for the pair \pull\ $\tup{\sep,\addr,\cnt,\val_0,\val_1, \dots }$, \push\ $\tup{\sep,\addr,\gen\cdot\cnt,\val_0,\val_1, \dots}$: a read of a lookup array (\S\ref{sec:lookup}).
 
-\subsection{\texttt{XOR}}\label{sec:tab-xor}
+Write $\acc{k}\tup{\sep,a;\,v_{\mathrm{old}}\to v_{\mathrm{new}}}$ for the access, in slot $k$ of a row with clock $\ts$ (\S\ref{sec:memchan}), of the cell at address $a$ of the array under $\sep$. It is three flush pairs and one constraint over the access's own columns, $\tsprev_k,\glo_k,\ghi_k$ and the counts $r_{\mathrm{lo},k},r_{\mathrm{hi},k}$ of its two range reads:
+\begin{align*}
+  &\pull\ \tup{\sep,a,\tsprev_k,v_{\mathrm{old}}},\quad \push\ \tup{\sep,a,\gen^{k}\cdot\ts,v_{\mathrm{new}}},\\
+  &\rdf{\dsep{RLO},\glo_k,r_{\mathrm{lo},k}},\qquad \rdf{\dsep{RHI},\ghi_k,r_{\mathrm{hi},k}},\\
+  &\tsprev_k\cdot\glo_k=\gen^{k}\cdot\ts\cdot\ghi_k .
+\end{align*}
+A read is written $\acc{k}\tup{\sep,a;\,v}$, for $v_{\mathrm{old}}=v_{\mathrm{new}}=v$. A table's constraints are exactly its accesses' gap checks, one per access, and the columns listed below leave the accesses' five each implicit.
 
-\texttt{XOR}\ $[o_A,o_B,o_C]$ asserts $\loc{o_C}=\loc{o_A}+\loc{o_B}$, the $192$-bit field sum (in $\E$).
+\subsection{The class table}\label{sec:tab-class}
+
+\paragraph{The circuit's words.} A class's circuit (\S\ref{flock:classes}) reads and writes whole $64$-bit words, its \emph{ports}: the register values $v_1,v_2$, the bytecode's flags and immediate, the result, a memory cell, and so on, as the class needs. Flock packs the circuit's witness $64$ bits to a $\K$-element, so a port IS one word of the class's packed witness $\qcls{j}$, committed once (\S\ref{sec:e2e-unrolled}). The table commits none of these words again: they are \emph{virtual} columns, and a claim the bus raises on one of them at a row is routed to the same word of that row's instance in $\qcls{j}$ (\S\ref{sec:stacking}). Putting a port in a bus tuple is therefore what binds the circuit to the machine: the value it reads from a register is what the register tuple carries, the flags it decodes on are what the bytecode tuple carries, the result it computes is what the register write pushes. No constraint ties the two, because they are one committed value.
+
+\paragraph{Columns.} The state $\pc,\ts$; the bytecode entry's register numbers $a_1,a_2$ and successor $\pc^{+}$; the two values read, $v_1,v_2$, and the flags, which are ports; then, for a class that writes a register, $a_d$, the old value $v_d^{\mathrm{old}}$ and the result $\mathit{out}$ (a port); for a class with control flow, the bytecode's $\Delta,\mathit{link},\mathit{jalr}$ and the port $b$; the immediate $\mathit{imm}$ (a port) if the circuit takes one; the memory words below; and the bytecode count $r_{\mathrm{bc}}$. A word is $64$ bits and a register holds one, so every port that reaches a tuple is a $\K$-element as it stands.
+
+\paragraph{Flushes.}
 \begin{itemize}
-\item \textbf{Columns:} $\pc,\fp$; operands $o_A,o_B,o_C$; the two read values $(v_{A,i})_{i\in\{0,1,2\}}$ and $(v_{B,i})_{i\in\{0,1,2\}}$; memory counts $r_A,r_B,r_C$; bytecode count $r_{\mathrm{bc}}$.
-\item \textbf{Constraints:} none.
-\item \textbf{Flushes:}
-  \begin{itemize}
-  \item \textbf{State:} \pull\ $\tup{\dsep{ST},\pc,\fp}$, \push\ $\tup{\dsep{ST},\gen\cdot\pc,\fp}$.
-  \item \textbf{Bytecode:} $\rdf{\dsep{BC},\pc,r_{\mathrm{bc}},\opc{XOR},o_A,o_B,o_C,0,0}$.
-  \item \textbf{Memory:}
-    \begin{align*}
-      &\rdf{\dsep{MEM},\fp\cdot o_X,r_X,v_{X,0},v_{X,1},v_{X,2}}\quad(X\in\{A,B\}),\\
-      &\rdf{\dsep{MEM},\fp\cdot o_C,r_C,v_{A,0}+v_{B,0},v_{A,1}+v_{B,1},v_{A,2}+v_{B,2}}.
-    \end{align*}
-  \end{itemize}
+  \item \textbf{State:} \pull\ $\tup{\dsep{ST},\pc,\ts}$, \push\ $\tup{\dsep{ST},\pc',\gen^{s}\cdot\ts}$, where the next $\pc$ and the stride $s$ are the class's (below): $\pc'=\pc^{+}$ and $s=4$ unless said otherwise.
+  \item \textbf{Bytecode:} $\rdf{\dsep{BC},\pc,r_{\mathrm{bc}},\opc{j},\mathit{flags},a_1,a_2,a_d,\mathit{imm},\pc^{+},\Delta,\mathit{link},\mathit{jalr}}$, the last three for the control class only, and a constant in place of a column the row has not: $\intk{\sink}$ for $a_d$ and $0$ for $\mathit{imm}$, which the entry then has to hold (\S\ref{sec:e2e-bc}).
+  \item \textbf{Registers:} $\acc{0}\tup{\dsep{REG},a_1;\,v_1}$, $\acc{1}\tup{\dsep{REG},a_2;\,v_2}$, and $\acc{3}\tup{\dsep{REG},a_d;\,v_d^{\mathrm{old}}\to v_d}$ for a class that writes one, with $v_d=\mathit{out}$ unless said otherwise.
+  \item \textbf{Memory:} the class's accesses, in slot $2$ and up.
 \end{itemize}
+A padding row (\S\ref{sec:e2e-pad}) is a row of the class's no-op instruction on zero registers, its circuit instance an honest one.
 
-\subsection{\texttt{MUL\_NATIVE}}\label{sec:tab-mul}
+\subsection{The classes}\label{sec:tab-classes}
 
-\texttt{MUL\_NATIVE}\ $[o_A,o_B,o_C]$ asserts $\loc{o_C}=\loc{o_A} \cdot \loc{o_B}$, the $192$-bit field multiplication (in $\E$).
-\begin{itemize}
-\item \textbf{Columns:} $\pc,\fp$; operands $o_A,o_B,o_C$; the two read values $(v_{A,i})_{i\in\{0,1,2\}}$ and $(v_{B,i})_{i\in\{0,1,2\}}$; memory counts $r_A,r_B,r_C$; bytecode count $r_{\mathrm{bc}}$.
-\item \textbf{Constraints:} none.
-\item \textbf{Flushes:}
-  \begin{itemize}
-  \item \textbf{State:} \pull\ $\tup{\dsep{ST},\pc,\fp}$, \push\ $\tup{\dsep{ST},\gen\cdot\pc,\fp}$.
-  \item \textbf{Bytecode:} $\rdf{\dsep{BC},\pc,r_{\mathrm{bc}},\opc{MUL},o_A,o_B,o_C,0,0}$.
-  \item \textbf{Memory} (the destination carries $v_Av_B$ in $\E$, of degree two). With $y^3=y+1$, put
-    \[
-    p_0=v_{A,0}v_{B,0},\quad
-    p_1=v_{A,0}v_{B,1}+v_{A,1}v_{B,0},\quad
-    p_2=v_{A,0}v_{B,2}+v_{A,1}v_{B,1}+v_{A,2}v_{B,0},
-    \]
-    \[
-    p_3=v_{A,1}v_{B,2}+v_{A,2}v_{B,1},\qquad
-    p_4=v_{A,2}v_{B,2},
-    \]
-    twelve products over the nine pairs $v_{A,i}v_{B,j}$:
-    \begin{align*}
-      &\rdf{\dsep{MEM},\fp\cdot o_X,r_X,v_{X,0},v_{X,1},v_{X,2}}\quad(X\in\{A,B\}),\\
-      &\rdf{\dsep{MEM},\fp\cdot o_C,r_C,p_0+p_3,p_1+p_3+p_4,p_2+p_4}.
-    \end{align*}
-  \end{itemize}
-\end{itemize}
+The instructions of rv64im are decoded into the eight classes below, an entry's flags selecting one function of its class (\S\ref{sec:e2e-bc}); \texttt{lui}, \texttt{auipc} and \texttt{jal} are constants added to $\regs[0]$, \texttt{fence} is an addition of zeros, and \texttt{ecall} a jump to the halt slot. The reference for every function is the specification~\cite{riscv}; \S\ref{flock:classes} gives the circuits.
 
-\subsection{\texttt{SET\_CONSTANT}}\label{sec:tab-set}
+\paragraph{\texttt{ALU}} (arithmetic, comparisons, bitwise logic, branches and jumps). Ports $v_1,v_2,\mathit{imm},\mathit{flags}\to\mathit{out},b$. The second operand is $v_2\oplus\mathit{imm}$, the decoder making one of the two zero, and $b\in\{0,1\}$ is whether the branch is taken, a whole port so that Flock's empty rows force its other $63$ bits to zero. This is the one class with control flow, and the row derives what it pushes rather than committing it (\S\ref{sec:m3}):
+\[
+  \pc'=\pc^{+}+b\,\Delta+\mathit{jalr}\,(\mathit{out}+\pc^{+}),\qquad v_d=\mathit{out}+\mathit{link}\,(\mathit{out}+\pc^{+}),
+\]
+each of degree two, where the bytecode's $\Delta$ is the branch target XOR $\pc^{+}$, so that $\pc^{+}+\Delta$ is the target, and $\mathit{link},\mathit{jalr}\in\{0,1\}$ select \texttt{jal}'s link and \texttt{jalr}'s computed target, both zero elsewhere.
 
-\texttt{SET\_CONSTANT}\ $[o,k_0,k_1,k_2]$ asserts $\loc{o}=k_0+k_1y+k_2y^{2}$.
-\begin{itemize}
-\item \textbf{Columns:} $\pc,\fp$; operand $o$; immediate $(k_i)_{i\in\{0,1,2\}}$; memory count $r$; bytecode count $r_{\mathrm{bc}}$.
-\item \textbf{Constraints:} none.
-\item \textbf{Flushes:}
-  \begin{itemize}
-  \item \textbf{State:} \pull\ $\tup{\dsep{ST},\pc,\fp}$, \push\ $\tup{\dsep{ST},\gen\cdot\pc,\fp}$.
-  \item \textbf{Bytecode:} $\rdf{\dsep{BC},\pc,r_{\mathrm{bc}},\opc{SET},o,k_0,k_1,k_2,0}$.
-  \item \textbf{Memory:} $\rdf{\dsep{MEM},\fp\cdot o,r,k_0,k_1,k_2}$.
-  \end{itemize}
-\end{itemize}
+\paragraph{\texttt{LOAD}.} Ports $v_1,\mathit{imm},\mathit{flags},\mathit{cell}\to\mathit{address},\mathit{out}$: the circuit adds the address, extracts the bytes the width and the offset select from the cell and extends them, and hands the bus the word's address with the misalignment bits in it (\S\ref{sec:exp}). One access, $\acc{2}\tup{\dsep{MEM},\mathit{address};\,\mathit{cell}}$.
 
-\subsection{\texttt{DEREF}}\label{sec:tab-deref}
+\paragraph{\texttt{STORE}.} Ports $v_1,v_2,\mathit{imm},\mathit{flags},\mathit{cell}\to\mathit{address},\mathit{cell}',\mathit{out}$, the new cell being the old one with the stored bytes replaced and $\mathit{out}=0$, the sink's. One access, $\acc{2}\tup{\dsep{MEM},\mathit{address};\,\mathit{cell}\to\mathit{cell}'}$.
 
-\texttt{DEREF}\ $[o_1,o_2,o_3;\,\dmode]$ reads a pointer and asserts the cell it points to. The row reads three cells:
-\begin{itemize}
-\item the \emph{pointer} $p$, at $\fp\cdot o_1$;
-\item the \emph{target} $v_2$, at the dereferenced address $p\cdot o_2$;
-\item the \emph{local} value $v_3$, at $\fp\cdot o_3$.
-\end{itemize}
-The store asserts that $v_2$ equals the source chosen by the mode $\dmode$ (\S\ref{sec:vm}): the local cell $v_3$, the return address $\gen^{2}\cdot\pc$, or the frame pointer $\fp$. The mode is two boolean flags $(f_{\pc},f_{\fp})$: $(0,0)$ for $\texttt{deref\_cell}[o_3]$, $(1,0)$ for $\texttt{deref\_pc}$, $(0,1)$ for $\texttt{deref\_fp}$.
-\begin{itemize}
-\item \textbf{Columns:} $\pc,\fp$; operands $o_1,o_2,o_3$; flags $f_{\pc},f_{\fp}$; pointer $p$ (a single $\K$-limb); the local value $(v_{3,i})_{i\in\{0,1,2\}}$; memory counts $r_1,r_2,r_3$; bytecode count $r_{\mathrm{bc}}$.
-\item \textbf{Constraints:} none.
-\item \textbf{Flushes:}
-  \begin{itemize}
-  \item \textbf{State:} \pull\ $\tup{\dsep{ST},\pc,\fp}$, \push\ $\tup{\dsep{ST},\gen\cdot\pc,\fp}$.
-  \item \textbf{Bytecode:} $\rdf{\dsep{BC},\pc,r_{\mathrm{bc}},\opc{DRF},o_1,o_2,o_3,f_{\pc},f_{\fp}}$.
-  \item \textbf{Memory}, the target giving $v_3$, $\gen^{2}\cdot\pc$ or $\fp$ at the three flag settings:
-    \begin{align*}
-      &\rdf{\dsep{MEM},\fp\cdot o_1,r_1,p,0,0},\\
-      &\rdf{\dsep{MEM},\fp\cdot o_3,r_3,v_{3,0},v_{3,1},v_{3,2}},\\
-      &\rdf{\dsep{MEM},p\cdot o_2,r_2,\bar f\,v_{3,0}+f_{\pc}\,(\gen^{2}\cdot\pc)+f_{\fp}\,\fp,\ \bar f\,v_{3,1},\ \bar f\,v_{3,2}},
-      \qquad \bar f=1+f_{\pc}+f_{\fp}.
-    \end{align*}
-  \end{itemize}
-\end{itemize}
+\paragraph{\texttt{SHIFT}, \texttt{MUL}, \texttt{MULH}.} Ports $v_1,v_2,\mathit{imm},\mathit{flags}\to\mathit{out}$ for the shifts (the amount being the low bits of $v_2\oplus\mathit{imm}$), $v_1,v_2,\mathit{flags}\to\mathit{out}$ for the low and the high word of a product.
 
-\subsection{\texttt{JUMP}}\label{sec:tab-jump}
+\paragraph{\texttt{DIV}} (division and remainder). Ports $v_1,v_2,\mathit{flags},q,r\to\mathit{out},\mathit{bad}$. The circuit does not divide: the prover supplies a quotient and a remainder, $q$ and $r$, as \emph{hints}, ports that are in the witness and in no column, and the circuit checks $v_1=q\cdot v_2+r$ over the integers with $r<|v_2|$, and the specification's cases for a zero divisor and the overflow. The check's verdict is the word $\mathit{bad}$, nonzero on a wrong hint, which the row puts in slot $13$ of its bytecode tuple: the program is zero there, so by Theorem~\ref{thm:omc} a row with $\mathit{bad}\neq0$ reads no entry.
 
-\texttt{JUMP}\ $[o_c,o_d,o_f]$ performs a conditional jump on whether the condition $v_{\mathrm{cond}}=\loc{o_c}$ is nonzero. It transfers to $\pc\gets v_{\pc} = \loc{o_d}$, $\fp\gets v_{\fp} = \loc{o_f}$ when $v_{\mathrm{cond}}\neq0$, and defaults to $\pc\gets\gen\cdot\pc$, $\fp\gets\fp$ otherwise. $v_{\mathrm{cond}}, v_{\fp}, v_{\pc}$ must be $\K$-valued. The branch is taken according to a boolean indicator column $b=[\,v_{\mathrm{cond}}\neq0\,]$, certified by a prover-supplied inverse $w$ and 2 constraints:
+\paragraph{\texttt{HASH}} (\texttt{blake2s}). Ports $v_2,\mathit{flags},h_0,\dots,h_3,m_0,\dots,m_7\to\mathit{out}_0,\dots,\mathit{out}_3$: the counter is the second register and the finalization word the flags (\S\ref{sec:vm}). The row writes no register, so it has no $a_d,v_d^{\mathrm{old}},\mathit{out}$ columns and reads $\intk{\sink}$ off the entry, and it has no immediate. Its block is sixteen accesses at $v_1+\intk{8k}$ (\S\ref{sec:exp}), in slots $2$ to $17$, so its stride is $s=18$: reads of the chaining value and the message, whose words are ports, and writes of the result, whose old values $\mathit{out}^{\mathrm{old}}_k$ are four committed columns like $v_d^{\mathrm{old}}$:
+\begin{align*}
+  &\acc{2+k}\tup{\dsep{MEM},v_1+\intk{8k};\,h_k}\quad(k<4),\qquad
+  \acc{2+k}\tup{\dsep{MEM},v_1+\intk{8k};\,m_{k-8}}\quad(8\le k<16),\\
+  &\acc{2+k}\tup{\dsep{MEM},v_1+\intk{8k};\,\mathit{out}^{\mathrm{old}}_{k-4}\to\mathit{out}_{k-4}}\quad(4\le k<8).
+\end{align*}
+The result cannot be written over the chaining value, because a padding row must rewrite what it writes (\S\ref{sec:e2e-pad}) and no chaining value is a fixed point of the compression.
 
-\begin{itemize}
-\item \textbf{Columns:} $\pc,\fp$; operands $o_c,o_d,o_f$; the condition $v_{\mathrm{cond}}$, the destination $v_{\pc}$ and the frame $v_{\fp}$; inverse $w$ (honest prover sets $w = v_{\mathrm{cond}}^{-1}$ if $v_{\mathrm{cond}}\neq0$, otherwise $w=0$); boolean indicator $b$; memory counts $r_c,r_d,r_f$; bytecode count $r_{\mathrm{bc}}$.
-\item \textbf{Constraints:}  $b=v_{\mathrm{cond}}\cdot w$ and $v_{\mathrm{cond}}\,(b+1)=0$
-\item \textbf{Flushes:}
-  \begin{itemize}
-  \item \textbf{State:} \pull\ $\tup{\dsep{ST},\pc,\fp}$, \push\ $\tup{\dsep{ST},b\,v_{\pc}+b\,(\gen\cdot\pc)+\gen\cdot\pc,\;b\,v_{\fp}+b\,\fp+\fp}$.
-  \item \textbf{Bytecode:} $\rdf{\dsep{BC},\pc,r_{\mathrm{bc}},\opc{JMP},o_c,o_d,o_f,0,0}$.
-  \item \textbf{Memory:}
-    \begin{align*}
-      &\rdf{\dsep{MEM},\fp\cdot o_c,r_c,v_{\mathrm{cond}},0,0},\\
-      &\rdf{\dsep{MEM},\fp\cdot o_d,r_d,v_{\pc},0,0},\\
-      &\rdf{\dsep{MEM},\fp\cdot o_f,r_f,v_{\fp},0,0}.
-    \end{align*}
-  \end{itemize}
-\end{itemize}
-
-\subsection{\texttt{BLAKE2S}}\label{sec:tab-blake2s}
-
-\texttt{BLAKE2S}\ $[o_{m_0},o_{m_1},o_{m_2},o_{m_3},o_{\mathit{cv}},o_{\mathit{out}},o_{\md}]$ compresses a $64$-byte message block under a $32$-byte chaining value into a $32$-byte result, with the BLAKE2s flags and byte counter in the metadata cell $\fp\cdot o_{\md}$. Each $128$-bit half occupies one cell, top limb zero: the four message chunks at $\fp\cdot o_{m_0},\dots,\fp\cdot o_{m_3}$, addressed independently, the chaining value at the consecutive pair $\fp\cdot o_{\mathit{cv}},\gen\cdot\fp\cdot o_{\mathit{cv}}$, and the result at $\fp\cdot o_{\mathit{out}},\gen\cdot\fp\cdot o_{\mathit{out}}$.
-
-Flock~\cite{Flock26} proves the compression relation with a batched R1CS over a Boolean witness (Annex~\ref{annex:flock}). The witness is packed into $\qflock$ via Ring-Switching (Annex~\ref{annex:rs}), with $64$ bits per $\K$-element.
-
-The message, result, chaining value and metadata are all committed in $\qflock$: the two low limbs $z_0,z_1$ of each of the nine cells $z\in\{m_0,\dots,m_3,\mathit{cv}_0,\mathit{cv}_1,\mathit{out}_0,\mathit{out}_1,\md\}$, eighteen in all. Linking these values to the memory interaction implicitly forces the top limb of every memory cell accessed by BLAKE2s to be zero. The generalized R1CS matrices take the chaining value, byte counter, and the two finalization flags as free input: the memory interactions via the bus bind all four.
-\begin{itemize}
-\item \textbf{Columns:} $\pc,\fp$; operands $o_{m_0},o_{m_1},o_{m_2},o_{m_3},o_{\mathit{cv}},o_{\mathit{out}},o_{\md}$; one memory count $r_z$ per cell $z$; bytecode count $r_{\mathrm{bc}}$. The eighteen limbs are committed in $\qflock$, no duplicate columns needed. The nine addresses are the products $\gen^{k}\fp\cdot o$, $k\in\{0,1\}$.
-\item \textbf{Constraints:} none. The compression relation is handled by Flock.
-\item \textbf{Flushes:}
-  \begin{itemize}
-  \item \textbf{State:} \pull\ $\tup{\dsep{ST},\pc,\fp}$, \push\ $\tup{\dsep{ST},\gen\cdot\pc,\fp}$.
-  \item \textbf{Bytecode:} $\rdf{\dsep{BC},\pc,r_{\mathrm{bc}},\opc{B2S},o_{m_0},o_{m_1},o_{m_2},o_{m_3},o_{\mathit{cv}},o_{\mathit{out}},o_{\md}}$.
-  \item \textbf{Memory:}
-    \begin{align*}
-      &\rdf{\dsep{MEM},\fp\cdot o_{m_i},r_{m_i},m_{i,0},m_{i,1},0}\quad(i=0,\dots,3),\\
-      &\rdf{\dsep{MEM},\fp\cdot o_{\mathit{cv}},r_{\mathit{cv}_0},\mathit{cv}_{0,0},\mathit{cv}_{0,1},0},\\
-      &\rdf{\dsep{MEM},\gen\cdot\fp\cdot o_{\mathit{cv}},r_{\mathit{cv}_1},\mathit{cv}_{1,0},\mathit{cv}_{1,1},0},\\
-      &\rdf{\dsep{MEM},\fp\cdot o_{\mathit{out}},r_{\mathit{out}_0},\mathit{out}_{0,0},\mathit{out}_{0,1},0},\\
-      &\rdf{\dsep{MEM},\gen\cdot\fp\cdot o_{\mathit{out}},r_{\mathit{out}_1},\mathit{out}_{1,0},\mathit{out}_{1,1},0},\\
-      &\rdf{\dsep{MEM},\fp\cdot o_{\md},r_{\md},\md_0,\md_1,0}.
-    \end{align*}
-  \end{itemize}
-\end{itemize}
+\paragraph{Sizes.} A circuit's instance occupies $2^{\kblock}$ bits, $10$ for \texttt{ALU}, \texttt{LOAD}, \texttt{STORE} and \texttt{SHIFT}, $12$ for \texttt{MUL}, $13$ for \texttt{MULH} and \texttt{DIV}, $14$ for \texttt{HASH} (\S\ref{flock:classes}). Flock proves a batch of at least $2^{13}$ bits and at least eight instances, so a table has at least $2^{3}$ rows, and at least $2^{13-\kblock}$; padding rows (\S\ref{sec:e2e-pad}) supply them.

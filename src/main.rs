@@ -1,6 +1,9 @@
-//! Benchmark CLI for signature and blob proofs, recursion, and the Fibonacci demo.
+//! Benchmark CLI.
 
 use clap::{Parser, Subcommand};
+
+mod fibonacci;
+mod guest;
 
 #[derive(Parser)]
 struct Cli {
@@ -36,47 +39,22 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
-    /// Prove signatures and blobs, then verify the proof. At least one count must be nonzero.
-    Aggregate {
-        /// XMSS signatures to aggregate.
-        #[arg(long, default_value = "0")]
-        xmss: usize,
-        /// SPHINCS signatures to aggregate.
-        #[arg(long, default_value = "0")]
-        sphincs: usize,
-        /// Blobs in one LeanDA commitment (128 KiB each).
-        #[arg(
-            long,
-            default_value_t = 0,
-            value_parser = clap::builder::RangedU64ValueParser::<usize>::new().range(0..=leanvm::lean_da::DA_MAX_ROWS as u64)
-        )]
-        blobs: usize,
-    },
-    /// Aggregate n child proofs into one proof.
-    Recursion {
-        /// Number of child aggregates.
-        #[arg(long, default_value = "2")]
-        n: usize,
-        /// XMSS signatures in each child. Sets the child proof's committed size,
-        /// which is what the recursion cost should be quoted against.
-        #[arg(long, default_value = "900")]
-        xmss_per_leaf: usize,
-        /// SPHINCS signatures in each child, on top of the XMSS ones.
-        #[arg(long, default_value = "0")]
-        sphincs_per_leaf: usize,
-        /// Blobs in each child's LeanDA commitment. Use --xmss-per-leaf 0 for blobs alone.
-        #[arg(
-            long,
-            default_value_t = 0,
-            value_parser = clap::builder::RangedU64ValueParser::<usize>::new().range(0..=leanvm::lean_da::DA_MAX_ROWS as u64)
-        )]
-        blobs_per_leaf: usize,
-    },
-    /// Prove and verify Fibonacci in the exponent (demo).
+    /// Prove and verify Fibonacci modulo 2^64.
     Fibonacci {
         /// Number of recurrence steps.
         #[arg(long, default_value = "2000000")]
         n: usize,
+    },
+    /// Prove and verify a run of a RISC-V guest (see `guests/`).
+    Guest {
+        /// The guest's ELF executable.
+        elf: std::path::PathBuf,
+        /// The public input: up to four 64-bit words, decimal or 0x-prefixed.
+        #[arg(long, value_delimiter = ',', value_parser = guest::parse_word)]
+        input: Vec<u64>,
+        /// The advice: words the guest reads at `ADVICE_BASE`, which the statement does not cover.
+        #[arg(long, value_delimiter = ',', value_parser = guest::parse_word)]
+        advice: Vec<u64>,
     },
 }
 
@@ -84,32 +62,12 @@ fn main() {
     let cli = Cli::parse();
     lean_vm::init_prover();
     let plan = primitives::bench::Plan::new(cli.repeat, cli.cooldown);
-    if cli.tracing && !matches!(&cli.command, Command::Recursion { .. }) {
+    if cli.tracing {
         primitives::init_tracing();
     }
     match cli.command {
-        Command::Aggregate { xmss, sphincs, blobs } => {
-            rec_aggregation::run_aggregation(xmss, sphincs, blobs, cli.log_inv_rate, plan);
-        }
-        Command::Recursion {
-            n,
-            xmss_per_leaf,
-            sphincs_per_leaf,
-            blobs_per_leaf,
-        } => {
-            rec_aggregation::run_recursion(
-                n,
-                xmss_per_leaf,
-                sphincs_per_leaf,
-                blobs_per_leaf,
-                cli.log_inv_rate,
-                cli.tracing,
-                plan,
-            );
-        }
-        Command::Fibonacci { n } => {
-            rec_aggregation::run_fibonacci(n, cli.log_inv_rate, plan);
-        }
+        Command::Fibonacci { n } => fibonacci::run_fibonacci(n, cli.log_inv_rate, plan),
+        Command::Guest { elf, input, advice } => guest::run_guest(&elf, &input, &advice, cli.log_inv_rate, plan),
     }
     if std::env::var_os("ZK_ALLOC_STATS").is_some() {
         eprintln!("{}", zk_alloc::stats());

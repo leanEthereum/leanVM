@@ -1,13 +1,4 @@
 % !TeX root = ../drafts/01-introduction.tex
 \section{Introduction}\label{sec:intro}
 
-Ethereum's consensus layer currently uses BLS signatures, its execution layer ECDSA, and its data availability layer KZG. All three are based on elliptic curves, which do not survive a quantum computer~\cite{shor}. Hash-based cryptography, both signatures and snarks (the hash-based ones are sometimes called STARKs~\cite{stark}), is a promising candidate for Ethereum's post-quantum transition:
-\begin{itemize}[itemsep=1pt,topsep=3pt]
-\item BLS $\to$ XMSS~\cite{rfc8391} (using each Ethereum slot as the nonce, statefulness is no longer an issue when attesting: double signing is already a slashable offense). But XMSS has no native aggregation, unlike BLS, so we need a snark to handle it.
-\item ECDSA $\to$ SPHINCS+~\cite{sphincs}. Drawback: dozens of times bigger. Again, snark-based aggregation is a natural solution to mitigate signature size increase.
-\item KZG $\to$ Reed--Solomon encode each blob, and provide the Merkle root of the codeword. A snark guarantees that the root commits to a correct encoding.
-\end{itemize}
-
-\vspace{4mm}
-
-leanVM is a candidate as the snark machinery required above. It's a verifiable virtual machine (commonly a zkVM, for "zero-knowledge virtual machine", though leanVM is not (yet) zk), with a minimalistic ISA (inspired by Cairo \cite{cairo}). It is based on binary fields, inspired by \cite{DP24} and \cite{Flock26}, currently using BLAKE2s \cite{blake2} as hash function.
+leanVM is a verifiable virtual machine (commonly a zkVM, for "zero-knowledge virtual machine", though leanVM is not (yet) zk) for RISC-V, the rv64im instruction set \cite{riscv} with one custom instruction, the BLAKE2s compression. It is based on binary fields, inspired by \cite{DP24} and \cite{Flock26}, currently using BLAKE2s \cite{blake2} as hash function.

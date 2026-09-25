@@ -9,11 +9,11 @@ The arithmetization is inspired by the M3 model (multi-multiset matching)~\cite{
 
 \paragraph{Constraints.} The constraints of $T_j$ are $C_{j,1},\dots,C_{j,\ncons{j}}$, each a polynomial over $\K$ of degree at most $d$ ($d=2$ throughout) in the $\ncol{j}$ columns, required to vanish on every row in $\cube{\tau_j}$.
 
-\paragraph{The bus.} All interactions (between tables) share a single \emph{bus}, a channel carrying tuples of up to $m=16$ $\K$-elements (shorter ones are zero-padded). Table $T_j$ has $\nfl{j}$ flushes $\btup_{j,1},\dots,\btup_{j,\nfl{j}}$, each is either a \emph{push} or a \emph{pull}. Each one of the $m$ coordinates in each tuple is a fixed polynomial of degree at most $d$ in the table's columns, so every row $x\in\cube{\tau_j}$ emits one tuple $\btup_{j,f}(x)$ per flush. A few \emph{boundary} tuples are pushed (resp. pulled) by default to the bus (for instance for the VM state $(\dsep{ST}, \pc, \fp)$, the initial $(\dsep{ST}, \gen^0, \gen^0)$ is pushed and the final $(\dsep{ST}, \gen^{\,\nprog-1}, \gen^{0})$ is pulled).
+\paragraph{The bus.} All interactions (between tables) share a single \emph{bus}, a channel carrying tuples of up to $m=16$ $\K$-elements (shorter ones are zero-padded). Table $T_j$ has $\nfl{j}$ flushes $\btup_{j,1},\dots,\btup_{j,\nfl{j}}$, each is either a \emph{push} or a \emph{pull}. Each one of the $m$ coordinates in each tuple is a fixed polynomial of degree at most $d$ in the table's columns, so every row $x\in\cube{\tau_j}$ emits one tuple $\btup_{j,f}(x)$ per flush. A few \emph{boundary} tuples are pushed (resp. pulled) by default to the bus (for instance for the VM state $(\dsep{ST}, \pc, \ts)$, the initial $(\dsep{ST}, \intk{\pc_{\mathrm{entry}}}, \gen^{4})$ is pushed and the final $(\dsep{ST}, \intk{\tbase+4(\nprog-1)}, \tsfinal)$ is pulled, \S\ref{sec:state}).
 
 \paragraph{Balance.} The bus balances when its pushed tuples and its pulled tuples form the same multiset (\ref{def:multiset}).
 
-\paragraph{Domain separation.} When several interactions share the bus, the first coordinate of every tuple is a \emph{domain separator}, a fixed constant naming its interaction: $\dsep{ST}=\gen^{0}$ for VM state, $\dsep{MEM}=\gen^{1}$ for memory, $\dsep{BC}=\gen^{2}$ for bytecode. (They are needed since all interactions share a common bus.)
+\paragraph{Domain separation.} When several interactions share the bus, the first coordinate of every tuple is a \emph{domain separator}, a fixed constant naming its interaction: $\dsep{ST}=\gen^{0}$ for VM state, $\dsep{MEM}=\gen^{1}$ for memory, $\dsep{BC}=\gen^{2}$ for bytecode, $\dsep{RLO}=\gen^{3}$ and $\dsep{RHI}=\gen^{4}$ for the two range arrays, $\dsep{REG}=\gen^{5}$ for the registers. (They are needed since all interactions share a common bus.)
 
 \subsection{Balancing the bus: grand product}\label{sec:gp}
 
@@ -48,7 +48,15 @@ For finite multisets $P,Q$ of width-$m$ tuples over $\K$, $\Pi_P=\Pi_Q$ if and o
 \end{lemma}
 
 \begin{proof}[Proof of Lemma~\ref{lem:gp}]
-TODO
+One direction is immediate. For the other, work in $R=\K[A_0,\dots,A_3]$, an integral domain, so that $\Pi_P$ lies in $R[X]$ and is monic of degree $|P|$ in $X$: an identity $\Pi_P=\Pi_Q$ therefore forces $|P|=|Q|$, and we induct on that common size, the empty case being $1=1$.
+
+A tuple is recoverable from its fingerprint. By Fact~\ref{fact:eq}, $\pi_A(\btup)$ is the multilinear extension of $\iota\mapsto\btup_\iota$, so substituting a Boolean point $A=\iota\in\cube{4}$ returns $\btup_\iota$; two tuples with the same fingerprint polynomial therefore agree slot by slot, and $\btup\mapsto\pi_A(\btup)$ is injective into $R$.
+
+Now take any $\btup\in P$ and substitute $X:=\pi_A(\btup)$, an element of $R$. The factor of $\Pi_P$ at $\btup$ vanishes, so $\Pi_P(A,\pi_A(\btup))=0$, hence
+\[
+  \Pi_Q(A,\pi_A(\btup))=\prod_{\btup'\in Q}\bigl(\pi_A(\btup)-\pi_A(\btup')\bigr)=0 .
+\]
+A product vanishes in a domain only if one of its factors does, so $\pi_A(\btup)=\pi_A(\btup')$ for some $\btup'\in Q$, and $\btup=\btup'$ by injectivity. Both products now carry the same monic factor $X-\pi_A(\btup)$, which cancels in the domain $R[X]$, leaving $\Pi_{P\setminus\btup}=\Pi_{Q\setminus\btup}$ over multisets one smaller. The induction hypothesis gives $P\setminus\btup=Q\setminus\btup$, hence $P=Q$.
 \end{proof}
 
 
@@ -86,7 +94,7 @@ If $\mu$ is odd, GKR first processes the root-most binary layer, which has no su
 
 \subsubsection{Batching several grand-products}
 
-For recursion friendliness, the $\nside$ grand products, numbered $s=1,\dots,\nside$, are proven in one pass, at one sumcheck per layer instead of $\nside$.
+The $\nside$ grand products, numbered $s=1,\dots,\nside$, are proven in one pass, at one sumcheck per layer instead of $\nside$.
 
 Pad every tree with $1$-leaves up to the depth $\mu$ of the deepest. The verifier then samples at every layer a combiner $\lambda \in \E$, and each layer runs a single sumcheck on the random linear combination of the $\nside$ identities,
 \[
@@ -107,7 +115,7 @@ both sums over the blocks of side $s$.
 \paragraph{Who settles what.} Three kinds of terms:
 \begin{itemize}[itemsep=1pt,topsep=3pt]
 \item \emph{Padding.} Public: the verifier evaluates it.
-\item \emph{Boundary blocks.} Every slot of their tuples is public (a constant, a public input, or the index column of \S\ref{sec:idxcol}) or a single committed column, so $\widetilde L_b(\zeta_{<\kappa_b})$ is a linear combination of their evaluations at $\zeta_{<\kappa_b}$. The verifier computes the public ones; the prover sends each committed one, as a claim deferred to the PCS (\S\ref{sec:stacking}).
+\item \emph{Boundary blocks.} Every slot of their tuples is public (a constant, a public component, or an index column of \S\ref{sec:idxcol}) or a single committed column, so $\widetilde L_b(\zeta_{<\kappa_b})$ is a linear combination of their evaluations at $\zeta_{<\kappa_b}$. The verifier computes the public ones; the prover sends each committed one, as a claim deferred to the PCS (\S\ref{sec:stacking}).
 \item \emph{Table blocks.} Nothing is sent for them: the table sumcheck proves them.
 \end{itemize}
 The verifier subtracts the first two kinds from the claimed value; the difference, $\mathsf{rem}_{s}$, is what the tables owe.

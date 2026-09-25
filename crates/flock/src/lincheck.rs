@@ -1320,8 +1320,7 @@ pub fn verify(
     // The c term's `⟨eq_inner, w_col⟩`, by the tensor structure of both sides:
     // `eq_inner = eq(x_inner_rest) ⊗ λ(z_skip)` and `w_col = eq(r_inner_rest) ⊗
     // z_partial`, so it is 8 eq factors times a 64-term Lagrange combination
-    // instead of a length-k inner product. That is the form the recursive
-    // verifier can afford.
+    // instead of a length-k inner product.
     let lambda_skip = lagrange_weights_naive(k_skip, x_ab.z_skip);
     let c_slice_value = lambda_skip
         .iter()

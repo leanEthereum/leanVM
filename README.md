@@ -4,7 +4,7 @@
   <img src="./doc/images/banner.svg" alt="leanVM">
 </p>
 
-<h3 align="center">minimal hash-based zkVM, for post-quantum Ethereum</h3>
+<h3 align="center">minimal hash-based zkVM</h3>
 
 <p align="center">
   <a href="https://github.com/leanEthereum/leanVM/releases/download/doc-latest/leanVM.pdf"><img src="https://img.shields.io/badge/Documentation-PDF-blue?style=for-the-badge&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0id2hpdGUiPjxwYXRoIGQ9Ik0xNCAySDZjLTEuMSAwLTIgLjktMiAydjE2YzAgMS4xLjg5IDIgMS45OSAySDE4YzEuMSAwIDItLjkgMi0yVjhsLTYtNnpNOC41IDE0LjVoMS4yNWMuOTcgMCAxLjc1LS43OCAxLjc1LTEuNzVTMTAuNzIgMTEgOS43NSAxMUg3LjV2Nmgxdi0yLjV6bTAtMVYxMmgxLjI1Yy40MSAwIC43NS4zNC43NS43NXMtLjM0Ljc1LS43NS43NUg4LjV6bTUuNSAzLjVoMnYtMWgtMnYtMWgydi0xaC0ydi0xLjVjMC0uMjguMjItLjUuNS0uNUgxN3YtMWgtMmMtLjgzIDAtMS41LjY3LTEuNSAxLjVWMTd6TTEzIDlWMy41TDE4LjUgOUgxM3oiLz48L3N2Zz4=" alt="Documentation"></a>
@@ -13,30 +13,12 @@
 
 <table align="center">
   <tr>
-    <td><a href="#xmss-aggregation">leanXMSS aggregation</a></td>
-    <td align="right"><b>1.6K/s</b></td>
-  </tr>
-  <tr>
-    <td><a href="#sphincs-aggregation">leanSPHINCS aggregation</a></td>
-    <td align="right"><b>280/s</b></td>
-  </tr>
-  <tr>
-    <td><a href="#data-availability">leanDA commitment</a></td>
-    <td align="right"><b>2 MiB/s</b></td>
-  </tr>
-</table>
-<table align="center">
-  <tr>
-    <td><a href="#recursion">2-to-1 recursion</a></td>
-    <td align="right"><b>0.29s</b></td>
-  </tr>
-  <tr>
     <td><a href="#hashing">hash compressions</a></td>
     <td align="right"><b>480K/s</b></td>
   </tr>
   <tr>
-    <td><a href="#fibonacci">cheap cycles</a></td>
-    <td align="right"><b>5.4M/s</b></td>
+    <td><a href="#fibonacci">RISC-V cycles</a></td>
+    <td align="right"><b>1.6M/s</b></td>
   </tr>
 </table>
 
@@ -56,10 +38,20 @@ leanVM is designed for security:
 Expect leanVM to change significantly:
 
 * **hash**: BLAKE2s is a placeholder. SHA2, SHA3, BLAKE3 are actively considered.
-* **ISA**: A migration from leanISA to RISC-V (rv64im) is planned.
+* **ISA**: leanVM proves RISC-V (rv64im) plus one custom instruction, the BLAKE2s compression. A run is one proof; continuations, for runs whose witness exceeds one commitment, are planned.
 * **zk**: Support for zero-knowledge is planned.
 
 **note**: Prior to binary fields leanVM used [KoalaBear](https://crates.io/crates/p3-koala-bear) and [Poseidon](https://eprint.iacr.org/2019/458). The historical design is in [this branch](https://github.com/leanEthereum/leanVM/tree/koalabear).
+
+## guests
+
+A guest is a `no_std` Rust program built for `riscv64im-unknown-none-elf` against the runtime crate in [`guests/rt`](./guests/rt/src/lib.rs), which gives it its public input (four words), its advice (a region of memory the prover fills, which the statement says nothing about), its output (four words) and a BLAKE2s hasher over the custom instruction. The linker script fixes the memory map. Build them with `guests/build.sh` (a nightly toolchain, for `-Zbuild-std`), then prove and verify a run:
+
+```bash
+cargo run --release -- guest guests/elf/preimage.elf --advice 5,0x6f6c6c6568
+```
+
+The statement a proof makes is the program (an ELF file), the four input words and the four output words; everything a guest reads from its advice it has to check itself, which is what makes a proof a proof of knowledge (`preimage` outputs the digest of a message only the prover has).
 
 ## benchmarks
 
@@ -67,71 +59,55 @@ Expect leanVM to change significantly:
 
 **note**: The Metal GPU was not used.
 
-### XMSS aggregation
-
-The XMSS parameters are specified in [XMSS.pdf](https://github.com/leanEthereum/leanVM/releases/download/doc-latest/XMSS.pdf), with a [(ROM) security proof in Lean 4](https://github.com/leanEthereum/leanMultisig/blob/main/formal/xmss/XmssSecurity/Statement.lean).
+### Fibonacci
 
 ```bash
-cargo run --release -- aggregate --xmss 900 --log-inv-rate 1 --repeat 3
+cargo run --release -- fibonacci --n 2000000 --log-inv-rate 1 --repeat 3
 ```
 
 ```
-aggregation, 900 XMSS signatures
-  cycles (VM steps)           : 995,578 = 2^19.925
-    details                   : DEREF 2^17.878 (24.2%)  MUL 2^17.689 (21.2%)  SET 2^17.425 (17.7%)  BLAKE2S 2^16.989 (13.1%)  XOR 2^16.979 (13.0%)  JUMP 2^16.722 (10.9%)  MEMORY 2^20.674  BYTECODE 2^17.737  TOTAL_COMMITTED 2^25.801
-  proof size                  : 315.8 KiB
-  proving time                : 0.563 s ± 5.2%      peak memory 7.438 GiB
-  per signature               : 1,599.383 signatures/s
-  verifying                   : 4.443 ms
+Fibonacci (modulo 2^64), N = 2,000,000
+  cycles (VM steps)           : 2,097,208
+    details                   : ALU 2^20.934 (100.0%)  TOTAL_COMMITTED 2^26.395
+  proof size                  : 337.5 KiB
+  proving                     : 1.281 s ± 1.2%   1,636,564 cycles/s      peak memory 11.6 GiB
+  verifying                   : 6.186 ms
 ```
 
-### SPHINCS aggregation
+### BLAKE2s in plain Rust
 
-The SPHINCS parameters are specified in [SPHINCS.pdf](https://github.com/leanEthereum/leanVM/releases/download/doc-latest/SPHINCS.pdf), with a [(ROM) security proof in Lean 4](https://github.com/leanEthereum/leanMultisig/blob/main/formal/sphincs/SphincsSecurity/Statement.lean).
-
-```bash
-cargo run --release -- aggregate --sphincs 245 --log-inv-rate 1 --repeat 3
-```
-
-```
-aggregation, 245 SPHINCS signatures
-  cycles (VM steps)           : 2,132,425 = 2^21.024
-    details                   : XOR 2^18.951 (23.8%)  MUL 2^18.93 (23.4%)  SET 2^18.847 (22.1%)  DEREF 2^18.711 (20.1%)  BLAKE2S 2^16.992 (6.1%)  JUMP 2^16.543 (4.5%)  MEMORY 2^21.564  TOTAL_COMMITTED 2^26.301
-  proof size                  : 300.1 KiB
-  proving time                : 0.861 s ± 1.5%      peak memory 9.348 GiB
-  per signature               : 284.603 signatures/s
-  verifying                   : 3.841 ms
-```
-
-### data availability
+The `blake2s` guest is the hash function written in ordinary Rust, compiled by `rustc` for `riscv64im-unknown-none-elf` (`guests/blake2s`): 10,000 bytes, 157 compressions, a mix of arithmetic, shifts, loads and stores.
 
 ```bash
-cargo run --release -- aggregate --blobs 16 --log-inv-rate 1 --repeat 3
+cargo run --release -- guest guests/elf/blake2s.elf --input 10000 --repeat 3 --cooldown 2
 ```
 
 ```
-aggregation, 16 blobs
-  cycles (VM steps)           : 2,989,506 = 2^21.511
-    details                   : MUL 2^19.899 (32.7%)  XOR 2^19.809 (30.7%)  DEREF 2^19.138 (19.3%)  JUMP 2^18.299 (10.8%)  SET 2^16.787 (3.8%)  BLAKE2S 2^16.295 (2.7%)  MEMORY 2^21.696  TOTAL_COMMITTED 2^26.695
-  proof size                  : 322.4 KiB
-  proving time                : 0.998 s ± 0.9%      peak memory 12.646 GiB
-  blob throughput             : 16.032 blobs/s, 2.004 MiB/s
-  verifying                   : 6.659 ms
+guests/elf/blake2s.elf
+  input                       : [2710, 0, 0, 0]
+  output                      : [8f9fc3d71d84c0cc, 515c979fa65679e8, 9ffc0e1e022efcc7, cef54d0c06836e56]
+  cycles (VM steps)           : 1,015,824
+    details                   : ALU 2^18.47 (55.2%)  SHIFT 2^17.238 (23.5%)  LOAD 2^16.356 (12.8%)  STORE 2^15.139 (5.5%)  MUL 2^13.288 (1.5%)  MULH 2^13.288 (1.5%)  TOTAL_COMMITTED 2^25.435
+  proof size                  : 328.6 KiB
+  proving                     : 0.698 s ± 1.2%   1,454,472 cycles/s      peak memory 5.18 GiB
+  verifying                   : 7.185 ms
 ```
 
-### recursion
+### BLAKE2s through the precompile
+
+The `hash` guest hashes 50,000 bytes through the compression instruction, 782 compressions; most of its cycles generate the message.
 
 ```bash
-cargo run --release -- recursion --n 2 --xmss-per-leaf 900 --log-inv-rate 2 --repeat 3
+cargo run --release -- guest guests/elf/hash.elf --input 50000 --repeat 3
 ```
 
 ```
-recursion 2→1, over leaves of 900 XMSS signatures
-  cycles (VM steps)           : 570,113 = 2^19.121
-    details                   : MUL 2^17.838 (41.1%)  DEREF 2^16.988 (22.8%)  XOR 2^16.747 (19.3%)  SET 2^15.79 (9.9%)  JUMP 2^14.488 (4.0%)  BLAKE2S 2^13.978 (2.8%)  MEMORY 2^19.507  TOTAL_COMMITTED 2^24.086
-  proof size                  : 191.3 KiB
-  proving time                : 0.287 s ± 15.9%      peak memory 10.124 GiB
-  verifying                   : 4.121 ms
+guests/elf/hash.elf
+  cycles (VM steps)           : 869,384
+    details                   : ALU 2^18.641 (59.8%)  SHIFT 2^16.61 (14.6%)  STORE 2^15.915 (9.0%)  MULH 2^15.61 (7.3%)  MUL 2^15.61 (7.3%)  LOAD 2^13.618 (1.8%)  HASH 2^9.611 (0.1%)  TOTAL_COMMITTED 2^25.49
+  proof size                  : 331.0 KiB
+  proving                     : 0.816 s ± 0.9%   1,065,522 cycles/s      peak memory 5.238 GiB
+  verifying                   : 7.796 ms
 ```
 
 ### hashing
@@ -153,22 +129,6 @@ Flock BLAKE2s batch proving, 262,144 compressions (2^18 slots)
   prove TOTAL (witness excluded)  :    545.8 ms ± 1.1%   89.4%
   verify                          :      1.9 ms
   throughput                      :        480,319 compressions/s ± 1.1%
-  (~3289.9 XMSS/s equivalent at 146 compressions/signature)
-```
-
-### Fibonacci
-
-```bash
-cargo run --release -- fibonacci --n 2000000 --log-inv-rate 1 --repeat 3
-```
-
-```
-Fibonacci (in the exponent, i.e. modulo 2^64 - 1), N = 2,000,000
-  cycles (VM steps)           : 2,127,880
-    details                   : MUL 2^20.944 (98.9%)  SET 2^13.288 (0.5%)  DEREF 2^12.967 (0.4%)  JUMP 2^10.968 (0.1%)  XOR2^10.966 (0.1%)  MEMORY 2^20.96  TOTAL_COMMITTED 2^25.26
-  proof size                  : 285.4 KiB
-  proving                     : 0.391 s ± 1.1%   5,442,734 cycles/s      peak memory 5.203 GiB
-  verifying                   : 2.092 ms
 ```
 
 ## SNARK machinery

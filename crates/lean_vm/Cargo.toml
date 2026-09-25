@@ -17,5 +17,4 @@ tracing.workspace = true
 zk_alloc.workspace = true
 
 [dev-dependencies]
-lean_compiler.workspace = true
 bincode.workspace = true

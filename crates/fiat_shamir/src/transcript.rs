@@ -11,11 +11,10 @@ pub struct Proof<M = PrunedMerklePaths> {
     pub merkle: Vec<M>,
 }
 
-/// The proof the recursion guest and the Python verifier consume: [`Proof`] with
-/// every query's Merkle path written out, which is the one thing they would
-/// otherwise have to reconstruct. A verifier run yields it as a by-product
-/// ([`VerifierState::into_raw_proof`]), so that expansion is written once, in
-/// Rust, instead of three times in three languages.
+/// The proof the Python verifier consumes: [`Proof`] with every query's Merkle
+/// path written out, which is the one thing it would otherwise have to
+/// reconstruct. A verifier run yields it as a by-product
+/// ([`VerifierState::into_raw_proof`]), so that expansion is written once, in Rust.
 pub type RawProof = Proof<RawMerklePath>;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -44,8 +43,7 @@ pub trait Transmitter: Challenger {
     fn add_scalars(&mut self, xs: &[F192]);
     fn grind(&mut self, bits: u32);
 
-    /// Transmit a root as its two scalars, not as a byte string, so the recursion guest replays
-    /// one shape for every digest. Sending it is what binds it: no verifier absorbs a root
+    /// Transmit a root as its two scalars, not as a byte string. Sending it is what binds it: no verifier absorbs a root
     /// separately (see [`Receiver::next_root`], its mirror).
     fn add_root(&mut self, root: &Hash) {
         self.add_scalars(&hash_to_scalars(root));
@@ -198,13 +196,6 @@ impl<'a> VerifierState<'a> {
             stream: self.stream[..self.offset].to_vec(),
             merkle: self.raw_openings,
         }
-    }
-
-    /// How many scalars have been read so far: the cursor into the stream a
-    /// caller needs to locate a sub-protocol's scalars without counting back
-    /// from the tail.
-    pub fn stream_offset(&self) -> usize {
-        self.offset
     }
 
     /// Assert the whole proof was consumed (no trailing/extra data).

@@ -1,0 +1,4 @@
+# `riscv64im-unknown-none-elf` is a Tier 3 target: no prebuilt `core`, so `build-std`.
+[toolchain]
+channel = "nightly"
+components = ["rust-src"]

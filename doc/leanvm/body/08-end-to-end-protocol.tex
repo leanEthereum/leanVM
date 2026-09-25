@@ -3,51 +3,36 @@
 
 \subsection{Bytecode encoding}\label{sec:e2e-bc}
 
-The bytecode (of $\nprog=2^{\kbc}$ instructions) is encoded as one $\K$-valued multilinear $P$ in $\kbc+4$ variables:
+The program is public, so nothing is decoded in a table: both parties decode each of the $\nprog=2^{\kbc}$ instruction words once, into the fields the rows read (\S\ref{sec:bytecode}), and encode the result as one $\K$-valued multilinear $P$ in $\kbc+4$ variables:
 \begin{enumerate}[itemsep=1pt,topsep=3pt]
-\item lay instruction $z$ out as $16$ slots of $\K$: the opcode in slot $3$, the operands and immediate lanes in slots $4,\dots,10$, and $0$ everywhere else.
+\item lay instruction $z$ out as $16$ slots of $\K$: the class tag $\opc{j}$ in slot $3$ (\S\ref{sec:bytecode}); the flags in slot $4$, a word of selector bits naming the class's function, the finalization word for \texttt{HASH}; the register numbers $a_1,a_2,a_d$ in slots $5$ to $7$, $\intk{\sink}=\intk{32}$ for an instruction with no destination or with $\regs[0]$ as one; the immediate in slot $8$, sign-extended, and folded with $\pc$ for \texttt{auipc}; the successor $\intk{\tbase+4z+4}$ in slot $9$; for the control class, $\Delta$ in slot $10$, the branch or jump target XOR the successor, and the bits $\mathit{link}$ and $\mathit{jalr}$ in slots $11$ and $12$ (\S\ref{sec:tab-classes}); and $0$ everywhere else, slot $13$ included, where a division's row puts its verdict (\S\ref{sec:tab-classes}). A slot of the text holding no instruction the machine defines, the halt slot included, is all zeros: its tag is no table's.
 \item read the resulting $2^{\kbc}\times16$ table as $P$, the low $\kbc$ variables indexing the instruction and the high four its slot, bits low first.
 \end{enumerate}
-\begin{center}
-\begin{tabular}{lllllllll}
-\hline
-Instruction & $3$ & $4$ & $5$ & $6$ & $7$ & $8$ & $9$ & $10$\\
-\hline
-\texttt{XOR}           & $\opc{XOR}$ & $o_A$ & $o_B$ & $o_C$ & $0$ & $0$ & $0$ & $0$\\
-\texttt{MUL\_NATIVE}   & $\opc{MUL}$ & $o_A$ & $o_B$ & $o_C$ & $0$ & $0$ & $0$ & $0$\\
-\texttt{SET\_CONSTANT} & $\opc{SET}$ & $o$   & $k_0$ & $k_1$ & $k_2$ & $0$ & $0$ & $0$\\
-\texttt{DEREF}         & $\opc{DRF}$ & $o_1$ & $o_2$ & $o_3$ & $f_{\pc}$ & $f_{\fp}$ & $0$ & $0$\\
-\texttt{JUMP}          & $\opc{JMP}$ & $o_c$ & $o_d$ & $o_f$ & $0$ & $0$ & $0$ & $0$\\
-\texttt{BLAKE2S}        & $\opc{B2S}$  & $o_{m_0}$ & $o_{m_1}$ & $o_{m_2}$ & $o_{m_3}$ & $o_{\mathit{cv}}$ & $o_{\mathit{out}}$ & $o_{\md}$\\
-\hline
-\end{tabular}
-\end{center}
-So $P(z,1,1,0,0)$ is instruction $z$'s opcode, $P(z,0,0,1,0)$ its first operand, and $P(z,0,0,0,0)=P(z,0,0,1,1)=0$.
+So $P(z,1,1,0,0)$ is instruction $z$'s tag, $P(z,1,0,1,0)$ its first register, $P(z,1,0,0,1)$ its successor, and $P(z,0,0,0,0)=P(z,1,1,1,1)=0$.
 
-\subsection{Public input}\label{sec:e2e-pi}
+\paragraph{Well-formedness.} The proof system is sound for any table $P$, a malformed one included: it proves that the rows read $P$ and did what its fields say. What makes $P$ a RISC-V program is checked once, by both parties, where a program enters: every entry with a tag reads two registers below $32$ and writes a cell in $1..32$, its successor is its own address plus $4$, its flags are ones its class defines, its selector bits are bits, and a \texttt{HASH} entry writes the sink and has immediate $0$. The two verifiers check the same rules, and the digest below is of the decoded table, so a verifier is never handed a program it did not check.
 
-The first two memory cells must hold the public input, $\mem[\gen^{0}]=\textsf{input}_0+\textsf{input}_1y$ and $\mem[\gen^{1}]=\textsf{input}_2+\textsf{input}_3y$ (\S\ref{sec:vm}). They sit at $(\underbrace{0,\dots,0}_{\kmem})$ and $(1,\underbrace{0,\dots,0}_{\kmem-1})$, so it suffices to check the following (degree 1) polynomial equality:
+\subsection{Public input and output}\label{sec:e2e-pi}
+
+The \emph{statement} is a program, an input and an output: that the program, run on RAM holding the four input words then its image, halts on \texttt{exit} with $\regs[10],\dots,\regs[13]$ holding the output (\S\ref{sec:vm}). The program is one digest, BLAKE2s of everything public and fixed: the table $P$, the entry point, the halt slot, $\kmem$, $\kadv$ and the image, each variable-length part length-framed. The digest and the input seed the Fiat-Shamir transcript (\S\ref{sec:e2e-fiat-shamir}), so every challenge depends on the exact statement; the output does too, as the words the transcript starts from.
+
+The input needs no claim: RAM's seed column $\meminit$ is public, the input then the image then zeros, and the verifier evaluates its extension at $\zeta$ itself, in time proportional to the image rather than to $\nmem$, the column being zero outside two stretches (\S\ref{sec:leafstack}). The output and the exit are five claims on the committed final registers $\regfin$ at Boolean points, one per register, whose values both parties know and neither transmits:
 \[
-  \mle{\mem}(X,0,\dots,0)\;=\;(1+X)(\textsf{input}_0+\textsf{input}_1y)+X(\textsf{input}_2+\textsf{input}_3y).
+  \mle{\regfin}(\mathrm{bits}(17))\;\qeq\;\intk{93},\qquad \mle{\regfin}(\mathrm{bits}(10+i))\;\qeq\;\textsf{output}_i\quad(i<4),
 \]
-The verifier samples $r_m\in\E$. It can evaluate the right side at $r_m$ directly. For the left side, recall that the memory $\mem\in\E^{\le1}[X_1,\dots,X_{\kmem}]$ is committed as three limbs $\mem_0,\mem_1,\mem_2\in\K^{\le1}[X_1,\dots,X_{\kmem}]$, with $\mem=\mem_0+y\,\mem_1+y^2\,\mem_2$ (\S\ref{sec:memchan}). The prover sends $c_0,c_1\in\E$, claiming $c_0=\mle{\mem_0}(r_m,0,\dots,0)$ and $c_1=\mle{\mem_1}(r_m,0,\dots,0)$. The verifier checks
-\[
-  c_0+y\,c_1\;\qeq\;(1+r_m)(\textsf{input}_0+\textsf{input}_1y)+r_m(\textsf{input}_2+\textsf{input}_3y),
-\]
-and pools the claims $c_0,c_1,0$ on $\mem_0,\mem_1,\mem_2$ at $(r_m,0,\dots,0)$, the last being $0$ because both public cells have top limb zero. If either cell is wrong, the two sides are distinct polynomials of degree at most one in $r_m$, so the check passes with probability at most $1/|\E|$ (Lemma~\ref{lem:sz}).
+with $\mathrm{bits}(r)\in\cube{6}$ the number of the register, low bit first. The PCS opening binds them to the committed column, and Theorem~\ref{thm:rwmem} makes that column what the run's last writes left, so the run executed \texttt{exit} with those values in place. The initial registers are the constant zero, the advice's initial words are the prover's, and nothing else about the run is public.
 
 \subsection{Filling the tables}\label{sec:e2e-pad}
 
-A table is proven over a power-of-two number of rows. The prover reaches one by running extra instructions, in execution cycles disjoint from the program's own run. Proposition~\ref{prop:walk} about bus balance splits the rows into two groups:
-\begin{itemize}
-\item one walk from $(\pc_0,\fp_0)$ to $(\pc_{\mathrm{final}},\fp_{\mathrm{final}})$
-\item closed walks
-\end{itemize}
-The prover can thus leverage these \emph{closed walks} to fill every table to its next power of 2. (important for completeness, but not for soundness)
+A table is proven over a power-of-two number of rows. The prover reaches one with \emph{padding rows}, whose clock is $0$. The text carries, past the program and an illegal word that keeps a run from falling into them, for each table and each of a few sizes, a block of that many no-ops of the table's class followed by a \texttt{jal} back to the block's first instruction, which no program code jumps into. A padding row is a row at one of those instructions. Since $0\cdot\gen^{s}=0$, the states pushed and pulled around a block cancel among themselves, for any number of traversals: these are the closed walks of Proposition~\ref{prop:walk}, and by Corollary~\ref{cor:clock} they are the only ones. A traversal of the block of size $n$ adds $n$ rows to its table and one to \texttt{ALU}'s, so every table can be brought to its next power of two exactly, \texttt{ALU}, where every closing jump lands, being solved last.
+
+The verifier has no notion of a padding row, and needs none: a row is inert exactly when its clock is $0$, and the filler blocks are only how an honest prover comes by such rows. A prover may close its zero-clock rows around any cycle of the program's own control flow instead, and they are inert all the same, by the same two facts: their state tuples cancel because $0\cdot\gen^{s}=0$, and their accesses meet nothing of the run because the gap check forces $\tsprev=0$ on them (Theorem~\ref{thm:rwmem}). The filler blocks earn their place by making the fill exact, not by making it safe.
+
+A padding row's accesses cost nothing either. The gap check \eqref{eq:gap} forces $\tsprev=0$ on them, so an access pulls $\tup{\sep,a,0,v_{\mathrm{old}}}$ and pushes $\tup{\sep,a,0,v_{\mathrm{new}}}$; the prover takes $v_{\mathrm{old}}=v_{\mathrm{new}}$ and the two cancel, whatever the address and the value. A no-op reads $\regs[0]$ twice and writes the sink, a load or a store touches the byte at address $0$, and a compression's block is at address $0$: on zero registers, so the reads are of zeros, and a write rewrites what it writes, which is why a row can rewrite a cell but never update one in place (\S\ref{sec:tables}). Its circuit instance is an honest instance on those zeros. Its reads of the bytecode and of the range arrays are ordinary ones, with $\glo=\gen$ and $\ghi=1$, the two range arrays' first entries. None of this bears on soundness: by Theorem~\ref{thm:rwmem} a tuple whose timestamp is zero meets no tuple of the run, so the padding rows constrain nothing and are constrained by nothing, which is what a padding row should be. The zero of $\K$, the one element that is not a power of $\gen$, plays the part of an \emph{is-real} selector, at the cost of no column and no constraint.
 
 \subsection{Fiat Shamir instantiation}\label{sec:e2e-fiat-shamir}
 
-TODO
+The transcript is a BLAKE2s sponge over $\K$-words. Its initial state is the BLAKE2s digest of the program's digest and the four input words (\S\ref{sec:e2e-pi}), and the four output words are absorbed first, so the state depends on the whole statement before the prover sends anything. Every scalar the prover sends is absorbed as it is sent, every challenge is squeezed from the state at that point, and a value that rode the stream is never absorbed a second time. The commitment's Merkle root is a scalar like any other.
 
 \subsection{The unrolled protocol}\label{sec:e2e-unrolled}
 
@@ -55,13 +40,12 @@ Each reduction below adds evaluation claims on columns to a shared \emph{claim p
 
 \paragraph{Setup.}
 
-
-The Fiat-Shamir initial state (\S\ref{sec:e2e-fiat-shamir}) is seeded by the public input, the bytecode and Flock's BLAKE2s R1CS matrices. The prover sends the memory log-size $\kmem$ and the six table log-heights $\tau_j$; the verifier checks them against the caps (\S\ref{sec:lookup}) and derives the layout of every stack (PCS and GKR leaves).
+The Fiat-Shamir state is seeded by the statement (\S\ref{sec:e2e-fiat-shamir}). The prover sends the eight table log-heights $\tau_j$, the PCS rate and the final clock $\tsfinal\in\K$ (\S\ref{sec:state}); the verifier checks each $\tau_j$ against the cap $2^{32}$ and the batch floors (\S\ref{sec:tables}), and derives the layout of every stack (PCS and GKR leaves) from those sizes and the program's.
 
 \paragraph{Commitment.}
 
 \begin{enumerate}
-\item \textbf{Prover.} Stack (\S\ref{sec:stacking}) every column, the three memory limbs, the two finalize (memory / bytecode) counts, and Flock's packed witness $\qflock$ (\S\ref{sec:tab-blake2s}), into $q$ and sends its commitment (Annex~\ref{annex:pcs}).
+\item \textbf{Prover.} Stack (\S\ref{sec:stacking}) every column: the read-write arrays' final columns and timestamps, $\regfin,\memfin,\advfin$ and their $\tsfin$, the advice's initial words $\advinit$ (\S\ref{sec:memchan}), the three finalize counts (the bytecode and the two range arrays, \S\ref{sec:rangecheck}), the eight packed witnesses $\qcls{j}$ (\S\ref{sec:tab-class}), and every committed column of the eight tables, into $q$, and send its commitment (Annex~\ref{annex:pcs}).
 \item \textbf{Verifier.} Receives the commitment to $q$.
 \end{enumerate}
 
@@ -71,35 +55,34 @@ The Fiat-Shamir initial state (\S\ref{sec:e2e-fiat-shamir}) is seeded by the pub
 \item \textbf{Verifier.} Samples and sends the fingerprint challenge $\alpha\in\E^{4}$ and the multiset challenge $\beta\in\E$ (\S\ref{sec:gp}).
 \item \textbf{Prover.} Forms the push, pull, and \emph{count} leaf vectors (\S\ref{sec:leafstack}; the count leaves are the count columns themselves, \S\ref{sec:lookup}), stacked into blocks and padded with $1$s. Sends one bus root $R$, then the count root $R_c$.
 \item \textbf{Prover \& Verifier.} Run the one batched GKR (\S\ref{sec:gkr}) over all three trees. For the bus, the verifier checks each side's product against $R$; one $R$ for both sides is the balance check (\S\ref{sec:gp}). For the counts it checks $R_c\neq0$ (no read self-cancels, \S\ref{sec:lookup}). The pass yields three leaf claims $\widetilde V^{s}_0(\zeta)$ at one shared $\zeta$.
-\item \textbf{Prover \& Verifier.} Decompose each leaf claim (\S\ref{sec:leafstack}). The verifier forms every public part itself: the block selectors, the constant entries, the index column (\S\ref{sec:idxcol}), and the program's whole share of the two bytecode blocks, one evaluation at $(\zeta,\alpha)$ (\S\ref{sec:e2e-bc}). Three blocks per side belong to no table: the state boundary, plus each array's (memory / bytecode) seed (push side) or finalization (pull side). For their committed columns the prover sends one evaluation each, entering the claim pool. Every other block belongs to a table, and is discharged by the table sumcheck (\S\ref{sec:air}).
+\item \textbf{Prover \& Verifier.} Decompose each leaf claim (\S\ref{sec:leafstack}). The verifier forms every public part itself: the block selectors, the constant entries, the index and geometric columns (\S\ref{sec:idxcol}), RAM's seed column (\S\ref{sec:e2e-pi}), and the program's whole share of the two bytecode blocks, one evaluation at $(\zeta,\alpha)$ (\S\ref{sec:e2e-bc}). Seven blocks per side belong to no table: the state boundary, plus each array's (the registers, RAM, the advice, the bytecode, the two range arrays) seed (push side) or finalization (pull side). For their committed columns the prover sends one evaluation each, entering the claim pool: on the push side the advice's initial column alone, on the pull side every final column, timestamp and count. Every other block belongs to a table, and is discharged by the table sumcheck (\S\ref{sec:air}).
 \end{enumerate}
 
-\paragraph{Table sumcheck.} One run proves the six tables' constraints together with their share of the bus (\S\ref{sec:air}).
+\paragraph{Table sumcheck.} One run proves the eight tables' constraints together with their share of the bus (\S\ref{sec:air}).
 \begin{enumerate}
 \item \textbf{Verifier.} Samples and sends the batch challenge $\xi\in\E$. Its first $\nconstot=\sum_j\ncons{j}$ powers weight the constraints, a disjoint range per table; the last $\nside$ weight the bus forms, one per side and shared by every table. It draws no point: the batch runs at the bus point, $T_j$ tested at $\zeta_{<\tau_j}$.
 \item \textbf{Prover \& Verifier.} Run the sumcheck, $\taumax=\max_j\tau_j$ rounds with $T_j$ joining at round $\taumax-\tau_j$, against the target the verifier derived from the three leaf claims. Its summand has individual degree three and the round check pins one of the four coefficients (\S\ref{sec:prelim}), so a round costs three $\E$-elements.
-\item \textbf{Prover \& Verifier.} The prover sends one value per column of every table. The verifier rebuilds each $C_{j,i}$ and $B^{s}_j$ from them and checks that they reproduce the sumcheck's final value; the column values then enter the claim pool, $T_j$'s at $\fc_{<\tau_j}$. \texttt{BLAKE2S}'s eighteen value limbs are columns of its table but live in $\qflock$, not the stack, so their claims route there (\S\ref{sec:tab-blake2s}).
+\item \textbf{Prover \& Verifier.} The prover sends one value per column of every table. The verifier rebuilds each $C_{j,i}$ and $B^{s}_j$ from them and checks that they reproduce the sumcheck's final value; the column values then enter the claim pool, $T_j$'s at $\fc_{<\tau_j}$. A circuit's ports are columns of its table but live in $\qcls{j}$, so their claims route there (\S\ref{sec:tab-class}).
 \end{enumerate}
 
-\paragraph{Public input.}
+\paragraph{The exit.}
 
 \begin{enumerate}
-\item \textbf{Verifier.} Sample and sends $r_m\in\E$.
-\item \textbf{Prover \& Verifier.} The prover sends $c_0,c_1 \in \E$; the verifier checks $c_0+y c_1$ against $(1+r_m)(\textsf{input}_0+\textsf{input}_1y)+r_m(\textsf{input}_2+\textsf{input}_3y)$ and pools $(c_0,c_1,0)$ as claims on $\mem_0,\mem_1,\mem_2$ at $(r_m,0,\dots,0)$ (\S\ref{sec:e2e-pi}).
+\item \textbf{Prover \& Verifier.} Pool the five claims on $\regfin$ at the Boolean points naming $\regs[17]$ and $\regs[10],\dots,\regs[13]$, with the values $\intk{93}$ and the output; the prover sends nothing (\S\ref{sec:e2e-pi}).
 \end{enumerate}
 
-\paragraph{BLAKE2s validity.}
+\paragraph{Flock validity.}
 
 \begin{enumerate}
-\item \textbf{Prover \& Verifier.} Reduce the executed BLAKE2s constraints to one evaluation claim on $\qflock$ (\S\ref{sec:tab-blake2s}, Annex~\ref{annex:flock}).
-\item \textbf{Prover \& Verifier.} The ring switching of \S\ref{sec:ringswitch} reduces that bit-witness claim to a weighted-sum claim on the $\qflock$ region of the stack, with an MLE-friendly $\E$-valued weight (Definition~\ref{def:ipcs}); it joins the pool.
+\item \textbf{Prover \& Verifier.} Run Flock's reduction (Annex~\ref{annex:flock}) eight times, once per class in table order, over $\qcls{j}$ with $2^{\tau_j}$ instances. Each leaves one evaluation claim on its own packed witness.
+\item \textbf{Prover \& Verifier.} The ring switching of \S\ref{sec:ringswitch}, with one map drawn for the eight, reduces each bit-witness claim to a weighted-sum claim on its witness's region of the stack, with an MLE-friendly $\E$-valued weight (Definition~\ref{def:ipcs}); they join the pool.
 \end{enumerate}
 
 \paragraph{Opening.}
 
 \begin{enumerate}
-\item \textbf{Prover \& Verifier.} Each pooled claim is one evaluation of a column at a point, its value already supplied; via the stacking selectors (\S\ref{sec:stacking}) it becomes a weighted sum $\sum_w W_j(w)\,\widetilde q(w)=c_j$ over the stacked witness. (The ring-switched claim arrives already in this form, its weight supported on the $\qflock$ region.)
-\item \textbf{Verifier.} Sends one batching challenge $\lambda\in\E$, drawn after every claim value is bound. Claim $j$ takes the weight $\lambda^{j-1}$, the ring-switched claim first and the pooled column claims after: the $J$ weights are distinct powers of the one challenge (Theorem~\ref{thm:rbr}).
+\item \textbf{Prover \& Verifier.} Each pooled claim is one evaluation of a column at a point, its value already supplied; via the stacking selectors (\S\ref{sec:stacking}) it becomes a weighted sum $\sum_w W_j(w)\,\widetilde q(w)=c_j$ over the stacked witness. (The eight ring-switched claims arrive already in this form, each weight supported on its own witness's region.)
+\item \textbf{Verifier.} Sends one batching challenge $\lambda\in\E$, drawn after every claim value is bound. Claim $j$ takes the weight $\lambda^{j-1}$, the ring-switched claims first and the pooled column claims after: the $J$ weights are distinct powers of the one challenge (Theorem~\ref{thm:rbr}).
 \item \textbf{Prover \& Verifier.} Fold the $J$ claims into $W_\lambda=\sum_j\lambda^{j-1} W_j$ and $C_\lambda=\sum_j\lambda^{j-1} c_j$, and run the inner-product PCS opening on $\sum_w W_\lambda(w)\,\widetilde q(w)=C_\lambda$ (Annex~\ref{annex:pcs}), the verifier evaluating $W_\lambda$ itself. This one opening discharges every pooled claim; there is no separate reduction sumcheck.
-\item \textbf{Verifier.} Accepts if every check above passed: the caps, the one bus root for both sides, the nonzero count root, every sumcheck's rounds and final value, the public-input line, flock's reduction, and the PCS opening.
+\item \textbf{Verifier.} Accepts if every check above passed: the caps, the one bus root for both sides, the nonzero count root, every sumcheck's rounds and final value, flock's eight reductions, and the PCS opening.
 \end{enumerate}

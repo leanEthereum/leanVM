@@ -1,125 +1,91 @@
+use leanvm::asm::*;
 use leanvm::*;
 
-const EPOCH_A: xmss::Epoch = 7;
-const EPOCH_B: xmss::Epoch = 11;
-const MSG_0: xmss::Message = [0; xmss::MESSAGE_LEN];
-const MSG_1: xmss::Message = [1; xmss::MESSAGE_LEN];
-const MSG_2: xmss::Message = [2; xmss::MESSAGE_LEN];
+/// `a0 <- F(n) mod 2^64`, `n` being the first word of the public input, by a loop that
+/// keeps its two numbers on the stack.
+fn fibonacci() -> Program {
+    const LOG_RAM: usize = 4;
+    let text = Asm::new()
+        .li(SP, RAM_BASE + (8 << LOG_RAM) - 16)
+        .li(T0, RAM_BASE)
+        .load("ld", T0, 0, T0)
+        .i("addi", T1, ZERO, 1)
+        .store("sd", ZERO, 0, SP)
+        .store("sd", T1, 8, SP)
+        .label("loop")
+        .load("ld", A0, 0, SP)
+        .load("ld", A1, 8, SP)
+        .r("add", A2, A0, A1)
+        .store("sd", A1, 0, SP)
+        .store("sd", A2, 8, SP)
+        .i("addi", T0, T0, -1)
+        .branch("bne", T0, ZERO, "loop")
+        .load("ld", A0, 0, SP)
+        .li(A1, 0)
+        .li(A2, 0)
+        .exit()
+        .finish();
+    Program::new(&text, TEXT_BASE, vec![], LOG_RAM, 0)
+}
+
+/// The `preimage` guest (see `guests/`): it hashes the message the prover puts in the
+/// advice and returns the digest, so one program, one input and two advices give two
+/// statements. Its rows cover the tables `fibonacci` does not: `HASH`, and the advice's
+/// side of memory.
+fn preimage(message: &[u8]) -> (Program, Vec<u64>, [u64; 4]) {
+    let program = Program::from_elf(include_bytes!("../guests/elf/preimage.elf")).expect("a guest");
+    let mut advice = vec![message.len() as u64];
+    advice.extend(message.chunks(8).map(|chunk| {
+        let mut word = [0u8; 8];
+        word[..chunk.len()].copy_from_slice(chunk);
+        u64::from_le_bytes(word)
+    }));
+    let digest = primitives::hash::hash(message);
+    let expected = std::array::from_fn(|i| u64::from_le_bytes(digest[8 * i..8 * i + 8].try_into().unwrap()));
+    (program, advice, expected)
+}
 
 #[test]
 fn public_api_end_to_end() {
     setup_prover();
-    let rng = &mut rand::rng();
+    let program = fibonacci();
+    let input = [90, 0, 0, 0];
 
-    // 1. Eight XMSS signatures over three (epoch, message) groups, three at the first,
-    //    four at the second, one at the third. A group is the whole pair, so the first two share an epoch.
-    let mut xmss_input = Vec::new();
-    for (epoch, message, count) in [(EPOCH_A, MSG_0, 3), (EPOCH_A, MSG_1, 4), (EPOCH_B, MSG_2, 1)] {
-        for _ in 0..count {
-            let (secret_key, pub_key) = xmss::key_gen(rng, epoch, epoch).unwrap();
-            let signature = xmss::sign(&secret_key, &message, epoch).unwrap();
-            xmss_input.push((pub_key, epoch, message, signature));
-        }
+    // 1. Prove, then onto the wire and back to a receiver.
+    let (proof, output, _) = prove(&program, input, &[], MIN_LOG_INV_RATE).expect("the run halts");
+    assert_eq!(output, [2_880_067_194_370_816_120, 0, 0, 0]);
+    let bytes = bincode::serialize(&proof).unwrap();
+    let received: Proof = bincode::deserialize(&bytes).unwrap();
+    verify(&program, &input, &output, &received).unwrap();
+
+    // 2. The proof is about this input and this output, and no other.
+    let (mut wrong_input, mut wrong_output) = (input, output);
+    wrong_input[0] += 1;
+    wrong_output[0] += 1;
+    assert!(verify(&program, &wrong_input, &output, &received).is_err());
+    assert!(verify(&program, &input, &wrong_output, &received).is_err());
+
+    // 3. One proof is one arena phase: the first proof outlives the second's phase.
+    let (second, _, _) = prove(&program, input, &[], MIN_LOG_INV_RATE).expect("the run halts");
+    verify(&program, &input, &output, &second).unwrap();
+    verify(&program, &input, &output, &received).unwrap();
+    // 4. The same, over a guest whose rows include the hash table and the advice: with
+    // the arena engaged, a buffer that outlived its phase would show up here as a proof
+    // that stops verifying, and nowhere else (the verifier tests run the arena off).
+    for message in [b"leanVM".as_slice(), b""] {
+        let (guest, advice, digest) = preimage(message);
+        let (proof, output, _) = prove(&guest, [0; 4], &advice, MIN_LOG_INV_RATE).expect("the run halts");
+        assert_eq!(output, digest, "the guest hashed the advice");
+        verify(&guest, &[0; 4], &output, &proof).unwrap();
+        // The advice is the prover's alone: it is no part of what the verifier is told.
+        verify(&guest, &[0; 4], &output, &proof).unwrap();
     }
 
-    // 2. Three SPHINCS signatures, each on its own message
-    let mut sphincs_input = Vec::new();
-    for signer in 0..3u8 {
-        let (secret_key, pub_key) = sphincs::key_gen(rng);
-        let message = [signer; sphincs::MESSAGE_LEN];
-        let signature = sphincs::sign(&secret_key, &message).unwrap();
-        sphincs_input.push((pub_key, message, signature));
-    }
-
-    // 3. Two leaves, then a root over both. The leaves share the second group and the root's groups are their union.
-    let blobs: Vec<_> = (0..lean_da::BLOB_SYMBOLS).map(|i| i as u64).collect();
-    let (commitment, _) = lean_da::commit(&blobs);
-    let left = aggregate(
-        &[],
-        xmss_input[..4].to_vec(),
-        sphincs_input[..1].to_vec(),
-        &blobs,
-        None,
-        2,
-    )
-    .unwrap();
-    let left = EthereumProof::from_bytes(&left.to_bytes()).unwrap();
-    left.verify().unwrap();
-    assert_eq!(left.da_commitments(), &[commitment.root]);
-    let other_blobs: Vec<_> = blobs.iter().map(|x| x ^ 42).collect();
-    let (other_commitment, _) = lean_da::commit(&other_blobs);
-    let right = aggregate(
-        &[],
-        xmss_input[4..7].to_vec(),
-        sphincs_input[1..].to_vec(),
-        &other_blobs,
-        None,
-        2,
-    )
-    .unwrap();
-    let mut roots = vec![commitment.root, other_commitment.root];
-    roots.sort();
-    let root = aggregate(&[left, right], xmss_input[7..].to_vec(), vec![], &[], None, 2).unwrap();
-    assert_eq!(root.num_signature_claims(), 11);
-    assert_eq!(root.da_commitments(), roots);
-
-    // 4. Onto the wire, and back to a receiver, which checks the statement itself:
-    //    verifying says these keys signed, the epochs and messages being the prover's.
-    let bytes = root.to_bytes();
-    let received = EthereumProof::from_bytes(&bytes).unwrap();
-    received.verify().unwrap();
-    assert_eq!(received.da_commitments(), roots);
-    let pairs: Vec<_> = received
-        .xmss_signers()
-        .iter()
-        .map(|group| (group.epoch, group.message))
-        .collect();
-    assert_eq!(pairs, vec![(EPOCH_A, MSG_0), (EPOCH_A, MSG_1), (EPOCH_B, MSG_2)]);
-
-    // 5. Removing some signatures from the aggregate: `declare` is what we keep. Here the first group goes whole.
-    let mut groups = received.xmss_signers().to_vec();
-    let mut sphincs_signers = received.sphincs_signers().to_vec();
-    let dropped_group = groups.remove(0);
-    let dropped_signer = sphincs_signers.remove(0);
-    let retained_signatures = SignatureClaims {
-        xmss: groups,
-        sphincs: sphincs_signers,
-    };
-    let narrowed = aggregate(
-        &[received],
-        vec![],
-        vec![],
-        &[],
-        Some(ClaimSelection {
-            signatures: &retained_signatures,
-            da_commitments: &[commitment.root],
-        }),
-        2,
-    )
-    .unwrap();
-    narrowed.verify().unwrap();
-    assert_eq!(narrowed.da_commitments(), &[commitment.root]);
-    assert_eq!(narrowed.num_signature_claims(), 11 - dropped_group.keys.len() - 1);
-    assert!(
-        !narrowed.xmss_signers().contains(&dropped_group),
-        "unpublished, epoch and message included"
+    let stats = zk_alloc::stats();
+    assert!(stats.phases >= 2, "expected one phase per proof, got {stats:?}");
+    assert!(stats.peak_bytes > 0, "no buffer reached the arena: {stats:?}");
+    assert_eq!(
+        stats.overflow, 0,
+        "a slab overflowed into the system allocator: {stats:?}"
     );
-    assert!(!narrowed.sphincs_signers().contains(&dropped_signer));
-
-    let dropped = aggregate(
-        &[narrowed],
-        vec![],
-        vec![],
-        &[],
-        Some(ClaimSelection {
-            signatures: &retained_signatures,
-            da_commitments: &[],
-        }),
-        2,
-    )
-    .unwrap();
-    dropped.verify().unwrap();
-    assert!(dropped.da_commitments().is_empty());
-    assert_eq!(dropped.xmss_signers(), retained_signatures.xmss);
-    assert_eq!(dropped.sphincs_signers(), retained_signatures.sphincs);
 }

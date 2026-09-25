@@ -86,16 +86,18 @@ use crate::gf2::{
     ADD3_BITS, CARRY_BITS_PER_ADD, MatrixSide, WireWord, back_add, back_add3_fused, walk_add, walk_add3_fused,
     wire_from_const, wire_from_slot_base, wire_rotl, wire_rotr, wire_xor,
 };
+use crate::reduction::{self, Block};
 use crate::verifier;
-use crate::witness::packed_bytes;
 use crate::witness::{
     BitRecord, add_carry_parts, add3_fused_parts, drive_witness_packed_and_lincheck, or_bit_at,
     write_lin_word_ab_packed,
 };
-use pcs::pack::{LOG_PACKING, PACKING_WIDTH};
-use pcs::stack_open::{RingSwitchClaim, RingSwitchOpen, RingSwitchVerify, RingSwitchVerifyClaim};
+use pcs::pack::LOG_PACKING;
+use pcs::stack_open::{RingSwitchOpen, RingSwitchVerify};
 use primitives::field::F192;
 use zk_alloc::ArenaVec;
+
+pub use crate::reduction::{ReductionReplay, SliceClaim, ZerocheckStage, min_n_blocks_log};
 
 // ---------------------------------------------------------------------------
 // Public constants
@@ -107,13 +109,6 @@ pub const K_LOG: usize = 14;
 pub const K: usize = 1 << K_LOG;
 /// Univariate-skip dim, must match [`crate::zerocheck::K_SKIP`].
 pub const K_SKIP: usize = 6;
-
-// A claim's `2^K_SKIP` slices are a ring-switch claim on `q_flock` only if that
-// matches the packing width; otherwise `ring_claim` fails at run time.
-const _: () = assert!(
-    K_SKIP == LOG_PACKING,
-    "the univariate skip must match the PCS packing width"
-);
 
 /// Number of BLAKE2s rounds.
 pub const N_ROUNDS: usize = primitives::hash::ROUNDS;
@@ -271,19 +266,11 @@ pub fn padding_block() -> Compression {
 /// commit that still had `build_matrices` and run `r1cs_digest_matches_baked`.
 ///
 /// The value is mirrored in `python-verifier/verifier.py`, which never could
-/// rebuild the matrices, and in the recursion guest, so a deliberate circuit
-/// change means bumping all three by hand.
+/// rebuild the matrices, so a deliberate circuit change means bumping both by hand.
 pub const R1CS_DIGEST: [u8; 32] = [
     0x53, 0x7a, 0xd2, 0x07, 0x90, 0x30, 0x8f, 0x8e, 0xb8, 0xc0, 0xe8, 0xbd, 0x3e, 0x6c, 0x58, 0xee, 0x64, 0x57, 0x33,
     0x71, 0xe3, 0xd5, 0x3c, 0x30, 0x61, 0x3d, 0xd0, 0x4d, 0x87, 0xc0, 0xb7, 0xea,
 ];
-
-/// Minimum `n_blocks_log` needed to prove `n_blocks` compressions, subject to
-/// the lincheck floor of `n_blocks_log ≥ 3` (`n_outer ≥ 8`).
-pub fn min_n_blocks_log(n_blocks: usize) -> usize {
-    assert!(n_blocks >= 1, "n_blocks must be ≥ 1");
-    n_blocks.max(8).next_power_of_two().trailing_zeros() as usize
-}
 
 // ---------------------------------------------------------------------------
 // Circuit-walk evaluation: `(uᵀ A_0 w, uᵀ B_0 w)` in O(circuit) field ops,
@@ -737,19 +724,12 @@ impl Blake2sSetup {
 // The zerocheck, lincheck, and ring-switch scalars use the shared transcript;
 // the caller carries the WHIR opening.
 
-/// The one claim on the committed witness `q_flock` left by the Flock BLAKE2s
-/// zerocheck + lincheck reduction, for the PCS to discharge: the `2^k_skip`
-/// bit-slice values of `z` at `suffix_point`, transmitted and pinned inside the
-/// reduction by lincheck's terminal identity (which batches A, B, the
-/// constant-wire pin and C), so the PCS only has to bind them to the
-/// commitment.
-///
-/// This is the clean seam between Flock's reduction and the PCS.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct SliceClaim {
-    pub suffix_point: Vec<F192>,
-    pub s_hat_v: Vec<F192>,
-}
+/// The BLAKE2s circuit as the reduction sees it.
+const BLOCK: Block<'static> = Block {
+    k_log: K_LOG,
+    useful_bits: USEFUL_BITS,
+    circuit: &WalkLincheckCircuit,
+};
 
 /// The variable count (`log2` length) of the committed `q_flock` column for
 /// `n_blocks` executed compressions: `K_LOG + min_n_blocks_log − LOG_PACKING`.
@@ -759,103 +739,15 @@ pub fn qflock_kappa(n_blocks: usize) -> usize {
     K_LOG + min_n_blocks_log(n_blocks.max(1)) - LOG_PACKING
 }
 
-/// One reduction claim as a tower [`RingSwitchClaim`]: the `2^k_skip` slices and
-/// the suffix point they live at, which is the WHOLE multilinear tail of the
-/// quirky point (`q_flock` has `2^qflock_vars` words, and the packing prefix is
-/// exactly the skipped coordinates, so nothing is split off into it).
-fn ring_claim(claim: &SliceClaim, qflock_vars: usize) -> RingSwitchClaim {
-    assert_eq!(
-        claim.suffix_point.len(),
-        qflock_vars,
-        "ring-switch suffix must span the q_flock cube"
-    );
-    assert_eq!(claim.s_hat_v.len(), PACKING_WIDTH);
-    RingSwitchClaim {
-        suffix_point: claim.suffix_point.clone(),
-        s_hat_v: Some(claim.s_hat_v.clone()),
-    }
-}
-
-/// Package the prover's reduction claim as a [`RingSwitchOpen`], so the PCS
-/// discharges flock's validity in the same opening as the embedder's own point
-/// claims. `offset` is `q_flock`'s slot in the committed stack; the opener
-/// slices `q_flock` from there.
+/// [`reduction::ring_switch_open`] for `n_blocks` compressions, `offset` being
+/// `q_flock`'s slot in the committed stack.
 pub fn ring_switch_open(n_blocks: usize, offset: usize, reduced: &SliceClaim) -> RingSwitchOpen {
-    let qflock_vars = qflock_kappa(n_blocks);
-    RingSwitchOpen {
-        offset,
-        qflock_vars,
-        claims: vec![ring_claim(reduced, qflock_vars)],
-    }
+    reduction::ring_switch_open(qflock_kappa(n_blocks), offset, reduced)
 }
 
-/// Verifier counterpart of [`ring_switch_open`]: package the recovered claim as
-/// a [`RingSwitchVerify`], the same statement data. The transmitted opening
-/// travels separately.
+/// [`reduction::ring_switch_verify`] for `n_blocks` compressions.
 pub fn ring_switch_verify(n_blocks: usize, offset: usize, claim: &SliceClaim) -> RingSwitchVerify<'_> {
-    let qflock_vars = qflock_kappa(n_blocks);
-    assert_eq!(
-        claim.suffix_point.len(),
-        qflock_vars,
-        "ring-switch suffix must span the q_flock cube"
-    );
-    RingSwitchVerify {
-        offset,
-        qflock_vars,
-        claims: vec![RingSwitchVerifyClaim {
-            suffix_point: &claim.suffix_point,
-            s_hat_v: claim.s_hat_v.as_slice().try_into().expect("ring-switch has 64 slices"),
-        }],
-    }
-}
-
-/// Everything [`Blake2sSetup::verify_reduction`] recovers: the z-claim for the
-/// PCS and the zerocheck / lincheck claims.
-#[derive(Clone, Debug)]
-pub struct ReductionReplay {
-    pub claim: SliceClaim,
-    pub zc_claim: crate::zerocheck::ZerocheckClaim,
-    pub lc_claim: crate::lincheck::LincheckClaim,
-}
-
-/// The lincheck input point carried over from the zerocheck claim: the
-/// univariate-skip coordinate, then the multilinear challenges split at
-/// `inner_rest_len` into the inner-rest and outer halves.
-fn x_ab_of(zc: &crate::zerocheck::ZerocheckClaim, inner_rest_len: usize) -> crate::lincheck::QuirkyPoint {
-    crate::lincheck::QuirkyPoint {
-        z_skip: zc.z,
-        x_inner_rest: zc.mlv_challenges[..inner_rest_len].to_vec(),
-        x_outer: zc.mlv_challenges[inner_rest_len..].to_vec(),
-    }
-}
-
-/// The claim the reduction leaves for the PCS: lincheck's output point, whose
-/// 64 slice values are `lc.s_hat_v`. Prover and verifier must derive it
-/// identically, so they share this one derivation.
-fn reduction_claim(lc: &crate::lincheck::LincheckClaim, x_outer: &[F192]) -> SliceClaim {
-    let mut suffix_point = lc.r_inner_rest.clone();
-    suffix_point.extend_from_slice(x_outer);
-    SliceClaim {
-        suffix_point,
-        s_hat_v: lc.s_hat_v.clone(),
-    }
-}
-
-/// What the zerocheck stage hands the lincheck stage: the zerocheck claim and
-/// the quirky point lincheck runs at. Opaque; the two stages of
-/// [`Blake2sSetup::prove_reduction_precomputed`] are split only so a caller can
-/// time or profile them apart.
-#[derive(Clone, Debug)]
-pub struct ZerocheckStage {
-    x_ab: crate::lincheck::QuirkyPoint,
-}
-
-/// One `FLOCK_PROVE_TRACE` line. `label` carries its own colon so the stages
-/// line up.
-fn trace_stage(label: &str, t: std::time::Instant) {
-    if std::env::var_os("FLOCK_PROVE_TRACE").is_some() {
-        eprintln!("[flock prove] {label:<11}{:8.2} ms", t.elapsed().as_secs_f64() * 1e3);
-    }
+    reduction::ring_switch_verify(qflock_kappa(n_blocks), offset, claim)
 }
 
 impl Blake2sSetup {
@@ -884,7 +776,7 @@ impl Blake2sSetup {
         let t_witness = std::time::Instant::now();
         let (z_packed, a_packed_words, b_packed_words, z_packed_lincheck) =
             generate_witness_with_ab_packed_and_lincheck(blocks, n_log);
-        trace_stage("witness:", t_witness);
+        reduction::trace_stage("witness:", t_witness);
         let reduced =
             self.prove_reduction_precomputed(&z_packed, &a_packed_words, &b_packed_words, &z_packed_lincheck, ps);
         (z_packed, reduced)
@@ -917,35 +809,7 @@ impl Blake2sSetup {
         b_packed_words: &[u64],
         ps: &mut fiat_shamir::transcript::ProverState,
     ) -> ZerocheckStage {
-        let t_zerocheck = std::time::Instant::now();
-
-        // The fused generator packs 64 Boolean coordinates per word.
-        let packed_len = 1usize << (self.m() - 6);
-        assert_eq!(z_packed.len(), packed_len, "wrong packed witness length");
-        assert_eq!(a_packed_words.len(), packed_len, "wrong packed A·z length");
-        assert_eq!(b_packed_words.len(), packed_len, "wrong packed B·z length");
-
-        // No bind_statement here: the embedding protocol (leanVM) seeds its
-        // transcript with the R1CS digest and binds the instance
-        // count and commitment root before any challenge, so the statement is
-        // already fully transcript-bound.
-
-        let padding = crate::zerocheck::PaddingSpec {
-            k_log: K_LOG,
-            useful_bits_per_block: USEFUL_BITS,
-        };
-        let zc_claim = crate::zerocheck::prove_packed_padded(
-            packed_bytes(a_packed_words),
-            packed_bytes(b_packed_words),
-            packed_bytes(z_packed), // C = I, so c == z
-            self.m(),
-            &padding,
-            ps,
-        );
-
-        let x_ab = x_ab_of(&zc_claim, K_LOG - K_SKIP);
-        trace_stage("zerocheck:", t_zerocheck);
-        ZerocheckStage { x_ab }
+        BLOCK.prove_zerocheck(self.n_blocks_log, z_packed, a_packed_words, b_packed_words, ps)
     }
 
     /// **Flock reduction, second stage (prover): the lincheck.** Reduces the
@@ -957,25 +821,7 @@ impl Blake2sSetup {
         z_packed_lincheck: &[u8],
         ps: &mut fiat_shamir::transcript::ProverState,
     ) -> SliceClaim {
-        let t_lincheck = std::time::Instant::now();
-        let packed_len = 1usize << (self.m() - 6);
-        assert_eq!(z_packed_lincheck.len(), packed_len * 8, "wrong lincheck stripe length");
-
-        let ZerocheckStage { x_ab } = stage;
-        let lc_claim = crate::lincheck::prove_padded_capture_s_hat_v(
-            z_packed_lincheck,
-            self.m(),
-            K_LOG,
-            K_SKIP,
-            USEFUL_BITS,
-            &WalkLincheckCircuit,
-            &x_ab,
-            ps,
-        );
-
-        let claim = reduction_claim(&lc_claim, &x_ab.x_outer);
-        trace_stage("lincheck:", t_lincheck);
-        claim
+        BLOCK.prove_lincheck(self.n_blocks_log, stage, z_packed_lincheck, ps)
     }
 
     /// **Flock reduction (verifier).** Replay the BLAKE2s zerocheck and
@@ -986,35 +832,7 @@ impl Blake2sSetup {
         &self,
         vs: &mut fiat_shamir::transcript::VerifierState<'_>,
     ) -> Result<ReductionReplay, verifier::VerifyError> {
-        // Mirror of prove_reduction: the statement is bound by the embedding
-        // protocol's seed (R1CS digest) + announced count + commitment root.
-
-        let zc_claim = crate::zerocheck::verify(self.m(), vs).map_err(verifier::VerifyError::Zerocheck)?;
-
-        let inner_rest_len = K_LOG - K_SKIP;
-        let x_ab = x_ab_of(&zc_claim, inner_rest_len);
-        // Walk-capable circuit: the verifier's lincheck consistency check is
-        // one circuit walk (O(circuit) field ops) instead of the ∝ NNZ CSC
-        // marginal fold. Same transcript, same accept/reject.
-        let lc_claim = crate::lincheck::verify(
-            self.m(),
-            K_LOG,
-            K_SKIP,
-            &WalkLincheckCircuit,
-            &x_ab,
-            zc_claim.a_eval,
-            zc_claim.b_eval,
-            zc_claim.c_eval,
-            vs,
-        )
-        .map_err(verifier::VerifyError::Lincheck)?;
-
-        let claim = reduction_claim(&lc_claim, &x_ab.x_outer);
-        Ok(ReductionReplay {
-            claim,
-            zc_claim,
-            lc_claim,
-        })
+        BLOCK.verify(self.n_blocks_log, vs)
     }
 }
 

@@ -2,25 +2,29 @@
 //! one-way opt-in, so a test that must not have it cannot share a process with
 //! `tests/api.rs`.
 
+use leanvm::asm::*;
 use leanvm::*;
 
-const EPOCH: xmss::Epoch = 5;
-
 #[test]
-fn aggregate_without_the_arena() {
+fn proving_without_the_arena() {
     setup_prover_without_arena();
     assert!(!zk_alloc::is_enabled(), "this path must leave the arena disengaged");
-    let rng = &mut rand::rng();
 
-    let message = [3; xmss::MESSAGE_LEN];
-    let signers = (0..2)
-        .map(|_| {
-            let (secret_key, pub_key) = xmss::key_gen(rng, EPOCH, EPOCH).unwrap();
-            let signature = xmss::sign(&secret_key, &message, EPOCH).unwrap();
-            (pub_key, EPOCH, message, signature)
-        })
-        .collect();
+    // A countdown, returning how far it counted.
+    let text = Asm::new()
+        .li(T0, 300)
+        .label("loop")
+        .i("addi", A0, A0, 1)
+        .i("addi", T0, T0, -1)
+        .branch("bne", T0, ZERO, "loop")
+        .exit()
+        .finish();
+    let program = Program::new(&text, TEXT_BASE, vec![], 2, 0);
+    let (proof, output, _) = prove(&program, [0; 4], &[], MIN_LOG_INV_RATE).expect("the run halts");
+    assert_eq!(output, [300, 0, 0, 0]);
+    verify(&program, &[0; 4], &output, &proof).expect("the proof verifies");
 
-    let aggregated = aggregate(&[], signers, vec![], &[], None, 2).unwrap();
-    aggregated.verify().unwrap();
+    let mut wrong_output = output;
+    wrong_output[0] += 1;
+    assert!(verify(&program, &[0; 4], &wrong_output, &proof).is_err());
 }

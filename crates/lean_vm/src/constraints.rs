@@ -24,12 +24,11 @@
 //! `eq(ζ_m, Y)·p(Y) + Y·u`. Its constant, quadratic and cubic coefficients are
 //! sent; the running claim fixes the linear coefficient. The verifier evaluates
 //! it at the challenge. Heights and `ζ` enter only the per-table `weights`, which
-//! may be accumulated along the way or deferred to the end, as the recursion guest does.
+//! may be accumulated along the way or deferred to the end.
 //!
 //! The eq point is the caller's, not a fresh one (the bus's GKR point `ζ`), which
 //! is what lets the forms' sums settle the bus. Batching derived in `doc/leanvm/main.tex`
-//! §sec:air. Both sides take `n = max τ_t` from the announced heights; a recursive
-//! verifier certifies that maximum with one hinted `g`-power (§recursion), so there
+//! §sec:air. Both sides take `n = max τ_t` from the announced heights, so there
 //! are no rounds in which no table has joined.
 
 use crate::PAR_THRESHOLD;

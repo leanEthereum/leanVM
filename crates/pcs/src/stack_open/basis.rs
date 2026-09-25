@@ -78,7 +78,7 @@ pub(super) fn build(
     lane_block: usize,
     claims: &[StackClaim],
     lambdas: &[F192],
-    ring: &RingSwitchOpen,
+    rings: &[RingSwitchOpen],
     rs_outputs: &[DeferredRingSwitchOutput],
 ) -> (ArenaVec<F192>, SumcheckMessage) {
     assert_eq!(claims.len(), lambdas.len());
@@ -94,13 +94,25 @@ pub(super) fn build(
             lane.push(index);
         }
     }
-    let ring_end = ring.offset + (1 << ring.qflock_vars);
+    // Each ring's outputs are its own run of `rs_outputs`, in ring order.
+    let mut first = 0;
+    let regions: Vec<_> = rings
+        .iter()
+        .map(|ring| {
+            let outputs = &rs_outputs[first..first + ring.claims.len()];
+            first += ring.claims.len();
+            (ring.offset, ring.offset + (1usize << ring.qflock_vars), outputs)
+        })
+        .collect();
+    assert_eq!(first, rs_outputs.len());
     build_initial_basis(stack, lane_block, |start, dst| {
         dst.fill(F192::ZERO);
-        let lo = start.max(ring.offset);
-        let hi = (start + dst.len()).min(ring_end);
-        if lo < hi {
-            combine_deferred_chunk(rs_outputs, lo - ring.offset, &mut dst[lo - start..hi - start]);
+        for &(offset, end, outputs) in &regions {
+            let lo = start.max(offset);
+            let hi = (start + dst.len()).min(end);
+            if lo < hi {
+                combine_deferred_chunk(outputs, lo - offset, &mut dst[lo - start..hi - start]);
+            }
         }
         let mut scratch = [MaybeUninit::uninit(); INITIAL_BASIS_CHUNK];
         for &index in &by_lane[start / lane_block] {

@@ -1082,7 +1082,7 @@ impl<'a> SumcheckProver<'a> {
 
 /// Sample `count` query positions in transcript order: no dedup, no sort.
 /// `block_len = 2^d`; each squeezed field element yields `⌊192/d⌋` positions as
-/// its disjoint d-bit chunks (low bits first), matching the scheme the recursive guest derives (fixed `192/d` per
+/// its disjoint d-bit chunks (low bits first) (fixed `192/d` per
 /// squeeze, dup-tolerant: soundness matches the deployed PCS with the same
 /// `config.queries`). Duplicates are harmless, a repeated position re-opens the
 /// same Merkle-authenticated row.

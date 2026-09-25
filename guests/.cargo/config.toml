@@ -1,0 +1,8 @@
+[build]
+target = "riscv64im-unknown-none-elf"
+
+[unstable]
+build-std = ["core"]
+
+[target.riscv64im-unknown-none-elf]
+rustflags = ["-C", "link-arg=-Tlink.ld"]

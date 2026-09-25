@@ -9,8 +9,7 @@ use primitives::field::{F64, F192};
 /// `f(a, b) = BLAKE2s(a‖b)` on two 256-bit halves laid out little-endian into
 /// 64 bytes, *exactly* the VM's `Blake2s` opcode: 64 input bytes → 32-byte
 /// digest, split back into four field words. THE primitive; the chain is a
-/// chain of these, so a zkDSL program replays it with one `blake2s(...)` per
-/// step.
+/// chain of these, so a VM program replays it with one `BLAKE2S` row per step.
 ///
 /// A 64-byte input is one compression, so this is `compress(init_state(0), m,
 /// t = 64, last = true)` and nothing about the byte-level padding rules can
@@ -40,9 +39,7 @@ const DS_POW_NONCE: F64 = F64(4);
 
 /// `compress(base, (nonce.c0, nonce.c1, nonce.c2, DS_POW_NONCE))` has its low `bits`
 /// bits zero: the grinding predicate over the VM compression. A CONTIGUOUS
-/// low-bit window (rather than byte-wise leading zeros) so a recursive verifier
-/// re-checks it with a single loop over the bit decomposition of the digest word
-/// (`grind_check` in `guests/lean_ethereum.py`). `bits` is always `< 64`.
+/// low-bit window rather than byte-wise leading zeros. `bits` is always `< 64`.
 #[inline]
 fn pow_bits_ok(base: [F64; 4], nonce: F192, bits: u32) -> bool {
     debug_assert!(bits < 64, "grinding deficit fits the digest's low word");

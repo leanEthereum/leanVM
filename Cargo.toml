@@ -12,13 +12,10 @@ workspace = true
 
 [dependencies]
 primitives.workspace = true
-rec_aggregation.workspace = true
 lean_vm.workspace = true
-lean_da.workspace = true
-xmss.workspace = true
-sphincs.workspace = true
 zk_alloc.workspace = true
-rand.workspace = true
+bincode.workspace = true
+tracing.workspace = true
 clap = { version = "4", features = ["derive"] }
 
 [workspace.package]
@@ -39,17 +36,11 @@ fiat_shamir = { path = "crates/fiat_shamir" }
 pcs = { path = "crates/pcs" }
 flock = { path = "crates/flock" }
 lean_vm = { path = "crates/lean_vm" }
-lean_compiler = { path = "crates/lean_compiler" }
-lean_da = { path = "crates/lean_da" }
-rec_aggregation = { path = "crates/rec_aggregation" }
-xmss = { path = "crates/xmss" }
-sphincs = { path = "crates/sphincs" }
 zk_alloc = { path = "crates/zk_alloc" }
 parallel = { path = "crates/parallel" }
 libc = "0.2"
 serde = { version = "1", features = ["derive"] }
 bincode = "1"
-ethereum_ssz = "0.10"
 rand = "0.9"
 tracing = "0.1.26"
 tracing-forest = { version = "0.3.0", features = ["ansi", "smallvec"] }

@@ -26,9 +26,7 @@ fn next_s(s: F64, s_at_root: F64) -> F64 {
 }
 
 /// `sks_vks[k] = s_k(v_k)` for `k = 0..=log_n`, over K. Mirror of
-/// `whir::eval_sk_at_vks`. Public for the recursion harness, which dumps
-/// these vanishing-polynomial values as guest hints (base-field, embedded into
-/// the tower with both extension limbs zero).
+/// `whir::eval_sk_at_vks`.
 pub fn eval_sk_at_vks(log_n: usize) -> Vec<F64> {
     let mut sks_vks = vec![F64::ZERO; log_n + 1];
     sks_vks[0] = F64::ONE;

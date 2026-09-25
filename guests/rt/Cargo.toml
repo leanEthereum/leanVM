@@ -1,0 +1,5 @@
+[package]
+name = "leanvm-guest"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true

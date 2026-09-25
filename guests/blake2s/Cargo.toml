@@ -1,0 +1,8 @@
+[package]
+name = "blake2s"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+leanvm-guest = { path = "../rt" }

@@ -188,8 +188,7 @@ impl AdditiveNttF64 {
     /// `log_inv_rate` IS one replica, so a block's eight participating rows are eight
     /// message rows, and the pass can gather them itself instead of reading back a
     /// codeword someone else just filled. That turns three sweeps of the whole
-    /// codeword (fill it, read it, write it) into one gather and one write: at the
-    /// XMSS scale, three gigabytes moved instead of seven. Replica 0 IS the message,
+    /// codeword (fill it, read it, write it) into one gather and one write. Replica 0 IS the message,
     /// so the blocks run in descending order and it is transformed in place last,
     /// once every other replica has read it.
     ///
