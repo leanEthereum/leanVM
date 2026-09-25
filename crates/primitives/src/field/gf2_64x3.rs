@@ -561,7 +561,7 @@ pub mod aarch64 {
 /// The batched kernels instead place one product per 128-bit lane and reduce every lane at once.
 #[cfg(all(target_arch = "x86_64", target_feature = "pclmulqdq"))]
 pub mod x86_64 {
-    use super::{F192, F192Unreduced, Weights8};
+    use super::{F192, F192Unreduced};
     use crate::field::gf2_64::F64;
     use core::arch::x86_64::*;
     use core::mem::transmute;
@@ -891,7 +891,7 @@ pub mod x86_64 {
     #[cfg(all(target_feature = "vpclmulqdq", target_feature = "avx512f"))]
     #[inline]
     #[target_feature(enable = "vpclmulqdq", enable = "avx512f")]
-    pub unsafe fn dot_base(w: &[Weights8], k: &[F64]) -> F192Unreduced {
+    pub unsafe fn dot_base(w: &[super::Weights8], k: &[F64]) -> F192Unreduced {
         // SAFETY: the function carries both features; `Weights8` is 64-byte aligned, `k` holds 8 qwords per block.
         unsafe {
             let xor = |x, y| _mm512_xor_si512(x, y);
