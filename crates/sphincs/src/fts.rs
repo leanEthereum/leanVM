@@ -19,21 +19,21 @@ pub struct FtsOpening {
 
 /// `s_{idx,kappa,j} = Th(P, tw_ftsprf(idx,kappa,j), S)`.
 fn fts_secret(pp: &PublicParam, master: &MasterSecret, idx: u64, kappa: usize, j: usize) -> Digest {
-    th(pp, &tweak(TWEAK_FTS_PRF, kappa, idx as u32, 0, j as u32), master)
+    th(pp, &fts_tweak(TWEAK_FTS_PRF, kappa, idx, 0, j as u32), master)
 }
 
 fn fts_leaf(pp: &PublicParam, idx: u64, kappa: usize, j: usize, secret: &Digest) -> Digest {
-    th(pp, &tweak(TWEAK_FTS_LEAF, kappa, idx as u32, 0, j as u32), secret)
+    th(pp, &fts_tweak(TWEAK_FTS_LEAF, kappa, idx, 0, j as u32), secret)
 }
 
 fn fts_node(pp: &PublicParam, idx: u64, kappa: usize, level: usize, j: usize, left: &Digest, right: &Digest) -> Digest {
-    let tw = tweak(TWEAK_FTS_NODE, kappa, idx as u32, level as u32, j as u32);
+    let tw = fts_tweak(TWEAK_FTS_NODE, kappa, idx, level as u32, j as u32);
     th_digests(pp, &tw, &[*left, *right])
 }
 
 /// `Fts.key`: the few-time public key, `Th` over the `k-1` roots.
 fn fts_key_of_roots(pp: &PublicParam, idx: u64, roots: &[Digest; NUM_FTS_TREES]) -> Digest {
-    th_digests(pp, &tweak(TWEAK_FTS_ROOTS, 0, idx as u32, 0, 0), roots)
+    th_digests(pp, &fts_tweak(TWEAK_FTS_ROOTS, 0, idx, 0, 0), roots)
 }
 
 /// `Fts.key` and `Fts.open` together, the forest being built once. `u[k-1]` is

@@ -27,7 +27,7 @@ pub const TWEAK_FTS_NODE: u8 = 10;
 pub const TWEAK_FTS_ROOTS: u8 = 11;
 pub const TWEAK_MSG: u8 = 12;
 
-/// `[protocol_domain_sep:1 | type:1 | layer:1 | zero:1 | p:4 | tree:4 | index:4]`, little endian.
+/// `[protocol_domain_sep:1 | type:1 | layer:1 | reserved:1 | p:4 | tree:4 | index:4]`, little endian.
 /// `lay` identifies a hypertree layer or a tree of a few-time forest.
 pub fn tweak(t: u8, lay: usize, tau: u32, p: u32, j: u32) -> Tweak {
     debug_assert!(lay < 256);
@@ -38,6 +38,14 @@ pub fn tweak(t: u8, lay: usize, tau: u32, p: u32, j: u32) -> Tweak {
     tw[4..8].copy_from_slice(&p.to_le_bytes());
     tw[8..12].copy_from_slice(&tau.to_le_bytes());
     tw[12..16].copy_from_slice(&j.to_le_bytes());
+    tw
+}
+
+/// FORS uses the reserved byte for the high bits of its 34-bit instance index.
+pub fn fts_tweak(t: u8, kappa: usize, idx: u64, p: u32, j: u32) -> Tweak {
+    debug_assert!(idx < (1 << H));
+    let mut tw = tweak(t, kappa, idx as u32, p, j);
+    tw[3] = (idx >> 32) as u8;
     tw
 }
 

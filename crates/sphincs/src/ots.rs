@@ -54,16 +54,12 @@ pub fn encode(pp: &PublicParam, pos: Pos, m: &Digest, c: u32) -> Option<[u8; V]>
     codeword(&th(pp, &tweak(TWEAK_ENC, pos.lay, pos.tau, 0, pos.e), &payload))
 }
 
-/// Each 64-bit half of the digest holds `v/2` chunks of `w` bits and one pinned
-/// top bit; pinning it is what makes the codeword determine the digest.
+/// Each 64-bit half of the digest holds `v/2` chunks of `w` bits.
 fn codeword(digest: &Digest) -> Option<[u8; V]> {
     let mut x = [0u8; V];
     let mut sum = 0;
     for (q, half) in digest.as_chunks::<{ N / 2 }>().0.iter().enumerate() {
         let d = u64::from_le_bytes(*half);
-        if d >> (W * V / 2) != 0 {
-            return None;
-        }
         for r in 0..V / 2 {
             let chunk = ((d >> (W * r)) & (CHAIN_LEN as u64 - 1)) as u8;
             x[q * (V / 2) + r] = chunk;

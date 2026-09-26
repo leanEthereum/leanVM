@@ -138,19 +138,15 @@ const _: () = assert!(xmss::LOG_LIFETIME <= 32);
 // The guest's `WOTS_PK_BLOCKS = (2 + V) / 4` truncates, so a bad `V` would drop
 // the last tips.
 const _: () = assert!((2 + xmss::V).is_multiple_of(4));
-// The SPHINCS side of the same shape. `SP_LEAF_BLOCKS = (2 + V) / 4` and
-// `SP_ROOT_BLOCKS = (2 + NUM_FTS_TREES) / 4` truncate, and a truncated loop
-// would leave the last tips or roots out of the hash while the signature still
-// carries them: revealed values no longer bound by the leaf they belong to.
-const _: () = assert!((2 + sphincs::V).is_multiple_of(4));
+// The SPHINCS leaf's final block may be partial; roots must fill complete blocks.
 const _: () = assert!((2 + sphincs::NUM_FTS_TREES).is_multiple_of(4));
 // The guest reads the message digest's bits out of three 64-bit lanes, and a
 // dynamically sized `HeapBuf` gets no compile-time index check, so a wider
 // digest would read leaf indices from cells nothing writes.
 const _: () = assert!(sphincs::DIGEST_BITS <= 3 * 64);
-// The guest packs each tweak field into its own 32-bit word: p at bit 32,
-// tau at bit 64, and j at bit 96.
-const _: () = assert!(sphincs::H <= 32);
+// FORS carries the index's high byte in the tweak's reserved byte; the
+// hypertree's bottom tree index still fits the 32-bit tau field.
+const _: () = assert!(sphincs::H <= 40 && sphincs::H - sphincs::HEIGHTS[sphincs::D - 1] <= 32);
 const _: () = assert!(sphincs::CHAIN_LEN * sphincs::V < 1 << 32);
 const _: () = assert!(sphincs::A <= 32 && sphincs::HEIGHTS[0] <= 32);
 
@@ -3290,7 +3286,14 @@ mod tests {
     #[test]
     fn aggregate_one_sphincs_signer() {
         lean_vm::init_prover_pool();
-        let aggregate = prove_sphincs_leaf(&get_sphincs_signers(1));
+        let signer = get_sphincs_signers(8)
+            .into_iter()
+            .find(|(pk, message, signature)| {
+                sphincs::message_digest(&pk.public_param, &pk.root, &signature.randomizer, message).0 >> 32 != 0
+            })
+            .expect("a signer exercises the high FORS index bits");
+        let signers = [signer];
+        let aggregate = prove_sphincs_leaf(&signers);
         aggregate.verify().expect("verifies");
         assert!(aggregate.xmss_signers.is_empty());
         assert_eq!(aggregate.sphincs_signers.len(), 1);

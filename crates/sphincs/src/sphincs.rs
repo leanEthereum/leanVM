@@ -107,7 +107,7 @@ pub struct SphincsSignature {
     pub fts: FtsOpening,
     pub counters: [u32; D],
     pub ots: [[Digest; V]; D],
-    /// Layer 0's `h_0` siblings, then layer 1's, then layer 2's.
+    /// Authentication paths from every layer, in top-to-bottom order.
     pub paths: [Digest; H],
 }
 
@@ -368,7 +368,7 @@ impl SphincsSecretKey {
     }
 }
 
-/// Sign at most `2^24` messages per key.
+/// Sign at most `2^32` messages per key.
 /// Signing is deterministic and stateless.
 pub fn sign(sk: &SphincsSecretKey, message: &Message) -> Result<SphincsSignature, SphincsSignError> {
     // The digest is admissible when its last leaf index is zero, which is what

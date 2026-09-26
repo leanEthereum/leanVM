@@ -87,20 +87,10 @@ aggregation, 900 XMSS signatures
 
 ### SPHINCS aggregation
 
-The SPHINCS parameters are specified in [SPHINCS.pdf](https://github.com/leanEthereum/leanVM/releases/download/doc-latest/SPHINCS.pdf), with a [(ROM) security proof in Lean 4](https://github.com/leanEthereum/leanMultisig/blob/main/formal/sphincs/SphincsSecurity/Statement.lean).
+The SPHINCS parameters are specified in [doc/sphincs/main.tex](doc/sphincs/main.tex). This instance targets $2^{32}$ signatures per key under the 128-bit classical parameter analysis described there. The [Lean security proof](formal/sphincs/SphincsSecurity/Statement.lean) still covers the previous instance.
 
 ```bash
 cargo run --release -- aggregate --sphincs 245 --log-inv-rate 1 --repeat 3
-```
-
-```
-aggregation, 245 SPHINCS signatures
-  cycles (VM steps)           : 2,132,425 = 2^21.024
-    details                   : XOR 2^18.951 (23.8%)  MUL 2^18.93 (23.4%)  SET 2^18.847 (22.1%)  DEREF 2^18.711 (20.1%)  BLAKE2S 2^16.992 (6.1%)  JUMP 2^16.543 (4.5%)  MEMORY 2^21.564  TOTAL_COMMITTED 2^26.301
-  proof size                  : 300.1 KiB
-  proving time                : 0.861 s ± 1.5%      peak memory 9.348 GiB
-  per signature               : 284.603 signatures/s
-  verifying                   : 3.841 ms
 ```
 
 ### data availability

@@ -234,6 +234,7 @@ fn sphincs_footprint() -> u64 {
         &[0x3C; 16],
     )
     .hash(&mut hasher);
+    sphincs::fts_tweak(sphincs::TWEAK_FTS_LEAF, 2, (1 << 32) + 3, 4, 5).hash(&mut hasher);
     hasher.finish()
 }
 

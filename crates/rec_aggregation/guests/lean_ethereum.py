@@ -372,12 +372,12 @@ SP_CHAIN_LENGTH = 2 ** SP_W
 SP_CHAIN_STEPS = SP_CHAIN_LENGTH - 1
 SP_DIGITS_PER_WORD = SP_V / 2
 SP_TIP_CELLS = SP_V
-SP_LEAF_BLOCKS = (2 + SP_V) / 4       # prefix (tweak, pp) + V tips, four cells a block
+SP_LEAF_FULL_BLOCKS = (2 + SP_V) / 4
+SP_LEAF_BLOCKS = (2 + SP_V + 3) / 4
 SP_N_FTS = SP_K - 1                   # the forest drops the last index's tree
 SP_ROOT_BLOCKS = (2 + SP_N_FTS) / 4
-# The message digest is h + k*a bits of a BLAKE2s output: the whole low cell and
-# the low 48 bits of the high one. Decomposing the high cell's low lane covers
-# them, so the buffer holds three lanes and the top 16 are never read.
+# The message digest uses the first 184 bits of a BLAKE2s output, so three
+# 64-bit lanes cover every index and the remaining eight bits are unused.
 SP_BIT_LANES = 3
 SP_BIT_CELLS = SP_BIT_LANES * BASE_FIELD_BITS
 # Native tweak prefixes, including the protocol domain separator and type.
@@ -389,11 +389,12 @@ SP_TW_FTS_LEAF = SP_TW_FTS_LEAF_PLACEHOLDER
 SP_TW_FTS_NODE = SP_TW_FTS_NODE_PLACEHOLDER
 SP_TW_FTS_ROOTS = SP_TW_FTS_ROOTS_PLACEHOLDER
 SP_TW_MSG = SP_TW_MSG_PLACEHOLDER
-# Tweak layout: protocol_domain_sep | type | layer | zero | p | tree | index.
+# Tweak layout: protocol_domain_sep | type | layer | high FORS index byte | p | tree | index.
 # Each 32-bit field stays within one 64-bit lane.
 SP_LAY_MUL = 2 ** 16
 SP_P_MUL = 2 ** 32
 SP_TAU_POS = BASE_FIELD_BITS
+SP_FTS_HIGH_POS = 24
 SP_J_POS = BASE_FIELD_BITS + 32
 SP_CHAIN_MUL = SP_CHAIN_LENGTH * SP_P_MUL   # chain i's tweaks start at p = 2^w * i
 # The encoding counter, LE_32 in the low four bytes of its cell: bounded by
@@ -2393,10 +2394,14 @@ def sp_ots_leaf(tw_pos, pp, msg):
 
     leaf = StackBuf(WORDS_PER_BLOCK)
     blake2s([tw_pos + SP_TW_LEAF, pp], tips[0:2], leaf, counter=64, final=0)
-    for q in unroll(1, SP_LEAF_BLOCKS):
+    for q in unroll(1, SP_LEAF_FULL_BLOCKS):
         next_leaf = StackBuf(WORDS_PER_BLOCK)
         blake2s(tips[4 * q - 2:4 * q], tips[4 * q:4 * q + 2], next_leaf, cv=leaf, counter=64 * (q + 1), final=(q + 1) // SP_LEAF_BLOCKS)
         leaf = next_leaf
+    if const(SP_LEAF_FULL_BLOCKS != SP_LEAF_BLOCKS):
+        last_leaf = StackBuf(WORDS_PER_BLOCK)
+        blake2s(tips[4 * SP_LEAF_FULL_BLOCKS - 2:4 * SP_LEAF_FULL_BLOCKS], [0, 0], last_leaf, cv=leaf, counter=32 + 16 * SP_V, final=1)
+        leaf = last_leaf
     return leaf[0]
 
 
@@ -2441,7 +2446,7 @@ def verify_sig_sphincs(signer):
         assert bits[GEN ** (SP_H + (SP_K - 1) * SP_A + b)] == 0
 
     # ---- the few-time signature: one opened leaf per tree of the forest ----
-    idx_tau = sp_bit_field(bits, 0, SP_H, SP_TAU_POS)
+    idx_tau = sp_bit_field(bits, 0, 32, SP_TAU_POS) + sp_bit_field(bits, 32, SP_H - 32, SP_FTS_HIGH_POS)
     roots = StackBuf(SP_N_FTS)
     for kappa in unroll(0, SP_N_FTS):
         leaf_off = SP_H + kappa * SP_A

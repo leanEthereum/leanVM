@@ -30,7 +30,7 @@ fn serialized_sizes_and_roundtrip() {
     assert_eq!(SphincsPublicKey::from_bytes(&public_key_bytes), pk);
 
     let signature_bytes = signature.to_bytes();
-    assert_eq!(signature_bytes.len(), 4924);
+    assert_eq!(signature_bytes.len(), 7136);
     let decoded = SphincsSignature::from_bytes(&signature_bytes);
     assert_eq!(decoded, signature);
     verify(&pk, &message, &decoded).unwrap();
@@ -147,11 +147,10 @@ fn grinding_bits() {
         })
         .sum();
     // A codeword is one admissible digest, so 1/p is the number of them over
-    // 2^128: 2^13.60 for T = 191.
     let encoding_bits = ((counters as f64 / samples as f64) + 1.0).log2();
     println!("counter search: 2^{encoding_bits:.2} attempts");
     assert!(
-        (12.6..14.6).contains(&encoding_bits),
+        (12.25..14.25).contains(&encoding_bits),
         "encoding cost moved: {encoding_bits:.2} bits"
     );
 
@@ -202,6 +201,27 @@ fn secret_derivation_uses_full_master() {
         assert_ne!(ots_secret(&pp, &changed, pos, 4), ots);
         assert_ne!(fts_open(&pp, &changed, 5, &[0; K]).0, fts);
     }
+}
+
+#[test]
+fn fors_tweaks_bind_the_high_index_bits() {
+    let lower = 0x1234_5678u64;
+    let higher = lower + (1 << 32);
+    for tweak_type in [TWEAK_FTS_PRF, TWEAK_FTS_LEAF, TWEAK_FTS_NODE, TWEAK_FTS_ROOTS] {
+        let a = fts_tweak(tweak_type, 3, lower, 2, 7);
+        let b = fts_tweak(tweak_type, 3, higher, 2, 7);
+        assert_ne!(a, b);
+        assert_eq!(b[3], 1);
+    }
+    let pp = [3; PUBLIC_PARAM_LEN];
+    let opening = FtsOpening {
+        secrets: [[0; N]; NUM_FTS_TREES],
+        paths: [[[0; N]; A]; NUM_FTS_TREES],
+    };
+    assert_ne!(
+        fts_recover(&pp, lower, &[0; K], &opening),
+        fts_recover(&pp, higher, &[0; K], &opening)
+    );
 }
 
 /// The split between the two entry points: the seed alone determines the key,
