@@ -63,10 +63,10 @@ This specification defines a SPHINCS$^+$ variant with a lifetime of $2^{32}$ sig
 \begin{itemize}
    \item \textbf{128-bit classical security target} under the random-oracle parameter analysis of~\cite{KN25}; approximately 64-bit quantum security is a target. The existing Lean proof has not been updated for this instance (Section~\ref{sec:security}).
   \item \textbf{Public key: 32 bytes.}
-  \item \textbf{Signature: 7136 bytes.}
-  \item \textbf{Verification: 458 hashes.}
-  \item \textbf{Key generation: 1.06M hashes.}
-  \item \textbf{Signing: approximately 234K hashes on average}, with a 1024-byte public cache.
+  \item \textbf{Signature: 8164 bytes.}
+  \item \textbf{Verification: 545 hashes, or 629 BLAKE2s compressions.}
+  \item \textbf{Key generation: 561,152 BLAKE2s compressions.}
+  \item \textbf{Signing: approximately 129,216 BLAKE2s compressions on average}, with a 1024-byte public cache.
 \end{itemize}
 \end{abstract}
 
@@ -92,9 +92,9 @@ Symbol & Value & Meaning\\
 \midrule
 $w$ & $2$ & bit-size of WOTS chain positions\\
 $v$ & $64$ & chains per WOTS key\\
-$T$ & $127$ & sum of the signed chain positions\\
-$d$ & $4$ & layers, numbered from the top\\
-$(h_0,h_1,h_2,h_3)$ & $(12,7,7,8)$ & tree heights at those layers\\
+$T$ & $123$ & sum of the signed chain positions\\
+$d$ & $5$ & layers, numbered from the top\\
+$(h_0,h_1,h_2,h_3,h_4)$ & $(11,5,6,6,6)$ & tree heights at those layers\\
 $h$ & $34$ & total height, $h=\sum_{\lay=0}^{d-1}h_\lay$\\
 $a$ & $10$ & height of each FORS tree\\
 $k$ & $15$ & digest indices, of which $k-1$ open trees\\
@@ -238,7 +238,7 @@ A FORS instance may sign several sets of indices. Reuse reveals more leaves, so 
 
 \section{Connecting the layers}
 
-The \emph{hypertree} connects all $2^{34}$ FORS instances to one public root. Layer $0$ contains one height-12 tree; layer $1$ contains $2^{12}$ height-7 trees; layer $2$ contains $2^{19}$ height-7 trees; layer $3$ contains $2^{26}$ height-8 trees. Each WOTS key in an upper layer signs one child-tree root. Each WOTS key in layer $3$ signs one FORS public key.
+The \emph{hypertree} connects all $2^{34}$ FORS instances to one public root. Layer $0$ contains one height-11 tree; layer $1$ contains $2^{11}$ height-5 trees; layer $2$ contains $2^{16}$ height-6 trees; layer $3$ contains $2^{22}$ height-6 trees; layer $4$ contains $2^{28}$ height-6 trees. Each WOTS key in an upper layer signs one child-tree root. Each WOTS key in layer $4$ signs one FORS public key.
 
 An index $\idx$ selects one tree and one leaf at each layer:
 \[
@@ -246,11 +246,11 @@ An index $\idx$ selects one tree and one leaf at each layer:
   \qquad
   e_\lay(\idx)=\left\lfloor\idx/2^{\sum_{j>\lay}h_j}\right\rfloor\bmod 2^{h_\lay}.
 \]
-Concretely, $e_0$ is the high 12 bits of $\idx$, $e_1$ the next 7 bits, $e_2$ the next 7 bits, and $e_3$ the low 8 bits. Then
+Concretely, $e_0$ is the high 11 bits of $\idx$, $e_1$ the next 5 bits, $e_2$ the next 6 bits, $e_3$ the next 6 bits, and $e_4$ the low 6 bits. Then
 \[
-  \tau_0=0,\qquad \tau_1=e_0,\qquad \tau_2=2^7e_0+e_1,\qquad \tau_3=2^7\tau_2+e_2.
+  \tau_0=0,\qquad \tau_1=e_0,\qquad \tau_2=2^5e_0+e_1,\qquad \tau_3=2^6\tau_2+e_2,\qquad \tau_4=2^6\tau_3+e_3.
 \]
-Thus the key at $(0,0,e_0)$ signs tree $(1,\tau_1)$'s root, the key at $(1,\tau_1,e_1)$ signs tree $(2,\tau_2)$'s root, the key at $(2,\tau_2,e_2)$ signs tree $(3,\tau_3)$'s root, and the key at $(3,\tau_3,e_3)$ signs $\FtsKey(P,\idx)$.
+Thus the key at $(0,0,e_0)$ signs tree $(1,\tau_1)$'s root, the key at $(1,\tau_1,e_1)$ signs tree $(2,\tau_2)$'s root, the key at $(2,\tau_2,e_2)$ signs tree $(3,\tau_3)$'s root, the key at $(3,\tau_3,e_3)$ signs tree $(4,\tau_4)$'s root, and the key at $(4,\tau_4,e_4)$ signs $\FtsKey(P,\idx)$.
 
 \paragraph{Selecting the route and FORS leaves.}
 \label{rem:rho}
@@ -316,7 +316,7 @@ $\Ver(\pk,m,\sigma)$ rejects $\bot$ and malformed inputs. Otherwise, parse $\pk=
 Reject if $X=\bot$. Otherwise set $M_{\lay-1}=\TreeFold(P,\lay,\tau,e,X,A_\lay)$.
 \item Accept exactly when $M_{-1}=\rootnode$.
 \end{enumerate}
-For an honestly generated signature, each WOTS recovery yields its original leaf and each authentication path yields its original root. Induction through the four layers therefore gives acceptance whenever signing succeeds.
+For an honestly generated signature, each WOTS recovery yields its original leaf and each authentication path yields its original root. Induction through the five layers therefore gives acceptance whenever signing succeeds.
 
 \subsection{Serialization and cost}
 \label{sec:costs}
@@ -329,7 +329,7 @@ A signature starts with $\rho$, followed by FORS openings in increasing $\kappa$
   +\underbrace{(k-1)(1+a)\,16}_{\text{FORS openings}}
   +\underbrace{d(4+v\,16)}_{\text{WOTS signatures}}
   +\underbrace{h\,16}_{\text{layer paths}}
-  =7136\text{ bytes}.
+  =8164\text{ bytes}.
 \]
 
 Count one call to $\hash$ regardless of input length. A valid signature takes exactly
@@ -338,11 +338,11 @@ Count one call to $\hash$ regardless of input length. A valid signature takes ex
   +\underbrace{(k-1)(a+1)+1}_{\text{FORS}}
   +\underbrace{d\bigl((2^w-1)v-T+2\bigr)}_{\text{WOTS}}
   +\underbrace{h}_{\text{paths}}
-  =458
+  =545
 \]
-hash calls to verify. A WOTS leaf takes $v+v(2^w-1)+1=257$ calls to derive and build. Key generation therefore takes $1+2^{12}\cdot257+(2^{12}-1)=1{,}056{,}768$ calls, including derivation of $P$.
+hash calls to verify. A WOTS leaf takes $v+v(2^w-1)+1=257$ calls to derive and build. Key generation therefore takes $1+2^{11}\cdot257+(2^{11}-1)=528{,}384$ calls, including derivation of $P$.
 
-Counting BLAKE2s compression calls, verification takes 526 and key generation takes 1,122,304 including derivation of $P$. With the 1024-byte top-tree cache, signing takes approximately 244,773 compressions on average. Its expected work is below $2^{18}$ compressions, while key generation is below $2^{21}$.
+Counting BLAKE2s compression calls, verification takes 629 and key generation takes 561,152 including derivation of $P$. The signer caches the 64 height-5 nodes of the top tree, or 1024 bytes. Rebuilding the one height-5 subtree below the cache and refolding the cached nodes costs 8830 compressions. The four lower trees cost 61,372 compressions; FORS costs 42,998; the randomizer search costs 4096 on average; and the five WOTS signatures cost approximately 11,920.35 on average. Thus signing takes approximately 129,216.35 compressions, below $2^{17}$, while key generation is below $2^{20}$.
 
 \section{Security}
 \label{sec:security}
@@ -383,7 +383,7 @@ With probability at least $1-2^{-256}$ over the master seed and the random oracl
 \end{theorem}
 
 \begin{proof}
-Fix a message $m$. Signing fails only if the randomizer search or one of the $d=4$ WOTS counter searches is exhausted. Whenever signing succeeds, verification accepts by the recovery argument in Section~\ref{sec:ver}.
+Fix a message $m$. Signing fails only if the randomizer search or one of the $d=5$ WOTS counter searches is exhausted. Whenever signing succeeds, verification accepts by the recovery argument in Section~\ref{sec:ver}.
 
 \emph{Randomizer search.} Fix the seed and the oracle answers used by key generation. These calls use neither the randomizer-derivation tweak (type~7) nor the message-digest tweak (type~12). Each trial uses a distinct derivation input, so its 128-bit randomizer is uniform and independent of the earlier trials. After $j$ failed trials, the next randomizer repeats an earlier value with probability at most $j2^{-128}$. Otherwise its digest query is fresh, and the last FORS index is zero with probability $2^{-a}=2^{-10}$. Thus
 \[
@@ -396,22 +396,22 @@ Fix a message $m$. Signing fails only if the randomizer search or one of the $d=
 \]
 Here $\amax2^{-128}=2^{-96}$, and we use $(1-p)^N\leq e^{-pN}\leq2^{-pN}$.
 
-\emph{WOTS counter search.} An encoding accepts exactly when its 64 two-bit positions sum to 127. Hence a uniform 128-bit digest is accepted with probability
+\emph{WOTS counter search.} An encoding accepts exactly when its 64 two-bit positions sum to 123. Hence a uniform 128-bit digest is accepted with probability
 \[
-  \alpha=\frac{[z^{127}](1+z+z^2+z^3)^{64}}{2^{128}}
-  =\frac{34872206821248056855576364146635392}{2^{128}}
+  \alpha=\frac{[z^{123}](1+z+z^2+z^3)^{64}}{2^{128}}
+  =\frac{154880076975771860577080744218814592}{2^{128}}
   \geq2^{-14},
 \]
-where $[z^r]$ denotes the coefficient of $z^r$. Condition on the seed and all oracle answers outside the encoding domain (type~4). If the randomizer search succeeds, this fixes the selected route and the value signed by each WOTS key: a FORS public key or a child-tree root. For the analysis, consider all four searches even if signing would stop at an earlier failure. At each of these keys, distinct counters give distinct encoding inputs, whose answers remain independent and uniform. The probability that all $\cmax=2^{32}$ counters fail is therefore
+where $[z^r]$ denotes the coefficient of $z^r$. Condition on the seed and all oracle answers outside the encoding domain (type~4). If the randomizer search succeeds, this fixes the selected route and the value signed by each WOTS key: a FORS public key or a child-tree root. For the analysis, consider all five searches even if signing would stop at an earlier failure. At each of these keys, distinct counters give distinct encoding inputs, whose answers remain independent and uniform. The probability that all $\cmax=2^{32}$ counters fail is therefore
 \[
   (1-\alpha)^{\cmax}\leq2^{-\alpha\cmax}\leq2^{-2^{18}}.
 \]
-The bound applies to each of the four layers; it does not require their failures to be independent.
+The bound applies to each of the five layers; it does not require their failures to be independent.
 
 \emph{Combining the searches.} A union bound gives, for every fixed message,
 \[
   \Pr[\Sig(\sk,m)=\bot]
-  \leq2^{-2^{21}}+4\cdot2^{-2^{18}}
+  \leq2^{-2^{21}}+5\cdot2^{-2^{18}}
   \leq2^{-2^{18}+3}.
 \]
 There are $2^{256}$ possible messages. A second union bound shows that the probability of any message failing under one key is at most

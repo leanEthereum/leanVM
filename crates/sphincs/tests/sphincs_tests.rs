@@ -30,7 +30,7 @@ fn serialized_sizes_and_roundtrip() {
     assert_eq!(SphincsPublicKey::from_bytes(&public_key_bytes), pk);
 
     let signature_bytes = signature.to_bytes();
-    assert_eq!(signature_bytes.len(), 7136);
+    assert_eq!(signature_bytes.len(), 8164);
     let decoded = SphincsSignature::from_bytes(&signature_bytes);
     assert_eq!(decoded, signature);
     verify(&pk, &message, &decoded).unwrap();
@@ -62,7 +62,7 @@ fn tampered_signatures_rejected() {
     );
 
     // Everything the bottom layers carry feeds the message a layer above signs,
-    // and a counter is admissible for one message in 2^13.6, so tampering
+    // and a counter is rarely admissible for a changed message, so tampering
     // surfaces as an inadmissible encoding rather than as a wrong root.
     for tamper in [
         (|s: &mut SphincsSignature| s.fts.secrets[5][0] ^= 1) as fn(&mut SphincsSignature),

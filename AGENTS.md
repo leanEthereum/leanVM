@@ -70,7 +70,7 @@ The benchmarks we care about:
 - `cargo run --release -- aggregate --sphincs 220 --log-inv-rate 1 --repeat 3`
 - `cargo run --release -- recursion --n 2 --xmss-per-leaf 900 --log-inv-rate 2 --repeat 3`
 
-`aggregate` takes a count per scheme, both defaulting to zero, so either alone or a mix of the two is one command; `recursion --sphincs-per-leaf` likewise puts both schemes in one tree. One SPHINCS verification uses 526 compressions against XMSS's 144; use the benchmark output to compare complete VM cycle counts. `aggregate --blobs` adds LeanDA blobs, and `recursion --blobs-per-leaf` includes them in each child.
+`aggregate` takes a count per scheme, both defaulting to zero, so either alone or a mix of the two is one command; `recursion --sphincs-per-leaf` likewise puts both schemes in one tree. One SPHINCS verification uses 629 compressions against XMSS's 144; use the benchmark output to compare complete VM cycle counts. `aggregate --blobs` adds LeanDA blobs, and `recursion --blobs-per-leaf` includes them in each child.
 
 ## The proving arena (`zk_alloc`)
 

@@ -3,7 +3,7 @@
 //!
 //! Compressions per call, the input including the 32 bytes of tweak and public
 //! parameter: 1 for a chain step, a Merkle node, a derived secret and an
-//! encoding, 2 for the message digest, 4 for the few-time roots, and 11 for a
+//! encoding, 2 for the message digest, 4 for the few-time roots, and 17 for a
 //! one-time leaf.
 
 use crate::*;

@@ -26,9 +26,8 @@ const fn suffix_heights() -> [usize; D + 1] {
 pub const SUFFIX: [usize; D + 1] = suffix_heights();
 const _: () = assert!(SUFFIX[0] == H);
 
-/// The layer-0 depth whose nodes a signer caches, halfway up so that the subtree
-/// to rebuild and the nodes to refold are both `2^(h_0/2)`.
-pub const SPLIT_LEVEL: usize = HEIGHTS[0].div_ceil(2);
+/// The layer-0 depth whose 64 public nodes fill the signer's cache.
+pub const SPLIT_LEVEL: usize = HEIGHTS[0] - 6;
 pub const CACHE_LEN: usize = 1 << (HEIGHTS[0] - SPLIT_LEVEL);
 const _: () = assert!(CACHE_LEN * N == 1024);
 

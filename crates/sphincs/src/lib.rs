@@ -1,6 +1,6 @@
 //! SPHINCS+ over BLAKE2s: the stateless scheme specified in
 //! `doc/sphincs/main.tex`, with WOTS+C and FORS+C, at `2^32` signatures per key
-//! pair. A public key is 32 bytes, a signature 7136, and a verification 458 hash
+//! pair. A public key is 32 bytes, a signature 8164, and a verification 545 hash
 //! calls.
 //!
 //! That specification is the reference and every symbol here carries its name:
@@ -54,13 +54,13 @@ pub const CHAIN_LEN: usize = 1 << W;
 pub const V: usize = 64;
 /// `T`: the sum every codeword has. Above the mean `v(2^w-1)/2 = 96`, so
 /// verification walks fewer chain steps and the signer grinds a counter for it.
-pub const TARGET_SUM: usize = 127;
+pub const TARGET_SUM: usize = 123;
 
 // The hypertree.
 /// `d`: hypertree layers, numbered from the top.
-pub const D: usize = 4;
+pub const D: usize = 5;
 /// `h_lay`: the Merkle tree height of each layer.
-pub const HEIGHTS: [usize; D] = [12, 7, 7, 8];
+pub const HEIGHTS: [usize; D] = [11, 5, 6, 6, 6];
 /// `h`: total height, so `2^h` few-time keys.
 pub const H: usize = 34;
 
@@ -92,11 +92,11 @@ pub const SIG_SIZE: usize = RANDOMIZER_LEN + NUM_FTS_TREES * (1 + A) * N + D * (
 /// `d` times `Ots.leaf`, and `Tree.fold`.
 pub const VERIFY_HASHES: usize = 1 + (NUM_FTS_TREES * (1 + A) + 1) + D * (V * (CHAIN_LEN - 1) - TARGET_SUM + 2) + H;
 
-const _: () = assert!(H == HEIGHTS[0] + HEIGHTS[1] + HEIGHTS[2] + HEIGHTS[3]);
+const _: () = assert!(H == SUFFIX[0]);
 const _: () = assert!(H <= 40 && H - HEIGHTS[D - 1] <= 32);
 const _: () = assert!(W * V == N * 8);
 const _: () = assert!(DIGEST_BITS == DIGEST_BYTES * 8);
 const _: () = assert!(TARGET_SUM < V * (CHAIN_LEN - 1));
 const _: () = assert!(PUB_KEY_SIZE == 32);
-const _: () = assert!(SIG_SIZE == 7136);
-const _: () = assert!(VERIFY_HASHES == 458);
+const _: () = assert!(SIG_SIZE == 8164);
+const _: () = assert!(VERIFY_HASHES == 545);
