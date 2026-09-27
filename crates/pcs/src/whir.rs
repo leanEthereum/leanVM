@@ -165,40 +165,6 @@ pub struct ProverData {
     pub merkle_tree: ArenaVec<Hash>,
 }
 
-/// Fill `codeword` with `2^r` replicas of `msg`: the exact state after the
-/// first `r` forward-NTT layers on the zero-padded coefficient vector
-/// `[msg, 0, ..., 0]`. Pair with `forward_transform_*_from_layer(.., r)`.
-fn replicate_message_fill_uninit<T: Copy + Send + Sync>(codeword: &mut [std::mem::MaybeUninit<T>], msg: &[T]) {
-    let msg_len = msg.len();
-    debug_assert!(codeword.len().is_multiple_of(msg_len));
-    let replicas = codeword.len() / msg_len;
-    const COPY_CHUNK: usize = 1 << 16;
-    // One task per (message chunk, replica). Ordering replica-innermost walks the
-    // MESSAGE rather than the codeword, so a worker's run of tasks copies one
-    // chunk into every replica while it is still in cache; walking the codeword
-    // instead re-reads the whole message per replica, and at scale that is a
-    // gigabyte fetched from DRAM again for each one. Chunking the message alone
-    // is not enough to fill the pool: down the recursion the message shrinks by
-    // 2^3 a level while the codeword shrinks by 2^1, so the deep levels would
-    // leave hundreds of megabytes to one thread.
-    let n_chunks = msg_len.div_ceil(COPY_CHUNK);
-    let dst = parallel::SendPtr(codeword.as_mut_ptr());
-    parallel::for_each(n_chunks * replicas, |t| {
-        let (c, r) = (t / replicas, t % replicas);
-        let start = c * COPY_CHUNK;
-        let len = COPY_CHUNK.min(msg_len - start);
-        // Nothing reads a replica until the transform's first pass, by which
-        // time a codeword this size is long evicted.
-        let stream = Stream::new();
-        // SAFETY: task `(c, r)` owns `[r * msg_len + start, + len)` of the
-        // codeword; those ranges are in bounds, pairwise disjoint, and disjoint
-        // from `msg`.
-        unsafe {
-            stream.copy_uninit(dst.add(r * msg_len + start).cast(), &msg[start..start + len]);
-        }
-    });
-}
-
 /// Commit to the `F64` message of a `2^log_n`-word witness: the message is its
 /// leading `n_lanes` lane blocks of `2^(log_n - log_batch_size)` words each, one
 /// RS codeword per lane, Merkle-committed one leaf per codeword position, the
@@ -284,9 +250,10 @@ impl LigeroWitness {
     }
 }
 
-/// Commit an extension-field polynomial at a recursive level: replicate the
-/// LSB-lane-layout message into all `2^log_inv_rate` sub-blocks, RS-encode
-/// each lane with the K-twiddle mixed-product NTT, and Merkle over rows.
+/// Commit an extension-field polynomial at one recursive WHIR level.
+///
+/// - Each lane of the row-major message is RS-encoded with base-field twiddles.
+/// - The codeword is then Merkle-committed, one leaf per row.
 pub(crate) fn ligero_commit_ext(
     poly: &[F192],
     log_msg_cols: usize,
@@ -302,15 +269,10 @@ pub(crate) fn ligero_commit_ext(
     assert!(log_block_len <= ntt.log_domain_size());
 
     let codeword_len = block_len * num_interleaved;
-    // Replicated up front rather than gathered by the first pass, unlike the base
-    // encode ([`AdditiveNttF64::encode_interleaved_in_place`]): the fused width here is
-    // radix 4 over `num_interleaved` = 8 F192 lanes, so a gather writes four 192-byte
-    // rows at a stride, against the base encode's radix 8 over 512-byte rows. A
-    // contiguous copy is the better shape at this granularity.
-    let mut mat = zk_alloc::alloc_uninit(codeword_len);
-    replicate_message_fill_uninit(&mut mat, poly);
-    // SAFETY: the replicate fill initializes every matrix element.
-    let mut mat = unsafe { zk_alloc::assume_init(mat) };
+    // The encode builds the replicas itself, so the codeword starts uninitialized.
+    //
+    // SAFETY: the encode writes every matrix element before reading it.
+    let mut mat = unsafe { ArenaVec::<F192>::uninitialized(codeword_len) };
 
     // Optional per-level NTT/Merkle split (WHIR_TRACE): one env lookup per
     // commit level, no work when unset.
@@ -322,7 +284,7 @@ pub(crate) fn ligero_commit_ext(
         log_domain = log_block_len,
         lanes = num_interleaved
     )
-    .in_scope(|| forward_transform_interleaved_ext_from_layer(ntt, &mut mat, num_interleaved, log_inv_rate));
+    .in_scope(|| encode_interleaved_ext(ntt, &mut mat, poly, num_interleaved, log_inv_rate));
     let ntt_elapsed = t_ntt.elapsed();
     let t_merkle = std::time::Instant::now();
 
@@ -2591,30 +2553,6 @@ mod tests {
         }
     }
 
-    /// The E-valued interleaved NTT with K-twiddles must act lane-wise on the
-    /// tower coordinates: transforming (c0, c1) packed as F192 equals two
-    /// independent F64 transforms of the c0 and c1 lanes.
-    #[test]
-    fn ext_ntt_matches_two_base_ntts() {
-        let mut rng = Rng::new(5);
-        for (log_d, lanes, start_layer) in [(6usize, 4usize, 0usize), (9, 2, 2), (10, 1, 1)] {
-            let ntt = AdditiveNttF64::standard(log_d);
-            let n = (1usize << log_d) * lanes;
-            let ext: Vec<F192> = (0..n).map(|_| rng.ext()).collect();
-            let mut c0: Vec<F64> = ext.iter().map(|e| F64(e.c0)).collect();
-            let mut c1: Vec<F64> = ext.iter().map(|e| F64(e.c1)).collect();
-            let mut c2: Vec<F64> = ext.iter().map(|e| F64(e.c2)).collect();
-            let mut ext_t = ext.clone();
-            forward_transform_interleaved_ext_from_layer(&ntt, &mut ext_t, lanes, start_layer);
-            ntt.forward_transform_interleaved_parallel_from_layer(&mut c0, lanes, start_layer);
-            ntt.forward_transform_interleaved_parallel_from_layer(&mut c1, lanes, start_layer);
-            ntt.forward_transform_interleaved_parallel_from_layer(&mut c2, lanes, start_layer);
-            for i in 0..n {
-                assert_eq!(ext_t[i], F192::new(c0[i].0, c1[i].0, c2[i].0), "mismatch at {i}");
-            }
-        }
-    }
-
     /// The sparse transposed-NTT induce must be byte-identical to the dense
     /// LCH-expansion induce (same guarantee the original pins). Covers both
     /// the windowed sparse-prefix path (log_block >= 12, k = 8) and the
@@ -2647,48 +2585,6 @@ mod tests {
                 induce_sumcheck_poly_via_ntt_base(log_msg_cols, log_inv_rate, &rows, &v_challenges, &qs, &weights);
             assert_eq!(dense.1, via_ntt.1, "enforced_sum mismatch");
             assert_eq!(&*dense.0, &*via_ntt.0, "basis_poly mismatch");
-        }
-    }
-
-    /// The scalar and parallel ext transforms agree (parallel path is only
-    /// taken for larger inputs; force both on the same data).
-    #[test]
-    fn ext_ntt_scalar_matches_parallel() {
-        let mut rng = Rng::new(6);
-        let log_d = 13;
-        let lanes = 2;
-        let ntt = AdditiveNttF64::standard(log_d);
-        let n = (1usize << log_d) * lanes;
-        let orig: Vec<F192> = (0..n).map(|_| rng.ext()).collect();
-        let mut a = orig.clone();
-        let mut b = orig;
-        forward_transform_interleaved_ext_scalar_from_layer(&ntt, &mut a, lanes, 1);
-        forward_transform_interleaved_ext_parallel_from_layer(&ntt, &mut b, lanes, 1);
-        assert_eq!(a, b);
-    }
-
-    #[test]
-    fn ext_ntt_coefficient_view_matches_scalar() {
-        let mut rng = Rng::new(0xE192);
-        for (log_d, lanes) in [(3usize, 1usize), (8, 4), (12, 16), (14, 16)] {
-            let ntt = AdditiveNttF64::standard(log_d);
-            let original = rng.ext_vec((1 << log_d) * lanes);
-            for start_layer in [0, 1, 2, 3, 4, log_d / 2, log_d] {
-                if start_layer > log_d {
-                    continue;
-                }
-                let mut expected = original.clone();
-                forward_transform_interleaved_ext_scalar_from_layer(&ntt, &mut expected, lanes, start_layer);
-                let mut actual = original.clone();
-                crate::whir_ntt_ext::forward_transform_interleaved_ext_via_base(&ntt, &mut actual, lanes, start_layer);
-                assert_eq!(
-                    actual, expected,
-                    "log_d={log_d}, lanes={lanes}, start_layer={start_layer}"
-                );
-                let mut dispatched = original.clone();
-                forward_transform_interleaved_ext_from_layer(&ntt, &mut dispatched, lanes, start_layer);
-                assert_eq!(dispatched, expected);
-            }
         }
     }
 
