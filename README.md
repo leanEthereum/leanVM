@@ -87,7 +87,7 @@ aggregation, 900 XMSS signatures
 
 ### SPHINCS aggregation
 
-The [SPHINCS specification](doc/sphincs/main.tex) defines a lifetime of $2^{32}$ signatures per key, and its [Lean proof](formal/sphincs/SphincsSecurity/Statement.lean) establishes 127-bit classical strong unforgeability.
+The SPHINCS parameters are specified in [SPHINCS.pdf](https://github.com/leanEthereum/leanVM/releases/download/doc-latest/SPHINCS.pdf), with a [(ROM) security proof in Lean 4](https://github.com/leanEthereum/leanMultisig/blob/main/formal/sphincs/SphincsSecurity/Statement.lean).
 
 ```bash
 cargo run --release -- aggregate --sphincs 245 --log-inv-rate 1 --repeat 3
