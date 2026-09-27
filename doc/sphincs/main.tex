@@ -356,11 +356,18 @@ The challenger generates a key pair and gives $\pk$ to a classical probabilistic
 \]
 This is \emph{strong unforgeability}: even a new signature on a previously signed message counts as a forgery.
 
-The classical parameter calculation follows the FORS model of~\cite{KN25}. With $r$ signatures on one FORS instance, its calculator assigns forgery probability $\bigl(1-(1-2^{-a})^r\bigr)^k$. Summing over the binomial number of uses of an instance gives
+A query budget $q$ bounds every execution of the complete experiment, including key generation, signing, adversarial hashing and final verification. Each hash call counts, including repeated inputs. There is no separate time or memory bound on the adversary.
+
+\begin{theorem}[Classical security]
+For every integer $q\geq1$ and every adversary satisfying these limits,
 \[
-  \sigma=\sum_{r=1}^{\qs}\binom{\qs}{r}(2^{-h})^r(1-2^{-h})^{\qs-r}\bigl(1-(1-2^{-a})^r\bigr)^k.
+  \Pr[\text{the adversary wins}]\leq q/2^{127}.
 \]
-For $(\qs,h,a,k)=(2^{32},34,10,15)$, $-\log_2\sigma\approx130.999$. The calculator reports $-\log_2\max(2^{-128},\sigma)=128$ bits. This calculator estimate is separate from the Lean 4 proof in \texttt{formal/sphincs/}, which establishes 127-bit classical SUF-CMA security for this instance in the shared random-oracle model, counting every hash call in key generation, signing and verification.
+\end{theorem}
+
+The probability is over the master seed, the random oracle and the adversary's private randomness. The FORS calculator of~\cite{KN25} separately estimates 128-bit classical security for these parameters.
+
+The Lean 4 proof using VCVio~\cite{VCVio} is in \texttt{formal/sphincs/}. The scheme, including seed derivation, is in \texttt{SphincsSecurity/Scheme.lean}; the security experiment and claim are in \texttt{SphincsSecurity/Statement.lean}; the theorem is in \texttt{SphincsSecurity.lean}. It depends only on Lean's three standard axioms.
 
 \paragraph{Quantum security.}
 \label{sec:quantum}

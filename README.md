@@ -87,7 +87,7 @@ aggregation, 900 XMSS signatures
 
 ### SPHINCS aggregation
 
-The SPHINCS parameters are specified in [doc/sphincs/main.tex](doc/sphincs/main.tex). This instance targets $2^{32}$ signatures per key under the 128-bit classical parameter analysis described there. The [Lean proof](formal/sphincs/SphincsSecurity/Statement.lean) establishes 127-bit classical strong unforgeability for this instance.
+The [SPHINCS specification](doc/sphincs/main.tex) defines a lifetime of $2^{32}$ signatures per key, and its [Lean proof](formal/sphincs/SphincsSecurity/Statement.lean) establishes 127-bit classical strong unforgeability.
 
 ```bash
 cargo run --release -- aggregate --sphincs 245 --log-inv-rate 1 --repeat 3

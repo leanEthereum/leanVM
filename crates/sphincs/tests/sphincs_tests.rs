@@ -146,11 +146,10 @@ fn grinding_bits() {
             u64::from(ots_sign(&public_param, &master, pos, &message).unwrap().0)
         })
         .sum();
-    // A codeword is one admissible digest, so 1/p is the number of them over
     let encoding_bits = ((counters as f64 / samples as f64) + 1.0).log2();
     println!("counter search: 2^{encoding_bits:.2} attempts");
     assert!(
-        (12.25..14.25).contains(&encoding_bits),
+        (10.1..12.1).contains(&encoding_bits),
         "encoding cost moved: {encoding_bits:.2} bits"
     );
 

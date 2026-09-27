@@ -3286,13 +3286,12 @@ mod tests {
     #[test]
     fn aggregate_one_sphincs_signer() {
         lean_vm::init_prover_pool();
-        let signer = get_sphincs_signers(8)
-            .into_iter()
-            .find(|(pk, message, signature)| {
-                sphincs::message_digest(&pk.public_param, &pk.root, &signature.randomizer, message).0 >> 32 != 0
-            })
-            .expect("a signer exercises the high FORS index bits");
-        let signers = [signer];
+        let signers = get_sphincs_signers(1);
+        let (pk, message, signature) = &signers[0];
+        assert_ne!(
+            sphincs::message_digest(&pk.public_param, &pk.root, &signature.randomizer, message).0 >> 32,
+            0
+        );
         let aggregate = prove_sphincs_leaf(&signers);
         aggregate.verify().expect("verifies");
         assert!(aggregate.xmss_signers.is_empty());

@@ -3,7 +3,7 @@ import SphincsSecurity.Proof.Scheme.StatementLemmas
 /-!
 # The hypertree
 
-Three layers, bottom first. Each layer's fold produces the root of its tree, which is exactly the
+Five layers, bottom first. Each layer's fold produces the root of its tree, which is exactly the
 message the layer above it signs, so the layers chain; layer `0`'s fold is the public root.
 -/
 
