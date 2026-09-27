@@ -61,7 +61,7 @@
 This specification defines a SPHINCS$^+$ variant with a lifetime of $2^{32}$ signatures per key pair:
 
 \begin{itemize}
-   \item \textbf{128-bit classical security target} under the random-oracle parameter analysis of~\cite{KN25}; approximately 64-bit quantum security is a target. The existing Lean proof has not been updated for this instance (Section~\ref{sec:security}).
+   \item \textbf{NIST security level~1}~\cite{NISTPQC}, $\approx 128$-bit (resp. $\approx 64$-bit) of classical (resp. quantum) security, in the Random Oracle model, ROM (resp. Quantum Random Oracle model, QROM).\footnote{The classical bound is proved (Section~\ref{sec:security}); the quantum one is a target, not a proved statement (Section~\ref{sec:quantum}).}
   \item \textbf{Public key: 32 bytes.}
   \item \textbf{Signature: 8164 bytes.}
   \item \textbf{Verification: 545 hashes, or 629 BLAKE2s compressions.}
@@ -365,7 +365,7 @@ For every integer $q\geq1$ and every adversary satisfying these limits,
 \]
 \end{theorem}
 
-The probability is over the master seed, the random oracle and the adversary's private randomness. The FORS calculator of~\cite{KN25} separately estimates 128-bit classical security for these parameters.
+The probability is over the master seed, the random oracle and the adversary's private randomness.
 
 The Lean 4 proof using VCVio~\cite{VCVio} is in \texttt{formal/sphincs/}. The scheme, including seed derivation, is in \texttt{SphincsSecurity/Scheme.lean}; the security experiment and claim are in \texttt{SphincsSecurity/Statement.lean}; the theorem is in \texttt{SphincsSecurity.lean}. It depends only on Lean's three standard axioms.
 
