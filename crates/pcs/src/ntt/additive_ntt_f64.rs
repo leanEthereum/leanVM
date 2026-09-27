@@ -285,9 +285,10 @@ impl AdditiveNttF64 {
         let fit = |words: usize| (words / num_ntts).max(1).ilog2() as usize;
         let (fit2, fit3) = (fit(L2_WORDS), fit(L3_WORDS));
 
-        // From 2^12 rows on, cut at least one deep sub-block per worker.
+        // From 2^12 rows on, cut at least 2^LOG_SUBS_PER_WORKER deep sub-blocks per worker.
         let par_log = if log_d >= PARALLEL_FLOOR_LOG_D {
-            log2_strict_usize(parallel::num_threads().next_power_of_two()).min(log_d - MIN_SUB_LOG)
+            (log2_strict_usize(parallel::num_threads().next_power_of_two()) + LOG_SUBS_PER_WORKER)
+                .min(log_d - MIN_SUB_LOG)
         } else {
             0
         };
@@ -689,7 +690,27 @@ pub fn transpose_lane_major(out: &mut [F64], msg: &[F64], n_lanes: usize, log_ro
 ///
 /// - 2^16 words is 512 KiB.
 /// - Two SMT threads share a core's L2 of 1 MiB, so each budgets for half.
+///
+/// # On Apple silicon
+///
+/// - A deep layer costs about the same whether its sub-block fits a cache or not: the transform is compute bound.
+/// - A gathered layer costs more than a deep one, its rows scattered over more streams than the prefetcher follows.
+/// - So the budget is sized to push layers into the deep pass, not to fit a cache.
+/// - It exceeds [`L3_WORDS`], which then changes no plan.
+#[cfg(not(all(target_arch = "aarch64", target_os = "macos")))]
 const L2_WORDS: usize = 1 << 16;
+#[cfg(all(target_arch = "aarch64", target_os = "macos"))]
+const L2_WORDS: usize = 1 << 21;
+
+/// Deep sub-blocks cut per worker, as a log.
+///
+/// - Apple silicon mixes performance and efficiency cores.
+/// - With one sub-block each, the performance cores would wait on the efficiency cores' sub-blocks.
+/// - Elsewhere every core is alike, and one each suffices.
+#[cfg(not(all(target_arch = "aarch64", target_os = "macos")))]
+const LOG_SUBS_PER_WORKER: usize = 0;
+#[cfg(all(target_arch = "aarch64", target_os = "macos"))]
+const LOG_SUBS_PER_WORKER: usize = 2;
 
 /// Words a deep sub-block may span when it alone covers every layer.
 ///
@@ -1144,7 +1165,7 @@ mod tests {
     fn interleaved_parallel_matches_scalar() {
         // Invariant: the parallel transform equals the scalar reference, word for word.
         //
-        // Each shape forces one plan of the driver:
+        // Each shape forces one plan of the driver, under the budgets used off Apple silicon:
         //
         //     (log_d, lanes, start)   plan
         //     (7, 3, 0)               deep pass only, a single sub-block
@@ -1184,6 +1205,7 @@ mod tests {
         //
         // The in-place encode never materializes the replicas up front.
         // Its message is the buffer's own first replica, which the plan must overwrite last.
+        // The plans are those of the budgets used off Apple silicon.
         //
         //     (log_d, lanes, rate)   plan
         //     (9, 8, 1)              replicate first, then deep pass only

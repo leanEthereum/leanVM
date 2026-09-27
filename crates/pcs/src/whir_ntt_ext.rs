@@ -94,7 +94,7 @@ mod tests {
         // The reference multiplies true E elements by K twiddles.
         // So a match also proves the three-coefficient view is exact.
         //
-        // Each shape forces one plan for a message held apart from the codeword:
+        // Each shape forces one plan for a message held apart from the codeword, under the budgets used off Apple silicon:
         //
         //     (log_d, lanes, rate)   K words a row   plan
         //     (3, 1, 1)              3               deep sub-blocks built in scratch
