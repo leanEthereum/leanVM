@@ -403,7 +403,7 @@ theorem Avoids.layerMessage (secretKey : Seeded.SecretKey) (index : Index) (lay 
       (hnode _ _) (hotsDerive _ _)
   · exact Avoids.ftsKey f target _ index secretKey.seed hftsLeaf hftsNode hftsRoots hftsDerive
 
-/-- The three layers' counter searches hash under different layer fields, so none of them caches another's inputs. -/
+/-- The five layers' counter searches hash under different layer fields, so none of them caches another's inputs. -/
 theorem encodingInput_ne_of_layer_ne (parameter : PublicParameter) {lay lay' : Layer}
     (hlay : lay ≠ lay') (tree tree' : TreeIndex) (leaf leaf' : LeafIndex)
     (payload payload' : HashInput) :
@@ -459,11 +459,11 @@ theorem structural_encoding (parameter : PublicParameter) (seed : MasterSeed) (l
   node _ _ _ _ _ := tweakableHashInput_ne_of_tag_ne parameter
     (by simp [hashDomainFields, tweakFields]) _ _
   ftsLeaf _ _ _ _ := tweakableHashInput_ne_of_tag_ne parameter
-    (by simp [hashDomainFields, tweakFields]) _ _
+    (by simp [hashDomainFields, tweakFields, ftsTweakFields]) _ _
   ftsNodeHash _ _ _ _ _ := tweakableHashInput_ne_of_tag_ne parameter
-    (by simp [hashDomainFields, tweakFields]) _ _
+    (by simp [hashDomainFields, tweakFields, ftsTweakFields]) _ _
   ftsRoots _ _ := tweakableHashInput_ne_of_tag_ne parameter
-    (by simp [hashDomainFields, tweakFields]) _ _
+    (by simp [hashDomainFields, tweakFields, ftsTweakFields]) _ _
   msg _ := tweakableHashInput_ne_of_tag_ne parameter
     (by simp [hashDomainFields, tweakFields]) _ _
   randomizer _ _ := fieldInput_ne_of_tag_ne parameter (by simp [hashDomainFields, tweakFields]) _ _
@@ -526,7 +526,7 @@ theorem Avoids.layerMessage_of_structural (secretKey : Seeded.SecretKey) (index 
 
 /-! ## The invariant a signature keeps
 
-Signing runs its three counter searches one after another. Before each, no encoding input of a
+Signing runs its five counter searches one after another. Before each, no encoding input of a
 layer still to come is cached: key generation and every earlier step avoid them. -/
 
 /-- A computation that avoids an input, run from a cache missing it, leaves it missing. -/

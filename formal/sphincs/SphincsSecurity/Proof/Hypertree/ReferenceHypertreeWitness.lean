@@ -65,9 +65,13 @@ theorem hypertree_reference (index : Index) (leaves : IndexGroup → FtsLeaf) (s
         CachedRun (recordedCache f trace) f (otsLeafAttempt key.parameter lay (treeIndexAt index lay) (leafIndexAt index lay)
           (evalWithAnswerFn f (layerMessage key index lay)) (signature.counter lay) (signature.chainValue lay)) ∧
         VerifierLayerMessage f key.parameter index leaves signature lay (evalWithAnswerFn f (layerMessage key index lay)) := by
-  obtain ⟨bottomLeaf, hbottom, middleLeaf, hmiddle, topLeaf, htop⟩ := hypertreeRun_of_verify index signature (evalWithAnswerFn f (ftsRecover key.parameter index leaves signature.ftsSecret signature.ftsPath)) key.root hverify hrun.cached
-  let middleMessage := foldValue f key.parameter bottomLayer (treeIndexAt index bottomLayer) (leafIndexAt index bottomLayer)
+  obtain ⟨bottomLeaf, hbottom, thirdLeaf, hthird, secondLeaf, hsecond, middleLeaf, hmiddle, topLeaf, htop⟩ := hypertreeRun_of_verify index signature (evalWithAnswerFn f (ftsRecover key.parameter index leaves signature.ftsSecret signature.ftsPath)) key.root hverify hrun.cached
+  let thirdMessage := foldValue f key.parameter bottomLayer (treeIndexAt index bottomLayer) (leafIndexAt index bottomLayer)
     (signaturePath signature bottomLayer) bottomLeaf (layerHeight bottomLayer)
+  let secondMessage := foldValue f key.parameter thirdLayer (treeIndexAt index thirdLayer) (leafIndexAt index thirdLayer)
+    (signaturePath signature thirdLayer) thirdLeaf (layerHeight thirdLayer)
+  let middleMessage := foldValue f key.parameter secondLayer (treeIndexAt index secondLayer) (leafIndexAt index secondLayer)
+    (signaturePath signature secondLayer) secondLeaf (layerHeight secondLayer)
   let topMessage := foldValue f key.parameter middleLayer (treeIndexAt index middleLayer) (leafIndexAt index middleLayer)
     (signaturePath signature middleLayer) middleLeaf (layerHeight middleLayer)
   have htopFold : foldValue f key.parameter topLayer (treeIndexAt index topLayer) (leafIndexAt index topLayer)
@@ -83,15 +87,28 @@ theorem hypertree_reference (index : Index) (leaves : IndexGroup → FtsLeaf) (s
   have hmRoot := exact_top_message_eq_middle_root f key index index topMessage rfl rfl ht.1.symm
   have hm := layer_frame_reference f key words messages selections index signature middleLayer middleMessage key.root middleLeaf trace
     (hvalid _) (hmessages _) hclean hmiddle hmRoot
-  have hbRoot := exact_middle_message_eq_bottom_root f key index index middleMessage rfl rfl hm.1.symm
+  have hsRoot := exact_middle_message_eq_second_root f key index index middleMessage rfl rfl hm.1.symm
+  have hs := layer_frame_reference f key words messages selections index signature secondLayer secondMessage key.root secondLeaf trace
+    (hvalid _) (hmessages _) hclean hsecond hsRoot
+  have hthirdRoot : secondMessage = honestNode f key.parameter thirdLayer (treeIndexAt index thirdLayer)
+      (key.otsSecret thirdLayer (treeIndexAt index thirdLayer)) (layerHeight thirdLayer) 0 := by
+    simpa only [secondLayer, thirdLayer] using
+      exact_layer_message_eq_next_root f key index index secondLayer (by decide) secondMessage rfl rfl hs.1.symm
+  have hth := layer_frame_reference f key words messages selections index signature thirdLayer thirdMessage key.root thirdLeaf trace
+    (hvalid _) (hmessages _) hclean hthird hthirdRoot
+  have hbRoot : thirdMessage = honestNode f key.parameter bottomLayer (treeIndexAt index bottomLayer)
+      (key.otsSecret bottomLayer (treeIndexAt index bottomLayer)) (layerHeight bottomLayer) 0 := by
+    simpa only [thirdLayer, bottomLayer, numLayers] using
+      exact_layer_message_eq_next_root f key index index thirdLayer (by decide) thirdMessage rfl rfl hth.1.symm
   have hb := layer_frame_reference f key words messages selections index signature bottomLayer (evalWithAnswerFn f (ftsRecover key.parameter index leaves signature.ftsSecret signature.ftsPath)) key.root bottomLeaf trace
     (hvalid _) (hmessages _) hclean hbottom hbRoot
   refine ⟨exact_bottom_message_eq_fts_key f key index index (evalWithAnswerFn f (ftsRecover key.parameter index leaves signature.ftsSecret signature.ftsPath)) rfl rfl hb.1.symm, ?_⟩
   have hverifier (position : Layer) (value : Digest)
       (hp : position = bottomLayer ∧ value = (evalWithAnswerFn f (ftsRecover key.parameter index leaves signature.ftsSecret signature.ftsPath)) ∨
+        position = thirdLayer ∧ value = thirdMessage ∨ position = secondLayer ∧ value = secondMessage ∨
         position = middleLayer ∧ value = middleMessage ∨ position = topLayer ∧ value = topMessage) :
       VerifierLayerMessage f key.parameter index leaves signature position value :=
-    ⟨bottomLeaf, hbottom.1, middleLeaf, hmiddle.1, hp⟩
+    ⟨bottomLeaf, hbottom.1, thirdLeaf, hthird.1, secondLeaf, hsecond.1, middleLeaf, hmiddle.1, hp⟩
   have hpack (position : Layer) (value : Digest)
       (he : value = evalWithAnswerFn f (layerMessage key index position))
       (ho : ReferenceLayerOpening f key words selections index signature position)
@@ -107,8 +124,12 @@ theorem hypertree_reference (index : Index) (leaves : IndexGroup → FtsLeaf) (s
   intro lay
   fin_cases lay
   · simpa only [topLayer] using hpack topLayer topMessage ht.1 ht.2 htop.2.2.1
-      (hverifier _ _ (Or.inr (Or.inr ⟨rfl, rfl⟩)))
+      (hverifier _ _ (Or.inr (Or.inr (Or.inr (Or.inr ⟨rfl, rfl⟩)))))
   · simpa only [middleLayer] using hpack middleLayer middleMessage hm.1 hm.2 hmiddle.2.2.1
+      (hverifier _ _ (Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl⟩)))))
+  · simpa only [secondLayer] using hpack secondLayer secondMessage hs.1 hs.2 hsecond.2.2.1
+      (hverifier _ _ (Or.inr (Or.inr (Or.inl ⟨rfl, rfl⟩))))
+  · simpa only [thirdLayer] using hpack thirdLayer thirdMessage hth.1 hth.2 hthird.2.2.1
       (hverifier _ _ (Or.inr (Or.inl ⟨rfl, rfl⟩)))
   · simpa only [bottomLayer, numLayers] using hpack bottomLayer _ hb.1 hb.2 hbottom.2.2.1
       (hverifier _ _ (Or.inl ⟨rfl, rfl⟩))

@@ -5,9 +5,9 @@ import SphincsSecurity.Completeness.Encoding
 /-!
 # When signing fails
 
-`sign` runs the randomizer search, derives and opens the few-time forest, and signs three layers,
+`sign` runs the randomizer search, derives and opens the few-time forest, and signs five layers,
 returning `none` as soon as a search runs out. A union bound through that structure charges the
-failure to the four searches. Each counter search needs its own inputs uncached when it starts;
+failure to the six searches. Each counter search needs its own inputs uncached when it starts;
 `EncodingFresh` carries that from the start of signing, past the digest loop and the forest, and
 past each earlier layer, whose own searches use a different layer field.
 -/
@@ -53,52 +53,76 @@ theorem probEvent_signLayer_none (sk : Seeded.SecretKey) (index : Index) (lay : 
     exact probEvent_otsSign sk.parameter lay _ _ sk.seed r.1 r.2
       (fun c _ => hfresh' lay rfl _ _ _)
 
-/-- The three layers run in turn; each passes the invariant on to the layers after it. -/
+/-- The five layers run in turn; each passes the invariant on to the layers after it. -/
 theorem probEvent_sequenceLayers_none (sk : Seeded.SecretKey) (index : Index)
     (cache : QueryCache HashSpec) (hfresh : EncodingFresh sk.parameter (fun _ => True) cache) :
     Pr[fun r => r.1 = none | (simulateQ (randomOracle : QueryImpl HashSpec _)
       (sequenceLayers (m := OracleComp HashSpec) (α := fun lay => LayerSignature lay)
-        (fun lay => Seeded.signLayer sk index lay))).run cache] ≤ 3 * encodingBound := by
+        (fun lay => Seeded.signLayer sk index lay))).run cache] ≤ 5 * encodingBound := by
   rw [sequenceLayers]
-  refine le_trans (probEvent_bind_le_add _ _ (fun r => r.1 = none) _ cache (2 * encodingBound) ?_) ?_
+  refine le_trans (probEvent_bind_le_add _ _ (fun r => r.1 = none) _ cache (4 * encodingBound) ?_) ?_
   · rintro ⟨result, c1⟩ hr hsome
     obtain ⟨bottom, rfl⟩ := Option.ne_none_iff_exists'.mp hsome
     dsimp only
-    have h1 : EncodingFresh sk.parameter (fun l => l = middleLayer ∨ l = topLayer) c1 :=
+    have h1 : EncodingFresh sk.parameter (fun l => l = thirdLayer ∨ l = secondLayer ∨ l = middleLayer ∨ l = topLayer) c1 :=
       (hfresh.mono (fun _ _ => trivial)).step _ ⟨some bottom, c1⟩ hr
         (fun f l hl tree leaf payload => Avoids.signLayer_of_layer_ne f sk index bottomLayer
-          (by rcases hl with rfl | rfl <;> decide) tree leaf payload)
-    refine le_trans (probEvent_bind_le_add _ _ (fun r => r.1 = none) _ c1 encodingBound ?_) ?_
+          (by rcases hl with rfl | rfl | rfl | rfl <;> decide) tree leaf payload)
+    refine le_trans (probEvent_bind_le_add _ _ (fun r => r.1 = none) _ c1 (3 * encodingBound) ?_) ?_
     · rintro ⟨result2, c2⟩ hr2 hsome2
-      obtain ⟨middle, rfl⟩ := Option.ne_none_iff_exists'.mp hsome2
+      obtain ⟨third, rfl⟩ := Option.ne_none_iff_exists'.mp hsome2
       dsimp only
-      have h2 : EncodingFresh sk.parameter (fun l => l = topLayer) c2 :=
-        (h1.mono (fun l hl => Or.inr hl)).step _ ⟨some middle, c2⟩ hr2
-          (fun f l hl tree leaf payload => Avoids.signLayer_of_layer_ne f sk index middleLayer
-            (by subst hl; decide) tree leaf payload)
-      refine le_trans (probEvent_bind_le_add _ _ (fun r => r.1 = none) _ c2 0 ?_) ?_
-      · rintro ⟨result3, c3⟩ _ hsome3
-        obtain ⟨top, rfl⟩ := Option.ne_none_iff_exists'.mp hsome3
-        simp
-      · rw [add_zero]
-        exact probEvent_signLayer_none sk index topLayer c2 h2
-    · exact (add_le_add (probEvent_signLayer_none sk index middleLayer c1
-        (h1.mono (fun l hl => Or.inl hl))) le_rfl).trans_eq (two_mul _).symm
-  · calc _ ≤ encodingBound + 2 * encodingBound :=
+      have h2 : EncodingFresh sk.parameter (fun l => l = secondLayer ∨ l = middleLayer ∨ l = topLayer) c2 :=
+        (h1.mono (fun l hl => Or.inr hl)).step _ ⟨some third, c2⟩ hr2
+          (fun f l hl tree leaf payload => Avoids.signLayer_of_layer_ne f sk index thirdLayer
+            (by rcases hl with rfl | rfl | rfl <;> decide) tree leaf payload)
+      refine le_trans (probEvent_bind_le_add _ _ (fun r => r.1 = none) _ c2 (2 * encodingBound) ?_) ?_
+      · rintro ⟨result3, c3⟩ hr3 hsome3
+        obtain ⟨second, rfl⟩ := Option.ne_none_iff_exists'.mp hsome3
+        dsimp only
+        have h3 : EncodingFresh sk.parameter (fun l => l = middleLayer ∨ l = topLayer) c3 :=
+          (h2.mono (fun l hl => Or.inr hl)).step _ ⟨some second, c3⟩ hr3
+            (fun f l hl tree leaf payload => Avoids.signLayer_of_layer_ne f sk index secondLayer
+              (by rcases hl with rfl | rfl <;> decide) tree leaf payload)
+        refine le_trans (probEvent_bind_le_add _ _ (fun r => r.1 = none) _ c3 encodingBound ?_) ?_
+        · rintro ⟨result4, c4⟩ hr4 hsome4
+          obtain ⟨middle, rfl⟩ := Option.ne_none_iff_exists'.mp hsome4
+          dsimp only
+          have h4 : EncodingFresh sk.parameter (fun l => l = topLayer) c4 :=
+            (h3.mono (fun l hl => Or.inr hl)).step _ ⟨some middle, c4⟩ hr4
+              (fun f l hl tree leaf payload => Avoids.signLayer_of_layer_ne f sk index middleLayer
+                (by subst hl; decide) tree leaf payload)
+          refine le_trans (probEvent_bind_le_add _ _ (fun r => r.1 = none) _ c4 0 ?_) ?_
+          · rintro ⟨result5, c5⟩ _ hsome5
+            obtain ⟨top, rfl⟩ := Option.ne_none_iff_exists'.mp hsome5
+            simp
+          · rw [add_zero]
+            exact probEvent_signLayer_none sk index topLayer c4 h4
+        · exact (add_le_add (probEvent_signLayer_none sk index middleLayer c3
+            (h3.mono (fun l hl => Or.inl hl))) le_rfl).trans_eq (two_mul _).symm
+      · calc _ ≤ encodingBound + 2 * encodingBound :=
+              add_le_add (probEvent_signLayer_none sk index secondLayer c2
+                (h2.mono (fun l hl => Or.inl hl))) le_rfl
+          _ = 3 * encodingBound := by ring
+    · calc _ ≤ encodingBound + 3 * encodingBound :=
+            add_le_add (probEvent_signLayer_none sk index thirdLayer c1
+              (h1.mono (fun l hl => Or.inl hl))) le_rfl
+        _ = 4 * encodingBound := by ring
+  · calc _ ≤ encodingBound + 4 * encodingBound :=
           add_le_add (probEvent_signLayer_none sk index bottomLayer cache
             (hfresh.mono (fun _ _ => trivial))) le_rfl
-      _ = 3 * encodingBound := by ring
+      _ = 5 * encodingBound := by ring
 
-/-- Signing fails only if the randomizer search or one of the three counter searches does. -/
+/-- Signing fails only if the randomizer search or one of the five counter searches does. -/
 theorem probEvent_sign_none (sk : Seeded.SecretKey) (message : Message) (cache : QueryCache HashSpec)
     (hrand : ∀ s, cache (randInput sk message s) = none)
     (hmsg : ∀ ρ, cache (msgInput sk message ρ) = none)
     (henc : EncodingFresh sk.parameter (fun _ => True) cache) :
     Pr[fun r => r.1 = none | (simulateQ (randomOracle : QueryImpl HashSpec _)
       (Seeded.sign sk message : OracleComp HashSpec (Option Signature))).run cache]
-      ≤ digestFactor ^ digestAttemptLimit + 3 * encodingBound := by
+      ≤ digestFactor ^ digestAttemptLimit + 5 * encodingBound := by
   rw [Seeded.sign]
-  refine le_trans (probEvent_bind_le_add _ _ (fun r => r.1 = none) _ cache (3 * encodingBound) ?_) ?_
+  refine le_trans (probEvent_bind_le_add _ _ (fun r => r.1 = none) _ cache (5 * encodingBound) ?_) ?_
   · rintro ⟨result, c1⟩ hr hsome
     obtain ⟨⟨randomness, index, leaves⟩, rfl⟩ := Option.ne_none_iff_exists'.mp hsome
     dsimp only

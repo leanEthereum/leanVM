@@ -77,12 +77,12 @@ private theorem terminalCertificatePrice_factor (required : Finset FtsTree) (wor
 theorem terminalCertificatePrice_full (word : List Index) :
     terminalCertificatePrice Finset.univ word = (2 ^ 128 : ENNReal)⁻¹ * fixedFullProposalPrice word := by
   have htrees : Fintype.card FtsTree = 14 := Fintype.card_fin _
-  have hindex : Fintype.card Index = 2 ^ 26 := Fintype.card_fin _
+  have hindex : Fintype.card Index = 2 ^ 34 := Fintype.card_fin _
   have hleaf : Fintype.card FtsLeaf = 2 ^ 10 := Fintype.card_fin _
   rw [terminalCertificatePrice_factor, Finset.card_univ, htrees]
   have hcoefficient :
       ((((2 ^ ftsTreeHeight : Nat) : ENNReal)⁻¹ * (Fintype.card Index : ENNReal)⁻¹) *
-        targetCertificateScale Finset.univ) = (2 ^ 128 : ENNReal)⁻¹ * (2 ^ 48 : ENNReal)⁻¹ := by
+        targetCertificateScale Finset.univ) = (2 ^ 128 : ENNReal)⁻¹ * (2 ^ 56 : ENNReal)⁻¹ := by
     unfold targetCertificateScale
     rw [Finset.card_univ, htrees, hindex, hleaf]
     apply (ENNReal.toReal_eq_toReal_iff' (by finiteness) (by finiteness)).mp

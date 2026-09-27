@@ -36,16 +36,16 @@ theorem ofNat_inj_of_lt {w a b : Nat} (ha : a < 2 ^ w) (hb : b < 2 ^ w)
   rwa [BitVec.toNat_ofNat, BitVec.toNat_ofNat, Nat.mod_eq_of_lt ha, Nat.mod_eq_of_lt hb] at htoNat
 
 theorem fieldBytes_injective {t1 t2 : TweakFields} (h : fieldBytes t1 = fieldBytes t2) : t1 = t2 := by
-  obtain ⟨tag1, layer1, tree1, position1, index1⟩ := t1
-  obtain ⟨tag2, layer2, tree2, position2, index2⟩ := t2
+  obtain ⟨tag1, layer1, reserved1, tree1, position1, index1⟩ := t1
+  obtain ⟨tag2, layer2, reserved2, tree2, position2, index2⟩ := t2
   simp only [fieldBytes] at h
   obtain ⟨h, hindex⟩ := List.append_inj' h (by simp [bytesLE_length])
   obtain ⟨h, htree⟩ := List.append_inj' h (by simp [bytesLE_length])
   obtain ⟨h, hposition⟩ := List.append_inj' h (by simp [bytesLE_length])
-  have h := List.append_left_injective [0] h
+  obtain ⟨h, hreserved⟩ := List.append_inj' h (by simp [bytesLE_length])
   obtain ⟨htag, hlayer⟩ := List.append_inj' h (by simp [bytesLE_length])
   have htag := List.append_right_injective [protocolDomainSep] htag
-  simp only [bytesLE_injective htag, bytesLE_injective hlayer, bytesLE_injective htree,
+  simp only [bytesLE_injective htag, bytesLE_injective hlayer, bytesLE_injective hreserved, bytesLE_injective htree,
     bytesLE_injective hposition, bytesLE_injective hindex]
 
 theorem tweakBytes_eq_iff {d1 d2 : HashDomain} :
@@ -53,8 +53,7 @@ theorem tweakBytes_eq_iff {d1 d2 : HashDomain} :
   ⟨fun h => fieldBytes_injective h, fun h => by rw [tweakBytes, tweakBytes, h]⟩
 
 private theorem layer_le : numLayers ≤ 2 ^ 8 := by decide
-private theorem tree_le : 2 ^ totalHeight ≤ 2 ^ 32 := Nat.pow_le_pow_right (by omega) (by decide)
-private theorem index_le : 2 ^ totalHeight ≤ 2 ^ 32 := tree_le
+private theorem tree_le : 2 ^ 32 ≤ 2 ^ 32 := le_rfl
 private theorem leaf_le : 2 ^ maxLayerHeight ≤ 2 ^ 32 := Nat.pow_le_pow_right (by omega) (by decide)
 private theorem ftsTree_le : ftsTrees - 1 ≤ 2 ^ 8 := by decide
 private theorem ftsLeaf_le : 2 ^ ftsTreeHeight ≤ 2 ^ 32 := Nat.pow_le_pow_right (by omega) (by decide)
@@ -71,6 +70,22 @@ theorem fin_of_ofNat_eq {w n : Nat} {a b : Fin n} (hn : n ≤ 2 ^ w)
     (h : BitVec.ofNat w a.val = BitVec.ofNat w b.val) : a = b :=
   Fin.ext (ofNat_inj_of_lt (Nat.lt_of_lt_of_le a.isLt hn) (Nat.lt_of_lt_of_le b.isLt hn) h)
 
+theorem fts_index_eq {a b : Index}
+    (hhigh : BitVec.ofNat 8 (a.val / 2 ^ 32) = BitVec.ofNat 8 (b.val / 2 ^ 32))
+    (hlow : BitVec.ofNat 32 a.val = BitVec.ofNat 32 b.val) : a = b := by
+  have ha : a.val / 2 ^ 32 < 2 ^ 8 := by
+    have := a.isLt
+    norm_num [totalHeight] at *
+    omega
+  have hb : b.val / 2 ^ 32 < 2 ^ 8 := by
+    have := b.isLt
+    norm_num [totalHeight] at *
+    omega
+  have hdiv := ofNat_inj_of_lt ha hb hhigh
+  have hmod := congrArg BitVec.toNat hlow
+  simp only [BitVec.toNat_ofNat] at hmod
+  exact Fin.ext (by omega)
+
 /-- **Domain separation.** A tweak names one structural position: two in-range domains with the same
 tweak bytes are the same domain. This is what stops one query from bearing on two positions, and so
 what keeps an inversion at `2^-n` per query with no multi-target factor. -/
@@ -78,25 +93,25 @@ theorem tweakBytes_injective {d1 d2 : HashDomain} (h1 : d1.InRange) (h2 : d2.InR
     (h : tweakBytes d1 = tweakBytes d2) : d1 = d2 := by
   rw [tweakBytes_eq_iff] at h
   cases d1 <;> cases d2 <;>
-    simp_all [hashDomainFields, tweakFields, HashDomain.InRange, TweakFields.mk.injEq]
+    simp_all [hashDomainFields, tweakFields, ftsTweakFields, HashDomain.InRange, TweakFields.mk.injEq]
   case chain.chain lay1 tree1 leaf1 i1 s1 lay2 tree2 leaf2 i2 s2 =>
     obtain ⟨hl, ht, hp, hlf⟩ := h
     have hpos := ofNat_inj_of_lt (OtsCode.chainTweakPosition_lt i1 s1) (OtsCode.chainTweakPosition_lt i2 s2) hp
     obtain ⟨hi, hs⟩ := OtsCode.chainTweakPosition_injective hpos
-    exact ⟨fin_of_ofNat_eq layer_le hl, fin_of_ofNat_eq tree_le ht, fin_of_ofNat_eq leaf_le hlf, hi, hs⟩
-  case leaf.leaf => exact ⟨fin_of_ofNat_eq layer_le h.1, fin_of_ofNat_eq tree_le h.2.1,
+    exact ⟨fin_of_ofNat_eq layer_le hl, fin_of_ofNat_eq leaf_le hlf, hi, hs⟩
+  case leaf.leaf => exact ⟨fin_of_ofNat_eq layer_le h.1,
       fin_of_ofNat_eq leaf_le h.2.2⟩
   case node.node lay1 tree1 level1 nodeIdx1 lay2 tree2 level2 nodeIdx2 =>
-    exact ⟨fin_of_ofNat_eq layer_le h.1, fin_of_ofNat_eq tree_le h.2.1,
+    exact ⟨fin_of_ofNat_eq layer_le h.1,
       ofNat_inj_of_lt h1.1 h2.1 h.2.2.1, ofNat_inj_of_lt h1.2 h2.2 h.2.2.2⟩
-  case encoding.encoding => exact ⟨fin_of_ofNat_eq layer_le h.1, fin_of_ofNat_eq tree_le h.2.1,
+  case encoding.encoding => exact ⟨fin_of_ofNat_eq layer_le h.1,
       fin_of_ofNat_eq leaf_le h.2.2⟩
-  case ftsLeaf.ftsLeaf => exact ⟨fin_of_ofNat_eq index_le h.2.1, fin_of_ofNat_eq ftsTree_le h.1,
-      fin_of_ofNat_eq ftsLeaf_le h.2.2⟩
+  case ftsLeaf.ftsLeaf => exact ⟨fts_index_eq h.2.1 h.2.2.1, fin_of_ofNat_eq ftsTree_le h.1,
+      fin_of_ofNat_eq ftsLeaf_le h.2.2.2⟩
   case ftsNode.ftsNode =>
-    exact ⟨fin_of_ofNat_eq index_le h.2.1, fin_of_ofNat_eq ftsTree_le h.1,
-      ofNat_inj_of_lt h1.1 h2.1 h.2.2.1, ofNat_inj_of_lt h1.2 h2.2 h.2.2.2⟩
-  case ftsRoots.ftsRoots => exact fin_of_ofNat_eq index_le h
+    exact ⟨fts_index_eq h.2.1 h.2.2.1, fin_of_ofNat_eq ftsTree_le h.1,
+      ofNat_inj_of_lt h1.1 h2.1 h.2.2.2.1, ofNat_inj_of_lt h1.2 h2.2 h.2.2.2.2⟩
+  case ftsRoots.ftsRoots => exact fts_index_eq h.1 h.2
 
 theorem tweakBytes_length (domain : HashDomain) : (tweakBytes domain).length = 16 := by
   simp [tweakBytes, fieldBytes, bytesLE_length]
@@ -123,7 +138,7 @@ theorem tweakableHashInput_ne_message (parameter : PublicParameter) (domain : Ha
   obtain ⟨htweak, _⟩ := List.append_inj' hprefix (by simp [bytesLE_length])
   apply hdomain
   cases domain <;>
-    simp_all [tweakBytes_eq_iff, hashDomainFields, tweakFields, TweakFields.mk.injEq]
+    simp_all [tweakBytes_eq_iff, hashDomainFields, tweakFields, ftsTweakFields, TweakFields.mk.injEq]
 
 /-! ### Payloads
 

@@ -360,7 +360,7 @@ The classical parameter calculation follows the FORS model of~\cite{KN25}. With 
 \[
   \sigma=\sum_{r=1}^{\qs}\binom{\qs}{r}(2^{-h})^r(1-2^{-h})^{\qs-r}\bigl(1-(1-2^{-a})^r\bigr)^k.
 \]
-For $(\qs,h,a,k)=(2^{32},34,10,15)$, $-\log_2\sigma\approx130.999$. The calculator reports $-\log_2\max(2^{-128},\sigma)=128$ bits. This is a parameter analysis, not a formal SUF-CMA theorem for the new instance. The Lean 4 proof in \texttt{formal/sphincs/} remains for the previous parameter set and is not invoked for this one.
+For $(\qs,h,a,k)=(2^{32},34,10,15)$, $-\log_2\sigma\approx130.999$. The calculator reports $-\log_2\max(2^{-128},\sigma)=128$ bits. This calculator estimate is separate from the Lean 4 proof in \texttt{formal/sphincs/}, which establishes 127-bit classical SUF-CMA security for this instance in the shared random-oracle model, counting every hash call in key generation, signing and verification.
 
 \paragraph{Quantum security.}
 \label{sec:quantum}

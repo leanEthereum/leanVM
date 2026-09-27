@@ -36,7 +36,7 @@ theorem uniformWordAverage_nearPrice (required : Finset FtsTree) (hdegree : requ
   rw [hdegree, stirlingPowerMoment_thirteen]
   unfold targetCertificateScale
   rw [hdegree]
-  have hindex : Fintype.card Index = 2 ^ 26 := Fintype.card_fin _
+  have hindex : Fintype.card Index = 2 ^ 34 := Fintype.card_fin _
   have hleaf : Fintype.card FtsLeaf = 2 ^ 10 := Fintype.card_fin _
   rw [hindex, hleaf]
   apply (ENNReal.toReal_le_toReal (by finiteness) (by finiteness)).mp

@@ -99,13 +99,13 @@ theorem proposalPrefixWeight_initial_le : proposalPrefixWeight 0 0 ≤ proposalP
   let ratio : ℝ := 17179869184 / 17179343615
   have hz : 0 < z := by norm_num [z]
   have hr : 0 < ratio := by norm_num [ratio]
-  have hlog : (signatureLimit : ℝ) * Real.log ratio - 2 * 2 ^ 17 * Real.log z ≤ -700 * Real.log 2 := by
+  have hlog : (signatureLimit : ℝ) * Real.log ratio - 2 * 2 ^ 25 * Real.log z ≤ -700 * Real.log 2 := by
     have hratio := Real.log_le_sub_one_of_pos hr
     have hbase := Real.one_sub_inv_le_log_of_pos hz
     have htwo := Real.log_two_lt_d9
     norm_num [ratio, z, signatureLimit] at hratio hbase ⊢
     linarith
-  have hreal : (ratio * z ^ 3) ^ signatureLimit / z ^ (3 * signatureLimit + 2 * 2 ^ 17) ≤ (2 ^ 700 : ℝ)⁻¹ := by
+  have hreal : (ratio * z ^ 3) ^ signatureLimit / z ^ (3 * signatureLimit + 2 * 2 ^ 25) ≤ (2 ^ 700 : ℝ)⁻¹ := by
     apply (Real.log_le_log_iff (by positivity) (by positivity)).mp
     rw [Real.log_div (by positivity) (by positivity), Real.log_pow, Real.log_mul hr.ne' (by positivity),
       Real.log_pow, Real.log_pow, Real.log_inv, Real.log_pow]

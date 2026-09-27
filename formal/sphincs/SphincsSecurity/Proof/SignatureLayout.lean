@@ -6,8 +6,7 @@ import SphincsSecurity.Proof.ClosingParameters
 namespace SphincsSecurity
 
 theorem layerHeight_le (lay : Layer) : layerHeight lay ≤ maxLayerHeight := by
-  unfold layerHeight maxLayerHeight
-  split <;> omega
+  fin_cases lay <;> decide
 
 abbrev Signature.counter (signature : Signature) (lay : Layer) : Counter :=
   (signature.layers lay).counter

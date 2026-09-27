@@ -116,7 +116,11 @@ theorem boundaryEval_sequenceFin {α : Type} {n : Nat} (parameter : PublicParame
 
 def sequenceLayersHashCost {α : Type} (layers : Layer → Option α × Nat) : Nat :=
   (layers bottomLayer).2 + if (layers bottomLayer).1.isSome then
-    (layers middleLayer).2 + if (layers middleLayer).1.isSome then (layers topLayer).2 else 0
+    (layers thirdLayer).2 + if (layers thirdLayer).1.isSome then
+      (layers secondLayer).2 + if (layers secondLayer).1.isSome then
+        (layers middleLayer).2 + if (layers middleLayer).1.isSome then (layers topLayer).2 else 0
+      else 0
+    else 0
   else 0
 
 theorem boundaryEval_sequenceLayers {α : Type} (parameter : PublicParameter)
@@ -131,10 +135,17 @@ theorem boundaryEval_sequenceLayers {α : Type} (parameter : PublicParameter)
     rw [← boundaryEval_fst parameter f, hlayers]
   apply boundaryEval_eq_of_snd
   cases hb : (layers bottomLayer).1 <;>
+    cases h3 : (layers thirdLayer).1 <;>
+    cases h2 : (layers secondLayer).1 <;>
     cases hm : (layers middleLayer).1 <;>
     cases ht : (layers topLayer).1 <;>
-    simp [sequenceLayers, boundaryEval_bind, hvalues, hlayers, hb, hm, ht,
-      sequenceLayersHashCost, pow_add]
+    change (layers (4 : Fin 5)).1 = _ at hb <;>
+    change (layers (3 : Fin 5)).1 = _ at h3 <;>
+    change (layers (2 : Fin 5)).1 = _ at h2 <;>
+    change (layers (1 : Fin 5)).1 = _ at hm <;>
+    change (layers (0 : Fin 5)).1 = _ at ht <;>
+    simp [sequenceLayers, boundaryEval_bind, hvalues, hlayers, hb, h3, h2, hm, ht,
+      sequenceLayersHashCost, pow_add, bottomLayer, thirdLayer, secondLayer, middleLayer, topLayer, numLayers]
 
 theorem boundaryEval_chainWalk (parameter : PublicParameter) (f : QueryImpl HashSpec Id)
     (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (chainIdx : ChainIndex)
@@ -208,13 +219,13 @@ theorem boundaryEval_ftsNode (parameter : PublicParameter) (f : QueryImpl HashSp
   apply boundaryEval_eq_of_snd
   induction level generalizing nodeIdx with
   | zero =>
-      rw [ftsNode_zero_eq, ftsLeafHash, boundaryEval_tweakableHash _ _ _ _ (by simp [hashDomainFields, tweakFields])]
+      rw [ftsNode_zero_eq, ftsLeafHash, boundaryEval_tweakableHash _ _ _ _ (by simp [hashDomainFields, ftsTweakFields])]
       simp
   | succ level ih =>
       rw [ftsNode_succ_eq, boundaryEval_bind]
       simp only [boundaryEval_bind, ih,
         boundaryEval_tweakableHash parameter f (.ftsNode index tree (level + 1) nodeIdx) _
-          (by simp [hashDomainFields, tweakFields])]
+          (by simp [hashDomainFields, ftsTweakFields])]
       rw [← pow_succ, ← pow_add]
       congr 1
       have hp : 0 < 2 ^ (level + 1) := by positivity
@@ -231,7 +242,7 @@ theorem boundaryEval_ftsKey (parameter : PublicParameter) (f : QueryImpl HashSpe
     (fun tree => by rw [boundaryEval_ftsNode])
   apply boundaryEval_eq_of_snd
   rw [ftsKey, boundaryEval_bind, hroots,
-    boundaryEval_tweakableHash _ _ _ _ (by simp [hashDomainFields, tweakFields]), ← pow_succ, ftsKeyHashCost_def]
+    boundaryEval_tweakableHash _ _ _ _ (by simp [hashDomainFields, ftsTweakFields]), ← pow_succ, ftsKeyHashCost_def]
 
 theorem boundaryEval_ftsOpen (parameter : PublicParameter) (f : QueryImpl HashSpec Id)
     (index : Index) (leaves : IndexGroup → FtsLeaf) (secret : FtsTree → FtsLeaf → Digest) :

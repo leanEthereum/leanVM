@@ -219,7 +219,7 @@ noncomputable def Concrete.scheme : Scheme SecretKey where
   verify := fun publicKey message signature =>
     liftM (Concrete.verify publicKey message signature : OracleComp HashSpec Bool)
 
-/-- The security claim: `127` bits of classical strong unforgeability in the random-oracle model, at `2^24` signing requests per key pair. -/
+/-- The security claim: `127` bits of classical strong unforgeability in the random-oracle model, at `2^32` signing requests per key pair. -/
 abbrev IndependentSecurityStatement : Prop :=
   HasClassicalSecurityBits Concrete.scheme 127
 

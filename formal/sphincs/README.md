@@ -6,7 +6,7 @@
 
 The public adversary may use private randomness adaptively and has no running-time or memory bound. The probability is over the master seed, the shared consistent random oracle and the adversary's private randomness. Private sampling does not count toward the hash-query budget. [Proof/Adversary](SphincsSecurity/Proof/Adversary) identifies this game with the internal probabilistic game, preserving success probabilities and query counts exactly.
 
-The theorem `sphincs_has_127_bits_of_classical_security` proves this claim for at most `2^24` signing requests per key. The reduction in [Proof/Deterministic](SphincsSecurity/Proof/Deterministic) couples seed derivation to independent secrets and signing trials, handles repeated requests, bounds adaptive seed guesses, and transfers the query budget. The public-parameter derivation consumes a query, leaving enough slack to absorb the seed-guessing loss without weakening the 127-bit bound.
+The theorem `sphincs_has_127_bits_of_classical_security` proves this claim for at most `2^32` signing requests per key. The reduction in [Proof/Deterministic](SphincsSecurity/Proof/Deterministic) couples seed derivation to independent secrets and signing trials, handles repeated requests, bounds adaptive seed guesses, and transfers the query budget. The public-parameter derivation consumes a query, leaving enough slack to absorb the seed-guessing loss without weakening the 127-bit bound.
 
 ## Build and audit
 
@@ -27,7 +27,7 @@ The cache command is needed on initial setup. The root module pins the axiom foo
 | Entry | Purpose |
 | --- | --- |
 | [SphincsSecurity.lean](SphincsSecurity.lean) | The public theorems. |
-| [Completeness](SphincsSecurity/Completeness) | Correctness and completeness: recovery, the reduction of failure to signing returning `none`, and the bounds on signing's four searches. |
+| [Completeness](SphincsSecurity/Completeness) | Correctness and completeness: recovery, the reduction of failure to signing returning `none`, and the bounds on signing's six searches. |
 | [Proof/Deterministic](SphincsSecurity/Proof/Deterministic) | Seed derivation, coupling to independent secrets, and the final security bound. |
 | [Proof/Security127Completion.lean](SphincsSecurity/Proof/Security127Completion.lean) | Combines the large-budget and small-budget bounds into `security127`. |
 | [Proof/Base](SphincsSecurity/Proof/Base) | Scheme-independent tooling: uniform tables and their exact adaptive posteriors, query caps, pauses and traces, oracle query charges, moment bounds. |

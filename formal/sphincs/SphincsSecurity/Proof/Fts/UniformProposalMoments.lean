@@ -70,7 +70,7 @@ theorem reuseRawEnvelope_le_expected_uniformProposalWord (key : SecretKey)
     (consumed : Index → Nat) (hqueries : spent + queries ≤ 2 ^ 127) (hsignatures : signatures ≤ signatureLimit)
     (hdegree : remaining.card ≤ bound) (hbound : bound ≤ 14)
     (hcache : ∀ index : Index, cachedIndexMultiplicity key.parameter state.1 index ≤
-      (spent : ENNReal) * ((2 ^ 36 : Nat) : ENNReal)⁻¹ + ((2 ^ 80 : Nat) : ENNReal))
+      (spent : ENNReal) * ((2 ^ 44 : Nat) : ENNReal)⁻¹ + ((2 ^ 72 : Nat) : ENNReal))
     (hcounts : ∀ index : Index,
       (signingSlotsAtIndex (observedOptionalSigningViews
         (FtsProbeSimulation.messageAnswers key.parameter state.1) key.root state.2) index).card ≤ consumed index)
@@ -125,7 +125,7 @@ theorem reuseRawEnvelope_le_expected_terminalProposalWord (key : SecretKey)
     (spent queries completed total : Nat) (state : CoverLogState) (remaining : Finset FtsTree)
     (consumedWord : List Index) (hqueries : spent + queries ≤ 2 ^ 127) (hcompleted : completed ≤ signatureLimit)
     (hcache : ∀ index : Index, cachedIndexMultiplicity key.parameter state.1 index ≤
-      (spent : ENNReal) * ((2 ^ 36 : Nat) : ENNReal)⁻¹ + ((2 ^ 80 : Nat) : ENNReal))
+      (spent : ENNReal) * ((2 ^ 44 : Nat) : ENNReal)⁻¹ + ((2 ^ 72 : Nat) : ENNReal))
     (hcounts : ∀ index : Index,
       (signingSlotsAtIndex (observedOptionalSigningViews
         (FtsProbeSimulation.messageAnswers key.parameter state.1) key.root state.2) index).card ≤ consumedWord.count index)

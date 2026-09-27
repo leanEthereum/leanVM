@@ -159,7 +159,7 @@ theorem probOutput_completeSelectedLoopIndex_le_proposalRate (key : SecretKey) (
     (cache : QueryCache HashSpec) (spent : Nat) (hspent : spent ≤ 2 ^ 127)
     (hcache : QueryCache.enncard cache ≤ spent) (hclean : ¬ MessageDeficitExceptional key cache)
     (hindex : ∀ index, cachedIndexMultiplicity key.parameter cache index ≤
-      (spent : ENNReal) * ((2 ^ 36 : Nat) : ENNReal)⁻¹ + ((2 ^ 80 : Nat) : ENNReal)) (index : Index) :
+      (spent : ENNReal) * ((2 ^ 44 : Nat) : ENNReal)⁻¹ + ((2 ^ 72 : Nat) : ENNReal)) (index : Index) :
     Pr[= index | (simulateQ romImpl (signDigestLoop digestAttemptLimit key message)).run cache >>=
       fun result => completeSelectedIndex (selectedLoopView? result)] ≤ targetProposalIndexRate := by
   apply (probOutput_completeSelectedLoopIndex_le key message cache index).trans

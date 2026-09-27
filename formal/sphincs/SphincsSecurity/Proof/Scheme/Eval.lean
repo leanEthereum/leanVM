@@ -36,11 +36,23 @@ theorem evalWithAnswerFn_sequenceFin {n : Nat} (computation : Fin n → OracleCo
 theorem evalWithAnswerFn_sequenceLayers (computation : Layer → OracleComp HashSpec (Option α)) :
     evalWithAnswerFn f (sequenceLayers computation) =
       sequenceFin (m := Option) (fun lay => evalWithAnswerFn f (computation lay)) := by
+  simp only [sequenceLayers, evalWithAnswerFn_bind]
   cases hb : evalWithAnswerFn f (computation bottomLayer) <;>
+    cases h3 : evalWithAnswerFn f (computation ⟨3, by decide⟩) <;>
+    cases h2 : evalWithAnswerFn f (computation ⟨2, by decide⟩) <;>
     cases hm : evalWithAnswerFn f (computation middleLayer) <;>
     cases ht : evalWithAnswerFn f (computation topLayer) <;>
-    simp [sequenceLayers, sequenceFin, evalWithAnswerFn_bind,
-      bottomLayer, middleLayer, topLayer, numLayers] at hb hm ht ⊢ <;>
-    simp [hb, hm, ht] <;> rfl
+    have hmL := hm <;>
+    have htL := ht <;>
+    change evalWithAnswerFn f (computation ⟨4, by decide⟩) = _ at hb <;>
+    change evalWithAnswerFn f (computation (3 : Fin 5)) = _ at h3 <;>
+    change evalWithAnswerFn f (computation (2 : Fin 5)) = _ at h2 <;>
+    change evalWithAnswerFn f (computation (1 : Fin 5)) = _ at hm <;>
+    change evalWithAnswerFn f (computation (0 : Fin 5)) = _ at ht <;>
+    rw [hb] <;>
+    change evalWithAnswerFn f (computation (4 : Fin 5)) = _ at hb <;>
+    simp only [numLayers, sequenceFin] <;>
+    rw [ht] <;>
+    simp [evalWithAnswerFn_bind, evalWithAnswerFn_pure, hb, h3, h2, hm, hmL, htL] <;> rfl
 
 end SphincsSecurity.Concrete

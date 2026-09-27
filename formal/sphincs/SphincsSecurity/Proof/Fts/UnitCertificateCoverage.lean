@@ -43,7 +43,7 @@ private theorem unit_excess_le_square_with_mean (value mean : ENNReal) (hvalue :
 
 theorem uniformWordAverage_fixedFull_unit_excess_le :
     uniformWordAverage fixedProposalLength (fun word => fixedFullProposalPrice word - 1) ≤
-      (11 / 2 ^ 16 : ENNReal) := by
+      (11 / 2 ^ 24 : ENNReal) := by
   let mean := uniformWordAverage fixedProposalLength fixedFullProposalPrice
   have hm : mean ≠ ⊤ := ne_top_of_le_ne_top (by finiteness) uniformWordAverage_fixedFull_mean_le
   have h := uniformWordAverage_mono fixedProposalLength (fun word =>
@@ -52,7 +52,7 @@ theorem uniformWordAverage_fixedFull_unit_excess_le :
   rw [uniformWordAverage_add, uniformWordAverage_add,
     uniformWordAverage_mul_left, uniformWordAverage_mul_left, uniformWordAverage_const] at h
   have hcancel : (16 / 5 : ENNReal) *
-      uniformWordAverage fixedProposalLength (fun word => fixedFullProposalPrice word - 1) ≤ 13 / 25000 := by
+      uniformWordAverage fixedProposalLength (fun word => fixedFullProposalPrice word - 1) ≤ 13 / (25000 * 256) := by
     apply ENNReal.le_of_add_le_add_right (a := 2 * mean ^ 2) (by finiteness)
     calc
       _ = (16 / 5 : ENNReal) *
@@ -61,7 +61,7 @@ theorem uniformWordAverage_fixedFull_unit_excess_le :
         change _ = _ + 2 * mean * mean
         ring
       _ ≤ uniformWordAverage fixedProposalLength (fun word => fixedFullProposalPrice word ^ 2) + mean ^ 2 := h
-      _ ≤ (mean ^ 2 + 13 / 25000) + mean ^ 2 :=
+      _ ≤ (mean ^ 2 + 13 / (25000 * 256)) + mean ^ 2 :=
         add_le_add uniformWordAverage_fixedFull_secondMoment_le le_rfl
       _ = _ := by ring
   have hunit : (5 / 16 : ENNReal) * (16 / 5) = 1 := by
@@ -71,7 +71,7 @@ theorem uniformWordAverage_fixedFull_unit_excess_le :
     _ = (5 / 16 : ENNReal) * ((16 / 5) *
         uniformWordAverage fixedProposalLength (fun word => fixedFullProposalPrice word - 1)) := by
       rw [← mul_assoc, hunit, one_mul]
-    _ ≤ (5 / 16 : ENNReal) * (13 / 25000) := mul_le_mul' le_rfl hcancel
+    _ ≤ (5 / 16 : ENNReal) * (13 / (25000 * 256)) := mul_le_mul' le_rfl hcancel
     _ ≤ _ := by
       apply (ENNReal.toReal_le_toReal (by finiteness) (by finiteness)).mp
       norm_num [ENNReal.toReal_mul, ENNReal.toReal_div, ENNReal.toReal_pow]
@@ -86,7 +86,7 @@ theorem uniformWordAverage_full_price_excess_le :
   simp_rw [hscale]
   rw [uniformWordAverage_mul_left]
   calc
-    _ ≤ (2 ^ 128 : ENNReal)⁻¹ * (11 / 2 ^ 16 : ENNReal) :=
+    _ ≤ (2 ^ 128 : ENNReal)⁻¹ * (11 / 2 ^ 24 : ENNReal) :=
       mul_le_mul' le_rfl uniformWordAverage_fixedFull_unit_excess_le
     _ = _ := by
       rw [fullCertificateExcessRate_def]

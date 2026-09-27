@@ -168,28 +168,21 @@ theorem sign_eq (secretKey : SecretKey) (message : Message) :
 theorem sampleRandomness_eq :
     sampleRandomness = ($ᵗ Randomness : ProbComp Randomness) := rfl
 
-example : ∀ failure : Fin 4,
-    let result := (sequenceLayers (m := WriterT (List Nat) Id) fun lay =>
-      WriterT.mk (pure (if lay.val = failure.val then none else some lay.val, [lay.val]))).run
-    (result.2, result.1.map List.ofFn) =
-      ![([2, 1, 0], none), ([2, 1], none), ([2], none), ([2, 1, 0], some [0, 1, 2])] failure := by
-  decide
-
 /-! ## Parameter arithmetic -/
 
 example : ∑ lay : Layer, layerHeight lay = totalHeight := by decide
 
-example : (layerHeight topLayer, layerHeight middleLayer, layerHeight bottomLayer) = (12, 7, 7) := by
+example : (layerHeight topLayer, layerHeight middleLayer, layerHeight bottomLayer) = (11, 5, 6) := by
   decide
 
-example : (heightAbove topLayer, heightAbove middleLayer, heightAbove bottomLayer) = (0, 12, 19) := by
+example : (heightAbove topLayer, heightAbove middleLayer, heightAbove bottomLayer) = (0, 11, 28) := by
   decide
 
-example : (heightBelow topLayer, heightBelow middleLayer, heightBelow bottomLayer) = (14, 7, 0) := by
+example : (heightBelow topLayer, heightBelow middleLayer, heightBelow bottomLayer) = (23, 18, 0) := by
   decide
 
-/-- The digest is `h + k * a = 176` bits and has to fit in one oracle output. -/
-example : messageDigestBits = 176 ∧ messageDigestBits ≤ hashOutputBits := by decide
+/-- The digest is `h + k * a = 184` bits and has to fit in one oracle output. -/
+example : messageDigestBits = 184 ∧ messageDigestBits ≤ hashOutputBits := by decide
 
 theorem treeIndexAt_val (index : Index) (lay : Layer) :
     (treeIndexAt index lay).val = index.val / 2 ^ (totalHeight - heightAbove lay) := rfl
@@ -199,8 +192,8 @@ theorem leafIndexAt_val (index : Index) (lay : Layer) :
 
 /-- Layer `0` holds a single tree, the public key's. -/
 theorem treeIndexAt_topLayer (index : Index) : (treeIndexAt index topLayer).val = 0 := by
-  have hlt : index.val < 2 ^ 26 := index.isLt
-  have h0 : totalHeight - heightAbove topLayer = 26 := by decide
+  have hlt : index.val < 2 ^ 34 := index.isLt
+  have h0 : totalHeight - heightAbove topLayer = 34 := by decide
   simp only [treeIndexAt_val, h0]
   omega
 
@@ -210,24 +203,36 @@ theorem layers_link_top (index : Index) :
     (treeIndexAt index middleLayer).val
       = (treeIndexAt index topLayer).val * 2 ^ layerHeight topLayer
         + (leafIndexAt index topLayer).val := by
-  have hlt : index.val < 2 ^ 26 := index.isLt
-  have h0 : totalHeight - heightAbove topLayer = 26 := by decide
-  have h1 : totalHeight - heightAbove middleLayer = 14 := by decide
-  have hb : heightBelow topLayer = 14 := by decide
-  have hh : layerHeight topLayer = 12 := by decide
+  have hlt : index.val < 2 ^ 34 := index.isLt
+  have h0 : totalHeight - heightAbove topLayer = 34 := by decide
+  have h1 : totalHeight - heightAbove middleLayer = 23 := by decide
+  have hb : heightBelow topLayer = 23 := by decide
+  have hh : layerHeight topLayer = 11 := by decide
   simp only [treeIndexAt_val, leafIndexAt_val, h0, h1, hb, hh]
   omega
 
 theorem layers_link_middle (index : Index) :
-    (treeIndexAt index bottomLayer).val
+    (treeIndexAt index ⟨2, by decide⟩).val
       = (treeIndexAt index middleLayer).val * 2 ^ layerHeight middleLayer
         + (leafIndexAt index middleLayer).val := by
-  have h1 : totalHeight - heightAbove middleLayer = 14 := by decide
-  have h2 : totalHeight - heightAbove bottomLayer = 7 := by decide
-  have hb : heightBelow middleLayer = 7 := by decide
-  have hh : layerHeight middleLayer = 7 := by decide
+  have h1 : totalHeight - heightAbove middleLayer = 23 := by decide
+  have h2 : totalHeight - heightAbove (⟨2, by decide⟩ : Layer) = 18 := by decide
+  have hb : heightBelow middleLayer = 18 := by decide
+  have hh : layerHeight middleLayer = 5 := by decide
   simp only [treeIndexAt_val, leafIndexAt_val, h1, h2, hb, hh]
   omega
+
+theorem layers_link_next (index : Index) (lay : Layer) (hnext : lay.val + 1 < numLayers) :
+    (treeIndexAt index ⟨lay.val + 1, hnext⟩).val =
+      (treeIndexAt index lay).val * 2 ^ layerHeight lay + (leafIndexAt index lay).val := by
+  fin_cases lay
+  · simpa only [topLayer, middleLayer] using layers_link_top index
+  · simpa only [middleLayer] using layers_link_middle index
+  · change index.val / 2 ^ 12 = index.val / 2 ^ 18 * 2 ^ 6 + index.val / 2 ^ 12 % 2 ^ 6
+    omega
+  · change index.val / 2 ^ 6 = index.val / 2 ^ 12 * 2 ^ 6 + index.val / 2 ^ 6 % 2 ^ 6
+    omega
+  · simp [numLayers] at hnext
 
 /-- The bottom layer's leaves are the `2^h` indices themselves. -/
 theorem leafIndexAt_bottomLayer (index : Index) :

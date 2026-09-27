@@ -3,8 +3,8 @@ namespace SphincsSecurity.Concrete
 
 open _root_.OracleComp OracleSpec ENNReal
 
-private theorem largeRangeClosing (x : ℝ) (hx : 3 / 16384 ≤ x) :
-    2 * x - x ^ 2 + (11 / 65536) * x + (x / 2 ^ 41 + 1 / 2 ^ 700) ≤ 2 * x := by
+private theorem largeRangeClosing (x : ℝ) (hx : 1 / 16384 ≤ x) :
+    2 * x - x ^ 2 + (11 / 16777216) * x + (x / 2 ^ 25 + 1 / 2 ^ 700) ≤ 2 * x := by
   have hn : 0 ≤ x := le_trans (by norm_num) hx
   have hs := mul_nonneg (sub_nonneg.mpr hx) hn
   have he : (1 : ℝ) / 2 ^ 700 ≤ 1 / 1099511627776 := by
@@ -24,8 +24,8 @@ theorem native_bound_le_security127 (q : Nat) (hlarge : budgetSplit ≤ q) (hsma
   refine le_trans (add_le_add le_rfl (add_le_add (mul_le_mul' le_rfl certificateCacheExceptionRate_le) le_rfl)) ?_
   rw [fullCertificateExcessRate_def, proposalPrefixExceptionBound_def]
   let x : ℝ := (q : ℝ) / 2 ^ 128
-  have hx : 3 / 16384 ≤ x := by
-    have hq : (3 * 2 ^ 114 : ℝ) ≤ q := by exact_mod_cast hlarge
+  have hx : 1 / 16384 ≤ x := by
+    have hq : (2 ^ 114 : ℝ) ≤ q := by exact_mod_cast hlarge
     apply (le_div_iff₀ (by positivity)).mpr
     norm_num at hq ⊢
     exact hq

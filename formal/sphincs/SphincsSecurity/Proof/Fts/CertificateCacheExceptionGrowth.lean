@@ -8,11 +8,11 @@ attribute [local irreducible] messageDeficitMoment cachedIndexExcessMoment posit
 set_option backward.isDefEq.respectTransparency false
 
 noncomputable def certificateCacheExceptionWeight (key : SecretKey) (cache : QueryCache HashSpec) : ENNReal :=
-  messageDeficitMoment key.parameter key.root cache 2 / 2 ^ 186 + cachedIndexExcessMoment key.parameter cache / 2 ^ 160
+  messageDeficitMoment key.parameter key.root cache 2 / 2 ^ 186 + cachedIndexExcessMoment key.parameter cache / 2 ^ 144
 
-noncomputable def certificateCacheExceptionRate : ENNReal := 1023 / 2 ^ 186 + (2 ^ 10 : ENNReal)⁻¹ / 2 ^ 160
+noncomputable def certificateCacheExceptionRate : ENNReal := 1023 / 2 ^ 186 + (2 ^ 10 : ENNReal)⁻¹ / 2 ^ 144
 
-theorem certificateCacheExceptionRate_le : certificateCacheExceptionRate ≤ (2 ^ 169 : ENNReal)⁻¹ := by
+theorem certificateCacheExceptionRate_le : certificateCacheExceptionRate ≤ (2 ^ 153 : ENNReal)⁻¹ := by
   apply (ENNReal.toReal_le_toReal (by unfold certificateCacheExceptionRate; finiteness) (by finiteness)).mp
   rw [certificateCacheExceptionRate, ENNReal.toReal_add (by finiteness) (by finiteness)]
   norm_num [ENNReal.toReal_div, ENNReal.toReal_inv, ENNReal.toReal_pow]
@@ -39,9 +39,9 @@ theorem certificateCacheExceptionWeight_bad (key : SecretKey) (cache : QueryCach
     calc
       1 = (2 ^ 186 : ENNReal) / 2 ^ 186 := (ENNReal.div_self (by positivity) (by finiteness)).symm
       _ ≤ _ := ENNReal.div_le_div_right (messageDeficitExceptional_secondMoment_le key cache hfinite hdeficit) _
-  · apply le_trans (b := cachedIndexExcessMoment key.parameter cache / 2 ^ 160) _ le_add_self
+  · apply le_trans (b := cachedIndexExcessMoment key.parameter cache / 2 ^ 144) _ le_add_self
     calc
-      1 = (2 ^ 160 : ENNReal) / 2 ^ 160 := (ENNReal.div_self (by positivity) (by finiteness)).symm
+      1 = (2 ^ 144 : ENNReal) / 2 ^ 144 := (ENNReal.div_self (by positivity) (by finiteness)).symm
       _ ≤ _ := ENNReal.div_le_div_right (cachedIndexExcessExceptional_moment_ge key.parameter cache hindex) _
 
 theorem certificateCacheExceptionWeight_initial (key : SecretKey) (cache : QueryCache HashSpec)

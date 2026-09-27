@@ -9,11 +9,11 @@ noncomputable def cachedIndexExcessMoment (parameter : PublicParameter) (cache :
 
 theorem cachedIndexExcessExceptional_moment_ge (parameter : PublicParameter) (cache : QueryCache HashSpec)
     (hbad : CachedIndexExcessExceptional parameter cache) :
-    (2 ^ 160 : ENNReal) ≤ cachedIndexExcessMoment parameter cache := by
+    (2 ^ 144 : ENNReal) ≤ cachedIndexExcessMoment parameter cache := by
   obtain ⟨index, hindex⟩ := hbad
-  have hpower : (2 ^ 160 : ℝ) ≤ max (cachedIndexExcessScore parameter cache index) 0 ^ 2 := by
+  have hpower : (2 ^ 144 : ℝ) ≤ max (cachedIndexExcessScore parameter cache index) 0 ^ 2 := by
     calc
-      _ = (2 ^ 80 : ℝ) ^ 2 := by rw [← pow_mul]
+      _ = (2 ^ 72 : ℝ) ^ 2 := by rw [← pow_mul]
       _ ≤ _ := pow_le_pow_left₀ (by positivity) (hindex.le.trans (le_max_left _ _)) 2
   have hreal := ENNReal.ofReal_le_ofReal hpower
   rw [ENNReal.ofReal_pow (by positivity), ENNReal.ofReal_ofNat] at hreal
@@ -41,12 +41,12 @@ theorem expected_cachedIndexExcessMoment_le (parameter : PublicParameter)
       simp only [cachedIndexExcessMoment, Finset.mul_sum]
       exact Summable.tsum_finsetSum (fun _ _ => ENNReal.summable)
     _ ≤ ∑ index : Index, (positiveScoreMoment (cachedIndexExcessScore parameter cache index) 2 +
-        ((2 ^ 36 : Nat) : ENNReal)⁻¹) :=
+        ((2 ^ 44 : Nat) : ENNReal)⁻¹) :=
       Finset.sum_le_sum (fun index _ => expected_cachedIndexScore_second_le parameter cache hfinite input hfresh index)
     _ = _ := by
       rw [Finset.sum_add_distrib, Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
       congr 1
-      have hcard : Fintype.card Index = 2 ^ 26 := Fintype.card_fin _
+      have hcard : Fintype.card Index = 2 ^ 34 := Fintype.card_fin _
       rw [hcard]
       apply (ENNReal.toReal_eq_toReal_iff' (by finiteness) (by finiteness)).mp
       norm_num [ENNReal.toReal_mul, ENNReal.toReal_inv]

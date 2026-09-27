@@ -1,7 +1,7 @@
 import SphincsSecurity.Proof.Forced.FtsGuessNearAssembly
 import SphincsSecurity.Proof.Residual.Security127LargeBudget
 /-!
-The small-budget half of the `127`-bit claim. Below `3 * 2^114` hash queries the original SUF advantage is at most the retained residual terms plus the normalized sum, over the test positions, of the forced FTS near-certificate probabilities, each of which `nearCertificateBound` bounds. The closing arithmetic is `small_bound_le_security127`, and `security127_of_large_budget` covers the remaining budgets.
+The small-budget half of the `127`-bit claim. Below `2^114` hash queries the original SUF advantage is at most the retained residual terms plus the normalized sum, over the test positions, of the forced FTS near-certificate probabilities, each of which `nearCertificateBound` bounds. The closing arithmetic is `small_bound_le_security127`, and `security127_of_large_budget` covers the remaining budgets.
 -/
 
 namespace SphincsSecurity.Concrete

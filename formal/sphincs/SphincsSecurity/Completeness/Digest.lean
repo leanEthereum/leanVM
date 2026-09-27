@@ -54,14 +54,14 @@ theorem randInput_ne_msgInput (secretKey : Seeded.SecretKey) (message : Message)
     (randomness : Randomness) :
     randInput secretKey message trial ≠ msgInput secretKey message randomness := by
   intro h
-  have h' : fieldBytes ⟨7#8, 0#8, 0#32, BitVec.ofNat 32 trial, 0#32⟩ ++ bytesLE 16 secretKey.parameter
+  have h' : fieldBytes ⟨7#8, 0#8, 0#8, 0#32, BitVec.ofNat 32 trial, 0#32⟩ ++ bytesLE 16 secretKey.parameter
         ++ (bytesLE 32 secretKey.seed ++ bytesLE 32 message)
       = fieldBytes (hashDomainFields .message) ++ bytesLE 16 secretKey.parameter
         ++ messageDigestPayload secretKey.root message randomness := by
     simpa only [randInput, msgInput, randomizerHashInput, tweakableHashInput, tweakBytes,
       List.append_assoc] using h
   exact fieldInput_ne_of_tag_ne secretKey.parameter
-    (fields1 := ⟨7#8, 0#8, 0#32, BitVec.ofNat 32 trial, 0#32⟩)
+    (fields1 := ⟨7#8, 0#8, 0#8, 0#32, BitVec.ofNat 32 trial, 0#32⟩)
     (fields2 := hashDomainFields .message) (by simp [hashDomainFields, tweakFields]) _ _ h'
 
 theorem cached_run (input : HashInput) (cache : QueryCache HashSpec) (answer : HashOutput)

@@ -56,10 +56,10 @@ theorem ftsNode (index : Index) (tree : FtsTree) (secret : FtsLeaf → Digest) (
   induction level generalizing nodeIdx with
   | zero =>
       simp only [ftsNode_zero_eq, ftsLeafHash, eval_tweakableHash]
-      exact congrArg truncateHash (h.domain (.ftsLeaf index tree _) (by simp only [hashDomainFields, tweakFields]; decide) _)
+      exact congrArg truncateHash (h.domain (.ftsLeaf index tree _) (by simp [hashDomainFields, ftsTweakFields]) _)
   | succ level ih =>
       simp only [ftsNode_succ_eq, evalWithAnswerFn_bind, ih, eval_tweakableHash]
-      exact congrArg truncateHash (h.domain (.ftsNode index tree (level + 1) nodeIdx) (by simp only [hashDomainFields, tweakFields]; decide) _)
+      exact congrArg truncateHash (h.domain (.ftsNode index tree (level + 1) nodeIdx) (by simp [hashDomainFields, ftsTweakFields]) _)
 
 theorem ftsOpen (index : Index) (leaves : IndexGroup → FtsLeaf) (secret : FtsTree → FtsLeaf → Digest) :
     evalWithAnswerFn f (Concrete.ftsOpen parameter index leaves secret) =

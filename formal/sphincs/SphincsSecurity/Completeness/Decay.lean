@@ -101,28 +101,35 @@ theorem digest_room (x : ENNReal) (hx : x + (1024 : ENNReal)⁻¹ = 1) :
       ≤ (2⁻¹ : ENNReal) ^ 11 + (2⁻¹ : ENNReal) ^ 11 := add_le_add (inv_two_pow_anti (by norm_num)) le_rfl
     _ = (2⁻¹ : ENNReal) ^ 10 := inv_two_pow_succ_add 10
 
-/-- After a union bound over all `2²⁵⁶` messages, the four search failures stay below `2⁻²⁵⁶`. -/
+/-- After a union bound over all `2²⁵⁶` messages, the six search failures stay below `2⁻²⁵⁶`. -/
 theorem closing_sum :
     (2 : ENNReal) ^ 256 *
-      ((2⁻¹ : ENNReal) ^ (2 ^ 21) + 3 * (2⁻¹ : ENNReal) ^ (2 ^ 18))
+      ((2⁻¹ : ENNReal) ^ (2 ^ 21) + 5 * (2⁻¹ : ENNReal) ^ (2 ^ 18))
       ≤ ((2 ^ 256 : Nat) : ENNReal)⁻¹ := by
   have hcast : ((2 ^ 256 : Nat) : ENNReal)⁻¹ = (2⁻¹ : ENNReal) ^ 256 := by
     rw [Nat.cast_pow, Nat.cast_ofNat, ENNReal.inv_pow]
-  have ha : (2⁻¹ : ENNReal) ^ (2 ^ 21) ≤ (2⁻¹ : ENNReal) ^ 514 := inv_two_pow_anti (by norm_num)
-  have hb : (2⁻¹ : ENNReal) ^ (2 ^ 18) ≤ (2⁻¹ : ENNReal) ^ 514 := inv_two_pow_anti (by norm_num)
-  have hfour : (2⁻¹ : ENNReal) ^ 514 + 3 * (2⁻¹ : ENNReal) ^ 514 = (2⁻¹ : ENNReal) ^ 512 := by
-    have h1 := inv_two_pow_succ_add 513
-    have h2 := inv_two_pow_succ_add 512
-    calc (2⁻¹ : ENNReal) ^ 514 + 3 * (2⁻¹ : ENNReal) ^ 514
-        = ((2⁻¹ : ENNReal) ^ 514 + (2⁻¹ : ENNReal) ^ 514)
-          + ((2⁻¹ : ENNReal) ^ 514 + (2⁻¹ : ENNReal) ^ 514) := by ring
-      _ = (2⁻¹ : ENNReal) ^ 512 := by rw [h1, h2]
+  have ha : (2⁻¹ : ENNReal) ^ (2 ^ 21) ≤ (2⁻¹ : ENNReal) ^ 515 := inv_two_pow_anti (by norm_num)
+  have hb : (2⁻¹ : ENNReal) ^ (2 ^ 18) ≤ (2⁻¹ : ENNReal) ^ 515 := inv_two_pow_anti (by norm_num)
+  have height : (2⁻¹ : ENNReal) ^ 515 + 7 * (2⁻¹ : ENNReal) ^ 515 = (2⁻¹ : ENNReal) ^ 512 := by
+    have h1 := inv_two_pow_succ_add 514
+    have h2 := inv_two_pow_succ_add 513
+    have h3 := inv_two_pow_succ_add 512
+    calc
+      _ = (((2⁻¹ : ENNReal) ^ 515 + (2⁻¹ : ENNReal) ^ 515) +
+          ((2⁻¹ : ENNReal) ^ 515 + (2⁻¹ : ENNReal) ^ 515)) +
+          (((2⁻¹ : ENNReal) ^ 515 + (2⁻¹ : ENNReal) ^ 515) +
+          ((2⁻¹ : ENNReal) ^ 515 + (2⁻¹ : ENNReal) ^ 515)) := by ring
+      _ = _ := by simp only [h1, h2, h3]
+  have hbound : (2⁻¹ : ENNReal) ^ (2 ^ 21) + 5 * (2⁻¹ : ENNReal) ^ (2 ^ 18) ≤
+      (2⁻¹ : ENNReal) ^ 515 + 7 * (2⁻¹ : ENNReal) ^ 515 := by
+    apply add_le_add ha
+    exact (mul_le_mul' le_rfl hb).trans (mul_le_mul' (by norm_num) le_rfl)
   rw [hcast]
   calc
     (2 : ENNReal) ^ 256 *
-          ((2⁻¹ : ENNReal) ^ (2 ^ 21) + 3 * (2⁻¹ : ENNReal) ^ (2 ^ 18))
+          ((2⁻¹ : ENNReal) ^ (2 ^ 21) + 5 * (2⁻¹ : ENNReal) ^ (2 ^ 18))
         ≤ (2 : ENNReal) ^ 256 * (2⁻¹ : ENNReal) ^ 512 :=
-          mul_le_mul_right ((add_le_add ha (mul_le_mul_right hb _)).trans_eq hfour) _
+          mul_le_mul_right (hbound.trans_eq height) _
     _ = (2⁻¹ : ENNReal) ^ 256 := by
       rw [← ENNReal.inv_pow, mul_comm, ← ENNReal.div_eq_inv_mul,
         show (512 : Nat) = 256 + 256 by norm_num, two_pow_div_two_pow]

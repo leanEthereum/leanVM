@@ -6,14 +6,14 @@ namespace SphincsSecurity
 theorem keygenDomainFields_injective : Function.Injective keygenDomainFields := by
   intro left right h
   cases left <;> cases right <;>
-    simp_all only [keygenDomainFields, tweakFields, TweakFields.mk.injEq, BitVec.reduceEq, false_and,
+    simp_all only [keygenDomainFields, tweakFields, ftsTweakFields, TweakFields.mk.injEq, BitVec.reduceEq, false_and,
       true_and, KeygenDomain.ots.injEq, KeygenDomain.fts.injEq]
   · obtain ⟨hlay, htree, hchain, hleaf⟩ := h
     exact ⟨fin_of_ofNat_eq (by decide) hlay, fin_of_ofNat_eq (by decide) htree,
       fin_of_ofNat_eq (by decide) hleaf, fin_of_ofNat_eq (by decide) hchain⟩
   · obtain ⟨htree, hindex, hleaf⟩ := h
-    exact ⟨fin_of_ofNat_eq (by decide) hindex, fin_of_ofNat_eq (by decide) htree,
-      fin_of_ofNat_eq (by decide) hleaf⟩
+    exact ⟨fts_index_eq hindex hleaf.1, fin_of_ofNat_eq (by decide) htree,
+      fin_of_ofNat_eq (by decide) hleaf.2⟩
 
 theorem keygenHashInput_injective {p₁ p₂ : PublicParameter} {d₁ d₂ : KeygenDomain}
     {s₁ s₂ : MasterSeed} (h : keygenHashInput p₁ d₁ s₁ = keygenHashInput p₂ d₂ s₂) :
@@ -33,7 +33,7 @@ theorem keygenHashInput_ne_tweakableHashInput (p₁ p₂ : PublicParameter)
   obtain ⟨hprefix, _⟩ := List.append_inj h (by simp [fieldBytes, bytesLE_length])
   obtain ⟨htweak, _⟩ := List.append_inj' hprefix (by simp [bytesLE_length])
   have htag := congrArg TweakFields.tag (fieldBytes_injective htweak)
-  cases d₁ <;> cases d₂ <;> simp [keygenDomainFields, hashDomainFields, tweakFields] at htag
+  cases d₁ <;> cases d₂ <;> simp [keygenDomainFields, hashDomainFields, tweakFields, ftsTweakFields] at htag
 
 /-- One raw oracle query can name at most one master seed. -/
 theorem keygenHashInput_seed_unique (input : HashInput) {s₁ s₂ : MasterSeed}

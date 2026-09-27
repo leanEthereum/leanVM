@@ -47,14 +47,24 @@ theorem Erases.sequenceLayers {α : Layer → Type} (known : QueryCache HashSpec
   cases bottom with
   | none => exact .pure _
   | some bottom =>
-      apply (h middleLayer).bind
-      intro middle
-      cases middle with
+      apply (h (⟨3, by decide⟩ : Layer)).bind
+      intro third
+      cases third with
       | none => exact .pure _
-      | some middle =>
-          apply (h topLayer).bind
-          intro top
-          cases top <;> exact .pure _
+      | some third =>
+          apply (h (⟨2, by decide⟩ : Layer)).bind
+          intro second
+          cases second with
+          | none => exact .pure _
+          | some second =>
+              apply (h middleLayer).bind
+              intro middle
+              cases middle with
+              | none => exact .pure _
+              | some middle =>
+                  apply (h topLayer).bind
+                  intro top
+                  cases top <;> exact .pure _
 
 theorem Erases.bind_map_right {ι : Type} {spec : OracleSpec ι} {α β γ : Type}
     {known : QueryCache spec} {left : OracleComp spec α} {right : OracleComp spec β}

@@ -6,11 +6,11 @@ namespace SphincsSecurity.Concrete
 open ENNReal
 
 noncomputable def fixedFullProposalPrice (word : List Index) : ENNReal :=
-  (2 ^ 48 : ENNReal)⁻¹ * proposalPowerSum 14 word
+  (2 ^ 56 : ENNReal)⁻¹ * proposalPowerSum 14 word
 
 theorem fixedProposalLength_rate_le :
     (fixedProposalLength : ENNReal) * (Fintype.card Index : ENNReal)⁻¹ ≤ 19 / 50 := by
-  have hcard : Fintype.card Index = 2 ^ 26 := Fintype.card_fin _
+  have hcard : Fintype.card Index = 2 ^ 34 := Fintype.card_fin _
   rw [hcard]
   apply (ENNReal.toReal_le_toReal (by finiteness) (by finiteness)).mp
   norm_num [fixedProposalLength_def, ENNReal.toReal_mul, ENNReal.toReal_inv, ENNReal.toReal_div]
@@ -25,33 +25,33 @@ theorem uniformWordAverage_fixedFull_mean_le :
     uniformWordAverage fixedProposalLength fixedFullProposalPrice ≤ 1 / 5 := by
   unfold fixedFullProposalPrice
   rw [uniformWordAverage_mul_left]
-  have h := mul_le_mul' (a := (2 ^ 48 : ENNReal)⁻¹) le_rfl
+  have h := mul_le_mul' (a := (2 ^ 56 : ENNReal)⁻¹) le_rfl
     (uniformWordAverage_powerSum_le (α := Index) fixedProposalLength 14 (19 / 50) fixedProposalLength_rate_le)
-  have hcard : Fintype.card Index = 2 ^ 26 := Fintype.card_fin _
+  have hcard : Fintype.card Index = 2 ^ 34 := Fintype.card_fin _
   rw [hcard] at h
   apply h.trans
   calc
-    _ = (2 ^ 26 : ENNReal) * (2 ^ 48 : ENNReal)⁻¹ * stirlingPowerMoment (19 / 50) 14 := by
+    _ = (2 ^ 34 : ENNReal) * (2 ^ 56 : ENNReal)⁻¹ * stirlingPowerMoment (19 / 50) 14 := by
       push_cast
       ring
     _ ≤ _ := stirlingPowerMoment_full_mean_le
 
 theorem uniformWordAverage_fixedFull_secondMoment_le :
     uniformWordAverage fixedProposalLength (fun word => fixedFullProposalPrice word ^ 2) ≤
-      uniformWordAverage fixedProposalLength fixedFullProposalPrice ^ 2 + 13 / 25000 := by
+      uniformWordAverage fixedProposalLength fixedFullProposalPrice ^ 2 + 13 / (25000 * 256) := by
   unfold fixedFullProposalPrice
   simp only [mul_pow, uniformWordAverage_mul_left]
-  have h := mul_le_mul' (a := ((2 ^ 48 : ENNReal)⁻¹) ^ 2) le_rfl
+  have h := mul_le_mul' (a := ((2 ^ 56 : ENNReal)⁻¹) ^ 2) le_rfl
     (uniformWordAverage_powerSum_square_le (α := Index) fixedProposalLength 14 (19 / 50) fixedProposalLength_rate_le)
-  have hcard : Fintype.card Index = 2 ^ 26 := Fintype.card_fin _
+  have hcard : Fintype.card Index = 2 ^ 34 := Fintype.card_fin _
   rw [hcard, mul_add] at h
   apply h.trans
   apply add_le_add le_rfl
-  have hscale : ((2 ^ 48 : ENNReal)⁻¹) ^ 2 = (2 ^ 96 : ENNReal)⁻¹ := by
+  have hscale : ((2 ^ 56 : ENNReal)⁻¹) ^ 2 = (2 ^ 112 : ENNReal)⁻¹ := by
     rw [← ENNReal.inv_pow, ← pow_mul]
   rw [hscale]
   calc
-    _ = (2 ^ 26 : ENNReal) * (2 ^ 96 : ENNReal)⁻¹ * stirlingPowerMoment (19 / 50) 28 := by
+    _ = (2 ^ 34 : ENNReal) * (2 ^ 112 : ENNReal)⁻¹ * stirlingPowerMoment (19 / 50) 28 := by
       push_cast
       ring
     _ ≤ _ := stirlingPowerMoment_full_variance_le

@@ -4,7 +4,7 @@ import SphincsSecurity.Proof.Scheme.Guess
 /-!
 # Uniform few-time views
 
-The low 166 bits of a fresh oracle answer are exactly the 26-bit index and the fourteen 10-bit
+The low 184 bits of a fresh oracle answer are exactly the 34-bit index and the fifteen 10-bit
 few-time leaf coordinates used by a coverage pattern. Splitting an answer into low and high bits is
 bijective, as is decoding those low bits into a few-time view, so the induced view is uniform.
 -/
@@ -79,9 +79,9 @@ theorem fullDigestView_injective : Function.Injective fullDigestView := by
     simpa [fullDigestView, digestIndex, BitVec.getLsbD_extractLsb', hindex] using hbit
   · let treeIndex := (position - totalHeight) / ftsTreeHeight
     have htreeIndex : treeIndex < ftsTrees := by
-      have hposition' : position < 176 := by
+      have hposition' : position < 184 := by
         simpa [messageDigestBits, totalHeight, ftsTrees, ftsTreeHeight] using hposition
-      have hindex' : 26 ≤ position := by
+      have hindex' : 34 ≤ position := by
         simpa [totalHeight] using Nat.le_of_not_gt hindex
       simp only [treeIndex, ftsTrees, ftsTreeHeight, totalHeight]
       omega

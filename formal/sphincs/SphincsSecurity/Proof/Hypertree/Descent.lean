@@ -13,6 +13,8 @@ namespace SphincsSecurity.Concrete
 
 open OracleComp OracleSpec
 
+attribute [local irreducible] verifyLayers
+
 variable {f : QueryImpl HashSpec Id} {parameter : PublicParameter}
   {otsSecret : Layer → TreeIndex → LeafIndex → ChainIndex → Digest}
   {ftsSecret : Index → FtsTree → FtsLeaf → Digest}
@@ -150,20 +152,34 @@ theorem layerRun_of_verify (index : Index) (signature : Signature)
       message target hverify hrun
   exact ⟨leafValue, hleaf, hnext, hleafRun, hfoldRun, hnextRun⟩
 
+def secondLayer : Layer := ⟨2, by decide⟩
+
+def thirdLayer : Layer := ⟨3, by decide⟩
+
 def HypertreeRun (f : QueryImpl HashSpec Id) (cache : QueryCache HashSpec)
     (parameter : PublicParameter) (index : Index) (signature : Signature)
     (message target : Digest) : Prop :=
   ∃ bottomLeaf,
     LayerFrame f cache parameter index signature bottomLayer message target bottomLeaf
-      ∧ let middleMessage := foldValue f parameter bottomLayer
+      ∧ let thirdMessage := foldValue f parameter bottomLayer
           (treeIndexAt index bottomLayer) (leafIndexAt index bottomLayer)
           (signaturePath signature bottomLayer) bottomLeaf (layerHeight bottomLayer)
-        ∃ middleLeaf,
-          LayerFrame f cache parameter index signature middleLayer middleMessage target middleLeaf
-            ∧ let topMessage := foldValue f parameter middleLayer
-                (treeIndexAt index middleLayer) (leafIndexAt index middleLayer)
-                (signaturePath signature middleLayer) middleLeaf (layerHeight middleLayer)
-              LayerRun f cache parameter index signature topLayer topMessage target
+        ∃ thirdLeaf,
+          LayerFrame f cache parameter index signature thirdLayer thirdMessage target thirdLeaf
+            ∧ let secondMessage := foldValue f parameter thirdLayer
+                (treeIndexAt index thirdLayer) (leafIndexAt index thirdLayer)
+                (signaturePath signature thirdLayer) thirdLeaf (layerHeight thirdLayer)
+              ∃ secondLeaf,
+                LayerFrame f cache parameter index signature secondLayer secondMessage target secondLeaf
+                  ∧ let middleMessage := foldValue f parameter secondLayer
+                      (treeIndexAt index secondLayer) (leafIndexAt index secondLayer)
+                      (signaturePath signature secondLayer) secondLeaf (layerHeight secondLayer)
+                    ∃ middleLeaf,
+                      LayerFrame f cache parameter index signature middleLayer middleMessage target middleLeaf
+                        ∧ let topMessage := foldValue f parameter middleLayer
+                            (treeIndexAt index middleLayer) (leafIndexAt index middleLayer)
+                            (signaturePath signature middleLayer) middleLeaf (layerHeight middleLayer)
+                          LayerRun f cache parameter index signature topLayer topMessage target
 
 theorem hypertreeRun_of_verify (index : Index) (signature : Signature)
     (message target : Digest)
@@ -176,13 +192,29 @@ theorem hypertreeRun_of_verify (index : Index) (signature : Signature)
     message target (by simpa only [numLayers, bottomLayer] using hverify)
     (by simpa only [numLayers, bottomLayer] using hrun)
   obtain ⟨bottomLeaf, hbottom⟩ := hbottom
-  let middleMessage := foldValue f parameter bottomLayer
+  let thirdMessage := foldValue f parameter bottomLayer
     (treeIndexAt index bottomLayer) (leafIndexAt index bottomLayer)
     (signaturePath signature bottomLayer) bottomLeaf (layerHeight bottomLayer)
+  have hthird := layerRun_of_verify (f := f) (cache := cache) index signature thirdLayer
+    thirdMessage target (by
+      simpa only [thirdMessage, bottomLayer, thirdLayer, numLayers] using hbottom.2.1)
+    (by simpa only [thirdMessage, bottomLayer, thirdLayer, numLayers] using hbottom.2.2.2.2)
+  obtain ⟨thirdLeaf, hthird⟩ := hthird
+  let secondMessage := foldValue f parameter thirdLayer
+    (treeIndexAt index thirdLayer) (leafIndexAt index thirdLayer)
+    (signaturePath signature thirdLayer) thirdLeaf (layerHeight thirdLayer)
+  have hsecond := layerRun_of_verify (f := f) (cache := cache) index signature secondLayer
+    secondMessage target (by
+      simpa only [secondMessage, thirdLayer, secondLayer] using hthird.2.1)
+    (by simpa only [secondMessage, thirdLayer, secondLayer] using hthird.2.2.2.2)
+  obtain ⟨secondLeaf, hsecond⟩ := hsecond
+  let middleMessage := foldValue f parameter secondLayer
+    (treeIndexAt index secondLayer) (leafIndexAt index secondLayer)
+    (signaturePath signature secondLayer) secondLeaf (layerHeight secondLayer)
   have hmiddle := layerRun_of_verify (f := f) (cache := cache) index signature middleLayer
     middleMessage target (by
-      simpa only [middleMessage, bottomLayer, middleLayer, numLayers] using hbottom.2.1)
-    (by simpa only [middleMessage, bottomLayer, middleLayer, numLayers] using hbottom.2.2.2.2)
+      simpa only [middleMessage, secondLayer, middleLayer] using hsecond.2.1)
+    (by simpa only [middleMessage, secondLayer, middleLayer] using hsecond.2.2.2.2)
   obtain ⟨middleLeaf, hmiddle⟩ := hmiddle
   let topMessage := foldValue f parameter middleLayer
     (treeIndexAt index middleLayer) (leafIndexAt index middleLayer)
@@ -190,7 +222,7 @@ theorem hypertreeRun_of_verify (index : Index) (signature : Signature)
   have htop := layerRun_of_verify (f := f) (cache := cache) index signature topLayer
     topMessage target (by simpa only [topMessage, middleLayer, topLayer] using hmiddle.2.1)
     (by simpa only [topMessage, middleLayer, topLayer] using hmiddle.2.2.2.2)
-  exact ⟨bottomLeaf, hbottom, middleLeaf, hmiddle, htop⟩
+  exact ⟨bottomLeaf, hbottom, thirdLeaf, hthird, secondLeaf, hsecond, middleLeaf, hmiddle, htop⟩
 
 def HonestLayerOpening (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
     (otsSecret : Layer → TreeIndex → LeafIndex → ChainIndex → Digest)

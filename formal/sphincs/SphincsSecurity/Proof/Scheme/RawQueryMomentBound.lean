@@ -158,15 +158,15 @@ theorem reuseRawEnvelope_query_shift_le (key : SecretKey) (reuse : ENNReal)
       ∑ index : Index, (targetIndexSigning (Fintype.card Index : ENNReal)⁻¹ reuse)^[signatures]
         (indexPowerVector
           (cachedIndexMultiplicity key.parameter state.1 index +
-            (queries : ENNReal) * ((2 ^ 36 : Nat) : ENNReal)⁻¹ + bound)
+            (queries : ENNReal) * ((2 ^ 44 : Nat) : ENNReal)⁻¹ + bound)
           ((signingSlotsAtIndex (observedOptionalSigningViews
             (FtsProbeSimulation.messageAnswers key.parameter state.1) key.root state.2) index).card : ENNReal))
         groups.card remaining.card := by
   have harrival : (((2 ^ ftsTreeHeight : Nat) : ENNReal)⁻¹ * (Fintype.card Index : ENNReal)⁻¹) =
-      ((2 ^ 36 : Nat) : ENNReal)⁻¹ := by
+      ((2 ^ 44 : Nat) : ENNReal)⁻¹ := by
     rw [← ENNReal.mul_inv (Or.inr (by finiteness)) (Or.inl (by finiteness))]
     norm_num [ftsTreeHeight, Index, totalHeight]
-  have hrate : (((2 ^ 36 : Nat) : ENNReal)⁻¹) ≤ 1 := by norm_num
+  have hrate : (((2 ^ 44 : Nat) : ENNReal)⁻¹) ≤ 1 := by norm_num
   unfold reuseRawEnvelope observedRawIndexShapeVector liftTargetIndexVector targetIndexMoments
   change targetShapeEnvelope _ _ _ queries signatures
     (fun G R => ∑ index : Index, indexPowerVector _ _ G.card R.card) groups remaining ≤ _

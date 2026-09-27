@@ -12,13 +12,13 @@ def AdmissibleIndexOutput (index : Index) (output : HashOutput) : Prop :=
 
 theorem probEvent_uniformHashOutput_admissible_index (index : Index) :
     Pr[AdmissibleIndexOutput index | ($ᵗ HashOutput : ProbComp HashOutput)] =
-      ((2 ^ 36 : Nat) : ENNReal)⁻¹ := by
+      ((2 ^ 44 : Nat) : ENNReal)⁻¹ := by
   change Pr[fun output : HashOutput =>
     Admissible (truncateMessageDigest output) ∧ (hashOutputFewTimeView output).1 = index |
       ($ᵗ HashOutput : ProbComp HashOutput)] = _
   have h := probEvent_uniformHashOutput_admissible_view (fun view => view.1 = index)
   rw [probEvent_uniform_view_index] at h
-  have hcard : Fintype.card Index = 2 ^ 26 := Fintype.card_fin _
+  have hcard : Fintype.card Index = 2 ^ 34 := Fintype.card_fin _
   calc
     _ = ((2 ^ ftsTreeHeight : Nat) : ENNReal)⁻¹ * (Fintype.card Index : ENNReal)⁻¹ := by
       simpa only [signAttemptResultOfOutput_ne_none_iff] using h
@@ -30,10 +30,10 @@ theorem probEvent_uniformHashOutput_admissible_index (index : Index) :
 theorem expected_uniformHashOutput_index_choice (index : Index) (accepted rejected : ENNReal) :
     (∑' output, Pr[= output | ($ᵗ HashOutput : ProbComp HashOutput)] *
       (if AdmissibleIndexOutput index output then accepted else rejected)) =
-      ((2 ^ 36 : Nat) : ENNReal)⁻¹ * accepted +
-        (1 - ((2 ^ 36 : Nat) : ENNReal)⁻¹) * rejected := by
+      ((2 ^ 44 : Nat) : ENNReal)⁻¹ * accepted +
+        (1 - ((2 ^ 44 : Nat) : ENNReal)⁻¹) * rejected := by
   have hnot : Pr[fun output => ¬ AdmissibleIndexOutput index output |
-      ($ᵗ HashOutput : ProbComp HashOutput)] = 1 - ((2 ^ 36 : Nat) : ENNReal)⁻¹ := by
+      ($ᵗ HashOutput : ProbComp HashOutput)] = 1 - ((2 ^ 44 : Nat) : ENNReal)⁻¹ := by
     have h := probEvent_compl ($ᵗ HashOutput : ProbComp HashOutput) (AdmissibleIndexOutput index)
     rw [probFailure_of_liftM_PMF, tsub_zero, probEvent_uniformHashOutput_admissible_index, add_comm] at h
     exact ENNReal.eq_sub_of_add_eq' (by finiteness) h
@@ -87,23 +87,23 @@ theorem expected_cachedIndexScore_second_le (parameter : PublicParameter)
     (index : Index) :
     (∑' output, Pr[= output | ($ᵗ HashOutput : ProbComp HashOutput)] *
       positiveScoreMoment (cachedIndexExcessScore parameter (cache.cacheQuery input output) index) 2) ≤
-        positiveScoreMoment (cachedIndexExcessScore parameter cache index) 2 + ((2 ^ 36 : Nat) : ENNReal)⁻¹ := by
+        positiveScoreMoment (cachedIndexExcessScore parameter cache index) 2 + ((2 ^ 44 : Nat) : ENNReal)⁻¹ := by
   by_cases hmessage : FtsProbeSimulation.MessageHashInput parameter input
   · simp_rw [cachedIndexExcessScore_cacheQuery parameter cache hfinite input _ hfresh index,
       hmessage, true_and]
     have hchoice (output : HashOutput) :
         positiveScoreMoment (cachedIndexExcessScore parameter cache index +
           (if Admissible (truncateMessageDigest output) ∧ (hashOutputFewTimeView output).1 = index then 1 else 0) -
-          (2 ^ 36 : ℝ)⁻¹) 2 =
+          (2 ^ 44 : ℝ)⁻¹) 2 =
         if AdmissibleIndexOutput index output then
-          positiveScoreMoment (cachedIndexExcessScore parameter cache index + (1 - (2 ^ 36 : ℝ)⁻¹)) 2
-        else positiveScoreMoment (cachedIndexExcessScore parameter cache index + (-(2 ^ 36 : ℝ)⁻¹)) 2 := by
+          positiveScoreMoment (cachedIndexExcessScore parameter cache index + (1 - (2 ^ 44 : ℝ)⁻¹)) 2
+        else positiveScoreMoment (cachedIndexExcessScore parameter cache index + (-(2 ^ 44 : ℝ)⁻¹)) 2 := by
       unfold AdmissibleIndexOutput
       split_ifs <;> congr 1 <;> ring
     simp_rw [hchoice]
     rw [expected_uniformHashOutput_index_choice]
     have h := bernoulliExcess_secondMoment_ennreal (cachedIndexExcessScore parameter cache index)
-      ((2 ^ 36 : Nat) : ENNReal)⁻¹ (by norm_num)
+      ((2 ^ 44 : Nat) : ENNReal)⁻¹ (by norm_num)
     simpa only [ENNReal.toReal_inv, ENNReal.toReal_natCast, ENNReal.toReal_pow, ENNReal.toReal_ofNat,
       Nat.cast_pow, Nat.cast_ofNat] using h
   · exact (expected_cachedIndexScore_nonmessage_le parameter cache hfinite input hfresh hmessage index 2).trans le_self_add
