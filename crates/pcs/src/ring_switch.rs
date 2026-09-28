@@ -68,7 +68,6 @@
 //! [DP24]: <https://eprint.iacr.org/2024/504>
 
 use fiat_shamir::transcript::Challenger;
-use primitives::bits::transpose_8x8_bits;
 use primitives::field::{F64, F192};
 
 use super::pack::PACKING_WIDTH;
@@ -190,19 +189,22 @@ pub fn claim_check(prefix_weights: &[F192], s_hat_v: &[F192]) -> F192 {
 /// Output: `s_hat_v[i] = sum_y bit_i(packed_witness[y]) * suffix_tensor[y]`
 /// for `i in 0..64` (bit i = polynomial-basis coordinate of the u64).
 ///
-/// Dispatch: the method-of-four-Russians kernel
-/// (`fold_1b_rows_mfr_8wide`) for lengths divisible by 8 (any real
-/// witness), the scalar bit-scan otherwise (tiny test instances). Both
-/// compute the same per-bit XOR-sums, only regrouped, and GF(2^192)
-/// addition is XOR (commutative, associative, exact), so the output and
-/// hence the transcript are byte-identical either way.
+/// The prover takes these from lincheck, so this is the reference for tests and the unprepared fallback.
 pub fn fold_1b_rows(packed_witness: &[F64], suffix_tensor: &[F192]) -> Vec<F192> {
     assert_eq!(packed_witness.len(), suffix_tensor.len());
-    if !packed_witness.is_empty() && packed_witness.len().is_multiple_of(8) {
-        fold_1b_rows_mfr_8wide(packed_witness, suffix_tensor)
-    } else {
-        fold_1b_rows_scalar(packed_witness, suffix_tensor)
-    }
+    parallel::fold_reduce(
+        packed_witness.len(),
+        || vec![F192::ZERO; PACKING_WIDTH],
+        |acc, i| {
+            let w = suffix_tensor[i];
+            let mut bits = packed_witness[i].0;
+            while bits != 0 {
+                acc[bits.trailing_zeros() as usize] += w;
+                bits &= bits - 1;
+            }
+        },
+        xor_accs,
+    )
 }
 
 /// Reuse lincheck's partial fold to derive the 64 slice evaluations needed by
@@ -240,95 +242,6 @@ fn xor_accs(mut a: Vec<F192>, b: Vec<F192>) -> Vec<F192> {
         *av += *bv;
     }
     a
-}
-
-/// Scalar reference path of [`fold_1b_rows`]: a parallel bit-scan with
-/// per-thread length-64 partial accumulators XOR-reduced at the end.
-/// Data-dependent cost: `trailing_zeros` + RMW + branch per set bit
-/// (~32/word on a random witness).
-fn fold_1b_rows_scalar(packed_witness: &[F64], suffix_tensor: &[F192]) -> Vec<F192> {
-    assert_eq!(packed_witness.len(), suffix_tensor.len());
-    parallel::fold_reduce(
-        packed_witness.len(),
-        || vec![F192::ZERO; PACKING_WIDTH],
-        |acc, i| {
-            let w = suffix_tensor[i];
-            let mut bits = packed_witness[i].0;
-            while bits != 0 {
-                let r = bits.trailing_zeros() as usize;
-                acc[r] += w;
-                bits &= bits - 1;
-            }
-        },
-        xor_accs,
-    )
-}
-
-/// Build the 16-entry subset-sum lookup table over 4 E elements:
-/// `sums[mask] = sum_{k in 0..4 : bit_k(mask) = 1} elems[k]`. 15 additions
-/// via the standard doubling pattern.
-#[inline(always)]
-fn subset_sums_4_ext(elems: [F192; 4]) -> [F192; 16] {
-    let mut sums = [F192::ZERO; 16];
-    for (i, &e) in elems.iter().enumerate() {
-        let half = 1 << i;
-        for k in 0..half {
-            sums[half + k] = sums[k] + e;
-        }
-    }
-    sums
-}
-
-/// Method-of-four-Russians [`fold_1b_rows`] kernel: the extension-field layer's
-/// `fold_1b_rows_1way_mfr_8wide_k4` ported to 8-byte K words (where 8 words
-/// per transpose group cover ALL 64 output bits with the 8 byte positions,
-/// no wasted transpose rows).
-///
-/// Per group of 8 words: build two 16-entry subset-sum tables over the 8
-/// suffix weights (low nibble = words 0..4, high = words 4..8, 30 adds
-/// total); then for each byte position `r_byte` gather that byte of all 8
-/// words into a u64 (word `e` in byte slot `e`) and 8x8 bit-transpose it,
-/// so transposed byte `p`, bit `e` is bit `r_byte*8 + p` of word `e`: an
-/// 8-bit mask over the group for output position `r = r_byte*8 + p`. Each
-/// output position then costs two table lookups + one in-register add + one
-/// accumulator RMW, regardless of bit density: a constant ~12 adds + 8 RMWs
-/// per word vs the scalar path's ~32 data-dependent conditional adds.
-/// Per-worker accumulators via `parallel::fold_reduce` (no shared cache lines).
-fn fold_1b_rows_mfr_8wide(packed_witness: &[F64], suffix_tensor: &[F192]) -> Vec<F192> {
-    assert_eq!(packed_witness.len(), suffix_tensor.len());
-    assert!(packed_witness.len().is_multiple_of(8));
-    parallel::fold_reduce(
-        packed_witness.len() / 8,
-        || vec![F192::ZERO; PACKING_WIDTH],
-        |acc, c| {
-            let m_chunk = &packed_witness[8 * c..8 * c + 8];
-            let t_chunk = &suffix_tensor[8 * c..8 * c + 8];
-            let lo_tbl = subset_sums_4_ext([t_chunk[0], t_chunk[1], t_chunk[2], t_chunk[3]]);
-            let hi_tbl = subset_sums_4_ext([t_chunk[4], t_chunk[5], t_chunk[6], t_chunk[7]]);
-
-            let mut m_bytes = [[0u8; 8]; 8];
-            for (e, slot) in m_bytes.iter_mut().enumerate() {
-                *slot = m_chunk[e].0.to_le_bytes();
-            }
-
-            for r_byte in 0..8 {
-                let combined: u64 = (m_bytes[0][r_byte] as u64)
-                    | ((m_bytes[1][r_byte] as u64) << 8)
-                    | ((m_bytes[2][r_byte] as u64) << 16)
-                    | ((m_bytes[3][r_byte] as u64) << 24)
-                    | ((m_bytes[4][r_byte] as u64) << 32)
-                    | ((m_bytes[5][r_byte] as u64) << 40)
-                    | ((m_bytes[6][r_byte] as u64) << 48)
-                    | ((m_bytes[7][r_byte] as u64) << 56);
-                let tb = transpose_8x8_bits(combined).to_le_bytes();
-                let base = r_byte * 8;
-                for (p, &mask) in tb.iter().enumerate() {
-                    acc[base + p] += lo_tbl[(mask & 0x0F) as usize] + hi_tbl[(mask >> 4) as usize];
-                }
-            }
-        },
-        xor_accs,
-    )
 }
 
 /// Compute `rs_eq_ind`, the transparent E-valued weight vector over the
@@ -800,33 +713,6 @@ mod tests {
             assert_eq!(s_hat_v[i], expected, "bit column {i}");
         }
         assert_eq!(s_hat_v, s_hat_v_reference(&packed, &suffix_point));
-    }
-
-    /// The MFR kernel must equal the scalar bit-scan (same XOR-sums, only
-    /// regrouped) on random data, and the dispatcher must route both regimes
-    /// correctly (multiple-of-8 lengths to MFR, smaller powers of two to the
-    /// scalar path).
-    #[test]
-    fn fold_1b_rows_mfr_matches_scalar() {
-        let mut rng = Rng::new(31);
-        for log_len in [3usize, 4, 7, 11] {
-            let len = 1usize << log_len;
-            let packed: Vec<F64> = (0..len).map(|_| F64(rng.next_u64())).collect();
-            let tensor = rng.ext_vec(len);
-            let mfr = fold_1b_rows_mfr_8wide(&packed, &tensor);
-            let scalar = fold_1b_rows_scalar(&packed, &tensor);
-            assert_eq!(mfr, scalar, "MFR/scalar split at len={len}");
-            assert_eq!(fold_1b_rows(&packed, &tensor), mfr, "dispatcher at len={len}");
-        }
-        for len in [1usize, 2, 4] {
-            let packed: Vec<F64> = (0..len).map(|_| F64(rng.next_u64())).collect();
-            let tensor = rng.ext_vec(len);
-            assert_eq!(
-                fold_1b_rows(&packed, &tensor),
-                fold_1b_rows_scalar(&packed, &tensor),
-                "scalar fallback at len={len}"
-            );
-        }
     }
 
     /// The prefix x suffix split factors the bit-MLE, and `prove_prepare`'s

@@ -2,7 +2,7 @@
 //! Bit-packing and R1CS-row helpers for the monolithic hash R1CS modules
 //! (only `hash` in this vendored subset).
 
-use primitives::bits::transpose_8_u64s_to_64_bytes;
+use primitives::bits::bit_transpose_64bytes;
 use primitives::stream::Stream;
 use zk_alloc::ArenaVec;
 
@@ -218,9 +218,9 @@ where
             }
 
             // Bit-transpose 8 z chunks into the lincheck stripe.
-            for i in 0..u64_per_block {
-                let lanes: [u64; 8] = std::array::from_fn(|l| z_grp[l * u64_per_block + i]);
-                transpose_8_u64s_to_64_bytes(&lanes, &mut stripe[i * 64..i * 64 + 64]);
+            for (i, out) in stripe.as_chunks_mut::<64>().0.iter_mut().enumerate() {
+                let rows: [[u8; 8]; 8] = std::array::from_fn(|l| z_grp[l * u64_per_block + i].to_le_bytes());
+                bit_transpose_64bytes(rows.as_flattened().try_into().expect("64 bytes"), out);
             }
 
             // SAFETY: each group `g` takes chunk `g` of each table exactly once, and
