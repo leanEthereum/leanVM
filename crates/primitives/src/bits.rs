@@ -108,39 +108,65 @@ unsafe fn bit_transpose_64bytes_gfni(input: &[u8; 64], output: &mut [u8; 64]) {
 unsafe fn bit_transpose_64bytes_neon(input: &[u8; 64], output: &mut [u8; 64]) {
     use core::arch::aarch64::*;
 
-    // Two columns per register: word `b` holds rows 0..8 of column `b`.
-    const IDX: [[u8; 16]; 4] = [
-        [0, 8, 16, 24, 32, 40, 48, 56, 1, 9, 17, 25, 33, 41, 49, 57],
-        [2, 10, 18, 26, 34, 42, 50, 58, 3, 11, 19, 27, 35, 43, 51, 59],
-        [4, 12, 20, 28, 36, 44, 52, 60, 5, 13, 21, 29, 37, 45, 53, 61],
-        [6, 14, 22, 30, 38, 46, 54, 62, 7, 15, 23, 31, 39, 47, 55, 63],
-    ];
-
-    /// One masked swap of bits `D` apart, on both words.
-    #[inline(always)]
-    unsafe fn swap<const D: i32>(y: uint64x2_t, mask: u64) -> uint64x2_t {
-        unsafe {
-            let t = vandq_u64(veorq_u64(y, vshrq_n_u64::<D>(y)), vdupq_n_u64(mask));
-            veorq_u64(y, veorq_u64(t, vshlq_n_u64::<D>(t)))
-        }
-    }
-
-    // SAFETY: each load and store stays inside one 64-byte array.
     unsafe {
-        let p = input.as_ptr();
-        let table = uint8x16x4_t(
-            vld1q_u8(p),
-            vld1q_u8(p.add(16)),
-            vld1q_u8(p.add(32)),
-            vld1q_u8(p.add(48)),
-        );
-        for (q, idx) in IDX.iter().enumerate() {
-            let y = vreinterpretq_u64_u8(vqtbl4q_u8(table, vld1q_u8(idx.as_ptr())));
-            let y = swap::<7>(y, 0x00AA_00AA_00AA_00AA);
-            let y = swap::<14>(y, 0x0000_CCCC_0000_CCCC);
-            let y = swap::<28>(y, 0x0000_0000_F0F0_F0F0);
-            vst1q_u8(output.as_mut_ptr().add(16 * q), vreinterpretq_u8_u64(y));
-        }
+        let in_ptr = input.as_ptr();
+        let v0 = vld1q_u8(in_ptr);
+        let v1 = vld1q_u8(in_ptr.add(16));
+        let v2 = vld1q_u8(in_ptr.add(32));
+        let v3 = vld1q_u8(in_ptr.add(48));
+        let table = uint8x16x4_t(v0, v1, v2, v3);
+
+        // vqtbl4q indexes that bring bytes belonging to byte-chunk b ∈ 0..8
+        // into contiguous 8-byte runs, packed two-chunks-per-Q-reg.
+        const IDX0: [u8; 16] = [0, 8, 16, 24, 32, 40, 48, 56, 1, 9, 17, 25, 33, 41, 49, 57];
+        const IDX1: [u8; 16] = [2, 10, 18, 26, 34, 42, 50, 58, 3, 11, 19, 27, 35, 43, 51, 59];
+        const IDX2: [u8; 16] = [4, 12, 20, 28, 36, 44, 52, 60, 5, 13, 21, 29, 37, 45, 53, 61];
+        const IDX3: [u8; 16] = [6, 14, 22, 30, 38, 46, 54, 62, 7, 15, 23, 31, 39, 47, 55, 63];
+
+        let mut y0 = vreinterpretq_u64_u8(vqtbl4q_u8(table, vld1q_u8(IDX0.as_ptr())));
+        let mut y1 = vreinterpretq_u64_u8(vqtbl4q_u8(table, vld1q_u8(IDX1.as_ptr())));
+        let mut y2 = vreinterpretq_u64_u8(vqtbl4q_u8(table, vld1q_u8(IDX2.as_ptr())));
+        let mut y3 = vreinterpretq_u64_u8(vqtbl4q_u8(table, vld1q_u8(IDX3.as_ptr())));
+
+        let mask1 = vdupq_n_u64(0x00AA00AA00AA00AA);
+        let mask2 = vdupq_n_u64(0x0000CCCC0000CCCC);
+        let mask3 = vdupq_n_u64(0x00000000F0F0F0F0);
+
+        // Round 1: distance 7.
+        let t0 = vandq_u64(veorq_u64(y0, vshrq_n_u64::<7>(y0)), mask1);
+        let t1 = vandq_u64(veorq_u64(y1, vshrq_n_u64::<7>(y1)), mask1);
+        let t2 = vandq_u64(veorq_u64(y2, vshrq_n_u64::<7>(y2)), mask1);
+        let t3 = vandq_u64(veorq_u64(y3, vshrq_n_u64::<7>(y3)), mask1);
+        y0 = veorq_u64(y0, veorq_u64(t0, vshlq_n_u64::<7>(t0)));
+        y1 = veorq_u64(y1, veorq_u64(t1, vshlq_n_u64::<7>(t1)));
+        y2 = veorq_u64(y2, veorq_u64(t2, vshlq_n_u64::<7>(t2)));
+        y3 = veorq_u64(y3, veorq_u64(t3, vshlq_n_u64::<7>(t3)));
+
+        // Round 2: distance 14.
+        let t0 = vandq_u64(veorq_u64(y0, vshrq_n_u64::<14>(y0)), mask2);
+        let t1 = vandq_u64(veorq_u64(y1, vshrq_n_u64::<14>(y1)), mask2);
+        let t2 = vandq_u64(veorq_u64(y2, vshrq_n_u64::<14>(y2)), mask2);
+        let t3 = vandq_u64(veorq_u64(y3, vshrq_n_u64::<14>(y3)), mask2);
+        y0 = veorq_u64(y0, veorq_u64(t0, vshlq_n_u64::<14>(t0)));
+        y1 = veorq_u64(y1, veorq_u64(t1, vshlq_n_u64::<14>(t1)));
+        y2 = veorq_u64(y2, veorq_u64(t2, vshlq_n_u64::<14>(t2)));
+        y3 = veorq_u64(y3, veorq_u64(t3, vshlq_n_u64::<14>(t3)));
+
+        // Round 3: distance 28.
+        let t0 = vandq_u64(veorq_u64(y0, vshrq_n_u64::<28>(y0)), mask3);
+        let t1 = vandq_u64(veorq_u64(y1, vshrq_n_u64::<28>(y1)), mask3);
+        let t2 = vandq_u64(veorq_u64(y2, vshrq_n_u64::<28>(y2)), mask3);
+        let t3 = vandq_u64(veorq_u64(y3, vshrq_n_u64::<28>(y3)), mask3);
+        y0 = veorq_u64(y0, veorq_u64(t0, vshlq_n_u64::<28>(t0)));
+        y1 = veorq_u64(y1, veorq_u64(t1, vshlq_n_u64::<28>(t1)));
+        y2 = veorq_u64(y2, veorq_u64(t2, vshlq_n_u64::<28>(t2)));
+        y3 = veorq_u64(y3, veorq_u64(t3, vshlq_n_u64::<28>(t3)));
+
+        let out_ptr = output.as_mut_ptr();
+        vst1q_u8(out_ptr, vreinterpretq_u8_u64(y0));
+        vst1q_u8(out_ptr.add(16), vreinterpretq_u8_u64(y1));
+        vst1q_u8(out_ptr.add(32), vreinterpretq_u8_u64(y2));
+        vst1q_u8(out_ptr.add(48), vreinterpretq_u8_u64(y3));
     }
 }
 
