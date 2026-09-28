@@ -15,9 +15,17 @@ mod arm;
 #[cfg(target_arch = "x86_64")]
 mod x86;
 
+use batch::{Lanes32, hash_many_with};
+
+/// The batched backend this build dispatches to.
+#[cfg(all(target_arch = "x86_64", target_feature = "avx512f"))]
+type Backend = x86::Avx512;
+#[cfg(all(target_arch = "x86_64", not(target_feature = "avx512f"), target_feature = "avx2"))]
+type Backend = x86::Avx2;
+#[cfg(target_arch = "aarch64")]
+type Backend = arm::Neon;
 #[cfg(not(any(all(target_arch = "x86_64", target_feature = "avx2"), target_arch = "aarch64")))]
-use batch::Scalar8;
-use batch::hash_many_with;
+type Backend = batch::Scalar8;
 
 /// BLAKE2s initial values: the SHA-256 IV.
 pub const IV: [u32; 8] = [
@@ -244,15 +252,12 @@ pub fn keyed_hash(key: &[u8], data: &[u8]) -> [u8; OUT_LEN] {
 /// Inputs one vector of the widest backend holds.
 ///
 /// Batched calls accept any count, and hash the remainder one at a time.
-pub const LANES: usize = if cfg!(all(target_arch = "x86_64", target_feature = "avx512f")) {
-    16
-} else if cfg!(target_arch = "x86_64") {
-    8
-} else if cfg!(target_arch = "aarch64") {
-    4
-} else {
-    8
-};
+pub const LANES: usize = Backend::WIDTH;
+
+/// Inputs one batched step hashes together.
+///
+/// A count that is a multiple of it has no remainder.
+pub const BATCH: usize = Backend::GROUPS * Backend::WIDTH;
 
 /// Batched BLAKE2s-256 of `LEN`-byte inputs, one 32-byte digest each.
 ///
@@ -310,24 +315,8 @@ pub fn hash_many_dyn_from_state(data: &[u8], len: usize, state: &[u32; 8], t_off
     let n = out.len() / OUT_LEN;
     assert_eq!(data.len(), n * len);
     assert_eq!(out.len(), n * OUT_LEN);
-    // SAFETY (each arm): the asserts pin the buffer sizes.
-    // Every backend is gated on the feature its intrinsics need.
-    #[cfg(all(target_arch = "x86_64", target_feature = "avx512f"))]
-    unsafe {
-        hash_many_with::<x86::Avx512>(data, len, state, t_offset, out)
-    }
-    #[cfg(all(target_arch = "x86_64", not(target_feature = "avx512f"), target_feature = "avx2"))]
-    unsafe {
-        hash_many_with::<x86::Avx2>(data, len, state, t_offset, out)
-    }
-    #[cfg(target_arch = "aarch64")]
-    unsafe {
-        hash_many_with::<arm::Neon>(data, len, state, t_offset, out)
-    }
-    #[cfg(not(any(all(target_arch = "x86_64", target_feature = "avx2"), target_arch = "aarch64")))]
-    unsafe {
-        hash_many_with::<Scalar8>(data, len, state, t_offset, out)
-    }
+    // SAFETY: the asserts pin the buffer sizes, and the backend is gated on the features its intrinsics need.
+    unsafe { hash_many_with::<Backend>(data, len, state, t_offset, out) }
 }
 
 /// The batched hash with a runtime input length, a nonzero multiple of 64.
@@ -337,7 +326,7 @@ pub fn hash_many_dyn(data: &[u8], len: usize, out: &mut [u8]) {
 
 #[cfg(test)]
 mod tests {
-    use super::batch::{Lanes32, Scalar8};
+    use super::batch::Scalar8;
     use super::*;
     use crate::test_rng::Rng;
 

@@ -50,6 +50,9 @@ fn span_get(basis: &[F64], idx: usize) -> F64 {
     acc
 }
 
+/// Receives a finished block of codeword rows, as `(first_row, rows)`.
+pub type RowSink<'a> = dyn Fn(usize, &[F64]) + Sync + 'a;
+
 /// Additive NTT over F_{2^64} with the standard polynomial-basis subspace
 /// `{1, x, x², …}`: the F_2-subspace is `{0, 1, …, 2^ℓ−1}` under the natural
 /// integer encoding, exactly as in the extension-field version (whose domain already
@@ -158,18 +161,43 @@ impl AdditiveNttF64 {
     pub fn encode_interleaved_in_place(&self, data: &mut [F64], num_ntts: usize, log_inv_rate: usize) {
         // The message is the buffer's own first replica.
         let msg = parallel::SendPtr(data.as_mut_ptr());
-        self.transform(data, num_ntts, log_inv_rate, Some(msg));
+        self.transform(data, num_ntts, log_inv_rate, Some(msg), None);
     }
 
-    /// RS-encode a message held in a buffer of its own.
+    /// Encode in place, handing `on_rows` every finished block of rows.
+    ///
+    /// - It is called as `on_rows(first_row, rows)`, from pool tasks.
+    /// - Each row is handed over exactly once.
+    /// - Blocks are aligned, and all of one power-of-two size.
+    /// - A block is handed over while its rows are still in cache.
+    pub fn encode_interleaved_in_place_with(
+        &self,
+        data: &mut [F64],
+        num_ntts: usize,
+        log_inv_rate: usize,
+        on_rows: &RowSink<'_>,
+    ) {
+        let msg = parallel::SendPtr(data.as_mut_ptr());
+        self.transform(data, num_ntts, log_inv_rate, Some(msg), Some(on_rows));
+    }
+
+    /// RS-encode a message held in a buffer of its own, handing `on_rows` every finished block of rows.
     ///
     /// - The result equals encoding in place.
     /// - Every codeword word is written before it is read, so the codeword may start uninitialized.
+    /// - The blocks are as for the in-place encode.
     ///
     /// # Panics
     ///
     /// Panics unless the codeword is exactly `2^r` messages long.
-    pub fn encode_interleaved(&self, data: &mut [F64], msg: &[F64], num_ntts: usize, log_inv_rate: usize) {
+    pub fn encode_interleaved_with(
+        &self,
+        data: &mut [F64],
+        msg: &[F64],
+        num_ntts: usize,
+        log_inv_rate: usize,
+        on_rows: &RowSink<'_>,
+    ) {
         assert_eq!(
             msg.len() << log_inv_rate,
             data.len(),
@@ -177,7 +205,7 @@ impl AdditiveNttF64 {
         );
         // Read-only from here on: the pointer only feeds the first pass's reads.
         let msg = parallel::SendPtr(msg.as_ptr().cast_mut());
-        self.transform(data, num_ntts, log_inv_rate, Some(msg));
+        self.transform(data, num_ntts, log_inv_rate, Some(msg), Some(on_rows));
     }
 
     /// Scalar reference for the interleaved forward NTT (test oracle).
@@ -233,7 +261,7 @@ impl AdditiveNttF64 {
         num_ntts: usize,
         start_layer: usize,
     ) {
-        self.transform(data, num_ntts, start_layer, None);
+        self.transform(data, num_ntts, start_layer, None, None);
     }
 
     /// Run layers `start..d` of a `2^d`-row transform in as few sweeps of the buffer as possible.
@@ -266,7 +294,19 @@ impl AdditiveNttF64 {
     /// - The message may be the buffer's own block 0.
     /// - So a gathered task visits blocks in descending order, and overwrites block 0 last.
     /// - Tasks own disjoint row residues, so no task reads rows another task writes.
-    fn transform(&self, data: &mut [F64], num_ntts: usize, start: usize, msg: Option<parallel::SendPtr<F64>>) {
+    ///
+    /// # Finished rows
+    ///
+    /// - Each deep sub-block is final, and hands its rows to `on_rows` while they are in L2.
+    /// - Without a split deep pass, the rows go over in parallel blocks at the end.
+    fn transform(
+        &self,
+        data: &mut [F64],
+        num_ntts: usize,
+        start: usize,
+        msg: Option<parallel::SendPtr<F64>>,
+        on_rows: Option<&RowSink<'_>>,
+    ) {
         // The buffer is 2^log_d rows of `num_ntts` words.
         assert!(num_ntts > 0);
         assert_eq!(data.len() % num_ntts, 0);
@@ -322,9 +362,14 @@ impl AdditiveNttF64 {
             replicate(data, m, data.len() >> start);
         }
 
+        // A lone sub-block runs on this thread, so its rows go over in parallel afterwards.
+        let fuse = 0 < deep_start && deep_start < log_d;
+        let deep_rows = on_rows.filter(|_| fuse);
+
         // Phase 3: the deep pass, one task per contiguous sub-block.
         if deep_start < log_d {
-            let sub_len = num_ntts << (log_d - deep_start);
+            let log_sub = log_d - deep_start;
+            let sub_len = num_ntts << log_sub;
             let block_len = data.len() >> start;
             parallel::chunks_mut(data, sub_len, |sub_idx, sub| match msg {
                 // A separate message: build the sub-block in scratch, then write it out once.
@@ -341,6 +386,9 @@ impl AdditiveNttF64 {
                     // - This sub-block ends inside its replica, so the read stays in bounds.
                     scratch.copy_from_slice(unsafe { std::slice::from_raw_parts(m.add(off), sub_len) });
                     self.run_layers(scratch, log_d, num_ntts, deep_start, log_d, deep_start, sub_idx);
+                    if let Some(f) = deep_rows {
+                        f(sub_idx << log_sub, scratch);
+                    }
                     if stream {
                         Stream::new().copy(sub, scratch);
                     } else {
@@ -348,8 +396,20 @@ impl AdditiveNttF64 {
                     }
                 }),
                 // The replicas are already in place: run the layers where they are.
-                None => self.run_layers(sub, log_d, num_ntts, deep_start, log_d, deep_start, sub_idx),
+                None => {
+                    self.run_layers(sub, log_d, num_ntts, deep_start, log_d, deep_start, sub_idx);
+                    if let Some(f) = deep_rows {
+                        f(sub_idx << log_sub, sub);
+                    }
+                }
             });
+        }
+
+        if let Some(f) = on_rows.filter(|_| !fuse) {
+            // Four blocks per worker.
+            let log_tasks = (4 * parallel::num_threads()).next_power_of_two().ilog2() as usize;
+            let log_rows = log_d - log_tasks.min(log_d);
+            parallel::chunks_mut(data, num_ntts << log_rows, |i, rows| f(i << log_rows, rows));
         }
     }
 
@@ -1213,6 +1273,9 @@ mod tests {
         //     (14, 8, 1)             one gathered pass reading the first replica
         //     (14, 64, 2)            one gathered pass reading the first replica
         //     (12, 2048, 1)          two gathered passes, with streaming stores
+        //     (4, 8, 4)              rate = log_d: no layer left, rows handed over at the end
+        //
+        // The handed-over rows must tile the codeword once, each block already final.
         let mut rng = Rng::new(0xE0C0DE);
         for (log_d, lanes, log_inv_rate) in [
             (9usize, 8usize, 1usize),
@@ -1220,6 +1283,7 @@ mod tests {
             (14, 8, 1),
             (14, 64, 2),
             (12, 2048, 1),
+            (4, 8, 4),
         ] {
             let ntt = AdditiveNttF64::standard(log_d);
             let msg_len = (lanes << log_d) >> log_inv_rate;
@@ -1233,9 +1297,25 @@ mod tests {
             // Under test: only the first replica holds the message, the rest is zero.
             let mut got = vec![F64::ZERO; msg_len << log_inv_rate];
             got[..msg_len].copy_from_slice(&msg);
-            ntt.encode_interleaved_in_place(&mut got, lanes, log_inv_rate);
-
+            let blocks = std::sync::Mutex::new(Vec::new());
+            ntt.encode_interleaved_in_place_with(&mut got, lanes, log_inv_rate, &|row, rows| {
+                blocks.lock().unwrap().push((row, rows.to_vec()))
+            });
             assert_eq!(got, want, "log_d={log_d}, lanes={lanes}, rate={log_inv_rate}");
+
+            let mut blocks = blocks.into_inner().unwrap();
+            blocks.sort_by_key(|b| b.0);
+            let mut next = 0;
+            for (row, rows) in blocks {
+                assert_eq!(row, next, "blocks tile the rows, log_d={log_d}");
+                assert_eq!(
+                    rows[..],
+                    want[row * lanes..][..rows.len()],
+                    "a handed-over block is final"
+                );
+                next += rows.len() / lanes;
+            }
+            assert_eq!(next, 1 << log_d, "every row handed over, log_d={log_d}");
         }
     }
 

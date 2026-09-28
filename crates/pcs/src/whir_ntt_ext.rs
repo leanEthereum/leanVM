@@ -21,7 +21,7 @@
 //!
 //! Every butterfly acts on each coefficient alone, so the encode runs as the base transform over `3n` lanes.
 
-use crate::ntt::AdditiveNttF64;
+use crate::ntt::{AdditiveNttF64, RowSink};
 use primitives::field::{F64, F192};
 
 // An E element is exactly three K words, with no padding, so the two views line up.
@@ -33,6 +33,7 @@ const _: () = assert!(align_of::<F192>() == align_of::<F64>());
 /// - The codeword is `2^r` copies of the message, each transformed from layer `r` on.
 /// - Here `r` is the log inverse rate.
 /// - The codeword may start uninitialized.
+/// - `on_rows` gets every finished block of rows, as K words.
 ///
 /// # Panics
 ///
@@ -43,6 +44,7 @@ pub(crate) fn encode_interleaved_ext(
     msg: &[F192],
     num_ntts: usize,
     log_inv_rate: usize,
+    on_rows: &RowSink<'_>,
 ) {
     assert!(num_ntts.is_power_of_two());
     // View both buffers as K words: each row of n E lanes becomes 3n K lanes.
@@ -56,7 +58,7 @@ pub(crate) fn encode_interleaved_ext(
             std::slice::from_raw_parts(msg.as_ptr().cast::<F64>(), 3 * msg.len()),
         )
     };
-    ntt.encode_interleaved(mat, msg, 3 * num_ntts, log_inv_rate);
+    ntt.encode_interleaved_with(mat, msg, 3 * num_ntts, log_inv_rate, on_rows);
 }
 
 #[cfg(test)]
@@ -123,7 +125,7 @@ mod tests {
             forward_scalar(&ntt, &mut want, lanes, rate);
             // Under test: a zeroed codeword, filled by the encode alone.
             let mut got = vec![F192::ZERO; want.len()];
-            encode_interleaved_ext(&ntt, &mut got, &msg, lanes, rate);
+            encode_interleaved_ext(&ntt, &mut got, &msg, lanes, rate, &|_, _| {});
             assert_eq!(got, want, "log_d={log_d}, lanes={lanes}, rate={rate}");
         }
     }
