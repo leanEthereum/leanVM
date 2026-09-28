@@ -405,7 +405,6 @@ pub fn verify_opening_batch_mixed_whir_stacked(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::pack::{LOG_PACKING, pack_witness};
     use crate::ring_switch::fold_1b_rows;
     use crate::whir::{build_eq_table_ext, commit, default_config, inner_product_base_ext};
     use crate::whir_config::test_config_for;
@@ -527,8 +526,7 @@ mod tests {
 
         // Three random columns, the packed bit-witness region, then filler.
         let mut stack: Vec<F64> = (0..3 * col_len).map(|_| F64(rng.next_u64())).collect();
-        let bits = rng.bits(1usize << (qflock_vars + LOG_PACKING));
-        stack.extend(pack_witness(&bits, qflock_vars + LOG_PACKING));
+        stack.extend((0..1usize << qflock_vars).map(|_| F64(rng.next_u64())));
         while stack.len() < 1 << log_n {
             stack.push(F64(rng.next_u64()));
         }
@@ -720,8 +718,7 @@ mod tests {
         let mut rng = Rng::new(3);
 
         let mut stack: Vec<F64> = (0..1usize << 13).map(|_| F64(rng.next_u64())).collect();
-        let bits = rng.bits(1usize << (qflock_vars + LOG_PACKING));
-        stack.extend(pack_witness(&bits, qflock_vars + LOG_PACKING));
+        stack.extend((0..1usize << qflock_vars).map(|_| F64(rng.next_u64())));
         assert_eq!(stack.len(), 1 << log_n);
 
         // One point claim on the low column.

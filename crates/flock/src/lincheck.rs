@@ -1353,6 +1353,7 @@ pub fn verify(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use primitives::field::F64;
     use primitives::test_rng::Rng;
 
     /// Test shim for the old dense-prove entry: the capture variant with a
@@ -1939,6 +1940,19 @@ mod tests {
             Err(VerifyError::KSkipExceedsKLog { .. })
         ));
     }
+    /// Fold `z_vec`'s `2^|inner_rest_tail|` stripes of 64 slice values against the tail's eq table.
+    fn s_hat_v_from_z_vec(z_vec: &[F192], inner_rest_tail: &[F192]) -> Vec<F192> {
+        let eq = build_eq(inner_rest_tail);
+        assert_eq!(z_vec.len(), pcs::pack::PACKING_WIDTH * eq.len());
+        let mut s_hat_v = vec![F192::ZERO; pcs::pack::PACKING_WIDTH];
+        for (stripe, &weight) in z_vec.chunks(pcs::pack::PACKING_WIDTH).zip(&eq) {
+            for (slot, &value) in s_hat_v.iter_mut().zip(stripe) {
+                *slot += weight * value;
+            }
+        }
+        s_hat_v
+    }
+
     /// AB-claim s_hat_v computed via `s_hat_v_from_z_vec` (reusing lincheck's
     /// pre-sumcheck partial fold of `z` at `x_outer`) is byte-identical to the
     /// general-purpose `fold_1b_rows` over the materialized suffix tensor.
@@ -1959,7 +1973,10 @@ mod tests {
 
             // Boolean witness in standard logical (linear) layout.
             let z = rng.bits(1 << m);
-            let packed = pcs::pack::pack_witness(&z, m);
+            let packed: Vec<F64> = z
+                .chunks(64)
+                .map(|c| F64(c.iter().rev().fold(0, |acc, &b| acc << 1 | b as u64)))
+                .collect();
             let z_packed_lincheck = pack_z_lincheck(&z, m, k_log);
 
             // AB-shaped quirky point: x_inner_rest has k_log − K_SKIP coords;
@@ -1979,7 +1996,7 @@ mod tests {
             // strided fold against the inner-rest tail.
             let eq_x_outer = primitives::multilinear::eq_table(&x_outer);
             let z_vec = partial_fold_packed_z(&z_packed_lincheck, m, k_log, &eq_x_outer);
-            let got = pcs::ring_switch::s_hat_v_from_z_vec(&z_vec, &x_inner_rest);
+            let got = s_hat_v_from_z_vec(&z_vec, &x_inner_rest);
 
             assert_eq!(got, want, "s_hat_v mismatch at m={m}, k_log={k_log}");
         }

@@ -14,7 +14,7 @@
 //!
 //! [`hash`] is the one circuit: the BLAKE2s compression as a per-block R1CS,
 //! plus its witness generation and the leanVM-facing reduction entry points
-//! (`Blake2sSetup::{prove_reduction, verify_reduction, …}`). Steps 2 to 4 above
+//! (`Blake2sSetup::{prove_reduction_precomputed, verify_reduction, …}`). Steps 2 to 4 above
 //! are circuit-agnostic: they take the block shape as plain numbers and reach
 //! the matrices only through [`lincheck::LincheckCircuit`], whose one live impl
 //! walks the circuit rather than reading any matrix.

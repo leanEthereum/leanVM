@@ -12,7 +12,7 @@ use primitives::field::{F64, F192};
 /// chain of these, so a zkDSL program replays it with one `blake2s(...)` per
 /// step.
 ///
-/// A 64-byte input is one compression, so this is `compress(init_state(0), m,
+/// A 64-byte input is one compression, so this is `compress(PARAM_IV, m,
 /// t = 64, last = true)` and nothing about the byte-level padding rules can
 /// leak into the in-circuit version.
 pub fn compress(a: [F64; 4], b: [F64; 4]) -> [F64; 4] {

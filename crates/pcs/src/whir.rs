@@ -1202,8 +1202,8 @@ pub(crate) fn recursive_prover_with_prepared_basis(
     // here, the caller having transmitted it.
     // The codeword interleaves only the committed lanes, and its lane `t` is stack
     // block `n_lanes-1-t`, so a row IS the tail of the leaf image: the absent lanes
-    // are the image's leading zeros (`merkle::merkle_tree_padded_rows` shares their
-    // hash prefix, and only this tail rides the proof).
+    // are the image's leading zeros (`MerkleBuilder` shares their hash prefix, and only
+    // this tail rides the proof).
     let l0_row = |q: usize| -> Vec<F64> { l0_codeword[q * n_lanes..(q + 1) * n_lanes].to_vec() };
     // The same row for the induce, which folds a lane-ASCENDING row against the
     // lane eq table: reversing the image puts block `b` at index `b` and the absent

@@ -174,11 +174,6 @@ pub fn inner_product_ext(a: &[F192], b: &[F192]) -> F192 {
     acc
 }
 
-/// The verifier's claim check: `sum_i prefix_weights[i] * s_hat_v[i]`.
-pub fn claim_check(prefix_weights: &[F192], s_hat_v: &[F192]) -> F192 {
-    inner_product_ext(prefix_weights, s_hat_v)
-}
-
 /// Compute the slice-MLE vector `s_hat_v` (length 64) from a packed witness
 /// and a tensor-expanded suffix point.
 ///
@@ -204,34 +199,6 @@ pub fn fold_1b_rows(packed_witness: &[F64], suffix_tensor: &[F192]) -> Vec<F192>
             }
         },
         xor_accs,
-    )
-}
-
-/// Reuse lincheck's partial fold to derive the 64 slice evaluations needed by
-/// the K ring switch, avoiding a second pass over the packed witness.
-pub fn s_hat_v_from_z_vec(z_vec: &[F192], inner_rest_tail: &[F192]) -> Vec<F192> {
-    let n_packed = PACKING_WIDTH;
-    let n_tail = 1usize << inner_rest_tail.len();
-    assert_eq!(z_vec.len(), n_packed * n_tail);
-    if inner_rest_tail.is_empty() {
-        return z_vec.to_vec();
-    }
-    let eq = build_eq_table_ext(inner_rest_tail);
-    parallel::fold_reduce(
-        eq.len(),
-        || vec![F192::ZERO; n_packed],
-        |acc, k| {
-            let weight = eq[k];
-            for (slot, &value) in acc.iter_mut().zip(&z_vec[k * n_packed..(k + 1) * n_packed]) {
-                *slot += weight * value;
-            }
-        },
-        |mut acc, part| {
-            for (slot, value) in acc.iter_mut().zip(part) {
-                *slot += value;
-            }
-            acc
-        },
     )
 }
 
@@ -525,13 +492,18 @@ mod tests {
     use super::*;
     use crate::merkle::Hash;
     use crate::pack::LOG_PACKING;
-    use crate::pack::pack_witness;
     use crate::whir::VerifierConfig;
     use crate::whir::{
         commit, recursive_prover_with_basis, recursive_verifier_with_basis, recursive_verifier_with_basis_succinct,
     };
     use crate::whir_config::test_config_for;
     use primitives::test_rng::Rng;
+
+    /// Pack bit `64 * y + i` of `bits` into bit `i` of word `y`.
+    fn pack_witness(bits: &[bool]) -> Vec<F64> {
+        let word = |c: &[bool]| c.iter().rev().fold(0, |acc, &b| acc << 1 | b as u64);
+        bits.chunks(PACKING_WIDTH).map(|c| F64(word(c))).collect()
+    }
 
     /// Number of Frobenius terms the composed batching map expands to: the
     /// F_2-dimension of `K`.
@@ -695,7 +667,7 @@ mod tests {
         let m = 9;
         let mut rng = Rng::new(1);
         let bits = rng.bits(1usize << m);
-        let packed = pack_witness(&bits, m);
+        let packed = pack_witness(&bits);
         let suffix_point = rng.ext_vec(m - LOG_PACKING);
         let eq_suffix = build_eq_table_ext(&suffix_point);
 
@@ -722,7 +694,7 @@ mod tests {
         let m = 10;
         let mut rng = Rng::new(2);
         let bits = rng.bits(1usize << m);
-        let packed = pack_witness(&bits, m);
+        let packed = pack_witness(&bits);
         let point = rng.ext_vec(m);
         let prefix_weights = build_eq_table_ext(&point[..LOG_PACKING]);
         let suffix_point = &point[LOG_PACKING..];
@@ -736,7 +708,7 @@ mod tests {
             }
         }
         assert_eq!(
-            claim_check(&prefix_weights, &s_ref),
+            inner_product_ext(&prefix_weights, &s_ref),
             direct,
             "prefix x suffix split must factor the MLE"
         );
@@ -800,7 +772,7 @@ mod tests {
     fn prove_e2e(m: usize, seed: u64, generalized_weights: bool) -> E2e {
         let mut rng = Rng::new(seed);
         let bits = rng.bits(1usize << m);
-        let packed = pack_witness(&bits, m);
+        let packed = pack_witness(&bits);
         let log_n = m - LOG_PACKING;
         let pc = test_config_for(log_n);
         let (cm, pd) = commit(&packed, log_n, pc.initial_k, pc.log_inv_rates[0]);
@@ -813,7 +785,7 @@ mod tests {
         } else {
             build_eq_table_ext(&rng.ext_vec(LOG_PACKING))
         };
-        let claim = claim_check(&prefix_weights, &s_hat_v_reference(&packed, &suffix_point));
+        let claim = inner_product_ext(&prefix_weights, &s_hat_v_reference(&packed, &suffix_point));
 
         // Drive the production two-phase API with a single claim: prepare the
         // slices, sample the shared map, finish with a batching scalar of one.
@@ -852,7 +824,7 @@ mod tests {
     /// half of the two phases, shared by both paths below. As in production, the
     /// slices ride the statement, tied to `claim` by the caller.
     fn verify_e2e_reduction(e: &E2e, vs: &mut fiat_shamir::transcript::VerifierState<'_>) -> Option<(Vec<F192>, F192)> {
-        if claim_check(&e.prefix_weights, &e.rs_s_hat_v) != e.claim {
+        if inner_product_ext(&e.prefix_weights, &e.rs_s_hat_v) != e.claim {
             return None;
         }
         let coordinate_weights = build_coordinate_weights(&sample_map_challenges(vs));
@@ -946,7 +918,7 @@ mod tests {
         s[0] += w1 * d * w0.inv();
         let bad = with(s, e.claim, e.fs.clone());
         assert_eq!(
-            claim_check(&bad.prefix_weights, &bad.rs_s_hat_v),
+            inner_product_ext(&bad.prefix_weights, &bad.rs_s_hat_v),
             e.claim,
             "forgery must be claim-preserving for this test to bite"
         );

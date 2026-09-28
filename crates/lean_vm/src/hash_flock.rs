@@ -185,8 +185,8 @@ pub fn digest(block: &Compression) -> [F64; 4] {
 }
 
 /// Lift flock's packed witness (64 bits per word, bit `i` at position `i`) into
-/// the committed `F64` column: word for word, which is exactly `pack_witness`'s
-/// convention on the same bit string.
+/// the committed `F64` column: word for word, which is exactly `pcs::pack`'s
+/// LSB-first convention on the same bit string.
 fn flatten_packed_into(packed: &[u64], out: &mut [F64]) {
     assert_eq!(out.len(), packed.len(), "q_flock's window is the wrong size");
     // Write directly into the committed window and publish it with streaming stores.
@@ -232,7 +232,10 @@ pub const SLOT_STRIDE_LOG: usize = K_LOG - LOG_PACKING;
 /// [`crate::cpu`]'s prove does).
 #[cfg(test)]
 fn prove_reduction(blocks: &[Compression], ps: &mut ProverState) -> (Vec<F64>, SliceClaim) {
-    let (z_packed, reduced) = Blake2sSetup::new(blocks.len()).prove_reduction(blocks, ps);
+    let setup = Blake2sSetup::new(blocks.len());
+    let (z_packed, a_packed, b_packed, z_lincheck) =
+        generate_witness_with_ab_packed_and_lincheck(blocks, setup.n_blocks_log());
+    let reduced = setup.prove_reduction_precomputed(&z_packed, &a_packed, &b_packed, &z_lincheck, ps);
     let mut q_flock = vec![F64::ZERO; z_packed.len()];
     flatten_packed_into(&z_packed, &mut q_flock);
     (q_flock, reduced)

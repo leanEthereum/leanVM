@@ -4,7 +4,8 @@
 //! Each payload row contains `k` symbols, systematically encoded to `m = 2k`
 //! evaluations on an additive domain. The row branch commits to the first `k`
 //! evaluations, which are the original payload; the column branch authenticates
-//! sampled cells. [`check_membership`] checks that every row belongs to the code.
+//! sampled cells. A row belongs to the code iff it is orthogonal to the commitment's
+//! [`membership_vector`], with high probability over the Fiat-Shamir challenges.
 //! The aggregation guest proves this check together with both commitment branches.
 //!
 //! Row and cell widths are powers of two. Trees pad the row count with zero rows.
@@ -17,9 +18,7 @@ mod membership;
 
 pub use commit::{DaCommitment, DaWitness, commit, commit_codewords, padding_digests};
 pub use encode::encode_rows;
-pub use membership::{
-    check_membership, dual_codeword, membership_challenges, membership_vector, row_residuals, vector_digest,
-};
+pub use membership::{dual_codeword, membership_challenges, membership_vector, vector_digest};
 
 /// Payload symbols per blob, as a logarithm (128 KiB).
 pub const DA_LOG_K: usize = 14;

@@ -17,9 +17,9 @@
 use fiat_shamir::FiatShamirState;
 use fiat_shamir::merkle::hash_to_scalars;
 use pcs::ntt::AdditiveNttF64;
-use primitives::field::{F64, F192, F192Unreduced};
+use primitives::field::{F64, F192};
 
-use crate::{CODEWORD_SYMBOLS, DA_LOG_K, DaCommitment, LOG_M, row_count};
+use crate::{CODEWORD_SYMBOLS, DA_LOG_K, LOG_M};
 
 /// Transcript label, so a membership challenge can never be replayed as any other
 /// challenge in the stack.
@@ -78,37 +78,25 @@ pub fn dual_codeword(z: &[F192]) -> Vec<F192> {
     buffer
 }
 
-/// `⟨L, w_i⟩` for every row, which the caller checks against zero. Rows are `K`
-/// valued and `L` is `E` valued, so a term is one `mul_base` (three PMULL), and the
-/// whole row accumulates unreduced.
-pub fn row_residuals(codewords: &[u64], dual: &[F192]) -> Vec<F192> {
-    let n_rows = row_count(codewords.len(), CODEWORD_SYMBOLS);
-    assert_eq!(dual.len(), CODEWORD_SYMBOLS, "the dual codeword spans the domain");
-    let m = CODEWORD_SYMBOLS;
-    parallel::map_collect(n_rows, |i| {
-        let row = &codewords[i * m..(i + 1) * m];
-        let mut acc = F192Unreduced::ZERO;
-        for (&l, &w) in dual.iter().zip(row) {
-            acc ^= l.mul_base_unreduced(F64(w));
-        }
-        acc.reduce()
-    })
-}
-
-/// Draw challenges from the commitment and test every row for membership.
-/// The caller must separately bind `codewords` to the commitment.
-#[tracing::instrument(name = "RS membership", skip_all)]
-pub fn check_membership(commitment: &DaCommitment, codewords: &[u64]) -> bool {
-    let dual = membership_vector(&commitment.root);
-    row_residuals(codewords, &dual).iter().all(|&r| r == F192::ZERO)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::BLOB_SYMBOLS;
     use crate::encode_rows;
+    use crate::{BLOB_SYMBOLS, DaCommitment};
     use rand::{Rng, SeedableRng, rngs::StdRng};
+
+    /// Draw challenges from the commitment and test every row for membership.
+    /// The caller must separately bind `codewords` to the commitment.
+    fn check_membership(commitment: &DaCommitment, codewords: &[u64]) -> bool {
+        let dual = membership_vector(&commitment.root);
+        codewords.chunks(CODEWORD_SYMBOLS).all(|row| {
+            let residual = dual
+                .iter()
+                .zip(row)
+                .fold(F192::ZERO, |acc, (&l, &w)| acc + l.mul_base(F64(w)));
+            residual == F192::ZERO
+        })
+    }
 
     fn random_rows(rng: &mut StdRng, n: usize) -> Vec<u64> {
         (0..n).map(|_| rng.random()).collect()
@@ -129,7 +117,7 @@ mod tests {
     }
 
     /// `dual_codeword` runs one interleaved transform over the three `F192` limbs
-    /// in place, which leans on `F192` being `repr(C)` over three `u64`. A scalar
+    /// in place, which leans on `F192` being `repr(C)` over three `u64`. A single-lane
     /// transform of each limb must give the same codeword.
     #[test]
     fn dual_codeword_matches_limbwise_transform() {
@@ -153,7 +141,7 @@ mod tests {
             for (out, c) in encoded.iter_mut().zip(&tensor) {
                 *out = F64([c.c0, c.c1, c.c2][limb]);
             }
-            ntt.forward_transform_scalar(&mut encoded);
+            ntt.encode_interleaved_in_place(&mut encoded, 1, 0);
             for (x, (&got, &want)) in dual.iter().zip(&encoded).enumerate() {
                 assert_eq!(F64([got.c0, got.c1, got.c2][limb]), want, "limb {limb} at {x}");
             }
@@ -197,7 +185,7 @@ mod tests {
         let mut codewords = encode_rows(&rows);
         let ntt = AdditiveNttF64::standard(LOG_M);
         let mut full = random_rows(&mut rng, CODEWORD_SYMBOLS);
-        ntt.forward_transform_scalar(crate::encode::as_field_mut(&mut full));
+        ntt.encode_interleaved_in_place(crate::encode::as_field_mut(&mut full), 1, 0);
         codewords[..CODEWORD_SYMBOLS].copy_from_slice(&full);
         let (commitment, _) = crate::commit_codewords(codewords.clone());
 

@@ -82,20 +82,6 @@ fn mul_quad_unreduced(
 #[cfg(test)]
 use primitives::multilinear::lagrange_weights_naive;
 
-/// Interpolate a degree-`< 2^k_skip` polynomial at z, given its `2^k_skip`
-/// evaluations on the **extension domain** `Λ = {2^k_skip, …, 2^(k_skip+1) − 1}`
-/// embedded via `φ_8` (offset by `2^k_skip` from the S-domain nodes).
-///
-/// `P^C` no longer travels on its own (it rides the sum the prover sends), so
-/// this is only the cross-check handle: it turns the URM kernel's C Λ-vector
-/// into `P^C(z) = ĉ(z, r_rest)`, which a direct fold of the witness must match.
-pub fn interpolate_at_z_on_lambda(values: &[F192], k_skip: usize, z: F192) -> F192 {
-    let ell = 1usize << k_skip;
-    assert_eq!(values.len(), ell);
-    assert!(2 * ell <= 256, "Λ ∪ S must fit in F_8 (need k_skip ≤ 7)");
-    primitives::multilinear::lagrange_eval(&PHI_8_TABLE[ell..2 * ell], values, z)
-}
-
 /// Interpolate a degree-`< 2·2^k_skip` polynomial at z, given its `2^k_skip`
 /// evaluations on Λ and the assumption that it equals **zero on S**.
 ///
@@ -902,6 +888,20 @@ pub fn fold_and_compute_round_pair_into(
 mod tests {
     use super::*;
     use primitives::test_rng::Rng;
+
+    /// Interpolate a degree-`< 2^k_skip` polynomial at z, given its `2^k_skip`
+    /// evaluations on the **extension domain** `Λ = {2^k_skip, …, 2^(k_skip+1) − 1}`
+    /// embedded via `φ_8` (offset by `2^k_skip` from the S-domain nodes).
+    ///
+    /// `P^C` no longer travels on its own (it rides the sum the prover sends), so
+    /// this is only the cross-check handle: it turns the URM kernel's C Λ-vector
+    /// into `P^C(z) = ĉ(z, r_rest)`, which a direct fold of the witness must match.
+    fn interpolate_at_z_on_lambda(values: &[F192], k_skip: usize, z: F192) -> F192 {
+        let ell = 1usize << k_skip;
+        assert_eq!(values.len(), ell);
+        assert!(2 * ell <= 256, "Λ ∪ S must fit in F_8 (need k_skip ≤ 7)");
+        primitives::multilinear::lagrange_eval(&PHI_8_TABLE[ell..2 * ell], values, z)
+    }
 
     /// `fold_in_place_pair` correctness: post-fold a[x] = a[2x] + X·(a[2x+1]+a[2x]).
     #[test]

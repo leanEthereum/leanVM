@@ -3080,9 +3080,11 @@ mod tests {
     use rand::rngs::StdRng;
 
     use crate::signers_cache::{
-        KEY_START, XMSS_EPOCH_A, XMSS_EPOCH_B, get_signers, get_signers_at, get_sphincs_signers, message, message_for,
+        KEY_START, XMSS_EPOCH_A, get_signers, get_signers_at, get_sphincs_signers, message, message_for,
     };
 
+    /// A second epoch inside the cached keys' window; signer `i` holds the same key at both.
+    const XMSS_EPOCH_B: xmss::Epoch = XMSS_EPOCH_A + 2;
     const SMALL_LEAF_SIZE: usize = 6;
     const LOG_INV_RATE: usize = lean_vm::pcs::TEST_LOG_INV_RATE;
 

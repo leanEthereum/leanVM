@@ -102,7 +102,12 @@ fn hash_batch_prove_verify() {
 
     // The per-stage timings ride alongside the pass result, so one `Plan` drives
     // the warmup, the cooldown, and the repetition for all of them.
-    let plan = Plan::from_env();
+    let env = |key: &str, default: usize| {
+        std::env::var(key).map_or(default, |s| {
+            s.parse().unwrap_or_else(|_| panic!("{key} must be an integer"))
+        })
+    };
+    let plan = Plan::new(env("BENCH_REPEAT", 1), env("BENCH_COOLDOWN", 2) as u64);
     let mut stages: [Timing; 7] = std::array::from_fn(|_| Timing::default());
     let (transcript, _) = plan.warm_then_measure(|_final_pass| {
         let (out, secs) = prove_pass();

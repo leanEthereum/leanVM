@@ -160,14 +160,6 @@ impl Plan {
         }
     }
 
-    /// Read the plan from the environment: `BENCH_REPEAT` and `BENCH_COOLDOWN`
-    /// (seconds), for the `#[ignore]`d benchmark tests, which have no command line
-    /// of their own. Defaults match the CLI.
-    #[must_use]
-    pub fn from_env() -> Self {
-        Self::new(env_usize("BENCH_REPEAT", 1), env_usize("BENCH_COOLDOWN", 2) as u64)
-    }
-
     /// Run `f` once untimed to warm up, then `self.repeat` measured passes,
     /// keeping the last result and the samples.
     ///
@@ -233,18 +225,6 @@ pub fn peak_rss_bytes() -> u64 {
     let max = usage.ru_maxrss as u64;
     // `ru_maxrss` is bytes on macOS and KiB on Linux.
     if cfg!(target_os = "macos") { max } else { max * 1024 }
-}
-
-/// Read a `usize` benchmark knob from the environment, defaulting when unset.
-///
-/// # Panics
-/// If the variable is set but does not parse.
-#[must_use]
-pub fn env_usize(key: &str, default: usize) -> usize {
-    std::env::var(key)
-        .ok()
-        .map(|s| s.parse().unwrap_or_else(|_| panic!("{key} must be an integer")))
-        .unwrap_or(default)
 }
 
 #[cfg(test)]

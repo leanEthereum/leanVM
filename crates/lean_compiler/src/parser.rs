@@ -352,18 +352,6 @@ fn infer_return_shapes(funcs: &mut [Func]) -> Result<(), String> {
     Ok(())
 }
 
-/// Parse a zkDSL source file (a `.py` file, since the DSL is Python-shaped, see
-/// [`parse`]) with compile-time **placeholder** replacements (see
-/// [`parse_with_replacements`]).
-pub fn parse_file_with_replacements(
-    path: impl AsRef<std::path::Path>,
-    replacements: &BTreeMap<String, String>,
-) -> Result<Ast, String> {
-    let path = path.as_ref();
-    let src = std::fs::read_to_string(path).map_err(|e| format!("cannot read `{}`: {e}", path.display()))?;
-    parse_with_replacements(&src, replacements)
-}
-
 /// One significant source line: its 1-based position in the ORIGINAL file, its
 /// indentation, and its text with comments stripped and constants substituted.
 /// Prefix a diagnostic with the source line it came from, unless an inner frame

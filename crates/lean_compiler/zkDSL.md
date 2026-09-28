@@ -4,7 +4,7 @@ The zkDSL is a Python-syntax language that compiles to the leanVM ISA: six instr
 
 Source files use the `.py` extension and are **Python-shaped**: they import the [`snark_lib`](snark_lib.py) stub, which defines `GEN`, `log`, `mul_range`, `HeapBuf`, `StackBuf`, `assert_in_k`, and `blake2s`, so editors and linters resolve the intrinsic names. The compiler skips the import. Ordinary helpers such as `pack64x2` are defined in the single-file guest. A program that uses placeholders is not a runnable Python file: its `*_PLACEHOLDER` identifiers are undefined until the host fills them in, so importing it raises `NameError`.
 
-Entry points: `lean_compiler::parse` / `parse_file_with_replacements` → `lean_compiler::compile` → `lean_vm::cpu::prove` / `verify`.
+Entry points: `lean_compiler::parse` / `parse_with_replacements` → `lean_compiler::compile` → `lean_vm::cpu::prove` / `verify`.
 
 ## Dev experience
 
@@ -89,7 +89,7 @@ def main():
 
 Each constant is **evaluated as a compile-time integer expression** (or an `f192` literal, or a field-valued one such as `GEN ** 2`) and substituted as a single literal everywhere its name appears below, so unlike a `Const` parameter it needs no call site and works in every literal position. Integer arithmetic is the point: it is what makes a derived size come out right, as in `N_TWEAK_WORDS = 2 + CHAIN_STEPS * V + LOG_LIFETIME`. Constants must precede the `def`s and are resolved *before* variables, so a constant name is **reserved**: do not reuse it as a parameter or local name. (Syntactically, `N = 8` is just a Python module global.)
 
-**Placeholders** let a host fill values at compile time without editing the source. Any identifier may be mapped to replacement text before parsing (`parse_with_replacements` / `parse_file_with_replacements`, taking a `BTreeMap<String, String>`); the replacement is identifier-bounded (`FOO` does not touch `FOOBAR`). The idiom is a placeholder feeding a constant:
+**Placeholders** let a host fill values at compile time without editing the source. Any identifier may be mapped to replacement text before parsing (`parse_with_replacements`, taking a `BTreeMap<String, String>`); the replacement is identifier-bounded (`FOO` does not touch `FOOBAR`). The idiom is a placeholder feeding a constant:
 
 ```python
 V = V_PLACEHOLDER        # with replacement  "V_PLACEHOLDER" ↦ "128"

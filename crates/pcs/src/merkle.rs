@@ -61,23 +61,6 @@ pub fn merkle_tree(data: &[u8], num_leaves: usize) -> ArenaVec<Hash> {
     builder.finish()
 }
 
-/// Merkle tree over `num_leaves` rows of `row_words`, each hashed as `zeros(leaf_words - row_words) ‖ row`.
-#[tracing::instrument(
-    name = "Hashing",
-    skip_all,
-    fields(num_leaves = %pretty_integer(num_leaves), leaf_size = %pretty_integer(leaf_words * 8))
-)]
-pub fn merkle_tree_padded_rows(data: &[F64], num_leaves: usize, row_words: usize, leaf_words: usize) -> ArenaVec<Hash> {
-    assert_eq!(
-        data.len(),
-        row_words * num_leaves,
-        "data is num_leaves rows of row_words"
-    );
-    let builder = MerkleBuilder::new(num_leaves, row_words, leaf_words);
-    builder.absorb_all(words_as_bytes(data));
-    builder.finish()
-}
-
 /// A Merkle tree filled one aligned block of leaves at a time, from any thread.
 ///
 /// Leaf `i` is `zeros(leaf_words - row_words) ‖ row_i`.
@@ -429,6 +412,14 @@ fn digests_as_bytes(out: &mut [MaybeUninit<Hash>]) -> &mut [u8] {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The tree over `num_leaves` rows of `row_words`, each hashed as `zeros(leaf_words - row_words) ‖ row`.
+    fn merkle_tree_padded_rows(data: &[F64], num_leaves: usize, row_words: usize, leaf_words: usize) -> ArenaVec<Hash> {
+        assert_eq!(data.len(), row_words * num_leaves);
+        let builder = MerkleBuilder::new(num_leaves, row_words, leaf_words);
+        builder.absorb_all(words_as_bytes(data));
+        builder.finish()
+    }
 
     /// Per-leaf reference for the tree.
     fn merkle_tree_sequential(leaves: impl Iterator<Item = Hash>, num_leaves: usize) -> Vec<Hash> {
