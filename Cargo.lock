@@ -196,15 +196,46 @@ dependencies = [
 ]
 
 [[package]]
+name = "leanda"
+version = "0.1.0"
+dependencies = [
+ "leanvm-guest",
+]
+
+[[package]]
+name = "leansphincs"
+version = "0.1.0"
+dependencies = [
+ "leanvm-guest",
+]
+
+[[package]]
 name = "leanvm"
 version = "0.1.0"
 dependencies = [
  "bincode",
  "clap",
+ "fiat_shamir",
  "lean_vm",
+ "leanda",
+ "leansphincs",
+ "leanxmss",
+ "parallel",
+ "pcs",
  "primitives",
  "tracing",
  "zk_alloc",
+]
+
+[[package]]
+name = "leanvm-guest"
+version = "0.1.0"
+
+[[package]]
+name = "leanxmss"
+version = "0.1.0"
+dependencies = [
+ "leanvm-guest",
 ]
 
 [[package]]

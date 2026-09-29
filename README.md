@@ -110,6 +110,22 @@ guests/elf/hash.elf
   verifying                   : 7.796 ms
 ```
 
+### leanXMSS, leanSPHINCS and leanDA
+
+Three guests check what an Ethereum node would: leanXMSS signatures, leanSPHINCS signatures, and leanDA blobs (`guests/leanxmss`, `guests/leansphincs`, `guests/leanda`).
+
+Each is a `no_std` library, byte-compatible with the schemes' reference implementations, plus the guest that runs it. The host runs the same library natively to build the inputs and the expected output.
+
+```bash
+cargo run --release -- leanxmss --n 400 --repeat 3
+cargo run --release -- leansphincs --n 104 --repeat 3
+cargo run --release -- leanda --blobs 1 --repeat 3
+```
+
+The report gives the RISC-V cycles per signature or per blob, the rows per table and the committed witness, then the proving and verifying times.
+
+These are the most one proof holds: continuations are not implemented.
+
 ### hashing
 
 ```bash

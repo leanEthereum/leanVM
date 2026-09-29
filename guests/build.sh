@@ -4,6 +4,6 @@
 set -e
 cd "$(dirname "$0")"
 cargo build --release
-for guest in fibonacci blake2s hash numbers preimage; do
+for guest in fibonacci blake2s hash numbers preimage leanxmss leansphincs leanda; do
   cp "target/riscv64im-unknown-none-elf/release/$guest" "elf/$guest.elf"
 done

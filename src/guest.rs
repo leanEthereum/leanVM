@@ -11,7 +11,7 @@ pub fn parse_word(word: &str) -> Result<u64, std::num::ParseIntError> {
 }
 
 /// What the user got wrong, said once and plainly: none of these is a bug here.
-fn refuse(what: std::fmt::Arguments) -> ! {
+pub fn refuse(what: std::fmt::Arguments) -> ! {
     eprintln!("{what}");
     std::process::exit(1)
 }

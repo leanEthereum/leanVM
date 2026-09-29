@@ -2,8 +2,11 @@
 
 use clap::{Parser, Subcommand};
 
+mod da;
 mod fibonacci;
 mod guest;
+mod signatures;
+mod workload;
 
 #[derive(Parser)]
 struct Cli {
@@ -56,6 +59,24 @@ enum Command {
         #[arg(long, value_delimiter = ',', value_parser = guest::parse_word)]
         advice: Vec<u64>,
     },
+    /// Prove and verify a guest checking leanXMSS signatures, one key each.
+    Leanxmss {
+        /// Signatures to verify.
+        #[arg(long, default_value_t = 64, value_parser = clap::builder::RangedU64ValueParser::<usize>::new().range(1..))]
+        n: usize,
+    },
+    /// Prove and verify a guest checking leanSPHINCS signatures, one key each.
+    Leansphincs {
+        /// Signatures to verify.
+        #[arg(long, default_value_t = 16, value_parser = clap::builder::RangedU64ValueParser::<usize>::new().range(1..))]
+        n: usize,
+    },
+    /// Prove and verify a guest checking leanDA blobs and computing their commitment.
+    Leanda {
+        /// Blobs of 128 KiB to check.
+        #[arg(long, default_value_t = 1, value_parser = clap::builder::RangedU64ValueParser::<usize>::new().range(1..))]
+        blobs: usize,
+    },
 }
 
 fn main() {
@@ -68,6 +89,9 @@ fn main() {
     match cli.command {
         Command::Fibonacci { n } => fibonacci::run_fibonacci(n, cli.log_inv_rate, plan),
         Command::Guest { elf, input, advice } => guest::run_guest(&elf, &input, &advice, cli.log_inv_rate, plan),
+        Command::Leanxmss { n } => workload::run(&signatures::leanxmss(n), cli.log_inv_rate, plan),
+        Command::Leansphincs { n } => workload::run(&signatures::leansphincs(n), cli.log_inv_rate, plan),
+        Command::Leanda { blobs } => workload::run(&da::leanda(blobs), cli.log_inv_rate, plan),
     }
     if std::env::var_os("ZK_ALLOC_STATS").is_some() {
         eprintln!("{}", zk_alloc::stats());

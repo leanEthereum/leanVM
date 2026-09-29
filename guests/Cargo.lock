@@ -24,8 +24,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "leanda"
+version = "0.1.0"
+dependencies = [
+ "leanvm-guest",
+]
+
+[[package]]
+name = "leansphincs"
+version = "0.1.0"
+dependencies = [
+ "leanvm-guest",
+]
+
+[[package]]
 name = "leanvm-guest"
 version = "0.1.0"
+
+[[package]]
+name = "leanxmss"
+version = "0.1.0"
+dependencies = [
+ "leanvm-guest",
+]
 
 [[package]]
 name = "numbers"

@@ -14,6 +14,13 @@ workspace = true
 primitives.workspace = true
 lean_vm.workspace = true
 zk_alloc.workspace = true
+parallel.workspace = true
+pcs.workspace = true
+fiat_shamir.workspace = true
+# The guests' own libraries, run natively as their reference and to build their inputs.
+leanxmss = { path = "guests/leanxmss" }
+leansphincs = { path = "guests/leansphincs" }
+leanda = { path = "guests/leanda" }
 bincode.workspace = true
 tracing.workspace = true
 clap = { version = "4", features = ["derive"] }
@@ -24,6 +31,8 @@ edition = "2024"
 
 [workspace]
 members = ["crates/*"]
+# The guests are their own workspace, for another target: the host only uses their libraries.
+exclude = ["guests"]
 
 # Numeric kernels legitimately index by loop variable and take many arguments.
 [workspace.lints.clippy]
