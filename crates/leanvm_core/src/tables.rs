@@ -368,10 +368,10 @@ pub enum Ram {
     Block,
 }
 
-/// What specializes the class table to one instruction class.
 /// One instance's `z`, `A·z` and `B·z` from its input words, into zeroed buffers.
 pub type InstanceWitness = fn(&[u64], &mut [u64], &mut [u64], &mut [u64]);
 
+/// What specializes the class table to one instruction class.
 pub struct ClassSpec {
     pub class: Class,
     pub name: &'static str,
