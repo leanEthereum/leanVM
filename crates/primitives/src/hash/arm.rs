@@ -1,4 +1,8 @@
-//! The aarch64 backend: NEON batches.
+//! The aarch64 backends: the scalar kernel, and the NEON batches.
+
+mod gpr;
+
+pub(super) use gpr::compress;
 
 use super::OUT_LEN;
 use super::batch::Lanes32;

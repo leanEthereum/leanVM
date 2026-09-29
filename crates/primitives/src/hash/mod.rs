@@ -91,12 +91,14 @@ pub const PARAM_IV: [u32; 8] = {
 pub fn compress(h: &mut [u32; 8], m: &[u32; 16], t: u64, last: bool) {
     #[cfg(target_arch = "x86_64")]
     x86::compress(h, m, t, last);
-    #[cfg(not(target_arch = "x86_64"))]
+    #[cfg(target_arch = "aarch64")]
+    arm::compress(h, m, t, last);
+    #[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
     compress_portable(h, m, t, last);
 }
 
 /// The compression as the RFC writes it: the reference every specialized path is pinned to.
-#[cfg_attr(target_arch = "x86_64", allow(dead_code))]
+#[cfg_attr(any(target_arch = "x86_64", target_arch = "aarch64"), allow(dead_code))]
 fn compress_portable(h: &mut [u32; 8], m: &[u32; 16], t: u64, last: bool) {
     let mut v = [0u32; 16];
     v[..8].copy_from_slice(h);
