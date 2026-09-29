@@ -369,6 +369,9 @@ pub enum Ram {
 }
 
 /// What specializes the class table to one instruction class.
+/// One instance's `z`, `A·z` and `B·z` from its input words, into zeroed buffers.
+pub type InstanceWitness = fn(&[u64], &mut [u64], &mut [u64], &mut [u64]);
+
 pub struct ClassSpec {
     pub class: Class,
     pub name: &'static str,
@@ -378,6 +381,10 @@ pub struct ClassSpec {
     pub control: bool,
     pub ram: Ram,
     pub circuit: fn() -> Circuit,
+    /// One instance's witness by word arithmetic, when the class has it.
+    ///
+    /// It writes what the walk of the circuit's gate list would, which a test pins.
+    pub witness: Option<InstanceWitness>,
     /// `log2` of the bits one instance of the circuit occupies. A constant, because
     /// the layout needs it before any circuit is built; [`crate::class_flock`] checks it.
     pub k_log: usize,
@@ -426,6 +433,7 @@ pub static ALU: ClassSpec = ClassSpec {
     control: true,
     ram: Ram::None,
     circuit: rv::circuits::alu,
+    witness: None,
     k_log: 10,
     ports: &[Word::V1, Word::V2, Word::Imm, Word::Flags, Word::Out, Word::Taken],
     n_inputs: 4,
@@ -436,6 +444,7 @@ pub static LOAD: ClassSpec = ClassSpec {
     control: false,
     ram: Ram::Read,
     circuit: rv::circuits::load,
+    witness: None,
     k_log: 10,
     ports: &[
         Word::V1,
@@ -453,6 +462,7 @@ pub static STORE: ClassSpec = ClassSpec {
     control: false,
     ram: Ram::Write,
     circuit: rv::circuits::store,
+    witness: None,
     k_log: 10,
     ports: &[
         Word::V1,
@@ -473,6 +483,7 @@ pub static SHIFT: ClassSpec = ClassSpec {
     control: false,
     ram: Ram::None,
     circuit: rv::circuits::shift,
+    witness: None,
     k_log: 10,
     ports: &[Word::V1, Word::V2, Word::Imm, Word::Flags, Word::Out],
     n_inputs: 4,
@@ -483,6 +494,7 @@ pub static MUL: ClassSpec = ClassSpec {
     control: false,
     ram: Ram::None,
     circuit: rv::circuits::mul,
+    witness: None,
     k_log: 12,
     ports: &[Word::V1, Word::V2, Word::Flags, Word::Out],
     n_inputs: 3,
@@ -493,6 +505,7 @@ pub static MULH: ClassSpec = ClassSpec {
     control: false,
     ram: Ram::None,
     circuit: rv::circuits::mulh,
+    witness: None,
     k_log: 13,
     ports: &[Word::V1, Word::V2, Word::Flags, Word::Out],
     n_inputs: 3,
@@ -504,6 +517,7 @@ pub static DIV: ClassSpec = ClassSpec {
     control: false,
     ram: Ram::None,
     circuit: rv::circuits::div,
+    witness: None,
     k_log: 13,
     ports: &[
         Word::V1,
@@ -525,6 +539,7 @@ pub static HASH: ClassSpec = ClassSpec {
     control: false,
     ram: Ram::Block,
     circuit: rv::circuits::blake2s,
+    witness: Some(rv::circuits::blake2s_witness),
     k_log: 14,
     ports: &[
         Word::V2,

@@ -246,27 +246,9 @@ impl Circuit {
         })
     }
 
-    /// [`Self::generate_witness`] over the caller's own rows, `inputs` writing a row's
-    /// input words. `rows` fill the batch, or `padding` does.
-    pub fn generate_witness_by<S: Sync>(
-        &self,
-        rows: &[S],
-        padding: &S,
-        n_blocks_log: usize,
-        inputs: impl Fn(&S, &mut [u64]) + Sync,
-    ) -> (ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u8>) {
-        const MAX_INPUT_WORDS: usize = 16;
-        assert!(self.n_input_words <= MAX_INPUT_WORDS);
-        self.generate_witness_with(rows, padding, n_blocks_log, |row, z, az, bz| {
-            let mut words = [0u64; MAX_INPUT_WORDS];
-            inputs(row, &mut words[..self.n_input_words]);
-            self.witness_instance(&words[..self.n_input_words], z, az, bz)
-        })
-    }
-
     /// [`Self::generate_witness`] with the caller's own rows, padding row and way to
     /// fill an instance, for a circuit whose witness is cheaper as word arithmetic.
-    pub(crate) fn generate_witness_with<S: Sync>(
+    pub fn generate_witness_with<S: Sync>(
         &self,
         rows: &[S],
         padding: &S,

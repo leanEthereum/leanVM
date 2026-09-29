@@ -26,6 +26,9 @@ use zk_alloc::ArenaVec;
 /// plus its fixed-point dimensions), which floors the batch of a small circuit.
 pub const MIN_CUBE_LOG: usize = 13;
 
+/// The most input ports a class circuit has: the hash's fourteen.
+const MAX_INPUT_WORDS: usize = 14;
+
 /// `log2` of an instance's packed words: the stride between consecutive instances'
 /// same-port words.
 pub const fn stride_log(spec: &ClassSpec) -> usize {
@@ -99,9 +102,18 @@ impl Prepared {
             "a table's rows fill its batch (cpu::filler)"
         );
         let circuit = circuit(t);
-        let (z, a, b, z_lincheck) = circuit.generate_witness_by(rows, &rows[0], n_blocks_log, |row, words| {
+        let (z, a, b, z_lincheck) = circuit.generate_witness_with(rows, &rows[0], n_blocks_log, |row, z, az, bz| {
+            // The row's input words, one per input port.
+            let mut words = [0u64; MAX_INPUT_WORDS];
+            let words = &mut words[..spec.n_inputs];
             for (word, &port) in words.iter_mut().zip(spec.ports) {
                 *word = word_of(port, row, &entries[row.index as usize]);
+            }
+
+            // A class with a word-level witness skips the walk of its gate list.
+            match spec.witness {
+                Some(witness) => witness(words, z, az, bz),
+                None => circuit.witness_instance(words, z, az, bz),
             }
         });
         assert_eq!(window.len(), z.len(), "the committed column is the wrong size");

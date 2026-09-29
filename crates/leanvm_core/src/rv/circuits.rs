@@ -375,23 +375,54 @@ pub fn alu() -> Circuit {
     c.finish()
 }
 
+/// The hash circuit's input ports in bits: `t`, `f0`, then the four words of `h` and the eight of `m`.
+const HASH_INPUT_BITS: [usize; 14] = [64, 32, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64];
+
+/// Where one 32-bit addition of the hash circuit put its carry products.
+#[derive(Clone, Copy)]
+struct Carries {
+    /// The slot of the first product.
+    slot: u32,
+    /// The lowest bit with a product.
+    ///
+    /// Bits below it are structural zeros: a literal operand's low zero bits, with no carry yet.
+    low: u32,
+}
+
 /// [`super::Class::Hash`]'s circuit: `(t, f0, h, m) -> out`, the BLAKE2s compression
 /// ([`super::semantics::blake2s`]) on the 32-bit halves of the block's words, `h`
 /// and `out` four words each and `m` eight. Every G is six 32-bit additions, its
 /// two three-operand ones chained, and the state is never materialized: only the
 /// carries are products, and the result's words are copied out.
 pub fn blake2s() -> Circuit {
+    blake2s_with_carries().0
+}
+
+/// The hash circuit, and its additions' carry slots in the order it made them.
+fn blake2s_with_carries() -> (Circuit, Vec<Carries>) {
     use primitives::hash::{G_LANES, IV, SIGMA};
-    let mut c = Builder::new(
-        &[64, 32, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64],
-        &[64, 64, 64, 64],
-    );
+    let mut c = Builder::new(&HASH_INPUT_BITS, &[64, 64, 64, 64]);
     let half = |c: &Builder, port: usize, i: usize| -> Word { c.input(port)[32 * (i % 2)..32 * (i % 2) + 32].to_vec() };
     let (t, f0) = (c.input(0), c.input(1));
     let h: Vec<Word> = (0..8).map(|i| half(&c, 2 + i / 2, i)).collect();
     let m: Vec<Word> = (0..16).map(|i| half(&c, 6 + i / 2, i)).collect();
     let literal = |c: &Builder, x: u32| -> Word { (0..32).map(|i| c.one().filter(|_| x >> i & 1 == 1)).collect() };
     let rotr = |w: &[Wire], r: usize| -> Word { (0..32).map(|i| w[(i + r) % 32]).collect() };
+
+    // An addition's products are its top bits, from the first bit where both operands exist.
+    //
+    // Why: once one product is made, the carry is a wire, so every later bit has one too.
+    let mut carries = Vec::with_capacity(SIGMA.len() * 8 * 6);
+    let mut add32 = |c: &mut Builder, x: &[Wire], y: &[Wire]| -> Word {
+        let slot = c.next_slot();
+        let sum = add(c, x, y);
+        let products = (c.next_slot() - slot) as u32;
+        carries.push(Carries {
+            slot: slot as u32,
+            low: 31 - products,
+        });
+        sum
+    };
 
     let mut v = h.clone();
     v.extend(IV[..4].iter().map(|&x| literal(&c, x)));
@@ -402,11 +433,11 @@ pub fn blake2s() -> Circuit {
     for round in &SIGMA {
         for (g, &[a, b, cc, d]) in G_LANES.iter().enumerate() {
             for (x, r1, r2) in [(&m[round[2 * g]], 16, 12), (&m[round[2 * g + 1]], 8, 7)] {
-                let ab = add(&mut c, &v[a], &v[b]);
-                v[a] = add(&mut c, &ab, x);
+                let ab = add32(&mut c, &v[a], &v[b]);
+                v[a] = add32(&mut c, &ab, x);
                 let da = xor_words(&mut c, &v[d], &v[a]);
                 v[d] = rotr(&da, r1);
-                v[cc] = add(&mut c, &v[cc], &v[d]);
+                v[cc] = add32(&mut c, &v[cc], &v[d]);
                 let bc = xor_words(&mut c, &v[b], &v[cc]);
                 v[b] = rotr(&bc, r2);
             }
@@ -419,7 +450,102 @@ pub fn blake2s() -> Circuit {
             c.output(i / 2, 32 * (i % 2) + bit, wire);
         }
     }
-    c.finish()
+    (c.finish(), carries)
+}
+
+/// One instance of the hash circuit's witness, by word arithmetic instead of the gate walk.
+///
+/// Writes the same `z`, `A·z` and `B·z` the walk does, into zeroed buffers.
+///
+/// ```text
+///     words 0..14     inputs     z = A·z = the word,  B·z = its wired bits
+///     words 14..18    outputs    z = A·z = the word,  B·z = all ones
+///     bit 1152        constant   z = A·z = B·z = 1
+///     bits 1153..     products   one run of carries per 32-bit addition
+/// ```
+///
+/// An addition `x + y` with carries `c = (x + y) ^ x ^ y` has, at each bit `i` of its run:
+///
+/// ```text
+///     A·z = x_i ^ c_i    B·z = y_i ^ c_i    z = (x_i ^ c_i)(y_i ^ c_i)
+/// ```
+pub fn blake2s_witness(inputs: &[u64], z: &mut [u64], az: &mut [u64], bz: &mut [u64]) {
+    use primitives::hash::{G_LANES, IV, SIGMA};
+    assert_eq!(inputs.len(), HASH_INPUT_BITS.len());
+
+    // The carry runs, recorded once from the gate list itself.
+    static CARRIES: std::sync::OnceLock<Vec<Carries>> = std::sync::OnceLock::new();
+    let carries = CARRIES.get_or_init(|| blake2s_with_carries().1);
+
+    // Input ports: the word, masked to the port's width.
+    for (i, &bits) in HASH_INPUT_BITS.iter().enumerate() {
+        let wired = u64::MAX >> (64 - bits);
+        (z[i], az[i], bz[i]) = (inputs[i] & wired, inputs[i] & wired, wired);
+    }
+
+    // The working vector, as the circuit starts it.
+    let half = |w: u64, i: usize| (w >> (32 * (i % 2))) as u32;
+    let h: [u32; 8] = std::array::from_fn(|i| half(inputs[2 + i / 2], i));
+    let m: [u32; 16] = std::array::from_fn(|i| half(inputs[6 + i / 2], i));
+    let (t, f0) = (inputs[0], inputs[1] as u32);
+    let mut v = [0u32; 16];
+    v[..8].copy_from_slice(&h);
+    v[8..].copy_from_slice(&IV);
+    v[12] ^= t as u32;
+    v[13] ^= (t >> 32) as u32;
+    v[14] ^= f0;
+
+    // Each addition writes its run of carries, in the order the circuit made them.
+    let mut runs = carries.iter();
+    let mut add = |x: u32, y: u32| -> u32 {
+        let Carries { slot, low } = *runs.next().expect("one run per addition");
+        let sum = x.wrapping_add(y);
+        let carry = sum ^ x ^ y;
+        // The run covers bits `low..31`: the carry out of bit 31 is no product.
+        let mask = (1u64 << (31 - low)) - 1;
+        let left = u64::from(x ^ carry) >> low & mask;
+        let right = u64::from(y ^ carry) >> low & mask;
+        or_run(z, slot, left & right);
+        or_run(az, slot, left);
+        or_run(bz, slot, right);
+        sum
+    };
+
+    // Ten rounds of eight G's, the working vector updated as the circuit updates it.
+    for round in &SIGMA {
+        for (g, &[a, b, c, d]) in G_LANES.iter().enumerate() {
+            for (x, r1, r2) in [(m[round[2 * g]], 16, 12), (m[round[2 * g + 1]], 8, 7)] {
+                let ab = add(v[a], v[b]);
+                v[a] = add(ab, x);
+                v[d] = (v[d] ^ v[a]).rotate_right(r1);
+                v[c] = add(v[c], v[d]);
+                v[b] = (v[b] ^ v[c]).rotate_right(r2);
+            }
+        }
+    }
+
+    // Output ports: the new chaining value, every bit copied out.
+    let n_in = HASH_INPUT_BITS.len();
+    for i in 0..4 {
+        let word = |j: usize| u64::from(h[j] ^ v[j] ^ v[j + 8]);
+        let out = word(2 * i) | word(2 * i + 1) << 32;
+        (z[n_in + i], az[n_in + i], bz[n_in + i]) = (out, out, u64::MAX);
+    }
+
+    // The constant wire, right after the ports.
+    let one = 64 * (n_in + 4);
+    for buf in [z, az, bz] {
+        buf[one / 64] |= 1 << (one % 64);
+    }
+}
+
+/// OR a run of at most 32 bits into `buf` from bit `slot`.
+#[inline(always)]
+fn or_run(buf: &mut [u64], slot: u32, bits: u64) {
+    let (word, shift) = (slot as usize / 64, slot % 64);
+    buf[word] |= bits << shift;
+    // `(x >> 1) >> (63 - s)` is `x >> (64 - s)`, with no overflowing shift at `s = 0`.
+    buf[word + 1] |= (bits >> 1) >> (63 - shift);
 }
 
 #[cfg(test)]
@@ -666,6 +792,41 @@ mod tests {
             };
             assert_eq!(run(&circuit, &inputs, 14..18), expected, "flags {flags:#x}");
         }
+    }
+
+    #[test]
+    fn blake2s_witness_is_the_gate_walk() {
+        // Invariant: the word-level witness writes the tables the walk of the gate list writes.
+        //
+        // The walk is the reference: it reads the circuit itself, slot by slot.
+        let circuit = blake2s();
+        let n_log = 5;
+        let mut rng = Rng(0xA7);
+        let rows: Vec<[u64; 14]> = (0..1 << n_log)
+            .map(|i| {
+                // Counters at the edges of their two halves, then random ones.
+                let t = [0, u32::MAX as u64, 1 << 32, u64::MAX]
+                    .get(i)
+                    .copied()
+                    .unwrap_or_else(|| rng.word());
+                // The legal finalization words, and any word, whose high half the port drops.
+                let flags = [0, crate::rv::hash::FINAL, rng.next()][i % 3];
+                std::array::from_fn(|k| match k {
+                    0 => t,
+                    1 => flags,
+                    _ => rng.word(),
+                })
+            })
+            .collect();
+
+        // Both generators on the same batch, then every table compared.
+        let walk = circuit.generate_witness(&rows, n_log);
+        let fast =
+            circuit.generate_witness_with(&rows, &[0; 14], n_log, |row, z, az, bz| blake2s_witness(row, z, az, bz));
+        assert!(walk.0[..] == fast.0[..], "z");
+        assert!(walk.1[..] == fast.1[..], "A·z");
+        assert!(walk.2[..] == fast.2[..], "B·z");
+        assert!(walk.3[..] == fast.3[..], "lincheck stripes");
     }
 
     /// flock proves a batch of honest instances, and refuses one with a flipped output bit.
