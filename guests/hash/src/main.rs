@@ -20,5 +20,7 @@ extern "C" fn main() {
         hasher.update(&chunk[..n]);
     }
     let digest = hasher.finalize();
-    output(core::array::from_fn(|i| u64::from_le_bytes(digest[8 * i..8 * i + 8].try_into().unwrap())));
+    output(core::array::from_fn(|i| {
+        u64::from_le_bytes(digest[8 * i..8 * i + 8].try_into().unwrap())
+    }));
 }
