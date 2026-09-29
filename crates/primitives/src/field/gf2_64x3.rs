@@ -4,10 +4,13 @@
 //! A product runs in three stages:
 //!
 //! ```text
-//!     Karatsuba   6 carry-less 64x64 products  ->  5 coefficients of y^0..y^4, 128 bits each
+//!     products    carry-less 64x64 products    ->  5 coefficients of y^0..y^4, 128 bits each
 //!     y-fold      y^3 = y + 1, y^4 = y^2 + y   ->  3 coefficients of y^0..y^2, 128 bits each
 //!     reduce      x^64 = x^4 + x^3 + x + 1     ->  3 coefficients of y^0..y^2,  64 bits each
 //! ```
+//!
+//! x86 spends 6 products on Karatsuba.
+//! aarch64 spends 9 on the schoolbook, since there a product costs no more than an XOR.
 //!
 //! Both folds are GF(2)-linear, so they commute with XOR.
 //! A sum of products therefore accumulates after the y-fold and reduces once.
@@ -16,11 +19,14 @@ use core::ops::{Add, AddAssign, BitXor, BitXorAssign, Mul, MulAssign};
 
 use serde::{Deserialize, Serialize};
 
-#[cfg(not(all(target_arch = "x86_64", target_feature = "pclmulqdq")))]
+use super::gf2_64::F64;
+#[cfg(not(any(
+    all(target_arch = "aarch64", target_feature = "aes"),
+    all(target_arch = "x86_64", target_feature = "pclmulqdq")
+)))]
 use super::gf2_64::mul_wide;
 #[cfg(not(all(target_arch = "aarch64", target_feature = "aes")))]
-use super::gf2_64::square_wide;
-use super::gf2_64::{F64, reduce};
+use super::gf2_64::{reduce, square_wide};
 
 /// An element `c0 + c1*y + c2*y^2`; bit `i` of each coefficient is its coefficient of `x^i`.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -55,8 +61,7 @@ impl F192 {
     pub fn mul_unreduced(self, rhs: Self) -> F192Unreduced {
         #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
         {
-            // SAFETY: aes target feature is enabled at compile time.
-            unsafe { aarch64::mul_unreduced_neon(self, rhs) }
+            aarch64::mul_unreduced(self, rhs)
         }
         #[cfg(all(target_arch = "x86_64", target_feature = "pclmulqdq"))]
         {
@@ -79,12 +84,7 @@ impl F192 {
     pub fn mul_base(self, k: F64) -> Self {
         #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
         {
-            // Each base product keeps its reduction on the NEON side.
-            Self {
-                c0: (F64(self.c0) * k).0,
-                c1: (F64(self.c1) * k).0,
-                c2: (F64(self.c2) * k).0,
-            }
+            aarch64::mul_base(self, k)
         }
         #[cfg(not(all(target_arch = "aarch64", target_feature = "aes")))]
         {
@@ -95,12 +95,19 @@ impl F192 {
     /// Mixed product by a base-field scalar without the reduction, for XOR accumulation.
     #[inline]
     pub fn mul_base_unreduced(self, k: F64) -> F192Unreduced {
+        #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
+        {
+            aarch64::mul_base_unreduced(self, k)
+        }
         #[cfg(all(target_arch = "x86_64", target_feature = "pclmulqdq"))]
         {
             // SAFETY: pclmulqdq is enabled at compile time.
             unsafe { x86_64::mul_base_unreduced(self, k) }
         }
-        #[cfg(not(all(target_arch = "x86_64", target_feature = "pclmulqdq")))]
+        #[cfg(not(any(
+            all(target_arch = "aarch64", target_feature = "aes"),
+            all(target_arch = "x86_64", target_feature = "pclmulqdq")
+        )))]
         {
             F192Unreduced::from_wide([self.c0, self.c1, self.c2].map(|c| mul_wide(c, k.0)))
         }
@@ -118,8 +125,7 @@ impl F192 {
     pub fn square(self) -> Self {
         #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
         {
-            // SAFETY: aes target feature is enabled at compile time.
-            unsafe { aarch64::square_neon(self) }
+            aarch64::square(self)
         }
         #[cfg(not(all(target_arch = "aarch64", target_feature = "aes")))]
         {
@@ -195,8 +201,7 @@ impl Mul for F192 {
     fn mul(self, rhs: Self) -> Self {
         #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
         {
-            // SAFETY: aes target feature is enabled at compile time.
-            unsafe { aarch64::mul_karatsuba(self, rhs) }
+            aarch64::mul(self, rhs)
         }
         #[cfg(not(all(target_arch = "aarch64", target_feature = "aes")))]
         {
@@ -356,10 +361,17 @@ impl F192Unreduced {
     /// Reduce each coefficient modulo the base polynomial.
     #[inline]
     pub fn reduce(self) -> F192 {
-        let [c0, c1, c2] = self
-            .coeffs
-            .map(|[lo, hi]| reduce(u128::from(hi) << 64 | u128::from(lo)));
-        F192 { c0, c1, c2 }
+        #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
+        {
+            aarch64::reduce(self)
+        }
+        #[cfg(not(all(target_arch = "aarch64", target_feature = "aes")))]
+        {
+            let [c0, c1, c2] = self
+                .coeffs
+                .map(|[lo, hi]| reduce(u128::from(hi) << 64 | u128::from(lo)));
+            F192 { c0, c1, c2 }
+        }
     }
 }
 
@@ -391,157 +403,194 @@ impl BitXorAssign for F192Unreduced {
     }
 }
 
-// aarch64 + AES: PMULL-based multiplication variants.
-
+/// aarch64 kernels.
+///
+/// On Apple cores a carry-less multiply issues as fast as an XOR.
+/// So these kernels trade shuffles for products, and reduce with two more products.
+///
+/// Moving a word between the integer and SIMD register files is slower than a product.
+/// So every operand stays in SIMD registers from load to store.
+///
+/// An element sits in two registers:
+///
+/// ```text
+///     register     lo qword     hi qword
+///     c01          c0           c1
+///     c22          c2           c2
+/// ```
+///
+/// A product then reads any coefficient pair with the low-lane or high-lane multiply.
 #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
 pub mod aarch64 {
     use super::{F192, F192Unreduced};
-    use crate::field::gf2_64::R64;
+    use crate::field::gf2_64::{F64, R64};
+    use crate::field::neon::xor3_u64;
     use core::arch::aarch64::*;
     use core::mem::transmute;
 
-    /// 64×64 carry-less product as a 128-bit vector.
-    ///
-    /// # Safety
-    /// Requires the `aes` target feature (statically satisfied: every caller
-    /// is itself `#[target_feature(enable = "aes")]`).
-    #[inline]
-    #[target_feature(enable = "aes")]
-    unsafe fn pmull(a: u64, b: u64) -> uint64x2_t {
-        let prod = vmull_p64(a, b);
-        // SAFETY: u128 and uint64x2_t are both 128-bit values; bit-level
-        // reinterpret with no UB.
-        unsafe { transmute::<u128, uint64x2_t>(prod) }
+    /// Carry-less product of the low qwords.
+    #[inline(always)]
+    fn lo(a: uint64x2_t, b: uint64x2_t) -> uint64x2_t {
+        // SAFETY: the module's cfg enables aes, and both sides of the reinterpret are 128 bits.
+        unsafe { transmute::<u128, uint64x2_t>(vmull_p64(vgetq_lane_u64::<0>(a), vgetq_lane_u64::<0>(b))) }
     }
 
-    /// Fold one 128-bit coefficient into GF(2^64): 2 PMULL by 0x1B, the second
-    /// folding the first's ≤4-bit overflow exactly, since `ov·0x1B` fits in 8
-    /// bits and lands in lane 0.
-    ///
-    /// PMULL retires at about the rate `eor` does here, so the second product
-    /// is nearly free while the three lane extractions a scalar fold needs are not.
-    /// The base field's NEON pair reduction uses the same fold.
-    ///
-    /// # Safety
-    /// Requires the `aes` target feature.
-    #[inline]
-    #[target_feature(enable = "aes")]
-    unsafe fn base_reduce(d: uint64x2_t) -> u64 {
-        use crate::field::gf2_64::aarch64::pmull_hi;
-        // SAFETY: function carries the aes target feature.
+    /// Carry-less product of the high qwords.
+    #[inline(always)]
+    fn hi(a: uint64x2_t, b: uint64x2_t) -> uint64x2_t {
+        // SAFETY: the module's cfg enables aes, and both sides of the reinterpret are 128 bits.
+        unsafe { transmute::<u128, uint64x2_t>(vmull_high_p64(vreinterpretq_p64_u64(a), vreinterpretq_p64_u64(b))) }
+    }
+
+    /// Two-way XOR.
+    #[inline(always)]
+    fn xor(a: uint64x2_t, b: uint64x2_t) -> uint64x2_t {
+        // SAFETY: NEON is part of the aarch64 baseline.
+        unsafe { veorq_u64(a, b) }
+    }
+
+    /// Three-way XOR.
+    #[inline(always)]
+    fn xor3(a: uint64x2_t, b: uint64x2_t, c: uint64x2_t) -> uint64x2_t {
+        // SAFETY: the helper issues `EOR3` only where the cfg enables it.
+        unsafe { xor3_u64(a, b, c) }
+    }
+
+    /// An element as its two registers.
+    #[inline(always)]
+    fn split(e: F192) -> (uint64x2_t, uint64x2_t) {
+        // SAFETY: NEON is part of the aarch64 baseline.
+        unsafe { (vcombine_u64(vcreate_u64(e.c0), vcreate_u64(e.c1)), vdupq_n_u64(e.c2)) }
+    }
+
+    /// The element whose coefficients are the low qwords of `c0`, `c1`, `c2`.
+    #[inline(always)]
+    fn join(c0: uint64x2_t, c1: uint64x2_t, c2: uint64x2_t) -> F192 {
+        // SAFETY: NEON is part of the aarch64 baseline.
         unsafe {
-            let r = vdupq_n_u64(R64);
-            let t = pmull_hi(d, r);
-            let u = pmull_hi(t, r);
-            vgetq_lane_u64::<0>(veorq_u64(veorq_u64(d, t), u))
+            // One zip puts c0 and c1 side by side, so a store of the element is two stores.
+            let c01 = vzip1q_u64(c0, c1);
+            F192::new(
+                vgetq_lane_u64::<0>(c01),
+                vgetq_lane_u64::<1>(c01),
+                vgetq_lane_u64::<0>(c2),
+            )
         }
     }
 
-    /// Karatsuba-3: 6 PMULL products (optimal bilinear count for 3 terms)
-    /// combined by NEON XORs into the 5 coefficients of the degree-4 product
-    /// over `K`.
+    /// Reduce one 128-bit coefficient into its low qword.
     ///
-    /// # Safety
-    /// Requires the `aes` target feature (compiles to PMULL); only call where
-    /// `aes` is statically enabled or has been runtime-detected.
-    #[inline]
-    #[target_feature(enable = "aes")]
-    unsafe fn karatsuba_coeffs(a: F192, b: F192) -> [uint64x2_t; 5] {
-        // SAFETY: function carries the aes target feature.
-        unsafe {
-            let p0 = pmull(a.c0, b.c0);
-            let p1 = pmull(a.c1, b.c1);
-            let p2 = pmull(a.c2, b.c2);
-            let p01 = pmull(a.c0 ^ a.c1, b.c0 ^ b.c1);
-            let p02 = pmull(a.c0 ^ a.c2, b.c0 ^ b.c2);
-            let p12 = pmull(a.c1 ^ a.c2, b.c1 ^ b.c2);
+    /// Write the coefficient as `lo + hi * x^64`, with `x^64 = 0x1B`:
+    ///
+    /// ```text
+    ///     hi * 0x1B     = [a, s]      s has at most 4 bits
+    ///     s  * 0x1B     = [b, 0]      at most 8 bits, so the fold ends here
+    ///     result        = lo ^ a ^ b
+    /// ```
+    ///
+    /// Two high-lane products and one three-way XOR.
+    #[inline(always)]
+    fn reduce_lane(d: uint64x2_t, r: uint64x2_t) -> uint64x2_t {
+        let t = hi(d, r);
+        xor3(d, t, hi(t, r))
+    }
 
-            // c0 = p0                    c3 = p12 ^ p1 ^ p2
-            // c1 = p01 ^ p0 ^ p1         c4 = p2
-            // c2 = p02 ^ p0 ^ p1 ^ p2
-            let t01 = veorq_u64(p0, p1);
-            let t12 = veorq_u64(p1, p2);
-            [
-                p0,
-                veorq_u64(p01, t01),
-                veorq_u64(veorq_u64(p02, p0), t12),
-                veorq_u64(p12, t12),
-                p2,
-            ]
+    /// Reduce the three coefficients of an unreduced element.
+    #[inline(always)]
+    fn reduce3([d0, d1, d2]: [uint64x2_t; 3]) -> F192 {
+        // SAFETY: NEON is part of the aarch64 baseline.
+        let r = unsafe { vdupq_n_u64(R64) };
+        join(reduce_lane(d0, r), reduce_lane(d1, r), reduce_lane(d2, r))
+    }
+
+    /// The y-folded schoolbook product: nine base products, each read straight from the operand registers.
+    ///
+    /// Karatsuba saves three products but needs shuffles to build its operand sums.
+    /// Here a product costs an XOR, so the nine products are cheaper.
+    ///
+    /// The one shuffle swaps the halves of the first operand.
+    /// A loop with a shared first factor hoists it.
+    ///
+    /// ```text
+    ///     y^0:  a0 b0 + a1 b2 + a2 b1                         (y^3 = y + 1)
+    ///     y^1:  a0 b1 + a1 b0 + a1 b2 + a2 b1 + a2 b2         (y^4 = y^2 + y)
+    ///     y^2:  a0 b2 + a1 b1 + a2 b0 + a2 b2
+    /// ```
+    #[inline(always)]
+    fn schoolbook(a: F192, b: F192) -> [uint64x2_t; 3] {
+        let ((a01, a22), (b01, b22)) = (split(a), split(b));
+        // SAFETY: NEON is part of the aarch64 baseline.
+        let a10 = unsafe { vextq_u64::<1>(a01, a01) };
+        // a_i b_j for every pair, named by (i, j).
+        let (m00, m11) = (lo(a01, b01), hi(a01, b01));
+        let (m10, m01) = (lo(a10, b01), hi(a10, b01));
+        let (m02, m12) = (lo(a01, b22), hi(a01, b22));
+        let (m20, m21) = (lo(a22, b01), hi(a22, b01));
+        let m22 = lo(a22, b22);
+        // Both y^3 terms land on y^0 and y^1.
+        let y3 = xor(m12, m21);
+        [
+            xor(m00, y3),
+            xor3(m01, m10, xor(y3, m22)),
+            xor3(m02, m11, xor(m20, m22)),
+        ]
+    }
+
+    /// The product, reduced.
+    #[inline(always)]
+    pub fn mul(a: F192, b: F192) -> F192 {
+        reduce3(schoolbook(a, b))
+    }
+
+    /// Three 128-bit coefficients as an unreduced element.
+    #[inline(always)]
+    fn unreduced(d: [uint64x2_t; 3]) -> F192Unreduced {
+        // SAFETY: a 128-bit register and a `[u64; 2]` hold the same bits.
+        F192Unreduced {
+            coeffs: d.map(|d| unsafe { transmute::<uint64x2_t, [u64; 2]>(d) }),
         }
     }
 
-    /// The y-fold of the five Karatsuba coefficients: `d0 = c0^c3, d1 = c1^c3^c4, d2 = c2^c4`.
-    ///
-    /// # Safety
-    /// Requires the `aes` target feature.
-    #[inline]
-    #[target_feature(enable = "aes")]
-    unsafe fn karatsuba_folded(a: F192, b: F192) -> [uint64x2_t; 3] {
-        // SAFETY: function carries the aes target feature.
-        unsafe {
-            let [c0, c1, c2, c3, c4] = karatsuba_coeffs(a, b);
-            [veorq_u64(c0, c3), veorq_u64(veorq_u64(c1, c3), c4), veorq_u64(c2, c4)]
-        }
+    /// The product without the base-field reduction.
+    #[inline(always)]
+    pub fn mul_unreduced(a: F192, b: F192) -> F192Unreduced {
+        unreduced(schoolbook(a, b))
     }
 
-    /// Karatsuba products, y-fold, then 3 PMULL base reductions. 9 PMULL
-    /// total. Default `Mul` implementation.
-    ///
-    /// # Safety
-    /// Requires the `aes` target feature (compiles to PMULL); only call where
-    /// `aes` is statically enabled or has been runtime-detected.
-    #[inline]
-    #[target_feature(enable = "aes")]
-    pub unsafe fn mul_karatsuba(a: F192, b: F192) -> F192 {
-        // SAFETY: function carries the aes target feature.
-        unsafe {
-            let [d0, d1, d2] = karatsuba_folded(a, b);
-            F192 {
-                c0: base_reduce(d0),
-                c1: base_reduce(d1),
-                c2: base_reduce(d2),
-            }
-        }
+    /// The mixed product by a base-field scalar, without the reduction: three base products.
+    #[inline(always)]
+    fn mul_base_lanes(a: F192, k: F64) -> [uint64x2_t; 3] {
+        let (a01, a22) = split(a);
+        // SAFETY: NEON is part of the aarch64 baseline.
+        let kk = unsafe { vdupq_n_u64(k.0) };
+        [lo(a01, kk), hi(a01, kk), lo(a22, kk)]
     }
 
-    /// Karatsuba products and the y-fold, 6 PMULL, no base reduction.
-    /// The caller XOR-accumulates the raw coefficients (inner products, sumcheck-style).
-    ///
-    /// # Safety
-    /// Requires the `aes` target feature; see [`mul_karatsuba`].
-    #[inline]
-    #[target_feature(enable = "aes")]
-    pub unsafe fn mul_unreduced_neon(a: F192, b: F192) -> F192Unreduced {
-        // SAFETY: function carries the aes target feature; the reinterprets are between 128-bit values.
-        unsafe {
-            F192Unreduced {
-                coeffs: karatsuba_folded(a, b).map(|d| transmute::<uint64x2_t, [u64; 2]>(d)),
-            }
-        }
+    /// The mixed product by a base-field scalar, reduced.
+    #[inline(always)]
+    pub fn mul_base(a: F192, k: F64) -> F192 {
+        reduce3(mul_base_lanes(a, k))
     }
 
-    /// Squaring: cross terms vanish, squares land on y^0, y^2, y^4.
-    /// 3 PMULL squares + y-fold + 3 PMULL reductions.
-    ///
-    /// # Safety
-    /// Requires the `aes` target feature; see [`mul_karatsuba`].
-    #[inline]
-    #[target_feature(enable = "aes")]
-    pub unsafe fn square_neon(a: F192) -> F192 {
-        // SAFETY: function carries the aes target feature.
-        unsafe {
-            let s0 = pmull(a.c0, a.c0);
-            let s1 = pmull(a.c1, a.c1);
-            let s2 = pmull(a.c2, a.c2);
-            // (c0 + c1 y + c2 y²)² = s0 + s1 y² + s2 y⁴; y⁴ = y² + y:
-            // d0 = s0, d1 = s2, d2 = s1 ^ s2.
-            F192 {
-                c0: base_reduce(s0),
-                c1: base_reduce(s2),
-                c2: base_reduce(veorq_u64(s1, s2)),
-            }
-        }
+    /// The mixed product by a base-field scalar, without the reduction.
+    #[inline(always)]
+    pub fn mul_base_unreduced(a: F192, k: F64) -> F192Unreduced {
+        unreduced(mul_base_lanes(a, k))
+    }
+
+    /// The square: three base squares, then the y-fold `y^4 = y^2 + y`.
+    #[inline(always)]
+    pub fn square(a: F192) -> F192 {
+        let (a01, a22) = split(a);
+        let (s0, s1, s2) = (lo(a01, a01), hi(a01, a01), lo(a22, a22));
+        reduce3([s0, s2, xor(s1, s2)])
+    }
+
+    /// Reduce an unreduced element.
+    #[inline(always)]
+    pub fn reduce(u: F192Unreduced) -> F192 {
+        // SAFETY: a `[u64; 2]` and a 128-bit register hold the same bits.
+        reduce3(u.coeffs.map(|c| unsafe { transmute::<[u64; 2], uint64x2_t>(c) }))
     }
 }
 
@@ -1039,20 +1088,6 @@ mod tests {
             assert_eq!(mul4(a, b), want);
             assert_eq!(mul_unreduced4(a, b).map(F192Unreduced::reduce), want);
             assert_eq!(mul2([a[0], a[1]], [b[0], b[1]]), [want[0], want[1]]);
-        }
-    }
-
-    #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
-    #[test]
-    fn neon_variants_match_software() {
-        for (a, b) in operand_pairs(3) {
-            let want = software::mul(a, b);
-            // SAFETY: cfg-gated on the aes target feature.
-            unsafe {
-                assert_eq!(aarch64::mul_karatsuba(a, b), want);
-                assert_eq!(aarch64::mul_unreduced_neon(a, b).reduce(), want);
-                assert_eq!(aarch64::square_neon(a), software::mul(a, a));
-            }
         }
     }
 

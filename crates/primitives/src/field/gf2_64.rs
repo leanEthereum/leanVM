@@ -185,6 +185,7 @@ pub const fn reduce(p: u128) -> u64 {
 #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
 pub mod aarch64 {
     use super::{F64, R64};
+    use crate::field::neon::xor3_u64;
     use core::arch::aarch64::*;
     use core::mem::transmute;
 
@@ -218,12 +219,17 @@ pub mod aarch64 {
         }
     }
 
-    /// Reduce two 128-bit carry-less products into GF(2^64) as a lane pair:
-    /// returns `{reduce(p0), reduce(p1)}`. One PMULL-by-0x1B per product folds
-    /// the high half, and a second PMULL folds that fold's ≤4-bit second-order
-    /// overflow (4 PMULL total, minimal non-PMULL op count). Fastest pair
-    /// reduction in memory-resident loops (the NTT butterfly shape) on
-    /// M-series, where PMULL throughput is plentiful.
+    /// Reduce two 128-bit carry-less products into one lane pair: `[reduce(p0), reduce(p1)]`.
+    ///
+    /// Each product reduces in place, then one zip pairs the two low lanes:
+    ///
+    /// ```text
+    ///     t = hi * 0x1B       one high-lane multiply
+    ///     u = t.hi * 0x1B     one more: t.hi has at most 4 bits, so u fits in lane 0
+    ///     e = p ^ t ^ u       one three-way XOR, lane 0 is the result
+    /// ```
+    ///
+    /// Seven instructions for the pair.
     ///
     /// # Safety
     /// Requires the `aes` target feature; see [`pmull`].
@@ -233,13 +239,19 @@ pub mod aarch64 {
         // SAFETY: function carries the aes target feature.
         unsafe {
             let r = vdupq_n_u64(R64);
-            let t0 = pmull_hi(p0, r);
-            let t1 = pmull_hi(p1, r);
-            // clmul(t.hi, 0x1B) fits in 8 bits (high lane 0): the exact fold
-            // of the ≤4-bit overflow, ready to XOR into lane 0.
-            let u0 = pmull_hi(t0, r);
-            let u1 = pmull_hi(t1, r);
-            vtrn1q_u64(veorq_u64(veorq_u64(p0, t0), u0), veorq_u64(veorq_u64(p1, t1), u1))
+            let (t0, t1) = (pmull_hi(p0, r), pmull_hi(p1, r));
+            let (u0, u1) = (pmull_hi(t0, r), pmull_hi(t1, r));
+            let (mut e0, mut e1) = (xor3_u64(p0, t0, u0), xor3_u64(p1, t1, u1));
+            // Why: only lane 0 of each sum survives the zip.
+            // LLVM would gather the six low lanes with three inserts and XOR once: one instruction more.
+            // An empty asm block hides the lanes from it, and emits nothing.
+            core::arch::asm!(
+                "/* {0:v} {1:v} */",
+                inout(vreg) e0,
+                inout(vreg) e1,
+                options(pure, nomem, nostack, preserves_flags)
+            );
+            vzip1q_u64(e0, e1)
         }
     }
 
@@ -402,12 +414,23 @@ mod tests {
     #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
     #[test]
     fn neon_variants_match_software() {
+        use core::arch::aarch64::vgetq_lane_u64;
+
         let mut rng = Rng::new(5);
-        for _ in 0..10_000 {
-            let (a, b) = (rng.next_u64(), rng.next_u64());
+        // Random pairs, then every pair of corners.
+        let random = (0..10_000).map(|_| (rng.next_u64(), rng.next_u64()));
+        let corners = CORNERS.iter().flat_map(|&a| CORNERS.iter().map(move |&b| (a, b)));
+        for (a, b) in random.chain(corners) {
             // SAFETY: aes target feature is enabled at compile time.
             unsafe {
                 assert_eq!(aarch64::mul_shift_tail(F64(a), F64(b)).0, reference_mul(a, b));
+                // The pair reduction takes two wide products and returns both reduced, in lane order:
+                //
+                //     [a * b, b * b]  ->  lane 0 = a * b,  lane 1 = b * b
+                let (p0, p1) = (aarch64::pmull(a, b), aarch64::pmull(b, b));
+                let pair = aarch64::reduce_pair_pmull4(p0, p1);
+                assert_eq!(vgetq_lane_u64::<0>(pair), reference_mul(a, b));
+                assert_eq!(vgetq_lane_u64::<1>(pair), reference_mul(b, b));
             }
         }
     }
