@@ -343,6 +343,7 @@ fn flock_value_slot(col: usize) -> Option<(usize, usize, usize)> {
 /// instructions), the per-table counts in [`tables::CLASSES`] order, and the
 /// committed witness size, the sum of the column lengths, i.e. the real data
 /// before the stacked witness is zero-padded to a power of two `2^m`.
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Stats {
     pub cycles: usize, // including the padding to make every instruction count a power of two
     /// Rows per table as proven: each an exact power of two, the fill blocks having
@@ -419,6 +420,30 @@ pub fn prove(
     }
     let (proof, stats) = prove_execution(program, &exec, &input, log_inv_rate);
     Ok((proof, exec.output, stats))
+}
+
+/// The statistics a proof of this run would report, without proving it: one execution.
+///
+/// The rows per table fix the layout, and the layout the committed size.
+///
+/// So the cost of a run, in cycles and in committed words, is known in the time of a run.
+///
+/// # Errors
+///
+/// The run's trap, including one too long for a proof.
+pub fn measure(program: &Program, input: [u64; rv::INPUT_WORDS], advice: &[u64]) -> Result<Stats, rv::Trap> {
+    let exec = program.execute(input, advice)?;
+    let counts = exec.trace.row_counts();
+    let (log_words, committed) = program.stack_sizes(counts);
+    if log_words > pcs::MAX_MU {
+        return Err(rv::Trap::TooLong { log_words });
+    }
+    Ok(Stats {
+        cycles: exec.cycles,
+        counts,
+        base_counts: exec.base_counts,
+        committed,
+    })
 }
 
 /// [`prove`] from a finished run. Split out so a test can hand it a run no honest

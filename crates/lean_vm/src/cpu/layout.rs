@@ -423,8 +423,21 @@ impl Program {
     /// `log2` of the stacked witness a run of these row counts commits: what one proof
     /// can hold is capped ([`pcs::MAX_MU`]), so a run is checked before it is built.
     pub(crate) fn stack_log(&self, row_counts: [usize; tables::N_TABLES]) -> usize {
+        self.stack_sizes(row_counts).0
+    }
+
+    /// The stack's `log2` and the committed size, before the pad, for these row counts.
+    ///
+    /// The layout is a function of the program and the row counts alone, so no witness is built.
+    pub(crate) fn stack_sizes(&self, row_counts: [usize; tables::N_TABLES]) -> (usize, usize) {
         let taus = row_counts.map(|rows| crate::log2_ceil_usize(rows.max(1)));
-        witness::placements_of(&col_kappas(Sizes::of(&self.rv), taus)).1.mu
+        let (placements, shape) = witness::placements_of(&col_kappas(Sizes::of(&self.rv), taus));
+        let committed = placements
+            .iter()
+            .filter(|p| !p.is_virtual())
+            .map(|p| 1usize << p.n_vars)
+            .sum();
+        (shape.mu, committed)
     }
 
     pub(crate) fn build(&self, exec: &Execution, input: &[u64; INPUT_WORDS]) -> Witness {

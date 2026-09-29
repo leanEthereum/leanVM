@@ -126,6 +126,14 @@ The report gives the RISC-V cycles per signature or per blob, the rows per table
 
 These are the most one proof holds: continuations are not implemented.
 
+To get the cost of all three without proving, exact and the same on every machine:
+
+```bash
+cargo run --release -- cycles
+```
+
+It prints a markdown table of the RISC-V cycles, per item and in all, and the committed witness words. CI adds it to each run's summary.
+
 ### hashing
 
 ```bash

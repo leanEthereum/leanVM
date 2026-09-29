@@ -71,6 +71,7 @@ The benchmarks we care about:
 - `cargo run --release -- fibonacci --n 2000000 --log-inv-rate 1 --repeat 3` (Fibonacci mod 2^64, on registers)
 - `cargo run --release -- guest guests/elf/hash.elf --input 50000 --repeat 3` (the precompile, from a Rust guest)
 - `cargo run --release -- leanxmss --n 400 --repeat 3`, `leansphincs --n 104`, `leanda --blobs 1` (the Ethereum workloads, the most one proof holds)
+- `cargo run --release -- cycles` (the same workloads' RISC-V cycles and committed words, exact, no proof: `cpu::measure`, which CI's `Cycles` job puts in each run's summary)
 - `BENCH_REPEAT=3 FLOCK_N_LOG=18 cargo test --release -p flock --test batch_proving_hashes -- hash_batch_prove_verify --exact --nocapture --include-ignored` (flock alone, on its hand-optimized circuit)
 
 ## Read-write arrays

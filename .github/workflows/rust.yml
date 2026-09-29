@@ -32,6 +32,18 @@ jobs:
       - name: Test
         run: cargo testall
 
+  cycles:
+    name: Cycles
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      # The workload guests' RISC-V cycles and committed words, exact and machine-independent,
+      # in the run's summary. No proof: proving time on a shared runner is noise.
+      - name: Measure the workload guests
+        run: cargo run --release -- cycles >> "$GITHUB_STEP_SUMMARY"
+
   clippy:
     name: Clippy
     runs-on: ubuntu-latest

@@ -36,6 +36,31 @@ impl Workload {
     }
 }
 
+/// The cost of each workload without proving it, as a markdown table.
+///
+/// RISC-V cycles are the guest's work, committed words the prover's: both are exact.
+///
+/// So the table is the same on every machine, where proving time is not.
+pub fn cycles(workloads: &[Workload]) {
+    println!("| workload | RISC-V cycles | per item | committed words | tables |");
+    println!("|---|---:|---:|---:|---|");
+    for workload in workloads {
+        // One run each: the rows per table fix the committed size.
+        let stats = lean_vm::cpu::measure(&workload.program(), workload.input, &workload.advice)
+            .unwrap_or_else(|trap| refuse(format_args!("{}: {trap}", workload.title)));
+        let cycles: usize = stats.base_counts.iter().sum();
+        println!(
+            "| {} | {} | {} / {} | 2^{:.2} | {} |",
+            workload.title,
+            pretty_integer(cycles),
+            pretty_integer(cycles / workload.items),
+            workload.item,
+            (stats.committed as f64).log2(),
+            stats.details()
+        );
+    }
+}
+
 /// Prove and verify a workload, and print the report.
 ///
 /// Proving runs one discarded warmup pass, then `plan.repeat` measured passes.

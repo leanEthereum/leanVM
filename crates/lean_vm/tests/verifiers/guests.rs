@@ -4,7 +4,7 @@
 //! nightly toolchain.
 
 use super::python_verifier::PythonStatement;
-use lean_vm::cpu::{Program, prove, verify, verify_to_raw};
+use lean_vm::cpu::{Program, measure, prove, verify, verify_to_raw};
 use lean_vm::rv::{self, Guest, Machine};
 
 fn proves_and_verifies(tag: &str, elf: &[u8], input: [u64; 4], expected: [u64; 4]) {
@@ -20,6 +20,8 @@ fn proves_and_verifies_with(tag: &str, elf: &[u8], input: [u64; 4], advice: &[u6
 
     let (proof, output, stats) = prove(&program, input, advice, 1).expect("the run halts");
     assert_eq!(output, expected);
+    // Measuring a run reports what proving it does, without the proof.
+    assert_eq!(measure(&program, input, advice), Ok(stats.clone()), "{tag}: measure");
     let raw = verify_to_raw(&program, &input, &output, &proof).expect("honest proof verifies");
     PythonStatement::new(tag, &program, &input, &output).assert_accepts(&raw);
     let mut wrong = output;
