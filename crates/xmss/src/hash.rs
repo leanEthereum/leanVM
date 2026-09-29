@@ -34,7 +34,7 @@ pub const STATE_LEN: usize = 32;
 /// `[protocol_domain_sep:1 | type:1 | layer:1 | zero:1 | p:4 | tree:4 | index:4]`, little endian.
 /// XMSS sets `layer` and `tree` to zero.
 /// `index` is the epoch (chain / wots_pk / encoding) or the Merkle node index;
-/// `sub_position` is the chain position or the Merkle level.
+/// `sub_position` is the chain step or the Merkle level.
 pub fn make_tweak(tweak_type: u8, sub_position: u32, index: u32) -> Tweak {
     let mut tweak = [0u8; TWEAK_LEN];
     tweak[0] = PROTOCOL_DOMAIN_SEP;
@@ -45,8 +45,8 @@ pub fn make_tweak(tweak_type: u8, sub_position: u32, index: u32) -> Tweak {
 }
 
 /// Standard BLAKE2s of the exact-length `tweak | pp | payload` byte string. One
-/// compression for chain steps (48 bytes total) and Merkle nodes (64 bytes
-/// total), more for the multi-block WOTS public-key and encoding inputs.
+/// compression for chain steps and Merkle nodes (64 bytes total), more for the
+/// multi-block WOTS public-key and encoding inputs.
 pub fn tweak_hash(pp: &PublicParam, tweak_type: u8, sub_position: u32, index: u32, payload: &[u8]) -> Digest {
     let mut hasher = primitives::hash::Hasher::new();
     hasher.update(&make_tweak(tweak_type, sub_position, index));

@@ -39,7 +39,7 @@ abbrev Randomness := BitVec randomnessBits
 abbrev Epoch := Fin lifetime
 abbrev ChainIndex := Fin numChains
 abbrev Digit := Fin chainLength
-/-- A chain step; the tweak carries `2^w * i + step`. -/
+/-- A chain step; the tweak carries `step`, the chain index rides after the message. -/
 abbrev ChainStep := Fin (chainLength - 1)
 /-- A level of the stored tree, `0` the leaves and `h` the root. -/
 abbrev MerkleHeight := Fin (treeHeight + 1)
@@ -108,7 +108,7 @@ deriving DecidableEq
 
 /-- Serialize a typed hash domain into the fields of a tweak. -/
 def hashDomainFields : HashDomain → TweakFields
-  | .chain epoch chain step => tweakFields 1 (chainLength * chain + step) epoch
+  | .chain epoch _ step => tweakFields 1 step epoch
   | .leaf epoch => tweakFields 2 0 epoch
   | .merkle level node => tweakFields 3 (level.val + 1) node
   | .encoding epoch => tweakFields 4 0 epoch
@@ -117,10 +117,17 @@ def hashDomainFields : HashDomain → TweakFields
 def tweakBytes (domain : HashDomain) : List UInt8 :=
   fieldBytes (hashDomainFields domain)
 
-/-- The random-oracle input `tweak || parameter || message` used by every tweakable hash call. -/
+/-- What a domain appends after the message: a chain step's `LE_128(i)`, nothing otherwise. With the
+chain index outside the tweak, an epoch has `2^w - 1` chain tweaks. -/
+def domainSuffix : HashDomain → HashInput
+  | .chain _ chain _ => bytesLE 16 (BitVec.ofNat 128 chain.val)
+  | _ => []
+
+/-- The random-oracle input of every tweakable hash call: the specification's `tweak || P || M`,
+where a chain step's `M` is its value followed by `domainSuffix`. -/
 def tweakableHashInput (parameter : PublicParameter) (domain : HashDomain)
     (message : HashInput) : HashInput :=
-  tweakBytes domain ++ bytesLE 16 parameter ++ message
+  tweakBytes domain ++ bytesLE 16 parameter ++ message ++ domainSuffix domain
 
 /-- `tweak(7, trial, epoch) || P || S || m`. -/
 def randomizerHashInput (parameter : PublicParameter) (seed : MasterSeed)
@@ -237,7 +244,7 @@ def encodingHash (parameter : PublicParameter) (epoch : Epoch)
     (message : Message) (randomness : Randomness) : m Digest :=
   tweakableHash parameter (.encoding epoch) (encodingPayload message randomness)
 
-/-- One chain step, under `tweak_chain(ep, i, step + 1)`. -/
+/-- One chain step, `Th(P, tweak_chain(ep, step + 1), value || LE_128(i))`. -/
 def chainHash (parameter : PublicParameter) (epoch : Epoch) (chain : ChainIndex)
     (step : ChainStep) (value : Digest) : m Digest :=
   tweakableHash parameter (.chain epoch chain step) (bytesLE 16 value)
@@ -258,7 +265,7 @@ def nodeHash (parameter : PublicParameter) (level : MerkleLevel) (node : MerkleN
 def signaturePath (signature : Signature) (level : Nat) : Digest :=
   if hlevel : level < treeHeight then signature.authPath ⟨level, hlevel⟩ else 0
 
-/-- `Chain_{i,ep}(P, start, steps, value)`: the step onto position `start + steps + 1` carries tweak position `2^w * i + start + steps`. -/
+/-- `Chain_{i,ep}(P, start, steps, value)`: the step onto position `start + steps + 1` carries tweak position `start + steps`. -/
 def chainWalk (parameter : PublicParameter) (epoch : Epoch) (chain : ChainIndex) :
     Nat → Nat → Digest → m Digest
   | _, 0, value => pure value

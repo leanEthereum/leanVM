@@ -118,7 +118,7 @@ Let $\mathsf{protocol\_domain\_sep}=0$. For a one-byte type $t$ and unsigned 32-
 Define
 \[
 \begin{aligned}
-  \mathsf{tweak}_{\mathrm{chain}}(\ep,i,k) &= \mathsf{enc}(1,2^wi+k-1,\ep), &&0\leq i<v,\ 1\leq k\leq2^w-1,\\
+  \mathsf{tweak}_{\mathrm{chain}}(\ep,k) &= \mathsf{enc}(1,k-1,\ep), &&1\leq k\leq2^w-1,\\
   \mathsf{tweak}_{\mathrm{leaf}}(\ep) &= \mathsf{enc}(2,0,\ep),\\
   \mathsf{tweak}_{\mathrm{merkle}}(\ell,j) &= \mathsf{enc}(3,\ell,j), &&1\leq\ell\leq h,\ 0\leq j<2^{h-\ell},\\
   \mathsf{tweak}_{\mathrm{enc}}(\ep) &= \mathsf{enc}(4,0,\ep),\\
@@ -147,9 +147,9 @@ For a chain index $i$, epoch $\ep$, start index $k$, number of steps $s$, and va
 \]
 and, for $s\geq1$,
 \[
-  \Chain_{\Th,i,\ep}(P,k,s,x)=\Th\!\left(P,\mathsf{tweak}_{\mathrm{chain}}(\ep,i,k+s),\Chain_{\Th,i,\ep}(P,k,s-1,x)\right).
+  \Chain_{\Th,i,\ep}(P,k,s,x)=\Th\!\left(P,\mathsf{tweak}_{\mathrm{chain}}(\ep,k+s),\Chain_{\Th,i,\ep}(P,k,s-1,x)\concat\LE_{128}(i)\right).
 \]
-The valid range is $0\leq k\leq2^w-1$ and $0\leq s\leq2^w-1-k$.
+The valid range is $0\leq k\leq2^w-1$ and $0\leq s\leq2^w-1-k$. The chain index follows the chain value rather than sitting in the tweak, so an epoch has only $2^w-1$ chain tweaks, which a verifier computes once per epoch.
 \end{definition}
 
 The one-time public key and its Merkle leaf are
