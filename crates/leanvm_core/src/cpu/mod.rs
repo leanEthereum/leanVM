@@ -104,22 +104,28 @@ fn read_public(vs: &mut VerifierState, prog: &Program) -> Result<(Layout, usize)
     Ok((l, log_inv_rate))
 }
 
-/// A program as the prover and the verifier hold it.
+/// A validated program and its cached public-statement digest.
+///
+/// The decoded program is read-only, so the digest always describes what is proven.
+///
+/// ```compile_fail
+/// # use leanvm_core::cpu::Program;
+/// fn change_image(program: &mut Program) {
+///     program.rv.image.clear();
+/// }
+/// ```
+///
+/// ```compile_fail
+/// # use leanvm_core::cpu::Program;
+/// fn change_image(program: &mut Program) {
+///     program.rv().image.clear();
+/// }
+/// ```
 #[derive(Clone)]
 pub struct Program {
-    /// The decoded text, the padding blocks included, and RAM as the run finds it.
-    pub rv: rv::Program,
-    /// BLAKE2s over everything public and fixed: the stacked bytecode multilinear
-    /// (that table is 16·2^kbc words, tens of megabytes at production sizes, so it is
-    /// hashed once here rather than per proof), the entry and halt `pc`, and RAM's
-    /// size and initial words. Always set by [`Program::new`], so a `Program` cannot
-    /// carry a digest inconsistent with itself.
-    pub(crate) digest: [u8; 32],
-    /// The padding blocks in the text ([`filler`]), whose rows bring every table's
-    /// row count to a power of two. Prover-side only, and no program code reaches
-    /// them, so a missing or wrong entry costs the prover a run that does not fill
-    /// rather than anything a verifier would accept.
-    pub filler: Vec<filler::Block>,
+    rv: rv::Program,
+    digest: [u8; 32],
+    filler: Vec<filler::Block>,
 }
 
 /// The digest reinterprets tables of words as bytes, which is their `to_le_bytes`
@@ -127,6 +133,16 @@ pub struct Program {
 const _: () = assert!(cfg!(target_endian = "little"));
 
 impl Program {
+    /// The decoded text, memory image and region sizes, for inspection or interpretation.
+    pub fn rv(&self) -> &rv::Program {
+        &self.rv
+    }
+
+    /// BLAKE2s over the decoded text, entry, halt, region sizes and initial RAM image.
+    pub fn digest(&self) -> &[u8; 32] {
+        &self.digest
+    }
+
     /// The program of a guest's ELF executable ([`rv::Guest::from_elf`]).
     pub fn from_elf(elf: &[u8]) -> Result<Self, rv::ElfError> {
         let guest = rv::Guest::from_elf(elf)?;
@@ -659,6 +675,27 @@ mod tests {
     use super::*;
     use crate::rv::asm::*;
     use primitives::field::g_pow;
+
+    #[test]
+    fn digest_binds_every_public_program_component() {
+        let text = Asm::new().i("addi", A0, ZERO, 5).exit().finish();
+        let program = Program::new(&text, rv::TEXT_BASE, vec![1], 2, 0);
+        assert_eq!(program.digest(), program.clone().digest());
+
+        let mut changed_text = text.clone();
+        changed_text[0] = Asm::new().i("addi", A0, ZERO, 6).finish()[0];
+        let changed = [
+            Program::new(&changed_text, rv::TEXT_BASE, vec![1], 2, 0),
+            Program::new(&text, rv::TEXT_BASE + 4, vec![1], 2, 0),
+            Program::new(&text, rv::TEXT_BASE, vec![2], 2, 0),
+            Program::new(&text, rv::TEXT_BASE, vec![1, 0], 2, 0),
+            Program::new(&text, rv::TEXT_BASE, vec![1], 3, 0),
+            Program::new(&text, rv::TEXT_BASE, vec![1], 2, 1),
+        ];
+        for changed in changed {
+            assert_ne!(program.digest(), changed.digest());
+        }
+    }
 
     /// Reassign every range read's count, as a prover would after changing a gap, so
     /// that the range arrays balance and what is left to judge is the registers.

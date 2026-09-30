@@ -32,7 +32,7 @@ impl PythonStatement {
             public: directory.join("public.bin"),
             directory,
         };
-        let rv = &program.rv;
+        let rv = program.rv();
         let table: Vec<u8> = leanvm_core::cpu::layout::bytecode_table(rv)
             .iter()
             .flat_map(|w| w.0.to_le_bytes())
@@ -165,7 +165,7 @@ fn test_python_verifier() {
 
     println!(
         "{} instructions; proved {} cycles in {} bytes; Python verified in {:.2?}",
-        program.rv.entries.len(),
+        program.rv().entries.len(),
         stats.cycles,
         encoded.len(),
         verification_time,

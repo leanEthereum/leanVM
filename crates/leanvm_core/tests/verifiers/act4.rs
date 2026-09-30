@@ -126,7 +126,7 @@ fn failed_check(test: &Test, machine: &Machine, trap: &Trap) -> Option<String> {
 /// What the interpreter says of a test, as a failure message if it is not a pass.
 fn check_run(test: &Test) -> Result<(), String> {
     let name = &test.name;
-    let mut machine = Machine::new(&test.program.rv, &[]);
+    let mut machine = Machine::new(test.program.rv(), &[]);
     match machine.run(CYCLE_CAP) {
         Ok(PASS) => Ok(()),
         Ok([1, called_from, ..]) => Err(format!("{name}: fails, halting from {called_from:#x}")),

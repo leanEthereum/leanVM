@@ -100,7 +100,7 @@ fn alu_instructions_prove_and_verify() {
         .r("add", A4, A4, A4)
         .jalr(ZERO, RA, 0);
     let program = Program::new(&a.finish(), TEXT_BASE, vec![], 2, 0);
-    let expected = leanvm_core::rv::Machine::new(&program.rv, &[])
+    let expected = leanvm_core::rv::Machine::new(program.rv(), &[])
         .run(1 << 20)
         .expect("the run halts");
     assert_ne!(expected, [0; 4]);
@@ -162,7 +162,7 @@ fn loads_and_stores_prove_and_verify() {
         .i("addi", SP, SP, 16)
         .jalr(ZERO, RA, 0);
     let program = Program::new(&a.finish(), TEXT_BASE, image, LOG_RAM, 0);
-    let expected = leanvm_core::rv::Machine::new(&program.rv, &[])
+    let expected = leanvm_core::rv::Machine::new(program.rv(), &[])
         .run(1 << 20)
         .expect("the run halts");
     proves_and_verifies("memory", &program, expected);
@@ -196,7 +196,7 @@ fn shifts_and_multiplications_prove_and_verify() {
         a.i(op, T0, S0, amount).r("xor", A2, A2, T0).r("sub", A3, A3, T0);
     }
     let program = Program::new(&a.exit().finish(), TEXT_BASE, vec![], 2, 0);
-    let expected = leanvm_core::rv::Machine::new(&program.rv, &[])
+    let expected = leanvm_core::rv::Machine::new(program.rv(), &[])
         .run(1 << 20)
         .expect("the run halts");
     assert!(expected.iter().all(|&word| word != 0));
@@ -225,7 +225,7 @@ fn divisions_prove_and_verify() {
         }
     }
     let program = Program::new(&a.exit().finish(), TEXT_BASE, vec![], 2, 0);
-    let expected = leanvm_core::rv::Machine::new(&program.rv, &[])
+    let expected = leanvm_core::rv::Machine::new(program.rv(), &[])
         .run(1 << 20)
         .expect("the run halts");
     proves_and_verifies("div", &program, expected);
