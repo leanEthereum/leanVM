@@ -30,11 +30,11 @@ The first two memory cells must hold the public input, $\mem[\gen^{0}]=\textsf{i
 \[
   \mle{\mem}(X,0,\dots,0)\;=\;(1+X)(\textsf{input}_0+\textsf{input}_1y)+X(\textsf{input}_2+\textsf{input}_3y).
 \]
-The verifier samples $r_m\in\E$. It can evaluate the right side at $r_m$ directly. For the left side, recall that the memory $\mem\in\E^{\le1}[X_1,\dots,X_{\kmem}]$ is committed as three limbs $\mem_0,\mem_1,\mem_2\in\K^{\le1}[X_1,\dots,X_{\kmem}]$, with $\mem=\mem_0+y\,\mem_1+y^2\,\mem_2$ (\S\ref{sec:memchan}). The prover sends $c_0,c_1\in\E$, claiming $c_0=\mle{\mem_0}(r_m,0,\dots,0)$ and $c_1=\mle{\mem_1}(r_m,0,\dots,0)$. The verifier checks
+Recall that the memory $\mem\in\E^{\le1}[X_1,\dots,X_{\kmem}]$ is committed as three limbs $\mem_0,\mem_1,\mem_2\in\K^{\le1}[X_1,\dots,X_{\kmem}]$, with $\mem=\mem_0+y\,\mem_1+y^2\,\mem_2$ (\S\ref{sec:memchan}). Since $1,y,y^2$ is a basis of $\E$ over $\K$, the equality holds, as polynomials in $X$, exactly when it holds limb by limb, and every limb's right side is a line the verifier knows. The verifier samples $r_m\in\E$, computes
 \[
-  c_0+y\,c_1\;\qeq\;(1+r_m)(\textsf{input}_0+\textsf{input}_1y)+r_m(\textsf{input}_2+\textsf{input}_3y),
+  c_0=(1+r_m)\,\textsf{input}_0+r_m\,\textsf{input}_2,\qquad c_1=(1+r_m)\,\textsf{input}_1+r_m\,\textsf{input}_3,
 \]
-and pools the claims $c_0,c_1,0$ on $\mem_0,\mem_1,\mem_2$ at $(r_m,0,\dots,0)$, the last being $0$ because both public cells have top limb zero. If either cell is wrong, the two sides are distinct polynomials of degree at most one in $r_m$, so the check passes with probability at most $1/|\E|$ (Lemma~\ref{lem:sz}).
+and pools the claims $c_0,c_1,0$ on $\mem_0,\mem_1,\mem_2$ at $(r_m,0,\dots,0)$, the last being $0$ because both public cells have top limb zero. The prover sends nothing: the claims are functions of the public input, which seeds the transcript, and of $r_m$, drawn after the commitment. If either cell is wrong, some limb's two sides are distinct polynomials of degree at most one in $r_m$, so its claim is true with probability at most $1/|\E|$ (Lemma~\ref{lem:sz}), and the opening rejects a false claim.
 
 \subsection{Filling the tables}\label{sec:e2e-pad}
 
@@ -84,8 +84,8 @@ The Fiat-Shamir initial state (\S\ref{sec:e2e-fiat-shamir}) is seeded by the pub
 \paragraph{Public input.}
 
 \begin{enumerate}
-\item \textbf{Verifier.} Sample and sends $r_m\in\E$.
-\item \textbf{Prover \& Verifier.} The prover sends $c_0,c_1 \in \E$; the verifier checks $c_0+y c_1$ against $(1+r_m)(\textsf{input}_0+\textsf{input}_1y)+r_m(\textsf{input}_2+\textsf{input}_3y)$ and pools $(c_0,c_1,0)$ as claims on $\mem_0,\mem_1,\mem_2$ at $(r_m,0,\dots,0)$ (\S\ref{sec:e2e-pi}).
+\item \textbf{Verifier.} Samples and sends $r_m\in\E$.
+\item \textbf{Verifier.} Computes $c_0,c_1$ from the public input and pools $(c_0,c_1,0)$ as claims on $\mem_0,\mem_1,\mem_2$ at $(r_m,0,\dots,0)$ (\S\ref{sec:e2e-pi}). The prover sends nothing.
 \end{enumerate}
 
 \paragraph{BLAKE2s validity.}
@@ -101,5 +101,5 @@ The Fiat-Shamir initial state (\S\ref{sec:e2e-fiat-shamir}) is seeded by the pub
 \item \textbf{Prover \& Verifier.} Each pooled claim is one evaluation of a column at a point, its value already supplied; via the stacking selectors (\S\ref{sec:stacking}) it becomes a weighted sum $\sum_w W_j(w)\,\widetilde q(w)=c_j$ over the stacked witness. (The ring-switched claim arrives already in this form, its weight supported on the $\qflock$ region.)
 \item \textbf{Verifier.} Sends one batching challenge $\lambda\in\E$, drawn after every claim value is bound. Claim $j$ takes the weight $\lambda^{j-1}$, the ring-switched claim first and the pooled column claims after: the $J$ weights are distinct powers of the one challenge (Theorem~\ref{thm:rbr}).
 \item \textbf{Prover \& Verifier.} Fold the $J$ claims into $W_\lambda=\sum_j\lambda^{j-1} W_j$ and $C_\lambda=\sum_j\lambda^{j-1} c_j$, and run the inner-product PCS opening on $\sum_w W_\lambda(w)\,\widetilde q(w)=C_\lambda$ (Annex~\ref{annex:pcs}), the verifier evaluating $W_\lambda$ itself. This one opening discharges every pooled claim; there is no separate reduction sumcheck.
-\item \textbf{Verifier.} Accepts if every check above passed: the caps, the one bus root for both sides, the nonzero count root, every sumcheck's rounds and final value, the public-input line, flock's reduction, and the PCS opening.
+\item \textbf{Verifier.} Accepts if every check above passed: the caps, the one bus root for both sides, the nonzero count root, every sumcheck's rounds and final value, flock's reduction, and the PCS opening.
 \end{enumerate}

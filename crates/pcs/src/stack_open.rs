@@ -354,8 +354,8 @@ pub fn verify_opening_batch_mixed_whir_stacked(
     let map_challenges = ring_switch::sample_map_challenges(vs);
     let coordinate_weights = ring_switch::build_coordinate_weights(&map_challenges);
 
-    // 2. The one batching challenge (see the opener: the claim values are bound by the read that
-    //    produced them), then fold both families into the target over disjoint power ranges.
+    // 2. The one batching challenge (see the opener: the caller already bound the claim values),
+    //    then fold both families into the target over disjoint power ranges.
     let lambdas = powers(vs.sample(), n_rs + point_claims.len());
     let (lambdas_rs, lambdas_pd) = lambdas.split_at(n_rs);
 

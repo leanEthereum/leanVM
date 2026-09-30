@@ -7,7 +7,7 @@
 //! duplicating their knowledge of what a dummy row looks like.
 
 use lean_compiler::{compile, parse};
-use leanvm_core::cpu::{CpuError, Proof, ProveError, prove, verify};
+use leanvm_core::cpu::{CpuError, Proof, ProveError, prove, prove_claiming, verify};
 use leanvm_core::vmhash::compress;
 use primitives::field::{F64, F192};
 
@@ -97,6 +97,22 @@ fn a_proof_does_not_verify_against_another_program() {
         verify(&other, &pi, &proof).is_err(),
         "a proof must not verify against a different program"
     );
+}
+
+/// The public-input claims are all that tie the committed memory to the statement:
+/// a prover that runs on the real input but seeds the transcript with another passes
+/// every other check, so the opening must reject it, whichever limb differs.
+#[test]
+fn a_proof_binds_the_memory_to_the_public_input() {
+    let program = compile(&parse(HASHING).expect("parse"));
+    let pi = hashing_pi();
+    for claimed in [[pi[0] + F192::ONE, pi[1]], [pi[0], pi[1] + F192::new(0, 1, 0)]] {
+        let (forged, _) = prove_claiming(&program, pi, claimed, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+        assert!(
+            matches!(verify(&program, &claimed, &forged), Err(CpuError::Open(_))),
+            "a proof of memory not holding the public input must be rejected"
+        );
+    }
 }
 
 /// Out-of-process verification: everything travels in the two channels, so a proof

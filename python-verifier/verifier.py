@@ -180,7 +180,6 @@ class E:
 ZERO = E(0)
 ONE = E(1)
 GEN = E(2)
-Y = E(0, 1)  # the tower generator, y^3 = y + 1
 
 
 def powers(base: E, count: int) -> list[E]:
@@ -1389,10 +1388,11 @@ def verify_execution(bytecode: Sequence[K], public_input: Digest, proof: Proof) 
     table_sumcheck_claims = table_sumcheck(layout.table_log_heights, bus.forms, constraint_powers, form_powers, bus.point, target, transcript)
     claims = [*bus.claims, *table_sumcheck_claims]
 
-    # 5] binding the public input
+    # 5] binding the public input: each memory limb's claim is that limb's public line at the challenge, which the verifier
+    # evaluates itself, so the prover sends nothing. Both public words are 128-bit, so the top limb's claim is zero.
     public_challenge = transcript.sample()
-    public_limbs = (*transcript.next_scalars(2), ZERO)
-    require(poly_eval(public_limbs, Y) == multilinear_eval(public_input.halves(), [public_challenge]), "public input check failed")
+    first, second = public_input.halves()
+    public_limbs = tuple(multilinear_eval(pair, [public_challenge]) for pair in ((first.c0, second.c0), (first.c1, second.c1), (first.c2, second.c2)))
     public_point = (public_challenge, *[ZERO] * (layout.placements[MEMORY_0].variables - 1))
     claims.extend(ColumnClaim(column, public_point, value) for column, value in zip((MEMORY_0, MEMORY_1, MEMORY_2), public_limbs))
 

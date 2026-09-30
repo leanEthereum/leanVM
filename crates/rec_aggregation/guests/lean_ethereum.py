@@ -456,6 +456,16 @@ def assert_canonical(word):
 
 
 @inline
+def canonical_limbs(word):
+    # assert_canonical, keeping the two limbs it binds.
+    lo = StackBuf(1)
+    hint_f192_limbs(lo, word)
+    hi = (word + lo[0]) * Y_INV
+    assert_in_k(lo[0], hi)
+    return lo[0], hi
+
+
+@inline
 def challenge_from_state(state):
     # Both words are BLAKE2s outputs with zero top limbs.
     # Hint d2 and derive d3 = (state[1] + d2)/Y.
@@ -1723,21 +1733,17 @@ def verify_tables(fs0, fs1, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, block_ka
         air_acc += zc_cprod[g_zc_n / tau_g] * zc_peq[tau_g] * constraint_eval  # cprod[n - tau] * peq[tau]
     assert air_acc == claim
 
-    # ---- public-input binding claim: MEM as ONE logical E-column ----
-    # The VM's bind_pi_claim makes a SINGLE E-claim at [rm, 0..]:
-    #   MEM(rm) = interp(pi_0, pi_1, rm) = pi_0 + rm*(pi_0 + pi_1)
-    # over the E-valued public input (no lane splitting, no Frobenius). Both
-    # public words have a zero top limb, so that limb's evaluation is zero at
-    # every rm; only the two low ones ride the stream and must reassemble it:
-    # MEM = v_lo + Y*v_hi (doc sec:e2e-pi).
+    # ---- public-input binding claim: one per MEM limb, read off no stream ----
+    # The VM's bind_pi_claim claims each committed MEM limb at [rm, 0..] equals
+    # that limb's line through the public words, lo_0 + rm*(lo_0 + lo_1) and so
+    # on, which the statement alone determines. canonical_limbs binds each word's
+    # limbs and proves its top limb zero, so the top claim is zero (doc sec:e2e-pi).
     fs, rm = squeeze(fs)
-    mem = pi_0 + rm * (pi_0 + pi_1)
-    fs, mem_lo, cursor = fs_next(fs, cursor)
-    fs, mem_hi, cursor = fs_next(fs, cursor)
-    assert mem == mem_lo + mem_hi * Y_TOWER
-    claim_pool[GEN ** claim_idx] = mem_lo
+    lo_0, hi_0 = canonical_limbs(pi_0)
+    lo_1, hi_1 = canonical_limbs(pi_1)
+    claim_pool[GEN ** claim_idx] = lo_0 + rm * (lo_0 + lo_1)
     claim_idx += 1
-    claim_pool[GEN ** claim_idx] = mem_hi
+    claim_pool[GEN ** claim_idx] = hi_0 + rm * (hi_0 + hi_1)
     claim_idx += 1
     claim_pool[GEN ** claim_idx] = 0
     claim_idx += 1
@@ -2150,8 +2156,9 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, defer_out):
         zv_lo[xt] = zr_hi[xt]
     # ONE batching challenge for the whole pool: N_CLAIMS - 1 fewer Fiat-Shamir
     # compressions than a challenge per claim, and none for the values themselves,
-    # `fs_next` having bound every one of them as it read it, so `lam_cl` already
-    # depends on all of them. Disjoint power ranges, as for the zc_xi-powers above:
+    # `fs_next` having bound every one it read and the public-input ones deriving
+    # from the seeded statement and rm, so `lam_cl` already depends on all of
+    # them. Disjoint power ranges, as for the zc_xi-powers above:
     # the ring-switch claim takes lam_cl^0, the pool lam_cl^1 onward.
     fs, lam_cl = squeeze(fs)
     target = transposed_claim

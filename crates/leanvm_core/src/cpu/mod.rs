@@ -552,6 +552,19 @@ impl Stats {
 /// the commitment.
 #[tracing::instrument(name = "Prove", skip_all, fields(log_inv_rate))]
 pub fn prove(program: &Program, public_input: [F192; 2], log_inv_rate: usize) -> Result<(Proof, Stats), ProveError> {
+    prove_claiming(program, public_input, public_input, log_inv_rate)
+}
+
+/// [`prove`], running on `public_input` but seeding the transcript with `claimed`.
+/// Two different inputs make a forging prover, for the test that a proof binds the
+/// committed memory to the statement; never a real proof.
+#[doc(hidden)]
+pub fn prove_claiming(
+    program: &Program,
+    public_input: [F192; 2],
+    claimed: [F192; 2],
+    log_inv_rate: usize,
+) -> Result<(Proof, Stats), ProveError> {
     if ::pcs::whir::validate_log_inv_rate(log_inv_rate).is_err() {
         return Err(ProveError::InvalidRate { log_inv_rate });
     }
@@ -579,11 +592,8 @@ pub fn prove(program: &Program, public_input: [F192; 2], log_inv_rate: usize) ->
     let committed_size = w.committed_size();
     // The public statement (program digest + input) seeds the transcript, so
     // every challenge depends on the exact program and public input.
-    debug_assert!(
-        public_input.iter().all(|h| h.c2 == 0),
-        "a public input is a 256-bit digest"
-    );
-    let mut ps = ProverState::new(digest_words(&fs_seed(program)), digest_words(&public_input));
+    debug_assert!(claimed.iter().all(|h| h.c2 == 0), "a public input is a 256-bit digest");
+    let mut ps = ProverState::new(digest_words(&fs_seed(program)), digest_words(&claimed));
 
     // Announce the prover's sizes, then commit, before sampling any challenge.
     announce_public(&mut ps, w.log_mem, w.layout.taus, log_inv_rate);
@@ -633,23 +643,15 @@ pub fn prove(program: &Program, public_input: [F192; 2], log_inv_rate: usize) ->
     };
     let l = &w.layout;
 
-    // The PI binding transmits the two LOW memory limbs' evaluations
-    // (§sec:e2e-pi); the verifier checks them against the public-input line at
-    // `r_pi`. The top limb of both public words is zero, so its evaluation is
-    // zero at every `r_pi` and rides no scalar.
+    // The PI binding (§sec:e2e-pi) transmits nothing: its claims are the public
+    // input's limb lines at `r_pi`, which the verifier evaluates itself. `r_pi`
+    // is still a challenge, squeezed after the commitment so the memory cannot
+    // be chosen to fit it.
     let r_pi = ps.sample();
-    let pi_limbs = [
-        primitives::multilinear::interp_k(F64(l.pi[0].c0), F64(l.pi[1].c0), r_pi),
-        primitives::multilinear::interp_k(F64(l.pi[0].c1), F64(l.pi[1].c1), r_pi),
-        F192::ZERO,
-    ];
-    for v in &pi_limbs[..2] {
-        ps.add_scalar(*v);
-    }
     // Memory binds the message, chaining-value, and output words; bytecode binds
     // the counter and flags. All corresponding value columns are virtual and route
     // to q_flock through `slot_claims`.
-    let slots = finish_claims(l, bus.claims, &table_claims, r_pi, pi_limbs);
+    let slots = finish_claims(l, bus.claims, &table_claims, r_pi);
 
     // Run flock's reduction (zerocheck + lincheck) over the prepared native
     // layouts retained from the fused q_flock build pass; it returns the
@@ -686,7 +688,6 @@ fn finish_claims(
     bus_claims: Vec<ColumnClaim>,
     table_claims: &[constraints::Claims],
     r_pi: F192,
-    pi_limbs: [F192; 3],
 ) -> Vec<pcs::SlotClaim> {
     let mut claims = bus_claims;
     let sch = schema();
@@ -700,22 +701,27 @@ fn finish_claims(
             });
         }
     }
-    claims.extend(bind_pi_claim(r_pi, &l.placements, pi_limbs));
+    claims.extend(bind_pi_claim(r_pi, l));
     slot_claims(l, claims)
 }
 
-/// The public-input binding (§sec:e2e-pi): the committed `MEM` at `(r, 0,…,0)` must
-/// equal `interp(pi[0], pi[1], r)`, one transmitted evaluation per physical `K`
-/// limb. The caller has already checked the three against the line; here they
-/// simply become the three claims the opening discharges. `placements` comes from
-/// the prover's or verifier's layout, so both sides build byte-identical claims.
-fn bind_pi_claim(r: F192, placements: &[witness::Placement], limbs: [F192; 3]) -> [ColumnClaim; 3] {
-    let mut point = vec![F192::ZERO; placements[MEM_LO].n_vars];
+/// The public-input binding (§sec:e2e-pi): each committed `MEM` limb at
+/// `(r, 0,…,0)` must equal the line through that limb of `pi[0]` and `pi[1]`.
+/// The public input is the statement, so both sides evaluate the lines
+/// themselves and build byte-identical claims from their layouts; the prover
+/// sends nothing. The verifier has rejected a nonzero top limb, so that claim is 0.
+fn bind_pi_claim(r: F192, l: &Layout) -> [ColumnClaim; 3] {
+    let [a, b] = l.pi;
+    let limbs = [(a.c0, b.c0), (a.c1, b.c1), (a.c2, b.c2)];
+    let mut point = vec![F192::ZERO; l.placements[MEM_LO].n_vars];
     point[0] = r;
-    [MEM_LO, MEM_HI, MEM_TOP].map(|col| ColumnClaim {
-        col,
-        point: point.clone(),
-        value: limbs[col - MEM_LO],
+    [MEM_LO, MEM_HI, MEM_TOP].map(|col| {
+        let (x, y) = limbs[col - MEM_LO];
+        ColumnClaim {
+            col,
+            point: point.clone(),
+            value: primitives::multilinear::interp_k(F64(x), F64(y), r),
+        }
     })
 }
 
@@ -779,18 +785,10 @@ pub fn verify(program: &Program, public_input: &[F192; 2], proof: &Proof) -> Res
     )
     .map_err(CpuError::Constraint)?;
 
+    // Squeezed after the commitment and every message before it, so the prover
+    // cannot choose the memory to fit it; the claims it yields read no scalar.
     let r_pi = vs.sample();
-    let mut pi_limbs = [F192::ZERO; 3];
-    for v in &mut pi_limbs[..2] {
-        *v = vs.next_scalar().map_err(CpuError::Transcript)?;
-    }
-    // The two claimed evaluations must sit on the public-input line, the top
-    // limb's being zero (§sec:e2e-pi).
-    let want = primitives::multilinear::interp(l.pi[0], l.pi[1], r_pi);
-    if pi_limbs[0] + F192::Y * pi_limbs[1] != want {
-        return Err(CpuError::PublicInput);
-    }
-    let slots = finish_claims(&l, bus.claims, &table_claims, r_pi, pi_limbs);
+    let slots = finish_claims(&l, bus.claims, &table_claims, r_pi);
 
     // Replay flock's reduction straight off the shared stream (each scalar bound
     // as it is read) to recover its validity claim on q_flock, then

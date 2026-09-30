@@ -124,9 +124,10 @@ pub fn commit(
 
 // The batching challenges are just `sample()`d inside the stacked opener: every
 // claim they combine is already bound: the values rode the stream
-// (`add_scalar`) during the bus / constraint / public-input sub-protocols, the
-// points are prior challenges, and the offsets are public (reconstructed
-// identically from the announced layout).
+// (`add_scalar`) during the bus / constraint sub-protocols or, for the
+// public-input claims, are functions of the seeded statement and a prior
+// challenge, the points are prior challenges, and the offsets are public
+// (reconstructed identically from the announced layout).
 
 /// Verifier counterpart of [`commit`]'s root binding: read the committed root
 /// from the stream at the start of verification, before sampling any challenge.
@@ -139,8 +140,9 @@ pub fn read_commitment(vs: &mut VerifierState) -> Result<[u8; 32], crate::transc
 /// ring-switched BLAKE2s validity claim (`ring`) in ONE stacked WHIR.
 /// The points become the opener's `point_claims`; the opening's Merkle data
 /// rides the transcript's phase list, not the scalar stream. The commitment root
-/// was already bound by [`commit`], and the point *values* rode the stream
-/// during their sub-protocols, so nothing extra is bound here.
+/// was already bound by [`commit`], and the point *values* either rode the
+/// stream or derive from the statement and prior challenges, so nothing extra
+/// is bound here.
 ///
 /// There is no plain (non-ring-switch) path: the witness ALWAYS carries a `q_flock`
 /// sub-block (≥ 1 padding instance, §cpu), so every opening is stacked.

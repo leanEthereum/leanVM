@@ -2651,7 +2651,7 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     ps("N_FIXED_CHALLENGE_ROUNDS", fixed_challenges.len().to_string());
     ps("PHI8_NODES", flds(&primitives::field::PHI_8_TABLE_192[..128]));
     // Tower F192 = F64[Y]/(Y^3+Y+1), Y = new(0,1,0). Y_TOWER embeds Y for
-    // AIR lane reassembly; Y_INV helps derive the top PI-memory limb.
+    // AIR lane reassembly; Y_INV splits a canonical word into its two K limbs.
     let y_tower = F192::new(0, 1, 0);
     ps("Y_TOWER", dsl_u128(y_tower).to_string());
     ps("Y_INV", f192_literal(y_tower.inv()));
