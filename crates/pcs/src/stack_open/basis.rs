@@ -1,12 +1,12 @@
 use std::mem::MaybeUninit;
 
-use primitives::field::{F64, F192};
+use primitives::field::F192;
 use primitives::multilinear::fill_eq_table_uninit;
 use zk_alloc::ArenaVec;
 
 use super::{RingSwitchOpen, StackClaim};
 use crate::ring_switch::{DeferredRingSwitchOutput, combine_deferred_chunk};
-use crate::whir::{INITIAL_BASIS_CHUNK, SumcheckMessage, build_initial_basis};
+use crate::whir::INITIAL_BASIS_CHUNK;
 
 struct PointWeight<'a> {
     offset: usize,
@@ -73,50 +73,89 @@ impl<'a> PointWeight<'a> {
     }
 }
 
-pub(super) fn build(
-    stack: &[F64],
+/// The stacked opening's lifted weight, one aligned chunk at a time.
+///
+/// It is the lambda-weighted sum of every claim's weight over the stack:
+///
+/// - each ring-switched region's combined weight, over that region;
+/// - each point claim's equality weight, over its own support.
+///
+/// It is never stored whole: round 0 and the first lane round each refill the chunks they read.
+pub(super) struct StackWeight<'a> {
+    /// Each point claim's weight, its high equality table built once.
+    weights: Vec<PointWeight<'a>>,
+    /// For each lane block, the point claims whose support meets it.
+    by_lane: Vec<Vec<usize>>,
+    /// Each ring-switched region: its first word, its end, and its claims' outputs.
+    regions: Vec<(usize, usize, &'a [DeferredRingSwitchOutput])>,
+    /// Words per lane block.
     lane_block: usize,
-    claims: &[StackClaim],
-    lambdas: &[F192],
-    rings: &[RingSwitchOpen],
-    rs_outputs: &[DeferredRingSwitchOutput],
-) -> (ArenaVec<F192>, SumcheckMessage) {
-    assert_eq!(claims.len(), lambdas.len());
-    let chunk_log = lane_block.min(INITIAL_BASIS_CHUNK).ilog2() as usize;
-    let weights: Vec<_> = claims
-        .iter()
-        .zip(lambdas)
-        .map(|(claim, &lambda)| PointWeight::new(claim, lambda, chunk_log))
-        .collect();
-    let mut by_lane = vec![Vec::new(); stack.len() / lane_block];
-    for (index, weight) in weights.iter().enumerate() {
-        for lane in &mut by_lane[weight.offset / lane_block..weight.end.div_ceil(lane_block)] {
-            lane.push(index);
+}
+
+impl<'a> StackWeight<'a> {
+    /// The weight of `claims` batched by `lambdas`, plus the ring-switched regions `rings`.
+    pub(super) fn new(
+        stack_len: usize,
+        lane_block: usize,
+        claims: &'a [StackClaim],
+        lambdas: &[F192],
+        rings: &[RingSwitchOpen],
+        rs_outputs: &'a [DeferredRingSwitchOutput],
+    ) -> Self {
+        assert_eq!(claims.len(), lambdas.len());
+        // A fill writes one chunk, or one whole lane block when blocks are smaller.
+        let chunk_log = lane_block.min(INITIAL_BASIS_CHUNK).ilog2() as usize;
+        let weights: Vec<_> = claims
+            .iter()
+            .zip(lambdas)
+            .map(|(claim, &lambda)| PointWeight::new(claim, lambda, chunk_log))
+            .collect();
+
+        // Index the claims by the lane blocks they touch, so a fill visits only those.
+        let mut by_lane = vec![Vec::new(); stack_len / lane_block];
+        for (index, weight) in weights.iter().enumerate() {
+            for lane in &mut by_lane[weight.offset / lane_block..weight.end.div_ceil(lane_block)] {
+                lane.push(index);
+            }
+        }
+
+        // Each ring's outputs are its own run of the outputs, in ring order.
+        let mut first = 0;
+        let regions = rings
+            .iter()
+            .map(|ring| {
+                let outputs = &rs_outputs[first..first + ring.claims.len()];
+                first += ring.claims.len();
+                (ring.offset, ring.offset + (1usize << ring.qflock_vars), outputs)
+            })
+            .collect();
+        assert_eq!(first, rs_outputs.len());
+
+        Self {
+            weights,
+            by_lane,
+            regions,
+            lane_block,
         }
     }
-    // Each ring's outputs are its own run of `rs_outputs`, in ring order.
-    let mut first = 0;
-    let regions: Vec<_> = rings
-        .iter()
-        .map(|ring| {
-            let outputs = &rs_outputs[first..first + ring.claims.len()];
-            first += ring.claims.len();
-            (ring.offset, ring.offset + (1usize << ring.qflock_vars), outputs)
-        })
-        .collect();
-    assert_eq!(first, rs_outputs.len());
-    build_initial_basis(stack, lane_block, |start, dst| {
+
+    /// Writes the weight of words `start..start + dst.len()`, one aligned fill chunk.
+    pub(super) fn fill(&self, start: usize, dst: &mut [F192]) {
         dst.fill(F192::ZERO);
-        for &(offset, end, outputs) in &regions {
+
+        // The ring-switched regions this chunk meets.
+        for &(offset, end, outputs) in &self.regions {
             let lo = start.max(offset);
             let hi = (start + dst.len()).min(end);
             if lo < hi {
                 combine_deferred_chunk(outputs, lo - offset, &mut dst[lo - start..hi - start]);
             }
         }
+
+        // The point claims of this chunk's lane block.
         let mut scratch = [MaybeUninit::uninit(); INITIAL_BASIS_CHUNK];
-        for &index in &by_lane[start / lane_block] {
-            weights[index].add(start, dst, &mut scratch);
+        for &index in &self.by_lane[start / self.lane_block] {
+            self.weights[index].add(start, dst, &mut scratch);
         }
-    })
+    }
 }

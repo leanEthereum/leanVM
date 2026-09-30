@@ -292,12 +292,16 @@ pub fn open_batch_mixed_whir_stacked(
             .zip(lambdas_pd)
             .fold(F192::ZERO, |sum, (claim, &lambda)| sum + lambda * claim.value());
 
-    // The lifted weight is built and consumed in one pass: each lane window is
-    // filled from the ring-switch outputs and the point claims, then feeds
-    // round 0's message while it is still hot, so nothing re-reads the buffer.
+    // The lifted weight is never stored.
+    //
+    //     round 0:       each chunk is filled, then feeds the message while hot
+    //     lane round 1:  each chunk is filled again, then folded
+    //
+    // Filling costs less than writing the weight out and reading it back.
     let lane_block = 1usize << (log_n - config.initial_k);
-    let (b_stack, message) = tracing::info_span!("Basis")
-        .in_scope(|| basis::build(stack, lane_block, point_claims, lambdas_pd, rings, &rs_outputs));
+    let weight = basis::StackWeight::new(stack.len(), lane_block, point_claims, lambdas_pd, rings, &rs_outputs);
+    let fill = |start: usize, dst: &mut [F192]| weight.fill(start, dst);
+    let message = tracing::info_span!("Basis").in_scope(|| super::whir::initial_message(stack, lane_block, &fill));
 
     // 4. One WHIR over the full stack against the combined claim (the
     //    stack is borrowed by the prover; no copy).
@@ -305,7 +309,7 @@ pub fn open_batch_mixed_whir_stacked(
         config,
         log_n,
         stack,
-        b_stack,
+        super::whir::Basis::Virtual(&fill),
         target,
         &prover_data.codeword,
         &prover_data.merkle_tree,
@@ -406,7 +410,7 @@ pub fn verify_opening_batch_mixed_whir_stacked(
 mod tests {
     use super::*;
     use crate::ring_switch::fold_1b_rows;
-    use crate::whir::{build_eq_table_ext, commit, default_config, inner_product_base_ext};
+    use crate::whir::{INITIAL_BASIS_CHUNK, build_eq_table_ext, commit, default_config, inner_product_base_ext};
     use crate::whir_config::test_config_for;
     use primitives::test_rng::Rng;
 
@@ -486,15 +490,23 @@ mod tests {
                     expected[base + (j << stride_log)] += w;
                 }
             }
-            let (actual, message) = basis::build(
-                &stack,
+            // The weight, filled chunk by chunk as the opening reads it.
+            let weight = basis::StackWeight::new(
+                stack.len(),
                 lane_block,
                 &claims,
                 &lambdas,
                 std::slice::from_ref(&ring),
                 &rs_outputs,
             );
-            assert_eq!(&*actual, expected, "lane_vars={lane_vars}, lanes={lanes}");
+            let chunk = lane_block.min(INITIAL_BASIS_CHUNK);
+            let mut actual = vec![F192::ZERO; stack.len()];
+            for (i, out) in actual.chunks_exact_mut(chunk).enumerate() {
+                weight.fill(i * chunk, out);
+            }
+            assert_eq!(actual, expected, "lane_vars={lane_vars}, lanes={lanes}");
+            let message =
+                super::super::whir::initial_message(&stack, lane_block, &|start, dst| weight.fill(start, dst));
             let (_, expected_message) = super::super::whir::build_initial_basis(&stack, lane_block, |start, dst| {
                 dst.copy_from_slice(&expected[start..start + dst.len()]);
             });
