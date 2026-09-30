@@ -1,4 +1,4 @@
-//! Bump arena for transient proving buffers. Each thread owns a slab, and [`enter_phase`] resets all slabs. An [`ArenaVec`] allocated in a phase becomes invalid at the next phase; values that outlive a phase must use `Vec`.
+//! Bump arena for proving buffers. A new phase requires every arena allocation from the previous phase to be released.
 //!
 //! # Reuse within a phase
 //!
@@ -8,10 +8,9 @@
 //! per-thread free list on release; anything it cannot serve falls back to the
 //! bump.
 //!
-//! `ZK_ALLOC_POISON=1` fills a released block, and fills what a phase used when
-//! it ends. Between them they catch the two use-after-free shapes the arena
-//! otherwise hides: a buffer read after being dropped, and one that outlives its
-//! phase.
+//! `ZK_ALLOC_POISON=1` fills released blocks and reclaimed phase storage.
+//!
+//! Live buffers prevent a reset, including buffers moved to another thread.
 //!
 //! # Usage
 //!
@@ -23,6 +22,7 @@
 
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::cell::Cell;
+use std::mem::forget;
 use std::sync::OnceLock;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
@@ -145,8 +145,34 @@ fn region_size() -> usize {
 /// Bumped by [`begin_phase`]; a thread resets its slab when its cached
 /// `ARENA_GEN` lags, so one store resets every thread without a lock.
 static GENERATION: AtomicUsize = AtomicUsize::new(0);
-/// Whether a phase is open: allocations route to the arena rather than System.
-static ARENA_ACTIVE: AtomicBool = AtomicBool::new(false);
+/// Low bits admit allocations or reserve a phase transition; upper bits count live allocations.
+static PHASE: AtomicUsize = AtomicUsize::new(0);
+const ACTIVE: usize = 1;
+const OPENING: usize = 2;
+const ALLOCATION: usize = 4;
+
+/// Holds a reset barrier until an allocation owns it, including during unwinding.
+struct AllocationLease;
+
+impl AllocationLease {
+    fn acquire() -> Option<Self> {
+        let mut state = PHASE.load(Ordering::Acquire);
+        while state & ACTIVE != 0 {
+            let next = state.checked_add(ALLOCATION).expect("arena allocation count overflow");
+            match PHASE.compare_exchange_weak(state, next, Ordering::AcqRel, Ordering::Acquire) {
+                Ok(_) => return Some(Self),
+                Err(current) => state = current,
+            }
+        }
+        None
+    }
+}
+
+impl Drop for AllocationLease {
+    fn drop(&mut self) {
+        PHASE.fetch_sub(ALLOCATION, Ordering::Release);
+    }
+}
 /// Process-wide opt-in. Until [`enable_arena`], phases are inert and `ArenaVec`
 /// is a plain system-allocated vector, so a stray [`begin_phase`] in a process
 /// that never opted in cannot invalidate anything.
@@ -162,7 +188,7 @@ static HIGH_WATER: AtomicUsize = AtomicUsize::new(0);
 /// Bytes that overflowed a slab mid-phase and went to the system allocator.
 static OVERFLOW_BYTES: AtomicUsize = AtomicUsize::new(0);
 /// Peak slab use summed over all threads and phases, accumulated one atomic per
-/// thread per phase (at reset), so the hot path stays free of shared writes.
+/// thread per phase (at reset).
 /// The PEAK, not the total bumped: with reuse the cursor moves both ways.
 static ARENA_BYTES: AtomicUsize = AtomicUsize::new(0);
 
@@ -216,53 +242,51 @@ pub fn is_enabled() -> bool {
     ARENA_ENGAGED.load(Ordering::Acquire)
 }
 
-/// Open a phase: route [`ArenaVec`] allocations to the arena and abandon every
-/// slab's contents from the previous phase. No-op until [`enable_arena`].
+/// Open a phase after every allocation from the preceding phase has been released.
 ///
 /// # Panics
-/// If a phase is already open, whether nested on this thread or opened by
-/// another, since only one proof may be in flight per process.
-pub(crate) fn begin_phase() {
+/// A phase is already open or an arena allocation is still live.
+pub(crate) fn begin_phase() -> bool {
     if !is_enabled() {
-        return;
+        return false;
     }
-    let already_open = ARENA_ACTIVE.swap(true, Ordering::Release);
     assert!(
-        !already_open,
-        "an arena phase is already open: phases must not nest, and only one proof \
-         may be in flight per process"
+        PHASE
+            .compare_exchange(0, OPENING, Ordering::Acquire, Ordering::Relaxed)
+            .is_ok(),
+        "an arena phase is already open or an arena allocation is still live"
     );
-    GENERATION.fetch_add(1, Ordering::Release);
+    GENERATION.fetch_add(1, Ordering::Relaxed);
+    PHASE.store(ACTIVE, Ordering::Release);
+    true
 }
 
-/// Close the phase. Pointers into the arena stay valid until the next
-/// [`begin_phase`], which is what makes an early return or a panic safe.
+/// Stop admitting allocations without releasing any live buffer's reset barrier.
 pub(crate) fn end_phase() {
-    if !is_enabled() {
-        return;
-    }
-    ARENA_ACTIVE.store(false, Ordering::Release);
+    PHASE.fetch_and(!ACTIVE, Ordering::Release);
 }
 
-/// Closes the phase on drop, including on an early return or a panic.
+/// Closes allocation admission on drop; live buffers remain valid.
 #[derive(Debug)]
-pub struct PhaseGuard(());
+pub struct PhaseGuard(bool);
 
 impl Drop for PhaseGuard {
     fn drop(&mut self) {
-        end_phase();
+        if self.0 {
+            end_phase();
+        }
     }
 }
 
-/// Open a phase and close it on drop. Bind the guard *before* the phase's
-/// buffers so it is dropped after them.
+/// Open a phase and close allocation admission on drop.
+///
+/// Arena buffers may outlive this guard, but must be dropped before the next phase.
 ///
 /// # Panics
-/// If a phase is already open: only one proof may be in flight per process.
+/// A phase is already open or an arena allocation is still live.
 #[must_use = "the phase ends as soon as the guard is dropped"]
 pub fn enter_phase() -> PhaseGuard {
-    begin_phase();
-    PhaseGuard(())
+    PhaseGuard(begin_phase())
 }
 
 /// What the arena did, for sizing `SLAB_SIZE` and checking that the buffers
@@ -349,18 +373,12 @@ unsafe fn alloc_slow(size: usize, align: usize) -> *mut u8 {
             ARENA_BYTES.fetch_add(peak, Ordering::Relaxed);
             HIGH_WATER.fetch_max(peak, Ordering::Relaxed);
             if POISON.load(Ordering::Relaxed) {
-                // Catches a buffer that OUTLIVES its phase, which the release
-                // path cannot: by then its memory may be live again.
-                // SAFETY: the phase is over, so by contract nothing may read
-                // `[base, base + peak)`, and it lies in this thread's slab.
+                // SAFETY: a new phase requires all preceding allocations to be released.
+                // The range lies within this thread's slab.
                 unsafe { std::ptr::write_bytes(base as *mut u8, 0xCD, peak) };
             }
         }
-        // The one place per-phase state is reset. Clearing the list here is why
-        // its users need no staleness check: they run only under
-        // `GEN == GENERATION`, set below. (`begin_phase` publishes
-        // `ARENA_ACTIVE` first, so that rests on its one-proof-in-flight
-        // assert: no allocation may race a phase opening.)
+        // Allocation leases prevent a generation change while this slab is in use.
         PTR.set(base);
         HIGH.set(base);
         FREE.with(|f| f.borrow_mut().len = 0);
@@ -392,12 +410,11 @@ unsafe fn system_alloc(size: usize, align: usize) -> *mut u8 {
 ///
 /// # Safety
 /// `align` must be a power of two and `size` nonzero. The result is valid for
-/// `size` bytes (or null, if the system allocator failed) until the next
-/// [`begin_phase`].
+/// `size` bytes (or null, if the system allocator failed) until it is released.
 #[inline(always)]
 pub(crate) unsafe fn raw_alloc(size: usize, align: usize) -> *mut u8 {
     let align = effective_align(size, align);
-    if ARENA_ACTIVE.load(Ordering::Relaxed) {
+    if let Some(lease) = AllocationLease::acquire() {
         if GEN.get() == GENERATION.load(Ordering::Relaxed) {
             // Recycle first, so a phase's cursor tracks its live set. At this
             // size `effective_align` has already raised any smaller request to
@@ -406,16 +423,25 @@ pub(crate) unsafe fn raw_alloc(size: usize, align: usize) -> *mut u8 {
                 && align <= CACHE_LINE
                 && let Some(addr) = alloc_reuse(size)
             {
+                forget(lease);
                 return addr;
             }
             let aligned = align_up(PTR.get(), align);
             let bumped = aligned + size;
             if bumped <= END.get() {
                 PTR.set(bumped);
+                forget(lease);
                 return aligned as *mut u8;
             }
         }
-        return unsafe { alloc_slow(size, align) };
+        let ptr = unsafe { alloc_slow(size, align) };
+        if REGION
+            .get()
+            .is_some_and(|&base| (ptr as usize).wrapping_sub(base) < region_size())
+        {
+            forget(lease);
+        }
+        return ptr;
     }
     unsafe { system_alloc(size, align) }
 }
@@ -479,11 +505,12 @@ pub(crate) unsafe fn raw_dealloc(ptr: *mut u8, size: usize, align: usize) {
         .get()
         .is_some_and(|&base| addr >= base && addr - base < region_size())
     {
+        // Release the reset barrier after all accesses to the slab are complete.
+        let _lease = AllocationLease;
         // This thread's own slab, this phase only. BOTH bounds are load-bearing:
         // foreign releases are routine (`parallel` drops a worker's buffer on
         // the dispatcher), and `END` is 0 for a thread that never claimed a
-        // slab. A stale-phase block also returns here rather than being
-        // poisoned, its memory now possibly live; the reset fill covers that.
+        // slab. Live allocations prevent a generation change.
         if addr < BASE.get() || addr >= END.get() || GEN.get() != GENERATION.load(Ordering::Relaxed) {
             return;
         }
@@ -507,4 +534,24 @@ pub(crate) unsafe fn raw_dealloc(ptr: *mut u8, size: usize, align: usize) {
     // SAFETY: the caller guarantees this pointer/layout pair came from
     // `raw_alloc`, and the range check above ruled out the arena.
     unsafe { System.dealloc(ptr, Layout::from_size_align_unchecked(size, align)) };
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{ArenaVec, enable_arena, enter_phase};
+
+    #[test]
+    fn an_inert_guard_cannot_close_an_enabled_phase() {
+        let inert = enter_phase();
+        enable_arena();
+        let active = enter_phase();
+        drop(inert);
+        assert!(std::panic::catch_unwind(enter_phase).is_err());
+
+        let live = ArenaVec::filled(7u64, 8);
+        drop(active);
+        assert!(std::panic::catch_unwind(enter_phase).is_err());
+        drop(live);
+        let _phase = enter_phase();
+    }
 }

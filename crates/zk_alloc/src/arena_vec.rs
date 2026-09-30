@@ -75,11 +75,12 @@ impl<T> ArenaVec<T> {
     #[inline]
     #[must_use]
     pub unsafe fn zeroed(n: usize) -> Self {
-        // SAFETY: every slot is initialized by the write_bytes below before any
-        // read is possible.
-        let mut v = unsafe { Self::uninitialized(n) };
-        // SAFETY: `v` owns `n` slots; the caller guarantees all-zero is a valid `T`.
-        unsafe { ptr::write_bytes(v.as_mut_ptr(), 0u8, n) };
+        let mut v = Self::with_capacity(n);
+        // SAFETY: the allocation holds every slot and all-zero is a valid element.
+        unsafe {
+            ptr::write_bytes(v.as_mut_ptr(), 0u8, n);
+            v.set_len(n);
+        }
         v
     }
 

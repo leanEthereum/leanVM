@@ -242,3 +242,68 @@ fn recycled_blocks_never_back_two_live_buffers() {
         }
     }
 }
+
+#[test]
+fn escaped_buffers_keep_their_storage_until_release() {
+    let _serial = exclusive();
+    let phase = enter_phase();
+    let mut old = ArenaVec::filled(String::from("live"), 8);
+    drop(phase);
+
+    assert!(std::panic::catch_unwind(enter_phase).is_err());
+    assert!(old.iter().all(|value| value == "live"));
+    old[0].push_str(" buffer");
+    assert_eq!(old[0], "live buffer");
+
+    drop(old);
+    let _phase = enter_phase();
+    let fresh = ArenaVec::filled(String::from("fresh"), 8);
+    assert!(fresh.iter().all(|value| value == "fresh"));
+}
+
+#[test]
+fn failed_nested_open_preserves_the_active_phase() {
+    let _serial = exclusive();
+    let phase = enter_phase();
+    assert!(std::panic::catch_unwind(enter_phase).is_err());
+    let old = ArenaVec::filled(7u64, 8);
+    drop(phase);
+
+    assert!(std::panic::catch_unwind(enter_phase).is_err());
+    assert_eq!(&*old, &[7; 8]);
+    drop(old);
+    let _phase = enter_phase();
+}
+
+#[test]
+fn a_cross_thread_owner_blocks_reset_until_release() {
+    let _serial = exclusive();
+    let phase = enter_phase();
+    let old = ArenaVec::filled(7u64, N);
+    drop(phase);
+
+    std::thread::scope(|scope| {
+        let (release, wait) = std::sync::mpsc::channel();
+        let worker = scope.spawn(move || {
+            wait.recv().unwrap();
+            assert_eq!(old[0], 7);
+            drop(old);
+        });
+        assert!(std::panic::catch_unwind(enter_phase).is_err());
+        release.send(()).unwrap();
+        worker.join().unwrap();
+    });
+    let _phase = enter_phase();
+}
+
+#[test]
+fn growth_after_closing_a_phase_releases_the_reset_barrier() {
+    let _serial = exclusive();
+    let phase = enter_phase();
+    let mut old = ArenaVec::filled(7u64, 8);
+    drop(phase);
+
+    old.reserve(N);
+    let _phase = enter_phase();
+    assert_eq!(&*old, &[7; 8]);
+}
