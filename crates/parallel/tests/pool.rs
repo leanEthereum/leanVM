@@ -20,6 +20,33 @@ fn every_item_runs_exactly_once() {
 }
 
 #[test]
+fn tiny_dispatches_run_every_item_while_workers_wake_late() {
+    // Invariant: a dispatch finishes once its items are done, whatever the idle workers do.
+    //
+    // Fixture state: jobs of 2 items leave most workers idle, and a worker that wakes late
+    // must find the job closed rather than run it, or run the next one it finds open.
+    //
+    //     batch 0:  back-to-back, workers spinning
+    //     batch 1:  after 5 ms idle, workers parked
+    for batch in 0..2 {
+        if batch == 1 {
+            std::thread::sleep(std::time::Duration::from_millis(5));
+        }
+        for round in 0..1000 {
+            let hits: Vec<AtomicUsize> = (0..2).map(|_| AtomicUsize::new(0)).collect();
+            parallel::for_each(2, |i| {
+                hits[i].fetch_add(1, Ordering::Relaxed);
+            });
+            // The borrow of `hits` ends here, so a late worker touching it would be a use after return.
+            assert!(
+                hits.iter().all(|h| h.load(Ordering::Relaxed) == 1),
+                "batch {batch} round {round}"
+            );
+        }
+    }
+}
+
+#[test]
 fn chunk_ranges_tile_the_domain() {
     for n in SIZES {
         let seen: Vec<AtomicUsize> = (0..n).map(|_| AtomicUsize::new(0)).collect();
