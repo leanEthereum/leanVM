@@ -201,7 +201,22 @@ pub struct FillCtx<'a> {
     /// misses one would leave the stacked witness holding uninitialized slots, so
     /// [`fill_table`] checks the whole set was covered.
     written: Vec<std::sync::atomic::AtomicBool>,
+    /// The table's column writers, each over a range of rows.
+    ///
+    /// They run together in one pass, so each row is read once, from cache.
+    writers: std::sync::Mutex<Vec<RowsWriter<'a>>>,
 }
+
+/// Writes some of a table's columns for a range of its rows.
+type RowsWriter<'a> = Box<dyn Fn(std::ops::Range<usize>) + Send + Sync + 'a>;
+
+/// Rows one task of the fill pass takes.
+///
+/// # Why this value
+///
+/// - 1024 rows of the trace are about 220 KiB, which stays in L2.
+/// - Every writer of the table reads the same rows while they are there.
+const FILL_ROWS: usize = 1 << 10;
 
 /// Where one column's values go: its window in the stacked witness, or a private
 /// buffer if the column is virtual.
@@ -223,53 +238,88 @@ impl<'a> FillCtx<'a> {
             program,
             rows,
             written: (0..n_cols).map(|_| false.into()).collect(),
+            writers: std::sync::Mutex::new(Vec::new()),
         }
     }
 
     /// Write local column `at`: `f` over the trace rows.
-    fn col<R: Sync>(&self, out: &mut [ColumnOut], rows: &[R], at: usize, f: impl Fn(&R) -> F64 + Sync) {
-        self.cols(out, rows, at, |r| [f(r)]);
+    fn col<R: Sync>(&self, out: &mut [ColumnOut], rows: &'a [R], at: usize, f: impl Fn(&R) -> F64 + Send + Sync + 'a) {
+        self.cols(out, rows, at, move |r| [f(r)]);
     }
 
     /// Write the `N` local columns at `at..at + N` from one closure per row.
     fn cols<const N: usize, R: Sync>(
         &self,
         out: &mut [ColumnOut],
-        rows: &[R],
+        rows: &'a [R],
         at: usize,
-        f: impl Fn(&R) -> [F64; N] + Sync,
+        f: impl Fn(&R) -> [F64; N] + Send + Sync + 'a,
+    ) {
+        self.cols_at(out, rows, std::array::from_fn(|k| at + k), f);
+    }
+
+    /// Write the `N` local columns `at` from one closure per row.
+    ///
+    /// The writes are queued, and happen when the table's fill pass runs.
+    fn cols_at<const N: usize, R: Sync>(
+        &self,
+        out: &mut [ColumnOut],
+        rows: &'a [R],
+        at: [usize; N],
+        f: impl Fn(&R) -> [F64; N] + Send + Sync + 'a,
     ) {
         let n = self.rows;
-        let dst: [parallel::SendPtr<F64>; N] = std::array::from_fn(|k| {
-            assert_eq!(out[at + k].len(), n, "column {} has the wrong window length", at + k);
-            self.written[at + k].store(true, std::sync::atomic::Ordering::Relaxed);
-            parallel::SendPtr(out[at + k].as_mut_ptr())
+        let dst: [parallel::SendPtr<F64>; N] = at.map(|c| {
+            assert_eq!(out[c].len(), n, "column {c} has the wrong window length");
+            self.written[c].store(true, std::sync::atomic::Ordering::Relaxed);
+            parallel::SendPtr(out[c].as_mut_ptr())
         });
         // A table's height is its row count (`cpu::filler`), so there is nothing to
         // pad with.
         assert_eq!(rows.len(), n, "a table's rows must fill its cube");
-        parallel::for_each(n, |i| {
-            let v = f(&rows[i]);
-            for (k, p) in dst.iter().enumerate() {
-                // SAFETY: distinct `i` write disjoint in-bounds slots of each of the
-                // `N` windows, each exactly once, and the dispatch blocks until
-                // every write is finished.
-                unsafe { p.add(i).write(v[k]) };
+        let writer = move |range: std::ops::Range<usize>| {
+            for i in range {
+                let v = f(&rows[i]);
+                for (k, p) in dst.iter().enumerate() {
+                    // SAFETY: distinct `i` write disjoint in-bounds slots of each of the
+                    // `N` windows, each exactly once. The windows stay borrowed until the
+                    // fill pass that runs this writer has joined.
+                    unsafe { p.add(i).write(v[k]) };
+                }
+            }
+        };
+        self.writers.lock().expect("no writer panicked").push(Box::new(writer));
+    }
+
+    /// Run every queued writer, in one parallel pass over the rows.
+    fn run(&self) {
+        let writers = std::mem::take(&mut *self.writers.lock().expect("no writer panicked"));
+        // One task per block of rows; every writer covers the block while its rows are in cache.
+        parallel::for_each(self.rows.div_ceil(FILL_ROWS), |task| {
+            let range = task * FILL_ROWS..((task + 1) * FILL_ROWS).min(self.rows);
+            for writer in &writers {
+                writer(range.clone());
             }
         });
     }
 
     /// The `5·n` columns of a table's accesses, one kind at a time.
-    fn accesses<R: Sync>(&self, out: &mut [ColumnOut], rows: &[R], acc: Acc, f: impl Fn(&R) -> &[Access] + Sync) {
+    fn accesses<R: Sync>(&self, out: &mut [ColumnOut], rows: &'a [R], acc: Acc, f: fn(&R) -> &[Access]) {
         let mask = (1u32 << RANGE_LOG) - 1;
+        let (range_lo, range_hi) = (self.range_lo, self.range_hi);
         for i in 0..acc.n {
-            self.col(out, rows, acc.x(i), |r| f(r)[i].x);
-            self.col(out, rows, acc.lo(i), |r| self.range_lo[(f(r)[i].gap & mask) as usize]);
-            self.col(out, rows, acc.hi(i), |r| {
-                self.range_hi[(f(r)[i].gap >> RANGE_LOG) as usize]
+            // One writer per access: its previous timestamp, its gap's two range entries, their two counts.
+            let at = [acc.x(i), acc.lo(i), acc.hi(i), acc.count_lo(i), acc.count_hi(i)];
+            self.cols_at(out, rows, at, move |r| {
+                let a = &f(r)[i];
+                [
+                    a.x,
+                    range_lo[(a.gap & mask) as usize],
+                    range_hi[(a.gap >> RANGE_LOG) as usize],
+                    a.count_lo,
+                    a.count_hi,
+                ]
             });
-            self.col(out, rows, acc.count_lo(i), |r| f(r)[i].count_lo);
-            self.col(out, rows, acc.count_hi(i), |r| f(r)[i].count_hi);
         }
     }
 }
@@ -277,8 +327,9 @@ impl<'a> FillCtx<'a> {
 /// Fill one table's columns and check that every window was written. The stack is
 /// allocated uninitialized, so a column the table forgot would be read as
 /// indeterminate bytes rather than caught by a length mismatch.
-pub(crate) fn fill_table(table: &dyn Table, ctx: &FillCtx, out: &mut [ColumnOut]) {
+pub(crate) fn fill_table<'a>(table: &'a dyn Table, ctx: &FillCtx<'a>, out: &mut [ColumnOut]) {
     table.fill(ctx, out);
+    ctx.run();
     assert_eq!(ctx.written.len(), table.n_committed_columns());
     let all = ctx.written.iter().all(|w| w.load(std::sync::atomic::Ordering::Relaxed));
     assert!(all, "a table left one of its columns unwritten");
@@ -321,7 +372,7 @@ pub trait Table: Sync {
     /// window, already at its final length. Every window must be written in full;
     /// use `FillCtx::col` / `FillCtx::cols`, which record the coverage `fill_table`
     /// checks.
-    fn fill(&self, ctx: &FillCtx, out: &mut [ColumnOut]);
+    fn fill<'a>(&'a self, ctx: &FillCtx<'a>, out: &mut [ColumnOut]);
 }
 
 // ---- the classes -------------------------------------------------------------
@@ -814,12 +865,12 @@ impl Table for ClassTable {
             }
         }
     }
-    fn fill(&self, ctx: &FillCtx, out: &mut [ColumnOut]) {
+    fn fill<'a>(&'a self, ctx: &FillCtx<'a>, out: &mut [ColumnOut]) {
         let c = &self.cols;
         let rows: &[Row] = &ctx.trace.rows[self.index];
         let p = ctx.program;
-        let entry = |r: &Row| &p.entries[r.index as usize];
-        ctx.cols(out, rows, c.pc, |r| {
+        let entry = move |r: &Row| &p.entries[r.index as usize];
+        ctx.cols(out, rows, c.pc, move |r| {
             let (e, pc) = (entry(r), p.pc_of(r.index as usize));
             [
                 F64(pc),
@@ -833,10 +884,12 @@ impl Table for ClassTable {
             ]
         });
         if let Some(ad) = c.rd {
-            ctx.cols(out, rows, ad, |r| [F64(entry(r).ad as u64), F64(r.vd_old), F64(r.out)]);
+            ctx.cols(out, rows, ad, move |r| {
+                [F64(entry(r).ad as u64), F64(r.vd_old), F64(r.out)]
+            });
         }
         if let Some(dt) = c.control {
-            ctx.cols(out, rows, dt, |r| {
+            ctx.cols(out, rows, dt, move |r| {
                 let e = entry(r);
                 [
                     F64(p.dt_of(r.index as usize)),
@@ -848,26 +901,26 @@ impl Table for ClassTable {
             });
         }
         if let Some(imm) = c.imm {
-            ctx.col(out, rows, imm, |r| F64(entry(r).imm));
+            ctx.col(out, rows, imm, move |r| F64(entry(r).imm));
         }
         if let Some(address) = c.ram {
-            ctx.cols(out, rows, address, |r| [F64(r.ram.address), F64(r.ram.old)]);
+            ctx.cols(out, rows, address, move |r| [F64(r.ram.address), F64(r.ram.old)]);
             if self.spec.ram == Ram::Write {
-                ctx.col(out, rows, address + 2, |r| F64(r.ram.new));
+                ctx.col(out, rows, address + 2, move |r| F64(r.ram.new));
             }
         }
         if let Some(block) = c.block {
             fn hash(r: &Row) -> &HashRow {
                 r.hash.as_ref().expect("a hash row has its block")
             }
-            ctx.cols(out, rows, block, |r| hash(r).block.map(F64));
+            ctx.cols(out, rows, block, move |r| hash(r).block.map(F64));
             ctx.cols(out, rows, block + hash::WORDS, |r| hash(r).out.map(F64));
         }
         if let Some(bad) = c.bad {
-            ctx.col(out, rows, bad, |_| F64::ZERO);
+            ctx.col(out, rows, bad, move |_| F64::ZERO);
         }
         ctx.accesses(out, rows, c.acc, Row::accesses);
-        ctx.col(out, rows, c.rbc, |r| r.bytecode_read);
+        ctx.col(out, rows, c.rbc, move |r| r.bytecode_read);
     }
 }
 
