@@ -38,6 +38,7 @@ const PT_TLS: u32 = 7;
 const PF_X: u32 = 1;
 const PF_W: u32 = 2;
 const SHT_SYMTAB: u32 = 2;
+const SHT_STRTAB: u32 = 3;
 
 /// The symbols whose values are the ends of RAM and of the advice region, which the
 /// linker script defines.
@@ -85,6 +86,7 @@ impl Guest {
     /// where the script says the stack starts, and the advice region where it says.
     pub fn from_elf(elf: &[u8]) -> Result<Self, ElfError> {
         let r = Reader(elf);
+        r.bytes(0, 64)?;
         // 64-bit, little-endian, version 1.
         if r.bytes(0, 7)? != [0x7f, b'E', b'L', b'F', 2, 1, 1] {
             return Err(ElfError("not a little-endian ELF64 file"));
@@ -95,6 +97,9 @@ impl Guest {
         if r.u16(18)? != EM_RISCV {
             return Err(ElfError("not for RISC-V"));
         }
+        if r.u32(20)? != 1 || r.u16(52)? != 64 {
+            return Err(ElfError("an unsupported ELF header"));
+        }
         let flags = r.u32(48)?;
         if flags & EF_RISCV_RVC != 0 {
             return Err(ElfError("compressed instructions"));
@@ -102,10 +107,24 @@ impl Guest {
         if flags & EF_RISCV_FLOAT_ABI != 0 {
             return Err(ElfError("a hardware float ABI"));
         }
+        if flags != 0 {
+            return Err(ElfError("unsupported RISC-V flags"));
+        }
         let entry_pc = r.u64(24)?;
+        if !entry_pc.is_multiple_of(4) {
+            return Err(ElfError("an unaligned entry point"));
+        }
 
         let (mut text, mut image) = (Vec::new(), Vec::new());
         let (phoff, phentsize, phnum) = (r.u64(32)?, r.u16(54)? as u64, r.u16(56)? as u64);
+        if phentsize != 56 {
+            return Err(ElfError("a malformed program-header size"));
+        }
+        r.bytes(phoff, phnum * phentsize)?;
+        let mut segments = Vec::new();
+        let mut entry_loaded = false;
+        let mut data_end = RAM_BASE;
+
         // What a region may hold is capped by the map, but a buffer here is grown to a
         // segment's own address, so a handful of bytes at the top of a region would
         // allocate the whole of it. A program gets no more text and no more image than
@@ -130,10 +149,20 @@ impl Guest {
                 r.u64(at(ph, 32)?)?,
                 r.u64(at(ph, 40)?)?,
             );
+            if filesz > memsz {
+                return Err(ElfError("a segment has more file bytes than memory"));
+            }
+            let align = r.u64(at(ph, 48)?)?;
+            if align > 1 && (!align.is_power_of_two() || vaddr % align != offset % align) {
+                return Err(ElfError("a malformed segment alignment"));
+            }
             let end = vaddr
                 .checked_add(memsz)
                 .ok_or(ElfError("a segment wraps the address space"))?;
-            let bytes = r.bytes(offset, filesz.min(memsz))?;
+            let bytes = r.bytes(offset, filesz)?;
+            if memsz != 0 {
+                segments.push((vaddr, end));
+            }
             if flags & PF_X != 0 {
                 if flags & PF_W != 0 {
                     return Err(ElfError("a writable executable segment"));
@@ -144,11 +173,16 @@ impl Guest {
                 if vaddr - TEXT_BASE + bytes.len() as u64 > file_len {
                     return Err(ElfError("more text than the file carries"));
                 }
+                entry_loaded |= entry_pc >= vaddr
+                    && entry_pc
+                        .checked_add(4)
+                        .is_some_and(|entry_end| entry_end <= vaddr + filesz);
                 place::<4>(&mut text, vaddr - TEXT_BASE, bytes);
             } else {
                 if vaddr < RAM_BASE || end > RAM_BASE + (8 << MAX_LOG_RAM) {
                     return Err(ElfError("a data segment outside RAM"));
                 }
+                data_end = data_end.max(end);
                 if !bytes.is_empty() {
                     if vaddr - RAM_BASE + bytes.len() as u64 > file_len {
                         return Err(ElfError("more image than the file carries"));
@@ -156,6 +190,13 @@ impl Guest {
                     place::<8>(&mut image, vaddr - RAM_BASE, bytes);
                 }
             }
+        }
+        segments.sort_unstable();
+        if segments.windows(2).any(|pair| pair[0].1 > pair[1].0) {
+            return Err(ElfError("overlapping load segments"));
+        }
+        if !entry_loaded {
+            return Err(ElfError("the entry point is not a file-backed instruction"));
         }
         if text.is_empty() {
             return Err(ElfError("no executable segment"));
@@ -166,6 +207,9 @@ impl Guest {
         let ram_bytes = ram_end.wrapping_sub(RAM_BASE);
         if ram_end <= RAM_BASE || !ram_bytes.is_power_of_two() || ram_bytes < 8 {
             return Err(ElfError("RAM's size is not a power of two"));
+        }
+        if data_end > ram_end {
+            return Err(ElfError("a data segment does not fit declared RAM"));
         }
         let log_ram = (ram_bytes / 8).trailing_zeros() as usize;
         let advice_end = symbol(&r, ADVICE_END_SYMBOL)?.ok_or(ElfError("no __advice_top symbol"))?;
@@ -200,6 +244,10 @@ impl Guest {
 /// The value of the symbol `name`, from the file's symbol table.
 fn symbol(r: &Reader, name: &[u8]) -> Result<Option<u64>, ElfError> {
     let (shoff, shentsize, shnum) = (r.u64(40)?, r.u16(58)? as u64, r.u16(60)? as u64);
+    if shentsize != 64 {
+        return Err(ElfError("a malformed section-header size"));
+    }
+    r.bytes(shoff, shnum * shentsize)?;
     for i in 0..shnum {
         let sh = at(
             shoff,
@@ -214,11 +262,16 @@ fn symbol(r: &Reader, name: &[u8]) -> Result<Option<u64>, ElfError> {
             r.u32(at(sh, 40)?)? as u64,
             r.u64(at(sh, 56)?)?,
         );
-        if entsize == 0 || link >= shnum {
+        if entsize != 24 || !size.is_multiple_of(entsize) || link >= shnum {
             return Err(ElfError("a malformed symbol table"));
         }
+        r.bytes(offset, size)?;
         let strings = at(shoff, link * shentsize)?;
+        if r.u32(at(strings, 4)?)? != SHT_STRTAB {
+            return Err(ElfError("a symbol table without a string table"));
+        }
         let (str_offset, str_size) = (r.u64(at(strings, 24)?)?, r.u64(at(strings, 32)?)?);
+        r.bytes(str_offset, str_size)?;
         for s in 0..size / entsize {
             let sym = at(offset, s * entsize)?;
             let name_at = r.u32(sym)? as u64;

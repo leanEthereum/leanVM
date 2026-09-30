@@ -195,3 +195,71 @@ fn malformed_elf_files_are_refused() {
     wrapped[40..48].copy_from_slice(&u64::MAX.to_le_bytes()); // the section headers' offset
     assert!(Guest::from_elf(&wrapped).is_err(), "a wrapped section-header address");
 }
+
+#[test]
+fn malformed_elf_layouts_are_refused() {
+    let elf = include_bytes!("../../../../programs/fibonacci/fibonacci.elf");
+    let word_at = |at: usize| u64::from_le_bytes(elf[at..at + 8].try_into().unwrap());
+    let ph = word_at(32) as usize;
+    let data = ph + 56;
+    let bss = data + 56;
+    let text_len = word_at(ph + 32);
+    let sh = word_at(40) as usize;
+    let n_sections = u16::from_le_bytes(elf[60..62].try_into().unwrap()) as usize;
+    let sym = (0..n_sections)
+        .map(|i| sh + i * 64)
+        .find(|&at| u32::from_le_bytes(elf[at + 4..at + 8].try_into().unwrap()) == 2)
+        .expect("fixture has symbols");
+    let guest = Guest::from_elf(elf).unwrap();
+
+    for (at, width, value, reason) in [
+        (20, 4, 2, "an unsupported ELF header"),
+        (52, 2, 63, "an unsupported ELF header"),
+        (48, 4, 8, "unsupported RISC-V flags"),
+        (54, 2, 0, "a malformed program-header size"),
+        (54, 2, 55, "a malformed program-header size"),
+        (58, 2, 63, "a malformed section-header size"),
+        (24, 8, 0, "the entry point is not a file-backed instruction"),
+        (24, 8, rv::RAM_BASE, "the entry point is not a file-backed instruction"),
+        (24, 8, rv::TEXT_BASE + 2, "an unaligned entry point"),
+        (
+            24,
+            8,
+            rv::TEXT_BASE + text_len,
+            "the entry point is not a file-backed instruction",
+        ),
+        (ph + 40, 8, text_len - 1, "a segment has more file bytes than memory"),
+        (ph + 48, 8, 3, "a malformed segment alignment"),
+        (ph + 8, 8, word_at(ph + 8) + 1, "a malformed segment alignment"),
+        (data + 40, 8, word_at(data + 40) + 8, "overlapping load segments"),
+        (
+            bss + 40,
+            8,
+            8 << guest.log_ram,
+            "a data segment does not fit declared RAM",
+        ),
+        (sym + 56, 8, 1, "a malformed symbol table"),
+        (sym + 32, 8, word_at(sym + 32) - 1, "a malformed symbol table"),
+    ] {
+        let mut bad = elf.to_vec();
+        bad[at..at + width].copy_from_slice(&value.to_le_bytes()[..width]);
+        assert_eq!(Guest::from_elf(&bad), Err(rv::ElfError(reason)), "offset {at}");
+    }
+
+    // Executable BSS is zero-filled memory, not a file-backed entry instruction.
+    let mut bad = elf.to_vec();
+    bad[ph + 40..ph + 48].copy_from_slice(&(text_len + 4).to_le_bytes());
+    bad[24..32].copy_from_slice(&(rv::TEXT_BASE + text_len).to_le_bytes());
+    assert_eq!(
+        Guest::from_elf(&bad),
+        Err(rv::ElfError("the entry point is not a file-backed instruction"))
+    );
+
+    // A complete instruction inside the executable segment may be another entry.
+    let mut other_entry = elf.to_vec();
+    other_entry[24..32].copy_from_slice(&(rv::TEXT_BASE + 4).to_le_bytes());
+    let loaded = Guest::from_elf(&other_entry).unwrap();
+    assert_eq!(loaded.entry_pc, rv::TEXT_BASE + 4);
+    assert_eq!(loaded.text, guest.text);
+    assert_eq!(loaded.image, guest.image);
+}
