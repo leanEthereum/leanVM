@@ -2,8 +2,8 @@
 //! kernel and its scalar oracle see the same stream on every host.
 //!
 //! Exported normally rather than under `#[cfg(test)]`: integration tests in
-//! `pcs`, `flock`, `primitives` and `rec_aggregation` are separate crates and
-//! cannot reach a test-only module.
+//! `pcs`, `flock` and `primitives` are separate crates and cannot reach a
+//! test-only module.
 
 use rand::{RngCore, SeedableRng, rngs::StdRng};
 

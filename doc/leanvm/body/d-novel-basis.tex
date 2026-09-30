@@ -1,7 +1,7 @@
 % !TeX root = ../drafts/d-novel-basis.tex
 \section{Novel polynomial basis and additive NTT}\label{app:ntt}
 
-This annex collects the algebra shared by the PCS (Annex~\ref{annex:pcs}) and LeanDA (\S\ref{sec:leanda}): additive domains, the novel polynomial basis, its additive FFT (called an NTT over a finite field), and codeword membership. The basis and transform follow~\cite{LCH14}, as presented in~\cite{DP24}.
+This annex collects the algebra the PCS (Annex~\ref{annex:pcs}) builds on: additive domains, the novel polynomial basis, and its additive FFT (called an NTT over a finite field). The basis and transform follow~\cite{LCH14}, as presented in~\cite{DP24}.
 
 Fix the $\Ftwo$-basis $e_c:=x^c$, $0\le c<64$, of $\K$, the first $64$ vectors of the basis of $\E$ in Annex~\ref{annex:rs}. In particular $e_0=1$. For a bit vector $u$, write $\langle u\rangle:=\sum_i u_i2^i$ for its integer index, with bit $0$ first.
 
@@ -114,62 +114,4 @@ Each factor of the summand depends on a single bit $u_i$, so by distributivity t
 \mle{W_x}(r) \;=\; \prod_{i=0}^{\kappa-1} \; \sum_{u_i \in \{0,1\}} \eq(u_i, r_i)\, \Wn{i}(x)^{u_i} \;=\; \prod_{i=0}^{\kappa-1} \bigl( (1+r_i) \cdot 1 + r_i \cdot \Wn{i}(x) \bigr),
 \]
 using $\eq(0, r_i) = 1 + r_i$ and $\eq(1, r_i) = r_i$.
-\end{proof}
-
-\subsection{Duality and codeword membership}\label{sec:ntt-duality}
-
-\begin{lemma}[Summation on an additive domain]\label{lem:domain-sum}
-Let $\dom=\subsp_{\log_2\blen}$, with $\blen\ge2$ a power of two. The derivative $\vansub_{\log_2\blen}'$ is a nonzero constant. For every polynomial $h$ of degree less than $\blen$,
-\begin{equation}\label{eq:da-sum}
-  \sum_{x\in\dom} h(x)
-  = \vansub_{\log_2\blen}'\,[X^{\blen-1}]\,h,
-\end{equation}
-where $[X^{\blen-1}]\,h$ denotes the coefficient of $X^{\blen-1}$ in $h$. In particular, the sum is zero if $\deg h\le\blen-2$.
-\end{lemma}
-
-\begin{proof}
-The vanishing polynomial $\vansub_{\log_2\blen}(X)=\prod_{x\in\dom}(X-x)$ is linearized (Lemma~\ref{lem:subspace}): its only powers of $X$ are $X,X^2,X^4,\ldots$. In characteristic two, the derivative of every term except the $X$ term is zero. Its derivative is therefore constant, equal to the coefficient of $X$. This constant is nonzero: at any root $x\in\dom$, differentiating the product gives $\vansub_{\log_2\blen}'(x)=\prod_{y\in\dom\setminus\{x\}}(x-y)$, a product of nonzero factors.
-
-Now let $h$ have degree less than $\blen$. Its values at the $\blen$ domain points determine it by Lagrange interpolation:
-\[
-  h(X)=\sum_{x\in\dom}
-    \frac{h(x)}{\vansub_{\log_2\blen}'(x)}
-    \frac{\vansub_{\log_2\blen}(X)}{X-x}.
-\]
-Each quotient $\vansub_{\log_2\blen}(X)/(X-x)$ is monic of degree $\blen-1$, so its coefficient of $X^{\blen-1}$ is $1$. Taking that coefficient on both sides, and using the fact that the derivative is the same constant at every $x$, gives
-\[
-  [X^{\blen-1}]\,h
-  =\sum_{x\in\dom}\frac{h(x)}{\vansub_{\log_2\blen}'(x)}
-  =\frac{1}{\vansub_{\log_2\blen}'}\sum_{x\in\dom}h(x).
-\]
-Multiplying by the nonzero derivative gives \eqref{eq:da-sum}.
-\end{proof}
-
-\begin{corollary}[Dual code]\label{cor:rs-dual}
-For $1\le\kdim<\blen$ on the domain of Lemma~\ref{lem:domain-sum},
-\[
-  \RS[\E,\dom,\kdim]^\perp=\RS[\E,\dom,\blen-\kdim].
-\]
-At rate $1/2$, the code equals its dual.
-\end{corollary}
-
-\begin{proof}
-If $f$ and $g$ have degrees less than $\kdim$ and $\blen-\kdim$, then $\deg(fg)\le\blen-2$. Lemma~\ref{lem:domain-sum} gives $\sum_{x\in\dom}f(x)g(x)=0$, so the two codes are orthogonal. Their dimensions sum to $\blen$, giving equality with the dual.
-\end{proof}
-
-\begin{proposition}[Membership with tensor weights]\label{prop:rs-membership}
-Let $\kdim=2^\kappa$, $\blen=2\kdim$, and $\dom=\subsp_{\kappa+1}$. For $z=(z_0,\ldots,z_{\kappa-1})\in\E^\kappa$, define
-\begin{equation}\label{eq:dual-product}
-  \dual(X):=\prod_{j<\kappa}\bigl(1+z_j\Wn{j}(X)\bigr).
-\end{equation}
-Its evaluation vector is a codeword. For any fixed $w\in\E^\dom$, the inner product $\inner{\dual}{w}:=\sum_{x\in\dom}\dual(x)w(x)$ vanishes identically as a polynomial in $z$ if and only if $w$ is a codeword. If $w$ is not a codeword and the $z_j$ are independent and uniform, then
-\[
-  \Pr_z[\inner{\dual}{w}=0]\le\frac{\kappa}{|\E|}.
-\]
-\end{proposition}
-
-\begin{proof}
-Since $\Wn{j}=\novel_{2^j}$, expanding \eqref{eq:dual-product} gives the novel-basis polynomials of index less than $\kdim$, with coefficient tensor $\bigotimes_j(1,z_j)$. Thus $\deg\dual<\kdim$, and Corollary~\ref{cor:rs-dual} makes it orthogonal to every codeword.
-
-Conversely, the coefficient of $\prod_j z_j^{u_j}$ in $\inner{\dual}{w}$ is $\inner{\novel_{\langle u\rangle}}{w}$. If the inner product vanished identically, $w$ would be orthogonal to every basis codeword, hence would itself belong to the code. For an invalid $w$, it is therefore a nonzero multilinear polynomial of total degree at most $\kappa$. The probability bound follows from Lemma~\ref{lem:sz}.
 \end{proof}

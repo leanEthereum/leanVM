@@ -96,18 +96,46 @@ pub fn g_pow(i: usize) -> F64 {
 /// The fixed generator `g = x ∈ K`, with `ord(g) = 2^64 - 1` (pinned by a
 /// field test), larger than every index any admissible
 /// instance uses (the verifier's instance caps, §cpu). For `k < 64`, `g^k` is
-/// the monomial `x^k` (bit `k`), which the XMSS encoding check relies on.
+/// the monomial `x^k` (bit `k`).
 pub const G: F64 = F64::G;
 
 /// MLE of the index column `[g^0, …, g^{2^n−1}]` over the `n`-variable cube,
 /// evaluated at an `E`-point: `∏_k (1 + ζ_k·(1 + g^{2^k}))` in `O(n)` (§sec:idxcol).
 /// The `g^{2^k}` factors are `K`-constants, so each term is one mixed product.
 pub fn index_mle(zeta: &[F192]) -> F192 {
-    let mut acc = F192::ONE;
-    let mut g2k = G; // g^{2^0} = g
+    powers_mle(F64::ONE, G, zeta)
+}
+
+/// MLE of the integer column `[base ^ (z << shift)]_z`, entry `z` being the element
+/// whose bits are that integer's: `base + Σ_k ζ_k·x^{k+shift}`, linear, since bit `k`
+/// contributes the monomial `x^k` (§sec:idxcol). What addresses the registers, RAM
+/// and the bytecode: with `base` a multiple of the region's size, the XOR is the sum.
+pub fn int_index_mle(base: F64, shift: u32, zeta: &[F192]) -> F192 {
+    zeta.iter().enumerate().fold(F192::from(base), |acc, (k, z)| {
+        acc + z.mul_base(F64(1 << (k as u32 + shift)))
+    })
+}
+
+/// MLE of the geometric column `[first·ratio^z]_z` over the `n`-variable cube:
+/// `first·∏_k (1 + ζ_k·(1 + ratio^{2^k}))`, the index column's formula for any ratio
+/// (§sec:idxcol). What makes a range-check table free: it is never committed.
+pub fn powers_mle(first: F64, ratio: F64, zeta: &[F192]) -> F192 {
+    let mut acc = F192::from(first);
+    let mut r2k = ratio;
     for &z in zeta {
-        acc *= F192::ONE + z.mul_base(F64::ONE + g2k);
-        g2k = g2k * g2k;
+        acc *= F192::ONE + z.mul_base(F64::ONE + r2k);
+        r2k = r2k * r2k;
     }
     acc
+}
+
+/// `[first·ratio^z]_{z < n}`.
+pub fn geometric(first: F64, ratio: F64, n: usize) -> Vec<F64> {
+    let mut out = Vec::with_capacity(n);
+    let mut acc = first;
+    for _ in 0..n {
+        out.push(acc);
+        acc *= ratio;
+    }
+    out
 }

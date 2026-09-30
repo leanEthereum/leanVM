@@ -1,0 +1,11 @@
+[package]
+name = "numbers"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+leanvm_guest = { path = "../../../sdk" }
+
+# Its own workspace: a guest builds for RISC-V, with this directory's toolchain and config.
+[workspace]

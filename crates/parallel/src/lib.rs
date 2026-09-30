@@ -63,7 +63,7 @@ struct Worker {
     handle: OnceLock<Thread>,
 }
 
-/// One atomic per cache line: `generation`, `counter` and `working` are hammered
+/// One atomic per cache line: `generation`, `counter` and `entered` are hammered
 /// by different parties inside the same dispatch window, so packing them together
 /// makes every completion decrement invalidate the line every spinner is reading.
 /// 128 rather than 64 because x86-64 prefetches the adjacent line of a pair.
@@ -86,15 +86,19 @@ struct Pool {
     generation: Line,
     /// Next item index to claim; reset per dispatch.
     counter: Line,
-    /// Background workers still draining; the dispatcher spins this to zero.
-    working: Line,
+    /// Background workers inside the current job; the dispatcher spins this to zero.
+    entered: Line,
+    /// Whether the current job takes no more workers.
+    ///
+    /// Set once its items are all claimed, so a worker that wakes later never touches it.
+    closed: AtomicBool,
     /// Park flag and unpark handle per worker.
     workers: Vec<Worker>,
     /// Serializes dispatchers: one driver at a time.
     dispatch: Mutex<()>,
     /// The dispatch's first task-panic payload, re-raised by the dispatcher.
     /// Caught here so it cannot unwind across `worker_main`, which would skip the
-    /// `working` decrement and hang the completion spin.
+    /// `entered` decrement and hang the completion spin.
     panic: Mutex<Option<Box<dyn Any + Send>>>,
 }
 
@@ -128,7 +132,8 @@ fn pool() -> &'static Pool {
             job: UnsafeCell::new(None),
             generation: Line(AtomicUsize::new(0)),
             counter: Line(AtomicUsize::new(0)),
-            working: Line(AtomicUsize::new(0)),
+            entered: Line(AtomicUsize::new(0)),
+            closed: AtomicBool::new(true),
             workers: (0..n)
                 .map(|_| Worker {
                     parked: AtomicBool::new(false),
@@ -157,8 +162,17 @@ fn worker_main(pool: &'static Pool, id: usize, qos: Qos) {
     let mut last_generation = 0usize;
     loop {
         last_generation = wait_for_dispatch(pool, id, last_generation);
-        drain(pool);
-        pool.working.fetch_sub(1, Ordering::Release);
+        // Count in, then check the job is still open.
+        //
+        //     worker:      entered += 1,  then read closed
+        //     dispatcher:  closed = true, then read entered
+        //
+        // Both SeqCst: a worker the dispatcher does not wait for reads the job closed, and skips it.
+        pool.entered.fetch_add(1, Ordering::SeqCst);
+        if !pool.closed.load(Ordering::SeqCst) {
+            drain(pool);
+        }
+        pool.entered.fetch_sub(1, Ordering::Release);
     }
 }
 
@@ -194,9 +208,9 @@ fn wait_for_dispatch(pool: &Pool, id: usize, last_generation: usize) -> usize {
 /// claims cut counter contention, and the proportional shrink keeps the tail
 /// balanced across cores of different speeds.
 fn drain(pool: &Pool) {
-    // SAFETY: the dispatcher published `Some(job)` before the generation bump
-    // this worker observed, and overwrites it only on the next dispatch (gated on
-    // `working == 0`), so there is no writer while draining.
+    // SAFETY: the dispatcher published `Some(job)` before opening it, and this worker
+    // saw it open after counting itself in. The dispatcher overwrites it only on the
+    // next dispatch, after `entered` has fallen to zero, so there is no writer while draining.
     let job = unsafe { (*pool.job.get()).as_ref().expect("drain without a published job") };
     // SAFETY: `job.f` borrows a `&dyn Fn` the blocked dispatcher keeps alive.
     let f = unsafe { job.f.as_ref() };
@@ -204,7 +218,7 @@ fn drain(pool: &Pool) {
     let worker_count = num_threads();
     IN_TASK.set(true); // catches nested dispatch; see `for_each_chunk`
     // Catch a task panic so it cannot unwind across `worker_main` (skipping the
-    // `working` decrement and hanging the join) or poison the dispatch lock.
+    // `entered` decrement and hanging the join) or poison the dispatch lock.
     let result = catch_unwind(AssertUnwindSafe(|| {
         loop {
             // A stale read only affects granularity: `fetch_add` tiles `0..n`
@@ -252,19 +266,21 @@ pub fn for_each_chunk<F: Fn(usize, usize) + Sync>(n_tasks: usize, f: F) {
     let pool = pool();
     let guard = pool.dispatch.lock().unwrap();
 
-    // SAFETY: erase the borrow to `'static` so it fits in `Job`. The dispatcher
-    // blocks on `working` before returning, so `f` outlives every dereference.
+    // SAFETY: erase the borrow to `'static` so it fits in `Job`. The dispatcher closes the
+    // job and waits for `entered` to fall to zero before returning, and a worker entering
+    // later reads the job closed, so `f` outlives every dereference.
     // `transmute` rather than a `*const dyn` cast is required: a bare cast would
     // default the trait object's lifetime to `'static` and force `F: 'static`
     // (E0310); the transmute reinterprets the same fat pointer without that bound.
     let f_ref: &(dyn Fn(usize, usize) + Sync) = &f;
     let f_erased: NonNull<dyn Fn(usize, usize) + Sync> = unsafe { std::mem::transmute(NonNull::from(f_ref)) };
 
-    // SAFETY: sole writer, since the prior dispatch fully drained (`working == 0`)
-    // and the next has not been observed yet.
+    // SAFETY: sole writer. The prior job is closed and every worker that entered it has left,
+    // and a worker entering now reads the job closed until the store below opens it.
     unsafe { *pool.job.get() = Some(Job { f: f_erased, n_tasks }) };
     pool.counter.store(0, Ordering::Relaxed);
-    pool.working.store(worker_count - 1, Ordering::Release);
+    // Open the job: a worker that reads it open also sees the job and the counter above.
+    pool.closed.store(false, Ordering::SeqCst);
     pool.generation.fetch_add(1, Ordering::SeqCst); // publish; SeqCst guards the park protocol
 
     // Wake only the parked workers; the spinning ones see the bump for free.
@@ -277,7 +293,12 @@ pub fn for_each_chunk<F: Fn(usize, usize) + Sync>(n_tasks: usize, f: F) {
     }
 
     drain(pool); // the dispatcher runs as worker 0
-    while pool.working.load(Ordering::Acquire) != 0 {
+
+    // Every item is claimed, so close the job, then wait only for the workers inside it.
+    //
+    // A worker still spinning or parked is not waited for: it reads the job closed and skips it.
+    pool.closed.store(true, Ordering::SeqCst);
+    while pool.entered.load(Ordering::SeqCst) != 0 {
         std::hint::spin_loop();
     }
 

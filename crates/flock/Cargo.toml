@@ -22,3 +22,7 @@ bench.workspace = true
 [[bench]]
 name = "hash_batch"
 harness = false
+
+[[bench]]
+name = "arithmetic_batch"
+harness = false

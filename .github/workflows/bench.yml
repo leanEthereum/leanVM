@@ -41,6 +41,27 @@ jobs:
           name: pr-event
           path: ${{ github.event_path }}
 
+  # Exact counts, the same on every machine, so one testbed. The testbed `ubuntu-latest` is
+  # how bench-track.yml knows to fail on any increase.
+  cycles:
+    name: Cycles
+    runs-on: ubuntu-latest
+    env:
+      # The build the Test job caches (rust.yml): counts do not depend on the ISA.
+      RUSTFLAGS: -C target-cpu=haswell
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Summarize the counts
+        run: cargo leanvm bench --cycles-only --markdown >> "$GITHUB_STEP_SUMMARY"
+      - name: Count cycles
+        run: cargo leanvm bench --cycles-only > bench.json && cat bench.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bench-ubuntu-latest
+          path: bench.json
+
   prove:
     name: Prove (${{ matrix.testbed.name }})
     runs-on: ${{ matrix.testbed.runner }}
@@ -73,11 +94,15 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.testbed.name }}
+      - name: Prove the programs
+        run: cargo leanvm bench --repeat 5 --cooldown 0 > programs.json && cat programs.json
       - name: Prove flock's hash batch
         env:
           FLOCK_N_LOG: 18
           BENCH_REPEAT: 5
-        run: cargo bench -p flock --bench hash_batch -- --json > bench.json && cat bench.json
+        run: cargo bench -p flock --bench hash_batch -- --json > flock.json && cat flock.json
+      - name: Merge the reports
+        run: jq -s 'add' programs.json flock.json > bench.json
       - uses: actions/upload-artifact@v4
         with:
           name: bench-${{ matrix.testbed.name }}

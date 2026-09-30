@@ -1,0 +1,8 @@
+name: leanvm-rv64im
+compiler_exe: riscv64-unknown-elf-gcc
+objdump_exe: riscv64-unknown-elf-objdump
+ref_model_exe: sail_riscv_sim
+udb_config: leanvm-rv64im.yaml
+linker_script: link.ld
+dut_include_dir: .
+include_priv_tests: false

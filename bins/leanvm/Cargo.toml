@@ -14,17 +14,16 @@ doc = false
 workspace = true
 
 [dependencies]
-rec_aggregation.workspace = true
+leanvm.workspace = true
 leanvm_core.workspace = true
-lean_compiler.workspace = true
-lean_da.workspace = true
-xmss.workspace = true
-sphincs.workspace = true
 primitives.workspace = true
 bench.workspace = true
 zk_alloc.workspace = true
-rand.workspace = true
+leanvm_guest.workspace = true
+# The programs' host sides: their guests' inputs and expected outputs.
+leanxmss-host.workspace = true
+leansphincs-host.workspace = true
+leanda-host.workspace = true
 bincode.workspace = true
-serde.workspace = true
 tracing.workspace = true
 clap = { version = "4", features = ["derive"] }

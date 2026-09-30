@@ -17,5 +17,11 @@ tracing.workspace = true
 zk_alloc.workspace = true
 
 [dev-dependencies]
-lean_compiler.workspace = true
+leanvm_guest.workspace = true
 bincode.workspace = true
+bench.workspace = true
+primitives = { workspace = true, features = ["test-util"] }
+
+[[bench]]
+name = "class_witness"
+harness = false

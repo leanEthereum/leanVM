@@ -8,8 +8,8 @@ pub type Hash = [u8; 32];
 
 /// Encode a Merkle hash as the two field words transcripts carry it in: two
 /// 128-bit halves, each a K pair with a spare top lane. Every digest in the
-/// protocol uses this one split (the commitment root, the public input, the
-/// guest's MD state), so the VM sees one shape everywhere.
+/// protocol uses this one split (the commitment root, the public input), so the
+/// VM sees one shape everywhere.
 #[inline]
 pub fn hash_to_scalars(hash: &Hash) -> [F192; 2] {
     let word_at = |offset: usize| u64::from_le_bytes(hash[offset..offset + 8].try_into().unwrap());
@@ -241,12 +241,12 @@ impl PrunedMerklePaths {
 ///
 /// The redundant form. Several queries of one phase repeat whatever siblings
 /// they share, which is exactly what makes it simple to consume: recomputing
-/// the root is a walk up one path, with no dedup bookkeeping. Recursive witness
-/// construction and the Python verifier consume this; the wire format
-/// ([`PrunedMerklePaths`]) sends each shared sibling once.
+/// the root is a walk up one path, with no dedup bookkeeping. The Python
+/// verifier consumes this; the wire format ([`PrunedMerklePaths`]) sends each
+/// shared sibling once.
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct RawMerklePath {
-    /// Transcript-derived position, retained for recursive witness construction.
+    /// Transcript-derived position.
     pub leaf_index: usize,
     pub leaf_data: Vec<F64>,
     pub path: Vec<Hash>,

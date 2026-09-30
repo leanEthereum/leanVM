@@ -1,0 +1,46 @@
+name: RISC-V
+
+# ACT4 (conformance/act4/): the tests are generated from their pinned sources, not checked
+# in. Generation is deterministic, so its output is cached under a hash of every input
+# and the Docker image is only built when one of them changes.
+
+on:
+  push:
+    # Pushes to the branches PRs target save the generated tests where those PRs can
+    # restore them: a PR's own cache is visible to it alone.
+    branches: [ "main", "riscv-exploration" ]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: riscv-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+  # As in rust.yml: the SIMD backend under test must not depend on the runner.
+  RUSTFLAGS: -C target-cpu=haswell
+
+jobs:
+  act4:
+    name: ACT4
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore the generated tests
+        id: elf
+        uses: actions/cache@v4
+        with:
+          path: conformance/act4/elf
+          key: act4-elf-${{ hashFiles('conformance/act4/Dockerfile', 'conformance/act4/*.sh', 'conformance/act4/*.yaml', 'conformance/act4/*.json', 'conformance/act4/*.ld', 'conformance/act4/*.h') }}
+      - name: Generate the tests from the pinned sources
+        if: steps.elf.outputs.cache-hit != 'true'
+        run: conformance/act4/generate.sh
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Run the tests
+        run: cargo test --release -p leanvm_core --test verifiers -- --ignored act4

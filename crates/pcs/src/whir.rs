@@ -685,19 +685,80 @@ fn round_msg_blocks<T: RoundWitness>(f: &[T], b: &[F192], block: usize) -> Sumch
     }
 }
 
+/// Words of the initial weight one fill call writes: a chunk, aligned to its size.
+///
+/// A lane block below this size is filled whole.
 pub(crate) const INITIAL_BASIS_CHUNK: usize = 256;
 
+/// The opening's initial weight, regenerated one aligned chunk at a time.
+///
+/// Called as `fill(start, out)`, it writes the weights of words `start..start + out.len()`.
+pub(crate) type BasisFill<'a> = dyn Fn(usize, &mut [F192]) + Sync + 'a;
+
+/// The weight the opening's sumcheck folds against.
+pub(crate) enum Basis<'a> {
+    /// One E value per word, in memory.
+    Dense(ArenaVec<F192>),
+    /// Regenerated when read, by chunks of the initial fill size.
+    ///
+    /// Only the first lane round reads it, so it is never stored.
+    Virtual(&'a BasisFill<'a>),
+}
+
+impl Basis<'_> {
+    /// The weight in memory.
+    ///
+    /// # Panics
+    ///
+    /// Panics before the first lane round has folded a regenerated weight.
+    fn dense(&self) -> &ArenaVec<F192> {
+        match self {
+            Basis::Dense(b) => b,
+            Basis::Virtual(_) => panic!("the regenerated weight is read by the first lane round only"),
+        }
+    }
+
+    /// The weight in memory, to update.
+    fn dense_mut(&mut self) -> &mut ArenaVec<F192> {
+        match self {
+            Basis::Dense(b) => b,
+            Basis::Virtual(_) => panic!("the regenerated weight is read by the first lane round only"),
+        }
+    }
+}
+
+/// Round 0's message against the weight `fill` writes, and that weight materialized.
+#[cfg(test)]
 pub(crate) fn build_initial_basis(
     f: &[F64],
     block: usize,
     fill: impl Fn(usize, &mut [F192]) + Sync,
 ) -> (ArenaVec<F192>, SumcheckMessage) {
+    // SAFETY: the pass fills and publishes every lane window before returning.
+    let mut basis = unsafe { ArenaVec::<F192>::uninitialized(f.len()) };
+    let message = initial_basis_pass(f, block, &fill, Some(parallel::SendPtr(basis.as_mut_ptr())));
+    (basis, message)
+}
+
+/// Round 0's message against the weight `fill` writes, which stays unwritten.
+pub(crate) fn initial_message(f: &[F64], block: usize, fill: &BasisFill<'_>) -> SumcheckMessage {
+    initial_basis_pass(f, block, fill, None)
+}
+
+/// One pass of round 0.
+///
+/// Each chunk of the weight is filled, then feeds the message while hot.
+///
+/// With a destination, each chunk is also published there.
+fn initial_basis_pass(
+    f: &[F64],
+    block: usize,
+    fill: &BasisFill<'_>,
+    dst: Option<parallel::SendPtr<F192>>,
+) -> SumcheckMessage {
     assert!(block.is_power_of_two() && f.len().is_multiple_of(block));
     let n_blocks = f.len() / block;
     let per = block.div_ceil(INITIAL_BASIS_CHUNK);
-    // SAFETY: each task fills and publishes its disjoint lane windows before returning.
-    let mut basis = unsafe { ArenaVec::<F192>::uninitialized(f.len()) };
-    let dst = parallel::SendPtr(basis.as_mut_ptr());
     let task = |t: usize| {
         let (pair, chunk) = (t / per, t % per);
         let offset = chunk * INITIAL_BASIS_CHUNK;
@@ -711,24 +772,25 @@ pub(crate) fn build_initial_basis(
             let hi = lo + block;
             fill(hi, &mut b1[..len]);
             let message = msg_terms_pair(&f[lo..lo + len], &f[hi..hi + len], &b0[..len], &b1[..len]);
-            // SAFETY: this task owns the high lane window, disjoint from every other task.
-            unsafe { stream.copy(dst.slice(hi, len), &b1[..len]) };
+            if let Some(dst) = dst {
+                // SAFETY: this task owns the high lane window, disjoint from every other task.
+                unsafe { stream.copy(dst.slice(hi, len), &b1[..len]) };
+            }
             message
         } else {
             msg_terms_lone(&f[lo..lo + len], &b0[..len])
         };
-        // SAFETY: this task owns the low lane window, disjoint from every other task.
-        unsafe { stream.copy(dst.slice(lo, len), &b0[..len]) };
+        if let Some(dst) = dst {
+            // SAFETY: this task owns the low lane window, disjoint from every other task.
+            unsafe { stream.copy(dst.slice(lo, len), &b0[..len]) };
+        }
         message
     };
     let (u_0, u_2) = accumulate_msg(n_blocks.div_ceil(2) * per, f.len() / 2, F192Unreduced::ZERO, task);
-    (
-        basis,
-        SumcheckMessage {
-            u_0: u_0.reduce(),
-            u_2: u_2.reduce(),
-        },
-    )
+    SumcheckMessage {
+        u_0: u_0.reduce(),
+        u_2: u_2.reduce(),
+    }
 }
 
 /// Fused lane fold + next-round message. Mirror of [`fold_and_msg_lsb`] for the
@@ -741,12 +803,14 @@ pub(crate) fn build_initial_basis(
 /// values are still in L1.
 fn fold_and_msg_blocks<T: RoundWitness>(
     f: &[T],
-    b: &[F192],
+    b: &Basis<'_>,
     r: F192,
     block: usize,
     last: bool,
 ) -> (ArenaVec<F192>, ArenaVec<F192>, SumcheckMessage) {
-    assert_eq!(b.len(), f.len());
+    if let Basis::Dense(b) = b {
+        assert_eq!(b.len(), f.len());
+    }
     assert!(block > 0 && f.len().is_multiple_of(block));
     let n_in = f.len() / block;
     let n_out = n_in.div_ceil(2);
@@ -768,16 +832,40 @@ fn fold_and_msg_blocks<T: RoundWitness>(
     // streaming stores: nothing else touches it until the next round, by which
     // time a buffer this size is long evicted, so the fetch an ordinary store
     // would make of every line it overwrites is pure waste.
-    const STAGE: usize = 128;
-    let fold_block = |stage: &mut [F192], stage_b: &mut [F192], out_blk: usize, x0: usize, stream: &Stream| {
+    //
+    // A regenerated weight is refilled one fill chunk at a time, the unit its fill is written for.
+    const STAGE_MAX: usize = INITIAL_BASIS_CHUNK;
+    let stage_len = match b {
+        Basis::Dense(_) => 128,
+        Basis::Virtual(_) => STAGE_MAX,
+    };
+    // A window of the weight: sliced from memory, or refilled into a scratch of its own.
+    fn window<'r>(b: &'r Basis<'_>, raw: &'r mut [F192; STAGE_MAX], at: usize, len: usize) -> &'r [F192] {
+        match b {
+            Basis::Dense(b) => &b[at..at + len],
+            Basis::Virtual(fill) => {
+                fill(at, &mut raw[..len]);
+                &raw[..len]
+            }
+        }
+    }
+    let fold_block = |stage: &mut [F192],
+                      stage_b: &mut [F192],
+                      raw: &mut [[F192; STAGE_MAX]; 2],
+                      out_blk: usize,
+                      x0: usize,
+                      stream: &Stream| {
         let len = stage.len();
         let src0 = 2 * out_blk * block + x0;
+        let [raw_lo, raw_hi] = raw;
+        let b_lo = window(b, raw_lo, src0, len);
         // Sliced, not indexed: runs of one length let the bounds checks fall out
         // and the pair fold vectorise, as the adjacent-pair kernel's do.
-        let (f_lo, b_lo) = (&f[src0..src0 + len], &b[src0..src0 + len]);
+        let f_lo = &f[src0..src0 + len];
         if 2 * out_blk + 1 < n_in {
             let src1 = src0 + block;
-            let (f_hi, b_hi) = (&f[src1..src1 + len], &b[src1..src1 + len]);
+            let b_hi = window(b, raw_hi, src1, len);
+            let f_hi = &f[src1..src1 + len];
             for ((d, &x0), &x1) in stage.iter_mut().zip(f_lo).zip(f_hi) {
                 *d = T::fold_pair(x0, x1, r);
             }
@@ -805,14 +893,15 @@ fn fold_and_msg_blocks<T: RoundWitness>(
         let x0 = c * ROUND_CHUNK;
         let len = ROUND_CHUNK.min(block - x0);
         let stream = Stream::new();
-        let mut stage = [[F192::ZERO; STAGE]; 4];
+        let mut stage = [[F192::ZERO; STAGE_MAX]; 4];
+        let mut raw = [[F192::ZERO; STAGE_MAX]; 2];
         let mut acc = (F192Unreduced::ZERO, F192Unreduced::ZERO);
-        for s in (0..len).step_by(STAGE) {
-            let n = STAGE.min(len - s);
+        for s in (0..len).step_by(stage_len) {
+            let n = stage_len.min(len - s);
             let [lo_f, lo_b, hi_f, hi_b] = &mut stage;
-            fold_block(&mut lo_f[..n], &mut lo_b[..n], 2 * i, x0 + s, &stream);
+            fold_block(&mut lo_f[..n], &mut lo_b[..n], &mut raw, 2 * i, x0 + s, &stream);
             let (u_0, u_2) = if 2 * i + 1 < n_out {
-                fold_block(&mut hi_f[..n], &mut hi_b[..n], 2 * i + 1, x0 + s, &stream);
+                fold_block(&mut hi_f[..n], &mut hi_b[..n], &mut raw, 2 * i + 1, x0 + s, &stream);
                 msg_terms_pair(&lo_f[..n], &hi_f[..n], &lo_b[..n], &hi_b[..n])
             } else if last {
                 // `ROUND_CHUNK`, `STAGE` and `block` are powers of two, so every
@@ -852,7 +941,7 @@ struct SumcheckProver<'a> {
     /// Single combined basis poly: `glue_pending(lambda)` folds each claim
     /// introduced since the last glue in as `combined_basis += lambda^tau *
     /// b_new`, `tau` counting from 1 (the running claim is `tau = 0`).
-    combined_basis: ArenaVec<F192>,
+    combined_basis: Basis<'a>,
     /// The running claim and its quadratic; `h(0) + h(1) = t_r` fixes the linear coefficient.
     t_r: F192,
     quad: RoundQuad,
@@ -868,14 +957,16 @@ impl<'a> SumcheckProver<'a> {
     /// whole blocks rather than adjacent words.
     fn new(
         f: &'a [F64],
-        b1: ArenaVec<F192>,
+        b1: Basis<'a>,
         h1: F192,
         block: usize,
         initial_message: Option<SumcheckMessage>,
     ) -> (Self, SumcheckMessage) {
         let _span = tracing::info_span!("Sumcheck round", round = 0, log_size = f.len().ilog2()).entered();
-        assert_eq!(f.len(), b1.len());
-        let msg = initial_message.unwrap_or_else(|| round_msg_blocks(f, &b1, block));
+        let msg = initial_message.unwrap_or_else(|| match &b1 {
+            Basis::Dense(b) => round_msg_blocks(f, b, block),
+            Basis::Virtual(fill) => self::initial_message(f, block, *fill),
+        });
         let inst = Self {
             f: Witness::Base(f),
             combined_basis: b1,
@@ -912,7 +1003,7 @@ impl<'a> SumcheckProver<'a> {
             Witness::Ext(f) => fold_and_msg_blocks(f, &self.combined_basis, r, block, last),
         };
         drop(std::mem::replace(&mut self.f, Witness::Ext(nf)));
-        drop(std::mem::replace(&mut self.combined_basis, nb));
+        drop(std::mem::replace(&mut self.combined_basis, Basis::Dense(nb)));
         self.quad = RoundQuad::from_msg(msg, self.t_r);
         msg
     }
@@ -926,15 +1017,15 @@ impl<'a> SumcheckProver<'a> {
         };
         let _span = tracing::info_span!("Sumcheck round", round = self.round, log_size).entered();
         let (nf, nb, msg) = match &self.f {
-            Witness::Base(f) => fold_and_msg_lsb(f, &self.combined_basis, r),
-            Witness::Ext(f) => fold_and_msg_lsb(f, &self.combined_basis, r),
+            Witness::Base(f) => fold_and_msg_lsb(f, self.combined_basis.dense(), r),
+            Witness::Ext(f) => fold_and_msg_lsb(f, self.combined_basis.dense(), r),
         };
         // Swap the freshly folded buffers in and drop the consumed ones, which
         // at these sizes returns their slab space to the arena's reuse list, so
         // the next round's `fold_out_buf` is served from it rather than growing
         // the phase's cursor.
         drop(std::mem::replace(&mut self.f, Witness::Ext(nf)));
-        drop(std::mem::replace(&mut self.combined_basis, nb));
+        drop(std::mem::replace(&mut self.combined_basis, Basis::Dense(nb)));
         self.quad = RoundQuad::from_msg(msg, self.t_r);
         msg
     }
@@ -981,15 +1072,16 @@ impl<'a> SumcheckProver<'a> {
         let mut scalar = F192::ONE;
         for (b_new, h_new, quad_new) in pending {
             scalar *= lambda;
-            assert_eq!(b_new.len(), self.combined_basis.len());
+            let combined = self.combined_basis.dense_mut();
+            assert_eq!(b_new.len(), combined.len());
             const PAR_THRESHOLD: usize = 4096;
-            if self.combined_basis.len() < PAR_THRESHOLD {
-                for (acc, &v) in self.combined_basis.iter_mut().zip(b_new.iter()) {
+            if combined.len() < PAR_THRESHOLD {
+                for (acc, &v) in combined.iter_mut().zip(b_new.iter()) {
                     *acc += scalar * v;
                 }
             } else {
-                let chunk = parallel::recommended_chunk_size(self.combined_basis.len());
-                parallel::chunks_mut_zip(&mut self.combined_basis, &b_new, chunk, |_, accs, news| {
+                let chunk = parallel::recommended_chunk_size(combined.len());
+                parallel::chunks_mut_zip(combined, &b_new, chunk, |_, accs, news| {
                     for (acc, &v) in accs.iter_mut().zip(news) {
                         *acc += scalar * v;
                     }
@@ -1012,7 +1104,7 @@ impl<'a> SumcheckProver<'a> {
 
 /// Sample `count` query positions in transcript order: no dedup, no sort.
 /// `block_len = 2^d`; each squeezed field element yields `⌊192/d⌋` positions as
-/// its disjoint d-bit chunks (low bits first), matching the scheme the recursive guest derives (fixed `192/d` per
+/// its disjoint d-bit chunks (low bits first) (fixed `192/d` per
 /// squeeze, dup-tolerant: soundness matches the deployed PCS with the same
 /// `config.queries`). Duplicates are harmless, a repeated position re-opens the
 /// same Merkle-authenticated row.
@@ -1096,7 +1188,7 @@ pub fn recursive_prover_with_basis(
         config,
         log_n,
         witness,
-        b_initial,
+        Basis::Dense(b_initial),
         target,
         l0_codeword,
         l0_tree,
@@ -1109,7 +1201,7 @@ pub(crate) fn recursive_prover_with_prepared_basis(
     config: &ProverConfig,
     log_n: usize,
     witness: &[F64],
-    b_initial: ArenaVec<F192>,
+    b_initial: Basis<'_>,
     target: F192,
     l0_codeword: &[F64],
     l0_tree: &[Hash],
@@ -1142,7 +1234,9 @@ pub(crate) fn recursive_prover_with_prepared_basis(
         n_lanes >= 1 && n_lanes <= num_interleaved_0,
         "at most 2^initial_k lanes"
     );
-    assert_eq!(b_initial.len(), witness.len());
+    if let Basis::Dense(b) = &b_initial {
+        assert_eq!(b.len(), witness.len());
+    }
     assert_eq!(l0_codeword.len(), block_len_0 * n_lanes);
     assert_eq!(l0_tree.len(), 2 * block_len_0 - 1);
 
@@ -2489,6 +2583,34 @@ mod tests {
                 induce_sumcheck_poly_via_ntt_base(log_msg_cols, log_inv_rate, &rows, &v_challenges, &qs, &weights);
             assert_eq!(dense.1, via_ntt.1, "enforced_sum mismatch");
             assert_eq!(&*dense.0, &*via_ntt.0, "basis_poly mismatch");
+        }
+    }
+
+    #[test]
+    fn a_regenerated_weight_folds_like_the_stored_one() {
+        // Invariant: the first lane round writes the same fold and message from either weight.
+        let mut rng = Rng::new(0xF111);
+        // Fixture state: blocks below, at and above one fill chunk and one task chunk.
+        for block in [1, 16, INITIAL_BASIS_CHUNK, 4 * INITIAL_BASIS_CHUNK, 2 * ROUND_CHUNK] {
+            // An odd lane count leaves a lone block, folded against the absent zero lanes.
+            for lanes in [1, 2, 3, 37] {
+                let f: Vec<F64> = (0..block * lanes).map(|_| F64(rng.next_u64())).collect();
+                let weight = rng.ext_vec(f.len());
+                let r = rng.ext();
+                // The last lane round is the one whose output is a single block.
+                let last = lanes <= 2;
+
+                // The stored weight, and the same weight refilled from it chunk by chunk.
+                let stored = Basis::Dense(ArenaVec::from_slice(&weight));
+                let fill = |start: usize, out: &mut [F192]| out.copy_from_slice(&weight[start..start + out.len()]);
+                let regenerated = Basis::Virtual(&fill);
+
+                let (nf_s, nb_s, msg_s) = fold_and_msg_blocks(&f, &stored, r, block, last);
+                let (nf_r, nb_r, msg_r) = fold_and_msg_blocks(&f, &regenerated, r, block, last);
+                assert_eq!(&*nf_s, &*nf_r, "fold, block={block}, lanes={lanes}");
+                assert_eq!(&*nb_s, &*nb_r, "weight fold, block={block}, lanes={lanes}");
+                assert_eq!(msg_s, msg_r, "message, block={block}, lanes={lanes}");
+            }
         }
     }
 

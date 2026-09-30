@@ -5,15 +5,11 @@ on:
     branches: [ "main" ]
     paths:
       - 'doc/leanvm/**'
-      - 'doc/xmss/**'
-      - 'doc/sphincs/**'
       - 'doc/images/**'
       - '.github/workflows/doc.yml'
   pull_request:
     paths:
       - 'doc/leanvm/**'
-      - 'doc/xmss/**'
-      - 'doc/sphincs/**'
       - 'doc/images/**'
       - '.github/workflows/doc.yml'
   workflow_dispatch:
@@ -38,22 +34,6 @@ jobs:
       - name: Fail on an undefined reference or citation
         run: |
           ! grep -qE 'Reference .* undefined|Citation .* undefined|multiply defined' doc/leanvm/.build/main.log
-      - name: Compile XMSS specification
-        uses: xu-cheng/latex-action@v3
-        with:
-          working_directory: doc/xmss
-          root_file: main.tex
-      - name: Fail on an undefined XMSS reference or citation
-        run: |
-          ! grep -qE 'Reference .* undefined|Citation .* undefined|multiply defined' doc/xmss/.build/main.log
-      - name: Compile SPHINCS specification
-        uses: xu-cheng/latex-action@v3
-        with:
-          working_directory: doc/sphincs
-          root_file: main.tex
-      - name: Fail on an undefined SPHINCS reference or citation
-        run: |
-          ! grep -qE 'Reference .* undefined|Citation .* undefined|multiply defined' doc/sphincs/.build/main.log
 
   build-pdf:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
@@ -67,21 +47,9 @@ jobs:
         with:
           working_directory: doc/leanvm
           root_file: main.tex
-      - name: Compile XMSS specification
-        uses: xu-cheng/latex-action@v3
-        with:
-          working_directory: doc/xmss
-          root_file: main.tex
-      - name: Compile SPHINCS specification
-        uses: xu-cheng/latex-action@v3
-        with:
-          working_directory: doc/sphincs
-          root_file: main.tex
       - name: Name the artifacts
         run: |
           cp doc/leanvm/.build/main.pdf leanVM.pdf
-          cp doc/xmss/.build/main.pdf XMSS.pdf
-          cp doc/sphincs/.build/main.pdf SPHINCS.pdf
       - name: Publish PDFs as release assets
         uses: softprops/action-gh-release@v2
         with:
@@ -91,10 +59,6 @@ jobs:
             Auto-built on every push to `main`.
 
             `leanVM.pdf` contains the leanVM specification.
-            `XMSS.pdf` contains the XMSS specification.
-            `SPHINCS.pdf` contains the SPHINCS specification.
           make_latest: false
           files: |
             leanVM.pdf
-            XMSS.pdf
-            SPHINCS.pdf

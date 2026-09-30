@@ -1,10 +1,14 @@
 [workspace]
-members = ["crates/*", "bins/*"]
+members = ["crates/*", "bins/*", "sdk", "programs/*/host"]
+# Each guest is its own workspace, for another target. A host depends on its guest's library by path, which
+# would make the guest a member: `exclude` takes no globs, so each is named.
+exclude = ["programs/leanxmss/guest", "programs/leansphincs/guest", "programs/leanda/guest"]
 resolver = "3"
 
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
+
 
 # Numeric kernels legitimately index by loop variable and take many arguments.
 [workspace.lints.clippy]
@@ -19,17 +23,15 @@ fiat_shamir = { path = "crates/fiat_shamir" }
 pcs = { path = "crates/pcs" }
 flock = { path = "crates/flock" }
 leanvm_core = { path = "crates/leanvm_core" }
-lean_compiler = { path = "crates/lean_compiler" }
-lean_da = { path = "crates/lean_da" }
-rec_aggregation = { path = "crates/rec_aggregation" }
-xmss = { path = "crates/xmss" }
-sphincs = { path = "crates/sphincs" }
 zk_alloc = { path = "crates/zk_alloc" }
 parallel = { path = "crates/parallel" }
+leanvm_guest = { path = "sdk" }
+leanxmss-host = { path = "programs/leanxmss/host" }
+leansphincs-host = { path = "programs/leansphincs/host" }
+leanda-host = { path = "programs/leanda/host" }
 libc = "0.2"
 serde = { version = "1", features = ["derive"] }
 bincode = "1"
-ethereum_ssz = "0.10"
 rand = "0.9"
 tracing = "0.1.26"
 tracing-forest = { version = "0.3.0", features = ["ansi", "smallvec"] }

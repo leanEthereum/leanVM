@@ -33,7 +33,6 @@ use primitives::{field::F64, pretty_integer, test_rng::Rng};
 
 fn main() {
     bench::init_tracing_from_env();
-    // The XMSS n=820 workload executes about 2^17 BLAKE2s compressions.
     let requested_n_log: usize = std::env::var("FLOCK_N_LOG")
         .ok()
         .map(|s| s.parse().expect("FLOCK_N_LOG must be an integer"))
@@ -99,7 +98,15 @@ fn main() {
 
         let t = Instant::now();
         let ring = ring_switch_open(n, 0, &reduced);
-        open_batch_mixed_whir_stacked(&mut ps, mu, q_flock, &prover_data, &config, &[], &ring);
+        open_batch_mixed_whir_stacked(
+            &mut ps,
+            mu,
+            q_flock,
+            &prover_data,
+            &config,
+            &[],
+            std::slice::from_ref(&ring),
+        );
         let open_s = t.elapsed().as_secs_f64();
         let prove_s = t_prove.elapsed().as_secs_f64();
 
@@ -147,7 +154,7 @@ fn main() {
                 1 << INITIAL_FOLDING_FACTOR,
                 &root,
                 &[],
-                &ring
+                std::slice::from_ref(&ring)
             )
             .is_ok(),
             "stacked PCS opening verifies"
@@ -198,9 +205,5 @@ fn main() {
         "  throughput                      : {:>14} compressions/s{}",
         pretty_integer(compressions_per_second),
         prove.spread()
-    );
-    println!(
-        "  (~{:.1} XMSS/s equivalent at 146 compressions/signature)",
-        n as f64 / prove_s / 146.0
     );
 }

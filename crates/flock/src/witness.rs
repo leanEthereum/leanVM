@@ -126,9 +126,101 @@ pub(crate) fn packed_bytes(words: &[u64]) -> &[u8] {
 // Generic witness packing driver.
 // ---------------------------------------------------------------------------
 
+/// One group's share of the four witness tables, in its worker's scratch.
+pub(crate) struct GroupTables<'a> {
+    /// `z`, `A·z` and `B·z`: `2^k_log / 64` packed words per instance, instance-major.
+    pub z: &'a mut [u64],
+    pub a: &'a mut [u64],
+    pub b: &'a mut [u64],
+    /// Lincheck's byte stripes: `2^k_log` bytes per 8 instances.
+    pub stripes: &'a mut [u8],
+}
+
+/// The four witness tables of `2^n_blocks_log` instances, built `group` instances at a time.
+///
+/// - The fill closure writes every word and byte of the group starting at the instance it is given.
+/// - Each worker keeps one scratch state, built once and reused across its groups.
+///
+/// A group builds in its worker's buffers, which stay in cache, then streams out.
+///
+/// Building in place instead would fetch every output line before writing it.
+pub(crate) fn drive_witness_groups<St, I, F>(
+    n_blocks_log: usize,
+    k_log: usize,
+    group: usize,
+    init: I,
+    fill: F,
+) -> (ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u8>)
+where
+    St: Send,
+    I: Fn() -> St + Sync,
+    F: Fn(&mut St, usize, GroupTables<'_>) + Sync,
+{
+    let k = 1usize << k_log;
+    let n_total = 1usize << n_blocks_log;
+    assert!(
+        n_total >= 8 && n_total.is_multiple_of(8),
+        "lincheck stripe layout requires n_total ≥ 8 and divisible by 8"
+    );
+    assert!(
+        group.is_multiple_of(8) && n_total.is_multiple_of(group),
+        "a group of {group} instances must tile 2^{n_blocks_log} in whole stripes"
+    );
+
+    let total_words = n_total * (k / 64);
+    // SAFETY (x4): group `g` publishes chunk `g` of every table in full below, and the chunk counts match.
+    let mut z = unsafe { ArenaVec::<u64>::uninitialized(total_words) };
+    let mut a = unsafe { ArenaVec::<u64>::uninitialized(total_words) };
+    let mut b = unsafe { ArenaVec::<u64>::uninitialized(total_words) };
+    let mut z_lincheck = unsafe { ArenaVec::<u8>::uninitialized((n_total / 8) * k) };
+
+    // A group's share: its packed words in each table, and one stripe per 8 instances.
+    let group_words = group * (k / 64);
+    let group_bytes = (group / 8) * k;
+    let z_chunks = parallel::Chunks::new(&mut z, group_words);
+    let a_chunks = parallel::Chunks::new(&mut a, group_words);
+    let b_chunks = parallel::Chunks::new(&mut b, group_words);
+    let stripe_chunks = parallel::Chunks::new(&mut z_lincheck, group_bytes);
+    debug_assert_eq!(z_chunks.count(), stripe_chunks.count());
+
+    parallel::map_reduce_with_state(
+        z_chunks.count(),
+        || (vec![0u64; 3 * group_words], vec![0u8; group_bytes], init()),
+        || (),
+        |(scratch, stripes, state), (), g| {
+            // Build the group in the worker's buffers.
+            let (z_grp, rest) = scratch.split_at_mut(group_words);
+            let (a_grp, b_grp) = rest.split_at_mut(group_words);
+            fill(
+                state,
+                g * group,
+                GroupTables {
+                    z: z_grp,
+                    a: a_grp,
+                    b: b_grp,
+                    stripes,
+                },
+            );
+
+            // SAFETY: each group `g` takes chunk `g` of each table exactly once, and
+            // all four tables stay borrowed for the whole dispatch.
+            let stream = Stream::new();
+            unsafe {
+                stream.copy(z_chunks.get(g), z_grp);
+                stream.copy(a_chunks.get(g), a_grp);
+                stream.copy(b_chunks.get(g), b_grp);
+                stream.copy(stripe_chunks.get(g), stripes);
+            }
+        },
+        |(), ()| (),
+    );
+
+    (z, a, b, z_lincheck)
+}
+
 /// Drive the parallel chunked witness build for `n_blocks` instances padded
-/// to `2^n_blocks_log` slots. Returns `(z, a, b, z_lincheck)`: the three
-/// bit-packed `u64` tables (`K / 64` words per instance) and the lincheck
+/// to `2^n_blocks_log` slots, one instance at a time. Returns `(z, a, b, z_lincheck)`:
+/// the three bit-packed `u64` tables (`K / 64` words per instance) and the lincheck
 /// byte stripe.
 ///
 /// `per_block(initial, z_u64, a_u64, b_u64)` populates one block's worth of
@@ -152,89 +244,42 @@ pub(crate) fn drive_witness_packed_and_lincheck<S: Sync, F>(
 where
     F: Fn(&S, &mut [u64], &mut [u64], &mut [u64]) + Sync,
 {
-    let k = 1usize << k_log;
-    let u64_per_block = k / 64;
-    let n_total = 1usize << n_blocks_log;
+    let u64_per_block = (1usize << k_log) / 64;
     let n_blocks = initial_states.len();
     assert!(
-        n_blocks <= n_total,
-        "{n_blocks} blocks > 2^{n_blocks_log} = {n_total} slots"
-    );
-    assert!(
-        n_total >= 8 && n_total.is_multiple_of(8),
-        "lincheck stripe layout requires n_total ≥ 8 and divisible by 8"
+        n_blocks <= 1 << n_blocks_log,
+        "{n_blocks} blocks > 2^{n_blocks_log} slots"
     );
 
-    let total_words = n_total * u64_per_block;
-    // SAFETY (x4): group `g` publishes chunk `g` of every table in full below, and the chunk counts match.
-    // The z/a/b chunks are 8 blocks of packed words, and the stripe chunk is the transpose's k bytes.
-    let mut z = unsafe { ArenaVec::<u64>::uninitialized(total_words) };
-    let mut a = unsafe { ArenaVec::<u64>::uninitialized(total_words) };
-    let mut b = unsafe { ArenaVec::<u64>::uninitialized(total_words) };
-    let mut z_lincheck = unsafe { ArenaVec::<u8>::uninitialized((n_total / 8) * k) };
-
-    // Four output tables at two widths, indexed by the same group: `z`/`a`/`b`
-    // take eight blocks' packed words, `z_lincheck` takes one byte stripe.
-    let group_words = 8 * u64_per_block;
-    let z_chunks = parallel::Chunks::new(&mut z, group_words);
-    let a_chunks = parallel::Chunks::new(&mut a, group_words);
-    let b_chunks = parallel::Chunks::new(&mut b, group_words);
-    let stripe_chunks = parallel::Chunks::new(&mut z_lincheck, k);
-    debug_assert_eq!(z_chunks.count(), stripe_chunks.count());
-
-    // Each group builds in its worker's scratch, which stays in cache, then streams out.
-    //
-    //     scratch  z | a | b   8 blocks each, zeroed then ORed into
-    //     stripe               the bit transpose of the 8 z blocks
-    //
-    // Building in place instead would fetch every output line before writing it.
-    parallel::map_reduce_with_state(
-        z_chunks.count(),
-        || (vec![0u64; 3 * group_words], vec![0u8; k]),
+    // Eight blocks per group, the lincheck stripe of one group being their bit transpose.
+    drive_witness_groups(
+        n_blocks_log,
+        k_log,
+        8,
         || (),
-        |(scratch, stripe), (), g| {
-            scratch.fill(0);
-            let (z_grp, rest) = scratch.split_at_mut(group_words);
-            let (a_grp, b_grp) = rest.split_at_mut(group_words);
+        |(), first, t| {
+            // A block only sets bits, so it starts from zero.
+            t.z.fill(0);
+            t.a.fill(0);
+            t.b.fill(0);
             for k_in in 0..8 {
-                let global_idx = 8 * g + k_in;
-                let init: &S = if global_idx < n_blocks {
-                    &initial_states[global_idx]
-                } else if let Some(p) = padding {
+                let init: &S = match (initial_states.get(first + k_in), padding) {
+                    (Some(state), _) => state,
                     // Fill the padding slot with a real block so its constant
                     // wire is set (see `padding` docs above).
-                    p
-                } else {
+                    (None, Some(p)) => p,
                     // No padding block, leave this slot zero.
-                    continue;
+                    (None, None) => continue,
                 };
                 let range = k_in * u64_per_block..(k_in + 1) * u64_per_block;
-                per_block(
-                    init,
-                    &mut z_grp[range.clone()],
-                    &mut a_grp[range.clone()],
-                    &mut b_grp[range],
-                );
+                per_block(init, &mut t.z[range.clone()], &mut t.a[range.clone()], &mut t.b[range]);
             }
 
             // Bit-transpose 8 z chunks into the lincheck stripe.
-            for (i, out) in stripe.as_chunks_mut::<64>().0.iter_mut().enumerate() {
-                let rows: [[u8; 8]; 8] = std::array::from_fn(|l| z_grp[l * u64_per_block + i].to_le_bytes());
+            for (i, out) in t.stripes.as_chunks_mut::<64>().0.iter_mut().enumerate() {
+                let rows: [[u8; 8]; 8] = std::array::from_fn(|l| t.z[l * u64_per_block + i].to_le_bytes());
                 bit_transpose_64bytes(rows.as_flattened().try_into().expect("64 bytes"), out);
             }
-
-            // SAFETY: each group `g` takes chunk `g` of each table exactly once, and
-            // all four tables stay borrowed for the whole dispatch.
-            let stream = Stream::new();
-            unsafe {
-                stream.copy(z_chunks.get(g), z_grp);
-                stream.copy(a_chunks.get(g), a_grp);
-                stream.copy(b_chunks.get(g), b_grp);
-                stream.copy(stripe_chunks.get(g), stripe);
-            }
         },
-        |(), ()| (),
-    );
-
-    (z, a, b, z_lincheck)
+    )
 }

@@ -47,7 +47,7 @@ pub use ::pcs::whir::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
 const _: () = assert!(::pcs::whir::SECURITY_BITS == crate::SECURITY_BITS as usize);
 /// Minimum committed-witness log-size accepted by the WHIR level ladder, with one level of margin.
 pub const MIN_MU: usize = 15;
-/// Largest committed size accepted by all verifiers and compiled into the recursion guest.
+/// Largest committed size accepted by all verifiers.
 pub const MAX_MU: usize = 28;
 
 /// The shared WHIR config for a `2^μ`-word witness, memoized per `(μ, log_inv_rate)`.
@@ -124,10 +124,10 @@ pub fn commit(
 
 // The batching challenges are just `sample()`d inside the stacked opener: every
 // claim they combine is already bound: the values rode the stream
-// (`add_scalar`) during the bus / constraint sub-protocols or, for the
-// public-input claims, are functions of the seeded statement and a prior
-// challenge, the points are prior challenges, and the offsets are public
-// (reconstructed identically from the announced layout).
+// (`add_scalar`) during the bus / constraint sub-protocols or, for the exit
+// claims, are the seeded statement, the points are prior challenges or Boolean
+// constants, and the offsets are public (reconstructed identically from the
+// announced layout).
 
 /// Verifier counterpart of [`commit`]'s root binding: read the committed root
 /// from the stream at the start of verification, before sampling any challenge.
@@ -136,22 +136,21 @@ pub fn read_commitment(vs: &mut VerifierState) -> Result<[u8; 32], crate::transc
 }
 
 /// Open the committed witness: discharge the `points` (leanVM's bus / constraint /
-/// public-input claims, as block-sparse slot evaluations) AND flock's
-/// ring-switched BLAKE2s validity claim (`ring`) in ONE stacked WHIR.
+/// exit claims, as block-sparse slot evaluations) AND flock's ring-switched
+/// validity claims (`rings`, one per class) in ONE stacked WHIR.
 /// The points become the opener's `point_claims`; the opening's Merkle data
 /// rides the transcript's phase list, not the scalar stream. The commitment root
 /// was already bound by [`commit`], and the point *values* either rode the
-/// stream or derive from the statement and prior challenges, so nothing extra
-/// is bound here.
+/// stream or are the statement, so nothing extra is bound here.
 ///
 /// There is no plain (non-ring-switch) path: the witness ALWAYS carries a `q_flock`
 /// sub-block (≥ 1 padding instance, §cpu), so every opening is stacked.
-pub fn open(ps: &mut ProverState, c: &Committed, q: &[F64], points: &[SlotClaim], ring: &RingSwitchOpen) {
+pub fn open(ps: &mut ProverState, c: &Committed, q: &[F64], points: &[SlotClaim], rings: &[RingSwitchOpen]) {
     let lane_block = 1usize << (c.mu - LOG_BATCH);
     assert_eq!(q.len() % lane_block, 0, "witness must be whole committed lanes");
     assert!(q.len() <= 1usize << c.mu, "witness must fit the announced size");
     let cfg = whir_config(c.mu, c.log_inv_rate);
-    open_batch_mixed_whir_stacked(ps, c.mu, q, &c.prover_data, &cfg, points, ring)
+    open_batch_mixed_whir_stacked(ps, c.mu, q, &c.prover_data, &cfg, points, rings)
 }
 
 /// Verify the opening (mirror of [`open`]): flock's ring-switched claim
@@ -160,13 +159,13 @@ pub fn open(ps: &mut ProverState, c: &Committed, q: &[F64], points: &[SlotClaim]
 pub fn verify(
     vs: &mut VerifierState,
     points: &[SlotClaim],
-    ring: &RingSwitchVerify<'_>,
+    rings: &[RingSwitchVerify<'_>],
     shape: crate::witness::StackShape,
     log_inv_rate: usize,
     root: &[u8; 32],
 ) -> Result<(), Error> {
     let cfg = whir_config(shape.mu, log_inv_rate);
-    verify_opening_batch_mixed_whir_stacked(vs, &cfg, shape.mu, shape.n_lanes, root, points, ring).map_err(Error::Whir)
+    verify_opening_batch_mixed_whir_stacked(vs, &cfg, shape.mu, shape.n_lanes, root, points, rings).map_err(Error::Whir)
 }
 
 #[cfg(test)]

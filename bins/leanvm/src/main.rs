@@ -1,10 +1,11 @@
-//! Benchmark CLI for signature and blob proofs, recursion, and the Fibonacci demo.
+//! Benchmark CLI.
 
 use clap::{Parser, Subcommand};
 
-mod benchmark;
 mod fibonacci;
-mod report;
+mod guest;
+mod tracked;
+mod workload;
 
 #[derive(Parser)]
 struct Cli {
@@ -40,47 +41,48 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
-    /// Prove signatures and blobs, then verify the proof. At least one count must be nonzero.
-    Aggregate {
-        /// XMSS signatures to aggregate.
-        #[arg(long, default_value = "0")]
-        xmss: usize,
-        /// SPHINCS signatures to aggregate.
-        #[arg(long, default_value = "0")]
-        sphincs: usize,
-        /// Blobs in one LeanDA commitment (128 KiB each).
-        #[arg(
-            long,
-            default_value_t = 0,
-            value_parser = clap::builder::RangedU64ValueParser::<usize>::new().range(0..=lean_da::DA_MAX_ROWS as u64)
-        )]
-        blobs: usize,
-    },
-    /// Aggregate n child proofs into one proof.
-    Recursion {
-        /// Number of child aggregates.
-        #[arg(long, default_value = "2")]
-        n: usize,
-        /// XMSS signatures in each child. Sets the child proof's committed size,
-        /// which is what the recursion cost should be quoted against.
-        #[arg(long, default_value = "900")]
-        xmss_per_leaf: usize,
-        /// SPHINCS signatures in each child, on top of the XMSS ones.
-        #[arg(long, default_value = "0")]
-        sphincs_per_leaf: usize,
-        /// Blobs in each child's LeanDA commitment. Use --xmss-per-leaf 0 for blobs alone.
-        #[arg(
-            long,
-            default_value_t = 0,
-            value_parser = clap::builder::RangedU64ValueParser::<usize>::new().range(0..=lean_da::DA_MAX_ROWS as u64)
-        )]
-        blobs_per_leaf: usize,
-    },
-    /// Prove and verify Fibonacci in the exponent (demo).
+    /// Prove and verify Fibonacci modulo 2^64.
     Fibonacci {
         /// Number of recurrence steps.
         #[arg(long, default_value = "2000000")]
         n: usize,
+    },
+    /// Prove and verify a run of a RISC-V guest (see `programs/`).
+    Guest {
+        /// The guest's ELF executable.
+        elf: std::path::PathBuf,
+        /// The advice: the words the guest reads, decimal or 0x-prefixed. The statement does not cover it.
+        #[arg(long, value_delimiter = ',', value_parser = guest::parse_word)]
+        advice: Vec<u64>,
+    },
+    /// Prove and verify a guest checking leanXMSS signatures, one key each.
+    Leanxmss {
+        /// Signatures to verify.
+        #[arg(long, default_value_t = 64, value_parser = clap::builder::RangedU64ValueParser::<usize>::new().range(1..))]
+        n: usize,
+    },
+    /// Prove and verify a guest checking leanSPHINCS signatures, one key each.
+    Leansphincs {
+        /// Signatures to verify.
+        #[arg(long, default_value_t = 16, value_parser = clap::builder::RangedU64ValueParser::<usize>::new().range(1..))]
+        n: usize,
+    },
+    /// Prove and verify a guest checking leanDA blobs and computing their commitment.
+    Leanda {
+        /// Blobs of 128 KiB to check.
+        #[arg(long, default_value_t = 1, value_parser = clap::builder::RangedU64ValueParser::<usize>::new().range(1..))]
+        blobs: usize,
+    },
+    /// Prove the benchmarks CI tracks and print them as Bencher Metric Format JSON.
+    ///
+    /// The lists are `bins/leanvm/src/tracked.rs`.
+    Bench {
+        /// Count every program at the README's sizes without proving: the exact counts only.
+        #[arg(long)]
+        cycles_only: bool,
+        /// Print the counts as a markdown table rather than JSON.
+        #[arg(long, requires = "cycles_only")]
+        markdown: bool,
     },
 }
 
@@ -88,32 +90,16 @@ fn main() {
     let cli = Cli::parse();
     leanvm_core::init_prover();
     let plan = bench::Plan::new(cli.repeat, cli.cooldown);
-    if cli.tracing && !matches!(&cli.command, Command::Recursion { .. }) {
+    if cli.tracing {
         bench::init_tracing();
     }
     match cli.command {
-        Command::Aggregate { xmss, sphincs, blobs } => {
-            benchmark::run_aggregation(xmss, sphincs, blobs, cli.log_inv_rate, plan);
-        }
-        Command::Recursion {
-            n,
-            xmss_per_leaf,
-            sphincs_per_leaf,
-            blobs_per_leaf,
-        } => {
-            benchmark::run_recursion(
-                n,
-                xmss_per_leaf,
-                sphincs_per_leaf,
-                blobs_per_leaf,
-                cli.log_inv_rate,
-                cli.tracing,
-                plan,
-            );
-        }
-        Command::Fibonacci { n } => {
-            fibonacci::run_fibonacci(n, cli.log_inv_rate, plan);
-        }
+        Command::Fibonacci { n } => fibonacci::run_fibonacci(n, cli.log_inv_rate, plan),
+        Command::Guest { elf, advice } => guest::run_guest(&elf, &advice, cli.log_inv_rate, plan),
+        Command::Leanxmss { n } => workload::run(&workload::leanxmss(n), cli.log_inv_rate, plan),
+        Command::Leansphincs { n } => workload::run(&workload::leansphincs(n), cli.log_inv_rate, plan),
+        Command::Leanda { blobs } => workload::run(&workload::leanda(blobs), cli.log_inv_rate, plan),
+        Command::Bench { cycles_only, markdown } => tracked::run(cycles_only, markdown, cli.log_inv_rate, plan),
     }
     if std::env::var_os("ZK_ALLOC_STATS").is_some() {
         eprintln!("{}", zk_alloc::stats());

@@ -1,0 +1,215 @@
+//! The leanDA program off the VM: what a block builder computes, then lays out as the
+//! guest's advice, and the guest's own library run natively for the output the guest must give.
+//!
+//! The builder encodes the blobs and commits to them.
+//!
+//! The dual codeword `L` then follows from the root, by Fiat-Shamir.
+
+use fiat_shamir::{FiatShamirState, merkle::hash_to_scalars};
+use leanda::{CELLS, Dual, Hash, LOG_K, M};
+use leanvm_guest::PublicValues;
+use pcs::ntt::AdditiveNttF64;
+use primitives::field::{F64, F192};
+
+/// The guest (`../guest`), built by `programs/build.sh`.
+pub const ELF: &[u8] = include_bytes!("../../leanda.elf");
+
+/// What one run of the guest is given, and what it must output.
+pub struct Run {
+    pub advice: Vec<u64>,
+    pub expected: [u64; 4],
+}
+
+/// Transcript label, so a membership challenge is never any other challenge.
+const LABEL: &[u8] = b"leanDA/rs-membership/v1";
+
+/// `n` blobs of 128 KiB, encoded and committed to.
+pub fn blobs(n: usize) -> Run {
+    // The builder: encode, commit, then derive `L` from the root.
+    let codewords = encode(&payload(n));
+    let rows = codewords.as_chunks::<M>().0;
+    let mut cells = vec![[[0; 4]; CELLS]; n.next_power_of_two()];
+    let root = leanda::commit(rows, &mut cells).expect("1..=MAX_ROWS blobs");
+    let dual = dual_codeword(&root);
+    // The guest commits what its code computes natively: the root and `H(L)`.
+    let checked = leanda::check(dual.as_slice().try_into().unwrap(), rows, &mut cells).expect("codewords");
+
+    // The advice: the blob count, `L`, then the encoded blobs.
+    let mut advice = vec![n as u64];
+    advice.extend_from_slice(dual.as_flattened());
+    advice.extend_from_slice(&codewords);
+    let mut public = PublicValues::new();
+    public.commit(&checked);
+    Run {
+        advice,
+        expected: public.digest(),
+    }
+}
+
+/// Blobs of any payload: a Weyl sequence, one symbol per step.
+fn payload(n: usize) -> Vec<u64> {
+    (1..=n << LOG_K)
+        .map(|i| 0x9E37_79B9_7F4A_7C15u64.wrapping_mul(i as u64))
+        .collect()
+}
+
+/// Encode each blob of `k` symbols to `m`, systematically: the blob is the first half.
+///
+/// The inverse NTT interpolates the blob, and the NTT evaluates it on the whole domain.
+fn encode(payload: &[u64]) -> Vec<u64> {
+    let interpolation = AdditiveNttF64::standard(LOG_K);
+    let ntt = AdditiveNttF64::standard(LOG_K + 1);
+    let mut codewords = vec![0; 2 * payload.len()];
+    // One blob at a time: each transform dispatches to the thread pool itself.
+    for (codeword, blob) in codewords
+        .as_chunks_mut::<M>()
+        .0
+        .iter_mut()
+        .zip(payload.as_chunks::<{ M / 2 }>().0)
+    {
+        // The blob's evaluations to its coefficients, in the novel basis.
+        codeword[..M / 2].copy_from_slice(blob);
+        let codeword = as_field(codeword);
+        interpolation.inverse_transform(&mut codeword[..M / 2]);
+        // The coefficients to evaluations on a domain twice as large: rate 1/2.
+        ntt.encode_interleaved_in_place(codeword, 1, 1);
+    }
+    codewords
+}
+
+/// `L`: the codeword of the tensor `(1, z_0) x .. x (1, z_13)`, each `z_j` drawn from the root.
+///
+/// It spans every novel-basis coefficient below `k`, so it is a codeword.
+///
+/// The code is self-dual at rate 1/2, so `L` is orthogonal to every codeword.
+fn dual_codeword(root: &Hash) -> Vec<Dual> {
+    // The challenges: the root's two halves observed, then 14 samples in `GF(2^192)`.
+    let root: [u8; 32] = std::array::from_fn(|i| (root[i / 8] >> (8 * (i % 8))) as u8);
+    let mut fs = FiatShamirState::from_label(LABEL);
+    for scalar in hash_to_scalars(&root) {
+        fs.observe(scalar);
+    }
+    let z = fs.sample_vec(LOG_K);
+
+    // The tensor, built by doubling: after step `j` its first `2^(j+1)` entries are set.
+    //
+    //     [1]  ->  [1, z_0]  ->  [1, z_0, z_1, z_0 z_1]  ->  ..
+    let mut tensor = vec![F192::ZERO; M];
+    tensor[0] = F192::ONE;
+    for (j, &zj) in z.iter().enumerate() {
+        let (low, high) = tensor[..2 << j].split_at_mut(1 << j);
+        for (h, &l) in high.iter_mut().zip(low.iter()) {
+            *h = l * zj;
+        }
+    }
+    // The NTT is K-linear, so an F192 codeword is three K-codewords, one per limb.
+    let mut limbs: Vec<u64> = tensor.iter().flat_map(|t| [t.c0, t.c1, t.c2]).collect();
+    AdditiveNttF64::standard(LOG_K + 1).encode_interleaved_in_place(as_field(&mut limbs), 3, 1);
+    limbs.as_chunks::<3>().0.to_vec()
+}
+
+/// Symbols as the field elements they are, in place.
+fn as_field(words: &mut [u64]) -> &mut [F64] {
+    // SAFETY: `F64` is `repr(transparent)` over `u64`, every bit pattern valid.
+    unsafe { core::slice::from_raw_parts_mut(words.as_mut_ptr().cast(), words.len()) }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn hex(words: &[u64]) -> String {
+        words
+            .iter()
+            .flat_map(|w| w.to_le_bytes())
+            .map(|b| format!("{b:02x}"))
+            .collect()
+    }
+
+    #[test]
+    fn leanda_is_the_specified_scheme() {
+        // Known answers of the leanDA reference implementation: the root and `H(L)`.
+        //
+        // Fixture state: 3 blobs, padded to 4 rows, so the padding digests are covered too.
+        let codewords = encode(&payload(3));
+        let mut cells = vec![[[0; 4]; CELLS]; 4];
+        let root = leanda::commit(codewords.as_chunks::<M>().0, &mut cells).unwrap();
+        let dual = dual_codeword(&root);
+        assert_eq!(
+            hex(&root),
+            "dcb553cafc216cbb85fa63840f171bca8638fc1be264c99fe96a50af23c4693f"
+        );
+        assert_eq!(
+            hex(&leanda::dual_digest(dual.as_slice().try_into().unwrap())),
+            "8356c17fff51207a0a30bca1089c12aefb09546e4d77d4f7c7a5be6c05425f3c"
+        );
+    }
+
+    #[test]
+    fn the_membership_check_is_the_field_inner_product() {
+        // Invariant: the bucketed inner product is the field's, for any row and dual.
+        //
+        // So the test uses no codeword at all, only field arithmetic, which the guest never does.
+        let mut state = 0x243F_6A88_85A3_08D3u64;
+        let mut next = || {
+            // SplitMix64.
+            state = state.wrapping_add(0x9E37_79B9_7F4A_7C15);
+            let z = (state ^ (state >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+            let z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+            z ^ (z >> 31)
+        };
+        let mut cells = vec![[[0; 4]; CELLS]; 1];
+        for _ in 0..2 {
+            // Fixture state: a random row, odd symbols so `w_0` is invertible, and a random dual.
+            let row: Vec<u64> = (0..M).map(|_| next() | 1).collect();
+            let mut dual: Vec<Dual> = (0..M).map(|_| [next(), next(), next()]).collect();
+            // Solve for `L_0`, limb by limb, so that the inner product is zero:
+            //
+            //     L_0 w_0 + sum_{x >= 1} L_x w_x = 0   =>   L_0 = (sum_{x >= 1} L_x w_x) / w_0
+            for c in 0..3 {
+                let rest = (1..M).fold(F64::ZERO, |acc, x| acc + F64(dual[x][c]) * F64(row[x]));
+                dual[0][c] = (rest * F64(row[0]).inv()).0;
+            }
+            let row: &[[u64; M]] = &[row.try_into().unwrap()];
+            let check = |dual: &[Dual], cells: &mut [[leanda::Hash; CELLS]]| {
+                leanda::check(dual.try_into().unwrap(), row, cells).map(|_| ())
+            };
+            assert_eq!(check(&dual, &mut cells), Ok(()));
+
+            // Mutation: one bit of `L_0`, which moves the product by `t^bit * w_0 != 0`.
+            //
+            //     limb 0 bit 0    the lowest bit
+            //     limb 1 bit 11   the second window's first bit
+            //     limb 2 bit 55   the top window's first bit
+            //     limb 0 bit 63   the top bit, whose product reaches degree 126
+            for (c, bit) in [(0, 0), (1, 11), (2, 55), (0, 63)] {
+                let mut broken = dual.clone();
+                broken[0][c] ^= 1 << bit;
+                assert_eq!(
+                    check(&broken, &mut cells),
+                    Err(leanda::Error::NotACodeword(0)),
+                    "limb {c} bit {bit}"
+                );
+            }
+        }
+    }
+
+    /// The guest on the interpreter, with no proof: its output, or the trap.
+    fn on_the_vm(run: &Run) -> Result<[u64; 4], leanvm_core::rv::Trap> {
+        let program = leanvm_core::cpu::Program::from_elf(ELF).expect("the guest's ELF file");
+        leanvm_core::rv::Machine::new(program.rv(), &run.advice).run(1 << 30)
+    }
+
+    #[test]
+    fn the_guest_checks_what_the_native_code_checks() {
+        // The guest on the interpreter outputs what its code computes natively.
+        let mut run = blobs(1);
+        assert_eq!(on_the_vm(&run), Ok(run.expected));
+
+        // Mutation: the top bit of the last parity symbol, which no row digest covers.
+        //
+        //     only the membership check can see it → the guest panics → no output
+        *run.advice.last_mut().unwrap() ^= 1 << 63;
+        assert!(on_the_vm(&run).is_err());
+    }
+}

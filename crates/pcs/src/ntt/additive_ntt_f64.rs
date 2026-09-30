@@ -257,9 +257,19 @@ impl AdditiveNttF64 {
 
         // Where the deep pass starts.
         //
-        //     every layer fits one L3 sub-block  ->  deep pass only, one sweep
-        //     otherwise                          ->  the deep pass keeps one L2 sub-block of layers
-        let deep = if log_d - start <= fit3 { fit3 } else { fit2 };
+        // A deep pass of L3 sub-blocks spills L2, which only pays when it saves a whole sweep.
+        //
+        //     21 layers, fit2 = 10, fit3 = 12:
+        //       L2 deep pass:  2 gathered sweeps (10 + 1 layers), then 10 deep
+        //       L3 deep pass:  1 gathered sweep  (9 layers),      then 12 deep  <- one sweep fewer
+        //
+        //     20 layers: 1 gathered sweep either way, so the deep pass stays in L2
+        let gathered_sweeps = |deep: usize| (log_d - start).saturating_sub(deep).div_ceil(fit2);
+        let deep = if gathered_sweeps(fit3) < gathered_sweeps(fit2) {
+            fit3
+        } else {
+            fit2
+        };
         let deep_start = log_d.saturating_sub(deep).max(par_log).max(start);
 
         // A buffer this large is evicted before the next pass reads it back.
@@ -694,7 +704,7 @@ const LOG_SUBS_PER_WORKER: usize = 0;
 #[cfg(all(target_arch = "aarch64", target_os = "macos"))]
 const LOG_SUBS_PER_WORKER: usize = 2;
 
-/// Words a deep sub-block may span when it alone covers every layer.
+/// Words a deep sub-block may span when that saves a whole sweep.
 ///
 /// # Why this value
 ///
@@ -1303,6 +1313,33 @@ mod tests {
                         "lane {lane} pos {pos} at log_rows={log_rows}, rate={log_inv_rate}, n_lanes={n_lanes}"
                     );
                 }
+            }
+        }
+    }
+
+    #[test]
+    fn a_deep_pass_in_l3_matches_per_lane_ntts() {
+        // Invariant: the plan that gives the deep pass the L3 budget computes the same transform.
+        //
+        // Fixture state: 8192 lanes, so L2 holds 2^3 rows and L3 2^5 rows.
+        //
+        //     7 layers, L2 deep pass:  2 gathered sweeps (3 + 1 layers), then 3 deep
+        //     7 layers, L3 deep pass:  1 gathered sweep  (2 layers),     then 5 deep  <- taken
+        let (log_d, lanes) = (7, 8192);
+        let ntt = AdditiveNttF64::standard(log_d);
+        let mut rng = Rng::new(0x13);
+        let soa: Vec<F64> = (0..lanes << log_d).map(|_| F64(rng.next_u64())).collect();
+
+        // The whole interleaved buffer through the planner.
+        let mut got = soa.clone();
+        ntt.transform(&mut got, lanes, 0, None, None);
+
+        // Each lane on its own through the scalar transform.
+        for lane in 0..lanes {
+            let mut want: Vec<F64> = (0..1 << log_d).map(|pos| soa[pos * lanes + lane]).collect();
+            forward_scalar_from_layer(&ntt, &mut want, 1, 0);
+            for (pos, &w) in want.iter().enumerate() {
+                assert_eq!(got[pos * lanes + lane], w, "lane {lane} pos {pos}");
             }
         }
     }

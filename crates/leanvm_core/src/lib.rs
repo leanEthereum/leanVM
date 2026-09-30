@@ -1,35 +1,36 @@
 //! leanVM: arithmetization of a minimal zkVM (see `doc/leanvm/main.tex`).
 //!
-//! Machine words are `c0 + c1*y + c2*y² ∈ E = K[y]/(y³ + y + 1)`.
-//! Addresses, pc/fp, read counters, and logical indices live in
-//! `K = GF(2^64)`; indices are powers of a fixed generator `g`, so incrementing
-//! one is a multiplication by `g`, a free virtual operation. Every physical
-//! witness column is K-valued (an E-valued word is three K-lane columns) and is
-//! committed directly by a dense multilinear PCS. Challenges and transcript
-//! scalars live in `E = GF(2^192)`, leaving ample margin for 128-bit soundness.
+//! Machine words, addresses, the pc, timestamps and read counters live in `K = GF(2^64)`.
+//! What the machine computes with is an integer, read as the element with those bits;
+//! what the proof system only ever steps (a timestamp, a read count) is a power of a
+//! fixed generator `g`, so incrementing one is a multiplication by `g`, a free virtual
+//! operation. Every physical witness column is K-valued and is committed directly by a
+//! dense multilinear PCS.
+//! Challenges and transcript scalars live in `E = GF(2^192)`, leaving ample margin
+//! for 128-bit soundness.
 //!
 //! - [`transcript`]: the shared Fiat-Shamir transcript (re-exported from `fiat_shamir`).
 //! - [`pcs`]: `K`-committed witness, `E`-opened, via the stacked WHIR (§sec:stacking, §annex:pcs).
 //! - [`witness`]: `K`-valued columns stacked into one committed witness.
 //! - [`gkr`]: the grand product via GKR (§sec:gkr), balancing the bus.
 //! - [`leaf`]: the shared bus: grand-product balance, decomposed to per-column claims (§sec:gp through §sec:leafstack, §sec:omc).
-//! - [`constraints`]: one table sumcheck over all six tables'
+//! - [`constraints`]: one table sumcheck over all the tables'
 //!   degree-2 identities plus their three bus forms (§sec:air).
-//! - [`tables`]: the six instruction tables (columns, flushes, constraints).
-//! - [`cpu`]: whole-program assembly, control flow, and the prove/verify entry points.
-//! - [`hash_flock`]: the `BLAKE2s` glue: flock's R1CS validity proof over the same commitment.
-//! - [`vmhash`]: VM-native hashing (one-block compression and standard BLAKE2s slice hashing).
+//! - [`rv`]: RISC-V (rv64im): the decoder, each instruction class's function and circuit, and the reference interpreter.
+//! - [`tables`]: the instruction tables, one per class (columns, flushes, constraints).
+//! - [`class_flock`]: the glue to flock: a class's circuit proven over its own packed witness, in the same commitment.
+//! - [`cpu`]: whole-program assembly and the prove/verify entry points.
 
+pub mod class_flock;
 pub mod colval;
 pub mod constraints;
 pub mod cpu;
 pub mod gkr;
-pub mod hash_flock;
 pub mod leaf;
 pub mod pcs;
+pub mod rv;
 pub mod tables;
 pub mod transcript;
-pub mod vmhash;
 pub mod witness;
 
 /// Prepare the process for proving: the worker pool ([`init_prover_pool`]) plus

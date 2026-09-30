@@ -54,9 +54,11 @@ const N_INNER: usize = 7; // 3 small + 4 medium fixed-constant eq dimensions
 ///
 /// - A pass re-reads the three bit tables, `3 * 2^m` bits.
 /// - Storing at level `t` writes three F192 tables, `3 * 192 * 2^(m - 6 - t)` bits, then reads them back.
-/// - With GFNI a pass is bandwidth-bound, so storing pays once the tables are well below the bits: level 4, after two passes.
-/// - The byte-table fold is compute-bound, its tables growing with the level, so a pass costs more than the stored tables' traffic: store at once.
-const PAIR_PASSES: usize = if bit_fold::GFNI { 2 } else { 0 };
+/// - On x86 a pass is bandwidth-bound, with GFNI or with the byte tables.
+/// - So storing pays once the tables are well below the bits: level 4, after two passes.
+/// - On aarch64 the byte-table fold is compute-bound, its tables growing with the level.
+/// - There a pass costs more than the stored tables' traffic: store at once.
+const PAIR_PASSES: usize = if cfg!(target_arch = "aarch64") { 0 } else { 2 };
 
 /// Build the equality coordinates that remain after the univariate skip.
 fn equality_tail(m: usize, mut sample_vec: impl FnMut(usize) -> Vec<F192>) -> Vec<F192> {

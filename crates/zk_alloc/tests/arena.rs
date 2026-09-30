@@ -3,24 +3,11 @@
 //! phase reset, which is the property that lets a library use the arena without
 //! imposing it on its consumers.
 
-use std::sync::{Mutex, MutexGuard};
-
 use zk_alloc::{ArenaVec, enable_arena, enter_phase};
 
 const N: usize = 4096;
 
-/// Phases are process-global and refuse to nest, so the tests in this binary
-/// must not overlap. Opting the arena in here too keeps each test standalone.
-fn exclusive() -> MutexGuard<'static, ()> {
-    static LOCK: Mutex<()> = Mutex::new(());
-    enable_arena();
-    LOCK.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
-}
-
-#[test]
 fn phase_reset_recycles_the_slab_and_spares_the_system_heap() {
-    let _serial = exclusive();
-
     // One arena allocation on this thread claims its slab at the base.
     let p1 = {
         let _phase = enter_phase();
@@ -54,9 +41,7 @@ fn phase_reset_recycles_the_slab_and_spares_the_system_heap() {
     assert_eq!(outside.iter().sum::<u64>(), (0..1000).sum());
 }
 
-#[test]
 fn guard_closes_the_phase_on_unwind() {
-    let _serial = exclusive();
     let panicked = std::panic::catch_unwind(|| {
         let _phase = enter_phase();
         let _v: ArenaVec<u8> = ArenaVec::filled(7, 32);
@@ -67,9 +52,7 @@ fn guard_closes_the_phase_on_unwind() {
     let _phase = enter_phase();
 }
 
-#[test]
 fn growth_preserves_contents_across_reallocation() {
-    let _serial = exclusive();
     let _phase = enter_phase();
     let mut v: ArenaVec<usize> = ArenaVec::new();
     for i in 0..10_000 {
@@ -79,9 +62,7 @@ fn growth_preserves_contents_across_reallocation() {
     assert!(v.iter().copied().eq(0..10_000));
 }
 
-#[test]
 fn zeroed_clears_a_recycled_slab() {
-    let _serial = exclusive();
     {
         let _phase = enter_phase();
         let mut dirty: ArenaVec<u64> = ArenaVec::filled(!0, N);
@@ -96,7 +77,6 @@ fn zeroed_clears_a_recycled_slab() {
     }
 }
 
-#[test]
 fn drop_runs_for_elements_that_need_it() {
     use std::sync::atomic::{AtomicUsize, Ordering};
     static DROPS: AtomicUsize = AtomicUsize::new(0);
@@ -108,7 +88,6 @@ fn drop_runs_for_elements_that_need_it() {
         }
     }
 
-    let _serial = exclusive();
     let _phase = enter_phase();
     {
         let mut v: ArenaVec<Noisy> = ArenaVec::new();
@@ -121,9 +100,7 @@ fn drop_runs_for_elements_that_need_it() {
     assert_eq!(DROPS.load(Ordering::Relaxed), 100, "drop releases the rest");
 }
 
-#[test]
 fn zero_sized_elements_never_allocate() {
-    let _serial = exclusive();
     let _phase = enter_phase();
     let mut v: ArenaVec<()> = ArenaVec::new();
     for _ in 0..1000 {
@@ -136,9 +113,7 @@ fn zero_sized_elements_never_allocate() {
 /// The shape the LIFO pop cannot reclaim, and the reason the reuse list exists:
 /// allocate the next buffer, release the previous one. Nothing is ever freed at
 /// the cursor, so without reuse the cursor would grow by a buffer per iteration.
-#[test]
 fn reuse_holds_a_rotation_at_its_live_set() {
-    let _serial = exclusive();
     let words = zk_alloc::REUSE_MIN; // `REUSE_MIN * 8` bytes, well over the floor
     let buf = words * size_of::<u64>();
     let rounds = 16;
@@ -175,9 +150,7 @@ fn reuse_holds_a_rotation_at_its_live_set() {
 /// releasing thread's free list, or that thread hands out memory it does not
 /// own. Not hypothetical: `parallel::map_reduce_with_state` builds each worker's
 /// accumulator on the worker and folds (and drops) the slots on the dispatcher.
-#[test]
 fn a_foreign_release_never_enters_this_thread_s_free_list() {
-    let _serial = exclusive();
     let words = zk_alloc::REUSE_MIN; // over the reuse floor, so the list would take it
     let _phase = enter_phase();
 
@@ -210,9 +183,7 @@ fn a_foreign_release_never_enters_this_thread_s_free_list() {
 /// (a same-size rotation exercises none of them); every buffer carries its own
 /// tag and is checked while all the others are still live, so an overlap shows
 /// up here rather than as a proof that quietly stops verifying.
-#[test]
 fn recycled_blocks_never_back_two_live_buffers() {
-    let _serial = exclusive();
     let _phase = enter_phase();
     let mib = zk_alloc::REUSE_MIN / size_of::<u64>(); // words, so every buffer clears the floor
     let mut seed = 0x243f_6a88_85a3_08d3_u64;
@@ -241,4 +212,98 @@ fn recycled_blocks_never_back_two_live_buffers() {
             live.remove(rand() as usize % live.len());
         }
     }
+}
+
+fn escaped_buffers_keep_their_storage_until_release() {
+    let phase = enter_phase();
+    let mut old = ArenaVec::filled(String::from("live"), 8);
+    drop(phase);
+
+    assert!(std::panic::catch_unwind(enter_phase).is_err());
+    assert!(old.iter().all(|value| value == "live"));
+    old[0].push_str(" buffer");
+    assert_eq!(old[0], "live buffer");
+
+    drop(old);
+    let _phase = enter_phase();
+    let fresh = ArenaVec::filled(String::from("fresh"), 8);
+    assert!(fresh.iter().all(|value| value == "fresh"));
+}
+
+fn failed_nested_open_preserves_the_active_phase() {
+    let phase = enter_phase();
+    assert!(std::panic::catch_unwind(enter_phase).is_err());
+    let old = ArenaVec::filled(7u64, 8);
+    drop(phase);
+
+    assert!(std::panic::catch_unwind(enter_phase).is_err());
+    assert_eq!(&*old, &[7; 8]);
+    drop(old);
+    let _phase = enter_phase();
+}
+
+fn a_cross_thread_owner_blocks_reset_until_release() {
+    let phase = enter_phase();
+    let old = ArenaVec::filled(7u64, N);
+    drop(phase);
+
+    std::thread::scope(|scope| {
+        let (release, wait) = std::sync::mpsc::channel();
+        let worker = scope.spawn(move || {
+            wait.recv().unwrap();
+            assert_eq!(old[0], 7);
+            drop(old);
+        });
+        assert!(std::panic::catch_unwind(enter_phase).is_err());
+        release.send(()).unwrap();
+        worker.join().unwrap();
+    });
+    let _phase = enter_phase();
+}
+
+fn growth_after_closing_a_phase_releases_the_reset_barrier() {
+    let phase = enter_phase();
+    let mut old = ArenaVec::filled(7u64, 8);
+    drop(phase);
+
+    old.reserve(N);
+    let _phase = enter_phase();
+    assert_eq!(&*old, &[7; 8]);
+}
+
+fn a_panicking_element_destructor_releases_the_reset_barrier() {
+    struct Panics(u8);
+    impl Drop for Panics {
+        fn drop(&mut self) {
+            panic!("element {}", self.0);
+        }
+    }
+
+    let phase = enter_phase();
+    let mut buffer = ArenaVec::new();
+    buffer.push(Panics(7));
+    drop(phase);
+
+    assert!(std::panic::catch_unwind(|| drop(buffer)).is_err());
+    let _phase = enter_phase();
+}
+
+#[test]
+fn arena_ownership_and_reuse() {
+    // Slabs belong to threads permanently, so all scenarios share one harness thread.
+    enable_arena();
+    phase_reset_recycles_the_slab_and_spares_the_system_heap();
+    guard_closes_the_phase_on_unwind();
+    growth_preserves_contents_across_reallocation();
+    zeroed_clears_a_recycled_slab();
+    drop_runs_for_elements_that_need_it();
+    zero_sized_elements_never_allocate();
+    reuse_holds_a_rotation_at_its_live_set();
+    a_foreign_release_never_enters_this_thread_s_free_list();
+    recycled_blocks_never_back_two_live_buffers();
+    escaped_buffers_keep_their_storage_until_release();
+    failed_nested_open_preserves_the_active_phase();
+    a_cross_thread_owner_blocks_reset_until_release();
+    growth_after_closing_a_phase_releases_the_reset_barrier();
+    a_panicking_element_destructor_releases_the_reset_barrier();
 }

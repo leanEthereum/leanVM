@@ -1,0 +1,17 @@
+[package]
+name = "leanxmss-host"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+leanvm_guest.workspace = true
+leanxmss = { path = "../guest" }
+parallel.workspace = true
+
+[dev-dependencies]
+leanvm_core.workspace = true
+primitives.workspace = true
