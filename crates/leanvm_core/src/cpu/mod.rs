@@ -674,7 +674,24 @@ fn slot_claims(l: &Layout, claims: Vec<ColumnClaim>) -> Vec<pcs::SlotClaim> {
 mod tests {
     use super::*;
     use crate::rv::asm::*;
+    use ::pcs::{LOG_PACKING, whir_config::WhirSecurityConfig};
     use primitives::field::g_pow;
+
+    /// The commitment binds a list of level-0 candidates, so the bus pays for all of them.
+    #[test]
+    fn bus_soundness_covers_the_level_zero_list() {
+        let program = Program::new(&Asm::new().exit().finish(), rv::TEXT_BASE, vec![1], 2, 0);
+        let deepest = layout(program.rv(), [MAX_LOG_ROWS; tables::N_TABLES], F64::ONE);
+        let bus_bits = 192.0 - (leaf::soundness_degree_bound(leaf::layout(&deepest.push).mu) as f64).log2();
+        let widest_list = (pcs::MIN_MU..=pcs::MAX_MU)
+            .flat_map(|mu| (pcs::MIN_LOG_INV_RATE..=pcs::MAX_LOG_INV_RATE).map(move |rate| (mu, rate)))
+            .map(|(mu, rate)| {
+                let whir = WhirSecurityConfig::derive_config_with_log_inv_rate(mu + LOG_PACKING, rate).unwrap();
+                whir.levels[0].log2_list_size()
+            })
+            .fold(0.0, f64::max);
+        assert!(bus_bits - widest_list >= crate::SECURITY_BITS as f64);
+    }
 
     #[test]
     fn digest_binds_every_public_program_component() {

@@ -29,7 +29,6 @@ pub mod gkr;
 pub mod leaf;
 pub mod pcs;
 pub mod rv;
-pub mod security;
 pub mod tables;
 pub mod transcript;
 pub mod witness;
@@ -65,8 +64,11 @@ pub fn init_prover_pool() {
     parallel::init();
 }
 
-/// Parameter target for individual algebraic and PCS error terms.
-/// This is not a proved end-to-end Fiat-Shamir or knowledge-soundness bound.
+/// Round-by-round soundness target, in bits: every verifier challenge fails
+/// with probability at most `2^-SECURITY_BITS` for every witness the
+/// commitment still admits, a query phase's proof of work counting as the
+/// hash queries it costs. A Fiat-Shamir prover making `Q` queries to the hash
+/// then succeeds with probability about `Q·2^-SECURITY_BITS`.
 pub const SECURITY_BITS: u32 = 128;
 
 /// Below this many parallelizable items a pass runs serially: the fan-out

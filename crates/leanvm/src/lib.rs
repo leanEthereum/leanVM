@@ -6,13 +6,11 @@
 //!
 //! [`prove`] also takes the run's ADVICE, the words the program finds at
 //! [`ADVICE_BASE`]. The statement says nothing about them beyond how many the program's
-//! region holds. What a program reads there it has to check itself.
-//! No knowledge-extraction theorem is claimed. Passing more words than the region holds is a
+//! region holds, so a proof shows that some advice makes the program give its output:
+//! what a program reads there it has to check itself. Passing more words than the region holds is a
 //! programming error, and panics.
 //!
 //! End to end in [`crates/leanvm/tests/api.rs`](https://github.com/leanEthereum/leanVM/blob/main/crates/leanvm/tests/api.rs).
-
-pub use leanvm_core::security;
 
 pub use leanvm_core::{
     cpu::{CpuError, Program, Proof, Stats, prove, verify},

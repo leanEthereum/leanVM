@@ -16,9 +16,8 @@
 //!
 //! - batching challenges -> `johnson_algebraic_bits` (one challenge per level,
 //!   powers of it over the level's claim list, as in the doc),
-//! - fold challenge `s_j` -> `2 L/|F| + 2^(l-j) eps`: the MCA part via
-//!   `paper_johnson_log_a` (worst round `j = 1`), the `2 L/|F|` part
-//!   under `johnson_algebraic_bits`,
+//! - fold challenge `s_j` -> `paper_fold_bits`, the sum `2 L/|F| + 2^(l-j) eps`
+//!   at the worst round `j = 1`,
 //! - OOD challenge -> `paper_ood_bits`,
 //! - query message -> `(1 - gamma)^t`, plus [`QUERY_GRINDING_BITS`].
 //!
@@ -408,64 +407,6 @@ pub struct WhirSecurityConfig {
     pub final_block: FinalBlockConfig,
 }
 
-/// Numeric error terms for one level, conditional on the PCS annex's list-binding assumptions.
-#[derive(Clone, Debug)]
-pub struct SecurityTerms {
-    /// Base-two logarithm of the Johnson list bound.
-    pub log2_list_size: f64,
-    /// Largest single-transition algebraic degree, including the initial claim batch.
-    pub algebraic_degree: usize,
-    /// Negative base-two logarithm of degree times list size divided by field size.
-    pub algebraic_bits: f64,
-    /// Proximity-gap term, including the folding row union.
-    pub proximity_gap_bits: f64,
-    /// Out-of-domain binding term.
-    pub binding_bits: f64,
-    /// Query rejection term before proof of work.
-    pub query_bits: f64,
-    /// Work required before query positions are sampled.
-    pub query_grinding_bits: usize,
-    /// Sum of the proximity-gap and quadratic list-unioned folding terms.
-    pub fold_bits: f64,
-}
-
-impl WhirSecurityConfig {
-    /// Account for a real initial claim pool without assuming its degree is small.
-    ///
-    /// These are conditional error terms, not a composed Fiat-Shamir security theorem.
-    pub fn security_terms(&self, initial_batch_degree: usize) -> Vec<SecurityTerms> {
-        self.levels
-            .iter()
-            .enumerate()
-            .map(|(i, level)| {
-                let log2_list_size = johnson_interleaved_list_log2(level.log_inv_rate, level.log_msg_cols, level.eta);
-                let batch_degree = if i == 0 {
-                    initial_batch_degree
-                } else {
-                    prev_queries_at(&self.levels, i) + level.ood_samples
-                };
-                let algebraic_degree = crate::ring_switch::RING_SWITCH_SOUNDNESS_DEGREE
-                    .max(batch_degree)
-                    .max(2);
-                let (proximity_gap_bits, query_bits) = level.paper_predicted_bits();
-                let quadratic_bits = ANALYSIS_LOG_Q - 1.0 - log2_list_size;
-                // Both events can occur at the same fold challenge, so add probabilities.
-                let fold_bits = -((-proximity_gap_bits).exp2() + (-quadratic_bits).exp2()).log2();
-                SecurityTerms {
-                    log2_list_size,
-                    algebraic_degree,
-                    algebraic_bits: ANALYSIS_LOG_Q - (algebraic_degree as f64).log2() - log2_list_size,
-                    proximity_gap_bits,
-                    binding_bits: level.paper_predicted_ood_bits(),
-                    query_bits,
-                    query_grinding_bits: level.grinding_bits,
-                    fold_bits,
-                }
-            })
-            .collect()
-    }
-}
-
 /// Extension-field size used for soundness analysis: `q = 2^192`.
 const ANALYSIS_LOG_Q: f64 = 192.0;
 
@@ -526,8 +467,8 @@ fn johnson_m_param(log_inv_rate: usize, log_msg_cols: usize, eta: f64) -> f64 {
 /// `2^ℓ`-interleaved word (ℓ = `log_num_interleaved`) over its ℓ lane-fold
 /// rounds pays a row union: `thm:rbr`'s fold row is `2L/|F| + 2^{ℓ-j}·ε` at
 /// round `j`, so the worst round (`j = 1`) pays the factor `2^{ℓ-1}` =
-/// (interleaving factor)/2 (the `2L/|F|` part is checked separately, under
-/// [`johnson_algebraic_bits`]). We bind the per-level grinding to that worst
+/// (interleaving factor)/2 (the `2L/|F|` part is added by
+/// `paper_fold_bits`). We bind the per-level grinding to that worst
 /// round, returning `log₂(2^{ℓ-1}·a_RLC) = log₂ a_RLC + (ℓ-1)`.
 ///
 /// `ℓ ≤ 1` (`L ≤ 2`) means no row union; the `(ℓ-1)` penalty clamps to 0.
@@ -584,9 +525,18 @@ fn johnson_interleaved_list_log2(log_inv_rate: usize, log_msg_cols: usize, eta: 
     l_base.log2()
 }
 
+/// `thm:rbr`'s fold row at its worst round `j = 1`, in bits.
+///
+/// The MCA error and the sumcheck's `2L/|F|` are bad events of the same fold challenge, so their probabilities add.
+fn paper_fold_bits(log_inv_rate: usize, eta: f64, log_msg_cols: usize, log_num_interleaved: usize) -> f64 {
+    let mca = ANALYSIS_LOG_Q - paper_johnson_log_a(log_inv_rate, eta, log_msg_cols, log_num_interleaved);
+    let sumcheck = ANALYSIS_LOG_Q - 1.0 - johnson_interleaved_list_log2(log_inv_rate, log_msg_cols, eta);
+    -((-mca).exp2() + (-sumcheck).exp2()).log2()
+}
+
 /// Worst algebraic verifier-challenge transition in the production opening:
 /// `thm:rbr`'s batch row (`(J−1)·L/|F|` for the powers-of-lambda batching of
-/// the PCS annex, Protocol 1 step 1) and the `2L/|F|` part of its fold row.
+/// the PCS annex, Protocol 1 step 1).
 /// A degree-`d` identity test unioned over a Johnson list of size `L` fails
 /// with probability at most `dL/|F|`. The relevant degrees are:
 ///
@@ -601,8 +551,7 @@ fn johnson_interleaved_list_log2(log_inv_rate: usize, log_msg_cols: usize, eta: 
 ///   understate the degree and overstate the bound. At L0 there is no previous
 ///   level and `J_0` is set by the outer protocol's claim pool rather than by a
 ///   query count, so 0 is passed; that pool is a few hundred claims, orders below
-///   the ring-switch degree the `max` takes anyway; and
-/// - 2 for quadratic sumcheck.
+///   the ring-switch degree the `max` takes anyway.
 fn johnson_algebraic_bits_for(
     log_inv_rate: usize,
     log_msg_cols: usize,
@@ -611,9 +560,7 @@ fn johnson_algebraic_bits_for(
     ood_samples: usize,
 ) -> f64 {
     let log2_l = johnson_interleaved_list_log2(log_inv_rate, log_msg_cols, eta);
-    let degree = crate::ring_switch::RING_SWITCH_SOUNDNESS_DEGREE
-        .max(prev_queries + ood_samples)
-        .max(2);
+    let degree = crate::ring_switch::RING_SWITCH_SOUNDNESS_DEGREE.max(prev_queries + ood_samples);
     ANALYSIS_LOG_Q - (degree as f64).log2() - log2_l
 }
 
@@ -708,7 +655,7 @@ fn optimize_johnson_level(
             continue;
         }
 
-        let eps_pg = ANALYSIS_LOG_Q - paper_johnson_log_a(log_inv_rate, eta, log_msg_cols, log_num_interleaved);
+        let eps_pg = paper_fold_bits(log_inv_rate, eta, log_msg_cols, log_num_interleaved);
         // At the theorem-parameter boundaries a grows monotonically with m;
         // no later candidate can recover once the proximity-gap target fails.
         if eps_pg + 1e-12 < target {
@@ -757,16 +704,20 @@ fn optimize_johnson_level(
 }
 
 impl WhirLevelConfig {
-    /// Proximity-gap and per-query soundness bits this level delivers:
-    ///   eps_pg_bits    = log₂(q/a) under the Johnson threshold-a formula
+    /// Base-two log of the Johnson bound on the list of codewords this level's commitment binds.
+    pub fn log2_list_size(&self) -> f64 {
+        johnson_interleaved_list_log2(self.log_inv_rate, self.log_msg_cols, self.eta)
+    }
+
+    /// Fold and per-query soundness bits this level delivers:
+    ///   eps_pg_bits    = `paper_fold_bits`, the Johnson threshold-a MCA error plus `2L/q`
     ///   eps_query_bits = Q · log₂(1/(1−γ))
     fn paper_predicted_bits(&self) -> (f64, f64) {
-        // Fold row of `thm:rbr`, MCA part: the ℓ-round fold of a
-        // 2^ℓ-interleaved word (ℓ = log_num_interleaved) pays a row-union
-        // factor 2^{ℓ-j} at round j (`lem:fold-list`); the worst round (j=1)
-        // gives 2^{ℓ-1}, on top of the base Thm 4.6 MCA error.
-        let log_a = paper_johnson_log_a(self.log_inv_rate, self.eta, self.log_msg_cols, self.log_num_interleaved);
-        let eps_pg = ANALYSIS_LOG_Q - log_a;
+        // Fold row of `thm:rbr`: the ℓ-round fold of a 2^ℓ-interleaved word
+        // (ℓ = log_num_interleaved) pays a row-union factor 2^{ℓ-j} at round j
+        // (`lem:fold-list`); the worst round (j=1) gives 2^{ℓ-1}, on top of
+        // the base Thm 4.6 MCA error and the sumcheck's 2L/|F|.
+        let eps_pg = paper_fold_bits(self.log_inv_rate, self.eta, self.log_msg_cols, self.log_num_interleaved);
         // Per-query soundness WITHOUT a list union bound: the OOD binding (see
         // `paper_ood_bits`) pins the prover to a single codeword of the
         // interleaved list before queries are drawn.
@@ -913,13 +864,12 @@ impl WhirSecurityConfig {
                 ));
             }
 
-            // Per-application proximity gap + fold-challenge grinding must
-            // reach target. (The pg bad event lives on the fold challenges,
-            // so only the fold grind (done before each fold challenge)
-            // boosts it; the query-phase grind does not.)
+            // The fold row, MCA and sumcheck terms together, must reach the
+            // target. It lives on the fold challenges, so the query-phase
+            // grind does not boost it.
             if pg_pred + 1e-12 < lv.target_security_bits as f64 {
                 return Err(format!(
-                    "L{i}: proximity-gap soundness ({pg_pred:.2} bits) < target ({})",
+                    "L{i}: fold soundness ({pg_pred:.2} bits) < target ({})",
                     lv.target_security_bits
                 ));
             }
@@ -1066,15 +1016,7 @@ mod tests {
                 assert_eq!(cfg.target_security_bits, 128);
                 assert_eq!(cfg.levels[0].log_inv_rate, log_inv_rate);
                 assert_eq!(cfg.levels[0].ood_samples, 0);
-                let oversized = cfg.security_terms(usize::MAX);
-                assert_eq!(oversized[0].algebraic_degree, usize::MAX);
-                assert!(oversized[0].algebraic_bits < 128.0);
-                for (i, (level, terms)) in cfg.levels.iter().zip(cfg.security_terms(512)).enumerate() {
-                    assert!(terms.log2_list_size.is_finite());
-                    assert_eq!(terms.algebraic_degree, crate::ring_switch::RING_SWITCH_SOUNDNESS_DEGREE);
-                    assert!(terms.fold_bits <= terms.proximity_gap_bits);
-                    assert!(terms.fold_bits >= 127.0);
-                    assert!(terms.algebraic_bits >= 128.0);
+                for (i, level) in cfg.levels.iter().enumerate() {
                     let (pg_bits, query_bits) = level.paper_predicted_bits();
                     let ood_bits = level.paper_predicted_ood_bits();
                     let algebraic_bits = johnson_algebraic_bits(level, prev_queries_at(&cfg.levels, i));
