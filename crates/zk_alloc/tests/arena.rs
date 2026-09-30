@@ -307,3 +307,22 @@ fn growth_after_closing_a_phase_releases_the_reset_barrier() {
     let _phase = enter_phase();
     assert_eq!(&*old, &[7; 8]);
 }
+
+#[test]
+fn a_panicking_element_destructor_releases_the_reset_barrier() {
+    struct Panics(u8);
+    impl Drop for Panics {
+        fn drop(&mut self) {
+            panic!("element {}", self.0);
+        }
+    }
+
+    let _serial = exclusive();
+    let phase = enter_phase();
+    let mut buffer = ArenaVec::new();
+    buffer.push(Panics(7));
+    drop(phase);
+
+    assert!(std::panic::catch_unwind(|| drop(buffer)).is_err());
+    let _phase = enter_phase();
+}
