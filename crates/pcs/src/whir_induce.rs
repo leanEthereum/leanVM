@@ -9,7 +9,7 @@
 
 use crate::ntt::AdditiveNttF64;
 use crate::whir::build_eq_table_ext;
-use primitives::field::{F64, F192};
+use primitives::field::{F64, F192, F192Unreduced};
 use zk_alloc::ArenaVec;
 
 // ===================================================================
@@ -99,13 +99,24 @@ fn invert_sks(sks_vks: &[F64]) -> Vec<F64> {
 
 /// Dense induce: `basis_poly[j] = Σ_i w_i · W-hat_j(q_i)`,
 /// `enforced_sum = Σ_i w_i · <row_i, eq(v_challenges, ·)>`, for the per-query
-/// batching weights `w` of [`primitives::field::powers`]. Mirror of the
-/// dense `whir::induce_sumcheck_poly` (per-worker accumulation).
+/// batching weights `w` of the level.
 ///
-/// The LCH doubling recurrence runs into a HALF-size scratch and its last level
-/// expands straight into the worker's accumulator, so each query touches the
-/// accumulator once instead of writing a full-size table and adding it back.
-/// Addition in E is XOR, so reassociating across workers is bit-exact.
+/// `W-hat_j(q)` is the product of the normalized subspace polynomials `s_k(q)` over the bits `k` set in `j`.
+///
+/// # Algorithm
+///
+/// An index splits into its low bits and the rest, `j = j_hi · 2^L + j_lo`:
+///
+/// ```text
+///     basis[j] = Σ_i  (w_i · Π_{k >= L, bit k of j} s_k(q_i))  ·  low_i[j_lo]
+///                     \_____________ one E scalar ___________/    \_ in K _/
+///
+///     low_i[j_lo] = Π_{k < L, bit k of j_lo} s_k(q_i)
+/// ```
+///
+/// - Each query's low table is built once, `2^L` words of K.
+/// - Each task owns `2^L` outputs, so no worker keeps a full-length accumulator.
+/// - A task's sums stay unreduced until each output is written.
 pub(crate) fn induce_sumcheck_poly<T: RowElem>(
     log_msg_cols: usize,
     sks_vks: &[F64],
@@ -114,70 +125,74 @@ pub(crate) fn induce_sumcheck_poly<T: RowElem>(
     queries: &[usize],
     weights: &[F192],
 ) -> (ArenaVec<F192>, F192) {
+    /// Low bits of an output index, tabulated per query: 2^10 words, 8 KiB of K a query.
+    const LOW_BITS: usize = 10;
+    /// Outputs one pass over the queries accumulates: 128 unreduced sums, 6 KiB.
+    const SUB: usize = 128;
+
     let n = 1usize << log_msg_cols;
     let n_queries = queries.len();
     assert_eq!(opened_rows.len(), n_queries);
-    debug_assert_eq!(
-        v_challenges.len(),
-        opened_rows
-            .first()
-            .map(|r| r.len().trailing_zeros() as usize)
-            .unwrap_or(0)
-    );
-
-    let eq = build_eq_table_ext(v_challenges);
     debug_assert_eq!(weights.len(), n_queries);
+    let low = log_msg_cols.min(LOW_BITS);
+    let eq = build_eq_table_ext(v_challenges);
     let inv_sks_vks = invert_sks(sks_vks);
     debug_assert!(inv_sks_vks.len() > log_msg_cols);
 
-    let half = 1usize << log_msg_cols.saturating_sub(1);
-    parallel::map_reduce_with_state(
-        n_queries,
-        || (vec![F64::ZERO; log_msg_cols.max(1)], vec![F192::ZERO; half]),
-        // SAFETY: zero is a valid F192, and the expansion below accumulates into it.
-        || (unsafe { ArenaVec::<F192>::zeroed(n) }, F192::ZERO),
-        |(sks_at_x, scratch), (accum_basis, local_sum), i| {
-            let ap = weights[i];
-            *local_sum += T::dot(&opened_rows[i], &eq) * ap;
+    // Phase 1: per query, its normalized s_k and its low table.
+    //
+    //     low_i[0] = 1,   low_i[j + 2^k] = low_i[j] · s_k(q_i)   for j < 2^k
+    let per_query: Vec<(Vec<F64>, Vec<F64>)> = parallel::map_collect(n_queries, |i| {
+        let mut sks_at_x = vec![F64::ZERO; log_msg_cols];
+        normalized_sks_at(F64(queries[i] as u64), sks_vks, &inv_sks_vks, &mut sks_at_x);
+        let mut table = vec![F64::ONE; 1 << low];
+        for (k, &s) in sks_at_x[..low].iter().enumerate() {
+            let (lo, hi) = table.split_at_mut(1 << k);
+            for (h, &l) in hi[..1 << k].iter_mut().zip(lo.iter()) {
+                *h = l * s;
+            }
+        }
+        (sks_at_x, table)
+    });
 
-            if log_msg_cols == 0 {
-                accum_basis[0] += ap;
-                return;
-            }
-            let q_field = F64(queries[i] as u64);
-            normalized_sks_at(q_field, sks_vks, &inv_sks_vks, &mut sks_at_x[..log_msg_cols]);
-            scratch[0] = ap;
-            for k in 0..log_msg_cols - 1 {
-                let s_at_x = sks_at_x[k];
-                let (lo, hi) = scratch.split_at_mut(1usize << k);
-                for (h, &l) in hi.iter_mut().zip(lo.iter()) {
-                    *h = l.mul_base(s_at_x);
+    // Phase 2: the claimed sum, one opened row per query.
+    let enforced_sum = opened_rows
+        .iter()
+        .zip(weights)
+        .fold(F192::ZERO, |sum, (row, &w)| sum + T::dot(row, &eq) * w);
+
+    // Phase 3: each task owns the 2^L outputs sharing their high bits.
+    //
+    // SAFETY: every task writes all of its chunk, and the chunks tile the output.
+    let mut basis = unsafe { ArenaVec::<F192>::uninitialized(n) };
+    parallel::chunks_mut(&mut basis, 1 << low, |hi_index, out| {
+        // Each query's scalar: its weight times its factors on the high bits.
+        let scalars: Vec<F192> = per_query
+            .iter()
+            .zip(weights)
+            .map(|((sks_at_x, _), &w)| {
+                sks_at_x[low..]
+                    .iter()
+                    .enumerate()
+                    .filter(|&(k, _)| (hi_index >> k) & 1 == 1)
+                    .fold(w, |acc, (_, &s)| acc.mul_base(s))
+            })
+            .collect();
+        // Every query adds its scaled low table, 128 outputs at a time.
+        for (sub_index, out) in out.chunks_mut(SUB).enumerate() {
+            let at = sub_index * SUB;
+            let mut acc = [F192Unreduced::ZERO; SUB];
+            for ((_, table), &scalar) in per_query.iter().zip(&scalars) {
+                for (a, &t) in acc.iter_mut().zip(&table[at..at + out.len()]) {
+                    *a ^= scalar.mul_base_unreduced(t);
                 }
             }
-            let s_at_x = sks_at_x[log_msg_cols - 1];
-            let (lo, hi) = accum_basis.split_at_mut(half);
-            for ((l, h), &v) in lo.iter_mut().zip(hi.iter_mut()).zip(scratch.iter()) {
-                *l += v;
-                *h += v.mul_base(s_at_x);
+            for (o, a) in out.iter_mut().zip(acc) {
+                *o = a.reduce();
             }
-        },
-        |(mut basis_poly, sum), (partial, partial_sum)| {
-            const PAR_THRESHOLD: usize = 4096;
-            if n < PAR_THRESHOLD {
-                for (acc, &v) in basis_poly.iter_mut().zip(partial.iter()) {
-                    *acc += v;
-                }
-            } else {
-                let chunk = parallel::recommended_chunk_size(n);
-                parallel::chunks_mut_zip(&mut basis_poly, &partial, chunk, |_, accs, vs| {
-                    for (acc, &v) in accs.iter_mut().zip(vs) {
-                        *acc += v;
-                    }
-                });
-            }
-            (basis_poly, sum + partial_sum)
-        },
-    )
+        }
+    });
+    (basis, enforced_sum)
 }
 
 /// Just the `enforced_sum` half of [`induce_sumcheck_poly`]:
@@ -347,7 +362,17 @@ fn transpose_layers_ext_windowed(
             }
         });
     }
-    for &layer in &layers[if blocked > 1 { blocked } else { 0 }..] {
+    let rest = &layers[if blocked > 1 { blocked } else { 0 }..];
+    // The layers left are those whose blocks exceed a window: the lowest ones, 2^g blocks or fewer.
+    //
+    // When they are exactly g - 1 .. 0, rows `r + i * 2^(d - g)` for i < 2^g pair only with each other.
+    // So one gathered pass runs them all, instead of one sweep each.
+    let g = rest.len();
+    if (1..=GATHER_LOG).contains(&g) && rest.iter().copied().eq((0..g).rev()) {
+        transpose_low_layers_gathered(ntt, data, log_d, g);
+        return;
+    }
+    for &layer in rest {
         let num_blocks = 1usize << layer;
         let block_size = 1usize << (log_d - layer);
         let bsh = block_size >> 1;
@@ -366,6 +391,70 @@ fn transpose_layers_ext_windowed(
             }
         }
     }
+}
+
+/// Layers the gathered pass takes at most: a group is 2^6 rows.
+const GATHER_LOG: usize = 6;
+
+/// Residues one gathered task takes: 32 residues of 64 rows is 48 KiB, which stays in L2.
+const GATHER_RESIDUES: usize = 32;
+
+/// The transposed butterflies of layers `g - 1 .. 0`, in one pass over the data.
+///
+/// # Algorithm
+///
+/// With `step = 2^(d - g)`, layer `l < g` pairs rows `step * 2^(g - 1 - l)` apart.
+///
+/// So the rows `r + i * step`, for `i < 2^g`, pair only with each other:
+///
+/// ```text
+///     d = 22, g = 6, step = 2^16:
+///
+///     rows r, r + 2^16, r + 2 * 2^16, ..., r + 63 * 2^16   one group, for each r < 2^16
+/// ```
+///
+/// Row `r + i * step` sits in block `i >> (g - l)` of layer `l`, whatever `r`: its twiddle depends on `i` alone.
+///
+/// A task gathers the groups of consecutive residues, runs every layer on them in cache, and scatters them back.
+fn transpose_low_layers_gathered(ntt: &AdditiveNttF64, data: &mut [F192], log_d: usize, g: usize) {
+    let rows = 1usize << g;
+    let step = 1usize << (log_d - g);
+    let per_task = GATHER_RESIDUES.min(step);
+    let base = parallel::SendPtr(data.as_mut_ptr());
+    parallel::for_each(step / per_task, |task| {
+        let r0 = task * per_task;
+        // Scratch index `i * per_task + j` holds row `r0 + j + i * step`.
+        let mut scratch = [F192::ZERO; GATHER_RESIDUES << GATHER_LOG];
+        let scratch = &mut scratch[..rows * per_task];
+
+        // Gather: one contiguous run of residues per group row.
+        for (i, dst) in scratch.chunks_exact_mut(per_task).enumerate() {
+            // SAFETY: tasks own disjoint residue ranges, so no other task touches these rows.
+            dst.copy_from_slice(unsafe { base.slice(r0 + i * step, per_task) });
+        }
+
+        // Layers g - 1 .. 0, each a butterfly between group rows `half` apart.
+        for layer in (0..g).rev() {
+            let half = 1usize << (g - 1 - layer);
+            for block in 0..1usize << layer {
+                let t = ntt.twiddle(layer, block);
+                let at = block * 2 * half * per_task;
+                let (top, bot) = scratch[at..at + 2 * half * per_task].split_at_mut(half * per_task);
+                for (a_ref, b_ref) in top.iter_mut().zip(bot.iter_mut()) {
+                    let (a, b) = (*a_ref, *b_ref);
+                    let s = a + b;
+                    *a_ref = s;
+                    *b_ref = s.mul_base(t) + b;
+                }
+            }
+        }
+
+        // Scatter: every group row returns to its place.
+        for (i, src) in scratch.chunks_exact(per_task).enumerate() {
+            // SAFETY: as for the gather.
+            unsafe { base.slice(r0 + i * step, per_task) }.copy_from_slice(src);
+        }
+    });
 }
 
 /// Sparse-prefix variant of [`transpose_forward_ntt_ext`]: the input has only
@@ -523,5 +612,43 @@ pub(crate) fn induce_sumcheck_poly_auto_base(
         induce_sumcheck_poly_via_ntt_base(log_msg_cols, log_inv_rate, opened_rows, v_challenges, queries, weights)
     } else {
         induce_sumcheck_poly(log_msg_cols, sks_vks, opened_rows, v_challenges, queries, weights)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use primitives::test_rng::Rng;
+
+    #[test]
+    fn blocked_and_gathered_transposes_match_layer_by_layer() {
+        // Invariant: the windowed prefix and the gathered tail compute the plain transposed NTT.
+        let mut rng = Rng::new(0x7A55);
+        // Fixture state: a window of 2^(d - 6) elements leaves layers 5 .. 0 for the gathered pass.
+        //
+        //     d = 12:  step 2^6, 32 residues a task
+        //     d = 8:   step 2^2, 4 residues a task
+        for log_d in [12, 8] {
+            let ntt = AdditiveNttF64::standard(log_d);
+            let data: Vec<F192> = rng.ext_vec(1 << log_d);
+
+            // Reference: one layer at a time, highest first, every block's butterflies in place.
+            let mut want = data.clone();
+            for layer in (0..log_d).rev() {
+                let half = 1usize << (log_d - 1 - layer);
+                for (block, chunk) in want.chunks_mut(2 * half).enumerate() {
+                    let t = ntt.twiddle(layer, block);
+                    let (top, bot) = chunk.split_at_mut(half);
+                    for (a, b) in top.iter_mut().zip(bot.iter_mut()) {
+                        let s = *a + *b;
+                        (*a, *b) = (s, s.mul_base(t) + *b);
+                    }
+                }
+            }
+
+            let mut got = data;
+            transpose_layers_ext_windowed(&ntt, &mut got, log_d, (0..log_d).rev(), 1 << (log_d - 6));
+            assert_eq!(got, want, "log_d={log_d}");
+        }
     }
 }
