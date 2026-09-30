@@ -1732,6 +1732,16 @@ def check_bytecode(bytecode: Sequence[K]) -> None:
                 "an exit entry is not ECALL",
             )
         require(link[z] <= 1 and jalr[z] <= 1, "a bytecode selector is not a bit")
+        if not exit[z]:
+            if table.opcode == 0 and flags[z] == 1 << ALU_CLEAR_BIT0:
+                control = jalr[z] == link[z] == 1 and dt[z] == 0
+            elif table.opcode == 0 and flags[z] == 1 << ALU_ALWAYS:
+                control = link[z] == 1 and jalr[z] == 0
+            elif table.opcode == 0 and any(flags[z] & (1 << bit) for bit in ALU_BRANCHES):
+                control = link[z] == jalr[z] == 0
+            else:
+                control = link[z] == jalr[z] == dt[z] == 0
+            require(control, "a bytecode entry has invalid control flow")
         require(table.ram != "block" or (ad[z] == SINK and imm[z] == 0), "a hash entry writes a register or has an immediate")
 
 

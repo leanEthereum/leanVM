@@ -126,7 +126,20 @@ impl Entry {
             return *self == decode(0x73, 0);
         }
         let legal = legal_flags(self.class);
-        let control = self.class == Class::Alu;
+        let control = if self.class != Class::Alu {
+            self.target == Target::Next && !self.link && !self.jalr
+        } else {
+            match self.flags {
+                alu::CLEAR_BIT0 => self.jalr && self.link && self.target == Target::Next,
+                alu::ALWAYS => !self.jalr && self.link && matches!(self.target, Target::Abs(_)),
+                flags
+                    if flags & (alu::BR_EQ | alu::BR_NE | alu::BR_LT | alu::BR_GE | alu::BR_LTU | alu::BR_GEU) != 0 =>
+                {
+                    !self.jalr && !self.link && matches!(self.target, Target::Abs(_))
+                }
+                _ => !self.jalr && !self.link && self.target == Target::Next,
+            }
+        };
         // A hash row writes no register and reads no immediate: its table holds both at
         // their constants.
         let hash = self.class == Class::Hash;
@@ -134,7 +147,7 @@ impl Entry {
             && self.a2 < 32
             && (1..=SINK).contains(&self.ad)
             && legal.contains(&self.flags)
-            && (control || (self.target == Target::Next && !self.link && !self.jalr))
+            && control
             && (!hash || (self.ad == SINK && self.imm == 0))
     }
 }

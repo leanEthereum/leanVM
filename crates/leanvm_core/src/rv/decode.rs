@@ -187,10 +187,59 @@ mod tests {
         }
     }
 
-    /// Every entry the decoder can produce is well formed, over a sweep dense in the
-    /// fields that select an instruction.
+    #[test]
+    fn alu_control_shapes_match_decoded_instructions() {
+        let pc = super::super::TEXT_BASE;
+        let witnesses = [
+            0x0000_0013,
+            0x4000_0033,
+            0x0000_001b,
+            0x4000_003b,
+            0x0000_2033,
+            0x0000_3033,
+            0x0000_7033,
+            0x0000_6033,
+            0x0000_4033,
+            0x0000_0067,
+            0x0000_0063,
+            0x0000_1063,
+            0x0000_4063,
+            0x0000_5063,
+            0x0000_6063,
+            0x0000_7063,
+            0x0000_006f,
+        ];
+        assert_eq!(alu::LEGAL.len(), witnesses.len());
+        for (flags, word) in alu::LEGAL.into_iter().zip(witnesses) {
+            let decoded = decode(word, pc);
+            assert_eq!(decoded.class, Class::Alu);
+            assert_eq!(decoded.flags, flags);
+            for target in [Target::Next, Target::Abs(pc), Target::Abs(pc + 4)] {
+                for link in [false, true] {
+                    for jalr in [false, true] {
+                        let candidate = Entry {
+                            target,
+                            link,
+                            jalr,
+                            ..decoded
+                        };
+                        let same_target_kind = matches!(
+                            (target, decoded.target),
+                            (Target::Next, Target::Next) | (Target::Abs(_), Target::Abs(_))
+                        );
+                        let expected = same_target_kind && link == decoded.link && jalr == decoded.jalr;
+                        assert_eq!(candidate.is_well_formed(), expected, "{candidate:?}");
+                    }
+                }
+            }
+        }
+    }
+
     #[test]
     fn decoded_entries_are_well_formed() {
+        for word in [0x73, 0x0000_000b, 0x0000_100b] {
+            assert!(decode(word, super::super::TEXT_BASE).is_well_formed());
+        }
         for opcode in 0..128u32 {
             for f3 in 0..8u32 {
                 for top in 0..(1u32 << 12) {

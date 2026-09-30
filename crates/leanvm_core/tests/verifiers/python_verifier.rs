@@ -180,7 +180,58 @@ fn test_python_verifier() {
     let refused = statement.verify(&raw);
     PythonStatement::assert_rejects(&refused, "an ordinary instruction marked as an exit");
     assert!(String::from_utf8_lossy(&refused.stderr).contains("an exit entry is not ECALL"));
+    let branch = leanvm_core::rv::alu::SUB | leanvm_core::rv::alu::BR_EQ;
+    let always = leanvm_core::rv::alu::ALWAYS;
+    let jalr = leanvm_core::rv::alu::CLEAR_BIT0;
+    for (flags, dt, link, indirect) in [
+        (branch, 0x44, 1, 1),
+        (always, 0, 0, 0),
+        (0, 0x44, 0, 0),
+        (0, 0, 1, 0),
+        (0, 0, 0, 1),
+        (jalr, 0, 0, 1),
+        (jalr, 0, 1, 0),
+        (jalr, 0x44, 1, 1),
+        (branch, 0, 1, 0),
+        (branch, 0, 0, 1),
+        (always, 0x44, 1, 1),
+    ] {
+        let mut malformed = table.clone();
+        for (slot, value) in [(4, flags), (10, dt), (11, link), (12, indirect)] {
+            malformed[8 * slot * entries..][..8].copy_from_slice(&value.to_le_bytes());
+        }
+        std::fs::write(&statement.bytecode, malformed).expect("write malformed control flow");
+        let refused = statement.verify(&raw);
+        PythonStatement::assert_rejects(&refused, "malformed control flow");
+        assert!(String::from_utf8_lossy(&refused.stderr).contains("invalid control flow"));
+    }
     std::fs::write(&statement.bytecode, table).expect("restore bytecode");
+    let control_shapes = Command::new("python3")
+        .arg("-c")
+        .arg(
+            r#"import runpy, sys
+from pathlib import Path
+v = runpy.run_path(sys.argv[1])
+data = Path(sys.argv[2]).read_bytes()
+words = [v['K'](int.from_bytes(data[i:i+8], 'little')) for i in range(0, len(data), 8)]
+v['check_bytecode'](words)
+n = len(words) // 16
+for flags, link, jalr in [(1 << 14, 1, 0), (1 | (1 << 8), 0, 0), (1 << 7, 1, 1)]:
+    candidate = words.copy()
+    for slot, value in [(4, flags), (10, 0), (11, link), (12, jalr)]:
+        candidate[slot * n] = v['K'](value)
+    v['check_bytecode'](candidate)
+"#,
+        )
+        .arg(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../python-verifier/verifier.py"))
+        .arg(&statement.bytecode)
+        .output()
+        .expect("validate legal control shapes");
+    assert!(
+        control_shapes.status.success(),
+        "{}",
+        String::from_utf8_lossy(&control_shapes.stderr)
+    );
 
     println!(
         "{} instructions; proved {} cycles in {} bytes; Python verified in {:.2?}",
