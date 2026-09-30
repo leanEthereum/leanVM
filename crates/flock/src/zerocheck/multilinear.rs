@@ -16,7 +16,8 @@
 //!
 //! - **Bit rounds.** While a folded F192 table would outweigh the packed bits, each pass re-reads the bits.
 //!   A pass folds them on the fly and sends two rounds, the second as a quadratic in the first's challenge.
-//! - **Table rounds.** The last bit pass stores the folded tables, and each later round folds and sums them.
+//! - **Table rounds.** The last bit pass stores the folded tables.
+//!   Each later pass folds the challenges pending on them and sends two rounds, as the bit passes do.
 //!
 //! **Index convention** (matches the C++ extract_c pipeline's `sumcheck_round_pair`
 //! and the NEON `fold_in_place_pair`): the **low bit** of the multilinear index
@@ -304,6 +305,38 @@ impl RoundPair {
     }
 }
 
+/// One quad's terms of two consecutive rounds, before its eq weight.
+///
+/// The quad is positions `4k + u + 2v`, `u` the first round's variable and `v` the second's.
+///
+/// Returns the eight products the two rounds sum, in the slots `RoundPair::from_sums` reads.
+#[inline(always)]
+fn quad_pair_terms(
+    [a0, a1, a2, a3]: [F192; 4],
+    [b0, b1, b2, b3]: [F192; 4],
+    [_, c1, c2, c3]: [F192; 4],
+) -> [(F192, F192, F192, F192); 2] {
+    // Leading coefficients along `u` (positions 0,1 and 2,3) and along `v` (0,2 and 1,3).
+    let (du0, du1, dv0, dv1) = (a0 + a1, a2 + a3, a0 + a2, a1 + a3);
+    let (eu0, eu1, ev0, ev1) = (b0 + b1, b2 + b3, b0 + b2, b1 + b3);
+    let (p1, p2, p3, q0) = mul_quad((a1, a2, a3, du0), (b1, b2, b3, eu0));
+    let (q1, r0, r1, r2) = mul_quad((du1, dv0, dv1, du0 + du1), (eu1, ev0, ev1, eu0 + eu1));
+    [(p1 + c1, p3 + c3, q0, q1), (p2 + c2, r0, r1, r2)]
+}
+
+impl RoundPair {
+    /// Both rounds from the eq-weighted sums of the quad terms, `r_v` the eq challenge of the second round's variable.
+    fn from_sums(sums: [F192; 8], r_v: F192) -> Self {
+        // Slots 0, 1 hold round t's G(1) at v = 0, 1, and slots 2, 3 its G(inf).
+        // Round t + 1 reads slots 4, 1, 3 at Y = 1 and 5, 6, 7 at Y = inf.
+        let split_v = |v0: F192, v1: F192| v0 + r_v * (v0 + v1);
+        Self {
+            first: (split_v(sums[0], sums[1]), split_v(sums[2], sums[3])),
+            second: [[sums[4], sums[1], sums[3]], [sums[5], sums[6], sums[7]]],
+        }
+    }
+}
+
 /// Rounds `t` and `t + 1` straight from the packed bits, the folded tables never stored.
 ///
 /// With `rho_1..rho_t` bound, `fold` weights each position's `2^t` rows (see its level constructor).
@@ -402,21 +435,14 @@ fn bit_round_pair_kernel<const CHUNKS: usize>(
                 }
                 let f = FoldedBlock::new(fold, rows, 4 * quad_first, 4 * n);
                 for i in 0..n {
-                    let [a0, a1, a2, a3]: [F192; 4] = f.a[4 * i..4 * i + 4].try_into().expect("a quad");
-                    let [b0, b1, b2, b3]: [F192; 4] = f.b[4 * i..4 * i + 4].try_into().expect("a quad");
-                    let [_, c1, c2, c3]: [F192; 4] = f.c[4 * i..4 * i + 4].try_into().expect("a quad");
-
-                    // Leading coefficients along `u` (positions 0,1 and 2,3) and along `v` (0,2 and 1,3).
-                    let (du0, du1, dv0, dv1) = (a0 + a1, a2 + a3, a0 + a2, a1 + a3);
-                    let (eu0, eu1, ev0, ev1) = (b0 + b1, b2 + b3, b0 + b2, b1 + b3);
-                    let (p1, p2, p3, q0) = mul_quad((a1, a2, a3, du0), (b1, b2, b3, eu0));
-                    let (q1, r0, r1, r2) = mul_quad((du1, dv0, dv1, du0 + du1), (eu1, ev0, ev1, eu0 + eu1));
+                    let quad = |t: &[F192; BLOCK]| -> [F192; 4] { t[4 * i..4 * i + 4].try_into().expect("a quad") };
+                    let [lo, hi] = quad_pair_terms(quad(&f.a), quad(&f.b), quad(&f.c));
 
                     // Every term of the quad shares one eq weight.
                     let eq = eq_lo[lo_first + i];
                     let e = (eq, eq, eq, eq);
-                    let (s0, s1, s2, s3) = mul_quad_unreduced(e, (p1 + c1, p3 + c3, q0, q1));
-                    let (s4, s5, s6, s7) = mul_quad_unreduced(e, (p2 + c2, r0, r1, r2));
+                    let (s0, s1, s2, s3) = mul_quad_unreduced(e, lo);
+                    let (s4, s5, s6, s7) = mul_quad_unreduced(e, hi);
                     for (acc, s) in acc.iter_mut().zip([s0, s1, s2, s3, s4, s5, s6, s7]) {
                         *acc ^= s;
                     }
@@ -427,13 +453,7 @@ fn bit_round_pair_kernel<const CHUNKS: usize>(
         |x, y| std::array::from_fn(|i| x[i] + y[i]),
     );
 
-    // Slots 0, 1 hold round t's G(1) at v = 0, 1, and slots 2, 3 its G(inf).
-    // Round t + 1 reads slots 4, 1, 3 at Y = 1 and 5, 6, 7 at Y = inf.
-    let split_v = |v0: F192, v1: F192| v0 + r_v * (v0 + v1);
-    RoundPair {
-        first: (split_v(sums[0], sums[1]), split_v(sums[2], sums[3])),
-        second: [[sums[4], sums[1], sums[3]], [sums[5], sums[6], sums[7]]],
-    }
+    RoundPair::from_sums(sums, r_v)
 }
 
 /// The storing single-round pass, for rows of `CHUNKS` bytes.
@@ -545,6 +565,141 @@ fn bit_round_store_kernel<const CHUNKS: usize>(
     (message, out)
 }
 
+/// Rounds `t` and `t + 1` from the stored tables, folding the challenges still pending on them first.
+///
+/// - `ins` are the `(a, b, c)` tables, `rhos.len()` variables short of level `t`: one or two.
+/// - `rhos` are those variables' challenges, lowest first; each output folds `2^rhos.len()` inputs.
+/// - `outs` receive the level-`t` tables, `ins.len() >> rhos.len()` values each.
+/// - `r_eq` are the eq challenges of the variables round `t` does not bind.
+///
+/// ```text
+///     two pending:  read level t - 2 (n)  ->  write level t (n / 4)  +  rounds t, t + 1
+///     one round at a time:  n + n / 2 + n / 2 + n / 4 for the same two rounds
+/// ```
+///
+/// The rounds are built from each quad of folded values while they are in registers, as in the bit pass.
+pub fn fold_and_round_pair_into(ins: [&[F192]; 3], outs: [&mut [F192]; 3], rhos: &[F192], r_eq: &[F192]) -> RoundPair {
+    match *rhos {
+        [rho] => fold_and_round_pair_kernel::<1>(ins, outs, [rho, F192::ZERO], r_eq),
+        [rho_0, rho_1] => fold_and_round_pair_kernel::<2>(ins, outs, [rho_0, rho_1], r_eq),
+        _ => panic!("one or two pending challenges"),
+    }
+}
+
+/// The paired pass for `K` pending challenges, `rhos[..K]`.
+fn fold_and_round_pair_kernel<const K: usize>(
+    ins: [&[F192]; 3],
+    outs: [&mut [F192]; 3],
+    rhos: [F192; 2],
+    r_eq: &[F192],
+) -> RoundPair {
+    let n_out = ins[0].len() >> K;
+    assert!(ins.iter().all(|t| t.len() == n_out << K), "a, b, c have one length");
+    assert!(
+        outs.iter().all(|t| t.len() == n_out),
+        "each output is the folded length"
+    );
+    let n_quads = n_out / 4;
+    assert!(n_quads >= 1, "two rounds need four positions");
+    assert_eq!(r_eq.len(), n_quads.trailing_zeros() as usize + 1);
+
+    // `r_eq[0]` weighs round `t`'s split by `v`; the rest weigh the quads.
+    //
+    // Up to 2^7 high eq indices, one task each: enough tasks for every worker at every table size.
+    let (r_v, r_quad) = (r_eq[0], &r_eq[1..]);
+    let SplitEq {
+        lo: eq_lo, hi: eq_hi, ..
+    } = SplitEq::new(r_quad);
+    let lo_size = eq_lo.len();
+
+    // One task per high eq index: `lo_size` quads, `4 * lo_size` outputs of each table.
+    let (chunk_in, chunk_out) = ((4 * lo_size) << K, 4 * lo_size);
+    let [out_a, out_b, out_c] = outs;
+    let chunks = [out_a, out_b, out_c].map(|o| parallel::Chunks::new(o, chunk_out));
+    let rho = |j: usize| (rhos[j], rhos[j], rhos[j], rhos[j]);
+
+    // Four outputs of one table, each folded from its `2^K` inputs.
+    //
+    //     one pending:   z = x_0 + rho_0 (x_0 + x_1)
+    //     two pending:   y_lo = x_0 + rho_0 (x_0 + x_1),  y_hi = x_2 + rho_0 (x_2 + x_3)
+    //                    z = y_lo + rho_1 (y_lo + y_hi)
+    let fold_quad = |g: &[F192]| -> [F192; 4] {
+        // The four outputs' inputs, `2^K` each.
+        let g = &g[..4 << K];
+        let x = |j: usize, i: usize| g[(j << K) + i];
+        let d = mul_quad(
+            (
+                x(0, 0) + x(0, 1),
+                x(1, 0) + x(1, 1),
+                x(2, 0) + x(2, 1),
+                x(3, 0) + x(3, 1),
+            ),
+            rho(0),
+        );
+        let lo = [x(0, 0) + d.0, x(1, 0) + d.1, x(2, 0) + d.2, x(3, 0) + d.3];
+        if K == 1 {
+            return lo;
+        }
+        let e = mul_quad(
+            (
+                x(0, 2) + x(0, 3),
+                x(1, 2) + x(1, 3),
+                x(2, 2) + x(2, 3),
+                x(3, 2) + x(3, 3),
+            ),
+            rho(0),
+        );
+        let hi = [x(0, 2) + e.0, x(1, 2) + e.1, x(2, 2) + e.2, x(3, 2) + e.3];
+        let f = mul_quad((lo[0] + hi[0], lo[1] + hi[1], lo[2] + hi[2], lo[3] + hi[3]), rho(1));
+        [lo[0] + f.0, lo[1] + f.1, lo[2] + f.2, lo[3] + f.3]
+    };
+
+    let sums = parallel::map_reduce(
+        eq_hi.len(),
+        || [F192::ZERO; 8],
+        |hi| {
+            // SAFETY: task `hi` takes chunk `hi` of each output once, and the buffers outlive the dispatch.
+            let mut outs = chunks.map(|ch| unsafe { ch.get(hi) });
+            let ins = ins.map(|t| &t[hi * chunk_in..(hi + 1) * chunk_in]);
+            let stream = Stream::new();
+            let mut acc = [F192Unreduced::ZERO; 8];
+            // Two quads of a table are eight outputs, three whole cache lines, published at once.
+            let mut staged = [[F192::ZERO; 8]; 3];
+            for q in 0..lo_size {
+                let [a, b, c] = ins.map(|t| fold_quad(&t[(4 * q) << K..(4 * (q + 1)) << K]));
+                let [lo, hi] = quad_pair_terms(a, b, c);
+
+                // Every term of the quad shares one eq weight.
+                let eq = eq_lo[q];
+                let e = (eq, eq, eq, eq);
+                let (s0, s1, s2, s3) = mul_quad_unreduced(e, lo);
+                let (s4, s5, s6, s7) = mul_quad_unreduced(e, hi);
+                for (acc, s) in acc.iter_mut().zip([s0, s1, s2, s3, s4, s5, s6, s7]) {
+                    *acc ^= s;
+                }
+
+                // Publish the folded values without a read: nothing touches them before the next pass.
+                let half = 4 * (q % 2);
+                for (stage, folded) in staged.iter_mut().zip([a, b, c]) {
+                    stage[half..half + 4].copy_from_slice(&folded);
+                }
+                if q % 2 == 1 {
+                    for (out, stage) in outs.iter_mut().zip(&staged) {
+                        stream.copy(&mut out[4 * (q - 1)..4 * (q + 1)], stage);
+                    }
+                } else if q + 1 == lo_size {
+                    for (out, stage) in outs.iter_mut().zip(&staged) {
+                        out[4 * q..4 * q + 4].copy_from_slice(&stage[..4]);
+                    }
+                }
+            }
+            acc.map(|s| eq_hi[hi] * s.reduce())
+        },
+        |x, y| std::array::from_fn(|i| x[i] + y[i]),
+    );
+    RoundPair::from_sums(sums, r_v)
+}
+
 // ---------------------------------------------------------------------------
 // Subsequent multilinear rounds (3..(m−k_skip+1)): fold + next message.
 // ---------------------------------------------------------------------------
@@ -588,298 +743,6 @@ pub fn fold_in_place_pair(a: &mut ArenaVec<F192>, b: &mut ArenaVec<F192>, challe
     b.truncate(half);
 }
 
-/// Single-table sibling of [`fold_and_compute_round_pair_into`], for the linear
-/// `c` term: binds one variable at `r_fold` into `c_out` and returns the next
-/// round's `G_c(1)`. Same chunking as the pair kernel, so the two dispatches
-/// walk the same index layout.
-pub fn fold_and_compute_round_single_into(c: &[F192], c_out: &mut [F192], r_fold: F192, r_eq: &[F192]) -> F192 {
-    let n = c.len();
-    assert!(n.is_power_of_two() && n >= 8);
-    let half = n / 2;
-    assert_eq!(c_out.len(), half);
-    assert_eq!(r_eq.len(), n.trailing_zeros() as usize - 2);
-
-    let eq = SplitEq::new(r_eq);
-    let lo_size = 1usize << eq.n_lo;
-    let hi_size = 1usize << eq.n_hi;
-    assert!(lo_size >= 2, "fold_and_compute requires lo_size ≥ 2");
-    assert_eq!(lo_size * hi_size * 2, half);
-
-    let chunk_in = 4 * lo_size;
-    let chunk_out = 2 * lo_size;
-    let eq_lo = &eq.lo;
-    let eq_hi = &eq.hi;
-
-    let c_chunks = parallel::Chunks::new(c_out, chunk_out);
-    parallel::map_reduce(
-        c_chunks.count(),
-        || F192::ZERO,
-        |x_hi| {
-            // SAFETY: `x_hi` takes chunk `x_hi` exactly once, and the buffer
-            // stays borrowed for the whole dispatch.
-            let c_out = unsafe { c_chunks.get(x_hi) };
-            let c_in = &c[x_hi * chunk_in..(x_hi + 1) * chunk_in];
-            let mut p1_acc = F192Unreduced::ZERO;
-            // Four x_lo per iteration, as in the pair kernel; see there for why
-            // the outputs stream.
-            let stream = Stream::new();
-            let mut x_lo = 0;
-            while x_lo + 4 <= lo_size {
-                let ci = 4 * x_lo;
-                let g = |j: usize, k: usize| c_in[ci + 4 * j + k];
-                let rf = (r_fold, r_fold, r_fold, r_fold);
-                let (d_a0, d_a1, d_b0, d_b1) = mul_quad(
-                    (
-                        g(0, 1) + g(0, 0),
-                        g(0, 3) + g(0, 2),
-                        g(1, 1) + g(1, 0),
-                        g(1, 3) + g(1, 2),
-                    ),
-                    rf,
-                );
-                let (d_c0, d_c1, d_d0, d_d1) = mul_quad(
-                    (
-                        g(2, 1) + g(2, 0),
-                        g(2, 3) + g(2, 2),
-                        g(3, 1) + g(3, 0),
-                        g(3, 3) + g(3, 2),
-                    ),
-                    rf,
-                );
-                let (c0_a, c1_a) = (g(0, 0) + d_a0, g(0, 2) + d_a1);
-                let (c0_b, c1_b) = (g(1, 0) + d_b0, g(1, 2) + d_b1);
-                let (c0_c, c1_c) = (g(2, 0) + d_c0, g(2, 2) + d_c1);
-                let (c0_d, c1_d) = (g(3, 0) + d_d0, g(3, 2) + d_d1);
-
-                let eq_q = (eq_lo[x_lo], eq_lo[x_lo + 1], eq_lo[x_lo + 2], eq_lo[x_lo + 3]);
-                let (t_a, t_b, t_c, t_d) = mul_quad_unreduced(eq_q, (c1_a, c1_b, c1_c, c1_d));
-                p1_acc ^= t_a;
-                p1_acc ^= t_b;
-                p1_acc ^= t_c;
-                p1_acc ^= t_d;
-
-                let oi = 2 * x_lo;
-                stream.copy(
-                    &mut c_out[oi..oi + 8],
-                    &[c0_a, c1_a, c0_b, c1_b, c0_c, c1_c, c0_d, c1_d],
-                );
-                x_lo += 4;
-            }
-            // Scalar tail; see the pair kernel.
-            while x_lo < lo_size {
-                let ci = 4 * x_lo;
-                let c0 = c_in[ci] + r_fold * (c_in[ci + 1] + c_in[ci]);
-                let c1 = c_in[ci + 2] + r_fold * (c_in[ci + 3] + c_in[ci + 2]);
-                let oi = 2 * x_lo;
-                c_out[oi] = c0;
-                c_out[oi + 1] = c1;
-                p1_acc ^= eq_lo[x_lo].mul_unreduced(c1);
-                x_lo += 1;
-            }
-            eq_hi[x_hi] * p1_acc.reduce()
-        },
-        |a, b| a + b,
-    )
-}
-
-/// Fused: bind one variable at `r_fold` AND compute the *next* round's prover
-/// message, writing the folded `a`/`b` into the caller-provided `a_out`/`b_out`
-/// (each length `a.len() / 2`). Returns `(G(1), G(∞))`, with `r_eq` the eq
-/// challenges of the variables the next round does NOT bind.
-///
-/// Parallelized via the `parallel` pool: each worker reads one disjoint
-/// 4·lo_size chunk of the input and writes the corresponding 2·lo_size chunk of
-/// the output.
-///
-/// Writing into caller buffers lets the multilinear-sumcheck tail ping-pong
-/// between persistent scratch buffers (one per folded table, three since `c`
-/// joined the sumcheck), so the decreasing-size buffers are allocated/freed
-/// once rather than per round, avoiding serial unmaps in the sumcheck tail.
-///
-/// Requires `a.len() = b.len() ≥ 8` so the post-fold polynomial has at least
-/// one bit of x_lo (lo_size ≥ 2). Smaller polynomials should use the
-/// unfused `fold_in_place_pair + round_pair_naive` pair.
-pub fn fold_and_compute_round_pair_into(
-    a: &[F192],
-    b: &[F192],
-    a_out: &mut [F192],
-    b_out: &mut [F192],
-    r_fold: F192,
-    r_eq: &[F192],
-) -> (F192, F192) {
-    let n = a.len();
-    assert_eq!(b.len(), n);
-    assert!(n.is_power_of_two() && n >= 8);
-    let half = n / 2;
-    assert_eq!(a_out.len(), half);
-    assert_eq!(b_out.len(), half);
-    assert_eq!(r_eq.len(), n.trailing_zeros() as usize - 2);
-
-    let eq = SplitEq::new(r_eq);
-    let lo_size = 1usize << eq.n_lo;
-    let hi_size = 1usize << eq.n_hi;
-    assert!(lo_size >= 2, "fold_and_compute requires lo_size ≥ 2");
-    // Total non-bound multilinear vars is log_n - 1; eq covers log_n - 2 of those.
-    assert_eq!(lo_size * hi_size * 2, half);
-
-    let chunk_in = 4 * lo_size; // read chunk per worker
-    let chunk_out = 2 * lo_size; // write chunk per worker
-    let eq_lo = &eq.lo;
-    let eq_hi = &eq.hi;
-
-    let a_chunks = parallel::Chunks::new(a_out, chunk_out);
-    let b_chunks = parallel::Chunks::new(b_out, chunk_out);
-    let (sum1, sum_inf) = parallel::map_reduce(
-        a_chunks.count(),
-        || (F192::ZERO, F192::ZERO),
-        |x_hi| {
-            // SAFETY: `x_hi` takes chunk `x_hi` of each output exactly once, and
-            // both buffers stay borrowed for the whole dispatch.
-            let (a_out, b_out) = unsafe { (a_chunks.get(x_hi), b_chunks.get(x_hi)) };
-            let a_in = &a[x_hi * chunk_in..(x_hi + 1) * chunk_in];
-            let b_in = &b[x_hi * chunk_in..(x_hi + 1) * chunk_in];
-
-            let mut p1_acc = F192Unreduced::ZERO;
-            let mut pinf_acc = F192Unreduced::ZERO;
-            // The message is built from the folded values while they are still
-            // in registers, so nothing reads `a_out`/`b_out` until the next
-            // round, by which time a buffer this size is long evicted.
-            let stream = Stream::new();
-
-            // Unroll 4 x_lo's per iteration when lo_size % 4 == 0 (the common
-            // case for the fused path; falls back to 2-wide for lo_size==2 at
-            // the smallest fused round). This keeps independent products in flight.
-            let mut x_lo = 0;
-            if lo_size.is_multiple_of(4) {
-                while x_lo + 4 <= lo_size {
-                    let x_lo_a = x_lo;
-                    let x_lo_b = x_lo + 1;
-                    let x_lo_c = x_lo + 2;
-                    let x_lo_d = x_lo + 3;
-                    let ai_a = 4 * x_lo_a;
-                    let ai_b = 4 * x_lo_b;
-                    let ai_c = 4 * x_lo_c;
-                    let ai_d = 4 * x_lo_d;
-
-                    let aa0_a = a_in[ai_a];
-                    let aa1_a = a_in[ai_a + 1];
-                    let aa2_a = a_in[ai_a + 2];
-                    let aa3_a = a_in[ai_a + 3];
-                    let bb0_a = b_in[ai_a];
-                    let bb1_a = b_in[ai_a + 1];
-                    let bb2_a = b_in[ai_a + 2];
-                    let bb3_a = b_in[ai_a + 3];
-                    let aa0_b = a_in[ai_b];
-                    let aa1_b = a_in[ai_b + 1];
-                    let aa2_b = a_in[ai_b + 2];
-                    let aa3_b = a_in[ai_b + 3];
-                    let bb0_b = b_in[ai_b];
-                    let bb1_b = b_in[ai_b + 1];
-                    let bb2_b = b_in[ai_b + 2];
-                    let bb3_b = b_in[ai_b + 3];
-                    let aa0_c = a_in[ai_c];
-                    let aa1_c = a_in[ai_c + 1];
-                    let aa2_c = a_in[ai_c + 2];
-                    let aa3_c = a_in[ai_c + 3];
-                    let bb0_c = b_in[ai_c];
-                    let bb1_c = b_in[ai_c + 1];
-                    let bb2_c = b_in[ai_c + 2];
-                    let bb3_c = b_in[ai_c + 3];
-                    let aa0_d = a_in[ai_d];
-                    let aa1_d = a_in[ai_d + 1];
-                    let aa2_d = a_in[ai_d + 2];
-                    let aa3_d = a_in[ai_d + 3];
-                    let bb0_d = b_in[ai_d];
-                    let bb1_d = b_in[ai_d + 1];
-                    let bb2_d = b_in[ai_d + 2];
-                    let bb3_d = b_in[ai_d + 3];
-
-                    // 16 independent r_fold muls, four to a quad.
-                    let rf = (r_fold, r_fold, r_fold, r_fold);
-                    let (f0_a, f1_a, f2_a, f3_a) =
-                        mul_quad((aa1_a + aa0_a, aa3_a + aa2_a, bb1_a + bb0_a, bb3_a + bb2_a), rf);
-                    let (f0_b, f1_b, f2_b, f3_b) =
-                        mul_quad((aa1_b + aa0_b, aa3_b + aa2_b, bb1_b + bb0_b, bb3_b + bb2_b), rf);
-                    let (f0_c, f1_c, f2_c, f3_c) =
-                        mul_quad((aa1_c + aa0_c, aa3_c + aa2_c, bb1_c + bb0_c, bb3_c + bb2_c), rf);
-                    let (f0_d, f1_d, f2_d, f3_d) =
-                        mul_quad((aa1_d + aa0_d, aa3_d + aa2_d, bb1_d + bb0_d, bb3_d + bb2_d), rf);
-                    let (a0_a, a1_a, b0_a, b1_a) = (aa0_a + f0_a, aa2_a + f1_a, bb0_a + f2_a, bb2_a + f3_a);
-                    let (a0_b, a1_b, b0_b, b1_b) = (aa0_b + f0_b, aa2_b + f1_b, bb0_b + f2_b, bb2_b + f3_b);
-                    let (a0_c, a1_c, b0_c, b1_c) = (aa0_c + f0_c, aa2_c + f1_c, bb0_c + f2_c, bb2_c + f3_c);
-                    let (a0_d, a1_d, b0_d, b1_d) = (aa0_d + f0_d, aa2_d + f1_d, bb0_d + f2_d, bb2_d + f3_d);
-
-                    // Eight consecutive outputs are 192 bytes, three whole cache
-                    // lines: the unrolled group is exactly a streaming publish.
-                    let oi = 2 * x_lo_a;
-                    stream.copy(
-                        &mut a_out[oi..oi + 8],
-                        &[a0_a, a1_a, a0_b, a1_b, a0_c, a1_c, a0_d, a1_d],
-                    );
-                    stream.copy(
-                        &mut b_out[oi..oi + 8],
-                        &[b0_a, b1_a, b0_b, b1_b, b0_c, b1_c, b0_d, b1_d],
-                    );
-
-                    // 8 independent msg muls.
-                    let eq_l_a = eq_lo[x_lo_a];
-                    let eq_l_b = eq_lo[x_lo_b];
-                    let eq_l_c = eq_lo[x_lo_c];
-                    let eq_l_d = eq_lo[x_lo_d];
-                    let (g1_a, g1_b, g1_c, g1_d) = mul_quad((a1_a, a1_b, a1_c, a1_d), (b1_a, b1_b, b1_c, b1_d));
-                    let (g_inf_a, g_inf_b, g_inf_c, g_inf_d) = mul_quad(
-                        (a0_a + a1_a, a0_b + a1_b, a0_c + a1_c, a0_d + a1_d),
-                        (b0_a + b1_a, b0_b + b1_b, b0_c + b1_c, b0_d + b1_d),
-                    );
-                    let eq_q = (eq_l_a, eq_l_b, eq_l_c, eq_l_d);
-                    let (t1_a, t1_b, t1_c, t1_d) = mul_quad_unreduced(eq_q, (g1_a, g1_b, g1_c, g1_d));
-                    let (ti_a, ti_b, ti_c, ti_d) = mul_quad_unreduced(eq_q, (g_inf_a, g_inf_b, g_inf_c, g_inf_d));
-                    p1_acc ^= t1_a;
-                    p1_acc ^= t1_b;
-                    p1_acc ^= t1_c;
-                    p1_acc ^= t1_d;
-                    pinf_acc ^= ti_a;
-                    pinf_acc ^= ti_b;
-                    pinf_acc ^= ti_c;
-                    pinf_acc ^= ti_d;
-
-                    x_lo += 4;
-                }
-            }
-            // Scalar tail. `lo_size` is a power of two, so this runs only at
-            // `lo_size == 2` (the smallest fused round, at most twice per
-            // proof), where the unrolled ILP would buy nothing.
-            while x_lo < lo_size {
-                let ai = 4 * x_lo;
-                let a0 = a_in[ai] + r_fold * (a_in[ai + 1] + a_in[ai]);
-                let a1 = a_in[ai + 2] + r_fold * (a_in[ai + 3] + a_in[ai + 2]);
-                let b0 = b_in[ai] + r_fold * (b_in[ai + 1] + b_in[ai]);
-                let b1 = b_in[ai + 2] + r_fold * (b_in[ai + 3] + b_in[ai + 2]);
-
-                let oi = 2 * x_lo;
-                a_out[oi] = a0;
-                a_out[oi + 1] = a1;
-                b_out[oi] = b0;
-                b_out[oi + 1] = b1;
-
-                let eq_l = eq_lo[x_lo];
-                p1_acc ^= eq_l.mul_unreduced(a1 * b1);
-                pinf_acc ^= eq_l.mul_unreduced((a0 + a1) * (b0 + b1));
-
-                x_lo += 1;
-            }
-
-            let p1 = p1_acc.reduce();
-            let pinf = pinf_acc.reduce();
-            let eq_h = eq_hi[x_hi];
-            (eq_h * p1, eq_h * pinf)
-        },
-        |(s1, sinf), (c1, cinf)| (s1 + c1, sinf + cinf),
-    );
-
-    (sum1, sum_inf)
-}
-
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -901,6 +764,47 @@ mod tests {
         assert_eq!(values.len(), ell);
         assert!(2 * ell <= 256, "Λ ∪ S must fit in F_8 (need k_skip ≤ 7)");
         primitives::multilinear::lagrange_eval(&PHI_8_TABLE[ell..2 * ell], values, z)
+    }
+
+    #[test]
+    fn fold_and_round_pair_matches_one_round_at_a_time() {
+        // Invariant: folding the pending challenges and building two rounds in one pass
+        // gives the tables and messages of folding and summing one round at a time.
+        let mut rng = Rng::new(0x7AB1E);
+        // Fixture state: one or two pending challenges, from one quad up to 2^10 of them.
+        for k in [1usize, 2] {
+            for log_out in [2usize, 3, 6, 12] {
+                let n_in = 1usize << (log_out + k);
+                let tables: [Vec<F192>; 3] = std::array::from_fn(|_| rng.ext_vec(n_in));
+                let rhos = rng.ext_vec(k);
+                let r_eq = rng.ext_vec(log_out - 1);
+                let rho_t = rng.ext();
+
+                // Reference: fold one challenge at a time, then sum each round from the tables.
+                let [mut a, mut b, mut c] = tables.clone().map(|t| ArenaVec::from_slice(&t));
+                for &rho in &rhos {
+                    fold_in_place_pair(&mut a, &mut b, rho);
+                    fold_in_place_single(&mut c, rho);
+                }
+                let (level_a, level_b, level_c) = (a.to_vec(), b.to_vec(), c.to_vec());
+                let round = |a: &[F192], b: &[F192], c: &[F192], r_eq: &[F192]| {
+                    let (g1, g_inf) = round_pair_naive(a, b, r_eq);
+                    (g1 + round_single_naive(c, r_eq), g_inf)
+                };
+                let first = round(&a, &b, &c, &r_eq);
+                fold_in_place_pair(&mut a, &mut b, rho_t);
+                fold_in_place_single(&mut c, rho_t);
+                let second = round(&a, &b, &c, &r_eq[1..]);
+
+                // The pass under test.
+                let mut outs: [Vec<F192>; 3] = std::array::from_fn(|_| vec![F192::ZERO; 1 << log_out]);
+                let [oa, ob, oc] = &mut outs;
+                let pair = fold_and_round_pair_into([&tables[0], &tables[1], &tables[2]], [oa, ob, oc], &rhos, &r_eq);
+                assert_eq!(outs, [level_a, level_b, level_c], "tables, k={k}, log_out={log_out}");
+                assert_eq!(pair.first, first, "round t, k={k}, log_out={log_out}");
+                assert_eq!(pair.second(rho_t), second, "round t + 1, k={k}, log_out={log_out}");
+            }
+        }
     }
 
     /// `fold_in_place_pair` correctness: post-fold a[x] = a[2x] + X·(a[2x+1]+a[2x]).
@@ -1000,62 +904,6 @@ mod tests {
                 c_eval_via_interpolation, c_eval_via_fold,
                 "c-claim identity broken at m={m}"
             );
-        }
-    }
-
-    /// **The big cross-check**: fused `fold_and_compute_round_pair_into`
-    /// produces the same output as the unfused sequence
-    /// `fold_in_place_pair` → `round_pair_naive`.
-    #[test]
-    fn fused_round_matches_unfused() {
-        let mut rng = Rng::new(310);
-        for &log_n in &[10usize, 11, 12] {
-            let n = 1usize << log_n;
-            let a: Vec<F192> = (0..n).map(|_| rng.ext()).collect();
-            let b: Vec<F192> = (0..n).map(|_| rng.ext()).collect();
-            let r_fold = rng.ext();
-            let r_eq = rng.ext_vec(log_n - 2);
-
-            // Fused path.
-            let mut a_fused = vec![F192::ZERO; n / 2];
-            let mut b_fused = vec![F192::ZERO; n / 2];
-            let (m1_fused, minf_fused) =
-                fold_and_compute_round_pair_into(&a, &b, &mut a_fused, &mut b_fused, r_fold, &r_eq);
-
-            // Unfused path: clone, in-place fold, naive message.
-            let mut a_unf = ArenaVec::from_slice(&a);
-            let mut b_unf = ArenaVec::from_slice(&b);
-            fold_in_place_pair(&mut a_unf, &mut b_unf, r_fold);
-            let (m1_unf, minf_unf) = round_pair_naive(&a_unf, &b_unf, &r_eq);
-
-            assert_eq!(a_fused.as_slice(), &a_unf[..], "a mismatch at log_n={log_n}");
-            assert_eq!(b_fused.as_slice(), &b_unf[..], "b mismatch at log_n={log_n}");
-            assert_eq!(m1_fused, m1_unf, "msg_1 mismatch at log_n={log_n}");
-            assert_eq!(minf_fused, minf_unf, "msg_inf mismatch at log_n={log_n}");
-        }
-    }
-
-    /// The fused single-table round against `fold_in_place_single` then `round_single_naive`.
-    #[test]
-    fn fused_single_round_matches_unfused() {
-        let mut rng = Rng::new(0x51_9C_1E);
-        // Fused round: same, against fold_in_place_single + round_single_naive.
-        // lo_size ≥ 2 needs log_n ≥ 10, which is the path's own gate.
-        for &log_n in &[10usize, 11, 12] {
-            let n = 1usize << log_n;
-            let c: Vec<F192> = (0..n).map(|_| rng.ext()).collect();
-            let r_fold = rng.ext();
-            let r_eq = rng.ext_vec(log_n - 2);
-
-            let mut c_fused = vec![F192::ZERO; n / 2];
-            let m1_fused = fold_and_compute_round_single_into(&c, &mut c_fused, r_fold, &r_eq);
-
-            let mut c_unf = ArenaVec::from_slice(&c);
-            fold_in_place_single(&mut c_unf, r_fold);
-            let m1_unf = round_single_naive(&c_unf, &r_eq);
-
-            assert_eq!(c_fused.as_slice(), &c_unf[..], "fold mismatch at log_n={log_n}");
-            assert_eq!(m1_fused, m1_unf, "msg mismatch at log_n={log_n}");
         }
     }
 

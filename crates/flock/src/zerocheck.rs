@@ -35,9 +35,8 @@ pub mod univariate_skip_optimized;
 
 use bit_fold::BitFold;
 use multilinear::{
-    PackedWitness, bit_round_materialize, bit_round_pair, fold_and_compute_round_pair_into,
-    fold_and_compute_round_single_into, fold_in_place_pair, fold_in_place_single, interpolate_at_z_combined,
-    round_pair_naive, round_single_naive,
+    PackedWitness, bit_round_materialize, bit_round_pair, fold_and_round_pair_into, fold_in_place_pair,
+    fold_in_place_single, interpolate_at_z_combined, round_pair_naive, round_single_naive,
 };
 use primitives::multilinear::lagrange_weights_naive;
 use univariate_skip_optimized::{
@@ -59,6 +58,11 @@ const N_INNER: usize = 7; // 3 small + 4 medium fixed-constant eq dimensions
 /// - On aarch64 the byte-table fold is compute-bound, its tables growing with the level.
 /// - There a pass costs more than the stored tables' traffic: store at once.
 const PAIR_PASSES: usize = if cfg!(target_arch = "aarch64") { 0 } else { 2 };
+
+/// Smallest folded table a paired table pass takes.
+///
+/// Below it the tables fit L1, and one round at a time on this thread beats a parallel dispatch.
+const PAIRED_MIN: usize = 1 << 10;
 
 /// Build the equality coordinates that remain after the univariate skip.
 fn equality_tail(m: usize, mut sample_vec: impl FnMut(usize) -> Vec<F192>) -> Vec<F192> {
@@ -240,84 +244,79 @@ pub fn prove_packed_padded(
 
     // ---- Remaining rounds, on the stored tables ----
     //
-    // Iter i: fold (a, b, c) at ρ_{i+1}, compute the next round's message, sample
-    // ρ_{i+2}. Use the fused parallel path while log_n ≥ 10; below that the
-    // SplitEq inner can't form lo_size ≥ 2, so we fall back to
-    // fold_in_place_* + round_*_naive.
+    // The tables stay behind the rounds: `pending` holds the challenges sent but not yet folded in, lowest first.
     //
-    // Ping-pong scratch buffers for the fused path: each fused round folds
-    // (a_mlv, b_mlv, c_mlv) of size N into size N/2. Rather than allocating a
-    // fresh buffer per round, we alternate between persistent ones, one per
-    // folded table. Scratch capacity = N/2 (the largest fused output); only
-    // needed when the first round is actually fused.
+    //     paired pass:   fold the pending challenges, then send two rounds from each quad of folded values
+    //     single round:  fold the pending challenges one at a time, then send one round
+    //
+    // A paired pass reads the tables once and writes a quarter of them for two rounds.
+    // A single round covers the last round, and a round whose eq challenge is 1, which leaves G(0) to send.
+    let mut pending = vec![mlv_chis[materialize_level]];
+    let mut next = materialize_level + 1;
+    // Ping-pong scratch: a pass writes its folded tables here, then the two swap.
     let n_in = a_mlv.len();
-    let (mut a_nxt, mut b_nxt, mut c_nxt) = if n_in >= 1024 {
-        // SAFETY (x3): the fused rounds below write every slot they read; a
-        // buffer is only ever read over the prefix a round just wrote.
-        unsafe {
-            (
-                ArenaVec::<F192>::uninitialized(n_in / 2),
-                ArenaVec::<F192>::uninitialized(n_in / 2),
-                ArenaVec::<F192>::uninitialized(n_in / 2),
-            )
-        }
-    } else {
-        (ArenaVec::new(), ArenaVec::new(), ArenaVec::new())
+    // SAFETY (x3): a pass writes every slot of the prefix it hands on, and nothing reads past it.
+    let (mut a_nxt, mut b_nxt, mut c_nxt) = unsafe {
+        (
+            ArenaVec::<F192>::uninitialized(n_in / 2),
+            ArenaVec::<F192>::uninitialized(n_in / 2),
+            ArenaVec::<F192>::uninitialized(n_in / 2),
+        )
     };
-
-    for i in materialize_level..(n_mlv - 1) {
-        let chi_prev = mlv_chis[i];
-        let log_n_before = a_mlv.len().trailing_zeros() as usize;
-
-        // The eq weights of the variables the next round does not bind.
-        let r_eq = &r_rest[i + 2..];
-
-        let (m1, mi) = if log_n_before >= 10 {
-            let half = a_mlv.len() / 2;
-            let (m1, mi) = fold_and_compute_round_pair_into(
-                &a_mlv,
-                &b_mlv,
-                &mut a_nxt[..half],
-                &mut b_nxt[..half],
-                chi_prev,
-                r_eq,
+    while next < n_mlv {
+        // The tables' length once the pending challenges are folded in.
+        let n_out = a_mlv.len() >> pending.len();
+        let paired =
+            next + 1 < n_mlv && n_out >= PAIRED_MIN && r_rest[next] != F192::ONE && r_rest[next + 1] != F192::ONE;
+        if paired {
+            let pair = fold_and_round_pair_into(
+                [&a_mlv, &b_mlv, &c_mlv],
+                [&mut a_nxt[..n_out], &mut b_nxt[..n_out], &mut c_nxt[..n_out]],
+                &pending,
+                &r_rest[next + 1..],
             );
-            let m1c = fold_and_compute_round_single_into(&c_mlv, &mut c_nxt[..half], chi_prev, r_eq);
-            // Swap current <-> scratch, then shrink the new current to the
-            // folded size. The old (larger) buffer becomes scratch; we only
-            // ever write its leading `half` slots next round, so its stale
-            // length is harmless.
             std::mem::swap(&mut a_mlv, &mut a_nxt);
             std::mem::swap(&mut b_mlv, &mut b_nxt);
             std::mem::swap(&mut c_mlv, &mut c_nxt);
-            a_mlv.truncate(half);
-            b_mlv.truncate(half);
-            c_mlv.truncate(half);
-            (m1 + m1c, mi)
+            a_mlv.truncate(n_out);
+            b_mlv.truncate(n_out);
+            c_mlv.truncate(n_out);
+            let (g1, g_inf) = pair.first;
+            c_running = send_round(ps, c_running, r_rest[next], None, g1, g_inf, &mut mlv_chis);
+            let (g1, g_inf) = pair.second(mlv_chis[next]);
+            c_running = send_round(ps, c_running, r_rest[next + 1], None, g1, g_inf, &mut mlv_chis);
+            pending = vec![mlv_chis[next], mlv_chis[next + 1]];
+            next += 2;
         } else {
-            fold_in_place_pair(&mut a_mlv, &mut b_mlv, chi_prev);
-            fold_in_place_single(&mut c_mlv, chi_prev);
+            for &rho in &pending {
+                fold_in_place_pair(&mut a_mlv, &mut b_mlv, rho);
+                fold_in_place_single(&mut c_mlv, rho);
+            }
+            // The eq weights of the variables this round does not bind.
+            let r_eq = &r_rest[next + 1..];
             let (m1, mi) = round_pair_naive(&a_mlv, &b_mlv, r_eq);
-            (m1 + round_single_naive(&c_mlv, r_eq), mi)
-        };
-
-        let r = r_rest[i + 1];
-        let g0 = (r == F192::ONE).then(|| {
-            // happens only with probability 2^(-192). We keep it for completeness, but not strictly necessary in the real world
-            let eq = primitives::multilinear::eq_table(r_eq);
-            (0..eq.len()).fold(F192::ZERO, |acc, x| {
-                acc + eq[x] * (a_mlv[2 * x] * b_mlv[2 * x] + c_mlv[2 * x])
-            })
-        });
-        c_running = send_round(ps, c_running, r, g0, m1, mi, &mut mlv_chis);
+            let m1 = m1 + round_single_naive(&c_mlv, r_eq);
+            let r = r_rest[next];
+            let g0 = (r == F192::ONE).then(|| {
+                // happens only with probability 2^(-192). We keep it for completeness, but not strictly necessary in the real world
+                let eq = primitives::multilinear::eq_table(r_eq);
+                (0..eq.len()).fold(F192::ZERO, |acc, x| {
+                    acc + eq[x] * (a_mlv[2 * x] * b_mlv[2 * x] + c_mlv[2 * x])
+                })
+            });
+            c_running = send_round(ps, c_running, r, g0, m1, mi, &mut mlv_chis);
+            pending = vec![mlv_chis[next]];
+            next += 1;
+        }
     }
 
-    // ---- Final binding at ρ_{n_mlv} (the last challenge) ----
+    // ---- Final binding: the challenges still pending ----
     //
     // Only a and b are bound: ĉ comes from the terminal identity below, so
     // `c_mlv`'s last fold would be work for a value nobody reads.
-    let chi_last = *mlv_chis.last().expect("at least one ρ sampled");
-    fold_in_place_pair(&mut a_mlv, &mut b_mlv, chi_last);
+    for &rho in &pending {
+        fold_in_place_pair(&mut a_mlv, &mut b_mlv, rho);
+    }
     debug_assert_eq!(a_mlv.len(), 1);
     debug_assert_eq!(b_mlv.len(), 1);
 
