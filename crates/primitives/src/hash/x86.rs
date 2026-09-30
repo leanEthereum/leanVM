@@ -1,12 +1,8 @@
-//! The x86-64 backends: the scalar kernel, and the AVX2 and AVX-512 batches.
+//! The x86-64 backends: the AVX2 and AVX-512 batches.
 
-mod gpr;
 #[cfg(target_feature = "avx512f")]
 mod zmm;
 
-pub(super) use gpr::compress;
-
-// A baseline x86-64 build has only the scalar kernel.
 #[cfg(target_feature = "avx2")]
 use super::batch::Lanes32;
 // Only the AVX-512 digest store needs it.

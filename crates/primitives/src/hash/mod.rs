@@ -89,17 +89,6 @@ pub const PARAM_IV: [u32; 8] = {
 /// The last-node flag stays zero: nothing here uses the tree mode.
 #[inline]
 pub fn compress(h: &mut [u32; 8], m: &[u32; 16], t: u64, last: bool) {
-    #[cfg(target_arch = "x86_64")]
-    x86::compress(h, m, t, last);
-    #[cfg(target_arch = "aarch64")]
-    arm::compress(h, m, t, last);
-    #[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
-    compress_portable(h, m, t, last);
-}
-
-/// The compression as the RFC writes it: the reference every specialized path is pinned to.
-#[cfg_attr(any(target_arch = "x86_64", target_arch = "aarch64"), allow(dead_code))]
-fn compress_portable(h: &mut [u32; 8], m: &[u32; 16], t: u64, last: bool) {
     let mut v = [0u32; 16];
     v[..8].copy_from_slice(h);
     v[8..].copy_from_slice(&IV);
@@ -313,7 +302,6 @@ pub fn test_vectors() -> impl Iterator<Item = (Vec<u8>, [u8; OUT_LEN])> {
 mod tests {
     use super::batch::Scalar8;
     use super::*;
-    use crate::test_rng::Rng;
 
     #[test]
     fn continued_from_zero_prefix_matches_whole_image() {
@@ -349,38 +337,13 @@ mod tests {
     }
 
     fn reference(data: &[u8]) -> [u8; OUT_LEN] {
-        // Whole blocks through the RFC-literal compression, independent of the fast paths.
+        // Whole blocks straight through `compress`, independent of the streaming and batched paths.
         let mut h = PARAM_IV;
         let n = data.len() / BLOCK_LEN;
         for (b, block) in data.as_chunks::<BLOCK_LEN>().0.iter().enumerate() {
-            compress_portable(&mut h, &block_words(block), ((b + 1) * BLOCK_LEN) as u64, b + 1 == n);
+            compress(&mut h, &block_words(block), ((b + 1) * BLOCK_LEN) as u64, b + 1 == n);
         }
         state_bytes(&h)
-    }
-
-    #[test]
-    fn compress_matches_portable() {
-        // Invariant: the dispatched compression equals the RFC-literal one.
-        let mut rng = Rng::new(0xB1A2);
-
-        // Edge counters first: the low and high halves enter different state words.
-        //
-        //     t = 2^32 - 1    low word all ones
-        //     t = 2^32        high word one
-        let counters = [0u64, 64, u32::MAX as u64, 1 << 32, u64::MAX];
-        for trial in 0..256 {
-            // Random state and block, then an edge or random counter.
-            let h: [u32; 8] = std::array::from_fn(|_| rng.next_u32());
-            let m: [u32; 16] = std::array::from_fn(|_| rng.next_u32());
-            let t = counters.get(trial).copied().unwrap_or_else(|| rng.next_u64());
-            let last = rng.bit();
-
-            // Same start, same end.
-            let (mut got, mut want) = (h, h);
-            compress(&mut got, &m, t, last);
-            compress_portable(&mut want, &m, t, last);
-            assert_eq!(got, want, "t = {t:#x}, last = {last}");
-        }
     }
 
     fn pattern(n: usize) -> Vec<u8> {
