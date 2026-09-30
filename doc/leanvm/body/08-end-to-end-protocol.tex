@@ -5,7 +5,7 @@
 
 The program is public, so nothing is decoded in a table: both parties decode each of the $\nprog=2^{\kbc}$ instruction words once, into the fields the rows read (\S\ref{sec:bytecode}), and encode the result as one $\K$-valued multilinear $P$ in $\kbc+4$ variables:
 \begin{enumerate}[itemsep=1pt,topsep=3pt]
-\item lay instruction $z$ out as $16$ slots of $\K$: the class tag $\opc{j}$ in slot $3$ (\S\ref{sec:bytecode}); the flags in slot $4$, a word of selector bits naming the class's function, the finalization word for \texttt{HASH}; the register numbers $a_1,a_2,a_d$ in slots $5$ to $7$, $\intk{\sink}=\intk{32}$ for an instruction with no destination or with $\regs[0]$ as one; the immediate in slot $8$, sign-extended, and folded with $\pc$ for \texttt{auipc}; the successor $\intk{\tbase+4z+4}$ in slot $9$; for the control class, $\Delta$ in slot $10$, the branch or jump target XOR the successor, and the bits $\mathit{link}$ and $\mathit{jalr}$ in slots $11$ and $12$ (\S\ref{sec:tab-classes}); and $0$ everywhere else, slot $13$ included, where a division's row puts its verdict (\S\ref{sec:tab-classes}). A slot of the text holding no instruction the machine defines, the halt slot included, is all zeros: its tag is no table's.
+\item lay instruction $z$ out as $16$ slots of $\K$: the class tag $\opc{j}$ in slot $3$ (\S\ref{sec:bytecode}); the flags in slot $4$, a word of selector bits naming the class's function, the finalization word for \texttt{HASH}; the register numbers $a_1,a_2,a_d$ in slots $5$ to $7$, $\intk{\sink}=\intk{32}$ for an instruction with no destination or with $\regs[0]$ as one; the immediate in slot $8$, sign-extended, and folded with $\pc$ for \texttt{auipc}; the successor $\intk{\tbase+4z+4}$ in slot $9$; for the control class, $\Delta$ in slot $10$, the branch or jump target XOR the successor, and the bits $\mathit{link}$ and $\mathit{jalr}$ in slots $11$ and $12$ (\S\ref{sec:tab-classes}); the exit selector $\exitflag$ in slot $14$, $1$ only for \texttt{ecall}; and $0$ everywhere else, slot $13$ included, where a division's row puts its verdict (\S\ref{sec:tab-classes}). A slot of the text holding no instruction the machine defines, the halt slot included, is all zeros: its tag is no table's.
 \item read the resulting $2^{\kbc}\times16$ table as $P$, the low $\kbc$ variables indexing the instruction and the high four its slot, bits low first.
 \end{enumerate}
 So $P(z,1,1,0,0)$ is instruction $z$'s tag, $P(z,1,0,1,0)$ its first register, $P(z,1,0,0,1)$ its successor, and $P(z,0,0,0,0)=P(z,1,1,1,1)=0$.
@@ -40,7 +40,7 @@ Each reduction below adds evaluation claims on columns to a shared \emph{claim p
 
 \paragraph{Setup.}
 
-The Fiat-Shamir state is seeded by the statement (\S\ref{sec:e2e-fiat-shamir}). The prover sends the eight table log-heights $\tau_j$, the PCS rate and the final clock $\tsfinal\in\K$ (\S\ref{sec:state}); the verifier checks each $\tau_j$ against the cap $2^{32}$ and the batch floors (\S\ref{sec:tables}), and derives the layout of every stack (PCS and GKR leaves) from those sizes and the program's.
+The Fiat-Shamir state is seeded by the statement (\S\ref{sec:e2e-fiat-shamir}). The prover sends the eight table log-heights $\tau_j$, the PCS rate and the nonzero final clock $\tsfinal\in\K$ (\S\ref{sec:state}); the verifier checks each $\tau_j$ against the cap $2^{32}$ and the batch floors (\S\ref{sec:tables}), and derives the layout of every stack (PCS and GKR leaves) from those sizes and the program's.
 
 \paragraph{Commitment.}
 

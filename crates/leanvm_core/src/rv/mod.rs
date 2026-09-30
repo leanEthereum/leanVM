@@ -122,6 +122,9 @@ impl Entry {
         if self.class == Class::Illegal {
             return *self == Self::ILLEGAL;
         }
+        if self.target == Target::Halt {
+            return *self == decode(0x73, 0);
+        }
         let legal = legal_flags(self.class);
         let control = self.class == Class::Alu;
         // A hash row writes no register and reads no immediate: its table holds both at

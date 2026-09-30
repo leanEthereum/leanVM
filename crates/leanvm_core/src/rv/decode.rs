@@ -166,6 +166,27 @@ pub fn decode(word: u32, pc: u64) -> Entry {
 mod tests {
     use super::*;
 
+    #[test]
+    fn only_canonical_ecall_can_carry_the_halt_selector() {
+        let exit = decode(0x73, 0);
+        assert!(exit.is_well_formed());
+        for malformed in [
+            Entry {
+                class: Class::Load,
+                ..exit
+            },
+            Entry { flags: 0, ..exit },
+            Entry { a1: 1, ..exit },
+            Entry { a2: 1, ..exit },
+            Entry { ad: 1, ..exit },
+            Entry { imm: 1, ..exit },
+            Entry { link: true, ..exit },
+            Entry { jalr: true, ..exit },
+        ] {
+            assert!(!malformed.is_well_formed(), "{malformed:?}");
+        }
+    }
+
     /// Every entry the decoder can produce is well formed, over a sweep dense in the
     /// fields that select an instruction.
     #[test]

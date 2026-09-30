@@ -239,8 +239,8 @@ fn col_kappas(sizes: Sizes, taus: [usize; tables::N_TABLES]) -> Vec<Option<usize
 }
 
 /// How many PUBLIC columns a bytecode entry is: the class tag, then `flags, a1, a2,
-/// ad, imm, pc4, dt, link, jalr` (§sec:e2e-bc).
-pub const N_BYTECODE_COLUMNS: usize = 10;
+/// ad, imm, pc4, dt, link, jalr`, a zero verdict, and the exit selector (§sec:e2e-bc).
+pub const N_BYTECODE_COLUMNS: usize = tables::EXIT_SLOT - 2;
 
 /// The public bytecode columns over the program cube, in bytecode-slot order. The
 /// program is not committed, so these ride the seed/finalize blocks as
@@ -263,6 +263,8 @@ pub fn bytecode_columns(p: &rv::Program) -> [Vec<F64>; N_BYTECODE_COLUMNS] {
         column(&|i, _| p.dt_of(i)),
         column(&|_, e| e.link as u64),
         column(&|_, e| e.jalr as u64),
+        column(&|_, _| 0),
+        column(&|_, e| (e.target == rv::Target::Halt) as u64),
     ]
 }
 
@@ -308,13 +310,26 @@ pub fn layout(p: &rv::Program, taus: [usize; tables::N_TABLES], ts_final: F64) -
 
     // Shared blocks (cross-instruction infra, not owned by any single table). The
     // boundary: the run starts at the entry point at cycle 1 and ends on the halt
-    // slot, at whatever clock the prover announced (`ts_final`), which nothing has to
-    // check: a wrong one unbalances the bus.
+    // slot with a nonzero clock and its exit marker.
+    // An incorrect clock leaves the terminal tuple unmatched.
     push.push(blk(
         0,
-        vec![Const(SEP_STATE), Const(F64(p.entry_pc)), Const(tables::CLOCK_START)],
+        vec![
+            Const(SEP_STATE),
+            Const(F64(p.entry_pc)),
+            Const(tables::CLOCK_START),
+            Const(F64::ZERO),
+        ],
     ));
-    pull.push(blk(0, vec![Const(SEP_STATE), Const(F64(p.halt_pc())), Const(ts_final)]));
+    pull.push(blk(
+        0,
+        vec![
+            Const(SEP_STATE),
+            Const(F64(p.halt_pc())),
+            Const(ts_final),
+            Const(ts_final),
+        ],
+    ));
     // Register seed + finalize: every register starts at timestamp g^0 holding zero,
     // and ends at its last timestamp holding its final word (§sec:memchan).
     let cell = IntIndex {

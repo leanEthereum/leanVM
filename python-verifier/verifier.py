@@ -619,6 +619,7 @@ def verify_bus_balance(layout: Layout, transcript: Transcript) -> BusResult:
     def fingerprints(
         pc: E,
         clock: E,
+        exit_marker: E,
         register_ts: E,
         register: E,
         ram_ts: E,
@@ -633,7 +634,7 @@ def verify_bus_balance(layout: Layout, transcript: Transcript) -> BusResult:
         named are zero. A side differs only here: push starts the run and seeds every array, pull ends the
         run at the halt slot and finalizes every array with its committed columns."""
         return (
-            dot(weights[:3], (SEP_STATE, pc, clock)),
+            dot(weights[:4], (SEP_STATE, pc, clock, exit_marker)),
             dot(weights[:4], (SEP_REG, register_index, register_ts, register)),
             dot(weights[:4], (SEP_MEM, ram_index, ram_ts, ram)),
             dot(weights[:4], (SEP_MEM, advice_index, advice_ts, advice)),
@@ -644,9 +645,10 @@ def verify_bus_balance(layout: Layout, transcript: Transcript) -> BusResult:
 
     halt_pc = E(TEXT_BASE + 4 * (2**layout.log_bytecode - 1))  # the run ends on the text's last slot, which is never executed
     # cycle 1, every cell at timestamp g^0: the registers zero, RAM as the statement has it, the advice as the prover has it
-    start = fingerprints(E(layout.entry_pc), _gpow(CLOCK_STRIDE), ONE, ZERO, ONE, ram_initial, ONE, advice_initial, ONE, ONE, ONE)
+    start = fingerprints(E(layout.entry_pc), _gpow(CLOCK_STRIDE), ZERO, ONE, ZERO, ONE, ram_initial, ONE, advice_initial, ONE, ONE, ONE)
     end = fingerprints(
         halt_pc,
+        layout.final_clock,
         layout.final_clock,
         register_final_ts,
         register_final,
@@ -822,10 +824,10 @@ class Flushes:
         self.push.append(tuple(push))
         self.pull.append(tuple(pull))
 
-    def state(self, columns: Sequence[str], npc: Form, stride: int) -> None:
+    def state(self, columns: Sequence[str], npc: Form, stride: int, exit_marker: Form) -> None:
         """Pull the current state and push the next: `npc`, derived rather than committed, and the clock advanced."""
         pc, ts = _cols(columns, "pc", "ts")
-        self.pair((_const(SEP_STATE), npc, _col(ts, stride)), (_const(SEP_STATE), _col(pc), _col(ts)))
+        self.pair((_const(SEP_STATE), npc, _col(ts, stride), exit_marker), (_const(SEP_STATE), _col(pc), _col(ts), _const(ZERO)))
 
     def counted(self, prefix: Sequence[Form], count: int, suffix: Sequence[Form]) -> None:
         """A read of a lookup array: pulled with its count, pushed back with the count advanced."""
@@ -856,11 +858,12 @@ def _access_constraints(columns: Sequence[str], slots: Sequence[int]) -> Callabl
 # hash class differs in what it accesses: no register write, and the sixteen words of its block, the result's four
 # rewritten.
 
-CONTROL_COLUMNS = ("dt", "link", "jalr", "taken")  # the bytecode fields of a class with branches and jumps, and its taken bit
+CONTROL_COLUMNS = ("dt", "link", "jalr", "taken", "exit")  # the bytecode fields of a class with branches and jumps, and its taken bit
 HASH_COLUMNS = (*(f"cell_{k}" for k in range(HASH_WORDS)), *(f"cell_new_{HASH_OUT_WORD + j}" for j in range(4)))
 RAM_COLUMNS = {"none": (), "read": ("address", "cell_0"), "write": ("address", "cell_0", "cell_new_0"), "block": HASH_COLUMNS}
 
 
+EXIT_SLOT = 14  # public selector: only ECALL can terminate the state channel
 BAD_SLOT = 13  # where a bytecode tuple holds a row's `bad` word: past every field of an entry, where the program is zero
 
 
@@ -890,7 +893,7 @@ def _class_flushes(opcode: int, columns: Sequence[str], control: bool, ram: str,
     if "imm" in ports:
         imm_form = _col(_cols(columns, "imm")[0])
     if control:
-        dt, link, jalr, taken = _cols(columns, *CONTROL_COLUMNS)
+        dt, link, jalr, taken, exit = _cols(columns, *CONTROL_COLUMNS)
         # What the row derives, each of degree 2: the next pc, and what rd receives.
         npc = _col(pc4) + _prod(taken, dt) + _prod(jalr, out) + _prod(jalr, pc4)
         vd = _col(out) + _prod(link, out) + _prod(link, pc4)
@@ -898,11 +901,13 @@ def _class_flushes(opcode: int, columns: Sequence[str], control: bool, ram: str,
     if ram == "block":
         stride = HASH_STRIDE
     flushes = Flushes()
-    flushes.state(columns, npc, stride)
+    exit_marker = _prod(exit, _cols(columns, "ts")[0], stride) if control else _const(ZERO)
+    flushes.state(columns, npc, stride, exit_marker)
     entry = (_const(_gpow(opcode)), _col(flags), _col(a1), _col(a2), ad_form, imm_form, _col(pc4), *fields)
     if "bad" in ports:
         # What the circuit asserts to be zero rides a slot where the program is zero, so the lookup makes it zero.
         entry = (*entry, *[_const(ZERO)] * (BAD_SLOT - 3 - len(entry)), _col(_cols(columns, "bad")[0]))
+    entry = (*entry, *[_const(ZERO)] * (EXIT_SLOT - 3 - len(entry)), _col(exit) if control else _const(ZERO))
     flushes.counted((_const(SEP_BYTECODE), _col(_cols(columns, "pc")[0])), cnt_bc, entry)
     # The register's number comes straight from the bytecode. A read pushes back the value it pulled.
     flushes.access(columns, SEP_REG, _col(a1), 0, REGISTER_SLOTS[0], _col(v1), _col(v1))
@@ -1703,8 +1708,9 @@ def check_bytecode(bytecode: Sequence[K]) -> None:
     are ones its class defines. An entry with no tag can be read by no table: a run reaching one has no proof."""
     size = len(bytecode) // 2**BUS_BITS
     fields = [[int(word) for word in bytecode[slot * size : (slot + 1) * size]] for slot in range(2**BUS_BITS)]
-    tag, flags, a1, a2, ad, imm, pc4, _, link, jalr = fields[3:13]
-    require(not any(any(column) for column in fields[:3] + fields[13:]), "a bytecode slot outside an entry's fields is nonzero")
+    tag, flags, a1, a2, ad, imm, pc4, dt, link, jalr = fields[3:13]
+    exit = fields[EXIT_SLOT]
+    require(not any(any(column) for column in fields[:3] + [fields[13], fields[15]]), "a bytecode slot outside an entry's fields is nonzero")
     tags = {int(_gpow(table.opcode)): table for table in TABLES}
     for z in range(size):
         if tag[z] == 0:
@@ -1714,6 +1720,17 @@ def check_bytecode(bytecode: Sequence[K]) -> None:
         require(a1[z] < 32 and a2[z] < 32 and 1 <= ad[z] <= SINK, "a bytecode entry misnames a register")
         require(pc4[z] == TEXT_BASE + 4 * z + 4, "a bytecode entry's successor is not pc + 4")
         require(flags[z] in table.legal_flags, "a bytecode entry's flags are not its class's")
+        require(exit[z] <= 1, "an exit selector is not a bit")
+        if exit[z]:
+            halt_pc = TEXT_BASE + 4 * (size - 1)
+            require(
+                table.opcode == 0
+                and flags[z] == 1 << ALU_ALWAYS
+                and a1[z] == a2[z] == imm[z] == link[z] == jalr[z] == 0
+                and ad[z] == SINK
+                and dt[z] == (halt_pc ^ pc4[z]),
+                "an exit entry is not ECALL",
+            )
         require(link[z] <= 1 and jalr[z] <= 1, "a bytecode selector is not a bit")
         require(table.ram != "block" or (ad[z] == SINK and imm[z] == 0), "a hash entry writes a register or has an immediate")
 
@@ -1876,13 +1893,14 @@ def verify_execution(
     check_bytecode(bytecode)
     # Everything public and fixed is one digest, which seeds the transcript; every variable-length part is length-framed.
     halt_pc = TEXT_BASE + 4 * (len(bytecode) // 2**BUS_BITS - 1)
-    preimage = b"leanvm-rv64im-1" + pack("<Q", len(bytecode)) + b"".join(word.to_bytes() for word in bytecode)
+    preimage = b"leanvm-rv64im-2" + pack("<Q", len(bytecode)) + b"".join(word.to_bytes() for word in bytecode)
     preimage += pack("<5Q", entry_pc, halt_pc, log_ram, log_advice, len(image)) + pack(f"<{len(image)}Q", *image)
     transcript = Transcript(proof, blake2s_hash(preimage), [K(word) for word in output])
 
     # 1] table log-sizes, log-inv-rate in WHIR, and the clock the run ended on (a K element)
     announced = transcript.next_scalars(2 + len(TABLES))
     require(all(value.c1 == value.c2 == 0 for value in announced), "announced value has a nonzero high limb")
+    require(announced[-1] != ZERO, "the final clock is zero")
     table_logs = tuple(int(value.c0) for value in announced[: len(TABLES)])
     log_inverse_rate = int(announced[-2].c0)
     require(1 <= log_inverse_rate <= 4, "invalid PCS inverse rate")
@@ -1935,6 +1953,7 @@ def protocol_constants() -> str:
         "ADVICE_BASE": ADVICE_BASE,
         "BAD_SLOT": BAD_SLOT,
         "BUS_BITS": BUS_BITS,
+        "EXIT_SLOT": EXIT_SLOT,
         "CLOCK_STRIDE": CLOCK_STRIDE,
         "FLOCK_K_SKIP": FLOCK_K_SKIP,
         "FLOCK_MIN_LOG_SIZE": FLOCK_MIN_LOG_SIZE,

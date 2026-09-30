@@ -3,7 +3,8 @@
 //! in both, and this is what catches the Python one drifting.
 
 use fiat_shamir::transcript::RawProof;
-use leanvm_core::cpu::{prove, verify, verify_to_raw};
+use leanvm_core::cpu::{CpuError, prove, verify, verify_to_raw};
+use primitives::field::F192;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 use std::time::Instant;
@@ -139,6 +140,17 @@ fn test_python_verifier() {
     raw_announcement.stream[0].c1 = 1;
     PythonStatement::assert_rejects(&statement.verify(&raw_announcement), "a noncanonical announcement");
 
+    // A zero-clock row cannot supply the terminal marker.
+    let final_clock = leanvm_core::tables::N_TABLES + 1;
+    let mut zero_clock = proof.clone();
+    zero_clock.stream[final_clock] = F192::ZERO;
+    assert_eq!(verify(&program, &output, &zero_clock), Err(CpuError::PublicInput));
+    let mut raw_zero_clock = raw.clone();
+    raw_zero_clock.stream[final_clock] = F192::ZERO;
+    let refused = statement.verify(&raw_zero_clock);
+    PythonStatement::assert_rejects(&refused, "a zero final clock");
+    assert!(String::from_utf8_lossy(&refused.stderr).contains("the final clock is zero"));
+
     let mut malformed_root = proof.clone();
     // Past the announcement: the table heights, the rate, the final clock.
     let root_offset = leanvm_core::tables::N_TABLES + 2;
@@ -161,6 +173,13 @@ fn test_python_verifier() {
         String::from_utf8_lossy(&python.stderr).contains("misnames a register"),
         "Python refused a table that writes x0 for the wrong reason"
     );
+    // Setting an exit selector on an ordinary instruction is a malformed public table.
+    let mut forged_exit = table.clone();
+    forged_exit[8 * leanvm_core::tables::EXIT_SLOT * entries..][..8].copy_from_slice(&1u64.to_le_bytes());
+    std::fs::write(&statement.bytecode, forged_exit).expect("write forged exit");
+    let refused = statement.verify(&raw);
+    PythonStatement::assert_rejects(&refused, "an ordinary instruction marked as an exit");
+    assert!(String::from_utf8_lossy(&refused.stderr).contains("an exit entry is not ECALL"));
     std::fs::write(&statement.bytecode, table).expect("restore bytecode");
 
     println!(

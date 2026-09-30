@@ -211,6 +211,7 @@ pub struct Machine<'a> {
     /// RAM's cells, then the advice's.
     mem: Vec<u64>,
     pub pc: u64,
+    exited: bool,
 }
 
 impl<'a> Machine<'a> {
@@ -229,6 +230,7 @@ impl<'a> Machine<'a> {
             regs: [0; 1 << LOG_REGS],
             mem,
             pc: program.entry_pc,
+            exited: false,
         }
     }
 
@@ -256,7 +258,7 @@ impl<'a> Machine<'a> {
     }
 
     pub fn halted(&self) -> bool {
-        self.pc == self.program.halt_pc()
+        self.exited && self.pc == self.program.halt_pc()
     }
 
     pub fn step(&mut self) -> Result<Step, Trap> {
@@ -295,6 +297,7 @@ impl<'a> Machine<'a> {
             (false, true) => self.program.target_of(index).expect("a taken entry has a target"),
             (false, false) => pc4,
         };
+        self.exited = e.target == Target::Halt;
         self.pc = npc;
         Ok(Step {
             index,

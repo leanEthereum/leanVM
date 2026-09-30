@@ -70,7 +70,8 @@
 \newcommand{\val}{\mathit{val}}
 \newcommand{\cnt}{\mathit{count}}
 \newcommand{\cntfin}{\mathit{count}^{\mathrm{fin}}}  % committed finalize-count column
-\newcommand{\ts}{\mathbf{ts}}            % the clock: g^{4 cycle}, the last component of the VM state
+\newcommand{\ts}{\mathbf{ts}}            % the execution clock
+\newcommand{\exitflag}{\mathit{exit}} % public selector: one only for ecall
 \newcommand{\tsfinal}{\ts_{\mathrm{final}}} % the clock the run ends on, announced by the prover
 \newcommand{\tsprev}{\mathit{prev}}      % the timestamp of a cell's previous access, a committed column
 \newcommand{\tsfin}{\mathit{ts}^{\mathrm{fin}}}  % committed column: each cell's last timestamp

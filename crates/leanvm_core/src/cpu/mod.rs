@@ -76,7 +76,7 @@ fn read_public(vs: &mut VerifierState, prog: &Program) -> Result<(Layout, usize)
     }
     let log_inv_rate = read_size(vs)?;
     let ts_final = vs.next_scalar().map_err(CpuError::Transcript)?;
-    if ts_final.c1 != 0 || ts_final.c2 != 0 {
+    if ts_final.c0 == 0 || ts_final.c1 != 0 || ts_final.c2 != 0 {
         return Err(CpuError::PublicInput);
     }
     // The public instance caps ensure that, with `ord(g) = 2^64 − 1`, the
@@ -184,7 +184,7 @@ impl Program {
             unsafe { core::slice::from_raw_parts(table.as_ptr().cast::<u8>(), core::mem::size_of_val(&table[..])) };
         // Every variable-length part is length-framed, so the preimage parses one way.
         let mut h = primitives::hash::Hasher::new();
-        h.update(b"leanvm-rv64im-1");
+        h.update(b"leanvm-rv64im-2");
         h.update(&bytes(&[table.len() as u64]));
         h.update(table_bytes);
         h.update(&bytes(&[
@@ -730,6 +730,55 @@ mod tests {
             "unmatched (side, block, row): {:?}",
             &unmatched[..unmatched.len().min(12)]
         );
+    }
+
+    #[test]
+    fn only_ecall_can_terminate_the_state_channel() {
+        let prototype = Asm::new().li(T0, rv::TEXT_BASE).i("addi", A0, ZERO, 42).exit().finish();
+        let halt = Program::new(&prototype, rv::TEXT_BASE, vec![], 2, 0).rv.halt_pc();
+        let original = Asm::new().li(T0, halt).i("addi", A0, ZERO, 42).exit().finish();
+        let honest_program = Program::new(&original, rv::TEXT_BASE, vec![], 2, 0);
+        assert_eq!(honest_program.rv.halt_pc(), halt);
+        let exit_index = original.len() - 1;
+        let pc = honest_program.rv.pc_of(exit_index);
+        for instruction in [j_type(0, (halt - pc) as i32), i_type(0x67, 0, 0, T0, 0)] {
+            let mut text = original.clone();
+            text[exit_index] = instruction;
+            let program = Program::new(&text, rv::TEXT_BASE, vec![], 2, 0);
+            assert!(matches!(program.execute(&[]), Err(rv::Trap::Illegal { pc }) if pc == halt));
+
+            // Forge the terminal row directly, bypassing the interpreter's trap.
+            let mut execution = honest_program.execute(&[]).unwrap();
+            let entry = program.rv.entries[exit_index];
+            if entry.jalr {
+                let tick = tables::CLOCK_STRIDE * (exit_index as u32 + 1);
+                let previous = original[..exit_index]
+                    .iter()
+                    .enumerate()
+                    .rev()
+                    .find_map(|(i, &word)| {
+                        (rv::decode(word, program.rv.pc_of(i)).ad == T0 as u8)
+                            .then_some(tables::CLOCK_STRIDE * (i as u32 + 1) + 3)
+                    })
+                    .unwrap();
+                let row = &mut execution.trace.rows[0][exit_index];
+                (row.v1, row.out, row.taken) = (halt, halt, false);
+                (row.acc[0].x, row.acc[0].gap) = (g_pow(previous as usize), tick - previous - 1);
+                (row.acc[1].x, row.acc[1].gap) = (g_pow((tick - 3) as usize), 3);
+                execution.trace.reg_ts[T0 as usize] = g_pow(tick as usize);
+                recount_range_reads(&mut execution);
+            }
+            execution.trace.reg_fin[rv::SINK as usize] = F64(pc + 4);
+            let witness = program.build(&execution);
+            let unmatched = leaf::unmatched_leaves(&witness.layout.push, &witness.layout.pull, &witness.columns());
+            assert_eq!(unmatched.len(), 2, "{unmatched:?}");
+            assert!(unmatched.iter().all(|(_, block, _)| *block == 0 || *block == 7));
+
+            let failure = std::panic::catch_unwind(|| prove_execution(&program, &execution, pcs::TEST_LOG_INV_RATE));
+            let failure = failure.expect_err("a non-exit terminal transition was proven");
+            let message = failure.downcast_ref::<String>().map(String::as_str).unwrap_or("");
+            assert!(message.contains("two products to agree"), "{message}");
+        }
     }
 
     /// A load cannot return what its cell does not hold. The forged run is consistent

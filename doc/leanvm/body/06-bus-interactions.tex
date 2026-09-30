@@ -7,13 +7,15 @@ Two encodings of an integer $i$ coexist on the bus. What the machine indexes (a 
 
 \subsection{VM State}\label{sec:state}
 
-The state interaction uses domain separator $\dsep{ST} = \gen^{0}$, and carries the program counter and a \emph{clock} $\ts\in\K$: $\tup{\dsep{ST},\pc,\ts}$. Each instruction row pulls its current state and pushes its successor $\tup{\dsep{ST},\pc',\gen^{s}\cdot\ts}$, where the \emph{stride} $s$ is $4$ for every class but \texttt{blake2s}, whose stride is $18$. An honest clock is therefore $\gen^{4c}$ at cycle $c$ of a run without compressions, and a compression counts for four and a half cycles; either way each of a row's accesses gets a timestamp of its own, $\gen^{k}\cdot\ts$ for the access in \emph{slot} $k<s$ (\S\ref{sec:memchan}).
+The state interaction uses domain separator $\dsep{ST} = \gen^{0}$ and carries the program counter, clock, and an exit marker. Each row pulls $\tup{\dsep{ST},\pc,\ts,0}$ and pushes $\tup{\dsep{ST},\pc',\gen^{s}\ts,\exitflag\gen^{s}\ts}$, where $\exitflag$ is the bytecode's exit selector. Only \texttt{ecall} has $\exitflag=1$. The stride $s$ is $4$, except for \texttt{blake2s}, whose stride is $18$.
 
-The bus is preseeded by pushing the initial state, which is the program's entry point at cycle $1$, and pulling the final state, the \emph{halt slot}: the last slot of the text, which holds no instruction and which \texttt{exit} jumps to (\S\ref{sec:e2e-bc}). These are the boundary conditions:
+The boundary tuples are
 \begin{align*}
-  \tup{\dsep{ST},\pc_{\mathrm{initial}},\ts_{\mathrm{initial}}} &= \tup{\dsep{ST},\intk{\pc_{\mathrm{entry}}},\gen^{4}},\\
-  \tup{\dsep{ST},\pc_{\mathrm{final}},\tsfinal} &= \tup{\dsep{ST},\intk{\tbase+4(\nprog-1)},\tsfinal}.
-\end{align*} The prover announces $\tsfinal\in\K$, and nothing checks it: a wrong value leaves the final state unmatched.
+  \sigma_{\mathrm{initial}} &= \tup{\dsep{ST},\intk{\pc_{\mathrm{entry}}},\gen^{4},0},\\
+  \sigma_{\mathrm{final}} &= \tup{\dsep{ST},\intk{\tbase+4(\nprog-1)},\tsfinal,\tsfinal}.
+\end{align*}
+The verifier requires $\tsfinal\ne0$. Thus only an exit row can meet the final tuple: a jump to the halt address is insufficient. Zero-clock padding always carries marker $0$ and cannot end the run.
+
 \begin{proposition}[Balance implies the existence of a valid execution]\label{prop:walk}
 Write $\sigma_{\mathrm{initial}}$ and $\sigma_{\mathrm{final}}$ for the two boundary states. Let $\mathcal R$ be a finite multiset of rows, each pulling a state $\bpull(r)$ and pushing a state $\bpush(r)$, and suppose the state channel balances:
 \[
