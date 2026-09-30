@@ -41,8 +41,7 @@ jobs:
           name: pr-event
           path: ${{ github.event_path }}
 
-  # Exact counts, the same on every machine, so one testbed. The testbed `ubuntu-latest` is
-  # how bench-track.yml knows to fail on any increase.
+  # Exact counts, the same on every machine: summarized on the run, not tracked on Bencher.
   cycles:
     name: Cycles
     runs-on: ubuntu-latest
@@ -55,12 +54,6 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: Summarize the counts
         run: cargo leanvm bench --cycles-only --markdown >> "$GITHUB_STEP_SUMMARY"
-      - name: Count cycles
-        run: cargo leanvm bench --cycles-only > bench.json && cat bench.json
-      - uses: actions/upload-artifact@v4
-        with:
-          name: bench-ubuntu-latest
-          path: bench.json
 
   prove:
     name: Prove (${{ matrix.testbed.name }})

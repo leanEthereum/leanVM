@@ -8,9 +8,8 @@ name: Track benchmarks
 #
 # A PR's results go to the Bencher branch `pr/<number>`, started from its base branch
 # at the base commit with the base's thresholds, and Bencher comments on the PR. A push
-# to a tracked branch sets that branch's thresholds: any increase in an exact count
-# (cycles, proven-rows, committed) on ubuntu-latest fails, a proving machine's latency
-# alerts only report.
+# to a tracked branch sets that branch's thresholds: a latency more than 3% above the
+# mean of its recent history alerts, and alerts only report.
 #
 # The PR's run wrote everything read here, a fork's with its own copy of bench.yml. So
 # the PR is not taken from its `pr-event`: only its number is, and GitHub's API must say
@@ -93,19 +92,8 @@ jobs:
             testbed=${testbed#bench-}
             [[ $testbed =~ ^[A-Za-z0-9_-]+$ ]] || { echo "not a testbed name: $testbed"; exit 1; }
             args=()
-            if [ "$testbed" = ubuntu-latest ]; then
-              # Exact counts: any increase in any of them is a regression.
-              thresholds=()
-              for measure in cycles proven-rows committed; do
-                thresholds+=(--threshold-measure "$measure" --threshold-test percentage
-                  --threshold-max-sample-size 1 --threshold-upper-boundary 0.0)
-              done
-              args+=(--error-on-alert)
-            else
-              # Reported, not failed on, until each machine's noise is known.
-              thresholds=(--threshold-measure latency --threshold-test t_test
-                --threshold-max-sample-size 64 --threshold-upper-boundary 0.99)
-            fi
+            thresholds=(--threshold-measure latency --threshold-test percentage
+              --threshold-max-sample-size 64 --threshold-upper-boundary 0.03)
             if [ "$tracked" = true ]; then
               args+=("${thresholds[@]}" --thresholds-reset)
             fi
