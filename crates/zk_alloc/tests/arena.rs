@@ -288,6 +288,42 @@ fn a_panicking_element_destructor_releases_the_reset_barrier() {
     let _phase = enter_phase();
 }
 
+fn exited_threads_hand_their_slabs_on() {
+    // Invariant: a slab outlives its thread only until the next phase opens.
+    //
+    // Fixture state: more short-lived threads than there are slabs, one after another,
+    // each opening a phase and filling a buffer, as a server's request threads would.
+    //
+    //     without reuse:  one fresh slab per thread, until they run out
+    //     with reuse:     each thread takes the slab its predecessor retired
+    let before = zk_alloc::stats().threads;
+    let threads = std::thread::available_parallelism().map_or(1, |n| n.get()) + 16;
+    let mut addresses = Vec::new();
+    for _ in 0..threads {
+        let address = std::thread::spawn(|| {
+            let _phase = enter_phase();
+            let buffer = ArenaVec::filled(7u64, N);
+            assert!(buffer.iter().all(|&x| x == 7));
+            buffer.as_ptr() as usize
+        })
+        .join()
+        .expect("the request thread ran");
+        addresses.push(address);
+    }
+    // The first thread claims a fresh slab; every later one reuses it.
+    assert!(
+        zk_alloc::stats().threads <= before + 1,
+        "{} slabs for {threads} threads in sequence",
+        zk_alloc::stats().threads - before
+    );
+    assert!(
+        addresses.windows(2).all(|w| w[0] == w[1]),
+        "each thread took the retired slab"
+    );
+    // An arena allocation on a slab-less thread is counted, never silent.
+    assert_eq!(zk_alloc::stats().overflow, 0);
+}
+
 #[test]
 fn arena_ownership_and_reuse() {
     // Slabs belong to threads permanently, so all scenarios share one harness thread.
@@ -306,4 +342,5 @@ fn arena_ownership_and_reuse() {
     a_cross_thread_owner_blocks_reset_until_release();
     growth_after_closing_a_phase_releases_the_reset_barrier();
     a_panicking_element_destructor_releases_the_reset_barrier();
+    exited_threads_hand_their_slabs_on();
 }

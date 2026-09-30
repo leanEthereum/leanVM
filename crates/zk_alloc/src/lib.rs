@@ -23,8 +23,8 @@
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::cell::Cell;
 use std::mem::forget;
-use std::sync::OnceLock;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::{Mutex, OnceLock};
 
 mod arena_vec;
 mod syscall;
@@ -182,6 +182,11 @@ static ARENA_ENGAGED: AtomicBool = AtomicBool::new(false);
 static REGION: OnceLock<usize> = OnceLock::new();
 /// Slab indices handed out one per thread; `idx >= max_threads()` gets none.
 static NEXT_SLAB: AtomicUsize = AtomicUsize::new(0);
+/// Slabs whose threads have exited, each with the generation it was retired in.
+///
+/// A retired slab may still back a buffer another thread owns, until the next phase opens.
+/// Opening a phase requires every arena buffer to be released, so from then on the slab is free.
+static RETIRED: Mutex<Vec<(usize, usize)>> = Mutex::new(Vec::new());
 
 /// High-water mark of any single thread's slab use, in bytes.
 static HIGH_WATER: AtomicUsize = AtomicUsize::new(0);
@@ -206,6 +211,36 @@ thread_local! {
     static BASE: Cell<usize> = const { Cell::new(0) };
     static GEN: Cell<usize> = const { Cell::new(0) };
     static NO_SLAB: Cell<bool> = const { Cell::new(false) };
+    /// Retires this thread's slab when the thread exits.
+    static OWNER: SlabOwner = const { SlabOwner(Cell::new(None)) };
+}
+
+/// The slab index a thread owns, handed back when the thread exits.
+struct SlabOwner(Cell<Option<usize>>);
+
+impl Drop for SlabOwner {
+    fn drop(&mut self) {
+        if let Some(idx) = self.0.get() {
+            let generation = GENERATION.load(Ordering::Relaxed);
+            RETIRED
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .push((idx, generation));
+        }
+    }
+}
+
+/// A slab for a thread that has none: a retired one a phase has opened since, else a fresh one.
+///
+/// Without reuse, every thread that ever allocated would keep its slab's pages resident.
+fn claim_slab(generation: usize) -> Option<usize> {
+    let mut retired = RETIRED.lock().unwrap_or_else(|e| e.into_inner());
+    if let Some(i) = retired.iter().position(|&(_, g)| g < generation) {
+        return Some(retired.swap_remove(i).0);
+    }
+    drop(retired);
+    let idx = NEXT_SLAB.fetch_add(1, Ordering::Relaxed);
+    (idx < max_threads()).then_some(idx)
 }
 
 fn region() -> usize {
@@ -358,12 +393,14 @@ unsafe fn alloc_slow(size: usize, align: usize) -> *mut u8 {
     if !NO_SLAB.get() && GEN.get() != generation {
         let mut base = BASE.get();
         if base == 0 {
-            let idx = NEXT_SLAB.fetch_add(1, Ordering::Relaxed);
-            if idx >= max_threads() {
-                // More allocating threads than slabs: this one uses System forever.
+            let Some(idx) = claim_slab(generation) else {
+                // More live allocating threads than slabs: this one uses System forever.
                 NO_SLAB.set(true);
+                OVERFLOW_BYTES.fetch_add(size, Ordering::Relaxed);
                 return unsafe { system_alloc(size, align) };
-            }
+            };
+            // A thread already exiting has no owner to retire the slab: it just stays claimed.
+            let _ = OWNER.try_with(|owner| owner.0.set(Some(idx)));
             base = region() + idx * SLAB_SIZE;
             BASE.set(base);
             END.set(base + SLAB_SIZE);
