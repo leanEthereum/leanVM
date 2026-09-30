@@ -76,11 +76,19 @@ fn nop(class: Class) -> u32 {
 /// for the illegal word and the padding blocks [`crate::cpu::Program::new`] appends,
 /// and for the pad to a power of two ([`crate::rv::Program::new`]).
 pub fn text_fits(words: usize) -> bool {
-    let mut blocks = Vec::new();
-    append_blocks(&mut blocks);
+    let blocks: usize = (0..N_TABLES)
+        .map(|t| {
+            SIZES
+                .iter()
+                .filter(|&&size| size > 0 || t == JUMP)
+                .map(|&size| size + 1)
+                .sum::<usize>()
+        })
+        .sum();
     words
-        .checked_add(blocks.len() + 1 + 2)
-        .is_some_and(|total| total.next_power_of_two() <= 1 << crate::rv::MAX_LOG_TEXT)
+        .checked_add(blocks + 3)
+        .and_then(usize::checked_next_power_of_two)
+        .is_some_and(|total| total <= 1 << crate::rv::MAX_LOG_TEXT)
 }
 
 /// Append every table's blocks to `text`, returning where each one landed.
@@ -216,6 +224,17 @@ pub fn is_filled(counts: [usize; N_TABLES]) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn text_capacity_reserves_the_generated_padding() {
+        let mut blocks = Vec::new();
+        append_blocks(&mut blocks);
+        let limit = (1 << crate::rv::MAX_LOG_TEXT) - blocks.len() - 3;
+        assert!(text_fits(limit));
+        assert!(!text_fits(limit + 1));
+        assert!(!text_fits(usize::MAX));
+        assert!(!text_fits(usize::MAX - blocks.len() - 3));
+    }
 
     /// Whatever the shape of the run, every table comes out an exact power of two at or
     /// above its floor, and no further than the next one: a gap of a single row included,

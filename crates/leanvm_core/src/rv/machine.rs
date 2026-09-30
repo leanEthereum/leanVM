@@ -8,46 +8,137 @@ use super::{Target, decode, hash, load, semantics, store};
 
 /// A decoded program: its text, where it starts, RAM as the run finds it, and the
 /// advice's size.
+///
+/// ```compile_fail
+/// # use leanvm_core::rv::Program;
+/// fn change_image(program: &mut Program) {
+///     program.image.clear();
+/// }
+/// ```
 #[derive(Clone, Debug)]
 pub struct Program {
     /// A power of two of entries, instruction `i` at [`Self::pc_of`]`(i)`. The last
     /// is the halt slot, which is illegal, as is every slot holding no instruction.
-    pub entries: Vec<Entry>,
-    pub entry_pc: u64,
+    pub(crate) entries: Vec<Entry>,
+    pub(crate) entry_pc: u64,
     /// RAM's first words. The rest of its `2^log_ram` words are zero.
-    pub image: Vec<u64>,
-    pub log_ram: usize,
+    pub(crate) image: Vec<u64>,
+    pub(crate) log_ram: usize,
     /// The advice region holds `2^log_advice` words ([`ADVICE_BASE`]).
-    pub log_advice: usize,
+    pub(crate) log_advice: usize,
 }
 
+/// Why instruction input cannot form a validated executable.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ProgramError {
+    /// The text cannot fit with its required padding.
+    TextTooLarge,
+    /// The entry is unaligned or outside the supplied text.
+    EntryPoint,
+    /// The RAM capacity is unsupported or smaller than the image.
+    RamSize,
+    /// The advice capacity exceeds its region.
+    AdviceSize,
+    /// A decoded instruction violates the table schema.
+    MalformedEntry,
+}
+
+impl ProgramError {
+    pub(crate) fn message(self) -> &'static str {
+        match self {
+            Self::TextTooLarge => "the text leaves no room for padding and the halt slot",
+            Self::EntryPoint => "the entry point is not an aligned instruction in the supplied text",
+            Self::RamSize => "RAM is too small for its image, or exceeds its region",
+            Self::AdviceSize => "the advice exceeds its region",
+            Self::MalformedEntry => "the decoded text contains a malformed entry",
+        }
+    }
+}
+
+impl std::fmt::Display for ProgramError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.message())
+    }
+}
+
+impl std::error::Error for ProgramError {}
+
 impl Program {
-    /// Decode `text`, whose first word sits at [`TEXT_BASE`].
-    pub fn new(text: &[u32], entry_pc: u64, image: Vec<u64>, log_ram: usize, log_advice: usize) -> Self {
+    /// Decode instruction words after checking the entry and memory-region sizes.
+    ///
+    /// Unsupported instructions remain illegal entries and trap when executed.
+    pub fn new(
+        text: &[u32],
+        entry_pc: u64,
+        image: Vec<u64>,
+        log_ram: usize,
+        log_advice: usize,
+    ) -> Result<Self, ProgramError> {
+        Self::validate(text.len(), entry_pc, image.len(), log_ram, log_advice)?;
         let mut entries: Vec<Entry> = text
             .iter()
             .enumerate()
             .map(|(i, &word)| decode(word, TEXT_BASE + 4 * i as u64))
             .collect();
-        // Two more slots at least: the halt slot, and an illegal one before it, so that
-        // a run falling off the text traps instead of halting.
         entries.resize((text.len() + 2).next_power_of_two(), Entry::ILLEGAL);
-        assert!(
-            entries.len() <= 1 << MAX_LOG_TEXT,
-            "the text exceeds 2^{MAX_LOG_TEXT} instructions"
-        );
-        assert!(
-            log_ram <= MAX_LOG_RAM && image.len() <= 1 << log_ram,
-            "RAM is too small for its image, or exceeds its region"
-        );
-        assert!(log_advice <= MAX_LOG_ADVICE, "the advice exceeds its region");
-        Self {
+        if !entries.iter().all(Entry::is_well_formed) {
+            return Err(ProgramError::MalformedEntry);
+        }
+        Ok(Self {
             entries,
             entry_pc,
             image,
             log_ram,
             log_advice,
+        })
+    }
+
+    pub(crate) fn validate(
+        words: usize,
+        entry_pc: u64,
+        image_words: usize,
+        log_ram: usize,
+        log_advice: usize,
+    ) -> Result<(), ProgramError> {
+        if words > (1 << MAX_LOG_TEXT) - 2 {
+            return Err(ProgramError::TextTooLarge);
         }
+        let offset = entry_pc.checked_sub(TEXT_BASE).ok_or(ProgramError::EntryPoint)?;
+        if !offset.is_multiple_of(4) || offset / 4 >= words as u64 {
+            return Err(ProgramError::EntryPoint);
+        }
+        if log_ram > MAX_LOG_RAM || image_words > 1 << log_ram {
+            return Err(ProgramError::RamSize);
+        }
+        if log_advice > MAX_LOG_ADVICE {
+            return Err(ProgramError::AdviceSize);
+        }
+        Ok(())
+    }
+
+    /// The decoded text, including illegal padding and the halt slot.
+    pub fn entries(&self) -> &[Entry] {
+        &self.entries
+    }
+
+    /// The execution entry point's byte address.
+    pub fn entry_pc(&self) -> u64 {
+        self.entry_pc
+    }
+
+    /// The initialized prefix of RAM; the remaining words start at zero.
+    pub fn image(&self) -> &[u64] {
+        &self.image
+    }
+
+    /// The base-two logarithm of RAM's capacity in words.
+    pub fn log_ram(&self) -> usize {
+        self.log_ram
+    }
+
+    /// The base-two logarithm of the advice capacity in words.
+    pub fn log_advice(&self) -> usize {
+        self.log_advice
     }
 
     pub fn pc_of(&self, index: usize) -> u64 {
@@ -567,6 +658,58 @@ mod tests {
         (word, None)
     }
 
+    #[test]
+    fn construction_checks_sizes_without_allocating_their_capacity() {
+        for (words, entry, image, ram, advice, error) in [
+            (0, TEXT_BASE, 0, 0, 0, ProgramError::EntryPoint),
+            (1, 0, 0, 0, 0, ProgramError::EntryPoint),
+            (1, TEXT_BASE + 2, 0, 0, 0, ProgramError::EntryPoint),
+            (1, TEXT_BASE + 4, 0, 0, 0, ProgramError::EntryPoint),
+            (1, u64::MAX, 0, 0, 0, ProgramError::EntryPoint),
+            (usize::MAX, TEXT_BASE, 0, 0, 0, ProgramError::TextTooLarge),
+            ((1 << MAX_LOG_TEXT) - 1, TEXT_BASE, 0, 0, 0, ProgramError::TextTooLarge),
+            (1, TEXT_BASE, 2, 0, 0, ProgramError::RamSize),
+            (1, TEXT_BASE, 0, usize::MAX, 0, ProgramError::RamSize),
+            (1, TEXT_BASE, 0, MAX_LOG_RAM + 1, 0, ProgramError::RamSize),
+            (1, TEXT_BASE, 0, 0, usize::MAX, ProgramError::AdviceSize),
+            (1, TEXT_BASE, 0, 0, MAX_LOG_ADVICE + 1, ProgramError::AdviceSize),
+        ] {
+            assert_eq!(Program::validate(words, entry, image, ram, advice), Err(error));
+        }
+        assert_eq!(
+            Program::validate(
+                (1 << MAX_LOG_TEXT) - 2,
+                TEXT_BASE,
+                1 << MAX_LOG_RAM,
+                MAX_LOG_RAM,
+                MAX_LOG_ADVICE
+            ),
+            Ok(())
+        );
+    }
+
+    #[test]
+    fn arbitrary_instruction_words_preserve_the_validated_shape() {
+        let mut rng = Rng(0x1234_5678_9abc_def0);
+        for len in 1..=16 {
+            for _ in 0..64 {
+                let text: Vec<u32> = (0..len).map(|_| rng.next() as u32).collect();
+                let entry = TEXT_BASE + 4 * rng.below(len as u64);
+                let program = Program::new(&text, entry, vec![rng.next()], 0, 0).unwrap();
+                assert_eq!(program.entry_pc(), entry);
+                assert!(program.entries().len().is_power_of_two());
+                assert!(program.entries().iter().all(Entry::is_well_formed));
+                assert_eq!(
+                    program.entries()[len..],
+                    vec![Entry::ILLEGAL; program.entries().len() - len]
+                );
+                for (i, &word) in text.iter().enumerate() {
+                    assert_eq!(program.entries()[i], decode(word, TEXT_BASE + 4 * i as u64));
+                }
+            }
+        }
+    }
+
     /// One random instruction from one random state, through the decoder and the class
     /// functions and through the specification: same registers, same `pc`, same RAM.
     #[test]
@@ -580,7 +723,8 @@ mod tests {
                 (0..1 << LOG_RAM).map(|_| rng.next()).collect(),
                 LOG_RAM,
                 0,
-            );
+            )
+            .expect("valid instruction program");
             let mut m = Machine::new(&program, &[]);
             for r in 1..32 {
                 m.regs[r] = rng.word();
@@ -602,7 +746,11 @@ mod tests {
     }
 
     fn run(text: &[u32], image: Vec<u64>) -> Result<[u64; 4], Trap> {
-        Machine::new(&Program::new(text, TEXT_BASE, image, LOG_RAM, 0), &[]).run(1 << 20)
+        Machine::new(
+            &Program::new(text, TEXT_BASE, image, LOG_RAM, 0).expect("valid instruction program"),
+            &[],
+        )
+        .run(1 << 20)
     }
 
     #[test]
@@ -673,7 +821,7 @@ mod tests {
             .i("addi", SP, SP, 16)
             .jalr(ZERO, RA, 0)
             .finish();
-        let program = Program::new(&text, TEXT_BASE, data.to_vec(), LOG_RAM, 0);
+        let program = Program::new(&text, TEXT_BASE, data.to_vec(), LOG_RAM, 0).expect("valid instruction program");
         let mut m = Machine::new(&program, &[]);
         assert_eq!(m.run(1 << 20), Ok([4 + 5, 0, 0, 0]));
         assert_eq!(m.ram()[..8], [1, 2, 3, 4, 5, 7, 8, 9]);

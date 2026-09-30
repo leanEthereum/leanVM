@@ -26,6 +26,8 @@ impl std::fmt::Display for ElfError {
     }
 }
 
+impl std::error::Error for ElfError {}
+
 const ET_EXEC: u16 = 2;
 const EM_RISCV: u16 = 243;
 /// `e_flags`: compressed instructions, and the float ABIs.

@@ -25,7 +25,7 @@ fn fibonacci(n: u64) -> Program {
         .li(A2, 0)
         .exit()
         .finish();
-    Program::new(&text, TEXT_BASE, vec![n], LOG_RAM, 0)
+    Program::new(&text, TEXT_BASE, vec![n], LOG_RAM, 0).expect("valid instruction program")
 }
 
 /// The `preimage` guest (see `programs/`): it hashes the message the prover puts in the

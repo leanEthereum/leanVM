@@ -32,7 +32,7 @@ fn proves_and_verifies(tag: &str, elf: &[u8], advice: &[u64], expected: [u64; 4]
     assert!(verify(&program, &wrong, &proof).is_err());
     println!(
         "{tag}: {} instructions, {}",
-        program.rv().entries.len(),
+        program.rv().entries().len(),
         stats.details()
     );
 }
@@ -266,4 +266,16 @@ fn malformed_elf_layouts_are_refused() {
     assert_eq!(loaded.entry_pc, rv::TEXT_BASE + 4);
     assert_eq!(loaded.text, guest.text);
     assert_eq!(loaded.image, guest.image);
+}
+
+#[test]
+fn elf_metadata_is_not_part_of_the_program_identity() {
+    let elf = include_bytes!("../../../../programs/fibonacci/fibonacci.elf");
+    let program = Program::from_elf(elf).unwrap();
+    let mut metadata = elf.to_vec();
+    metadata[9..16].fill(0xa5);
+    let same = Program::from_elf(&metadata).unwrap();
+    assert_eq!(program.digest(), same.digest());
+    assert_eq!(program.rv().entries(), same.rv().entries());
+    assert_eq!(program.rv().image(), same.rv().image());
 }

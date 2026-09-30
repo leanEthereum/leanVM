@@ -39,13 +39,13 @@ impl PythonStatement {
             .collect();
         std::fs::write(&statement.bytecode, &table).expect("write bytecode");
         let public: Vec<u8> = [
-            rv.entry_pc,
-            rv.log_ram as u64,
-            rv.log_advice as u64,
-            rv.image.len() as u64,
+            rv.entry_pc(),
+            rv.log_ram() as u64,
+            rv.log_advice() as u64,
+            rv.image().len() as u64,
         ]
         .iter()
-        .chain(&rv.image)
+        .chain(rv.image())
         .chain(output)
         .flat_map(|w| w.to_le_bytes())
         .collect();
@@ -165,7 +165,7 @@ fn test_python_verifier() {
 
     println!(
         "{} instructions; proved {} cycles in {} bytes; Python verified in {:.2?}",
-        program.rv().entries.len(),
+        program.rv().entries().len(),
         stats.cycles,
         encoded.len(),
         verification_time,

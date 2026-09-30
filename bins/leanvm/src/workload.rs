@@ -74,7 +74,7 @@ pub fn leanda(n: usize) -> Workload {
 pub fn run(workload: &Workload, log_inv_rate: usize, plan: Plan) {
     let program = workload.program();
     // More items than the guest's advice region holds is the user's mistake, not a bug.
-    let region = 1usize << program.rv().log_advice;
+    let region = 1usize << program.rv().log_advice();
     if workload.advice.len() > region {
         refuse(format_args!(
             "{} {}s take {} advice words, and the guest's region holds {region}",

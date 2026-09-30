@@ -20,10 +20,10 @@ pub fn refuse(what: std::fmt::Arguments) -> ! {
 pub fn run_guest(elf: &std::path::Path, advice: &[u64], log_inv_rate: usize, plan: Plan) {
     let bytes = std::fs::read(elf).unwrap_or_else(|e| refuse(format_args!("{}: {e}", elf.display())));
     let program = Program::from_elf(&bytes).unwrap_or_else(|e| refuse(format_args!("{}: {e}", elf.display())));
-    if advice.len() > 1 << program.rv().log_advice {
+    if advice.len() > 1 << program.rv().log_advice() {
         refuse(format_args!(
             "the guest's advice region holds {} words, not {}",
-            1u64 << program.rv().log_advice,
+            1u64 << program.rv().log_advice(),
             advice.len()
         ));
     }

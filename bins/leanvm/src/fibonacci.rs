@@ -71,7 +71,10 @@ pub fn fibonacci_program(fib_n: usize) -> (Program, [u64; 4]) {
         a = a.wrapping_add(b);
         b = b.wrapping_add(a);
     }
-    (Program::new(&text.finish(), TEXT_BASE, vec![], 2, 0), [a, 0, 0, 0])
+    (
+        Program::new(&text.finish(), TEXT_BASE, vec![], 2, 0).expect("valid instruction program"),
+        [a, 0, 0, 0],
+    )
 }
 
 #[cfg(test)]

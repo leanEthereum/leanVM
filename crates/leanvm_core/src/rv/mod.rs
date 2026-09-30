@@ -23,7 +23,7 @@ pub mod semantics;
 
 pub use decode::decode;
 pub use elf::{ElfError, Guest};
-pub use machine::{Machine, Program, Trap};
+pub use machine::{Machine, Program, ProgramError, Trap};
 
 /// Where the text sits. Nonzero (a function at 0 would be Rust's null), and a
 /// multiple of the largest text, so that instruction `i` is at `TEXT_BASE ^ (i << 2)`.

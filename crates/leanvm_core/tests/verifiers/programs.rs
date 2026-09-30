@@ -27,7 +27,10 @@ pub fn fibonacci() -> (Program, [u64; 4]) {
     for _ in 0..STEPS {
         (a, b) = (b, a.wrapping_add(b));
     }
-    (Program::new(&text, TEXT_BASE, vec![], 2, 0), [a, 0, 0, 0])
+    (
+        Program::new(&text, TEXT_BASE, vec![], 2, 0).expect("valid instruction program"),
+        [a, 0, 0, 0],
+    )
 }
 
 fn proves_and_verifies(tag: &str, program: &Program, expected: [u64; 4]) {
@@ -99,7 +102,7 @@ fn alu_instructions_prove_and_verify() {
         .r("add", A2, A2, A2)
         .r("add", A4, A4, A4)
         .jalr(ZERO, RA, 0);
-    let program = Program::new(&a.finish(), TEXT_BASE, vec![], 2, 0);
+    let program = Program::new(&a.finish(), TEXT_BASE, vec![], 2, 0).expect("valid instruction program");
     let expected = leanvm_core::rv::Machine::new(program.rv(), &[])
         .run(1 << 20)
         .expect("the run halts");
@@ -161,7 +164,7 @@ fn loads_and_stores_prove_and_verify() {
         .load("ld", RA, 8, SP)
         .i("addi", SP, SP, 16)
         .jalr(ZERO, RA, 0);
-    let program = Program::new(&a.finish(), TEXT_BASE, image, LOG_RAM, 0);
+    let program = Program::new(&a.finish(), TEXT_BASE, image, LOG_RAM, 0).expect("valid instruction program");
     let expected = leanvm_core::rv::Machine::new(program.rv(), &[])
         .run(1 << 20)
         .expect("the run halts");
@@ -195,7 +198,7 @@ fn shifts_and_multiplications_prove_and_verify() {
     ] {
         a.i(op, T0, S0, amount).r("xor", A2, A2, T0).r("sub", A3, A3, T0);
     }
-    let program = Program::new(&a.exit().finish(), TEXT_BASE, vec![], 2, 0);
+    let program = Program::new(&a.exit().finish(), TEXT_BASE, vec![], 2, 0).expect("valid instruction program");
     let expected = leanvm_core::rv::Machine::new(program.rv(), &[])
         .run(1 << 20)
         .expect("the run halts");
@@ -224,7 +227,7 @@ fn divisions_prove_and_verify() {
                 .r("sub", A2, A2, A1);
         }
     }
-    let program = Program::new(&a.exit().finish(), TEXT_BASE, vec![], 2, 0);
+    let program = Program::new(&a.exit().finish(), TEXT_BASE, vec![], 2, 0).expect("valid instruction program");
     let expected = leanvm_core::rv::Machine::new(program.rv(), &[])
         .run(1 << 20)
         .expect("the run halts");
@@ -275,13 +278,13 @@ fn blake2s_precompile_proves_and_verifies() {
     for (i, reg) in [A0, A1, A2, A3].into_iter().enumerate() {
         a.load("ld", reg, (OUT + 8 * i as u64) as i32, S0);
     }
-    let program = Program::new(&a.exit().finish(), TEXT_BASE, image, 7, 0);
+    let program = Program::new(&a.exit().finish(), TEXT_BASE, image, 7, 0).expect("valid instruction program");
     let expected: [u64; 4] = words(&primitives::hash::hash(&data))[..4].try_into().unwrap();
     proves_and_verifies("blake2s", &program, expected);
 
     // A block pointer that is no word address traps, like a misaligned load.
     let text = Asm::new().li(S0, BLOCK + 4).blake2s(S0, ZERO, true).exit().finish();
-    let program = Program::new(&text, TEXT_BASE, vec![], 7, 0);
+    let program = Program::new(&text, TEXT_BASE, vec![], 7, 0).expect("valid instruction program");
     assert_eq!(
         prove(&program, &[], 1).err(),
         Some(leanvm_core::rv::Trap::Misaligned {
@@ -306,7 +309,7 @@ fn advice_proves_and_verifies() {
         .load("ld", A2, 56, T0)
         .li(A3, 0)
         .exit();
-    let program = Program::new(&a.finish(), TEXT_BASE, vec![], 2, LOG_ADVICE);
+    let program = Program::new(&a.finish(), TEXT_BASE, vec![], 2, LOG_ADVICE).expect("valid instruction program");
     for advice in [
         vec![3, 4, 0xdead_beef_0000_0005u64],
         vec![u64::MAX, 1, 0xffff_ffff_ffff_ffff, 9, 9, 9, 9, 9],
@@ -325,7 +328,7 @@ fn advice_proves_and_verifies() {
         .load("ld", A0, 0, T0)
         .exit()
         .finish();
-    let program = Program::new(&text, TEXT_BASE, vec![], 2, LOG_ADVICE);
+    let program = Program::new(&text, TEXT_BASE, vec![], 2, LOG_ADVICE).expect("valid instruction program");
     assert!(matches!(
         prove(&program, &[], 1).err(),
         Some(leanvm_core::rv::Trap::Unmapped { .. })
@@ -336,7 +339,7 @@ fn advice_proves_and_verifies() {
 #[test]
 fn a_trap_is_reported() {
     let text = Asm::new().word(0x0010_0073).exit().finish();
-    let program = Program::new(&text, TEXT_BASE, vec![], 2, 0);
+    let program = Program::new(&text, TEXT_BASE, vec![], 2, 0).expect("valid instruction program");
     assert_eq!(
         prove(&program, &[], 1).err(),
         Some(leanvm_core::rv::Trap::Illegal { pc: TEXT_BASE })

@@ -139,6 +139,8 @@ impl Program {
     }
 
     /// BLAKE2s over the decoded text, entry, halt, region sizes and initial RAM image.
+    ///
+    /// ELF metadata and unsupported instruction encodings normalized to the same illegal entry are not part of the identity.
     pub fn digest(&self) -> &[u8; 32] {
         &self.digest
     }
@@ -146,35 +148,35 @@ impl Program {
     /// The program of a guest's ELF executable ([`rv::Guest::from_elf`]).
     pub fn from_elf(elf: &[u8]) -> Result<Self, rv::ElfError> {
         let guest = rv::Guest::from_elf(elf)?;
-        // The loader's cap is on the text alone, and [`Self::new`] appends to it, so a
-        // text that only just fits the region would leave the padding blocks nowhere to
-        // go and panic there. Refuse it here, where a malformed file is still an error.
-        if !filler::text_fits(guest.text.len()) {
-            return Err(rv::ElfError("the text leaves no room for the padding blocks"));
-        }
-        Ok(Self::new(
+        Self::new(
             &guest.text,
             guest.entry_pc,
             guest.image,
             guest.log_ram,
             guest.log_advice,
-        ))
+        )
+        .map_err(|error| rv::ElfError(error.message()))
     }
 
-    /// A program from its text, whose first word sits at [`rv::TEXT_BASE`], where it
-    /// starts, RAM's first words, and `log2` of RAM's and of the advice's sizes in
-    /// words. An illegal word and then the padding blocks ([`filler`]) follow the text.
+    /// Construct an immutable executable from instruction words and a RAM image.
     ///
-    /// Panics if an entry is malformed ([`rv::Entry::is_well_formed`]): the `x0` and
-    /// sink rules are semantics the proof system takes from the table as given, so
-    /// they are checked where a table enters, on the verifier's side too.
-    pub fn new(text: &[u32], entry_pc: u64, image: Vec<u64>, log_ram: usize, log_advice: usize) -> Self {
+    /// Rejects an entry outside the supplied text and sizes exceeding the VM's regions.
+    pub fn new(
+        text: &[u32],
+        entry_pc: u64,
+        image: Vec<u64>,
+        log_ram: usize,
+        log_advice: usize,
+    ) -> Result<Self, rv::ProgramError> {
+        rv::Program::validate(text.len(), entry_pc, image.len(), log_ram, log_advice)?;
+        if !filler::text_fits(text.len()) {
+            return Err(rv::ProgramError::TextTooLarge);
+        }
         let mut text = text.to_vec();
         // A run falling off the program's own text must trap, not slide into a block.
         text.push(0);
         let filler = filler::append_blocks(&mut text);
-        let rv = rv::Program::new(&text, entry_pc, image, log_ram, log_advice);
-        assert!(rv.entries.iter().all(rv::Entry::is_well_formed), "a malformed entry");
+        let rv = rv::Program::new(&text, entry_pc, image, log_ram, log_advice)?;
 
         let bytes = |words: &[u64]| -> Vec<u8> { words.iter().flat_map(|w| w.to_le_bytes()).collect() };
         let table = layout::bytecode_table(&rv);
@@ -195,11 +197,11 @@ impl Program {
             rv.image.len() as u64,
         ]));
         h.update(&bytes(&rv.image));
-        Self {
+        Ok(Self {
             digest: h.finalize(),
             rv,
             filler,
-        }
+        })
     }
 }
 
@@ -677,20 +679,58 @@ mod tests {
     use primitives::field::g_pow;
 
     #[test]
+    fn instruction_construction_rejects_entries_in_the_padding() {
+        let text = [0x0000_0073];
+        for entry in [0, rv::TEXT_BASE + 2, rv::TEXT_BASE + 4, rv::TEXT_BASE + 8, u64::MAX] {
+            assert!(matches!(
+                Program::new(&text, entry, vec![], 0, 0),
+                Err(rv::ProgramError::EntryPoint)
+            ));
+        }
+        assert!(matches!(
+            Program::new(&[], rv::TEXT_BASE, vec![], 0, 0),
+            Err(rv::ProgramError::EntryPoint)
+        ));
+        assert!(matches!(
+            Program::new(&text, rv::TEXT_BASE, vec![0, 0], 0, 0),
+            Err(rv::ProgramError::RamSize)
+        ));
+        assert!(matches!(
+            Program::new(&text, rv::TEXT_BASE, vec![], usize::MAX, 0),
+            Err(rv::ProgramError::RamSize)
+        ));
+        assert!(matches!(
+            Program::new(&text, rv::TEXT_BASE, vec![], 0, usize::MAX),
+            Err(rv::ProgramError::AdviceSize)
+        ));
+    }
+
+    #[test]
+    fn illegal_instruction_encodings_have_normalized_identity() {
+        let program = Program::new(&[0], rv::TEXT_BASE, vec![], 0, 0).unwrap();
+        let same = Program::new(&[u32::MAX], rv::TEXT_BASE, vec![], 0, 0).unwrap();
+        assert_eq!(program.digest(), same.digest());
+        assert_eq!(
+            rv::Machine::new(program.rv(), &[]).run(1),
+            Err(rv::Trap::Illegal { pc: rv::TEXT_BASE })
+        );
+    }
+
+    #[test]
     fn digest_binds_every_public_program_component() {
         let text = Asm::new().i("addi", A0, ZERO, 5).exit().finish();
-        let program = Program::new(&text, rv::TEXT_BASE, vec![1], 2, 0);
+        let program = Program::new(&text, rv::TEXT_BASE, vec![1], 2, 0).expect("valid instruction program");
         assert_eq!(program.digest(), program.clone().digest());
 
         let mut changed_text = text.clone();
         changed_text[0] = Asm::new().i("addi", A0, ZERO, 6).finish()[0];
         let changed = [
-            Program::new(&changed_text, rv::TEXT_BASE, vec![1], 2, 0),
-            Program::new(&text, rv::TEXT_BASE + 4, vec![1], 2, 0),
-            Program::new(&text, rv::TEXT_BASE, vec![2], 2, 0),
-            Program::new(&text, rv::TEXT_BASE, vec![1, 0], 2, 0),
-            Program::new(&text, rv::TEXT_BASE, vec![1], 3, 0),
-            Program::new(&text, rv::TEXT_BASE, vec![1], 2, 1),
+            Program::new(&changed_text, rv::TEXT_BASE, vec![1], 2, 0).expect("valid instruction program"),
+            Program::new(&text, rv::TEXT_BASE + 4, vec![1], 2, 0).expect("valid instruction program"),
+            Program::new(&text, rv::TEXT_BASE, vec![2], 2, 0).expect("valid instruction program"),
+            Program::new(&text, rv::TEXT_BASE, vec![1, 0], 2, 0).expect("valid instruction program"),
+            Program::new(&text, rv::TEXT_BASE, vec![1], 3, 0).expect("valid instruction program"),
+            Program::new(&text, rv::TEXT_BASE, vec![1], 2, 1).expect("valid instruction program"),
         ];
         for changed in changed {
             assert_ne!(program.digest(), changed.digest());
@@ -722,7 +762,7 @@ mod tests {
     #[test]
     fn an_honest_run_balances() {
         let text = Asm::new().i("addi", A0, ZERO, 5).exit().finish();
-        let program = Program::new(&text, rv::TEXT_BASE, vec![], 2, 0);
+        let program = Program::new(&text, rv::TEXT_BASE, vec![], 2, 0).expect("valid instruction program");
         let w = program.build(&program.execute(&[]).unwrap());
         let unmatched = leaf::unmatched_leaves(&w.layout.push, &w.layout.pull, &w.columns());
         assert!(
@@ -744,7 +784,7 @@ mod tests {
             .load("ld", A0, 0, T0)
             .exit()
             .finish();
-        let program = Program::new(&text, rv::TEXT_BASE, vec![], 3, 0);
+        let program = Program::new(&text, rv::TEXT_BASE, vec![], 3, 0).expect("valid instruction program");
         let mut forged = program.execute(&[]).unwrap();
         assert_eq!(forged.output, [5, 0, 0, 0]);
         let load = tables::table_of(rv::Class::Load).unwrap();
@@ -772,7 +812,7 @@ mod tests {
             .r("add", A0, T0, T1)
             .exit()
             .finish();
-        let program = Program::new(&text, rv::TEXT_BASE, vec![], 2, 0);
+        let program = Program::new(&text, rv::TEXT_BASE, vec![], 2, 0).expect("valid instruction program");
         let honest = program.execute(&[]).unwrap();
         assert_eq!(honest.output, [12, 0, 0, 0]);
         let (proof, _) = prove_execution(&program, &honest, RATE);
