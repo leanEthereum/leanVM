@@ -552,19 +552,6 @@ impl Stats {
 /// the commitment.
 #[tracing::instrument(name = "Prove", skip_all, fields(log_inv_rate))]
 pub fn prove(program: &Program, public_input: [F192; 2], log_inv_rate: usize) -> Result<(Proof, Stats), ProveError> {
-    prove_claiming(program, public_input, public_input, log_inv_rate)
-}
-
-/// [`prove`], running on `public_input` but seeding the transcript with `claimed`.
-/// Two different inputs make a forging prover, for the test that a proof binds the
-/// committed memory to the statement; never a real proof.
-#[doc(hidden)]
-pub fn prove_claiming(
-    program: &Program,
-    public_input: [F192; 2],
-    claimed: [F192; 2],
-    log_inv_rate: usize,
-) -> Result<(Proof, Stats), ProveError> {
     if ::pcs::whir::validate_log_inv_rate(log_inv_rate).is_err() {
         return Err(ProveError::InvalidRate { log_inv_rate });
     }
@@ -592,8 +579,11 @@ pub fn prove_claiming(
     let committed_size = w.committed_size();
     // The public statement (program digest + input) seeds the transcript, so
     // every challenge depends on the exact program and public input.
-    debug_assert!(claimed.iter().all(|h| h.c2 == 0), "a public input is a 256-bit digest");
-    let mut ps = ProverState::new(digest_words(&fs_seed(program)), digest_words(&claimed));
+    debug_assert!(
+        public_input.iter().all(|h| h.c2 == 0),
+        "a public input is a 256-bit digest"
+    );
+    let mut ps = ProverState::new(digest_words(&fs_seed(program)), digest_words(&public_input));
 
     // Announce the prover's sizes, then commit, before sampling any challenge.
     announce_public(&mut ps, w.log_mem, w.layout.taus, log_inv_rate);
