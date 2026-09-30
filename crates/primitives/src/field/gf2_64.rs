@@ -462,7 +462,10 @@ mod tests {
             r
         }
         let n: u128 = (1 << 64) - 1;
-        for q in [3u128, 5, 17, 257, 641, 65537, 6700417] {
+        let factors = [3u128, 5, 17, 257, 641, 65537, 6700417];
+        assert_eq!(factors.iter().product::<u128>(), n);
+        assert_eq!(pow(F64::G, n), F64::ONE);
+        for q in factors {
             assert_ne!(pow(F64::G, n / q), F64::ONE, "x^((2^64-1)/{q}) == 1");
         }
     }

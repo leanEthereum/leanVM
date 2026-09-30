@@ -175,7 +175,7 @@ pub const N_TUPLE_BITS: usize = 4;
 /// the bus argument. A side contains at most `2^mu` leaf factors, each of total
 /// degree `N_TUPLE_BITS` in `α⃗` and one in `β`. The second term covers all
 /// radix-four GKR batching and sumcheck challenges.
-fn soundness_degree_bound(mu: usize) -> u128 {
+pub(crate) fn soundness_degree_bound(mu: usize) -> u128 {
     assert!(mu < u128::BITS as usize, "bus layout is too large to bound");
     let fingerprint = (N_TUPLE_BITS as u128 + 1) * (1u128 << mu);
     let gkr = 8u128 * (mu as u128 + 1).pow(2);

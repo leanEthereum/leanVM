@@ -408,6 +408,64 @@ pub struct WhirSecurityConfig {
     pub final_block: FinalBlockConfig,
 }
 
+/// Numeric error terms for one level, conditional on the PCS annex's list-binding assumptions.
+#[derive(Clone, Debug)]
+pub struct SecurityTerms {
+    /// Base-two logarithm of the Johnson list bound.
+    pub log2_list_size: f64,
+    /// Largest single-transition algebraic degree, including the initial claim batch.
+    pub algebraic_degree: usize,
+    /// Negative base-two logarithm of degree times list size divided by field size.
+    pub algebraic_bits: f64,
+    /// Proximity-gap term, including the folding row union.
+    pub proximity_gap_bits: f64,
+    /// Out-of-domain binding term.
+    pub binding_bits: f64,
+    /// Query rejection term before proof of work.
+    pub query_bits: f64,
+    /// Work required before query positions are sampled.
+    pub query_grinding_bits: usize,
+    /// Sum of the proximity-gap and quadratic list-unioned folding terms.
+    pub fold_bits: f64,
+}
+
+impl WhirSecurityConfig {
+    /// Account for a real initial claim pool without assuming its degree is small.
+    ///
+    /// These are conditional error terms, not a composed Fiat-Shamir security theorem.
+    pub fn security_terms(&self, initial_batch_degree: usize) -> Vec<SecurityTerms> {
+        self.levels
+            .iter()
+            .enumerate()
+            .map(|(i, level)| {
+                let log2_list_size = johnson_interleaved_list_log2(level.log_inv_rate, level.log_msg_cols, level.eta);
+                let batch_degree = if i == 0 {
+                    initial_batch_degree
+                } else {
+                    prev_queries_at(&self.levels, i) + level.ood_samples
+                };
+                let algebraic_degree = crate::ring_switch::RING_SWITCH_SOUNDNESS_DEGREE
+                    .max(batch_degree)
+                    .max(2);
+                let (proximity_gap_bits, query_bits) = level.paper_predicted_bits();
+                let quadratic_bits = ANALYSIS_LOG_Q - 1.0 - log2_list_size;
+                // Both events can occur at the same fold challenge, so add probabilities.
+                let fold_bits = -((-proximity_gap_bits).exp2() + (-quadratic_bits).exp2()).log2();
+                SecurityTerms {
+                    log2_list_size,
+                    algebraic_degree,
+                    algebraic_bits: ANALYSIS_LOG_Q - (algebraic_degree as f64).log2() - log2_list_size,
+                    proximity_gap_bits,
+                    binding_bits: level.paper_predicted_ood_bits(),
+                    query_bits,
+                    query_grinding_bits: level.grinding_bits,
+                    fold_bits,
+                }
+            })
+            .collect()
+    }
+}
+
 /// Extension-field size used for soundness analysis: `q = 2^192`.
 const ANALYSIS_LOG_Q: f64 = 192.0;
 
@@ -1003,12 +1061,20 @@ mod tests {
     fn production_profile_is_128_bit_johnson_with_query_grinding() {
         let mut min_pg_bits = f64::INFINITY;
         for log_inv_rate in MIN_LOG_INV_RATE..=MAX_LOG_INV_RATE {
-            for m in 22 + crate::LOG_PACKING..=28 + crate::LOG_PACKING {
+            for m in 15 + crate::LOG_PACKING..=28 + crate::LOG_PACKING {
                 let cfg = WhirSecurityConfig::derive_config_with_log_inv_rate(m, log_inv_rate).unwrap();
                 assert_eq!(cfg.target_security_bits, 128);
                 assert_eq!(cfg.levels[0].log_inv_rate, log_inv_rate);
                 assert_eq!(cfg.levels[0].ood_samples, 0);
-                for (i, level) in cfg.levels.iter().enumerate() {
+                let oversized = cfg.security_terms(usize::MAX);
+                assert_eq!(oversized[0].algebraic_degree, usize::MAX);
+                assert!(oversized[0].algebraic_bits < 128.0);
+                for (i, (level, terms)) in cfg.levels.iter().zip(cfg.security_terms(512)).enumerate() {
+                    assert!(terms.log2_list_size.is_finite());
+                    assert_eq!(terms.algebraic_degree, crate::ring_switch::RING_SWITCH_SOUNDNESS_DEGREE);
+                    assert!(terms.fold_bits <= terms.proximity_gap_bits);
+                    assert!(terms.fold_bits >= 127.0);
+                    assert!(terms.algebraic_bits >= 128.0);
                     let (pg_bits, query_bits) = level.paper_predicted_bits();
                     let ood_bits = level.paper_predicted_ood_bits();
                     let algebraic_bits = johnson_algebraic_bits(level, prev_queries_at(&cfg.levels, i));
