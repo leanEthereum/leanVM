@@ -263,6 +263,7 @@ dependencies = [
 name = "leanvm_core"
 version = "0.1.0"
 dependencies = [
+ "bench",
  "bincode",
  "fiat_shamir",
  "flock",

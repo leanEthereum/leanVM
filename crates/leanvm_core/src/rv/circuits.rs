@@ -795,6 +795,30 @@ mod tests {
     }
 
     #[test]
+    fn every_class_bitsliced_witness_is_the_gate_walk() {
+        // Invariant: the 64-lane walk the prover runs writes what the one-instance walk writes.
+        //
+        // Fixture state: 128 instances per class, two 64-lane walks.
+        let n_log = 7;
+        let mut rng = Rng(0xB1);
+        for circuit in [alu(), load(), store(), shift(), mul(), mulh(), div(), blake2s()] {
+            // Edge words (0, 1, all ones, sign bits) drive every carry and compare.
+            let rows: Vec<Vec<u64>> = (0..1 << n_log)
+                .map(|_| (0..circuit.n_input_words()).map(|_| rng.word()).collect())
+                .collect();
+            // The same batch through both generators, every table compared.
+            let walk = circuit.generate_witness_with(&rows, &rows[0], n_log, |row, z, az, bz| {
+                circuit.witness_instance(row, z, az, bz)
+            });
+            let sliced = circuit.generate_witness_from(&rows, &rows[0], n_log, |row, words| words.copy_from_slice(row));
+            assert!(walk.0[..] == sliced.0[..], "z");
+            assert!(walk.1[..] == sliced.1[..], "A·z");
+            assert!(walk.2[..] == sliced.2[..], "B·z");
+            assert!(walk.3[..] == sliced.3[..], "lincheck stripes");
+        }
+    }
+
+    #[test]
     fn blake2s_witness_is_the_gate_walk() {
         // Invariant: the word-level witness writes the tables the walk of the gate list writes.
         //

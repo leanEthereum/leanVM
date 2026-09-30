@@ -24,9 +24,15 @@
 
 use crate::lincheck::LincheckCircuit;
 use crate::reduction::Block;
-use crate::witness::drive_witness_packed_and_lincheck;
+use crate::witness::{GroupTables, drive_witness_groups, drive_witness_packed_and_lincheck};
+use primitives::bits::transpose_64x64;
 use primitives::field::F192;
 use zk_alloc::ArenaVec;
+
+/// Instances one word-wide walk of the gate list computes.
+///
+/// One per bit of a `u64`, so a gate is one word operation for all of them.
+const LANES: usize = 64;
 
 /// The gate driving a wire, or `None` for a structural zero.
 pub type Wire = Option<u32>;
@@ -232,6 +238,52 @@ impl Circuit {
         }
     }
 
+    /// Walks the gate list once for 64 instances, bit `l` of every word being instance `l`.
+    ///
+    /// ```text
+    ///     Xor(x, y)      wire = x ^ y
+    ///     And(x, y, s)   wire = x & y     z[s] = x & y    A·z[s] = x    B·z[s] = y
+    /// ```
+    ///
+    /// Reads the input bits by slot and writes `z`, `A·z` and `B·z` by slot.
+    ///
+    /// A slot no gate drives is never written, so it keeps the zero the scratch starts with.
+    fn walk_lanes(&self, lanes: &mut Lanes) {
+        let Lanes {
+            inputs, wires, z, a, b, ..
+        } = lanes;
+        // Wire `i` is gate `i`'s value, pushed in gate order.
+        wires.clear();
+        for &gate in &self.gates {
+            let v = match gate {
+                // An input bit or the constant: its row is `z[s] · 1 = z[s]`.
+                Gate::Free(s) => {
+                    let s = s as usize;
+                    let v = if s == self.const_pos { u64::MAX } else { inputs[s] };
+                    (z[s], a[s], b[s]) = (v, v, u64::MAX);
+                    v
+                }
+                // Free in the R1CS: no row, no slot.
+                Gate::Xor(x, y) => wires[x as usize] ^ wires[y as usize],
+                // A product: its row is `x · y = z[s]`.
+                Gate::And(x, y, s) => {
+                    let (x, y) = (wires[x as usize], wires[y as usize]);
+                    let s = s as usize;
+                    (z[s], a[s], b[s]) = (x & y, x, y);
+                    x & y
+                }
+                // A committed copy of an affine wire: its row is `x · 1 = z[s]`.
+                Gate::Copy(x, s) => {
+                    let v = wires[x as usize];
+                    let s = s as usize;
+                    (z[s], a[s], b[s]) = (v, v, u64::MAX);
+                    v
+                }
+            };
+            wires.push(v);
+        }
+    }
+
     /// `(z, a, b, z_lincheck)` for `rows` of input words, padded with all-zero inputs
     /// to `2^n_blocks_log` instances: the bit-packed `z`, `A·z` and `B·z`
     /// (`2^k_log / 64` words per instance), and lincheck's byte stripes.
@@ -241,9 +293,91 @@ impl Circuit {
         n_blocks_log: usize,
     ) -> (ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u8>) {
         assert_eq!(N, self.n_input_words);
-        self.generate_witness_with(rows, &[0; N], n_blocks_log, |row, z, az, bz| {
-            self.witness_instance(row, z, az, bz)
-        })
+        self.generate_witness_from(rows, &[0; N], n_blocks_log, |row, words| words.copy_from_slice(row))
+    }
+
+    /// The same tables for the caller's own rows.
+    ///
+    /// - `input_words(row, words)` writes a row's input port words.
+    /// - `padding` fills the instances past the rows.
+    ///
+    /// The gate list is walked for 64 instances at a time.
+    ///
+    /// The tables are bit for bit those of the one-instance walk.
+    ///
+    /// ```text
+    ///     rows ──transpose──▶ input bits by slot ──walk──▶ z, A·z, B·z by slot
+    ///                                                     │
+    ///          ◀──transpose── instance-major tables ◀─────┤
+    ///          ◀──byte q──── stripe of instances 8q..8q+8 ┘
+    /// ```
+    pub fn generate_witness_from<S: Sync>(
+        &self,
+        rows: &[S],
+        padding: &S,
+        n_blocks_log: usize,
+        input_words: impl Fn(&S, &mut [u64]) + Sync,
+    ) -> (ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u8>) {
+        assert!(rows.len() <= 1 << n_blocks_log, "more rows than instances");
+        // A batch below 64 instances is walked in full and stored in part.
+        let lanes = LANES.min(1 << n_blocks_log);
+        let n_in = self.n_input_words;
+        // Packed words per instance.
+        let words = (1usize << self.k_log) / 64;
+        // Slot groups past the useful bits hold only zeros, so they skip the transpose.
+        let live_words = self.useful_bits.div_ceil(64);
+        drive_witness_groups(
+            n_blocks_log,
+            self.k_log,
+            lanes,
+            || Lanes::new(self),
+            |s: &mut Lanes, first: usize, t: GroupTables<'_>| {
+                // Phase 1: each lane's input words, a padding row past the batch's rows.
+                for (l, row_words) in s.rows.chunks_exact_mut(n_in).enumerate() {
+                    input_words(rows.get(first + l).unwrap_or(padding), row_words);
+                }
+
+                // Phase 2: input word `w` of 64 lanes, transposed, is its 64 bits by slot.
+                //
+                //     before: bits[l] = input word w of lane l
+                //     after:  bits[i] = bit i of input word w, one bit per lane
+                for (w, bits) in s.inputs.as_chunks_mut::<LANES>().0.iter_mut().enumerate() {
+                    *bits = std::array::from_fn(|l| s.rows[l * n_in + w]);
+                    transpose_64x64(bits);
+                }
+
+                // Phase 3: the gate list, once for all 64 lanes.
+                self.walk_lanes(s);
+
+                // Phase 4: back to instance-major, one transpose per 64-slot group.
+                //
+                //     before: m[i] = slot 64g + i of every lane
+                //     after:  m[l] = packed word g of lane l
+                for (by_slot, out) in [(&s.z, &mut *t.z), (&s.a, &mut *t.a), (&s.b, &mut *t.b)] {
+                    for g in 0..words {
+                        let mut m = [0u64; LANES];
+                        if g < live_words {
+                            m.copy_from_slice(&by_slot[g * LANES..(g + 1) * LANES]);
+                            transpose_64x64(&mut m);
+                        }
+                        for (l, &word) in m[..lanes].iter().enumerate() {
+                            out[l * words + g] = word;
+                        }
+                    }
+                }
+
+                // Phase 5: lincheck's stripes, straight from the slot words.
+                //
+                // The stripe of instances 8q..8q+8 holds slot s of instance 8q+x at byte s, bit x.
+                // That byte is byte q of slot s's word.
+                let k = words * 64;
+                for (q, stripe) in t.stripes.chunks_exact_mut(k).enumerate() {
+                    for (byte, &word) in stripe.iter_mut().zip(&s.z) {
+                        *byte = (word >> (8 * q)) as u8;
+                    }
+                }
+            },
+        )
     }
 
     /// [`Self::generate_witness`] with the caller's own rows, padding row and way to
@@ -288,6 +422,40 @@ impl Circuit {
             wires.push(v);
         }
         (ra, rb)
+    }
+}
+
+/// One worker's scratch for the 64-instance walk.
+///
+/// Bit `l` of every word is instance `l`.
+struct Lanes {
+    /// The 64 instances' input port words, one row after another.
+    rows: Vec<u64>,
+    /// The input ports' bits, by slot.
+    inputs: Vec<u64>,
+    /// Every gate's value, in gate order.
+    wires: Vec<u64>,
+    /// `z` by slot, one word per slot of an instance.
+    z: Vec<u64>,
+    /// `A·z` by slot.
+    a: Vec<u64>,
+    /// `B·z` by slot.
+    b: Vec<u64>,
+}
+
+impl Lanes {
+    /// Zeroed scratch sized for one circuit.
+    fn new(circuit: &Circuit) -> Self {
+        // One word per slot of an instance.
+        let slots = 1 << circuit.k_log;
+        Self {
+            rows: vec![0; LANES * circuit.n_input_words],
+            inputs: vec![0; LANES * circuit.n_input_words],
+            wires: Vec::with_capacity(circuit.gates.len()),
+            z: vec![0; slots],
+            a: vec![0; slots],
+            b: vec![0; slots],
+        }
     }
 }
 
@@ -343,5 +511,80 @@ impl LincheckCircuit for Circuit {
                 .zip(ra.iter().zip(&rb))
                 .fold(F192::ZERO, |acc, (&u, (&a, &b))| acc + u * (a + alpha * b)),
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use primitives::test_rng::Rng;
+
+    /// A random circuit over the builder's whole vocabulary.
+    ///
+    /// A narrow input port and an undriven output bit are structural zeros.
+    fn random_circuit(rng: &mut Rng) -> Circuit {
+        // Ports: three input words, one of them narrow, and two outputs.
+        let narrow = 1 + (rng.next_u32() % 63) as usize;
+        let mut c = Builder::new(&[64, narrow, 64], &[64, narrow]);
+
+        // Operands to draw from: every input bit, a structural zero and the constant.
+        let mut pool: Vec<Wire> = (0..3).flat_map(|port| c.input(port)).collect();
+        pool.extend([None, c.one()]);
+
+        // 200 to 1000 random gates, each result an operand for the next.
+        for _ in 0..200 + rng.next_u32() % 800 {
+            let mut pick = || pool[rng.next_u32() as usize % pool.len()];
+            let (s, x, y) = (pick(), pick(), pick());
+            let wire = match rng.next_u32() % 5 {
+                0 => c.xor(x, y),
+                1 => c.and(x, y),
+                2 => c.or(x, y),
+                3 => c.mux(s, x, y),
+                _ => c.not(x),
+            };
+            pool.push(wire);
+        }
+        // Drive about half the output bits, leaving the rest structural zeros.
+        for (port, bits) in [(0, 64), (1, narrow)] {
+            for bit in 0..bits {
+                if rng.bit() {
+                    let wire = pool[rng.next_u32() as usize % pool.len()];
+                    c.output(port, bit, wire);
+                }
+            }
+        }
+        c.finish()
+    }
+
+    #[test]
+    fn bitsliced_witness_is_the_gate_walk() {
+        // Invariant: the 64-lane walk writes the four tables the one-instance walk writes.
+        let mut rng = Rng::new(0xB175);
+        for round in 0..40 {
+            let circuit = random_circuit(&mut rng);
+
+            // Fixture state: batches of 8, 16, 32, 64 and 128 instances.
+            //
+            //     8 to 32   one walk, stored in part
+            //     64        one walk, stored in full
+            //     128       two walks
+            let n_log = 3 + round % 5;
+
+            // Up to 6 instances past the rows take the padding row.
+            let n_rows = (1 << n_log) - (round % 3) * 3;
+            let mut row = || -> [u64; 3] { std::array::from_fn(|_| rng.next_u64()) };
+            let rows: Vec<[u64; 3]> = (0..n_rows).map(|_| row()).collect();
+            let padding = row();
+
+            // The same batch through both generators, every table compared.
+            let walk = circuit.generate_witness_with(&rows, &padding, n_log, |row, z, az, bz| {
+                circuit.witness_instance(row, z, az, bz)
+            });
+            let sliced = circuit.generate_witness_from(&rows, &padding, n_log, |row, words| words.copy_from_slice(row));
+            assert!(walk.0[..] == sliced.0[..], "z, round {round}");
+            assert!(walk.1[..] == sliced.1[..], "A·z, round {round}");
+            assert!(walk.2[..] == sliced.2[..], "B·z, round {round}");
+            assert!(walk.3[..] == sliced.3[..], "lincheck stripes, round {round}");
+        }
     }
 }

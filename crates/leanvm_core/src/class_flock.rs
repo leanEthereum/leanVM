@@ -102,20 +102,23 @@ impl Prepared {
             "a table's rows fill its batch (cpu::filler)"
         );
         let circuit = circuit(t);
-        let (z, a, b, z_lincheck) = circuit.generate_witness_with(rows, &rows[0], n_blocks_log, |row, z, az, bz| {
-            // The row's input words, one per input port.
-            let mut words = [0u64; MAX_INPUT_WORDS];
-            let words = &mut words[..spec.n_inputs];
+        // The row's input words, one per input port.
+        let input_words = |row: &Row, words: &mut [u64]| {
             for (word, &port) in words.iter_mut().zip(spec.ports) {
                 *word = word_of(port, row, &entries[row.index as usize]);
             }
-
-            // A class with a word-level witness skips the walk of its gate list.
-            match spec.witness {
-                Some(witness) => witness(words, z, az, bz),
-                None => circuit.witness_instance(words, z, az, bz),
-            }
-        });
+        };
+        // A class with a word-level witness skips the walk of its gate list; the others
+        // walk it 64 instances at a time.
+        let (z, a, b, z_lincheck) = match spec.witness {
+            Some(witness) => circuit.generate_witness_with(rows, &rows[0], n_blocks_log, |row, z, az, bz| {
+                let mut words = [0u64; MAX_INPUT_WORDS];
+                let words = &mut words[..spec.n_inputs];
+                input_words(row, words);
+                witness(words, z, az, bz);
+            }),
+            None => circuit.generate_witness_from(rows, &rows[0], n_blocks_log, input_words),
+        };
         assert_eq!(window.len(), z.len(), "the committed column is the wrong size");
         let stride = 1 << stride_log(spec);
         // `F64` is `repr(transparent)` over `u64`, and the packing is bit `i` at

@@ -775,16 +775,19 @@ mod tests {
     #[test]
     fn only_ecall_can_terminate_the_state_channel() {
         let prototype = Asm::new().li(T0, rv::TEXT_BASE).i("addi", A0, ZERO, 42).exit().finish();
-        let halt = Program::new(&prototype, rv::TEXT_BASE, vec![], 2, 0).rv.halt_pc();
+        let halt = Program::new(&prototype, rv::TEXT_BASE, vec![], 2, 0)
+            .expect("valid exit program")
+            .rv
+            .halt_pc();
         let original = Asm::new().li(T0, halt).i("addi", A0, ZERO, 42).exit().finish();
-        let honest_program = Program::new(&original, rv::TEXT_BASE, vec![], 2, 0);
+        let honest_program = Program::new(&original, rv::TEXT_BASE, vec![], 2, 0).expect("valid exit program");
         assert_eq!(honest_program.rv.halt_pc(), halt);
         let exit_index = original.len() - 1;
         let pc = honest_program.rv.pc_of(exit_index);
         for instruction in [j_type(0, (halt - pc) as i32), i_type(0x67, 0, 0, T0, 0)] {
             let mut text = original.clone();
             text[exit_index] = instruction;
-            let program = Program::new(&text, rv::TEXT_BASE, vec![], 2, 0);
+            let program = Program::new(&text, rv::TEXT_BASE, vec![], 2, 0).expect("valid jump program");
             assert!(matches!(program.execute(&[]), Err(rv::Trap::Illegal { pc }) if pc == halt));
 
             // Forge the terminal row directly, bypassing the interpreter's trap.
