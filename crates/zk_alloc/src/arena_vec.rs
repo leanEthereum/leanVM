@@ -101,9 +101,16 @@ impl<T> ArenaVec<T> {
     ///
     /// # Safety
     /// Every one of the `len` elements must be written before it is read.
+    ///
+    /// ```compile_fail
+    /// unsafe { zk_alloc::ArenaVec::<String>::uninitialized(1) };
+    /// ```
     #[inline]
     #[must_use]
-    pub unsafe fn uninitialized(len: usize) -> Self {
+    pub unsafe fn uninitialized(len: usize) -> Self
+    where
+        T: Copy,
+    {
         let mut v = Self::with_capacity(len);
         // SAFETY: the caller guarantees all `len` slots are written before read.
         unsafe { v.set_len(len) };
@@ -291,9 +298,10 @@ impl<T> ArenaVec<T> {
 #[inline]
 #[must_use]
 pub fn alloc_uninit<T>(n: usize) -> ArenaVec<MaybeUninit<T>> {
-    // SAFETY: `MaybeUninit<T>` is valid uninitialized, so every slot already
-    // holds a valid value of the element type.
-    unsafe { ArenaVec::uninitialized(n) }
+    let mut out = ArenaVec::with_capacity(n);
+    // SAFETY: all allocated slots are valid MaybeUninit values, including for non-Copy T.
+    unsafe { out.set_len(n) };
+    out
 }
 
 /// Reinterpret a fully written [`alloc_uninit`] buffer as its element type.
