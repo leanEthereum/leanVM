@@ -8,6 +8,8 @@ name: Bench
 # machines with no secrets. A testbed's name is its Bencher history, so renaming one
 # starts a new one. Each pins its ISA: `target-cpu=native` would build for whichever CPU
 # the job lands on, and a cached build then dies of SIGILL on an older one (see rust.yml).
+# One runner label spans several CPU models of different speeds, so a testbed is the
+# matrix name plus the CPU model the job landed on: each model keeps its own history.
 
 on:
   push:
@@ -69,7 +71,13 @@ jobs:
         run: |
           grep -m1 -E '^Features' /proc/cpuinfo
           for f in aes pmull sha3 sve2; do grep -qw "$f" <(grep -m1 -E '^Features' /proc/cpuinfo) || { echo "::error::no $f on this runner"; exit 1; }; done
-      # One cache per testbed; RUSTFLAGS is part of its key.
+      - name: Testbed
+        id: testbed
+        run: |
+          cpu=$(lscpu | sed -n 's/^Model name: *//p' | head -1 | tr 'A-Z' 'a-z' \
+            | sed -E 's/\((r|tm)\)//g; s/ @.*//; s/ (cpu|processor)//g; s/ [0-9]+-core//g; s/[^a-z0-9]+/-/g; s/^-|-$//g')
+          echo "name=${{ matrix.testbed.name }}-${cpu:?no CPU model}" >> "$GITHUB_OUTPUT"
+      # One cache per matrix entry; RUSTFLAGS is part of its key.
       - uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.testbed.name }}
@@ -80,5 +88,5 @@ jobs:
         run: cargo bench -p flock --bench hash_batch -- --json > bench.json && cat bench.json
       - uses: actions/upload-artifact@v4
         with:
-          name: bench-${{ matrix.testbed.name }}
+          name: bench-${{ steps.testbed.outputs.name }}
           path: bench.json
