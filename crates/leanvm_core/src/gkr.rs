@@ -9,7 +9,7 @@
 use crate::PAR_THRESHOLD;
 use crate::transcript::{Challenger, ProverState, Receiver, Transmitter, VerifierState};
 use primitives::field::{F192, F192Unreduced, mul_unreduced4, mul2, mul4};
-use primitives::multilinear::{eq_table, interp, poly_eval, shrink_eq_low};
+use primitives::multilinear::{eq_table, interp, poly_eval};
 use primitives::stream::Stream;
 use zk_alloc::ArenaVec;
 
@@ -74,6 +74,70 @@ fn build_layers(leaves: ArenaVec<F192>, mu: usize) -> Vec<ArenaVec<F192>> {
     layers
 }
 
+/// `eq(r, x)` as two tables, `eq(r, x) = low[x mod 2^L] · high[x >> L]`.
+///
+/// The full table would be one E value per row pair of the layer, read every round and shrunk every round.
+/// The low table is at most 2^12 entries, 96 KiB, which every task reads from L2.
+struct SplitEq {
+    /// `eq` of the low `L` variables.
+    low: Vec<F192>,
+    /// `eq` of the rest.
+    high: Vec<F192>,
+    /// `L`.
+    low_log: usize,
+}
+
+impl SplitEq {
+    /// Most low variables: 2^12 entries of E is 96 KiB.
+    const MAX_LOW_LOG: usize = 12;
+
+    fn new(r: &[F192]) -> Self {
+        let low_log = r.len().min(Self::MAX_LOW_LOG);
+        Self {
+            low: eq_table(&r[..low_log]),
+            high: eq_table(&r[low_log..]),
+            low_log,
+        }
+    }
+
+    /// `eq(r, x)`.
+    fn at(&self, x: usize) -> F192 {
+        self.low[x & (self.low.len() - 1)] * self.high[x >> self.low_log]
+    }
+
+    /// `sum_x eq(r, x) · terms(x)` over a range of `x`.
+    ///
+    /// `terms(x, w)` returns its unreduced products already scaled by the low weight `w`.
+    /// Each run of `x` sharing a high weight is reduced once and scaled by it once.
+    fn weighted_sum(
+        &self,
+        range: std::ops::Range<usize>,
+        mut terms: impl FnMut(usize, F192) -> [F192Unreduced; 4],
+    ) -> [F192Unreduced; 4] {
+        let mask = self.low.len() - 1;
+        let mut total = [F192Unreduced::ZERO; 4];
+        let mut x = range.start;
+        while x < range.end {
+            // The run of `x` in this high block.
+            let high = x >> self.low_log;
+            let run_end = ((high + 1) << self.low_log).min(range.end);
+            let mut run = [F192Unreduced::ZERO; 4];
+            for y in x..run_end {
+                let t = terms(y, self.low[y & mask]);
+                for (acc, t) in run.iter_mut().zip(t) {
+                    *acc ^= t;
+                }
+            }
+            let scaled = mul_unreduced4([self.high[high]; 4], run.map(F192Unreduced::reduce));
+            for (acc, t) in total.iter_mut().zip(scaled) {
+                *acc ^= t;
+            }
+            x = run_end;
+        }
+        total
+    }
+}
+
 #[inline(always)]
 fn quartic_summand(lines: [[F192; 2]; 4], equality: F192) -> [F192Unreduced; 4] {
     let [left0, left2, right0, right2] = mul4(
@@ -125,16 +189,16 @@ impl QuaternaryLayerState {
     }
 
     /// `(q(0)+q(1), [X²]q, [X³]q, [X⁴]q)`.
-    fn round_message(&self, equality: &[F192]) -> [F192; 4] {
+    fn round_message(&self, equality: &SplitEq) -> [F192; 4] {
         let stored_rows = self.values.len() / 4;
         let full_pairs = stored_rows / 2;
-        let summand = |row: usize| -> [F192Unreduced; 4] {
+        let summand = |row: usize, weight: F192| -> [F192Unreduced; 4] {
             let (lo, hi) = (8 * row, 8 * row + 4);
             let lines = [0, 1, 2, 3].map(|child| {
                 let at_zero = self.values[lo + child];
                 [at_zero, at_zero + self.values[hi + child]]
             });
-            quartic_summand(lines, equality[row])
+            quartic_summand(lines, weight)
         };
         let xor = |mut left: [F192Unreduced; 4], right: [F192Unreduced; 4]| {
             for coefficient in 0..4 {
@@ -145,7 +209,7 @@ impl QuaternaryLayerState {
         let rows = window_rows(full_pairs);
         let window = |index: usize| -> [F192Unreduced; 4] {
             let base = index * rows;
-            (base..(base + rows).min(full_pairs)).fold([F192Unreduced::ZERO; 4], |sum, row| xor(sum, summand(row)))
+            equality.weighted_sum(base..(base + rows).min(full_pairs), summand)
         };
         let windows = full_pairs.div_ceil(rows);
         let mut message = if full_pairs >= PAR_THRESHOLD {
@@ -159,7 +223,7 @@ impl QuaternaryLayerState {
                 let at_zero = self.values[lo + child];
                 [at_zero, at_zero + F192::ONE]
             });
-            message = xor(message, quartic_summand(lines, equality[full_pairs]));
+            message = xor(message, quartic_summand(lines, equality.at(full_pairs)));
         }
         message.map(F192Unreduced::reduce)
     }
@@ -225,7 +289,7 @@ impl QuaternaryLayerState {
         self.logical_rows /= 2;
     }
 
-    fn fold_and_message(&mut self, challenge: F192, equality: &[F192]) -> [F192; 4] {
+    fn fold_and_message(&mut self, challenge: F192, equality: &SplitEq) -> [F192; 4] {
         let stored_rows = self.values.len() / 4;
         let rows = stored_rows.div_ceil(2);
         self.next.truncate(4 * rows);
@@ -248,8 +312,7 @@ impl QuaternaryLayerState {
                     stage[offset + i] = left[i] + product[i];
                 }
             }
-            let mut message = [F192Unreduced::ZERO; 4];
-            for pair in first..end {
+            let message = equality.weighted_sum(first..end, |pair, weight| {
                 let lo = 8 * (pair - first);
                 let left = &stage[lo..lo + 4];
                 let right = if 2 * pair + 1 < rows {
@@ -258,11 +321,8 @@ impl QuaternaryLayerState {
                     &[F192::ONE; 4]
                 };
                 let lines = std::array::from_fn(|i| [left[i], left[i] + right[i]]);
-                let terms = quartic_summand(lines, equality[pair]);
-                for i in 0..4 {
-                    message[i] ^= terms[i];
-                }
-            }
+                quartic_summand(lines, weight)
+            });
             // The next round reads the destination; this round reads only the local stage.
             let stream = Stream::new();
             let len = 4 * (end_row - 2 * first);
@@ -369,11 +429,8 @@ pub fn prove_product_triple(leaves: [ArenaVec<F192>; 3], ps: &mut ProverState, s
         let width = 1usize << round_count;
         let mut trees =
             [0, 1, 2].map(|tree| QuaternaryLayerState::new(std::mem::take(&mut layers[tree][layer - 2]), width));
-        let mut equality = if round_count > 0 {
-            eq_table(&point[1..])
-        } else {
-            Vec::new()
-        };
+        // Round `j` of this layer weighs its rows by `eq(point[1 + j..], .)`.
+        let mut equality = SplitEq::new(if round_count > 0 { &point[1..] } else { &[] });
         let mut round_point = Vec::with_capacity(round_count);
         let mut messages = if round_count > 0 {
             trees.each_ref().map(|tree| tree.round_message(&equality))
@@ -391,13 +448,13 @@ pub fn prove_product_triple(leaves: [ArenaVec<F192>; 3], ps: &mut ProverState, s
             ps.add_scalars(&coeffs);
             let challenge = ps.sample();
             round_point.push(challenge);
-            shrink_eq_low(&mut equality);
             if round + 1 < round_count {
+                equality = SplitEq::new(&point[2 + round..]);
                 messages = trees.each_mut().map(|tree| tree.fold_and_message(challenge, &equality));
             } else {
-                // The last shrink exhausts `equality`, so the final round has no
-                // table to weight a message by and needs the fold alone. Both
-                // kernels stay for that reason; `fold` is not dead.
+                // No variable is left to weigh a message by, so the final round
+                // needs the fold alone. Both kernels stay for that reason; `fold`
+                // is not dead.
                 for tree in &mut trees {
                     tree.fold(challenge);
                 }
@@ -519,21 +576,49 @@ mod tests {
     }
 
     #[test]
+    fn split_eq_is_the_eq_table() {
+        // Invariant: the two tables weigh every row as the full eq table, and a weighted sum
+        // over a range equals the dense one, whether it crosses a high block or not.
+        //
+        // Fixture state: 14 variables, so the high table has 4 entries of 2^12 rows each.
+        let r: Vec<F192> = (0..14u64).map(|i| F192::new(3 * i + 1, i + 7, 5 * i + 2)).collect();
+        let (split, dense) = (SplitEq::new(&r), eq_table(&r));
+        for x in [0, 1, 4095, 4096, 4097, 12_345, (1 << 14) - 1] {
+            assert_eq!(split.at(x), dense[x], "x={x}");
+        }
+
+        // Terms of one coefficient: x itself, as a field element, scaled by the weight.
+        let terms = |x: usize, w: F192| {
+            let mut t = [F192Unreduced::ZERO; 4];
+            t[0] = w.mul_unreduced(F192::new(x as u64, 1, 0));
+            t
+        };
+        for range in [0..10, 4090..4100, 100..9000, 0..1 << 14] {
+            let want = range
+                .clone()
+                .fold(F192::ZERO, |sum, x| sum + dense[x] * F192::new(x as u64, 1, 0));
+            assert_eq!(split.weighted_sum(range.clone(), terms)[0].reduce(), want, "{range:?}");
+        }
+    }
+
+    #[test]
     fn quartic_round_message_matches_direct_evaluation() {
         for width in [2, 4, 8, 16] {
             let below: ArenaVec<F192> = (0..4 * width)
                 .map(|i| F192::new((17 * i + width + 1) as u64, (i * i + 3) as u64, (5 * i + 7) as u64))
                 .collect();
             let state = QuaternaryLayerState::new(below, width);
-            let equality: Vec<F192> = (0..width / 2)
-                .map(|i| F192::new((31 * i + 5) as u64, (7 * i + 1) as u64, (11 * i + 9) as u64))
+            // Rows weighed by eq at a point of one variable per pair index bit.
+            let r: Vec<F192> = (0..(width / 2).ilog2())
+                .map(|i| F192::new(u64::from(31 * i + 5), u64::from(7 * i + 1), u64::from(11 * i + 9)))
                 .collect();
+            let equality = SplitEq::new(&r);
             let [difference, c2, c3, c4] = state.round_message(&equality);
             let direct = |point: F192| {
                 (0..width / 2).fold(F192::ZERO, |sum, row| {
                     let values = [0, 1, 2, 3]
                         .map(|child| interp(state.values[8 * row + child], state.values[8 * row + 4 + child], point));
-                    sum + equality[row] * values[0] * values[1] * values[2] * values[3]
+                    sum + equality.at(row) * values[0] * values[1] * values[2] * values[3]
                 })
             };
             let c0 = direct(F192::ZERO);
@@ -562,11 +647,13 @@ mod tests {
                 let point: Vec<F192> = (0..width.ilog2() - 1)
                     .map(|i| F192::new(31 + u64::from(i), 7, 11))
                     .collect();
-                let mut equality = eq_table(&point);
+                // Round `k` weighs by eq of the point less its first `k` variables.
+                let mut bound = 0;
                 while reference.logical_rows > 2 {
                     let challenge = F192::new(reference.logical_rows as u64, 13, 19);
                     reference.fold(challenge);
-                    shrink_eq_low(&mut equality);
+                    bound += 1;
+                    let equality = SplitEq::new(&point[bound..]);
                     let message = fused.fold_and_message(challenge, &equality);
                     assert_eq!(message, reference.round_message(&equality), "width={width}, len={len}");
                     assert_eq!(&*fused.values, &*reference.values, "width={width}, len={len}");
