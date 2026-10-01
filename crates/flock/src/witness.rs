@@ -168,11 +168,15 @@ where
     );
 
     let total_words = n_total * (k / 64);
-    // SAFETY (x4): group `g` publishes chunk `g` of every table in full below, and the chunk counts match.
-    let mut z = unsafe { ArenaVec::<u64>::uninitialized(total_words) };
-    let mut a = unsafe { ArenaVec::<u64>::uninitialized(total_words) };
-    let mut b = unsafe { ArenaVec::<u64>::uninitialized(total_words) };
-    let mut z_lincheck = unsafe { ArenaVec::<u8>::uninitialized((n_total / 8) * k) };
+    // SAFETY: group `g` publishes chunk `g` of every table in full below, and the chunk counts match.
+    let (mut z, mut a, mut b, mut z_lincheck) = unsafe {
+        (
+            ArenaVec::<u64>::uninitialized(total_words),
+            ArenaVec::<u64>::uninitialized(total_words),
+            ArenaVec::<u64>::uninitialized(total_words),
+            ArenaVec::<u8>::uninitialized((n_total / 8) * k),
+        )
+    };
 
     // A group's share: its packed words in each table, and one stripe per 8 instances.
     let group_words = group * (k / 64);
@@ -202,9 +206,9 @@ where
                 },
             );
 
+            let stream = Stream::new();
             // SAFETY: each group `g` takes chunk `g` of each table exactly once, and
             // all four tables stay borrowed for the whole dispatch.
-            let stream = Stream::new();
             unsafe {
                 stream.copy(z_chunks.get(g), z_grp);
                 stream.copy(a_chunks.get(g), a_grp);

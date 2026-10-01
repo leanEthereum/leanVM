@@ -32,7 +32,9 @@ mod syscall;
 pub use arena_vec::{ArenaVec, alloc_uninit, assume_init};
 
 /// Address space reserved per thread. Overflow falls back to the system allocator.
-const SLAB_SIZE: usize = 64 << 30;
+///
+/// Miri backs the region with real memory, so there a slab is small.
+const SLAB_SIZE: usize = if cfg!(miri) { 1 << 20 } else { 64 << 30 };
 
 /// Extra slabs for non-pool threads that allocate during a phase.
 const SLACK: usize = 8;
@@ -42,7 +44,9 @@ const CACHE_LINE: usize = 64;
 
 /// Smallest block the reuse list tracks: below it, small allocations are too
 /// numerous to be worth a scan and too small to move the resident set.
-pub const REUSE_MIN: usize = 1 << 20;
+///
+/// Under Miri it shrinks with the slab, so the reuse list still runs.
+pub const REUSE_MIN: usize = if cfg!(miri) { 1 << 12 } else { 1 << 20 };
 
 /// Freed blocks one thread's list holds; generous, since the prover's large
 /// buffers are few.
@@ -397,6 +401,7 @@ unsafe fn alloc_slow(size: usize, align: usize) -> *mut u8 {
                 // More live allocating threads than slabs: this one uses System forever.
                 NO_SLAB.set(true);
                 OVERFLOW_BYTES.fetch_add(size, Ordering::Relaxed);
+                // SAFETY: this function's caller passes a power-of-two `align` and a nonzero `size`.
                 return unsafe { system_alloc(size, align) };
             };
             // A thread already exiting has no owner to retire the slab: it just stays claimed.
@@ -430,6 +435,7 @@ unsafe fn alloc_slow(size: usize, align: usize) -> *mut u8 {
     // Slab exhausted (or none owned): fall back, and record it so `stats()` can
     // report that SLAB_SIZE is undersized for this workload.
     OVERFLOW_BYTES.fetch_add(size, Ordering::Relaxed);
+    // SAFETY: this function's caller passes a power-of-two `align` and a nonzero `size`.
     unsafe { system_alloc(size, align) }
 }
 
@@ -471,6 +477,7 @@ pub(crate) unsafe fn raw_alloc(size: usize, align: usize) -> *mut u8 {
                 return aligned as *mut u8;
             }
         }
+        // SAFETY: `align` is a power of two (the caller's, or `CACHE_LINE`) and `size` is the caller's nonzero size.
         let ptr = unsafe { alloc_slow(size, align) };
         if REGION
             .get()
@@ -480,6 +487,7 @@ pub(crate) unsafe fn raw_alloc(size: usize, align: usize) -> *mut u8 {
         }
         return ptr;
     }
+    // SAFETY: as for the slow path above.
     unsafe { system_alloc(size, align) }
 }
 

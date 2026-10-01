@@ -231,9 +231,9 @@ impl Plan {
 /// picture. Read after a warmup pass, this is the steady-state footprint.
 #[must_use]
 pub fn peak_rss_bytes() -> u64 {
-    // SAFETY: `getrusage` only writes into the `rusage` we hand it, which is
-    // zeroed and correctly sized.
+    // SAFETY: `rusage` is a plain C struct of integers, for which all-zero bytes are a valid value.
     let mut usage: libc::rusage = unsafe { std::mem::zeroed() };
+    // SAFETY: `getrusage` only writes into the `rusage` we hand it, which is a live, correctly sized local.
     unsafe { libc::getrusage(libc::RUSAGE_SELF, &raw mut usage) };
     let max = usage.ru_maxrss as u64;
     // `ru_maxrss` is bytes on macOS and KiB on Linux.

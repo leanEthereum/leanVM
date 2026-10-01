@@ -274,7 +274,7 @@ pub fn prove_packed_padded(
     let mut next = materialize_level + 1;
     // Ping-pong scratch: a pass writes its folded tables here, then the two swap.
     let n_in = a_mlv.len();
-    // SAFETY (x3): a pass writes every slot of the prefix it hands on, and nothing reads past it.
+    // SAFETY: a pass writes every slot of the prefix it hands on, and nothing reads past it.
     let (mut a_nxt, mut b_nxt, mut c_nxt) = unsafe {
         (
             ArenaVec::<F192>::uninitialized(n_in / 2),

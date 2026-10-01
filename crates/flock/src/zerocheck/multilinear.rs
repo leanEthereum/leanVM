@@ -477,8 +477,10 @@ fn bit_round_store_kernel<const CHUNKS: usize>(
     let (pair_in_block_mask, live_pairs) = padding_pairs(padding, position_log);
     let live = |pair: usize| (pair & pair_in_block_mask) < live_pairs;
 
-    // SAFETY (x3): every slot is written below, padding included.
-    let mut out: [ArenaVec<F192>; 3] = std::array::from_fn(|_| unsafe { ArenaVec::uninitialized(n_pos) });
+    let mut out: [ArenaVec<F192>; 3] = std::array::from_fn(|_| {
+        // SAFETY: every slot is written below, padding included.
+        unsafe { ArenaVec::uninitialized(n_pos) }
+    });
     let [out_a, out_b, out_c] = &mut out;
     let chunks = [out_a, out_b, out_c].map(|o| parallel::Chunks::new(o, 2 * lo_size));
 

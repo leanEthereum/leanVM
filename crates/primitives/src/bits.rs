@@ -137,6 +137,8 @@ unsafe fn bit_transpose_64bytes_gfni(input: &[u8; 64], output: &mut [u8; 64]) {
 unsafe fn bit_transpose_64bytes_neon(input: &[u8; 64], output: &mut [u8; 64]) {
     use core::arch::aarch64::*;
 
+    // SAFETY: NEON is part of the aarch64 baseline, and every load and store offset is below 64, the length of
+    // both arrays.
     unsafe {
         let in_ptr = input.as_ptr();
         let v0 = vld1q_u8(in_ptr);

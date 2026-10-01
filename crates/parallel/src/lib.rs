@@ -15,7 +15,9 @@ pub use topology::{Topology, num_threads, topology};
 
 /// Idle spins before a worker parks: long enough to stay hot across back-to-back
 /// dispatches, short enough to yield the core during a sequential stretch.
-const SPIN_LIMIT: u32 = 1 << 12;
+///
+/// Miri interprets every spin, so there a worker parks at once.
+const SPIN_LIMIT: u32 = if cfg!(miri) { 0 } else { 1 << 12 };
 
 /// How finely guided scheduling divides the remaining work.
 const CLAIM_DIVISOR: usize = 4;
@@ -108,7 +110,6 @@ struct Pool {
 // The erased `Job` pointer is used only within a dispatch window where the
 // borrow it came from is live.
 unsafe impl Sync for Pool {}
-unsafe impl Send for Pool {}
 
 /// Idempotent warm-up: spawn the workers and run one empty dispatch, so the pool
 /// (and, on macOS, its lazily allocated mutex) exists before any timed work.
@@ -266,13 +267,13 @@ pub fn for_each_chunk<F: Fn(usize, usize) + Sync>(n_tasks: usize, f: F) {
     let pool = pool();
     let guard = pool.dispatch.lock().unwrap();
 
+    let f_ref: &(dyn Fn(usize, usize) + Sync) = &f;
     // SAFETY: erase the borrow to `'static` so it fits in `Job`. The dispatcher closes the
     // job and waits for `entered` to fall to zero before returning, and a worker entering
     // later reads the job closed, so `f` outlives every dereference.
     // `transmute` rather than a `*const dyn` cast is required: a bare cast would
     // default the trait object's lifetime to `'static` and force `F: 'static`
     // (E0310); the transmute reinterprets the same fat pointer without that bound.
-    let f_ref: &(dyn Fn(usize, usize) + Sync) = &f;
     let f_erased: NonNull<dyn Fn(usize, usize) + Sync> = unsafe { std::mem::transmute(NonNull::from(f_ref)) };
 
     // SAFETY: sole writer. The prior job is closed and every worker that entered it has left,
@@ -300,6 +301,9 @@ pub fn for_each_chunk<F: Fn(usize, usize) + Sync>(n_tasks: usize, f: F) {
     pool.closed.store(true, Ordering::SeqCst);
     while pool.entered.load(Ordering::SeqCst) != 0 {
         std::hint::spin_loop();
+        // Miri runs one thread at a time, so a spin that never yields starves the worker it waits for.
+        #[cfg(miri)]
+        std::thread::yield_now();
     }
 
     // Re-raise the first task panic after dropping the guard, so the lock
@@ -332,6 +336,7 @@ pub struct SendPtr<T>(pub *mut T);
 // `unsafe` block whose comment establishes that the range being touched belongs
 // to exactly one task.
 unsafe impl<T> Send for SendPtr<T> {}
+// SAFETY: sharing the pointer value is as harmless as sending it, for the reason above.
 unsafe impl<T> Sync for SendPtr<T> {}
 
 impl<T> SendPtr<T> {
@@ -342,6 +347,7 @@ impl<T> SendPtr<T> {
     /// concurrent task touches.
     #[inline]
     pub unsafe fn add(&self, n: usize) -> *mut T {
+        // SAFETY: the caller keeps `n` inside the allocation.
         unsafe { self.0.add(n) }
     }
 
@@ -352,6 +358,7 @@ impl<T> SendPtr<T> {
     /// slice, and the underlying buffer outlives `'a`.
     #[inline]
     pub unsafe fn slice<'a>(&self, off: usize, len: usize) -> &'a mut [T] {
+        // SAFETY: the caller guarantees `off..off + len` is in bounds, borrowed by no other task, and alive for `'a`.
         unsafe { std::slice::from_raw_parts_mut(self.0.add(off), len) }
     }
 }
@@ -426,6 +433,8 @@ impl<T> Chunks<T> {
     pub unsafe fn get<'a>(&self, i: usize) -> &'a mut [T] {
         let start = i * self.width;
         debug_assert!(start < self.len);
+        // SAFETY: `i < count()` puts `start` below `len`, so `start..start + min(width, len - start)` lies in
+        // the slice `new` took; the caller guarantees no other borrow of it and that it outlives `'a`.
         unsafe { self.base.slice(start, self.width.min(self.len - start)) }
     }
 }

@@ -200,6 +200,10 @@ impl InvNttTableByteSingleGf8 {
         let base = self.data.as_ptr() as *const u8;
         let out_ptr = out.as_mut_ptr() as *mut u8;
 
+        // SAFETY: the caller guarantees `V`'s features. `data` is `256 * ell` bytes and each row index is a byte, so
+        // row `bytes[b] * ell` has `ell` bytes; `ell` is a power of two, `n128 = ell / 16` and
+        // `b >> 1 <= (n_chunks - 1) / 2 < n128`, so every chunk index `c ^ (b >> 1)` stays below `n128`, and each
+        // 16-byte access lies inside its row or inside `out`, whose length is asserted to be `ell`.
         unsafe {
             // b = 0: identity permutation, a straight copy from row 0.
             let row0 = base.add(bytes[0] as usize * self.ell);
@@ -252,18 +256,22 @@ struct Neon(core::arch::aarch64::uint8x16_t);
 impl Vec128 for Neon {
     #[inline(always)]
     unsafe fn load(p: *const u8) -> Self {
+        // SAFETY: NEON is part of the aarch64 baseline, and the caller guarantees 16 readable bytes at `p`.
         Self(unsafe { core::arch::aarch64::vld1q_u8(p) })
     }
     #[inline(always)]
     unsafe fn store(p: *mut u8, v: Self) {
+        // SAFETY: NEON is part of the aarch64 baseline, and the caller guarantees 16 writable bytes at `p`.
         unsafe { core::arch::aarch64::vst1q_u8(p, v.0) }
     }
     #[inline(always)]
     fn xor(self, other: Self) -> Self {
+        // SAFETY: NEON is part of the aarch64 baseline; registers only.
         Self(unsafe { core::arch::aarch64::veorq_u8(self.0, other.0) })
     }
     #[inline(always)]
     fn swap64(self) -> Self {
+        // SAFETY: NEON is part of the aarch64 baseline; registers only.
         Self(unsafe { core::arch::aarch64::vextq_u8::<8>(self.0, self.0) })
     }
 }
@@ -276,18 +284,24 @@ struct Sse2(core::arch::x86_64::__m128i);
 impl Vec128 for Sse2 {
     #[inline(always)]
     unsafe fn load(p: *const u8) -> Self {
+        // SAFETY: SSE2 is part of the x86-64 baseline, and the caller guarantees 16 readable bytes at `p`;
+        // the load is unaligned.
         Self(unsafe { core::arch::x86_64::_mm_loadu_si128(p as *const core::arch::x86_64::__m128i) })
     }
     #[inline(always)]
     unsafe fn store(p: *mut u8, v: Self) {
+        // SAFETY: SSE2 is part of the x86-64 baseline, and the caller guarantees 16 writable bytes at `p`;
+        // the store is unaligned.
         unsafe { core::arch::x86_64::_mm_storeu_si128(p as *mut core::arch::x86_64::__m128i, v.0) }
     }
     #[inline(always)]
     fn xor(self, other: Self) -> Self {
+        // SAFETY: SSE2 is part of the x86-64 baseline; registers only.
         unsafe { Self(core::arch::x86_64::_mm_xor_si128(self.0, other.0)) }
     }
     #[inline(always)]
     fn swap64(self) -> Self {
+        // SAFETY: SSE2 is part of the x86-64 baseline; registers only.
         unsafe { Self(core::arch::x86_64::_mm_shuffle_epi32::<0b01_00_11_10>(self.0)) }
     }
 }

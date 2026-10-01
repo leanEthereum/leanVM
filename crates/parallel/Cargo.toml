@@ -2,6 +2,8 @@
 name = "parallel"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
 publish = false
 description = "Fixed-size heterogeneous thread pool for flat data-parallel kernels"
 

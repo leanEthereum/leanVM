@@ -31,5 +31,6 @@ pub unsafe fn xor3_u64(a: uint64x2_t, b: uint64x2_t, c: uint64x2_t) -> uint64x2_
 #[cfg(not(target_feature = "sha3"))]
 #[inline(always)]
 pub unsafe fn xor3_u64(a: uint64x2_t, b: uint64x2_t, c: uint64x2_t) -> uint64x2_t {
-    veorq_u64(a, veorq_u64(b, c))
+    // SAFETY: NEON is part of the aarch64 baseline; registers only.
+    unsafe { veorq_u64(a, veorq_u64(b, c)) }
 }

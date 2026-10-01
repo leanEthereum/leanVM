@@ -545,9 +545,11 @@ pub mod aarch64 {
     /// Three 128-bit coefficients as an unreduced element.
     #[inline(always)]
     fn unreduced(d: [uint64x2_t; 3]) -> F192Unreduced {
-        // SAFETY: a 128-bit register and a `[u64; 2]` hold the same bits.
         F192Unreduced {
-            coeffs: d.map(|d| unsafe { transmute::<uint64x2_t, [u64; 2]>(d) }),
+            coeffs: d.map(|d| {
+                // SAFETY: `uint64x2_t` and `[u64; 2]` are both 16 plain bytes, valid for every bit pattern.
+                unsafe { transmute::<uint64x2_t, [u64; 2]>(d) }
+            }),
         }
     }
 

@@ -23,6 +23,7 @@ pub struct ArenaVec<T> {
 // no additional thread affinity (a slab is bumped only by its owning thread, and
 // the resulting pointer is plain memory).
 unsafe impl<T: Send> Send for ArenaVec<T> {}
+// SAFETY: a shared `ArenaVec` hands out only `&[T]`, as a shared `Vec` does, and `T: Sync` makes that sound.
 unsafe impl<T: Sync> Sync for ArenaVec<T> {}
 
 impl<T> ArenaVec<T> {

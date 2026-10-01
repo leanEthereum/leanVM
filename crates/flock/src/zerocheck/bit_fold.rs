@@ -408,13 +408,14 @@ pub(crate) mod gfni {
         #[inline]
         pub(super) fn fold_block<const CHUNKS: usize>(&self, rows: &[[u8; CHUNKS]], out: &mut [F192; BLOCK]) {
             // A short block folds from a zero-padded copy.
-            // SAFETY (x2): the module is compiled only with these target features enabled.
             if rows.len() < BLOCK {
                 let mut padded = [[0u8; CHUNKS]; BLOCK];
                 padded[..rows.len()].copy_from_slice(rows);
+                // SAFETY: the module is compiled only with these target features enabled.
                 return unsafe { self.fold_full::<CHUNKS>(&padded, out) };
             }
             let rows: &[[u8; CHUNKS]; BLOCK] = rows.try_into().expect("a full block");
+            // SAFETY: the module is compiled only with these target features enabled.
             unsafe { self.fold_full::<CHUNKS>(rows, out) };
         }
 

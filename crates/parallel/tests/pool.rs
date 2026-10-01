@@ -4,7 +4,12 @@
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-const SIZES: [usize; 7] = [0, 1, 2, 17, 1_000, 4_096, 100_000];
+const SIZES: [usize; 7] = [0, 1, 2, 17, scaled(1_000), scaled(4_096), scaled(100_000)];
+
+/// A test length, cut down under Miri, which interprets every item.
+const fn scaled(n: usize) -> usize {
+    if cfg!(miri) { n / 32 } else { n }
+}
 
 #[test]
 fn every_item_runs_exactly_once() {
@@ -32,7 +37,7 @@ fn tiny_dispatches_run_every_item_while_workers_wake_late() {
         if batch == 1 {
             std::thread::sleep(std::time::Duration::from_millis(5));
         }
-        for round in 0..1000 {
+        for round in 0..scaled(1000) {
             let hits: Vec<AtomicUsize> = (0..2).map(|_| AtomicUsize::new(0)).collect();
             parallel::for_each(2, |i| {
                 hits[i].fetch_add(1, Ordering::Relaxed);
@@ -81,7 +86,7 @@ fn fill_writes_every_slot() {
 #[test]
 fn chunks_mut_hands_out_disjoint_slices() {
     for chunk in [1usize, 3, 64, 1024] {
-        let mut data = vec![0usize; 5_000];
+        let mut data = vec![0usize; scaled(5_000)];
         parallel::chunks_mut(&mut data, chunk, |ci, sub| {
             for (k, slot) in sub.iter_mut().enumerate() {
                 *slot = ci * chunk + k;
@@ -93,8 +98,8 @@ fn chunks_mut_hands_out_disjoint_slices() {
 
 #[test]
 fn chunks_mut2_stays_in_lockstep() {
-    let mut a = vec![0usize; 3_000];
-    let mut b = vec![0usize; 3_000];
+    let mut a = vec![0usize; scaled(3_000)];
+    let mut b = vec![0usize; scaled(3_000)];
     parallel::chunks_mut2(&mut a, &mut b, 128, |ci, sa, sb| {
         assert_eq!(sa.len(), sb.len());
         for (k, (x, y)) in sa.iter_mut().zip(sb.iter_mut()).enumerate() {
@@ -108,7 +113,7 @@ fn chunks_mut2_stays_in_lockstep() {
 
 #[test]
 fn for_each_mut_reports_global_indices() {
-    let mut data = vec![0usize; 7_777];
+    let mut data = vec![0usize; scaled(7_777)];
     parallel::for_each_mut(&mut data, |i, slot| *slot = i * 3);
     assert!(data.iter().enumerate().all(|(i, &v)| v == i * 3));
 }
@@ -143,13 +148,13 @@ fn map_reduce_with_state_reuses_worker_scratch() {
 #[test]
 fn task_panic_reaches_the_dispatcher_and_the_pool_survives() {
     let result = std::panic::catch_unwind(|| {
-        parallel::for_each(1_000, |i| {
-            assert_ne!(i, 500, "boom");
+        parallel::for_each(scaled(1_000), |i| {
+            assert_ne!(i, scaled(500), "boom");
         });
     });
     assert!(result.is_err(), "a task panic must be re-raised on the dispatcher");
     // The dispatch lock must not be poisoned and the workers must still be alive.
-    let out = parallel::map_collect(1_000, |i| i);
+    let out = parallel::map_collect(scaled(1_000), |i| i);
     assert!(out.iter().enumerate().all(|(i, &v)| v == i));
 }
 

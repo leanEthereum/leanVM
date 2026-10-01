@@ -470,9 +470,13 @@ fn partial_fold_packed_z_iblock_padded(
             let tables_ptr = tables.as_ptr();
             // Base of this (tile, i_base): process_block reads
             // z_base[t·k + bs] = z[(stripe_base+t)·k + i_base + bs].
+            // SAFETY: `z_packed` is `n_stripes * k` bytes, `stripe_base < n_stripes` and `i_base < k`.
             let z_base = unsafe { z_packed.as_ptr().add(stripe_base * k + i_base) };
             for b in 0..n_block {
                 let i = b * BLOCK_K;
+                // SAFETY: the tile's `TILE_T` stripes end by `n_stripes`, a multiple of `TILE_T`, and
+                // `i_base + i + BLOCK_K <= useful <= k` keeps every 8-byte row read inside its stripe; `tables` is
+                // `TILE_T * 256` entries; `i + BLOCK_K <= out_slice.len()`, both being multiples of `BLOCK_K`.
                 unsafe {
                     process_block_neon_single(z_base, k, i, tables_ptr, out_slice.as_mut_ptr().add(i));
                 }
@@ -533,9 +537,13 @@ fn partial_fold_packed_z_oblock_padded(
                 build_sum_table(&eq_outer[eq_off..eq_off + 8], &mut tables[t * 256..(t + 1) * 256]);
             }
             let tables_ptr = tables.as_ptr();
+            // SAFETY: `z_packed` is `n_stripes * k` bytes and `stripe_base < n_stripes`.
             let z_base = unsafe { z_packed.as_ptr().add(stripe_base * k) };
             let mut bs = 0usize;
             while bs < useful {
+                // SAFETY: the tile's `TILE_T` stripes end by `n_stripes`, a multiple of `TILE_T`;
+                // `bs + BLOCK_K <= useful <= k` keeps every row read inside its stripe and the 8 outputs inside
+                // the length-`k` partial; `tables` is `TILE_T * 256` entries.
                 unsafe {
                     process_block_neon_single(z_base, k, bs, tables_ptr, partial.as_mut_ptr().add(bs));
                 }

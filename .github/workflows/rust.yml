@@ -64,3 +64,46 @@ jobs:
           components: rustfmt
       - name: Check formatting
         run: cargo fmt --all -- --check
+
+  msrv:
+    name: MSRV
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # The `rust-version` of the root Cargo.toml.
+      - uses: dtolnay/rust-toolchain@1.97
+      - uses: Swatinem/rust-cache@v2
+      - name: Check on the declared Rust version
+        run: cargo check --workspace --all-targets
+
+  miri:
+    name: Miri
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      # Three workers, so the pool's dispatch, park and completion paths all run.
+      LEANVM_NUM_THREADS: 3
+      # Miri hides the environment unless told, and the pool would then run one thread.
+      # The pool's workers and the arena's region live for the process, which reads as a leak.
+      # The arena turns slab addresses back into pointers.
+      # Each seed is another thread interleaving.
+      MIRIFLAGS: >-
+        -Zmiri-env-forward=LEANVM_NUM_THREADS
+        -Zmiri-ignore-leaks
+        -Zmiri-permissive-provenance
+        -Zmiri-many-seeds=0..8
+    steps:
+      - uses: actions/checkout@v4
+      # The latest nightly that ships Miri.
+      - uses: dtolnay/rust-toolchain@miri
+      - name: Miri
+        run: cargo miri test -p parallel -p zk_alloc
+
+  deny:
+    name: Cargo deny
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check advisories bans licenses

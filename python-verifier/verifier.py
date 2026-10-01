@@ -527,7 +527,7 @@ class BusLayout:
     tables: tuple[Placement, ...]  # one per block a table owns, in the side's own block order
 
 
-FrameworkLogRows = tuple[int, int, int, int, int] | tuple[()]  # state, memory, bytecode, range low, range high
+FrameworkLogRows = tuple[int, int, int, int, int, int, int] | tuple[()]  # state, registers, RAM, advice, bytecode, range low, range high
 
 
 def bus_layout(framework_log_rows: FrameworkLogRows, blocks: Sequence[BusBlock]) -> BusLayout:
@@ -1716,7 +1716,8 @@ def check_bytecode(bytecode: Sequence[K]) -> None:
         if tag[z] == 0:
             continue
         table = tags.get(tag[z])
-        require(table is not None, "a bytecode entry names no class")
+        if table is None:
+            raise VerificationError("a bytecode entry names no class")
         require(a1[z] < 32 and a2[z] < 32 and 1 <= ad[z] <= SINK, "a bytecode entry misnames a register")
         require(pc4[z] == TEXT_BASE + 4 * z + 4, "a bytecode entry's successor is not pc + 4")
         require(flags[z] in table.legal_flags, "a bytecode entry's flags are not its class's")

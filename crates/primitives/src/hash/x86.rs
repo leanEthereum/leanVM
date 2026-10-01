@@ -29,22 +29,29 @@ impl Lanes32 for Avx2 {
 
     #[inline(always)]
     unsafe fn load(p: *const u32) -> Self {
+        // SAFETY: the impl exists only when the crate is built with AVX2, and the caller guarantees 8 readable words at
+        // `p`; the load is unaligned.
         Self(unsafe { _mm256_loadu_si256(p.cast()) })
     }
     #[inline(always)]
     unsafe fn store(self, p: *mut u32) {
+        // SAFETY: the impl exists only when the crate is built with AVX2, and the caller guarantees 8 writable words at
+        // `p`; the store is unaligned.
         unsafe { _mm256_storeu_si256(p.cast(), self.0) }
     }
     #[inline(always)]
     fn splat(x: u32) -> Self {
+        // SAFETY: the impl exists only when the crate is built with AVX2; registers only.
         Self(unsafe { _mm256_set1_epi32(x as i32) })
     }
     #[inline(always)]
     fn add(self, o: Self) -> Self {
+        // SAFETY: the impl exists only when the crate is built with AVX2; registers only.
         Self(unsafe { _mm256_add_epi32(self.0, o.0) })
     }
     #[inline(always)]
     fn xor(self, o: Self) -> Self {
+        // SAFETY: the impl exists only when the crate is built with AVX2; registers only.
         Self(unsafe { _mm256_xor_si256(self.0, o.0) })
     }
     #[inline(always)]
@@ -52,6 +59,7 @@ impl Lanes32 for Avx2 {
         // Byte shuffles rotating each 32-bit lane right by 2 and by 1 bytes, per 16-byte half.
         const ROT16: [i8; 16] = [2, 3, 0, 1, 6, 7, 4, 5, 10, 11, 8, 9, 14, 15, 12, 13];
         const ROT8: [i8; 16] = [1, 2, 3, 0, 5, 6, 7, 4, 9, 10, 11, 8, 13, 14, 15, 12];
+        // SAFETY: the impl exists only when the crate is built with AVX2; the one load reads a 16-byte local array.
         unsafe {
             let shuf = |m: [i8; 16]| {
                 let half = _mm_loadu_si128(m.as_ptr().cast());
@@ -76,6 +84,8 @@ impl Lanes32 for Avx2 {
     /// Two 8x8 transposes: each block is two `ymm`, words 0..8 and 8..16.
     #[inline(always)]
     unsafe fn transpose(src: *const u8, stride: usize, block: &mut [Self; 16]) {
+        // SAFETY: the impl exists only when the crate is built with AVX2; the loads read 32-byte half `half < 2` of
+        // each of the 8 inputs, inside the 64 readable bytes the caller guarantees per input.
         unsafe {
             for half in 0..2 {
                 let r: [__m256i; 8] =
@@ -118,26 +128,34 @@ impl Lanes32 for Avx512 {
 
     #[inline(always)]
     unsafe fn load(p: *const u32) -> Self {
+        // SAFETY: the impl exists only when the crate is built with AVX-512F, and the caller guarantees 16 readable
+        // words at `p`; the load is unaligned.
         Self(unsafe { _mm512_loadu_si512(p.cast()) })
     }
     #[inline(always)]
     unsafe fn store(self, p: *mut u32) {
+        // SAFETY: the impl exists only when the crate is built with AVX-512F, and the caller guarantees 16 writable
+        // words at `p`; the store is unaligned.
         unsafe { _mm512_storeu_si512(p.cast(), self.0) }
     }
     #[inline(always)]
     fn splat(x: u32) -> Self {
+        // SAFETY: the impl exists only when the crate is built with AVX-512F; registers only.
         Self(unsafe { _mm512_set1_epi32(x as i32) })
     }
     #[inline(always)]
     fn add(self, o: Self) -> Self {
+        // SAFETY: the impl exists only when the crate is built with AVX-512F; registers only.
         Self(unsafe { _mm512_add_epi32(self.0, o.0) })
     }
     #[inline(always)]
     fn xor(self, o: Self) -> Self {
+        // SAFETY: the impl exists only when the crate is built with AVX-512F; registers only.
         Self(unsafe { _mm512_xor_si512(self.0, o.0) })
     }
     #[inline(always)]
     fn rotr<const N: u32>(self) -> Self {
+        // SAFETY: the impl exists only when the crate is built with AVX-512F; registers only.
         unsafe {
             match N {
                 16 => Self(_mm512_ror_epi32(self.0, 16)),
@@ -180,6 +198,8 @@ impl Lanes32 for Avx512 {
     /// ```
     #[inline(always)]
     unsafe fn store_digests(h: &[Self; 8], out: *mut u8) {
+        // SAFETY: the impl exists only when the crate is built with AVX-512F; each store writes 16 bytes at `(4L + c) *
+        // 32` or 16 past it, `4L + c < 16`, so all of them fall in the `16 * 32` writable bytes the caller guarantees.
         unsafe {
             let mut s = [_mm512_setzero_si512(); 8];
             for a in 0..2 {
@@ -227,6 +247,8 @@ impl Lanes32 for Avx512 {
     /// ```
     #[inline(always)]
     unsafe fn transpose(src: *const u8, stride: usize, block: &mut [Self; 16]) {
+        // SAFETY: the impl exists only when the crate is built with AVX-512F; each load reads the 64 bytes of one of
+        // the 16 inputs, which the caller guarantees readable.
         unsafe {
             let r: [__m512i; 16] = std::array::from_fn(|l| _mm512_loadu_si512(src.add(l * stride).cast()));
             // Phases 1 and 2: lane L of s[4a + c] holds column 4L + c of rows 4a..4a + 4.

@@ -21,22 +21,27 @@ impl Lanes32 for Neon {
 
     #[inline(always)]
     unsafe fn load(p: *const u32) -> Self {
+        // SAFETY: NEON is part of the aarch64 baseline, and the caller guarantees 4 readable words at `p`.
         Self(unsafe { vld1q_u32(p) })
     }
     #[inline(always)]
     unsafe fn store(self, p: *mut u32) {
+        // SAFETY: NEON is part of the aarch64 baseline, and the caller guarantees 4 writable words at `p`.
         unsafe { vst1q_u32(p, self.0) }
     }
     #[inline(always)]
     fn splat(x: u32) -> Self {
+        // SAFETY: NEON is part of the aarch64 baseline; registers only.
         Self(unsafe { vdupq_n_u32(x) })
     }
     #[inline(always)]
     fn add(self, o: Self) -> Self {
+        // SAFETY: NEON is part of the aarch64 baseline; registers only.
         Self(unsafe { vaddq_u32(self.0, o.0) })
     }
     #[inline(always)]
     fn xor(self, o: Self) -> Self {
+        // SAFETY: NEON is part of the aarch64 baseline; registers only.
         Self(unsafe { veorq_u32(self.0, o.0) })
     }
     #[inline(always)]
@@ -49,6 +54,8 @@ impl Lanes32 for Neon {
     /// Quarter `q` holds words `4q..4q + 4`, so it transposes on its own.
     #[inline(always)]
     unsafe fn transpose(src: *const u8, stride: usize, block: &mut [Self; 16]) {
+        // SAFETY: NEON is part of the aarch64 baseline; load `i` reads bytes `16 * (i % 4)..16 * (i % 4) + 16` of input
+        // `i / 4 < 4`, inside the 64 readable bytes the caller guarantees per input.
         unsafe {
             // The byte form of the load: the input has no 4-byte alignment.
             let r: [uint32x4_t; 16] =
@@ -67,6 +74,8 @@ impl Lanes32 for Neon {
     /// Words 0..4 give each digest's first 16 bytes, words 4..8 its last 16.
     #[inline(always)]
     unsafe fn store_digests(h: &[Self; 8], out: *mut u8) {
+        // SAFETY: NEON is part of the aarch64 baseline; each store writes 16 bytes at `lane * 32 + 16 * half` with
+        // `lane < 4`, inside the `4 * 32` writable bytes the caller guarantees.
         unsafe {
             for half in 0..2 {
                 let [a, b, c, d] = [h[4 * half], h[4 * half + 1], h[4 * half + 2], h[4 * half + 3]];
@@ -84,6 +93,7 @@ impl Lanes32 for Neon {
 /// Every rotation sits on the G dependency chain.
 #[inline(always)]
 fn rot4<const N: u32>(v: uint32x4_t) -> uint32x4_t {
+    // SAFETY: NEON is part of the aarch64 baseline; the one load reads the 16-byte static table.
     unsafe {
         match N {
             16 => vreinterpretq_u32_u16(vrev32q_u16(vreinterpretq_u16_u32(v))),
@@ -106,6 +116,8 @@ fn rot4<const N: u32>(v: uint32x4_t) -> uint32x4_t {
 /// Assembly, because the compiler otherwise picks an accumulating form with a longer chain.
 #[inline(always)]
 fn rot_sri<const N: u32, const SHL: i32>(v: uint32x4_t) -> uint32x4_t {
+    // SAFETY: NEON is part of the aarch64 baseline; `sri` reads and writes only the two vector registers it names, as
+    // `nomem` and `nostack` declare.
     unsafe {
         let mut out = vshlq_n_u32::<SHL>(v);
         std::arch::asm!(
@@ -122,6 +134,7 @@ fn rot_sri<const N: u32, const SHL: i32>(v: uint32x4_t) -> uint32x4_t {
 /// Transpose four vectors of four words: `out[j][i] = in[i][j]`.
 #[inline(always)]
 fn transpose4(a: uint32x4_t, b: uint32x4_t, c: uint32x4_t, d: uint32x4_t) -> [uint32x4_t; 4] {
+    // SAFETY: NEON is part of the aarch64 baseline; registers only.
     unsafe {
         let (ab0, ab1) = (vtrn1q_u32(a, b), vtrn2q_u32(a, b));
         let (cd0, cd1) = (vtrn1q_u32(c, d), vtrn2q_u32(c, d));

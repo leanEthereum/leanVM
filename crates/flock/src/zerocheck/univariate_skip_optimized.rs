@@ -225,6 +225,8 @@ fn convert_table() -> &'static ConvertTable {
 // into the per-(K, lane) 16-bit accumulators.
 // ---------------------------------------------------------------------------
 
+/// # Safety
+/// `table_base` points to a `256 * 64`-byte table, and `BH < 4`.
 #[cfg(target_arch = "aarch64")]
 // `0 ^ BH` is the i = 0 case of the `i ^ BH` row-select pattern below; spelling
 // it out keeps the four loads visibly parallel.
@@ -244,6 +246,8 @@ unsafe fn xor_apply_byte_into_8_regs<const BH: usize>(
     db3: &mut core::arch::aarch64::uint8x16_t,
 ) {
     use core::arch::aarch64::*;
+    // SAFETY: NEON is part of the aarch64 baseline; `table_base` is the caller's `256 * 64`-byte table, so row
+    // `byte * 64` plus a chunk offset `(i ^ BH) * 16 < 64` (`BH < 4`) stays inside it.
     unsafe {
         let ra = table_base.add(a_byte as usize * 64);
         let rb = table_base.add(b_byte as usize * 64);
@@ -268,6 +272,9 @@ unsafe fn xor_apply_byte_into_8_regs<const BH: usize>(
 
 /// Process one K-row: 8 byte positions of `a` and `b` via the inv_NTT table,
 /// F_8 multiply, widen-shift by K, XOR into the four `(acc_lo, acc_hi)` pairs.
+///
+/// # Safety
+/// `table_base` points to a `256 * 64`-byte table, and `a_row` and `b_row` to `N_CHUNKS` readable bytes each.
 #[cfg(target_arch = "aarch64")]
 #[inline(always)]
 unsafe fn fused_apply_one_k<const K: i32>(
@@ -285,6 +292,8 @@ unsafe fn fused_apply_one_k<const K: i32>(
 ) {
     use core::arch::aarch64::*;
     use primitives::field::gf2_8::neon::gf8_mul_vec16;
+    // SAFETY: NEON is part of the aarch64 baseline; the caller guarantees `N_CHUNKS` readable bytes at `a_row` and
+    // `b_row` and a `256 * 64`-byte table, and every load is a table row plus an offset below 64.
     unsafe {
         // `π_b(i') = i' ⊕ 8b` is a chunk-index XOR by `b >> 1`, which is a free
         // load offset, and for odd `b` a swap of each chunk's two 8-byte halves.
@@ -377,6 +386,9 @@ fn shift_reduce_inner_ab_fused_neon(
     let byte_base_b = chunk_byte_base + b_med * N_CHUNKS * 8;
     let table_base = inv_table.data_ptr();
 
+    // SAFETY: NEON is part of the aarch64 baseline. The table is `256 * 64` bytes, its `k` being `K_SKIP` (asserted
+    // at the entry point). The row windows `byte_base_b + K * N_CHUNKS .. + N_CHUNKS` for `K < 8` lie in both packed
+    // tables, whose lengths the entry point asserts against the windows it walks. `out` is 64 bytes.
     unsafe {
         let mut acc0_lo = vdupq_n_u16(0);
         let mut acc0_hi = vdupq_n_u16(0);

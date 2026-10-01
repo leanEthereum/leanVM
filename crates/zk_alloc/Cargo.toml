@@ -2,6 +2,8 @@
 name = "zk_alloc"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
 publish = false
 description = "Bump-and-reset arena for the prover's transient buffers"
 

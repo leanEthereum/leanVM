@@ -158,6 +158,8 @@ pub mod neon {
     /// Uses `core::arch::aarch64` NEON intrinsics; only call on `aarch64`.
     #[inline]
     pub unsafe fn gf8_reduce_vec16(c0: uint8x16_t, c1: uint8x16_t) -> uint8x16_t {
+        // SAFETY: NEON, PMULL's `vmull_p8` included, is part of the aarch64 baseline, and nothing here touches
+        // memory; the transmutes are between same-size vector and integer types.
         unsafe {
             let q_plus_rsh1: poly8x8_t = transmute::<u64, poly8x8_t>(0x8d8d8d8d8d8d8d8d_u64);
             let q_star: poly8x8_t = transmute::<u64, poly8x8_t>(0x1b1b1b1b1b1b1b1b_u64);
@@ -196,6 +198,7 @@ pub mod neon {
     /// Uses `core::arch::aarch64` NEON intrinsics (PMULL); only call on `aarch64`.
     #[inline]
     pub unsafe fn gf8_mul_vec16(a: uint8x16_t, b: uint8x16_t) -> uint8x16_t {
+        // SAFETY: as in the reduction above: baseline NEON on registers only.
         unsafe {
             let c0 = vreinterpretq_u8_u16(vreinterpretq_u16_p16(vmull_p8(
                 transmute::<uint8x8_t, poly8x8_t>(vget_low_u8(a)),
@@ -271,11 +274,13 @@ mod tests {
                 expected[i] = (F8(a_arr[i]) * F8(b_arr[i])).0;
             }
             // NEON result.
+            // SAFETY: baseline NEON; each load reads one 16-byte array.
             let result_vec = unsafe {
                 let a_v = vld1q_u8(a_arr.as_ptr());
                 let b_v = vld1q_u8(b_arr.as_ptr());
                 neon::gf8_mul_vec16(a_v, b_v)
             };
+            // SAFETY: a `uint8x16_t` is 16 plain bytes.
             let result: [u8; 16] = unsafe { transmute(result_vec) };
             assert_eq!(result, expected, "a={:02x?}, b={:02x?}", a_arr, b_arr);
         }
