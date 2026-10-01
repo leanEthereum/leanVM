@@ -140,15 +140,20 @@ impl Entry {
                 _ => !self.jalr && !self.link && self.target == Target::Next,
             }
         };
-        // A hash row writes no register and reads no immediate: its table holds both at
-        // their constants.
-        let hash = self.class == Class::Hash;
+        // A field a class's table holds at a constant has to be that constant.
+        // A load reads no `rs2`, a store and a hash write no `rd`, and a hash has no immediate.
+        let constants = match self.class {
+            Class::Load => self.a2 == 0,
+            Class::Store => self.ad == SINK,
+            Class::Hash => self.ad == SINK && self.imm == 0,
+            _ => true,
+        };
         self.a1 < 32
             && self.a2 < 32
             && (1..=SINK).contains(&self.ad)
             && legal.contains(&self.flags)
             && control
-            && (!hash || (self.ad == SINK && self.imm == 0))
+            && constants
     }
 }
 

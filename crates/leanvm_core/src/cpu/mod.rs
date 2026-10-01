@@ -195,7 +195,7 @@ impl Program {
             unsafe { core::slice::from_raw_parts(table.as_ptr().cast::<u8>(), core::mem::size_of_val(&table[..])) };
         // Every variable-length part is length-framed, so the preimage parses one way.
         let mut h = primitives::hash::Hasher::new();
-        h.update(b"leanvm-rv64im-2");
+        h.update(b"leanvm-rv64im-3");
         h.update(&bytes(&[table.len() as u64]));
         h.update(table_bytes);
         h.update(&bytes(&[
@@ -851,6 +851,39 @@ mod tests {
         let unmatched = leaf::unmatched_leaves(&w.layout.push, &w.layout.pull, &w.columns());
         // The load's pull and the store's push, which it should have met.
         assert_eq!(unmatched.len(), 2, "{unmatched:?}");
+    }
+
+    #[test]
+    fn a_forged_store_unbalances_the_bus() {
+        // Invariant: a store cannot write a value its `rs2` does not hold.
+        //
+        // Fixture state: `t1 = 5` is stored at `RAM_BASE + 32`, then loaded into `a0`.
+        // Mutation: the store writes 7, and the circuit's instance, the cell, the load and the output follow it.
+        // So only the store's read of `t1` is left to refuse it.
+        let text = Asm::new()
+            .li(T0, rv::RAM_BASE + 32)
+            .i("addi", T1, ZERO, 5)
+            .store("sd", T1, 0, T0)
+            .load("ld", A0, 0, T0)
+            .exit()
+            .finish();
+        let program = Program::new(&text, rv::TEXT_BASE, vec![], 3, 0).expect("valid instruction program");
+        let mut forged = program.execute(&[]).unwrap();
+        let tables = [rv::Class::Store, rv::Class::Load].map(|c| tables::table_of(c).unwrap());
+        let [store, load] = forged.trace.rows.get_disjoint_mut(tables).unwrap();
+        fn real(rows: &mut [Row]) -> &mut Row {
+            rows.iter_mut().find(|r| !r.ts.is_zero()).unwrap()
+        }
+        let (store, load) = (real(store), real(load));
+        (store.v2, store.ram.new) = (7, 7);
+        (load.ram.old, load.ram.new, load.out) = (7, 7, 7);
+        forged.trace.reg_fin[A0 as usize] = F64(7);
+        forged.trace.ram_fin[4] = F64(7);
+        let w = program.build(&forged);
+        let unmatched = leaf::unmatched_leaves(&w.layout.push, &w.layout.pull, &w.columns());
+        // The read, pulled and pushed back as 7, meets neither `t1`'s write nor its final value.
+        // That leaves two tuples on each side.
+        assert_eq!(unmatched.len(), 4, "{unmatched:?}");
     }
 
     /// The point of the timestamps: a register written twice cannot be read as of its

@@ -188,6 +188,19 @@ mod tests {
     }
 
     #[test]
+    fn a_skipped_register_access_names_its_constant() {
+        // Invariant: a load's `rs2` is `x0` and a store's `rd` the sink, which their tables hold as constants.
+        //
+        // Fixture state: `ld a0, 0(a1)` and `sd a0, 0(a1)`.
+        // Mutation: the load names `x1` as `rs2`, the store `x1` as `rd`.
+        let (load, store) = (decode(0x0005_b503, 0), decode(0x00a5_b023, 0));
+        assert_eq!((load.class, store.class), (Class::Load, Class::Store));
+        assert!(load.is_well_formed() && store.is_well_formed());
+        assert!(!Entry { a2: 1, ..load }.is_well_formed());
+        assert!(!Entry { ad: 1, ..store }.is_well_formed());
+    }
+
+    #[test]
     fn alu_control_shapes_match_decoded_instructions() {
         let pc = super::super::TEXT_BASE;
         let witnesses = [

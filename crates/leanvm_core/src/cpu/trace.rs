@@ -48,13 +48,13 @@ pub(crate) struct Row {
     /// What the class computed.
     pub(crate) out: u64,
     pub(crate) taken: bool,
-    /// What the destination register held before the write.
+    /// What the destination register held before the write, if the class makes one.
     pub(crate) vd_old: u64,
     /// The RAM cell a load or a store accessed: its bus address, what it held and
     /// what it holds. Zeros for another class.
     pub(crate) ram: crate::rv::machine::RamAccess,
-    /// `rs1`, `rs2`, `rd`, then the RAM access if the class has one. A hash row
-    /// keeps its accesses in `hash` instead.
+    /// The register accesses the class makes, then the RAM access if it has one.
+    /// A hash row keeps its accesses in `hash` instead.
     pub(crate) acc: [Access; 4],
     pub(crate) hash: Option<Box<HashRow>>,
     pub(crate) bytecode_read: F64,

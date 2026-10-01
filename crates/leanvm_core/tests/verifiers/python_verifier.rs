@@ -177,6 +177,23 @@ fn test_python_verifier() {
         String::from_utf8_lossy(&python.stderr).contains("misnames a register"),
         "Python refused a table that writes x0 for the wrong reason"
     );
+    // A load reads no `rs2` and a store writes no `rd`: their tables hold those fields at
+    // constants, `x0` and the sink, so an entry naming another register is refused.
+    for (class, slot, reason) in [
+        (leanvm_core::rv::Class::Load, 6, "reads an rs2"),
+        (leanvm_core::rv::Class::Store, 7, "writes an rd"),
+    ] {
+        // The class tag `g^t`, which is `2^t` since `g = x`.
+        let tag = 1u64 << leanvm_core::tables::table_of(class).expect("the class has a table");
+        let mut malformed = table.clone();
+        for (slot, value) in [(3, tag), (4, 0), (slot, 1)] {
+            malformed[8 * slot * entries..][..8].copy_from_slice(&value.to_le_bytes());
+        }
+        std::fs::write(&statement.bytecode, malformed).expect("write malformed register");
+        let refused = statement.verify(&raw);
+        PythonStatement::assert_rejects(&refused, reason);
+        assert!(String::from_utf8_lossy(&refused.stderr).contains(reason), "{reason}");
+    }
     // Setting an exit selector on an ordinary instruction is a malformed public table.
     let mut forged_exit = table.clone();
     forged_exit[8 * leanvm_core::tables::EXIT_SLOT * entries..][..8].copy_from_slice(&1u64.to_le_bytes());

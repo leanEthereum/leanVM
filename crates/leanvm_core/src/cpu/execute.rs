@@ -145,27 +145,30 @@ impl Program {
             let e = &p.entries[step.index];
             let table = crate::tables::table_of(e.class).expect("every class that runs has a table");
             let spec = CLASSES[table];
-            // The register accesses, then the RAM access if the class has one. Their
-            // order here is the order of their columns, not of their clock slots.
+            // The register accesses the class makes, then the RAM access if it has one.
+            // Their order here is the order of their columns, not of their clock slots.
             let cells = [e.a1, e.a2, e.ad].map(|cell| cell as usize);
-            let n_regs = if spec.writes_register() { 3 } else { 2 };
-            let mut acc: [Access; 4] = std::array::from_fn(|i| match cells.get(i) {
-                Some(&cell) if i < n_regs => {
-                    regs.access(&mut ranges, cell, tick + REG_SLOTS[i], advance(ts, REG_SLOTS[i]))
+            // Why: a loop over all three slots unrolls, so every clock below is a constant power.
+            let made = [true, spec.reads_rs2, spec.writes_rd];
+            let mut acc = [padding_access_unread(); 4];
+            let mut n = 0;
+            for (i, slot) in REG_SLOTS.into_iter().enumerate() {
+                if made[i] {
+                    acc[n] = regs.access(&mut ranges, cells[i], tick + slot, advance(ts, slot));
+                    n += 1;
                 }
-                _ => padding_access_unread(),
-            });
+            }
             if let Some(access) = step.ram {
                 let cell = cell_of(access.address);
-                acc[3] = ram.access(&mut ranges, cell, tick + RAM_SLOT, advance(ts, RAM_SLOT));
+                acc[n] = ram.access(&mut ranges, cell, tick + RAM_SLOT, advance(ts, RAM_SLOT));
             }
-            // A hash row's block, word `k` at `v1 ^ 8k`, after its two register reads.
+            // A hash row's block, word `k` at `v1 ^ 8k`, after its register reads.
             let hash = step.hash.map(|h| {
                 let mut all = [padding_access_unread(); 2 + hash::WORDS];
-                all[..2].copy_from_slice(&acc[..2]);
+                all[..n].copy_from_slice(&acc[..n]);
                 for k in 0..hash::WORDS {
                     let cell = cell_of(step.v1 ^ (8 * k as u64));
-                    all[2 + k] = ram.access(&mut ranges, cell, tick + block_slot(k), advance(ts, block_slot(k)));
+                    all[n + k] = ram.access(&mut ranges, cell, tick + block_slot(k), advance(ts, block_slot(k)));
                 }
                 Box::new(HashRow {
                     block: h.block,

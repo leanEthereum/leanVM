@@ -78,6 +78,7 @@ pub const CLOCK_STRIDE: u32 = 4;
 /// seeds' `g^0`.
 pub const CLOCK_START: F64 = g_pow(CLOCK_STRIDE as usize);
 /// A row's clock slots: `rs1`, `rs2`, then `rd` last, after the RAM access if there is one.
+/// A row that skips an access leaves its slot unused.
 pub const REG_SLOTS: [u32; 3] = [0, 1, 3];
 pub const RAM_SLOT: u32 = 2;
 /// A hash row reads its two registers, then accesses its block's words in order.
@@ -373,9 +374,9 @@ pub enum Ram {
     Read,
     /// One cell read and rewritten.
     Write,
-    /// The hash's block ([`hash`]): word `k` is the cell at `v1 ^ 8k`, in clock slot
-    /// [`block_slot`]`(k)`, and the result's four words are rewritten. The row writes
-    /// no register.
+    /// The hash's block: word `k` is the cell at `v1 ^ 8k`, in clock slot `2 + k`.
+    ///
+    /// The result's four words are rewritten.
     Block,
 }
 
@@ -390,6 +391,14 @@ pub struct ClassSpec {
     /// circuit's `taken` word. Without them the next `pc` is `pc + 4` and `rd`
     /// receives `out`.
     pub control: bool,
+    /// Whether the row reads `rs2`, in clock slot 1.
+    /// A load decodes with `x0` there, and its circuit takes no `v2`.
+    pub reads_rs2: bool,
+    /// Whether the row writes `rd`, in clock slot 3.
+    /// A store's and a hash's destination is the sink, which nothing reads.
+    ///
+    /// A row that skips either reads its register number off the entry as a constant.
+    pub writes_rd: bool,
     pub ram: Ram,
     pub circuit: fn() -> Circuit,
     /// One instance's witness by word arithmetic, when the class has it.
@@ -405,28 +414,37 @@ pub struct ClassSpec {
 }
 
 impl ClassSpec {
-    /// Whether the row writes a register, in clock slot 3.
-    pub const fn writes_register(&self) -> bool {
-        !matches!(self.ram, Ram::Block)
+    /// The register accesses the row makes, in column order: `rs1`, then `rs2` and `rd` if it makes them.
+    ///
+    /// Each is an index into the entry's three register cells and into the register slots.
+    pub const fn registers(&self) -> &'static [usize] {
+        match (self.reads_rs2, self.writes_rd) {
+            (true, true) => &[0, 1, 2],
+            (true, false) => &[0, 1],
+            (false, true) => &[0, 2],
+            (false, false) => &[0],
+        }
+    }
+
+    /// The clock slots of the row's RAM accesses.
+    const fn ram_slots(&self) -> std::ops::Range<u32> {
+        match self.ram {
+            Ram::None => 0..0,
+            Ram::Read | Ram::Write => RAM_SLOT..RAM_SLOT + 1,
+            Ram::Block => block_slot(0)..block_slot(hash::WORDS),
+        }
     }
 
     /// Accesses per row: the registers', then RAM's.
     pub const fn n_accesses(&self) -> usize {
-        match self.ram {
-            Ram::None => 3,
-            Ram::Read | Ram::Write => 4,
-            Ram::Block => 2 + hash::WORDS,
-        }
+        let ram = self.ram_slots();
+        self.registers().len() + (ram.end - ram.start) as usize
     }
 
     /// The clock slots of the row's accesses, in the order of their columns.
     pub fn slots(&self) -> Vec<u32> {
-        let [s1, s2, sd] = REG_SLOTS;
-        match self.ram {
-            Ram::None => vec![s1, s2, sd],
-            Ram::Read | Ram::Write => vec![s1, s2, sd, RAM_SLOT],
-            Ram::Block => [s1, s2].into_iter().chain((0..hash::WORDS).map(block_slot)).collect(),
-        }
+        let registers = self.registers().iter().map(|&i| REG_SLOTS[i]);
+        registers.chain(self.ram_slots()).collect()
     }
 
     /// How far the clock advances per row: past its last slot.
@@ -442,6 +460,8 @@ pub static ALU: ClassSpec = ClassSpec {
     class: Class::Alu,
     name: "ALU",
     control: true,
+    reads_rs2: true,
+    writes_rd: true,
     ram: Ram::None,
     circuit: rv::circuits::alu,
     witness: None,
@@ -453,6 +473,8 @@ pub static LOAD: ClassSpec = ClassSpec {
     class: Class::Load,
     name: "LOAD",
     control: false,
+    reads_rs2: false,
+    writes_rd: true,
     ram: Ram::Read,
     circuit: rv::circuits::load,
     witness: None,
@@ -471,6 +493,8 @@ pub static STORE: ClassSpec = ClassSpec {
     class: Class::Store,
     name: "STORE",
     control: false,
+    reads_rs2: true,
+    writes_rd: false,
     ram: Ram::Write,
     circuit: rv::circuits::store,
     witness: None,
@@ -483,7 +507,6 @@ pub static STORE: ClassSpec = ClassSpec {
         Word::Cell(0),
         Word::Address,
         Word::CellNew(0),
-        Word::Out,
     ],
     n_inputs: 5,
 };
@@ -492,6 +515,8 @@ pub static SHIFT: ClassSpec = ClassSpec {
     class: Class::Shift,
     name: "SHIFT",
     control: false,
+    reads_rs2: true,
+    writes_rd: true,
     ram: Ram::None,
     circuit: rv::circuits::shift,
     witness: None,
@@ -503,6 +528,8 @@ pub static MUL: ClassSpec = ClassSpec {
     class: Class::Mul,
     name: "MUL",
     control: false,
+    reads_rs2: true,
+    writes_rd: true,
     ram: Ram::None,
     circuit: rv::circuits::mul,
     witness: None,
@@ -514,6 +541,8 @@ pub static MULH: ClassSpec = ClassSpec {
     class: Class::Mulh,
     name: "MULH",
     control: false,
+    reads_rs2: true,
+    writes_rd: true,
     ram: Ram::None,
     circuit: rv::circuits::mulh,
     witness: None,
@@ -526,6 +555,8 @@ pub static DIV: ClassSpec = ClassSpec {
     class: Class::Div,
     name: "DIV",
     control: false,
+    reads_rs2: true,
+    writes_rd: true,
     ram: Ram::None,
     circuit: rv::circuits::div,
     witness: None,
@@ -548,6 +579,8 @@ pub static HASH: ClassSpec = ClassSpec {
     class: Class::Hash,
     name: "HASH",
     control: false,
+    reads_rs2: true,
+    writes_rd: false,
     ram: Ram::Block,
     circuit: rv::circuits::blake2s,
     witness: Some(rv::circuits::blake2s_witness),
@@ -598,6 +631,13 @@ pub const BAD_SLOT: usize = 13;
 /// Bytecode slot binding the exit selector.
 pub const EXIT_SLOT: usize = 14;
 
+/// The `rs2` read's columns: the register's number and what it held.
+#[derive(Clone, Copy)]
+struct Rs2Cols {
+    a2: usize,
+    v2: usize,
+}
+
 /// The register write's columns: the cell written, what it held, and the class's result.
 #[derive(Clone, Copy)]
 struct RdCols {
@@ -643,21 +683,19 @@ impl BlockCols {
     }
 }
 
-/// A class table's local columns: `pc, ts, a1, a2, pc4, v1, v2, flags`, then the
-/// optional groups in the order of the fields below, then the accesses and the
-/// bytecode read's count.
+/// A class table's local columns: `pc, ts, a1, pc4, v1, flags`, then the optional groups.
+///
+/// The groups are in the order of the fields below, then come the accesses and the bytecode read's count.
 #[derive(Clone, Copy)]
 struct Cols {
     pc: usize,
     ts: usize,
     // The bytecode entry's fields that are no circuit word.
     a1: usize,
-    a2: usize,
     pc4: usize,
     v1: usize,
-    v2: usize,
     flags: usize,
-    /// A hash row writes no register.
+    rs2: Option<Rs2Cols>,
     rd: Option<RdCols>,
     control: Option<ControlCols>,
     /// The immediate, which a hash row has not.
@@ -677,9 +715,12 @@ impl Cols {
             next += n;
             next - n
         };
-        let (pc, ts, a1, a2, pc4) = (take(1), take(1), take(1), take(1), take(1));
-        let (v1, v2, flags) = (take(1), take(1), take(1));
-        let rd = spec.writes_register().then(|| RdCols {
+        let (pc, ts, a1, pc4, v1, flags) = (take(1), take(1), take(1), take(1), take(1), take(1));
+        let rs2 = spec.reads_rs2.then(|| Rs2Cols {
+            a2: take(1),
+            v2: take(1),
+        });
+        let rd = spec.writes_rd.then(|| RdCols {
             ad: take(1),
             vd_old: take(1),
             out: take(1),
@@ -711,11 +752,10 @@ impl Cols {
             pc,
             ts,
             a1,
-            a2,
             pc4,
             v1,
-            v2,
             flags,
+            rs2,
             rd,
             control,
             imm,
@@ -734,7 +774,7 @@ impl Cols {
             Word::Flags => self.flags,
             Word::Imm => self.imm.unwrap_or_else(missing),
             Word::V1 => self.v1,
-            Word::V2 => self.v2,
+            Word::V2 => self.rs2.map_or_else(missing, |r| r.v2),
             Word::Out => self.rd.map_or_else(missing, |rd| rd.out),
             Word::Taken => self.control.map_or_else(missing, |c| c.taken),
             Word::Address => self.ram.map_or_else(missing, |r| r.address),
@@ -754,8 +794,7 @@ impl Cols {
     }
 }
 
-/// The table of one instruction class (§sec:tables): the state step, the bytecode
-/// read, two register reads, the RAM access of a load or a store, and one register write.
+/// The table of one instruction class (§sec:tables): the state step, the bytecode read, and the accesses.
 /// Its column indices are local (`0..n_committed_columns`).
 pub struct ClassTable {
     index: usize,
@@ -769,6 +808,19 @@ impl ClassTable {
         let spec = CLASSES[index];
         let cols = Cols::new(spec);
         assert_eq!(cols.rbc, cols.acc.end(), "the counts are the table's last columns");
+        // Invariant: a register access exists exactly when its value is a circuit word.
+        assert_eq!(
+            spec.reads_rs2,
+            spec.ports.contains(&Word::V2),
+            "{}: rs2 read",
+            spec.name
+        );
+        assert_eq!(
+            spec.writes_rd,
+            spec.ports.contains(&Word::Out),
+            "{}: rd write",
+            spec.name
+        );
         Self {
             index,
             spec,
@@ -846,8 +898,8 @@ impl ClassTable {
             .control
             .map_or(Const(F64::ZERO), |k| Prod(k.exit, c.ts, self.spec.stride()));
         f.state(c.pc, c.ts, npc, self.spec.stride(), exit);
-        // A row without a register write or an immediate reads their constants off
-        // the entry: the sink, and zero.
+        // A row without an `rs2` read, an `rd` write or an immediate reads its constant off the entry.
+        // Those constants are `x0`, the sink, and zero.
         let mut entry = vec![
             Const(SEP_BYTECODE),
             Col(c.pc),
@@ -855,7 +907,7 @@ impl ClassTable {
             Const(g_pow(self.index)),
             Col(c.flags),
             Col(c.a1),
-            Col(c.a2),
+            c.rs2.map_or(Const(F64::ZERO), |r| Col(r.a2)),
             c.rd.map_or(Const(F64(SINK as u64)), |rd| Col(rd.ad)),
             c.imm.map_or(Const(F64::ZERO), Col),
             Col(c.pc4),
@@ -868,11 +920,19 @@ impl ClassTable {
         entry.resize(EXIT_SLOT, Const(F64::ZERO));
         entry.push(c.control.map_or(Const(F64::ZERO), |k| Col(k.exit)));
         f.counted(entry, c.rbc);
+        // The accesses' columns are in the order the row makes them.
+        let mut n = 0;
+        let mut next = || {
+            n += 1;
+            n - 1
+        };
         let [s1, s2, sd] = REG_SLOTS;
-        f.access(SEP_REG, Col(c.a1), c.ts, c.acc, 0, s1, Col(c.v1), Col(c.v1));
-        f.access(SEP_REG, Col(c.a2), c.ts, c.acc, 1, s2, Col(c.v2), Col(c.v2));
+        f.access(SEP_REG, Col(c.a1), c.ts, c.acc, next(), s1, Col(c.v1), Col(c.v1));
+        if let Some(r) = c.rs2 {
+            f.access(SEP_REG, Col(r.a2), c.ts, c.acc, next(), s2, Col(r.v2), Col(r.v2));
+        }
         if let (Some(rd), Some(vd)) = (c.rd, vd) {
-            f.access(SEP_REG, Col(rd.ad), c.ts, c.acc, 2, sd, Col(rd.vd_old), vd);
+            f.access(SEP_REG, Col(rd.ad), c.ts, c.acc, next(), sd, Col(rd.vd_old), vd);
         }
         // The cell a load or a store names is the circuit's word, so an access outside
         // RAM, or a misaligned one, pulls a tuple nothing pushed.
@@ -882,7 +942,7 @@ impl ClassTable {
                 Col(ram.address),
                 c.ts,
                 c.acc,
-                3,
+                next(),
                 RAM_SLOT,
                 Col(ram.cell),
                 Col(ram.new),
@@ -893,7 +953,7 @@ impl ClassTable {
             for k in 0..hash::WORDS {
                 let addr = Coord::Sum(vec![Col(c.v1), Const(F64(8 * k as u64))]);
                 let (old, new) = (Col(block.words + k), Col(block.left(k)));
-                f.access(SEP_MEM, addr, c.ts, c.acc, 2 + k, block_slot(k), old, new);
+                f.access(SEP_MEM, addr, c.ts, c.acc, next(), block_slot(k), old, new);
             }
         }
         f
@@ -913,13 +973,16 @@ impl ClassTable {
                 F64(pc),
                 r.ts,
                 F64(e.a1 as u64),
-                F64(e.a2 as u64),
                 F64(pc.wrapping_add(4)),
                 F64(r.v1),
-                F64(r.v2),
                 F64(e.flags),
             ]
         });
+        if let Some(rs2) = c.rs2 {
+            ctx.cols_at(out, rows, [rs2.a2, rs2.v2], move |r| {
+                [F64(entry(r).a2 as u64), F64(r.v2)]
+            });
+        }
         if let Some(rd) = c.rd {
             ctx.cols_at(out, rows, [rd.ad, rd.vd_old, rd.out], move |r| {
                 [F64(entry(r).ad as u64), F64(r.vd_old), F64(r.out)]

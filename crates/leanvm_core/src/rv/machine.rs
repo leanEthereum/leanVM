@@ -204,8 +204,8 @@ pub struct Step {
     /// What the class computed.
     pub out: u64,
     pub taken: bool,
-    /// What `ad` held, and what it holds now: `out`, or `pc + 4` for a link. Zeros
-    /// for a hash row, which writes no register.
+    /// What `ad` held, and what it holds now: `out`, or `pc + 4` for a link.
+    /// A store's and a hash's `vd_old` is zero: their destination is the sink, which they leave as it is.
     pub vd_old: u64,
     pub vd: u64,
     pub ram: Option<RamAccess>,
@@ -355,8 +355,10 @@ impl<'a> Machine<'a> {
         };
         let pc4 = pc.wrapping_add(4);
         let vd = if e.link { pc4 } else { out };
+        // Why: the sink is never read, so a class whose destination is always the sink makes no write.
+        // Its table then has no register write to prove.
         let vd_old = match e.class {
-            Class::Hash => 0,
+            Class::Store | Class::Hash => 0,
             _ => std::mem::replace(&mut self.regs[e.ad as usize], vd),
         };
         let npc = match (e.jalr, taken) {

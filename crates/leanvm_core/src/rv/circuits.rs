@@ -137,10 +137,9 @@ pub fn load() -> Circuit {
     c.finish()
 }
 
-/// [`super::Class::Store`]'s circuit: `(v1, v2, imm, flags, cell) -> (address, new cell,
-/// out)`. `out` is what the row writes to its destination, the sink: zero.
+/// The store's circuit: `(v1, v2, imm, flags, cell) -> (address, new cell)`.
 pub fn store() -> Circuit {
-    let mut c = Builder::new(&[64, 64, 64, 2, 64], &[64, 64, 64]);
+    let mut c = Builder::new(&[64, 64, 64, 2, 64], &[64, 64]);
     let (v1, v2, imm, flags, cell) = (c.input(0), c.input(1), c.input(2), c.input(3), c.input(4));
     let address = add(&mut c, &v1, &imm);
     let [ge2, ge4, eq8] = width_thresholds(&mut c, &flags);
@@ -646,13 +645,12 @@ mod tests {
                 );
             }
             for &flags in &crate::rv::store::LEGAL {
-                let got = run(&store, &[v1, v2, imm, flags, cell], 5..8);
+                let got = run(&store, &[v1, v2, imm, flags, cell], 5..7);
                 assert_eq!(
                     got[0],
                     semantics::bus_address(address, flags),
                     "store {flags:#x} at {address:#x}"
                 );
-                assert_eq!(got[2], 0);
                 // A misaligned store names no cell, so what it would write is nobody's business.
                 if semantics::is_aligned(address, flags) {
                     assert_eq!(

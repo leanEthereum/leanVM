@@ -10,7 +10,7 @@ The program is public, so nothing is decoded in a table: both parties decode eac
 \end{enumerate}
 So $P(z,1,1,0,0)$ is instruction $z$'s tag, $P(z,1,0,1,0)$ its first register, $P(z,1,0,0,1)$ its successor, and $P(z,0,0,0,0)=P(z,1,1,1,1)=0$.
 
-\paragraph{Well-formedness.} The proof system is sound for any table $P$, a malformed one included: it proves that the rows read $P$ and did what its fields say. What makes $P$ a RISC-V program is checked once, by both parties, where a program enters: every entry with a tag reads two registers below $32$ and writes a cell in $1..32$, its successor is its own address plus $4$, its flags are ones its class defines, its selector bits are bits, and a \texttt{HASH} entry writes the sink and has immediate $0$. The two verifiers check the same rules, and the digest below is of the decoded table, so a verifier is never handed a program it did not check.
+\paragraph{Well-formedness.} The proof system is sound for any table $P$, a malformed one included: it proves that the rows read $P$ and did what its fields say. What makes $P$ a RISC-V program is checked once, by both parties, where a program enters: every entry with a tag reads two registers below $32$ and writes a cell in $1..32$, its successor is its own address plus $4$, its flags are ones its class defines, its selector bits are bits, a \texttt{LOAD} entry reads $\regs[0]$ as its second register, a \texttt{STORE} entry writes the sink, and a \texttt{HASH} entry writes the sink and has immediate $0$. The two verifiers check the same rules, and the digest below is of the decoded table, so a verifier is never handed a program it did not check.
 
 \subsection{The statement}\label{sec:e2e-pi}
 
