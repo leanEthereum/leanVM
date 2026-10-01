@@ -10,6 +10,7 @@
 
 use super::python_verifier::PythonStatement;
 use leanvm_core::cpu::{Program, prove, verify_to_raw};
+use leanvm_core::pcs::Rate;
 use leanvm_core::rv::{Guest, Machine, RAM_BASE, TEXT_BASE, Trap};
 use leanvm_core::tables::N_TABLES;
 use std::path::{Path, PathBuf};
@@ -155,7 +156,7 @@ fn act4_proven() {
     let mut covered = [false; N_TABLES];
     let mut python = Vec::new();
     for Test { name, program, .. } in suite() {
-        let (proof, output, stats) = prove(&program, &[], 1).unwrap_or_else(|trap| panic!("{name}: {trap}"));
+        let (proof, output, stats) = prove(&program, &[], Rate::MIN).unwrap_or_else(|trap| panic!("{name}: {trap}"));
         assert_eq!(output, PASS, "{name}: the prover's output");
         let raw = verify_to_raw(&program, &output, &proof).unwrap_or_else(|error| panic!("{name}: {error:?}"));
         let used = stats.base_counts.map(|rows| rows > 0);

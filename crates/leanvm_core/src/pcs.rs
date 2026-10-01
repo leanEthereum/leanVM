@@ -38,11 +38,51 @@ use ::pcs::whir::{ProverData, commit as whir_commit, config_for_rate};
 /// reused, so the two are one knob ([`::pcs::whir::INITIAL_FOLDING_FACTOR`]).
 /// Larger ⇒ far fewer Merkle nodes to hash at the cost of fatter query openings.
 pub(crate) const LOG_BATCH: usize = ::pcs::whir::INITIAL_FOLDING_FACTOR;
-/// The rate the test suite and the benchmarks prove at. Not a default: every
-/// entry point takes `log_inv_rate` explicitly, and a caller has to choose.
-pub const TEST_LOG_INV_RATE: usize = ::pcs::whir::LOG_INV_RATE_0;
-/// The `log_inv_rate` values a WHIR configuration can be derived for.
-pub use ::pcs::whir::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
+
+/// The commitment's rate, as the base-two logarithm of its inverse.
+///
+/// A larger value, a lower rate, makes a smaller proof and a slower prover.
+///
+/// Only a rate the commitment supports can be built, so the prover never checks one.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct Rate(u8);
+
+const _: () = assert!(::pcs::whir::MAX_LOG_INV_RATE <= u8::MAX as usize);
+
+impl Rate {
+    /// The fastest prover, and the largest proof.
+    pub const MIN: Self = Self(::pcs::whir::MIN_LOG_INV_RATE as u8);
+
+    /// The smallest proof, and the slowest prover.
+    pub const MAX: Self = Self(::pcs::whir::MAX_LOG_INV_RATE as u8);
+
+    /// The rate `2^-log_inv_rate`.
+    ///
+    /// # Errors
+    ///
+    /// A rate the commitment does not support.
+    pub const fn new(log_inv_rate: u8) -> Result<Self, InvalidRate> {
+        if Self::MIN.0 <= log_inv_rate && log_inv_rate <= Self::MAX.0 {
+            Ok(Self(log_inv_rate))
+        } else {
+            Err(InvalidRate { log_inv_rate })
+        }
+    }
+
+    /// The base-two logarithm of the inverse rate.
+    #[must_use]
+    pub const fn log_inv_rate(self) -> u8 {
+        self.0
+    }
+}
+
+/// A rate the commitment does not support.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, thiserror::Error)]
+#[error("log_inv_rate {log_inv_rate} is not in {min}..={max}", min = Rate::MIN.0, max = Rate::MAX.0)]
+pub struct InvalidRate {
+    /// The rejected value.
+    pub log_inv_rate: u8,
+}
 // The PCS and the unground F192 bus argument both target `SECURITY_BITS`.
 const _: () = assert!(::pcs::whir::SECURITY_BITS == crate::SECURITY_BITS as usize);
 /// Minimum committed-witness log-size accepted by the WHIR level ladder, with one level of margin.

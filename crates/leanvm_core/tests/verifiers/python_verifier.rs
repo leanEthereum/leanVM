@@ -4,6 +4,7 @@
 
 use fiat_shamir::transcript::RawProof;
 use leanvm_core::cpu::{CpuError, prove, verify, verify_to_raw};
+use leanvm_core::pcs::Rate;
 use primitives::field::F192;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
@@ -122,7 +123,7 @@ impl Drop for PythonStatement {
 #[test]
 fn test_python_verifier() {
     let (program, _) = super::programs::fibonacci();
-    let (proof, output, stats) = prove(&program, &[], 1).expect("the run halts");
+    let (proof, output, stats) = prove(&program, &[], Rate::MIN).expect("the run halts");
     // Python reads the RAW proof: same protocol, each query carrying its own
     // full Merkle path instead of one octopus over the batch. A Rust verify
     // expands the wire form, so the pruning is written once.
@@ -252,8 +253,7 @@ for flags, link, jalr in [(1 << 14, 1, 0), (1 | (1 << 8), 0, 0), (1 << 7, 1, 1)]
 #[test]
 fn the_python_verifier_follows_the_slowest_rate() {
     let (program, _) = super::programs::fibonacci();
-    let rate = leanvm_core::pcs::MAX_LOG_INV_RATE;
-    let (proof, output, _) = prove(&program, &[], rate).expect("the run halts");
+    let (proof, output, _) = prove(&program, &[], Rate::MAX).expect("the run halts");
     let raw = verify_to_raw(&program, &output, &proof).expect("honest proof verifies");
     PythonStatement::new("rate", &program, &output).assert_accepts(&raw);
 }

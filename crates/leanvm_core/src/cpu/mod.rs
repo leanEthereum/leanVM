@@ -101,7 +101,7 @@ fn read_public(vs: &mut VerifierState, prog: &Program) -> Result<(Layout, usize)
             });
         }
     }
-    if ::pcs::whir::validate_log_inv_rate(log_inv_rate).is_err() {
+    if !u8::try_from(log_inv_rate).is_ok_and(|r| pcs::Rate::new(r).is_ok()) {
         return Err(CpuError::Rate { log_inv_rate });
     }
     let l = layout(&prog.rv, taus, F64(ts_final.c0));
@@ -234,7 +234,7 @@ pub enum CpuError {
         max: usize,
     },
     /// The announced rate is one the commitment does not support.
-    #[error("the announced log_inv_rate {log_inv_rate} is not in {min}..={max}", min = ::pcs::whir::MIN_LOG_INV_RATE, max = ::pcs::whir::MAX_LOG_INV_RATE)]
+    #[error("the announced log_inv_rate {log_inv_rate} is not in {min}..={max}", min = pcs::Rate::MIN.log_inv_rate(), max = pcs::Rate::MAX.log_inv_rate())]
     Rate { log_inv_rate: usize },
     /// The announced final clock is zero or not a base-field element.
     #[error("the announced final clock is not a nonzero base-field element")]
@@ -276,9 +276,6 @@ pub enum ProveError {
     /// More advice words than the program's region holds.
     #[error("the advice has {got} words, and the program's region holds {max}")]
     AdviceTooLong { max: usize, got: usize },
-    /// A rate the PCS does not support.
-    #[error("log_inv_rate {log_inv_rate} is not in {min}..={max}", min = ::pcs::whir::MIN_LOG_INV_RATE, max = ::pcs::whir::MAX_LOG_INV_RATE)]
-    InvalidRate { log_inv_rate: usize },
 }
 
 /// One table's summand in the table sumcheck (§constraints): its identities, weighted
@@ -415,18 +412,15 @@ impl Stats {
 /// the verifier needs through the returned [`Proof`] (scalar stream + PCS commitment /
 /// opening hints). Returns the proof, the run's public output (`a0..a3` at the exit)
 /// and its [`Stats`].
-/// `log_inv_rate` selects the PCS rate and is announced in the Fiat-Shamir transcript
+/// `rate` selects the PCS rate and is announced in the Fiat-Shamir transcript
 /// before the commitment.
 ///
 /// # Errors
 ///
-/// The run's trap, a run too long for one proof, more advice than the program's region
-/// holds, or a rate the PCS does not support.
-#[tracing::instrument(name = "Prove", skip_all, fields(log_inv_rate))]
-pub fn prove(program: &Program, advice: &[u64], log_inv_rate: usize) -> Result<(Proof, [u64; 4], Stats), ProveError> {
-    if ::pcs::whir::validate_log_inv_rate(log_inv_rate).is_err() {
-        return Err(ProveError::InvalidRate { log_inv_rate });
-    }
+/// The run's trap, a run too long for one proof, or more advice than the program's
+/// region holds.
+#[tracing::instrument(name = "Prove", skip_all, fields(log_inv_rate = rate.log_inv_rate()))]
+pub fn prove(program: &Program, advice: &[u64], rate: pcs::Rate) -> Result<(Proof, [u64; 4], Stats), ProveError> {
     // One proof is one arena phase: every transient buffer below is bump-allocated
     // and reclaimed wholesale here, rather than faulted in and unmapped again per
     // proof. Bound first so it outlives them; inert unless `init_prover` opted in.
@@ -437,7 +431,7 @@ pub fn prove(program: &Program, advice: &[u64], log_inv_rate: usize) -> Result<(
     if program.stack_log(exec.trace.row_counts()) > pcs::MAX_MU {
         return Err(ProveError::TooLong);
     }
-    let (proof, stats) = prove_execution(program, &exec, log_inv_rate);
+    let (proof, stats) = prove_execution(program, &exec, rate);
     Ok((proof, exec.output, stats))
 }
 
@@ -467,7 +461,8 @@ pub fn measure(program: &Program, advice: &[u64]) -> Result<Stats, ProveError> {
 
 /// [`prove`] from a finished run. Split out so a test can hand it a run no honest
 /// machine produced.
-fn prove_execution(program: &Program, exec: &Execution, log_inv_rate: usize) -> (Proof, Stats) {
+fn prove_execution(program: &Program, exec: &Execution, rate: pcs::Rate) -> (Proof, Stats) {
+    let log_inv_rate = rate.log_inv_rate().into();
     let cycles = exec.cycles;
     let w = crate::stage!("Build witness", || program.build(exec));
     let counts = w.layout.taus.map(|t| 1usize << t);
@@ -825,7 +820,7 @@ mod tests {
             assert_eq!(unmatched.len(), 2, "{unmatched:?}");
             assert!(unmatched.iter().all(|(_, block, _)| *block == 0 || *block == 7));
 
-            let failure = std::panic::catch_unwind(|| prove_execution(&program, &execution, pcs::TEST_LOG_INV_RATE));
+            let failure = std::panic::catch_unwind(|| prove_execution(&program, &execution, pcs::Rate::MIN));
             let failure = failure.expect_err("a non-exit terminal transition was proven");
             let message = failure.downcast_ref::<String>().map(String::as_str).unwrap_or("");
             assert!(message.contains("two products to agree"), "{message}");
@@ -864,7 +859,7 @@ mod tests {
     /// is the register multiset itself: the first write's tuple is pulled twice.
     #[test]
     fn a_stale_read_unbalances_the_bus() {
-        const RATE: usize = pcs::TEST_LOG_INV_RATE;
+        const RATE: pcs::Rate = pcs::Rate::MIN;
         let text = Asm::new()
             .i("addi", T0, ZERO, 5)
             .i("addi", T0, ZERO, 9)

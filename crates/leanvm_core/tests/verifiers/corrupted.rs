@@ -4,6 +4,7 @@
 //! [`CpuError`], not in an index out of bounds.
 
 use leanvm_core::cpu::{Proof, prove, verify};
+use leanvm_core::pcs::Rate;
 
 struct Rng(u64);
 
@@ -56,7 +57,7 @@ fn corrupt(proof: &Proof, round: usize, rng: &mut Rng) -> Proof {
 #[test]
 fn a_corrupted_proof_is_rejected_and_never_panics() {
     let (program, expected) = super::programs::fibonacci();
-    let (proof, output, _) = prove(&program, &[], 1).expect("the run halts");
+    let (proof, output, _) = prove(&program, &[], Rate::MIN).expect("the run halts");
     assert_eq!(output, expected);
     verify(&program, &output, &proof).expect("the honest proof verifies");
     assert!(

@@ -2,6 +2,7 @@
 
 use super::python_verifier::PythonStatement;
 use leanvm_core::cpu::{Program, ProveError, prove, verify, verify_to_raw};
+use leanvm_core::pcs::Rate;
 use leanvm_core::rv::asm::*;
 use leanvm_core::rv::{ADVICE_BASE, RAM_BASE, TEXT_BASE};
 
@@ -38,7 +39,7 @@ fn proves_and_verifies(tag: &str, program: &Program, expected: [u64; 4]) {
 }
 
 fn proves_and_verifies_with(tag: &str, program: &Program, advice: &[u64], expected: [u64; 4]) {
-    let (proof, output, _) = prove(program, advice, 1).expect("the run halts");
+    let (proof, output, _) = prove(program, advice, Rate::MIN).expect("the run halts");
     assert_eq!(output, expected);
     let raw = verify_to_raw(program, &output, &proof).expect("honest proof verifies");
     PythonStatement::new(tag, program, &output).assert_accepts(&raw);
@@ -286,7 +287,7 @@ fn blake2s_precompile_proves_and_verifies() {
     let text = Asm::new().li(S0, BLOCK + 4).blake2s(S0, ZERO, true).exit().finish();
     let program = Program::new(&text, TEXT_BASE, vec![], 7, 0).expect("valid instruction program");
     assert_eq!(
-        prove(&program, &[], 1).err(),
+        prove(&program, &[], Rate::MIN).err(),
         Some(ProveError::Trap(leanvm_core::rv::Trap::Misaligned {
             pc: TEXT_BASE + 8,
             address: BLOCK + 4
@@ -330,7 +331,7 @@ fn advice_proves_and_verifies() {
         .finish();
     let program = Program::new(&text, TEXT_BASE, vec![], 2, LOG_ADVICE).expect("valid instruction program");
     assert!(matches!(
-        prove(&program, &[], 1).err(),
+        prove(&program, &[], Rate::MIN).err(),
         Some(ProveError::Trap(leanvm_core::rv::Trap::Unmapped { .. }))
     ));
 }
@@ -341,7 +342,7 @@ fn a_trap_is_reported() {
     let text = Asm::new().word(0x0010_0073).exit().finish();
     let program = Program::new(&text, TEXT_BASE, vec![], 2, 0).expect("valid instruction program");
     assert_eq!(
-        prove(&program, &[], 1).err(),
+        prove(&program, &[], Rate::MIN).err(),
         Some(ProveError::Trap(leanvm_core::rv::Trap::Illegal { pc: TEXT_BASE }))
     );
 }

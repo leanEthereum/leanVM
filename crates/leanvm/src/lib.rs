@@ -17,43 +17,9 @@ use leanvm_core::cpu::{self, CpuError, ProveError};
 
 pub use leanvm_core::{
     cpu::{Program, Stats},
+    pcs::{InvalidRate, Rate},
     rv::{ADVICE_BASE, ElfError, ProgramError, RAM_BASE, TEXT_BASE, Trap, asm},
 };
-
-/// The commitment's rate, as the base-two logarithm of its inverse.
-///
-/// A larger value, a lower rate, makes a smaller proof and a slower prover.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub struct Rate(u8);
-
-impl Rate {
-    /// The fastest prover, and the largest proof.
-    pub const MIN: Self = Self(leanvm_core::pcs::MIN_LOG_INV_RATE as u8);
-
-    /// The smallest proof, and the slowest prover.
-    pub const MAX: Self = Self(leanvm_core::pcs::MAX_LOG_INV_RATE as u8);
-
-    /// The rate `2^-log_inv_rate`.
-    ///
-    /// # Errors
-    ///
-    /// A rate the commitment does not support.
-    pub fn new(log_inv_rate: u8) -> Result<Self, Error> {
-        if (Self::MIN.0..=Self::MAX.0).contains(&log_inv_rate) {
-            Ok(Self(log_inv_rate))
-        } else {
-            Err(Error::InvalidRate {
-                log_inv_rate: log_inv_rate.into(),
-            })
-        }
-    }
-
-    /// The base-two logarithm of the inverse rate.
-    #[must_use]
-    pub fn log_inv_rate(self) -> u8 {
-        self.0
-    }
-}
 
 /// The process's proving setup: the worker pool and, unless declined, the proving arena.
 ///
@@ -83,7 +49,7 @@ impl Prover {
     ///
     /// The run's trap, a run longer than one proof holds, or more advice than the program's region holds.
     pub fn prove(&self, program: &Program, advice: &[u64], rate: Rate) -> Result<Proved, Error> {
-        let (proof, output, stats) = cpu::prove(program, advice, rate.0.into())?;
+        let (proof, output, stats) = cpu::prove(program, advice, rate)?;
         Ok(Proved {
             proof: Proof(proof),
             output,
@@ -195,8 +161,8 @@ pub enum Error {
     #[error("the advice has {got} words, and the program's region holds {max}")]
     AdviceTooLong { max: usize, got: usize },
     /// A rate the commitment does not support.
-    #[error("log_inv_rate {log_inv_rate} is not in {min}..={max}", min = Rate::MIN.0, max = Rate::MAX.0)]
-    InvalidRate { log_inv_rate: usize },
+    #[error(transparent)]
+    InvalidRate(#[from] InvalidRate),
     /// Bytes that are no proof.
     #[error("the bytes are no proof")]
     MalformedProof,
@@ -217,7 +183,6 @@ impl From<ProveError> for Error {
             ProveError::Trap(trap) => Self::Trap(trap),
             ProveError::TooLong => Self::TooLong,
             ProveError::AdviceTooLong { max, got } => Self::AdviceTooLong { max, got },
-            ProveError::InvalidRate { log_inv_rate } => Self::InvalidRate { log_inv_rate },
         }
     }
 }

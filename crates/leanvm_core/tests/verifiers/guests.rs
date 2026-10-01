@@ -5,6 +5,7 @@
 
 use super::python_verifier::PythonStatement;
 use leanvm_core::cpu::{Program, measure, prove, verify, verify_to_raw};
+use leanvm_core::pcs::Rate;
 use leanvm_core::rv::{self, ElfError, Guest, Machine};
 
 /// The output of a guest committing `values` in order.
@@ -21,7 +22,7 @@ fn proves_and_verifies(tag: &str, elf: &[u8], advice: &[u64], expected: [u64; 4]
     let ran = Machine::new(program.rv(), advice).run().expect("the run halts");
     assert_eq!(ran, expected, "{tag}: the interpreter");
 
-    let (proof, output, stats) = prove(&program, advice, 1).expect("the run halts");
+    let (proof, output, stats) = prove(&program, advice, Rate::MIN).expect("the run halts");
     assert_eq!(output, expected);
     // Measuring a run reports what proving it does, without the proof.
     assert_eq!(measure(&program, advice), Ok(stats.clone()), "{tag}: measure");
