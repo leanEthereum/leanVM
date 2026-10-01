@@ -362,7 +362,6 @@ name = "pcs"
 version = "0.1.0"
 dependencies = [
  "bench",
- "bincode",
  "fiat_shamir",
  "parallel",
  "primitives",
@@ -391,7 +390,6 @@ name = "primitives"
 version = "0.1.0"
 dependencies = [
  "bench",
- "bincode",
  "parallel",
  "primitives",
  "rand",

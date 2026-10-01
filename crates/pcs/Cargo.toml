@@ -20,7 +20,6 @@ thiserror.workspace = true
 [dev-dependencies]
 primitives = { workspace = true, features = ["test-util"] }
 bench.workspace = true
-bincode.workspace = true
 
 [[bench]]
 name = "throughput"

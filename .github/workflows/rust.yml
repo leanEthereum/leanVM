@@ -107,3 +107,18 @@ jobs:
       - uses: EmbarkStudios/cargo-deny-action@v2
         with:
           command: check advisories bans licenses
+
+  machete:
+    name: Unused dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-machete@0.9.2
+      # No build: machete reads the manifests and greps the sources.
+      #
+      # `--with-metadata` resolves each package through `cargo metadata`, which is what makes it read dev-dependencies.
+      # The guests are scanned too, under their own nightly toolchain, which rustup installs on first use.
+      - name: Check for unused dependencies
+        run: cargo machete --with-metadata

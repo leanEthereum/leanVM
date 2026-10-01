@@ -23,7 +23,6 @@ test-util = ["dep:rand"]
 [dev-dependencies]
 primitives = { path = ".", features = ["test-util"] }
 bench.workspace = true
-bincode.workspace = true
 
 [[bench]]
 name = "hash_throughput"

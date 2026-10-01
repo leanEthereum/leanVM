@@ -61,6 +61,7 @@ It needs `rustup target add x86_64-unknown-linux-gnu` and nothing else, since `c
 cargo testall                     # release workspace tests
 cargo clippyall                   # clippy, -D warnings
 cargo docall                      # rustdoc, -D warnings
+cargo machete --with-metadata     # unused dependencies, dev ones and the guests included
 cargo fmt --all                   # max_width = 120
 ruff format --line-length 150 python-verifier/verifier.py   # and `ruff check` it
 ```
