@@ -12,8 +12,8 @@ use serde::{Deserialize, Serialize};
 use crate::*;
 
 /// `(pkRoot, pkSeed)`. Ordered lexicographically on [`Self::flatten`], which is
-/// what an aggregate's signer list is sorted and deduplicated by. The on-chain
-/// form is two `bytes32`, each value top-aligned (`v ‖ 0^16`).
+/// how an aggregate sorts the claims on one message. The on-chain form is two
+/// `bytes32`, each value top-aligned (`v ‖ 0^16`).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct SphincsPublicKey {
     pub root: Digest,

@@ -24,9 +24,8 @@ fn main() {
         })
         .collect();
 
-    // What the proof will claim: each (public key, message) pair, sorted.
-    let mut claims: Vec<SphincsClaim> = signatures.iter().map(|(pk, message, _)| (*pk, *message)).collect();
-    claims.sort();
+    // What the block's transactions declare: each (message, public key) pair.
+    let claims: Vec<SphincsClaim> = signatures.iter().map(|(pk, message, _)| (*message, *pk)).collect();
 
     let time = std::time::Instant::now();
     let proof = aggregate(&[], vec![], signatures, &[], None, LOG_INV_RATE).unwrap_or_else(|e| {
@@ -40,15 +39,14 @@ fn main() {
         n_signers as f64 / aggregation_time.as_secs_f64()
     );
 
-    let bytes = proof.to_bytes();
-    let received = EthereumProof::from_bytes(&bytes).unwrap();
+    // The block header's `recursive_stark = [stark_proof, block_deps_hash]` (even though it's not recursive in this example)
+    let bytes = proof.to_bytes_without_pubkeys();
+    let block_deps_hash = sphincs_deps_hash(&claims);
 
+    // A client recomputes `block_deps_hash` from the block's transactions and checks the proof against it alone.
     let time = std::time::Instant::now();
-    received.verify().unwrap(); // verify the snark is valid
+    verify_sphincs_deps(&block_deps_hash, &bytes).unwrap();
     println!("Verification took: {:?}", time.elapsed());
-
-    // sanity check:
-    assert_eq!(received.sphincs_signers(), claims);
 
     let kib = |bytes: usize| bytes as f64 / 1024.0;
     println!(
