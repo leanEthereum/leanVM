@@ -595,7 +595,7 @@ def framework_tuples(layout: Layout, lows: dict[str, MultilinearPoint]) -> dict[
         return (separator, index, E(SEED_CLOCK), initial), (separator, index, Column(SHARED[final_ts]), Column(SHARED[final]))
 
     halt_pc = E(TEXT_BASE + 4 * (2**layout.log_bytecode - 1))  # the run ends on the text's last slot, which is never executed
-    return {
+    tuples: dict[str, FrameworkBlock] = {
         # cycle 1, then the halt slot at the announced clock with its exit marker
         "state": ((SEP_STATE, E(layout.entry_pc), E(CLOCK_START), ZERO), (SEP_STATE, halt_pc, layout.final_clock, layout.final_clock)),
         # the registers start at zero, RAM as the statement has it, the advice as the prover has it
@@ -603,11 +603,18 @@ def framework_tuples(layout: Layout, lows: dict[str, MultilinearPoint]) -> dict[
         "ram": array(SEP_MEM, int_index_mle(RAM_BASE, 3, lows["ram"]), sparse_mle(layout.ram, lows["ram"]), "ram_final_ts", "ram_final"),
         "advice": array(SEP_MEM, int_index_mle(ADVICE_BASE, 3, lows["advice"]), Column(SHARED["advice_initial"]), "advice_final_ts", "advice_final"),
     }
+    # Strictly increasing links connect the public prefix to the announced endpoint.
+    if layout.sparse_tau is not None:
+        start = RAM_BASE + 8 * (2**layout.image_log - 1)
+        tuples["sparse_order"] = ((SEP_ORDER, E(start), ZERO), (SEP_ORDER, E(layout.sparse_end), ZERO))
+    return tuples
 
 
 def verify_bus_balance(layout: Layout, transcript: Transcript) -> BusResult:
     log_rows = layout.framework_log_rows
-    framework_log_rows = tuple(log_rows[block] for block in FRAMEWORK)
+    # The address chain adds one public boundary when RAM uses touched cells.
+    framework = (*FRAMEWORK, "sparse_order") if layout.sparse_tau is not None else FRAMEWORK
+    framework_log_rows = tuple(log_rows[block] for block in framework)
     push_layout = bus_layout(framework_log_rows, layout.push, layout.producers)
     pull_layout = bus_layout(framework_log_rows, layout.pull, ())
     # Both trees run over the taller one's depth: the producers' bits push with no pull of their own.
@@ -618,7 +625,7 @@ def verify_bus_balance(layout: Layout, transcript: Transcript) -> BusResult:
     beta = transcript.sample()
     point, tree_values = verify_gkr_grand_products(depth, transcript)
 
-    lows = {block: tuple(point[: log_rows[block]]) for block in FRAMEWORK}
+    lows = {block: tuple(point[: log_rows[block]]) for block in framework}
     tuples = framework_tuples(layout, lows)
     claims: list[ColumnClaim] = []
     opened: dict[int, E] = {}
@@ -636,10 +643,10 @@ def verify_bus_balance(layout: Layout, transcript: Transcript) -> BusResult:
             values.append(coordinate)
         return dot(weights[: len(values)], values)
 
-    start = [fingerprint(block, tuples[block][0]) for block in FRAMEWORK]
-    end = [fingerprint(block, tuples[block][1]) for block in FRAMEWORK]
+    start = [fingerprint(block, tuples[block][0]) for block in framework]
+    end = [fingerprint(block, tuples[block][1]) for block in framework]
     totals = []  # what remains to be proven by the next table sumcheck
-    forms = tuple(tuple(Form() for _ in range(2)) for _ in TABLES)
+    forms = tuple(tuple(Form() for _ in range(2)) for _ in layout.table_log_heights)
     # A producer's bit block weighs on its own sumcheck, at its selector.
     producers = tuple(tuple(p.eq_above(point) for p in bits) for bits in push_layout.producers)
     for side, (blocks, side_layout, framework_fingerprints) in enumerate(((layout.push, push_layout, start), (layout.pull, pull_layout, end))):
@@ -696,13 +703,16 @@ def table_sumcheck(
 
     final = ZERO
     claims: list[ColumnClaim] = []
-    for table, height, forms, weight in zip(TABLES, table_log_heights, bus_forms, weights[: len(TABLES)], strict=True):
-        evaluations = tuple(transcript.next_scalars(table.width))
+    # The touched-cell ports follow all instruction columns in the sparse layout.
+    widths = (*TABLE_WIDTHS, SPARSE_WIDTH) if len(table_log_heights) > len(TABLES) else TABLE_WIDTHS
+    bases = (*GLOBAL_COLUMN_BASES, SPARSE_COLUMN_BASE) if len(table_log_heights) > len(TABLES) else GLOBAL_COLUMN_BASES
+    for width, base, height, forms, weight in zip(widths, bases, table_log_heights, bus_forms, weights[: len(widths)], strict=True):
+        evaluations = tuple(transcript.next_scalars(width))
         final += weight * dot(form_powers, [form.evaluate(evaluations.__getitem__) for form in forms])
         table_point = tuple(point[:height])
-        claims.extend(ColumnClaim(GLOBAL_COLUMN_BASES[table.opcode] + local, table_point, value) for local, value in enumerate(evaluations))
+        claims.extend(ColumnClaim(base + local, table_point, value) for local, value in enumerate(evaluations))
     families = []
-    for producer, weight in zip(producers, weights[len(TABLES) :], strict=True):
+    for producer, weight in zip(producers, weights[len(widths) :], strict=True):
         bits = tuple(transcript.next_scalars(len(producer.coefficients)))
         producer_point = tuple(point[: producer.log_rows])
         public = producer.public(producer_point)
@@ -772,10 +782,18 @@ class Layout:
     stack_log: int
     table_log_heights: tuple[int, ...]
     final_clock: E  # the timestamp the run ended on, announced by the prover
+    sparse_tau: int | None  # the touched-cell height, absent for dense RAM
+    sparse_end: int  # the last address in the strictly increasing chain
+    image_log: int  # the dense public prefix's power-of-two height
 
     @property
     def framework_log_rows(self) -> dict[str, int]:
-        return framework_log_rows(self.log_bytecode, self.log_ram, self.log_advice)
+        # The public image stays dense while the zero tail uses touched cells.
+        rows = framework_log_rows(self.log_bytecode, self.log_ram, self.log_advice)
+        if self.sparse_tau is not None:
+            rows["ram"] = self.image_log
+            rows["sparse_order"] = 0
+        return rows
 
 
 def framework_log_rows(log_bytecode: int, log_ram: int, log_advice: int) -> dict[str, int]:
@@ -814,6 +832,7 @@ SEP_STATE = ONE
 SEP_MEM = GEN
 SEP_BYTECODE = GEN**2
 SEP_REG = GEN**3
+SEP_ORDER = GEN**4
 
 # The registers and RAM are read-write, ordered by a clock. A timestamp is the integer 2^40 | cycle << 5 | slot: bit 40,
 # the live bit, is set on every tuple of the run and on the seeds, and clear on a padding row's, whose clock is zero.
@@ -1770,6 +1789,45 @@ FLOCKS = tuple((table, *table.circuits[part]) for part in range(2) for table in 
 WITNESS_COLUMNS = tuple(NUM_FRAMEWORK_COLUMNS + index for index in range(len(FLOCKS)))
 GLOBAL_COLUMN_BASES = tuple(NUM_FRAMEWORK_COLUMNS + len(FLOCKS) + sum(TABLE_WIDTHS[:table]) for table in range(len(TABLES)))
 
+# One packed circuit holds the six touched-cell ports.
+SPARSE_WIDTH = 6
+SPARSE_K_LOG = 10
+SPARSE_STRIDE_LOG = SPARSE_K_LOG - LOG_PACKING
+SPARSE_MIN_TAU = FLOCK_MIN_LOG_SIZE - SPARSE_K_LOG
+SPARSE_WITNESS_COLUMN = NUM_FRAMEWORK_COLUMNS + len(FLOCKS) + sum(TABLE_WIDTHS)
+SPARSE_COLUMN_BASE = SPARSE_WITNESS_COLUMN + 1
+
+
+def _sparse_boundary(log_ram: int) -> FlockCircuit:
+    """A live cell is word aligned, inside RAM and strictly after its predecessor, and a padding row is zero. Every
+    address is above the image, since the chain of predecessors descends to the public start, and a row is live when its
+    final timestamp has the live bit."""
+    # Ports: predecessor, address, final timestamp, final word, then the seed clock and the failure bit.
+    c = _GateList((31, 31, LIVE_BIT + 1, 64), (LIVE_BIT + 1, 1))
+    previous, address, timestamp, value = c.inputs
+    live = timestamp[LIVE_BIT]
+    bad: Wire = None
+
+    # A live address has RAM's base above the region and zero alignment bits; a padding one is zero.
+    for bit in (*range(3), *range(log_ram + 3, 31)):
+        bad = c.either(bad, c.xor(address[bit], live if RAM_BASE >> bit & 1 else None))
+
+    # Strict increase rules out a duplicate address and a cycle on the order channel: a carry out of address + !previous.
+    carry: Wire = None
+    for previous_bit, address_bit in zip(previous, address, strict=True):
+        carry = c.xor(c.product(c.xor(address_bit, carry), c.xor(c.invert(previous_bit), carry)), carry)
+    bad = c.either(bad, c.product(live, c.invert(carry)))
+
+    # A padding row is zero, so its tuples cancel on both channels and seed nothing.
+    nonzero: Wire = None
+    for wire in (*previous, *address[3 : log_ram + 3], *timestamp[:LIVE_BIT], *value):
+        nonzero = c.either(nonzero, wire)
+    bad = c.either(bad, c.product(c.invert(live), nonzero))
+    c.output(0, LIVE_BIT, live)
+    c.output(1, 0, bad)
+    require(c.log_size == SPARSE_K_LOG, "sparse boundary circuit size mismatch")
+    return c.circuit()
+
 
 def check_bytecode(bytecode: Sequence[K]) -> None:
     """The proof system is sound for any decoded table, so what makes one RISC-V is checked here: an entry some table
@@ -1827,6 +1885,8 @@ def build_layout(
     ram: Sequence[tuple[int, Sequence[int]]],
     table_log_heights: Sequence[int],
     final_clock: E,
+    sparse_tau: int | None = None,
+    sparse_end: int = 0,
 ) -> Layout:
     log_bytecode = log2_strict(len(bytecode)) - BUS_BITS
     require(
@@ -1840,8 +1900,26 @@ def build_layout(
     )
     require(0 <= log_advice <= MAX_LOG_ADVICE, "the advice exceeds its region")
 
+    # A power-of-two public prefix separates image cells from the zero-filled tail.
+    image_words = max((offset + len(words) for offset, words in ram), default=0)
+    image_log = log2_ceil(max(1, image_words))
+    start = RAM_BASE + 8 * (2**image_log - 1)
+    if sparse_tau is not None:
+        require(SPARSE_MIN_TAU <= sparse_tau <= log_ram, "invalid sparse boundary height")
+        require(start <= sparse_end < RAM_BASE + 8 * 2**log_ram and sparse_end % 8 == 0, "invalid sparse boundary endpoint")
+    else:
+        require(sparse_end == 0, "dense RAM has a sparse endpoint")
+
     push: list[BusBlock] = []
     pull: list[BusBlock] = []
+    if sparse_tau is not None:
+        # Sparse rows seed zero RAM and finalize its last value and timestamp.
+        push.append(BusBlock(sparse_tau, (_const(SEP_MEM), _col(1), _col(4), _const(ZERO)), len(TABLES)))
+        pull.append(BusBlock(sparse_tau, (_const(SEP_MEM), _col(1), _col(2), _col(3)), len(TABLES)))
+
+        # The ordering channel also pins the circuit's failure bit to zero.
+        push.append(BusBlock(sparse_tau, (_const(SEP_ORDER), _col(1), _col(5)), len(TABLES)))
+        pull.append(BusBlock(sparse_tau, (_const(SEP_ORDER), _col(0), _const(ZERO)), len(TABLES)))
     for table, height in zip(TABLES, table_log_heights, strict=True):
         flushes = table.flushes
         for coordinates in flushes.push:
@@ -1851,6 +1929,8 @@ def build_layout(
     # The lookup array's table side, pushing an entry as often as it is read. The bus reads enough of a multiplicity's
     # bits for every read these tables can make: each row reads the bytecode once.
     log_rows = framework_log_rows(log_bytecode, log_ram, log_advice)
+    if sparse_tau is not None:
+        log_rows["ram"] = image_log
     reads = {"bytecode": sum(2**height for height in table_log_heights)}
     producers = tuple(Producer(log_rows[lookup], SHARED[f"{lookup}_mult"], reads[lookup].bit_length()) for lookup in LOOKUPS)
 
@@ -1859,6 +1939,9 @@ def build_layout(
     kappas = [*(log_rows[block] for _, block in SHARED_COLUMNS), *witness_kappas]
     for table in TABLES:
         kappas += [table_log_heights[table.opcode]] * table.width
+    if sparse_tau is not None:
+        # The packed circuit is followed by its six virtual port columns.
+        kappas += [sparse_tau + SPARSE_STRIDE_LOG, *[sparse_tau] * SPARSE_WIDTH]
 
     # A circuit word gets no block of its own: it is committed inside its circuit's flock witness, whose ports
     # interleave, so it sits at that witness's offset behind its own port's bits. Same width either way.
@@ -1868,6 +1951,8 @@ def build_layout(
         for port, name in enumerate(ports)
         if name
     }
+    if sparse_tau is not None:
+        words.update({SPARSE_COLUMN_BASE + port: (len(FLOCKS), port, SPARSE_STRIDE_LOG) for port in range(SPARSE_WIDTH)})
     blocks = {column: kappa for column, kappa in enumerate(kappas) if column not in words}
     block_offsets, total_log = stack_offsets(list(blocks.values()))
     offsets = dict(zip(blocks, block_offsets))
@@ -1877,7 +1962,8 @@ def build_layout(
         if column not in words:
             return Placement(kappa, offsets[column])
         witness, port, bits = words[column]
-        return Placement(kappa, offsets[WITNESS_COLUMNS[witness]] + port, bits)
+        packed_column = WITNESS_COLUMNS[witness] if witness < len(FLOCKS) else SPARSE_WITNESS_COLUMN
+        return Placement(kappa, offsets[packed_column] + port, bits)
 
     placements = [placement(column, kappa) for column, kappa in enumerate(kappas)]
     return Layout(
@@ -1892,8 +1978,11 @@ def build_layout(
         producers,
         tuple(placements),
         stack_log,
-        tuple(table_log_heights),
+        (*table_log_heights, sparse_tau) if sparse_tau is not None else tuple(table_log_heights),
         final_clock,
+        sparse_tau,
+        sparse_end,
+        image_log,
     )
 
 
@@ -2002,20 +2091,23 @@ def verify_execution(
     check_bytecode(bytecode)
     # Everything public and fixed is one digest, which seeds the transcript; every variable-length part is length-framed.
     halt_pc = TEXT_BASE + 4 * (len(bytecode) // 2**BUS_BITS - 1)
-    preimage = b"leanvm-rv64im-5" + pack("<Q", len(bytecode)) + b"".join(word.to_bytes() for word in bytecode)
+    preimage = b"leanvm-rv64im-6" + pack("<Q", len(bytecode)) + b"".join(word.to_bytes() for word in bytecode)
     preimage += pack("<5Q", entry_pc, halt_pc, log_ram, log_advice, len(image)) + pack(f"<{len(image)}Q", *image)
     transcript = Transcript(proof, blake2s_hash(preimage), [K(word) for word in output])
 
     # 1] table log-sizes, log-inv-rate in WHIR, and the clock the run ended on (a K element)
-    announced = transcript.next_scalars(2 + len(TABLES))
+    announced = transcript.next_scalars(4 + len(TABLES))
     require(all(value.c1 == value.c2 == 0 for value in announced), "announced value has a nonzero high limb")
-    final_clock = int(announced[-1].c0)
+    final_clock = int(announced[len(TABLES) + 1].c0)
     require(final_clock >> LIVE_BIT == 1 and final_clock % CYCLE == 0, "the final clock is not a live clock")
     table_logs = tuple(int(value.c0) for value in announced[: len(TABLES)])
-    log_inverse_rate = int(announced[-2].c0)
+    log_inverse_rate = int(announced[len(TABLES)].c0)
     require(1 <= log_inverse_rate <= 4, "invalid PCS inverse rate")
     ram = ((0, image),)
-    layout = build_layout(bytecode, entry_pc, log_ram, log_advice, ram, table_logs, announced[-1])
+    sparse_size = int(announced[-2].c0)
+    sparse_tau = sparse_size - 1 if sparse_size else None
+    sparse_end = int(announced[-1].c0)
+    layout = build_layout(bytecode, entry_pc, log_ram, log_advice, ram, table_logs, announced[len(TABLES) + 1], sparse_tau, sparse_end)
     require(MIN_STACKED_LOG <= layout.stack_log <= MAX_STACKED_LOG, "committed size outside the PCS window")
 
     # 2] parse WHIR commitment: one Merkle root (No OOD, our PCS is only List-binding).
@@ -2047,6 +2139,9 @@ def verify_execution(
 
     # 6] each circuit via Flock, every table's class circuit then every table's clock circuit, each over its own packed witness
     families = [verify_flock(circuit, layout.table_log_heights[table.opcode], transcript) for table, circuit, _ in FLOCKS]
+    if sparse_tau is not None:
+        # One extra validity reduction binds every touched-cell port to its circuit.
+        families.append(verify_flock(_sparse_boundary(log_ram), sparse_tau, transcript))
     # and the producer's bits, the 64 bit slices of its multiplicity column: the bits the bus reads, then zeros
     families += [(point, (*values, *[ZERO] * (K_BITS - len(values)))) for point, values in bits]
 
@@ -2056,7 +2151,8 @@ def verify_execution(
     def on_region(placement: Placement, target: E, weight: Callable[[Sequence[E]], E]) -> StackClaim:
         return (lambda x: placement.eq_above(x) * weight(x[: placement.variables]), target)
 
-    regions = [layout.placements[column] for column in (*WITNESS_COLUMNS, *(producer.column for producer in layout.producers))]
+    witnesses = (*WITNESS_COLUMNS, SPARSE_WITNESS_COLUMN) if sparse_tau is not None else WITNESS_COLUMNS
+    regions = [layout.placements[column] for column in (*witnesses, *(producer.column for producer in layout.producers))]
     ringswitches = [on_region(region, *claim) for region, claim in zip(regions, ring_switch(families, transcript), strict=True)]
     verify_stacked_opening(transcript, root, layout.stack_log, log_inverse_rate, [*ringswitches, *(c.on_stack(layout) for c in claims)])
     transcript.finish()

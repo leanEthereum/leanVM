@@ -20,6 +20,7 @@ use primitives::field::{F64, F192};
 mod execute;
 pub mod filler;
 pub mod layout;
+mod sparse;
 mod trace;
 pub use execute::Execution;
 pub use layout::*;
@@ -47,13 +48,21 @@ pub fn fs_seed(program: &Program) -> [F64; 4] {
 /// Log heights, not row counts: every table's rows are real rows, the fill blocks
 /// having run each count up to a power of two (`filler`), so a height is all there is
 /// to say.
-fn announce_public(ps: &mut ProverState, taus: [usize; tables::N_TABLES], log_inv_rate: usize, ts_final: u64) {
+fn announce_public(
+    ps: &mut ProverState,
+    taus: [usize; tables::N_TABLES],
+    log_inv_rate: usize,
+    ts_final: u64,
+    sparse: Option<sparse::Boundary>,
+) {
     for t in taus {
         ps.add_scalar(F192::new(t as u64, 0, 0));
     }
     ps.add_scalar(F192::new(log_inv_rate as u64, 0, 0));
     // The clock the run ended on: the final state's timestamp (§sec:state).
     ps.add_scalar(F192::new(ts_final, 0, 0));
+    ps.add_scalar(F192::new(sparse.map_or(0, |s| s.tau + 1) as u64, 0, 0));
+    ps.add_scalar(F192::new(sparse.map_or(0, |s| s.end), 0, 0));
 }
 
 /// Verifier side of [`announce_public`]: read the announced sizes and PCS rate from
@@ -101,7 +110,20 @@ fn read_public(vs: &mut VerifierState, prog: &Program) -> Result<(Layout, usize)
     if !u8::try_from(log_inv_rate).is_ok_and(|r| pcs::Rate::new(r).is_ok()) {
         return Err(CpuError::Rate { log_inv_rate });
     }
-    let l = layout(&prog.rv, taus, ts_final.c0);
+    // Zero announces dense RAM, and `tau + 1` a sparse boundary of 2^tau rows ending at `end`.
+    let (height, end) = (read_size(vs)?, read_size(vs)? as u64);
+    let sparse = match height.checked_sub(1) {
+        None if end == 0 => None,
+        Some(tau)
+            if (sparse::MIN_TAU..=prog.rv.log_ram()).contains(&tau)
+                && (sparse::start(&prog.rv)..rv::RAM_BASE + (8 << prog.rv.log_ram())).contains(&end)
+                && end.is_multiple_of(8) =>
+        {
+            Some(sparse::Boundary { tau, end })
+        }
+        _ => return Err(CpuError::SparseBoundary { height, end }),
+    };
+    let l = layout(&prog.rv, taus, ts_final.c0, sparse);
     // The caps bound each announced log on its own; what the PCS is configured for
     // is the stacked size they imply, which they do not bound.
     if !(pcs::MIN_MU..=pcs::MAX_MU).contains(&l.shape.mu) {
@@ -192,7 +214,7 @@ impl Program {
             unsafe { core::slice::from_raw_parts(table.as_ptr().cast::<u8>(), core::mem::size_of_val(&table[..])) };
         // Every variable-length part is length-framed, so the preimage parses one way.
         let mut h = primitives::hash::Hasher::new();
-        h.update(b"leanvm-rv64im-5");
+        h.update(b"leanvm-rv64im-6");
         h.update(&bytes(&[table.len() as u64]));
         h.update(table_bytes);
         h.update(&bytes(&[
@@ -222,6 +244,9 @@ pub enum CpuError {
     /// An announced size is not a canonical integer.
     #[error("an announced size is not a canonical integer")]
     NonCanonicalSize,
+    /// The sparse RAM boundary's announced height or last address does not fit the declared RAM.
+    #[error("the sparse RAM boundary announces height {height} and last address {end:#x}, outside the declared RAM")]
+    SparseBoundary { height: usize, end: u64 },
     /// A table's announced height is outside what the arithmetization expresses.
     #[error("the {table} table announces 2^{log_rows} rows, outside 2^{min}..=2^{max}")]
     TableHeight {
@@ -380,14 +405,22 @@ fn airs(
                 beta: producers.beta,
             }),
         });
-    tables.chain(producers).collect()
+    let sparse = l.sparse.map(|boundary| constraints::Air {
+        tau: boundary.tau,
+        n_cols: sparse::WIDTH,
+        n_public: 0,
+        summand: Summand::Table(TableSummand {
+            bus: leaf::BusForm::sum((0..2).map(|s| forms[s][tables::N_TABLES].scaled(form_pows[s]))),
+        }),
+    });
+    tables.chain(sparse).chain(producers).collect()
 }
 
 /// Each table's claimed sum: what its summand comes to is its two bus forms,
 /// `η`-weighted. Prover-side only, to build the waiting
 /// line each round; the verifier needs just their total, which it derives.
 fn sigmas(bus: &[Vec<F192>; 2], form_pows: [F192; 2]) -> Vec<F192> {
-    (0..tables::tables().len())
+    (0..bus[0].len())
         .map(|t| (0..2).fold(F192::ZERO, |acc, s| acc + form_pows[s] * bus[s][t]))
         .collect()
 }
@@ -473,7 +506,7 @@ pub fn prove(program: &Program, advice: &[u64], rate: pcs::Rate) -> Result<(Proo
     // so it survives the next phase.
     let _phase = zk_alloc::enter_phase();
     let exec = crate::stage!("Execute program", || program.execute(advice))?;
-    if program.stack_log(exec.trace.row_counts()) > pcs::MAX_MU {
+    if program.run_layout(&exec).shape.mu > pcs::MAX_MU {
         return Err(ProveError::TooLong);
     }
     let (proof, stats) = prove_execution(program, &exec, rate);
@@ -492,8 +525,9 @@ pub fn prove(program: &Program, advice: &[u64], rate: pcs::Rate) -> Result<(Proo
 pub fn measure(program: &Program, advice: &[u64]) -> Result<Stats, ProveError> {
     let exec = program.execute(advice)?;
     let counts = exec.trace.row_counts();
-    let (log_words, committed) = program.stack_sizes(counts);
-    if log_words > pcs::MAX_MU {
+    let l = program.run_layout(&exec);
+    let committed = committed_size(&l.placements);
+    if l.shape.mu > pcs::MAX_MU {
         return Err(ProveError::TooLong);
     }
     Ok(Stats {
@@ -525,7 +559,7 @@ fn prove_witness(program: &Program, w: Witness, output: &[u64; 4], rate: pcs::Ra
     let mut ps = ProverState::new(fs_seed(program), output.map(F64));
 
     // Announce the prover's sizes, then commit, before sampling any challenge.
-    announce_public(&mut ps, w.layout.taus, log_inv_rate, w.ts_final);
+    announce_public(&mut ps, w.layout.taus, log_inv_rate, w.ts_final, w.layout.sparse);
     let committed = crate::stage!("Commit", || {
         pcs::commit(&mut ps, &w.q, w.layout.shape, log_inv_rate)
     });
@@ -535,7 +569,7 @@ fn prove_witness(program: &Program, w: Witness, output: &[u64; 4], rate: pcs::Ra
     // over this commitment (below). A circuit's words bind through the register and
     // bytecode buses: their virtual columns route to that witness, so no separate pin
     // claims are needed. Mirrored in `verify`.
-    let spans = &schema().spans;
+    let spans = &w.layout.spans;
     // The columns are windows into `w.q`, so both stages read them in place: the
     // table sumcheck lifts each K-column into a fresh `E` copy on the round it
     // joins and never writes the K-columns back.
@@ -598,7 +632,16 @@ fn prove_witness(program: &Program, w: Witness, output: &[u64; 4], rate: pcs::Ra
             .collect()
     });
     drop(reductions);
-    for (p, claims) in l.producers.iter().zip(&table_claims[tables::N_TABLES..]) {
+    if let Some(prepared) = w.sparse_reduction {
+        let window = l.placements[schema().n].window().expect("sparse witness is committed");
+        let reduced = crate::stage!("RAM boundary reduction", || prepared.prove(&mut ps));
+        rings.push(flock::reduction::ring_switch_open(
+            window.n_vars,
+            window.offset,
+            &reduced,
+        ));
+    }
+    for (p, claims) in l.producers.iter().zip(&table_claims[l.spans.len()..]) {
         let window = l.multiplicity_window(p);
         rings.push(::pcs::stack_open::RingSwitchOpen {
             offset: window.offset,
@@ -632,9 +675,8 @@ fn finish_claims(
     output: &[u64; 4],
 ) -> Vec<pcs::SlotClaim> {
     let mut claims = bus_claims;
-    let sch = schema();
-    claims.reserve(sch.n - N_SHARED);
-    for (&(base, _), table) in sch.spans.iter().zip(table_claims) {
+    claims.reserve(schema().n - N_SHARED);
+    for (&(base, _), table) in l.spans.iter().zip(table_claims) {
         claims.extend(table.evals.iter().enumerate().map(|(c, &value)| ColumnClaim {
             col: base + c,
             point: table.chi.clone(),
@@ -688,7 +730,7 @@ pub fn verify_to_raw(
     let (l, log_inv_rate) = read_public(&mut vs, program)?;
     let root = pcs::read_commitment(&mut vs)?;
 
-    let bus = leaf::verify_balance(&l.push, &l.pull, &l.producers, &schema().spans, &mut vs).map_err(CpuError::Bus)?;
+    let bus = leaf::verify_balance(&l.push, &l.pull, &l.producers, &l.spans, &mut vs).map_err(CpuError::Bus)?;
 
     let zc_xi = vs.sample();
     let form_pows = xi_form_pows(zc_xi);
@@ -724,10 +766,17 @@ pub fn verify_to_raw(
         })?;
         replays.push(replay);
     }
-    let slices: Vec<[F192; ::pcs::pack::PACKING_WIDTH]> = table_claims[tables::N_TABLES..]
-        .iter()
-        .map(multiplicity_slices)
-        .collect();
+    let sparse_replay = l
+        .sparse
+        .map(|boundary| sparse::circuit(&program.rv).block().verify(boundary.tau, &mut vs))
+        .transpose()
+        .map_err(|error| CpuError::Flock {
+            table: "RAM boundary",
+            part: tables::Part::Class,
+            error,
+        })?;
+    let slices: Vec<[F192; ::pcs::pack::PACKING_WIDTH]> =
+        table_claims[l.spans.len()..].iter().map(multiplicity_slices).collect();
     let rings: Vec<_> = replays
         .iter()
         .enumerate()
@@ -735,10 +784,14 @@ pub fn verify_to_raw(
             let window = l.witness_window(f);
             flock::reduction::ring_switch_verify(window.n_vars, window.offset, &replay.claim)
         })
+        .chain(sparse_replay.iter().map(|replay| {
+            let window = l.placements[schema().n].window().expect("sparse witness is committed");
+            flock::reduction::ring_switch_verify(window.n_vars, window.offset, &replay.claim)
+        }))
         .chain(
             l.producers
                 .iter()
-                .zip(&table_claims[tables::N_TABLES..])
+                .zip(&table_claims[l.spans.len()..])
                 .zip(&slices)
                 .map(|((p, claims), slices)| {
                     let window = l.multiplicity_window(p);

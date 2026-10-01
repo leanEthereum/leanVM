@@ -3,8 +3,10 @@
 //! in both, and this is what catches the Python one drifting.
 
 use fiat_shamir::transcript::RawProof;
-use leanvm_core::cpu::{CpuError, prove, verify, verify_to_raw};
+use leanvm_core::cpu::{CpuError, Program, prove, verify, verify_to_raw};
 use leanvm_core::pcs::Rate;
+use leanvm_core::rv::asm::{Asm, Ld, Reg, Sd};
+use leanvm_core::rv::{RAM_BASE, TEXT_BASE};
 use primitives::field::F192;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
@@ -163,8 +165,8 @@ fn test_python_verifier() {
     }
 
     let mut malformed_root = proof;
-    // Past the announcement: the table heights, the rate, the final clock.
-    let root_offset = leanvm_core::tables::N_TABLES + 2;
+    // The root follows the heights, rate, clock and two RAM boundary words.
+    let root_offset = leanvm_core::tables::N_TABLES + 4;
     malformed_root.stream[root_offset].c2 = 1;
     assert!(verify(&program, &output, &malformed_root).is_err());
     let mut raw_root = raw.clone();
@@ -280,4 +282,57 @@ fn the_python_verifier_follows_the_slowest_rate() {
     let (proof, output, _) = prove(&program, &[], Rate::MAX).expect("the run halts");
     let raw = verify_to_raw(&program, &output, &proof).expect("honest proof verifies");
     PythonStatement::new("rate", &program, &output).assert_accepts(&raw);
+}
+
+#[test]
+fn sparse_ram_matches_both_verifiers() {
+    // Fixture state: three image words occupy four dense cells in a 1024-cell RAM.
+    // The zero tail has either no access or one cell written and read.
+    for touched in [false, true] {
+        let mut asm = Asm::new();
+        asm.li(Reg::T0, RAM_BASE).load(Ld, Reg::A2, 0, Reg::T0);
+        if touched {
+            // Cell 8 starts at zero and finishes holding seven.
+            asm.li(Reg::T1, 7)
+                .store(Sd, Reg::T1, 64, Reg::T0)
+                .load(Ld, Reg::A0, 64, Reg::T0);
+        }
+        let program =
+            Program::new(&asm.exit().finish(), TEXT_BASE, vec![9, 8, 0], 10, 0).expect("valid sparse RAM program");
+        let (proof, output, _) = prove(&program, &[], Rate::MIN).expect("the run halts");
+        assert_eq!(output, [if touched { 7 } else { 0 }, 0, 9, 0]);
+
+        // Both languages verify the packed address comparator and its bus bindings.
+        let raw = verify_to_raw(&program, &output, &proof).expect("honest sparse proof verifies");
+        let statement = PythonStatement::new("sparse", &program, &output);
+        statement.assert_accepts(&raw);
+        let height = leanvm_core::tables::N_TABLES + 2;
+        let endpoint = height + 1;
+        assert_eq!(proof.stream[height].c0, 4);
+        assert_eq!(proof.stream[endpoint].c0, RAM_BASE + if touched { 64 } else { 24 });
+
+        // Mutation: reject a dense flag with an endpoint, unsupported heights,
+        // a cell inside the image, an unaligned address and an address past RAM.
+        for (slot, value) in [
+            (height, F192::ZERO),
+            (height, F192::new(3, 0, 0)),
+            (height, F192::new(12, 0, 0)),
+            (height, F192::new(4, 1, 0)),
+            (endpoint, F192::new(RAM_BASE + 16, 0, 0)),
+            (endpoint, F192::new(RAM_BASE + 25, 0, 0)),
+            (endpoint, F192::new(RAM_BASE + 8 * 1024, 0, 0)),
+        ] {
+            let mut forged = proof.clone();
+            forged.stream[slot] = value;
+            assert!(matches!(
+                verify(&program, &output, &forged),
+                Err(CpuError::SparseBoundary { .. } | CpuError::NonCanonicalSize)
+            ));
+
+            // The Python verifier must report refusal through its normal error path.
+            let mut raw_forged = raw.clone();
+            raw_forged.stream[slot] = value;
+            PythonStatement::assert_rejects(&statement.verify(&raw_forged), "a malformed sparse boundary");
+        }
+    }
 }

@@ -196,6 +196,10 @@ pub struct Layout {
     /// blocks of it the prover actually commits (see [`witness::StackShape`]).
     pub shape: witness::StackShape,
     pub taus: [usize; tables::N_TABLES],
+    /// Sparse RAM metadata bound before the shared commitment.
+    pub(crate) sparse: Option<sparse::Boundary>,
+    /// Instruction spans followed by the sparse boundary span when present.
+    pub(crate) spans: Vec<(usize, usize)>,
 }
 
 impl Layout {
@@ -226,6 +230,8 @@ pub(crate) struct Witness {
     pub(crate) ts_final: u64,
     /// Each circuit's flock batch, freed right after its reduction.
     pub(crate) reductions: Vec<crate::class_flock::Prepared>,
+    /// The sparse boundary shares the machine commitment and opening.
+    pub(crate) sparse_reduction: Option<sparse::Prepared>,
 }
 
 impl Witness {
@@ -254,7 +260,7 @@ impl Witness {
 }
 
 /// The committed columns' total length.
-fn committed_size(placements: &[Placement]) -> usize {
+pub(crate) fn committed_size(placements: &[Placement]) -> usize {
     placements
         .iter()
         .filter_map(Placement::window)
@@ -382,15 +388,67 @@ pub fn multiplicity_bits(taus: [usize; tables::N_TABLES]) -> [usize; LOOKUPS.len
 /// A table's height is its row count: the fill blocks bring every count up to a power of
 /// two (`cpu::filler`), so `2^taus[t]` rows were all executed and no flush has padding
 /// tuples to divide back out of the bus.
-pub fn layout(p: &rv::Program, taus: [usize; tables::N_TABLES], ts_final: u64) -> Layout {
-    let sizes = Sizes::of(p);
+///
+/// With a sparse RAM boundary, the dense RAM block shrinks to the image's and the touched cells form a table of their own.
+pub(crate) fn layout(
+    p: &rv::Program,
+    taus: [usize; tables::N_TABLES],
+    ts_final: u64,
+    sparse: Option<sparse::Boundary>,
+) -> Layout {
+    let mut sizes = Sizes::of(p);
+    if sparse.is_some() {
+        sizes.log_ram = sparse::image_log(p);
+    }
     let mut push: Vec<Block> = Vec::new();
     let mut pull: Vec<Block> = Vec::new();
     for block in FRAMEWORK {
         let kappa = block.log_rows(sizes);
-        let (seed, finalize) = framework_tuples(block, p, ts_final);
+        let (seed, finalize) = framework_tuples(block, p, ts_final, sizes.log_ram);
         push.push(Block::framework(kappa, seed));
         pull.push(Block::framework(kappa, finalize));
+    }
+
+    let mut spans = schema().spans.to_vec();
+    let mut sources = column_sources(sizes, taus);
+    if let Some(boundary) = sparse {
+        let base = schema().n + 1;
+        let sep = Coord::Const(sparse::SEP_ORDER);
+        // The endpoints force one ascending chain containing every live sparse row.
+        push.push(Block::framework(
+            0,
+            vec![sep.clone(), Coord::Const(F64(sparse::start(p)))],
+        ));
+        pull.push(Block::framework(0, vec![sep.clone(), Coord::Const(F64(boundary.end))]));
+        spans.push((base, sparse::WIDTH));
+        sources.push(Source::Committed(boundary.tau + sparse::STRIDE_LOG));
+        sources.extend((0..sparse::WIDTH).map(|port| Source::Port {
+            column: schema().n,
+            port,
+            stride_log: sparse::STRIDE_LOG,
+        }));
+        let col = |port| Coord::Col(base + port);
+        // A live cell is seeded with zero at the seed clock, and a padding row at clock zero.
+        push.push(Block::table(
+            tables::N_TABLES,
+            boundary.tau,
+            vec![Coord::Const(tables::SEP_MEM), col(1), col(4), Coord::Const(F64::ZERO)],
+        ));
+        pull.push(Block::table(
+            tables::N_TABLES,
+            boundary.tau,
+            vec![Coord::Const(tables::SEP_MEM), col(1), col(2), col(3)],
+        ));
+        push.push(Block::table(
+            tables::N_TABLES,
+            boundary.tau,
+            vec![sep.clone(), col(1), col(5)],
+        ));
+        pull.push(Block::table(
+            tables::N_TABLES,
+            boundary.tau,
+            vec![sep, col(0), Coord::Const(F64::ZERO)],
+        ));
     }
 
     // Per-table blocks: each table declares its flushes in local indices; offset them
@@ -423,7 +481,7 @@ pub fn layout(p: &rv::Program, taus: [usize; tables::N_TABLES], ts_final: u64) -
         })
         .collect();
 
-    let (placements, shape) = witness::placements_of(&column_sources(sizes, taus));
+    let (placements, shape) = witness::placements_of(&sources);
     Layout {
         push,
         pull,
@@ -431,11 +489,13 @@ pub fn layout(p: &rv::Program, taus: [usize; tables::N_TABLES], ts_final: u64) -
         placements,
         shape,
         taus,
+        sparse,
+        spans,
     }
 }
 
 /// A framework block's two tuples, the push's and the pull's.
-fn framework_tuples(block: Framework, p: &rv::Program, ts_final: u64) -> (Vec<Coord>, Vec<Coord>) {
+fn framework_tuples(block: Framework, p: &rv::Program, ts_final: u64, log_ram: usize) -> (Vec<Coord>, Vec<Coord>) {
     use Coord::{Col, Const, IntIndex, Sparse};
     // A read-write array: every cell starts at the seed's timestamp holding `init`, and ends at
     // its last timestamp holding its final word (§sec:memchan).
@@ -476,7 +536,7 @@ fn framework_tuples(block: Framework, p: &rv::Program, ts_final: u64) -> (Vec<Co
         // Cell `z` at its byte address `RAM_BASE + 8z`. What RAM holds before the run is
         // public: the program's image, then zeros.
         Framework::Ram => {
-            let image = Sparse(std::sync::Arc::new(SparseColumn::new(p.log_ram(), &[(0, p.image())])));
+            let image = Sparse(std::sync::Arc::new(SparseColumn::new(log_ram, &[(0, p.image())])));
             array(
                 tables::SEP_MEM,
                 word(RAM_BASE),
@@ -506,19 +566,15 @@ fn lookup_tuple(lookup: Lookup, p: &rv::Program) -> Vec<Coord> {
 }
 
 impl Program {
-    /// `log2` of the stacked witness a run of these row counts commits: what one proof
-    /// can hold is capped ([`pcs::MAX_MU`]), so a run is checked before it is built.
-    pub(crate) fn stack_log(&self, row_counts: [usize; tables::N_TABLES]) -> usize {
-        self.stack_sizes(row_counts).0
-    }
-
-    /// The stack's `log2` and the committed size, before the pad, for these row counts.
-    ///
-    /// The layout is a function of the program and the row counts alone, so no witness is built.
-    pub(crate) fn stack_sizes(&self, row_counts: [usize; tables::N_TABLES]) -> (usize, usize) {
-        let taus = row_counts.map(|rows| crate::log2_ceil_usize(rows.max(1)));
-        let (placements, shape) = witness::placements_of(&column_sources(Sizes::of(&self.rv), taus));
-        (shape.mu, committed_size(&placements))
+    /// The layout a proof of this run commits to, known without building its witness.
+    pub(crate) fn run_layout(&self, exec: &Execution) -> Layout {
+        let taus = exec.trace.row_counts().map(|rows| crate::log2_ceil_usize(rows.max(1)));
+        layout(
+            &self.rv,
+            taus,
+            exec.trace.ts_final,
+            sparse::boundary(&self.rv, &exec.trace),
+        )
     }
 
     pub(crate) fn build(&self, exec: &Execution) -> Witness {
@@ -555,7 +611,7 @@ impl Program {
             );
             tau
         });
-        let l = layout(p, taus, tr.ts_final);
+        let l = layout(p, taus, tr.ts_final, sparse::boundary(p, tr));
 
         // The stacked witness is written exactly ONCE: allocate it, carve one window
         // per committed column, and have every fill write its column straight into
@@ -581,6 +637,14 @@ impl Program {
                 }
             }
         }
+        if let Some(boundary) = l.sparse {
+            for i in schema().n + 1..schema().n + 1 + sparse::WIDTH {
+                // SAFETY: every port buffer is filled from the packed circuit witness below.
+                virt.push((i, unsafe {
+                    zk_alloc::ArenaVec::<F64>::uninitialized(1 << boundary.tau)
+                }));
+            }
+        }
         let mut windows = witness::split_stack(&mut q, &l.placements);
         for (i, buf) in virt.iter_mut() {
             windows[*i] = buf;
@@ -600,7 +664,8 @@ impl Program {
             // counted from its rows.
             for c in SHARED {
                 if let Some(values) = c.values(tr) {
-                    windows[c.col()].copy_from_slice(values);
+                    let window = &mut windows[c.col()];
+                    window.copy_from_slice(&values[..window.len()]);
                 }
             }
             count_reads(tr, windows[Lookup::Bytecode.multiplicity().col()]);
@@ -615,6 +680,20 @@ impl Program {
                 .collect()
         });
 
+        let sparse_reduction = l.sparse.map(|boundary| {
+            let prepared = crate::stage!("Build RAM boundary witness", || {
+                sparse::Prepared::build(p, tr, boundary, windows[schema().n])
+            });
+            let stride = 1 << sparse::STRIDE_LOG;
+            let base = schema().n + 1;
+            for row in 0..1 << boundary.tau {
+                for port in 0..sparse::WIDTH {
+                    windows[base + port][row] = windows[schema().n][row * stride + port];
+                }
+            }
+            prepared
+        });
+
         drop(windows); // release the borrow of `q` and of the virtual buffers
         Witness {
             q,
@@ -622,6 +701,7 @@ impl Program {
             layout: l,
             ts_final: tr.ts_final,
             reductions,
+            sparse_reduction,
         }
     }
 }
