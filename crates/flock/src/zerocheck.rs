@@ -49,6 +49,9 @@ use univariate_skip_optimized::{
 pub const K_SKIP: usize = 6;
 const N_INNER: usize = 7; // 3 small + 4 medium fixed-constant eq dimensions
 
+/// The fewest variables a zerocheck's cube can have: the univariate skip plus the fixed-constant dimensions.
+pub const MIN_LOG_N: usize = K_SKIP + N_INNER;
+
 /// Passes over the packed bits, two rounds each, before the folded tables are stored.
 ///
 /// - A pass re-reads the three bit tables, `3 * 2^m` bits.
@@ -74,14 +77,30 @@ fn equality_tail(m: usize, mut sample_vec: impl FnMut(usize) -> Vec<F192>) -> Ve
         .collect()
 }
 
-/// Witness padding descriptor for URM work-skipping.
+/// Where the zero padding of a batched witness lies, so the zerocheck can skip it.
 ///
-/// The witness is a sequence of `2^(m - k_log)` blocks of `2^k_log` bits each;
-/// inside each block, bits `[0, useful_bits_per_block)` carry real data and
-/// bits `[useful_bits_per_block, 2^k_log)` are zero padding. URM contributions
-/// from a chunk of all-zero bits are themselves zero, so we can skip those
-/// chunks and produce byte-identical output.
-pub use pcs::pack::PaddingSpec;
+/// The witness is `2^(m - k_log)` blocks of `2^k_log` bits.
+///
+/// Each block holds its data first and zero padding after it.
+///
+/// A chunk of zero bits adds nothing to a round message, so skipping it leaves the output unchanged.
+#[derive(Clone, Copy, Debug)]
+pub struct PaddingSpec {
+    /// Log of the bits in one block.
+    pub k_log: usize,
+    /// Bits at the start of each block that carry data; the rest are zero.
+    pub useful_bits_per_block: usize,
+}
+
+impl PaddingSpec {
+    /// Treat every bit as useful.
+    pub fn dense(m: usize) -> Self {
+        Self {
+            k_log: m,
+            useful_bits_per_block: 1usize << m,
+        }
+    }
+}
 
 // ---------------------------------------------------------------------------
 // Public types: claim, proof, error.

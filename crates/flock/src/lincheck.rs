@@ -235,8 +235,7 @@ pub enum VerifyError {
 ///   `output[i_inner] = Σ_{i_outer ∈ {0,1}^n_log}  z[i_inner, i_outer] · eq_outer[i_outer]`
 ///
 /// Equivalently, `output[i_inner] = ẑ(i_inner_as_F192, x_outer)` for boolean
-/// `i_inner`. Used as the cross-check oracle for the production
-/// `partial_fold_packed_z_triple`.
+/// `i_inner`. Used as the cross-check oracle for the production folds.
 #[cfg(test)]
 pub fn partial_fold_packed_z(z_packed: &[u8], m: usize, k_log: usize, eq_outer: &[F192]) -> Vec<F192> {
     let n_log = m - k_log;
@@ -320,85 +319,6 @@ fn partial_fold_packed_z_fast_padded(
 /// Larger values re-stream the accumulator less often but grow the tables that must stay in L1.
 const NEON_TILE_T: usize = 8;
 
-/// x86-64 twin of the tiled gather kernel below.
-///
-/// `VPTERNLOGQ` is the exact counterpart of AArch64's `EOR3`: an arbitrary
-/// three-input bitwise function in one instruction, so immediate `0x96`
-/// (`a ^ b ^ c`) folds a paired-stripe accumulate the same way. Only the
-/// `c0`/`c1` limbs ride in the vector: `c2` is scalar and takes two XORs.
-///
-/// # Safety
-/// - `tile_bytes_ptr` must point to at least `TILE_T * k` bytes, with `bs + 8`
-///   readable in every stripe row (guaranteed by `bs + BLOCK_K <= k`).
-/// - `tables_ptr` must point to at least `TILE_T * 256` `F192`.
-/// - `out_ptr` must point to at least 8 writable `F192`.
-#[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "avx512vl"))]
-#[inline(never)]
-#[allow(unsafe_op_in_unsafe_fn)]
-unsafe fn process_block_avx512_single(
-    tile_bytes_ptr: *const u8,
-    k: usize,
-    bs: usize,
-    tables_ptr: *const F192,
-    out_ptr: *mut F192,
-) {
-    use std::arch::x86_64::*;
-    const TILE_T: usize = NEON_TILE_T;
-    // `F192` is `#[repr(C)]` with `c0, c1, c2`, so a 128-bit load at `&c0`
-    // covers exactly the `(c0, c1)` pair.
-    const XOR3: i32 = 0x96;
-
-    let mut acc01 = [_mm_setzero_si128(); 8];
-    let mut acc2 = [0u64; 8];
-    for i in 0..8 {
-        let out = &*out_ptr.add(i);
-        acc01[i] = _mm_loadu_si128((&out.c0 as *const u64).cast());
-        acc2[i] = out.c2;
-    }
-
-    // One unaligned 8-byte load per stripe replaces eight LDRB-equivalents,
-    // and stripes are swept in pairs so each vector accumulator folds both
-    // table entries with a single VPTERNLOGQ.
-    let mut t = 0;
-    while t + 1 < TILE_T {
-        let ta0 = tables_ptr.add(t * 256);
-        let ta1 = tables_ptr.add((t + 1) * 256);
-        let w0 = (tile_bytes_ptr.add(t * k + bs) as *const u64).read_unaligned();
-        let w1 = (tile_bytes_ptr.add((t + 1) * k + bs) as *const u64).read_unaligned();
-        for i in 0..8 {
-            let e0 = &*ta0.add(((w0 >> (8 * i)) & 0xff) as usize);
-            let e1 = &*ta1.add(((w1 >> (8 * i)) & 0xff) as usize);
-            let v0 = _mm_loadu_si128((&e0.c0 as *const u64).cast());
-            let v1 = _mm_loadu_si128((&e1.c0 as *const u64).cast());
-            acc01[i] = _mm_ternarylogic_epi64::<XOR3>(acc01[i], v0, v1);
-            acc2[i] ^= e0.c2 ^ e1.c2;
-        }
-        t += 2;
-    }
-    if t < TILE_T {
-        let ta = tables_ptr.add(t * 256);
-        let w = (tile_bytes_ptr.add(t * k + bs) as *const u64).read_unaligned();
-        for i in 0..8 {
-            let entry = &*ta.add(((w >> (8 * i)) & 0xff) as usize);
-            let v = _mm_loadu_si128((&entry.c0 as *const u64).cast());
-            acc01[i] = _mm_xor_si128(acc01[i], v);
-            acc2[i] ^= entry.c2;
-        }
-    }
-
-    for i in 0..8 {
-        let out = &mut *out_ptr.add(i);
-        _mm_storeu_si128((&mut out.c0 as *mut u64).cast(), acc01[i]);
-        out.c2 = acc2[i];
-    }
-}
-
-#[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "avx512vl"))]
-use self::process_block_avx512_single as process_block_single;
-/// The two architectures' inner kernels are interchangeable at the call site.
-#[cfg(target_arch = "aarch64")]
-use self::process_block_neon_single as process_block_single;
-
 /// Single-matrix NEON inner kernel: sweep TILE_T=8 stripes of a stripe-tile
 /// for one BLOCK_K=8 block of i_inner positions, keeping all 8 accumulators
 /// in NEON Q-registers.
@@ -474,10 +394,7 @@ unsafe fn process_block_neon_single(
 /// `(k, n_tiles, useful)`, where `useful` is `useful_bits` rounded up to a
 /// `BLOCK_K` multiple: padded rows fold to zero, and a boundary block's padding
 /// bytes are 0 ⇒ `table[0] = 0` ⇒ they contribute nothing.
-#[cfg(any(
-    target_arch = "aarch64",
-    all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "avx512vl")
-))]
+#[cfg(target_arch = "aarch64")]
 fn neon_fold_params(
     z_packed: &[u8],
     m: usize,
@@ -510,10 +427,7 @@ fn neon_fold_params(
 /// **output** (`i_inner`) instead of over z stripes.
 ///
 /// Workers own disjoint output slices, keeping one shared length-`k` accumulator and avoiding a final reduction. Each worker rebuilds the per-tile sum tables for its slice.
-#[cfg(any(
-    target_arch = "aarch64",
-    all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "avx512vl")
-))]
+#[cfg(target_arch = "aarch64")]
 fn partial_fold_packed_z_iblock_padded(
     z_packed: &[u8],
     m: usize,
@@ -560,7 +474,7 @@ fn partial_fold_packed_z_iblock_padded(
             for b in 0..n_block {
                 let i = b * BLOCK_K;
                 unsafe {
-                    process_block_single(z_base, k, i, tables_ptr, out_slice.as_mut_ptr().add(i));
+                    process_block_neon_single(z_base, k, i, tables_ptr, out_slice.as_mut_ptr().add(i));
                 }
             }
         }
@@ -582,10 +496,7 @@ fn partial_fold_packed_z_iblock_padded(
 /// partial is the full length-k output, while the register-tiled inner kernel keeps its accumulators in NEON registers. This trades reduction traffic for eliminating redundant table construction.
 ///
 /// # Safety / preconditions: identical to the iblock kernel.
-#[cfg(any(
-    target_arch = "aarch64",
-    all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "avx512vl")
-))]
+#[cfg(target_arch = "aarch64")]
 fn partial_fold_packed_z_oblock_padded(
     z_packed: &[u8],
     m: usize,
@@ -626,7 +537,7 @@ fn partial_fold_packed_z_oblock_padded(
             let mut bs = 0usize;
             while bs < useful {
                 unsafe {
-                    process_block_single(z_base, k, bs, tables_ptr, partial.as_mut_ptr().add(bs));
+                    process_block_neon_single(z_base, k, bs, tables_ptr, partial.as_mut_ptr().add(bs));
                 }
                 bs += BLOCK_K;
             }
@@ -772,10 +683,7 @@ fn partial_fold_packed_z_best(
         return partial_fold_packed_z_gfni(z_packed, m, k_log, useful_bits, eq_outer);
     }
     if n_log_ok_for_tile(m, k_log, NEON_TILE_T) {
-        #[cfg(any(
-            target_arch = "aarch64",
-            all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "avx512vl")
-        ))]
+        #[cfg(target_arch = "aarch64")]
         {
             // `oblock` avoids per-worker table construction but adds private partials and a reduction, so use it only above the tuned crossover.
             let n_log = m - k_log;
@@ -784,10 +692,7 @@ fn partial_fold_packed_z_best(
             }
             partial_fold_packed_z_iblock_padded(z_packed, m, k_log, useful_bits, eq_outer)
         }
-        #[cfg(not(any(
-            target_arch = "aarch64",
-            all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "avx512vl")
-        )))]
+        #[cfg(not(target_arch = "aarch64"))]
         {
             partial_fold_packed_z_fast_padded(z_packed, m, k_log, useful_bits, eq_outer)
         }
@@ -799,10 +704,7 @@ fn partial_fold_packed_z_best(
 /// Outer-dimension threshold (`n_log = m − k_log`) at/above which the
 /// outer(tile)-partitioned fold beats the i_inner-partitioned one. See
 /// [`partial_fold_packed_z_best`] for the crossover calibration.
-#[cfg(any(
-    target_arch = "aarch64",
-    all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "avx512vl")
-))]
+#[cfg(target_arch = "aarch64")]
 const OBLOCK_MIN_N_LOG: usize = 16;
 
 /// Quick test for "can we use the tiled fast path?". Tile uses `TILE_T`

@@ -37,17 +37,6 @@ pub const fn mul_by_g(a: F64) -> F64 {
     F64((a.0 << 1) ^ (0x1B * carry))
 }
 
-/// Multiply an `E`-element by the base generator `g = x ∈ K`: lane-wise
-/// [`mul_by_g`] on all three `K`-coefficients: three shift+folds, no PMULL.
-#[inline]
-pub const fn mul_by_g_e(a: F192) -> F192 {
-    F192 {
-        c0: mul_by_g(F64(a.c0)).0,
-        c1: mul_by_g(F64(a.c1)).0,
-        c2: mul_by_g(F64(a.c2)).0,
-    }
-}
-
 /// `[x^0, x^1, …, x^{n-1}]`: the weights of a random linear combination batched
 /// with the powers of one challenge, rather than `n` independent ones.
 pub fn powers(x: F192, n: usize) -> Vec<F192> {

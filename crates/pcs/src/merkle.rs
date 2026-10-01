@@ -28,7 +28,6 @@ pub use fiat_shamir::merkle::{Hash, hash_leaf, hash_pair};
 use parallel::SendPtr;
 use primitives::field::F64;
 use primitives::hash::{BATCH, BLOCK_LEN, OUT_LEN, hash_many, hash_many_dyn_from_state, zero_prefix_state};
-use primitives::pretty_integer;
 use zk_alloc::ArenaVec;
 
 /// Nodes one climb takes at most: 32 KiB of digests, which stay in L1.
@@ -36,30 +35,6 @@ const UNIT: usize = 1 << 10;
 
 /// Staging tile for leaves whose zero padding does not end on a block boundary.
 const STAGE_TILE_BYTES: usize = 16 << 10;
-
-/// Merkle tree over `num_leaves` equal byte leaves.
-///
-/// Every leaf is hashed as plain BLAKE2s-256 of its bytes.
-#[tracing::instrument(
-    name = "Hashing",
-    skip_all,
-    fields(
-        num_leaves = %pretty_integer(num_leaves),
-        leaf_size = %pretty_integer(data.len().checked_div(num_leaves).unwrap_or(0))
-    )
-)]
-pub fn merkle_tree(data: &[u8], num_leaves: usize) -> ArenaVec<Hash> {
-    assert!(num_leaves > 0, "num_leaves must be power of 2");
-    assert_eq!(
-        data.len() % num_leaves,
-        0,
-        "data length must be a multiple of num_leaves"
-    );
-    let leaf_bytes = data.len() / num_leaves;
-    let builder = MerkleBuilder::with_bytes(num_leaves, leaf_bytes, leaf_bytes);
-    builder.absorb_all(data);
-    builder.finish()
-}
 
 /// A Merkle tree filled one aligned block of leaves at a time, from any thread.
 ///
@@ -133,6 +108,7 @@ impl MerkleBuilder {
     }
 
     /// Absorb all rows, in parallel blocks.
+    #[cfg(test)]
     fn absorb_all(&self, data: &[u8]) {
         let num_leaves = self.nodes.width(0);
         assert_eq!(data.len(), num_leaves * self.leaves.row_bytes(), "one row per leaf");
@@ -418,6 +394,14 @@ mod tests {
         assert_eq!(data.len(), row_words * num_leaves);
         let builder = MerkleBuilder::new(num_leaves, row_words, leaf_words);
         builder.absorb_all(words_as_bytes(data));
+        builder.finish()
+    }
+
+    /// The tree over `num_leaves` equal byte leaves, each hashed as plain BLAKE2s-256 of its bytes.
+    fn merkle_tree(data: &[u8], num_leaves: usize) -> ArenaVec<Hash> {
+        let leaf_bytes = data.len() / num_leaves;
+        let builder = MerkleBuilder::with_bytes(num_leaves, leaf_bytes, leaf_bytes);
+        builder.absorb_all(data);
         builder.finish()
     }
 

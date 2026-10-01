@@ -70,7 +70,7 @@ pub struct SplitEq {
 }
 
 impl SplitEq {
-    /// C++-default cap on the hi half size: keeps outer F192 muls cheap.
+    /// Cap on the hi half size: keeps outer F192 muls cheap.
     pub const MAX_N_HI: usize = 7;
 
     pub fn new(r: &[F192]) -> Self {

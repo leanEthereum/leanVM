@@ -19,8 +19,7 @@
 //! - **Table rounds.** The last bit pass stores the folded tables.
 //!   Each later pass folds the challenges pending on them and sends two rounds, as the bit passes do.
 //!
-//! **Index convention** (matches the C++ extract_c pipeline's `sumcheck_round_pair`
-//! and the NEON `fold_in_place_pair`): the **low bit** of the multilinear index
+//! **Index convention** (matches `fold_in_place_pair`): the **low bit** of the multilinear index
 //! is bound first. So `a_mlv[2k]` is the X=0 value and `a_mlv[2k+1]` is the X=1
 //! value, paired by the round message and the fold.
 //!

@@ -24,7 +24,7 @@ use zk_alloc::ArenaVec;
 
 /// The zerocheck's cube has at least this many variables (flock's univariate skip
 /// plus its fixed-point dimensions), which floors the batch of a small circuit.
-pub const MIN_CUBE_LOG: usize = 13;
+pub const MIN_CUBE_LOG: usize = flock::zerocheck::MIN_LOG_N;
 
 /// The most input ports a class circuit has: the hash's fourteen.
 const MAX_INPUT_WORDS: usize = 14;

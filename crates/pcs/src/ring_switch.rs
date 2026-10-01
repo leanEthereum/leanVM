@@ -219,7 +219,7 @@ fn xor_accs(mut a: Vec<F192>, b: Vec<F192>) -> Vec<F192> {
 /// Naive reference: a per-position bit-scan over the three 64-bit limbs.
 /// See [`fold_ext_elems`] for the bytewise-table production version.
 #[cfg(test)]
-pub fn fold_ext_elems_naive(suffix_tensor: &[F192], coordinate_weights: &[F192]) -> Vec<F192> {
+fn fold_ext_elems_naive(suffix_tensor: &[F192], coordinate_weights: &[F192]) -> Vec<F192> {
     assert_eq!(coordinate_weights.len(), DEGREE_E);
     parallel::map_collect(suffix_tensor.len(), |i| {
         let elem = suffix_tensor[i];

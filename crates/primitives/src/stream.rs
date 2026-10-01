@@ -32,16 +32,6 @@ impl Stream {
         // and cannot overlap.
         unsafe { copy_raw(dst.as_mut_ptr().cast(), src.as_ptr().cast(), size_of_val(src)) }
     }
-
-    /// [`copy`](Self::copy) into a destination that is not yet initialised.
-    ///
-    /// # Safety
-    /// `dst` must be valid for `src.len()` elements and disjoint from `src`.
-    #[inline]
-    pub unsafe fn copy_uninit<T: Copy>(&self, dst: *mut T, src: &[T]) {
-        // SAFETY: forwarded to the caller's obligation.
-        unsafe { copy_raw(dst.cast(), src.as_ptr().cast(), size_of_val(src)) }
-    }
 }
 
 /// # Safety

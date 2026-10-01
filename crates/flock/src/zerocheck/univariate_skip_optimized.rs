@@ -1,7 +1,7 @@
 // CREDIT: https://github.com/succinctlabs/flock (flock-core), MIT OR Apache-2.0.
-//! Round-1 prover message: fully optimized (shift_reduce + extract_c, scalar).
+//! Round-1 prover message: fully optimized (shift_reduce + extract_c).
 //!
-//! Scalar Rust implementation (no NEON). Three layered optimizations on top of
+//! Scalar Rust, with NEON and GFNI kernels for the inner sweep. Three layered optimizations on top of
 //! the `round1_extract_c` scaffold:
 //!
 //! 1. **Geometric small-eq + shift_reduce inner** (3 inner-most rest-dims).
@@ -64,7 +64,7 @@ const N_MEDIUM: usize = 4;
 /// `tests::friendly_challenges_f2_independent`.
 const SMALL_CHAL_F8: [u8; 3] = [0xF7, 0x53, 0xB5];
 
-/// `C_s` as an F_8 value. Verified empirically by the C++ project.
+/// `C_s` as an F_8 value, pinned by the cross-check against the naive round.
 const C_S_F8: u8 = 0x1C;
 
 /// The constant `C_s = φ_8(0x1C) ∈ F_{2^192}`: the relative scaling factor
