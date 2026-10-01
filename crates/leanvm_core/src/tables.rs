@@ -120,8 +120,8 @@ pub fn clock_circuit(slots: &[u32]) -> Circuit {
     // The cycle count advances by `live`: bit `j` of `step` is the carry into bit `j`.
     let mut carry = live;
     c.output(0, SLOT_BITS as usize, carry);
-    for bit in SLOT_BITS as usize..LIVE_BIT as usize {
-        carry = c.and_output(0, bit + 1, ts[bit], carry);
+    for (bit, &timestamp) in ts.iter().enumerate().take(LIVE_BIT as usize).skip(SLOT_BITS as usize) {
+        carry = c.and_output(0, bit + 1, timestamp, carry);
     }
     c.output(0, FAIL_BIT as usize, fail);
     c.finish()
@@ -151,7 +151,7 @@ pub struct FlushBuilder {
 }
 
 impl FlushBuilder {
-    pub(crate) fn new() -> Self {
+    pub(crate) const fn new() -> Self {
         Self {
             push: Vec::new(),
             pull: Vec::new(),
@@ -658,7 +658,7 @@ struct BlockCols {
 
 impl BlockCols {
     /// What the row leaves in word `k` of its block.
-    fn left(&self, k: usize) -> usize {
+    const fn left(&self, k: usize) -> usize {
         match k.wrapping_sub(Hash::OUT as usize / 8) {
             j if j < 4 => self.out + j,
             _ => self.words + k,
@@ -821,7 +821,7 @@ impl ClassTable {
     }
 
     /// Number of columns, the virtual ones included.
-    pub fn n_committed_columns(&self) -> usize {
+    pub const fn n_committed_columns(&self) -> usize {
         self.cols.step + 1
     }
 

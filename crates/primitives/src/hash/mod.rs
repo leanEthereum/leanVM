@@ -145,7 +145,7 @@ pub struct Hasher {
 }
 
 impl Hasher {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             h: PARAM_IV,
             buf: [0u8; BLOCK_LEN],

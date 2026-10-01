@@ -19,7 +19,7 @@ impl Default for Stream {
 }
 
 impl Stream {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self(PhantomData)
     }
 
@@ -36,6 +36,13 @@ impl Stream {
 
 /// # Safety
 /// `dst` and `src` must be valid for `bytes` and must not overlap.
+#[cfg_attr(
+    not(target_arch = "x86_64"),
+    expect(
+        clippy::missing_const_for_fn,
+        reason = "The x86 implementation requires runtime streaming stores."
+    )
+)]
 #[inline]
 unsafe fn copy_raw(dst: *mut u8, src: *const u8, bytes: usize) {
     #[cfg(target_arch = "x86_64")]
@@ -54,7 +61,7 @@ unsafe fn copy_raw(dst: *mut u8, src: *const u8, bytes: usize) {
     #[cfg(not(target_arch = "x86_64"))]
     // SAFETY: forwarded to the caller's obligation.
     unsafe {
-        std::ptr::copy_nonoverlapping(src, dst, bytes)
+        std::ptr::copy_nonoverlapping(src, dst, bytes);
     };
 }
 
@@ -64,7 +71,7 @@ impl Drop for Stream {
         #[cfg(target_arch = "x86_64")]
         // SAFETY: `sfence` is unconditionally available on x86-64.
         unsafe {
-            core::arch::x86_64::_mm_sfence()
+            core::arch::x86_64::_mm_sfence();
         };
     }
 }

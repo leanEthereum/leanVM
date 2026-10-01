@@ -189,7 +189,7 @@ pub fn round1_naive(
     let mut b_col = vec![F8::ZERO; ell];
     let mut c_col = vec![F8::ZERO; ell];
 
-    for x_rest in 0..n_chunks_x {
+    for (x_rest, &weight) in eq_full.iter().enumerate().take(n_chunks_x) {
         let base = x_rest * ell;
         for s in 0..ell {
             a_col[s] = F8(a[base + s] as u8);
@@ -204,7 +204,7 @@ pub fn round1_naive(
         ntt_s.inverse(&mut c_col);
         ntt_l.forward(&mut c_col);
 
-        let eq_x = eq_full[x_rest];
+        let eq_x = weight;
         for i in 0..ell {
             let ab = a_col[i] * b_col[i];
             p_ab[i] += eq_x * phi8(ab);
@@ -338,10 +338,10 @@ mod tests {
         let full = build_eq(&r);
         let eq = SplitEq::new(&r);
         assert_eq!(eq.n_lo + eq.n_hi, n);
-        for x in 0..(1 << n) {
+        for (x, &value) in full.iter().enumerate() {
             let x_lo = x & ((1 << eq.n_lo) - 1);
             let x_hi = x >> eq.n_lo;
-            assert_eq!(eq.lo[x_lo] * eq.hi[x_hi], full[x]);
+            assert_eq!(eq.lo[x_lo] * eq.hi[x_hi], value);
         }
     }
 }

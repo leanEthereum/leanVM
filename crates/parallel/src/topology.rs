@@ -77,6 +77,13 @@ fn perf_cores() -> usize {
 }
 
 /// Efficiency-core count on Apple silicon, else `0`.
+#[cfg_attr(
+    not(all(target_arch = "aarch64", target_os = "macos")),
+    expect(
+        clippy::missing_const_for_fn,
+        reason = "Apple silicon discovers its efficiency cores at runtime."
+    )
+)]
 fn efficiency_cores() -> usize {
     #[cfg(all(target_arch = "aarch64", target_os = "macos"))]
     if let Some(n) = sysctl_usize(c"hw.perflevel1.logicalcpu") {
@@ -118,6 +125,13 @@ pub(crate) enum Qos {
 
 /// Tag the calling thread with `qos`. Best-effort, since QoS is a scheduling hint
 /// and a failure must not affect correctness, only placement. No-op off macOS.
+#[cfg_attr(
+    not(target_os = "macos"),
+    expect(
+        clippy::missing_const_for_fn,
+        reason = "macOS thread scheduling is a runtime system call."
+    )
+)]
 pub(crate) fn set_qos(qos: Qos) {
     #[cfg(target_os = "macos")]
     {

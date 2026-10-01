@@ -162,7 +162,7 @@ fn test_python_verifier() {
         assert!(String::from_utf8_lossy(&refused.stderr).contains("the final clock is not a live clock"));
     }
 
-    let mut malformed_root = proof.clone();
+    let mut malformed_root = proof;
     // Past the announcement: the table heights, the rate, the final clock.
     let root_offset = leanvm_core::tables::N_TABLES + 2;
     malformed_root.stream[root_offset].c2 = 1;

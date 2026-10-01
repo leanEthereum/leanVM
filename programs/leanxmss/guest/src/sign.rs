@@ -59,7 +59,7 @@ pub fn key_gen(seed: [u8; 32], leaf_index: LeafIndex) -> (SecretKey, PublicKey) 
 }
 
 impl SecretKey {
-    pub fn public_key(&self) -> PublicKey {
+    pub const fn public_key(&self) -> PublicKey {
         self.public_key
     }
 

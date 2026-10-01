@@ -309,7 +309,7 @@ impl Weights8 {
 
     /// Weight `i`, unpacked.
     #[inline]
-    pub fn get(&self, i: usize) -> F192 {
+    pub const fn get(&self, i: usize) -> F192 {
         let j = i / 2;
         let pair = if i.is_multiple_of(2) { &self.lo } else { &self.hi };
         F192::new(pair[2 * j], pair[2 * j + 1], self.c2[2 * j + i % 2])

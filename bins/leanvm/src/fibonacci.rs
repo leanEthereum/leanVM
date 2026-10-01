@@ -26,15 +26,15 @@ pub fn run_fibonacci(n: usize, prover: &Prover, rate: Rate, plan: Plan) {
     assert_eq!(output, expected);
     let (_, verify_time) = Plan::new(plan.repeat, 0).measure_quiet(|last| {
         let _quiet = (!last).then(bench::suppress_tracing);
-        verify(&program, &output, &proof).unwrap()
+        verify(&program, &output, &proof).unwrap();
     });
 
     // tracing-forest renders its tree only when the root span closes, so the
     // complete trace has to be flushed above the report.
     drop(trace_span);
 
-    println!("Fibonacci (modulo 2^64), N = {}", pretty_integer(n));
-    println!("  cycles (VM steps)           : {}", pretty_integer(stats.cycles));
+    println!("Fibonacci (modulo 2^64), N = {}", pretty_integer(&n));
+    println!("  cycles (VM steps)           : {}", pretty_integer(&stats.cycles));
     println!("    details                   : {}", stats.details());
     let proof_bytes = proof.to_bytes().len();
     println!("  proof size                  : {:.1} KiB", proof_bytes as f64 / 1024.0);
@@ -43,7 +43,7 @@ pub fn run_fibonacci(n: usize, prover: &Prover, rate: Rate, plan: Plan) {
         "  proving                     : {} s{}   {} cycles/s      peak memory {} GiB",
         pretty_f64(prove_time.mean()),
         prove_time.spread(),
-        pretty_integer(cycles_per_second),
+        pretty_integer(&cycles_per_second),
         pretty_f64(bench::peak_rss_bytes() as f64 / (1u64 << 30) as f64)
     );
     println!(

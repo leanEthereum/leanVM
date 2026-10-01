@@ -621,7 +621,7 @@ fn partial_fold_packed_z_gfni(
                 &eq_outer[8 * GFNI_TILE * tile..][..8 * GFNI_TILE],
                 tile,
                 acc,
-            )
+            );
         },
         |mut x, y| {
             for (x, y) in x.iter_mut().flatten().zip(y.iter().flatten()) {
@@ -712,7 +712,7 @@ const OBLOCK_MIN_N_LOG: usize = 16;
 
 /// Quick test for "can we use the tiled fast path?". Tile uses `TILE_T`
 /// stripes; we need `n_stripes` divisible by TILE_T and enough outer dim.
-fn n_log_ok_for_tile(m: usize, k_log: usize, tile_t: usize) -> bool {
+const fn n_log_ok_for_tile(m: usize, k_log: usize, tile_t: usize) -> bool {
     let n_log = m - k_log;
     if n_log < 3 + (tile_t.trailing_zeros() as usize) {
         return false;
@@ -732,8 +732,7 @@ fn build_sum_table(eq8: &[F192], table: &mut [F192]) {
     debug_assert_eq!(eq8.len(), 8);
     debug_assert_eq!(table.len(), 256);
     table[0] = F192::ZERO;
-    for i in 0..8 {
-        let e = eq8[i];
+    for (i, &e) in eq8.iter().enumerate() {
         let len = 1usize << i;
         for j in 0..len {
             table[len + j] = table[j] + e;
@@ -789,7 +788,7 @@ pub fn pack_z_lincheck_from_packed(z_packed_words: &[u64], m: usize, k_log: usiz
     // Each stripe (byte_idx) writes a disjoint k-byte chunk, so process them in
     // parallel. Inside one stripe, k independent output bytes.
     parallel::chunks_mut(&mut z_packed, k, |byte_idx, chunk| {
-        for i_inner in 0..k {
+        for (i_inner, slot) in chunk.iter_mut().enumerate() {
             let mut byte = 0u8;
             for r in 0..8 {
                 let i_outer = 8 * byte_idx + r;
@@ -798,7 +797,7 @@ pub fn pack_z_lincheck_from_packed(z_packed_words: &[u64], m: usize, k_log: usiz
                     byte |= 1u8 << r;
                 }
             }
-            chunk[i_inner].write(byte);
+            slot.write(byte);
         }
     });
     // SAFETY: every parallel chunk writes each of its output bytes exactly once.
@@ -994,6 +993,10 @@ fn sumcheck_bind_both_and_eval_next(comb: &mut Vec<F192>, z: &mut Vec<F192>, r: 
 /// The lincheck prover. Its claim retains the transmitted post-sumcheck
 /// `z_partial`, which is exactly the AB claim's 64-entry ring-switch `s_hat_v`.
 /// The opening reuses it without a second witness scan or transmission.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "The proof kernel keeps its independent inputs explicit."
+)]
 pub fn prove_padded_capture_s_hat_v(
     z_packed: &[u8],
     m: usize,
@@ -1108,6 +1111,10 @@ pub fn prove_padded_capture_s_hat_v(
 /// Verify a lincheck proof. Walks the transcript in lockstep with the prover,
 /// replays the α-batched product sumcheck against `v_a`, `v_b` and `v_c`, and
 /// derives the single output z-claim `w`.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "The proof kernel keeps its independent inputs explicit."
+)]
 pub fn verify(
     m: usize,
     k_log: usize,
@@ -1205,10 +1212,9 @@ pub fn verify(
     let eq_rest = build_eq(&r_inner_rest);
     let w_col = outer_product(&eq_rest, &z_partial);
     debug_assert_eq!(w_col.len(), k);
-    let mut final_sum = match circuit.bilinear_form(alpha, &eq_inner, &w_col) {
-        Some(v) => v,
-        None => inner_product_ext(&circuit.fold_alpha_batched(alpha, &eq_inner), &w_col),
-    };
+    let mut final_sum = circuit
+        .bilinear_form(alpha, &eq_inner, &w_col)
+        .unwrap_or_else(|| inner_product_ext(&circuit.fold_alpha_batched(alpha, &eq_inner), &w_col));
     final_sum += beta * w_col[circuit.const_pin_col()];
     // The c term's `⟨eq_inner, w_col⟩`, by the tensor structure of both sides:
     // `eq_inner = eq(x_inner_rest) ⊗ λ(z_skip)` and `w_col = eq(r_inner_rest) ⊗
@@ -1392,8 +1398,8 @@ mod tests {
         debug_assert_eq!(eq_outer.len(), n_outer);
 
         let mut acc = F192::ZERO;
-        for i in 0..(1 << m) {
-            if !f[i] {
+        for (i, &bit) in f.iter().enumerate().take(1 << m) {
+            if !bit {
                 continue;
             }
             let i_skip = i & (k_skip_dim - 1);
@@ -1445,15 +1451,15 @@ mod tests {
 
             let k = 1usize << k_log;
             assert_eq!(got.len(), k);
-            for i_inner in 0..k {
+            for (i_inner, &value) in got.iter().enumerate() {
                 let mut acc = F192::ZERO;
-                for i_outer in 0..(1usize << n_log) {
+                for (i_outer, &weight) in eq_outer.iter().enumerate() {
                     let i = i_inner + i_outer * k;
                     if z[i] {
-                        acc += eq_outer[i_outer];
+                        acc += weight;
                     }
                 }
-                assert_eq!(got[i_inner], acc, "mismatch at m={m}, i_inner={i_inner}");
+                assert_eq!(value, acc, "mismatch at m={m}, i_inner={i_inner}");
             }
         }
     }
@@ -1793,11 +1799,7 @@ mod tests {
         let v_b = mle_eval_bool_quirky(&b, m, k_log, k_skip, &x_ab);
         let v_c = mle_eval_bool_quirky(&z, m, k_log, k_skip, &x_ab);
 
-        let circuit = SparseCircuit {
-            a_0: a_0.clone(),
-            b_0: b_0.clone(),
-            pin: PIN_COL,
-        };
+        let circuit = SparseCircuit { a_0, b_0, pin: PIN_COL };
         let mut ch_p = fiat_shamir::transcript::ProverState::from_label(b"flock-test-v0");
         let _ = prove(&z_packed, m, k_log, k_skip, &circuit, &x_ab, &mut ch_p);
         let proof_t = ch_p.into_proof();

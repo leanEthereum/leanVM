@@ -46,7 +46,7 @@ impl Case {
         let (program, expected) = fibonacci_program(n);
         Self {
             name,
-            title: format!("Fibonacci modulo 2^64, {} steps", pretty_integer(n)),
+            title: format!("Fibonacci modulo 2^64, {} steps", pretty_integer(&n)),
             program,
             advice: vec![],
             expected,
@@ -67,7 +67,7 @@ impl Case {
         Self::workload(
             name,
             Workload {
-                title: format!("BLAKE2s of {} bytes", pretty_integer(length)),
+                title: format!("BLAKE2s of {} bytes", pretty_integer(&length)),
                 elf: include_bytes!("../../../programs/hash/hash.elf"),
                 advice: vec![length as u64],
                 expected: public.digest(),
@@ -163,8 +163,8 @@ fn table(cases: &[Case]) {
         println!(
             "| {} | {} | {} / {} | 2^{:.2} | {} |",
             case.title,
-            pretty_integer(cycles),
-            pretty_integer(cycles / case.items),
+            pretty_integer(&cycles),
+            pretty_integer(&(cycles / case.items)),
             case.item,
             (stats.committed as f64).log2(),
             stats.details()

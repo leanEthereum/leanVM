@@ -75,6 +75,13 @@ impl MulAssign for F8 {
 }
 
 /// Carry-less product of two bytes; result fits in 15 bits.
+#[cfg_attr(
+    not(all(target_arch = "aarch64", target_feature = "aes")),
+    expect(
+        clippy::missing_const_for_fn,
+        reason = "The NEON implementation requires runtime intrinsics."
+    )
+)]
 #[inline]
 fn clmul8(a: u8, b: u8) -> u16 {
     #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]

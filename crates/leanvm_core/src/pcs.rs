@@ -185,7 +185,7 @@ pub fn open(ps: &mut ProverState, c: &Committed, q: &[F64], points: &[SlotClaim]
     assert_eq!(q.len() % lane_block, 0, "witness must be whole committed lanes");
     assert!(q.len() <= 1usize << c.mu, "witness must fit the announced size");
     let cfg = whir_config(c.mu, c.log_inv_rate);
-    open_batch_mixed_whir_stacked(ps, c.mu, q, &c.prover_data, &cfg, points, rings)
+    open_batch_mixed_whir_stacked(ps, c.mu, q, &c.prover_data, &cfg, points, rings);
 }
 
 /// Verify the opening (mirror of [`open`]): flock's ring-switched claim

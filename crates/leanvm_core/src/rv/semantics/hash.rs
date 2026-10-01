@@ -27,7 +27,7 @@ pub struct Hash {
     /// The byte counter.
     pub t: u64,
     /// The block's words as found.
-    pub block: [u64; Hash::WORDS],
+    pub block: [u64; Self::WORDS],
 }
 
 impl Hash {

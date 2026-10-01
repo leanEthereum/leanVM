@@ -5,10 +5,8 @@ use leanvm::{Program, Proved, Prover, Rate, verify};
 use primitives::{pretty_f64, pretty_integer};
 
 pub fn parse_word(word: &str) -> Result<u64, std::num::ParseIntError> {
-    match word.strip_prefix("0x") {
-        Some(hex) => u64::from_str_radix(hex, 16),
-        None => word.parse(),
-    }
+    word.strip_prefix("0x")
+        .map_or_else(|| word.parse(), |hex| u64::from_str_radix(hex, 16))
 }
 
 /// An error and its causes, outermost first.
@@ -46,13 +44,16 @@ pub fn run_guest(elf: &std::path::Path, advice: &[u64], prover: &Prover, rate: R
     });
     let (_, verify_time) = Plan::new(plan.repeat, 0).measure_quiet(|last| {
         let _quiet = (!last).then(bench::suppress_tracing);
-        verify(&program, &output, &proof).unwrap()
+        verify(&program, &output, &proof).unwrap();
     });
 
     println!("{}", elf.display());
-    println!("  advice                      : {} words", pretty_integer(advice.len()));
+    println!(
+        "  advice                      : {} words",
+        pretty_integer(&(advice.len()))
+    );
     println!("  output                      : {output:x?}");
-    println!("  cycles (VM steps)           : {}", pretty_integer(stats.cycles));
+    println!("  cycles (VM steps)           : {}", pretty_integer(&stats.cycles));
     println!("    details                   : {}", stats.details());
     let proof_bytes = proof.to_bytes().len();
     println!("  proof size                  : {:.1} KiB", proof_bytes as f64 / 1024.0);
@@ -61,7 +62,7 @@ pub fn run_guest(elf: &std::path::Path, advice: &[u64], prover: &Prover, rate: R
         "  proving                     : {} s{}   {} cycles/s      peak memory {} GiB",
         pretty_f64(prove_time.mean()),
         prove_time.spread(),
-        pretty_integer(cycles_per_second),
+        pretty_integer(&cycles_per_second),
         pretty_f64(bench::peak_rss_bytes() as f64 / (1u64 << 30) as f64)
     );
     println!(

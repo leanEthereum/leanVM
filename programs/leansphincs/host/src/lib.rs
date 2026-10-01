@@ -50,13 +50,13 @@ pub fn batch(n: usize) -> Run {
 }
 
 /// A key as the words the guest reads it from.
-fn words_of_key(pk: &PublicKey) -> &[u64] {
+const fn words_of_key(pk: &PublicKey) -> &[u64] {
     // SAFETY: `repr(C)` words, with no padding (see its definition).
     unsafe { as_words_unchecked(pk) }
 }
 
 /// A signature as the words the guest reads it from.
-fn words_of_signature(signature: &Signature) -> &[u64] {
+const fn words_of_signature(signature: &Signature) -> &[u64] {
     // SAFETY: `repr(C)` words, with no padding (see its definition).
     unsafe { as_words_unchecked(signature) }
 }

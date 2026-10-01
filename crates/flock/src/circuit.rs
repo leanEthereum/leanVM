@@ -95,7 +95,7 @@ impl Builder {
     }
 
     /// The constant 1.
-    pub fn one(&self) -> Wire {
+    pub const fn one(&self) -> Wire {
         self.one
     }
 
@@ -105,7 +105,7 @@ impl Builder {
     }
 
     /// The slot the next product takes.
-    pub fn next_slot(&self) -> usize {
+    pub const fn next_slot(&self) -> usize {
         self.next_slot
     }
 
@@ -187,25 +187,25 @@ pub struct Circuit {
 
 impl Circuit {
     /// `log2` of the bits one instance occupies.
-    pub fn k_log(&self) -> usize {
+    pub const fn k_log(&self) -> usize {
         self.k_log
     }
 
-    pub fn useful_bits(&self) -> usize {
+    pub const fn useful_bits(&self) -> usize {
         self.useful_bits
     }
 
     /// The constant wire's position.
-    pub fn const_pos(&self) -> usize {
+    pub const fn const_pos(&self) -> usize {
         self.const_pos
     }
 
     /// Products, which is what an instance pays beyond its ports.
-    pub fn n_products(&self) -> usize {
+    pub const fn n_products(&self) -> usize {
         self.useful_bits - self.const_pos - 1
     }
 
-    pub fn n_input_words(&self) -> usize {
+    pub const fn n_input_words(&self) -> usize {
         self.n_input_words
     }
 
@@ -598,7 +598,7 @@ mod tests {
 
             // The same batch through both generators, every table compared.
             let walk = circuit.generate_witness_with(&rows, &padding, n_log, |row, z, az, bz| {
-                circuit.witness_instance(row, z, az, bz)
+                circuit.witness_instance(row, z, az, bz);
             });
             let sliced = circuit.generate_witness_from(&rows, &padding, n_log, |row, words| words.copy_from_slice(row));
             assert!(walk.0[..] == sliced.0[..], "z, round {round}");

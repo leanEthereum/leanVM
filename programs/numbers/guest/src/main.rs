@@ -6,7 +6,7 @@
 
 use leanvm_guest::{commit, read};
 
-fn pow_mod(mut base: u64, mut exponent: u64, modulus: u64) -> u64 {
+const fn pow_mod(mut base: u64, mut exponent: u64, modulus: u64) -> u64 {
     let mut result = 1 % modulus;
     base %= modulus;
     while exponent > 0 {
@@ -19,7 +19,7 @@ fn pow_mod(mut base: u64, mut exponent: u64, modulus: u64) -> u64 {
     result
 }
 
-fn gcd(mut a: u64, mut b: u64) -> u64 {
+const fn gcd(mut a: u64, mut b: u64) -> u64 {
     while b != 0 {
         (a, b) = (b, a % b);
     }

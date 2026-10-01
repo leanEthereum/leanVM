@@ -253,7 +253,7 @@ impl<T> ArenaVec<T> {
     /// Exactly one `ArenaVec` may own a given pointer.
     #[inline]
     #[must_use]
-    pub(crate) unsafe fn from_raw_parts(ptr: *mut T, len: usize, cap: usize) -> Self {
+    pub(crate) const unsafe fn from_raw_parts(ptr: *mut T, len: usize, cap: usize) -> Self {
         Self {
             // SAFETY: the caller guarantees `ptr` is non-null.
             ptr: unsafe { NonNull::new_unchecked(ptr) },

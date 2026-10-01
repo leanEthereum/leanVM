@@ -201,7 +201,7 @@ pub fn round_pair_naive(a_mlv: &[F192], b_mlv: &[F192], r_eq: &[F192]) -> (F192,
 /// - Such a pair folds to zero, so it adds nothing to the message.
 /// - A pair straddling the boundary counts as live: its padding half is honestly zero.
 /// - With no whole padding pair, the mask is zero and every pair is live.
-fn padding_pairs(padding: &PaddingSpec, position_log: usize) -> (usize, usize) {
+const fn padding_pairs(padding: &PaddingSpec, position_log: usize) -> (usize, usize) {
     if padding.k_log <= position_log + 1 {
         return (0, usize::MAX);
     }

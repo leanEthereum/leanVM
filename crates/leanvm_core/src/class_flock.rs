@@ -172,15 +172,17 @@ impl Prepared {
         // A class with a word-level witness skips the walk of its gate list; the others
         // walk it 64 instances at a time.
         let witness = spec.witness.filter(|_| part == Part::Class);
-        let (z, a, b, z_lincheck) = match witness {
-            Some(witness) => circuit.generate_witness_with(rows, &rows[0], n_blocks_log, |row, z, az, bz| {
-                let mut words = [0u64; MAX_INPUT_WORDS];
-                let words = &mut words[..n_inputs];
-                input_words(row, words);
-                witness(words, z, az, bz);
-            }),
-            None => circuit.generate_witness_from(rows, &rows[0], n_blocks_log, input_words),
-        };
+        let (z, a, b, z_lincheck) = witness.map_or_else(
+            || circuit.generate_witness_from(rows, &rows[0], n_blocks_log, input_words),
+            |witness| {
+                circuit.generate_witness_with(rows, &rows[0], n_blocks_log, |row, z, az, bz| {
+                    let mut words = [0u64; MAX_INPUT_WORDS];
+                    let words = &mut words[..n_inputs];
+                    input_words(row, words);
+                    witness(words, z, az, bz);
+                })
+            },
+        );
         assert_eq!(window.len(), z.len(), "the committed column is the wrong size");
         let stride = 1 << stride_log(spec, part);
         // `F64` is `repr(transparent)` over `u64`, and the packing is bit `i` at

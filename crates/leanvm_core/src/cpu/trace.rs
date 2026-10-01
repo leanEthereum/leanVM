@@ -19,7 +19,7 @@ pub(crate) struct HashRow {
 
 impl HashRow {
     /// Word `k` of the block after the row.
-    pub(crate) fn word_after(&self, k: usize) -> u64 {
+    pub(crate) const fn word_after(&self, k: usize) -> u64 {
         match k.wrapping_sub(crate::rv::Hash::OUT as usize / 8) {
             j if j < 4 => self.out[j],
             _ => self.block[k],

@@ -129,7 +129,7 @@ impl Program {
     }
 
     /// The address of the first instruction run.
-    pub fn entry_pc(&self) -> u64 {
+    pub const fn entry_pc(&self) -> u64 {
         self.entry_pc
     }
 
@@ -139,17 +139,17 @@ impl Program {
     }
 
     /// The base-two logarithm of RAM's size in words.
-    pub fn log_ram(&self) -> usize {
+    pub const fn log_ram(&self) -> usize {
         self.log_ram
     }
 
     /// The base-two logarithm of the advice's size in words.
-    pub fn log_advice(&self) -> usize {
+    pub const fn log_advice(&self) -> usize {
         self.log_advice
     }
 
     /// The address of entry `index`.
-    pub fn pc_of(&self, index: usize) -> u64 {
+    pub const fn pc_of(&self, index: usize) -> u64 {
         Region::TEXT.address(index)
     }
 
@@ -164,7 +164,7 @@ impl Program {
     }
 
     /// Where a run ends: the last slot, which is never executed.
-    pub fn halt_pc(&self) -> u64 {
+    pub const fn halt_pc(&self) -> u64 {
         self.pc_of(self.entries.len() - 1)
     }
 

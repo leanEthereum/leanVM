@@ -94,7 +94,7 @@ impl Region {
     }
 
     /// Whether the bytes `start..end` lie in the largest region.
-    pub fn contains(self, start: u64, end: u64) -> bool {
+    pub const fn contains(self, start: u64, end: u64) -> bool {
         start >= self.base && end <= self.end(self.max_log_words)
     }
 

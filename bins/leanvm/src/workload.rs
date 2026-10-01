@@ -92,7 +92,7 @@ pub fn run(workload: &Workload, prover: &Prover, rate: Rate, plan: Plan) {
     );
     let (_, verify_time) = Plan::new(plan.repeat, 0).measure_quiet(|last| {
         let _quiet = (!last).then(bench::suppress_tracing);
-        verify(&program, &output, &proof).expect("the proof verifies")
+        verify(&program, &output, &proof).expect("the proof verifies");
     });
 
     // The proven rows include padding: the guest's own cycles are the per-table base counts.
@@ -100,7 +100,7 @@ pub fn run(workload: &Workload, prover: &Prover, rate: Rate, plan: Plan) {
     println!("{}", workload.title);
     println!(
         "  cycles (RISC-V)             : {}   {} per {}",
-        pretty_integer(cycles),
+        pretty_integer(&cycles),
         pretty_f64(cycles as f64 / workload.items as f64),
         workload.item
     );

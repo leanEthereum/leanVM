@@ -140,14 +140,14 @@ const _: () = assert!(cfg!(target_endian = "little"));
 
 impl Program {
     /// The decoded text, memory image and region sizes, for inspection or interpretation.
-    pub fn rv(&self) -> &rv::Program {
+    pub const fn rv(&self) -> &rv::Program {
         &self.rv
     }
 
     /// BLAKE2s over the decoded text, entry, halt, region sizes and initial RAM image.
     ///
     /// ELF metadata and unsupported instruction encodings normalized to the same illegal entry are not part of the identity.
-    pub fn digest(&self) -> &[u8; 32] {
+    pub const fn digest(&self) -> &[u8; 32] {
         &self.digest
     }
 
@@ -306,9 +306,9 @@ impl constraints::Summand for Summand {
     #[inline(always)]
     fn eval<T: ColVal>(&self, cols: &[T], quadratic: bool) -> F192 {
         match self {
-            Summand::Table(s) => T::reduce(s.bus.eval_unreduced(cols, quadratic)),
+            Self::Table(s) => T::reduce(s.bus.eval_unreduced(cols, quadratic)),
             // `Σ_i c_i·(1 + b_i·P'_i)`, whose quadratic part is the products.
-            Summand::Producer(s) => {
+            Self::Producer(s) => {
                 let n = s.coefficients.len();
                 let products = (0..n).fold(T::lift(F192::ZERO), |acc, i| {
                     acc ^ (cols[i] * cols[n + i]).mul_e_unreduced(s.coefficients[i])
@@ -325,14 +325,15 @@ impl constraints::Summand for Summand {
 
     fn public(&self, chi: &[F192]) -> Vec<F192> {
         match self {
-            Summand::Table(_) => Vec::new(),
-            Summand::Producer(s) => leaf::producer_public_evals(&s.producer, &s.weights, s.beta, chi),
+            Self::Table(_) => Vec::new(),
+            Self::Producer(s) => leaf::producer_public_evals(&s.producer, &s.weights, s.beta, chi),
         }
     }
 }
 
 /// The producers as the table sumcheck takes them: their weights on each bit's block,
 /// and the fingerprint (`eq(α⃗, ·)`, `β`) their public columns use.
+#[derive(Clone, Copy)]
 struct ProducerShares<'a> {
     coefficients: &'a [Vec<F192>],
     weights: &'a [F192],
@@ -397,7 +398,7 @@ fn sigmas(bus: &[Vec<F192>; 2], form_pows: [F192; 2]) -> Vec<F192> {
 /// shares `R_s`, which the verifier DERIVES from the leaf claims (a mismatch surfaces
 /// as a constraint error). Were the powers per table, the target would not
 /// factor through the `R_s` and nothing would pin the tables' share of the bus.
-fn xi_form_pows(xi: F192) -> [F192; 2] {
+const fn xi_form_pows(xi: F192) -> [F192; 2] {
     [F192::ONE, xi]
 }
 

@@ -78,27 +78,27 @@ impl<'a> Machine<'a> {
     }
 
     /// The program being run.
-    pub fn program(&self) -> &'a Program {
+    pub const fn program(&self) -> &'a Program {
         self.program
     }
 
     /// The register file: `x0` to `x31`, then the sink, which nothing reads.
-    pub fn registers(&self) -> &RegisterFile {
+    pub const fn registers(&self) -> &RegisterFile {
         &self.registers
     }
 
     /// RAM and the advice.
-    pub fn memory(&self) -> &Memory {
+    pub const fn memory(&self) -> &Memory {
         &self.memory
     }
 
     /// The address of the next instruction.
-    pub fn pc(&self) -> u64 {
+    pub const fn pc(&self) -> u64 {
         self.pc
     }
 
     /// Whether the run has reached the halt slot by an `ecall`.
-    pub fn halted(&self) -> bool {
+    pub const fn halted(&self) -> bool {
         self.exited && self.pc == self.program.halt_pc()
     }
 
@@ -256,7 +256,7 @@ impl<'a> Machine<'a> {
     /// A store and a hash always write the sink, which nothing reads.
     ///
     /// They make no write at all, so their tables have none to prove.
-    fn write_destination(&mut self, entry: &Entry, vd: u64) -> u64 {
+    const fn write_destination(&mut self, entry: &Entry, vd: u64) -> u64 {
         match entry.class {
             Class::Store | Class::Hash => 0,
             _ => self.registers.replace(entry.ad, vd),

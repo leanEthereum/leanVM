@@ -83,7 +83,7 @@ impl FreeList {
     };
 
     #[inline]
-    fn remove(&mut self, i: usize) {
+    const fn remove(&mut self, i: usize) {
         self.len -= 1;
         self.blocks[i] = self.blocks[self.len];
     }
@@ -106,7 +106,7 @@ impl FreeList {
 
     /// Absorb the held blocks adjacent to `[addr, addr + size)` and return the
     /// union. Held blocks are non-adjacent, so at most one lies on each side.
-    fn merge(&mut self, addr: usize, size: usize) -> (usize, usize) {
+    const fn merge(&mut self, addr: usize, size: usize) -> (usize, usize) {
         let (mut a, mut n) = (addr, size);
         let mut i = 0;
         while i < self.len {
@@ -129,7 +129,7 @@ impl FreeList {
 
     /// Hold `[addr, size)`, or drop it when the list is full (an unheld block is
     /// just not recycled).
-    fn store(&mut self, addr: usize, size: usize) {
+    const fn store(&mut self, addr: usize, size: usize) {
         if self.len < FREE_LIST_CAP {
             self.blocks[self.len] = (addr, size);
             self.len += 1;

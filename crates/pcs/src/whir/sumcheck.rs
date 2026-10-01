@@ -709,7 +709,7 @@ impl<'a> SumcheckProver<'a> {
 
     /// The claim that fixes the next message's linear coefficient.
     #[inline]
-    pub(super) fn claim(&self) -> F192 {
+    pub(super) const fn claim(&self) -> F192 {
         self.t_r
     }
 

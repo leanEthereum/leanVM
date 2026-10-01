@@ -78,7 +78,7 @@ impl AdditiveNttF64 {
         Self::new(&basis)
     }
 
-    pub fn log_domain_size(&self) -> usize {
+    pub const fn log_domain_size(&self) -> usize {
         self.evals.len()
     }
 
@@ -1254,7 +1254,7 @@ mod tests {
             got[..msg_len].copy_from_slice(&msg);
             let blocks = std::sync::Mutex::new(Vec::new());
             ntt.encode_interleaved_in_place_with(&mut got, lanes, log_inv_rate, &|row, rows| {
-                blocks.lock().unwrap().push((row, rows.to_vec()))
+                blocks.lock().unwrap().push((row, rows.to_vec()));
             });
             assert_eq!(got, want, "log_d={log_d}, lanes={lanes}, rate={log_inv_rate}");
 

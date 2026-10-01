@@ -157,7 +157,7 @@ impl ProverState {
         Self::from_fs(FiatShamirState::from_label(label))
     }
 
-    fn from_fs(fs: FiatShamirState) -> Self {
+    const fn from_fs(fs: FiatShamirState) -> Self {
         Self {
             fs,
             stream: Vec::new(),
@@ -236,7 +236,7 @@ impl<'a> VerifierState<'a> {
     }
 
     /// Assert the whole proof was consumed (no trailing/extra data).
-    pub fn finish(&self) -> Result<(), Error> {
+    pub const fn finish(&self) -> Result<(), Error> {
         if self.offset == self.stream.len() && self.phase == self.merkle.len() {
             Ok(())
         } else {
@@ -324,12 +324,16 @@ impl<'a> Receiver for VerifierState<'a> {
             coeffs[i] = self.take_raw()?;
         }
         let sum_from = |from: usize| coeffs[from..].iter().fold(F192::ZERO, |acc, &c| acc + c);
-        coeffs[fixed] = match eq {
-            // `c1 + … + cd = claim`, summing the transmitted ones from `c2`.
-            None => claim + sum_from(2),
-            // `c0 + r·(c1 + … + cd) = claim`, and every `ci` above `c0` was read.
-            Some(r) => claim + r * sum_from(1),
-        };
+        coeffs[fixed] = eq.map_or_else(
+            || {
+                // An ordinary round reconstructs its linear coefficient from the claimed sum.
+                claim + sum_from(2)
+            },
+            |r| {
+                // An equality-weighted round reconstructs its constant coefficient using the weighting challenge.
+                claim + r * sum_from(1)
+            },
+        );
         for (i, &c) in coeffs.iter().enumerate() {
             if i != fixed {
                 self.bind(c);

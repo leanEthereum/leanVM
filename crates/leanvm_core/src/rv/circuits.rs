@@ -46,7 +46,7 @@ impl ClassCircuit for Alu {
         // The difference is v1 + !b + 1.
         //
         // It borrows exactly when that sum does not carry out.
-        let sub = flag(Alu::SUB);
+        let sub = flag(Self::SUB);
         let b_or_not: Word = b.iter().map(|&bit| c.xor(bit, sub)).collect();
         let (sum, carry_out) = c.add_with_carry(&v1, &b_or_not, sub);
 
@@ -67,11 +67,11 @@ impl ClassCircuit for Alu {
         //     and = v1 * b
         //     or  = v1 * b ^ (v1 ^ b)
         //     xor = v1 ^ b
-        let sum = c.sext32_if(flag(Alu::WORD), &sum);
-        let selectors = [Alu::SEL_LT, Alu::SEL_LTU, Alu::SEL_AND, Alu::SEL_OR, Alu::SEL_XOR];
+        let sum = c.sext32_if(flag(Self::WORD), &sum);
+        let selectors = [Self::SEL_LT, Self::SEL_LTU, Self::SEL_AND, Self::SEL_OR, Self::SEL_XOR];
         let none = selectors.iter().fold(c.one(), |acc, &s| c.xor(acc, flag(s)));
-        let and_or = c.xor(flag(Alu::SEL_AND), flag(Alu::SEL_OR));
-        let or_xor = c.xor(flag(Alu::SEL_OR), flag(Alu::SEL_XOR));
+        let and_or = c.xor(flag(Self::SEL_AND), flag(Self::SEL_OR));
+        let or_xor = c.xor(flag(Self::SEL_OR), flag(Self::SEL_XOR));
         let mut out = c.and_word(none, &sum);
         for i in 0..64 {
             let both = c.and(v1[i], b[i]);
@@ -82,27 +82,27 @@ impl ClassCircuit for Alu {
         }
 
         // A comparison is a single bit, the output's bit 0.
-        let lt_term = c.and(flag(Alu::SEL_LT), lt);
-        let ltu_term = c.and(flag(Alu::SEL_LTU), ltu);
+        let lt_term = c.and(flag(Self::SEL_LT), lt);
+        let ltu_term = c.and(flag(Self::SEL_LTU), ltu);
         let compared = c.xor(lt_term, ltu_term);
         out[0] = c.xor(out[0], compared);
 
         // A JALR target drops its low bit.
-        let keep_bit0 = c.not(flag(Alu::CLEAR_BIT0));
+        let keep_bit0 = c.not(flag(Self::CLEAR_BIT0));
         out[0] = c.and(keep_bit0, out[0]);
 
         // The jump: unconditional, or the one branch condition set.
         let (ge, geu) = (c.not(lt), c.not(ltu));
         let taken = [
-            (Alu::BR_EQ, eq),
-            (Alu::BR_NE, ne),
-            (Alu::BR_LT, lt),
-            (Alu::BR_GE, ge),
-            (Alu::BR_LTU, ltu),
-            (Alu::BR_GEU, geu),
+            (Self::BR_EQ, eq),
+            (Self::BR_NE, ne),
+            (Self::BR_LT, lt),
+            (Self::BR_GE, ge),
+            (Self::BR_LTU, ltu),
+            (Self::BR_GEU, geu),
         ]
         .into_iter()
-        .fold(flag(Alu::ALWAYS), |acc, (when, holds)| {
+        .fold(flag(Self::ALWAYS), |acc, (when, holds)| {
             let term = c.and(flag(when), holds);
             c.xor(acc, term)
         });
@@ -125,7 +125,7 @@ impl ClassCircuit for Shift {
         let mut c = Builder::new(&[64, 64, 64, 3], &[64]);
         let (v1, v2, imm, f) = (c.input(0), c.input(1), c.input(2), c.input(3));
         let flag = |bit: u64| f[bit.trailing_zeros() as usize];
-        let (right, arith, word) = (flag(Shift::RIGHT), flag(Shift::ARITH), flag(Shift::WORD));
+        let (right, arith, word) = (flag(Self::RIGHT), flag(Self::ARITH), flag(Self::WORD));
 
         // The amount: six bits, or five for a word shift.
         let mut amount: Word = (0..6).map(|i| c.xor(v2[i], imm[i])).collect();
@@ -188,14 +188,14 @@ impl ClassCircuit for Load {
         c.output_word(0, &bus);
 
         // Each byte above the first is the value's if the width reaches it, else the extension.
-        for i in 0..64 {
+        for (i, &bit) in value.iter().enumerate() {
             let keeps = match i {
                 0..8 => None,
                 8..16 => Some(ge2),
                 16..32 => Some(ge4),
                 _ => Some(eq8),
             };
-            let wire = keeps.map_or(value[i], |keeps| c.mux(keeps, value[i], extension));
+            let wire = keeps.map_or(bit, |keeps| c.mux(keeps, bit, extension));
             c.output(1, i, wire);
         }
         c.finish()
@@ -635,13 +635,10 @@ pub fn blake2s_witness(inputs: &[u64], z: &mut [u64], az: &mut [u64], bz: &mut [
     assert_eq!(inputs.len(), INPUT_BITS.len());
 
     // The carry runs, recorded by building the circuit, once.
-    let carries = match CARRIES.get() {
-        Some(carries) => carries,
-        None => {
-            Hash::circuit();
-            CARRIES.get().expect("building the circuit records its carry runs")
-        }
-    };
+    let carries = CARRIES.get().unwrap_or_else(|| {
+        Hash::circuit();
+        CARRIES.get().expect("building the circuit records its carry runs")
+    });
 
     // Input ports: the word, masked to the port's width.
     for (i, &bits) in INPUT_BITS.iter().enumerate() {
@@ -708,7 +705,7 @@ pub fn blake2s_witness(inputs: &[u64], z: &mut [u64], az: &mut [u64], bz: &mut [
 
 /// OR a run of at most 32 bits into `buf`, from bit `slot`.
 #[inline(always)]
-fn or_run(buf: &mut [u64], slot: u32, bits: u64) {
+const fn or_run(buf: &mut [u64], slot: u32, bits: u64) {
     let (word, shift) = (slot as usize / 64, slot % 64);
     buf[word] |= bits << shift;
 
@@ -933,7 +930,7 @@ mod tests {
 
             // The same batch through both generators, every table compared.
             let walk = circuit.generate_witness_with(&rows, &rows[0], n_log, |row, z, az, bz| {
-                circuit.witness_instance(row, z, az, bz)
+                circuit.witness_instance(row, z, az, bz);
             });
             let sliced = circuit.generate_witness_from(&rows, &rows[0], n_log, |row, words| words.copy_from_slice(row));
             assert!(walk.0[..] == sliced.0[..], "z");

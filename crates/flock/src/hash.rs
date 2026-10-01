@@ -184,7 +184,7 @@ fn g_slot(g: usize, off: usize) -> usize {
 // ---------------------------------------------------------------------------
 
 #[inline]
-fn g_fn(v: &mut [u32; 16], a: usize, b: usize, c: usize, d: usize, mx: u32, my: u32) {
+const fn g_fn(v: &mut [u32; 16], a: usize, b: usize, c: usize, d: usize, mx: u32, my: u32) {
     v[a] = v[a].wrapping_add(v[b]).wrapping_add(mx);
     v[d] = (v[d] ^ v[a]).rotate_right(16);
     v[c] = v[c].wrapping_add(v[d]);
@@ -240,14 +240,14 @@ pub const PINNED_F0: u32 = u32::MAX;
 /// `blake2s(m)` for a 64-byte message, which is the configuration the VM's
 /// `Blake2s` opcode and `fiat_shamir::compress` use. The circuit itself
 /// accepts arbitrary chaining values, counters and flags.
-pub fn pinned_compression(m: [u32; 16]) -> Compression {
+pub const fn pinned_compression(m: [u32; 16]) -> Compression {
     (param_iv(), m, PINNED_T, PINNED_F0, 0)
 }
 
 /// The padding instance: `blake2s(0^64)`. Fills unused trailing slots so every
 /// batched block is a valid instance with constant wire 1, as the lincheck
 /// const-wire pin requires.
-pub fn padding_block() -> Compression {
+pub const fn padding_block() -> Compression {
     pinned_compression([0u32; 16])
 }
 
@@ -287,14 +287,14 @@ fn forward_walk(sink: &mut crate::gf2::RowValues, w: &[F192]) {
         (MSG_BASE, 16 * WORD_BITS),
         (COUNTER_LO_BASE, 4 * WORD_BITS),
     ] {
-        for s in base..base + len {
-            sink.bconst(s, w[s]);
+        for (offset, &value) in w[base..base + len].iter().enumerate() {
+            sink.bconst(base + offset, value);
         }
     }
 
     let mut state: [WireWord; 16] = std::array::from_fn(|_| [F192::ZERO; WORD_BITS]);
-    for wd in 0..8 {
-        state[wd] = wire_from_slot_base(w, h_bit(wd, 0));
+    for (wd, slot) in state[..8].iter_mut().enumerate() {
+        *slot = wire_from_slot_base(w, h_bit(wd, 0));
     }
     for i in 0..4 {
         state[8 + i] = wire_from_const(w, BLAKE2S_IV[i], Z_CONST_POS);
@@ -309,13 +309,13 @@ fn forward_walk(sink: &mut crate::gf2::RowValues, w: &[F192]) {
         );
     }
 
-    for r in 0..N_ROUNDS {
+    for (r, sigma) in SIGMA.iter().enumerate() {
         for g_in_round in 0..N_G_PER_ROUND {
             let g = r * N_G_PER_ROUND + g_in_round;
             let [la, lb, lc, ld] = G_LANES[g_in_round];
             let (a, b, c, d) = (state[la], state[lb], state[lc], state[ld]);
-            let mx = wire_from_slot_base(w, m_bit(SIGMA[r][2 * g_in_round], 0));
-            let my = wire_from_slot_base(w, m_bit(SIGMA[r][2 * g_in_round + 1], 0));
+            let mx = wire_from_slot_base(w, m_bit(sigma[2 * g_in_round], 0));
+            let my = wire_from_slot_base(w, m_bit(sigma[2 * g_in_round + 1], 0));
 
             let a_1 = walk_add3_fused(sink, w, &a, &b, &mx, g_slot(g, G_ADD3_A1));
             let d_1 = wire_rotr(&wire_xor(&d, &a_1), 16);
@@ -339,8 +339,8 @@ fn forward_walk(sink: &mut crate::gf2::RowValues, w: &[F192]) {
             &wire_xor(&state[wd], &state[wd + 8]),
             &wire_from_slot_base(w, h_bit(wd, 0)),
         );
-        for i in 0..WORD_BITS {
-            sink.bconst(out_bit(wd, i), out[i]);
+        for (i, &bit) in out.iter().enumerate() {
+            sink.bconst(out_bit(wd, i), bit);
         }
     }
 }
@@ -418,7 +418,7 @@ fn marginal_walk_side(side: MatrixSide, u: &[F192]) -> Vec<F192> {
     // The ten rounds, backwards. Within one G the reverse topological order is
     // b_2, c_2, d_2, a_2, b_1, c_1, d_1, a_1, so every lane's adjoint is
     // complete before the gadget that produced it is transposed.
-    for r in (0..N_ROUNDS).rev() {
+    for (r, sigma) in SIGMA.iter().enumerate().rev() {
         for g_in_round in (0..N_G_PER_ROUND).rev() {
             let g = r * N_G_PER_ROUND + g_in_round;
             let [la, lb, lc, ld] = G_LANES[g_in_round];
@@ -438,7 +438,7 @@ fn marginal_walk_side(side: MatrixSide, u: &[F192]) -> Vec<F192> {
             // a_2 = a_1 + b_1 + my
             let (mut aa1, ab1_a2, amy) = back_add3_fused(&mut m, u, &aa2, g_slot(g, G_ADD3_A2), side);
             ab1 = wire_xor(&ab1, &ab1_a2);
-            let my_base = m_bit(SIGMA[r][2 * g_in_round + 1], 0);
+            let my_base = m_bit(sigma[2 * g_in_round + 1], 0);
             for i in 0..WORD_BITS {
                 m[my_base + i] += amy[i];
             }
@@ -455,7 +455,7 @@ fn marginal_walk_side(side: MatrixSide, u: &[F192]) -> Vec<F192> {
             // a_1 = a + b + mx
             let (aa, ab_a1, amx) = back_add3_fused(&mut m, u, &aa1, g_slot(g, G_ADD3_A1), side);
             ab = wire_xor(&ab, &ab_a1);
-            let mx_base = m_bit(SIGMA[r][2 * g_in_round], 0);
+            let mx_base = m_bit(sigma[2 * g_in_round], 0);
             for i in 0..WORD_BITS {
                 m[mx_base + i] += amx[i];
             }
@@ -477,9 +477,9 @@ fn marginal_walk_side(side: MatrixSide, u: &[F192]) -> Vec<F192> {
     }
     let mut const_adj = F192::ZERO;
     for i in 0..4 {
-        for b in 0..WORD_BITS {
+        for (b, &bit) in adj[8 + i].iter().enumerate() {
             if (BLAKE2S_IV[i] >> b) & 1 == 1 {
-                const_adj += adj[8 + i][b];
+                const_adj += bit;
             }
         }
     }
@@ -563,6 +563,10 @@ const _: () = assert!(G_STRIDE <= 3 * 64 && REC_C2 < 3 * 64);
 ///
 /// **No c buffer.** Since `C = I`, `c == z` byte-for-byte; callers use
 /// `z_packed` directly as the c-side input to zerocheck.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "The proof kernel keeps its independent inputs explicit."
+)]
 fn build_block_witness_ab_packed_into(
     h: &[u32; 8],
     m: &[u32; 16],
@@ -582,11 +586,11 @@ fn build_block_witness_ab_packed_into(
     or_bit_at(a, Z_CONST_POS);
     or_bit_at(b, Z_CONST_POS);
 
-    for w in 0..8 {
-        write_lin_word_ab_packed(h_bit(w, 0), h[w], z, a, b);
+    for (w, &word) in h.iter().enumerate() {
+        write_lin_word_ab_packed(h_bit(w, 0), word, z, a, b);
     }
-    for i in 0..16 {
-        write_lin_word_ab_packed(m_bit(i, 0), m[i], z, a, b);
+    for (i, &word) in m.iter().enumerate() {
+        write_lin_word_ab_packed(m_bit(i, 0), word, z, a, b);
     }
     write_lin_word_ab_packed(COUNTER_LO_BASE, t as u32, z, a, b);
     write_lin_word_ab_packed(COUNTER_HI_BASE, (t >> 32) as u32, z, a, b);
@@ -594,12 +598,12 @@ fn build_block_witness_ab_packed_into(
     write_lin_word_ab_packed(LAST_NODE_BASE, f1, z, a, b);
 
     let mut v = initial_state(h, t, f0, f1);
-    for r in 0..N_ROUNDS {
+    for (r, sigma) in SIGMA.iter().enumerate() {
         for g_in_round in 0..N_G_PER_ROUND {
             let g = r * N_G_PER_ROUND + g_in_round;
             let [la, lb, lc, ld] = G_LANES[g_in_round];
-            let mx = m[SIGMA[r][2 * g_in_round]];
-            let my = m[SIGMA[r][2 * g_in_round + 1]];
+            let mx = m[sigma[2 * g_in_round]];
+            let my = m[sigma[2 * g_in_round + 1]];
             let (a_val, b_val, c_val, d_val) = (v[la], v[lb], v[lc], v[ld]);
 
             // `G_STRIDE = 184` fits a 192-bit record.
@@ -691,10 +695,10 @@ impl Blake2sSetup {
         }
     }
 
-    pub fn m(&self) -> usize {
+    pub const fn m(&self) -> usize {
         K_LOG + self.n_blocks_log
     }
-    pub fn n_blocks_log(&self) -> usize {
+    pub const fn n_blocks_log(&self) -> usize {
         self.n_blocks_log
     }
 }
@@ -871,9 +875,10 @@ mod tests {
         let (va, vb) = row_values_walk(&w);
         let mut expected = vec![false; K];
         let mut claim = |base: usize, len: usize| {
-            for s in base..base + len {
-                assert!(!expected[s], "slot {s} is claimed by two layout regions");
-                expected[s] = true;
+            for (offset, slot) in expected[base..base + len].iter_mut().enumerate() {
+                let s = base + offset;
+                assert!(!*slot, "slot {s} is claimed by two layout regions");
+                *slot = true;
             }
         };
         claim(CV_BASE, 8 * WORD_BITS);

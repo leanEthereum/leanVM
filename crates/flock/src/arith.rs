@@ -114,15 +114,15 @@ impl U64Circuit {
         Self { op, circuit, plan }
     }
 
-    pub fn circuit(&self) -> &Circuit {
+    pub const fn circuit(&self) -> &Circuit {
         &self.circuit
     }
 
-    pub fn k_log(&self) -> usize {
+    pub const fn k_log(&self) -> usize {
         self.circuit.k_log()
     }
 
-    pub fn useful_bits(&self) -> usize {
+    pub const fn useful_bits(&self) -> usize {
         self.circuit.useful_bits()
     }
 

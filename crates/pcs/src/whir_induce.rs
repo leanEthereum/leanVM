@@ -22,7 +22,7 @@ use zk_alloc::ArenaVec;
 
 #[inline]
 fn next_s(s: F64, s_at_root: F64) -> F64 {
-    s * s + s_at_root * s
+    s * (s + s_at_root)
 }
 
 /// `sks_vks[k] = s_k(v_k)` for `k = 0..=log_n`, over K. Mirror of
@@ -86,7 +86,7 @@ impl RowElem for F192 {
         row.iter()
             .zip(eq.iter())
             .map(|(&r, &e)| r * e)
-            .fold(F192::ZERO, |a, v| a + v)
+            .fold(Self::ZERO, |a, v| a + v)
     }
 }
 
@@ -589,7 +589,7 @@ const NTT_QUERIES_PER_BLOWUP: usize = 8;
 /// Cost-based dispatch: the NTT overtakes the dense expansion once a level
 /// opens more than [`NTT_QUERIES_PER_BLOWUP`] queries per unit of blowup.
 #[inline]
-pub(crate) fn induce_use_ntt_heuristic(log_msg_cols: usize, log_inv_rate: usize, n_queries: usize) -> bool {
+pub(crate) const fn induce_use_ntt_heuristic(log_msg_cols: usize, log_inv_rate: usize, n_queries: usize) -> bool {
     log_msg_cols >= 12 && n_queries > NTT_QUERIES_PER_BLOWUP * (1usize << log_inv_rate)
 }
 

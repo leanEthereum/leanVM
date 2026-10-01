@@ -96,7 +96,8 @@ fn mean_and_ci(samples: &[f64]) -> (f64, f64) {
 fn t_critical_95(df: usize) -> f64 {
     let z = 1.959_964_f64;
     let df = df as f64;
-    z + (z.powi(3) + z) / (4.0 * df) + (5.0 * z.powi(5) + 16.0 * z.powi(3) + 3.0 * z) / (96.0 * df.powi(2))
+    z + (z.powi(3) + z) / (4.0 * df)
+        + 3.0f64.mul_add(z, 16.0f64.mul_add(z.powi(3), 5.0 * z.powi(5))) / (96.0 * df.powi(2))
 }
 
 /// Wall-clock samples from one repeated measurement, in seconds.
@@ -261,7 +262,7 @@ pub struct Metric {
 
 impl Metric {
     #[must_use]
-    pub fn exact(value: usize) -> Self {
+    pub const fn exact(value: usize) -> Self {
         Self {
             value: value as f64,
             bounds: None,

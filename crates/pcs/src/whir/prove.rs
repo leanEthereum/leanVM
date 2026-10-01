@@ -61,6 +61,10 @@ fn ext_row_words(row: &[F192]) -> Vec<F64> {
 /// out of these rounds.
 ///
 /// Scalars enter the shared transcript as they are transmitted, and authenticated Merkle openings travel as one phase per level. The caller has already bound the initial commitment and target.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "The proof kernel keeps its independent inputs explicit."
+)]
 pub fn recursive_prover_with_basis(
     config: &ProverConfig,
     log_n: usize,
@@ -84,6 +88,10 @@ pub fn recursive_prover_with_basis(
     );
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "The proof kernel keeps its independent inputs explicit."
+)]
 pub(crate) fn recursive_prover_with_prepared_basis(
     config: &ProverConfig,
     log_n: usize,

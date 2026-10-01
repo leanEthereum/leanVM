@@ -123,6 +123,16 @@ impl MulAssign for F64 {
 }
 
 /// The carry-less product of two 64-bit polynomials, as a 128-bit polynomial.
+#[cfg_attr(
+    not(any(
+        all(target_arch = "aarch64", target_feature = "aes"),
+        all(target_arch = "x86_64", target_feature = "pclmulqdq")
+    )),
+    expect(
+        clippy::missing_const_for_fn,
+        reason = "The SIMD implementations require runtime intrinsics."
+    )
+)]
 #[inline]
 pub fn mul_wide(a: u64, b: u64) -> u128 {
     #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]

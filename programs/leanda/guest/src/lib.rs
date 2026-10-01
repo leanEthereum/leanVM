@@ -254,7 +254,7 @@ fn weigh(buckets: &mut [[u64; 4]; 1 << WINDOW]) -> [u128; 3] {
 ///   hi * t^64 = f(hi),     f(v) = v ^ v<<1 ^ v<<3 ^ v<<4
 ///   the 4 bits f shifts past t^63 fold back once more, in 8 bits
 /// ```
-fn reduce(p: u128) -> u64 {
+const fn reduce(p: u128) -> u64 {
     let (lo, hi) = (p as u64, (p >> 64) as u64);
     // Folding the spill into `hi` first merges the two folds, as `f` is linear.
     let v = hi ^ (hi >> 63) ^ (hi >> 61) ^ (hi >> 60);

@@ -139,10 +139,8 @@ fn check_run(test: &Test) -> Result<(), String> {
         Ok(Some([1, called_from, ..])) => Err(format!("{name}: fails, halting from {called_from:#x}")),
         Ok(Some(output)) => Err(format!("{name}: exits with {output:?}")),
         Ok(None) => Err(format!("{name}: runs past {CYCLE_CAP} cycles")),
-        Err(trap) => Err(match failed_check(test, &machine, &trap) {
-            Some(check) => format!("{name}: {check}"),
-            None => format!("{name}: {trap}"),
-        }),
+        Err(trap) => Err(failed_check(test, &machine, &trap)
+            .map_or_else(|| format!("{name}: {trap}"), |check| format!("{name}: {check}"))),
     }
 }
 

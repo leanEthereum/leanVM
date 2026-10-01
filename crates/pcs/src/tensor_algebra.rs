@@ -20,7 +20,7 @@ pub const DEGREE_E: usize = 192;
 
 /// Bit w of an E element in the tower basis (w in 0..192).
 #[inline(always)]
-fn ext_bit(e: F192, w: usize) -> u64 {
+const fn ext_bit(e: F192, w: usize) -> u64 {
     if w < 64 {
         (e.c0 >> w) & 1
     } else if w < 128 {
@@ -127,8 +127,8 @@ impl TensorAlgebraE {
     }
 }
 
-impl AddAssign<&TensorAlgebraE> for TensorAlgebraE {
-    fn add_assign(&mut self, rhs: &TensorAlgebraE) {
+impl AddAssign<&Self> for TensorAlgebraE {
+    fn add_assign(&mut self, rhs: &Self) {
         for (a, b) in self.elems.iter_mut().zip(rhs.elems.iter()) {
             *a = *a + *b;
         }
@@ -148,14 +148,14 @@ fn square_transpose_ext(elems: &mut [F192]) {
         let mut c0: u64 = 0;
         let mut c1: u64 = 0;
         let mut c2: u64 = 0;
-        for i in 0..64 {
-            c0 |= ext_bit(elems[i], j) << i;
+        for (i, &elem) in elems[0..64].iter().enumerate() {
+            c0 |= ext_bit(elem, j) << i;
         }
-        for i in 64..128 {
-            c1 |= ext_bit(elems[i], j) << (i - 64);
+        for (i, &elem) in elems[64..128].iter().enumerate() {
+            c1 |= ext_bit(elem, j) << i;
         }
-        for i in 128..192 {
-            c2 |= ext_bit(elems[i], j) << (i - 128);
+        for (i, &elem) in elems[128..192].iter().enumerate() {
+            c2 |= ext_bit(elem, j) << i;
         }
         *o = F192::new(c0, c1, c2);
     }
@@ -173,13 +173,9 @@ mod tests {
         let s_hat_v = rng.ext_vec(PACKING_WIDTH);
         let s_hat_u = transpose_s_hat(&s_hat_v);
         assert_eq!(s_hat_u.len(), DEGREE_E);
-        for i in 0..PACKING_WIDTH {
-            for w in 0..DEGREE_E {
-                assert_eq!(
-                    (s_hat_u[w].0 >> i) & 1,
-                    ext_bit(s_hat_v[i], w),
-                    "bit ({i}, {w}) not transposed"
-                );
+        for (i, &v) in s_hat_v.iter().enumerate() {
+            for (w, &u) in s_hat_u.iter().enumerate() {
+                assert_eq!((u.0 >> i) & 1, ext_bit(v, w), "bit ({i}, {w}) not transposed");
             }
         }
     }
@@ -189,7 +185,7 @@ mod tests {
         let mut rng = Rng::new(2);
         let orig = rng.ext_vec(DEGREE_E);
         let t = TensorAlgebraE { elems: orig.clone() };
-        let tt = t.clone().transpose();
+        let tt = t.transpose();
         // Bit relation on a spot-check diagonal band plus full involution.
         for i in 0..DEGREE_E {
             for w in [0usize, 1, 63, 64, 65, 127] {

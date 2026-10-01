@@ -34,7 +34,7 @@ fn main() {
         let (_, walk) = plan.warm_then_measure(|_| {
             let _phase = zk_alloc::enter_phase();
             circuit.generate_witness_with(&rows, &rows[0], n_log, |row, z, az, bz| {
-                circuit.witness_instance(row, z, az, bz)
+                circuit.witness_instance(row, z, az, bz);
             });
         });
         let (_, sliced) = plan.warm_then_measure(|_| {

@@ -211,11 +211,10 @@ pub fn prove<S: Summand>(
         let mut msg = [F192::ZERO; 2];
         for (t, air) in airs.iter().enumerate() {
             if air.tau > m {
-                let p = if let Some(table) = &folded[t] {
-                    table_message(table, &air.summand, 1 << m, &eqr, zeta[m].is_zero())
-                } else {
-                    table_message(&cols[t], &air.summand, 1 << m, &eqr, zeta[m].is_zero())
-                };
+                let p = folded[t].as_ref().map_or_else(
+                    || table_message(&cols[t], &air.summand, 1 << m, &eqr, zeta[m].is_zero()),
+                    |table| table_message(table, &air.summand, 1 << m, &eqr, zeta[m].is_zero()),
+                );
                 for i in 0..2 {
                     msg[i] += weights[t] * p[i];
                 }
@@ -259,11 +258,10 @@ pub fn prove<S: Summand>(
     airs.iter()
         .enumerate()
         .map(|(t, air)| {
-            let mut evals: Vec<F192> = if let Some(table) = &folded[t] {
-                table.iter().map(|c| c[0]).collect()
-            } else {
-                cols[t].iter().map(|c| F192::from(c[0])).collect()
-            };
+            let mut evals: Vec<F192> = folded[t].as_ref().map_or_else(
+                || cols[t].iter().map(|c| F192::from(c[0])).collect(),
+                |table| table.iter().map(|c| c[0]).collect(),
+            );
             evals.truncate(air.n_cols - air.n_public);
             ps.add_scalars(&evals);
             Claims {
@@ -430,7 +428,7 @@ mod tests {
         (xi, zeta)
     }
 
-    fn run(taus: &[usize], cols: Vec<Vec<Vec<F64>>>) -> (Proof, Result<Vec<Claims>, Error>) {
+    fn run(taus: &[usize], cols: &[Vec<Vec<F64>>]) -> (Proof, Result<Vec<Claims>, Error>) {
         let (xi, zeta) = xi_zeta(taus);
         let airs = airs_for(taus, false, xi);
         let zeros = vec![F192::ZERO; taus.len()];
@@ -452,8 +450,8 @@ mod tests {
     #[test]
     fn ragged_batch_verifies() {
         let taus = [5usize, 3, 5, 0, 1];
-        let cols = taus.iter().enumerate().map(|(i, &t)| good_table(t, i as u64)).collect();
-        let claims = run(&taus, cols).1.expect("honest batch verifies");
+        let cols: Vec<Vec<Vec<F64>>> = taus.iter().enumerate().map(|(i, &t)| good_table(t, i as u64)).collect();
+        let claims = run(&taus, &cols).1.expect("honest batch verifies");
         let tallest = claims.iter().max_by_key(|c| c.chi.len()).unwrap().chi.clone();
         for (c, &tau) in claims.iter().zip(&taus) {
             assert_eq!(c.chi, tallest[..tau]);
@@ -468,7 +466,7 @@ mod tests {
                 let mut cols: Vec<Vec<Vec<F64>>> =
                     taus.iter().enumerate().map(|(i, &t)| good_table(t, i as u64)).collect();
                 cols[bad][col][(1usize << taus[bad]) - 1] += F64::ONE;
-                assert!(run(&taus, cols).1.is_err());
+                assert!(run(&taus, &cols).1.is_err());
             }
         }
     }
@@ -492,7 +490,7 @@ mod tests {
             .map(|(t, &tau)| pows[3 * t + 2] * primitives::multilinear::mle_eval(&cols[t][1], &zeta[..tau]))
             .collect();
 
-        let settle = |sig: &[F192], cols: Vec<Vec<Vec<F64>>>| -> Result<Vec<Claims>, Error> {
+        let settle = |sig: &[F192], cols: &[Vec<Vec<F64>>]| -> Result<Vec<Claims>, Error> {
             let airs = airs_for(&taus, true, xi);
             let target = sig.iter().fold(F192::ZERO, |a, &b| a + b);
             let mut ps = ProverState::from_label(b"zc-test");
@@ -509,12 +507,12 @@ mod tests {
             }
             out
         };
-        settle(&sigmas, cols.clone()).expect("honest attached claims verify");
+        settle(&sigmas, &cols).expect("honest attached claims verify");
         for bad in 0..taus.len() {
             let mut wrong = sigmas.clone();
             wrong[bad] += F192::ONE;
             assert!(
-                settle(&wrong, cols.clone()).is_err(),
+                settle(&wrong, &cols).is_err(),
                 "a wrong claimed sum for table {bad} must be rejected"
             );
         }
@@ -525,8 +523,8 @@ mod tests {
     #[test]
     fn tampered_transcript_is_rejected() {
         let taus = [4usize, 2, 4];
-        let cols = taus.iter().enumerate().map(|(i, &t)| good_table(t, i as u64)).collect();
-        let (proof, ok) = run(&taus, cols);
+        let cols: Vec<Vec<Vec<F64>>> = taus.iter().enumerate().map(|(i, &t)| good_table(t, i as u64)).collect();
+        let (proof, ok) = run(&taus, &cols);
         assert!(ok.is_ok());
         let (xi, zeta) = xi_zeta(&taus);
         let airs = airs_for(&taus, false, xi);

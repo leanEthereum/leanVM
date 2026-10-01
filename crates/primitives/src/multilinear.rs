@@ -267,9 +267,9 @@ fn lagrange_weights(nodes: &[F192], p: F192) -> Vec<F192> {
     (0..n)
         .map(|i| {
             let mut num = F192::ONE;
-            for k in 0..n {
+            for (k, &node) in nodes.iter().enumerate() {
                 if k != i {
-                    num *= p + nodes[k];
+                    num *= p + node;
                 }
             }
             num * denominator

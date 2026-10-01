@@ -60,7 +60,7 @@ impl Alu {
     /// The flag word of a branch with function `funct3`.
     ///
     /// Returns `None` for functions 2 and 3, which are reserved.
-    pub fn branch_flags(funct3: u32) -> Option<u64> {
+    pub const fn branch_flags(funct3: u32) -> Option<u64> {
         let condition = match funct3 {
             0 => Self::BR_EQ,
             1 => Self::BR_NE,

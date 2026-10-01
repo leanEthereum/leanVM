@@ -187,19 +187,13 @@ impl Entry {
             },
 
             // Branches: a comparison by subtraction, and a fixed target.
-            Opcode::Branch => match Alu::branch_flags(f3) {
-                Some(flags) => Self {
-                    target: Target::Abs(pc.wrapping_add(ins.imm_b())),
-                    ..Self::sequential(Class::Alu, flags, rs1, rs2, 0, 0)
-                },
-                None => Self::ILLEGAL,
-            },
+            Opcode::Branch => Alu::branch_flags(f3).map_or(Self::ILLEGAL, |flags| Self {
+                target: Target::Abs(pc.wrapping_add(ins.imm_b())),
+                ..Self::sequential(Class::Alu, flags, rs1, rs2, 0, 0)
+            }),
 
             // Loads: the width and the extension.
-            Opcode::Load => match Load::flags_of(f3) {
-                Some(flags) => imm(Class::Load, flags, ins.imm_i()),
-                None => Self::ILLEGAL,
-            },
+            Opcode::Load => Load::flags_of(f3).map_or(Self::ILLEGAL, |flags| imm(Class::Load, flags, ins.imm_i())),
 
             // Stores: the width, from 1 to 8 bytes.
             Opcode::Store if f3 <= 3 => Self::sequential(Class::Store, f3 as u64, rs1, rs2, 0, ins.imm_s()),
@@ -324,7 +318,7 @@ impl Entry {
     /// An entry with no control flow.
     ///
     /// A destination of `x0` becomes the sink, which nothing reads.
-    fn sequential(class: Class, flags: u64, a1: u32, a2: u32, rd: u32, imm: u64) -> Self {
+    const fn sequential(class: Class, flags: u64, a1: u32, a2: u32, rd: u32, imm: u64) -> Self {
         Self {
             class,
             flags,
@@ -366,7 +360,7 @@ impl Entry {
     /// - A load reads no `rs2`, so its second register is `x0`.
     /// - A store writes no `rd`, so its destination is the sink.
     /// - A hash writes no `rd` and has no immediate.
-    fn has_table_constants(&self) -> bool {
+    const fn has_table_constants(&self) -> bool {
         match self.class {
             Class::Load => self.a2 == 0,
             Class::Store => self.ad == RegisterFile::SINK,

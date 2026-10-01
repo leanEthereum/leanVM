@@ -202,12 +202,12 @@ impl<'a> ElfFile<'a> {
     const SYMBOL_SIZE: u64 = 24;
 
     /// The file of `bytes`.
-    fn new(bytes: &'a [u8]) -> Self {
+    const fn new(bytes: &'a [u8]) -> Self {
         Self(bytes)
     }
 
     /// The file's length in bytes.
-    fn len(&self) -> u64 {
+    const fn len(&self) -> u64 {
         self.0.len() as u64
     }
 
@@ -480,12 +480,12 @@ impl Segment<'_> {
     const PF_W: u32 = 2;
 
     /// Whether the segment holds code.
-    fn is_executable(&self) -> bool {
+    const fn is_executable(&self) -> bool {
         self.flags & Self::PF_X != 0
     }
 
     /// Whether the segment may be written.
-    fn is_writable(&self) -> bool {
+    const fn is_writable(&self) -> bool {
         self.flags & Self::PF_W != 0
     }
 }
@@ -507,7 +507,7 @@ struct Loaded {
 
 impl Loaded {
     /// Nothing placed yet.
-    fn new() -> Self {
+    const fn new() -> Self {
         Self {
             text: Vec::new(),
             image: Vec::new(),

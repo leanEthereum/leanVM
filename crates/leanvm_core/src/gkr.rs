@@ -286,8 +286,8 @@ impl QuaternaryLayerState {
                 [0, 1, 2, 3].map(|child| self.values[lo + child] + F192::ONE),
                 [challenge; 4],
             );
-            for child in 0..4 {
-                self.next[4 * full_rows + child] = self.values[lo + child] + folds[child];
+            for (child, fold) in folds.into_iter().enumerate() {
+                self.next[4 * full_rows + child] = self.values[lo + child] + fold;
             }
         }
         std::mem::swap(&mut self.values, &mut self.next);
@@ -673,8 +673,8 @@ mod tests {
             let mut ps = ProverState::from_label(b"radix-four-gkr-test");
             let proved = prove_products(leaves.each_ref().map(|l| ArenaVec::from_slice(l.as_slice())), &mut ps);
             assert_eq!(proved.roots, expected_roots);
-            for lane in 0..3 {
-                assert_eq!(proved.values[lane], mle_eval_e(&leaves[lane], &proved.point));
+            for (lane, leaf) in leaves.iter().enumerate() {
+                assert_eq!(proved.values[lane], mle_eval_e(leaf, &proved.point));
             }
 
             let proof = ps.into_proof();
@@ -710,14 +710,11 @@ mod tests {
                 leaves.each_ref().map(|l| ArenaVec::from_slice(l.as_slice())),
                 &mut sparse_ps,
             );
-            for lane in 0..3 {
-                assert_eq!(proved.values[lane], mle_eval_e(&dense[lane], &proved.point));
+            for (lane, values) in dense.iter().enumerate() {
+                assert_eq!(proved.values[lane], mle_eval_e(values, &proved.point));
                 assert_eq!(
                     proved.roots[lane],
-                    dense[lane]
-                        .iter()
-                        .copied()
-                        .fold(F192::ONE, |product, value| product * value)
+                    values.iter().copied().fold(F192::ONE, |product, value| product * value)
                 );
             }
             let proof = sparse_ps.into_proof();

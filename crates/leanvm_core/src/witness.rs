@@ -44,10 +44,10 @@ pub enum Placement {
 
 impl Placement {
     /// The column's window, if it is committed.
-    pub fn window(&self) -> Option<Window> {
+    pub const fn window(&self) -> Option<Window> {
         match *self {
-            Placement::Committed(window) => Some(window),
-            Placement::Port { .. } => None,
+            Self::Committed(window) => Some(window),
+            Self::Port { .. } => None,
         }
     }
 }

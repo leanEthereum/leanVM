@@ -157,12 +157,12 @@ fn bench(op: U64Op) {
     let named = witness.mean() + commit_stage.mean() + zerocheck.mean() + lincheck.mean() + open.mean();
     println!(
         "\nFlock {title} batch proving, {} {unit} (2^{n_log} slots)",
-        pretty_integer(n)
+        pretty_integer(&n)
     );
     println!(
         "  block                           : 2^{} bits, {} constrained",
         circuit.k_log(),
-        pretty_integer(circuit.useful_bits())
+        pretty_integer(&(circuit.useful_bits()))
     );
     println!("  setup (circuit, excluded)       : {setup_ms:>8.1} ms");
     println!("  witness-gen                     : {}", ms(&witness));
@@ -188,7 +188,7 @@ fn bench(op: U64Op) {
     );
     println!(
         "  throughput                      : {:>14} {unit}/s{}",
-        pretty_integer((n as f64 / pass_s).round() as u64),
+        pretty_integer(&((n as f64 / pass_s).round() as u64)),
         pass.spread()
     );
 }

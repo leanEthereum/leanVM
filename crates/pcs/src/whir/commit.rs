@@ -66,7 +66,7 @@ pub fn commit(message: &[F64], log_n: usize, log_batch_size: usize, log_inv_rate
         crate::ntt::transpose_lane_major(&mut codeword[..message.len()], message, n_lanes, log_rows);
         let ntt = AdditiveNttF64::standard(k_code);
         ntt.encode_interleaved_in_place_with(&mut codeword, n_lanes, log_inv_rate, &|row, rows| {
-            tree.absorb(row, rows)
+            tree.absorb(row, rows);
         });
     });
     let merkle_tree = tracing::info_span!("Merkle").in_scope(|| tree.finish());
@@ -133,8 +133,8 @@ pub(crate) fn ligero_commit_ext(
     )
     .in_scope(|| {
         encode_interleaved_ext(ntt, &mut mat, poly, num_interleaved, log_inv_rate, &|row, rows| {
-            builder.absorb(row, rows)
-        })
+            builder.absorb(row, rows);
+        });
     });
     let tree = tracing::info_span!("Merkle").in_scope(|| builder.finish());
 

@@ -224,12 +224,12 @@ impl ProverConfig {
     }
 
     /// Variables the L0 lane fold binds, which is also the log of the L0 interleaving.
-    pub fn initial_k(&self) -> usize {
+    pub const fn initial_k(&self) -> usize {
         self.initial_k
     }
 
     /// Recursive levels after L0, at least one.
-    pub fn level_steps(&self) -> usize {
+    pub const fn level_steps(&self) -> usize {
         self.level_ks.len()
     }
 
@@ -551,6 +551,10 @@ fn reduced_rate(log_inv_rate: usize, log_msg_cols: usize) -> f64 {
 /// It is stated for a two-row word, and it is also the fold error of a `2^ℓ`-row word.
 /// The code is linear over the field the fold challenge is drawn from, so affine-line MCA is invariant under row interleaving (Jo, ePrint 2026/891, Thm 4.4).
 /// The PCS annex, Lemma `lem:fold-list`, states both hypotheses.
+#[expect(
+    clippy::suboptimal_flops,
+    reason = "Keep the rounding of the protocol parameter formulas unchanged."
+)]
 fn paper_thm_ca_johnson_log_a(log_inv_rate: usize, eta: f64, log_msg_cols: usize) -> f64 {
     let rho = reduced_rate(log_inv_rate, log_msg_cols);
     let sqrt_rho = rho.sqrt();
@@ -667,7 +671,7 @@ fn johnson_algebraic_bits(level: &WhirLevelConfig, prev_queries: usize) -> f64 {
 }
 
 /// The query count the batch at `levels[i]` carries claims from.
-fn prev_queries_at(levels: &[WhirLevelConfig], i: usize) -> usize {
+const fn prev_queries_at(levels: &[WhirLevelConfig], i: usize) -> usize {
     if i == 0 { 0 } else { levels[i - 1].queries }
 }
 
@@ -685,6 +689,10 @@ fn prev_queries_at(levels: &[WhirLevelConfig], i: usize) -> usize {
 ///   evaluation claim sits at a post-commit random point, so at most one
 ///   list member matches it except with `L·μ/|F|` (union over the list, not
 ///   pairs): `bits = 192 − log₂ L_int − log₂ μ`.
+#[expect(
+    clippy::suboptimal_flops,
+    reason = "Keep the rounding of the protocol parameter formulas unchanged."
+)]
 fn paper_ood_bits(log_inv_rate: usize, log_msg_cols: usize, eta: f64, mu_vars: usize, ood_samples: usize) -> f64 {
     let log2_l = johnson_interleaved_list_log2(log_inv_rate, log_msg_cols, eta);
     let log2_mu = (mu_vars as f64).log2();
@@ -709,6 +717,10 @@ struct OptimizedJohnsonLevel {
 /// the proximity-gap bound; this boundary maximizes query soundness for the
 /// given `m`. Step upward by an ulp if floating-point division lands just
 /// below the intended ceil boundary.
+#[expect(
+    clippy::while_float,
+    reason = "Advance by one ULP until the rounded theorem parameter satisfies the integer bound."
+)]
 fn johnson_eta_for_m(log_inv_rate: usize, log_msg_cols: usize, m: usize) -> f64 {
     debug_assert!(m >= 3);
     let sqrt_rho = reduced_rate(log_inv_rate, log_msg_cols).sqrt();
@@ -1125,17 +1137,17 @@ mod tests {
 
         println!(
             "num_vars={}, rate=1/{}",
-            pretty_integer(num_vars),
-            pretty_integer(1usize << log_inv_rate)
+            pretty_integer(&num_vars),
+            pretty_integer(&(1usize << log_inv_rate))
         );
         for (level, params) in cfg.levels.iter().enumerate() {
             let eta = params.eta;
             println!(
                 "L{}: rate=1/{}, queries={}, eta={eta:.12e}, m={}",
-                pretty_integer(level),
-                pretty_integer(1usize << params.log_inv_rate),
-                pretty_integer(params.queries),
-                pretty_integer(johnson_m_param(params.log_inv_rate, params.log_msg_cols, eta) as usize),
+                pretty_integer(&level),
+                pretty_integer(&(1usize << params.log_inv_rate)),
+                pretty_integer(&params.queries),
+                pretty_integer(&(johnson_m_param(params.log_inv_rate, params.log_msg_cols, eta) as usize)),
             );
         }
     }

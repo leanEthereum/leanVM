@@ -118,7 +118,7 @@ impl Entry {
 }
 
 /// Sign-extend the low 32 bits of `x`.
-fn sext32(x: u64) -> u64 {
+const fn sext32(x: u64) -> u64 {
     x as u32 as i32 as i64 as u64
 }
 

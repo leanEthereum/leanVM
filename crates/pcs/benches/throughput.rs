@@ -96,12 +96,12 @@ fn main() {
 
     println!(
         "\nPCS throughput: 2^{log_n} variables, rate 1/2^{log_inv_rate}, mean of {}",
-        pretty_integer(plan.repeat)
+        pretty_integer(&plan.repeat)
     );
     println!(
         "  committed data                  : {:>8.1} MiB  ({:>13} F64)",
         mib(data_bytes),
-        pretty_integer(n)
+        pretty_integer(&n)
     );
     println!("  RS codeword (encoded)           : {:>8.1} MiB", mib(codeword_bytes));
     println!("  ------------------------------------------------------------");

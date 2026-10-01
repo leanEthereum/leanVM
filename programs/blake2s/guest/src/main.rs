@@ -81,5 +81,7 @@ extern "C" fn main() {
     }
     compress(&mut h, &block, done + filled as u64, true);
     commit(&length);
-    commit(&core::array::from_fn::<u64, 4, _>(|i| h[2 * i] as u64 | (h[2 * i + 1] as u64) << 32));
+    commit(&core::array::from_fn::<u64, 4, _>(|i| {
+        h[2 * i] as u64 | (h[2 * i + 1] as u64) << 32
+    }));
 }

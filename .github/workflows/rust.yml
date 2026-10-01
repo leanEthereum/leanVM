@@ -33,8 +33,19 @@ jobs:
         run: cargo testall
 
   clippy:
-    name: Clippy
-    runs-on: ubuntu-latest
+    name: Clippy (${{ matrix.arch }})
+    strategy:
+      matrix:
+        include:
+          - arch: x86-64
+            runner: ubuntu-latest
+            rustflags: -C target-cpu=haswell
+          - arch: ARM64
+            runner: ubuntu-24.04-arm
+            rustflags: -C target-cpu=neoverse-n2 -C target-feature=+aes,+sha3
+    runs-on: ${{ matrix.runner }}
+    env:
+      RUSTFLAGS: ${{ matrix.rustflags }}
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -43,6 +54,27 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: Clippy
         run: cargo clippyall
+
+  clippy-guests:
+    name: Clippy (RISC-V guests)
+    runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: ""
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: clippy, rust-src, rustfmt
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: programs -> target
+      - name: Clippy
+        run: programs/clippy.sh
+      - name: Check formatting
+        run: |
+          for guest in programs/*/guest; do
+            cargo fmt --manifest-path "$guest/Cargo.toml" -- --check
+          done
 
   doc:
     name: Rustdoc

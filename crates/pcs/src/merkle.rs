@@ -148,12 +148,12 @@ impl Nodes {
     }
 
     /// Nodes on `level`.
-    fn width(&self, level: usize) -> usize {
+    const fn width(&self, level: usize) -> usize {
         self.num_leaves >> level
     }
 
     /// Index of `level`'s first node.
-    fn start(&self, level: usize) -> usize {
+    const fn start(&self, level: usize) -> usize {
         2 * self.num_leaves - ((2 * self.num_leaves) >> level)
     }
 
@@ -301,7 +301,7 @@ impl LeafHasher {
         }
     }
 
-    fn row_bytes(&self) -> usize {
+    const fn row_bytes(&self) -> usize {
         match *self {
             Self::Direct { row_bytes, .. } | Self::Staged { row_bytes, .. } | Self::Single { row_bytes, .. } => {
                 row_bytes
@@ -357,7 +357,7 @@ impl LeafHasher {
 struct Tile([u64; STAGE_TILE_BYTES / 8]);
 
 impl Tile {
-    fn new() -> Self {
+    const fn new() -> Self {
         Self([0; STAGE_TILE_BYTES / 8])
     }
 
@@ -375,12 +375,12 @@ impl Tile {
     }
 }
 
-fn words_as_bytes(words: &[F64]) -> &[u8] {
+const fn words_as_bytes(words: &[F64]) -> &[u8] {
     // SAFETY: F64 is repr(transparent) over u64, so on this LE target the slice is its words' byte image.
     unsafe { std::slice::from_raw_parts(words.as_ptr().cast(), std::mem::size_of_val(words)) }
 }
 
-fn digests_as_bytes(out: &mut [MaybeUninit<Hash>]) -> &mut [u8] {
+const fn digests_as_bytes(out: &mut [MaybeUninit<Hash>]) -> &mut [u8] {
     // SAFETY: a digest is 32 bytes with no padding, and the hasher only writes.
     unsafe { std::slice::from_raw_parts_mut(out.as_mut_ptr().cast(), out.len() * OUT_LEN) }
 }

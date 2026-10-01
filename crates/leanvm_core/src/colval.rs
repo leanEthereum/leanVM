@@ -35,8 +35,8 @@ pub trait ColVal: Copy + Send + Sync + Add<Output = Self> + Mul<Output = Self> {
 }
 
 impl ColVal for F64 {
-    const ZERO: Self = F64::ZERO;
-    const ONE: Self = F64::ONE;
+    const ZERO: Self = Self::ZERO;
+    const ONE: Self = Self::ONE;
 
     type Unreduced = F192Unreduced;
 
@@ -70,8 +70,8 @@ impl ColVal for F64 {
 }
 
 impl ColVal for F192 {
-    const ZERO: Self = F192::ZERO;
-    const ONE: Self = F192::ONE;
+    const ZERO: Self = Self::ZERO;
+    const ONE: Self = Self::ONE;
 
     type Unreduced = F192Unreduced;
 

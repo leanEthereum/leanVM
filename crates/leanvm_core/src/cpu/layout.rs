@@ -29,12 +29,12 @@ pub const FRAMEWORK: [Framework; 4] = [
 
 impl Framework {
     /// `log2` of the block's rows: one per cell of the array.
-    pub fn log_rows(self, sizes: Sizes) -> usize {
+    pub const fn log_rows(self, sizes: Sizes) -> usize {
         match self {
-            Framework::State => 0,
-            Framework::Registers => RegisterFile::LOG_CELLS,
-            Framework::Ram => sizes.log_ram,
-            Framework::Advice => sizes.log_advice,
+            Self::State => 0,
+            Self::Registers => RegisterFile::LOG_CELLS,
+            Self::Ram => sizes.log_ram,
+            Self::Advice => sizes.log_advice,
         }
     }
 }
@@ -51,16 +51,16 @@ pub const LOOKUPS: [Lookup; 1] = [Lookup::Bytecode];
 
 impl Lookup {
     /// `log2` of the array's entries.
-    pub fn log_rows(self, sizes: Sizes) -> usize {
+    pub const fn log_rows(self, sizes: Sizes) -> usize {
         match self {
-            Lookup::Bytecode => sizes.log_bytecode,
+            Self::Bytecode => sizes.log_bytecode,
         }
     }
 
     /// The committed column of how often each entry is read.
     pub const fn multiplicity(self) -> Shared {
         match self {
-            Lookup::Bytecode => Shared::BytecodeMult,
+            Self::Bytecode => Shared::BytecodeMult,
         }
     }
 }
@@ -106,12 +106,12 @@ impl Shared {
     }
 
     /// `log2` of the column's rows: one per cell or entry of its array.
-    fn log_rows(self, sizes: Sizes) -> usize {
+    const fn log_rows(self, sizes: Sizes) -> usize {
         match self {
-            Shared::RegFin | Shared::RegTs => Framework::Registers.log_rows(sizes),
-            Shared::RamFin | Shared::RamTs => Framework::Ram.log_rows(sizes),
-            Shared::AdvInit | Shared::AdvFin | Shared::AdvTs => Framework::Advice.log_rows(sizes),
-            Shared::BytecodeMult => Lookup::Bytecode.log_rows(sizes),
+            Self::RegFin | Self::RegTs => Framework::Registers.log_rows(sizes),
+            Self::RamFin | Self::RamTs => Framework::Ram.log_rows(sizes),
+            Self::AdvInit | Self::AdvFin | Self::AdvTs => Framework::Advice.log_rows(sizes),
+            Self::BytecodeMult => Lookup::Bytecode.log_rows(sizes),
         }
     }
 
@@ -119,14 +119,14 @@ impl Shared {
     /// [`count_reads`] counts from the rows.
     fn values(self, tr: &Trace) -> Option<&[F64]> {
         Some(match self {
-            Shared::RegFin => &tr.reg_fin,
-            Shared::RegTs => &tr.reg_ts,
-            Shared::RamFin => &tr.ram_fin,
-            Shared::RamTs => &tr.ram_ts,
-            Shared::AdvInit => &tr.adv_init,
-            Shared::AdvFin => &tr.adv_fin,
-            Shared::AdvTs => &tr.adv_ts,
-            Shared::BytecodeMult => return None,
+            Self::RegFin => &tr.reg_fin,
+            Self::RegTs => &tr.reg_ts,
+            Self::RamFin => &tr.ram_fin,
+            Self::RamTs => &tr.ram_ts,
+            Self::AdvInit => &tr.adv_init,
+            Self::AdvFin => &tr.adv_fin,
+            Self::AdvTs => &tr.adv_ts,
+            Self::BytecodeMult => return None,
         })
     }
 }

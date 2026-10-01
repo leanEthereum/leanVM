@@ -60,9 +60,9 @@ impl InvNttTableByteSingleGf8 {
         // T_0[0] already zero. T_0[2^t] = cols[t]. Then for non-power-of-two w,
         // T_0[w] = T_0[w ^ lo_bit] ⊕ T_0[lo_bit]; this builds all 256 entries
         // with one XOR per entry.
-        for t in 0..8 {
+        for (t, col) in cols.iter().enumerate() {
             let entry_start = (1usize << t) * ell;
-            data[entry_start..entry_start + ell].copy_from_slice(&cols[t]);
+            data[entry_start..entry_start + ell].copy_from_slice(col);
         }
         for w in 3usize..256 {
             if (w & (w - 1)) == 0 {
@@ -85,7 +85,7 @@ impl InvNttTableByteSingleGf8 {
     /// the URM fused inner kernel, which can't go through the safe slice API
     /// without losing the register-fused layout.
     #[inline]
-    pub fn data_ptr(&self) -> *const u8 {
+    pub const fn data_ptr(&self) -> *const u8 {
         self.data.as_ptr() as *const u8
     }
 
@@ -212,10 +212,10 @@ impl InvNttTableByteSingleGf8 {
             }
 
             // b ≥ 1: XOR with table row[bytes[b]], permuted.
-            for b in 1..self.n_chunks {
+            for (b, &byte) in bytes.iter().enumerate().take(self.n_chunks).skip(1) {
                 let b_high = b >> 1;
                 let b_odd = (b & 1) != 0;
-                let row_b = base.add(bytes[b] as usize * self.ell);
+                let row_b = base.add(byte as usize * self.ell);
                 if b_odd {
                     for c in 0..n128 {
                         let v = V::load(row_b.add((c ^ b_high) * 16)).swap64();

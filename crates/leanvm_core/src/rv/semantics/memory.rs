@@ -29,7 +29,7 @@ impl Load {
     /// - 4 to 6 are `lbu`, `lhu` and `lwu`: unsigned, of width 2^(funct3 - 4).
     ///
     /// Returns `None` for function 7, which is reserved.
-    pub fn flags_of(funct3: u32) -> Option<u64> {
+    pub const fn flags_of(funct3: u32) -> Option<u64> {
         match funct3 {
             0..=2 => Some(Self::SIGNED | funct3 as u64),
             3 => Some(3),
@@ -143,7 +143,7 @@ pub struct WordAccess {
 
 impl WordAccess {
     /// A load's or a store's byte address: `v1 + imm`.
-    pub fn address(v1: u64, imm: u64) -> u64 {
+    pub const fn address(v1: u64, imm: u64) -> u64 {
         v1.wrapping_add(imm)
     }
 
@@ -160,12 +160,12 @@ impl WordAccess {
     /// - at `0x...08` puts `0x...08` on the bus, its cell;
     /// - at `0x...0c` also puts `0x...08` on the bus, the same cell's high half;
     /// - at `0x...0a` puts `0x...0a` on the bus, which is no cell.
-    pub fn bus_address(address: u64, log_width: u64) -> u64 {
+    pub const fn bus_address(address: u64, log_width: u64) -> u64 {
         (address & !7) | (address & ((1 << log_width) - 1))
     }
 
     /// Whether an access of `2^log_width` bytes at `address` is naturally aligned.
-    pub fn is_aligned(address: u64, log_width: u64) -> bool {
+    pub const fn is_aligned(address: u64, log_width: u64) -> bool {
         address & ((1 << log_width) - 1) == 0
     }
 }

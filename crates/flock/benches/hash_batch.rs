@@ -179,7 +179,7 @@ fn main() {
     let named = witness.mean() + commit_stage.mean() + zerocheck.mean() + lincheck.mean() + open.mean();
     println!(
         "\nFlock BLAKE2s batch proving, {} compressions (2^{n_log} slots)",
-        pretty_integer(n)
+        pretty_integer(&n)
     );
     println!("  setup (preprocessing, excluded) : {setup_ms:>8.1} ms");
     println!("  witness-gen                     : {}", ms(&witness));
@@ -203,7 +203,7 @@ fn main() {
     let compressions_per_second = (n as f64 / prove_s).round() as u64;
     println!(
         "  throughput                      : {:>14} compressions/s{}",
-        pretty_integer(compressions_per_second),
+        pretty_integer(&compressions_per_second),
         prove.spread()
     );
 }

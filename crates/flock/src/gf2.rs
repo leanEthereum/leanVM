@@ -180,7 +180,7 @@ pub(crate) enum MatrixSide {
 
 impl MatrixSide {
     #[inline]
-    pub(crate) fn split(self, value: F192) -> (F192, F192) {
+    pub(crate) const fn split(self, value: F192) -> (F192, F192) {
         match self {
             Self::A => (value, F192::ZERO),
             Self::B => (F192::ZERO, value),

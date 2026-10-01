@@ -94,7 +94,7 @@ pub struct PaddingSpec {
 
 impl PaddingSpec {
     /// Treat every bit as useful.
-    pub fn dense(m: usize) -> Self {
+    pub const fn dense(m: usize) -> Self {
         Self {
             k_log: m,
             useful_bits_per_block: 1usize << m,
@@ -432,8 +432,7 @@ pub fn verify(log_n: usize, vs: &mut VerifierState<'_>) -> Result<ZerocheckClaim
     //      where `G(X) = G(0)·(1+X) + G(1)·X + G(∞)·X·(X+1)` (char-2 quadratic
     //      interpolation through G(0), G(1), G(∞)).
     let mut mlv_chis: Vec<F192> = Vec::with_capacity(n_mlv);
-    for i in 0..n_mlv {
-        let r_eq = r_rest[i];
+    for &r_eq in &r_rest[..n_mlv] {
         let g = vs.next_round_poly(3, c_running, Some(r_eq))?;
         let chi = vs.sample();
         mlv_chis.push(chi);

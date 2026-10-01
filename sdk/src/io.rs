@@ -26,7 +26,7 @@ unsafe impl<T: Words, const N: usize> Words for [T; N] {}
 /// # Safety
 ///
 /// `T` is words only, as [`Words`] says.
-pub unsafe fn as_words_unchecked<T>(value: &T) -> &[u64] {
+pub const unsafe fn as_words_unchecked<T>(value: &T) -> &[u64] {
     const { assert_words::<T>() };
     // SAFETY: `T` is its words with no padding (the caller's).
     unsafe { core::slice::from_raw_parts((value as *const T).cast(), size_of::<T>() / 8) }

@@ -49,7 +49,7 @@ pub enum Coord {
     /// with it the identity that would have tied the two. Like [`Coord::Prod`],
     /// only a table's blocks may carry one: the table sumcheck settles them,
     /// while a framework block has to split into per-column openings.
-    Sum(Vec<Coord>),
+    Sum(Vec<Self>),
 }
 
 /// A public column of `2^log_len` words given by its nonzero stretches, each cut into
@@ -122,7 +122,7 @@ pub struct Block {
 
 impl Block {
     /// A block no table owns.
-    pub fn framework(kappa: usize, coords: Vec<Coord>) -> Self {
+    pub const fn framework(kappa: usize, coords: Vec<Coord>) -> Self {
         Self {
             kappa,
             coords,
@@ -131,7 +131,7 @@ impl Block {
     }
 
     /// A block of table `owner`.
-    pub fn table(owner: usize, kappa: usize, coords: Vec<Coord>) -> Self {
+    pub const fn table(owner: usize, kappa: usize, coords: Vec<Coord>) -> Self {
         Self {
             kappa,
             coords,
@@ -905,7 +905,7 @@ impl<'a> BusSetup<'a> {
     }
 
     /// The depth of the batched GKR.
-    fn mu(&self) -> usize {
+    const fn mu(&self) -> usize {
         self.sides[0].lay.mu
     }
 

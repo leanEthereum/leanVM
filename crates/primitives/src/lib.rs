@@ -15,16 +15,16 @@ pub mod test_rng;
 
 /// Format an integer with comma-separated groups of three decimal digits.
 ///
-/// This accepts every standard signed and unsigned integer type through its
-/// [`ToString`] representation. A leading sign is preserved.
+/// Signed and unsigned integers are accepted by reference.
+/// A leading sign is preserved.
 ///
 /// ```
 /// use primitives::pretty_integer;
 ///
-/// assert_eq!(pretty_integer(16_769_432), "16,769,432");
-/// assert_eq!(pretty_integer(-12_345), "-12,345");
+/// assert_eq!(pretty_integer(&16_769_432), "16,769,432");
+/// assert_eq!(pretty_integer(&-12_345), "-12,345");
 /// ```
-pub fn pretty_integer(value: impl ToString) -> String {
+pub fn pretty_integer(value: &(impl ToString + ?Sized)) -> String {
     let raw = value.to_string();
     let (sign, digits) = match raw.as_bytes().first() {
         Some(b'+' | b'-') => raw.split_at(1),
@@ -103,7 +103,7 @@ pub fn log2_strict_usize(n: usize) -> usize {
 }
 
 /// `ceil(log2(n))`, defined as 0 for `n <= 1`.
-pub fn log2_ceil_usize(n: usize) -> usize {
+pub const fn log2_ceil_usize(n: usize) -> usize {
     if n <= 1 { 0 } else { (n - 1).ilog2() as usize + 1 }
 }
 
@@ -163,16 +163,16 @@ mod formatting_tests {
 
     #[test]
     fn pretty_integer_groups_decimal_digits() {
-        assert_eq!(pretty_integer(0), "0");
-        assert_eq!(pretty_integer(12), "12");
-        assert_eq!(pretty_integer(999), "999");
-        assert_eq!(pretty_integer(1_000), "1,000");
-        assert_eq!(pretty_integer(16_769_432), "16,769,432");
+        assert_eq!(pretty_integer(&0), "0");
+        assert_eq!(pretty_integer(&12), "12");
+        assert_eq!(pretty_integer(&999), "999");
+        assert_eq!(pretty_integer(&1_000), "1,000");
+        assert_eq!(pretty_integer(&16_769_432), "16,769,432");
         assert_eq!(
-            pretty_integer(u128::MAX),
+            pretty_integer(&u128::MAX),
             "340,282,366,920,938,463,463,374,607,431,768,211,455"
         );
-        assert_eq!(pretty_integer(-12_345), "-12,345");
+        assert_eq!(pretty_integer(&-12_345), "-12,345");
         assert_eq!(pretty_integer("+123456"), "+123,456");
     }
 

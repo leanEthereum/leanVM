@@ -204,10 +204,10 @@ fn wait_for_dispatch(pool: &Pool, id: usize, last_generation: usize) -> usize {
     }
 }
 
-/// Claim and run item ranges until the counter is exhausted. Each claim takes
-/// `remaining / (2·workers)`, clamped to `1..=`[`MAX_CLAIM_BATCH`]: big early
-/// claims cut counter contention, and the proportional shrink keeps the tail
-/// balanced across cores of different speeds.
+/// Claim item ranges until the counter is exhausted.
+/// Each claim takes half the remaining items per worker, within the batch limits.
+/// Large early claims reduce contention.
+/// Smaller late claims balance cores of different speeds.
 fn drain(pool: &Pool) {
     // SAFETY: the dispatcher published `Some(job)` before opening it, and this worker
     // saw it open after counting itself in. The dispatcher overwrites it only on the
@@ -346,7 +346,7 @@ impl<T> SendPtr<T> {
     /// `n` stays inside the allocation, and any write targets a slot no
     /// concurrent task touches.
     #[inline]
-    pub unsafe fn add(&self, n: usize) -> *mut T {
+    pub const unsafe fn add(&self, n: usize) -> *mut T {
         // SAFETY: the caller keeps `n` inside the allocation.
         unsafe { self.0.add(n) }
     }
@@ -357,7 +357,7 @@ impl<T> SendPtr<T> {
     /// `off`/`len` are in bounds and disjoint from every other concurrent task's
     /// slice, and the underlying buffer outlives `'a`.
     #[inline]
-    pub unsafe fn slice<'a>(&self, off: usize, len: usize) -> &'a mut [T] {
+    pub const unsafe fn slice<'a>(&self, off: usize, len: usize) -> &'a mut [T] {
         // SAFETY: the caller guarantees `off..off + len` is in bounds, borrowed by no other task, and alive for `'a`.
         unsafe { std::slice::from_raw_parts_mut(self.0.add(off), len) }
     }

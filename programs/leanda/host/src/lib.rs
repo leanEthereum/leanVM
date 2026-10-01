@@ -109,7 +109,7 @@ fn dual_codeword(root: &Hash) -> Vec<Dual> {
 }
 
 /// Symbols as the field elements they are, in place.
-fn as_field(words: &mut [u64]) -> &mut [F64] {
+const fn as_field(words: &mut [u64]) -> &mut [F64] {
     // SAFETY: `F64` is `repr(transparent)` over `u64`, every bit pattern valid.
     unsafe { core::slice::from_raw_parts_mut(words.as_mut_ptr().cast(), words.len()) }
 }
@@ -166,9 +166,13 @@ mod tests {
             // Solve for `L_0`, limb by limb, so that the inner product is zero:
             //
             //     L_0 w_0 + sum_{x >= 1} L_x w_x = 0   =>   L_0 = (sum_{x >= 1} L_x w_x) / w_0
-            for c in 0..3 {
-                let rest = (1..M).fold(F64::ZERO, |acc, x| acc + F64(dual[x][c]) * F64(row[x]));
-                dual[0][c] = (rest * F64(row[0]).inv()).0;
+            let (first, tail) = dual.split_first_mut().unwrap();
+            for (c, limb) in first.iter_mut().enumerate() {
+                let rest = tail
+                    .iter()
+                    .zip(&row[1..])
+                    .fold(F64::ZERO, |acc, (dual, &value)| acc + F64(dual[c]) * F64(value));
+                *limb = (rest * F64(row[0]).inv()).0;
             }
             let row: &[[u64; M]] = &[row.try_into().unwrap()];
             let check = |dual: &[Dual], cells: &mut [[leanda::Hash; CELLS]]| {

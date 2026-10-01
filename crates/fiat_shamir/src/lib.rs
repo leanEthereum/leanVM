@@ -107,7 +107,7 @@ impl FiatShamirState {
     }
 
     /// The current 256-bit chaining value.
-    pub fn state(&self) -> [F64; 4] {
+    pub const fn state(&self) -> [F64; 4] {
         self.cv
     }
 

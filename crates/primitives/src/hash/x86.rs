@@ -185,7 +185,7 @@ impl Lanes32 for Avx512 {
                 m[1].as_ptr().cast(),
                 t,
                 last,
-            )
+            );
         }
     }
 

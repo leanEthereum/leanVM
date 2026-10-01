@@ -16,7 +16,7 @@ pub use inv_table::InvNttTableByteSingleGf8;
 /// `next_s(s, root) = s² + root · s = s · (s + root)`.
 #[inline]
 fn next_s(s: F8, s_at_root: F8) -> F8 {
-    s * s + s_at_root * s
+    s * (s + s_at_root)
 }
 
 /// Build the size-(2^k − 1) twiddle table for the additive NTT.
@@ -125,10 +125,10 @@ impl AdditiveNttGf8 {
         }
     }
 
-    pub fn k(&self) -> usize {
+    pub const fn k(&self) -> usize {
         self.k
     }
-    fn domain_size(&self) -> usize {
+    const fn domain_size(&self) -> usize {
         1usize << self.k
     }
 

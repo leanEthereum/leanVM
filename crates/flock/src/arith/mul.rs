@@ -55,7 +55,7 @@ struct Csa {
 }
 
 /// A row's `(highest, lowest)` position.
-fn ends(row: u128) -> (u32, u32) {
+const fn ends(row: u128) -> (u32, u32) {
     (127 - row.leading_zeros(), row.trailing_zeros())
 }
 
@@ -89,9 +89,9 @@ impl Multiplier {
         // is what `g` and the constant 1 replace.
         let mut rows = vec![vec![None; n]; N_ROWS];
         for i in 0..64usize {
-            for j in 0..64 {
+            for (j, &bj) in b.iter().enumerate() {
                 if let Some(p) = (i + j).checked_sub(1).filter(|&p| p < n) {
-                    rows[i][p] = c.xor(b[j], not_a[i]);
+                    rows[i][p] = c.xor(bj, not_a[i]);
                 }
             }
         }
@@ -178,8 +178,7 @@ impl Multiplier {
         let mut carries = 0u128;
         let mut carry = None;
         let mut product = Vec::with_capacity(n);
-        for p in 0..n {
-            let (wx, wy) = (rows[x][p], rows[y][p]);
+        for (p, (&wx, &wy)) in rows[x].iter().zip(&rows[y]).enumerate() {
             let out = if p + 1 < n && [wx, wy, carry].iter().flatten().count() >= 2 {
                 carries |= 1 << p;
                 let xc = c.xor(wx, carry);

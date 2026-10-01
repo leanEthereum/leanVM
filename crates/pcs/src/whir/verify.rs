@@ -76,12 +76,12 @@ struct PrevLevel {
 
 impl PrevLevel {
     #[inline]
-    fn block_len(&self) -> usize {
+    const fn block_len(&self) -> usize {
         1usize << (self.log_msg_cols + self.log_inv_rate)
     }
 
     #[inline]
-    fn num_interleaved(&self) -> usize {
+    const fn num_interleaved(&self) -> usize {
         1usize << self.log_num_interleaved
     }
 

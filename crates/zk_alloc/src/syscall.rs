@@ -42,6 +42,13 @@ pub unsafe fn reserve(size: usize) -> *mut u8 {
 ///
 /// # Safety
 /// `ptr`/`size` must describe a live mapping from [`reserve`].
+#[cfg_attr(
+    not(all(target_os = "linux", not(miri))),
+    expect(
+        clippy::missing_const_for_fn,
+        reason = "The Linux implementation adjusts runtime memory allocation."
+    )
+)]
 pub unsafe fn disable_huge_pages(ptr: *mut u8, size: usize) {
     #[cfg(all(target_os = "linux", not(miri)))]
     // SAFETY: the caller guarantees `[ptr, ptr + size)` is a live mapping.
@@ -57,6 +64,13 @@ pub unsafe fn disable_huge_pages(ptr: *mut u8, size: usize) {
 /// Stop glibc from returning freed memory to the kernel.
 ///
 /// No-op outside Linux, and under Miri, which has no `mallopt`.
+#[cfg_attr(
+    not(all(target_os = "linux", not(miri))),
+    expect(
+        clippy::missing_const_for_fn,
+        reason = "The Linux implementation adjusts runtime memory allocation."
+    )
+)]
 pub fn retain_system_heap() {
     #[cfg(all(target_os = "linux", not(miri)))]
     // SAFETY: `mallopt` only adjusts allocator tuning parameters.

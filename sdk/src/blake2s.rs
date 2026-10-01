@@ -186,7 +186,7 @@ mod portable {
     ];
 
     /// The 32-bit little-endian lane `i` of a word array.
-    fn lane(words: &[u64], i: usize) -> u32 {
+    const fn lane(words: &[u64], i: usize) -> u32 {
         (words[i / 2] >> (32 * (i % 2))) as u32
     }
 

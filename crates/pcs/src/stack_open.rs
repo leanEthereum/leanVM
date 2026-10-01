@@ -99,9 +99,9 @@ pub enum StackClaim {
 
 impl StackClaim {
     #[inline]
-    pub fn value(&self) -> F192 {
+    pub const fn value(&self) -> F192 {
         match self {
-            StackClaim::Point { value, .. } | StackClaim::Strided { value, .. } => *value,
+            Self::Point { value, .. } | Self::Strided { value, .. } => *value,
         }
     }
 }
@@ -604,7 +604,7 @@ mod tests {
         // bound by the caller, as flock binds its family.
         let ring_verify = vec![RingSwitchClaim {
             suffix_point,
-            s_hat_v: Some(s_hat_v.clone()),
+            s_hat_v: Some(s_hat_v),
         }];
 
         let pc = test_config_for(log_n);
@@ -766,7 +766,7 @@ mod tests {
         let claims = vec![RingSwitchClaim {
             suffix_point,
             // Exercise the precomputed path (transcript must be identical).
-            s_hat_v: Some(s_hat_v.clone()),
+            s_hat_v: Some(s_hat_v),
         }];
 
         // Fixed fallback config so the residual cube size is known: the

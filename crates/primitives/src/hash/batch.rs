@@ -75,10 +75,10 @@ pub(super) trait Lanes32: Copy {
         // Gather into rows of 16 words, the widest backend's lane count.
         let mut words = [[0u32; 16]; 16];
         for lane in 0..Self::WIDTH {
-            for w in 0..16 {
+            for (w, row) in words.iter_mut().enumerate() {
                 // SAFETY: the caller guarantees 64 readable bytes per input.
                 let word = unsafe { src.add(lane * stride + 4 * w).cast::<u32>().read_unaligned() };
-                words[w][lane] = u32::from_le(word);
+                row[lane] = u32::from_le(word);
             }
         }
         // SAFETY: each row holds 16 >= WIDTH words.
@@ -105,7 +105,7 @@ pub(super) trait Lanes32: Copy {
                 // SAFETY: `lane * 32 + i * 4 + 4 <= WIDTH * 32`.
                 unsafe {
                     out.add(lane * OUT_LEN + 4 * i)
-                        .copy_from_nonoverlapping(bytes.as_ptr(), 4)
+                        .copy_from_nonoverlapping(bytes.as_ptr(), 4);
                 };
             }
         }

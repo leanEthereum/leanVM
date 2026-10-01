@@ -205,8 +205,8 @@ pub fn fold_1b_rows(packed_witness: &[F64], suffix_tensor: &[F192]) -> Vec<F192>
 /// XOR-reduce two per-worker partial accumulators of the bit-slice folds
 /// (E addition is XOR, so the reduction order does not matter).
 fn xor_accs(mut a: Vec<F192>, b: Vec<F192>) -> Vec<F192> {
-    for (av, bv) in a.iter_mut().zip(b.iter()) {
-        *av += *bv;
+    for (av, bv) in a.iter_mut().zip(b) {
+        *av += bv;
     }
     a
 }
@@ -398,18 +398,18 @@ pub fn prove_prepare(
         "packed witness must have 2^|suffix_point| words"
     );
     let (eq_lo, eq_hi) = build_eq_split_ext(suffix_point);
-    let s_hat_v = match precomputed_s_hat_v {
-        Some(v) => {
-            assert_eq!(v.len(), PACKING_WIDTH);
-            v.to_vec()
-        }
-        None => {
+    let s_hat_v = precomputed_s_hat_v.map_or_else(
+        || {
             let mask = eq_lo.len() - 1;
             let shift = eq_lo.len().trailing_zeros();
             let full: Vec<F192> = parallel::map_collect(packed_witness.len(), |y| eq_lo[y & mask] * eq_hi[y >> shift]);
             fold_1b_rows(packed_witness, &full)
-        }
-    };
+        },
+        |v| {
+            assert_eq!(v.len(), PACKING_WIDTH);
+            v.to_vec()
+        },
+    );
     RingSwitchProveState { s_hat_v, eq_lo, eq_hi }
 }
 

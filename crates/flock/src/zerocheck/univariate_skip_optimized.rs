@@ -232,6 +232,10 @@ fn convert_table() -> &'static ConvertTable {
 // it out keeps the four loads visibly parallel.
 #[allow(clippy::identity_op)]
 #[inline(always)]
+#[expect(
+    clippy::too_many_arguments,
+    reason = "Separate NEON accumulators preserve the register layout of the fused kernel."
+)]
 unsafe fn xor_apply_byte_into_8_regs<const BH: usize>(
     table_base: *const u8,
     a_byte: u8,
@@ -277,6 +281,10 @@ unsafe fn xor_apply_byte_into_8_regs<const BH: usize>(
 /// `table_base` points to a `256 * 64`-byte table, and `a_row` and `b_row` to `N_CHUNKS` readable bytes each.
 #[cfg(target_arch = "aarch64")]
 #[inline(always)]
+#[expect(
+    clippy::too_many_arguments,
+    reason = "Separate NEON accumulators preserve the register layout of the fused kernel."
+)]
 unsafe fn fused_apply_one_k<const K: i32>(
     table_base: *const u8,
     a_row: *const u8,
@@ -676,7 +684,7 @@ struct Convert {
     target_feature = "avx512vbmi"
 )))]
 impl Convert {
-    fn new() -> Self {
+    const fn new() -> Self {
         Self {
             ab: [F192::ZERO; ELL],
             c: [F192::ZERO; ELL],
@@ -699,7 +707,7 @@ impl Convert {
         }
     }
 
-    fn values(&self) -> ([F192; ELL], [F192; ELL]) {
+    const fn values(&self) -> ([F192; ELL], [F192; ELL]) {
         (self.ab, self.c)
     }
 }
@@ -731,7 +739,7 @@ struct Convert {
     target_feature = "avx512vbmi"
 ))]
 impl Convert {
-    fn new() -> Self {
+    const fn new() -> Self {
         // SAFETY: an all-zero bit pattern is a valid register value.
         unsafe { core::mem::zeroed() }
     }
@@ -819,11 +827,11 @@ struct WorkerState {
 
 impl WorkerState {
     /// The two accumulators, once every claimed `x_hi` has been folded in.
-    fn into_results(self) -> ([F192; ELL], [F192; ELL]) {
+    const fn into_results(self) -> ([F192; ELL], [F192; ELL]) {
         (self.local_res_ab, self.local_res_c_s)
     }
 
-    fn new() -> Self {
+    const fn new() -> Self {
         Self {
             partials: Convert::new(),
             chunk_ab_bytes: [[0u8; 64]; 1 << N_MEDIUM],
@@ -840,6 +848,10 @@ impl WorkerState {
 /// `FULL` specializes the trip count to the constant `1 << N_MEDIUM`, which is
 /// the case for every non-boundary window; the unroll depends on it.
 #[inline(always)]
+#[expect(
+    clippy::too_many_arguments,
+    reason = "The proof kernel keeps its independent inputs explicit."
+)]
 fn accumulate_x_outer<const FULL: bool>(
     n_b_med: usize,
     chunk_byte_base: usize,
@@ -879,6 +891,10 @@ fn accumulate_x_outer<const FULL: bool>(
 
 /// Process one outer value.
 #[inline]
+#[expect(
+    clippy::too_many_arguments,
+    reason = "The proof kernel keeps its independent inputs explicit."
+)]
 fn process_one_x_hi(
     x_hi: usize,
     big_lo_size: usize,
@@ -897,7 +913,7 @@ fn process_one_x_hi(
 
     let n_lo = n_lo_and_inner - N_INNER;
 
-    for x_outer_lo in 0..big_lo_size {
+    for (x_outer_lo, &eq_lo_val) in eq_lo_scaled.iter().enumerate().take(big_lo_size) {
         let x_outer = x_outer_lo | (x_hi << n_lo);
         let within_hash_outer = x_outer & within_outer_mask;
         let n_b_med = b_med_counts[within_hash_outer] as usize;
@@ -906,7 +922,6 @@ fn process_one_x_hi(
         }
 
         let chunk_byte_base = ((x_outer_lo << N_INNER) | (x_hi << n_lo_and_inner)) * N_CHUNKS;
-        let eq_lo_val = eq_lo_scaled[x_outer_lo];
 
         if n_b_med == (1 << N_MEDIUM) {
             accumulate_x_outer::<true>(
@@ -987,6 +1002,10 @@ fn build_b_med_counts(padding: &PaddingSpec) -> (usize, Vec<u8>) {
 /// Skips 512-bit b_med sub-windows that fall entirely in the zero padding of
 /// every witness block per `padding`, which is byte-identical to the dense
 /// path when those bits are honestly zero.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "The proof kernel keeps its independent inputs explicit."
+)]
 pub fn round1_shift_reduce_extract_c_packed_padded(
     a_packed: &[u8],
     b_packed: &[u8],
@@ -1164,8 +1183,9 @@ mod tests {
                 rows.swap(rank, p);
                 for i in 0..rows.len() {
                     if i != rank && rows[i][limb] & mask != 0 {
-                        for l in 0..3 {
-                            rows[i][l] ^= rows[rank][l];
+                        let pivot = rows[rank];
+                        for (limb, value) in rows[i].iter_mut().zip(pivot) {
+                            *limb ^= value;
                         }
                     }
                 }

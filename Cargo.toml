@@ -12,11 +12,21 @@ rust-version = "1.97"
 license = "MIT OR Apache-2.0"
 
 
-# Numeric kernels legitimately index by loop variable and take many arguments.
 [workspace.lints.clippy]
-needless_range_loop = "allow"
-too_many_arguments = "allow"
-undocumented_unsafe_blocks = "deny"
+all = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+
+# Some pedantic lints
+semicolon_if_nothing_returned = "warn"
+match_bool = "warn"
+needless_pass_by_value = "warn"
+
+redundant_pub_crate = "allow"
+too_long_first_doc_paragraph = "allow"
+unused_peekable = "allow"
+tuple_array_conversions = "allow"
+transmute_undefined_repr = "allow"
+cognitive_complexity = "allow"
 
 [workspace.dependencies]
 bench = { path = "crates/bench" }

@@ -69,7 +69,7 @@ impl BitFold {
     }
 
     /// Bytes per row.
-    pub fn n_chunks(&self) -> usize {
+    pub const fn n_chunks(&self) -> usize {
         self.n_chunks
     }
 

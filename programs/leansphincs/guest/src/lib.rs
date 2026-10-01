@@ -142,7 +142,7 @@ pub struct Signature {
 
 impl Signature {
     /// A layer's counter, one-time signature and path.
-    fn layer(&self, lay: usize) -> (u64, &[Digest; V], &[Digest]) {
+    const fn layer(&self, lay: usize) -> (u64, &[Digest; V], &[Digest]) {
         // The layers have different heights, hence different types.
         match lay {
             0 => self.layer0.parts(),
@@ -178,7 +178,7 @@ impl Signature {
 }
 
 impl<const HEIGHT: usize> LayerSignature<HEIGHT> {
-    fn parts(&self) -> (u64, &[Digest; V], &[Digest]) {
+    const fn parts(&self) -> (u64, &[Digest; V], &[Digest]) {
         (self.counter, &self.ots, &self.path)
     }
 }
@@ -217,7 +217,7 @@ impl Pos {
     /// ```text
     ///   idx = [ tau_0 = 0 | e_0 : 12 bits | e_1 : 7 bits | e_2 : 7 bits ]
     /// ```
-    fn of(idx: u64, lay: usize) -> Self {
+    const fn of(idx: u64, lay: usize) -> Self {
         // The tree is what sits above the layer, the leaf the layer's own bits.
         Self {
             lay,
@@ -312,7 +312,7 @@ fn node(pp: &PublicParam, lay: usize, tau: u32, level: usize, j: u64, left: &Dig
 }
 
 /// Two digests as one message.
-fn concat(left: &Digest, right: &Digest) -> [u64; 4] {
+const fn concat(left: &Digest, right: &Digest) -> [u64; 4] {
     [left[0], left[1], right[0], right[1]]
 }
 

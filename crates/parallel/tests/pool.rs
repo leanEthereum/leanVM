@@ -57,8 +57,8 @@ fn chunk_ranges_tile_the_domain() {
         let seen: Vec<AtomicUsize> = (0..n).map(|_| AtomicUsize::new(0)).collect();
         parallel::for_each_chunk(n, |start, end| {
             assert!(start < end && end <= n, "range {start}..{end} outside 0..{n}");
-            for i in start..end {
-                seen[i].fetch_add(1, Ordering::Relaxed);
+            for count in &seen[start..end] {
+                count.fetch_add(1, Ordering::Relaxed);
             }
         });
         assert!(seen.iter().all(|c| c.load(Ordering::Relaxed) == 1), "n = {n}");

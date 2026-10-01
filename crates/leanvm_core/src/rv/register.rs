@@ -104,7 +104,7 @@ impl Reg {
 ///
 /// No instruction reads it, so a write to `x0` goes there and `x0` stays zero.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct RegisterFile([u64; RegisterFile::CELLS]);
+pub struct RegisterFile([u64; Self::CELLS]);
 
 impl RegisterFile {
     /// The sink's cell, right after the last register.
@@ -117,32 +117,32 @@ impl RegisterFile {
     pub const LOG_CELLS: usize = Self::CELLS.trailing_zeros() as usize;
 
     /// A register file of zeros, as a run starts.
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self([0; Self::CELLS])
     }
 
     /// Every cell.
-    pub fn cells(&self) -> &[u64; Self::CELLS] {
+    pub const fn cells(&self) -> &[u64; Self::CELLS] {
         &self.0
     }
 
     /// The value of register `r`.
-    pub fn get(&self, r: Reg) -> u64 {
+    pub const fn get(&self, r: Reg) -> u64 {
         self.0[r.index()]
     }
 
     /// Write `value` to register `r`.
-    pub fn set(&mut self, r: Reg, value: u64) {
+    pub const fn set(&mut self, r: Reg, value: u64) {
         self.0[r.index()] = value;
     }
 
     /// The value of cell `cell`, as a decoded entry names it.
-    pub(super) fn read(&self, cell: u8) -> u64 {
+    pub(super) const fn read(&self, cell: u8) -> u64 {
         self.0[cell as usize]
     }
 
     /// Write `value` to cell `cell`, and return what it held.
-    pub(super) fn replace(&mut self, cell: u8, value: u64) -> u64 {
+    pub(super) const fn replace(&mut self, cell: u8, value: u64) -> u64 {
         std::mem::replace(&mut self.0[cell as usize], value)
     }
 }
