@@ -585,19 +585,19 @@ fn prove_witness(program: &Program, w: Witness, output: &[u64; 4], rate: pcs::Ra
     // discharged by the PCS below in the SAME WHIR as every leanVM point claim,
     // through a ring-switched region of its own. The producer's bits join them, its
     // multiplicity column a ring-switched region too.
+    // Consume each circuit's auxiliary tables after its reduction so their blocks can be recycled.
     let reductions = w.reductions;
     let mut rings: Vec<_> = crate::stage!("Flock reductions", || {
         reductions
-            .iter()
+            .into_iter()
             .enumerate()
             .map(|(f, prepared)| {
                 let window = w.layout.witness_window(f);
-                let reduced = prepared.prove(&mut ps);
+                let reduced = prepared.prove(&w.q[window.offset..window.offset + (1 << window.n_vars)], &mut ps);
                 flock::reduction::ring_switch_open(window.n_vars, window.offset, &reduced)
             })
             .collect()
     });
-    drop(reductions);
     for (p, claims) in l.producers.iter().zip(&table_claims[tables::N_TABLES..]) {
         let window = l.multiplicity_window(p);
         rings.push(::pcs::stack_open::RingSwitchOpen {

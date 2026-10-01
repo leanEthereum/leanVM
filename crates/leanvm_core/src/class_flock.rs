@@ -141,15 +141,13 @@ fn word_of(word: Word, slots: &[u32], row: &Row, entry: &Entry) -> u64 {
 pub(crate) struct Prepared {
     flock: usize,
     n_blocks_log: usize,
-    z: ArenaVec<u64>,
     a: ArenaVec<u64>,
     b: ArenaVec<u64>,
     z_lincheck: ArenaVec<u8>,
 }
 
 impl Prepared {
-    /// Build packed witness `f`'s batch, one instance per row of its table, and write it
-    /// into `window`, its committed column.
+    /// Build one packed witness per execution row directly into its committed window.
     pub(crate) fn build(f: usize, rows: &[Row], entries: &[Entry], window: &mut [F64]) -> Self {
         let (t, part) = flock(f);
         let spec = CLASSES[t];
@@ -169,57 +167,62 @@ impl Prepared {
                 *word = word_of(port, &slots, row, &entries[row.index as usize]);
             }
         };
-        // A class with a word-level witness skips the walk of its gate list; the others
-        // walk it 64 instances at a time.
+        // Each packed field word has exactly the underlying integer's representation.
+        // SAFETY: the field is transparent over the integer with identical alignment and valid bits.
+        // The exclusive slice borrow ends before the committed stack is read again.
+        let packed = unsafe { std::slice::from_raw_parts_mut(window.as_mut_ptr().cast::<u64>(), window.len()) };
+        let stride = 1 << stride_log(spec, part);
+        let check = |row: &Row, src: &[u64]| {
+            // The circuit's output ports must agree with the independently executed instruction.
+            for (k, &port) in ports.iter().enumerate().skip(n_inputs) {
+                let expected = word_of(port, &slots, row, &entries[row.index as usize]);
+                assert_eq!(
+                    src[k], expected,
+                    "{}'s {part:?} circuit disagrees with the interpreter on {port:?}",
+                    spec.name
+                );
+            }
+        };
+        // Word arithmetic and gate walks publish directly into the committed window.
         let witness = spec.witness.filter(|_| part == Part::Class);
-        let (z, a, b, z_lincheck) = witness.map_or_else(
-            || circuit.generate_witness_from(rows, &rows[0], n_blocks_log, input_words),
-            |witness| {
-                circuit.generate_witness_with(rows, &rows[0], n_blocks_log, |row, z, az, bz| {
+        let (a, b, z_lincheck) = match witness {
+            Some(witness) => circuit.write_witness_with(
+                rows,
+                &rows[0],
+                n_blocks_log,
+                packed,
+                |row, z, az, bz| {
                     let mut words = [0u64; MAX_INPUT_WORDS];
                     let words = &mut words[..n_inputs];
                     input_words(row, words);
                     witness(words, z, az, bz);
+                },
+                check,
+            ),
+            None => {
+                circuit.write_witness_from(rows, &rows[0], n_blocks_log, packed, input_words, |first, group| {
+                    // The final group may include padding instances, which use the same padding row.
+                    for (j, src) in group.chunks_exact(stride).enumerate() {
+                        check(rows.get(first + j).unwrap_or(&rows[0]), src);
+                    }
                 })
-            },
-        );
-        assert_eq!(window.len(), z.len(), "the committed column is the wrong size");
-        let stride = 1 << stride_log(spec, part);
-        // `F64` is `repr(transparent)` over `u64`, and the packing is bit `i` at
-        // position `i` on both sides.
-        const BATCH: usize = 1 << 10;
-        parallel::chunks_mut_zip(window, &z, stride * BATCH, |batch, dst, src| {
-            for (j, src) in src.chunks_exact(stride).enumerate() {
-                // What the circuit computed is what the interpreter did, or the bus
-                // would carry one and flock prove the other.
-                let row = &rows[batch * BATCH + j];
-                for (k, &port) in ports.iter().enumerate().skip(n_inputs) {
-                    let expected = word_of(port, &slots, row, &entries[row.index as usize]);
-                    assert_eq!(
-                        src[k], expected,
-                        "{}'s {part:?} circuit disagrees with the interpreter on {port:?}",
-                        spec.name
-                    );
-                }
             }
-            for (d, &s) in dst.iter_mut().zip(src) {
-                *d = F64(s);
-            }
-        });
+        };
         Self {
             flock: f,
             n_blocks_log,
-            z,
             a,
             b,
             z_lincheck,
         }
     }
 
-    /// Flock's zerocheck then lincheck, leaving the one claim on the committed column.
-    pub(crate) fn prove(&self, ps: &mut ProverState) -> SliceClaim {
+    /// Prove the circuit constraints and reduce them to a claim on the borrowed committed words.
+    pub(crate) fn prove(&self, window: &[F64], ps: &mut ProverState) -> SliceClaim {
         let block = circuit(self.flock).block();
-        let stage = block.prove_zerocheck(self.n_blocks_log, &self.z, &self.a, &self.b, ps);
+        // SAFETY: the field is transparent over the integer and every packed word is initialized.
+        let z = unsafe { std::slice::from_raw_parts(window.as_ptr().cast::<u64>(), window.len()) };
+        let stage = block.prove_zerocheck(self.n_blocks_log, z, &self.a, &self.b, ps);
         block.prove_lincheck(self.n_blocks_log, stage, &self.z_lincheck, ps)
     }
 }
