@@ -16,6 +16,7 @@ fiat_shamir.workspace = true
 pcs.workspace = true
 flock.workspace = true
 tracing.workspace = true
+thiserror.workspace = true
 zk_alloc.workspace = true
 
 [dev-dependencies]

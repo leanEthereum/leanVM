@@ -63,11 +63,11 @@ fn announce_public(ps: &mut ProverState, taus: [usize; tables::N_TABLES], log_in
 /// and those sizes. Nothing the program fixes is read from the prover.
 fn read_public(vs: &mut VerifierState, prog: &Program) -> Result<(Layout, usize), CpuError> {
     let read_size = |vs: &mut VerifierState| -> Result<usize, CpuError> {
-        let word = vs.next_scalar().map_err(CpuError::Transcript)?;
+        let word = vs.next_scalar()?;
         if word.c1 != 0 || word.c2 != 0 {
-            return Err(CpuError::PublicInput);
+            return Err(CpuError::NonCanonicalSize);
         }
-        usize::try_from(word.c0).map_err(|_| CpuError::PublicInput)
+        usize::try_from(word.c0).map_err(|_| CpuError::NonCanonicalSize)
     };
 
     let mut taus = [0usize; tables::N_TABLES];
@@ -75,9 +75,9 @@ fn read_public(vs: &mut VerifierState, prog: &Program) -> Result<(Layout, usize)
         *t = read_size(vs)?;
     }
     let log_inv_rate = read_size(vs)?;
-    let ts_final = vs.next_scalar().map_err(CpuError::Transcript)?;
+    let ts_final = vs.next_scalar()?;
     if ts_final.c0 == 0 || ts_final.c1 != 0 || ts_final.c2 != 0 {
-        return Err(CpuError::PublicInput);
+        return Err(CpuError::FinalClock);
     }
     // The public instance caps ensure that, with `ord(g) = 2^64 − 1`, the
     // counting arguments (memory soundness, count non-wrap, exponent range checks)
@@ -86,20 +86,29 @@ fn read_public(vs: &mut VerifierState, prog: &Program) -> Result<(Layout, usize)
     // caps BEFORE running any reduction. (A table's row count is the number of
     // times its class runs, unbounded by the bytecode size since a small loop
     // body runs many times, so it gets its own cap.)
-    let floors_hold = (0..tables::N_TABLES)
+    for (spec, &log_rows) in tables::CLASSES.iter().zip(&taus) {
         // flock sizes its argument to at least `n_blocks_log(1)` instances, and a
         // table's circuit words share that instance cube, so a height below the floor
         // describes a layout the arithmetization cannot express. `python-verifier`
         // rejects it here too.
-        .all(|t| (crate::class_flock::n_blocks_log(tables::CLASSES[t], 1)..=MAX_LOG_ROWS).contains(&taus[t]));
-    if !floors_hold || ::pcs::whir::validate_log_inv_rate(log_inv_rate).is_err() {
-        return Err(CpuError::PublicInput);
+        let min = crate::class_flock::n_blocks_log(spec, 1);
+        if !(min..=MAX_LOG_ROWS).contains(&log_rows) {
+            return Err(CpuError::TableHeight {
+                table: spec.name,
+                log_rows,
+                min,
+                max: MAX_LOG_ROWS,
+            });
+        }
+    }
+    if ::pcs::whir::validate_log_inv_rate(log_inv_rate).is_err() {
+        return Err(CpuError::Rate { log_inv_rate });
     }
     let l = layout(&prog.rv, taus, F64(ts_final.c0));
     // The caps bound each announced log on its own; what the PCS is configured for
     // is the stacked size they imply, which they do not bound.
     if !(pcs::MIN_MU..=pcs::MAX_MU).contains(&l.shape.mu) {
-        return Err(CpuError::PublicInput);
+        return Err(CpuError::WitnessSize { mu: l.shape.mu });
     }
     Ok((l, log_inv_rate))
 }
@@ -209,76 +218,68 @@ impl Program {
 /// channels (see [`fiat_shamir::transcript::Proof`]).
 pub use fiat_shamir::transcript::Proof;
 
-/// Why a proof does not verify, by the stage that refused it.
-#[derive(Clone, Debug, PartialEq, Eq)]
+/// Why a proof does not verify, by the stage that refuses it.
+#[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
 #[non_exhaustive]
 pub enum CpuError {
+    /// An announced size is not a canonical integer.
+    #[error("an announced size is not a canonical integer")]
+    NonCanonicalSize,
+    /// A table's announced height is outside what the arithmetization expresses.
+    #[error("the {table} table announces 2^{log_rows} rows, outside 2^{min}..=2^{max}")]
+    TableHeight {
+        table: &'static str,
+        log_rows: usize,
+        min: usize,
+        max: usize,
+    },
+    /// The announced rate is one the commitment does not support.
+    #[error("the announced log_inv_rate {log_inv_rate} is not in {min}..={max}", min = ::pcs::whir::MIN_LOG_INV_RATE, max = ::pcs::whir::MAX_LOG_INV_RATE)]
+    Rate { log_inv_rate: usize },
+    /// The announced final clock is zero or not a base-field element.
+    #[error("the announced final clock is not a nonzero base-field element")]
+    FinalClock,
+    /// The announced heights stack to a witness the commitment does not take.
+    #[error("the witness has 2^{mu} words, outside 2^{min}..=2^{max}", min = pcs::MIN_MU, max = pcs::MAX_MU)]
+    WitnessSize { mu: usize },
+    /// The proof stream is malformed.
+    #[error(transparent)]
+    Transcript(#[from] fiat_shamir::transcript::Error),
+    /// The memory and lookup bus does not balance.
+    #[error("the bus: {0}")]
     Bus(leaf::Error),
+    /// The table constraints do not hold.
+    #[error("the table constraints: {0}")]
     Constraint(constraints::Error),
-    Open(pcs::Error),
-    PublicInput,
-    Transcript(fiat_shamir::transcript::Error),
-    /// A class's flock sub-proof failed to verify. (A missing or malformed one
-    /// surfaces as [`CpuError::Transcript`] when the shared `stream`/`openings` fail
-    /// to reconstruct or fully consume.)
-    Flock(flock::verifier::VerifyError),
+    /// A class's circuit sub-proof is rejected.
+    #[error("the {table} circuit: {error}")]
+    Flock {
+        table: &'static str,
+        error: flock::verifier::VerifyError,
+    },
+    /// The commitment opening is rejected.
+    #[error("the opening: {0}")]
+    Open(::pcs::whir::VerifyError),
 }
-
-impl std::fmt::Display for CpuError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Bus(error) => write!(f, "the bus does not balance ({error:?})"),
-            Self::Constraint(error) => write!(f, "the table constraints fail ({error:?})"),
-            Self::Open(error) => write!(f, "the commitment opening fails ({error:?})"),
-            Self::PublicInput => f.write_str("the announced sizes are out of range"),
-            Self::Transcript(error) => write!(f, "the transcript is malformed ({error:?})"),
-            Self::Flock(error) => write!(f, "a circuit's sub-proof fails ({error:?})"),
-        }
-    }
-}
-
-impl std::error::Error for CpuError {}
 
 /// Why a run has no proof.
 ///
 /// Every variant is a limit of the prover or a mistake of its caller, except a trap, which is the run's.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, thiserror::Error)]
 pub enum ProveError {
     /// The run trapped.
-    Trap(rv::Trap),
+    #[error(transparent)]
+    Trap(#[from] rv::Trap),
     /// The run is longer than one proof holds, in cycles or in committed words.
+    #[error("the run is longer than one proof holds (continuations are not implemented)")]
     TooLong,
     /// More advice words than the program's region holds.
+    #[error("the advice has {got} words, and the program's region holds {max}")]
     AdviceTooLong { max: usize, got: usize },
     /// A rate the PCS does not support.
+    #[error("log_inv_rate {log_inv_rate} is not in {min}..={max}", min = ::pcs::whir::MIN_LOG_INV_RATE, max = ::pcs::whir::MAX_LOG_INV_RATE)]
     InvalidRate { log_inv_rate: usize },
 }
-
-impl From<rv::Trap> for ProveError {
-    fn from(trap: rv::Trap) -> Self {
-        Self::Trap(trap)
-    }
-}
-
-impl std::fmt::Display for ProveError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match *self {
-            Self::Trap(trap) => trap.fmt(f),
-            Self::TooLong => f.write_str("the run is longer than one proof holds (continuations are not implemented)"),
-            Self::AdviceTooLong { max, got } => {
-                write!(f, "the advice has {got} words, and the program's region holds {max}")
-            }
-            Self::InvalidRate { log_inv_rate } => write!(
-                f,
-                "log_inv_rate {log_inv_rate} is not in {}..={}",
-                ::pcs::whir::MIN_LOG_INV_RATE,
-                ::pcs::whir::MAX_LOG_INV_RATE
-            ),
-        }
-    }
-}
-
-impl std::error::Error for ProveError {}
 
 /// One table's summand in the table sumcheck (§constraints): its identities, weighted
 /// by its own `η`-range, plus its three bus forms, weighted by the shared powers at
@@ -603,7 +604,7 @@ pub fn verify_to_raw(
 ) -> Result<fiat_shamir::transcript::RawProof, CpuError> {
     let mut vs = VerifierState::new(fs_seed(program), proof, output.map(F64));
     let (l, log_inv_rate) = read_public(&mut vs, program)?;
-    let root = pcs::read_commitment(&mut vs).map_err(CpuError::Transcript)?;
+    let root = pcs::read_commitment(&mut vs)?;
 
     let bus = leaf::verify_balance(&l.push, &l.pull, &l.count, &schema().spans, &mut vs).map_err(CpuError::Bus)?;
 
@@ -628,7 +629,11 @@ pub fn verify_to_raw(
     // (mirroring `prove`).
     let mut replays = Vec::with_capacity(tables::N_TABLES);
     for (t, &tau) in l.taus.iter().enumerate() {
-        replays.push(crate::class_flock::verify_reduction(t, tau, &mut vs).map_err(CpuError::Flock)?);
+        let replay = crate::class_flock::verify_reduction(t, tau, &mut vs).map_err(|error| CpuError::Flock {
+            table: tables::CLASSES[t].name,
+            error,
+        })?;
+        replays.push(replay);
     }
     let rings: Vec<_> = replays
         .iter()
@@ -639,7 +644,7 @@ pub fn verify_to_raw(
         })
         .collect();
     pcs::verify(&mut vs, &slots, &rings, l.shape, log_inv_rate, &root).map_err(CpuError::Open)?;
-    vs.finish().map_err(CpuError::Transcript)?;
+    vs.finish()?;
     Ok(vs.into_raw_proof())
 }
 

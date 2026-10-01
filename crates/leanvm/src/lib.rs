@@ -125,7 +125,7 @@ pub fn measure(program: &Program, advice: &[u64]) -> Result<Stats, Error> {
 ///
 /// The proof does not verify against this program and this output.
 pub fn verify(program: &Program, output: &[u64; 4], proof: &Proof) -> Result<(), Error> {
-    cpu::verify(program, output, &proof.0).map_err(|error| Error::Verify(VerifyError(error)))
+    Ok(cpu::verify(program, output, &proof.0).map_err(VerifyError)?)
 }
 
 /// A proof of a run.
@@ -176,76 +176,39 @@ impl Proof {
 }
 
 /// Everything that can go wrong in loading, proving or verifying.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
 #[non_exhaustive]
 pub enum Error {
     /// The file is not a guest.
-    Elf(ElfError),
+    #[error(transparent)]
+    Elf(#[from] ElfError),
     /// The text and RAM form no program.
-    Program(ProgramError),
+    #[error(transparent)]
+    Program(#[from] ProgramError),
     /// The run trapped, so it has no proof.
+    #[error("the run traps: {0}")]
     Trap(Trap),
     /// The run is longer than one proof holds.
+    #[error("the run is longer than one proof holds")]
     TooLong,
     /// More advice words than the program's region holds.
+    #[error("the advice has {got} words, and the program's region holds {max}")]
     AdviceTooLong { max: usize, got: usize },
     /// A rate the commitment does not support.
+    #[error("log_inv_rate {log_inv_rate} is not in {min}..={max}", min = Rate::MIN.0, max = Rate::MAX.0)]
     InvalidRate { log_inv_rate: usize },
     /// Bytes that are no proof.
+    #[error("the bytes are no proof")]
     MalformedProof,
     /// A proof of another protocol version.
+    #[error(
+        "a proof of protocol version {found}, and this verifier reads version {}",
+        Proof::VERSION
+    )]
     UnsupportedVersion { found: u16 },
     /// The proof does not verify.
-    Verify(VerifyError),
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Elf(error) => error.fmt(f),
-            Self::Program(error) => error.fmt(f),
-            Self::Trap(trap) => write!(f, "the run traps: {trap}"),
-            Self::TooLong => f.write_str("the run is longer than one proof holds"),
-            Self::AdviceTooLong { max, got } => {
-                write!(f, "the advice has {got} words, and the program's region holds {max}")
-            }
-            Self::InvalidRate { log_inv_rate } => write!(
-                f,
-                "log_inv_rate {log_inv_rate} is not in {}..={}",
-                Rate::MIN.0,
-                Rate::MAX.0
-            ),
-            Self::MalformedProof => f.write_str("the bytes are no proof"),
-            Self::UnsupportedVersion { found } => write!(
-                f,
-                "a proof of protocol version {found}, and this verifier reads version {}",
-                Proof::VERSION
-            ),
-            Self::Verify(error) => error.fmt(f),
-        }
-    }
-}
-
-impl std::error::Error for Error {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            Self::Elf(error) => error.source(),
-            Self::Program(error) => error.source(),
-            _ => None,
-        }
-    }
-}
-
-impl From<ElfError> for Error {
-    fn from(error: ElfError) -> Self {
-        Self::Elf(error)
-    }
-}
-
-impl From<ProgramError> for Error {
-    fn from(error: ProgramError) -> Self {
-        Self::Program(error)
-    }
+    #[error(transparent)]
+    Verify(#[from] VerifyError),
 }
 
 impl From<ProveError> for Error {
@@ -260,13 +223,6 @@ impl From<ProveError> for Error {
 }
 
 /// Why a proof does not verify: which stage of the verifier refused it.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
+#[error("the proof does not verify: {0}")]
 pub struct VerifyError(CpuError);
-
-impl fmt::Display for VerifyError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "the proof does not verify: {}", self.0)
-    }
-}
-
-impl std::error::Error for VerifyError {}

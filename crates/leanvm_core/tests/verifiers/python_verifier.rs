@@ -135,7 +135,10 @@ fn test_python_verifier() {
 
     let mut malformed_announcement = proof.clone();
     malformed_announcement.stream[0].c1 = 1;
-    assert!(verify(&program, &output, &malformed_announcement).is_err());
+    assert_eq!(
+        verify(&program, &output, &malformed_announcement),
+        Err(CpuError::NonCanonicalSize)
+    );
     let mut raw_announcement = raw.clone();
     raw_announcement.stream[0].c1 = 1;
     PythonStatement::assert_rejects(&statement.verify(&raw_announcement), "a noncanonical announcement");
@@ -144,7 +147,7 @@ fn test_python_verifier() {
     let final_clock = leanvm_core::tables::N_TABLES + 1;
     let mut zero_clock = proof.clone();
     zero_clock.stream[final_clock] = F192::ZERO;
-    assert_eq!(verify(&program, &output, &zero_clock), Err(CpuError::PublicInput));
+    assert_eq!(verify(&program, &output, &zero_clock), Err(CpuError::FinalClock));
     let mut raw_zero_clock = raw.clone();
     raw_zero_clock.stream[final_clock] = F192::ZERO;
     let refused = statement.verify(&raw_zero_clock);

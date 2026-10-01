@@ -184,13 +184,16 @@ impl<const HEIGHT: usize> LayerSignature<HEIGHT> {
 }
 
 /// Why a signature is rejected.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, thiserror::Error)]
 pub enum VerifyError {
     /// The message digest's last index is not zero.
+    #[error("the message digest's last index is not zero")]
     InadmissibleDigest,
     /// A layer's counter gives the message it signs no codeword.
-    InadmissibleEncoding,
+    #[error("layer {layer}'s counter gives the message it signs no codeword")]
+    InadmissibleEncoding { layer: usize },
     /// The hypertree walk does not reach the key's root.
+    #[error("the hypertree walk does not reach the key's root")]
     RootMismatch,
 }
 
@@ -239,8 +242,9 @@ pub fn verify(pk: &PublicKey, message: &Message, signature: &Signature) -> Resul
         let pos = Pos::of(idx, lay);
         let (counter, ots, path) = signature.layer(lay);
         // A counter is 32 bits: a word holding more is no counter.
-        let counter = u32::try_from(counter).map_err(|_| VerifyError::InadmissibleEncoding)?;
-        let leaf = ots::leaf(pp, pos, &message, counter, ots).ok_or(VerifyError::InadmissibleEncoding)?;
+        let inadmissible = VerifyError::InadmissibleEncoding { layer: lay };
+        let counter = u32::try_from(counter).map_err(|_| inadmissible)?;
+        let leaf = ots::leaf(pp, pos, &message, counter, ots).ok_or(inadmissible)?;
         message = tree_fold(pp, pos, leaf, path);
     }
     if message == pk.root {

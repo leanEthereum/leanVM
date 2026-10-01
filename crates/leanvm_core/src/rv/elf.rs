@@ -17,83 +17,66 @@ pub struct Guest {
 }
 
 /// Why a file is no guest.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, thiserror::Error)]
 #[non_exhaustive]
 pub enum ElfError {
     /// A field runs past the end of the file, or its offset wraps.
+    #[error("not a leanVM guest: a field runs past the end of the file")]
     Truncated,
     /// Not a little-endian ELF64 file.
+    #[error("not a leanVM guest: not a little-endian ELF64 file")]
     NotElf64,
     /// An ELF version or header size this loader does not read.
+    #[error("not a leanVM guest: an unsupported ELF header")]
     UnsupportedHeader,
     /// A dynamic or position-independent executable, or one with thread-local storage.
+    #[error("not a leanVM guest: not a static executable")]
     NotStatic,
     /// Not built for RISC-V.
-    NotRiscV,
+    #[error("not a leanVM guest: built for machine {machine}, not RISC-V")]
+    NotRiscV { machine: u16 },
     /// Built with compressed instructions, which rv64im does not have.
+    #[error("not a leanVM guest: compressed instructions")]
     Compressed,
     /// Built for a hardware floating-point ABI.
+    #[error("not a leanVM guest: a hardware float ABI")]
     FloatAbi,
     /// RISC-V header flags this machine does not support.
-    UnsupportedFlags,
+    #[error("not a leanVM guest: unsupported RISC-V flags {flags:#x}")]
+    UnsupportedFlags { flags: u32 },
     /// The entry point is not an aligned instruction the file carries.
-    EntryPoint,
+    #[error("not a leanVM guest: the entry point {entry:#x} is not a file-backed instruction")]
+    EntryPoint { entry: u64 },
     /// A loaded segment is inconsistent: its sizes, alignment, overlap, or bytes the file lacks.
+    #[error("not a leanVM guest: a malformed load segment")]
     MalformedSegment,
     /// An executable segment is also writable.
-    WritableText,
+    #[error("not a leanVM guest: the executable segment at {vaddr:#x} is writable")]
+    WritableText { vaddr: u64 },
     /// An executable segment lies outside the text region.
-    TextOutsideRegion,
+    #[error("not a leanVM guest: the executable segment at {vaddr:#x} is outside the text region")]
+    TextOutsideRegion { vaddr: u64 },
     /// No executable segment.
+    #[error("not a leanVM guest: no executable segment")]
     NoText,
     /// A data segment lies outside RAM.
-    DataOutsideRam,
-    /// The linker script's symbols for the ends of RAM and the advice are missing.
-    MissingSymbol,
+    #[error("not a leanVM guest: the data segment at {vaddr:#x} is outside RAM")]
+    DataOutsideRam { vaddr: u64 },
+    /// A symbol the guests' linker script defines is missing.
+    #[error("not a leanVM guest: no {symbol} symbol, so not linked with the guests' script")]
+    MissingSymbol { symbol: &'static str },
     /// RAM is not a power of two of words, or does not hold the data.
+    #[error("not a leanVM guest: RAM's size is not a power of two, or too small for the data")]
     RamSize,
     /// The advice region is not a power of two of words, or exceeds its bounds.
+    #[error("not a leanVM guest: the advice region's size is not a power of two, or exceeds its bounds")]
     AdviceSize,
     /// The symbol table or its string table is malformed.
+    #[error("not a leanVM guest: a malformed symbol table")]
     MalformedSymbols,
     /// The loaded text and RAM do not form a program.
+    #[error("not a leanVM guest: {0}")]
     Program(ProgramError),
-}
-
-impl std::fmt::Display for ElfError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let reason = match self {
-            Self::Truncated => "a field runs past the end of the file",
-            Self::NotElf64 => "not a little-endian ELF64 file",
-            Self::UnsupportedHeader => "an unsupported ELF header",
-            Self::NotStatic => "not a static executable",
-            Self::NotRiscV => "not for RISC-V",
-            Self::Compressed => "compressed instructions",
-            Self::FloatAbi => "a hardware float ABI",
-            Self::UnsupportedFlags => "unsupported RISC-V flags",
-            Self::EntryPoint => "the entry point is not a file-backed instruction",
-            Self::MalformedSegment => "a malformed load segment",
-            Self::WritableText => "a writable executable segment",
-            Self::TextOutsideRegion => "an executable segment outside the text region",
-            Self::NoText => "no executable segment",
-            Self::DataOutsideRam => "a data segment outside RAM",
-            Self::MissingSymbol => "no __stack_top or __advice_top symbol: not linked with the guests' script",
-            Self::RamSize => "RAM's size is not a power of two, or too small for the data",
-            Self::AdviceSize => "the advice region's size is not a power of two, or exceeds its bounds",
-            Self::MalformedSymbols => "a malformed symbol table",
-            Self::Program(_) => "its text and RAM form no program",
-        };
-        write!(f, "not a leanVM guest: {reason}")
-    }
-}
-
-impl std::error::Error for ElfError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            Self::Program(error) => Some(error),
-            _ => None,
-        }
-    }
 }
 
 const ET_EXEC: u16 = 2;
@@ -112,8 +95,8 @@ const SHT_STRTAB: u32 = 3;
 
 /// The symbols whose values are the ends of RAM and of the advice region, which the
 /// linker script defines.
-const RAM_END_SYMBOL: &[u8] = b"__stack_top";
-const ADVICE_END_SYMBOL: &[u8] = b"__advice_top";
+const RAM_END_SYMBOL: &str = "__stack_top";
+const ADVICE_END_SYMBOL: &str = "__advice_top";
 
 /// `base + offset`, which a malformed header can wrap: a wrapped address would name
 /// a field inside the file that the header did not point at.
@@ -164,8 +147,9 @@ impl Guest {
         if r.u16(16)? != ET_EXEC {
             return Err(ElfError::NotStatic);
         }
-        if r.u16(18)? != EM_RISCV {
-            return Err(ElfError::NotRiscV);
+        let machine = r.u16(18)?;
+        if machine != EM_RISCV {
+            return Err(ElfError::NotRiscV { machine });
         }
         if r.u32(20)? != 1 || r.u16(52)? != 64 {
             return Err(ElfError::UnsupportedHeader);
@@ -178,11 +162,11 @@ impl Guest {
             return Err(ElfError::FloatAbi);
         }
         if flags != 0 {
-            return Err(ElfError::UnsupportedFlags);
+            return Err(ElfError::UnsupportedFlags { flags });
         }
         let entry_pc = r.u64(24)?;
         if !entry_pc.is_multiple_of(4) {
-            return Err(ElfError::EntryPoint);
+            return Err(ElfError::EntryPoint { entry: entry_pc });
         }
 
         let (mut text, mut image) = (Vec::new(), Vec::new());
@@ -230,10 +214,10 @@ impl Guest {
             }
             if flags & PF_X != 0 {
                 if flags & PF_W != 0 {
-                    return Err(ElfError::WritableText);
+                    return Err(ElfError::WritableText { vaddr });
                 }
                 if vaddr < TEXT_BASE || vaddr % 4 != 0 || end > TEXT_BASE + (4 << MAX_LOG_TEXT) {
-                    return Err(ElfError::TextOutsideRegion);
+                    return Err(ElfError::TextOutsideRegion { vaddr });
                 }
                 if vaddr - TEXT_BASE + bytes.len() as u64 > file_len {
                     return Err(ElfError::MalformedSegment);
@@ -245,7 +229,7 @@ impl Guest {
                 place::<4>(&mut text, vaddr - TEXT_BASE, bytes);
             } else {
                 if vaddr < RAM_BASE || end > RAM_BASE + (8 << MAX_LOG_RAM) {
-                    return Err(ElfError::DataOutsideRam);
+                    return Err(ElfError::DataOutsideRam { vaddr });
                 }
                 data_end = data_end.max(end);
                 if !bytes.is_empty() {
@@ -261,13 +245,13 @@ impl Guest {
             return Err(ElfError::MalformedSegment);
         }
         if !entry_loaded {
-            return Err(ElfError::EntryPoint);
+            return Err(ElfError::EntryPoint { entry: entry_pc });
         }
         if text.is_empty() {
             return Err(ElfError::NoText);
         }
 
-        let ram_end = symbol(&r, RAM_END_SYMBOL)?.ok_or(ElfError::MissingSymbol)?;
+        let ram_end = symbol(&r, RAM_END_SYMBOL)?.ok_or(ElfError::MissingSymbol { symbol: RAM_END_SYMBOL })?;
         let ram_bytes = ram_end.wrapping_sub(RAM_BASE);
         if ram_end <= RAM_BASE || !ram_bytes.is_power_of_two() || ram_bytes < 8 {
             return Err(ElfError::RamSize);
@@ -276,7 +260,9 @@ impl Guest {
             return Err(ElfError::RamSize);
         }
         let log_ram = (ram_bytes / 8).trailing_zeros() as usize;
-        let advice_end = symbol(&r, ADVICE_END_SYMBOL)?.ok_or(ElfError::MissingSymbol)?;
+        let advice_end = symbol(&r, ADVICE_END_SYMBOL)?.ok_or(ElfError::MissingSymbol {
+            symbol: ADVICE_END_SYMBOL,
+        })?;
         let advice_bytes = advice_end.wrapping_sub(ADVICE_BASE);
         if advice_end <= ADVICE_BASE || !advice_bytes.is_power_of_two() || advice_bytes < 8 {
             return Err(ElfError::AdviceSize);
@@ -306,7 +292,8 @@ impl Guest {
 }
 
 /// The value of the symbol `name`, from the file's symbol table.
-fn symbol(r: &Reader, name: &[u8]) -> Result<Option<u64>, ElfError> {
+fn symbol(r: &Reader, name: &str) -> Result<Option<u64>, ElfError> {
+    let name = name.as_bytes();
     let (shoff, shentsize, shnum) = (r.u64(40)?, r.u16(58)? as u64, r.u16(60)? as u64);
     if shentsize != 64 {
         return Err(ElfError::UnsupportedHeader);

@@ -187,7 +187,7 @@ mod tests {
                 broken[0][c] ^= 1 << bit;
                 assert_eq!(
                     check(&broken, &mut cells),
-                    Err(leanda::Error::NotACodeword(0)),
+                    Err(leanda::Error::NotACodeword { row: 0 }),
                     "limb {c} bit {bit}"
                 );
             }

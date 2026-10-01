@@ -25,9 +25,10 @@ pub struct SecretKey {
 }
 
 /// Why signing failed.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, thiserror::Error)]
 pub enum SignError {
     /// No randomness within the trial bound gave a valid encoding.
+    #[error("no randomness within the trial bound gives a valid encoding")]
     NoValidEncoding,
 }
 

@@ -162,12 +162,18 @@ pub struct ColumnClaim {
     pub value: F192,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+/// Why the bus does not balance.
+#[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
 pub enum Error {
-    Truncated,
+    /// The proof stream is malformed.
+    #[error(transparent)]
+    Transcript(#[from] fiat_shamir::transcript::Error),
     /// A lookup's read count is zero, so the read self-cancels on the bus (§sec:lookup).
+    #[error("a lookup's read count is zero")]
     ZeroCount,
-    Gkr(gkr::GkrError),
+    /// The grand products' GKR rejects.
+    #[error(transparent)]
+    Gkr(#[from] gkr::GkrError),
 }
 
 /// The fingerprint weights `eq(α⃗, x)` over the `2^N_TUPLE_BITS` slots (§sec:gp).
@@ -975,7 +981,7 @@ pub fn verify_balance(
     vs: &mut VerifierState,
 ) -> Result<BusVerify, Error> {
     let setup = BusSetup::new(push, pull, count, vs);
-    let bus_gkr = gkr::verify_product_triple(setup.mu(), vs).map_err(Error::Gkr)?;
+    let bus_gkr = gkr::verify_product_triple(setup.mu(), vs)?;
     let count_root = bus_gkr.roots[2];
     // Every lookup's read count is nonzero iff this product is (§sec:lookup); a zero would
     // let a read self-cancel and free its value from memory.
@@ -996,7 +1002,7 @@ pub fn verify_balance(
     let mut open = Openings::default();
     for (s, side) in setup.sides.iter().enumerate() {
         let framework = decompose_formula(side, &bus_gkr.point, tables, &mut forms[s], &mut open, |_, _| {
-            vs.next_scalar().map_err(|_| Error::Truncated)
+            Ok(vs.next_scalar()?)
         })?;
         // What the tables owe this side: DERIVED, never read. A transmitted total
         // would be a free variable in its own check and would settle nothing; the

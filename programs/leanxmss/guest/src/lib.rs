@@ -101,11 +101,13 @@ pub struct Signature {
 }
 
 /// Why a signature is rejected.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, thiserror::Error)]
 pub enum VerifyError {
     /// The randomness gives the message no valid encoding.
+    #[error("the randomness gives the message no valid encoding")]
     InvalidEncoding,
     /// The recovered one-time key does not reach the root.
+    #[error("the recovered one-time key does not reach the root")]
     InvalidMerklePath,
 }
 

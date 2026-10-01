@@ -134,20 +134,27 @@ mod tests {
         // Mutation: a few-time secret, a few-time path node.
         //
         //     a new few-time key → the bottom layer's encoding of it fails
-        rejects(&|s| s.fts[0].secret[0] ^= 1, InadmissibleEncoding);
-        rejects(&|s| s.fts[13].path[9][1] ^= 1 << 63, InadmissibleEncoding);
+        let bottom = InadmissibleEncoding {
+            layer: leansphincs::D - 1,
+        };
+        rejects(&|s| s.fts[0].secret[0] ^= 1, bottom);
+        rejects(&|s| s.fts[13].path[9][1] ^= 1 << 63, bottom);
 
         for lay in 0..3 {
             // Mutation: the layer's counter, flipped or pushed past 32 bits.
-            rejects(&|s| *layer(s, lay).0 ^= 1, InadmissibleEncoding);
-            rejects(&|s| *layer(s, lay).0 |= 1 << 32, InadmissibleEncoding);
+            rejects(&|s| *layer(s, lay).0 ^= 1, InadmissibleEncoding { layer: lay });
+            rejects(&|s| *layer(s, lay).0 |= 1 << 32, InadmissibleEncoding { layer: lay });
 
             // Mutation: a one-time chain value, the layer's last path node.
             //
             //     a new root of the layer's tree
             //     top layer    → it is not the public key's root
-            //     other layer  → it is the next layer's message, whose encoding fails
-            let moved = if lay == 0 { RootMismatch } else { InadmissibleEncoding };
+            //     other layer  → it is the message of the layer above, whose encoding fails
+            let moved = if lay == 0 {
+                RootMismatch
+            } else {
+                InadmissibleEncoding { layer: lay - 1 }
+            };
             rejects(&|s| layer(s, lay).1[20][1] ^= 1, moved);
             rejects(&|s| layer(s, lay).2.last_mut().unwrap()[0] ^= 1, moved);
         }

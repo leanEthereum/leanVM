@@ -13,9 +13,14 @@ use primitives::multilinear::{eq_table, interp, poly_eval};
 use primitives::stream::Stream;
 use zk_alloc::ArenaVec;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+/// Why the bus's grand-product GKR rejects.
+#[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
 pub enum GkrError {
-    Truncated,
+    /// The proof stream is malformed.
+    #[error(transparent)]
+    Transcript(#[from] fiat_shamir::transcript::Error),
+    /// A layer's sumcheck does not end at the product of the next layer's claims.
+    #[error("the GKR layer {layer} does not reduce to the next")]
     LayerMismatch { layer: usize },
 }
 
@@ -468,7 +473,7 @@ pub fn prove_product_triple(leaves: [ArenaVec<F192>; 3], ps: &mut ProverState) -
 
 /// Verify the RLC-batched radix-four proof.
 pub fn verify_product_triple(mu: usize, vs: &mut VerifierState) -> Result<ProductTriple, GkrError> {
-    let mut root = || vs.next_scalar().map_err(|_| GkrError::Truncated);
+    let mut root = || vs.next_scalar();
     // One root for both balancing trees, so their equality is structural: there is no
     // unbalanced pair a prover could state, and nothing for the caller to check.
     let shared = root()?;
@@ -485,7 +490,7 @@ pub fn verify_product_triple(mu: usize, vs: &mut VerifierState) -> Result<Produc
             debug_assert_eq!(round_count, 0, "only the root-most layer may be binary");
             let mut tails = [[F192::ZERO; 2]; 3];
             for value in tails.iter_mut().flatten() {
-                *value = vs.next_scalar().map_err(|_| GkrError::Truncated)?;
+                *value = vs.next_scalar()?;
             }
             let products = tails.map(|[left, right]| left * right);
             if claim != poly_eval(&products, lambda) {
@@ -503,16 +508,14 @@ pub fn verify_product_triple(mu: usize, vs: &mut VerifierState) -> Result<Produc
 
         let mut round_point = Vec::with_capacity(round_count);
         for &equality_point in point.iter().take(round_count) {
-            let h = vs
-                .next_round_poly(5, claim, Some(equality_point))
-                .map_err(|_| GkrError::Truncated)?;
+            let h = vs.next_round_poly(5, claim, Some(equality_point))?;
             let challenge = vs.sample();
             round_point.push(challenge);
             claim = poly_eval(&h, challenge);
         }
         let mut tails = [[F192::ZERO; 4]; 3];
         for value in tails.iter_mut().flatten() {
-            *value = vs.next_scalar().map_err(|_| GkrError::Truncated)?;
+            *value = vs.next_scalar()?;
         }
         let products = tails.map(|tail| tail[0] * tail[1] * tail[2] * tail[3]);
         if claim != poly_eval(&products, lambda) {

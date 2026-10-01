@@ -127,13 +127,15 @@ pub struct ZerocheckClaim {
     pub c_eval: F192,
 }
 
-/// Reasons the verifier may reject a proof.
-#[derive(Clone, Debug, PartialEq, Eq)]
+/// Why the zerocheck verifier rejects.
+#[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
 pub enum VerifyError {
-    /// `log_n` doesn't satisfy `log_n >= K_SKIP`.
+    /// Fewer variables than the univariate skip takes.
+    #[error("log_n {log_n} is below k_skip {k_skip}")]
     LogNTooSmall { log_n: usize, k_skip: usize },
-    /// The proof stream ran out while reading a message.
-    Transcript(fiat_shamir::transcript::Error),
+    /// The proof stream is malformed.
+    #[error(transparent)]
+    Transcript(#[from] fiat_shamir::transcript::Error),
 }
 
 // ---------------------------------------------------------------------------
@@ -398,7 +400,7 @@ pub fn verify(log_n: usize, vs: &mut VerifierState<'_>) -> Result<ZerocheckClaim
     let r_rest = equality_tail(m, |n| vs.sample_vec(n));
 
     // ---- Read + bind the round-1 message off the stream, sample z ----
-    let round1: Vec<F192> = vs.next_scalars(ell).map_err(VerifyError::Transcript)?;
+    let round1: Vec<F192> = vs.next_scalars(ell)?;
     let z = vs.sample();
 
     // ---- Reconstruct the initial running claim ----
@@ -432,9 +434,7 @@ pub fn verify(log_n: usize, vs: &mut VerifierState<'_>) -> Result<ZerocheckClaim
     let mut mlv_chis: Vec<F192> = Vec::with_capacity(n_mlv);
     for i in 0..n_mlv {
         let r_eq = r_rest[i];
-        let g = vs
-            .next_round_poly(3, c_running, Some(r_eq))
-            .map_err(VerifyError::Transcript)?;
+        let g = vs.next_round_poly(3, c_running, Some(r_eq))?;
         let chi = vs.sample();
         mlv_chis.push(chi);
         c_running = primitives::multilinear::poly_eval(&g, chi);
@@ -454,8 +454,8 @@ pub fn verify(log_n: usize, vs: &mut VerifierState<'_>) -> Result<ZerocheckClaim
     // what the identity leaves, so there is nothing to check here. A prover who
     // lies about anything upstream just shifts the lie into `ĉ`, and lincheck,
     // which pins all three against the committed witness, rejects it.
-    let final_a_eval = vs.next_scalar().map_err(VerifyError::Transcript)?;
-    let final_b_eval = vs.next_scalar().map_err(VerifyError::Transcript)?;
+    let final_a_eval = vs.next_scalar()?;
+    let final_b_eval = vs.next_scalar()?;
     let final_c_eval = c_running + final_a_eval * final_b_eval;
 
     Ok(ZerocheckClaim {

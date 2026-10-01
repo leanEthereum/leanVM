@@ -36,13 +36,28 @@ fn encoding() -> impl Options {
     bincode::DefaultOptions::new().with_fixint_encoding()
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// Why a proof's transcript cannot be read.
+///
+/// Each variant is a malformed proof, never a verifier bug.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, thiserror::Error)]
 pub enum Error {
-    ExceededStream,
-    MissingHint,
-    InvalidMerkleOpening,
-    NotFullyConsumed,
-    PowFailed,
+    /// The stream ends before a scalar the verifier reads.
+    #[error("the proof stream ends after {len} scalars")]
+    ExceededStream { len: usize },
+    /// No Merkle opening phase is left to read.
+    #[error("the proof has no Merkle opening phase {phase}")]
+    MissingHint { phase: usize },
+    /// A Merkle opening does not authenticate against its root.
+    #[error("Merkle opening phase {phase} does not authenticate")]
+    InvalidMerkleOpening { phase: usize },
+    /// Data is left once the verifier is done.
+    #[error("the proof has {scalars} unread scalars and {phases} unread opening phases")]
+    NotFullyConsumed { scalars: usize, phases: usize },
+    /// A nonce misses its proof of work.
+    #[error("a nonce misses its {bits}-bit proof of work")]
+    PowFailed { bits: u32 },
+    /// A digest half has a nonzero top limb, so it is no 128-bit value.
+    #[error("a digest half is not a 128-bit value")]
     NonCanonicalEncoding,
 }
 
@@ -197,7 +212,10 @@ impl<'a> VerifierState<'a> {
     /// half of reading a round polynomial, whose coefficients bind in index order
     /// once they have all been read.
     fn take_raw(&mut self) -> Result<F192, Error> {
-        let x = *self.stream.get(self.offset).ok_or(Error::ExceededStream)?;
+        let x = *self
+            .stream
+            .get(self.offset)
+            .ok_or(Error::ExceededStream { len: self.stream.len() })?;
         self.offset += 1;
         Ok(x)
     }
@@ -222,7 +240,10 @@ impl<'a> VerifierState<'a> {
         if self.offset == self.stream.len() && self.phase == self.merkle.len() {
             Ok(())
         } else {
-            Err(Error::NotFullyConsumed)
+            Err(Error::NotFullyConsumed {
+                scalars: self.stream.len() - self.offset,
+                phases: self.merkle.len() - self.phase,
+            })
         }
     }
 }
@@ -276,11 +297,12 @@ impl<'a> Receiver for VerifierState<'a> {
         row_words: usize,
         leaf_words: usize,
     ) -> Result<Vec<Vec<F64>>, Error> {
-        let paths: &'a PrunedMerklePaths = self.merkle.get(self.phase).ok_or(Error::MissingHint)?;
+        let phase = self.phase;
+        let paths: &'a PrunedMerklePaths = self.merkle.get(phase).ok_or(Error::MissingHint { phase })?;
         self.phase += 1;
         let openings = paths
             .open(root, num_leaves, queries, row_words, leaf_words)
-            .ok_or(Error::InvalidMerkleOpening)?;
+            .ok_or(Error::InvalidMerkleOpening { phase })?;
         let rows = openings.iter().map(|o| o.leaf_data.clone()).collect();
         self.raw_openings.extend(openings);
         Ok(rows)
@@ -326,7 +348,7 @@ impl<'a> Receiver for VerifierState<'a> {
         if self.fs.verify_pow_field(nonce, bits) {
             Ok(())
         } else {
-            Err(Error::PowFailed)
+            Err(Error::PowFailed { bits })
         }
     }
 }

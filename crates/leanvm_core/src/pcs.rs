@@ -83,11 +83,6 @@ pub struct Committed {
     pub log_inv_rate: usize,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Error {
-    Whir(::pcs::whir::VerifyError),
-}
-
 /// Commit a `K`-valued witness of `2^μ` words (`μ ≥ MIN_MU`, from
 /// [`crate::witness::placements_of`]) and bind its root into the transcript,
 /// before any challenge is sampled. The verifier reads it with
@@ -163,9 +158,9 @@ pub fn verify(
     shape: crate::witness::StackShape,
     log_inv_rate: usize,
     root: &[u8; 32],
-) -> Result<(), Error> {
+) -> Result<(), ::pcs::whir::VerifyError> {
     let cfg = whir_config(shape.mu, log_inv_rate);
-    verify_opening_batch_mixed_whir_stacked(vs, &cfg, shape.mu, shape.n_lanes, root, points, rings).map_err(Error::Whir)
+    verify_opening_batch_mixed_whir_stacked(vs, &cfg, shape.mu, shape.n_lanes, root, points, rings)
 }
 
 #[cfg(test)]

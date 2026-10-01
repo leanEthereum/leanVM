@@ -82,11 +82,8 @@ enum Command {
     },
 }
 
-fn parse_rate(log_inv_rate: &str) -> Result<Rate, String> {
-    let log_inv_rate = log_inv_rate
-        .parse()
-        .map_err(|e: std::num::ParseIntError| e.to_string())?;
-    Rate::new(log_inv_rate).map_err(|e| e.to_string())
+fn parse_rate(log_inv_rate: &str) -> Result<Rate, Box<dyn std::error::Error + Send + Sync>> {
+    Ok(Rate::new(log_inv_rate.parse()?)?)
 }
 
 fn main() {

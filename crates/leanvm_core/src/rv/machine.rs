@@ -29,34 +29,25 @@ pub struct Program {
 }
 
 /// Why instruction input cannot form a validated executable.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, thiserror::Error)]
 #[non_exhaustive]
 pub enum ProgramError {
     /// The text cannot fit with its required padding.
+    #[error("the text leaves no room for padding and the halt slot")]
     TextTooLarge,
     /// The entry is unaligned or outside the supplied text.
+    #[error("the entry point is not an aligned instruction in the supplied text")]
     EntryPoint,
     /// The RAM capacity is unsupported or smaller than the image.
+    #[error("RAM is too small for its image, or exceeds its region")]
     RamSize,
     /// The advice capacity exceeds its region.
+    #[error("the advice exceeds its region")]
     AdviceSize,
     /// A decoded instruction violates the table schema.
+    #[error("the decoded text contains a malformed entry")]
     MalformedEntry,
 }
-
-impl std::fmt::Display for ProgramError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(match self {
-            Self::TextTooLarge => "the text leaves no room for padding and the halt slot",
-            Self::EntryPoint => "the entry point is not an aligned instruction in the supplied text",
-            Self::RamSize => "RAM is too small for its image, or exceeds its region",
-            Self::AdviceSize => "the advice exceeds its region",
-            Self::MalformedEntry => "the decoded text contains a malformed entry",
-        })
-    }
-}
-
-impl std::error::Error for ProgramError {}
 
 impl Program {
     /// Decode instruction words after checking the entry and memory-region sizes.
@@ -168,31 +159,22 @@ impl Program {
 }
 
 /// Why a run stops without halting: an ISA fault, which no proof can follow.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, thiserror::Error)]
 #[non_exhaustive]
 pub enum Trap {
     /// `pc` names no instruction: outside the text, misaligned, or an illegal one.
+    #[error("no legal instruction at pc {pc:#x}")]
     Illegal { pc: u64 },
     /// A load, a store or a hash block at an address its width does not divide.
+    #[error("misaligned access to {address:#x} at pc {pc:#x}")]
     Misaligned { pc: u64, address: u64 },
     /// An access outside RAM and the advice.
+    #[error("access outside RAM, to {address:#x}, at pc {pc:#x}")]
     Unmapped { pc: u64, address: u64 },
     /// An `ECALL` that is not `exit`.
+    #[error("ecall {syscall} is not exit")]
     NotAnExit { syscall: u64 },
 }
-
-impl std::fmt::Display for Trap {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match *self {
-            Self::Illegal { pc } => write!(f, "no legal instruction at pc {pc:#x}"),
-            Self::Misaligned { pc, address } => write!(f, "misaligned access to {address:#x} at pc {pc:#x}"),
-            Self::Unmapped { pc, address } => write!(f, "access outside RAM, to {address:#x}, at pc {pc:#x}"),
-            Self::NotAnExit { syscall } => write!(f, "ecall {syscall} is not exit"),
-        }
-    }
-}
-
-impl std::error::Error for Trap {}
 
 /// The RAM cell a step accessed.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]

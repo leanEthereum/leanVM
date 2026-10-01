@@ -198,7 +198,7 @@ fn tampered_stream_words_reject_without_panicking() {
     short.stream.truncate(1);
     assert_eq!(
         verify_with(&inst, &short, |point| eq_eval(&inst.point, point)),
-        Err(VerifyError::Transcript(TranscriptError::ExceededStream)),
+        Err(VerifyError::Transcript(TranscriptError::ExceededStream { len: 1 })),
     );
     for idx in 0..inst.fs.stream.len() {
         for tamper in [F192::ONE, F192::new(0, 0, 1)] {

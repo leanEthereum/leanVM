@@ -53,12 +53,14 @@ pub const PAYLOAD_CELLS: usize = CELLS / 2;
 pub const MAX_ROWS: usize = 1024;
 
 /// Why a matrix is rejected.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, thiserror::Error)]
 pub enum Error {
     /// No rows, or more than a commitment holds.
-    RowCount,
+    #[error("{rows} rows, and a commitment holds 1 to {MAX_ROWS}")]
+    RowCount { rows: usize },
     /// This row is not orthogonal to `L`, so not a codeword.
-    NotACodeword(usize),
+    #[error("row {row} is not a codeword")]
+    NotACodeword { row: usize },
 }
 
 /// Check that every row is a codeword, and return the public values: the root and `H(L)`.
@@ -75,7 +77,7 @@ pub fn check(dual: &[Dual; M], rows: &[[u64; M]], cells: &mut [[Hash; CELLS]]) -
     // Membership first: the commitment is only worth computing over codewords.
     for (i, row) in rows.iter().enumerate() {
         if !is_orthogonal(&mut buckets, dual, row) {
-            return Err(Error::NotACodeword(i));
+            return Err(Error::NotACodeword { row: i });
         }
     }
     Ok([commit(rows, cells)?, dual_digest(dual)])
@@ -88,7 +90,7 @@ pub fn check(dual: &[Dual; M], rows: &[[u64; M]], cells: &mut [[Hash; CELLS]]) -
 /// No rows, or more than a commitment holds.
 pub fn commit(rows: &[[u64; M]], cells: &mut [[Hash; CELLS]]) -> Result<Hash, Error> {
     if rows.is_empty() || rows.len() > MAX_ROWS {
-        return Err(Error::RowCount);
+        return Err(Error::RowCount { rows: rows.len() });
     }
     // For example 3 rows pad to 4, the fourth a zero codeword.
     let padded = rows.len().next_power_of_two();

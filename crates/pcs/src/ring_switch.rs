@@ -366,13 +366,6 @@ fn build_eq_split_ext(point: &[F192]) -> (Vec<F192>, Vec<F192>) {
 // Prover / verifier of the reduction
 // ---------------------------------------------------------------------------
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum VerifyError {
-    ClaimMismatch,
-    /// The stream ran out before the 64 `s_hat_v` words were read.
-    Truncated,
-}
-
 /// Prover-side scratch carried from [`prove_prepare`] into finalization.
 ///
 /// The two phases exist because one map is shared by every claim, and it can

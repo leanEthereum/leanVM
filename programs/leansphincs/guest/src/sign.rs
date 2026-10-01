@@ -31,11 +31,13 @@ pub struct SecretKey {
 }
 
 /// Why signing failed.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, thiserror::Error)]
 pub enum SignError {
     /// `A_max` digests in a row had a nonzero last index.
+    #[error("A_max digests in a row have a nonzero last index")]
     NoAdmissibleDigest,
     /// `C_max` counters in a row gave no codeword.
+    #[error("C_max counters in a row give no codeword")]
     NoAdmissibleEncoding,
 }
 

@@ -6,6 +6,7 @@ publish = false
 
 [dependencies]
 leanvm_guest = { path = "../../../sdk" }
+thiserror = { version = "2", default-features = false }
 
 # Its own workspace: a guest builds for RISC-V, with this directory's toolchain and config.
 [workspace]

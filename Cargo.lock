@@ -149,6 +149,7 @@ dependencies = [
  "parallel",
  "primitives",
  "serde",
+ "thiserror",
 ]
 
 [[package]]
@@ -160,6 +161,7 @@ dependencies = [
  "parallel",
  "pcs",
  "primitives",
+ "thiserror",
  "tracing",
  "zk_alloc",
 ]
@@ -199,6 +201,7 @@ name = "leanda"
 version = "0.1.0"
 dependencies = [
  "leanvm_guest",
+ "thiserror",
 ]
 
 [[package]]
@@ -218,6 +221,7 @@ name = "leansphincs"
 version = "0.1.0"
 dependencies = [
  "leanvm_guest",
+ "thiserror",
 ]
 
 [[package]]
@@ -238,6 +242,7 @@ dependencies = [
  "leanvm_core",
  "leanvm_guest",
  "primitives",
+ "thiserror",
  "zk_alloc",
 ]
 
@@ -269,6 +274,7 @@ dependencies = [
  "parallel",
  "pcs",
  "primitives",
+ "thiserror",
  "tracing",
  "zk_alloc",
 ]
@@ -282,6 +288,7 @@ name = "leanxmss"
 version = "0.1.0"
 dependencies = [
  "leanvm_guest",
+ "thiserror",
 ]
 
 [[package]]
@@ -359,6 +366,7 @@ dependencies = [
  "fiat_shamir",
  "parallel",
  "primitives",
+ "thiserror",
  "tracing",
  "zk_alloc",
 ]

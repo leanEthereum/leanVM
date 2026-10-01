@@ -45,9 +45,17 @@ pub struct Claims {
     pub evals: Vec<F192>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+/// Why the table constraints reject.
+#[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
 pub enum Error {
-    Truncated,
+    /// The bus point has fewer coordinates than the tallest table has variables.
+    #[error("the bus point has {len} coordinates, and the tallest table has {rounds} variables")]
+    PointTooShort { len: usize, rounds: usize },
+    /// The proof stream is malformed.
+    #[error(transparent)]
+    Transcript(#[from] fiat_shamir::transcript::Error),
+    /// The sumcheck's final claim is not the tables' summands at the opened columns.
+    #[error("the constraint sumcheck's final claim does not match the columns")]
     FinalMismatch,
 }
 
@@ -253,7 +261,10 @@ pub fn verify<S: Summand>(
 ) -> Result<Vec<Claims>, Error> {
     let n = airs.iter().map(|a| a.tau).max().unwrap_or(0);
     if zeta.len() < n {
-        return Err(Error::Truncated);
+        return Err(Error::PointTooShort {
+            len: zeta.len(),
+            rounds: n,
+        });
     }
     let mut weights = vec![F192::ONE; airs.len()];
     // An ordinary sumcheck for `target`, which the caller supplies. Each round
@@ -265,7 +276,7 @@ pub fn verify<S: Summand>(
     for j in 0..n {
         let m = n - 1 - j;
         // The running claim fixes the linear coefficient.
-        let h = vs.next_round_poly(4, claim, None).map_err(|_| Error::Truncated)?;
+        let h = vs.next_round_poly(4, claim, None)?;
         let rk = vs.sample();
         chi[m] = rk;
         claim = poly_eval(&h, rk);
@@ -278,7 +289,7 @@ pub fn verify<S: Summand>(
     let mut acc = F192::ZERO;
     let mut claims = Vec::with_capacity(airs.len());
     for (t, air) in airs.iter().enumerate() {
-        let evals = vs.next_scalars(air.n_cols).map_err(|_| Error::Truncated)?;
+        let evals = vs.next_scalars(air.n_cols)?;
         acc += weights[t] * air.summand.eval(&evals, false);
         claims.push(Claims {
             chi: chi[..air.tau].to_vec(),

@@ -16,18 +16,21 @@ use fiat_shamir::transcript::{Error as TranscriptError, Receiver};
 use primitives::field::{F64, F192, powers};
 use primitives::multilinear::{eq_eval, eq_table};
 
-/// Why a WHIR opening was rejected.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// Why a WHIR opening is rejected.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, thiserror::Error)]
 pub enum VerifyError {
-    Transcript(TranscriptError),
-    InvalidShape,
+    /// The proof stream is malformed.
+    #[error(transparent)]
+    Transcript(#[from] TranscriptError),
+    /// The announced layout stores no lanes, or more than a leaf holds.
+    #[error("{n_lanes} committed lanes, and a leaf holds 1 to {max}")]
+    LaneCount { n_lanes: usize, max: usize },
+    /// A level of the configuration does not fit the witness.
+    #[error("level {level} of the configuration does not fit the witness")]
+    InvalidShape { level: usize },
+    /// The final folded value does not match the claimed evaluation.
+    #[error("the final sumcheck claim does not match the opening")]
     TerminalMismatch,
-}
-
-impl From<TranscriptError> for VerifyError {
-    fn from(error: TranscriptError) -> Self {
-        Self::Transcript(error)
-    }
 }
 
 /// An `E` row from the `F64` words its Merkle leaf is hashed from. The row was
@@ -184,8 +187,9 @@ where
     // The L0 rows the proof stores: the committed lanes, the rest of the leaf image
     // being the zero prefix the absent ones contribute. Derived from the announced
     // layout by the caller, so it is not the prover's to choose.
-    if n_lanes == 0 || n_lanes > 1usize << initial_k {
-        return Err(VerifyError::InvalidShape);
+    let max = 1usize << initial_k;
+    if n_lanes == 0 || n_lanes > max {
+        return Err(VerifyError::LaneCount { n_lanes, max });
     }
 
     // The caller already bound the root and claim values through the transcript.
@@ -283,7 +287,7 @@ where
     for i in 0..r {
         let k_i = config.level_ks()[i];
         if n_current < k_i {
-            return Err(VerifyError::InvalidShape);
+            return Err(VerifyError::InvalidShape { level: i });
         }
         let level_rs = replay_fold_rounds(vs, k_i, &mut t_r, &mut running_quad)?;
         ris.extend_from_slice(&level_rs);
@@ -348,7 +352,7 @@ where
             let mut weight = F192::ZERO;
             for ctx in &level_ctxs {
                 if ctx.log_msg_cols < yr_log_n || ctx.ris_start + (ctx.log_msg_cols - yr_log_n) > ris.len() {
-                    return Err(VerifyError::InvalidShape);
+                    return Err(VerifyError::InvalidShape { level: i });
                 }
                 let folded = ctx.log_msg_cols - yr_log_n;
                 let mut point = ris[ctx.ris_start..ctx.ris_start + folded].to_vec();
@@ -362,13 +366,13 @@ where
                     0,
                 );
                 if at.len() != 1 {
-                    return Err(VerifyError::InvalidShape);
+                    return Err(VerifyError::InvalidShape { level: i });
                 }
                 weight += ctx.beta * at[0];
             }
             for ctx in &ood_ctxs {
                 if ctx.z.len() < yr_log_n || ctx.ris_start + (ctx.z.len() - yr_log_n) > ris.len() {
-                    return Err(VerifyError::InvalidShape);
+                    return Err(VerifyError::InvalidShape { level: i });
                 }
                 let folded = ctx.z.len() - yr_log_n;
                 let mut scalar = ctx.beta;
@@ -458,7 +462,7 @@ where
             )
             .is_none()
         {
-            return Err(VerifyError::InvalidShape);
+            return Err(VerifyError::InvalidShape { level: i });
         }
     }
 
