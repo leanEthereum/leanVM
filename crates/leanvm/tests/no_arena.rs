@@ -12,11 +12,11 @@ fn proving_without_the_arena() {
 
     // A countdown, returning how far it counted.
     let text = Asm::new()
-        .li(T0, 300)
+        .li(Reg::T0, 300)
         .label("loop")
-        .i("addi", A0, A0, 1)
-        .i("addi", T0, T0, -1)
-        .branch("bne", T0, ZERO, "loop")
+        .i(Addi, Reg::A0, Reg::A0, 1)
+        .i(Addi, Reg::T0, Reg::T0, -1)
+        .branch(Bne, Reg::T0, Reg::ZERO, "loop")
         .exit()
         .finish();
     let program = Program::new(&text, TEXT_BASE, vec![], 2, 0).expect("valid instruction program");

@@ -26,7 +26,7 @@
 //! single row reachable.
 
 use crate::rv::Class;
-use crate::rv::asm;
+use crate::rv::asm::{Addi, Divu, Instruction, Lb, Mul, Mulhu, Opcode, Reg, Sb, Slli};
 use crate::tables::{CLASSES, N_TABLES};
 
 /// Block sizes, largest first: a fill of `f` rows takes `f / 128` traversals of the
@@ -58,19 +58,20 @@ pub struct Block {
 
 /// A no-op of `class`: every register is `x0`, which a padding row never touches for real.
 fn nop(class: Class) -> u32 {
-    match class {
-        Class::Alu => asm::i_type(0x13, 0, 0, 0, 0),
+    let instruction = match class {
+        Class::Alu => Addi.encode(Reg::ZERO, Reg::ZERO, 0),
         // A load and a store of the byte at address zero, which clock zero never checks.
-        Class::Load => asm::i_type(0x03, 0, 0, 0, 0),
-        Class::Store => asm::s_type(0x23, 0, 0, 0, 0),
-        Class::Shift => asm::i_type(0x13, 1, 0, 0, 0),
-        Class::Mul => asm::r_type(0x33, 0, 1, 0, 0, 0),
-        Class::Mulh => asm::r_type(0x33, 3, 1, 0, 0, 0),
-        Class::Div => asm::r_type(0x33, 5, 1, 0, 0, 0),
+        Class::Load => Lb.encode(Reg::ZERO, Reg::ZERO, 0),
+        Class::Store => Sb.encode(Reg::ZERO, Reg::ZERO, 0),
+        Class::Shift => Slli.encode(Reg::ZERO, Reg::ZERO, 0),
+        Class::Mul => Mul.encode(Reg::ZERO, Reg::ZERO, Reg::ZERO),
+        Class::Mulh => Mulhu.encode(Reg::ZERO, Reg::ZERO, Reg::ZERO),
+        Class::Div => Divu.encode(Reg::ZERO, Reg::ZERO, Reg::ZERO),
         // A compression of the block at address zero, which clock zero never checks.
-        Class::Hash => asm::r_type(crate::rv::hash::OPCODE, 0, 0, 0, 0, 0),
+        Class::Hash => Instruction::r(Opcode::Custom0, 0, 0, Reg::ZERO, Reg::ZERO, Reg::ZERO),
         Class::Illegal => unreachable!("no fill block of an illegal entry"),
-    }
+    };
+    instruction.bits()
 }
 
 /// Whether a text of `words` instructions still leaves room, inside the text region,
@@ -104,7 +105,7 @@ pub fn append_blocks(text: &mut Vec<u32>) -> Vec<Block> {
             });
             text.extend(std::iter::repeat_n(nop(spec.class), size));
             // The closing jump, which a padding row takes back to the block's top.
-            text.push(asm::j_type(0, -4 * size as i32));
+            text.push(Instruction::j(Reg::ZERO, -4 * size as i32).bits());
         }
     }
     blocks

@@ -33,6 +33,7 @@ leanxmss-host = { path = "programs/leanxmss/host" }
 leansphincs-host = { path = "programs/leansphincs/host" }
 leanda-host = { path = "programs/leanda/host" }
 libc = "0.2"
+proptest = { version = "1", default-features = false, features = ["std"] }
 serde = { version = "1", features = ["derive"] }
 bincode = "1"
 rand = "0.9"

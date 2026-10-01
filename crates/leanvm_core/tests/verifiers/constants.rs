@@ -7,7 +7,7 @@
 //! a constant that drifts changes what each side ACCEPTS, and only a statement they both
 //! reject would show it. So the two lists are rendered the same way and diffed here.
 
-use leanvm_core::rv::hash;
+use leanvm_core::rv::{Hash, Reg, RegisterFile, Syscall};
 use leanvm_core::tables::CLASSES;
 use std::fmt::Write;
 
@@ -25,15 +25,15 @@ fn rust_constants() -> String {
     scalar("FAIL_BIT", leanvm_core::tables::FAIL_BIT as u64);
     scalar("FLOCK_K_SKIP", flock::zerocheck::K_SKIP as u64);
     scalar("FLOCK_MIN_LOG_SIZE", leanvm_core::class_flock::MIN_CUBE_LOG as u64);
-    scalar("HASH_OUT_WORD", hash::OUT / 8);
-    scalar("HASH_WORDS", hash::WORDS as u64);
+    scalar("HASH_OUT_WORD", Hash::OUT / 8);
+    scalar("HASH_WORDS", Hash::WORDS as u64);
     scalar(
         "INITIAL_FOLDING_FACTOR",
         pcs::whir_config::INITIAL_FOLDING_FACTOR as u64,
     );
     scalar("LIVE_BIT", leanvm_core::tables::LIVE_BIT as u64);
     scalar("LOG_PACKING", pcs::pack::LOG_PACKING as u64);
-    scalar("LOG_REGISTERS", leanvm_core::rv::LOG_REGS as u64);
+    scalar("LOG_REGISTERS", RegisterFile::LOG_CELLS as u64);
     scalar("MAX_LOG_ADVICE", leanvm_core::rv::MAX_LOG_ADVICE as u64);
     scalar("MAX_LOG_RAM", leanvm_core::rv::MAX_LOG_RAM as u64);
     scalar("MAX_LOG_ROWS", leanvm_core::cpu::MAX_LOG_ROWS as u64);
@@ -50,20 +50,20 @@ fn rust_constants() -> String {
     let rs_domain_rest = pcs::whir_config::RS_DOMAIN_SUBSEQUENT_REDUCTION_FACTOR;
     scalar("RS_DOMAIN_SUBSEQUENT_REDUCTION_FACTOR", rs_domain_rest as u64);
     scalar("SEED_CLOCK", leanvm_core::tables::SEED_CLOCK);
-    scalar("SINK", leanvm_core::rv::SINK as u64);
+    scalar("SINK", RegisterFile::SINK as u64);
     scalar("SLOT_BITS", leanvm_core::tables::SLOT_BITS as u64);
     scalar(
         "SUBSEQUENT_FOLDING_FACTOR",
         pcs::whir_config::SUBSEQUENT_FOLDING_FACTOR as u64,
     );
-    scalar("SYSCALL_REGISTER", leanvm_core::rv::SYSCALL_REG as u64);
-    scalar("SYS_EXIT", leanvm_core::rv::SYS_EXIT);
+    scalar("SYSCALL_REGISTER", Reg::SYSCALL.index() as u64);
+    scalar("SYS_EXIT", Syscall::Exit.number());
     scalar("TEXT_BASE", leanvm_core::rv::TEXT_BASE);
 
     let list = |values: &[u64]| values.iter().map(u64::to_string).collect::<Vec<_>>().join(",");
     lines.push(format!(
         "OUTPUT_REGISTERS {}",
-        list(&leanvm_core::rv::OUTPUT_REGS.map(u64::from))
+        list(&Reg::OUTPUTS.map(|r| r.index() as u64))
     ));
     lines.push(format!(
         "REGISTER_SLOTS {}",
@@ -96,7 +96,7 @@ fn rust_constants() -> String {
             "{prefix}.slots {}",
             list(&spec.slots().iter().map(|&s| s as u64).collect::<Vec<_>>())
         ));
-        let mut flags = leanvm_core::rv::legal_flags(spec.class).to_vec();
+        let mut flags = spec.class.legal_flags().to_vec();
         flags.sort_unstable();
         lines.push(format!("{prefix}.legal_flags {}", list(&flags)));
     }

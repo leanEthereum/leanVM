@@ -98,18 +98,24 @@ fn suite() -> Vec<Test> {
 /// behind which the text holds the check's label and the address of its description,
 /// and `x4` its register save area, where the registers are.
 fn failed_check(test: &Test, machine: &Machine, trap: &Trap) -> Option<String> {
-    let link = machine.regs()[5];
+    let link = machine.registers().cells()[5];
     if !matches!(*trap, Trap::Unmapped { address, .. } if address == link.wrapping_sub(6)) {
         return None;
     }
     let word = |pc: u64| test.text.get(pc.checked_sub(TEXT_BASE)? as usize / 4).copied();
-    let ram = |address: u64| machine.ram().get(address.checked_sub(RAM_BASE)? as usize / 8).copied();
+    let ram = |address: u64| {
+        machine
+            .memory()
+            .ram()
+            .get(address.checked_sub(RAM_BASE)? as usize / 8)
+            .copied()
+    };
     // `ld expected, offset(signature)`, `beq expected, actual`, `jal x5, handler`.
     let (load, beq) = (word(link.wrapping_sub(12))?, word(link.wrapping_sub(8))?);
     if load & 0x707f != 0x3003 || beq & 0x707f != 0x63 {
         return None;
     }
-    let saved = |register: u32| ram(machine.regs()[4].wrapping_add(8 * register as u64));
+    let saved = |register: u32| ram(machine.registers().cells()[4].wrapping_add(8 * register as u64));
     let actual = (beq >> 20) & 31;
     let signature = saved((load >> 15) & 31)?.wrapping_add((load as i32 >> 20) as u64);
     let description = u64::from(word(link.wrapping_add(8))?) | u64::from(word(link.wrapping_add(12))?) << 32;

@@ -62,13 +62,16 @@ pub fn fibonacci_program(fib_n: usize) -> (Program, [u64; 4]) {
         "fib_n must be a positive multiple of {UNROLL}"
     );
     let mut text = Asm::new();
-    text.li(A0, 0).li(A1, 1).li(T0, (fib_n / UNROLL) as u64).label("loop");
+    text.li(Reg::A0, 0)
+        .li(Reg::A1, 1)
+        .li(Reg::T0, (fib_n / UNROLL) as u64)
+        .label("loop");
     for _ in 0..UNROLL / 2 {
-        text.r("add", A0, A0, A1).r("add", A1, A0, A1);
+        text.r(Add, Reg::A0, Reg::A0, Reg::A1).r(Add, Reg::A1, Reg::A0, Reg::A1);
     }
-    text.i("addi", T0, T0, -1)
-        .branch("bne", T0, ZERO, "loop")
-        .li(A1, 0)
+    text.i(Addi, Reg::T0, Reg::T0, -1)
+        .branch(Bne, Reg::T0, Reg::ZERO, "loop")
+        .li(Reg::A1, 0)
         .exit();
 
     let (mut a, mut b) = (0u64, 1u64);

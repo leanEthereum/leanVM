@@ -208,9 +208,9 @@ fn test_python_verifier() {
     let refused = statement.verify(&raw);
     PythonStatement::assert_rejects(&refused, "an ordinary instruction marked as an exit");
     assert!(String::from_utf8_lossy(&refused.stderr).contains("an exit entry is not ECALL"));
-    let branch = leanvm_core::rv::alu::SUB | leanvm_core::rv::alu::BR_EQ;
-    let always = leanvm_core::rv::alu::ALWAYS;
-    let jalr = leanvm_core::rv::alu::CLEAR_BIT0;
+    let branch = leanvm_core::rv::Alu::SUB | leanvm_core::rv::Alu::BR_EQ;
+    let always = leanvm_core::rv::Alu::ALWAYS;
+    let jalr = leanvm_core::rv::Alu::CLEAR_BIT0;
     for (flags, dt, link, indirect) in [
         (branch, 0x44, 1, 1),
         (always, 0, 0, 0),

@@ -11,17 +11,17 @@ const STEPS: u64 = 1000;
 /// Fibonacci mod 2^64, iteratively, and the output it proves: `a0 = F(STEPS)`.
 pub fn fibonacci() -> (Program, [u64; 4]) {
     let text = Asm::new()
-        .li(A0, 0)
-        .li(A1, 1)
-        .li(T0, STEPS)
+        .li(Reg::A0, 0)
+        .li(Reg::A1, 1)
+        .li(Reg::T0, STEPS)
         .label("loop")
-        .r("add", A2, A0, A1)
-        .i("addi", A0, A1, 0)
-        .i("addi", A1, A2, 0)
-        .i("addi", T0, T0, -1)
-        .branch("bne", T0, ZERO, "loop")
-        .li(A1, 0)
-        .li(A2, 0)
+        .r(Add, Reg::A2, Reg::A0, Reg::A1)
+        .i(Addi, Reg::A0, Reg::A1, 0)
+        .i(Addi, Reg::A1, Reg::A2, 0)
+        .i(Addi, Reg::T0, Reg::T0, -1)
+        .branch(Bne, Reg::T0, Reg::ZERO, "loop")
+        .li(Reg::A1, 0)
+        .li(Reg::A2, 0)
         .exit()
         .finish();
     let (mut a, mut b) = (0u64, 1u64);
@@ -63,46 +63,46 @@ fn fibonacci_proves_and_verifies() {
 fn alu_instructions_prove_and_verify() {
     let mut a = Asm::new();
     // Constants `li` builds without a shift, which is another class's.
-    a.li(S0, 0xffff_ffff_8000_0001)
-        .li(S1, 0x7fff_ffff)
-        .r("add", A0, S0, S1)
-        .r("sub", A1, S0, S1)
-        .r("addw", A2, S1, S1)
-        .r("subw", A3, S0, S1)
-        .i("addiw", A4, S1, 1)
-        .r("slt", T0, S0, S1)
-        .r("sltu", T1, S0, S1)
-        .i("slti", T2, S0, -1)
-        .i("sltiu", A5, S1, -1)
-        .r("and", A6, S0, S1)
-        .r("or", A6, A6, T0)
-        .r("xor", A6, A6, T1)
-        .i("andi", T0, S1, 0x555)
-        .i("ori", T0, T0, -0x800)
-        .i("xori", T0, T0, 0x2aa)
-        .r("add", A0, A0, T0)
-        .r("add", A0, A0, T2)
-        .r("add", A0, A0, A5)
-        .lui(T0, 0xfffff)
-        .auipc(T1, 0x12345)
-        .r("add", A1, A1, T0)
-        .r("add", A1, A1, T1);
+    a.li(Reg::S0, 0xffff_ffff_8000_0001)
+        .li(Reg::S1, 0x7fff_ffff)
+        .r(Add, Reg::A0, Reg::S0, Reg::S1)
+        .r(Sub, Reg::A1, Reg::S0, Reg::S1)
+        .r(Addw, Reg::A2, Reg::S1, Reg::S1)
+        .r(Subw, Reg::A3, Reg::S0, Reg::S1)
+        .i(Addiw, Reg::A4, Reg::S1, 1)
+        .r(Slt, Reg::T0, Reg::S0, Reg::S1)
+        .r(Sltu, Reg::T1, Reg::S0, Reg::S1)
+        .i(Slti, Reg::T2, Reg::S0, -1)
+        .i(Sltiu, Reg::A5, Reg::S1, -1)
+        .r(And, Reg::A6, Reg::S0, Reg::S1)
+        .r(Or, Reg::A6, Reg::A6, Reg::T0)
+        .r(Xor, Reg::A6, Reg::A6, Reg::T1)
+        .i(Andi, Reg::T0, Reg::S1, 0x555)
+        .i(Ori, Reg::T0, Reg::T0, -0x800)
+        .i(Xori, Reg::T0, Reg::T0, 0x2aa)
+        .r(Add, Reg::A0, Reg::A0, Reg::T0)
+        .r(Add, Reg::A0, Reg::A0, Reg::T2)
+        .r(Add, Reg::A0, Reg::A0, Reg::A5)
+        .lui(Reg::T0, 0xfffff)
+        .auipc(Reg::T1, 0x12345)
+        .r(Add, Reg::A1, Reg::A1, Reg::T0)
+        .r(Add, Reg::A1, Reg::A1, Reg::T1);
     // Each branch twice, operands swapped, so that one of the two is taken. A branch
     // taken skips an increment of a4.
-    for (i, op) in ["beq", "bne", "blt", "bge", "bltu", "bgeu"].into_iter().enumerate() {
-        for (j, (x, y)) in [(S0, S1), (S1, S0)].into_iter().enumerate() {
+    for (i, op) in BranchOp::ALL.into_iter().enumerate() {
+        for (j, (x, y)) in [(Reg::S0, Reg::S1), (Reg::S1, Reg::S0)].into_iter().enumerate() {
             let label: &'static str = Box::leak(format!("skip{i}{j}").into_boxed_str());
-            a.branch(op, x, y, label).i("addi", A4, A4, 1).label(label);
+            a.branch(op, x, y, label).i(Addi, Reg::A4, Reg::A4, 1).label(label);
         }
     }
-    a.jal(RA, "double")
-        .jal(RA, "double")
-        .li(A3, 0)
+    a.jal(Reg::RA, "double")
+        .jal(Reg::RA, "double")
+        .li(Reg::A3, 0)
         .exit()
         .label("double")
-        .r("add", A2, A2, A2)
-        .r("add", A4, A4, A4)
-        .jalr(ZERO, RA, 0);
+        .r(Add, Reg::A2, Reg::A2, Reg::A2)
+        .r(Add, Reg::A4, Reg::A4, Reg::A4)
+        .jalr(Reg::ZERO, Reg::RA, 0);
     let program = Program::new(&a.finish(), TEXT_BASE, vec![], 2, 0).expect("valid instruction program");
     let expected = leanvm_core::rv::Machine::new(program.rv(), &[])
         .run()
@@ -120,51 +120,51 @@ fn loads_and_stores_prove_and_verify() {
     const DATA: u64 = RAM_BASE;
     let image = vec![5u64, 3, 0xffff_ffff_ffff_fff9, 1, 8, 0x8877_6655_4433_2211, 7, 4];
     let mut a = Asm::new();
-    a.li(SP, RAM_BASE + (8 << LOG_RAM))
-        .li(A0, DATA)
-        .jal(RA, "sort")
-        .li(T0, DATA)
-        .load("ld", A0, 56, T0)
-        .load("lw", T1, 56, T0)
-        .r("add", A0, A0, T1)
-        .load("lwu", T1, 60, T0)
-        .r("add", A0, A0, T1)
-        .load("lh", T1, 62, T0)
-        .r("add", A0, A0, T1)
-        .load("lhu", T1, 58, T0)
-        .r("add", A0, A0, T1)
-        .load("lb", T1, 63, T0)
-        .r("add", A0, A0, T1)
-        .load("lbu", T1, 57, T0)
-        .r("add", A0, A0, T1)
+    a.li(Reg::SP, RAM_BASE + (8 << LOG_RAM))
+        .li(Reg::A0, DATA)
+        .jal(Reg::RA, "sort")
+        .li(Reg::T0, DATA)
+        .load(Ld, Reg::A0, 56, Reg::T0)
+        .load(Lw, Reg::T1, 56, Reg::T0)
+        .r(Add, Reg::A0, Reg::A0, Reg::T1)
+        .load(Lwu, Reg::T1, 60, Reg::T0)
+        .r(Add, Reg::A0, Reg::A0, Reg::T1)
+        .load(Lh, Reg::T1, 62, Reg::T0)
+        .r(Add, Reg::A0, Reg::A0, Reg::T1)
+        .load(Lhu, Reg::T1, 58, Reg::T0)
+        .r(Add, Reg::A0, Reg::A0, Reg::T1)
+        .load(Lb, Reg::T1, 63, Reg::T0)
+        .r(Add, Reg::A0, Reg::A0, Reg::T1)
+        .load(Lbu, Reg::T1, 57, Reg::T0)
+        .r(Add, Reg::A0, Reg::A0, Reg::T1)
         // Narrow stores into the first sorted word.
-        .store("sb", T1, 1, T0)
-        .store("sh", T1, 2, T0)
-        .store("sw", T1, 4, T0)
-        .load("ld", A1, 0, T0)
+        .store(Sb, Reg::T1, 1, Reg::T0)
+        .store(Sh, Reg::T1, 2, Reg::T0)
+        .store(Sw, Reg::T1, 4, Reg::T0)
+        .load(Ld, Reg::A1, 0, Reg::T0)
         .exit()
         .label("sort")
-        .i("addi", SP, SP, -16)
-        .store("sd", RA, 8, SP)
-        .li(T2, 7)
+        .i(Addi, Reg::SP, Reg::SP, -16)
+        .store(Sd, Reg::RA, 8, Reg::SP)
+        .li(Reg::T2, 7)
         .label("outer")
-        .i("addi", T0, A0, 0)
-        .i("addi", T1, T2, 0)
+        .i(Addi, Reg::T0, Reg::A0, 0)
+        .i(Addi, Reg::T1, Reg::T2, 0)
         .label("inner")
-        .load("ld", A2, 0, T0)
-        .load("ld", A3, 8, T0)
-        .branch("bgeu", A3, A2, "ordered")
-        .store("sd", A3, 0, T0)
-        .store("sd", A2, 8, T0)
+        .load(Ld, Reg::A2, 0, Reg::T0)
+        .load(Ld, Reg::A3, 8, Reg::T0)
+        .branch(Bgeu, Reg::A3, Reg::A2, "ordered")
+        .store(Sd, Reg::A3, 0, Reg::T0)
+        .store(Sd, Reg::A2, 8, Reg::T0)
         .label("ordered")
-        .i("addi", T0, T0, 8)
-        .i("addi", T1, T1, -1)
-        .branch("bne", T1, ZERO, "inner")
-        .i("addi", T2, T2, -1)
-        .branch("bne", T2, ZERO, "outer")
-        .load("ld", RA, 8, SP)
-        .i("addi", SP, SP, 16)
-        .jalr(ZERO, RA, 0);
+        .i(Addi, Reg::T0, Reg::T0, 8)
+        .i(Addi, Reg::T1, Reg::T1, -1)
+        .branch(Bne, Reg::T1, Reg::ZERO, "inner")
+        .i(Addi, Reg::T2, Reg::T2, -1)
+        .branch(Bne, Reg::T2, Reg::ZERO, "outer")
+        .load(Ld, Reg::RA, 8, Reg::SP)
+        .i(Addi, Reg::SP, Reg::SP, 16)
+        .jalr(Reg::ZERO, Reg::RA, 0);
     let program = Program::new(&a.finish(), TEXT_BASE, image, LOG_RAM, 0).expect("valid instruction program");
     let expected = leanvm_core::rv::Machine::new(program.rv(), &[])
         .run()
@@ -177,27 +177,20 @@ fn loads_and_stores_prove_and_verify() {
 #[test]
 fn shifts_and_multiplications_prove_and_verify() {
     let mut a = Asm::new();
-    a.li(S0, 0x8765_4321_fedc_ba98).li(S1, 0xffff_ffff_0000_0025);
-    for (i, op) in [
-        "sll", "srl", "sra", "sllw", "srlw", "sraw", "mul", "mulh", "mulhsu", "mulhu", "mulw",
-    ]
-    .into_iter()
-    .enumerate()
+    a.li(Reg::S0, 0x8765_4321_fedc_ba98).li(Reg::S1, 0xffff_ffff_0000_0025);
+    for (i, op) in [Sll, Srl, Sra, Sllw, Srlw, Sraw, Mul, Mulh, Mulhsu, Mulhu, Mulw]
+        .into_iter()
+        .enumerate()
     {
-        a.r(op, T0, S0, S1)
-            .r("xor", A0, A0, T0)
-            .i("addi", A1, A1, i as i32 + 1)
-            .r("add", A1, A1, T0);
+        a.r(op, Reg::T0, Reg::S0, Reg::S1)
+            .r(Xor, Reg::A0, Reg::A0, Reg::T0)
+            .i(Addi, Reg::A1, Reg::A1, i as i32 + 1)
+            .r(Add, Reg::A1, Reg::A1, Reg::T0);
     }
-    for (op, amount) in [
-        ("slli", 63),
-        ("srli", 1),
-        ("srai", 40),
-        ("slliw", 31),
-        ("srliw", 0),
-        ("sraiw", 17),
-    ] {
-        a.i(op, T0, S0, amount).r("xor", A2, A2, T0).r("sub", A3, A3, T0);
+    for (op, amount) in [(Slli, 63), (Srli, 1), (Srai, 40), (Slliw, 31), (Srliw, 0), (Sraiw, 17)] {
+        a.shift(op, Reg::T0, Reg::S0, amount)
+            .r(Xor, Reg::A2, Reg::A2, Reg::T0)
+            .r(Sub, Reg::A3, Reg::A3, Reg::T0);
     }
     let program = Program::new(&a.exit().finish(), TEXT_BASE, vec![], 2, 0).expect("valid instruction program");
     let expected = leanvm_core::rv::Machine::new(program.rv(), &[])
@@ -220,12 +213,12 @@ fn divisions_prove_and_verify() {
         (0xffff_ffff_8000_0000, 0xffff_ffff_ffff_ffff),
     ];
     for (n, d) in operands {
-        a.li(S0, n).li(S1, d);
-        for op in ["div", "divu", "rem", "remu", "divw", "divuw", "remw", "remuw"] {
-            a.r(op, T0, S0, S1)
-                .r("xor", A0, A0, T0)
-                .r("add", A1, A1, T0)
-                .r("sub", A2, A2, A1);
+        a.li(Reg::S0, n).li(Reg::S1, d);
+        for op in [Div, Divu, Rem, Remu, Divw, Divuw, Remw, Remuw] {
+            a.r(op, Reg::T0, Reg::S0, Reg::S1)
+                .r(Xor, Reg::A0, Reg::A0, Reg::T0)
+                .r(Add, Reg::A1, Reg::A1, Reg::T0)
+                .r(Sub, Reg::A2, Reg::A2, Reg::A1);
         }
     }
     let program = Program::new(&a.exit().finish(), TEXT_BASE, vec![], 2, 0).expect("valid instruction program");
@@ -240,7 +233,7 @@ fn divisions_prove_and_verify() {
 /// message block loaded from the image, checked against the host's hash.
 #[test]
 fn blake2s_precompile_proves_and_verifies() {
-    use leanvm_core::rv::hash::{H, M, OUT};
+    use leanvm_core::rv::Hash;
     const BLOCK: u64 = RAM_BASE + 128;
     let data: Vec<u8> = (0..100u32).map(|i| (i * 37 + 11) as u8).collect();
     let words = |bytes: &[u8]| -> Vec<u64> {
@@ -265,26 +258,30 @@ fn blake2s_precompile_proves_and_verifies() {
     let second = BLOCK + 128;
 
     let mut a = Asm::new();
-    a.li(S0, BLOCK).li(S1, 64).blake2s(S0, S1, false);
+    a.li(Reg::S0, BLOCK).li(Reg::S1, 64).blake2s(Reg::S0, Reg::S1, false);
     for k in 0..4 {
-        a.load("ld", T0, (OUT + 8 * k) as i32, S0)
-            .store("sd", T0, (H + 8 * k) as i32, S0);
+        a.load(Ld, Reg::T0, (Hash::OUT + 8 * k) as i32, Reg::S0)
+            .store(Sd, Reg::T0, (Hash::H + 8 * k) as i32, Reg::S0);
     }
-    a.li(T1, second);
+    a.li(Reg::T1, second);
     for k in 0..8 {
-        a.load("ld", T0, 8 * k, T1)
-            .store("sd", T0, (M + 8 * k as u64) as i32, S0);
+        a.load(Ld, Reg::T0, 8 * k, Reg::T1)
+            .store(Sd, Reg::T0, (Hash::M + 8 * k as u64) as i32, Reg::S0);
     }
-    a.li(S1, data.len() as u64).blake2s(S0, S1, true);
-    for (i, reg) in [A0, A1, A2, A3].into_iter().enumerate() {
-        a.load("ld", reg, (OUT + 8 * i as u64) as i32, S0);
+    a.li(Reg::S1, data.len() as u64).blake2s(Reg::S0, Reg::S1, true);
+    for (i, reg) in [Reg::A0, Reg::A1, Reg::A2, Reg::A3].into_iter().enumerate() {
+        a.load(Ld, reg, (Hash::OUT + 8 * i as u64) as i32, Reg::S0);
     }
     let program = Program::new(&a.exit().finish(), TEXT_BASE, image, 7, 0).expect("valid instruction program");
     let expected: [u64; 4] = words(&primitives::hash::hash(&data))[..4].try_into().unwrap();
     proves_and_verifies("blake2s", &program, expected);
 
     // A block pointer that is no word address traps, like a misaligned load.
-    let text = Asm::new().li(S0, BLOCK + 4).blake2s(S0, ZERO, true).exit().finish();
+    let text = Asm::new()
+        .li(Reg::S0, BLOCK + 4)
+        .blake2s(Reg::S0, Reg::ZERO, true)
+        .exit()
+        .finish();
     let program = Program::new(&text, TEXT_BASE, vec![], 7, 0).expect("valid instruction program");
     assert_eq!(
         prove(&program, &[], Rate::MIN).err(),
@@ -301,14 +298,14 @@ fn blake2s_precompile_proves_and_verifies() {
 fn advice_proves_and_verifies() {
     const LOG_ADVICE: usize = 3;
     let mut a = Asm::new();
-    a.li(T0, ADVICE_BASE)
-        .load("ld", A0, 0, T0)
-        .load("ld", T1, 8, T0)
-        .r("add", A0, A0, T1)
-        .load("lw", A1, 20, T0)
-        .store("sd", A0, 56, T0)
-        .load("ld", A2, 56, T0)
-        .li(A3, 0)
+    a.li(Reg::T0, ADVICE_BASE)
+        .load(Ld, Reg::A0, 0, Reg::T0)
+        .load(Ld, Reg::T1, 8, Reg::T0)
+        .r(Add, Reg::A0, Reg::A0, Reg::T1)
+        .load(Lw, Reg::A1, 20, Reg::T0)
+        .store(Sd, Reg::A0, 56, Reg::T0)
+        .load(Ld, Reg::A2, 56, Reg::T0)
+        .li(Reg::A3, 0)
         .exit();
     let program = Program::new(&a.finish(), TEXT_BASE, vec![], 2, LOG_ADVICE).expect("valid instruction program");
     for advice in [
@@ -325,8 +322,8 @@ fn advice_proves_and_verifies() {
     }
     // Past the region is nowhere, like past RAM.
     let text = Asm::new()
-        .li(T0, ADVICE_BASE + (8 << LOG_ADVICE))
-        .load("ld", A0, 0, T0)
+        .li(Reg::T0, ADVICE_BASE + (8 << LOG_ADVICE))
+        .load(Ld, Reg::A0, 0, Reg::T0)
         .exit()
         .finish();
     let program = Program::new(&text, TEXT_BASE, vec![], 2, LOG_ADVICE).expect("valid instruction program");

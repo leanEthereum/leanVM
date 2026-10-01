@@ -4,7 +4,7 @@
 
 use super::*;
 use crate::leaf::SparseColumn;
-use crate::rv::{ADVICE_BASE, LOG_REGS, RAM_BASE, TEXT_BASE};
+use crate::rv::{ADVICE_BASE, RAM_BASE, RegisterFile, TEXT_BASE};
 use crate::witness::{Placement, Source};
 
 /// The bus blocks no single table owns, which each side starts with, in this order.
@@ -32,7 +32,7 @@ impl Framework {
     pub fn log_rows(self, sizes: Sizes) -> usize {
         match self {
             Framework::State => 0,
-            Framework::Registers => LOG_REGS,
+            Framework::Registers => RegisterFile::LOG_CELLS,
             Framework::Ram => sizes.log_ram,
             Framework::Advice => sizes.log_advice,
         }
@@ -274,9 +274,9 @@ pub struct Sizes {
 impl Sizes {
     pub fn of(p: &rv::Program) -> Self {
         Self {
-            log_bytecode: crate::log2_strict_usize(p.entries.len()),
-            log_ram: p.log_ram,
-            log_advice: p.log_advice,
+            log_bytecode: crate::log2_strict_usize(p.entries().len()),
+            log_ram: p.log_ram(),
+            log_advice: p.log_advice(),
         }
     }
 }
@@ -319,12 +319,12 @@ pub const N_BYTECODE_COLUMNS: usize = tables::EXIT_SLOT + 1 - crate::leaf::BYTEC
 /// stack into the polynomial [`bytecode_table`] returns.
 pub fn bytecode_columns(p: &rv::Program) -> [Vec<F64>; N_BYTECODE_COLUMNS] {
     let column = |f: &(dyn Fn(usize, &rv::Entry) -> u64 + Sync)| {
-        parallel::map_collect(p.entries.len(), |i| F64(f(i, &p.entries[i])))
+        parallel::map_collect(p.entries().len(), |i| F64(f(i, &p.entries()[i])))
     };
     [
         // An illegal entry's tag is zero, which is no table's: nothing can read it.
-        parallel::map_collect(p.entries.len(), |i| {
-            tables::table_of(p.entries[i].class).map_or(F64::ZERO, primitives::field::g_pow)
+        parallel::map_collect(p.entries().len(), |i| {
+            tables::table_of(p.entries()[i].class).map_or(F64::ZERO, primitives::field::g_pow)
         }),
         column(&|_, e| e.flags),
         column(&|_, e| e.a1 as u64),
@@ -336,7 +336,7 @@ pub fn bytecode_columns(p: &rv::Program) -> [Vec<F64>; N_BYTECODE_COLUMNS] {
         column(&|_, e| e.link as u64),
         column(&|_, e| e.jalr as u64),
         column(&|_, _| 0),
-        column(&|_, e| (e.target == rv::Target::Halt) as u64),
+        column(&|_, e| (e.is_exit()) as u64),
     ]
 }
 
@@ -360,7 +360,7 @@ fn bytecode_tuple(p: &rv::Program) -> Vec<Coord> {
 /// This is the multilinear an outermost verifier is handed in place of a
 /// structured program, and what the program digest binds ([`Program::new`]).
 pub fn bytecode_table(p: &rv::Program) -> Vec<F64> {
-    crate::leaf::stacked_bytecode_table(crate::log2_strict_usize(p.entries.len()), &bytecode_tuple(p))
+    crate::leaf::stacked_bytecode_table(crate::log2_strict_usize(p.entries().len()), &bytecode_tuple(p))
 }
 
 /// How many bits of its multiplicities each lookup array's producer puts on the bus, in
@@ -455,7 +455,7 @@ fn framework_tuples(block: Framework, p: &rv::Program, ts_final: u64) -> (Vec<Co
         Framework::State => (
             vec![
                 Const(SEP_STATE),
-                Const(F64(p.entry_pc)),
+                Const(F64(p.entry_pc())),
                 Const(F64(tables::CLOCK_START)),
                 Const(F64::ZERO),
             ],
@@ -476,7 +476,7 @@ fn framework_tuples(block: Framework, p: &rv::Program, ts_final: u64) -> (Vec<Co
         // Cell `z` at its byte address `RAM_BASE + 8z`. What RAM holds before the run is
         // public: the program's image, then zeros.
         Framework::Ram => {
-            let image = Sparse(std::sync::Arc::new(SparseColumn::new(p.log_ram, &[(0, &p.image)])));
+            let image = Sparse(std::sync::Arc::new(SparseColumn::new(p.log_ram(), &[(0, p.image())])));
             array(
                 tables::SEP_MEM,
                 word(RAM_BASE),
@@ -610,7 +610,7 @@ impl Program {
             (0..crate::class_flock::N_FLOCKS)
                 .map(|f| {
                     let rows = &tr.rows[crate::class_flock::flock(f).0];
-                    crate::class_flock::Prepared::build(f, rows, &p.entries, windows[q_column(f)])
+                    crate::class_flock::Prepared::build(f, rows, p.entries(), windows[q_column(f)])
                 })
                 .collect()
         });

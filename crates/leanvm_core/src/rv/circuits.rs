@@ -1,483 +1,649 @@
-//! Each instruction class's function ([`super::semantics`]) as a flock gate list.
+//! Each instruction class's function as a flock gate list.
 //!
-//! A circuit's ports are whole 64-bit words, and they are the words its table puts
-//! on the bus: the values read from the registers, the bytecode's immediate and
-//! flags, the result. A circuit is defined on its class's legal flags only, which
-//! are one-hot where they select, so a selection is an XOR of products.
+//! A circuit's ports are whole 64-bit words.
+//!
+//! They are the words its table puts on the bus: register values, the immediate, the flags, the result.
+//!
+//! A circuit is defined on its class's legal flag words only.
+//!
+//! Those words are one-hot where they select, so a selection is an XOR of products.
+//!
+//! What the Rust and Python circuits must agree on is the port layout and the order products are made in.
+//!
+//! Only products are committed, so only products cost.
+//!
+//! An XOR, a NOT or a copy is free.
 
+use super::semantics::{Alu, Shift};
+use flock::arith::mul::Multiplier;
 use flock::circuit::{Builder, Circuit, Wire};
+use primitives::hash::{G_LANES, IV, SIGMA};
+use std::sync::OnceLock;
+
+/// Each class's circuit, as a constructor on flock's circuit type.
+///
+/// Flock owns that type, so its constructors live on this extension trait.
+pub(super) trait ClassCircuits {
+    /// The ALU: `(v1, v2, imm, flags) -> (out, taken)`.
+    ///
+    /// It mirrors the reference function on every legal flag word.
+    ///
+    /// - The second operand is `b = v2 ^ imm`.
+    /// - One adder gives `v1 + b`, or `v1 - b` for the comparisons.
+    /// - The output is that sum, unless a selector picks a comparison or a bitwise operation.
+    /// - The jump is taken always, or when the one branch condition set holds.
+    fn alu() -> Self;
+
+    /// The shifter: `(v1, v2, imm, flags) -> out`.
+    ///
+    /// One right shifter serves both directions.
+    ///
+    /// A left shift is a right shift of the bit-reversed word, reversed back.
+    ///
+    /// The right shift is six barrel stages, by 1, 2, 4, 8, 16 and 32 bits.
+    fn shift() -> Self;
+
+    /// The load: `(v1, imm, flags, cell) -> (address, out)`.
+    ///
+    /// The address is what goes on the memory bus, and `cell` is the word read there.
+    ///
+    /// - The cell shifts right until the addressed byte is at the bottom.
+    /// - The output keeps the access's width, extended by its top bit if the load is signed.
+    fn load() -> Self;
+
+    /// The store: `(v1, v2, imm, flags, cell) -> (address, new cell)`.
+    ///
+    /// The value shifts up to the addressed bytes, which replace the cell's.
+    ///
+    /// The cell's other bytes are kept.
+    fn store() -> Self;
+
+    /// The low word of the product: `(v1, v2, flags) -> out`.
+    ///
+    /// A word multiplication sign-extends the low 32 bits.
+    fn mul() -> Self;
+
+    /// The high word of the product: `(v1, v2, flags) -> out`.
+    ///
+    /// A negative operand reads as its unsigned value minus `2^64`.
+    ///
+    /// So the signed high word is the unsigned one, corrected:
+    ///
+    /// ```text
+    ///     high(v1 * v2) = high_u(v1 * v2) - [v1 < 0] * v2 - [v2 < 0] * v1    (mod 2^64)
+    /// ```
+    fn mulh() -> Self;
+
+    /// The division: `(v1, v2, flags, q, r) -> (out, bad)`.
+    ///
+    /// The prover supplies `q` and `r`, the magnitudes of the quotient and the remainder.
+    ///
+    /// The circuit sets `bad` unless they are the right ones:
+    ///
+    /// ```text
+    ///     |n| = q * |d| + r
+    ///     r   < |d|
+    /// ```
+    ///
+    /// The identity holds over the integers: the product has no high word, and the sum no carry.
+    ///
+    /// A row puts `bad` where its bytecode entry holds zero, so the proof forces it to zero.
+    ///
+    /// A zero divisor checks nothing, and gives what RISC-V says: all ones, or the dividend.
+    ///
+    /// The one overflow, `-2^63 / -1`, needs no special case on magnitudes.
+    fn div() -> Self;
+
+    /// The compression: `(t, f0, h, m) -> out`, on the 32-bit halves of the block's words.
+    ///
+    /// `h` and `out` are four words each, and `m` is eight.
+    ///
+    /// Each G is six 32-bit additions, its two three-operand ones chained.
+    ///
+    /// The state is never committed: only the carries are products, and the result is copied out.
+    fn blake2s() -> Self;
+}
+
+impl ClassCircuits for Circuit {
+    fn alu() -> Self {
+        let mut c = Builder::new(&[64, 64, 64, 15], &[64, 1]);
+        let (v1, v2, imm, f) = (c.input(0), c.input(1), c.input(2), c.input(3));
+        let flag = |bit: u64| f[bit.trailing_zeros() as usize];
+        let b = c.xor_word(&v2, &imm);
+
+        // The difference is v1 + !b + 1.
+        //
+        // It borrows exactly when that sum does not carry out.
+        let sub = flag(Alu::SUB);
+        let b_or_not: Word = b.iter().map(|&bit| c.xor(bit, sub)).collect();
+        let (sum, carry_out) = c.add_with_carry(&v1, &b_or_not, sub);
+
+        // The comparisons, from the borrow and the signs.
+        //
+        //     ltu = borrow
+        //     lt  = borrow ^ sign(v1) ^ sign(b)
+        //     eq  = no bit of v1 ^ b set
+        let ltu = c.not(carry_out);
+        let signs = c.xor(v1[63], b[63]);
+        let lt = c.xor(ltu, signs);
+        let diff = c.xor_word(&v1, &b);
+        let ne = c.any(&diff);
+        let eq = c.not(ne);
+
+        // The output: the sum unless a selector is set.
+        //
+        //     and = v1 * b
+        //     or  = v1 * b ^ (v1 ^ b)
+        //     xor = v1 ^ b
+        let sum = c.sext32_if(flag(Alu::WORD), &sum);
+        let selectors = [Alu::SEL_LT, Alu::SEL_LTU, Alu::SEL_AND, Alu::SEL_OR, Alu::SEL_XOR];
+        let none = selectors.iter().fold(c.one(), |acc, &s| c.xor(acc, flag(s)));
+        let and_or = c.xor(flag(Alu::SEL_AND), flag(Alu::SEL_OR));
+        let or_xor = c.xor(flag(Alu::SEL_OR), flag(Alu::SEL_XOR));
+        let mut out = c.and_word(none, &sum);
+        for i in 0..64 {
+            let both = c.and(v1[i], b[i]);
+            let and_term = c.and(and_or, both);
+            let xor_term = c.and(or_xor, diff[i]);
+            let logic = c.xor(and_term, xor_term);
+            out[i] = c.xor(out[i], logic);
+        }
+
+        // A comparison is a single bit, the output's bit 0.
+        let lt_term = c.and(flag(Alu::SEL_LT), lt);
+        let ltu_term = c.and(flag(Alu::SEL_LTU), ltu);
+        let compared = c.xor(lt_term, ltu_term);
+        out[0] = c.xor(out[0], compared);
+
+        // A JALR target drops its low bit.
+        let keep_bit0 = c.not(flag(Alu::CLEAR_BIT0));
+        out[0] = c.and(keep_bit0, out[0]);
+
+        // The jump: unconditional, or the one branch condition set.
+        let (ge, geu) = (c.not(lt), c.not(ltu));
+        let taken = [
+            (Alu::BR_EQ, eq),
+            (Alu::BR_NE, ne),
+            (Alu::BR_LT, lt),
+            (Alu::BR_GE, ge),
+            (Alu::BR_LTU, ltu),
+            (Alu::BR_GEU, geu),
+        ]
+        .into_iter()
+        .fold(flag(Alu::ALWAYS), |acc, (when, holds)| {
+            let term = c.and(flag(when), holds);
+            c.xor(acc, term)
+        });
+
+        c.output_word(0, &out);
+        c.output(1, 0, taken);
+        c.finish()
+    }
+
+    fn shift() -> Self {
+        let mut c = Builder::new(&[64, 64, 64, 3], &[64]);
+        let (v1, v2, imm, f) = (c.input(0), c.input(1), c.input(2), c.input(3));
+        let flag = |bit: u64| f[bit.trailing_zeros() as usize];
+        let (right, arith, word) = (flag(Shift::RIGHT), flag(Shift::ARITH), flag(Shift::WORD));
+
+        // The amount: six bits, or five for a word shift.
+        let mut amount: Word = (0..6).map(|i| c.xor(v2[i], imm[i])).collect();
+        let not_word = c.not(word);
+        amount[5] = c.and(not_word, amount[5]);
+
+        // A word shift takes the low 32 bits, extended by the sign if arithmetic, by zero if not.
+        let low_sign = c.and(arith, v1[31]);
+        let x: Word = (0..64)
+            .map(|i| if i < 32 { v1[i] } else { c.mux(word, low_sign, v1[i]) })
+            .collect();
+
+        // What a right shift brings in from the top; arithmetic implies right.
+        let fill = c.and(arith, x[63]);
+
+        // Reverse, shift right stage by stage, reverse back.
+        let mut y = c.reverse_unless(right, &x);
+        for (stage, &bit) in amount.iter().enumerate() {
+            let by = 1 << stage;
+            y = (0..64)
+                .map(|i| c.mux(bit, if i + by < 64 { y[i + by] } else { fill }, y[i]))
+                .collect();
+        }
+        let y = c.reverse_unless(right, &y);
+
+        let out = c.sext32_if(word, &y);
+        c.output_word(0, &out);
+        c.finish()
+    }
+
+    fn load() -> Self {
+        let mut c = Builder::new(&[64, 64, 3, 64], &[64, 64]);
+        let (v1, imm, flags, cell) = (c.input(0), c.input(1), c.input(2), c.input(3));
+        let address = c.add_wrapping(&v1, &imm);
+        let [ge2, ge4, eq8] = c.width_thresholds(&flags[..2]);
+        let bus = c.bus_address(&address, [ge2, ge4, eq8]);
+        let value = c.shift_bytes(&cell, &address[..3], false);
+
+        // The extension: the value's top bit, where the width places it, if the load is signed.
+        //
+        //     width 1   bit 7
+        //     width 2   bit 15
+        //     width 4   bit 31
+        let (w1, w2, w4) = (c.not(ge2), c.xor(ge2, ge4), c.xor(ge4, eq8));
+        let sign = [(w1, 7), (w2, 15), (w4, 31)]
+            .into_iter()
+            .fold(None, |acc, (width, bit)| {
+                let term = c.and(width, value[bit]);
+                c.xor(acc, term)
+            });
+        let extension = c.and(flags[2], sign);
+        c.output_word(0, &bus);
+
+        // Each byte above the first is the value's if the width reaches it, else the extension.
+        for i in 0..64 {
+            let keeps = match i {
+                0..8 => None,
+                8..16 => Some(ge2),
+                16..32 => Some(ge4),
+                _ => Some(eq8),
+            };
+            let wire = keeps.map_or(value[i], |keeps| c.mux(keeps, value[i], extension));
+            c.output(1, i, wire);
+        }
+        c.finish()
+    }
+
+    fn store() -> Self {
+        let mut c = Builder::new(&[64, 64, 64, 2, 64], &[64, 64]);
+        let (v1, v2, imm, flags, cell) = (c.input(0), c.input(1), c.input(2), c.input(3), c.input(4));
+        let address = c.add_wrapping(&v1, &imm);
+        let [ge2, ge4, eq8] = c.width_thresholds(&flags);
+        let bus = c.bus_address(&address, [ge2, ge4, eq8]);
+        let value = c.shift_bytes(&v2, &address[..3], true);
+
+        // Byte j is written when it shares the access's block of 2^log_width bytes.
+        //
+        // That is: bit k of j equals bit k of the address, wherever the width does not span both.
+        let spans: [[Wire; 2]; 3] = std::array::from_fn(|k| {
+            let (is_zero, threshold) = (c.not(address[k]), [ge2, ge4, eq8][k]);
+            [c.or(is_zero, threshold), c.or(address[k], threshold)]
+        });
+        c.output_word(0, &bus);
+
+        // Each byte is the value's if written, else the cell's.
+        for j in 0..8 {
+            let low = c.and(spans[0][j & 1], spans[1][(j >> 1) & 1]);
+            let written = c.and(low, spans[2][j >> 2]);
+            for i in 8 * j..8 * j + 8 {
+                let wire = c.mux(written, value[i], cell[i]);
+                c.output(1, i, wire);
+            }
+        }
+        c.finish()
+    }
+
+    fn mul() -> Self {
+        let mut c = Builder::new(&[64, 64, 1], &[64]);
+        let (v1, v2, f) = (c.input(0), c.input(1), c.input(2));
+        let (product, _) = Multiplier::build(&mut c, &v1, &v2, 64);
+        let out = c.sext32_if(f[0], &product);
+        c.output_word(0, &out);
+        c.finish()
+    }
+
+    fn mulh() -> Self {
+        let mut c = Builder::new(&[64, 64, 2], &[64]);
+        let (v1, v2, f) = (c.input(0), c.input(1), c.input(2));
+        let (product, _) = Multiplier::build(&mut c, &v1, &v2, 128);
+        let mut high = product[64..].to_vec();
+
+        // Subtract the other operand for each signed negative one.
+        for (signed, operand, other) in [(f[0], &v1, &v2), (f[1], &v2, &v1)] {
+            let negative = c.and(signed, operand[63]);
+
+            // high - other is high + !other + 1, all of it gated by negative.
+            let subtrahend: Word = other
+                .iter()
+                .map(|&bit| {
+                    let inverted = c.not(bit);
+                    c.and(negative, inverted)
+                })
+                .collect();
+            (high, _) = c.add_with_carry(&high, &subtrahend, negative);
+        }
+
+        c.output_word(0, &high);
+        c.finish()
+    }
+
+    fn div() -> Self {
+        let mut c = Builder::new(&[64, 64, 3, 64, 64], &[64, 1]);
+        let (v1, v2, f, q, r) = (c.input(0), c.input(1), c.input(2), c.input(3), c.input(4));
+        let (signed, rem, word) = (f[0], f[1], f[2]);
+
+        // A word division divides the low 32 bits, extended as the division is signed or not.
+        let mut extend = |x: &[Wire]| -> Word {
+            let sign = c.and(signed, x[31]);
+            (0..64)
+                .map(|i| if i < 32 { x[i] } else { c.mux(word, sign, x[i]) })
+                .collect()
+        };
+        let (n, d) = (extend(&v1), extend(&v2));
+
+        // The operands' magnitudes.
+        let (n_negative, d_negative) = (c.and(signed, n[63]), c.and(signed, d[63]));
+        let (n_abs, d_abs) = (c.negate_if(n_negative, &n), c.negate_if(d_negative, &d));
+
+        // Check |n| = q * |d| + r: the product fits 64 bits, the sum does not carry, and it equals |n|.
+        let (product, _) = Multiplier::build(&mut c, &q, &d_abs, 128);
+        let overflows = c.any(&product[64..]);
+        let (sum, carries) = c.add_with_carry(&product[..64], &r, None);
+        let difference = c.xor_word(&sum, &n_abs);
+        let differs = c.any(&difference);
+
+        // Check r < |d|: r - |d| = r + !|d| + 1 carries out exactly when r >= |d|.
+        let d_inverted: Word = d_abs.iter().map(|&bit| c.not(bit)).collect();
+        let one = c.one();
+        let (_, too_large) = c.add_with_carry(&r, &d_inverted, one);
+
+        // Any failed check is bad, unless the divisor is zero.
+        let d_nonzero = c.any(&d);
+        let wrong = [carries, differs, too_large]
+            .into_iter()
+            .fold(overflows, |acc, w| c.or(acc, w));
+        let bad = c.and(d_nonzero, wrong);
+
+        // The quotient is negative when the operands' signs differ.
+        // The remainder is negative when the dividend is.
+        let q_negative = c.xor(n_negative, d_negative);
+        let (q_signed, r_signed) = (c.negate_if(q_negative, &q), c.negate_if(n_negative, &r));
+
+        // The output: the quotient or the remainder, or the zero divisor's result.
+        let out: Word = (0..64)
+            .map(|i| {
+                let result = c.mux(rem, r_signed[i], q_signed[i]);
+                let by_zero = c.mux(rem, n[i], one);
+                c.mux(d_nonzero, result, by_zero)
+            })
+            .collect();
+        let out = c.sext32_if(word, &out);
+
+        c.output_word(0, &out);
+        c.output(1, 0, bad);
+        c.finish()
+    }
+
+    fn blake2s() -> Self {
+        let mut c = Builder::new(&INPUT_BITS, &[64, 64, 64, 64]);
+        let half = |c: &Builder, port: usize, i: usize| -> Word { c.input(port)[32 * (i % 2)..][..32].to_vec() };
+        let literal = |c: &Builder, x: u32| -> Word { (0..32).map(|i| c.one().filter(|_| x >> i & 1 == 1)).collect() };
+        let rotr = |w: &[Wire], r: usize| -> Word { (0..32).map(|i| w[(i + r) % 32]).collect() };
+
+        // The inputs as 32-bit words: the counter, the finalization word, h and m.
+        let (t, f0) = (c.input(0), c.input(1));
+        let h: Vec<Word> = (0..8).map(|i| half(&c, 2 + i / 2, i)).collect();
+        let m: Vec<Word> = (0..16).map(|i| half(&c, 6 + i / 2, i)).collect();
+
+        // Each addition records where its products went.
+        //
+        // Its products are its top bits, from the first bit where both operands exist.
+        // Once one product is made, the carry is a wire, so every later bit has one too.
+        let mut carries = Vec::with_capacity(SIGMA.len() * 8 * 6);
+        let mut add32 = |c: &mut Builder, x: &[Wire], y: &[Wire]| -> Word {
+            let slot = c.next_slot();
+            let sum = c.add_wrapping(x, y);
+            let products = (c.next_slot() - slot) as u32;
+            carries.push(Carries {
+                slot: slot as u32,
+                low: 31 - products,
+            });
+            sum
+        };
+
+        // The working vector: h, the IV, with the counter and the finalization word XORed in.
+        let mut v = h.clone();
+        v.extend(IV[..4].iter().map(|&x| literal(&c, x)));
+        for (i, x) in [&t[..32], &t[32..], &f0, &[None; 32]].into_iter().enumerate() {
+            let iv = literal(&c, IV[4 + i]);
+            v.push(c.xor_word(&iv, x));
+        }
+
+        // Ten rounds of eight G's.
+        for round in &SIGMA {
+            for (g, &[a, b, cc, d]) in G_LANES.iter().enumerate() {
+                for (x, r1, r2) in [(&m[round[2 * g]], 16, 12), (&m[round[2 * g + 1]], 8, 7)] {
+                    let ab = add32(&mut c, &v[a], &v[b]);
+                    v[a] = add32(&mut c, &ab, x);
+                    let da = c.xor_word(&v[d], &v[a]);
+                    v[d] = rotr(&da, r1);
+                    v[cc] = add32(&mut c, &v[cc], &v[d]);
+                    let bc = c.xor_word(&v[b], &v[cc]);
+                    v[b] = rotr(&bc, r2);
+                }
+            }
+        }
+
+        // The new chaining value: h ^ v_low ^ v_high, half by half.
+        for i in 0..8 {
+            let hv = c.xor_word(&h[i], &v[i]);
+            let out = c.xor_word(&hv, &v[i + 8]);
+            for (bit, &wire) in out.iter().enumerate() {
+                c.output(i / 2, 32 * (i % 2) + bit, wire);
+            }
+        }
+        // Publish the carry runs for the word witness; every build records the same runs.
+        let _ = CARRIES.set(carries);
+        c.finish()
+    }
+}
 
 /// A word of wires, low bit first.
 type Word = Vec<Wire>;
 
-fn xor_words(c: &mut Builder, x: &[Wire], y: &[Wire]) -> Word {
-    x.iter().zip(y).map(|(&x, &y)| c.xor(x, y)).collect()
+/// Word operations on a gate builder.
+///
+/// A gadget makes its products in a fixed order.
+///
+/// The Python verifier mirrors that order, so a gadget's loop order is part of the circuit.
+trait WordGadgets {
+    /// `x ^ y`, bit by bit; no product.
+    fn xor_word(&mut self, x: &[Wire], y: &[Wire]) -> Word;
+
+    /// `s * x`, bit by bit; one product per bit.
+    fn and_word(&mut self, s: Wire, x: &[Wire]) -> Word;
+
+    /// Whether any bit of `x` is set; one product per OR.
+    fn any(&mut self, x: &[Wire]) -> Wire;
+
+    /// `x + y + carry_in`, and the carry out of the top bit; one product per bit.
+    fn add_with_carry(&mut self, x: &[Wire], y: &[Wire], carry_in: Wire) -> (Word, Wire);
+
+    /// `x + y` modulo `2^width`; one product per bit but the top.
+    fn add_wrapping(&mut self, x: &[Wire], y: &[Wire]) -> Word;
+
+    /// `-x` if `negative`, else `x`; one product per bit.
+    fn negate_if(&mut self, negative: Wire, x: &[Wire]) -> Word;
+
+    /// `x`, bits 32 to 63 replaced by bit 31 when `word` is set; one product per high bit.
+    fn sext32_if(&mut self, word: Wire, x: &[Wire]) -> Word;
+
+    /// Commit `x` as output port `port`.
+    fn output_word(&mut self, port: usize, x: &[Wire]);
+
+    /// `x` bit-reversed unless `right` is set; one product per bit.
+    fn reverse_unless(&mut self, right: Wire, x: &[Wire]) -> Word;
+
+    /// The width thresholds, from the two bits of the width's logarithm: at least 2, at least 4, exactly 8.
+    fn width_thresholds(&mut self, log_width: &[Wire]) -> [Wire; 3];
+
+    /// The bus address: the address, its low three bits kept only where they misalign the access.
+    ///
+    /// It is the reference's bus address, bit by bit.
+    fn bus_address(&mut self, address: &[Wire], thresholds: [Wire; 3]) -> Word;
+
+    /// `x` shifted by `8 * amount` bits, left or right; `amount` has three bits.
+    fn shift_bytes(&mut self, x: &[Wire], amount: &[Wire], left: bool) -> Word;
 }
 
-/// `s·x`, bit by bit.
-fn gate_word(c: &mut Builder, s: Wire, x: &[Wire]) -> Word {
-    x.iter().map(|&x| c.and(s, x)).collect()
-}
-
-/// Whether any bit of `x` is set.
-fn any(c: &mut Builder, x: &[Wire]) -> Wire {
-    x.iter().fold(None, |acc, &bit| c.or(acc, bit))
-}
-
-/// `x + y + carry_in`, and the carry out of the top bit.
-fn add_with_carry(c: &mut Builder, x: &[Wire], y: &[Wire], carry_in: Wire) -> (Word, Wire) {
-    let mut carry = carry_in;
-    let mut sum = Vec::with_capacity(x.len());
-    for (&x, &y) in x.iter().zip(y) {
-        let xc = c.xor(x, carry);
-        let yc = c.xor(y, carry);
-        sum.push(c.xor(xc, y));
-        let maj = c.and(xc, yc);
-        carry = c.xor(maj, carry);
+impl WordGadgets for Builder {
+    fn xor_word(&mut self, x: &[Wire], y: &[Wire]) -> Word {
+        x.iter().zip(y).map(|(&x, &y)| self.xor(x, y)).collect()
     }
-    (sum, carry)
-}
 
-/// `x`, its bits from 32 up replaced by bit 31 when `word` is set.
-fn sext32_if(c: &mut Builder, word: Wire, x: &[Wire]) -> Word {
-    (0..64)
-        .map(|i| if i < 32 { x[i] } else { c.mux(word, x[31], x[i]) })
-        .collect()
-}
+    fn and_word(&mut self, s: Wire, x: &[Wire]) -> Word {
+        x.iter().map(|&x| self.and(s, x)).collect()
+    }
 
-/// `x + y` over `x.len()` bits, the carry out of the top bit dropped: one product
-/// per bit but the top, the carry into bit `i + 1` being `maj(x_i, y_i, c_i)`.
-fn add(c: &mut Builder, x: &[Wire], y: &[Wire]) -> Word {
-    let (mut carry, width) = (None, x.len());
-    let mut sum = Vec::with_capacity(width);
-    for (i, (&x, &y)) in x.iter().zip(y).enumerate() {
-        let xc = c.xor(x, carry);
-        let yc = c.xor(y, carry);
-        sum.push(c.xor(xc, y));
-        // The carry out of the top bit falls off the modulus, so it is never a product.
-        if i + 1 < width {
-            let maj = c.and(xc, yc);
-            carry = c.xor(maj, carry);
+    fn any(&mut self, x: &[Wire]) -> Wire {
+        x.iter().fold(None, |acc, &bit| self.or(acc, bit))
+    }
+
+    fn add_with_carry(&mut self, x: &[Wire], y: &[Wire], carry_in: Wire) -> (Word, Wire) {
+        let mut carry = carry_in;
+        let mut sum = Vec::with_capacity(x.len());
+        for (&x, &y) in x.iter().zip(y) {
+            // The sum bit is x ^ y ^ c.
+            let xc = self.xor(x, carry);
+            let yc = self.xor(y, carry);
+            sum.push(self.xor(xc, y));
+
+            // The carry out is maj(x, y, c) = ((x ^ c)(y ^ c)) ^ c.
+            let maj = self.and(xc, yc);
+            carry = self.xor(maj, carry);
         }
+        (sum, carry)
     }
-    sum
-}
 
-/// `x` shifted by `8·amount` bits, `amount` being three bits: left, or right.
-fn shift_bytes(c: &mut Builder, x: &[Wire], amount: &[Wire], left: bool) -> Word {
-    let mut x = x.to_vec();
-    for (stage, &bit) in amount.iter().enumerate() {
-        let by = 8 << stage;
-        let from = |x: &[Wire], i: usize| {
-            if left {
-                i.checked_sub(by).and_then(|j| x[j])
-            } else {
-                x.get(i + by).copied().flatten()
+    fn add_wrapping(&mut self, x: &[Wire], y: &[Wire]) -> Word {
+        let (mut carry, width) = (None, x.len());
+        let mut sum = Vec::with_capacity(width);
+        for (i, (&x, &y)) in x.iter().zip(y).enumerate() {
+            // The sum bit is x ^ y ^ c.
+            let xc = self.xor(x, carry);
+            let yc = self.xor(y, carry);
+            sum.push(self.xor(xc, y));
+
+            // The carry out of the top bit falls off the modulus, so it is never made.
+            if i + 1 < width {
+                let maj = self.and(xc, yc);
+                carry = self.xor(maj, carry);
             }
-        };
-        x = (0..64).map(|i| c.mux(bit, from(&x, i), x[i])).collect();
-    }
-    x
-}
-
-/// The width thresholds of a load or a store, from the two bits of `log2` of its
-/// width in bytes: at least 2, at least 4, exactly 8.
-fn width_thresholds(c: &mut Builder, log_width: &[Wire]) -> [Wire; 3] {
-    [
-        c.or(log_width[0], log_width[1]),
-        log_width[1],
-        c.and(log_width[0], log_width[1]),
-    ]
-}
-
-/// [`super::semantics::bus_address`]: the low three bits are the ones misaligning the access.
-fn bus_address(c: &mut Builder, address: &[Wire], thresholds: [Wire; 3]) -> Word {
-    (0..64)
-        .map(|i| {
-            if i < 3 {
-                c.and(address[i], thresholds[i])
-            } else {
-                address[i]
-            }
-        })
-        .collect()
-}
-
-/// [`super::Class::Load`]'s circuit: `(v1, imm, flags, cell) -> (address, out)`, the
-/// address being what goes on the memory bus and `cell` the word read there.
-pub fn load() -> Circuit {
-    let mut c = Builder::new(&[64, 64, 3, 64], &[64, 64]);
-    let (v1, imm, flags, cell) = (c.input(0), c.input(1), c.input(2), c.input(3));
-    let address = add(&mut c, &v1, &imm);
-    let [ge2, ge4, eq8] = width_thresholds(&mut c, &flags[..2]);
-    let bus = bus_address(&mut c, &address, [ge2, ge4, eq8]);
-    let value = shift_bytes(&mut c, &cell, &address[..3], false);
-    // The extension: the value's top bit, which the width places, if the load is signed.
-    let (w1, w2, w4) = (c.not(ge2), c.xor(ge2, ge4), c.xor(ge4, eq8));
-    let sign = [(w1, 7), (w2, 15), (w4, 31)]
-        .into_iter()
-        .fold(None, |acc, (width, bit)| {
-            let term = c.and(width, value[bit]);
-            c.xor(acc, term)
-        });
-    let extension = c.and(flags[2], sign);
-    for (i, &wire) in bus.iter().enumerate() {
-        c.output(0, i, wire);
-    }
-    for i in 0..64 {
-        let keeps = match i {
-            0..8 => None,
-            8..16 => Some(ge2),
-            16..32 => Some(ge4),
-            _ => Some(eq8),
-        };
-        let wire = keeps.map_or(value[i], |keeps| c.mux(keeps, value[i], extension));
-        c.output(1, i, wire);
-    }
-    c.finish()
-}
-
-/// The store's circuit: `(v1, v2, imm, flags, cell) -> (address, new cell)`.
-pub fn store() -> Circuit {
-    let mut c = Builder::new(&[64, 64, 64, 2, 64], &[64, 64]);
-    let (v1, v2, imm, flags, cell) = (c.input(0), c.input(1), c.input(2), c.input(3), c.input(4));
-    let address = add(&mut c, &v1, &imm);
-    let [ge2, ge4, eq8] = width_thresholds(&mut c, &flags);
-    let bus = bus_address(&mut c, &address, [ge2, ge4, eq8]);
-    let value = shift_bytes(&mut c, &v2, &address[..3], true);
-    // Byte `j` is written when it shares the access's block: bit `k` of `j` equals bit
-    // `k` of the address wherever the width does not already span both.
-    let spans: [[Wire; 2]; 3] = std::array::from_fn(|k| {
-        let (is_zero, threshold) = (c.not(address[k]), [ge2, ge4, eq8][k]);
-        [c.or(is_zero, threshold), c.or(address[k], threshold)]
-    });
-    for (i, &wire) in bus.iter().enumerate() {
-        c.output(0, i, wire);
-    }
-    for j in 0..8 {
-        let low = c.and(spans[0][j & 1], spans[1][(j >> 1) & 1]);
-        let written = c.and(low, spans[2][j >> 2]);
-        for i in 8 * j..8 * j + 8 {
-            let wire = c.mux(written, value[i], cell[i]);
-            c.output(1, i, wire);
         }
+        sum
     }
-    c.finish()
-}
 
-/// [`super::semantics::shift`]: `(v1, v2, imm, flags) -> out`. One right shifter serves
-/// both directions, a left shift being a right shift of the reversed word.
-pub fn shift() -> Circuit {
-    let mut c = Builder::new(&[64, 64, 64, 3], &[64]);
-    let (v1, v2, imm, f) = (c.input(0), c.input(1), c.input(2), c.input(3));
-    let flag = |bit: u64| f[bit.trailing_zeros() as usize];
-    use super::shift::*;
-    let (right, arith, word) = (flag(RIGHT), flag(ARITH), flag(WORD));
-
-    // The amount: six bits, five for a word shift.
-    let mut amount: Word = (0..6).map(|i| c.xor(v2[i], imm[i])).collect();
-    let not_word = c.not(word);
-    amount[5] = c.and(not_word, amount[5]);
-    // A word shift takes the low 32 bits, extended as the shift is: by the sign for an
-    // arithmetic one, by zero otherwise.
-    let low_sign = c.and(arith, v1[31]);
-    let x: Word = (0..64)
-        .map(|i| if i < 32 { v1[i] } else { c.mux(word, low_sign, v1[i]) })
-        .collect();
-    // What a right shift brings in from the top. `ARITH` comes with `RIGHT`.
-    let fill = c.and(arith, x[63]);
-
-    let reversed = |c: &mut Builder, x: &[Wire]| -> Word { (0..64).map(|i| c.mux(right, x[i], x[63 - i])).collect() };
-    let mut y = reversed(&mut c, &x);
-    for (stage, &bit) in amount.iter().enumerate() {
-        let by = 1 << stage;
-        y = (0..64)
-            .map(|i| c.mux(bit, if i + by < 64 { y[i + by] } else { fill }, y[i]))
-            .collect();
+    fn negate_if(&mut self, negative: Wire, x: &[Wire]) -> Word {
+        // Two's complement: (x ^ negative) + negative.
+        let flipped: Word = x.iter().map(|&bit| self.xor(bit, negative)).collect();
+        self.add_with_carry(&flipped, &[None; 64], negative).0
     }
-    let y = reversed(&mut c, &y);
-    for (i, &wire) in sext32_if(&mut c, word, &y).iter().enumerate() {
-        c.output(0, i, wire);
-    }
-    c.finish()
-}
 
-/// [`super::semantics::mul`]: `(v1, v2, flags) -> out`, the low word of the product.
-pub fn mul() -> Circuit {
-    let mut c = Builder::new(&[64, 64, 1], &[64]);
-    let (v1, v2, f) = (c.input(0), c.input(1), c.input(2));
-    let (product, _) = flock::arith::mul::Multiplier::build(&mut c, &v1, &v2, 64);
-    for (i, &wire) in sext32_if(&mut c, f[0], &product).iter().enumerate() {
-        c.output(0, i, wire);
-    }
-    c.finish()
-}
-
-/// [`super::semantics::mulh`]: `(v1, v2, flags) -> out`, the high word of the product.
-/// The unsigned product's high word, less `v2` if `v1` is signed and negative, less `v1`
-/// if `v2` is: a negative operand is its unsigned reading minus `2^64`.
-pub fn mulh() -> Circuit {
-    let mut c = Builder::new(&[64, 64, 2], &[64]);
-    let (v1, v2, f) = (c.input(0), c.input(1), c.input(2));
-    let (product, _) = flock::arith::mul::Multiplier::build(&mut c, &v1, &v2, 128);
-    let mut high = product[64..].to_vec();
-    for (signed, operand, other) in [(f[0], &v1, &v2), (f[1], &v2, &v1)] {
-        let negative = c.and(signed, operand[63]);
-        // `high - other` is `high + !other + 1`.
-        let subtrahend: Word = other
-            .iter()
-            .map(|&bit| {
-                let inverted = c.not(bit);
-                c.and(negative, inverted)
-            })
-            .collect();
-        (high, _) = add_with_carry(&mut c, &high, &subtrahend, negative);
-    }
-    for (i, &wire) in high.iter().enumerate() {
-        c.output(0, i, wire);
-    }
-    c.finish()
-}
-
-/// `x` negated if `negative`: `(x ^ negative) + negative`.
-fn negate_if(c: &mut Builder, negative: Wire, x: &[Wire]) -> Word {
-    let flipped: Word = x.iter().map(|&bit| c.xor(bit, negative)).collect();
-    add_with_carry(c, &flipped, &[None; 64], negative).0
-}
-
-/// [`super::semantics::div`]: `(v1, v2, flags, q, r) -> (out, bad)`. The quotient's and
-/// the remainder's magnitudes `q` and `r` are the prover's ([`super::semantics::div_hints`]),
-/// and `bad` is set unless they are the ones: `|n| = q·|d| + r` over the integers (the
-/// product's high word zero, the sum without a carry) and `r < |d|`. A row puts `bad`
-/// where its bytecode entry holds zero, so it is zero. Dividing by zero checks nothing
-/// and returns what the specification says, all ones or the dividend, and the one
-/// overflow, `-2^63 / -1`, is no special case on magnitudes.
-pub fn div() -> Circuit {
-    let mut c = Builder::new(&[64, 64, 3, 64, 64], &[64, 1]);
-    let (v1, v2, f, q, r) = (c.input(0), c.input(1), c.input(2), c.input(3), c.input(4));
-    let (signed, rem, word) = (f[0], f[1], f[2]);
-    // A word form divides the low 32 bits, extended as the division is signed or not.
-    let mut extend = |x: &[Wire]| -> Word {
-        let sign = c.and(signed, x[31]);
+    fn sext32_if(&mut self, word: Wire, x: &[Wire]) -> Word {
         (0..64)
-            .map(|i| if i < 32 { x[i] } else { c.mux(word, sign, x[i]) })
+            .map(|i| if i < 32 { x[i] } else { self.mux(word, x[31], x[i]) })
             .collect()
-    };
-    let (n, d) = (extend(&v1), extend(&v2));
-    let (n_negative, d_negative) = (c.and(signed, n[63]), c.and(signed, d[63]));
-    let (n_abs, d_abs) = (negate_if(&mut c, n_negative, &n), negate_if(&mut c, d_negative, &d));
-
-    let (product, _) = flock::arith::mul::Multiplier::build(&mut c, &q, &d_abs, 128);
-    let overflows = any(&mut c, &product[64..]);
-    let (sum, carries) = add_with_carry(&mut c, &product[..64], &r, None);
-    let difference = xor_words(&mut c, &sum, &n_abs);
-    let differs = any(&mut c, &difference);
-    // `r - |d|` does not borrow, which is `r + !|d| + 1` carrying out, when `r >= |d|`.
-    let d_inverted: Word = d_abs.iter().map(|&bit| c.not(bit)).collect();
-    let one = c.one();
-    let (_, too_large) = add_with_carry(&mut c, &r, &d_inverted, one);
-    let d_nonzero = any(&mut c, &d);
-    let wrong = [carries, differs, too_large]
-        .into_iter()
-        .fold(overflows, |acc, w| c.or(acc, w));
-    let bad = c.and(d_nonzero, wrong);
-
-    // The quotient is negative when the operands' signs differ, the remainder when
-    // the dividend is.
-    let q_negative = c.xor(n_negative, d_negative);
-    let (q_signed, r_signed) = (negate_if(&mut c, q_negative, &q), negate_if(&mut c, n_negative, &r));
-    let out: Word = (0..64)
-        .map(|i| {
-            let result = c.mux(rem, r_signed[i], q_signed[i]);
-            let by_zero = c.mux(rem, n[i], one);
-            c.mux(d_nonzero, result, by_zero)
-        })
-        .collect();
-    for (i, &wire) in sext32_if(&mut c, word, &out).iter().enumerate() {
-        c.output(0, i, wire);
     }
-    c.output(1, 0, bad);
-    c.finish()
+
+    fn output_word(&mut self, port: usize, x: &[Wire]) {
+        for (bit, &wire) in x.iter().enumerate() {
+            self.output(port, bit, wire);
+        }
+    }
+
+    fn reverse_unless(&mut self, right: Wire, x: &[Wire]) -> Word {
+        (0..64).map(|i| self.mux(right, x[i], x[63 - i])).collect()
+    }
+
+    fn width_thresholds(&mut self, log_width: &[Wire]) -> [Wire; 3] {
+        [
+            self.or(log_width[0], log_width[1]),
+            log_width[1],
+            self.and(log_width[0], log_width[1]),
+        ]
+    }
+
+    fn bus_address(&mut self, address: &[Wire], thresholds: [Wire; 3]) -> Word {
+        (0..64)
+            .map(|i| {
+                if i < 3 {
+                    self.and(address[i], thresholds[i])
+                } else {
+                    address[i]
+                }
+            })
+            .collect()
+    }
+
+    fn shift_bytes(&mut self, x: &[Wire], amount: &[Wire], left: bool) -> Word {
+        let mut x = x.to_vec();
+        for (stage, &bit) in amount.iter().enumerate() {
+            // Stage k moves by 8 * 2^k bits when bit k is set; a vacated bit is zero.
+            let by = 8 << stage;
+            let from = |x: &[Wire], i: usize| {
+                if left {
+                    i.checked_sub(by).and_then(|j| x[j])
+                } else {
+                    x.get(i + by).copied().flatten()
+                }
+            };
+            x = (0..64).map(|i| self.mux(bit, from(&x, i), x[i])).collect();
+        }
+        x
+    }
 }
 
-/// [`super::Class::Alu`]'s ports.
-pub mod alu_ports {
-    /// Input words: the two register values, the immediate, the flags.
-    pub const V1: usize = 0;
-    pub const V2: usize = 1;
-    pub const IMM: usize = 2;
-    pub const FLAGS: usize = 3;
-    /// Output words.
-    pub const OUT: usize = 4;
-    pub const TAKEN: usize = 5;
-}
+/// The input ports in bits: `t`, `f0`, then the four words of `h` and the eight of `m`.
+const INPUT_BITS: [usize; 14] = [64, 32, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64];
 
-/// [`super::semantics::alu`].
-pub fn alu() -> Circuit {
-    let mut c = Builder::new(&[64, 64, 64, 15], &[64, 1]);
-    let (v1, v2, imm, f) = (c.input(0), c.input(1), c.input(2), c.input(3));
-    let flag = |bit: u64| f[bit.trailing_zeros() as usize];
-    use super::alu::*;
+/// The hash circuit's carry runs, one per 32-bit addition, in the order the circuit makes them.
+///
+/// Building the circuit records them, and the word witness reads them.
+static CARRIES: OnceLock<Vec<Carries>> = OnceLock::new();
 
-    let b = xor_words(&mut c, &v2, &imm);
-    // `v1 - b` is `v1 + !b + 1`, and it borrows exactly when that does not carry out.
-    let sub = flag(SUB);
-    let b_or_not: Word = b.iter().map(|&bit| c.xor(bit, sub)).collect();
-    let (sum, carry_out) = add_with_carry(&mut c, &v1, &b_or_not, sub);
-    let ltu = c.not(carry_out);
-    let signs = c.xor(v1[63], b[63]);
-    let lt = c.xor(ltu, signs);
-    let diff = xor_words(&mut c, &v1, &b);
-    let ne = any(&mut c, &diff);
-    let eq = c.not(ne);
-
-    // `out`: the sum unless a selector is set. AND is a product, OR is AND plus XOR.
-    let sum = sext32_if(&mut c, flag(WORD), &sum);
-    let selectors = [SEL_LT, SEL_LTU, SEL_AND, SEL_OR, SEL_XOR];
-    let none = selectors.iter().fold(c.one(), |acc, &s| c.xor(acc, flag(s)));
-    let and_or = c.xor(flag(SEL_AND), flag(SEL_OR));
-    let or_xor = c.xor(flag(SEL_OR), flag(SEL_XOR));
-    let mut out = gate_word(&mut c, none, &sum);
-    for i in 0..64 {
-        let both = c.and(v1[i], b[i]);
-        let and_term = c.and(and_or, both);
-        let xor_term = c.and(or_xor, diff[i]);
-        let logic = c.xor(and_term, xor_term);
-        out[i] = c.xor(out[i], logic);
-    }
-    let lt_term = c.and(flag(SEL_LT), lt);
-    let ltu_term = c.and(flag(SEL_LTU), ltu);
-    let compared = c.xor(lt_term, ltu_term);
-    out[0] = c.xor(out[0], compared);
-    let keep_bit0 = c.not(flag(CLEAR_BIT0));
-    out[0] = c.and(keep_bit0, out[0]);
-
-    let (ge, geu) = (c.not(lt), c.not(ltu));
-    let taken = [
-        (BR_EQ, eq),
-        (BR_NE, ne),
-        (BR_LT, lt),
-        (BR_GE, ge),
-        (BR_LTU, ltu),
-        (BR_GEU, geu),
-    ]
-    .into_iter()
-    .fold(flag(ALWAYS), |acc, (when, holds)| {
-        let term = c.and(flag(when), holds);
-        c.xor(acc, term)
-    });
-
-    for (i, &wire) in out.iter().enumerate() {
-        c.output(0, i, wire);
-    }
-    c.output(1, 0, taken);
-    c.finish()
-}
-
-/// The hash circuit's input ports in bits: `t`, `f0`, then the four words of `h` and the eight of `m`.
-const HASH_INPUT_BITS: [usize; 14] = [64, 32, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64];
-
-/// Where one 32-bit addition of the hash circuit put its carry products.
-#[derive(Clone, Copy)]
+/// Where one 32-bit addition put its carry products.
+#[derive(Clone, Copy, Debug)]
 struct Carries {
     /// The slot of the first product.
     slot: u32,
     /// The lowest bit with a product.
     ///
-    /// Bits below it are structural zeros: a literal operand's low zero bits, with no carry yet.
+    /// The bits below are structural zeros: a literal operand's low zero bits, with no carry yet.
     low: u32,
 }
 
-/// [`super::Class::Hash`]'s circuit: `(t, f0, h, m) -> out`, the BLAKE2s compression
-/// ([`super::semantics::blake2s`]) on the 32-bit halves of the block's words, `h`
-/// and `out` four words each and `m` eight. Every G is six 32-bit additions, its
-/// two three-operand ones chained, and the state is never materialized: only the
-/// carries are products, and the result's words are copied out.
-pub fn blake2s() -> Circuit {
-    blake2s_with_carries().0
-}
-
-/// The hash circuit, and its additions' carry slots in the order it made them.
-fn blake2s_with_carries() -> (Circuit, Vec<Carries>) {
-    use primitives::hash::{G_LANES, IV, SIGMA};
-    let mut c = Builder::new(&HASH_INPUT_BITS, &[64, 64, 64, 64]);
-    let half = |c: &Builder, port: usize, i: usize| -> Word { c.input(port)[32 * (i % 2)..32 * (i % 2) + 32].to_vec() };
-    let (t, f0) = (c.input(0), c.input(1));
-    let h: Vec<Word> = (0..8).map(|i| half(&c, 2 + i / 2, i)).collect();
-    let m: Vec<Word> = (0..16).map(|i| half(&c, 6 + i / 2, i)).collect();
-    let literal = |c: &Builder, x: u32| -> Word { (0..32).map(|i| c.one().filter(|_| x >> i & 1 == 1)).collect() };
-    let rotr = |w: &[Wire], r: usize| -> Word { (0..32).map(|i| w[(i + r) % 32]).collect() };
-
-    // An addition's products are its top bits, from the first bit where both operands exist.
-    //
-    // Why: once one product is made, the carry is a wire, so every later bit has one too.
-    let mut carries = Vec::with_capacity(SIGMA.len() * 8 * 6);
-    let mut add32 = |c: &mut Builder, x: &[Wire], y: &[Wire]| -> Word {
-        let slot = c.next_slot();
-        let sum = add(c, x, y);
-        let products = (c.next_slot() - slot) as u32;
-        carries.push(Carries {
-            slot: slot as u32,
-            low: 31 - products,
-        });
-        sum
-    };
-
-    let mut v = h.clone();
-    v.extend(IV[..4].iter().map(|&x| literal(&c, x)));
-    for (i, x) in [&t[..32], &t[32..], &f0, &[None; 32]].into_iter().enumerate() {
-        let iv = literal(&c, IV[4 + i]);
-        v.push(xor_words(&mut c, &iv, x));
-    }
-    for round in &SIGMA {
-        for (g, &[a, b, cc, d]) in G_LANES.iter().enumerate() {
-            for (x, r1, r2) in [(&m[round[2 * g]], 16, 12), (&m[round[2 * g + 1]], 8, 7)] {
-                let ab = add32(&mut c, &v[a], &v[b]);
-                v[a] = add32(&mut c, &ab, x);
-                let da = xor_words(&mut c, &v[d], &v[a]);
-                v[d] = rotr(&da, r1);
-                v[cc] = add32(&mut c, &v[cc], &v[d]);
-                let bc = xor_words(&mut c, &v[b], &v[cc]);
-                v[b] = rotr(&bc, r2);
-            }
-        }
-    }
-    for i in 0..8 {
-        let hv = xor_words(&mut c, &h[i], &v[i]);
-        let out = xor_words(&mut c, &hv, &v[i + 8]);
-        for (bit, &wire) in out.iter().enumerate() {
-            c.output(i / 2, 32 * (i % 2) + bit, wire);
-        }
-    }
-    (c.finish(), carries)
-}
-
-/// One instance of the hash circuit's witness, by word arithmetic instead of the gate walk.
+/// One instance of the circuit's witness, by word arithmetic instead of the gate walk.
 ///
-/// Writes the same `z`, `A·z` and `B·z` the walk does, into zeroed buffers.
+/// It writes the same `z`, `A*z` and `B*z` the walk writes, into zeroed buffers.
+///
+/// The instance's bits, in order:
+///
+/// - words 0 to 13 are the inputs: `z` and `A*z` hold the word, `B*z` its wired bits;
+/// - words 14 to 17 are the outputs: `z` and `A*z` hold the word, `B*z` all ones;
+/// - bit 1152 is the constant, one in all three;
+/// - from bit 1153, each 32-bit addition has a run of carry products.
+///
+/// An addition `x + y` has carries `c = (x + y) ^ x ^ y`.
+///
+/// At bit `i` of its run:
 ///
 /// ```text
-///     words 0..14     inputs     z = A·z = the word,  B·z = its wired bits
-///     words 14..18    outputs    z = A·z = the word,  B·z = all ones
-///     bit 1152        constant   z = A·z = B·z = 1
-///     bits 1153..     products   one run of carries per 32-bit addition
-/// ```
-///
-/// An addition `x + y` with carries `c = (x + y) ^ x ^ y` has, at each bit `i` of its run:
-///
-/// ```text
-///     A·z = x_i ^ c_i    B·z = y_i ^ c_i    z = (x_i ^ c_i)(y_i ^ c_i)
+///     A*z = x_i ^ c_i
+///     B*z = y_i ^ c_i
+///     z   = (x_i ^ c_i) * (y_i ^ c_i)
 /// ```
 pub fn blake2s_witness(inputs: &[u64], z: &mut [u64], az: &mut [u64], bz: &mut [u64]) {
-    use primitives::hash::{G_LANES, IV, SIGMA};
-    assert_eq!(inputs.len(), HASH_INPUT_BITS.len());
+    assert_eq!(inputs.len(), INPUT_BITS.len());
 
-    // The carry runs, recorded once from the gate list itself.
-    static CARRIES: std::sync::OnceLock<Vec<Carries>> = std::sync::OnceLock::new();
-    let carries = CARRIES.get_or_init(|| blake2s_with_carries().1);
+    // The carry runs, recorded by building the circuit, once.
+    let carries = match CARRIES.get() {
+        Some(carries) => carries,
+        None => {
+            Circuit::blake2s();
+            CARRIES.get().expect("building the circuit records its carry runs")
+        }
+    };
 
     // Input ports: the word, masked to the port's width.
-    for (i, &bits) in HASH_INPUT_BITS.iter().enumerate() {
+    for (i, &bits) in INPUT_BITS.iter().enumerate() {
         let wired = u64::MAX >> (64 - bits);
         (z[i], az[i], bz[i]) = (inputs[i] & wired, inputs[i] & wired, wired);
     }
@@ -500,7 +666,8 @@ pub fn blake2s_witness(inputs: &[u64], z: &mut [u64], az: &mut [u64], bz: &mut [
         let Carries { slot, low } = *runs.next().expect("one run per addition");
         let sum = x.wrapping_add(y);
         let carry = sum ^ x ^ y;
-        // The run covers bits `low..31`: the carry out of bit 31 is no product.
+
+        // The run covers bits low..31: the carry out of bit 31 is no product.
         let mask = (1u64 << (31 - low)) - 1;
         let left = u64::from(x ^ carry) >> low & mask;
         let right = u64::from(y ^ carry) >> low & mask;
@@ -524,7 +691,7 @@ pub fn blake2s_witness(inputs: &[u64], z: &mut [u64], az: &mut [u64], bz: &mut [
     }
 
     // Output ports: the new chaining value, every bit copied out.
-    let n_in = HASH_INPUT_BITS.len();
+    let n_in = INPUT_BITS.len();
     for i in 0..4 {
         let word = |j: usize| u64::from(h[j] ^ v[j] ^ v[j + 8]);
         let out = word(2 * i) | word(2 * i + 1) << 32;
@@ -538,333 +705,233 @@ pub fn blake2s_witness(inputs: &[u64], z: &mut [u64], az: &mut [u64], bz: &mut [
     }
 }
 
-/// OR a run of at most 32 bits into `buf` from bit `slot`.
+/// OR a run of at most 32 bits into `buf`, from bit `slot`.
 #[inline(always)]
 fn or_run(buf: &mut [u64], slot: u32, bits: u64) {
     let (word, shift) = (slot as usize / 64, slot % 64);
     buf[word] |= bits << shift;
-    // `(x >> 1) >> (63 - s)` is `x >> (64 - s)`, with no overflowing shift at `s = 0`.
+
+    // The run's spill into the next word: (x >> 1) >> (63 - s) is x >> (64 - s), with no overflow at s = 0.
     buf[word + 1] |= (bits >> 1) >> (63 - shift);
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::rv::semantics;
+    use crate::rv::semantics::tests::edge_word;
+    use crate::rv::semantics::{Div, Hash, Load, Mul, Mulh, Store, WordAccess};
     use fiat_shamir::transcript::{ProverState, VerifierState};
+    use proptest::prelude::*;
+    use proptest::sample::select;
+    use proptest::strategy::ValueTree;
+    use proptest::test_runner::TestRunner;
+    use std::ops::Range;
+    use std::sync::LazyLock;
 
-    struct Rng(u64);
-    impl Rng {
-        fn next(&mut self) -> u64 {
-            self.0 ^= self.0 << 13;
-            self.0 ^= self.0 >> 7;
-            self.0 ^= self.0 << 17;
-            self.0
-        }
-        fn word(&mut self) -> u64 {
-            match self.next() % 6 {
-                0 => [
-                    0,
-                    1,
-                    u64::MAX,
-                    1 << 63,
-                    (1 << 63) - 1,
-                    1 << 31,
-                    0xffff_ffff,
-                    (1 << 31) - 1,
-                ][(self.next() % 8) as usize],
-                1 => self.next() as i32 as i64 as u64,
-                _ => self.next(),
-            }
-        }
-    }
+    // Each circuit, built once for every case.
+    static ALU: LazyLock<Circuit> = LazyLock::new(Circuit::alu);
+    static SHIFT: LazyLock<Circuit> = LazyLock::new(Circuit::shift);
+    static LOAD: LazyLock<Circuit> = LazyLock::new(Circuit::load);
+    static STORE: LazyLock<Circuit> = LazyLock::new(Circuit::store);
+    static MUL: LazyLock<Circuit> = LazyLock::new(Circuit::mul);
+    static MULH: LazyLock<Circuit> = LazyLock::new(Circuit::mulh);
+    static DIV: LazyLock<Circuit> = LazyLock::new(Circuit::div);
+    static BLAKE2S: LazyLock<Circuit> = LazyLock::new(Circuit::blake2s);
 
-    /// The circuit's output words on `inputs`, read off the witness it generates.
-    fn run(circuit: &Circuit, inputs: &[u64], outputs: std::ops::Range<usize>) -> Vec<u64> {
+    /// The ALU's output words: out, then taken.
+    const ALU_OUTPUTS: Range<usize> = 4..6;
+
+    /// The division's output words: out, then bad.
+    const DIV_OUTPUTS: Range<usize> = 5..7;
+
+    /// The circuit's output words on `inputs`, read off the witness the gate walk writes.
+    fn run(circuit: &Circuit, inputs: &[u64], outputs: Range<usize>) -> Vec<u64> {
+        // One instance's tables, zeroed.
         let words = 1 << (circuit.k_log() - 6);
         let (mut z, mut az, mut bz) = (vec![0; words], vec![0; words], vec![0; words]);
+
+        // The output ports follow the input ports in the instance's words.
         circuit.witness_instance(inputs, &mut z, &mut az, &mut bz);
         z[outputs].to_vec()
     }
 
+    /// A divisor biased toward zero and toward small values.
+    fn divisor() -> impl Strategy<Value = u64> {
+        prop_oneof![1 => Just(0), 4 => (edge_word(), 0u32..64).prop_map(|(w, s)| w >> s)]
+    }
+
+    /// The hash circuit's input words for a block, a counter and a finalization word.
+    fn hash_inputs(block: &[u64; 16], t: u64, f0: u64) -> Vec<u64> {
+        [t, f0]
+            .into_iter()
+            .chain(block[..4].iter().chain(&block[8..]).copied())
+            .collect()
+    }
+
     #[test]
-    fn alu_is_its_reference() {
-        let circuit = alu();
-        assert_eq!(circuit.k_log(), 10, "an ALU instance is 16 packed words");
-        let mut rng = Rng(0xA1);
-        for &flags in &crate::rv::alu::LEGAL {
-            for round in 0..400 {
-                let v1 = rng.word();
-                // Equal operands now and then, which random words never are.
-                let v2 = if round % 7 == 0 { v1 } else { rng.word() };
-                // One of `v2` and `imm` is zero, as the decoder has it.
-                let (v2, imm) = if round % 2 == 0 { (v2, 0) } else { (0, v2) };
-                let (out, taken) = semantics::alu(v1, v2, imm, flags);
-                assert_eq!(
-                    run(&circuit, &[v1, v2, imm, flags], alu_ports::OUT..alu_ports::TAKEN + 1),
-                    [out, taken as u64],
-                    "flags {flags:#x} on {v1:#x}, {v2:#x}, {imm:#x}"
-                );
+    fn instance_sizes_are_pinned() {
+        // The log of each instance's bits, which the tables fix before any circuit is built.
+        let sizes = [&ALU, &SHIFT, &LOAD, &STORE, &MUL, &MULH, &DIV, &BLAKE2S].map(|c| c.k_log());
+        assert_eq!(sizes, [10, 10, 10, 10, 12, 13, 13, 14]);
+    }
+
+    proptest! {
+        #![proptest_config(ProptestConfig::with_cases(4096))]
+
+        #[test]
+        fn alu_is_its_reference(flags in select(&Alu::LEGAL[..]), v1 in edge_word(), v2 in edge_word(), equal in any::<bool>(), immediate in any::<bool>()) {
+            // Equal operands now and then, which random words never are.
+            let v2 = if equal { v1 } else { v2 };
+
+            // One of v2 and imm is zero, as the decoder makes them.
+            let (v2, imm) = if immediate { (0, v2) } else { (v2, 0) };
+
+            let (out, taken) = Alu(flags).eval(v1, v2, imm);
+            prop_assert_eq!(run(&ALU, &[v1, v2, imm, flags], ALU_OUTPUTS), vec![out, taken as u64]);
+        }
+
+        #[test]
+        fn shift_is_its_reference(flags in select(&Shift::LEGAL[..]), v1 in edge_word(), v2 in edge_word(), amount in 0u64..64, small in any::<bool>(), immediate in any::<bool>()) {
+            // Every amount now and then, which a random word's low bits reach slowly.
+            let v2 = if small { amount } else { v2 };
+
+            // A register amount is any word; an immediate is six bits.
+            let (v2, imm) = if immediate { (0, v2 & 63) } else { (v2, 0) };
+
+            let expected = Shift(flags).eval(v1, v2, imm);
+            prop_assert_eq!(run(&SHIFT, &[v1, v2, imm, flags], 4..5), vec![expected]);
+        }
+
+        #[test]
+        fn load_is_its_reference(flags in select(&Load::LEGAL[..]), v1 in edge_word(), imm in 0u64..4096, cell in any::<u64>(), aligned in any::<bool>()) {
+            // Aligned half the time, which a random address seldom is.
+            let log_width = flags & Load::LOG_WIDTH;
+            let (v1, imm) = if aligned { (v1 & !((1 << log_width) - 1), imm & !7) } else { (v1, imm) };
+            let address = WordAccess::address(v1, imm);
+
+            // The bus address and the value, misaligned or not.
+            let expected = vec![WordAccess::bus_address(address, log_width), Load(flags).eval(cell, address)];
+            prop_assert_eq!(run(&LOAD, &[v1, imm, flags, cell], 4..6), expected);
+        }
+
+        #[test]
+        fn store_is_its_reference(flags in select(&Store::LEGAL[..]), v1 in edge_word(), v2 in edge_word(), imm in 0u64..4096, cell in any::<u64>(), aligned in any::<bool>()) {
+            // Aligned half the time, which a random address seldom is.
+            let (v1, imm) = if aligned { (v1 & !((1 << flags) - 1), imm & !7) } else { (v1, imm) };
+            let address = WordAccess::address(v1, imm);
+            let got = run(&STORE, &[v1, v2, imm, flags, cell], 5..7);
+
+            // The bus address always; the new cell only when aligned.
+            //
+            // A misaligned store names no cell, so what it would write is never read.
+            prop_assert_eq!(got[0], WordAccess::bus_address(address, flags));
+            if WordAccess::is_aligned(address, flags) {
+                prop_assert_eq!(got[1], Store(flags).eval(cell, address, v2));
             }
         }
     }
 
-    #[test]
-    fn load_and_store_are_their_references() {
-        let (load, store) = (load(), store());
-        assert_eq!(
-            (load.k_log(), store.k_log()),
-            (10, 10),
-            "an instance is 16 packed words"
-        );
-        let mut rng = Rng(0xA3);
-        for round in 0..4000 {
-            let (v1, imm, v2, cell) = (rng.word(), rng.next() % 4096, rng.word(), rng.next());
-            let address = semantics::address(v1, imm);
-            for &flags in &crate::rv::load::LEGAL {
-                let log_width = flags & crate::rv::load::LOG_WIDTH;
-                // Aligned every other round, which a random address seldom is.
-                let v1 = if round % 2 == 0 {
-                    v1 & !((1 << log_width) - 1)
-                } else {
-                    v1
-                };
-                let imm = if round % 2 == 0 { imm & !7 } else { imm };
-                let address = if round % 2 == 0 {
-                    semantics::address(v1, imm)
-                } else {
-                    address
-                };
-                assert_eq!(
-                    run(&load, &[v1, imm, flags, cell], 4..6),
-                    [
-                        semantics::bus_address(address, log_width),
-                        semantics::load(cell, address, flags)
-                    ],
-                    "load {flags:#x} at {address:#x} of {cell:#x}"
-                );
-            }
-            for &flags in &crate::rv::store::LEGAL {
-                let got = run(&store, &[v1, v2, imm, flags, cell], 5..7);
-                assert_eq!(
-                    got[0],
-                    semantics::bus_address(address, flags),
-                    "store {flags:#x} at {address:#x}"
-                );
-                // A misaligned store names no cell, so what it would write is nobody's business.
-                if semantics::is_aligned(address, flags) {
-                    assert_eq!(
-                        got[1],
-                        semantics::store(cell, address, v2, flags),
-                        "store {flags:#x} at {address:#x}"
-                    );
-                }
-            }
-        }
-    }
+    proptest! {
+        #![proptest_config(ProptestConfig::with_cases(512))]
 
-    #[test]
-    fn shift_and_multiplications_are_their_references() {
-        let (shift, mul, mulh) = (shift(), mul(), mulh());
-        assert_eq!((shift.k_log(), mul.k_log(), mulh.k_log()), (10, 12, 13));
-        let mut rng = Rng(0xA4);
-        for round in 0..1500 {
-            let (v1, v2) = (rng.word(), rng.word());
-            for &flags in &crate::rv::shift::LEGAL {
-                // Every amount now and then, which a random word's low bits cover slowly.
-                let amount = if round % 3 == 0 { round as u64 % 64 } else { v2 };
-                let (v2, imm) = if round % 2 == 0 { (amount, 0) } else { (0, amount & 63) };
-                assert_eq!(
-                    run(&shift, &[v1, v2, imm, flags], 4..5),
-                    [semantics::shift(v1, v2, imm, flags)],
-                    "shift {flags:#x} of {v1:#x} by {v2:#x}, {imm:#x}"
-                );
-            }
-            if round % 10 == 0 {
-                for &flags in &crate::rv::mul::LEGAL {
-                    assert_eq!(
-                        run(&mul, &[v1, v2, flags], 3..4),
-                        [semantics::mul(v1, v2, flags)],
-                        "mul {flags:#x}"
-                    );
-                }
-                for &flags in &crate::rv::mulh::LEGAL {
-                    assert_eq!(
-                        run(&mulh, &[v1, v2, flags], 3..4),
-                        [semantics::mulh(v1, v2, flags)],
-                        "mulh {flags:#x} of {v1:#x}, {v2:#x}"
-                    );
-                }
-            }
+        #[test]
+        fn mul_is_its_reference(flags in select(&Mul::LEGAL[..]), v1 in edge_word(), v2 in edge_word()) {
+            let expected = Mul(flags).eval(v1, v2);
+            prop_assert_eq!(run(&MUL, &[v1, v2, flags], 3..4), vec![expected]);
         }
-    }
 
-    #[test]
-    fn div_is_its_reference_and_refuses_other_hints() {
-        let div = div();
-        assert_eq!(div.k_log(), 13);
-        let mut rng = Rng(0xA5);
-        for round in 0..300 {
-            let (v1, v2) = (
-                rng.word(),
-                if round % 9 == 0 {
-                    0
-                } else {
-                    rng.word() >> (rng.next() % 64)
-                },
-            );
-            for &flags in &crate::rv::div::LEGAL {
-                let (q, r) = semantics::div_hints(v1, v2, flags);
-                let expected = [semantics::div(v1, v2, flags), 0];
-                assert_eq!(
-                    run(&div, &[v1, v2, flags, q, r], 5..7),
-                    expected,
-                    "div {flags:#x} of {v1:#x} by {v2:#x}"
-                );
-                // Any other quotient or remainder is refused, unless the divisor is zero,
-                // where they are ignored and the result is still the specification's.
-                let by_zero = if flags & crate::rv::div::WORD != 0 {
-                    v2 as u32 == 0
-                } else {
-                    v2 == 0
-                };
-                for (q, r) in [
-                    (q.wrapping_add(1), r),
-                    (q, r.wrapping_add(1)),
-                    (q ^ (1 << 63), r),
-                    (rng.next(), rng.next()),
-                ] {
-                    let got = run(&div, &[v1, v2, flags, q, r], 5..7);
-                    if by_zero {
-                        assert_eq!(got, expected);
-                    } else {
-                        assert_eq!(got[1], 1, "div {flags:#x} of {v1:#x} by {v2:#x} accepts {q:#x}, {r:#x}");
-                    }
-                }
-            }
+        #[test]
+        fn mulh_is_its_reference(flags in select(&Mulh::LEGAL[..]), v1 in edge_word(), v2 in edge_word()) {
+            let expected = Mulh(flags).eval(v1, v2);
+            prop_assert_eq!(run(&MULH, &[v1, v2, flags], 3..4), vec![expected]);
         }
-        // The forgery a check modulo 2^64 would accept: 1 / 3 with a quotient of (2^64 + 1) / 3.
-        assert_eq!(run(&div, &[1, 3, 0, 0x5555_5555_5555_5555, 2], 5..7)[1], 1);
-        // The overflow, and division by zero, as the specification has them.
-        let min = i64::MIN as u64;
-        let (q, r) = semantics::div_hints(min, u64::MAX, crate::rv::div::SIGNED);
-        assert_eq!(
-            run(&div, &[min, u64::MAX, crate::rv::div::SIGNED, q, r], 5..7),
-            [min, 0]
-        );
-        assert_eq!(run(&div, &[7, 0, 0, 0, 0], 5..7), [u64::MAX, 0]);
-        assert_eq!(run(&div, &[7, 0, crate::rv::div::REM, 0, 0], 5..7), [7, 0]);
-    }
 
-    #[test]
-    fn blake2s_is_its_reference() {
-        let circuit = blake2s();
-        assert_eq!(circuit.k_log(), 14, "a compression is 256 packed words");
-        let mut rng = Rng(0xA6);
-        for round in 0..40 {
-            let block: [u64; 16] = std::array::from_fn(|_| rng.word());
-            let t = rng.word();
-            // The legal flags, and now and then any finalization word, which the
-            // circuit XORs in like the reference does.
-            let flags = match round % 4 {
-                0 => crate::rv::hash::FINAL,
-                1 => rng.next() as u32 as u64,
-                _ => 0,
-            };
-            let inputs: Vec<u64> = [t, flags]
-                .into_iter()
-                .chain(block[..4].iter().chain(&block[8..]).copied())
-                .collect();
-            let expected = if crate::rv::hash::LEGAL.contains(&flags) {
-                semantics::blake2s(&block, t, flags)
+        #[test]
+        fn div_is_its_reference(flags in select(&Div::LEGAL[..]), v1 in edge_word(), v2 in divisor()) {
+            // The honest hints give the reference result, and bad stays zero.
+            let (q, r) = Div(flags).hints(v1, v2);
+            let expected = vec![Div(flags).eval(v1, v2), 0];
+            prop_assert_eq!(run(&DIV, &[v1, v2, flags, q, r], DIV_OUTPUTS), expected);
+        }
+
+        #[test]
+        fn div_refuses_any_other_hint(flags in select(&Div::LEGAL[..]), v1 in edge_word(), v2 in divisor(), dq in any::<u64>(), dr in any::<u64>()) {
+            // Mutation: shift the honest hints by a nonzero amount.
+            let (q, r) = Div(flags).hints(v1, v2);
+            prop_assume!((dq, dr) != (0, 0));
+            let got = run(&DIV, &[v1, v2, flags, q.wrapping_add(dq), r.wrapping_add(dr)], DIV_OUTPUTS);
+
+            // A nonzero divisor refuses them; a zero divisor ignores them.
+            let by_zero = if flags & Div::WORD != 0 { v2 as u32 == 0 } else { v2 == 0 };
+            if by_zero {
+                prop_assert_eq!(got, vec![Div(flags).eval(v1, v2), 0]);
             } else {
-                let half = |w: &[u64]| -> Vec<u32> { w.iter().flat_map(|&w| [w as u32, (w >> 32) as u32]).collect() };
-                let out = flock::hash::blake2s_compress(
-                    &half(&block[..4]).try_into().unwrap(),
-                    &half(&block[8..]).try_into().unwrap(),
-                    t,
-                    flags as u32,
-                    0,
-                );
-                std::array::from_fn(|i| out[2 * i] as u64 | (out[2 * i + 1] as u64) << 32)
-            };
-            assert_eq!(run(&circuit, &inputs, 14..18), expected, "flags {flags:#x}");
+                prop_assert_eq!(got[1], 1);
+            }
+        }
+    }
+
+    proptest! {
+        #![proptest_config(ProptestConfig::with_cases(64))]
+
+        #[test]
+        fn blake2s_is_its_reference(block in proptest::array::uniform16(edge_word()), t in edge_word(), last in any::<bool>()) {
+            // The legal finalization words, against the reference function.
+            let f0 = if last { Hash::FINAL } else { 0 };
+            let expected = Hash(f0).compress(&block, t);
+            prop_assert_eq!(run(&BLAKE2S, &hash_inputs(&block, t, f0), 14..18), expected.to_vec());
+        }
+
+        #[test]
+        fn any_finalization_word_is_xored_in(block in proptest::array::uniform16(edge_word()), t in edge_word(), f0 in any::<u32>()) {
+            // Any 32-bit word, against flock's compression, which takes one.
+            let half = |w: &[u64]| -> Vec<u32> { w.iter().flat_map(|&w| [w as u32, (w >> 32) as u32]).collect() };
+            let h = half(&block[..4]).try_into().unwrap();
+            let m = half(&block[8..]).try_into().unwrap();
+            let out = flock::hash::blake2s_compress(&h, &m, t, f0, 0);
+            let expected: Vec<u64> = (0..4).map(|i| out[2 * i] as u64 | (out[2 * i + 1] as u64) << 32).collect();
+            prop_assert_eq!(run(&BLAKE2S, &hash_inputs(&block, t, f0 as u64), 14..18), expected);
         }
     }
 
     #[test]
-    fn every_class_bitsliced_witness_is_the_gate_walk() {
-        // Invariant: the 64-lane walk the prover runs writes what the one-instance walk writes.
-        //
-        // Fixture state: 128 instances per class, two 64-lane walks.
-        let n_log = 7;
-        let mut rng = Rng(0xB1);
-        for circuit in [alu(), load(), store(), shift(), mul(), mulh(), div(), blake2s()] {
-            // Edge words (0, 1, all ones, sign bits) drive every carry and compare.
-            let rows: Vec<Vec<u64>> = (0..1 << n_log)
-                .map(|_| (0..circuit.n_input_words()).map(|_| rng.word()).collect())
-                .collect();
-            // The same batch through both generators, every table compared.
-            let walk = circuit.generate_witness_with(&rows, &rows[0], n_log, |row, z, az, bz| {
-                circuit.witness_instance(row, z, az, bz)
-            });
-            let sliced = circuit.generate_witness_from(&rows, &rows[0], n_log, |row, words| words.copy_from_slice(row));
-            assert!(walk.0[..] == sliced.0[..], "z");
-            assert!(walk.1[..] == sliced.1[..], "A·z");
-            assert!(walk.2[..] == sliced.2[..], "B·z");
-            assert!(walk.3[..] == sliced.3[..], "lincheck stripes");
-        }
+    fn a_hint_correct_modulo_2_64_is_refused() {
+        // 1 / 3 with q = (2^64 + 1) / 3: q * 3 = 2^64 + 1, which is 1 modulo 2^64.
+        assert_eq!(run(&DIV, &[1, 3, 0, 0x5555_5555_5555_5555, 2], DIV_OUTPUTS)[1], 1);
     }
 
     #[test]
-    fn blake2s_witness_is_the_gate_walk() {
-        // Invariant: the word-level witness writes the tables the walk of the gate list writes.
-        //
-        // The walk is the reference: it reads the circuit itself, slot by slot.
-        let circuit = blake2s();
-        let n_log = 5;
-        let mut rng = Rng(0xA7);
-        let rows: Vec<[u64; 14]> = (0..1 << n_log)
+    fn division_edge_cases_follow_the_specification() {
+        // The overflow: -2^63 / -1 is -2^63.
+        let min = i64::MIN as u64;
+        let (q, r) = Div(Div::SIGNED).hints(min, u64::MAX);
+        assert_eq!(run(&DIV, &[min, u64::MAX, Div::SIGNED, q, r], DIV_OUTPUTS), [min, 0]);
+
+        // A zero divisor: all ones, and the remainder is the dividend.
+        assert_eq!(run(&DIV, &[7, 0, 0, 0, 0], DIV_OUTPUTS), [u64::MAX, 0]);
+        assert_eq!(run(&DIV, &[7, 0, Div::REM, 0, 0], DIV_OUTPUTS), [7, 0]);
+    }
+
+    #[test]
+    fn flock_proves_honest_alu_instances_and_refuses_a_flipped_bit() {
+        // Fixture: 16 instances cycling through the legal words.
+        const LABEL: &[u8] = b"rv-alu-reduction-test";
+        let block = ALU.block();
+        let n_log = 4;
+        let rows: Vec<[u64; 4]> = (0..1u64 << n_log)
             .map(|i| {
-                // Counters at the edges of their two halves, then random ones.
-                let t = [0, u32::MAX as u64, 1 << 32, u64::MAX]
-                    .get(i)
-                    .copied()
-                    .unwrap_or_else(|| rng.word());
-                // The legal finalization words, and any word, whose high half the port drops.
-                let flags = [0, crate::rv::hash::FINAL, rng.next()][i % 3];
-                std::array::from_fn(|k| match k {
-                    0 => t,
-                    1 => flags,
-                    _ => rng.word(),
-                })
+                [
+                    i.wrapping_mul(0x9e37_79b9_7f4a_7c15),
+                    !i,
+                    0,
+                    Alu::LEGAL[i as usize % Alu::LEGAL.len()],
+                ]
             })
             .collect();
 
-        // Both generators on the same batch, then every table compared.
-        let walk = circuit.generate_witness(&rows, n_log);
-        let fast =
-            circuit.generate_witness_with(&rows, &[0; 14], n_log, |row, z, az, bz| blake2s_witness(row, z, az, bz));
-        assert!(walk.0[..] == fast.0[..], "z");
-        assert!(walk.1[..] == fast.1[..], "A·z");
-        assert!(walk.2[..] == fast.2[..], "B·z");
-        assert!(walk.3[..] == fast.3[..], "lincheck stripes");
-    }
-
-    /// flock proves a batch of honest instances, and refuses one with a flipped output bit.
-    #[test]
-    fn alu_reduction_roundtrip() {
-        const LABEL: &[u8] = b"rv-alu-reduction-test";
-        let circuit = alu();
-        let block = circuit.block();
-        let n_log = 4;
-        let mut rng = Rng(0xA2);
-        let legal = crate::rv::alu::LEGAL;
-        let rows: Vec<[u64; 4]> = (0..1 << n_log)
-            .map(|i| [rng.word(), rng.word(), 0, legal[i % legal.len()]])
-            .collect();
-        let run = |tamper: Option<usize>| {
-            let (mut z, a, b, mut z_lincheck) = circuit.generate_witness(&rows, n_log);
+        // Prove the batch, optionally flipping one witness bit first, and verify.
+        let accepts = |tamper: Option<usize>| {
+            let (mut z, a, b, mut z_lincheck) = ALU.generate_witness(&rows, n_log);
             if let Some(bit) = tamper {
                 z[bit / 64] ^= 1 << (bit % 64);
                 z_lincheck[bit] ^= 1;
@@ -876,14 +943,83 @@ mod tests {
             let mut vs = VerifierState::from_label(LABEL, &proof);
             block.verify(n_log, &mut vs).is_ok_and(|r| r.claim == claim) && vs.finish().is_ok()
         };
-        assert!(run(None));
-        // An output bit, a spare bit of `taken`'s word, a product.
+        assert!(accepts(None));
+
+        // Mutation: an output bit, a spare bit of taken's word, the last product.
         for bit in [
-            64 * alu_ports::OUT + 5,
-            64 * alu_ports::TAKEN + 1,
-            circuit.useful_bits() - 1,
+            64 * ALU_OUTPUTS.start + 5,
+            64 * (ALU_OUTPUTS.start + 1) + 1,
+            ALU.useful_bits() - 1,
         ] {
-            assert!(!run(Some(bit)), "flipping bit {bit} must reject");
+            assert!(!accepts(Some(bit)), "flipping bit {bit} must reject");
         }
+    }
+
+    #[test]
+    fn every_bitsliced_witness_is_the_one_instance_walk() {
+        // Invariant: the 64-lane walk the prover runs writes what the one-instance walk writes.
+        //
+        // Fixture: 128 instances per circuit, so two 64-lane walks.
+        let n_log = 7;
+        let mut runner = TestRunner::deterministic();
+        for circuit in [&ALU, &SHIFT, &LOAD, &STORE, &MUL, &MULH, &DIV, &BLAKE2S] {
+            // Edge-biased words drive every carry and comparison.
+            let mut draw = || edge_word().new_tree(&mut runner).unwrap().current();
+            let rows: Vec<Vec<u64>> = (0..1 << n_log)
+                .map(|_| (0..circuit.n_input_words()).map(|_| draw()).collect())
+                .collect();
+
+            // The same batch through both generators, every table compared.
+            let walk = circuit.generate_witness_with(&rows, &rows[0], n_log, |row, z, az, bz| {
+                circuit.witness_instance(row, z, az, bz)
+            });
+            let sliced = circuit.generate_witness_from(&rows, &rows[0], n_log, |row, words| words.copy_from_slice(row));
+            assert!(walk.0[..] == sliced.0[..], "z");
+            assert!(walk.1[..] == sliced.1[..], "A*z");
+            assert!(walk.2[..] == sliced.2[..], "B*z");
+            assert!(walk.3[..] == sliced.3[..], "lincheck stripes");
+        }
+    }
+
+    #[test]
+    fn the_word_witness_is_the_gate_walk() {
+        // Invariant: the word-level witness writes the tables the gate walk writes.
+        //
+        // The walk is the reference: it reads the circuit itself, slot by slot.
+        let n_log = 5;
+        let mut state = 0xA7u64;
+        let mut next = || {
+            state ^= state << 13;
+            state ^= state >> 7;
+            state ^= state << 17;
+            state
+        };
+
+        // Fixture: counters at the edges of their halves, then random ones.
+        //
+        // Finalization words: the legal two, and any word, whose high half the port drops.
+        let rows: Vec<[u64; 14]> = (0..1 << n_log)
+            .map(|i| {
+                let t = [0, u32::MAX as u64, 1 << 32, u64::MAX]
+                    .get(i)
+                    .copied()
+                    .unwrap_or_else(&mut next);
+                let flags = [0, Hash::FINAL, next()][i % 3];
+                std::array::from_fn(|k| match k {
+                    0 => t,
+                    1 => flags,
+                    _ => next(),
+                })
+            })
+            .collect();
+
+        // Both generators on the same batch, every table compared.
+        let walk = BLAKE2S.generate_witness(&rows, n_log);
+        let fast =
+            BLAKE2S.generate_witness_with(&rows, &[0; 14], n_log, |row, z, az, bz| blake2s_witness(row, z, az, bz));
+        assert!(walk.0[..] == fast.0[..], "z");
+        assert!(walk.1[..] == fast.1[..], "A*z");
+        assert!(walk.2[..] == fast.2[..], "B*z");
+        assert!(walk.3[..] == fast.3[..], "lincheck stripes");
     }
 }

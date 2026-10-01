@@ -1,287 +1,78 @@
-//! The interpreter: the reference semantics of a [`Program`], one [`Step`] at a time.
+//! The interpreter: the reference semantics of a program, one step at a time.
+//!
+//! A step reads the entry at `pc`, its two registers and, for a memory class, memory.
+//!
+//! It then writes its destination and memory, and moves `pc`.
+//!
+//! A run that faults stops with a trap, and no proof can follow it.
 
-use super::{
-    ADVICE_BASE, Class, Entry, LOG_REGS, MAX_LOG_ADVICE, MAX_LOG_RAM, MAX_LOG_TEXT, OUTPUT_REGS, RAM_BASE, SYS_EXIT,
-    SYSCALL_REG, TEXT_BASE,
-};
-use super::{Target, decode, hash, load, semantics, store};
+use super::entry::{Class, Entry};
+use super::program::Program;
+use super::region::Region;
+use super::register::{Reg, RegisterFile, Syscall};
+use super::semantics::{BlockAccess, Hash, Load, WordAccess};
 
-/// A decoded program: its text, where it starts, RAM as the run finds it, and the
-/// advice's size.
-///
-/// ```compile_fail
-/// # use leanvm_core::rv::Program;
-/// fn change_image(program: &mut Program) {
-///     program.image.clear();
-/// }
-/// ```
-#[derive(Clone, Debug)]
-pub struct Program {
-    /// A power of two of entries, instruction `i` at [`Self::pc_of`]`(i)`. The last
-    /// is the halt slot, which is illegal, as is every slot holding no instruction.
-    pub(crate) entries: Vec<Entry>,
-    pub(crate) entry_pc: u64,
-    /// RAM's first words. The rest of its `2^log_ram` words are zero.
-    pub(crate) image: Vec<u64>,
-    pub(crate) log_ram: usize,
-    /// The advice region holds `2^log_advice` words ([`ADVICE_BASE`]).
-    pub(crate) log_advice: usize,
-}
-
-/// Why instruction input cannot form a validated executable.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, thiserror::Error)]
-#[non_exhaustive]
-pub enum ProgramError {
-    /// The text cannot fit with its required padding.
-    #[error("the text leaves no room for padding and the halt slot")]
-    TextTooLarge,
-    /// The entry is unaligned or outside the supplied text.
-    #[error("the entry point is not an aligned instruction in the supplied text")]
-    EntryPoint,
-    /// The RAM capacity is unsupported or smaller than the image.
-    #[error("RAM is too small for its image, or exceeds its region")]
-    RamSize,
-    /// The advice capacity exceeds its region.
-    #[error("the advice exceeds its region")]
-    AdviceSize,
-    /// A decoded instruction violates the table schema.
-    #[error("the decoded text contains a malformed entry")]
-    MalformedEntry,
-}
-
-impl Program {
-    /// Decode instruction words after checking the entry and memory-region sizes.
-    ///
-    /// Unsupported instructions remain illegal entries and trap when executed.
-    pub fn new(
-        text: &[u32],
-        entry_pc: u64,
-        image: Vec<u64>,
-        log_ram: usize,
-        log_advice: usize,
-    ) -> Result<Self, ProgramError> {
-        Self::validate(text.len(), entry_pc, image.len(), log_ram, log_advice)?;
-        let mut entries: Vec<Entry> = text
-            .iter()
-            .enumerate()
-            .map(|(i, &word)| decode(word, TEXT_BASE + 4 * i as u64))
-            .collect();
-        entries.resize((text.len() + 2).next_power_of_two(), Entry::ILLEGAL);
-        if !entries.iter().all(Entry::is_well_formed) {
-            return Err(ProgramError::MalformedEntry);
-        }
-        Ok(Self {
-            entries,
-            entry_pc,
-            image,
-            log_ram,
-            log_advice,
-        })
-    }
-
-    pub(crate) fn validate(
-        words: usize,
-        entry_pc: u64,
-        image_words: usize,
-        log_ram: usize,
-        log_advice: usize,
-    ) -> Result<(), ProgramError> {
-        if words > (1 << MAX_LOG_TEXT) - 2 {
-            return Err(ProgramError::TextTooLarge);
-        }
-        let offset = entry_pc.checked_sub(TEXT_BASE).ok_or(ProgramError::EntryPoint)?;
-        if !offset.is_multiple_of(4) || offset / 4 >= words as u64 {
-            return Err(ProgramError::EntryPoint);
-        }
-        if log_ram > MAX_LOG_RAM || image_words > 1 << log_ram {
-            return Err(ProgramError::RamSize);
-        }
-        if log_advice > MAX_LOG_ADVICE {
-            return Err(ProgramError::AdviceSize);
-        }
-        Ok(())
-    }
-
-    /// The decoded text, including illegal padding and the halt slot.
-    pub fn entries(&self) -> &[Entry] {
-        &self.entries
-    }
-
-    /// The execution entry point's byte address.
-    pub fn entry_pc(&self) -> u64 {
-        self.entry_pc
-    }
-
-    /// The initialized prefix of RAM; the remaining words start at zero.
-    pub fn image(&self) -> &[u64] {
-        &self.image
-    }
-
-    /// The base-two logarithm of RAM's capacity in words.
-    pub fn log_ram(&self) -> usize {
-        self.log_ram
-    }
-
-    /// The base-two logarithm of the advice capacity in words.
-    pub fn log_advice(&self) -> usize {
-        self.log_advice
-    }
-
-    pub fn pc_of(&self, index: usize) -> u64 {
-        TEXT_BASE + 4 * index as u64
-    }
-
-    /// The entry at `pc`, if `pc` names one.
-    pub fn index_of(&self, pc: u64) -> Option<usize> {
-        let offset = pc.wrapping_sub(TEXT_BASE);
-        (offset.is_multiple_of(4) && offset / 4 < self.entries.len() as u64).then_some((offset / 4) as usize)
-    }
-
-    /// Where a run ends: the last slot, which is never executed.
-    pub fn halt_pc(&self) -> u64 {
-        self.pc_of(self.entries.len() - 1)
-    }
-
-    /// The bytecode's `dt` field: a taken entry's target, as a XOR against `pc + 4`.
-    pub fn dt_of(&self, index: usize) -> u64 {
-        self.target_of(index)
-            .map_or(0, |target| target ^ self.pc_of(index).wrapping_add(4))
-    }
-
-    /// Where entry `index` goes when its class takes the jump.
-    pub fn target_of(&self, index: usize) -> Option<u64> {
-        match self.entries[index].target {
-            Target::Next => None,
-            Target::Abs(target) => Some(target),
-            Target::Halt => Some(self.halt_pc()),
-        }
-    }
-}
-
-/// Why a run stops without halting: an ISA fault, which no proof can follow.
+/// Why a run stops without halting: a fault of the ISA.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, thiserror::Error)]
 #[non_exhaustive]
 pub enum Trap {
-    /// `pc` names no instruction: outside the text, misaligned, or an illegal one.
+    /// `pc` names no legal instruction: it is outside the text, misaligned, or illegal.
     #[error("no legal instruction at pc {pc:#x}")]
-    Illegal { pc: u64 },
+    Illegal {
+        /// The faulting address.
+        pc: u64,
+    },
     /// A load, a store or a hash block at an address its width does not divide.
     #[error("misaligned access to {address:#x} at pc {pc:#x}")]
-    Misaligned { pc: u64, address: u64 },
+    Misaligned {
+        /// The instruction's address.
+        pc: u64,
+        /// The access's address.
+        address: u64,
+    },
     /// An access outside RAM and the advice.
     #[error("access outside RAM, to {address:#x}, at pc {pc:#x}")]
-    Unmapped { pc: u64, address: u64 },
-    /// An `ECALL` that is not `exit`.
+    Unmapped {
+        /// The instruction's address.
+        pc: u64,
+        /// The access's address.
+        address: u64,
+    },
+    /// The run reached the halt slot by an `ecall` that is not `exit`.
     #[error("ecall {syscall} is not exit")]
-    NotAnExit { syscall: u64 },
+    NotAnExit {
+        /// The system call number found.
+        syscall: u64,
+    },
 }
 
-/// The RAM cell a step accessed.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub struct RamAccess {
-    /// What goes on the memory bus ([`semantics::bus_address`]): the word's byte
-    /// address, for an aligned access.
-    pub address: u64,
-    pub old: u64,
-    pub new: u64,
-}
-
-/// The block a hash row works on ([`hash`]): its words as the row found them, and
-/// the four it leaves in the result's.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct HashAccess {
-    pub block: [u64; hash::WORDS],
-    pub out: [u64; 4],
-}
-
-/// One executed instruction, as a row of its class's table records it.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Step {
-    /// The entry executed.
-    pub index: usize,
-    pub v1: u64,
-    pub v2: u64,
-    /// What the class computed.
-    pub out: u64,
-    pub taken: bool,
-    /// What `ad` held, and what it holds now: `out`, or `pc + 4` for a link.
-    /// A store's and a hash's `vd_old` is zero: their destination is the sink, which they leave as it is.
-    pub vd_old: u64,
-    pub vd: u64,
-    pub ram: Option<RamAccess>,
-    pub hash: Option<Box<HashAccess>>,
-    pub npc: u64,
-}
-
-/// What entry `e` computes from the registers it reads and, for a load or a store, the
-/// RAM cell it names: `(out, taken, RAM access)`, whether or not a run could make
-/// that access.
-pub fn compute(e: &Entry, v1: u64, v2: u64, cell: u64) -> (u64, bool, RamAccess) {
-    let address = semantics::address(v1, e.imm);
-    let ram = |new: u64, log_width: u64| RamAccess {
-        address: semantics::bus_address(address, log_width),
-        old: cell,
-        new,
-    };
-    let none = RamAccess::default();
-    match e.class {
-        Class::Alu => {
-            let (out, taken) = semantics::alu(v1, v2, e.imm, e.flags);
-            (out, taken, none)
-        }
-        Class::Shift => (semantics::shift(v1, v2, e.imm, e.flags), false, none),
-        Class::Mul => (semantics::mul(v1, v2, e.flags), false, none),
-        Class::Mulh => (semantics::mulh(v1, v2, e.flags), false, none),
-        Class::Div => (semantics::div(v1, v2, e.flags), false, none),
-        Class::Load => (
-            semantics::load(cell, address, e.flags),
-            false,
-            ram(cell, e.flags & load::LOG_WIDTH),
-        ),
-        Class::Store => (
-            0,
-            false,
-            ram(semantics::store(cell, address, v2, e.flags), e.flags & store::LOG_WIDTH),
-        ),
-        Class::Hash | Class::Illegal => (0, false, none),
-    }
-}
-
-/// What a hash row does to its block: [`semantics::blake2s`] of the block's words.
-pub fn compute_hash(block: [u64; hash::WORDS], t: u64, flags: u64) -> HashAccess {
-    HashAccess {
-        block,
-        out: semantics::blake2s(&block, t, flags),
-    }
-}
-
-/// The interpreter's state: the program it runs, the registers, RAM and the advice, and `pc`.
+/// The interpreter's state: the program, the registers, memory and `pc`.
+#[derive(Clone, Debug)]
 pub struct Machine<'a> {
+    /// The program being run.
     program: &'a Program,
-    /// `x0..x31`, then [`super::SINK`].
-    regs: [u64; 1 << LOG_REGS],
-    /// RAM's cells, then the advice's.
-    mem: Vec<u64>,
+    /// `x0` to `x31`, then the sink.
+    registers: RegisterFile,
+    /// RAM and the advice.
+    memory: Memory,
+    /// The address of the next instruction.
     pc: u64,
+    /// Whether the last step jumped to the halt slot.
     exited: bool,
 }
 
 impl<'a> Machine<'a> {
-    /// The machine about to run `program` on `advice`, the advice region's first words.
+    /// The machine about to run `program`, the advice's first words being `advice`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the advice does not fit its region.
     pub fn new(program: &'a Program, advice: &[u64]) -> Self {
-        assert!(
-            advice.len() <= 1 << program.log_advice,
-            "the advice does not fit its region"
-        );
-        let mut mem = program.image.clone();
-        mem.resize(1 << program.log_ram, 0);
-        mem.extend(advice);
-        mem.resize((1 << program.log_ram) + (1 << program.log_advice), 0);
         Self {
             program,
-            regs: [0; 1 << LOG_REGS],
-            mem,
-            pc: program.entry_pc,
+            registers: RegisterFile::new(),
+            memory: Memory::new(program, advice),
+            pc: program.entry_pc(),
             exited: false,
         }
     }
@@ -291,117 +82,100 @@ impl<'a> Machine<'a> {
         self.program
     }
 
-    /// `x0..x31`, then the sink cell, where writes to `x0` go and which nothing reads.
-    pub fn regs(&self) -> &[u64; 1 << LOG_REGS] {
-        &self.regs
+    /// The register file: `x0` to `x31`, then the sink, which nothing reads.
+    pub fn registers(&self) -> &RegisterFile {
+        &self.registers
     }
 
-    /// The byte address of the next instruction.
+    /// RAM and the advice.
+    pub fn memory(&self) -> &Memory {
+        &self.memory
+    }
+
+    /// The address of the next instruction.
     pub fn pc(&self) -> u64 {
         self.pc
     }
 
-    pub fn ram(&self) -> &[u64] {
-        &self.mem[..1 << self.program.log_ram]
-    }
-
-    pub fn advice(&self) -> &[u64] {
-        &self.mem[1 << self.program.log_ram..]
-    }
-
-    /// The cell holding `address`: RAM's, or past them the advice's.
-    fn cell(&self, address: u64) -> Result<usize, Trap> {
-        let (ram, advice) = (
-            address.wrapping_sub(RAM_BASE) / 8,
-            address.wrapping_sub(ADVICE_BASE) / 8,
-        );
-        if address >= RAM_BASE && ram < 1 << self.program.log_ram {
-            Ok(ram as usize)
-        } else if address >= ADVICE_BASE && advice < 1 << self.program.log_advice {
-            Ok((1 << self.program.log_ram) + advice as usize)
-        } else {
-            Err(Trap::Unmapped { pc: self.pc, address })
-        }
-    }
-
+    /// Whether the run has reached the halt slot by an `ecall`.
     pub fn halted(&self) -> bool {
         self.exited && self.pc == self.program.halt_pc()
     }
 
+    /// Execute one instruction.
+    ///
+    /// # Errors
+    ///
+    /// Returns the trap the instruction raises, the machine left as it was.
     pub fn step(&mut self) -> Result<Step, Trap> {
+        // Fetch: the legal entry at pc.
         let pc = self.pc;
         let index = self.program.index_of(pc).ok_or(Trap::Illegal { pc })?;
-        let e = self.program.entries[index];
-        let (v1, v2) = (self.regs[e.a1 as usize], self.regs[e.a2 as usize]);
-        let cell = match e.class {
+        let entry = self.program.entries()[index];
+        if entry.class == Class::Illegal {
+            return Err(Trap::Illegal { pc });
+        }
+
+        // Read both registers; an instruction with fewer reads x0.
+        let (v1, v2) = (self.registers.read(entry.a1), self.registers.read(entry.a2));
+
+        // Resolve every address before writing anything, so a trap leaves no trace.
+        let cell = match entry.class {
             Class::Load | Class::Store => {
-                let address = semantics::address(v1, e.imm);
-                if !semantics::is_aligned(address, e.flags & load::LOG_WIDTH) {
-                    return Err(Trap::Misaligned { pc, address });
-                }
-                Some(self.cell(address)?)
+                let address = WordAccess::address(v1, entry.imm);
+                Some(self.cell(pc, address, Load(entry.flags).log_width())?)
             }
-            Class::Illegal => return Err(Trap::Illegal { pc }),
             _ => None,
         };
-        let (out, taken, access) = compute(&e, v1, v2, cell.map_or(0, |cell| self.mem[cell]));
-        let ram = cell.map(|cell| {
-            self.mem[cell] = access.new;
-            access
-        });
-        let hash = match e.class {
-            Class::Hash => Some(Box::new(self.hash(pc, v1, v2, e.flags)?)),
+        let block = match entry.class {
+            Class::Hash => Some(self.block(pc, v1)?),
             _ => None,
         };
+
+        // Compute, then apply the memory access.
+        let outcome = entry.evaluate(v1, v2, cell.map_or(0, |cell| self.memory.get(cell)));
+        let memory = match (cell, outcome.access, block) {
+            (Some(cell), Some(access), _) => {
+                self.memory.set(cell, access.new);
+                MemoryAccess::Word(access)
+            }
+            (_, _, Some(cells)) => MemoryAccess::Block(Box::new(self.compress(&cells, v2, entry.flags))),
+            _ => MemoryAccess::None,
+        };
+
+        // Write the destination: the output, or pc + 4 for a link.
         let pc4 = pc.wrapping_add(4);
-        let vd = if e.link { pc4 } else { out };
-        // Why: the sink is never read, so a class whose destination is always the sink makes no write.
-        // Its table then has no register write to prove.
-        let vd_old = match e.class {
-            Class::Store | Class::Hash => 0,
-            _ => std::mem::replace(&mut self.regs[e.ad as usize], vd),
-        };
-        let npc = match (e.jalr, taken) {
-            (true, _) => out,
+        let vd = if entry.link { pc4 } else { outcome.out };
+        let vd_old = self.write_destination(&entry, vd);
+
+        // Move pc: the computed address, the fixed target, or the next instruction.
+        let npc = match (entry.jalr, outcome.taken) {
+            (true, _) => outcome.out,
             (false, true) => self.program.target_of(index).expect("a taken entry has a target"),
             (false, false) => pc4,
         };
-        self.exited = e.target == Target::Halt;
+        self.exited = entry.is_exit();
         self.pc = npc;
         Ok(Step {
             index,
             v1,
             v2,
-            out,
-            taken,
+            out: outcome.out,
+            taken: outcome.taken,
             vd_old,
             vd,
-            ram,
-            hash,
+            memory,
             npc,
         })
     }
 
-    /// A hash row's block ([`hash`]): word `k` is the cell at `base ^ 8k`, so `base`
-    /// has to be a word address and every word of the block in RAM.
-    fn hash(&mut self, pc: u64, base: u64, t: u64, flags: u64) -> Result<HashAccess, Trap> {
-        if !base.is_multiple_of(8) {
-            return Err(Trap::Misaligned { pc, address: base });
-        }
-        let mut cells = [0usize; hash::WORDS];
-        for (k, cell) in cells.iter_mut().enumerate() {
-            *cell = self.cell(base ^ (8 * k as u64))?;
-        }
-        let access = compute_hash(cells.map(|cell| self.mem[cell]), t, flags);
-        for (j, &out) in access.out.iter().enumerate() {
-            self.mem[cells[hash::OUT as usize / 8 + j]] = out;
-        }
-        Ok(access)
-    }
-
-    /// Run to the halt slot and return the public output `a0..a3`.
+    /// Run to the halt slot and return the public output.
     ///
     /// A program that never halts never returns: bound the run with the step-limited form.
+    ///
+    /// # Errors
+    ///
+    /// Returns the trap that stops the run.
     pub fn run(&mut self) -> Result<[u64; 4], Trap> {
         loop {
             if let Some(output) = self.run_for(u64::MAX)? {
@@ -410,465 +184,705 @@ impl<'a> Machine<'a> {
         }
     }
 
-    /// Run to the halt slot, within `max_steps` steps, and return the public output `a0..a3`.
+    /// Run to the halt slot within `max_steps` steps, and return the public output.
     ///
-    /// `None` if the run has not halted when the steps run out, the machine left where it stopped.
+    /// Returns `None` if the steps run out first, the machine left where it stopped.
+    ///
+    /// # Errors
+    ///
+    /// Returns the trap that stops the run.
     pub fn run_for(&mut self, max_steps: u64) -> Result<Option<[u64; 4]>, Trap> {
+        // Check for the halt before each step, and once more after the last.
         for _ in 0..max_steps {
             if self.halted() {
-                return self.exit().map(Some);
+                return self.output().map(Some);
             }
             self.step()?;
         }
-        if self.halted() { self.exit().map(Some) } else { Ok(None) }
+        if self.halted() {
+            self.output().map(Some)
+        } else {
+            Ok(None)
+        }
     }
 
-    /// The output of a run that reached the halt slot, which only `exit` may do.
-    fn exit(&self) -> Result<[u64; 4], Trap> {
-        let syscall = self.regs[SYSCALL_REG as usize];
-        if syscall == SYS_EXIT {
-            Ok(OUTPUT_REGS.map(|r| self.regs[r as usize]))
-        } else {
-            Err(Trap::NotAnExit { syscall })
+    /// The public output of a halted run: `a0` to `a3`.
+    ///
+    /// # Errors
+    ///
+    /// Returns a trap if the system call number is not `exit`.
+    pub fn output(&self) -> Result<[u64; 4], Trap> {
+        let syscall = self.registers.get(Reg::SYSCALL);
+        if syscall != Syscall::Exit.number() {
+            return Err(Trap::NotAnExit { syscall });
         }
+        Ok(Reg::OUTPUTS.map(|r| self.registers.get(r)))
+    }
+
+    /// The cell an access of `2^log_width` bytes at `address` names.
+    ///
+    /// A misaligned access traps before an unmapped one.
+    fn cell(&self, pc: u64, address: u64, log_width: u64) -> Result<usize, Trap> {
+        if !WordAccess::is_aligned(address, log_width) {
+            return Err(Trap::Misaligned { pc, address });
+        }
+        self.memory.cell(address).ok_or(Trap::Unmapped { pc, address })
+    }
+
+    /// The cells of the hash block at `base`, word `k` at `base ^ 8k`.
+    ///
+    /// The base must be a word address, and every word of the block mapped.
+    fn block(&self, pc: u64, base: u64) -> Result<[usize; Hash::WORDS], Trap> {
+        let mut cells = [0; Hash::WORDS];
+        for (k, cell) in cells.iter_mut().enumerate() {
+            *cell = self.cell(pc, base ^ (8 * k as u64), 3)?;
+        }
+        Ok(cells)
+    }
+
+    /// Compress the block in `cells` and write the result to its result words.
+    fn compress(&mut self, cells: &[usize; Hash::WORDS], t: u64, flags: u64) -> BlockAccess {
+        let access = BlockAccess::compress(cells.map(|cell| self.memory.get(cell)), t, flags);
+        let result = &cells[Hash::OUT as usize / 8..][..4];
+        for (&cell, &word) in result.iter().zip(&access.out) {
+            self.memory.set(cell, word);
+        }
+        access
+    }
+
+    /// Write `vd` to the entry's destination and return what it held.
+    ///
+    /// A store and a hash always write the sink, which nothing reads.
+    ///
+    /// They make no write at all, so their tables have none to prove.
+    fn write_destination(&mut self, entry: &Entry, vd: u64) -> u64 {
+        match entry.class {
+            Class::Store | Class::Hash => 0,
+            _ => self.registers.replace(entry.ad, vd),
+        }
+    }
+}
+
+/// What an executed instruction did to memory.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum MemoryAccess {
+    /// Nothing: every class but the memory classes.
+    None,
+    /// One cell: a load or a store.
+    Word(WordAccess),
+    /// A whole block: the hash.
+    Block(Box<BlockAccess>),
+}
+
+/// One executed instruction, as a row of its class's table records it.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Step {
+    /// The entry executed.
+    pub index: usize,
+    /// The first register's value.
+    pub v1: u64,
+    /// The second register's value.
+    pub v2: u64,
+    /// What the class computed.
+    pub out: u64,
+    /// Whether the class took the jump.
+    pub taken: bool,
+    /// What the destination held before.
+    ///
+    /// Zero for a store or a hash, whose destination is the sink and which write nothing.
+    pub vd_old: u64,
+    /// What the destination holds now: the output, or `pc + 4` for a link.
+    pub vd: u64,
+    /// What the instruction did to memory.
+    pub memory: MemoryAccess,
+    /// The next `pc`.
+    pub npc: u64,
+}
+
+/// RAM's cells, then the advice's.
+///
+/// - RAM is its image, then zeros, 2^log_ram cells in all.
+/// - The advice is the prover's words, then zeros, 2^log_advice cells in all.
+///
+/// A cell's number is also its row in the memory argument.
+#[derive(Clone, Debug)]
+pub struct Memory {
+    /// Every cell, RAM's first.
+    cells: Vec<u64>,
+    /// RAM holds 2^log_ram cells.
+    log_ram: usize,
+    /// The advice holds 2^log_advice cells.
+    log_advice: usize,
+}
+
+impl Memory {
+    /// The memory a run of `program` starts from, the advice's first words being `advice`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the advice does not fit its region.
+    fn new(program: &Program, advice: &[u64]) -> Self {
+        let (log_ram, log_advice) = (program.log_ram(), program.log_advice());
+        assert!(advice.len() <= 1 << log_advice, "the advice does not fit its region");
+
+        // The image then zeros, the advice then zeros.
+        let mut cells = Vec::with_capacity((1 << log_ram) + (1 << log_advice));
+        cells.extend_from_slice(program.image());
+        cells.resize(1 << log_ram, 0);
+        cells.extend_from_slice(advice);
+        cells.resize((1 << log_ram) + (1 << log_advice), 0);
+        Self {
+            cells,
+            log_ram,
+            log_advice,
+        }
+    }
+
+    /// RAM's cells.
+    pub fn ram(&self) -> &[u64] {
+        &self.cells[..1 << self.log_ram]
+    }
+
+    /// The advice's cells.
+    pub fn advice(&self) -> &[u64] {
+        &self.cells[1 << self.log_ram..]
+    }
+
+    /// The number of the cell holding the byte at `address`.
+    ///
+    /// Returns `None` for an address in neither RAM nor the advice.
+    pub fn cell(&self, address: u64) -> Option<usize> {
+        // RAM's cells come first, then the advice's.
+        let ram = || Region::RAM.index(address, self.log_ram);
+        let advice = || {
+            Region::ADVICE
+                .index(address, self.log_advice)
+                .map(|i| (1 << self.log_ram) + i)
+        };
+        ram().or_else(advice)
+    }
+
+    /// The value of cell `cell`.
+    fn get(&self, cell: usize) -> u64 {
+        self.cells[cell]
+    }
+
+    /// Write `value` to cell `cell`.
+    fn set(&mut self, cell: usize, value: u64) {
+        self.cells[cell] = value;
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::super::asm::{self, *};
     use super::*;
+    use crate::rv::asm::*;
+    use crate::rv::semantics::tests::edge_word;
+    use crate::rv::{RAM_BASE, TEXT_BASE};
+    use proptest::prelude::*;
 
+    /// The fixture's RAM: 2^8 words.
     const LOG_RAM: usize = 8;
+
+    /// The fixture's RAM in bytes.
     const RAM_BYTES: u64 = 8 << LOG_RAM;
 
-    struct Rng(u64);
-    impl Rng {
-        fn next(&mut self) -> u64 {
-            self.0 ^= self.0 << 13;
-            self.0 ^= self.0 >> 7;
-            self.0 ^= self.0 << 17;
-            self.0
-        }
-        fn below(&mut self, n: u64) -> u64 {
-            self.next() % n
-        }
-        /// A word biased toward the values arithmetic gets wrong.
-        fn word(&mut self) -> u64 {
-            match self.below(8) {
-                0 => [
-                    0,
-                    1,
-                    u64::MAX,
-                    1 << 63,
-                    (1 << 63) - 1,
-                    1 << 31,
-                    (1 << 31) - 1,
-                    0xffff_ffff,
-                ][self.below(8) as usize],
-                1 => self.next() as u32 as u64,
-                2 => self.next() as i32 as i64 as u64,
-                3 => self.below(65),
-                _ => self.next(),
-            }
-        }
-    }
-
-    /// RISC-V straight from the specification, on registers and BYTES: shares no code
-    /// with the decoder, the class functions or the word-addressed RAM.
-    fn spec_step(word: u32, x: &mut [u64; 32], pc: &mut u64, mem: &mut [u8]) {
-        let (opcode, rd, f3) = (word & 0x7f, (word >> 7 & 31) as usize, word >> 12 & 7);
-        let (rs1, rs2, f7) = ((word >> 15 & 31) as usize, (word >> 20 & 31) as usize, word >> 25);
-        let (a, b) = (x[rs1], x[rs2]);
-        let imm_i = (word as i32 >> 20) as i64 as u64;
-        let at = |address: u64| (address - RAM_BASE) as usize;
-        let w = |v: u64| v as i32 as i64 as u64;
-        let mut next = pc.wrapping_add(4);
-        let mut result = None;
-        match opcode {
-            0x37 => result = Some((word & 0xffff_f000) as i32 as i64 as u64),
-            0x17 => result = Some(pc.wrapping_add((word & 0xffff_f000) as i32 as i64 as u64)),
-            0x6f => {
-                let o = ((word >> 31) << 20)
-                    | ((word >> 12 & 0xff) << 12)
-                    | ((word >> 20 & 1) << 11)
-                    | ((word >> 21 & 0x3ff) << 1);
-                result = Some(next);
-                next = pc.wrapping_add(((o << 11) as i32 >> 11) as i64 as u64);
-            }
-            0x67 => {
-                result = Some(next);
-                next = a.wrapping_add(imm_i) & !1;
-            }
-            0x63 => {
-                let o = ((word >> 31) << 12)
-                    | ((word >> 7 & 1) << 11)
-                    | ((word >> 25 & 0x3f) << 5)
-                    | ((word >> 8 & 0xf) << 1);
-                let taken = match f3 {
-                    0 => a == b,
-                    1 => a != b,
-                    4 => (a as i64) < (b as i64),
-                    5 => (a as i64) >= (b as i64),
-                    6 => a < b,
-                    _ => a >= b,
-                };
-                if taken {
-                    next = pc.wrapping_add(((o << 19) as i32 >> 19) as i64 as u64);
-                }
-            }
-            0x03 => {
-                let p = at(a.wrapping_add(imm_i));
-                let bytes = |n: usize| {
-                    let mut le = [0u8; 8];
-                    le[..n].copy_from_slice(&mem[p..p + n]);
-                    u64::from_le_bytes(le)
-                };
-                result = Some(match f3 {
-                    0 => bytes(1) as i8 as i64 as u64,
-                    1 => bytes(2) as i16 as i64 as u64,
-                    2 => bytes(4) as i32 as i64 as u64,
-                    3 => bytes(8),
-                    4 => bytes(1),
-                    5 => bytes(2),
-                    _ => bytes(4),
-                });
-            }
-            0x23 => {
-                let imm = (((f7 << 5) | rd as u32) << 20) as i32 >> 20;
-                let p = at(a.wrapping_add(imm as i64 as u64));
-                let n = 1 << f3;
-                mem[p..p + n].copy_from_slice(&b.to_le_bytes()[..n]);
-            }
-            0x13 | 0x1b | 0x33 | 0x3b => {
-                let word32 = opcode & 8 != 0;
-                let immediate = opcode & 0x20 == 0;
-                let b = if immediate { imm_i } else { b };
-                let m_ext = !immediate && f7 == 1;
-                let alt = if immediate {
-                    f3 == 5 && word >> 30 & 1 == 1
-                } else {
-                    f7 == 0x20
-                };
-                let sh = (b & if word32 { 31 } else { 63 }) as u32;
-                let r = if m_ext && !word32 {
-                    match f3 {
-                        0 => a.wrapping_mul(b),
-                        1 => ((a as i64 as i128 * b as i64 as i128) >> 64) as u64,
-                        2 => ((a as i64 as i128 * b as i128) >> 64) as u64,
-                        3 => ((a as u128 * b as u128) >> 64) as u64,
-                        4 if b == 0 => u64::MAX,
-                        4 => (a as i64).wrapping_div(b as i64) as u64,
-                        5 if b == 0 => u64::MAX,
-                        5 => a / b,
-                        6 if b == 0 => a,
-                        6 => (a as i64).wrapping_rem(b as i64) as u64,
-                        _ if b == 0 => a,
-                        _ => a % b,
-                    }
-                } else if m_ext {
-                    let (a, b) = (a as i32, b as i32);
-                    let (ua, ub) = (a as u32, b as u32);
-                    w(match f3 {
-                        0 => a.wrapping_mul(b) as u64,
-                        4 if b == 0 => u64::MAX,
-                        4 => a.wrapping_div(b) as u64,
-                        5 if b == 0 => u64::MAX,
-                        5 => (ua / ub) as u64,
-                        6 if b == 0 => a as u64,
-                        6 => a.wrapping_rem(b) as u64,
-                        _ if b == 0 => ua as u64,
-                        _ => (ua % ub) as u64,
-                    })
-                } else if word32 {
-                    let a = a as u32;
-                    w(match f3 {
-                        0 if alt && !immediate => a.wrapping_sub(b as u32) as u64,
-                        0 => a.wrapping_add(b as u32) as u64,
-                        1 => (a << sh) as u64,
-                        _ if alt => (a as i32 >> sh) as u64,
-                        _ => (a >> sh) as u64,
-                    })
-                } else {
-                    match f3 {
-                        0 if alt && !immediate => a.wrapping_sub(b),
-                        0 => a.wrapping_add(b),
-                        1 => a << sh,
-                        2 => ((a as i64) < (b as i64)) as u64,
-                        3 => (a < b) as u64,
-                        4 => a ^ b,
-                        5 if alt => (a as i64 >> sh) as u64,
-                        5 => a >> sh,
-                        6 => a | b,
-                        _ => a & b,
-                    }
-                };
-                result = Some(r);
-            }
-            _ => unreachable!("the generator made {word:#010x}"),
-        }
-        if let Some(r) = result
-            && rd != 0
-        {
-            x[rd] = r;
-        }
-        *pc = next;
-    }
-
-    /// A random legal instruction. `base` is a register the caller points at
-    /// `address - imm` for a load or a store.
-    fn random_instruction(rng: &mut Rng) -> (u32, Option<(u32, i32, u32)>) {
-        let reg = |rng: &mut Rng| rng.below(32) as u32;
-        let (rd, rs1, rs2) = (reg(rng), reg(rng), reg(rng));
-        let imm = rng.below(4096) as i32 - 2048;
-        let word = match rng.below(10) {
-            0 | 1 => {
-                let (_, opcode, f3, f7) = R_OPS[rng.below(R_OPS.len() as u64) as usize];
-                r_type(opcode, f3, f7, rd, rs1, rs2)
-            }
-            2 => {
-                let (_, opcode, f3) = I_OPS[rng.below(I_OPS.len() as u64) as usize];
-                i_type(opcode, f3, rd, rs1, imm)
-            }
-            3 => {
-                let (_, opcode, f3, top, bits) = SHIFT_OPS[rng.below(SHIFT_OPS.len() as u64) as usize];
-                i_type(opcode, f3, rd, rs1, (top | rng.below(1 << bits) as u32) as i32)
-            }
-            4 => {
-                let f3 = LOAD_OPS[rng.below(LOAD_OPS.len() as u64) as usize].1;
-                let base = 1 + rng.below(31) as u32;
-                return (i_type(0x03, f3, rd, base, imm), Some((base, imm, f3 & 3)));
-            }
-            5 => {
-                let f3 = STORE_OPS[rng.below(STORE_OPS.len() as u64) as usize].1;
-                let base = 1 + rng.below(31) as u32;
-                return (s_type(0x23, f3, base, rs2, imm), Some((base, imm, f3)));
-            }
-            6 => b_type(
-                BRANCH_OPS[rng.below(6) as usize].1,
-                rs1,
-                rs2,
-                (rng.below(2048) as i32 - 1024) * 4,
-            ),
-            7 => j_type(rd, (rng.below(1 << 18) as i32 - (1 << 17)) * 4),
-            8 => i_type(0x67, 0, rd, rs1, imm),
-            _ => u_type(if rng.below(2) == 0 { 0x37 } else { 0x17 }, rd, rng.next() as u32),
-        };
-        (word, None)
-    }
-
-    #[test]
-    fn construction_checks_sizes_without_allocating_their_capacity() {
-        for (words, entry, image, ram, advice, error) in [
-            (0, TEXT_BASE, 0, 0, 0, ProgramError::EntryPoint),
-            (1, 0, 0, 0, 0, ProgramError::EntryPoint),
-            (1, TEXT_BASE + 2, 0, 0, 0, ProgramError::EntryPoint),
-            (1, TEXT_BASE + 4, 0, 0, 0, ProgramError::EntryPoint),
-            (1, u64::MAX, 0, 0, 0, ProgramError::EntryPoint),
-            (usize::MAX, TEXT_BASE, 0, 0, 0, ProgramError::TextTooLarge),
-            ((1 << MAX_LOG_TEXT) - 1, TEXT_BASE, 0, 0, 0, ProgramError::TextTooLarge),
-            (1, TEXT_BASE, 2, 0, 0, ProgramError::RamSize),
-            (1, TEXT_BASE, 0, usize::MAX, 0, ProgramError::RamSize),
-            (1, TEXT_BASE, 0, MAX_LOG_RAM + 1, 0, ProgramError::RamSize),
-            (1, TEXT_BASE, 0, 0, usize::MAX, ProgramError::AdviceSize),
-            (1, TEXT_BASE, 0, 0, MAX_LOG_ADVICE + 1, ProgramError::AdviceSize),
-        ] {
-            assert_eq!(Program::validate(words, entry, image, ram, advice), Err(error));
-        }
-        assert_eq!(
-            Program::validate(
-                (1 << MAX_LOG_TEXT) - 2,
-                TEXT_BASE,
-                1 << MAX_LOG_RAM,
-                MAX_LOG_RAM,
-                MAX_LOG_ADVICE
-            ),
-            Ok(())
-        );
-    }
-
-    #[test]
-    fn arbitrary_instruction_words_preserve_the_validated_shape() {
-        let mut rng = Rng(0x1234_5678_9abc_def0);
-        for len in 1..=16 {
-            for _ in 0..64 {
-                let text: Vec<u32> = (0..len).map(|_| rng.next() as u32).collect();
-                let entry = TEXT_BASE + 4 * rng.below(len as u64);
-                let program = Program::new(&text, entry, vec![rng.next()], 0, 0).unwrap();
-                assert_eq!(program.entry_pc(), entry);
-                assert!(program.entries().len().is_power_of_two());
-                assert!(program.entries().iter().all(Entry::is_well_formed));
-                assert_eq!(
-                    program.entries()[len..],
-                    vec![Entry::ILLEGAL; program.entries().len() - len]
-                );
-                for (i, &word) in text.iter().enumerate() {
-                    assert_eq!(program.entries()[i], decode(word, TEXT_BASE + 4 * i as u64));
-                }
-            }
-        }
-    }
-
-    /// One random instruction from one random state, through the decoder and the class
-    /// functions and through the specification: same registers, same `pc`, same RAM.
-    #[test]
-    fn every_instruction_matches_the_specification() {
-        let mut rng = Rng(0x9e37_79b9_7f4a_7c15);
-        for _ in 0..300_000 {
-            let (word, access) = random_instruction(&mut rng);
-            let program = Program::new(
-                &[word],
-                TEXT_BASE,
-                (0..1 << LOG_RAM).map(|_| rng.next()).collect(),
-                LOG_RAM,
-                0,
-            )
-            .expect("valid instruction program");
-            let mut m = Machine::new(&program, &[]);
-            for r in 1..32 {
-                m.regs[r] = rng.word();
-            }
-            if let Some((base, imm, log_width)) = access {
-                let address = RAM_BASE + (rng.below(RAM_BYTES - 8) & !((1 << log_width) - 1));
-                m.regs[base as usize] = address.wrapping_sub(imm as i64 as u64);
-            }
-            let mut x: [u64; 32] = m.regs[..32].try_into().unwrap();
-            let mut mem: Vec<u8> = m.ram().iter().flat_map(|w| w.to_le_bytes()).collect();
-            let mut pc = m.pc;
-            spec_step(word, &mut x, &mut pc, &mut mem);
-            m.step().unwrap_or_else(|trap| panic!("{word:#010x}: {trap}"));
-            assert_eq!(m.regs[..32], x, "{word:#010x}: registers");
-            assert_eq!(m.pc, pc, "{word:#010x}: pc");
-            let ram: Vec<u8> = m.ram().iter().flat_map(|w| w.to_le_bytes()).collect();
-            assert_eq!(ram, mem, "{word:#010x}: RAM");
-        }
-    }
-
+    /// Run `text` from its first word, for at most 2^20 steps.
     fn run(text: &[u32], image: Vec<u64>) -> Result<Option<[u64; 4]>, Trap> {
-        Machine::new(
-            &Program::new(text, TEXT_BASE, image, LOG_RAM, 0).expect("valid instruction program"),
-            &[],
-        )
-        .run_for(1 << 20)
+        let program = Program::new(text, TEXT_BASE, image, LOG_RAM, 0).expect("a valid program");
+        Machine::new(&program, &[]).run_for(1 << 20)
     }
 
-    #[test]
-    fn li_loads_any_constant() {
-        let mut rng = Rng(7);
-        for _ in 0..2000 {
-            let value = rng.word();
-            let text = Asm::new().li(A0, value).exit().finish();
-            assert_eq!(run(&text, vec![]), Ok(Some([value, 0, 0, 0])), "{value:#x}");
+    /// `text` built by `f`, then `exit`.
+    fn exiting(f: impl FnOnce(&mut Asm)) -> Vec<u32> {
+        let mut asm = Asm::new();
+        f(&mut asm);
+        asm.exit().finish()
+    }
+
+    proptest! {
+        #[test]
+        fn li_loads_any_constant(value in edge_word()) {
+            // The constant lands in a0, which the run outputs.
+            let text = Asm::new().li(Reg::A0, value).exit().finish();
+            prop_assert_eq!(run(&text, vec![]), Ok(Some([value, 0, 0, 0])));
         }
     }
 
-    /// A loop, a call and return through `jal`/`jalr`, a stack, and an in-place sort.
     #[test]
-    fn programs_run() {
-        // Fibonacci: a0 <- F(90), iteratively.
+    fn a_loop_computes_fibonacci() {
+        // a0 = F(90), iteratively, on registers.
         let text = Asm::new()
-            .li(A0, 0)
-            .li(A1, 1)
-            .li(T0, 90)
+            .li(Reg::A0, 0)
+            .li(Reg::A1, 1)
+            .li(Reg::T0, 90)
             .label("loop")
-            .r("add", A2, A0, A1)
-            .i("addi", A0, A1, 0)
-            .i("addi", A1, A2, 0)
-            .i("addi", T0, T0, -1)
-            .branch("bne", T0, ZERO, "loop")
-            .li(A1, 0)
-            .li(A2, 0)
+            .r(Add, Reg::A2, Reg::A0, Reg::A1)
+            .i(Addi, Reg::A0, Reg::A1, 0)
+            .i(Addi, Reg::A1, Reg::A2, 0)
+            .i(Addi, Reg::T0, Reg::T0, -1)
+            .branch(Bne, Reg::T0, Reg::ZERO, "loop")
+            .li(Reg::A1, 0)
+            .li(Reg::A2, 0)
             .exit()
             .finish();
         assert_eq!(run(&text, vec![]), Ok(Some([2_880_067_194_370_816_120, 0, 0, 0])));
-
-        // Bubble sort of eight words through a stack frame, then a0 <- the median pair's sum.
-        const DATA: u64 = RAM_BASE;
-        let data = [5u64, 3, 9, 1, 8, 2, 7, 4];
-        let text = Asm::new()
-            .li(SP, RAM_BASE + RAM_BYTES)
-            .li(A0, DATA)
-            .jal(RA, "sort")
-            .li(T0, DATA)
-            .load("ld", A0, 24, T0)
-            .load("ld", A1, 32, T0)
-            .r("add", A0, A0, A1)
-            .li(A1, 0)
-            .li(A2, 0)
-            .li(A3, 0)
-            .exit()
-            .label("sort")
-            .i("addi", SP, SP, -16)
-            .store("sd", RA, 8, SP)
-            .li(T2, 7)
-            .label("outer")
-            .i("addi", T0, A0, 0)
-            .i("addi", T1, T2, 0)
-            .label("inner")
-            .load("ld", A2, 0, T0)
-            .load("ld", A3, 8, T0)
-            .branch("bgeu", A3, A2, "ordered")
-            .store("sd", A3, 0, T0)
-            .store("sd", A2, 8, T0)
-            .label("ordered")
-            .i("addi", T0, T0, 8)
-            .i("addi", T1, T1, -1)
-            .branch("bne", T1, ZERO, "inner")
-            .i("addi", T2, T2, -1)
-            .branch("bne", T2, ZERO, "outer")
-            .load("ld", RA, 8, SP)
-            .i("addi", SP, SP, 16)
-            .jalr(ZERO, RA, 0)
-            .finish();
-        let program = Program::new(&text, TEXT_BASE, data.to_vec(), LOG_RAM, 0).expect("valid instruction program");
-        let mut m = Machine::new(&program, &[]);
-        assert_eq!(m.run(), Ok([4 + 5, 0, 0, 0]));
-        assert_eq!(m.ram()[..8], [1, 2, 3, 4, 5, 7, 8, 9]);
-        assert_eq!(m.regs()[0], 0, "x0");
     }
 
     #[test]
-    fn traps() {
-        let text = |f: &mut dyn FnMut(&mut Asm)| {
-            let mut a = Asm::new();
-            f(&mut a);
-            a.exit().finish()
-        };
+    fn a_call_sorts_through_a_stack_frame() {
+        // Fixture: eight words in RAM, bubble-sorted by a function with a stack frame.
+        //
+        //     before   [5, 3, 9, 1, 8, 2, 7, 4]
+        //     after    [1, 2, 3, 4, 5, 7, 8, 9]
+        //     a0       the median pair's sum, 4 + 5
+        let data = [5u64, 3, 9, 1, 8, 2, 7, 4];
+        let text = Asm::new()
+            .li(Reg::SP, RAM_BASE + RAM_BYTES)
+            .li(Reg::A0, RAM_BASE)
+            .jal(Reg::RA, "sort")
+            .li(Reg::T0, RAM_BASE)
+            .load(Ld, Reg::A0, 24, Reg::T0)
+            .load(Ld, Reg::A1, 32, Reg::T0)
+            .r(Add, Reg::A0, Reg::A0, Reg::A1)
+            .li(Reg::A1, 0)
+            .li(Reg::A2, 0)
+            .li(Reg::A3, 0)
+            .exit()
+            // sort(a0): seven passes, each swapping out-of-order neighbours.
+            .label("sort")
+            .i(Addi, Reg::SP, Reg::SP, -16)
+            .store(Sd, Reg::RA, 8, Reg::SP)
+            .li(Reg::T2, 7)
+            .label("outer")
+            .i(Addi, Reg::T0, Reg::A0, 0)
+            .i(Addi, Reg::T1, Reg::T2, 0)
+            .label("inner")
+            .load(Ld, Reg::A2, 0, Reg::T0)
+            .load(Ld, Reg::A3, 8, Reg::T0)
+            .branch(Bgeu, Reg::A3, Reg::A2, "ordered")
+            .store(Sd, Reg::A3, 0, Reg::T0)
+            .store(Sd, Reg::A2, 8, Reg::T0)
+            .label("ordered")
+            .i(Addi, Reg::T0, Reg::T0, 8)
+            .i(Addi, Reg::T1, Reg::T1, -1)
+            .branch(Bne, Reg::T1, Reg::ZERO, "inner")
+            .i(Addi, Reg::T2, Reg::T2, -1)
+            .branch(Bne, Reg::T2, Reg::ZERO, "outer")
+            .load(Ld, Reg::RA, 8, Reg::SP)
+            .i(Addi, Reg::SP, Reg::SP, 16)
+            .jalr(Reg::ZERO, Reg::RA, 0)
+            .finish();
+        let program = Program::new(&text, TEXT_BASE, data.to_vec(), LOG_RAM, 0).expect("a valid program");
+        let mut m = Machine::new(&program, &[]);
+
+        assert_eq!(m.run(), Ok([4 + 5, 0, 0, 0]));
+        assert_eq!(m.memory().ram()[..8], [1, 2, 3, 4, 5, 7, 8, 9]);
+        assert_eq!(m.registers().get(Reg::ZERO), 0);
+    }
+
+    #[test]
+    fn a_hash_compresses_its_block_in_place() {
+        // Fixture: a block at RAM's base, h = 1..4 and m = 9..16, a final compression.
+        let block: [u64; Hash::WORDS] = std::array::from_fn(|k| if (4..8).contains(&k) { 0 } else { k as u64 + 1 });
+        let text = exiting(|a| {
+            a.li(Reg::T0, RAM_BASE).li(Reg::T1, 64).blake2s(Reg::T0, Reg::T1, true);
+        });
+        let program = Program::new(&text, TEXT_BASE, block.to_vec(), LOG_RAM, 0).unwrap();
+        let mut m = Machine::new(&program, &[]);
+        m.run().unwrap();
+
+        // Only the result words changed, to the reference compression.
+        let expected = Hash(Hash::FINAL).compress(&block, 64);
+        let ram = m.memory().ram();
+        assert_eq!(ram[4..8], expected);
+        assert_eq!(ram[..4], block[..4]);
+        assert_eq!(ram[8..16], block[8..16]);
+    }
+
+    #[test]
+    fn faults_trap_and_leave_no_trace() {
+        // The fixture's faulting instruction is always the second.
         let pc = TEXT_BASE + 4;
-        // A misaligned load, one outside RAM, one reaching for the text.
-        let t = text(&mut |a| {
-            a.li(T0, RAM_BASE).load("lw", A0, 2, T0);
+
+        // A misaligned load, one below RAM, a store reaching into the text.
+        let misaligned = exiting(|a| {
+            a.li(Reg::T0, RAM_BASE).load(Lw, Reg::A0, 2, Reg::T0);
+        });
+        let below = exiting(|a| {
+            a.li(Reg::T0, RAM_BASE).load(Ld, Reg::A0, -8, Reg::T0);
+        });
+        let into_text = exiting(|a| {
+            a.li(Reg::T0, TEXT_BASE).store(Sd, Reg::A0, 0, Reg::T0);
         });
         assert_eq!(
-            run(&t, vec![]),
+            run(&misaligned, vec![]),
             Err(Trap::Misaligned {
                 pc,
                 address: RAM_BASE + 2
             })
         );
-        let t = text(&mut |a| {
-            a.li(T0, RAM_BASE).load("ld", A0, -8, T0);
-        });
         assert_eq!(
-            run(&t, vec![]),
+            run(&below, vec![]),
             Err(Trap::Unmapped {
                 pc,
                 address: RAM_BASE - 8
             })
         );
-        let t = text(&mut |a| {
-            a.li(T0, TEXT_BASE).store("sd", A0, 0, T0);
+        assert_eq!(run(&into_text, vec![]), Err(Trap::Unmapped { pc, address: TEXT_BASE }));
+
+        // A hash block at no word address, and one below RAM.
+        let unaligned_block = exiting(|a| {
+            a.li(Reg::T0, RAM_BASE + 4).blake2s(Reg::T0, Reg::ZERO, false);
         });
-        assert_eq!(run(&t, vec![]), Err(Trap::Unmapped { pc, address: TEXT_BASE }));
-        // Falling off the text, a jump into the middle of an instruction, EBREAK.
-        assert_eq!(run(&[0x13], vec![]), Err(Trap::Illegal { pc }));
+        let below_block = exiting(|a| {
+            a.li(Reg::T0, RAM_BASE - 128).blake2s(Reg::T0, Reg::ZERO, false);
+        });
+        // Both bases take two instructions to form, so the hash is the third.
+        let pc = TEXT_BASE + 8;
         assert_eq!(
-            run(&[asm::i_type(0x67, 0, 0, 0, 0), 0x13], vec![]),
-            Err(Trap::Illegal { pc: 0 })
+            run(&unaligned_block, vec![]),
+            Err(Trap::Misaligned {
+                pc,
+                address: RAM_BASE + 4
+            })
         );
+        assert_eq!(
+            run(&below_block, vec![]),
+            Err(Trap::Unmapped {
+                pc,
+                address: RAM_BASE - 128
+            })
+        );
+
+        // Falling off the text, a jump to address zero, EBREAK.
+        let pc = TEXT_BASE + 4;
+        let jump_to_zero = [Instruction::i(Opcode::Jalr, 0, Reg::ZERO, Reg::ZERO, 0).bits(), 0x13];
+        assert_eq!(run(&[0x13], vec![]), Err(Trap::Illegal { pc }));
+        assert_eq!(run(&jump_to_zero, vec![]), Err(Trap::Illegal { pc: 0 }));
         assert_eq!(run(&[0x0010_0073], vec![]), Err(Trap::Illegal { pc: TEXT_BASE }));
-        // An ecall that is not exit, and a loop that never ends.
-        assert_eq!(run(&[ECALL], vec![]), Err(Trap::NotAnExit { syscall: 0 }));
-        assert_eq!(run(&[asm::j_type(0, 0)], vec![]), Ok(None));
+
+        // An ecall that is not exit.
+        assert_eq!(
+            run(&[Instruction::ECALL.bits()], vec![]),
+            Err(Trap::NotAnExit { syscall: 0 })
+        );
+    }
+
+    #[test]
+    fn a_trapping_hash_writes_nothing() {
+        // Fixture: RAM of 8 words, all 7, and a block at its base.
+        //
+        //     words 0..8    in RAM, the result words 4..8 among them
+        //     words 8..16   past RAM
+        let text = Asm::new().blake2s(Reg::T0, Reg::ZERO, false).finish();
+        let program = Program::new(&text, TEXT_BASE, vec![7; 8], 3, 0).unwrap();
+        let mut m = Machine::new(&program, &[]);
+        m.registers.set(Reg::T0, RAM_BASE);
+
+        // The step traps on the block's ninth word, before writing the result.
+        assert_eq!(
+            m.step(),
+            Err(Trap::Unmapped {
+                pc: TEXT_BASE,
+                address: RAM_BASE + 64
+            })
+        );
+
+        // The machine is as it was: same pc, RAM untouched.
+        assert_eq!(m.pc(), TEXT_BASE);
+        assert_eq!(m.memory().ram(), [7; 8]);
+    }
+
+    #[test]
+    fn a_run_out_of_steps_stops_where_it_is() {
+        // A jump to itself never halts.
+        let spin = [Instruction::j(Reg::ZERO, 0).bits()];
+        assert_eq!(run(&spin, vec![]), Ok(None));
+    }
+
+    /// The memory layout and address map.
+    mod memory {
+        use super::super::*;
+        use crate::rv::Program;
+        use crate::rv::{ADVICE_BASE, RAM_BASE, TEXT_BASE};
+        use proptest::prelude::*;
+
+        proptest! {
+            #[test]
+            fn cell_maps_exactly_the_two_regions(address in prop_oneof![
+                any::<u64>(),
+                RAM_BASE - 16..RAM_BASE + 80,
+                ADVICE_BASE - 16..ADVICE_BASE + 48,
+            ]) {
+                // Fixture: 8 cells of RAM, then 4 of advice.
+                let program = Program::new(&[0x13], TEXT_BASE, vec![], 3, 2).unwrap();
+                let memory = Memory::new(&program, &[]);
+
+                // Each byte of a region maps to its cell; no other address maps at all.
+                let expected = if (RAM_BASE..RAM_BASE + 64).contains(&address) {
+                    Some(((address - RAM_BASE) / 8) as usize)
+                } else if (ADVICE_BASE..ADVICE_BASE + 32).contains(&address) {
+                    Some(8 + ((address - ADVICE_BASE) / 8) as usize)
+                } else {
+                    None
+                };
+                prop_assert_eq!(memory.cell(address), expected);
+            }
+        }
+
+        #[test]
+        fn new_lays_out_the_image_and_the_advice() {
+            // Fixture: a 2-word image in 4 cells of RAM, 1 word of advice in 2 cells.
+            let program = Program::new(&[0x13], TEXT_BASE, vec![7, 8], 2, 1).unwrap();
+            let memory = Memory::new(&program, &[9]);
+
+            // Each region is its initial words, then zeros.
+            assert_eq!(memory.ram(), [7, 8, 0, 0]);
+            assert_eq!(memory.advice(), [9, 0]);
+        }
+    }
+
+    /// RISC-V straight from the specification, on registers and bytes.
+    ///
+    /// It shares no code with the decoder, the semantics or the word-addressed memory.
+    ///
+    /// The interpreter must agree with it on every instruction.
+    mod spec {
+        use super::super::Machine;
+        use crate::rv::asm::*;
+        use crate::rv::semantics::tests::edge_word;
+        use crate::rv::{Program, RAM_BASE, TEXT_BASE};
+        use proptest::prelude::*;
+        use proptest::sample::select;
+
+        /// The fixture's RAM: 2^8 words.
+        const LOG_RAM: usize = 8;
+
+        /// The fixture's RAM in bytes.
+        const RAM_BYTES: u64 = 8 << LOG_RAM;
+
+        /// One step of the specification: update `x`, `pc` and `mem` for the instruction `word`.
+        ///
+        /// `mem` is RAM as bytes, from its base.
+        fn spec_step(word: u32, x: &mut [u64; 32], pc: &mut u64, mem: &mut [u8]) {
+            // The fields, read straight off the word.
+            let (opcode, rd, f3) = (word & 0x7f, (word >> 7 & 31) as usize, word >> 12 & 7);
+            let (rs1, rs2, f7) = ((word >> 15 & 31) as usize, (word >> 20 & 31) as usize, word >> 25);
+            let (a, b) = (x[rs1], x[rs2]);
+            let imm_i = (word as i32 >> 20) as i64 as u64;
+            let at = |address: u64| (address - RAM_BASE) as usize;
+            let w = |v: u64| v as i32 as i64 as u64;
+
+            // Each opcode sets the result, the next pc, or memory.
+            let mut next = pc.wrapping_add(4);
+            let mut result = None;
+            match opcode {
+                // LUI and AUIPC.
+                0x37 => result = Some((word & 0xffff_f000) as i32 as i64 as u64),
+                0x17 => result = Some(pc.wrapping_add((word & 0xffff_f000) as i32 as i64 as u64)),
+
+                // JAL: link, and jump by the 21-bit offset.
+                0x6f => {
+                    let o = ((word >> 31) << 20)
+                        | ((word >> 12 & 0xff) << 12)
+                        | ((word >> 20 & 1) << 11)
+                        | ((word >> 21 & 0x3ff) << 1);
+                    result = Some(next);
+                    next = pc.wrapping_add(((o << 11) as i32 >> 11) as i64 as u64);
+                }
+
+                // JALR: link, and jump to rs1 + imm with bit 0 cleared.
+                0x67 => {
+                    result = Some(next);
+                    next = a.wrapping_add(imm_i) & !1;
+                }
+
+                // Branches, by the 13-bit offset.
+                0x63 => {
+                    let o = ((word >> 31) << 12)
+                        | ((word >> 7 & 1) << 11)
+                        | ((word >> 25 & 0x3f) << 5)
+                        | ((word >> 8 & 0xf) << 1);
+                    let taken = match f3 {
+                        0 => a == b,
+                        1 => a != b,
+                        4 => (a as i64) < (b as i64),
+                        5 => (a as i64) >= (b as i64),
+                        6 => a < b,
+                        _ => a >= b,
+                    };
+                    if taken {
+                        next = pc.wrapping_add(((o << 19) as i32 >> 19) as i64 as u64);
+                    }
+                }
+
+                // Loads: little-endian bytes, extended.
+                0x03 => {
+                    let p = at(a.wrapping_add(imm_i));
+                    let bytes = |n: usize| {
+                        let mut le = [0u8; 8];
+                        le[..n].copy_from_slice(&mem[p..p + n]);
+                        u64::from_le_bytes(le)
+                    };
+                    result = Some(match f3 {
+                        0 => bytes(1) as i8 as i64 as u64,
+                        1 => bytes(2) as i16 as i64 as u64,
+                        2 => bytes(4) as i32 as i64 as u64,
+                        3 => bytes(8),
+                        4 => bytes(1),
+                        5 => bytes(2),
+                        _ => bytes(4),
+                    });
+                }
+
+                // Stores: the low 2^f3 bytes.
+                0x23 => {
+                    let imm = (((f7 << 5) | rd as u32) << 20) as i32 >> 20;
+                    let p = at(a.wrapping_add(imm as i64 as u64));
+                    let n = 1 << f3;
+                    mem[p..p + n].copy_from_slice(&b.to_le_bytes()[..n]);
+                }
+
+                // Integer arithmetic: 64- or 32-bit, register or immediate, base or M.
+                0x13 | 0x1b | 0x33 | 0x3b => {
+                    let word32 = opcode & 8 != 0;
+                    let immediate = opcode & 0x20 == 0;
+                    let b = if immediate { imm_i } else { b };
+                    let m_ext = !immediate && f7 == 1;
+                    let alt = if immediate {
+                        f3 == 5 && word >> 30 & 1 == 1
+                    } else {
+                        f7 == 0x20
+                    };
+                    let sh = (b & if word32 { 31 } else { 63 }) as u32;
+                    let r = if m_ext && !word32 {
+                        match f3 {
+                            0 => a.wrapping_mul(b),
+                            1 => ((a as i64 as i128 * b as i64 as i128) >> 64) as u64,
+                            2 => ((a as i64 as i128 * b as i128) >> 64) as u64,
+                            3 => ((a as u128 * b as u128) >> 64) as u64,
+                            4 if b == 0 => u64::MAX,
+                            4 => (a as i64).wrapping_div(b as i64) as u64,
+                            5 if b == 0 => u64::MAX,
+                            5 => a / b,
+                            6 if b == 0 => a,
+                            6 => (a as i64).wrapping_rem(b as i64) as u64,
+                            _ if b == 0 => a,
+                            _ => a % b,
+                        }
+                    } else if m_ext {
+                        let (a, b) = (a as i32, b as i32);
+                        let (ua, ub) = (a as u32, b as u32);
+                        w(match f3 {
+                            0 => a.wrapping_mul(b) as u64,
+                            4 if b == 0 => u64::MAX,
+                            4 => a.wrapping_div(b) as u64,
+                            5 if b == 0 => u64::MAX,
+                            5 => (ua / ub) as u64,
+                            6 if b == 0 => a as u64,
+                            6 => a.wrapping_rem(b) as u64,
+                            _ if b == 0 => ua as u64,
+                            _ => (ua % ub) as u64,
+                        })
+                    } else if word32 {
+                        let a = a as u32;
+                        w(match f3 {
+                            0 if alt && !immediate => a.wrapping_sub(b as u32) as u64,
+                            0 => a.wrapping_add(b as u32) as u64,
+                            1 => (a << sh) as u64,
+                            _ if alt => (a as i32 >> sh) as u64,
+                            _ => (a >> sh) as u64,
+                        })
+                    } else {
+                        match f3 {
+                            0 if alt && !immediate => a.wrapping_sub(b),
+                            0 => a.wrapping_add(b),
+                            1 => a << sh,
+                            2 => ((a as i64) < (b as i64)) as u64,
+                            3 => (a < b) as u64,
+                            4 => a ^ b,
+                            5 if alt => (a as i64 >> sh) as u64,
+                            5 => a >> sh,
+                            6 => a | b,
+                            _ => a & b,
+                        }
+                    };
+                    result = Some(r);
+                }
+                _ => unreachable!("the generator made {word:#010x}"),
+            }
+
+            // Write back, except to x0.
+            if let Some(r) = result
+                && rd != 0
+            {
+                x[rd] = r;
+            }
+            *pc = next;
+        }
+
+        /// A memory access the test must aim at RAM: the base register, the offset, the log of the width.
+        type Access = (Reg, i32, u32);
+
+        /// A random legal instruction, and the access it makes, if any.
+        ///
+        /// Register-register operations are drawn twice as often as each other kind.
+        fn instruction() -> impl Strategy<Value = (u32, Option<Access>)> {
+            // A memory base is never x0, so the test can point it anywhere.
+            let base = (1u8..32).prop_map(|i| Reg::new(i).expect("below 32"));
+            let imm = -2048i32..2048;
+            prop_oneof![
+                2 => (select(&RegOp::ALL[..]), any::<Reg>(), any::<Reg>(), any::<Reg>()).prop_map(|(op, rd, rs1, rs2)| (op.encode(rd, rs1, rs2).bits(), None)),
+                1 => (select(&ImmOp::ALL[..]), any::<Reg>(), any::<Reg>(), imm.clone()).prop_map(|(op, rd, rs1, imm)| (op.encode(rd, rs1, imm).bits(), None)),
+                1 => (select(&ShiftOp::ALL[..]), any::<Reg>(), any::<Reg>(), any::<u32>()).prop_map(|(op, rd, rs1, amount)| (op.encode(rd, rs1, amount).bits(), None)),
+                1 => (select(&LoadOp::ALL[..]), any::<Reg>(), base.clone(), imm.clone())
+                    .prop_map(|(op, rd, base, imm)| (op.encode(rd, base, imm).bits(), Some((base, imm, op.log_width())))),
+                1 => (select(&StoreOp::ALL[..]), any::<Reg>(), base, imm.clone())
+                    .prop_map(|(op, rs2, base, imm)| (op.encode(rs2, base, imm).bits(), Some((base, imm, op.log_width())))),
+                1 => (select(&BranchOp::ALL[..]), any::<Reg>(), any::<Reg>(), -1024i32..1024).prop_map(|(op, rs1, rs2, k)| (op.encode(rs1, rs2, 4 * k).bits(), None)),
+                1 => (any::<Reg>(), -(1i32 << 17)..1 << 17).prop_map(|(rd, k)| (Instruction::j(rd, 4 * k).bits(), None)),
+                1 => (any::<Reg>(), any::<Reg>(), imm).prop_map(|(rd, rs1, imm)| (Instruction::i(Opcode::Jalr, 0, rd, rs1, imm).bits(), None)),
+                1 => (select(&[Opcode::Lui, Opcode::Auipc][..]), any::<Reg>(), any::<u32>()).prop_map(|(op, rd, imm)| (Instruction::u(op, rd, imm).bits(), None)),
+            ]
+        }
+
+        proptest! {
+            #![proptest_config(ProptestConfig::with_cases(20_000))]
+
+            #[test]
+            fn every_instruction_matches_the_specification(
+                (word, access) in instruction(),
+                regs in proptest::array::uniform31(edge_word()),
+                image in proptest::collection::vec(any::<u64>(), 1 << LOG_RAM),
+                slot in 0u64..RAM_BYTES - 8,
+            ) {
+                // Fixture: one instruction, a random RAM image and random registers.
+                let program = Program::new(&[word], TEXT_BASE, image, LOG_RAM, 0).expect("a legal instruction");
+                let mut m = Machine::new(&program, &[]);
+                for (r, &value) in (1..32).filter_map(Reg::new).zip(&regs) {
+                    m.registers.set(r, value);
+                }
+
+                // Aim a memory access at an aligned address in RAM.
+                if let Some((base, imm, log_width)) = access {
+                    let address = RAM_BASE + (slot & !((1 << log_width) - 1));
+                    m.registers.set(base, address.wrapping_sub(imm as i64 as u64));
+                }
+
+                // The specification's state, from the same start.
+                let mut x: [u64; 32] = m.registers().cells()[..32].try_into().unwrap();
+                let mut mem: Vec<u8> = m.memory().ram().iter().flat_map(|w| w.to_le_bytes()).collect();
+                let mut pc = m.pc;
+
+                // One step each: same registers, same pc, same RAM.
+                spec_step(word, &mut x, &mut pc, &mut mem);
+                m.step().unwrap_or_else(|trap| panic!("{word:#010x}: {trap}"));
+                prop_assert_eq!(m.registers().cells()[..32].to_vec(), x.to_vec(), "{:#010x}: registers", word);
+                prop_assert_eq!(m.pc, pc, "{:#010x}: pc", word);
+                let ram: Vec<u8> = m.memory().ram().iter().flat_map(|w| w.to_le_bytes()).collect();
+                prop_assert_eq!(ram, mem, "{:#010x}: RAM", word);
+            }
+        }
     }
 }

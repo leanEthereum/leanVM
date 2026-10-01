@@ -15,7 +15,7 @@
 
 use crate::cpu::{HashRow, Row, Trace};
 use crate::leaf::Coord::{self, Col, Const, Prod};
-use crate::rv::{self, Class, SINK, hash};
+use crate::rv::{self, Class, Hash, RegisterFile};
 use flock::circuit::{Builder, Circuit};
 use primitives::field::{F64, mul_by_g};
 
@@ -384,7 +384,6 @@ pub struct ClassSpec {
     /// A row that skips either reads its register number off the entry as a constant.
     pub writes_rd: bool,
     pub ram: Ram,
-    pub circuit: fn() -> Circuit,
     /// One instance's witness by word arithmetic, when the class has it.
     ///
     /// It writes what the walk of the circuit's gate list would, which a test pins.
@@ -417,7 +416,7 @@ impl ClassSpec {
         match self.ram {
             Ram::None => 0..0,
             Ram::Read | Ram::Write => RAM_SLOT..RAM_SLOT + 1,
-            Ram::Block => block_slot(0)..block_slot(hash::WORDS),
+            Ram::Block => block_slot(0)..block_slot(Hash::WORDS),
         }
     }
 
@@ -447,7 +446,6 @@ pub static ALU: ClassSpec = ClassSpec {
     reads_rs2: true,
     writes_rd: true,
     ram: Ram::None,
-    circuit: rv::circuits::alu,
     witness: None,
     k_log: 10,
     ports: &[Word::V1, Word::V2, Word::Imm, Word::Flags, Word::Out, Word::Taken],
@@ -461,7 +459,6 @@ pub static LOAD: ClassSpec = ClassSpec {
     reads_rs2: false,
     writes_rd: true,
     ram: Ram::Read,
-    circuit: rv::circuits::load,
     witness: None,
     k_log: 10,
     ports: &[
@@ -482,7 +479,6 @@ pub static STORE: ClassSpec = ClassSpec {
     reads_rs2: true,
     writes_rd: false,
     ram: Ram::Write,
-    circuit: rv::circuits::store,
     witness: None,
     k_log: 10,
     ports: &[
@@ -505,7 +501,6 @@ pub static SHIFT: ClassSpec = ClassSpec {
     reads_rs2: true,
     writes_rd: true,
     ram: Ram::None,
-    circuit: rv::circuits::shift,
     witness: None,
     k_log: 10,
     ports: &[Word::V1, Word::V2, Word::Imm, Word::Flags, Word::Out],
@@ -519,7 +514,6 @@ pub static MUL: ClassSpec = ClassSpec {
     reads_rs2: true,
     writes_rd: true,
     ram: Ram::None,
-    circuit: rv::circuits::mul,
     witness: None,
     k_log: 12,
     ports: &[Word::V1, Word::V2, Word::Flags, Word::Out],
@@ -533,7 +527,6 @@ pub static MULH: ClassSpec = ClassSpec {
     reads_rs2: true,
     writes_rd: true,
     ram: Ram::None,
-    circuit: rv::circuits::mulh,
     witness: None,
     k_log: 13,
     ports: &[Word::V1, Word::V2, Word::Flags, Word::Out],
@@ -548,7 +541,6 @@ pub static DIV: ClassSpec = ClassSpec {
     reads_rs2: true,
     writes_rd: true,
     ram: Ram::None,
-    circuit: rv::circuits::div,
     witness: None,
     k_log: 13,
     ports: &[
@@ -564,7 +556,7 @@ pub static DIV: ClassSpec = ClassSpec {
     clock_k_log: 9,
 };
 
-/// The BLAKE2s precompile ([`hash`]): the counter is `v2`, the finalization word the
+/// The BLAKE2s precompile ([`Hash`](struct@Hash)): the counter is `v2`, the finalization word the
 /// flags, and the block's words are the row's cells, the result's four rewritten.
 pub static HASH: ClassSpec = ClassSpec {
     class: Class::Hash,
@@ -573,7 +565,6 @@ pub static HASH: ClassSpec = ClassSpec {
     reads_rs2: true,
     writes_rd: false,
     ram: Ram::Block,
-    circuit: rv::circuits::blake2s,
     witness: Some(rv::circuits::blake2s_witness),
     k_log: 14,
     ports: &[
@@ -668,7 +659,7 @@ struct BlockCols {
 impl BlockCols {
     /// What the row leaves in word `k` of its block.
     fn left(&self, k: usize) -> usize {
-        match k.wrapping_sub(hash::OUT as usize / 8) {
+        match k.wrapping_sub(Hash::OUT as usize / 8) {
             j if j < 4 => self.out + j,
             _ => self.words + k,
         }
@@ -733,7 +724,7 @@ impl Cols {
                 (Some(RamCols { address, cell, new }), None)
             }
             Ram::Block => {
-                let words = take(hash::WORDS);
+                let words = take(Hash::WORDS);
                 (None, Some(BlockCols { words, out: take(4) }))
             }
         };
@@ -881,7 +872,7 @@ impl ClassTable {
             Col(c.flags),
             Col(c.a1),
             c.rs2.map_or(Const(F64::ZERO), |r| Col(r.a2)),
-            c.rd.map_or(Const(F64(SINK as u64)), |rd| Col(rd.ad)),
+            c.rd.map_or(Const(F64(RegisterFile::SINK as u64)), |rd| Col(rd.ad)),
             c.imm.map_or(Const(F64::ZERO), Col),
             Col(c.pc4),
         ];
@@ -913,7 +904,7 @@ impl ClassTable {
         }
         // The hash's block: word `k` at `v1 ^ 8k`, which is `v1 + 8k` in the field.
         if let Some(block) = c.block {
-            for k in 0..hash::WORDS {
+            for k in 0..Hash::WORDS {
                 let addr = Coord::Sum(vec![Col(c.v1), Const(F64(8 * k as u64))]);
                 access(&mut f, SEP_MEM, addr, Col(block.words + k), Col(block.left(k)));
             }
@@ -928,7 +919,7 @@ impl ClassTable {
         let c = &self.cols;
         let rows: &[Row] = &ctx.trace.rows[self.index];
         let p = ctx.program;
-        let entry = move |r: &Row| &p.entries[r.index as usize];
+        let entry = move |r: &Row| &p.entries()[r.index as usize];
         ctx.cols(out, rows, c.pc, move |r| {
             let (e, pc) = (entry(r), p.pc_of(r.index as usize));
             [
@@ -958,7 +949,7 @@ impl ClassTable {
                     F64(e.link as u64),
                     F64(e.jalr as u64),
                     F64(r.taken as u64),
-                    F64((e.target == rv::Target::Halt) as u64),
+                    F64((e.is_exit()) as u64),
                 ]
             });
         }

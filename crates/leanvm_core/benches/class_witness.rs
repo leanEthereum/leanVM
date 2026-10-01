@@ -22,7 +22,7 @@ fn main() {
         .iter()
         .filter(|spec| spec.witness.is_none())
     {
-        let circuit = (spec.circuit)();
+        let circuit = spec.class.circuit();
 
         // Random input words: the walk costs the same on any input.
         let mut rng = Rng::new(0xC1A55);

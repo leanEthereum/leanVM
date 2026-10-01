@@ -12,15 +12,15 @@ use primitives::field::F64;
 /// - The block's words as found, and the four the compression writes.
 /// - The previous timestamp of every access, the registers' first.
 pub(crate) struct HashRow {
-    pub(crate) block: [u64; crate::rv::hash::WORDS],
+    pub(crate) block: [u64; crate::rv::Hash::WORDS],
     pub(crate) out: [u64; 4],
-    pub(crate) prev: [u64; 2 + crate::rv::hash::WORDS],
+    pub(crate) prev: [u64; 2 + crate::rv::Hash::WORDS],
 }
 
 impl HashRow {
     /// Word `k` of the block after the row.
     pub(crate) fn word_after(&self, k: usize) -> u64 {
-        match k.wrapping_sub(crate::rv::hash::OUT as usize / 8) {
+        match k.wrapping_sub(crate::rv::Hash::OUT as usize / 8) {
             j if j < 4 => self.out[j],
             _ => self.block[k],
         }
@@ -41,7 +41,7 @@ pub(crate) struct Row {
     pub(crate) vd_old: u64,
     /// The RAM cell a load or a store accessed: its bus address, what it held and
     /// what it holds. Zeros for another class.
-    pub(crate) ram: crate::rv::machine::RamAccess,
+    pub(crate) ram: crate::rv::WordAccess,
     /// The timestamps the register accesses the class makes, then its RAM access, pull.
     /// A hash row keeps them in `hash` instead.
     pub(crate) prev: [u64; 4],

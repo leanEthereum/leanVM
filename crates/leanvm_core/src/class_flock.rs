@@ -71,7 +71,7 @@ pub fn circuit(f: usize) -> &'static Circuit {
         let (t, part) = flock(f);
         let spec = CLASSES[t];
         let (circuit, n_inputs) = match part {
-            Part::Class => ((spec.circuit)(), spec.n_inputs),
+            Part::Class => (spec.class.circuit(), spec.n_inputs),
             Part::Clock => (crate::tables::clock_circuit(&spec.slots()), 1 + spec.n_accesses()),
         };
         assert_eq!(
@@ -122,8 +122,8 @@ fn word_of(word: Word, slots: &[u32], row: &Row, entry: &Entry) -> u64 {
         Word::Cell(k) => row.hash.as_ref().map_or(row.ram.old, |h| h.block[k as usize]),
         Word::CellNew(k) => row.hash.as_ref().map_or(row.ram.new, |h| h.word_after(k as usize)),
         Word::Bad => 0,
-        Word::HintQ => crate::rv::semantics::div_hints(row.v1, row.v2, entry.flags).0,
-        Word::HintR => crate::rv::semantics::div_hints(row.v1, row.v2, entry.flags).1,
+        Word::HintQ => crate::rv::Div(entry.flags).hints(row.v1, row.v2).0,
+        Word::HintR => crate::rv::Div(entry.flags).hints(row.v1, row.v2).1,
     }
 }
 

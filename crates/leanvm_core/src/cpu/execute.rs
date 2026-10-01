@@ -2,7 +2,8 @@
 //! for every access, what the memory argument needs ([`Trace`]).
 
 use super::*;
-use crate::rv::{self, ADVICE_BASE, Class, LOG_REGS, Machine, RAM_BASE, Trap, hash, machine::compute};
+use crate::rv::machine::MemoryAccess;
+use crate::rv::{BlockAccess, Class, Hash, Machine, RegisterFile, WordAccess};
 use crate::tables::{CLASSES, CLOCK_START, CYCLE, MAX_CYCLES, RAM_SLOT, REG_SLOTS, SEED_CLOCK, block_slot};
 use primitives::field::F64;
 
@@ -49,22 +50,15 @@ impl Program {
     /// traps, or outruns the clock, has no proof.
     pub fn execute(&self, advice: &[u64]) -> Result<Execution, ProveError> {
         let p = &self.rv;
-        let max = 1 << p.log_advice;
+        let max = 1 << p.log_advice();
         if advice.len() > max {
             return Err(ProveError::AdviceTooLong { max, got: advice.len() });
         }
         let mut m = Machine::new(p, advice);
-        let adv_init: Vec<F64> = m.advice().iter().map(|&w| F64(w)).collect();
-        let mut regs = Cells::new(1 << LOG_REGS);
+        let adv_init: Vec<F64> = m.memory().advice().iter().map(|&w| F64(w)).collect();
+        let mut regs = Cells::new(RegisterFile::CELLS);
         // RAM's cells, then the advice's, as the machine numbers them.
-        let mut ram = Cells::new((1 << p.log_ram) + (1 << p.log_advice));
-        let cell_of = |address: u64| -> usize {
-            if address >= RAM_BASE {
-                ((address - RAM_BASE) / 8) as usize
-            } else {
-                (1 << p.log_ram) + ((address - ADVICE_BASE) / 8) as usize
-            }
-        };
+        let mut ram = Cells::new((1 << p.log_ram()) + (1 << p.log_advice()));
         let mut rows: [Vec<Row>; crate::tables::N_TABLES] = std::array::from_fn(|_| Vec::new());
 
         // The clock starts on cycle 1, so that the first access comes strictly after the seeds.
@@ -75,7 +69,7 @@ impl Program {
                 return Err(ProveError::TooLong);
             }
             let step = m.step()?;
-            let e = &p.entries[step.index];
+            let e = &p.entries()[step.index];
             let table = crate::tables::table_of(e.class).expect("every class that runs has a table");
             let spec = CLASSES[table];
             // The register accesses the class makes, then the RAM access if it has one.
@@ -90,23 +84,30 @@ impl Program {
                     n += 1;
                 }
             }
-            if let Some(access) = step.ram {
-                prev[n] = ram.access(cell_of(access.address), ts | u64::from(RAM_SLOT));
-            }
-            // A hash row's block, word `k` at `v1 ^ 8k`, after its register reads.
-            let hash = step.hash.map(|h| {
-                let mut all = [0; 2 + hash::WORDS];
-                all[..n].copy_from_slice(&prev[..n]);
-                for k in 0..hash::WORDS {
-                    let cell = cell_of(step.v1 ^ (8 * k as u64));
-                    all[n + k] = ram.access(cell, ts | u64::from(block_slot(k)));
+            // The machine made every access it reports, so each address names a cell.
+            let cell_of = |address: u64| m.memory().cell(address).expect("an access the machine made");
+            let (mut word, mut hash) = (WordAccess::default(), None);
+            match step.memory {
+                MemoryAccess::None => {}
+                MemoryAccess::Word(access) => {
+                    prev[n] = ram.access(cell_of(access.address), ts | u64::from(RAM_SLOT));
+                    word = access;
                 }
-                Box::new(HashRow {
-                    block: h.block,
-                    out: h.out,
-                    prev: all,
-                })
-            });
+                // A hash row's block, word `k` at `v1 ^ 8k`, after its register reads.
+                MemoryAccess::Block(h) => {
+                    let mut all = [0; 2 + Hash::WORDS];
+                    all[..n].copy_from_slice(&prev[..n]);
+                    for k in 0..Hash::WORDS {
+                        let cell = cell_of(step.v1 ^ (8 * k as u64));
+                        all[n + k] = ram.access(cell, ts | u64::from(block_slot(k)));
+                    }
+                    hash = Some(Box::new(HashRow {
+                        block: h.block,
+                        out: h.out,
+                        prev: all,
+                    }));
+                }
+            }
             rows[table].push(Row {
                 index: step.index as u32,
                 ts,
@@ -115,17 +116,13 @@ impl Program {
                 out: step.out,
                 taken: step.taken,
                 vd_old: step.vd_old,
-                ram: step.ram.unwrap_or_default(),
+                ram: word,
                 prev,
                 hash,
             });
             ts += CYCLE;
         }
-        let syscall = m.regs()[rv::SYSCALL_REG as usize];
-        if syscall != rv::SYS_EXIT {
-            return Err(Trap::NotAnExit { syscall }.into());
-        }
-        let output = rv::OUTPUT_REGS.map(|r| m.regs()[r as usize]);
+        let output = m.output()?;
         let base_counts: [usize; crate::tables::N_TABLES] = std::array::from_fn(|t| rows[t].len());
 
         // The padding rows, written out rather than executed: they sit at clock zero
@@ -139,16 +136,16 @@ impl Program {
         for (first, size, traversals) in super::filler::cycles(&self.filler, base_counts) {
             for _ in 0..traversals {
                 for index in first..=first + size {
-                    let e = &p.entries[index];
+                    let e = &p.entries()[index];
                     let table = crate::tables::table_of(e.class).expect("a fill block's class has a table");
-                    let (out, taken, access) = compute(e, 0, 0, 0);
+                    let outcome = e.evaluate(0, 0, 0);
                     let slots = &padding_prev[table];
                     let mut prev = [0; 4];
                     let hash = (e.class == Class::Hash).then(|| {
                         // The compression of a zero block, whose result the row rewrites.
-                        let mut h = rv::machine::compute_hash([0; hash::WORDS], 0, e.flags);
-                        h.block[hash::OUT as usize / 8..][..4].copy_from_slice(&h.out);
-                        let mut all = [0; 2 + hash::WORDS];
+                        let mut h = BlockAccess::compress([0; Hash::WORDS], 0, e.flags);
+                        h.block[Hash::OUT as usize / 8..][..4].copy_from_slice(&h.out);
+                        let mut all = [0; 2 + Hash::WORDS];
                         all.copy_from_slice(slots);
                         Box::new(HashRow {
                             block: h.block,
@@ -164,10 +161,10 @@ impl Program {
                         ts: 0,
                         v1: 0,
                         v2: 0,
-                        out,
-                        taken,
-                        vd_old: if e.link { p.pc_of(index) + 4 } else { out },
-                        ram: access,
+                        out: outcome.out,
+                        taken: outcome.taken,
+                        vd_old: if e.link { p.pc_of(index) + 4 } else { outcome.out },
+                        ram: outcome.access.unwrap_or_default(),
                         prev,
                         hash,
                     });
@@ -177,15 +174,15 @@ impl Program {
 
         let cycles = rows.iter().map(Vec::len).sum();
         let ram_last = ram.timestamps();
-        let (ram_ts, adv_ts) = ram_last.split_at(1 << p.log_ram);
+        let (ram_ts, adv_ts) = ram_last.split_at(1 << p.log_ram());
         let trace = Trace {
             rows,
-            reg_fin: m.regs().iter().map(|&r| F64(r)).collect(),
+            reg_fin: m.registers().cells().iter().map(|&r| F64(r)).collect(),
             reg_ts: regs.timestamps(),
-            ram_fin: m.ram().iter().map(|&w| F64(w)).collect(),
+            ram_fin: m.memory().ram().iter().map(|&w| F64(w)).collect(),
             ram_ts: ram_ts.to_vec(),
             adv_init,
-            adv_fin: m.advice().iter().map(|&w| F64(w)).collect(),
+            adv_fin: m.memory().advice().iter().map(|&w| F64(w)).collect(),
             adv_ts: adv_ts.to_vec(),
             ts_final: ts,
         };
