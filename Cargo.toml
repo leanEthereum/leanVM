@@ -36,6 +36,7 @@ libc = "0.2"
 serde = { version = "1", features = ["derive"] }
 bincode = "1"
 rand = "0.9"
+proptest = { version = "1", default-features = false, features = ["std"] }
 thiserror = { version = "2", default-features = false }
 tracing = "0.1.26"
 tracing-forest = { version = "0.3.0", features = ["ansi", "smallvec"] }

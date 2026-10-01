@@ -11,6 +11,7 @@ use primitives::field::F64;
 ///
 /// - The block's words as found, and the four the compression writes.
 /// - The previous timestamp of every access, the registers' first.
+#[cfg_attr(test, derive(Debug, PartialEq, Eq))]
 pub(crate) struct HashRow {
     pub(crate) block: [u64; crate::rv::hash::WORDS],
     pub(crate) out: [u64; 4],
@@ -27,6 +28,8 @@ impl HashRow {
     }
 }
 
+#[derive(Default)]
+#[cfg_attr(test, derive(Debug, PartialEq, Eq))]
 pub(crate) struct Row {
     /// The entry executed.
     pub(crate) index: u32,
@@ -58,6 +61,7 @@ impl Row {
     }
 }
 
+#[cfg_attr(test, derive(Debug, PartialEq, Eq))]
 pub(crate) struct Trace {
     /// Per table, in [`crate::tables::CLASSES`] order.
     pub(crate) rows: [Vec<Row>; crate::tables::N_TABLES],

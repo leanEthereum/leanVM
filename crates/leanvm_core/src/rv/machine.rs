@@ -5,6 +5,7 @@ use super::{
     SYSCALL_REG, TEXT_BASE,
 };
 use super::{Target, decode, hash, load, semantics, store};
+use std::ops::{Index, IndexMut};
 
 /// A decoded program: its text, where it starts, RAM as the run finds it, and the
 /// advice's size.
@@ -255,13 +256,40 @@ pub fn compute_hash(block: [u64; hash::WORDS], t: u64, flags: u64) -> HashAccess
     }
 }
 
+/// Only the memory words touched by one replay chunk, sorted by cell number.
+pub(crate) struct ReplayMemory(Vec<(usize, u64)>);
+
+impl Index<usize> for ReplayMemory {
+    type Output = u64;
+
+    fn index(&self, cell: usize) -> &u64 {
+        // Planning records each cell exactly once before replay starts.
+        let index = self
+            .0
+            .binary_search_by_key(&cell, |&(index, _)| index)
+            .expect("replay cell was recorded");
+        &self.0[index].1
+    }
+}
+
+impl IndexMut<usize> for ReplayMemory {
+    fn index_mut(&mut self, cell: usize) -> &mut u64 {
+        // Every write first reads its cell, including the four hash output words.
+        let index = self
+            .0
+            .binary_search_by_key(&cell, |&(index, _)| index)
+            .expect("replay cell was recorded");
+        &mut self.0[index].1
+    }
+}
+
 /// The interpreter's state: the program it runs, the registers, RAM and the advice, and `pc`.
-pub struct Machine<'a> {
+pub struct Machine<'a, M = Vec<u64>> {
     program: &'a Program,
     /// `x0..x31`, then [`super::SINK`].
     regs: [u64; 1 << LOG_REGS],
     /// RAM's cells, then the advice's.
-    mem: Vec<u64>,
+    mem: M,
     pc: u64,
     exited: bool,
 }
@@ -286,6 +314,37 @@ impl<'a> Machine<'a> {
         }
     }
 
+    /// Restore a chunk from its registers and the first value of every memory cell it touches.
+    pub(crate) fn replay(
+        program: &'a Program,
+        pc: u64,
+        regs: [u64; 1 << LOG_REGS],
+        words: Vec<(usize, u64)>,
+    ) -> Machine<'a, ReplayMemory> {
+        // The planner provides sorted, distinct cells, including mutable advice.
+        Machine {
+            program,
+            regs,
+            mem: ReplayMemory(words),
+            pc,
+            exited: false,
+        }
+    }
+
+    /// RAM values, including the zero-initialized tail after the image.
+    pub fn ram(&self) -> &[u64] {
+        // The advice follows the declared RAM capacity in the same allocation.
+        &self.mem[..1 << self.program.log_ram]
+    }
+
+    /// Advice values after any writes the program made.
+    pub fn advice(&self) -> &[u64] {
+        // Preserve the advice boundary even when RAM has an unused tail.
+        &self.mem[1 << self.program.log_ram..]
+    }
+}
+
+impl<'a, M: Index<usize, Output = u64> + IndexMut<usize>> Machine<'a, M> {
     /// The program being run.
     pub fn program(&self) -> &'a Program {
         self.program
@@ -299,14 +358,6 @@ impl<'a> Machine<'a> {
     /// The byte address of the next instruction.
     pub fn pc(&self) -> u64 {
         self.pc
-    }
-
-    pub fn ram(&self) -> &[u64] {
-        &self.mem[..1 << self.program.log_ram]
-    }
-
-    pub fn advice(&self) -> &[u64] {
-        &self.mem[1 << self.program.log_ram..]
     }
 
     /// The cell holding `address`: RAM's, or past them the advice's.
