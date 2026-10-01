@@ -19,18 +19,14 @@ pub enum Framework {
     Ram,
     Advice,
     Bytecode,
-    RangeLo,
-    RangeHi,
 }
 
-pub const FRAMEWORK: [Framework; 7] = [
+pub const FRAMEWORK: [Framework; 5] = [
     Framework::State,
     Framework::Registers,
     Framework::Ram,
     Framework::Advice,
     Framework::Bytecode,
-    Framework::RangeLo,
-    Framework::RangeHi,
 ];
 
 impl Framework {
@@ -42,7 +38,6 @@ impl Framework {
             Framework::Ram => sizes.log_ram,
             Framework::Advice => sizes.log_advice,
             Framework::Bytecode => sizes.log_bytecode,
-            Framework::RangeLo | Framework::RangeHi => tables::RANGE_LOG,
         }
     }
 }
@@ -57,7 +52,7 @@ impl Framework {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Shared {
     RegFin,
-    /// Each register's final timestamp, `g^0` if never accessed.
+    /// Each register's final timestamp, the seed's if never accessed.
     RegTs,
     RamFin,
     RamTs,
@@ -66,12 +61,9 @@ pub enum Shared {
     AdvTs,
     /// Each bytecode entry's execution count, `g^{A[pc]}`.
     BytecodeCount,
-    /// Each range array entry's read count (§sec:rangecheck).
-    RangeLoCount,
-    RangeHiCount,
 }
 
-pub const SHARED: [Shared; 10] = [
+pub const SHARED: [Shared; 8] = [
     Shared::RegFin,
     Shared::RegTs,
     Shared::RamFin,
@@ -80,8 +72,6 @@ pub const SHARED: [Shared; 10] = [
     Shared::AdvFin,
     Shared::AdvTs,
     Shared::BytecodeCount,
-    Shared::RangeLoCount,
-    Shared::RangeHiCount,
 ];
 
 impl Shared {
@@ -97,8 +87,6 @@ impl Shared {
             Shared::RamFin | Shared::RamTs => Framework::Ram,
             Shared::AdvInit | Shared::AdvFin | Shared::AdvTs => Framework::Advice,
             Shared::BytecodeCount => Framework::Bytecode,
-            Shared::RangeLoCount => Framework::RangeLo,
-            Shared::RangeHiCount => Framework::RangeHi,
         }
     }
 
@@ -113,21 +101,20 @@ impl Shared {
             Shared::AdvFin => &tr.adv_fin,
             Shared::AdvTs => &tr.adv_ts,
             Shared::BytecodeCount => &tr.bytecode_count,
-            Shared::RangeLoCount => &tr.range_lo_count,
-            Shared::RangeHiCount => &tr.range_hi_count,
         }
     }
 }
 
-/// Then one packed flock witness per table, committed in the SAME stack as every
-/// other column (single PCS): `2^(k_log + tau - 6)` words, the SOLE copy of the
-/// table's circuit words, whose columns are ports of it (§class_flock).
+/// Then two packed flock witnesses per table, every class circuit's in table order,
+/// then every clock circuit's, committed in the SAME stack as every other column
+/// (single PCS): `2^(k_log + tau - 6)` words, the SOLE copy of the circuit's words,
+/// whose columns are ports of it (§class_flock).
 pub const Q_BASE: usize = SHARED.len();
-pub const N_SHARED: usize = Q_BASE + tables::N_TABLES;
+pub const N_SHARED: usize = Q_BASE + crate::class_flock::N_FLOCKS;
 
-/// The committed column holding table `t`'s packed witness.
-pub(crate) const fn q_column(t: usize) -> usize {
-    Q_BASE + t
+/// The committed column holding packed witness `f`, every class circuit's then every clock circuit's.
+pub(crate) const fn q_column(f: usize) -> usize {
+    Q_BASE + f
 }
 
 /// Global column indexing: the shared columns occupy `0..N_SHARED`, then each
@@ -162,7 +149,7 @@ fn offset_coord(base: usize, c: Coord) -> Coord {
     match c {
         Coord::Col(i) => Coord::Col(base + i),
         Coord::GCol(i, k) => Coord::GCol(base + i, k),
-        Coord::Prod(i, j, k) => Coord::Prod(base + i, base + j, k),
+        Coord::Prod(i, j) => Coord::Prod(base + i, base + j),
         Coord::Sum(cs) => Coord::Sum(offset_coords(base, cs)),
         other => other,
     }
@@ -187,9 +174,9 @@ pub struct Layout {
 }
 
 impl Layout {
-    /// Table `t`'s packed witness's window in the stack.
-    pub(crate) fn witness_window(&self, t: usize) -> witness::Window {
-        self.placements[q_column(t)]
+    /// Packed witness `f`'s window in the stack.
+    pub(crate) fn witness_window(&self, f: usize) -> witness::Window {
+        self.placements[q_column(f)]
             .window()
             .expect("a packed witness is committed")
     }
@@ -204,8 +191,8 @@ pub(crate) struct Witness {
     pub(crate) virt: Vec<(usize, zk_alloc::ArenaVec<F64>)>,
     pub(crate) layout: Layout,
     /// The clock the run ended on, which the prover announces.
-    pub(crate) ts_final: F64,
-    /// Each table's flock batch, freed right after its reduction.
+    pub(crate) ts_final: u64,
+    /// Each circuit's flock batch, freed right after its reduction.
     pub(crate) reductions: Vec<crate::class_flock::Prepared>,
 }
 
@@ -268,21 +255,26 @@ impl Sizes {
 /// committed again: its bus claims settle against that witness, which is the whole
 /// binding.
 fn column_sources(sizes: Sizes, taus: [usize; tables::N_TABLES]) -> Vec<Source> {
-    let stride_log = |t: usize| crate::class_flock::stride_log(tables::CLASSES[t]);
+    use crate::class_flock::{N_FLOCKS, flock, flock_index, stride_log};
     let mut sources: Vec<Source> = SHARED
         .iter()
         .map(|c| Source::Committed(c.block().log_rows(sizes)))
         .collect();
-    sources.extend((0..tables::N_TABLES).map(|t| Source::Committed(taus[t] + stride_log(t))));
+    sources.extend((0..N_FLOCKS).map(|f| {
+        let (t, part) = flock(f);
+        Source::Committed(taus[t] + stride_log(tables::CLASSES[t], part))
+    }));
     for (t, table) in tables::tables().iter().enumerate() {
         let base = sources.len();
         sources.resize(base + table.n_committed_columns(), Source::Committed(taus[t]));
-        for (port, c) in table.word_columns() {
-            sources[base + c] = Source::Port {
-                column: q_column(t),
-                port,
-                stride_log: stride_log(t),
-            };
+        for part in [tables::Part::Class, tables::Part::Clock] {
+            for (port, c) in table.word_columns(part) {
+                sources[base + c] = Source::Port {
+                    column: q_column(flock_index(t, part)),
+                    port,
+                    stride_log: stride_log(tables::CLASSES[t], part),
+                };
+            }
         }
     }
     debug_assert_eq!(sources.len(), schema().n);
@@ -341,7 +333,7 @@ pub fn bytecode_table(p: &rv::Program) -> Vec<F64> {
 /// A table's height is its row count: the fill blocks bring every count up to a power of
 /// two (`cpu::filler`), so `2^taus[t]` rows were all executed and no flush has padding
 /// tuples to divide back out of the bus.
-pub fn layout(p: &rv::Program, taus: [usize; tables::N_TABLES], ts_final: F64) -> Layout {
+pub fn layout(p: &rv::Program, taus: [usize; tables::N_TABLES], ts_final: u64) -> Layout {
     let sizes = Sizes::of(p);
     // Shared between the seed and finalize blocks: a copy is tens of megabytes per
     // column at production sizes.
@@ -397,14 +389,14 @@ fn framework_tuples(
     block: Framework,
     p: &rv::Program,
     prog_cols: &[std::sync::Arc<Vec<F64>>; N_BYTECODE_COLUMNS],
-    ts_final: F64,
+    ts_final: u64,
 ) -> (Vec<Coord>, Vec<Coord>) {
-    use Coord::{Col, Const, IntIndex, Powers, Public, Sparse};
+    use Coord::{Col, Const, IntIndex, Public, Sparse};
     let one = Const(F64::ONE);
-    // A read-write array: every cell starts at timestamp g^0 holding `init`, and ends at
+    // A read-write array: every cell starts at the seed's timestamp holding `init`, and ends at
     // its last timestamp holding its final word (§sec:memchan).
     let array = |sep: F64, cell: Coord, init: Option<Coord>, ts: Shared, fin: Shared| {
-        let seed = [Const(sep), cell.clone(), one.clone()]
+        let seed = [Const(sep), cell.clone(), Const(F64(tables::SEED_CLOCK))]
             .into_iter()
             .chain(init)
             .collect();
@@ -426,14 +418,14 @@ fn framework_tuples(
             vec![
                 Const(SEP_STATE),
                 Const(F64(p.entry_pc)),
-                Const(tables::CLOCK_START),
+                Const(F64(tables::CLOCK_START)),
                 Const(F64::ZERO),
             ],
             vec![
                 Const(SEP_STATE),
                 Const(F64(p.halt_pc())),
-                Const(ts_final),
-                Const(ts_final),
+                Const(F64(ts_final)),
+                Const(F64(ts_final)),
             ],
         ),
         Framework::Registers => {
@@ -471,31 +463,6 @@ fn framework_tuples(
             };
             let program = prog_cols.iter().cloned().map(Public).collect();
             lookup([Const(SEP_BYTECODE), pc], program, Shared::BytecodeCount)
-        }
-        // The two range arrays (§sec:rangecheck): entries with no value, so a read is a
-        // range check on its address. Neither is committed: their addresses are
-        // geometric, `g^{j+1}` and `g^{-2^16·j}`.
-        Framework::RangeLo => {
-            let addresses = Powers {
-                first: tables::range_lo_first(),
-                ratio: F64::G,
-            };
-            lookup(
-                [Const(tables::SEP_RANGE_LO), addresses],
-                Vec::new(),
-                Shared::RangeLoCount,
-            )
-        }
-        Framework::RangeHi => {
-            let addresses = Powers {
-                first: F64::ONE,
-                ratio: tables::range_hi_ratio(),
-            };
-            lookup(
-                [Const(tables::SEP_RANGE_HI), addresses],
-                Vec::new(),
-                Shared::RangeHiCount,
-            )
         }
     }
 }
@@ -551,9 +518,6 @@ impl Program {
             tau
         });
         let l = layout(p, taus, tr.ts_final);
-        // The range arrays' addresses, to turn a gap's chunks into column values.
-        let range_lo = primitives::field::geometric(tables::range_lo_first(), F64::G, 1 << tables::RANGE_LOG);
-        let range_hi = primitives::field::geometric(F64::ONE, tables::range_hi_ratio(), 1 << tables::RANGE_LOG);
 
         // The stacked witness is written exactly ONCE: allocate it, carve one window
         // per committed column, and have every fill write its column straight into
@@ -589,7 +553,7 @@ impl Program {
         crate::stage!("Fill columns", || {
             for (t, table) in tables::tables().iter().enumerate() {
                 let (base, n) = sch.spans[t];
-                let ctx = FillCtx::new(tr, &range_lo, &range_hi, p, 1 << l.taus[t], n);
+                let ctx = FillCtx::new(tr, p, 1 << l.taus[t], n);
                 tables::fill_table(table, &ctx, &mut windows[base..base + n]);
             }
             // Every shared column has to be written: the stack is uninitialized, so one
@@ -599,10 +563,13 @@ impl Program {
                 windows[c.col()].copy_from_slice(c.values(tr));
             }
         });
-        // The classes' packed witnesses, one instance per row of their table.
+        // The packed witnesses, one instance per row of their table.
         let reductions = crate::stage!("Build flock witnesses", || {
-            (0..tables::N_TABLES)
-                .map(|t| crate::class_flock::Prepared::build(t, &tr.rows[t], &p.entries, windows[q_column(t)]))
+            (0..crate::class_flock::N_FLOCKS)
+                .map(|f| {
+                    let rows = &tr.rows[crate::class_flock::flock(f).0];
+                    crate::class_flock::Prepared::build(f, rows, &p.entries, windows[q_column(f)])
+                })
                 .collect()
         });
 

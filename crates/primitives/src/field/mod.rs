@@ -81,27 +81,3 @@ pub fn int_index_mle(base: F64, shift: u32, zeta: &[F192]) -> F192 {
         acc + z.mul_base(F64(1 << (k as u32 + shift)))
     })
 }
-
-/// MLE of the geometric column `[first·ratio^z]_z` over the `n`-variable cube:
-/// `first·∏_k (1 + ζ_k·(1 + ratio^{2^k}))`, the index column's formula for any ratio
-/// (§sec:idxcol). What makes a range-check table free: it is never committed.
-pub fn powers_mle(first: F64, ratio: F64, zeta: &[F192]) -> F192 {
-    let mut acc = F192::from(first);
-    let mut r2k = ratio;
-    for &z in zeta {
-        acc *= F192::ONE + z.mul_base(F64::ONE + r2k);
-        r2k = r2k * r2k;
-    }
-    acc
-}
-
-/// `[first·ratio^z]_{z < n}`.
-pub fn geometric(first: F64, ratio: F64, n: usize) -> Vec<F64> {
-    let mut out = Vec::with_capacity(n);
-    let mut acc = first;
-    for _ in 0..n {
-        out.push(acc);
-        acc *= ratio;
-    }
-    out
-}

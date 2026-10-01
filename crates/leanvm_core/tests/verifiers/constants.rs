@@ -1,8 +1,8 @@
 //! The two verifiers agree on their constants.
 //!
 //! `python-verifier/verifier.py` writes out the same protocol a second time, which means
-//! writing out its constants a second time: the region bases and caps, the clock's slots
-//! and strides, the flock and WHIR parameters, and every class's block size and legal
+//! writing out its constants a second time: the region bases and caps, the clock's bits
+//! and slots, the flock and WHIR parameters, and every class's block size and legal
 //! flags. The end-to-end tests catch a Python circuit that computes the wrong thing, but
 //! a constant that drifts changes what each side ACCEPTS, and only a statement they both
 //! reject would show it. So the two lists are rendered the same way and diffed here.
@@ -21,16 +21,17 @@ fn rust_constants() -> String {
     scalar("BAD_SLOT", leanvm_core::tables::BAD_SLOT as u64);
     scalar("BUS_BITS", leanvm_core::leaf::N_TUPLE_BITS as u64);
     scalar("EXIT_SLOT", leanvm_core::tables::EXIT_SLOT as u64);
-    scalar("CLOCK_STRIDE", leanvm_core::tables::CLOCK_STRIDE as u64);
+    scalar("CLOCK_START", leanvm_core::tables::CLOCK_START);
+    scalar("FAIL_BIT", leanvm_core::tables::FAIL_BIT as u64);
     scalar("FLOCK_K_SKIP", flock::zerocheck::K_SKIP as u64);
     scalar("FLOCK_MIN_LOG_SIZE", leanvm_core::class_flock::MIN_CUBE_LOG as u64);
     scalar("HASH_OUT_WORD", hash::OUT / 8);
-    scalar("HASH_STRIDE", leanvm_core::tables::HASH.stride() as u64);
     scalar("HASH_WORDS", hash::WORDS as u64);
     scalar(
         "INITIAL_FOLDING_FACTOR",
         pcs::whir_config::INITIAL_FOLDING_FACTOR as u64,
     );
+    scalar("LIVE_BIT", leanvm_core::tables::LIVE_BIT as u64);
     scalar("LOG_PACKING", pcs::pack::LOG_PACKING as u64);
     scalar("LOG_REGISTERS", leanvm_core::rv::LOG_REGS as u64);
     scalar("MAX_LOG_ADVICE", leanvm_core::rv::MAX_LOG_ADVICE as u64);
@@ -43,13 +44,14 @@ fn rust_constants() -> String {
     scalar("QUERY_GRINDING_BITS", pcs::whir_config::QUERY_GRINDING_BITS as u64);
     scalar("RAM_BASE", leanvm_core::rv::RAM_BASE);
     scalar("RAM_SLOT", leanvm_core::tables::RAM_SLOT as u64);
-    scalar("RANGE_LOG", leanvm_core::tables::RANGE_LOG as u64);
     scalar("RESIDUAL_MAX_LOG", pcs::whir_config::RESIDUAL_MAX_LOG as u64);
     let rs_domain = pcs::whir_config::RS_DOMAIN_INITIAL_REDUCTION_FACTOR;
     scalar("RS_DOMAIN_INITIAL_REDUCTION_FACTOR", rs_domain as u64);
     let rs_domain_rest = pcs::whir_config::RS_DOMAIN_SUBSEQUENT_REDUCTION_FACTOR;
     scalar("RS_DOMAIN_SUBSEQUENT_REDUCTION_FACTOR", rs_domain_rest as u64);
+    scalar("SEED_CLOCK", leanvm_core::tables::SEED_CLOCK);
     scalar("SINK", leanvm_core::rv::SINK as u64);
+    scalar("SLOT_BITS", leanvm_core::tables::SLOT_BITS as u64);
     scalar(
         "SUBSEQUENT_FOLDING_FACTOR",
         pcs::whir_config::SUBSEQUENT_FOLDING_FACTOR as u64,
@@ -69,14 +71,19 @@ fn rust_constants() -> String {
     ));
 
     for (t, spec) in CLASSES.iter().enumerate() {
-        let circuit = leanvm_core::class_flock::circuit(t);
+        use leanvm_core::class_flock::{circuit, flock_index, stride_log};
+        use leanvm_core::tables::Part;
+        let clock = circuit(flock_index(t, Part::Clock));
+        let circuit = circuit(flock_index(t, Part::Class));
         let prefix = format!("TABLE.{}", spec.name.to_lowercase());
         let mut line = String::new();
         for (field, value) in [
             ("opcode", t as u64),
             ("k_log", spec.k_log as u64),
             ("const_pos", circuit.const_pos() as u64),
-            ("slot_bits", leanvm_core::class_flock::stride_log(spec) as u64),
+            ("slot_bits", stride_log(spec, Part::Class) as u64),
+            ("clock_k_log", clock.k_log() as u64),
+            ("clock_const_pos", clock.const_pos() as u64),
             ("min_log_height", leanvm_core::class_flock::n_blocks_log(spec, 1) as u64),
             ("ports", spec.ports.len() as u64),
             ("width", leanvm_core::tables::tables()[t].n_committed_columns() as u64),

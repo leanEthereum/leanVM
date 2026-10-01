@@ -4,14 +4,14 @@
 //! multiset, proven by two GKR passes over the leaf vectors `β − π_α(σ)`. Each pass
 //! reduces to a leaf claim `Ṽ₀(ζ)`, decomposed into evaluation claims on the
 //! committed columns. Tuple coordinates `σ_i` are `K`-valued (column entries,
-//! g-powers, separators); the fingerprint challenges `α, β` are `E`-valued, so a
+//! counts, separators); the fingerprint challenges `α, β` are `E`-valued, so a
 //! leaf accumulates via the mixed `mul_base` product (2 PMULL per coordinate).
 
 use crate::PAR_THRESHOLD;
 use crate::colval::ColVal;
 use crate::gkr;
 use fiat_shamir::transcript::{Challenger, ProverState, Receiver, Transmitter, VerifierState};
-use primitives::field::{F64, F192, F192Unreduced, g_pow, int_index_mle, powers_mle};
+use primitives::field::{F64, F192, F192Unreduced, g_pow, int_index_mle};
 use primitives::multilinear::{eq_eval, eq_table_arena, mle_eval};
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
@@ -27,19 +27,14 @@ pub enum Coord {
     /// The free increment `g^k · col[z]` (a virtual column, §sec:vm): `k = 1` for the
     /// count/state steps, `k ∈ {1,2,3}` for BLAKE2s's consecutive-word successors.
     GCol(usize, u32),
-    /// The product `g^k · col_a[z] · col_b[z]` of two committed columns. The g-power
-    /// of an address `fp + o + k` is `g^fp·g^o·g^k`, so this carries one on the bus
-    /// without committing it: the coordinate IS the product, so no column can
-    /// disagree with it and the binding constraint that used to say so is unnecessary
-    /// (§sec:m3).
-    Prod(usize, usize, u32),
+    /// The product `col_a[z] · col_b[z]` of two columns, carried on the bus without
+    /// committing it: the coordinate IS the product, so no column can disagree with
+    /// it and no constraint has to say so (§sec:m3).
+    Prod(usize, usize),
     /// The integer index column `base ^ (z << shift)` (§sec:idxcol), the element
     /// whose bits are that integer's: what addresses a region whose cell `z` sits at
     /// `base + (z << shift)`. Free, its MLE being linear.
     IntIndex { base: F64, shift: u32 },
-    /// The geometric column `first·ratio^z`, free the same way: the addresses of a
-    /// range-check array (§sec:rangecheck).
-    Powers { first: F64, ratio: F64 },
     /// A public column (the bytecode program, §sec:e2e-bc): not committed; both parties form
     /// its MLE directly, so it raises no claim. Shared rather than owned: push and
     /// pull carry the same ten columns, tens of megabytes at production sizes.
@@ -259,10 +254,9 @@ pub(crate) fn unmatched_leaves(push: &[Block], pull: &[Block], cols: &[&[F64]]) 
         .map(|i| F192::new(3 + i, 5 + 7 * i, 11))
         .collect();
     let (w, beta) = (fingerprint_weights(&alphas), F192::new(13, 17, 19));
-    let powers = power_tables([push, pull, &[]]);
     let side = |blocks: &[Block]| {
         let lay = layout(blocks);
-        let leaves = build_leaves(blocks, &lay, cols, &w, beta, &powers);
+        let leaves = build_leaves(blocks, &lay, cols, &w, beta);
         let mut at = Vec::new();
         for (b, block) in blocks.iter().enumerate() {
             at.extend((0..1usize << block.kappa).map(|z| (leaves[lay.offsets[b] + z], b, z)));
@@ -298,52 +292,24 @@ enum Term<'a> {
     Public(&'a [F64], F192),
 }
 
-/// The values of each distinct [`Coord::Powers`] column, prover-side.
-pub type PowerTables = Vec<((F64, F64), Vec<F64>)>;
-
-fn power_tables(sides: [&[Block]; 3]) -> PowerTables {
-    let mut tables = PowerTables::new();
-    for blk in sides.into_iter().flatten() {
-        for c in &blk.coords {
-            if let Coord::Powers { first, ratio } = *c
-                && !tables.iter().any(|(k, _)| *k == (first, ratio))
-            {
-                tables.push((
-                    (first, ratio),
-                    primitives::field::geometric(first, ratio, 1 << blk.kappa),
-                ));
-            }
-        }
-    }
-    tables
-}
-
 /// Flatten one coordinate into leaf terms at coefficient `w`. A [`Coord::Sum`]
 /// spreads its children over the SAME `w`: they are one coordinate, so they share
 /// its `α`-power.
-fn push_terms<'a>(c: &'a Coord, w: F192, powers: &'a PowerTables, terms: &mut Vec<Term<'a>>, constant: &mut F192) {
+fn push_terms<'a>(c: &'a Coord, w: F192, terms: &mut Vec<Term<'a>>, constant: &mut F192) {
     match c {
         Coord::Const(v) => *constant += w.mul_base(*v),
         Coord::Col(i) => terms.push(Term::Col(*i, w)),
         Coord::GCol(i, k) => terms.push(Term::Col(*i, w.mul_base(g_pow(*k as usize)))),
-        Coord::Prod(i, j, k) => terms.push(Term::Prod(*i, *j, w.mul_base(g_pow(*k as usize)))),
+        Coord::Prod(i, j) => terms.push(Term::Prod(*i, *j, w)),
         Coord::IntIndex { base, shift } => {
             *constant += w.mul_base(*base);
             terms.push(Term::IntIndex(w, *shift));
-        }
-        Coord::Powers { first, ratio } => {
-            let table = &powers
-                .iter()
-                .find(|(k, _)| *k == (*first, *ratio))
-                .expect("every geometric column was tabulated")
-                .1;
-            terms.push(Term::Public(table, w));
         }
         Coord::Public(vals) => terms.push(Term::Public(vals.as_slice(), w)),
         Coord::Sparse(column) => terms.push(Term::Public(column.dense(), w)),
         Coord::Sum(cs) => {
             for c in cs {
-                push_terms(c, w, powers, terms, constant);
+                push_terms(c, w, terms, constant);
             }
         }
     }
@@ -353,14 +319,7 @@ fn push_terms<'a>(c: &'a Coord, w: F192, powers: &'a PowerTables, terms: &mut Ve
 /// the fingerprint weights `w = eq(α⃗, ·)`, followed implicitly by the identity `1`
 /// up to `2^μ`. The row-invariant weights and constant coordinates are folded once
 /// per block into `const_part`.
-pub fn build_leaves(
-    blocks: &[Block],
-    lay: &Layout,
-    cols: &[&[F64]],
-    w: &[F192],
-    beta: F192,
-    powers: &PowerTables,
-) -> ArenaVec<F192> {
+pub fn build_leaves(blocks: &[Block], lay: &Layout, cols: &[&[F64]], w: &[F192], beta: F192) -> ArenaVec<F192> {
     let explicit = blocks
         .iter()
         .enumerate()
@@ -391,7 +350,7 @@ pub fn build_leaves(
         let mut const_part = beta;
         let mut terms: Vec<Term> = Vec::with_capacity(blk.coords.len());
         for (i, c) in blk.coords.iter().enumerate() {
-            push_terms(c, w[i], powers, &mut terms, &mut const_part);
+            push_terms(c, w[i], &mut terms, &mut const_part);
         }
         let row = |z: usize| -> F192 {
             // The α-weighted coordinate sum defers its reductions: each mixed
@@ -537,13 +496,13 @@ fn accumulate_form(c: &Coord, w: F192, base: usize, form: &mut BusForm) {
         Coord::Const(v) => form.constant += w.mul_base(*v),
         Coord::Col(i) => form.coeffs[*i - base] += w,
         Coord::GCol(i, k) => form.coeffs[*i - base] += w.mul_base(g_pow(*k as usize)),
-        Coord::Prod(i, j, k) => form.prods.push((*i - base, *j - base, w.mul_base(g_pow(*k as usize)))),
+        Coord::Prod(i, j) => form.prods.push((*i - base, *j - base, w)),
         Coord::Sum(cs) => {
             for c in cs {
                 accumulate_form(c, w, base, form);
             }
         }
-        Coord::IntIndex { .. } | Coord::Powers { .. } | Coord::Public(_) | Coord::Sparse(_) => {
+        Coord::IntIndex { .. } | Coord::Public(_) | Coord::Sparse(_) => {
             unreachable!("a table's bus block carries no virtual coordinate")
         }
     }
@@ -622,7 +581,6 @@ fn decompose_formula<F: FnMut(usize, &[F192]) -> Result<F192, Error>>(
             let coord_val = match c {
                 Coord::Const(v) => F192::from(*v),
                 Coord::IntIndex { base, shift } => int_index_mle(*base, *shift, zeta_lo),
-                Coord::Powers { first, ratio } => powers_mle(*first, *ratio, zeta_lo),
                 Coord::Col(i) => col_val(*i)?,
                 Coord::GCol(i, k) => col_val(*i)?.mul_base(g_pow(*k as usize)),
                 Coord::Prod(..) | Coord::Sum(..) => {
@@ -829,7 +787,6 @@ pub fn prove_balance(
     ps: &mut ProverState,
 ) -> BusProof {
     let setup = BusSetup::new(push, pull, count, ps);
-    let powers = power_tables([push, pull, count]);
     // Three independent leaf vectors, built one after another: each `build_leaves`
     // already fans its own blocks out across the whole pool, so nesting a
     // three-way outer split on top would only add a barrier. The all-one padding
@@ -838,7 +795,7 @@ pub fn prove_balance(
         setup
             .sides
             .each_ref()
-            .map(|side| build_leaves(side.blocks, &side.lay, cols, &side.w, side.beta, &powers))
+            .map(|side| build_leaves(side.blocks, &side.lay, cols, &side.w, side.beta))
     });
     // All three trees run as ONE RLC-batched GKR (equal μ: push/pull match
     // block-for-block, count is padded), so every claim lands on ONE point ζ.

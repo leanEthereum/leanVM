@@ -66,25 +66,21 @@
 \newcommand{\sink}{\mathsf{sink}}       % the register cell an instruction with no destination writes
 \newcommand{\kadv}{\kappa_{\mathrm{adv}}}   % log advice length
 \newcommand{\qcls}[1]{q_{\mathsf{#1}}}   % the packed flock witness of one instruction class
+\newcommand{\qclk}[1]{q^{\mathsf{clk}}_{\mathsf{#1}}}   % the packed flock witness of one table's clock circuit
 \newcommand{\addr}{\mathit{addr}}
 \newcommand{\val}{\mathit{val}}
 \newcommand{\cnt}{\mathit{count}}
 \newcommand{\cntfin}{\mathit{count}^{\mathrm{fin}}}  % committed finalize-count column
-\newcommand{\ts}{\mathbf{ts}}            % the execution clock
+\newcommand{\ts}{\mathbf{ts}}            % the execution clock, an integer below 2^41
 \newcommand{\exitflag}{\mathit{exit}} % public selector: one only for ecall
 \newcommand{\tsfinal}{\ts_{\mathrm{final}}} % the clock the run ends on, announced by the prover
-\newcommand{\tsprev}{\mathit{prev}}      % the timestamp of a cell's previous access, a committed column
+\newcommand{\tsprev}{\mathit{prev}}      % the timestamp of a cell's previous access, a port of the clock circuit
 \newcommand{\tsfin}{\mathit{ts}^{\mathrm{fin}}}  % committed column: each cell's last timestamp
 \newcommand{\meminit}{\mem^{\mathrm{init}}} % RAM before the run, a public column
 \newcommand{\memfin}{\mem^{\mathrm{fin}}}   % committed RAM after the run
 \newcommand{\regfin}{\regs^{\mathrm{fin}}}  % committed registers after the run
 \newcommand{\advinit}{\adv^{\mathrm{init}}} % committed advice before the run
 \newcommand{\advfin}{\adv^{\mathrm{fin}}}   % committed advice after the run
-\newcommand{\genhi}{\mathsf{h}}          % g^{2^16}: the step of the high range array
-\newcommand{\glo}{\mathit{lo}}           % low chunk of an access's gap, as the range-array address g^{d_lo + 1}
-\newcommand{\ghi}{\mathit{hi}}           % high chunk of the gap, as the range-array address h^{-d_hi}
-\newcommand{\rlo}{\mathbf{R}_{\mathrm{lo}}} % the low range array
-\newcommand{\rhi}{\mathbf{R}_{\mathrm{hi}}} % the high range array
 \newcommand{\rcnts}{\mathcal{N}}          % multiset of read counts at one (address, value)
 \newcommand{\mset}[1]{\{\!\{#1\}\!\}}     % a multiset (plain braces stay sets)
 \newcommand{\lut}{\mathbf{L}}             % a lookup array (memory, or the program)
@@ -94,7 +90,7 @@
 \newcommand{\pull}{\textsc{pull}}
 \newcommand{\tup}[1]{( #1 )}
 \newcommand{\rdf}[1]{\dsep{read}\,\tup{#1}}   % a pull/push pair differing only in the count
-\newcommand{\acc}[1]{\dsep{access}_{#1}}    % a memory access in clock slot #1: pull, push and the gap's two range reads
+\newcommand{\acc}[1]{\dsep{access}_{#1}}    % a memory access in clock slot #1: a pull and a push
 \newcommand{\dsep}[1]{\mathsf{#1}}
 \newcommand{\opc}[1]{\mathsf{op}_{\mathsf{#1}}}
 \newcommand{\nprog}{N_{\mathrm{prog}}}   % program length
