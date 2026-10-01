@@ -93,68 +93,93 @@ const _: () = assert!(RESIDUAL_MAX_LOG <= INITIAL_FOLDING_FACTOR);
 /// Shape plus per-level soundness parameters for one WHIR opening. Prover
 /// and verifier read exactly the same numbers, hence the single struct and the
 /// [`VerifierConfig`] alias.
+///
+/// Built only in this crate, by the soundness derivation or the test-support ladder, and checked once there.
+/// The prover and the verifier index the per-level vectors without checking them again.
 #[derive(Clone, Debug)]
 pub struct ProverConfig {
-    pub log_inv_rates: Vec<usize>,
-    pub level_steps: usize,
-    pub initial_k: usize,
-    pub level_ks: Vec<usize>,
-    /// Per-level query counts (L0, L1, ..., L_r). Length = level_steps + 1.
-    /// [`WhirSecurityConfig::derive_config_with_log_inv_rate`] fills these
-    /// from the per-level soundness analysis.
-    pub queries: Vec<usize>,
-    /// Per-level **query-phase** PoW grinding bits (L0, L1, ..., L_r), ground
-    /// post-commit/pre-queries. Length = level_steps + 1. Each bit here
-    /// substitutes for ~1/log₂(1/(1−γ)) queries at that level.
-    pub grinding_bits: Vec<usize>,
-    /// Per-commit-level out-of-domain samples (L0, ..., L_r), taken right
-    /// after the level's Merkle root enters the transcript. `[0]` must be 0:
-    /// L0 is bound by the opening's own (post-commit, random-point)
-    /// evaluation claim. Length = level_steps + 1.
-    pub ood_samples: Vec<usize>,
+    initial_k: usize,
+    level_ks: Vec<usize>,
+    log_inv_rates: Vec<usize>,
+    queries: Vec<usize>,
+    grinding_bits: Vec<usize>,
+    ood_samples: Vec<usize>,
 }
 
 pub type VerifierConfig = ProverConfig;
 
-/// The per-level shape table a [`VerifierConfig`] implies for a
-/// `log_n`-variable opening: the numbers every consumer of the multilevel
-/// protocol otherwise re-derives.
-#[derive(Clone, Debug)]
-pub struct LevelShapes {
-    /// Level count (`level_steps + 1`).
-    pub levels: usize,
-    /// Fold count per level: `initial_k` then `level_ks`.
-    pub ks: Vec<usize>,
-    /// Log message columns entering each level's fold (`log_n - initial_k`,
-    /// then descending by each level's `k`).
-    pub log_msg_cols: Vec<usize>,
-    /// Committed block length per level (`msg_cols * inv_rate`).
-    pub block_len: Vec<usize>,
-    /// The residual cube dimension left after every fold.
-    pub yr_log_n: usize,
-}
-
 impl ProverConfig {
-    /// See [`LevelShapes`].
-    pub fn level_shapes(&self, log_n: usize) -> LevelShapes {
-        let r = self.level_steps;
-        let ks: Vec<usize> = std::iter::once(self.initial_k)
-            .chain(self.level_ks.iter().copied())
-            .collect();
-        let mut log_msg_cols = vec![log_n - self.initial_k];
-        for i in 0..r {
-            log_msg_cols.push(log_msg_cols[i] - self.level_ks[i]);
+    /// A config of `level_ks.len()` recursive levels after the lane fold.
+    ///
+    /// # Panics
+    ///
+    /// Panics unless there is a lane fold and at least one recursive level, every per-level vector covers L0 to the last level, and L0 takes no OOD sample.
+    fn new(
+        initial_k: usize,
+        level_ks: Vec<usize>,
+        log_inv_rates: Vec<usize>,
+        queries: Vec<usize>,
+        grinding_bits: Vec<usize>,
+        ood_samples: Vec<usize>,
+    ) -> Self {
+        let levels = level_ks.len() + 1;
+        assert!(initial_k >= 1, "the lane fold binds at least one variable");
+        assert!(levels >= 2, "at least one recursive level");
+        assert_eq!(log_inv_rates.len(), levels);
+        assert_eq!(queries.len(), levels);
+        assert_eq!(grinding_bits.len(), levels);
+        assert_eq!(ood_samples.len(), levels);
+        // The lane rounds fold the truncated witness against a weight over the whole
+        // `2^log_n` cube. Every claim weight vanishes on the absent lanes, but an OOD
+        // weight `eq(z, .)` is a full tensor that does not, so L0 can take none.
+        assert_eq!(ood_samples[0], 0, "L0 takes no OOD sample");
+        Self {
+            initial_k,
+            level_ks,
+            log_inv_rates,
+            queries,
+            grinding_bits,
+            ood_samples,
         }
-        let block_len: Vec<usize> = (0..=r)
-            .map(|i| 1usize << (log_msg_cols[i] + self.log_inv_rates[i]))
-            .collect();
-        LevelShapes {
-            levels: r + 1,
-            ks,
-            yr_log_n: *log_msg_cols.last().unwrap(),
-            log_msg_cols,
-            block_len,
-        }
+    }
+
+    /// Variables the L0 lane fold binds, which is also the log of the L0 interleaving.
+    pub fn initial_k(&self) -> usize {
+        self.initial_k
+    }
+
+    /// Recursive levels after L0, at least one.
+    pub fn level_steps(&self) -> usize {
+        self.level_ks.len()
+    }
+
+    /// Variables each recursive level folds (L1, ..., L_r).
+    pub fn level_ks(&self) -> &[usize] {
+        &self.level_ks
+    }
+
+    /// Per-level inverse-rate logarithms (L0, L1, ..., L_r).
+    pub fn log_inv_rates(&self) -> &[usize] {
+        &self.log_inv_rates
+    }
+
+    /// Per-level query counts (L0, L1, ..., L_r), from the per-level soundness analysis.
+    pub fn queries(&self) -> &[usize] {
+        &self.queries
+    }
+
+    /// Per-level query-phase grinding bits (L0, L1, ..., L_r).
+    ///
+    /// Each level grinds after its commitment and before its query positions are sampled.
+    pub fn grinding_bits(&self) -> &[usize] {
+        &self.grinding_bits
+    }
+
+    /// Per-level out-of-domain samples (L0, L1, ..., L_r), taken right after the level's root enters the transcript.
+    ///
+    /// L0 takes none: the opening's own post-commit evaluation claim binds it.
+    pub fn ood_samples(&self) -> &[usize] {
+        &self.ood_samples
     }
 }
 
@@ -211,15 +236,15 @@ pub fn default_config(log_n: usize, log_batch_size: usize, log_inv_rate: usize) 
     })?;
 
     let n_levels = shape.log_inv_rates.len();
-    Ok(ProverConfig {
-        queries: shape.log_inv_rates.iter().map(|&r| udr_queries(r)).collect(),
-        log_inv_rates: shape.log_inv_rates,
-        level_steps: shape.k_levels.len() - 1,
+    let queries = shape.log_inv_rates.iter().map(|&r| udr_queries(r)).collect();
+    Ok(ProverConfig::new(
         initial_k,
-        level_ks: shape.k_levels[1..].to_vec(),
-        grinding_bits: vec![0usize; n_levels],
-        ood_samples: vec![0usize; n_levels],
-    })
+        shape.k_levels[1..].to_vec(),
+        shape.log_inv_rates,
+        queries,
+        vec![0usize; n_levels],
+        vec![0usize; n_levels],
+    ))
 }
 
 /// Shared config for a `2^log_n`-word witness, preferring the production profile at [`LOG_INV_RATE_0`] and falling back to [`default_config`] below its feasibility floor.
@@ -398,10 +423,6 @@ pub struct WhirSecurityConfig {
     /// much. This is an RBR target, not a claim that the sum of all interactive
     /// failure probabilities is bounded by `2^-target_security_bits`.
     pub target_security_bits: usize,
-    /// Identifier of the proximity-gap analysis used. Self-documents which
-    /// theorem the per-level parameters were derived from. Example:
-    /// `"ben_sasson_2025_thm_4_6"`.
-    pub analysis_version: String,
     /// Per-level parameters, in order L0, L1, L2, ....
     pub levels: Vec<WhirLevelConfig>,
     /// Final residual block descriptor.
@@ -950,13 +971,11 @@ impl WhirSecurityConfig {
             });
         }
 
-        let analysis_version = "bchks25_thm_4_6_exact_reduced_rate_row_union_optimized_eta";
         let cfg = Self {
             m,
             log_n,
             initial_k,
             target_security_bits: target_bits,
-            analysis_version: analysis_version.into(),
             levels,
             final_block: FinalBlockConfig {
                 yr_log_n: shape.yr_log_n,
@@ -969,15 +988,14 @@ impl WhirSecurityConfig {
     /// Build the shared prover/verifier config, retaining the level shape and dropping security-analysis fields.
     pub fn to_config(&self) -> Result<ProverConfig, String> {
         self.validate()?;
-        Ok(ProverConfig {
-            log_inv_rates: self.levels.iter().map(|lv| lv.log_inv_rate).collect(),
-            level_steps: self.levels.len() - 1,
-            initial_k: self.initial_k,
-            level_ks: self.levels.iter().skip(1).map(|lv| lv.k).collect(),
-            queries: self.levels.iter().map(|lv| lv.queries).collect(),
-            grinding_bits: self.levels.iter().map(|lv| lv.grinding_bits).collect(),
-            ood_samples: self.levels.iter().map(|lv| lv.ood_samples).collect(),
-        })
+        Ok(ProverConfig::new(
+            self.initial_k,
+            self.levels.iter().skip(1).map(|lv| lv.k).collect(),
+            self.levels.iter().map(|lv| lv.log_inv_rate).collect(),
+            self.levels.iter().map(|lv| lv.queries).collect(),
+            self.levels.iter().map(|lv| lv.grinding_bits).collect(),
+            self.levels.iter().map(|lv| lv.ood_samples).collect(),
+        ))
     }
 }
 

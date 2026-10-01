@@ -8,8 +8,8 @@
 //! transposed-NTT fast path with the dispatch between them.
 
 use crate::ntt::AdditiveNttF64;
-use crate::whir::build_eq_table_ext;
 use primitives::field::{F64, F192, F192Unreduced};
+use primitives::multilinear::eq_table;
 use zk_alloc::ArenaVec;
 
 // ===================================================================
@@ -135,7 +135,7 @@ pub(crate) fn induce_sumcheck_poly<T: RowElem>(
     assert_eq!(opened_rows.len(), n_queries);
     debug_assert_eq!(weights.len(), n_queries);
     let low = log_msg_cols.min(LOW_BITS);
-    let eq = build_eq_table_ext(v_challenges);
+    let eq = eq_table(v_challenges);
     let inv_sks_vks = invert_sks(sks_vks);
     debug_assert!(inv_sks_vks.len() > log_msg_cols);
 
@@ -206,7 +206,7 @@ pub(crate) fn induce_sumcheck_enforced_sum<T: RowElem>(
     weights: &[F192],
 ) -> F192 {
     assert_eq!(opened_rows.len(), queries.len());
-    let eq = build_eq_table_ext(v_challenges);
+    let eq = eq_table(v_challenges);
     debug_assert_eq!(weights.len(), queries.len());
     let mut sum = F192::ZERO;
     for (i, row) in opened_rows.iter().enumerate() {
@@ -560,7 +560,7 @@ pub(crate) fn induce_sumcheck_poly_via_ntt_base(
     let n_queries = queries.len();
     assert_eq!(opened_rows.len(), n_queries);
 
-    let eq = build_eq_table_ext(v_challenges);
+    let eq = eq_table(v_challenges);
     debug_assert_eq!(weights.len(), n_queries);
 
     let mut enforced_sum = F192::ZERO;

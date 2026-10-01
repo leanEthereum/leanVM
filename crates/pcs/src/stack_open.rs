@@ -298,7 +298,7 @@ pub fn open_batch_mixed_whir_stacked(
     //     lane round 1:  each chunk is filled again, then folded
     //
     // Filling costs less than writing the weight out and reading it back.
-    let lane_block = 1usize << (log_n - config.initial_k);
+    let lane_block = 1usize << (log_n - config.initial_k());
     let weight = basis::StackWeight::new(stack.len(), lane_block, point_claims, lambdas_pd, rings, &rs_outputs);
     let fill = |start: usize, dst: &mut [F192]| weight.fill(start, dst);
     let message = tracing::info_span!("Basis").in_scope(|| super::whir::initial_message(stack, lane_block, &fill));
@@ -410,8 +410,9 @@ pub fn verify_opening_batch_mixed_whir_stacked(
 mod tests {
     use super::*;
     use crate::ring_switch::fold_1b_rows;
-    use crate::whir::{INITIAL_BASIS_CHUNK, build_eq_table_ext, commit, default_config, inner_product_base_ext};
+    use crate::whir::{INITIAL_BASIS_CHUNK, commit, default_config, inner_product_base_ext};
     use crate::whir_config::test_config_for;
+    use primitives::multilinear::eq_table;
     use primitives::test_rng::Rng;
 
     const DOMAIN: &[u8] = b"stack-open-test";
@@ -556,7 +557,7 @@ mod tests {
             .map(|c| {
                 let offset = c * col_len;
                 let low_point = rng.ext_vec(col_vars);
-                let eq = build_eq_table_ext(&low_point);
+                let eq = eq_table(&low_point);
                 let value = inner_product_base_ext(&stack[offset..offset + col_len], &eq);
                 StackClaim::Point {
                     offset,
@@ -572,7 +573,7 @@ mod tests {
             let stride_log = 3usize;
             let slot = 5usize;
             let point = rng.ext_vec(qflock_vars - stride_log);
-            let eq = build_eq_table_ext(&point);
+            let eq = eq_table(&point);
             let mut value = F192::ZERO;
             for (j, &ej) in eq.iter().enumerate() {
                 value += ej.mul_base(stack[qflock_offset + slot + (j << stride_log)]);
@@ -589,7 +590,7 @@ mod tests {
         // One ring-switched claim on q_flock (plain eq prefix weights).
         let qflock = &stack[qflock_offset..qflock_offset + (1 << qflock_vars)];
         let suffix_point = rng.ext_vec(qflock_vars);
-        let s_hat_v = fold_1b_rows(qflock, &build_eq_table_ext(&suffix_point));
+        let s_hat_v = fold_1b_rows(qflock, &eq_table(&suffix_point));
         let ring = RingSwitchOpen {
             offset: qflock_offset,
             qflock_vars,
@@ -610,12 +611,12 @@ mod tests {
         // Pin the intended residual regime: the residual cube must sit
         // entirely above the q_flock coords, with at least one selector coord
         // covered by ris (the E-valued sel prefix) and the rest by y bits.
-        let yr_log_n = log_n - pc.initial_k - pc.level_ks.iter().sum::<usize>();
+        let yr_log_n = log_n - pc.initial_k() - pc.level_ks().iter().sum::<usize>();
         assert!(
             qflock_vars < log_n - yr_log_n,
             "test shape must keep the residual cube above q_flock (yr_log_n = {yr_log_n})"
         );
-        let (cm, pd) = commit(&stack, log_n, pc.initial_k, pc.log_inv_rates[0]);
+        let (cm, pd) = commit(&stack, log_n, pc.initial_k(), pc.log_inv_rates()[0]);
         let mut ps = fiat_shamir::transcript::ProverState::from_label(DOMAIN);
         open_batch_mixed_whir_stacked(
             &mut ps,
@@ -664,7 +665,7 @@ mod tests {
             &mut vs,
             &inst.vc,
             inst.log_n,
-            1 << inst.vc.initial_k,
+            1 << inst.vc.initial_k(),
             &inst.root,
             point_claims,
             std::slice::from_ref(&ring),
@@ -750,7 +751,7 @@ mod tests {
 
         // One point claim on the low column.
         let low_point = rng.ext_vec(12);
-        let eq = build_eq_table_ext(&low_point);
+        let eq = eq_table(&low_point);
         let value = inner_product_base_ext(&stack[..1 << 12], &eq);
         let point_claims = vec![StackClaim::Point {
             offset: 0,
@@ -761,7 +762,7 @@ mod tests {
         // One ring-switched claim on the wide q_flock.
         let qflock = &stack[qflock_offset..];
         let suffix_point = rng.ext_vec(qflock_vars);
-        let s_hat_v = fold_1b_rows(qflock, &build_eq_table_ext(&suffix_point));
+        let s_hat_v = fold_1b_rows(qflock, &eq_table(&suffix_point));
         let claims = vec![RingSwitchClaim {
             suffix_point,
             // Exercise the precomputed path (transcript must be identical).
@@ -771,13 +772,13 @@ mod tests {
         // Fixed fallback config so the residual cube size is known: the
         // crossing regime needs qflock_vars > log_n - yr_log_n.
         let pc = default_config(log_n, 5, 1).unwrap();
-        let yr_log_n = log_n - pc.initial_k - pc.level_ks.iter().sum::<usize>();
+        let yr_log_n = log_n - pc.initial_k() - pc.level_ks().iter().sum::<usize>();
         assert!(
             qflock_vars > log_n - yr_log_n,
             "test shape must exercise the crossing regime (yr_log_n = {yr_log_n})"
         );
 
-        let (cm, pd) = commit(&stack, log_n, pc.initial_k, pc.log_inv_rates[0]);
+        let (cm, pd) = commit(&stack, log_n, pc.initial_k(), pc.log_inv_rates()[0]);
         let ring = RingSwitchOpen {
             offset: qflock_offset,
             qflock_vars,
@@ -806,7 +807,7 @@ mod tests {
                 &mut vs,
                 &pc,
                 log_n,
-                1 << pc.initial_k,
+                1 << pc.initial_k(),
                 &cm.root,
                 &point_claims,
                 std::slice::from_ref(&ring_v)
@@ -829,7 +830,7 @@ mod tests {
                 &mut vs,
                 &pc,
                 log_n,
-                1 << pc.initial_k,
+                1 << pc.initial_k(),
                 &cm.root,
                 &point_claims,
                 std::slice::from_ref(&bad_ring)

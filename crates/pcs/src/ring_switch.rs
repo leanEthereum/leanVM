@@ -69,10 +69,11 @@
 
 use fiat_shamir::transcript::Challenger;
 use primitives::field::{F64, F192};
+use primitives::multilinear::eq_table;
 
 use super::pack::PACKING_WIDTH;
 use super::tensor_algebra::{DEGREE_E, TensorAlgebraE, transpose_s_hat};
-use super::whir::{build_eq_table_ext, inner_product_base_ext};
+use super::whir::inner_product_base_ext;
 
 /// Total degree of the six-challenge composed batching map. This is the
 /// conservative degree used by the WHIR list-size soundness accounting.
@@ -178,7 +179,7 @@ pub fn inner_product_ext(a: &[F192], b: &[F192]) -> F192 {
 ///
 /// `packed_witness[y] in K` for `y in 0..2^L`; `suffix_tensor` is
 /// `eq(r_suffix, .)` over the same range (from
-/// [`build_eq_table_ext`]).
+/// the `eq` table builder).
 ///
 /// Output: `s_hat_v[i] = sum_y bit_i(packed_witness[y]) * suffix_tensor[y]`
 /// for `i in 0..64` (bit i = polynomial-basis coordinate of the u64).
@@ -353,12 +354,12 @@ fn split_n_lo(n: usize) -> usize {
 }
 
 /// Factored eq tensor: `eq(point, y) = eq_lo[y & (2^n_lo - 1)] * eq_hi[y >> n_lo]`
-/// (LSB-first indexing, matching `build_eq_table_ext`). Materializes
+/// (LSB-first indexing, matching the full `eq` table). Materializes
 /// `2^n_lo + 2^(n - n_lo)` entries instead of `2^n`; field multiplication is
 /// exact, so the reconstructed entries are bit-identical to the full build.
 fn build_eq_split_ext(point: &[F192]) -> (Vec<F192>, Vec<F192>) {
     let n_lo = split_n_lo(point.len());
-    (build_eq_table_ext(&point[..n_lo]), build_eq_table_ext(&point[n_lo..]))
+    (eq_table(&point[..n_lo]), eq_table(&point[n_lo..]))
 }
 
 // ---------------------------------------------------------------------------
@@ -492,9 +493,7 @@ mod tests {
     use crate::merkle::Hash;
     use crate::pack::LOG_PACKING;
     use crate::whir::VerifierConfig;
-    use crate::whir::{
-        commit, recursive_prover_with_basis, recursive_verifier_with_basis, recursive_verifier_with_basis_succinct,
-    };
+    use crate::whir::{commit, recursive_prover_with_basis, recursive_verifier_with_basis_succinct};
     use crate::whir_config::test_config_for;
     use primitives::test_rng::Rng;
 
@@ -526,7 +525,7 @@ mod tests {
             .collect::<Vec<_>>();
 
         // Reference: one dense weight vector per claim, combined afterwards.
-        let dense_basis = fold_dense(&build_eq_table_ext(&point), &coordinate_weights);
+        let dense_basis = fold_dense(&eq_table(&point), &coordinate_weights);
         let expected_target = states.iter().zip(lambdas).fold(F192::ZERO, |acc, (state, lambda)| {
             acc + lambda * inner_product_base_ext(&transpose_s_hat(&state.s_hat_v), &coordinate_weights)
         });
@@ -643,7 +642,7 @@ mod tests {
     /// Reference s_hat_v: brute-force partial evaluation of each bit-column
     /// MLE at the suffix point (direct bit-extract loop, no fold kernel).
     fn s_hat_v_reference(packed: &[F64], suffix_point: &[F192]) -> Vec<F192> {
-        let eq_suffix = build_eq_table_ext(suffix_point);
+        let eq_suffix = eq_table(suffix_point);
         (0..PACKING_WIDTH)
             .map(|i| {
                 let mut acc = F192::ZERO;
@@ -667,7 +666,7 @@ mod tests {
         let bits = rng.bits(1usize << m);
         let packed = pack_witness(&bits);
         let suffix_point = rng.ext_vec(m - LOG_PACKING);
-        let eq_suffix = build_eq_table_ext(&suffix_point);
+        let eq_suffix = eq_table(&suffix_point);
 
         let s_hat_v = fold_1b_rows(&packed, &eq_suffix);
         assert_eq!(s_hat_v.len(), PACKING_WIDTH);
@@ -694,11 +693,11 @@ mod tests {
         let bits = rng.bits(1usize << m);
         let packed = pack_witness(&bits);
         let point = rng.ext_vec(m);
-        let prefix_weights = build_eq_table_ext(&point[..LOG_PACKING]);
+        let prefix_weights = eq_table(&point[..LOG_PACKING]);
         let suffix_point = &point[LOG_PACKING..];
 
         let s_ref = s_hat_v_reference(&packed, suffix_point);
-        let eq_full = build_eq_table_ext(&point);
+        let eq_full = eq_table(&point);
         let mut direct = F192::ZERO;
         for (x, &w) in eq_full.iter().enumerate() {
             if bits[x] {
@@ -739,10 +738,10 @@ mod tests {
         let z = rng.ext_vec(l);
         let challenges = std::array::from_fn(|_| rng.ext());
         let coordinate_weights = build_coordinate_weights(&challenges);
-        let rs_eq_ind = fold_dense(&build_eq_table_ext(&z), &coordinate_weights);
+        let rs_eq_ind = fold_dense(&eq_table(&z), &coordinate_weights);
 
         let query = rng.ext_vec(l);
-        let eq_query = build_eq_table_ext(&query);
+        let eq_query = eq_table(&query);
         let dense = inner_product_ext(&rs_eq_ind, &eq_query);
 
         assert_eq!(eval_rs_eq(&z, &query, &coordinate_weights), dense);
@@ -773,7 +772,7 @@ mod tests {
         let packed = pack_witness(&bits);
         let log_n = m - LOG_PACKING;
         let pc = test_config_for(log_n);
-        let (cm, pd) = commit(&packed, log_n, pc.initial_k, pc.log_inv_rates[0]);
+        let (cm, pd) = commit(&packed, log_n, pc.initial_k(), pc.log_inv_rates()[0]);
 
         let suffix_point = rng.ext_vec(log_n);
         let prefix_weights: Vec<F192> = if generalized_weights {
@@ -781,7 +780,7 @@ mod tests {
             // weights): any 64 E-values work.
             rng.ext_vec(PACKING_WIDTH)
         } else {
-            build_eq_table_ext(&rng.ext_vec(LOG_PACKING))
+            eq_table(&rng.ext_vec(LOG_PACKING))
         };
         let claim = inner_product_ext(&prefix_weights, &s_hat_v_reference(&packed, &suffix_point));
 
@@ -830,15 +829,24 @@ mod tests {
         Some((coordinate_weights, sumcheck_claim))
     }
 
-    /// Dense verification: rebuild `rs_eq_ind` and hand it to the dense whir
-    /// verifier as `b_initial`.
+    /// Dense verification: rebuild `rs_eq_ind`, and let the whir verifier's
+    /// terminal closure evaluate its MLE from the whole table.
     fn verify_e2e_dense(e: &E2e) -> bool {
         let mut vs = fiat_shamir::transcript::VerifierState::from_label(E2E_DOMAIN, &e.fs);
         let Some((coordinate_weights, sumcheck_claim)) = verify_e2e_reduction(e, &mut vs) else {
             return false;
         };
-        let rs_eq_ind = fold_dense(&build_eq_table_ext(&e.suffix_point), &coordinate_weights);
-        recursive_verifier_with_basis(&e.vc, 1 << e.vc.initial_k, &rs_eq_ind, sumcheck_claim, &e.root, &mut vs)
+        let rs_eq_ind = fold_dense(&eq_table(&e.suffix_point), &coordinate_weights);
+        recursive_verifier_with_basis_succinct(
+            &e.vc,
+            e.log_n,
+            1 << e.vc.initial_k(),
+            sumcheck_claim,
+            &e.root,
+            |point| inner_product_ext(&rs_eq_ind, &eq_table(point)),
+            &mut vs,
+        )
+        .is_ok()
     }
 
     /// Succinct verification: no `rs_eq_ind`, the succinct whir verifier's
@@ -852,7 +860,7 @@ mod tests {
         recursive_verifier_with_basis_succinct(
             &e.vc,
             e.log_n,
-            1 << e.vc.initial_k,
+            1 << e.vc.initial_k(),
             sumcheck_claim,
             &e.root,
             |point| eval_rs_eq(&z, point, &coordinate_weights),

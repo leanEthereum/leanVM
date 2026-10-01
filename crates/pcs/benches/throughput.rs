@@ -20,11 +20,10 @@ use std::hint::black_box;
 use std::time::Instant;
 
 use bench::{Plan, Timing, env_usize};
-use pcs::whir::{
-    LOG_INV_RATE_0, build_eq_table_ext, commit, config_for_rate, inner_product_base_ext, recursive_prover_with_basis,
-};
+use pcs::whir::{LOG_INV_RATE_0, commit, config_for_rate, inner_product_base_ext, recursive_prover_with_basis};
 use primitives::{
     field::{F64, F192},
+    multilinear::eq_table,
     pretty_integer,
     test_rng::Rng,
 };
@@ -43,7 +42,7 @@ fn main() {
     let n = 1usize << log_n;
     let witness: Vec<F64> = (0..n).map(|_| F64(rng.next_u64())).collect();
     let point: Vec<F192> = rng.ext_vec(log_n);
-    let b_initial = build_eq_table_ext(&point);
+    let b_initial = eq_table(&point);
     let target = inner_product_base_ext(&witness, &b_initial);
 
     // Nothing a pass allocates outlives it: the commitment and the proof are
@@ -55,7 +54,7 @@ fn main() {
         let _phase = zk_alloc::enter_phase();
 
         let t = Instant::now();
-        let (cm, pd) = tracing::info_span!("Commit").in_scope(|| commit(&witness, log_n, pc.initial_k, log_inv_rate));
+        let (cm, pd) = tracing::info_span!("Commit").in_scope(|| commit(&witness, log_n, pc.initial_k(), log_inv_rate));
         commit_t.push(t.elapsed().as_secs_f64());
 
         let mut ch = fiat_shamir::transcript::ProverState::from_label(b"pcs-throughput");

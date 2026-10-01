@@ -64,15 +64,17 @@ fn whir_query_table_matches_rust() {
             .to_config()
             .unwrap_or_else(|e| panic!("rate {rate}, log_n {log_n}: {e}"));
         assert_eq!(
-            config.queries, tabulated,
+            config.queries(),
+            tabulated,
             "rate {rate}, log_n {log_n}: WHIR_QUERIES is stale, regenerate it with print_whir_query_table"
         );
         // Hardcoded on the Python side, so it must hold wherever the table does.
         let expected_ood: Vec<usize> = std::iter::once(0)
-            .chain(std::iter::repeat_n(1, config.queries.len() - 1))
+            .chain(std::iter::repeat_n(1, config.queries().len() - 1))
             .collect();
         assert_eq!(
-            config.ood_samples, expected_ood,
+            config.ood_samples(),
+            expected_ood,
             "rate {rate}, log_n {log_n}: OOD samples are no longer 'none at level 0, one after'"
         );
         checked += 1;
@@ -98,7 +100,7 @@ fn print_whir_query_table() {
                         .unwrap()
                         .to_config()
                         .unwrap();
-                    let queries: Vec<String> = config.queries.iter().map(usize::to_string).collect();
+                    let queries: Vec<String> = config.queries().iter().map(usize::to_string).collect();
                     format!("({})", queries.join(","))
                 })
                 .collect();
