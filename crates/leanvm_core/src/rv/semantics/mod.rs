@@ -29,7 +29,7 @@ pub use multiply::{Mul, Mulh};
 pub use shift::Shift;
 
 use super::circuits::ClassCircuit;
-use super::entry::{Class, Entry};
+use super::entry::Class;
 
 /// An instruction class: its flag words, its function, and the circuit that proves it.
 ///
@@ -65,56 +65,6 @@ pub struct Outcome {
     pub taken: bool,
     /// A load's or a store's cell access.
     pub access: Option<WordAccess>,
-}
-
-impl Entry {
-    /// What this entry computes from its registers and, for a load or a store, the cell it names.
-    ///
-    /// The result holds whether or not a run could make the access.
-    ///
-    /// A hash computes nothing here: its block is the machine's to read.
-    pub fn evaluate(&self, v1: u64, v2: u64, cell: u64) -> Outcome {
-        let (flags, imm) = (self.flags, self.imm);
-        let (out, taken, access) = match self.class {
-            Class::Alu => {
-                let (out, taken) = Alu { flags, v1, v2, imm }.eval();
-                (out, taken, None)
-            }
-            Class::Shift => (Shift { flags, v1, v2, imm }.eval(), false, None),
-            Class::Mul => (Mul { flags, v1, v2 }.eval(), false, None),
-            Class::Mulh => (Mulh { flags, v1, v2 }.eval(), false, None),
-            Class::Div => (Div { flags, v1, v2 }.eval(), false, None),
-            // A load leaves its cell as it was.
-            Class::Load => {
-                let (address, value) = Load { flags, v1, imm, cell }.eval();
-                let access = WordAccess {
-                    address,
-                    old: cell,
-                    new: cell,
-                };
-                (value, false, Some(access))
-            }
-            // A store's result is the cell it leaves.
-            Class::Store => {
-                let (address, new) = Store {
-                    flags,
-                    v1,
-                    v2,
-                    imm,
-                    cell,
-                }
-                .eval();
-                let access = WordAccess {
-                    address,
-                    old: cell,
-                    new,
-                };
-                (0, false, Some(access))
-            }
-            Class::Hash | Class::Illegal => (0, false, None),
-        };
-        Outcome { out, taken, access }
-    }
 }
 
 /// Sign-extend the low 32 bits of `x`.
