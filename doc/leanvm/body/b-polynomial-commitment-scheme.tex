@@ -141,7 +141,7 @@ Suppose that for every level $i$: $\rad_i = 1 - \sqrt{\rate_i} - \slack_i$ with 
 \[
 \begin{array}{llcl}
 \textnormal{batching, level } i: & \varepsilon^{\mathrm{batch}}_i &=& \dfrac{(J_i - 1)\, L_i}{|\E|} , \\[2ex]
-\textnormal{fold challenge } \fc_j, \textnormal{ level } i: & \varepsilon^{\mathrm{fold}}_{i,j} &=& \dfrac{2 L_i}{|\E|} + 2^{\ell_i - j}\, \epsilon_i , \\[2ex]
+\textnormal{fold challenge } \fc_j, \textnormal{ level } i: & \varepsilon^{\mathrm{fold}}_{i,j} &=& \dfrac{2 L_i}{|\E|} + \epsilon_i , \\[2ex]
 \textnormal{OOD challenge entering level } i \ge 1: & \varepsilon^{\mathrm{ood}}_i &=& \dbinom{L_i}{2} \cdot \dfrac{\nv_i}{|\E|} , \\[2ex]
 \textnormal{query message } \qset_i: & \varepsilon^{\mathrm{query}}_i &=& (1 - \rad_i)^{\nq_i} , \\[2ex]
 \textnormal{final batching challenge } \lambda: & \varepsilon^{\mathrm{fin}} &=& \dfrac{\nq_{\nlev-1}}{|\E|} , \\[2ex]
@@ -187,14 +187,21 @@ where
 We write $\epsilon := \mcanum/|\E|$ for this MCA error at radius $\rad$. MCA is exactly what Lemma~\ref{lem:fold-list} needs: folding should not create \emph{new} nearby codewords.
 
 \begin{lemma}[Folding preserves lists]\label{lem:fold-list}
-Let $\RS[\E,\dom,\kdim]$ have rate $\rate$, let $\rad \in (0, 1-\rate)$, and let $\epsilon$ be an MCA error at radius $\rad$. For every interleaved word $\orc \in \E^{\cube{\ell} \times \dom}$, $\ell \ge 1$:
+Let $\RS[\E,\dom,\kdim]$ have rate $\rate$, let $\rad \in (0, 1-\rate)$, and let $\epsilon$ be an MCA error at radius $\rad$, i.e.\ a bound on the probability of Theorem~\ref{thm:mca-johnson} for every two-row word. For every interleaved word $\orc \in \E^{\cube{\ell} \times \dom}$, $\ell \ge 1$:
 \[
-\Pr_{\fc \leftarrow \E}\Bigl[\, \lst_\rad(\orc_\fc) \neq \{ U_\fc : U \in \lst_\rad(\orc) \} \,\Bigr] \;\le\; 2^{\ell-1} \epsilon .
+\Pr_{\fc \leftarrow \E}\Bigl[\, \lst_\rad(\orc_\fc) \neq \{ U_\fc : U \in \lst_\rad(\orc) \} \,\Bigr] \;\le\; \epsilon .
 \]
 \end{lemma}
 
+The bound does not grow with $\ell$. This is a theorem of Jo~\cite[Thm.~4.4]{Jo26}: for a code linear over a field $\F$, and a fold whose two coefficients are functions of a seed drawn uniformly from a set of at most $|\F|$ elements, the MCA error of every row interleaving of the code equals that of the code itself, at every radius. Both hypotheses hold here, with $\F = \E$:
+\begin{itemize}[itemsep=1pt]
+\item \emph{The code is $\E$-linear.} Its domain lies in $\K$, but $\RS[\E,\dom,\kdim]$ is an $\E$-subspace of $\E^\dom$, and so is each of its row interleavings.
+\item \emph{The seed set is no larger than the field.} The seed is the fold challenge $\fc$, drawn from $\E$ itself, and the coefficients are $(1-\fc, \fc)$.
+\end{itemize}
+The theorem holds at every radius, hence in the list-decoding regime of Theorem~\ref{thm:mca-johnson}, and the event it bounds is the MCA event of that theorem, with one agreement set shared by the fold and by every row. A row-by-row union bound would instead pay $2^{\ell-1}\epsilon$.
+
 \begin{proof}
-$\supseteq$ holds always: $U \in \lst_\rad(\orc)$ agreeing with $\orc$ on $\aset$ gives $U_\fc$ agreeing with $\orc_\fc$ on $\aset$. For $\subseteq$: for $u \in \cube{\ell-1}$ let $E_u$ be the MCA event for the two-row word $(\orc[(0,u),\cdot], \orc[(1,u),\cdot])$, so $\Pr[\bigcup_u E_u] \le 2^{\ell-1}\epsilon$. Suppose no $E_u$ occurs, and let $V \in \lst_\rad(\orc_\fc)$ with common agreement set $\aset$, $|\aset| \ge (1-\rad)\blen$. For each $u$, the row $\orc_\fc[u,\cdot]$ agrees on $\aset$ with the codeword $V[u,\cdot]$, so (as $E_u$ failed) there are, for each $\iota \in \{0,1\}$, codewords $W_{(\iota,u)}$ equal to $\orc[(\iota,u),\cdot]$ on $\aset$; the interleaved codeword $W$ with these rows lies in $\lst_\rad(\orc)$ (same $\aset$ for all $u$). Finally $W_\fc[u,\cdot]$ agrees with $V[u,\cdot]$ on $\aset$, and $|\aset| \ge (1-\rad)\blen > \kdim$ while distinct codewords agree on fewer than $\kdim$ points, so $V = W_\fc$.
+$\supseteq$ holds always: $U \in \lst_\rad(\orc)$ agreeing with $\orc$ on $\aset$ gives $U_\fc$ agreeing with $\orc_\fc$ on $\aset$. For $\subseteq$: read $\orc$ as the two-row word $(\orc[(0,\cdot),\cdot], \orc[(1,\cdot),\cdot])$ over the $2^{\ell-1}$-fold row interleaving of the code, whose fold at $\fc$ is $\orc_\fc$, and consider its MCA event with respect to that interleaved code. By \cite[Thm.~4.4]{Jo26}, that event has probability at most the MCA error of a two-row word of $\RS[\E,\dom,\kdim]$, hence at most $\epsilon$. Suppose it does not occur, and let $V \in \lst_\rad(\orc_\fc)$ with common agreement set $\aset$, $|\aset| \ge (1-\rad)\blen$. Then $\orc_\fc$ agrees on $\aset$ with the interleaved codeword $V$, so (as the event failed) there is an interleaved codeword $W$ whose rows $W[(\iota,u),\cdot]$ equal $\orc[(\iota,u),\cdot]$ on $\aset$ for every $\iota \in \{0,1\}$ and $u \in \cube{\ell-1}$; $W$ lies in $\lst_\rad(\orc)$. Finally $W_\fc[u,\cdot]$ agrees with $V[u,\cdot]$ on $\aset$, and $|\aset| \ge (1-\rad)\blen > \kdim$ while distinct codewords agree on fewer than $\kdim$ points, so $V = W_\fc$.
 \end{proof}
 
 \begin{lemma}[OOD separation]\label{lem:ood}
@@ -241,7 +248,7 @@ H_U(0) + H_U(1) \;=\; \bigl\langle\, \mle{W}(\fc^{<j}, \cdot),\; g_U \,\bigr\ran
 the inequality being the assumed violation; hence $h_j \neq H_U$ as polynomials. Two bad events over $\fc_j$:
 \begin{itemize}[itemsep=1pt]
 \item $B_1$: $h_j(\fc_j) = H_U(\fc_j)$ for some $U \in \lst$. For each $U$, two distinct polynomials of degree at most $2$ agree on at most $2$ points, so $\Pr[B_1] \le 2 L_i / |\E|$.
-\item $B_2$: $\lst_{\rad_i}(\orc^{(i)}_{\fc^{\le j}}) \neq \{ U_{\fc_j} : U \in \lst \}$, i.e.\ folding does not map the old list onto the new one. The matrix $\orc^{(i)}_{\fc^{<j}}$ has $2^{\ell_i - j + 1}$ rows, so Lemma~\ref{lem:fold-list} with $\ell = \ell_i - j + 1$ gives $\Pr[B_2] \le 2^{\ell_i - j} \epsilon_i$.
+\item $B_2$: $\lst_{\rad_i}(\orc^{(i)}_{\fc^{\le j}}) \neq \{ U_{\fc_j} : U \in \lst \}$, i.e.\ folding does not map the old list onto the new one. Lemma~\ref{lem:fold-list}, applied to the $2^{\ell_i - j + 1}$-row matrix $\orc^{(i)}_{\fc^{<j}}$, gives $\Pr[B_2] \le \epsilon_i$.
 \end{itemize}
 If neither occurs, every $V \in \lst_{\rad_i}(\orc^{(i)}_{\fc^{\le j}})$ is $V = U_{\fc_j}$ for some $U \in \lst$, with $\mle{g_V} = \mle{g_U}(\fc_j, \cdot)$ by Fact~\ref{fact:fold-decode}, so
 \[
@@ -249,7 +256,7 @@ If neither occurs, every $V \in \lst_{\rad_i}(\orc^{(i)}_{\fc^{\le j}})$ is $V =
 \;=\; \sum_{x \in \cube{\nv_i - j}} \mle{W}(\fc^{<j}, \fc_j, x)\, \mle{g_U}(\fc_j, x)
 \;=\; H_U(\fc_j) \;\neq\; h_j(\fc_j) \;=\; \rc{j} ,
 \]
-using $\neg B_1$ for the inequality: every $V$ violates the round-$j$ claim. The total error is $2 L_i/|\E| + 2^{\ell_i - j} \epsilon_i$.
+using $\neg B_1$ for the inequality: every $V$ violates the round-$j$ claim. The total error is $2 L_i/|\E| + \epsilon_i$.
 
 \medskip\noindent\emph{The level interface.}
 After the last fold challenge of level $i < \nlev - 1$, we know: every codeword within $\rad_i$ of the single row $c := \orc^{(i)}_\fc \in \E^{\dom_i}$ violates the residual claim $(W', c')$. The prover now sends the new oracle $\orc^{(i+1)}$.

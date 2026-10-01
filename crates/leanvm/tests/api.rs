@@ -89,7 +89,7 @@ fn public_api_end_to_end() {
     let bytes = received.to_bytes();
     let mut bumped = bytes.clone();
     bumped[4] += 1;
-    assert_eq!(Proof::from_bytes(&bumped), Err(Error::UnsupportedVersion { found: 3 }));
+    assert_eq!(Proof::from_bytes(&bumped), Err(Error::UnsupportedVersion { found: 4 }));
     let mut magic = bytes.clone();
     magic[0] ^= 1;
     assert_eq!(Proof::from_bytes(&magic), Err(Error::MalformedProof));
