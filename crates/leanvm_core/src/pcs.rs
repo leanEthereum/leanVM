@@ -28,7 +28,9 @@
 use fiat_shamir::transcript::{ProverState, Receiver, Transmitter, VerifierState};
 use primitives::field::F64;
 
-pub use ::pcs::stack_open::{RingSwitchClaim, RingSwitchOpen, RingSwitchVerify, StackClaim as SlotClaim};
+pub use ::pcs::stack_open::{
+    RingSwitchClaim, RingSwitchOpen, RingSwitchVerify, RingSwitchVerifyClaim, StackClaim as SlotClaim,
+};
 use ::pcs::stack_open::{open_batch_mixed_whir_stacked, verify_opening_batch_mixed_whir_stacked};
 use ::pcs::whir::ProverConfig;
 use ::pcs::whir::{ProverData, commit as whir_commit, config_for_rate};

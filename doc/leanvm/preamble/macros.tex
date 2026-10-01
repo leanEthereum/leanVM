@@ -69,8 +69,8 @@
 \newcommand{\qclk}[1]{q^{\mathsf{clk}}_{\mathsf{#1}}}   % the packed flock witness of one table's clock circuit
 \newcommand{\addr}{\mathit{addr}}
 \newcommand{\val}{\mathit{val}}
-\newcommand{\cnt}{\mathit{count}}
-\newcommand{\cntfin}{\mathit{count}^{\mathrm{fin}}}  % committed finalize-count column
+\newcommand{\reads}{\mathit{reads}}     % committed column: each lookup entry's read count, its low bits the digits
+\newcommand{\ndig}{N_{\mathrm{dig}}}     % binary digits of a read count: 2^5
 \newcommand{\ts}{\mathbf{ts}}            % the execution clock, an integer below 2^41
 \newcommand{\exitflag}{\mathit{exit}} % public selector: one only for ecall
 \newcommand{\tsfinal}{\ts_{\mathrm{final}}} % the clock the run ends on, announced by the prover
@@ -81,7 +81,6 @@
 \newcommand{\regfin}{\regs^{\mathrm{fin}}}  % committed registers after the run
 \newcommand{\advinit}{\adv^{\mathrm{init}}} % committed advice before the run
 \newcommand{\advfin}{\adv^{\mathrm{fin}}}   % committed advice after the run
-\newcommand{\rcnts}{\mathcal{N}}          % multiset of read counts at one (address, value)
 \newcommand{\mset}[1]{\{\!\{#1\}\!\}}     % a multiset (plain braces stay sets)
 \newcommand{\lut}{\mathbf{L}}             % a lookup array (memory, or the program)
 \newcommand{\sep}{\dsep{sep}}             % the domain separator of a generic lookup array
@@ -89,7 +88,6 @@
 \newcommand{\push}{\textsc{push}}
 \newcommand{\pull}{\textsc{pull}}
 \newcommand{\tup}[1]{( #1 )}
-\newcommand{\rdf}[1]{\dsep{read}\,\tup{#1}}   % a pull/push pair differing only in the count
 \newcommand{\acc}[1]{\dsep{access}_{#1}}    % a memory access in clock slot #1: a pull and a push
 \newcommand{\dsep}[1]{\mathsf{#1}}
 \newcommand{\opc}[1]{\mathsf{op}_{\mathsf{#1}}}
@@ -97,9 +95,8 @@
 \newcommand{\nmem}{N_{\mathrm{mem}}}    % memory length
 \newcommand{\kbc}{\kappa_{\mathrm{bc}}}   % log program length: nprog = 2^kbc 
 \newcommand{\kmem}{\kappa_{\mathrm{mem}}}  % log memory length: nmem = 2^kmem
-\newcommand{\nread}{N_{\mathrm{read}}}   % total read flushes in a proof
 \newcommand{\ntab}{N_{\mathrm{tab}}}     % number of tables (fixed by the arithmetization)
-\newcommand{\nside}{N_{\mathrm{side}}}   % grand-product sides: push, pull, count
+\newcommand{\nside}{N_{\mathrm{side}}}   % grand-product sides: push, pull
 \newcommand{\taumax}{\tau_{\max}}      % rounds of the table sumcheck: the tallest table's log height
 \newcommand{\ncol}[1]{N_{\mathrm{col},#1}}  % columns of table #1
 \newcommand{\ncons}[1]{N_{\mathrm{cons},#1}}  % constraints of table #1

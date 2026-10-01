@@ -3,7 +3,7 @@
 
 The machine runs four interactions on the bus, differentiated by their domain separators (\S\ref{sec:m3}): the VM state, the registers, the memory (RAM and the advice, which share a separator and never share an address), and the public bytecode. All but the first use offline memory checking~\cite{BEGKN94}: the three read-write arrays ordered by a clock (\S\ref{sec:memchan}), and the read-only bytecode in the simpler form of \S\ref{sec:lookup}.
 
-Two encodings of an integer $i$ coexist on the bus. What the machine indexes (a register, a memory cell, an instruction), what it holds (a register's value, an address) and when it does so (a clock, a timestamp) is the integer itself, $\intk{i}$ (\S\ref{sec:vm}). What the proof system only ever steps by one (a read count) is the power $\gen^{i}$, whose successor is a free multiplication by $\gen$. Nothing adds two integers on the bus: every address a row names is a field of its bytecode entry, a word its circuit computed, or an XOR (\S\ref{sec:exp}), and every clock a row pushes is its own clock XOR a word its clock circuit computed (\S\ref{sec:clock}).
+An integer $i$ is on the bus as itself, $\intk{i}$ (\S\ref{sec:vm}): what the machine indexes (a register, a memory cell, an instruction), what it holds (a register's value, an address) and when it does so (a clock, a timestamp). A read count is not on it at all: it is the exponent of a push (\S\ref{sec:lookup}). Nothing adds two integers on the bus: every address a row names is a field of its bytecode entry, a word its circuit computed, or an XOR (\S\ref{sec:exp}), and every clock a row pushes is its own clock XOR a word its clock circuit computed (\S\ref{sec:clock}).
 
 \subsection{VM State}\label{sec:state}
 
@@ -61,53 +61,58 @@ No bound on the number of rows enters the corollary: a run of $2^{35}-1$ cycles 
 
 \subsection{The lookup protocol}\label{sec:lookup}
 
-We use a similar idea to~\cite[Protocol.~4.27]{DP23}.
+We use a similar idea to~\cite[Protocol.~4.27]{DP23}, with the multiplicities in the exponent.
 
-\paragraph{Setting.} A \emph{lookup array} $\lut$ is read-only and holds $2^{\kappa}$ entries, entry $\lut[i]$ being a tuple of $\ncomp$ elements of $\K$, possibly none ($\ncomp=0$). Its \emph{components} $\lut_0,\dots,\lut_{\ncomp-1}$ are the multilinears of height $2^{\kappa}$ holding one coordinate of the entry each: they are either committed or public. Entry $i$ sits at a public address $\addr_i\in\K$, the $2^{\kappa}$ addresses pairwise distinct: the integer $\intk{\tbase+4i}$ for the bytecode (\S\ref{sec:bytecode}). A \emph{read} is a row of a table (\S\ref{sec:m3}) naming an address $a\in\K$ and a value $v\in\K^{\ncomp}$, and is correct when $a=\addr_i$ and $v=\lut[i]$ for some $i<2^{\kappa}$.
+\paragraph{Setting.} A \emph{lookup array} $\lut$ is read-only and holds $2^{\kappa}$ entries, entry $\lut[i]$ being a tuple of $\ncomp$ elements of $\K$, possibly none ($\ncomp=0$). Its \emph{components} $\lut_0,\dots,\lut_{\ncomp-1}$ are the multilinears of height $2^{\kappa}$ holding one coordinate of the entry each, and they are public. Entry $i$ sits at a public address $\addr_i\in\K$, the $2^{\kappa}$ addresses pairwise distinct: the integer $\intk{\tbase+4i}$ for the bytecode (\S\ref{sec:bytecode}). A \emph{read} is a row of a table (\S\ref{sec:m3}) naming an address $a\in\K$ and a value $v\in\K^{\ncomp}$, and is correct when $a=\addr_i$ and $v=\lut[i]$ for some $i<2^{\kappa}$.
 
-\paragraph{Tuple and columns.} The bus interaction uses a tuple of the form $\tup{\sep,\addr,\cnt,\val}$: a domain separator naming the array, the address, the count, then the entry in coordinates $3,\dots,\ncomp+2$. Every higher coordinate is zero, so $\ncomp\le m-3$ for the bus width $m$ (\S\ref{sec:m3}). Take every part of a read to be a committed $\K$-valued column of the reading table: its address, its count, and the $\ncomp$ components of the value read. Committed on top of $\lut$ is one finalize-count $\K$-valued column $\cntfin$ of height $2^{\kappa}$.
+\paragraph{Tuple and columns.} The bus interaction uses a tuple of the form $\tup{\sep,\addr,\val}$: a domain separator naming the array, the address, then the entry in coordinates $2,\dots,\ncomp+1$. Every higher coordinate is zero, so $\ncomp\le m-2$ for the bus width $m$ (\S\ref{sec:m3}). Write $\btup_i=\tup{\sep,\addr_i,\lut[i]}$ for entry $i$'s tuple and $L_i=\beta-\pi_\alpha(\btup_i)$ for its leaf (\S\ref{sec:gp}). Committed on top of $\lut$ is one $\K$-valued column $\reads$ of height $2^{\kappa}$: the read counts. Its bits $0$ to $\ndig-1$, with $\ndig=2^{5}$, are the binary digits of an integer, entry $i$'s \emph{multiplicity}
+\[
+  n_i\;=\;\sum_{b<\ndig}\reads[i]_b\,2^{b}\;\in\;[0,2^{\ndig}),
+\]
+where $\reads[i]_b\in\{0,1\}$ is bit $b$ of the word $\reads[i]$, the coefficient of $x^{b}$. Its other bits enter nothing.
 
-\paragraph{Flush rules.} With $A[i]$ the number of reads of address $\addr_i$:
+\paragraph{Flush rules.}
 \begin{itemize}
-\item \textbf{Seed:} for each $i<2^{\kappa}$, \push\ $\tup{\sep,\addr_i,1,\lut[i]}$. A boundary block owned by no table, its address coordinate one of the index columns of \S\ref{sec:idxcol}.
-\item \textbf{Read} of $v$ at $a$ with count $\cnt$: \pull\ $\tup{\sep,a,\cnt,v}$ and \push\ $\tup{\sep,a,\gen\cdot\cnt,v}$, both flushes of the reading row.
-\item \textbf{Finalize:} for each $i$, \pull\ $\tup{\sep,\addr_i,\cntfin[i],\lut[i]}$. An honest prover commits $\cntfin[i]=\gen^{A[i]}$, the count the address has reached.
+\item \textbf{Read} of $v$ at $a$: \pull\ $\tup{\sep,a,v}$, one flush of the reading row.
+\item \textbf{Entries:} for each $i<2^{\kappa}$, \push\ $\btup_i$ with multiplicity $n_i$. A boundary block owned by no table, its address coordinate one of the index columns of \S\ref{sec:idxcol}. It puts $\ndig$ leaves per entry in the grand product, one per digit, leaf $(i,b)$ at index $i\,\ndig+b$:
+\begin{equation}\label{eq:digit-leaf}
+  1+\reads[i]_b\bigl(L_i^{2^{b}}-1\bigr),\qquad\text{whose product over }b<\ndig\text{ is }L_i^{\,n_i}.
+\end{equation}
 \end{itemize}
 
-\paragraph{Completeness.} An honest prover gives the $t$-th read of $\addr_i$ the count $\gen^{t}$ and commits $\cntfin[i]=\gen^{A[i]}$: both sides then carry the counts $\gen^{0},\dots,\gen^{A[i]}$ at that address, so the bus balances.
-
-\begin{lemma}[Invariant count multisets]\label{lem:invcnt}
-Let $\rcnts$ be a finite multiset over $\K$ with $\gen\cdot\rcnts=\rcnts$. If $|\rcnts|<2^{64}-1$, every element of $\rcnts$ is $0$.
-\end{lemma}
-
-\begin{proof}
-Let $\mathrm{mult}:\K\to\mathbb{N}$ be the multiplicity function of $\rcnts$ (Definition~\ref{def:multiset}). Multiplication by $\gen$ is a bijection of $\K$ and $\gen\cdot\rcnts$ has multiplicity function $c\mapsto\mathrm{mult}(\gen^{-1}c)$, so the hypothesis reads $\mathrm{mult}(\gen c)=\mathrm{mult}(c)$ for all $c$. Every nonzero $c$ is a power of $\gen$, so iterating this gives one value $\mathrm{mult}_1$ on all of $\K^{\times}$, which has $2^{64}-1$ elements. Then $|\rcnts|=\mathrm{mult}(0)+\mathrm{mult}_1(2^{64}-1)<2^{64}-1$ forces $\mathrm{mult}_1=0$.
-\end{proof}
+\paragraph{Completeness.} An honest prover commits $\reads[i]$ as the integer number of reads of entry $i$: both sides then carry $\btup_i$ that many times, so the bus balances. That number is below $2^{\ndig}$, since a proof commits fewer than $2^{28}$ words (Annex~\ref{annex:pcs}) and every row of a table commits at least one, so a run has fewer than $2^{28}$ rows.
 
 \begin{theorem}[Lookup correctness]\label{thm:omc}
-Let the flush rules above be the only flushes carrying $\lut$'s separator, and write $(a_j,c_j,v_j)$ for the address, count and value that read $j$ evaluates to. If the bus balances, every $c_j\neq0$, and there are fewer than $2^{64}-1$ reads, then every read is correct: $(a_j,v_j)=(\addr_i,\lut[i])$ for some $i<2^{\kappa}$.
+Let the flush rules above be the only flushes carrying $\lut$'s separator. If the pushed and the pulled multisets are equal, every read is correct, and entry $i$ is read exactly $n_i$ times.
 \end{theorem}
 
 \begin{proof}
-Fix a read pair $(a,v)$ that is \emph{not} an entry of the array, so $(a,v)\neq(\addr_i,\lut[i])$ for every $i<2^{\kappa}$. Balance equates the multiset of pushed tuples with the multiset of pulled ones; keep in each only the tuples carrying $\lut$'s separator, address $a$ and entry $v$, and the two are still equal. A seed and a finalization sit at the pairs $(\addr_i,\lut[i])$, different from $(a,v)$, so neither survives. A read at $(a,v)$ does, on both sides at once: it pulls its count $c$ and pushes $\gen c$. So the survivors are exactly the reads at $(a,v)$.
-
-Writing $\rcnts$ for the multiset of counts of the reads at $(a,v)$, balance therefore says $\gen\cdot\rcnts=\rcnts$. There are fewer than $2^{64}-1$ of them, so Lemma~\ref{lem:invcnt} makes every count in $\rcnts$ zero; every count is nonzero by hypothesis, so $\rcnts$ is empty. No read happens at such an invalid $(a,v)$.
-
+Keep in each multiset only the tuples carrying $\lut$'s separator; the two are still equal. The pushed ones are the $\btup_i$, $\btup_i$ with multiplicity $n_i$, and the pulled ones are the reads $\tup{\sep,a_j,v_j}$. A read whose pair $(a_j,v_j)$ is no $(\addr_i,\lut[i])$ would be a pulled tuple that no pushed one equals. And the multiplicity of $\btup_i$ on the pulled side, the number of reads of entry $i$, is its multiplicity on the pushed side, $n_i$, the addresses being distinct.
 \end{proof}
 
 \begin{corollary}[Addresses are in range]\label{cor:addrrange}
 Under the same hypotheses every read address is an entry address $\addr_i$, $i<2^{\kappa}$: no read at any other address, $0$ included, occurs in an accepted proof (except with negligible soundness error).
 \end{corollary}
 
-\paragraph{Nothing checks the finalize counts.} $\cntfin$ appears nowhere in Theorem~\ref{thm:omc} or its proof. A wrong value (such as $0$ for instance) cannot make a bad read pass; it can only unbalance the bus at that entry, making the proof invalid.
+\paragraph{The counts are integers.} The multiplicity is an exponent, never a field element, and that is what makes the counting exact in characteristic $2$. Lemma~\ref{lem:gp} equates multisets with their integer multiplicities: the factors $X-\pi_A(\btup)$ of distinct tuples are distinct monic irreducibles of $\K[A][X]$, so an identity of products is one of exponents, by unique factorization. A fractional sum $\sum_i n_i/(\beta-\pi_\alpha(\btup_i))$, as in a logarithmic-derivative lookup, sees each $n_i$ only modulo $2$, so a value read twice too often would vanish from it. A count that is a field element, stepped by $\gen$ at each read, lets a read of count $0$ cancel itself, since $\gen\cdot0=0$, which takes a check of its own. Here every count is an integer below $2^{\ndig}$ by construction, and nothing else bounds it.
 
-\paragraph{Meeting the hypotheses.} Grand-product GKR checks balance (\S\ref{sec:gp}). It remains to check that all counts are nonzero, and the $\nread<2^{64}-1$ read bound, as follows.
+\paragraph{Soundness of the product check.} The pushed side is a product of up to $D=2^{\mu}+2^{\kappa}(2^{\ndig}-1)$ factors $\beta-\pi_\alpha(\btup)$, counting each entry once per read it may stand for, so Theorem~\ref{th:product_check} holds with $D$ in place of $2^{\mu}$: an error of $4D/|\E|$. For the bytecode, $\kappa=\kbc\le26$ (\S\ref{sec:vm}), which keeps it below $2^{-128}$ beside the rest of the bus.
 
-\paragraph{The count product.} All counts are nonzero exactly when their product is. The prover therefore sends that product, one $\E$-element, and the verifier checks it is nonzero. It is proven like any other grand product, by GKR over the stacking of every count column (\S\ref{sec:leafstack}), batched with the two other GKRs of the bus (push / pull) (\S\ref{sec:gkr}).
+\paragraph{The digits are bits.} The leaves \eqref{eq:digit-leaf} are a function of the digits $\reads[i]_b$, which are not $\K$-elements a prover could choose freely: they are the bits of a committed word, so Boolean by construction. The leaf claim reaches them as the multilinear extensions of the column's bit slices, which ring switching binds to the committed $\K$-column (\S\ref{sec:ringswitch}, Annex~\ref{annex:rs}). No constraint checks them.
 
-\paragraph{Instance caps.} The verifier checks the announced sizes against public caps (\S\ref{sec:e2e-unrolled}): at most $2^{32}$ rows per table, and the memory map's bounds on the text, RAM and the advice (\S\ref{sec:vm}). A row reads a lookup array once, its bytecode entry, so the eight tables flush $\nread\le8\cdot2^{32}=2^{35}$ reads, far under the $2^{64}-1$ that Lemma~\ref{lem:invcnt} requires.
+\paragraph{Proving the entries' leaves.} The entries' block holds $2^{\kappa+5}$ leaves, so in \eqref{eq:gkr_leaves} it is evaluated at $\zeta_{<\kappa+5}=(\zeta_{\mathrm{d}},\zeta_{\mathrm{e}})$, the five digit coordinates first. Those leaves sum to one against the $\eq$ weights, so the block's term is $1+X$, with
+\[
+  X\;=\;\sum_{i\in\cube{\kappa}}\eq(\zeta_{\mathrm{e}},i)\sum_{b<\ndig}\eq(\zeta_{\mathrm{d}},b)\,\reads[i]_b\,\bigl(L_i^{2^{b}}-1\bigr),
+\]
+not a form in any column. The prover sends $X$, and a sumcheck over the $\kappa$ entry variables proves it, at degree three a round, the $\eq$ factor's included (Fact~\ref{fact:sumcheck}). It ends at a point $r\in\E^{\kappa}$ on $\sum_{b}\eq(\zeta_{\mathrm{d}},b)\,s_b\,\bigl(\widetilde{L^{2^{b}}}(r)-1\bigr)$, where $s_b$ is the multilinear extension of the column's bit $b$ at $r$. The prover sends the $64$ slices $s_0,\dots,s_{63}$, which the opening binds by ring switching, and the verifier computes the rest. Squaring is additive in characteristic $2$, so
+\[
+  L_i^{2^{b}}\;=\;\beta^{2^{b}}-\sum_{\iota\in\cube{4}}\eq(\alpha,\iota)^{2^{b}}\,\btup_{i,\iota}^{\,2^{b}},
+  \qquad
+  \btup_{i,\iota}^{\,2^{b}}\;=\;\sum_{k<64}\bigl(\btup_{i,\iota}\bigr)_k\,\bigl(x^{k}\bigr)^{2^{b}},
+\]
+and the coordinate $\iota$ of every entry tuple is public: its bit $k$ has a multilinear extension at $r$ that the verifier computes in one pass over the entries, a constant's being the bit itself and an index column's being linear (\S\ref{sec:idxcol}). The sumcheck adds $3\kappa/|\E|$ to the error.
 
-\paragraph{Relaxing the hypotheses.} A bus entry may be any polynomial of degree at most $d = 2$ in the row's columns (\S\ref{sec:m3}), so none of the three (address, count, value) need be committed. Example 1: once the pull counter $\cnt$ is committed, no need to commit to the corresponding push counter $\gen\cdot\cnt$. Example 2: the next $\pc$ a branch pushes is $\pc^{+}+b\cdot\Delta$, a product of two committed columns added to a third, and no column of its own (\S\ref{sec:tables}).
+\paragraph{Relaxing the hypotheses.} A bus entry may be any polynomial of degree at most $d = 2$ in the row's columns (\S\ref{sec:m3}), so neither the address nor the value a row reads need be committed. Example: the next $\pc$ a branch pushes is $\pc^{+}+b\cdot\Delta$, a product of two committed columns added to a third, and no column of its own (\S\ref{sec:tables}).
 
 \subsection{Read-write arrays}\label{sec:memchan}
 
@@ -144,7 +149,7 @@ Fix an address $a$ and keep the live tuples at $a$, which still balance. If some
 
 RAM and the advice share $\dsep{MEM}$, and the theorem applies to each: a tuple at a RAM address is never one at an advice address, so keeping the tuples at one array's addresses is the split the proof makes. What the theorem also says is that an access outside every array, a misaligned one included (\S\ref{sec:exp}), has no matching seed, so the bus does not balance: no range check on addresses is needed.
 
-\paragraph{Nothing checks the final columns.} As with $\cntfin$, a wrong $\tsfin$ or final column cannot make a bad access pass: it can only unbalance the bus. The same holds for $\advinit$, which is the prover's to choose (\S\ref{sec:vm}).
+\paragraph{Nothing checks the final columns.} A wrong $\tsfin$ or final column cannot make a bad access pass: it can only unbalance the bus. The same holds for $\advinit$, which is the prover's to choose (\S\ref{sec:vm}).
 
 \subsection{The clock circuit}\label{sec:clock}
 
@@ -158,7 +163,7 @@ Then $\mathit{step}$ holds $\ell$ at position $5$, at position $j+1$ for $5\le j
 
 \subsection{Bytecode}\label{sec:bytecode}
 
-The bytecode is a lookup array (\S\ref{sec:lookup}) of $\nprog = 2^{\kbc}$ entries, entry $i$ at the address $\intk{\tbase+4i}$, the byte address of the instruction. Bus interaction uses domain separation $\sep=\dsep{BC} = \gen^{2}$. The program is public, and so is its decoding: an entry is not the instruction word but the fields a row needs of it, decoded once by both parties (\S\ref{sec:e2e-bc}). So $\ncomp=10$: the class tag, the flags, the three register numbers, the immediate, the successor $\intk{\tbase+4i+4}$, which every row pushes as its next $\pc$ unless it jumps, and the three control fields of a branch or a jump. With the separator, the address and the count ahead of them, this is the widest entry on the bus at $13$ coordinates, which is what forces the four index bits, hence the $m=16$ slots of \S\ref{sec:m3}; the row of a division puts one more word in slot $13$ (\S\ref{sec:tables}). A jump's target needs no check of its own: the row it leads to reads the bytecode there, and Corollary~\ref{cor:addrrange} makes it an instruction. Coordinate $3$ is the tag, naming the instruction's class and its table:
+The bytecode is a lookup array (\S\ref{sec:lookup}) of $\nprog = 2^{\kbc}$ entries, entry $i$ at the address $\intk{\tbase+4i}$, the byte address of the instruction. Bus interaction uses domain separation $\sep=\dsep{BC} = \gen^{2}$. The program is public, and so is its decoding: an entry is not the instruction word but the fields a row needs of it, decoded once by both parties (\S\ref{sec:e2e-bc}). So $\ncomp=10$: the class tag, the flags, the three register numbers, the immediate, the successor $\intk{\tbase+4i+4}$, which every row pushes as its next $\pc$ unless it jumps, and the three control fields of a branch or a jump. With the separator and the address ahead of them, this is the widest entry on the bus at $12$ coordinates, which is what forces the four index bits, hence the $m=16$ slots of \S\ref{sec:m3}; the row of a division puts one more word in slot $12$, and the exit selector rides slot $13$ (\S\ref{sec:tables}). A jump's target needs no check of its own: the row it leads to reads the bytecode there, and Corollary~\ref{cor:addrrange} makes it an instruction. Coordinate $2$ is the tag, naming the instruction's class and its table:
 \begin{gather*}
   \opc{ALU}=\gen^{0},\quad \opc{LOAD}=\gen^{1},\quad \opc{STORE}=\gen^{2},\quad \opc{SHIFT}=\gen^{3},\\
   \opc{MUL}=\gen^{4},\quad \opc{MULH}=\gen^{5},\quad \opc{DIV}=\gen^{6},\quad \opc{HASH}=\gen^{7}.

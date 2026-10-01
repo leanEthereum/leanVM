@@ -46,7 +46,6 @@ pub(crate) struct Row {
     /// A hash row keeps them in `hash` instead.
     pub(crate) prev: [u64; 4],
     pub(crate) hash: Option<Box<HashRow>>,
-    pub(crate) bytecode_read: F64,
 }
 
 impl Row {
@@ -72,7 +71,8 @@ pub(crate) struct Trace {
     pub(crate) adv_init: Vec<F64>,
     pub(crate) adv_fin: Vec<F64>,
     pub(crate) adv_ts: Vec<F64>,
-    pub(crate) bytecode_count: Vec<F64>, // per-pc running execution count g^{count}; final = g^{A[pc]}
+    /// How many rows read each bytecode entry, as an integer.
+    pub(crate) bytecode_reads: Vec<F64>,
     /// The clock the run ended on: the final state's timestamp.
     pub(crate) ts_final: u64,
 }
@@ -81,5 +81,14 @@ impl Trace {
     /// Rows per instruction table.
     pub(crate) fn row_counts(&self) -> [usize; crate::tables::N_TABLES] {
         std::array::from_fn(|t| self.rows[t].len())
+    }
+
+    /// How many of `rows` read each of the program's `n_entries` bytecode entries.
+    pub(crate) fn read_counts(rows: &[Vec<Row>; crate::tables::N_TABLES], n_entries: usize) -> Vec<F64> {
+        let mut counts = vec![F64::ZERO; n_entries];
+        for row in rows.iter().flatten() {
+            counts[row.index as usize].0 += 1;
+        }
+        counts
     }
 }

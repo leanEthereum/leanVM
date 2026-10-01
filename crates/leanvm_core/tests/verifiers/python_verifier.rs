@@ -174,7 +174,9 @@ fn test_python_verifier() {
     // A decoded table is RISC-V only if it says so: one whose first entry writes `x0`
     // is refused before anything is verified.
     let table = std::fs::read(&statement.bytecode).expect("read bytecode");
-    let (ad_slot, entries) = (7, table.len() / 8 / 16);
+    // The entry's fields in slot order: the tag, flags, a1, a2, ad, imm, pc4, dt, link, jalr.
+    let field = |i: usize| leanvm_core::leaf::BYTECODE_PUBLIC_SLOT + i;
+    let (ad_slot, entries) = (field(4), table.len() / 8 / 16);
     let mut writes_x0 = table.clone();
     writes_x0[8 * ad_slot * entries..][..8].copy_from_slice(&0u64.to_le_bytes());
     std::fs::write(&statement.bytecode, writes_x0).expect("write bytecode");
@@ -187,13 +189,13 @@ fn test_python_verifier() {
     // A load reads no `rs2` and a store writes no `rd`: their tables hold those fields at
     // constants, `x0` and the sink, so an entry naming another register is refused.
     for (class, slot, reason) in [
-        (leanvm_core::rv::Class::Load, 6, "reads an rs2"),
-        (leanvm_core::rv::Class::Store, 7, "writes an rd"),
+        (leanvm_core::rv::Class::Load, field(3), "reads an rs2"),
+        (leanvm_core::rv::Class::Store, field(4), "writes an rd"),
     ] {
         // The class tag `g^t`, which is `2^t` since `g = x`.
         let tag = 1u64 << leanvm_core::tables::table_of(class).expect("the class has a table");
         let mut malformed = table.clone();
-        for (slot, value) in [(3, tag), (4, 0), (slot, 1)] {
+        for (slot, value) in [(field(0), tag), (field(1), 0), (slot, 1)] {
             malformed[8 * slot * entries..][..8].copy_from_slice(&value.to_le_bytes());
         }
         std::fs::write(&statement.bytecode, malformed).expect("write malformed register");
@@ -225,7 +227,12 @@ fn test_python_verifier() {
         (always, 0x44, 1, 1),
     ] {
         let mut malformed = table.clone();
-        for (slot, value) in [(4, flags), (10, dt), (11, link), (12, indirect)] {
+        for (slot, value) in [
+            (field(1), flags),
+            (field(7), dt),
+            (field(8), link),
+            (field(9), indirect),
+        ] {
             malformed[8 * slot * entries..][..8].copy_from_slice(&value.to_le_bytes());
         }
         std::fs::write(&statement.bytecode, malformed).expect("write malformed control flow");
@@ -246,7 +253,7 @@ v['check_bytecode'](words)
 n = len(words) // 16
 for flags, link, jalr in [(1 << 14, 1, 0), (1 | (1 << 8), 0, 0), (1 << 7, 1, 1)]:
     candidate = words.copy()
-    for slot, value in [(4, flags), (10, 0), (11, link), (12, jalr)]:
+    for slot, value in [(3, flags), (9, 0), (10, link), (11, jalr)]:
         candidate[slot * n] = v['K'](value)
     v['check_bytecode'](candidate)
 "#,

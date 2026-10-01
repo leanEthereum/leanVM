@@ -26,6 +26,7 @@ pub mod constraints;
 pub mod cpu;
 pub mod gkr;
 pub mod leaf;
+pub mod lookup;
 pub mod pcs;
 pub mod rv;
 pub mod tables;

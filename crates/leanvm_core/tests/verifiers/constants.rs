@@ -32,6 +32,7 @@ fn rust_constants() -> String {
         pcs::whir_config::INITIAL_FOLDING_FACTOR as u64,
     );
     scalar("LIVE_BIT", leanvm_core::tables::LIVE_BIT as u64);
+    scalar("LOG_COUNT_BITS", leanvm_core::lookup::LOG_COUNT_BITS as u64);
     scalar("LOG_PACKING", pcs::pack::LOG_PACKING as u64);
     scalar("LOG_REGISTERS", leanvm_core::rv::LOG_REGS as u64);
     scalar("MAX_LOG_ADVICE", leanvm_core::rv::MAX_LOG_ADVICE as u64);

@@ -1,5 +1,5 @@
 //! The public column schema and bus layout: the committed-column indices, and
-//! the flush/count blocks the verifier reconstructs from the program and the
+//! the flush blocks the verifier reconstructs from the program and the
 //! announced sizes. Plus the prover-side witness build.
 
 use super::*;
@@ -9,8 +9,9 @@ use crate::witness::{Placement, Source};
 
 /// The bus blocks no single table owns, which each side starts with, in this order.
 ///
-/// Each has a push and a pull block of the same height: the push seeds an array (or
-/// starts the run), the pull finalizes it (or ends the run) with committed columns.
+/// Each has a push block, which seeds an array (or starts the run).
+/// A read-write array also has a pull block of the same height, which finalizes it (or ends the run) with committed columns.
+/// The bytecode, which is read-only, has none: its push carries each entry as often as it is read.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Framework {
     /// The run's boundary: it starts at the entry point at cycle 1 and ends on the halt slot.
@@ -44,8 +45,8 @@ impl Framework {
 
 /// The committed columns no table owns, which come first in the global column order.
 ///
-/// The program is PUBLIC, not committed: it rides the bytecode blocks as `Coord::Public`,
-/// and only the witness-dependent counts are committed. So are the registers and RAM
+/// The program is PUBLIC, not committed: it rides the bytecode block as `Coord::Public`,
+/// and only the witness-dependent read counts are committed. So are the registers and RAM
 /// before the run, zero and the program's image: what is committed is what they hold
 /// after it, and each cell's last timestamp (§sec:memchan). The advice is the one array
 /// whose initial words are committed as well: they are the prover's.
@@ -59,8 +60,8 @@ pub enum Shared {
     AdvInit,
     AdvFin,
     AdvTs,
-    /// Each bytecode entry's execution count, `g^{A[pc]}`.
-    BytecodeCount,
+    /// How many rows read each bytecode entry, an integer below `2^COUNT_BITS`.
+    BytecodeReads,
 }
 
 pub const SHARED: [Shared; 8] = [
@@ -71,7 +72,7 @@ pub const SHARED: [Shared; 8] = [
     Shared::AdvInit,
     Shared::AdvFin,
     Shared::AdvTs,
-    Shared::BytecodeCount,
+    Shared::BytecodeReads,
 ];
 
 impl Shared {
@@ -86,7 +87,7 @@ impl Shared {
             Shared::RegFin | Shared::RegTs => Framework::Registers,
             Shared::RamFin | Shared::RamTs => Framework::Ram,
             Shared::AdvInit | Shared::AdvFin | Shared::AdvTs => Framework::Advice,
-            Shared::BytecodeCount => Framework::Bytecode,
+            Shared::BytecodeReads => Framework::Bytecode,
         }
     }
 
@@ -100,7 +101,7 @@ impl Shared {
             Shared::AdvInit => &tr.adv_init,
             Shared::AdvFin => &tr.adv_fin,
             Shared::AdvTs => &tr.adv_ts,
-            Shared::BytecodeCount => &tr.bytecode_count,
+            Shared::BytecodeReads => &tr.bytecode_reads,
         }
     }
 }
@@ -162,8 +163,6 @@ fn offset_coord(base: usize, c: Coord) -> Coord {
 pub struct Layout {
     pub push: Vec<Block>,
     pub pull: Vec<Block>,
-    /// Count channel: the lookups' read-count columns, whose product must be nonzero (§sec:lookup).
-    pub count: Vec<Block>,
     /// Where each column sits in the stacked witness; from the columns' log-sizes
     /// alone, so reconstructable by the verifier.
     pub placements: Vec<Placement>,
@@ -176,9 +175,12 @@ pub struct Layout {
 impl Layout {
     /// Packed witness `f`'s window in the stack.
     pub(crate) fn witness_window(&self, f: usize) -> witness::Window {
-        self.placements[q_column(f)]
-            .window()
-            .expect("a packed witness is committed")
+        self.window(q_column(f))
+    }
+
+    /// Committed column `col`'s window in the stack.
+    pub(crate) fn window(&self, col: usize) -> witness::Window {
+        self.placements[col].window().expect("the column is committed")
     }
 }
 
@@ -283,7 +285,7 @@ fn column_sources(sizes: Sizes, taus: [usize; tables::N_TABLES]) -> Vec<Source> 
 
 /// How many PUBLIC columns a bytecode entry is: the class tag, then `flags, a1, a2,
 /// ad, imm, pc4, dt, link, jalr`, a zero verdict, and the exit selector (§sec:e2e-bc).
-pub const N_BYTECODE_COLUMNS: usize = tables::EXIT_SLOT - 2;
+pub const N_BYTECODE_COLUMNS: usize = tables::EXIT_SLOT - 1;
 
 /// The public bytecode columns over the program cube, in bytecode-slot order. The
 /// program is not committed, so these ride the seed/finalize blocks as
@@ -342,16 +344,14 @@ pub fn layout(p: &rv::Program, taus: [usize; tables::N_TABLES], ts_final: u64) -
     let mut push: Vec<Block> = Vec::new();
     let mut pull: Vec<Block> = Vec::new();
     for block in FRAMEWORK {
-        let kappa = block.log_rows(sizes);
-        let (seed, finalize) = framework_tuples(block, p, &prog_cols, ts_final);
-        push.push(Block::framework(kappa, seed));
-        pull.push(Block::framework(kappa, finalize));
+        let (seed, finalize) = framework_blocks(block, sizes, p, &prog_cols, ts_final);
+        push.push(seed);
+        pull.extend(finalize);
     }
 
-    // Per-table blocks: each table declares its flushes and read-count columns in
-    // local indices; offset them to the table's global columns.
+    // Per-table blocks: each table declares its flushes in local indices; offset them
+    // to the table's global columns.
     let sch = schema();
-    let mut count: Vec<Block> = Vec::new();
     for (t, table) in tables::tables().iter().enumerate() {
         let (base, kappa) = (sch.spans[t].0, taus[t]);
         let fb = table.flushes();
@@ -365,34 +365,30 @@ pub fn layout(p: &rv::Program, taus: [usize; tables::N_TABLES], ts_final: u64) -
                 .into_iter()
                 .map(|c| Block::table(t, kappa, offset_coords(base, c))),
         );
-        count.extend(
-            table
-                .count_columns()
-                .iter()
-                .map(|&c| Block::table(t, kappa, vec![Coord::Col(base + c)])),
-        );
     }
 
     let (placements, shape) = witness::placements_of(&column_sources(sizes, taus));
     Layout {
         push,
         pull,
-        count,
         placements,
         shape,
         taus,
     }
 }
 
-/// A framework block's two tuples, the push's and the pull's.
-fn framework_tuples(
+/// A framework block's push, and its pull if it has one.
+fn framework_blocks(
     block: Framework,
+    sizes: Sizes,
     p: &rv::Program,
     prog_cols: &[std::sync::Arc<Vec<F64>>; N_BYTECODE_COLUMNS],
     ts_final: u64,
-) -> (Vec<Coord>, Vec<Coord>) {
+) -> (Block, Option<Block>) {
     use Coord::{Col, Const, IntIndex, Public, Sparse};
-    let one = Const(F64::ONE);
+    let kappa = block.log_rows(sizes);
+    let pair =
+        |(push, pull): (Vec<Coord>, Vec<Coord>)| (Block::framework(kappa, push), Some(Block::framework(kappa, pull)));
     // A read-write array: every cell starts at the seed's timestamp holding `init`, and ends at
     // its last timestamp holding its final word (§sec:memchan).
     let array = |sep: F64, cell: Coord, init: Option<Coord>, ts: Shared, fin: Shared| {
@@ -402,19 +398,13 @@ fn framework_tuples(
             .collect();
         (seed, vec![Const(sep), cell, Col(ts.col()), Col(fin.col())])
     };
-    // A read-only array: the tuple with its count, `1` before the run and the
-    // committed count after it.
-    let lookup = |head: [Coord; 2], tail: Vec<Coord>, count: Shared| {
-        let tuple = |c: Coord| head.iter().cloned().chain([c]).chain(tail.iter().cloned()).collect();
-        (tuple(one.clone()), tuple(Col(count.col())))
-    };
     let word = |base: u64| IntIndex {
         base: F64(base),
         shift: 3,
     };
     match block {
         // An incorrect clock leaves the terminal tuple unmatched.
-        Framework::State => (
+        Framework::State => pair((
             vec![
                 Const(SEP_STATE),
                 Const(F64(p.entry_pc)),
@@ -427,42 +417,45 @@ fn framework_tuples(
                 Const(F64(ts_final)),
                 Const(F64(ts_final)),
             ],
-        ),
+        )),
         Framework::Registers => {
             let cell = IntIndex {
                 base: F64::ZERO,
                 shift: 0,
             };
-            array(tables::SEP_REG, cell, None, Shared::RegTs, Shared::RegFin)
+            pair(array(tables::SEP_REG, cell, None, Shared::RegTs, Shared::RegFin))
         }
         // Cell `z` at its byte address `RAM_BASE + 8z`. What RAM holds before the run is
         // public: the program's image, then zeros.
         Framework::Ram => {
             let image = Sparse(std::sync::Arc::new(SparseColumn::new(p.log_ram, &[(0, &p.image)])));
-            array(
+            pair(array(
                 tables::SEP_MEM,
                 word(RAM_BASE),
                 Some(image),
                 Shared::RamTs,
                 Shared::RamFin,
-            )
+            ))
         }
         // The one array seeded from a committed column: the prover's words.
-        Framework::Advice => array(
+        Framework::Advice => pair(array(
             tables::SEP_MEM,
             word(ADVICE_BASE),
             Some(Col(Shared::AdvInit.col())),
             Shared::AdvTs,
             Shared::AdvFin,
-        ),
-        // Entry `i` at its `pc`; the program columns are public.
+        )),
+        // Entry `i` at its `pc`, pushed once per read; the program columns are public.
         Framework::Bytecode => {
             let pc = IntIndex {
                 base: F64(TEXT_BASE),
                 shift: 2,
             };
-            let program = prog_cols.iter().cloned().map(Public).collect();
-            lookup([Const(SEP_BYTECODE), pc], program, Shared::BytecodeCount)
+            let tuple = [Const(SEP_BYTECODE), pc]
+                .into_iter()
+                .chain(prog_cols.iter().cloned().map(Public))
+                .collect();
+            (Block::lookup(kappa, tuple, Shared::BytecodeReads.col()), None)
         }
     }
 }
@@ -489,7 +482,7 @@ impl Program {
         let tr = &exec.trace;
         let sch = schema();
 
-        // The public layout (flush/count blocks, placements, boundary, taus) is a pure
+        // The public layout (flush blocks, placements, boundary, taus) is a pure
         // function of the program and the announced sizes, with no committed witness;
         // reconstruct it here so the prover and verifier share exactly the same
         // structure. It comes before the fill because it fixes each table's height

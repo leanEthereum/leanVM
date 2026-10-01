@@ -14,7 +14,7 @@
 //! access's previous timestamp, and the bits the row flips in its clock.
 
 use crate::cpu::{HashRow, Row, Trace};
-use crate::leaf::Coord::{self, Col, Const, GCol, Prod};
+use crate::leaf::Coord::{self, Col, Const, Prod};
 use crate::rv::{self, Class, SINK, hash};
 use flock::circuit::{Builder, Circuit};
 use primitives::field::{F64, mul_by_g};
@@ -172,12 +172,9 @@ impl FlushBuilder {
         );
     }
 
-    /// A read of a lookup array (§sec:lookup): `tuple` as pulled, `tuple[2]` being
-    /// its count column `count`, pushed back with the count advanced by ×g.
-    fn counted(&mut self, tuple: Vec<Coord>, count: usize) {
-        let mut push = tuple.clone();
-        push[2] = GCol(count, 1);
-        self.pair(push, tuple);
+    /// A read of a lookup array (§sec:lookup): one pull, which the array's entry pushes as often as it is read.
+    fn read(&mut self, tuple: Vec<Coord>) {
+        self.pull.push(tuple);
     }
 
     /// An access, in clock slot `slot`, to the cell `addr` of the array `sep` (§sec:memchan).
@@ -620,10 +617,10 @@ pub fn tables() -> &'static [ClassTable; N_TABLES] {
 
 /// The slot of a bytecode tuple that holds a row's [`Word::Bad`]: past every field of
 /// an entry, where the program is zero.
-pub const BAD_SLOT: usize = 13;
+pub const BAD_SLOT: usize = 12;
 
 /// Bytecode slot binding the exit selector.
-pub const EXIT_SLOT: usize = 14;
+pub const EXIT_SLOT: usize = 13;
 
 /// The `rs2` read's columns: the register's number and what it held.
 #[derive(Clone, Copy)]
@@ -679,7 +676,7 @@ impl BlockCols {
 
 /// A class table's local columns: `pc, ts, a1, pc4, v1, flags`, then the optional groups.
 ///
-/// The groups are in the order of the fields below, then come the accesses' previous timestamps, the clock's step and the bytecode read's count.
+/// The groups are in the order of the fields below, then come the accesses' previous timestamps and the clock's step.
 #[derive(Clone, Copy)]
 struct Cols {
     pc: usize,
@@ -699,9 +696,8 @@ struct Cols {
     bad: Option<usize>,
     /// The first access's previous timestamp, the others following it.
     prev: usize,
+    /// The clock's step, the last column.
     step: usize,
-    /// The bytecode read's count, the last column.
-    rbc: usize,
 }
 
 impl Cols {
@@ -759,7 +755,6 @@ impl Cols {
             bad,
             prev,
             step,
-            rbc: take(1),
         }
     }
 
@@ -836,13 +831,7 @@ impl ClassTable {
 
     /// Number of columns, the virtual ones included.
     pub fn n_committed_columns(&self) -> usize {
-        self.cols.rbc + 1
-    }
-
-    /// The read-count columns: the `g^{count}` values of the table's lookups into the
-    /// bytecode, each with a single-column block of the count side of the bus.
-    pub fn count_columns(&self) -> [usize; 1] {
-        [self.cols.rbc]
+        self.cols.step + 1
     }
 
     /// The port words of one of the table's circuits.
@@ -888,7 +877,6 @@ impl ClassTable {
         let mut entry = vec![
             Const(SEP_BYTECODE),
             Col(c.pc),
-            Col(c.rbc),
             Const(g_pow(self.index)),
             Col(c.flags),
             Col(c.a1),
@@ -904,7 +892,7 @@ impl ClassTable {
         }
         entry.resize(EXIT_SLOT, Const(F64::ZERO));
         entry.push(c.control.map_or(Const(F64::ZERO), |k| Col(k.exit)));
-        f.counted(entry, c.rbc);
+        f.read(entry);
         // The accesses' columns are in the order the row makes them.
         let mut slots = self.spec.slots().into_iter().enumerate();
         let mut access = |f: &mut FlushBuilder, sep: F64, addr: Coord, old: Coord, new: Coord| {
@@ -1003,7 +991,6 @@ impl ClassTable {
         ctx.col(out, rows, c.step, move |r| {
             F64(clock_step(r.ts, &r.prev()[..n], &slots))
         });
-        ctx.col(out, rows, c.rbc, move |r| r.bytecode_read);
     }
 }
 

@@ -2,7 +2,7 @@
 //! sharing the state, register and bytecode buses, bound to one field-valued commitment
 //! and verified oracle-free. The machine is RISC-V ([`crate::rv`]): `pc`, register
 //! numbers, addresses and timestamps are integers, read as the field element with those
-//! bits, while read counts are g-powers, so every increment is a free ×g. A register
+//! bits, and a bytecode entry's read count is an exponent. A register
 //! is one `K = F64` element. What an instruction computes is a flock circuit
 //! ([`crate::class_flock`]); the tables only move words between the bytecode, the
 //! registers and those circuits. Challenges and transcript scalars live in `E = F192`.
@@ -26,11 +26,7 @@ pub use layout::*;
 pub(crate) use trace::{HashRow, Row, Trace};
 
 /// Each table holds at most `2^MAX_LOG_ROWS` rows (executed instructions of its
-/// class). Together with the bytecode cap these are the instance caps from “Counts
-/// must not wrap” in `doc/leanvm/body/06-bus-interactions.tex`: at `ord(g) = 2^64−1`
-/// the lookup's count-non-wrap counting argument is a theorem only
-/// for instances whose total read-flush count stays far below `2^64`, so the
-/// verifier rejects any announcement exceeding them before running a reduction.
+/// class), a cap the verifier checks on the announced heights before running a reduction.
 pub const MAX_LOG_ROWS: usize = 32;
 
 /// The Fiat-Shamir IV: the program's digest, which commits to everything public and
@@ -81,12 +77,9 @@ fn read_public(vs: &mut VerifierState, prog: &Program) -> Result<(Layout, usize)
     {
         return Err(CpuError::FinalClock);
     }
-    // The public instance caps ensure that, with `ord(g) = 2^64 − 1`, the
-    // counting arguments (the bytecode lookup's counts) are theorems only when the announced instance keeps the total read-flush
-    // count provably below `2^64 − 1`, so reject any announcement exceeding the
-    // caps BEFORE running any reduction. (A table's row count is the number of
-    // times its class runs, unbounded by the bytecode size since a small loop
-    // body runs many times, so it gets its own cap.)
+    // Reject an announced height outside the caps BEFORE running any reduction. (A
+    // table's row count is the number of times its class runs, unbounded by the
+    // bytecode size since a small loop body runs many times, so it gets its own cap.)
     for (spec, &log_rows) in tables::CLASSES.iter().zip(&taus) {
         // flock sizes its argument to at least `n_blocks_log(1)` instances, and a
         // table's circuit words share that instance cube, so a height below the floor
@@ -196,7 +189,7 @@ impl Program {
             unsafe { core::slice::from_raw_parts(table.as_ptr().cast::<u8>(), core::mem::size_of_val(&table[..])) };
         // Every variable-length part is length-framed, so the preimage parses one way.
         let mut h = primitives::hash::Hasher::new();
-        h.update(b"leanvm-rv64im-5");
+        h.update(b"leanvm-rv64im-6");
         h.update(&bytes(&[table.len() as u64]));
         h.update(table_bytes);
         h.update(&bytes(&[
@@ -280,7 +273,7 @@ pub enum ProveError {
     AdviceTooLong { max: usize, got: usize },
 }
 
-/// One table's summand in the table sumcheck (§constraints): its three bus forms.
+/// One table's summand in the table sumcheck (§constraints): its two bus forms.
 ///
 /// The forms are weighted by powers shared across tables, and carry every column of the table.
 struct TableSummand {
@@ -298,7 +291,7 @@ impl constraints::Summand for TableSummand {
 /// both call this, so their column order and summands agree by construction.
 fn airs(
     taus: &[usize; tables::N_TABLES],
-    forms: &[Vec<leaf::BusForm>; 3],
+    forms: &[Vec<leaf::BusForm>; 2],
     xi: F192,
 ) -> Vec<constraints::Air<TableSummand>> {
     let form_pows = xi_form_pows(xi);
@@ -310,32 +303,32 @@ fn airs(
             tau,
             n_cols: table.n_committed_columns(),
             summand: TableSummand {
-                // One form, not three: the batch adds the three sides' evaluations
+                // One form, not two: the batch adds the two sides' evaluations
                 // anyway, and summing them here is a setup cost against a dot product
                 // and a product list per row per node.
-                bus: leaf::BusForm::sum((0..3).map(|s| forms[s][t].scaled(form_pows[s]))),
+                bus: leaf::BusForm::sum((0..2).map(|s| forms[s][t].scaled(form_pows[s]))),
             },
         })
         .collect()
 }
 
-/// Each table's claimed sum: what its summand comes to is its three bus forms,
+/// Each table's claimed sum: what its summand comes to is its two bus forms,
 /// `η`-weighted. Prover-side only, to build the waiting line each round; the
 /// verifier needs just their total, which it derives.
-fn sigmas(bus: &[Vec<F192>; 3], form_pows: [F192; 3]) -> Vec<F192> {
+fn sigmas(bus: &[Vec<F192>; 2], form_pows: [F192; 2]) -> Vec<F192> {
     (0..tables::tables().len())
-        .map(|t| (0..3).fold(F192::ZERO, |acc, s| acc + form_pows[s] * bus[s][t]))
+        .map(|t| (0..2).fold(F192::ZERO, |acc, s| acc + form_pows[s] * bus[s][t]))
         .collect()
 }
 
-/// The three bus forms' weights `1, η, η²`, shared by all tables rather than one
-/// triple per table. That sharing is what keeps the batch tied to the bus: with a
+/// The two bus forms' weights `1, η`, shared by all tables rather than one
+/// pair per table. That sharing is what keeps the batch tied to the bus: with a
 /// common `η^s` per side, the batch's target is `Σ_s η^s·R_s` for the sides' table
 /// shares `R_s`, which the verifier DERIVES from the leaf claims (a mismatch surfaces
 /// as a constraint error). Were the powers per table, the target would not
 /// factor through the `R_s` and nothing would pin the tables' share of the bus.
-fn xi_form_pows(xi: F192) -> [F192; 3] {
-    [F192::ONE, xi, xi * xi]
+fn xi_form_pows(xi: F192) -> [F192; 2] {
+    [F192::ONE, xi]
 }
 
 /// Run statistics returned alongside the proof: the cycle count (total executed
@@ -471,7 +464,7 @@ fn prove_execution(program: &Program, exec: &Execution, rate: pcs::Rate) -> (Pro
         let l = &w.layout;
         let cols = w.columns();
         let bus = crate::stage!("Prove bus", || {
-            leaf::prove_balance(&l.push, &l.pull, &l.count, &cols, spans, &mut ps)
+            leaf::prove_balance(&l.push, &l.pull, &cols, spans, &mut ps)
         });
         let table_claims = crate::stage!("Prove constraints", || {
             // One sumcheck for all the tables (§constraints).
@@ -498,7 +491,7 @@ fn prove_execution(program: &Program, exec: &Execution, rate: pcs::Rate) -> (Pro
     // discharged by the PCS below in the SAME WHIR as every leanVM point claim,
     // through a ring-switched region of its own.
     let reductions = w.reductions;
-    let rings: Vec<_> = crate::stage!("Flock reductions", || {
+    let mut rings: Vec<_> = crate::stage!("Flock reductions", || {
         reductions
             .iter()
             .enumerate()
@@ -510,6 +503,18 @@ fn prove_execution(program: &Program, exec: &Execution, rate: pcs::Rate) -> (Pro
             .collect()
     });
     drop(reductions);
+    // The read counts' bits, after the circuits' slices, in the same opening.
+    rings.extend(bus.counts.iter().map(|c| {
+        let window = l.window(c.col);
+        pcs::RingSwitchOpen {
+            offset: window.offset,
+            qflock_vars: window.n_vars,
+            claims: vec![pcs::RingSwitchClaim {
+                suffix_point: c.point.clone(),
+                s_hat_v: Some(c.slices.clone()),
+            }],
+        }
+    }));
     crate::stage!("PCS open", || { pcs::open(&mut ps, &committed, &w.q, &slots, &rings) });
     (
         ps.into_proof(),
@@ -583,7 +588,7 @@ pub fn verify_to_raw(
     let (l, log_inv_rate) = read_public(&mut vs, program)?;
     let root = pcs::read_commitment(&mut vs)?;
 
-    let bus = leaf::verify_balance(&l.push, &l.pull, &l.count, &schema().spans, &mut vs).map_err(CpuError::Bus)?;
+    let bus = leaf::verify_balance(&l.push, &l.pull, &schema().spans, &mut vs).map_err(CpuError::Bus)?;
 
     let zc_xi = vs.sample();
     let form_pows = xi_form_pows(zc_xi);
@@ -591,10 +596,10 @@ pub fn verify_to_raw(
     // never transmitted. Each side's leaf claim less what its framework blocks
     // account for is the tables' share `R_s`, which the verifier just derived; the
     // batch must sum to `Σ_s η^{base+s}·R_s`. Since `η` is sampled after the `R_s`
-    // are fixed, hitting that one number forces `Σ_t σ_{s,t} = R_s` on all three
+    // are fixed, hitting that one number forces `Σ_t σ_{s,t} = R_s` on both
     // sides. A transmitted target would be a free value in its own check, and the
     // tables' bus blocks would be settled by nothing at all.
-    let target = (0..3).fold(F192::ZERO, |a, s| a + form_pows[s] * bus.totals[s]);
+    let target = (0..2).fold(F192::ZERO, |a, s| a + form_pows[s] * bus.totals[s]);
     let table_claims = constraints::verify(&airs(&l.taus, &bus.forms, zc_xi), &bus.point, target, &mut vs)
         .map_err(CpuError::Constraint)?;
 
@@ -614,7 +619,7 @@ pub fn verify_to_raw(
         })?;
         replays.push(replay);
     }
-    let rings: Vec<_> = replays
+    let mut rings: Vec<_> = replays
         .iter()
         .enumerate()
         .map(|(f, replay)| {
@@ -622,6 +627,17 @@ pub fn verify_to_raw(
             flock::reduction::ring_switch_verify(window.n_vars, window.offset, &replay.claim)
         })
         .collect();
+    for c in &bus.counts {
+        let window = l.window(c.col);
+        rings.push(pcs::RingSwitchVerify {
+            offset: window.offset,
+            qflock_vars: window.n_vars,
+            claims: vec![pcs::RingSwitchVerifyClaim {
+                suffix_point: &c.point,
+                s_hat_v: c.slices.as_slice().try_into().expect("a word has 64 bit slices"),
+            }],
+        });
+    }
     pcs::verify(&mut vs, &slots, &rings, l.shape, log_inv_rate, &root).map_err(CpuError::Open)?;
     vs.finish()?;
     Ok(vs.into_raw_proof())
@@ -723,16 +739,10 @@ mod tests {
         }
     }
 
-    /// Reassign every bytecode read's count, as a prover would after changing which entries its rows read.
+    /// Recount the bytecode reads, as a prover would after changing which entries its rows read.
     fn recount_bytecode_reads(exec: &mut Execution) {
         let t = &mut exec.trace;
-        let mut counts = vec![F64::ONE; t.bytecode_count.len()];
-        for row in t.rows.iter_mut().flatten() {
-            let count = &mut counts[row.index as usize];
-            row.bytecode_read = *count;
-            *count = primitives::field::mul_by_g(*count);
-        }
-        t.bytecode_count = counts;
+        t.bytecode_reads = Trace::read_counts(&t.rows, t.bytecode_reads.len());
     }
 
     /// Put `row` in place of a padding row of `ALU` that is the lone jump of its fill, a jump to itself.
@@ -769,8 +779,13 @@ mod tests {
             ram,
             prev: [slots[0], slots[1], slots[2], 0],
             hash: None,
-            bytecode_read: F64::ONE,
         }
+    }
+
+    /// The block of the `ALU` table's state flush on `side`, the first after the framework's.
+    fn alu_state(side: &str) -> usize {
+        // The bytecode has no pull block.
+        FRAMEWORK.len() - usize::from(side == "pull")
     }
 
     /// The tuples the run leaves unmatched, as `(side, block, row)`.
@@ -840,7 +855,7 @@ mod tests {
             assert!(
                 unmatched
                     .iter()
-                    .all(|(_, block, _)| *block == 0 || *block == FRAMEWORK.len())
+                    .all(|&(side, block, _)| block == 0 || block == alu_state(side))
             );
 
             let failure = std::panic::catch_unwind(|| prove_execution(&program, &execution, pcs::Rate::MIN));
@@ -964,7 +979,7 @@ mod tests {
         // The read's row pushes a failed clock, which the next row's pull does not meet.
         let unmatched = unmatched(&program, &forged);
         assert_eq!(unmatched.len(), 2, "{unmatched:?}");
-        assert!(unmatched.iter().all(|&(_, block, _)| block == FRAMEWORK.len()));
+        assert!(unmatched.iter().all(|&(side, block, _)| block == alu_state(side)));
     }
 
     #[test]
@@ -994,7 +1009,7 @@ mod tests {
         // The row's failed clock leaves its own state tuples unmatched, and nothing else.
         let unmatched = unmatched(&program, &forged);
         assert_eq!(unmatched.len(), 2, "{unmatched:?}");
-        assert!(unmatched.iter().all(|&(_, block, _)| block == FRAMEWORK.len()));
+        assert!(unmatched.iter().all(|&(side, block, _)| block == alu_state(side)));
     }
 
     #[test]
@@ -1028,7 +1043,140 @@ mod tests {
         // Both rows push failed clocks: the read's, and the padding row's, each a state tuple pushed and one not pulled.
         let unmatched = unmatched(&program, &forged);
         assert_eq!(unmatched.len(), 4, "{unmatched:?}");
-        assert!(unmatched.iter().all(|&(_, block, _)| block == FRAMEWORK.len()));
+        assert!(unmatched.iter().all(|&(side, block, _)| block == alu_state(side)));
+    }
+
+    /// Prove `exec` and expect the bus's two grand products to disagree.
+    fn assert_unbalanced(program: &Program, exec: &Execution) {
+        let refused = std::panic::catch_unwind(|| prove_execution(program, exec, pcs::Rate::MIN).0)
+            .expect_err("an unbalanced bus was proven");
+        let message = refused.downcast_ref::<String>().map(String::as_str).unwrap_or("");
+        assert!(
+            message.contains("two products to agree"),
+            "refused for another reason: {message}"
+        );
+    }
+
+    /// The bytecode's block on the push side.
+    fn bytecode_block() -> usize {
+        FRAMEWORK.iter().position(|&f| f == Framework::Bytecode).unwrap()
+    }
+
+    /// A loop whose body, entry 1, runs three times.
+    fn three_laps() -> (Program, Execution) {
+        let text = Asm::new()
+            .i("addi", T0, ZERO, 3)
+            .label("lap")
+            .i("addi", T0, T0, -1)
+            .branch("bne", T0, ZERO, "lap")
+            .i("addi", A0, ZERO, 7)
+            .exit()
+            .finish();
+        let program = Program::new(&text, rv::TEXT_BASE, vec![], 2, 0).expect("valid instruction program");
+        let exec = program.execute(&[]).unwrap();
+        assert_eq!(exec.trace.bytecode_reads[1], F64(3));
+        (program, exec)
+    }
+
+    /// The loop body's tuple is all that is unmatched: its `count` pushes and its three fetches.
+    fn assert_body_unmatched(program: &Program, forged: &Execution, count: u64) {
+        let unmatched = unmatched(program, forged);
+        assert_eq!(unmatched.len(), count as usize + 3, "{unmatched:?}");
+        let pushes = unmatched
+            .iter()
+            .filter(|&&u| u == ("push", bytecode_block(), 1))
+            .count();
+        assert_eq!(pushes, count as usize, "{unmatched:?}");
+    }
+
+    #[test]
+    fn a_fetch_beyond_its_count_is_refused() {
+        // Invariant: an entry fetched more often than its committed count leaves its fetches unmatched, however many more.
+        //
+        // Fixture state: the loop body, entry 1, is fetched three times.
+        // Mutation: its count says once, then twice, two and one fetches short; a fractional sum in characteristic 2 sees only the second.
+        for count in [1, 2] {
+            let (program, mut forged) = three_laps();
+            forged.trace.bytecode_reads[1] = F64(count);
+            assert_body_unmatched(&program, &forged, count);
+            assert_unbalanced(&program, &forged);
+        }
+    }
+
+    #[test]
+    fn a_missing_fetch_is_refused() {
+        // Invariant: an entry counted more often than it is fetched leaves its pushes unmatched.
+        //
+        // Fixture state: the loop body, entry 1, is fetched three times.
+        // Mutation: its count says four times, then five.
+        for count in [4, 5] {
+            let (program, mut forged) = three_laps();
+            forged.trace.bytecode_reads[1] = F64(count);
+            assert_body_unmatched(&program, &forged, count);
+            assert_unbalanced(&program, &forged);
+        }
+    }
+
+    #[test]
+    fn a_fetch_of_an_entry_never_run_is_refused() {
+        // Invariant: a row cannot fetch an entry whose count is zero, the case a count that is a field element lets cancel.
+        //
+        // Fixture state: past the exit sits `jal a1, 0`, a jump to itself, which the run never reaches.
+        // Mutation: a padding instance of it takes the place of the fill's lone jump, and the counts stay the run's.
+        // So the jump is fetched with a count of zero, and the lone jump counted once more than it is fetched.
+        let text = Asm::new()
+            .i("addi", A0, ZERO, 42)
+            .exit()
+            .label("spin")
+            .jal(A1, "spin")
+            .finish();
+        let program = Program::new(&text, rv::TEXT_BASE, vec![], 2, 0).expect("valid instruction program");
+        let spin = text.len() - 1;
+        let mut forged = program.execute(&[]).unwrap();
+        let counts = forged.trace.bytecode_reads.clone();
+        assert_eq!(counts[spin], F64::ZERO);
+        replace_lone_jump(&program, &mut forged, padding_jump(&program, spin));
+        assert!(unmatched(&program, &forged).is_empty(), "recounted, the swap balances");
+        forged.trace.bytecode_reads = counts;
+        let unmatched = unmatched(&program, &forged);
+        assert_eq!(unmatched.len(), 2, "{unmatched:?}");
+        assert!(
+            unmatched
+                .iter()
+                .any(|&(side, block, _)| (side, block) == ("push", bytecode_block()))
+        );
+        assert!(unmatched.iter().any(|&(side, _, _)| side == "pull"));
+        assert_unbalanced(&program, &forged);
+    }
+
+    #[test]
+    fn a_fetch_of_a_forged_entry_is_refused() {
+        // Invariant: a row's bytecode fields are the program's, every one of them.
+        //
+        // Fixture state: the run sets `a0 = 5`, and its rows read that entry.
+        // Mutation: the public program says `a0 = 6` instead, the rows and their counts unchanged.
+        let text = Asm::new().i("addi", A0, ZERO, 5).exit().finish();
+        let program = Program::new(&text, rv::TEXT_BASE, vec![], 2, 0).expect("valid instruction program");
+        let mut other = text.clone();
+        other[0] = Asm::new().i("addi", A0, ZERO, 6).finish()[0];
+        let public = Program::new(&other, rv::TEXT_BASE, vec![], 2, 0).expect("valid instruction program");
+        let w = program.build(&program.execute(&[]).unwrap());
+        let l = layout(&public.rv, w.layout.taus, w.ts_final);
+        let cols = w.columns();
+        let unmatched = leaf::unmatched_leaves(&l.push, &l.pull, &cols);
+        assert_eq!(unmatched.len(), 2, "{unmatched:?}");
+        assert!(unmatched.contains(&("push", bytecode_block(), 0)));
+        let refused = std::panic::catch_unwind(|| {
+            let mut ps = ProverState::new(fs_seed(&public), [F64::ZERO; 4]);
+            leaf::prove_balance(&l.push, &l.pull, &cols, &schema().spans, &mut ps)
+        })
+        .err()
+        .expect("a forged entry was proven");
+        let message = refused.downcast_ref::<String>().map(String::as_str).unwrap_or("");
+        assert!(
+            message.contains("two products to agree"),
+            "refused for another reason: {message}"
+        );
     }
 
     #[test]

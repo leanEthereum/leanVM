@@ -4,7 +4,7 @@
 use super::*;
 use crate::rv::{self, ADVICE_BASE, Class, LOG_REGS, Machine, RAM_BASE, Trap, hash, machine::compute};
 use crate::tables::{CLASSES, CLOCK_START, CYCLE, MAX_CYCLES, RAM_SLOT, REG_SLOTS, SEED_CLOCK, block_slot};
-use primitives::field::{F64, mul_by_g};
+use primitives::field::F64;
 
 pub struct Execution {
     /// The public output: `a0..a3` as the run left them.
@@ -13,7 +13,7 @@ pub struct Execution {
     /// Rows per table before the padding rows: the work the program itself does, as
     /// against the power-of-two heights that get proven. Cost measurements want this one.
     pub base_counts: [usize; crate::tables::N_TABLES],
-    pub(crate) trace: Trace, // rows, final timestamps and counts, emitted in the same walk
+    pub(crate) trace: Trace, // rows, final timestamps and read counts
 }
 
 /// Each cell's last timestamp in one read-write array, the memory argument's bookkeeping (§sec:memchan).
@@ -64,13 +64,6 @@ impl Program {
             } else {
                 (1 << p.log_ram) + ((address - ADVICE_BASE) / 8) as usize
             }
-        };
-        // Per-pc bytecode execution count (g^{count}).
-        let mut bytecode_count: Vec<F64> = vec![F64::ONE; p.entries.len()];
-        let mut fetch = |index: usize| {
-            let v = bytecode_count[index];
-            bytecode_count[index] = mul_by_g(v);
-            v
         };
         let mut rows: [Vec<Row>; crate::tables::N_TABLES] = std::array::from_fn(|_| Vec::new());
 
@@ -125,7 +118,6 @@ impl Program {
                 ram: step.ram.unwrap_or_default(),
                 prev,
                 hash,
-                bytecode_read: fetch(step.index),
             });
             ts += CYCLE;
         }
@@ -178,7 +170,6 @@ impl Program {
                         ram: access,
                         prev,
                         hash,
-                        bytecode_read: fetch(index),
                     });
                 }
             }
@@ -188,7 +179,6 @@ impl Program {
         let ram_last = ram.timestamps();
         let (ram_ts, adv_ts) = ram_last.split_at(1 << p.log_ram);
         let trace = Trace {
-            rows,
             reg_fin: m.regs().iter().map(|&r| F64(r)).collect(),
             reg_ts: regs.timestamps(),
             ram_fin: m.ram().iter().map(|&w| F64(w)).collect(),
@@ -196,7 +186,8 @@ impl Program {
             adv_init,
             adv_fin: m.advice().iter().map(|&w| F64(w)).collect(),
             adv_ts: adv_ts.to_vec(),
-            bytecode_count,
+            bytecode_reads: Trace::read_counts(&rows, p.entries.len()),
+            rows,
             ts_final: ts,
         };
         Ok(Execution {

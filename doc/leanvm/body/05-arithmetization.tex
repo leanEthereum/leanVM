@@ -115,7 +115,7 @@ both sums over the blocks of side $s$.
 \paragraph{Who settles what.} Three kinds of terms:
 \begin{itemize}[itemsep=1pt,topsep=3pt]
 \item \emph{Padding.} Public: the verifier evaluates it.
-\item \emph{Boundary blocks.} Every slot of their tuples is public (a constant, a public component, or an index column of \S\ref{sec:idxcol}) or a single committed column, so $\widetilde L_b(\zeta_{<\kappa_b})$ is a linear combination of their evaluations at $\zeta_{<\kappa_b}$. The verifier computes the public ones; the prover sends each committed one, as a claim deferred to the PCS (\S\ref{sec:stacking}).
+\item \emph{Boundary blocks.} Every slot of their tuples is public (a constant, a public component, or an index column of \S\ref{sec:idxcol}) or a single committed column, so $\widetilde L_b(\zeta_{<\kappa_b})$ is a linear combination of their evaluations at $\zeta_{<\kappa_b}$. The verifier computes the public ones; the prover sends each committed one, as a claim deferred to the PCS (\S\ref{sec:stacking}). A lookup array's entries are the exception, each pushed as many times as it is read: a sumcheck of their own proves their term (\S\ref{sec:lookup}).
 \item \emph{Table blocks.} Nothing is sent for them: the table sumcheck proves them.
 \end{itemize}
 The verifier subtracts the first two kinds from the claimed value; the difference, $\mathsf{rem}_{s}$, is what the tables owe.
