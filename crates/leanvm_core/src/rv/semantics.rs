@@ -1,8 +1,12 @@
 //! What each instruction class computes.
 //!
-//! Each class is a type wrapping its flag word.
+//! A class is a type whose value is one instance: the flag word and the operands the class reads.
 //!
-//! The type names the flags, lists the legal words, and computes the class's function.
+//! The flag word stays a `u64`.
+//!
+//! It is the bytecode word the proof commits, and its bits are the circuit's selectors.
+//!
+//! Every class implements one trait, so code over all classes is written once.
 //!
 //! These functions are the reference.
 //!
@@ -10,15 +14,50 @@
 //!
 //! Each one is defined on its class's legal flag words only.
 
+use super::circuits::ClassCircuit;
 use super::entry::{Class, Entry};
 
-/// The ALU's function, selected by its flag word: add, subtract, compare, bitwise logic, branches and jumps.
+/// An instruction class: its flag words, its function, and the circuit that proves it.
+///
+/// The circuit's ports are the instance's input words, then the result's output words.
+///
+/// The reference function and the circuit agree on every instance with a legal flag word.
+pub trait InstructionClass: ClassCircuit {
+    /// The class an entry of this kind names.
+    const CLASS: Class;
+
+    /// The flag words the class defines.
+    const LEGAL: &'static [u64];
+
+    /// What the class computes.
+    type Output;
+
+    /// What the class computes on this instance.
+    fn eval(&self) -> Self::Output;
+
+    /// The circuit's input words for this instance, in port order.
+    fn input_words(&self) -> Vec<u64>;
+
+    /// The circuit's output words for a result, in port order.
+    fn output_words(output: &Self::Output) -> Vec<u64>;
+}
+
+/// One ALU instance: add, subtract, compare, bitwise logic, branches and jumps.
 ///
 /// The second operand `b` is `v2 ^ imm`.
 ///
 /// One of the two is always zero.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct Alu(pub u64);
+pub struct Alu {
+    /// What the ALU computes: one of its legal words.
+    pub flags: u64,
+    /// The first register's value.
+    pub v1: u64,
+    /// The second register's value.
+    pub v2: u64,
+    /// The immediate.
+    pub imm: u64,
+}
 
 impl Alu {
     /// Compute `v1 - b` instead of `v1 + b`.
@@ -57,10 +96,28 @@ impl Alu {
     /// Every branch condition.
     pub const BRANCHES: u64 = Self::BR_EQ | Self::BR_NE | Self::BR_LT | Self::BR_GE | Self::BR_LTU | Self::BR_GEU;
 
-    /// The legal words.
+    /// The flag word of a branch with function `funct3`.
     ///
+    /// Returns `None` for functions 2 and 3, which are reserved.
+    pub fn branch_flags(funct3: u32) -> Option<u64> {
+        let condition = match funct3 {
+            0 => Self::BR_EQ,
+            1 => Self::BR_NE,
+            4 => Self::BR_LT,
+            5 => Self::BR_GE,
+            6 => Self::BR_LTU,
+            7 => Self::BR_GEU,
+            _ => return None,
+        };
+        Some(Self::SUB | condition)
+    }
+}
+
+impl InstructionClass for Alu {
+    const CLASS: Class = Class::Alu;
+
     /// At most one output selector and at most one branch condition is set.
-    pub const LEGAL: [u64; 17] = [
+    const LEGAL: &'static [u64] = &[
         0,
         Self::SUB,
         Self::WORD,
@@ -80,26 +137,12 @@ impl Alu {
         Self::ALWAYS,
     ];
 
-    /// The comparison of a branch with function `funct3`.
-    ///
-    /// Returns `None` for functions 2 and 3, which are reserved.
-    pub fn branch(funct3: u32) -> Option<Self> {
-        let condition = match funct3 {
-            0 => Self::BR_EQ,
-            1 => Self::BR_NE,
-            4 => Self::BR_LT,
-            5 => Self::BR_GE,
-            6 => Self::BR_LTU,
-            7 => Self::BR_GEU,
-            _ => return None,
-        };
-        Some(Self(Self::SUB | condition))
-    }
-
     /// The output, and whether the jump is taken.
-    pub fn eval(self, v1: u64, v2: u64, imm: u64) -> (u64, bool) {
-        let on = |flag: u64| self.0 & flag != 0;
-        let b = v2 ^ imm;
+    type Output = (u64, bool);
+
+    fn eval(&self) -> (u64, bool) {
+        let on = |flag: u64| self.flags & flag != 0;
+        let (v1, b) = (self.v1, self.v2 ^ self.imm);
 
         // One adder serves the sum and the difference.
         let sum = if on(Self::SUB) {
@@ -143,13 +186,30 @@ impl Alu {
             || (on(Self::BR_GEU) && !ltu);
         (out, taken)
     }
+
+    fn input_words(&self) -> Vec<u64> {
+        vec![self.v1, self.v2, self.imm, self.flags]
+    }
+
+    fn output_words(&(out, taken): &(u64, bool)) -> Vec<u64> {
+        vec![out, taken as u64]
+    }
 }
 
-/// The shifter's function, selected by its flag word.
+/// One shifter instance.
 ///
 /// The amount is the low 6 bits of `v2 ^ imm`, or 5 bits for a word shift.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct Shift(pub u64);
+pub struct Shift {
+    /// What the shifter computes: one of its legal words.
+    pub flags: u64,
+    /// The value to shift.
+    pub v1: u64,
+    /// The second register's value.
+    pub v2: u64,
+    /// The immediate.
+    pub imm: u64,
+}
 
 impl Shift {
     /// Shift right instead of left.
@@ -158,9 +218,13 @@ impl Shift {
     pub const ARITH: u64 = 1 << 1;
     /// Shift the low 32 bits, then sign-extend the low 32 bits of the result.
     pub const WORD: u64 = 1 << 2;
+}
 
-    /// The legal words: an arithmetic shift is always a right shift.
-    pub const LEGAL: [u64; 6] = [
+impl InstructionClass for Shift {
+    const CLASS: Class = Class::Shift;
+
+    /// An arithmetic shift is always a right shift.
+    const LEGAL: &'static [u64] = &[
         0,
         Self::RIGHT,
         Self::RIGHT | Self::ARITH,
@@ -170,16 +234,18 @@ impl Shift {
     ];
 
     /// The shifted value.
-    pub fn eval(self, v1: u64, v2: u64, imm: u64) -> u64 {
-        let on = |flag: u64| self.0 & flag != 0;
+    type Output = u64;
+
+    fn eval(&self) -> u64 {
+        let on = |flag: u64| self.flags & flag != 0;
         let (right, arith, word) = (on(Self::RIGHT), on(Self::ARITH), on(Self::WORD));
-        let amount = (v2 ^ imm) & if word { 31 } else { 63 };
+        let amount = (self.v2 ^ self.imm) & if word { 31 } else { 63 };
 
         // A word shift starts from the low 32 bits, extended as the shift fills.
         let x = match (word, arith) {
-            (false, _) => v1,
-            (true, true) => sext32(v1),
-            (true, false) => v1 as u32 as u64,
+            (false, _) => self.v1,
+            (true, true) => sext32(self.v1),
+            (true, false) => self.v1 as u32 as u64,
         };
 
         // Shift, then sign-extend a word result.
@@ -190,11 +256,28 @@ impl Shift {
         };
         if word { sext32(out) } else { out }
     }
+
+    fn input_words(&self) -> Vec<u64> {
+        vec![self.v1, self.v2, self.imm, self.flags]
+    }
+
+    fn output_words(&out: &u64) -> Vec<u64> {
+        vec![out]
+    }
 }
 
-/// A load's function, selected by its flag word: the width, then the extension.
+/// One load instance: the width and extension in its flags, the address `v1 + imm`, the cell read there.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct Load(pub u64);
+pub struct Load {
+    /// The width, then the extension: one of the legal words.
+    pub flags: u64,
+    /// The base register's value.
+    pub v1: u64,
+    /// The offset.
+    pub imm: u64,
+    /// The 64-bit cell holding the address.
+    pub cell: u64,
+}
 
 impl Load {
     /// The bits holding the base-two logarithm of the width in bytes.
@@ -202,123 +285,209 @@ impl Load {
     /// Sign-extend the value instead of zero-extending it.
     pub const SIGNED: u64 = 1 << 2;
 
-    /// The legal words: a double word has no extension.
-    pub const LEGAL: [u64; 7] = [Self::SIGNED, Self::SIGNED | 1, Self::SIGNED | 2, 3, 0, 1, 2];
-
-    /// The load with function `funct3`.
+    /// The flag word of a load with function `funct3`.
     ///
     /// - 0 to 2 are `lb`, `lh` and `lw`: signed, of width 2^funct3.
     /// - 3 is `ld`, which has no extension.
     /// - 4 to 6 are `lbu`, `lhu` and `lwu`: unsigned, of width 2^(funct3 - 4).
     ///
     /// Returns `None` for function 7, which is reserved.
-    pub fn from_funct3(funct3: u32) -> Option<Self> {
+    pub fn flags_of(funct3: u32) -> Option<u64> {
         match funct3 {
-            0..=2 => Some(Self(Self::SIGNED | funct3 as u64)),
-            3 => Some(Self(3)),
-            4..=6 => Some(Self((funct3 - 4) as u64)),
+            0..=2 => Some(Self::SIGNED | funct3 as u64),
+            3 => Some(3),
+            4..=6 => Some((funct3 - 4) as u64),
             _ => None,
-        }
-    }
-
-    /// The base-two logarithm of the width in bytes.
-    pub fn log_width(self) -> u64 {
-        self.0 & Self::LOG_WIDTH
-    }
-
-    /// The value a load at `address` returns, read from the 64-bit cell holding it.
-    pub fn eval(self, cell: u64, address: u64) -> u64 {
-        let bits = 8 << self.log_width();
-
-        // Bring the addressed byte down to bit 0.
-        let x = cell >> (8 * (address & 7));
-
-        // Keep the width, extended as the flags say.
-        if bits == 64 {
-            x
-        } else if self.0 & Self::SIGNED != 0 {
-            (((x << (64 - bits)) as i64) >> (64 - bits)) as u64
-        } else {
-            x & ((1 << bits) - 1)
         }
     }
 }
 
-/// A store's function, selected by its flag word: the width.
+impl InstructionClass for Load {
+    const CLASS: Class = Class::Load;
+
+    /// A double word has no extension.
+    const LEGAL: &'static [u64] = &[Self::SIGNED, Self::SIGNED | 1, Self::SIGNED | 2, 3, 0, 1, 2];
+
+    /// The bus address, and the value read.
+    type Output = (u64, u64);
+
+    fn eval(&self) -> (u64, u64) {
+        let address = WordAccess::address(self.v1, self.imm);
+        let log_width = self.flags & Self::LOG_WIDTH;
+        let bits = 8 << log_width;
+
+        // Bring the addressed byte down to bit 0.
+        let x = self.cell >> (8 * (address & 7));
+
+        // Keep the width, extended as the flags say.
+        let value = if bits == 64 {
+            x
+        } else if self.flags & Self::SIGNED != 0 {
+            (((x << (64 - bits)) as i64) >> (64 - bits)) as u64
+        } else {
+            x & ((1 << bits) - 1)
+        };
+        (WordAccess::bus_address(address, log_width), value)
+    }
+
+    fn input_words(&self) -> Vec<u64> {
+        vec![self.v1, self.imm, self.flags, self.cell]
+    }
+
+    fn output_words(&(address, value): &(u64, u64)) -> Vec<u64> {
+        vec![address, value]
+    }
+}
+
+/// One store instance: the width in its flags, the address `v1 + imm`, the value `v2`, the cell it lands in.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct Store(pub u64);
+pub struct Store {
+    /// The width: one of the legal words.
+    pub flags: u64,
+    /// The base register's value.
+    pub v1: u64,
+    /// The value to store.
+    pub v2: u64,
+    /// The offset.
+    pub imm: u64,
+    /// The 64-bit cell holding the address.
+    pub cell: u64,
+}
 
 impl Store {
     /// The bits holding the base-two logarithm of the width in bytes.
     pub const LOG_WIDTH: u64 = 0b11;
+}
 
-    /// The legal words: every width.
-    pub const LEGAL: [u64; 4] = [0, 1, 2, 3];
+impl InstructionClass for Store {
+    const CLASS: Class = Class::Store;
 
-    /// The base-two logarithm of the width in bytes.
-    pub fn log_width(self) -> u64 {
-        self.0 & Self::LOG_WIDTH
-    }
+    /// Every width.
+    const LEGAL: &'static [u64] = &[0, 1, 2, 3];
 
-    /// The cell a store of `value` at `address` leaves.
-    pub fn eval(self, cell: u64, address: u64, value: u64) -> u64 {
-        let bits = 8 << self.log_width();
+    /// The bus address, and the cell the store leaves.
+    ///
+    /// A misaligned store names no cell, so its new cell is never read.
+    type Output = (u64, u64);
+
+    fn eval(&self) -> (u64, u64) {
+        let address = WordAccess::address(self.v1, self.imm);
+        let log_width = self.flags & Self::LOG_WIDTH;
+        let bits = 8 << log_width;
+        let bus = WordAccess::bus_address(address, log_width);
         if bits == 64 {
-            return value;
+            return (bus, self.v2);
         }
 
         // Replace the addressed bytes, keep the others.
         let mask = ((1u64 << bits) - 1) << (8 * (address & 7));
-        (cell & !mask) | ((value << (8 * (address & 7))) & mask)
+        (bus, (self.cell & !mask) | ((self.v2 << (8 * (address & 7))) & mask))
+    }
+
+    fn input_words(&self) -> Vec<u64> {
+        vec![self.v1, self.v2, self.imm, self.flags, self.cell]
+    }
+
+    fn output_words(&(address, cell): &(u64, u64)) -> Vec<u64> {
+        vec![address, cell]
     }
 }
 
-/// The low multiplication's function, selected by its flag word.
+/// One low multiplication instance.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct Mul(pub u64);
+pub struct Mul {
+    /// Whether to sign-extend a word product: one of the legal words.
+    pub flags: u64,
+    /// The first factor.
+    pub v1: u64,
+    /// The second factor.
+    pub v2: u64,
+}
 
 impl Mul {
     /// Sign-extend the low 32 bits of the product.
     pub const WORD: u64 = 1 << 0;
+}
 
-    /// The legal words.
-    pub const LEGAL: [u64; 2] = [0, Self::WORD];
+impl InstructionClass for Mul {
+    const CLASS: Class = Class::Mul;
+
+    /// With or without the word form.
+    const LEGAL: &'static [u64] = &[0, Self::WORD];
 
     /// The low word of the product.
-    pub fn eval(self, v1: u64, v2: u64) -> u64 {
-        let product = v1.wrapping_mul(v2);
-        if self.0 & Self::WORD != 0 {
+    type Output = u64;
+
+    fn eval(&self) -> u64 {
+        let product = self.v1.wrapping_mul(self.v2);
+        if self.flags & Self::WORD != 0 {
             sext32(product)
         } else {
             product
         }
     }
+
+    fn input_words(&self) -> Vec<u64> {
+        vec![self.v1, self.v2, self.flags]
+    }
+
+    fn output_words(&out: &u64) -> Vec<u64> {
+        vec![out]
+    }
 }
 
-/// The high multiplication's function, selected by its flag word: which operands are signed.
+/// One high multiplication instance.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct Mulh(pub u64);
+pub struct Mulh {
+    /// Which operands are signed: one of the legal words.
+    pub flags: u64,
+    /// The first factor.
+    pub v1: u64,
+    /// The second factor.
+    pub v2: u64,
+}
 
 impl Mulh {
     /// The first operand is signed.
     pub const SIGNED_1: u64 = 1 << 0;
     /// The second operand is signed.
     pub const SIGNED_2: u64 = 1 << 1;
+}
 
-    /// The legal words: `mulh`, `mulhsu`, `mulhu`.
-    pub const LEGAL: [u64; 3] = [Self::SIGNED_1 | Self::SIGNED_2, Self::SIGNED_1, 0];
+impl InstructionClass for Mulh {
+    const CLASS: Class = Class::Mulh;
+
+    /// `mulh`, `mulhsu`, `mulhu`.
+    const LEGAL: &'static [u64] = &[Self::SIGNED_1 | Self::SIGNED_2, Self::SIGNED_1, 0];
 
     /// The high word of the 128-bit product.
-    pub fn eval(self, v1: u64, v2: u64) -> u64 {
+    type Output = u64;
+
+    fn eval(&self) -> u64 {
         let widen = |v: u64, signed: bool| if signed { v as i64 as i128 } else { v as i128 };
-        let (s1, s2) = (self.0 & Self::SIGNED_1 != 0, self.0 & Self::SIGNED_2 != 0);
-        (widen(v1, s1).wrapping_mul(widen(v2, s2)) >> 64) as u64
+        let (s1, s2) = (self.flags & Self::SIGNED_1 != 0, self.flags & Self::SIGNED_2 != 0);
+        (widen(self.v1, s1).wrapping_mul(widen(self.v2, s2)) >> 64) as u64
+    }
+
+    fn input_words(&self) -> Vec<u64> {
+        vec![self.v1, self.v2, self.flags]
+    }
+
+    fn output_words(&out: &u64) -> Vec<u64> {
+        vec![out]
     }
 }
 
-/// The division's function, selected by its flag word.
+/// One division instance.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct Div(pub u64);
+pub struct Div {
+    /// Signed or not, quotient or remainder, word or not: one of the legal words.
+    pub flags: u64,
+    /// The dividend.
+    pub v1: u64,
+    /// The divisor.
+    pub v2: u64,
+}
 
 impl Div {
     /// Divide signed operands.
@@ -328,16 +497,42 @@ impl Div {
     /// Divide the low 32 bits, then sign-extend the low 32 bits of the result.
     pub const WORD: u64 = 1 << 2;
 
-    /// The legal words: every combination.
-    pub const LEGAL: [u64; 8] = [0, 1, 2, 3, 4, 5, 6, 7];
+    /// The magnitudes of the quotient and the remainder.
+    ///
+    /// The prover supplies them to the division circuit, which checks them rather than computes them.
+    ///
+    /// Both are zero for a zero divisor, which the circuit ignores.
+    pub fn hints(&self) -> (u64, u64) {
+        let (signed, word) = (self.flags & Self::SIGNED != 0, self.flags & Self::WORD != 0);
+
+        // The operands' magnitudes, on 32 bits for a word division.
+        let magnitude = |v: u64| match (word, signed) {
+            (false, false) => v,
+            (false, true) => (v as i64).unsigned_abs(),
+            (true, false) => v as u32 as u64,
+            (true, true) => (v as i32 as i64).unsigned_abs(),
+        };
+        let (n, d) = (magnitude(self.v1), magnitude(self.v2));
+        n.checked_div(d).map_or((0, 0), |q| (q, n % d))
+    }
+}
+
+impl InstructionClass for Div {
+    const CLASS: Class = Class::Div;
+
+    /// Every combination.
+    const LEGAL: &'static [u64] = &[0, 1, 2, 3, 4, 5, 6, 7];
+
+    /// The quotient or the remainder.
+    type Output = u64;
 
     /// The quotient or the remainder, as RISC-V defines them.
     ///
     /// - Dividing by zero gives all ones, and its remainder is the dividend.
     /// - The one signed overflow, `-2^63 / -1`, wraps to `-2^63` with remainder zero.
     /// - A word division extends the low 32 bits of both operands, divides, and sign-extends the result.
-    pub fn eval(self, v1: u64, v2: u64) -> u64 {
-        let on = |flag: u64| self.0 & flag != 0;
+    fn eval(&self) -> u64 {
+        let on = |flag: u64| self.flags & flag != 0;
         let (signed, rem, word) = (on(Self::SIGNED), on(Self::REM), on(Self::WORD));
 
         // A word division's operands, extended to 64 bits.
@@ -346,7 +541,7 @@ impl Div {
             (true, true) => sext32(v),
             (true, false) => v as u32 as u64,
         };
-        let (n, d) = (extend(v1), extend(v2));
+        let (n, d) = (extend(self.v1), extend(self.v2));
 
         // The quotient and the remainder, the zero divisor and the overflow included.
         let (q, r) = if d == 0 {
@@ -361,27 +556,19 @@ impl Div {
         if word { sext32(out) } else { out }
     }
 
-    /// The magnitudes of the quotient and the remainder.
-    ///
-    /// The prover supplies them to the division circuit, which checks them rather than computes them.
-    ///
-    /// Both are zero for a zero divisor, which the circuit ignores.
-    pub fn hints(self, v1: u64, v2: u64) -> (u64, u64) {
-        let (signed, word) = (self.0 & Self::SIGNED != 0, self.0 & Self::WORD != 0);
+    /// The operands, the flags, then the honest hints.
+    fn input_words(&self) -> Vec<u64> {
+        let (q, r) = self.hints();
+        vec![self.v1, self.v2, self.flags, q, r]
+    }
 
-        // The operands' magnitudes, on 32 bits for a word division.
-        let magnitude = |v: u64| match (word, signed) {
-            (false, false) => v,
-            (false, true) => (v as i64).unsigned_abs(),
-            (true, false) => v as u32 as u64,
-            (true, true) => (v as i32 as i64).unsigned_abs(),
-        };
-        let (n, d) = (magnitude(v1), magnitude(v2));
-        n.checked_div(d).map_or((0, 0), |q| (q, n % d))
+    /// The result, then the circuit's verdict on the hints, which honest hints keep at zero.
+    fn output_words(&out: &u64) -> Vec<u64> {
+        vec![out, 0]
     }
 }
 
-/// The BLAKE2s compression, `blake2s rs1, rs2`, selected by its flag word: the finalization word.
+/// One BLAKE2s compression instance, `blake2s rs1, rs2`: the finalization word, the counter, the block.
 ///
 /// It compresses the 128-byte block at `rs1`, with the byte counter in `rs2`.
 ///
@@ -399,7 +586,14 @@ impl Div {
 ///
 /// That is a guest bug, but a deterministic and provable one.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct Hash(pub u64);
+pub struct Hash {
+    /// The finalization word: one of the legal words.
+    pub flags: u64,
+    /// The byte counter.
+    pub t: u64,
+    /// The block's words as found.
+    pub block: [u64; Hash::WORDS],
+}
 
 impl Hash {
     /// The chaining value's byte offset.
@@ -412,23 +606,42 @@ impl Hash {
     pub const WORDS: usize = 16;
     /// The block's bytes.
     pub const BLOCK_BYTES: u64 = 8 * Self::WORDS as u64;
-
     /// The finalization word of the last block: all ones.
     pub const FINAL: u64 = u32::MAX as u64;
-    /// The legal words.
-    pub const LEGAL: [u64; 2] = [0, Self::FINAL];
+}
 
-    /// The compression of a block with counter `t`, as the four words the instruction writes back.
-    pub fn compress(self, block: &[u64; Self::WORDS], t: u64) -> [u64; 4] {
-        debug_assert!(Self::LEGAL.contains(&self.0));
+impl InstructionClass for Hash {
+    const CLASS: Class = Class::Hash;
+
+    /// Not the last block, or the last.
+    const LEGAL: &'static [u64] = &[0, Self::FINAL];
+
+    /// The four words the instruction writes back: the new chaining value.
+    type Output = [u64; 4];
+
+    fn eval(&self) -> [u64; 4] {
+        debug_assert!(Self::LEGAL.contains(&self.flags));
 
         // Split each 64-bit word into its two 32-bit halves, low first.
+        let block = &self.block;
         let mut h: [u32; 8] = std::array::from_fn(|i| (block[i / 2] >> (32 * (i % 2))) as u32);
         let m: [u32; 16] = std::array::from_fn(|i| (block[8 + i / 2] >> (32 * (i % 2))) as u32);
 
         // Compress, then pair the halves back into words.
-        primitives::hash::compress(&mut h, &m, t, self.0 == Self::FINAL);
+        primitives::hash::compress(&mut h, &m, self.t, self.flags == Self::FINAL);
         std::array::from_fn(|i| h[2 * i] as u64 | (h[2 * i + 1] as u64) << 32)
+    }
+
+    /// The counter, the finalization word, the chaining value, then the message.
+    fn input_words(&self) -> Vec<u64> {
+        [self.t, self.flags]
+            .into_iter()
+            .chain(self.block[..4].iter().chain(&self.block[8..]).copied())
+            .collect()
+    }
+
+    fn output_words(out: &[u64; 4]) -> Vec<u64> {
+        out.to_vec()
     }
 }
 
@@ -481,12 +694,12 @@ pub struct BlockAccess {
     pub out: [u64; 4],
 }
 
-impl BlockAccess {
-    /// The compression of `block` with counter `t` and finalization word `flags`.
-    pub fn compress(block: [u64; Hash::WORDS], t: u64, flags: u64) -> Self {
+impl From<Hash> for BlockAccess {
+    /// The access of a compression: its block, and the result it writes.
+    fn from(hash: Hash) -> Self {
         Self {
-            block,
-            out: Hash(flags).compress(&block, t),
+            block: hash.block,
+            out: hash.eval(),
         }
     }
 }
@@ -509,33 +722,42 @@ impl Entry {
     ///
     /// A hash computes nothing here: its block is the machine's to read.
     pub fn evaluate(&self, v1: u64, v2: u64, cell: u64) -> Outcome {
-        // A load's or a store's address, and its access to the cell.
-        let address = WordAccess::address(v1, self.imm);
-        let access = |new: u64, log_width: u64| WordAccess {
-            address: WordAccess::bus_address(address, log_width),
-            old: cell,
-            new,
-        };
-
-        // The class's function, and the access of a memory class.
-        let flags = self.flags;
+        let (flags, imm) = (self.flags, self.imm);
         let (out, taken, access) = match self.class {
             Class::Alu => {
-                let (out, taken) = Alu(flags).eval(v1, v2, self.imm);
+                let (out, taken) = Alu { flags, v1, v2, imm }.eval();
                 (out, taken, None)
             }
-            Class::Shift => (Shift(flags).eval(v1, v2, self.imm), false, None),
-            Class::Mul => (Mul(flags).eval(v1, v2), false, None),
-            Class::Mulh => (Mulh(flags).eval(v1, v2), false, None),
-            Class::Div => (Div(flags).eval(v1, v2), false, None),
+            Class::Shift => (Shift { flags, v1, v2, imm }.eval(), false, None),
+            Class::Mul => (Mul { flags, v1, v2 }.eval(), false, None),
+            Class::Mulh => (Mulh { flags, v1, v2 }.eval(), false, None),
+            Class::Div => (Div { flags, v1, v2 }.eval(), false, None),
+            // A load leaves its cell as it was.
             Class::Load => {
-                let load = Load(flags);
-                (load.eval(cell, address), false, Some(access(cell, load.log_width())))
+                let (address, value) = Load { flags, v1, imm, cell }.eval();
+                let access = WordAccess {
+                    address,
+                    old: cell,
+                    new: cell,
+                };
+                (value, false, Some(access))
             }
+            // A store's result is the cell it leaves.
             Class::Store => {
-                let store = Store(flags);
-                let new = store.eval(cell, address, v2);
-                (0, false, Some(access(new, store.log_width())))
+                let (address, new) = Store {
+                    flags,
+                    v1,
+                    v2,
+                    imm,
+                    cell,
+                }
+                .eval();
+                let access = WordAccess {
+                    address,
+                    old: cell,
+                    new,
+                };
+                (0, false, Some(access))
             }
             Class::Hash | Class::Illegal => (0, false, None),
         };
@@ -553,6 +775,7 @@ pub(super) mod tests {
     use super::*;
     use proptest::prelude::*;
     use proptest::sample::select;
+    use proptest::strategy::BoxedStrategy;
 
     /// The words arithmetic most often gets wrong: zero, one, all ones, and the sign bits.
     const EDGES: [u64; 8] = [
@@ -582,6 +805,148 @@ pub(super) mod tests {
         ]
     }
 
+    /// Any ALU instance, as the decoder makes them: one of `v2` and `imm` is zero.
+    impl Arbitrary for Alu {
+        type Parameters = ();
+        type Strategy = BoxedStrategy<Self>;
+
+        fn arbitrary_with((): ()) -> Self::Strategy {
+            // Equal operands now and then, which random words never are.
+            (
+                select(Self::LEGAL),
+                edge_word(),
+                edge_word(),
+                any::<bool>(),
+                any::<bool>(),
+            )
+                .prop_map(|(flags, v1, v2, equal, immediate)| {
+                    let v2 = if equal { v1 } else { v2 };
+                    let (v2, imm) = if immediate { (0, v2) } else { (v2, 0) };
+                    Self { flags, v1, v2, imm }
+                })
+                .boxed()
+        }
+    }
+
+    /// Any shifter instance, as the decoder makes them: a register amount or a six-bit immediate.
+    impl Arbitrary for Shift {
+        type Parameters = ();
+        type Strategy = BoxedStrategy<Self>;
+
+        fn arbitrary_with((): ()) -> Self::Strategy {
+            // Every amount now and then, which a random word's low bits reach slowly.
+            (
+                select(Self::LEGAL),
+                edge_word(),
+                edge_word(),
+                0u64..64,
+                any::<bool>(),
+                any::<bool>(),
+            )
+                .prop_map(|(flags, v1, v2, amount, small, immediate)| {
+                    let v2 = if small { amount } else { v2 };
+                    let (v2, imm) = if immediate { (0, v2 & 63) } else { (v2, 0) };
+                    Self { flags, v1, v2, imm }
+                })
+                .boxed()
+        }
+    }
+
+    /// Any load instance, aligned half the time, which a random address seldom is.
+    impl Arbitrary for Load {
+        type Parameters = ();
+        type Strategy = BoxedStrategy<Self>;
+
+        fn arbitrary_with((): ()) -> Self::Strategy {
+            (
+                select(Self::LEGAL),
+                edge_word(),
+                0u64..4096,
+                any::<u64>(),
+                any::<bool>(),
+            )
+                .prop_map(|(flags, v1, imm, cell, aligned)| {
+                    let mask = (1 << (flags & Self::LOG_WIDTH)) - 1;
+                    let (v1, imm) = if aligned { (v1 & !mask, imm & !7) } else { (v1, imm) };
+                    Self { flags, v1, imm, cell }
+                })
+                .boxed()
+        }
+    }
+
+    /// Any aligned store instance.
+    ///
+    /// A misaligned store names no cell, so its new cell is never read and need not agree.
+    impl Arbitrary for Store {
+        type Parameters = ();
+        type Strategy = BoxedStrategy<Self>;
+
+        fn arbitrary_with((): ()) -> Self::Strategy {
+            (select(Self::LEGAL), edge_word(), edge_word(), 0u64..4096, any::<u64>())
+                .prop_map(|(flags, v1, v2, imm, cell)| Self {
+                    flags,
+                    v1: v1 & !((1 << flags) - 1),
+                    v2,
+                    imm: imm & !7,
+                    cell,
+                })
+                .boxed()
+        }
+    }
+
+    /// Any low multiplication instance.
+    impl Arbitrary for Mul {
+        type Parameters = ();
+        type Strategy = BoxedStrategy<Self>;
+
+        fn arbitrary_with((): ()) -> Self::Strategy {
+            (select(Self::LEGAL), edge_word(), edge_word())
+                .prop_map(|(flags, v1, v2)| Self { flags, v1, v2 })
+                .boxed()
+        }
+    }
+
+    /// Any high multiplication instance.
+    impl Arbitrary for Mulh {
+        type Parameters = ();
+        type Strategy = BoxedStrategy<Self>;
+
+        fn arbitrary_with((): ()) -> Self::Strategy {
+            (select(Self::LEGAL), edge_word(), edge_word())
+                .prop_map(|(flags, v1, v2)| Self { flags, v1, v2 })
+                .boxed()
+        }
+    }
+
+    /// Any division instance, its divisor biased toward zero and toward small values.
+    impl Arbitrary for Div {
+        type Parameters = ();
+        type Strategy = BoxedStrategy<Self>;
+
+        fn arbitrary_with((): ()) -> Self::Strategy {
+            let divisor = prop_oneof![1 => Just(0), 4 => (edge_word(), 0u32..64).prop_map(|(w, s)| w >> s)];
+            (select(Self::LEGAL), edge_word(), divisor)
+                .prop_map(|(flags, v1, v2)| Self { flags, v1, v2 })
+                .boxed()
+        }
+    }
+
+    /// Any compression instance with a legal finalization word.
+    impl Arbitrary for Hash {
+        type Parameters = ();
+        type Strategy = BoxedStrategy<Self>;
+
+        fn arbitrary_with((): ()) -> Self::Strategy {
+            (
+                select(Self::LEGAL),
+                edge_word(),
+                proptest::array::uniform16(edge_word()),
+            )
+                .prop_map(|(flags, t, block)| Self { flags, t, block })
+                .boxed()
+        }
+    }
+
     proptest! {
         #[test]
         fn a_load_reads_back_what_a_store_wrote(cell in any::<u64>(), value in edge_word(), offset in 0u64..8, signed in any::<bool>(), log_width in 0u64..4) {
@@ -590,8 +955,9 @@ pub(super) mod tests {
             let bits = 8u32 << log_width;
 
             // A store, then a load of the same width at the same address.
+            let (_, stored) = Store { flags: log_width, v1: address, v2: value, imm: 0, cell }.eval();
             let flags = if signed && log_width < 3 { Load::SIGNED | log_width } else { log_width };
-            let got = Load(flags).eval(Store(log_width).eval(cell, address, value), address);
+            let (_, got) = Load { flags, v1: address, imm: 0, cell: stored }.eval();
 
             // The load returns the stored bytes, extended as the flags say.
             let expected = match (bits, signed) {
@@ -609,7 +975,8 @@ pub(super) mod tests {
             let covered = if log_width == 3 { u64::MAX } else { ((1u64 << (8 << log_width)) - 1) << (8 * address) };
 
             // Outside the access, the cell is unchanged.
-            prop_assert_eq!(Store(log_width).eval(cell, address, value) & !covered, cell & !covered);
+            let (_, new) = Store { flags: log_width, v1: address, v2: value, imm: 0, cell }.eval();
+            prop_assert_eq!(new & !covered, cell & !covered);
         }
 
         #[test]
@@ -621,18 +988,18 @@ pub(super) mod tests {
         }
 
         #[test]
-        fn div_hints_satisfy_the_division_identity(v1 in edge_word(), v2 in edge_word(), flags in select(&Div::LEGAL[..])) {
+        fn div_hints_satisfy_the_division_identity(div in any::<Div>()) {
             // Invariant: |n| = q * |d| + r with r < |d|, over the integers.
-            let (q, r) = Div(flags).hints(v1, v2);
-            let word = flags & Div::WORD != 0;
-            let signed = flags & Div::SIGNED != 0;
+            let (q, r) = div.hints();
+            let word = div.flags & Div::WORD != 0;
+            let signed = div.flags & Div::SIGNED != 0;
             let magnitude = |v: u64| match (word, signed) {
                 (false, false) => v as u128,
                 (false, true) => (v as i64).unsigned_abs() as u128,
                 (true, false) => v as u32 as u128,
                 (true, true) => (v as i32 as i64).unsigned_abs() as u128,
             };
-            let (n, d) = (magnitude(v1), magnitude(v2));
+            let (n, d) = (magnitude(div.v1), magnitude(div.v2));
             if d == 0 {
                 prop_assert_eq!((q, r), (0, 0));
             } else {
@@ -646,41 +1013,41 @@ pub(super) mod tests {
             // Each word form is the 32-bit operation, sign-extended.
             let w = |x: u32| x as i32 as i64 as u64;
             let (a, b) = (v1 as u32, v2 as u32);
-            prop_assert_eq!(Alu(Alu::WORD).eval(v1, v2, 0).0, w(a.wrapping_add(b)));
-            prop_assert_eq!(Mul(Mul::WORD).eval(v1, v2), w(a.wrapping_mul(b)));
-            prop_assert_eq!(Shift(Shift::WORD).eval(v1, v2, 0), w(a << (b & 31)));
-            prop_assert_eq!(Shift(Shift::WORD | Shift::RIGHT).eval(v1, v2, 0), w(a >> (b & 31)));
-            let sra = Shift(Shift::WORD | Shift::RIGHT | Shift::ARITH).eval(v1, v2, 0);
-            prop_assert_eq!(sra, w(((a as i32) >> (b & 31)) as u32));
+            let shift = |flags| Shift { flags, v1, v2, imm: 0 }.eval();
+            prop_assert_eq!(Alu { flags: Alu::WORD, v1, v2, imm: 0 }.eval().0, w(a.wrapping_add(b)));
+            prop_assert_eq!(Mul { flags: Mul::WORD, v1, v2 }.eval(), w(a.wrapping_mul(b)));
+            prop_assert_eq!(shift(Shift::WORD), w(a << (b & 31)));
+            prop_assert_eq!(shift(Shift::WORD | Shift::RIGHT), w(a >> (b & 31)));
+            prop_assert_eq!(shift(Shift::WORD | Shift::RIGHT | Shift::ARITH), w(((a as i32) >> (b & 31)) as u32));
             if let (Some(q), Some(r)) = (a.checked_div(b), a.checked_rem(b)) {
-                prop_assert_eq!(Div(Div::WORD).eval(v1, v2), w(q));
-                prop_assert_eq!(Div(Div::WORD | Div::REM).eval(v1, v2), w(r));
+                prop_assert_eq!(Div { flags: Div::WORD, v1, v2 }.eval(), w(q));
+                prop_assert_eq!(Div { flags: Div::WORD | Div::REM, v1, v2 }.eval(), w(r));
             }
         }
 
         #[test]
         fn mulh_is_the_high_half_of_the_wide_product(v1 in edge_word(), v2 in edge_word()) {
             // The unsigned and signed high words, from 128-bit integers.
-            prop_assert_eq!(Mulh(0).eval(v1, v2), ((v1 as u128 * v2 as u128) >> 64) as u64);
-            let signed = Mulh(Mulh::SIGNED_1 | Mulh::SIGNED_2).eval(v1, v2);
+            prop_assert_eq!(Mulh { flags: 0, v1, v2 }.eval(), ((v1 as u128 * v2 as u128) >> 64) as u64);
+            let signed = Mulh { flags: Mulh::SIGNED_1 | Mulh::SIGNED_2, v1, v2 }.eval();
             prop_assert_eq!(signed, ((v1 as i64 as i128 * v2 as i64 as i128) >> 64) as u64);
         }
     }
 
     #[test]
     fn division_edge_cases_follow_the_specification() {
-        let min = i64::MIN as u64;
+        let (min, min32) = (i64::MIN as u64, i32::MIN as i64 as u64);
+        let div = |flags, v1, v2| Div { flags, v1, v2 }.eval();
 
         // A zero divisor: all ones, and the remainder is the dividend.
-        assert_eq!(Div(0).eval(7, 0), u64::MAX);
-        assert_eq!(Div(Div::REM).eval(7, 0), 7);
+        assert_eq!(div(0, 7, 0), u64::MAX);
+        assert_eq!(div(Div::REM, 7, 0), 7);
 
         // The signed overflow: -2^63 / -1 wraps, remainder zero.
-        assert_eq!(Div(Div::SIGNED).eval(min, u64::MAX), min);
-        assert_eq!(Div(Div::SIGNED | Div::REM).eval(min, u64::MAX), 0);
+        assert_eq!(div(Div::SIGNED, min, u64::MAX), min);
+        assert_eq!(div(Div::SIGNED | Div::REM, min, u64::MAX), 0);
 
         // The same on 32 bits: -2^31 / -1 wraps to -2^31, sign-extended.
-        let min32 = i32::MIN as i64 as u64;
-        assert_eq!(Div(Div::SIGNED | Div::WORD).eval(min32, u64::MAX), min32);
+        assert_eq!(div(Div::SIGNED | Div::WORD, min32, u64::MAX), min32);
     }
 }

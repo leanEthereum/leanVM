@@ -14,16 +14,21 @@
 //!
 //! An XOR, a NOT or a copy is free.
 
-use super::semantics::{Alu, Shift};
+use super::semantics::{Alu, Div, Hash, Load, Mul, Mulh, Shift, Store};
 use flock::arith::mul::Multiplier;
 use flock::circuit::{Builder, Circuit, Wire};
 use primitives::hash::{G_LANES, IV, SIGMA};
 use std::sync::OnceLock;
 
-/// Each class's circuit, as a constructor on flock's circuit type.
+/// A class's circuit: its function as a gate list over the words its table puts on the bus.
 ///
-/// Flock owns that type, so its constructors live on this extension trait.
-pub(super) trait ClassCircuits {
+/// The gate list reads the input words, then writes the output words, in the order the class declares them.
+pub trait ClassCircuit {
+    /// The class's gate list.
+    fn circuit() -> Circuit;
+}
+
+impl ClassCircuit for Alu {
     /// The ALU: `(v1, v2, imm, flags) -> (out, taken)`.
     ///
     /// It mirrors the reference function on every legal flag word.
@@ -32,80 +37,7 @@ pub(super) trait ClassCircuits {
     /// - One adder gives `v1 + b`, or `v1 - b` for the comparisons.
     /// - The output is that sum, unless a selector picks a comparison or a bitwise operation.
     /// - The jump is taken always, or when the one branch condition set holds.
-    fn alu() -> Self;
-
-    /// The shifter: `(v1, v2, imm, flags) -> out`.
-    ///
-    /// One right shifter serves both directions.
-    ///
-    /// A left shift is a right shift of the bit-reversed word, reversed back.
-    ///
-    /// The right shift is six barrel stages, by 1, 2, 4, 8, 16 and 32 bits.
-    fn shift() -> Self;
-
-    /// The load: `(v1, imm, flags, cell) -> (address, out)`.
-    ///
-    /// The address is what goes on the memory bus, and `cell` is the word read there.
-    ///
-    /// - The cell shifts right until the addressed byte is at the bottom.
-    /// - The output keeps the access's width, extended by its top bit if the load is signed.
-    fn load() -> Self;
-
-    /// The store: `(v1, v2, imm, flags, cell) -> (address, new cell)`.
-    ///
-    /// The value shifts up to the addressed bytes, which replace the cell's.
-    ///
-    /// The cell's other bytes are kept.
-    fn store() -> Self;
-
-    /// The low word of the product: `(v1, v2, flags) -> out`.
-    ///
-    /// A word multiplication sign-extends the low 32 bits.
-    fn mul() -> Self;
-
-    /// The high word of the product: `(v1, v2, flags) -> out`.
-    ///
-    /// A negative operand reads as its unsigned value minus `2^64`.
-    ///
-    /// So the signed high word is the unsigned one, corrected:
-    ///
-    /// ```text
-    ///     high(v1 * v2) = high_u(v1 * v2) - [v1 < 0] * v2 - [v2 < 0] * v1    (mod 2^64)
-    /// ```
-    fn mulh() -> Self;
-
-    /// The division: `(v1, v2, flags, q, r) -> (out, bad)`.
-    ///
-    /// The prover supplies `q` and `r`, the magnitudes of the quotient and the remainder.
-    ///
-    /// The circuit sets `bad` unless they are the right ones:
-    ///
-    /// ```text
-    ///     |n| = q * |d| + r
-    ///     r   < |d|
-    /// ```
-    ///
-    /// The identity holds over the integers: the product has no high word, and the sum no carry.
-    ///
-    /// A row puts `bad` where its bytecode entry holds zero, so the proof forces it to zero.
-    ///
-    /// A zero divisor checks nothing, and gives what RISC-V says: all ones, or the dividend.
-    ///
-    /// The one overflow, `-2^63 / -1`, needs no special case on magnitudes.
-    fn div() -> Self;
-
-    /// The compression: `(t, f0, h, m) -> out`, on the 32-bit halves of the block's words.
-    ///
-    /// `h` and `out` are four words each, and `m` is eight.
-    ///
-    /// Each G is six 32-bit additions, its two three-operand ones chained.
-    ///
-    /// The state is never committed: only the carries are products, and the result is copied out.
-    fn blake2s() -> Self;
-}
-
-impl ClassCircuits for Circuit {
-    fn alu() -> Self {
+    fn circuit() -> Circuit {
         let mut c = Builder::new(&[64, 64, 64, 15], &[64, 1]);
         let (v1, v2, imm, f) = (c.input(0), c.input(1), c.input(2), c.input(3));
         let flag = |bit: u64| f[bit.trailing_zeros() as usize];
@@ -179,8 +111,17 @@ impl ClassCircuits for Circuit {
         c.output(1, 0, taken);
         c.finish()
     }
+}
 
-    fn shift() -> Self {
+impl ClassCircuit for Shift {
+    /// The shifter: `(v1, v2, imm, flags) -> out`.
+    ///
+    /// One right shifter serves both directions.
+    ///
+    /// A left shift is a right shift of the bit-reversed word, reversed back.
+    ///
+    /// The right shift is six barrel stages, by 1, 2, 4, 8, 16 and 32 bits.
+    fn circuit() -> Circuit {
         let mut c = Builder::new(&[64, 64, 64, 3], &[64]);
         let (v1, v2, imm, f) = (c.input(0), c.input(1), c.input(2), c.input(3));
         let flag = |bit: u64| f[bit.trailing_zeros() as usize];
@@ -214,8 +155,16 @@ impl ClassCircuits for Circuit {
         c.output_word(0, &out);
         c.finish()
     }
+}
 
-    fn load() -> Self {
+impl ClassCircuit for Load {
+    /// The load: `(v1, imm, flags, cell) -> (address, out)`.
+    ///
+    /// The address is what goes on the memory bus, and `cell` is the word read there.
+    ///
+    /// - The cell shifts right until the addressed byte is at the bottom.
+    /// - The output keeps the access's width, extended by its top bit if the load is signed.
+    fn circuit() -> Circuit {
         let mut c = Builder::new(&[64, 64, 3, 64], &[64, 64]);
         let (v1, imm, flags, cell) = (c.input(0), c.input(1), c.input(2), c.input(3));
         let address = c.add_wrapping(&v1, &imm);
@@ -251,8 +200,15 @@ impl ClassCircuits for Circuit {
         }
         c.finish()
     }
+}
 
-    fn store() -> Self {
+impl ClassCircuit for Store {
+    /// The store: `(v1, v2, imm, flags, cell) -> (address, new cell)`.
+    ///
+    /// The value shifts up to the addressed bytes, which replace the cell's.
+    ///
+    /// The cell's other bytes are kept.
+    fn circuit() -> Circuit {
         let mut c = Builder::new(&[64, 64, 64, 2, 64], &[64, 64]);
         let (v1, v2, imm, flags, cell) = (c.input(0), c.input(1), c.input(2), c.input(3), c.input(4));
         let address = c.add_wrapping(&v1, &imm);
@@ -280,8 +236,13 @@ impl ClassCircuits for Circuit {
         }
         c.finish()
     }
+}
 
-    fn mul() -> Self {
+impl ClassCircuit for Mul {
+    /// The low word of the product: `(v1, v2, flags) -> out`.
+    ///
+    /// A word multiplication sign-extends the low 32 bits.
+    fn circuit() -> Circuit {
         let mut c = Builder::new(&[64, 64, 1], &[64]);
         let (v1, v2, f) = (c.input(0), c.input(1), c.input(2));
         let (product, _) = Multiplier::build(&mut c, &v1, &v2, 64);
@@ -289,8 +250,19 @@ impl ClassCircuits for Circuit {
         c.output_word(0, &out);
         c.finish()
     }
+}
 
-    fn mulh() -> Self {
+impl ClassCircuit for Mulh {
+    /// The high word of the product: `(v1, v2, flags) -> out`.
+    ///
+    /// A negative operand reads as its unsigned value minus `2^64`.
+    ///
+    /// So the signed high word is the unsigned one, corrected:
+    ///
+    /// ```text
+    ///     high(v1 * v2) = high_u(v1 * v2) - [v1 < 0] * v2 - [v2 < 0] * v1    (mod 2^64)
+    /// ```
+    fn circuit() -> Circuit {
         let mut c = Builder::new(&[64, 64, 2], &[64]);
         let (v1, v2, f) = (c.input(0), c.input(1), c.input(2));
         let (product, _) = Multiplier::build(&mut c, &v1, &v2, 128);
@@ -314,8 +286,28 @@ impl ClassCircuits for Circuit {
         c.output_word(0, &high);
         c.finish()
     }
+}
 
-    fn div() -> Self {
+impl ClassCircuit for Div {
+    /// The division: `(v1, v2, flags, q, r) -> (out, bad)`.
+    ///
+    /// The prover supplies `q` and `r`, the magnitudes of the quotient and the remainder.
+    ///
+    /// The circuit sets `bad` unless they are the right ones:
+    ///
+    /// ```text
+    ///     |n| = q * |d| + r
+    ///     r   < |d|
+    /// ```
+    ///
+    /// The identity holds over the integers: the product has no high word, and the sum no carry.
+    ///
+    /// A row puts `bad` where its bytecode entry holds zero, so the proof forces it to zero.
+    ///
+    /// A zero divisor checks nothing, and gives what RISC-V says: all ones, or the dividend.
+    ///
+    /// The one overflow, `-2^63 / -1`, needs no special case on magnitudes.
+    fn circuit() -> Circuit {
         let mut c = Builder::new(&[64, 64, 3, 64, 64], &[64, 1]);
         let (v1, v2, f, q, r) = (c.input(0), c.input(1), c.input(2), c.input(3), c.input(4));
         let (signed, rem, word) = (f[0], f[1], f[2]);
@@ -371,8 +363,17 @@ impl ClassCircuits for Circuit {
         c.output(1, 0, bad);
         c.finish()
     }
+}
 
-    fn blake2s() -> Self {
+impl ClassCircuit for Hash {
+    /// The compression: `(t, f0, h, m) -> out`, on the 32-bit halves of the block's words.
+    ///
+    /// `h` and `out` are four words each, and `m` is eight.
+    ///
+    /// Each G is six 32-bit additions, its two three-operand ones chained.
+    ///
+    /// The state is never committed: only the carries are products, and the result is copied out.
+    fn circuit() -> Circuit {
         let mut c = Builder::new(&INPUT_BITS, &[64, 64, 64, 64]);
         let half = |c: &Builder, port: usize, i: usize| -> Word { c.input(port)[32 * (i % 2)..][..32].to_vec() };
         let literal = |c: &Builder, x: u32| -> Word { (0..32).map(|i| c.one().filter(|_| x >> i & 1 == 1)).collect() };
@@ -637,7 +638,7 @@ pub fn blake2s_witness(inputs: &[u64], z: &mut [u64], az: &mut [u64], bz: &mut [
     let carries = match CARRIES.get() {
         Some(carries) => carries,
         None => {
-            Circuit::blake2s();
+            Hash::circuit();
             CARRIES.get().expect("building the circuit records its carry runs")
         }
     };
@@ -718,198 +719,159 @@ fn or_run(buf: &mut [u64], slot: u32, bits: u64) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::rv::entry::Class;
     use crate::rv::semantics::tests::edge_word;
-    use crate::rv::semantics::{Div, Hash, Load, Mul, Mulh, Store, WordAccess};
+    use crate::rv::semantics::{InstructionClass, WordAccess};
     use fiat_shamir::transcript::{ProverState, VerifierState};
     use proptest::prelude::*;
-    use proptest::sample::select;
     use proptest::strategy::ValueTree;
-    use proptest::test_runner::TestRunner;
-    use std::ops::Range;
+    use proptest::test_runner::{Config, TestRunner};
+    use std::fmt::Debug;
     use std::sync::LazyLock;
 
-    // Each circuit, built once for every case.
-    static ALU: LazyLock<Circuit> = LazyLock::new(Circuit::alu);
-    static SHIFT: LazyLock<Circuit> = LazyLock::new(Circuit::shift);
-    static LOAD: LazyLock<Circuit> = LazyLock::new(Circuit::load);
-    static STORE: LazyLock<Circuit> = LazyLock::new(Circuit::store);
-    static MUL: LazyLock<Circuit> = LazyLock::new(Circuit::mul);
-    static MULH: LazyLock<Circuit> = LazyLock::new(Circuit::mulh);
-    static DIV: LazyLock<Circuit> = LazyLock::new(Circuit::div);
-    static BLAKE2S: LazyLock<Circuit> = LazyLock::new(Circuit::blake2s);
+    /// Every class with a circuit.
+    const CLASSES: [Class; 8] = [
+        Class::Alu,
+        Class::Shift,
+        Class::Load,
+        Class::Store,
+        Class::Mul,
+        Class::Mulh,
+        Class::Div,
+        Class::Hash,
+    ];
 
-    /// The ALU's output words: out, then taken.
-    const ALU_OUTPUTS: Range<usize> = 4..6;
+    // The circuits a test drives directly, built once.
+    static ALU: LazyLock<Circuit> = LazyLock::new(Alu::circuit);
+    static STORE: LazyLock<Circuit> = LazyLock::new(Store::circuit);
+    static DIV: LazyLock<Circuit> = LazyLock::new(Div::circuit);
+    static BLAKE2S: LazyLock<Circuit> = LazyLock::new(Hash::circuit);
 
-    /// The division's output words: out, then bad.
-    const DIV_OUTPUTS: Range<usize> = 5..7;
-
-    /// The circuit's output words on `inputs`, read off the witness the gate walk writes.
-    fn run(circuit: &Circuit, inputs: &[u64], outputs: Range<usize>) -> Vec<u64> {
+    /// The circuit's first `n` output words on `inputs`, read off the witness the gate walk writes.
+    fn run(circuit: &Circuit, inputs: &[u64], n: usize) -> Vec<u64> {
         // One instance's tables, zeroed.
         let words = 1 << (circuit.k_log() - 6);
         let (mut z, mut az, mut bz) = (vec![0; words], vec![0; words], vec![0; words]);
 
         // The output ports follow the input ports in the instance's words.
         circuit.witness_instance(inputs, &mut z, &mut az, &mut bz);
-        z[outputs].to_vec()
+        let first = circuit.n_input_words();
+        z[first..first + n].to_vec()
     }
 
-    /// A divisor biased toward zero and toward small values.
-    fn divisor() -> impl Strategy<Value = u64> {
-        prop_oneof![1 => Just(0), 4 => (edge_word(), 0u32..64).prop_map(|(w, s)| w >> s)]
-    }
+    /// Check a class: its dispatch, then `cases` random instances on which its circuit computes its reference function.
+    fn circuit_matches_reference<C: InstructionClass + Arbitrary + Debug>(cases: u32) {
+        let circuit = C::circuit();
 
-    /// The hash circuit's input words for a block, a counter and a finalization word.
-    fn hash_inputs(block: &[u64; 16], t: u64, f0: u64) -> Vec<u64> {
-        [t, f0]
-            .into_iter()
-            .chain(block[..4].iter().chain(&block[8..]).copied())
-            .collect()
+        // The runtime dispatch on the class names this type's flags and circuit.
+        assert_eq!(C::CLASS.legal_flags(), C::LEGAL);
+        assert_eq!(C::CLASS.circuit().useful_bits(), circuit.useful_bits());
+
+        let mut runner = TestRunner::new(Config::with_cases(cases));
+        runner
+            .run(&any::<C>(), |instance| {
+                // The reference's output words, against the circuit's on the instance's input words.
+                let expected = C::output_words(&instance.eval());
+                prop_assert_eq!(run(&circuit, &instance.input_words(), expected.len()), expected);
+                Ok(())
+            })
+            .unwrap();
     }
 
     #[test]
     fn instance_sizes_are_pinned() {
         // The log of each instance's bits, which the tables fix before any circuit is built.
-        let sizes = [&ALU, &SHIFT, &LOAD, &STORE, &MUL, &MULH, &DIV, &BLAKE2S].map(|c| c.k_log());
+        let sizes = CLASSES.map(|class| class.circuit().k_log());
         assert_eq!(sizes, [10, 10, 10, 10, 12, 13, 13, 14]);
     }
 
-    proptest! {
-        #![proptest_config(ProptestConfig::with_cases(4096))]
-
-        #[test]
-        fn alu_is_its_reference(flags in select(&Alu::LEGAL[..]), v1 in edge_word(), v2 in edge_word(), equal in any::<bool>(), immediate in any::<bool>()) {
-            // Equal operands now and then, which random words never are.
-            let v2 = if equal { v1 } else { v2 };
-
-            // One of v2 and imm is zero, as the decoder makes them.
-            let (v2, imm) = if immediate { (0, v2) } else { (v2, 0) };
-
-            let (out, taken) = Alu(flags).eval(v1, v2, imm);
-            prop_assert_eq!(run(&ALU, &[v1, v2, imm, flags], ALU_OUTPUTS), vec![out, taken as u64]);
-        }
-
-        #[test]
-        fn shift_is_its_reference(flags in select(&Shift::LEGAL[..]), v1 in edge_word(), v2 in edge_word(), amount in 0u64..64, small in any::<bool>(), immediate in any::<bool>()) {
-            // Every amount now and then, which a random word's low bits reach slowly.
-            let v2 = if small { amount } else { v2 };
-
-            // A register amount is any word; an immediate is six bits.
-            let (v2, imm) = if immediate { (0, v2 & 63) } else { (v2, 0) };
-
-            let expected = Shift(flags).eval(v1, v2, imm);
-            prop_assert_eq!(run(&SHIFT, &[v1, v2, imm, flags], 4..5), vec![expected]);
-        }
-
-        #[test]
-        fn load_is_its_reference(flags in select(&Load::LEGAL[..]), v1 in edge_word(), imm in 0u64..4096, cell in any::<u64>(), aligned in any::<bool>()) {
-            // Aligned half the time, which a random address seldom is.
-            let log_width = flags & Load::LOG_WIDTH;
-            let (v1, imm) = if aligned { (v1 & !((1 << log_width) - 1), imm & !7) } else { (v1, imm) };
-            let address = WordAccess::address(v1, imm);
-
-            // The bus address and the value, misaligned or not.
-            let expected = vec![WordAccess::bus_address(address, log_width), Load(flags).eval(cell, address)];
-            prop_assert_eq!(run(&LOAD, &[v1, imm, flags, cell], 4..6), expected);
-        }
-
-        #[test]
-        fn store_is_its_reference(flags in select(&Store::LEGAL[..]), v1 in edge_word(), v2 in edge_word(), imm in 0u64..4096, cell in any::<u64>(), aligned in any::<bool>()) {
-            // Aligned half the time, which a random address seldom is.
-            let (v1, imm) = if aligned { (v1 & !((1 << flags) - 1), imm & !7) } else { (v1, imm) };
-            let address = WordAccess::address(v1, imm);
-            let got = run(&STORE, &[v1, v2, imm, flags, cell], 5..7);
-
-            // The bus address always; the new cell only when aligned.
-            //
-            // A misaligned store names no cell, so what it would write is never read.
-            prop_assert_eq!(got[0], WordAccess::bus_address(address, flags));
-            if WordAccess::is_aligned(address, flags) {
-                prop_assert_eq!(got[1], Store(flags).eval(cell, address, v2));
-            }
-        }
+    #[test]
+    fn every_circuit_matches_its_reference() {
+        // The cheap circuits get more cases, the large ones fewer.
+        circuit_matches_reference::<Alu>(4096);
+        circuit_matches_reference::<Shift>(4096);
+        circuit_matches_reference::<Load>(4096);
+        circuit_matches_reference::<Store>(4096);
+        circuit_matches_reference::<Mul>(512);
+        circuit_matches_reference::<Mulh>(512);
+        circuit_matches_reference::<Div>(512);
+        circuit_matches_reference::<Hash>(64);
     }
 
     proptest! {
-        #![proptest_config(ProptestConfig::with_cases(512))]
-
         #[test]
-        fn mul_is_its_reference(flags in select(&Mul::LEGAL[..]), v1 in edge_word(), v2 in edge_word()) {
-            let expected = Mul(flags).eval(v1, v2);
-            prop_assert_eq!(run(&MUL, &[v1, v2, flags], 3..4), vec![expected]);
+        fn a_misaligned_store_names_no_cell(store in any::<Store>(), offset in 1u64..8) {
+            // Mutation: misalign an aligned store, by an offset its width does not divide.
+            let store = Store { v1: store.v1 | offset, ..store };
+            let log_width = store.flags & Store::LOG_WIDTH;
+            prop_assume!(!WordAccess::is_aligned(store.v1.wrapping_add(store.imm), log_width));
+
+            // The bus address is still the reference's, and names no cell.
+            let (address, _) = store.eval();
+            prop_assert_eq!(run(&STORE, &store.input_words(), 1), vec![address]);
+            prop_assert!(!address.is_multiple_of(8));
         }
 
         #[test]
-        fn mulh_is_its_reference(flags in select(&Mulh::LEGAL[..]), v1 in edge_word(), v2 in edge_word()) {
-            let expected = Mulh(flags).eval(v1, v2);
-            prop_assert_eq!(run(&MULH, &[v1, v2, flags], 3..4), vec![expected]);
-        }
-
-        #[test]
-        fn div_is_its_reference(flags in select(&Div::LEGAL[..]), v1 in edge_word(), v2 in divisor()) {
-            // The honest hints give the reference result, and bad stays zero.
-            let (q, r) = Div(flags).hints(v1, v2);
-            let expected = vec![Div(flags).eval(v1, v2), 0];
-            prop_assert_eq!(run(&DIV, &[v1, v2, flags, q, r], DIV_OUTPUTS), expected);
-        }
-
-        #[test]
-        fn div_refuses_any_other_hint(flags in select(&Div::LEGAL[..]), v1 in edge_word(), v2 in divisor(), dq in any::<u64>(), dr in any::<u64>()) {
+        fn div_refuses_any_other_hint(div in any::<Div>(), dq in any::<u64>(), dr in any::<u64>()) {
             // Mutation: shift the honest hints by a nonzero amount.
-            let (q, r) = Div(flags).hints(v1, v2);
             prop_assume!((dq, dr) != (0, 0));
-            let got = run(&DIV, &[v1, v2, flags, q.wrapping_add(dq), r.wrapping_add(dr)], DIV_OUTPUTS);
+            let mut inputs = div.input_words();
+            inputs[3] = inputs[3].wrapping_add(dq);
+            inputs[4] = inputs[4].wrapping_add(dr);
+            let got = run(&DIV, &inputs, 2);
 
             // A nonzero divisor refuses them; a zero divisor ignores them.
-            let by_zero = if flags & Div::WORD != 0 { v2 as u32 == 0 } else { v2 == 0 };
+            let by_zero = if div.flags & Div::WORD != 0 { div.v2 as u32 == 0 } else { div.v2 == 0 };
             if by_zero {
-                prop_assert_eq!(got, vec![Div(flags).eval(v1, v2), 0]);
+                prop_assert_eq!(got, Div::output_words(&div.eval()));
             } else {
                 prop_assert_eq!(got[1], 1);
             }
         }
+
+        #[test]
+        fn any_finalization_word_is_xored_in(hash in any::<Hash>(), f0 in any::<u32>()) {
+            // Any 32-bit finalization word, against flock's compression, which takes one.
+            let half = |w: &[u64]| -> Vec<u32> { w.iter().flat_map(|&w| [w as u32, (w >> 32) as u32]).collect() };
+            let h = half(&hash.block[..4]).try_into().unwrap();
+            let m = half(&hash.block[8..]).try_into().unwrap();
+            let out = flock::hash::blake2s_compress(&h, &m, hash.t, f0, 0);
+            let expected: Vec<u64> = (0..4).map(|i| out[2 * i] as u64 | (out[2 * i + 1] as u64) << 32).collect();
+            let inputs = Hash { flags: f0 as u64, ..hash }.input_words();
+            prop_assert_eq!(run(&BLAKE2S, &inputs, 4), expected);
+        }
     }
 
-    proptest! {
-        #![proptest_config(ProptestConfig::with_cases(64))]
-
-        #[test]
-        fn blake2s_is_its_reference(block in proptest::array::uniform16(edge_word()), t in edge_word(), last in any::<bool>()) {
-            // The legal finalization words, against the reference function.
-            let f0 = if last { Hash::FINAL } else { 0 };
-            let expected = Hash(f0).compress(&block, t);
-            prop_assert_eq!(run(&BLAKE2S, &hash_inputs(&block, t, f0), 14..18), expected.to_vec());
-        }
-
-        #[test]
-        fn any_finalization_word_is_xored_in(block in proptest::array::uniform16(edge_word()), t in edge_word(), f0 in any::<u32>()) {
-            // Any 32-bit word, against flock's compression, which takes one.
-            let half = |w: &[u64]| -> Vec<u32> { w.iter().flat_map(|&w| [w as u32, (w >> 32) as u32]).collect() };
-            let h = half(&block[..4]).try_into().unwrap();
-            let m = half(&block[8..]).try_into().unwrap();
-            let out = flock::hash::blake2s_compress(&h, &m, t, f0, 0);
-            let expected: Vec<u64> = (0..4).map(|i| out[2 * i] as u64 | (out[2 * i + 1] as u64) << 32).collect();
-            prop_assert_eq!(run(&BLAKE2S, &hash_inputs(&block, t, f0 as u64), 14..18), expected);
+    #[test]
+    fn division_edge_cases_match_the_reference() {
+        // The signed overflow -2^63 / -1, and a zero divisor for the quotient and the remainder.
+        let min = i64::MIN as u64;
+        for div in [
+            Div {
+                flags: Div::SIGNED,
+                v1: min,
+                v2: u64::MAX,
+            },
+            Div { flags: 0, v1: 7, v2: 0 },
+            Div {
+                flags: Div::REM,
+                v1: 7,
+                v2: 0,
+            },
+        ] {
+            assert_eq!(
+                run(&DIV, &div.input_words(), 2),
+                Div::output_words(&div.eval()),
+                "{div:?}"
+            );
         }
     }
 
     #[test]
     fn a_hint_correct_modulo_2_64_is_refused() {
         // 1 / 3 with q = (2^64 + 1) / 3: q * 3 = 2^64 + 1, which is 1 modulo 2^64.
-        assert_eq!(run(&DIV, &[1, 3, 0, 0x5555_5555_5555_5555, 2], DIV_OUTPUTS)[1], 1);
-    }
-
-    #[test]
-    fn division_edge_cases_follow_the_specification() {
-        // The overflow: -2^63 / -1 is -2^63.
-        let min = i64::MIN as u64;
-        let (q, r) = Div(Div::SIGNED).hints(min, u64::MAX);
-        assert_eq!(run(&DIV, &[min, u64::MAX, Div::SIGNED, q, r], DIV_OUTPUTS), [min, 0]);
-
-        // A zero divisor: all ones, and the remainder is the dividend.
-        assert_eq!(run(&DIV, &[7, 0, 0, 0, 0], DIV_OUTPUTS), [u64::MAX, 0]);
-        assert_eq!(run(&DIV, &[7, 0, Div::REM, 0, 0], DIV_OUTPUTS), [7, 0]);
+        assert_eq!(run(&DIV, &[1, 3, 0, 0x5555_5555_5555_5555, 2], 2)[1], 1);
     }
 
     #[test]
@@ -947,8 +909,8 @@ mod tests {
 
         // Mutation: an output bit, a spare bit of taken's word, the last product.
         for bit in [
-            64 * ALU_OUTPUTS.start + 5,
-            64 * (ALU_OUTPUTS.start + 1) + 1,
+            64 * ALU.n_input_words() + 5,
+            64 * (ALU.n_input_words() + 1) + 1,
             ALU.useful_bits() - 1,
         ] {
             assert!(!accepts(Some(bit)), "flipping bit {bit} must reject");
@@ -962,7 +924,7 @@ mod tests {
         // Fixture: 128 instances per circuit, so two 64-lane walks.
         let n_log = 7;
         let mut runner = TestRunner::deterministic();
-        for circuit in [&ALU, &SHIFT, &LOAD, &STORE, &MUL, &MULH, &DIV, &BLAKE2S] {
+        for circuit in CLASSES.map(Class::circuit) {
             // Edge-biased words drive every carry and comparison.
             let mut draw = || edge_word().new_tree(&mut runner).unwrap().current();
             let rows: Vec<Vec<u64>> = (0..1 << n_log)

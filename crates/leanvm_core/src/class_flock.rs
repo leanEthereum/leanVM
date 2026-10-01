@@ -12,7 +12,7 @@
 //! claims routed to those words.
 
 use crate::cpu::Row;
-use crate::rv::Entry;
+use crate::rv::{Div, Entry};
 use crate::tables::{CLASSES, ClassSpec, N_TABLES, Part, Word};
 use ::pcs::pack::LOG_PACKING;
 use fiat_shamir::transcript::{ProverState, VerifierState};
@@ -108,6 +108,15 @@ pub const fn n_blocks_log(spec: &ClassSpec, n_rows: usize) -> usize {
 ///
 /// `slots` are the clock slots of the row's accesses.
 fn word_of(word: Word, slots: &[u32], row: &Row, entry: &Entry) -> u64 {
+    // The division's honest hints, the circuit's two prover-supplied ports.
+    let hints = || {
+        Div {
+            flags: entry.flags,
+            v1: row.v1,
+            v2: row.v2,
+        }
+        .hints()
+    };
     match word {
         Word::Clock => row.ts,
         Word::Prev(i) => row.prev()[i as usize],
@@ -122,8 +131,8 @@ fn word_of(word: Word, slots: &[u32], row: &Row, entry: &Entry) -> u64 {
         Word::Cell(k) => row.hash.as_ref().map_or(row.ram.old, |h| h.block[k as usize]),
         Word::CellNew(k) => row.hash.as_ref().map_or(row.ram.new, |h| h.word_after(k as usize)),
         Word::Bad => 0,
-        Word::HintQ => crate::rv::Div(entry.flags).hints(row.v1, row.v2).0,
-        Word::HintR => crate::rv::Div(entry.flags).hints(row.v1, row.v2).1,
+        Word::HintQ => hints().0,
+        Word::HintR => hints().1,
     }
 }
 

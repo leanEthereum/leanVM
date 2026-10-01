@@ -143,7 +143,11 @@ impl Program {
                     let mut prev = [0; 4];
                     let hash = (e.class == Class::Hash).then(|| {
                         // The compression of a zero block, whose result the row rewrites.
-                        let mut h = BlockAccess::compress([0; Hash::WORDS], 0, e.flags);
+                        let mut h = BlockAccess::from(Hash {
+                            flags: e.flags,
+                            t: 0,
+                            block: [0; Hash::WORDS],
+                        });
                         h.block[Hash::OUT as usize / 8..][..4].copy_from_slice(&h.out);
                         let mut all = [0; 2 + Hash::WORDS];
                         all.copy_from_slice(slots);

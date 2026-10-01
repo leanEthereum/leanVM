@@ -123,7 +123,7 @@ impl<'a> Machine<'a> {
         let cell = match entry.class {
             Class::Load | Class::Store => {
                 let address = WordAccess::address(v1, entry.imm);
-                Some(self.cell(pc, address, Load(entry.flags).log_width())?)
+                Some(self.cell(pc, address, entry.flags & Load::LOG_WIDTH)?)
             }
             _ => None,
         };
@@ -242,7 +242,8 @@ impl<'a> Machine<'a> {
 
     /// Compress the block in `cells` and write the result to its result words.
     fn compress(&mut self, cells: &[usize; Hash::WORDS], t: u64, flags: u64) -> BlockAccess {
-        let access = BlockAccess::compress(cells.map(|cell| self.memory.get(cell)), t, flags);
+        let block = cells.map(|cell| self.memory.get(cell));
+        let access = BlockAccess::from(Hash { flags, t, block });
         let result = &cells[Hash::OUT as usize / 8..][..4];
         for (&cell, &word) in result.iter().zip(&access.out) {
             self.memory.set(cell, word);
@@ -377,6 +378,7 @@ impl Memory {
 mod tests {
     use super::*;
     use crate::rv::asm::*;
+    use crate::rv::semantics::InstructionClass;
     use crate::rv::semantics::tests::edge_word;
     use crate::rv::{RAM_BASE, TEXT_BASE};
     use proptest::prelude::*;
@@ -493,7 +495,12 @@ mod tests {
         m.run().unwrap();
 
         // Only the result words changed, to the reference compression.
-        let expected = Hash(Hash::FINAL).compress(&block, 64);
+        let expected = Hash {
+            flags: Hash::FINAL,
+            t: 64,
+            block,
+        }
+        .eval();
         let ram = m.memory().ram();
         assert_eq!(ram[4..8], expected);
         assert_eq!(ram[..4], block[..4]);

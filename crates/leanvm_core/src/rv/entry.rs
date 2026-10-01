@@ -6,10 +6,10 @@
 //!
 //! The program is public, so each instruction word is decoded into an entry once, before any run.
 
-use super::circuits::ClassCircuits;
+use super::circuits::ClassCircuit;
 use super::instruction::{Instruction, Opcode};
 use super::register::RegisterFile;
-use super::semantics::{Alu, Div, Hash, Load, Mul, Mulh, Shift, Store};
+use super::semantics::{Alu, Div, Hash, InstructionClass, Load, Mul, Mulh, Shift, Store};
 use flock::circuit::Circuit;
 
 /// An instruction class: one table, one circuit.
@@ -43,14 +43,14 @@ impl Class {
     /// An illegal entry carries none at all.
     pub const fn legal_flags(self) -> &'static [u64] {
         match self {
-            Self::Alu => &Alu::LEGAL,
-            Self::Shift => &Shift::LEGAL,
-            Self::Load => &Load::LEGAL,
-            Self::Store => &Store::LEGAL,
-            Self::Mul => &Mul::LEGAL,
-            Self::Mulh => &Mulh::LEGAL,
-            Self::Div => &Div::LEGAL,
-            Self::Hash => &Hash::LEGAL,
+            Self::Alu => Alu::LEGAL,
+            Self::Shift => Shift::LEGAL,
+            Self::Load => Load::LEGAL,
+            Self::Store => Store::LEGAL,
+            Self::Mul => Mul::LEGAL,
+            Self::Mulh => Mulh::LEGAL,
+            Self::Div => Div::LEGAL,
+            Self::Hash => Hash::LEGAL,
             Self::Illegal => &[],
         }
     }
@@ -62,14 +62,14 @@ impl Class {
     /// Panics for the illegal class, which no table runs.
     pub fn circuit(self) -> Circuit {
         match self {
-            Self::Alu => Circuit::alu(),
-            Self::Shift => Circuit::shift(),
-            Self::Load => Circuit::load(),
-            Self::Store => Circuit::store(),
-            Self::Mul => Circuit::mul(),
-            Self::Mulh => Circuit::mulh(),
-            Self::Div => Circuit::div(),
-            Self::Hash => Circuit::blake2s(),
+            Self::Alu => Alu::circuit(),
+            Self::Shift => Shift::circuit(),
+            Self::Load => Load::circuit(),
+            Self::Store => Store::circuit(),
+            Self::Mul => Mul::circuit(),
+            Self::Mulh => Mulh::circuit(),
+            Self::Div => Div::circuit(),
+            Self::Hash => Hash::circuit(),
             Self::Illegal => panic!("the illegal class has no circuit"),
         }
     }
@@ -187,17 +187,17 @@ impl Entry {
             },
 
             // Branches: a comparison by subtraction, and a fixed target.
-            Opcode::Branch => match Alu::branch(f3) {
-                Some(alu) => Self {
+            Opcode::Branch => match Alu::branch_flags(f3) {
+                Some(flags) => Self {
                     target: Target::Abs(pc.wrapping_add(ins.imm_b())),
-                    ..Self::sequential(Class::Alu, alu.0, rs1, rs2, 0, 0)
+                    ..Self::sequential(Class::Alu, flags, rs1, rs2, 0, 0)
                 },
                 None => Self::ILLEGAL,
             },
 
             // Loads: the width and the extension.
-            Opcode::Load => match Load::from_funct3(f3) {
-                Some(load) => imm(Class::Load, load.0, ins.imm_i()),
+            Opcode::Load => match Load::flags_of(f3) {
+                Some(flags) => imm(Class::Load, flags, ins.imm_i()),
                 None => Self::ILLEGAL,
             },
 
@@ -450,7 +450,7 @@ mod tests {
         ];
         assert_eq!(Alu::LEGAL.len(), witnesses.len());
 
-        for (flags, word) in Alu::LEGAL.into_iter().zip(witnesses) {
+        for (&flags, word) in Alu::LEGAL.iter().zip(witnesses) {
             let decoded = Entry::decode(word, TEXT_BASE);
             assert_eq!((decoded.class, decoded.flags), (Class::Alu, flags));
 
