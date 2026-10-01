@@ -136,21 +136,16 @@ pub(crate) struct GroupTables<'a> {
     pub stripes: &'a mut [u8],
 }
 
-/// The four witness tables of `2^n_blocks_log` instances, built `group` instances at a time.
-///
-/// - The fill closure writes every word and byte of the group starting at the instance it is given.
-/// - Each worker keeps one scratch state, built once and reused across its groups.
-///
-/// A group builds in its worker's buffers, which stay in cache, then streams out.
-///
-/// Building in place instead would fetch every output line before writing it.
-pub(crate) fn drive_witness_groups<St, I, F>(
+/// Publish packed witnesses into borrowed storage and return the three auxiliary tables.
+/// Each worker builds complete groups in cache before streaming them into disjoint destinations.
+pub(crate) fn drive_witness_groups_into<St, I, F>(
+    z: &mut [u64],
     n_blocks_log: usize,
     k_log: usize,
     group: usize,
     init: I,
     fill: F,
-) -> (ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u8>)
+) -> (ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u8>)
 where
     St: Send,
     I: Fn() -> St + Sync,
@@ -168,10 +163,10 @@ where
     );
 
     let total_words = n_total * (k / 64);
-    // SAFETY: group `g` publishes chunk `g` of every table in full below, and the chunk counts match.
-    let (mut z, mut a, mut b, mut z_lincheck) = unsafe {
+    assert_eq!(z.len(), total_words, "the packed destination must hold every instance");
+    // SAFETY: every group publishes its disjoint chunk of each auxiliary table in full.
+    let (mut a, mut b, mut z_lincheck) = unsafe {
         (
-            ArenaVec::<u64>::uninitialized(total_words),
             ArenaVec::<u64>::uninitialized(total_words),
             ArenaVec::<u64>::uninitialized(total_words),
             ArenaVec::<u8>::uninitialized((n_total / 8) * k),
@@ -181,7 +176,7 @@ where
     // A group's share: its packed words in each table, and one stripe per 8 instances.
     let group_words = group * (k / 64);
     let group_bytes = (group / 8) * k;
-    let z_chunks = parallel::Chunks::new(&mut z, group_words);
+    let z_chunks = parallel::Chunks::new(z, group_words);
     let a_chunks = parallel::Chunks::new(&mut a, group_words);
     let b_chunks = parallel::Chunks::new(&mut b, group_words);
     let stripe_chunks = parallel::Chunks::new(&mut z_lincheck, group_bytes);
@@ -219,25 +214,12 @@ where
         |(), ()| (),
     );
 
-    (z, a, b, z_lincheck)
+    (a, b, z_lincheck)
 }
 
-/// Drive the parallel chunked witness build for `n_blocks` instances padded
-/// to `2^n_blocks_log` slots, one instance at a time. Returns `(z, a, b, z_lincheck)`:
-/// the three bit-packed `u64` tables (`K / 64` words per instance) and the lincheck
-/// byte stripe.
-///
-/// `per_block(initial, z_u64, a_u64, b_u64)` populates one block's worth of
-/// `(z, a, b)` data: 3 zero-initialized `u64`-buffers of length `K / 64`.
-/// `K` is derived from `k_log`. `initial_states.len()` may be less than
-/// `2^n_blocks_log`.
-///
-/// `padding` controls what fills the trailing `2^n_blocks_log −
-/// initial_states.len()` slots:
-/// - `None`: leave them all-zero (trivial constraint satisfaction).
-/// - `Some(p)`: build a real block from `p` in every padding slot. Encoders
-///   that pin a constant wire need this so the constant column is all-ones
-///   across *every* batched instance (see `lincheck's `LincheckCircuit::const_pin_col``).
+/// Allocate packed witnesses and auxiliary tables for a word-arithmetic circuit.
+/// Eight instances form one byte stripe for the linear check.
+/// Missing instances use the supplied padding state or remain zero.
 pub(crate) fn drive_witness_packed_and_lincheck<S: Sync, F>(
     initial_states: &[S],
     padding: Option<&S>,
@@ -245,6 +227,25 @@ pub(crate) fn drive_witness_packed_and_lincheck<S: Sync, F>(
     k_log: usize,
     per_block: F,
 ) -> (ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u8>)
+where
+    F: Fn(&S, &mut [u64], &mut [u64], &mut [u64]) + Sync,
+{
+    // SAFETY: the group driver writes every packed word before returning.
+    let mut z = unsafe { ArenaVec::uninitialized((1 << n_blocks_log) * ((1 << k_log) / 64)) };
+    let (a, b, stripes) =
+        drive_witness_packed_and_lincheck_into(&mut z, initial_states, padding, n_blocks_log, k_log, per_block);
+    (z, a, b, stripes)
+}
+
+/// Build packed circuit words into borrowed storage with separately owned auxiliary tables.
+pub(crate) fn drive_witness_packed_and_lincheck_into<S: Sync, F>(
+    z: &mut [u64],
+    initial_states: &[S],
+    padding: Option<&S>,
+    n_blocks_log: usize,
+    k_log: usize,
+    per_block: F,
+) -> (ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u8>)
 where
     F: Fn(&S, &mut [u64], &mut [u64], &mut [u64]) + Sync,
 {
@@ -256,7 +257,8 @@ where
     );
 
     // Eight blocks per group, the lincheck stripe of one group being their bit transpose.
-    drive_witness_groups(
+    drive_witness_groups_into(
+        z,
         n_blocks_log,
         k_log,
         8,

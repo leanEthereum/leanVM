@@ -24,7 +24,7 @@
 
 use crate::lincheck::LincheckCircuit;
 use crate::reduction::Block;
-use crate::witness::{GroupTables, drive_witness_groups, drive_witness_packed_and_lincheck};
+use crate::witness::{GroupTables, drive_witness_groups_into, drive_witness_packed_and_lincheck_into};
 use primitives::bits::transpose_64x64;
 use primitives::field::F192;
 use zk_alloc::ArenaVec;
@@ -332,6 +332,29 @@ impl Circuit {
         n_blocks_log: usize,
         input_words: impl Fn(&S, &mut [u64]) + Sync,
     ) -> (ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u8>) {
+        // SAFETY: the borrowed generator writes every packed word before returning.
+        let mut z = unsafe { ArenaVec::uninitialized((1 << n_blocks_log) * ((1 << self.k_log) / 64)) };
+        let (a, b, stripes) = self.write_witness_from(rows, padding, n_blocks_log, &mut z, input_words, |_, _| {});
+        (z, a, b, stripes)
+    }
+
+    /// Write packed circuit witnesses into borrowed storage and return the auxiliary tables.
+    ///
+    /// - Store one circuit block per padded instance.
+    /// - Observe completed groups while their words remain in worker scratch.
+    /// - Return two packed matrix products and the linear check's byte stripes.
+    ///
+    /// # Panics
+    /// Panics if the rows exceed the batch or the destination has the wrong length.
+    pub fn write_witness_from<S: Sync>(
+        &self,
+        rows: &[S],
+        padding: &S,
+        n_blocks_log: usize,
+        z: &mut [u64],
+        input_words: impl Fn(&S, &mut [u64]) + Sync,
+        observe: impl Fn(usize, &[u64]) + Sync,
+    ) -> (ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u8>) {
         assert!(rows.len() <= 1 << n_blocks_log, "more rows than instances");
         // A batch below 64 instances is walked in full and stored in part.
         let lanes = LANES.min(1 << n_blocks_log);
@@ -340,7 +363,8 @@ impl Circuit {
         let words = (1usize << self.k_log) / 64;
         // Slot groups past the useful bits hold only zeros, so they skip the transpose.
         let live_words = self.useful_bits.div_ceil(64);
-        drive_witness_groups(
+        drive_witness_groups_into(
+            z,
             n_blocks_log,
             self.k_log,
             lanes,
@@ -380,6 +404,9 @@ impl Circuit {
                     }
                 }
 
+                // Check completed instances before their packed words leave worker scratch.
+                observe(first, t.z);
+
                 // Phase 5: lincheck's stripes, straight from the slot words.
                 //
                 // The stripe of instances 8q..8q+8 holds slot s of instance 8q+x at byte s, bit x.
@@ -394,8 +421,8 @@ impl Circuit {
         )
     }
 
-    /// [`Self::generate_witness`] with the caller's own rows, padding row and way to
-    /// fill an instance, for a circuit whose witness is cheaper as word arithmetic.
+    /// Allocate packed witnesses and auxiliary tables from an instance's word arithmetic.
+    /// Missing instances use the supplied padding row.
     pub fn generate_witness_with<S: Sync>(
         &self,
         rows: &[S],
@@ -403,7 +430,34 @@ impl Circuit {
         n_blocks_log: usize,
         instance: impl Fn(&S, &mut [u64], &mut [u64], &mut [u64]) + Sync,
     ) -> (ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u8>) {
-        drive_witness_packed_and_lincheck(rows, Some(padding), n_blocks_log, self.k_log, instance)
+        // SAFETY: the borrowed generator writes every packed word before returning.
+        let mut z = unsafe { ArenaVec::uninitialized((1 << n_blocks_log) * ((1 << self.k_log) / 64)) };
+        let (a, b, stripes) = self.write_witness_with(rows, padding, n_blocks_log, &mut z, instance, |_, _| {});
+        (z, a, b, stripes)
+    }
+
+    /// Write witnesses using word arithmetic into borrowed storage and return the auxiliary tables.
+    ///
+    /// - Store one circuit block per padded instance.
+    /// - Observe each completed instance while its words remain in worker scratch.
+    /// - Return two packed matrix products and the linear check's byte stripes.
+    ///
+    /// # Panics
+    /// Panics if the rows exceed the batch or the destination has the wrong length.
+    pub fn write_witness_with<S: Sync>(
+        &self,
+        rows: &[S],
+        padding: &S,
+        n_blocks_log: usize,
+        z: &mut [u64],
+        instance: impl Fn(&S, &mut [u64], &mut [u64], &mut [u64]) + Sync,
+        observe: impl Fn(&S, &[u64]) + Sync,
+    ) -> (ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u8>) {
+        // Preserve the arithmetic generator and check its outputs before packing stripes.
+        drive_witness_packed_and_lincheck_into(z, rows, Some(padding), n_blocks_log, self.k_log, |row, z, a, b| {
+            instance(row, z, a, b);
+            observe(row, z);
+        })
     }
 
     /// The matrix-vector products `(A_0 w, B_0 w)`, by one forward walk.
@@ -532,6 +586,8 @@ impl LincheckCircuit for Circuit {
 mod tests {
     use super::*;
     use primitives::test_rng::Rng;
+    use proptest::prelude::*;
+    use std::sync::atomic::{AtomicUsize, Ordering};
 
     /// A random circuit over the builder's whole vocabulary.
     ///
@@ -574,6 +630,40 @@ mod tests {
             }
         }
         c.finish()
+    }
+
+    proptest! {
+        #![proptest_config(ProptestConfig::with_cases(40))]
+        #[test]
+        fn borrowed_witness_matches_scalar_walk(seed in any::<u64>(), n_log in 3usize..8, missing in 0usize..8) {
+            // Fixture state: random gates include undriven outputs, narrow ports and padded instances.
+            let mut rng = Rng::new(seed);
+            let circuit = random_circuit(&mut rng);
+            let rows: Vec<[u64; 3]> = (0..(1 << n_log) - missing)
+                .map(|_| std::array::from_fn(|_| rng.next_u64())).collect();
+            let padding = std::array::from_fn(|_| rng.next_u64());
+            // A scalar gate walk supplies all four expected tables.
+            let expected = circuit.generate_witness_with(&rows, &padding, n_log, |row, z, a, b| {
+                circuit.witness_instance(row, z, a, b);
+            });
+            // Mutation: fill the destination with ones to expose any unwritten padding bits.
+            let mut packed = vec![u64::MAX; expected.0.len()];
+            let observed = AtomicUsize::new(0);
+            let stride = (1 << circuit.k_log) / 64;
+            let (a, b, stripes) = circuit.write_witness_from(
+                &rows, &padding, n_log, &mut packed, |row, words| words.copy_from_slice(row),
+                |first, group| {
+                    // The observer sees the final packed words before publication.
+                    assert_eq!(group, &expected.0[first * stride..first * stride + group.len()]);
+                    observed.fetch_add(group.len() / stride, Ordering::Relaxed);
+                },
+            );
+            prop_assert_eq!(&packed, expected.0.as_slice());
+            prop_assert_eq!(a.as_slice(), expected.1.as_slice());
+            prop_assert_eq!(b.as_slice(), expected.2.as_slice());
+            prop_assert_eq!(stripes.as_slice(), expected.3.as_slice());
+            prop_assert_eq!(observed.load(Ordering::Relaxed), 1 << n_log);
+        }
     }
 
     #[test]

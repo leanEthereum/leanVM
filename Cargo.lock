@@ -173,6 +173,7 @@ dependencies = [
  "parallel",
  "pcs",
  "primitives",
+ "proptest",
  "thiserror",
  "tracing",
  "zk_alloc",
