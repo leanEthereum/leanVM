@@ -145,6 +145,7 @@ checksum = "1d07550c9036bf2ae0c684c4297d503f838287c83c53686d05370d0e139ae570"
 name = "fiat_shamir"
 version = "0.1.0"
 dependencies = [
+ "bincode",
  "parallel",
  "primitives",
  "serde",
@@ -234,7 +235,6 @@ dependencies = [
 name = "leanvm"
 version = "0.1.0"
 dependencies = [
- "bincode",
  "leanvm_core",
  "leanvm_guest",
  "primitives",
@@ -246,12 +246,10 @@ name = "leanvm-cli"
 version = "0.1.0"
 dependencies = [
  "bench",
- "bincode",
  "clap",
  "leanda-host",
  "leansphincs-host",
  "leanvm",
- "leanvm_core",
  "leanvm_guest",
  "leanxmss-host",
  "primitives",

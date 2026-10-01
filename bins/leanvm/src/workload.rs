@@ -1,7 +1,7 @@
 //! A guest workload, proven and verified the way the benchmarks report it.
 
 use bench::Plan;
-use leanvm::{Program, prove, verify};
+use leanvm::{Program, Proved, Prover, Rate, verify};
 use primitives::{pretty_f64, pretty_integer};
 
 use crate::guest::refuse;
@@ -71,25 +71,21 @@ pub fn leanda(n: usize) -> Workload {
 /// Prove and verify a workload, and print the report.
 ///
 /// Proving runs one discarded warmup pass, then `plan.repeat` measured passes.
-pub fn run(workload: &Workload, log_inv_rate: usize, plan: Plan) {
+pub fn run(workload: &Workload, prover: &Prover, rate: Rate, plan: Plan) {
     let program = workload.program();
-    // More items than the guest's advice region holds is the user's mistake, not a bug.
-    let region = 1usize << program.rv().log_advice();
-    if workload.advice.len() > region {
-        refuse(format_args!(
-            "{} {}s take {} advice words, and the guest's region holds {region}",
-            workload.items,
-            workload.item,
-            workload.advice.len()
-        ));
-    }
     // Only the final measured pass is traced.
-    let (result, prove_time) = plan.warm_then_measure(|last| {
+    let (
+        Proved {
+            proof, output, stats, ..
+        },
+        prove_time,
+    ) = plan.warm_then_measure(|last| {
         let _quiet = (!last).then(bench::suppress_tracing);
-        prove(&program, &workload.advice, log_inv_rate)
+        // More items than one proof or the advice region holds is the user's mistake, not a bug.
+        prover
+            .prove(&program, &workload.advice, rate)
+            .unwrap_or_else(|e| refuse(format_args!("{} {}s have no proof: {e}", workload.items, workload.item)))
     });
-    // A run too long for one proof has none: continuations are not implemented.
-    let (proof, output, stats) = result.unwrap_or_else(|trap| refuse(format_args!("the run has no proof: {trap}")));
     assert_eq!(
         output, workload.expected,
         "the guest's output is the native reference's"
@@ -110,7 +106,7 @@ pub fn run(workload: &Workload, log_inv_rate: usize, plan: Plan) {
     );
     // Rows per table, then the committed witness: what the prover pays for.
     println!("    details                   : {}", stats.details());
-    let proof_bytes = bincode::serialized_size(&proof).expect("proof is serializable");
+    let proof_bytes = proof.to_bytes().len();
     println!("  proof size                  : {:.1} KiB", proof_bytes as f64 / 1024.0);
     println!(
         "  proving                     : {} s{}   {} {}s/s      peak memory {} GiB",
@@ -131,8 +127,9 @@ mod tests {
     #[test]
     fn the_signature_workloads_prove() {
         // End to end: proven, verified, and the output the native digest.
+        let prover = leanvm::Prover::without_arena();
         for workload in [super::leanxmss(2), super::leansphincs(1)] {
-            super::run(&workload, leanvm_core::pcs::TEST_LOG_INV_RATE, bench::Plan::default());
+            super::run(&workload, &prover, leanvm::Rate::MIN, bench::Plan::default());
         }
     }
 }

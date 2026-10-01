@@ -97,7 +97,7 @@ fn suite() -> Vec<Test> {
 /// behind which the text holds the check's label and the address of its description,
 /// and `x4` its register save area, where the registers are.
 fn failed_check(test: &Test, machine: &Machine, trap: &Trap) -> Option<String> {
-    let link = machine.regs[5];
+    let link = machine.regs()[5];
     if !matches!(*trap, Trap::Unmapped { address, .. } if address == link.wrapping_sub(6)) {
         return None;
     }
@@ -108,7 +108,7 @@ fn failed_check(test: &Test, machine: &Machine, trap: &Trap) -> Option<String> {
     if load & 0x707f != 0x3003 || beq & 0x707f != 0x63 {
         return None;
     }
-    let saved = |register: u32| ram(machine.regs[4].wrapping_add(8 * register as u64));
+    let saved = |register: u32| ram(machine.regs()[4].wrapping_add(8 * register as u64));
     let actual = (beq >> 20) & 31;
     let signature = saved((load >> 15) & 31)?.wrapping_add((load as i32 >> 20) as u64);
     let description = u64::from(word(link.wrapping_add(8))?) | u64::from(word(link.wrapping_add(12))?) << 32;
@@ -127,10 +127,11 @@ fn failed_check(test: &Test, machine: &Machine, trap: &Trap) -> Option<String> {
 fn check_run(test: &Test) -> Result<(), String> {
     let name = &test.name;
     let mut machine = Machine::new(test.program.rv(), &[]);
-    match machine.run(CYCLE_CAP) {
-        Ok(PASS) => Ok(()),
-        Ok([1, called_from, ..]) => Err(format!("{name}: fails, halting from {called_from:#x}")),
-        Ok(output) => Err(format!("{name}: exits with {output:?}")),
+    match machine.run_for(CYCLE_CAP) {
+        Ok(Some(PASS)) => Ok(()),
+        Ok(Some([1, called_from, ..])) => Err(format!("{name}: fails, halting from {called_from:#x}")),
+        Ok(Some(output)) => Err(format!("{name}: exits with {output:?}")),
+        Ok(None) => Err(format!("{name}: runs past {CYCLE_CAP} cycles")),
         Err(trap) => Err(match failed_check(test, &machine, &trap) {
             Some(check) => format!("{name}: {check}"),
             None => format!("{name}: {trap}"),

@@ -7,7 +7,7 @@ use leanvm::*;
 
 #[test]
 fn proving_without_the_arena() {
-    setup_prover_without_arena();
+    let prover = Prover::without_arena();
     assert!(!zk_alloc::is_enabled(), "this path must leave the arena disengaged");
 
     // A countdown, returning how far it counted.
@@ -20,7 +20,7 @@ fn proving_without_the_arena() {
         .exit()
         .finish();
     let program = Program::new(&text, TEXT_BASE, vec![], 2, 0).expect("valid instruction program");
-    let (proof, output, _) = prove(&program, &[], MIN_LOG_INV_RATE).expect("the run halts");
+    let Proved { proof, output, .. } = prover.prove(&program, &[], Rate::MIN).expect("the run halts");
     assert_eq!(output, [300, 0, 0, 0]);
     verify(&program, &output, &proof).expect("the proof verifies");
 

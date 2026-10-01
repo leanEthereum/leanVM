@@ -15,7 +15,6 @@ workspace = true
 
 [dependencies]
 leanvm.workspace = true
-leanvm_core.workspace = true
 primitives.workspace = true
 bench.workspace = true
 zk_alloc.workspace = true
@@ -24,6 +23,5 @@ leanvm_guest.workspace = true
 leanxmss-host.workspace = true
 leansphincs-host.workspace = true
 leanda-host.workspace = true
-bincode.workspace = true
 tracing.workspace = true
 clap = { version = "4", features = ["derive"] }

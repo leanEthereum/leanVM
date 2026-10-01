@@ -49,37 +49,66 @@ fn preimage(message: &[u8]) -> (Program, Vec<u64>, [u64; 4]) {
 
 #[test]
 fn public_api_end_to_end() {
-    setup_prover();
+    let prover = Prover::new();
     let program = fibonacci(90);
 
     // 1. Prove, then onto the wire and back to a receiver.
-    let (proof, output, _) = prove(&program, &[], MIN_LOG_INV_RATE).expect("the run halts");
+    let Proved { proof, output, .. } = prover.prove(&program, &[], Rate::MIN).expect("the run halts");
     assert_eq!(output, [2_880_067_194_370_816_120, 0, 0, 0]);
-    let bytes = bincode::serialize(&proof).unwrap();
-    let received: Proof = bincode::deserialize(&bytes).unwrap();
+    let received = Proof::from_bytes(&proof.to_bytes()).expect("a proof's own bytes");
     verify(&program, &output, &received).unwrap();
 
     // 2. The proof is about this program and this output, and no other.
     let mut wrong_output = output;
     wrong_output[0] += 1;
-    assert!(verify(&fibonacci(91), &output, &received).is_err());
-    assert!(verify(&program, &wrong_output, &received).is_err());
+    assert!(matches!(
+        verify(&fibonacci(91), &output, &received),
+        Err(Error::Verify(_))
+    ));
+    assert!(matches!(
+        verify(&program, &wrong_output, &received),
+        Err(Error::Verify(_))
+    ));
 
     // 3. One proof is one arena phase: the first proof outlives the second's phase.
-    let (second, _, _) = prove(&program, &[], MIN_LOG_INV_RATE).expect("the run halts");
-    verify(&program, &output, &second).unwrap();
+    let second = prover.prove(&program, &[], Rate::MIN).expect("the run halts");
+    verify(&program, &output, &second.proof).unwrap();
     verify(&program, &output, &received).unwrap();
     // 4. The same, over a guest whose rows include the hash table and the advice: with
     // the arena engaged, a buffer that outlived its phase would show up here as a proof
     // that stops verifying, and nowhere else (the verifier tests run the arena off).
     for message in [b"leanVM".as_slice(), b""] {
         let (guest, advice, digest) = preimage(message);
-        let (proof, output, _) = prove(&guest, &advice, MIN_LOG_INV_RATE).expect("the run halts");
+        let Proved { proof, output, .. } = prover.prove(&guest, &advice, Rate::MIN).expect("the run halts");
         assert_eq!(output, digest, "the guest hashed the advice");
-        verify(&guest, &output, &proof).unwrap();
         // The advice is the prover's alone: it is no part of what the verifier is told.
         verify(&guest, &output, &proof).unwrap();
     }
+
+    // 5. A proof of another protocol version is refused, as are bytes that are no proof.
+    let bytes = received.to_bytes();
+    let mut bumped = bytes.clone();
+    bumped[4] += 1;
+    assert_eq!(Proof::from_bytes(&bumped), Err(Error::UnsupportedVersion { found: 2 }));
+    let mut magic = bytes.clone();
+    magic[0] ^= 1;
+    assert_eq!(Proof::from_bytes(&magic), Err(Error::MalformedProof));
+    assert_eq!(Proof::from_bytes(&bytes[..bytes.len() - 1]), Err(Error::MalformedProof));
+    assert_eq!(
+        Proof::from_bytes(&[bytes.as_slice(), &[0]].concat()),
+        Err(Error::MalformedProof)
+    );
+
+    // 6. What the caller gets wrong is an error, not a panic.
+    assert_eq!(Rate::new(0), Err(Error::InvalidRate { log_inv_rate: 0 }));
+    assert!(Rate::new(Rate::MAX.log_inv_rate() + 1).is_err());
+    let one_word =
+        Program::new(&Asm::new().exit().finish(), TEXT_BASE, vec![], 0, 0).expect("valid instruction program");
+    assert_eq!(
+        prover.prove(&one_word, &[1, 2], Rate::MIN).map(|_| ()),
+        Err(Error::AdviceTooLong { max: 1, got: 2 })
+    );
+    assert_eq!(Program::from_elf(b"\x7fELF").map(|_| ()), Err(ElfError::Truncated));
 
     let stats = zk_alloc::stats();
     assert!(stats.phases >= 2, "expected one phase per proof, got {stats:?}");

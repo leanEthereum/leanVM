@@ -1,7 +1,7 @@
 //! Prove and verify a run of a guest's ELF executable.
 
 use bench::Plan;
-use leanvm::{Program, prove, verify};
+use leanvm::{Program, Proved, Prover, Rate, verify};
 use primitives::{pretty_f64, pretty_integer};
 
 pub fn parse_word(word: &str) -> Result<u64, std::num::ParseIntError> {
@@ -11,28 +11,39 @@ pub fn parse_word(word: &str) -> Result<u64, std::num::ParseIntError> {
     }
 }
 
+/// An error and its causes, outermost first.
+fn chain(error: &dyn std::error::Error) -> String {
+    let mut text = error.to_string();
+    let mut source = error.source();
+    while let Some(cause) = source {
+        text = format!("{text}: {cause}");
+        source = cause.source();
+    }
+    text
+}
+
 /// What the user got wrong, said once and plainly: none of these is a bug here.
 pub fn refuse(what: std::fmt::Arguments) -> ! {
     eprintln!("{what}");
     std::process::exit(1)
 }
 
-pub fn run_guest(elf: &std::path::Path, advice: &[u64], log_inv_rate: usize, plan: Plan) {
+pub fn run_guest(elf: &std::path::Path, advice: &[u64], prover: &Prover, rate: Rate, plan: Plan) {
     let bytes = std::fs::read(elf).unwrap_or_else(|e| refuse(format_args!("{}: {e}", elf.display())));
-    let program = Program::from_elf(&bytes).unwrap_or_else(|e| refuse(format_args!("{}: {e}", elf.display())));
-    if advice.len() > 1 << program.rv().log_advice() {
-        refuse(format_args!(
-            "the guest's advice region holds {} words, not {}",
-            1u64 << program.rv().log_advice(),
-            advice.len()
-        ));
-    }
+    let program =
+        Program::from_elf(&bytes).unwrap_or_else(|e| refuse(format_args!("{}: {}", elf.display(), chain(&e))));
 
-    let (result, prove_time) = plan.warm_then_measure(|last| {
+    let (
+        Proved {
+            proof, output, stats, ..
+        },
+        prove_time,
+    ) = plan.warm_then_measure(|last| {
         let _quiet = (!last).then(bench::suppress_tracing);
-        prove(&program, advice, log_inv_rate)
+        prover
+            .prove(&program, advice, rate)
+            .unwrap_or_else(|e| refuse(format_args!("the run has no proof: {e}")))
     });
-    let (proof, output, stats) = result.unwrap_or_else(|trap| refuse(format_args!("the run has no proof: {trap}")));
     let (_, verify_time) = Plan::new(plan.repeat, 0).measure_quiet(|last| {
         let _quiet = (!last).then(bench::suppress_tracing);
         verify(&program, &output, &proof).unwrap()
@@ -43,7 +54,7 @@ pub fn run_guest(elf: &std::path::Path, advice: &[u64], log_inv_rate: usize, pla
     println!("  output                      : {output:x?}");
     println!("  cycles (VM steps)           : {}", pretty_integer(stats.cycles));
     println!("    details                   : {}", stats.details());
-    let proof_bytes = bincode::serialized_size(&proof).expect("proof is serializable");
+    let proof_bytes = proof.to_bytes().len();
     println!("  proof size                  : {:.1} KiB", proof_bytes as f64 / 1024.0);
     let cycles_per_second = (stats.cycles as f64 / prove_time.mean()).round() as u64;
     println!(

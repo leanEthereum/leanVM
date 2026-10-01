@@ -155,7 +155,7 @@ impl Program {
             guest.log_ram,
             guest.log_advice,
         )
-        .map_err(|error| rv::ElfError(error.message()))
+        .map_err(rv::ElfError::Program)
     }
 
     /// Construct an immutable executable from instruction words and a RAM image.
@@ -209,7 +209,9 @@ impl Program {
 /// channels (see [`crate::transcript::Proof`]).
 pub use crate::transcript::Proof;
 
+/// Why a proof does not verify, by the stage that refused it.
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum CpuError {
     Bus(leaf::Error),
     Constraint(constraints::Error),
@@ -221,6 +223,62 @@ pub enum CpuError {
     /// to reconstruct or fully consume.)
     Flock(flock::verifier::VerifyError),
 }
+
+impl std::fmt::Display for CpuError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Bus(error) => write!(f, "the bus does not balance ({error:?})"),
+            Self::Constraint(error) => write!(f, "the table constraints fail ({error:?})"),
+            Self::Open(error) => write!(f, "the commitment opening fails ({error:?})"),
+            Self::PublicInput => f.write_str("the announced sizes are out of range"),
+            Self::Transcript(error) => write!(f, "the transcript is malformed ({error:?})"),
+            Self::Flock(error) => write!(f, "a circuit's sub-proof fails ({error:?})"),
+        }
+    }
+}
+
+impl std::error::Error for CpuError {}
+
+/// Why a run has no proof.
+///
+/// Every variant is a limit of the prover or a mistake of its caller, except a trap, which is the run's.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ProveError {
+    /// The run trapped.
+    Trap(rv::Trap),
+    /// The run is longer than one proof holds, in cycles or in committed words.
+    TooLong,
+    /// More advice words than the program's region holds.
+    AdviceTooLong { max: usize, got: usize },
+    /// A rate the PCS does not support.
+    InvalidRate { log_inv_rate: usize },
+}
+
+impl From<rv::Trap> for ProveError {
+    fn from(trap: rv::Trap) -> Self {
+        Self::Trap(trap)
+    }
+}
+
+impl std::fmt::Display for ProveError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match *self {
+            Self::Trap(trap) => trap.fmt(f),
+            Self::TooLong => f.write_str("the run is longer than one proof holds (continuations are not implemented)"),
+            Self::AdviceTooLong { max, got } => {
+                write!(f, "the advice has {got} words, and the program's region holds {max}")
+            }
+            Self::InvalidRate { log_inv_rate } => write!(
+                f,
+                "log_inv_rate {log_inv_rate} is not in {}..={}",
+                ::pcs::whir::MIN_LOG_INV_RATE,
+                ::pcs::whir::MAX_LOG_INV_RATE
+            ),
+        }
+    }
+}
+
+impl std::error::Error for ProveError {}
 
 /// Per side, which table (if any) owns each bus block, as `(table, column base)`.
 type BlockOwners = [Vec<Option<(usize, usize)>>; 3];
@@ -352,6 +410,7 @@ fn flock_value_slot(col: usize) -> Option<(usize, usize, usize)> {
 /// committed witness size, the sum of the column lengths, i.e. the real data
 /// before the stacked witness is zero-padded to a power of two `2^m`.
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct Stats {
     pub cycles: usize, // including the padding to make every instruction count a power of two
     /// Rows per table as proven: each an exact power of two, the fill blocks having
@@ -400,16 +459,19 @@ impl Stats {
 /// statement says nothing about: execute it (witness generation), then emit everything
 /// the verifier needs through the returned [`Proof`] (scalar stream + PCS commitment /
 /// opening hints). Returns the proof, the run's public output (`a0..a3` at the exit)
-/// and its [`Stats`], or the trap if the run has no proof.
+/// and its [`Stats`].
 /// `log_inv_rate` selects the PCS rate and is announced in the Fiat-Shamir transcript
 /// before the commitment.
 ///
-/// Panics if `advice` holds more than the program's region does (`2^log_advice` words,
-/// which the program fixes) or if `log_inv_rate` is not a rate the PCS supports: both
-/// are the caller's to get right, like the program itself, and neither is a trap of the run.
+/// # Errors
+///
+/// The run's trap, a run too long for one proof, more advice than the program's region
+/// holds, or a rate the PCS does not support.
 #[tracing::instrument(name = "Prove", skip_all, fields(log_inv_rate))]
-pub fn prove(program: &Program, advice: &[u64], log_inv_rate: usize) -> Result<(Proof, [u64; 4], Stats), rv::Trap> {
-    ::pcs::whir::validate_log_inv_rate(log_inv_rate).expect("valid log_inv_rate");
+pub fn prove(program: &Program, advice: &[u64], log_inv_rate: usize) -> Result<(Proof, [u64; 4], Stats), ProveError> {
+    if ::pcs::whir::validate_log_inv_rate(log_inv_rate).is_err() {
+        return Err(ProveError::InvalidRate { log_inv_rate });
+    }
     // One proof is one arena phase: every transient buffer below is bump-allocated
     // and reclaimed wholesale here, rather than faulted in and unmapped again per
     // proof. Bound first so it outlives them; inert unless `init_prover` opted in.
@@ -417,9 +479,8 @@ pub fn prove(program: &Program, advice: &[u64], log_inv_rate: usize) -> Result<(
     // so it survives the next phase.
     let _phase = zk_alloc::enter_phase();
     let exec = crate::stage!("Execute program", || program.execute(advice))?;
-    let log_words = program.stack_log(exec.trace.row_counts());
-    if log_words > pcs::MAX_MU {
-        return Err(rv::Trap::TooLong { log_words });
+    if program.stack_log(exec.trace.row_counts()) > pcs::MAX_MU {
+        return Err(ProveError::TooLong);
     }
     let (proof, stats) = prove_execution(program, &exec, log_inv_rate);
     Ok((proof, exec.output, stats))
@@ -433,13 +494,13 @@ pub fn prove(program: &Program, advice: &[u64], log_inv_rate: usize) -> Result<(
 ///
 /// # Errors
 ///
-/// The run's trap, including one too long for a proof.
-pub fn measure(program: &Program, advice: &[u64]) -> Result<Stats, rv::Trap> {
+/// What would refuse the proof itself, the rate aside.
+pub fn measure(program: &Program, advice: &[u64]) -> Result<Stats, ProveError> {
     let exec = program.execute(advice)?;
     let counts = exec.trace.row_counts();
     let (log_words, committed) = program.stack_sizes(counts);
     if log_words > pcs::MAX_MU {
-        return Err(rv::Trap::TooLong { log_words });
+        return Err(ProveError::TooLong);
     }
     Ok(Stats {
         cycles: exec.cycles,
@@ -711,7 +772,7 @@ mod tests {
         let same = Program::new(&[u32::MAX], rv::TEXT_BASE, vec![], 0, 0).unwrap();
         assert_eq!(program.digest(), same.digest());
         assert_eq!(
-            rv::Machine::new(program.rv(), &[]).run(1),
+            rv::Machine::new(program.rv(), &[]).run_for(1),
             Err(rv::Trap::Illegal { pc: rv::TEXT_BASE })
         );
     }
@@ -788,7 +849,7 @@ mod tests {
             let mut text = original.clone();
             text[exit_index] = instruction;
             let program = Program::new(&text, rv::TEXT_BASE, vec![], 2, 0).expect("valid jump program");
-            assert!(matches!(program.execute(&[]), Err(rv::Trap::Illegal { pc }) if pc == halt));
+            assert!(matches!(program.execute(&[]), Err(ProveError::Trap(rv::Trap::Illegal { pc })) if pc == halt));
 
             // Forge the terminal row directly, bypassing the interpreter's trap.
             let mut execution = honest_program.execute(&[]).unwrap();

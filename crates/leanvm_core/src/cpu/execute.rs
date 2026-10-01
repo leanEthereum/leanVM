@@ -99,9 +99,13 @@ fn advance(ts: F64, k: u32) -> F64 {
 impl Program {
     /// Run the program on `advice`, recording every row, then write out the
     /// padding rows that bring each table to a power of two ([`filler`]). A run that
-    /// traps has no proof.
-    pub fn execute(&self, advice: &[u64]) -> Result<Execution, Trap> {
+    /// traps, or outruns the clock, has no proof.
+    pub fn execute(&self, advice: &[u64]) -> Result<Execution, ProveError> {
         let p = &self.rv;
+        let max = 1 << p.log_advice;
+        if advice.len() > max {
+            return Err(ProveError::AdviceTooLong { max, got: advice.len() });
+        }
         let mut m = Machine::new(p, advice);
         let adv_init: Vec<F64> = m.advice().iter().map(|&w| F64(w)).collect();
         let mut ranges = Ranges {
@@ -135,7 +139,7 @@ impl Program {
             // A cell's first access is measured from the seed, so the whole run has
             // to fit the range a gap can take (§sec:memchan).
             if tick >= u32::MAX - block_slot(hash::WORDS) {
-                return Err(Trap::CycleCap);
+                return Err(ProveError::TooLong);
             }
             let step = m.step()?;
             let e = &p.entries[step.index];
@@ -185,11 +189,11 @@ impl Program {
             tick += spec.stride();
             ts = advance(ts, spec.stride());
         }
-        let syscall = m.regs[rv::SYSCALL_REG as usize];
+        let syscall = m.regs()[rv::SYSCALL_REG as usize];
         if syscall != rv::SYS_EXIT {
-            return Err(Trap::NotAnExit { syscall });
+            return Err(Trap::NotAnExit { syscall }.into());
         }
-        let output = rv::OUTPUT_REGS.map(|r| m.regs[r as usize]);
+        let output = rv::OUTPUT_REGS.map(|r| m.regs()[r as usize]);
         let base_counts: [usize; crate::tables::N_TABLES] = std::array::from_fn(|t| rows[t].len());
 
         // The padding rows, written out rather than executed: they sit at clock zero
@@ -239,7 +243,7 @@ impl Program {
         let (ram_ts, adv_ts) = ram.last_ts.split_at(1 << p.log_ram);
         let trace = Trace {
             rows,
-            reg_fin: m.regs.iter().map(|&r| F64(r)).collect(),
+            reg_fin: m.regs().iter().map(|&r| F64(r)).collect(),
             reg_ts: regs.last_ts,
             ram_fin: m.ram().iter().map(|&w| F64(w)).collect(),
             ram_ts: ram_ts.to_vec(),

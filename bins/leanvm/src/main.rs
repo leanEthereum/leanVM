@@ -1,6 +1,7 @@
 //! Benchmark CLI.
 
 use clap::{Parser, Subcommand};
+use leanvm::{Prover, Rate};
 
 mod fibonacci;
 mod guest;
@@ -10,13 +11,8 @@ mod workload;
 #[derive(Parser)]
 struct Cli {
     /// WHIR inverse-rate logarithm (1 through 4).
-    #[arg(
-        long,
-        global = true,
-        default_value_t = 1,
-        value_parser = clap::builder::RangedU64ValueParser::<usize>::new().range(1..=4)
-    )]
-    log_inv_rate: usize,
+    #[arg(long = "log-inv-rate", value_name = "LOG_INV_RATE", global = true, default_value = "1", value_parser = parse_rate)]
+    rate: Rate,
 
     /// Enable hierarchical timing traces. Use RUST_LOG to adjust verbosity.
     #[arg(long, global = true)]
@@ -86,20 +82,27 @@ enum Command {
     },
 }
 
+fn parse_rate(log_inv_rate: &str) -> Result<Rate, String> {
+    let log_inv_rate = log_inv_rate
+        .parse()
+        .map_err(|e: std::num::ParseIntError| e.to_string())?;
+    Rate::new(log_inv_rate).map_err(|e| e.to_string())
+}
+
 fn main() {
     let cli = Cli::parse();
-    leanvm_core::init_prover();
+    let prover = Prover::new();
     let plan = bench::Plan::new(cli.repeat, cli.cooldown);
     if cli.tracing {
         bench::init_tracing();
     }
     match cli.command {
-        Command::Fibonacci { n } => fibonacci::run_fibonacci(n, cli.log_inv_rate, plan),
-        Command::Guest { elf, advice } => guest::run_guest(&elf, &advice, cli.log_inv_rate, plan),
-        Command::Leanxmss { n } => workload::run(&workload::leanxmss(n), cli.log_inv_rate, plan),
-        Command::Leansphincs { n } => workload::run(&workload::leansphincs(n), cli.log_inv_rate, plan),
-        Command::Leanda { blobs } => workload::run(&workload::leanda(blobs), cli.log_inv_rate, plan),
-        Command::Bench { cycles_only, markdown } => tracked::run(cycles_only, markdown, cli.log_inv_rate, plan),
+        Command::Fibonacci { n } => fibonacci::run_fibonacci(n, &prover, cli.rate, plan),
+        Command::Guest { elf, advice } => guest::run_guest(&elf, &advice, &prover, cli.rate, plan),
+        Command::Leanxmss { n } => workload::run(&workload::leanxmss(n), &prover, cli.rate, plan),
+        Command::Leansphincs { n } => workload::run(&workload::leansphincs(n), &prover, cli.rate, plan),
+        Command::Leanda { blobs } => workload::run(&workload::leanda(blobs), &prover, cli.rate, plan),
+        Command::Bench { cycles_only, markdown } => tracked::run(cycles_only, markdown, &prover, cli.rate, plan),
     }
     if std::env::var_os("ZK_ALLOC_STATS").is_some() {
         eprintln!("{}", zk_alloc::stats());

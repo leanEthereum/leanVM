@@ -30,6 +30,7 @@ pub struct Program {
 
 /// Why instruction input cannot form a validated executable.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum ProgramError {
     /// The text cannot fit with its required padding.
     TextTooLarge,
@@ -43,21 +44,15 @@ pub enum ProgramError {
     MalformedEntry,
 }
 
-impl ProgramError {
-    pub(crate) fn message(self) -> &'static str {
-        match self {
+impl std::fmt::Display for ProgramError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
             Self::TextTooLarge => "the text leaves no room for padding and the halt slot",
             Self::EntryPoint => "the entry point is not an aligned instruction in the supplied text",
             Self::RamSize => "RAM is too small for its image, or exceeds its region",
             Self::AdviceSize => "the advice exceeds its region",
             Self::MalformedEntry => "the decoded text contains a malformed entry",
-        }
-    }
-}
-
-impl std::fmt::Display for ProgramError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.message())
+        })
     }
 }
 
@@ -172,32 +167,18 @@ impl Program {
     }
 }
 
-/// Why a run stops without halting. No proof exists of a run that traps.
+/// Why a run stops without halting: an ISA fault, which no proof can follow.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Trap {
     /// `pc` names no instruction: outside the text, misaligned, or an illegal one.
-    Illegal {
-        pc: u64,
-    },
-    Misaligned {
-        pc: u64,
-        address: u64,
-    },
-    /// An access outside RAM.
-    Unmapped {
-        pc: u64,
-        address: u64,
-    },
+    Illegal { pc: u64 },
+    /// A load, a store or a hash block at an address its width does not divide.
+    Misaligned { pc: u64, address: u64 },
+    /// An access outside RAM and the advice.
+    Unmapped { pc: u64, address: u64 },
     /// An `ECALL` that is not `exit`.
-    NotAnExit {
-        syscall: u64,
-    },
-    CycleCap,
-    /// The run is sound but longer than one proof holds: its witness would be
-    /// `2^log_words` words.
-    TooLong {
-        log_words: usize,
-    },
+    NotAnExit { syscall: u64 },
 }
 
 impl std::fmt::Display for Trap {
@@ -207,14 +188,11 @@ impl std::fmt::Display for Trap {
             Self::Misaligned { pc, address } => write!(f, "misaligned access to {address:#x} at pc {pc:#x}"),
             Self::Unmapped { pc, address } => write!(f, "access outside RAM, to {address:#x}, at pc {pc:#x}"),
             Self::NotAnExit { syscall } => write!(f, "ecall {syscall} is not exit"),
-            Self::CycleCap => write!(f, "the run exceeds its cycle cap"),
-            Self::TooLong { log_words } => write!(
-                f,
-                "the run's witness is 2^{log_words} words, more than one proof holds (continuations are not implemented)"
-            ),
         }
     }
 }
+
+impl std::error::Error for Trap {}
 
 /// The RAM cell a step accessed.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -295,13 +273,14 @@ pub fn compute_hash(block: [u64; hash::WORDS], t: u64, flags: u64) -> HashAccess
     }
 }
 
+/// The interpreter's state: the program it runs, the registers, RAM and the advice, and `pc`.
 pub struct Machine<'a> {
-    pub program: &'a Program,
+    program: &'a Program,
     /// `x0..x31`, then [`super::SINK`].
-    pub regs: [u64; 1 << LOG_REGS],
+    regs: [u64; 1 << LOG_REGS],
     /// RAM's cells, then the advice's.
     mem: Vec<u64>,
-    pub pc: u64,
+    pc: u64,
     exited: bool,
 }
 
@@ -323,6 +302,21 @@ impl<'a> Machine<'a> {
             pc: program.entry_pc,
             exited: false,
         }
+    }
+
+    /// The program being run.
+    pub fn program(&self) -> &'a Program {
+        self.program
+    }
+
+    /// `x0..x31`, then the sink cell, where writes to `x0` go and which nothing reads.
+    pub fn regs(&self) -> &[u64; 1 << LOG_REGS] {
+        &self.regs
+    }
+
+    /// The byte address of the next instruction.
+    pub fn pc(&self) -> u64 {
+        self.pc
     }
 
     pub fn ram(&self) -> &[u64] {
@@ -421,20 +415,38 @@ impl<'a> Machine<'a> {
         Ok(access)
     }
 
-    /// Run to the halt slot, within `cycle_cap` steps, and return the public output `a0..a3`.
-    pub fn run(&mut self, cycle_cap: u64) -> Result<[u64; 4], Trap> {
-        for _ in 0..cycle_cap {
+    /// Run to the halt slot and return the public output `a0..a3`.
+    ///
+    /// A program that never halts never returns: bound the run with the step-limited form.
+    pub fn run(&mut self) -> Result<[u64; 4], Trap> {
+        loop {
+            if let Some(output) = self.run_for(u64::MAX)? {
+                return Ok(output);
+            }
+        }
+    }
+
+    /// Run to the halt slot, within `max_steps` steps, and return the public output `a0..a3`.
+    ///
+    /// `None` if the run has not halted when the steps run out, the machine left where it stopped.
+    pub fn run_for(&mut self, max_steps: u64) -> Result<Option<[u64; 4]>, Trap> {
+        for _ in 0..max_steps {
             if self.halted() {
-                let syscall = self.regs[SYSCALL_REG as usize];
-                return if syscall == SYS_EXIT {
-                    Ok(OUTPUT_REGS.map(|r| self.regs[r as usize]))
-                } else {
-                    Err(Trap::NotAnExit { syscall })
-                };
+                return self.exit().map(Some);
             }
             self.step()?;
         }
-        Err(Trap::CycleCap)
+        if self.halted() { self.exit().map(Some) } else { Ok(None) }
+    }
+
+    /// The output of a run that reached the halt slot, which only `exit` may do.
+    fn exit(&self) -> Result<[u64; 4], Trap> {
+        let syscall = self.regs[SYSCALL_REG as usize];
+        if syscall == SYS_EXIT {
+            Ok(OUTPUT_REGS.map(|r| self.regs[r as usize]))
+        } else {
+            Err(Trap::NotAnExit { syscall })
+        }
     }
 }
 
@@ -748,12 +760,12 @@ mod tests {
         }
     }
 
-    fn run(text: &[u32], image: Vec<u64>) -> Result<[u64; 4], Trap> {
+    fn run(text: &[u32], image: Vec<u64>) -> Result<Option<[u64; 4]>, Trap> {
         Machine::new(
             &Program::new(text, TEXT_BASE, image, LOG_RAM, 0).expect("valid instruction program"),
             &[],
         )
-        .run(1 << 20)
+        .run_for(1 << 20)
     }
 
     #[test]
@@ -762,7 +774,7 @@ mod tests {
         for _ in 0..2000 {
             let value = rng.word();
             let text = Asm::new().li(A0, value).exit().finish();
-            assert_eq!(run(&text, vec![]), Ok([value, 0, 0, 0]), "{value:#x}");
+            assert_eq!(run(&text, vec![]), Ok(Some([value, 0, 0, 0])), "{value:#x}");
         }
     }
 
@@ -784,7 +796,7 @@ mod tests {
             .li(A2, 0)
             .exit()
             .finish();
-        assert_eq!(run(&text, vec![]), Ok([2_880_067_194_370_816_120, 0, 0, 0]));
+        assert_eq!(run(&text, vec![]), Ok(Some([2_880_067_194_370_816_120, 0, 0, 0])));
 
         // Bubble sort of eight words through a stack frame, then a0 <- the median pair's sum.
         const DATA: u64 = RAM_BASE;
@@ -826,9 +838,9 @@ mod tests {
             .finish();
         let program = Program::new(&text, TEXT_BASE, data.to_vec(), LOG_RAM, 0).expect("valid instruction program");
         let mut m = Machine::new(&program, &[]);
-        assert_eq!(m.run(1 << 20), Ok([4 + 5, 0, 0, 0]));
+        assert_eq!(m.run(), Ok([4 + 5, 0, 0, 0]));
         assert_eq!(m.ram()[..8], [1, 2, 3, 4, 5, 7, 8, 9]);
-        assert_eq!(m.regs[0], 0, "x0");
+        assert_eq!(m.regs()[0], 0, "x0");
     }
 
     #[test]
@@ -873,6 +885,6 @@ mod tests {
         assert_eq!(run(&[0x0010_0073], vec![]), Err(Trap::Illegal { pc: TEXT_BASE }));
         // An ecall that is not exit, and a loop that never ends.
         assert_eq!(run(&[ECALL], vec![]), Err(Trap::NotAnExit { syscall: 0 }));
-        assert_eq!(run(&[asm::j_type(0, 0)], vec![]), Err(Trap::CycleCap));
+        assert_eq!(run(&[asm::j_type(0, 0)], vec![]), Ok(None));
     }
 }

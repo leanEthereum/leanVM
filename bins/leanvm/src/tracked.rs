@@ -9,7 +9,7 @@
 //! history, so renaming one or changing its input starts a new one.
 
 use bench::{Metric, Plan, bencher_json};
-use leanvm::{Program, Stats, prove, verify};
+use leanvm::{Program, Proved, Prover, Rate, Stats, verify};
 use primitives::pretty_integer;
 
 use crate::fibonacci::fibonacci_program;
@@ -79,8 +79,7 @@ impl Case {
 
     /// The run's exact counts, without a proof.
     fn measure(&self) -> Stats {
-        leanvm_core::cpu::measure(&self.program, &self.advice)
-            .unwrap_or_else(|trap| refuse(format_args!("{}: {trap}", self.name)))
+        leanvm::measure(&self.program, &self.advice).unwrap_or_else(|e| refuse(format_args!("{}: {e}", self.name)))
     }
 }
 
@@ -107,7 +106,7 @@ fn proven() -> Vec<Case> {
 
 /// With `cycles_only`, count every case without a proof, as JSON or with `markdown` as a
 /// table; otherwise prove, verify and time the proven cases, as JSON.
-pub fn run(cycles_only: bool, markdown: bool, log_inv_rate: usize, plan: Plan) {
+pub fn run(cycles_only: bool, markdown: bool, prover: &Prover, rate: Rate, plan: Plan) {
     if markdown {
         return table(&counted());
     }
@@ -119,7 +118,7 @@ pub fn run(cycles_only: bool, markdown: bool, log_inv_rate: usize, plan: Plan) {
     } else {
         proven()
             .iter()
-            .map(|case| (case.name.to_string(), proved(case, log_inv_rate, plan)))
+            .map(|case| (case.name.to_string(), proved(case, prover, rate, plan)))
             .collect()
     };
     println!("{}", bencher_json(&report));
@@ -138,11 +137,12 @@ fn counts(stats: &Stats) -> Vec<(&'static str, Metric)> {
 
 /// The proving time, after checking the proof: the output is the native reference's and it
 /// verifies.
-fn proved(case: &Case, log_inv_rate: usize, plan: Plan) -> Vec<(&'static str, Metric)> {
+fn proved(case: &Case, prover: &Prover, rate: Rate, plan: Plan) -> Vec<(&'static str, Metric)> {
     eprintln!("{}", case.name);
-    let ((proof, output, _), time) = plan.warm_then_measure(|_| {
-        prove(&case.program, &case.advice, log_inv_rate)
-            .unwrap_or_else(|trap| refuse(format_args!("{}: {trap}", case.name)))
+    let (Proved { proof, output, .. }, time) = plan.warm_then_measure(|_| {
+        prover
+            .prove(&case.program, &case.advice, rate)
+            .unwrap_or_else(|e| refuse(format_args!("{}: {e}", case.name)))
     });
     assert_eq!(
         output, case.expected,

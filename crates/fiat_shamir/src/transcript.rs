@@ -2,6 +2,7 @@
 
 use crate::FiatShamirState;
 use crate::merkle::{Hash, PrunedMerklePaths, RawMerklePath, hash_to_scalars, scalars_to_hash};
+use bincode::Options;
 use primitives::field::{F64, F192};
 
 /// A scalar stream and its Merkle opening phases. `M` selects pruned or raw paths.
@@ -16,6 +17,24 @@ pub struct Proof<M = PrunedMerklePaths> {
 /// reconstruct. A verifier run yields it as a by-product
 /// ([`VerifierState::into_raw_proof`]), so that expansion is written once, in Rust.
 pub type RawProof = Proof<RawMerklePath>;
+
+impl<M: serde::Serialize + serde::de::DeserializeOwned> Proof<M> {
+    /// The proof's wire bytes: bincode's fixed-width little-endian encoding.
+    #[must_use]
+    pub fn to_bytes(&self) -> Vec<u8> {
+        encoding().serialize(self).expect("a proof is plain data")
+    }
+
+    /// The proof these bytes encode, if they encode one and nothing more.
+    pub fn from_bytes(bytes: &[u8]) -> Option<Self> {
+        encoding().with_limit(bytes.len() as u64).deserialize(bytes).ok()
+    }
+}
+
+/// `bincode::serialize`'s encoding, refusing trailing bytes when it decodes.
+fn encoding() -> impl Options {
+    bincode::DefaultOptions::new().with_fixint_encoding()
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Error {
