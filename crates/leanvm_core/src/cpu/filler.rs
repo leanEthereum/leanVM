@@ -6,13 +6,14 @@
 //! back to the block's own first instruction ([`append_blocks`]).
 //!
 //! So a block is a **cycle**, and no program code jumps into it. Its rows carry the
-//! clock `ts = 0`, which is what makes it balance: `0·g^k = 0`, so the state tuples
-//! pushed and pulled around the cycle cancel among themselves for any number of
-//! traversals, where a real clock would have moved on. And zero is no power of `g`, so
-//! nothing such a row puts on the bus can meet a tuple of the run itself: its register
-//! accesses are forced to the previous timestamp `0` as well, and each cancels against
-//! itself (doc §Filling the tables). The rows therefore touch nothing, and the prover
-//! writes them out rather than executing anything.
+//! clock `ts = 0`, which is what makes it balance: a clock without the live bit does
+//! not advance, so the state tuples pushed and pulled around the cycle cancel among
+//! themselves for any number of traversals, where a real clock would have moved on.
+//! And every tuple of the run has the live bit, so nothing such a row puts on the bus
+//! can meet one: its accesses' previous timestamps are forced to lack it as well, and
+//! each access pulls the very tuple it pushes, which cancels (doc §Filling the
+//! tables). The rows therefore touch nothing, and the prover writes them out rather
+//! than executing anything.
 //!
 //! A traversal of the size-`s` block costs exactly `s + 1` rows: `s` of its own table and
 //! one of `ALU`'s, the jump. Nothing else, and nothing on any other table. That is what

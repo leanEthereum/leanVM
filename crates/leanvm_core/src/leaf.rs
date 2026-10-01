@@ -5,7 +5,7 @@
 //! the push side ending on the lookup arrays' producers, whose leaves are those raised
 //! to the powers their multiplicities' bits select. Each side reduces to a leaf claim
 //! `Ṽ₀(ζ)`, decomposed into evaluation claims on the committed columns. Tuple
-//! coordinates `σ_i` are `K`-valued (column entries, g-powers, separators); the
+//! coordinates `σ_i` are `K`-valued (column entries, separators, tags); the
 //! fingerprint challenges `α, β` are `E`-valued, so a leaf accumulates via the mixed
 //! `mul_base` product (2 PMULL per coordinate).
 
@@ -13,7 +13,7 @@ use crate::PAR_THRESHOLD;
 use crate::colval::ColVal;
 use crate::gkr;
 use fiat_shamir::transcript::{Challenger, ProverState, Receiver, Transmitter, VerifierState};
-use primitives::field::{F64, F192, F192Unreduced, g_pow, int_index_mle, powers_mle};
+use primitives::field::{F64, F192, F192Unreduced, int_index_mle};
 use primitives::multilinear::{eq_eval, eq_table_arena, mle_eval};
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
@@ -22,26 +22,18 @@ use zk_alloc::ArenaVec;
 /// One tuple coordinate as a function of the block's row `z`.
 #[derive(Clone, Debug)]
 pub enum Coord {
-    /// A public constant (domain separator, opcode, a seed's timestamp `g^0`).
+    /// A public constant (domain separator, opcode, a seed's timestamp).
     Const(F64),
     /// A committed column, value `col[z]`.
     Col(usize),
-    /// The free increment `g^k · col[z]` (a virtual column, §sec:vm): the clock advanced
-    /// by a row's stride, or to an access's slot.
-    GCol(usize, u32),
-    /// The product `g^k · col_a[z] · col_b[z]` of two committed columns. The g-power
-    /// of an address `fp + o + k` is `g^fp·g^o·g^k`, so this carries one on the bus
-    /// without committing it: the coordinate IS the product, so no column can
-    /// disagree with it and the binding constraint that used to say so is unnecessary
-    /// (§sec:m3).
-    Prod(usize, usize, u32),
+    /// The product `col_a[z] · col_b[z]` of two columns, carried on the bus without
+    /// committing it: the coordinate IS the product, so no column can disagree with
+    /// it and no constraint has to say so (§sec:m3).
+    Prod(usize, usize),
     /// The integer index column `base ^ (z << shift)` (§sec:idxcol), the element
     /// whose bits are that integer's: what addresses a region whose cell `z` sits at
     /// `base + (z << shift)`. Free, its MLE being linear.
     IntIndex { base: F64, shift: u32 },
-    /// The geometric column `first·ratio^z`, free the same way: the addresses of a
-    /// range-check array (§sec:rangecheck).
-    Powers { first: F64, ratio: F64 },
     /// A public column (the bytecode program, §sec:e2e-bc): not committed; both parties form
     /// its MLE directly, so it raises no claim. Shared rather than owned: a column is
     /// tens of megabytes at production sizes.
@@ -50,7 +42,7 @@ pub enum Coord {
     /// §sec:memchan): the verifier evaluates it in time proportional to the blocks,
     /// not to the column.
     Sparse(Arc<SparseColumn>),
-    /// A sum of `Const`/`Col`/`GCol`/`Prod` terms: any degree-2 form over the
+    /// A sum of `Const`/`Col`/`Prod` terms: any degree-2 form over the
     /// table's columns, which is all §sec:m3 asks of a coordinate. This is what
     /// carries a value a row DERIVES from its columns (a branch's successor, what a
     /// jump writes to `rd`, a hash row's block addresses) without committing a column for it, and
@@ -285,12 +277,11 @@ pub(crate) fn unmatched_leaves(
         .map(|i| F192::new(3 + i, 5 + 7 * i, 11))
         .collect();
     let (w, beta) = (fingerprint_weights(&alphas), F192::new(13, 17, 19));
-    let powers = power_tables(tuples(push).chain(tuples(pull)).chain(producer_tuples(producers)));
     let side = |blocks: &[Block]| {
         let mut at = Vec::new();
         for (b, block) in blocks.iter().enumerate() {
             let mut leaves = vec![F192::ZERO; 1 << block.kappa];
-            fill_tuple(&block.coords, cols, &w, beta, &powers, &mut leaves);
+            fill_tuple(&block.coords, cols, &w, beta, &mut leaves);
             at.extend(leaves.into_iter().enumerate().map(|(z, leaf)| (leaf, b, z)));
         }
         at
@@ -298,7 +289,7 @@ pub(crate) fn unmatched_leaves(
     let (mut pushed, pulled) = (side(push), side(pull));
     for (p, producer) in producers.iter().enumerate() {
         let mut leaves = vec![F192::ZERO; 1 << producer.kappa];
-        fill_tuple(&producer.coords, cols, &w, beta, &powers, &mut leaves);
+        fill_tuple(&producer.coords, cols, &w, beta, &mut leaves);
         for (x, leaf) in leaves.into_iter().enumerate() {
             let m = cols[producer.col][x].0 & ((1u64 << producer.bits) - 1);
             pushed.extend(std::iter::repeat_n((leaf, push.len() + p, x), m as usize));
@@ -324,7 +315,6 @@ pub(crate) fn unmatched_leaves(
 
 /// A non-constant coordinate as `(source, coefficient)`: its leaf contribution is
 /// the mixed product `coeff · source(z)` with `source(z) ∈ K`, `coeff ∈ E`.
-/// `GCol` folds the `g^k` factor into the coefficient.
 enum Term<'a> {
     Col(usize, F192),
     Prod(usize, usize, F192),
@@ -332,58 +322,23 @@ enum Term<'a> {
     Public(&'a [F64], F192),
 }
 
-/// The values of each distinct [`Coord::Powers`] column, prover-side.
-pub type PowerTables = Vec<((F64, F64), Vec<F64>)>;
-
-/// Blocks as `(kappa, coords)`, the shape [`power_tables`] reads.
-fn tuples(blocks: &[Block]) -> impl Iterator<Item = (usize, &[Coord])> {
-    blocks.iter().map(|b| (b.kappa, b.coords.as_slice()))
-}
-
-fn producer_tuples(producers: &[Producer]) -> impl Iterator<Item = (usize, &[Coord])> {
-    producers.iter().map(|p| (p.kappa, p.coords.as_slice()))
-}
-
-fn power_tables<'a>(tuples: impl Iterator<Item = (usize, &'a [Coord])>) -> PowerTables {
-    let mut tables = PowerTables::new();
-    for (kappa, coords) in tuples {
-        for c in coords {
-            if let Coord::Powers { first, ratio } = *c
-                && !tables.iter().any(|(k, _)| *k == (first, ratio))
-            {
-                tables.push(((first, ratio), primitives::field::geometric(first, ratio, 1 << kappa)));
-            }
-        }
-    }
-    tables
-}
-
 /// Flatten one coordinate into leaf terms at coefficient `w`. A [`Coord::Sum`]
 /// spreads its children over the SAME `w`: they are one coordinate, so they share
 /// its `α`-power.
-fn push_terms<'a>(c: &'a Coord, w: F192, powers: &'a PowerTables, terms: &mut Vec<Term<'a>>, constant: &mut F192) {
+fn push_terms<'a>(c: &'a Coord, w: F192, terms: &mut Vec<Term<'a>>, constant: &mut F192) {
     match c {
         Coord::Const(v) => *constant += w.mul_base(*v),
         Coord::Col(i) => terms.push(Term::Col(*i, w)),
-        Coord::GCol(i, k) => terms.push(Term::Col(*i, w.mul_base(g_pow(*k as usize)))),
-        Coord::Prod(i, j, k) => terms.push(Term::Prod(*i, *j, w.mul_base(g_pow(*k as usize)))),
+        Coord::Prod(i, j) => terms.push(Term::Prod(*i, *j, w)),
         Coord::IntIndex { base, shift } => {
             *constant += w.mul_base(*base);
             terms.push(Term::IntIndex(w, *shift));
-        }
-        Coord::Powers { first, ratio } => {
-            let table = &powers
-                .iter()
-                .find(|(k, _)| *k == (*first, *ratio))
-                .expect("every geometric column was tabulated")
-                .1;
-            terms.push(Term::Public(table, w));
         }
         Coord::Public(vals) => terms.push(Term::Public(vals.as_slice(), w)),
         Coord::Sparse(column) => terms.push(Term::Public(column.dense(), w)),
         Coord::Sum(cs) => {
             for c in cs {
-                push_terms(c, w, powers, terms, constant);
+                push_terms(c, w, terms, constant);
             }
         }
     }
@@ -391,11 +346,11 @@ fn push_terms<'a>(c: &'a Coord, w: F192, powers: &'a PowerTables, terms: &mut Ve
 
 /// One tuple's leaves, `β − Σ_i w_i c_i(z)` for every row `z`, into `dst`. The
 /// row-invariant weights and constant coordinates are folded once into `const_part`.
-fn fill_tuple(coords: &[Coord], cols: &[&[F64]], w: &[F192], beta: F192, powers: &PowerTables, dst: &mut [F192]) {
+fn fill_tuple(coords: &[Coord], cols: &[&[F64]], w: &[F192], beta: F192, dst: &mut [F192]) {
     let mut const_part = beta;
     let mut terms: Vec<Term> = Vec::with_capacity(coords.len());
     for (i, c) in coords.iter().enumerate() {
-        push_terms(c, w[i], powers, &mut terms, &mut const_part);
+        push_terms(c, w[i], &mut terms, &mut const_part);
     }
     let row = |z: usize| -> F192 {
         // The α-weighted coordinate sum defers its reductions: each mixed
@@ -426,11 +381,11 @@ fn fill_tuple(coords: &[Coord], cols: &[&[F64]], w: &[F192], beta: F192, powers:
 const PRODUCER_CHUNK: usize = 1 << 12;
 
 /// A producer's entries' leaves, `β − π_α(e_x)`, which its bits raise to their powers.
-fn producer_leaves(p: &Producer, cols: &[&[F64]], w: &[F192], beta: F192, powers: &PowerTables) -> ArenaVec<F192> {
+fn producer_leaves(p: &Producer, cols: &[&[F64]], w: &[F192], beta: F192) -> ArenaVec<F192> {
     let mut q = ArenaVec::with_capacity(1 << p.kappa);
     // SAFETY: `fill_tuple` writes every slot before anything reads one.
     unsafe { q.set_len(1 << p.kappa) };
-    fill_tuple(&p.coords, cols, w, beta, powers, &mut q);
+    fill_tuple(&p.coords, cols, w, beta, &mut q);
     q
 }
 
@@ -445,7 +400,6 @@ pub fn build_leaves(
     cols: &[&[F64]],
     w: &[F192],
     beta: F192,
-    powers: &PowerTables,
 ) -> ArenaVec<F192> {
     let kappas: Vec<usize> = blocks
         .iter()
@@ -484,11 +438,11 @@ pub fn build_leaves(
     for (b, blk) in blocks.iter().enumerate() {
         let off = lay.offsets[b];
         let dst = &mut leaves[off..off + (1usize << blk.kappa)];
-        fill_tuple(&blk.coords, cols, w, beta, powers, dst);
+        fill_tuple(&blk.coords, cols, w, beta, dst);
     }
     let mut b = blocks.len();
     for p in producers {
-        let mut q = producer_leaves(p, cols, w, beta, powers);
+        let mut q = producer_leaves(p, cols, w, beta);
         let mult = cols[p.col];
         for bit in 0..p.bits {
             let off = lay.offsets[b];
@@ -512,8 +466,7 @@ pub fn build_leaves(
 /// bit `i`'s leaf is `1 + b_i·P'_i`. Prover-side; the verifier evaluates the public
 /// half itself ([`producer_public_evals`]).
 pub fn producer_columns(p: &Producer, cols: &[&[F64]], w: &[F192], beta: F192) -> Vec<ArenaVec<F192>> {
-    let powers = power_tables(producer_tuples(std::slice::from_ref(p)));
-    let mut q = producer_leaves(p, cols, w, beta, &powers);
+    let mut q = producer_leaves(p, cols, w, beta);
     let mult = cols[p.col];
     let bits = (0..p.bits).map(|bit| {
         let mut column = ArenaVec::with_capacity(1 << p.kappa);
@@ -532,22 +485,19 @@ pub fn producer_columns(p: &Producer, cols: &[&[F64]], w: &[F192], beta: F192) -
 
 /// [`producer_columns`]' public half at `chi`: `MLE(P_i)(chi) − 1` for each bit `i`. The
 /// Frobenius `a ↦ a^{2^i}` is additive, so `P_i(x) = β^{2^i} + Σ_s w_s^{2^i}·c_s(x)^{2^i}`, and
-/// a coordinate's power is as cheap as the coordinate: a constant stays one, a geometric
-/// column `f·r^x` becomes `f^{2^i}·(r^{2^i})^x`, an integer index column stays affine in
-/// the bits. Public columns are summed into one, `c(x) = Σ_s w_s·c_s(x)`, whose power is
+/// a coordinate's power is as cheap as the coordinate: a constant stays one, an integer
+/// index column stays affine in the bits. Public columns are summed into one, `c(x) = Σ_s w_s·c_s(x)`, whose power is
 /// taken entry by entry: the cost of a public lookup array is its size times its bits.
 pub fn producer_public_evals(p: &Producer, w: &[F192], beta: F192, chi: &[F192]) -> Vec<F192> {
     assert_eq!(chi.len(), p.kappa);
-    // Running `2^i`-th powers: the constant, each structured coordinate's weight and
-    // parameters, and the public columns' sum.
+    // Running `2^i`-th powers: the constant, each index coordinate's weight and
+    // monomials, and the public columns' sum.
     let mut constant = beta;
-    let mut geometric: Vec<(F192, F64, F64)> = Vec::new();
     let mut affine: Vec<(F192, Vec<F64>)> = Vec::new();
     let mut public: Option<Vec<F192>> = None;
     for (c, &weight) in p.coords.iter().zip(w) {
         match c {
             Coord::Const(v) => constant += weight.mul_base(*v),
-            Coord::Powers { first, ratio } => geometric.push((weight, *first, *ratio)),
             Coord::IntIndex { base, shift } => {
                 constant += weight.mul_base(*base);
                 affine.push((weight, (0..p.kappa).map(|k| F64(1 << (k as u32 + shift))).collect()));
@@ -563,9 +513,6 @@ pub fn producer_public_evals(p: &Producer, w: &[F192], beta: F192, chi: &[F192])
     let mut evals = Vec::with_capacity(p.bits);
     for _ in 0..p.bits {
         let mut eval = constant;
-        for &(weight, first, ratio) in &geometric {
-            eval += weight * powers_mle(first, ratio, chi);
-        }
         for (weight, monomials) in &affine {
             eval += *weight
                 * chi
@@ -578,10 +525,6 @@ pub fn producer_public_evals(p: &Producer, w: &[F192], beta: F192, chi: &[F192])
         }
         evals.push(eval + F192::ONE);
         constant = constant.square();
-        for (weight, first, ratio) in &mut geometric {
-            *weight = weight.square();
-            (*first, *ratio) = (*first * *first, *ratio * *ratio);
-        }
         for (weight, monomials) in &mut affine {
             *weight = weight.square();
             monomials.iter_mut().for_each(|m| *m = *m * *m);
@@ -596,7 +539,7 @@ pub fn producer_public_evals(p: &Producer, w: &[F192], beta: F192, chi: &[F192])
 /// One table's bus contribution on one side, as a form over that table's committed
 /// columns: `Σ_c coeffs[c]·col_c(z) + Σ (a,b,c) c·col_a(z)·col_b(z) + constant`.
 /// Every coefficient is a public function of `α`, `β` and the block selectors at
-/// `ζ`, because a table's bus blocks carry only `Const`/`Col`/`GCol`/`Prod`
+/// `ζ`, because a table's bus blocks carry only `Const`/`Col`/`Prod`
 /// coordinates. The table sumcheck sums this against `eq(ζ[..τ], ·)` instead of
 /// opening each column at `ζ`, which is why those per-column claims no longer reach
 /// the PCS.
@@ -704,14 +647,13 @@ fn accumulate_form(c: &Coord, w: F192, base: usize, form: &mut BusForm) {
     match c {
         Coord::Const(v) => form.constant += w.mul_base(*v),
         Coord::Col(i) => form.coeffs[*i - base] += w,
-        Coord::GCol(i, k) => form.coeffs[*i - base] += w.mul_base(g_pow(*k as usize)),
-        Coord::Prod(i, j, k) => form.prods.push((*i - base, *j - base, w.mul_base(g_pow(*k as usize)))),
+        Coord::Prod(i, j) => form.prods.push((*i - base, *j - base, w)),
         Coord::Sum(cs) => {
             for c in cs {
                 accumulate_form(c, w, base, form);
             }
         }
-        Coord::IntIndex { .. } | Coord::Powers { .. } | Coord::Public(_) | Coord::Sparse(_) => {
+        Coord::IntIndex { .. } | Coord::Public(_) | Coord::Sparse(_) => {
             unreachable!("a table's bus block carries no virtual coordinate")
         }
     }
@@ -807,9 +749,7 @@ fn decompose_formula<F: FnMut(usize, &[F192]) -> Result<F192, Error>>(
             let coord_val = match c {
                 Coord::Const(v) => F192::from(*v),
                 Coord::IntIndex { base, shift } => int_index_mle(*base, *shift, zeta_lo),
-                Coord::Powers { first, ratio } => powers_mle(*first, *ratio, zeta_lo),
                 Coord::Col(i) => col_val(*i)?,
-                Coord::GCol(i, k) => col_val(*i)?.mul_base(g_pow(*k as usize)),
                 Coord::Prod(..) | Coord::Sum(..) => {
                     unreachable!("only a table's bus block carries a degree-2 coordinate")
                 }
@@ -854,13 +794,13 @@ fn decompose_prove(
     ps: &mut ProverState,
 ) -> F192 {
     // Pass 1: enumerate the FRESH committed coords exactly as `decompose_formula`
-    // visits them (framework blocks in order, coords in order, Col/GCol only, first
+    // visits them (framework blocks in order, coords in order, Col only, first
     // occurrence per `(col, κ)`), then evaluate the column MLEs in parallel.
     let mut jobs: Vec<(usize, usize)> = Vec::new();
     let mut seen = HashSet::new();
     for blk in side.blocks.iter().filter(|b| b.owner.is_none()) {
         for c in &blk.coords {
-            if let Coord::Col(i) | Coord::GCol(i, _) = c {
+            if let Coord::Col(i) = c {
                 let key = (*i, blk.kappa);
                 if !open.known.contains_key(&key) && seen.insert(key) {
                     jobs.push(key);
@@ -1019,22 +959,14 @@ pub fn prove_balance(
     ps: &mut ProverState,
 ) -> BusProof {
     let setup = BusSetup::new(push, pull, producers, ps);
-    let powers = power_tables(tuples(push).chain(tuples(pull)).chain(producer_tuples(producers)));
     // Two independent leaf vectors, built one after another: each `build_leaves`
     // already fans its own blocks out across the whole pool, so nesting an outer
     // split on top would only add a barrier. The all-one padding stays implicit.
     let leaves = crate::stage!("Bus leaves", || {
-        setup.sides.each_ref().map(|side| {
-            build_leaves(
-                side.blocks,
-                side.producers,
-                &side.lay,
-                cols,
-                &side.w,
-                side.beta,
-                &powers,
-            )
-        })
+        setup
+            .sides
+            .each_ref()
+            .map(|side| build_leaves(side.blocks, side.producers, &side.lay, cols, &side.w, side.beta))
     });
     // Both trees run as ONE RLC-batched GKR, the shorter padded, so every claim lands
     // on ONE point ζ.

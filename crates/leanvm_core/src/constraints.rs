@@ -1,15 +1,14 @@
 //! The tables' local constraints (§sec:air), proven by one sumcheck for all tables,
 //! the lookup arrays' producers among them.
 //!
-//! Each table folds its identities with a DISJOINT range of one `η`'s powers, so
-//! the batch is a polynomial in `η` whose coefficients are the individual sums and
-//! matching the batch's target still pins each one. The two bus forms are the
-//! exception: they SHARE their two powers across tables
-//! ([`crate::cpu::xi_form_base`]), so those coefficients are per-side totals and
-//! the target pins the total, which is all the bus needs. The identities vanish on a
-//! valid row, but a table also attaches its two bus forms, whose sums are the
-//! values the bus is owed, so the target is those rather than zero. It is the
-//! caller's, not read off the stream: see [`crate::cpu::verify`].
+//! A table may fold identities with a DISJOINT range of one `η`'s powers, so the
+//! batch is a polynomial in `η` whose coefficients are the individual sums and
+//! matching the batch's target still pins each one. The instruction tables fold
+//! none: what each attaches is its two bus forms, which SHARE their two powers
+//! across tables, so those coefficients are per-side totals and the target pins the
+//! total, which is all the bus needs. The forms' sums are the values the bus is
+//! owed, so the target is those rather than zero. The verifier derives it from the
+//! bus claims, and never reads it off the stream.
 //!
 //! Tables of different heights are combined by back-loaded batching: table `t`'s
 //! summand is lifted onto the common `n`-cube by `∏_{i ≥ τ_t} X_i`, which leaves

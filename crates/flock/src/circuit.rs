@@ -144,11 +144,25 @@ impl Builder {
     /// Commits `wire` as bit `bit` of output port `port`. A structural zero needs no
     /// gate: the empty row is what forces the bit to zero.
     pub fn output(&mut self, port: usize, bit: usize, wire: Wire) {
+        let slot = self.output_slot(port, bit);
+        if let Some(wire) = wire {
+            self.push(Gate::Copy(wire, slot));
+        }
+    }
+
+    /// One product, committed as bit `bit` of output port `port` rather than at the next slot.
+    ///
+    /// The port bit is the product's row, so the output costs no copy.
+    pub fn and_output(&mut self, port: usize, bit: usize, x: Wire, y: Wire) -> Wire {
+        let slot = self.output_slot(port, bit);
+        let (x, y) = (x?, y?);
+        Some(self.push(Gate::And(x, y, slot)))
+    }
+
+    fn output_slot(&self, port: usize, bit: usize) -> u32 {
         let (base, bits) = self.outputs[port];
         assert!(bit < bits, "output port {port} has {bits} bits");
-        if let Some(wire) = wire {
-            self.push(Gate::Copy(wire, (base + bit) as u32));
-        }
+        (base + bit) as u32
     }
 
     pub fn finish(self) -> Circuit {
@@ -544,12 +558,18 @@ mod tests {
             };
             pool.push(wire);
         }
-        // Drive about half the output bits, leaving the rest structural zeros.
+        // Drive about half the output bits, by a copy or by a product, leaving the rest structural zeros.
         for (port, bits) in [(0, 64), (1, narrow)] {
             for bit in 0..bits {
-                if rng.bit() {
-                    let wire = pool[rng.next_u32() as usize % pool.len()];
-                    c.output(port, bit, wire);
+                let kind = rng.next_u32() % 4;
+                let mut pick = || pool[rng.next_u32() as usize % pool.len()];
+                match kind {
+                    0 | 1 => {}
+                    2 => c.output(port, bit, pick()),
+                    _ => {
+                        let (x, y) = (pick(), pick());
+                        c.and_output(port, bit, x, y);
+                    }
                 }
             }
         }

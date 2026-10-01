@@ -1,8 +1,8 @@
 //! Whole-program assembly over GF(2^64) (`doc/leanvm/main.tex`): the instruction tables
 //! sharing the state, register and bytecode buses, bound to one field-valued commitment
 //! and verified oracle-free. The machine is RISC-V ([`crate::rv`]): `pc`, register
-//! numbers and addresses are integers, read as the field element with those bits, while
-//! timestamps are g-powers, so every increment is a free ×g. A register
+//! numbers, addresses and timestamps are integers, read as the field element with those
+//! bits. A register
 //! is one `K = F64` element. What an instruction computes is a flock circuit
 //! ([`crate::class_flock`]); the tables only move words between the bytecode, the
 //! registers and those circuits. Challenges and transcript scalars live in `E = F192`.
@@ -23,13 +23,12 @@ pub mod layout;
 mod trace;
 pub use execute::Execution;
 pub use layout::*;
-pub(crate) use trace::{Access, HashRow, Row, Trace};
+pub(crate) use trace::{HashRow, Row, Trace};
 
 /// Each table holds at most `2^MAX_LOG_ROWS` rows (executed instructions of its
 /// class). Together with the bytecode cap these are the instance caps of
-/// `doc/leanvm/body/06-bus-interactions.tex`: at `ord(g) = 2^64−1` the clock and memory
-/// arguments are theorems only for instances whose clock's exponent stays far below
-/// `2^64`, so the verifier rejects any announcement exceeding them before running a reduction.
+/// `doc/leanvm/body/06-bus-interactions.tex`, which the verifier checks before running a
+/// reduction. No counting argument needs them: they bound the layout an announcement describes.
 pub const MAX_LOG_ROWS: usize = 32;
 
 /// The Fiat-Shamir IV: the program's digest, which commits to everything public and
@@ -48,13 +47,13 @@ pub fn fs_seed(program: &Program) -> [F64; 4] {
 /// Log heights, not row counts: every table's rows are real rows, the fill blocks
 /// having run each count up to a power of two (`filler`), so a height is all there is
 /// to say.
-fn announce_public(ps: &mut ProverState, taus: [usize; tables::N_TABLES], log_inv_rate: usize, ts_final: F64) {
+fn announce_public(ps: &mut ProverState, taus: [usize; tables::N_TABLES], log_inv_rate: usize, ts_final: u64) {
     for t in taus {
         ps.add_scalar(F192::new(t as u64, 0, 0));
     }
     ps.add_scalar(F192::new(log_inv_rate as u64, 0, 0));
     // The clock the run ended on: the final state's timestamp (§sec:state).
-    ps.add_scalar(F192::from(ts_final));
+    ps.add_scalar(F192::new(ts_final, 0, 0));
 }
 
 /// Verifier side of [`announce_public`]: read the announced sizes and PCS rate from
@@ -75,13 +74,13 @@ fn read_public(vs: &mut VerifierState, prog: &Program) -> Result<(Layout, usize)
     }
     let log_inv_rate = read_size(vs)?;
     let ts_final = vs.next_scalar()?;
-    if ts_final.c0 == 0 || ts_final.c1 != 0 || ts_final.c2 != 0 {
+    // A live clock at slot zero: neither a padding row's clock nor a failed row's can end the run.
+    if ts_final.c0 >> tables::LIVE_BIT != 1 || ts_final.c0 % tables::CYCLE != 0 || ts_final.c1 != 0 || ts_final.c2 != 0
+    {
         return Err(CpuError::FinalClock);
     }
-    // The public instance caps ensure that, with `ord(g) = 2^64 − 1`, the clock and
-    // memory arguments are theorems only when the announced instance keeps every
-    // timestamp's exponent provably below `2^63`, so reject any announcement exceeding
-    // the caps BEFORE running any reduction. (A table's row count is the number of
+    // Reject an announcement exceeding the public instance caps BEFORE running any
+    // reduction. (A table's row count is the number of
     // times its class runs, unbounded by the bytecode size since a small loop
     // body runs many times, so it gets its own cap.)
     for (spec, &log_rows) in tables::CLASSES.iter().zip(&taus) {
@@ -102,7 +101,7 @@ fn read_public(vs: &mut VerifierState, prog: &Program) -> Result<(Layout, usize)
     if !u8::try_from(log_inv_rate).is_ok_and(|r| pcs::Rate::new(r).is_ok()) {
         return Err(CpuError::Rate { log_inv_rate });
     }
-    let l = layout(&prog.rv, taus, F64(ts_final.c0));
+    let l = layout(&prog.rv, taus, ts_final.c0);
     // The caps bound each announced log on its own; what the PCS is configured for
     // is the stacked size they imply, which they do not bound.
     if !(pcs::MIN_MU..=pcs::MAX_MU).contains(&l.shape.mu) {
@@ -193,7 +192,7 @@ impl Program {
             unsafe { core::slice::from_raw_parts(table.as_ptr().cast::<u8>(), core::mem::size_of_val(&table[..])) };
         // Every variable-length part is length-framed, so the preimage parses one way.
         let mut h = primitives::hash::Hasher::new();
-        h.update(b"leanvm-rv64im-4");
+        h.update(b"leanvm-rv64im-5");
         h.update(&bytes(&[table.len() as u64]));
         h.update(table_bytes);
         h.update(&bytes(&[
@@ -234,8 +233,8 @@ pub enum CpuError {
     /// The announced rate is one the commitment does not support.
     #[error("the announced log_inv_rate {log_inv_rate} is not in {min}..={max}", min = pcs::Rate::MIN.log_inv_rate(), max = pcs::Rate::MAX.log_inv_rate())]
     Rate { log_inv_rate: usize },
-    /// The announced final clock is zero or not a base-field element.
-    #[error("the announced final clock is not a nonzero base-field element")]
+    /// The announced final clock is not a live clock: bit 40 alone above the cycle, and slot zero.
+    #[error("the announced final clock is not a live clock")]
     FinalClock,
     /// The announced heights stack to a witness the commitment does not take.
     #[error("the witness has 2^{mu} words, outside 2^{min}..=2^{max}", min = pcs::MIN_MU, max = pcs::MAX_MU)]
@@ -249,10 +248,11 @@ pub enum CpuError {
     /// The table constraints do not hold.
     #[error("the table constraints: {0}")]
     Constraint(constraints::Error),
-    /// A class's circuit sub-proof is rejected.
-    #[error("the {table} circuit: {error}")]
+    /// One of a table's circuit sub-proofs is rejected.
+    #[error("the {table} table's {part:?} circuit: {error}")]
     Flock {
         table: &'static str,
+        part: tables::Part,
         error: flock::verifier::VerifyError,
     },
     /// The commitment opening is rejected.
@@ -276,13 +276,10 @@ pub enum ProveError {
     AdviceTooLong { max: usize, got: usize },
 }
 
-/// One table's summand in the table sumcheck (§constraints): its identities, weighted
-/// by its own `η`-range, plus its two bus forms, weighted by the shared powers at
-/// [`xi_form_base`]. The forms carry every committed column of the table, so the
-/// identities and the forms read the same value array.
+/// One table's summand in the table sumcheck (§constraints): its two bus forms.
+///
+/// The forms are weighted by powers shared across tables, and carry every column of the table.
 struct TableSummand {
-    table: &'static tables::ClassTable,
-    weights: Vec<F192>,
     bus: leaf::BusForm,
 }
 
@@ -309,11 +306,7 @@ impl constraints::Summand for Summand {
     #[inline(always)]
     fn eval<T: ColVal>(&self, cols: &[T], quadratic: bool) -> F192 {
         match self {
-            // The identities are homogeneous of degree two, so their quadratic part is
-            // their whole value.
-            Summand::Table(s) => {
-                T::reduce(T::lift(s.table.eval(&s.weights, cols)) ^ s.bus.eval_unreduced(cols, quadratic))
-            }
+            Summand::Table(s) => T::reduce(s.bus.eval_unreduced(cols, quadratic)),
             // `Σ_i c_i·(1 + b_i·P'_i)`, whose quadratic part is the products.
             Summand::Producer(s) => {
                 let n = s.coefficients.len();
@@ -356,10 +349,6 @@ fn airs(
     xi: F192,
 ) -> Vec<constraints::Air<Summand>> {
     let form_pows = xi_form_pows(xi);
-    // Each table's slice of the batch's `η`-powers, turned into the weights its
-    // identities want once rather than per row.
-    let pows = primitives::field::powers(xi, xi_form_base());
-    let offsets = constraints::xi_offsets(tables::tables().iter().map(|t| t.n_constraints()));
     let tables = tables::tables()
         .iter()
         .zip(&l.taus)
@@ -369,8 +358,6 @@ fn airs(
             n_cols: table.n_committed_columns(),
             n_public: 0,
             summand: Summand::Table(TableSummand {
-                table,
-                weights: table.constraint_weights(&pows[offsets[t]..offsets[t] + table.n_constraints()]),
                 // One form, not two: the batch adds the two sides' evaluations
                 // anyway, and summing them here is a setup cost against a dot product
                 // and a product list per row per node.
@@ -395,8 +382,8 @@ fn airs(
     tables.chain(producers).collect()
 }
 
-/// Each table's claimed sum: its identities vanish, so what its summand comes to
-/// is its two bus forms, `η`-weighted. Prover-side only, to build the waiting
+/// Each table's claimed sum: what its summand comes to is its two bus forms,
+/// `η`-weighted. Prover-side only, to build the waiting
 /// line each round; the verifier needs just their total, which it derives.
 fn sigmas(bus: &[Vec<F192>; 2], form_pows: [F192; 2]) -> Vec<F192> {
     (0..tables::tables().len())
@@ -404,24 +391,14 @@ fn sigmas(bus: &[Vec<F192>; 2], form_pows: [F192; 2]) -> Vec<F192> {
         .collect()
 }
 
-/// Where the two bus forms sit in the batch's `η`-powers: the last two, AFTER
-/// every table's identity range, and shared by all tables rather than one pair
-/// per table. That sharing is what keeps the batch tied to the bus: with a common
-/// `η^{base+s}` per side, the batch's target is `Σ_s η^{FORM_POWS+s}·R_s` for
-/// the sides' table shares `R_s`, which the verifier DERIVES from the leaf claims
-/// (`xi_form_pows`; a mismatch surfaces as [`CpuError::Constraint`]). Were the
-/// powers per table, the target
-/// would not factor through the `R_s` and nothing would pin the tables' share of
-/// the bus.
-pub fn xi_form_base() -> usize {
-    tables::tables().iter().map(|t| t.n_constraints()).sum()
-}
-
-/// The two shared form powers `η^{base}, η^{base+1}`.
+/// The two bus forms' weights `1, η`, shared by all tables rather than one pair per
+/// table. That sharing is what keeps the batch tied to the bus: with a
+/// common `η^s` per side, the batch's target is `Σ_s η^s·R_s` for the sides' table
+/// shares `R_s`, which the verifier DERIVES from the leaf claims (a mismatch surfaces
+/// as a constraint error). Were the powers per table, the target would not
+/// factor through the `R_s` and nothing would pin the tables' share of the bus.
 fn xi_form_pows(xi: F192) -> [F192; 2] {
-    let base = xi_form_base();
-    let pows = primitives::field::powers(xi, base + 2);
-    [pows[base], pows[base + 1]]
+    [F192::ONE, xi]
 }
 
 /// Run statistics returned alongside the proof: the cycle count (total executed
@@ -601,18 +578,19 @@ fn prove_witness(program: &Program, w: Witness, output: &[u64; 4], rate: pcs::Ra
 
     let slots = finish_claims(l, bus_claims, &table_claims, output);
 
-    // Run each class's flock reduction (zerocheck + lincheck) over the native layouts
-    // retained from the witness build; it returns the validity claim on the class's
-    // committed packed witness, discharged by the PCS below in the SAME WHIR as every
-    // leanVM point claim, through a ring-switched region of its own. The producers'
-    // bits join them, each producer's multiplicity column a ring-switched region too.
+    // Run each circuit's flock reduction (zerocheck + lincheck), every class circuit
+    // then every clock circuit, over the native layouts retained from the witness
+    // build; it returns the validity claim on the circuit's committed packed witness,
+    // discharged by the PCS below in the SAME WHIR as every leanVM point claim,
+    // through a ring-switched region of its own. The producer's bits join them, its
+    // multiplicity column a ring-switched region too.
     let reductions = w.reductions;
     let mut rings: Vec<_> = crate::stage!("Flock reductions", || {
         reductions
             .iter()
             .enumerate()
-            .map(|(t, prepared)| {
-                let window = w.layout.witness_window(t);
+            .map(|(f, prepared)| {
+                let window = w.layout.witness_window(f);
                 let reduced = prepared.prove(&mut ps);
                 flock::reduction::ring_switch_open(window.n_vars, window.offset, &reduced)
             })
@@ -725,14 +703,16 @@ pub fn verify_to_raw(
 
     let slots = finish_claims(&l, bus.claims, &table_claims, output);
 
-    // Replay each class's flock reduction straight off the shared stream (each scalar
-    // bound as it is read) to recover its validity claim on the class's packed
+    // Replay each circuit's flock reduction straight off the shared stream (each scalar
+    // bound as it is read) to recover its validity claim on the circuit's packed
     // witness, then verify them alongside every point claim in the ONE WHIR opening
     // (mirroring `prove`).
-    let mut replays = Vec::with_capacity(tables::N_TABLES);
-    for (t, &tau) in l.taus.iter().enumerate() {
-        let replay = crate::class_flock::verify_reduction(t, tau, &mut vs).map_err(|error| CpuError::Flock {
+    let mut replays = Vec::with_capacity(crate::class_flock::N_FLOCKS);
+    for f in 0..crate::class_flock::N_FLOCKS {
+        let (t, part) = crate::class_flock::flock(f);
+        let replay = crate::class_flock::verify_reduction(f, l.taus[t], &mut vs).map_err(|error| CpuError::Flock {
             table: tables::CLASSES[t].name,
+            part,
             error,
         })?;
         replays.push(replay);
@@ -744,8 +724,8 @@ pub fn verify_to_raw(
     let rings: Vec<_> = replays
         .iter()
         .enumerate()
-        .map(|(t, replay)| {
-            let window = l.witness_window(t);
+        .map(|(f, replay)| {
+            let window = l.witness_window(f);
             flock::reduction::ring_switch_verify(window.n_vars, window.offset, &replay.claim)
         })
         .chain(
@@ -807,7 +787,6 @@ fn slot_claims(l: &Layout, claims: Vec<ColumnClaim>) -> Vec<pcs::SlotClaim> {
 mod tests {
     use super::*;
     use crate::rv::asm::*;
-    use primitives::field::g_pow;
 
     #[test]
     fn instruction_construction_rejects_entries_in_the_padding() {
@@ -890,6 +869,47 @@ mod tests {
         );
     }
 
+    /// Put `row` in place of a padding row of `ALU` that is the lone jump of its fill, a jump to itself.
+    ///
+    /// Both are closed walks of one row at clock zero, so the state channel does not see the swap.
+    fn replace_lone_jump(program: &Program, exec: &mut Execution, row: Row) {
+        let lone = program
+            .filler
+            .iter()
+            .find(|b| b.size == 0)
+            .expect("ALU has a lone jump")
+            .index;
+        let at = exec.trace.rows[0]
+            .iter()
+            .position(|r| r.index as usize == lone)
+            .expect("the fill traverses the lone jump");
+        exec.trace.rows[0][at] = row;
+    }
+
+    /// The padding row a jump to itself makes, `jal rd, 0` at entry `index`, at clock zero.
+    fn padding_jump(program: &Program, index: usize) -> Row {
+        let e = &program.rv.entries[index];
+        let (out, taken, ram) = rv::machine::compute(e, 0, 0, 0);
+        let slots: Vec<u64> = tables::ALU.slots().into_iter().map(u64::from).collect();
+        Row {
+            index: index as u32,
+            ts: 0,
+            v1: 0,
+            v2: 0,
+            out,
+            taken,
+            vd_old: program.rv.pc_of(index) + 4,
+            ram,
+            prev: [slots[0], slots[1], slots[2], 0],
+            hash: None,
+        }
+    }
+
+    /// The tuples a run leaves unmatched, as `(side, block, row)`.
+    fn unmatched_run(program: &Program, exec: &Execution) -> Vec<(&'static str, usize, usize)> {
+        unmatched(&program.build(exec))
+    }
+
     /// An honest run's bus balances tuple by tuple, which says more than the proof
     /// failing would: the blocks left unmatched are named.
     #[test]
@@ -927,21 +947,21 @@ mod tests {
             let mut execution = honest_program.execute(&[]).unwrap();
             let entry = program.rv.entries[exit_index];
             if entry.jalr {
-                let tick = tables::CLOCK_STRIDE * (exit_index as u32 + 1);
+                // The jump reads `t0` in slot 0, where the exit read `x0`, which leaves `x0`'s slot-1 read pulling the cycle before.
+                let ts = tables::CLOCK_START + exit_index as u64 * tables::CYCLE;
                 let previous = original[..exit_index]
                     .iter()
                     .enumerate()
                     .rev()
                     .find_map(|(i, &word)| {
                         (rv::decode(word, program.rv.pc_of(i)).ad == T0 as u8)
-                            .then_some(tables::CLOCK_STRIDE * (i as u32 + 1) + 3)
+                            .then_some((tables::CLOCK_START + i as u64 * tables::CYCLE) | 3)
                     })
                     .unwrap();
                 let row = &mut execution.trace.rows[0][exit_index];
                 (row.v1, row.out, row.taken) = (halt, halt, false);
-                (row.acc[0].x, row.acc[0].gap) = (g_pow(previous as usize), tick - previous - 1);
-                (row.acc[1].x, row.acc[1].gap) = (g_pow((tick - 3) as usize), 3);
-                execution.trace.reg_ts[T0 as usize] = g_pow(tick as usize);
+                (row.prev[0], row.prev[1]) = (previous, ts - tables::CYCLE + 1);
+                execution.trace.reg_ts[T0 as usize] = F64(ts);
             }
             execution.trace.reg_fin[rv::SINK as usize] = F64(pc + 4);
             let witness = program.build(&execution);
@@ -970,7 +990,7 @@ mod tests {
         let mut forged = program.execute(&[]).unwrap();
         assert_eq!(forged.output, [5, 0, 0, 0]);
         let load = tables::table_of(rv::Class::Load).unwrap();
-        let row = forged.trace.rows[load].iter_mut().find(|r| !r.ts.is_zero()).unwrap();
+        let row = forged.trace.rows[load].iter_mut().find(|r| r.ts != 0).unwrap();
         (row.ram.old, row.ram.new, row.out) = (7, 7, 7);
         forged.trace.reg_fin[A0 as usize] = F64(7);
         forged.trace.ram_fin[4] = F64(7);
@@ -999,7 +1019,7 @@ mod tests {
         let tables = [rv::Class::Store, rv::Class::Load].map(|c| tables::table_of(c).unwrap());
         let [store, load] = forged.trace.rows.get_disjoint_mut(tables).unwrap();
         fn real(rows: &mut [Row]) -> &mut Row {
-            rows.iter_mut().find(|r| !r.ts.is_zero()).unwrap()
+            rows.iter_mut().find(|r| r.ts != 0).unwrap()
         }
         let (store, load) = (real(store), real(load));
         (store.v2, store.ram.new) = (7, 7);
@@ -1015,8 +1035,8 @@ mod tests {
 
     /// The point of the timestamps: a register written twice cannot be read as of its
     /// first write. The forged run is consistent everywhere else (the stale value
-    /// flows into the result, the final registers and the range reads), so what fails
-    /// is the register multiset itself: the first write's tuple is pulled twice.
+    /// flows into the result and the final registers, and the read is in order), so
+    /// what fails is the register multiset itself: the first write's tuple is pulled twice.
     #[test]
     fn a_stale_read_unbalances_the_bus() {
         let text = Asm::new()
@@ -1034,18 +1054,10 @@ mod tests {
 
         let mut forged = program.execute(&[]).unwrap();
         let row = &mut forged.trace.rows[0][3];
-        // The read happens at cycle 4; the first write happened at cycle 1, the second at 2.
-        let (stride, write_slot) = (tables::CLOCK_STRIDE, tables::REG_SLOTS[2]);
-        assert_eq!(
-            (row.v1, row.acc[0].x, row.acc[0].gap),
-            (
-                9,
-                g_pow((2 * stride + write_slot) as usize),
-                2 * stride - write_slot - 1
-            )
-        );
-        (row.v1, row.out) = (5, 8);
-        (row.acc[0].x, row.acc[0].gap) = (g_pow((stride + write_slot) as usize), 3 * stride - write_slot - 1);
+        // The read happens at cycle 4; the first write happened at cycle 1, the second at 2, each in slot 3.
+        let write = |cycle: u64| tables::SEED_CLOCK | (cycle * tables::CYCLE) | 3;
+        assert_eq!((row.v1, row.prev[0]), (9, write(2)));
+        (row.v1, row.out, row.prev[0]) = (5, 8, write(1));
         forged.output[0] = 8;
         forged.trace.reg_fin[A0 as usize] = F64(8);
         // The multiplicities follow the forged gap, so no producer is left unmatched.
@@ -1057,57 +1069,6 @@ mod tests {
                 .all(|&(side, block, _)| side == "pull" || block < push)
         );
         assert_unbalanced(&program, w, &forged.output);
-    }
-
-    /// A gap is range-checked by reading its chunks off the range arrays, so a read of
-    /// an address the array does not hold is caught by the bus alone. The forgery
-    /// shifts `2^16` from a long gap's high chunk to its low one, which keeps the gap
-    /// identity true and the access's own tuples as they were, puts the high chunk on
-    /// another entry, and puts the low one past the array's end. Even with every
-    /// multiplicity recounted for what the rows now read, the low read is unmatched.
-    #[test]
-    fn a_forged_range_read_unbalances_the_bus() {
-        let text = Asm::new()
-            .i("addi", T0, ZERO, 7)
-            .li(T1, 10_000)
-            .label("spin")
-            .i("addi", T1, T1, -1)
-            .branch("bne", T1, ZERO, "spin")
-            .r("add", A0, T0, ZERO)
-            .exit()
-            .finish();
-        let program = Program::new(&text, rv::TEXT_BASE, vec![], 2, 0).expect("valid instruction program");
-        let exec = program.execute(&[]).unwrap();
-        assert_eq!(exec.output, [7, 0, 0, 0]);
-        // The `add`'s read of `t0`, written before the loop: its gap's high chunk is nonzero.
-        let alu = tables::table_of(rv::Class::Alu).unwrap();
-        let (row, gap) = exec.trace.rows[alu]
-            .iter()
-            .enumerate()
-            .map(|(i, r)| (i, r.acc[0].gap))
-            .find(|&(i, gap)| gap >> tables::RANGE_LOG > 0 && !exec.trace.rows[alu][i].ts.is_zero())
-            .expect("a long gap");
-        let (low, high) = ((gap & 0xffff) as usize, (gap >> tables::RANGE_LOG) as usize);
-
-        let mut w = program.build(&exec);
-        let [x, lo, hi] = tables::access_columns(alu, 0).map(|c| schema().spans[alu].0 + c);
-        let shift = g_pow(1 << tables::RANGE_LOG);
-        let ts = column_mut(&mut w, schema().spans[alu].0 + 1)[row];
-        let x = column_mut(&mut w, x)[row];
-        column_mut(&mut w, lo)[row] *= shift;
-        column_mut(&mut w, hi)[row] *= shift;
-        let (lo_value, hi_value) = (column_mut(&mut w, lo)[row], column_mut(&mut w, hi)[row]);
-        assert_eq!(x * lo_value, ts * hi_value, "the gap identity still holds");
-        column_mut(&mut w, Shared::RangeLoMult.col())[low].0 -= 1;
-        column_mut(&mut w, Shared::RangeHiMult.col())[high].0 -= 1;
-        column_mut(&mut w, Shared::RangeHiMult.col())[high - 1].0 += 1;
-
-        let unmatched = unmatched(&w);
-        assert_eq!(unmatched.len(), 1, "{unmatched:?}");
-        let (side, block, at) = unmatched[0];
-        assert_eq!((side, at), ("pull", row));
-        assert!(matches!(w.layout.pull[block].coords[0], Coord::Const(sep) if sep == tables::SEP_RANGE_LO));
-        assert_unbalanced(&program, w, &exec.output);
     }
 
     /// A row can only read an instruction the program has: one claiming a branch offset
@@ -1163,5 +1124,110 @@ mod tests {
                 assert_unbalanced(&program, w, &exec.output);
             }
         }
+    }
+
+    #[test]
+    fn a_read_of_its_own_push_is_out_of_order() {
+        // Invariant: an access cannot pull the tuple it pushes, which would let a read return anything.
+        //
+        // Fixture state: `t0 = 5`, then `a0 = t0 + x0` at cycle 2.
+        // Mutation: the read of `t0` pulls `(t0, ts, 9)`, which it pushes back, and `t0`'s write meets its final instead.
+        // The registers then balance, and only the clock circuit's order check is left to refuse it.
+        let text = Asm::new().i("addi", T0, ZERO, 5).r("add", A0, T0, ZERO).exit().finish();
+        let program = Program::new(&text, rv::TEXT_BASE, vec![], 2, 0).expect("valid instruction program");
+        let mut forged = program.execute(&[]).unwrap();
+        let row = &mut forged.trace.rows[0][1];
+        (row.v1, row.out, row.prev[0]) = (9, 9, row.ts);
+        forged.output[0] = 9;
+        forged.trace.reg_fin[A0 as usize] = F64(9);
+        forged.trace.reg_ts[T0 as usize] = F64(tables::CLOCK_START | 3);
+        // The read's row pushes a failed clock, which the next row's pull does not meet.
+        let unmatched = unmatched_run(&program, &forged);
+        assert_eq!(unmatched.len(), 2, "{unmatched:?}");
+        assert!(unmatched.iter().all(|&(_, block, _)| block == FRAMEWORK.len()));
+    }
+
+    #[test]
+    fn a_padding_row_cannot_pull_a_seed() {
+        // Invariant: a row at clock zero touches no tuple of the run, the seeds included.
+        //
+        // Fixture state: the run sets `a0 = 42` and exits, never touching `a1`.
+        // Past the exit sits `jal a1, 0`, a jump to itself, which the run never reaches.
+        // Mutation: a padding instance of it takes the place of the fill's lone jump, its write pulling `a1`'s seed.
+        // `a1`'s final value is what it pushes, so the output claims `a1 = pc + 4`.
+        let text = Asm::new()
+            .i("addi", A0, ZERO, 42)
+            .exit()
+            .label("spin")
+            .jal(A1, "spin")
+            .finish();
+        let program = Program::new(&text, rv::TEXT_BASE, vec![], 2, 0).expect("valid instruction program");
+        let mut forged = program.execute(&[]).unwrap();
+        let spin = text.len() - 1;
+        let mut row = padding_jump(&program, spin);
+        (row.prev[2], row.vd_old) = (tables::SEED_CLOCK, 0);
+        replace_lone_jump(&program, &mut forged, row);
+        let link = program.rv.pc_of(spin) + 4;
+        forged.output[1] = link;
+        forged.trace.reg_fin[A1 as usize] = F64(link);
+        forged.trace.reg_ts[A1 as usize] = F64(3);
+        // The row's failed clock leaves its own state tuples unmatched, and nothing else.
+        let unmatched = unmatched_run(&program, &forged);
+        assert_eq!(unmatched.len(), 2, "{unmatched:?}");
+        assert!(unmatched.iter().all(|&(_, block, _)| block == FRAMEWORK.len()));
+    }
+
+    #[test]
+    fn a_live_row_cannot_pull_a_padding_tuple() {
+        // Invariant: a row of the run pulls only timestamps of the run, which have the live bit.
+        //
+        // Fixture state: `t0 = 5`, then `a0 = t0 + x0`; past the exit sits `jal t0, 0`, a jump to itself.
+        // Mutation: a padding instance of the jump pulls `t0`'s write and pushes `(t0, 3, pc + 4)`, which the run's read pulls.
+        // The read's `prev` is 3, live bit clear, and the output claims `a0 = pc + 4`.
+        let text = Asm::new()
+            .i("addi", T0, ZERO, 5)
+            .r("add", A0, T0, ZERO)
+            .i("addi", T1, ZERO, 0)
+            .exit()
+            .label("spin")
+            .jal(T0, "spin")
+            .finish();
+        let program = Program::new(&text, rv::TEXT_BASE, vec![], 2, 0).expect("valid instruction program");
+        let mut forged = program.execute(&[]).unwrap();
+        let spin = text.len() - 1;
+        let link = program.rv.pc_of(spin) + 4;
+        let read = &mut forged.trace.rows[0][1];
+        let write = read.prev[0];
+        (read.v1, read.out, read.prev[0]) = (link, link, 3);
+        let mut row = padding_jump(&program, spin);
+        (row.prev[2], row.vd_old) = (write, 5);
+        replace_lone_jump(&program, &mut forged, row);
+        forged.output[0] = link;
+        forged.trace.reg_fin[A0 as usize] = F64(link);
+        forged.trace.reg_fin[T0 as usize] = F64(link);
+        // Both rows push failed clocks: the read's, and the padding row's, each a state tuple pushed and one not pulled.
+        let unmatched = unmatched_run(&program, &forged);
+        assert_eq!(unmatched.len(), 4, "{unmatched:?}");
+        assert!(unmatched.iter().all(|&(_, block, _)| block == FRAMEWORK.len()));
+    }
+
+    #[test]
+    fn the_final_clock_cannot_carry_a_failure() {
+        // Invariant: the exit row's failed clock is refused, though it is the one the final state meets.
+        //
+        // Fixture state: `a0 = 42`, then the exit, which writes the sink at slot 3 of cycle 3.
+        // Mutation: the exit's write pulls the tuple it pushes, the sink's seed meeting its final.
+        // Its clock circuit flags the failure, and the announced final clock carries it, so the bus balances.
+        let text = Asm::new().i("addi", A0, ZERO, 42).exit().finish();
+        let program = Program::new(&text, rv::TEXT_BASE, vec![], 2, 0).expect("valid instruction program");
+        let mut forged = program.execute(&[]).unwrap();
+        let exit = forged.trace.rows[0].iter_mut().find(|r| r.index == 2).unwrap();
+        (exit.prev[2], exit.vd_old) = (exit.ts | 3, exit.out);
+        let sink = rv::SINK as usize;
+        (forged.trace.reg_ts[sink], forged.trace.reg_fin[sink]) = (F64(tables::SEED_CLOCK), F64::ZERO);
+        forged.trace.ts_final |= 1 << tables::FAIL_BIT;
+        assert!(unmatched_run(&program, &forged).is_empty());
+        let (proof, _) = prove_execution(&program, &forged, pcs::Rate::MIN);
+        assert_eq!(verify(&program, &forged.output, &proof), Err(CpuError::FinalClock));
     }
 }

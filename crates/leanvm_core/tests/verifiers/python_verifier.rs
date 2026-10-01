@@ -144,16 +144,23 @@ fn test_python_verifier() {
     raw_announcement.stream[0].c1 = 1;
     PythonStatement::assert_rejects(&statement.verify(&raw_announcement), "a noncanonical announcement");
 
-    // A zero-clock row cannot supply the terminal marker.
+    // Neither a padding row's clock nor a failed row's can end the run.
     let final_clock = leanvm_core::tables::N_TABLES + 1;
-    let mut zero_clock = proof.clone();
-    zero_clock.stream[final_clock] = F192::ZERO;
-    assert_eq!(verify(&program, &output, &zero_clock), Err(CpuError::FinalClock));
-    let mut raw_zero_clock = raw.clone();
-    raw_zero_clock.stream[final_clock] = F192::ZERO;
-    let refused = statement.verify(&raw_zero_clock);
-    PythonStatement::assert_rejects(&refused, "a zero final clock");
-    assert!(String::from_utf8_lossy(&refused.stderr).contains("the final clock is zero"));
+    let honest = proof.stream[final_clock].c0;
+    for clock in [
+        0,
+        honest ^ leanvm_core::tables::SEED_CLOCK,
+        honest | 1 << leanvm_core::tables::FAIL_BIT,
+    ] {
+        let mut forged = proof.clone();
+        forged.stream[final_clock] = F192::new(clock, 0, 0);
+        assert_eq!(verify(&program, &output, &forged), Err(CpuError::FinalClock));
+        let mut raw_forged = raw.clone();
+        raw_forged.stream[final_clock] = F192::new(clock, 0, 0);
+        let refused = statement.verify(&raw_forged);
+        PythonStatement::assert_rejects(&refused, "a final clock that is not live");
+        assert!(String::from_utf8_lossy(&refused.stderr).contains("the final clock is not a live clock"));
+    }
 
     let mut malformed_root = proof.clone();
     // Past the announcement: the table heights, the rate, the final clock.
