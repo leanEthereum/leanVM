@@ -16,9 +16,9 @@
 //!
 //! - batching challenges -> `johnson_algebraic_bits` (one challenge per level,
 //!   powers of it over the level's claim list, as in the doc),
-//! - fold challenge `s_j` -> `2 L/|F| + 2^(l-j) eps`: the MCA part via
-//!   `paper_johnson_log_a` (worst round `j = 1`), the `2 L/|F|` part
-//!   under `johnson_algebraic_bits`,
+//! - fold challenge `s_j` -> `2 L/|F| + eps`: the MCA part via
+//!   `paper_thm_ca_johnson_log_a`, the `2 L/|F|` part under
+//!   `johnson_algebraic_bits`,
 //! - OOD challenge -> `paper_ood_bits`,
 //! - query message -> `(1 - gamma)^t`, plus [`QUERY_GRINDING_BITS`].
 //!
@@ -431,10 +431,9 @@ fn reduced_rate(log_inv_rate: usize, log_msg_cols: usize) -> f64 {
 ///
 /// where `η = 1 − √ρ − γ` and `m = max(⌈√ρ/η⌉, 3)`. Returns `log₂ a`.
 ///
-/// This is the per-fold-step MCA error, stated for a two-row interleaved word
-/// (`C ∈ F^{2×n}`). The ℓ-round lane fold of a `2^ℓ`-interleaved word adds a
-/// row-union factor via the PCS annex, Lemma `lem:fold-list`; see
-/// [`paper_johnson_log_a`].
+/// It is stated for a two-row word, and it is also the fold error of a `2^ℓ`-row word.
+/// The code is linear over the field the fold challenge is drawn from, so affine-line MCA is invariant under row interleaving (Jo, ePrint 2026/891, Thm 4.4).
+/// The PCS annex, Lemma `lem:fold-list`, states both hypotheses.
 fn paper_thm_ca_johnson_log_a(log_inv_rate: usize, eta: f64, log_msg_cols: usize) -> f64 {
     let rho = reduced_rate(log_inv_rate, log_msg_cols);
     let sqrt_rho = rho.sqrt();
@@ -459,27 +458,6 @@ fn paper_thm_ca_johnson_log_a(log_inv_rate: usize, eta: f64, log_msg_cols: usize
 fn johnson_m_param(log_inv_rate: usize, log_msg_cols: usize, eta: f64) -> f64 {
     let sqrt_rho = reduced_rate(log_inv_rate, log_msg_cols).sqrt();
     ((sqrt_rho / eta).ceil() as usize).max(3) as f64
-}
-
-/// Johnson-regime proximity-gap `log₂ a` for a level, including the row-union
-/// factor from the PCS annex, Lemma `lem:fold-list` ("Folding preserves lists").
-///
-/// The base MCA error `ε = a_RLC/|F|` from [`paper_thm_ca_johnson_log_a`] is
-/// stated for a two-row interleaved word (one fold step). Folding a
-/// `2^ℓ`-interleaved word (ℓ = `log_num_interleaved`) over its ℓ lane-fold
-/// rounds pays a row union: `thm:rbr`'s fold row is `2L/|F| + 2^{ℓ-j}·ε` at
-/// round `j`, so the worst round (`j = 1`) pays the factor `2^{ℓ-1}` =
-/// (interleaving factor)/2 (the `2L/|F|` part is checked separately, under
-/// [`johnson_algebraic_bits`]). We bind the per-level grinding to that worst
-/// round, returning `log₂(2^{ℓ-1}·a_RLC) = log₂ a_RLC + (ℓ-1)`.
-///
-/// `ℓ ≤ 1` (`L ≤ 2`) means no row union; the `(ℓ-1)` penalty clamps to 0.
-fn paper_johnson_log_a(log_inv_rate: usize, eta: f64, log_msg_cols: usize, log_num_interleaved: usize) -> f64 {
-    let base = paper_thm_ca_johnson_log_a(log_inv_rate, eta, log_msg_cols);
-    // Row-union factor 2^{ℓ-1} (worst round i=1 of the ℓ-round lane fold),
-    // ℓ = log_num_interleaved. In bits: (ℓ-1), clamped ≥ 0.
-    let row_union_penalty = (log_num_interleaved as f64 - 1.0).max(0.0);
-    base + row_union_penalty
 }
 
 /// Per-query log₂(1/(1−γ)) under the Johnson regime: each query closes
@@ -651,7 +629,7 @@ fn optimize_johnson_level(
             continue;
         }
 
-        let eps_pg = ANALYSIS_LOG_Q - paper_johnson_log_a(log_inv_rate, eta, log_msg_cols, log_num_interleaved);
+        let eps_pg = ANALYSIS_LOG_Q - paper_thm_ca_johnson_log_a(log_inv_rate, eta, log_msg_cols);
         // At the theorem-parameter boundaries a grows monotonically with m;
         // no later candidate can recover once the proximity-gap target fails.
         if eps_pg + 1e-12 < target {
@@ -704,11 +682,8 @@ impl WhirLevelConfig {
     ///   eps_pg_bits    = log₂(q/a) under the Johnson threshold-a formula
     ///   eps_query_bits = Q · log₂(1/(1−γ))
     fn paper_predicted_bits(&self) -> (f64, f64) {
-        // Fold row of `thm:rbr`, MCA part: the ℓ-round fold of a
-        // 2^ℓ-interleaved word (ℓ = log_num_interleaved) pays a row-union
-        // factor 2^{ℓ-j} at round j (`lem:fold-list`); the worst round (j=1)
-        // gives 2^{ℓ-1}, on top of the base Thm 4.6 MCA error.
-        let log_a = paper_johnson_log_a(self.log_inv_rate, self.eta, self.log_msg_cols, self.log_num_interleaved);
+        // Why: fold row of `thm:rbr`, MCA part, the same at every round whatever the interleaving (`lem:fold-list`).
+        let log_a = paper_thm_ca_johnson_log_a(self.log_inv_rate, self.eta, self.log_msg_cols);
         let eps_pg = ANALYSIS_LOG_Q - log_a;
         // Per-query soundness WITHOUT a list union bound: the OOD binding (see
         // `paper_ood_bits`) pins the prover to a single codeword of the
