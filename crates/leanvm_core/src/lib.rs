@@ -9,7 +9,6 @@
 //! Challenges and transcript scalars live in `E = GF(2^192)`, leaving ample margin
 //! for 128-bit soundness.
 //!
-//! - [`transcript`]: the shared Fiat-Shamir transcript (re-exported from `fiat_shamir`).
 //! - [`pcs`]: `K`-committed witness, `E`-opened, via the stacked WHIR (§sec:stacking, §annex:pcs).
 //! - [`witness`]: `K`-valued columns stacked into one committed witness.
 //! - [`gkr`]: the grand product via GKR (§sec:gkr), balancing the bus.
@@ -30,7 +29,6 @@ pub mod leaf;
 pub mod pcs;
 pub mod rv;
 pub mod tables;
-pub mod transcript;
 pub mod witness;
 
 /// Prepare the process for proving: the worker pool ([`init_prover_pool`]) plus

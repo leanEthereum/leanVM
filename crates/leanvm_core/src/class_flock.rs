@@ -13,8 +13,8 @@
 use crate::cpu::Row;
 use crate::rv::Entry;
 use crate::tables::{ClassSpec, N_TABLES, Word};
-use crate::transcript::{ProverState, VerifierState};
 use ::pcs::pack::LOG_PACKING;
+use fiat_shamir::transcript::{ProverState, VerifierState};
 use flock::circuit::Circuit;
 use flock::reduction::{ReductionReplay, SliceClaim};
 use flock::verifier::VerifyError;

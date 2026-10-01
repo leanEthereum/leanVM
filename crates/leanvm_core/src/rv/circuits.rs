@@ -552,7 +552,7 @@ fn or_run(buf: &mut [u64], slot: u32, bits: u64) {
 mod tests {
     use super::*;
     use crate::rv::semantics;
-    use crate::transcript::{ProverState, VerifierState};
+    use fiat_shamir::transcript::{ProverState, VerifierState};
 
     struct Rng(u64);
     impl Rng {

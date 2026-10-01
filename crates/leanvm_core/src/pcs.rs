@@ -25,7 +25,7 @@
 //! commitment only shrinks the level-0 symbols to 8 bytes; every random
 //! ingredient is sampled from `E` with the same error terms as before.
 
-use crate::transcript::{ProverState, Receiver, Transmitter, VerifierState};
+use fiat_shamir::transcript::{ProverState, Receiver, Transmitter, VerifierState};
 use primitives::field::F64;
 
 pub use ::pcs::stack_open::{RingSwitchClaim, RingSwitchOpen, RingSwitchVerify, StackClaim as SlotClaim};
@@ -131,7 +131,7 @@ pub fn commit(
 
 /// Verifier counterpart of [`commit`]'s root binding: read the committed root
 /// from the stream at the start of verification, before sampling any challenge.
-pub fn read_commitment(vs: &mut VerifierState) -> Result<[u8; 32], crate::transcript::Error> {
+pub fn read_commitment(vs: &mut VerifierState) -> Result<[u8; 32], fiat_shamir::transcript::Error> {
     vs.next_root()
 }
 

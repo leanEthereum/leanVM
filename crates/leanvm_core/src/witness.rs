@@ -7,23 +7,48 @@
 use primitives::field::F64;
 use zk_alloc::ArenaVec;
 
-/// Where a column sits in the stacked witness. A [`Placement::VIRTUAL`] column is
-/// NOT committed: it carries data for the bus, but its evaluation claims settle
-/// against some other committed column (e.g. the BLAKE2s value columns route to `q_flock`).
+/// What a column is, before it is placed.
 #[derive(Clone, Copy, Debug)]
-pub struct Placement {
-    pub n_vars: usize,
+pub enum Source {
+    /// A committed column of `2^kappa` words.
+    Committed(usize),
+    /// Not committed: port `port` of every instance of the committed column `column`, a
+    /// packed witness whose instances are `2^stride_log` words apart. It carries data
+    /// for the bus, while its evaluation claims settle against that witness.
+    Port {
+        column: usize,
+        port: usize,
+        stride_log: usize,
+    },
+}
+
+/// A committed column's window in the stacked witness: `2^n_vars` words from `offset`.
+#[derive(Clone, Copy, Debug)]
+pub struct Window {
     pub offset: usize,
+    pub n_vars: usize,
+}
+
+/// Where a column sits in the stacked witness.
+#[derive(Clone, Copy, Debug)]
+pub enum Placement {
+    Committed(Window),
+    /// Port `port` of every instance of the packed witness at `offset`, instances
+    /// `2^stride_log` words apart.
+    Port {
+        offset: usize,
+        port: usize,
+        stride_log: usize,
+    },
 }
 
 impl Placement {
-    pub const VIRTUAL: Placement = Placement {
-        n_vars: usize::MAX,
-        offset: 0,
-    };
-
-    pub fn is_virtual(&self) -> bool {
-        self.n_vars == usize::MAX
+    /// The column's window, if it is committed.
+    pub fn window(&self) -> Option<Window> {
+        match *self {
+            Placement::Committed(window) => Some(window),
+            Placement::Port { .. } => None,
+        }
     }
 }
 
@@ -72,18 +97,35 @@ pub(crate) fn stack_offsets(kappas: &[Option<usize>]) -> (Vec<usize>, usize) {
     (offsets, off)
 }
 
-/// Per-column placements (offset + n_vars) and the stack's [`StackShape`] from the
-/// columns' log-sizes alone, largest-first at aligned offsets. A `None` kappa marks
-/// a virtual (uncommitted) column. Depends only on lengths, so the verifier can
-/// reconstruct it.
-pub fn placements_of(kappas: &[Option<usize>]) -> (Vec<Placement>, StackShape) {
-    let (offsets, placed) = stack_offsets(kappas);
-    let placements = kappas
+/// Per-column placements and the stack's [`StackShape`] from the columns' sources
+/// alone, the committed columns largest-first at aligned offsets. Depends only on
+/// lengths, so the verifier can reconstruct it.
+pub fn placements_of(sources: &[Source]) -> (Vec<Placement>, StackShape) {
+    let kappas: Vec<Option<usize>> = sources
+        .iter()
+        .map(|s| match *s {
+            Source::Committed(kappa) => Some(kappa),
+            Source::Port { .. } => None,
+        })
+        .collect();
+    let (offsets, placed) = stack_offsets(&kappas);
+    let placements = sources
         .iter()
         .zip(&offsets)
-        .map(|(k, &offset)| match *k {
-            Some(n_vars) => Placement { n_vars, offset },
-            None => Placement::VIRTUAL,
+        .map(|(s, &offset)| match *s {
+            Source::Committed(n_vars) => Placement::Committed(Window { offset, n_vars }),
+            Source::Port {
+                column,
+                port,
+                stride_log,
+            } => {
+                assert!(kappas[column].is_some(), "a port is of a committed column");
+                Placement::Port {
+                    offset: offsets[column],
+                    port,
+                    stride_log,
+                }
+            }
         })
         .collect();
     // Floor at the PCS minimum (WHIR's level ladder needs room); tiny
@@ -114,7 +156,7 @@ pub unsafe fn alloc_stack(shape: StackShape) -> ArenaVec<F64> {
 }
 
 /// Carve the stack into one mutable window per committed column, in column order,
-/// and zero the pad tail past the last one. A virtual column gets an empty window:
+/// and zero the pad tail past the last one. A port gets an empty window:
 /// it is not in the stack, so its values need storage of their own.
 ///
 /// Writing each column into its final place is what lets the whole witness be
@@ -126,22 +168,21 @@ pub unsafe fn alloc_stack(shape: StackShape) -> ArenaVec<F64> {
 /// tiles the columns from offset 0, checked here, so consecutive `split_at_mut`
 /// hands out disjoint windows covering `[0, placed)` and this zeroes the rest.
 pub fn split_stack<'a>(q: &'a mut [F64], placements: &[Placement]) -> Vec<&'a mut [F64]> {
-    let mut order: Vec<usize> = (0..placements.len()).filter(|&i| !placements[i].is_virtual()).collect();
-    order.sort_unstable_by_key(|&i| placements[i].offset);
+    let mut order: Vec<(usize, Window)> = (placements.iter().enumerate())
+        .filter_map(|(i, p)| Some((i, p.window()?)))
+        .collect();
+    order.sort_unstable_by_key(|&(_, w)| w.offset);
 
     let mut windows: Vec<&mut [F64]> = Vec::with_capacity(placements.len());
     windows.resize_with(placements.len(), || &mut []);
     let mut rest = q;
     let mut placed = 0usize;
-    for &i in &order {
-        assert_eq!(
-            placements[i].offset, placed,
-            "the stacked columns must tile from 0 with no gap"
-        );
-        let (window, tail) = rest.split_at_mut(1 << placements[i].n_vars);
+    for (i, w) in order {
+        assert_eq!(w.offset, placed, "the stacked columns must tile from 0 with no gap");
+        let (window, tail) = rest.split_at_mut(1 << w.n_vars);
         windows[i] = window;
         rest = tail;
-        placed += 1 << placements[i].n_vars;
+        placed += 1 << w.n_vars;
     }
     parallel::chunks_mut(rest, FILL_CHUNK, |_, pad| pad.fill(F64::ZERO));
     windows
@@ -159,8 +200,13 @@ mod tests {
     #[test]
     fn placements_cover_the_columns_in_the_fewest_lanes() {
         let lanes = 1usize << crate::pcs::LOG_BATCH;
-        // A power-of-two total, one word over one, one just under, a virtual column
+        // A power-of-two total, one word over one, one just under, a port
         // in the middle, and a stack far below the MIN_MU floor.
+        let port = Source::Port {
+            column: 0,
+            port: 1,
+            stride_log: 2,
+        };
         let cases: [Vec<Option<usize>>; 5] = [
             vec![Some(20), Some(20)],
             vec![Some(20), Some(20), Some(0)],
@@ -170,7 +216,8 @@ mod tests {
         ];
         for kappas in cases {
             let placed: usize = kappas.iter().flatten().map(|k| 1usize << k).sum();
-            let (placements, shape) = placements_of(&kappas);
+            let sources: Vec<Source> = kappas.iter().map(|k| k.map_or(port, Source::Committed)).collect();
+            let (placements, shape) = placements_of(&sources);
             let lane_block = 1usize << (shape.mu - crate::pcs::LOG_BATCH);
 
             assert_eq!(shape.mu, crate::log2_ceil_usize(placed).max(crate::pcs::MIN_MU));
@@ -182,8 +229,8 @@ mod tests {
             );
             assert!(shape.committed_len() <= 1usize << shape.mu);
             // And every column really does live inside those lanes.
-            for p in placements.iter().filter(|p| !p.is_virtual()) {
-                assert!(p.offset + (1usize << p.n_vars) <= shape.committed_len());
+            for w in placements.iter().filter_map(Placement::window) {
+                assert!(w.offset + (1usize << w.n_vars) <= shape.committed_len());
             }
         }
     }

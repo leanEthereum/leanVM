@@ -275,11 +275,6 @@ def powers_mle(first: E, ratio: E, point: MultilinearPoint) -> E:
     return result
 
 
-def index_mle(point: MultilinearPoint) -> E:
-    """MLE of ``[1, g, g^2, ...]`` at an LSB-first point."""
-    return powers_mle(ONE, GEN, point)
-
-
 def int_index_mle(base: int, shift: int, point: MultilinearPoint) -> E:
     """MLE of ``[base ^ (z << shift)]``, each integer read as the field element with those bits: linear in the point.
     With `base` a multiple of the region's size the XOR is the sum, so this is the column of addresses `base + (z << shift)`."""
@@ -521,16 +516,11 @@ class BusLayout:
     public, so the verifier evaluates their fingerprints outright, while a table's stay symbolic until its sumcheck."""
 
     depth: int  # log2 of the padded cube, so how many layers the side's GKR walks
-    framework: tuple[
-        Placement, ...
-    ]  # the blocks no table owns, stacked first: boundary state, memory, bytecode, the two range arrays (none on the count side)
+    framework: tuple[Placement, ...]  # the blocks no table owns, stacked first, in FRAMEWORK order (none on the count side)
     tables: tuple[Placement, ...]  # one per block a table owns, in the side's own block order
 
 
-FrameworkLogRows = tuple[int, int, int, int, int, int, int] | tuple[()]  # state, registers, RAM, advice, bytecode, range low, range high
-
-
-def bus_layout(framework_log_rows: FrameworkLogRows, blocks: Sequence[BusBlock]) -> BusLayout:
+def bus_layout(framework_log_rows: Sequence[int], blocks: Sequence[BusBlock]) -> BusLayout:
     sizes = [*framework_log_rows, *(block.log_rows for block in blocks)]
     offsets, depth = stack_offsets(sizes)
     placements = [Placement(size, offset) for size, offset in zip(sizes, offsets)]
@@ -560,9 +550,52 @@ class BusResult:
     totals: tuple[E, E, E]  # what the tables owe each side, derived
 
 
+@dataclass(frozen=True)
+class Column:
+    """A committed column in a framework tuple: its value at the block's point is the prover's, read off the stream."""
+
+    index: int
+
+
+type FrameworkTuple = tuple[E | Column, ...]
+type FrameworkBlock = tuple[FrameworkTuple, FrameworkTuple, E]  # push, pull, and what the public program adds to both
+
+
+def framework_tuples(layout: Layout, lows: dict[str, MultilinearPoint], alphas: Sequence[E]) -> dict[str, FrameworkBlock]:
+    """Each framework block's push and pull tuples at its point, and what the public program adds to both fingerprints.
+    Push starts the run and seeds every array; pull ends the run at the halt slot and finalizes every array with its
+    committed columns. Register numbers, addresses and pcs are integers: register z is cell z, RAM's word z sits at
+    RAM_BASE + 8z, the advice's at ADVICE_BASE + 8z, instruction z at TEXT_BASE + 4z."""
+
+    def array(separator: E, index: E, initial: E | Column, final_ts: str, final: str) -> FrameworkBlock:
+        """A read-write array: every cell starts at timestamp g^0 holding `initial`, and ends at its last timestamp holding its final word."""
+        return (separator, index, ONE, initial), (separator, index, Column(SHARED[final_ts]), Column(SHARED[final])), ZERO
+
+    def lookup(separator: E, index: E, count: str, program: E = ZERO) -> FrameworkBlock:
+        """A read-only array: each entry once before the run, and its committed read count after it."""
+        return (separator, index, ONE), (separator, index, Column(SHARED[count])), program
+
+    halt_pc = E(TEXT_BASE + 4 * (2**layout.log_bytecode - 1))  # the run ends on the text's last slot, which is never executed
+    bytecode = lows["bytecode"]
+    return {
+        # cycle 1, then the halt slot at the announced clock with its exit marker
+        "state": ((SEP_STATE, E(layout.entry_pc), _gpow(CLOCK_STRIDE), ZERO), (SEP_STATE, halt_pc, layout.final_clock, layout.final_clock), ZERO),
+        # the registers start at zero, RAM as the statement has it, the advice as the prover has it
+        "registers": array(SEP_REG, int_index_mle(0, 0, lows["registers"]), ZERO, "register_final_ts", "register_final"),
+        "ram": array(SEP_MEM, int_index_mle(RAM_BASE, 3, lows["ram"]), sparse_mle(layout.ram, lows["ram"]), "ram_final_ts", "ram_final"),
+        "advice": array(SEP_MEM, int_index_mle(ADVICE_BASE, 3, lows["advice"]), Column(SHARED["advice_initial"]), "advice_final_ts", "advice_final"),
+        "bytecode": lookup(
+            SEP_BYTECODE, int_index_mle(TEXT_BASE, 2, bytecode), "bytecode_count", multilinear_eval(layout.bytecode, (*bytecode, *alphas))
+        ),
+        # The range arrays are never committed: their addresses g^(j+1) and g^(-2^16 j) are geometric.
+        "range_lo": lookup(SEP_RANGE_LO, powers_mle(GEN, GEN, lows["range_lo"]), "range_lo_count"),
+        "range_hi": lookup(SEP_RANGE_HI, powers_mle(ONE, RANGE_HI_RATIO, lows["range_hi"]), "range_hi_count"),
+    }
+
+
 def verify_bus_balance(layout: Layout, transcript: Transcript) -> BusResult:
-    # state, registers, RAM, the advice, bytecode, the two range arrays
-    framework_log_rows = (0, LOG_REGISTERS, layout.log_ram, layout.log_advice, layout.log_bytecode, RANGE_LOG, RANGE_LOG)
+    log_rows = layout.framework_log_rows
+    framework_log_rows = tuple(log_rows[block] for block in FRAMEWORK)
     push_layout = bus_layout(framework_log_rows, layout.push)
     pull_layout = bus_layout(framework_log_rows, layout.pull)
     count_layout = bus_layout((), layout.count)
@@ -573,93 +606,26 @@ def verify_bus_balance(layout: Layout, transcript: Transcript) -> BusResult:
     count_root, point, tree_values = verify_gkr_grand_products(push_layout.depth, transcript)
     require(count_root != ZERO, "a bus count is zero")
 
-    # The framework blocks' committed columns, in the order the two sides first name them. The push side names the
-    # advice's initial words, every other seed being public (the registers start at zero, RAM at the program's
-    # image); the pull side names each read-write array's final timestamps and values, then each read-only
-    # array's final counts.
-    register_low = tuple(point[:LOG_REGISTERS])
-    ram_low = tuple(point[: layout.log_ram])
-    advice_low = tuple(point[: layout.log_advice])
-    bytecode_low = tuple(point[: layout.log_bytecode])
-    range_low = tuple(point[:RANGE_LOG])
-    advice_initial = transcript.next_scalar()
-    register_final_ts = transcript.next_scalar()
-    register_final = transcript.next_scalar()
-    ram_final_ts = transcript.next_scalar()
-    ram_final = transcript.next_scalar()
-    advice_final_ts = transcript.next_scalar()
-    advice_final = transcript.next_scalar()
-    bytecode_final = transcript.next_scalar()
-    range_lo_final = transcript.next_scalar()
-    range_hi_final = transcript.next_scalar()
-    claims = [
-        ColumnClaim(ADVICE_INITIAL, advice_low, advice_initial),
-        ColumnClaim(REGISTER_FINAL_TIMESTAMPS, register_low, register_final_ts),
-        ColumnClaim(REGISTER_FINAL, register_low, register_final),
-        ColumnClaim(RAM_FINAL_TIMESTAMPS, ram_low, ram_final_ts),
-        ColumnClaim(RAM_FINAL, ram_low, ram_final),
-        ColumnClaim(ADVICE_FINAL_TIMESTAMPS, advice_low, advice_final_ts),
-        ColumnClaim(ADVICE_FINAL, advice_low, advice_final),
-        ColumnClaim(BYTECODE_FINAL_COUNTERS, bytecode_low, bytecode_final),
-        ColumnClaim(RANGE_LO_FINAL_COUNTERS, range_low, range_lo_final),
-        ColumnClaim(RANGE_HI_FINAL_COUNTERS, range_low, range_hi_final),
-    ]
-    # Register numbers, addresses and pcs are integers: register z is cell z, RAM's word z sits at RAM_BASE + 8z, the
-    # advice's at ADVICE_BASE + 8z, instruction z at TEXT_BASE + 4z.
-    register_index = int_index_mle(0, 0, register_low)
-    ram_index = int_index_mle(RAM_BASE, 3, ram_low)
-    ram_initial = sparse_mle(layout.ram, ram_low)
-    advice_index = int_index_mle(ADVICE_BASE, 3, advice_low)
-    bytecode_index = int_index_mle(TEXT_BASE, 2, bytecode_low)
-    bytecode_value = multilinear_eval(layout.bytecode, (*bytecode_low, *alphas))
-    # The range arrays are never committed: their addresses g^(j+1) and g^(-2^16 j) are geometric.
-    range_lo_index = powers_mle(GEN, GEN, range_low)
-    range_hi_index = powers_mle(ONE, RANGE_HI_RATIO, range_low)
+    lows = {block: tuple(point[: log_rows[block]]) for block in FRAMEWORK}
+    tuples = framework_tuples(layout, lows, alphas)
+    claims: list[ColumnClaim] = []
+    opened: dict[int, E] = {}
 
-    def fingerprints(
-        pc: E,
-        clock: E,
-        exit_marker: E,
-        register_ts: E,
-        register: E,
-        ram_ts: E,
-        ram: E,
-        advice_ts: E,
-        advice: E,
-        bytecode_count: E,
-        range_lo_count: E,
-        range_hi_count: E,
-    ) -> tuple[E, ...]:
-        """The seven framework tuples, each its coordinates weighted by eq(alpha, .); slots past the ones
-        named are zero. A side differs only here: push starts the run and seeds every array, pull ends the
-        run at the halt slot and finalizes every array with its committed columns."""
-        return (
-            dot(weights[:4], (SEP_STATE, pc, clock, exit_marker)),
-            dot(weights[:4], (SEP_REG, register_index, register_ts, register)),
-            dot(weights[:4], (SEP_MEM, ram_index, ram_ts, ram)),
-            dot(weights[:4], (SEP_MEM, advice_index, advice_ts, advice)),
-            dot(weights[:3], (SEP_BYTECODE, bytecode_index, bytecode_count)) + bytecode_value,
-            dot(weights[:3], (SEP_RANGE_LO, range_lo_index, range_lo_count)),
-            dot(weights[:3], (SEP_RANGE_HI, range_hi_index, range_hi_count)),
-        )
+    def fingerprint(block: str, coordinates: Sequence[E | Column], program: E) -> E:
+        """The tuple's coordinates weighted by eq(alpha, .), slots past the ones named being zero. A committed column's
+        value is read off the stream the first time either side names it, so push's columns come first, then pull's."""
+        values = []
+        for coordinate in coordinates:
+            if isinstance(coordinate, Column):
+                if coordinate.index not in opened:
+                    opened[coordinate.index] = transcript.next_scalar()
+                    claims.append(ColumnClaim(coordinate.index, lows[block], opened[coordinate.index]))
+                coordinate = opened[coordinate.index]
+            values.append(coordinate)
+        return dot(weights[: len(values)], values) + program
 
-    halt_pc = E(TEXT_BASE + 4 * (2**layout.log_bytecode - 1))  # the run ends on the text's last slot, which is never executed
-    # cycle 1, every cell at timestamp g^0: the registers zero, RAM as the statement has it, the advice as the prover has it
-    start = fingerprints(E(layout.entry_pc), _gpow(CLOCK_STRIDE), ZERO, ONE, ZERO, ONE, ram_initial, ONE, advice_initial, ONE, ONE, ONE)
-    end = fingerprints(
-        halt_pc,
-        layout.final_clock,
-        layout.final_clock,
-        register_final_ts,
-        register_final,
-        ram_final_ts,
-        ram_final,
-        advice_final_ts,
-        advice_final,
-        bytecode_final,
-        range_lo_final,
-        range_hi_final,
-    )
+    start = [fingerprint(block, tuples[block][0], tuples[block][2]) for block in FRAMEWORK]
+    end = [fingerprint(block, tuples[block][1], tuples[block][2]) for block in FRAMEWORK]
     sides = (
         (layout.push, push_layout, start, weights, beta),
         (layout.pull, pull_layout, end, weights, beta),
@@ -720,10 +686,26 @@ def table_sumcheck(
     return claims
 
 
-# The columns no instruction table owns. They come first in the global column numbering, then one packed flock
-# witness per table, then the tables' own columns.
-NUM_FRAMEWORK_COLUMNS = 10
-REGISTER_FINAL, REGISTER_FINAL_TIMESTAMPS, RAM_FINAL, RAM_FINAL_TIMESTAMPS, ADVICE_INITIAL, ADVICE_FINAL, ADVICE_FINAL_TIMESTAMPS, BYTECODE_FINAL_COUNTERS, RANGE_LO_FINAL_COUNTERS, RANGE_HI_FINAL_COUNTERS = range(NUM_FRAMEWORK_COLUMNS)  # fmt: skip
+# The bus blocks no instruction table owns, which each side starts with, in this order: the run's boundary, then
+# the read-write arrays, then the read-only ones.
+FRAMEWORK = ("state", "registers", "ram", "advice", "bytecode", "range_lo", "range_hi")
+# The committed columns no instruction table owns, each with the framework block whose rows it has: each read-write
+# array's final words and timestamps, the advice's initial words, each read-only array's final read counts. They come
+# first in the global column numbering, then one packed flock witness per table, then the tables' own columns.
+SHARED_COLUMNS = (
+    ("register_final", "registers"),
+    ("register_final_ts", "registers"),
+    ("ram_final", "ram"),
+    ("ram_final_ts", "ram"),
+    ("advice_initial", "advice"),
+    ("advice_final", "advice"),
+    ("advice_final_ts", "advice"),
+    ("bytecode_count", "bytecode"),
+    ("range_lo_count", "range_lo"),
+    ("range_hi_count", "range_hi"),
+)
+SHARED = {name: index for index, (name, _) in enumerate(SHARED_COLUMNS)}
+NUM_FRAMEWORK_COLUMNS = len(SHARED_COLUMNS)
 
 K_BITS = 64
 FLOCK_K_SKIP = log2_ceil(K_BITS)
@@ -763,6 +745,23 @@ class Layout:
     stack_log: int
     table_log_heights: tuple[int, ...]
     final_clock: E  # the timestamp the run ended on, announced by the prover
+
+    @property
+    def framework_log_rows(self) -> dict[str, int]:
+        return framework_log_rows(self.log_bytecode, self.log_ram, self.log_advice)
+
+
+def framework_log_rows(log_bytecode: int, log_ram: int, log_advice: int) -> dict[str, int]:
+    """log2 of each framework block's rows: one per cell of its array."""
+    return {
+        "state": 0,
+        "registers": LOG_REGISTERS,
+        "ram": log_ram,
+        "advice": log_advice,
+        "bytecode": log_bytecode,
+        "range_lo": RANGE_LOG,
+        "range_hi": RANGE_LOG,
+    }
 
 
 def _cols(columns: Sequence[str], *names: str) -> tuple[int, ...]:
@@ -1781,7 +1780,8 @@ def build_layout(
 
     # Every column's log size, in global order: the framework's, the flock witnesses', then each table's block.
     witness_kappas = [height + table.slot_bits for table, height in zip(TABLES, table_log_heights)]
-    kappas = [LOG_REGISTERS, LOG_REGISTERS, log_ram, log_ram, log_advice, log_advice, log_advice, log_bytecode, RANGE_LOG, RANGE_LOG, *witness_kappas]
+    log_rows = framework_log_rows(log_bytecode, log_ram, log_advice)
+    kappas = [*(log_rows[block] for _, block in SHARED_COLUMNS), *witness_kappas]
     for table in TABLES:
         kappas += [table_log_heights[table.opcode]] * table.width
 
@@ -1939,7 +1939,7 @@ def verify_execution(
     # registers' column at the Boolean point naming it, a claim the verifier computes rather than receives.
     for register, value in ((SYSCALL_REGISTER, SYS_EXIT), *zip(OUTPUT_REGISTERS, output)):
         point = tuple(ONE if register >> bit & 1 else ZERO for bit in range(LOG_REGISTERS))
-        claims.append(ColumnClaim(REGISTER_FINAL, point, E(value)))
+        claims.append(ColumnClaim(SHARED["register_final"], point, E(value)))
 
     # 6] each class's circuit via Flock, one reduction per table over its own packed witness
     families = [verify_flock(table.circuit, layout.table_log_heights[table.opcode], transcript) for table in TABLES]

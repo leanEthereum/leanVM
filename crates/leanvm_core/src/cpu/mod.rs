@@ -12,9 +12,9 @@ use crate::constraints;
 use crate::leaf::{self, Block, ColumnClaim, Coord};
 use crate::pcs;
 use crate::rv;
-use crate::tables::{self, FillCtx, FlushBuilder, SEP_BYTECODE, SEP_STATE};
-use crate::transcript::{Challenger, ProverState, Receiver, Transmitter, VerifierState};
+use crate::tables::{self, FillCtx, SEP_BYTECODE, SEP_STATE};
 use crate::witness;
+use fiat_shamir::transcript::{Challenger, ProverState, Receiver, Transmitter, VerifierState};
 use primitives::field::{F64, F192};
 
 mod execute;
@@ -206,8 +206,8 @@ impl Program {
 }
 
 /// The whole proof is the transcript: a scalar stream plus the PCS hint
-/// channels (see [`crate::transcript::Proof`]).
-pub use crate::transcript::Proof;
+/// channels (see [`fiat_shamir::transcript::Proof`]).
+pub use fiat_shamir::transcript::Proof;
 
 /// Why a proof does not verify, by the stage that refused it.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -217,7 +217,7 @@ pub enum CpuError {
     Constraint(constraints::Error),
     Open(pcs::Error),
     PublicInput,
-    Transcript(crate::transcript::Error),
+    Transcript(fiat_shamir::transcript::Error),
     /// A class's flock sub-proof failed to verify. (A missing or malformed one
     /// surfaces as [`CpuError::Transcript`] when the shared `stream`/`openings` fail
     /// to reconstruct or fully consume.)
@@ -280,82 +280,52 @@ impl std::fmt::Display for ProveError {
 
 impl std::error::Error for ProveError {}
 
-/// Per side, which table (if any) owns each bus block, as `(table, column base)`.
-type BlockOwners = [Vec<Option<(usize, usize)>>; 3];
-/// Each table's `(column base, committed column count)` in the global schema.
-type TableSpans = Vec<(usize, usize)>;
-
-/// Blocks sourced from a table's height belong to it; the boundary, register, memory,
-/// bytecode and range blocks belong to none and keep their own column claims at ζ.
-fn block_owners(sizes: Sizes, sides: [usize; 3]) -> BlockOwners {
-    let sch = schema();
-    let src = block_kappa_sources(sizes);
-    let mut it = src
-        .into_iter()
-        .map(|(source, _)| source.checked_sub(1).map(|t| (t, sch.base[t])));
-    sides.map(|n| it.by_ref().take(n).collect())
+/// One table's summand in the table sumcheck (§constraints): its identities, weighted
+/// by its own `η`-range, plus its three bus forms, weighted by the shared powers at
+/// [`xi_form_base`]. The forms carry every committed column of the table, so the
+/// identities and the forms read the same value array.
+struct TableSummand {
+    table: &'static tables::ClassTable,
+    weights: Vec<F192>,
+    bus: leaf::BusForm,
 }
 
-/// The bus's public wiring: per side which table owns each block, and each table's
-/// column span. Derived from the program and the announced layout alone, so prover
-/// and verifier build it identically.
-fn bus_wiring(program: &Program, l: &Layout) -> (BlockOwners, TableSpans) {
-    let owners = block_owners(Sizes::of(&program.rv), [l.push.len(), l.pull.len(), l.count.len()]);
-    (owners, table_spans())
+impl constraints::Summand for TableSummand {
+    #[inline(always)]
+    fn eval<T: ColVal>(&self, cols: &[T], quadratic: bool) -> F192 {
+        // The identities are homogeneous of degree two, so their quadratic part is
+        // their whole value.
+        T::reduce(T::lift(self.table.eval(&self.weights, cols)) ^ self.bus.eval_unreduced(cols, quadratic))
+    }
 }
 
-/// The table sumcheck carries every committed column of a table, because its bus
-/// forms reference the flushed ones and its constraint the rest.
-fn table_spans() -> TableSpans {
-    let sch = schema();
-    tables::tables()
-        .iter()
-        .enumerate()
-        .map(|(t, tb)| (sch.base[t], tb.n_committed_columns()))
-        .collect()
-}
-
-/// The per-table inputs to the table sumcheck (§constraints), in schema order.
-/// Prover and verifier both call this, so their column order and constraint
-/// closures agree by construction.
-/// The airs carry every committed column of their table, so a constraint indexes the
-/// value array directly and each table's three bus forms can be
-/// evaluated on the same values. The identities take the air's own `η`-range; the
-/// three forms take the shared powers at [`xi_form_base`], folded into the forms'
-/// coefficients once rather than multiplied onto every row's form value.
-fn airs(taus: &[usize; tables::N_TABLES], forms: &[Vec<leaf::BusForm>; 3], xi: F192) -> Vec<constraints::Air<'static>> {
+/// The per-table inputs to the table sumcheck, in schema order. Prover and verifier
+/// both call this, so their column order and summands agree by construction.
+fn airs(
+    taus: &[usize; tables::N_TABLES],
+    forms: &[Vec<leaf::BusForm>; 3],
+    xi: F192,
+) -> Vec<constraints::Air<TableSummand>> {
     let form_pows = xi_form_pows(xi);
-    // Each table's slice of the batch's `η`-powers, exactly as `constraints` cuts
-    // them, turned into the weights its identities want once rather than per row.
+    // Each table's slice of the batch's `η`-powers, turned into the weights its
+    // identities want once rather than per row.
     let pows = primitives::field::powers(xi, xi_form_base());
     let offsets = constraints::xi_offsets(tables::tables().iter().map(|t| t.n_constraints()));
     tables::tables()
         .iter()
         .zip(taus)
         .enumerate()
-        .map(|(t, (&table, &tau))| {
-            let weights = table.constraint_weights(&pows[offsets[t]..offsets[t] + table.n_constraints()]);
-            let weights_k = weights.clone();
-            // One form, not three: the batch adds the three sides' evaluations
-            // anyway, and summing them here is a setup cost against a dot product
-            // and a product list per row per node.
-            let bus = leaf::BusForm::sum((0..3).map(|s| forms[s][t].scaled(form_pows[s])));
-            let bus_k = bus.clone();
-            constraints::Air {
-                tau,
-                n_cols: table.n_committed_columns(),
-                n_constraints: table.n_constraints(),
-                eval: Box::new(move |_, vals, quadratic| {
-                    let air = <F192 as ColVal>::lift(table.eval_constraint(&weights, vals, quadratic));
-                    <F192 as ColVal>::reduce(air ^ bus.eval_unreduced(vals, quadratic))
-                }),
-                // The same expression over K columns: the identity's K-only products
-                // stay 64-bit and the bus form becomes a mixed dot product.
-                eval_k: Box::new(move |_, vals, quadratic| {
-                    let air = <F64 as ColVal>::lift(table.eval_constraint_k(&weights_k, vals, quadratic));
-                    <F64 as ColVal>::reduce(air ^ bus_k.eval_unreduced(vals, quadratic))
-                }),
-            }
+        .map(|(t, (table, &tau))| constraints::Air {
+            tau,
+            n_cols: table.n_committed_columns(),
+            summand: TableSummand {
+                table,
+                weights: table.constraint_weights(&pows[offsets[t]..offsets[t] + table.n_constraints()]),
+                // One form, not three: the batch adds the three sides' evaluations
+                // anyway, and summing them here is a setup cost against a dot product
+                // and a product list per row per node.
+                bus: leaf::BusForm::sum((0..3).map(|s| forms[s][t].scaled(form_pows[s]))),
+            },
         })
         .collect()
 }
@@ -387,22 +357,6 @@ fn xi_form_pows(xi: F192) -> [F192; 3] {
     let base = xi_form_base();
     let pows = primitives::field::powers(xi, base + 3);
     [pows[base], pows[base + 1], pows[base + 2]]
-}
-
-/// If `col` is a circuit word's column (global index), where the word lives: the
-/// class's committed packed witness, the word's place within an instance (its port),
-/// and the stride between instances. These columns are virtual (uncommitted): their
-/// bus evaluation claims are re-routed to slot evaluations of that witness, which is
-/// the whole binding: the bus-tied value IS the flock-proven word, no separate check
-/// needed.
-fn flock_value_slot(col: usize) -> Option<(usize, usize, usize)> {
-    let sch = schema();
-    (0..tables::N_TABLES).find_map(|t| {
-        let (port, _) = tables::word_columns(t)
-            .into_iter()
-            .find(|&(_, c)| sch.base[t] + c == col)?;
-        Some((q_column(t), port, crate::class_flock::stride_log(tables::CLASSES[t])))
-    })
 }
 
 /// Run statistics returned alongside the proof: the cycle count (total executed
@@ -532,7 +486,7 @@ fn prove_execution(program: &Program, exec: &Execution, log_inv_rate: usize) -> 
     // over this commitment (below). A circuit's words bind through the register and
     // bytecode buses: their virtual columns route to that witness, so no separate pin
     // claims are needed. Mirrored in `verify`.
-    let (owners, spans) = bus_wiring(program, &w.layout);
+    let spans = &schema().spans;
     // The columns are windows into `w.q`, so both stages read them in place: the
     // table sumcheck lifts each K-column into a fresh `E` copy on the round it
     // joins and never writes the K-columns back.
@@ -540,7 +494,7 @@ fn prove_execution(program: &Program, exec: &Execution, log_inv_rate: usize) -> 
         let l = &w.layout;
         let cols = w.columns();
         let bus = crate::stage!("Prove bus", || {
-            leaf::prove_balance(&l.push, &l.pull, &l.count, &cols, &owners, &spans, &mut ps)
+            leaf::prove_balance(&l.push, &l.pull, &l.count, &cols, spans, &mut ps)
         });
         let table_claims = crate::stage!("Prove constraints", || {
             // One sumcheck for all the tables (§constraints).
@@ -553,14 +507,7 @@ fn prove_execution(program: &Program, exec: &Execution, log_inv_rate: usize) -> 
             let xi = ps.sample();
             let form_pows = xi_form_pows(xi);
             let sigma = sigmas(&bus.sigmas, form_pows);
-            constraints::prove(
-                &airs(&l.taus, &bus.forms, xi),
-                &table_cols,
-                xi,
-                &bus.point,
-                &sigma,
-                &mut ps,
-            )
+            constraints::prove(&airs(&l.taus, &bus.forms, xi), &table_cols, &bus.point, &sigma, &mut ps)
         });
         (bus, table_claims)
     };
@@ -578,9 +525,9 @@ fn prove_execution(program: &Program, exec: &Execution, log_inv_rate: usize) -> 
             .iter()
             .enumerate()
             .map(|(t, prepared)| {
-                let placement = &w.layout.placements[q_column(t)];
+                let window = w.layout.witness_window(t);
                 let reduced = prepared.prove(&mut ps);
-                flock::reduction::ring_switch_open(placement.n_vars, placement.offset, &reduced)
+                flock::reduction::ring_switch_open(window.n_vars, window.offset, &reduced)
             })
             .collect()
     });
@@ -610,14 +557,12 @@ fn finish_claims(
     let mut claims = bus_claims;
     let sch = schema();
     claims.reserve(sch.n - N_SHARED);
-    for (t, table) in tables::tables().iter().enumerate() {
-        for c in 0..table.n_committed_columns() {
-            claims.push(ColumnClaim {
-                col: sch.base[t] + c,
-                point: table_claims[t].chi.clone(),
-                value: table_claims[t].evals[c],
-            });
-        }
+    for (&(base, _), table) in sch.spans.iter().zip(table_claims) {
+        claims.extend(table.evals.iter().enumerate().map(|(c, &value)| ColumnClaim {
+            col: base + c,
+            point: table.chi.clone(),
+            value,
+        }));
     }
     // The exit (§sec:e2e-pi): the run halted on `exit`, returning `output`.
     claims.push(final_register_claim(rv::SYSCALL_REG, rv::SYS_EXIT));
@@ -632,7 +577,7 @@ fn finish_claims(
 /// rather than transmitted, and the opening discharges it like any other.
 fn final_register_claim(reg: u8, value: u64) -> ColumnClaim {
     ColumnClaim {
-        col: REG_FIN,
+        col: Shared::RegFin.col(),
         point: (0..rv::LOG_REGS)
             .map(|bit| if (reg >> bit) & 1 == 1 { F192::ONE } else { F192::ZERO })
             .collect(),
@@ -660,8 +605,7 @@ pub fn verify_to_raw(
     let (l, log_inv_rate) = read_public(&mut vs, program)?;
     let root = pcs::read_commitment(&mut vs).map_err(CpuError::Transcript)?;
 
-    let (owners, spans) = bus_wiring(program, &l);
-    let bus = leaf::verify_balance(&l.push, &l.pull, &l.count, &owners, &spans, &mut vs).map_err(CpuError::Bus)?;
+    let bus = leaf::verify_balance(&l.push, &l.pull, &l.count, &schema().spans, &mut vs).map_err(CpuError::Bus)?;
 
     let zc_xi = vs.sample();
     let form_pows = xi_form_pows(zc_xi);
@@ -673,7 +617,7 @@ pub fn verify_to_raw(
     // sides. A transmitted target would be a free value in its own check, and the
     // tables' bus blocks would be settled by nothing at all.
     let target = (0..3).fold(F192::ZERO, |a, s| a + form_pows[s] * bus.totals[s]);
-    let table_claims = constraints::verify(&airs(&l.taus, &bus.forms, zc_xi), zc_xi, &bus.point, target, &mut vs)
+    let table_claims = constraints::verify(&airs(&l.taus, &bus.forms, zc_xi), &bus.point, target, &mut vs)
         .map_err(CpuError::Constraint)?;
 
     let slots = finish_claims(&l, bus.claims, &table_claims, output);
@@ -690,8 +634,8 @@ pub fn verify_to_raw(
         .iter()
         .enumerate()
         .map(|(t, replay)| {
-            let placement = &l.placements[q_column(t)];
-            flock::reduction::ring_switch_verify(placement.n_vars, placement.offset, &replay.claim)
+            let window = l.witness_window(t);
+            flock::reduction::ring_switch_verify(window.n_vars, window.offset, &replay.claim)
         })
         .collect();
     pcs::verify(&mut vs, &slots, &rings, l.shape, log_inv_rate, &root).map_err(CpuError::Open)?;
@@ -699,36 +643,34 @@ pub fn verify_to_raw(
     Ok(vs.into_raw_proof())
 }
 
-/// Lift `ColumnClaim`s to located PCS claims: a claim on column `c` lives in
-/// the slot at `placements[c].offset`, with the claim's point as the low point.
+/// Lift `ColumnClaim`s to located PCS claims: a claim on a committed column lives in
+/// its window, with the claim's point as the low point.
 ///
-/// A circuit word's column is virtual: it has no committed placement. A claim
-/// `word_col(r) = v` (at the table's row point `r`) is re-routed to the equal slot
-/// evaluation of the class's packed witness: an ordinary claim on that committed
-/// column at the point freezing the low coords to the port's bits and the high
-/// coords to `r`. No downstream special-casing: it folds into the one opening like
-/// every other point claim.
+/// A circuit word's column is a port: it has no window of its own. A claim
+/// `word_col(r) = v` (at the table's row point `r`) is the equal slot evaluation of
+/// the class's packed witness, at the point freezing the low coords to the port's bits
+/// and the high coords to `r`. Folded sparsely (the table's height, not the dense
+/// witness block), it joins the one opening like every other point claim.
 fn slot_claims(l: &Layout, claims: Vec<ColumnClaim>) -> Vec<pcs::SlotClaim> {
     claims
         .into_iter()
-        .map(|c| {
-            // A circuit word: its claim at the row point `c.point` is a slot value of
-            // the packed witness, a boolean-selector (strided) claim, folded sparsely
-            // (the table's height, not the dense witness block).
-            if let Some((q_col, slot, stride_log)) = flock_value_slot(c.col) {
-                return pcs::SlotClaim::Strided {
-                    offset: l.placements[q_col].offset,
-                    slot,
-                    stride_log,
-                    point: c.point,
-                    value: c.value,
-                };
-            }
-            pcs::SlotClaim::Point {
-                offset: l.placements[c.col].offset,
+        .map(|c| match l.placements[c.col] {
+            witness::Placement::Committed(window) => pcs::SlotClaim::Point {
+                offset: window.offset,
                 low_point: c.point,
                 value: c.value,
-            }
+            },
+            witness::Placement::Port {
+                offset,
+                port,
+                stride_log,
+            } => pcs::SlotClaim::Strided {
+                offset,
+                slot: port,
+                stride_log,
+                point: c.point,
+                value: c.value,
+            },
         })
         .collect()
 }

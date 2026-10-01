@@ -5,31 +5,124 @@
 use super::*;
 use crate::leaf::SparseColumn;
 use crate::rv::{ADVICE_BASE, LOG_REGS, RAM_BASE, TEXT_BASE};
+use crate::witness::{Placement, Source};
 
-// ---- column schema -----------------------------------------------------------
+/// The bus blocks no single table owns, which each side starts with, in this order.
+///
+/// Each has a push and a pull block of the same height: the push seeds an array (or
+/// starts the run), the pull finalizes it (or ends the run) with committed columns.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Framework {
+    /// The run's boundary: it starts at the entry point at cycle 1 and ends on the halt slot.
+    State,
+    Registers,
+    Ram,
+    Advice,
+    Bytecode,
+    RangeLo,
+    RangeHi,
+}
 
-// Shared committed columns (indices `0..N_SHARED`). The program is PUBLIC, not
-// committed: it rides the bytecode seed/finalize blocks as `Coord::Public`; only the
-// witness-dependent finalize counts are committed. So are the registers and RAM before
-// the run, zero and the program's image: what is committed is what they hold after it,
-// and each cell's last timestamp (§sec:memchan). The advice is the one array whose
-// initial words are committed as well: they are the prover's.
-pub const REG_FIN: usize = 0;
-pub const REG_FTS: usize = 1; // per-register final timestamp g^y, g^0 if never accessed
-pub const MEM_FIN: usize = 2;
-pub const MFTS: usize = 3;
-pub const ADV_INIT: usize = 4;
-pub const ADV_FIN: usize = 5;
-pub const ADV_FTS: usize = 6;
-pub const BFCNT: usize = 7; // per-pc bytecode execution count, g^{A[pc]}
-// Per-entry read counts of the two range arrays (§sec:rangecheck).
-pub const RLO_CNT: usize = 8;
-pub const RHI_CNT: usize = 9;
+pub const FRAMEWORK: [Framework; 7] = [
+    Framework::State,
+    Framework::Registers,
+    Framework::Ram,
+    Framework::Advice,
+    Framework::Bytecode,
+    Framework::RangeLo,
+    Framework::RangeHi,
+];
+
+impl Framework {
+    /// `log2` of the block's rows: one per cell of the array.
+    pub fn log_rows(self, sizes: Sizes) -> usize {
+        match self {
+            Framework::State => 0,
+            Framework::Registers => LOG_REGS,
+            Framework::Ram => sizes.log_ram,
+            Framework::Advice => sizes.log_advice,
+            Framework::Bytecode => sizes.log_bytecode,
+            Framework::RangeLo | Framework::RangeHi => tables::RANGE_LOG,
+        }
+    }
+}
+
+/// The committed columns no table owns, which come first in the global column order.
+///
+/// The program is PUBLIC, not committed: it rides the bytecode blocks as `Coord::Public`,
+/// and only the witness-dependent counts are committed. So are the registers and RAM
+/// before the run, zero and the program's image: what is committed is what they hold
+/// after it, and each cell's last timestamp (§sec:memchan). The advice is the one array
+/// whose initial words are committed as well: they are the prover's.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Shared {
+    RegFin,
+    /// Each register's final timestamp, `g^0` if never accessed.
+    RegTs,
+    RamFin,
+    RamTs,
+    AdvInit,
+    AdvFin,
+    AdvTs,
+    /// Each bytecode entry's execution count, `g^{A[pc]}`.
+    BytecodeCount,
+    /// Each range array entry's read count (§sec:rangecheck).
+    RangeLoCount,
+    RangeHiCount,
+}
+
+pub const SHARED: [Shared; 10] = [
+    Shared::RegFin,
+    Shared::RegTs,
+    Shared::RamFin,
+    Shared::RamTs,
+    Shared::AdvInit,
+    Shared::AdvFin,
+    Shared::AdvTs,
+    Shared::BytecodeCount,
+    Shared::RangeLoCount,
+    Shared::RangeHiCount,
+];
+
+impl Shared {
+    /// The column's global index.
+    pub const fn col(self) -> usize {
+        self as usize
+    }
+
+    /// The block whose rows the column has.
+    fn block(self) -> Framework {
+        match self {
+            Shared::RegFin | Shared::RegTs => Framework::Registers,
+            Shared::RamFin | Shared::RamTs => Framework::Ram,
+            Shared::AdvInit | Shared::AdvFin | Shared::AdvTs => Framework::Advice,
+            Shared::BytecodeCount => Framework::Bytecode,
+            Shared::RangeLoCount => Framework::RangeLo,
+            Shared::RangeHiCount => Framework::RangeHi,
+        }
+    }
+
+    /// The column's values, from the run.
+    fn values(self, tr: &Trace) -> &[F64] {
+        match self {
+            Shared::RegFin => &tr.reg_fin,
+            Shared::RegTs => &tr.reg_ts,
+            Shared::RamFin => &tr.ram_fin,
+            Shared::RamTs => &tr.ram_ts,
+            Shared::AdvInit => &tr.adv_init,
+            Shared::AdvFin => &tr.adv_fin,
+            Shared::AdvTs => &tr.adv_ts,
+            Shared::BytecodeCount => &tr.bytecode_count,
+            Shared::RangeLoCount => &tr.range_lo_count,
+            Shared::RangeHiCount => &tr.range_hi_count,
+        }
+    }
+}
+
 /// Then one packed flock witness per table, committed in the SAME stack as every
 /// other column (single PCS): `2^(k_log + tau - 6)` words, the SOLE copy of the
-/// table's circuit words, whose columns are virtual and route their claims here
-/// (§class_flock).
-pub const Q_BASE: usize = 10;
+/// table's circuit words, whose columns are ports of it (§class_flock).
+pub const Q_BASE: usize = SHARED.len();
 pub const N_SHARED: usize = Q_BASE + tables::N_TABLES;
 
 /// The committed column holding table `t`'s packed witness.
@@ -38,11 +131,11 @@ pub(crate) const fn q_column(t: usize) -> usize {
 }
 
 /// Global column indexing: the shared columns occupy `0..N_SHARED`, then each
-/// table `t` (in [`tables::tables`] order) owns the contiguous block `[base[t],
-/// base[t] + n_committed_columns_t)`. Both prover and verifier derive this identically
-/// from the table set, so every column claim lines up.
+/// table `t` (in [`tables::tables`] order) owns the contiguous span `(base, width)`.
+/// Both prover and verifier derive this identically from the table set, so every
+/// column claim lines up.
 pub struct Schema {
-    pub base: [usize; tables::N_TABLES],
+    pub spans: [(usize, usize); tables::N_TABLES],
     pub n: usize,
 }
 
@@ -50,13 +143,13 @@ pub struct Schema {
 pub fn schema() -> &'static Schema {
     static SCHEMA: std::sync::OnceLock<Schema> = std::sync::OnceLock::new();
     SCHEMA.get_or_init(|| {
-        let mut base = [0usize; tables::N_TABLES];
         let mut next = N_SHARED;
-        for (t, table) in tables::tables().iter().enumerate() {
-            base[t] = next;
-            next += table.n_committed_columns();
-        }
-        Schema { base, n: next }
+        let spans = tables::tables().each_ref().map(|table| {
+            let span = (next, table.n_committed_columns());
+            next += span.1;
+            span
+        });
+        Schema { spans, n: next }
     })
 }
 
@@ -84,21 +177,30 @@ pub struct Layout {
     pub pull: Vec<Block>,
     /// Count channel: the lookups' read-count columns, whose product must be nonzero (§sec:lookup).
     pub count: Vec<Block>,
-    /// Per-column placement (offset + n_vars) in the stacked witness; from the
-    /// columns' log-sizes alone, so reconstructable by the verifier.
-    pub placements: Vec<witness::Placement>,
+    /// Where each column sits in the stacked witness; from the columns' log-sizes
+    /// alone, so reconstructable by the verifier.
+    pub placements: Vec<Placement>,
     /// The stacked witness's shape: its announced `2^mu` size, plus how many lane
     /// blocks of it the prover actually commits (see [`witness::StackShape`]).
     pub shape: witness::StackShape,
     pub taus: [usize; tables::N_TABLES],
 }
 
+impl Layout {
+    /// Table `t`'s packed witness's window in the stack.
+    pub(crate) fn witness_window(&self, t: usize) -> witness::Window {
+        self.placements[q_column(t)]
+            .window()
+            .expect("a packed witness is committed")
+    }
+}
+
 /// The prover's witness: the stacked multilinear `q`, which holds every committed
 /// column at its placed offset, plus the public [`Layout`].
 pub(crate) struct Witness {
     pub(crate) q: zk_alloc::ArenaVec<F64>,
-    /// The virtual columns' values as `(global column index, values)`. They carry
-    /// data for the bus but are not committed, so they are not in `q`.
+    /// The ports' values as `(global column index, values)`. They carry data for the
+    /// bus but are not committed, so they are not in `q`.
     pub(crate) virt: Vec<(usize, zk_alloc::ArenaVec<F64>)>,
     pub(crate) layout: Layout,
     /// The clock the run ended on, which the prover announces.
@@ -109,18 +211,15 @@ pub(crate) struct Witness {
 
 impl Witness {
     /// One read-only view per column, in global column order: the window into the
-    /// stack for a committed column, the private buffer for a virtual one.
+    /// stack for a committed column, the private buffer for a port.
     pub(crate) fn columns(&self) -> Vec<&[F64]> {
         let mut cols: Vec<&[F64]> = self
             .layout
             .placements
             .iter()
             .map(|p| {
-                if p.is_virtual() {
-                    &[][..]
-                } else {
-                    &self.q[p.offset..p.offset + (1 << p.n_vars)]
-                }
+                p.window()
+                    .map_or(&[][..], |w| &self.q[w.offset..w.offset + (1 << w.n_vars)])
             })
             .collect();
         for (i, buf) in &self.virt {
@@ -131,13 +230,17 @@ impl Witness {
 
     /// Committed data before the zero-pad to `2^m`: the real witness size.
     pub(crate) fn committed_size(&self) -> usize {
-        self.layout
-            .placements
-            .iter()
-            .filter(|p| !p.is_virtual())
-            .map(|p| 1usize << p.n_vars)
-            .sum()
+        committed_size(&self.layout.placements)
     }
+}
+
+/// The committed columns' total length.
+fn committed_size(placements: &[Placement]) -> usize {
+    placements
+        .iter()
+        .filter_map(Placement::window)
+        .map(|w| 1usize << w.n_vars)
+        .sum()
 }
 
 /// The program's sizes the layout depends on: `log2` of its entries, of RAM's words,
@@ -159,83 +262,31 @@ impl Sizes {
     }
 }
 
-/// The committed columns' kappa SOURCES. Per committed column: `Some((source, adj))` with
-/// kappa = value(source) + adj, where source 0 is the constant 0 (kappa = adj; used for
-/// the fixed-size columns and the program's sizes, which the caller passes), and
-/// source 1 + t is tau_t. `None` = virtual (never committed). `col_kappas` is derived
-/// from this, so the two cannot drift apart.
-pub fn col_kappa_sources(sizes: Sizes) -> Vec<Option<(usize, usize)>> {
-    let sch = schema();
-    let mut k = vec![Some((0usize, 0usize)); sch.n];
-    k[REG_FIN] = Some((0, LOG_REGS));
-    k[REG_FTS] = Some((0, LOG_REGS));
-    k[MEM_FIN] = Some((0, sizes.log_ram));
-    k[MFTS] = Some((0, sizes.log_ram));
-    k[ADV_INIT] = Some((0, sizes.log_advice));
-    k[ADV_FIN] = Some((0, sizes.log_advice));
-    k[ADV_FTS] = Some((0, sizes.log_advice));
-    k[BFCNT] = Some((0, sizes.log_bytecode));
-    k[RLO_CNT] = Some((0, tables::RANGE_LOG));
-    k[RHI_CNT] = Some((0, tables::RANGE_LOG));
+/// Every column's source, in global order: the shared columns at their arrays' sizes,
+/// the packed witnesses, then each table's columns at its height. A circuit word is
+/// a port of its class's packed witness, which already holds it, so it is never
+/// committed again: its bus claims settle against that witness, which is the whole
+/// binding.
+fn column_sources(sizes: Sizes, taus: [usize; tables::N_TABLES]) -> Vec<Source> {
+    let stride_log = |t: usize| crate::class_flock::stride_log(tables::CLASSES[t]);
+    let mut sources: Vec<Source> = SHARED
+        .iter()
+        .map(|c| Source::Committed(c.block().log_rows(sizes)))
+        .collect();
+    sources.extend((0..tables::N_TABLES).map(|t| Source::Committed(taus[t] + stride_log(t))));
     for (t, table) in tables::tables().iter().enumerate() {
-        let base = sch.base[t];
-        k[base..base + table.n_committed_columns()].fill(Some((1 + t, 0)));
-        // The circuit's words are ALWAYS virtual: the class's packed witness already
-        // holds them at fixed packed slots, so committing them again is redundant.
-        // Their bus claims route directly to slot evaluations of it (`slot_claims`),
-        // which is the whole binding.
-        k[q_column(t)] = Some((1 + t, crate::class_flock::stride_log(tables::CLASSES[t])));
-        for (_, c) in tables::word_columns(t) {
-            k[base + c] = None;
+        let base = sources.len();
+        sources.resize(base + table.n_committed_columns(), Source::Committed(taus[t]));
+        for (port, c) in table.word_columns() {
+            sources[base + c] = Source::Port {
+                column: q_column(t),
+                port,
+                stride_log: stride_log(t),
+            };
         }
     }
-    k
-}
-
-/// The framework blocks a side starts with, as `(source, adj)`: the state boundary, the
-/// registers, RAM, the advice, the bytecode, the two range arrays.
-fn framework_kappa_sources(sizes: Sizes) -> Vec<(usize, usize)> {
-    vec![
-        (0, 0),
-        (0, LOG_REGS),
-        (0, sizes.log_ram),
-        (0, sizes.log_advice),
-        (0, sizes.log_bytecode),
-        (0, tables::RANGE_LOG),
-        (0, tables::RANGE_LOG),
-    ]
-}
-
-/// The bus flush blocks' kappa SOURCES, flattened in side order (push, pull,
-/// count) exactly as the blocks are constructed below: per block
-/// `(source, adj)` with kappa = value(source) + adj, source 0 = the constant
-/// 0, 1 + t = tau_t. Keep in lockstep with the block construction in [`fn@layout`].
-pub fn block_kappa_sources(sizes: Sizes) -> Vec<(usize, usize)> {
-    let mut push = framework_kappa_sources(sizes);
-    let mut pull = push.clone();
-    let mut count = Vec::new();
-    for (t, table) in tables::tables().iter().enumerate() {
-        let mut fb = tables::FlushBuilder::new();
-        table.flushes(&mut fb);
-        push.extend(std::iter::repeat_n((1 + t, 0), fb.push.len()));
-        pull.extend(std::iter::repeat_n((1 + t, 0), fb.pull.len()));
-        count.extend(std::iter::repeat_n((1 + t, 0), table.count_columns().len()));
-    }
-    push.extend(pull);
-    push.extend(count);
-    push
-}
-
-/// Column → log-size (`kappa`) map, derived from [`col_kappa_sources`] by
-/// substituting the announced sizes. `None` marks a **virtual** (uncommitted) column.
-/// Depends only on the public sizes, so the verifier can reconstruct the placements.
-fn col_kappas(sizes: Sizes, taus: [usize; tables::N_TABLES]) -> Vec<Option<usize>> {
-    let mut values = vec![0usize];
-    values.extend(taus);
-    col_kappa_sources(sizes)
-        .iter()
-        .map(|s| s.map(|(source, adj)| values[source] + adj))
-        .collect()
+    debug_assert_eq!(sources.len(), schema().n);
+    sources
 }
 
 /// How many PUBLIC columns a bytecode entry is: the class tag, then `flags, a1, a2,
@@ -278,10 +329,7 @@ pub fn bytecode_table(p: &rv::Program) -> Vec<F64> {
     let coords = bytecode_columns(p)
         .map(|c| Coord::Public(std::sync::Arc::new(c)))
         .into();
-    let block = Block {
-        kappa: crate::log2_strict_usize(p.entries.len()),
-        coords,
-    };
+    let block = Block::framework(crate::log2_strict_usize(p.entries.len()), coords);
     crate::leaf::stacked_bytecode_table(std::slice::from_ref(&block))
 }
 
@@ -295,142 +343,160 @@ pub fn bytecode_table(p: &rv::Program) -> Vec<F64> {
 /// tuples to divide back out of the bus.
 pub fn layout(p: &rv::Program, taus: [usize; tables::N_TABLES], ts_final: F64) -> Layout {
     let sizes = Sizes::of(p);
-    let log_bytecode = sizes.log_bytecode;
-    let one = F64::ONE;
     // Shared between the seed and finalize blocks: a copy is tens of megabytes per
     // column at production sizes.
     let prog_cols: [std::sync::Arc<Vec<F64>>; N_BYTECODE_COLUMNS] = bytecode_columns(p).map(std::sync::Arc::new);
 
-    // ---- bus blocks ----
-    use Coord::{Col, Const, IntIndex, Powers, Public, Sparse};
-    let blk = |kappa: usize, coords: Vec<Coord>| Block { kappa, coords };
-
     let mut push: Vec<Block> = Vec::new();
     let mut pull: Vec<Block> = Vec::new();
-
-    // Shared blocks (cross-instruction infra, not owned by any single table). The
-    // boundary: the run starts at the entry point at cycle 1 and ends on the halt
-    // slot with a nonzero clock and its exit marker.
-    // An incorrect clock leaves the terminal tuple unmatched.
-    push.push(blk(
-        0,
-        vec![
-            Const(SEP_STATE),
-            Const(F64(p.entry_pc)),
-            Const(tables::CLOCK_START),
-            Const(F64::ZERO),
-        ],
-    ));
-    pull.push(blk(
-        0,
-        vec![
-            Const(SEP_STATE),
-            Const(F64(p.halt_pc())),
-            Const(ts_final),
-            Const(ts_final),
-        ],
-    ));
-    // Register seed + finalize: every register starts at timestamp g^0 holding zero,
-    // and ends at its last timestamp holding its final word (§sec:memchan).
-    let cell = IntIndex {
-        base: F64::ZERO,
-        shift: 0,
-    };
-    push.push(blk(LOG_REGS, vec![Const(tables::SEP_REG), cell.clone(), Const(one)]));
-    pull.push(blk(
-        LOG_REGS,
-        vec![Const(tables::SEP_REG), cell, Col(REG_FTS), Col(REG_FIN)],
-    ));
-    // RAM the same way, cell `z` at its byte address `RAM_BASE + 8z`. What it holds
-    // before the run is public: the program's image, then zeros.
-    let word = IntIndex {
-        base: F64(RAM_BASE),
-        shift: 3,
-    };
-    let ram = SparseColumn::new(p.log_ram, &[(0, &p.image)]);
-    push.push(blk(
-        p.log_ram,
-        vec![
-            Const(tables::SEP_MEM),
-            word.clone(),
-            Const(one),
-            Sparse(std::sync::Arc::new(ram)),
-        ],
-    ));
-    pull.push(blk(
-        p.log_ram,
-        vec![Const(tables::SEP_MEM), word, Col(MFTS), Col(MEM_FIN)],
-    ));
-    // The advice, the one array seeded from a committed column: the prover's words.
-    let word = IntIndex {
-        base: F64(ADVICE_BASE),
-        shift: 3,
-    };
-    push.push(blk(
-        p.log_advice,
-        vec![Const(tables::SEP_MEM), word.clone(), Const(one), Col(ADV_INIT)],
-    ));
-    pull.push(blk(
-        p.log_advice,
-        vec![Const(tables::SEP_MEM), word, Col(ADV_FTS), Col(ADV_FIN)],
-    ));
-    // Bytecode seed + finalize, entry `i` at its `pc` (the program columns are public).
-    let bytecode_block = |count: Coord| {
-        let pc = IntIndex {
-            base: F64(TEXT_BASE),
-            shift: 2,
-        };
-        blk(
-            log_bytecode,
-            [Const(SEP_BYTECODE), pc, count]
-                .into_iter()
-                .chain(prog_cols.iter().cloned().map(Public))
-                .collect(),
-        )
-    };
-    push.push(bytecode_block(Const(one)));
-    pull.push(bytecode_block(Col(BFCNT)));
-    // The two range arrays (§sec:rangecheck): entries with no value, so a read is a
-    // range check on its address. Neither is committed: their addresses are
-    // geometric, `g^{j+1}` and `g^{-2^16·j}`.
-    for (sep, first, ratio, count) in [
-        (tables::SEP_RANGE_LO, tables::range_lo_first(), F64::G, RLO_CNT),
-        (tables::SEP_RANGE_HI, one, tables::range_hi_ratio(), RHI_CNT),
-    ] {
-        let addresses = Powers { first, ratio };
-        push.push(blk(tables::RANGE_LOG, vec![Const(sep), addresses.clone(), Const(one)]));
-        pull.push(blk(tables::RANGE_LOG, vec![Const(sep), addresses, Col(count)]));
+    for block in FRAMEWORK {
+        let kappa = block.log_rows(sizes);
+        let (seed, finalize) = framework_tuples(block, p, &prog_cols, ts_final);
+        push.push(Block::framework(kappa, seed));
+        pull.push(Block::framework(kappa, finalize));
     }
-    debug_assert_eq!(push.len(), framework_kappa_sources(sizes).len());
 
     // Per-table blocks: each table declares its flushes and read-count columns in
     // local indices; offset them to the table's global columns.
     let sch = schema();
-    let mut count_blocks: Vec<Block> = Vec::new();
+    let mut count: Vec<Block> = Vec::new();
     for (t, table) in tables::tables().iter().enumerate() {
-        let base = sch.base[t];
-        let kappa = taus[t];
-        let mut fb = FlushBuilder::new();
-        table.flushes(&mut fb);
-        for coords in fb.push {
-            push.push(blk(kappa, offset_coords(base, coords)));
-        }
-        for coords in fb.pull {
-            pull.push(blk(kappa, offset_coords(base, coords)));
-        }
-        for &c in table.count_columns() {
-            count_blocks.push(blk(kappa, vec![Col(base + c)]));
-        }
+        let (base, kappa) = (sch.spans[t].0, taus[t]);
+        let fb = table.flushes();
+        push.extend(
+            fb.push
+                .into_iter()
+                .map(|c| Block::table(t, kappa, offset_coords(base, c))),
+        );
+        pull.extend(
+            fb.pull
+                .into_iter()
+                .map(|c| Block::table(t, kappa, offset_coords(base, c))),
+        );
+        count.extend(
+            table
+                .count_columns()
+                .iter()
+                .map(|&c| Block::table(t, kappa, vec![Coord::Col(base + c)])),
+        );
     }
 
-    let (placements, shape) = witness::placements_of(&col_kappas(sizes, taus));
+    let (placements, shape) = witness::placements_of(&column_sources(sizes, taus));
     Layout {
         push,
         pull,
-        count: count_blocks,
+        count,
         placements,
         shape,
         taus,
+    }
+}
+
+/// A framework block's two tuples, the push's and the pull's.
+fn framework_tuples(
+    block: Framework,
+    p: &rv::Program,
+    prog_cols: &[std::sync::Arc<Vec<F64>>; N_BYTECODE_COLUMNS],
+    ts_final: F64,
+) -> (Vec<Coord>, Vec<Coord>) {
+    use Coord::{Col, Const, IntIndex, Powers, Public, Sparse};
+    let one = Const(F64::ONE);
+    // A read-write array: every cell starts at timestamp g^0 holding `init`, and ends at
+    // its last timestamp holding its final word (§sec:memchan).
+    let array = |sep: F64, cell: Coord, init: Option<Coord>, ts: Shared, fin: Shared| {
+        let seed = [Const(sep), cell.clone(), one.clone()]
+            .into_iter()
+            .chain(init)
+            .collect();
+        (seed, vec![Const(sep), cell, Col(ts.col()), Col(fin.col())])
+    };
+    // A read-only array: the tuple with its count, `1` before the run and the
+    // committed count after it.
+    let lookup = |head: [Coord; 2], tail: Vec<Coord>, count: Shared| {
+        let tuple = |c: Coord| head.iter().cloned().chain([c]).chain(tail.iter().cloned()).collect();
+        (tuple(one.clone()), tuple(Col(count.col())))
+    };
+    let word = |base: u64| IntIndex {
+        base: F64(base),
+        shift: 3,
+    };
+    match block {
+        // An incorrect clock leaves the terminal tuple unmatched.
+        Framework::State => (
+            vec![
+                Const(SEP_STATE),
+                Const(F64(p.entry_pc)),
+                Const(tables::CLOCK_START),
+                Const(F64::ZERO),
+            ],
+            vec![
+                Const(SEP_STATE),
+                Const(F64(p.halt_pc())),
+                Const(ts_final),
+                Const(ts_final),
+            ],
+        ),
+        Framework::Registers => {
+            let cell = IntIndex {
+                base: F64::ZERO,
+                shift: 0,
+            };
+            array(tables::SEP_REG, cell, None, Shared::RegTs, Shared::RegFin)
+        }
+        // Cell `z` at its byte address `RAM_BASE + 8z`. What RAM holds before the run is
+        // public: the program's image, then zeros.
+        Framework::Ram => {
+            let image = Sparse(std::sync::Arc::new(SparseColumn::new(p.log_ram, &[(0, &p.image)])));
+            array(
+                tables::SEP_MEM,
+                word(RAM_BASE),
+                Some(image),
+                Shared::RamTs,
+                Shared::RamFin,
+            )
+        }
+        // The one array seeded from a committed column: the prover's words.
+        Framework::Advice => array(
+            tables::SEP_MEM,
+            word(ADVICE_BASE),
+            Some(Col(Shared::AdvInit.col())),
+            Shared::AdvTs,
+            Shared::AdvFin,
+        ),
+        // Entry `i` at its `pc`; the program columns are public.
+        Framework::Bytecode => {
+            let pc = IntIndex {
+                base: F64(TEXT_BASE),
+                shift: 2,
+            };
+            let program = prog_cols.iter().cloned().map(Public).collect();
+            lookup([Const(SEP_BYTECODE), pc], program, Shared::BytecodeCount)
+        }
+        // The two range arrays (§sec:rangecheck): entries with no value, so a read is a
+        // range check on its address. Neither is committed: their addresses are
+        // geometric, `g^{j+1}` and `g^{-2^16·j}`.
+        Framework::RangeLo => {
+            let addresses = Powers {
+                first: tables::range_lo_first(),
+                ratio: F64::G,
+            };
+            lookup(
+                [Const(tables::SEP_RANGE_LO), addresses],
+                Vec::new(),
+                Shared::RangeLoCount,
+            )
+        }
+        Framework::RangeHi => {
+            let addresses = Powers {
+                first: F64::ONE,
+                ratio: tables::range_hi_ratio(),
+            };
+            lookup(
+                [Const(tables::SEP_RANGE_HI), addresses],
+                Vec::new(),
+                Shared::RangeHiCount,
+            )
+        }
     }
 }
 
@@ -446,13 +512,8 @@ impl Program {
     /// The layout is a function of the program and the row counts alone, so no witness is built.
     pub(crate) fn stack_sizes(&self, row_counts: [usize; tables::N_TABLES]) -> (usize, usize) {
         let taus = row_counts.map(|rows| crate::log2_ceil_usize(rows.max(1)));
-        let (placements, shape) = witness::placements_of(&col_kappas(Sizes::of(&self.rv), taus));
-        let committed = placements
-            .iter()
-            .filter(|p| !p.is_virtual())
-            .map(|p| 1usize << p.n_vars)
-            .sum();
-        (shape.mu, committed)
+        let (placements, shape) = witness::placements_of(&column_sources(Sizes::of(&self.rv), taus));
+        (shape.mu, committed_size(&placements))
     }
 
     pub(crate) fn build(&self, exec: &Execution) -> Witness {
@@ -504,17 +565,16 @@ impl Program {
         // and hands out windows tiling the rest; `fill_table` checks that each table
         // wrote every window it was given, and the shared columns below write theirs.
         let mut q = unsafe { witness::alloc_stack(l.shape) };
-        // A virtual column is not in the stack, so its values need storage of their
-        // own: it carries data for the bus, and only its evaluation claims route
-        // elsewhere (to its class's packed witness).
+        // A port is not in the stack, so its values need storage of their own: it
+        // carries data for the bus, and only its evaluation claims route elsewhere (to
+        // its class's packed witness).
         let mut virt: Vec<(usize, zk_alloc::ArenaVec<F64>)> = Vec::new();
-        for (t, table) in tables::tables().iter().enumerate() {
-            for c in 0..table.n_committed_columns() {
-                let i = sch.base[t] + c;
-                if l.placements[i].is_virtual() {
-                    // SAFETY: a virtual window is a table column, `FillCtx::cols`
-                    // writes every row of every window it is given, and `fill_table`
-                    // asserts each table wrote all of its columns.
+        for (t, &(base, width)) in sch.spans.iter().enumerate() {
+            for i in base..base + width {
+                if l.placements[i].window().is_none() {
+                    // SAFETY: a port is a table column, `FillCtx::cols` writes every
+                    // row of every window it is given, and `fill_table` asserts each
+                    // table wrote all of its columns.
                     virt.push((i, unsafe { zk_alloc::ArenaVec::<F64>::uninitialized(1 << l.taus[t]) }));
                 }
             }
@@ -528,25 +588,16 @@ impl Program {
         // into its global block).
         crate::stage!("Fill columns", || {
             for (t, table) in tables::tables().iter().enumerate() {
-                let (base, n) = (sch.base[t], table.n_committed_columns());
+                let (base, n) = sch.spans[t];
                 let ctx = FillCtx::new(tr, &range_lo, &range_hi, p, 1 << l.taus[t], n);
-                tables::fill_table(*table, &ctx, &mut windows[base..base + n]);
+                tables::fill_table(table, &ctx, &mut windows[base..base + n]);
             }
-            // Shared columns. These ten plus the flock witnesses below are every
-            // shared column, and each has to be written: the stack is uninitialized, so
-            // one left out would be read as indeterminate bytes rather than caught by
-            // a length mismatch.
-            const _: () = assert!(Q_BASE == 10, "a new shared column needs a fill here");
-            windows[REG_FIN].copy_from_slice(&tr.reg_fin);
-            windows[REG_FTS].copy_from_slice(&tr.reg_ts);
-            windows[MEM_FIN].copy_from_slice(&tr.ram_fin);
-            windows[MFTS].copy_from_slice(&tr.ram_ts);
-            windows[ADV_INIT].copy_from_slice(&tr.adv_init);
-            windows[ADV_FIN].copy_from_slice(&tr.adv_fin);
-            windows[ADV_FTS].copy_from_slice(&tr.adv_ts);
-            windows[BFCNT].copy_from_slice(&tr.bytecode_count); // counts ended at g^{A[pc]}
-            windows[RLO_CNT].copy_from_slice(&tr.range_lo_count);
-            windows[RHI_CNT].copy_from_slice(&tr.range_hi_count);
+            // Every shared column has to be written: the stack is uninitialized, so one
+            // left out would be read as indeterminate bytes rather than caught by a
+            // length mismatch.
+            for c in SHARED {
+                windows[c.col()].copy_from_slice(c.values(tr));
+            }
         });
         // The classes' packed witnesses, one instance per row of their table.
         let reductions = crate::stage!("Build flock witnesses", || {
