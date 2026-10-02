@@ -33,6 +33,11 @@
 
 use super::Instance;
 use crate::circuit::{Builder, Wire};
+#[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
+use std::arch::x86_64::{
+    _mm_cvtsi64_si128, _mm256_add_epi64, _mm256_and_si256, _mm256_loadu_si256, _mm256_or_si256, _mm256_sll_epi64,
+    _mm256_srl_epi64, _mm256_storeu_si256, _mm256_xor_si256,
+};
 
 /// The rows `(a_i ? b : ¬b)` for `i < 64`, then the `a` and `b` rows.
 const N_ROWS: usize = 66;
@@ -217,6 +222,10 @@ impl Multiplier {
 
     /// Write the complement selector and the carry-save products.
     pub(super) fn witness_into(&self, a: u64, b: u64, witness: &mut Instance) -> u128 {
+        // Wrapping products need only the low half of every carry-save row.
+        if self.width == u64::MAX as u128 {
+            return self.witness_low(a, b, witness) as u128;
+        }
         let (na, nb) = (!a, !b);
         let mut rows = [0u128; N_ROWS];
         for (i, row) in rows[..64].iter_mut().enumerate() {
@@ -247,4 +256,180 @@ impl Multiplier {
         witness.products(self.carry_slot, self.carries, rx ^ carry_in, ry ^ carry_in);
         sum
     }
+
+    /// Write four wrapping multiplication witnesses into word-major packed tables.
+    ///
+    /// Each packed word contains four independent instances in adjacent lanes.
+    /// The caller fills their ports and constant before converting to instance-major storage.
+    pub fn witness_batch4(
+        &self,
+        a: [u64; 4],
+        b: [u64; 4],
+        z: &mut [[u64; 4]],
+        az: &mut [[u64; 4]],
+        bz: &mut [[u64; 4]],
+    ) -> [u64; 4] {
+        assert_eq!(self.width, u64::MAX as u128, "batched multiplication wraps at 64 bits");
+
+        // Independent word lanes share every mask and shift in the carry-save plan.
+        let mut rows = [[0u64; 4]; N_ROWS];
+        for (i, row) in rows[..64].iter_mut().enumerate() {
+            let bit = and4(shr4(a, i), [1; 4]);
+            let v = xor4(b, add4(bit, [u64::MAX; 4]));
+            *row = if i == 0 { shr4(v, 1) } else { shl4(v, i - 1) };
+        }
+        let (na, nb) = (xor4(a, [u64::MAX; 4]), xor4(b, [u64::MAX; 4]));
+        rows[A_ROW] = or4(shr4(na, 1), shl4(a, 63));
+        rows[B_ROW] = or4(shr4(nb, 1), shl4(b, 63));
+        rows[2] = or4(rows[2], [1; 4]);
+        rows[3] = or4(rows[3], and4(and4(na, nb), [1; 4]));
+        products4(z, az, bz, self.g_slot, 1, na, nb);
+
+        // Product runs remain vector words until the whole witness is packed.
+        for s in &self.steps {
+            let (rx, ry, rz) = (rows[s.x], rows[s.y], rows[s.z]);
+            let (xz, yz) = (xor4(rx, rz), xor4(ry, rz));
+            let moved = or4(and4(ry, [s.move_y as u64; 4]), and4(rz, [s.move_z as u64; 4]));
+            rows[s.x] = xor4(xor4(xor4(rx, ry), rz), moved);
+            rows[s.y] = or4(shl4(and4(xor4(and4(xz, yz), rz), [s.products as u64; 4]), 1), moved);
+            products4(z, az, bz, s.slot, s.products as u64, xz, yz);
+        }
+
+        // Native lane additions recover the final carries without a bitwise gate walk.
+        let (rx, ry) = (rows[self.last.0], rows[self.last.1]);
+        let sum = add4(rx, ry);
+        let carry = xor4(xor4(sum, rx), ry);
+        products4(
+            z,
+            az,
+            bz,
+            self.carry_slot,
+            self.carries as u64,
+            xor4(rx, carry),
+            xor4(ry, carry),
+        );
+        sum
+    }
+
+    /// Evaluate the same carry-save plan modulo 2^64.
+    fn witness_low(&self, a: u64, b: u64, witness: &mut Instance) -> u64 {
+        // Affine partial rows are clipped automatically by 64-bit shifts.
+        let mut rows = [0u64; N_ROWS];
+        for (i, row) in rows[..64].iter_mut().enumerate() {
+            let v = b ^ ((a >> i) & 1).wrapping_sub(1);
+            *row = if i == 0 { v >> 1 } else { v << (i - 1) };
+        }
+        rows[A_ROW] = (!a >> 1) | (a << 63);
+        rows[B_ROW] = (!b >> 1) | (b << 63);
+        rows[2] |= 1;
+        rows[3] |= !a & !b & 1;
+        witness.products(self.g_slot, 1, !a as u128, !b as u128);
+
+        // Each step replaces three rows by the same sum and carry modulo 2^64.
+        for s in &self.steps {
+            let (rx, ry, rz) = (rows[s.x], rows[s.y], rows[s.z]);
+            let (xz, yz) = (rx ^ rz, ry ^ rz);
+            let moved = (ry & s.move_y as u64) | (rz & s.move_z as u64);
+            rows[s.x] = rx ^ ry ^ rz ^ moved;
+            rows[s.y] = ((((xz & yz) ^ rz) & s.products as u64) << 1) | moved;
+            witness.products(s.slot, s.products, xz as u128, yz as u128);
+        }
+
+        // The native sum's XOR with its operands recovers the final carry-in bits.
+        let (rx, ry) = (rows[self.last.0], rows[self.last.1]);
+        let sum = rx.wrapping_add(ry);
+        let carry_in = sum ^ rx ^ ry;
+        witness.products(
+            self.carry_slot,
+            self.carries,
+            (rx ^ carry_in) as u128,
+            (ry ^ carry_in) as u128,
+        );
+        sum
+    }
+}
+
+/// Write a contiguous product run across four independent word lanes.
+#[inline(always)]
+fn products4(
+    z: &mut [[u64; 4]],
+    az: &mut [[u64; 4]],
+    bz: &mut [[u64; 4]],
+    slot: usize,
+    mask: u64,
+    left: [u64; 4],
+    right: [u64; 4],
+) {
+    if mask == 0 {
+        return;
+    }
+
+    // Each vector lane packs the same product positions into the same two word offsets.
+    let low = mask.trailing_zeros();
+    let left = shr4(and4(left, [mask; 4]), low as usize);
+    let right = shr4(and4(right, [mask; 4]), low as usize);
+    let product = and4(left, right);
+    let (word, shift) = (slot / 64, slot % 64);
+    for (buf, bits) in [(z, product), (az, left), (bz, right)] {
+        buf[word] = or4(buf[word], shl4(bits, shift));
+        buf[word + 1] = or4(buf[word + 1], shr4(shr4(bits, 1), 63 - shift));
+    }
+}
+
+/// Apply a binary operation to four independent word lanes.
+macro_rules! binary4 {
+    ($name:ident, $intrinsic:ident, $scalar:expr) => {
+        #[inline(always)]
+        fn $name(left: [u64; 4], right: [u64; 4]) -> [u64; 4] {
+            #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
+            // SAFETY: the target enables AVX2 and each unaligned access spans exactly four words.
+            unsafe {
+                let left = _mm256_loadu_si256(left.as_ptr().cast());
+                let right = _mm256_loadu_si256(right.as_ptr().cast());
+                let mut out = [0; 4];
+                _mm256_storeu_si256(out.as_mut_ptr().cast(), $intrinsic(left, right));
+                out
+            }
+            #[cfg(not(all(target_arch = "x86_64", target_feature = "avx2")))]
+            // Scalar lanes preserve the same integer operation on portable targets.
+            std::array::from_fn(|i| ($scalar)(left[i], right[i]))
+        }
+    };
+}
+
+binary4!(xor4, _mm256_xor_si256, |a: u64, b: u64| a ^ b);
+binary4!(and4, _mm256_and_si256, |a: u64, b: u64| a & b);
+binary4!(or4, _mm256_or_si256, |a: u64, b: u64| a | b);
+binary4!(add4, _mm256_add_epi64, |a: u64, b: u64| a.wrapping_add(b));
+
+/// Shift four independent word lanes left by fewer than 64 positions.
+#[inline(always)]
+fn shl4(words: [u64; 4], shift: usize) -> [u64; 4] {
+    #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
+    // SAFETY: the target enables AVX2 and each unaligned access spans exactly four words.
+    unsafe {
+        let words = _mm256_loadu_si256(words.as_ptr().cast());
+        let count = _mm_cvtsi64_si128(shift as i64);
+        let mut out = [0; 4];
+        _mm256_storeu_si256(out.as_mut_ptr().cast(), _mm256_sll_epi64(words, count));
+        out
+    }
+    #[cfg(not(all(target_arch = "x86_64", target_feature = "avx2")))]
+    words.map(|v| v << shift)
+}
+
+/// Shift four independent word lanes right by fewer than 64 positions.
+#[inline(always)]
+fn shr4(words: [u64; 4], shift: usize) -> [u64; 4] {
+    #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
+    // SAFETY: the target enables AVX2 and each unaligned access spans exactly four words.
+    unsafe {
+        let words = _mm256_loadu_si256(words.as_ptr().cast());
+        let count = _mm_cvtsi64_si128(shift as i64);
+        let mut out = [0; 4];
+        _mm256_storeu_si256(out.as_mut_ptr().cast(), _mm256_srl_epi64(words, count));
+        out
+    }
+    #[cfg(not(all(target_arch = "x86_64", target_feature = "avx2")))]
+    words.map(|v| v >> shift)
 }

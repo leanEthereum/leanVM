@@ -172,14 +172,30 @@ impl Prepared {
         // A class with a word-level witness skips the walk of its gate list; the others
         // walk it 64 instances at a time.
         let witness = spec.witness.filter(|_| part == Part::Class);
-        let (z, a, b, z_lincheck) = witness.map_or_else(
-            || circuit.generate_witness_from(rows, &rows[0], n_blocks_log, input_words),
-            |witness| {
-                circuit.generate_witness_with(rows, &rows[0], n_blocks_log, |row, z, az, bz| {
-                    let mut words = [0u64; MAX_INPUT_WORDS];
-                    let words = &mut words[..n_inputs];
-                    input_words(row, words);
-                    witness(words, z, az, bz);
+        let batch_witness = spec.batch_witness.filter(|_| part == Part::Class);
+        let (z, a, b, z_lincheck) = batch_witness.map_or_else(
+            || {
+                witness.map_or_else(
+                    || circuit.generate_witness_from(rows, &rows[0], n_blocks_log, input_words),
+                    |witness| {
+                        circuit.generate_witness_with(rows, &rows[0], n_blocks_log, |row, z, az, bz| {
+                            let mut words = [0u64; MAX_INPUT_WORDS];
+                            let words = &mut words[..n_inputs];
+                            input_words(row, words);
+                            witness(words, z, az, bz);
+                        })
+                    },
+                )
+            },
+            |batch| {
+                // Eight rows share a native arithmetic call before their byte stripe is packed.
+                circuit.generate_witness_batched(rows, &rows[0], n_blocks_log, |rows, z, az, bz| {
+                    let mut words = [[0u64; MAX_INPUT_WORDS]; 8];
+                    for (row, words) in rows.into_iter().zip(&mut words) {
+                        input_words(row, &mut words[..n_inputs]);
+                    }
+                    let inputs = std::array::from_fn(|i| &words[i][..n_inputs]);
+                    batch(&inputs, z, az, bz);
                 })
             },
         );

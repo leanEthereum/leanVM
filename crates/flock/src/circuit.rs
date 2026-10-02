@@ -24,7 +24,7 @@
 
 use crate::lincheck::LincheckCircuit;
 use crate::reduction::Block;
-use crate::witness::{GroupTables, drive_witness_groups, drive_witness_packed_and_lincheck};
+use crate::witness::{GroupTables, drive_witness_batched, drive_witness_groups, drive_witness_packed_and_lincheck};
 use primitives::bits::transpose_64x64;
 use primitives::field::F192;
 use zk_alloc::ArenaVec;
@@ -404,6 +404,20 @@ impl Circuit {
         instance: impl Fn(&S, &mut [u64], &mut [u64], &mut [u64]) + Sync,
     ) -> (ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u8>) {
         drive_witness_packed_and_lincheck(rows, Some(padding), n_blocks_log, self.k_log, instance)
+    }
+
+    /// Build native witnesses eight instances at a time.
+    ///
+    /// The callback fills three zeroed instance-major buffers for each group.
+    pub fn generate_witness_batched<S: Sync>(
+        &self,
+        rows: &[S],
+        padding: &S,
+        n_blocks_log: usize,
+        batch: impl Fn([&S; 8], &mut [u64], &mut [u64], &mut [u64]) + Sync,
+    ) -> (ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u8>) {
+        // Eight adjacent instances occupy one lincheck byte stripe.
+        drive_witness_batched(rows, padding, n_blocks_log, self.k_log, batch)
     }
 
     /// The matrix-vector products `(A_0 w, B_0 w)`, by one forward walk.

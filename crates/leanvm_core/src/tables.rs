@@ -367,6 +367,9 @@ pub enum Ram {
 /// One instance's `z`, `A·z` and `B·z` from its input words, into zeroed buffers.
 pub type InstanceWitness = fn(&[u64], &mut [u64], &mut [u64], &mut [u64]);
 
+/// Eight instances' packed witness by native word arithmetic.
+pub type BatchWitness = fn(&[&[u64]; 8], &mut [u64], &mut [u64], &mut [u64]);
+
 /// What specializes the class table to one instruction class.
 pub struct ClassSpec {
     pub class: Class,
@@ -388,6 +391,8 @@ pub struct ClassSpec {
     ///
     /// It writes what the walk of the circuit's gate list would, which a test pins.
     pub witness: Option<InstanceWitness>,
+    /// Eight instances evaluated together when the native arithmetic supports SIMD lanes.
+    pub batch_witness: Option<BatchWitness>,
     /// `log2` of the bits one instance of the circuit occupies. A constant, because
     /// the layout needs it before any circuit is built; [`crate::class_flock`] checks it.
     pub k_log: usize,
@@ -461,6 +466,7 @@ pub static ALU: ClassSpec = ClassSpec {
     writes_rd: true,
     ram: Ram::None,
     witness: None,
+    batch_witness: None,
     k_log: 10,
     ports: &[Word::V1, Word::V2, Word::Imm, Word::Flags, Word::Out, Word::Taken],
     n_inputs: 4,
@@ -474,6 +480,7 @@ pub static LOAD: ClassSpec = ClassSpec {
     writes_rd: true,
     ram: Ram::Read,
     witness: None,
+    batch_witness: None,
     k_log: 10,
     ports: &[
         Word::V1,
@@ -494,6 +501,7 @@ pub static STORE: ClassSpec = ClassSpec {
     writes_rd: false,
     ram: Ram::Write,
     witness: None,
+    batch_witness: None,
     k_log: 10,
     ports: &[
         Word::V1,
@@ -516,6 +524,7 @@ pub static SHIFT: ClassSpec = ClassSpec {
     writes_rd: true,
     ram: Ram::None,
     witness: None,
+    batch_witness: None,
     k_log: 10,
     ports: &[Word::V1, Word::V2, Word::Imm, Word::Flags, Word::Out],
     n_inputs: 4,
@@ -529,6 +538,11 @@ pub static MUL: ClassSpec = ClassSpec {
     writes_rd: true,
     ram: Ram::None,
     witness: None,
+    batch_witness: if cfg!(all(target_arch = "x86_64", target_feature = "avx2")) {
+        Some(rv::Mul::witness_batch)
+    } else {
+        None
+    },
     k_log: 12,
     ports: &[Word::V1, Word::V2, Word::Flags, Word::Out],
     n_inputs: 3,
@@ -542,6 +556,7 @@ pub static MULH: ClassSpec = ClassSpec {
     writes_rd: true,
     ram: Ram::None,
     witness: Some(rv::Mulh::witness),
+    batch_witness: None,
     k_log: 13,
     ports: &[Word::V1, Word::V2, Word::Flags, Word::Out],
     n_inputs: 3,
@@ -556,6 +571,7 @@ pub static DIV: ClassSpec = ClassSpec {
     writes_rd: true,
     ram: Ram::None,
     witness: None,
+    batch_witness: None,
     k_log: 13,
     ports: &[
         Word::V1,
@@ -580,6 +596,7 @@ pub static HASH: ClassSpec = ClassSpec {
     writes_rd: false,
     ram: Ram::Block,
     witness: Some(rv::circuits::blake2s_witness),
+    batch_witness: None,
     k_log: 14,
     ports: &[
         Word::V2,
