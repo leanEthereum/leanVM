@@ -169,30 +169,6 @@ static MUL_PLAN: OnceLock<LowPlan> = OnceLock::new();
 static MULH_PLAN: OnceLock<HighPlan> = OnceLock::new();
 
 impl Mul {
-    /// Fill the low multiplication's packed witness using native word arithmetic.
-    #[cfg(test)]
-    pub(crate) fn witness(inputs: &[u64], z: &mut [u64], az: &mut [u64], bz: &mut [u64]) {
-        // Circuit construction fixes product positions before any instance is written.
-        let plan = MUL_PLAN.get().unwrap_or_else(|| {
-            Self::circuit();
-            MUL_PLAN
-                .get()
-                .expect("circuit construction records multiplication products")
-        });
-        let product = plan.multiplier.witness(inputs[0], inputs[1], z, az, bz) as u64;
-
-        // The word selector commits only the differences in bits 32 through 63.
-        let word = inputs[2] & 1;
-        let high = product >> 32;
-        let sign = (product >> 31 & 1).wrapping_neg() >> 32;
-        let difference = high ^ sign;
-        product_rows(z, az, bz, plan.mux_slot, word.wrapping_neg() & 0xffff_ffff, difference);
-        let out = product ^ ((word.wrapping_neg() & difference) << 32);
-        ports(inputs, 1, out, z, az, bz);
-    }
-}
-
-impl Mul {
     /// Fill eight low multiplication witnesses in two groups of four word lanes.
     pub(crate) fn witness_batch(inputs: &[&[u64]; 8], z: &mut [u64], az: &mut [u64], bz: &mut [u64]) {
         // A four-lane word-major table lets adjacent instances use vector operations.
@@ -314,6 +290,27 @@ mod tests {
     use proptest::sample::select;
     use proptest::strategy::BoxedStrategy;
 
+    /// Fill the low multiplication's packed witness using native word arithmetic.
+    fn low_witness(inputs: &[u64], z: &mut [u64], az: &mut [u64], bz: &mut [u64]) {
+        // Circuit construction fixes product positions before any instance is written.
+        let plan = MUL_PLAN.get().unwrap_or_else(|| {
+            Mul::circuit();
+            MUL_PLAN
+                .get()
+                .expect("circuit construction records multiplication products")
+        });
+        let product = plan.multiplier.witness(inputs[0], inputs[1], z, az, bz) as u64;
+
+        // The word selector commits only the differences in bits 32 through 63.
+        let word = inputs[2] & 1;
+        let high = product >> 32;
+        let sign = (product >> 31 & 1).wrapping_neg() >> 32;
+        let difference = high ^ sign;
+        product_rows(z, az, bz, plan.mux_slot, word.wrapping_neg() & 0xffff_ffff, difference);
+        let out = product ^ ((word.wrapping_neg() & difference) << 32);
+        ports(inputs, 1, out, z, az, bz);
+    }
+
     /// Any low multiplication instance.
     impl Arbitrary for Mul {
         type Parameters = ();
@@ -354,7 +351,7 @@ mod tests {
         let edges = [0, 1, 2, (1 << 63) - 1, 1 << 63, u64::MAX - 1, u64::MAX];
         let mut rng = Rng::new(0x4D554C);
         for (circuit, flags, witness) in [
-            (Mul::circuit(), Mul::LEGAL, Mul::witness as InstanceWitness),
+            (Mul::circuit(), Mul::LEGAL, low_witness as InstanceWitness),
             (Mulh::circuit(), Mulh::LEGAL, Mulh::witness as InstanceWitness),
         ] {
             for &flag in flags {
