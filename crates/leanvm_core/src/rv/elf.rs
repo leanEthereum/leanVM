@@ -30,7 +30,7 @@ pub struct Guest {
 
 impl Guest {
     /// The symbol whose value is the end of RAM, which the guests' linker script defines.
-    const RAM_END_SYMBOL: &'static str = "__stack_top";
+    const RAM_END_SYMBOL: &'static str = "__ram_top";
 
     /// The symbol whose value is the end of the advice, which the guests' linker script defines.
     const ADVICE_END_SYMBOL: &'static str = "__advice_top";
@@ -39,7 +39,7 @@ impl Guest {
     ///
     /// - Its executable segments are the text.
     /// - Every other load segment is RAM's image.
-    /// - RAM ends where the script's stack starts.
+    /// - RAM ends where the script says.
     /// - The advice ends where the script says.
     ///
     /// # Errors
@@ -548,17 +548,13 @@ impl Loaded {
             self.entry_loaded |= entry_pc >= vaddr && entry_end.is_some_and(|e| e <= vaddr + bytes.len() as u64);
             Self::write::<4>(&mut self.text, offset, bytes);
         } else {
-            // Data lies in RAM, and its file bytes are no larger than the file.
+            // Data lies in RAM, past the stack, so the image is bounded by RAM rather than by the file.
             if !Region::RAM.contains(vaddr, end) {
                 return Err(ElfError::DataOutsideRam { vaddr });
             }
             self.data_end = self.data_end.max(end);
             if !bytes.is_empty() {
-                let offset = vaddr - Region::RAM.base();
-                if offset + bytes.len() as u64 > file_len {
-                    return Err(ElfError::MalformedSegment);
-                }
-                Self::write::<8>(&mut self.image, offset, bytes);
+                Self::write::<8>(&mut self.image, vaddr - Region::RAM.base(), bytes);
             }
         }
         Ok(())

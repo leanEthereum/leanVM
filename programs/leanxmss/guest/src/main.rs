@@ -12,6 +12,7 @@ use leanvm_guest::{commit, read, read_unchecked};
 use leanxmss::{LeafIndex, Message, PublicKey, Signature};
 
 leanvm_guest::advice_words!(1 << 16);
+leanvm_guest::stack_words!(1 << 9);
 
 #[unsafe(no_mangle)]
 extern "C" fn main() {

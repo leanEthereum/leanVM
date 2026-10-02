@@ -6,6 +6,8 @@
 
 use leanvm_guest::{Blake2s, commit, read};
 
+leanvm_guest::stack_words!(1 << 9);
+
 #[unsafe(no_mangle)]
 extern "C" fn main() {
     let mut hasher = Blake2s::new();

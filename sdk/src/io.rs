@@ -191,3 +191,28 @@ macro_rules! advice_words {
         );
     };
 }
+
+/// Size the guest's stack, in words: an even number, so the stack top stays 16-byte aligned.
+///
+/// A guest that names none gets 8192 words.
+///
+/// The stack opens RAM, and RAM is the smallest power of two holding it and the data.
+/// The prover commits to all of RAM, so a guest sizes its stack to what it uses.
+/// A stack too small runs below RAM's base, and the run traps.
+///
+/// ```ignore
+/// leanvm_guest::stack_words!(1 << 9);
+/// ```
+#[macro_export]
+macro_rules! stack_words {
+    ($words:expr) => {
+        // RISC-V's calling convention keeps the stack pointer 16-byte aligned.
+        const _: () = assert!(($words as u64).is_multiple_of(2), "the stack is a whole number of 16-byte units");
+        // An absolute symbol: the linker script sizes the stack to its value.
+        core::arch::global_asm!(
+            ".globl __stack_bytes",
+            ".set __stack_bytes, {bytes}",
+            bytes = const 8 * ($words as u64),
+        );
+    };
+}

@@ -14,6 +14,7 @@ use leanvm_guest::{commit, read, read_slice};
 const MAX_BLOBS: usize = 1;
 
 leanvm_guest::advice_words!((1 + 3 * M + MAX_BLOBS * M).next_power_of_two());
+leanvm_guest::stack_words!(56 << 10);
 
 #[unsafe(no_mangle)]
 extern "C" fn main() {
