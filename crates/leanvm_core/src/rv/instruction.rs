@@ -19,7 +19,56 @@
 //!
 //! One enum per format means the assembler cannot emit, say, a load with a branch's operands.
 
+use std::ops::Range;
+
 use super::register::Reg;
+
+/// Sign-extend the low bits of a 32-bit value to a 64-bit word.
+const fn sign_extend(value: u32, bits: u32) -> u64 {
+    // Move the sign bit to bit 63, then shift back arithmetically.
+    (((value as u64) << (u64::BITS - bits)) as i64 >> (u64::BITS - bits)) as u64
+}
+
+/// A contiguous field in a 32-bit instruction.
+#[derive(Clone, Copy)]
+struct BitField {
+    /// The position of the least significant bit.
+    start: u32,
+    /// The number of bits in the field.
+    width: u32,
+}
+
+impl BitField {
+    /// A nonempty range of instruction bits, with an exclusive end.
+    const fn new(bits: Range<u32>) -> Self {
+        // Every field lies wholly inside one instruction.
+        assert!(bits.start < bits.end && bits.end <= u32::BITS);
+        Self {
+            start: bits.start,
+            width: bits.end - bits.start,
+        }
+    }
+
+    /// The mask for a field value before placement.
+    const fn mask(self) -> u32 {
+        u32::MAX >> (u32::BITS - self.width)
+    }
+
+    /// Extract the field as an unsigned value.
+    const fn extract(self, instruction: u32) -> u32 {
+        (instruction >> self.start) & self.mask()
+    }
+
+    /// Place the low field-width bits of a value into the instruction.
+    const fn place(self, value: u32) -> u32 {
+        self.shift(value & self.mask())
+    }
+
+    /// Shift a value to the field's position without masking it.
+    const fn shift(self, value: u32) -> u32 {
+        value << self.start
+    }
+}
 
 /// A major opcode: the low seven bits of every instruction, naming its format and family.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -77,8 +126,24 @@ impl Opcode {
     /// The opcode with these seven bits.
     ///
     /// Returns `None` for an opcode rv64im does not use.
-    pub fn from_bits(bits: u32) -> Option<Self> {
-        Self::ALL.into_iter().find(|op| op.bits() == bits)
+    pub const fn from_bits(bits: u32) -> Option<Self> {
+        Some(match bits {
+            0x03 => Self::Load,
+            0x0b => Self::Custom0,
+            0x0f => Self::MiscMem,
+            0x13 => Self::OpImm,
+            0x17 => Self::Auipc,
+            0x1b => Self::OpImm32,
+            0x23 => Self::Store,
+            0x33 => Self::Op,
+            0x37 => Self::Lui,
+            0x3b => Self::Op32,
+            0x63 => Self::Branch,
+            0x67 => Self::Jalr,
+            0x6f => Self::Jal,
+            0x73 => Self::System,
+            _ => return None,
+        })
     }
 
     /// The opcode's seven bits.
@@ -96,6 +161,41 @@ impl Opcode {
 pub struct Instruction(u32);
 
 impl Instruction {
+    /// The major opcode.
+    const OPCODE: BitField = BitField::new(0..7);
+    /// The destination register.
+    const RD: BitField = BitField::new(7..12);
+    /// The low function selector.
+    const FUNCT3: BitField = BitField::new(12..15);
+    /// The first source register.
+    const RS1: BitField = BitField::new(15..20);
+    /// The second source register or a 32-bit shift amount.
+    const RS2: BitField = BitField::new(20..25);
+    /// A 64-bit shift amount.
+    const SHAMT: BitField = BitField::new(20..26);
+    /// The function selector above a 64-bit shift amount.
+    const FUNCT6: BitField = BitField::new(26..32);
+    /// The high function selector or the high seven store-immediate bits.
+    const FUNCT7: BitField = BitField::new(25..32);
+    /// A contiguous 12-bit immediate.
+    const IMM_I: BitField = BitField::new(20..32);
+    /// A contiguous 20-bit upper immediate.
+    const IMM_U: BitField = BitField::new(12..32);
+    /// The sign bit of every immediate format.
+    const SIGN: BitField = BitField::new(31..32);
+    /// Branch-offset bit 11.
+    const B_IMM_11: BitField = BitField::new(7..8);
+    /// Branch-offset bits 1 through 4.
+    const B_IMM_4_1: BitField = BitField::new(8..12);
+    /// Branch-offset bits 5 through 10.
+    const B_IMM_10_5: BitField = BitField::new(25..31);
+    /// Jump-offset bits 12 through 19.
+    const J_IMM_19_12: BitField = BitField::new(12..20);
+    /// Jump-offset bit 11.
+    const J_IMM_11: BitField = BitField::new(20..21);
+    /// Jump-offset bits 1 through 10.
+    const J_IMM_10_1: BitField = BitField::new(21..31);
+
     /// `ecall`, the only system instruction rv64im runs here.
     pub const ECALL: Self = Self(Opcode::System.bits());
 
@@ -112,86 +212,93 @@ impl Instruction {
     /// The opcode, bits 0 to 6.
     ///
     /// Returns `None` for an opcode rv64im does not use.
-    pub fn opcode(self) -> Option<Opcode> {
-        Opcode::from_bits(self.0 & 0x7f)
+    pub const fn opcode(self) -> Option<Opcode> {
+        Opcode::from_bits(Self::OPCODE.extract(self.0))
     }
 
     /// Bits 7 to 11: the destination register.
     pub const fn rd(self) -> u32 {
-        (self.0 >> 7) & 31
+        Self::RD.extract(self.0)
     }
 
     /// Bits 12 to 14.
     pub const fn funct3(self) -> u32 {
-        (self.0 >> 12) & 7
+        Self::FUNCT3.extract(self.0)
     }
 
     /// Bits 15 to 19: the first source register.
     pub const fn rs1(self) -> u32 {
-        (self.0 >> 15) & 31
+        Self::RS1.extract(self.0)
     }
 
     /// Bits 20 to 24: the second source register, or a 32-bit shift's amount.
     pub const fn rs2(self) -> u32 {
-        (self.0 >> 20) & 31
+        Self::RS2.extract(self.0)
     }
 
     /// Bits 20 to 25: a 64-bit shift's amount.
     pub const fn shamt(self) -> u32 {
-        (self.0 >> 20) & 63
+        Self::SHAMT.extract(self.0)
     }
 
     /// Bits 26 to 31: what a 64-bit shift leaves of its function field.
     pub const fn funct6(self) -> u32 {
-        self.0 >> 26
+        Self::FUNCT6.extract(self.0)
     }
 
     /// Bits 25 to 31.
     pub const fn funct7(self) -> u32 {
-        self.0 >> 25
+        Self::FUNCT7.extract(self.0)
     }
 
     /// The I-type immediate, sign-extended.
     pub const fn imm_i(self) -> u64 {
-        Self::sign_extend(self.0 >> 20, 12)
+        sign_extend(Self::IMM_I.extract(self.0), Self::IMM_I.width)
     }
 
     /// The S-type immediate, sign-extended.
     pub const fn imm_s(self) -> u64 {
-        Self::sign_extend((self.funct7() << 5) | self.rd(), 12)
+        // The low five bits occupy the destination field, followed by seven high bits.
+        sign_extend((self.funct7() << Self::RD.width) | self.rd(), Self::IMM_I.width)
     }
 
     /// The B-type offset, sign-extended.
     pub const fn imm_b(self) -> u64 {
         let w = self.0;
         // Bits 12, 11, 10..5 and 4..1, scattered over the word.
-        let offset = ((w >> 31) << 12) | (((w >> 7) & 1) << 11) | (((w >> 25) & 0x3f) << 5) | (((w >> 8) & 0xf) << 1);
-        Self::sign_extend(offset, 13)
+        let offset = (Self::SIGN.extract(w) << 12)
+            | (Self::B_IMM_11.extract(w) << 11)
+            | (Self::B_IMM_10_5.extract(w) << 5)
+            | (Self::B_IMM_4_1.extract(w) << 1);
+        sign_extend(offset, 13)
     }
 
     /// The U-type immediate, already shifted into bits 12 to 31, sign-extended.
     pub const fn imm_u(self) -> u64 {
-        Self::sign_extend(self.0 & 0xffff_f000, 32)
+        // Keep the upper immediate in position before extending its sign.
+        sign_extend(Self::IMM_U.place(Self::IMM_U.extract(self.0)), u32::BITS)
     }
 
     /// The J-type offset, sign-extended.
     pub const fn imm_j(self) -> u64 {
         let w = self.0;
         // Bits 20, 19..12, 11 and 10..1, scattered over the word.
-        let offset =
-            ((w >> 31) << 20) | (((w >> 12) & 0xff) << 12) | (((w >> 20) & 1) << 11) | (((w >> 21) & 0x3ff) << 1);
-        Self::sign_extend(offset, 21)
+        let offset = (Self::SIGN.extract(w) << 20)
+            | (Self::J_IMM_19_12.extract(w) << 12)
+            | (Self::J_IMM_11.extract(w) << 11)
+            | (Self::J_IMM_10_1.extract(w) << 1);
+        sign_extend(offset, 21)
     }
 
     /// An R-type instruction.
     pub const fn r(opcode: Opcode, funct3: u32, funct7: u32, rd: Reg, rs1: Reg, rs2: Reg) -> Self {
         Self(
             opcode.bits()
-                | (Self::field(rd) << 7)
-                | (funct3 << 12)
-                | (Self::field(rs1) << 15)
-                | (Self::field(rs2) << 20)
-                | (funct7 << 25),
+                | Self::RD.place(rd.index() as u32)
+                | Self::FUNCT3.shift(funct3)
+                | Self::RS1.place(rs1.index() as u32)
+                | Self::RS2.place(rs2.index() as u32)
+                | Self::FUNCT7.shift(funct7),
         )
     }
 
@@ -199,10 +306,10 @@ impl Instruction {
     pub const fn i(opcode: Opcode, funct3: u32, rd: Reg, rs1: Reg, imm: i32) -> Self {
         Self(
             opcode.bits()
-                | (Self::field(rd) << 7)
-                | (funct3 << 12)
-                | (Self::field(rs1) << 15)
-                | ((imm as u32 & 0xfff) << 20),
+                | Self::RD.place(rd.index() as u32)
+                | Self::FUNCT3.shift(funct3)
+                | Self::RS1.place(rs1.index() as u32)
+                | Self::IMM_I.place(imm as u32),
         )
     }
 
@@ -211,11 +318,11 @@ impl Instruction {
         let o = offset as u32;
         Self(
             Opcode::Store.bits()
-                | ((o & 31) << 7)
-                | (funct3 << 12)
-                | (Self::field(rs1) << 15)
-                | (Self::field(rs2) << 20)
-                | (((o >> 5) & 0x7f) << 25),
+                | Self::RD.place(o)
+                | Self::FUNCT3.shift(funct3)
+                | Self::RS1.place(rs1.index() as u32)
+                | Self::RS2.place(rs2.index() as u32)
+                | Self::FUNCT7.place(o >> Self::RD.width),
         )
     }
 
@@ -224,19 +331,19 @@ impl Instruction {
         let o = offset as u32;
         Self(
             Opcode::Branch.bits()
-                | (((o >> 11) & 1) << 7)
-                | (((o >> 1) & 0xf) << 8)
-                | (funct3 << 12)
-                | (Self::field(rs1) << 15)
-                | (Self::field(rs2) << 20)
-                | (((o >> 5) & 0x3f) << 25)
-                | (((o >> 12) & 1) << 31),
+                | Self::B_IMM_11.place(o >> 11)
+                | Self::B_IMM_4_1.place(o >> 1)
+                | Self::FUNCT3.shift(funct3)
+                | Self::RS1.place(rs1.index() as u32)
+                | Self::RS2.place(rs2.index() as u32)
+                | Self::B_IMM_10_5.place(o >> 5)
+                | Self::SIGN.place(o >> 12),
         )
     }
 
     /// A U-type instruction, `imm20` becoming bits 12 to 31.
     pub const fn u(opcode: Opcode, rd: Reg, imm20: u32) -> Self {
-        Self(opcode.bits() | (Self::field(rd) << 7) | ((imm20 & 0xf_ffff) << 12))
+        Self(opcode.bits() | Self::RD.place(rd.index() as u32) | Self::IMM_U.place(imm20))
     }
 
     /// A `JAL`, the offset's bits 1 to 20 kept.
@@ -244,23 +351,12 @@ impl Instruction {
         let o = offset as u32;
         Self(
             Opcode::Jal.bits()
-                | (Self::field(rd) << 7)
-                | (((o >> 12) & 0xff) << 12)
-                | (((o >> 11) & 1) << 20)
-                | (((o >> 1) & 0x3ff) << 21)
-                | (((o >> 20) & 1) << 31),
+                | Self::RD.place(rd.index() as u32)
+                | Self::J_IMM_19_12.place(o >> 12)
+                | Self::J_IMM_11.place(o >> 11)
+                | Self::J_IMM_10_1.place(o >> 1)
+                | Self::SIGN.place(o >> 20),
         )
-    }
-
-    /// Sign-extend the low `bits` bits of `x`.
-    const fn sign_extend(x: u32, bits: u32) -> u64 {
-        // Move the sign bit to bit 63, then shift back arithmetically.
-        (((x as u64) << (64 - bits)) as i64 >> (64 - bits)) as u64
-    }
-
-    /// A register's number as an encoding field.
-    const fn field(r: Reg) -> u32 {
-        r.index() as u32
     }
 }
 
@@ -528,12 +624,75 @@ mod tests {
 
     proptest! {
         #[test]
+        fn encoded_formats_match_bit_layout(
+            opcode in proptest::sample::select(&Opcode::ALL[..]),
+            funct3 in any::<u32>(), funct7 in any::<u32>(), value in any::<u32>(),
+            rd in any::<Reg>(), rs1 in any::<Reg>(), rs2 in any::<Reg>(),
+        ) {
+            // Independent ISA formulas cover all immediate bits, including truncation and odd offsets.
+            let d = (rd.index() as u32) << 7;
+            let a = (rs1.index() as u32) << 15;
+            let b = (rs2.index() as u32) << 20;
+            let f = funct3 << 12;
+            let expected = [
+                opcode.bits() | d | f | a | b | (funct7 << 25),
+                opcode.bits() | d | f | a | ((value & 0xfff) << 20),
+                0x23 | ((value & 31) << 7) | f | a | b | (((value >> 5) & 0x7f) << 25),
+                0x63 | (((value >> 11) & 1) << 7) | (((value >> 1) & 0xf) << 8)
+                    | f | a | b | (((value >> 5) & 0x3f) << 25) | (((value >> 12) & 1) << 31),
+                opcode.bits() | d | ((value & 0xf_ffff) << 12),
+                0x6f | d | (((value >> 12) & 0xff) << 12) | (((value >> 11) & 1) << 20)
+                    | (((value >> 1) & 0x3ff) << 21) | (((value >> 20) & 1) << 31),
+            ];
+
+            // Function fields retain their full shifted values, even outside the legal encodings.
+            let actual = [
+                Instruction::r(opcode, funct3, funct7, rd, rs1, rs2).bits(),
+                Instruction::i(opcode, funct3, rd, rs1, value as i32).bits(),
+                Instruction::s(funct3, rs1, rs2, value as i32).bits(),
+                Instruction::b(funct3, rs1, rs2, value as i32).bits(),
+                Instruction::u(opcode, rd, value).bits(),
+                Instruction::j(rd, value as i32).bits(),
+            ];
+            prop_assert_eq!(actual, expected);
+        }
+
+        #[test]
+        fn accessors_match_bit_layout(word in any::<u32>()) {
+            // Decode arbitrary words, including reserved instructions, using independent bit slices.
+            let instruction = Instruction::from_bits(word);
+            let opcode = Opcode::ALL.into_iter().find(|op| op.bits() == word & 0x7f);
+            prop_assert_eq!(instruction.opcode(), opcode);
+            prop_assert_eq!(
+                [instruction.rd(), instruction.funct3(), instruction.rs1(), instruction.rs2(),
+                    instruction.shamt(), instruction.funct6(), instruction.funct7()],
+                [(word >> 7) & 31, (word >> 12) & 7, (word >> 15) & 31, (word >> 20) & 31,
+                    (word >> 20) & 63, word >> 26, word >> 25],
+            );
+
+            // Assemble each immediate before extending its sign with native 32-bit arithmetic.
+            let s = ((word >> 25) << 5) | ((word >> 7) & 31);
+            let b = ((word >> 31) << 12) | (((word >> 7) & 1) << 11)
+                | (((word >> 25) & 0x3f) << 5) | (((word >> 8) & 0xf) << 1);
+            let j = ((word >> 31) << 20) | (((word >> 12) & 0xff) << 12)
+                | (((word >> 20) & 1) << 11) | (((word >> 21) & 0x3ff) << 1);
+            prop_assert_eq!(
+                [instruction.imm_i(), instruction.imm_s(), instruction.imm_b(), instruction.imm_u(), instruction.imm_j()],
+                [((word as i32) >> 20) as i64 as u64,
+                    (((s as i32) << 20) >> 20) as i64 as u64,
+                    (((b as i32) << 19) >> 19) as i64 as u64,
+                    (word & 0xffff_f000) as i32 as i64 as u64,
+                    (((j as i32) << 11) >> 11) as i64 as u64],
+            );
+        }
+
+        #[test]
         fn r_type_fields_round_trip(funct3 in 0u32..8, funct7 in 0u32..128, rd in any::<Reg>(), rs1 in any::<Reg>(), rs2 in any::<Reg>()) {
             // Every field written comes back from its accessor.
             let ins = Instruction::r(Opcode::Op, funct3, funct7, rd, rs1, rs2);
             prop_assert_eq!(
                 (ins.opcode(), ins.funct3(), ins.funct7(), ins.rd(), ins.rs1(), ins.rs2()),
-                (Some(Opcode::Op), funct3, funct7, Instruction::field(rd), Instruction::field(rs1), Instruction::field(rs2))
+                (Some(Opcode::Op), funct3, funct7, rd.index() as u32, rs1.index() as u32, rs2.index() as u32)
             );
         }
 
