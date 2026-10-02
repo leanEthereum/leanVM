@@ -40,7 +40,7 @@ pub use entry::{Class, Entry, Target};
 pub use instruction::{BranchOp, ImmOp, Instruction, LoadOp, Opcode, RegOp, ShiftOp, StoreOp};
 pub use machine::{Machine, Trap};
 pub use program::{Program, ProgramError};
-pub use region::{ADVICE_BASE, MAX_LOG_ADVICE, MAX_LOG_RAM, MAX_LOG_TEXT, RAM_BASE, Region, TEXT_BASE};
+pub use region::Region;
 pub use register::{Reg, RegisterFile, Syscall};
 pub use semantics::{
     Alu, BlockAccess, Div, Hash, InstructionClass, Load, Mul, Mulh, Outcome, Shift, Store, WordAccess,

@@ -11,7 +11,7 @@
 use super::python_verifier::PythonStatement;
 use leanvm_core::cpu::Program;
 use leanvm_core::pcs::Rate;
-use leanvm_core::rv::{Guest, Machine, RAM_BASE, TEXT_BASE, Trap};
+use leanvm_core::rv::{Guest, Machine, Region, Trap};
 use leanvm_core::tables::N_TABLES;
 use std::path::{Path, PathBuf};
 
@@ -102,12 +102,16 @@ fn failed_check(test: &Test, machine: &Machine, trap: &Trap) -> Option<String> {
     if !matches!(*trap, Trap::Unmapped { address, .. } if address == link.wrapping_sub(6)) {
         return None;
     }
-    let word = |pc: u64| test.text.get(pc.checked_sub(TEXT_BASE)? as usize / 4).copied();
+    let word = |pc: u64| {
+        test.text
+            .get(pc.checked_sub(Region::TEXT.base())? as usize / 4)
+            .copied()
+    };
     let ram = |address: u64| {
         machine
             .memory()
             .ram()
-            .get(address.checked_sub(RAM_BASE)? as usize / 8)
+            .get(address.checked_sub(Region::RAM.base())? as usize / 8)
             .copied()
     };
     // `ld expected, offset(signature)`, `beq expected, actual`, `jal x5, handler`.

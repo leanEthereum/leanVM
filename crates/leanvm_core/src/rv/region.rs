@@ -1,5 +1,7 @@
 //! The address space: three disjoint regions of words.
 
+use std::ops::Range;
+
 /// A region of the address space: a power of two of words at a fixed base.
 ///
 /// Each base is a multiple of its region's largest size.
@@ -27,14 +29,14 @@ impl Region {
     /// The instructions.
     ///
     /// The base is nonzero, so no Rust function of a guest sits at the null address.
-    pub const TEXT: Self = Self::new(0x1000_0000, 2, 26);
+    pub const TEXT: Self = Self::new(0x1000_0000..0x2000_0000, 4);
 
     /// A second read-write memory, filled by the prover before the run.
     ///
     /// The statement does not fix its contents.
     ///
     /// A guest must check whatever it reads from it.
-    pub const ADVICE: Self = Self::new(0x2000_0000, 3, 26);
+    pub const ADVICE: Self = Self::new(0x2000_0000..0x4000_0000, 8);
 
     /// The read-write memory whose initial image the program fixes.
     ///
@@ -43,16 +45,26 @@ impl Region {
     /// A full RAM ends at `0x8000_0000`.
     ///
     /// Its last 2 KiB are out of reach of an absolute `LUI` address, since RV64 sign-extends bit 31.
-    pub const RAM: Self = Self::new(0x4000_0000, 3, 27);
+    pub const RAM: Self = Self::new(0x4000_0000..0x8000_0000, 8);
 
-    /// A region at `base` of at most `2^max_log_words` words of `2^log_word_bytes` bytes.
-    const fn new(base: u64, log_word_bytes: u32, max_log_words: usize) -> Self {
-        // The XOR addressing above needs a base aligned to the largest region.
-        assert!(base.is_multiple_of(1 << (log_word_bytes as usize + max_log_words)));
+    /// A byte range partitioned into equal words, both sizes powers of two.
+    const fn new(range: Range<u64>, word_bytes: u64) -> Self {
+        // A region holds at least one whole word.
+        assert!(range.start < range.end);
+        let bytes = range.end - range.start;
+        assert!(bytes.is_power_of_two());
+        assert!(word_bytes.is_power_of_two());
+        assert!(word_bytes <= bytes);
+
+        // Aligning the base to the region's size makes addition and XOR addressing agree.
+        assert!(range.start.is_multiple_of(bytes));
+
+        // Dividing two powers of two subtracts their logarithms.
+        let log_word_bytes = word_bytes.trailing_zeros();
         Self {
-            base,
+            base: range.start,
             log_word_bytes,
-            max_log_words,
+            max_log_words: (bytes.trailing_zeros() - log_word_bytes) as usize,
         }
     }
 
@@ -93,9 +105,9 @@ impl Region {
         (index < 1 << log_words).then_some(index as usize)
     }
 
-    /// Whether the bytes `start..end` lie in the largest region.
-    pub const fn contains(self, start: u64, end: u64) -> bool {
-        start >= self.base && end <= self.end(self.max_log_words)
+    /// Whether the byte range lies in the largest region.
+    pub const fn contains(self, range: Range<u64>) -> bool {
+        range.start >= self.base && range.end <= self.end(self.max_log_words)
     }
 
     /// The size, as a base-two logarithm of words, of the region ending at `end`.
@@ -112,37 +124,36 @@ impl Region {
     }
 }
 
-// Invariant: the regions tile the address space without overlap.
-//
-//     text   ends where the advice starts
-//     advice ends where RAM starts
-const _: () = assert!(Region::TEXT.end(Region::TEXT.max_log_words) == Region::ADVICE.base);
-const _: () = assert!(Region::ADVICE.end(Region::ADVICE.max_log_words) == Region::RAM.base);
-
-/// The byte address of the first instruction.
-pub const TEXT_BASE: u64 = Region::TEXT.base;
-
-/// The base-two logarithm of the most instructions a program holds.
-pub const MAX_LOG_TEXT: usize = Region::TEXT.max_log_words;
-
-/// The byte address of the first RAM word.
-pub const RAM_BASE: u64 = Region::RAM.base;
-
-/// The base-two logarithm of the most words RAM holds.
-pub const MAX_LOG_RAM: usize = Region::RAM.max_log_words;
-
-/// The byte address of the first advice word.
-pub const ADVICE_BASE: u64 = Region::ADVICE.base;
-
-/// The base-two logarithm of the most words the advice holds.
-pub const MAX_LOG_ADVICE: usize = Region::ADVICE.max_log_words;
+// The regions are adjacent and do not overlap.
+const _: () = {
+    assert!(Region::TEXT.end(Region::TEXT.max_log_words()) == Region::ADVICE.base());
+    assert!(Region::ADVICE.end(Region::ADVICE.max_log_words()) == Region::RAM.base());
+};
 
 #[cfg(test)]
 mod tests {
+    use std::panic::catch_unwind;
+
     use super::*;
     use proptest::prelude::*;
 
     const REGIONS: [Region; 3] = [Region::TEXT, Region::ADVICE, Region::RAM];
+
+    #[test]
+    fn malformed_regions_are_refused() {
+        // Empty or reversed ranges, partial sizes, invalid words, and a misaligned base.
+        for (start, end, word_bytes) in [
+            (8, 8, 8),
+            (16, 8, 8),
+            (0, 24, 8),
+            (0, 16, 0),
+            (0, 16, 3),
+            (0, 8, 16),
+            (8, 24, 8),
+        ] {
+            assert!(catch_unwind(|| Region::new(start..end, word_bytes)).is_err());
+        }
+    }
 
     proptest! {
         #[test]
@@ -178,7 +189,7 @@ mod tests {
         let ram = Region::RAM;
 
         // No word, part of a word, three words, an end below the base.
-        for end in [RAM_BASE, RAM_BASE + 4, RAM_BASE + 24, RAM_BASE - 8] {
+        for end in [ram.base(), ram.base() + 4, ram.base() + 24, ram.base() - 8] {
             assert_eq!(ram.log_words_ending_at(end), None, "{end:#x}");
         }
     }

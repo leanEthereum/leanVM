@@ -19,7 +19,7 @@ fn proving_without_the_arena() {
         .branch(Bne, Reg::T0, Reg::ZERO, "loop")
         .exit()
         .finish();
-    let program = Program::new(&text, TEXT_BASE, vec![], 2, 0).expect("valid instruction program");
+    let program = Program::new(&text, Region::TEXT.base(), vec![], 2, 0).expect("valid instruction program");
     let Proved { proof, output, .. } = prover.prove(&program, &[], Rate::MIN).expect("the run halts");
     assert_eq!(output, [300, 0, 0, 0]);
     verify(&program, &output, &proof).expect("the proof verifies");

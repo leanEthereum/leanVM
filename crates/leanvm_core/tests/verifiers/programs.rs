@@ -3,8 +3,8 @@
 use super::python_verifier::PythonStatement;
 use leanvm_core::cpu::{Program, ProveError};
 use leanvm_core::pcs::Rate;
+use leanvm_core::rv::Region;
 use leanvm_core::rv::asm::*;
-use leanvm_core::rv::{ADVICE_BASE, RAM_BASE, TEXT_BASE};
 
 const STEPS: u64 = 1000;
 
@@ -29,7 +29,7 @@ pub fn fibonacci() -> (Program, [u64; 4]) {
         (a, b) = (b, a.wrapping_add(b));
     }
     (
-        Program::new(&text, TEXT_BASE, vec![], 2, 0).expect("valid instruction program"),
+        Program::new(&text, Region::TEXT.base(), vec![], 2, 0).expect("valid instruction program"),
         [a, 0, 0, 0],
     )
 }
@@ -103,7 +103,7 @@ fn alu_instructions_prove_and_verify() {
         .r(Add, Reg::A2, Reg::A2, Reg::A2)
         .r(Add, Reg::A4, Reg::A4, Reg::A4)
         .jalr(Reg::ZERO, Reg::RA, 0);
-    let program = Program::new(&a.finish(), TEXT_BASE, vec![], 2, 0).expect("valid instruction program");
+    let program = Program::new(&a.finish(), Region::TEXT.base(), vec![], 2, 0).expect("valid instruction program");
     let expected = leanvm_core::rv::Machine::new(program.rv(), &[])
         .run()
         .expect("the run halts");
@@ -117,10 +117,10 @@ fn alu_instructions_prove_and_verify() {
 #[test]
 fn loads_and_stores_prove_and_verify() {
     const LOG_RAM: usize = 6;
-    const DATA: u64 = RAM_BASE;
+    const DATA: u64 = Region::RAM.base();
     let image = vec![5u64, 3, 0xffff_ffff_ffff_fff9, 1, 8, 0x8877_6655_4433_2211, 7, 4];
     let mut a = Asm::new();
-    a.li(Reg::SP, RAM_BASE + (8 << LOG_RAM))
+    a.li(Reg::SP, Region::RAM.base() + (8 << LOG_RAM))
         .li(Reg::A0, DATA)
         .jal(Reg::RA, "sort")
         .li(Reg::T0, DATA)
@@ -165,7 +165,7 @@ fn loads_and_stores_prove_and_verify() {
         .load(Ld, Reg::RA, 8, Reg::SP)
         .i(Addi, Reg::SP, Reg::SP, 16)
         .jalr(Reg::ZERO, Reg::RA, 0);
-    let program = Program::new(&a.finish(), TEXT_BASE, image, LOG_RAM, 0).expect("valid instruction program");
+    let program = Program::new(&a.finish(), Region::TEXT.base(), image, LOG_RAM, 0).expect("valid instruction program");
     let expected = leanvm_core::rv::Machine::new(program.rv(), &[])
         .run()
         .expect("the run halts");
@@ -192,7 +192,8 @@ fn shifts_and_multiplications_prove_and_verify() {
             .r(Xor, Reg::A2, Reg::A2, Reg::T0)
             .r(Sub, Reg::A3, Reg::A3, Reg::T0);
     }
-    let program = Program::new(&a.exit().finish(), TEXT_BASE, vec![], 2, 0).expect("valid instruction program");
+    let program =
+        Program::new(&a.exit().finish(), Region::TEXT.base(), vec![], 2, 0).expect("valid instruction program");
     let expected = leanvm_core::rv::Machine::new(program.rv(), &[])
         .run()
         .expect("the run halts");
@@ -221,20 +222,19 @@ fn divisions_prove_and_verify() {
                 .r(Sub, Reg::A2, Reg::A2, Reg::A1);
         }
     }
-    let program = Program::new(&a.exit().finish(), TEXT_BASE, vec![], 2, 0).expect("valid instruction program");
+    let program =
+        Program::new(&a.exit().finish(), Region::TEXT.base(), vec![], 2, 0).expect("valid instruction program");
     let expected = leanvm_core::rv::Machine::new(program.rv(), &[])
         .run()
         .expect("the run halts");
     proves_and_verifies("div", &program, expected);
 }
 
-/// BLAKE2s of 100 bytes through the precompile: two compressions of the block at
-/// `RAM_BASE + 128`, the chaining value copied forward between them and the second
-/// message block loaded from the image, checked against the host's hash.
 #[test]
 fn blake2s_precompile_proves_and_verifies() {
     use leanvm_core::rv::Hash;
-    const BLOCK: u64 = RAM_BASE + 128;
+    // Hash 100 bytes in two compressions, using a block 128 bytes into RAM.
+    const BLOCK: u64 = Region::RAM.base() + 128;
     let data: Vec<u8> = (0..100u32).map(|i| (i * 37 + 11) as u8).collect();
     let words = |bytes: &[u8]| -> Vec<u64> {
         let mut padded = bytes.to_vec();
@@ -250,7 +250,7 @@ fn blake2s_precompile_proves_and_verifies() {
         .collect();
     // The image: the block (its chaining value seeded, its message the first 64 bytes),
     // then the second message block.
-    let mut image = vec![0u64; ((BLOCK - RAM_BASE) / 8) as usize];
+    let mut image = vec![0u64; ((BLOCK - Region::RAM.base()) / 8) as usize];
     image.extend(&iv);
     image.extend([0; 4]);
     image.extend(words(&data[..64]));
@@ -272,7 +272,8 @@ fn blake2s_precompile_proves_and_verifies() {
     for (i, reg) in [Reg::A0, Reg::A1, Reg::A2, Reg::A3].into_iter().enumerate() {
         a.load(Ld, reg, (Hash::OUT + 8 * i as u64) as i32, Reg::S0);
     }
-    let program = Program::new(&a.exit().finish(), TEXT_BASE, image, 7, 0).expect("valid instruction program");
+    let program =
+        Program::new(&a.exit().finish(), Region::TEXT.base(), image, 7, 0).expect("valid instruction program");
     let expected: [u64; 4] = words(&primitives::hash::hash(&data))[..4].try_into().unwrap();
     proves_and_verifies("blake2s", &program, expected);
 
@@ -282,11 +283,11 @@ fn blake2s_precompile_proves_and_verifies() {
         .blake2s(Reg::S0, Reg::ZERO, true)
         .exit()
         .finish();
-    let program = Program::new(&text, TEXT_BASE, vec![], 7, 0).expect("valid instruction program");
+    let program = Program::new(&text, Region::TEXT.base(), vec![], 7, 0).expect("valid instruction program");
     assert_eq!(
         program.prove(&[], Rate::MIN).err(),
         Some(ProveError::Trap(leanvm_core::rv::Trap::Misaligned {
-            pc: TEXT_BASE + 8,
+            pc: Region::TEXT.base() + 8,
             address: BLOCK + 4
         }))
     );
@@ -298,7 +299,7 @@ fn blake2s_precompile_proves_and_verifies() {
 fn advice_proves_and_verifies() {
     const LOG_ADVICE: usize = 3;
     let mut a = Asm::new();
-    a.li(Reg::T0, ADVICE_BASE)
+    a.li(Reg::T0, Region::ADVICE.base())
         .load(Ld, Reg::A0, 0, Reg::T0)
         .load(Ld, Reg::T1, 8, Reg::T0)
         .r(Add, Reg::A0, Reg::A0, Reg::T1)
@@ -307,7 +308,8 @@ fn advice_proves_and_verifies() {
         .load(Ld, Reg::A2, 56, Reg::T0)
         .li(Reg::A3, 0)
         .exit();
-    let program = Program::new(&a.finish(), TEXT_BASE, vec![], 2, LOG_ADVICE).expect("valid instruction program");
+    let program =
+        Program::new(&a.finish(), Region::TEXT.base(), vec![], 2, LOG_ADVICE).expect("valid instruction program");
     for advice in [
         vec![3, 4, 0xdead_beef_0000_0005u64],
         vec![u64::MAX, 1, 0xffff_ffff_ffff_ffff, 9, 9, 9, 9, 9],
@@ -322,11 +324,11 @@ fn advice_proves_and_verifies() {
     }
     // Past the region is nowhere, like past RAM.
     let text = Asm::new()
-        .li(Reg::T0, ADVICE_BASE + (8 << LOG_ADVICE))
+        .li(Reg::T0, Region::ADVICE.base() + (8 << LOG_ADVICE))
         .load(Ld, Reg::A0, 0, Reg::T0)
         .exit()
         .finish();
-    let program = Program::new(&text, TEXT_BASE, vec![], 2, LOG_ADVICE).expect("valid instruction program");
+    let program = Program::new(&text, Region::TEXT.base(), vec![], 2, LOG_ADVICE).expect("valid instruction program");
     assert!(matches!(
         program.prove(&[], Rate::MIN).err(),
         Some(ProveError::Trap(leanvm_core::rv::Trap::Unmapped { .. }))
@@ -337,9 +339,11 @@ fn advice_proves_and_verifies() {
 #[test]
 fn a_trap_is_reported() {
     let text = Asm::new().word(0x0010_0073).exit().finish();
-    let program = Program::new(&text, TEXT_BASE, vec![], 2, 0).expect("valid instruction program");
+    let program = Program::new(&text, Region::TEXT.base(), vec![], 2, 0).expect("valid instruction program");
     assert_eq!(
         program.prove(&[], Rate::MIN).err(),
-        Some(ProveError::Trap(leanvm_core::rv::Trap::Illegal { pc: TEXT_BASE }))
+        Some(ProveError::Trap(leanvm_core::rv::Trap::Illegal {
+            pc: Region::TEXT.base()
+        }))
     );
 }

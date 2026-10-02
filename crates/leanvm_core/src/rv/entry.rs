@@ -441,7 +441,7 @@ impl Entry {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::rv::TEXT_BASE;
+    use crate::rv::Region;
     use crate::rv::instruction::{BranchOp, ImmOp, LoadOp, RegOp, ShiftOp, StoreOp};
     use crate::rv::register::Reg;
     use proptest::prelude::*;
@@ -513,13 +513,17 @@ mod tests {
         assert_eq!(Alu::LEGAL.len(), witnesses.len());
 
         for (&flags, word) in Alu::LEGAL.iter().zip(witnesses) {
-            let decoded = Entry::decode(word, TEXT_BASE);
+            let decoded = Entry::decode(word, Region::TEXT.base());
             assert_eq!((decoded.class, decoded.flags), (Class::Alu, flags));
 
             // Mutation: every target kind, link and jalr.
             //
             // Only the decoded shape is well formed, whatever the fixed address.
-            for target in [Target::Next, Target::Abs(TEXT_BASE), Target::Abs(TEXT_BASE + 4)] {
+            for target in [
+                Target::Next,
+                Target::Abs(Region::TEXT.base()),
+                Target::Abs(Region::TEXT.base() + 4),
+            ] {
                 for link in [false, true] {
                     for jalr in [false, true] {
                         let candidate = Entry {
@@ -546,7 +550,7 @@ mod tests {
         //
         //     ecall, blake2s, blake2s on the final block
         for word in [0x73, 0x0000_000b, 0x0000_100b] {
-            assert!(Entry::decode(word, TEXT_BASE).is_well_formed());
+            assert!(Entry::decode(word, Region::TEXT.base()).is_well_formed());
         }
 
         // Every opcode and function, every 12-bit top, with fixed registers.
@@ -556,7 +560,7 @@ mod tests {
             for f3 in 0..8u32 {
                 for top in 0..(1u32 << 12) {
                     let word = opcode | (f3 << 12) | (top << 20) | (0x15 << 7) | (0x0a << 15);
-                    let e = Entry::decode(word, TEXT_BASE);
+                    let e = Entry::decode(word, Region::TEXT.base());
                     assert!(e.is_well_formed(), "{word:#010x} decodes to {e:?}");
                 }
             }
@@ -580,7 +584,7 @@ mod tests {
 
         // Each no-op decodes to its class, reads x0 twice, writes the sink, and has no immediate.
         for class in classes {
-            let e = Entry::decode(class.nop().expect("a legal class").bits(), TEXT_BASE);
+            let e = Entry::decode(class.nop().expect("a legal class").bits(), Region::TEXT.base());
             assert_eq!(
                 (e.class, e.a1, e.a2, e.ad, e.imm),
                 (class, 0, 0, RegisterFile::SINK, 0),
@@ -623,7 +627,7 @@ mod tests {
         #[test]
         fn register_operations_decode_to_their_operands(op in proptest::sample::select(&RegOp::ALL[..]), rd in any::<Reg>(), rs1 in any::<Reg>(), rs2 in any::<Reg>()) {
             // Invariant: the assembler and the decoder agree on every register field.
-            let e = Entry::decode(op.encode(rd, rs1, rs2).bits(), TEXT_BASE);
+            let e = Entry::decode(op.encode(rd, rs1, rs2).bits(), Region::TEXT.base());
             let ad = if rd.index() == 0 { RegisterFile::SINK } else { rd.index() as u8 };
             prop_assert_eq!((e.a1, e.a2, e.ad, e.imm), (rs1.index() as u8, rs2.index() as u8, ad, 0));
             prop_assert!(e.is_well_formed());
@@ -632,7 +636,7 @@ mod tests {
         #[test]
         fn immediate_operations_decode_to_their_immediate(op in proptest::sample::select(&ImmOp::ALL[..]), imm in -2048i32..2048, rd in any::<Reg>(), rs1 in any::<Reg>()) {
             // The 12-bit immediate is sign-extended, and the second read is x0.
-            let e = Entry::decode(op.encode(rd, rs1, imm).bits(), TEXT_BASE);
+            let e = Entry::decode(op.encode(rd, rs1, imm).bits(), Region::TEXT.base());
             prop_assert_eq!((e.a1, e.a2, e.imm), (rs1.index() as u8, 0, imm as i64 as u64));
         }
 
@@ -640,7 +644,7 @@ mod tests {
         fn shifts_decode_to_their_amount(op in proptest::sample::select(&ShiftOp::ALL[..]), raw in any::<u32>(), rd in any::<Reg>(), rs1 in any::<Reg>()) {
             // Any amount the format holds is the entry's immediate.
             let amount = raw % (1 << op.amount_bits());
-            let e = Entry::decode(op.encode(rd, rs1, amount).bits(), TEXT_BASE);
+            let e = Entry::decode(op.encode(rd, rs1, amount).bits(), Region::TEXT.base());
             prop_assert_eq!((e.class, e.imm), (Class::Shift, amount as u64));
         }
 
@@ -656,8 +660,8 @@ mod tests {
         fn branches_fold_their_target(op in proptest::sample::select(&BranchOp::ALL[..]), half in -2048i32..2048, rs1 in any::<Reg>(), rs2 in any::<Reg>()) {
             // The target is pc plus the offset, folded at decoding.
             let offset = 2 * half;
-            let e = Entry::decode(op.encode(rs1, rs2, offset).bits(), TEXT_BASE);
-            prop_assert_eq!(e.target, Target::Abs(TEXT_BASE.wrapping_add(offset as i64 as u64)));
+            let e = Entry::decode(op.encode(rs1, rs2, offset).bits(), Region::TEXT.base());
+            prop_assert_eq!(e.target, Target::Abs(Region::TEXT.base().wrapping_add(offset as i64 as u64)));
         }
     }
 }

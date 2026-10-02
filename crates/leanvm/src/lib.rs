@@ -18,7 +18,7 @@ use leanvm_core::cpu::{self, CpuError, ProveError};
 pub use leanvm_core::{
     cpu::{Program, Stats},
     pcs::{InvalidRate, Rate},
-    rv::{ADVICE_BASE, ElfError, ProgramError, RAM_BASE, TEXT_BASE, Trap, asm},
+    rv::{ElfError, ProgramError, Region, Trap, asm},
 };
 
 /// The process's proving setup: the worker pool and, unless declined, the proving arena.

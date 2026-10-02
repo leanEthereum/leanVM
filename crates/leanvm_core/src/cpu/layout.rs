@@ -13,7 +13,7 @@ use super::error::CpuError;
 use super::execute::Trace;
 use crate::constraints::Claims;
 use crate::leaf::{Block, ColumnClaim, Coord, Producer, SparseColumn};
-use crate::rv::{self, ADVICE_BASE, RAM_BASE, Reg, RegisterFile, Syscall, TEXT_BASE};
+use crate::rv::{self, Reg, Region, RegisterFile, Syscall};
 use crate::tables::{self, Part, SEP_BYTECODE, SEP_STATE};
 use crate::witness::{self, Placement, Source, StackShape, Window};
 use crate::{class_flock, pcs};
@@ -103,7 +103,7 @@ impl Framework {
                 let image = Sparse(Arc::new(SparseColumn::new(p.log_ram(), &[(0, p.image())])));
                 array(
                     tables::SEP_MEM,
-                    word(RAM_BASE),
+                    word(Region::RAM.base()),
                     Some(image),
                     Shared::RamTs,
                     Shared::RamFin,
@@ -112,7 +112,7 @@ impl Framework {
             // The one array seeded from a committed column: the prover's words.
             Self::Advice => array(
                 tables::SEP_MEM,
-                word(ADVICE_BASE),
+                word(Region::ADVICE.base()),
                 Some(Col(Shared::AdvInit.col())),
                 Shared::AdvTs,
                 Shared::AdvFin,
@@ -175,10 +175,10 @@ impl Lookup {
     /// The tuple the array's producer pushes for each entry, none of it committed.
     pub fn tuple(self, p: &rv::Program) -> Vec<Coord> {
         match self {
-            // Entry `i` at its address `TEXT_BASE + 4i`, then the program's public columns.
+            // Entry `i` at its byte address, four bytes after the preceding one, then the program's public columns.
             Self::Bytecode => {
                 let pc = Coord::IntIndex {
-                    base: F64(TEXT_BASE),
+                    base: F64(Region::TEXT.base()),
                     shift: 2,
                 };
                 [Coord::Const(SEP_BYTECODE), pc]

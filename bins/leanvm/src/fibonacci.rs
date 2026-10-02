@@ -3,7 +3,7 @@
 
 use bench::Plan;
 use leanvm::asm::*;
-use leanvm::{Program, Proved, Prover, Rate, TEXT_BASE, verify};
+use leanvm::{Program, Proved, Prover, Rate, Region, verify};
 use primitives::{pretty_f64, pretty_integer};
 
 /// Prove and verify `n` steps of Fibonacci, binding `F(n) mod 2^64` as the output. Prints the benchmark report. Proving runs one discarded warmup pass
@@ -80,7 +80,7 @@ pub fn fibonacci_program(fib_n: usize) -> (Program, [u64; 4]) {
         b = b.wrapping_add(a);
     }
     (
-        Program::new(&text.finish(), TEXT_BASE, vec![], 2, 0).expect("valid instruction program"),
+        Program::new(&text.finish(), Region::TEXT.base(), vec![], 2, 0).expect("valid instruction program"),
         [a, 0, 0, 0],
     )
 }

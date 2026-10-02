@@ -12,7 +12,7 @@ use crate::class_flock;
 use crate::constraints;
 use crate::leaf;
 use crate::pcs;
-use crate::rv::{self, Machine};
+use crate::rv::{self, Machine, Region};
 use crate::tables::{self, CLOCK_START, CYCLE, MAX_CYCLES};
 use ::pcs::pack::PACKING_WIDTH;
 use fiat_shamir::transcript::{Challenger, Proof, ProverState, RawProof, VerifierState};
@@ -77,7 +77,7 @@ impl Program {
             .len()
             .checked_add(1 + FillBlocks::WORDS + 2)
             .and_then(usize::checked_next_power_of_two)
-            .is_some_and(|total| total <= 1 << rv::MAX_LOG_TEXT);
+            .is_some_and(|total| total <= 1 << Region::TEXT.max_log_words());
         if !fits {
             return Err(rv::ProgramError::TextTooLarge);
         }
@@ -491,7 +491,13 @@ mod tests {
     fn construction_refuses_an_entry_or_a_size_out_of_range() {
         // An entry point outside the one-word text, misaligned, or in what is appended to it.
         let text = [0x0000_0073];
-        for entry in [0, rv::TEXT_BASE + 2, rv::TEXT_BASE + 4, rv::TEXT_BASE + 8, u64::MAX] {
+        for entry in [
+            0,
+            Region::TEXT.base() + 2,
+            Region::TEXT.base() + 4,
+            Region::TEXT.base() + 8,
+            u64::MAX,
+        ] {
             assert!(matches!(
                 Program::new(&text, entry, vec![], 0, 0),
                 Err(rv::ProgramError::EntryPoint)
@@ -500,21 +506,21 @@ mod tests {
 
         // An empty text has no entry point at all.
         assert!(matches!(
-            Program::new(&[], rv::TEXT_BASE, vec![], 0, 0),
+            Program::new(&[], Region::TEXT.base(), vec![], 0, 0),
             Err(rv::ProgramError::EntryPoint)
         ));
 
         // An image larger than RAM, RAM or the advice beyond its region.
         assert!(matches!(
-            Program::new(&text, rv::TEXT_BASE, vec![0, 0], 0, 0),
+            Program::new(&text, Region::TEXT.base(), vec![0, 0], 0, 0),
             Err(rv::ProgramError::RamSize)
         ));
         assert!(matches!(
-            Program::new(&text, rv::TEXT_BASE, vec![], usize::MAX, 0),
+            Program::new(&text, Region::TEXT.base(), vec![], usize::MAX, 0),
             Err(rv::ProgramError::RamSize)
         ));
         assert!(matches!(
-            Program::new(&text, rv::TEXT_BASE, vec![], 0, usize::MAX),
+            Program::new(&text, Region::TEXT.base(), vec![], 0, usize::MAX),
             Err(rv::ProgramError::AdviceSize)
         ));
     }
@@ -522,8 +528,8 @@ mod tests {
     #[test]
     fn the_text_region_reserves_the_fill_blocks() {
         // The largest text that fits, after the illegal word, the fill blocks, and the two slots `rv` appends.
-        let limit = (1 << rv::MAX_LOG_TEXT) - 1 - FillBlocks::WORDS - 2;
-        let program = |words: usize| Program::new(&vec![0; words], rv::TEXT_BASE, vec![], 0, 0);
+        let limit = (1 << Region::TEXT.max_log_words()) - 1 - FillBlocks::WORDS - 2;
+        let program = |words: usize| Program::new(&vec![0; words], Region::TEXT.base(), vec![], 0, 0);
         assert!(program(limit).is_ok());
 
         // One word more no longer fits.
@@ -533,14 +539,16 @@ mod tests {
     #[test]
     fn illegal_encodings_share_one_identity() {
         // Two different illegal words decode to the same entry, so to the same digest.
-        let program = Program::new(&[0], rv::TEXT_BASE, vec![], 0, 0).unwrap();
-        let same = Program::new(&[u32::MAX], rv::TEXT_BASE, vec![], 0, 0).unwrap();
+        let program = Program::new(&[0], Region::TEXT.base(), vec![], 0, 0).unwrap();
+        let same = Program::new(&[u32::MAX], Region::TEXT.base(), vec![], 0, 0).unwrap();
         assert_eq!(program.digest(), same.digest());
 
         // Running it traps on the first instruction.
         assert_eq!(
             rv::Machine::new(program.rv(), &[]).run_for(1),
-            Err(rv::Trap::Illegal { pc: rv::TEXT_BASE })
+            Err(rv::Trap::Illegal {
+                pc: Region::TEXT.base()
+            })
         );
     }
 
@@ -548,7 +556,7 @@ mod tests {
     fn the_digest_binds_every_public_component() {
         // Fixture: `a0 = 5; exit`, a one-word image, RAM of 4 words, no advice.
         let text = Asm::new().i(Addi, Reg::A0, Reg::ZERO, 5).exit().finish();
-        let program = Program::new(&text, rv::TEXT_BASE, vec![1], 2, 0).expect("a valid program");
+        let program = Program::new(&text, Region::TEXT.base(), vec![1], 2, 0).expect("a valid program");
         assert_eq!(program.digest(), program.clone().digest());
 
         // Mutation: change one component at a time.
@@ -557,12 +565,12 @@ mod tests {
         let mut changed_text = text.clone();
         changed_text[0] = Asm::new().i(Addi, Reg::A0, Reg::ZERO, 6).finish()[0];
         let changed = [
-            Program::new(&changed_text, rv::TEXT_BASE, vec![1], 2, 0),
-            Program::new(&text, rv::TEXT_BASE + 4, vec![1], 2, 0),
-            Program::new(&text, rv::TEXT_BASE, vec![2], 2, 0),
-            Program::new(&text, rv::TEXT_BASE, vec![1, 0], 2, 0),
-            Program::new(&text, rv::TEXT_BASE, vec![1], 3, 0),
-            Program::new(&text, rv::TEXT_BASE, vec![1], 2, 1),
+            Program::new(&changed_text, Region::TEXT.base(), vec![1], 2, 0),
+            Program::new(&text, Region::TEXT.base() + 4, vec![1], 2, 0),
+            Program::new(&text, Region::TEXT.base(), vec![2], 2, 0),
+            Program::new(&text, Region::TEXT.base(), vec![1, 0], 2, 0),
+            Program::new(&text, Region::TEXT.base(), vec![1], 3, 0),
+            Program::new(&text, Region::TEXT.base(), vec![1], 2, 1),
         ];
         for changed in changed {
             assert_ne!(program.digest(), changed.expect("a valid program").digest());
@@ -633,7 +641,7 @@ mod tests {
     #[test]
     fn an_honest_run_balances() {
         let text = Asm::new().i(Addi, Reg::A0, Reg::ZERO, 5).exit().finish();
-        let program = Program::new(&text, rv::TEXT_BASE, vec![], 2, 0).expect("valid instruction program");
+        let program = Program::new(&text, Region::TEXT.base(), vec![], 2, 0).expect("valid instruction program");
         let w = Witness::build(&program, &program.execute(&[]).unwrap());
         let unmatched = unmatched(&w);
         assert!(
@@ -646,11 +654,11 @@ mod tests {
     #[test]
     fn only_ecall_can_terminate_the_state_channel() {
         let prototype = Asm::new()
-            .li(Reg::T0, rv::TEXT_BASE)
+            .li(Reg::T0, Region::TEXT.base())
             .i(Addi, Reg::A0, Reg::ZERO, 42)
             .exit()
             .finish();
-        let halt = Program::new(&prototype, rv::TEXT_BASE, vec![], 2, 0)
+        let halt = Program::new(&prototype, Region::TEXT.base(), vec![], 2, 0)
             .expect("valid exit program")
             .rv
             .halt_pc();
@@ -659,7 +667,7 @@ mod tests {
             .i(Addi, Reg::A0, Reg::ZERO, 42)
             .exit()
             .finish();
-        let honest_program = Program::new(&original, rv::TEXT_BASE, vec![], 2, 0).expect("valid exit program");
+        let honest_program = Program::new(&original, Region::TEXT.base(), vec![], 2, 0).expect("valid exit program");
         assert_eq!(honest_program.rv.halt_pc(), halt);
         let exit_index = original.len() - 1;
         let pc = honest_program.rv.pc_of(exit_index);
@@ -669,7 +677,7 @@ mod tests {
         ] {
             let mut text = original.clone();
             text[exit_index] = instruction.bits();
-            let program = Program::new(&text, rv::TEXT_BASE, vec![], 2, 0).expect("valid jump program");
+            let program = Program::new(&text, Region::TEXT.base(), vec![], 2, 0).expect("valid jump program");
             assert!(matches!(program.execute(&[]), Err(ProveError::Trap(rv::Trap::Illegal { pc })) if pc == halt));
 
             // Forge the terminal row directly, bypassing the interpreter's trap.
@@ -709,13 +717,13 @@ mod tests {
     #[test]
     fn a_forged_load_unbalances_the_bus() {
         let text = Asm::new()
-            .li(Reg::T0, rv::RAM_BASE + 32)
+            .li(Reg::T0, Region::RAM.base() + 32)
             .i(Addi, Reg::T1, Reg::ZERO, 5)
             .store(Sd, Reg::T1, 0, Reg::T0)
             .load(Ld, Reg::A0, 0, Reg::T0)
             .exit()
             .finish();
-        let program = Program::new(&text, rv::TEXT_BASE, vec![], 3, 0).expect("valid instruction program");
+        let program = Program::new(&text, Region::TEXT.base(), vec![], 3, 0).expect("valid instruction program");
         let mut forged = program.execute(&[]).unwrap();
         assert_eq!(forged.output, [5, 0, 0, 0]);
         let load = tables::table_of(rv::Class::Load).unwrap();
@@ -733,17 +741,17 @@ mod tests {
     fn a_forged_store_unbalances_the_bus() {
         // Invariant: a store cannot write a value its `rs2` does not hold.
         //
-        // Fixture state: `t1 = 5` is stored at `RAM_BASE + 32`, then loaded into `a0`.
+        // Fixture state: `t1 = 5` is stored in RAM's fifth word, then loaded into `a0`.
         // Mutation: the store writes 7, and the circuit's instance, the cell, the load and the output follow it.
         // So only the store's read of `t1` is left to refuse it.
         let text = Asm::new()
-            .li(Reg::T0, rv::RAM_BASE + 32)
+            .li(Reg::T0, Region::RAM.base() + 32)
             .i(Addi, Reg::T1, Reg::ZERO, 5)
             .store(Sd, Reg::T1, 0, Reg::T0)
             .load(Ld, Reg::A0, 0, Reg::T0)
             .exit()
             .finish();
-        let program = Program::new(&text, rv::TEXT_BASE, vec![], 3, 0).expect("valid instruction program");
+        let program = Program::new(&text, Region::TEXT.base(), vec![], 3, 0).expect("valid instruction program");
         let mut forged = program.execute(&[]).unwrap();
         let tables = [rv::Class::Store, rv::Class::Load].map(|c| tables::table_of(c).unwrap());
         let [store, load] = forged.trace.rows.get_disjoint_mut(tables).unwrap();
@@ -775,7 +783,7 @@ mod tests {
             .r(Add, Reg::A0, Reg::T0, Reg::T1)
             .exit()
             .finish();
-        let program = Program::new(&text, rv::TEXT_BASE, vec![], 2, 0).expect("valid instruction program");
+        let program = Program::new(&text, Region::TEXT.base(), vec![], 2, 0).expect("valid instruction program");
         let honest = program.execute(&[]).unwrap();
         assert_eq!(honest.output, [12, 0, 0, 0]);
         let (proof, _) = program.prove_execution(&honest, pcs::Rate::MIN);
@@ -807,7 +815,7 @@ mod tests {
     #[test]
     fn a_forged_bytecode_read_unbalances_the_bus() {
         let text = Asm::new().i(Addi, Reg::A0, Reg::ZERO, 5).exit().finish();
-        let program = Program::new(&text, rv::TEXT_BASE, vec![], 2, 0).expect("valid instruction program");
+        let program = Program::new(&text, Region::TEXT.base(), vec![], 2, 0).expect("valid instruction program");
         let exec = program.execute(&[]).unwrap();
         let alu = tables::table_of(rv::Class::Alu).unwrap();
         let row = exec.trace.rows[alu].iter().position(|r| r.index == 0).unwrap();
@@ -830,7 +838,7 @@ mod tests {
     #[test]
     fn a_wrong_multiplicity_unbalances_the_bus() {
         let text = Asm::new().i(Addi, Reg::A0, Reg::ZERO, 5).exit().finish();
-        let program = Program::new(&text, rv::TEXT_BASE, vec![], 2, 0).expect("valid instruction program");
+        let program = Program::new(&text, Region::TEXT.base(), vec![], 2, 0).expect("valid instruction program");
         let exec = program.execute(&[]).unwrap();
         for (p, col) in Lookup::ALL
             .map(|lookup| lookup.multiplicity().col())
@@ -867,7 +875,7 @@ mod tests {
             .r(Add, Reg::A0, Reg::T0, Reg::ZERO)
             .exit()
             .finish();
-        let program = Program::new(&text, rv::TEXT_BASE, vec![], 2, 0).expect("valid instruction program");
+        let program = Program::new(&text, Region::TEXT.base(), vec![], 2, 0).expect("valid instruction program");
         let mut forged = program.execute(&[]).unwrap();
         let row = &mut forged.trace.rows[0][1];
         (row.v1, row.out, row.prev[0]) = (9, 9, row.ts);
@@ -894,7 +902,7 @@ mod tests {
             .label("spin")
             .jal(Reg::A1, "spin")
             .finish();
-        let program = Program::new(&text, rv::TEXT_BASE, vec![], 2, 0).expect("valid instruction program");
+        let program = Program::new(&text, Region::TEXT.base(), vec![], 2, 0).expect("valid instruction program");
         let mut forged = program.execute(&[]).unwrap();
         let spin = text.len() - 1;
         let mut row = padding_jump(&program, spin);
@@ -925,7 +933,7 @@ mod tests {
             .label("spin")
             .jal(Reg::T0, "spin")
             .finish();
-        let program = Program::new(&text, rv::TEXT_BASE, vec![], 2, 0).expect("valid instruction program");
+        let program = Program::new(&text, Region::TEXT.base(), vec![], 2, 0).expect("valid instruction program");
         let mut forged = program.execute(&[]).unwrap();
         let spin = text.len() - 1;
         let link = program.rv.pc_of(spin) + 4;
@@ -952,7 +960,7 @@ mod tests {
         // Mutation: the exit's write pulls the tuple it pushes, the sink's seed meeting its final.
         // Its clock circuit flags the failure, and the announced final clock carries it, so the bus balances.
         let text = Asm::new().i(Addi, Reg::A0, Reg::ZERO, 42).exit().finish();
-        let program = Program::new(&text, rv::TEXT_BASE, vec![], 2, 0).expect("valid instruction program");
+        let program = Program::new(&text, Region::TEXT.base(), vec![], 2, 0).expect("valid instruction program");
         let mut forged = program.execute(&[]).unwrap();
         let exit = forged.trace.rows[0].iter_mut().find(|r| r.index == 2).unwrap();
         (exit.prev[2], exit.vd_old) = (exit.ts | 3, exit.out);

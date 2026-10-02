@@ -535,7 +535,7 @@ impl Loaded {
             if segment.is_writable() {
                 return Err(ElfError::WritableText { vaddr });
             }
-            if !vaddr.is_multiple_of(4) || !Region::TEXT.contains(vaddr, end) {
+            if !vaddr.is_multiple_of(4) || !Region::TEXT.contains(vaddr..end) {
                 return Err(ElfError::TextOutsideRegion { vaddr });
             }
             let offset = vaddr - Region::TEXT.base();
@@ -549,7 +549,7 @@ impl Loaded {
             Self::write::<4>(&mut self.text, offset, bytes);
         } else {
             // Data lies in RAM, and its file bytes are no larger than the file.
-            if !Region::RAM.contains(vaddr, end) {
+            if !Region::RAM.contains(vaddr..end) {
                 return Err(ElfError::DataOutsideRam { vaddr });
             }
             self.data_end = self.data_end.max(end);

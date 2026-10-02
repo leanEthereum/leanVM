@@ -218,7 +218,7 @@ impl Asm {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::rv::TEXT_BASE;
+    use crate::rv::Region;
     use crate::rv::entry::{Class, Entry, Target};
 
     #[test]
@@ -238,9 +238,9 @@ mod tests {
             .finish();
 
         // The decoder folds each offset into its absolute target.
-        let entry = |i: usize| Entry::decode(text[i], TEXT_BASE + 4 * i as u64);
-        assert_eq!(entry(0).target, Target::Abs(TEXT_BASE));
-        assert_eq!(entry(1).target, Target::Abs(TEXT_BASE + 12));
+        let entry = |i: usize| Entry::decode(text[i], Region::TEXT.base() + 4 * i as u64);
+        assert_eq!(entry(0).target, Target::Abs(Region::TEXT.base()));
+        assert_eq!(entry(1).target, Target::Abs(Region::TEXT.base() + 12));
         assert_eq!(entry(2).class, Class::Alu);
     }
 

@@ -193,36 +193,57 @@ impl Program {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::rv::{MAX_LOG_ADVICE, MAX_LOG_RAM, MAX_LOG_TEXT, TEXT_BASE};
+    use crate::rv::Region;
     use proptest::prelude::*;
 
     #[test]
     fn validate_refuses_each_broken_rule() {
         // One broken rule per row, every other input valid.
         for (words, entry, image, ram, advice, error) in [
-            (0, TEXT_BASE, 0, 0, 0, ProgramError::EntryPoint),
+            (0, Region::TEXT.base(), 0, 0, 0, ProgramError::EntryPoint),
             (1, 0, 0, 0, 0, ProgramError::EntryPoint),
-            (1, TEXT_BASE + 2, 0, 0, 0, ProgramError::EntryPoint),
-            (1, TEXT_BASE + 4, 0, 0, 0, ProgramError::EntryPoint),
+            (1, Region::TEXT.base() + 2, 0, 0, 0, ProgramError::EntryPoint),
+            (1, Region::TEXT.base() + 4, 0, 0, 0, ProgramError::EntryPoint),
             (1, u64::MAX, 0, 0, 0, ProgramError::EntryPoint),
-            (usize::MAX, TEXT_BASE, 0, 0, 0, ProgramError::TextTooLarge),
-            ((1 << MAX_LOG_TEXT) - 1, TEXT_BASE, 0, 0, 0, ProgramError::TextTooLarge),
-            (1, TEXT_BASE, 2, 0, 0, ProgramError::RamSize),
-            (1, TEXT_BASE, 0, usize::MAX, 0, ProgramError::RamSize),
-            (1, TEXT_BASE, 0, MAX_LOG_RAM + 1, 0, ProgramError::RamSize),
-            (1, TEXT_BASE, 0, 0, usize::MAX, ProgramError::AdviceSize),
-            (1, TEXT_BASE, 0, 0, MAX_LOG_ADVICE + 1, ProgramError::AdviceSize),
+            (usize::MAX, Region::TEXT.base(), 0, 0, 0, ProgramError::TextTooLarge),
+            (
+                (1 << Region::TEXT.max_log_words()) - 1,
+                Region::TEXT.base(),
+                0,
+                0,
+                0,
+                ProgramError::TextTooLarge,
+            ),
+            (1, Region::TEXT.base(), 2, 0, 0, ProgramError::RamSize),
+            (1, Region::TEXT.base(), 0, usize::MAX, 0, ProgramError::RamSize),
+            (
+                1,
+                Region::TEXT.base(),
+                0,
+                Region::RAM.max_log_words() + 1,
+                0,
+                ProgramError::RamSize,
+            ),
+            (1, Region::TEXT.base(), 0, 0, usize::MAX, ProgramError::AdviceSize),
+            (
+                1,
+                Region::TEXT.base(),
+                0,
+                0,
+                Region::ADVICE.max_log_words() + 1,
+                ProgramError::AdviceSize,
+            ),
         ] {
             assert_eq!(Program::validate(words, entry, image, ram, advice), Err(error));
         }
 
         // Every size at its largest is accepted, without allocating any of it.
         let largest = Program::validate(
-            (1 << MAX_LOG_TEXT) - 2,
-            TEXT_BASE,
-            1 << MAX_LOG_RAM,
-            MAX_LOG_RAM,
-            MAX_LOG_ADVICE,
+            (1 << Region::TEXT.max_log_words()) - 2,
+            Region::TEXT.base(),
+            1 << Region::RAM.max_log_words(),
+            Region::RAM.max_log_words(),
+            Region::ADVICE.max_log_words(),
         );
         assert_eq!(largest, Ok(()));
     }
@@ -231,7 +252,7 @@ mod tests {
         #[test]
         fn any_words_decode_to_a_padded_well_formed_text(text in proptest::collection::vec(any::<u32>(), 1..=16), raw_entry in any::<usize>()) {
             // Fixture: random words, and an entry point on one of them.
-            let entry = TEXT_BASE + 4 * (raw_entry % text.len()) as u64;
+            let entry = Region::TEXT.base() + 4 * (raw_entry % text.len()) as u64;
             let program = Program::new(&text, entry, vec![], 0, 0).unwrap();
 
             // A power of two of well-formed entries.
@@ -249,7 +270,7 @@ mod tests {
         #[test]
         fn index_of_inverts_pc_of(len in 1usize..64, raw in any::<usize>(), delta in 1u64..4) {
             // Fixture: a text of `len` no-ops.
-            let program = Program::new(&vec![0x13; len], TEXT_BASE, vec![], 0, 0).unwrap();
+            let program = Program::new(&vec![0x13; len], Region::TEXT.base(), vec![], 0, 0).unwrap();
             let index = raw % program.entries().len();
 
             // Each slot's address maps back to it; a misaligned one maps nowhere.
@@ -261,11 +282,11 @@ mod tests {
     #[test]
     fn index_of_refuses_addresses_outside_the_text() {
         // Fixture: one instruction, padded to four slots.
-        let program = Program::new(&[0x13], TEXT_BASE, vec![], 0, 0).unwrap();
+        let program = Program::new(&[0x13], Region::TEXT.base(), vec![], 0, 0).unwrap();
         assert_eq!(program.entries().len(), 4);
 
         // Below the text, past its last slot, and far away.
-        for pc in [TEXT_BASE - 4, TEXT_BASE + 16, 0, u64::MAX - 3] {
+        for pc in [Region::TEXT.base() - 4, Region::TEXT.base() + 16, 0, u64::MAX - 3] {
             assert_eq!(program.index_of(pc), None, "{pc:#x}");
         }
     }

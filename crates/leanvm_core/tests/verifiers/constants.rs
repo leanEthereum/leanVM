@@ -7,7 +7,7 @@
 //! a constant that drifts changes what each side ACCEPTS, and only a statement they both
 //! reject would show it. So the two lists are rendered the same way and diffed here.
 
-use leanvm_core::rv::{Hash, Reg, RegisterFile, Syscall};
+use leanvm_core::rv::{Hash, Reg, Region, RegisterFile, Syscall};
 use leanvm_core::tables::CLASSES;
 use std::fmt::Write;
 
@@ -17,7 +17,7 @@ fn rust_constants() -> String {
     let mut lines: Vec<String> = Vec::new();
     let mut scalar = |name: &str, value: u64| lines.push(format!("{name} {value}"));
 
-    scalar("ADVICE_BASE", leanvm_core::rv::ADVICE_BASE);
+    scalar("ADVICE_BASE", Region::ADVICE.base());
     scalar("BAD_SLOT", leanvm_core::tables::BAD_SLOT as u64);
     scalar("BUS_BITS", leanvm_core::leaf::N_TUPLE_BITS as u64);
     scalar("EXIT_SLOT", leanvm_core::tables::EXIT_SLOT as u64);
@@ -34,15 +34,15 @@ fn rust_constants() -> String {
     scalar("LIVE_BIT", leanvm_core::tables::LIVE_BIT as u64);
     scalar("LOG_PACKING", pcs::pack::LOG_PACKING as u64);
     scalar("LOG_REGISTERS", RegisterFile::LOG_CELLS as u64);
-    scalar("MAX_LOG_ADVICE", leanvm_core::rv::MAX_LOG_ADVICE as u64);
-    scalar("MAX_LOG_RAM", leanvm_core::rv::MAX_LOG_RAM as u64);
+    scalar("MAX_LOG_ADVICE", Region::ADVICE.max_log_words() as u64);
+    scalar("MAX_LOG_RAM", Region::RAM.max_log_words() as u64);
     scalar("MAX_LOG_ROWS", leanvm_core::cpu::MAX_LOG_ROWS as u64);
-    scalar("MAX_LOG_TEXT", leanvm_core::rv::MAX_LOG_TEXT as u64);
+    scalar("MAX_LOG_TEXT", Region::TEXT.max_log_words() as u64);
     scalar("MAX_STACKED_LOG", leanvm_core::pcs::MAX_MU as u64);
     scalar("MIN_STACKED_LOG", leanvm_core::pcs::MIN_MU as u64);
     scalar("NUM_FRAMEWORK_COLUMNS", leanvm_core::cpu::Q_BASE as u64);
     scalar("QUERY_GRINDING_BITS", pcs::whir_config::QUERY_GRINDING_BITS as u64);
-    scalar("RAM_BASE", leanvm_core::rv::RAM_BASE);
+    scalar("RAM_BASE", Region::RAM.base());
     scalar("RAM_SLOT", leanvm_core::tables::RAM_SLOT as u64);
     scalar("RESIDUAL_MAX_LOG", pcs::whir_config::RESIDUAL_MAX_LOG as u64);
     let rs_domain = pcs::whir_config::RS_DOMAIN_INITIAL_REDUCTION_FACTOR;
@@ -58,7 +58,7 @@ fn rust_constants() -> String {
     );
     scalar("SYSCALL_REGISTER", Reg::SYSCALL.index() as u64);
     scalar("SYS_EXIT", Syscall::Exit.number());
-    scalar("TEXT_BASE", leanvm_core::rv::TEXT_BASE);
+    scalar("TEXT_BASE", Region::TEXT.base());
 
     let list = |values: &[u64]| values.iter().map(u64::to_string).collect::<Vec<_>>().join(",");
     lines.push(format!(
