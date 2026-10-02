@@ -1,8 +1,8 @@
 /* ACT4's test layout on leanVM's memory map (sdk/link.ld): the code in the text,
    every other section in RAM, and one word of advice. Sail runs the same file on the
    regions sail.json describes, so the two agree on every address.
-   RAM is the smallest power of two holding the image, the loader reading its size off
-   __stack_top: the tests use no stack. */
+   RAM is the smallest power of two holding the image (the tests use no stack), the
+   loader reading its size off __ram_top. */
 OUTPUT_ARCH("riscv")
 ENTRY(rvtest_entry_point)
 
@@ -36,9 +36,9 @@ SECTIONS {
 
   __stack_bottom = .;
   _end = .;
-  __stack_top = ORIGIN(RAM) + (1 << LOG2CEIL(_end - ORIGIN(RAM)));
+  __ram_top = ORIGIN(RAM) + (1 << LOG2CEIL(_end - ORIGIN(RAM)));
   __advice_top = ORIGIN(ADVICE) + LENGTH(ADVICE);
-  ASSERT(__stack_top <= ORIGIN(RAM) + LENGTH(RAM), "the test does not fit RAM: grow RAM here and in sail.json")
+  ASSERT(__ram_top <= ORIGIN(RAM) + LENGTH(RAM), "the test does not fit RAM: grow RAM here and in sail.json")
 
   /DISCARD/ : { *(.comment) }
 }
