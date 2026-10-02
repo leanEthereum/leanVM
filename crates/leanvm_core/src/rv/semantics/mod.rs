@@ -23,7 +23,7 @@ mod shift;
 
 pub use alu::Alu;
 pub use divide::Div;
-pub use hash::{BlockAccess, Hash};
+pub use hash::{BlockAccess, Hash, blake2s_witness};
 pub use memory::{Load, Store, WordAccess};
 pub use multiply::{Mul, Mulh};
 pub use shift::Shift;
@@ -75,8 +75,11 @@ const fn sext32(x: u64) -> u64 {
 #[cfg(test)]
 pub(super) mod tests {
     use super::*;
+    use flock::circuit::Circuit;
     use proptest::prelude::*;
     use proptest::sample::select;
+    use proptest::test_runner::{Config, TestRunner};
+    use std::fmt::Debug;
 
     /// The words arithmetic most often gets wrong: zero, one, all ones, and the sign bits.
     const EDGES: [u64; 8] = [
@@ -123,5 +126,36 @@ pub(super) mod tests {
                 prop_assert_eq!(Div { flags: Div::WORD | Div::REM, v1, v2 }.eval(), w(r));
             }
         }
+    }
+
+    /// The circuit's first `n` output words on `inputs`, read off the witness the gate walk writes.
+    pub(super) fn run(circuit: &Circuit, inputs: &[u64], n: usize) -> Vec<u64> {
+        // One instance's tables, zeroed.
+        let words = 1 << (circuit.k_log() - 6);
+        let (mut z, mut az, mut bz) = (vec![0; words], vec![0; words], vec![0; words]);
+
+        // The output ports follow the input ports in the instance's words.
+        circuit.witness_instance(inputs, &mut z, &mut az, &mut bz);
+        let first = circuit.n_input_words();
+        z[first..first + n].to_vec()
+    }
+
+    /// Check a class: its dispatch, then `cases` random instances on which its circuit computes its reference function.
+    pub(super) fn circuit_matches_reference<C: InstructionClass + Arbitrary + Debug>(cases: u32) {
+        let circuit = C::circuit();
+
+        // The runtime dispatch on the class names this type's flags and circuit.
+        assert_eq!(C::CLASS.legal_flags(), C::LEGAL);
+        assert_eq!(C::CLASS.circuit().useful_bits(), circuit.useful_bits());
+
+        let mut runner = TestRunner::new(Config::with_cases(cases));
+        runner
+            .run(&any::<C>(), |instance| {
+                // The reference's output words, against the circuit's on the instance's input words.
+                let expected = C::output_words(&instance.eval());
+                prop_assert_eq!(run(&circuit, &instance.input_words(), expected.len()), expected);
+                Ok(())
+            })
+            .unwrap();
     }
 }

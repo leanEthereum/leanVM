@@ -1,7 +1,9 @@
 //! The shifter: logical and arithmetic shifts, on 64 or 32 bits.
 
 use super::{InstructionClass, sext32};
+use crate::rv::circuits::{ClassCircuit, Word, WordGadgets};
 use crate::rv::entry::Class;
+use flock::circuit::{Builder, Circuit};
 
 /// One shifter instance.
 ///
@@ -73,10 +75,54 @@ impl InstructionClass for Shift {
     }
 }
 
+impl ClassCircuit for Shift {
+    /// The shifter: `(v1, v2, imm, flags) -> out`.
+    ///
+    /// One right shifter serves both directions.
+    ///
+    /// A left shift is a right shift of the bit-reversed word, reversed back.
+    ///
+    /// The right shift is six barrel stages, by 1, 2, 4, 8, 16 and 32 bits.
+    fn circuit() -> Circuit {
+        let mut c = Builder::new(&[64, 64, 64, 3], &[64]);
+        let (v1, v2, imm, f) = (c.input(0), c.input(1), c.input(2), c.input(3));
+        let flag = |bit: u64| f[bit.trailing_zeros() as usize];
+        let (right, arith, word) = (flag(Self::RIGHT), flag(Self::ARITH), flag(Self::WORD));
+
+        // The amount: six bits, or five for a word shift.
+        let mut amount: Word = (0..6).map(|i| c.xor(v2[i], imm[i])).collect();
+        let not_word = c.not(word);
+        amount[5] = c.and(not_word, amount[5]);
+
+        // A word shift takes the low 32 bits, extended by the sign if arithmetic, by zero if not.
+        let low_sign = c.and(arith, v1[31]);
+        let x: Word = (0..64)
+            .map(|i| if i < 32 { v1[i] } else { c.mux(word, low_sign, v1[i]) })
+            .collect();
+
+        // What a right shift brings in from the top; arithmetic implies right.
+        let fill = c.and(arith, x[63]);
+
+        // Reverse, shift right stage by stage, reverse back.
+        let mut y = c.reverse_unless(right, &x);
+        for (stage, &bit) in amount.iter().enumerate() {
+            let by = 1 << stage;
+            y = (0..64)
+                .map(|i| c.mux(bit, if i + by < 64 { y[i + by] } else { fill }, y[i]))
+                .collect();
+        }
+        let y = c.reverse_unless(right, &y);
+
+        let out = c.sext32_if(word, &y);
+        c.output_word(0, &out);
+        c.finish()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::rv::semantics::tests::edge_word;
+    use crate::rv::semantics::tests::{circuit_matches_reference, edge_word};
     use proptest::prelude::*;
     use proptest::sample::select;
     use proptest::strategy::BoxedStrategy;
@@ -103,5 +149,11 @@ mod tests {
                 })
                 .boxed()
         }
+    }
+
+    #[test]
+    fn shift_circuit_matches_the_reference() {
+        // Legal flags and edge-biased operands pin the gate list to the reference function.
+        circuit_matches_reference::<Shift>(4096);
     }
 }

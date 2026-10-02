@@ -4,7 +4,7 @@
 //! (`0..n_committed_columns`); `cpu`'s schema offsets them to global witness columns.
 //!
 //! A table does plumbing only. What its class computes is a flock circuit
-//! ([`crate::rv::circuits`]), and every word that circuit reads or writes is a
+//! (beside its reference semantics), and every word that circuit reads or writes is a
 //! VIRTUAL column here: it lives in the circuit's packed witness
 //! ([`crate::class_flock`]) and rides the bus from there, in the register and RAM
 //! tuples and the bytecode tuple, which is all that binds the circuit to the machine.

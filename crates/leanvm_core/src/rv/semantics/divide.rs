@@ -1,7 +1,10 @@
 //! The division: quotients and remainders, and the hints its circuit checks.
 
 use super::{InstructionClass, sext32};
+use crate::rv::circuits::{ClassCircuit, Word, WordGadgets};
 use crate::rv::entry::Class;
+use flock::arith::mul::Multiplier;
+use flock::circuit::{Builder, Circuit, Wire};
 
 /// One division instance.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -93,13 +96,91 @@ impl InstructionClass for Div {
     }
 }
 
+impl ClassCircuit for Div {
+    /// The division: `(v1, v2, flags, q, r) -> (out, bad)`.
+    ///
+    /// The prover supplies `q` and `r`, the magnitudes of the quotient and the remainder.
+    ///
+    /// The circuit sets `bad` unless they are the right ones:
+    ///
+    /// ```text
+    ///     |n| = q * |d| + r
+    ///     r   < |d|
+    /// ```
+    ///
+    /// The identity holds over the integers: the product has no high word, and the sum no carry.
+    ///
+    /// A row puts `bad` where its bytecode entry holds zero, so the proof forces it to zero.
+    ///
+    /// A zero divisor checks nothing, and gives what RISC-V says: all ones, or the dividend.
+    ///
+    /// The one overflow, `-2^63 / -1`, needs no special case on magnitudes.
+    fn circuit() -> Circuit {
+        let mut c = Builder::new(&[64, 64, 3, 64, 64], &[64, 1]);
+        let (v1, v2, f, q, r) = (c.input(0), c.input(1), c.input(2), c.input(3), c.input(4));
+        let (signed, rem, word) = (f[0], f[1], f[2]);
+
+        // A word division divides the low 32 bits, extended as the division is signed or not.
+        let mut extend = |x: &[Wire]| -> Word {
+            let sign = c.and(signed, x[31]);
+            (0..64)
+                .map(|i| if i < 32 { x[i] } else { c.mux(word, sign, x[i]) })
+                .collect()
+        };
+        let (n, d) = (extend(&v1), extend(&v2));
+
+        // The operands' magnitudes.
+        let (n_negative, d_negative) = (c.and(signed, n[63]), c.and(signed, d[63]));
+        let (n_abs, d_abs) = (c.negate_if(n_negative, &n), c.negate_if(d_negative, &d));
+
+        // Check |n| = q * |d| + r: the product fits 64 bits, the sum does not carry, and it equals |n|.
+        let (product, _) = Multiplier::build(&mut c, &q, &d_abs, 128);
+        let overflows = c.any(&product[64..]);
+        let (sum, carries) = c.add_with_carry(&product[..64], &r, None);
+        let difference = c.xor_word(&sum, &n_abs);
+        let differs = c.any(&difference);
+
+        // Check r < |d|: r - |d| = r + !|d| + 1 carries out exactly when r >= |d|.
+        let d_inverted: Word = d_abs.iter().map(|&bit| c.not(bit)).collect();
+        let one = c.one();
+        let (_, too_large) = c.add_with_carry(&r, &d_inverted, one);
+
+        // Any failed check is bad, unless the divisor is zero.
+        let d_nonzero = c.any(&d);
+        let wrong = [carries, differs, too_large]
+            .into_iter()
+            .fold(overflows, |acc, w| c.or(acc, w));
+        let bad = c.and(d_nonzero, wrong);
+
+        // The quotient is negative when the operands' signs differ.
+        // The remainder is negative when the dividend is.
+        let q_negative = c.xor(n_negative, d_negative);
+        let (q_signed, r_signed) = (c.negate_if(q_negative, &q), c.negate_if(n_negative, &r));
+
+        // The output: the quotient or the remainder, or the zero divisor's result.
+        let out: Word = (0..64)
+            .map(|i| {
+                let result = c.mux(rem, r_signed[i], q_signed[i]);
+                let by_zero = c.mux(rem, n[i], one);
+                c.mux(d_nonzero, result, by_zero)
+            })
+            .collect();
+        let out = c.sext32_if(word, &out);
+
+        c.output_word(0, &out);
+        c.output(1, 0, bad);
+        c.finish()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::rv::semantics::tests::edge_word;
+    use crate::rv::semantics::tests::{circuit_matches_reference, edge_word, run};
     use proptest::prelude::*;
     use proptest::sample::select;
     use proptest::strategy::BoxedStrategy;
+    use std::sync::LazyLock;
 
     /// Any division instance, its divisor biased toward zero and toward small values.
     impl Arbitrary for Div {
@@ -152,5 +233,64 @@ mod tests {
 
         // The same on 32 bits: -2^31 / -1 wraps to -2^31, sign-extended.
         assert_eq!(div(Div::SIGNED | Div::WORD, min32, u64::MAX), min32);
+    }
+
+    static DIV: LazyLock<Circuit> = LazyLock::new(Div::circuit);
+
+    #[test]
+    fn div_circuit_matches_the_reference() {
+        // Legal flags and edge-biased operands pin the gate list to the reference function.
+        circuit_matches_reference::<Div>(512);
+    }
+
+    #[test]
+    fn division_edge_cases_match_the_reference() {
+        // The signed overflow -2^63 / -1, and a zero divisor for the quotient and the remainder.
+        let min = i64::MIN as u64;
+        for div in [
+            Div {
+                flags: Div::SIGNED,
+                v1: min,
+                v2: u64::MAX,
+            },
+            Div { flags: 0, v1: 7, v2: 0 },
+            Div {
+                flags: Div::REM,
+                v1: 7,
+                v2: 0,
+            },
+        ] {
+            assert_eq!(
+                run(&DIV, &div.input_words(), 2),
+                Div::output_words(&div.eval()),
+                "{div:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_hint_correct_modulo_2_64_is_refused() {
+        // 1 / 3 with q = (2^64 + 1) / 3: q * 3 = 2^64 + 1, which is 1 modulo 2^64.
+        assert_eq!(run(&DIV, &[1, 3, 0, 0x5555_5555_5555_5555, 2], 2)[1], 1);
+    }
+
+    proptest! {
+        #[test]
+        fn div_refuses_any_other_hint(div in any::<Div>(), dq in any::<u64>(), dr in any::<u64>()) {
+            // Mutation: shift the honest hints by a nonzero amount.
+            prop_assume!((dq, dr) != (0, 0));
+            let mut inputs = div.input_words();
+            inputs[3] = inputs[3].wrapping_add(dq);
+            inputs[4] = inputs[4].wrapping_add(dr);
+            let got = run(&DIV, &inputs, 2);
+
+            // A nonzero divisor refuses them; a zero divisor ignores them.
+            let by_zero = if div.flags & Div::WORD != 0 { div.v2 as u32 == 0 } else { div.v2 == 0 };
+            if by_zero {
+                prop_assert_eq!(got, Div::output_words(&div.eval()));
+            } else {
+                prop_assert_eq!(got[1], 1);
+            }
+        }
     }
 }

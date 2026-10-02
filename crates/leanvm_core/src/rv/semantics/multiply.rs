@@ -1,7 +1,10 @@
 //! The multiplications: the low and the high word of a product.
 
 use super::{InstructionClass, sext32};
+use crate::rv::circuits::{ClassCircuit, Word, WordGadgets};
 use crate::rv::entry::Class;
+use flock::arith::mul::Multiplier;
+use flock::circuit::{Builder, Circuit};
 
 /// One low multiplication instance.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -88,10 +91,60 @@ impl InstructionClass for Mulh {
     }
 }
 
+impl ClassCircuit for Mul {
+    /// The low word of the product: `(v1, v2, flags) -> out`.
+    ///
+    /// A word multiplication sign-extends the low 32 bits.
+    fn circuit() -> Circuit {
+        let mut c = Builder::new(&[64, 64, 1], &[64]);
+        let (v1, v2, f) = (c.input(0), c.input(1), c.input(2));
+        let (product, _) = Multiplier::build(&mut c, &v1, &v2, 64);
+        let out = c.sext32_if(f[0], &product);
+        c.output_word(0, &out);
+        c.finish()
+    }
+}
+
+impl ClassCircuit for Mulh {
+    /// The high word of the product: `(v1, v2, flags) -> out`.
+    ///
+    /// A negative operand reads as its unsigned value minus `2^64`.
+    ///
+    /// So the signed high word is the unsigned one, corrected:
+    ///
+    /// ```text
+    ///     high(v1 * v2) = high_u(v1 * v2) - [v1 < 0] * v2 - [v2 < 0] * v1    (mod 2^64)
+    /// ```
+    fn circuit() -> Circuit {
+        let mut c = Builder::new(&[64, 64, 2], &[64]);
+        let (v1, v2, f) = (c.input(0), c.input(1), c.input(2));
+        let (product, _) = Multiplier::build(&mut c, &v1, &v2, 128);
+        let mut high = product[64..].to_vec();
+
+        // Subtract the other operand for each signed negative one.
+        for (signed, operand, other) in [(f[0], &v1, &v2), (f[1], &v2, &v1)] {
+            let negative = c.and(signed, operand[63]);
+
+            // high - other is high + !other + 1, all of it gated by negative.
+            let subtrahend: Word = other
+                .iter()
+                .map(|&bit| {
+                    let inverted = c.not(bit);
+                    c.and(negative, inverted)
+                })
+                .collect();
+            (high, _) = c.add_with_carry(&high, &subtrahend, negative);
+        }
+
+        c.output_word(0, &high);
+        c.finish()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::rv::semantics::tests::edge_word;
+    use crate::rv::semantics::tests::{circuit_matches_reference, edge_word};
     use proptest::prelude::*;
     use proptest::sample::select;
     use proptest::strategy::BoxedStrategy;
@@ -128,5 +181,17 @@ mod tests {
             let signed = Mulh { flags: Mulh::SIGNED_1 | Mulh::SIGNED_2, v1, v2 }.eval();
             prop_assert_eq!(signed, ((v1 as i64 as i128 * v2 as i64 as i128) >> 64) as u64);
         }
+    }
+
+    #[test]
+    fn mul_circuit_matches_the_reference() {
+        // Legal flags and edge-biased operands pin the gate list to the reference function.
+        circuit_matches_reference::<Mul>(512);
+    }
+
+    #[test]
+    fn mulh_circuit_matches_the_reference() {
+        // Legal flags and edge-biased operands pin the gate list to the reference function.
+        circuit_matches_reference::<Mulh>(512);
     }
 }

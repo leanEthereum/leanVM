@@ -1,7 +1,9 @@
 //! Loads and stores: one access to one 64-bit cell.
 
 use super::InstructionClass;
+use crate::rv::circuits::{ClassCircuit, WordGadgets};
 use crate::rv::entry::Class;
+use flock::circuit::{Builder, Circuit, Wire};
 
 /// One load instance: the width and extension in its flags, the address `v1 + imm`, the cell read there.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -170,13 +172,95 @@ impl WordAccess {
     }
 }
 
+impl ClassCircuit for Load {
+    /// The load: `(v1, imm, flags, cell) -> (address, out)`.
+    ///
+    /// The address is what goes on the memory bus, and `cell` is the word read there.
+    ///
+    /// - The cell shifts right until the addressed byte is at the bottom.
+    /// - The output keeps the access's width, extended by its top bit if the load is signed.
+    fn circuit() -> Circuit {
+        let mut c = Builder::new(&[64, 64, 3, 64], &[64, 64]);
+        let (v1, imm, flags, cell) = (c.input(0), c.input(1), c.input(2), c.input(3));
+        let address = c.add_wrapping(&v1, &imm);
+        let [ge2, ge4, eq8] = c.width_thresholds(&flags[..2]);
+        let bus = c.bus_address(&address, [ge2, ge4, eq8]);
+        let value = c.shift_bytes(&cell, &address[..3], false);
+
+        // The extension: the value's top bit, where the width places it, if the load is signed.
+        //
+        //     width 1   bit 7
+        //     width 2   bit 15
+        //     width 4   bit 31
+        let (w1, w2, w4) = (c.not(ge2), c.xor(ge2, ge4), c.xor(ge4, eq8));
+        let sign = [(w1, 7), (w2, 15), (w4, 31)]
+            .into_iter()
+            .fold(None, |acc, (width, bit)| {
+                let term = c.and(width, value[bit]);
+                c.xor(acc, term)
+            });
+        let extension = c.and(flags[2], sign);
+        c.output_word(0, &bus);
+
+        // Each byte above the first is the value's if the width reaches it, else the extension.
+        for (i, &bit) in value.iter().enumerate() {
+            let keeps = match i {
+                0..8 => None,
+                8..16 => Some(ge2),
+                16..32 => Some(ge4),
+                _ => Some(eq8),
+            };
+            let wire = keeps.map_or(bit, |keeps| c.mux(keeps, bit, extension));
+            c.output(1, i, wire);
+        }
+        c.finish()
+    }
+}
+
+impl ClassCircuit for Store {
+    /// The store: `(v1, v2, imm, flags, cell) -> (address, new cell)`.
+    ///
+    /// The value shifts up to the addressed bytes, which replace the cell's.
+    ///
+    /// The cell's other bytes are kept.
+    fn circuit() -> Circuit {
+        let mut c = Builder::new(&[64, 64, 64, 2, 64], &[64, 64]);
+        let (v1, v2, imm, flags, cell) = (c.input(0), c.input(1), c.input(2), c.input(3), c.input(4));
+        let address = c.add_wrapping(&v1, &imm);
+        let [ge2, ge4, eq8] = c.width_thresholds(&flags);
+        let bus = c.bus_address(&address, [ge2, ge4, eq8]);
+        let value = c.shift_bytes(&v2, &address[..3], true);
+
+        // Byte j is written when it shares the access's block of 2^log_width bytes.
+        //
+        // That is: bit k of j equals bit k of the address, wherever the width does not span both.
+        let spans: [[Wire; 2]; 3] = std::array::from_fn(|k| {
+            let (is_zero, threshold) = (c.not(address[k]), [ge2, ge4, eq8][k]);
+            [c.or(is_zero, threshold), c.or(address[k], threshold)]
+        });
+        c.output_word(0, &bus);
+
+        // Each byte is the value's if written, else the cell's.
+        for j in 0..8 {
+            let low = c.and(spans[0][j & 1], spans[1][(j >> 1) & 1]);
+            let written = c.and(low, spans[2][j >> 2]);
+            for i in 8 * j..8 * j + 8 {
+                let wire = c.mux(written, value[i], cell[i]);
+                c.output(1, i, wire);
+            }
+        }
+        c.finish()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::rv::semantics::tests::edge_word;
+    use crate::rv::semantics::tests::{circuit_matches_reference, edge_word, run};
     use proptest::prelude::*;
     use proptest::sample::select;
     use proptest::strategy::BoxedStrategy;
+    use std::sync::LazyLock;
 
     /// Any load instance, aligned half the time, which a random address seldom is.
     impl Arbitrary for Load {
@@ -258,6 +342,35 @@ mod tests {
             let bus = WordAccess::bus_address(address, log_width);
             prop_assert_eq!(bus.is_multiple_of(8), WordAccess::is_aligned(address, log_width));
             prop_assert_eq!(bus & !7, address & !7);
+        }
+    }
+
+    static STORE: LazyLock<Circuit> = LazyLock::new(Store::circuit);
+
+    #[test]
+    fn load_circuit_matches_the_reference() {
+        // Legal flags and edge-biased operands pin the gate list to the reference function.
+        circuit_matches_reference::<Load>(4096);
+    }
+
+    #[test]
+    fn store_circuit_matches_the_reference() {
+        // Legal flags and edge-biased operands pin the gate list to the reference function.
+        circuit_matches_reference::<Store>(4096);
+    }
+
+    proptest! {
+        #[test]
+        fn a_misaligned_store_names_no_cell(store in any::<Store>(), offset in 1u64..8) {
+            // Mutation: misalign an aligned store, by an offset its width does not divide.
+            let store = Store { v1: store.v1 | offset, ..store };
+            let log_width = store.flags & Store::LOG_WIDTH;
+            prop_assume!(!WordAccess::is_aligned(store.v1.wrapping_add(store.imm), log_width));
+
+            // The bus address is still the reference's, and names no cell.
+            let (address, _) = store.eval();
+            prop_assert_eq!(run(&STORE, &store.input_words(), 1), vec![address]);
+            prop_assert!(!address.is_multiple_of(8));
         }
     }
 }
