@@ -5,6 +5,7 @@ use crate::rv::circuits::{ClassCircuit, Word, WordGadgets};
 use crate::rv::entry::Class;
 use flock::arith::mul::Multiplier;
 use flock::circuit::{Builder, Circuit};
+use std::sync::OnceLock;
 
 /// One low multiplication instance.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -118,11 +119,13 @@ impl ClassCircuit for Mulh {
     fn circuit() -> Circuit {
         let mut c = Builder::new(&[64, 64, 2], &[64]);
         let (v1, v2, f) = (c.input(0), c.input(1), c.input(2));
-        let (product, _) = Multiplier::build(&mut c, &v1, &v2, 128);
+        let (product, multiplier) = Multiplier::build(&mut c, &v1, &v2, 128);
+        let mut corrections = [0; 2];
         let mut high = product[64..].to_vec();
 
         // Subtract the other operand for each signed negative one.
-        for (signed, operand, other) in [(f[0], &v1, &v2), (f[1], &v2, &v1)] {
+        for (i, (signed, operand, other)) in [(f[0], &v1, &v2), (f[1], &v2, &v1)].into_iter().enumerate() {
+            corrections[i] = c.next_slot();
             let negative = c.and(signed, operand[63]);
 
             // high - other is high + !other + 1, all of it gated by negative.
@@ -137,7 +140,76 @@ impl ClassCircuit for Mulh {
         }
 
         c.output_word(0, &high);
+        let _ = MULH_PLAN.set(HighPlan {
+            multiplier,
+            corrections,
+        });
         c.finish()
+    }
+}
+
+/// The unsigned multiplier and each signed correction's first product slot.
+struct HighPlan {
+    multiplier: Multiplier,
+    corrections: [usize; 2],
+}
+
+/// Building the high multiplication records its product runs once.
+static MULH_PLAN: OnceLock<HighPlan> = OnceLock::new();
+
+impl Mulh {
+    /// Fill the high multiplication's packed witness using native word arithmetic.
+    pub(crate) fn witness(inputs: &[u64], z: &mut [u64], az: &mut [u64], bz: &mut [u64]) {
+        // Signed corrections are applied after the same unsigned 128-bit product.
+        let plan = MULH_PLAN.get().unwrap_or_else(|| {
+            Self::circuit();
+            MULH_PLAN
+                .get()
+                .expect("circuit construction records multiplication products")
+        });
+        let mut high = (plan.multiplier.witness(inputs[0], inputs[1], z, az, bz) >> 64) as u64;
+        for (i, &slot) in plan.corrections.iter().enumerate() {
+            // A signed negative operand contributes minus the other operand to the high word.
+            let signed = inputs[2] >> i & 1;
+            let sign_bit = inputs[i] >> 63;
+            let negative = signed & sign_bit;
+            product_rows(z, az, bz, slot, signed, sign_bit);
+
+            // Two's complement subtraction is the gated complement plus its low carry.
+            let complemented = !inputs[1 - i];
+            let subtrahend = negative.wrapping_neg() & complemented;
+            product_rows(z, az, bz, slot + 1, negative.wrapping_neg(), complemented);
+            let sum = high.wrapping_add(subtrahend).wrapping_add(negative);
+            let carry = sum ^ high ^ subtrahend;
+            product_rows(z, az, bz, slot + 65, high ^ carry, subtrahend ^ carry);
+            high = sum;
+        }
+        ports(inputs, 2, high, z, az, bz);
+    }
+}
+
+/// Fill three input ports, the result and the constant.
+fn ports(inputs: &[u64], flag_bits: usize, out: u64, z: &mut [u64], az: &mut [u64], bz: &mut [u64]) {
+    // Narrow flags leave their spare port bits at zero in all three tables.
+    for (i, bits) in [64, 64, flag_bits].into_iter().enumerate() {
+        let mask = u64::MAX >> (64 - bits);
+        (z[i], az[i], bz[i]) = (inputs[i] & mask, inputs[i] & mask, mask);
+    }
+    (z[3], az[3], bz[3]) = (out, out, u64::MAX);
+
+    // Bit 256 is the constant immediately after the four word ports.
+    for buf in [z, az, bz] {
+        buf[4] |= 1;
+    }
+}
+
+/// Write a contiguous run of at most 64 product rows.
+fn product_rows(z: &mut [u64], az: &mut [u64], bz: &mut [u64], slot: usize, left: u64, right: u64) {
+    // A product row records both factors as well as their conjunction.
+    for (buf, bits) in [(z, left & right), (az, left), (bz, right)] {
+        let (word, shift) = (slot / 64, slot % 64);
+        buf[word] |= bits << shift;
+        buf[word + 1] |= (bits >> 1) >> (63 - shift);
     }
 }
 
@@ -145,6 +217,8 @@ impl ClassCircuit for Mulh {
 mod tests {
     use super::*;
     use crate::rv::semantics::tests::{circuit_matches_reference, edge_word};
+    use crate::tables::InstanceWitness;
+    use primitives::test_rng::Rng;
     use proptest::prelude::*;
     use proptest::sample::select;
     use proptest::strategy::BoxedStrategy;
@@ -180,6 +254,33 @@ mod tests {
             prop_assert_eq!(Mulh { flags: 0, v1, v2 }.eval(), ((v1 as u128 * v2 as u128) >> 64) as u64);
             let signed = Mulh { flags: Mulh::SIGNED_1 | Mulh::SIGNED_2, v1, v2 }.eval();
             prop_assert_eq!(signed, ((v1 as i64 as i128 * v2 as i64 as i128) >> 64) as u64);
+        }
+    }
+
+    #[test]
+    fn word_witnesses_match_the_gate_walk() {
+        // Every pair covers zero, the sign boundary and the largest unsigned values.
+        let edges = [0, 1, 2, (1 << 63) - 1, 1 << 63, u64::MAX - 1, u64::MAX];
+        let mut rng = Rng::new(0x4D554C);
+        for (circuit, flags, witness) in [(Mulh::circuit(), Mulh::LEGAL, Mulh::witness as InstanceWitness)] {
+            for &flag in flags {
+                // A short batch also checks that a nonzero row supplies the padding witness.
+                let mut rows: Vec<[u64; 3]> = edges
+                    .iter()
+                    .flat_map(|&a| edges.iter().map(move |&b| [a, b, flag]))
+                    .collect();
+                rows.extend((0..151).map(|_| [rng.next_u64(), rng.next_u64(), flag]));
+                let padding = [u64::MAX, 1 << 63, flag];
+
+                // Exact equality checks the committed bits, both factors and the byte stripes.
+                let walk = circuit.generate_witness_from(&rows, &padding, 8, |row, words| words.copy_from_slice(row));
+                let native =
+                    circuit.generate_witness_with(&rows, &padding, 8, |row, z, az, bz| witness(row, z, az, bz));
+                assert_eq!(&native.0[..], &walk.0[..], "committed bits, flags {flag}");
+                assert_eq!(&native.1[..], &walk.1[..], "left factors, flags {flag}");
+                assert_eq!(&native.2[..], &walk.2[..], "right factors, flags {flag}");
+                assert_eq!(&native.3[..], &walk.3[..], "byte stripes, flags {flag}");
+            }
         }
     }
 

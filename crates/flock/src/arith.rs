@@ -144,7 +144,7 @@ impl U64Circuit {
                 let mut witness = Instance { z, az, bz };
                 let out = match &self.plan {
                     Plan::Add(adder) => adder.witness(a, b, &mut witness),
-                    Plan::Mul(multiplier) => multiplier.witness(a, b, &mut witness),
+                    Plan::Mul(multiplier) => multiplier.witness_into(a, b, &mut witness),
                 };
                 witness.unit_rows(A_BASE, a as u128, 64);
                 witness.unit_rows(B_BASE, b as u128, 64);

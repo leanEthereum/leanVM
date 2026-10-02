@@ -541,7 +541,7 @@ pub static MULH: ClassSpec = ClassSpec {
     reads_rs2: true,
     writes_rd: true,
     ram: Ram::None,
-    witness: None,
+    witness: Some(rv::Mulh::witness),
     k_log: 13,
     ports: &[Word::V1, Word::V2, Word::Flags, Word::Out],
     n_inputs: 3,

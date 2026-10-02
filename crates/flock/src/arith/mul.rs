@@ -205,8 +205,18 @@ impl Multiplier {
         (product, multiplier)
     }
 
-    /// Writes `g`'s row and every step's products, and returns the result.
-    pub(super) fn witness(&self, a: u64, b: u64, witness: &mut Instance) -> u128 {
+    /// Write the multiplication's product rows into zeroed packed buffers.
+    ///
+    /// Return the product reduced to the circuit's width.
+    ///
+    /// The operand ports, output ports and constant are filled by the caller.
+    pub fn witness(&self, a: u64, b: u64, z: &mut [u64], az: &mut [u64], bz: &mut [u64]) -> u128 {
+        // Only product slots are written, so this plan composes with other arithmetic.
+        self.witness_into(a, b, &mut Instance { z, az, bz })
+    }
+
+    /// Write the complement selector and the carry-save products.
+    pub(super) fn witness_into(&self, a: u64, b: u64, witness: &mut Instance) -> u128 {
         let (na, nb) = (!a, !b);
         let mut rows = [0u128; N_ROWS];
         for (i, row) in rows[..64].iter_mut().enumerate() {
