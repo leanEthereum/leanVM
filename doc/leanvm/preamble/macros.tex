@@ -41,7 +41,14 @@
 \newcommand{\skipcoset}{\mathcal{H}'}         % 64 transmitted round-one nodes
 \newcommand{\fembed}{\varphi_{8}}             % embedding of F_{2^8} into E
 \newcommand{\zskip}{\upsilon_{\mathrm{zc}}}   % zerocheck univariate challenge
-\newcommand{\lcalpha}{\alpha_{\mathrm{lc}}}      % lincheck batching challenge (A, B, C, the pin)
+\newcommand{\lcalpha}{\alpha_{\mathrm{lc}}}      % lincheck batching challenge (A, B, C, the pin, and the circuits)
+\newcommand{\zcbatch}{\lambda_{\mathrm{zc}}}    % batched zerocheck's challenge: circuit f's polynomial takes its f-th power
+\newcommand{\nflockmax}{\kappa_{\flock}^{\max}}  % rounds of the batched zerocheck: the most any circuit has
+\newcommand{\klcmax}{\kappa_{\mathrm{lc}}^{\max}} % rounds of the batched lincheck: the most any circuit has
+\newcommand{\lcterm}[1]{\Xi_{#1}}               % circuit #1's lincheck terminal form, in the batched check
+\newcommand{\kblockf}[1]{\kappa_{\mathrm{block},#1}} % \kblock of circuit #1 of the batch
+\newcommand{\kbatchf}[1]{\kappa_{\mathrm{batch},#1}} % \kbatch of circuit #1 of the batch
+\newcommand{\nflockf}[1]{\kappa_{\flock,#1}}         % \nflock of circuit #1 of the batch
 \newcommand{\ksk}{k_{\mathrm{sk}}}              % row index, the skipped half
 \newcommand{\kin}{k_{\mathrm{in}}}              % row index, the within-block half
 \newcommand{\jsk}{j_{\mathrm{sk}}}              % column index, the skipped half
@@ -101,6 +108,11 @@
 \newcommand{\ntab}{N_{\mathrm{tab}}}     % number of tables (fixed by the arithmetization)
 \newcommand{\nside}{N_{\mathrm{side}}}   % grand-product sides: push, pull
 \newcommand{\taumax}{\tau_{\max}}      % rounds of the table sumcheck: the tallest table's log height
+\newcommand{\nlive}[1]{N_{\mathrm{live},#1}}  % table #1's announced height: its rows on the bus (sec:jagged)
+\newcommand{\ncom}{N_{\mathrm{com}}}      % rows a jagged column commits (sec:jagged)
+\newcommand{\tailw}[1]{\mathsf{tail}_{#1}}  % the weight a point puts on the rows from #1 on (sec:jagged)
+\newcommand{\padrow}[1]{\mathbf{p}_{#1}}  % table #1's padding row's column values, sent by the prover (sec:jagged)
+\newcommand{\pscale}{\vartheta}          % a jagged piece's scale in a claim's weight (sec:jagged, rs:weight)
 \newcommand{\ncol}[1]{N_{\mathrm{col},#1}}  % columns of table #1
 \newcommand{\ncons}[1]{N_{\mathrm{cons},#1}}  % constraints of table #1
 \newcommand{\nconstot}{N_{\mathrm{cons}}}    % constraints of all tables, the batching offset

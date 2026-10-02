@@ -24,7 +24,7 @@
 
 use crate::lincheck::LincheckCircuit;
 use crate::reduction::Block;
-use crate::witness::{GroupTables, drive_witness_groups, drive_witness_packed_and_lincheck};
+use crate::witness::{GroupTables, ZCopy, drive_witness_groups, drive_witness_packed_and_lincheck};
 use primitives::bits::transpose_64x64;
 use primitives::field::F192;
 use zk_alloc::ArenaVec;
@@ -307,13 +307,17 @@ impl Circuit {
         n_blocks_log: usize,
     ) -> (ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u8>) {
         assert_eq!(N, self.n_input_words);
-        self.generate_witness_from(rows, &[0; N], n_blocks_log, |row, words| words.copy_from_slice(row))
+        self.generate_witness_from(rows, &[0; N], 1 << n_blocks_log, &mut [], |row, words| {
+            words.copy_from_slice(row);
+        })
     }
 
-    /// The same tables for the caller's own rows.
+    /// The same tables for the caller's own rows, over `n_instances`: a multiple of 64,
+    /// or of 8 below 64.
     ///
     /// - `input_words(row, words)` writes a row's input port words.
     /// - `padding` fills the instances past the rows.
+    /// - `copies` take the instances' `z` words as well ([`ZCopy`]).
     ///
     /// The gate list is walked for 64 instances at a time.
     ///
@@ -329,21 +333,23 @@ impl Circuit {
         &self,
         rows: &[S],
         padding: &S,
-        n_blocks_log: usize,
+        n_instances: usize,
+        copies: &mut [ZCopy<'_>],
         input_words: impl Fn(&S, &mut [u64]) + Sync,
     ) -> (ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u8>) {
-        assert!(rows.len() <= 1 << n_blocks_log, "more rows than instances");
+        assert!(rows.len() <= n_instances, "more rows than instances");
         // A batch below 64 instances is walked in full and stored in part.
-        let lanes = LANES.min(1 << n_blocks_log);
+        let lanes = LANES.min(n_instances);
         let n_in = self.n_input_words;
         // Packed words per instance.
         let words = (1usize << self.k_log) / 64;
         // Slot groups past the useful bits hold only zeros, so they skip the transpose.
         let live_words = self.useful_bits.div_ceil(64);
         drive_witness_groups(
-            n_blocks_log,
+            n_instances,
             self.k_log,
             lanes,
+            copies,
             || Lanes::new(self),
             |s: &mut Lanes, first: usize, t: GroupTables<'_>| {
                 // Phase 1: each lane's input words, a padding row past the batch's rows.
@@ -394,16 +400,17 @@ impl Circuit {
         )
     }
 
-    /// [`Self::generate_witness`] with the caller's own rows, padding row and way to
-    /// fill an instance, for a circuit whose witness is cheaper as word arithmetic.
+    /// [`Self::generate_witness_from`] with a way to fill an instance, for a circuit
+    /// whose witness is cheaper as word arithmetic: over `n_instances`, a multiple of 8.
     pub fn generate_witness_with<S: Sync>(
         &self,
         rows: &[S],
         padding: &S,
-        n_blocks_log: usize,
+        n_instances: usize,
+        copies: &mut [ZCopy<'_>],
         instance: impl Fn(&S, &mut [u64], &mut [u64], &mut [u64]) + Sync,
     ) -> (ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u8>) {
-        drive_witness_packed_and_lincheck(rows, Some(padding), n_blocks_log, self.k_log, instance)
+        drive_witness_packed_and_lincheck(rows, Some(padding), n_instances, self.k_log, copies, instance)
     }
 
     /// The matrix-vector products `(A_0 w, B_0 w)`, by one forward walk.
@@ -597,10 +604,12 @@ mod tests {
             let padding = row();
 
             // The same batch through both generators, every table compared.
-            let walk = circuit.generate_witness_with(&rows, &padding, n_log, |row, z, az, bz| {
+            let walk = circuit.generate_witness_with(&rows, &padding, 1 << n_log, &mut [], |row, z, az, bz| {
                 circuit.witness_instance(row, z, az, bz);
             });
-            let sliced = circuit.generate_witness_from(&rows, &padding, n_log, |row, words| words.copy_from_slice(row));
+            let sliced = circuit.generate_witness_from(&rows, &padding, 1 << n_log, &mut [], |row, words| {
+                words.copy_from_slice(row);
+            });
             assert!(walk.0[..] == sliced.0[..], "z, round {round}");
             assert!(walk.1[..] == sliced.1[..], "A·z, round {round}");
             assert!(walk.2[..] == sliced.2[..], "B·z, round {round}");

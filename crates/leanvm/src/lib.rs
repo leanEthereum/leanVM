@@ -114,7 +114,7 @@ impl Proof {
     const MAGIC: [u8; 4] = *b"LVMP";
 
     /// The protocol version, bumped by every change to what a proof says.
-    const VERSION: u16 = 4;
+    const VERSION: u16 = 7;
 
     /// The proof's bytes.
     #[must_use]

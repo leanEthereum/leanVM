@@ -11,8 +11,9 @@ pub struct Execution {
     /// The public output: `a0..a3` as the run left them.
     pub output: [u64; 4],
     pub cycles: usize, // number of rows proven, padding rows included
-    /// Rows per table before the padding rows: the work the program itself does, as
-    /// against the power-of-two heights that get proven. Cost measurements want this one.
+    /// Rows per table before the padding rows: each table's height, the work the
+    /// program itself does, as against the power-of-two counts that get proven. Cost
+    /// measurements want this one.
     pub base_counts: [usize; crate::tables::N_TABLES],
     pub(crate) trace: Trace, // rows, final timestamps and counts, emitted in the same walk
 }
@@ -46,7 +47,7 @@ const _: () = assert!(1u64 << crate::pcs::MAX_MU < MAX_CYCLES);
 
 impl Program {
     /// Run the program on `advice`, recording every row, then write out the
-    /// padding rows that bring each table to a power of two ([`filler`]). A run that
+    /// padding rows that bring each table to its proven size ([`padding`]). A run that
     /// traps, or outruns the clock, has no proof.
     pub fn execute(&self, advice: &[u64]) -> Result<Execution, ProveError> {
         let p = &self.rv;
@@ -125,58 +126,57 @@ impl Program {
         let output = m.output()?;
         let base_counts: [usize; crate::tables::N_TABLES] = std::array::from_fn(|t| rows[t].len());
 
-        // The padding rows, written out rather than executed: they sit at clock zero
-        // and touch nothing, every read holding zero and every write rewriting what it
-        // writes (`filler`). Their circuit instances are honest ones, on those zeros.
-        //
-        // Why: an access in slot `k` pushes the timestamp `0 ^ k`, so it pulls that
-        // same timestamp, and the two tuples cancel.
-        let padding_prev: [Vec<u64>; crate::tables::N_TABLES] =
-            std::array::from_fn(|t| CLASSES[t].slots().into_iter().map(u64::from).collect());
-        for (first, size, traversals) in super::filler::cycles(&self.filler, base_counts) {
-            for _ in 0..traversals {
-                for index in first..=first + size {
-                    let e = &p.entries()[index];
-                    let table = crate::tables::table_of(e.class).expect("a fill block's class has a table");
-                    let outcome = e.evaluate(0, 0, 0);
-                    let slots = &padding_prev[table];
-                    let mut prev = [0; 4];
-                    let hash = (e.class == Class::Hash).then(|| {
-                        // The compression of a zero block, whose result the row rewrites.
-                        let mut h = BlockAccess::from(Hash {
-                            flags: e.flags,
-                            t: 0,
-                            block: [0; Hash::WORDS],
-                        });
-                        h.block[Hash::OUT as usize / 8..][..4].copy_from_slice(&h.out);
-                        let mut all = [0; 2 + Hash::WORDS];
-                        all.copy_from_slice(slots);
-                        Box::new(HashRow {
-                            block: h.block,
-                            out: h.out,
-                            prev: all,
-                        })
-                    });
-                    if hash.is_none() {
-                        prev[..slots.len()].copy_from_slice(slots);
-                    }
-                    rows[table].push(Row {
-                        index: index as u32,
-                        ts: 0,
-                        v1: 0,
-                        v2: 0,
-                        out: outcome.out,
-                        taken: outcome.taken,
-                        vd_old: if e.link { p.pc_of(index) + 4 } else { outcome.out },
-                        ram: outcome.access.unwrap_or_default(),
-                        prev,
-                        hash,
-                    });
-                }
+        // The padding row, written out rather than executed: one row per table, a no-op
+        // at clock zero touching nothing, every read holding zero and every write
+        // rewriting what it writes, which every row up to the table's proven size
+        // repeats and nothing stores more than once. The bus leaves it out; its circuit
+        // instance is an honest one, on those zeros.
+        let mut cycles = 0;
+        for (t, rows) in rows.iter_mut().enumerate() {
+            let proven = 1 << super::tau_of(t, rows.len());
+            cycles += proven;
+            if rows.len() == proven {
+                continue;
             }
+            let index = self.noops[t];
+            let e = &p.entries()[index];
+            let outcome = e.evaluate(0, 0, 0);
+            let slots: Vec<u64> = CLASSES[t].slots().into_iter().map(u64::from).collect();
+            let mut prev = [0; 4];
+            let hash = (e.class == Class::Hash).then(|| {
+                // The compression of a zero block, whose result the row rewrites.
+                let mut h = BlockAccess::from(Hash {
+                    flags: e.flags,
+                    t: 0,
+                    block: [0; Hash::WORDS],
+                });
+                h.block[Hash::OUT as usize / 8..][..4].copy_from_slice(&h.out);
+                let mut all = [0; 2 + Hash::WORDS];
+                all.copy_from_slice(&slots);
+                Box::new(HashRow {
+                    block: h.block,
+                    out: h.out,
+                    prev: all,
+                })
+            });
+            if hash.is_none() {
+                prev[..slots.len()].copy_from_slice(&slots);
+            }
+            let row = Row {
+                index: index as u32,
+                ts: 0,
+                v1: 0,
+                v2: 0,
+                out: outcome.out,
+                taken: outcome.taken,
+                vd_old: if e.link { p.pc_of(index) + 4 } else { outcome.out },
+                ram: outcome.access.unwrap_or_default(),
+                prev,
+                hash,
+            };
+            rows.push(row);
         }
 
-        let cycles = rows.iter().map(Vec::len).sum();
         let ram_last = ram.timestamps();
         let (ram_ts, adv_ts) = ram_last.split_at(1 << p.log_ram());
         let trace = Trace {
@@ -189,6 +189,7 @@ impl Program {
             adv_fin: m.memory().advice().iter().map(|&w| F64(w)).collect(),
             adv_ts: adv_ts.to_vec(),
             ts_final: ts,
+            heights: base_counts,
         };
         Ok(Execution {
             output,

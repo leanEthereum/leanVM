@@ -6,18 +6,19 @@
 //! that carry data: every claim lives inside them and the weight is zero past
 //! them), and one WHIR run discharges
 //!
-//! - **point claims** ([`StackClaim`]): plain multilinear evaluations of
-//!   aligned sub-slices of the stack (a `Point` claim's weight is
-//!   `eq(low_point, .)` supported on `[offset, offset + 2^|low_point|)`; a
-//!   `Strided` claim freezes the low `stride_log` in-block coords to `slot`'s
-//!   bits, so its weight is nonzero only at `offset + slot + j * 2^stride_log`),
-//! - **ring-switched claims** ([`RingSwitchOpen`], one per packed sub-block, each
-//!   circuit committing its own): bit-MLE evaluation claims
-//!   on the packed sub-block `q_flock = stack[offset .. offset + 2^qflock_vars]`,
-//!   reduced per claim by [`super::ring_switch::prove_prepare`] and the
-//!   deferred finish path to an inner-product
-//!   claim `<q_flock, rs_eq_ind> = sumcheck_claim` against the transparent
-//!   E-valued weight `rs_eq_ind`.
+//! - **point claims** ([`StackClaim`]): multilinear evaluations whose weight is a
+//!   sum of aligned [`Term`]s, each `scale · eq(point[..n_vars], j)` at the words
+//!   `offset + slot + j · 2^stride_log`. One term over a whole aligned slice is a
+//!   plain evaluation of that slice (`slot`, `stride_log` freeze the low in-block
+//!   coords of a packed column); several scaled terms are a column whose rows are
+//!   committed in several aligned pieces (a jagged column, §sec:jagged), the scales
+//!   being what the claim's point puts on each piece,
+//! - **ring-switched claims** ([`RingSwitchClaim`]): bit-MLE evaluation claims on
+//!   a packed column, its weight the sum of its [`RingTerm`]s `scale · eq(point[..n_vars], ·)`
+//!   over aligned pieces of the stack, reduced per claim by
+//!   [`super::ring_switch::prove_prepare`] and the deferred finish path to an
+//!   inner-product claim `<q, rs_eq_ind> = sumcheck_claim` against the transparent
+//!   E-valued weight `rs_eq_ind = Φ(weight)`.
 //!
 //! All claims are lambda-folded into ONE combined weight `b_stack` over the
 //! whole stack plus one `target`, then proved by
@@ -27,7 +28,7 @@
 //! [`super::whir::recursive_verifier_with_basis_succinct`] with a
 //! terminal evaluator that reconstructs `MLE(b_stack)` once, at the final fold
 //! point, using closed-form eq / stride selectors and
-//! [`super::ring_switch::eval_rs_eq`].
+//! [`super::ring_switch::eval_rs_eq_terms`].
 //!
 //! ## Transcript order (identical on both sides)
 //!
@@ -35,24 +36,23 @@
 //!
 //! ## The combined weight
 //!
-//! With `sel = offset >> qflock_vars` the selector coords of a q_flock slice,
-//! the lifted weight at a full-stack point `x = (x_lo, x_hi)` (split at
-//! `qflock_vars`, LSB-first) is, for one such slice (several add up, each with
-//! its own selector and its own run of `lambda` powers),
+//! A term over `2^n` words at `offset` has selector coords `sel = offset >> n`, and
+//! at a full-stack point `x = (x_lo, x_hi)` (split at `n`, LSB-first) it is its
+//! low-dimensional weight at `x_lo` times `eq(sel, x_hi)`. So
 //!
 //! ```text
-//! b(x) = eq(sel, x_hi) * sum_i lambda^i * MLE(rs_eq_ind_i)(x_lo)
-//!      + sum_j lambda^(n_rs + j) * eq(claim_j, x)
+//! b(x) = sum_i lambda^i * sum_{t in ring claim i} eq(sel_t, x_hi) * MLE(Φ(scale_t · eq(point_i[..n_t], ·)))(x_lo)
+//!      + sum_j lambda^(n_rs + j) * sum_{t in claim j} scale_t * eq(sel_t, x_hi) * eq(point_j-term, x_lo)
 //! ```
 //!
-//! which is exactly what the dense `b_stack` scatter produces (each claim's
+//! which is exactly what the dense `b_stack` scatter produces (each term's
 //! weight lives on its aligned slice, so scattering the low-dimensional eq /
 //! rs_eq_ind tensor at the slice offset IS multiplying by the boolean
 //! selector eq).
 //!
 //! Both families take DISJOINT power ranges of ONE challenge, as the table
 //! sumcheck's xi ranges do, so every claim carries a distinct power (the
-//! batching step of `thm:rbr`).
+//! batching step of `thm:rbr`). A claim's terms share its power.
 
 use crate::merkle::Hash;
 use fiat_shamir::transcript::{Receiver, Transmitter};
@@ -70,45 +70,102 @@ mod basis;
 // Claim types
 // ---------------------------------------------------------------------------
 
-/// An owning point claim folded into the stacked mixed opening.
+/// One aligned piece of a [`StackClaim`]'s weight: `scale · eq(point[..n_vars], j)`
+/// at the word `offset + slot + j · 2^stride_log` for every `j < 2^n_vars`, the
+/// claim fixing `point`, `slot` and `stride_log`. `offset` must be a multiple of
+/// `2^(stride_log + n_vars)`.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum StackClaim {
-    /// `eq(low_point, .)` on the aligned slice
-    /// `[offset, offset + 2^|low_point|)`; `offset` must be a multiple of
-    /// `2^|low_point|`.
-    Point {
-        offset: usize,
-        low_point: Vec<F192>,
-        value: F192,
-    },
-    /// A boolean-selector claim on a packed column: the low `stride_log`
-    /// in-block coords are frozen to `slot`'s bits (so the weight is nonzero
-    /// only at `offset + slot + j * 2^stride_log`) and `point` is the high
-    /// part. Equivalent to a `Point` with `low_point = slot_bits ++ point`,
-    /// folded in `O(2^|point|)` instead of `O(2^(stride_log + |point|))`.
-    /// `offset` must be a multiple of `2^(stride_log + |point|)` and
-    /// `slot < 2^stride_log`.
-    Strided {
-        offset: usize,
-        slot: usize,
-        stride_log: usize,
-        point: Vec<F192>,
-        value: F192,
-    },
+pub struct Term {
+    pub offset: usize,
+    pub n_vars: usize,
+    pub scale: F192,
 }
 
-impl StackClaim {
-    #[inline]
-    pub const fn value(&self) -> F192 {
-        match self {
-            Self::Point { value, .. } | Self::Strided { value, .. } => *value,
-        }
+impl Term {
+    /// `scale · eq(sel, x[n..])` for the term's selector `sel = offset >> n`, the
+    /// share of its weight the coords above its own `n` contribute at `x`.
+    fn selector_at(&self, n: usize, x: &[F192]) -> F192 {
+        let sel = self.offset >> n;
+        x[n..].iter().enumerate().fold(self.scale, |e, (k, &xi)| {
+            e * if (sel >> k) & 1 == 1 { xi } else { F192::ONE + xi }
+        })
     }
 }
 
-/// One ring-switched claim on the q_flock sub-block: the 64 bit-slice MLEs of
-/// q_flock at `suffix_point` (see [`super::ring_switch`]), which has
-/// `qflock_vars` coords.
+/// An owning point claim folded into the stacked mixed opening: the stack against
+/// the sum of its terms' weights is `value`. The low `stride_log` in-block coords
+/// of every term are frozen to `slot`'s bits, which is how a claim reads one port
+/// of a packed column; `slot < 2^stride_log`.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct StackClaim {
+    pub point: Vec<F192>,
+    pub slot: usize,
+    pub stride_log: usize,
+    pub terms: Vec<Term>,
+    pub value: F192,
+}
+
+impl StackClaim {
+    /// `eq(low_point, ·)` on the aligned slice `[offset, offset + 2^|low_point|)`.
+    pub fn point(offset: usize, low_point: Vec<F192>, value: F192) -> Self {
+        Self::strided(offset, 0, 0, low_point, value)
+    }
+
+    /// `eq(point, j)` at `offset + slot + j · 2^stride_log`: a [`Self::point`] whose
+    /// low `stride_log` coords are `slot`'s bits, folded in `O(2^|point|)`.
+    pub fn strided(offset: usize, slot: usize, stride_log: usize, point: Vec<F192>, value: F192) -> Self {
+        Self {
+            terms: vec![Term {
+                offset,
+                n_vars: point.len(),
+                scale: F192::ONE,
+            }],
+            point,
+            slot,
+            stride_log,
+            value,
+        }
+    }
+
+    /// The b_stack range term `t` is supported on: an aligned dyadic interval, so
+    /// two of them are nested or disjoint and never partially overlap. It is the
+    /// whole strided block rather than the strided positions inside it, which is
+    /// conservative in the direction that matters: it only ever makes a later
+    /// claim accumulate.
+    const fn range(&self, t: &Term) -> (usize, usize) {
+        (t.offset, t.offset + (1usize << (self.stride_log + t.n_vars)))
+    }
+
+    /// The claim's weight at an arbitrary point `x` of the full stack cube, every
+    /// term's full point being `[slot_bits, point[..n_vars], sel_bits]`.
+    fn weight_at(&self, x: &[F192]) -> F192 {
+        let s = self.stride_log;
+        let slot = (0..s).fold(F192::ONE, |e, k| {
+            e * if (self.slot >> k) & 1 == 1 {
+                x[k]
+            } else {
+                F192::ONE + x[k]
+            }
+        });
+        let terms = self.terms.iter().fold(F192::ZERO, |acc, t| {
+            acc + eq_eval(&self.point[..t.n_vars], &x[s..s + t.n_vars]) * t.selector_at(s + t.n_vars, x)
+        });
+        slot * terms
+    }
+}
+
+/// One aligned piece of a ring-switched claim's weight: `scale · eq(suffix_point[..n_vars], ·)`
+/// over the `2^n_vars` words from `offset`, which must be a multiple of that.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RingTerm {
+    pub offset: usize,
+    pub n_vars: usize,
+    pub scale: F192,
+}
+
+/// One ring-switched claim: the 64 bit-slice MLEs of the stack against the weight
+/// `Σ_terms` (see [`super::ring_switch`]); one unscaled term over a packed slice
+/// is that slice's bit-slice MLEs at `suffix_point`.
 ///
 /// `s_hat_v` holds those 64 values. The caller transmits and checks them itself
 /// (flock sends its family and pins it in its own lincheck terminal), so this
@@ -117,100 +174,32 @@ impl StackClaim {
 pub struct RingSwitchClaim {
     pub suffix_point: Vec<F192>,
     pub s_hat_v: Option<Vec<F192>>,
-}
-
-/// Prover-side bundle of the ring-switched claims discharged in the same
-/// stacked opening as the [`StackClaim`]s. Each claim may carry its
-/// precomputed `s_hat_v`.
-#[derive(Clone, Debug)]
-pub struct RingSwitchOpen {
-    /// q_flock's offset inside the committed stack; must be a multiple of
-    /// `2^qflock_vars` (an aligned slice).
-    pub offset: usize,
-    /// log2 of q_flock's length in F64 words; the opener slices
-    /// `q_flock = stack[offset .. offset + 2^qflock_vars]` (no separate copy).
-    pub qflock_vars: usize,
-    pub claims: Vec<RingSwitchClaim>,
+    pub terms: Vec<RingTerm>,
 }
 
 /// A verifier claim whose slices were transmitted and checked by the caller.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub struct RingSwitchVerifyClaim<'a> {
     pub suffix_point: &'a [F192],
     pub s_hat_v: &'a [F192; PACKING_WIDTH],
+    pub terms: Vec<RingTerm>,
 }
 
-/// Verifier inputs borrowed from the upstream reduction.
-#[derive(Clone, Debug)]
-pub struct RingSwitchVerify<'a> {
-    pub offset: usize,
-    pub qflock_vars: usize,
-    pub claims: Vec<RingSwitchVerifyClaim<'a>>,
-}
-
-// ---------------------------------------------------------------------------
-// Shared claim folding / evaluation
-// ---------------------------------------------------------------------------
-
-/// The b_stack range a claim's weight is supported on. Every range is an
-/// aligned dyadic interval (the offset asserts below), so two of them are
-/// nested or disjoint and never partially overlap. `Strided` reports its whole
-/// block rather than the strided positions inside it, which is conservative in
-/// the direction that matters: it only ever makes a later claim accumulate.
-fn claim_range(claim: &StackClaim) -> (usize, usize) {
-    match claim {
-        StackClaim::Point { offset, low_point, .. } => (*offset, *offset + (1usize << low_point.len())),
-        StackClaim::Strided {
-            offset,
-            stride_log,
-            point,
-            ..
-        } => (*offset, *offset + (1usize << (stride_log + point.len()))),
-    }
-}
-
-/// The claim's weight `eq(full claim point, x)` at an arbitrary point `x` of
-/// the full stack cube. A `Point`'s full point is `[low_point, sel_bits]`, a
-/// `Strided`'s is `[slot_bits, point, sel_bits]`; neither is materialized.
-fn stack_claim_eq_at(claim: &StackClaim, x: &[F192]) -> F192 {
-    match claim {
-        StackClaim::Point { offset, low_point, .. } => {
-            let n = low_point.len();
-            let mut e = eq_eval(low_point, &x[..n]);
-            let sel = offset >> n;
-            for (k, &xi) in x[n..].iter().enumerate() {
-                e *= if (sel >> k) & 1 == 1 { xi } else { F192::ONE + xi };
-            }
-            e
-        }
-        StackClaim::Strided {
-            offset,
-            slot,
-            stride_log,
-            point,
-            ..
-        } => {
-            let mut e = F192::ONE;
-            for (k, &xi) in x[..*stride_log].iter().enumerate() {
-                e *= if (slot >> k) & 1 == 1 { xi } else { F192::ONE + xi };
-            }
-            let block_vars = stride_log + point.len();
-            e *= eq_eval(point, &x[*stride_log..block_vars]);
-            let sel = offset >> block_vars;
-            for (k, &xi) in x[block_vars..].iter().enumerate() {
-                e *= if (sel >> k) & 1 == 1 { xi } else { F192::ONE + xi };
-            }
-            e
-        }
-    }
+/// One unscaled ring term over the aligned slice `[offset, offset + 2^n_vars)`.
+pub fn whole_slice(offset: usize, n_vars: usize) -> Vec<RingTerm> {
+    vec![RingTerm {
+        offset,
+        n_vars,
+        scale: F192::ONE,
+    }]
 }
 
 // ---------------------------------------------------------------------------
 // Prover
 // ---------------------------------------------------------------------------
 
-/// Open the committed `F64` stack: discharge every `point_claims` slice
-/// evaluation AND the ring-switched q_flock claims (`ring`) in ONE WHIR
+/// Open the committed `F64` stack: discharge every `point_claims` weighted
+/// evaluation AND the ring-switched claims (`rings`) in ONE WHIR
 /// run, reusing the caller's [`super::whir::commit`] output as L0.
 ///
 /// `stack` is the committed message (the caller retains it; it is not stored in
@@ -226,44 +215,34 @@ pub fn open_batch_mixed_whir_stacked(
     prover_data: &ProverData,
     config: &ProverConfig,
     point_claims: &[StackClaim],
-    rings: &[RingSwitchOpen],
+    rings: &[RingSwitchClaim],
 ) {
-    for ring in rings {
-        let qflock_len = 1usize << ring.qflock_vars;
+    for term in rings.iter().flat_map(|claim| &claim.terms) {
         assert!(
-            ring.offset.is_multiple_of(qflock_len),
-            "q_flock offset must be 2^qflock_vars-aligned"
-        );
-        assert!(
-            ring.offset + qflock_len <= stack.len(),
-            "q_flock slice must fit inside the stack"
+            term.offset.is_multiple_of(1usize << term.n_vars),
+            "a ring term must be aligned to its size"
         );
     }
     assert!(
-        point_claims.iter().all(|c| claim_range(c).1 <= stack.len()),
+        point_claims
+            .iter()
+            .all(|c| c.terms.iter().all(|t| c.range(t).1 <= stack.len())),
         "every claim must live inside the committed lanes"
     );
-    let n_rs: usize = rings.iter().map(|ring| ring.claims.len()).sum();
+    let n_rs = rings.len();
     assert!(n_rs > 0, "stacked PCS opening carries at least one ring-switched claim");
     let span = tracing::info_span!("Ring switch").entered();
 
     // 1. Ring-switch reduction: prepare every claim's s_hat_v (the caller bound
     //    them upstream), then sample one shared linear map.
     let mut rs_states = Vec::with_capacity(n_rs);
-    for ring in rings {
-        let qflock = &stack[ring.offset..ring.offset + (1usize << ring.qflock_vars)];
-        for claim in &ring.claims {
-            assert_eq!(
-                claim.suffix_point.len(),
-                ring.qflock_vars,
-                "ring-switch suffix point must have qflock_vars coords"
-            );
-            rs_states.push(ring_switch::prove_prepare(
-                qflock,
-                &claim.suffix_point,
-                claim.s_hat_v.as_deref(),
-            ));
-        }
+    for claim in rings {
+        rs_states.push(ring_switch::prove_prepare(
+            stack,
+            &claim.suffix_point,
+            &claim.terms,
+            claim.s_hat_v.as_deref(),
+        ));
     }
     let map_challenges = ring_switch::sample_map_challenges(ps);
     let coordinate_weights = ring_switch::build_coordinate_weights(&map_challenges);
@@ -282,7 +261,7 @@ pub fn open_batch_mixed_whir_stacked(
     drop(span);
 
     // 3. Combined target and lifted stack weight b_stack: the lambda-weighted
-    //    rs_eq_ind sum scattered at the q_flock slice, plus the point-claim
+    //    rs_eq_ind terms scattered at their slices, plus the point-claim
     //    eq tensors scattered at their offsets.
     let target = rs_outputs
         .iter()
@@ -290,7 +269,7 @@ pub fn open_batch_mixed_whir_stacked(
         + point_claims
             .iter()
             .zip(lambdas_pd)
-            .fold(F192::ZERO, |sum, (claim, &lambda)| sum + lambda * claim.value());
+            .fold(F192::ZERO, |sum, (claim, &lambda)| sum + lambda * claim.value);
 
     // The lifted weight is never stored.
     //
@@ -299,7 +278,7 @@ pub fn open_batch_mixed_whir_stacked(
     //
     // Filling costs less than writing the weight out and reading it back.
     let lane_block = 1usize << (log_n - config.initial_k());
-    let weight = basis::StackWeight::new(stack.len(), lane_block, point_claims, lambdas_pd, rings, &rs_outputs);
+    let weight = basis::StackWeight::new(stack.len(), lane_block, point_claims, lambdas_pd, &rs_outputs);
     let fill = |start: usize, dst: &mut [F192]| weight.fill(start, dst);
     let message = tracing::info_span!("Basis").in_scope(|| super::whir::initial_message(stack, lane_block, &fill));
 
@@ -334,28 +313,34 @@ pub fn verify_opening_batch_mixed_whir_stacked(
     n_lanes: usize,
     root: &Hash,
     point_claims: &[StackClaim],
-    rings: &[RingSwitchVerify<'_>],
+    rings: &[RingSwitchVerifyClaim<'_>],
 ) -> Result<(), VerifyError> {
-    let n_rs: usize = rings.iter().map(|ring| ring.claims.len()).sum();
+    let n_rs = rings.len();
     assert!(n_rs > 0, "stacked PCS opening carries at least one ring-switched claim");
     // Caller (statement) invariants: panic on misuse, like the extension-field layer.
-    for ring in rings {
-        assert!(ring.qflock_vars <= log_n);
-        assert!(
-            ring.offset.is_multiple_of(1usize << ring.qflock_vars),
-            "q_flock offset must be 2^qflock_vars-aligned"
-        );
-        for claim in &ring.claims {
-            assert_eq!(claim.suffix_point.len(), ring.qflock_vars);
+    // Every term's support must lie inside the cube, or its selector coords would run
+    // off the end of the fold point (mirror of the opener's own bound).
+    for claim in rings {
+        for term in &claim.terms {
+            assert!(term.n_vars <= claim.suffix_point.len());
+            assert!(
+                term.offset.is_multiple_of(1usize << term.n_vars),
+                "a ring term must be aligned to its size"
+            );
+            assert!(term.offset + (1usize << term.n_vars) <= 1usize << log_n);
         }
-        // Every claim's support must lie inside the cube, or its selector coords would
-        // run off the end of the fold point (mirror of the opener's own bound).
-        assert!(ring.offset + (1usize << ring.qflock_vars) <= 1usize << log_n);
     }
-    assert!(
-        point_claims.iter().all(|c| claim_range(c).1 <= 1usize << log_n),
-        "every claim must live inside the committed cube"
-    );
+    for claim in point_claims {
+        for term in &claim.terms {
+            assert!(term.n_vars <= claim.point.len());
+            let (start, end) = claim.range(term);
+            assert!(start.is_multiple_of(end - start), "a term must be aligned to its size");
+            assert!(
+                end <= 1usize << log_n,
+                "every claim must live inside the committed cube"
+            );
+        }
+    }
 
     // 1. Ring-switch verify: every claim arrives with its 64 slices, bound
     //    upstream by the caller, so nothing is read here. Then sample one
@@ -369,32 +354,58 @@ pub fn verify_opening_batch_mixed_whir_stacked(
     let (lambdas_rs, lambdas_pd) = lambdas.split_at(n_rs);
 
     let mut target = F192::ZERO;
-    for (claim, g) in rings.iter().flat_map(|ring| &ring.claims).zip(lambdas_rs.iter()) {
+    for (claim, g) in rings.iter().zip(lambdas_rs.iter()) {
         target += *g * ring_switch::verify_finish(claim.s_hat_v, &coordinate_weights);
     }
     for (claim, g) in point_claims.iter().zip(lambdas_pd.iter()) {
-        target += *g * claim.value();
+        target += *g * claim.value;
+    }
+
+    // Ring claims whose suffix points are prefixes of one longest point share its walk:
+    // `eval_rs_eq_terms` serves every prefix of the point it walks, so each walk takes
+    // the terms of every claim it covers.
+    let mut walks: Vec<(usize, Vec<usize>)> = Vec::new();
+    let mut by_length: Vec<usize> = (0..n_rs).collect();
+    by_length.sort_by_key(|&i| std::cmp::Reverse(rings[i].suffix_point.len()));
+    for i in by_length {
+        let point = rings[i].suffix_point;
+        match walks
+            .iter_mut()
+            .find(|(lead, _)| rings[*lead].suffix_point.starts_with(point))
+        {
+            Some((_, members)) => members.push(i),
+            None => walks.push((i, vec![i])),
+        }
     }
 
     // 3. Evaluate the lifted weight once, at the terminal sumcheck point.
     let eval_b_at = |x: &[F192]| -> F192 {
         let mut acc = F192::ZERO;
-        let mut lambdas_rs = lambdas_rs.iter();
-        for ring in rings {
-            let (x_lo, x_hi) = x.split_at(ring.qflock_vars);
-            let sel = ring.offset >> ring.qflock_vars;
-            let mut sel_eq = F192::ONE;
-            for (k, &xi) in x_hi.iter().enumerate() {
-                sel_eq *= if (sel >> k) & 1 == 1 { xi } else { F192::ONE + xi };
+        for (lead, members) in &walks {
+            let shape: Vec<(usize, F192)> = (members.iter())
+                .flat_map(|&i| rings[i].terms.iter().map(|t| (t.n_vars, t.scale)))
+                .collect();
+            let mut values =
+                ring_switch::eval_rs_eq_terms(rings[*lead].suffix_point, x, &coordinate_weights, &shape).into_iter();
+            for &i in members {
+                let rs_part = rings[i]
+                    .terms
+                    .iter()
+                    .zip(values.by_ref())
+                    .fold(F192::ZERO, |acc, (t, value)| {
+                        let selector = Term {
+                            offset: t.offset,
+                            n_vars: t.n_vars,
+                            scale: F192::ONE,
+                        }
+                        .selector_at(t.n_vars, x);
+                        acc + value * selector
+                    });
+                acc += lambdas_rs[i] * rs_part;
             }
-            let mut rs_part = F192::ZERO;
-            for (claim, g) in ring.claims.iter().zip(lambdas_rs.by_ref()) {
-                rs_part += *g * ring_switch::eval_rs_eq(claim.suffix_point, x_lo, &coordinate_weights);
-            }
-            acc += rs_part * sel_eq;
         }
         for (claim, g) in point_claims.iter().zip(lambdas_pd.iter()) {
-            acc += *g * stack_claim_eq_at(claim, x);
+            acc += *g * claim.weight_at(x);
         }
         acc
     };
@@ -426,23 +437,33 @@ mod tests {
             let qflock_vars = lane_vars + usize::from(lanes > 1);
             let qflock_len = 1 << qflock_vars;
             let offset = if stack.len() >= 2 * qflock_len { qflock_len } else { 0 };
-            let ring = RingSwitchOpen {
-                offset,
-                qflock_vars,
-                claims: (0..2)
-                    .map(|_| RingSwitchClaim {
-                        suffix_point: rng.ext_vec(qflock_vars),
-                        s_hat_v: None,
-                    })
-                    .collect(),
-            };
+            // A whole-slice ring claim, and one whose weight is split into two scaled
+            // pieces at the slice's two ends, as a jagged column's is.
+            let rings = [
+                whole_slice(offset, qflock_vars),
+                vec![
+                    RingTerm {
+                        offset,
+                        n_vars: qflock_vars - 1,
+                        scale: rng.ext(),
+                    },
+                    RingTerm {
+                        offset: offset + qflock_len - 1,
+                        n_vars: 0,
+                        scale: rng.ext(),
+                    },
+                ],
+            ]
+            .map(|terms| RingSwitchClaim {
+                suffix_point: rng.ext_vec(qflock_vars),
+                s_hat_v: None,
+                terms,
+            });
             let coordinates = rng.ext_vec(192);
-            let rs_outputs: Vec<_> = ring
-                .claims
+            let rs_outputs: Vec<_> = rings
                 .iter()
                 .map(|claim| {
-                    let state =
-                        ring_switch::prove_prepare(&stack[offset..offset + qflock_len], &claim.suffix_point, None);
+                    let state = ring_switch::prove_prepare(&stack, &claim.suffix_point, &claim.terms, None);
                     ring_switch::prove_finish_deferred(state, &coordinates, rng.ext())
                 })
                 .collect();
@@ -453,53 +474,49 @@ mod tests {
                 (0, 0),
             ]
             .into_iter()
-            .map(|(offset, vars)| StackClaim::Point {
-                offset,
-                low_point: rng.ext_vec(vars),
-                value: rng.ext(),
-            })
+            .map(|(offset, vars)| StackClaim::point(offset, rng.ext_vec(vars), rng.ext()))
             .collect();
             for stride_log in [0, 1, 3, qflock_vars - 1, qflock_vars] {
-                claims.push(StackClaim::Strided {
+                claims.push(StackClaim::strided(
                     offset,
-                    slot: (1 << stride_log) - 1,
+                    (1 << stride_log) - 1,
                     stride_log,
-                    point: rng.ext_vec(qflock_vars - stride_log),
-                    value: rng.ext(),
-                });
+                    rng.ext_vec(qflock_vars - stride_log),
+                    rng.ext(),
+                ));
             }
+            let mut jagged = StackClaim::point(offset, rng.ext_vec(qflock_vars), rng.ext());
+            jagged.terms = vec![
+                Term {
+                    offset,
+                    n_vars: qflock_vars - 1,
+                    scale: rng.ext(),
+                },
+                Term {
+                    offset: offset + qflock_len - 1,
+                    n_vars: 0,
+                    scale: rng.ext(),
+                },
+            ];
+            claims.push(jagged);
             let lambdas = rng.ext_vec(claims.len());
             // Oracle: the dense weight written out naively, one eq entry at a
             // time, so it shares no code with the fused build under test.
             let mut expected = vec![F192::ZERO; stack.len()];
-            ring_switch::combine_deferred_chunk(&rs_outputs, 0, &mut expected[offset..offset + qflock_len]);
+            ring_switch::combine_deferred_chunk(&rs_outputs, 0, &mut expected);
             for (claim, &lambda) in claims.iter().zip(&lambdas) {
-                let (base, stride_log, point) = match claim {
-                    StackClaim::Point { offset, low_point, .. } => (*offset, 0, low_point.as_slice()),
-                    StackClaim::Strided {
-                        offset,
-                        slot,
-                        stride_log,
-                        point,
-                        ..
-                    } => (*offset + *slot, *stride_log, point.as_slice()),
-                };
-                for j in 0..1usize << point.len() {
-                    let w = point.iter().enumerate().fold(lambda, |w, (i, &p_i)| {
-                        w * if (j >> i) & 1 == 1 { p_i } else { F192::ONE + p_i }
-                    });
-                    expected[base + (j << stride_log)] += w;
+                for term in &claim.terms {
+                    let point = &claim.point[..term.n_vars];
+                    for j in 0..1usize << point.len() {
+                        let w = point.iter().enumerate().fold(lambda * term.scale, |w, (i, &p_i)| {
+                            w * if (j >> i) & 1 == 1 { p_i } else { F192::ONE + p_i }
+                        });
+                        expected[term.offset + claim.slot + (j << claim.stride_log)] += w;
+                    }
                 }
             }
             // The weight, filled chunk by chunk as the opening reads it.
-            let weight = basis::StackWeight::new(
-                stack.len(),
-                lane_block,
-                &claims,
-                &lambdas,
-                std::slice::from_ref(&ring),
-                &rs_outputs,
-            );
+            let weight = basis::StackWeight::new(stack.len(), lane_block, &claims, &lambdas, &rs_outputs);
             let chunk = lane_block.min(INITIAL_BASIS_CHUNK);
             let mut actual = vec![F192::ZERO; stack.len()];
             for (i, out) in actual.chunks_exact_mut(chunk).enumerate() {
@@ -520,16 +537,31 @@ mod tests {
         log_n: usize,
         root: Hash,
         point_claims: Vec<StackClaim>,
-        ring: RingSwitchOpen,
         ring_verify: Vec<RingSwitchClaim>,
         fs: fiat_shamir::transcript::Proof,
+    }
+
+    /// The 64 bit-slice values of a ring claim's terms against the stack.
+    fn slices_of(stack: &[F64], claim: &RingSwitchClaim) -> Vec<F192> {
+        claim.terms.iter().fold(vec![F192::ZERO; PACKING_WIDTH], |mut acc, t| {
+            let eq: Vec<F192> = eq_table(&claim.suffix_point[..t.n_vars])
+                .iter()
+                .map(|&e| t.scale * e)
+                .collect();
+            let slices = fold_1b_rows(&stack[t.offset..t.offset + (1 << t.n_vars)], &eq);
+            for (a, s) in acc.iter_mut().zip(slices) {
+                *a += s;
+            }
+            acc
+        })
     }
 
     /// Synthetic stack of 2^14 F64 words: three aligned 2^12-word columns
     /// plus a q_flock region (a random bit-witness packed by pack) at the
     /// top slice, padded with random filler. Pool: one point claim per
     /// column at a random E point, one strided claim into q_flock, one
-    /// ring-switched claim with plain eq prefix weights.
+    /// claim split into two scaled terms (a jagged column's shape), one
+    /// ring-switched claim with plain eq prefix weights and one split likewise.
     ///
     /// q_flock is kept SMALL (2^8 words) so the succinct verifier's residual
     /// cube sits entirely above the q_flock coords (the production regime:
@@ -559,11 +591,7 @@ mod tests {
                 let low_point = rng.ext_vec(col_vars);
                 let eq = eq_table(&low_point);
                 let value = inner_product_base_ext(&stack[offset..offset + col_len], &eq);
-                StackClaim::Point {
-                    offset,
-                    low_point,
-                    value,
-                }
+                StackClaim::point(offset, low_point, value)
             })
             .collect();
 
@@ -578,34 +606,79 @@ mod tests {
             for (j, &ej) in eq.iter().enumerate() {
                 value += ej.mul_base(stack[qflock_offset + slot + (j << stride_log)]);
             }
-            point_claims.push(StackClaim::Strided {
-                offset: qflock_offset,
-                slot,
-                stride_log,
-                point,
-                value,
-            });
+            point_claims.push(StackClaim::strided(qflock_offset, slot, stride_log, point, value));
         }
 
-        // One ring-switched claim on q_flock (plain eq prefix weights).
-        let qflock = &stack[qflock_offset..qflock_offset + (1 << qflock_vars)];
+        // One claim of two scaled pieces: the low half of column 1 and one word of
+        // column 2.
+        {
+            let point = rng.ext_vec(col_vars);
+            let (a, b) = (rng.ext(), rng.ext());
+            let eq = eq_table(&point[..col_vars - 1]);
+            let value = a * inner_product_base_ext(&stack[col_len..col_len + col_len / 2], &eq)
+                + b.mul_base(stack[2 * col_len + 7]);
+            let mut claim = StackClaim::point(col_len, point, value);
+            claim.terms = vec![
+                Term {
+                    offset: col_len,
+                    n_vars: col_vars - 1,
+                    scale: a,
+                },
+                Term {
+                    offset: 2 * col_len + 7,
+                    n_vars: 0,
+                    scale: b,
+                },
+            ];
+            point_claims.push(claim);
+        }
+
+        // One ring-switched claim on q_flock (plain eq prefix weights), and one
+        // of two scaled pieces of it; then, on the filler past it, one whose point
+        // is a prefix of theirs, which shares their walk, and one whose point is not.
         let suffix_point = rng.ext_vec(qflock_vars);
-        let s_hat_v = fold_1b_rows(qflock, &eq_table(&suffix_point));
-        let ring = RingSwitchOpen {
-            offset: qflock_offset,
-            qflock_vars,
-            claims: vec![RingSwitchClaim {
-                suffix_point: suffix_point.clone(),
-                // Exercise the fold path (no precompute).
-                s_hat_v: None,
-            }],
-        };
-        // The verifier's copy of the same claim: the slices ride the statement,
-        // bound by the caller, as flock binds its family.
-        let ring_verify = vec![RingSwitchClaim {
+        let split = vec![
+            RingTerm {
+                offset: qflock_offset,
+                n_vars: qflock_vars - 2,
+                scale: rng.ext(),
+            },
+            RingTerm {
+                offset: qflock_offset + (1 << qflock_vars) - 2,
+                n_vars: 1,
+                scale: rng.ext(),
+            },
+        ];
+        let past = qflock_offset + (1 << qflock_vars);
+        let rings: Vec<RingSwitchClaim> = [
+            (suffix_point.clone(), whole_slice(qflock_offset, qflock_vars)),
+            (suffix_point.clone(), split),
+            (
+                suffix_point[..qflock_vars - 1].to_vec(),
+                whole_slice(past, qflock_vars - 1),
+            ),
+            (
+                rng.ext_vec(qflock_vars - 2),
+                whole_slice(past + (1 << (qflock_vars - 1)), qflock_vars - 2),
+            ),
+        ]
+        .into_iter()
+        .map(|(suffix_point, terms)| RingSwitchClaim {
             suffix_point,
-            s_hat_v: Some(s_hat_v),
-        }];
+            // Exercise the fold path (no precompute).
+            s_hat_v: None,
+            terms,
+        })
+        .collect();
+        // The verifier's copy of the same claims: the slices ride the statement,
+        // bound by the caller, as flock binds its family.
+        let ring_verify = rings
+            .iter()
+            .map(|claim| RingSwitchClaim {
+                s_hat_v: Some(slices_of(&stack, claim)),
+                ..claim.clone()
+            })
+            .collect();
 
         let pc = test_config_for(log_n);
         // Pin the intended residual regime: the residual cube must sit
@@ -618,22 +691,13 @@ mod tests {
         );
         let (cm, pd) = commit(&stack, log_n, pc.initial_k(), pc.log_inv_rates()[0]);
         let mut ps = fiat_shamir::transcript::ProverState::from_label(DOMAIN);
-        open_batch_mixed_whir_stacked(
-            &mut ps,
-            log_n,
-            &stack,
-            &pd,
-            &pc,
-            &point_claims,
-            std::slice::from_ref(&ring),
-        );
+        open_batch_mixed_whir_stacked(&mut ps, log_n, &stack, &pd, &pc, &point_claims, &rings);
 
         Instance {
             vc: pc,
             log_n,
             root: cm.root,
             point_claims,
-            ring,
             ring_verify,
             fs: ps.into_proof(),
         }
@@ -645,6 +709,7 @@ mod tests {
             .map(|claim| RingSwitchVerifyClaim {
                 suffix_point: &claim.suffix_point,
                 s_hat_v: claim.s_hat_v.as_deref().unwrap().try_into().unwrap(),
+                terms: claim.terms.clone(),
             })
             .collect()
     }
@@ -655,11 +720,6 @@ mod tests {
         ring_claims: &[RingSwitchClaim],
         fs: &fiat_shamir::transcript::Proof,
     ) -> bool {
-        let ring = RingSwitchVerify {
-            offset: inst.ring.offset,
-            qflock_vars: inst.ring.qflock_vars,
-            claims: verifier_claims(ring_claims),
-        };
         let mut vs = fiat_shamir::transcript::VerifierState::from_label(DOMAIN, fs);
         verify_opening_batch_mixed_whir_stacked(
             &mut vs,
@@ -668,7 +728,7 @@ mod tests {
             1 << inst.vc.initial_k(),
             &inst.root,
             point_claims,
-            std::slice::from_ref(&ring),
+            &verifier_claims(ring_claims),
         )
         .is_ok()
     }
@@ -681,37 +741,40 @@ mod tests {
             "honest stacked opening rejected"
         );
 
-        // Wrong point-claim value (dense column claim).
-        let mut bad_points = inst.point_claims.clone();
-        if let StackClaim::Point { value, .. } = &mut bad_points[0] {
-            *value += F192::ONE;
-        } else {
-            unreachable!()
+        // Wrong values: a dense column claim, a strided one, a two-piece one.
+        for (c, what) in [(0, "Point"), (3, "Strided"), (4, "split")] {
+            let mut bad_points = inst.point_claims.clone();
+            bad_points[c].value += F192::ONE;
+            assert!(
+                !verify_instance(&inst, &bad_points, &inst.ring_verify, &inst.fs),
+                "tampered {what} value accepted"
+            );
         }
+
+        // A piece's scale is part of the statement: moving weight between pieces is caught.
+        let mut bad_points = inst.point_claims.clone();
+        bad_points[4].terms[1].scale += F192::ONE;
         assert!(
             !verify_instance(&inst, &bad_points, &inst.ring_verify, &inst.fs),
-            "tampered Point value accepted"
+            "rescaled piece accepted"
         );
 
-        // Wrong strided-claim value.
-        let mut bad_points = inst.point_claims.clone();
-        if let StackClaim::Strided { value, .. } = &mut bad_points[3] {
-            *value += F192::ONE;
-        } else {
-            unreachable!()
+        // Wrong ring-switched slices: rejected by the ring-switch binding. A wrong
+        // point is rejected by the weight, shared walk or not.
+        for r in 0..inst.ring_verify.len() {
+            let mut bad_ring = inst.ring_verify.clone();
+            bad_ring[r].s_hat_v.as_mut().unwrap()[7] += F192::ONE;
+            assert!(
+                !verify_instance(&inst, &inst.point_claims, &bad_ring, &inst.fs),
+                "tampered ring-switch slice {r} accepted"
+            );
+            let mut bad_ring = inst.ring_verify.clone();
+            bad_ring[r].suffix_point[0] += F192::ONE;
+            assert!(
+                !verify_instance(&inst, &inst.point_claims, &bad_ring, &inst.fs),
+                "moved ring-switch point {r} accepted"
+            );
         }
-        assert!(
-            !verify_instance(&inst, &bad_points, &inst.ring_verify, &inst.fs),
-            "tampered Strided value accepted"
-        );
-
-        // Wrong ring-switched slice: rejected by the ring-switch binding.
-        let mut bad_ring = inst.ring_verify.clone();
-        bad_ring[0].s_hat_v.as_mut().unwrap()[7] += F192::ONE;
-        assert!(
-            !verify_instance(&inst, &inst.point_claims, &bad_ring, &inst.fs),
-            "tampered ring-switch slice accepted"
-        );
 
         // Every scalar the opening sends rides the stream, all of them WHIR's:
         // tampering any of them must be rejected.
@@ -753,11 +816,7 @@ mod tests {
         let low_point = rng.ext_vec(12);
         let eq = eq_table(&low_point);
         let value = inner_product_base_ext(&stack[..1 << 12], &eq);
-        let point_claims = vec![StackClaim::Point {
-            offset: 0,
-            low_point,
-            value,
-        }];
+        let point_claims = vec![StackClaim::point(0, low_point, value)];
 
         // One ring-switched claim on the wide q_flock.
         let qflock = &stack[qflock_offset..];
@@ -767,6 +826,7 @@ mod tests {
             suffix_point,
             // Exercise the precomputed path (transcript must be identical).
             s_hat_v: Some(s_hat_v),
+            terms: whole_slice(qflock_offset, qflock_vars),
         }];
 
         // Fixed fallback config so the residual cube size is known: the
@@ -779,28 +839,10 @@ mod tests {
         );
 
         let (cm, pd) = commit(&stack, log_n, pc.initial_k(), pc.log_inv_rates()[0]);
-        let ring = RingSwitchOpen {
-            offset: qflock_offset,
-            qflock_vars,
-            claims,
-        };
         let mut ps = fiat_shamir::transcript::ProverState::from_label(DOMAIN);
-        open_batch_mixed_whir_stacked(
-            &mut ps,
-            log_n,
-            &stack,
-            &pd,
-            &pc,
-            &point_claims,
-            std::slice::from_ref(&ring),
-        );
+        open_batch_mixed_whir_stacked(&mut ps, log_n, &stack, &pd, &pc, &point_claims, &claims);
         let fs = ps.into_proof();
 
-        let ring_v = RingSwitchVerify {
-            offset: qflock_offset,
-            qflock_vars,
-            claims: verifier_claims(&ring.claims),
-        };
         let mut vs = fiat_shamir::transcript::VerifierState::from_label(DOMAIN, &fs);
         assert!(
             verify_opening_batch_mixed_whir_stacked(
@@ -810,20 +852,15 @@ mod tests {
                 1 << pc.initial_k(),
                 &cm.root,
                 &point_claims,
-                std::slice::from_ref(&ring_v)
+                &verifier_claims(&claims)
             )
             .is_ok(),
             "honest crossing-regime opening rejected"
         );
 
         // And the crossing-regime ring claim is still bound: flip a slice.
-        let mut bad_claims = ring.claims.clone();
+        let mut bad_claims = claims.clone();
         bad_claims[0].s_hat_v.as_mut().unwrap()[7] += F192::ONE;
-        let bad_ring = RingSwitchVerify {
-            offset: ring.offset,
-            qflock_vars: ring.qflock_vars,
-            claims: verifier_claims(&bad_claims),
-        };
         let mut vs = fiat_shamir::transcript::VerifierState::from_label(DOMAIN, &fs);
         assert!(
             verify_opening_batch_mixed_whir_stacked(
@@ -833,7 +870,7 @@ mod tests {
                 1 << pc.initial_k(),
                 &cm.root,
                 &point_claims,
-                std::slice::from_ref(&bad_ring)
+                &verifier_claims(&bad_claims)
             )
             .is_err(),
             "tampered crossing-regime ring slice accepted"

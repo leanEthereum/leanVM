@@ -1,39 +1,13 @@
 // CREDIT: https://github.com/succinctlabs/flock (`build_eq` and `lagrange_weights_naive`), MIT OR Apache-2.0.
 //! Multilinear-extension utilities: the equality polynomial, single-variable
 //! folding, and MLE evaluation. Truth tables are indexed little-endian (variable
-//! `k` is bit `k`). Sumchecks here consume variables from either end, so folding
-//! and `eq`-marginalization come in low and high variants. Committed data is
-//! `K`-valued (`F64`) while randomness is `E`-valued (`F192`), so the first
-//! fold of a committed table also lifts it into `E`.
-
-use std::ops::DerefMut;
+//! `k` is bit `k`). Committed data is `K`-valued (`F64`) while randomness is
+//! `E`-valued (`F192`), so the first fold of a committed table also lifts it into `E`.
 
 use std::mem::MaybeUninit;
 
-use crate::field::{F64, F192, PHI_8_TABLE_192 as PHI_8_TABLE, Weights8, dot_base, mul_base8, mul4};
+use crate::field::{F64, F192, PHI_8_TABLE_192 as PHI_8_TABLE, Weights8, dot_base, mul4};
 use zk_alloc::ArenaVec;
-
-/// The one thing the in-place folds need beyond a mutable slice: the ability to
-/// drop a suffix. Implemented for `Vec` and `ArenaVec`, so a fold works on either
-/// without duplicating the kernel or naming a container in its signature.
-pub trait Shrink<T>: DerefMut<Target = [T]> {
-    /// Keep the first `len` elements, dropping the rest.
-    fn shrink_to(&mut self, len: usize);
-}
-
-impl<T> Shrink<T> for Vec<T> {
-    #[inline]
-    fn shrink_to(&mut self, len: usize) {
-        self.truncate(len);
-    }
-}
-
-impl<T> Shrink<T> for ArenaVec<T> {
-    #[inline]
-    fn shrink_to(&mut self, len: usize) {
-        self.truncate(len);
-    }
-}
 
 /// Multilinear interpolation in one variable over `E`: `lo + t·(lo+hi)`, the
 /// char-2 form of `(1−t)·lo + t·hi`.
@@ -56,6 +30,29 @@ pub fn eq_eval(r: &[F192], x: &[F192]) -> F192 {
     r.iter()
         .zip(x)
         .fold(F192::ONE, |acc, (&ri, &xi)| acc * (F192::ONE + ri + xi))
+}
+
+/// `Σ_{j ≥ from} eq(point, j)` over the indices `j < 2^|point|` (LSB-first): the
+/// weight a point puts on every index from `from` on. It is `1 − Σ_{j < from}`, and
+/// the indices below `from` are the aligned blocks of its binary expansion, each
+/// weighing `eq` of the point's coordinates above the block.
+pub fn tail_weight(point: &[F192], from: usize) -> F192 {
+    if from >= 1usize.checked_shl(point.len() as u32).unwrap_or(usize::MAX) {
+        return F192::ZERO;
+    }
+    let mut first = 0usize;
+    let mut acc = F192::ONE;
+    for bit in (0..point.len()).rev().filter(|&bit| (from >> bit) & 1 == 1) {
+        acc += (point[bit..].iter().enumerate()).fold(F192::ONE, |e, (k, &r)| {
+            e * if (first >> (bit + k)) & 1 == 1 {
+                r
+            } else {
+                F192::ONE + r
+            }
+        });
+        first += 1 << bit;
+    }
+    acc
 }
 
 /// The `eq(r, ·)` table over `n = r.len()` variables. See [`fill_eq_table_uninit`].
@@ -154,90 +151,6 @@ fn fold_low_k(table: &[F64], chi: F192) -> Vec<F192> {
     (0..table.len() / 2)
         .map(|i| interp_k(table[2 * i], table[2 * i + 1], chi))
         .collect()
-}
-
-/// Bind the highest variable of a `K`-table and lift the result into `E`.
-///
-/// Eight entries share one batched mixed product ([`mul_base8`]).
-pub fn fold_high_k(table: &[F64], chi: F192) -> ArenaVec<F192> {
-    debug_assert_eq!(table.len() % 2, 0);
-    let (lo, hi) = table.split_at(table.len() / 2);
-    let mut out = zk_alloc::alloc_uninit(lo.len());
-    let (out8, out_tail) = out.as_chunks_mut::<8>();
-    let ((lo8, lo_tail), (hi8, hi_tail)) = (lo.as_chunks::<8>(), hi.as_chunks::<8>());
-    for ((o, l), h) in out8.iter_mut().zip(lo8).zip(hi8) {
-        let p = mul_base8(chi, std::array::from_fn(|i| l[i] + h[i]));
-        for i in 0..8 {
-            o[i].write(F192::from(l[i]) + p[i]);
-        }
-    }
-    for ((o, &l), &h) in out_tail.iter_mut().zip(lo_tail).zip(hi_tail) {
-        o.write(interp_k(l, h, chi));
-    }
-    // SAFETY: both loops together write every entry.
-    unsafe { zk_alloc::assume_init(out) }
-}
-
-/// Bind the highest free variable of `table` to `chi` in place: `table[i] =
-/// interp(table[i], table[i + half], chi)`. Binding from the top down leaves the
-/// low variables, the ones every table of a batch shares, for last.
-pub fn fold_high_inplace<B: Shrink<F192>>(table: &mut B, chi: F192) {
-    debug_assert_eq!(table.len() % 2, 0);
-    let half = table.len() / 2;
-    {
-        // Split once rather than index twice: indexing reloads the data pointer
-        // and length through the container every iteration, since nothing proves
-        // they do not alias the elements, and pays a bounds check for it.
-        let (lo, hi) = (**table).split_at_mut(half);
-        interp_into(lo, hi, chi);
-    }
-    table.shrink_to(half);
-}
-
-/// `lo[i] = interp(lo[i], hi[i], chi)`, four products per batch.
-fn interp_into(lo: &mut [F192], hi: &[F192], chi: F192) {
-    let ((lo4, lo_tail), (hi4, hi_tail)) = (lo.as_chunks_mut::<4>(), hi.as_chunks::<4>());
-    for (l, h) in lo4.iter_mut().zip(hi4) {
-        let p = mul4([chi; 4], std::array::from_fn(|i| l[i] + h[i]));
-        for i in 0..4 {
-            l[i] += p[i];
-        }
-    }
-    for (l, h) in lo_tail.iter_mut().zip(hi_tail) {
-        *l = interp(*l, *h, chi);
-    }
-}
-
-/// Marginalize the lowest variable out of an `eq` table (in place). `eq(r_0, 0) +
-/// eq(r_0, 1) = 1`, so summing adjacent entries drops `r_0` with no multiplies,
-/// versus `2^{n-1}` to rebuild the table.
-pub fn shrink_eq_low<B: Shrink<F192>>(table: &mut B) {
-    let half = table.len() / 2;
-    {
-        // Sliced, as in `fold_high_inplace`: reading the pair and writing the
-        // sum through one slice drops the per-iteration reload and its bounds
-        // check. The write index trails the read, so the in-place walk is sound.
-        let t: &mut [F192] = table;
-        for i in 0..half {
-            let (a, b) = (t[2 * i], t[2 * i + 1]);
-            t[i] = a + b;
-        }
-    }
-    table.shrink_to(half);
-}
-
-/// Marginalize the highest variable out of an `eq` table (in place), the
-/// [`shrink_eq_low`] counterpart for a top-down sumcheck.
-pub fn shrink_eq_high<B: Shrink<F192>>(table: &mut B) {
-    let half = table.len() / 2;
-    {
-        // Sliced, as in `fold_high_inplace`.
-        let (lo, hi) = (**table).split_at_mut(half);
-        for (l, h) in lo.iter_mut().zip(&*hi) {
-            *l += *h;
-        }
-    }
-    table.shrink_to(half);
 }
 
 /// The one barycentric denominator an aligned `size`-node window of the φ₈ table has: `∏_{k≠0} φ₈(k)`,
@@ -384,18 +297,6 @@ mod tests {
             let point: Vec<_> = (0..n).map(|i| F192::from(F64(i % 2))).collect();
             assert_eq!(mle_eval(&table, &point), fold(&point));
             assert_eq!(mle_eval_par(&table, &point), fold(&point));
-            // An odd length leaves a scalar tail after the batched folds.
-            let chi = point.first().copied().unwrap_or(F192::Y) + F192::Y;
-            if n > 0 {
-                let half = table.len() / 2;
-                let want: Vec<_> = (0..half).map(|i| interp_k(table[i], table[i + half], chi)).collect();
-                assert_eq!(&*fold_high_k(&table, chi), &want[..]);
-                let lifted: Vec<F192> = table.iter().map(|&k| F192::from(k) * chi).collect();
-                let mut got = lifted.clone();
-                fold_high_inplace(&mut got, chi);
-                let want: Vec<_> = (0..half).map(|i| interp(lifted[i], lifted[i + half], chi)).collect();
-                assert_eq!(got, want);
-            }
         }
     }
 }

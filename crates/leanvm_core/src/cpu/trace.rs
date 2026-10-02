@@ -11,6 +11,7 @@ use primitives::field::F64;
 ///
 /// - The block's words as found, and the four the compression writes.
 /// - The previous timestamp of every access, the registers' first.
+#[derive(Clone)]
 pub(crate) struct HashRow {
     pub(crate) block: [u64; crate::rv::Hash::WORDS],
     pub(crate) out: [u64; 4],
@@ -27,6 +28,7 @@ impl HashRow {
     }
 }
 
+#[derive(Clone)]
 pub(crate) struct Row {
     /// The entry executed.
     pub(crate) index: u32,
@@ -59,8 +61,11 @@ impl Row {
 }
 
 pub(crate) struct Trace {
-    /// Per table, in [`crate::tables::CLASSES`] order.
+    /// Per table, in [`crate::tables::CLASSES`] order: its live rows, then, when its
+    /// height is short of its proven size, the padding row every later row repeats.
     pub(crate) rows: [Vec<Row>; crate::tables::N_TABLES],
+    /// Each table's live rows: its height.
+    pub(crate) heights: [usize; crate::tables::N_TABLES],
     /// The registers after the run, and each one's last timestamp, the seed's if
     /// never touched.
     pub(crate) reg_fin: Vec<F64>,
@@ -76,8 +81,8 @@ pub(crate) struct Trace {
 }
 
 impl Trace {
-    /// Rows per instruction table.
+    /// Rows per instruction table as proven, padding included.
     pub(crate) fn row_counts(&self) -> [usize; crate::tables::N_TABLES] {
-        std::array::from_fn(|t| self.rows[t].len())
+        std::array::from_fn(|t| 1 << super::tau_of(t, self.heights[t]))
     }
 }

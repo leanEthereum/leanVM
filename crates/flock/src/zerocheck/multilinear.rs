@@ -228,6 +228,9 @@ fn split_eq(r: &[F192]) -> (Vec<F192>, Vec<F192>) {
 }
 
 /// The packed `a`, `b`, `c` witnesses, 64 skip bits per row.
+///
+/// They may stop short of the cube the eq challenges span: the positions past them
+/// are zero, which adds nothing to a round message, and the kernels skip them.
 #[derive(Clone, Copy, Debug)]
 pub struct PackedWitness<'a> {
     /// The `A z` bits.
@@ -248,7 +251,6 @@ impl<'a> PackedWitness<'a> {
         });
         let n_pos = rows[0].len();
         assert!(rows.iter().all(|r| r.len() == n_pos), "a, b, c have one length");
-        assert!(n_pos.is_power_of_two(), "a power-of-two number of positions");
         rows
     }
 }
@@ -301,6 +303,15 @@ impl RoundPair {
             .second
             .map(|[s0, s1, s2]| s0 + rho * (s0 + s1) + rho * (F192::ONE + rho) * s2);
         (one, inf)
+    }
+
+    /// `self + s · other`, the rounds of two disjoint parts of one cube, `other`'s
+    /// weighed by `s`: every field is linear in the eq-weighted sums.
+    pub fn plus_scaled(self, other: Self, s: F192) -> Self {
+        Self {
+            first: (self.first.0 + s * other.first.0, self.first.1 + s * other.first.1),
+            second: std::array::from_fn(|i| std::array::from_fn(|j| self.second[i][j] + s * other.second[i][j])),
+        }
     }
 }
 
@@ -407,7 +418,10 @@ fn bit_round_pair_kernel<const CHUNKS: usize>(
     let rows = bits.rows::<CHUNKS>();
     let n_quads = rows[0].len() / 4;
     assert!(n_quads >= 1, "two rounds need four positions");
-    assert_eq!(r_eq.len(), n_quads.trailing_zeros() as usize + 1);
+    assert!(
+        rows[0].len().is_multiple_of(4) && n_quads <= 1 << (r_eq.len() - 1),
+        "the witness is whole quads of the cube"
+    );
 
     // `r_eq[0]` weights round `t`'s split by `v`; the rest weight the quads.
     let (r_v, r_quad) = (r_eq[0], &r_eq[1..]);
@@ -420,13 +434,14 @@ fn bit_round_pair_kernel<const CHUNKS: usize>(
     let live = |quad: usize| (quad & quad_in_block_mask) < live_quads;
 
     let sums = parallel::map_reduce(
-        eq_hi.len(),
+        n_quads.div_ceil(lo_size),
         || [F192::ZERO; 8],
         |hi| {
             let mut acc = [F192Unreduced::ZERO; 8];
-            // Sixteen quads per folded block.
-            for lo_first in (0..lo_size).step_by(BLOCK / 4) {
-                let n = (lo_size - lo_first).min(BLOCK / 4);
+            // Sixteen quads per folded block, up to the witness's last.
+            let task_quads = lo_size.min(n_quads - hi * lo_size);
+            for lo_first in (0..task_quads).step_by(BLOCK / 4) {
+                let n = (task_quads - lo_first).min(BLOCK / 4);
                 let quad_first = hi * lo_size + lo_first;
                 // A block wholly in padding folds to zero.
                 if !(quad_first..quad_first + n).any(live) {
@@ -467,7 +482,11 @@ fn bit_round_store_kernel<const CHUNKS: usize>(
     let rows = bits.rows::<CHUNKS>();
     let n_pos = rows[0].len();
     assert!(n_pos >= 2, "a round needs two positions");
-    assert_eq!(r_eq.len(), n_pos.trailing_zeros() as usize - 1);
+    assert!(
+        n_pos.is_multiple_of(2) && n_pos <= 1 << (r_eq.len() + 1),
+        "the witness is whole pairs of the cube"
+    );
+    let n_pairs = n_pos / 2;
 
     let (eq_lo, eq_hi) = split_eq(r_eq);
     let lo_size = eq_lo.len();
@@ -485,7 +504,7 @@ fn bit_round_store_kernel<const CHUNKS: usize>(
     let chunks = [out_a, out_b, out_c].map(|o| parallel::Chunks::new(o, 2 * lo_size));
 
     let message = parallel::map_reduce(
-        eq_hi.len(),
+        n_pairs.div_ceil(lo_size),
         || (F192::ZERO, F192::ZERO),
         |hi| {
             // SAFETY: task `hi` takes chunk `hi` of each output once, and the buffers outlive the dispatch.
@@ -493,9 +512,10 @@ fn bit_round_store_kernel<const CHUNKS: usize>(
             let stream = Stream::new();
             let mut g1_acc = F192Unreduced::ZERO;
             let mut ginf_acc = F192Unreduced::ZERO;
-            // Thirty-two pairs per folded block.
-            for lo_first in (0..lo_size).step_by(BLOCK / 2) {
-                let n = (lo_size - lo_first).min(BLOCK / 2);
+            // Thirty-two pairs per folded block, up to the witness's last.
+            let task_pairs = lo_size.min(n_pairs - hi * lo_size);
+            for lo_first in (0..task_pairs).step_by(BLOCK / 2) {
+                let n = (task_pairs - lo_first).min(BLOCK / 2);
                 let pair_first = hi * lo_size + lo_first;
                 let (o_first, o_len) = (2 * lo_first, 2 * n);
                 // A block wholly in padding folds to zero.
@@ -602,7 +622,10 @@ fn fold_and_round_pair_kernel<const K: usize>(
     );
     let n_quads = n_out / 4;
     assert!(n_quads >= 1, "two rounds need four positions");
-    assert_eq!(r_eq.len(), n_quads.trailing_zeros() as usize + 1);
+    assert!(
+        n_out.is_multiple_of(4) && n_quads <= 1 << (r_eq.len() - 1),
+        "the tables are whole quads of the cube"
+    );
 
     // `r_eq[0]` weighs round `t`'s split by `v`; the rest weigh the quads.
     //
@@ -656,17 +679,18 @@ fn fold_and_round_pair_kernel<const K: usize>(
     };
 
     let sums = parallel::map_reduce(
-        eq_hi.len(),
+        n_quads.div_ceil(lo_size),
         || [F192::ZERO; 8],
         |hi| {
             // SAFETY: task `hi` takes chunk `hi` of each output once, and the buffers outlive the dispatch.
             let mut outs = chunks.map(|ch| unsafe { ch.get(hi) });
-            let ins = ins.map(|t| &t[hi * chunk_in..(hi + 1) * chunk_in]);
+            let task_quads = lo_size.min(n_quads - hi * lo_size);
+            let ins = ins.map(|t| &t[hi * chunk_in..][..(4 * task_quads) << K]);
             let stream = Stream::new();
             let mut acc = [F192Unreduced::ZERO; 8];
             // Two quads of a table are eight outputs, three whole cache lines, published at once.
             let mut staged = [[F192::ZERO; 8]; 3];
-            for q in 0..lo_size {
+            for q in 0..task_quads {
                 let [a, b, c] = ins.map(|t| fold_quad(&t[(4 * q) << K..(4 * (q + 1)) << K]));
                 let [lo, hi] = quad_pair_terms(a, b, c);
 
@@ -688,7 +712,7 @@ fn fold_and_round_pair_kernel<const K: usize>(
                     for (out, stage) in outs.iter_mut().zip(&staged) {
                         stream.copy(&mut out[4 * (q - 1)..4 * (q + 1)], stage);
                     }
-                } else if q + 1 == lo_size {
+                } else if q + 1 == task_quads {
                     for (out, stage) in outs.iter_mut().zip(&staged) {
                         out[4 * q..4 * q + 4].copy_from_slice(&stage[..4]);
                     }

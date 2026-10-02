@@ -153,6 +153,18 @@ The inner sum is $\eq(r^{2^k},r')$, since $\eq(u,\cdot\,)$ is its own multilinea
 \ \ }
 \]
 
+\paragraph{Scaled pieces.} A packed witness that commits only some of its instances is stored as aligned pieces (\S\ref{sec:jagged}), while the claim on it is on the padded column, so its weight is a sum over the pieces. An instance being $2^{s}$ words, the piece of the instances $[a,a+2^e)$ is $2^{s+e}$ words of $\qflock$, its own coordinates are the first $s+e$ of the claim's point, and the decomposition of \S\ref{sec:jagged} gives it a scale $\pscale_{a,e}\in\E$: the equality weight of the point's other coordinates on those instances, or the tail weight $\tailw{\nlive{j}}$ for the padding row's piece. Writing $Q_i(a,u)$ for bit $i$ of the piece's word $u$, and $\bar r=(r_1,\dots,r_{s+e})$,
+\[
+\mle{Q_i}(r)\;=\;\sum_{(a,e)}\pscale_{a,e}\sum_{u\in\cube{s+e}}\eq(\bar r,u)\,Q_i(a,u).
+\]
+The reduction \eqref{eq:complete} used only that each $Q_i(u)$ is a bit and that $\Phi$ is $\F_2$-linear, so it holds as it stands, with the same target, when the weight on the piece's words is $\Phi\bigl(\pscale_{a,e}\,\eq(\bar r,u)\bigr)$ in place of $\Phi\bigl(\eq(r,u)\bigr)$. The scale stays inside $\Phi$, which is not $\E$-linear: by \eqref{eq:ck} and the fact above, $\Phi\bigl(\pscale_{a,e}\,\eq(\bar r,u)\bigr)=\sum_{k=0}^{63}c_k\,\pscale_{a,e}^{2^k}\,\eq\bigl(\bar r^{2^k},u\bigr)$, so the piece's weight evaluates as the boxed formula over its own coordinates, each $c_k$ scaled by $\pscale_{a,e}^{2^k}$:
+\[
+\sum_{k=0}^{63}c_k\,\pscale_{a,e}^{2^k}\prod_{n=1}^{s+e}\bigl(1+r_n^{2^k}+r'_n\bigr),
+\]
+$r'_1,\dots,r'_{s+e}$ being the opening point's coordinates within the piece; the piece's stacking selector multiplies it as for any stacked column (\S\ref{sec:stacking}). A witness committed whole is the one piece of scale $1$, and the boxed formula itself.
+
+\paragraph{Claims at prefixes of one point.} The products $\prod_n(1+r_n^{2^k}+r'_n)$ of the boxed formula run over a prefix of the claim's coordinates, for a scaled piece as for a whole witness. Claims whose points are prefixes of one longer point, as Flock's batch leaves for its circuits of one block size (\S\ref{flock:batch}), therefore share them: the verifier runs the products once over the longest point and reads every claim's pieces off them at their own lengths.
+
 \subsection{Cost}\label{rs:cost}
 
 One application of $\Phi$ takes $63$ squarings and $6$ multiplications: the Frobenius ladder climbs $32+16+8+4+2+1$ steps, and each stage multiplies once by its challenge. The same recurrence run on the coefficient table gives the $c_k$ of \eqref{eq:ck}: stage $p$ raises its $2^p$ entries to the $2^{2^{5-p}}$ power and multiplies each by $f_p$; the raising is $32$ squarings whatever $p$ is.

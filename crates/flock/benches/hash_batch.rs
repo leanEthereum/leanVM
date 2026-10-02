@@ -87,12 +87,15 @@ fn main() {
         ps.add_root(&commitment.root);
         let commit_s = t.elapsed().as_secs_f64();
 
+        let instance = [setup.instance(&z_packed, &a_packed, &b_packed, &z_lincheck)];
         let t = Instant::now();
-        let stage = setup.prove_zerocheck(&z_packed, &a_packed, &b_packed, &mut ps);
+        let stage = flock::reduction::prove_zerocheck(&instance, &mut ps);
         let zerocheck_s = t.elapsed().as_secs_f64();
 
         let t = Instant::now();
-        let reduced = setup.prove_lincheck(stage, &z_lincheck, &mut ps);
+        let reduced = flock::reduction::prove_lincheck(&instance, stage, &mut ps)
+            .pop()
+            .expect("one circuit");
         let lincheck_s = t.elapsed().as_secs_f64();
         drop((a_packed, b_packed, z_lincheck));
 

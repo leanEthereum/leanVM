@@ -93,11 +93,11 @@ use crate::witness::{
     write_lin_word_ab_packed,
 };
 use pcs::pack::LOG_PACKING;
-use pcs::stack_open::{RingSwitchOpen, RingSwitchVerify};
+use pcs::stack_open::{RingSwitchClaim, RingSwitchVerifyClaim};
 use primitives::field::F192;
 use zk_alloc::ArenaVec;
 
-pub use crate::reduction::{ReductionReplay, SliceClaim, ZerocheckStage, min_n_blocks_log};
+pub use crate::reduction::{Instance, ReductionReplay, SliceClaim, min_n_blocks_log};
 
 // ---------------------------------------------------------------------------
 // Public constants
@@ -670,8 +670,9 @@ pub fn generate_witness_with_ab_packed_and_lincheck(
     drive_witness_packed_and_lincheck(
         blocks,
         Some(&padding),
-        n_blocks_log,
+        1 << n_blocks_log,
         K_LOG,
+        &mut [],
         |&(ref h, ref m, t, f0, f1), z, a, b| build_block_witness_ab_packed_into(h, m, t, f0, f1, z, a, b),
     )
 }
@@ -727,27 +728,37 @@ pub fn qflock_kappa(n_blocks: usize) -> usize {
 
 /// [`reduction::ring_switch_open`] for `n_blocks` compressions, `offset` being
 /// `q_flock`'s slot in the committed stack.
-pub fn ring_switch_open(n_blocks: usize, offset: usize, reduced: &SliceClaim) -> RingSwitchOpen {
+pub fn ring_switch_open(n_blocks: usize, offset: usize, reduced: &SliceClaim) -> RingSwitchClaim {
     reduction::ring_switch_open(qflock_kappa(n_blocks), offset, reduced)
 }
 
 /// [`reduction::ring_switch_verify`] for `n_blocks` compressions.
-pub fn ring_switch_verify(n_blocks: usize, offset: usize, claim: &SliceClaim) -> RingSwitchVerify<'_> {
+pub fn ring_switch_verify(n_blocks: usize, offset: usize, claim: &SliceClaim) -> RingSwitchVerifyClaim<'_> {
     reduction::ring_switch_verify(qflock_kappa(n_blocks), offset, claim)
 }
 
 impl Blake2sSetup {
+    /// The compressions' batch for the reduction: the packed `z`, `A·z`, `B·z`, and
+    /// lincheck-stripe buffers the embedder generated
+    /// (`generate_witness_with_ab_packed_and_lincheck`) before committing the
+    /// flattened witness.
+    pub const fn instance<'a>(&self, z: &'a [u64], a: &'a [u64], b: &'a [u64], z_lincheck: &'a [u8]) -> Instance<'a> {
+        Instance {
+            block: BLOCK,
+            n_blocks_log: self.n_blocks_log,
+            z,
+            a,
+            b,
+            pad: None,
+            z_lincheck,
+        }
+    }
+
     /// **Flock reduction (prover).** Run the BLAKE2s zerocheck and lincheck on
     /// the shared transcript, reducing R1CS validity of the blocks to ONE
     /// evaluation claim on the committed packed witness `q_flock`. (The
     /// statement is already transcript-bound: the embedding protocol seeds
     /// with the R1CS digest and announces the count.)
-    ///
-    /// The embedder has already generated the packed `z`, `A·z`, `B·z`, and
-    /// lincheck-stripe buffers (`generate_witness_with_ab_packed_and_lincheck`)
-    /// before committing the flattened witness. It is [`Self::prove_zerocheck`]
-    /// then [`Self::prove_lincheck`], and returns the [`SliceClaim`] on
-    /// `q_flock`, with its ring-switch weights.
     ///
     /// Does NOT open the PCS; the caller discharges the returned claim in the
     /// one stacked opening (`leanvm_core`'s `pcs::open`).
@@ -759,33 +770,8 @@ impl Blake2sSetup {
         z_packed_lincheck: &[u8],
         ps: &mut fiat_shamir::transcript::ProverState,
     ) -> SliceClaim {
-        let stage = self.prove_zerocheck(z_packed, a_packed_words, b_packed_words, ps);
-        self.prove_lincheck(stage, z_packed_lincheck, ps)
-    }
-
-    /// **Flock reduction, first stage (prover): the zerocheck.** Reduces
-    /// `a·b ⊕ c = 0` over the cube to evaluation claims on `(â, b̂, ĉ)`, all
-    /// three at one point.
-    pub fn prove_zerocheck(
-        &self,
-        z_packed: &[u64],
-        a_packed_words: &[u64],
-        b_packed_words: &[u64],
-        ps: &mut fiat_shamir::transcript::ProverState,
-    ) -> ZerocheckStage {
-        BLOCK.prove_zerocheck(self.n_blocks_log, z_packed, a_packed_words, b_packed_words, ps)
-    }
-
-    /// **Flock reduction, second stage (prover): the lincheck.** Reduces the
-    /// zerocheck's `(â, b̂, ĉ)` claims to the `2^k_skip` bit slices of `z` at
-    /// one point, against the per-block matrices.
-    pub fn prove_lincheck(
-        &self,
-        stage: ZerocheckStage,
-        z_packed_lincheck: &[u8],
-        ps: &mut fiat_shamir::transcript::ProverState,
-    ) -> SliceClaim {
-        BLOCK.prove_lincheck(self.n_blocks_log, stage, z_packed_lincheck, ps)
+        let instance = self.instance(z_packed, a_packed_words, b_packed_words, z_packed_lincheck);
+        reduction::prove(&[instance], ps).pop().expect("one circuit")
     }
 
     /// **Flock reduction (verifier).** Replay the BLAKE2s zerocheck and
@@ -796,7 +782,7 @@ impl Blake2sSetup {
         &self,
         vs: &mut fiat_shamir::transcript::VerifierState<'_>,
     ) -> Result<ReductionReplay, verifier::VerifyError> {
-        BLOCK.verify(self.n_blocks_log, vs)
+        reduction::verify(&[(BLOCK, self.n_blocks_log)], vs).map(|mut replays| replays.pop().expect("one circuit"))
     }
 }
 

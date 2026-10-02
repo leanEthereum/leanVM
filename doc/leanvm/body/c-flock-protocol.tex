@@ -1,7 +1,7 @@
 % !TeX root = ../drafts/c-flock-protocol.tex
 \section{The Flock protocol}\label{annex:flock}
 
-Flock~\cite{Flock26} proves many executions of one Boolean circuit at once. We use it for the eight instruction classes' circuits and the eight tables' clock circuits (\S\ref{sec:tables}, \S\ref{sec:clock}, \S\ref{flock:classes}), each getting its own run of the protocol over its own witness. Since we do not follow their protocol exactly, we describe our version here, for one circuit of block size $\kblock$ with its constant wire at position $\jconst$; the sixteen differ in those two numbers alone, which \S\ref{flock:classes} gives, and the BLAKE2s compression, the largest at $\kblock=14$, is the running example.
+Flock~\cite{Flock26} proves many executions of one Boolean circuit at once. We use it for the eight instruction classes' circuits and the eight tables' clock circuits (\S\ref{sec:tables}, \S\ref{sec:clock}, \S\ref{flock:classes}), each over its own witness, all sixteen in one batched run of the protocol. Since we do not follow their protocol exactly, we describe our version here, first for one circuit of block size $\kblock$ with its constant wire at position $\jconst$, then how one run proves the sixteen at once (\S\ref{flock:batch}); the sixteen differ in those two numbers and their batch sizes alone, which \S\ref{flock:classes} gives, and the BLAKE2s compression, the largest at $\kblock=14$, is the running example.
 
 \subsection{Statement and commitment}\label{flock:statement}
 
@@ -66,11 +66,11 @@ The verifier then samples $\zskip\in\E$ and reconstructs the claimed value
 v_P \qeq P(\zskip).
 \]
 
-The parties run sumcheck over the remaining $\nflock$ Boolean variables in \eqref{flock:eq:pskip}, with Gruen's eq-factor optimization~\cite{Gru24}. Writing $R_{\mathrm{zc}}\in\E$ for the running claim after the last round, the prover sends $v_a,v_b\in\E$ and the terminal identity
+The parties run sumcheck over the remaining $\nflock$ Boolean variables in \eqref{flock:eq:pskip}, with Gruen's eq-factor optimization~\cite{Gru24}. Writing $R_{\mathrm{zc}}\in\E$ for the running claim after the last round, the prover sends $v_a,v_b,v_c\in\E$ and the verifier checks the terminal identity
 \begin{equation}\label{flock:eq:zc-terminal}
-R_{\mathrm{zc}}=v_av_b+v_c
+R_{\mathrm{zc}}\qeq v_av_b+v_c.
 \end{equation}
-is what \emph{defines} $v_c$: both sides solve it rather than transmit it. The zerocheck therefore ends leaving three claims at one point,
+The zerocheck therefore ends leaving three claims at one point,
 \begin{equation}\label{flock:eq:zc-claims}
 \qext a(\zskip,\fc)=v_a,\qquad \qext b(\zskip,\fc)=v_b,\qquad \qext z(\zskip,\fc)=v_c,
 \end{equation}
@@ -164,11 +164,35 @@ After the witness $z$ has been committed, and its size announced:
 \begin{enumerate}
 \item The verifier forms the zerocheck point $r$: seven fixed coordinates, the rest sampled. The $\kskip$ variables the univariate skip replaced consume no equality challenge.
 \item The prover sends $P|_{\skipcoset}$, $64$ values. The verifier samples $\zskip$ and reconstructs $v_P$.
-\item The parties run $\nflock$ quadratic zerocheck rounds on \eqref{flock:eq:pskip}, which the prover ends by sending $v_a,v_b$; the terminal identity \eqref{flock:eq:zc-terminal} then fixes $v_c$.
+\item The parties run $\nflock$ quadratic zerocheck rounds on \eqref{flock:eq:pskip}, which the prover ends by sending $v_a,v_b,v_c$; the verifier checks the terminal identity \eqref{flock:eq:zc-terminal}.
 \item The verifier samples $\lcalpha$ and the parties run the $\kblock-\kskip$ quadratic lincheck rounds on \eqref{flock:eq:lincheck}. The prover sends $(s_0,\ldots,s_{63})$, and the verifier checks \eqref{flock:eq:lincheck-terminal} with one circuit walk.
 \end{enumerate}
 What Flock leaves is one family of $64$ claims for Ring-Switching (\S\ref{flock:ringswitch}): $(s_i \qeq \mle z(i, \fc'_{\mathrm{in}},\fc_{\mathrm{out}}))_{0 \leq i \leq 63}$.
 \end{protocol}
+
+\subsection{Batching the circuits}\label{flock:batch}
+
+One run of the protocol proves the sixteen circuits. Index them by $f$, the class circuits in table order and then the clock circuits, from $f=0$, and write $\kblockf{f}$, $\kbatchf{f}$, $z_f$ and $\nflockf{f}=\kblockf{f}+\kbatchf{f}-\kskip$ for circuit $f$'s block size, batch size, witness and zerocheck rounds; its packed witness is the $\qcls{j}$ or $\qclk{j}$ of its table. The circuits share every challenge, and the batch adds one, $\zcbatch$, for the zerocheck; lincheck's $\lcalpha$ batches the circuits as well. Both sumchecks are front-loaded, as the table sumcheck is (\S\ref{sec:air}): round $j$ binds the same variable of every circuit still taking part, every circuit takes part from the first round, and a circuit is done after as many rounds as it has variables.
+
+\paragraph{Zerocheck.} Let $\nflockmax=\max_f\nflockf{f}$. The verifier forms one point $r\in\E^{\nflockmax}$, the seven fixed coordinates of \S\ref{flock:zerocheck} and then $\nflockmax-7$ sampled ones, circuit $f$ taking its first $\nflockf{f}$ coordinates; then it samples $\zcbatch$. Writing $P_f$ for \eqref{flock:eq:pskip} of circuit $f$ at $r_{<\nflockf{f}}$ and $G_f=\qext a_f\qext b_f+\qext c_f$ for its summand, the batch is
+\[
+P(Y)=\sum_f\zcbatch^{f}P_f(Y)=\sum_{v\in\cube{\nflockmax}}\eq(r,v)\sum_f\zcbatch^{f}\,G_f(Y,v_{<\nflockf{f}}),
+\]
+each summand lifted onto the batch's variables by summing it over those it does not use, where its equality factor sums to $1$. $P$ has degree at most $126$, and vanishes on $\skipdom$ when every circuit satisfies \eqref{flock:eq:r1cs}, so round one is that of \S\ref{flock:zerocheck}: the prover sends $P|_{\skipcoset}$, $64$ values for the whole batch, and the verifier samples $\zskip$ and reconstructs $v_P$. The $\nflockmax$ rounds follow. With the equality weight of its variable factored out, round $j$'s polynomial is $\sum_f\zcbatch^f$ times each circuit's own, and for a circuit done before it ($\nflockf{f}\le j$) that is the constant $G_f(\zskip,\fc_{<\nflockf{f}})$, the variable being one its summand does not use and the weights of the others summing to $1$. A constant reaches only the coefficient the round's claim fixes (\S\ref{sec:prelim}), so a done circuit costs the wire nothing. After the last round the prover sends $v_{a,f},v_{b,f},v_{c,f}$ for every circuit, and the verifier checks
+\begin{equation}\label{flock:eq:batch-zc-terminal}
+R_{\mathrm{zc}}\qeq\sum_f\zcbatch^{f}\bigl(v_{a,f}v_{b,f}+v_{c,f}\bigr).
+\end{equation}
+Circuit $f$'s three claims \eqref{flock:eq:zc-claims} are at $(\zskip,\fc_{<\nflockf{f}})$, its within-block coordinates $\fc_{\mathrm{in},f}$ the first $\kblockf{f}-\kskip$ and its batch coordinates $\fc_{\mathrm{out},f}$ the other $\kbatchf{f}$.
+
+\paragraph{Lincheck.} Once every claim is on the transcript the verifier samples $\lcalpha$, and circuit $f$'s identity \eqref{flock:eq:lincheck} takes the weight $\lcalpha^{4f}$, its four terms riding $\lcalpha^{4f},\dots,\lcalpha^{4f+3}$. The sumcheck runs $\klcmax=\max_f(\kblockf{f}-\kskip)$ rounds, and round $t$ binds, top first, coordinate $\kblockf{f}-\kskip-1-t$ of the $\jin$ of every circuit with $t<\kblockf{f}-\kskip$. A circuit done before round $t$ is lifted by that round's variable $X_t$, its summand multiplied by the variable of every round it sits out: it adds the line $X_t\,u$, $u$ the value it ended on times the challenges since, which is zero at $0$ and reaches only the linear coefficient, the one a plain round's claim fixes. Then the prover sends $(s_{f,i})_{i<64}$ for every circuit, and with $\fc'_t$ the challenge of round $t$ and $\fc'_{\mathrm{in},f}$ circuit $f$'s first $\kblockf{f}-\kskip$ of them in coordinate order, the verifier checks
+\begin{equation}\label{flock:eq:batch-lc-terminal}
+R_{\mathrm{lc}}\qeq\sum_f\lcalpha^{4f}\Bigl(\prod_{t=\kblockf{f}-\kskip}^{\klcmax-1}\fc'_t\Bigr)\,\lcterm{f},
+\end{equation}
+$\lcterm{f}$ the right side of \eqref{flock:eq:lincheck-terminal} for circuit $f$, by one walk of each circuit (\S\ref{flock:native}).
+
+\paragraph{What it leaves.} One family per witness, as for one circuit: $s_{f,i}\qeq\mle{z_f}(i,\fc'_{\mathrm{in},f},\fc_{\mathrm{out},f})$ for $i<64$, for ring switching (\S\ref{flock:ringswitch}). Two circuits of one block size share $\fc'_{\mathrm{in},f}$ and the first coordinates of $\fc$, so the shorter one's point is a prefix of the longer one's, and the verifier evaluates their weights in one pass (\S\ref{rs:weight}); of the sixteen, the seven clock circuits of $\kblock=9$ make one such group and the four class circuits of $\kblock=10$ another.
+
+\paragraph{Padding instances.} A circuit's batch is built for its committed rows, in units of $64$ instances, and one unit of the padding row's instance, which every later instance repeats (\S\ref{sec:jagged}). The prover adds that unit's share of each message times the weight the point puts on its copies, which is the message the batch written out gives, so nothing of it reaches the verifier.
 
 \subsection{Evaluating the matrices}\label{flock:matrices}
 
@@ -291,29 +315,28 @@ Carry-save steps then compress the rows. A step replaces three rows by their sum
 
 \paragraph{The compression.} \texttt{HASH} is the BLAKE2s compression itself: the ten rounds' $80$ G functions, each six $32$-bit additions on the halves of the ports' words, a three-operand addition being two of them chained, and XORs and rotations, which are free. Only the carries are products, $31$ per addition.
 
-\paragraph{Batch size.} The zerocheck of \S\ref{flock:zerocheck} fixes seven coordinates of its point beyond the $\kskip$ skipped ones, so it needs $\kbool\ge13$, and lincheck works on batches of at least eight blocks, $\kbatch\ge3$. For the circuits of $\kblock\ge10$ the second bound is the binding one, and for the clock circuits of $\kblock=9$ the first: a table's two batches have one instance per row, so every table has at least $2^{4}$ rows, \texttt{HASH} at least eight (\S\ref{sec:tables}). Lincheck runs $\kblock-\kskip$ rounds, from $3$ to $8$.
+\paragraph{Batch size.} The zerocheck of \S\ref{flock:zerocheck} fixes seven coordinates of its point beyond the $\kskip$ skipped ones, so it needs $\kbool\ge13$, and lincheck works on batches of at least eight blocks, $\kbatch\ge3$. For the circuits of $\kblock\ge10$ the second bound is the binding one, and for the clock circuits of $\kblock=9$ the first: a table's two batches have one instance per row, so every table has at least $2^{4}$ rows, \texttt{HASH} at least eight (\S\ref{sec:tables}). A circuit's lincheck has $\kblock-\kskip$ rounds, from $3$ to $8$, and the batch runs $\klcmax=8$.
 
 \subsection{Soundness analysis}\label{flock:soundness}
 
-
-The commitment determines $\qflock$, hence $z$, before any challenge is drawn, and the PCS proves the claims opened on $\qflock$. So take the one transmitted family to be true of $z$,
+We argue for the batch of \S\ref{flock:batch}; one circuit is the batch of one. The commitment determines every packed witness, hence every $z_f$, before any challenge is drawn, and the PCS proves the claims opened on them. So take every transmitted family to be true of its witness,
 \[
-s_i=\mle z(i,\fc'_{\mathrm{in}},\fc_{\mathrm{out}}),\qquad i\in\cube{\kskip},
+s_{f,i}=\mle{z_f}(i,\fc'_{\mathrm{in},f},\fc_{\mathrm{out},f}),\qquad i\in\cube{\kskip},
 \]
-up to the PCS error and the $2^{-160}$ of Annex~\ref{annex:rs}, and let us show a $z$ failing \eqref{flock:eq:r1cs} or \eqref{flock:eq:const-one} is rejected.
+up to the PCS error and the $2^{-160}$ of Annex~\ref{annex:rs}, and let us show that if some $z_{f^\ast}$ fails \eqref{flock:eq:r1cs} or \eqref{flock:eq:const-one}, the batch is rejected.
 
-Lincheck comes first, and it is the only thing that checks anything: the zerocheck's own terminal identity defines $v_c$ instead of testing it, so every lie upstream reaches lincheck as a wrong triple $(v_a,v_b,v_c)$. Its terminal check \eqref{flock:eq:lincheck-terminal} is evaluated from the true $s$ and the matrices themselves, by the walk of \S\ref{flock:native}, so a false \eqref{flock:eq:lincheck} survives the $\kblock-\kskip$ rounds with probability at most $2(\kblock-\kskip)/|\E|$ (Fact~\ref{fact:sumcheck}, degree two in each round). And by Lemma~\ref{lem:flock-block-diagonal} and \eqref{flock:eq:c-as-column}, \eqref{flock:eq:lincheck} says
+Lincheck comes first: the zerocheck pins nothing on its own, its terminal identity binding the circuits' triples $(v_{a,f},v_{b,f},v_{c,f})$ only through one combination of them, so every lie upstream reaches lincheck as a wrong triple. Its terminal check \eqref{flock:eq:batch-lc-terminal} is evaluated from the true $s$ and the matrices themselves, by the walk of \S\ref{flock:native}, so a false batched identity survives the $\klcmax$ rounds with probability at most $2\klcmax/|\E|$ (Fact~\ref{fact:sumcheck}): the batched summand has degree two in each variable, a done circuit's part being linear in the variables that lift it. And by Lemma~\ref{lem:flock-block-diagonal} and \eqref{flock:eq:c-as-column}, the batched identity says
 \[
-\bigl(v_a+\qext a(\zskip,\fc)\bigr)+\lcalpha\bigl(v_b+\qext b(\zskip,\fc)\bigr)+\lcalpha^2\bigl(v_c+\qext z(\zskip,\fc)\bigr)+\lcalpha^3\bigl(1+\mle z(\jconst,\fc_{\mathrm{out}})\bigr)=0,
+\sum_f\lcalpha^{4f}\Bigl[\bigl(v_{a,f}+\qext a_f\bigr)+\lcalpha\bigl(v_{b,f}+\qext b_f\bigr)+\lcalpha^2\bigl(v_{c,f}+\qext z_f\bigr)+\lcalpha^3\bigl(1+\mle{z_f}(\jconst,\fc_{\mathrm{out},f})\bigr)\Bigr]=0,
 \]
-degree three in $\lcalpha$, all four coefficients fixed before $\lcalpha$ is drawn. Acceptance therefore pins them all, except with $3/|\E|$ (Lemma~\ref{lem:sz}): $v_a$, $v_b$ and $v_c$ are the true evaluations, and $\mle z(\jconst,\fc_{\mathrm{out}})=1$, which is \eqref{flock:eq:const-one} except with $\kbatch/|\E|$ more, $\fc_{\mathrm{out}}$ being random.
+the three extensions of circuit $f$ taken at $(\zskip,\fc_{<\nflockf{f}})$: a polynomial in $\lcalpha$ of degree $4\cdot16-1=63$ whose $64$ coefficients are the four differences of every circuit, all fixed before $\lcalpha$ is drawn. Acceptance therefore pins them all, except with $63/|\E|$ (Lemma~\ref{lem:sz}): every $v_{a,f}$, $v_{b,f}$ and $v_{c,f}$ is the true evaluation, and $\mle{z_f}(\jconst,\fc_{\mathrm{out},f})=1$ for every circuit, which is \eqref{flock:eq:const-one} for $z_{f^\ast}$ except with $\kbatchf{f^\ast}/|\E|$ more, $\fc_{\mathrm{out},f^\ast}$ being random.
 
-With all three pinned, the zerocheck's terminal identity \eqref{flock:eq:zc-terminal} becomes a real check again: it fixes $R_{\mathrm{zc}}$ to the true value of the summand at $\fc$.
+With every triple pinned, the zerocheck's terminal identity \eqref{flock:eq:batch-zc-terminal} fixes $R_{\mathrm{zc}}$ to the true value of the batch's summand at $\fc$.
 
-Now let $z$ violate \eqref{flock:eq:r1cs} at $u=(i,v)$. Then $P(\fembed(i))$ is the extension at $r$ of a nonzero Boolean multilinear (Definition~\ref{def:quirky}, Fact~\ref{fact:eq}), and the seven fixed coordinates of $r$ carry $\Ftwo$-independent weights, so it stays nonzero except with $(\nflock-7)/|\E|$ (Lemma~\ref{lem:fixed-zerocheck}): the $64$ zeros the verifier assumes on $\skipdom$ are false. Let $\hat P$ interpolate those zeros together with the received coset values. It vanishes on $\skipdom$ while $P$ does not, so $\hat P\neq P$ and $v_P\neq P(\zskip)$ except with $127/|\E|$ (Corollary~\ref{cor:idtest}). The $\nflock$ zerocheck rounds then run on a false initial claim with a true terminal value, and reject except with $2\nflock/|\E|$.
+Now let $z_{f^\ast}$ violate \eqref{flock:eq:r1cs} at $u=(i,v)$. Then $P_{f^\ast}(\fembed(i))$ is the extension at $r_{<\nflockf{f^\ast}}$ of a nonzero Boolean multilinear (Definition~\ref{def:quirky}, Fact~\ref{fact:eq}), and the seven fixed coordinates of $r$ carry $\Ftwo$-independent weights, so it stays nonzero except with $(\nflockf{f^\ast}-7)/|\E|$ (Lemma~\ref{lem:fixed-zerocheck}). The batch's $P(\fembed(i))=\sum_f\zcbatch^fP_f(\fembed(i))$ is then a polynomial of degree at most $15$ in $\zcbatch$ whose coefficient at $f^\ast$ is nonzero, every coefficient fixed before $\zcbatch$ is drawn, after $r$ and the commitment; so it is nonzero except with $15/|\E|$, and the $64$ zeros the verifier assumes on $\skipdom$ are false. Let $\hat P$ interpolate those zeros together with the received coset values. It vanishes on $\skipdom$ while $P$ does not, so $\hat P\neq P$ and $v_P\neq P(\zskip)$ except with $127/|\E|$ (Corollary~\ref{cor:idtest}). The $\nflockmax$ zerocheck rounds then run on a false initial claim with a true terminal value, and reject except with $2\nflockmax/|\E|$.
 
-Summing those terms, such a $z$ is accepted with probability at most
+Summing those terms, such a batch is accepted with probability at most
 \[
-\frac{2(\kblock-\kskip)+3+\kbatch+(\nflock-7)+127+2\nflock}{|\E|}=\frac{5\kblock+4\kbatch+93}{|\E|}<2^{-183},
+\frac{2\klcmax+63+\kbatchf{f^\ast}+(\nflockf{f^\ast}-7)+15+127+2\nflockmax}{|\E|}\le\frac{2\klcmax+3\nflockmax+\kbatchf{f^\ast}+198}{|\E|},
 \]
-on top of the two errors granted above.
+on top of the two errors granted above, using $\nflockf{f^\ast}\le\nflockmax$. That is below $2^{-183}$: $\klcmax=8$, $\kbatchf{f}\le32$ by the heights' cap $2^{32}$ (\S\ref{sec:e2e-unrolled}), and so $\nflockmax\le14+32-6=40$.

@@ -31,6 +31,8 @@
 //!
 //! The prover partially folds the witness at the shared outer point and forms the column marginal of `A + α B + α² I`, with a constant-wire pin at `α³`. A product sumcheck reduces its inner product to the final `2^k_skip` witness slices, which the prover sends after the rounds. The verifier reconstructs the terminal marginal through the circuit's bilinear form; ring switching binds the slices to the commitment.
 //!
+//! Several circuits share one α and one product sumcheck: circuit `f`'s identity takes the weight `α^{4f}`, every circuit binds its top inner coordinate in the first round, and a circuit done early adds the line `X·u` its lifting variable makes, which reaches only the coefficient the claim fixes (doc/leanvm Annex C, "Batching the circuits").
+//!
 //! ## Quirky (univariate-skip) claim points
 //!
 //! To compose with the **zerocheck's univariate skip** for the first `k_skip`
@@ -704,6 +706,40 @@ fn partial_fold_packed_z_best(
     }
 }
 
+/// [`partial_fold_packed_z_best`] of the first instances of a batch, those
+/// `z_packed` holds, against `eq(x_outer, ·)`: the binary expansion of their count
+/// cuts them into aligned power-of-two pieces, and piece `[s, s + 2^p)` weighs
+/// `eq(x_outer[..p], ·)` times `eq(x_outer[p..], s >> p)`, the latter the seed of its
+/// table. Every piece is at least a stripe of eight instances.
+fn partial_fold_prefix(z_packed: &[u8], k_log: usize, useful_bits: usize, x_outer: &[F192]) -> Vec<F192> {
+    let k = 1usize << k_log;
+    let explicit = (8 * z_packed.len()) >> k_log;
+    assert!(
+        explicit <= 1 << x_outer.len() && explicit.is_multiple_of(8),
+        "the instances are whole stripes of the batch"
+    );
+    let mut out = vec![F192::ZERO; k];
+    let mut first = 0usize;
+    for p in (3..=x_outer.len()).rev().filter(|&p| (explicit >> p) & 1 == 1) {
+        let seed = (x_outer[p..].iter().enumerate()).fold(F192::ONE, |e, (j, &x)| {
+            e * if (first >> (p + j)) & 1 == 1 { x } else { F192::ONE + x }
+        });
+        let mut eq = Vec::with_capacity(1 << p);
+        primitives::multilinear::fill_eq_table_uninit(&x_outer[..p], seed, &mut eq.spare_capacity_mut()[..1 << p]);
+        // SAFETY: the fill writes all `2^p` entries.
+        unsafe { eq.set_len(1 << p) };
+        let piece = &z_packed[first / 8 * k..(first + (1 << p)) / 8 * k];
+        for (o, v) in out
+            .iter_mut()
+            .zip(partial_fold_packed_z_best(piece, p + k_log, k_log, useful_bits, &eq))
+        {
+            *o += v;
+        }
+        first += 1 << p;
+    }
+    out
+}
+
 /// Outer-dimension threshold (`n_log = m − k_log`) at/above which the
 /// outer(tile)-partitioned fold beats the i_inner-partitioned one. See
 /// [`partial_fold_packed_z_best`] for the crossover calibration.
@@ -990,198 +1026,283 @@ fn sumcheck_bind_both_and_eval_next(comb: &mut Vec<F192>, z: &mut Vec<F192>, r: 
 // API
 // ---------------------------------------------------------------------------
 
-/// The lincheck prover. Its claim retains the transmitted post-sumcheck
-/// `z_partial`, which is exactly the AB claim's 64-entry ring-switch `s_hat_v`.
-/// The opening reuses it without a second witness scan or transmission.
-#[expect(
-    clippy::too_many_arguments,
-    reason = "The proof kernel keeps its independent inputs explicit."
-)]
-pub fn prove_padded_capture_s_hat_v(
-    z_packed: &[u8],
-    m: usize,
-    k_log: usize,
-    k_skip: usize,
-    useful_bits: usize,
-    circuit: &dyn LincheckCircuit,
-    x_ab: &QuirkyPoint,
-    ps: &mut ProverState,
-) -> LincheckClaim {
-    let k = 1usize << k_log;
-    let n_log = m - k_log;
-    assert!(m >= k_log);
-    assert!(k_skip <= k_log, "k_skip must be ≤ k_log");
-    assert!(useful_bits <= k, "useful_bits ({useful_bits}) > k ({k})");
-    let inner_rest_len = k_log - k_skip;
-    assert_eq!(circuit.n_cols(), k);
-    assert_eq!(x_ab.x_inner_rest.len(), inner_rest_len);
-    assert_eq!(x_ab.x_outer.len(), n_log);
+/// The weight circuit `f`'s four terms take in a batch, `α^{4f}`: circuit `f`'s
+/// `A`, `B`, `C` and pin terms ride `α^{4f}`, `α^{4f+1}`, `α^{4f+2}`, `α^{4f+3}`.
+fn circuit_weights(alpha: F192, n: usize) -> Vec<F192> {
+    primitives::field::powers(alpha.square().square(), n)
+}
 
-    // 1. Sample α (matches verifier's order). Used to batch the scalar
-    //    consistency checks v_a, v_b, v_c into a single sumcheck.
-    let alpha = ps.sample();
+/// One circuit's witness in a batched lincheck: its packed `z` in the lincheck
+/// stripe layout, and the quirky point its zerocheck claims are at.
+///
+/// `z_packed` may hold only the first instances, when `pad` is given: the packed `z`
+/// of the instance every later one repeats, so their share of the fold over the
+/// instances is its bits times the weight the point puts on them.
+#[derive(Clone, Copy)]
+pub struct LincheckInput<'a> {
+    pub z_packed: &'a [u8],
+    pub m: usize,
+    pub k_log: usize,
+    pub k_skip: usize,
+    pub useful_bits: usize,
+    pub pad: Option<&'a [u64]>,
+    pub circuit: &'a dyn LincheckCircuit,
+    pub x_ab: &'a QuirkyPoint,
+}
 
-    // 2. Build the α-batched column marginal through the circuit.
-    let eq_inner =
-        tracing::info_span!("Eq table").in_scope(|| build_quirky_eq_table(x_ab.z_skip, &x_ab.x_inner_rest, k_skip));
-    let mut comb_vec = tracing::info_span!("Fold circuit").in_scope(|| circuit.fold_alpha_batched(alpha, &eq_inner));
+/// One circuit's statement in a batched lincheck: its shape and its zerocheck claims.
+#[derive(Clone, Copy)]
+pub struct LincheckStatement<'a> {
+    pub m: usize,
+    pub k_log: usize,
+    pub k_skip: usize,
+    pub circuit: &'a dyn LincheckCircuit,
+    pub x_ab: &'a QuirkyPoint,
+    pub v_a: F192,
+    pub v_b: F192,
+    pub v_c: F192,
+}
 
-    // 3. The zerocheck's c-claim, at α². `C = I`, so `ĉ(x_ab)` is the z-claim
-    //    `Σ_j eq_inner[j]·ẑ(j, x_outer)`: the same row weights the matrices are
-    //    folded against, which is why it costs one pass over a length-k vector
-    //    and no extra sumcheck. It is what makes the AB and C claims come out
-    //    of lincheck at ONE point.
-    let alpha_sq = alpha.square();
-    for (c, e) in comb_vec.iter_mut().zip(&eq_inner) {
-        *c += alpha_sq * *e;
-    }
+/// One circuit's product sumcheck: its α-batched column marginal and its partially
+/// folded `z`, both bound top variable first, and its own running claim.
+struct CircuitProver {
+    comb: Vec<F192>,
+    z: Vec<F192>,
+    rounds: usize,
+    running: F192,
+    /// The next round's `(q(1), q(∞))`.
+    next: (F192, F192),
+}
 
-    // 4. Constant-wire pin, at β = α³. Fold β·eq(j*, ·) into the comb so the
-    //    same sumcheck also proves z_vec[j*] = 1 (the all-ones constant
-    //    column). Since j* is a boolean index, eq(j*, ·) is the one-hot vector
-    //    and this is a single entry update. See `LincheckCircuit::const_pin_col`.
-    let beta = alpha_sq * alpha;
-    comb_vec[circuit.const_pin_col()] += beta;
+impl CircuitProver {
+    fn new(input: &LincheckInput<'_>, alpha: F192) -> Self {
+        let LincheckInput {
+            z_packed,
+            m,
+            k_log,
+            k_skip,
+            useful_bits,
+            pad,
+            circuit,
+            x_ab,
+        } = *input;
+        let k = 1usize << k_log;
+        let n_log = m - k_log;
+        assert!(m >= k_log);
+        assert!(k_skip <= k_log, "k_skip must be ≤ k_log");
+        assert!(useful_bits <= k, "useful_bits ({useful_bits}) > k ({k})");
+        assert_eq!(circuit.n_cols(), k);
+        assert_eq!(x_ab.x_inner_rest.len(), k_log - k_skip);
+        assert_eq!(x_ab.x_outer.len(), n_log);
 
-    // 5. Partial fold of z at the shared outer half (length-k F192 vector).
-    let mut z_vec = tracing::info_span!("Partial fold").in_scope(|| {
-        let eq_x_outer = build_eq(&x_ab.x_outer);
-        partial_fold_packed_z_best(z_packed, m, k_log, useful_bits, &eq_x_outer)
-    });
+        // The α-batched column marginal through the circuit.
+        let eq_inner =
+            tracing::info_span!("Eq table").in_scope(|| build_quirky_eq_table(x_ab.z_skip, &x_ab.x_inner_rest, k_skip));
+        let mut comb = tracing::info_span!("Fold circuit").in_scope(|| circuit.fold_alpha_batched(alpha, &eq_inner));
 
-    let span = tracing::info_span!("Sumcheck").entered();
+        // The zerocheck's c-claim, at α². `C = I`, so `ĉ(x_ab)` is the z-claim
+        // `Σ_j eq_inner[j]·ẑ(j, x_outer)`: the same row weights the matrices are
+        // folded against, which is why it costs one pass over a length-k vector
+        // and no extra sumcheck. It is what makes the AB and C claims come out
+        // of lincheck at ONE point.
+        let alpha_sq = alpha.square();
+        for (c, e) in comb.iter_mut().zip(&eq_inner) {
+            *c += alpha_sq * *e;
+        }
 
-    // 6. Standard multilinear product-sumcheck over the high `inner_rest_len`
-    //    bits of `i`. Each round binds the TOP remaining bit. After `inner_rest_len` rounds, both
-    //    tables collapse to length `2^k_skip`. Large rounds use the worker pool.
-    let mut r_rounds = Vec::with_capacity(inner_rest_len);
-    if inner_rest_len > 0 {
+        // Constant-wire pin, at β = α³. Fold β·eq(j*, ·) into the comb so the
+        // same sumcheck also proves z_vec[j*] = 1 (the all-ones constant
+        // column). Since j* is a boolean index, eq(j*, ·) is the one-hot vector
+        // and this is a single entry update. See `LincheckCircuit::const_pin_col`.
+        comb[circuit.const_pin_col()] += alpha_sq * alpha;
+
+        // Partial fold of z at the shared outer half (length-k F192 vector).
+        let z = tracing::info_span!("Partial fold").in_scope(|| {
+            let explicit = (8 * z_packed.len()) >> k_log;
+            assert!(
+                explicit == 1 << n_log || pad.is_some(),
+                "a witness short of the batch repeats a padding instance"
+            );
+            let mut z = partial_fold_prefix(z_packed, k_log, useful_bits, &x_ab.x_outer);
+            if let Some(pad) = pad {
+                assert_eq!(pad.len(), k / 64, "the padding instance is one instance");
+                let weight = primitives::multilinear::tail_weight(&x_ab.x_outer, explicit);
+                for (j, z) in z.iter_mut().enumerate() {
+                    if (pad[j / 64] >> (j % 64)) & 1 == 1 {
+                        *z += weight;
+                    }
+                }
+            }
+            z
+        });
+
         // Round 0's message is the only standalone evaluation pass; every later
         // round's message falls out of binding the previous round (fold +
         // next-eval fused into one pass, see `sumcheck_bind_both_and_eval_next`).
-        let (mut e1, mut einf) = sumcheck_round_eval_par(&comb_vec, &z_vec);
-        // The running claim, mirrored from the verifier: `q(0) + q(1) = claim`
-        // is what lets the wire drop `q(0)`, so the prover has to know it too.
-        // Round 0's claim is the whole inner product, one O(k) pass over the
+        // The running claim is the whole inner product, one O(k) pass over the
         // column vectors and negligible beside the sumcheck itself.
-        let mut running = inner_product_ext(&comb_vec, &z_vec);
-        for t in 0..inner_rest_len {
-            let e0 = running + e1;
-            ps.add_round_poly(&[e0, e0 + e1 + einf, einf], false);
-            let r = ps.sample();
-            running = (einf * r + (e0 + e1 + einf)) * r + e0;
-            r_rounds.push(r);
-            if t + 1 < inner_rest_len {
-                // Fused: bind both tables at r AND compute round (t+1)'s message.
-                let (ne1, neinf) = sumcheck_bind_both_and_eval_next(&mut comb_vec, &mut z_vec, r);
-                e1 = ne1;
-                einf = neinf;
+        let rounds = k_log - k_skip;
+        let next = if rounds > 0 {
+            sumcheck_round_eval_par(&comb, &z)
+        } else {
+            (F192::ZERO, F192::ZERO)
+        };
+        let running = inner_product_ext(&comb, &z);
+        Self {
+            comb,
+            z,
+            rounds,
+            running,
+            next,
+        }
+    }
+
+    /// The round's coefficients. `q(0) + q(1) = claim` lets the wire drop the linear one.
+    fn message(&self) -> [F192; 3] {
+        let (e1, einf) = self.next;
+        let e0 = self.running + e1;
+        [e0, e0 + e1 + einf, einf]
+    }
+
+    /// Bind round `t`'s top variable at `r`.
+    fn bind(&mut self, t: usize, r: F192) {
+        self.running = primitives::multilinear::poly_eval(&self.message(), r);
+        if t + 1 < self.rounds {
+            // Fused: bind both tables at r AND compute round (t+1)'s message.
+            self.next = sumcheck_bind_both_and_eval_next(&mut self.comb, &mut self.z, r);
+        } else {
+            // Final round: only z is read afterwards (as z_partial), so the
+            // comb's last fold would be dead work.
+            sumcheck_bind_top_in_place_par(&mut self.z, r);
+        }
+    }
+}
+
+/// The lincheck prover, for a batch of circuits under one α and one sumcheck
+/// (doc/leanvm Annex C, "Batching the circuits").
+///
+/// Circuit `f`'s identity takes the weight `α^{4f}`, and its product sumcheck binds
+/// its `k_log - k_skip` inner coordinates top first, every circuit from the first
+/// round. A circuit done before a round is lifted by that round's variable: it adds
+/// the line `X·u`, `u` its final claim times the challenges since, which reaches
+/// only the coefficient the claim fixes. Each circuit's claim retains its
+/// transmitted post-sumcheck `z_partial`, which is exactly its 64-entry ring-switch
+/// `s_hat_v`, sent after the rounds in circuit order.
+pub fn prove(inputs: &[LincheckInput<'_>], ps: &mut ProverState) -> Vec<LincheckClaim> {
+    // Sample α (matches verifier's order). It batches each circuit's scalar
+    // consistency checks v_a, v_b, v_c and its pin, and the circuits.
+    let alpha = ps.sample();
+    let weights = circuit_weights(alpha, inputs.len());
+    let mut provers: Vec<CircuitProver> = inputs.iter().map(|input| CircuitProver::new(input, alpha)).collect();
+
+    let span = tracing::info_span!("Sumcheck").entered();
+    let n_rounds = provers.iter().map(|p| p.rounds).max().expect("a batch has a circuit");
+    let mut r_rounds = Vec::with_capacity(n_rounds);
+    for t in 0..n_rounds {
+        let mut message = [F192::ZERO; 3];
+        for (prover, &weight) in provers.iter().zip(&weights) {
+            let own = if t < prover.rounds {
+                prover.message()
             } else {
-                // Final round: only z_vec is read afterwards (as z_partial), so
-                // comb_vec's last fold would be dead work.
-                sumcheck_bind_top_in_place_par(&mut z_vec, r);
+                [F192::ZERO, prover.running, F192::ZERO]
+            };
+            for (m, c) in message.iter_mut().zip(own) {
+                *m += weight * c;
+            }
+        }
+        ps.add_round_poly(&message, false);
+        let r = ps.sample();
+        r_rounds.push(r);
+        for prover in &mut provers {
+            if t < prover.rounds {
+                prover.bind(t, r);
+            } else {
+                prover.running *= r;
             }
         }
     }
     drop(span);
 
-    // 7. Send `z_partial` (the post-sumcheck collapsed z_vec). Length 2^k_skip.
-    let z_partial = z_vec;
-    for &x in z_partial.iter() {
-        ps.add_scalar(x);
-    }
+    // Send each `z_partial` (the post-sumcheck collapsed z). Length 2^k_skip.
+    provers
+        .into_iter()
+        .map(|prover| {
+            ps.add_scalars(&prover.z);
+            claim_of(alpha, &r_rounds[..prover.rounds], prover.z)
+        })
+        .collect()
+}
 
-    // 8. Convert sumcheck challenges to LSB-first `x_inner_rest` order. The
-    //     loop binds the TOP bit each round, so r_rounds[0] bound bit
-    //     (inner_rest_len − 1) of the i_rest part (= bit (k_log − 1) of i).
-    //     LSB-first: x_inner_rest[j] binds bit (k_skip + j) of i, i.e.,
-    //     r_inner_rest[j] = r_rounds[inner_rest_len − 1 − j].
-    let mut r_inner_rest = r_rounds.clone();
+/// A circuit's claim from its rounds' challenges. The rounds bind the TOP bit
+/// first, so `r_rounds[0]` bound bit `inner_rest_len − 1` of the inner rest, and
+/// LSB-first `r_inner_rest[j] = r_rounds[inner_rest_len − 1 − j]`.
+fn claim_of(alpha: F192, r_rounds: &[F192], s_hat_v: Vec<F192>) -> LincheckClaim {
+    let mut r_inner_rest = r_rounds.to_vec();
     r_inner_rest.reverse();
-
     LincheckClaim {
         alpha,
-        beta,
-        r_rounds,
+        beta: alpha.square() * alpha,
+        r_rounds: r_rounds.to_vec(),
         r_inner_rest,
-        s_hat_v: z_partial,
+        s_hat_v,
     }
 }
 
-/// Verify a lincheck proof. Walks the transcript in lockstep with the prover,
-/// replays the α-batched product sumcheck against `v_a`, `v_b` and `v_c`, and
-/// derives the single output z-claim `w`.
-#[expect(
-    clippy::too_many_arguments,
-    reason = "The proof kernel keeps its independent inputs explicit."
-)]
+/// Verify a batched lincheck proof. Walks the transcript in lockstep with the
+/// prover, replays the product sumcheck against every circuit's α-batched `v_a`,
+/// `v_b` and `v_c` and pin, and derives each circuit's output z-claim.
 pub fn verify(
-    m: usize,
-    k_log: usize,
-    k_skip: usize,
-    circuit: &dyn LincheckCircuit,
-    x_ab: &QuirkyPoint,
-    v_a: F192,
-    v_b: F192,
-    v_c: F192,
+    statements: &[LincheckStatement<'_>],
     vs: &mut VerifierState<'_>,
-) -> Result<LincheckClaim, VerifyError> {
-    let k = 1usize << k_log;
-    let n_log = m - k_log;
-
-    if k_skip > k_log {
-        return Err(VerifyError::KSkipExceedsKLog { k_skip, k_log });
-    }
-    let inner_rest_len = k_log - k_skip;
-    let n_skip = 1usize << k_skip;
-
-    if x_ab.x_inner_rest.len() != inner_rest_len {
-        return Err(VerifyError::BadInnerRestLength {
-            expected: inner_rest_len,
-            got: x_ab.x_inner_rest.len(),
-        });
-    }
-    if x_ab.x_outer.len() != n_log {
-        return Err(VerifyError::BadOuterLength {
-            expected: n_log,
-            got: x_ab.x_outer.len(),
-        });
-    }
-    if circuit.n_cols() != k {
-        return Err(VerifyError::BadNCols {
-            expected: k,
-            got: circuit.n_cols(),
-        });
+) -> Result<Vec<LincheckClaim>, VerifyError> {
+    for s in statements {
+        let k_log = s.k_log;
+        if s.k_skip > k_log {
+            return Err(VerifyError::KSkipExceedsKLog {
+                k_skip: s.k_skip,
+                k_log,
+            });
+        }
+        if s.x_ab.x_inner_rest.len() != k_log - s.k_skip {
+            return Err(VerifyError::BadInnerRestLength {
+                expected: k_log - s.k_skip,
+                got: s.x_ab.x_inner_rest.len(),
+            });
+        }
+        if s.x_ab.x_outer.len() != s.m - k_log {
+            return Err(VerifyError::BadOuterLength {
+                expected: s.m - k_log,
+                got: s.x_ab.x_outer.len(),
+            });
+        }
+        if s.circuit.n_cols() != 1 << k_log {
+            return Err(VerifyError::BadNCols {
+                expected: 1 << k_log,
+                got: s.circuit.n_cols(),
+            });
+        }
     }
 
     // 1. Sample α (matches prover's order).
     let alpha = vs.sample();
+    let weights = circuit_weights(alpha, statements.len());
 
-    // 2. Row weights: the quirky eq table over the inner claim point, `u` in
-    //    the final bilinear form. The α-batched column marginal the prover
-    //    materializes (`fold_alpha_batched`, cost ∝ NNZ) is NOT built here:
-    //    the verifier only ever consumes it through one inner product, so
-    //    that work is deferred to step 5 (and walk-capable circuits answer it
-    //    in O(circuit) ops without the marginal at all).
-    let eq_inner = build_quirky_eq_table(x_ab.z_skip, &x_ab.x_inner_rest, k_skip);
-
-    // 3. Replay the multilinear product-sumcheck (inner_rest_len rounds).
-    //    Only the transcript messages drive the running claim; the prover's
-    //    lockstep comb_vec fold is linear, so its end state is reconstructed
-    //    in step 5 as column weights instead of being folded here.
-    // Constant-wire pin (mirror of prove): β = α³, the comb's +β at the
-    // constant column surfaces in step 5 as `+β·w_col[col]`, and the initial
-    // target gains +β·1, since the honest all-ones constant column folds to 1.
-    // See lincheck's `LincheckCircuit::const_pin_col`.
-    // The zerocheck's c-claim at α² (mirror of prove step 3): `C = I`, so it
-    // enters the comb as `α²·eq_inner` and the target as `α²·v_c`.
+    // 2. Replay the batched product sumcheck. The zerocheck's c-claim enters at α²
+    //    and the pin at β = α³, whose target is 1, the honest all-ones constant
+    //    column folding to 1. See `LincheckCircuit::const_pin_col`.
     let alpha_sq = alpha.square();
     let beta = alpha_sq * alpha;
-    // The pin's target gains +β·1, the honest all-ones constant column folding to 1.
-    let target = v_a + alpha * v_b + alpha_sq * v_c + beta;
+    let target = (statements.iter().zip(&weights)).fold(F192::ZERO, |acc, (s, &w)| {
+        acc + w * (s.v_a + alpha * s.v_b + alpha_sq * s.v_c + beta)
+    });
+    let n_rounds = statements
+        .iter()
+        .map(|s| s.k_log - s.k_skip)
+        .max()
+        .expect("a batch has a circuit");
     let mut running = target;
-    let mut r_rounds = Vec::with_capacity(inner_rest_len);
-    for _ in 0..inner_rest_len {
+    let mut r_rounds = Vec::with_capacity(n_rounds);
+    for _ in 0..n_rounds {
         // `c1 + c2 = claim` in char 2, so `c1` never rides the wire.
         let q = vs.next_round_poly(3, running, None)?;
         let r = vs.sample();
@@ -1189,57 +1310,61 @@ pub fn verify(
         r_rounds.push(r);
     }
 
-    // 4. Read + bind z_partial AFTER the sumcheck rounds (matches prover order).
-    let z_partial: Vec<F192> = vs.next_scalars(n_skip)?;
-
-    // Convert sumcheck challenges to LSB-first x_inner_rest order (same
-    // convention as prover; also the eq-ordering of the step-5 column weights).
-    let mut r_inner_rest = r_rounds.clone();
-    r_inner_rest.reverse();
-
-    // 5. Final sumcheck consistency. The prover's comb_partial (comb_vec
-    //    bound MSB-first at r_rounds) satisfies
-    //
-    //      ⟨comb_partial, z_partial⟩ = Σ_c comb_vec[c] · w_col[c],
-    //      w_col[i_skip + i_rest·2^k_skip] = z_partial[i_skip] · eq(r_inner_rest, i_rest),
-    //
-    //    so the whole check collapses to ONE bilinear form
-    //    `eq_innerᵀ·(A_0 + α·B_0)·w_col + β·w_col[pin]` against the running
-    //    claim. Ties z_partial to the upstream v_a, v_b. Walk-capable circuits
-    //    (`bilinear_form`) evaluate it in O(circuit) field ops; the fallback
-    //    materializes the marginal and takes the inner product (identical
-    //    value, exact field arithmetic).
-    let eq_rest = build_eq(&r_inner_rest);
-    let w_col = outer_product(&eq_rest, &z_partial);
-    debug_assert_eq!(w_col.len(), k);
-    let mut final_sum = circuit
-        .bilinear_form(alpha, &eq_inner, &w_col)
-        .unwrap_or_else(|| inner_product_ext(&circuit.fold_alpha_batched(alpha, &eq_inner), &w_col));
-    final_sum += beta * w_col[circuit.const_pin_col()];
-    // The c term's `⟨eq_inner, w_col⟩`, by the tensor structure of both sides:
-    // `eq_inner = eq(x_inner_rest) ⊗ λ(z_skip)` and `w_col = eq(r_inner_rest) ⊗
-    // z_partial`, so it is 8 eq factors times a 64-term Lagrange combination
-    // instead of a length-k inner product.
-    let lambda_skip = lagrange_weights_naive(k_skip, x_ab.z_skip);
-    let c_slice_value = lambda_skip
-        .iter()
-        .zip(&z_partial)
-        .fold(F192::ZERO, |acc, (&w, &s)| acc + w * s);
-    final_sum += alpha_sq * eq_eval(&x_ab.x_inner_rest, &r_inner_rest) * c_slice_value;
+    // 3. Read + bind every z_partial AFTER the sumcheck rounds (matches prover
+    //    order), and check the batch's final claim: each circuit's terminal form,
+    //    times its weight and the challenges of the rounds it sat out.
+    let mut final_sum = F192::ZERO;
+    let mut claims = Vec::with_capacity(statements.len());
+    for (s, &weight) in statements.iter().zip(&weights) {
+        let rounds = s.k_log - s.k_skip;
+        let z_partial: Vec<F192> = vs.next_scalars(1 << s.k_skip)?;
+        let claim = claim_of(alpha, &r_rounds[..rounds], z_partial);
+        let lift = r_rounds[rounds..].iter().fold(weight, |acc, &r| acc * r);
+        final_sum += lift * terminal(s, &claim);
+        claims.push(claim);
+    }
     if running != final_sum {
         return Err(VerifyError::SumcheckMismatch);
     }
 
-    // 6. `z_partial` IS the output claim: the 64 bit-slice values of z at
-    //    (r_inner_rest, x_outer), pinned by the identity just checked, and ring
+    // 4. Each `z_partial` IS its circuit's output claim: the 64 bit-slice values of
+    //    z at (r_inner_rest, x_outer), pinned by the identity just checked, and ring
     //    switching binds all 64 of them against the commitment.
-    Ok(LincheckClaim {
-        alpha,
-        beta,
-        r_rounds,
-        r_inner_rest,
-        s_hat_v: z_partial,
-    })
+    Ok(claims)
+}
+
+/// One circuit's terminal form. The prover's comb_partial (comb_vec bound
+/// MSB-first at r_rounds) satisfies
+///
+///   ⟨comb_partial, z_partial⟩ = Σ_c comb_vec[c] · w_col[c],
+///   w_col[i_skip + i_rest·2^k_skip] = z_partial[i_skip] · eq(r_inner_rest, i_rest),
+///
+/// so the whole check collapses to ONE bilinear form
+/// `eq_innerᵀ·(A_0 + α·B_0)·w_col + β·w_col[pin]` plus the c term. Walk-capable
+/// circuits (`bilinear_form`) evaluate it in O(circuit) field ops; the fallback
+/// materializes the marginal and takes the inner product (identical value, exact
+/// field arithmetic).
+fn terminal(s: &LincheckStatement<'_>, claim: &LincheckClaim) -> F192 {
+    // Row weights: the quirky eq table over the inner claim point, `u` in the
+    // bilinear form. The α-batched column marginal the prover materializes
+    // (`fold_alpha_batched`, cost ∝ NNZ) is NOT built here.
+    let eq_inner = build_quirky_eq_table(s.x_ab.z_skip, &s.x_ab.x_inner_rest, s.k_skip);
+    let eq_rest = build_eq(&claim.r_inner_rest);
+    let w_col = outer_product(&eq_rest, &claim.s_hat_v);
+    debug_assert_eq!(w_col.len(), 1 << s.k_log);
+    let alpha = claim.alpha;
+    let mut form = s
+        .circuit
+        .bilinear_form(alpha, &eq_inner, &w_col)
+        .unwrap_or_else(|| inner_product_ext(&s.circuit.fold_alpha_batched(alpha, &eq_inner), &w_col));
+    form += claim.beta * w_col[s.circuit.const_pin_col()];
+    // The c term's `⟨eq_inner, w_col⟩`, by the tensor structure of both sides:
+    // `eq_inner = eq(x_inner_rest) ⊗ λ(z_skip)` and `w_col = eq(r_inner_rest) ⊗
+    // z_partial`, so it is 8 eq factors times a 64-term Lagrange combination
+    // instead of a length-k inner product.
+    let lambda_skip = lagrange_weights_naive(s.k_skip, s.x_ab.z_skip);
+    let c_slice_value = (lambda_skip.iter().zip(&claim.s_hat_v)).fold(F192::ZERO, |acc, (&w, &v)| acc + w * v);
+    form + alpha.square() * eq_eval(&s.x_ab.x_inner_rest, &claim.r_inner_rest) * c_slice_value
 }
 
 // ---------------------------------------------------------------------------
@@ -1252,8 +1377,7 @@ mod tests {
     use primitives::field::F64;
     use primitives::test_rng::Rng;
 
-    /// Test shim for the old dense-prove entry: the capture variant with a
-    /// dense block and the captured `s_hat_v` discarded.
+    /// Test shim: one dense circuit.
     fn prove(
         z_packed: &[u8],
         m: usize,
@@ -1263,7 +1387,46 @@ mod tests {
         x_ab: &QuirkyPoint,
         ps: &mut fiat_shamir::transcript::ProverState,
     ) -> LincheckClaim {
-        prove_padded_capture_s_hat_v(z_packed, m, k_log, k_skip, 1 << k_log, circuit, x_ab, ps)
+        let input = LincheckInput {
+            z_packed,
+            m,
+            k_log,
+            k_skip,
+            useful_bits: 1 << k_log,
+            pad: None,
+            circuit,
+            x_ab,
+        };
+        super::prove(&[input], ps).pop().expect("one circuit")
+    }
+
+    /// Test shim: the replay of one circuit.
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "The shim keeps the statement's fields explicit."
+    )]
+    fn verify(
+        m: usize,
+        k_log: usize,
+        k_skip: usize,
+        circuit: &dyn LincheckCircuit,
+        x_ab: &QuirkyPoint,
+        v_a: F192,
+        v_b: F192,
+        v_c: F192,
+        vs: &mut VerifierState<'_>,
+    ) -> Result<LincheckClaim, VerifyError> {
+        let statement = LincheckStatement {
+            m,
+            k_log,
+            k_skip,
+            circuit,
+            x_ab,
+            v_a,
+            v_b,
+            v_c,
+        };
+        super::verify(&[statement], vs).map(|mut claims| claims.pop().expect("one circuit"))
     }
 
     /// Test shim: the padded fast fold with a dense (no-padding) block.

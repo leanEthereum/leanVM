@@ -4,10 +4,11 @@ use primitives::field::F192;
 use primitives::multilinear::fill_eq_table_uninit;
 use zk_alloc::ArenaVec;
 
-use super::{RingSwitchOpen, StackClaim};
+use super::{StackClaim, Term};
 use crate::ring_switch::{DeferredRingSwitchOutput, combine_deferred_chunk};
 use crate::whir::INITIAL_BASIS_CHUNK;
 
+/// One term of a point claim: its slice, and its eq table split at the fill chunk.
 struct PointWeight<'a> {
     offset: usize,
     end: usize,
@@ -18,17 +19,9 @@ struct PointWeight<'a> {
 }
 
 impl<'a> PointWeight<'a> {
-    fn new(claim: &'a StackClaim, lambda: F192, chunk_log: usize) -> Self {
-        let (offset, slot, stride_log, point) = match claim {
-            StackClaim::Point { offset, low_point, .. } => (*offset, 0, 0, low_point.as_slice()),
-            StackClaim::Strided {
-                offset,
-                slot,
-                stride_log,
-                point,
-                ..
-            } => (*offset, *slot, *stride_log, point.as_slice()),
-        };
+    fn new(claim: &'a StackClaim, term: &Term, lambda: F192, chunk_log: usize) -> Self {
+        let (offset, slot, stride_log) = (term.offset, claim.slot, claim.stride_log);
+        let point = &claim.point[..term.n_vars];
         let len = 1usize << (stride_log + point.len());
         let stride = 1usize << stride_log;
         assert!(offset.is_multiple_of(len), "claim must be aligned to its support");
@@ -36,7 +29,7 @@ impl<'a> PointWeight<'a> {
         let low_vars = point.len().min(chunk_log.saturating_sub(stride_log));
         let (low, high_point) = point.split_at(low_vars);
         let mut high = zk_alloc::alloc_uninit(1 << high_point.len());
-        fill_eq_table_uninit(high_point, lambda, &mut high);
+        fill_eq_table_uninit(high_point, lambda * term.scale, &mut high);
         // SAFETY: the seeded equality build initializes the whole table.
         let high = unsafe { zk_alloc::assume_init(high) };
         Self {
@@ -77,29 +70,29 @@ impl<'a> PointWeight<'a> {
 ///
 /// It is the lambda-weighted sum of every claim's weight over the stack:
 ///
-/// - each ring-switched region's combined weight, over that region;
-/// - each point claim's equality weight, over its own support.
+/// - each ring-switched claim's terms, each over its own slice;
+/// - each point claim's terms' equality weights, each over its own support.
 ///
 /// It is never stored whole: round 0 and the first lane round each refill the chunks they read.
 pub(super) struct StackWeight<'a> {
-    /// Each point claim's weight, its high equality table built once.
+    /// Each point claim term's weight, its high equality table built once.
     weights: Vec<PointWeight<'a>>,
-    /// For each lane block, the point claims whose support meets it.
+    /// For each lane block, the point terms whose support meets it.
     by_lane: Vec<Vec<usize>>,
-    /// Each ring-switched region: its first word, its end, and its claims' outputs.
-    regions: Vec<(usize, usize, &'a [DeferredRingSwitchOutput])>,
+    /// For each lane block, the ring-switched claims one of whose terms meets it.
+    rings_by_lane: Vec<Vec<usize>>,
+    rs_outputs: &'a [DeferredRingSwitchOutput],
     /// Words per lane block.
     lane_block: usize,
 }
 
 impl<'a> StackWeight<'a> {
-    /// The weight of `claims` batched by `lambdas`, plus the ring-switched regions `rings`.
+    /// The weight of `claims` batched by `lambdas`, plus the ring-switched claims' `rs_outputs`.
     pub(super) fn new(
         stack_len: usize,
         lane_block: usize,
         claims: &'a [StackClaim],
         lambdas: &[F192],
-        rings: &[RingSwitchOpen],
         rs_outputs: &'a [DeferredRingSwitchOutput],
     ) -> Self {
         assert_eq!(claims.len(), lambdas.len());
@@ -108,33 +101,38 @@ impl<'a> StackWeight<'a> {
         let weights: Vec<_> = claims
             .iter()
             .zip(lambdas)
-            .map(|(claim, &lambda)| PointWeight::new(claim, lambda, chunk_log))
+            .flat_map(|(claim, &lambda)| {
+                claim
+                    .terms
+                    .iter()
+                    .map(move |term| PointWeight::new(claim, term, lambda, chunk_log))
+            })
             .collect();
 
-        // Index the claims by the lane blocks they touch, so a fill visits only those.
-        let mut by_lane = vec![Vec::new(); stack_len / lane_block];
+        // Index the terms by the lane blocks they touch, so a fill visits only those.
+        let n_lanes = stack_len / lane_block;
+        let mut by_lane = vec![Vec::new(); n_lanes];
         for (index, weight) in weights.iter().enumerate() {
             for lane in &mut by_lane[weight.offset / lane_block..weight.end.div_ceil(lane_block)] {
                 lane.push(index);
             }
         }
-
-        // Each ring's outputs are its own run of the outputs, in ring order.
-        let mut first = 0;
-        let regions = rings
-            .iter()
-            .map(|ring| {
-                let outputs = &rs_outputs[first..first + ring.claims.len()];
-                first += ring.claims.len();
-                (ring.offset, ring.offset + (1usize << ring.qflock_vars), outputs)
-            })
-            .collect();
-        assert_eq!(first, rs_outputs.len());
+        let mut rings_by_lane: Vec<Vec<usize>> = vec![Vec::new(); n_lanes];
+        for (index, output) in rs_outputs.iter().enumerate() {
+            for (start, end) in output.ranges() {
+                for lane in &mut rings_by_lane[start / lane_block..end.div_ceil(lane_block)] {
+                    if lane.last() != Some(&index) {
+                        lane.push(index);
+                    }
+                }
+            }
+        }
 
         Self {
             weights,
             by_lane,
-            regions,
+            rings_by_lane,
+            rs_outputs,
             lane_block,
         }
     }
@@ -142,19 +140,16 @@ impl<'a> StackWeight<'a> {
     /// Writes the weight of words `start..start + dst.len()`, one aligned fill chunk.
     pub(super) fn fill(&self, start: usize, dst: &mut [F192]) {
         dst.fill(F192::ZERO);
+        let lane = start / self.lane_block;
 
-        // The ring-switched regions this chunk meets.
-        for &(offset, end, outputs) in &self.regions {
-            let lo = start.max(offset);
-            let hi = (start + dst.len()).min(end);
-            if lo < hi {
-                combine_deferred_chunk(outputs, lo - offset, &mut dst[lo - start..hi - start]);
-            }
+        // The ring-switched claims this chunk's lane block meets.
+        for &index in &self.rings_by_lane[lane] {
+            combine_deferred_chunk(std::slice::from_ref(&self.rs_outputs[index]), start, dst);
         }
 
-        // The point claims of this chunk's lane block.
+        // The point terms of this chunk's lane block.
         let mut scratch = [MaybeUninit::uninit(); INITIAL_BASIS_CHUNK];
-        for &index in &self.by_lane[start / self.lane_block] {
+        for &index in &self.by_lane[lane] {
             self.weights[index].add(start, dst, &mut scratch);
         }
     }

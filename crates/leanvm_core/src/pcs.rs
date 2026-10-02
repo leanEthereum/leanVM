@@ -28,7 +28,7 @@
 use fiat_shamir::transcript::{ProverState, Receiver, Transmitter, VerifierState};
 use primitives::field::F64;
 
-pub use ::pcs::stack_open::{RingSwitchClaim, RingSwitchOpen, RingSwitchVerify, StackClaim as SlotClaim};
+pub use ::pcs::stack_open::{RingSwitchClaim, RingSwitchVerifyClaim, RingTerm, StackClaim as SlotClaim, Term};
 use ::pcs::stack_open::{open_batch_mixed_whir_stacked, verify_opening_batch_mixed_whir_stacked};
 use ::pcs::whir::ProverConfig;
 use ::pcs::whir::{ProverData, commit as whir_commit, config_for_rate};
@@ -180,7 +180,7 @@ pub fn read_commitment(vs: &mut VerifierState) -> Result<[u8; 32], fiat_shamir::
 ///
 /// There is no plain (non-ring-switch) path: the witness ALWAYS carries a `q_flock`
 /// sub-block (≥ 1 padding instance, §cpu), so every opening is stacked.
-pub fn open(ps: &mut ProverState, c: &Committed, q: &[F64], points: &[SlotClaim], rings: &[RingSwitchOpen]) {
+pub fn open(ps: &mut ProverState, c: &Committed, q: &[F64], points: &[SlotClaim], rings: &[RingSwitchClaim]) {
     let lane_block = 1usize << (c.mu - LOG_BATCH);
     assert_eq!(q.len() % lane_block, 0, "witness must be whole committed lanes");
     assert!(q.len() <= 1usize << c.mu, "witness must fit the announced size");
@@ -194,7 +194,7 @@ pub fn open(ps: &mut ProverState, c: &Committed, q: &[F64], points: &[SlotClaim]
 pub fn verify(
     vs: &mut VerifierState,
     points: &[SlotClaim],
-    rings: &[RingSwitchVerify<'_>],
+    rings: &[RingSwitchVerifyClaim<'_>],
     shape: crate::witness::StackShape,
     log_inv_rate: usize,
     root: &[u8; 32],
