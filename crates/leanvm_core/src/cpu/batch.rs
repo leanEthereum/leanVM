@@ -1,6 +1,10 @@
 //! The table sumcheck's batch (§constraints): one summand per table, then one per lookup producer.
 //!
 //! Prover and verifier both build it here, so their column order and summands agree by construction.
+//!
+//! A table's summand is its two bus forms, then its own identities (`tables::ClassTable::identities`), each at a
+//! power of `xi` past the bus forms' that no other form uses: their sums are zero, so the target does not change,
+//! and matching it pins each of them to zero.
 
 use super::layout::Layout;
 use crate::colval::ColVal;
@@ -25,6 +29,11 @@ impl FormPowers {
     /// The powers of the challenge `xi`.
     pub(super) const fn new(xi: F192) -> Self {
         Self([F192::ONE, xi])
+    }
+
+    /// The weight of identity `i` of the whole batch, the tables' identities numbered in table order: `xi^(2 + i)`.
+    fn identity(self, i: usize) -> F192 {
+        (0..2 + i).fold(F192::ONE, |power, _| power * self.0[1])
     }
 
     /// The weighted sum of one value per side.
@@ -69,15 +78,24 @@ impl Batch {
         powers: FormPowers,
     ) -> Self {
         // A table's term is one form, not two: the batch adds the sides' evaluations anyway.
+        let identities: Vec<Vec<BusForm>> = tables::tables().iter().map(tables::ClassTable::identities).collect();
+        let offsets = constraints::xi_offsets(identities.iter().map(Vec::len));
         let tables = tables::tables()
             .iter()
             .zip(&layout.taus)
             .enumerate()
-            .map(|(t, (table, &tau))| Air {
-                tau,
-                n_cols: table.n_committed_columns(),
-                n_public: 0,
-                summand: Term::Table(BusForm::sum((0..2).map(|s| forms[s][t].scaled(powers.0[s])))),
+            .map(|(t, (table, &tau))| {
+                let sides = (0..2).map(|s| forms[s][t].scaled(powers.0[s]));
+                let own = identities[t]
+                    .iter()
+                    .enumerate()
+                    .map(|(i, form)| form.scaled(powers.identity(offsets[t] + i)));
+                Air {
+                    tau,
+                    n_cols: table.n_committed_columns(),
+                    n_public: 0,
+                    summand: Term::Table(BusForm::sum(sides.chain(own))),
+                }
             });
 
         // A producer's term: its bits, then its public columns.

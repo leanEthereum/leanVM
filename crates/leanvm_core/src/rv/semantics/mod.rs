@@ -24,7 +24,7 @@ mod shift;
 
 pub use alu::Alu;
 pub use divide::Div;
-pub use ext::{Ext, ExtResult, Limb};
+pub use ext::{Ext, Limb};
 pub use hash::{BlockAccess, Hash, blake2s_witness};
 pub use memory::{Load, Store, WordAccess};
 pub use multiply::{Mul, Mulh};

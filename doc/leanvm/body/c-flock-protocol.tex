@@ -1,7 +1,7 @@
 % !TeX root = ../drafts/c-flock-protocol.tex
 \section{The Flock protocol}\label{annex:flock}
 
-Flock~\cite{Flock26} proves many executions of one Boolean circuit at once. We use it for the nine instruction classes' circuits and the nine tables' clock circuits (\S\ref{sec:tables}, \S\ref{sec:clock}, \S\ref{flock:classes}), each getting its own run of the protocol over its own witness. Since we do not follow their protocol exactly, we describe our version here, for one circuit of block size $\kblock$ with its constant wire at position $\jconst$; the eighteen differ in those two numbers alone, which \S\ref{flock:classes} gives, and the BLAKE2s compression, the largest at $\kblock=14$, is the running example.
+Flock~\cite{Flock26} proves many executions of one Boolean circuit at once. We use it for the instruction classes' circuits, eight of them, \texttt{EXT} having none, and the nine tables' clock circuits (\S\ref{sec:tables}, \S\ref{sec:clock}, \S\ref{flock:classes}), each getting its own run of the protocol over its own witness. Since we do not follow their protocol exactly, we describe our version here, for one circuit of block size $\kblock$ with its constant wire at position $\jconst$; the seventeen differ in those two numbers alone, which \S\ref{flock:classes} gives, and the BLAKE2s compression, the largest at $\kblock=14$, is the running example.
 
 \subsection{Statement and commitment}\label{flock:statement}
 
@@ -252,7 +252,7 @@ so add $\chg{w}^{X}$ to the existing coefficient $\chg{u}^{X}$ of every predeces
 
 \subsection{The class circuits}\label{flock:classes}
 
-Each instruction class's circuit (\S\ref{sec:tables}) and each table's clock circuit (\S\ref{sec:clock}) is a circuit in the sense of Definition~\ref{def:circuit}, built from a small vocabulary of gates over $64$-bit words: XOR, AND, the multiplexer $s\,(x\oplus y)\oplus y$, the ripple-carry adder, the carry-save multiplier and the Karatsuba multiplier below. One block layout serves all eighteen: the ports first, $64$ positions per word, the inputs then the outputs, bit $i$ of a word at position $i$ of its range; the constant wire at $\jconst$, the position right after them; then the $\wedge$ wires in the order the circuit makes them. A port's bits are free wires when it is an input, and committed wires when it is an output, so that the result leaves the circuit: an $\oplus$ wire committed by a copy, or an $\wedge$ wire committed at the port's position rather than after $\jconst$, which saves the copy. A port bit with no wire, such as the $63$ high bits of a one-bit output or the $23$ high bits of a timestamp, is an empty position, which \eqref{flock:eq:r1cs} forces to zero. Each port is therefore one packed $\K$-element, equal to the register, bytecode or memory word it stands for (\S\ref{sec:tab-class}). A hint (\texttt{DIV}'s quotient and remainder) is an input port that no tuple carries.
+Each instruction class's circuit (\S\ref{sec:tables}) and each table's clock circuit (\S\ref{sec:clock}) is a circuit in the sense of Definition~\ref{def:circuit}, built from a small vocabulary of gates over $64$-bit words: XOR, AND, the multiplexer $s\,(x\oplus y)\oplus y$, the ripple-carry adder, the incrementer and the carry-save multiplier below. One block layout serves all seventeen: the ports first, $64$ positions per word, the inputs then the outputs, bit $i$ of a word at position $i$ of its range; the constant wire at $\jconst$, the position right after them; then the $\wedge$ wires in the order the circuit makes them. A port's bits are free wires when it is an input, and committed wires when it is an output, so that the result leaves the circuit: an $\oplus$ wire committed by a copy, or an $\wedge$ wire committed at the port's position rather than after $\jconst$, which saves the copy. A port bit with no wire, such as the $63$ high bits of a one-bit output or the $23$ high bits of a timestamp, is an empty position, which \eqref{flock:eq:r1cs} forces to zero. Each port is therefore one packed $\K$-element, equal to the register, bytecode or memory word it stands for (\S\ref{sec:tab-class}). A hint (\texttt{DIV}'s quotient and remainder) is an input port that no tuple carries.
 \begin{center}
 \begin{tabular}{lrrrrr}
 \hline
@@ -266,15 +266,14 @@ Circuit & ports (in $\to$ out) & $\kblock$ & $\jconst$ & $\wedge$ wires & positi
 \texttt{MULH}  & $3\to1$  & $13$ & $256$   & $4{,}545$  & $4{,}802$\\
 \texttt{DIV}   & $5\to2$  & $13$ & $448$   & $5{,}156$  & $5{,}605$\\
 \texttt{HASH}  & $14\to4$ & $14$ & $1{,}152$ & $14{,}878$ & $16{,}031$\\
-\texttt{EXT}   & $13\to10$ & $13$ & $1{,}472$ & $5{,}045$ & $6{,}518$\\
 \hline
 clock, three accesses & $4\to1$ & $9$ & $320$ & $154$ & $440$\\
 clock, \texttt{HASH}'s eighteen & $19\to1$ & $11$ & $1{,}280$ & $754$ & $2{,}000$\\
-clock, \texttt{EXT}'s twelve & $13\to1$ & $11$ & $896$ & $514$ & $1{,}376$\\
+clock, \texttt{EXT}'s twelve & $17\to9$ & $12$ & $1{,}664$ & $993$ & $2{,}495$\\
 \hline
 \end{tabular}
 \end{center}
-A clock circuit's $\wedge$ wires include the $35$ carries placed at its output's positions (\S\ref{sec:clock}), which use none past $\jconst$; \texttt{LOAD}'s and \texttt{STORE}'s clock circuits make one fewer, their slots being $0,2,3$ and $0,1,2$ rather than $0,1,3$.
+A clock circuit's $\wedge$ wires include the $35$ carries placed at its output's positions (\S\ref{sec:clock}), which use none past $\jconst$, and \texttt{EXT}'s the $128$ that gate $b$'s addresses (below); \texttt{LOAD}'s and \texttt{STORE}'s clock circuits make one fewer, their slots being $0,2,3$ and $0,1,2$ rather than $0,1,3$.
 What the two verifiers and the prover have to agree on is this layout and the order the $\wedge$ wires are made in, which fixes every position; the order of the $\oplus$ wires is free, since they are substituted away.
 
 \paragraph{Addition.} A ripple-carry adder over $n$ bits ($n=64$, or $32$ in the compression). With $c_0=0$, the carry into position $i+1$ is the majority of $a_i,b_i,c_i$,
@@ -291,31 +290,17 @@ whose right side is a sum of rows of bits each affine in the inputs. Its column 
 
 Carry-save steps then compress the rows. A step replaces three rows by their sum row, the position-wise $\oplus$, and their carry row, the position-wise majority shifted up one place: a majority costs one product where at least two of the three rows have a bit, except that where exactly two do and the carry row is still free at that position, one of the two bits moves into it for nothing. Each step takes the three rows that end lowest. After $64$ steps two rows remain, and the adder above finishes. The low word of the product keeps $64$ positions of every row and drops the carry out of the top one, which is \texttt{MUL}'s $2{,}175$ products; the high word keeps all $128$, which is \texttt{MULH}'s, its signed forms correcting the product of the operands' magnitudes. \texttt{DIV} multiplies the divisor by the hinted quotient the same way and adds the remainder.
 
-\paragraph{The extension-field product.} \texttt{EXT} multiplies in $\E=\K[y]/(y^3+y+1)$. Its products come in four groups, made in this order.
+\paragraph{The extension-field clock circuit.} \texttt{EXT} has no class circuit (\S\ref{sec:tab-classes}), so what its row needs that is Boolean its clock circuit computes, past the clock's own ports and products: four more input ports, $v_1,v_2,v_d,\mathit{flags}$, and eight more output ports, made in this order.
 
-\emph{The product $a\cdot b$.} Karatsuba over $y$ takes six products in $\K$, where the schoolbook takes nine:
-\[
-  a_0b_0,\quad a_1b_1,\quad a_2b_2,\quad (a_0+a_1)(b_0+b_1),\quad (a_0+a_2)(b_0+b_2),\quad (a_1+a_2)(b_1+b_2).
-\]
-The five coefficients of $y^0,\dots,y^4$ are sums of these, which are $\oplus$ wires.
+\emph{The flags.} Their bits $0$ and $1$ are copied to two output ports, $\mathit{acc}$ and $\mathit{base}$, at no product.
 
-Each product in $\K$ is Karatsuba again, now over $x$. Each factor splits in halves of $h$ coefficients, $u=u_0+u_1x^h$ and $v=v_0+v_1x^h$:
-\[
-  uv=\mathit{lo}+(\mathit{mid}+\mathit{lo}+\mathit{hi})\,x^h+\mathit{hi}\,x^{2h},\qquad \mathit{lo}=u_0v_0,\quad \mathit{hi}=u_1v_1,\quad \mathit{mid}=(u_0+u_1)(v_0+v_1).
-\]
-Recursing down to single bits gives $3^6=729$ $\wedge$ wires per product in $\K$, made in the order $\mathit{lo}$, $\mathit{hi}$, $\mathit{mid}$ at every level. That is $6\cdot729=4{,}374$ for $a\cdot b$.
+\emph{The addresses.} $p+8$ and $p+16$ for each of the three pointers, $v_1$'s, then $v_2$'s, then $v_d$'s, by incrementers: $x+2^{t}$ modulo $2^{64}$ keeps $x$'s bits below $t$, and from position $t$ up has the sum bit $x_i\oplus c_i$ and the carry $c_{i+1}=x_i\,c_i$, with $c_t=1$, so $c_{t+1}=x_t$ is free and the carry out of the top position falls off the modulus. That is $59$ products for $t=3$ and $58$ for $t=4$, $117$ per pointer, $351$ in all.
 
-Both reductions are $\Ftwo$-linear, so they cost no product. The $y$-fold uses $y^3=y+1$ and $y^4=y^2+y$. The $x$-fold moves coefficient $d\ge64$ to $d-64$, $d-63$, $d-61$ and $d-60$, from the top down.
-
-\emph{The accumulation.} $c'_i=(ab)_i\oplus(\mathit{flags}_0\wedge c_i)$: $192$ products.
-
-\emph{The addresses.} $p+8$ and $p+16$ for each of the three pointers, by incrementers: the carry enters at bit $3$ or $4$ and ripples up, one product per position past it. That is $117$ per pointer, $351$ in all.
-
-\emph{The base field.} A base-field $b$ gates $b_1$'s and $b_2$'s addresses to zero, one product per bit, $128$ in all. The separator's bits are $\mathit{flags}_1$, its complement and constants, so they cost nothing.
+\emph{The base field.} A base-field $b$ gates $b_1$'s and $b_2$'s addresses to zero: each of their bits is the product of $\neg\mathit{base}$ and the incremented bit, committed at the port's position, $128$ in all.
 
 \paragraph{The compression.} \texttt{HASH} is the BLAKE2s compression itself: the ten rounds' $80$ G functions, each six $32$-bit additions on the halves of the ports' words, a three-operand addition being two of them chained, and XORs and rotations, which are free. Only the carries are products, $31$ per addition.
 
-\paragraph{Batch size.} The zerocheck of \S\ref{flock:zerocheck} fixes seven coordinates of its point beyond the $\kskip$ skipped ones, so it needs $\kbool\ge13$, and lincheck works on batches of at least eight blocks, $\kbatch\ge3$. For the circuits of $\kblock\ge10$ the second bound is the binding one, and for the clock circuits of $\kblock=9$ the first: a table's two batches have one instance per row, so every table has at least $2^{4}$ rows, \texttt{HASH} and \texttt{EXT} at least eight (\S\ref{sec:tables}). Lincheck runs $\kblock-\kskip$ rounds, from $3$ to $8$.
+\paragraph{Batch size.} The zerocheck of \S\ref{flock:zerocheck} fixes seven coordinates of its point beyond the $\kskip$ skipped ones, so it needs $\kbool\ge13$, and lincheck works on batches of at least eight blocks, $\kbatch\ge3$. For the circuits of $\kblock\ge10$ the second bound is the binding one, and for the clock circuits of $\kblock=9$ the first: a table's batches have one instance per row, so every table has at least $2^{4}$ rows, \texttt{HASH} and \texttt{EXT} at least eight (\S\ref{sec:tables}). Lincheck runs $\kblock-\kskip$ rounds, from $3$ to $8$.
 
 \subsection{Soundness analysis}\label{flock:soundness}
 

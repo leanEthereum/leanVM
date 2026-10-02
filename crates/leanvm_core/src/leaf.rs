@@ -30,6 +30,9 @@ pub enum Coord {
     /// committing it: the coordinate IS the product, so no column can disagree with
     /// it and no constraint has to say so (§sec:m3).
     Prod(usize, usize),
+    /// A committed column times a public constant, `c · col[z]`: what makes a coordinate depend on a 0 or 1 column
+    /// (an extension-field row's `base` bit choosing between two separators).
+    Scaled(F64, usize),
     /// The integer index column `base ^ (z << shift)` (§sec:idxcol), the element
     /// whose bits are that integer's: what addresses a region whose cell `z` sits at
     /// `base + (z << shift)`. Free, its MLE being linear.
@@ -42,7 +45,7 @@ pub enum Coord {
     /// §sec:memchan): the verifier evaluates it in time proportional to the blocks,
     /// not to the column.
     Sparse(Arc<SparseColumn>),
-    /// A sum of `Const`/`Col`/`Prod` terms: any degree-2 form over the
+    /// A sum of `Const`/`Col`/`Prod`/`Scaled` terms: any degree-2 form over the
     /// table's columns, which is all §sec:m3 asks of a coordinate. This is what
     /// carries a value a row DERIVES from its columns (a branch's successor, what a
     /// jump writes to `rd`, a hash row's block addresses) without committing a column for it, and
@@ -58,6 +61,7 @@ impl Coord {
         match self {
             Self::Col(i) => Self::Col(base + i),
             Self::Prod(i, j) => Self::Prod(base + i, base + j),
+            Self::Scaled(c, i) => Self::Scaled(c, base + i),
             Self::Sum(cs) => Self::Sum(cs.into_iter().map(|c| c.offset(base)).collect()),
             other => other,
         }
@@ -342,6 +346,7 @@ fn push_terms<'a>(c: &'a Coord, w: F192, terms: &mut Vec<Term<'a>>, constant: &m
         Coord::Const(v) => *constant += w.mul_base(*v),
         Coord::Col(i) => terms.push(Term::Col(*i, w)),
         Coord::Prod(i, j) => terms.push(Term::Prod(*i, *j, w)),
+        Coord::Scaled(c, i) => terms.push(Term::Col(*i, w.mul_base(*c))),
         Coord::IntIndex { base, shift } => {
             *constant += w.mul_base(*base);
             terms.push(Term::IntIndex(w, *shift));
@@ -568,7 +573,8 @@ pub struct BusForm {
 }
 
 impl BusForm {
-    fn new(n_cols: usize) -> Self {
+    /// The zero form over `n_cols` columns.
+    pub(crate) fn new(n_cols: usize) -> Self {
         Self {
             coeffs: vec![F192::ZERO; n_cols],
             prods: Vec::new(),
@@ -660,6 +666,7 @@ fn accumulate_form(c: &Coord, w: F192, base: usize, form: &mut BusForm) {
         Coord::Const(v) => form.constant += w.mul_base(*v),
         Coord::Col(i) => form.coeffs[*i - base] += w,
         Coord::Prod(i, j) => form.prods.push((*i - base, *j - base, w)),
+        Coord::Scaled(c, i) => form.coeffs[*i - base] += w.mul_base(*c),
         Coord::Sum(cs) => {
             for c in cs {
                 accumulate_form(c, w, base, form);
@@ -762,7 +769,7 @@ fn decompose_formula<F: FnMut(usize, &[F192]) -> Result<F192, Error>>(
                 Coord::Const(v) => F192::from(*v),
                 Coord::IntIndex { base, shift } => int_index_mle(*base, *shift, zeta_lo),
                 Coord::Col(i) => col_val(*i)?,
-                Coord::Prod(..) | Coord::Sum(..) => {
+                Coord::Prod(..) | Coord::Scaled(..) | Coord::Sum(..) => {
                     unreachable!("only a table's bus block carries a degree-2 coordinate")
                 }
                 Coord::Public(vals) => public_eval(vals, zeta_lo, &mut open.public),

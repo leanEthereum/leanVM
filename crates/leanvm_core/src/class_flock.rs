@@ -1,6 +1,7 @@
 //! Bridge to flock for the instruction tables.
 //!
-//! Each class's circuit and each table's clock circuit is proven over one packed witness of its own.
+//! Each class's circuit and each table's clock circuit is proven over one packed witness of its own. The
+//! extension-field product has no class circuit, so its table has its clock circuit's alone.
 //!
 //! That witness is one more committed column of the stacked witness: instance `j` of
 //! the batch is row `j` of the circuit's table, and flock's R1CS validity is discharged
@@ -12,8 +13,8 @@
 //! claims routed to those words.
 
 use crate::cpu::Row;
-use crate::rv::{Div, Entry};
-use crate::tables::{CLASSES, ClassSpec, N_TABLES, Part, Word};
+use crate::rv::{Div, Entry, Ext};
+use crate::tables::{CLASSES, ClassSpec, N_CIRCUITS, N_TABLES, Part, Word};
 use ::pcs::pack::LOG_PACKING;
 use fiat_shamir::transcript::{ProverState, VerifierState};
 use flock::circuit::Circuit;
@@ -30,23 +31,31 @@ pub const MIN_CUBE_LOG: usize = flock::zerocheck::MIN_LOG_N;
 /// The most input ports a circuit with a word-level witness has: the hash's fourteen.
 const MAX_INPUT_WORDS: usize = 14;
 
-/// The packed witnesses: every table's class circuit in table order, then every table's clock circuit.
-pub const N_FLOCKS: usize = 2 * N_TABLES;
+/// The packed witnesses: every class circuit in table order (the tables that have one come first), then every
+/// table's clock circuit.
+pub const N_FLOCKS: usize = N_CIRCUITS + N_TABLES;
 
 /// The table and the circuit of packed witness `f`.
 pub const fn flock(f: usize) -> (usize, Part) {
-    if f < N_TABLES {
+    if f < N_CIRCUITS {
         (f, Part::Class)
     } else {
-        (f - N_TABLES, Part::Clock)
+        (f - N_CIRCUITS, Part::Clock)
     }
 }
 
 /// The packed witness of table `t`'s circuit `part`.
+///
+/// # Panics
+///
+/// Panics for the class circuit of a table that has none.
 pub const fn flock_index(t: usize, part: Part) -> usize {
     match part {
-        Part::Class => t,
-        Part::Clock => N_TABLES + t,
+        Part::Class => {
+            assert!(t < N_CIRCUITS, "the table has no class circuit");
+            t
+        }
+        Part::Clock => N_CIRCUITS + t,
     }
 }
 
@@ -72,7 +81,7 @@ pub fn circuit(f: usize) -> &'static Circuit {
         let spec = CLASSES[t];
         let (circuit, n_inputs) = match part {
             Part::Class => (spec.class.circuit(), spec.n_inputs),
-            Part::Clock => (crate::tables::clock_circuit(&spec.slots()), 1 + spec.n_accesses()),
+            Part::Clock => (spec.clock_circuit(), 1 + spec.n_accesses() + spec.clock_inputs.len()),
         };
         assert_eq!(
             circuit.k_log(),
@@ -95,7 +104,7 @@ pub fn circuit(f: usize) -> &'static Circuit {
 pub const fn n_blocks_log(spec: &ClassSpec, n_rows: usize) -> usize {
     let n = if n_rows > 8 { n_rows } else { 8 };
     let natural = n.next_power_of_two().trailing_zeros() as usize;
-    let smallest = if spec.clock_k_log < spec.k_log {
+    let smallest = if spec.clock_k_log < spec.k_log || !spec.has_circuit() {
         spec.clock_k_log
     } else {
         spec.k_log
@@ -117,8 +126,8 @@ fn word_of(word: Word, slots: &[u32], row: &Row, entry: &Entry) -> u64 {
         }
         .hints()
     };
-    // An extension-field row's limbs.
-    let ext = || row.ext.as_ref().expect("an extension-field row has its limbs");
+    // An extension-field row's limbs and pointers.
+    let ext = || row.ext.as_ref().expect("an extension-field row has its pointers");
     match word {
         Word::Clock => row.ts,
         Word::Prev(i) => row.prev()[i as usize],
@@ -130,22 +139,14 @@ fn word_of(word: Word, slots: &[u32], row: &Row, entry: &Entry) -> u64 {
         Word::Out => row.out,
         Word::Taken => row.taken as u64,
         Word::Address => row.ram.address,
-        Word::Cell(k) => match (&row.hash, &row.ext) {
-            (Some(h), _) => h.block[k as usize],
-            (_, Some(x)) => x.instance.limbs[k as usize],
-            _ => row.ram.old,
-        },
-        Word::CellNew(k) => match (&row.hash, &row.ext) {
-            (Some(h), _) => h.word_after(k as usize),
-            (_, Some(x)) => x.result.c[k as usize - 6],
-            _ => row.ram.new,
-        },
+        Word::Cell(k) => row.hash.as_ref().map_or(row.ram.old, |h| h.block[k as usize]),
+        Word::CellNew(k) => row.hash.as_ref().map_or(row.ram.new, |h| h.word_after(k as usize)),
         Word::Dest => ext().instance.pointers[2],
+        Word::FlagBit(k) => entry.flags >> k & 1,
         Word::LimbAddress(k) => {
-            let i = crate::rv::ExtResult::OFFSET_LIMBS.iter().position(|&j| j == k as usize);
-            ext().result.addresses[i.expect("a computed limb address")]
+            let x = &ext().instance;
+            Ext::bus_address(x.pointers, x.flags, k as usize)
         }
-        Word::LimbSeparator => ext().result.separator,
         Word::Bad => 0,
         Word::HintQ => hints().0,
         Word::HintR => hints().1,

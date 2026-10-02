@@ -1,7 +1,7 @@
 % !TeX root = ../drafts/07-instruction-tables.tex
 \section{The instruction tables}\label{sec:tables}
 
-The instructions are grouped into nine \emph{classes}, and each class has its own table (\S\ref{sec:bytecode}). All nine tables are the same table: a row does the plumbing that every instruction needs, the state step, the bytecode read, the register accesses and the memory accesses, and what the class computes is a Boolean circuit proven by Flock (Annex~\ref{annex:flock}), one instance per row, whose words the row puts on the bus. A second circuit per table, its clock circuit (\S\ref{sec:clock}), orders the row's accesses in time. The tables differ in which words their circuit has, whether the class has control flow, and how it touches memory.
+The instructions are grouped into nine \emph{classes}, and each class has its own table (\S\ref{sec:bytecode}). All nine tables are the same table: a row does the plumbing that every instruction needs, the state step, the bytecode read, the register accesses and the memory accesses, and what the class computes is a Boolean circuit proven by Flock (Annex~\ref{annex:flock}), one instance per row, whose words the row puts on the bus. The exception is \texttt{EXT}, the extension-field product, which is of degree two over $\K$: its table has no class circuit and states the product as identities instead. A second circuit per table, its clock circuit (\S\ref{sec:clock}), orders the row's accesses in time. The tables differ in which words their circuit has, whether the class has control flow, and how it touches memory.
 
 A read of a lookup array (\S\ref{sec:lookup}) is the single flush \pull\ $\tup{\sep,\addr,\val_0,\val_1,\dots}$; the array's producer pushes the entry back as often as it is read.
 
@@ -9,7 +9,7 @@ Write $\acc{k}\tup{\sep,a;\,v_{\mathrm{old}}\to v_{\mathrm{new}}}$ for the acces
 \[
   \pull\ \tup{\sep,a,\tsprev_k,v_{\mathrm{old}}},\qquad \push\ \tup{\sep,a,\ts+\intk{k},v_{\mathrm{new}}},
 \]
-where $\tsprev_k$ is the access's previous timestamp, a port of the row's clock circuit, which checks \eqref{eq:order} on it. A read is written $\acc{k}\tup{\sep,a;\,v}$, for $v_{\mathrm{old}}=v_{\mathrm{new}}=v$. A table has no constraint of its own: what a row asserts, its circuits assert.
+where $\tsprev_k$ is the access's previous timestamp, a port of the row's clock circuit, which checks \eqref{eq:order} on it. A read is written $\acc{k}\tup{\sep,a;\,v}$, for $v_{\mathrm{old}}=v_{\mathrm{new}}=v$. A table has no constraint of its own but \texttt{EXT}'s three identities: what a row asserts, its circuits assert.
 
 \subsection{The class table}\label{sec:tab-class}
 
@@ -52,32 +52,31 @@ each of degree two, where the bytecode's $\Delta$ is the branch target XOR $\pc^
 \end{align*}
 The result cannot be written over the chaining value, because a padding row must rewrite what it writes (\S\ref{sec:e2e-pad}) and no chaining value is a fixed point of the compression.
 
-\paragraph{\texttt{EXT}} (\texttt{extmul}, \texttt{extmac}, \texttt{extmulk}, \texttt{extmack}). Ports $v_1,v_2,v_d,\mathit{flags},a_0,a_1,a_2,b_0,b_1,b_2,c_0,c_1,c_2\to c'_0,c'_1,c'_2,\mathit{addr}_1,\mathit{addr}_2,\mathit{addr}_4,\mathit{addr}_5,\mathit{addr}_7,\mathit{addr}_8,\mathit{sep}$.
+\paragraph{\texttt{EXT}} (\texttt{extmul}, \texttt{extmac}, \texttt{extmulk}, \texttt{extmack}). No class circuit: the table states the product as identities, and its clock circuit computes what is Boolean about the row.
 
-The three registers hold the addresses of $a$, $b$ and $c$ (\S\ref{sec:vm}). The row reads all three and writes none.
+The three registers hold the addresses of $a$, $b$ and $c$ (\S\ref{sec:vm}). The row reads all three and writes none. So the destination is a read, $\acc{3}\tup{\dsep{REG},a_d;\,v_d}$, with $v_d$ a port of the clock circuit. The row has columns $a_d$ and $v_d$, and no $v_d^{\mathrm{old}}$ or $\mathit{out}$.
 
-So the destination is a read, $\acc{3}\tup{\dsep{REG},a_d;\,v_d}$, with $v_d$ a port. The row has columns $a_d$ and $v_d$, and no $v_d^{\mathrm{old}}$ or $\mathit{out}$.
-
-Then come nine accesses, one per limb, in slots $4$ to $12$. Limb $k$ is at $\mathit{addr}_k$, with $\mathit{addr}_0=v_1$, $\mathit{addr}_3=v_2$ and $\mathit{addr}_6=v_d$:
+The limbs as the row finds them, $a_0,a_1,a_2,b_0,b_1,b_2,c_0,c_1,c_2$, and the new limbs $c'_0,c'_1,c'_2$ are twelve committed columns. Then come nine accesses, one per limb, in slots $4$ to $12$. Limb $k$ is at $\mathit{addr}_k$, with $\mathit{addr}_0=v_1$, $\mathit{addr}_3=v_2$ and $\mathit{addr}_6=v_d$:
 \begin{align*}
   &\acc{4+k}\tup{\dsep{MEM},\mathit{addr}_k;\,a_k},\qquad
   \acc{10+k}\tup{\dsep{MEM},\mathit{addr}_{6+k};\,c_k\to c'_k}\qquad(k<3),\\
   &\acc{7}\tup{\dsep{MEM},\mathit{addr}_3;\,b_0},\qquad
-  \acc{7+k}\tup{\mathit{sep},\mathit{addr}_{3+k};\,b_k}\qquad(k=1,2).
+  \acc{7+k}\tup{\mathit{sep},\mathit{addr}_{3+k};\,b_k}\qquad(k=1,2),
 \end{align*}
+with $\mathit{sep}=\dsep{MEM}+\mathit{base}\,(\dsep{MEM}+\dsep{REG})$.
 
-The circuit computes the six other addresses, $p+8$ and $p+16$ for each pointer, with incrementers (\S\ref{sec:exp}).
+The clock circuit (\S\ref{sec:clock}) takes four more input ports, $v_1,v_2,v_d,\mathit{flags}$, and gives eight more output ports. The first two are the flags' bits, $\mathit{acc}$ and $\mathit{base}$, each a whole port, so each is $0$ or $1$ in $\K$. Bit $0$ accumulates: $c'=c+a\cdot b$ instead of $a\cdot b$. Bit $1$ makes $b$ a base-field element. The other six are the addresses $\mathit{addr}_1,\mathit{addr}_2,\mathit{addr}_4,\mathit{addr}_5,\mathit{addr}_7,\mathit{addr}_8$, $p+8$ and $p+16$ for each pointer $p$, which the circuit computes with incrementers (\S\ref{sec:exp}).
 
-The flags are two bits. Bit $0$ accumulates: $c'=c+a\cdot b$ instead of $a\cdot b$. Bit $1$ makes $b$ a base-field element.
+A base-field $b$ has one limb in memory. Its two high limbs are reads of $\regs[0]$: the clock circuit gates $\mathit{addr}_4$ and $\mathit{addr}_5$ to $0$, and $\mathit{base}=1$ makes $\mathit{sep}=\dsep{REG}$; otherwise $\mathit{sep}=\dsep{MEM}$. This is the one bus tuple whose separator is not a constant. It is a form of degree one in the port $\mathit{base}$, which the bytecode's flags fix. No entry writes $\regs[0]$ (\S\ref{sec:e2e-bc}), so its seed's zero is what those reads return. Then $b=b_0$, and the product is $a\cdot b_0$.
 
-A base-field $b$ has one limb in memory. Its two high limbs are reads of $\regs[0]$: the circuit sets $\mathit{sep}=\dsep{REG}$ and $\mathit{addr}_4=\mathit{addr}_5=0$. Otherwise $\mathit{sep}=\dsep{MEM}$.
+The identities say the product. $y^3+y+1$ has its coefficients in $\Ftwo$, so with $d_m=\sum_{i+j=m}a_ib_j$, a sum of products in $\K$, the reductions $y^3=y+1$ and $y^4=y^2+y$ give each new limb as a sum of products of columns:
+\[
+  c'_0=\mathit{acc}\,c_0+d_0+d_3,\qquad c'_1=\mathit{acc}\,c_1+d_1+d_3+d_4,\qquad c'_2=\mathit{acc}\,c_2+d_2+d_4.
+\]
+The table's three constraints are the differences of the two sides, each of degree two with every coefficient one, and the table sumcheck proves that they vanish on every row, a padding row's included (\S\ref{sec:air}).
 
-No entry writes $\regs[0]$ (\S\ref{sec:e2e-bc}), so its seed's zero is what those reads return. Then $b=b_0$, and the product is $a\cdot b_0$.
+The reads of $a$ and $b$ come before the rewrite of $c$, in slots. So $c$ may be $a$ or $b$.
 
-This is the one bus tuple whose separator is not a constant. It is a port: the circuit fixes it from the flags, and the bytecode fixes the flags.
+A padding row multiplies zeros at the address $0$. It writes $0$ over $0$, so each of its accesses pulls the tuple it pushes, and its identities hold.
 
-The reads of $a$ and $b$ come before the rewrite of $c$, in slots and in the circuit alike. So $c$ may be $a$ or $b$.
-
-A padding row multiplies zeros at the address $0$. It writes $0$ over $0$, so each of its accesses pulls the tuple it pushes.
-
-\paragraph{Sizes.} A circuit's instance occupies $2^{\kblock}$ bits, $10$ for \texttt{ALU}, \texttt{LOAD}, \texttt{STORE} and \texttt{SHIFT}, $12$ for \texttt{MUL}, $13$ for \texttt{MULH}, \texttt{DIV} and \texttt{EXT}, $14$ for \texttt{HASH}, and $9$ for the clock circuit of a row with three accesses, every class's but \texttt{HASH}'s and \texttt{EXT}'s, whose eighteen and twelve take $11$ (\S\ref{flock:classes}). Flock proves a batch of at least $2^{13}$ bits and at least eight instances, so a table has at least $2^{3}$ rows, and at least $2^{13-\kblock}$ for the smaller of its two circuits: $2^{4}$, and $2^{3}$ for \texttt{HASH} and \texttt{EXT}. Padding rows (\S\ref{sec:e2e-pad}) supply them.
+\paragraph{Sizes.} A circuit's instance occupies $2^{\kblock}$ bits: $10$ for \texttt{ALU}, \texttt{LOAD}, \texttt{STORE} and \texttt{SHIFT}, $12$ for \texttt{MUL}, $13$ for \texttt{MULH} and \texttt{DIV}, and $14$ for \texttt{HASH}, \texttt{EXT} having none; $9$ for the clock circuit of a row with three accesses, every class's but \texttt{HASH}'s and \texttt{EXT}'s, $11$ for \texttt{HASH}'s eighteen, and $12$ for \texttt{EXT}'s twelve, which also computes the limbs' addresses (\S\ref{flock:classes}). Flock proves a batch of at least $2^{13}$ bits and at least eight instances, so a table has at least $2^{3}$ rows, and at least $2^{13-\kblock}$ for the smallest of its circuits: $2^{4}$, and $2^{3}$ for \texttt{HASH} and \texttt{EXT}. Padding rows (\S\ref{sec:e2e-pad}) supply them.

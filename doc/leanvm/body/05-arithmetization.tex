@@ -151,21 +151,21 @@ $b_k$ being its block of bit $k$, of degree $2$ in its columns: the bits $\mbit{
 
 \paragraph{The bus claims join in.} \S\ref{sec:leafstack} left one claim per side at that same point, \eqref{eq:bus}. Both \eqref{eq:cons} and \eqref{eq:bus} are built from $\eq(\zeta_{<\tau_j},\cdot)$-weighted sums over one table's rows of a polynomial of degree at most $d$ in its columns: we batch them in a single sumcheck.
 
-\paragraph{Back-loaded batched sumcheck.} The verifier samples $\xi\in\E$ and gives each claim its own power of it: $\xi^{\,o_j+i-1}$ for $C_{j,i}$, with $o_j=\ncons{1}+\dots+\ncons{j-1}$ numbering the constraints table by table, and then $\xi^{\,\nconstot+s-1}$ for side $s$, with $\nconstot=\sum_j\ncons{j}$ the constraint count. A sumcheck runs over one cube, so write $\taumax=\max_j\tau_j$, let $X_{<\tau_j}=(X_0,\dots,X_{\tau_j-1})$ be the variables $T_j$ uses, and multiply in the ones it does not:
+\paragraph{Back-loaded batched sumcheck.} The verifier samples $\xi\in\E$ and gives each claim its own power of it: $\xi^{\,s-1}$ for side $s$, and then $\xi^{\,\nside+o_j+i-1}$ for $C_{j,i}$, with $o_j=\ncons{1}+\dots+\ncons{j-1}$ numbering the constraints table by table, and $\nconstot=\sum_j\ncons{j}$ the constraint count. A sumcheck runs over one cube, so write $\taumax=\max_j\tau_j$, let $X_{<\tau_j}=(X_0,\dots,X_{\tau_j-1})$ be the variables $T_j$ uses, and multiply in the ones it does not:
 \[
   F(X_0,\dots,X_{\taumax-1})\;=\;\sum_{j=1}^{\ntab}\eq(\zeta_{<\tau_j},X_{<\tau_j})\!
-  \Bigl(\sum_{i=1}^{\ncons{j}}\xi^{\,o_j+i-1}C_{j,i}+\sum_{s=1}^{\nside}\xi^{\,\nconstot+s-1}B^{s}_j\Bigr)(X_{<\tau_j})
+  \Bigl(\sum_{s=1}^{\nside}\xi^{\,s-1}B^{s}_j+\sum_{i=1}^{\ncons{j}}\xi^{\,\nside+o_j+i-1}C_{j,i}\Bigr)(X_{<\tau_j})
   \prod_{k=\tau_j}^{\taumax-1}X_k .
 \]
 Since $\sum_{x\in\cube{m}}x_0\cdots x_{m-1}=1$, the padded variables contribute a factor $1$, so summing $F$ over $\cube{\taumax}$ gives back what each table owes. We thus run a single sumcheck:
 \[
-  \sum_{x\in\cube{\taumax}}F(x)\;\qeq\;\sum_{s=1}^{\nside}\xi^{\,\nconstot+s-1}\mathsf{rem}_{s},
+  \sum_{x\in\cube{\taumax}}F(x)\;\qeq\;\sum_{s=1}^{\nside}\xi^{\,s-1}\mathsf{rem}_{s},
 \]
 the verifier computing the right side itself. Each summand of $F$ has individual degree $d+1=3$, the constraint contributing $d$ and the $\eq$ factor one, so the soundness error is $(3\taumax+\nside+\nconstot)/|\E|$: $3\taumax$ for the rounds (Fact~\ref{fact:sumcheck}) and $\nside+\nconstot$ for the $\xi$-batching (Corollary~\ref{cor:idtest}). Rounds bind $X_{\taumax-1}$ first, so $T_j$ joins only at round $\taumax-\tau_j$: hence \emph{back-loaded}. The end yields one claim per column, $T_j$'s at $\fc_{<\tau_j}$, settled by the PCS opening (\S\ref{sec:stacking}).
 
-\paragraph{Producer airs.} A producer (\S\ref{sec:leafstack}) joins the batch like a table of height $2^{\kappa}$ with no constraints, its summand $\xi^{\,\nconstot}B^{\push}$ carrying the push side's power, against $\eq(\zeta_{<\kappa},\cdot)$, of individual degree $3$ as well; $\taumax$ is then the largest of the tables' and the producers' log heights. Its columns are its bits $\mbit{0},\dots,\mbit{\nbit-1}$ and its public columns $\pubp{0},\dots,\pubp{\nbit-1}$: the prover folds both, but at the end sends only the bits' values at $\fc_{<\kappa}$, and the verifier evaluates each $\widetilde{\pubp{k}}(\fc_{<\kappa})$ itself (\S\ref{sec:lookup}). The bits' claims are settled by ring switching against the multiplicity column (\S\ref{sec:ringswitch}).
+\paragraph{Producer airs.} A producer (\S\ref{sec:leafstack}) joins the batch like a table of height $2^{\kappa}$ with no constraints, its summand $\xi^{0}B^{\push}$ carrying the push side's power, against $\eq(\zeta_{<\kappa},\cdot)$, of individual degree $3$ as well; $\taumax$ is then the largest of the tables' and the producers' log heights. Its columns are its bits $\mbit{0},\dots,\mbit{\nbit-1}$ and its public columns $\pubp{0},\dots,\pubp{\nbit-1}$: the prover folds both, but at the end sends only the bits' values at $\fc_{<\kappa}$, and the verifier evaluates each $\widetilde{\pubp{k}}(\fc_{<\kappa})$ itself (\S\ref{sec:lookup}). The bits' claims are settled by ring switching against the multiplicity column (\S\ref{sec:ringswitch}).
 
-\paragraph{The machine's tables.} The instruction tables of \S\ref{sec:tables} carry no constraint of their own, $\ncons{j}=0$: what a row asserts, its circuits assert (Annex~\ref{annex:flock}). So $\nconstot=0$, and the batch weights side $s$ by $\xi^{\,s-1}$.
+\paragraph{The machine's tables.} The instruction tables of \S\ref{sec:tables} carry no constraint of their own, $\ncons{j}=0$, what a row asserts being what its circuits assert (Annex~\ref{annex:flock}), but for the last, \texttt{EXT}: its three identities, of degree two, say the extension-field product (\S\ref{sec:tab-classes}). So $\nconstot=3$, the batch weights side $s$ by $\xi^{\,s-1}$, and \texttt{EXT}'s identity $i$ by $\xi^{\,\nside+i-1}$.
 
 \subsection{Example: proving elliptic curve multiplication}\label{sec:arith-example}
 
@@ -252,12 +252,12 @@ where $B^{s}_{j}$ is what $T_j$ owes on side $s$. Writing a column's value at ro
 
 They run over different cubes, $\cube{4}$ for \texttt{DOUBLE} and $\cube{2}$ for \texttt{ADD}, so \texttt{ADD}'s part is multiplied by $X_2X_3$, the two variables it does not use, whose sum over $\cube{2}$ is $1$ and so leaves its own sum untouched:
 \begin{align*}
-  F(X_0,\dots,X_3)&=\eq\bigl(\zeta_{<4},(X_0,\dots,X_3)\bigr)\Bigl(\xi^{0}C_{1,1}+\xi^{1}C_{1,2}+\xi^{5}B^{\push}_{1}+\xi^{6}B^{\pull}_{1}\Bigr)\\
-                  &\quad+\eq\bigl(\zeta_{<2},(X_0,X_1)\bigr)\Bigl(\xi^{2}C_{2,1}+\xi^{3}C_{2,2}+\xi^{4}C_{2,3}+\xi^{5}B^{\push}_{2}+\xi^{6}B^{\pull}_{2}\Bigr)X_2X_3 .
+  F(X_0,\dots,X_3)&=\eq\bigl(\zeta_{<4},(X_0,\dots,X_3)\bigr)\Bigl(\xi^{0}B^{\push}_{1}+\xi^{1}B^{\pull}_{1}+\xi^{2}C_{1,1}+\xi^{3}C_{1,2}\Bigr)\\
+                  &\quad+\eq\bigl(\zeta_{<2},(X_0,X_1)\bigr)\Bigl(\xi^{0}B^{\push}_{2}+\xi^{1}B^{\pull}_{2}+\xi^{4}C_{2,1}+\xi^{5}C_{2,2}+\xi^{6}C_{2,3}\Bigr)X_2X_3 .
 \end{align*}
 One sumcheck over $\cube{4}$ then proves all seven claims at once:
 \[
-  \sum_{x\in\cube{4}}F(x)\qeq\xi^{5}\mathsf{rem}_{\push}+\xi^{6}\mathsf{rem}_{\pull}.
+  \sum_{x\in\cube{4}}F(x)\qeq\xi^{0}\mathsf{rem}_{\push}+\xi^{1}\mathsf{rem}_{\pull}.
 \]
 \item \textbf{Prover.} Sends its eleven column values: $\mle{\mathsf{tag}},\mle e,\mle t,\mle w,\mle{e'}$ at $\fc=(\fc_0,\dots,\fc_3)$ for \texttt{DOUBLE}, and $\mle{\mathsf{tag}},\mle e,\mle t,\mle w,\mle{e'},\mle v$ at $\fc_{<2}=(\fc_0,\fc_1)$ for \texttt{ADD}.
 \item \textbf{Verifier.} Rebuilds every $C_{j,i}$ and $B^{s}_{j}$ from those eleven values, forms $F(\fc)$, and checks it against the sumcheck's last round.

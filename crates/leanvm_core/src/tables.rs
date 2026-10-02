@@ -12,12 +12,18 @@
 //! what it writes. What orders its accesses in time (§sec:memchan) is a second circuit,
 //! its clock circuit, whose words are virtual columns too: the row's clock, each
 //! access's previous timestamp, and the bits the row flips in its clock.
+//!
+//! The extension-field product is the one class with no circuit: its operands and result
+//! are committed columns, its table proves the product by identities of degree 2 over
+//! `K` (`ClassTable::identities`) in the table sumcheck, and its clock circuit computes
+//! where the limbs are.
 
 use crate::cpu::{ExtRow, HashRow, Row, Trace};
-use crate::leaf::Coord::{self, Col, Const, Prod};
-use crate::rv::{self, Class, Ext, ExtResult, Hash, RegisterFile};
+use crate::leaf::BusForm;
+use crate::leaf::Coord::{self, Col, Const, Prod, Scaled};
+use crate::rv::{self, Class, Ext, Hash, RegisterFile};
 use flock::circuit::{Builder, Circuit};
-use primitives::field::{F64, mul_by_g};
+use primitives::field::{F64, F192, mul_by_g};
 
 // ---- shared bus vocabulary ---------------------------------------------------
 
@@ -90,7 +96,17 @@ pub const fn limb_slot(k: usize) -> u32 {
 /// Access `i` is out of order when its previous timestamp disagrees with `ts` on the live bit, or, on a live row, is not strictly below `ts ^ slots[i]`.
 /// Every input reads only the bits up to the live bit, the others being forced zero.
 pub fn clock_circuit(slots: &[u32]) -> Circuit {
-    let mut c = Builder::new(&vec![CLOCK_BITS; 1 + slots.len()], &[CLOCK_BITS + 1]);
+    clock_builder(slots, &[], &[]).finish()
+}
+
+/// [`clock_circuit`] before it is finished, with more input and output ports of these widths past its own, for the
+/// caller to compute: a table with no class circuit checks what it needs of its operands there.
+pub fn clock_builder(slots: &[u32], inputs: &[usize], outputs: &[usize]) -> Builder {
+    let input_bits: Vec<usize> = std::iter::repeat_n(CLOCK_BITS, 1 + slots.len())
+        .chain(inputs.iter().copied())
+        .collect();
+    let output_bits: Vec<usize> = std::iter::once(CLOCK_BITS + 1).chain(outputs.iter().copied()).collect();
+    let mut c = Builder::new(&input_bits, &output_bits);
     let ts = c.input(0);
     let live = ts[LIVE_BIT as usize];
     let mut in_order = Vec::with_capacity(slots.len());
@@ -128,7 +144,7 @@ pub fn clock_circuit(slots: &[u32]) -> Circuit {
         carry = c.and_output(0, bit + 1, timestamp, carry);
     }
     c.output(0, FAIL_BIT as usize, fail);
-    c.finish()
+    c
 }
 
 /// What a row's clock circuit computes: the bits the row flips in its clock `ts`, its accesses' previous timestamps being `prev`.
@@ -342,16 +358,16 @@ pub enum Word {
     /// A load's or a store's bus address.
     Address,
     /// Word `k` of the RAM cells the row names, as the row found it: the one cell of
-    /// a load or a store, one of the hash's block ([`Ram::Block`]), or one of the nine limbs of an extension-field row ([`Ram::Limbs`]).
+    /// a load or a store, or one of the hash's block ([`Ram::Block`]).
     Cell(u8),
     /// What the row leaves in word `k`.
     CellNew(u8),
     /// The destination register's value, which an extension-field row reads as an address.
     Dest,
-    /// The bus address of limb `k` of an extension-field row, for a limb at no pointer.
+    /// Bit `k` of the flags, a 0 or 1 field element: what a table with no class circuit selects with.
+    FlagBit(u8),
+    /// The bus address of limb `k` of an extension-field row, for a limb at no pointer ([`Ext::bus_address`]).
     LimbAddress(u8),
-    /// The bus separator of `b`'s high limbs in an extension-field row: memory, or registers for a base-field `b`.
-    LimbSeparator,
     /// What a circuit asserts to be zero: the row puts it in its bytecode tuple, in a
     /// slot where the program holds zero, so the lookup is what makes it zero.
     Bad,
@@ -372,9 +388,11 @@ pub enum Ram {
     ///
     /// The result's four words are rewritten.
     Block,
-    /// The nine limbs of an extension-field product, after the three register reads.
+    /// The nine limbs of an extension-field product ([`Ext::limb`]), after the three register reads, in clock slots
+    /// `4..13`: `a`'s and `b`'s read, `c`'s rewritten.
     ///
-    /// `a`'s and `b`'s are read, and `c`'s rewritten.
+    /// Each operand's first limb is at its pointer, the others at the addresses the clock circuit computes. A
+    /// base-field `b`'s high limbs are reads of `x0`.
     Limbs,
 }
 
@@ -413,15 +431,35 @@ pub struct ClassSpec {
     pub batch_witness: Option<BatchWitness>,
     /// `log2` of the bits one instance of the circuit occupies. A constant, because
     /// the layout needs it before any circuit is built; [`crate::class_flock`] checks it.
+    /// Zero for a class with no circuit.
     pub k_log: usize,
     /// The circuit's port words in order, the first `n_inputs` of them its inputs.
+    ///
+    /// Empty for a class with no circuit, whose table proves it by identities (`ClassTable::identities`).
     pub ports: &'static [Word],
     pub n_inputs: usize,
     /// `log2` of the bits one instance of the table's clock circuit occupies, checked like `k_log`.
     pub clock_k_log: usize,
+    /// The words the clock circuit reads past the timestamps, and gives past the step: what a class with no circuit
+    /// checks of its operands ([`Ext::clock_circuit`]).
+    pub clock_inputs: &'static [Word],
+    pub clock_outputs: &'static [Word],
 }
 
 impl ClassSpec {
+    /// Whether the class is a flock circuit; otherwise its table's identities prove it.
+    pub const fn has_circuit(&self) -> bool {
+        !self.ports.is_empty()
+    }
+
+    /// The table's clock circuit.
+    pub fn clock_circuit(&self) -> Circuit {
+        match self.class {
+            Class::Ext => Ext::clock_circuit(&self.slots()),
+            _ => clock_circuit(&self.slots()),
+        }
+    }
+
     /// The register accesses the row makes, in column order: `rs1`, then `rs2` and `rd` if it makes them.
     ///
     /// Each is an index into the entry's three register cells and into the register slots.
@@ -470,10 +508,26 @@ impl ClassSpec {
         registers.chain(self.ram_slots()).collect()
     }
 
-    /// The clock circuit's port words: the clock, each access's previous timestamp, then the step.
+    /// The clock circuit's port words: the clock, each access's previous timestamp and [`Self::clock_inputs`], then
+    /// the step and [`Self::clock_outputs`].
     pub fn clock_ports(&self) -> Vec<Word> {
         let prev = (0..self.n_accesses()).map(|i| Word::Prev(i as u8));
-        std::iter::once(Word::Clock).chain(prev).chain([Word::Step]).collect()
+        let inputs = std::iter::once(Word::Clock)
+            .chain(prev)
+            .chain(self.clock_inputs.iter().copied());
+        inputs
+            .chain([Word::Step])
+            .chain(self.clock_outputs.iter().copied())
+            .collect()
+    }
+
+    /// Every word of the table's circuits, its class circuit's then its clock circuit's.
+    fn words(&self) -> impl Iterator<Item = Word> + '_ {
+        self.ports
+            .iter()
+            .chain(self.clock_inputs)
+            .chain(self.clock_outputs)
+            .copied()
     }
 }
 
@@ -491,6 +545,8 @@ pub static ALU: ClassSpec = ClassSpec {
     ports: &[Word::V1, Word::V2, Word::Imm, Word::Flags, Word::Out, Word::Taken],
     n_inputs: 4,
     clock_k_log: 9,
+    clock_inputs: &[],
+    clock_outputs: &[],
 };
 pub static LOAD: ClassSpec = ClassSpec {
     class: Class::Load,
@@ -513,6 +569,8 @@ pub static LOAD: ClassSpec = ClassSpec {
     ],
     n_inputs: 4,
     clock_k_log: 9,
+    clock_inputs: &[],
+    clock_outputs: &[],
 };
 pub static STORE: ClassSpec = ClassSpec {
     class: Class::Store,
@@ -536,6 +594,8 @@ pub static STORE: ClassSpec = ClassSpec {
     ],
     n_inputs: 5,
     clock_k_log: 9,
+    clock_inputs: &[],
+    clock_outputs: &[],
 };
 
 pub static SHIFT: ClassSpec = ClassSpec {
@@ -552,6 +612,8 @@ pub static SHIFT: ClassSpec = ClassSpec {
     ports: &[Word::V1, Word::V2, Word::Imm, Word::Flags, Word::Out],
     n_inputs: 4,
     clock_k_log: 9,
+    clock_inputs: &[],
+    clock_outputs: &[],
 };
 pub static MUL: ClassSpec = ClassSpec {
     class: Class::Mul,
@@ -571,6 +633,8 @@ pub static MUL: ClassSpec = ClassSpec {
     ports: &[Word::V1, Word::V2, Word::Flags, Word::Out],
     n_inputs: 3,
     clock_k_log: 9,
+    clock_inputs: &[],
+    clock_outputs: &[],
 };
 pub static MULH: ClassSpec = ClassSpec {
     class: Class::Mulh,
@@ -586,6 +650,8 @@ pub static MULH: ClassSpec = ClassSpec {
     ports: &[Word::V1, Word::V2, Word::Flags, Word::Out],
     n_inputs: 3,
     clock_k_log: 9,
+    clock_inputs: &[],
+    clock_outputs: &[],
 };
 
 pub static DIV: ClassSpec = ClassSpec {
@@ -610,6 +676,8 @@ pub static DIV: ClassSpec = ClassSpec {
     ],
     n_inputs: 5,
     clock_k_log: 9,
+    clock_inputs: &[],
+    clock_outputs: &[],
 };
 
 /// The BLAKE2s precompile ([`Hash`](struct@Hash)): the counter is `v2`, the finalization word the
@@ -647,13 +715,15 @@ pub static HASH: ClassSpec = ClassSpec {
     ],
     n_inputs: 14,
     clock_k_log: 11,
+    clock_inputs: &[],
+    clock_outputs: &[],
 };
 
-/// The extension-field precompile: `a` at `v1`, `b` at `v2` and `c` at the destination's value, in RAM.
+/// The extension-field precompile ([`Ext`]): `a` at `v1`, `b` at `v2` and `c` at the destination's value.
 ///
-/// The flags are the circuit's: whether to accumulate, and whether `b` is a base-field element.
+/// No class circuit: the limbs are committed columns, and `ClassTable::identities` say the product.
 ///
-/// A base-field `b`'s high limbs are reads of `x0`, at the address and separator the circuit computes.
+/// The clock circuit splits the flags into their bits and computes the limbs' addresses ([`Ext::clock_circuit`]).
 pub static EXT: ClassSpec = ClassSpec {
     class: Class::Ext,
     name: "EXT",
@@ -664,40 +734,29 @@ pub static EXT: ClassSpec = ClassSpec {
     ram: Ram::Limbs,
     witness: None,
     batch_witness: None,
-    k_log: 13,
-    ports: &[
-        Word::V1,
-        Word::V2,
-        Word::Dest,
-        Word::Flags,
-        Word::Cell(0),
-        Word::Cell(1),
-        Word::Cell(2),
-        Word::Cell(3),
-        Word::Cell(4),
-        Word::Cell(5),
-        Word::Cell(6),
-        Word::Cell(7),
-        Word::Cell(8),
-        Word::CellNew(6),
-        Word::CellNew(7),
-        Word::CellNew(8),
+    k_log: 0,
+    ports: &[],
+    n_inputs: 0,
+    clock_k_log: 12,
+    clock_inputs: &[Word::V1, Word::V2, Word::Dest, Word::Flags],
+    clock_outputs: &[
+        Word::FlagBit(0),
+        Word::FlagBit(1),
         Word::LimbAddress(1),
         Word::LimbAddress(2),
         Word::LimbAddress(4),
         Word::LimbAddress(5),
         Word::LimbAddress(7),
         Word::LimbAddress(8),
-        Word::LimbSeparator,
     ],
-    n_inputs: 13,
-    clock_k_log: 11,
 };
 
 /// The tables, in the order of `row_counts` / `taus` throughout `cpu`. Table `t`'s
 /// class tag in the bytecode is `g^t`.
 pub const N_TABLES: usize = 9;
 pub static CLASSES: [&ClassSpec; N_TABLES] = [&ALU, &LOAD, &STORE, &SHIFT, &MUL, &MULH, &DIV, &HASH, &EXT];
+/// The tables with a class circuit, which come first: table `t < N_CIRCUITS` has one.
+pub const N_CIRCUITS: usize = 8;
 
 /// The table running `class`, if it has one yet.
 pub fn table_of(class: Class) -> Option<usize> {
@@ -766,30 +825,30 @@ struct BlockCols {
     out: usize,
 }
 
-/// An extension-field row's columns: the nine limbs as found, `c`'s three new limbs, the six computed addresses, and the separator.
+/// An extension-field row's columns: the nine limbs as found and `c`'s three new limbs, committed, then the six limb
+/// addresses the clock circuit computes.
 #[derive(Clone, Copy)]
 struct LimbCols {
     limbs: usize,
     new: usize,
     addresses: usize,
-    separator: usize,
 }
 
 impl LimbCols {
-    /// The column of limb `k`'s computed bus address: every limb but an operand's first.
-    fn computed(&self, k: usize) -> Option<usize> {
-        let i = ExtResult::OFFSET_LIMBS.iter().position(|&j| j == k)?;
-        Some(self.addresses + i)
-    }
-
-    /// The bus address of limb `k`: the operand's pointer for its first limb, else what the circuit computes.
-    fn address(&self, k: usize, pointers: [usize; 3]) -> usize {
-        self.computed(k).unwrap_or(pointers[k / 3])
-    }
-
     /// What the row leaves in limb `k`: `c`'s are rewritten.
     const fn left(&self, k: usize) -> usize {
         if k >= 6 { self.new + k - 6 } else { self.limbs + k }
+    }
+
+    /// The column of limb `k`'s computed bus address, for a limb at no pointer.
+    fn computed(&self, k: usize) -> Option<usize> {
+        let i = Ext::OFFSET_LIMBS.iter().position(|&j| j == k)?;
+        Some(self.addresses + i)
+    }
+
+    /// The bus address of limb `k`: the operand's pointer for its first limb, else what the clock circuit computes.
+    fn address(&self, k: usize, pointers: [usize; 3]) -> usize {
+        self.computed(k).unwrap_or(pointers[k / 3])
     }
 }
 
@@ -824,6 +883,8 @@ struct Cols {
     ram: Option<RamCols>,
     block: Option<BlockCols>,
     limbs: Option<LimbCols>,
+    /// The flags' bits, one column each, for a table with no class circuit.
+    flag_bits: Option<usize>,
     bad: Option<usize>,
     /// The first access's previous timestamp, the others following it.
     prev: usize,
@@ -858,7 +919,7 @@ impl Cols {
             taken: take(1),
             exit: take(1),
         });
-        let imm = spec.ports.contains(&Word::Imm).then(|| take(1));
+        let imm = spec.words().any(|w| w == Word::Imm).then(|| take(1));
         let (ram, block) = match spec.ram {
             Ram::None | Ram::Limbs => (None, None),
             Ram::Read | Ram::Write => {
@@ -874,10 +935,11 @@ impl Cols {
         let limbs = (spec.ram == Ram::Limbs).then(|| LimbCols {
             limbs: take(Ext::LIMBS),
             new: take(3),
-            addresses: take(ExtResult::OFFSET_LIMBS.len()),
-            separator: take(1),
+            addresses: take(Ext::OFFSET_LIMBS.len()),
         });
-        let bad = spec.ports.contains(&Word::Bad).then(|| take(1));
+        let n_flag_bits = spec.words().filter(|w| matches!(w, Word::FlagBit(_))).count();
+        let flag_bits = (n_flag_bits > 0).then(|| take(n_flag_bits));
+        let bad = spec.words().any(|w| w == Word::Bad).then(|| take(1));
         let (prev, step) = (take(spec.n_accesses()), take(1));
         Self {
             pc,
@@ -894,6 +956,7 @@ impl Cols {
             ram,
             block,
             limbs,
+            flag_bits,
             bad,
             prev,
             step,
@@ -914,21 +977,19 @@ impl Cols {
             Word::Out => self.rd.map_or_else(missing, |rd| rd.out),
             Word::Taken => self.control.map_or_else(missing, |c| c.taken),
             Word::Address => self.ram.map_or_else(missing, |r| r.address),
-            Word::Cell(k) => match (self.ram, self.block, self.limbs) {
-                (Some(ram), _, _) => ram.cell,
-                (_, Some(block), _) => block.words + k as usize,
-                (_, _, Some(limbs)) => limbs.limbs + k as usize,
+            Word::Cell(k) => match (self.ram, self.block) {
+                (Some(ram), _) => ram.cell,
+                (_, Some(block)) => block.words + k as usize,
                 _ => missing(),
             },
-            Word::CellNew(k) => match (self.ram, self.block, self.limbs) {
-                (Some(ram), _, _) => ram.new,
-                (_, Some(block), _) => block.left(k as usize),
-                (_, _, Some(limbs)) => limbs.left(k as usize),
+            Word::CellNew(k) => match (self.ram, self.block) {
+                (Some(ram), _) => ram.new,
+                (_, Some(block)) => block.left(k as usize),
                 _ => missing(),
             },
             Word::Dest => self.pointer.map_or_else(missing, |p| p.vd),
+            Word::FlagBit(k) => self.flag_bits.map_or_else(missing, |b| b + k as usize),
             Word::LimbAddress(k) => self.limbs.and_then(|l| l.computed(k as usize)).unwrap_or_else(missing),
-            Word::LimbSeparator => self.limbs.map_or_else(missing, |l| l.separator),
             Word::Bad => self.bad.unwrap_or_else(missing),
             Word::HintQ | Word::HintR => return None,
         })
@@ -955,23 +1016,16 @@ impl ClassTable {
     fn new(index: usize) -> Self {
         let spec = CLASSES[index];
         let cols = Cols::new(spec);
-        // Invariant: a register access exists exactly when its value is a circuit word.
+        // Invariant: a register access exists exactly when its value is a word of one of the table's circuits.
+        let has = |word: Word| spec.words().any(|w| w == word);
+        assert_eq!(spec.reads_rs2, has(Word::V2), "{}: rs2 read", spec.name);
+        assert_eq!(spec.writes_rd, has(Word::Out), "{}: rd write", spec.name);
+        assert_eq!(spec.reads_rd, has(Word::Dest), "{}: rd read", spec.name);
+        // The tables with a class circuit come first, so packed witness `t` is table `t`'s class circuit.
         assert_eq!(
-            spec.reads_rs2,
-            spec.ports.contains(&Word::V2),
-            "{}: rs2 read",
-            spec.name
-        );
-        assert_eq!(
-            spec.writes_rd,
-            spec.ports.contains(&Word::Out),
-            "{}: rd write",
-            spec.name
-        );
-        assert_eq!(
-            spec.reads_rd,
-            spec.ports.contains(&Word::Dest),
-            "{}: rd read",
+            spec.has_circuit(),
+            index < N_CIRCUITS,
+            "{}: the circuit tables come first",
             spec.name
         );
         assert!(
@@ -1084,14 +1138,18 @@ impl ClassTable {
                 access(&mut f, Const(SEP_MEM), addr, Col(block.words + k), Col(block.left(k)));
             }
         }
-        // The limbs: each operand's first at its pointer, the others where the circuit says.
+        // The limbs: each operand's first at its pointer, the others at the addresses the clock circuit computes.
         //
-        // A base-field `b`'s high limbs are reads of `x0`: the circuit's separator and address name it.
-        if let (Some(limbs), Some(r), Some(p)) = (c.limbs, c.rs2, c.pointer) {
+        // A base-field `b`'s high limbs are reads of `x0`, at the address zero the clock circuit gives them, under a
+        // separator that is a form in the bit `base`, which picks the register file over memory:
+        //
+        //     separator   SEP_MEM + base·(SEP_MEM + SEP_REG)
+        if let (Some(limbs), Some(r), Some(p), Some(bits)) = (c.limbs, c.rs2, c.pointer, c.flag_bits) {
             let pointers = [c.v1, r.v2, p.vd];
+            let base = bits + 1;
             for k in 0..Ext::LIMBS {
-                let sep = if ExtResult::SEPARATED_LIMBS.contains(&k) {
-                    Col(limbs.separator)
+                let sep = if k / 3 == 1 && k % 3 > 0 {
+                    Coord::Sum(vec![Const(SEP_MEM), Scaled(SEP_MEM + SEP_REG, base)])
                 } else {
                     Const(SEP_MEM)
                 };
@@ -1100,6 +1158,46 @@ impl ClassTable {
             }
         }
         f
+    }
+
+    /// The identities the table proves of every one of its rows, in local column indices: none for a class with a
+    /// circuit, and for the extension-field product its three new limbs.
+    ///
+    /// With `d_m = sum_{i + j = m} a_i b_j`, the product's coefficient of `y^m` (products in `K`), the reduction
+    /// `y^3 = y + 1`, `y^4 = y^2 + y` has coefficients in `GF(2)`, so each new limb is a sum of `K` products:
+    ///
+    /// ```text
+    ///     c'_0 = accumulate·c_0 + d_0 + d_3          d_3 = a_1 b_2 + a_2 b_1
+    ///     c'_1 = accumulate·c_1 + d_1 + d_3 + d_4    d_4 = a_2 b_2
+    ///     c'_2 = accumulate·c_2 + d_2 + d_4
+    /// ```
+    ///
+    /// Each form is the difference of the two sides, which vanishes on a row exactly when the row's new limb is its
+    /// product: degree 2, every coefficient one. A base-field `b`'s high limbs are zero, being reads of `x0`.
+    pub(crate) fn identities(&self) -> Vec<BusForm> {
+        let c = &self.cols;
+        let (Some(limbs), Some(bits)) = (c.limbs, c.flag_bits) else {
+            return Vec::new();
+        };
+        let (a, b, old) = (limbs.limbs, limbs.limbs + 3, limbs.limbs + 6);
+        (0..3)
+            .map(|i| {
+                let mut form = BusForm::new(self.n_committed_columns());
+                form.coeffs[limbs.new + i] = F192::ONE;
+                form.prods.push((bits, old + i, F192::ONE));
+                for (j, k) in (0..3).flat_map(|j| (0..3).map(move |k| (j, k))) {
+                    let lands = match j + k {
+                        3 => i < 2,
+                        4 => i > 0,
+                        m => m == i,
+                    };
+                    if lands {
+                        form.prods.push((a + j, b + k, F192::ONE));
+                    }
+                }
+                form
+            })
+            .collect()
     }
 
     /// Fill this table's columns from the trace: `out[i]` is local column `i`'s
@@ -1171,9 +1269,17 @@ impl ClassTable {
         }
         if let Some(limbs) = c.limbs {
             ctx.cols(out, rows, limbs.limbs, |r| ext(r).instance.limbs.map(F64));
-            ctx.cols(out, rows, limbs.new, |r| ext(r).result.c.map(F64));
-            ctx.cols(out, rows, limbs.addresses, |r| ext(r).result.addresses.map(F64));
-            ctx.col(out, rows, limbs.separator, |r| F64(ext(r).result.separator));
+            ctx.cols(out, rows, limbs.new, |r| ext(r).c.map(F64));
+            ctx.cols(out, rows, limbs.addresses, |r| {
+                let x = &ext(r).instance;
+                Ext::OFFSET_LIMBS.map(|k| F64(Ext::bus_address(x.pointers, x.flags, k)))
+            });
+        }
+        if let Some(bits) = c.flag_bits {
+            ctx.cols(out, rows, bits, move |r| {
+                let flags = entry(r).flags;
+                [F64(flags & 1), F64(flags >> 1 & 1)]
+            });
         }
         if let Some(bad) = c.bad {
             ctx.col(out, rows, bad, move |_| F64::ZERO);
@@ -1237,5 +1343,36 @@ mod tests {
             CYCLE,
             "an honest row advances one cycle"
         );
+    }
+
+    proptest::proptest! {
+        #[test]
+        fn the_identities_are_the_extension_product(
+            limbs in proptest::array::uniform9(proptest::prelude::any::<u64>()),
+            flags in proptest::sample::select(Ext::LEGAL),
+            wrong in 0usize..3,
+            bit in 0u32..64,
+        ) {
+            // Invariant: on a row, the identities vanish exactly when the new limbs are the reference's.
+            //
+            // Mutation: one bit of one new limb, which only that limb's identity reads.
+            let table = &tables()[table_of(Class::Ext).unwrap()];
+            let (cols, bits) = (table.cols.limbs.unwrap(), table.cols.flag_bits.unwrap());
+            let mut limbs = limbs;
+            if flags & Ext::BASE != 0 {
+                (limbs[4], limbs[5]) = (0, 0);
+            }
+            let mut row = vec![F64::ZERO; table.n_committed_columns()];
+            row[cols.limbs..cols.limbs + 9].copy_from_slice(&limbs.map(F64));
+            row[cols.new..cols.new + 3].copy_from_slice(&Ext { flags, pointers: [0; 3], limbs }.eval().map(F64));
+            (row[bits], row[bits + 1]) = (F64(flags & 1), F64(flags >> 1));
+            let values = |row: &[F64]| table.identities().iter().map(|form| form.eval(row)).collect::<Vec<_>>();
+            proptest::prop_assert_eq!(values(&row), vec![F192::ZERO; 3]);
+            row[cols.new + wrong].0 ^= 1 << bit;
+            let values = values(&row);
+            for (i, value) in values.into_iter().enumerate() {
+                proptest::prop_assert_eq!(value == F192::ZERO, i != wrong);
+            }
+        }
     }
 }

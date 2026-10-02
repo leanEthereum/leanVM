@@ -74,20 +74,27 @@ fn rust_constants() -> String {
         use leanvm_core::class_flock::{circuit, flock_index, stride_log};
         use leanvm_core::tables::Part;
         let clock = circuit(flock_index(t, Part::Clock));
-        let circuit = circuit(flock_index(t, Part::Class));
         let prefix = format!("TABLE.{}", spec.name.to_lowercase());
-        let mut line = String::new();
-        for (field, value) in [
+        let mut fields = vec![
             ("opcode", t as u64),
-            ("k_log", spec.k_log as u64),
-            ("const_pos", circuit.const_pos() as u64),
-            ("slot_bits", stride_log(spec, Part::Class) as u64),
             ("clock_k_log", clock.k_log() as u64),
             ("clock_const_pos", clock.const_pos() as u64),
+            ("clock_ports", spec.clock_ports().len() as u64),
             ("min_log_height", leanvm_core::class_flock::n_blocks_log(spec, 1) as u64),
             ("ports", spec.ports.len() as u64),
             ("width", leanvm_core::tables::tables()[t].n_committed_columns() as u64),
-        ] {
+        ];
+        // A table with no class circuit has no class block either.
+        if spec.has_circuit() {
+            let circuit = circuit(flock_index(t, Part::Class));
+            fields.extend([
+                ("k_log", spec.k_log as u64),
+                ("const_pos", circuit.const_pos() as u64),
+                ("slot_bits", stride_log(spec, Part::Class) as u64),
+            ]);
+        }
+        let mut line = String::new();
+        for (field, value) in fields {
             line.clear();
             write!(line, "{prefix}.{field} {value}").unwrap();
             lines.push(line.clone());

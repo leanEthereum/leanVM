@@ -3,10 +3,11 @@
 //!
 //! A table may fold identities with a DISJOINT range of one `η`'s powers, so the
 //! batch is a polynomial in `η` whose coefficients are the individual sums and
-//! matching the batch's target still pins each one. The instruction tables fold
-//! none: what each attaches is its two bus forms, which SHARE their two powers
-//! across tables, so those coefficients are per-side totals and the target pins the
-//! total, which is all the bus needs. The forms' sums are the values the bus is
+//! matching the batch's target still pins each one. What every instruction table
+//! attaches is its two bus forms, which SHARE their two powers across tables, so
+//! those coefficients are per-side totals and the target pins the total, which is
+//! all the bus needs; the extension-field table also folds its three identities,
+//! at powers of their own past those two. The forms' sums are the values the bus is
 //! owed, so the target is those rather than zero. The verifier derives it from the
 //! bus claims, and never reads it off the stream.
 //!

@@ -178,7 +178,7 @@ mod tests {
     use proptest::test_runner::TestRunner;
 
     /// Every class with a circuit.
-    const CLASSES: [Class; 9] = [
+    const CLASSES: [Class; 8] = [
         Class::Alu,
         Class::Shift,
         Class::Load,
@@ -187,14 +187,13 @@ mod tests {
         Class::Mulh,
         Class::Div,
         Class::Hash,
-        Class::Ext,
     ];
 
     #[test]
     fn instance_sizes_are_pinned() {
         // The log of each instance's bits, which the tables fix before any circuit is built.
         let sizes = CLASSES.map(|class| class.circuit().k_log());
-        assert_eq!(sizes, [10, 10, 10, 10, 12, 13, 13, 14, 13]);
+        assert_eq!(sizes, [10, 10, 10, 10, 12, 13, 13, 14]);
     }
 
     #[test]

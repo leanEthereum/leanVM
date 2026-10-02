@@ -36,7 +36,7 @@ const _: () = assert!(cfg!(target_endian = "little"));
 
 impl Program {
     /// The domain separator of the digest, versioned with the statement's format.
-    const DIGEST_DOMAIN: &'static [u8] = b"leanvm-rv64im-5";
+    const DIGEST_DOMAIN: &'static [u8] = b"leanvm-rv64im-6";
 
     /// The program of a guest's ELF executable.
     ///
@@ -483,8 +483,8 @@ mod tests {
     use crate::cpu::filler::JUMP;
     use crate::cpu::layout::{Framework, Shared};
     use crate::leaf::Coord;
+    use crate::rv::Reg;
     use crate::rv::asm::*;
-    use crate::rv::{InstructionClass, Reg};
     use crate::tables::SEP_BYTECODE;
 
     #[test]
@@ -742,28 +742,28 @@ mod tests {
     fn a_base_field_operand_has_no_high_limbs() {
         // Invariant: `extmulk` multiplies by a base-field element, its high limbs read from `x0`, which holds zero.
         //
-        // Fixture state: a = (3, 5, 7) at RAM's base, the base-field b = 9 at word 4, c at word 8.
-        let image = vec![3, 5, 7, 0, 9, 0, 0, 0];
+        // Fixture state: a = (3, 5, 7) at RAM's base, the base-field b = 9 right after it, c after that, packed.
+        let image = vec![3, 5, 7, 9, 0, 0, 0];
         let ram = Region::RAM.base();
         let text = Asm::new()
             .li(Reg::T0, ram)
-            .li(Reg::T1, ram + 32)
-            .li(Reg::T2, ram + 64)
+            .li(Reg::T1, ram + 24)
+            .li(Reg::T2, ram + 32)
             .ext(Extmulk, Reg::T2, Reg::T0, Reg::T1)
             .exit()
             .finish();
-        let program = Program::new(&text, Region::TEXT.base(), image, 4, 0).expect("valid instruction program");
+        let program = Program::new(&text, Region::TEXT.base(), image, 3, 0).expect("valid instruction program");
         assert!(unmatched_run(&program, &program.execute(&[]).unwrap()).is_empty());
 
-        // Mutation: the row claims b_1 = 1, as if b were (9, 1, 0), and c and RAM follow it.
+        // Mutation: the row claims b_1 = 1, as if b were (9, 1, 0), and c and RAM follow it, so the identities hold.
         let mut forged = program.execute(&[]).unwrap();
         let ext = tables::table_of(rv::Class::Ext).unwrap();
         let row = forged.trace.rows[ext].iter_mut().find(|r| r.ts != 0).unwrap();
         let x = row.ext.as_mut().unwrap();
         x.instance.limbs[4] = 1;
-        x.result = x.instance.eval();
-        for (k, word) in x.result.c.into_iter().enumerate() {
-            forged.trace.ram_fin[8 + k] = F64(word);
+        x.c = x.instance.eval();
+        for (k, word) in x.c.into_iter().enumerate() {
+            forged.trace.ram_fin[4 + k] = F64(word);
         }
 
         // Two tuples on each side: b_1's read of x0, and b_2's read right after it.
@@ -772,6 +772,154 @@ mod tests {
         //     b_2 pulls the 0 it found, which nothing pushed, and leaves the 1 unpulled
         let unmatched = unmatched_run(&program, &forged);
         assert_eq!(unmatched.len(), 4, "{unmatched:?}");
+    }
+
+    /// Extension-field products on packed elements: `x` at word 0, `y` at word 3, the base-field `w` at word 6, `c`
+    /// at word 7, and `d` at word 10, so that limb addresses carry: `y`'s second limb is at `+32`, `c`'s at `+64`.
+    ///
+    /// ```text
+    ///     extmul   c = x y             extmack  c = c + c w     (c is also a)
+    ///     a0..a2 = c                   extmul   d = y y         (b is a, and nothing reads d)
+    /// ```
+    fn extension_products() -> Program {
+        let mut image = vec![0; 13];
+        image[..3].copy_from_slice(&[0x0123_4567_89AB_CDEF, 0xFEDC_BA98_7654_3210, 0x0F1E_2D3C_4B5A_6978]);
+        image[3..6].copy_from_slice(&[3, 1 << 63, 0x1B]);
+        image[6] = 0xDEAD_BEEF_0BAD_F00D;
+        let ram = Region::RAM.base();
+        let text = Asm::new()
+            .li(Reg::T0, ram)
+            .li(Reg::T1, ram + 24)
+            .li(Reg::T2, ram + 48)
+            .li(Reg::T3, ram + 56)
+            .li(Reg::T4, ram + 80)
+            .ext(Extmul, Reg::T3, Reg::T0, Reg::T1)
+            .ext(Extmack, Reg::T3, Reg::T3, Reg::T2)
+            .load(Ld, Reg::A0, 0, Reg::T3)
+            .load(Ld, Reg::A1, 8, Reg::T3)
+            .load(Ld, Reg::A2, 16, Reg::T3)
+            .ext(Extmul, Reg::T4, Reg::T1, Reg::T1)
+            .exit()
+            .finish();
+        Program::new(&text, Region::TEXT.base(), image, 4, 0).expect("valid instruction program")
+    }
+
+    /// The verifier's verdict on the proof of a run forged into `exec`, whose bus balances.
+    fn verdict(program: &Program, exec: &Execution) -> Result<(), CpuError> {
+        let w = Witness::build(program, exec);
+        let unmatched = unmatched(&w);
+        assert!(unmatched.is_empty(), "the forged run balances: {unmatched:?}");
+        let proof = program.prove_witness(w, &exec.output, pcs::Rate::MIN);
+        program.verify(&exec.output, &proof)
+    }
+
+    #[test]
+    fn a_forged_extension_product_is_refused() {
+        // Invariant: an extension-field row writes its product, which only the table's identities say.
+        //
+        // Fixture state: the honest run proves.
+        let program = extension_products();
+        let honest = program.execute(&[]).unwrap();
+        assert_eq!(verdict(&program, &honest), Ok(()));
+
+        // Mutation: the last row's d forged in two limbs, and d's final words following it, so the bus balances.
+        let mut forged = program.execute(&[]).unwrap();
+        let ext = tables::table_of(rv::Class::Ext).unwrap();
+        let row = forged.trace.rows[ext].iter_mut().rfind(|r| r.ts != 0).unwrap();
+        let x = row.ext.as_mut().unwrap();
+        for (k, bit) in [(0, 1), (2, 1 << 63)] {
+            x.c[k] ^= bit;
+            forged.trace.ram_fin[10 + k].0 ^= bit;
+        }
+        assert_eq!(
+            verdict(&program, &forged),
+            Err(CpuError::Constraint(constraints::Error::FinalMismatch))
+        );
+    }
+
+    #[test]
+    fn a_forged_extension_padding_row_is_refused() {
+        // Invariant: a padding row is off the bus, so the identities are all that hold it.
+        //
+        // Mutation: a padding row of EXT multiplies a = b = 1 and claims c' = 0, every access still pulling what it pushes.
+        let program = extension_products();
+        let mut forged = program.execute(&[]).unwrap();
+        let ext = tables::table_of(rv::Class::Ext).unwrap();
+        let row = forged.trace.rows[ext].iter_mut().find(|r| r.ts == 0).unwrap();
+        let x = row.ext.as_mut().unwrap();
+        (x.instance.limbs[0], x.instance.limbs[3]) = (1, 1);
+        assert_eq!(
+            verdict(&program, &forged),
+            Err(CpuError::Constraint(constraints::Error::FinalMismatch))
+        );
+    }
+
+    #[test]
+    fn a_forged_extension_operand_unbalances_the_bus() {
+        // Invariant: an extension-field row multiplies what memory holds.
+        //
+        // Mutation: the last row reads b_0 = y_0 ^ 5, and its product and d's final words follow it, so the identities hold.
+        // Its a is the same element, read first, so the forgery is two accesses to y_0's word:
+        //
+        //     a_0 pushes (y_0, ts ^ 4)     which b_0 should pull, and pulls (y_0 ^ 5, ts ^ 4) instead
+        //     b_0 pushes (y_0 ^ 5, ts ^ 7) which the final word should pull, and pulls (y_0, ts ^ 7) instead
+        let program = extension_products();
+        let mut forged = program.execute(&[]).unwrap();
+        let ext = tables::table_of(rv::Class::Ext).unwrap();
+        let row = forged.trace.rows[ext].iter_mut().rfind(|r| r.ts != 0).unwrap();
+        let x = row.ext.as_mut().unwrap();
+        x.instance.limbs[3] ^= 5;
+        x.c = x.instance.eval();
+        for (k, word) in x.c.into_iter().enumerate() {
+            forged.trace.ram_fin[10 + k] = F64(word);
+        }
+        let w = Witness::build(&program, &forged);
+        let unmatched = unmatched(&w);
+        assert_eq!(unmatched.len(), 4, "{unmatched:?}");
+        assert_unbalanced(&program, w, &forged.output);
+    }
+
+    #[test]
+    fn a_misaligned_extension_operand_unbalances_the_bus() {
+        // Invariant: a limb is a word, so an operand off its word names no cell.
+        //
+        // Fixture state: a's address comes from the advice, then `c = a b`; the advice holds RAM's base.
+        let ram = Region::RAM.base();
+        let text = Asm::new()
+            .li(Reg::T5, Region::ADVICE.base())
+            .load(Ld, Reg::T0, 0, Reg::T5)
+            .li(Reg::T1, ram + 24)
+            .li(Reg::T3, ram + 48)
+            .ext(Extmul, Reg::T3, Reg::T0, Reg::T1)
+            .exit()
+            .finish();
+        let image = vec![11, 13, 17, 19, 23, 29, 0, 0, 0];
+        let program = Program::new(&text, Region::TEXT.base(), image, 4, 0).expect("valid instruction program");
+        let misaligned = ram + 4;
+        assert!(matches!(
+            program.execute(&[misaligned]),
+            Err(ProveError::Trap(rv::Trap::Misaligned { address, .. })) if address == misaligned
+        ));
+
+        // Mutation: the honest run with the advice holding `ram + 4`, and everything that follows from it: the load,
+        // `t0` and the row's pointer. a's limbs keep the values and timestamps of the words at `ram + 8j`.
+        let mut forged = program.execute(&[ram]).unwrap();
+        (forged.trace.adv_init[0], forged.trace.adv_fin[0]) = (F64(misaligned), F64(misaligned));
+        forged.trace.reg_fin[Reg::T0.index()] = F64(misaligned);
+        let load = tables::table_of(rv::Class::Load).unwrap();
+        let row = forged.trace.rows[load].iter_mut().find(|r| r.ts != 0).unwrap();
+        (row.ram.old, row.ram.new, row.out) = (misaligned, misaligned, misaligned);
+        let ext = tables::table_of(rv::Class::Ext).unwrap();
+        let row = forged.trace.rows[ext].iter_mut().find(|r| r.ts != 0).unwrap();
+        row.v1 = misaligned;
+        row.ext.as_mut().unwrap().instance.pointers[0] = misaligned;
+
+        // Each of a's limbs is at `ram + 4 + 8j`, which no cell is: the row's pull and push there, and the seed push
+        // and final pull of the word at `ram + 8j`, which the row no longer meets.
+        let w = Witness::build(&program, &forged);
+        let unmatched = unmatched(&w);
+        assert_eq!(unmatched.len(), 12, "{unmatched:?}");
+        assert_unbalanced(&program, w, &forged.output);
     }
 
     #[test]

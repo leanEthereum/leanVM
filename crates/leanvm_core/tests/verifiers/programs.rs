@@ -299,7 +299,8 @@ fn blake2s_precompile_proves_and_verifies() {
 ///
 /// - `sum_i x_i * x_(i+1)`, by `extmac`.
 /// - `sum_i x_i * w_i`, by `extmack`.
-/// - `x_0` cubed, by `extmul` in place and then into a fresh element.
+/// - `x_2 * x_0^3`: `x_0` squared in place (`c` is `a` and `b`), times `x_0` into a fresh element, then times `x_2`
+///   into that same element (`c` is `b`), all by `extmul`.
 /// - `x_1 * w_1`, by `extmulk`.
 ///
 /// The four outputs are summed into `a0..a2`, limb by limb.
@@ -338,10 +339,13 @@ fn extension_field_products_prove_and_verify() {
             .i(Addi, Reg::T1, Reg::S1, 8 * i)
             .ext(Extmack, Reg::S3, Reg::T0, Reg::T1);
     }
-    // x_0 cubed: the scratch copy squared in place, then times x_0 into output 2.
-    a.i(Addi, Reg::T2, Reg::S2, 96).i(Addi, Reg::T0, Reg::S2, 48);
+    // x_2 x_0^3: the scratch copy squared in place, times x_0 into output 2, then x_2 times output 2 into itself.
+    a.i(Addi, Reg::T2, Reg::S2, 96)
+        .i(Addi, Reg::T0, Reg::S2, 48)
+        .i(Addi, Reg::T1, Reg::S0, 48);
     a.ext(Extmul, Reg::T2, Reg::T2, Reg::T2)
-        .ext(Extmul, Reg::T0, Reg::T2, Reg::S0);
+        .ext(Extmul, Reg::T0, Reg::T2, Reg::S0)
+        .ext(Extmul, Reg::T0, Reg::T1, Reg::T0);
     // x_1 * w_1 into output 3.
     a.i(Addi, Reg::T0, Reg::S0, 24)
         .i(Addi, Reg::T1, Reg::S1, 8)
@@ -361,7 +365,7 @@ fn extension_field_products_prove_and_verify() {
     let e = |v: [u64; 3]| F192::new(v[0], v[1], v[2]);
     let dot = (0..N - 1).fold(F192::ZERO, |acc, i| acc + e(x[i]) * e(x[i + 1]));
     let mixed = (0..N).fold(F192::ZERO, |acc, i| acc + e(x[i]).mul_base(F64(w[i])));
-    let cube = e(x[0]) * e(x[0]) * e(x[0]);
+    let cube = e(x[2]) * (e(x[0]) * e(x[0]) * e(x[0]));
     let scaled = e(x[1]).mul_base(F64(w[1]));
     let folded = dot + mixed + cube + scaled;
     proves_and_verifies("ext", &program, [folded.c0, folded.c1, folded.c2, 0]);
