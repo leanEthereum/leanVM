@@ -1,7 +1,7 @@
 //! RISC-V programs, proven and checked by both verifiers.
 
 use super::python_verifier::PythonStatement;
-use leanvm_core::cpu::{Program, ProveError, prove, verify, verify_to_raw};
+use leanvm_core::cpu::{Program, ProveError};
 use leanvm_core::pcs::Rate;
 use leanvm_core::rv::asm::*;
 use leanvm_core::rv::{ADVICE_BASE, RAM_BASE, TEXT_BASE};
@@ -39,15 +39,15 @@ fn proves_and_verifies(tag: &str, program: &Program, expected: [u64; 4]) {
 }
 
 fn proves_and_verifies_with(tag: &str, program: &Program, advice: &[u64], expected: [u64; 4]) {
-    let (proof, output, _) = prove(program, advice, Rate::MIN).expect("the run halts");
+    let (proof, output, _) = program.prove(advice, Rate::MIN).expect("the run halts");
     assert_eq!(output, expected);
-    let raw = verify_to_raw(program, &output, &proof).expect("honest proof verifies");
+    let raw = program.verify_to_raw(&output, &proof).expect("honest proof verifies");
     PythonStatement::new(tag, program, &output).assert_accepts(&raw);
 
     // The proof is about this output.
     let mut wrong = output;
     wrong[0] ^= 1;
-    assert!(verify(program, &wrong, &proof).is_err());
+    assert!(program.verify(&wrong, &proof).is_err());
 }
 
 #[test]
@@ -284,7 +284,7 @@ fn blake2s_precompile_proves_and_verifies() {
         .finish();
     let program = Program::new(&text, TEXT_BASE, vec![], 7, 0).expect("valid instruction program");
     assert_eq!(
-        prove(&program, &[], Rate::MIN).err(),
+        program.prove(&[], Rate::MIN).err(),
         Some(ProveError::Trap(leanvm_core::rv::Trap::Misaligned {
             pc: TEXT_BASE + 8,
             address: BLOCK + 4
@@ -328,7 +328,7 @@ fn advice_proves_and_verifies() {
         .finish();
     let program = Program::new(&text, TEXT_BASE, vec![], 2, LOG_ADVICE).expect("valid instruction program");
     assert!(matches!(
-        prove(&program, &[], Rate::MIN).err(),
+        program.prove(&[], Rate::MIN).err(),
         Some(ProveError::Trap(leanvm_core::rv::Trap::Unmapped { .. }))
     ));
 }
@@ -339,7 +339,7 @@ fn a_trap_is_reported() {
     let text = Asm::new().word(0x0010_0073).exit().finish();
     let program = Program::new(&text, TEXT_BASE, vec![], 2, 0).expect("valid instruction program");
     assert_eq!(
-        prove(&program, &[], Rate::MIN).err(),
+        program.prove(&[], Rate::MIN).err(),
         Some(ProveError::Trap(leanvm_core::rv::Trap::Illegal { pc: TEXT_BASE }))
     );
 }

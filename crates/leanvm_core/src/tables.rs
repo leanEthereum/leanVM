@@ -426,6 +426,20 @@ impl ClassSpec {
         self.registers().len() + (ram.end - ram.start) as usize
     }
 
+    /// The fewest rows the table can be proven over.
+    ///
+    /// Flock sizes a batch to at least eight instances, and its zerocheck to a cube of at least `2^13` bits.
+    ///
+    /// A table with fewer rows would be padded up to it anyway.
+    pub const fn min_rows(&self) -> usize {
+        1 << crate::class_flock::n_blocks_log(self, 1)
+    }
+
+    /// Whether the table can be proven over `rows` rows: a power of two at or above its floor.
+    pub const fn is_provable_height(&self, rows: usize) -> bool {
+        rows.is_power_of_two() && rows >= self.min_rows()
+    }
+
     /// The clock slots of the row's accesses, in the order of their columns.
     pub fn slots(&self) -> Vec<u32> {
         let registers = self.registers().iter().map(|&i| REG_SLOTS[i]);

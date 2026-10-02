@@ -49,7 +49,7 @@ impl Prover {
     ///
     /// The run's trap, a run longer than one proof holds, or more advice than the program's region holds.
     pub fn prove(&self, program: &Program, advice: &[u64], rate: Rate) -> Result<Proved, Error> {
-        let (proof, output, stats) = cpu::prove(program, advice, rate)?;
+        let (proof, output, stats) = program.prove(advice, rate)?;
         Ok(Proved {
             proof: Proof(proof),
             output,
@@ -82,7 +82,7 @@ pub struct Proved {
 ///
 /// What would refuse the proof itself.
 pub fn measure(program: &Program, advice: &[u64]) -> Result<Stats, Error> {
-    Ok(cpu::measure(program, advice)?)
+    Ok(program.measure(advice)?)
 }
 
 /// Check that the program, run on some advice, exits with `output`.
@@ -91,7 +91,7 @@ pub fn measure(program: &Program, advice: &[u64]) -> Result<Stats, Error> {
 ///
 /// The proof does not verify against this program and this output.
 pub fn verify(program: &Program, output: &[u64; 4], proof: &Proof) -> Result<(), Error> {
-    Ok(cpu::verify(program, output, &proof.0).map_err(VerifyError)?)
+    Ok(program.verify(output, &proof.0).map_err(VerifyError)?)
 }
 
 /// A proof of a run.

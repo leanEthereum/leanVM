@@ -52,6 +52,18 @@ pub enum Coord {
     Sum(Vec<Self>),
 }
 
+impl Coord {
+    /// The coordinate with every column index shifted by `base`: a table's local coordinate, made global.
+    pub fn offset(self, base: usize) -> Self {
+        match self {
+            Self::Col(i) => Self::Col(base + i),
+            Self::Prod(i, j) => Self::Prod(base + i, base + j),
+            Self::Sum(cs) => Self::Sum(cs.into_iter().map(|c| c.offset(base)).collect()),
+            other => other,
+        }
+    }
+}
+
 /// A public column of `2^log_len` words given by its nonzero stretches, each cut into
 /// ALIGNED blocks: a power of two of words, at an offset that is a multiple of it. Such
 /// a block's share of the column's multilinear extension is its own extension in the

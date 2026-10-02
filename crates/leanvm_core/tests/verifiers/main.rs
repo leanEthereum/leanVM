@@ -1,4 +1,4 @@
-//! The Python verifier of this protocol, pinned against `cpu::verify` on
+//! The Python verifier of this protocol, pinned against `cpu::Program::verify` on
 //! hand-assembled programs and on Rust guests.
 
 mod act4;

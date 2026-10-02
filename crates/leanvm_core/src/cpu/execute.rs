@@ -1,200 +1,298 @@
-//! Run the program on the reference interpreter ([`crate::rv::Machine`]) and record,
-//! for every access, what the memory argument needs ([`Trace`]).
+//! What a run of the program on the reference interpreter records for the memory argument.
+//!
+//! A row carries what its accesses saw, its clock, and per access the timestamp its cell was last accessed at.
+//!
+//! Everything else comes back from the program's entry at the row's index.
 
-use super::*;
-use crate::rv::machine::MemoryAccess;
-use crate::rv::{BlockAccess, Class, Hash, Machine, RegisterFile, WordAccess};
-use crate::tables::{CLASSES, CLOCK_START, CYCLE, MAX_CYCLES, RAM_SLOT, REG_SLOTS, SEED_CLOCK, block_slot};
+use crate::rv::machine::{MemoryAccess, Step};
+use crate::rv::{self, BlockAccess, Class, Hash, Machine, RegisterFile, WordAccess};
+use crate::tables::{self, CLASSES, MAX_CYCLES, N_TABLES, RAM_SLOT, REG_SLOTS, SEED_CLOCK};
 use primitives::field::F64;
 
+/// A finished run: its output, its rows, and what it left behind.
 pub struct Execution {
-    /// The public output: `a0..a3` as the run left them.
+    /// The public output: `a0` to `a3` as the run left them.
     pub output: [u64; 4],
-    pub cycles: usize, // number of rows proven, padding rows included
-    /// Rows per table before the padding rows: the work the program itself does, as
-    /// against the power-of-two heights that get proven. Cost measurements want this one.
-    pub base_counts: [usize; crate::tables::N_TABLES],
-    pub(crate) trace: Trace, // rows, final timestamps and counts, emitted in the same walk
+    /// The rows proven, padding rows included.
+    pub cycles: usize,
+    /// The rows per table before the padding rows: the work the program itself does.
+    ///
+    /// Cost measurements want these, not the power-of-two heights that get proven.
+    pub base_counts: [usize; N_TABLES],
+    /// The rows and the final state, emitted in the same walk as the run.
+    pub(crate) trace: Trace,
 }
 
-/// Each cell's last timestamp in one read-write array, the memory argument's bookkeeping (§sec:memchan).
-struct Cells {
-    last: Vec<u64>,
-}
-
-impl Cells {
-    /// Every cell starts last accessed at the seed's timestamp.
-    fn new(n: usize) -> Self {
-        Self {
-            last: vec![SEED_CLOCK; n],
-        }
-    }
-
-    /// Access `cell` at timestamp `at`, returning the timestamp of its previous access.
-    #[inline(always)]
-    fn access(&mut self, cell: usize, at: u64) -> u64 {
-        std::mem::replace(&mut self.last[cell], at)
-    }
-
-    fn timestamps(&self) -> Vec<F64> {
-        self.last.iter().map(|&t| F64(t)).collect()
-    }
-}
-
-// Why: every row commits at least one word of its own, so a run one commitment holds is far below the cycles the clock counts.
+// Why: every row commits at least one word, so a run one commitment holds is far below the cycles the clock counts.
 const _: () = assert!(1u64 << crate::pcs::MAX_MU < MAX_CYCLES);
 
-impl Program {
-    /// Run the program on `advice`, recording every row, then write out the
-    /// padding rows that bring each table to a power of two ([`filler`]). A run that
-    /// traps, or outruns the clock, has no proof.
-    pub fn execute(&self, advice: &[u64]) -> Result<Execution, ProveError> {
-        let p = &self.rv;
-        let max = 1 << p.log_advice();
-        if advice.len() > max {
-            return Err(ProveError::AdviceTooLong { max, got: advice.len() });
-        }
-        let mut m = Machine::new(p, advice);
-        let adv_init: Vec<F64> = m.memory().advice().iter().map(|&w| F64(w)).collect();
-        let mut regs = Cells::new(RegisterFile::CELLS);
-        // RAM's cells, then the advice's, as the machine numbers them.
-        let mut ram = Cells::new((1 << p.log_ram()) + (1 << p.log_advice()));
-        let mut rows: [Vec<Row>; crate::tables::N_TABLES] = std::array::from_fn(|_| Vec::new());
+/// Each cell's last timestamp in one read-write array (§sec:memchan).
+struct LastAccess(Vec<u64>);
 
-        // The clock starts on cycle 1, so that the first access comes strictly after the seeds.
-        let mut ts = CLOCK_START;
-        while !m.halted() {
-            // The cycle count must not carry into the live bit, and the run's final clock is one cycle past its last row.
-            if ts >> crate::tables::SLOT_BITS & MAX_CYCLES == MAX_CYCLES {
-                return Err(ProveError::TooLong);
+impl LastAccess {
+    /// `n` cells, each last accessed at the seed's timestamp.
+    fn new(n: usize) -> Self {
+        Self(vec![SEED_CLOCK; n])
+    }
+
+    /// Access `cell` at timestamp `at`, and return the timestamp of its previous access.
+    #[inline(always)]
+    fn access(&mut self, cell: usize, at: u64) -> u64 {
+        std::mem::replace(&mut self.0[cell], at)
+    }
+
+    /// Every cell's last timestamp, as field words.
+    fn timestamps(&self) -> Vec<F64> {
+        self.0.iter().map(|&t| F64(t)).collect()
+    }
+}
+
+/// A trace being recorded: the rows so far, and each cell's last access timestamp.
+pub(super) struct TraceBuilder {
+    /// The register file's cells.
+    regs: LastAccess,
+    /// RAM's cells, then the advice's, as the machine numbers them.
+    ram: LastAccess,
+    /// Each table's rows.
+    rows: [Vec<Row>; N_TABLES],
+    /// Each table's access slots, which a padding row's accesses pull as their previous timestamps.
+    padding_prev: [Vec<u64>; N_TABLES],
+    /// The advice before the run, which is committed.
+    adv_init: Vec<F64>,
+}
+
+impl TraceBuilder {
+    /// The rows recorded so far, per table.
+    pub(super) fn row_counts(&self) -> [usize; N_TABLES] {
+        std::array::from_fn(|t| self.rows[t].len())
+    }
+
+    /// The trace of a run of `p` about to start on this advice region.
+    pub(super) fn new(p: &rv::Program, advice: &[u64]) -> Self {
+        Self {
+            regs: LastAccess::new(RegisterFile::CELLS),
+            ram: LastAccess::new((1 << p.log_ram()) + (1 << p.log_advice())),
+            rows: std::array::from_fn(|_| Vec::new()),
+            padding_prev: std::array::from_fn(|t| CLASSES[t].slots().into_iter().map(u64::from).collect()),
+            adv_init: advice.iter().map(|&w| F64(w)).collect(),
+        }
+    }
+
+    /// Record the row of `step`, executed at clock `ts`.
+    pub(super) fn record(&mut self, p: &rv::Program, m: &Machine<'_>, step: Step, ts: u64) {
+        let e = &p.entries()[step.index];
+        let table = tables::table_of(e.class).expect("every class that runs has a table");
+        let spec = CLASSES[table];
+
+        // The register accesses the class makes, in column order, each at its slot of the row's clock.
+        let cells = [e.a1, e.a2, e.ad].map(|cell| cell as usize);
+        let made = [true, spec.reads_rs2, spec.writes_rd];
+        let mut prev = [0; 4];
+        let mut n = 0;
+        for (i, slot) in REG_SLOTS.into_iter().enumerate() {
+            if made[i] {
+                prev[n] = self.regs.access(cells[i], ts | u64::from(slot));
+                n += 1;
             }
-            let step = m.step()?;
-            let e = &p.entries()[step.index];
-            let table = crate::tables::table_of(e.class).expect("every class that runs has a table");
-            let spec = CLASSES[table];
-            // The register accesses the class makes, then the RAM access if it has one.
-            // Their order here is the order of their columns, not of their clock slots.
-            let cells = [e.a1, e.a2, e.ad].map(|cell| cell as usize);
-            let made = [true, spec.reads_rs2, spec.writes_rd];
-            let mut prev = [0; 4];
-            let mut n = 0;
-            for (i, slot) in REG_SLOTS.into_iter().enumerate() {
-                if made[i] {
-                    prev[n] = regs.access(cells[i], ts | u64::from(slot));
-                    n += 1;
-                }
+        }
+
+        // The memory access, after the register accesses; the machine made it, so each address names a cell.
+        let cell_of = |address: u64| m.memory().cell(address).expect("an access the machine made");
+        let (mut word, mut hash) = (WordAccess::default(), None);
+        match step.memory {
+            MemoryAccess::None => {}
+            MemoryAccess::Word(access) => {
+                prev[n] = self.ram.access(cell_of(access.address), ts | u64::from(RAM_SLOT));
+                word = access;
             }
-            // The machine made every access it reports, so each address names a cell.
-            let cell_of = |address: u64| m.memory().cell(address).expect("an access the machine made");
-            let (mut word, mut hash) = (WordAccess::default(), None);
-            match step.memory {
-                MemoryAccess::None => {}
-                MemoryAccess::Word(access) => {
-                    prev[n] = ram.access(cell_of(access.address), ts | u64::from(RAM_SLOT));
-                    word = access;
+            // A hash row's block, word `k` at `v1 ^ 8k`.
+            MemoryAccess::Block(h) => {
+                let mut all = [0; 2 + Hash::WORDS];
+                all[..n].copy_from_slice(&prev[..n]);
+                for k in 0..Hash::WORDS {
+                    let cell = cell_of(step.v1 ^ (8 * k as u64));
+                    all[n + k] = self.ram.access(cell, ts | u64::from(tables::block_slot(k)));
                 }
-                // A hash row's block, word `k` at `v1 ^ 8k`, after its register reads.
-                MemoryAccess::Block(h) => {
-                    let mut all = [0; 2 + Hash::WORDS];
-                    all[..n].copy_from_slice(&prev[..n]);
-                    for k in 0..Hash::WORDS {
-                        let cell = cell_of(step.v1 ^ (8 * k as u64));
-                        all[n + k] = ram.access(cell, ts | u64::from(block_slot(k)));
-                    }
-                    hash = Some(Box::new(HashRow {
-                        block: h.block,
-                        out: h.out,
-                        prev: all,
-                    }));
-                }
+                hash = Some(Box::new(HashRow {
+                    block: h.block,
+                    out: h.out,
+                    prev: all,
+                }));
             }
-            rows[table].push(Row {
-                index: step.index as u32,
-                ts,
-                v1: step.v1,
-                v2: step.v2,
-                out: step.out,
-                taken: step.taken,
-                vd_old: step.vd_old,
-                ram: word,
-                prev,
-                hash,
+        }
+
+        self.rows[table].push(Row {
+            index: step.index as u32,
+            ts,
+            v1: step.v1,
+            v2: step.v2,
+            out: step.out,
+            taken: step.taken,
+            vd_old: step.vd_old,
+            ram: word,
+            prev,
+            hash,
+        });
+    }
+
+    /// Write out a padding row of entry `index`, at clock zero.
+    ///
+    /// It touches nothing: every read holds zero, and every write rewrites what it writes.
+    ///
+    /// Its circuit instance is an honest one, on those zeros.
+    ///
+    /// An access in slot `k` pushes the timestamp `0 ^ k` and pulls that same timestamp, so the two tuples cancel.
+    pub(super) fn pad(&mut self, p: &rv::Program, index: usize) {
+        let e = &p.entries()[index];
+        let table = tables::table_of(e.class).expect("a fill block's class has a table");
+        let outcome = e.evaluate(0, 0, 0);
+        let slots = &self.padding_prev[table];
+
+        // A hash row compresses a zero block, and rewrites the result it finds there.
+        let hash = (e.class == Class::Hash).then(|| {
+            let block = [0; Hash::WORDS];
+            let mut h = BlockAccess::from(Hash {
+                flags: e.flags,
+                t: 0,
+                block,
             });
-            ts += CYCLE;
-        }
-        let output = m.output()?;
-        let base_counts: [usize; crate::tables::N_TABLES] = std::array::from_fn(|t| rows[t].len());
+            h.block[Hash::OUT as usize / 8..][..4].copy_from_slice(&h.out);
+            let mut all = [0; 2 + Hash::WORDS];
+            all.copy_from_slice(slots);
+            Box::new(HashRow {
+                block: h.block,
+                out: h.out,
+                prev: all,
+            })
+        });
 
-        // The padding rows, written out rather than executed: they sit at clock zero
-        // and touch nothing, every read holding zero and every write rewriting what it
-        // writes (`filler`). Their circuit instances are honest ones, on those zeros.
-        //
-        // Why: an access in slot `k` pushes the timestamp `0 ^ k`, so it pulls that
-        // same timestamp, and the two tuples cancel.
-        let padding_prev: [Vec<u64>; crate::tables::N_TABLES] =
-            std::array::from_fn(|t| CLASSES[t].slots().into_iter().map(u64::from).collect());
-        for (first, size, traversals) in super::filler::cycles(&self.filler, base_counts) {
-            for _ in 0..traversals {
-                for index in first..=first + size {
-                    let e = &p.entries()[index];
-                    let table = crate::tables::table_of(e.class).expect("a fill block's class has a table");
-                    let outcome = e.evaluate(0, 0, 0);
-                    let slots = &padding_prev[table];
-                    let mut prev = [0; 4];
-                    let hash = (e.class == Class::Hash).then(|| {
-                        // The compression of a zero block, whose result the row rewrites.
-                        let mut h = BlockAccess::from(Hash {
-                            flags: e.flags,
-                            t: 0,
-                            block: [0; Hash::WORDS],
-                        });
-                        h.block[Hash::OUT as usize / 8..][..4].copy_from_slice(&h.out);
-                        let mut all = [0; 2 + Hash::WORDS];
-                        all.copy_from_slice(slots);
-                        Box::new(HashRow {
-                            block: h.block,
-                            out: h.out,
-                            prev: all,
-                        })
-                    });
-                    if hash.is_none() {
-                        prev[..slots.len()].copy_from_slice(slots);
-                    }
-                    rows[table].push(Row {
-                        index: index as u32,
-                        ts: 0,
-                        v1: 0,
-                        v2: 0,
-                        out: outcome.out,
-                        taken: outcome.taken,
-                        vd_old: if e.link { p.pc_of(index) + 4 } else { outcome.out },
-                        ram: outcome.access.unwrap_or_default(),
-                        prev,
-                        hash,
-                    });
-                }
-            }
+        // Any other row keeps its slots' timestamps itself.
+        let mut prev = [0; 4];
+        if hash.is_none() {
+            prev[..slots.len()].copy_from_slice(slots);
         }
 
-        let cycles = rows.iter().map(Vec::len).sum();
-        let ram_last = ram.timestamps();
+        self.rows[table].push(Row {
+            index: index as u32,
+            ts: 0,
+            v1: 0,
+            v2: 0,
+            out: outcome.out,
+            taken: outcome.taken,
+            vd_old: if e.link { p.pc_of(index) + 4 } else { outcome.out },
+            ram: outcome.access.unwrap_or_default(),
+            prev,
+            hash,
+        });
+    }
+
+    /// The finished trace: the rows, and what the machine `m` left in each array when the clock stopped at `ts_final`.
+    pub(super) fn finish(self, p: &rv::Program, m: &Machine<'_>, ts_final: u64) -> Trace {
+        let ram_last = self.ram.timestamps();
         let (ram_ts, adv_ts) = ram_last.split_at(1 << p.log_ram());
-        let trace = Trace {
-            rows,
+        Trace {
+            rows: self.rows,
             reg_fin: m.registers().cells().iter().map(|&r| F64(r)).collect(),
-            reg_ts: regs.timestamps(),
+            reg_ts: self.regs.timestamps(),
             ram_fin: m.memory().ram().iter().map(|&w| F64(w)).collect(),
             ram_ts: ram_ts.to_vec(),
-            adv_init,
+            adv_init: self.adv_init,
             adv_fin: m.memory().advice().iter().map(|&w| F64(w)).collect(),
             adv_ts: adv_ts.to_vec(),
-            ts_final: ts,
-        };
-        Ok(Execution {
-            output,
-            cycles,
-            base_counts,
-            trace,
-        })
+            ts_final,
+        }
+    }
+}
+
+/// What a hash row adds to a row.
+pub(crate) struct HashRow {
+    /// The block's words as the row found them.
+    pub(crate) block: [u64; Hash::WORDS],
+    /// The four words the compression writes.
+    pub(crate) out: [u64; 4],
+    /// The previous timestamp of every access, the registers' first.
+    pub(crate) prev: [u64; 2 + Hash::WORDS],
+}
+
+impl HashRow {
+    /// Word `k` of the block after the row.
+    pub(crate) const fn word_after(&self, k: usize) -> u64 {
+        match k.wrapping_sub(Hash::OUT as usize / 8) {
+            j if j < 4 => self.out[j],
+            _ => self.block[k],
+        }
+    }
+}
+
+/// One executed instruction, as its table's row records it.
+pub(crate) struct Row {
+    /// The entry executed.
+    pub(crate) index: u32,
+    /// The row's clock, zero on a padding row.
+    pub(crate) ts: u64,
+    /// The first register's value.
+    pub(crate) v1: u64,
+    /// The second register's value.
+    pub(crate) v2: u64,
+    /// What the class computed.
+    pub(crate) out: u64,
+    /// Whether the class took the jump.
+    pub(crate) taken: bool,
+    /// What the destination held before the write, if the class makes one.
+    pub(crate) vd_old: u64,
+    /// A load's or a store's cell access; zeros for another class.
+    pub(crate) ram: WordAccess,
+    /// The previous timestamps of the register accesses the class makes, then of its RAM access.
+    ///
+    /// A hash row keeps them in its hash part instead.
+    pub(crate) prev: [u64; 4],
+    /// A hash row's block, and its accesses.
+    pub(crate) hash: Option<Box<HashRow>>,
+}
+
+impl Row {
+    /// The previous timestamps of the row's accesses in column order, at least as many as its class makes.
+    pub(crate) fn prev(&self) -> &[u64] {
+        match &self.hash {
+            Some(hash) => &hash.prev,
+            None => &self.prev,
+        }
+    }
+}
+
+/// Every row of a run, and what the run leaves for the finalize blocks.
+pub(crate) struct Trace {
+    /// Each table's rows, in table order.
+    pub(crate) rows: [Vec<Row>; tables::N_TABLES],
+    /// The registers after the run.
+    pub(crate) reg_fin: Vec<F64>,
+    /// Each register's last timestamp, the seed's if never touched.
+    pub(crate) reg_ts: Vec<F64>,
+    /// RAM after the run.
+    pub(crate) ram_fin: Vec<F64>,
+    /// Each RAM word's last timestamp.
+    pub(crate) ram_ts: Vec<F64>,
+    /// The advice before the run, which is committed.
+    pub(crate) adv_init: Vec<F64>,
+    /// The advice after the run.
+    pub(crate) adv_fin: Vec<F64>,
+    /// Each advice word's last timestamp.
+    pub(crate) adv_ts: Vec<F64>,
+    /// The clock the run ended on: the final state's timestamp.
+    pub(crate) ts_final: u64,
+}
+
+impl Trace {
+    /// How often each bytecode entry is read, once by every row, written into `counts` as integers.
+    pub(crate) fn count_reads(&self, counts: &mut [F64]) {
+        counts.fill(F64::ZERO);
+        for row in self.rows.iter().flatten() {
+            counts[row.index as usize].0 += 1;
+        }
+    }
+
+    /// The rows per table.
+    pub(crate) fn row_counts(&self) -> [usize; tables::N_TABLES] {
+        std::array::from_fn(|t| self.rows[t].len())
     }
 }

@@ -1,9 +1,9 @@
-//! Pins `python-verifier/verifier.py` against `leanvm_core::cpu::verify`: the same
+//! Pins `python-verifier/verifier.py` against `leanvm_core::cpu::Program::verify`: the same
 //! protocol is written out in Rust and in Python, so any protocol change must land
 //! in both, and this is what catches the Python one drifting.
 
 use fiat_shamir::transcript::RawProof;
-use leanvm_core::cpu::{CpuError, prove, verify, verify_to_raw};
+use leanvm_core::cpu::CpuError;
 use leanvm_core::pcs::Rate;
 use primitives::field::F192;
 use std::path::{Path, PathBuf};
@@ -35,7 +35,8 @@ impl PythonStatement {
             directory,
         };
         let rv = program.rv();
-        let table: Vec<u8> = leanvm_core::cpu::layout::bytecode_table(rv)
+        let table: Vec<u8> = leanvm_core::cpu::Lookup::Bytecode
+            .table(rv)
             .iter()
             .flat_map(|w| w.0.to_le_bytes())
             .collect();
@@ -123,11 +124,11 @@ impl Drop for PythonStatement {
 #[test]
 fn test_python_verifier() {
     let (program, _) = super::programs::fibonacci();
-    let (proof, output, stats) = prove(&program, &[], Rate::MIN).expect("the run halts");
+    let (proof, output, stats) = program.prove(&[], Rate::MIN).expect("the run halts");
     // Python reads the RAW proof: same protocol, each query carrying its own
     // full Merkle path instead of one octopus over the batch. A Rust verify
     // expands the wire form, so the pruning is written once.
-    let raw = verify_to_raw(&program, &output, &proof).expect("honest proof verifies");
+    let raw = program.verify_to_raw(&output, &proof).expect("honest proof verifies");
     let encoded = bincode::serialize(&proof).expect("serialize proof");
     let statement = PythonStatement::new("tamper", &program, &output);
     let verification_started = Instant::now();
@@ -137,7 +138,7 @@ fn test_python_verifier() {
     let mut malformed_announcement = proof.clone();
     malformed_announcement.stream[0].c1 = 1;
     assert_eq!(
-        verify(&program, &output, &malformed_announcement),
+        program.verify(&output, &malformed_announcement),
         Err(CpuError::NonCanonicalSize)
     );
     let mut raw_announcement = raw.clone();
@@ -154,7 +155,7 @@ fn test_python_verifier() {
     ] {
         let mut forged = proof.clone();
         forged.stream[final_clock] = F192::new(clock, 0, 0);
-        assert_eq!(verify(&program, &output, &forged), Err(CpuError::FinalClock));
+        assert_eq!(program.verify(&output, &forged), Err(CpuError::FinalClock));
         let mut raw_forged = raw.clone();
         raw_forged.stream[final_clock] = F192::new(clock, 0, 0);
         let refused = statement.verify(&raw_forged);
@@ -166,7 +167,7 @@ fn test_python_verifier() {
     // Past the announcement: the table heights, the rate, the final clock.
     let root_offset = leanvm_core::tables::N_TABLES + 2;
     malformed_root.stream[root_offset].c2 = 1;
-    assert!(verify(&program, &output, &malformed_root).is_err());
+    assert!(program.verify(&output, &malformed_root).is_err());
     let mut raw_root = raw.clone();
     raw_root.stream[root_offset].c2 = 1;
     PythonStatement::assert_rejects(&statement.verify(&raw_root), "a noncanonical commitment root");
@@ -277,7 +278,7 @@ for flags, link, jalr in [(1 << 14, 1, 0), (1 | (1 << 8), 0, 0), (1 << 7, 1, 1)]
 #[test]
 fn the_python_verifier_follows_the_slowest_rate() {
     let (program, _) = super::programs::fibonacci();
-    let (proof, output, _) = prove(&program, &[], Rate::MAX).expect("the run halts");
-    let raw = verify_to_raw(&program, &output, &proof).expect("honest proof verifies");
+    let (proof, output, _) = program.prove(&[], Rate::MAX).expect("the run halts");
+    let raw = program.verify_to_raw(&output, &proof).expect("honest proof verifies");
     PythonStatement::new("rate", &program, &output).assert_accepts(&raw);
 }

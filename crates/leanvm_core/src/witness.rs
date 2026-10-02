@@ -97,6 +97,15 @@ pub(crate) fn stack_offsets(kappas: &[Option<usize>]) -> (Vec<usize>, usize) {
     (offsets, off)
 }
 
+/// The committed columns' total length, before the stack's zero pad: the real witness size.
+pub fn committed_len(placements: &[Placement]) -> usize {
+    placements
+        .iter()
+        .filter_map(Placement::window)
+        .map(|w| 1usize << w.n_vars)
+        .sum()
+}
+
 /// Per-column placements and the stack's [`StackShape`] from the columns' sources
 /// alone, the committed columns largest-first at aligned offsets. Depends only on
 /// lengths, so the verifier can reconstruct it.
@@ -143,7 +152,7 @@ const FILL_CHUNK: usize = 1 << 16;
 
 /// The uninitialized stacked witness: [`StackShape::committed_len`] slots, the
 /// placed columns rounded up to a whole lane rather than all the way to `2^mu`.
-/// Arena-backed: `q` is born and dies inside one `cpu::prove` phase.
+/// Arena-backed: `q` is born and dies inside one `cpu::Program::prove` phase.
 ///
 /// # Safety
 /// Every slot must be written before it is read. [`split_stack`] hands out one

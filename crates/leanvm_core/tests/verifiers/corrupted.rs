@@ -3,7 +3,7 @@
 //! prover's to choose, so every path the verifier takes through it has to end in
 //! [`CpuError`], not in an index out of bounds.
 
-use leanvm_core::cpu::{Proof, prove, verify};
+use leanvm_core::cpu::Proof;
 use leanvm_core::pcs::Rate;
 
 struct Rng(u64);
@@ -57,9 +57,9 @@ fn corrupt(proof: &Proof, round: usize, rng: &mut Rng) -> Proof {
 #[test]
 fn a_corrupted_proof_is_rejected_and_never_panics() {
     let (program, expected) = super::programs::fibonacci();
-    let (proof, output, _) = prove(&program, &[], Rate::MIN).expect("the run halts");
+    let (proof, output, _) = program.prove(&[], Rate::MIN).expect("the run halts");
     assert_eq!(output, expected);
-    verify(&program, &output, &proof).expect("the honest proof verifies");
+    program.verify(&output, &proof).expect("the honest proof verifies");
     assert!(
         proof
             .merkle
@@ -74,7 +74,7 @@ fn a_corrupted_proof_is_rejected_and_never_panics() {
         if forged == proof {
             continue; // the one no-op a random truncation can draw
         }
-        let verified = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| verify(&program, &output, &forged)));
+        let verified = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| program.verify(&output, &forged)));
         match verified {
             Ok(Ok(())) => panic!("round {round}: a corrupted proof was accepted"),
             Ok(Err(_)) => {}

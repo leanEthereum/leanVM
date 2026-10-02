@@ -7,8 +7,8 @@
 //! The program is public, so each instruction word is decoded into an entry once, before any run.
 
 use super::circuits::ClassCircuit;
-use super::instruction::{Instruction, Opcode};
-use super::register::RegisterFile;
+use super::instruction::{ImmOp, Instruction, LoadOp, Opcode, RegOp, ShiftOp, StoreOp};
+use super::register::{Reg, RegisterFile};
 use super::semantics::{Alu, Div, Hash, InstructionClass, Load, Mul, Mulh, Outcome, Shift, Store, WordAccess};
 use flock::circuit::Circuit;
 
@@ -53,6 +53,26 @@ impl Class {
             Self::Hash => Hash::LEGAL,
             Self::Illegal => &[],
         }
+    }
+
+    /// An instruction of the class that names no register but `x0`.
+    ///
+    /// A load, a store and a hash touch the memory at address zero.
+    ///
+    /// Returns `None` for the illegal class, which has no instruction.
+    pub const fn nop(self) -> Option<Instruction> {
+        let zero = Reg::ZERO;
+        Some(match self {
+            Self::Alu => ImmOp::Addi.encode(zero, zero, 0),
+            Self::Shift => ShiftOp::Slli.encode(zero, zero, 0),
+            Self::Load => LoadOp::Lb.encode(zero, zero, 0),
+            Self::Store => StoreOp::Sb.encode(zero, zero, 0),
+            Self::Mul => RegOp::Mul.encode(zero, zero, zero),
+            Self::Mulh => RegOp::Mulhu.encode(zero, zero, zero),
+            Self::Div => RegOp::Divu.encode(zero, zero, zero),
+            Self::Hash => Instruction::r(Opcode::Custom0, 0, 0, zero, zero, zero),
+            Self::Illegal => return None,
+        })
     }
 
     /// The class's circuit: its function as a gate list over the words its table puts on the bus.
@@ -540,6 +560,33 @@ mod tests {
                     assert!(e.is_well_formed(), "{word:#010x} decodes to {e:?}");
                 }
             }
+        }
+    }
+
+    #[test]
+    fn each_class_nop_is_of_its_class_and_names_only_x0() {
+        // Fixture: every class but the illegal one, which has no instruction.
+        let classes = [
+            Class::Alu,
+            Class::Shift,
+            Class::Load,
+            Class::Store,
+            Class::Mul,
+            Class::Mulh,
+            Class::Div,
+            Class::Hash,
+        ];
+        assert_eq!(Class::Illegal.nop(), None);
+
+        // Each no-op decodes to its class, reads x0 twice, writes the sink, and has no immediate.
+        for class in classes {
+            let e = Entry::decode(class.nop().expect("a legal class").bits(), TEXT_BASE);
+            assert_eq!(
+                (e.class, e.a1, e.a2, e.ad, e.imm),
+                (class, 0, 0, RegisterFile::SINK, 0),
+                "{class:?}"
+            );
+            assert!(e.is_well_formed());
         }
     }
 
