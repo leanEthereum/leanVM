@@ -295,6 +295,9 @@ dependencies = [
 [[package]]
 name = "leanvm_guest"
 version = "0.1.0"
+dependencies = [
+ "primitives",
+]
 
 [[package]]
 name = "leanxmss"

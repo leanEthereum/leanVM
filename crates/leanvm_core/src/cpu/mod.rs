@@ -27,7 +27,7 @@ mod witness;
 
 pub use error::{CpuError, ProveError};
 pub use execute::Execution;
-pub(crate) use execute::{HashRow, Row, Trace};
+pub(crate) use execute::{ExtRow, HashRow, Row, Trace};
 pub use fiat_shamir::transcript::Proof;
 pub use layout::{Framework, Layout, Lookup, N_BYTECODE_COLUMNS, N_SHARED, Q_BASE, Schema, Shared, Sizes};
 pub use program::{Program, Stats};

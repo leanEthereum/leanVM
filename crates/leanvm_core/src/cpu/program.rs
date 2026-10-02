@@ -483,8 +483,8 @@ mod tests {
     use crate::cpu::filler::JUMP;
     use crate::cpu::layout::{Framework, Shared};
     use crate::leaf::Coord;
-    use crate::rv::Reg;
     use crate::rv::asm::*;
+    use crate::rv::{InstructionClass, Reg};
     use crate::tables::SEP_BYTECODE;
 
     #[test]
@@ -628,6 +628,7 @@ mod tests {
             ram,
             prev: [slots[0], slots[1], slots[2], 0],
             hash: None,
+            ext: None,
         }
     }
 
@@ -735,6 +736,42 @@ mod tests {
         let unmatched = unmatched(&w);
         // The load's pull and the store's push, which it should have met.
         assert_eq!(unmatched.len(), 2, "{unmatched:?}");
+    }
+
+    #[test]
+    fn a_base_field_operand_has_no_high_limbs() {
+        // Invariant: `extmulk` multiplies by a base-field element, its high limbs read from `x0`, which holds zero.
+        //
+        // Fixture state: a = (3, 5, 7) at RAM's base, the base-field b = 9 at word 4, c at word 8.
+        let image = vec![3, 5, 7, 0, 9, 0, 0, 0];
+        let ram = Region::RAM.base();
+        let text = Asm::new()
+            .li(Reg::T0, ram)
+            .li(Reg::T1, ram + 32)
+            .li(Reg::T2, ram + 64)
+            .ext(Extmulk, Reg::T2, Reg::T0, Reg::T1)
+            .exit()
+            .finish();
+        let program = Program::new(&text, Region::TEXT.base(), image, 4, 0).expect("valid instruction program");
+        assert!(unmatched_run(&program, &program.execute(&[]).unwrap()).is_empty());
+
+        // Mutation: the row claims b_1 = 1, as if b were (9, 1, 0), and c and RAM follow it.
+        let mut forged = program.execute(&[]).unwrap();
+        let ext = tables::table_of(rv::Class::Ext).unwrap();
+        let row = forged.trace.rows[ext].iter_mut().find(|r| r.ts != 0).unwrap();
+        let x = row.ext.as_mut().unwrap();
+        x.instance.limbs[4] = 1;
+        x.result = x.instance.eval();
+        for (k, word) in x.result.c.into_iter().enumerate() {
+            forged.trace.ram_fin[8 + k] = F64(word);
+        }
+
+        // Two tuples on each side: b_1's read of x0, and b_2's read right after it.
+        //
+        //     b_1 pulls a 1 nothing pushed, and pushes a 1
+        //     b_2 pulls the 0 it found, which nothing pushed, and leaves the 1 unpulled
+        let unmatched = unmatched_run(&program, &forged);
+        assert_eq!(unmatched.len(), 4, "{unmatched:?}");
     }
 
     #[test]
@@ -894,10 +931,12 @@ mod tests {
         //
         // Fixture state: the run sets `a0 = 42` and exits, never touching `a1`.
         // Past the exit sits `jal a1, 0`, a jump to itself, which the run never reaches.
+        // The no-op sizes ALU's fill so that it ends on the lone jump.
         // Mutation: a padding instance of it takes the place of the fill's lone jump, its write pulling `a1`'s seed.
         // `a1`'s final value is what it pushes, so the output claims `a1 = pc + 4`.
         let text = Asm::new()
             .i(Addi, Reg::A0, Reg::ZERO, 42)
+            .i(Addi, Reg::ZERO, Reg::ZERO, 0)
             .exit()
             .label("spin")
             .jal(Reg::A1, "spin")
@@ -923,12 +962,15 @@ mod tests {
         // Invariant: a row of the run pulls only timestamps of the run, which have the live bit.
         //
         // Fixture state: `t0 = 5`, then `a0 = t0 + x0`; past the exit sits `jal t0, 0`, a jump to itself.
+        // The two no-ops size ALU's fill so that it ends on the lone jump.
         // Mutation: a padding instance of the jump pulls `t0`'s write and pushes `(t0, 3, pc + 4)`, which the run's read pulls.
         // The read's `prev` is 3, live bit clear, and the output claims `a0 = pc + 4`.
         let text = Asm::new()
             .i(Addi, Reg::T0, Reg::ZERO, 5)
             .r(Add, Reg::A0, Reg::T0, Reg::ZERO)
             .i(Addi, Reg::T1, Reg::ZERO, 0)
+            .i(Addi, Reg::ZERO, Reg::ZERO, 0)
+            .i(Addi, Reg::ZERO, Reg::ZERO, 0)
             .exit()
             .label("spin")
             .jal(Reg::T0, "spin")

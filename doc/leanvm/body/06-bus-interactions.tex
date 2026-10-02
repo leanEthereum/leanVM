@@ -163,13 +163,15 @@ Then $\mathit{step}$ holds $\ell$ at position $5$, at position $j+1$ for $5\le j
 The bytecode is a lookup array (\S\ref{sec:lookup}) of $\nprog = 2^{\kbc}$ entries, entry $i$ at the address $\intk{\tbase+4i}$, the byte address of the instruction. Bus interaction uses domain separation $\sep=\dsep{BC} = \gen^{2}$. The program is public, and so is its decoding: an entry is not the instruction word but the fields a row needs of it, decoded once by both parties (\S\ref{sec:e2e-bc}). So $\ncomp=12$: the class tag, the flags, the three register numbers, the immediate, the successor $\intk{\tbase+4i+4}$, which every row pushes as its next $\pc$ unless it jumps, the three control fields of a branch or a jump, a zero in slot $12$, where the row of a division puts its verdict (\S\ref{sec:tables}), and the exit selector. With the separator and the address ahead of them, this is the widest entry on the bus at $14$ coordinates, which is what forces the four index bits, hence the $m=16$ slots of \S\ref{sec:m3}. Its producer's multiplicity column $\mlt$ has height $2^{\kbc}$, entry $i$'s word counting the rows at $\pc=\intk{\tbase+4i}$. A jump's target needs no check of its own: the row it leads to reads the bytecode there, and Corollary~\ref{cor:addrrange} makes it an instruction. Coordinate $2$ is the tag, naming the instruction's class and its table:
 \begin{gather*}
   \opc{ALU}=\gen^{0},\quad \opc{LOAD}=\gen^{1},\quad \opc{STORE}=\gen^{2},\quad \opc{SHIFT}=\gen^{3},\\
-  \opc{MUL}=\gen^{4},\quad \opc{MULH}=\gen^{5},\quad \opc{DIV}=\gen^{6},\quad \opc{HASH}=\gen^{7}.
+  \opc{MUL}=\gen^{4},\quad \opc{MULH}=\gen^{5},\quad \opc{DIV}=\gen^{6},\quad \opc{HASH}=\gen^{7},\quad \opc{EXT}=\gen^{8}.
 \end{gather*}
 A slot of the text that holds no instruction the machine defines has the tag $0$, which is no table's: a run reaching it has no proof.
 
 \subsection{Addresses}\label{sec:exp}
 
 Integer addition is no low-degree operation of $\K$, and none is needed on the bus. A register's address is its number, a field of the public bytecode entry. A load's or a store's address is $\intk{\regs[\mathit{rs1}]+\mathrm{imm}}$, and computing it is the business of the row's circuit (\S\ref{sec:tables}), which also puts the misalignment bits back into the word it hands the bus: an aligned access names its cell's address, a misaligned one an address no cell has, so Theorem~\ref{thm:rwmem} refuses it with no constraint of its own. The words of a \texttt{blake2s} block are at $\regs[\mathit{rs1}]\oplus8k$ by definition (\S\ref{sec:vm}), and the field sum $\intk{\regs[\mathit{rs1}]}+\intk{8k}$ is that XOR: the address is a column plus a constant.
+
+The limbs of an extension-field element are at $p+8$ and $p+16$ (\S\ref{sec:vm}), integer sums with no alignment to make them XORs. So the row's circuit computes them, as it computes a load's address, and a misaligned or unmapped limb names no cell.
 
 \subsection{The index columns}\label{sec:idxcol}
 

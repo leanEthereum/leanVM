@@ -16,13 +16,14 @@
 //! unmapped access, or an `ecall` that is not `exit` leave a run with no proof. So a
 //! panic is one illegal instruction, and nothing else is needed.
 //!
-//! Off the VM the hasher, [`Words`] and [`PublicValues`] remain, in portable Rust.
+//! Off the VM the hasher, the extension field, [`Words`] and [`PublicValues`] remain, in portable Rust.
 //!
 //! So a guest's library code also runs natively, as its own reference, and a host computes
 //! the output a guest must give.
 #![no_std]
 
 mod blake2s;
+pub mod ext;
 mod io;
 pub use blake2s::Blake2s;
 pub use io::{PublicValues, Words, as_words_unchecked};

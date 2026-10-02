@@ -5,6 +5,7 @@
 use std::collections::HashMap;
 
 pub use super::instruction::BranchOp::{self, *};
+pub use super::instruction::ExtOp::{self, *};
 pub use super::instruction::ImmOp::{self, *};
 pub use super::instruction::LoadOp::{self, *};
 pub use super::instruction::RegOp::{self, *};
@@ -172,6 +173,11 @@ impl Asm {
     /// `last` marks the final block.
     pub fn blake2s(&mut self, rs1: Reg, rs2: Reg, last: bool) -> &mut Self {
         self.emit(Instruction::r(Opcode::Custom0, last as u32, 0, Reg::ZERO, rs1, rs2))
+    }
+
+    /// `op rd, rs1, rs2`: an extension-field multiplication, every register an address.
+    pub fn ext(&mut self, op: ExtOp, rd: Reg, rs1: Reg, rs2: Reg) -> &mut Self {
+        self.emit(op.encode(rd, rs1, rs2))
     }
 
     /// `ecall`.

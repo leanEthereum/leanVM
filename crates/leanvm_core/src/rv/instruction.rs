@@ -78,6 +78,8 @@ pub enum Opcode {
     Load = 0x03,
     /// The custom-0 space, which holds the BLAKE2s compression.
     Custom0 = 0x0b,
+    /// The custom-1 space, which holds the extension-field multiplication.
+    Custom1 = 0x2b,
     /// `FENCE`.
     MiscMem = 0x0f,
     /// Register-immediate arithmetic.
@@ -105,10 +107,11 @@ pub enum Opcode {
 }
 
 impl Opcode {
-    /// Every opcode rv64im uses.
-    pub const ALL: [Self; 14] = [
+    /// Every opcode the machine uses: rv64im's, and the two custom spaces.
+    pub const ALL: [Self; 15] = [
         Self::Load,
         Self::Custom0,
+        Self::Custom1,
         Self::MiscMem,
         Self::OpImm,
         Self::Auipc,
@@ -125,11 +128,12 @@ impl Opcode {
 
     /// The opcode with these seven bits.
     ///
-    /// Returns `None` for an opcode rv64im does not use.
+    /// Returns `None` for an opcode the machine does not use.
     pub const fn from_bits(bits: u32) -> Option<Self> {
         Some(match bits {
             0x03 => Self::Load,
             0x0b => Self::Custom0,
+            0x2b => Self::Custom1,
             0x0f => Self::MiscMem,
             0x13 => Self::OpImm,
             0x17 => Self::Auipc,
@@ -211,7 +215,7 @@ impl Instruction {
 
     /// The opcode, bits 0 to 6.
     ///
-    /// Returns `None` for an opcode rv64im does not use.
+    /// Returns `None` for an opcode the machine does not use.
     pub const fn opcode(self) -> Option<Opcode> {
         Opcode::from_bits(Self::OPCODE.extract(self.0))
     }
@@ -553,6 +557,22 @@ operations! {
     }
 }
 
+operations! {
+    /// An extension-field multiplication: `op rd, rs1, rs2`, every register an address, as its `funct3`.
+    ///
+    /// Bit 0 of the function accumulates into `rd`, and bit 1 makes `rs2` a base-field element.
+    ExtOp: u32 {
+        /// `E[rd] = E[rs1] * E[rs2]`.
+        Extmul = "extmul" => 0,
+        /// `E[rd] = E[rd] + E[rs1] * E[rs2]`.
+        Extmac = "extmac" => 1,
+        /// `E[rd] = E[rs1] * K[rs2]`.
+        Extmulk = "extmulk" => 2,
+        /// `E[rd] = E[rd] + E[rs1] * K[rs2]`.
+        Extmack = "extmack" => 3,
+    }
+}
+
 impl RegOp {
     /// The instruction `op rd, rs1, rs2`.
     pub const fn encode(self, rd: Reg, rs1: Reg, rs2: Reg) -> Instruction {
@@ -605,6 +625,13 @@ impl StoreOp {
     /// The instruction `op rs2, offset(rs1)`, the offset's low 12 bits kept.
     pub const fn encode(self, rs2: Reg, rs1: Reg, offset: i32) -> Instruction {
         Instruction::s(self.fields(), rs1, rs2, offset)
+    }
+}
+
+impl ExtOp {
+    /// The instruction `op rd, rs1, rs2`.
+    pub const fn encode(self, rd: Reg, rs1: Reg, rs2: Reg) -> Instruction {
+        Instruction::r(Opcode::Custom1, self.fields(), 0, rd, rs1, rs2)
     }
 }
 
@@ -771,14 +798,19 @@ mod tests {
                     .iter()
                     .map(|op| (op.mnemonic(), op.encode(zero, zero, 0).bits())),
             )
+            .chain(
+                ExtOp::ALL
+                    .iter()
+                    .map(|op| (op.mnemonic(), op.encode(zero, zero, zero).bits())),
+            )
             .collect();
 
-        // rv64im has 58 such operations: 28 + 7 + 6 + 7 + 4 + 6.
-        assert_eq!(all.len(), 58);
+        // rv64im has 58 such operations, 28 + 7 + 6 + 7 + 4 + 6, and the extension field adds 4.
+        assert_eq!(all.len(), 62);
 
         // A duplicate would make two names emit, or decode to, the same instruction.
         let mnemonics: HashSet<_> = all.iter().map(|&(name, _)| name).collect();
         let encodings: HashSet<_> = all.iter().map(|&(_, bits)| bits).collect();
-        assert_eq!((mnemonics.len(), encodings.len()), (58, 58));
+        assert_eq!((mnemonics.len(), encodings.len()), (62, 62));
     }
 }

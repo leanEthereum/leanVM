@@ -147,9 +147,9 @@ mod tests {
 
     #[test]
     fn the_membership_check_is_the_field_inner_product() {
-        // Invariant: the bucketed inner product is the field's, for any row and dual.
+        // Invariant: the guest's inner product is the field's, for any row and dual.
         //
-        // So the test uses no codeword at all, only field arithmetic, which the guest never does.
+        // So the test uses no codeword at all, only the host's field arithmetic.
         let mut state = 0x243F_6A88_85A3_08D3u64;
         let mut next = || {
             // SplitMix64.
@@ -183,8 +183,8 @@ mod tests {
             // Mutation: one bit of `L_0`, which moves the product by `t^bit * w_0 != 0`.
             //
             //     limb 0 bit 0    the lowest bit
-            //     limb 1 bit 11   the second window's first bit
-            //     limb 2 bit 55   the top window's first bit
+            //     limb 1 bit 11   a middle bit
+            //     limb 2 bit 55   a bit whose product reaches past x^63
             //     limb 0 bit 63   the top bit, whose product reaches degree 126
             for (c, bit) in [(0, 0), (1, 11), (2, 55), (0, 63)] {
                 let mut broken = dual.clone();

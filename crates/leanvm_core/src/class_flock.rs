@@ -117,6 +117,8 @@ fn word_of(word: Word, slots: &[u32], row: &Row, entry: &Entry) -> u64 {
         }
         .hints()
     };
+    // An extension-field row's limbs.
+    let ext = || row.ext.as_ref().expect("an extension-field row has its limbs");
     match word {
         Word::Clock => row.ts,
         Word::Prev(i) => row.prev()[i as usize],
@@ -128,8 +130,22 @@ fn word_of(word: Word, slots: &[u32], row: &Row, entry: &Entry) -> u64 {
         Word::Out => row.out,
         Word::Taken => row.taken as u64,
         Word::Address => row.ram.address,
-        Word::Cell(k) => row.hash.as_ref().map_or(row.ram.old, |h| h.block[k as usize]),
-        Word::CellNew(k) => row.hash.as_ref().map_or(row.ram.new, |h| h.word_after(k as usize)),
+        Word::Cell(k) => match (&row.hash, &row.ext) {
+            (Some(h), _) => h.block[k as usize],
+            (_, Some(x)) => x.instance.limbs[k as usize],
+            _ => row.ram.old,
+        },
+        Word::CellNew(k) => match (&row.hash, &row.ext) {
+            (Some(h), _) => h.word_after(k as usize),
+            (_, Some(x)) => x.result.c[k as usize - 6],
+            _ => row.ram.new,
+        },
+        Word::Dest => ext().instance.pointers[2],
+        Word::LimbAddress(k) => {
+            let i = crate::rv::ExtResult::OFFSET_LIMBS.iter().position(|&j| j == k as usize);
+            ext().result.addresses[i.expect("a computed limb address")]
+        }
+        Word::LimbSeparator => ext().result.separator,
         Word::Bad => 0,
         Word::HintQ => hints().0,
         Word::HintR => hints().1,

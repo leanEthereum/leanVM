@@ -293,6 +293,80 @@ fn blake2s_precompile_proves_and_verifies() {
     );
 }
 
+/// The extension-field precompile, checked against the host's `GF(2^192)`.
+///
+/// The image holds sixteen elements `x_i`, then sixteen base-field words `w_i`, then the outputs.
+///
+/// - `sum_i x_i * x_(i+1)`, by `extmac`.
+/// - `sum_i x_i * w_i`, by `extmack`.
+/// - `x_0` cubed, by `extmul` in place and then into a fresh element.
+/// - `x_1 * w_1`, by `extmulk`.
+///
+/// The four outputs are summed into `a0..a2`, limb by limb.
+#[test]
+fn extension_field_products_prove_and_verify() {
+    use primitives::field::{F64, F192};
+    const N: usize = 16;
+    let x: Vec<[u64; 3]> = (0..N as u64)
+        .map(|i| std::array::from_fn(|c| 0x9E37_79B9_7F4A_7C15u64.wrapping_mul(3 * i + c as u64 + 1) ^ (i << 61)))
+        .collect();
+    let w: Vec<u64> = (0..N as u64)
+        .map(|i| 0xD6E8_FEB8_6659_FD93u64.wrapping_mul(i + 7))
+        .collect();
+    // The image: the elements, the words, then four zeroed outputs and a scratch copy of x_0.
+    let (xs, ws, out) = (
+        Region::RAM.base(),
+        Region::RAM.base() + 24 * N as u64,
+        Region::RAM.base() + 32 * N as u64,
+    );
+    let mut image: Vec<u64> = x.as_flattened().to_vec();
+    image.extend(&w);
+    image.extend([0; 12]);
+    image.extend(x[0]);
+
+    let mut a = Asm::new();
+    a.li(Reg::S0, xs).li(Reg::S1, ws).li(Reg::S2, out);
+    // The two inner products, into outputs 0 and 1.
+    a.i(Addi, Reg::S3, Reg::S2, 24);
+    for i in 0..N as i32 - 1 {
+        a.i(Addi, Reg::T0, Reg::S0, 24 * i)
+            .i(Addi, Reg::T1, Reg::S0, 24 * i + 24)
+            .ext(Extmac, Reg::S2, Reg::T0, Reg::T1);
+    }
+    for i in 0..N as i32 {
+        a.i(Addi, Reg::T0, Reg::S0, 24 * i)
+            .i(Addi, Reg::T1, Reg::S1, 8 * i)
+            .ext(Extmack, Reg::S3, Reg::T0, Reg::T1);
+    }
+    // x_0 cubed: the scratch copy squared in place, then times x_0 into output 2.
+    a.i(Addi, Reg::T2, Reg::S2, 96).i(Addi, Reg::T0, Reg::S2, 48);
+    a.ext(Extmul, Reg::T2, Reg::T2, Reg::T2)
+        .ext(Extmul, Reg::T0, Reg::T2, Reg::S0);
+    // x_1 * w_1 into output 3.
+    a.i(Addi, Reg::T0, Reg::S0, 24)
+        .i(Addi, Reg::T1, Reg::S1, 8)
+        .i(Addi, Reg::T2, Reg::S2, 72);
+    a.ext(Extmulk, Reg::T2, Reg::T0, Reg::T1);
+    // a0..a2: the XOR of the four outputs' limbs 0, 1 and 2, which is their sum in E.
+    for (k, reg) in [Reg::A0, Reg::A1, Reg::A2].into_iter().enumerate() {
+        for e in 0..4 {
+            a.load(Ld, Reg::T0, 24 * e + 8 * k as i32, Reg::S2)
+                .r(Xor, reg, reg, Reg::T0);
+        }
+    }
+    let program =
+        Program::new(&a.exit().finish(), Region::TEXT.base(), image, 7, 0).expect("valid instruction program");
+
+    // The same values from the host's fields.
+    let e = |v: [u64; 3]| F192::new(v[0], v[1], v[2]);
+    let dot = (0..N - 1).fold(F192::ZERO, |acc, i| acc + e(x[i]) * e(x[i + 1]));
+    let mixed = (0..N).fold(F192::ZERO, |acc, i| acc + e(x[i]).mul_base(F64(w[i])));
+    let cube = e(x[0]) * e(x[0]) * e(x[0]);
+    let scaled = e(x[1]).mul_base(F64(w[1]));
+    let folded = dot + mixed + cube + scaled;
+    proves_and_verifies("ext", &program, [folded.c0, folded.c1, folded.c2, 0]);
+}
+
 /// The advice region: words the prover supplies, read and written like RAM, which the
 /// statement says nothing about, so one program proves a different output per advice.
 #[test]

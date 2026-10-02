@@ -5,7 +5,9 @@
 //! Everything else comes back from the program's entry at the row's index.
 
 use crate::rv::machine::{MemoryAccess, Step};
-use crate::rv::{self, BlockAccess, Class, Hash, Machine, RegisterFile, WordAccess};
+use crate::rv::{
+    self, BlockAccess, Class, Ext, ExtResult, Hash, InstructionClass, Limb, Machine, RegisterFile, WordAccess,
+};
 use crate::tables::{self, CLASSES, MAX_CYCLES, N_TABLES, RAM_SLOT, REG_SLOTS, SEED_CLOCK};
 use primitives::field::F64;
 
@@ -86,7 +88,7 @@ impl TraceBuilder {
 
         // The register accesses the class makes, in column order, each at its slot of the row's clock.
         let cells = [e.a1, e.a2, e.ad].map(|cell| cell as usize);
-        let made = [true, spec.reads_rs2, spec.writes_rd];
+        let made = [true, spec.reads_rs2, spec.writes_rd || spec.reads_rd];
         let mut prev = [0; 4];
         let mut n = 0;
         for (i, slot) in REG_SLOTS.into_iter().enumerate() {
@@ -98,7 +100,7 @@ impl TraceBuilder {
 
         // The memory access, after the register accesses; the machine made it, so each address names a cell.
         let cell_of = |address: u64| m.memory().cell(address).expect("an access the machine made");
-        let (mut word, mut hash) = (WordAccess::default(), None);
+        let (mut word, mut hash, mut ext) = (WordAccess::default(), None, None);
         match step.memory {
             MemoryAccess::None => {}
             MemoryAccess::Word(access) => {
@@ -119,6 +121,23 @@ impl TraceBuilder {
                     prev: all,
                 }));
             }
+            // An extension-field row's limbs, after its register reads: memory cells, or `x0` for a base-field `b`.
+            MemoryAccess::Ext(instance) => {
+                let mut all = [0; 3 + Ext::LIMBS];
+                all[..n].copy_from_slice(&prev[..n]);
+                for k in 0..Ext::LIMBS {
+                    let at = ts | u64::from(tables::limb_slot(k));
+                    all[n + k] = match Ext::limb(instance.pointers, instance.flags, k) {
+                        Limb::Memory(address) => self.ram.access(cell_of(address), at),
+                        Limb::Zero => self.regs.access(0, at),
+                    };
+                }
+                ext = Some(Box::new(ExtRow {
+                    instance: *instance,
+                    result: instance.eval(),
+                    prev: all,
+                }));
+            }
         }
 
         self.rows[table].push(Row {
@@ -132,6 +151,7 @@ impl TraceBuilder {
             ram: word,
             prev,
             hash,
+            ext,
         });
     }
 
@@ -166,9 +186,25 @@ impl TraceBuilder {
             })
         });
 
+        // An extension-field row multiplies zeros at address zero, and writes zero over zero.
+        let ext = (e.class == Class::Ext).then(|| {
+            let instance = Ext {
+                flags: e.flags,
+                pointers: [0; 3],
+                limbs: [0; Ext::LIMBS],
+            };
+            let mut all = [0; 3 + Ext::LIMBS];
+            all.copy_from_slice(slots);
+            Box::new(ExtRow {
+                instance,
+                result: instance.eval(),
+                prev: all,
+            })
+        });
+
         // Any other row keeps its slots' timestamps itself.
         let mut prev = [0; 4];
-        if hash.is_none() {
+        if hash.is_none() && ext.is_none() {
             prev[..slots.len()].copy_from_slice(slots);
         }
 
@@ -183,6 +219,7 @@ impl TraceBuilder {
             ram: outcome.access.unwrap_or_default(),
             prev,
             hash,
+            ext,
         });
     }
 
@@ -224,6 +261,16 @@ impl HashRow {
     }
 }
 
+/// What an extension-field row adds to a row.
+pub(crate) struct ExtRow {
+    /// The instance as the row found it.
+    pub(crate) instance: Ext,
+    /// What the instance computes, and where its limbs are on the bus.
+    pub(crate) result: ExtResult,
+    /// The previous timestamp of every access, the registers' first.
+    pub(crate) prev: [u64; 3 + Ext::LIMBS],
+}
+
 /// One executed instruction, as its table's row records it.
 pub(crate) struct Row {
     /// The entry executed.
@@ -244,18 +291,21 @@ pub(crate) struct Row {
     pub(crate) ram: WordAccess,
     /// The previous timestamps of the register accesses the class makes, then of its RAM access.
     ///
-    /// A hash row keeps them in its hash part instead.
+    /// A hash row keeps them in its hash part instead, and an extension-field row in its own.
     pub(crate) prev: [u64; 4],
     /// A hash row's block, and its accesses.
     pub(crate) hash: Option<Box<HashRow>>,
+    /// An extension-field row's limbs, and its accesses.
+    pub(crate) ext: Option<Box<ExtRow>>,
 }
 
 impl Row {
     /// The previous timestamps of the row's accesses in column order, at least as many as its class makes.
     pub(crate) fn prev(&self) -> &[u64] {
-        match &self.hash {
-            Some(hash) => &hash.prev,
-            None => &self.prev,
+        match (&self.hash, &self.ext) {
+            (Some(hash), _) => &hash.prev,
+            (_, Some(ext)) => &ext.prev,
+            _ => &self.prev,
         }
     }
 }

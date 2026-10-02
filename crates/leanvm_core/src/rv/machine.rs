@@ -10,7 +10,7 @@ use super::entry::{Class, Entry};
 use super::program::Program;
 use super::region::Region;
 use super::register::{Reg, RegisterFile, Syscall};
-use super::semantics::{BlockAccess, Hash, Load, WordAccess};
+use super::semantics::{BlockAccess, Ext, Hash, InstructionClass, Limb, Load, WordAccess};
 
 /// Why a run stops without halting: a fault of the ISA.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, thiserror::Error)]
@@ -22,7 +22,7 @@ pub enum Trap {
         /// The faulting address.
         pc: u64,
     },
-    /// A load, a store or a hash block at an address its width does not divide.
+    /// A load, a store, a hash block or an extension-field limb at an address its width does not divide.
     #[error("misaligned access to {address:#x} at pc {pc:#x}")]
     Misaligned {
         /// The instruction's address.
@@ -131,15 +131,22 @@ impl<'a> Machine<'a> {
             Class::Hash => Some(self.block(pc, v1)?),
             _ => None,
         };
+        let limbs = match entry.class {
+            Class::Ext => Some(self.limbs(pc, [v1, v2, self.registers.read(entry.ad)], entry.flags)?),
+            _ => None,
+        };
 
         // Compute, then apply the memory access.
         let outcome = entry.evaluate(v1, v2, cell.map_or(0, |cell| self.memory.get(cell)));
-        let memory = match (cell, outcome.access, block) {
-            (Some(cell), Some(access), _) => {
+        let memory = match (cell, outcome.access, block, limbs) {
+            (Some(cell), Some(access), _, _) => {
                 self.memory.set(cell, access.new);
                 MemoryAccess::Word(access)
             }
-            (_, _, Some(cells)) => MemoryAccess::Block(Box::new(self.compress(&cells, v2, entry.flags))),
+            (_, _, Some(cells), _) => MemoryAccess::Block(Box::new(self.compress(&cells, v2, entry.flags))),
+            (_, _, _, Some((pointers, cells))) => {
+                MemoryAccess::Ext(Box::new(self.multiply(pointers, &cells, entry.flags)))
+            }
             _ => MemoryAccess::None,
         };
 
@@ -240,6 +247,33 @@ impl<'a> Machine<'a> {
         Ok(cells)
     }
 
+    /// The pointers of an extension-field product and the cells of its limbs, `None` for a limb read from `x0`.
+    ///
+    /// Every limb in memory must be a mapped word, `a`'s first, then `b`'s, then `c`'s.
+    fn limbs(&self, pc: u64, pointers: [u64; 3], flags: u64) -> Result<([u64; 3], [Option<usize>; Ext::LIMBS]), Trap> {
+        let mut cells = [None; Ext::LIMBS];
+        for (k, cell) in cells.iter_mut().enumerate() {
+            if let Limb::Memory(address) = Ext::limb(pointers, flags, k) {
+                *cell = Some(self.cell(pc, address, 3)?);
+            }
+        }
+        Ok((pointers, cells))
+    }
+
+    /// Read every limb, then write `c`: so `c` may be `a` or `b`.
+    fn multiply(&mut self, pointers: [u64; 3], cells: &[Option<usize>; Ext::LIMBS], flags: u64) -> Ext {
+        let instance = Ext {
+            flags,
+            pointers,
+            limbs: cells.map(|cell| cell.map_or(0, |cell| self.memory.get(cell))),
+        };
+        let c = instance.eval().c;
+        for (cell, word) in cells[6..].iter().zip(c) {
+            self.memory.set(cell.expect("c is in memory"), word);
+        }
+        instance
+    }
+
     /// Compress the block in `cells` and write the result to its result words.
     fn compress(&mut self, cells: &[usize; Hash::WORDS], t: u64, flags: u64) -> BlockAccess {
         let block = cells.map(|cell| self.memory.get(cell));
@@ -255,10 +289,12 @@ impl<'a> Machine<'a> {
     ///
     /// A store and a hash always write the sink, which nothing reads.
     ///
+    /// An extension-field product reads `rd` as an address, and writes no register.
+    ///
     /// They make no write at all, so their tables have none to prove.
     const fn write_destination(&mut self, entry: &Entry, vd: u64) -> u64 {
         match entry.class {
-            Class::Store | Class::Hash => 0,
+            Class::Store | Class::Hash | Class::Ext => 0,
             _ => self.registers.replace(entry.ad, vd),
         }
     }
@@ -273,6 +309,8 @@ pub enum MemoryAccess {
     Word(WordAccess),
     /// A whole block: the hash.
     Block(Box<BlockAccess>),
+    /// The limbs of an extension-field product: the instance as the row found it.
+    Ext(Box<Ext>),
 }
 
 /// One executed instruction, as a row of its class's table records it.
@@ -290,7 +328,7 @@ pub struct Step {
     pub taken: bool,
     /// What the destination held before.
     ///
-    /// Zero for a store or a hash, whose destination is the sink and which write nothing.
+    /// Zero for a store, a hash or an extension-field product, which write no register.
     pub vd_old: u64,
     /// What the destination holds now: the output, or `pc + 4` for a link.
     pub vd: u64,
@@ -507,6 +545,64 @@ mod tests {
         assert_eq!(ram[4..8], expected);
         assert_eq!(ram[..4], block[..4]);
         assert_eq!(ram[8..16], block[8..16]);
+    }
+
+    #[test]
+    fn an_extension_product_reads_every_operand_before_it_writes() {
+        // Fixture: x = (3, 5, 7) at RAM's base and the base-field w = 9 right after it, packed.
+        //
+        //     t0 -> x at +0      t1 -> w at +24      t2 -> c at +32
+        let (x, w) = ([3, 5, 7], 9);
+        let product = |a: [u64; 3], b: [u64; 3]| {
+            let limbs = [a[0], a[1], a[2], b[0], b[1], b[2], 0, 0, 0];
+            Ext {
+                flags: 0,
+                pointers: [0; 3],
+                limbs,
+            }
+            .eval()
+            .c
+        };
+        let run = |f: &dyn Fn(&mut Asm)| {
+            let text = exiting(|a| {
+                a.li(Reg::T0, Region::RAM.base())
+                    .li(Reg::T1, Region::RAM.base() + 24)
+                    .li(Reg::T2, Region::RAM.base() + 32);
+                f(a);
+            });
+            let program = Program::new(&text, Region::TEXT.base(), vec![3, 5, 7, 9], LOG_RAM, 0).unwrap();
+            let mut m = Machine::new(&program, &[]);
+            m.run().map(|_| m.memory().ram()[..7].to_vec())
+        };
+
+        // Squaring in place: c is a, read before it is written.
+        let square = product(x, x);
+        assert_eq!(
+            run(&|a| {
+                a.ext(Extmul, Reg::T0, Reg::T0, Reg::T0);
+            })
+            .unwrap()[..3],
+            square
+        );
+
+        // Accumulating twice into c, the second time by the base-field w.
+        let sum: Vec<u64> = (0..3).map(|i| square[i] ^ product(x, [w, 0, 0])[i]).collect();
+        let ram = run(&|a| {
+            a.ext(Extmul, Reg::T2, Reg::T0, Reg::T0)
+                .ext(Extmack, Reg::T2, Reg::T0, Reg::T1);
+        });
+        assert_eq!(ram.unwrap()[4..7], sum[..]);
+
+        // A misaligned limb traps, and so does a limb past RAM.
+        let misaligned = run(&|a| {
+            a.i(Addi, Reg::T1, Reg::T1, 4).ext(Extmul, Reg::T2, Reg::T0, Reg::T1);
+        });
+        assert!(matches!(misaligned, Err(Trap::Misaligned { address, .. }) if address == Region::RAM.base() + 28));
+        let past = run(&|a| {
+            a.li(Reg::T0, Region::RAM.base() + RAM_BYTES - 16)
+                .ext(Extmul, Reg::T2, Reg::T0, Reg::T0);
+        });
+        assert!(matches!(past, Err(Trap::Unmapped { address, .. }) if address == Region::RAM.base() + RAM_BYTES));
     }
 
     #[test]

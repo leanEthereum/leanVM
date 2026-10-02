@@ -7,9 +7,9 @@
 //! The program is public, so each instruction word is decoded into an entry once, before any run.
 
 use super::circuits::ClassCircuit;
-use super::instruction::{ImmOp, Instruction, LoadOp, Opcode, RegOp, ShiftOp, StoreOp};
+use super::instruction::{ExtOp, ImmOp, Instruction, LoadOp, Opcode, RegOp, ShiftOp, StoreOp};
 use super::register::{Reg, RegisterFile};
-use super::semantics::{Alu, Div, Hash, InstructionClass, Load, Mul, Mulh, Outcome, Shift, Store, WordAccess};
+use super::semantics::{Alu, Div, Ext, Hash, InstructionClass, Load, Mul, Mulh, Outcome, Shift, Store, WordAccess};
 use flock::circuit::Circuit;
 
 /// An instruction class: one table, one circuit.
@@ -31,6 +31,8 @@ pub enum Class {
     Div,
     /// The BLAKE2s compression, a custom instruction.
     Hash,
+    /// The multiplication in the extension field, by an element of it or of the base field: a custom instruction.
+    Ext,
     /// No table runs it, so reaching one is a trap.
     Illegal,
 }
@@ -51,13 +53,16 @@ impl Class {
             Self::Mulh => Mulh::LEGAL,
             Self::Div => Div::LEGAL,
             Self::Hash => Hash::LEGAL,
+            Self::Ext => Ext::LEGAL,
             Self::Illegal => &[],
         }
     }
 
-    /// An instruction of the class that names no register but `x0`.
+    /// An instruction of the class that names no register but `x0`, or `ra` where `x0` is undefined.
     ///
-    /// A load, a store and a hash touch the memory at address zero.
+    /// A load, a store, a hash and an extension-field product touch the memory at address zero.
+    ///
+    /// The extension-field product reads `c`'s address from `ra`, as an address in `x0` is undefined.
     ///
     /// Returns `None` for the illegal class, which has no instruction.
     pub const fn nop(self) -> Option<Instruction> {
@@ -71,6 +76,7 @@ impl Class {
             Self::Mulh => RegOp::Mulhu.encode(zero, zero, zero),
             Self::Div => RegOp::Divu.encode(zero, zero, zero),
             Self::Hash => Instruction::r(Opcode::Custom0, 0, 0, zero, zero, zero),
+            Self::Ext => ExtOp::Extmul.encode(Reg::RA, zero, zero),
             Self::Illegal => return None,
         })
     }
@@ -90,6 +96,7 @@ impl Class {
             Self::Mulh => Mulh::circuit(),
             Self::Div => Div::circuit(),
             Self::Hash => Hash::circuit(),
+            Self::Ext => Ext::circuit(),
             Self::Illegal => panic!("the illegal class has no circuit"),
         }
     }
@@ -172,7 +179,7 @@ impl Entry {
     ///
     /// The result holds whether or not a run could make the access.
     ///
-    /// A hash computes nothing here: its block is the machine's to read.
+    /// A hash or an extension-field product computes nothing here: its operands are the machine's to read.
     pub fn evaluate(&self, v1: u64, v2: u64, cell: u64) -> Outcome {
         let (flags, imm) = (self.flags, self.imm);
         let (out, taken, access) = match self.class {
@@ -211,7 +218,7 @@ impl Entry {
                 };
                 (0, false, Some(access))
             }
-            Class::Hash | Class::Illegal => (0, false, None),
+            Class::Hash | Class::Ext | Class::Illegal => (0, false, None),
         };
         Outcome { out, taken, access }
     }
@@ -339,6 +346,13 @@ impl Entry {
                 Self::sequential(Class::Hash, flags, rs1, rs2, 0, 0)
             }
 
+            // The extension-field multiplication: the function's bits accumulate, and make rs2 a base-field element.
+            //
+            // Every register is an address, and address 0 is unmapped, so rd = x0 is undefined.
+            Opcode::Custom1 if f7 == 0 && f3 <= 3 && rd != 0 => {
+                Self::sequential(Class::Ext, f3 as u64, rs1, rs2, rd, 0)
+            }
+
             // ECALL is a jump to the halt slot.
             //
             // EBREAK and the CSR instructions share its opcode and stay illegal.
@@ -428,11 +442,13 @@ impl Entry {
     /// - A load reads no `rs2`, so its second register is `x0`.
     /// - A store writes no `rd`, so its destination is the sink.
     /// - A hash writes no `rd` and has no immediate.
+    /// - An extension-field product reads `rd` as an address, so it names a register, and has no immediate.
     const fn has_table_constants(&self) -> bool {
         match self.class {
             Class::Load => self.a2 == 0,
             Class::Store => self.ad == RegisterFile::SINK,
             Class::Hash => self.ad == RegisterFile::SINK && self.imm == 0,
+            Class::Ext => self.ad < RegisterFile::SINK && self.imm == 0,
             _ => true,
         }
     }
@@ -442,7 +458,7 @@ impl Entry {
 mod tests {
     use super::*;
     use crate::rv::Region;
-    use crate::rv::instruction::{BranchOp, ImmOp, LoadOp, RegOp, ShiftOp, StoreOp};
+    use crate::rv::instruction::{BranchOp, ExtOp, ImmOp, LoadOp, RegOp, ShiftOp, StoreOp};
     use crate::rv::register::Reg;
     use proptest::prelude::*;
 
@@ -614,6 +630,9 @@ mod tests {
             0x0000_208b,          // BLAKE2S with function 2
             0x0000_008b | 5 << 7, // BLAKE2S with a destination
             0x0200_000b,          // BLAKE2S with a function-7 bit set
+            0x0000_402b | 5 << 7, // an extension-field product with function 4
+            0x0200_002b | 5 << 7, // an extension-field product with a function-7 bit set
+            0x0000_002b,          // an extension-field product into the address in x0
         ];
         for word in illegal {
             assert_eq!(Entry::decode(word, 0), Entry::ILLEGAL, "{word:#010x}");
@@ -631,6 +650,24 @@ mod tests {
             let ad = if rd.index() == 0 { RegisterFile::SINK } else { rd.index() as u8 };
             prop_assert_eq!((e.a1, e.a2, e.ad, e.imm), (rs1.index() as u8, rs2.index() as u8, ad, 0));
             prop_assert!(e.is_well_formed());
+        }
+
+        #[test]
+        fn extension_field_operations_decode_to_their_flags(op in proptest::sample::select(&ExtOp::ALL[..]), rd in any::<Reg>(), rs1 in any::<Reg>(), rs2 in any::<Reg>()) {
+            // Invariant: the flags are the function's bits, and every register is read as itself.
+            //
+            //     extmul 0, extmac 1 (accumulate), extmulk 2 (base field), extmack 3
+            let e = Entry::decode(op.encode(rd, rs1, rs2).bits(), Region::TEXT.base());
+            if rd == Reg::ZERO {
+                // The address in x0 would be 0, which is unmapped.
+                prop_assert_eq!(e, Entry::ILLEGAL);
+            } else {
+                let flags = ExtOp::ALL.iter().position(|&o| o == op).unwrap() as u64;
+                prop_assert_eq!((e.class, e.flags), (Class::Ext, flags));
+                prop_assert_eq!((e.a1, e.a2, e.ad), (rs1.index() as u8, rs2.index() as u8, rd.index() as u8));
+                prop_assert!(e.is_well_formed());
+                prop_assert!(!Entry { ad: RegisterFile::SINK, ..e }.is_well_formed(), "an address in the sink");
+            }
         }
 
         #[test]

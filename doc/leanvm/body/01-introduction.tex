@@ -1,4 +1,4 @@
 % !TeX root = ../drafts/01-introduction.tex
 \section{Introduction}\label{sec:intro}
 
-leanVM is a verifiable virtual machine (commonly a zkVM, for "zero-knowledge virtual machine", though leanVM is not (yet) zk) for RISC-V, the rv64im instruction set \cite{riscv} with one custom instruction, the BLAKE2s compression. It is based on binary fields, inspired by \cite{DP24} and \cite{Flock26}, currently using BLAKE2s \cite{blake2} as hash function.
+leanVM is a verifiable virtual machine (commonly a zkVM, for "zero-knowledge virtual machine", though leanVM is not (yet) zk) for RISC-V, the rv64im instruction set \cite{riscv} with custom instructions for the BLAKE2s compression and for the multiplication in the extension field $\mathbb{F}_{2^{192}}$. It is based on binary fields, inspired by \cite{DP24} and \cite{Flock26}, currently using BLAKE2s \cite{blake2} as hash function.
