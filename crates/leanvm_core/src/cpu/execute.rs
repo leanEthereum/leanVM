@@ -1,6 +1,7 @@
 //! Run the program on the reference interpreter ([`crate::rv::Machine`]) and record,
 //! for every access, what the memory argument needs ([`Trace`]).
 
+use super::trace::RowBufs;
 use super::*;
 use crate::rv::machine::MemoryAccess;
 use crate::rv::{BlockAccess, Class, Hash, Machine, RegisterFile, WordAccess};
@@ -59,7 +60,7 @@ impl Program {
         let mut regs = Cells::new(RegisterFile::CELLS);
         // RAM's cells, then the advice's, as the machine numbers them.
         let mut ram = Cells::new((1 << p.log_ram()) + (1 << p.log_advice()));
-        let mut rows: [Vec<Row>; crate::tables::N_TABLES] = std::array::from_fn(|_| Vec::new());
+        let mut rows = RowBufs::checkout();
 
         // The clock starts on cycle 1, so that the first access comes strictly after the seeds.
         let mut ts = CLOCK_START;
@@ -196,5 +197,25 @@ impl Program {
             base_counts,
             trace,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::super::Program;
+    use crate::rv::asm::*;
+
+    #[test]
+    fn should_not_keep_rows_from_a_previous_execution() {
+        let text = Asm::new().i(Addi, Reg::A0, Reg::ZERO, 5).exit().finish();
+        let program = Program::new(&text, crate::rv::TEXT_BASE, vec![], 2, 0).expect("valid instruction program");
+        let first = program.execute(&[]).expect("run");
+        let counts = first.trace.row_counts();
+        let output = first.output;
+        drop(first);
+
+        let second = program.execute(&[]).expect("run");
+        assert_eq!(second.trace.row_counts(), counts);
+        assert_eq!(second.output, output);
     }
 }
