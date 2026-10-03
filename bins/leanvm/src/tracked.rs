@@ -1,12 +1,12 @@
 //! The programs tracked in CI (`.github/workflows/bench.yml`), reported as Bencher Metric
 //! Format JSON or, counted without a proof, as a markdown table.
 //!
-//! Two lists. The counts are exact and cheap, so they are taken at the README's sizes, the
-//! most one proof holds, on one testbed: they are the same on every machine. Proving on CI's
-//! GitHub-hosted runners (16 GB) takes the sizes that fit them (leanXMSS and leanSPHINCS at a
-//! quarter, and no leanDA, whose one blob is its smallest run) and reports only the proving
-//! time, the one measure that differs between machines. A case's name is its Bencher
-//! history, so renaming one or changing its input starts a new one.
+//! Two lists. The counts are exact and cheap, so they are taken at the README's sizes, on
+//! one testbed: they are the same on every machine. Proving on CI's GitHub-hosted runners
+//! (16 GB) takes the sizes that fit them (leanXMSS and leanSPHINCS at a quarter, and no
+//! leanDA, whose one blob is its smallest run) and reports only the proving time, the one
+//! measure that differs between machines. A case's name is its Bencher history, so renaming
+//! one or changing its input starts a new one.
 
 use bench::{Metric, Plan, bencher_json};
 use leanvm::{Program, Proved, Prover, Rate, Stats, verify};
@@ -88,7 +88,7 @@ fn counted() -> Vec<Case> {
     vec![
         Case::fibonacci("fibonacci-asm-2000000", 2_000_000),
         Case::hash("hash-50000", 50_000),
-        Case::workload("leanxmss-400", workload::leanxmss(400)),
+        Case::workload("leanxmss-451", workload::leanxmss(451)),
         Case::workload("leansphincs-104", workload::leansphincs(104)),
         Case::workload("leanda-1", workload::leanda(1)),
     ]
@@ -99,7 +99,7 @@ fn proven() -> Vec<Case> {
     vec![
         Case::fibonacci("fibonacci-asm-2000000", 2_000_000),
         Case::hash("hash-50000", 50_000),
-        Case::workload("leanxmss-100", workload::leanxmss(100)),
+        Case::workload("leanxmss-112", workload::leanxmss(112)),
         Case::workload("leansphincs-26", workload::leansphincs(26)),
     ]
 }

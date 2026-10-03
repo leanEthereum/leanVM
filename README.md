@@ -117,14 +117,14 @@ Three programs check what an Ethereum node would: leanXMSS signatures, leanSPHIN
 Each guest is a `no_std` library, byte-compatible with the schemes' reference implementations, plus the `main` that runs it. Each host runs the same library natively to build the inputs and the expected output.
 
 ```bash
-cargo leanvm leanxmss --n 400 --repeat 3
+cargo leanvm leanxmss --n 451 --repeat 3
 cargo leanvm leansphincs --n 104 --repeat 3
 cargo leanvm leanda --blobs 1 --repeat 3
 ```
 
 The report gives the RISC-V cycles per signature or per blob, the rows per table and the committed witness, then the proving and verifying times.
 
-These are the most one proof holds: continuations are not implemented.
+A batch is capped first by its guest's advice region (`leanvm_guest::advice_words!` in its `main.rs`), then by what one proof commits (`pcs::MAX_MU`): continuations are not implemented. leanXMSS's batch is the largest whose tables keep their padded heights, leanSPHINCS's fills its advice region, and leanDA's one blob is what one proof holds.
 
 To get the cost of all three without proving, exact and the same on every machine:
 

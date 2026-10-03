@@ -84,7 +84,7 @@ The benchmarks we care about:
 
 - `cargo leanvm fibonacci --n 2000000 --log-inv-rate 1 --repeat 3` (Fibonacci mod 2^64, on registers)
 - `cargo leanvm guest programs/hash/hash.elf --advice 50000 --repeat 3` (the hash precompile, from a Rust guest)
-- `cargo leanvm leanxmss --n 400 --repeat 3`, `leansphincs --n 104`, `leanda --blobs 1` (the Ethereum workloads, the most one proof holds)
+- `cargo leanvm leanxmss --n 451 --repeat 3`, `leansphincs --n 104`, `leanda --blobs 1` (the Ethereum workloads; a batch is capped first by its guest's advice region, `advice_words!`, then by what one proof commits, `pcs::MAX_MU`; leanXMSS's batch is the largest whose tables keep their padded heights)
 - `cargo leanvm bench --cycles-only --markdown` (every program above, flock aside: RISC-V cycles and committed words, exact, no proof: `cpu::Program::measure`, which CI's `Cycles` job in `bench.yml` puts in each run's summary)
 - `BENCH_REPEAT=3 FLOCK_N_LOG=18 cargo bench -p flock --bench hash_batch` (flock alone, on its hand-optimized circuit)
 
