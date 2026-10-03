@@ -38,7 +38,7 @@ use multilinear::{
     PackedWitness, bit_round_materialize, bit_round_pair, fold_and_round_pair_into, fold_in_place_pair,
     fold_in_place_single, interpolate_at_z_combined, round_pair_naive, round_single_naive,
 };
-use primitives::multilinear::skip_lagrange_weights;
+use primitives::multilinear::{skip_lagrange_weights, tail_weight};
 use univariate_skip_optimized::{
     c_s, medium_challenges, round1_shift_reduce_extract_c_packed_padded, small_challenges,
 };
@@ -166,12 +166,21 @@ fn send_round(
 
 /// THE zerocheck prover entry: proves `a·b ⊕ c = 0` over the padded cube,
 /// leaving `(â, b̂, ĉ)` claimed at one point for lincheck to batch.
+///
+/// `a`, `b`, `c` may stop short of the cube, when `tail` is given: one unit of
+/// `2^u` bits (`k_skip + N_INNER ≤ u ≤ m`) whose copies fill the cube past them, the
+/// explicit bits being whole units. Every round message is an eq-weighted sum over
+/// the cube, and every unit past the explicit bits holds the same values, so their
+/// share is one unit's message times the weight the eq point puts on those units
+/// ([`tail_weight`]). The prover's work is the explicit bits and one unit, and the
+/// messages are the ones the whole cube gives. Without a tail they are the cube.
 pub fn prove_packed_padded(
     a_packed: &[u8],
     b_packed: &[u8],
     c_packed: &[u8],
     m: usize,
     padding: &PaddingSpec,
+    tail: Option<PackedWitness<'_>>,
     ps: &mut ProverState,
 ) -> ZerocheckClaim {
     let k_skip = K_SKIP;
@@ -180,11 +189,30 @@ pub fn prove_packed_padded(
         "prove requires m >= k_skip + N_INNER (= {})",
         k_skip + N_INNER
     );
-    let expected_bytes = (1usize << m) / 8;
-    assert_eq!(a_packed.len(), expected_bytes);
-    assert_eq!(b_packed.len(), expected_bytes);
-    assert_eq!(c_packed.len(), expected_bytes);
+    let cube_bytes = (1usize << m) / 8;
+    assert_eq!(b_packed.len(), a_packed.len());
+    assert_eq!(c_packed.len(), a_packed.len());
     let n_mlv = m - k_skip;
+    // The unit, its variables past the skip, and how many units the explicit bits are.
+    let unit = tail.map(|unit| {
+        let bytes = unit.a.len();
+        assert!(bytes.is_power_of_two() && unit.b.len() == bytes && unit.c.len() == bytes);
+        let vars = bytes.trailing_zeros() as usize + 3 - k_skip;
+        assert!(
+            vars >= N_INNER && vars <= n_mlv,
+            "a unit is at least the inner cube and at most the cube"
+        );
+        assert!(
+            a_packed.len().is_multiple_of(bytes),
+            "the explicit bits are whole units"
+        );
+        (unit, vars, a_packed.len() / bytes)
+    });
+    if unit.is_some() {
+        assert!(a_packed.len() <= cube_bytes, "the explicit bits fit the cube");
+    } else {
+        assert_eq!(a_packed.len(), cube_bytes);
+    }
 
     // ---- Construct the equality tail (with fixed constants in the inner 7 dims) ----
     //
@@ -194,6 +222,10 @@ pub fn prove_packed_padded(
     //   r_rest[7..m-k_skip]        : sampled outer equality coordinates
     // Prover and verifier use the same tower-valued challenges directly.
     let r_rest = equality_tail(m, |n| ps.sample_vec(n));
+    // The tail's units, `(unit, its variables, their eq weight)`. A unit's position
+    // is its low variables, the unit's index the rest: the eq weight factors, so the
+    // tail's share of a message is the unit's own times the weight on the indices.
+    let unit = unit.map(|(unit, vars, explicit)| (unit, vars, tail_weight(&r_rest[vars..], explicit)));
 
     // ---- Round 1: URM (extract_c, parallel) ----
     //
@@ -206,9 +238,24 @@ pub fn prove_packed_padded(
     let ntt_s = AdditiveNttGf8::new(k_skip, F8::ZERO);
     let ntt_l = AdditiveNttGf8::new(k_skip, F8(1u8 << k_skip));
     let inv_table = InvNttTableByteSingleGf8::new(&ntt_s, &ntt_l);
-    let (round1_ab_opt, round1_c_opt) = round1_shift_reduce_extract_c_packed_padded(
+    let (mut round1_ab_opt, mut round1_c_opt) = round1_shift_reduce_extract_c_packed_padded(
         a_packed, b_packed, c_packed, m, k_skip, &r_rest, &inv_table, padding,
     );
+    if let Some((unit, vars, weight)) = unit {
+        let (ab, c) = round1_shift_reduce_extract_c_packed_padded(
+            unit.a,
+            unit.b,
+            unit.c,
+            vars + k_skip,
+            k_skip,
+            &r_rest[..vars],
+            &inv_table,
+            padding,
+        );
+        for (x, y) in round1_ab_opt.iter_mut().zip(ab).chain(round1_c_opt.iter_mut().zip(c)) {
+            *x += weight * y;
+        }
+    }
     let c_s = c_s();
     let round1: Vec<F192> = round1_ab_opt
         .iter()
@@ -249,7 +296,10 @@ pub fn prove_packed_padded(
     let mut mlv_chis: Vec<F192> = Vec::with_capacity(n_mlv);
     for t in (0..(n_mlv - 1) & !1).step_by(2).take(PAIR_PASSES) {
         let fold = BitFold::at_level(&lagrange, &mlv_chis);
-        let pair = bit_round_pair(bits, &fold, &r_rest[t + 1..], padding);
+        let mut pair = bit_round_pair(bits, &fold, &r_rest[t + 1..], padding);
+        if let Some((unit, vars, weight)) = unit {
+            pair = pair.plus_scaled(bit_round_pair(unit, &fold, &r_rest[t + 1..vars], padding), weight);
+        }
         let (g1, g_inf) = pair.first;
         c_running = send_round(ps, c_running, r_rest[t], None, g1, g_inf, &mut mlv_chis);
         let (g1, g_inf) = pair.second(mlv_chis[t]);
@@ -257,8 +307,17 @@ pub fn prove_packed_padded(
     }
     let materialize_level = mlv_chis.len();
     let fold = BitFold::at_level(&lagrange, &mlv_chis);
-    let ((g1, g_inf), [mut a_mlv, mut b_mlv, mut c_mlv]) =
+    let ((mut g1, mut g_inf), [mut a_mlv, mut b_mlv, mut c_mlv]) =
         bit_round_materialize(bits, &fold, &r_rest[materialize_level + 1..], padding);
+    // The unit's tables are small, so plain vectors: built last, their arena blocks
+    // pop as soon as they are copied out.
+    let pad: Option<[Vec<F192>; 3]> = unit.map(|(unit, vars, weight)| {
+        let ((pad_g1, pad_g_inf), [a, b, c]) =
+            bit_round_materialize(unit, &fold, &r_rest[materialize_level + 1..vars], padding);
+        g1 += weight * pad_g1;
+        g_inf += weight * pad_g_inf;
+        [a.to_vec(), b.to_vec(), c.to_vec()]
+    });
     c_running = send_round(ps, c_running, r_rest[materialize_level], None, g1, g_inf, &mut mlv_chis);
     drop(span);
     let span = tracing::info_span!("Table rounds").entered();
@@ -274,22 +333,94 @@ pub fn prove_packed_padded(
     // A single round covers the last round, and a round whose eq challenge is 1, which leaves G(0) to send.
     let mut pending = vec![mlv_chis[materialize_level]];
     let mut next = materialize_level + 1;
-    // Ping-pong scratch: a pass writes its folded tables here, then the two swap.
-    let n_in = a_mlv.len();
+    let paired = |next: usize, n_out: usize| {
+        next + 1 < n_mlv && n_out >= PAIRED_MIN && r_rest[next] != F192::ONE && r_rest[next + 1] != F192::ONE
+    };
+
+    // Ping-pong scratch: a pass writes its folded tables here, then the two swap. With a
+    // tail it also takes the units a pass appends to the explicit tables, under one
+    // quad of the unit (sixteen entries) a pass.
+    let room = a_mlv.len() / 2 + if pad.is_some() { 16 } else { 0 };
     // SAFETY: a pass writes every slot of the prefix it hands on, and nothing reads past it.
     let (mut a_nxt, mut b_nxt, mut c_nxt) = unsafe {
         (
-            ArenaVec::<F192>::uninitialized(n_in / 2),
-            ArenaVec::<F192>::uninitialized(n_in / 2),
-            ArenaVec::<F192>::uninitialized(n_in / 2),
+            ArenaVec::<F192>::uninitialized(room),
+            ArenaVec::<F192>::uninitialized(room),
+            ArenaVec::<F192>::uninitialized(room),
         )
     };
+
+    // With a tail, the tables are the explicit positions, and past them copies of the
+    // unit's (`pad`), whose share a paired pass weighs as the bit rounds did. Once the
+    // passes are single rounds the tables are small: they are written out in full.
+    if let Some(mut pad) = pad {
+        // The tables' length at the level of their pending challenges.
+        let mut cube = 1usize << (n_mlv - materialize_level);
+        while paired(next, cube >> pending.len()) {
+            let k = pending.len();
+            // A whole quad of the unit per pass: grow it to copies of itself, the
+            // explicit tables taking one more unit where they would be no whole one.
+            while pad[0].len() < 4 << k {
+                if !a_mlv.len().is_multiple_of(2 * pad[0].len()) {
+                    for (t, p) in [&mut a_mlv, &mut b_mlv, &mut c_mlv].into_iter().zip(&pad) {
+                        t.extend_from_slice(p);
+                    }
+                }
+                for p in &mut pad {
+                    p.extend_from_within(..);
+                }
+            }
+            let (n_out, pad_out) = (a_mlv.len() >> k, pad[0].len() >> k);
+            let pair = fold_and_round_pair_into(
+                [&a_mlv, &b_mlv, &c_mlv],
+                [&mut a_nxt[..n_out], &mut b_nxt[..n_out], &mut c_nxt[..n_out]],
+                &pending,
+                &r_rest[next + 1..],
+            );
+            let mut pad_outs: [Vec<F192>; 3] = std::array::from_fn(|_| vec![F192::ZERO; pad_out]);
+            let unit_log = pad_out.trailing_zeros() as usize;
+            let [pa, pb, pc] = &mut pad_outs;
+            let pad_pair = fold_and_round_pair_into(
+                [&pad[0], &pad[1], &pad[2]],
+                [pa, pb, pc],
+                &pending,
+                &r_rest[next + 1..next + unit_log],
+            );
+            let pair = pair.plus_scaled(pad_pair, tail_weight(&r_rest[next + unit_log..], n_out / pad_out));
+            std::mem::swap(&mut a_mlv, &mut a_nxt);
+            std::mem::swap(&mut b_mlv, &mut b_nxt);
+            std::mem::swap(&mut c_mlv, &mut c_nxt);
+            a_mlv.truncate(n_out);
+            b_mlv.truncate(n_out);
+            c_mlv.truncate(n_out);
+            pad = pad_outs;
+            let (g1, g_inf) = pair.first;
+            c_running = send_round(ps, c_running, r_rest[next], None, g1, g_inf, &mut mlv_chis);
+            let (g1, g_inf) = pair.second(mlv_chis[next]);
+            c_running = send_round(ps, c_running, r_rest[next + 1], None, g1, g_inf, &mut mlv_chis);
+            pending = vec![mlv_chis[next], mlv_chis[next + 1]];
+            next += 2;
+            cube >>= k;
+        }
+        for (t, p) in [&mut a_mlv, &mut b_mlv, &mut c_mlv].into_iter().zip(&pad) {
+            t.reserve(cube - t.len());
+            while t.len() < cube {
+                t.extend_from_slice(p);
+            }
+        }
+        // The scratch holds at least half the whole tables, as a paired pass below needs.
+        for t in [&mut a_nxt, &mut b_nxt, &mut c_nxt] {
+            if t.len() < cube / 2 {
+                // SAFETY: as for the scratch above.
+                *t = unsafe { ArenaVec::uninitialized(cube / 2) };
+            }
+        }
+    }
+
     while next < n_mlv {
         // The tables' length once the pending challenges are folded in.
         let n_out = a_mlv.len() >> pending.len();
-        let paired =
-            next + 1 < n_mlv && n_out >= PAIRED_MIN && r_rest[next] != F192::ONE && r_rest[next + 1] != F192::ONE;
-        if paired {
+        if paired(next, n_out) {
             let pair = fold_and_round_pair_into(
                 [&a_mlv, &b_mlv, &c_mlv],
                 [&mut a_nxt[..n_out], &mut b_nxt[..n_out], &mut c_nxt[..n_out]],
@@ -479,7 +610,7 @@ mod tests {
         m: usize,
         ps: &mut fiat_shamir::transcript::ProverState,
     ) -> ZerocheckClaim {
-        prove_packed_padded(a_packed, b_packed, c_packed, m, &PaddingSpec::dense(m), ps)
+        prove_packed_padded(a_packed, b_packed, c_packed, m, &PaddingSpec::dense(m), None, ps)
     }
 
     /// The quirky evaluation `f̂(z, chi)` of a Boolean witness: the φ8-Lagrange

@@ -7,18 +7,25 @@
 //! The program is public, so each instruction word is decoded into an entry once, before any run.
 
 use super::circuits::ClassCircuit;
-use super::instruction::{ExtOp, ImmOp, Instruction, LoadOp, Opcode, RegOp, ShiftOp, StoreOp};
+use super::instruction::{BranchOp, ExtOp, ImmOp, Instruction, LoadOp, Opcode, RegOp, ShiftOp, StoreOp};
 use super::register::{Reg, RegisterFile};
 use super::semantics::{
-    Alu, Div, Ext, Hash, InstructionClass, Ld, Load, Mul, Mulh, Outcome, Sd, Shift, Store, WordAccess,
+    Add, Branch, Div, Ext, Hash, InstructionClass, Jump, Ld, Load, Logic, Mul, Mulh, Outcome, Sd, Shift, Store,
+    WordAccess,
 };
 use flock::circuit::Circuit;
 
 /// An instruction class: one table, one circuit.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Class {
-    /// Add, subtract, compare, bitwise logic, branches and jumps.
-    Alu,
+    /// Add, subtract and compare.
+    Add,
+    /// AND, OR and XOR.
+    Logic,
+    /// The conditional branches.
+    Branch,
+    /// `JAL`, `JALR` and the exit.
+    Jump,
     /// Logical and arithmetic shifts.
     Shift,
     /// A byte, half word or word read from memory.
@@ -51,7 +58,10 @@ impl Class {
     /// An illegal entry carries none at all.
     pub const fn legal_flags(self) -> &'static [u64] {
         match self {
-            Self::Alu => Alu::LEGAL,
+            Self::Add => Add::LEGAL,
+            Self::Logic => Logic::LEGAL,
+            Self::Branch => Branch::LEGAL,
+            Self::Jump => Jump::LEGAL,
             Self::Shift => Shift::LEGAL,
             Self::Load => Load::LEGAL,
             Self::Store => Store::LEGAL,
@@ -68,6 +78,8 @@ impl Class {
 
     /// An instruction of the class that names no register but `x0`, or `ra` where `x0` is undefined.
     ///
+    /// A branch's is not taken, and a jump's jumps to itself, linking into the sink.
+    ///
     /// A load, a store, a hash and an extension-field product touch the memory at address zero.
     ///
     /// The extension-field product reads `c`'s address from `ra`, as an address in `x0` is undefined.
@@ -76,7 +88,10 @@ impl Class {
     pub const fn nop(self) -> Option<Instruction> {
         let zero = Reg::ZERO;
         Some(match self {
-            Self::Alu => ImmOp::Addi.encode(zero, zero, 0),
+            Self::Add => ImmOp::Addi.encode(zero, zero, 0),
+            Self::Logic => ImmOp::Andi.encode(zero, zero, 0),
+            Self::Branch => BranchOp::Bne.encode(zero, zero, 0),
+            Self::Jump => Instruction::j(zero, 0),
             Self::Shift => ShiftOp::Slli.encode(zero, zero, 0),
             Self::Load => LoadOp::Lb.encode(zero, zero, 0),
             Self::Store => StoreOp::Sb.encode(zero, zero, 0),
@@ -98,7 +113,10 @@ impl Class {
     /// Panics for the illegal class, which no table runs.
     pub fn circuit(self) -> Circuit {
         match self {
-            Self::Alu => Alu::circuit(),
+            Self::Add => Add::circuit(),
+            Self::Logic => Logic::circuit(),
+            Self::Branch => Branch::circuit(),
+            Self::Jump => Jump::circuit(),
             Self::Shift => Shift::circuit(),
             Self::Load => Load::circuit(),
             Self::Store => Store::circuit(),
@@ -176,8 +194,8 @@ impl Entry {
 
     /// `ECALL`: an unconditional jump to the halt slot.
     pub const EXIT: Self = Self {
-        class: Class::Alu,
-        flags: Alu::ALWAYS,
+        class: Class::Jump,
+        flags: Jump::DIRECT,
         a1: 0,
         a2: 0,
         ad: RegisterFile::SINK,
@@ -195,8 +213,11 @@ impl Entry {
     pub fn evaluate(&self, v1: u64, v2: u64, cell: u64) -> Outcome {
         let (flags, imm) = (self.flags, self.imm);
         let (out, taken, access) = match self.class {
-            Class::Alu => {
-                let (out, taken) = Alu { flags, v1, v2, imm }.eval();
+            Class::Add => (Add { flags, v1, v2, imm }.eval(), false, None),
+            Class::Logic => (Logic { flags, v1, v2, imm }.eval(), false, None),
+            Class::Branch => (0, Branch { flags, v1, v2 }.eval(), None),
+            Class::Jump => {
+                let (out, taken) = Jump { flags, v1, imm }.eval();
                 (out, taken, None)
             }
             Class::Shift => (Shift { flags, v1, v2, imm }.eval(), false, None),
@@ -276,27 +297,27 @@ impl Entry {
         };
         match opcode {
             // LUI and AUIPC: a constant added to x0.
-            Opcode::Lui => Self::sequential(Class::Alu, 0, 0, 0, rd, ins.imm_u()),
-            Opcode::Auipc => Self::sequential(Class::Alu, 0, 0, 0, rd, pc.wrapping_add(ins.imm_u())),
+            Opcode::Lui => Self::sequential(Class::Add, 0, 0, 0, rd, ins.imm_u()),
+            Opcode::Auipc => Self::sequential(Class::Add, 0, 0, 0, rd, pc.wrapping_add(ins.imm_u())),
 
-            // JAL: an unconditional jump to a fixed target, linking pc + 4.
+            // JAL: a direct jump to a fixed target, linking pc + 4.
             Opcode::Jal => Self {
                 target: Target::Abs(pc.wrapping_add(ins.imm_j())),
                 link: true,
-                ..Self::sequential(Class::Alu, Alu::ALWAYS, 0, 0, rd, 0)
+                ..Self::sequential(Class::Jump, Jump::DIRECT, 0, 0, rd, 0)
             },
 
             // JALR: a jump to rs1 + imm with bit 0 cleared, linking pc + 4.
             Opcode::Jalr if f3 == 0 => Self {
                 link: true,
                 jalr: true,
-                ..imm(Class::Alu, Alu::CLEAR_BIT0, ins.imm_i())
+                ..imm(Class::Jump, 0, ins.imm_i())
             },
 
-            // Branches: a comparison by subtraction, and a fixed target.
-            Opcode::Branch => Alu::branch_flags(f3).map_or(Self::ILLEGAL, |flags| Self {
+            // Branches: a comparison of two registers, and a fixed target.
+            Opcode::Branch => Branch::flags_of(f3).map_or(Self::ILLEGAL, |flags| Self {
                 target: Target::Abs(pc.wrapping_add(ins.imm_b())),
-                ..Self::sequential(Class::Alu, flags, rs1, rs2, 0, 0)
+                ..Self::sequential(Class::Branch, flags, rs1, rs2, 0, 0)
             }),
 
             // Loads: the width and the extension. A double word is LD's, which has no flags.
@@ -309,12 +330,12 @@ impl Entry {
 
             // Register-immediate arithmetic.
             Opcode::OpImm => match f3 {
-                0 => imm(Class::Alu, 0, ins.imm_i()),
-                2 => imm(Class::Alu, Alu::SUB | Alu::SEL_LT, ins.imm_i()),
-                3 => imm(Class::Alu, Alu::SUB | Alu::SEL_LTU, ins.imm_i()),
-                4 => imm(Class::Alu, Alu::SEL_XOR, ins.imm_i()),
-                6 => imm(Class::Alu, Alu::SEL_OR, ins.imm_i()),
-                7 => imm(Class::Alu, Alu::SEL_AND, ins.imm_i()),
+                0 => imm(Class::Add, 0, ins.imm_i()),
+                2 => imm(Class::Add, Add::SUB | Add::SEL_LT, ins.imm_i()),
+                3 => imm(Class::Add, Add::SUB | Add::SEL_LTU, ins.imm_i()),
+                4 => imm(Class::Logic, Logic::XOR, ins.imm_i()),
+                6 => imm(Class::Logic, Logic::OR, ins.imm_i()),
+                7 => imm(Class::Logic, Logic::AND, ins.imm_i()),
                 // A 64-bit shift amount has six bits, leaving six for the function.
                 1 if ins.funct6() == 0 => imm(Class::Shift, 0, ins.shamt() as u64),
                 5 if ins.funct6() == 0 => imm(Class::Shift, Shift::RIGHT, ins.shamt() as u64),
@@ -324,7 +345,7 @@ impl Entry {
 
             // Register-immediate arithmetic on the low 32 bits: a shift amount has five bits.
             Opcode::OpImm32 => match (f3, f7) {
-                (0, _) => imm(Class::Alu, Alu::WORD, ins.imm_i()),
+                (0, _) => imm(Class::Add, Add::WORD, ins.imm_i()),
                 (1, 0) => imm(Class::Shift, Shift::WORD, rs2 as u64),
                 (5, 0) => imm(Class::Shift, Shift::WORD | Shift::RIGHT, rs2 as u64),
                 (5, 0x20) => imm(Class::Shift, Shift::WORD | Shift::RIGHT | Shift::ARITH, rs2 as u64),
@@ -333,16 +354,16 @@ impl Entry {
 
             // Register-register arithmetic, multiplication and division.
             Opcode::Op => match (f7, f3) {
-                (0, 0) => reg(Class::Alu, 0),
-                (0x20, 0) => reg(Class::Alu, Alu::SUB),
+                (0, 0) => reg(Class::Add, 0),
+                (0x20, 0) => reg(Class::Add, Add::SUB),
                 (0, 1) => reg(Class::Shift, 0),
-                (0, 2) => reg(Class::Alu, Alu::SUB | Alu::SEL_LT),
-                (0, 3) => reg(Class::Alu, Alu::SUB | Alu::SEL_LTU),
-                (0, 4) => reg(Class::Alu, Alu::SEL_XOR),
+                (0, 2) => reg(Class::Add, Add::SUB | Add::SEL_LT),
+                (0, 3) => reg(Class::Add, Add::SUB | Add::SEL_LTU),
+                (0, 4) => reg(Class::Logic, Logic::XOR),
                 (0, 5) => reg(Class::Shift, Shift::RIGHT),
                 (0x20, 5) => reg(Class::Shift, Shift::RIGHT | Shift::ARITH),
-                (0, 6) => reg(Class::Alu, Alu::SEL_OR),
-                (0, 7) => reg(Class::Alu, Alu::SEL_AND),
+                (0, 6) => reg(Class::Logic, Logic::OR),
+                (0, 7) => reg(Class::Logic, Logic::AND),
                 (1, 0) => reg(Class::Mul, 0),
                 (1, 1) => reg(Class::Mulh, Mulh::SIGNED_1 | Mulh::SIGNED_2),
                 (1, 2) => reg(Class::Mulh, Mulh::SIGNED_1),
@@ -356,8 +377,8 @@ impl Entry {
 
             // Register-register arithmetic on the low 32 bits.
             Opcode::Op32 => match (f7, f3) {
-                (0, 0) => reg(Class::Alu, Alu::WORD),
-                (0x20, 0) => reg(Class::Alu, Alu::SUB | Alu::WORD),
+                (0, 0) => reg(Class::Add, Add::WORD),
+                (0x20, 0) => reg(Class::Add, Add::SUB | Add::WORD),
                 (0, 1) => reg(Class::Shift, Shift::WORD),
                 (0, 5) => reg(Class::Shift, Shift::WORD | Shift::RIGHT),
                 (0x20, 5) => reg(Class::Shift, Shift::WORD | Shift::RIGHT | Shift::ARITH),
@@ -370,7 +391,7 @@ impl Entry {
             },
 
             // FENCE: a no-op, whatever its other fields hold.
-            Opcode::MiscMem if f3 == 0 => Self::sequential(Class::Alu, 0, 0, 0, 0, 0),
+            Opcode::MiscMem if f3 == 0 => Self::sequential(Class::Add, 0, 0, 0, 0, 0),
 
             // The BLAKE2s compression: the block at rs1, the counter in rs2, no destination.
             //
@@ -448,42 +469,37 @@ impl Entry {
         }
     }
 
-    /// Whether the target, link and jalr fields match the flags.
+    /// Whether the target, link and jalr fields match the class and the flags.
     ///
     /// - A `JALR` links, and jumps to the address it computes.
     /// - A `JAL` links, and jumps to a fixed target.
-    /// - A branch jumps to a fixed target.
+    /// - A branch jumps to a fixed target, and neither links nor jumps to a computed one.
     /// - Anything else does neither, and falls through.
     fn has_consistent_control(&self) -> bool {
-        // Only the ALU moves control.
         let fixed = matches!(self.target, Target::Abs(_));
         let next = self.target == Target::Next;
-        if self.class != Class::Alu {
-            return next && !self.link && !self.jalr;
-        }
-
-        // The flags say which control shape the entry must have.
-        match self.flags {
-            Alu::CLEAR_BIT0 => self.jalr && self.link && next,
-            Alu::ALWAYS => !self.jalr && self.link && fixed,
-            flags if flags & Alu::BRANCHES != 0 => !self.jalr && !self.link && fixed,
+        match (self.class, self.flags) {
+            (Class::Jump, Jump::DIRECT) => !self.jalr && self.link && fixed,
+            (Class::Jump, _) => self.jalr && self.link && next,
+            (Class::Branch, _) => !self.jalr && !self.link && fixed,
             _ => !self.jalr && !self.link && next,
         }
     }
 
     /// Whether the fields a class's table fixes hold their constants.
     ///
-    /// - A load reads no `rs2`, so its second register is `x0`.
+    /// - A load reads no `rs2`, and neither does a jump, so their second register is `x0`.
     /// - A store writes no `rd`, so its destination is the sink.
+    /// - A branch writes no `rd` and has no immediate.
     /// - A hash writes no `rd` and has no immediate.
     /// - An extension-field product reads `rd` as an address, so it names a register, and has no immediate.
     ///
     /// That a doubleword load or store has no flags is its legal flag word, zero.
     const fn has_table_constants(&self) -> bool {
         match self.class {
-            Class::Load | Class::Ld => self.a2 == 0,
+            Class::Load | Class::Ld | Class::Jump => self.a2 == 0,
             Class::Store | Class::Sd => self.ad == RegisterFile::SINK,
-            Class::Hash => self.ad == RegisterFile::SINK && self.imm == 0,
+            Class::Branch | Class::Hash => self.ad == RegisterFile::SINK && self.imm == 0,
             Class::Ext => self.ad < RegisterFile::SINK && self.imm == 0,
             _ => true,
         }
@@ -525,7 +541,8 @@ mod tests {
 
     #[test]
     fn a_skipped_register_access_names_its_constant() {
-        // Invariant: a load's rs2 is x0, a store's rd is the sink, and a double word's flags are zero.
+        // Invariant: a load's and a jump's rs2 is x0, a store's rd is the sink, a branch's rd is the sink and
+        // its immediate zero, and a double word's flags are zero.
         //
         // Fixture: `ld`, `sd`, `lw` and `sw` of `a0` at `0(a1)`.
         for (load, store, classes) in [
@@ -544,61 +561,81 @@ mod tests {
                 assert!(!Entry { flags: 3, ..store }.is_well_formed());
             }
         }
+
+        // Fixture: `jalr ra, 0(a1)` and `beq a0, a1, 0`.
+        let [jump, branch] = [0x0005_80e7, 0x00b5_0063].map(|word| Entry::decode(word, 0));
+        assert_eq!([jump.class, branch.class], [Class::Jump, Class::Branch]);
+        assert!(jump.is_well_formed() && branch.is_well_formed());
+
+        // Mutation: the jump reads x1 as rs2, the branch writes x1, the branch adds 4.
+        assert!(!Entry { a2: 1, ..jump }.is_well_formed());
+        assert!(!Entry { ad: 1, ..branch }.is_well_formed());
+        assert!(!Entry { imm: 4, ..branch }.is_well_formed());
     }
 
     #[test]
-    fn alu_control_shapes_match_their_flags() {
-        // Fixture: one instruction per legal ALU word, in the order of the legal list.
+    fn control_shapes_match_their_class_and_flags() {
+        // Fixture: one instruction per legal word of the four classes split from the ALU, in the order of each legal list.
         //
-        //     addi, sub, addiw, subw, slt, sltu, and, or, xor,
-        //     jalr, beq, bne, blt, bge, bltu, bgeu, jal
-        let witnesses = [
-            0x0000_0013,
-            0x4000_0033,
-            0x0000_001b,
-            0x4000_003b,
-            0x0000_2033,
-            0x0000_3033,
-            0x0000_7033,
-            0x0000_6033,
-            0x0000_4033,
-            0x0000_0067,
-            0x0000_0063,
-            0x0000_1063,
-            0x0000_4063,
-            0x0000_5063,
-            0x0000_6063,
-            0x0000_7063,
-            0x0000_006f,
+        //     addi, sub, addiw, subw, slt, sltu
+        //     and, or, xor
+        //     beq, bne, blt, bge, bltu, bgeu
+        //     jalr, jal
+        let witnesses: [(Class, &[u32]); 4] = [
+            (
+                Class::Add,
+                &[
+                    0x0000_0013,
+                    0x4000_0033,
+                    0x0000_001b,
+                    0x4000_003b,
+                    0x0000_2033,
+                    0x0000_3033,
+                ],
+            ),
+            (Class::Logic, &[0x0000_7033, 0x0000_6033, 0x0000_4033]),
+            (
+                Class::Branch,
+                &[
+                    0x0000_0063,
+                    0x0000_1063,
+                    0x0000_4063,
+                    0x0000_5063,
+                    0x0000_6063,
+                    0x0000_7063,
+                ],
+            ),
+            (Class::Jump, &[0x0000_0067, 0x0000_006f]),
         ];
-        assert_eq!(Alu::LEGAL.len(), witnesses.len());
+        for (class, words) in witnesses {
+            assert_eq!(class.legal_flags().len(), words.len());
+            for (&flags, &word) in class.legal_flags().iter().zip(words) {
+                let decoded = Entry::decode(word, Region::TEXT.base());
+                assert_eq!((decoded.class, decoded.flags), (class, flags));
 
-        for (&flags, word) in Alu::LEGAL.iter().zip(witnesses) {
-            let decoded = Entry::decode(word, Region::TEXT.base());
-            assert_eq!((decoded.class, decoded.flags), (Class::Alu, flags));
-
-            // Mutation: every target kind, link and jalr.
-            //
-            // Only the decoded shape is well formed, whatever the fixed address.
-            for target in [
-                Target::Next,
-                Target::Abs(Region::TEXT.base()),
-                Target::Abs(Region::TEXT.base() + 4),
-            ] {
-                for link in [false, true] {
-                    for jalr in [false, true] {
-                        let candidate = Entry {
-                            target,
-                            link,
-                            jalr,
-                            ..decoded
-                        };
-                        let same_kind = matches!(
-                            (target, decoded.target),
-                            (Target::Next, Target::Next) | (Target::Abs(_), Target::Abs(_))
-                        );
-                        let expected = same_kind && link == decoded.link && jalr == decoded.jalr;
-                        assert_eq!(candidate.is_well_formed(), expected, "{candidate:?}");
+                // Mutation: every target kind, link and jalr.
+                //
+                // Only the decoded shape is well formed, whatever the fixed address.
+                for target in [
+                    Target::Next,
+                    Target::Abs(Region::TEXT.base()),
+                    Target::Abs(Region::TEXT.base() + 4),
+                ] {
+                    for link in [false, true] {
+                        for jalr in [false, true] {
+                            let candidate = Entry {
+                                target,
+                                link,
+                                jalr,
+                                ..decoded
+                            };
+                            let same_kind = matches!(
+                                (target, decoded.target),
+                                (Target::Next, Target::Next) | (Target::Abs(_), Target::Abs(_))
+                            );
+                            let expected = same_kind && link == decoded.link && jalr == decoded.jalr;
+                            assert_eq!(candidate.is_well_formed(), expected, "{candidate:?}");
+                        }
                     }
                 }
             }
@@ -632,7 +669,10 @@ mod tests {
     fn each_class_nop_is_of_its_class_and_names_only_x0() {
         // Fixture: every class but the illegal one, which has no instruction.
         let classes = [
-            Class::Alu,
+            Class::Add,
+            Class::Logic,
+            Class::Branch,
+            Class::Jump,
             Class::Shift,
             Class::Load,
             Class::Store,

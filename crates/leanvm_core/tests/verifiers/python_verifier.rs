@@ -185,19 +185,29 @@ fn test_python_verifier() {
         String::from_utf8_lossy(&python.stderr).contains("misnames a register"),
         "Python refused a table that writes x0 for the wrong reason"
     );
-    // A load reads no `rs2`, a store writes no `rd`, and a doubleword one has no flags: their tables hold those fields
-    // at constants, `x0`, the sink and zero, so an entry naming another register or a flag is refused.
-    for (class, slot, reason) in [
-        (leanvm_core::rv::Class::Load, 5, "reads an rs2"),
-        (leanvm_core::rv::Class::Store, 6, "writes an rd"),
-        (leanvm_core::rv::Class::Ld, 5, "reads an rs2"),
-        (leanvm_core::rv::Class::Sd, 6, "writes an rd"),
-        (leanvm_core::rv::Class::Ld, 3, "flags are not its class's"),
+    // A load and a jump read no `rs2`, a store and a branch write no `rd`, a branch has no immediate, and a doubleword
+    // load or store has no flags: their tables hold those fields at constants, `x0`, the sink and zero, so an entry
+    // naming another value is refused. The other fields are set to the class's legal values, so that this is the first
+    // rule broken.
+    use leanvm_core::rv::{Branch, Class, Jump};
+    // The class tag `g^t`, which is `2^t` since `g = x`.
+    let tag = |class| 1u64 << leanvm_core::tables::table_of(class).expect("the class has a table");
+    for (class, fields, reason) in [
+        (Class::Load, vec![(3, 0), (5, 1)], "reads an rs2"),
+        (Class::Store, vec![(3, 0), (6, 1)], "writes an rd"),
+        (Class::Ld, vec![(3, 0), (5, 1)], "reads an rs2"),
+        (Class::Sd, vec![(3, 0), (6, 1)], "writes an rd"),
+        (Class::Ld, vec![(3, 1)], "flags are not its class's"),
+        (Class::Jump, vec![(3, Jump::DIRECT), (10, 1), (5, 1)], "reads an rs2"),
+        (Class::Branch, vec![(3, Branch::EQ), (6, 1)], "writes an rd"),
+        (
+            Class::Branch,
+            vec![(3, Branch::EQ), (6, 32), (7, 4)],
+            "has an immediate",
+        ),
     ] {
-        // The class tag `g^t`, which is `2^t` since `g = x`.
-        let tag = 1u64 << leanvm_core::tables::table_of(class).expect("the class has a table");
         let mut malformed = table.clone();
-        for (slot, value) in [(2, tag), (3, 0), (slot, 1)] {
+        for (slot, value) in std::iter::once((2, tag(class))).chain(fields) {
             malformed[8 * slot * entries..][..8].copy_from_slice(&value.to_le_bytes());
         }
         std::fs::write(&statement.bytecode, malformed).expect("write malformed register");
@@ -212,24 +222,24 @@ fn test_python_verifier() {
     let refused = statement.verify(&raw);
     PythonStatement::assert_rejects(&refused, "an ordinary instruction marked as an exit");
     assert!(String::from_utf8_lossy(&refused.stderr).contains("an exit entry is not ECALL"));
-    let branch = leanvm_core::rv::Alu::SUB | leanvm_core::rv::Alu::BR_EQ;
-    let always = leanvm_core::rv::Alu::ALWAYS;
-    let jalr = leanvm_core::rv::Alu::CLEAR_BIT0;
-    for (flags, dt, link, indirect) in [
-        (branch, 0x44, 1, 1),
-        (always, 0, 0, 0),
-        (0, 0x44, 0, 0),
-        (0, 0, 1, 0),
-        (0, 0, 0, 1),
-        (jalr, 0, 0, 1),
-        (jalr, 0, 1, 0),
-        (jalr, 0x44, 1, 1),
-        (branch, 0, 1, 0),
-        (branch, 0, 0, 1),
-        (always, 0x44, 1, 1),
+    // Control shapes a class does not have: a branch that links or jumps to a computed target, a direct jump that
+    // does not link, `JALR` without its link or its indirection, and anything else moving control at all.
+    let (add, branch, jump) = (tag(Class::Add), tag(Class::Branch), tag(Class::Jump));
+    for (class, flags, dt, link, indirect) in [
+        (branch, Branch::EQ, 0x44, 1, 1),
+        (branch, Branch::EQ, 0, 1, 0),
+        (branch, Branch::EQ, 0, 0, 1),
+        (jump, Jump::DIRECT, 0, 0, 0),
+        (jump, Jump::DIRECT, 0x44, 1, 1),
+        (jump, 0, 0, 0, 1),
+        (jump, 0, 0, 1, 0),
+        (jump, 0, 0x44, 1, 1),
+        (add, 0, 0x44, 0, 0),
+        (add, 0, 0, 1, 0),
+        (add, 0, 0, 0, 1),
     ] {
         let mut malformed = table.clone();
-        for (slot, value) in [(3, flags), (9, dt), (10, link), (11, indirect)] {
+        for (slot, value) in [(2, class), (3, flags), (9, dt), (10, link), (11, indirect)] {
             malformed[8 * slot * entries..][..8].copy_from_slice(&value.to_le_bytes());
         }
         std::fs::write(&statement.bytecode, malformed).expect("write malformed control flow");
@@ -238,9 +248,10 @@ fn test_python_verifier() {
         assert!(String::from_utf8_lossy(&refused.stderr).contains("invalid control flow"));
     }
     std::fs::write(&statement.bytecode, table).expect("restore bytecode");
+    // The legal shapes pass: a direct jump, a branch, `JALR`, each with the sink as `rd` and no `rs2` or immediate.
     let control_shapes = Command::new("python3")
         .arg("-c")
-        .arg(
+        .arg(format!(
             r#"import runpy, sys
 from pathlib import Path
 v = runpy.run_path(sys.argv[1])
@@ -248,13 +259,15 @@ data = Path(sys.argv[2]).read_bytes()
 words = [v['K'](int.from_bytes(data[i:i+8], 'little')) for i in range(0, len(data), 8)]
 v['check_bytecode'](words)
 n = len(words) // 16
-for flags, link, jalr in [(1 << 14, 1, 0), (1 | (1 << 8), 0, 0), (1 << 7, 1, 1)]:
+for tag, flags, link, jalr in [({jump}, {direct}, 1, 0), ({branch}, {eq}, 0, 0), ({jump}, 0, 1, 1)]:
     candidate = words.copy()
-    for slot, value in [(3, flags), (9, 0), (10, link), (11, jalr)]:
+    for slot, value in [(2, tag), (3, flags), (5, 0), (6, 32), (7, 0), (9, 0), (10, link), (11, jalr)]:
         candidate[slot * n] = v['K'](value)
     v['check_bytecode'](candidate)
 "#,
-        )
+            direct = Jump::DIRECT,
+            eq = Branch::EQ,
+        ))
         .arg(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../python-verifier/verifier.py"))
         .arg(&statement.bytecode)
         .output()

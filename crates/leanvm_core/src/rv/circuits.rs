@@ -177,8 +177,11 @@ mod tests {
     use proptest::test_runner::TestRunner;
 
     /// Every class with a circuit.
-    const CLASSES: [Class; 11] = [
-        Class::Alu,
+    const CLASSES: [Class; 14] = [
+        Class::Add,
+        Class::Logic,
+        Class::Branch,
+        Class::Jump,
         Class::Shift,
         Class::Load,
         Class::Store,
@@ -195,7 +198,7 @@ mod tests {
     fn instance_sizes_are_pinned() {
         // The log of each instance's bits, which the tables fix before any circuit is built.
         let sizes = CLASSES.map(|class| class.circuit().k_log());
-        assert_eq!(sizes, [10, 10, 10, 10, 8, 8, 12, 13, 13, 14, 13]);
+        assert_eq!(sizes, [9, 9, 9, 9, 10, 10, 10, 8, 8, 12, 13, 13, 14, 13]);
     }
 
     #[test]
@@ -213,10 +216,12 @@ mod tests {
                 .collect();
 
             // The same batch through both generators, every table compared.
-            let walk = circuit.generate_witness_with(&rows, &rows[0], n_log, |row, z, az, bz| {
+            let walk = circuit.generate_witness_with(&rows, &rows[0], 1 << n_log, &mut [], |row, z, az, bz| {
                 circuit.witness_instance(row, z, az, bz);
             });
-            let sliced = circuit.generate_witness_from(&rows, &rows[0], n_log, |row, words| words.copy_from_slice(row));
+            let sliced = circuit.generate_witness_from(&rows, &rows[0], 1 << n_log, &mut [], |row, words| {
+                words.copy_from_slice(row);
+            });
             assert!(walk.0[..] == sliced.0[..], "z");
             assert!(walk.1[..] == sliced.1[..], "A*z");
             assert!(walk.2[..] == sliced.2[..], "B*z");

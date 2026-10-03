@@ -33,13 +33,15 @@ fn main() {
         // Each pass is one proof's worth of arena, reclaimed by the next.
         let (_, walk) = plan.warm_then_measure(|_| {
             let _phase = zk_alloc::enter_phase();
-            circuit.generate_witness_with(&rows, &rows[0], n_log, |row, z, az, bz| {
+            circuit.generate_witness_with(&rows, &rows[0], 1 << n_log, &mut [], |row, z, az, bz| {
                 circuit.witness_instance(row, z, az, bz);
             });
         });
         let (_, sliced) = plan.warm_then_measure(|_| {
             let _phase = zk_alloc::enter_phase();
-            circuit.generate_witness_from(&rows, &rows[0], n_log, |row, words| words.copy_from_slice(row));
+            circuit.generate_witness_from(&rows, &rows[0], 1 << n_log, &mut [], |row, words| {
+                words.copy_from_slice(row);
+            });
         });
 
         // Wall time per instance, all threads.

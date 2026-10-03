@@ -34,16 +34,14 @@ pub enum CpuError {
     /// An announced size is not a canonical integer.
     #[error("an announced size is not a canonical integer")]
     NonCanonicalSize,
-    /// A table's announced height is outside what the arithmetization expresses.
-    #[error("the {table} table announces 2^{log_rows} rows, outside 2^{min}..=2^{max}")]
+    /// A table's announced height is above what the arithmetization expresses.
+    #[error("the {table} table announces {rows} rows, above 2^{max}")]
     TableHeight {
         /// The table.
         table: &'static str,
-        /// The announced base-two logarithm of rows.
-        log_rows: usize,
-        /// The least height the table can have.
-        min: usize,
-        /// The greatest height any table can have.
+        /// The announced rows.
+        rows: usize,
+        /// The base-two logarithm of the greatest height any table can have.
         max: usize,
     },
     /// The announced rate is one the commitment does not support.

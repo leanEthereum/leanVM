@@ -912,9 +912,14 @@ fn process_one_x_hi(
     state.partials = Convert::new();
 
     let n_lo = n_lo_and_inner - N_INNER;
+    // The outer values the witness holds; past them it is zero.
+    let n_outer = a_packed.len() / (N_CHUNKS << N_INNER);
 
     for (x_outer_lo, &eq_lo_val) in eq_lo_scaled.iter().enumerate().take(big_lo_size) {
         let x_outer = x_outer_lo | (x_hi << n_lo);
+        if x_outer >= n_outer {
+            break;
+        }
         let within_hash_outer = x_outer & within_outer_mask;
         let n_b_med = b_med_counts[within_hash_outer] as usize;
         if n_b_med == 0 {
@@ -1023,9 +1028,12 @@ pub fn round1_shift_reduce_extract_c_packed_padded(
         k_skip + N_INNER
     );
     let total_bytes = (1usize << m) / 8;
-    assert_eq!(a_packed.len(), total_bytes);
-    assert_eq!(b_packed.len(), total_bytes);
-    assert_eq!(c_packed.len(), total_bytes);
+    assert!(
+        a_packed.len() <= total_bytes && a_packed.len().is_multiple_of(N_CHUNKS << N_INNER),
+        "the witness is whole outer values of the cube"
+    );
+    assert_eq!(b_packed.len(), a_packed.len());
+    assert_eq!(c_packed.len(), a_packed.len());
     assert_eq!(r_rest.len(), m - k_skip);
     assert_eq!(inv_table.k, k_skip);
 

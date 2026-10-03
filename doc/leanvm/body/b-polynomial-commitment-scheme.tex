@@ -289,7 +289,7 @@ The committed $f$ is the stack of \S\ref{sec:stacking}: $\nstack$ field elements
 \item the prover can thus preprocess the internal state of BLAKE2s after hashing those zeros, and then hash the useful part of each leaf starting from this state.
 \end{itemize}
 
-Conclusion: at commitment, both the FFT and the Merkle leaf hashing cost are proportional to $\nstack$ (not its next power of two). Unfortunately we still pay for the padding inside the $\nstack$ field elements, because some instruction counts are not powers of two. This could be prevented using the Jagged PCS \cite{jagged_pcs}.
+Conclusion: at commitment, both the FFT and the Merkle leaf hashing cost are proportional to $\nstack$ (not its next power of two). A table's padding rows do not count in $\nstack$ either: each column commits its live rows and one padding row (\S\ref{sec:jagged}), in the spirit of the jagged PCS \cite{jagged_pcs}.
 
 
 %=====================================================================

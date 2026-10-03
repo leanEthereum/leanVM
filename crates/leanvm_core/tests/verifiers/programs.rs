@@ -56,9 +56,9 @@ fn fibonacci_proves_and_verifies() {
     proves_and_verifies("fibonacci", &program, output);
 }
 
-/// Every instruction of the `ALU` class at least once: the arithmetic and its 32-bit
-/// forms, the comparisons, the logic, the constants, all six branches taken and not,
-/// and a call and return.
+/// Every instruction of the `ADD`, `LOGIC`, `BRANCH` and `JUMP` classes at least once: the
+/// arithmetic and its 32-bit forms, the comparisons, the logic, the constants, all six
+/// branches taken and not, and a call and return.
 #[test]
 fn alu_instructions_prove_and_verify() {
     let mut a = Asm::new();

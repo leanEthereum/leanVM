@@ -14,7 +14,7 @@ use crate::colval::ColVal;
 use crate::gkr;
 use fiat_shamir::transcript::{Challenger, ProverState, Receiver, Transmitter, VerifierState};
 use primitives::field::{F64, F192, F192Unreduced, int_index_mle};
-use primitives::multilinear::{eq_eval, eq_table_arena, mle_eval};
+use primitives::multilinear::{eq_eval, eq_table, eq_table_arena, mle_eval};
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use zk_alloc::ArenaVec;
@@ -120,9 +120,9 @@ impl SparseColumn {
     }
 }
 
-/// A flushing rule: `2^kappa` rows, each a tuple of coordinates. Every one of them is a
-/// row the program executed, since a table's height is its row count (§sec:e2e-pad), so a
-/// block has no padding rows to divide back out of the product.
+/// A flushing rule: `2^kappa` rows, each a tuple of coordinates. A table's block flushes
+/// only the rows below the table's height; the padding rows past it take the identity
+/// leaf (§sec:jagged).
 #[derive(Clone, Debug)]
 pub struct Block {
     pub kappa: usize,
@@ -277,13 +277,14 @@ pub fn layout(blocks: &[Block], producers: &[Producer]) -> Layout {
 /// The leaves one side leaves unmatched on the other, as `(side, block, row)`, under
 /// one fixed fingerprint: what to look at when a bus does not balance. A producer's
 /// entry counts as its multiplicity's worth of leaves, reported as block
-/// `push.len() + p` for producer `p`.
+/// `push.len() + p` for producer `p`. A table's block flushes its rows below `heights`.
 #[cfg(test)]
 pub(crate) fn unmatched_leaves(
     push: &[Block],
     pull: &[Block],
     producers: &[Producer],
     cols: &[&[F64]],
+    heights: &[usize],
 ) -> Vec<(&'static str, usize, usize)> {
     let alphas: Vec<F192> = (0..N_TUPLE_BITS as u64)
         .map(|i| F192::new(3 + i, 5 + 7 * i, 11))
@@ -292,7 +293,8 @@ pub(crate) fn unmatched_leaves(
     let side = |blocks: &[Block]| {
         let mut at = Vec::new();
         for (b, block) in blocks.iter().enumerate() {
-            let mut leaves = vec![F192::ZERO; 1 << block.kappa];
+            let rows = block.owner.map_or(1 << block.kappa, |t| heights[t]);
+            let mut leaves = vec![F192::ZERO; rows];
             fill_tuple(&block.coords, cols, &w, beta, &mut leaves);
             at.extend(leaves.into_iter().enumerate().map(|(z, leaf)| (leaf, b, z)));
         }
@@ -401,10 +403,11 @@ fn producer_leaves(p: &Producer, cols: &[&[F64]], w: &[F192], beta: F192) -> Are
     q
 }
 
-/// Build one side's leaf vector: block `b` row `z` holds `β − Σ_i w_i c_i(z)` for
-/// the fingerprint weights `w = eq(α⃗, ·)`, then each producer's bit blocks, bit `i`'s
-/// row `x` holding `(β − π_α(e_x))^{2^i}` where that bit of `m_x` is set and `1` where
-/// it is not, followed implicitly by the identity `1` up to `2^μ`.
+/// Build one side's leaves: block `b` row `z` holds `β − Σ_i w_i c_i(z)` for the
+/// fingerprint weights `w = eq(α⃗, ·)`, then each producer's bit blocks, bit `i`'s row `x`
+/// holding `(β − π_α(e_x))^{2^i}` where that bit of `m_x` is set and `1` where it is not.
+/// A table's rows from its height on hold the identity `1`, as does every leaf past the
+/// blocks up to `2^μ`: those are never written ([`gkr::Leaves`]).
 pub fn build_leaves(
     blocks: &[Block],
     producers: &[Producer],
@@ -412,7 +415,8 @@ pub fn build_leaves(
     cols: &[&[F64]],
     w: &[F192],
     beta: F192,
-) -> ArenaVec<F192> {
+    heights: &[usize],
+) -> gkr::Leaves {
     let kappas: Vec<usize> = blocks
         .iter()
         .map(|b| b.kappa)
@@ -425,40 +429,30 @@ pub fn build_leaves(
         .max()
         .unwrap_or(1);
     debug_assert!(explicit <= 1usize << lay.mu);
-    // `stack_offsets` packs the power-of-two blocks contiguously from zero, so the
-    // blocks tile `0..explicit` and every slot below is written by one of them: the
-    // identity fill would be overwritten in full, and this is the largest buffer in
-    // the proof. The `covered` test is what licenses skipping it, so a layout that
-    // ever left a hole falls back to filling rather than reading uninitialized rows.
-    // Capacity is rounded to whole four-tuples because `gkr::QuaternaryLayerState`
-    // pads this level to that before reading it, and growing it here would copy it.
-    let covered: usize = kappas.iter().map(|&kappa| 1usize << kappa).sum();
-    let mut leaves = if covered == explicit {
-        let mut values = ArenaVec::with_capacity(explicit.next_multiple_of(4));
-        // SAFETY: the per-block fills below cover `0..explicit` exactly, and each
-        // joins before this function returns.
-        unsafe { values.set_len(explicit) };
-        values
-    } else {
-        let mut values = ArenaVec::with_capacity(explicit.next_multiple_of(4));
-        values.resize(explicit, F192::ONE);
-        values
-    };
-    // Every row of every block is a real row: a table's height is exactly the
-    // number of rows it executed (`cpu::filler`), so no block has padding rows
-    // whose tuples would have to be divided back out of the product.
-    for (b, blk) in blocks.iter().enumerate() {
-        let off = lay.offsets[b];
-        let dst = &mut leaves[off..off + (1usize << blk.kappa)];
-        fill_tuple(&blk.coords, cols, w, beta, dst);
+    // A table's block flushes its live rows; its padding rows take the identity, so the
+    // product is over the rows the run made (§sec:jagged). Every other block is whole.
+    let live: Vec<usize> = (blocks.iter().map(|b| b.owner.map_or(1 << b.kappa, |t| heights[t])))
+        .chain(producers.iter().flat_map(|p| std::iter::repeat_n(1 << p.kappa, p.bits)))
+        .collect();
+    let mut order: Vec<usize> = (0..kappas.len()).collect();
+    order.sort_unstable_by_key(|&b| lay.offsets[b]);
+    let spans: Vec<(usize, usize)> = order.iter().map(|&b| (lay.offsets[b], live[b])).collect();
+    // SAFETY: every block's span is written below, the fills joining before this returns.
+    let mut leaves = unsafe { gkr::Leaves::new(explicit, &spans) };
+    let mut dst: Vec<&mut [F192]> = Vec::with_capacity(kappas.len());
+    dst.resize_with(kappas.len(), || &mut []);
+    for (&b, span) in order.iter().zip(leaves.spans_mut()) {
+        dst[b] = span;
     }
-    let mut b = blocks.len();
+    let mut dst = dst.into_iter();
+    for blk in blocks {
+        fill_tuple(&blk.coords, cols, w, beta, dst.next().expect("a span per block"));
+    }
     for p in producers {
         let mut q = producer_leaves(p, cols, w, beta);
         let mult = cols[p.col];
         for bit in 0..p.bits {
-            let off = lay.offsets[b];
-            let dst = &mut leaves[off..off + (1usize << p.kappa)];
+            let dst = dst.next().expect("a span per producer bit");
             // Bit `bit`'s leaves, then `q` squared in place for the next bit.
             parallel::chunks_mut2(dst, &mut q, PRODUCER_CHUNK, |ci, dst, q| {
                 let mult = &mult[ci * PRODUCER_CHUNK..];
@@ -467,7 +461,6 @@ pub fn build_leaves(
                     *q = q.square();
                 }
             });
-            b += 1;
         }
     }
     leaves
@@ -695,6 +688,29 @@ struct Openings {
     producers: Vec<Vec<F192>>,
 }
 
+/// A table's padding rows as the bus sees them (§sec:jagged): every table's height, and,
+/// for a table with rows past it, its columns' values on the row they repeat, which
+/// the prover sends and the opening binds.
+#[derive(Clone, Copy)]
+pub struct Padding<'a> {
+    pub heights: &'a [usize],
+    pub rows: &'a [Option<Vec<F192>>],
+}
+
+/// A table block's coordinate on one row, from the row's values of the table's columns
+/// (`row[c]` is local column `c`, the table's first global column being `base`).
+fn coord_at(c: &Coord, base: usize, row: &[F192]) -> F192 {
+    match c {
+        Coord::Const(v) => F192::from(*v),
+        Coord::Col(i) => row[*i - base],
+        Coord::Prod(i, j) => row[*i - base] * row[*j - base],
+        Coord::Sum(cs) => cs.iter().fold(F192::ZERO, |acc, c| acc + coord_at(c, base, row)),
+        Coord::IntIndex { .. } | Coord::Public(_) | Coord::Sparse(_) => {
+            unreachable!("a table's bus block carries no virtual coordinate")
+        }
+    }
+}
+
 /// Walk one side's blocks. A block owned by table `t` accumulates into `forms[t]`,
 /// over the table's local columns (`tables[t]` is its `(base, width)`); a producer's
 /// bit block leaves its selector in `open.producers`, its air's weight on that bit; the
@@ -702,6 +718,11 @@ struct Openings {
 /// already opened. Returns the framework blocks' contribution to `Ṽ₀(ζ)` plus the
 /// padding mass, so the caller can settle the side once the zerocheck has proven the
 /// tables' forms and the producers' airs.
+///
+/// A table's form sums over all its rows, while its block put the identity on the
+/// padding rows: they repeat the row at its height, whose leaf `ℓ` the padding values
+/// give, so the block's share of `Ṽ₀(ζ)` is the form's less `(ℓ − 1)` times the weight
+/// `ζ` puts on those rows, which this adds back.
 fn decompose_formula<F: FnMut(usize, &[F192]) -> Result<F192, Error>>(
     side: &Side,
     zeta: &[F192],
@@ -710,7 +731,7 @@ fn decompose_formula<F: FnMut(usize, &[F192]) -> Result<F192, Error>>(
     open: &mut Openings,
     mut fresh: F,
 ) -> Result<F192, Error> {
-    let (lay, w, beta) = (&side.lay, &side.w, side.beta);
+    let (lay, w, beta, padding) = (&side.lay, &side.w, side.beta, side.padding);
     assert_eq!(zeta.len(), lay.mu);
     let mut acc = F192::ZERO;
     let mut sel_sum = F192::ZERO;
@@ -732,10 +753,16 @@ fn decompose_formula<F: FnMut(usize, &[F192]) -> Result<F192, Error>>(
         // A table's block becomes a linear form the zerocheck will sum; only the
         // framework blocks (boundary, registers, memory) still open columns at ζ.
         if let Some(t) = blk.owner {
+            let base = tables[t].0;
             let form = &mut forms[t];
             form.constant += eq_hi * beta;
             for (i, c) in blk.coords.iter().enumerate() {
-                accumulate_form(c, eq_hi * w[i], tables[t].0, form);
+                accumulate_form(c, eq_hi * w[i], base, form);
+            }
+            if let Some(row) = &padding.rows[t] {
+                let leaf = (blk.coords.iter().zip(w)).fold(beta, |acc, (c, &wi)| acc + wi * coord_at(c, base, row));
+                let tail = primitives::multilinear::tail_weight(zeta_lo, padding.heights[t]);
+                acc += eq_hi * tail * (leaf + F192::ONE);
             }
             continue;
         }
@@ -866,14 +893,15 @@ pub fn stacked_bytecode_table(kbc: usize, coords: &[Coord]) -> Vec<F64> {
     table
 }
 
-/// One bus side: its blocks and producers, where they stack, and its fingerprint
-/// `(eq(α⃗, ·), β)`.
+/// One bus side: its blocks and producers, where they stack, its fingerprint
+/// `(eq(α⃗, ·), β)`, and the tables' padding rows its table blocks leave out.
 struct Side<'a> {
     blocks: &'a [Block],
     producers: &'a [Producer],
     lay: Layout,
     w: Vec<F192>,
     beta: F192,
+    padding: Padding<'a>,
 }
 
 /// The two bus sides in `[push, pull]` order, which both parties lay out and
@@ -887,7 +915,13 @@ impl<'a> BusSetup<'a> {
     /// producers' bits, which no pull pairs with, so the two sides no longer match block
     /// for block: the shorter tree is padded to the taller's depth (identity leaves),
     /// and both run as ONE RLC-batched GKR at ONE shared point.
-    fn new(push: &'a [Block], pull: &'a [Block], producers: &'a [Producer], challenger: &mut impl Challenger) -> Self {
+    fn new(
+        push: &'a [Block],
+        pull: &'a [Block],
+        producers: &'a [Producer],
+        padding: Padding<'a>,
+        challenger: &mut impl Challenger,
+    ) -> Self {
         let mut push_lay = layout(push, producers);
         let mut pull_lay = layout(pull, &[]);
         let mu = push_lay.mu.max(pull_lay.mu);
@@ -904,6 +938,7 @@ impl<'a> BusSetup<'a> {
                     lay: push_lay,
                     w: w.clone(),
                     beta,
+                    padding,
                 },
                 Side {
                     blocks: pull,
@@ -911,6 +946,7 @@ impl<'a> BusSetup<'a> {
                     lay: pull_lay,
                     w,
                     beta,
+                    padding,
                 },
             ],
         }
@@ -968,17 +1004,25 @@ pub fn prove_balance(
     producers: &[Producer],
     cols: &[&[F64]],
     tables: &[(usize, usize)],
+    padding: Padding<'_>,
     ps: &mut ProverState,
 ) -> BusProof {
-    let setup = BusSetup::new(push, pull, producers, ps);
+    let setup = BusSetup::new(push, pull, producers, padding, ps);
     // Two independent leaf vectors, built one after another: each `build_leaves`
     // already fans its own blocks out across the whole pool, so nesting an outer
     // split on top would only add a barrier. The all-one padding stays implicit.
     let leaves = crate::stage!("Bus leaves", || {
-        setup
-            .sides
-            .each_ref()
-            .map(|side| build_leaves(side.blocks, side.producers, &side.lay, cols, &side.w, side.beta))
+        setup.sides.each_ref().map(|side| {
+            build_leaves(
+                side.blocks,
+                side.producers,
+                &side.lay,
+                cols,
+                &side.w,
+                side.beta,
+                side.padding.heights,
+            )
+        })
     });
     // Both trees run as ONE RLC-batched GKR, the shorter padded, so every claim lands
     // on ONE point ζ.
@@ -1001,7 +1045,10 @@ pub fn prove_balance(
             frameworks[s] = decompose_prove(side, cols, &bus_gkr.point, tables, &mut forms[s], &mut open, ps);
         }
     });
-    let (table_evals, prod_sums) = tables_and_prods_at(cols, tables, &forms, &bus_gkr.point);
+    let taus: Vec<usize> = (0..tables.len())
+        .map(|t| crate::cpu::tau_of(t, padding.heights[t]))
+        .collect();
+    let (table_evals, prod_sums) = tables_and_prods_at(cols, tables, &taus, &forms, &bus_gkr.point);
     let [push_side, _] = &setup.sides;
     let (w, beta) = (push_side.w.clone(), push_side.beta);
     let producers: Vec<ProducerProof> = producers
@@ -1062,33 +1109,40 @@ pub fn prove_balance(
     }
 }
 
-/// Every table's committed columns at `ζ[..τ_t]`, and, for every column pair its
+/// Every table's committed columns at `ζ[..τ]`, and, for every column pair its
 /// forms multiply, `Σ_z eq(ζ[..τ], z)·col_a(z)·col_b(z)`.
 ///
-/// One eq table per table, streamed once past every column and every pair at
-/// the same time. Evaluated apart these are `n_cols + n_pairs` fold ladders
+/// One pass per table, streamed once past every column and every pair at the
+/// same time. Evaluated apart these are `n_cols + n_pairs` fold ladders
 /// over the same table at the same point, and a ladder lifts every `K` word it
 /// reads into an `E` it writes and reads again, where a dot against the weights
 /// moves the column's own eight bytes. Pairs are deduped across the two sides
 /// and the several blocks that carry the same address, so an address costs one
 /// pass however often it is flushed. `tables[t] = (base, n_cols)` in the global
 /// schema; a pair names LOCAL column indices.
+///
+/// A column holds its committed rows, every later row repeating the last
+/// (§sec:jagged): the pass reads those, and the rest weigh the last row by their
+/// `eq` mass.
 #[allow(clippy::type_complexity)]
 fn tables_and_prods_at(
     cols: &[&[F64]],
     tables: &[(usize, usize)],
+    taus: &[usize],
     forms: &[Vec<BusForm>; 2],
     zeta: &[F192],
 ) -> (Vec<Vec<F192>>, Vec<Vec<(usize, usize, F192)>>) {
-    /// Rows per task: the eq slice a task reads stays in L2 while every column
-    /// and pair accumulator sweeps past it.
-    const ROWS: usize = 1 << 12;
+    /// `log2` of the rows per task: the low `eq` table a task reads stays in L2
+    /// while every column and pair accumulator sweeps past it, and its entry of the
+    /// high one scales the task's sums once.
+    const ROWS_LOG: usize = 12;
 
     tables
         .iter()
+        .zip(taus)
         .enumerate()
-        .map(|(t, &(base, n_cols))| {
-            let tau = crate::log2_strict_usize(cols[base].len());
+        .map(|(t, (&(base, n_cols), &tau))| {
+            let len = cols[base].len();
             let mut pairs: Vec<(usize, usize)> = forms
                 .iter()
                 .flat_map(|side| side[t].prods.iter().map(|&(a, b, _)| (a, b)))
@@ -1096,38 +1150,53 @@ fn tables_and_prods_at(
             pairs.sort_unstable();
             pairs.dedup();
 
-            let eq = eq_table_arena(&zeta[..tau]);
+            let lo_log = tau.min(ROWS_LOG);
+            let (lo, hi) = (eq_table(&zeta[..lo_log]), eq_table(&zeta[lo_log..tau]));
             let n_acc = n_cols + pairs.len();
-            let sums = parallel::fold_reduce(
-                (1usize << tau).div_ceil(ROWS),
-                || vec![F192Unreduced::ZERO; n_acc],
-                |acc, chunk| {
-                    let lo = chunk * ROWS;
-                    let weights = &eq[lo..(lo + ROWS).min(1 << tau)];
-                    let span = |c: usize| &cols[base + c][lo..lo + weights.len()];
-                    for (c, slot) in acc[..n_cols].iter_mut().enumerate() {
+            let (mut sums, _) = parallel::fold_reduce(
+                len.div_ceil(1 << lo_log),
+                || (vec![F192::ZERO; n_acc], vec![F192Unreduced::ZERO; n_acc]),
+                |(acc, part), chunk| {
+                    let first = chunk << lo_log;
+                    let weights = &lo[..(len - first).min(1 << lo_log)];
+                    let span = |c: usize| &cols[base + c][first..first + weights.len()];
+                    part.fill(F192Unreduced::ZERO);
+                    for (c, slot) in part[..n_cols].iter_mut().enumerate() {
                         for (&w, &v) in weights.iter().zip(span(c)) {
                             *slot ^= w.mul_base_unreduced(v);
                         }
                     }
-                    for (&(a, b), slot) in pairs.iter().zip(&mut acc[n_cols..]) {
+                    for (&(a, b), slot) in pairs.iter().zip(&mut part[n_cols..]) {
                         for ((&w, &x), &y) in weights.iter().zip(span(a)).zip(span(b)) {
                             *slot ^= w.mul_base_unreduced(x * y);
                         }
                     }
-                },
-                |mut left, right| {
-                    for (slot, part) in left.iter_mut().zip(right) {
-                        *slot ^= part;
+                    for (a, p) in acc.iter_mut().zip(part.iter()) {
+                        *a += hi[chunk] * p.reduce();
                     }
-                    left
+                },
+                |(mut left, part), (right, _)| {
+                    for (slot, r) in left.iter_mut().zip(right) {
+                        *slot += r;
+                    }
+                    (left, part)
                 },
             );
-            let evals = sums[..n_cols].iter().map(|s| s.reduce()).collect();
+            if len < 1 << tau {
+                let tail = primitives::multilinear::tail_weight(&zeta[..tau], len);
+                let last = |c: usize| cols[base + c][len - 1];
+                for (c, slot) in sums[..n_cols].iter_mut().enumerate() {
+                    *slot += tail.mul_base(last(c));
+                }
+                for (&(a, b), slot) in pairs.iter().zip(&mut sums[n_cols..]) {
+                    *slot += tail.mul_base(last(a) * last(b));
+                }
+            }
+            let evals = sums[..n_cols].to_vec();
             let prods = pairs
                 .iter()
                 .zip(&sums[n_cols..])
-                .map(|(&(a, b), s)| (a, b, s.reduce()))
+                .map(|(&(a, b), &s)| (a, b, s))
                 .collect();
             (evals, prods)
         })
@@ -1161,15 +1230,14 @@ pub fn verify_balance(
     pull: &[Block],
     producers: &[Producer],
     tables: &[(usize, usize)],
+    padding: Padding<'_>,
     vs: &mut VerifierState,
 ) -> Result<BusVerify, Error> {
-    let setup = BusSetup::new(push, pull, producers, vs);
+    let setup = BusSetup::new(push, pull, producers, padding, vs);
     let bus_gkr = gkr::verify_products::<2>(setup.mu(), vs)?;
-    // Every row of every table is a real row (`cpu::filler`), so the two sides balance
-    // outright: no padding tuples to divide back out, and no announced row counts whose
-    // truthfulness the soundness argument would have to establish. The GKR sends ONE root
-    // for both sides, so a prover cannot even state an unbalanced bus, and there is nothing
-    // to check here.
+    // The GKR sends ONE root for both sides, so a prover cannot even state an unbalanced
+    // bus, and there is nothing to check here: the two products are over the same leaves
+    // the run made, a table's padding rows taking the identity (§sec:jagged).
 
     // Framework blocks decompose as before; the tables' blocks become linear forms and the
     // producers' bits weights on their airs. Each side's share of those is DERIVED from

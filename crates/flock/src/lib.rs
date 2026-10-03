@@ -41,4 +41,5 @@ pub mod reduction;
 mod reduction_tests;
 pub mod verifier;
 mod witness;
+pub use witness::ZCopy;
 pub mod zerocheck;

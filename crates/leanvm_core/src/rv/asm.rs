@@ -247,7 +247,7 @@ mod tests {
         let entry = |i: usize| Entry::decode(text[i], Region::TEXT.base() + 4 * i as u64);
         assert_eq!(entry(0).target, Target::Abs(Region::TEXT.base()));
         assert_eq!(entry(1).target, Target::Abs(Region::TEXT.base() + 12));
-        assert_eq!(entry(2).class, Class::Alu);
+        assert_eq!(entry(2).class, Class::Add);
     }
 
     #[test]

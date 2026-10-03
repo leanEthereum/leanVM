@@ -1,20 +1,27 @@
-//! The prover's witness: the stacked multilinear holding every committed column, built once from a run.
+//! The prover's witness: the stacked multilinear holding every committed piece, and the live stack of the columns that commit only some of their rows, built once from a run.
 
 use super::MAX_LOG_ROWS;
 use super::execute::Execution;
-use super::layout::Layout;
-use super::layout::{Lookup, Schema, Shared, q_column};
+use super::layout::{Layout, committed_rows};
+use super::layout::{Lookup, Schema, Shared, Sizes, q_column};
 use super::program::Program;
 use crate::class_flock::{self, Prepared};
 use crate::tables::{self, FillCtx};
+use crate::witness::Window;
 use primitives::field::F64;
 use zk_alloc::ArenaVec;
 
-/// The prover's witness: the stack `q` with every committed column at its placed offset, and the public layout.
+/// The prover's witness: the committed stack `q`, the live stack of the columns that commit only some of their rows, and the public layout.
+///
+/// The bus and the table sumcheck read a table's columns in the live stack, or in `q` for a column committed whole.
 pub(crate) struct Witness {
-    /// The stacked multilinear the commitment takes.
+    /// The stacked multilinear the commitment takes: every committed column's pieces at their placed offsets.
     pub(crate) q: ArenaVec<F64>,
-    /// The ports' values, by global column index.
+    /// Every column that commits only some of its rows, at those rows, end to end.
+    pub(crate) live: ArenaVec<F64>,
+    /// Each column's window in `live`.
+    pub(crate) windows: Vec<Option<Window>>,
+    /// The ports' values, by global column index, at their tables' committed rows.
     ///
     /// They carry data for the bus but are not committed, so they are not in the stack.
     pub(crate) virt: Vec<(usize, ArenaVec<F64>)>,
@@ -31,89 +38,120 @@ impl Witness {
     ///
     /// # Panics
     ///
-    /// Panics if a table's rows are not a power of two at flock's floor: the fill blocks failed to fill it.
+    /// Panics if a table is taller than the cap, or its rows are not its live rows then its padding row.
     pub(crate) fn build(program: &Program, exec: &Execution) -> Self {
         let (p, trace, schema) = (&program.rv, &exec.trace, Schema::get());
-
-        // Every table's rows are real, filled to a power of two at flock's floor, so its height is its row count.
-        let row_counts = trace.row_counts();
         assert!(
-            row_counts.iter().all(|&r| r <= 1 << MAX_LOG_ROWS),
+            trace.heights.iter().all(|&h| h <= 1 << MAX_LOG_ROWS),
             "a table exceeds 2^{MAX_LOG_ROWS} rows"
         );
-        let taus: [usize; tables::N_TABLES] = std::array::from_fn(|t| {
-            let r = row_counts[t];
-            assert!(
-                r.is_power_of_two(),
-                "a table has {r} rows, not a power of two: the fill blocks did not fill it"
-            );
-            let tau = crate::log2_strict_usize(r);
-            let floor = class_flock::n_blocks_log(tables::CLASSES[t], r);
+
+        // The public layout comes first: it fixes each column's committed rows, so each is allocated once.
+        let layout = Layout::new(p, trace.heights, trace.ts_final);
+
+        // The executor wrote each table's live rows, then the padding row every later row repeats: its committed rows.
+        let rows: [usize; tables::N_TABLES] = std::array::from_fn(|t| committed_rows(trace.heights[t], layout.taus[t]));
+        for (t, table_rows) in trace.rows.iter().enumerate() {
             assert_eq!(
-                tau,
-                floor,
-                "the {} table must be filled to flock's instance floor",
+                table_rows.len(),
+                rows[t],
+                "the {} table is not its committed rows",
                 tables::CLASSES[t].name
             );
-            tau
-        });
+        }
 
-        // The public layout comes first: it fixes each column's length, so each is allocated once.
-        let layout = Layout::new(p, taus, trace.ts_final);
-
-        // The stack is written exactly once: one window per committed column, each filled in place.
+        // The committed stack and the live stack are each written exactly once: every piece and every window is filled in place.
         //
-        // SAFETY: the allocation is uninitialized.
-        // `split_stack` zeroes the pad tail and hands out windows tiling the rest.
-        // `fill_table` checks each table wrote every window it was given, and the shared columns are written below.
-        let mut q = unsafe { crate::witness::alloc_stack(layout.shape) };
+        // A column that commits only some of its rows is written at those rows, and each piece copied while it is in cache.
+        //
+        // One committed whole is written into its piece alone.
+        //
+        // SAFETY: both allocations are uninitialized.
+        // `split_pieces` hands out pieces tiling `q` but its tail, zeroed below, and `split_stack` windows tiling all of `live`.
+        // `fill_table` checks each table wrote every column it was given, the shared columns are written below, and each flock batch writes its pieces.
+        let sources = Sizes::of(p).column_sources(trace.heights);
+        let (live_windows, live_len) = crate::witness::live_windows(&sources);
+        let mut live = unsafe { crate::witness::alloc_live(live_len) };
+        let mut q = unsafe { ArenaVec::<F64>::uninitialized(layout.shape.committed_len()) };
 
         // A port is not in the stack, so its values get a buffer of their own.
         let mut virt: Vec<(usize, ArenaVec<F64>)> = Vec::new();
         for (t, &(base, width)) in schema.spans.iter().enumerate() {
-            for i in (base..base + width).filter(|&i| layout.placements[i].window().is_none()) {
+            for i in (base..base + width).filter(|&i| layout.placements[i].column().is_none()) {
                 // SAFETY: a port is a table column, which `fill_table` asserts its table writes in full.
-                virt.push((i, unsafe { ArenaVec::<F64>::uninitialized(1 << layout.taus[t]) }));
+                virt.push((i, unsafe { ArenaVec::<F64>::uninitialized(rows[t]) }));
             }
         }
-        let mut windows = crate::witness::split_stack(&mut q, &layout.placements);
+        let (pieces, tail) = crate::witness::split_pieces(&mut q, &layout.placements);
+        parallel::chunks_mut(tail, 1 << 16, |_, chunk| chunk.fill(F64::ZERO));
+
+        // Each column's pieces as `(first row, piece)`; the packed witnesses' go to their flock batches.
+        let mut pieces: Vec<Vec<(usize, &mut [F64])>> = (pieces.into_iter().zip(&layout.placements))
+            .map(|(pieces, placement)| {
+                placement
+                    .column()
+                    .map_or_else(Vec::new, |c| c.pieces.iter().map(|p| p.first_row).zip(pieces).collect())
+            })
+            .collect();
+        let flocks: Vec<Vec<(usize, &mut [F64])>> = (0..class_flock::N_FLOCKS)
+            .map(|f| std::mem::take(&mut pieces[q_column(f)]))
+            .collect();
+        let mut windows = crate::witness::split_stack(&mut live, &live_windows);
+        let mut outs: Vec<tables::ColumnOut<'_>> = (windows.iter_mut().zip(pieces))
+            .map(|(window, mut pieces)| {
+                if window.is_empty() && pieces.len() == 1 {
+                    // Committed whole: its one piece is the column.
+                    tables::ColumnOut {
+                        rows: pieces.pop().expect("one piece").1,
+                        pieces,
+                    }
+                } else {
+                    tables::ColumnOut {
+                        rows: std::mem::take(window),
+                        pieces,
+                    }
+                }
+            })
+            .collect();
         for (i, buf) in virt.iter_mut() {
-            windows[*i] = buf;
+            outs[*i].rows = buf;
         }
 
         crate::stage!("Fill columns", || {
             // Each table fills its own columns from the trace, in its global span.
             for (t, table) in tables::tables().iter().enumerate() {
                 let (base, n) = schema.spans[t];
-                let ctx = FillCtx::new(trace, p, 1 << layout.taus[t], n);
-                tables::fill_table(table, &ctx, &mut windows[base..base + n]);
+                let ctx = FillCtx::new(trace, p, rows[t], n);
+                tables::fill_table(table, &ctx, &mut outs[base..base + n]);
             }
 
             // Every shared column is written: the stack is uninitialized, so one left out would read garbage.
             for c in Shared::ALL {
                 if let Some(values) = c.values(trace) {
-                    windows[c.col()].copy_from_slice(values);
+                    outs[c.col()].rows.copy_from_slice(values);
                 }
             }
 
             // What the run did not leave, the multiplicities, is counted from its rows.
-            trace.count_reads(windows[Lookup::Bytecode.multiplicity().col()]);
+            trace.count_reads(outs[Lookup::Bytecode.multiplicity().col()].rows);
         });
 
-        // The packed witnesses, one instance per row of their table.
+        // Release the borrows of the stacks and of the port buffers.
+        drop(outs);
+
+        // The packed witnesses, one instance per committed row of their table, each writing its committed pieces in place.
         let reductions = crate::stage!("Build flock witnesses", || {
-            (0..class_flock::N_FLOCKS)
-                .map(|f| {
-                    let rows = &trace.rows[class_flock::flock(f).0];
-                    Prepared::build(f, rows, p.entries(), windows[q_column(f)])
+            (flocks.into_iter().enumerate())
+                .map(|(f, pieces)| {
+                    let t = class_flock::flock(f).0;
+                    Prepared::build(f, layout.taus[t], &trace.rows[t], p.entries(), pieces)
                 })
                 .collect()
         });
-
-        // Release the windows' borrow of the stack and of the port buffers.
-        drop(windows);
         Self {
             q,
+            live,
+            windows: live_windows,
             virt,
             layout,
             ts_final: trace.ts_final,
@@ -123,15 +161,18 @@ impl Witness {
 
     /// One read-only view per column, in global column order.
     ///
-    /// A committed column's view is its window in the stack; a port's is its own buffer.
+    /// A table's column is at its committed rows, every later row repeating the last: its window in the live stack, its piece of the committed stack when it is committed whole, or the private buffer of a port.
+    ///
+    /// A shared column is whole, and a packed witness's view is empty, its flock batch holding its words.
     pub(crate) fn columns(&self) -> Vec<&[F64]> {
-        let mut cols: Vec<&[F64]> = self
-            .layout
-            .placements
-            .iter()
-            .map(|p| {
-                p.window()
-                    .map_or(&[][..], |w| &self.q[w.offset..w.offset + (1 << w.n_vars)])
+        let mut cols: Vec<&[F64]> = (self.windows.iter().zip(&self.layout.placements))
+            .map(|(w, p)| match (w, p.column()) {
+                (Some(w), _) => &self.live[w.offset..w.offset + w.len],
+                (None, Some(c)) if c.stride_log == 0 => {
+                    debug_assert_eq!(c.pieces.len(), 1, "a column without a window is committed whole");
+                    &self.q[c.pieces[0].offset..c.pieces[0].offset + (1 << c.row_vars)]
+                }
+                (None, _) => &[],
             })
             .collect();
         for (i, buf) in &self.virt {

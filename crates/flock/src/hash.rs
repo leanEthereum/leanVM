@@ -93,7 +93,7 @@ use crate::witness::{
     write_lin_word_ab_packed,
 };
 use pcs::pack::LOG_PACKING;
-use pcs::stack_open::{RingSwitchOpen, RingSwitchVerify};
+use pcs::stack_open::{RingSwitchClaim, RingSwitchVerifyClaim};
 use primitives::field::F192;
 use zk_alloc::ArenaVec;
 
@@ -670,8 +670,9 @@ pub fn generate_witness_with_ab_packed_and_lincheck(
     drive_witness_packed_and_lincheck(
         blocks,
         Some(&padding),
-        n_blocks_log,
+        1 << n_blocks_log,
         K_LOG,
+        &mut [],
         |&(ref h, ref m, t, f0, f1), z, a, b| build_block_witness_ab_packed_into(h, m, t, f0, f1, z, a, b),
     )
 }
@@ -727,12 +728,12 @@ pub fn qflock_kappa(n_blocks: usize) -> usize {
 
 /// [`reduction::ring_switch_open`] for `n_blocks` compressions, `offset` being
 /// `q_flock`'s slot in the committed stack.
-pub fn ring_switch_open(n_blocks: usize, offset: usize, reduced: &SliceClaim) -> RingSwitchOpen {
+pub fn ring_switch_open(n_blocks: usize, offset: usize, reduced: &SliceClaim) -> RingSwitchClaim {
     reduction::ring_switch_open(qflock_kappa(n_blocks), offset, reduced)
 }
 
 /// [`reduction::ring_switch_verify`] for `n_blocks` compressions.
-pub fn ring_switch_verify(n_blocks: usize, offset: usize, claim: &SliceClaim) -> RingSwitchVerify<'_> {
+pub fn ring_switch_verify(n_blocks: usize, offset: usize, claim: &SliceClaim) -> RingSwitchVerifyClaim<'_> {
     reduction::ring_switch_verify(qflock_kappa(n_blocks), offset, claim)
 }
 
@@ -773,7 +774,7 @@ impl Blake2sSetup {
         b_packed_words: &[u64],
         ps: &mut fiat_shamir::transcript::ProverState,
     ) -> ZerocheckStage {
-        BLOCK.prove_zerocheck(self.n_blocks_log, z_packed, a_packed_words, b_packed_words, ps)
+        BLOCK.prove_zerocheck(self.n_blocks_log, z_packed, a_packed_words, b_packed_words, None, ps)
     }
 
     /// **Flock reduction, second stage (prover): the lincheck.** Reduces the
@@ -785,7 +786,7 @@ impl Blake2sSetup {
         z_packed_lincheck: &[u8],
         ps: &mut fiat_shamir::transcript::ProverState,
     ) -> SliceClaim {
-        BLOCK.prove_lincheck(self.n_blocks_log, stage, z_packed_lincheck, ps)
+        BLOCK.prove_lincheck(self.n_blocks_log, stage, z_packed_lincheck, None, ps)
     }
 
     /// **Flock reduction (verifier).** Replay the BLAKE2s zerocheck and

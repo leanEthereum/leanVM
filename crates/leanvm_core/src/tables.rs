@@ -207,8 +207,8 @@ impl FlushBuilder {
 pub struct FillCtx<'a> {
     pub(crate) trace: &'a Trace,
     pub(crate) program: &'a rv::Program,
-    /// This table's height `2^tau`, the length of every window in `out`, and its row
-    /// count too (`cpu::filler`).
+    /// This table's committed rows, its live rows and then the padding row every later
+    /// row repeats (`cpu::padding`): the length of every window in `out`.
     pub(crate) rows: usize,
     /// Which local columns [`Self::col`] / [`Self::cols`] have written. A fill that
     /// misses one would leave the stacked witness holding uninitialized slots, so
@@ -231,9 +231,15 @@ type RowsWriter<'a> = Box<dyn Fn(std::ops::Range<usize>) + Send + Sync + 'a>;
 /// - Every writer of the table reads the same rows while they are there.
 const FILL_ROWS: usize = 1 << 10;
 
-/// Where one column's values go: its window in the stacked witness, or a private
-/// buffer if the column is virtual.
-pub type ColumnOut<'a> = &'a mut [F64];
+/// Where one column's values go: `rows`, the column at its committed rows (its window in
+/// the live stack, its one piece of the committed stack when it is committed whole, or
+/// a private buffer if the column is virtual), and `pieces`, the committed stack's
+/// pieces, as `(first row, piece)`, that its committed rows are copied into when it
+/// commits only some of them.
+pub struct ColumnOut<'a> {
+    pub rows: &'a mut [F64],
+    pub pieces: Vec<(usize, &'a mut [F64])>,
+}
 
 impl<'a> FillCtx<'a> {
     pub(crate) fn new(trace: &'a Trace, program: &'a rv::Program, rows: usize, n_cols: usize) -> Self {
@@ -273,22 +279,36 @@ impl<'a> FillCtx<'a> {
         f: impl Fn(&R) -> [F64; N] + Send + Sync + 'a,
     ) {
         let n = self.rows;
-        let dst: [parallel::SendPtr<F64>; N] = at.map(|c| {
-            assert_eq!(out[c].len(), n, "column {c} has the wrong window length");
+        let dst = at.map(|c| {
+            assert_eq!(out[c].rows.len(), n, "column {c} has the wrong window length");
             self.written[c].store(true, std::sync::atomic::Ordering::Relaxed);
-            parallel::SendPtr(out[c].as_mut_ptr())
+            let pieces: Vec<(usize, usize, parallel::SendPtr<F64>)> = (out[c].pieces.iter_mut())
+                .map(|(first, piece)| (*first, piece.len(), parallel::SendPtr(piece.as_mut_ptr())))
+                .collect();
+            (parallel::SendPtr(out[c].rows.as_mut_ptr()), pieces)
         });
-        // A table's height is its row count (`cpu::filler`), so there is nothing to
-        // pad with.
-        assert_eq!(rows.len(), n, "a table's rows must fill its cube");
+        // The executor wrote the padding row out (`cpu::padding`), so there is nothing to
+        // pad with here.
+        assert_eq!(rows.len(), n, "a table's trace is its committed rows");
         let writer = move |range: std::ops::Range<usize>| {
-            for i in range {
+            for i in range.clone() {
                 let v = f(&rows[i]);
-                for (k, p) in dst.iter().enumerate() {
+                for (k, (p, _)) in dst.iter().enumerate() {
                     // SAFETY: distinct `i` write disjoint in-bounds slots of each of the
                     // `N` windows, each exactly once. The windows stay borrowed until the
                     // fill pass that runs this writer has joined.
                     unsafe { p.add(i).write(v[k]) };
+                }
+            }
+            // The committed rows of the range into their pieces, from cache.
+            for (p, pieces) in &dst {
+                for &(first, len, piece) in pieces {
+                    let (lo, hi) = (range.start.max(first), range.end.min(first + len));
+                    if lo < hi {
+                        // SAFETY: the rows were just written above; distinct ranges copy
+                        // disjoint rows of each piece, which stays borrowed like the windows.
+                        unsafe { std::ptr::copy_nonoverlapping(p.add(lo), piece.add(lo - first), hi - lo) };
+                    }
                 }
             }
         };
@@ -385,14 +405,26 @@ pub type InstanceWitness = fn(&[u64], &mut [u64], &mut [u64], &mut [u64]);
 /// Eight instances' packed witness by native word arithmetic.
 pub type BatchWitness = fn(&[&[u64]; 8], &mut [u64], &mut [u64], &mut [u64]);
 
+/// Where a class's rows send control.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Control {
+    /// To `pc + 4`, and `rd` receives `out`, or the cell of a doubleword load ([`ClassSpec::copies`]).
+    None,
+    /// A branch: to the bytecode's target when the circuit's `taken` is set, else to `pc + 4`.
+    /// Its bytecode's `link`, `jalr` and exit selectors are the constant zero.
+    Branch,
+    /// A jump: the branch's columns, then the bytecode's `link`, `jalr` and exit selectors.
+    Jump,
+}
+
 /// What specializes the class table to one instruction class.
 pub struct ClassSpec {
     pub class: Class,
     pub name: &'static str,
-    /// Branches and jumps: the bytecode's `dt`, `link` and `jalr` fields, and the
-    /// circuit's `taken` word. Without them the next `pc` is `pc + 4` and `rd`
-    /// receives `out`, or the cell of a doubleword load ([`Self::copies`]).
-    pub control: bool,
+    /// Branches and jumps: the bytecode's `dt` and the circuit's `taken` word, then a
+    /// jump's `link`, `jalr` and exit selectors. Without them the next `pc` is `pc + 4`
+    /// and `rd` receives `out`.
+    pub control: Control,
     /// Whether the row reads `rs2`, in clock slot 1.
     /// A load decodes with `x0` there, and its circuit takes no `v2`.
     pub reads_rs2: bool,
@@ -455,20 +487,6 @@ impl ClassSpec {
         self.registers().len() + (ram.end - ram.start) as usize
     }
 
-    /// The fewest rows the table can be proven over.
-    ///
-    /// Flock sizes a batch to at least eight instances, and its zerocheck to a cube of at least `2^13` bits.
-    ///
-    /// A table with fewer rows would be padded up to it anyway.
-    pub const fn min_rows(&self) -> usize {
-        1 << crate::class_flock::n_blocks_log(self, 1)
-    }
-
-    /// Whether the table can be proven over `rows` rows: a power of two at or above its floor.
-    pub const fn is_provable_height(&self, rows: usize) -> bool {
-        rows.is_power_of_two() && rows >= self.min_rows()
-    }
-
     /// The clock slots of the row's accesses, in the order of their columns.
     pub fn slots(&self) -> Vec<u32> {
         let registers = self.registers().iter().map(|&i| REG_SLOTS[i]);
@@ -482,10 +500,10 @@ impl ClassSpec {
     }
 }
 
-pub static ALU: ClassSpec = ClassSpec {
-    class: Class::Alu,
-    name: "ALU",
-    control: true,
+pub static ADD: ClassSpec = ClassSpec {
+    class: Class::Add,
+    name: "ADD",
+    control: Control::None,
     reads_rs2: true,
     writes_rd: true,
     reads_rd: false,
@@ -493,15 +511,65 @@ pub static ALU: ClassSpec = ClassSpec {
     copies: false,
     witness: None,
     batch_witness: None,
-    k_log: 10,
-    ports: &[Word::V1, Word::V2, Word::Imm, Word::Flags, Word::Out, Word::Taken],
+    k_log: 9,
+    ports: &[Word::V1, Word::V2, Word::Imm, Word::Flags, Word::Out],
     n_inputs: 4,
+    clock_k_log: 9,
+};
+pub static LOGIC: ClassSpec = ClassSpec {
+    class: Class::Logic,
+    name: "LOGIC",
+    control: Control::None,
+    reads_rs2: true,
+    writes_rd: true,
+    reads_rd: false,
+    ram: Ram::None,
+    copies: false,
+    witness: None,
+    batch_witness: None,
+    k_log: 9,
+    ports: &[Word::V1, Word::V2, Word::Imm, Word::Flags, Word::Out],
+    n_inputs: 4,
+    clock_k_log: 9,
+};
+/// A branch writes no `rd` and has no immediate: its bytecode tuple holds the sink and zero there.
+pub static BRANCH: ClassSpec = ClassSpec {
+    class: Class::Branch,
+    name: "BRANCH",
+    control: Control::Branch,
+    reads_rs2: true,
+    writes_rd: false,
+    reads_rd: false,
+    ram: Ram::None,
+    copies: false,
+    witness: None,
+    batch_witness: None,
+    k_log: 9,
+    ports: &[Word::V1, Word::V2, Word::Flags, Word::Taken],
+    n_inputs: 3,
+    clock_k_log: 9,
+};
+/// A jump reads no `rs2`: its bytecode tuple holds `x0` there.
+pub static JUMP: ClassSpec = ClassSpec {
+    class: Class::Jump,
+    name: "JUMP",
+    control: Control::Jump,
+    reads_rs2: false,
+    writes_rd: true,
+    reads_rd: false,
+    ram: Ram::None,
+    copies: false,
+    witness: None,
+    batch_witness: None,
+    k_log: 9,
+    ports: &[Word::V1, Word::Imm, Word::Flags, Word::Out, Word::Taken],
+    n_inputs: 3,
     clock_k_log: 9,
 };
 pub static LOAD: ClassSpec = ClassSpec {
     class: Class::Load,
     name: "LOAD",
-    control: false,
+    control: Control::None,
     reads_rs2: false,
     writes_rd: true,
     reads_rd: false,
@@ -524,7 +592,7 @@ pub static LOAD: ClassSpec = ClassSpec {
 pub static STORE: ClassSpec = ClassSpec {
     class: Class::Store,
     name: "STORE",
-    control: false,
+    control: Control::None,
     reads_rs2: true,
     writes_rd: false,
     reads_rd: false,
@@ -549,7 +617,7 @@ pub static STORE: ClassSpec = ClassSpec {
 pub static LD: ClassSpec = ClassSpec {
     class: Class::Ld,
     name: "LD",
-    control: false,
+    control: Control::None,
     reads_rs2: false,
     writes_rd: true,
     reads_rd: false,
@@ -566,7 +634,7 @@ pub static LD: ClassSpec = ClassSpec {
 pub static SD: ClassSpec = ClassSpec {
     class: Class::Sd,
     name: "SD",
-    control: false,
+    control: Control::None,
     reads_rs2: true,
     writes_rd: false,
     reads_rd: false,
@@ -583,7 +651,7 @@ pub static SD: ClassSpec = ClassSpec {
 pub static SHIFT: ClassSpec = ClassSpec {
     class: Class::Shift,
     name: "SHIFT",
-    control: false,
+    control: Control::None,
     reads_rs2: true,
     writes_rd: true,
     reads_rd: false,
@@ -599,7 +667,7 @@ pub static SHIFT: ClassSpec = ClassSpec {
 pub static MUL: ClassSpec = ClassSpec {
     class: Class::Mul,
     name: "MUL",
-    control: false,
+    control: Control::None,
     reads_rs2: true,
     writes_rd: true,
     reads_rd: false,
@@ -619,7 +687,7 @@ pub static MUL: ClassSpec = ClassSpec {
 pub static MULH: ClassSpec = ClassSpec {
     class: Class::Mulh,
     name: "MULH",
-    control: false,
+    control: Control::None,
     reads_rs2: true,
     writes_rd: true,
     reads_rd: false,
@@ -636,7 +704,7 @@ pub static MULH: ClassSpec = ClassSpec {
 pub static DIV: ClassSpec = ClassSpec {
     class: Class::Div,
     name: "DIV",
-    control: false,
+    control: Control::None,
     reads_rs2: true,
     writes_rd: true,
     reads_rd: false,
@@ -663,7 +731,7 @@ pub static DIV: ClassSpec = ClassSpec {
 pub static HASH: ClassSpec = ClassSpec {
     class: Class::Hash,
     name: "HASH",
-    control: false,
+    control: Control::None,
     reads_rs2: true,
     writes_rd: false,
     reads_rd: false,
@@ -704,7 +772,7 @@ pub static HASH: ClassSpec = ClassSpec {
 pub static EXT: ClassSpec = ClassSpec {
     class: Class::Ext,
     name: "EXT",
-    control: false,
+    control: Control::None,
     reads_rs2: true,
     writes_rd: false,
     reads_rd: true,
@@ -744,8 +812,10 @@ pub static EXT: ClassSpec = ClassSpec {
 
 /// The tables, in the order of `row_counts` / `taus` throughout `cpu`. Table `t`'s
 /// class tag in the bytecode is `g^t`.
-pub const N_TABLES: usize = 11;
-pub static CLASSES: [&ClassSpec; N_TABLES] = [&ALU, &LOAD, &STORE, &LD, &SD, &SHIFT, &MUL, &MULH, &DIV, &HASH, &EXT];
+pub const N_TABLES: usize = 14;
+pub static CLASSES: [&ClassSpec; N_TABLES] = [
+    &ADD, &LOGIC, &BRANCH, &JUMP, &LOAD, &STORE, &LD, &SD, &SHIFT, &MUL, &MULH, &DIV, &HASH, &EXT,
+];
 
 /// The table running `class`, if it has one yet.
 pub fn table_of(class: Class) -> Option<usize> {
@@ -787,14 +857,20 @@ struct RdCols {
     out: usize,
 }
 
-/// A branch's or a jump's columns: the bytecode's target offset, link and indirect-jump
-/// selectors, the circuit's taken bit, and the exit selector.
+/// A branch's or a jump's columns: the bytecode's target offset and the circuit's taken
+/// bit, then a jump's own.
 #[derive(Clone, Copy)]
 struct ControlCols {
     dt: usize,
+    taken: usize,
+    jump: Option<JumpCols>,
+}
+
+/// A jump's columns: the bytecode's link and indirect-jump selectors, and the exit selector.
+#[derive(Clone, Copy)]
+struct JumpCols {
     link: usize,
     jalr: usize,
-    taken: usize,
     exit: usize,
 }
 
@@ -900,13 +976,22 @@ impl Cols {
             ad: take(1),
             vd: take(1),
         });
-        let control = spec.control.then(|| ControlCols {
-            dt: take(1),
-            link: take(1),
-            jalr: take(1),
-            taken: take(1),
-            exit: take(1),
-        });
+        let control = match spec.control {
+            Control::None => None,
+            Control::Branch => Some(ControlCols {
+                dt: take(1),
+                taken: take(1),
+                jump: None,
+            }),
+            Control::Jump => {
+                let (dt, link, jalr, taken, exit) = (take(1), take(1), take(1), take(1), take(1));
+                Some(ControlCols {
+                    dt,
+                    taken,
+                    jump: Some(JumpCols { link, jalr, exit }),
+                })
+            }
+        };
         let imm = spec.ports.contains(&Word::Imm).then(|| take(1));
         let (ram, block) = match spec.ram {
             Ram::None | Ram::Limbs => (None, None),
@@ -1027,6 +1112,17 @@ impl ClassTable {
             spec.name
         );
         assert_eq!(
+            spec.control != Control::None,
+            spec.ports.contains(&Word::Taken),
+            "{}: taken",
+            spec.name
+        );
+        assert!(
+            spec.control != Control::Jump || spec.writes_rd,
+            "{}: a jump links",
+            spec.name
+        );
+        assert_eq!(
             spec.reads_rd,
             spec.ports.contains(&Word::Dest),
             "{}: rd read",
@@ -1046,7 +1142,7 @@ impl ClassTable {
             };
             let ports = [Word::V1, Word::Imm, Word::Address];
             assert!(
-                moves && !spec.control && !spec.reads_rd && spec.ports == ports,
+                moves && spec.control == Control::None && !spec.reads_rd && spec.ports == ports,
                 "{}: a copy",
                 spec.name
             );
@@ -1083,24 +1179,26 @@ impl ClassTable {
         let mut f = FlushBuilder::new();
         let c = &self.cols;
         // What the row derives: the next `pc`, `pc4 + taken·dt + jalr·(out + pc4)`, and
-        // what `rd` receives, `out + link·(out + pc4)`, each of degree 2 (§sec:m3).
-        let (npc, vd, control) = match (c.control, c.rd) {
-            (Some(k), Some(rd)) => (
-                Coord::Sum(vec![
-                    Col(c.pc4),
-                    Prod(k.taken, k.dt),
-                    Prod(k.jalr, rd.out),
-                    Prod(k.jalr, c.pc4),
-                ]),
-                Some(Coord::Sum(vec![Col(rd.out), Prod(k.link, rd.out), Prod(k.link, c.pc4)])),
-                vec![Col(k.dt), Col(k.link), Col(k.jalr)],
-            ),
-            (_, rd) => (Col(c.pc4), rd.map(|rd| Col(rd.out)), Vec::new()),
-        };
+        // what `rd` receives, `out + link·(out + pc4)`, each of degree 2 (§sec:m3). A
+        // branch has neither `jalr` nor `link`, nor an `rd` to write, and its entry holds
+        // zero for both, which the slots past `dt` read.
+        let zero = || Const(F64::ZERO);
+        let mut npc = vec![Col(c.pc4)];
+        let mut vd = c.rd.map(|rd| Col(rd.out));
+        let mut control = Vec::new();
+        if let Some(k) = c.control {
+            npc.push(Prod(k.taken, k.dt));
+            control.push(Col(k.dt));
+            if let (Some(j), Some(rd)) = (k.jump, c.rd) {
+                npc.extend([Prod(j.jalr, rd.out), Prod(j.jalr, c.pc4)]);
+                vd = Some(Coord::Sum(vec![Col(rd.out), Prod(j.link, rd.out), Prod(j.link, c.pc4)]));
+                control.extend([Col(j.link), Col(j.jalr)]);
+            }
+        }
+        let npc = if npc.len() == 1 { npc.remove(0) } else { Coord::Sum(npc) };
         // Only an exit marks its next state, `exit·(ts ^ step)`, which only the final state meets.
-        let exit = c.control.map_or(Const(F64::ZERO), |k| {
-            Coord::Sum(vec![Prod(k.exit, c.ts), Prod(k.exit, c.step)])
-        });
+        let jump = c.control.and_then(|k| k.jump);
+        let exit = jump.map_or_else(zero, |j| Coord::Sum(vec![Prod(j.exit, c.ts), Prod(j.exit, c.step)]));
         f.state(c.pc, c.ts, c.step, npc, exit);
         // A row without flags, an `rs2` read, an `rd` write or an immediate reads its constant off the entry.
         // Those constants are zero, `x0`, the sink, and zero.
@@ -1110,22 +1208,22 @@ impl ClassTable {
             Const(g_pow(self.index)),
             c.flags.map_or(Const(F64::ZERO), Col),
             Col(c.a1),
-            c.rs2.map_or(Const(F64::ZERO), |r| Col(r.a2)),
+            c.rs2.map_or_else(zero, |r| Col(r.a2)),
             match (c.rd, c.pointer) {
                 (Some(rd), _) => Col(rd.ad),
                 (_, Some(pointer)) => Col(pointer.ad),
                 _ => Const(F64(RegisterFile::SINK as u64)),
             },
-            c.imm.map_or(Const(F64::ZERO), Col),
+            c.imm.map_or_else(zero, Col),
             Col(c.pc4),
         ];
         entry.extend(control);
         if let Some(bad) = c.bad {
-            entry.resize(BAD_SLOT, Const(F64::ZERO));
+            entry.resize(BAD_SLOT, zero());
             entry.push(Col(bad));
         }
-        entry.resize(EXIT_SLOT, Const(F64::ZERO));
-        entry.push(c.control.map_or(Const(F64::ZERO), |k| Col(k.exit)));
+        entry.resize(EXIT_SLOT, zero());
+        entry.push(jump.map_or_else(zero, |j| Col(j.exit)));
         f.read(entry);
         // The accesses' columns are in the order the row makes them.
         let mut slots = self.spec.slots().into_iter().enumerate();
@@ -1220,16 +1318,15 @@ impl ClassTable {
             });
         }
         if let Some(k) = c.control {
-            ctx.cols_at(out, rows, [k.dt, k.link, k.jalr, k.taken, k.exit], move |r| {
-                let e = entry(r);
-                [
-                    F64(p.dt_of(r.index as usize)),
-                    F64(e.link as u64),
-                    F64(e.jalr as u64),
-                    F64(r.taken as u64),
-                    F64((e.is_exit()) as u64),
-                ]
+            ctx.cols_at(out, rows, [k.dt, k.taken], move |r| {
+                [F64(p.dt_of(r.index as usize)), F64(r.taken as u64)]
             });
+            if let Some(j) = k.jump {
+                ctx.cols_at(out, rows, [j.link, j.jalr, j.exit], move |r| {
+                    let e = entry(r);
+                    [F64(e.link as u64), F64(e.jalr as u64), F64(e.is_exit() as u64)]
+                });
+            }
         }
         if let Some(imm) = c.imm {
             ctx.col(out, rows, imm, move |r| F64(entry(r).imm));
