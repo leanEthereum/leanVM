@@ -31,9 +31,6 @@ pub struct Program {
     pub(super) filler: FillBlocks,
 }
 
-// Why: the digest reads tables of words as bytes, which is their little-endian image only on a little-endian target.
-const _: () = assert!(cfg!(target_endian = "little"));
-
 impl Program {
     /// The domain separator of the digest, versioned with the statement's format.
     const DIGEST_DOMAIN: &'static [u8] = b"leanvm-rv64im-6";
@@ -401,27 +398,30 @@ impl Program {
     ///
     /// Every variable-length part is length-framed, so the preimage parses one way.
     fn digest_of(rv: &rv::Program) -> [u8; 32] {
-        let bytes = |words: &[u64]| -> Vec<u8> { words.iter().flat_map(|w| w.to_le_bytes()).collect() };
-        let table = Lookup::Bytecode.table(rv);
-
+        let kbc = Lookup::Bytecode.log_rows(Sizes::of(rv));
         // SAFETY: F64 is #[repr(transparent)] over u64.
-        // So the slice's bytes are the concatenation of its words' little-endian bytes on this target.
-        let table_bytes: &[u8] =
-            unsafe { core::slice::from_raw_parts(table.as_ptr().cast::<u8>(), core::mem::size_of_val(&table[..])) };
+        let words = |v: &[F64]| unsafe { core::slice::from_raw_parts(v.as_ptr().cast::<u64>(), v.len()) };
 
-        // The domain, the bytecode table, then the scalars and the image.
-        let mut h = primitives::hash::Hasher::new();
+        // The domain, the stacked bytecode table, then the scalars and the image.
+        let mut h = primitives::hash::WordHasher::new();
         h.update(Self::DIGEST_DOMAIN);
-        h.update(&bytes(&[table.len() as u64]));
-        h.update(table_bytes);
-        h.update(&bytes(&[
+        h.update_words(&[1 << (leaf::N_BYTECODE_SELECTORS + kbc)]);
+        leaf::for_each_bytecode_slot(kbc, &Lookup::Bytecode.tuple(rv), |col| match col {
+            Some(vals) => {
+                h.update_words(words(vals));
+            }
+            None => {
+                h.update_zero_words(1 << kbc);
+            }
+        });
+        h.update_words(&[
             rv.entry_pc(),
             rv.halt_pc(),
             rv.log_ram() as u64,
             rv.log_advice() as u64,
             rv.image().len() as u64,
-        ]));
-        h.update(&bytes(rv.image()));
+        ]);
+        h.update_words(rv.image());
         h.finalize()
     }
 }

@@ -59,11 +59,17 @@ fn leaf_image(row: &[F64], leaf_words: usize) -> Vec<F64> {
 
 /// The committer's leaf preimage: the image's words, little-endian.
 fn hash_words(image: &[F64]) -> Hash {
-    let mut bytes = vec![0u8; 8 * image.len()];
-    for (dst, word) in bytes.as_chunks_mut::<8>().0.iter_mut().zip(image) {
-        *dst = word.0.to_le_bytes();
-    }
-    hash_leaf(&bytes)
+    hash_row(&primitives::hash::PARAM_IV, 0, 0, image)
+}
+
+/// [`hash_words`] of `zero_blocks` whole blocks of zeros, then `zeros` zero words, then `row`, `prefix` being
+/// [`primitives::hash::zero_prefix_state`] of those blocks.
+fn hash_row(prefix: &[u32; 8], zero_blocks: usize, zeros: usize, row: &[F64]) -> Hash {
+    // SAFETY: F64 is #[repr(transparent)] over u64.
+    let words = unsafe { core::slice::from_raw_parts(row.as_ptr().cast::<u64>(), row.len()) };
+    let mut h = primitives::hash::WordHasher::from_state(*prefix, (zero_blocks * 64) as u64);
+    h.update_zero_words(zeros).update_words(words);
+    h.finalize()
 }
 
 /// Query positions with duplicates removed, ascending: the order a phase stores
@@ -141,10 +147,19 @@ impl PrunedMerklePaths {
         if sorted.len() != self.leaf_data.len() || row_words > leaf_words {
             return None;
         }
+        // The zero prefix's whole blocks, short of the last block of all, are shared by every row: one chaining value
+        // for them.
+        let zeros = leaf_words - row_words;
+        let zero_blocks = if row_words == 0 {
+            zeros.saturating_sub(1) / 8
+        } else {
+            zeros / 8
+        };
+        let prefix = primitives::hash::zero_prefix_state(zero_blocks);
         let hashes = self
             .leaf_data
             .iter()
-            .map(|row| (row.len() == row_words).then(|| hash_words(&leaf_image(row, leaf_words))))
+            .map(|row| (row.len() == row_words).then(|| hash_row(&prefix, zero_blocks, zeros - 8 * zero_blocks, row)))
             .collect::<Option<Vec<_>>>()?;
         Some((sorted, hashes))
     }

@@ -186,6 +186,142 @@ impl Default for Hasher {
     }
 }
 
+/// The compression on a message held as eight `u64` lanes, lane `i` being message words `2i` (low half) and `2i + 1`.
+#[inline]
+fn compress_lanes(h: &mut [u32; 8], m: &[u64; 8], t: u64, last: bool) {
+    let mut words = [0u32; 16];
+    for (pair, &lane) in words.as_chunks_mut::<2>().0.iter_mut().zip(m) {
+        *pair = [lane as u32, (lane >> 32) as u32];
+    }
+    compress(h, &words, t, last);
+}
+
+/// Streaming BLAKE2s-256 fed `u64` words: the digest [`Hasher`] gives on their little-endian bytes, with no byte
+/// buffer. A byte prefix may come first ([`WordHasher::update`]); the words after it are then shifted into lanes.
+#[derive(Clone)]
+pub struct WordHasher {
+    h: [u32; 8],
+    lanes: [u64; 8],
+    /// Full lanes in `lanes`, in `0..=8`.
+    n: usize,
+    /// The partial lane: its low `phase` bytes.
+    acc: u64,
+    phase: u32,
+    /// Bytes already compressed.
+    counter: u64,
+}
+
+impl WordHasher {
+    pub const fn new() -> Self {
+        Self::from_state(PARAM_IV, 0)
+    }
+
+    /// Continue from a chaining value after `counter` bytes, a whole number of blocks ([`zero_prefix_state`]).
+    pub const fn from_state(h: [u32; 8], counter: u64) -> Self {
+        assert!(counter.is_multiple_of(BLOCK_LEN as u64));
+        Self {
+            h,
+            lanes: [0; 8],
+            n: 0,
+            acc: 0,
+            phase: 0,
+            counter,
+        }
+    }
+
+    #[inline(always)]
+    fn push_lane(&mut self, lane: u64) {
+        if self.n == 8 {
+            // More input follows, so this full block is not the last.
+            self.counter += BLOCK_LEN as u64;
+            compress_lanes(&mut self.h, &self.lanes, self.counter, false);
+            self.n = 0;
+        }
+        self.lanes[self.n] = lane;
+        self.n += 1;
+    }
+
+    /// Absorb bytes, one at a time: for short prefixes.
+    pub fn update(&mut self, data: &[u8]) -> &mut Self {
+        for &b in data {
+            self.acc |= u64::from(b) << (8 * self.phase);
+            self.phase += 1;
+            if self.phase == 8 {
+                let lane = self.acc;
+                self.push_lane(lane);
+                self.acc = 0;
+                self.phase = 0;
+            }
+        }
+        self
+    }
+
+    /// Absorb words, each as its eight little-endian bytes.
+    pub fn update_words(&mut self, mut words: &[u64]) -> &mut Self {
+        let (lo, hi) = (8 * self.phase, (64 - 8 * self.phase) % 64);
+        let lane = |acc: &mut u64, w: u64| -> u64 {
+            if lo == 0 {
+                w
+            } else {
+                let l = *acc | (w << lo);
+                *acc = w >> hi;
+                l
+            }
+        };
+        // Lane by lane until the buffer is full, then whole blocks while more input follows them.
+        while self.n < 8
+            && let Some((&w, rest)) = words.split_first()
+        {
+            self.lanes[self.n] = lane(&mut self.acc, w);
+            self.n += 1;
+            words = rest;
+        }
+        let mut acc = self.acc;
+        while let Some((block, rest)) = words.split_first_chunk::<8>() {
+            self.counter += BLOCK_LEN as u64;
+            compress_lanes(&mut self.h, &self.lanes, self.counter, false);
+            for (l, &w) in self.lanes.iter_mut().zip(block) {
+                *l = lane(&mut acc, w);
+            }
+            words = rest;
+        }
+        self.acc = acc;
+        for &w in words {
+            let l = lane(&mut self.acc, w);
+            self.push_lane(l);
+        }
+        self
+    }
+
+    /// Absorb `n` zero words.
+    pub fn update_zero_words(&mut self, mut n: usize) -> &mut Self {
+        const ZEROS: [u64; 64] = [0; 64];
+        while n > 0 {
+            let k = n.min(ZEROS.len());
+            self.update_words(&ZEROS[..k]);
+            n -= k;
+        }
+        self
+    }
+
+    pub fn finalize(mut self) -> [u8; OUT_LEN] {
+        if self.phase != 0 {
+            let lane = self.acc;
+            self.push_lane(lane);
+        }
+        let t = self.counter + 8 * self.n as u64 - u64::from((8 - self.phase) % 8);
+        self.lanes[self.n..].fill(0);
+        compress_lanes(&mut self.h, &self.lanes, t, true);
+        state_bytes(&self.h)
+    }
+}
+
+impl Default for WordHasher {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// One-shot unkeyed BLAKE2s-256.
 pub fn hash(data: &[u8]) -> [u8; OUT_LEN] {
     // Whole blocks, the shape hashed in bulk, need no buffering.
@@ -302,6 +438,44 @@ pub fn test_vectors() -> impl Iterator<Item = (Vec<u8>, [u8; OUT_LEN])> {
 mod tests {
     use super::batch::Scalar8;
     use super::*;
+
+    #[test]
+    fn word_hasher_matches_byte_hasher() {
+        // Every byte phase a prefix leaves the words in, word counts around the block boundaries, zero runs, and a
+        // continuation from a zero-prefix state.
+        let le = |words: &[u64]| -> Vec<u8> { words.iter().flat_map(|w| w.to_le_bytes()).collect() };
+        for prefix in 0..20usize {
+            for n_words in [0usize, 1, 2, 7, 8, 9, 15, 16, 17, 40, 64, 100] {
+                for zeros in [0usize, 1, 9, 16, 70] {
+                    let pre: Vec<u8> = (0..prefix).map(|i| (i * 7 + 3) as u8).collect();
+                    let words: Vec<u64> = (0..n_words as u64)
+                        .map(|i| i.wrapping_mul(0x9E37_79B9_7F4A_7C15) ^ 0xA5)
+                        .collect();
+                    let tail = [0xDEAD_BEEF, 42];
+
+                    let mut w = WordHasher::new();
+                    w.update(&pre).update_words(&words);
+                    let mut b = Hasher::new();
+                    b.update(&pre).update(&le(&words));
+                    assert_eq!(w.clone().finalize(), b.finalize(), "{prefix} {n_words}");
+
+                    w.update_zero_words(zeros).update_words(&tail);
+                    b.update(&vec![0u8; 8 * zeros]).update(&le(&tail));
+                    assert_eq!(w.finalize(), b.finalize(), "{prefix} {n_words} {zeros}");
+                }
+            }
+        }
+        for zero_blocks in [1usize, 3] {
+            for n_words in [0usize, 1, 8, 9] {
+                let words: Vec<u64> = (1..=n_words as u64).collect();
+                let mut w = WordHasher::from_state(zero_prefix_state(zero_blocks), (zero_blocks * BLOCK_LEN) as u64);
+                w.update_zero_words(3).update_words(&words);
+                let mut whole = vec![0u8; zero_blocks * BLOCK_LEN + 24];
+                whole.extend(le(&words));
+                assert_eq!(w.finalize(), hash(&whole), "{zero_blocks} {n_words}");
+            }
+        }
+    }
 
     #[test]
     fn continued_from_zero_prefix_matches_whole_image() {

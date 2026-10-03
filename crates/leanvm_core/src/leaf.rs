@@ -854,16 +854,31 @@ pub const BYTECODE_PUBLIC_SLOT: usize = 2;
 /// `2^kbc`-entry tuple at their tuple coordinates, padded to sixteen selector slots.
 /// The program's digest is taken over it ([`crate::cpu::Program`]).
 pub fn stacked_bytecode_table(kbc: usize, coords: &[Coord]) -> Vec<F64> {
-    let mut table = vec![F64::ZERO; 1 << (N_BYTECODE_SELECTORS + kbc)];
-    for (slot, c) in coords.iter().enumerate() {
-        if let Coord::Public(vals) = c {
-            assert!(slot >= BYTECODE_PUBLIC_SLOT, "the program's columns follow the address");
-            assert!(slot < 1 << N_BYTECODE_SELECTORS, "a public slot is a tuple coordinate");
-            assert_eq!(vals.len(), 1 << kbc);
-            table[(slot << kbc)..((slot + 1) << kbc)].copy_from_slice(vals);
+    let mut table = Vec::with_capacity(1 << (N_BYTECODE_SELECTORS + kbc));
+    for_each_bytecode_slot(kbc, coords, |col| match col {
+        Some(vals) => table.extend_from_slice(vals),
+        None => table.resize(table.len() + (1 << kbc), F64::ZERO),
+    });
+    table
+}
+
+/// [`stacked_bytecode_table`]'s slots in order, without building it: each slot's public column, or `None` for a
+/// slot of zeros.
+pub fn for_each_bytecode_slot(kbc: usize, coords: &[Coord], mut f: impl FnMut(Option<&[F64]>)) {
+    assert!(
+        coords.len() <= 1 << N_BYTECODE_SELECTORS,
+        "a public slot is a tuple coordinate"
+    );
+    for slot in 0..1 << N_BYTECODE_SELECTORS {
+        match coords.get(slot) {
+            Some(Coord::Public(vals)) => {
+                assert!(slot >= BYTECODE_PUBLIC_SLOT, "the program's columns follow the address");
+                assert_eq!(vals.len(), 1 << kbc);
+                f(Some(&vals[..]));
+            }
+            _ => f(None),
         }
     }
-    table
 }
 
 /// One bus side: its blocks and producers, where they stack, and its fingerprint
