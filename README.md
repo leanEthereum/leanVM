@@ -51,7 +51,7 @@ A program is a guest: a `no_std` Rust program built for `riscv64im-unknown-none-
 cargo leanvm guest programs/preimage/preimage.elf --advice 5,0x6f6c6c6568
 ```
 
-The statement a proof makes is the program (an ELF file) and its four output words, the digest of what it committed; everything a guest reads from its advice it has to check itself, which is what makes a proof a proof of knowledge (`preimage` commits the digest of a message only the prover has).
+The statement a proof makes is the program and its four output words, the digest of what it committed. The program enters as its verifying key, which key generation derives from the ELF file deterministically: the commitment to its decoded table, its entry point, its memory sizes and its RAM image. Everything a guest reads from its advice it has to check itself, which is what makes a proof a proof of knowledge (`preimage` commits the digest of a message only the prover has).
 
 ## benchmarks
 

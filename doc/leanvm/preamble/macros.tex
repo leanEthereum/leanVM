@@ -83,7 +83,9 @@
 \newcommand{\mbit}[1]{\mathit{mult}_{#1}} % bit #1 of \mlt: a one-bit column of the array's producer
 \newcommand{\nbit}{N_{\mathrm{bit}}}     % bits of \mlt the bus reads: the bit length of \nrd
 \newcommand{\nrd}{N_{\mathrm{reads}}}    % the most reads the announced tables can make of one lookup array
-\newcommand{\pubp}[1]{\Psi_{#1}}         % a producer's public column (beta - pi_alpha(entry))^{2^#1} - 1
+\newcommand{\pubp}[1]{\Psi_{#1}}         % a producer's column (beta - pi_alpha(entry))^{2^#1} - 1: sent, then opened on the committed program
+\newcommand{\ownc}[1]{\mathit{own}_{#1}} % the share of \pubp{#1} the verifier computes: the producer's constant and index coordinates
+\newcommand{\conj}[2]{{#2}^{2^{-#1}}}    % the inverse of #1 squarings, a^{2^{192-#1}}; coordinatewise on a point, its conjugate point
 \newcommand{\mset}[1]{\{\!\{#1\}\!\}}     % a multiset (plain braces stay sets)
 \newcommand{\lut}{\mathbf{L}}             % a lookup array (memory, or the program)
 \newcommand{\sep}{\dsep{sep}}             % the domain separator of a generic lookup array
@@ -98,6 +100,10 @@
 \newcommand{\nmem}{N_{\mathrm{mem}}}    % memory length
 \newcommand{\kbc}{\kappa_{\mathrm{bc}}}   % log program length: nprog = 2^kbc 
 \newcommand{\kmem}{\kappa_{\mathrm{mem}}}  % log memory length: nmem = 2^kmem
+\newcommand{\vk}{\mathsf{vk}}            % a program's verifying key: \rootprog, kbc, the entry point, kmem, kadv, the image
+\newcommand{\rootprog}{\mathsf{root}_{\mathrm{prog}}} % Merkle root of the commitment to the program's table, held by \vk
+\newcommand{\nvprog}{\nv_{\mathrm{prog}}}   % variables of the program's stack: max(15, kbc + 4)
+\newcommand{\rateprog}{\rate_{\mathrm{prog}}} % the program commitment's rate, 2^-4
 \newcommand{\ntab}{N_{\mathrm{tab}}}     % number of tables (fixed by the arithmetization)
 \newcommand{\nside}{N_{\mathrm{side}}}   % grand-product sides: push, pull
 \newcommand{\taumax}{\tau_{\max}}      % rounds of the table sumcheck: the tallest table's log height

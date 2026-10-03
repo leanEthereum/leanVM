@@ -15,12 +15,13 @@
 //! - the program runs, and its rows are recorded, then padded to powers of two;
 //! - the rows fill one stacked witness, which is committed;
 //! - the bus balance, one batch of table constraints, and every circuit's reduction are proven;
-//! - one opening discharges every claim they leave.
+//! - one opening discharges every claim they leave on the witness, and a second the claims on the program, which its verifying key commits to.
 
 mod batch;
 mod error;
 mod execute;
 pub mod filler;
+mod key;
 mod layout;
 mod program;
 mod witness;
@@ -29,6 +30,7 @@ pub use error::{CpuError, ProveError};
 pub use execute::Execution;
 pub(crate) use execute::{ExtRow, HashRow, Row, Trace};
 pub use fiat_shamir::transcript::Proof;
+pub use key::VerifyingKey;
 pub use layout::{Framework, Layout, Lookup, N_BYTECODE_COLUMNS, N_SHARED, Q_BASE, Schema, Shared, Sizes};
 pub use program::{Program, Stats};
 

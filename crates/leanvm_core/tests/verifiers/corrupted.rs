@@ -59,7 +59,8 @@ fn a_corrupted_proof_is_rejected_and_never_panics() {
     let (program, expected) = super::programs::fibonacci();
     let (proof, output, _) = program.prove(&[], Rate::MIN).expect("the run halts");
     assert_eq!(output, expected);
-    program.verify(&output, &proof).expect("the honest proof verifies");
+    let key = program.verifying_key();
+    key.verify(&output, &proof).expect("the honest proof verifies");
     assert!(
         proof
             .merkle
@@ -74,7 +75,7 @@ fn a_corrupted_proof_is_rejected_and_never_panics() {
         if forged == proof {
             continue; // the one no-op a random truncation can draw
         }
-        let verified = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| program.verify(&output, &forged)));
+        let verified = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| key.verify(&output, &forged)));
         match verified {
             Ok(Ok(())) => panic!("round {round}: a corrupted proof was accepted"),
             Ok(Err(_)) => {}

@@ -2,8 +2,8 @@
 //!
 //! `python-verifier/verifier.py` writes out the same protocol a second time, which means
 //! writing out its constants a second time: the region bases and caps, the clock's bits
-//! and slots, the flock and WHIR parameters, and every class's block size and legal
-//! flags. The end-to-end tests catch a Python circuit that computes the wrong thing, but
+//! and slots, the flock and WHIR parameters, and every class's block size. The
+//! end-to-end tests catch a Python circuit that computes the wrong thing, but
 //! a constant that drifts changes what each side ACCEPTS, and only a statement they both
 //! reject would show it. So the two lists are rendered the same way and diffed here.
 
@@ -96,9 +96,6 @@ fn rust_constants() -> String {
             "{prefix}.slots {}",
             list(&spec.slots().iter().map(|&s| s as u64).collect::<Vec<_>>())
         ));
-        let mut flags = spec.class.legal_flags().to_vec();
-        flags.sort_unstable();
-        lines.push(format!("{prefix}.legal_flags {}", list(&flags)));
     }
     lines.sort();
     lines.join("\n")

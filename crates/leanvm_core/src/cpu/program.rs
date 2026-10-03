@@ -1,44 +1,41 @@
-//! A program as the proof sees it: the decoded program, its fill blocks, and the digest of its public statement.
+//! A program as the proof sees it: the decoded program, its fill blocks, its committed table and its verifying key.
 //!
-//! It runs, is proven, and is verified against its digest.
+//! It runs and is proven; its verifying key verifies the proofs.
 
 use super::batch::{Batch, FormPowers};
-use super::error::{CpuError, ProveError};
+use super::error::ProveError;
 use super::execute::{Execution, TraceBuilder};
 use super::filler::{FillBlocks, Plan};
+use super::key::{MAX_LOG_BYTECODE, VerifyingKey};
 use super::layout::{Announcement, Lookup, Schema, Sizes};
 use super::witness::Witness;
-use crate::class_flock;
 use crate::constraints;
 use crate::leaf;
 use crate::pcs;
-use crate::rv::{self, Machine, Region};
+use crate::rv::{self, Machine};
 use crate::tables::{self, CLOCK_START, CYCLE, MAX_CYCLES};
 use ::pcs::pack::PACKING_WIDTH;
-use fiat_shamir::transcript::{Challenger, Proof, ProverState, RawProof, VerifierState};
+use fiat_shamir::transcript::{Challenger, Proof, ProverState};
 use primitives::field::{F64, F192};
+use std::sync::Arc;
 
-/// A validated program, its fill blocks, and the digest of everything public about it.
+/// A validated program, its fill blocks, its committed table and its verifying key: the prover's key.
 ///
-/// The decoded program is read-only, so the digest always describes what is proven.
+/// The decoded program is read-only, so the key always describes what is proven.
 #[derive(Clone)]
 pub struct Program {
     /// The decoded program, the fill blocks appended to its text.
     pub(super) rv: rv::Program,
-    /// The digest of the public statement, which seeds the transcript.
-    pub(super) digest: [u8; 32],
     /// Where each fill block sits in the text.
     pub(super) filler: FillBlocks,
+    /// The program's stacked table, committed once: what each proof opens.
+    committed: Arc<pcs::ProgramCommitment>,
+    /// What a verifier needs of the program.
+    key: VerifyingKey,
 }
 
-// Why: the digest reads tables of words as bytes, which is their little-endian image only on a little-endian target.
-const _: () = assert!(cfg!(target_endian = "little"));
-
 impl Program {
-    /// The domain separator of the digest, versioned with the statement's format.
-    const DIGEST_DOMAIN: &'static [u8] = b"leanvm-rv64im-6";
-
-    /// The program of a guest's ELF executable.
+    /// The program of a guest's ELF executable, and its keys.
     ///
     /// # Errors
     ///
@@ -55,13 +52,13 @@ impl Program {
         .map_err(rv::ElfError::Program)
     }
 
-    /// The program of instruction words, an entry point, a RAM image and the memory sizes.
+    /// The program of instruction words, an entry point, a RAM image and the memory sizes, and its keys.
     ///
-    /// The text gets an illegal word, then the fill blocks.
+    /// The text gets an illegal word, then the fill blocks. Key generation is deterministic: it decodes the text, checks every entry is well formed (`rv::Entry::is_well_formed`), builds the stacked table and commits to it, so the same program always gives the same verifying key.
     ///
     /// # Errors
     ///
-    /// Refuses an entry outside the supplied text, and sizes exceeding the machine's regions.
+    /// Refuses an entry outside the supplied text, sizes exceeding the machine's regions, and a text whose table the commitment does not take.
     pub fn new(
         text: &[u32],
         entry_pc: u64,
@@ -71,27 +68,37 @@ impl Program {
     ) -> Result<Self, rv::ProgramError> {
         // Check the shape on the supplied text, before anything is appended to it.
         rv::Program::validate(text.len(), entry_pc, image.len(), log_ram, log_advice)?;
-
-        // What gets appended must fit too: the illegal word, the fill blocks, then the illegal slot and the halt slot.
-        let fits = text
-            .len()
-            .checked_add(1 + FillBlocks::WORDS + 2)
-            .and_then(usize::checked_next_power_of_two)
-            .is_some_and(|total| total <= 1 << Region::TEXT.max_log_words());
-        if !fits {
-            return Err(rv::ProgramError::TextTooLarge);
-        }
+        Self::text_fits(text.len())?;
 
         // A run falling off the program's own text must trap, not slide into a fill block.
         let mut text = text.to_vec();
         text.push(0);
         let filler = FillBlocks::append(&mut text);
         let rv = rv::Program::new(&text, entry_pc, image, log_ram, log_advice)?;
+        let sizes = Sizes::of(&rv);
+        let committed = pcs::commit_program(&Lookup::Bytecode.table(&rv));
+        let key = VerifyingKey::new(committed.root, sizes, entry_pc, rv.image().to_vec());
         Ok(Self {
-            digest: Self::digest_of(&rv),
             rv,
             filler,
+            committed: Arc::new(committed),
+            key,
         })
+    }
+
+    /// Check that a text of `words` fits, with what gets appended to it: the illegal word, the fill blocks, then the illegal slot and the halt slot.
+    ///
+    /// Its table has to fit both the text region and the commitment.
+    fn text_fits(words: usize) -> Result<(), rv::ProgramError> {
+        let fits = words
+            .checked_add(1 + FillBlocks::WORDS + 2)
+            .and_then(usize::checked_next_power_of_two)
+            .is_some_and(|total| total <= 1 << MAX_LOG_BYTECODE);
+        if fits {
+            Ok(())
+        } else {
+            Err(rv::ProgramError::TextTooLarge)
+        }
     }
 
     /// Run the program on `advice`, recording every row, then write out the padding rows.
@@ -207,7 +214,7 @@ impl Program {
     /// Panics if the witness's bus does not balance: an honest run's always does.
     fn prove_witness(&self, w: Witness, output: &[u64; 4], rate: pcs::Rate) -> Proof {
         // The public statement, the program's digest and the output, seeds the transcript.
-        let mut ps = ProverState::new(self.fs_seed(), output.map(F64));
+        let mut ps = ProverState::new(self.key.fs_seed(), output.map(F64));
 
         // Announce the sizes, then commit, before any challenge.
         let log_inv_rate = rate.log_inv_rate().into();
@@ -221,11 +228,12 @@ impl Program {
 
         // The bus, then the one batch over every table and producer, both reading the stack's windows in place.
         let spans = &Schema::get().spans;
-        let (bus_claims, table_claims) = {
+        let (bus_claims, table_claims, alphas, beta) = {
             let l = &w.layout;
             let cols = w.columns();
+            let program = &self.committed.message;
             let mut bus = crate::stage!("Prove bus", || {
-                leaf::prove_balance(&l.push, &l.pull, &l.producers, &cols, spans, &mut ps)
+                leaf::prove_balance(&l.push, &l.pull, &l.producers, &cols, program, spans, &mut ps)
             });
             let table_claims = crate::stage!("Prove constraints", || {
                 let producers = std::mem::take(&mut bus.producers);
@@ -242,13 +250,14 @@ impl Program {
                     .map(|&(base, n)| constraints::Columns::K((0..n).map(|c| cols[base + c]).collect()))
                     .chain(producers.into_iter().map(|p| constraints::Columns::E(p.columns)))
                     .collect();
-                let batch = Batch::new(l, &bus.forms, &coefficients, &bus.weights, bus.beta, powers);
+                let batch = Batch::new(l, &bus.forms, &coefficients, powers);
                 constraints::prove(batch.airs(), table_cols, &bus.point, &sums, &mut ps)
             });
-            (bus.claims, table_claims)
+            (bus.claims, table_claims, bus.alphas, bus.beta)
         };
         let l = &w.layout;
         let slots = l.opening_claims(bus_claims, &table_claims, output);
+        let program_slots = l.program_claims(&alphas, beta, &table_claims[tables::N_TABLES..]);
 
         // Each circuit's flock reduction, every class circuit then every clock circuit.
         //
@@ -267,7 +276,7 @@ impl Program {
         });
         drop(reductions);
 
-        // Each producer's multiplicity column, a ring-switched region too.
+        // Each producer's multiplicity column, a ring-switched region too, from its bits' values.
         for (p, claims) in l.producers.iter().zip(&table_claims[tables::N_TABLES..]) {
             let window = l.multiplicity_window(p);
             rings.push(::pcs::stack_open::RingSwitchOpen {
@@ -275,98 +284,22 @@ impl Program {
                 qflock_vars: window.n_vars,
                 claims: vec![::pcs::stack_open::RingSwitchClaim {
                     suffix_point: claims.chi.clone(),
-                    s_hat_v: Some(claims.evals_padded::<PACKING_WIDTH>().to_vec()),
+                    s_hat_v: Some(claims.evals_padded::<PACKING_WIDTH>(p.bits).to_vec()),
                 }],
             });
         }
         crate::stage!("PCS open", || pcs::open(&mut ps, &committed, &w.q, &slots, &rings));
+        crate::stage!("Program open", || pcs::open_program(
+            &mut ps,
+            &self.committed,
+            &program_slots
+        ));
         ps.into_proof()
     }
 
-    /// Verify a proof that the program exits returning `output`.
-    ///
-    /// It takes only public inputs, never the prover's witness.
-    ///
-    /// # Errors
-    ///
-    /// Returns the first stage that refuses the proof.
-    pub fn verify(&self, output: &[u64; 4], proof: &Proof) -> Result<(), CpuError> {
-        self.verify_to_raw(output, proof).map(|_| ())
-    }
-
-    /// Verify a proof, and return it with every query's Merkle path written out, the form the Python verifier reads.
-    ///
-    /// # Errors
-    ///
-    /// Returns the first stage that refuses the proof.
-    #[tracing::instrument(name = "Verify", skip_all)]
-    pub fn verify_to_raw(&self, output: &[u64; 4], proof: &Proof) -> Result<RawProof, CpuError> {
-        // The public statement seeds the transcript, as on the prover's side.
-        let mut vs = VerifierState::new(self.fs_seed(), proof, output.map(F64));
-
-        // The announced sizes, then the layout they describe, then the commitment.
-        let announcement = Announcement::read(&mut vs)?;
-        let l = announcement.layout(&self.rv)?;
-        let root = pcs::read_commitment(&mut vs)?;
-
-        let bus = leaf::verify_balance(&l.push, &l.pull, &l.producers, &Schema::get().spans, &mut vs)
-            .map_err(CpuError::Bus)?;
-
-        // The tie between the batch and the bus, and why the batch's target is never sent.
-        //
-        // Each side's leaf claim, less its framework blocks, is the tables' and producers' share `R_s`.
-        //
-        // The verifier just derived those, and the batch must sum to `sum_s xi^s * R_s`.
-        //
-        // The challenge `xi` comes after the `R_s` are fixed, so hitting that one number forces each side's share.
-        let powers = FormPowers::new(vs.sample());
-        let target = powers.combine(bus.totals);
-        let batch = Batch::new(&l, &bus.forms, &bus.producers, &bus.weights, bus.beta, powers);
-        let table_claims =
-            constraints::verify(batch.airs(), &bus.point, target, &mut vs).map_err(CpuError::Constraint)?;
-        let slots = l.opening_claims(bus.claims, &table_claims, output);
-
-        // Replay each circuit's flock reduction off the stream, to recover its validity claim on its packed witness.
-        let mut replays = Vec::with_capacity(class_flock::N_FLOCKS);
-        for f in 0..class_flock::N_FLOCKS {
-            let (t, part) = class_flock::flock(f);
-            let replay = class_flock::verify_reduction(f, l.taus[t], &mut vs).map_err(|error| CpuError::Flock {
-                table: tables::CLASSES[t].name,
-                part,
-                error,
-            })?;
-            replays.push(replay);
-        }
-
-        // The ring-switched regions: each packed witness, then each producer's multiplicity column.
-        let producer_claims = &table_claims[tables::N_TABLES..];
-        let slices: Vec<[F192; PACKING_WIDTH]> = producer_claims.iter().map(|claims| claims.evals_padded()).collect();
-        let witnesses = replays.iter().enumerate().map(|(f, replay)| {
-            let window = l.witness_window(f);
-            flock::reduction::ring_switch_verify(window.n_vars, window.offset, &replay.claim)
-        });
-        let producers = l
-            .producers
-            .iter()
-            .zip(producer_claims)
-            .zip(&slices)
-            .map(|((p, claims), slices)| {
-                let window = l.multiplicity_window(p);
-                ::pcs::stack_open::RingSwitchVerify {
-                    offset: window.offset,
-                    qflock_vars: window.n_vars,
-                    claims: vec![::pcs::stack_open::RingSwitchVerifyClaim {
-                        suffix_point: &claims.chi,
-                        s_hat_v: slices,
-                    }],
-                }
-            });
-        let rings: Vec<_> = witnesses.chain(producers).collect();
-
-        // The one opening, then nothing may be left on the stream.
-        pcs::verify(&mut vs, &slots, &rings, l.shape, announcement.log_inv_rate, &root).map_err(CpuError::Open)?;
-        vs.finish()?;
-        Ok(vs.into_raw_proof())
+    /// The program's verifying key.
+    pub const fn verifying_key(&self) -> &VerifyingKey {
+        &self.key
     }
 
     /// The decoded text, memory image and region sizes.
@@ -374,55 +307,13 @@ impl Program {
         &self.rv
     }
 
-    /// BLAKE2s over the decoded text, the entry and halt addresses, the region sizes and the initial RAM image.
-    ///
-    /// ELF metadata is no part of it, and every illegal encoding decodes to the same entry.
-    pub const fn digest(&self) -> &[u8; 32] {
-        &self.digest
-    }
-
-    /// The transcript's seed: the digest, as words.
-    ///
-    /// Every challenge depends on it, and the run's public output seeds the transcript beside it.
-    pub fn fs_seed(&self) -> [F64; 4] {
-        fiat_shamir::digest_words(&self.digest)
-    }
-
     /// The base-two logarithm of the stacked witness, and its committed size, for a run of these row counts.
     ///
     /// The layout depends on the program and the row counts alone, so no witness is built.
     pub(super) fn stack_sizes(&self, row_counts: [usize; tables::N_TABLES]) -> (usize, usize) {
         let taus = row_counts.map(|rows| crate::log2_ceil_usize(rows.max(1)));
-        let (placements, shape) = Sizes::of(&self.rv).stack(taus);
+        let (placements, shape) = self.key.sizes().stack(taus);
         (shape.mu, crate::witness::committed_len(&placements))
-    }
-
-    /// The digest of `rv`'s public statement.
-    ///
-    /// Every variable-length part is length-framed, so the preimage parses one way.
-    fn digest_of(rv: &rv::Program) -> [u8; 32] {
-        let bytes = |words: &[u64]| -> Vec<u8> { words.iter().flat_map(|w| w.to_le_bytes()).collect() };
-        let table = Lookup::Bytecode.table(rv);
-
-        // SAFETY: F64 is #[repr(transparent)] over u64.
-        // So the slice's bytes are the concatenation of its words' little-endian bytes on this target.
-        let table_bytes: &[u8] =
-            unsafe { core::slice::from_raw_parts(table.as_ptr().cast::<u8>(), core::mem::size_of_val(&table[..])) };
-
-        // The domain, the bytecode table, then the scalars and the image.
-        let mut h = primitives::hash::Hasher::new();
-        h.update(Self::DIGEST_DOMAIN);
-        h.update(&bytes(&[table.len() as u64]));
-        h.update(table_bytes);
-        h.update(&bytes(&[
-            rv.entry_pc(),
-            rv.halt_pc(),
-            rv.log_ram() as u64,
-            rv.log_advice() as u64,
-            rv.image().len() as u64,
-        ]));
-        h.update(&bytes(rv.image()));
-        h.finalize()
     }
 }
 
@@ -484,7 +375,7 @@ mod tests {
     use crate::cpu::layout::{Framework, Shared};
     use crate::leaf::Coord;
     use crate::rv::asm::*;
-    use crate::rv::{InstructionClass, Reg};
+    use crate::rv::{InstructionClass, Reg, Region};
     use crate::tables::SEP_BYTECODE;
 
     #[test]
@@ -527,21 +418,21 @@ mod tests {
 
     #[test]
     fn the_text_region_reserves_the_fill_blocks() {
-        // The largest text that fits, after the illegal word, the fill blocks, and the two slots `rv` appends.
-        let limit = (1 << Region::TEXT.max_log_words()) - 1 - FillBlocks::WORDS - 2;
-        let program = |words: usize| Program::new(&vec![0; words], Region::TEXT.base(), vec![], 0, 0);
-        assert!(program(limit).is_ok());
+        // The largest text whose table the commitment takes, after the illegal word, the fill blocks, and the two slots `rv` appends.
+        let limit = (1 << MAX_LOG_BYTECODE) - 1 - FillBlocks::WORDS - 2;
+        assert_eq!(Program::text_fits(limit), Ok(()));
 
-        // One word more no longer fits.
+        // One word more no longer fits, and is refused before anything is decoded or committed.
+        let program = |words: usize| Program::new(&vec![0; words], Region::TEXT.base(), vec![], 0, 0);
         assert!(matches!(program(limit + 1), Err(rv::ProgramError::TextTooLarge)));
     }
 
     #[test]
     fn illegal_encodings_share_one_identity() {
-        // Two different illegal words decode to the same entry, so to the same digest.
+        // Two different illegal words decode to the same entry, so to the same key.
         let program = Program::new(&[0], Region::TEXT.base(), vec![], 0, 0).unwrap();
         let same = Program::new(&[u32::MAX], Region::TEXT.base(), vec![], 0, 0).unwrap();
-        assert_eq!(program.digest(), same.digest());
+        assert_eq!(program.verifying_key(), same.verifying_key());
 
         // Running it traps on the first instruction.
         assert_eq!(
@@ -553,11 +444,19 @@ mod tests {
     }
 
     #[test]
-    fn the_digest_binds_every_public_component() {
+    fn the_key_binds_every_public_component() {
         // Fixture: `a0 = 5; exit`, a one-word image, RAM of 4 words, no advice.
         let text = Asm::new().i(Addi, Reg::A0, Reg::ZERO, 5).exit().finish();
-        let program = Program::new(&text, Region::TEXT.base(), vec![1], 2, 0).expect("a valid program");
-        assert_eq!(program.digest(), program.clone().digest());
+        let new = |text: &[u32], entry: u64, image: Vec<u64>, log_ram: usize, log_advice: usize| {
+            Program::new(text, entry, image, log_ram, log_advice).expect("a valid program")
+        };
+        let key = new(&text, Region::TEXT.base(), vec![1], 2, 0).verifying_key().clone();
+
+        // Key generation is deterministic: the same program gives the same root and digest.
+        assert_eq!(new(&text, Region::TEXT.base(), vec![1], 2, 0).verifying_key(), &key);
+
+        // A key's bytes are the key.
+        assert_eq!(VerifyingKey::from_bytes(&key.to_bytes()).as_ref(), Some(&key));
 
         // Mutation: change one component at a time.
         //
@@ -565,21 +464,53 @@ mod tests {
         let mut changed_text = text.clone();
         changed_text[0] = Asm::new().i(Addi, Reg::A0, Reg::ZERO, 6).finish()[0];
         let changed = [
-            Program::new(&changed_text, Region::TEXT.base(), vec![1], 2, 0),
-            Program::new(&text, Region::TEXT.base() + 4, vec![1], 2, 0),
-            Program::new(&text, Region::TEXT.base(), vec![2], 2, 0),
-            Program::new(&text, Region::TEXT.base(), vec![1, 0], 2, 0),
-            Program::new(&text, Region::TEXT.base(), vec![1], 3, 0),
-            Program::new(&text, Region::TEXT.base(), vec![1], 2, 1),
+            new(&changed_text, Region::TEXT.base(), vec![1], 2, 0),
+            new(&text, Region::TEXT.base() + 4, vec![1], 2, 0),
+            new(&text, Region::TEXT.base(), vec![2], 2, 0),
+            new(&text, Region::TEXT.base(), vec![1, 0], 2, 0),
+            new(&text, Region::TEXT.base(), vec![1], 3, 0),
+            new(&text, Region::TEXT.base(), vec![1], 2, 1),
         ];
-        for changed in changed {
-            assert_ne!(program.digest(), changed.expect("a valid program").digest());
+        for changed in &changed {
+            assert_ne!(changed.verifying_key().digest(), key.digest());
+        }
+        // The text reaches the key through the table's commitment alone.
+        assert_ne!(changed[0].verifying_key().root(), key.root());
+    }
+
+    #[test]
+    fn a_key_whose_program_cannot_exist_is_no_key() {
+        // Fixture: a two-word image filling a RAM of two words.
+        let key = Program::new(&[0x13], Region::TEXT.base(), vec![7, 8], 1, 0)
+            .unwrap()
+            .verifying_key()
+            .to_bytes();
+        let word = |index: usize, value: u64| {
+            let mut bytes = key.clone();
+            bytes[32 + 8 * index..][..8].copy_from_slice(&value.to_le_bytes());
+            bytes
+        };
+        for (what, bytes) in [
+            ("a truncated key", key[..key.len() - 1].to_vec()),
+            ("a trailing word", [key.as_slice(), &[0; 8]].concat()),
+            ("an empty table", word(0, 0)),
+            ("a table past the commitment", word(0, 64)),
+            (
+                "an entry at the halt slot",
+                word(1, Region::TEXT.address((1 << key[32]) - 1)),
+            ),
+            ("an image larger than RAM", word(2, 0)),
+            ("RAM past its region", word(2, 64)),
+            ("the advice past its region", word(3, 64)),
+        ] {
+            assert_eq!(VerifyingKey::from_bytes(&bytes), None, "{what}");
         }
     }
 
     /// The leaves a witness's bus leaves unmatched, as `(side, block, row)`.
-    fn unmatched(w: &Witness) -> Vec<(&'static str, usize, usize)> {
-        leaf::unmatched_leaves(&w.layout.push, &w.layout.pull, &w.layout.producers, &w.columns())
+    fn unmatched(program: &Program, w: &Witness) -> Vec<(&'static str, usize, usize)> {
+        let (l, program) = (&w.layout, &program.committed.message);
+        leaf::unmatched_leaves(&l.push, &l.pull, &l.producers, &w.columns(), program)
     }
 
     /// A committed column of a built witness, to forge it.
@@ -634,7 +565,7 @@ mod tests {
 
     /// The tuples a run leaves unmatched, as `(side, block, row)`.
     fn unmatched_run(program: &Program, exec: &Execution) -> Vec<(&'static str, usize, usize)> {
-        unmatched(&Witness::build(program, exec))
+        unmatched(program, &Witness::build(program, exec))
     }
 
     /// An honest run's bus balances tuple by tuple, which says more than the proof
@@ -644,7 +575,7 @@ mod tests {
         let text = Asm::new().i(Addi, Reg::A0, Reg::ZERO, 5).exit().finish();
         let program = Program::new(&text, Region::TEXT.base(), vec![], 2, 0).expect("valid instruction program");
         let w = Witness::build(&program, &program.execute(&[]).unwrap());
-        let unmatched = unmatched(&w);
+        let unmatched = unmatched(&program, &w);
         assert!(
             unmatched.is_empty(),
             "unmatched (side, block, row): {:?}",
@@ -703,7 +634,7 @@ mod tests {
             }
             execution.trace.reg_fin[rv::RegisterFile::SINK as usize] = F64(pc + 4);
             let witness = Witness::build(&program, &execution);
-            let unmatched = unmatched(&witness);
+            let unmatched = unmatched(&program, &witness);
             // The final state on the pull side, and the ALU's state push, the push side's
             // first block past its four framework blocks.
             assert_eq!(unmatched.len(), 2, "{unmatched:?}");
@@ -872,7 +803,12 @@ mod tests {
             (forged.trace.ram_fin[4], forged.trace.ram_ts[4]) = (F64::ZERO, F64(tables::SEED_CLOCK));
             let w = Witness::build(&misaligned, &forged);
             // The access's pull and push, at an address no cell has.
-            assert_eq!(unmatched(&w).len(), 2, "{class:?}: {:?}", unmatched(&w));
+            assert_eq!(
+                unmatched(&misaligned, &w).len(),
+                2,
+                "{class:?}: {:?}",
+                unmatched(&misaligned, &w)
+            );
             assert_unbalanced(&misaligned, w, &forged.output);
         }
     }
@@ -894,7 +830,10 @@ mod tests {
         let honest = program.execute(&[]).unwrap();
         assert_eq!(honest.output, [12, 0, 0, 0]);
         let (proof, _) = program.prove_execution(&honest, pcs::Rate::MIN);
-        program.verify(&honest.output, &proof).expect("the honest run verifies");
+        program
+            .verifying_key()
+            .verify(&honest.output, &proof)
+            .expect("the honest run verifies");
 
         let mut forged = program.execute(&[]).unwrap();
         let row = &mut forged.trace.rows[0][3];
@@ -908,7 +847,7 @@ mod tests {
         let w = Witness::build(&program, &forged);
         let push = w.layout.push.len();
         assert!(
-            unmatched(&w)
+            unmatched(&program, &w)
                 .iter()
                 .all(|&(side, block, _)| side == "pull" || block < push)
         );
@@ -931,7 +870,7 @@ mod tests {
         column_mut(&mut w, offset)[row] = F64(8);
         column_mut(&mut w, Shared::BytecodeMult.col())[0].0 -= 1;
 
-        let unmatched = unmatched(&w);
+        let unmatched = unmatched(&program, &w);
         assert_eq!(unmatched.len(), 1, "{unmatched:?}");
         let (side, block, at) = unmatched[0];
         assert_eq!((side, at), ("pull", row));
@@ -956,7 +895,7 @@ mod tests {
                 let mut w = Witness::build(&program, &exec);
                 assert_eq!(w.layout.producers[p].col, col);
                 column_mut(&mut w, col)[0].0 ^= flip;
-                let unmatched = unmatched(&w);
+                let unmatched = unmatched(&program, &w);
                 assert!(!unmatched.is_empty());
                 let producer = w.layout.push.len() + p;
                 assert!(
@@ -1082,6 +1021,9 @@ mod tests {
         forged.trace.ts_final |= 1 << tables::FAIL_BIT;
         assert!(unmatched_run(&program, &forged).is_empty());
         let (proof, _) = program.prove_execution(&forged, pcs::Rate::MIN);
-        assert_eq!(program.verify(&forged.output, &proof), Err(CpuError::FinalClock));
+        assert_eq!(
+            program.verifying_key().verify(&forged.output, &proof),
+            Err(super::super::CpuError::FinalClock)
+        );
     }
 }

@@ -40,7 +40,7 @@ use primitives::multilinear::{eq_table_arena, poly_eval, shrink_eq_high};
 use primitives::multilinear::{fold_high_inplace, fold_high_k};
 use zk_alloc::ArenaVec;
 
-/// One table's sent columns' evaluations at its table-sumcheck point.
+/// One table's columns' evaluations at its table-sumcheck point, every one of them sent.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Claims {
     pub chi: Vec<F192>,
@@ -48,14 +48,14 @@ pub struct Claims {
 }
 
 impl Claims {
-    /// The evaluations, then zeros up to `N`.
+    /// The first `count` evaluations, then zeros up to `N`.
     ///
     /// # Panics
     ///
-    /// Panics if there are more than `N` evaluations.
-    pub fn evals_padded<const N: usize>(&self) -> [F192; N] {
+    /// Panics if `count` exceeds `N` or the evaluations.
+    pub fn evals_padded<const N: usize>(&self, count: usize) -> [F192; N] {
         let mut out = [F192::ZERO; N];
-        out[..self.evals.len()].copy_from_slice(&self.evals);
+        out[..count].copy_from_slice(&self.evals[..count]);
         out
     }
 }
@@ -82,21 +82,12 @@ pub enum Error {
 pub trait Summand: Sync {
     /// The summand at `cols`; `quadratic` selects only its degree-two terms.
     fn eval<T: ColVal>(&self, cols: &[T], quadratic: bool) -> F192;
-
-    /// The table's public columns at its point `chi`, which the verifier computes rather
-    /// than reads: as many as the air's `n_public`.
-    fn public(&self, _chi: &[F192]) -> Vec<F192> {
-        Vec::new()
-    }
 }
 
-/// One table's place in the shared batch. Its last `n_public` columns are public: the
-/// prover folds them like the rest, but sends none, and the verifier takes their values
-/// at the point from [`Summand::public`].
+/// One table's place in the shared batch.
 pub struct Air<S> {
     pub tau: usize,
     pub n_cols: usize,
-    pub n_public: usize,
     pub summand: S,
 }
 
@@ -258,15 +249,13 @@ pub fn prove<S: Summand>(
     airs.iter()
         .enumerate()
         .map(|(t, air)| {
-            let mut evals: Vec<F192> = folded[t].as_ref().map_or_else(
+            let evals: Vec<F192> = folded[t].as_ref().map_or_else(
                 || match pending[t].as_ref().expect("a constant table has columns") {
                     Columns::K(c) => c.iter().map(|v| F192::from(v[0])).collect(),
                     Columns::E(c) => c.iter().map(|v| v[0]).collect(),
                 },
                 |table| table.to_vec(),
             );
-            // Public evaluations are reconstructed by the verifier rather than sent.
-            evals.truncate(air.n_cols - air.n_public);
             ps.add_scalars(&evals);
             Claims {
                 chi: chi[..air.tau].to_vec(),
@@ -479,15 +468,13 @@ fn prove_reference<S: Summand>(
         }
     }
 
-    // Send only the nonpublic terminal evaluations.
     airs.iter()
         .enumerate()
         .map(|(t, air)| {
-            let mut evals: Vec<F192> = folded[t].as_ref().map_or_else(
+            let evals: Vec<F192> = folded[t].as_ref().map_or_else(
                 || cols[t].iter().map(|c| F192::from(c[0])).collect(),
                 |table| table.iter().map(|c| c[0]).collect(),
             );
-            evals.truncate(air.n_cols - air.n_public);
             ps.add_scalars(&evals);
             Claims {
                 chi: chi[..air.tau].to_vec(),
@@ -535,11 +522,8 @@ pub fn verify<S: Summand>(
     let mut acc = F192::ZERO;
     let mut claims = Vec::with_capacity(airs.len());
     for (t, air) in airs.iter().enumerate() {
-        let evals = vs.next_scalars(air.n_cols - air.n_public)?;
-        let mut values = evals.clone();
-        values.extend(air.summand.public(&chi[..air.tau]));
-        assert_eq!(values.len(), air.n_cols, "a table's public columns are all evaluated");
-        acc += weights[t] * air.summand.eval(&values, false);
+        let evals = vs.next_scalars(air.n_cols)?;
+        acc += weights[t] * air.summand.eval(&evals, false);
         claims.push(Claims {
             chi: chi[..air.tau].to_vec(),
             evals,
@@ -635,7 +619,6 @@ mod tests {
             .map(|(t, &tau)| Air {
                 tau,
                 n_cols: 4,
-                n_public: 0,
                 summand: Synth {
                     pows: pows[n * t..n * (t + 1)].to_vec(),
                     attached,
@@ -768,7 +751,6 @@ mod tests {
             let airs = [Air {
                 tau,
                 n_cols: 0,
-                n_public: 0,
                 summand: Constant,
             }];
             let zeta = vec![F192::new(3, 5, 7); tau];

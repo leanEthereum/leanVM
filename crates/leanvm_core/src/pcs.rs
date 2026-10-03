@@ -189,3 +189,65 @@ pub fn verify(
     let cfg = whir_config(shape.mu, log_inv_rate);
     verify_opening_batch_mixed_whir_stacked(vs, &cfg, shape.mu, shape.n_lanes, root, points, rings)
 }
+
+/// The program commitment's rate, its lowest: key generation encodes the program once, while every proof carries its opening's queries, fewest at the lowest rate.
+pub const PROGRAM_LOG_INV_RATE: usize = ::pcs::whir::MAX_LOG_INV_RATE;
+
+/// The stack a program's table of `2^log_table` words is committed in, the table at offset zero.
+///
+/// It is the table's size, floored at the smallest the commitment takes, and only the lanes holding the table are encoded.
+pub fn program_shape(log_table: usize) -> crate::witness::StackShape {
+    let mu = log_table.max(MIN_MU);
+    crate::witness::StackShape {
+        mu,
+        n_lanes: (1usize << log_table).div_ceil(1 << (mu - LOG_BATCH)),
+    }
+}
+
+/// A program's table, committed once by key generation, and what each proof opens it with.
+///
+/// It is built with no proving phase open, so it lives on the system allocator and outlasts every proof.
+pub struct ProgramCommitment {
+    /// The Merkle root a verifying key holds.
+    pub root: [u8; 32],
+    /// The stack the table is committed in.
+    pub shape: crate::witness::StackShape,
+    /// The committed message: the table, then zeros to the end of its last lane.
+    pub message: Vec<F64>,
+    /// The codeword and its Merkle tree.
+    pub prover_data: ProverData,
+}
+
+/// Commit to a program's table, a power of two of words ([`program_shape`]).
+pub fn commit_program(table: &[F64]) -> ProgramCommitment {
+    assert!(table.len().is_power_of_two());
+    let shape = program_shape(table.len().ilog2() as usize);
+    let mut message = table.to_vec();
+    message.resize(shape.committed_len(), F64::ZERO);
+    let (commitment, prover_data) = whir_commit(&message, shape.mu, LOG_BATCH, PROGRAM_LOG_INV_RATE);
+    ProgramCommitment {
+        root: commitment.root,
+        shape,
+        message,
+        prover_data,
+    }
+}
+
+/// Open a program's commitment at `points`, plain evaluation claims on its stack, in a WHIR of its own.
+///
+/// The commitment's root is no part of the proof: the verifying key holds it, and the program's digest, which seeds the transcript, binds it.
+pub fn open_program(ps: &mut ProverState, c: &ProgramCommitment, points: &[SlotClaim]) {
+    let cfg = whir_config(c.shape.mu, PROGRAM_LOG_INV_RATE);
+    open_batch_mixed_whir_stacked(ps, c.shape.mu, &c.message, &c.prover_data, &cfg, points, &[]);
+}
+
+/// Verify a program's opening (mirror of [`open_program`]) against the root `root` its verifying key holds.
+pub fn verify_program(
+    vs: &mut VerifierState,
+    points: &[SlotClaim],
+    shape: crate::witness::StackShape,
+    root: &[u8; 32],
+) -> Result<(), ::pcs::whir::VerifyError> {
+    let cfg = whir_config(shape.mu, PROGRAM_LOG_INV_RATE);
+    verify_opening_batch_mixed_whir_stacked(vs, &cfg, shape.mu, shape.n_lanes, root, points, &[])
+}

@@ -5,7 +5,7 @@
 use super::layout::Layout;
 use crate::colval::ColVal;
 use crate::constraints::{self, Air};
-use crate::leaf::{self, BusForm, Producer};
+use crate::leaf::BusForm;
 use crate::tables;
 use primitives::field::F192;
 
@@ -58,14 +58,11 @@ impl Batch {
     /// - `layout`: the tables' heights and the producers.
     /// - `forms`: each side's bus form per table.
     /// - `coefficients`: per producer, per bit, its block's selector on the push side.
-    /// - `weights`, `beta`: the bus fingerprint, which the producers' public columns are made of.
     /// - `powers`: the bus sides' weights.
     pub(super) fn new(
         layout: &Layout,
         forms: &[Vec<BusForm>; 2],
         coefficients: &[Vec<F192>],
-        weights: &[F192],
-        beta: F192,
         powers: FormPowers,
     ) -> Self {
         // A table's term is one form, not two: the batch adds the sides' evaluations anyway.
@@ -76,21 +73,14 @@ impl Batch {
             .map(|(t, (table, &tau))| Air {
                 tau,
                 n_cols: table.n_committed_columns(),
-                n_public: 0,
                 summand: Term::Table(BusForm::sum((0..2).map(|s| forms[s][t].scaled(powers.0[s])))),
             });
 
-        // A producer's term: its bits, then its public columns.
+        // A producer's term: its bits, then its columns `P'_i`.
         let producers = layout.producers.iter().zip(coefficients).map(|(p, coefficients)| Air {
             tau: p.kappa,
             n_cols: 2 * p.bits,
-            n_public: p.bits,
-            summand: Term::Producer(ProducerTerm {
-                coefficients: coefficients.iter().map(|&c| c * powers.push()).collect(),
-                producer: p.clone(),
-                weights: weights.to_vec(),
-                beta,
-            }),
+            summand: Term::Producer(coefficients.iter().map(|&c| c * powers.push()).collect()),
         });
         Self(tables.chain(producers).collect())
     }
@@ -105,26 +95,14 @@ impl Batch {
 pub(super) enum Term {
     /// A table's two bus forms, already summed with their side weights.
     Table(BusForm),
-    /// A producer's share of the push side.
-    Producer(ProducerTerm),
-}
-
-/// A producer's term (§sec:lookup).
-///
-/// Bit `i`'s block owes the push side `sum_x eq(zeta, x) * (1 + b_i(x) * P'_i(x))`, at the block's selector.
-///
-/// Its columns are its bits `b_i`, which are sent, then its public `P'_i`, which the verifier computes.
-///
-/// The producer has no identity of its own.
-pub(super) struct ProducerTerm {
-    /// Per bit, its block's selector, the push side's weight folded in.
-    coefficients: Vec<F192>,
-    /// The producer the term is for.
-    producer: Producer,
-    /// The fingerprint's weights `eq(alpha, .)`, which its public columns are made of.
-    weights: Vec<F192>,
-    /// The fingerprint's offset.
-    beta: F192,
+    /// A producer's share of the push side (§sec:lookup), as each bit's block's selector, the push side's weight folded in.
+    ///
+    /// Bit `i`'s block owes the push side `sum_x eq(zeta, x) * (1 + b_i(x) * P'_i(x))`, at the block's selector.
+    ///
+    /// Its columns are its bits `b_i`, then `P'_i`, both sent; the program's claims bind the second half.
+    ///
+    /// The producer has no identity of its own.
+    Producer(Vec<F192>),
 }
 
 impl constraints::Summand for Term {
@@ -133,25 +111,18 @@ impl constraints::Summand for Term {
         match self {
             Self::Table(bus) => T::reduce(bus.eval_unreduced(cols, quadratic)),
             // `sum_i c_i * (1 + b_i * P'_i)`, whose quadratic part is the products.
-            Self::Producer(s) => {
-                let n = s.coefficients.len();
+            Self::Producer(coefficients) => {
+                let n = coefficients.len();
                 let products = (0..n).fold(T::lift(F192::ZERO), |acc, i| {
-                    acc ^ (cols[i] * cols[n + i]).mul_e_unreduced(s.coefficients[i])
+                    acc ^ (cols[i] * cols[n + i]).mul_e_unreduced(coefficients[i])
                 });
                 let constant = if quadratic {
                     F192::ZERO
                 } else {
-                    s.coefficients.iter().fold(F192::ZERO, |a, &b| a + b)
+                    coefficients.iter().fold(F192::ZERO, |a, &b| a + b)
                 };
                 T::reduce(products) + constant
             }
-        }
-    }
-
-    fn public(&self, chi: &[F192]) -> Vec<F192> {
-        match self {
-            Self::Table(_) => Vec::new(),
-            Self::Producer(s) => leaf::producer_public_evals(&s.producer, &s.weights, s.beta, chi),
         }
     }
 }

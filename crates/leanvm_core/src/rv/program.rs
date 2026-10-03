@@ -64,16 +64,26 @@ impl Program {
         Self::validate(text.len(), entry_pc, image.len(), log_ram, log_advice)?;
 
         // Decode each word at its own address.
-        let mut entries: Vec<Entry> = text
+        let entries = text
             .iter()
             .enumerate()
             .map(|(i, &word)| Entry::decode(word, Region::TEXT.address(i)))
             .collect();
+        Self::from_entries(entries, entry_pc, image, log_ram, log_advice)
+    }
 
+    /// The program of decoded entries, which must all be well formed: the table a verifying key commits to is built from them.
+    fn from_entries(
+        mut entries: Vec<Entry>,
+        entry_pc: u64,
+        image: Vec<u64>,
+        log_ram: usize,
+        log_advice: usize,
+    ) -> Result<Self, ProgramError> {
         // Pad to a power of two that leaves at least one illegal slot, then the halt slot.
         //
         //     [ text ... | illegal ... | halt ]
-        entries.resize((text.len() + 2).next_power_of_two(), Entry::ILLEGAL);
+        entries.resize((entries.len() + 2).next_power_of_two(), Entry::ILLEGAL);
 
         // The decoder only makes well-formed entries, which the bytecode table's rules restate.
         if !entries.iter().all(Entry::is_well_formed) {
@@ -195,6 +205,18 @@ mod tests {
     use super::*;
     use crate::rv::Region;
     use proptest::prelude::*;
+
+    #[test]
+    fn a_malformed_entry_is_refused() {
+        // An `addi` writing `x0`'s cell, which the decoder never makes: a table holding it would not be RISC-V.
+        let addi = Entry::decode(0x0010_0093, Region::TEXT.base());
+        assert!(Program::from_entries(vec![addi], Region::TEXT.base(), vec![], 0, 0).is_ok());
+        let writes_x0 = Entry { ad: 0, ..addi };
+        assert_eq!(
+            Program::from_entries(vec![writes_x0], Region::TEXT.base(), vec![], 0, 0).err(),
+            Some(ProgramError::MalformedEntry)
+        );
+    }
 
     #[test]
     fn validate_refuses_each_broken_rule() {

@@ -80,7 +80,10 @@ pub enum CpuError {
         /// Why flock rejects it.
         error: flock::verifier::VerifyError,
     },
-    /// The commitment opening is rejected.
+    /// The witness's opening is rejected.
     #[error("the opening: {0}")]
     Open(::pcs::whir::VerifyError),
+    /// The opening of the program's commitment, the verifying key's, is rejected.
+    #[error("the program's opening: {0}")]
+    ProgramOpen(::pcs::whir::VerifyError),
 }

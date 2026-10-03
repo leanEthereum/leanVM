@@ -169,6 +169,7 @@ fn act4_proven() {
             .unwrap_or_else(|trap| panic!("{name}: {trap}"));
         assert_eq!(output, PASS, "{name}: the prover's output");
         let raw = program
+            .verifying_key()
             .verify_to_raw(&output, &proof)
             .unwrap_or_else(|error| panic!("{name}: {error:?}"));
         let used = stats.base_counts.map(|rows| rows > 0);

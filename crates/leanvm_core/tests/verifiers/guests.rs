@@ -26,11 +26,14 @@ fn proves_and_verifies(tag: &str, elf: &[u8], advice: &[u64], expected: [u64; 4]
     assert_eq!(output, expected);
     // Measuring a run reports what proving it does, without the proof.
     assert_eq!(program.measure(advice), Ok(stats.clone()), "{tag}: measure");
-    let raw = program.verify_to_raw(&output, &proof).expect("honest proof verifies");
+    let raw = program
+        .verifying_key()
+        .verify_to_raw(&output, &proof)
+        .expect("honest proof verifies");
     PythonStatement::new(tag, &program, &output).assert_accepts(&raw);
     let mut wrong = output;
     wrong[3] ^= 1;
-    assert!(program.verify(&wrong, &proof).is_err());
+    assert!(program.verifying_key().verify(&wrong, &proof).is_err());
     println!(
         "{tag}: {} instructions, {}",
         program.rv().entries().len(),
@@ -293,7 +296,7 @@ fn elf_metadata_is_not_part_of_the_program_identity() {
     let mut metadata = elf.to_vec();
     metadata[9..16].fill(0xa5);
     let same = Program::from_elf(&metadata).unwrap();
-    assert_eq!(program.digest(), same.digest());
+    assert_eq!(program.verifying_key(), same.verifying_key());
     assert_eq!(program.rv().entries(), same.rv().entries());
     assert_eq!(program.rv().image(), same.rv().image());
 }

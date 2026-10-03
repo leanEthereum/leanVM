@@ -22,9 +22,9 @@ fn proving_without_the_arena() {
     let program = Program::new(&text, Region::TEXT.base(), vec![], 2, 0).expect("valid instruction program");
     let Proved { proof, output, .. } = prover.prove(&program, &[], Rate::MIN).expect("the run halts");
     assert_eq!(output, [300, 0, 0, 0]);
-    verify(&program, &output, &proof).expect("the proof verifies");
+    verify(program.verifying_key(), &output, &proof).expect("the proof verifies");
 
     let mut wrong_output = output;
     wrong_output[0] += 1;
-    assert!(verify(&program, &wrong_output, &proof).is_err());
+    assert!(verify(program.verifying_key(), &wrong_output, &proof).is_err());
 }

@@ -149,7 +149,7 @@ fn proved(case: &Case, prover: &Prover, rate: Rate, plan: Plan) -> Vec<(&'static
         "{}: the output is the native reference's",
         case.name
     );
-    verify(&case.program, &output, &proof).expect("an honest proof verifies");
+    verify(case.program.verifying_key(), &output, &proof).expect("an honest proof verifies");
     vec![("latency", Metric::nanoseconds(&time))]
 }
 

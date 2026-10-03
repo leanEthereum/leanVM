@@ -52,28 +52,26 @@ fn public_api_end_to_end() {
     let prover = Prover::new();
     let program = fibonacci(90);
 
-    // 1. Prove, then onto the wire and back to a receiver.
+    // 1. Prove, then onto the wire and back to a receiver, who holds the program's verifying key alone.
     let Proved { proof, output, .. } = prover.prove(&program, &[], Rate::MIN).expect("the run halts");
     assert_eq!(output, [2_880_067_194_370_816_120, 0, 0, 0]);
     let received = Proof::from_bytes(&proof.to_bytes()).expect("a proof's own bytes");
-    verify(&program, &output, &received).unwrap();
+    let key = VerifyingKey::from_bytes(&program.verifying_key().to_bytes()).expect("a key's own bytes");
+    verify(&key, &output, &received).unwrap();
 
     // 2. The proof is about this program and this output, and no other.
     let mut wrong_output = output;
     wrong_output[0] += 1;
     assert!(matches!(
-        verify(&fibonacci(91), &output, &received),
+        verify(fibonacci(91).verifying_key(), &output, &received),
         Err(Error::Verify(_))
     ));
-    assert!(matches!(
-        verify(&program, &wrong_output, &received),
-        Err(Error::Verify(_))
-    ));
+    assert!(matches!(verify(&key, &wrong_output, &received), Err(Error::Verify(_))));
 
     // 3. One proof is one arena phase: the first proof outlives the second's phase.
     let second = prover.prove(&program, &[], Rate::MIN).expect("the run halts");
-    verify(&program, &output, &second.proof).unwrap();
-    verify(&program, &output, &received).unwrap();
+    verify(&key, &output, &second.proof).unwrap();
+    verify(&key, &output, &received).unwrap();
     // 4. The same, over a guest whose rows include the hash table and the advice: with
     // the arena engaged, a buffer that outlived its phase would show up here as a proof
     // that stops verifying, and nowhere else (the verifier tests run the arena off).
@@ -82,14 +80,14 @@ fn public_api_end_to_end() {
         let Proved { proof, output, .. } = prover.prove(&guest, &advice, Rate::MIN).expect("the run halts");
         assert_eq!(output, digest, "the guest hashed the advice");
         // The advice is the prover's alone: it is no part of what the verifier is told.
-        verify(&guest, &output, &proof).unwrap();
+        verify(guest.verifying_key(), &output, &proof).unwrap();
     }
 
     // 5. A proof of another protocol version is refused, as are bytes that are no proof.
     let bytes = received.to_bytes();
     let mut bumped = bytes.clone();
     bumped[4] += 1;
-    assert_eq!(Proof::from_bytes(&bumped), Err(Error::UnsupportedVersion { found: 6 }));
+    assert_eq!(Proof::from_bytes(&bumped), Err(Error::UnsupportedVersion { found: 7 }));
     let mut magic = bytes.clone();
     magic[0] ^= 1;
     assert_eq!(Proof::from_bytes(&magic), Err(Error::MalformedProof));

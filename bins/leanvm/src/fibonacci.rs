@@ -26,7 +26,7 @@ pub fn run_fibonacci(n: usize, prover: &Prover, rate: Rate, plan: Plan) {
     assert_eq!(output, expected);
     let (_, verify_time) = Plan::new(plan.repeat, 0).measure_quiet(|last| {
         let _quiet = (!last).then(bench::suppress_tracing);
-        verify(&program, &output, &proof).unwrap();
+        verify(program.verifying_key(), &output, &proof).unwrap();
     });
 
     // tracing-forest renders its tree only when the root span closes, so the

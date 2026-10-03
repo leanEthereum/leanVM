@@ -44,7 +44,7 @@ pub fn run_guest(elf: &std::path::Path, advice: &[u64], prover: &Prover, rate: R
     });
     let (_, verify_time) = Plan::new(plan.repeat, 0).measure_quiet(|last| {
         let _quiet = (!last).then(bench::suppress_tracing);
-        verify(&program, &output, &proof).unwrap();
+        verify(program.verifying_key(), &output, &proof).unwrap();
     });
 
     println!("{}", elf.display());

@@ -92,7 +92,7 @@ pub fn run(workload: &Workload, prover: &Prover, rate: Rate, plan: Plan) {
     );
     let (_, verify_time) = Plan::new(plan.repeat, 0).measure_quiet(|last| {
         let _quiet = (!last).then(bench::suppress_tracing);
-        verify(&program, &output, &proof).expect("the proof verifies");
+        verify(program.verifying_key(), &output, &proof).expect("the proof verifies");
     });
 
     // The proven rows include padding: the guest's own cycles are the per-table base counts.

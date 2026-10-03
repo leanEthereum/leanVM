@@ -11,6 +11,7 @@
 use super::MAX_LOG_ROWS;
 use super::error::CpuError;
 use super::execute::Trace;
+use super::key::VerifyingKey;
 use crate::constraints::Claims;
 use crate::leaf::{Block, ColumnClaim, Coord, Producer, SparseColumn};
 use crate::rv::{self, Reg, Region, RegisterFile, Syscall};
@@ -54,7 +55,7 @@ impl Framework {
     }
 
     /// The block's two tuples: the push side's seed, then the pull side's finalization.
-    fn tuples(self, p: &rv::Program, ts_final: u64) -> (Vec<Coord>, Vec<Coord>) {
+    fn tuples(self, key: &VerifyingKey, ts_final: u64) -> (Vec<Coord>, Vec<Coord>) {
         use Coord::{Col, Const, IntIndex, Sparse};
 
         // A read-write array: each cell starts at the seed's clock holding `init`.
@@ -79,13 +80,13 @@ impl Framework {
             Self::State => (
                 vec![
                     Const(SEP_STATE),
-                    Const(F64(p.entry_pc())),
+                    Const(F64(key.entry_pc())),
                     Const(F64(tables::CLOCK_START)),
                     Const(F64::ZERO),
                 ],
                 vec![
                     Const(SEP_STATE),
-                    Const(F64(p.halt_pc())),
+                    Const(F64(key.halt_pc())),
                     Const(F64(ts_final)),
                     Const(F64(ts_final)),
                 ],
@@ -100,7 +101,7 @@ impl Framework {
             }
             // RAM starts as the program's image, then zeros, all public.
             Self::Ram => {
-                let image = Sparse(Arc::new(SparseColumn::new(p.log_ram(), &[(0, p.image())])));
+                let image = Sparse(Arc::new(SparseColumn::new(key.sizes().log_ram, &[(0, key.image())])));
                 array(
                     tables::SEP_MEM,
                     word(Region::RAM.base()),
@@ -172,32 +173,26 @@ impl Lookup {
         }
     }
 
-    /// The tuple the array's producer pushes for each entry, none of it committed.
-    pub fn tuple(self, p: &rv::Program) -> Vec<Coord> {
+    /// The tuple the array's producer pushes for each entry, none of it committed in the proof.
+    pub fn tuple(self) -> Vec<Coord> {
         match self {
-            // Entry `i` at its byte address, four bytes after the preceding one, then the program's public columns.
+            // Entry `i` at its byte address, four bytes after the preceding one, then the program's columns.
             Self::Bytecode => {
                 let pc = Coord::IntIndex {
                     base: F64(Region::TEXT.base()),
                     shift: 2,
                 };
-                [Coord::Const(SEP_BYTECODE), pc]
-                    .into_iter()
-                    .chain(self.columns(p).into_iter().map(|c| Coord::Public(Arc::new(c))))
-                    .collect()
+                let program = (0..N_BYTECODE_COLUMNS).map(|c| Coord::Program(crate::leaf::BYTECODE_PUBLIC_SLOT + c));
+                [Coord::Const(SEP_BYTECODE), pc].into_iter().chain(program).collect()
             }
         }
     }
 
     /// The array's stacked polynomial: its columns at their bus tuple coordinates.
     ///
-    /// It makes the array's whole share of a bus leaf one evaluation.
-    ///
-    /// For the bytecode, it is what an outer verifier is handed in place of a structured program.
-    ///
-    /// It is also what the program digest binds.
+    /// It makes the array's whole share of a bus leaf one evaluation, and it is what the program's verifying key commits to.
     pub fn table(self, p: &rv::Program) -> Vec<F64> {
-        crate::leaf::stacked_bytecode_table(self.log_rows(Sizes::of(p)), &self.tuple(p))
+        crate::leaf::stacked_bytecode_table(self.log_rows(Sizes::of(p)), &self.columns(p))
     }
 
     /// The array's public columns over its entries, in tuple order after the address.
@@ -235,7 +230,7 @@ impl Lookup {
 ///
 /// What is committed is what each array holds after the run, and each cell's last timestamp (§sec:memchan).
 ///
-/// - The program is public, not committed: only the multiplicities of its reads are.
+/// - The program is committed in its verifying key, not here: only the multiplicities of its reads are.
 /// - The registers start at zero and RAM at the program's image, both public.
 /// - The advice is the one array whose initial words are committed too: they are the prover's.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -450,19 +445,19 @@ pub struct Layout {
 }
 
 impl Layout {
-    /// The layout of a run of `p` with table heights `2^taus`, ending on clock `ts_final`.
+    /// The layout of a run of the program `key` describes, with table heights `2^taus`, ending on clock `ts_final`.
     ///
     /// A table's height is its row count: the fill blocks bring every count to a power of two.
     ///
     /// So every row was executed, and no flush has padding tuples to divide back out of the bus.
-    pub fn new(p: &rv::Program, taus: [usize; tables::N_TABLES], ts_final: u64) -> Self {
-        let sizes = Sizes::of(p);
+    pub fn new(key: &VerifyingKey, taus: [usize; tables::N_TABLES], ts_final: u64) -> Self {
+        let sizes = key.sizes();
 
         // The framework's blocks open both sides, one push and one pull block each.
         let (mut push, mut pull) = (Vec::new(), Vec::new());
         for block in Framework::ALL {
             let kappa = block.log_rows(sizes);
-            let (seed, finalize) = block.tuples(p, ts_final);
+            let (seed, finalize) = block.tuples(key, ts_final);
             push.push(Block::framework(kappa, seed));
             pull.push(Block::framework(kappa, finalize));
         }
@@ -491,7 +486,7 @@ impl Layout {
             .into_iter()
             .map(|lookup| Producer {
                 kappa: lookup.log_rows(sizes),
-                coords: lookup.tuple(p),
+                coords: lookup.tuple(),
                 col: lookup.multiplicity().col(),
                 bits: lookup.multiplicity_bits(taus),
             })
@@ -520,6 +515,30 @@ impl Layout {
         self.placements[p.col]
             .window()
             .expect("a multiplicity column is committed")
+    }
+
+    /// The claims the producer's columns `P'_i` leave on the program's table, located in the program's stack (§sec:lookup).
+    ///
+    /// `producer_claims` are the producers' evaluations at the table sumcheck's point, their bits' values then their `P'_i`'s.
+    ///
+    /// Prover and verifier both assemble them here.
+    pub(super) fn program_claims(
+        &self,
+        alphas: &[F192],
+        beta: F192,
+        producer_claims: &[Claims],
+    ) -> Vec<pcs::SlotClaim> {
+        // The bytecode is the one lookup array, so its table is the program's whole stack, at offset zero.
+        let [Lookup::Bytecode] = Lookup::ALL;
+        let (p, claims) = (&self.producers[0], &producer_claims[0]);
+        crate::leaf::program_claims(p, alphas, beta, &claims.chi, &claims.evals[p.bits..])
+            .into_iter()
+            .map(|claim| pcs::SlotClaim::Point {
+                offset: 0,
+                low_point: claim.point,
+                value: claim.value,
+            })
+            .collect()
     }
 
     /// Every claim the opening discharges, located in the stack, in the order that feeds the batch's weights.
@@ -690,9 +709,9 @@ impl Announcement {
     /// # Errors
     ///
     /// Refuses heights whose stacked witness the commitment does not take.
-    pub(super) fn layout(&self, p: &rv::Program) -> Result<Layout, CpuError> {
+    pub(super) fn layout(&self, key: &VerifyingKey) -> Result<Layout, CpuError> {
         // The caps bound each height alone; the stacked size they imply is checked here.
-        let layout = Layout::new(p, self.taus, self.ts_final);
+        let layout = Layout::new(key, self.taus, self.ts_final);
         if !(pcs::MIN_MU..=pcs::MAX_MU).contains(&layout.shape.mu) {
             return Err(CpuError::WitnessSize { mu: layout.shape.mu });
         }

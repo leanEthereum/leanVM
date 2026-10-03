@@ -1,7 +1,8 @@
 //! leanVM: a minimal zkVM for RISC-V (rv64im).
 //!
 //! A program is a guest's ELF executable (see `programs/`) or a text written by hand with the assembler.
-//! A prover runs it and proves the run; the verifier checks the proof against the program and the output the run claims, `a0..a3` when it called `exit`.
+//! Building a [`Program`] is key generation: it decodes the program and commits to its table, once, and its [`VerifyingKey`] is what a verifier needs of it.
+//! A prover runs the program and proves the run; the verifier checks the proof against the verifying key and the output the run claims, `a0..a3` when it called `exit`.
 //!
 //! A run also takes its advice, the words the program finds at the advice base.
 //!
@@ -16,7 +17,7 @@ use std::fmt;
 use leanvm_core::cpu::{self, CpuError, ProveError};
 
 pub use leanvm_core::{
-    cpu::{Program, Stats},
+    cpu::{Program, Stats, VerifyingKey},
     pcs::{InvalidRate, Rate},
     rv::{ElfError, ProgramError, Region, Trap, asm},
 };
@@ -85,13 +86,13 @@ pub fn measure(program: &Program, advice: &[u64]) -> Result<Stats, Error> {
     Ok(program.measure(advice)?)
 }
 
-/// Check that the program, run on some advice, exits with `output`.
+/// Check that the program whose verifying key is `key`, run on some advice, exits with `output`.
 ///
 /// # Errors
 ///
-/// The proof does not verify against this program and this output.
-pub fn verify(program: &Program, output: &[u64; 4], proof: &Proof) -> Result<(), Error> {
-    Ok(program.verify(output, &proof.0).map_err(VerifyError)?)
+/// The proof does not verify against this key and this output.
+pub fn verify(key: &VerifyingKey, output: &[u64; 4], proof: &Proof) -> Result<(), Error> {
+    Ok(key.verify(output, &proof.0).map_err(VerifyError)?)
 }
 
 /// A proof of a run.
@@ -114,7 +115,7 @@ impl Proof {
     const MAGIC: [u8; 4] = *b"LVMP";
 
     /// The protocol version, bumped by every change to what a proof says.
-    const VERSION: u16 = 5;
+    const VERSION: u16 = 6;
 
     /// The proof's bytes.
     #[must_use]

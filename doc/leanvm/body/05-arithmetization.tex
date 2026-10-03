@@ -134,7 +134,7 @@ of degree at most $d$ in $T_j$'s columns, with coefficients the verifier builds 
 \[
   B^{\push}(x)\;=\;\sum_{k<\nbit}\eq(\mathsf{sel}_{b_k},\zeta_{\ge\kappa})\bigl(1+\mbit{k}(x)\,\pubp{k}(x)\bigr),
 \]
-$b_k$ being its block of bit $k$, of degree $2$ in its columns: the bits $\mbit{k}$, committed (\S\ref{sec:lookup}), and the $\pubp{k}$, public. It owes nothing on the pull side. Below, the sums over $j$ run over the tables and then the producers.
+$b_k$ being its block of bit $k$, of degree $2$ in its columns: the bits $\mbit{k}$, slices of the committed $\mlt$, and the $\pubp{k}$, functions of the committed program (\S\ref{sec:lookup}). It owes nothing on the pull side. Below, the sums over $j$ run over the tables and then the producers.
 
 \subsection{Table sumcheck}\label{sec:air}
 
@@ -163,7 +163,7 @@ Since $\sum_{x\in\cube{m}}x_0\cdots x_{m-1}=1$, the padded variables contribute 
 \]
 the verifier computing the right side itself. Each summand of $F$ has individual degree $d+1=3$, the constraint contributing $d$ and the $\eq$ factor one, so the soundness error is $(3\taumax+\nside+\nconstot)/|\E|$: $3\taumax$ for the rounds (Fact~\ref{fact:sumcheck}) and $\nside+\nconstot$ for the $\xi$-batching (Corollary~\ref{cor:idtest}). Rounds bind $X_{\taumax-1}$ first, so $T_j$ joins only at round $\taumax-\tau_j$: hence \emph{back-loaded}. The end yields one claim per column, $T_j$'s at $\fc_{<\tau_j}$, settled by the PCS opening (\S\ref{sec:stacking}).
 
-\paragraph{Producer airs.} A producer (\S\ref{sec:leafstack}) joins the batch like a table of height $2^{\kappa}$ with no constraints, its summand $\xi^{\,\nconstot}B^{\push}$ carrying the push side's power, against $\eq(\zeta_{<\kappa},\cdot)$, of individual degree $3$ as well; $\taumax$ is then the largest of the tables' and the producers' log heights. Its columns are its bits $\mbit{0},\dots,\mbit{\nbit-1}$ and its public columns $\pubp{0},\dots,\pubp{\nbit-1}$: the prover folds both, but at the end sends only the bits' values at $\fc_{<\kappa}$, and the verifier evaluates each $\widetilde{\pubp{k}}(\fc_{<\kappa})$ itself (\S\ref{sec:lookup}). The bits' claims are settled by ring switching against the multiplicity column (\S\ref{sec:ringswitch}).
+\paragraph{Producer airs.} A producer (\S\ref{sec:leafstack}) joins the batch like a table of height $2^{\kappa}$ with no constraints, its summand $\xi^{\,\nconstot}B^{\push}$ carrying the push side's power, against $\eq(\zeta_{<\kappa},\cdot)$, of individual degree $3$ as well; $\taumax$ is then the largest of the tables' and the producers' log heights. Its columns are its bits $\mbit{0},\dots,\mbit{\nbit-1}$ and $\pubp{0},\dots,\pubp{\nbit-1}$, none of them public: the prover folds both halves and at the end sends both halves' values at $\fc_{<\kappa}$, the bits' first, as it does a table's columns. The bits' claims are settled by ring switching against the multiplicity column (\S\ref{sec:ringswitch}), the $\pubp{k}$'s by an opening of the committed program (\S\ref{sec:lookup}).
 
 \paragraph{The machine's tables.} The instruction tables of \S\ref{sec:tables} carry no constraint of their own, $\ncons{j}=0$: what a row asserts, its circuits assert (Annex~\ref{annex:flock}). So $\nconstot=0$, and the batch weights side $s$ by $\xi^{\,s-1}$.
 
