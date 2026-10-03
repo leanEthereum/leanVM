@@ -8,6 +8,8 @@
 //!
 //! So one opcode completes a hash of any length, with no tree of chunks to rebuild in-circuit.
 
+// A leanVM guest hashes each input by the machine's instruction, so only the backend's widths are used there.
+#[cfg_attr(all(target_arch = "riscv64", target_os = "zkvm"), allow(dead_code))]
 mod batch;
 
 #[cfg(target_arch = "aarch64")]
@@ -15,7 +17,9 @@ mod arm;
 #[cfg(target_arch = "x86_64")]
 mod x86;
 
-use batch::{Lanes32, hash_many_with};
+use batch::Lanes32;
+#[cfg(not(all(target_arch = "riscv64", target_os = "zkvm")))]
+use batch::hash_many_with;
 
 /// The batched backend this build dispatches to.
 #[cfg(all(target_arch = "x86_64", target_feature = "avx512f"))]
@@ -87,6 +91,7 @@ pub const PARAM_IV: [u32; 8] = {
 /// `last` sets the final-block flag.
 ///
 /// The last-node flag stays zero: nothing here uses the tree mode.
+#[cfg(not(all(target_arch = "riscv64", target_os = "zkvm")))]
 #[inline]
 pub fn compress(h: &mut [u32; 8], m: &[u32; 16], t: u64, last: bool) {
     let mut v = [0u32; 16];
@@ -112,6 +117,33 @@ pub fn compress(h: &mut [u32; 8], m: &[u32; 16], t: u64, last: bool) {
     }
     for i in 0..8 {
         h[i] ^= v[i] ^ v[i + 8];
+    }
+}
+
+/// On a leanVM guest (`programs/recverify`'s `os = "zkvm"` target): the machine's `blake2s` instruction.
+#[cfg(all(target_arch = "riscv64", target_os = "zkvm"))]
+#[cfg_attr(not(recguest_count), inline)]
+#[cfg_attr(recguest_count, inline(never))]
+pub fn compress(h: &mut [u32; 8], m: &[u32; 16], t: u64, last: bool) {
+    /// Chaining value read in words 0..4, compression written to 4..8, message read in 8..16 (`rv::Hash`).
+    #[repr(C, align(128))]
+    struct Block {
+        h: [u32; 8],
+        out: [u32; 8],
+        m: [u32; 16],
+    }
+    let mut block = core::mem::MaybeUninit::<Block>::uninit();
+    let base = block.as_mut_ptr();
+    // SAFETY: the instruction reads `h` and `m`, written first, and writes `out` before it is read.
+    unsafe {
+        (&raw mut (*base).h).write(*h);
+        (&raw mut (*base).m).write(*m);
+        if last {
+            core::arch::asm!(".insn r 0x0b, 1, 0, x0, {0}, {1}", in(reg) base, in(reg) t, options(nostack));
+        } else {
+            core::arch::asm!(".insn r 0x0b, 0, 0, x0, {0}, {1}", in(reg) base, in(reg) t, options(nostack));
+        }
+        *h = (&raw const (*base).out).read();
     }
 }
 
@@ -269,8 +301,16 @@ pub fn hash_many_dyn_from_state(data: &[u8], len: usize, state: &[u32; 8], t_off
     let n = out.len() / OUT_LEN;
     assert_eq!(data.len(), n * len);
     assert_eq!(out.len(), n * OUT_LEN);
+    // On a leanVM guest, one `blake2s` instruction a block beats the lanes in software.
+    #[cfg(all(target_arch = "riscv64", target_os = "zkvm"))]
+    for (input, digest) in data.chunks_exact(len).zip(out.as_chunks_mut::<OUT_LEN>().0) {
+        *digest = hash_from_state(input, state, t_offset);
+    }
+    #[cfg(not(all(target_arch = "riscv64", target_os = "zkvm")))]
     // SAFETY: the asserts pin the buffer sizes, and the backend is gated on the features its intrinsics need.
-    unsafe { hash_many_with::<Backend>(data, len, state, t_offset, out) }
+    unsafe {
+        hash_many_with::<Backend>(data, len, state, t_offset, out);
+    }
 }
 
 /// The batched hash with a runtime input length, a nonzero multiple of 64.

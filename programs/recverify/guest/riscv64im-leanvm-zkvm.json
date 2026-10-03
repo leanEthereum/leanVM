@@ -1,0 +1,28 @@
+{
+  "arch": "riscv64",
+  "os": "zkvm",
+  "vendor": "leanvm",
+  "atomic-cas": true,
+  "singlethread": true,
+  "code-model": "medium",
+  "cpu": "generic-rv64",
+  "crt-objects-fallback": "false",
+  "data-layout": "e-m:e-p:64:64-i64:64-i128:128-n32:64-S128",
+  "eh-frame-header": false,
+  "emit-debug-gdb-scripts": false,
+  "features": "+m,+forced-atomics",
+  "linker": "rust-lld",
+  "linker-flavor": "gnu-lld",
+  "llvm-abiname": "lp64",
+  "llvm-target": "riscv64",
+  "max-atomic-width": 64,
+  "metadata": {
+    "description": "leanVM rv64im guest with std (programs/recverify)",
+    "host_tools": false,
+    "std": true,
+    "tier": 3
+  },
+  "panic-strategy": "abort",
+  "relocation-model": "static",
+  "target-pointer-width": 64
+}

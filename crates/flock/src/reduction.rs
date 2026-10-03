@@ -1,9 +1,10 @@
 //! The circuit-agnostic half of Flock: zerocheck then lincheck over a batch of
 //! `2^k_log`-bit blocks, reducing R1CS validity to ONE claim on the packed
 //! witness, packaged for ring switching. A circuit supplies only its [`Block`]:
-//! the shape, and the walks behind its [`LincheckCircuit`].
+//! the shape, and the walks behind its [`LincheckCircuit`]. The verifier's replay
+//! short of the matrices needs the [`Shape`] alone.
 
-use crate::lincheck::{self, LincheckCircuit, LincheckClaim, QuirkyPoint};
+use crate::lincheck::{self, LincheckCircuit, LincheckClaim, MatrixClaim, QuirkyPoint};
 use crate::verifier::VerifyError;
 use crate::witness::packed_bytes;
 use crate::zerocheck::{self, K_SKIP, PaddingSpec, ZerocheckClaim};
@@ -33,6 +34,17 @@ pub struct Block<'a> {
     pub k_log: usize,
     pub useful_bits: usize,
     pub circuit: &'a dyn LincheckCircuit,
+}
+
+/// What [`Shape::verify_deferred`] needs of a circuit: `2^k_log` witness bits per
+/// instance, and the column of its constant wire, which lincheck pins to one.
+/// Its matrices are left to the [`MatrixClaim`] the replay returns, so it needs no
+/// built circuit; whoever settles that claim against the circuit holds the circuit
+/// to this shape.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Shape {
+    pub k_log: usize,
+    pub const_pin_col: usize,
 }
 
 /// The one claim on the committed witness `q_flock` left by the zerocheck +
@@ -89,6 +101,14 @@ fn reduction_claim(lc: &LincheckClaim, x_outer: &[F192]) -> SliceClaim {
 }
 
 impl Block<'_> {
+    /// What the verifier's replay reads of the circuit, short of its matrices.
+    pub fn shape(&self) -> Shape {
+        Shape {
+            k_log: self.k_log,
+            const_pin_col: self.circuit.const_pin_col(),
+        }
+    }
+
     /// **First stage (prover): the zerocheck.** Reduces `a·b ⊕ c = 0` over the
     /// cube of `2^n_blocks_log` blocks to evaluation claims on `(â, b̂, ĉ)`, all
     /// three at one point.
@@ -168,15 +188,29 @@ impl Block<'_> {
     /// transcript stream, recovering the one evaluation claim on the committed
     /// witness `q_flock`. The PCS then discharges the returned claim.
     pub fn verify(&self, n_blocks_log: usize, vs: &mut VerifierState<'_>) -> Result<ReductionReplay, VerifyError> {
+        let (replay, matrices) = self.shape().verify_deferred(n_blocks_log, vs)?;
+        matrices.check(self.circuit).map_err(VerifyError::Lincheck)?;
+        Ok(replay)
+    }
+}
+
+impl Shape {
+    /// [`Block::verify`] up to the circuit's matrices, whose form lincheck's terminal
+    /// identity leaves as a [`MatrixClaim`] ([`lincheck::verify_deferred`]).
+    pub fn verify_deferred(
+        &self,
+        n_blocks_log: usize,
+        vs: &mut VerifierState<'_>,
+    ) -> Result<(ReductionReplay, MatrixClaim), VerifyError> {
         let m = self.k_log + n_blocks_log;
         let zc_claim = zerocheck::verify(m, vs).map_err(VerifyError::Zerocheck)?;
 
         let x_ab = x_ab_of(&zc_claim, self.k_log - K_SKIP);
-        let lc_claim = lincheck::verify(
+        let (lc_claim, matrices) = lincheck::verify_deferred(
             m,
             self.k_log,
             K_SKIP,
-            self.circuit,
+            self.const_pin_col,
             &x_ab,
             zc_claim.a_eval,
             zc_claim.b_eval,
@@ -186,11 +220,14 @@ impl Block<'_> {
         .map_err(VerifyError::Lincheck)?;
 
         let claim = reduction_claim(&lc_claim, &x_ab.x_outer);
-        Ok(ReductionReplay {
-            claim,
-            zc_claim,
-            lc_claim,
-        })
+        Ok((
+            ReductionReplay {
+                claim,
+                zc_claim,
+                lc_claim,
+            },
+            matrices,
+        ))
     }
 }
 

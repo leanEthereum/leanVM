@@ -8,7 +8,7 @@ use std::ptr;
 /// # Safety
 /// Always safe to call. The caller owns the resulting mapping, which is never
 /// unmapped (the arena lives for the process).
-#[cfg(not(miri))]
+#[cfg(not(any(miri, target_os = "zkvm")))]
 pub unsafe fn reserve(size: usize) -> *mut u8 {
     let flags = libc::MAP_PRIVATE | libc::MAP_ANON;
     // MAP_NORESERVE keeps Linux from charging the whole sparse reservation
@@ -36,6 +36,15 @@ pub unsafe fn reserve(size: usize) -> *mut u8 {
         Ok(layout) => unsafe { std::alloc::alloc_zeroed(layout) },
         Err(_) => ptr::null_mut(),
     }
+}
+
+/// A leanVM guest has no address space to reserve: the arena stays disengaged there.
+///
+/// # Safety
+/// Always safe to call.
+#[cfg(all(target_os = "zkvm", not(miri)))]
+pub const unsafe fn reserve(_size: usize) -> *mut u8 {
+    ptr::null_mut()
 }
 
 /// Ask the kernel not to use transparent huge pages for `[ptr, ptr + size)`.

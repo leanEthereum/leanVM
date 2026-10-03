@@ -1,0 +1,13 @@
+[package]
+name = "recverify"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+leanvm_core = { path = "../../../crates/leanvm_core" }
+leanvm_guest = { path = "../../../sdk" }
+primitives = { path = "../../../crates/primitives" }
+
+# Its own workspace: a guest builds for RISC-V, with this directory's toolchain and config.
+[workspace]

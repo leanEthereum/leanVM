@@ -108,7 +108,7 @@ impl SparseColumn {
     }
 
     /// The column's multilinear extension at `point`.
-    fn eval(&self, point: &[F192]) -> F192 {
+    pub fn eval(&self, point: &[F192]) -> F192 {
         assert_eq!(point.len(), self.log_len);
         self.blocks.iter().fold(F192::ZERO, |acc, (at, words)| {
             let k = words.len().ilog2() as usize;
@@ -476,7 +476,7 @@ pub fn build_leaves(
 /// What the producer's air sums against `eq(ζ, ·)` (§sec:lookup): its bits as `E`
 /// columns, then for each bit `i` the public column `(β − π_α(e_x))^{2^i} − 1`, so that
 /// bit `i`'s leaf is `1 + b_i·P'_i`. Prover-side; the verifier evaluates the public
-/// half itself ([`producer_public_evals`]).
+/// half itself ([`producer_affine_evals`], [`producer_public_twist`]).
 pub fn producer_columns(p: &Producer, cols: &[&[F64]], w: &[F192], beta: F192) -> Vec<ArenaVec<F192>> {
     let mut q = producer_leaves(p, cols, w, beta);
     let mult = cols[p.col];
@@ -495,18 +495,17 @@ pub fn producer_columns(p: &Producer, cols: &[&[F64]], w: &[F192], beta: F192) -
     bits.chain(public).collect()
 }
 
-/// [`producer_columns`]' public half at `chi`: `MLE(P_i)(chi) − 1` for each bit `i`. The
-/// Frobenius `a ↦ a^{2^i}` is additive, so `P_i(x) = β^{2^i} + Σ_s w_s^{2^i}·c_s(x)^{2^i}`, and
-/// a coordinate's power is as cheap as the coordinate: a constant stays one, an integer
-/// index column stays affine in the bits. Public columns are summed into one, `c(x) = Σ_s w_s·c_s(x)`, whose power is
-/// taken entry by entry: the cost of a public lookup array is its size times its bits.
-pub fn producer_public_evals(p: &Producer, w: &[F192], beta: F192, chi: &[F192]) -> Vec<F192> {
+/// [`producer_columns`]' public half at `chi` short of its public columns' share:
+/// `MLE(P_i)(chi) − 1 − D_i` for each bit `i`, `D_i` the share [`producer_public_twist`]
+/// evaluates. The Frobenius `a ↦ a^{2^i}` is additive, so
+/// `P_i(x) = β^{2^i} + Σ_s w_s^{2^i}·c_s(x)^{2^i}`, and a coordinate's power is as cheap as
+/// the coordinate: a constant stays one, an integer index column stays affine in the
+/// bits. A public column's is not, and its share is left to whoever holds the program.
+pub fn producer_affine_evals(p: &Producer, w: &[F192], beta: F192, chi: &[F192]) -> Vec<F192> {
     assert_eq!(chi.len(), p.kappa);
-    // Running `2^i`-th powers: the constant, each index coordinate's weight and
-    // monomials, and the public columns' sum.
+    // Running `2^i`-th powers: the constant, each index coordinate's weight and monomials.
     let mut constant = beta;
     let mut affine: Vec<(F192, Vec<F64>)> = Vec::new();
-    let mut public: Option<Vec<F192>> = None;
     for (c, &weight) in p.coords.iter().zip(w) {
         match c {
             Coord::Const(v) => constant += weight.mul_base(*v),
@@ -514,14 +513,10 @@ pub fn producer_public_evals(p: &Producer, w: &[F192], beta: F192, chi: &[F192])
                 constant += weight.mul_base(*base);
                 affine.push((weight, (0..p.kappa).map(|k| F64(1 << (k as u32 + shift))).collect()));
             }
-            Coord::Public(vals) => {
-                let sum = public.get_or_insert_with(|| vec![F192::ZERO; 1 << p.kappa]);
-                parallel::for_each_mut(sum, |x, s| *s += weight.mul_base(vals[x]));
-            }
+            Coord::Public(_) => {}
             _ => unreachable!("a producer's tuple is public"),
         }
     }
-    let eq = public.as_ref().map(|_| primitives::multilinear::eq_table(chi));
     let mut evals = Vec::with_capacity(p.bits);
     for _ in 0..p.bits {
         let mut eval = constant;
@@ -532,20 +527,51 @@ pub fn producer_public_evals(p: &Producer, w: &[F192], beta: F192, chi: &[F192])
                     .zip(monomials)
                     .fold(F192::ZERO, |s, (z, &m)| s + z.mul_base(m));
         }
-        if let (Some(sum), Some(eq)) = (&public, &eq) {
-            eval += F192::dot(eq, sum, F192::ZERO);
-        }
         evals.push(eval + F192::ONE);
         constant = constant.square();
         for (weight, monomials) in &mut affine {
             *weight = weight.square();
             monomials.iter_mut().for_each(|m| *m = *m * *m);
         }
-        if let Some(sum) = &mut public {
-            parallel::for_each_mut(sum, |_, v| *v = v.square());
-        }
     }
     evals
+}
+
+/// The public columns' share of a producer's public half at `chi`, under the twist
+/// `μ`: `Σ_i μ_i·D_i`, `D_i = Σ_x eq(χ, x)·c(x)^{2^i}` for `c(x) = Σ_s w_s·c_s(x)` over
+/// the tuple's [`Coord::Public`] coordinates `s`.
+///
+/// Raising to `2^i` is additive, so `c(x)^{2^i}` is the sum of `(w_s·2^k)^{2^i}` over the
+/// set bits `k` of each `c_s(x)`, and every bit takes the same `D_i` through its bit
+/// slice `B_{s,k} = Σ_x eq(χ, x)·bit_k(c_s(x))`, one evaluation of the column's bits at
+/// `χ`: `Σ_i μ_i·D_i = Σ_{s,k} B_{s,k}·Σ_i μ_i·(w_s·2^k)^{2^i}`. Its cost is one pass over
+/// the columns and a fixed amount per coordinate, bit and power, not the columns'
+/// length times the bits.
+pub fn producer_public_twist(coords: &[Coord], w: &[F192], chi: &[F192], twist: &[F192]) -> F192 {
+    let eq = primitives::multilinear::eq_table(chi);
+    let mut total = F192::ZERO;
+    for (c, &weight) in coords.iter().zip(w) {
+        let Coord::Public(vals) = c else { continue };
+        assert_eq!(vals.len(), eq.len());
+        let mut slices = [F192::ZERO; 64];
+        for (&e, v) in eq.iter().zip(vals.iter()) {
+            let mut bits = v.0;
+            while bits != 0 {
+                slices[bits.trailing_zeros() as usize] += e;
+                bits &= bits - 1;
+            }
+        }
+        // Running `2^i`-th powers of the weight and of each bit's element.
+        let mut weight = weight;
+        let mut basis: [F64; 64] = std::array::from_fn(|k| F64(1 << k));
+        for &mu in twist {
+            let sum = (slices.iter().zip(&basis)).fold(F192::ZERO, |s, (b, &g)| s + b.mul_base(g));
+            total += mu * weight * sum;
+            weight = weight.square();
+            basis.iter_mut().for_each(|g| *g = *g * *g);
+        }
+    }
+    total
 }
 
 /// One table's bus contribution on one side, as a form over that table's committed
@@ -683,7 +709,8 @@ fn selector(lay: &Layout, b: usize, kappa: usize, zeta: &[F192]) -> F192 {
 /// The framework blocks' column claims, deduplicated: push and pull share their GKR
 /// point, so a column read by both sides (or by two same-κ blocks of one side) is
 /// streamed and opened ONCE; later occurrences reuse the value. Alongside them, each
-/// producer's weight on each of its bits' blocks, which its air owes the push side.
+/// producer's weight on each of its bits' blocks, which its air owes the push side, and
+/// the sparse public columns' shares, which the decomposition leaves out.
 #[derive(Default)]
 struct Openings {
     claims: Vec<ColumnClaim>,
@@ -693,13 +720,25 @@ struct Openings {
     public: PublicEvals,
     /// Per producer, its bits' blocks' selectors, in order.
     producers: Vec<Vec<F192>>,
+    sparse: Vec<SparseShare>,
+}
+
+/// A [`Coord::Sparse`] column's share of a side's leaf claim, `weight·col(point)`,
+/// which the decomposition leaves to whoever holds the column: RAM's image is the
+/// program's.
+#[derive(Clone, Debug)]
+pub struct SparseShare {
+    pub weight: F192,
+    pub point: Vec<F192>,
+    pub column: Arc<SparseColumn>,
 }
 
 /// Walk one side's blocks. A block owned by table `t` accumulates into `forms[t]`,
 /// over the table's local columns (`tables[t]` is its `(base, width)`); a producer's
 /// bit block leaves its selector in `open.producers`, its air's weight on that bit; the
 /// framework blocks are decomposed into per-column claims, `fresh` supplying values not
-/// already opened. Returns the framework blocks' contribution to `Ṽ₀(ζ)` plus the
+/// already opened, and a sparse public column's share is left in `open.sparse`. Returns
+/// the framework blocks' contribution to `Ṽ₀(ζ)` short of those shares, plus the
 /// padding mass, so the caller can settle the side once the zerocheck has proven the
 /// tables' forms and the producers' airs.
 fn decompose_formula<F: FnMut(usize, &[F192]) -> Result<F192, Error>>(
@@ -766,7 +805,14 @@ fn decompose_formula<F: FnMut(usize, &[F192]) -> Result<F192, Error>>(
                     unreachable!("only a table's bus block carries a degree-2 coordinate")
                 }
                 Coord::Public(vals) => public_eval(vals, zeta_lo, &mut open.public),
-                Coord::Sparse(column) => column.eval(zeta_lo),
+                Coord::Sparse(column) => {
+                    open.sparse.push(SparseShare {
+                        weight: eq_hi * w[i],
+                        point: zeta_lo.to_vec(),
+                        column: Arc::clone(column),
+                    });
+                    F192::ZERO
+                }
             };
             inner += w[i] * coord_val;
         }
@@ -827,7 +873,7 @@ fn decompose_prove(
 
     // Pass 2: replay in the original order; duplicates reuse the recorded claim.
     let mut fresh_iter = jobs.iter().zip(vals.iter());
-    decompose_formula(side, zeta, tables, forms, open, |col, zeta_lo| {
+    let framework = decompose_formula(side, zeta, tables, forms, open, |col, zeta_lo| {
         let (&(jc, jk), &v) = fresh_iter
             .next()
             .expect("job enumeration matches decompose_formula's col_val order");
@@ -836,7 +882,8 @@ fn decompose_prove(
         ps.add_scalar(v);
         Ok(v)
     })
-    .expect("prover decomposition is infallible")
+    .expect("prover decomposition is infallible");
+    (open.sparse.drain(..)).fold(framework, |acc, s| acc + s.weight * s.column.eval(&s.point))
 }
 
 /// Selector bits of the stacked bytecode polynomial: the public encoding
@@ -877,9 +924,10 @@ struct Side<'a> {
 }
 
 /// The two bus sides in `[push, pull]` order, which both parties lay out and
-/// fingerprint the same way before the GKR.
+/// fingerprint the same way before the GKR, and the fingerprint's `α⃗`.
 struct BusSetup<'a> {
     sides: [Side<'a>; 2],
+    alphas: Vec<F192>,
 }
 
 impl<'a> BusSetup<'a> {
@@ -913,6 +961,7 @@ impl<'a> BusSetup<'a> {
                     beta,
                 },
             ],
+            alphas,
         }
     }
 
@@ -1146,10 +1195,13 @@ pub struct BusVerify {
     pub producers: Vec<Vec<F192>>,
     /// Per side, what the tables' and the producers' blocks owe its leaf claim:
     /// `Ṽ₀(ζ)` less the framework blocks' decomposition. Derived here, pinned by the
-    /// batch's target.
+    /// batch's target. The sparse columns' shares are not in it: what the tables owe
+    /// side `s` is `totals[s] + Σ weight·col(point)` over `sparse[s]`.
     pub totals: [F192; 2],
-    /// The fingerprint weights `eq(α⃗, ·)` and `β`, which the producers' public
-    /// columns are made of.
+    pub sparse: [Vec<SparseShare>; 2],
+    /// The fingerprint `α⃗`, its weights `eq(α⃗, ·)` and `β`, which the producers'
+    /// public columns are made of.
+    pub alphas: Vec<F192>,
     pub weights: Vec<F192>,
     pub beta: F192,
 }
@@ -1177,6 +1229,7 @@ pub fn verify_balance(
     // it, so no table column is opened at ζ.
     let mut forms = BusSetup::empty_forms(tables);
     let mut totals = [F192::ZERO; 2];
+    let mut sparse: [Vec<SparseShare>; 2] = Default::default();
     let mut open = Openings::default();
     for (s, side) in setup.sides.iter().enumerate() {
         let framework = decompose_formula(side, &bus_gkr.point, tables, &mut forms[s], &mut open, |_, _| {
@@ -1186,6 +1239,7 @@ pub fn verify_balance(
         // would be a free variable in its own check and would settle nothing; the
         // caller instead pins these against the batch's target.
         totals[s] = framework + bus_gkr.values[s];
+        sparse[s] = std::mem::take(&mut open.sparse);
     }
     let [push_side, _] = setup.sides;
 
@@ -1195,6 +1249,8 @@ pub fn verify_balance(
         forms,
         producers: open.producers,
         totals,
+        sparse,
+        alphas: setup.alphas,
         weights: push_side.w,
         beta: push_side.beta,
     })

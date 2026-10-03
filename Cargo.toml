@@ -12,6 +12,10 @@ rust-version = "1.97"
 license = "MIT OR Apache-2.0"
 
 
+[workspace.lints.rust]
+# `--cfg recguest_count` (`programs/recverify`) keeps each field operation and compression a call, so a guest run counts them.
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(recguest_count)"] }
+
 [workspace.lints.clippy]
 all = { level = "warn", priority = -1 }
 nursery = { level = "warn", priority = -1 }

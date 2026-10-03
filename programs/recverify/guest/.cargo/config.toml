@@ -1,0 +1,18 @@
+# A leanVM guest with `std`: a custom target, `riscv64im` with `os = "zkvm"`, so that `build-std` takes std's
+# single-threaded zkvm platform layer, and the verifier's crates build unchanged.
+[build]
+target = "riscv64im-leanvm-zkvm.json"
+
+[unstable]
+build-std = ["std", "panic_abort"]
+build-std-features = ["compiler-builtins-mem"]
+json-target-spec = true
+
+[target.riscv64im-leanvm-zkvm]
+rustflags = ["-C", "link-arg=-Tlink.ld"]
+
+[profile.release]
+opt-level = 3
+panic = "abort"
+lto = true
+codegen-units = 1

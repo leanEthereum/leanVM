@@ -62,6 +62,28 @@ impl PythonStatement {
     /// reader deriving every leaf width and tree height from the protocol it is
     /// replaying.
     pub fn verify(&self, raw: &RawProof) -> Output {
+        self.command(raw).output().expect("run native Python verifier")
+    }
+
+    /// The claims Python's `verify_core` leaves on `raw`, as it renders them, once it
+    /// has checked them.
+    pub fn deferred(&self, raw: &RawProof) -> String {
+        let output = self
+            .command(raw)
+            .arg("--deferred")
+            .output()
+            .expect("run native Python verifier");
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        assert!(
+            output.status.success(),
+            "native Python verification failed:\n{}",
+            String::from_utf8_lossy(&output.stderr),
+        );
+        let claims = stdout.trim().strip_suffix("verification succeeded");
+        claims.expect("the verdict follows the claims").trim().to_owned()
+    }
+
+    fn command(&self, raw: &RawProof) -> Command {
         let mut stream = Vec::new();
         for scalar in &raw.stream {
             for limb in [scalar.c0, scalar.c1, scalar.c2] {
@@ -81,14 +103,14 @@ impl PythonStatement {
         let openings_path = self.directory.join("merkle_openings.bin");
         std::fs::write(&stream_path, stream).expect("write scalar stream");
         std::fs::write(&openings_path, openings).expect("write Merkle openings");
-        Command::new("python3")
+        let mut command = Command::new("python3");
+        command
             .arg(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../python-verifier/verifier.py"))
             .arg(&self.bytecode)
             .arg(&self.public)
             .arg(stream_path)
-            .arg(openings_path)
-            .output()
-            .expect("run native Python verifier")
+            .arg(openings_path);
+        command
     }
 
     /// Python refused, and refused the way it should: through its own error path, not

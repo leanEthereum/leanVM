@@ -6,6 +6,8 @@ set -e
 cd "$(dirname "$0")"
 for guest in */guest; do
   name=${guest%/guest}
+  # recverify builds std for its own target and has no checked-in ELF (recverify/README.md).
+  [ "$name" = recverify ] && continue
   (cd "$guest" && cargo build --release --target-dir ../../target)
   cp "target/riscv64im-unknown-none-elf/release/$name" "$name/$name.elf"
 done

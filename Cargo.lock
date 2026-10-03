@@ -500,6 +500,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "recverify-host"
+version = "0.1.0"
+dependencies = [
+ "leanvm_core",
+ "leanvm_guest",
+ "leanxmss-host",
+ "primitives",
+]
+
+[[package]]
 name = "regex-automata"
 version = "0.4.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"

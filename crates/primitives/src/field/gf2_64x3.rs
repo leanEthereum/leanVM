@@ -14,6 +14,9 @@
 //!
 //! Both folds are GF(2)-linear, so they commute with XOR.
 //! A sum of products therefore accumulates after the y-fold and reduces once.
+//!
+//! A leanVM guest (`programs/recverify`'s target) has the machine's extension-field instructions instead (`ext`),
+//! whose products come reduced, so there [`F192Unreduced`] holds the reduced sum.
 
 use core::ops::{Add, AddAssign, BitXor, BitXorAssign, Mul, MulAssign};
 
@@ -22,13 +25,21 @@ use serde::{Deserialize, Serialize};
 use super::gf2_64::F64;
 #[cfg(not(any(
     all(target_arch = "aarch64", target_feature = "aes"),
-    all(target_arch = "x86_64", target_feature = "pclmulqdq")
+    all(target_arch = "x86_64", target_feature = "pclmulqdq"),
+    all(target_arch = "riscv64", target_os = "zkvm")
 )))]
 use super::gf2_64::mul_wide;
 #[cfg(not(all(target_arch = "aarch64", target_feature = "aes")))]
-use super::gf2_64::{reduce, square_wide};
+use super::gf2_64::reduce;
+#[cfg(not(any(
+    all(target_arch = "aarch64", target_feature = "aes"),
+    all(target_arch = "riscv64", target_os = "zkvm")
+)))]
+use super::gf2_64::square_wide;
 
 /// An element `c0 + c1*y + c2*y^2`; bit `i` of each coefficient is its coefficient of `x^i`.
+///
+/// `repr(C)`: the machine's extension-field instructions read an element as its three words in this order.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[repr(C)]
 pub struct F192 {
@@ -57,7 +68,9 @@ impl F192 {
     }
 
     /// Product without the base-field reduction, for XOR accumulation.
-    #[inline]
+    // `--cfg recguest_count` (`programs/recverify`) keeps each field operation a call, so a guest run counts them.
+    #[cfg_attr(not(recguest_count), inline)]
+    #[cfg_attr(recguest_count, inline(never))]
     pub fn mul_unreduced(self, rhs: Self) -> F192Unreduced {
         #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
         {
@@ -73,7 +86,16 @@ impl F192 {
             all(target_arch = "x86_64", target_feature = "pclmulqdq")
         )))]
         {
-            software::mul_unreduced(self, rhs)
+            #[cfg(all(target_arch = "riscv64", target_os = "zkvm"))]
+            {
+                F192Unreduced {
+                    sum: ext::mul(self, rhs),
+                }
+            }
+            #[cfg(not(all(target_arch = "riscv64", target_os = "zkvm")))]
+            {
+                software::mul_unreduced(self, rhs)
+            }
         }
     }
 
@@ -93,7 +115,8 @@ impl F192 {
     }
 
     /// Mixed product by a base-field scalar without the reduction, for XOR accumulation.
-    #[inline]
+    #[cfg_attr(not(recguest_count), inline)]
+    #[cfg_attr(recguest_count, inline(never))]
     pub fn mul_base_unreduced(self, k: F64) -> F192Unreduced {
         #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
         {
@@ -109,7 +132,16 @@ impl F192 {
             all(target_arch = "x86_64", target_feature = "pclmulqdq")
         )))]
         {
-            F192Unreduced::from_wide([self.c0, self.c1, self.c2].map(|c| mul_wide(c, k.0)))
+            #[cfg(all(target_arch = "riscv64", target_os = "zkvm"))]
+            {
+                F192Unreduced {
+                    sum: ext::mul_base(self, k),
+                }
+            }
+            #[cfg(not(all(target_arch = "riscv64", target_os = "zkvm")))]
+            {
+                F192Unreduced::from_wide([self.c0, self.c1, self.c2].map(|c| mul_wide(c, k.0)))
+            }
         }
     }
 
@@ -121,13 +153,21 @@ impl F192 {
     ///     (c0 + c1*y + c2*y^2)^2 = c0^2 + c1^2*y^2 + c2^2*y^4
     ///                            = c0^2 + c2^2*y + (c1^2 + c2^2)*y^2     (y^4 = y^2 + y)
     /// ```
-    #[inline]
+    #[cfg_attr(not(recguest_count), inline)]
+    #[cfg_attr(recguest_count, inline(never))]
     pub fn square(self) -> Self {
         #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
         {
             aarch64::square(self)
         }
-        #[cfg(not(all(target_arch = "aarch64", target_feature = "aes")))]
+        #[cfg(all(target_arch = "riscv64", target_os = "zkvm"))]
+        {
+            ext::square(self)
+        }
+        #[cfg(not(any(
+            all(target_arch = "aarch64", target_feature = "aes"),
+            all(target_arch = "riscv64", target_os = "zkvm")
+        )))]
         {
             // Square each coefficient as a 128-bit polynomial.
             let [s0, s1, s2] = [self.c0, self.c1, self.c2].map(square_wide);
@@ -156,6 +196,7 @@ impl F192 {
     /// so `self⁻¹ = m·N(self)⁻¹` needs two extension multiplies, one base-field
     /// inverse and one base-field scaling. The Fermat ladder it replaces spent
     /// 190 squarings and 190 multiplies, an order of magnitude more.
+    #[cfg_attr(recguest_count, inline(never))]
     pub fn inv(self) -> Self {
         let m = self.frobenius() * self.frobenius().frobenius();
         let norm = self * m;
@@ -211,9 +252,16 @@ impl Mul for F192 {
 }
 
 impl MulAssign for F192 {
-    #[inline]
+    #[cfg_attr(not(recguest_count), inline)]
+    #[cfg_attr(recguest_count, inline(never))]
     fn mul_assign(&mut self, rhs: Self) {
-        *self = *self * rhs;
+        // In place: the instruction reads its operands before it writes the product.
+        #[cfg(all(target_arch = "riscv64", target_os = "zkvm"))]
+        ext::mul_assign(self, &rhs);
+        #[cfg(not(all(target_arch = "riscv64", target_os = "zkvm")))]
+        {
+            *self = *self * rhs;
+        }
     }
 }
 
@@ -327,7 +375,14 @@ pub fn dot_base(w: &[Weights8], k: &[F64]) -> F192Unreduced {
     #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
     // SAFETY: both features are enabled at compile time; the lengths match.
     return unsafe { x86_64::dot_base(w, k) };
-    #[cfg(not(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f")))]
+    #[cfg(all(target_arch = "riscv64", target_os = "zkvm"))]
+    return F192Unreduced {
+        sum: ext::dot_base(w, k),
+    };
+    #[cfg(not(any(
+        all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"),
+        all(target_arch = "riscv64", target_os = "zkvm")
+    )))]
     w.iter()
         .zip(k.as_chunks::<8>().0)
         .fold(F192Unreduced::ZERO, |acc, (w, k)| {
@@ -339,22 +394,41 @@ pub fn dot_base(w: &[Weights8], k: &[F64]) -> F192Unreduced {
 ///
 /// Coefficient `k` is the 128-bit carry-less polynomial multiplying `y^k`, for `k < 3`.
 /// Products land here already folded by `y^3 = y + 1`, so a sum of them is a plain XOR.
+///
+/// On a leanVM guest it is the sum reduced: the reduction is linear, so reducing each term first gives the same
+/// element, and the machine's products come reduced.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct F192Unreduced {
     /// The 128-bit coefficients of `y^0`, `y^1`, `y^2`, each as its `[low, high]` words.
     ///
     /// Words rather than `u128`, so that accumulation compiles to vector XORs.
+    #[cfg(not(all(target_arch = "riscv64", target_os = "zkvm")))]
     coeffs: [[u64; 2]; 3],
+    #[cfg(all(target_arch = "riscv64", target_os = "zkvm"))]
+    sum: F192,
 }
 
 impl F192Unreduced {
+    #[cfg(not(all(target_arch = "riscv64", target_os = "zkvm")))]
     pub const ZERO: Self = Self { coeffs: [[0; 2]; 3] };
+    #[cfg(all(target_arch = "riscv64", target_os = "zkvm"))]
+    pub const ZERO: Self = Self { sum: F192::ZERO };
 
     /// Build from three 128-bit coefficients.
     #[inline]
     fn from_wide(coeffs: [u128; 3]) -> Self {
-        Self {
-            coeffs: coeffs.map(|c| [c as u64, (c >> 64) as u64]),
+        #[cfg(not(all(target_arch = "riscv64", target_os = "zkvm")))]
+        {
+            Self {
+                coeffs: coeffs.map(|c| [c as u64, (c >> 64) as u64]),
+            }
+        }
+        #[cfg(all(target_arch = "riscv64", target_os = "zkvm"))]
+        {
+            let [c0, c1, c2] = coeffs.map(reduce);
+            Self {
+                sum: F192 { c0, c1, c2 },
+            }
         }
     }
 
@@ -365,7 +439,14 @@ impl F192Unreduced {
         {
             aarch64::reduce(self)
         }
-        #[cfg(not(all(target_arch = "aarch64", target_feature = "aes")))]
+        #[cfg(all(target_arch = "riscv64", target_os = "zkvm"))]
+        {
+            self.sum
+        }
+        #[cfg(not(any(
+            all(target_arch = "aarch64", target_feature = "aes"),
+            all(target_arch = "riscv64", target_os = "zkvm")
+        )))]
         {
             let [c0, c1, c2] = self
                 .coeffs
@@ -379,8 +460,15 @@ impl From<F192> for F192Unreduced {
     /// Embed a reduced element: each coefficient is its own 128-bit polynomial.
     #[inline]
     fn from(e: F192) -> Self {
-        Self {
-            coeffs: [e.c0, e.c1, e.c2].map(|c| [c, 0]),
+        #[cfg(not(all(target_arch = "riscv64", target_os = "zkvm")))]
+        {
+            Self {
+                coeffs: [e.c0, e.c1, e.c2].map(|c| [c, 0]),
+            }
+        }
+        #[cfg(all(target_arch = "riscv64", target_os = "zkvm"))]
+        {
+            Self { sum: e }
         }
     }
 }
@@ -397,9 +485,106 @@ impl BitXor for F192Unreduced {
 impl BitXorAssign for F192Unreduced {
     #[inline]
     fn bitxor_assign(&mut self, rhs: Self) {
+        #[cfg(not(all(target_arch = "riscv64", target_os = "zkvm")))]
         for (acc, x) in self.coeffs.as_flattened_mut().iter_mut().zip(rhs.coeffs.as_flattened()) {
             *acc ^= x;
         }
+        #[cfg(all(target_arch = "riscv64", target_os = "zkvm"))]
+        {
+            self.sum += rhs.sum;
+        }
+    }
+}
+
+/// A leanVM guest's products (`programs/recverify`'s target): the machine's extension-field instructions
+/// (custom-1, `rv::Ext`), each product reduced. An operand is an element in memory, its three words 8-byte aligned
+/// (`F192` is `repr(C)`), or one word for a base-field `b`; the instruction reads `a` and `b` before it writes `c`,
+/// so they may alias.
+#[cfg(all(target_arch = "riscv64", target_os = "zkvm"))]
+pub(crate) mod ext {
+    use super::{F192, Weights8};
+    use crate::field::gf2_64::F64;
+
+    /// The instruction `FUNCT3` on the elements at `c`, `a` and `b`: bit 0 accumulates into `c`, bit 1 reads `b`
+    /// as one base-field word.
+    ///
+    /// # Safety
+    ///
+    /// `c` points to three writable words, `a` to three readable ones, `b` to three readable ones or, with bit 1,
+    /// one; every word is 8-byte aligned.
+    #[inline(always)]
+    unsafe fn insn<const FUNCT3: u32>(c: *mut F192, a: *const F192, b: *const u64) {
+        // SAFETY: the caller's pointers name what the instruction reads and writes, and nothing else.
+        unsafe {
+            core::arch::asm!(
+                ".insn r 0x2b, {f3}, 0, {c}, {a}, {b}",
+                f3 = const FUNCT3,
+                c = in(reg) c,
+                a = in(reg) a,
+                b = in(reg) b,
+                options(nostack, preserves_flags),
+            );
+        }
+    }
+
+    /// `a * b` (`extmul`), the product written over a copy of `a`.
+    #[inline(always)]
+    pub(crate) fn mul(a: F192, b: F192) -> F192 {
+        let mut c = a;
+        mul_assign(&mut c, &b);
+        c
+    }
+
+    /// `c = c * b` (`extmul` with `c` as `a`).
+    #[inline(always)]
+    pub(crate) fn mul_assign(c: &mut F192, b: &F192) {
+        let c: *mut F192 = c;
+        // SAFETY: both are elements; `F192` is three words, 8-byte aligned.
+        unsafe { insn::<0>(c, c, (b as *const F192).cast()) };
+    }
+
+    /// `a * a` (`extmul` with every operand one element).
+    #[inline(always)]
+    pub(crate) fn square(a: F192) -> F192 {
+        let mut c = a;
+        let c: *mut F192 = &mut c;
+        // SAFETY: `c` is an element; `F192` is three words, 8-byte aligned.
+        unsafe {
+            insn::<0>(c, c, c.cast());
+            *c
+        }
+    }
+
+    /// `a * k` with `k` in the base field (`extmulk`).
+    #[inline(always)]
+    pub(crate) fn mul_base(a: F192, k: F64) -> F192 {
+        let mut c = a;
+        let c: *mut F192 = &mut c;
+        // SAFETY: `c` is an element and `k` one word; both are 8-byte aligned.
+        unsafe {
+            insn::<2>(c, c, &k.0);
+            *c
+        }
+    }
+
+    /// `a * b` in the base field: `extmulk` on the element `(a, 0, 0)`.
+    #[inline(always)]
+    pub(crate) fn mul_k(a: F64, b: F64) -> F64 {
+        F64(mul_base(F192::from(a), b).c0)
+    }
+
+    /// `sum_i w_i * k_i` (`extmack` per term), into one accumulator.
+    #[inline(always)]
+    pub(crate) fn dot_base(w: &[Weights8], k: &[F64]) -> F192 {
+        let mut acc = F192::ZERO;
+        for (w, k) in w.iter().zip(k.as_chunks::<8>().0) {
+            for (i, k) in k.iter().enumerate() {
+                let w = w.get(i);
+                // SAFETY: `acc` and `w` are elements and `k` one word, all 8-byte aligned.
+                unsafe { insn::<3>(&mut acc, &w, &k.0) };
+            }
+        }
+        acc
     }
 }
 
@@ -994,6 +1179,19 @@ pub mod software {
     pub fn mul(a: F192, b: F192) -> F192 {
         mul_unreduced(a, b).reduce()
     }
+
+    /// Karatsuba: six base products by [`mul_wide`](crate::field::gf2_64::mul_wide), for a machine where a
+    /// product costs far more than an XOR.
+    pub fn mul_unreduced_karatsuba(a: F192, b: F192) -> F192Unreduced {
+        use crate::field::gf2_64::mul_wide;
+        let (p0, p1, p2) = (mul_wide(a.c0, b.c0), mul_wide(a.c1, b.c1), mul_wide(a.c2, b.c2));
+        let p01 = mul_wide(a.c0 ^ a.c1, b.c0 ^ b.c1);
+        let p02 = mul_wide(a.c0 ^ a.c2, b.c0 ^ b.c2);
+        let p12 = mul_wide(a.c1 ^ a.c2, b.c1 ^ b.c2);
+        let e = [p0, p01 ^ p0 ^ p1, p02 ^ p0 ^ p2 ^ p1, p12 ^ p1 ^ p2, p2];
+        // y^3 = y + 1 and y^4 = y^2 + y.
+        F192Unreduced::from_wide([e[0] ^ e[3], e[1] ^ e[3] ^ e[4], e[2] ^ e[4]])
+    }
 }
 
 // Tests: every backend against the software reference, independent Python vectors, field axioms,
@@ -1070,6 +1268,7 @@ mod tests {
             // Dispatched product, its unreduced form, and squaring.
             assert_eq!(a * b, want);
             assert_eq!(a.mul_unreduced(b).reduce(), want);
+            assert_eq!(software::mul_unreduced_karatsuba(a, b).reduce(), want);
             assert_eq!(a.square(), software::mul(a, a));
             // A mixed product is a full product by an element with no y part.
             let k = F64(b.c1);

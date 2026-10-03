@@ -18,6 +18,7 @@
 //! - one opening discharges every claim they leave.
 
 mod batch;
+mod deferred;
 mod error;
 mod execute;
 pub mod filler;
@@ -25,6 +26,7 @@ mod layout;
 mod program;
 mod witness;
 
+pub use deferred::{Claim, DeferredClaims, ProgramPoint};
 pub use error::{CpuError, ProveError};
 pub use execute::Execution;
 pub(crate) use execute::{ExtRow, HashRow, Row, Trace};

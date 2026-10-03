@@ -1,0 +1,16 @@
+[package]
+name = "recverify-host"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+leanvm_core.workspace = true
+leanvm_guest.workspace = true
+leanxmss-host.workspace = true
+primitives.workspace = true

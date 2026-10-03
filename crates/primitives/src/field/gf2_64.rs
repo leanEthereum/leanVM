@@ -33,14 +33,23 @@ impl F64 {
     ///
     /// Cross terms vanish in characteristic 2, so the square moves bit `i` to bit `2i`.
     /// On aarch64 it is the product with itself instead: its PMULL folds stay in the vector register,
-    /// where [`reduce`] would cross to integer registers and back.
-    #[inline]
+    /// where [`reduce`] would cross to integer registers and back. On a leanVM guest it is the product with itself
+    /// too, one extension-field instruction.
+    #[cfg_attr(not(recguest_count), inline)]
+    #[cfg_attr(recguest_count, inline(never))]
     pub fn square(self) -> Self {
         #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
         {
             self * self
         }
-        #[cfg(not(all(target_arch = "aarch64", target_feature = "aes")))]
+        #[cfg(all(target_arch = "riscv64", target_os = "zkvm"))]
+        {
+            super::gf2_64x3::ext::mul_k(self, self)
+        }
+        #[cfg(not(any(
+            all(target_arch = "aarch64", target_feature = "aes"),
+            all(target_arch = "riscv64", target_os = "zkvm")
+        )))]
         {
             Self(reduce(square_wide(self.0)))
         }
@@ -51,6 +60,7 @@ impl F64 {
     /// Itoh-Tsujii: with `t_k = x^(2^k - 1)`, the inverse is `t_63^2`.
     /// Step `t_(a+b) = t_a^(2^b) * t_b` costs `b` squarings and one multiply.
     /// The addition chain 1, 2, 3, 6, 12, 24, 48, 60, 63 spends 63 squarings and 8 multiplies.
+    #[cfg_attr(recguest_count, inline(never))]
     pub fn inv(self) -> Self {
         // Square `v` a total of `n` times.
         let sq = |mut v: Self, n: u32| {
@@ -93,7 +103,8 @@ impl AddAssign for F64 {
 
 impl Mul for F64 {
     type Output = Self;
-    #[inline]
+    #[cfg_attr(not(recguest_count), inline)]
+    #[cfg_attr(recguest_count, inline(never))]
     fn mul(self, rhs: Self) -> Self {
         #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
         {
@@ -105,9 +116,14 @@ impl Mul for F64 {
             // SAFETY: pclmulqdq is enabled at compile time.
             unsafe { Self(x86_64::mul(self.0, rhs.0)) }
         }
+        #[cfg(all(target_arch = "riscv64", target_os = "zkvm"))]
+        {
+            super::gf2_64x3::ext::mul_k(self, rhs)
+        }
         #[cfg(not(any(
             all(target_arch = "aarch64", target_feature = "aes"),
-            all(target_arch = "x86_64", target_feature = "pclmulqdq")
+            all(target_arch = "x86_64", target_feature = "pclmulqdq"),
+            all(target_arch = "riscv64", target_os = "zkvm")
         )))]
         {
             Self(reduce(mul_wide(self.0, rhs.0)))
@@ -150,7 +166,15 @@ pub fn mul_wide(a: u64, b: u64) -> u128 {
         all(target_arch = "x86_64", target_feature = "pclmulqdq")
     )))]
     {
-        software::clmul(a, b)
+        // A leanVM guest (rv64im) has an integer multiplier and no carry-less one.
+        #[cfg(all(target_arch = "riscv64", target_os = "zkvm"))]
+        {
+            software::clmul_by_holes(a, b)
+        }
+        #[cfg(not(all(target_arch = "riscv64", target_os = "zkvm")))]
+        {
+            software::clmul(a, b)
+        }
     }
 }
 
@@ -162,7 +186,14 @@ pub fn square_wide(a: u64) -> u128 {
         // SAFETY: bmi2 is enabled at compile time.
         unsafe { x86_64::spread(a) }
     }
-    #[cfg(not(all(target_arch = "x86_64", target_feature = "bmi2")))]
+    #[cfg(all(target_arch = "riscv64", target_os = "zkvm"))]
+    {
+        software::spread(a)
+    }
+    #[cfg(not(any(
+        all(target_arch = "x86_64", target_feature = "bmi2"),
+        all(target_arch = "riscv64", target_os = "zkvm")
+    )))]
     {
         mul_wide(a, a)
     }
@@ -364,6 +395,54 @@ pub mod software {
         }
         acc
     }
+
+    /// 64x64 carry-less product for a machine with an integer multiplier and no carry-less one (rv64im):
+    /// Karatsuba over 32-bit halves, each half product by [`clmul32_by_holes`].
+    #[inline]
+    pub const fn clmul_by_holes(a: u64, b: u64) -> u128 {
+        let (a0, a1, b0, b1) = (a as u32, (a >> 32) as u32, b as u32, (b >> 32) as u32);
+        let lo = clmul32_by_holes(a0, b0);
+        let hi = clmul32_by_holes(a1, b1);
+        let mid = clmul32_by_holes(a0 ^ a1, b0 ^ b1) ^ lo ^ hi;
+        lo as u128 ^ (mid as u128) << 32 ^ (hi as u128) << 64
+    }
+
+    /// 32x32 carry-less product from sixteen integer products of operands with holes (BearSSL's `bmul`).
+    ///
+    /// Each operand splits into its four bit classes modulo 4. An integer product of two classes has its terms
+    /// in one class, and a column sums at most 8 of them, which never carries into the class's next position:
+    /// so the class's bits are the column parities, and the masks keep them.
+    #[inline]
+    pub const fn clmul32_by_holes(a: u32, b: u32) -> u64 {
+        const M: [u64; 4] = [
+            0x1111_1111_1111_1111,
+            0x2222_2222_2222_2222,
+            0x4444_4444_4444_4444,
+            0x8888_8888_8888_8888,
+        ];
+        let (a, b) = (a as u64, b as u64);
+        let (x0, x1, x2, x3) = (a & M[0], a & M[1], a & M[2], a & M[3]);
+        let (y0, y1, y2, y3) = (b & M[0], b & M[1], b & M[2], b & M[3]);
+        let m = u64::wrapping_mul;
+        let z0 = m(x0, y0) ^ m(x1, y3) ^ m(x2, y2) ^ m(x3, y1);
+        let z1 = m(x0, y1) ^ m(x1, y0) ^ m(x2, y3) ^ m(x3, y2);
+        let z2 = m(x0, y2) ^ m(x1, y1) ^ m(x2, y0) ^ m(x3, y3);
+        let z3 = m(x0, y3) ^ m(x1, y2) ^ m(x2, y1) ^ m(x3, y0);
+        (z0 & M[0]) | (z1 & M[1]) | (z2 & M[2]) | (z3 & M[3])
+    }
+
+    /// The carry-less square by shifts and masks: bit `i` to bit `2i`.
+    #[inline]
+    pub const fn spread(a: u64) -> u128 {
+        const fn spread32(a: u64) -> u64 {
+            let a = (a | a << 16) & 0x0000_ffff_0000_ffff;
+            let a = (a | a << 8) & 0x00ff_00ff_00ff_00ff;
+            let a = (a | a << 4) & 0x0f0f_0f0f_0f0f_0f0f;
+            let a = (a | a << 2) & 0x3333_3333_3333_3333;
+            (a | a << 1) & 0x5555_5555_5555_5555
+        }
+        spread32(a & 0xffff_ffff) as u128 | (spread32(a >> 32) as u128) << 64
+    }
 }
 
 #[cfg(test)]
@@ -417,6 +496,9 @@ mod tests {
             // The bit spread is the carry-less square, and squaring is the self-product.
             assert_eq!(square_wide(a), software::clmul(a, a));
             assert_eq!(F64(a).square(), F64(reference_mul(a, a)));
+            // The rv64im forms, by integer products and by shifts.
+            assert_eq!(software::clmul_by_holes(a, b), software::clmul(a, b));
+            assert_eq!(software::spread(a), software::clmul(a, a));
         }
     }
 
