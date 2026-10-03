@@ -153,6 +153,16 @@ The inner sum is $\eq(r^{2^k},r')$, since $\eq(u,\cdot\,)$ is its own multilinea
 \ \ }
 \]
 
+\paragraph{Scaled pieces.} A packed witness that commits only some of its instances is stored as aligned pieces (\S\ref{sec:jagged}), while the claim on it is on the padded column, so its weight is a sum over the pieces. An instance being $2^{s}$ words, the piece of the instances $[a,a+2^e)$ is $2^{s+e}$ words of $\qflock$, its own coordinates are the first $s+e$ of the claim's point, and the decomposition of \S\ref{sec:jagged} gives it a scale $\pscale_{a,e}\in\E$: the equality weight of the point's other coordinates on those instances, or the tail weight $\tailw{\nlive{j}}$ for the padding row's piece. Writing $Q_i(a,u)$ for bit $i$ of the piece's word $u$, and $\bar r=(r_1,\dots,r_{s+e})$,
+\[
+\mle{Q_i}(r)\;=\;\sum_{(a,e)}\pscale_{a,e}\sum_{u\in\cube{s+e}}\eq(\bar r,u)\,Q_i(a,u).
+\]
+The reduction \eqref{eq:complete} used only that each $Q_i(u)$ is a bit and that $\Phi$ is $\F_2$-linear, so it holds as it stands, with the same target, when the weight on the piece's words is $\Phi\bigl(\pscale_{a,e}\,\eq(\bar r,u)\bigr)$ in place of $\Phi\bigl(\eq(r,u)\bigr)$. The scale stays inside $\Phi$, which is not $\E$-linear: by \eqref{eq:ck} and the fact above, $\Phi\bigl(\pscale_{a,e}\,\eq(\bar r,u)\bigr)=\sum_{k=0}^{63}c_k\,\pscale_{a,e}^{2^k}\,\eq\bigl(\bar r^{2^k},u\bigr)$, so the piece's weight evaluates as the boxed formula over its own coordinates, each $c_k$ scaled by $\pscale_{a,e}^{2^k}$:
+\[
+\sum_{k=0}^{63}c_k\,\pscale_{a,e}^{2^k}\prod_{n=1}^{s+e}\bigl(1+r_n^{2^k}+r'_n\bigr),
+\]
+$r'_1,\dots,r'_{s+e}$ being the opening point's coordinates within the piece; the piece's stacking selector multiplies it as for any stacked column (\S\ref{sec:stacking}). A witness committed whole is the one piece of scale $1$, and the boxed formula itself.
+
 \subsection{Cost}\label{rs:cost}
 
 One application of $\Phi$ takes $63$ squarings and $6$ multiplications: the Frobenius ladder climbs $32+16+8+4+2+1$ steps, and each stage multiplies once by its challenge. The same recurrence run on the coefficient table gives the $c_k$ of \eqref{eq:ck}: stage $p$ raises its $2^p$ entries to the $2^{2^{5-p}}$ power and multiplies each by $f_p$; the raising is $32$ squarings whatever $p$ is.
@@ -165,7 +175,7 @@ One application of $\Phi$ takes $63$ squarings and $6$ multiplications: the Frob
 \qquad
 \fprod_k:=\prod_{n=1}^{\nflock}\bigl(1+r_n+{r'_n}^{2^{-k}}\bigr).
 \]
-Horner's rule for this linearized sum, $a\leftarrow\cbar_{63}\fprod_{63}$ and then $a\leftarrow a^2+\cbar_k\fprod_k$ for $k=62,\dots,0$, closes it in $63$ squarings. The ${r'_n}^{2^{-k}}$ depend on the point alone and the $\cbar_k$ on the challenges alone, so the opening computes both once. They come cheap: $a\mapsto a^{2^{64}}$ fixes $\K$ and sends $y$ to $y^2$, a $\K$-linear map on the coefficients of $1,y,y^2$ that needs no multiplication, so $a^{2^{-64}}=a^{2^{128}}$ is free and the ladder $a^{2^{-63}},\dots,a^{2^{-1}}$ is $63$ squarings above it. The $\cbar_k$ take one such ladder per challenge, then one multiplication per factor beyond the first, $129$ over the $64$ values of $k$.
+Horner's rule for this linearized sum, $a\leftarrow\cbar_{63}\fprod_{63}$ and then $a\leftarrow a^2+\cbar_k\fprod_k$ for $k=62,\dots,0$, closes it in $63$ squarings. The ${r'_n}^{2^{-k}}$ depend on the point alone and the $\cbar_k$ on the challenges alone, so the opening computes both once. They come cheap: $a\mapsto a^{2^{64}}$ fixes $\K$ and sends $y$ to $y^2$, a $\K$-linear map on the coefficients of $1,y,y^2$ that needs no multiplication, so $a^{2^{-64}}=a^{2^{128}}$ is free and the ladder $a^{2^{-63}},\dots,a^{2^{-1}}$ is $63$ squarings above it. The $\cbar_k$ take one such ladder per challenge, then one multiplication per factor beyond the first, $129$ over the $64$ values of $k$. A scaled piece's weight multiplies each $\cbar_k\fprod_k$ by $\pscale_{a,e}$ before the rule, since $\bigl(\pscale_{a,e}\cbar_k\fprod_k\bigr)^{2^k}=c_k\,\pscale_{a,e}^{2^k}\prod_n\bigl(1+r_n^{2^k}+r'_n\bigr)$, and the pieces of one claim are prefixes of its point, so they share the $\fprod_k$ of the longest one: a piece costs $64$ further products and the $63$ squarings.
 
 \begin{center}
 \begin{tabular}{lrr}

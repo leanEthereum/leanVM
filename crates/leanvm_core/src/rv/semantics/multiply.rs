@@ -364,9 +364,12 @@ mod tests {
                 let padding = [u64::MAX, 1 << 63, flag];
 
                 // Exact equality checks the committed bits, both factors and the byte stripes.
-                let walk = circuit.generate_witness_from(&rows, &padding, 8, |row, words| words.copy_from_slice(row));
-                let native =
-                    circuit.generate_witness_with(&rows, &padding, 8, |row, z, az, bz| witness(row, z, az, bz));
+                let walk = circuit.generate_witness_from(&rows, &padding, 1 << 8, &mut [], |row, words| {
+                    words.copy_from_slice(row);
+                });
+                let native = circuit.generate_witness_with(&rows, &padding, 1 << 8, &mut [], |row, z, az, bz| {
+                    witness(row, z, az, bz);
+                });
                 assert_eq!(&native.0[..], &walk.0[..], "committed bits, flags {flag}");
                 assert_eq!(&native.1[..], &walk.1[..], "left factors, flags {flag}");
                 assert_eq!(&native.2[..], &walk.2[..], "right factors, flags {flag}");
@@ -387,8 +390,10 @@ mod tests {
         rows.extend((0..151).map(|i| [rng.next_u64(), rng.next_u64(), i & 1]));
         let padding = [u64::MAX, 1 << 63, 1];
         let circuit = Mul::circuit();
-        let generic = circuit.generate_witness_from(&rows, &padding, 8, |row, words| words.copy_from_slice(row));
-        let batched = circuit.generate_witness_batched(&rows, &padding, 8, |rows, z, az, bz| {
+        let generic = circuit.generate_witness_from(&rows, &padding, 1 << 8, &mut [], |row, words| {
+            words.copy_from_slice(row);
+        });
+        let batched = circuit.generate_witness_batched(&rows, &padding, 1 << 8, &mut [], |rows, z, az, bz| {
             // Padding occupies incomplete groups as well as complete trailing groups.
             let inputs = rows.map(|row| row.as_slice());
             Mul::witness_batch(&inputs, z, az, bz);

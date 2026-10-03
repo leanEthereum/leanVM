@@ -17,9 +17,9 @@ pub struct Execution {
     pub output: [u64; 4],
     /// The rows proven, padding rows included.
     pub cycles: usize,
-    /// The rows per table before the padding rows: the work the program itself does.
+    /// The rows per table before the padding rows: each table's height, the work the program itself does.
     ///
-    /// Cost measurements want these, not the power-of-two heights that get proven.
+    /// Cost measurements want these, not the power-of-two counts that get proven.
     pub base_counts: [usize; N_TABLES],
     /// The rows and the final state, emitted in the same walk as the run.
     pub(crate) trace: Trace,
@@ -155,16 +155,16 @@ impl TraceBuilder {
         });
     }
 
-    /// Write out a padding row of entry `index`, at clock zero.
+    /// Write out the padding row of entry `index`'s table, at clock zero: the row every row from the table's height on repeats.
     ///
     /// It touches nothing: every read holds zero, and every write rewrites what it writes.
     ///
-    /// Its circuit instance is an honest one, on those zeros.
+    /// The bus leaves it out, and its circuit instance is an honest one, on those zeros.
     ///
-    /// An access in slot `k` pushes the timestamp `0 ^ k` and pulls that same timestamp, so the two tuples cancel.
+    /// An access in slot `k` keeps the timestamp `k` as its previous one, which lacks the live bit as the clock does.
     pub(super) fn pad(&mut self, p: &rv::Program, index: usize) {
         let e = &p.entries()[index];
-        let table = tables::table_of(e.class).expect("a fill block's class has a table");
+        let table = tables::table_of(e.class).expect("a padding entry's class has a table");
         let outcome = e.evaluate(0, 0, 0);
         let slots = &self.padding_prev[table];
 
@@ -223,12 +223,13 @@ impl TraceBuilder {
         });
     }
 
-    /// The finished trace: the rows, and what the machine `m` left in each array when the clock stopped at `ts_final`.
-    pub(super) fn finish(self, p: &rv::Program, m: &Machine<'_>, ts_final: u64) -> Trace {
+    /// The finished trace: the rows, each table's height, and what the machine `m` left in each array when the clock stopped at `ts_final`.
+    pub(super) fn finish(self, p: &rv::Program, m: &Machine<'_>, heights: [usize; N_TABLES], ts_final: u64) -> Trace {
         let ram_last = self.ram.timestamps();
         let (ram_ts, adv_ts) = ram_last.split_at(1 << p.log_ram());
         Trace {
             rows: self.rows,
+            heights,
             reg_fin: m.registers().cells().iter().map(|&r| F64(r)).collect(),
             reg_ts: self.regs.timestamps(),
             ram_fin: m.memory().ram().iter().map(|&w| F64(w)).collect(),
@@ -242,6 +243,7 @@ impl TraceBuilder {
 }
 
 /// What a hash row adds to a row.
+#[derive(Clone)]
 pub(crate) struct HashRow {
     /// The block's words as the row found them.
     pub(crate) block: [u64; Hash::WORDS],
@@ -262,6 +264,7 @@ impl HashRow {
 }
 
 /// What an extension-field row adds to a row.
+#[derive(Clone)]
 pub(crate) struct ExtRow {
     /// The instance as the row found it.
     pub(crate) instance: Ext,
@@ -272,6 +275,7 @@ pub(crate) struct ExtRow {
 }
 
 /// One executed instruction, as its table's row records it.
+#[derive(Clone)]
 pub(crate) struct Row {
     /// The entry executed.
     pub(crate) index: u32,
@@ -312,8 +316,10 @@ impl Row {
 
 /// Every row of a run, and what the run leaves for the finalize blocks.
 pub(crate) struct Trace {
-    /// Each table's rows, in table order.
+    /// Each table's rows, in table order: its live rows, then, when its height is short of its proven size, the padding row every later row repeats.
     pub(crate) rows: [Vec<Row>; tables::N_TABLES],
+    /// Each table's live rows: its height.
+    pub(crate) heights: [usize; tables::N_TABLES],
     /// The registers after the run.
     pub(crate) reg_fin: Vec<F64>,
     /// Each register's last timestamp, the seed's if never touched.
@@ -333,16 +339,20 @@ pub(crate) struct Trace {
 }
 
 impl Trace {
-    /// How often each bytecode entry is read, once by every row, written into `counts` as integers.
+    /// How often each bytecode entry is read by a live row, written into `counts` as integers.
+    ///
+    /// A padding row is not on the bus, so it reads nothing.
     pub(crate) fn count_reads(&self, counts: &mut [F64]) {
         counts.fill(F64::ZERO);
-        for row in self.rows.iter().flatten() {
-            counts[row.index as usize].0 += 1;
+        for (rows, &height) in self.rows.iter().zip(&self.heights) {
+            for row in &rows[..height] {
+                counts[row.index as usize].0 += 1;
+            }
         }
     }
 
-    /// The rows per table.
+    /// The rows per table as proven, padding included.
     pub(crate) fn row_counts(&self) -> [usize; tables::N_TABLES] {
-        std::array::from_fn(|t| self.rows[t].len())
+        std::array::from_fn(|t| 1 << super::tau_of(t, self.heights[t]))
     }
 }

@@ -79,6 +79,7 @@ fn prove(n: usize, tamper: Option<usize>) -> (usize, fiat_shamir::transcript::Pr
         packed_bytes(&z), // C = I, so c == z
         m,
         &padding,
+        None,
         &mut ps,
     );
     let x_ab = x_ab_of(&zc, inner_rest_len);
@@ -88,6 +89,7 @@ fn prove(n: usize, tamper: Option<usize>) -> (usize, fiat_shamir::transcript::Pr
         K_LOG,
         K_SKIP,
         USEFUL_BITS,
+        None,
         &WalkLincheckCircuit,
         &x_ab,
         &mut ps,

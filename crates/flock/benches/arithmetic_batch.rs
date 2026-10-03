@@ -85,11 +85,11 @@ fn bench(op: U64Op) {
         let commit_s = t.elapsed().as_secs_f64();
 
         let t = Instant::now();
-        let stage = block.prove_zerocheck(n_log, &z_packed, &a_packed, &b_packed, &mut ps);
+        let stage = block.prove_zerocheck(n_log, &z_packed, &a_packed, &b_packed, None, &mut ps);
         let zerocheck_s = t.elapsed().as_secs_f64();
 
         let t = Instant::now();
-        let reduced = block.prove_lincheck(n_log, stage, &z_lincheck, &mut ps);
+        let reduced = block.prove_lincheck(n_log, stage, &z_lincheck, None, &mut ps);
         let lincheck_s = t.elapsed().as_secs_f64();
         drop((a_packed, b_packed, z_lincheck));
 

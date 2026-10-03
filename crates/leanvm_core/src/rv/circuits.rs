@@ -213,10 +213,12 @@ mod tests {
                 .collect();
 
             // The same batch through both generators, every table compared.
-            let walk = circuit.generate_witness_with(&rows, &rows[0], n_log, |row, z, az, bz| {
+            let walk = circuit.generate_witness_with(&rows, &rows[0], 1 << n_log, &mut [], |row, z, az, bz| {
                 circuit.witness_instance(row, z, az, bz);
             });
-            let sliced = circuit.generate_witness_from(&rows, &rows[0], n_log, |row, words| words.copy_from_slice(row));
+            let sliced = circuit.generate_witness_from(&rows, &rows[0], 1 << n_log, &mut [], |row, words| {
+                words.copy_from_slice(row);
+            });
             assert!(walk.0[..] == sliced.0[..], "z");
             assert!(walk.1[..] == sliced.1[..], "A*z");
             assert!(walk.2[..] == sliced.2[..], "B*z");

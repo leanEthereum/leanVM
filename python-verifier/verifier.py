@@ -311,21 +311,21 @@ def poly_eval(coefficients: Sequence[E], point: E) -> E:
 
 @dataclass(frozen=True)
 class Placement:
-    """Where something sits in the stacked cube: a claim's point fills the `variables` coordinates above `low`, the bits of `index` fixing the rest.
-    `low` is zero for a block with a cube of its own, and the slot width for a column interleaved into a bigger block."""
+    """Where a block sits in a stacked cube: a claim's point fills its `variables` low coordinates, the bits of `index`
+    above them fixing the rest."""
 
     variables: int
     index: int
-    low: int = 0
-
-    def stack_point(self, point: MultilinearPoint, stack_log: int) -> MultilinearPoint:
-        bits = _selector_point(self.index, stack_log)
-        return bits[: self.low] + tuple(point) + bits[self.low + self.variables :]
 
     def eq_above(self, point: Sequence[E]) -> E:
         """eq weight of the coordinates above the window."""
-        bits = _selector_point(self.index >> (self.low + self.variables), len(point) - self.low - self.variables)
-        return eq_eval(bits, point[self.low + self.variables :])
+        return _above(self.index, self.variables, point)
+
+
+def _above(index: int, low: int, point: Sequence[E]) -> E:
+    """eq weight of `point`'s coordinates from `low` on against the bits of `index` from `low` on: the selector of the
+    aligned block of 2^low words at `index`."""
+    return eq_eval(_selector_point(index >> low, len(point) - low), point[low:])
 
 
 def stack_offsets(sizes: Sequence[int]) -> tuple[list[int], int]:
@@ -339,6 +339,64 @@ def stack_offsets(sizes: Sequence[int]) -> tuple[list[int], int]:
 
 def _selector_point(selector: int, length: int) -> MultilinearPoint:
     return tuple(E(selector >> bit & 1) for bit in range(length))
+
+
+# Jagged columns (doc §sec:jagged) --------------------------------------------
+#
+# A committed column is 2^row_vars rows of 2^stride words, of which the first `rows` are committed and every later row
+# repeats the last committed one. The committed rows are cut into aligned pieces, which stack like whole columns.
+
+
+def pieces(row_vars: int, rows: int) -> list[tuple[int, int]]:
+    """The aligned pieces a column commits its first `rows` in, as (first row, log2 of its rows): the whole column when
+    every row is committed, else the binary expansion of rows - 1, largest first, then the last committed row alone."""
+    if rows == 2**row_vars:
+        return [(0, row_vars)]
+    live, first, out = rows - 1, 0, []
+    for bit in reversed(range(row_vars)):
+        if live >> bit & 1:
+            out.append((first, bit))
+            first += 1 << bit
+    return [*out, (live, 0)]
+
+
+def tail_weight(point: Sequence[E], start: int) -> E:
+    """The weight `point` puts on the rows from `start` on: 1 less what it puts on the pieces of start's binary expansion."""
+    if start >= 2 ** len(point):
+        return ZERO
+    first, total = 0, ONE
+    for bit in reversed(range(len(point))):
+        if start >> bit & 1:
+            total += _above(first, bit, point)
+            first += 1 << bit
+    return total
+
+
+@dataclass(frozen=True)
+class JaggedColumn:
+    row_vars: int
+    stride: int  # log2 of a row's words
+    rows: int  # committed
+    pieces: tuple[tuple[int, int, int], ...]  # (offset in the stack, first row, log2 of its rows)
+
+    def terms(self, row_point: Sequence[E], low: int) -> list[tuple[int, int, E]]:
+        """A claim's terms at `row_point`, `low` being how many of a row's own coordinates it leaves free: per piece, its
+        offset, its variables and the weight the point puts on its rows, the last committed row taking every row after it."""
+        if self.rows == 2**self.row_vars:
+            scales = [ONE]
+        else:
+            scales = [_above(first, log, row_point) for _, first, log in self.pieces[:-1]]
+            scales.append(ONE + E.sum(scales))
+        return [(offset, low + log, scale) for (offset, _, log), scale in zip(self.pieces, scales, strict=True) if scale]
+
+
+@dataclass(frozen=True)
+class Port:
+    """A circuit word: port `port` of every instance of the packed witness `column`, 2^stride words apart."""
+
+    column: int
+    port: int
+    stride: int
 
 
 # Proof transport ------------------------------------------------------------
@@ -556,8 +614,23 @@ class ColumnClaim:
     value: E
 
     def on_stack(self, layout: Layout) -> StackClaim:
-        point = layout.placements[self.column].stack_point(self.point, layout.stack_log)
-        return (lambda x: eq_eval(point, x), self.value)
+        """The claim on the stack: one scaled term per piece of its column. A circuit word's claim fixes its row's own
+        coordinates to the port's bits."""
+        placement = layout.placements[self.column]
+        if isinstance(placement, Port):
+            column, slot, low = layout.column(placement.column), placement.port, placement.stride
+            terms = column.terms(self.point, 0)
+        else:
+            column, slot, low = placement, 0, 0
+            free = len(self.point) - placement.row_vars
+            terms = column.terms(self.point[free:], free)
+        point = self.point
+
+        def weight(x: Sequence[E]) -> E:
+            total = E.sum(scale * eq_eval(point[:n], x[low : low + n]) * _above(offset, low + n, x) for offset, n, scale in terms)
+            return eq_eval(_selector_point(slot, low), x[:low]) * total
+
+        return (weight, self.value)
 
 
 BUS_BITS = 4  # bus communicates tuples of 2^BUS_BITS field elements
@@ -605,7 +678,9 @@ def framework_tuples(layout: Layout, lows: dict[str, MultilinearPoint]) -> dict[
     }
 
 
-def verify_bus_balance(layout: Layout, transcript: Transcript) -> BusResult:
+def verify_bus_balance(layout: Layout, pads: Sequence[tuple[E, ...] | None], transcript: Transcript) -> BusResult:
+    """`pads[table]` is a table's columns on the row its padding rows repeat, when it has padding rows: its blocks put the
+    identity on those rows, while its sumcheck sums its form over all of them, so the difference is added back."""
     log_rows = layout.framework_log_rows
     framework_log_rows = tuple(log_rows[block] for block in FRAMEWORK)
     push_layout = bus_layout(framework_log_rows, layout.push, layout.producers)
@@ -653,6 +728,10 @@ def verify_bus_balance(layout: Layout, transcript: Transcript) -> BusResult:
             form.add_scaled(beta_form, selector)
             for slot, coordinate in enumerate(block.coordinates):
                 form.add_scaled(coordinate, selector * weights[slot])  # the fingerprint, one tuple slot at a time
+            if (row := pads[block.owner]) is not None:
+                leaf = beta + E.sum(weights[slot] * coordinate.evaluate(row.__getitem__) for slot, coordinate in enumerate(block.coordinates))
+                tail = tail_weight(point[: block.log_rows], layout.table_heights[block.owner])
+                known += selector * tail * (leaf + ONE)
         # Every occupied row holds its leaf; the rest of the leaf cube holds 1.
         producer_selectors = [selector for bits in producers for selector in bits] if side == 0 else []
         ones_padding = E.sum(framework_selectors + table_selectors + producer_selectors) + ONE
@@ -686,8 +765,8 @@ def table_sumcheck(
     """The tables' column claims, then per producer its point and its bits' values there."""
     heights = [*table_log_heights, *(producer.log_rows for producer in producers)]
     n_rounds = max(heights)
-    challenges, claim = sumcheck(transcript, target, 4, [None] * n_rounds)
-    point = list(reversed(challenges))
+    # Round j binds variable j, the lowest first; a table done before a round carries the line its lifting variable makes.
+    point, claim = sumcheck(transcript, target, 4, [None] * n_rounds)
     weights = [ONE] * len(heights)
     for variable, challenge in enumerate(point):
         equality = ONE + equality_point[variable] + challenge
@@ -768,14 +847,21 @@ class Layout:
     push: tuple[BusBlock, ...]
     pull: tuple[BusBlock, ...]
     producers: tuple[Producer, ...]  # the bytecode's, then the two range arrays'
-    placements: tuple[Placement, ...]
+    placements: tuple[JaggedColumn | Port, ...]
     stack_log: int
-    table_log_heights: tuple[int, ...]
+    table_heights: tuple[int, ...]  # announced: the rows on the bus
+    table_log_heights: tuple[int, ...]  # proven: the heights padded to a power of two at or above the instance floor
     final_clock: E  # the timestamp the run ended on, announced by the prover
 
     @property
     def framework_log_rows(self) -> dict[str, int]:
         return framework_log_rows(self.log_bytecode, self.log_ram, self.log_advice)
+
+    def column(self, index: int) -> JaggedColumn:
+        """The committed column `index` names: a packed witness or a one-word column, never a circuit word."""
+        placement = self.placements[index]
+        assert isinstance(placement, JaggedColumn), f"column {index} is a circuit word"
+        return placement
 
 
 def framework_log_rows(log_bytecode: int, log_ram: int, log_advice: int) -> dict[str, int]:
@@ -1986,13 +2072,12 @@ def build_layout(
     log_ram: int,
     log_advice: int,
     ram: Sequence[tuple[int, Sequence[int]]],
-    table_log_heights: Sequence[int],
+    table_heights: Sequence[int],
     final_clock: E,
 ) -> Layout:
     log_bytecode = log2_strict(len(bytecode)) - BUS_BITS
     require(
-        all(table.min_log_height <= log_height <= MAX_LOG_ROWS for table, log_height in zip(TABLES, table_log_heights, strict=True))
-        and 0 <= log_bytecode <= MAX_LOG_TEXT,
+        all(0 <= height <= 2**MAX_LOG_ROWS for height in table_heights) and 0 <= log_bytecode <= MAX_LOG_TEXT,
         "invalid announced table sizes",
     )
     require(
@@ -2000,6 +2085,10 @@ def build_layout(
         "RAM does not hold its image",
     )
     require(0 <= log_advice <= MAX_LOG_ADVICE, "the advice exceeds its region")
+    # A table is proven over its height padded to a power of two, at or above flock's instance floor. It commits its
+    # live rows, then the first padding row, which every later one repeats.
+    table_log_heights = [max(log2_ceil(height), table.min_log_height) for table, height in zip(TABLES, table_heights, strict=True)]
+    committed_rows = [min(height + 1, 2**log) for height, log in zip(table_heights, table_log_heights, strict=True)]
 
     push: list[BusBlock] = []
     pull: list[BusBlock] = []
@@ -2015,32 +2104,34 @@ def build_layout(
     reads = {"bytecode": sum(2**height for height in table_log_heights)}
     producers = tuple(Producer(log_rows[lookup], SHARED[f"{lookup}_mult"], reads[lookup].bit_length()) for lookup in LOOKUPS)
 
-    # Every column's log size, in global order: the framework's, the flock witnesses', then each table's block.
-    witness_kappas = [table_log_heights[table.opcode] + slot_bits(circuit) for table, circuit, _ in FLOCKS]
-    kappas = [*(log_rows[block] for _, block in SHARED_COLUMNS), *witness_kappas]
+    # Every committed column's shape (row variables, a row's log words, rows committed), in global order: the
+    # framework's, the flock witnesses', then each table's block.
+    shapes = [(log_rows[block], 0, 2 ** log_rows[block]) for _, block in SHARED_COLUMNS]
+    shapes += [(table_log_heights[t.opcode], slot_bits(circuit), committed_rows[t.opcode]) for t, circuit, _ in FLOCKS]
     for table in TABLES:
-        kappas += [table_log_heights[table.opcode]] * table.width
+        shapes += [(table_log_heights[table.opcode], 0, committed_rows[table.opcode])] * table.width
 
-    # A circuit word gets no block of its own: it is committed inside its circuit's flock witness, whose ports
-    # interleave, so it sits at that witness's offset behind its own port's bits. Same width either way.
+    # A circuit word gets no column of its own: it is committed inside its circuit's flock witness, whose ports
+    # interleave, so it is a port of that witness.
     words = {
-        GLOBAL_COLUMN_BASES[table.opcode] + _cols(table.columns, name)[0]: (witness, port, slot_bits(circuit))
+        GLOBAL_COLUMN_BASES[table.opcode] + _cols(table.columns, name)[0]: Port(WITNESS_COLUMNS[witness], port, slot_bits(circuit))
         for witness, (table, circuit, ports) in enumerate(FLOCKS)
         for port, name in enumerate(ports)
         if name
     }
-    blocks = {column: kappa for column, kappa in enumerate(kappas) if column not in words}
-    block_offsets, total_log = stack_offsets(list(blocks.values()))
-    offsets = dict(zip(blocks, block_offsets))
+    # Every piece of every committed column stacks like a column of its own.
+    cut = {column: pieces(row_vars, rows) for column, (row_vars, _, rows) in enumerate(shapes) if column not in words}
+    sizes = [log + shapes[column][1] for column, column_pieces in cut.items() for _, log in column_pieces]
+    offsets, total_log = stack_offsets(sizes)
     stack_log = max(MIN_STACKED_LOG, total_log)  # Floor at the PCS minimum
 
-    def placement(column: int, kappa: int) -> Placement:
-        if column not in words:
-            return Placement(kappa, offsets[column])
-        witness, port, bits = words[column]
-        return Placement(kappa, offsets[WITNESS_COLUMNS[witness]] + port, bits)
-
-    placements = [placement(column, kappa) for column, kappa in enumerate(kappas)]
+    placements: list[JaggedColumn | Port] = []
+    at = iter(offsets)
+    for column, (row_vars, stride, rows) in enumerate(shapes):
+        if column in words:
+            placements.append(words[column])
+        else:
+            placements.append(JaggedColumn(row_vars, stride, rows, tuple((next(at), first, log) for first, log in cut[column])))
     return Layout(
         log_bytecode,
         bytecode,
@@ -2053,6 +2144,7 @@ def build_layout(
         producers,
         tuple(placements),
         stack_log,
+        tuple(table_heights),
         tuple(table_log_heights),
         final_clock,
     )
@@ -2078,35 +2170,35 @@ def _phi(value: E, challenges: Sequence[E]) -> E:
     return value
 
 
-def _ring_weight(r: MultilinearPoint, r_prime: Sequence[E], coefficients: Sequence[E]) -> E:
-    """The weight `W(u) = Phi(eq(r, u))`, extended and evaluated by the opening at
-    `r_prime`: `sum_k c_k prod_n (1 + r_n^(2^k) + r'_n)`."""
-    total = ZERO
-    frobenius = list(r)
-    for c in coefficients:
-        product = c
-        for value, challenge in zip(frobenius, r_prime, strict=True):
-            product *= ONE + value + challenge
-        total += product
-        frobenius = [value**2 for value in frobenius]
-    return total
+def ring_switch(families: Sequence[tuple[JaggedColumn, MultilinearPoint, Sequence[E]]], transcript: Transcript) -> list[StackClaim]:
+    """Each family of 64 claims s[i] = z(i, point) on a packed column becomes one dense claim `sum_u W(u) q(u) = target`.
 
-
-def ring_switch(families: Sequence[tuple[MultilinearPoint, Sequence[E]]], transcript: Transcript) -> list[tuple[E, Callable[[Sequence[E]], E]]]:
-    """Each family of 64 claims s[i] = z(i, point) becomes one dense claim `sum_u W(u) q(u) = target` on its own packed witness.
-
-    Draw Phi once every family is fixed, the one map serving them all, then take the target
-    `T = sum_i x^i Phi(s_i)` against the MLE-friendly weight `W(u) = Phi(eq(point, u))`.
-    Returns each family's target and its W as a closure."""
+    Draw Phi once every family is fixed, the one map serving them all, then take the target `T = sum_i x^i Phi(s_i)`
+    against the weight `W(u) = Phi(scale eq(point, u))` on each piece of the column, which the opening extends and
+    evaluates at its point x: `sum_k c_k scale^(2^k) prod_n (1 + point_n^(2^k) + x_n)` over the piece's coordinates."""
     challenges = transcript.samples(len(RING_MAP_SHIFTS))
     # The same map as a Frobenius sum, `Phi(a) = sum_k c_k a^(2^k)` for k < 64.
     coefficients = [reduce(mul, (f ** (2 ** (k % s)) for f, s in zip(challenges, RING_MAP_SHIFTS) if k & s), ONE) for k in range(K_BITS)]
 
-    def claim(point: MultilinearPoint, s: Sequence[E]) -> tuple[E, Callable[[Sequence[E]], E]]:
+    def claim(column: JaggedColumn, point: MultilinearPoint, s: Sequence[E]) -> StackClaim:
         target = poly_eval([_phi(value, challenges) for value in s], GEN)
-        return target, lambda r_prime: _ring_weight(point, r_prime, coefficients)
+        terms = column.terms(point[column.stride :], column.stride)
 
-    return [claim(point, s) for point, s in families]
+        def weight(x: Sequence[E]) -> E:
+            frobenius = list(point[: max(n for _, n, _ in terms)])
+            scales = [scale for _, _, scale in terms]
+            sums = [ZERO] * len(terms)
+            for c in coefficients:
+                prefix = list(accumulate((ONE + value + challenge for value, challenge in zip(frobenius, x)), mul, initial=ONE))
+                for at, (_, n, _) in enumerate(terms):
+                    sums[at] += c * scales[at] * prefix[n]
+                frobenius = [value.square() for value in frobenius]
+                scales = [scale.square() for scale in scales]
+            return E.sum(total * _above(offset, n, x) for total, (offset, n, _) in zip(sums, terms, strict=True))
+
+        return weight, target
+
+    return [claim(*family) for family in families]
 
 
 # Stacked opening -------------------------------------------------------------
@@ -2163,30 +2255,34 @@ def verify_execution(
     check_bytecode(bytecode)
     # Everything public and fixed is one digest, which seeds the transcript; every variable-length part is length-framed.
     halt_pc = TEXT_BASE + 4 * (len(bytecode) // 2**BUS_BITS - 1)
-    preimage = b"leanvm-rv64im-6" + pack("<Q", len(bytecode)) + b"".join(word.to_bytes() for word in bytecode)
+    preimage = b"leanvm-rv64im-7" + pack("<Q", len(bytecode)) + b"".join(word.to_bytes() for word in bytecode)
     preimage += pack("<5Q", entry_pc, halt_pc, log_ram, log_advice, len(image)) + pack(f"<{len(image)}Q", *image)
     transcript = Transcript(proof, blake2s_hash(preimage), [K(word) for word in output])
 
-    # 1] table log-sizes, log-inv-rate in WHIR, and the clock the run ended on (a K element)
+    # 1] table heights, log-inv-rate in WHIR, and the clock the run ended on (a K element)
     announced = transcript.next_scalars(2 + len(TABLES))
     require(all(value.c1 == value.c2 == 0 for value in announced), "announced value has a nonzero high limb")
     final_clock = int(announced[-1].c0)
     require(final_clock >> LIVE_BIT == 1 and final_clock % CYCLE == 0, "the final clock is not a live clock")
-    table_logs = tuple(int(value.c0) for value in announced[: len(TABLES)])
+    table_heights = tuple(int(value.c0) for value in announced[: len(TABLES)])
     log_inverse_rate = int(announced[-2].c0)
     require(1 <= log_inverse_rate <= 4, "invalid PCS inverse rate")
     ram = ((0, image),)
-    layout = build_layout(bytecode, entry_pc, log_ram, log_advice, ram, table_logs, announced[-1])
+    layout = build_layout(bytecode, entry_pc, log_ram, log_advice, ram, table_heights, announced[-1])
     require(MIN_STACKED_LOG <= layout.stack_log <= MAX_STACKED_LOG, "committed size outside the PCS window")
 
     # 2] parse WHIR commitment: one Merkle root (No OOD, our PCS is only List-binding).
     root = Digest.from_halves(*transcript.next_scalars(2))
 
-    # 3] Bus: one batched GKR over the push and pull trees, then the leaf decomposition, which leaves each table a
-    # degree-2 claim and each producer a weight on each of its bits.
-    bus = verify_bus_balance(layout, transcript)
+    # 3] each table with rows past its height: its columns on the row at its height, which those padding rows repeat.
+    padded = [height < 2**log for height, log in zip(layout.table_heights, layout.table_log_heights, strict=True)]
+    pads = [tuple(transcript.next_scalars(table.width)) if pad else None for table, pad in zip(TABLES, padded, strict=True)]
 
-    # 4] One batched (back-loaded) "table sumcheck" over all the tables and the producer, at the bus point, proving the
+    # 4] Bus: one batched GKR over the push and pull trees, then the leaf decomposition, which leaves each table a
+    # degree-2 claim and each producer a weight on each of its bits.
+    bus = verify_bus_balance(layout, pads, transcript)
+
+    # 5] One batched (front-loaded) "table sumcheck" over all the tables and the producer, at the bus point, proving the
     # target the two leaf claims derive: the tables' bus forms and the producer's bits, weighted by the same powers of xi.
     xi = transcript.sample()
     form_powers = powers(xi, 2)  # one power per bus side, shared by every table
@@ -2200,25 +2296,26 @@ def verify_execution(
     table_sumcheck_claims, bits = table_sumcheck(layout.table_log_heights, bus.forms, producer_airs, form_powers, bus.point, target, transcript)
     claims = [*bus.claims, *table_sumcheck_claims]
 
-    # 5] the exit: a7 holds `exit` and a0..a3 the output when the run ends. A register's final value is the final
+    # 6] the padding rows' values, a claim on each column at the Boolean point naming the row at the table's height.
+    for table, row, height, log in zip(TABLES, pads, layout.table_heights, layout.table_log_heights, strict=True):
+        if row is not None:
+            point = tuple(ONE if height >> bit & 1 else ZERO for bit in range(log))
+            claims.extend(ColumnClaim(GLOBAL_COLUMN_BASES[table.opcode] + local, point, value) for local, value in enumerate(row))
+
+    # 7] the exit: a7 holds `exit` and a0..a3 the output when the run ends. A register's final value is the final
     # registers' column at the Boolean point naming it, a claim the verifier computes rather than receives.
     for register, value in ((SYSCALL_REGISTER, SYS_EXIT), *zip(OUTPUT_REGISTERS, output)):
         point = tuple(ONE if register >> bit & 1 else ZERO for bit in range(LOG_REGISTERS))
         claims.append(ColumnClaim(SHARED["register_final"], point, E(value)))
 
-    # 6] each circuit via Flock, every table's class circuit then every table's clock circuit, each over its own packed witness
+    # 8] each circuit via Flock, every table's class circuit then every table's clock circuit, each over its own packed witness
     families = [verify_flock(circuit, layout.table_log_heights[table.opcode], transcript) for table, circuit, _ in FLOCKS]
     # and the producer's bits, the 64 bit slices of its multiplicity column: the bits the bus reads, then zeros
     families += [(point, (*values, *[ZERO] * (K_BITS - len(values)))) for point, values in bits]
 
-    # 7] Ring-switching
-    # Each claim is supported on its witness's region of the stack, so its weight carries the
-    # placement's selector, and they lead the batch, taking the first powers.
-    def on_region(placement: Placement, target: E, weight: Callable[[Sequence[E]], E]) -> StackClaim:
-        return (lambda x: placement.eq_above(x) * weight(x[: placement.variables]), target)
-
-    regions = [layout.placements[column] for column in (*WITNESS_COLUMNS, *(producer.column for producer in layout.producers))]
-    ringswitches = [on_region(region, *claim) for region, claim in zip(regions, ring_switch(families, transcript), strict=True)]
+    # 9] Ring-switching: each claim is on its packed column's pieces, and they lead the batch, taking the first powers.
+    regions = [layout.column(column) for column in (*WITNESS_COLUMNS, *(producer.column for producer in layout.producers))]
+    ringswitches = ring_switch([(region, *family) for region, family in zip(regions, families, strict=True)], transcript)
     verify_stacked_opening(transcript, root, layout.stack_log, log_inverse_rate, [*ringswitches, *(c.on_stack(layout) for c in claims)])
     transcript.finish()
 

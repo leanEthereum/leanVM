@@ -138,9 +138,19 @@ impl U64Circuit {
         pairs: &[(u64, u64)],
         n_blocks_log: usize,
     ) -> (ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u8>) {
+        self.witness_padded(pairs, &(0, 0), 1 << n_blocks_log)
+    }
+
+    /// [`Self::generate_witness`] over `n_instances`, `padding` past `pairs`.
+    fn witness_padded(
+        &self,
+        pairs: &[(u64, u64)],
+        padding: &(u64, u64),
+        n_instances: usize,
+    ) -> (ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u8>) {
         let n = self.op.out_bits();
         self.circuit
-            .generate_witness_with(pairs, &(0, 0), n_blocks_log, |&(a, b), z, az, bz| {
+            .generate_witness_with(pairs, padding, n_instances, &mut [], |&(a, b), z, az, bz| {
                 let mut witness = Instance { z, az, bz };
                 let out = match &self.plan {
                     Plan::Add(adder) => adder.witness(a, b, &mut witness),
@@ -250,8 +260,8 @@ mod tests {
                     z_lincheck[bit] ^= 1;
                 }
                 let mut ps = ProverState::from_label(LABEL);
-                let stage = block.prove_zerocheck(n_log, &z, &a, &b, &mut ps);
-                let claim = block.prove_lincheck(n_log, stage, &z_lincheck, &mut ps);
+                let stage = block.prove_zerocheck(n_log, &z, &a, &b, None, &mut ps);
+                let claim = block.prove_lincheck(n_log, stage, &z_lincheck, None, &mut ps);
                 let proof = ps.into_proof();
                 let mut vs = VerifierState::from_label(LABEL, &proof);
                 block.verify(n_log, &mut vs).is_ok_and(|r| r.claim == claim) && vs.finish().is_ok()
@@ -264,6 +274,62 @@ mod tests {
                 circuit.useful_bits() - 1,
             ] {
                 assert!(!run(Some(bit)), "{op:?}: flipping bit {bit} must reject");
+            }
+        }
+    }
+
+    /// A batch whose instances past its explicit ones repeat its last row proves exactly
+    /// as the whole batch written out: the zerocheck and lincheck take the rest as copies
+    /// of one 64-instance unit, for any number of whole units.
+    #[test]
+    fn a_batch_short_of_its_cube_proves_as_the_whole_cube() {
+        type Tables = (ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u8>);
+        const LABEL: &[u8] = b"flock-arith-tail-test";
+        const UNIT: usize = 64;
+        let circuit = U64Circuit::new(U64Op::WrappingAdd);
+        let block = circuit.block();
+        let words = (1usize << circuit.k_log()) / 64;
+        let prove = |n_log: usize, (z, a, b, z_lincheck): Tables, unit: Option<&Tables>| {
+            let mut ps = ProverState::from_label(LABEL);
+            let pad = unit.map(|(z, a, b, _)| [&z[..], &a[..], &b[..]]);
+            let stage = block.prove_zerocheck(n_log, &z, &a, &b, pad, &mut ps);
+            let claim = block.prove_lincheck(n_log, stage, &z_lincheck, pad.map(|[z, ..]| &z[..words]), &mut ps);
+            (ps.into_proof(), claim)
+        };
+        // A cube whose tail is gone by the table rounds, and one with paired table
+        // passes that grow the unit, more than once.
+        for n_log in [7, 18] {
+            let full = 1usize << n_log;
+            let mut heights = vec![
+                0,
+                1,
+                62,
+                63,
+                64,
+                65,
+                127,
+                128,
+                full / 2 - 1,
+                full / 2,
+                full / 2 + 1,
+                full - 65,
+                full - 64,
+                full - 63,
+                full - 2,
+                full - 1,
+            ];
+            heights.retain(|&h| h < full);
+            heights.sort_unstable();
+            heights.dedup();
+            for h in heights {
+                // The rows to the height, the last one the row every later instance repeats.
+                let rows = pairs(h + 1, 0x3A14 + h as u64);
+                let padding = rows[h];
+                let explicit = (h + 1).next_multiple_of(UNIT).min(full);
+                let unit = (explicit < full).then(|| circuit.witness_padded(&[], &padding, UNIT));
+                let short = prove(n_log, circuit.witness_padded(&rows, &padding, explicit), unit.as_ref());
+                let whole = prove(n_log, circuit.witness_padded(&rows, &padding, full), None);
+                assert!(short == whole, "2^{n_log} instances, height {h}");
             }
         }
     }

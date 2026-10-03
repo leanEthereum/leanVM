@@ -704,6 +704,40 @@ fn partial_fold_packed_z_best(
     }
 }
 
+/// [`partial_fold_packed_z_best`] of the first instances of a batch, those
+/// `z_packed` holds, against `eq(x_outer, ·)`: the binary expansion of their count
+/// cuts them into aligned power-of-two pieces, and piece `[s, s + 2^p)` weighs
+/// `eq(x_outer[..p], ·)` times `eq(x_outer[p..], s >> p)`, the latter the seed of its
+/// table. Every piece is at least a stripe of eight instances.
+fn partial_fold_prefix(z_packed: &[u8], k_log: usize, useful_bits: usize, x_outer: &[F192]) -> Vec<F192> {
+    let k = 1usize << k_log;
+    let explicit = (8 * z_packed.len()) >> k_log;
+    assert!(
+        explicit <= 1 << x_outer.len() && explicit.is_multiple_of(8),
+        "the instances are whole stripes of the batch"
+    );
+    let mut out = vec![F192::ZERO; k];
+    let mut first = 0usize;
+    for p in (3..=x_outer.len()).rev().filter(|&p| (explicit >> p) & 1 == 1) {
+        let seed = (x_outer[p..].iter().enumerate()).fold(F192::ONE, |e, (j, &x)| {
+            e * if (first >> (p + j)) & 1 == 1 { x } else { F192::ONE + x }
+        });
+        let mut eq = Vec::with_capacity(1 << p);
+        primitives::multilinear::fill_eq_table_uninit(&x_outer[..p], seed, &mut eq.spare_capacity_mut()[..1 << p]);
+        // SAFETY: the fill writes all `2^p` entries.
+        unsafe { eq.set_len(1 << p) };
+        let piece = &z_packed[first / 8 * k..(first + (1 << p)) / 8 * k];
+        for (o, v) in out
+            .iter_mut()
+            .zip(partial_fold_packed_z_best(piece, p + k_log, k_log, useful_bits, &eq))
+        {
+            *o += v;
+        }
+        first += 1 << p;
+    }
+    out
+}
+
 /// Outer-dimension threshold (`n_log = m − k_log`) at/above which the
 /// outer(tile)-partitioned fold beats the i_inner-partitioned one. See
 /// [`partial_fold_packed_z_best`] for the crossover calibration.
@@ -993,6 +1027,10 @@ fn sumcheck_bind_both_and_eval_next(comb: &mut Vec<F192>, z: &mut Vec<F192>, r: 
 /// The lincheck prover. Its claim retains the transmitted post-sumcheck
 /// `z_partial`, which is exactly the AB claim's 64-entry ring-switch `s_hat_v`.
 /// The opening reuses it without a second witness scan or transmission.
+///
+/// `z_packed` may hold only the first instances, when `pad` is given: the packed `z`
+/// of the instance every later one repeats, so their share of the fold over the
+/// instances is its bits times the weight the point puts on them.
 #[expect(
     clippy::too_many_arguments,
     reason = "The proof kernel keeps its independent inputs explicit."
@@ -1003,6 +1041,7 @@ pub fn prove_padded_capture_s_hat_v(
     k_log: usize,
     k_skip: usize,
     useful_bits: usize,
+    pad: Option<&[u64]>,
     circuit: &dyn LincheckCircuit,
     x_ab: &QuirkyPoint,
     ps: &mut ProverState,
@@ -1045,8 +1084,22 @@ pub fn prove_padded_capture_s_hat_v(
 
     // 5. Partial fold of z at the shared outer half (length-k F192 vector).
     let mut z_vec = tracing::info_span!("Partial fold").in_scope(|| {
-        let eq_x_outer = build_eq(&x_ab.x_outer);
-        partial_fold_packed_z_best(z_packed, m, k_log, useful_bits, &eq_x_outer)
+        let explicit = (8 * z_packed.len()) >> k_log;
+        assert!(
+            explicit == 1 << n_log || pad.is_some(),
+            "a witness short of the batch repeats a padding instance"
+        );
+        let mut z_vec = partial_fold_prefix(z_packed, k_log, useful_bits, &x_ab.x_outer);
+        if let Some(pad) = pad {
+            assert_eq!(pad.len(), k / 64, "the padding instance is one instance");
+            let weight = primitives::multilinear::tail_weight(&x_ab.x_outer, explicit);
+            for (j, z) in z_vec.iter_mut().enumerate() {
+                if (pad[j / 64] >> (j % 64)) & 1 == 1 {
+                    *z += weight;
+                }
+            }
+        }
+        z_vec
     });
 
     let span = tracing::info_span!("Sumcheck").entered();
@@ -1263,7 +1316,7 @@ mod tests {
         x_ab: &QuirkyPoint,
         ps: &mut fiat_shamir::transcript::ProverState,
     ) -> LincheckClaim {
-        prove_padded_capture_s_hat_v(z_packed, m, k_log, k_skip, 1 << k_log, circuit, x_ab, ps)
+        prove_padded_capture_s_hat_v(z_packed, m, k_log, k_skip, 1 << k_log, None, circuit, x_ab, ps)
     }
 
     /// Test shim: the padded fast fold with a dense (no-padding) block.

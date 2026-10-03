@@ -6,10 +6,11 @@
 use crate::lincheck::{self, LincheckCircuit, LincheckClaim, QuirkyPoint};
 use crate::verifier::VerifyError;
 use crate::witness::packed_bytes;
+use crate::zerocheck::multilinear::PackedWitness;
 use crate::zerocheck::{self, K_SKIP, PaddingSpec, ZerocheckClaim};
 use fiat_shamir::transcript::{ProverState, VerifierState};
 use pcs::pack::{LOG_PACKING, PACKING_WIDTH};
-use pcs::stack_open::{RingSwitchClaim, RingSwitchOpen, RingSwitchVerify, RingSwitchVerifyClaim};
+use pcs::stack_open::{RingSwitchClaim, RingSwitchVerifyClaim, whole_slice};
 use primitives::field::F192;
 
 // A claim's `2^K_SKIP` slices are a ring-switch claim on `q_flock` only if that
@@ -92,22 +93,30 @@ impl Block<'_> {
     /// **First stage (prover): the zerocheck.** Reduces `a·b ⊕ c = 0` over the
     /// cube of `2^n_blocks_log` blocks to evaluation claims on `(â, b̂, ĉ)`, all
     /// three at one point.
+    ///
+    /// The packed words may hold only the first blocks, when `pad` gives the
+    /// `(z, A·z, B·z)` of a run of blocks whose copies fill the cube past them
+    /// ([`zerocheck::prove_packed_padded`]).
     pub fn prove_zerocheck(
         &self,
         n_blocks_log: usize,
         z_packed: &[u64],
         a_packed_words: &[u64],
         b_packed_words: &[u64],
+        pad: Option<[&[u64]; 3]>,
         ps: &mut ProverState,
     ) -> ZerocheckStage {
         let _span = tracing::info_span!("Zerocheck").entered();
         let m = self.k_log + n_blocks_log;
 
         // The fused generator packs 64 Boolean coordinates per word.
-        let packed_len = 1usize << (m - 6);
-        assert_eq!(z_packed.len(), packed_len, "wrong packed witness length");
-        assert_eq!(a_packed_words.len(), packed_len, "wrong packed A·z length");
-        assert_eq!(b_packed_words.len(), packed_len, "wrong packed B·z length");
+        let block_words = 1usize << (self.k_log - 6);
+        assert!(
+            z_packed.len() <= block_words << n_blocks_log && z_packed.len().is_multiple_of(block_words),
+            "wrong packed witness length"
+        );
+        assert_eq!(a_packed_words.len(), z_packed.len(), "wrong packed A·z length");
+        assert_eq!(b_packed_words.len(), z_packed.len(), "wrong packed B·z length");
 
         // No bind_statement here: the embedding protocol binds the circuit, the
         // instance count and the commitment root before any challenge, so the
@@ -123,6 +132,11 @@ impl Block<'_> {
             packed_bytes(z_packed), // C = I, so c == z
             m,
             &padding,
+            pad.map(|[z, a, b]| PackedWitness {
+                a: packed_bytes(a),
+                b: packed_bytes(b),
+                c: packed_bytes(z),
+            }),
             ps,
         );
 
@@ -133,19 +147,20 @@ impl Block<'_> {
 
     /// **Second stage (prover): the lincheck.** Reduces the zerocheck's
     /// `(â, b̂, ĉ)` claims to the `2^k_skip` bit slices of `z` at one point,
-    /// against the per-block matrices.
+    /// against the per-block matrices. `pad` is the packed `z` of the block the
+    /// blocks past `z_packed_lincheck`'s repeat, when it stops short of the batch.
     pub fn prove_lincheck(
         &self,
         n_blocks_log: usize,
         stage: ZerocheckStage,
         z_packed_lincheck: &[u8],
+        pad: Option<&[u64]>,
         ps: &mut ProverState,
     ) -> SliceClaim {
         let _span = tracing::info_span!("Lincheck").entered();
         let m = self.k_log + n_blocks_log;
-        assert_eq!(
-            z_packed_lincheck.len(),
-            (1usize << m) / 8,
+        assert!(
+            z_packed_lincheck.len() <= (1usize << m) / 8,
             "wrong lincheck stripe length"
         );
 
@@ -156,6 +171,7 @@ impl Block<'_> {
             self.k_log,
             K_SKIP,
             self.useful_bits,
+            pad,
             self.circuit,
             &x_ab,
             ps,
@@ -194,50 +210,38 @@ impl Block<'_> {
     }
 }
 
-/// One reduction claim as a tower [`RingSwitchClaim`]: the `2^k_skip` slices and
-/// the suffix point they live at, which is the WHOLE multilinear tail of the
-/// quirky point (`q_flock` has `2^qflock_vars` words, and the packing prefix is
-/// exactly the skipped coordinates, so nothing is split off into it).
-fn ring_claim(claim: &SliceClaim, qflock_vars: usize) -> RingSwitchClaim {
+/// Package the prover's reduction claim as a [`RingSwitchClaim`] on the
+/// `2^qflock_vars`-word slice of the committed stack at `offset`, so the PCS
+/// discharges flock's validity in the same opening as the embedder's own point
+/// claims. The suffix point is the WHOLE multilinear tail of the quirky point
+/// (`q_flock` has `2^qflock_vars` words, and the packing prefix is exactly the
+/// skipped coordinates, so nothing is split off into it).
+pub fn ring_switch_open(qflock_vars: usize, offset: usize, reduced: &SliceClaim) -> RingSwitchClaim {
     assert_eq!(
-        claim.suffix_point.len(),
+        reduced.suffix_point.len(),
         qflock_vars,
         "ring-switch suffix must span the q_flock cube"
     );
-    assert_eq!(claim.s_hat_v.len(), PACKING_WIDTH);
+    assert_eq!(reduced.s_hat_v.len(), PACKING_WIDTH);
     RingSwitchClaim {
-        suffix_point: claim.suffix_point.clone(),
-        s_hat_v: Some(claim.s_hat_v.clone()),
-    }
-}
-
-/// Package the prover's reduction claim as a [`RingSwitchOpen`], so the PCS
-/// discharges flock's validity in the same opening as the embedder's own point
-/// claims. `q_flock` is the `2^qflock_vars`-word slice of the committed stack at
-/// `offset`.
-pub fn ring_switch_open(qflock_vars: usize, offset: usize, reduced: &SliceClaim) -> RingSwitchOpen {
-    RingSwitchOpen {
-        offset,
-        qflock_vars,
-        claims: vec![ring_claim(reduced, qflock_vars)],
+        suffix_point: reduced.suffix_point.clone(),
+        s_hat_v: Some(reduced.s_hat_v.clone()),
+        terms: whole_slice(offset, qflock_vars),
     }
 }
 
 /// Verifier counterpart of [`ring_switch_open`]: package the recovered claim as
-/// a [`RingSwitchVerify`], the same statement data. The transmitted opening
+/// a [`RingSwitchVerifyClaim`], the same statement data. The transmitted opening
 /// travels separately.
-pub fn ring_switch_verify(qflock_vars: usize, offset: usize, claim: &SliceClaim) -> RingSwitchVerify<'_> {
+pub fn ring_switch_verify(qflock_vars: usize, offset: usize, claim: &SliceClaim) -> RingSwitchVerifyClaim<'_> {
     assert_eq!(
         claim.suffix_point.len(),
         qflock_vars,
         "ring-switch suffix must span the q_flock cube"
     );
-    RingSwitchVerify {
-        offset,
-        qflock_vars,
-        claims: vec![RingSwitchVerifyClaim {
-            suffix_point: &claim.suffix_point,
-            s_hat_v: claim.s_hat_v.as_slice().try_into().expect("ring-switch has 64 slices"),
-        }],
+    RingSwitchVerifyClaim {
+        suffix_point: &claim.suffix_point,
+        s_hat_v: claim.s_hat_v.as_slice().try_into().expect("ring-switch has 64 slices"),
+        terms: whole_slice(offset, qflock_vars),
     }
 }

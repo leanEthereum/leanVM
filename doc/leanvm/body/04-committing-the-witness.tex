@@ -27,6 +27,16 @@ a weighted sum over $\widetilde q$ with weight $W(w)=\eq((\zeta,\mathsf{sel}_i),
 \]
 via the PCS (Annex~\ref{annex:pcs}).
 
+\subsection{Jagged columns}\label{sec:jagged}
+
+A table's column has $2^{\tau_j}$ rows, of which only the first $\nlive{j}$ are the run's (\S\ref{sec:e2e-pad}); every later row repeats row $\nlive{j}$. Committing the column whole would pay for the repeats, so, in the spirit of the jagged PCS~\cite{jagged_pcs}, the stack holds only its first $\ncom=\min(\nlive{j}+1,2^{\tau_j})$ rows. They are cut into aligned pieces: the whole column when $\ncom=2^{\tau_j}$, otherwise one piece of $2^e$ rows from row $a$ for each bit $e$ set in $\nlive{j}$, largest first ($a$ the sum of the higher bits), then row $\nlive{j}$ alone. Every piece of every column is stacked as a column of its own (\S\ref{sec:stacking}). A packed witness (\S\ref{sec:ringswitch}) is cut the same way, a row being an instance's $2^{s}$ words; the shared columns are whole.
+
+The padded column's extension is a sum over the pieces. Writing $\tailw{h}(r)=\sum_{z\ge h}\eq(r,z)$ for the weight a point $r\in\E^{\tau_j}$ puts on the rows from $h$ on,
+\[
+  \widetilde P(r)\;=\;\sum_{(a,e)}\eq\bigl(r_{\ge e},\mathrm{bits}(a\gg e)\bigr)\,\widetilde{P_{[a,a+2^e)}}(r_{<e})\;+\;\tailw{\nlive{j}}(r)\,P(\nlive{j}),\qquad \tailw{h}(r)=1-\sum_{(a,e)}\eq\bigl(r_{\ge e},\mathrm{bits}(a\gg e)\bigr),
+\]
+the sum over the pieces of $\nlive{j}$'s binary expansion. So a claim on the column is one weighted claim on the stack whose weight is one scaled equality term per piece, each aligned, which the verifier evaluates at the opening's point in time linear in $\tau_j$ per piece: the opening already takes any verifier-evaluable weight (Definition~\ref{def:ipcs}), so no jagged sumcheck is needed, and the dyadic pieces replace the branching program over prefix sums of~\cite{jagged_pcs}. A ring-switched claim on a packed witness takes the same scaled pieces inside $\Phi$ (\S\ref{rs:weight}).
+
 \subsection{Committing to booleans via Ring-Switching}\label{sec:ringswitch}
 
-Flock's argument for an instruction class (\S\ref{sec:tab-class}) requires a commitment to a Boolean multilinear in $\nflock+\kskip$ variables. Ring switching~\cite{DP24} lets the prover pack its low $\kskip=6$ coordinates into the $\K$-valued multilinear $\qflock$ in $\nflock$ variables (Annex~\ref{annex:rs}), which occupies one region of the stack in \S\ref{sec:stacking}, one per circuit: a class's and a clock's per table (\S\ref{sec:clock}). The bytecode's multiplicity column is bit-packed the same way, its bit slices being the producer's one-bit columns (\S\ref{sec:lookup}), and is one more ring-switched region.
+Flock's argument for an instruction class (\S\ref{sec:tab-class}) requires a commitment to a Boolean multilinear in $\nflock+\kskip$ variables. Ring switching~\cite{DP24} lets the prover pack its low $\kskip=6$ coordinates into the $\K$-valued multilinear $\qflock$ in $\nflock$ variables (Annex~\ref{annex:rs}), which occupies its pieces of the stack in \S\ref{sec:jagged}, one per circuit: a class's and a clock's per table (\S\ref{sec:clock}). The bytecode's multiplicity column is bit-packed the same way, its bit slices being the producer's one-bit columns (\S\ref{sec:lookup}), and is one more ring-switched column.

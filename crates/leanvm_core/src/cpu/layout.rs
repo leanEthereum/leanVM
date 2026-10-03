@@ -15,7 +15,7 @@ use crate::constraints::Claims;
 use crate::leaf::{Block, ColumnClaim, Coord, Producer, SparseColumn};
 use crate::rv::{self, Reg, Region, RegisterFile, Syscall};
 use crate::tables::{self, Part, SEP_BYTECODE, SEP_STATE};
-use crate::witness::{self, Placement, Source, StackShape, Window};
+use crate::witness::{self, Placement, Source, StackShape};
 use crate::{class_flock, pcs};
 use fiat_shamir::transcript::{ProverState, Receiver, Transmitter, VerifierState};
 use primitives::field::{F64, F192};
@@ -356,38 +356,43 @@ impl Sizes {
         }
     }
 
-    /// Where every column of a program of these sizes sits in the stacked witness, for tables of heights `2^taus`, and the stack's shape.
+    /// Where every column of a program of these sizes sits in the stacked witness, for tables of these heights, and the stack's shape.
     ///
     /// No witness is needed.
-    pub(super) fn stack(self, taus: [usize; tables::N_TABLES]) -> (Vec<Placement>, StackShape) {
-        witness::placements_of(&self.column_sources(taus))
+    pub(super) fn stack(self, heights: [usize; tables::N_TABLES]) -> (Vec<Placement>, StackShape) {
+        witness::placements_of(&self.column_sources(heights))
     }
 
     /// Every column's source, in global order.
     ///
     /// - The shared columns, at their arrays' sizes.
-    /// - The packed witnesses, at their tables' heights times their instance strides.
-    /// - Each table's columns, at its height.
+    /// - The packed witnesses, at their tables' proven sizes times their instance strides.
+    /// - Each table's columns, at its proven size.
+    ///
+    /// A table's columns and packed witnesses commit [`committed_rows`] of their rows (§sec:jagged).
     ///
     /// A circuit word is a port of its class's packed witness, which already holds it.
     ///
     /// So it is never committed again: its bus claims settle against that witness.
-    fn column_sources(self, taus: [usize; tables::N_TABLES]) -> Vec<Source> {
-        let mut sources: Vec<Source> = Shared::ALL
-            .iter()
-            .map(|c| Source::Committed(c.log_rows(self)))
-            .collect();
+    pub(super) fn column_sources(self, heights: [usize; tables::N_TABLES]) -> Vec<Source> {
+        let taus: [usize; tables::N_TABLES] = std::array::from_fn(|t| tau_of(t, heights[t]));
+        let jagged = |t: usize, stride_log: usize| Source::Committed {
+            row_vars: taus[t],
+            stride_log,
+            rows: committed_rows(heights[t], taus[t]),
+        };
+        let mut sources: Vec<Source> = Shared::ALL.iter().map(|c| Source::full(c.log_rows(self))).collect();
 
         // The packed witnesses: every class circuit's, then every clock circuit's.
         sources.extend((0..class_flock::N_FLOCKS).map(|f| {
             let (t, part) = class_flock::flock(f);
-            Source::Committed(taus[t] + class_flock::stride_log(tables::CLASSES[t], part))
+            jagged(t, class_flock::stride_log(tables::CLASSES[t], part))
         }));
 
         // Each table's columns, its circuit words turned into ports of its packed witnesses.
         for (t, table) in tables::tables().iter().enumerate() {
             let base = sources.len();
-            sources.resize(base + table.n_committed_columns(), Source::Committed(taus[t]));
+            sources.resize(base + table.n_committed_columns(), jagged(t, 0));
             for part in [Part::Class, Part::Clock] {
                 for (port, c) in table.word_columns(part) {
                     sources[base + c] = Source::Port {
@@ -401,6 +406,16 @@ impl Sizes {
         debug_assert_eq!(sources.len(), Schema::get().n);
         sources
     }
+}
+
+/// A table's base-two logarithm of rows as proven: its height padded to a power of two, and to flock's instance floor.
+pub fn tau_of(t: usize, height: usize) -> usize {
+    class_flock::n_blocks_log(tables::CLASSES[t], height)
+}
+
+/// The rows a table's columns commit: its live rows, then the first padding row, which every later one repeats (§sec:jagged).
+pub const fn committed_rows(height: usize, tau: usize) -> usize {
+    if height < 1 << tau { height + 1 } else { 1 << tau }
 }
 
 /// Where each table's columns sit in the global column order.
@@ -445,18 +460,21 @@ pub struct Layout {
     pub placements: Vec<Placement>,
     /// The stacked witness's shape: its announced size, and how many lane blocks are committed.
     pub shape: StackShape,
-    /// Each table's base-two logarithm of rows.
+    /// Each table's announced height, its live rows (§sec:jagged).
+    pub heights: [usize; tables::N_TABLES],
+    /// Each table's base-two logarithm of rows as proven, its height padded.
     pub taus: [usize; tables::N_TABLES],
 }
 
 impl Layout {
-    /// The layout of a run of `p` with table heights `2^taus`, ending on clock `ts_final`.
+    /// The layout of a run of `p` with these table heights, ending on clock `ts_final`.
     ///
-    /// A table's height is its row count: the fill blocks bring every count to a power of two.
+    /// A table's rows past its height are padding (§sec:jagged): they repeat the row at its height.
     ///
-    /// So every row was executed, and no flush has padding tuples to divide back out of the bus.
-    pub fn new(p: &rv::Program, taus: [usize; tables::N_TABLES], ts_final: u64) -> Self {
+    /// Its bus blocks take the identity there, so the bus is over its live rows.
+    pub fn new(p: &rv::Program, heights: [usize; tables::N_TABLES], ts_final: u64) -> Self {
         let sizes = Sizes::of(p);
+        let taus: [usize; tables::N_TABLES] = std::array::from_fn(|t| tau_of(t, heights[t]));
 
         // The framework's blocks open both sides, one push and one pull block each.
         let (mut push, mut pull) = (Vec::new(), Vec::new());
@@ -497,35 +515,42 @@ impl Layout {
             })
             .collect();
 
-        let (placements, shape) = sizes.stack(taus);
+        let (placements, shape) = sizes.stack(heights);
         Self {
             push,
             pull,
             producers,
             placements,
             shape,
+            heights,
             taus,
         }
     }
 
-    /// Packed witness `f`'s window in the stack.
-    pub(crate) fn witness_window(&self, f: usize) -> Window {
+    /// Packed witness `f`'s column in the stack.
+    pub(crate) fn witness_column(&self, f: usize) -> &witness::Column {
         self.placements[q_column(f)]
-            .window()
+            .column()
             .expect("a packed witness is committed")
     }
 
-    /// A producer's multiplicity column's window in the stack.
-    pub(crate) fn multiplicity_window(&self, p: &Producer) -> Window {
+    /// A producer's multiplicity column in the stack.
+    pub(crate) fn multiplicity_column(&self, p: &Producer) -> &witness::Column {
         self.placements[p.col]
-            .window()
+            .column()
             .expect("a multiplicity column is committed")
+    }
+
+    /// Whether table `t` has padding rows: rows past its height, which repeat the row at its height and which the bus leaves out.
+    pub(crate) const fn padded(&self, t: usize) -> bool {
+        self.heights[t] < 1 << self.taus[t]
     }
 
     /// Every claim the opening discharges, located in the stack, in the order that feeds the batch's weights.
     ///
     /// - The bus's framework claims.
     /// - The batch's per-table column claims.
+    /// - Each padded table's padding row, at the Boolean point of its height (§sec:jagged).
     /// - The exit's claims: the run halted on `exit`, returning `output` (§sec:e2e-pi).
     ///
     /// Prover and verifier both assemble them here, so no claim can shift by one.
@@ -533,11 +558,12 @@ impl Layout {
         &self,
         bus_claims: Vec<ColumnClaim>,
         table_claims: &[Claims],
+        pads: &[Option<Vec<F192>>],
         output: &[u64; 4],
     ) -> Vec<pcs::SlotClaim> {
         let schema = Schema::get();
         let mut claims = bus_claims;
-        claims.reserve(schema.n - N_SHARED);
+        claims.reserve(2 * (schema.n - N_SHARED));
 
         // Each table's column claims, at the batch's point.
         for (&(base, _), table) in schema.spans.iter().zip(table_claims) {
@@ -548,21 +574,24 @@ impl Layout {
             }));
         }
 
+        // The row a table's padding rows repeat is the one at its height.
+        for (t, (&(base, _), row)) in schema.spans.iter().zip(pads).enumerate() {
+            let Some(row) = row else { continue };
+            let point = boolean_point(self.heights[t], self.taus[t]);
+            claims.extend(row.iter().enumerate().map(|(c, &value)| ColumnClaim {
+                col: base + c,
+                point: point.clone(),
+                value,
+            }));
+        }
+
         // The exit: the syscall register holds `exit`, and the output registers the output.
         //
         // Each is the final registers at the Boolean point naming the register.
         // Both parties know the value, so the claim is computed rather than sent.
         let register_claim = |reg: Reg, value: u64| ColumnClaim {
             col: Shared::RegFin.col(),
-            point: (0..RegisterFile::LOG_CELLS)
-                .map(|b| {
-                    if (reg.index() >> b) & 1 == 1 {
-                        F192::ONE
-                    } else {
-                        F192::ZERO
-                    }
-                })
-                .collect(),
+            point: boolean_point(reg.index(), RegisterFile::LOG_CELLS),
             value: F192::from(F64(value)),
         };
         claims.push(register_claim(Reg::SYSCALL, Syscall::Exit.number()));
@@ -575,34 +604,65 @@ impl Layout {
         claims.into_iter().map(|c| self.slot_claim(c)).collect()
     }
 
-    /// A column claim, located in the stacked witness.
+    /// A column claim, located in the stacked witness: one scaled term per piece of the column (§sec:jagged).
     ///
-    /// - A committed column's claim is at its window, the claim's point as the low point.
-    /// - A port has no window: its claim is a strided evaluation of its class's packed witness.
+    /// - A committed column's claim weighs its pieces at the claim's point.
+    /// - A port has no place of its own: its claim is a strided evaluation of its class's packed witness.
     ///
     /// The strided form freezes the low coordinates to the port's bits and the high ones to the claim's point.
     ///
     /// It is folded at the table's height, not the packed witness's, and joins the one opening.
     fn slot_claim(&self, c: ColumnClaim) -> pcs::SlotClaim {
-        match self.placements[c.col] {
-            Placement::Committed(window) => pcs::SlotClaim::Point {
-                offset: window.offset,
-                low_point: c.point,
+        let terms = |column: &witness::Column, point: &[F192], low_vars: usize| -> Vec<pcs::Term> {
+            column
+                .terms(&point[low_vars..], low_vars)
+                .into_iter()
+                .map(|(offset, n_vars, scale)| pcs::Term { offset, n_vars, scale })
+                .collect()
+        };
+        match &self.placements[c.col] {
+            Placement::Committed(column) => pcs::SlotClaim {
+                terms: terms(column, &c.point, c.point.len() - column.row_vars),
+                point: c.point,
+                slot: 0,
+                stride_log: 0,
                 value: c.value,
             },
-            Placement::Port {
-                offset,
+            &Placement::Port {
+                column,
                 port,
                 stride_log,
-            } => pcs::SlotClaim::Strided {
-                offset,
+            } => pcs::SlotClaim {
+                terms: terms(
+                    self.placements[column]
+                        .column()
+                        .expect("a port is of a committed column"),
+                    &c.point,
+                    0,
+                ),
+                point: c.point,
                 slot: port,
                 stride_log,
-                point: c.point,
                 value: c.value,
             },
         }
     }
+}
+
+/// The Boolean point of `n` coordinates naming `index`, least significant bit first.
+fn boolean_point(index: usize, n: usize) -> Vec<F192> {
+    (0..n)
+        .map(|bit| if (index >> bit) & 1 == 1 { F192::ONE } else { F192::ZERO })
+        .collect()
+}
+
+/// A ring-switched claim's terms on a committed column at `suffix_point`, a row's coordinates then the row point: one per piece of the column (§sec:jagged).
+pub(super) fn ring_terms(column: &witness::Column, suffix_point: &[F192]) -> Vec<pcs::RingTerm> {
+    column
+        .terms(&suffix_point[column.stride_log..], column.stride_log)
+        .into_iter()
+        .map(|(offset, n_vars, scale)| pcs::RingTerm { offset, n_vars, scale })
+        .collect()
 }
 
 /// The sizes the prover announces before committing: each table's height, the rate, and the final clock.
@@ -610,8 +670,8 @@ impl Layout {
 /// The program's own sizes are public, so they are never announced.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) struct Announcement {
-    /// Each table's base-two logarithm of rows.
-    pub(super) taus: [usize; tables::N_TABLES],
+    /// Each table's height: its live rows.
+    pub(super) heights: [usize; tables::N_TABLES],
     /// The commitment's base-two logarithm of the inverse rate.
     pub(super) log_inv_rate: usize,
     /// The clock the run ended on: the final state's timestamp (§sec:state).
@@ -621,10 +681,12 @@ pub(super) struct Announcement {
 impl Announcement {
     /// Write the announcement onto the scalar stream, which binds it into the transcript.
     ///
-    /// A height, not a row count: every table's rows are real, filled to a power of two.
+    /// Heights, not log heights: a table's rows past its height are padding, which the bus leaves out and the commitment stores once (§sec:jagged).
+    ///
+    /// So the height is what the layout and the bus are made of.
     pub(super) fn write(&self, ps: &mut ProverState) {
-        for &tau in &self.taus {
-            ps.add_scalar(F192::new(tau as u64, 0, 0));
+        for &height in &self.heights {
+            ps.add_scalar(F192::new(height as u64, 0, 0));
         }
         ps.add_scalar(F192::new(self.log_inv_rate as u64, 0, 0));
         ps.add_scalar(F192::new(self.ts_final, 0, 0));
@@ -646,9 +708,9 @@ impl Announcement {
             }
             usize::try_from(word.c0).map_err(|_| CpuError::NonCanonicalSize)
         };
-        let mut taus = [0usize; tables::N_TABLES];
-        for tau in &mut taus {
-            *tau = read_size(vs)?;
+        let mut heights = [0usize; tables::N_TABLES];
+        for height in &mut heights {
+            *height = read_size(vs)?;
         }
         let log_inv_rate = read_size(vs)?;
 
@@ -659,16 +721,16 @@ impl Announcement {
             return Err(CpuError::FinalClock);
         }
 
-        // Each table's height between flock's instance floor and the public cap.
+        // Each table's height at most the public cap.
         //
         // A table's rows are its class's runs, unbounded by the program's size, so it has a cap of its own.
-        for (spec, &log_rows) in tables::CLASSES.iter().zip(&taus) {
-            let min = class_flock::n_blocks_log(spec, 1);
-            if !(min..=MAX_LOG_ROWS).contains(&log_rows) {
+        //
+        // Any height below the cap has a layout: the padding rows bring it up to a power of two at or above flock's instance floor.
+        for (spec, &rows) in tables::CLASSES.iter().zip(&heights) {
+            if rows > 1 << MAX_LOG_ROWS {
                 return Err(CpuError::TableHeight {
                     table: spec.name,
-                    log_rows,
-                    min,
+                    rows,
                     max: MAX_LOG_ROWS,
                 });
             }
@@ -679,7 +741,7 @@ impl Announcement {
             return Err(CpuError::Rate { log_inv_rate });
         }
         Ok(Self {
-            taus,
+            heights,
             log_inv_rate,
             ts_final: ts_final.c0,
         })
@@ -692,7 +754,7 @@ impl Announcement {
     /// Refuses heights whose stacked witness the commitment does not take.
     pub(super) fn layout(&self, p: &rv::Program) -> Result<Layout, CpuError> {
         // The caps bound each height alone; the stacked size they imply is checked here.
-        let layout = Layout::new(p, self.taus, self.ts_final);
+        let layout = Layout::new(p, self.heights, self.ts_final);
         if !(pcs::MIN_MU..=pcs::MAX_MU).contains(&layout.shape.mu) {
             return Err(CpuError::WitnessSize { mu: layout.shape.mu });
         }

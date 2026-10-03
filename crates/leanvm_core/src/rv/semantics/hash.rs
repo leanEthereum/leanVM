@@ -363,8 +363,9 @@ mod tests {
 
         // Both generators on the same batch, every table compared.
         let walk = BLAKE2S.generate_witness(&rows, n_log);
-        let fast =
-            BLAKE2S.generate_witness_with(&rows, &[0; 14], n_log, |row, z, az, bz| blake2s_witness(row, z, az, bz));
+        let fast = BLAKE2S.generate_witness_with(&rows, &[0; 14], 1 << n_log, &mut [], |row, z, az, bz| {
+            blake2s_witness(row, z, az, bz);
+        });
         assert!(walk.0[..] == fast.0[..], "z");
         assert!(walk.1[..] == fast.1[..], "A*z");
         assert!(walk.2[..] == fast.2[..], "B*z");
