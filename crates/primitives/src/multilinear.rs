@@ -6,11 +6,10 @@
 //! `K`-valued (`F64`) while randomness is `E`-valued (`F192`), so the first
 //! fold of a committed table also lifts it into `E`.
 
-use std::ops::DerefMut;
-use std::sync::LazyLock;
-
 use std::mem::MaybeUninit;
+use std::ops::DerefMut;
 
+use crate::field::gf2_64::{reduce, software::clmul};
 use crate::field::{F64, F192, PHI_8_TABLE_192 as PHI_8_TABLE, Weights8, dot_base, mul_base8, mul4};
 use zk_alloc::ArenaVec;
 
@@ -246,17 +245,36 @@ pub fn shrink_eq_high<B: Shrink<F192>>(table: &mut B) {
 /// offset cancels) and `b ↦ a ^ b` only permutes the window, leaving every node the same product.
 /// Computed once for every window size.
 pub fn window_denominator(size: usize) -> F192 {
-    static DENOMINATORS: LazyLock<[F192; 9]> = LazyLock::new(|| {
-        std::array::from_fn(|log| {
-            PHI_8_TABLE[1..1 << log]
-                .iter()
-                .fold(F192::ONE, |acc, &node| acc * node)
-                .inv()
-        })
-    });
     debug_assert!(size.is_power_of_two() && size <= PHI_8_TABLE.len());
     DENOMINATORS[size.trailing_zeros() as usize]
 }
+
+/// [`window_denominator`] for every window size, at compile time. The nodes lie in `F64`, so the
+/// product and its inverse (Fermat, `a^(2^64 - 2)`) stay there.
+const DENOMINATORS: [F192; 9] = {
+    const fn mul(a: u64, b: u64) -> u64 {
+        reduce(clmul(a, b))
+    }
+    let mut out = [F192::ZERO; 9];
+    let mut log = 0;
+    while log < out.len() {
+        let mut product = 1;
+        let mut k = 1;
+        while k < 1 << log {
+            product = mul(product, PHI_8_TABLE[k].c0);
+            k += 1;
+        }
+        let (mut inverse, mut bit) = (1, 1);
+        while bit < 64 {
+            product = mul(product, product);
+            inverse = mul(inverse, product);
+            bit += 1;
+        }
+        out[log] = F192::new(inverse, 0, 0);
+        log += 1;
+    }
+    out
+};
 
 /// `scale · Σ_i values[i] · ∏_{k≠i} (p + nodes[k])`, in one pass of three products a node and no
 /// inverse; `sum` and `prefix` hold the sum and the product of the differences over the nodes seen so
