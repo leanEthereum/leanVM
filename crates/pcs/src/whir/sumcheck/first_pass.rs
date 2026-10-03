@@ -10,12 +10,10 @@
 //! precomputation of Bagad, Dao, Domb and Thaler, <https://eprint.iacr.org/2025/1117>:
 //! the witness is in `K`, so every product is a mixed one).
 
-use super::{Basis, INITIAL_BASIS_CHUNK, SumcheckMessage, window};
+use super::{Basis, FIRST_PASS_PAR_THRESHOLD, INITIAL_BASIS_CHUNK, PRECOMPUTED_ROUNDS, SumcheckMessage, window};
 use primitives::field::{F64, F192};
 
-/// Lane rounds whose messages come out of the first pass, `R` above.
-pub(super) const PRECOMPUTED_ROUNDS: usize = 4;
-/// Lanes per group, and points of `{0, 1, inf}^R`.
+/// Lanes per group, and points of `{0, 1, inf}^R`, `R` being [`PRECOMPUTED_ROUNDS`].
 const GROUP: usize = 1 << PRECOMPUTED_ROUNDS;
 const GRID: usize = 3usize.pow(PRECOMPUTED_ROUNDS as u32);
 
@@ -398,8 +396,7 @@ fn grid_pass_with<const R: usize>(f: &[F64], block: usize, b: &Basis<'_>, lanes:
         })
     };
     let new_acc = || Box::new([ProductRow::default(); GRID]);
-    const PAR_THRESHOLD: usize = 8192;
-    let acc = if lanes.len() * block < PAR_THRESHOLD {
+    let acc = if lanes.len() * block < FIRST_PASS_PAR_THRESHOLD {
         let (mut scratch, mut acc) = (new_scratch(), new_acc());
         for t in 0..n_tasks {
             task(&mut scratch, &mut acc, t);
