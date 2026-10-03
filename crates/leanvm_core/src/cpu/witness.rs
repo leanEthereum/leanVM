@@ -59,7 +59,7 @@ impl Witness {
         });
 
         // The public layout comes first: it fixes each column's length, so each is allocated once.
-        let layout = Layout::new(p, taus, trace.ts_final);
+        let layout = Layout::new(program, taus, trace.ts_final);
 
         // The stack is written exactly once: one window per committed column, each filled in place.
         //

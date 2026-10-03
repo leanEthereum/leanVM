@@ -149,13 +149,12 @@ impl PrunedMerklePaths {
         Some((sorted, hashes))
     }
 
-    /// Verifier side: authenticate this phase against `root` and expand it into
-    /// one opening per query, in `queries` order (duplicates included).
+    /// Verifier side: authenticate this phase against `root`, and return each
+    /// query's full leaf image, in `queries` order (duplicates included).
     ///
     /// The single way to consume a phase, so rows can never be read without the
-    /// Merkle check having run. Rebuilding every node on the queried paths both
-    /// recomputes the root AND yields each query's full sibling path, so the
-    /// pruned form is checked and the unpruned form produced in one walk.
+    /// Merkle check having run. Rebuilding every node on the queried paths
+    /// recomputes the root.
     ///
     /// `None` on any mismatch: a wrong row count or width, an out-of-range
     /// query, an octopus with too few or too many siblings, or a root that does
@@ -167,7 +166,7 @@ impl PrunedMerklePaths {
         queries: &[usize],
         row_words: usize,
         leaf_words: usize,
-    ) -> Option<Vec<RawMerklePath>> {
+    ) -> Option<Vec<Vec<F64>>> {
         if !num_leaves.is_power_of_two() || num_leaves == 0 || queries.is_empty() {
             return None;
         }
@@ -178,91 +177,41 @@ impl PrunedMerklePaths {
         }
 
         // Rebuild every node on the queried paths bottom-up, pulling a stored
-        // sibling only where that sibling is not itself a queried subtree.
+        // sibling only where that sibling is not itself a queried subtree. Each
+        // level's parents overwrite its nodes in place.
         let mut supplied = self.sibling_hashes.iter();
-        let mut known: Vec<Vec<(usize, Hash)>> = Vec::with_capacity(height);
         let mut nodes: Vec<(usize, Hash)> = sorted.iter().copied().zip(leaf_hashes).collect();
         for _ in 0..height {
-            let mut level = Vec::with_capacity(2 * nodes.len());
-            let mut parents = Vec::with_capacity(nodes.len());
-            let mut i = 0;
+            let (mut i, mut n) = (0, 0);
             while i < nodes.len() {
                 let idx = nodes[i].0;
                 let paired = idx & 1 == 0 && nodes.get(i + 1).is_some_and(|&(j, _)| j == (idx | 1));
                 let (left, right) = if paired {
-                    (nodes[i].1, nodes[i + 1].1)
+                    (&nodes[i].1, &nodes[i + 1].1)
                 } else if idx & 1 == 0 {
-                    (nodes[i].1, *supplied.next()?)
+                    (&nodes[i].1, supplied.next()?)
                 } else {
-                    (*supplied.next()?, nodes[i].1)
+                    (supplied.next()?, &nodes[i].1)
                 };
-                parents.push((idx >> 1, hash_pair(&left, &right)));
-                level.push((idx & !1, left));
-                level.push((idx | 1, right));
+                let parent = hash_pair(left, right);
+                nodes[n] = (idx >> 1, parent);
+                n += 1;
                 i += if paired { 2 } else { 1 };
             }
-            known.push(level);
-            nodes = parents;
+            nodes.truncate(n);
         }
         // The last fold leaves exactly the root, and nothing may be left over.
         if supplied.next().is_some() || nodes[0].1 != *root {
             return None;
         }
 
-        let per_distinct: Vec<Vec<Hash>> = sorted
-            .iter()
-            .map(|&leaf| {
-                (0..height)
-                    .map(|lvl| {
-                        let level = &known[lvl];
-                        let pos = level.binary_search_by_key(&((leaf >> lvl) ^ 1), |&(j, _)| j).ok()?;
-                        Some(level[pos].1)
-                    })
-                    .collect::<Option<Vec<_>>>()
-            })
-            .collect::<Option<Vec<_>>>()?;
-
         queries
             .iter()
             .map(|q| {
                 let slot = sorted.binary_search(q).ok()?;
-                Some(RawMerklePath {
-                    leaf_index: *q,
-                    leaf_data: leaf_image(&self.leaf_data[slot], leaf_words),
-                    path: per_distinct[slot].clone(),
-                })
+                Some(leaf_image(&self.leaf_data[slot], leaf_words))
             })
             .collect()
-    }
-}
-
-/// One query's opening, unpruned: the leaf's FULL image (zero prefix included) and
-/// the full sibling path from that leaf up to the root.
-///
-/// The redundant form. Several queries of one phase repeat whatever siblings
-/// they share, which is exactly what makes it simple to consume: recomputing
-/// the root is a walk up one path, with no dedup bookkeeping. The Python
-/// verifier consumes this; the wire format ([`PrunedMerklePaths`]) sends each
-/// shared sibling once.
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub struct RawMerklePath {
-    /// Transcript-derived position.
-    pub leaf_index: usize,
-    pub leaf_data: Vec<F64>,
-    pub path: Vec<Hash>,
-}
-
-impl RawMerklePath {
-    /// Recompute the root this opening claims, from its leaf and path.
-    pub fn root(&self, leaf_index: usize) -> Hash {
-        let mut acc = hash_words(&self.leaf_data);
-        let mut idx = leaf_index;
-        for sibling in &self.path {
-            let (left, right) = if idx & 1 == 0 { (acc, *sibling) } else { (*sibling, acc) };
-            acc = hash_pair(&left, &right);
-            idx >>= 1;
-        }
-        acc
     }
 }
 
@@ -285,7 +234,7 @@ mod tests {
 
     #[test]
     fn prune_open_roundtrip() {
-        let (num_leaves, width, height) = (8usize, 4usize, 3usize);
+        let (num_leaves, width) = (8usize, 4usize);
         let rows: Vec<Vec<F64>> = (0..num_leaves)
             .map(|q| (0..width).map(|j| F64((q * width + j) as u64)).collect())
             .collect();
@@ -296,12 +245,10 @@ mod tests {
         let paths = PrunedMerklePaths::prune(&tree, num_leaves, &queries, |q| rows[q].clone());
         assert_eq!(paths.leaf_data.len(), 3, "one row per distinct query");
 
-        let openings = paths.open(&root, num_leaves, &queries, width, width).expect("open");
-        assert_eq!(openings.len(), queries.len());
-        for (opening, &q) in openings.iter().zip(&queries) {
-            assert_eq!(opening.leaf_data, rows[q], "row must follow query order");
-            assert_eq!(opening.path.len(), height);
-            assert_eq!(opening.root(q), root, "each unpruned path must reach the root");
+        let opened = paths.open(&root, num_leaves, &queries, width, width).expect("open");
+        assert_eq!(opened.len(), queries.len());
+        for (row, &q) in opened.iter().zip(&queries) {
+            assert_eq!(*row, rows[q], "row must follow query order");
         }
     }
 

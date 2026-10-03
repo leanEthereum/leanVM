@@ -41,8 +41,8 @@ fn proves_and_verifies(tag: &str, program: &Program, expected: [u64; 4]) {
 fn proves_and_verifies_with(tag: &str, program: &Program, advice: &[u64], expected: [u64; 4]) {
     let (proof, output, _) = program.prove(advice, Rate::MIN).expect("the run halts");
     assert_eq!(output, expected);
-    let raw = program.verify_to_raw(&output, &proof).expect("honest proof verifies");
-    PythonStatement::new(tag, program, &output).assert_accepts(&raw);
+    program.verify(&output, &proof).expect("honest proof verifies");
+    PythonStatement::new(tag, program, &output).assert_accepts(&proof);
 
     // The proof is about this output.
     let mut wrong = output;

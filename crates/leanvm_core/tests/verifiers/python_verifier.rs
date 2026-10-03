@@ -2,10 +2,10 @@
 //! protocol is written out in Rust and in Python, so any protocol change must land
 //! in both, and this is what catches the Python one drifting.
 
-use fiat_shamir::transcript::RawProof;
+use fiat_shamir::transcript::Proof;
 use leanvm_core::cpu::CpuError;
 use leanvm_core::pcs::Rate;
-use primitives::field::F192;
+use primitives::field::{F64, F192};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 use std::time::Instant;
@@ -56,37 +56,20 @@ impl PythonStatement {
         statement
     }
 
-    /// Write `raw` as the two files Python reads and run the verifier on it: the
-    /// scalar stream as 24-byte little-endian elements, and every opening's leaf
-    /// words followed by its sibling digests. Neither file carries a length, the
-    /// reader deriving every leaf width and tree height from the protocol it is
-    /// replaying.
-    pub fn verify(&self, raw: &RawProof) -> Output {
-        let mut stream = Vec::new();
-        for scalar in &raw.stream {
-            for limb in [scalar.c0, scalar.c1, scalar.c2] {
-                stream.extend(limb.to_le_bytes());
-            }
-        }
-        let mut openings = Vec::new();
-        for opening in &raw.merkle {
-            for word in &opening.leaf_data {
-                openings.extend(word.0.to_le_bytes());
-            }
-            for digest in &opening.path {
-                openings.extend(digest);
-            }
-        }
-        let stream_path = self.directory.join("stream.bin");
-        let openings_path = self.directory.join("merkle_openings.bin");
-        std::fs::write(&stream_path, stream).expect("write scalar stream");
-        std::fs::write(&openings_path, openings).expect("write Merkle openings");
+    /// Run the verifier on `proof`'s own bytes, the ones a Rust verifier receives.
+    pub fn verify(&self, proof: &Proof) -> Output {
+        self.verify_bytes(&proof.to_bytes())
+    }
+
+    /// Run the verifier on `bytes` as a proof, whether or not they encode one.
+    pub fn verify_bytes(&self, bytes: &[u8]) -> Output {
+        let proof_path = self.directory.join("proof.bin");
+        std::fs::write(&proof_path, bytes).expect("write the proof");
         Command::new("python3")
             .arg(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../python-verifier/verifier.py"))
             .arg(&self.bytecode)
             .arg(&self.public)
-            .arg(stream_path)
-            .arg(openings_path)
+            .arg(proof_path)
             .output()
             .expect("run native Python verifier")
     }
@@ -102,8 +85,8 @@ impl PythonStatement {
         );
     }
 
-    pub fn assert_accepts(&self, raw: &RawProof) {
-        let output = self.verify(raw);
+    pub fn assert_accepts(&self, proof: &Proof) {
+        let output = self.verify(proof);
         assert!(
             output.status.success(),
             "native Python verification failed:\n{}",
@@ -119,21 +102,36 @@ impl Drop for PythonStatement {
     }
 }
 
-/// Both verifiers reject a proof whose announcement or commitment root is not a
-/// canonical encoding, and agree on everything before that.
+/// Both verifiers reject a malformed proof (bytes that encode none, an announcement or
+/// commitment root that is not a canonical encoding, Merkle data that does not
+/// authenticate) and agree on everything before that.
 #[test]
 fn test_python_verifier() {
     let (program, _) = super::programs::fibonacci();
     let (proof, output, stats) = program.prove(&[], Rate::MIN).expect("the run halts");
-    // Python reads the RAW proof: same protocol, each query carrying its own
-    // full Merkle path instead of one octopus over the batch. A Rust verify
-    // expands the wire form, so the pruning is written once.
-    let raw = program.verify_to_raw(&output, &proof).expect("honest proof verifies");
-    let encoded = bincode::serialize(&proof).expect("serialize proof");
+    program.verify(&output, &proof).expect("honest proof verifies");
+    let bytes = proof.to_bytes();
     let statement = PythonStatement::new("tamper", &program, &output);
     let verification_started = Instant::now();
-    statement.assert_accepts(&raw);
+    statement.assert_accepts(&proof);
     let verification_time = verification_started.elapsed();
+
+    // Python decodes the bytes itself, and refuses what `Proof::from_bytes` refuses: a proof
+    // cut short, one claiming a longer stream than it holds, one with bytes past its end.
+    let truncated = &bytes[..bytes.len() - 1];
+    let mut overlong = bytes.clone();
+    overlong[..8].copy_from_slice(&u64::MAX.to_le_bytes());
+    let trailing = [bytes.as_slice(), &[0]].concat();
+    for (what, reason, malformed) in [
+        ("a truncated proof", "the proof is truncated", truncated),
+        ("an overlong stream", "the proof is truncated", &overlong),
+        ("a proof with trailing bytes", "the proof has trailing bytes", &trailing),
+    ] {
+        assert!(Proof::from_bytes(malformed).is_none(), "Rust decoded {what}");
+        let refused = statement.verify_bytes(malformed);
+        PythonStatement::assert_rejects(&refused, what);
+        assert!(String::from_utf8_lossy(&refused.stderr).contains(reason), "{what}");
+    }
 
     let mut malformed_announcement = proof.clone();
     malformed_announcement.stream[0].c1 = 1;
@@ -141,9 +139,10 @@ fn test_python_verifier() {
         program.verify(&output, &malformed_announcement),
         Err(CpuError::NonCanonicalSize)
     );
-    let mut raw_announcement = raw.clone();
-    raw_announcement.stream[0].c1 = 1;
-    PythonStatement::assert_rejects(&statement.verify(&raw_announcement), "a noncanonical announcement");
+    PythonStatement::assert_rejects(
+        &statement.verify(&malformed_announcement),
+        "a noncanonical announcement",
+    );
 
     // Neither a padding row's clock nor a failed row's can end the run.
     let final_clock = leanvm_core::tables::N_TABLES + 1;
@@ -156,21 +155,46 @@ fn test_python_verifier() {
         let mut forged = proof.clone();
         forged.stream[final_clock] = F192::new(clock, 0, 0);
         assert_eq!(program.verify(&output, &forged), Err(CpuError::FinalClock));
-        let mut raw_forged = raw.clone();
-        raw_forged.stream[final_clock] = F192::new(clock, 0, 0);
-        let refused = statement.verify(&raw_forged);
+        let refused = statement.verify(&forged);
         PythonStatement::assert_rejects(&refused, "a final clock that is not live");
         assert!(String::from_utf8_lossy(&refused.stderr).contains("the final clock is not a live clock"));
     }
 
-    let mut malformed_root = proof;
+    let mut malformed_root = proof.clone();
     // Past the announcement: the table heights, the rate, the final clock.
     let root_offset = leanvm_core::tables::N_TABLES + 2;
     malformed_root.stream[root_offset].c2 = 1;
     assert!(program.verify(&output, &malformed_root).is_err());
-    let mut raw_root = raw.clone();
-    raw_root.stream[root_offset].c2 = 1;
-    PythonStatement::assert_rejects(&statement.verify(&raw_root), "a noncanonical commitment root");
+    PythonStatement::assert_rejects(&statement.verify(&malformed_root), "a noncanonical commitment root");
+
+    // The L0 phase's Merkle data as the proof stores it: each row only its leaf image's tail,
+    // the committed lanes, and one octopus holding each sibling the queried paths need once.
+    type Tamper = fn(&mut Proof);
+    let merkle_tampers: [(&str, &str, Tamper); 5] = [
+        ("a tampered sibling", "Merkle root mismatch", |p| {
+            p.merkle[0].sibling_hashes[0][0] ^= 1;
+        }),
+        ("a tampered leaf tail word", "Merkle root mismatch", |p| {
+            p.merkle[0].leaf_data[0].last_mut().expect("a row").0 ^= 1;
+        }),
+        ("a row that stores a zero of its prefix", "the wrong width", |p| {
+            p.merkle[0].leaf_data[0].insert(0, F64::ZERO);
+        }),
+        ("an octopus missing a sibling", "missing a sibling", |p| {
+            p.merkle[0].sibling_hashes.pop();
+        }),
+        ("an octopus with a sibling left over", "siblings left over", |p| {
+            p.merkle[0].sibling_hashes.push([0; 32]);
+        }),
+    ];
+    for (what, reason, tamper) in merkle_tampers {
+        let mut tampered = proof.clone();
+        tamper(&mut tampered);
+        assert!(program.verify(&output, &tampered).is_err(), "Rust accepted {what}");
+        let refused = statement.verify(&tampered);
+        PythonStatement::assert_rejects(&refused, what);
+        assert!(String::from_utf8_lossy(&refused.stderr).contains(reason), "{what}");
+    }
 
     // A decoded table is RISC-V only if it says so: one whose first entry writes `x0`
     // is refused before anything is verified.
@@ -179,7 +203,7 @@ fn test_python_verifier() {
     let mut writes_x0 = table.clone();
     writes_x0[8 * ad_slot * entries..][..8].copy_from_slice(&0u64.to_le_bytes());
     std::fs::write(&statement.bytecode, writes_x0).expect("write bytecode");
-    let python = statement.verify(&raw);
+    let python = statement.verify(&proof);
     PythonStatement::assert_rejects(&python, "a table that writes x0");
     assert!(
         String::from_utf8_lossy(&python.stderr).contains("misnames a register"),
@@ -201,7 +225,7 @@ fn test_python_verifier() {
             malformed[8 * slot * entries..][..8].copy_from_slice(&value.to_le_bytes());
         }
         std::fs::write(&statement.bytecode, malformed).expect("write malformed register");
-        let refused = statement.verify(&raw);
+        let refused = statement.verify(&proof);
         PythonStatement::assert_rejects(&refused, reason);
         assert!(String::from_utf8_lossy(&refused.stderr).contains(reason), "{reason}");
     }
@@ -209,7 +233,7 @@ fn test_python_verifier() {
     let mut forged_exit = table.clone();
     forged_exit[8 * leanvm_core::tables::EXIT_SLOT * entries..][..8].copy_from_slice(&1u64.to_le_bytes());
     std::fs::write(&statement.bytecode, forged_exit).expect("write forged exit");
-    let refused = statement.verify(&raw);
+    let refused = statement.verify(&proof);
     PythonStatement::assert_rejects(&refused, "an ordinary instruction marked as an exit");
     assert!(String::from_utf8_lossy(&refused.stderr).contains("an exit entry is not ECALL"));
     let branch = leanvm_core::rv::Alu::SUB | leanvm_core::rv::Alu::BR_EQ;
@@ -233,7 +257,7 @@ fn test_python_verifier() {
             malformed[8 * slot * entries..][..8].copy_from_slice(&value.to_le_bytes());
         }
         std::fs::write(&statement.bytecode, malformed).expect("write malformed control flow");
-        let refused = statement.verify(&raw);
+        let refused = statement.verify(&proof);
         PythonStatement::assert_rejects(&refused, "malformed control flow");
         assert!(String::from_utf8_lossy(&refused.stderr).contains("invalid control flow"));
     }
@@ -269,7 +293,7 @@ for flags, link, jalr in [(1 << 14, 1, 0), (1 | (1 << 8), 0, 0), (1 << 7, 1, 1)]
         "{} instructions; proved {} cycles in {} bytes; Python verified in {:.2?}",
         program.rv().entries().len(),
         stats.cycles,
-        encoded.len(),
+        bytes.len(),
         verification_time,
     );
 }
@@ -282,6 +306,6 @@ for flags, link, jalr in [(1 << 14, 1, 0), (1 | (1 << 8), 0, 0), (1 << 7, 1, 1)]
 fn the_python_verifier_follows_the_slowest_rate() {
     let (program, _) = super::programs::fibonacci();
     let (proof, output, _) = program.prove(&[], Rate::MAX).expect("the run halts");
-    let raw = program.verify_to_raw(&output, &proof).expect("honest proof verifies");
-    PythonStatement::new("rate", &program, &output).assert_accepts(&raw);
+    program.verify(&output, &proof).expect("honest proof verifies");
+    PythonStatement::new("rate", &program, &output).assert_accepts(&proof);
 }

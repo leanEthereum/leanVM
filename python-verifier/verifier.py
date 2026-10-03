@@ -344,16 +344,119 @@ def _selector_point(selector: int, length: int) -> MultilinearPoint:
 # Proof transport ------------------------------------------------------------
 
 
+def leaf_image(row: Sequence[int], leaf_words: int) -> tuple[int, ...]:
+    """Restore a stored row's omitted zero prefix."""
+    return (0,) * (leaf_words - len(row)) + tuple(row)
+
+
+def hash_words(image: Sequence[int]) -> Digest:
+    """The committer's leaf preimage: the image's words, little-endian."""
+    return blake2s_hash(pack(f"<{len(image)}Q", *image))
+
+
+def hash_pair(left: Digest, right: Digest) -> Digest:
+    """Hash two children into their parent."""
+    return blake2s_hash(left.value + right.value)
+
+
+@dataclass(frozen=True)
+class PrunedMerklePaths:
+    """One opening phase's Merkle data: the rows opened at each distinct queried position, ascending, and one octopus
+    authenticating all of them, which holds each sibling the queried paths need exactly once, and none that one of
+    them computes. A row may be narrower than the leaf image it hashes to, the missing words being a zero prefix the
+    caller announces: that keeps the absent lanes of the L0 commitment out of the proof."""
+
+    leaf_data: tuple[tuple[int, ...], ...]
+    sibling_hashes: tuple[Digest, ...]
+
+    def open(self, root: Digest, num_leaves: int, queries: Sequence[int], row_words: int, leaf_words: int) -> list[tuple[K, ...]]:
+        """Authenticate this phase against `root`, and return each query's full leaf image, in `queries` order.
+
+        Rebuild every node on the queried paths bottom-up: a level's nodes are sorted by position, two that are
+        siblings fold into their parent, and any other takes the next stored sibling. The last fold must leave the
+        root, with every stored sibling used."""
+        height = log2_strict(num_leaves)
+        positions = sorted(set(queries))
+        require(len(positions) > 0 and positions[-1] < num_leaves, "a Merkle query is outside the tree")
+        require(len(self.leaf_data) == len(positions), "a Merkle phase opens a row per distinct query")
+        require(row_words <= leaf_words and all(len(row) == row_words for row in self.leaf_data), "a Merkle row has the wrong width")
+        images = [leaf_image(row, leaf_words) for row in self.leaf_data]
+        siblings = iter(self.sibling_hashes)
+        nodes = [(position, hash_words(image)) for position, image in zip(positions, images, strict=True)]
+        for _ in range(height):
+            parents: list[tuple[int, Digest]] = []
+            i = 0
+            while i < len(nodes):
+                index, node = nodes[i]
+                if index % 2 == 0 and i + 1 < len(nodes) and nodes[i + 1][0] == index + 1:
+                    left, right = node, nodes[i + 1][1]
+                    i += 2
+                else:
+                    sibling = next(siblings, None)
+                    if sibling is None:
+                        raise VerificationError("the octopus is missing a sibling")
+                    left, right = (node, sibling) if index % 2 == 0 else (sibling, node)
+                    i += 1
+                parents.append((index // 2, hash_pair(left, right)))
+            nodes = parents
+        require(next(siblings, None) is None, "the octopus has siblings left over")
+        require(nodes[0][1] == root, "Merkle root mismatch")
+        rows = {position: tuple(K(word) for word in image) for position, image in zip(positions, images, strict=True)}
+        return [rows[query] for query in queries]
+
+
+class ProofReader:
+    """The proof's bytes as Rust's `Proof::to_bytes` writes them, bincode's fixed-width little-endian encoding: an
+    integer is 8 bytes, a sequence its length then its items, a struct its fields in order, a field element its
+    three limbs and a digest its 32 bytes."""
+
+    def __init__(self, data: bytes) -> None:
+        self.data = data
+        self.offset = 0
+
+    def take(self, length: int) -> bytes:
+        end = self.offset + length
+        require(end <= len(self.data), "the proof is truncated")
+        chunk = self.data[self.offset : end]
+        self.offset = end
+        return chunk
+
+    def u64(self) -> int:
+        return unpack("<Q", self.take(8))[0]
+
+    def sequence[T](self, item: Callable[[], T]) -> tuple[T, ...]:
+        count = self.u64()
+        # Every item is at least a byte, so a longer sequence is a truncated proof.
+        require(count <= len(self.data) - self.offset, "the proof is truncated")
+        return tuple(item() for _ in range(count))
+
+    def scalar(self) -> E:
+        return E.from_bytes(self.take(24))
+
+    def digest(self) -> Digest:
+        return Digest(self.take(32))
+
+    def row(self) -> tuple[int, ...]:
+        return self.sequence(self.u64)
+
+    def pruned_merkle_paths(self) -> PrunedMerklePaths:
+        return PrunedMerklePaths(self.sequence(self.row), self.sequence(self.digest))
+
+
 @dataclass(frozen=True)
 class Proof:
+    """A scalar stream and its Merkle opening phases."""
+
     stream: tuple[E, ...]
-    merkle_openings: bytes
+    merkle: tuple[PrunedMerklePaths, ...]
 
     @classmethod
-    def load(cls, stream: Path, merkle_openings: Path) -> Proof:
-        data = stream.read_bytes()
-        require(len(data) % 24 == 0, "the stream is not a whole number of field elements")
-        return cls(tuple(E.from_bytes(data[at : at + 24]) for at in range(0, len(data), 24)), merkle_openings.read_bytes())
+    def from_bytes(cls, data: bytes) -> Proof:
+        """The proof these bytes encode, if they encode one and nothing more."""
+        reader = ProofReader(data)
+        proof = cls(reader.sequence(reader.scalar), reader.sequence(reader.pruned_merkle_paths))
+        require(reader.offset == len(data), "the proof has trailing bytes")
+        return proof
 
 
 # Fiat--Shamir ---------------------------------------------------------------
@@ -374,7 +477,7 @@ class Transcript:
         self.proof = proof
         self.state = compress(fiat_shamir_IV.words(), public_input)
         self.stream_offset = 0  # in E field elements
-        self.opening_offset = 0  # in bytes
+        self.phase = 0  # in Merkle opening phases
 
     def observe(self, value: E) -> None:
         self.state = compress(self.state, (value.c0, value.c1, value.c2, DS_OBSERVE))
@@ -408,26 +511,13 @@ class Transcript:
         self.state = compress(self.state, block)
         require(valid, "invalid grinding nonce")
 
-    def _merkle_data(self, length: int) -> bytes:
-        end = self.opening_offset + length
-        require(end <= len(self.proof.merkle_openings), "Merkle opening missing")
-        chunk = self.proof.merkle_openings[self.opening_offset : end]
-        self.opening_offset = end
-        return chunk
-
-    def merkle(self, root: Digest, block_length: int, queries: Sequence[int], leaf_words: int) -> list[tuple[K, ...]]:
-        height = log2_strict(block_length)
-        rows = []
-        for query in queries:
-            leaf = self._merkle_data(8 * leaf_words)
-            node = blake2s_hash(leaf)
-            for level in range(height):
-                sibling = self._merkle_data(32)
-                left, right = (node.value, sibling) if query >> level & 1 == 0 else (sibling, node.value)
-                node = blake2s_hash(left + right)
-            require(node == root, "Merkle root mismatch")
-            rows.append(tuple(K(word) for word in unpack(f"<{leaf_words}Q", leaf)))
-        return rows
+    def next_merkle_batch(self, root: Digest, num_leaves: int, queries: Sequence[int], row_words: int, leaf_words: int) -> list[tuple[K, ...]]:
+        """Pull the next opening phase, authenticate it against `root`, and return each query's full leaf image.
+        `row_words` is what a stored row holds, `leaf_words` the image it hashes to."""
+        require(self.phase < len(self.proof.merkle), "Merkle opening phase missing")
+        paths = self.proof.merkle[self.phase]
+        self.phase += 1
+        return paths.open(root, num_leaves, queries, row_words, leaf_words)
 
     def sumcheck_round_poly(self, count: int, claim: E, eq_factor: E | None = None) -> list[E]:
         """returns q(X) := c0 + c1X + c2X^2 + ..."""
@@ -440,7 +530,7 @@ class Transcript:
 
     def finish(self) -> None:
         require(self.stream_offset == len(self.proof.stream), "proof stream not fully consumed")
-        require(self.opening_offset == len(self.proof.merkle_openings), "Merkle openings not fully consumed")
+        require(self.phase == len(self.proof.merkle), "Merkle opening phases not fully consumed")
 
 
 def sumcheck(transcript: Transcript, claim: E, count: int, equalities: Sequence[E | None]) -> tuple[MultilinearPoint, E]:
@@ -770,6 +860,7 @@ class Layout:
     producers: tuple[Producer, ...]  # the bytecode's, then the two range arrays'
     placements: tuple[Placement, ...]
     stack_log: int
+    n_lanes: int  # the L0 lanes the columns reach: the commitment's rest is the stack's zero tail, which no row stores
     table_log_heights: tuple[int, ...]
     final_clock: E  # the timestamp the run ended on, announced by the prover
 
@@ -1173,10 +1264,14 @@ class GluedClaim:
     weight_at: Callable[[Sequence[E]], E]
 
 
-def verify_whir(transcript: Transcript, log_n: int, log_inv_rate: int, target: E, root: Digest, evaluate_basis: Callable[[Sequence[E]], E]) -> None:
-    """Verify the base-field multilevel opening with a one-point terminal check."""
+def verify_whir(
+    transcript: Transcript, log_n: int, n_lanes: int, log_inv_rate: int, target: E, root: Digest, evaluate_basis: Callable[[Sequence[E]], E]
+) -> None:
+    """Verify the base-field multilevel opening with a one-point terminal check. Only `n_lanes` of the L0 lanes are
+    committed, the others being the witness's zero tail."""
     config = derive_config(log_n, log_inv_rate)
     levels = len(config.folds)
+    require(1 <= n_lanes <= 2**INITIAL_FOLDING_FACTOR, "committed lane count out of range")
 
     running_quad = transcript.sumcheck_round_poly(3, target)
     folds: list[E] = []
@@ -1212,10 +1307,12 @@ def verify_whir(transcript: Transcript, log_n: int, log_inv_rate: int, target: E
         # fixed: the OOD claims above and these query positions.
         lam = transcript.sample()
         query_weights = powers(lam, len(queries))
-        # Level 0 committed the K witness, one leaf word per lane; every deeper
-        # level a folded E one, three words per lane.
+        # Level 0 committed the K witness, one leaf word per lane, and a row stores only the committed lanes: the leaf
+        # image leads with the absent lanes' zeros, which the verifier restores. Every deeper level committed a folded E
+        # witness, three words per lane, all stored.
         lanes = 2**fold_count
-        words = transcript.merkle(current_root, block_length, queries, lanes if level == 0 else 3 * lanes)
+        row_words, leaf_words = (n_lanes, lanes) if level == 0 else (3 * lanes, 3 * lanes)
+        words = transcript.next_merkle_batch(current_root, block_length, queries, row_words, leaf_words)
         rows: list[Sequence[K | E]] = [tuple(reversed(row)) for row in words] if level == 0 else [_ext_row(row) for row in words]
         enforced = _enforced_sum(rows, level_folds, query_weights)
 
@@ -2033,6 +2130,10 @@ def build_layout(
     block_offsets, total_log = stack_offsets(list(blocks.values()))
     offsets = dict(zip(blocks, block_offsets))
     stack_log = max(MIN_STACKED_LOG, total_log)  # Floor at the PCS minimum
+    # The blocks tile from 0, so the padding is the tail: rounded up to whole L0 lanes, the lanes past it are never
+    # committed, and a row of the L0 commitment stores only these.
+    placed = sum(2**kappa for kappa in blocks.values())
+    n_lanes = max(1, -(-placed // 2 ** (stack_log - INITIAL_FOLDING_FACTOR)))
 
     def placement(column: int, kappa: int) -> Placement:
         if column not in words:
@@ -2053,6 +2154,7 @@ def build_layout(
         producers,
         tuple(placements),
         stack_log,
+        n_lanes,
         tuple(table_log_heights),
         final_clock,
     )
@@ -2115,13 +2217,17 @@ def ring_switch(families: Sequence[tuple[MultilinearPoint, Sequence[E]]], transc
 type StackClaim = tuple[Callable[[Sequence[E]], E], E]  # the weight it puts on the stack, and the value it claims for it
 
 
-def verify_stacked_opening(transcript: Transcript, root: Digest, stack_log: int, log_inv_rate: int, claims: Sequence[StackClaim]) -> None:
+def verify_stacked_opening(
+    transcript: Transcript, root: Digest, stack_log: int, n_lanes: int, log_inv_rate: int, claims: Sequence[StackClaim]
+) -> None:
     """Discharge every claim on the committed stack in one opening: the same powers of one challenge
     batch the values into the target, and the weights into the basis WHIR evaluates at its terminal point.
     """
     weights, values = zip(*claims, strict=True)
     scales = powers(transcript.sample(), len(claims))
-    verify_whir(transcript, stack_log, log_inv_rate, dot(scales, values), root, lambda point: dot(scales, [weight(point) for weight in weights]))
+    verify_whir(
+        transcript, stack_log, n_lanes, log_inv_rate, dot(scales, values), root, lambda point: dot(scales, [weight(point) for weight in weights])
+    )
 
 
 def _bytecode_public(producer: Producer, bytecode: Sequence[K], weights: Sequence[E], beta: E) -> Callable[[MultilinearPoint], list[E]]:
@@ -2219,7 +2325,9 @@ def verify_execution(
 
     regions = [layout.placements[column] for column in (*WITNESS_COLUMNS, *(producer.column for producer in layout.producers))]
     ringswitches = [on_region(region, *claim) for region, claim in zip(regions, ring_switch(families, transcript), strict=True)]
-    verify_stacked_opening(transcript, root, layout.stack_log, log_inverse_rate, [*ringswitches, *(c.on_stack(layout) for c in claims)])
+    verify_stacked_opening(
+        transcript, root, layout.stack_log, layout.n_lanes, log_inverse_rate, [*ringswitches, *(c.on_stack(layout) for c in claims)]
+    )
     transcript.finish()
 
 
@@ -2296,8 +2404,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         type=Path,
         help="little-endian 64-bit words: the entry pc, log2 of RAM's words, log2 of the advice's, the program's image (its length, then its words), the four output words",
     )
-    parser.add_argument("stream", type=Path, help="the proof's scalar stream, 24-byte little-endian field elements")
-    parser.add_argument("merkle_openings", type=Path, help="every Merkle opening: its leaf's words, then its sibling digests")
+    parser.add_argument("proof", type=Path, help="the proof's bytes, as Rust's `Proof::to_bytes` writes them")
     arguments = parser.parse_args(argv)
     try:
         encoded_bytecode = arguments.bytecode.read_bytes()
@@ -2308,7 +2415,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         entry_pc, log_ram, log_advice, image_length, *rest = unpack(f"<{len(encoded_public) // 8}Q", encoded_public)
         require(len(rest) == image_length + 4, "the public words are malformed")
         image, output = rest[:image_length], rest[image_length:]
-        proof = Proof.load(arguments.stream, arguments.merkle_openings)
+        proof = Proof.from_bytes(arguments.proof.read_bytes())
         verify_execution(bytecode, entry_pc, log_ram, log_advice, image, output, proof)
     except (OSError, ValueError, KeyError, VerificationError) as exc:
         parser.exit(1, f"verification failed: {exc}\n")

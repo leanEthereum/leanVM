@@ -15,7 +15,7 @@ use crate::pcs;
 use crate::rv::{self, Machine, Region};
 use crate::tables::{self, CLOCK_START, CYCLE, MAX_CYCLES};
 use ::pcs::pack::PACKING_WIDTH;
-use fiat_shamir::transcript::{Challenger, Proof, ProverState, RawProof, VerifierState};
+use fiat_shamir::transcript::{Challenger, Proof, ProverState, VerifierState};
 use primitives::field::{F64, F192};
 
 /// A validated program, its fill blocks, and the digest of everything public about it.
@@ -29,6 +29,8 @@ pub struct Program {
     pub(super) digest: [u8; 32],
     /// Where each fill block sits in the text.
     pub(super) filler: FillBlocks,
+    /// The bytecode producer's tuple: the digest binds it and every layout pushes it.
+    pub(super) bytecode: Vec<leaf::Coord>,
 }
 
 // Why: the digest reads tables of words as bytes, which is their little-endian image only on a little-endian target.
@@ -87,10 +89,12 @@ impl Program {
         text.push(0);
         let filler = FillBlocks::append(&mut text);
         let rv = rv::Program::new(&text, entry_pc, image, log_ram, log_advice)?;
+        let bytecode = Lookup::Bytecode.tuple(&rv);
         Ok(Self {
-            digest: Self::digest_of(&rv),
+            digest: Self::digest_of(&rv, &bytecode),
             rv,
             filler,
+            bytecode,
         })
     }
 
@@ -290,23 +294,14 @@ impl Program {
     /// # Errors
     ///
     /// Returns the first stage that refuses the proof.
-    pub fn verify(&self, output: &[u64; 4], proof: &Proof) -> Result<(), CpuError> {
-        self.verify_to_raw(output, proof).map(|_| ())
-    }
-
-    /// Verify a proof, and return it with every query's Merkle path written out, the form the Python verifier reads.
-    ///
-    /// # Errors
-    ///
-    /// Returns the first stage that refuses the proof.
     #[tracing::instrument(name = "Verify", skip_all)]
-    pub fn verify_to_raw(&self, output: &[u64; 4], proof: &Proof) -> Result<RawProof, CpuError> {
+    pub fn verify(&self, output: &[u64; 4], proof: &Proof) -> Result<(), CpuError> {
         // The public statement seeds the transcript, as on the prover's side.
         let mut vs = VerifierState::new(self.fs_seed(), proof, output.map(F64));
 
         // The announced sizes, then the layout they describe, then the commitment.
         let announcement = Announcement::read(&mut vs)?;
-        let l = announcement.layout(&self.rv)?;
+        let l = announcement.layout(self)?;
         let root = pcs::read_commitment(&mut vs)?;
 
         let bus = leaf::verify_balance(&l.push, &l.pull, &l.producers, &Schema::get().spans, &mut vs)
@@ -366,7 +361,7 @@ impl Program {
         // The one opening, then nothing may be left on the stream.
         pcs::verify(&mut vs, &slots, &rings, l.shape, announcement.log_inv_rate, &root).map_err(CpuError::Open)?;
         vs.finish()?;
-        Ok(vs.into_raw_proof())
+        Ok(())
     }
 
     /// The decoded text, memory image and region sizes.
@@ -400,9 +395,9 @@ impl Program {
     /// The digest of `rv`'s public statement.
     ///
     /// Every variable-length part is length-framed, so the preimage parses one way.
-    fn digest_of(rv: &rv::Program) -> [u8; 32] {
+    fn digest_of(rv: &rv::Program, bytecode: &[leaf::Coord]) -> [u8; 32] {
         let bytes = |words: &[u64]| -> Vec<u8> { words.iter().flat_map(|w| w.to_le_bytes()).collect() };
-        let table = Lookup::Bytecode.table(rv);
+        let table = leaf::stacked_bytecode_table(Lookup::Bytecode.log_rows(Sizes::of(rv)), bytecode);
 
         // SAFETY: F64 is #[repr(transparent)] over u64.
         // So the slice's bytes are the concatenation of its words' little-endian bytes on this target.

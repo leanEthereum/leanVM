@@ -1,24 +1,18 @@
 //! Fiat-Shamir proof transport. `add_scalar` and `next_scalar` transmit and bind together, which is the only way anything enters the state: a transmitted value needs no separate absorb, a value derived from transmitted ones needs none either, and the statement rides the seed the state starts from. So there is no absorb-only method at all. Merkle hints are authenticated by their trees and are not absorbed separately.
 
 use crate::FiatShamirState;
-use crate::merkle::{Hash, PrunedMerklePaths, RawMerklePath, hash_to_scalars, scalars_to_hash};
+use crate::merkle::{Hash, PrunedMerklePaths, hash_to_scalars, scalars_to_hash};
 use bincode::Options;
 use primitives::field::{F64, F192};
 
-/// A scalar stream and its Merkle opening phases. `M` selects pruned or raw paths.
+/// A scalar stream and its Merkle opening phases.
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub struct Proof<M = PrunedMerklePaths> {
+pub struct Proof {
     pub stream: Vec<F192>,
-    pub merkle: Vec<M>,
+    pub merkle: Vec<PrunedMerklePaths>,
 }
 
-/// The proof the Python verifier consumes: [`Proof`] with every query's Merkle
-/// path written out, which is the one thing it would otherwise have to
-/// reconstruct. A verifier run yields it as a by-product
-/// ([`VerifierState::into_raw_proof`]), so that expansion is written once, in Rust.
-pub type RawProof = Proof<RawMerklePath>;
-
-impl<M: serde::Serialize + serde::de::DeserializeOwned> Proof<M> {
+impl Proof {
     /// The proof's wire bytes: bincode's fixed-width little-endian encoding.
     #[must_use]
     pub fn to_bytes(&self) -> Vec<u8> {
@@ -181,7 +175,6 @@ pub struct VerifierState<'a> {
     offset: usize,
     merkle: &'a [PrunedMerklePaths],
     phase: usize,
-    raw_openings: Vec<RawMerklePath>,
 }
 
 impl<'a> VerifierState<'a> {
@@ -203,7 +196,6 @@ impl<'a> VerifierState<'a> {
             offset: 0,
             merkle: &proof.merkle,
             phase: 0,
-            raw_openings: Vec::new(),
         }
     }
 
@@ -223,16 +215,6 @@ impl<'a> VerifierState<'a> {
     #[inline]
     fn bind(&mut self, x: F192) {
         self.fs.observe(x);
-    }
-
-    /// The redundant form of the proof just verified: every scalar it read, plus
-    /// one unpruned opening per query in phase order. Meaningful only after a
-    /// verification that accepted, since a rejected one stops part way.
-    pub fn into_raw_proof(self) -> RawProof {
-        RawProof {
-            stream: self.stream[..self.offset].to_vec(),
-            merkle: self.raw_openings,
-        }
     }
 
     /// Assert the whole proof was consumed (no trailing/extra data).
@@ -287,8 +269,6 @@ impl<'a> Receiver for VerifierState<'a> {
     /// in `queries` order.
     ///
     /// The only way to reach a phase's rows, so none can be used unauthenticated.
-    /// The check also yields each query's full sibling path, which is recorded
-    /// for [`VerifierState::into_raw_proof`].
     fn next_merkle_batch(
         &mut self,
         root: &Hash,
@@ -300,12 +280,9 @@ impl<'a> Receiver for VerifierState<'a> {
         let phase = self.phase;
         let paths: &'a PrunedMerklePaths = self.merkle.get(phase).ok_or(Error::MissingHint { phase })?;
         self.phase += 1;
-        let openings = paths
+        paths
             .open(root, num_leaves, queries, row_words, leaf_words)
-            .ok_or(Error::InvalidMerkleOpening { phase })?;
-        let rows = openings.iter().map(|o| o.leaf_data.clone()).collect();
-        self.raw_openings.extend(openings);
-        Ok(rows)
+            .ok_or(Error::InvalidMerkleOpening { phase })
     }
 
     /// Read the next scalar, binding it into the state (mirrors `add_scalar`).
