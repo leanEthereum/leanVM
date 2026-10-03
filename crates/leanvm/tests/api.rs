@@ -110,6 +110,50 @@ fn public_api_end_to_end() {
     );
     assert_eq!(Program::from_elf(b"\x7fELF").map(|_| ()), Err(ElfError::Truncated));
 
+    // 7. Recursion: one proof that proofs of two programs verify, its arena phase between theirs.
+    let (guest, advice, digest) = preimage(b"leanVM");
+    let hashed = prover.prove(&guest, &advice, Rate::MIN).expect("the run halts");
+    let inners = [
+        recursion::Inner {
+            program: &program,
+            proof: &received,
+            output,
+        },
+        recursion::Inner {
+            program: &guest,
+            proof: &hashed.proof,
+            output: digest,
+        },
+    ];
+    let outer = recursion::prove(&prover, &inners, Rate::MIN).expect("both proofs verify");
+    recursion::verify(&[&program, &guest], &outer, Rate::MIN).unwrap();
+    assert!(recursion::verify(&[&guest, &program], &outer, Rate::MIN).is_err());
+    let mut wrong = outer;
+    wrong.inners[1].output[3] ^= 1;
+    assert!(recursion::verify(&[&program, &guest], &wrong, Rate::MIN).is_err());
+    let forged = recursion::Inner {
+        output: wrong_output,
+        ..inners[0]
+    };
+    assert!(matches!(
+        recursion::prove(&prover, &[forged], Rate::MIN),
+        Err(Error::Verify(_))
+    ));
+
+    // 8. Aggregation: a tree over two proofs of one program, the leaves' outputs in order.
+    let (_, other_advice, other_digest) = preimage(b"leanvm");
+    let other = prover.prove(&guest, &other_advice, Rate::MIN).expect("the run halts");
+    let tree = aggregate::Tree::new(&guest, &hashed.proof, 2, Rate::MIN).expect("a leaf shape");
+    let root = tree
+        .prove(&prover, &[(&hashed.proof, digest), (&other.proof, other_digest)])
+        .expect("both leaves verify");
+    tree.verify(&root, &[digest, other_digest]).unwrap();
+    assert!(tree.verify(&root, &[other_digest, digest]).is_err());
+    assert!(matches!(
+        tree.prove_lift(&prover, &hashed.proof, other_digest),
+        Err(Error::Verify(_))
+    ));
+
     let stats = zk_alloc::stats();
     assert!(stats.phases >= 2, "expected one phase per proof, got {stats:?}");
     assert!(stats.peak_bytes > 0, "no buffer reached the arena: {stats:?}");

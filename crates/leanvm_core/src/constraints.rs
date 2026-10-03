@@ -84,7 +84,8 @@ pub trait Summand: Sync {
     fn eval<T: ColVal>(&self, cols: &[T], quadratic: bool) -> F192;
 
     /// The table's public columns at its point `chi`, which the verifier computes rather
-    /// than reads: as many as the air's `n_public`.
+    /// than reads: as many as the air's `n_public`. A caller may leave a part of them
+    /// out, which [`Final::residual`] then owes.
     fn public(&self, _chi: &[F192]) -> Vec<F192> {
         Vec::new()
     }
@@ -497,14 +498,43 @@ fn prove_reference<S: Summand>(
         .collect()
 }
 
+/// What [`verify`] establishes: the per-table claims, and the batch's final identity
+/// short of whatever the caller left out of the public columns and the target.
+pub struct Final {
+    pub claims: Vec<Claims>,
+    /// Each air's weight in the final identity: the eq weight of its point times the
+    /// challenges of the rounds it sat out.
+    pub weights: Vec<F192>,
+    /// The final claim plus every air's weighted summand at its columns: zero when the
+    /// identity holds as the airs and the target stand. Otherwise it is what the parts
+    /// the caller left out owe: an air's, through its summand, and the target's,
+    /// times [`Final::target_weight`].
+    pub residual: F192,
+    /// What the final claim moves by per unit of target: the product of the round
+    /// challenges, each round's claim fixing the linear coefficient of its polynomial.
+    pub target_weight: F192,
+}
+
+impl Final {
+    /// The claims, when nothing was left out.
+    pub fn settle(self) -> Result<Vec<Claims>, Error> {
+        if self.residual.is_zero() {
+            Ok(self.claims)
+        } else {
+            Err(Error::FinalMismatch)
+        }
+    }
+}
+
 /// Verify the table sumcheck, returning the per-table claims for the caller to
-/// settle against the commitment.
+/// settle against the commitment, and the final identity's residual for it to settle
+/// against what it left out ([`Final`]).
 pub fn verify<S: Summand>(
     airs: &[Air<S>],
     zeta: &[F192],
     target: F192,
     vs: &mut VerifierState,
-) -> Result<Vec<Claims>, Error> {
+) -> Result<Final, Error> {
     let n = airs.iter().map(|a| a.tau).max().unwrap_or(0);
     if zeta.len() < n {
         return Err(Error::PointTooShort {
@@ -532,23 +562,25 @@ pub fn verify<S: Summand>(
         }
     }
 
-    let mut acc = F192::ZERO;
+    let mut residual = claim;
     let mut claims = Vec::with_capacity(airs.len());
     for (t, air) in airs.iter().enumerate() {
         let evals = vs.next_scalars(air.n_cols - air.n_public)?;
         let mut values = evals.clone();
         values.extend(air.summand.public(&chi[..air.tau]));
         assert_eq!(values.len(), air.n_cols, "a table's public columns are all evaluated");
-        acc += weights[t] * air.summand.eval(&values, false);
+        residual += weights[t] * air.summand.eval(&values, false);
         claims.push(Claims {
             chi: chi[..air.tau].to_vec(),
             evals,
         });
     }
-    if acc != claim {
-        return Err(Error::FinalMismatch);
-    }
-    Ok(claims)
+    Ok(Final {
+        claims,
+        weights,
+        residual,
+        target_weight: chi.iter().fold(F192::ONE, |acc, &r| acc * r),
+    })
 }
 
 #[cfg(test)]
@@ -667,7 +699,7 @@ mod tests {
         let pclaims = prove(&airs, views, &zeta, &zeros, &mut ps);
         let proof = ps.into_proof();
         let mut vs = VerifierState::from_label(b"zc-test", &proof);
-        let vclaims = verify(&airs, &zeta, F192::ZERO, &mut vs);
+        let vclaims = verify(&airs, &zeta, F192::ZERO, &mut vs).and_then(Final::settle);
         if let Ok(vc) = &vclaims {
             assert_eq!(&pclaims, vc);
         }
@@ -777,7 +809,12 @@ mod tests {
             let proof = ps.into_proof();
             // No column evaluations are transmitted, but the constant still binds every round.
             let mut vs = VerifierState::from_label(b"constant-column-free-test", &proof);
-            assert_eq!(verify(&airs, &zeta, F192::ONE, &mut vs).unwrap(), claims);
+            assert_eq!(
+                verify(&airs, &zeta, F192::ONE, &mut vs)
+                    .and_then(Final::settle)
+                    .unwrap(),
+                claims
+            );
             vs.finish().unwrap();
         }
     }
@@ -836,7 +873,7 @@ mod tests {
             let pclaims = prove(&airs, views, &zeta, sig, &mut ps);
             let proof = ps.into_proof();
             let mut vs = VerifierState::from_label(b"zc-test", &proof);
-            let out = verify(&airs, &zeta, target, &mut vs);
+            let out = verify(&airs, &zeta, target, &mut vs).and_then(Final::settle);
             if let Ok(vc) = &out {
                 assert_eq!(&pclaims, vc);
             }
@@ -868,7 +905,9 @@ mod tests {
             bad.stream[i] += F192::ONE;
             let mut vs = VerifierState::from_label(b"zc-test", &bad);
             assert!(
-                verify(&airs, &zeta, F192::ZERO, &mut vs).is_err(),
+                verify(&airs, &zeta, F192::ZERO, &mut vs)
+                    .and_then(Final::settle)
+                    .is_err(),
                 "tampered word {i} must be rejected"
             );
         }

@@ -27,6 +27,7 @@ pub mod cpu;
 pub mod gkr;
 pub mod leaf;
 pub mod pcs;
+pub mod rec;
 pub mod rv;
 pub mod tables;
 pub mod witness;

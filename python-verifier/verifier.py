@@ -569,7 +569,9 @@ class BusResult:
     point: MultilinearPoint  # the GKR point zeta, which the table sumcheck reuses
     forms: tuple[tuple[Form, ...], ...]  # forms[table][side]
     producers: tuple[tuple[E, ...], ...]  # per producer, the weight on each bit's block
-    totals: tuple[E, E]  # what the tables and the producers owe each side, derived
+    totals: tuple[E, E]  # what the tables and the producers owe each side, derived, short of RAM's image
+    image: tuple[E, MultilinearPoint]  # RAM's image's weight in the push side's total, and its point
+    alphas: tuple[E, ...]
     weights: tuple[E, ...]  # eq(alpha, .), the fingerprint the producers' public columns are made of
     beta: E
 
@@ -581,7 +583,12 @@ class Column:
     index: int
 
 
-type FrameworkTuple = tuple[E | Column, ...]
+@dataclass(frozen=True)
+class Image:
+    """RAM's image in a framework tuple: only the program fixes it, so its value is left to the program's deferred claim."""
+
+
+type FrameworkTuple = tuple[E | Column | Image, ...]
 type FrameworkBlock = tuple[FrameworkTuple, FrameworkTuple]  # push, pull
 
 
@@ -590,7 +597,7 @@ def framework_tuples(layout: Layout, lows: dict[str, MultilinearPoint]) -> dict[
     run at the halt slot and finalizes every array with its committed columns. Register numbers and addresses are
     integers: register z is cell z, RAM's word z sits at RAM_BASE + 8z, the advice's at ADVICE_BASE + 8z."""
 
-    def array(separator: E, index: E, initial: E | Column, final_ts: str, final: str) -> FrameworkBlock:
+    def array(separator: E, index: E, initial: E | Column | Image, final_ts: str, final: str) -> FrameworkBlock:
         """A read-write array: every cell starts at the seed's timestamp holding `initial`, and ends at its last timestamp holding its final word."""
         return (separator, index, E(SEED_CLOCK), initial), (separator, index, Column(SHARED[final_ts]), Column(SHARED[final]))
 
@@ -600,7 +607,7 @@ def framework_tuples(layout: Layout, lows: dict[str, MultilinearPoint]) -> dict[
         "state": ((SEP_STATE, E(layout.entry_pc), E(CLOCK_START), ZERO), (SEP_STATE, halt_pc, layout.final_clock, layout.final_clock)),
         # the registers start at zero, RAM as the statement has it, the advice as the prover has it
         "registers": array(SEP_REG, int_index_mle(0, 0, lows["registers"]), ZERO, "register_final_ts", "register_final"),
-        "ram": array(SEP_MEM, int_index_mle(RAM_BASE, 3, lows["ram"]), sparse_mle(layout.ram, lows["ram"]), "ram_final_ts", "ram_final"),
+        "ram": array(SEP_MEM, int_index_mle(RAM_BASE, 3, lows["ram"]), Image(), "ram_final_ts", "ram_final"),
         "advice": array(SEP_MEM, int_index_mle(ADVICE_BASE, 3, lows["advice"]), Column(SHARED["advice_initial"]), "advice_final_ts", "advice_final"),
     }
 
@@ -622,13 +629,17 @@ def verify_bus_balance(layout: Layout, transcript: Transcript) -> BusResult:
     tuples = framework_tuples(layout, lows)
     claims: list[ColumnClaim] = []
     opened: dict[int, E] = {}
+    image_slots: dict[str, E] = {}  # per framework block, the fingerprint's weight on RAM's image, which is left out
 
-    def fingerprint(block: str, coordinates: Sequence[E | Column]) -> E:
+    def fingerprint(block: str, coordinates: Sequence[E | Column | Image]) -> E:
         """The tuple's coordinates weighted by eq(alpha, .), slots past the ones named being zero. A committed column's
         value is read off the stream the first time either side names it, so push's columns come first, then pull's."""
         values = []
-        for coordinate in coordinates:
-            if isinstance(coordinate, Column):
+        for slot, coordinate in enumerate(coordinates):
+            if isinstance(coordinate, Image):
+                image_slots[block] = weights[slot]
+                coordinate = ZERO
+            elif isinstance(coordinate, Column):
                 if coordinate.index not in opened:
                     opened[coordinate.index] = transcript.next_scalar()
                     claims.append(ColumnClaim(coordinate.index, lows[block], opened[coordinate.index]))
@@ -638,6 +649,8 @@ def verify_bus_balance(layout: Layout, transcript: Transcript) -> BusResult:
 
     start = [fingerprint(block, tuples[block][0]) for block in FRAMEWORK]
     end = [fingerprint(block, tuples[block][1]) for block in FRAMEWORK]
+    # RAM's image seeds the push side, at its block's selector.
+    image = (push_layout.framework[FRAMEWORK.index("ram")].eq_above(point) * image_slots["ram"], lows["ram"])
     totals = []  # what remains to be proven by the next table sumcheck
     forms = tuple(tuple(Form() for _ in range(2)) for _ in TABLES)
     # A producer's bit block weighs on its own sumcheck, at its selector.
@@ -658,7 +671,7 @@ def verify_bus_balance(layout: Layout, transcript: Transcript) -> BusResult:
         ones_padding = E.sum(framework_selectors + table_selectors + producer_selectors) + ONE
         totals.append(tree_values[side] + known + ones_padding)  # what the sumcheck owes: the GKR value, less framework and padding
 
-    return BusResult(tuple(claims), point, forms, producers, (totals[0], totals[1]), tuple(weights), beta)
+    return BusResult(tuple(claims), point, forms, producers, (totals[0], totals[1]), image, tuple(alphas), tuple(weights), beta)
 
 
 # Table sumcheck -------------------------------------------------------------
@@ -667,11 +680,21 @@ def verify_bus_balance(layout: Layout, transcript: Transcript) -> BusResult:
 @dataclass(frozen=True)
 class ProducerAir:
     """A producer in the table sumcheck: it owes the push side, for each bit i, sum_x eq(zeta, x) (1 + b_i(x) P'_i(x)) at
-    its weight on that bit's block. Its bits are sent; its public columns P'_i the verifier evaluates itself."""
+    its weight on that bit's block. Its bits are sent; of its public columns P'_i the verifier evaluates the part the
+    program's columns do not enter, and leaves theirs to the program's deferred claim."""
 
     log_rows: int
     coefficients: tuple[E, ...]  # per bit, its block's weight, the push side's power folded in
-    public: Callable[[MultilinearPoint], list[E]]  # the public columns P'_i at a point
+    public: Callable[[MultilinearPoint], list[E]]  # the public columns P'_i at a point, short of the program's columns
+
+
+@dataclass(frozen=True)
+class TableSumcheck:
+    claims: list[ColumnClaim]  # the tables' column claims
+    families: list[tuple[MultilinearPoint, tuple[E, ...]]]  # per producer, its point and its bits' values there
+    twists: list[tuple[E, ...]]  # per producer, the weight of each bit's public column in the terminal identity
+    residual: E  # what the terminal identity leaves to the program: the public columns' and the target's missing parts
+    target_weight: E  # the weight of the target in the terminal identity: the product of the round challenges
 
 
 def table_sumcheck(
@@ -682,8 +705,7 @@ def table_sumcheck(
     equality_point: MultilinearPoint,
     target: E,
     transcript: Transcript,
-) -> tuple[list[ColumnClaim], list[tuple[MultilinearPoint, tuple[E, ...]]]]:
-    """The tables' column claims, then per producer its point and its bits' values there."""
+) -> TableSumcheck:
     heights = [*table_log_heights, *(producer.log_rows for producer in producers)]
     n_rounds = max(heights)
     challenges, claim = sumcheck(transcript, target, 4, [None] * n_rounds)
@@ -702,14 +724,15 @@ def table_sumcheck(
         table_point = tuple(point[:height])
         claims.extend(ColumnClaim(GLOBAL_COLUMN_BASES[table.opcode] + local, table_point, value) for local, value in enumerate(evaluations))
     families = []
+    twists = []
     for producer, weight in zip(producers, weights[len(TABLES) :], strict=True):
         bits = tuple(transcript.next_scalars(len(producer.coefficients)))
         producer_point = tuple(point[: producer.log_rows])
         public = producer.public(producer_point)
         final += weight * E.sum(c * (ONE + b * p) for c, b, p in zip(producer.coefficients, bits, public, strict=True))
         families.append((producer_point, bits))
-    require(final == claim, "table sumcheck terminal mismatch")
-    return claims, families
+        twists.append(tuple(weight * c * b for c, b in zip(producer.coefficients, bits, strict=True)))  # P'_i enters at c_i b_i
+    return TableSumcheck(claims, families, twists, final + claim, reduce(mul, challenges, ONE))
 
 
 # The bus blocks no instruction table owns, which each side starts with, in this order: the run's boundary, then
@@ -1338,32 +1361,49 @@ class FlockCircuit:
     bilinear: Callable[[E, Sequence[E], Sequence[E]], E]
 
 
-def verify_flock_lincheck(circuit: FlockCircuit, zc: ZerocheckResult, transcript: Transcript) -> tuple[MultilinearPoint, tuple[E, ...]]:
-    """Lincheck at the quirky point (z_skip, chi): the claim's point, then its 64 slices s."""
+@dataclass(frozen=True)
+class MatrixForm:
+    """The part of a lincheck's terminal identity only the circuit fixes: `e_row^T (A0 + alpha B0) w_col`, e_row the
+    quirky eq weights at (z_skip, chi_in) and w_col the column weights eq(chi_in_prime, .) times the 64 slices s."""
+
+    alpha: E
+    z_skip: E
+    chi_in: MultilinearPoint
+    chi_in_prime: MultilinearPoint
+    s: tuple[E, ...]
+
+    def evaluate(self, circuit: FlockCircuit) -> E:
+        # e_row: phi8 Lagrange in the skip coordinate, eq in the slot variables.
+        e_row = [weight * value for weight in eq_kernel(self.chi_in) for value in lagrange_weights(K_BITS, self.z_skip)]
+        w_col = [value * weight for weight in eq_kernel(self.chi_in_prime) for value in self.s]
+        return circuit.bilinear(self.alpha, e_row, w_col)
+
+
+def verify_flock_lincheck(
+    circuit: FlockCircuit, zc: ZerocheckResult, transcript: Transcript
+) -> tuple[MultilinearPoint, tuple[E, ...], MatrixForm, E]:
+    """Lincheck at the quirky point (z_skip, chi): the claim's point, then its 64 slices s, then the circuit's matrix
+    form and the value the terminal identity needs it to take."""
     n_rounds = circuit.log_size - FLOCK_K_SKIP
     alpha = transcript.sample()  # batches the two matrix identities, the c claim and the constant-position claim
-    # e_row: phi8 Lagrange in the skip coordinate, eq in the slot variables.
     skip_weights = lagrange_weights(K_BITS, zc.z_skip)
     chi_in = zc.chi[:n_rounds]
-    e_row = [weight * value for weight in eq_kernel(chi_in) for value in skip_weights]
 
     # The rounds that bind the high column coordinates (8 for BLAKE2s), leaving 64 unfolded.
     claim = zc.v_a + alpha * zc.v_b + alpha**2 * zc.v_c + alpha**3
     round_challenges, r_lc = sumcheck(transcript, claim, 3, [None] * n_rounds)
 
-    # The residual, then the terminal identity: pin term and c term included.
-    # C = I, so the c weight is e_row itself, and both sides being tensors it
-    # collapses to eq(chi_in, chi_in_prime) times a 64-term Lagrange combination.
+    # The residual, then the terminal identity, of which the matrix form is left to the circuit: what remains is the
+    # c term and the pin term. C = I, so the c weight is e_row itself, and both sides being tensors it collapses to
+    # eq(chi_in, chi_in_prime) times a 64-term Lagrange combination; the pin's column weight is its slice times the eq
+    # weight of its slot.
     s = tuple(transcript.next_scalars(K_BITS))
     chi_in_prime = tuple(reversed(round_challenges))
-    w_col = [value * weight for weight in eq_kernel(chi_in_prime) for value in s]
-    terminal = (
-        circuit.bilinear(alpha, e_row, w_col)
-        + alpha**2 * eq_eval(chi_in, chi_in_prime) * dot(skip_weights, s)
-        + alpha**3 * w_col[circuit.constant_column]
+    pin = circuit.constant_column
+    value = (
+        r_lc + alpha**2 * eq_eval(chi_in, chi_in_prime) * dot(skip_weights, s) + alpha**3 * s[pin % K_BITS] * eq_kernel(chi_in_prime)[pin // K_BITS]
     )
-    require(terminal == r_lc, "Flock lincheck terminal mismatch")
-    return chi_in_prime + zc.chi[n_rounds:], s
+    return chi_in_prime + zc.chi[n_rounds:], s, MatrixForm(alpha, zc.z_skip, chi_in, chi_in_prime, s), value
 
 
 # The class circuits ----------------------------------------------------------
@@ -2058,9 +2098,9 @@ def build_layout(
     )
 
 
-def verify_flock(circuit: FlockCircuit, log_height: int, transcript: Transcript) -> tuple[MultilinearPoint, tuple[E, ...]]:
-    """The reduction in protocol order: zerocheck, then lincheck. What it leaves is the
-    point and the 64 claims s[i] = z(i, point), i < 64, for ring switching to bind."""
+def verify_flock(circuit: FlockCircuit, log_height: int, transcript: Transcript) -> tuple[MultilinearPoint, tuple[E, ...], MatrixForm, E]:
+    """The reduction in protocol order: zerocheck, then lincheck. What it leaves is the point and the 64 claims
+    s[i] = z(i, point), i < 64, for ring switching to bind, and the matrix form with the value it must take."""
     zc = verify_flock_zerocheck(circuit.log_size + log_height, transcript)
     return verify_flock_lincheck(circuit, zc, transcript)
 
@@ -2124,30 +2164,93 @@ def verify_stacked_opening(transcript: Transcript, root: Digest, stack_log: int,
     verify_whir(transcript, stack_log, log_inv_rate, dot(scales, values), root, lambda point: dot(scales, [weight(point) for weight in weights]))
 
 
-def _bytecode_public(producer: Producer, bytecode: Sequence[K], weights: Sequence[E], beta: E) -> Callable[[MultilinearPoint], list[E]]:
-    """The bytecode's public columns P'_i = (beta + pi_alpha(entry x))^(2^i) - 1 at a point. Squaring is additive, so the
-    separator and the address column TEXT_BASE + 4x are raised term by term, the address staying affine in the bits;
-    the program's columns are summed into one, c(x), whose powers are taken entry by entry."""
+def _bytecode_affine(producer: Producer, weights: Sequence[E], beta: E) -> Callable[[MultilinearPoint], list[E]]:
+    """The bytecode's public columns P'_i = (beta + pi_alpha(entry x))^(2^i) - 1 at a point, short of the program's
+    columns. Squaring is additive, so the separator and the address column TEXT_BASE + 4x are raised term by term, the
+    address staying affine in the bits; the program's columns' share is the program's deferred claim."""
 
     def public(point: MultilinearPoint) -> list[E]:
-        size = len(bytecode) >> BUS_BITS
-        slots = range(BYTECODE_PUBLIC_SLOT, EXIT_SLOT + 1)
-        sums = [E.sum(weights[slot] * word for slot in slots if (word := bytecode[slot * size + x])) for x in range(size)]
-        eq = eq_kernel(point)
         constant, weight = beta + weights[0] * SEP_BYTECODE + weights[1] * E(TEXT_BASE), weights[1]
         monomials = [E(1 << (bit + 2)) for bit in range(len(point))]
         values = []
         for _ in range(producer.bits):
-            values.append(constant + weight * dot(point, monomials) + dot(eq, sums) + ONE)
+            values.append(constant + weight * dot(point, monomials) + ONE)
             constant, weight = constant.square(), weight.square()
             monomials = [m.square() for m in monomials]
-            sums = [s.square() for s in sums]
         return values
 
     return public
 
 
-def verify_execution(
+# Deferred claims ------------------------------------------------------------
+#
+# What the verifier leaves to the polynomials only the program or the VM's circuits fix: the table sumcheck's terminal
+# identity short of the bytecode producer's program columns and of RAM's image, and each circuit's lincheck terminal
+# identity short of its matrix form. Nothing in them is bound into the transcript, so they can be settled after the
+# rest of the proof, or by someone else.
+
+
+@dataclass(frozen=True)
+class ProgramPoint:
+    """The program's polynomials at a point, whose value is
+
+        sum_i twist[i] sum_x eq(chi, x) T(x, alpha)^(2^i) + image_weight image(image_point),
+
+    T(x, alpha) = sum_s eq(alpha, s) T(x, s) the stacked bytecode table at entry x, and image RAM's image then zeros.
+    The first sum is the producer's program columns, bit i's raised to 2^i: the Frobenius twist phi^i of the table at
+    (phi^-i(chi), alpha), all bits' taken at once."""
+
+    bytecode: MultilinearPoint  # chi, then alpha
+    twist: tuple[E, ...]
+    image_weight: E
+    image_point: MultilinearPoint
+
+    def evaluate(self, bytecode: Sequence[K], image: Sequence[int]) -> E:
+        size = len(bytecode) >> BUS_BITS
+        chi, alphas = self.bytecode[: log2_strict(size)], self.bytecode[log2_strict(size) :]
+        weights = eq_kernel(alphas)
+        slots = range(BYTECODE_PUBLIC_SLOT, EXIT_SLOT + 1)
+        sums = [E.sum(weights[slot] * word for slot in slots if (word := bytecode[slot * size + x])) for x in range(size)]
+        eq = eq_kernel(chi)
+        total = ZERO
+        for weight in self.twist:
+            total += weight * dot(eq, sums)
+            sums = [s.square() for s in sums]
+        return total + self.image_weight * sparse_mle(((0, image),), self.image_point)
+
+
+@dataclass(frozen=True)
+class DeferredClaims:
+    program: tuple[ProgramPoint, E]  # the point, and the value the program's polynomials must take there
+    circuits: tuple[tuple[MatrixForm, E], ...]  # per circuit, in FLOCKS order, its matrix form and the value it must take
+
+    def render(self) -> str:
+        """One line per field, every element as its three limbs in hexadecimal, high first: what the Rust side renders
+        for the same claims."""
+
+        def line(name: str, values: Sequence[E]) -> str:
+            return " ".join([name, *(f"{int(v.c2):016x}{int(v.c1):016x}{int(v.c0):016x}" for v in values)])
+
+        point, value = self.program
+        lines = [
+            line("program value", [value]),
+            line("program bytecode", point.bytecode),
+            line("program twist", point.twist),
+            line("program image_weight", [point.image_weight]),
+            line("program image_point", point.image_point),
+        ]
+        for f, (form, value) in enumerate(self.circuits):
+            lines += [
+                line(f"circuit {f} value", [value]),
+                line(f"circuit {f} alpha", [form.alpha]),
+                line(f"circuit {f} row", [form.z_skip, *form.chi_in]),
+                line(f"circuit {f} column", form.chi_in_prime),
+                line(f"circuit {f} slices", form.s),
+            ]
+        return "\n".join(lines)
+
+
+def verify_core(
     bytecode: Sequence[K],
     entry_pc: int,
     log_ram: int,
@@ -2155,10 +2258,10 @@ def verify_execution(
     image: Sequence[int],
     output: Sequence[int],
     proof: Proof,
-) -> None:
+) -> DeferredClaims:
     """The statement: the program whose decoded table is `bytecode`, started at `entry_pc` on a RAM of `2^log_ram` words
     holding `image` then zeros, with an advice region of `2^log_advice` words holding whatever the prover put there,
-    halts on `exit` with a0..a3 holding `output`."""
+    halts on `exit` with a0..a3 holding `output`. Everything but the deferred claims, which it returns."""
     require(len(output) == 4, "the output is four words")
     check_bytecode(bytecode)
     # Everything public and fixed is one digest, which seeds the transcript; every variable-length part is length-framed.
@@ -2188,17 +2291,22 @@ def verify_execution(
 
     # 4] One batched (back-loaded) "table sumcheck" over all the tables and the producer, at the bus point, proving the
     # target the two leaf claims derive: the tables' bus forms and the producer's bits, weighted by the same powers of xi.
+    # RAM's image is not in the target, nor the program's columns in the producer's public ones: their share of the
+    # terminal identity is the program's deferred claim, the image's reaching it through every round's challenge.
     xi = transcript.sample()
     form_powers = powers(xi, 2)  # one power per bus side, shared by every table
     target = dot(form_powers, bus.totals)
     (bytecode_producer,) = layout.producers
-    publics = (_bytecode_public(bytecode_producer, bytecode, bus.weights, bus.beta),)
+    publics = (_bytecode_affine(bytecode_producer, bus.weights, bus.beta),)
     producer_airs = [
         ProducerAir(producer.log_rows, tuple(form_powers[0] * c for c in coefficients), public)
         for producer, coefficients, public in zip(layout.producers, bus.producers, publics, strict=True)
     ]
-    table_sumcheck_claims, bits = table_sumcheck(layout.table_log_heights, bus.forms, producer_airs, form_powers, bus.point, target, transcript)
-    claims = [*bus.claims, *table_sumcheck_claims]
+    tables = table_sumcheck(layout.table_log_heights, bus.forms, producer_airs, form_powers, bus.point, target, transcript)
+    ((chi, _),), (twist,) = tables.families, tables.twists
+    image_weight, image_point = bus.image
+    program = ProgramPoint((*chi, *bus.alphas), twist, tables.target_weight * form_powers[0] * image_weight, image_point)
+    claims = [*bus.claims, *tables.claims]
 
     # 5] the exit: a7 holds `exit` and a0..a3 the output when the run ends. A register's final value is the final
     # registers' column at the Boolean point naming it, a claim the verifier computes rather than receives.
@@ -2206,10 +2314,12 @@ def verify_execution(
         point = tuple(ONE if register >> bit & 1 else ZERO for bit in range(LOG_REGISTERS))
         claims.append(ColumnClaim(SHARED["register_final"], point, E(value)))
 
-    # 6] each circuit via Flock, every table's class circuit then every table's clock circuit, each over its own packed witness
-    families = [verify_flock(circuit, layout.table_log_heights[table.opcode], transcript) for table, circuit, _ in FLOCKS]
+    # 6] each circuit via Flock, every table's class circuit then every table's clock circuit, each over its own packed
+    # witness, each leaving its matrix form to its circuit
+    flocks = [verify_flock(circuit, layout.table_log_heights[table.opcode], transcript) for table, circuit, _ in FLOCKS]
+    families = [(point, s) for point, s, _, _ in flocks]
     # and the producer's bits, the 64 bit slices of its multiplicity column: the bits the bus reads, then zeros
-    families += [(point, (*values, *[ZERO] * (K_BITS - len(values)))) for point, values in bits]
+    families += [(point, (*values, *[ZERO] * (K_BITS - len(values)))) for point, values in tables.families]
 
     # 7] Ring-switching
     # Each claim is supported on its witness's region of the stack, so its weight carries the
@@ -2221,6 +2331,30 @@ def verify_execution(
     ringswitches = [on_region(region, *claim) for region, claim in zip(regions, ring_switch(families, transcript), strict=True)]
     verify_stacked_opening(transcript, root, layout.stack_log, log_inverse_rate, [*ringswitches, *(c.on_stack(layout) for c in claims)])
     transcript.finish()
+    return DeferredClaims((program, tables.residual), tuple((form, value) for _, _, form, value in flocks))
+
+
+def check_deferred(claims: DeferredClaims, bytecode: Sequence[K], image: Sequence[int]) -> None:
+    """Evaluate the claims `verify_core` left: on the program's bytecode table and RAM image, and on each circuit's matrices."""
+    point, value = claims.program
+    require(point.evaluate(bytecode, image) == value, "table sumcheck terminal mismatch")
+    for (_, circuit, _), (form, value) in zip(FLOCKS, claims.circuits, strict=True):
+        require(form.evaluate(circuit) == value, "Flock lincheck terminal mismatch")
+
+
+def verify_execution(
+    bytecode: Sequence[K],
+    entry_pc: int,
+    log_ram: int,
+    log_advice: int,
+    image: Sequence[int],
+    output: Sequence[int],
+    proof: Proof,
+) -> DeferredClaims:
+    """`verify_core`, then `check_deferred`; returns the claims it checked."""
+    claims = verify_core(bytecode, entry_pc, log_ram, log_advice, image, output, proof)
+    check_deferred(claims, bytecode, image)
+    return claims
 
 
 def protocol_constants() -> str:
@@ -2298,6 +2432,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     parser.add_argument("stream", type=Path, help="the proof's scalar stream, 24-byte little-endian field elements")
     parser.add_argument("merkle_openings", type=Path, help="every Merkle opening: its leaf's words, then its sibling digests")
+    parser.add_argument("--deferred", action="store_true", help="print the deferred claims before the verdict, one field a line")
     arguments = parser.parse_args(argv)
     try:
         encoded_bytecode = arguments.bytecode.read_bytes()
@@ -2309,9 +2444,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         require(len(rest) == image_length + 4, "the public words are malformed")
         image, output = rest[:image_length], rest[image_length:]
         proof = Proof.load(arguments.stream, arguments.merkle_openings)
-        verify_execution(bytecode, entry_pc, log_ram, log_advice, image, output, proof)
+        claims = verify_execution(bytecode, entry_pc, log_ram, log_advice, image, output, proof)
     except (OSError, ValueError, KeyError, VerificationError) as exc:
         parser.exit(1, f"verification failed: {exc}\n")
+    if arguments.deferred:
+        print(claims.render())
     print("verification succeeded")
     return 0
 

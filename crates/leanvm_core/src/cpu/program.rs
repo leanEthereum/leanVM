@@ -3,6 +3,7 @@
 //! It runs, is proven, and is verified against its digest.
 
 use super::batch::{Batch, FormPowers};
+use super::deferred::{self, DeferredClaims};
 use super::error::{CpuError, ProveError};
 use super::execute::{Execution, TraceBuilder};
 use super::filler::{FillBlocks, Plan};
@@ -285,13 +286,13 @@ impl Program {
 
     /// Verify a proof that the program exits returning `output`.
     ///
-    /// It takes only public inputs, never the prover's witness.
+    /// It takes only public inputs, never the prover's witness: [`Program::verify_core`] then [`Program::check_deferred`].
     ///
     /// # Errors
     ///
     /// Returns the first stage that refuses the proof.
     pub fn verify(&self, output: &[u64; 4], proof: &Proof) -> Result<(), CpuError> {
-        self.verify_to_raw(output, proof).map(|_| ())
+        self.check_deferred(&self.verify_core(output, proof)?)
     }
 
     /// Verify a proof, and return it with every query's Merkle path written out, the form the Python verifier reads.
@@ -299,8 +300,28 @@ impl Program {
     /// # Errors
     ///
     /// Returns the first stage that refuses the proof.
-    #[tracing::instrument(name = "Verify", skip_all)]
     pub fn verify_to_raw(&self, output: &[u64; 4], proof: &Proof) -> Result<RawProof, CpuError> {
+        let (claims, raw) = self.replay(output, proof)?;
+        self.check_deferred(&claims)?;
+        Ok(raw)
+    }
+
+    /// [`Program::verify`] short of evaluating the polynomials only the program or the VM's circuits fix.
+    ///
+    /// It runs every check that depends on the proof, and returns the claims those polynomials must meet for the proof to verify ([`DeferredClaims`]).
+    ///
+    /// A proof is accepted exactly when this succeeds and [`Program::check_deferred`] accepts its claims, which a caller may settle later and merged with other proofs' ([`DeferredClaims::merge`]); never skip them.
+    ///
+    /// # Errors
+    ///
+    /// Returns the first stage that refuses the proof.
+    pub fn verify_core(&self, output: &[u64; 4], proof: &Proof) -> Result<DeferredClaims, CpuError> {
+        self.replay(output, proof).map(|(claims, _)| claims)
+    }
+
+    /// [`Program::verify_core`], and the proof it replayed with its Merkle paths written out.
+    #[tracing::instrument(name = "Verify core", skip_all)]
+    fn replay(&self, output: &[u64; 4], proof: &Proof) -> Result<(DeferredClaims, RawProof), CpuError> {
         // The public statement seeds the transcript, as on the prover's side.
         let mut vs = VerifierState::new(self.fs_seed(), proof, output.map(F64));
 
@@ -319,23 +340,32 @@ impl Program {
         // The verifier just derived those, and the batch must sum to `sum_s xi^s * R_s`.
         //
         // The challenge `xi` comes after the `R_s` are fixed, so hitting that one number forces each side's share.
+        //
+        // RAM's image is left out of it, and the program claim makes up for it.
         let powers = FormPowers::new(vs.sample());
         let target = powers.combine(bus.totals);
         let batch = Batch::new(&l, &bus.forms, &bus.producers, &bus.weights, bus.beta, powers);
-        let table_claims =
+        let table_sumcheck =
             constraints::verify(batch.airs(), &bus.point, target, &mut vs).map_err(CpuError::Constraint)?;
+        let program_claim = deferred::program_claim(&bus, &table_sumcheck, powers);
+        let table_claims = table_sumcheck.claims;
         let slots = l.opening_claims(bus.claims, &table_claims, output);
 
         // Replay each circuit's flock reduction off the stream, to recover its validity claim on its packed witness.
+        //
+        // Each leaves its matrices' form to its circuit.
         let mut replays = Vec::with_capacity(class_flock::N_FLOCKS);
+        let mut circuit_claims = Vec::with_capacity(class_flock::N_FLOCKS);
         for f in 0..class_flock::N_FLOCKS {
             let (t, part) = class_flock::flock(f);
-            let replay = class_flock::verify_reduction(f, l.taus[t], &mut vs).map_err(|error| CpuError::Flock {
-                table: tables::CLASSES[t].name,
-                part,
-                error,
-            })?;
+            let (replay, matrices) =
+                class_flock::verify_reduction(f, l.taus[t], &mut vs).map_err(|error| CpuError::Flock {
+                    table: tables::CLASSES[t].name,
+                    part,
+                    error,
+                })?;
             replays.push(replay);
+            circuit_claims.push(deferred::Claim::new(matrices.form, matrices.value));
         }
 
         // The ring-switched regions: each packed witness, then each producer's multiplicity column.
@@ -366,7 +396,11 @@ impl Program {
         // The one opening, then nothing may be left on the stream.
         pcs::verify(&mut vs, &slots, &rings, l.shape, announcement.log_inv_rate, &root).map_err(CpuError::Open)?;
         vs.finish()?;
-        Ok(vs.into_raw_proof())
+        let claims = DeferredClaims {
+            program: program_claim,
+            circuits: circuit_claims,
+        };
+        Ok((claims, vs.into_raw_proof()))
     }
 
     /// The decoded text, memory image and region sizes.
@@ -391,7 +425,7 @@ impl Program {
     /// The base-two logarithm of the stacked witness, and its committed size, for a run of these row counts.
     ///
     /// The layout depends on the program and the row counts alone, so no witness is built.
-    pub(super) fn stack_sizes(&self, row_counts: [usize; tables::N_TABLES]) -> (usize, usize) {
+    pub fn stack_sizes(&self, row_counts: [usize; tables::N_TABLES]) -> (usize, usize) {
         let taus = row_counts.map(|rows| crate::log2_ceil_usize(rows.max(1)));
         let (placements, shape) = Sizes::of(&self.rv).stack(taus);
         (shape.mu, crate::witness::committed_len(&placements))

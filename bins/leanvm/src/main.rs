@@ -3,8 +3,10 @@
 use clap::{Parser, Subcommand};
 use leanvm::{Prover, Rate};
 
+mod aggregate;
 mod fibonacci;
 mod guest;
+mod recursion;
 mod tracked;
 mod workload;
 
@@ -69,6 +71,37 @@ enum Command {
         #[arg(long, default_value_t = 1, value_parser = clap::builder::RangedU64ValueParser::<usize>::new().range(1..))]
         blobs: usize,
     },
+    /// Prove an inner program, then one recursion proof that `arity` copies of its proof verify.
+    Recursion {
+        /// The inner program: `fibonacci` or `leanxmss`.
+        #[arg(long, default_value = "fibonacci")]
+        program: String,
+        /// Fibonacci steps, or leanXMSS signatures.
+        #[arg(long, default_value_t = 1000)]
+        n: usize,
+        /// Inner proofs per outer proof.
+        #[arg(long, default_value_t = 1, value_parser = clap::builder::RangedU64ValueParser::<usize>::new().range(1..))]
+        arity: usize,
+        /// The inner proof's WHIR inverse-rate logarithm; `--log-inv-rate` is the outer proof's.
+        #[arg(long, default_value = "1", value_parser = parse_rate)]
+        inner_log_inv_rate: Rate,
+    },
+    /// Prove a leaf program, then an aggregation tree over `leaves` copies of its proof: a lift node per leaf and
+    /// nodes of `arity` children up to the root.
+    Aggregate {
+        /// The leaf program: `fibonacci` or `leanxmss`.
+        #[arg(long, default_value = "leanxmss")]
+        program: String,
+        /// Fibonacci steps, or leanXMSS signatures.
+        #[arg(long, default_value_t = 400)]
+        n: usize,
+        /// Leaf proofs, a power of the arity.
+        #[arg(long, default_value_t = 4, value_parser = clap::builder::RangedU64ValueParser::<usize>::new().range(1..))]
+        leaves: usize,
+        /// Children per node.
+        #[arg(long, default_value_t = 2, value_parser = clap::builder::RangedU64ValueParser::<usize>::new().range(2..))]
+        arity: usize,
+    },
     /// Prove the benchmarks CI tracks and print them as Bencher Metric Format JSON.
     ///
     /// The lists are `bins/leanvm/src/tracked.rs`.
@@ -99,6 +132,18 @@ fn main() {
         Command::Leanxmss { n } => workload::run(&workload::leanxmss(n), &prover, cli.rate, plan),
         Command::Leansphincs { n } => workload::run(&workload::leansphincs(n), &prover, cli.rate, plan),
         Command::Leanda { blobs } => workload::run(&workload::leanda(blobs), &prover, cli.rate, plan),
+        Command::Recursion {
+            program,
+            n,
+            arity,
+            inner_log_inv_rate,
+        } => recursion::run(&program, n, arity, inner_log_inv_rate, &prover, cli.rate, plan),
+        Command::Aggregate {
+            program,
+            n,
+            leaves,
+            arity,
+        } => aggregate::run(&program, n, leaves, arity, &prover, cli.rate, plan),
         Command::Bench { cycles_only, markdown } => tracked::run(cycles_only, markdown, &prover, cli.rate, plan),
     }
     if std::env::var_os("ZK_ALLOC_STATS").is_some() {
