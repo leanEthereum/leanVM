@@ -3,14 +3,16 @@
 //! to evaluation claims on the committed packed witness.
 //!
 //! Protocol flow (all challenges from the shared [`fiat_shamir`] transcript):
-//!   1. The caller commits the packed Boolean witness `q_flock` (inside the VM's
-//!      one stacked [`pcs`] commitment).
-//!   2. [`zerocheck`] reduces `a·b ⊕ c = 0` over the cube to evaluation claims
-//!      on `(â, b̂, ĉ)`.
-//!   3. [`lincheck`] reduces those to the `2^k_skip` bit-slice values of `z` at
-//!      one point, against the per-block matrices.
-//!   4. The PCS binds that family of slices ([`hash::SliceClaim`]) to the
-//!      commitment.
+//!   1. The caller commits every circuit's packed Boolean witness `q_flock`
+//!      (inside the VM's one stacked [`pcs`] commitment).
+//!   2. [`zerocheck`] reduces `a·b ⊕ c = 0` over every circuit's cube to
+//!      evaluation claims on its `(â, b̂, ĉ)`, the circuits batched under shared
+//!      challenges.
+//!   3. [`lincheck`] reduces those to the `2^k_skip` bit-slice values of each
+//!      circuit's `z` at one point, against its per-block matrices, in one
+//!      batched sumcheck.
+//!   4. The PCS binds each circuit's family of slices ([`hash::SliceClaim`]) to
+//!      the commitment.
 //!
 //! [`hash`] is the protocol's circuit: the BLAKE2s compression as a per-block
 //! R1CS, plus its witness generation and the leanVM-facing reduction entry

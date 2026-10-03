@@ -181,6 +181,8 @@ the weight $\mle{W}(r')$ & $63$ & $64\nflock$\\
 
 Everything above is in $\E$. The $64$ products $x^i\,\Phi(s_i)$ in the target are left out: $x^i$ lies in $\K$, so they are cheaper, and stepping $x^i$ to $x^{i+1}$ is a shift.
 
+\paragraph{Families at prefixes of one point.} If one family's point is a prefix of another's, its products $\fprod_k$ are the other's stopped after that prefix, the opening's point $r'$ being shared. Families whose points are prefixes of one longer point, as Flock's batch leaves for its circuits of one block size (\S\ref{flock:batch}), therefore share them: the verifier runs the products once over the longest point, $64\nflock$ multiplications, and closes each prefix length with its own Horner pass, $63$ squarings. Families of one length share that pass too: their batching and stacking weights multiply $\mle W(r')$ itself, so they add up first.
+
 \subsection{Credits}\label{rs:credits}
 
 The construction above rests on generalizing ring switching~\cite{DP24} to extension degrees that are not powers of two, an idea of Lev Soukhanov, \textit{[[alloc]init]}. The map $\Phi$ follows~\cite{Flock26}.

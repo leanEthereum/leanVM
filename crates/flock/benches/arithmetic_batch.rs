@@ -84,12 +84,22 @@ fn bench(op: U64Op) {
         ps.add_root(&commitment.root);
         let commit_s = t.elapsed().as_secs_f64();
 
+        let instance = [flock::reduction::Instance {
+            block,
+            n_blocks_log: n_log,
+            z: &z_packed,
+            a: &a_packed,
+            b: &b_packed,
+            z_lincheck: &z_lincheck,
+        }];
         let t = Instant::now();
-        let stage = block.prove_zerocheck(n_log, &z_packed, &a_packed, &b_packed, &mut ps);
+        let stage = flock::reduction::prove_zerocheck(&instance, &mut ps);
         let zerocheck_s = t.elapsed().as_secs_f64();
 
         let t = Instant::now();
-        let reduced = block.prove_lincheck(n_log, stage, &z_lincheck, &mut ps);
+        let reduced = flock::reduction::prove_lincheck(&instance, stage, &mut ps)
+            .pop()
+            .expect("one circuit");
         let lincheck_s = t.elapsed().as_secs_f64();
         drop((a_packed, b_packed, z_lincheck));
 
@@ -133,7 +143,9 @@ fn bench(op: U64Op) {
     let (_, verify_time) = Plan::new(plan.repeat, 0).measure_quiet(|_final_pass| {
         let mut vs = VerifierState::from_label(&label, &transcript);
         let root = vs.next_root().expect("commitment root");
-        let replay = block.verify(n_log, &mut vs).expect("Flock reduction verifies");
+        let replay = flock::reduction::verify(&[(block, n_log)], &mut vs)
+            .expect("Flock reduction verifies")
+            .remove(0);
         let ring = ring_switch_verify(mu, 0, &replay.claim);
         assert!(
             verify_opening_batch_mixed_whir_stacked(

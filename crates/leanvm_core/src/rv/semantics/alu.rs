@@ -310,11 +310,19 @@ mod tests {
                 z_lincheck[bit] ^= 1;
             }
             let mut ps = ProverState::from_label(LABEL);
-            let stage = block.prove_zerocheck(n_log, &z, &a, &b, &mut ps);
-            let claim = block.prove_lincheck(n_log, stage, &z_lincheck, &mut ps);
+            let instance = flock::reduction::Instance {
+                block,
+                n_blocks_log: n_log,
+                z: &z,
+                a: &a,
+                b: &b,
+                z_lincheck: &z_lincheck,
+            };
+            let claims = flock::reduction::prove(&[instance], &mut ps);
             let proof = ps.into_proof();
             let mut vs = VerifierState::from_label(LABEL, &proof);
-            block.verify(n_log, &mut vs).is_ok_and(|r| r.claim == claim) && vs.finish().is_ok()
+            flock::reduction::verify(&[(block, n_log)], &mut vs).is_ok_and(|r| r[0].claim == claims[0])
+                && vs.finish().is_ok()
         };
         assert!(accepts(None));
 

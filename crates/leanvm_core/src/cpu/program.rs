@@ -36,7 +36,7 @@ const _: () = assert!(cfg!(target_endian = "little"));
 
 impl Program {
     /// The domain separator of the digest, versioned with the statement's format.
-    const DIGEST_DOMAIN: &'static [u8] = b"leanvm-rv64im-6";
+    const DIGEST_DOMAIN: &'static [u8] = b"leanvm-rv64im-7";
 
     /// The program of a guest's ELF executable.
     ///
@@ -250,22 +250,20 @@ impl Program {
         let l = &w.layout;
         let slots = l.opening_claims(bus_claims, &table_claims, output);
 
-        // Each circuit's flock reduction, every class circuit then every clock circuit.
+        // Flock's reductions, batched over every class circuit then every clock circuit under shared challenges.
         //
-        // Each leaves a validity claim on its packed witness, discharged in the same opening through a ring-switched region.
+        // Each circuit leaves a validity claim on its packed witness, discharged in the same opening through a ring-switched region.
         let reductions = w.reductions;
-        let mut rings: Vec<_> = crate::stage!("Flock reductions", || {
-            reductions
-                .iter()
-                .enumerate()
-                .map(|(f, prepared)| {
-                    let window = w.layout.witness_window(f);
-                    let reduced = prepared.prove(&mut ps);
-                    flock::reduction::ring_switch_open(window.n_vars, window.offset, &reduced)
-                })
-                .collect()
+        let reduced = crate::stage!("Flock reductions", || {
+            class_flock::prove_reductions(&reductions, &mut ps)
         });
         drop(reductions);
+        let mut rings: Vec<_> = (reduced.iter().enumerate())
+            .map(|(f, reduced)| {
+                let window = l.witness_window(f);
+                flock::reduction::ring_switch_open(window.n_vars, window.offset, reduced)
+            })
+            .collect();
 
         // Each producer's multiplicity column, a ring-switched region too.
         for (p, claims) in l.producers.iter().zip(&table_claims[tables::N_TABLES..]) {
@@ -326,17 +324,11 @@ impl Program {
             constraints::verify(batch.airs(), &bus.point, target, &mut vs).map_err(CpuError::Constraint)?;
         let slots = l.opening_claims(bus.claims, &table_claims, output);
 
-        // Replay each circuit's flock reduction off the stream, to recover its validity claim on its packed witness.
-        let mut replays = Vec::with_capacity(class_flock::N_FLOCKS);
-        for f in 0..class_flock::N_FLOCKS {
-            let (t, part) = class_flock::flock(f);
-            let replay = class_flock::verify_reduction(f, l.taus[t], &mut vs).map_err(|error| CpuError::Flock {
-                table: tables::CLASSES[t].name,
-                part,
-                error,
-            })?;
-            replays.push(replay);
-        }
+        // Replay the batched flock reductions off the stream, to recover each circuit's validity claim on its packed witness.
+        let n_blocks_log: Vec<usize> = (0..class_flock::N_FLOCKS)
+            .map(|f| l.taus[class_flock::flock(f).0])
+            .collect();
+        let replays = class_flock::verify_reductions(&n_blocks_log, &mut vs).map_err(CpuError::Flock)?;
 
         // The ring-switched regions: each packed witness, then each producer's multiplicity column.
         let producer_claims = &table_claims[tables::N_TABLES..];

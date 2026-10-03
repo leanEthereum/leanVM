@@ -158,6 +158,7 @@ impl U64Circuit {
 mod tests {
     use super::*;
     use crate::lincheck::LincheckCircuit;
+    use crate::reduction::{self, Instance};
     use fiat_shamir::transcript::{ProverState, VerifierState};
     use primitives::field::F192;
     use primitives::test_rng::Rng;
@@ -250,11 +251,19 @@ mod tests {
                     z_lincheck[bit] ^= 1;
                 }
                 let mut ps = ProverState::from_label(LABEL);
-                let stage = block.prove_zerocheck(n_log, &z, &a, &b, &mut ps);
-                let claim = block.prove_lincheck(n_log, stage, &z_lincheck, &mut ps);
+                let instance = Instance {
+                    block,
+                    n_blocks_log: n_log,
+                    z: &z,
+                    a: &a,
+                    b: &b,
+                    z_lincheck: &z_lincheck,
+                };
+                let claims = reduction::prove(&[instance], &mut ps);
                 let proof = ps.into_proof();
                 let mut vs = VerifierState::from_label(LABEL, &proof);
-                block.verify(n_log, &mut vs).is_ok_and(|r| r.claim == claim) && vs.finish().is_ok()
+                reduction::verify(&[(block, n_log)], &mut vs).is_ok_and(|r| r[0].claim == claims[0])
+                    && vs.finish().is_ok()
             };
             assert!(run(None), "{op:?}");
             for bit in [
@@ -264,6 +273,96 @@ mod tests {
                 circuit.useful_bits() - 1,
             ] {
                 assert!(!run(Some(bit)), "{op:?}: flipping bit {bit} must reject");
+            }
+        }
+    }
+
+    /// **A batch of circuits proves each of them.** Circuits of three block sizes
+    /// (`k_log` 8, 12 and 13) and mixed instance counts and heights, from no rows at
+    /// all to a batch of rows in full: the verifier recovers each circuit's claim,
+    /// and each is its witness's true slices at its point. A flipped witness bit in
+    /// any one circuit, or a wrong claim of any one circuit on the stream, is
+    /// rejected.
+    #[test]
+    fn a_mixed_batch_proves_each_circuit() {
+        type Tables = (ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u8>);
+        const LABEL: &[u8] = b"flock-arith-batch-test";
+        let ops = OPS.map(U64Circuit::new);
+        assert_eq!(ops.each_ref().map(U64Circuit::k_log), [8, 12, 13]);
+        // (operation, log instances, height)
+        let shapes = [(0, 9, 0), (1, 7, 40), (2, 3, 5), (0, 6, 64), (1, 8, 130)];
+        let blocks: Vec<(Block<'_>, usize)> = shapes.iter().map(|&(op, n_log, _)| (ops[op].block(), n_log)).collect();
+        let tables = |f: usize| -> Tables {
+            let (op, n_log, h) = shapes[f];
+            ops[op].generate_witness(&pairs(h, 0x3A15 + f as u64), n_log)
+        };
+        let whole: Vec<Tables> = (0..shapes.len()).map(tables).collect();
+        let prove = |tables: &[Tables]| {
+            let instances: Vec<Instance<'_>> = (tables.iter().zip(&blocks))
+                .map(|((z, a, b, z_lincheck), &(block, n_blocks_log))| Instance {
+                    block,
+                    n_blocks_log,
+                    z,
+                    a,
+                    b,
+                    z_lincheck,
+                })
+                .collect();
+            let mut ps = ProverState::from_label(LABEL);
+            let claims = reduction::prove(&instances, &mut ps);
+            (ps.into_proof(), claims)
+        };
+        let accepts = |proof: &fiat_shamir::transcript::Proof| {
+            let mut vs = VerifierState::from_label(LABEL, proof);
+            reduction::verify(&blocks, &mut vs).ok().filter(|_| vs.finish().is_ok())
+        };
+
+        let (proof, claims) = prove(&whole);
+        let replays = accepts(&proof).expect("an honest batch verifies");
+        for (f, ((replay, claim), (z, ..))) in replays.iter().zip(&claims).zip(&whole).enumerate() {
+            assert_eq!(&replay.claim, claim, "circuit {f}'s claim");
+            // Word `w` of the packed witness is position `w` past the skip, bit `i` its slice `i`.
+            let eq = primitives::multilinear::eq_table(&claim.suffix_point);
+            let slices: Vec<F192> = (0..64)
+                .map(|i| {
+                    (z.iter().zip(&eq)).fold(F192::ZERO, |acc, (&w, &e)| if w >> i & 1 == 1 { acc + e } else { acc })
+                })
+                .collect();
+            assert_eq!(claim.s_hat_v, slices, "circuit {f}'s slices are its witness's");
+        }
+
+        // A flipped bit (an output bit of instance 1) in any one circuit.
+        for f in 0..shapes.len() {
+            let mut tampered: Vec<Tables> = (0..shapes.len()).map(tables).collect();
+            let k = 1usize << blocks[f].0.k_log;
+            let (z, _, _, z_lincheck) = &mut tampered[f];
+            let bit = k + OUT_BASE + 5;
+            z[bit / 64] ^= 1 << (bit % 64);
+            z_lincheck[OUT_BASE + 5] ^= 1 << 1;
+            let (bad, _) = prove(&tampered);
+            assert!(accepts(&bad).is_none(), "a flipped bit of circuit {f} must reject");
+        }
+
+        // A wrong claim of any one circuit: its zerocheck `â`, or one of its slices.
+        let n_zerocheck = shapes
+            .iter()
+            .map(|&(op, n_log, _)| ops[op].k_log() + n_log)
+            .max()
+            .unwrap()
+            - 6;
+        let n_lincheck = shapes.iter().map(|&(op, ..)| ops[op].k_log()).max().unwrap() - 6;
+        let zerocheck_len = 64 + 2 * n_zerocheck + 3 * shapes.len();
+        for f in 0..shapes.len() {
+            for word in [
+                64 + 2 * n_zerocheck + 3 * f,
+                zerocheck_len + 2 * n_lincheck + 64 * f + 3,
+            ] {
+                let mut bad = proof.clone();
+                bad.stream[word].c0 ^= 1;
+                assert!(
+                    accepts(&bad).is_none(),
+                    "a wrong claim of circuit {f} (word {word}) must reject"
+                );
             }
         }
     }

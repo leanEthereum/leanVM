@@ -74,7 +74,7 @@ The Fiat-Shamir state is seeded by the statement (\S\ref{sec:e2e-fiat-shamir}). 
 \paragraph{Flock validity.}
 
 \begin{enumerate}
-\item \textbf{Prover \& Verifier.} Run Flock's reduction (Annex~\ref{annex:flock}) twenty-two times, once per class circuit in table order, over $\qcls{j}$, then once per clock circuit in table order, over $\qclk{j}$, each with $2^{\tau_j}$ instances. Each leaves one evaluation claim on its own packed witness.
+\item \textbf{Prover \& Verifier.} Run Flock's reduction (Annex~\ref{annex:flock}) once over the twenty-two circuits, batched under shared challenges (\S\ref{flock:batch}): every class circuit in table order, over $\qcls{j}$, then every clock circuit in table order, over $\qclk{j}$, each with $2^{\tau_j}$ instances. One zerocheck, its round-one message shared by all twenty-two, and one lincheck leave one evaluation claim on each packed witness.
 \item \textbf{Prover \& Verifier.} The ring switching of \S\ref{sec:ringswitch}, with one map drawn for twenty-three families, reduces each bit claim to a weighted-sum claim on its region of the stack, with an MLE-friendly $\E$-valued weight (Definition~\ref{def:ipcs}); they join the pool. The families are the twenty-two witnesses, then the bytecode's multiplicity column, its suffix point being its $\fc_{<\kappa}$ and its $64$ slices the $\nbit$ bit values it sent, then zeros, which are not transmitted (\S\ref{sec:lookup}).
 \end{enumerate}
 
@@ -84,5 +84,5 @@ The Fiat-Shamir state is seeded by the statement (\S\ref{sec:e2e-fiat-shamir}). 
 \item \textbf{Prover \& Verifier.} Each pooled claim is one evaluation of a column at a point, its value already supplied; via the stacking selectors (\S\ref{sec:stacking}) it becomes a weighted sum $\sum_w W_j(w)\,\widetilde q(w)=c_j$ over the stacked witness. (The twenty-three ring-switched claims arrive already in this form, each weight supported on its own region.)
 \item \textbf{Verifier.} Sends one batching challenge $\lambda\in\E$, drawn after every claim value is bound. Claim $j$ takes the weight $\lambda^{j-1}$, the ring-switched claims first and the pooled column claims after: the $J$ weights are distinct powers of the one challenge (Theorem~\ref{thm:rbr}).
 \item \textbf{Prover \& Verifier.} Fold the $J$ claims into $W_\lambda=\sum_j\lambda^{j-1} W_j$ and $C_\lambda=\sum_j\lambda^{j-1} c_j$, and run the inner-product PCS opening on $\sum_w W_\lambda(w)\,\widetilde q(w)=C_\lambda$ (Annex~\ref{annex:pcs}), the verifier evaluating $W_\lambda$ itself. This one opening discharges every pooled claim; there is no separate reduction sumcheck.
-\item \textbf{Verifier.} Accepts if every check above passed: the caps, the one bus root for both sides, every sumcheck's rounds and final value, flock's twenty-two reductions, and the PCS opening.
+\item \textbf{Verifier.} Accepts if every check above passed: the caps, the one bus root for both sides, every sumcheck's rounds and final value, flock's batched reduction, and the PCS opening.
 \end{enumerate}

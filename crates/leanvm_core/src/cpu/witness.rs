@@ -22,7 +22,7 @@ pub(crate) struct Witness {
     pub(crate) layout: Layout,
     /// The clock the run ended on, which the prover announces.
     pub(crate) ts_final: u64,
-    /// Each circuit's flock batch, freed right after its reduction.
+    /// Every circuit's flock batch, freed right after the batched reduction.
     pub(crate) reductions: Vec<Prepared>,
 }
 

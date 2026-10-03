@@ -1,12 +1,14 @@
-//! The circuit-agnostic half of Flock: zerocheck then lincheck over a batch of
-//! `2^k_log`-bit blocks, reducing R1CS validity to ONE claim on the packed
+//! The circuit-agnostic half of Flock: zerocheck then lincheck over batches of
+//! `2^k_log`-bit blocks, one batch per circuit and every circuit under shared
+//! challenges, reducing each circuit's R1CS validity to ONE claim on its packed
 //! witness, packaged for ring switching. A circuit supplies only its [`Block`]:
 //! the shape, and the walks behind its [`LincheckCircuit`].
 
-use crate::lincheck::{self, LincheckCircuit, LincheckClaim, QuirkyPoint};
+use crate::lincheck::{self, LincheckCircuit, LincheckClaim, LincheckInput, LincheckStatement, QuirkyPoint};
 use crate::verifier::VerifyError;
 use crate::witness::packed_bytes;
-use crate::zerocheck::{self, K_SKIP, PaddingSpec, ZerocheckClaim};
+use crate::zerocheck::multilinear::PackedWitness;
+use crate::zerocheck::{self, K_SKIP, PaddingSpec, ZerocheckClaim, ZerocheckInput};
 use fiat_shamir::transcript::{ProverState, VerifierState};
 use pcs::pack::{LOG_PACKING, PACKING_WIDTH};
 use pcs::stack_open::{RingSwitchClaim, RingSwitchOpen, RingSwitchVerify, RingSwitchVerifyClaim};
@@ -48,7 +50,7 @@ pub struct SliceClaim {
     pub s_hat_v: Vec<F192>,
 }
 
-/// Everything [`Block::verify`] recovers: the z-claim for the PCS and the
+/// Everything [`verify`] recovers for one circuit: the z-claim for the PCS and the
 /// zerocheck / lincheck claims.
 #[derive(Clone, Debug)]
 pub struct ReductionReplay {
@@ -57,12 +59,24 @@ pub struct ReductionReplay {
     pub lc_claim: LincheckClaim,
 }
 
-/// What the zerocheck stage hands the lincheck stage: the quirky point lincheck
-/// runs at. Opaque; the two stages are split only so a caller can time or
-/// profile them apart.
+/// One circuit's batch as the prover holds it: the packed `z`, `A·z` and `B·z` of
+/// `2^n_blocks_log` instances, and `z` again in the lincheck stripe layout.
+#[derive(Clone, Copy)]
+pub struct Instance<'a> {
+    pub block: Block<'a>,
+    pub n_blocks_log: usize,
+    pub z: &'a [u64],
+    pub a: &'a [u64],
+    pub b: &'a [u64],
+    pub z_lincheck: &'a [u8],
+}
+
+/// What the zerocheck stage hands the lincheck stage: the quirky point each
+/// circuit's lincheck runs at. Opaque; the two stages are split only so a caller
+/// can time or profile them apart.
 #[derive(Clone, Debug)]
 pub struct ZerocheckStage {
-    x_ab: QuirkyPoint,
+    x_abs: Vec<QuirkyPoint>,
 }
 
 /// The lincheck input point carried over from the zerocheck claim: the
@@ -88,110 +102,113 @@ fn reduction_claim(lc: &LincheckClaim, x_outer: &[F192]) -> SliceClaim {
     }
 }
 
-impl Block<'_> {
-    /// **First stage (prover): the zerocheck.** Reduces `a·b ⊕ c = 0` over the
-    /// cube of `2^n_blocks_log` blocks to evaluation claims on `(â, b̂, ĉ)`, all
-    /// three at one point.
-    pub fn prove_zerocheck(
-        &self,
-        n_blocks_log: usize,
-        z_packed: &[u64],
-        a_packed_words: &[u64],
-        b_packed_words: &[u64],
-        ps: &mut ProverState,
-    ) -> ZerocheckStage {
-        let _span = tracing::info_span!("Zerocheck").entered();
-        let m = self.k_log + n_blocks_log;
-
-        // The fused generator packs 64 Boolean coordinates per word.
-        let packed_len = 1usize << (m - 6);
-        assert_eq!(z_packed.len(), packed_len, "wrong packed witness length");
-        assert_eq!(a_packed_words.len(), packed_len, "wrong packed A·z length");
-        assert_eq!(b_packed_words.len(), packed_len, "wrong packed B·z length");
-
-        // No bind_statement here: the embedding protocol binds the circuit, the
-        // instance count and the commitment root before any challenge, so the
-        // statement is already fully transcript-bound.
-
-        let padding = PaddingSpec {
-            k_log: self.k_log,
-            useful_bits_per_block: self.useful_bits,
-        };
-        let zc_claim = zerocheck::prove_packed_padded(
-            packed_bytes(a_packed_words),
-            packed_bytes(b_packed_words),
-            packed_bytes(z_packed), // C = I, so c == z
-            m,
-            &padding,
-            ps,
-        );
-
-        ZerocheckStage {
-            x_ab: x_ab_of(&zc_claim, self.k_log - K_SKIP),
-        }
+/// **First stage (prover): the batched zerocheck.** Reduces `a·b ⊕ c = 0` over
+/// every circuit's cube to evaluation claims on its `(â, b̂, ĉ)`, all three at one
+/// point, the circuits sharing every challenge.
+pub fn prove_zerocheck(instances: &[Instance<'_>], ps: &mut ProverState) -> ZerocheckStage {
+    let _span = tracing::info_span!("Zerocheck").entered();
+    // No bind_statement here: the embedding protocol binds the circuits, the
+    // instance counts and the commitment root before any challenge, so the
+    // statement is already fully transcript-bound.
+    let inputs: Vec<ZerocheckInput<'_>> = instances
+        .iter()
+        .map(|i| {
+            let m = i.block.k_log + i.n_blocks_log;
+            // The fused generator packs 64 Boolean coordinates per word.
+            let packed_len = 1usize << (m - 6);
+            assert_eq!(i.z.len(), packed_len, "wrong packed witness length");
+            assert_eq!(i.a.len(), packed_len, "wrong packed A·z length");
+            assert_eq!(i.b.len(), packed_len, "wrong packed B·z length");
+            ZerocheckInput {
+                bits: PackedWitness {
+                    a: packed_bytes(i.a),
+                    b: packed_bytes(i.b),
+                    c: packed_bytes(i.z), // C = I, so c == z
+                },
+                m,
+                padding: PaddingSpec {
+                    k_log: i.block.k_log,
+                    useful_bits_per_block: i.block.useful_bits,
+                },
+            }
+        })
+        .collect();
+    let claims = zerocheck::prove(&inputs, ps);
+    ZerocheckStage {
+        x_abs: (instances.iter().zip(&claims))
+            .map(|(i, zc)| x_ab_of(zc, i.block.k_log - K_SKIP))
+            .collect(),
     }
+}
 
-    /// **Second stage (prover): the lincheck.** Reduces the zerocheck's
-    /// `(â, b̂, ĉ)` claims to the `2^k_skip` bit slices of `z` at one point,
-    /// against the per-block matrices.
-    pub fn prove_lincheck(
-        &self,
-        n_blocks_log: usize,
-        stage: ZerocheckStage,
-        z_packed_lincheck: &[u8],
-        ps: &mut ProverState,
-    ) -> SliceClaim {
-        let _span = tracing::info_span!("Lincheck").entered();
-        let m = self.k_log + n_blocks_log;
-        assert_eq!(
-            z_packed_lincheck.len(),
-            (1usize << m) / 8,
-            "wrong lincheck stripe length"
-        );
+/// **Second stage (prover): the batched lincheck.** Reduces every circuit's
+/// `(â, b̂, ĉ)` claims to the `2^k_skip` bit slices of its `z` at one point, against
+/// its per-block matrices, under one sumcheck.
+pub fn prove_lincheck(instances: &[Instance<'_>], stage: ZerocheckStage, ps: &mut ProverState) -> Vec<SliceClaim> {
+    let _span = tracing::info_span!("Lincheck").entered();
+    let ZerocheckStage { x_abs } = stage;
+    let inputs: Vec<LincheckInput<'_>> = (instances.iter().zip(&x_abs))
+        .map(|(i, x_ab)| {
+            let m = i.block.k_log + i.n_blocks_log;
+            assert_eq!(i.z_lincheck.len(), (1usize << m) / 8, "wrong lincheck stripe length");
+            LincheckInput {
+                z_packed: i.z_lincheck,
+                m,
+                k_log: i.block.k_log,
+                k_skip: K_SKIP,
+                useful_bits: i.block.useful_bits,
+                circuit: i.block.circuit,
+                x_ab,
+            }
+        })
+        .collect();
+    let claims = lincheck::prove(&inputs, ps);
+    (claims.iter().zip(&x_abs))
+        .map(|(lc, x_ab)| reduction_claim(lc, &x_ab.x_outer))
+        .collect()
+}
 
-        let ZerocheckStage { x_ab } = stage;
-        let lc_claim = lincheck::prove_padded_capture_s_hat_v(
-            z_packed_lincheck,
+/// The batched zerocheck then lincheck, leaving one claim on each circuit's committed witness.
+pub fn prove(instances: &[Instance<'_>], ps: &mut ProverState) -> Vec<SliceClaim> {
+    let stage = prove_zerocheck(instances, ps);
+    prove_lincheck(instances, stage, ps)
+}
+
+/// **Verifier.** Replay the batched zerocheck and lincheck over circuits of
+/// `2^n_blocks_log` instances each straight off the shared transcript stream,
+/// recovering one evaluation claim on each circuit's committed witness. The PCS
+/// then discharges the returned claims.
+pub fn verify(
+    circuits: &[(Block<'_>, usize)],
+    vs: &mut VerifierState<'_>,
+) -> Result<Vec<ReductionReplay>, VerifyError> {
+    let log_ns: Vec<usize> = circuits.iter().map(|(block, n)| block.k_log + n).collect();
+    let zc_claims = zerocheck::verify(&log_ns, vs).map_err(VerifyError::Zerocheck)?;
+
+    let x_abs: Vec<QuirkyPoint> = (circuits.iter().zip(&zc_claims))
+        .map(|((block, _), zc)| x_ab_of(zc, block.k_log - K_SKIP))
+        .collect();
+    let statements: Vec<LincheckStatement<'_>> = (circuits.iter().zip(&log_ns).zip(&zc_claims).zip(&x_abs))
+        .map(|((((block, _), &m), zc), x_ab)| LincheckStatement {
             m,
-            self.k_log,
-            K_SKIP,
-            self.useful_bits,
-            self.circuit,
-            &x_ab,
-            ps,
-        );
+            k_log: block.k_log,
+            k_skip: K_SKIP,
+            circuit: block.circuit,
+            x_ab,
+            v_a: zc.a_eval,
+            v_b: zc.b_eval,
+            v_c: zc.c_eval,
+        })
+        .collect();
+    let lc_claims = lincheck::verify(&statements, vs).map_err(VerifyError::Lincheck)?;
 
-        reduction_claim(&lc_claim, &x_ab.x_outer)
-    }
-
-    /// **Verifier.** Replay the zerocheck and lincheck straight off the shared
-    /// transcript stream, recovering the one evaluation claim on the committed
-    /// witness `q_flock`. The PCS then discharges the returned claim.
-    pub fn verify(&self, n_blocks_log: usize, vs: &mut VerifierState<'_>) -> Result<ReductionReplay, VerifyError> {
-        let m = self.k_log + n_blocks_log;
-        let zc_claim = zerocheck::verify(m, vs).map_err(VerifyError::Zerocheck)?;
-
-        let x_ab = x_ab_of(&zc_claim, self.k_log - K_SKIP);
-        let lc_claim = lincheck::verify(
-            m,
-            self.k_log,
-            K_SKIP,
-            self.circuit,
-            &x_ab,
-            zc_claim.a_eval,
-            zc_claim.b_eval,
-            zc_claim.c_eval,
-            vs,
-        )
-        .map_err(VerifyError::Lincheck)?;
-
-        let claim = reduction_claim(&lc_claim, &x_ab.x_outer);
-        Ok(ReductionReplay {
-            claim,
+    Ok((zc_claims.into_iter().zip(lc_claims).zip(&x_abs))
+        .map(|((zc_claim, lc_claim), x_ab)| ReductionReplay {
+            claim: reduction_claim(&lc_claim, &x_ab.x_outer),
             zc_claim,
             lc_claim,
         })
-    }
+        .collect())
 }
 
 /// One reduction claim as a tower [`RingSwitchClaim`]: the `2^k_skip` slices and

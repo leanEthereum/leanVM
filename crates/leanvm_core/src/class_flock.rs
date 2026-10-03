@@ -17,7 +17,7 @@ use crate::tables::{CLASSES, ClassSpec, N_TABLES, Part, Word};
 use ::pcs::pack::LOG_PACKING;
 use fiat_shamir::transcript::{ProverState, VerifierState};
 use flock::circuit::Circuit;
-use flock::reduction::{ReductionReplay, SliceClaim};
+use flock::reduction::{Instance, ReductionReplay, SliceClaim};
 use flock::verifier::VerifyError;
 use primitives::field::F64;
 use std::sync::OnceLock;
@@ -247,16 +247,27 @@ impl Prepared {
             z_lincheck,
         }
     }
-
-    /// Flock's zerocheck then lincheck, leaving the one claim on the committed column.
-    pub(crate) fn prove(&self, ps: &mut ProverState) -> SliceClaim {
-        let block = circuit(self.flock).block();
-        let stage = block.prove_zerocheck(self.n_blocks_log, &self.z, &self.a, &self.b, ps);
-        block.prove_lincheck(self.n_blocks_log, stage, &self.z_lincheck, ps)
-    }
 }
 
-/// The verifier's replay of packed witness `f`'s reduction: zerocheck, then lincheck.
-pub fn verify_reduction(f: usize, n_blocks_log: usize, vs: &mut VerifierState) -> Result<ReductionReplay, VerifyError> {
-    circuit(f).block().verify(n_blocks_log, vs)
+/// Flock's batched zerocheck then lincheck over every packed witness, every class
+/// circuit then every clock circuit, leaving one claim on each committed column.
+pub(crate) fn prove_reductions(batches: &[Prepared], ps: &mut ProverState) -> Vec<SliceClaim> {
+    let instances: Vec<Instance<'_>> = (batches.iter())
+        .map(|p| Instance {
+            block: circuit(p.flock).block(),
+            n_blocks_log: p.n_blocks_log,
+            z: &p.z,
+            a: &p.a,
+            b: &p.b,
+            z_lincheck: &p.z_lincheck,
+        })
+        .collect();
+    flock::reduction::prove(&instances, ps)
+}
+
+/// The verifier's replay of the batched reductions, packed witness `f`'s batch being
+/// `2^n_blocks_log[f]` instances.
+pub fn verify_reductions(n_blocks_log: &[usize], vs: &mut VerifierState) -> Result<Vec<ReductionReplay>, VerifyError> {
+    let circuits: Vec<_> = (0..N_FLOCKS).map(|f| (circuit(f).block(), n_blocks_log[f])).collect();
+    flock::reduction::verify(&circuits, vs)
 }

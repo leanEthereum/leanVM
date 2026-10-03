@@ -1,29 +1,28 @@
 // CREDIT: https://github.com/succinctlabs/flock (flock-core), MIT OR Apache-2.0.
-//! Zerocheck PIOP: prove a(y) · b(y) ⊕ c(y) = 0 for all y ∈ {0,1}^m.
+//! Zerocheck PIOP: prove a(y) · b(y) ⊕ c(y) = 0 for all y ∈ {0,1}^m, for a batch
+//! of circuits at once.
 //!
-//! Inputs are three bit vectors of length 2^m. Output is an evaluation claim
-//! on the multilinear extensions â, b̂, ĉ at the protocol-derived point.
+//! Inputs are three bit vectors of length 2^m per circuit. Output is, per circuit,
+//! an evaluation claim on the multilinear extensions â, b̂, ĉ at one point.
 //!
-//! Protocol shape (m = log_n, k_skip = [`K_SKIP`] = 6):
-//!   1. Verifier constructs `r ∈ F_{2^192}^{m-k_skip}` from fixed inner
-//!      coordinates and sampled outer coordinates.
-//!   2. Prover sends `P(λ) = P^{AB}(λ) + P^C(λ)` for λ ∈ Λ, |Λ| = 2^k_skip.
+//! Protocol shape (k_skip = [`K_SKIP`] = 6, `n` the most variables past the skip):
+//!   1. Verifier constructs `r ∈ F_{2^192}^n` from fixed inner coordinates and
+//!      sampled outer coordinates, then the batching challenge `λ`.
+//!   2. Prover sends `Σ_f λ^f P_f(λ')` for λ' ∈ Λ, |Λ| = 2^k_skip, each
+//!      `P_f = P_f^{AB} + P_f^C`.
 //!   3. Verifier samples `z ∈ F_{2^192}` (univariate-skip fold point).
-//!   4. For each of the `m - k_skip` multilinear rounds, prover sends
-//!      the linear and quadratic coefficients; the verifier derives the constant from the claim and samples the round challenge.
-//!   5. Prover sends final MLE evaluations `(â, b̂)`; `ĉ` is what the terminal
-//!      identity leaves, `ĉ = claim + â·b̂`, so it never rides the wire.
+//!   4. For each of the `n` multilinear rounds, prover sends the linear and
+//!      quadratic coefficients; the verifier derives the constant from the claim
+//!      and samples the round challenge.
+//!   5. Prover sends every circuit's `(â, b̂, ĉ)`, and the verifier checks they
+//!      reproduce the final claim.
 //!
 //! C rides the sumcheck rather than being split off at round 1, which is what
 //! puts all three claims at ONE point and leaves lincheck a single family of
-//! bit slices for ring switching (doc/leanvm Annex C).
-//!
-//! Both `prove` and `verify` are wired end-to-end. The prove→verify roundtrip
-//! is tested on honest witnesses; verify also rejects byte-mutated proofs and
-//! shape-corrupted ones.
+//! bit slices per circuit for ring switching (doc/leanvm Annex C).
 
 use fiat_shamir::transcript::{Challenger, ProverState, Receiver, Transmitter, VerifierState};
-use primitives::field::{F8, F192};
+use primitives::field::{F8, F192, powers};
 use zk_alloc::ArenaVec;
 
 use pcs::ntt::{AdditiveNttGf8, InvNttTableByteSingleGf8};
@@ -35,7 +34,7 @@ pub mod univariate_skip_optimized;
 
 use bit_fold::BitFold;
 use multilinear::{
-    PackedWitness, bit_round_materialize, bit_round_pair, fold_and_round_pair_into, fold_in_place_pair,
+    PackedWitness, RoundPair, bit_round_materialize, bit_round_pair, fold_and_round_pair_into, fold_in_place_pair,
     fold_in_place_single, interpolate_at_z_combined, round_pair_naive, round_single_naive,
 };
 use primitives::multilinear::skip_lagrange_weights;
@@ -115,15 +114,14 @@ pub struct ZerocheckClaim {
     /// Univariate-skip challenge sampled after round 1 (binds the K_SKIP
     /// skip variables), represented directly in `F192`.
     pub z: F192,
-    /// Sumcheck bind challenges, one per multilinear round; length = `m - K_SKIP`.
+    /// Sumcheck bind challenges, the batch's first `m - K_SKIP`.
     pub mlv_challenges: Vec<F192>,
     /// `â(z, mlv_challenges)`.
     pub a_eval: F192,
     /// `b̂(z, mlv_challenges)`.
     pub b_eval: F192,
-    /// `ĉ(z, mlv_challenges)`, derived from the terminal identity rather than
-    /// transmitted: the sumcheck ends at `â·b̂ + ĉ`, so `ĉ = claim + â·b̂`.
-    /// Nothing checks it here; lincheck's α-batched identity pins all three.
+    /// `ĉ(z, mlv_challenges)`. The batch's terminal identity ties it to the other
+    /// claims, and lincheck's α-batched identity pins all three.
     pub c_eval: F192,
 }
 
@@ -133,6 +131,9 @@ pub enum VerifyError {
     /// Fewer variables than the univariate skip takes.
     #[error("log_n {log_n} is below k_skip {k_skip}")]
     LogNTooSmall { log_n: usize, k_skip: usize },
+    /// The circuits' claims do not reproduce the sumcheck's final claim.
+    #[error("the circuits' claims do not reproduce the zerocheck's final claim")]
+    TerminalMismatch,
     /// The proof stream is malformed.
     #[error(transparent)]
     Transcript(#[from] fiat_shamir::transcript::Error),
@@ -142,265 +143,341 @@ pub enum VerifyError {
 // API: prove / verify.
 // ---------------------------------------------------------------------------
 
-/// Send one multilinear round and advance the running claim, the prover mirror
-/// of the verifier's loop. `G(0)` never rides the wire: the eq split
-/// `(1 + r_eq)·G(0) + r_eq·G(1) = claim` fixes the constant coefficient. At
-/// `r_eq = 1` it leaves `G(0)` free, so the caller passes it: only the table
-/// rounds can meet that, the earlier ones running on fixed challenges.
-fn send_round(
-    ps: &mut impl Transmitter,
-    claim: F192,
-    r_eq: F192,
-    g0: Option<F192>,
-    g1: F192,
-    g_inf: F192,
-    chis: &mut Vec<F192>,
-) -> F192 {
-    let g0 = g0.unwrap_or_else(|| (claim + r_eq * g1) * (F192::ONE + r_eq).inv());
-    ps.add_round_poly(&[g0, g0 + g1 + g_inf, g_inf], true);
-    let chi = ps.sample();
-    chis.push(chi);
-    // G(X) = G(0)·(1+X) + G(1)·X + G(inf)·X·(1+X).
-    g0 + chi * (g0 + g1 + (F192::ONE + chi) * g_inf)
+/// One circuit's witness in a batched zerocheck: the packed `a`, `b`, `c` bits over
+/// a cube of `2^m` bits.
+#[derive(Clone, Copy, Debug)]
+pub struct ZerocheckInput<'a> {
+    pub bits: PackedWitness<'a>,
+    pub m: usize,
+    pub padding: PaddingSpec,
 }
 
-/// THE zerocheck prover entry: proves `a·b ⊕ c = 0` over the padded cube,
-/// leaving `(â, b̂, ĉ)` claimed at one point for lincheck to batch.
-pub fn prove_packed_padded(
-    a_packed: &[u8],
-    b_packed: &[u8],
-    c_packed: &[u8],
-    m: usize,
-    padding: &PaddingSpec,
-    ps: &mut ProverState,
-) -> ZerocheckClaim {
-    let k_skip = K_SKIP;
-    assert!(
-        m >= k_skip + N_INNER,
-        "prove requires m >= k_skip + N_INNER (= {})",
-        k_skip + N_INNER
-    );
-    let expected_bytes = (1usize << m) / 8;
-    assert_eq!(a_packed.len(), expected_bytes);
-    assert_eq!(b_packed.len(), expected_bytes);
-    assert_eq!(c_packed.len(), expected_bytes);
-    let n_mlv = m - k_skip;
+/// The folded tables of one circuit, from the round that stores them on.
+///
+/// The tables stay behind the rounds: `pending` holds the challenges sent but not yet folded in, lowest first.
+///
+/// ```text
+/// paired pass:   fold the pending challenges, then send two rounds from each quad of folded values
+/// single round:  fold the pending challenges one at a time, then send one round
+/// ```
+///
+/// A paired pass reads the tables once and writes a quarter of them for two rounds.
+/// A single round covers the last round, and a round whose eq challenge is 1, which leaves G(0) to send.
+struct Tables {
+    t: [ArenaVec<F192>; 3],
+    /// Ping-pong scratch: a pass writes its folded tables here, then the two swap.
+    nxt: [ArenaVec<F192>; 3],
+    pending: Vec<F192>,
+}
 
-    // ---- Construct the equality tail (with fixed constants in the inner 7 dims) ----
-    //
-    // r_rest layout:
-    //   r_rest[0..3]               : protocol small-eq constants φ_8(0xF7..)
-    //   r_rest[3..7]               : protocol medium-eq constants β_i
-    //   r_rest[7..m-k_skip]        : sampled outer equality coordinates
-    // Prover and verifier use the same tower-valued challenges directly.
-    let r_rest = equality_tail(m, |n| ps.sample_vec(n));
-
-    // ---- Round 1: URM (extract_c, parallel) ----
-    //
-    // The optimized URM drops a `C_s = φ_8(0x1C)` scalar from its accumulators
-    // (a prover-side optimization tied to the small-eq trick: see the
-    // C_s factor analysis in `univariate_skip_optimized`). The wire format
-    // must be in "naive" convention so the verifier doesn't need to know
-    // about this internal optimization; we restore the C_s factor here.
-    let span = tracing::info_span!("Round 1").entered();
-    let ntt_s = AdditiveNttGf8::new(k_skip, F8::ZERO);
-    let ntt_l = AdditiveNttGf8::new(k_skip, F8(1u8 << k_skip));
-    let inv_table = InvNttTableByteSingleGf8::new(&ntt_s, &ntt_l);
-    let (round1_ab_opt, round1_c_opt) = round1_shift_reduce_extract_c_packed_padded(
-        a_packed, b_packed, c_packed, m, k_skip, &r_rest, &inv_table, padding,
-    );
-    let c_s = c_s();
-    let round1: Vec<F192> = round1_ab_opt
-        .iter()
-        .zip(&round1_c_opt)
-        .map(|(x, y)| c_s * (*x + *y))
-        .collect();
-    drop(span);
-
-    // ---- Transmit + bind round-1 message on the stream, sample z ----
-    for &x in round1.iter() {
-        ps.add_scalar(x);
+impl Tables {
+    fn swap_in(&mut self, n_out: usize) {
+        for (t, nxt) in self.t.iter_mut().zip(&mut self.nxt) {
+            std::mem::swap(t, nxt);
+            t.truncate(n_out);
+        }
     }
-    let z = ps.sample();
+}
 
-    // ---- Rounds 2 onwards: straight from the packed bits ----
-    //
-    // Level `t` is the round with `rho_1..rho_t` already bound.
-    //
-    //     bits of a, b, c    1 bit per slot, 3 * 2^m bits in all
-    //     one F192 table     192 bits per slot, 2^(m - 6 - t) slots each
-    //
-    // While the tables would be larger than the bits, re-reading the bits is the cheaper pass.
-    // Each such pass sends two rounds; the second waits on the first's challenge.
-    // A last single-round pass stores the three folded tables for the tail.
-    //
-    // The kernels take the eq challenges of the variables they do not bind.
-    // They return the bare `(G(1), G(inf))` that goes on the wire.
-    let span = tracing::info_span!("Bit rounds").entered();
-    let bits = PackedWitness {
-        a: a_packed,
-        b: b_packed,
-        c: c_packed,
-    };
-    let lagrange = skip_lagrange_weights(k_skip, z);
-    // The running claim, mirrored from the verifier (same round-1 values, same z).
-    // `(1 + r) G(0) + r G(1) = claim` lets the wire drop `G(0)`, so the prover needs it too.
-    let mut c_running = interpolate_at_z_combined(&round1, k_skip, z);
-    let mut mlv_chis: Vec<F192> = Vec::with_capacity(n_mlv);
-    for t in (0..(n_mlv - 1) & !1).step_by(2).take(PAIR_PASSES) {
-        let fold = BitFold::at_level(&lagrange, &mlv_chis);
-        let pair = bit_round_pair(bits, &fold, &r_rest[t + 1..], padding);
-        let (g1, g_inf) = pair.first;
-        c_running = send_round(ps, c_running, r_rest[t], None, g1, g_inf, &mut mlv_chis);
-        let (g1, g_inf) = pair.second(mlv_chis[t]);
-        c_running = send_round(ps, c_running, r_rest[t + 1], None, g1, g_inf, &mut mlv_chis);
+/// One circuit's prover in a batched zerocheck, stepped one round at a time.
+///
+/// Level `t` is the round with `rho_1..rho_t` already bound.
+///
+/// ```text
+/// bits of a, b, c    1 bit per slot, 3 * 2^m bits in all
+/// one F192 table     192 bits per slot, 2^(m - 6 - t) slots each
+/// ```
+///
+/// While the tables would be larger than the bits, re-reading the bits is the cheaper pass.
+/// Each such pass sends two rounds; the second waits on the first's challenge.
+/// A last single-round pass stores the three folded tables for the tail.
+///
+/// The kernels take the eq challenges of the variables they do not bind.
+/// They return the bare `(G(1), G(inf))`, from which [`Self::round`] makes the coefficients.
+struct CircuitProver<'a> {
+    bits: PackedWitness<'a>,
+    padding: PaddingSpec,
+    /// The eq challenges of this circuit's variables past the skip.
+    r: &'a [F192],
+    lagrange: Vec<F192>,
+    chis: Vec<F192>,
+    /// The running claim, `G` of the last round at its challenge.
+    claim: F192,
+    /// The round message just sent, as coefficients.
+    message: [F192; 3],
+    /// The rounds sent from the packed bits in pairs, before the tables are stored: the first [`PAIR_PASSES`] pairs that leave a round after them.
+    paired_bit_rounds: usize,
+    /// The second round of a paired pass, waiting on the first's challenge.
+    pair: Option<RoundPair>,
+    tables: Option<Tables>,
+}
+
+impl<'a> CircuitProver<'a> {
+    /// The prover and its round-1 message: `P` on the coset, `P^{AB}` and `P^C` summed.
+    fn new(input: &ZerocheckInput<'a>, r: &'a [F192], inv_table: &InvNttTableByteSingleGf8) -> (Self, Vec<F192>) {
+        let ZerocheckInput { bits, m, padding } = *input;
+        assert!(m >= MIN_LOG_N, "prove requires m >= k_skip + N_INNER (= {MIN_LOG_N})");
+        let cube_bytes = (1usize << m) / 8;
+        assert_eq!(bits.a.len(), cube_bytes);
+        assert_eq!(bits.b.len(), cube_bytes);
+        assert_eq!(bits.c.len(), cube_bytes);
+        let n_mlv = m - K_SKIP;
+        assert_eq!(r.len(), n_mlv);
+
+        // The optimized URM drops a `C_s = φ_8(0x1C)` scalar from its accumulators
+        // (a prover-side optimization tied to the small-eq trick: see the
+        // C_s factor analysis in `univariate_skip_optimized`). The wire format
+        // must be in "naive" convention so the verifier doesn't need to know
+        // about this internal optimization; we restore the C_s factor here.
+        let (ab, c) =
+            round1_shift_reduce_extract_c_packed_padded(bits.a, bits.b, bits.c, m, K_SKIP, r, inv_table, &padding);
+        let c_s = c_s();
+        let round1 = ab.iter().zip(&c).map(|(x, y)| c_s * (*x + *y)).collect();
+        let prover = Self {
+            bits,
+            padding,
+            r,
+            lagrange: Vec::new(),
+            chis: Vec::with_capacity(n_mlv),
+            claim: F192::ZERO,
+            message: [F192::ZERO; 3],
+            paired_bit_rounds: 2 * (0..(n_mlv - 1) / 2).take(PAIR_PASSES).count(),
+            pair: None,
+            tables: None,
+        };
+        (prover, round1)
     }
-    let materialize_level = mlv_chis.len();
-    let fold = BitFold::at_level(&lagrange, &mlv_chis);
-    let ((g1, g_inf), [mut a_mlv, mut b_mlv, mut c_mlv]) =
-        bit_round_materialize(bits, &fold, &r_rest[materialize_level + 1..], padding);
-    c_running = send_round(ps, c_running, r_rest[materialize_level], None, g1, g_inf, &mut mlv_chis);
-    drop(span);
-    let span = tracing::info_span!("Table rounds").entered();
 
-    // ---- Remaining rounds, on the stored tables ----
-    //
-    // The tables stay behind the rounds: `pending` holds the challenges sent but not yet folded in, lowest first.
-    //
-    //     paired pass:   fold the pending challenges, then send two rounds from each quad of folded values
-    //     single round:  fold the pending challenges one at a time, then send one round
-    //
-    // A paired pass reads the tables once and writes a quarter of them for two rounds.
-    // A single round covers the last round, and a round whose eq challenge is 1, which leaves G(0) to send.
-    let mut pending = vec![mlv_chis[materialize_level]];
-    let mut next = materialize_level + 1;
-    // Ping-pong scratch: a pass writes its folded tables here, then the two swap.
-    let n_in = a_mlv.len();
-    // SAFETY: a pass writes every slot of the prefix it hands on, and nothing reads past it.
-    let (mut a_nxt, mut b_nxt, mut c_nxt) = unsafe {
-        (
-            ArenaVec::<F192>::uninitialized(n_in / 2),
-            ArenaVec::<F192>::uninitialized(n_in / 2),
-            ArenaVec::<F192>::uninitialized(n_in / 2),
-        )
-    };
-    while next < n_mlv {
-        // The tables' length once the pending challenges are folded in.
-        let n_out = a_mlv.len() >> pending.len();
-        let paired =
-            next + 1 < n_mlv && n_out >= PAIRED_MIN && r_rest[next] != F192::ONE && r_rest[next + 1] != F192::ONE;
-        if paired {
-            let pair = fold_and_round_pair_into(
-                [&a_mlv, &b_mlv, &c_mlv],
-                [&mut a_nxt[..n_out], &mut b_nxt[..n_out], &mut c_nxt[..n_out]],
-                &pending,
-                &r_rest[next + 1..],
-            );
-            std::mem::swap(&mut a_mlv, &mut a_nxt);
-            std::mem::swap(&mut b_mlv, &mut b_nxt);
-            std::mem::swap(&mut c_mlv, &mut c_nxt);
-            a_mlv.truncate(n_out);
-            b_mlv.truncate(n_out);
-            c_mlv.truncate(n_out);
-            let (g1, g_inf) = pair.first;
-            c_running = send_round(ps, c_running, r_rest[next], None, g1, g_inf, &mut mlv_chis);
-            let (g1, g_inf) = pair.second(mlv_chis[next]);
-            c_running = send_round(ps, c_running, r_rest[next + 1], None, g1, g_inf, &mut mlv_chis);
-            pending = vec![mlv_chis[next], mlv_chis[next + 1]];
-            next += 2;
+    const fn n_mlv(&self) -> usize {
+        self.r.len()
+    }
+
+    /// Take the univariate-skip challenge: the running claim is this circuit's `P(z)`.
+    fn start(&mut self, z: F192, round1: &[F192]) {
+        self.lagrange = skip_lagrange_weights(K_SKIP, z);
+        self.claim = interpolate_at_z_combined(round1, K_SKIP, z);
+    }
+
+    /// The next round's coefficients. `G(0)` comes from the eq split
+    /// `(1 + r_eq)·G(0) + r_eq·G(1) = claim`, which leaves it free at `r_eq = 1`: then
+    /// the round computes it, and only the table rounds can meet that, the earlier
+    /// ones running on fixed challenges.
+    fn round(&mut self) -> [F192; 3] {
+        let j = self.chis.len();
+        let r_eq = self.r[j];
+        let (g0, g1, g_inf) = if let Some(pair) = self.pair.take() {
+            let (g1, g_inf) = pair.second(self.chis[j - 1]);
+            (None, g1, g_inf)
+        } else if self.tables.is_none() {
+            self.bit_round(j)
         } else {
-            for &rho in &pending {
-                fold_in_place_pair(&mut a_mlv, &mut b_mlv, rho);
-                fold_in_place_single(&mut c_mlv, rho);
-            }
-            // The eq weights of the variables this round does not bind.
-            let r_eq = &r_rest[next + 1..];
-            let (m1, mi) = round_pair_naive(&a_mlv, &b_mlv, r_eq);
-            let m1 = m1 + round_single_naive(&c_mlv, r_eq);
-            let r = r_rest[next];
-            let g0 = (r == F192::ONE).then(|| {
-                // happens only with probability 2^(-192). We keep it for completeness, but not strictly necessary in the real world
-                let eq = primitives::multilinear::eq_table(r_eq);
-                (0..eq.len()).fold(F192::ZERO, |acc, x| {
-                    acc + eq[x] * (a_mlv[2 * x] * b_mlv[2 * x] + c_mlv[2 * x])
-                })
-            });
-            c_running = send_round(ps, c_running, r, g0, m1, mi, &mut mlv_chis);
-            pending = vec![mlv_chis[next]];
-            next += 1;
+            self.table_round(j)
+        };
+        let g0 = g0.unwrap_or_else(|| (self.claim + r_eq * g1) * (F192::ONE + r_eq).inv());
+        // G(X) = G(0)·(1+X) + G(1)·X + G(inf)·X·(1+X).
+        self.message = [g0, g0 + g1 + g_inf, g_inf];
+        self.message
+    }
+
+    /// Bind the round just sent at `chi`.
+    fn bind(&mut self, chi: F192) {
+        self.claim = primitives::multilinear::poly_eval(&self.message, chi);
+        self.chis.push(chi);
+        if let Some(tables) = &mut self.tables {
+            tables.pending.push(chi);
         }
     }
 
-    // ---- Final binding: the challenges still pending ----
-    //
-    // Only a and b are bound: ĉ comes from the terminal identity below, so
-    // `c_mlv`'s last fold would be work for a value nobody reads.
-    for &rho in &pending {
-        fold_in_place_pair(&mut a_mlv, &mut b_mlv, rho);
+    /// A round straight from the packed bits: the first of a pair, or the one that stores the tables.
+    fn bit_round(&mut self, j: usize) -> (Option<F192>, F192, F192) {
+        let (bits, padding, r) = (self.bits, self.padding, self.r);
+        let fold = BitFold::at_level(&self.lagrange, &self.chis);
+        if j < self.paired_bit_rounds {
+            let pair = bit_round_pair(bits, &fold, &r[j + 1..], &padding);
+            self.pair = Some(pair);
+            return (None, pair.first.0, pair.first.1);
+        }
+        let ((g1, g_inf), [a, b, c]) = bit_round_materialize(bits, &fold, &r[j + 1..], &padding);
+        let room = a.len() / 2;
+        // SAFETY: a pass writes every slot of the prefix it hands on, and nothing reads past it.
+        let nxt = std::array::from_fn(|_| unsafe { ArenaVec::<F192>::uninitialized(room) });
+        self.tables = Some(Tables {
+            t: [a, b, c],
+            nxt,
+            pending: Vec::with_capacity(2),
+        });
+        (None, g1, g_inf)
     }
-    debug_assert_eq!(a_mlv.len(), 1);
-    debug_assert_eq!(b_mlv.len(), 1);
 
-    let final_a_eval = a_mlv[0];
-    let final_b_eval = b_mlv[0];
-    // The terminal identity `claim = â·b̂ + ĉ` solved for ĉ, the same way the
-    // verifier does it. Deriving it here rather than reading `c_mlv[0]` is what
-    // keeps the two sides identical on a DISHONEST witness too: the two agree
-    // only when `a·b ⊕ c = 0` actually holds, since the running claim descends
-    // from the round-1 message, whose reconstruction assumes it.
-    let final_c_eval = c_running + final_a_eval * final_b_eval;
+    /// A round on the stored tables: the first of a paired pass, or a single round.
+    fn table_round(&mut self, j: usize) -> (Option<F192>, F192, F192) {
+        let r = self.r;
+        let n_mlv = r.len();
+        let tb = self.tables.as_mut().expect("the tables are stored");
 
-    // ---- Fiat-Shamir: bind the final â, b̂ claims into the transcript ----
-    //
-    // The three claims are reduced downstream by lincheck via a *single*
-    // random-linear-combination check in powers of α (see `lincheck`). That
-    // batching is only sound if α is sampled *after* they are committed to the
-    // transcript: otherwise a prover that knows α can pick them to satisfy the
-    // one batched equation while violating the individual checks. So observe
-    // them here, before any later challenge (the next one drawn is lincheck's
-    // α). `final_c_eval` is NOT transmitted: both sides derive it from the
-    // terminal identity, so it is bound by the values that produced it.
-    ps.add_scalar(final_a_eval);
-    ps.add_scalar(final_b_eval);
+        // The tables' length once the pending challenges are folded in.
+        let n_out = tb.t[0].len() >> tb.pending.len();
+        let paired = j + 1 < n_mlv && n_out >= PAIRED_MIN && r[j] != F192::ONE && r[j + 1] != F192::ONE;
+        if paired {
+            let [a, b, c] = &tb.t;
+            let [an, bn, cn] = &mut tb.nxt;
+            let pair = fold_and_round_pair_into(
+                [a, b, c],
+                [&mut an[..n_out], &mut bn[..n_out], &mut cn[..n_out]],
+                &tb.pending,
+                &r[j + 1..],
+            );
+            tb.swap_in(n_out);
+            tb.pending.clear();
+            self.pair = Some(pair);
+            return (None, pair.first.0, pair.first.1);
+        }
+        let [a, b, c] = &mut tb.t;
+        for &rho in &tb.pending {
+            fold_in_place_pair(a, b, rho);
+            fold_in_place_single(c, rho);
+        }
+        tb.pending.clear();
+        // The eq weights of the variables this round does not bind.
+        let r_eq = &r[j + 1..];
+        let (m1, mi) = round_pair_naive(a, b, r_eq);
+        let m1 = m1 + round_single_naive(c, r_eq);
+        let g0 = (r[j] == F192::ONE).then(|| {
+            // happens only with probability 2^(-192). We keep it for completeness, but not strictly necessary in the real world
+            let eq = primitives::multilinear::eq_table(r_eq);
+            (0..eq.len()).fold(F192::ZERO, |acc, x| acc + eq[x] * (a[2 * x] * b[2 * x] + c[2 * x]))
+        });
+        (g0, m1, mi)
+    }
 
-    drop(span);
-
-    ZerocheckClaim {
-        z,
-        mlv_challenges: mlv_chis,
-        a_eval: final_a_eval,
-        b_eval: final_b_eval,
-        c_eval: final_c_eval,
+    /// The three claims, once every round is bound.
+    ///
+    /// Only a and b are bound: ĉ comes from the terminal identity, so `c`'s last fold
+    /// would be work for a value nobody reads. Deriving it rather than reading the
+    /// table is what keeps the claims the ones the transcript implies on a DISHONEST
+    /// witness too: the running claim descends from the round-1 message, whose
+    /// reconstruction assumes the zeros on the skip domain.
+    fn finish(self) -> (F192, F192, F192) {
+        let claim = self.claim;
+        let mut tb = self.tables.expect("every circuit stores its tables");
+        let [a, b, _] = &mut tb.t;
+        for &rho in &tb.pending {
+            fold_in_place_pair(a, b, rho);
+        }
+        debug_assert_eq!(a.len(), 1);
+        debug_assert_eq!(b.len(), 1);
+        (a[0], b[0], claim + a[0] * b[0])
     }
 }
 
-/// Replay a zerocheck proof for an instance over `{0,1}^log_n`.
+/// THE zerocheck prover: proves `a·b ⊕ c = 0` for every circuit of a batch at once,
+/// leaving each circuit's `(â, b̂, ĉ)` claimed at one point for lincheck to batch.
+///
+/// The circuits share every challenge (doc/leanvm Annex C, "Batching the circuits").
+/// Their eq point is one vector `r`, circuit `f` of `n_f` variables past the skip
+/// taking its first `n_f` coordinates, and the batch is the sum of the circuits'
+/// polynomials times the powers of one challenge `λ`, each lifted onto the batch's
+/// variables by summing it over those it does not use, where its eq factor sums to
+/// one. So the round-1 message is the `λ`-combination of the circuits', the rounds
+/// bind the lowest variable first, every circuit from the first round, and circuit
+/// `f` is done after its `n_f` rounds: from then on it adds the constant `G` it
+/// ended on, which reaches only the coefficient the claim fixes. Each circuit's
+/// claims sit at the batch's challenges' first `n_f`.
+pub fn prove(inputs: &[ZerocheckInput<'_>], ps: &mut ProverState) -> Vec<ZerocheckClaim> {
+    let n_mlv = inputs.iter().map(|i| i.m).max().expect("a batch has a circuit") - K_SKIP;
+
+    // r_rest layout:
+    //   r_rest[0..3]               : protocol small-eq constants φ_8(0xF7..)
+    //   r_rest[3..7]               : protocol medium-eq constants β_i
+    //   r_rest[7..n_mlv]           : sampled outer equality coordinates
+    // Prover and verifier use the same tower-valued challenges directly.
+    let r_rest = equality_tail(n_mlv + K_SKIP, |n| ps.sample_vec(n));
+    let lambdas = powers(ps.sample(), inputs.len());
+
+    let span = tracing::info_span!("Round 1").entered();
+    let ntt_s = AdditiveNttGf8::new(K_SKIP, F8::ZERO);
+    let ntt_l = AdditiveNttGf8::new(K_SKIP, F8(1u8 << K_SKIP));
+    let inv_table = InvNttTableByteSingleGf8::new(&ntt_s, &ntt_l);
+    let mut round1 = vec![F192::ZERO; 1 << K_SKIP];
+    let provers: Vec<_> = (inputs.iter().zip(&lambdas))
+        .map(|(input, &lambda)| {
+            let (prover, own) = CircuitProver::new(input, &r_rest[..input.m - K_SKIP], &inv_table);
+            for (x, y) in round1.iter_mut().zip(&own) {
+                *x += lambda * *y;
+            }
+            (prover, own)
+        })
+        .collect();
+    drop(span);
+    ps.add_scalars(&round1);
+    let z = ps.sample();
+    let mut provers: Vec<CircuitProver<'_>> = (provers.into_iter())
+        .map(|(mut prover, own)| {
+            prover.start(z, &own);
+            prover
+        })
+        .collect();
+
+    let span = tracing::info_span!("Rounds").entered();
+    for j in 0..n_mlv {
+        let mut message = [F192::ZERO; 3];
+        for (prover, &lambda) in provers.iter_mut().zip(&lambdas) {
+            let own = if j < prover.n_mlv() {
+                prover.round()
+            } else {
+                [prover.claim, F192::ZERO, F192::ZERO]
+            };
+            for (m, c) in message.iter_mut().zip(own) {
+                *m += lambda * c;
+            }
+        }
+        ps.add_round_poly(&message, true);
+        let chi = ps.sample();
+        for prover in provers.iter_mut().filter(|p| j < p.n_mlv()) {
+            prover.bind(chi);
+        }
+    }
+    drop(span);
+
+    // The claims ride the stream before the next challenge, lincheck's α, which
+    // batches them: drawn after them, it cannot be steered by them.
+    provers
+        .into_iter()
+        .map(|prover| {
+            let mlv_challenges = prover.chis.clone();
+            let (a_eval, b_eval, c_eval) = prover.finish();
+            ps.add_scalars(&[a_eval, b_eval, c_eval]);
+            ZerocheckClaim {
+                z,
+                mlv_challenges,
+                a_eval,
+                b_eval,
+                c_eval,
+            }
+        })
+        .collect()
+}
+
+/// Replay a batched zerocheck over circuits of `2^m` bits each, `log_ns[f] = m`.
 ///
 /// Walks the transcript in lockstep with the prover, samples the same challenges,
-/// and carries the running claim through the rounds. It is a REDUCTION, not a
-/// check: `ĉ` is whatever the terminal identity leaves, so no round message can
-/// fail here. The only errors are structural (shape, truncated stream). What
-/// makes the claims meaningful is lincheck, which pins all three against the
-/// committed witness: never call this alone and treat `Ok` as acceptance.
-///
-/// On accept: returns the [`ZerocheckClaim`] for lincheck and the PCS.
-/// On reject: returns a [`VerifyError`] indicating which check failed.
-pub fn verify(log_n: usize, vs: &mut VerifierState<'_>) -> Result<ZerocheckClaim, VerifyError> {
-    let m = log_n;
-    let k_skip = K_SKIP;
-
-    if m < k_skip + N_INNER {
-        return Err(VerifyError::LogNTooSmall { log_n: m, k_skip });
+/// and carries the running claim through the rounds, then checks the terminal
+/// identity `claim = Σ_f λ^f (â_f·b̂_f + ĉ_f)` on the claims read. Nothing else is
+/// checked here: what makes the claims meaningful is lincheck, which pins every
+/// circuit's three against its committed witness. Never call this alone and treat
+/// `Ok` as acceptance.
+pub fn verify(log_ns: &[usize], vs: &mut VerifierState<'_>) -> Result<Vec<ZerocheckClaim>, VerifyError> {
+    if let Some(&log_n) = log_ns.iter().find(|&&m| m < MIN_LOG_N) {
+        return Err(VerifyError::LogNTooSmall { log_n, k_skip: K_SKIP });
     }
-    let n_mlv = m - k_skip;
-    let ell = 1usize << k_skip;
+    let n_mlv = log_ns.iter().max().expect("a batch has a circuit") - K_SKIP;
 
-    // ---- Re-derive the equality tail (in lockstep with prove_packed) ----
-    // The verifier samples tower challenges directly, matching the prover.
-    let r_rest = equality_tail(m, |n| vs.sample_vec(n));
+    // ---- Re-derive the equality tail and the batching powers (in lockstep with prove) ----
+    let r_rest = equality_tail(n_mlv + K_SKIP, |n| vs.sample_vec(n));
+    let lambdas = powers(vs.sample(), log_ns.len());
 
     // ---- Read + bind the round-1 message off the stream, sample z ----
-    let round1: Vec<F192> = vs.next_scalars(ell)?;
+    let round1: Vec<F192> = vs.next_scalars(1 << K_SKIP)?;
     let z = vs.sample();
 
     // ---- Reconstruct the initial running claim ----
@@ -410,10 +487,10 @@ pub fn verify(log_n: usize, vs: &mut VerifierState<'_>) -> Result<ZerocheckClaim
     // **zerocheck assumption** `P(λ) = 0` for `λ ∈ S`: together with the ell
     // Λ-evaluations that is 2·ell, enough to interpolate P at z.
     //
-    // If the prover's witness is dishonest the S-zero assumption fails and the
-    // reconstructed claim is wrong; the chain then ends at a `ĉ` that is not
-    // the true evaluation, and lincheck's α-batched identity rejects.
-    let mut c_running = interpolate_at_z_combined(&round1, k_skip, z);
+    // If a circuit's witness is dishonest the S-zero assumption fails and the
+    // reconstructed claim is wrong; the chain then ends at claims that are not
+    // the true evaluations, and lincheck's α-batched identity rejects.
+    let mut c_running = interpolate_at_z_combined(&round1, K_SKIP, z);
 
     // ---- Multilinear sumcheck chain ----
     //
@@ -421,18 +498,10 @@ pub fn verify(log_n: usize, vs: &mut VerifierState<'_>) -> Result<ZerocheckClaim
     // not the full per-round polynomial P(ρ) = eq(r_eq, ρ) · G(ρ). The eq
     // factor for the just-bound variable is absorbed by the next round's
     // consistency check via the identity
-    //   G_{r-1}(ρ_{r-1}) = (1 + r_eq_r) · G_r(0) + r_eq_r · G_r(1).
-    //
-    // Round r (0-indexed i = r − 2) binds the i-th rest variable with eq weight
-    // r_rest[i]. The prover sends `(G(1), G(∞))` (Convention A: no
-    // factor). Verifier:
-    //   1. reconstruct G(0) from consistency `c_running = (1+r_eq)·G(0) + r_eq·G(1)`,
-    //   2. observe message, sample ρ_i,
-    //   3. update `c_running ← G(ρ_i)`,
-    //      where `G(X) = G(0)·(1+X) + G(1)·X + G(∞)·X·(X+1)` (char-2 quadratic
-    //      interpolation through G(0), G(1), G(∞)).
+    //   G_{r-1}(ρ_{r-1}) = (1 + r_eq_r) · G_r(0) + r_eq_r · G_r(1),
+    // where `G(X) = G(0)·(1+X) + G(1)·X + G(∞)·X·(X+1)`.
     let mut mlv_chis: Vec<F192> = Vec::with_capacity(n_mlv);
-    for &r_eq in &r_rest[..n_mlv] {
+    for &r_eq in &r_rest {
         let g = vs.next_round_poly(3, c_running, Some(r_eq))?;
         let chi = vs.sample();
         mlv_chis.push(chi);
@@ -441,29 +510,26 @@ pub fn verify(log_n: usize, vs: &mut VerifierState<'_>) -> Result<ZerocheckClaim
 
     // ---- Terminal identity ----
     //
-    // After all variables are bound, the inner running claim is the polynomial
-    // without the eq weighting:
-    //   G_final(ρ) = â(z, ρ)·b̂(z, ρ) + ĉ(z, ρ).
-    // (The eq factors were absorbed round-by-round into the consistency checks,
-    // never accumulating into the running claim.)
-    //
-    // Read + bind the final â, b̂ claims off the stream: binding must land
-    // before the next challenge (lincheck's α) is drawn, so the α-batched
-    // reduction of the three claims is sound. `ĉ` is not transmitted: it is
-    // what the identity leaves, so there is nothing to check here. A prover who
-    // lies about anything upstream just shifts the lie into `ĉ`, and lincheck,
-    // which pins all three against the committed witness, rejects it.
-    let final_a_eval = vs.next_scalar()?;
-    let final_b_eval = vs.next_scalar()?;
-    let final_c_eval = c_running + final_a_eval * final_b_eval;
-
-    Ok(ZerocheckClaim {
-        z,
-        mlv_challenges: mlv_chis,
-        a_eval: final_a_eval,
-        b_eval: final_b_eval,
-        c_eval: final_c_eval,
-    })
+    // After all variables are bound, the running claim is the batch without its eq
+    // weights: each circuit's `â·b̂ + ĉ` at its share of the challenges, a circuit done
+    // early having carried its value unchanged since.
+    let mut terminal = F192::ZERO;
+    let mut claims = Vec::with_capacity(log_ns.len());
+    for (&m, &lambda) in log_ns.iter().zip(&lambdas) {
+        let [a_eval, b_eval, c_eval] = [vs.next_scalar()?, vs.next_scalar()?, vs.next_scalar()?];
+        terminal += lambda * (a_eval * b_eval + c_eval);
+        claims.push(ZerocheckClaim {
+            z,
+            mlv_challenges: mlv_chis[..m - K_SKIP].to_vec(),
+            a_eval,
+            b_eval,
+            c_eval,
+        });
+    }
+    if terminal != c_running {
+        return Err(VerifyError::TerminalMismatch);
+    }
+    Ok(claims)
 }
 
 #[cfg(test)]
@@ -471,7 +537,7 @@ mod tests {
     use super::*;
     use primitives::test_rng::Rng;
 
-    /// Test shim for the dense-prove entry.
+    /// Test shim: one dense circuit.
     fn prove_packed(
         a_packed: &[u8],
         b_packed: &[u8],
@@ -479,7 +545,21 @@ mod tests {
         m: usize,
         ps: &mut fiat_shamir::transcript::ProverState,
     ) -> ZerocheckClaim {
-        prove_packed_padded(a_packed, b_packed, c_packed, m, &PaddingSpec::dense(m), ps)
+        let input = ZerocheckInput {
+            bits: PackedWitness {
+                a: a_packed,
+                b: b_packed,
+                c: c_packed,
+            },
+            m,
+            padding: PaddingSpec::dense(m),
+        };
+        prove(&[input], ps).pop().expect("one circuit")
+    }
+
+    /// Test shim: the replay of one circuit.
+    fn verify_one(m: usize, vs: &mut VerifierState<'_>) -> Result<ZerocheckClaim, VerifyError> {
+        verify(&[m], vs).map(|mut claims| claims.pop().expect("one circuit"))
     }
 
     /// The quirky evaluation `f̂(z, chi)` of a Boolean witness: the φ8-Lagrange
@@ -528,16 +608,14 @@ mod tests {
             let claim = prove_packed(&a_p, &b_p, &c_p, m, &mut ps);
 
             // Shape checks: the streamed proof is round1 ‖ (m − K_SKIP)
-            // message pairs ‖ (final_a, final_b). C rides the sumcheck, so
-            // there is no second Λ-vector and no transmitted ĉ.
+            // message pairs ‖ (final_a, final_b, final_c). C rides the sumcheck,
+            // so there is no second Λ-vector.
             let stream = ps.into_proof().stream;
-            assert_eq!(stream.len(), (1 << K_SKIP) + 2 * (m - K_SKIP) + 2, "m={m}");
+            assert_eq!(stream.len(), (1 << K_SKIP) + 2 * (m - K_SKIP) + 3, "m={m}");
             assert_eq!(claim.mlv_challenges.len(), m - K_SKIP, "m={m}");
-
-            // Claim's eval fields agree with the streamed final evals (both are
-            // now tower values: the prover streams eval).
-            assert_eq!(claim.a_eval, stream[stream.len() - 2], "m={m}");
-            assert_eq!(claim.b_eval, stream[stream.len() - 1], "m={m}");
+            assert_eq!(claim.a_eval, stream[stream.len() - 3], "m={m}");
+            assert_eq!(claim.b_eval, stream[stream.len() - 2], "m={m}");
+            assert_eq!(claim.c_eval, stream[stream.len() - 1], "m={m}");
         }
     }
 
@@ -558,7 +636,7 @@ mod tests {
 
             let proof_t = ch_prove.into_proof();
             let mut ch_verify = fiat_shamir::transcript::VerifierState::from_label(b"flock-test-v0", &proof_t);
-            let result = verify(m, &mut ch_verify);
+            let result = verify_one(m, &mut ch_verify);
             let claim_v = result.unwrap_or_else(|e| panic!("verify rejected at m={m}: {e:?}"));
 
             assert_eq!(claim_p, claim_v, "claim mismatch at m={m}");
@@ -567,8 +645,7 @@ mod tests {
 
     /// **The reduction is faithful.** On an honest witness the three claims
     /// the verifier ends up with are the true quirky evaluations of a, b and c
-    /// at the sumcheck point: including `ĉ`, which nobody transmits and both
-    /// sides read off the terminal identity.
+    /// at the sumcheck point.
     #[test]
     fn claims_are_true_evaluations() {
         // 16 and 17 reach the fused single-table kernel (gated on log_n ≥ 10),
@@ -584,7 +661,7 @@ mod tests {
             let _ = prove_packed(&a_p, &b_p, &c_p, m, &mut ch_prove);
             let proof_t = ch_prove.into_proof();
             let mut ch = fiat_shamir::transcript::VerifierState::from_label(b"flock-test-v0", &proof_t);
-            let claim = verify(m, &mut ch).expect("honest proof");
+            let claim = verify_one(m, &mut ch).expect("honest proof");
 
             let chi = &claim.mlv_challenges;
             assert_eq!(claim.a_eval, quirky_eval(&a, claim.z, chi), "â at m={m}");
@@ -593,13 +670,13 @@ mod tests {
         }
     }
 
-    /// **AUDIT: a false statement leaves a wrong claim.** The zerocheck no
-    /// longer rejects on its own: `ĉ` is whatever the terminal identity
-    /// leaves, so a witness violating `a·b ⊕ c = 0` is not caught here but by
-    /// lincheck, which pins all three claims against the committed witness.
-    /// What must hold at this layer is that such a witness cannot leave all
-    /// three claims true. Same for a tampered proof word: it moves the
-    /// derived claims off the true evaluations.
+    /// **AUDIT: a false statement leaves a wrong claim.** The zerocheck does
+    /// not reject a false statement on its own: an honest-shaped run on a
+    /// witness violating `a·b ⊕ c = 0` passes the terminal identity, and is
+    /// caught by lincheck, which pins all three claims against the committed
+    /// witness. What must hold at this layer is that such a witness cannot
+    /// leave all three claims true. A tampered proof word is either rejected by
+    /// the terminal identity or moves a claim off the true evaluations.
     #[test]
     fn false_statement_or_tamper_leaves_a_wrong_claim() {
         for &m in &[13usize, 14, 15] {
@@ -619,7 +696,7 @@ mod tests {
                 let _ = prove_packed(&a_p, &b_p, &c_p, m, &mut ch_prove);
                 let proof_t = ch_prove.into_proof();
                 let mut ch = fiat_shamir::transcript::VerifierState::from_label(b"flock-test-v0", &proof_t);
-                let claim = verify(m, &mut ch).expect("shape is still valid");
+                let claim = verify_one(m, &mut ch).expect("shape is still valid");
                 let chi = &claim.mlv_challenges;
                 let all_true = claim.a_eval == quirky_eval(&a, claim.z, chi)
                     && claim.b_eval == quirky_eval(&b, claim.z, chi)
@@ -641,24 +718,30 @@ mod tests {
 
         let ell = 1usize << K_SKIP;
         let n_mlv = m - K_SKIP;
-        let mutations: [(&str, usize); 6] = [
+        let mutations: [(&str, usize); 7] = [
             ("round1[0]", 0),
             ("round1[5]", 5),
             ("multilinear_rounds[0].0", ell),
             ("multilinear_rounds[mid].1", ell + 2 * (n_mlv / 2) + 1),
             ("final_a_eval", ell + 2 * n_mlv),
             ("final_b_eval", ell + 2 * n_mlv + 1),
+            ("final_c_eval", ell + 2 * n_mlv + 2),
         ];
         for (label, word) in mutations {
             let mut bad = proof_t.clone();
             bad.stream[word].c0 ^= 1;
             let mut ch = fiat_shamir::transcript::VerifierState::from_label(b"flock-test-v0", &bad);
-            let claim = verify(m, &mut ch).expect("shape is still valid");
-            let chi = &claim.mlv_challenges;
-            let all_true = claim.a_eval == quirky_eval(&a, claim.z, chi)
-                && claim.b_eval == quirky_eval(&b, claim.z, chi)
-                && claim.c_eval == quirky_eval(&c, claim.z, chi);
-            assert!(!all_true, "tampered proof ({label}) left every claim true");
+            match verify_one(m, &mut ch) {
+                Err(VerifyError::TerminalMismatch) => {}
+                Err(e) => panic!("tampered proof ({label}) failed on its shape: {e:?}"),
+                Ok(claim) => {
+                    let chi = &claim.mlv_challenges;
+                    let all_true = claim.a_eval == quirky_eval(&a, claim.z, chi)
+                        && claim.b_eval == quirky_eval(&b, claim.z, chi)
+                        && claim.c_eval == quirky_eval(&c, claim.z, chi);
+                    assert!(!all_true, "tampered proof ({label}) left every claim true");
+                }
+            }
         }
     }
 
@@ -679,12 +762,12 @@ mod tests {
         let mut bad = proof_t.clone();
         bad.stream.truncate(bad.stream.len() - 3);
         let mut ch = fiat_shamir::transcript::VerifierState::from_label(b"flock-test-v0", &bad);
-        assert!(matches!(verify(m, &mut ch), Err(VerifyError::Transcript(_))));
+        assert!(matches!(verify_one(m, &mut ch), Err(VerifyError::Transcript(_))));
 
         // log_n too small.
         let mut ch = fiat_shamir::transcript::VerifierState::from_label(b"flock-test-v0", &proof_t);
         assert!(matches!(
-            verify(K_SKIP + 6, &mut ch),
+            verify_one(K_SKIP + 6, &mut ch),
             Err(VerifyError::LogNTooSmall { .. })
         ));
     }
@@ -700,12 +783,11 @@ mod tests {
     /// violating the individual ties.
     ///
     /// The tamper here is *product-preserving*, `(â, b̂) → (â·t, b̂·t⁻¹)`, so it
-    /// leaves `â·b̂` and therefore the derived `ĉ` untouched: the whole triple
-    /// the reduction carries is unchanged, and nothing downstream could tell
-    /// the two runs apart except the transcript itself. The defense is that
-    /// both claims are observed last, so the next challenge (the slot lincheck
-    /// draws α from) must diverge. This assertion FAILS before the observe was
-    /// added (identical post-state) and passes now.
+    /// leaves `â·b̂`, hence the terminal identity, untouched: the whole triple
+    /// the reduction carries is as consistent as the honest one, and nothing
+    /// downstream could tell the two runs apart except the transcript itself.
+    /// The defense is that the claims are observed last, so the next challenge
+    /// (the slot lincheck draws α from) must diverge.
     #[test]
     fn audit_final_ab_claims_bound_to_transcript() {
         let m = 14;
@@ -722,23 +804,21 @@ mod tests {
         // Honest verify, then capture the next challenge the transcript feeds
         // downstream: this is exactly the slot lincheck samples α from.
         let mut ch_honest = fiat_shamir::transcript::VerifierState::from_label(b"flock-test-v0", &proof_t);
-        assert!(verify(m, &mut ch_honest).is_ok(), "honest verify rejected");
+        assert!(verify_one(m, &mut ch_honest).is_ok(), "honest verify rejected");
         let alpha_honest = ch_honest.sample();
 
-        // Product-preserving tamper: â' = â·t, b̂' = b̂·t⁻¹ ⇒ â'·b̂' = â·b̂, so the
-        // derived ĉ = claim + â·b̂ is unchanged too.
-        // The stream now carries tower (F192) values, so tamper in F192.
+        // Product-preserving tamper: â' = â·t, b̂' = b̂·t⁻¹ ⇒ â'·b̂' = â·b̂.
         let t = F192::new(0x0123_4567_89ab_cdef, 0xfedc_ba98_7654_3210, 0x55aa_aa55_0123_4567);
         assert!(t != F192::ZERO && t != F192::ONE, "t must be nontrivial");
-        // The finals are the LAST two stream words of this standalone proof.
+        // The finals are the LAST three stream words of this standalone proof, `ĉ` last.
         let n = proof_t.stream.len();
         let mut bad = proof_t.clone();
-        bad.stream[n - 2] *= t;
-        bad.stream[n - 1] *= t.inv();
-        assert_ne!(bad.stream[n - 2], proof_t.stream[n - 2], "tamper must change â");
-        assert_ne!(bad.stream[n - 1], proof_t.stream[n - 1], "tamper must change b̂");
+        bad.stream[n - 3] *= t;
+        bad.stream[n - 2] *= t.inv();
+        assert_ne!(bad.stream[n - 3], proof_t.stream[n - 3], "tamper must change â");
+        assert_ne!(bad.stream[n - 2], proof_t.stream[n - 2], "tamper must change b̂");
         assert_eq!(
-            bad.stream[n - 2] * bad.stream[n - 1],
+            bad.stream[n - 3] * bad.stream[n - 2],
             claim_p.a_eval * claim_p.b_eval,
             "tamper must preserve the product",
         );
@@ -747,13 +827,8 @@ mod tests {
         // claims are as consistent as the honest ones (same product, same ĉ),
         // so nothing local distinguishes them.
         let mut ch_tampered = fiat_shamir::transcript::VerifierState::from_label(b"flock-test-v0", &bad);
-        let tampered = verify(m, &mut ch_tampered).expect("shape is still valid");
-        assert_eq!(
-            tampered.a_eval * tampered.b_eval,
-            claim_p.a_eval * claim_p.b_eval,
-            "the tamper must preserve the product the reduction carries",
-        );
-        assert_eq!(tampered.c_eval, claim_p.c_eval, "and therefore the derived ĉ");
+        let tampered = verify_one(m, &mut ch_tampered).expect("the terminal identity still holds");
+        assert_eq!(tampered.c_eval, claim_p.c_eval, "ĉ is untouched");
         let alpha_tampered = ch_tampered.sample();
 
         // The fix: observing â, b̂ makes the downstream challenge depend on them,
@@ -785,5 +860,132 @@ mod tests {
         assert_eq!(ch1.into_proof().stream, ch2.into_proof().stream);
         assert_eq!(claim1.z, claim2.z);
         assert_eq!(claim1.mlv_challenges, claim2.mlv_challenges);
+    }
+
+    /// One circuit of a test batch: its packed bits and the same bits unpacked.
+    struct TestCircuit {
+        m: usize,
+        packed: [Vec<u8>; 3],
+        dense: [Vec<bool>; 3],
+    }
+
+    /// An honest witness of `2^m` bits, `c = a·b`, with each 512-bit block's positions from 400 on empty.
+    fn test_circuit(rng: &mut Rng, m: usize) -> TestCircuit {
+        let n = 1usize << m;
+        let a: Vec<bool> = (0..n).map(|i| i % 512 < 400 && rng.next_u64() & 1 == 1).collect();
+        let b: Vec<bool> = (0..n).map(|i| i % 512 < 400 && rng.next_u64() & 1 == 1).collect();
+        let c = a.iter().zip(&b).map(|(x, y)| x & y).collect();
+        let dense = [a, b, c];
+        TestCircuit {
+            m,
+            packed: dense.clone().map(|b| univariate_skip::pack_bits(&b)),
+            dense,
+        }
+    }
+
+    /// The quirky values at `z` of a cube's bits, one per position past the skip.
+    fn at_z(bits: &[bool], z: F192) -> Vec<F192> {
+        let weights = skip_lagrange_weights(K_SKIP, z);
+        (bits.chunks(1 << K_SKIP))
+            .map(|row| (row.iter().zip(&weights)).fold(F192::ZERO, |acc, (&bit, &w)| if bit { acc + w } else { acc }))
+            .collect()
+    }
+
+    /// **A batch sends the sum of its circuits' rounds.** On circuits of mixed sizes:
+    /// the round-1 message interpolates to `Σ_f λ^f P_f(z)`, every round's
+    /// coefficients are `Σ_f λ^f` of each circuit's own round on its cube, a circuit
+    /// done early adding the constant it ended on, and the closing claims are each
+    /// circuit's true evaluations.
+    #[test]
+    fn a_batch_sends_the_sum_of_its_circuits_rounds() {
+        let mut rng = Rng::new(0xBA7C);
+        let circuits: Vec<TestCircuit> = [13, 17, 15, 20, 16]
+            .into_iter()
+            .map(|m| test_circuit(&mut rng, m))
+            .collect();
+        let padding = PaddingSpec {
+            k_log: 9,
+            useful_bits_per_block: 400,
+        };
+        let inputs: Vec<ZerocheckInput<'_>> = (circuits.iter())
+            .map(|c| {
+                let [a, b, cc] = &c.packed;
+                ZerocheckInput {
+                    bits: PackedWitness { a, b, c: cc },
+                    m: c.m,
+                    padding,
+                }
+            })
+            .collect();
+        let mut ps = ProverState::from_label(b"flock-test-v0");
+        let claims = prove(&inputs, &mut ps);
+        let proof = ps.into_proof();
+
+        let mut vs = VerifierState::from_label(b"flock-test-v0", &proof);
+        let n_mlv = circuits.iter().map(|c| c.m).max().unwrap() - K_SKIP;
+        let r = equality_tail(n_mlv + K_SKIP, |n| vs.sample_vec(n));
+        let lambdas = powers(vs.sample(), circuits.len());
+        let round1 = vs.next_scalars(1 << K_SKIP).unwrap();
+        let z = vs.sample();
+        let mut tables: Vec<[Vec<F192>; 3]> = circuits
+            .iter()
+            .map(|c| c.dense.clone().map(|bits| at_z(&bits, z)))
+            .collect();
+        let p_at_z = (tables.iter().zip(&lambdas)).fold(F192::ZERO, |acc, ([a, b, c], &lambda)| {
+            let eq = primitives::multilinear::eq_table(&r[..a.len().trailing_zeros() as usize]);
+            acc + lambda * (0..a.len()).fold(F192::ZERO, |acc, v| acc + eq[v] * (a[v] * b[v] + c[v]))
+        });
+        let mut claim = interpolate_at_z_combined(&round1, K_SKIP, z);
+        assert_eq!(claim, p_at_z, "round 1");
+
+        // Each circuit's value once done: its `G` at its last challenge.
+        let mut done = vec![F192::ZERO; circuits.len()];
+        for j in 0..n_mlv {
+            let mut expected = [F192::ZERO; 3];
+            let mut own = Vec::new();
+            for (f, [a, b, c]) in tables.iter().enumerate() {
+                let coeffs = if a.len() > 1 {
+                    let eq = primitives::multilinear::eq_table(&r[j + 1..j + a.len().trailing_zeros() as usize]);
+                    let mut g = [F192::ZERO; 3];
+                    for (v, &e) in eq.iter().enumerate() {
+                        let (lo, hi) = (2 * v, 2 * v + 1);
+                        g[0] += e * (a[lo] * b[lo] + c[lo]);
+                        g[1] += e * (a[hi] * b[hi] + c[hi]);
+                        g[2] += e * (a[lo] + a[hi]) * (b[lo] + b[hi]);
+                    }
+                    [g[0], g[0] + g[1] + g[2], g[2]]
+                } else {
+                    [done[f], F192::ZERO, F192::ZERO]
+                };
+                for (e, x) in expected.iter_mut().zip(coeffs) {
+                    *e += lambdas[f] * x;
+                }
+                own.push(coeffs);
+            }
+            let message = vs.next_round_poly(3, claim, Some(r[j])).unwrap();
+            assert_eq!(message, expected, "round {j}");
+            let chi = vs.sample();
+            claim = primitives::multilinear::poly_eval(&message, chi);
+            for (f, t) in tables.iter_mut().enumerate() {
+                if t[0].len() > 1 {
+                    for v in t.iter_mut() {
+                        *v = (0..v.len() / 2)
+                            .map(|i| v[2 * i] + chi * (v[2 * i] + v[2 * i + 1]))
+                            .collect();
+                    }
+                    done[f] = primitives::multilinear::poly_eval(&own[f], chi);
+                }
+            }
+        }
+        for (([a, b, c], claim), f) in tables.iter().zip(&claims).zip(0..) {
+            let finals = vs.next_scalars(3).unwrap();
+            assert_eq!(finals, [a[0], b[0], c[0]], "circuit {f}'s claims");
+            assert_eq!(
+                [claim.a_eval, claim.b_eval, claim.c_eval],
+                [a[0], b[0], c[0]],
+                "circuit {f}'s claims"
+            );
+        }
+        vs.finish().unwrap();
     }
 }

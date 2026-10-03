@@ -472,6 +472,41 @@ pub fn eval_rs_eq(z_vals: &[F192], query: &RsEqQuery) -> F192 {
             *term *= power + z;
         }
     }
+    linearized_horner(&terms)
+}
+
+/// [`eval_rs_eq`] at several prefixes of one suffix point at once: entry `i` is `eval_rs_eq(&z_vals[..lengths[i]], query)`.
+///
+/// The products `P_k` of a prefix extend to the next coordinate by one product each, so one pass over the longest prefix serves every length, each closing with its own Horner pass.
+///
+/// Panics if a length exceeds `z_vals` or the query.
+pub fn eval_rs_eq_prefixes(z_vals: &[F192], query: &RsEqQuery, lengths: &[usize]) -> Vec<F192> {
+    let longest = lengths.iter().copied().max().unwrap_or(0);
+    assert!(
+        longest <= z_vals.len() && longest <= query.ladders.len(),
+        "eval_rs_eq_prefixes: a prefix is longer than the suffix point or the query"
+    );
+    let mut out = vec![F192::ZERO; lengths.len()];
+    // Close every prefix of `n` coordinates, once per distinct length.
+    let mut close = |n: usize, products: &[F192; LINEARIZED_TERMS]| {
+        let mut value = None;
+        for (slot, _) in out.iter_mut().zip(lengths).filter(|&(_, &len)| len == n) {
+            *slot = *value.get_or_insert_with(|| linearized_horner(products));
+        }
+    };
+    let mut products = query.coefficients;
+    close(0, &products);
+    for (n, (&z, ladder)) in z_vals.iter().zip(&query.ladders).take(longest).enumerate() {
+        for (p, &power) in products.iter_mut().zip(ladder) {
+            *p *= power + z;
+        }
+        close(n + 1, &products);
+    }
+    out
+}
+
+/// The linearized Horner rule that closes the Frobenius sum: `acc <- acc^2 + term` from the last term down.
+fn linearized_horner(terms: &[F192; LINEARIZED_TERMS]) -> F192 {
     let (&last, rest) = terms.split_last().expect("the map has 64 terms");
     rest.iter().rev().fold(last, |acc, &term| acc.square() + term)
 }

@@ -4,7 +4,6 @@ use crate::constraints;
 use crate::leaf;
 use crate::pcs;
 use crate::rv;
-use crate::tables::Part;
 
 /// Why a run has no proof.
 ///
@@ -70,16 +69,9 @@ pub enum CpuError {
     /// The table constraints do not hold.
     #[error("the table constraints: {0}")]
     Constraint(constraints::Error),
-    /// One of a table's circuit proofs is rejected.
-    #[error("the {table} table's {part:?} circuit: {error}")]
-    Flock {
-        /// The table.
-        table: &'static str,
-        /// Which of its two circuits.
-        part: Part,
-        /// Why flock rejects it.
-        error: flock::verifier::VerifyError,
-    },
+    /// The circuits' batched proof is rejected.
+    #[error("the circuits' reductions: {0}")]
+    Flock(flock::verifier::VerifyError),
     /// The commitment opening is rejected.
     #[error("the opening: {0}")]
     Open(::pcs::whir::VerifyError),
