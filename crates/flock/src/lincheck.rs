@@ -1116,18 +1116,33 @@ pub fn prove_padded_capture_s_hat_v(
 ///
 /// - `u` is the row weights at the inner half of the zerocheck point.
 /// - `w` is the column weights of the output claim.
+///
+/// Its elements are values, or whatever a verifier holds them as.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct MatrixForm {
+pub struct MatrixForm<E = F192> {
     /// The challenge batching the two matrices.
-    pub alpha: F192,
+    pub alpha: E,
     /// The zerocheck's skip challenge, the first row coordinate.
-    pub z_skip: F192,
+    pub z_skip: E,
     /// The zerocheck's inner coordinates, the other row coordinates.
-    pub x_inner_rest: Vec<F192>,
+    pub x_inner_rest: Vec<E>,
     /// The output claim's inner coordinates, the column point.
-    pub r_inner_rest: Vec<F192>,
+    pub r_inner_rest: Vec<E>,
     /// The output claim's `2^k_skip` bit slices.
-    pub s_hat_v: Vec<F192>,
+    pub s_hat_v: Vec<E>,
+}
+
+impl<E: Copy> MatrixForm<E> {
+    /// The same form, each element mapped by `f`.
+    pub fn map<T>(&self, mut f: impl FnMut(E) -> T) -> MatrixForm<T> {
+        MatrixForm {
+            alpha: f(self.alpha),
+            z_skip: f(self.z_skip),
+            x_inner_rest: self.x_inner_rest.iter().map(|&x| f(x)).collect(),
+            r_inner_rest: self.r_inner_rest.iter().map(|&x| f(x)).collect(),
+            s_hat_v: self.s_hat_v.iter().map(|&x| f(x)).collect(),
+        }
+    }
 }
 
 impl MatrixForm {

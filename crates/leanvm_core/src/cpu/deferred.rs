@@ -14,6 +14,7 @@
 use super::batch::FormPowers;
 use super::layout::Lookup;
 use super::{CpuError, Program};
+use crate::arith::Arith;
 use crate::class_flock;
 use crate::constraints;
 use crate::leaf::{self, BusVerify, N_TUPLE_BITS, SparseColumn};
@@ -23,12 +24,14 @@ use flock::lincheck::{self, MatrixClaim, MatrixForm};
 use primitives::field::F192;
 
 /// One fixed polynomial `f` claimed to take `value` at `point`.
+///
+/// Its elements are values, or whatever a verifier holds them as.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Claim<P> {
+pub struct Claim<P, E = F192> {
     /// Where the polynomial is evaluated.
     pub point: P,
     /// The value the proof claims it takes there.
-    pub value: F192,
+    pub value: E,
 }
 
 /// A point of the program's fixed polynomials, at which they take the value
@@ -44,24 +47,56 @@ pub struct Claim<P> {
 /// Raising to `2^i` is the Frobenius automorphism `phi^i`, so bit `i`'s column is `phi^i(T(phi^(-i)(chi), alpha))`.
 /// The weights `mu_i` batch every bit's into one claim on the table at `(chi, alpha)`.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ProgramPoint {
+pub struct ProgramPoint<E = F192> {
     /// The table sumcheck's point on the entries `chi`, then the bus fingerprint's `alpha`.
-    pub bytecode: Vec<F192>,
+    pub bytecode: Vec<E>,
     /// The weight `mu_i` of each multiplicity bit, lowest first.
-    pub twist: Vec<F192>,
+    pub twist: Vec<E>,
     /// The weight of the image's term.
-    pub image_weight: F192,
+    pub image_weight: E,
     /// The point at which the image is evaluated.
-    pub image_point: Vec<F192>,
+    pub image_point: Vec<E>,
+}
+
+impl<E: Copy> ProgramPoint<E> {
+    /// The same point, each element mapped by `f`.
+    pub fn map<T>(&self, mut f: impl FnMut(E) -> T) -> ProgramPoint<T> {
+        ProgramPoint {
+            bytecode: self.bytecode.iter().map(|&x| f(x)).collect(),
+            twist: self.twist.iter().map(|&x| f(x)).collect(),
+            image_weight: f(self.image_weight),
+            image_point: self.image_point.iter().map(|&x| f(x)).collect(),
+        }
+    }
 }
 
 /// Everything the verifier's core leaves to the program and to the VM's circuits.
+///
+/// Its elements are values, or whatever a verifier holds them as.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct DeferredClaims {
+pub struct DeferredClaims<E = F192> {
     /// The claim on the program's bytecode table and RAM image.
-    pub program: Claim<ProgramPoint>,
+    pub program: Claim<ProgramPoint<E>, E>,
     /// One claim per packed witness, class circuits then clock circuits, on its circuit's matrix form.
-    pub circuits: Vec<Claim<MatrixForm>>,
+    pub circuits: Vec<Claim<MatrixForm<E>, E>>,
+}
+
+impl<E: Copy> DeferredClaims<E> {
+    /// The same claims, each element mapped by `f`.
+    pub fn map<T>(&self, mut f: impl FnMut(E) -> T) -> DeferredClaims<T> {
+        DeferredClaims {
+            program: Claim {
+                point: self.program.point.map(&mut f),
+                value: f(self.program.value),
+            },
+            circuits: (self.circuits.iter())
+                .map(|c| Claim {
+                    point: c.point.map(&mut f),
+                    value: f(c.value),
+                })
+                .collect(),
+        }
+    }
 }
 
 /// Why a set of deferred claims has no shape the program and its circuits give claims.
@@ -105,15 +140,16 @@ impl ProgramPoint {
     }
 }
 
-impl Claim<ProgramPoint> {
+impl<E: Copy> Claim<ProgramPoint<E>, E> {
     /// The claim the table sumcheck's final identity leaves to the program.
     ///
     /// - The producer's summand `sum_i c_i (1 + b_i P'_i)` takes each program column `P'_i` at weight `c_i b_i`.
     /// - RAM's image is out of the bus target, and reaches the final claim at the target's weight.
-    pub(super) fn from_table_sumcheck(
-        bus: &BusVerify,
-        table_sumcheck: &constraints::Final,
-        powers: FormPowers,
+    pub(crate) fn from_table_sumcheck<A: Arith<E = E>>(
+        a: &mut A,
+        bus: &BusVerify<E>,
+        table_sumcheck: &constraints::Final<E>,
+        powers: FormPowers<E>,
     ) -> Self {
         let [coefficients] = &bus.producers[..] else {
             unreachable!("one lookup array, the bytecode")
@@ -122,17 +158,22 @@ impl Claim<ProgramPoint> {
         let air = tables::N_TABLES;
         let (weight, producer) = (table_sumcheck.weights[air], &table_sumcheck.claims[air]);
         let twist = (coefficients.iter().zip(&producer.evals))
-            .map(|(&c, &b)| weight * c * powers.push() * b)
+            .map(|(&c, &b)| {
+                let wc = a.mul(weight, c);
+                let pushed = a.mul(wc, powers.push());
+                a.mul(pushed, b)
+            })
             .collect();
         let mut shares = (0..2).flat_map(|s| bus.sparse[s].iter().map(move |share| (s, share)));
         let (Some((side, image)), None) = (shares.next(), shares.next()) else {
             unreachable!("RAM's image is the one sparse column, seeded once")
         };
+        let sided = a.mul(table_sumcheck.target_weight, powers.side(side));
         Self {
             point: ProgramPoint {
                 bytecode: [&producer.chi[..], &bus.alphas[..]].concat(),
                 twist,
-                image_weight: table_sumcheck.target_weight * powers.side(side) * image.weight,
+                image_weight: a.mul(sided, image.weight),
                 image_point: image.point.clone(),
             },
             value: table_sumcheck.residual,

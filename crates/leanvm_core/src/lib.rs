@@ -20,6 +20,7 @@
 //! - [`class_flock`]: the glue to flock: a class's circuit proven over its own packed witness, in the same commitment.
 //! - [`cpu`]: whole-program assembly and the prove/verify entry points.
 
+pub mod arith;
 pub mod class_flock;
 pub mod colval;
 pub mod constraints;

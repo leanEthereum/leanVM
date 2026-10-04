@@ -170,7 +170,7 @@ impl BusBlocks {
     ///
     /// Returns the first check of the balance that refuses.
     pub(crate) fn verify(&self, vs: &mut VerifierState) -> Result<BusVerify, leaf::Error> {
-        let bus = leaf::verify_balance(&self.push, &self.pull, &[], &RecLayout::TABLE_COLUMNS, vs)?;
+        let bus = leaf::verify_balance(vs, &self.push, &self.pull, &[], &RecLayout::TABLE_COLUMNS)?;
         debug_assert!(
             bus.sparse.iter().all(Vec::is_empty) && bus.producers.is_empty(),
             "the machine's target has no share for sparse columns or producers"

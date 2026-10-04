@@ -71,16 +71,14 @@ mod basis;
 // ---------------------------------------------------------------------------
 
 /// An owning point claim folded into the stacked mixed opening.
+///
+/// Its point and value are values, or whatever a verifier holds them as.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum StackClaim {
+pub enum StackClaim<E = F192> {
     /// `eq(low_point, .)` on the aligned slice
     /// `[offset, offset + 2^|low_point|)`; `offset` must be a multiple of
     /// `2^|low_point|`.
-    Point {
-        offset: usize,
-        low_point: Vec<F192>,
-        value: F192,
-    },
+    Point { offset: usize, low_point: Vec<E>, value: E },
     /// A boolean-selector claim on a packed column: the low `stride_log`
     /// in-block coords are frozen to `slot`'s bits (so the weight is nonzero
     /// only at `offset + slot + j * 2^stride_log`) and `point` is the high
@@ -92,16 +90,34 @@ pub enum StackClaim {
         offset: usize,
         slot: usize,
         stride_log: usize,
-        point: Vec<F192>,
-        value: F192,
+        point: Vec<E>,
+        value: E,
     },
 }
 
-impl StackClaim {
+impl<E: Copy> StackClaim<E> {
+    /// The value the claim states.
     #[inline]
-    pub const fn value(&self) -> F192 {
+    pub const fn value(&self) -> E {
         match self {
             Self::Point { value, .. } | Self::Strided { value, .. } => *value,
+        }
+    }
+
+    /// The b_stack range the claim's weight is supported on.
+    ///
+    /// Every range is an aligned dyadic interval (the offset asserts below), so two of them are nested or disjoint and never partially overlap.
+    /// `Strided` reports its whole block rather than the strided positions inside it.
+    /// That is conservative in the direction that matters: it only ever makes a later claim accumulate.
+    pub fn range(&self) -> (usize, usize) {
+        match self {
+            Self::Point { offset, low_point, .. } => (*offset, *offset + (1usize << low_point.len())),
+            Self::Strided {
+                offset,
+                stride_log,
+                point,
+                ..
+            } => (*offset, *offset + (1usize << (stride_log + point.len()))),
         }
     }
 }
@@ -135,40 +151,25 @@ pub struct RingSwitchOpen {
 }
 
 /// A verifier claim whose slices were transmitted and checked by the caller.
+///
+/// Its elements are values, or whatever a verifier holds them as.
 #[derive(Clone, Copy, Debug)]
-pub struct RingSwitchVerifyClaim<'a> {
-    pub suffix_point: &'a [F192],
-    pub s_hat_v: &'a [F192; PACKING_WIDTH],
+pub struct RingSwitchVerifyClaim<'a, E = F192> {
+    pub suffix_point: &'a [E],
+    pub s_hat_v: &'a [E; PACKING_WIDTH],
 }
 
 /// Verifier inputs borrowed from the upstream reduction.
 #[derive(Clone, Debug)]
-pub struct RingSwitchVerify<'a> {
+pub struct RingSwitchVerify<'a, E = F192> {
     pub offset: usize,
     pub qflock_vars: usize,
-    pub claims: Vec<RingSwitchVerifyClaim<'a>>,
+    pub claims: Vec<RingSwitchVerifyClaim<'a, E>>,
 }
 
 // ---------------------------------------------------------------------------
 // Shared claim folding / evaluation
 // ---------------------------------------------------------------------------
-
-/// The b_stack range a claim's weight is supported on. Every range is an
-/// aligned dyadic interval (the offset asserts below), so two of them are
-/// nested or disjoint and never partially overlap. `Strided` reports its whole
-/// block rather than the strided positions inside it, which is conservative in
-/// the direction that matters: it only ever makes a later claim accumulate.
-fn claim_range(claim: &StackClaim) -> (usize, usize) {
-    match claim {
-        StackClaim::Point { offset, low_point, .. } => (*offset, *offset + (1usize << low_point.len())),
-        StackClaim::Strided {
-            offset,
-            stride_log,
-            point,
-            ..
-        } => (*offset, *offset + (1usize << (stride_log + point.len()))),
-    }
-}
 
 /// The claim's weight `eq(full claim point, x)` at an arbitrary point `x` of
 /// the full stack cube. A `Point`'s full point is `[low_point, sel_bits]`, a
@@ -241,7 +242,7 @@ pub fn open_batch_mixed_whir_stacked(
         );
     }
     assert!(
-        point_claims.iter().all(|c| claim_range(c).1 <= stack.len()),
+        point_claims.iter().all(|c| c.range().1 <= stack.len()),
         "every claim must live inside the committed lanes"
     );
     let n_rs: usize = rings.iter().map(|ring| ring.claims.len()).sum();
@@ -359,7 +360,7 @@ pub fn verify_opening_batch_mixed_whir_stacked(
         assert!(ring.offset + (1usize << ring.qflock_vars) <= 1usize << log_n);
     }
     assert!(
-        point_claims.iter().all(|c| claim_range(c).1 <= 1usize << log_n),
+        point_claims.iter().all(|c| c.range().1 <= 1usize << log_n),
         "every claim must live inside the committed cube"
     );
 

@@ -3,12 +3,13 @@
 //! It runs, is proven, and is verified against its digest.
 
 use super::batch::{Batch, FormPowers};
-use super::deferred::{self, DeferredClaims};
+use super::deferred::DeferredClaims;
 use super::error::{CpuError, ProveError};
 use super::execute::{Execution, TraceBuilder};
 use super::filler::{FillBlocks, Plan};
 use super::layout::{Announcement, Lookup, Schema, Sizes};
 use super::witness::Witness;
+use crate::arith::Native;
 use crate::class_flock;
 use crate::constraints;
 use crate::leaf;
@@ -233,7 +234,7 @@ impl Program {
                 let coefficients: Vec<Vec<F192>> = producers.iter().map(|p| p.coefficients.clone()).collect();
 
                 // The batch's eq point is the bus's, which lets it settle the bus forms alongside the constraints.
-                let powers = FormPowers::new(ps.sample());
+                let powers = FormPowers::new(&mut Native, ps.sample());
                 let mut sums = powers.table_sums(&bus.sigmas);
                 sums.extend(producers.iter().map(|p| powers.push() * p.sigma));
 
@@ -249,7 +250,12 @@ impl Program {
             (bus.claims, table_claims)
         };
         let l = &w.layout;
-        let slots = l.opening_claims(bus_claims, &table_claims, output);
+        let slots = l.opening_claims(
+            &mut Native,
+            bus_claims,
+            &table_claims,
+            &output.map(|o| F192::from(F64(o))),
+        );
 
         // Each circuit's flock reduction, every class circuit then every clock circuit.
         //
@@ -333,26 +339,8 @@ impl Program {
         let l = announcement.layout(&self.rv)?;
         let root = pcs::read_commitment(&mut vs)?;
 
-        let bus = leaf::verify_balance(&l.push, &l.pull, &l.producers, &Schema::get().spans, &mut vs)
-            .map_err(CpuError::Bus)?;
-
-        // The tie between the batch and the bus, and why the batch's target is never sent.
-        //
-        // Each side's leaf claim, less its framework blocks, is the tables' and producers' share `R_s`.
-        //
-        // The verifier just derived those, and the batch must sum to `sum_s xi^s * R_s`.
-        //
-        // The challenge `xi` comes after the `R_s` are fixed, so hitting that one number forces each side's share.
-        //
-        // RAM's image is left out of it, and the program claim makes up for it.
-        let powers = FormPowers::new(vs.sample());
-        let target = powers.combine(bus.totals);
-        let batch = Batch::new(&l, &bus.forms, &bus.producers, &bus.weights, bus.beta, powers);
-        let table_sumcheck =
-            constraints::verify(batch.airs(), &bus.point, target, &mut vs).map_err(CpuError::Constraint)?;
-        let program_claim = deferred::Claim::from_table_sumcheck(&bus, &table_sumcheck, powers);
-        let table_claims = table_sumcheck.claims;
-        let slots = l.opening_claims(bus.claims, &table_claims, output);
+        let clock = F192::from(F64(announcement.ts_final));
+        let reduced = l.reduce_tables(&mut vs, clock, &output.map(|o| F192::from(F64(o))))?;
 
         // Replay each circuit's flock reduction off the stream, to recover its validity claim on its packed witness.
         //
@@ -372,7 +360,7 @@ impl Program {
         }
 
         // The ring-switched regions: each packed witness, then each producer's multiplicity column.
-        let producer_claims = &table_claims[tables::N_TABLES..];
+        let producer_claims = &reduced.producers;
         let slices: Vec<[F192; PACKING_WIDTH]> = producer_claims.iter().map(|claims| claims.evals_padded()).collect();
         let witnesses = replays.iter().enumerate().map(|(f, replay)| {
             let window = l.witness_window(f);
@@ -397,10 +385,18 @@ impl Program {
         let rings: Vec<_> = witnesses.chain(producers).collect();
 
         // The one opening, then nothing may be left on the stream.
-        pcs::verify(&mut vs, &slots, &rings, l.shape, announcement.log_inv_rate, &root).map_err(CpuError::Open)?;
+        pcs::verify(
+            &mut vs,
+            &reduced.slots,
+            &rings,
+            l.shape,
+            announcement.log_inv_rate,
+            &root,
+        )
+        .map_err(CpuError::Open)?;
         vs.finish()?;
         let claims = DeferredClaims {
-            program: program_claim,
+            program: reduced.program,
             circuits: circuit_claims,
         };
         Ok((claims, vs.into_raw_proof()))

@@ -164,7 +164,7 @@ impl<'a> TableArgument<'a> {
         let xi = vs.sample();
         let target = bus.totals[0] + xi * bus.totals[1];
         let airs = self.layout.airs(&bus.forms, xi);
-        let tables = constraints::verify(&airs, &bus.point, target, vs)?.settle()?;
+        let tables = constraints::verify(vs, &airs, &bus.point, target)?.settle()?;
         Ok(self.layout.opening_claims(bus.claims, &tables))
     }
 }

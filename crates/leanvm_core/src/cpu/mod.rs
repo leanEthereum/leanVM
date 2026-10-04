@@ -24,6 +24,7 @@ mod execute;
 pub mod filler;
 mod layout;
 mod program;
+mod reduce;
 mod witness;
 
 pub use deferred::{Claim, DeferredClaims, MalformedClaim, ProgramPoint};

@@ -54,10 +54,12 @@ pub struct Shape {
 /// and C), so the PCS only has to bind them to the commitment.
 ///
 /// This is the clean seam between Flock's reduction and the PCS.
+///
+/// Its elements are values, or whatever a verifier holds them as.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct SliceClaim {
-    pub suffix_point: Vec<F192>,
-    pub s_hat_v: Vec<F192>,
+pub struct SliceClaim<E = F192> {
+    pub suffix_point: Vec<E>,
+    pub s_hat_v: Vec<E>,
 }
 
 /// Everything [`Block::verify`] recovers: the z-claim for the PCS and the
@@ -272,7 +274,7 @@ pub fn ring_switch_open(qflock_vars: usize, offset: usize, reduced: &SliceClaim)
 /// Verifier counterpart of [`ring_switch_open`]: package the recovered claim as
 /// a [`RingSwitchVerify`], the same statement data. The transmitted opening
 /// travels separately.
-pub fn ring_switch_verify(qflock_vars: usize, offset: usize, claim: &SliceClaim) -> RingSwitchVerify<'_> {
+pub fn ring_switch_verify<E>(qflock_vars: usize, offset: usize, claim: &SliceClaim<E>) -> RingSwitchVerify<'_, E> {
     assert_eq!(
         claim.suffix_point.len(),
         qflock_vars,

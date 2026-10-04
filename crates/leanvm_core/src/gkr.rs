@@ -7,9 +7,10 @@
 //! into `E` upstream, [`crate::leaf`]).
 
 use crate::PAR_THRESHOLD;
-use fiat_shamir::transcript::{Challenger, ProverState, Receiver, Transmitter, VerifierState};
+use crate::arith::Verifier;
+use fiat_shamir::transcript::{Challenger, ProverState, Transmitter};
 use primitives::field::{F192, F192Unreduced, mul_unreduced4, mul2, mul4};
-use primitives::multilinear::{eq_table, interp, poly_eval};
+use primitives::multilinear::{eq_table, interp};
 use primitives::stream::Stream;
 use zk_alloc::ArenaVec;
 
@@ -362,10 +363,10 @@ impl QuaternaryLayerState {
 /// The result of a batched grand-product proof: the roots and leaf evaluations, all
 /// reduced to one shared point. `roots[0] == roots[1]` by construction rather than by
 /// a check.
-pub struct Products<const N: usize> {
-    pub roots: [F192; N],
-    pub point: Vec<F192>,
-    pub values: [F192; N],
+pub struct Products<const N: usize, E = F192> {
+    pub roots: [E; N],
+    pub point: Vec<E>,
+    pub values: [E; N],
 }
 
 /// `Σ_k λ^k·values[k]`, the batch's combination of one coefficient across the trees.
@@ -480,38 +481,41 @@ pub fn prove_products<const N: usize>(leaves: [ArenaVec<F192>; N], ps: &mut Prov
 }
 
 /// Verify the RLC-batched radix-four proof of `N` trees of depth `mu`.
-pub fn verify_products<const N: usize>(mu: usize, vs: &mut VerifierState) -> Result<Products<N>, GkrError> {
+///
+/// # Errors
+///
+/// Returns the first layer whose sumcheck does not end at the next layer's claims, or a malformed stream.
+pub fn verify_products<V: Verifier, const N: usize>(v: &mut V, mu: usize) -> Result<Products<N, V::E>, GkrError> {
     const { assert!(N >= 2, "the first two trees are the bus's two sides") };
     // One root for both balancing trees, so their equality is structural: there is no
     // unbalanced pair a prover could state, and nothing for the caller to check.
-    let mut roots = [F192::ZERO; N];
-    for root in &mut roots[1..] {
-        *root = vs.next_scalar()?;
+    let first = v.next_scalar()?;
+    let mut roots = [first; N];
+    for root in &mut roots[2..] {
+        *root = v.next_scalar()?;
     }
-    roots[0] = roots[1];
-    let mut lambda = vs.sample();
+    let mut lambda = v.sample();
     let mut point = Vec::new();
     let mut values = roots;
 
     let mut layer = mu;
     while layer > 0 {
         let round_count = mu - layer;
-        let mut claim = poly_eval(&values, lambda);
+        let mut claim = v.poly_eval(&values, lambda);
         if layer % 2 == 1 {
             debug_assert_eq!(round_count, 0, "only the root-most layer may be binary");
-            let mut tails = [[F192::ZERO; 2]; N];
+            let mut tails = [[first; 2]; N];
             for value in tails.iter_mut().flatten() {
-                *value = vs.next_scalar()?;
+                *value = v.next_scalar()?;
             }
-            let products = tails.map(|[left, right]| left * right);
-            if claim != poly_eval(&products, lambda) {
-                return Err(GkrError::LayerMismatch { layer });
-            }
-            let challenge = vs.sample();
+            let products = tails.map(|[left, right]| v.mul(left, right));
+            let expected = v.poly_eval(&products, lambda);
+            v.ensure_eq(claim, expected, || GkrError::LayerMismatch { layer })?;
+            let challenge = v.sample();
             for (value, [left, right]) in values.iter_mut().zip(tails) {
-                *value = interp(left, right, challenge);
+                *value = v.interp(left, right, challenge);
             }
-            lambda = vs.sample();
+            lambda = v.sample();
             point = vec![challenge];
             layer -= 1;
             continue;
@@ -519,29 +523,26 @@ pub fn verify_products<const N: usize>(mu: usize, vs: &mut VerifierState) -> Res
 
         let mut round_point = Vec::with_capacity(round_count);
         for &equality_point in point.iter().take(round_count) {
-            let h = vs.next_round_poly(5, claim, Some(equality_point))?;
-            let challenge = vs.sample();
+            let h = v.next_round_poly(5, claim, Some(equality_point))?;
+            let challenge = v.sample();
             round_point.push(challenge);
-            claim = poly_eval(&h, challenge);
+            claim = v.poly_eval(&h, challenge);
         }
-        let mut tails = [[F192::ZERO; 4]; N];
+        let mut tails = [[first; 4]; N];
         for value in tails.iter_mut().flatten() {
-            *value = vs.next_scalar()?;
+            *value = v.next_scalar()?;
         }
-        let products = tails.map(|tail| tail[0] * tail[1] * tail[2] * tail[3]);
-        if claim != poly_eval(&products, lambda) {
-            return Err(GkrError::LayerMismatch { layer });
+        let products = tails.map(|tail| v.product(&tail));
+        let expected = v.poly_eval(&products, lambda);
+        v.ensure_eq(claim, expected, || GkrError::LayerMismatch { layer })?;
+        let low_challenge = v.sample();
+        let high_challenge = v.sample();
+        for (value, [a, b, c, d]) in values.iter_mut().zip(tails) {
+            let low = v.interp(a, b, low_challenge);
+            let high = v.interp(c, d, low_challenge);
+            *value = v.interp(low, high, high_challenge);
         }
-        let low_challenge = vs.sample();
-        let high_challenge = vs.sample();
-        for (value, tail) in values.iter_mut().zip(tails) {
-            *value = interp(
-                interp(tail[0], tail[1], low_challenge),
-                interp(tail[2], tail[3], low_challenge),
-                high_challenge,
-            );
-        }
-        lambda = vs.sample();
+        lambda = v.sample();
         point = vec![low_challenge, high_challenge];
         point.extend_from_slice(&round_point);
         layer -= 2;
@@ -553,6 +554,7 @@ pub fn verify_products<const N: usize>(mu: usize, vs: &mut VerifierState) -> Res
 #[cfg(test)]
 mod tests {
     use super::*;
+    use fiat_shamir::transcript::VerifierState;
 
     fn mle_eval_e(table: &[F192], point: &[F192]) -> F192 {
         assert_eq!(table.len(), 1 << point.len());
@@ -679,7 +681,7 @@ mod tests {
 
             let proof = ps.into_proof();
             let mut vs = VerifierState::from_label(b"radix-four-gkr-test", &proof);
-            let verified = verify_products(mu, &mut vs).expect("GKR verifies");
+            let verified = verify_products(&mut vs, mu).expect("GKR verifies");
             assert_eq!(verified.roots, proved.roots);
             assert_eq!(verified.point, proved.point);
             assert_eq!(verified.values, proved.values);
@@ -728,7 +730,7 @@ mod tests {
             assert_eq!(dense_proved.values, proved.values);
             assert_eq!(dense_ps.into_proof().stream, proof.stream);
             let mut vs = VerifierState::from_label(b"sparse-radix-four-gkr-test", &proof);
-            let verified = verify_products(mu, &mut vs).expect("GKR verifies");
+            let verified = verify_products(&mut vs, mu).expect("GKR verifies");
             assert_eq!(verified.roots, proved.roots);
             assert_eq!(verified.point, proved.point);
             assert_eq!(verified.values, proved.values);

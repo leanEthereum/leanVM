@@ -11,6 +11,7 @@
 use super::MAX_LOG_ROWS;
 use super::error::CpuError;
 use super::execute::Trace;
+use crate::arith::Arith;
 use crate::constraints::Claims;
 use crate::leaf::{Block, ColumnClaim, Coord, Producer, SparseColumn};
 use crate::rv::{self, Reg, Region, RegisterFile, Syscall};
@@ -42,6 +43,9 @@ pub enum Framework {
 impl Framework {
     /// Every framework block, in bus order.
     pub const ALL: [Self; 4] = [Self::State, Self::Registers, Self::Ram, Self::Advice];
+
+    /// Where the final clock sits in the state's finalizing tuple, twice: the run's last state is `(pc, ts)` at slot zero.
+    pub(crate) const FINAL_CLOCK: [usize; 2] = [2, 3];
 
     /// The base-two logarithm of the block's rows: one per cell of its array.
     pub const fn log_rows(self, sizes: Sizes) -> usize {
@@ -528,13 +532,14 @@ impl Layout {
     /// - The batch's per-table column claims.
     /// - The exit's claims: the run halted on `exit`, returning `output` (§sec:e2e-pi).
     ///
-    /// Prover and verifier both assemble them here, so no claim can shift by one.
-    pub(super) fn opening_claims(
+    /// Prover and verifiers all assemble them here, so no claim can shift by one.
+    pub(crate) fn opening_claims<A: Arith>(
         &self,
-        bus_claims: Vec<ColumnClaim>,
-        table_claims: &[Claims],
-        output: &[u64; 4],
-    ) -> Vec<pcs::SlotClaim> {
+        a: &mut A,
+        bus_claims: Vec<ColumnClaim<A::E>>,
+        table_claims: &[Claims<A::E>],
+        output: &[A::E; 4],
+    ) -> Vec<pcs::SlotClaim<A::E>> {
         let schema = Schema::get();
         let mut claims = bus_claims;
         claims.reserve(schema.n - N_SHARED);
@@ -552,26 +557,16 @@ impl Layout {
         //
         // Each is the final registers at the Boolean point naming the register.
         // Both parties know the value, so the claim is computed rather than sent.
-        let register_claim = |reg: Reg, value: u64| ColumnClaim {
+        let exit = a.constant(F192::from(F64(Syscall::Exit.number())));
+        let mut register_claim = |reg: Reg, value: A::E| ColumnClaim {
             col: Shared::RegFin.col(),
             point: (0..RegisterFile::LOG_CELLS)
-                .map(|b| {
-                    if (reg.index() >> b) & 1 == 1 {
-                        F192::ONE
-                    } else {
-                        F192::ZERO
-                    }
-                })
+                .map(|b| a.constant(F192::from(F64(((reg.index() >> b) & 1) as u64))))
                 .collect(),
-            value: F192::from(F64(value)),
+            value,
         };
-        claims.push(register_claim(Reg::SYSCALL, Syscall::Exit.number()));
-        claims.extend(
-            Reg::OUTPUTS
-                .into_iter()
-                .zip(output)
-                .map(|(reg, &value)| register_claim(reg, value)),
-        );
+        claims.push(register_claim(Reg::SYSCALL, exit));
+        claims.extend((Reg::OUTPUTS.into_iter().zip(output)).map(|(reg, &value)| register_claim(reg, value)));
         claims.into_iter().map(|c| self.slot_claim(c)).collect()
     }
 
@@ -583,7 +578,7 @@ impl Layout {
     /// The strided form freezes the low coordinates to the port's bits and the high ones to the claim's point.
     ///
     /// It is folded at the table's height, not the packed witness's, and joins the one opening.
-    fn slot_claim(&self, c: ColumnClaim) -> pcs::SlotClaim {
+    fn slot_claim<E>(&self, c: ColumnClaim<E>) -> pcs::SlotClaim<E> {
         match self.placements[c.col] {
             Placement::Committed(window) => pcs::SlotClaim::Point {
                 offset: window.offset,
@@ -659,20 +654,7 @@ impl Announcement {
             return Err(CpuError::FinalClock);
         }
 
-        // Each table's height between flock's instance floor and the public cap.
-        //
-        // A table's rows are its class's runs, unbounded by the program's size, so it has a cap of its own.
-        for (spec, &log_rows) in tables::CLASSES.iter().zip(&taus) {
-            let min = class_flock::n_blocks_log(spec, 1);
-            if !(min..=MAX_LOG_ROWS).contains(&log_rows) {
-                return Err(CpuError::TableHeight {
-                    table: spec.name,
-                    log_rows,
-                    min,
-                    max: MAX_LOG_ROWS,
-                });
-            }
-        }
+        Layout::check_heights(&taus)?;
 
         // A rate the commitment supports.
         if !u8::try_from(log_inv_rate).is_ok_and(|r| pcs::Rate::new(r).is_ok()) {
@@ -685,18 +667,50 @@ impl Announcement {
         })
     }
 
-    /// The layout the announcement describes for `p`.
+    /// The layout the announced heights describe for `p`, its final clock zero.
+    ///
+    /// The verifier adds the announced clock's share itself.
     ///
     /// # Errors
     ///
     /// Refuses heights whose stacked witness the commitment does not take.
     pub(super) fn layout(&self, p: &rv::Program) -> Result<Layout, CpuError> {
+        Layout::announced(p, self.taus)
+    }
+}
+
+impl Layout {
+    /// The layout a verifier rebuilds from announced heights, its final clock zero.
+    ///
+    /// # Errors
+    ///
+    /// Refuses a height outside its table's range, or heights whose stacked witness the commitment does not take.
+    pub(crate) fn announced(p: &rv::Program, taus: [usize; tables::N_TABLES]) -> Result<Self, CpuError> {
+        Self::check_heights(&taus)?;
         // The caps bound each height alone; the stacked size they imply is checked here.
-        let layout = Layout::new(p, self.taus, self.ts_final);
+        let layout = Self::new(p, taus, 0);
         if !(pcs::MIN_MU..=pcs::MAX_MU).contains(&layout.shape.mu) {
             return Err(CpuError::WitnessSize { mu: layout.shape.mu });
         }
         Ok(layout)
+    }
+
+    /// Check each table's height lies between flock's instance floor and the public cap.
+    ///
+    /// A table's rows are its class's runs, unbounded by the program's size, so it has a cap of its own.
+    fn check_heights(taus: &[usize; tables::N_TABLES]) -> Result<(), CpuError> {
+        for (spec, &log_rows) in tables::CLASSES.iter().zip(taus) {
+            let min = class_flock::n_blocks_log(spec, 1);
+            if !(min..=MAX_LOG_ROWS).contains(&log_rows) {
+                return Err(CpuError::TableHeight {
+                    table: spec.name,
+                    log_rows,
+                    min,
+                    max: MAX_LOG_ROWS,
+                });
+            }
+        }
+        Ok(())
     }
 }
 
