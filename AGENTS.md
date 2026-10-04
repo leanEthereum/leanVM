@@ -140,6 +140,8 @@ A second machine, proven by the same bus, table sumcheck, flock and opening as a
 - **The rows never depend on values**: the verifier rebuilds the circuit with `rec::transcript::ProofSource::Shape`, zeros in place of the proof. Folding a product by the constant one or zero, or a sum with zero, into no row is structural (constants are the circuit's own wires), so it keeps that true; a constant made from a proof's value would not.
 - **The statement is bound by the transcript's seed, not by the bus**: `Circuit::prove` and `Circuit::verify` (in `rec::proof`) absorb the hash of the statement's limbs (`statement_seed`) after the caller's `iv`. The bus checks a `PUB` row at one random point, which leaves a `K`-linear kernel of a word's four limbs (`a_statement_moved_along_the_bus_kernel_is_refused`).
 - A circuit whose witness exceeds one commitment is `RecError::TooLong`, on both sides.
+- **`rec::verifier::ProofShape::verify_core`** is a RISC-V proof's `verify_core` in rows, built from the program, the table heights and the rate, and leaves its `DeferredClaims` as wires. A read is a free wire a hash row absorbs, an equality merges two wires, and a check that no equality expresses is a recorded failure (`Builder::fail`), so the rows never branch on a value. Write new verifier logic over `arith::Verifier` where it is protocol shared with the native verifier; anything rows-only needs a test pinning it to the native code.
+- The verifier's layout carries a zero final clock (`Layout::announced`), and `Layout::reduce_tables` adds the announced clock's share to the bus's pull total, which is what lets the rows hold the clock as a wire.
 
 ## The proving arena (`zk_alloc`)
 
@@ -159,12 +161,13 @@ No rayon. Every parallel site is "N independent items, each writing its own disj
 
 `LEANVM_NUM_THREADS` sets the **performance**-worker count, leaving E-workers in place. `1` = strictly sequential.
 
-## Two verifiers, one protocol
+## One protocol, three verifiers
 
-The same verification algorithm is written out twice, in two languages. Any change to the snark protocol has to land in both.
+The same verification algorithm is written out three times. Any change to the snark protocol has to land in all three: nothing fails at compile time when one is left behind, and the pinning tests catch a divergence only where they exercise it.
 
 1. **Rust**, `leanvm_core::cpu::Program::verify`. The native verifier.
 2. **Python**, `python-verifier/verifier.py` (no dependencies), for readability and simplicity. Pinned by `leanvm_core/tests/verifiers/python_verifier.rs`, which feeds it the raw proof `cpu::Program::verify_to_raw` returns.
+3. **Rows**, `leanvm_core::rec::verifier`: the core as rows of the recursion machine (below). It shares the GKR, the bus decomposition, the table sumcheck, the program claim and the opening's point claims with the native verifier, which are written once over `leanvm_core::arith` (`Arith`, `Verifier`: native over `VerifierState`, rows over the circuit builder and the in-circuit transcript). Its Flock replay and its opening are its own, pinned by `rec::verifier::tests` (the rows leave the native `DeferredClaims` value for value).
 
 Both are split in two, `verify` being one then the other: `verify_core` runs every check that depends on the proof and returns the claims it leaves on polynomials only the program or the VM's circuits fix (`cpu::DeferredClaims`: the table sumcheck's final identity short of the bytecode producer's program columns and RAM's image, and each circuit's lincheck terminal identity short of its matrix form), and `check_deferred` evaluates them. A recursive verifier carries the claims out of the proof instead of evaluating them; a caller of `verify_core` must never drop them. `check_deferred` refuses a malformed claim with `CpuError::MalformedClaim`, never a panic. `python_leaves_the_same_deferred_claims` pins the two sides' claims to each other (`verifier.py --deferred`).
 
