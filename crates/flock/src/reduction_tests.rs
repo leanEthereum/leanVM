@@ -15,7 +15,7 @@ use crate::hash::{
 use crate::lincheck::QuirkyPoint;
 use crate::zerocheck::{PaddingSpec, ZerocheckClaim};
 use fiat_shamir::transcript::{Proof, ProverState, VerifierState};
-use primitives::test_rng::Rng;
+use primitives::test_util::Rng;
 
 const LABEL: &[u8] = b"flock-blake2s-reduction-test";
 

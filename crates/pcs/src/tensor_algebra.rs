@@ -60,7 +60,7 @@ pub fn transpose_s_hat(s_hat_v: &[F192]) -> Vec<F64> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use primitives::test_rng::Rng;
+    use primitives::test_util::Rng;
 
     /// Bit w of an E element in the tower basis (w in 0..192).
     const fn ext_bit(e: F192, w: usize) -> u64 {

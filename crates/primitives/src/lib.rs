@@ -11,7 +11,7 @@ pub mod multilinear;
 pub mod stream;
 
 #[cfg(feature = "test-util")]
-pub mod test_rng;
+pub mod test_util;
 
 /// Format an integer with comma-separated groups of three decimal digits.
 ///

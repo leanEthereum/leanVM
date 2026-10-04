@@ -239,7 +239,7 @@ mod tests {
     use crate::rv::Region;
     use crate::rv::asm::*;
     use primitives::multilinear::{eq_table, mle_eval};
-    use primitives::test_rng::Rng;
+    use primitives::test_util::Rng;
 
     #[test]
     fn the_twisted_bytecode_claim_is_the_per_bit_claims() {

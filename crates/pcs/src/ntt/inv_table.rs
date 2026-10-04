@@ -310,7 +310,7 @@ impl Vec128 for Sse2 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use primitives::test_rng::Rng;
+    use primitives::test_util::Rng;
 
     /// Naive reference: unpack `bytes` into `ell` GF(2)-valued F8 elements
     /// (one per coefficient bit), apply inv_NTT_S, then fwd_NTT_Λ.

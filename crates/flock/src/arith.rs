@@ -162,7 +162,7 @@ mod tests {
     use crate::lincheck::LincheckCircuit;
     use fiat_shamir::transcript::{ProverState, VerifierState};
     use primitives::field::F192;
-    use primitives::test_rng::Rng;
+    use primitives::test_util::Rng;
 
     const OPS: [U64Op; 3] = [U64Op::WrappingAdd, U64Op::WrappingMul, U64Op::WideningMul];
 

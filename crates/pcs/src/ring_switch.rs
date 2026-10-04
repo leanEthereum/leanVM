@@ -202,42 +202,6 @@ fn xor_accs(mut a: Vec<F192>, b: Vec<F192>) -> Vec<F192> {
     a
 }
 
-/// Compute `rs_eq_ind`, the transparent E-valued weight vector over the
-/// suffix domain: `rs_eq_ind[y] = Phi(suffix_tensor[y])` where `Phi` sends
-/// E-basis bit w to `coordinate_weights[w]`, i.e.
-///
-/// `rs_eq_ind[y] = sum_w bit_w(suffix_tensor[y]) * coordinate_weights[w]`
-///
-/// Naive reference: a per-position bit-scan over the three 64-bit limbs.
-/// See [`fold_ext_elems`] for the bytewise-table production version.
-#[cfg(test)]
-fn fold_ext_elems_naive(suffix_tensor: &[F192], coordinate_weights: &[F192]) -> Vec<F192> {
-    assert_eq!(coordinate_weights.len(), DEGREE_E);
-    parallel::map_collect(suffix_tensor.len(), |i| {
-        let elem = suffix_tensor[i];
-        let mut acc = F192::ZERO;
-        let mut c0 = elem.c0;
-        while c0 != 0 {
-            let w = c0.trailing_zeros() as usize;
-            acc += coordinate_weights[w];
-            c0 &= c0 - 1;
-        }
-        let mut c1 = elem.c1;
-        while c1 != 0 {
-            let w = c1.trailing_zeros() as usize;
-            acc += coordinate_weights[64 | w];
-            c1 &= c1 - 1;
-        }
-        let mut c2 = elem.c2;
-        while c2 != 0 {
-            let w = c2.trailing_zeros() as usize;
-            acc += coordinate_weights[128 | w];
-            c2 &= c2 - 1;
-        }
-        acc
-    })
-}
-
 /// Number of bytes in an E element (= lookup tables for the fold).
 const FOLD_N_BYTES: usize = 24;
 /// Entries per byte-lookup table.
@@ -461,11 +425,46 @@ mod tests {
     use crate::merkle::Hash;
     use crate::pack::LOG_PACKING;
     use crate::whir::{VerifierConfig, commit, recursive_prover_with_basis, recursive_verifier_with_basis_succinct};
-    use crate::whir_config::test_config_for;
+    use crate::whir_config::tests::test_config_for;
     use fiat_shamir::transcript::{Proof, ProverState, VerifierState};
-    use primitives::test_rng::Rng;
+    use primitives::test_util::Rng;
     use std::collections::HashSet;
     use zk_alloc::ArenaVec;
+
+    /// Compute `rs_eq_ind`, the transparent E-valued weight vector over the
+    /// suffix domain: `rs_eq_ind[y] = Phi(suffix_tensor[y])` where `Phi` sends
+    /// E-basis bit w to `coordinate_weights[w]`, i.e.
+    ///
+    /// `rs_eq_ind[y] = sum_w bit_w(suffix_tensor[y]) * coordinate_weights[w]`
+    ///
+    /// Naive reference: a per-position bit-scan over the three 64-bit limbs.
+    /// See [`fold_ext_elems`] for the bytewise-table production version.
+    fn fold_ext_elems_naive(suffix_tensor: &[F192], coordinate_weights: &[F192]) -> Vec<F192> {
+        assert_eq!(coordinate_weights.len(), DEGREE_E);
+        parallel::map_collect(suffix_tensor.len(), |i| {
+            let elem = suffix_tensor[i];
+            let mut acc = F192::ZERO;
+            let mut c0 = elem.c0;
+            while c0 != 0 {
+                let w = c0.trailing_zeros() as usize;
+                acc += coordinate_weights[w];
+                c0 &= c0 - 1;
+            }
+            let mut c1 = elem.c1;
+            while c1 != 0 {
+                let w = c1.trailing_zeros() as usize;
+                acc += coordinate_weights[64 | w];
+                c1 &= c1 - 1;
+            }
+            let mut c2 = elem.c2;
+            while c2 != 0 {
+                let w = c2.trailing_zeros() as usize;
+                acc += coordinate_weights[128 | w];
+                c2 &= c2 - 1;
+            }
+            acc
+        })
+    }
 
     // One claim's weight at the query's prefix of its length.
     fn eval_rs_eq(z_vals: &[F192], scale: F192, query: &RsEqQuery) -> F192 {

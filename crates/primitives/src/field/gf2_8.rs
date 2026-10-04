@@ -225,7 +225,7 @@ pub mod neon {
 mod tests {
     use super::*;
     #[cfg(target_arch = "aarch64")]
-    use crate::test_rng::Rng;
+    use crate::test_util::Rng;
     #[cfg(target_arch = "aarch64")]
     use core::mem::transmute;
 

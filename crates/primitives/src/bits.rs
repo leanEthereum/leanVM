@@ -205,7 +205,7 @@ unsafe fn bit_transpose_64bytes_neon(input: &[u8; 64], output: &mut [u8; 64]) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_rng::Rng;
+    use crate::test_util::Rng;
 
     /// The definition, one bit at a time.
     fn reference(input: &[u8; 64]) -> [u8; 64] {

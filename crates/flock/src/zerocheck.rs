@@ -469,8 +469,8 @@ pub fn verify(log_n: usize, vs: &mut VerifierState<'_>) -> Result<ZerocheckClaim
 mod tests {
     use super::*;
     use fiat_shamir::transcript::{ProverState, VerifierState};
-    use primitives::test_rng::Rng;
-    use univariate_skip::pack_bits;
+    use primitives::test_util::Rng;
+    use univariate_skip::tests::pack_bits;
 
     /// Test shim for the dense-prove entry.
     fn prove_packed(

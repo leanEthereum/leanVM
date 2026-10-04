@@ -6,7 +6,7 @@
 //! here against the per-node computation it replaced.
 use primitives::field::{F192, PHI_8_TABLE_192 as PHI_8_TABLE};
 use primitives::multilinear::{barycentric_sum, skip_lagrange_weights, window_denominator};
-use primitives::test_rng::Rng;
+use primitives::test_util::Rng;
 
 /// The pre-change denominator: `∏_{k≠i} (nodes[i] + nodes[k])`, inverted, one per node.
 fn per_node(nodes: &[F192], i: usize) -> F192 {

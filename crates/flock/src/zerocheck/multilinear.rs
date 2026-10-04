@@ -36,13 +36,9 @@
 
 use crate::zerocheck::PaddingSpec;
 use crate::zerocheck::bit_fold::{BLOCK, BitFold};
-#[cfg(test)]
-use crate::zerocheck::univariate_skip::pack_bits;
 use crate::zerocheck::univariate_skip::{SplitEq, build_eq};
 use parallel::Chunks;
 use primitives::field::{F192, F192Unreduced, PHI_8_TABLE_192 as PHI_8_TABLE};
-#[cfg(test)]
-use primitives::multilinear::skip_lagrange_weights;
 use primitives::multilinear::{barycentric_sum, window_denominator};
 use primitives::stream::Stream;
 use zk_alloc::ArenaVec;
@@ -107,37 +103,6 @@ pub fn interpolate_at_z_combined(values_on_lambda: &[F192], k_skip: usize, z: F1
 // ---------------------------------------------------------------------------
 // Fold a Boolean witness at z.
 // ---------------------------------------------------------------------------
-
-/// Evaluate the univariate-skip polynomial at the fold point `z`, given the
-/// precomputed Lagrange `weights`. Returns the multilinear extension table
-/// `a_mlv` of length `2^(m − k_skip)` over F_{2^192}.
-///
-///   `a_mlv[x_rest] = Σ_s a(s, x_rest) · L_s(z)`
-///
-/// `a(s, x_rest)` is the witness bit at index `x_rest * 2^k_skip + s` (low
-/// bits = skip variable, high bits = rest variables).
-#[cfg(test)]
-fn fold_at_z_naive(witness: &[bool], m: usize, k_skip: usize, weights: &[F192]) -> ArenaVec<F192> {
-    assert!(k_skip <= m);
-    let ell = 1usize << k_skip;
-    let n_rest = 1usize << (m - k_skip);
-    assert_eq!(witness.len(), 1usize << m);
-    assert_eq!(weights.len(), ell);
-
-    // SAFETY: the loop below writes every one of the `n_rest` slots.
-    let mut folded = unsafe { ArenaVec::<F192>::uninitialized(n_rest) };
-    for x_rest in 0..n_rest {
-        let base = x_rest * ell;
-        let mut acc = F192::ZERO;
-        for s in 0..ell {
-            if witness[base + s] {
-                acc += weights[s];
-            }
-        }
-        folded[x_rest] = acc;
-    }
-    folded
-}
 
 // ---------------------------------------------------------------------------
 // Naive round-2 prover message (AB-pair multilinear sumcheck).
@@ -753,12 +718,44 @@ pub fn fold_in_place_pair(a: &mut ArenaVec<F192>, b: &mut ArenaVec<F192>, challe
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::zerocheck::univariate_skip::tests::pack_bits;
     use crate::zerocheck::univariate_skip_optimized::{
         c_s, medium_challenges, round1_shift_reduce_extract_c_packed_padded, small_challenges,
     };
     use pcs::ntt::{AdditiveNttGf8, InvNttTableByteSingleGf8};
     use primitives::field::F8;
-    use primitives::test_rng::Rng;
+    use primitives::multilinear::skip_lagrange_weights;
+    use primitives::test_util::Rng;
+
+    /// Evaluate the univariate-skip polynomial at the fold point `z`, given the
+    /// precomputed Lagrange `weights`. Returns the multilinear extension table
+    /// `a_mlv` of length `2^(m − k_skip)` over F_{2^192}.
+    ///
+    ///   `a_mlv[x_rest] = Σ_s a(s, x_rest) · L_s(z)`
+    ///
+    /// `a(s, x_rest)` is the witness bit at index `x_rest * 2^k_skip + s` (low
+    /// bits = skip variable, high bits = rest variables).
+    fn fold_at_z_naive(witness: &[bool], m: usize, k_skip: usize, weights: &[F192]) -> ArenaVec<F192> {
+        assert!(k_skip <= m);
+        let ell = 1usize << k_skip;
+        let n_rest = 1usize << (m - k_skip);
+        assert_eq!(witness.len(), 1usize << m);
+        assert_eq!(weights.len(), ell);
+
+        // SAFETY: the loop below writes every one of the `n_rest` slots.
+        let mut folded = unsafe { ArenaVec::<F192>::uninitialized(n_rest) };
+        for x_rest in 0..n_rest {
+            let base = x_rest * ell;
+            let mut acc = F192::ZERO;
+            for s in 0..ell {
+                if witness[base + s] {
+                    acc += weights[s];
+                }
+            }
+            folded[x_rest] = acc;
+        }
+        folded
+    }
 
     /// Interpolate a degree-`< 2^k_skip` polynomial at z, given its `2^k_skip`
     /// evaluations on the **extension domain** `Λ = {2^k_skip, …, 2^(k_skip+1) − 1}`

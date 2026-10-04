@@ -620,7 +620,7 @@ pub(crate) fn induce_sumcheck_poly_auto_base(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use primitives::test_rng::Rng;
+    use primitives::test_util::Rng;
 
     #[test]
     fn blocked_and_gathered_transposes_match_layer_by_layer() {

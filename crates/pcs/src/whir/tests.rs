@@ -1,11 +1,11 @@
 use super::*;
 use crate::merkle::Hash;
 use crate::ring_switch::inner_product_ext;
-use crate::whir_config::test_config_for;
+use crate::whir_config::tests::test_config_for;
 use fiat_shamir::transcript::{Proof, ProverState, TranscriptError, VerifierState};
 use primitives::field::powers;
 use primitives::multilinear::{eq_eval, eq_table};
-use primitives::test_rng::Rng;
+use primitives::test_util::Rng;
 use std::collections::HashSet;
 use std::panic::AssertUnwindSafe;
 use zk_alloc::ArenaVec;

@@ -34,9 +34,10 @@
 use super::{
     ConfigError, INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0, LadderError, MAX_LOG_INV_RATE, MAX_LOG_N, MIN_LOG_INV_RATE,
     MIN_LOG_N, ProverConfig, QUERY_GRINDING_BITS, RS_DOMAIN_INITIAL_REDUCTION_FACTOR,
-    RS_DOMAIN_SUBSEQUENT_REDUCTION_FACTOR, SECURITY_BITS, config_for_rate, derive_ladder, derive_ladder_shape,
-    validate_log_inv_rate,
+    RS_DOMAIN_SUBSEQUENT_REDUCTION_FACTOR, SECURITY_BITS, WHIR_QUERIES, config_for_rate, derive_ladder,
+    derive_ladder_shape, validate_log_inv_rate,
 };
+use std::fmt::Write;
 use thiserror::Error;
 
 /// Why the derivation found no sound configuration, or why one it was handed is unsound.
@@ -44,7 +45,7 @@ use thiserror::Error;
 /// `level` counts from L0, the commitment's own code.
 #[derive(Clone, Copy, Debug, PartialEq, Error)]
 #[non_exhaustive]
-pub enum DerivationError {
+pub(crate) enum DerivationError {
     /// The rate is out of range.
     #[error(transparent)]
     Config(#[from] ConfigError),
@@ -128,7 +129,7 @@ const UDR_TARGET_BITS: f64 = 100.0;
 /// Per-query soundness saturates below 1 bit (`γ < 1/2`), so slimmer codes
 /// bottom out near `UDR_TARGET_BITS` queries: 243 at rate 1/2, 148 at 1/4,
 /// 121 at 1/8, 110 at 1/16, 105 at 1/32.
-pub fn udr_queries(log_inv_rate: usize) -> usize {
+fn udr_queries(log_inv_rate: usize) -> usize {
     assert!(log_inv_rate > 0, "log_inv_rate=0 (rate 1) has no soundness");
     let per_q = udr_per_query_bits_asymptotic(log_inv_rate);
     (UDR_TARGET_BITS / per_q).ceil() as usize
@@ -147,7 +148,7 @@ pub fn udr_queries(log_inv_rate: usize) -> usize {
 /// Test-support only: the small F64 PCS tests exercise sizes below the
 /// production derivation's feasibility floor, where they fall back to this
 /// shape. Production callers use the audited, per-level-sound path.
-pub fn default_config(
+pub(crate) fn default_config(
     log_n: usize,
     log_batch_size: usize,
     log_inv_rate: usize,
@@ -239,44 +240,44 @@ pub(crate) fn test_config_for(log_n: usize) -> ProverConfig {
 /// L1 .. L_{r−1} are the level commits; the final residual `yr` block
 /// is described separately in [`FinalBlockConfig`].
 #[derive(Clone, Debug)]
-pub struct WhirLevelConfig {
+struct WhirLevelConfig {
     /// PCS rate at this level: codeword expansion factor = 2^log_inv_rate.
-    pub log_inv_rate: usize,
+    log_inv_rate: usize,
     /// Message dimension at this level (log of the number of field columns in
     /// the codeword). `log_msg_cols + log_inv_rate = log_2(block_len)`.
-    pub log_msg_cols: usize,
+    log_msg_cols: usize,
     /// Log of lane width per Merkle leaf at this level. For L0 = `initial_k`;
     /// for L_i (i ≥ 1) = the previous level's `k`.
-    pub log_num_interleaved: usize,
+    log_num_interleaved: usize,
     /// Number of sumcheck folds taken at this level. For L0 = `initial_k`
     /// (the lane fold); for L_i (i ≥ 1) = the level fold k_{i−1}.
-    pub k: usize,
+    k: usize,
     /// Slack from the Johnson radius: γ = (1 − √ρ) − η.
-    pub eta: f64,
+    eta: f64,
     /// Number of codeword position queries opened at this level (the FRI
     /// query phase). Bounds the per-query soundness term `(1−γ)^Q`.
-    pub queries: usize,
+    queries: usize,
     /// **Query-phase** PoW grinding bits, ground post-commit/pre-queries.
     /// Each bit substitutes for ~1/log₂(1/(1−γ)) queries at this level.
-    pub grinding_bits: usize,
+    grinding_bits: usize,
     /// Out-of-domain samples taken right after this level's commit enters
     /// the transcript. Each binds the prover to a single codeword of the
     /// interleaved list via a multilinear evaluation claim.
     /// Must be 0 at L0 (bound by the opening's own post-commit evaluation
     /// claim) and ≥ 1 at deeper levels.
-    pub ood_samples: usize,
+    ood_samples: usize,
     /// Security target this level guarantees, post-grinding.
-    pub target_security_bits: usize,
+    target_security_bits: usize,
 }
 
 /// Descriptor for the final-residual block (`yr`) sent in the clear at the
 /// end of the last fold level. It has no commit and no queries, so the
 /// only meaningful parameter is its dimension.
 #[derive(Clone, Debug)]
-pub struct FinalBlockConfig {
+struct FinalBlockConfig {
     /// `log_2(|yr|)`: number of extension-field values sent in the clear. The
     /// last fold level's sumcheck stops at this dim instead of folding to 1.
-    pub yr_log_n: usize,
+    yr_log_n: usize,
 }
 
 /// Complete security spec for one WHIR instance, covering a single
@@ -292,23 +293,23 @@ pub struct FinalBlockConfig {
 ///    level-shape constraint (each level's input dim equals the
 ///    previous level's `log_msg_cols`).
 #[derive(Clone, Debug)]
-pub struct WhirSecurityConfig {
+struct WhirSecurityConfig {
     /// Block-encoder log size: m = log₂(witness bit count).
-    pub m: usize,
+    m: usize,
     /// Committed-witness log dimension.
-    pub log_n: usize,
+    log_n: usize,
     /// L0 lane fold. Must equal the upstream `PcsParams::log_batch_size` so
     /// the L0 commit can be reused without re-committing.
-    pub initial_k: usize,
+    initial_k: usize,
     /// Round-by-round security target (bits): `validate()` asserts that every
     /// error term associated with a verifier challenge clears at least this
     /// much. This is an RBR target, not a claim that the sum of all interactive
     /// failure probabilities is bounded by `2^-target_security_bits`.
-    pub target_security_bits: usize,
+    target_security_bits: usize,
     /// Per-level parameters, in order L0, L1, L2, ....
-    pub levels: Vec<WhirLevelConfig>,
+    levels: Vec<WhirLevelConfig>,
     /// Final residual block descriptor.
-    pub final_block: FinalBlockConfig,
+    final_block: FinalBlockConfig,
 }
 
 /// Extension-field size used for soundness analysis: `q = 2^192`.
@@ -612,7 +613,7 @@ impl WhirLevelConfig {
 impl WhirSecurityConfig {
     /// Validate that the config is internally consistent and matches the
     /// declared analysis. Returns the first violation found, if any.
-    pub fn validate(&self) -> Result<(), DerivationError> {
+    fn validate(&self) -> Result<(), DerivationError> {
         if self.log_n + crate::LOG_PACKING != self.m {
             return Err(DerivationError::PackingMismatch {
                 log_n: self.log_n,
@@ -784,7 +785,7 @@ impl WhirSecurityConfig {
     /// soundness**, i.e. every verifier-challenge error term (pg + fold
     /// grinding, query + query grinding, OOD, and algebraic checks) clears the
     /// target individually.
-    pub fn derive_config_with_log_inv_rate(m: usize, log_inv_rate: usize) -> Result<Self, DerivationError> {
+    fn derive_config_with_log_inv_rate(m: usize, log_inv_rate: usize) -> Result<Self, DerivationError> {
         validate_log_inv_rate(log_inv_rate)?;
         let target_bits = SECURITY_BITS;
         let query_grind: usize = QUERY_GRINDING_BITS;
@@ -840,7 +841,7 @@ impl WhirSecurityConfig {
     }
 
     /// Build the shared prover/verifier config, retaining the level shape and dropping security-analysis fields.
-    pub fn to_config(&self) -> Result<ProverConfig, DerivationError> {
+    fn to_config(&self) -> Result<ProverConfig, DerivationError> {
         self.validate()?;
         Ok(ProverConfig::new(
             self.initial_k,
@@ -853,97 +854,91 @@ impl WhirSecurityConfig {
     }
 }
 
-mod tests {
-    use super::*;
-    use crate::whir_config::WHIR_QUERIES;
-    use std::fmt::Write;
+#[test]
+fn johnson_bound_uses_theorem_parameter_and_reduced_rate() {
+    // BCHKS25 Thm 4.6 (list correlated agreement) uses
+    // m = ceil(sqrt(rho) / eta). The factor-two-smaller ceil(sqrt(rho) / (2 eta))
+    // belongs to the plain, non-list Thm 1.5; Flock's Thm 8 quotes Thm 4.6
+    // with that non-list parameter, which would overstate eps_pg by ~5 bits.
+    assert_eq!(johnson_m_param(1, 16, 0.02), 36.0);
 
-    #[test]
-    fn johnson_bound_uses_theorem_parameter_and_reduced_rate() {
-        // BCHKS25 Thm 4.6 (list correlated agreement) uses
-        // m = ceil(sqrt(rho) / eta). The factor-two-smaller ceil(sqrt(rho) / (2 eta))
-        // belongs to the plain, non-list Thm 1.5; Flock's Thm 8 quotes Thm 4.6
-        // with that non-list parameter, which would overstate eps_pg by ~5 bits.
-        assert_eq!(johnson_m_param(1, 16, 0.02), 36.0);
+    // A message of dimension 16 has maximum degree 15, so the theorem's
+    // reduced rate at block length 512 is 15/512, not the nominal 1/32.
+    assert_eq!(reduced_rate(5, 4), 15.0 / 512.0);
+}
 
-        // A message of dimension 16 has maximum degree 15, so the theorem's
-        // reduced rate at block length 512 is 15/512, not the nominal 1/32.
-        assert_eq!(reduced_rate(5, 4), 15.0 / 512.0);
-    }
-
-    #[test]
-    fn production_profile_is_128_bit_johnson_with_query_grinding() {
-        let mut min_pg_bits = f64::INFINITY;
-        for log_inv_rate in MIN_LOG_INV_RATE..=MAX_LOG_INV_RATE {
-            for m in 22 + crate::LOG_PACKING..=28 + crate::LOG_PACKING {
-                let cfg = WhirSecurityConfig::derive_config_with_log_inv_rate(m, log_inv_rate).unwrap();
-                assert_eq!(cfg.target_security_bits, 128);
-                assert_eq!(cfg.levels[0].log_inv_rate, log_inv_rate);
-                assert_eq!(cfg.levels[0].ood_samples, 0);
-                for (i, level) in cfg.levels.iter().enumerate() {
-                    let (pg_bits, query_bits) = level.paper_predicted_bits();
-                    let ood_bits = level.paper_predicted_ood_bits();
-                    let algebraic_bits = johnson_algebraic_bits(level, prev_queries_at(&cfg.levels, i));
-                    min_pg_bits = min_pg_bits.min(pg_bits);
-                    assert_eq!(level.grinding_bits, QUERY_GRINDING_BITS);
-                    assert!(query_bits + level.grinding_bits as f64 >= 128.0);
-                    assert!(pg_bits >= 128.0);
-                    assert!(ood_bits >= 128.0);
-                    assert!(algebraic_bits >= 128.0);
-                    if i > 0 {
-                        assert_eq!(level.ood_samples, 1);
-                    }
+#[test]
+fn production_profile_is_128_bit_johnson_with_query_grinding() {
+    let mut min_pg_bits = f64::INFINITY;
+    for log_inv_rate in MIN_LOG_INV_RATE..=MAX_LOG_INV_RATE {
+        for m in 22 + crate::LOG_PACKING..=28 + crate::LOG_PACKING {
+            let cfg = WhirSecurityConfig::derive_config_with_log_inv_rate(m, log_inv_rate).unwrap();
+            assert_eq!(cfg.target_security_bits, 128);
+            assert_eq!(cfg.levels[0].log_inv_rate, log_inv_rate);
+            assert_eq!(cfg.levels[0].ood_samples, 0);
+            for (i, level) in cfg.levels.iter().enumerate() {
+                let (pg_bits, query_bits) = level.paper_predicted_bits();
+                let ood_bits = level.paper_predicted_ood_bits();
+                let algebraic_bits = johnson_algebraic_bits(level, prev_queries_at(&cfg.levels, i));
+                min_pg_bits = min_pg_bits.min(pg_bits);
+                assert_eq!(level.grinding_bits, QUERY_GRINDING_BITS);
+                assert!(query_bits + level.grinding_bits as f64 >= 128.0);
+                assert!(pg_bits >= 128.0);
+                assert!(ood_bits >= 128.0);
+                assert!(algebraic_bits >= 128.0);
+                if i > 0 {
+                    assert_eq!(level.ood_samples, 1);
                 }
             }
         }
-        assert!(
-            (128.0..129.0).contains(&min_pg_bits),
-            "eta search should use, but not exceed, the one-bit PG margin: {min_pg_bits}"
-        );
     }
+    assert!(
+        (128.0..129.0).contains(&min_pg_bits),
+        "eta search should use, but not exceed, the one-bit PG margin: {min_pg_bits}"
+    );
+}
 
-    /// `WHIR_QUERIES`'s rows as `whir_config.rs` writes them, with `queries(log_inv_rate, log_n)` in each entry.
-    fn table_rows(queries: impl Fn(usize, usize) -> Vec<usize>) -> String {
-        let mut rows = String::new();
-        for log_inv_rate in MIN_LOG_INV_RATE..=MAX_LOG_INV_RATE {
-            writeln!(rows, "    // Rate 2^-{log_inv_rate}.\n    [").unwrap();
-            for log_n in MIN_LOG_N..=MAX_LOG_N {
-                let row: Vec<String> = queries(log_inv_rate, log_n).iter().map(usize::to_string).collect();
-                writeln!(rows, "        &[{}],", row.join(", ")).unwrap();
-            }
-            writeln!(rows, "    ],").unwrap();
+/// `WHIR_QUERIES`'s rows as `whir_config.rs` writes them, with `queries(log_inv_rate, log_n)` in each entry.
+fn table_rows(queries: impl Fn(usize, usize) -> Vec<usize>) -> String {
+    let mut rows = String::new();
+    for log_inv_rate in MIN_LOG_INV_RATE..=MAX_LOG_INV_RATE {
+        writeln!(rows, "    // Rate 2^-{log_inv_rate}.\n    [").unwrap();
+        for log_n in MIN_LOG_N..=MAX_LOG_N {
+            let row: Vec<String> = queries(log_inv_rate, log_n).iter().map(usize::to_string).collect();
+            writeln!(rows, "        &[{}],", row.join(", ")).unwrap();
         }
-        rows
+        writeln!(rows, "    ],").unwrap();
     }
+    rows
+}
 
-    /// Every entry of the table is what the derivation gives, field by field, and the table serves no other size or rate.
-    /// A stale table fails with the rows to paste over it.
-    #[test]
-    fn the_table_is_the_derivation() {
-        let derived = |log_inv_rate: usize, log_n: usize| {
-            derive_config(log_n, log_inv_rate).unwrap_or_else(|e| panic!("rate 2^-{log_inv_rate}, log_n {log_n}: {e}"))
-        };
-        let rows = table_rows(|log_inv_rate, log_n| derived(log_inv_rate, log_n).queries().to_vec());
-        let tabulated =
-            table_rows(|log_inv_rate, log_n| WHIR_QUERIES[log_inv_rate - MIN_LOG_INV_RATE][log_n - MIN_LOG_N].to_vec());
-        assert!(
-            tabulated == rows,
-            "WHIR_QUERIES is stale, replace its rows in crates/pcs/src/whir_config.rs with:\n{rows}"
-        );
-        for log_inv_rate in MIN_LOG_INV_RATE - 1..=MAX_LOG_INV_RATE + 1 {
-            for log_n in 0..=MAX_LOG_N + 8 {
-                let tabulated = config_for_rate(log_n, log_inv_rate);
-                if !(MIN_LOG_INV_RATE..=MAX_LOG_INV_RATE).contains(&log_inv_rate) {
-                    assert_eq!(tabulated, Err(ConfigError::RateOutOfRange { log_inv_rate }));
-                } else if !(MIN_LOG_N..=MAX_LOG_N).contains(&log_n) {
-                    assert_eq!(tabulated, Err(ConfigError::SizeOutOfRange { log_n }));
-                } else {
-                    assert_eq!(
-                        tabulated,
-                        Ok(derived(log_inv_rate, log_n)),
-                        "rate 2^-{log_inv_rate}, log_n {log_n}"
-                    );
-                }
+/// Every entry of the table is what the derivation gives, field by field, and the table serves no other size or rate.
+/// A stale table fails with the rows to paste over it.
+#[test]
+fn the_table_is_the_derivation() {
+    let derived = |log_inv_rate: usize, log_n: usize| {
+        derive_config(log_n, log_inv_rate).unwrap_or_else(|e| panic!("rate 2^-{log_inv_rate}, log_n {log_n}: {e}"))
+    };
+    let rows = table_rows(|log_inv_rate, log_n| derived(log_inv_rate, log_n).queries().to_vec());
+    let tabulated =
+        table_rows(|log_inv_rate, log_n| WHIR_QUERIES[log_inv_rate - MIN_LOG_INV_RATE][log_n - MIN_LOG_N].to_vec());
+    assert!(
+        tabulated == rows,
+        "WHIR_QUERIES is stale, replace its rows in crates/pcs/src/whir_config.rs with:\n{rows}"
+    );
+    for log_inv_rate in MIN_LOG_INV_RATE - 1..=MAX_LOG_INV_RATE + 1 {
+        for log_n in 0..=MAX_LOG_N + 8 {
+            let tabulated = config_for_rate(log_n, log_inv_rate);
+            if !(MIN_LOG_INV_RATE..=MAX_LOG_INV_RATE).contains(&log_inv_rate) {
+                assert_eq!(tabulated, Err(ConfigError::RateOutOfRange { log_inv_rate }));
+            } else if !(MIN_LOG_N..=MAX_LOG_N).contains(&log_n) {
+                assert_eq!(tabulated, Err(ConfigError::SizeOutOfRange { log_n }));
+            } else {
+                assert_eq!(
+                    tabulated,
+                    Ok(derived(log_inv_rate, log_n)),
+                    "rate 2^-{log_inv_rate}, log_n {log_n}"
+                );
             }
         }
     }

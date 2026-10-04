@@ -509,7 +509,7 @@ mod portable {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use primitives::test_rng::Rng;
+    use primitives::test_util::Rng;
 
     /// The reference BLAKE2s-256 of `bytes`, as little-endian words.
     fn reference(bytes: &[u8]) -> [u64; 4] {

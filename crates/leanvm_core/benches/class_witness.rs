@@ -6,7 +6,7 @@
 
 use bench::Plan;
 use leanvm_core::tables::ClassSpec;
-use primitives::test_rng::Rng;
+use primitives::test_util::Rng;
 
 fn main() {
     // One batch of 2^16 instances per class, the size of a mid-sized run's table.

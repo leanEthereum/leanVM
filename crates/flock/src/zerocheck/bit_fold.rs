@@ -98,51 +98,6 @@ impl BitFold {
     }
 }
 
-#[cfg(any(
-    test,
-    not(all(
-        target_arch = "x86_64",
-        target_feature = "gfni",
-        target_feature = "avx512bw",
-        target_feature = "avx512vbmi"
-    ))
-))]
-/// One 256-entry subset-sum table per byte of a row: entry `[j][v]` sums the weights of the set bits of `v` at byte `j`.
-fn lookup_tables(weights: &[F192]) -> Vec<[F192; 256]> {
-    weights
-        .as_chunks::<8>()
-        .0
-        .iter()
-        .map(|w| {
-            let mut sums = [F192::ZERO; 256];
-            // Each entry adds its lowest set bit's weight to an entry already built.
-            for v in 1..256usize {
-                let low = v.isolate_lowest_one();
-                sums[v] = sums[v ^ low] + w[low.trailing_zeros() as usize];
-            }
-            sums
-        })
-        .collect()
-}
-
-#[cfg(any(
-    test,
-    not(all(
-        target_arch = "x86_64",
-        target_feature = "gfni",
-        target_feature = "avx512bw",
-        target_feature = "avx512vbmi"
-    ))
-))]
-/// The fold of one row through the byte tables: one lookup and one XOR per byte.
-#[inline(always)]
-fn fold_row_lookup<const CHUNKS: usize>(tables: &[[F192; 256]], row: &[u8; CHUNKS]) -> F192 {
-    let tables: &[[F192; 256]; CHUNKS] = tables.try_into().expect("one table per byte");
-    row.iter()
-        .zip(tables)
-        .fold(F192::ZERO, |acc, (&v, sums)| acc + sums[usize::from(v)])
-}
-
 #[cfg(not(all(
     target_arch = "x86_64",
     target_feature = "gfni",
@@ -150,7 +105,34 @@ fn fold_row_lookup<const CHUNKS: usize>(tables: &[[F192; 256]], row: &[u8; CHUNK
     target_feature = "avx512vbmi"
 )))]
 mod portable {
-    use super::{BLOCK, F192, fold_row_lookup, lookup_tables};
+    use super::{BLOCK, F192};
+
+    /// The fold of one row through the byte tables: one lookup and one XOR per byte.
+    #[inline(always)]
+    fn fold_row_lookup<const CHUNKS: usize>(tables: &[[F192; 256]], row: &[u8; CHUNKS]) -> F192 {
+        let tables: &[[F192; 256]; CHUNKS] = tables.try_into().expect("one table per byte");
+        row.iter()
+            .zip(tables)
+            .fold(F192::ZERO, |acc, (&v, sums)| acc + sums[usize::from(v)])
+    }
+
+    /// One 256-entry subset-sum table per byte of a row: entry `[j][v]` sums the weights of the set bits of `v` at byte `j`.
+    fn lookup_tables(weights: &[F192]) -> Vec<[F192; 256]> {
+        weights
+            .as_chunks::<8>()
+            .0
+            .iter()
+            .map(|w| {
+                let mut sums = [F192::ZERO; 256];
+                // Each entry adds its lowest set bit's weight to an entry already built.
+                for v in 1..256usize {
+                    let low = v.isolate_lowest_one();
+                    sums[v] = sums[v ^ low] + w[low.trailing_zeros() as usize];
+                }
+                sums
+            })
+            .collect()
+    }
 
     /// The byte tables.
     #[derive(Clone, Debug)]
@@ -451,16 +433,14 @@ pub(crate) mod gfni {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use primitives::test_rng::Rng;
+    use primitives::test_util::Rng;
 
-    /// Every row width, full and short blocks, against the byte-table fold.
     #[test]
-    fn fold_block_matches_lookup() {
+    fn fold_block_matches_definition() {
         fn check<const CHUNKS: usize>(rng: &mut Rng) {
             // Random weights, one per bit of a CHUNKS-byte row.
             let weights: Vec<F192> = (0..8 * CHUNKS).map(|_| rng.ext()).collect();
             let fold = BitFold::new(&weights);
-            let tables = lookup_tables(&weights);
 
             // Full blocks of random rows, then a short block that exercises the zero padding.
             for len in [BLOCK, BLOCK, 5] {
@@ -470,11 +450,13 @@ mod tests {
                 let mut out = [F192::ZERO; BLOCK];
                 fold.fold_block(&rows, &mut out);
                 for (p, row) in rows.iter().enumerate() {
-                    assert_eq!(
-                        out[p],
-                        fold_row_lookup(&tables, row),
-                        "CHUNKS={CHUNKS}, len={len}, row {p}"
-                    );
+                    // Each set bit contributes its own field weight, independently of the backend's layout.
+                    let expected = weights
+                        .iter()
+                        .enumerate()
+                        .filter(|(bit, _)| row[bit / 8] >> (bit % 8) & 1 == 1)
+                        .fold(F192::ZERO, |acc, (_, &weight)| acc + weight);
+                    assert_eq!(out[p], expected, "CHUNKS={CHUNKS}, len={len}, row {p}");
                 }
             }
         }
@@ -484,21 +466,5 @@ mod tests {
         check::<32>(&mut rng);
         check::<64>(&mut rng);
         check::<128>(&mut rng);
-    }
-
-    /// The byte tables against the definition: the sum of the weights of the set bits.
-    #[test]
-    fn lookup_matches_definition() {
-        let mut rng = Rng::new(0x5E7_B175);
-        let weights: Vec<F192> = (0..64).map(|_| rng.ext()).collect();
-        let tables = lookup_tables(&weights);
-        for _ in 0..64 {
-            let row: [u8; 8] = std::array::from_fn(|_| rng.next_u64() as u8);
-            // Bit s of the row is bit s % 8 of byte s / 8.
-            let direct = (0..64)
-                .filter(|s| (row[s / 8] >> (s % 8)) & 1 == 1)
-                .fold(F192::ZERO, |acc, s| acc + weights[s]);
-            assert_eq!(fold_row_lookup(&tables, &row), direct, "row={row:02x?}");
-        }
     }
 }

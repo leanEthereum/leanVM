@@ -11,10 +11,8 @@
 //!
 //! [`config_for_rate`] builds those parameters from integers alone: the level ladder, and the query counts `WHIR_QUERIES` tabulates, so neither the prover nor a verifier computes in floating point.
 //! The table is what the floating-point soundness analysis (the PCS annex, Theorem `thm:rbr`) derives at every size and rate it covers.
-//! That analysis lives in the test-only `derivation` module, and its test `the_table_is_the_derivation` checks every entry, so changing a constant it reads fails that test until the table is regenerated (AGENTS.md, "One protocol, three verifiers").
+//! That analysis lives in the test-only `tests` module, and its test `the_table_is_the_derivation` checks every entry, so changing a constant it reads fails that test until the table is regenerated (AGENTS.md, "One protocol, three verifiers").
 
-#[cfg(test)]
-pub(crate) use derivation::{default_config, test_config_for};
 use thiserror::Error;
 
 // ===================================================================
@@ -370,4 +368,4 @@ pub fn config_for_rate(log_n: usize, log_inv_rate: usize) -> Result<ProverConfig
 }
 
 #[cfg(test)]
-mod derivation;
+pub(crate) mod tests;

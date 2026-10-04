@@ -537,12 +537,12 @@ impl<'a> PrefixGroup<'a> {
 mod tests {
     use super::*;
     use crate::ring_switch::fold_1b_rows;
-    use crate::whir::{INITIAL_BASIS_CHUNK, commit, default_config, inner_product_base_ext};
-    use crate::whir_config::test_config_for;
+    use crate::whir::{INITIAL_BASIS_CHUNK, commit, inner_product_base_ext};
+    use crate::whir_config::tests::{default_config, test_config_for};
     use basis::StackWeight;
     use fiat_shamir::transcript::{Proof, ProverState, VerifierState};
     use primitives::multilinear::eq_table;
-    use primitives::test_rng::Rng;
+    use primitives::test_util::Rng;
 
     const DOMAIN: &[u8] = b"stack-open-test";
 

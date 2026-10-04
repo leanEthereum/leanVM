@@ -799,7 +799,7 @@ impl Blake2sSetup {
 mod tests {
     use super::*;
     use crate::lincheck::LincheckCircuit;
-    use primitives::test_rng::Rng;
+    use primitives::test_util::{Rng, test_vectors};
 
     /// Does `z` satisfy the block-diagonal R1CS, `(A_0 z) ⊙ (B_0 z) = z` per block?
     ///
@@ -853,7 +853,7 @@ mod tests {
     /// changes these digests.
     #[test]
     fn compress_matches_blake2s_vectors() {
-        for (input, digest) in primitives::hash::test_vectors() {
+        for (input, digest) in test_vectors() {
             assert_eq!(blake2s_256(&input), digest, "{} bytes", input.len());
         }
     }

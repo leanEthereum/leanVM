@@ -33,7 +33,7 @@ use pcs::whir::{LOG_INV_RATE_0, commit, config_for_rate, inner_product_base_ext,
 use primitives::field::{F64, F192};
 use primitives::multilinear::eq_table;
 use primitives::pretty_integer;
-use primitives::test_rng::Rng;
+use primitives::test_util::Rng;
 use std::hint::black_box;
 use std::time::Instant;
 use zk_alloc::ArenaVec;

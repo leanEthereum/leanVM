@@ -8,7 +8,7 @@
 //! These agree by distributivity in characteristic 2, and F192 stores a
 //! canonical reduced `(c0, c1, c2)`, so the bit patterns must match exactly.
 use primitives::field::F192;
-use primitives::test_rng::Rng;
+use primitives::test_util::Rng;
 
 /// Verbatim copy of the pre-change implementation.
 fn eq_table_old(r: &[F192]) -> Vec<F192> {

@@ -426,35 +426,6 @@ fn msg_terms_lone<T: RoundWitness>(f0: &[T], b0: &[F192]) -> (T::Acc, T::Acc) {
     (u, u)
 }
 
-/// Round message for a lane round, over `f.len() / block` blocks: the reference the first pass is tested against.
-#[cfg(test)]
-fn round_msg_blocks<T: RoundWitness>(f: &[T], b: &[F192], block: usize) -> SumcheckMessage {
-    // Real asserts, not debug ones: the crate is only ever built in release, and a
-    // block count that truncates drops the trailing block from BOTH u_0 and u_2,
-    // which is a well-formed but wrong round message rather than a panic.
-    assert_eq!(b.len(), f.len());
-    assert!(block > 0 && f.len().is_multiple_of(block));
-    let n_blocks = f.len() / block;
-    let per = block.div_ceil(ROUND_CHUNK);
-    let task = |t: usize| -> (T::Acc, T::Acc) {
-        let (i, c) = (t / per, t % per);
-        let x0 = c * ROUND_CHUNK;
-        let len = ROUND_CHUNK.min(block - x0);
-        let lo = 2 * i * block + x0;
-        if 2 * i + 1 < n_blocks {
-            let hi = lo + block;
-            msg_terms_pair(&f[lo..lo + len], &f[hi..hi + len], &b[lo..lo + len], &b[hi..hi + len])
-        } else {
-            msg_terms_lone(&f[lo..lo + len], &b[lo..lo + len])
-        }
-    };
-    let (u_0, u_2) = accumulate_msg(n_blocks.div_ceil(2) * per, f.len() / 2, T::ZERO_ACC, task);
-    SumcheckMessage {
-        u_0: T::reduce(u_0),
-        u_2: T::reduce(u_2),
-    }
-}
-
 /// The opening's initial weight, regenerated one aligned chunk at a time.
 ///
 /// Called as `fill(start, out)`, it writes the weights of words `start..start + out.len()`.
@@ -851,7 +822,35 @@ mod tests {
     use super::*;
     use crate::ring_switch::inner_product_ext;
     use crate::whir_config::INITIAL_FOLDING_FACTOR;
-    use primitives::test_rng::Rng;
+    use primitives::test_util::Rng;
+
+    /// Round message for a lane round, over `f.len() / block` blocks: the reference the first pass is tested against.
+    fn round_msg_blocks<T: RoundWitness>(f: &[T], b: &[F192], block: usize) -> SumcheckMessage {
+        // Real asserts, not debug ones: the crate is only ever built in release, and a
+        // block count that truncates drops the trailing block from BOTH u_0 and u_2,
+        // which is a well-formed but wrong round message rather than a panic.
+        assert_eq!(b.len(), f.len());
+        assert!(block > 0 && f.len().is_multiple_of(block));
+        let n_blocks = f.len() / block;
+        let per = block.div_ceil(ROUND_CHUNK);
+        let task = |t: usize| -> (T::Acc, T::Acc) {
+            let (i, c) = (t / per, t % per);
+            let x0 = c * ROUND_CHUNK;
+            let len = ROUND_CHUNK.min(block - x0);
+            let lo = 2 * i * block + x0;
+            if 2 * i + 1 < n_blocks {
+                let hi = lo + block;
+                msg_terms_pair(&f[lo..lo + len], &f[hi..hi + len], &b[lo..lo + len], &b[hi..hi + len])
+            } else {
+                msg_terms_lone(&f[lo..lo + len], &b[lo..lo + len])
+            }
+        };
+        let (u_0, u_2) = accumulate_msg(n_blocks.div_ceil(2) * per, f.len() / 2, T::ZERO_ACC, task);
+        SumcheckMessage {
+            u_0: T::reduce(u_0),
+            u_2: T::reduce(u_2),
+        }
+    }
 
     #[test]
     fn a_regenerated_weight_folds_like_the_stored_one() {

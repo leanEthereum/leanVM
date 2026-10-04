@@ -545,7 +545,7 @@ impl LincheckCircuit for Circuit {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use primitives::test_rng::Rng;
+    use primitives::test_util::Rng;
 
     /// A random circuit over the builder's whole vocabulary.
     ///

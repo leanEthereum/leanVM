@@ -23,7 +23,7 @@ use pcs::pack::LOG_PACKING;
 use pcs::stack_open::{open_batch_mixed_whir_stacked, verify_opening_batch_mixed_whir_stacked};
 use pcs::whir::{INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0};
 use pcs::whir::{commit, config_for_rate};
-use primitives::{field::F64, pretty_integer, test_rng::Rng};
+use primitives::{field::F64, pretty_integer, test_util::Rng};
 
 /// Every operation whose name contains one of the arguments, or all of them with
 /// none. `cargo bench` passes flags of its own (`--bench`), which are skipped.

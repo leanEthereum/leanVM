@@ -518,6 +518,7 @@ mod tests {
     use crate::cpu::filler::JUMP;
     use crate::cpu::layout::{Framework, Shared};
     use crate::leaf::Coord;
+    use crate::leaf::tests::unmatched_leaves;
     use crate::pcs::Rate;
     use crate::rv::asm::*;
     use crate::rv::{Class, Entry, InstructionClass, Machine, Outcome, ProgramError, Reg, RegisterFile, Trap};
@@ -615,7 +616,7 @@ mod tests {
 
     /// The leaves a witness's bus leaves unmatched, as `(side, block, row)`.
     fn unmatched(w: &Witness) -> Vec<(&'static str, usize, usize)> {
-        leaf::unmatched_leaves(&w.layout.push, &w.layout.pull, &w.layout.producers, &w.columns())
+        unmatched_leaves(&w.layout.push, &w.layout.pull, &w.layout.producers, &w.columns())
     }
 
     /// A committed column of a built witness, to forge it.

@@ -277,57 +277,6 @@ pub fn layout(blocks: &[Block], producers: &[Producer]) -> Layout {
     }
 }
 
-/// The leaves one side leaves unmatched on the other, as `(side, block, row)`, under
-/// one fixed fingerprint: what to look at when a bus does not balance. A producer's
-/// entry counts as its multiplicity's worth of leaves, reported as block
-/// `push.len() + p` for producer `p`.
-#[cfg(test)]
-pub(crate) fn unmatched_leaves(
-    push: &[Block],
-    pull: &[Block],
-    producers: &[Producer],
-    cols: &[&[F64]],
-) -> Vec<(&'static str, usize, usize)> {
-    let alphas: Vec<F192> = (0..N_TUPLE_BITS as u64)
-        .map(|i| F192::new(3 + i, 5 + 7 * i, 11))
-        .collect();
-    let (w, beta) = (fingerprint_weights(&alphas), F192::new(13, 17, 19));
-    let side = |blocks: &[Block]| {
-        let mut at = Vec::new();
-        for (b, block) in blocks.iter().enumerate() {
-            let mut leaves = vec![F192::ZERO; 1 << block.kappa];
-            fill_tuple(&block.coords, cols, &w, beta, &mut leaves);
-            at.extend(leaves.into_iter().enumerate().map(|(z, leaf)| (leaf, b, z)));
-        }
-        at
-    };
-    let (mut pushed, pulled) = (side(push), side(pull));
-    for (p, producer) in producers.iter().enumerate() {
-        let mut leaves = vec![F192::ZERO; 1 << producer.kappa];
-        fill_tuple(&producer.coords, cols, &w, beta, &mut leaves);
-        for (x, leaf) in leaves.into_iter().enumerate() {
-            let m = cols[producer.col][x].0 & ((1u64 << producer.bits) - 1);
-            pushed.extend(std::iter::repeat_n((leaf, push.len() + p, x), m as usize));
-        }
-    }
-    let key = |leaf: &F192| (leaf.c0, leaf.c1, leaf.c2);
-    let mut counts: HashMap<_, i64> = HashMap::new();
-    for (leaf, ..) in &pushed {
-        *counts.entry(key(leaf)).or_default() += 1;
-    }
-    for (leaf, ..) in &pulled {
-        *counts.entry(key(leaf)).or_default() -= 1;
-    }
-    let unmatched = |name: &'static str, leaves: &[(F192, usize, usize)]| {
-        leaves
-            .iter()
-            .filter(|(leaf, ..)| counts[&key(leaf)] != 0)
-            .map(|&(_, b, z)| (name, b, z))
-            .collect::<Vec<_>>()
-    };
-    [unmatched("push", &pushed), unmatched("pull", &pulled)].concat()
-}
-
 /// A non-constant coordinate as `(source, coefficient)`: its leaf contribution is
 /// the mixed product `coeff · source(z)` with `source(z) ∈ K`, `coeff ∈ E`.
 enum Term<'a> {
@@ -1389,10 +1338,64 @@ pub fn verify_balance<V: Verifier>(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{Block, Coord, F64, F192, SparseColumn, prove_balance, soundness_bits, verify_balance};
+pub(crate) mod tests {
+    use super::{
+        Block, Coord, F64, F192, N_TUPLE_BITS, Producer, SparseColumn, fill_tuple, fingerprint_weights, prove_balance,
+        soundness_bits, verify_balance,
+    };
     use fiat_shamir::transcript::{ProverState, VerifierState};
+    use std::collections::HashMap;
     use std::sync::Arc;
+
+    /// The leaves one side leaves unmatched on the other, as `(side, block, row)`, under
+    /// one fixed fingerprint: what to look at when a bus does not balance. A producer's
+    /// entry counts as its multiplicity's worth of leaves, reported as block
+    /// `push.len() + p` for producer `p`.
+    pub(crate) fn unmatched_leaves(
+        push: &[Block],
+        pull: &[Block],
+        producers: &[Producer],
+        cols: &[&[F64]],
+    ) -> Vec<(&'static str, usize, usize)> {
+        let alphas: Vec<F192> = (0..N_TUPLE_BITS as u64)
+            .map(|i| F192::new(3 + i, 5 + 7 * i, 11))
+            .collect();
+        let (w, beta) = (fingerprint_weights(&alphas), F192::new(13, 17, 19));
+        let side = |blocks: &[Block]| {
+            let mut at = Vec::new();
+            for (b, block) in blocks.iter().enumerate() {
+                let mut leaves = vec![F192::ZERO; 1 << block.kappa];
+                fill_tuple(&block.coords, cols, &w, beta, &mut leaves);
+                at.extend(leaves.into_iter().enumerate().map(|(z, leaf)| (leaf, b, z)));
+            }
+            at
+        };
+        let (mut pushed, pulled) = (side(push), side(pull));
+        for (p, producer) in producers.iter().enumerate() {
+            let mut leaves = vec![F192::ZERO; 1 << producer.kappa];
+            fill_tuple(&producer.coords, cols, &w, beta, &mut leaves);
+            for (x, leaf) in leaves.into_iter().enumerate() {
+                let m = cols[producer.col][x].0 & ((1u64 << producer.bits) - 1);
+                pushed.extend(std::iter::repeat_n((leaf, push.len() + p, x), m as usize));
+            }
+        }
+        let key = |leaf: &F192| (leaf.c0, leaf.c1, leaf.c2);
+        let mut counts: HashMap<_, i64> = HashMap::new();
+        for (leaf, ..) in &pushed {
+            *counts.entry(key(leaf)).or_default() += 1;
+        }
+        for (leaf, ..) in &pulled {
+            *counts.entry(key(leaf)).or_default() -= 1;
+        }
+        let unmatched = |name: &'static str, leaves: &[(F192, usize, usize)]| {
+            leaves
+                .iter()
+                .filter(|(leaf, ..)| counts[&key(leaf)] != 0)
+                .map(|&(_, b, z)| (name, b, z))
+                .collect::<Vec<_>>()
+        };
+        [unmatched("push", &pushed), unmatched("pull", &pulled)].concat()
+    }
 
     #[test]
     fn a_tables_virtual_coordinates_join_the_known_part() {

@@ -790,14 +790,6 @@ fn replicate(data: &mut [F64], msg: SendPtr<F64>, msg_len: usize) {
     });
 }
 
-/// Test oracle: fill every replica with a copy of a message held elsewhere.
-#[cfg(test)]
-fn replicate_rows(data: &mut [F64], msg: &[F64]) {
-    for replica in data.chunks_mut(msg.len()) {
-        replica.copy_from_slice(msg);
-    }
-}
-
 /// Layers L and L+1 fused into one sweep over a layer-L block, four rows at a time.
 fn butterfly_interleaved_fused_2layer(
     block: &mut [F64],
@@ -1131,8 +1123,15 @@ unsafe fn butterfly_lane_pair_neon(top: *mut F64, bot: *mut F64, twiddle: u64) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use primitives::test_rng::Rng;
+    use primitives::test_util::Rng;
     use std::sync::Mutex;
+
+    /// Test oracle: fill every replica with a copy of a message held elsewhere.
+    fn replicate_rows(data: &mut [F64], msg: &[F64]) {
+        for replica in data.chunks_mut(msg.len()) {
+            replica.copy_from_slice(msg);
+        }
+    }
 
     /// Scalar reference: one butterfly at a time over `num_ntts` interleaved lanes.
     fn forward_scalar_from_layer(ntt: &AdditiveNttF64, data: &mut [F64], num_ntts: usize, start_layer: usize) {

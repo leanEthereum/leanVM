@@ -114,7 +114,7 @@ mod tests {
     use super::super::Clock;
     use super::super::bus::Separator;
     use super::*;
-    use crate::cpu::{ExtRow, HashRow};
+    use crate::cpu::execute::{ExtRow, HashRow};
     use crate::rv::{Class, Ext, InstructionClass, Region, WordAccess};
     use proptest::prelude::*;
 

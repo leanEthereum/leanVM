@@ -1,8 +1,8 @@
 // CREDIT: https://github.com/succinctlabs/flock (flock-core), MIT OR Apache-2.0.
 //! Round-1 prover message: fully optimized (shift_reduce + extract_c).
 //!
-//! Scalar Rust, with NEON and GFNI kernels for the inner sweep. Three layered optimizations on top of
-//! the `round1_extract_c` scaffold:
+//! Scalar Rust, with NEON and GFNI kernels for the inner sweep.
+//! Three layered optimizations:
 //!
 //! 1. **Geometric small-eq + shift_reduce inner** (3 inner-most rest-dims).
 //!    Protocol fixes the three small challenges to
@@ -148,26 +148,20 @@ const N_MEDIUM_VALUES: usize = 16;
 /// the address. Flat, each lookup costs a check, a branch and a multiply by the
 /// 24-byte element stride, and the branches keep the constant-trip loop around
 /// them from unrolling.
-#[cfg(any(
-    test,
-    not(all(
-        target_arch = "x86_64",
-        target_feature = "gfni",
-        target_feature = "avx512bw",
-        target_feature = "avx512vbmi"
-    ))
-))]
+#[cfg(not(all(
+    target_arch = "x86_64",
+    target_feature = "gfni",
+    target_feature = "avx512bw",
+    target_feature = "avx512vbmi"
+)))]
 type ConvertTable = [[F192; 256]; N_MEDIUM_VALUES];
 
-#[cfg(any(
-    test,
-    not(all(
-        target_arch = "x86_64",
-        target_feature = "gfni",
-        target_feature = "avx512bw",
-        target_feature = "avx512vbmi"
-    ))
-))]
+#[cfg(not(all(
+    target_arch = "x86_64",
+    target_feature = "gfni",
+    target_feature = "avx512bw",
+    target_feature = "avx512vbmi"
+)))]
 static CONVERT_TABLE_CACHE: OnceLock<Box<ConvertTable>> = OnceLock::new();
 
 /// `gamma^b` for each medium position `b`.
@@ -182,15 +176,12 @@ fn gamma_powers() -> &'static [F192; N_MEDIUM_VALUES] {
     })
 }
 
-#[cfg(any(
-    test,
-    not(all(
-        target_arch = "x86_64",
-        target_feature = "gfni",
-        target_feature = "avx512bw",
-        target_feature = "avx512vbmi"
-    ))
-))]
+#[cfg(not(all(
+    target_arch = "x86_64",
+    target_feature = "gfni",
+    target_feature = "avx512bw",
+    target_feature = "avx512vbmi"
+)))]
 fn build_convert_table() -> Box<ConvertTable> {
     let mut table: Box<ConvertTable> = Box::new([[F192::ZERO; 256]; N_MEDIUM_VALUES]);
     for (row, &g_b) in table.iter_mut().zip(gamma_powers()) {
@@ -201,15 +192,12 @@ fn build_convert_table() -> Box<ConvertTable> {
     table
 }
 
-#[cfg(any(
-    test,
-    not(all(
-        target_arch = "x86_64",
-        target_feature = "gfni",
-        target_feature = "avx512bw",
-        target_feature = "avx512vbmi"
-    ))
-))]
+#[cfg(not(all(
+    target_arch = "x86_64",
+    target_feature = "gfni",
+    target_feature = "avx512bw",
+    target_feature = "avx512vbmi"
+)))]
 fn convert_table() -> &'static ConvertTable {
     CONVERT_TABLE_CACHE.get_or_init(build_convert_table)
 }
@@ -1081,13 +1069,13 @@ pub fn round1_shift_reduce_extract_c_packed_padded(
 mod tests {
     use super::*;
     use crate::zerocheck::PaddingSpec;
-    use crate::zerocheck::univariate_skip::{pack_bits, round1_naive};
+    use crate::zerocheck::univariate_skip::tests::{pack_bits, round1_naive};
     use pcs::ntt::AdditiveNttGf8;
-    use primitives::test_rng::Rng;
+    use primitives::test_util::Rng;
 
-    /// The convert stage against the table definition, over full and boundary windows.
     #[test]
-    fn convert_matches_table() {
+    fn convert_matches_definition() {
+        // Compare converted field values with their weighted sum over full and partial windows.
         let mut rng = Rng::new(0xC0_4E27);
         let mut partials = Convert::new();
         let (mut want_ab, mut want_c) = ([F192::ZERO; ELL], [F192::ZERO; ELL]);
@@ -1100,8 +1088,8 @@ mod tests {
             for lane in 0..ELL {
                 let conv = |rows: &[[u8; 64]]| {
                     rows.iter()
-                        .zip(convert_table())
-                        .fold(F192::ZERO, |acc, (r, t)| acc + t[r[lane] as usize])
+                        .zip(gamma_powers())
+                        .fold(F192::ZERO, |acc, (row, &gamma)| acc + gamma * phi8(F8(row[lane])))
                 };
                 want_ab[lane] += conv(&ab) * eq;
                 want_c[lane] += conv(&c) * eq;
@@ -1346,8 +1334,8 @@ mod tests {
         let table = make_inv_table();
         let a_bits = rng.bits(1 << m);
         let b_bits = rng.bits(1 << m);
-        let a_packed = super::super::univariate_skip::pack_bits(&a_bits);
-        let b_packed = super::super::univariate_skip::pack_bits(&b_bits);
+        let a_packed = pack_bits(&a_bits);
+        let b_packed = pack_bits(&b_bits);
 
         for &(chunk_byte_base, b_med) in &[(0usize, 0usize), (64, 5), (1024, 7), (4096, 15)] {
             let needed = chunk_byte_base + b_med * N_CHUNKS * 8 + 8 * N_CHUNKS;

@@ -286,30 +286,11 @@ pub fn hash_many_dyn(data: &[u8], len: usize, out: &mut [u8]) {
     hash_many_dyn_from_state(data, len, &PARAM_IV, 0, out);
 }
 
-/// The official unkeyed BLAKE2s-256 test vectors, as `(input, digest)` pairs.
-///
-/// Input `n` is the `n` bytes `00 01 .. n-1`, for `n` in `0..256`: every length through four blocks.
-///
-/// `test_vectors.txt` is extracted from `testvectors/blake2-kat.json` of <https://github.com/BLAKE2/BLAKE2>:
-///
-/// ```text
-/// jq -r '.[] | select(.hash == "blake2s" and .key == "") | .out' blake2-kat.json
-/// ```
-#[cfg(feature = "test-util")]
-pub fn test_vectors() -> impl Iterator<Item = (Vec<u8>, [u8; OUT_LEN])> {
-    let lines: Vec<&str> = include_str!("test_vectors.txt").lines().collect();
-    assert_eq!(lines.len(), 256, "the vector file is truncated");
-    lines.into_iter().enumerate().map(|(n, line)| {
-        let input = (0..n).map(|i| i as u8).collect();
-        let digest = std::array::from_fn(|i| u8::from_str_radix(&line[2 * i..2 * i + 2], 16).unwrap());
-        (input, digest)
-    })
-}
-
 #[cfg(test)]
 mod tests {
     use super::batch::Scalar8;
     use super::*;
+    use crate::test_util::test_vectors;
     #[cfg(target_arch = "aarch64")]
     use arm::Neon;
     #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]

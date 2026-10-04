@@ -285,7 +285,7 @@ mod tests {
     use super::*;
     use crate::rv::semantics::tests::{circuit_matches_reference, edge_word};
     use crate::tables::InstanceWitness;
-    use primitives::test_rng::Rng;
+    use primitives::test_util::Rng;
     use proptest::prelude::*;
     use proptest::sample::select;
     use proptest::strategy::BoxedStrategy;

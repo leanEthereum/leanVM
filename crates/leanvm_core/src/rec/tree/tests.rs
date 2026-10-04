@@ -13,7 +13,7 @@ use design::NodeRows;
 use fiat_shamir::transcript::{Challenger, ProverState, Transmitter, VerifierState};
 use flock::lincheck::MatrixForm;
 use primitives::multilinear::mle_eval;
-use primitives::test_rng::Rng;
+use primitives::test_util::Rng;
 use std::sync::OnceLock;
 
 // A program whose output is its one advice word, after a loop that reads every framework block.

@@ -23,7 +23,7 @@ use ::pcs::stack_open::{RingFamily, RingSwitchVerify, RingSwitchVerifyClaim};
 use ::pcs::whir::inner_product_base_ext;
 use fiat_shamir::transcript::{Proof, ProverState, RawProof, VerifierState};
 use primitives::field::{F64, F192};
-use primitives::test_rng::Rng;
+use primitives::test_util::Rng;
 
 // A program with a loop, so that every framework block is read.
 fn small_program() -> Program {

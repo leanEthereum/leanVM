@@ -368,7 +368,7 @@ pub mod software {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_rng::Rng;
+    use crate::test_util::Rng;
     #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
     use core::arch::aarch64::vgetq_lane_u64;
 

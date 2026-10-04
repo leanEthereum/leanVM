@@ -110,8 +110,6 @@ use primitives::multilinear::{eq_eval, eq_table as build_eq, skip_lagrange_weigh
 #[cfg(target_arch = "aarch64")]
 use std::arch::aarch64::*;
 use thiserror::Error;
-#[cfg(test)]
-use zk_alloc::ArenaVec;
 
 // ---------------------------------------------------------------------------
 // LincheckCircuit: the per-block linear structure lincheck consumes
@@ -242,43 +240,6 @@ pub enum LincheckError {
 // ---------------------------------------------------------------------------
 // Core kernels
 // ---------------------------------------------------------------------------
-
-/// Partial fold of `z` at the outer half of a claim point, single-matrix,
-/// **scalar reference**. Uses the lincheck `z_packed` stripe layout
-/// (see module docs).
-///
-///   `output[i_inner] = Σ_{i_outer ∈ {0,1}^n_log}  z[i_inner, i_outer] · eq_outer[i_outer]`
-///
-/// Equivalently, `output[i_inner] = ẑ(i_inner_as_F192, x_outer)` for boolean
-/// `i_inner`. Used as the cross-check oracle for the production folds.
-#[cfg(test)]
-pub fn partial_fold_packed_z(z_packed: &[u8], m: usize, k_log: usize, eq_outer: &[F192]) -> Vec<F192> {
-    let n_log = m - k_log;
-    let k = 1usize << k_log;
-    let n_outer = 1usize << n_log;
-    assert_eq!(z_packed.len(), (1usize << m) / 8);
-    assert_eq!(eq_outer.len(), n_outer);
-    assert!(n_log >= 3, "need n_outer ≥ 8 for byte stripes");
-    let n_stripes = n_outer / 8;
-
-    let mut out = vec![F192::ZERO; k];
-    for byte_idx in 0..n_stripes {
-        let stripe = &z_packed[byte_idx * k..(byte_idx + 1) * k];
-        for (i_inner, &byte) in stripe.iter().enumerate() {
-            if byte == 0 {
-                continue;
-            }
-            let mut bits = byte;
-            while bits != 0 {
-                let r = bits.trailing_zeros() as usize;
-                let i_outer = 8 * byte_idx + r;
-                out[i_inner] += eq_outer[i_outer];
-                bits &= bits - 1;
-            }
-        }
-    }
-    out
-}
 
 /// Padding-aware variant of `partial_fold_packed_z_fast`. Skips rows
 /// `i_inner ∈ [useful_bits, k)`, since those rows hold zero in every block of an
@@ -753,70 +714,6 @@ fn build_sum_table(eq8: &[F192], table: &mut [F192]) {
             table[len + j] = table[j] + e;
         }
     }
-}
-
-/// Pack a logical Boolean witness vector into the lincheck `z_packed`
-/// stripe layout. The input `z_logical` is indexed linearly with
-/// `z_logical[i_inner + i_outer · k]` = z's value at `(i_inner, i_outer)`.
-/// The output `z_packed[byte_idx · k + i_inner]` holds 8 outer bits
-/// `z[i_inner, 8·byte_idx + r]` for `r ∈ 0..8`, with bit `r` within the byte.
-///
-/// See the module-level docs for the full bit-position decomposition.
-#[cfg(test)]
-pub fn pack_z_lincheck(z_logical: &[bool], m: usize, k_log: usize) -> ArenaVec<u8> {
-    let k = 1usize << k_log;
-    let n_total = 1usize << m;
-    assert_eq!(z_logical.len(), n_total);
-    let n_outer = n_total / k;
-    assert_eq!(n_outer % 8, 0, "need n_outer ≥ 8 for byte stripes");
-    let n_stripes = n_outer / 8;
-
-    let mut z_packed = zk_alloc::alloc_uninit(n_total / 8);
-    for byte_idx in 0..n_stripes {
-        for i_inner in 0..k {
-            let mut byte = 0u8;
-            for r in 0..8 {
-                let i_outer = 8 * byte_idx + r;
-                let logical_idx = i_inner + i_outer * k;
-                if z_logical[logical_idx] {
-                    byte |= 1u8 << r;
-                }
-            }
-            z_packed[byte_idx * k + i_inner].write(byte);
-        }
-    }
-    // SAFETY: the nested loops write every output byte exactly once.
-    unsafe { zk_alloc::assume_init(z_packed) }
-}
-
-/// Same output as `pack_z_lincheck`, but reads bits from the bit-packed `u64`
-/// witness: logical bit `i` is bit `i % 64` of `z_packed_words[i / 64]`.
-#[cfg(test)]
-pub fn pack_z_lincheck_from_packed(z_packed_words: &[u64], m: usize, k_log: usize) -> ArenaVec<u8> {
-    let k = 1usize << k_log;
-    let n_total = 1usize << m;
-    assert_eq!(z_packed_words.len(), n_total / 64);
-    let n_outer = n_total / k;
-    assert_eq!(n_outer % 8, 0, "need n_outer ≥ 8 for byte stripes");
-
-    let mut z_packed = zk_alloc::alloc_uninit(n_total / 8);
-    // Each stripe (byte_idx) writes a disjoint k-byte chunk, so process them in
-    // parallel. Inside one stripe, k independent output bytes.
-    parallel::chunks_mut(&mut z_packed, k, |byte_idx, chunk| {
-        for (i_inner, slot) in chunk.iter_mut().enumerate() {
-            let mut byte = 0u8;
-            for r in 0..8 {
-                let i_outer = 8 * byte_idx + r;
-                let logical_idx = i_inner + i_outer * k;
-                if (z_packed_words[logical_idx / 64] >> (logical_idx % 64)) & 1 == 1 {
-                    byte |= 1u8 << r;
-                }
-            }
-            slot.write(byte);
-        }
-    });
-    // SAFETY: every parallel chunk writes each of its output bytes exactly once.
-    unsafe { zk_alloc::assume_init(z_packed) }
 }
 
 /// Build the **quirky eq table** for a claim point on the inner half:
@@ -1370,9 +1267,78 @@ pub fn verify_deferred(
 mod tests {
     use super::*;
     use fiat_shamir::transcript::{ProverState, VerifierState};
-    use primitives::field::F64;
-    use primitives::test_rng::Rng;
+    use primitives::test_util::Rng;
     use std::collections::HashSet;
+    use zk_alloc::ArenaVec;
+
+    /// Pack a logical Boolean witness vector into the lincheck `z_packed`
+    /// stripe layout. The input `z_logical` is indexed linearly with
+    /// `z_logical[i_inner + i_outer · k]` = z's value at `(i_inner, i_outer)`.
+    /// The output `z_packed[byte_idx · k + i_inner]` holds 8 outer bits
+    /// `z[i_inner, 8·byte_idx + r]` for `r ∈ 0..8`, with bit `r` within the byte.
+    ///
+    /// See the module-level docs for the full bit-position decomposition.
+    fn pack_z_lincheck(z_logical: &[bool], m: usize, k_log: usize) -> ArenaVec<u8> {
+        let k = 1usize << k_log;
+        let n_total = 1usize << m;
+        assert_eq!(z_logical.len(), n_total);
+        let n_outer = n_total / k;
+        assert_eq!(n_outer % 8, 0, "need n_outer ≥ 8 for byte stripes");
+        let n_stripes = n_outer / 8;
+
+        let mut z_packed = zk_alloc::alloc_uninit(n_total / 8);
+        for byte_idx in 0..n_stripes {
+            for i_inner in 0..k {
+                let mut byte = 0u8;
+                for r in 0..8 {
+                    let i_outer = 8 * byte_idx + r;
+                    let logical_idx = i_inner + i_outer * k;
+                    if z_logical[logical_idx] {
+                        byte |= 1u8 << r;
+                    }
+                }
+                z_packed[byte_idx * k + i_inner].write(byte);
+            }
+        }
+        // SAFETY: the nested loops write every output byte exactly once.
+        unsafe { zk_alloc::assume_init(z_packed) }
+    }
+
+    /// Partial fold of `z` at the outer half of a claim point, single-matrix,
+    /// **scalar reference**. Uses the lincheck `z_packed` stripe layout
+    /// (see module docs).
+    ///
+    ///   `output[i_inner] = Σ_{i_outer ∈ {0,1}^n_log}  z[i_inner, i_outer] · eq_outer[i_outer]`
+    ///
+    /// Equivalently, `output[i_inner] = ẑ(i_inner_as_F192, x_outer)` for boolean
+    /// `i_inner`. Used as the cross-check oracle for the production folds.
+    fn partial_fold_packed_z(z_packed: &[u8], m: usize, k_log: usize, eq_outer: &[F192]) -> Vec<F192> {
+        let n_log = m - k_log;
+        let k = 1usize << k_log;
+        let n_outer = 1usize << n_log;
+        assert_eq!(z_packed.len(), (1usize << m) / 8);
+        assert_eq!(eq_outer.len(), n_outer);
+        assert!(n_log >= 3, "need n_outer ≥ 8 for byte stripes");
+        let n_stripes = n_outer / 8;
+
+        let mut out = vec![F192::ZERO; k];
+        for byte_idx in 0..n_stripes {
+            let stripe = &z_packed[byte_idx * k..(byte_idx + 1) * k];
+            for (i_inner, &byte) in stripe.iter().enumerate() {
+                if byte == 0 {
+                    continue;
+                }
+                let mut bits = byte;
+                while bits != 0 {
+                    let r = bits.trailing_zeros() as usize;
+                    let i_outer = 8 * byte_idx + r;
+                    out[i_inner] += eq_outer[i_outer];
+                    bits &= bits - 1;
+                }
+            }
+        }
+        out
+    }
 
     /// Test shim for the old dense-prove entry: the capture variant with a
     /// dense block and the captured `s_hat_v` discarded.
@@ -1557,34 +1523,6 @@ mod tests {
     }
 
     // ---- Unit tests for the kernels ----
-
-    /// `partial_fold_packed_z` matches the direct sum.
-    #[test]
-    fn partial_fold_matches_direct() {
-        for &(m, k_log) in &[(10usize, 3), (12, 4), (14, 5), (16, 8)] {
-            let mut rng = Rng::new(33 + m as u64);
-            let z = rng.bits(1 << m);
-            let z_packed = pack_z_lincheck(&z, m, k_log);
-            let n_log = m - k_log;
-            let outer_point = rng.ext_vec(n_log);
-            let eq_outer = build_eq(&outer_point);
-
-            let got = partial_fold_packed_z(&z_packed, m, k_log, &eq_outer);
-
-            let k = 1usize << k_log;
-            assert_eq!(got.len(), k);
-            for (i_inner, &value) in got.iter().enumerate() {
-                let mut acc = F192::ZERO;
-                for (i_outer, &weight) in eq_outer.iter().enumerate() {
-                    let i = i_inner + i_outer * k;
-                    if z[i] {
-                        acc += weight;
-                    }
-                }
-                assert_eq!(value, acc, "mismatch at m={m}, i_inner={i_inner}");
-            }
-        }
-    }
 
     /// `partial_fold_packed_z_fast` (parallel lookup-table) matches the scalar
     /// reference `partial_fold_packed_z`.
@@ -1953,66 +1891,5 @@ mod tests {
             verify(m, k_log, k_log + 1, &circuit, &x_ab, v_a, v_b, v_c, &mut ch),
             Err(LincheckError::KSkipExceedsKLog { .. })
         ));
-    }
-    /// Fold `z_vec`'s `2^|inner_rest_tail|` stripes of 64 slice values against the tail's eq table.
-    fn s_hat_v_from_z_vec(z_vec: &[F192], inner_rest_tail: &[F192]) -> Vec<F192> {
-        let eq = build_eq(inner_rest_tail);
-        assert_eq!(z_vec.len(), pcs::pack::PACKING_WIDTH * eq.len());
-        let mut s_hat_v = vec![F192::ZERO; pcs::pack::PACKING_WIDTH];
-        for (stripe, &weight) in z_vec.chunks(pcs::pack::PACKING_WIDTH).zip(&eq) {
-            for (slot, &value) in s_hat_v.iter_mut().zip(stripe) {
-                *slot += weight * value;
-            }
-        }
-        s_hat_v
-    }
-
-    /// AB-claim s_hat_v computed via `s_hat_v_from_z_vec` (reusing lincheck's
-    /// pre-sumcheck partial fold of `z` at `x_outer`) is byte-identical to the
-    /// general-purpose `fold_1b_rows` over the materialized suffix tensor.
-    #[test]
-    fn s_hat_v_from_z_vec_matches_fold_1b_rows_ab() {
-        const K_SKIP: usize = 6;
-        // (m, k_log), with K_SKIP fixed at 6 (so x_inner_rest has k_log − 6 coords;
-        // x_inner_rest[0] becomes ring-switch's prefix0 because
-        // K_SKIP + 1 = LOG_PACKING = 7). n_log = m − k_log must be ≥ 3 for
-        // partial_fold_packed_z's stripe layout.
-        let cases: &[(usize, usize)] = &[(13, 10), (15, 11), (17, 13)];
-        for &(m, k_log) in cases {
-            assert!(k_log >= pcs::pack::LOG_PACKING);
-            assert!(k_log >= K_SKIP);
-            let n_log = m - k_log;
-            assert!(n_log >= 3);
-            let mut rng = Rng::new(0xCAFE_u64.wrapping_add((m * 131 + k_log) as u64));
-
-            // Boolean witness in standard logical (linear) layout.
-            let z = rng.bits(1 << m);
-            let packed: Vec<F64> = z
-                .chunks(64)
-                .map(|c| F64(c.iter().rev().fold(0, |acc, &b| acc << 1 | b as u64)))
-                .collect();
-            let z_packed_lincheck = pack_z_lincheck(&z, m, k_log);
-
-            // AB-shaped quirky point: x_inner_rest has k_log − K_SKIP coords;
-            // x_outer has n_log coords.
-            let x_inner_rest: Vec<F192> = (0..(k_log - K_SKIP)).map(|_| rng.ext()).collect();
-            let x_outer: Vec<F192> = (0..n_log).map(|_| rng.ext()).collect();
-
-            // Reference: ring-switch's fold_1b_rows over the materialized
-            // suffix tensor, exactly the path open_batch hits today.
-            let mut x_outer_full = Vec::with_capacity(x_inner_rest.len() + x_outer.len());
-            x_outer_full.extend_from_slice(&x_inner_rest);
-            x_outer_full.extend_from_slice(&x_outer);
-            let suffix_tensor = primitives::multilinear::eq_table(&x_outer_full);
-            let want = pcs::ring_switch::fold_1b_rows(&packed, &suffix_tensor);
-
-            // New path: lincheck-shaped partial fold of z at x_outer, then a
-            // strided fold against the inner-rest tail.
-            let eq_x_outer = primitives::multilinear::eq_table(&x_outer);
-            let z_vec = partial_fold_packed_z(&z_packed_lincheck, m, k_log, &eq_x_outer);
-            let got = s_hat_v_from_z_vec(&z_vec, &x_inner_rest);
-
-            assert_eq!(got, want, "s_hat_v mismatch at m={m}, k_log={k_log}");
-        }
     }
 }

@@ -65,7 +65,7 @@ pub(crate) fn encode_interleaved_ext(
 mod tests {
     use super::*;
     use primitives::log2_strict_usize;
-    use primitives::test_rng::Rng;
+    use primitives::test_util::Rng;
 
     /// Reference E-valued transform: one butterfly at a time, with the E-by-K product.
     fn forward_scalar(ntt: &AdditiveNttF64, data: &mut [F192], num_ntts: usize, start_layer: usize) {

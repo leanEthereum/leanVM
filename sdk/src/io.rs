@@ -291,7 +291,7 @@ macro_rules! advice_words {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use primitives::test_rng::Rng;
+    use primitives::test_util::Rng;
 
     /// The digest `commit` gives for `words` committed `n` at a time: a `Public` as the VM's, made in place.
     fn committed(words: &[u64], n: usize) -> [u64; 4] {
