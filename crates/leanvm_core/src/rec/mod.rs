@@ -3,10 +3,12 @@
 mod bus;
 pub mod circuit;
 mod error;
+mod fixed;
 mod layout;
 pub mod proof;
 pub mod table;
 pub mod transcript;
+pub mod tree;
 pub mod verifier;
 
 pub use error::RecError;

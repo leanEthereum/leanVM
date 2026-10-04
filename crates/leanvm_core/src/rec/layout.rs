@@ -1,14 +1,12 @@
 //! What both sides derive from a circuit alone: each table's height and where every column sits in the stack.
 
 use super::RecError;
-use super::bus::TableSummand;
 use super::circuit::Circuit;
 use super::table::{HashFlock, Table};
 use crate::constraints::{Air, Claims};
-use crate::leaf::{BusForm, ColumnClaim};
+use crate::leaf::ColumnClaim;
 use crate::pcs;
 use crate::witness::{self, Placement, Source, StackShape, Window};
-use primitives::field::F192;
 use std::ops::Range;
 
 /// Each table's height and every column's place in the stack.
@@ -49,9 +47,15 @@ impl RecLayout {
     ///
     /// Returns an error if a table has more rows than its keys name, or the witness exceeds one commitment.
     pub(crate) fn new(circuit: &Circuit) -> Result<Self, RecError> {
-        let counts = circuit.row_counts();
-        let taus: [usize; Table::COUNT] =
-            Table::ALL.map(|t| t.height_log(counts[t as usize]).max(circuit.floor[t as usize]));
+        Self::from_taus(circuit.heights())
+    }
+
+    /// The layout of a circuit of the given heights.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if a table has more rows than its keys name, or the witness exceeds one commitment.
+    pub(crate) fn from_taus(taus: [usize; Table::COUNT]) -> Result<Self, RecError> {
         if let Some(table) = Table::ALL.into_iter().find(|&t| taus[t as usize] > Self::MAX_TAU) {
             return Err(RecError::TooManyRows {
                 table,
@@ -108,9 +112,9 @@ impl RecLayout {
             .expect("the packed witness is committed")
     }
 
-    /// The constraint batch's airs, one per owned table.
-    pub(crate) fn airs(&self, forms: &[Vec<BusForm>; 2], xi: F192) -> Vec<Air<TableSummand>> {
-        (Table::OWNED.into_iter().zip(TableSummand::batch(forms, xi)))
+    /// The constraint batch's airs, one per owned table, each with its summand in table order.
+    pub(crate) fn airs<S>(&self, summands: Vec<S>) -> Vec<Air<S>> {
+        (Table::OWNED.into_iter().zip(summands))
             .map(|(table, summand)| Air {
                 tau: self.tau(table),
                 n_cols: table.n_cols(),
@@ -123,7 +127,11 @@ impl RecLayout {
     /// Every column claim the opening discharges, the bus's then each owned table's, located in the stack.
     ///
     /// A port's claim is a strided evaluation of its packed witness.
-    pub(crate) fn opening_claims(&self, bus: Vec<ColumnClaim>, tables: &[Claims]) -> Vec<pcs::SlotClaim> {
+    pub(crate) fn opening_claims<E: Copy>(
+        &self,
+        bus: Vec<ColumnClaim<E>>,
+        tables: &[Claims<E>],
+    ) -> Vec<pcs::SlotClaim<E>> {
         let mut claims = bus;
         for (&(base, _), table) in Self::TABLE_COLUMNS.iter().zip(tables) {
             claims.extend(table.evals.iter().enumerate().map(|(c, &value)| ColumnClaim {

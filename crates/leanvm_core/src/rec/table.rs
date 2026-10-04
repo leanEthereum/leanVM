@@ -71,6 +71,18 @@ impl Table {
     /// The tables owning columns: every table but the public one, which comes last.
     pub(crate) const OWNED: [Self; Self::COUNT - 1] = [Self::Emul, Self::Exk, Self::Hash, Self::Split, Self::Cast];
 
+    /// Its name, as the documentation writes it.
+    pub const fn name(self) -> &'static str {
+        match self {
+            Self::Emul => "EMUL",
+            Self::Exk => "EXK",
+            Self::Hash => "HASH",
+            Self::Split => "SPLIT",
+            Self::Cast => "CAST",
+            Self::Pub => "PUB",
+        }
+    }
+
     /// Its slots' kinds.
     ///
     /// A public slot carries a wire of any kind; its one entry is the widest.
@@ -332,7 +344,7 @@ impl HashFlock {
     const SEL: usize = Self::N_PORTS;
 
     /// The packed witness index of the BLAKE2s class circuit, which proves every hash row.
-    fn index() -> usize {
+    pub(crate) fn index() -> usize {
         let t = tables::table_of(crate::rv::Class::Hash).expect("the HASH class has a table");
         class_flock::flock_index(t, Part::Class)
     }

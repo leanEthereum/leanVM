@@ -1,12 +1,15 @@
 use super::flock::Reduction;
+use super::recursion::RecRows;
 use super::ring::RingShare;
 use super::whir::Opening;
-use super::{ProofShape, Rows};
+use super::{ProofShape, RecShape, Rows};
 use crate::class_flock;
 use crate::cpu::{DeferredClaims, Program};
 use crate::pcs::{Rate, RingSwitchClaim, RingSwitchOpen, SlotClaim};
 use crate::rec::RecError;
-use crate::rec::circuit::{Assignment, Builder, Circuit, Ew, Finished, Limbs};
+use crate::rec::circuit::{Assignment, Builder, Circuit, Ew, Finished, Kw, Limbs};
+use crate::rec::fixed::FixedColumns;
+use crate::rec::table::HashFlock;
 use crate::rec::transcript::{ProofSource, Transcript};
 use crate::rv::asm::*;
 use crate::tables::{CLASSES, N_TABLES, Part};
@@ -581,4 +584,84 @@ fn the_ring_family_in_rows_is_the_native_one() {
     });
     assert_eq!(b.e(target_wire), target);
     assert_eq!(b.e(weight_wire), weight);
+}
+
+// A recursion proof of a small circuit, as rows of another.
+fn recursion_rows(
+    circuit: &Circuit,
+    statement: &[Limbs],
+    columns: &FixedColumns,
+    source: ProofSource<'_>,
+) -> (Builder, RecRows) {
+    let shape = RecShape::new(circuit.heights(), Rate::MIN).expect("a layout");
+    let mut b = Builder::new();
+    let iv = b.d_const(label_cv());
+    let limbs: Vec<[Kw; 4]> = statement.iter().map(|w| w.map(|l| b.free_k(l))).collect();
+    let rows = shape.verify(&mut b, iv, &limbs, columns, source);
+    (b, rows)
+}
+
+// The rows hold on an honest proof, leave a hash matrix claim that settles and true fixed hints, and are the shape's rows.
+#[test]
+fn a_recursion_proof_in_rows_is_its_verifier() {
+    let mut b = Builder::new();
+    let x = b.free_e(F192::new(3, 5, 7));
+    let y = b.e_const(F192::new(11, 13, 17));
+    let mut acc = b.d_const([1, 2, 3, 4]);
+    let observe = b.k_const(fiat_shamir::DS_OBSERVE.0);
+    let mut e = x;
+    for _ in 0..40 {
+        e = b.mul_add(e, y, x);
+        acc = b.compress(acc, e, observe).0;
+    }
+    let w = b.free_k(0xfeed);
+    b.split(w);
+    b.expose_d(acc);
+    b.expose_e(e);
+    let Finished {
+        circuit,
+        assignment: a,
+        failures,
+    } = b.finish();
+    assert!(failures.is_empty(), "{failures:?}");
+    let iv = label_cv().map(F64);
+    let proof = circuit.prove(&a, iv, Rate::MIN).expect("the circuit fits");
+    let raw = circuit
+        .verify_to_raw(a.statement(), iv, Rate::MIN, &proof)
+        .expect("an honest proof");
+    let taus = circuit.heights();
+    let columns = FixedColumns::of(&circuit, &taus);
+
+    let (b, rows) = recursion_rows(&circuit, a.statement(), &columns, ProofSource::Proof(&raw));
+    let form = rows.matrix.point.map(|w| b.e(w));
+    let hash = class_flock::circuit(HashFlock::index());
+    assert_eq!(
+        form.evaluate(hash),
+        b.e(rows.matrix.value),
+        "the hash rows' matrix claim settles"
+    );
+    for hint in &rows.hints {
+        let point: Vec<F192> = hint.point.iter().map(|&w| b.e(w)).collect();
+        let column = columns.get(hint.column);
+        assert_eq!(b.e(hint.value), primitives::multilinear::mle_eval(column, &point));
+    }
+    let Finished {
+        circuit: proven,
+        failures,
+        ..
+    } = b.finish();
+    assert!(failures.is_empty(), "{failures:?}");
+    let zeros = FixedColumns::zeros(&taus);
+    let (shaped, _) = recursion_rows(&circuit, a.statement(), &zeros, ProofSource::Shape);
+    assert!(proven == shaped.finish().circuit, "the shape builds another circuit");
+
+    // A tampered scalar, and a statement word the proof is not of.
+    let mut forged = raw.clone();
+    forged.stream[7].c1 ^= 1;
+    let (b, _) = recursion_rows(&circuit, a.statement(), &columns, ProofSource::Proof(&forged));
+    assert!(!b.finish().failures.is_empty(), "a forged scalar passes");
+    let mut statement = a.statement().to_vec();
+    statement[1][2] ^= 1;
+    let (b, _) = recursion_rows(&circuit, &statement, &columns, ProofSource::Proof(&raw));
+    assert!(!b.finish().failures.is_empty(), "another statement passes");
 }

@@ -624,6 +624,18 @@ impl<E: Copy> BusForm<E> {
 }
 
 impl BusForm {
+    /// The form at the columns' values `evals`, in a verifier's arithmetic: its coefficients are constants.
+    pub fn at_constants<A: Arith>(&self, a: &mut A, evals: &[A::E]) -> A::E {
+        let constant = a.constant(self.constant);
+        let linear = (self.coeffs.iter().zip(evals))
+            .filter(|(c, _)| !c.is_zero())
+            .fold(constant, |acc, (&c, &v)| a.mul_const_add(v, c, acc));
+        self.prods.iter().fold(linear, |acc, &(i, j, c)| {
+            let p = a.mul(evals[i], evals[j]);
+            a.mul_const_add(p, c, acc)
+        })
+    }
+
     /// The same form scaled by `w`. Every coefficient is `E`-valued already, so
     /// folding the side's `η`-power in here costs three multiplies once per table
     /// instead of one per [`eval`](Self::eval), which the zerocheck calls per row

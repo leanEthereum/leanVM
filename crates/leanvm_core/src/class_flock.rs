@@ -65,6 +65,11 @@ pub const fn stride_log(spec: &ClassSpec, part: Part) -> usize {
     k_log(spec, part) - LOG_PACKING
 }
 
+/// The most variables any packed witness's circuit has per instance.
+pub fn max_k_log() -> usize {
+    (0..N_FLOCKS).map(|f| shape(f).k_log).max().unwrap_or(0)
+}
+
 /// What the verifier's replay of packed witness `f`'s reduction reads of its circuit short of its matrices.
 ///
 /// - The instance's size.

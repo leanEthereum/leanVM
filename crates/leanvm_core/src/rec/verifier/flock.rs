@@ -40,7 +40,7 @@ struct Zerocheck {
 /// The skip domain `S`, the first `ELL` nodes of the phi_8 table: an `F_2`-subspace of `K`, since phi_8 is linear on its index.
 ///
 /// Its coset `Lambda = S + phi_8(ELL)` holds the zerocheck's first message.
-struct SkipDomain;
+pub(crate) struct SkipDomain;
 
 impl Reduction {
     /// Replay the reduction of a packed witness of `2^n_blocks_log` instances of the circuit `shape`.
@@ -172,53 +172,44 @@ impl SkipDomain {
     }
 
     /// `V_S(z)`: six squarings and six products by constants of `K`.
-    fn vanishing(r: &mut Rows<'_, '_>, z: Ew) -> Ew {
+    pub(crate) fn vanishing<A: Arith>(a: &mut A, z: A::E) -> A::E {
         let c = Self::vanishing_coefficients();
         let mut powers = vec![z];
         for j in 0..K_SKIP {
-            powers.push(r.square(powers[j]));
+            powers.push(a.square(powers[j]));
         }
         debug_assert_eq!(c[K_SKIP], F192::ONE, "the vanishing polynomial is monic");
-        (c[..K_SKIP].iter().zip(&powers)).fold(powers[K_SKIP], |acc, (&cj, &p)| r.mul_const_add(p, cj, acc))
+        (c[..K_SKIP].iter().zip(&powers)).fold(powers[K_SKIP], |acc, (&cj, &p)| a.mul_const_add(p, cj, acc))
     }
 
-    /// `sum_i values_i / (z + nodes_i)`, each inverse a hint held to `(z + node)·h = 1`.
-    ///
-    /// A node of `K` costs three rows; the zero node two.
-    fn inverse_sum(r: &mut Rows<'_, '_>, z: Ew, nodes: &[F192], values: &[Ew]) -> Ew {
+    /// `sum_i values_i / (z + nodes_i)`, three rows a node in a circuit, two for the zero node.
+    fn inverse_sum<A: Arith>(a: &mut A, z: A::E, nodes: &[F192], values: &[A::E]) -> A::E {
         assert_eq!(nodes.len(), values.len(), "a value per node");
-        let zero = r.zero();
+        let zero = a.zero();
         (nodes.iter().zip(values)).fold(zero, |acc, (&node, &value)| {
-            let difference = r.b.e(z) + node;
-            let h = r.b.free_e(if difference.is_zero() {
-                F192::ZERO
-            } else {
-                difference.inv()
-            });
-            let node_h = r.mul_const(h, node);
-            let unit = r.mul_add(z, h, node_h);
-            r.b.eq_e_const(unit, F192::ONE);
-            r.mul_add(value, h, acc)
+            let difference = a.add_const(z, node);
+            let h = a.inv(difference);
+            a.mul_add(value, h, acc)
         })
     }
 
     /// The first round's message, known on `Lambda` and zero on `S`, interpolated at `z` over the window `S + Lambda`.
     ///
     /// Its value is `D_2ELL · V_S(z) · V_Lambda(z) · sum_i values_i / (z + lambda_i)`, with `V_Lambda(z) = V_S(z) + V_S(phi_8(ELL))`.
-    fn first_round_at(r: &mut Rows<'_, '_>, z: Ew, vanishing: Ew, values: &[Ew]) -> Ew {
+    fn first_round_at<A: Arith>(a: &mut A, z: A::E, vanishing: A::E, values: &[A::E]) -> A::E {
         let lambda = &PHI_8_TABLE[ELL..2 * ELL];
         let offset = Self::linearized(&Self::vanishing_coefficients(), lambda[0]);
-        let on_lambda = r.add_const(vanishing, offset);
-        let sum = Self::inverse_sum(r, z, lambda, values);
-        let both = r.mul(vanishing, on_lambda);
-        let scaled = r.mul_const(both, window_denominator(2 * ELL));
-        r.mul(scaled, sum)
+        let on_lambda = a.add_const(vanishing, offset);
+        let sum = Self::inverse_sum(a, z, lambda, values);
+        let both = a.mul(vanishing, on_lambda);
+        let scaled = a.mul_const(both, window_denominator(2 * ELL));
+        a.mul(scaled, sum)
     }
 
     /// `sum_i L_i(z) values_i` over `S`, `L_i` its Lagrange basis: `D_ELL · V_S(z) · sum_i values_i / (z + s_i)`.
-    fn lagrange_at(r: &mut Rows<'_, '_>, z: Ew, vanishing: Ew, values: &[Ew]) -> Ew {
-        let sum = Self::inverse_sum(r, z, &PHI_8_TABLE[..ELL], values);
-        let scaled = r.mul_const(vanishing, window_denominator(ELL));
-        r.mul(scaled, sum)
+    pub(crate) fn lagrange_at<A: Arith>(a: &mut A, z: A::E, vanishing: A::E, values: &[A::E]) -> A::E {
+        let sum = Self::inverse_sum(a, z, &PHI_8_TABLE[..ELL], values);
+        let scaled = a.mul_const(vanishing, window_denominator(ELL));
+        a.mul(scaled, sum)
     }
 }

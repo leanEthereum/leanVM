@@ -112,6 +112,12 @@ impl Circuit {
         self.statement_len
     }
 
+    /// Each table's base-two logarithm of rows: the least power of two holding its rows, and at least its floor.
+    pub fn heights(&self) -> [usize; Table::COUNT] {
+        let counts = self.row_counts();
+        Table::ALL.map(|t| t.height_log(counts[t as usize]).max(self.floor[t as usize]))
+    }
+
     /// How many wire classes the slots name.
     pub(crate) fn n_classes(&self) -> usize {
         (Table::ALL.iter())

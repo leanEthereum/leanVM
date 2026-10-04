@@ -6,10 +6,12 @@
 //! - One opening settles the column claims and the packed witness's ring-switched claim.
 
 use super::RecError;
-use super::bus::BusBlocks;
+use super::bus::{BusBlocks, TableResidual, TableSummand};
 use super::circuit::{Assignment, Circuit, Compression, Limbs, chain};
+use super::fixed::FixedColumns;
 use super::layout::RecLayout;
 use super::table::{HashFlock, Table};
+use crate::arith::Verifier;
 use crate::constraints::{self, Columns};
 use crate::pcs;
 use crate::witness;
@@ -41,7 +43,7 @@ struct RecWitness {
 }
 
 /// The bus and the constraint batch over the owned tables, which leave the column claims the opening settles.
-struct TableArgument<'a> {
+pub(crate) struct TableArgument<'a> {
     layout: &'a RecLayout,
     blocks: BusBlocks,
 }
@@ -134,11 +136,16 @@ impl RecWitness {
 }
 
 impl<'a> TableArgument<'a> {
-    fn new(circuit: &Circuit, statement: &[Limbs], layout: &'a RecLayout) -> Self {
-        Self {
-            layout,
-            blocks: BusBlocks::new(circuit, statement, layout),
-        }
+    /// The argument over the given bus blocks.
+    pub(crate) const fn new(layout: &'a RecLayout, blocks: BusBlocks) -> Self {
+        Self { layout, blocks }
+    }
+
+    /// The argument of a circuit and its statement, the public rows reading the statement.
+    fn of(circuit: &Circuit, statement: &[Limbs], layout: &'a RecLayout) -> Self {
+        let fixed = FixedColumns::of(circuit, &layout.taus);
+        let public = fixed.public_values(statement);
+        Self::new(layout, BusBlocks::new(&fixed, public, layout))
     }
 
     /// Prove the bus, then every owned table's summand at the bus's point.
@@ -153,23 +160,41 @@ impl<'a> TableArgument<'a> {
             let table_cols = (Table::OWNED.into_iter())
                 .map(|t| Columns::K(cols[RecLayout::columns(t)].to_vec()))
                 .collect();
-            constraints::prove(&self.layout.airs(&bus.forms, xi), table_cols, &bus.point, &sums, ps)
+            let airs = self.layout.airs(TableSummand::batch(&bus.forms, xi));
+            constraints::prove(&airs, table_cols, &bus.point, &sums, ps)
         });
         self.layout.opening_claims(bus.claims, &tables)
     }
 
     /// Verify the bus, then the table sumcheck against what the bus says the tables owe.
-    fn verify(&self, vs: &mut VerifierState) -> Result<Vec<pcs::SlotClaim>, RecError> {
-        let bus = self.blocks.verify(vs)?;
-        let xi = vs.sample();
-        let target = bus.totals[0] + xi * bus.totals[1];
-        let airs = self.layout.airs(&bus.forms, xi);
-        let tables = constraints::verify(vs, &airs, &bus.point, target)?.settle()?;
-        Ok(self.layout.opening_claims(bus.claims, &tables))
+    ///
+    /// # Errors
+    ///
+    /// Returns the bus's or the table sumcheck's refusal.
+    pub(crate) fn verify<V: Verifier>(&self, v: &mut V) -> Result<Vec<pcs::SlotClaim<V::E>>, RecError> {
+        let bus = self.blocks.verify(v)?;
+        let xi = v.sample();
+        let target = v.mul_add(xi, bus.totals[1], bus.totals[0]);
+        let airs = self.layout.airs(TableResidual::batch(v, &bus.forms, xi));
+        let tables = constraints::verify(v, &airs, &bus.point, target)?;
+        let zero = v.zero();
+        v.ensure_eq(tables.residual, zero, || {
+            RecError::Constraint(constraints::Error::FinalMismatch)
+        })?;
+        Ok(self.layout.opening_claims(bus.claims, &tables.claims))
     }
 }
 
 impl Circuit {
+    /// The words a proof of the circuit commits: its committed columns at its heights.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if a table has more rows than its keys name, or the witness exceeds one commitment.
+    pub fn committed_words(&self) -> Result<usize, RecError> {
+        Ok(witness::committed_len(&RecLayout::new(self)?.placements))
+    }
+
     /// Prove that an assignment is a run of the circuit, at the given commitment rate.
     ///
     /// The transcript starts from a digest naming the circuit and absorbs the statement before any challenge.
@@ -197,7 +222,7 @@ impl Circuit {
 
         let w = crate::stage!("Build witness", || RecWitness::build(&layout, a));
         let committed = crate::stage!("Commit", || pcs::commit(&mut ps, &w.q, layout.shape, log_inv_rate));
-        let slots = TableArgument::new(self, &a.statement, &layout).prove(&w, &mut ps);
+        let slots = TableArgument::of(self, &a.statement, &layout).prove(&w, &mut ps);
 
         let RecWitness { q, ports, batch } = w;
         drop(ports);
@@ -250,7 +275,7 @@ impl Circuit {
         let layout = RecLayout::new(self)?;
         let mut vs = VerifierState::new(iv, proof, public_input);
         let root = pcs::read_commitment(&mut vs)?;
-        let slots = TableArgument::new(self, statement, &layout).verify(&mut vs)?;
+        let slots = TableArgument::of(self, statement, &layout).verify(&mut vs)?;
         let hash_claim = HashBatch::verify(&layout, &mut vs)?;
         let window = layout.hash_window();
         let ring = flock::reduction::ring_switch_verify(window.n_vars, window.offset, &hash_claim);
@@ -408,7 +433,9 @@ mod tests {
         let layout = RecLayout::new(&circuit).unwrap();
         let mut vs = VerifierState::new(IV, &proof, seed);
         pcs::read_commitment(&mut vs).unwrap();
-        let bus = BusBlocks::new(&circuit, &a.statement, &layout).verify(&mut vs).unwrap();
+        let fixed = FixedColumns::of(&circuit, &layout.taus);
+        let blocks = BusBlocks::new(&fixed, fixed.public_values(&a.statement), &layout);
+        let bus = blocks.verify(&mut vs).unwrap();
         let wt: Vec<F192> = (1..5).map(|j| bus.weights[j]).collect();
 
         // Solve `sum_j wt_j·delta_j = 0` over `K` with `delta_3 = 1`: three `K`-linear equations, by elimination.

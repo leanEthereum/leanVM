@@ -48,6 +48,21 @@ impl<'p> ProofShape<'p> {
         })
     }
 
+    /// The program.
+    pub const fn program(&self) -> &'p Program {
+        self.program
+    }
+
+    /// Each table's base-two logarithm of rows.
+    pub const fn taus(&self) -> &[usize; N_TABLES] {
+        &self.taus
+    }
+
+    /// The commitment's rate.
+    pub const fn rate(&self) -> Rate {
+        self.rate
+    }
+
     /// The verifier's core of a proof of this shape returning `output`, read from `source`, as rows of `b`.
     ///
     /// The rows check everything the native core checks, and leave its deferred claims as wires.

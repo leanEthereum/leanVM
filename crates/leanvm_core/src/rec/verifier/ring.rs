@@ -11,7 +11,7 @@ use ::pcs::stack_open::RingSwitchVerify;
 use primitives::field::{F64, F192};
 
 /// The ring-switching map `Phi`, as the coefficients `C_k^(2^-k)` of its Frobenius form, `k < 64`.
-struct RingMap {
+pub(crate) struct RingMap {
     coefficients: Vec<Ew>,
 }
 
@@ -97,7 +97,7 @@ impl RingMap {
     /// `v^(2^-j)` at each index `j >= lowest` of 64, and `v` below.
     ///
     /// Squaring from `v^(2^128) = v^(2^-64)` climbs to `v^(2^-lowest)`.
-    fn ladder(b: &mut Builder, v: Ew, lowest: usize) -> Vec<Ew> {
+    pub(crate) fn ladder(b: &mut Builder, v: Ew, lowest: usize) -> Vec<Ew> {
         let mut ladder = vec![v; PACKING_WIDTH];
         let lowest = lowest.max(1);
         let mut power = Self::frobenius2(b, v);

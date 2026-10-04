@@ -25,6 +25,9 @@ pub trait Arith {
     /// `a·c + d` for a constant `c`.
     fn mul_const_add(&mut self, a: Self::E, c: F192, d: Self::E) -> Self::E;
 
+    /// `1 / a`, zero for zero.
+    fn inv(&mut self, a: Self::E) -> Self::E;
+
     /// The multilinear extension of a public `K` column at `point`, lowest coordinate first.
     fn public_mle(&mut self, column: &[F64], point: &[Self::E]) -> Self::E {
         assert_eq!(column.len(), 1 << point.len(), "a column has a word per vertex");
@@ -243,6 +246,10 @@ impl Arith for Native {
         a * c + d
     }
 
+    fn inv(&mut self, a: F192) -> F192 {
+        if a.is_zero() { F192::ZERO } else { a.inv() }
+    }
+
     fn public_mle(&mut self, column: &[F64], point: &[F192]) -> F192 {
         primitives::multilinear::mle_eval_par(column, point)
     }
@@ -265,6 +272,10 @@ impl Arith for VerifierState<'_> {
 
     fn mul_const_add(&mut self, a: F192, c: F192, d: F192) -> F192 {
         a * c + d
+    }
+
+    fn inv(&mut self, a: F192) -> F192 {
+        if a.is_zero() { F192::ZERO } else { a.inv() }
     }
 
     fn public_mle(&mut self, column: &[F64], point: &[F192]) -> F192 {
