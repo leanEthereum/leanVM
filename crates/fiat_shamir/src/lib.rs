@@ -32,10 +32,14 @@ pub fn digest_words(digest: &[u8; 32]) -> [F64; 4] {
 // never adversary-controlled, so distinct constants are all it takes to make two
 // roles unable to alias. The seeding block ([`FiatShamirState::new`]) is the
 // exception: it is fixed at the head of the chain, so its position is its tag.
-const DS_OBSERVE: F64 = F64(1);
-const DS_SQUEEZE: F64 = F64(2);
-const DS_POW_BASE: F64 = F64(3);
-const DS_POW_NONCE: F64 = F64(4);
+/// The tag of an absorbed scalar.
+pub const DS_OBSERVE: F64 = F64(1);
+/// The tag of a challenge.
+pub const DS_SQUEEZE: F64 = F64(2);
+/// The tag of the proof-of-work base.
+pub const DS_POW_BASE: F64 = F64(3);
+/// The tag of a grinding nonce.
+pub const DS_POW_NONCE: F64 = F64(4);
 
 /// `compress(base, (nonce.c0, nonce.c1, nonce.c2, DS_POW_NONCE))` has its low `bits`
 /// bits zero: the grinding predicate over the VM compression. A CONTIGUOUS
