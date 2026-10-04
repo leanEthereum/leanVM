@@ -50,10 +50,11 @@
 //!
 //! ## Prover vs. verifier paths for `rs_eq_ind`
 //!
-//! - The prover keeps the equality tensor factored, folds each claim into a
+//! - The stacked opening ring-switches one family per opening: its claims' slices combined by powers of one challenge `gamma_rs` before the map is drawn, each claim's scale sitting inside the map, so the claim at `r_suffix` with scale `c` has the weight `Phi(c·eq(r_suffix, y))` on its region (doc `leanvm` Annex A, `rs:family`).
+//! - The prover keeps each claim's equality tensor factored, folds it through a
 //!   small byte table, and combines the claims directly into one dense PCS
 //!   weight. It never materializes a dense vector per claim.
-//! - [`eval_rs_eq`] lets the verifier avoid materializing the vector entirely: its MLE at the WHIR final point is the closed form of doc `leanvm` Annex A (`rs:weight`), with the Frobenius moved onto the point every claim shares (`rs:cost`), so a claim costs `64 L` E-multiplications and 63 squarings after one precomputation per opening ([`RsEqQuery`]).
+//! - The verifier never materializes the vector: its MLE at the WHIR final point is the closed form of doc `leanvm` Annex A (`rs:weight`), with the Frobenius moved onto the point every claim shares (`rs:cost`), so a claim costs `64 L` E-multiplications and 63 squarings after one precomputation per opening, and claims at prefixes of one point share their products.
 
 use fiat_shamir::transcript::Challenger;
 use primitives::field::{F64, F192};
@@ -73,7 +74,7 @@ pub const RING_SWITCH_SOUNDNESS_DEGREE: usize =
 pub const COMPOSITION_SHIFTS: [usize; 6] = [32, 16, 8, 4, 2, 1];
 
 /// Number of Frobenius terms the composed batching map expands to: the `F_2`-dimension of `K`.
-const LINEARIZED_TERMS: usize = PACKING_WIDTH;
+pub const LINEARIZED_TERMS: usize = PACKING_WIDTH;
 
 /// The coordinate batching weights: `weights[w] = Phi(b_w)`, where `b_w` is the
 /// `w`-th `F_2`-coordinate basis element of `E` (the order `transpose_s_hat`
@@ -286,41 +287,33 @@ fn fold_one_slot_ext(elem: F192, tables: &FoldByteTable) -> F192 {
     acc
 }
 
-/// Deferred, lambda-baked ring-switch output used by the stacked opener.
-///
-/// Keeping the split eq factors and the tiny byte table avoids materializing
-/// one full `rs_eq_ind` vector per claim.  The table already contains the
-/// claim's batching scalar, so combining several claims needs only additions.
-pub(crate) struct DeferredRingSwitchOutput {
-    pub(crate) batched_sumcheck_claim: F192,
+/// A claim's weight `Phi(scale·eq(point, ·))`, kept factored: the split eq
+/// tensor, its high half scaled, and the byte table of `Phi` on the
+/// coordinates, so combining claims needs only additions.
+pub(crate) struct DeferredWeight {
     eq_lo: Vec<F192>,
     eq_hi: Vec<F192>,
     table: Box<FoldByteTable>,
 }
 
-/// Finish a ring-switch claim without materializing its dense weight vector.
-/// The batching scalar is baked into both the target and the byte table.
-pub(crate) fn prove_finish_deferred(
-    state: RingSwitchProveState,
-    coordinate_weights: &[F192],
-    lambda: F192,
-) -> DeferredRingSwitchOutput {
-    let s_hat_u = transpose_s_hat(&state.s_hat_v);
-    let sumcheck_claim = inner_product_base_ext(&s_hat_u, coordinate_weights);
-    let scaled_weights: Vec<F192> = coordinate_weights.iter().map(|&x| lambda * x).collect();
-    DeferredRingSwitchOutput {
-        batched_sumcheck_claim: lambda * sumcheck_claim,
-        eq_lo: state.eq_lo,
-        eq_hi: state.eq_hi,
-        table: build_fold_byte_table_ext(&scaled_weights),
+/// The weight `Phi(scale·eq(point, ·))` of a claim, without materializing it.
+pub(crate) fn deferred_weight(point: &[F192], scale: F192, coordinate_weights: &[F192]) -> DeferredWeight {
+    let (eq_lo, mut eq_hi) = build_eq_split_ext(point);
+    for e in &mut eq_hi {
+        *e *= scale;
+    }
+    DeferredWeight {
+        eq_lo,
+        eq_hi,
+        table: build_fold_byte_table_ext(coordinate_weights),
     }
 }
 
-/// Fold several deferred claims into `out[start..]` of their combined dense
+/// Fold several deferred weights into `out[start..]` of their combined dense
 /// basis, accumulating, so `out` arrives zeroed. No per-claim dense vector is
 /// allocated or read back. `start` is an offset into the basis, which lets a
 /// caller cover it one cache-resident window at a time.
-pub(crate) fn combine_deferred_chunk(outputs: &[DeferredRingSwitchOutput], start: usize, out: &mut [F192]) {
+pub(crate) fn combine_deferred_chunk(outputs: &[DeferredWeight], start: usize, out: &mut [F192]) {
     for claim in outputs {
         let block_len = claim.eq_lo.len();
         assert!(start + out.len() <= block_len * claim.eq_hi.len());
@@ -357,56 +350,25 @@ fn build_eq_split_ext(point: &[F192]) -> (Vec<F192>, Vec<F192>) {
 // Prover / verifier of the reduction
 // ---------------------------------------------------------------------------
 
-/// Prover-side scratch carried from [`prove_prepare`] into finalization.
+/// The 64 bit-slice values of `packed_witness` at `suffix_point`, folded out of the witness.
 ///
-/// The two phases exist because one map is shared by every claim, and it can
-/// only be sampled once all of them have been sent. So each claim's
-/// map-independent work (its slice-MLE vector and its factored eq tensor) has
-/// to survive that barrier.
-#[derive(Clone)]
-pub struct RingSwitchProveState {
-    s_hat_v: Vec<F192>,
-    eq_lo: Vec<F192>,
-    eq_hi: Vec<F192>,
-}
-
-/// Phase 1 of the ring-switch prover: get `s_hat_v`, the 64 bit-slice values at
-/// `suffix_point`, and return the scratch for finalization. The caller samples the
-/// possibly shared map afterwards.
-///
-/// The slices are NOT sent here: the caller has already bound them (flock sends
-/// its family itself, see `flock::hash`), which is what lets this
-/// phase touch no transcript at all. `precomputed_s_hat_v` is `None` only for a
-/// caller that wants them folded out of the witness instead.
-pub fn prove_prepare(
-    packed_witness: &[F64],
-    suffix_point: &[F192],
-    precomputed_s_hat_v: Option<&[F192]>,
-) -> RingSwitchProveState {
+/// The prover takes a claim's slices from the reduction that sent them, so this serves a caller that has none.
+pub fn slices_at(packed_witness: &[F64], suffix_point: &[F192]) -> Vec<F192> {
     assert_eq!(
         packed_witness.len(),
         1usize << suffix_point.len(),
         "packed witness must have 2^|suffix_point| words"
     );
     let (eq_lo, eq_hi) = build_eq_split_ext(suffix_point);
-    let s_hat_v = precomputed_s_hat_v.map_or_else(
-        || {
-            let mask = eq_lo.len() - 1;
-            let shift = eq_lo.len().trailing_zeros();
-            let full: Vec<F192> = parallel::map_collect(packed_witness.len(), |y| eq_lo[y & mask] * eq_hi[y >> shift]);
-            fold_1b_rows(packed_witness, &full)
-        },
-        |v| {
-            assert_eq!(v.len(), PACKING_WIDTH);
-            v.to_vec()
-        },
-    );
-    RingSwitchProveState { s_hat_v, eq_lo, eq_hi }
+    let mask = eq_lo.len() - 1;
+    let shift = eq_lo.len().trailing_zeros();
+    let full: Vec<F192> = parallel::map_collect(packed_witness.len(), |y| eq_lo[y & mask] * eq_hi[y >> shift]);
+    fold_1b_rows(packed_witness, &full)
 }
 
-/// Phase 2 of the ring-switch verifier: given the shared coordinate weights,
-/// produce the batched sumcheck claim. Pair it with [`eval_rs_eq`] at the WHIR
-/// final point, which takes the same map's challenges, so `rs_eq_ind` is never built.
+/// The family's target: given the shared coordinate weights, `Σ_w Phi(b_w)·t_w`
+/// over the transposed slices, which is `Σ_i x^i·Phi(s_i)`. Pair it with the closed-form weight
+/// at the WHIR final point, which takes the same map's challenges, so `rs_eq_ind` is never built.
 pub fn verify_finish(s_hat_v: &[F192], coordinate_weights: &[F192]) -> F192 {
     inner_product_base_ext(&transpose_s_hat(s_hat_v), coordinate_weights)
 }
@@ -426,7 +388,7 @@ fn inverse_frobenius_ladder(v: F192) -> [F192; LINEARIZED_TERMS] {
     ladder
 }
 
-/// What every [`eval_rs_eq`] at a prefix of one query point shares: the query's inverse Frobenius ladders and the map's coefficients shifted to match. Each ring of a stacked opening is evaluated at a prefix of the same terminal point, so one of these serves the whole opening.
+/// What every claim weight at a prefix of one query point shares: the query's inverse Frobenius ladders and the map's coefficients shifted to match. Each ring of a stacked opening is evaluated at a prefix of the same terminal point, so one of these serves the whole opening.
 pub struct RsEqQuery {
     /// `C_k^(2^-k)` at index `k`, `C_k` the map's Frobenius coefficients.
     coefficients: [F192; LINEARIZED_TERMS],
@@ -456,22 +418,40 @@ impl RsEqQuery {
     }
 }
 
-/// `MLE(rs_eq_ind)` at the first `z_vals.len()` coordinates of `query`, for the claim at the suffix point `z_vals`.
+/// The terms `C_k^(2^-k) P_k` of a claim's weight at several prefixes of one suffix point: entry `i` is at `z_vals[..lengths[i]]`, before any scale.
 ///
-/// Doc `leanvm` Annex A (`rs:weight`) gives `MLE(rs_eq_ind)(q) = sum_{k<64} C_k prod_n (1 + z_n^(2^k) + q_n)`. Each factor is `(1 + z_n + q_n^(2^-k))^(2^k)`, so the sum is `sum_k (C_k^(2^-k) P_k)^(2^k)` with `P_k = prod_n (1 + z_n + q_n^(2^-k))`: every Frobenius power falls on the shared `query`, and the outer powers close by the linearized Horner rule `acc <- acc^2 + C_k^(2^-k) P_k` from `k = 63` down.
+/// Doc `leanvm` Annex A (`rs:weight`) gives `MLE(Phi(scale·eq(z, ·)))(q) = sum_{k<64} C_k scale^(2^k) prod_n (1 + z_n^(2^k) + q_n)`.
+/// Each factor is `(1 + z_n + q_n^(2^-k))^(2^k)`, so the sum is `sum_k (C_k^(2^-k) scale P_k)^(2^k)` with `P_k = prod_n (1 + z_n + q_n^(2^-k))`.
+/// Every Frobenius power falls on the shared query, and the outer powers close by the linearized Horner rule.
 ///
-/// Panics if `z_vals` is longer than `query`.
-pub fn eval_rs_eq(z_vals: &[F192], query: &RsEqQuery) -> F192 {
+/// The products `P_k` of a prefix extend to the next coordinate by one product each, so one pass over the longest prefix serves every length. Terms are additive under the closing Horner rule, the Frobenius being additive: claims on one region add their scaled terms and close once.
+///
+/// Panics if a length exceeds `z_vals` or the query.
+pub fn rs_eq_prefix_terms(z_vals: &[F192], query: &RsEqQuery, lengths: &[usize]) -> Vec<[F192; LINEARIZED_TERMS]> {
+    let longest = lengths.iter().copied().max().unwrap_or(0);
     assert!(
-        z_vals.len() <= query.ladders.len(),
-        "eval_rs_eq: the suffix point is longer than the query"
+        longest <= z_vals.len() && longest <= query.ladders.len(),
+        "rs_eq_prefix_terms: a prefix is longer than the suffix point or the query"
     );
-    let mut terms = query.coefficients;
-    for (&z, ladder) in z_vals.iter().zip(&query.ladders) {
-        for (term, &power) in terms.iter_mut().zip(ladder) {
-            *term *= power + z;
+    let mut out = vec![[F192::ZERO; LINEARIZED_TERMS]; lengths.len()];
+    let take = |n: usize, products: &[F192; LINEARIZED_TERMS], out: &mut [[F192; LINEARIZED_TERMS]]| {
+        for (slot, _) in out.iter_mut().zip(lengths).filter(|&(_, &len)| len == n) {
+            *slot = *products;
         }
+    };
+    let mut products = query.coefficients;
+    take(0, &products, &mut out);
+    for (n, (&z, ladder)) in z_vals.iter().zip(&query.ladders).take(longest).enumerate() {
+        for (p, &power) in products.iter_mut().zip(ladder) {
+            *p *= power + z;
+        }
+        take(n + 1, &products, &mut out);
     }
+    out
+}
+
+/// The linearized Horner rule that closes the Frobenius sum: `acc <- acc^2 + term` from the last term down.
+pub fn close_rs_eq(terms: &[F192; LINEARIZED_TERMS]) -> F192 {
     let (&last, rest) = terms.split_last().expect("the map has 64 terms");
     rest.iter().rev().fold(last, |acc, &term| acc.square() + term)
 }
@@ -486,6 +466,12 @@ mod tests {
     use crate::whir_config::test_config_for;
     use primitives::test_rng::Rng;
 
+    // One claim's weight at the query's prefix of its length.
+    fn eval_rs_eq(z_vals: &[F192], scale: F192, query: &RsEqQuery) -> F192 {
+        let terms = rs_eq_prefix_terms(z_vals, query, &[z_vals.len()]);
+        close_rs_eq(&terms[0].map(|term| term * scale))
+    }
+
     /// Pack bit `64 * y + i` of `bits` into bit `i` of word `y`.
     fn pack_witness(bits: &[bool]) -> Vec<F64> {
         let word = |c: &[bool]| c.iter().rev().fold(0, |acc, &b| acc << 1 | b as u64);
@@ -493,45 +479,36 @@ mod tests {
     }
 
     #[test]
-    fn deferred_batch_matches_materialized_weights() {
+    fn a_family_at_unrelated_points_is_one_ring_switch() {
         let mut rng = Rng::new(0xdec0_de01_2345_6789);
-        let point = rng.ext_vec(10);
-        let coordinate_weights = rng.ext_vec(DEGREE_E);
-        let lambdas = [rng.ext(), rng.ext()];
-        let states = (0..2)
-            .map(|_| {
-                let (eq_lo, eq_hi) = build_eq_split_ext(&point);
-                RingSwitchProveState {
-                    s_hat_v: rng.ext_vec(PACKING_WIDTH),
-                    eq_lo,
-                    eq_hi,
-                }
-            })
-            .collect::<Vec<_>>();
+        let n = 9;
+        let packed = pack_witness(&rng.bits(1 << (n + LOG_PACKING)));
+        let coordinate_weights = build_coordinate_weights(&std::array::from_fn(|_| rng.ext()));
+        let gamma_rs = rng.ext();
+        let points: Vec<Vec<F192>> = (0..3).map(|_| rng.ext_vec(n)).collect();
 
-        // Reference: one dense weight vector per claim, combined afterwards.
-        let dense_basis = fold_dense(&eq_table(&point), &coordinate_weights);
-        let expected_target = states.iter().zip(lambdas).fold(F192::ZERO, |acc, (state, lambda)| {
-            acc + lambda * inner_product_base_ext(&transpose_s_hat(&state.s_hat_v), &coordinate_weights)
-        });
-        let expected_basis = dense_basis
-            .iter()
-            .map(|&w| (lambdas[0] + lambdas[1]) * w)
-            .collect::<Vec<_>>();
-
-        let deferred = states
-            .into_iter()
-            .zip(lambdas)
-            .map(|(state, lambda)| prove_finish_deferred(state, &coordinate_weights, lambda))
-            .collect::<Vec<_>>();
-        let deferred_target = deferred
-            .iter()
-            .fold(F192::ZERO, |acc, out| acc + out.batched_sumcheck_claim);
-        let mut deferred_basis = vec![F192::ZERO; expected_basis.len()];
-        combine_deferred_chunk(&deferred, 0, &mut deferred_basis);
-
-        assert_eq!(deferred_target, expected_target);
-        assert_eq!(deferred_basis, expected_basis);
+        let mut slices = vec![F192::ZERO; PACKING_WIDTH];
+        let mut dense = vec![F192::ZERO; packed.len()];
+        let mut weights = Vec::new();
+        let mut scale = F192::ONE;
+        for point in &points {
+            for (slot, s) in slices.iter_mut().zip(s_hat_v_reference(&packed, point)) {
+                *slot += scale * s;
+            }
+            let scaled: Vec<F192> = eq_table(point).iter().map(|&e| scale * e).collect();
+            for (slot, w) in dense.iter_mut().zip(fold_dense(&scaled, &coordinate_weights)) {
+                *slot += w;
+            }
+            weights.push(deferred_weight(point, scale, &coordinate_weights));
+            scale *= gamma_rs;
+        }
+        let mut combined = vec![F192::ZERO; packed.len()];
+        combine_deferred_chunk(&weights, 0, &mut combined);
+        assert_eq!(combined, dense);
+        assert_eq!(
+            inner_product_base_ext(&packed, &combined),
+            verify_finish(&slices, &coordinate_weights)
+        );
     }
 
     /// The contract between the native opener and every verifier that batches
@@ -669,7 +646,7 @@ mod tests {
         assert_eq!(s_hat_v, s_hat_v_reference(&packed, &suffix_point));
     }
 
-    /// The prefix x suffix split factors the bit-MLE, and `prove_prepare`'s
+    /// The prefix x suffix split factors the bit-MLE, and `slices_at`'s
     /// witness fold reproduces the reference slice values.
     #[test]
     fn slices_factor_the_bit_mle() {
@@ -695,7 +672,7 @@ mod tests {
             "prefix x suffix split must factor the MLE"
         );
         assert_eq!(
-            prove_prepare(&packed, suffix_point, None).s_hat_v,
+            slices_at(&packed, suffix_point),
             s_ref,
             "the witness fold must reproduce the reference slices"
         );
@@ -714,7 +691,7 @@ mod tests {
         );
     }
 
-    /// `eval_rs_eq` against the definition: materialize `rs_eq_ind = Phi(eq(z, .))` and take its MLE at the query's prefix with the eq table. One precomputed query serves every suffix length up to its own, as in the stacked opening.
+    /// `eval_rs_eq` against the definition: materialize `rs_eq_ind = Phi(c·eq(z, .))` and take its MLE at the query's prefix with the eq table. One precomputed query serves every suffix length up to its own, as in the stacked opening, and one walk of the longest point serves each of its prefixes.
     #[test]
     fn eval_rs_eq_matches_dense() {
         let max_len = 8;
@@ -724,11 +701,17 @@ mod tests {
             let coordinate_weights = build_coordinate_weights(&challenges);
             let query = rng.ext_vec(max_len);
             let rs_query = RsEqQuery::new(&challenges, &query);
-            for len in 0..=max_len {
-                let z = rng.ext_vec(len);
-                let rs_eq_ind = fold_dense(&eq_table(&z), &coordinate_weights);
+            let lead = rng.ext_vec(max_len);
+            let lengths: Vec<usize> = (0..=max_len).rev().collect();
+            let prefix_terms = rs_eq_prefix_terms(&lead, &rs_query, &lengths);
+            for (&len, terms) in lengths.iter().zip(&prefix_terms) {
+                let z = &lead[..len];
+                let scale = rng.ext();
+                let scaled: Vec<F192> = eq_table(z).iter().map(|&e| scale * e).collect();
+                let rs_eq_ind = fold_dense(&scaled, &coordinate_weights);
                 let dense = inner_product_ext(&rs_eq_ind, &eq_table(&query[..len]));
-                assert_eq!(eval_rs_eq(&z, &rs_query), dense, "suffix length {len}");
+                assert_eq!(eval_rs_eq(z, scale, &rs_query), dense, "suffix length {len}");
+                assert_eq!(close_rs_eq(&terms.map(|t| t * scale)), dense, "prefix length {len}");
             }
         }
     }
@@ -770,16 +753,14 @@ mod tests {
         };
         let claim = inner_product_ext(&prefix_weights, &s_hat_v_reference(&packed, &suffix_point));
 
-        // Drive the production two-phase API with a single claim: prepare the
-        // slices, sample the shared map, finish with a batching scalar of one.
+        // One family of one claim: its slices, the map, then its target and its weight at a scale of one.
         let mut ps = fiat_shamir::transcript::ProverState::from_label(E2E_DOMAIN);
-        let state = prove_prepare(&packed, &suffix_point, None);
-        let rs_s_hat_v = state.s_hat_v.clone();
+        let rs_s_hat_v = slices_at(&packed, &suffix_point);
         let coordinate_weights = build_coordinate_weights(&sample_map_challenges(&mut ps));
-        let out = prove_finish_deferred(state, &coordinate_weights, F192::ONE);
-        let sumcheck_claim = out.batched_sumcheck_claim;
+        let sumcheck_claim = verify_finish(&rs_s_hat_v, &coordinate_weights);
+        let weight = deferred_weight(&suffix_point, F192::ONE, &coordinate_weights);
         let mut rs_eq_ind = vec![F192::ZERO; packed.len()];
-        combine_deferred_chunk(&[out], 0, &mut rs_eq_ind);
+        combine_deferred_chunk(&[weight], 0, &mut rs_eq_ind);
         assert_eq!(inner_product_base_ext(&packed, &rs_eq_ind), sumcheck_claim);
         recursive_prover_with_basis(
             &pc,
@@ -853,7 +834,7 @@ mod tests {
             1 << e.vc.initial_k(),
             sumcheck_claim,
             &e.root,
-            |point| eval_rs_eq(&z, &RsEqQuery::new(&challenges, point)),
+            |point| eval_rs_eq(&z, F192::ONE, &RsEqQuery::new(&challenges, point)),
             &mut vs,
         )
         .is_ok()

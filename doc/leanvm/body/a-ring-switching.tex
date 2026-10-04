@@ -25,7 +25,7 @@ What arrives is not of that shape. It is $64$ claimed values $s_i\in\E$, one per
 s_i \qeq \mle{Q_i}(r)=\sum_{u\in\cube{\nflock}}\eq(r,u)\,Q_i(u),\qquad 0\le i<64,
 \]
 
-Ring switching~\cite{DP24} turns those $64$ claims into a single statement the opening can prove.
+Ring switching~\cite{DP24} turns those $64$ claims into a single statement the opening can prove. An opening carrying several such families, each on its own region of the committed stack and at its own point, first combines them into one (\S\ref{rs:family}), so the reduction below runs once per opening.
 
 \subsection{The reduction}\label{rs:reduction}
 
@@ -127,9 +127,37 @@ is a nonzero polynomial in $f_0,\dots,f_5$. Its total degree is at most the larg
 \]
 so by Schwartz--Zippel (Lemma~\ref{lem:sz}) the check passes with probability less than $2^{32}/2^{192}=2^{-160}$.
 
+\subsection{One family for every claim}\label{rs:family}
+
+The stacked opening (\S\ref{sec:stacking}) carries $\nrs$ families at once. Region $g$ is a packed multilinear $q_g:\cube{\kappa_g}\to\K$ with bit slices $Q_{g,i}$, $q_g=\sum_iQ_{g,i}\,x^i$, placed in the committed stack at an offset whose high bits are $\mathsf{sel}_g$. Claim $j<\nrs$ is a family on region $g_j$: a point $r_j\in\E^{\kappa_{g_j}}$ and $64$ values $s_{j,i}\qeq\mle{Q_{g_j,i}}(r_j)$, all bound to the transcript before anything below is drawn. The points are arbitrary: nothing below asks them to be related, and a region may carry more than one claim.
+
+\begin{enumerate}
+\item The verifier draws $\rsgamma\in\E$, and claim $j$ takes the scale $\rsscale_j:=\rsgamma^{\,j}$.
+\item Both sides form the family's $64$ slices $\sfam{i}:=\sum_{j<\nrs}\rsscale_j\,s_{j,i}$. Nothing is sent.
+\item The verifier draws the map $\Phi$ (\S\ref{rs:map}), and the target is $T=\sum_{i<64}x^i\,\Phi(\sfam{i})$: $64$ applications of $\Phi$ for the whole opening, whatever $\nrs$ is.
+\item The opening proves $\sum_wW(w)\,\widetilde q(w)=T$ for the weight that puts $W_j(u)=\Phi\bigl(\rsscale_j\,\eq(r_j,u)\bigr)$ on claim $j$'s region, the weights of claims on one region adding up, and zero off the regions.
+\end{enumerate}
+
+\paragraph{Completeness.} $\Phi$ is $\F_2$-linear and every $Q_{g,i}(u)$ is a bit, so the computation \eqref{eq:complete} runs claim by claim with $\rsscale_j\eq(r_j,u)$ in place of $\eq(r,u)$:
+\[
+\sum_{i<64}x^i\,\Phi\Bigl(\sum_j\rsscale_j\,\mle{Q_{g_j,i}}(r_j)\Bigr)
+=\sum_j\sum_{i<64}x^i\sum_{u\in\cube{\kappa_{g_j}}}Q_{g_j,i}(u)\,\Phi\bigl(\rsscale_j\,\eq(r_j,u)\bigr)
+=\sum_j\sum_{u\in\cube{\kappa_{g_j}}}W_j(u)\,q_{g_j}(u).
+\]
+$\Phi$ is not $\E$-linear, so the scale stays inside it; it is that placement which makes the target one map's image of one family, wherever the points lie.
+
+\begin{lemma}[One family]\label{lem:rs-family}
+If some $s_{j,i}\neq\mle{Q_{g_j,i}}(r_j)$, the target $T$ differs from the weight's true sum, except with probability at most $(\nrs-1)/|\E|+2^{-160}$ over $\rsgamma$ and $\Phi$.
+\end{lemma}
+\begin{proof}
+Write $\delta_{j,i}=s_{j,i}-\mle{Q_{g_j,i}}(r_j)$, fixed before $\rsgamma$ is drawn and not all zero. The family's error in slice $i$ is $\sum_j\rsgamma^{\,j}\delta_{j,i}$. Pick $i$ with some $\delta_{j,i}\neq0$: that error is a nonzero polynomial in $\rsgamma$ of degree at most $\nrs-1$, so it vanishes with probability at most $(\nrs-1)/|\E|$ (Lemma~\ref{lem:sz}). If it does not vanish, the family's errors $\sfam{i}-\sum_j\rsscale_j\mle{Q_{g_j,i}}(r_j)$ are fixed and not all zero when $\Phi$ is drawn, and by the completeness identity the target minus the true sum is $\sum_ix^i\,\Phi$ of them, which \S\ref{rs:sound-maps} and \S\ref{rs:map} show to be nonzero except with probability $2^{-160}$.
+\end{proof}
+
+The order is what the proof uses: the $s_{j,i}$, then $\rsgamma$, then $\Phi$, then the opening's batching challenge $\lambda$. Drawn after $\Phi$, $\lambda$ meets the family's error already fixed, so the batched error is a polynomial in $\lambda$ whose constant term is that error: the family can take $\lambda^0=1$ and the point claims the higher powers. A map drawn before $\rsgamma$, or a scale outside $\Phi$, would need the $\nrs$ targets $\sum_ix^i\Phi(s_{j,i})$ one by one; inside it, one target serves them all. With $\nrs=1$ the family is the claim, its scale $\rsgamma^0=1$.
+
 \subsection{Evaluating the weight}\label{rs:weight}
 
-An opening reduces $\sum_{u\in\cube{\nflock}}W(u)\,\qflock(u)=T$ to a claim about $\qflock$ at a random point $r'\in\E^{\nflock}$, and the verifier must evaluate the multilinear extension of $W$ at $r'$, written $\mle{W}(r')$, by itself. One fact turns that into a short formula.
+An opening reduces $\sum_{u\in\cube{\nflock}}W(u)\,\qflock(u)=T$ to a claim about $\qflock$ at a random point $r'\in\E^{\nflock}$, and the verifier must evaluate the multilinear extension of $W$ at $r'$, written $\mle{W}(r')$, by itself. The weight a claim puts on its region is $W(u)=\Phi\bigl(\rsscale\,\eq(r,u)\bigr)$, $\rsscale$ its scale in the family (\S\ref{rs:family}). One fact turns that into a short formula.
 
 \emph{Fact (Frobenius passes through $\eq$ on the boolean hypercube).} Squaring respects sums and products and fixes bits, so for $u\in\cube{\nflock}$, by Definition~\ref{def:eq},
 \[
@@ -141,14 +169,14 @@ Expand $W$ at $r'$ with \eqref{eq:ck} and this fact:
 \[
 \begin{aligned}
 \mle{W}(r')&=\sum_{u\in\cube{\nflock}}W(u)\,\eq(r',u)
-=\sum_{u\in\cube{\nflock}}\Phi\bigl(\eq(r,u)\bigr)\,\eq(r',u)\\
-&=\sum_{k=0}^{63}c_k\sum_{u\in\cube{\nflock}}\eq\bigl(r^{2^k},u\bigr)\,\eq(r',u).
+=\sum_{u\in\cube{\nflock}}\Phi\bigl(\rsscale\,\eq(r,u)\bigr)\,\eq(r',u)\\
+&=\sum_{k=0}^{63}c_k\,\rsscale^{2^k}\sum_{u\in\cube{\nflock}}\eq\bigl(r^{2^k},u\bigr)\,\eq(r',u).
 \end{aligned}
 \]
 The inner sum is $\eq(r^{2^k},r')$, since $\eq(u,\cdot\,)$ is its own multilinear extension for every $u$. By Definition~\ref{def:eq} again,
 \[
 \boxed{\ \
-\mle{W}(r') \;=\; \sum_{k=0}^{63}\, c_k \prod_{n=1}^{\nflock}
+\mle{W}(r') \;=\; \sum_{k=0}^{63}\, c_k\,\rsscale^{2^k} \prod_{n=1}^{\nflock}
 \bigl( 1 + r_n^{2^k} + r'_n \bigr).
 \ \ }
 \]
@@ -157,29 +185,35 @@ The inner sum is $\eq(r^{2^k},r')$, since $\eq(u,\cdot\,)$ is its own multilinea
 
 One application of $\Phi$ takes $63$ squarings and $6$ multiplications: the Frobenius ladder climbs $32+16+8+4+2+1$ steps, and each stage multiplies once by its challenge. The same recurrence run on the coefficient table gives the $c_k$ of \eqref{eq:ck}: stage $p$ raises its $2^p$ entries to the $2^{2^{5-p}}$ power and multiplies each by $f_p$; the raising is $32$ squarings whatever $p$ is.
 
-\paragraph{The Frobenius on the opening's side.} Evaluated as boxed, each weight climbs its own ladder $r_n^{2^k}$, $63\nflock$ squarings. The opening evaluates every region's weight at a prefix of one point, by \eqref{eq:stack-split}, so every family's $r'$ is a prefix of the same point, and the verifier moves the Frobenius there. Write $a^{2^{-k}}:=a^{2^{192-k}}$ for the inverse of $k$ squarings. Each factor of the boxed formula is $1+r_n^{2^k}+r'_n=\bigl(1+r_n+{r'_n}^{2^{-k}}\bigr)^{2^k}$, so
+\paragraph{The Frobenius on the opening's side.} Evaluated as boxed, each weight climbs its own ladder $r_n^{2^k}$, $63\nflock$ squarings. The opening evaluates every region's weight at a prefix of one point, by \eqref{eq:stack-split}, so every claim's $r'$ is a prefix of the same point, and the verifier moves the Frobenius there. Write $a^{2^{-k}}:=a^{2^{192-k}}$ for the inverse of $k$ squarings. Each factor of the boxed formula is $1+r_n^{2^k}+r'_n=\bigl(1+r_n+{r'_n}^{2^{-k}}\bigr)^{2^k}$, and $c_k\rsscale^{2^k}=\bigl(\cbar_k\,\rsscale\bigr)^{2^k}$, so
 \[
-\mle{W}(r')=\sum_{k=0}^{63}\bigl(\cbar_k\,\fprod_k\bigr)^{2^k},
+\mle{W}(r')=\sum_{k=0}^{63}\bigl(\cbar_k\,\rsscale\,\fprod_k\bigr)^{2^k},
 \qquad
 \cbar_k:=c_k^{2^{-k}}=\prod_{p\,:\,k_p=1}f_p^{\,2^{-(k-(k\bmod 2^{5-p}))}},
 \qquad
 \fprod_k:=\prod_{n=1}^{\nflock}\bigl(1+r_n+{r'_n}^{2^{-k}}\bigr).
 \]
-Horner's rule for this linearized sum, $a\leftarrow\cbar_{63}\fprod_{63}$ and then $a\leftarrow a^2+\cbar_k\fprod_k$ for $k=62,\dots,0$, closes it in $63$ squarings. The ${r'_n}^{2^{-k}}$ depend on the point alone and the $\cbar_k$ on the challenges alone, so the opening computes both once. They come cheap: $a\mapsto a^{2^{64}}$ fixes $\K$ and sends $y$ to $y^2$, a $\K$-linear map on the coefficients of $1,y,y^2$ that needs no multiplication, so $a^{2^{-64}}=a^{2^{128}}$ is free and the ladder $a^{2^{-63}},\dots,a^{2^{-1}}$ is $63$ squarings above it. The $\cbar_k$ take one such ladder per challenge, then one multiplication per factor beyond the first, $129$ over the $64$ values of $k$.
+Horner's rule for this linearized sum, $a\leftarrow\cbar_{63}\rsscale\fprod_{63}$ and then $a\leftarrow a^2+\cbar_k\rsscale\fprod_k$ for $k=62,\dots,0$, closes it in $63$ squarings. The ${r'_n}^{2^{-k}}$ depend on the point alone and the $\cbar_k$ on the challenges alone, so the opening computes both once. They come cheap: $a\mapsto a^{2^{64}}$ fixes $\K$ and sends $y$ to $y^2$, a $\K$-linear map on the coefficients of $1,y,y^2$ that needs no multiplication, so $a^{2^{-64}}=a^{2^{128}}$ is free and the ladder $a^{2^{-63}},\dots,a^{2^{-1}}$ is $63$ squarings above it. The $\cbar_k$ take one such ladder per challenge, then one multiplication per factor beyond the first, $129$ over the $64$ values of $k$.
 
 \begin{center}
 \begin{tabular}{lrr}
 & squarings & multiplications\\[2pt]
 \hline
 one application of $\Phi$ & $63$ & $6$\\
-the target $T$, $64$ applications & $4032$ & $384$\\
+the target $T$, $64$ applications, once per opening & $4032$ & $384$\\
+the scales $\rsscale_j$, once per opening & $0$ & $\nrs-2$\\
+the family's slices $\sfam{i}$, once per opening & $0$ & $64(\nrs-1)$\\
 the coefficients $\cbar_k$, once per opening & $378$ & $129$\\
 the ladders of the opening's point, once per coordinate & $63$ & $0$\\
-the weight $\mle{W}(r')$ & $63$ & $64\nflock$\\
+the products $\cbar_k\fprod_k$ of a point & $0$ & $64\nflock$\\
+a claim's scale on them & $0$ & $64$\\
+a region's weight, from its claims' scaled terms & $63$ & $1$\\
 \end{tabular}
 \end{center}
 
-Everything above is in $\E$. The $64$ products $x^i\,\Phi(s_i)$ in the target are left out: $x^i$ lies in $\K$, so they are cheaper, and stepping $x^i$ to $x^{i+1}$ is a shift.
+Everything above is in $\E$. The $64$ products $x^i\,\Phi(\sfam{i})$ in the target are left out: $x^i$ lies in $\K$, so they are cheaper, and stepping $x^i$ to $x^{i+1}$ is a shift.
+
+\paragraph{Claims at prefixes of one point.} If one claim's point is a prefix of another's, its products $\fprod_k$ are the other's stopped after that prefix, the opening's point $r'$ being shared. Claims whose points are prefixes of one longer point therefore share them: the verifier runs the products once over the longest point, $64\nflock$ multiplications, and reads each claim's off at its length. The Frobenius is additive, so $\sum_j\bigl(\cbar_k\rsscale_j\fprod_{k,j}\bigr)^{2^k}=\bigl(\cbar_k\sum_j\rsscale_j\fprod_{k,j}\bigr)^{2^k}$: the claims of one region add their scaled terms and close with one Horner pass, which the region's stacking selector $\eq(\mathsf{sel}_g,r'_{\ge\kappa_g})$ then multiplies. Points that are not prefixes of one another are each such a walk of their own; the family is one either way.
 
 \subsection{Credits}\label{rs:credits}
 

@@ -2118,35 +2118,43 @@ def _phi(value: E, challenges: Sequence[E]) -> E:
     return value
 
 
-def _ring_weight(r: MultilinearPoint, r_prime: Sequence[E], coefficients: Sequence[E]) -> E:
-    """The weight `W(u) = Phi(eq(r, u))`, extended and evaluated by the opening at
-    `r_prime`: `sum_k c_k prod_n (1 + r_n^(2^k) + r'_n)`."""
+def _ring_weight(r: MultilinearPoint, scale: E, r_prime: Sequence[E], coefficients: Sequence[E]) -> E:
+    """The weight `W(u) = Phi(scale eq(r, u))`, extended and evaluated by the opening at
+    `r_prime`: `sum_k c_k scale^(2^k) prod_n (1 + r_n^(2^k) + r'_n)`."""
     total = ZERO
     frobenius = list(r)
     for c in coefficients:
-        product = c
+        product = c * scale
         for value, challenge in zip(frobenius, r_prime, strict=True):
             product *= ONE + value + challenge
         total += product
         frobenius = [value**2 for value in frobenius]
+        scale = scale.square()
     return total
 
 
-def ring_switch(families: Sequence[tuple[MultilinearPoint, Sequence[E]]], transcript: Transcript) -> list[tuple[E, Callable[[Sequence[E]], E]]]:
-    """Each family of 64 claims s[i] = z(i, point) becomes one dense claim `sum_u W(u) q(u) = target` on its own packed witness.
+def ring_switch(claims: Sequence[tuple[Placement, MultilinearPoint, Sequence[E]]], transcript: Transcript) -> StackClaim:
+    """Every ring-switched claim, 64 values s[i] = q(i, point) on its region of the stack, becomes part of one dense
+    claim `sum_u W(u) q(u) = target` on the stack.
 
-    Draw Phi once every family is fixed, the one map serving them all, then take the target
-    `T = sum_i x^i Phi(s_i)` against the MLE-friendly weight `W(u) = Phi(eq(point, u))`.
-    Returns each family's target and its W as a closure."""
+    Once every claim is fixed, draw gamma_rs: claim j takes the scale gamma_rs^j, and the family's 64 slices are the
+    claims' slices so weighted. Then draw Phi, take the target `T = sum_i x^i Phi(family_i)` once, and the weight that
+    puts `Phi(gamma_rs^j eq(point_j, u))` on claim j's region. The points need not be related."""
+    scales = powers(transcript.sample(), len(claims))
+    family = [E.sum(scale * s[i] for scale, (_, _, s) in zip(scales, claims, strict=True)) for i in range(K_BITS)]
     challenges = transcript.samples(len(RING_MAP_SHIFTS))
     # The same map as a Frobenius sum, `Phi(a) = sum_k c_k a^(2^k)` for k < 64.
     coefficients = [reduce(mul, (f ** (2 ** (k % s)) for f, s in zip(challenges, RING_MAP_SHIFTS) if k & s), ONE) for k in range(K_BITS)]
+    target = poly_eval([_phi(value, challenges) for value in family], GEN)
 
-    def claim(point: MultilinearPoint, s: Sequence[E]) -> tuple[E, Callable[[Sequence[E]], E]]:
-        target = poly_eval([_phi(value, challenges) for value in s], GEN)
-        return target, lambda r_prime: _ring_weight(point, r_prime, coefficients)
+    def weight(x: Sequence[E]) -> E:
+        # Each claim is supported on its witness's region of the stack, so its weight carries the placement's selector.
+        return E.sum(
+            region.eq_above(x) * _ring_weight(point, scale, x[: region.variables], coefficients)
+            for scale, (region, point, _) in zip(scales, claims, strict=True)
+        )
 
-    return [claim(point, s) for point, s in families]
+    return (weight, target)
 
 
 # Stacked opening -------------------------------------------------------------
@@ -2266,7 +2274,7 @@ def verify_core(
     check_bytecode(bytecode)
     # Everything public and fixed is one digest, which seeds the transcript; every variable-length part is length-framed.
     halt_pc = TEXT_BASE + 4 * (len(bytecode) // 2**BUS_BITS - 1)
-    preimage = b"leanvm-rv64im-6" + pack("<Q", len(bytecode)) + b"".join(word.to_bytes() for word in bytecode)
+    preimage = b"leanvm-rv64im-7" + pack("<Q", len(bytecode)) + b"".join(word.to_bytes() for word in bytecode)
     preimage += pack("<5Q", entry_pc, halt_pc, log_ram, log_advice, len(image)) + pack(f"<{len(image)}Q", *image)
     transcript = Transcript(proof, blake2s_hash(preimage), [K(word) for word in output])
 
@@ -2321,15 +2329,12 @@ def verify_core(
     # and the producer's bits, the 64 bit slices of its multiplicity column: the bits the bus reads, then zeros
     families += [(point, (*values, *[ZERO] * (K_BITS - len(values)))) for point, values in tables.families]
 
-    # 7] Ring-switching
-    # Each claim is supported on its witness's region of the stack, so its weight carries the
-    # placement's selector, and they lead the batch, taking the first powers.
-    def on_region(placement: Placement, target: E, weight: Callable[[Sequence[E]], E]) -> StackClaim:
-        return (lambda x: placement.eq_above(x) * weight(x[: placement.variables]), target)
-
+    # 7] Ring-switching: one family for every claim, which leads the batch, taking the first power (lambda^0 = 1).
     regions = [layout.placements[column] for column in (*WITNESS_COLUMNS, *(producer.column for producer in layout.producers))]
-    ringswitches = [on_region(region, *claim) for region, claim in zip(regions, ring_switch(families, transcript), strict=True)]
-    verify_stacked_opening(transcript, root, layout.stack_log, log_inverse_rate, [*ringswitches, *(c.on_stack(layout) for c in claims)])
+    ring_claims = [(region, point, s) for region, (point, s) in zip(regions, families, strict=True)]
+    verify_stacked_opening(
+        transcript, root, layout.stack_log, log_inverse_rate, [ring_switch(ring_claims, transcript), *(c.on_stack(layout) for c in claims)]
+    )
     transcript.finish()
     return DeferredClaims((program, tables.residual), tuple((form, value) for _, _, form, value in flocks))
 

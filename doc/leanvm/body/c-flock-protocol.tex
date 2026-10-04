@@ -325,7 +325,7 @@ The commitment determines $\qflock$, hence $z$, before any challenge is drawn, a
 \[
 s_i=\mle z(i,\fc'_{\mathrm{in}},\fc_{\mathrm{out}}),\qquad i\in\cube{\kskip},
 \]
-up to the PCS error and the $2^{-160}$ of Annex~\ref{annex:rs}, and let us show a $z$ failing \eqref{flock:eq:r1cs} or \eqref{flock:eq:const-one} is rejected.
+up to the PCS error and the one-family error of Lemma~\ref{lem:rs-family}, and let us show a $z$ failing \eqref{flock:eq:r1cs} or \eqref{flock:eq:const-one} is rejected.
 
 Lincheck comes first, and it is the only thing that checks anything: the zerocheck's own terminal identity defines $v_c$ instead of testing it, so every lie upstream reaches lincheck as a wrong triple $(v_a,v_b,v_c)$. Its terminal check \eqref{flock:eq:lincheck-terminal} is evaluated from the true $s$ and the matrices themselves, by the walk of \S\ref{flock:native}, so a false \eqref{flock:eq:lincheck} survives the $\kblock-\kskip$ rounds with probability at most $2(\kblock-\kskip)/|\E|$ (Fact~\ref{fact:sumcheck}, degree two in each round). And by Lemma~\ref{lem:flock-block-diagonal} and \eqref{flock:eq:c-as-column}, \eqref{flock:eq:lincheck} says
 \[

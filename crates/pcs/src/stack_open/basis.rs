@@ -5,7 +5,7 @@ use primitives::multilinear::fill_eq_table_uninit;
 use zk_alloc::ArenaVec;
 
 use super::{RingSwitchOpen, StackClaim};
-use crate::ring_switch::{DeferredRingSwitchOutput, combine_deferred_chunk};
+use crate::ring_switch::{DeferredWeight, combine_deferred_chunk};
 use crate::whir::INITIAL_BASIS_CHUNK;
 
 struct PointWeight<'a> {
@@ -86,8 +86,8 @@ pub(super) struct StackWeight<'a> {
     weights: Vec<PointWeight<'a>>,
     /// For each lane block, the point claims whose support meets it.
     by_lane: Vec<Vec<usize>>,
-    /// Each ring-switched region: its first word, its end, and its claims' outputs.
-    regions: Vec<(usize, usize, &'a [DeferredRingSwitchOutput])>,
+    /// Each ring-switched region: its first word, its end, and its claims' weights.
+    regions: Vec<(usize, usize, &'a [DeferredWeight])>,
     /// Words per lane block.
     lane_block: usize,
 }
@@ -100,7 +100,7 @@ impl<'a> StackWeight<'a> {
         claims: &'a [StackClaim],
         lambdas: &[F192],
         rings: &[RingSwitchOpen],
-        rs_outputs: &'a [DeferredRingSwitchOutput],
+        rs_outputs: &'a [DeferredWeight],
     ) -> Self {
         assert_eq!(claims.len(), lambdas.len());
         // A fill writes one chunk, or one whole lane block when blocks are smaller.

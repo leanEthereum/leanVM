@@ -584,8 +584,9 @@ pub(crate) fn producer_public_twist(coords: &[Coord], w: &[F192], chi: &[F192], 
 /// One table's bus contribution on one side, as a form over that table's committed
 /// columns: `Σ_c coeffs[c]·col_c(z) + Σ (a,b,c) c·col_a(z)·col_b(z) + constant`.
 /// Every coefficient is a public function of `α`, `β` and the block selectors at
-/// `ζ`, because a table's bus blocks carry only `Const`/`Col`/`Prod`
-/// coordinates. The table sumcheck sums this against `eq(ζ[..τ], ·)` instead of
+/// `ζ`, because what a table's bus blocks carry besides `Const`/`Col`/`Prod`
+/// coordinates is a top-level `IntIndex` or `Public` one, which the verifier
+/// evaluates itself and which stays out of the form. The table sumcheck sums this against `eq(ζ[..τ], ·)` instead of
 /// opening each column at `ζ`, which is why those per-column claims no longer reach
 /// the PCS.
 ///
@@ -699,7 +700,7 @@ fn accumulate_form(c: &Coord, w: F192, base: usize, form: &mut BusForm) {
             }
         }
         Coord::IntIndex { .. } | Coord::Public(_) | Coord::Sparse(_) => {
-            unreachable!("a table's bus block carries no virtual coordinate")
+            unreachable!("a table's bus block carries a virtual coordinate only at the top level, and no sparse one")
         }
     }
 }
@@ -744,12 +745,13 @@ pub struct SparseShare {
 }
 
 /// Walk one side's blocks. A block owned by table `t` accumulates into `forms[t]`,
-/// over the table's local columns (`tables[t]` is its `(base, width)`); a producer's
+/// over the table's local columns (`tables[t]` is its `(base, width)`), short of its
+/// `IntIndex` and `Public` coordinates, which join the side's known part; a producer's
 /// bit block leaves its selector in `open.producers`, its air's weight on that bit; the
 /// framework blocks are decomposed into per-column claims, `fresh` supplying values not
 /// already opened, and a sparse public column's share is left in `open.sparse`. Returns
-/// the framework blocks' contribution to `Ṽ₀(ζ)` short of those shares, plus the
-/// padding mass, so the caller can settle the side once the zerocheck has proven the
+/// the framework blocks' contribution to `Ṽ₀(ζ)` short of those shares, plus the tables'
+/// virtual coordinates' and the padding mass, so the caller can settle the side once the zerocheck has proven the
 /// tables' forms and the producers' airs.
 fn decompose_formula<F: FnMut(usize, &[F192]) -> Result<F192, Error>>(
     side: &Side,
@@ -780,12 +782,20 @@ fn decompose_formula<F: FnMut(usize, &[F192]) -> Result<F192, Error>>(
 
         // A table's block becomes a linear form the zerocheck will sum; only the
         // framework blocks (boundary, registers, memory) still open columns at ζ.
+        // A virtual coordinate of a table's block is no column: the verifier evaluates
+        // it at ζ itself, so its share joins the side's known part rather than the form.
         if let Some(t) = blk.owner {
             let form = &mut forms[t];
             form.constant += eq_hi * beta;
+            let mut known = F192::ZERO;
             for (i, c) in blk.coords.iter().enumerate() {
-                accumulate_form(c, eq_hi * w[i], tables[t].0, form);
+                match c {
+                    Coord::IntIndex { base, shift } => known += w[i] * int_index_mle(*base, *shift, zeta_lo),
+                    Coord::Public(vals) => known += w[i] * public_eval(vals, zeta_lo, &mut open.public),
+                    _ => accumulate_form(c, eq_hi * w[i], tables[t].0, form),
+                }
             }
+            acc += eq_hi * known;
             continue;
         }
 
@@ -1204,8 +1214,8 @@ pub struct BusVerify {
     /// Per producer, its weight on each bit's block.
     pub producers: Vec<Vec<F192>>,
     /// Per side, what the tables' and the producers' blocks owe its leaf claim:
-    /// `Ṽ₀(ζ)` less the framework blocks' decomposition. Derived here, pinned by the
-    /// batch's target. The sparse columns' shares are not in it.
+    /// `Ṽ₀(ζ)` less the framework blocks' decomposition and the tables' virtual
+    /// coordinates. Derived here, pinned by the batch's target. The sparse columns' shares are not in it.
     pub totals: [F192; 2],
     /// Per side, the sparse columns' shares: the tables owe `totals[s] + sum weight col(point)`.
     pub sparse: [Vec<SparseShare>; 2],
@@ -1268,7 +1278,46 @@ pub fn verify_balance(
 
 #[cfg(test)]
 mod tests {
-    use super::{F64, F192, SparseColumn, soundness_bits};
+    use super::{Block, Coord, F64, F192, SparseColumn, prove_balance, soundness_bits, verify_balance};
+    use fiat_shamir::transcript::{ProverState, VerifierState};
+    use std::sync::Arc;
+
+    #[test]
+    fn a_tables_virtual_coordinates_join_the_known_part() {
+        // Table 0 pushes `(sep, base ^ (z << 3), public[z], col[z])`; a framework block pulls the same tuples.
+        let kappa = 3;
+        let column: Vec<F64> = (0..1u64 << kappa).map(|z| F64(z * 0x9e37_79b9 + 5)).collect();
+        let public = Arc::new((0..1u64 << kappa).map(|z| F64(z ^ 0xabcd)).collect::<Vec<_>>());
+        let coords = vec![
+            Coord::Const(F64(7)),
+            Coord::IntIndex {
+                base: F64(0x4000),
+                shift: 3,
+            },
+            Coord::Public(public),
+            Coord::Col(0),
+        ];
+        let push = [Block::table(0, kappa, coords.clone())];
+        let pull = [Block::framework(kappa, coords)];
+        let tables = [(0, 1)];
+
+        let mut ps = ProverState::from_label(b"leaf-virtual-coordinates");
+        let bus = prove_balance(&push, &pull, &[], &[&column], &tables, &mut ps);
+        let proof = ps.into_proof();
+        let mut vs = VerifierState::from_label(b"leaf-virtual-coordinates", &proof);
+        let verified = verify_balance(&push, &pull, &[], &tables, &mut vs).expect("an honest bus balances");
+
+        // What the verifier derives the tables owe is what their forms sum to, the virtual coordinates aside.
+        for side in 0..2 {
+            assert_eq!(verified.totals[side], bus.sigmas[side][0], "side {side}");
+            assert_eq!(verified.forms[side][0].coeffs, bus.forms[side][0].coeffs, "side {side}");
+            assert_eq!(
+                verified.forms[side][0].constant, bus.forms[side][0].constant,
+                "side {side}"
+            );
+        }
+        assert_ne!(verified.totals[0], F192::ZERO);
+    }
 
     /// A sparse column's block-wise evaluation is its dense multilinear extension,
     /// whatever the stretches' offsets and lengths.
