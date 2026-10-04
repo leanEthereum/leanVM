@@ -269,7 +269,6 @@ name = "leanvm"
 version = "0.1.0"
 dependencies = [
  "leanvm_core",
- "thiserror",
 ]
 
 [[package]]
