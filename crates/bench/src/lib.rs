@@ -5,7 +5,9 @@
 use std::io::{IsTerminal, Write};
 use std::time::{Duration, Instant};
 
+mod allocator;
 mod trace;
+pub use allocator::Jemalloc;
 pub use trace::{TraceSuppressed, init_tracing, init_tracing_from_env, suppress_tracing};
 
 /// One line of live progress on stderr.
@@ -226,7 +228,7 @@ impl Plan {
 
 /// Peak resident set size of this process, in bytes.
 ///
-/// Worth reporting next to any timing here: the proving arena trades resident
+/// Worth reporting next to any timing here: an allocator that keeps freed pages trades resident
 /// memory for the page faults it removes, so a throughput number is only half the
 /// picture. Read after a warmup pass, this is the steady-state footprint.
 #[must_use]

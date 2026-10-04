@@ -4,7 +4,7 @@ use primitives::field::{F64, F192, g_pow};
 
 #[test]
 fn loop_frames_preserve_escaped_cells_and_nested_allocations() {
-    leanvm_core::init_prover_pool();
+    leanvm_core::init_prover();
     let source = r#"
 def make_heap(x):
     h = HeapBuf(2)
@@ -101,7 +101,7 @@ def main():
 
 #[test]
 fn rebound_counter_keeps_incremental_frames() {
-    leanvm_core::init_prover_pool();
+    leanvm_core::init_prover();
     let source = r#"
 def bump(x):
     if x == 1:

@@ -2,7 +2,7 @@
 //!
 //! Commits and opens a random witness of `2^PCS_LOG_N` GF(2^64) elements at
 //! inverse-rate `1/2^PCS_LOG_INV_RATE`, times each phase, and reports GiB/s
-//! over the committed data. Each pass is one arena phase, as a proof is; the
+//! over the committed data. The
 //! passes follow [`bench::Plan::from_env`] (`BENCH_REPEAT`, `BENCH_COOLDOWN`).
 //!
 //! ```text
@@ -29,6 +29,9 @@ use primitives::{
     test_rng::Rng,
 };
 
+#[global_allocator]
+static ALLOCATOR: bench::Jemalloc = bench::Jemalloc;
+
 fn main() {
     bench::init_tracing_from_env();
 
@@ -46,13 +49,9 @@ fn main() {
     let b_initial = build_eq_table_ext(&point);
     let target = inner_product_base_ext(&witness, &b_initial);
 
-    // Nothing a pass allocates outlives it: the commitment and the proof are
-    // consumed inside, so every buffer dies with the pass's phase.
-    zk_alloc::enable_arena();
     let (mut commit_t, mut open_t) = (Timing::default(), Timing::default());
     plan.warm_then_measure(|last| {
         let _quiet = (!last).then(bench::suppress_tracing);
-        let _phase = zk_alloc::enter_phase();
 
         let t = Instant::now();
         let (cm, pd) = tracing::info_span!("Commit").in_scope(|| commit(&witness, log_n, pc.initial_k, log_inv_rate));
@@ -65,7 +64,7 @@ fn main() {
                 &pc,
                 log_n,
                 &witness,
-                zk_alloc::ArenaVec::from_slice(&b_initial),
+                b_initial.to_vec(),
                 target,
                 &pd.codeword,
                 &pd.merkle_tree,

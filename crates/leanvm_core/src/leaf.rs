@@ -12,10 +12,9 @@ use crate::colval::ColVal;
 use crate::gkr;
 use crate::transcript::{Challenger, ProverState, Receiver, Transmitter, VerifierState};
 use primitives::field::{F64, F192, F192Unreduced, g_pow, index_mle};
-use primitives::multilinear::{eq_eval, eq_table_arena, mle_eval};
+use primitives::multilinear::{eq_eval, eq_table, mle_eval};
 use std::collections::HashMap;
 use std::sync::Arc;
-use zk_alloc::ArenaVec;
 
 /// One tuple coordinate as a function of the block's row `z`.
 #[derive(Clone, Debug)]
@@ -197,7 +196,7 @@ pub fn build_leaves(
     w: &[F192],
     beta: F192,
     gpow: &[F64],
-) -> ArenaVec<F192> {
+) -> Vec<F192> {
     let explicit = blocks
         .iter()
         .enumerate()
@@ -213,14 +212,15 @@ pub fn build_leaves(
     // Capacity is rounded to whole four-tuples because `gkr::QuaternaryLayerState`
     // pads this level to that before reading it, and growing it here would copy it.
     let covered: usize = blocks.iter().map(|blk| 1usize << blk.kappa).sum();
+    let capacity = explicit.next_multiple_of(4);
     let mut leaves = if covered == explicit {
-        let mut values = ArenaVec::with_capacity(explicit.next_multiple_of(4));
         // SAFETY: the per-block fills below cover `0..explicit` exactly, and each
         // joins before this function returns.
-        unsafe { values.set_len(explicit) };
+        let mut values = unsafe { primitives::uninit_vec(capacity) };
+        values.truncate(explicit);
         values
     } else {
-        let mut values = ArenaVec::with_capacity(explicit.next_multiple_of(4));
+        let mut values = Vec::with_capacity(capacity);
         values.resize(explicit, F192::ONE);
         values
     };
@@ -834,7 +834,7 @@ fn tables_and_prods_at(
             pairs.sort_unstable();
             pairs.dedup();
 
-            let eq = eq_table_arena(&zeta[..tau]);
+            let eq = eq_table(&zeta[..tau]);
             let n_acc = n_cols + pairs.len();
             let sums = parallel::fold_reduce(
                 (1usize << tau).div_ceil(ROWS),

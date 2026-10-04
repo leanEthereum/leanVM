@@ -1,5 +1,8 @@
 //! Benchmark CLI for signature and blob proofs, recursion, and the Fibonacci demo.
 
+#[global_allocator]
+static ALLOCATOR: bench::Jemalloc = bench::Jemalloc;
+
 use clap::{Parser, Subcommand};
 
 mod benchmark;
@@ -114,8 +117,5 @@ fn main() {
         Command::Fibonacci { n } => {
             fibonacci::run_fibonacci(n, cli.log_inv_rate, plan);
         }
-    }
-    if std::env::var_os("ZK_ALLOC_STATS").is_some() {
-        eprintln!("{}", zk_alloc::stats());
     }
 }

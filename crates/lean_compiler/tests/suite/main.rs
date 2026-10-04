@@ -1,7 +1,4 @@
 //! Compiler integration tests share one binary and its initialization caches.
-//!
-//! These tests leave the proving arena disabled. A test that enables it needs
-//! its own process (see `rec_aggregation`'s `arena_prove`).
 
 mod common;
 

@@ -90,10 +90,8 @@ pub fn run_aggregation(n_xmss: usize, n_sphincs: usize, n_blobs: usize, log_inv_
     );
     assert!(n_blobs <= lean_da::DA_MAX_ROWS, "too many blobs in one commitment");
     let trace_span = tracing::info_span!("aggregation", n_xmss, n_sphincs, n_blobs, log_inv_rate).entered();
-    // Spawn the worker pool before any timed work, so no kernel pays the spawn
-    // cost. Opting into the arena is the calling *process's* decision (one region,
-    // one proof at a time), so it stays in `main`, not here.
-    leanvm_core::init_prover_pool();
+    // Spawn the worker pool before any timed work, so no kernel pays the spawn cost.
+    leanvm_core::init_prover();
     let raw_xmss = signers(0, n_xmss);
     let raw_sphincs = sphincs_signers(0, n_sphincs);
     let blobs = blobs(n_blobs, 0);
@@ -171,7 +169,7 @@ pub fn run_recursion(
         blobs_per_leaf == 0 || n <= rec_aggregation::MAX_DA_ROOTS,
         "too many distinct DA roots"
     );
-    leanvm_core::init_prover_pool();
+    leanvm_core::init_prover();
     let all = signers(0, n * per_leaf);
     let all_sphincs = sphincs_signers(0, n * sphincs_per_leaf);
     let started = std::time::Instant::now();

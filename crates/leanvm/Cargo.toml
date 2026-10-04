@@ -12,5 +12,4 @@ leanvm_core.workspace = true
 lean_da.workspace = true
 xmss.workspace = true
 sphincs.workspace = true
-zk_alloc.workspace = true
 rand.workspace = true

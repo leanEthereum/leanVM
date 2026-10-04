@@ -23,9 +23,8 @@ The root `Cargo.toml` is workspace-only: the libraries are in `crates/`, the CLI
 | crate             | role                                                                   |
 | ----------------- | ---------------------------------------------------------------------- |
 | `parallel`        | thread pool (below)                                     |
-| `zk_alloc`        | proving arena (below)                                    |
 | `primitives`      | field kernels (NEON/AVX), bit transposes, multilinear helpers, streaming stores |
-| `bench`           | benchmark harness for the CLI and the `benches/` targets: `Plan` (warmup, repeats, cooldown), `Timing`, the `--tracing` trace tree, Bencher Metric Format output (`Metric`, `bencher_json`); never linked by the prover |
+| `bench`           | benchmark harness for the CLI and the `benches/` targets: `Plan` (warmup, repeats, cooldown), `Timing`, the `--tracing` trace tree, Bencher Metric Format output (`Metric`, `bencher_json`), the global allocator (`Jemalloc`, below); never linked by the prover |
 | `fiat_shamir`     | VM-native `FiatShamirState` + prover/verifier transcript                |
 | `pcs`             | additive NTT, Merkle, ring switch, stacked WHIR                    |
 | `flock`           | batched R1CS over GF(2) for BLAKE2s: zerocheck + lincheck               |
@@ -43,7 +42,7 @@ The root `Cargo.toml` is workspace-only: the libraries are in `crates/`, the CLI
 
 - `.cargo/config.toml` pins `-C target-cpu=native` and `-D warnings` for rustdoc
 - always run in `--release` mode any test or benchmark touching the VM (the zkDSL compiler stack-overflows in `debug` mode)
-- **One test binary per crate, not one per file:** new `lean_compiler` integration tests go in `tests/suite/main.rs`, one linked executable instead of seventeen. Exception: a test opening an arena phase (`leanvm_core::init_prover`) needs its own binary. Phases are process-global, so two in one process reclaim each other's `ArenaVec`s and the symptom is a proof that stops verifying, never a crash (`rec_aggregation/tests/arena_prove.rs`).
+- **One test binary per crate, not one per file:** new `lean_compiler` integration tests go in `tests/suite/main.rs`, one linked executable instead of seventeen.
 
 An x86-only arm never compiles on an Apple dev machine, so a typo in one ships. Type-check the other target before pushing anything `cfg`-gated:
 
@@ -82,13 +81,9 @@ The two posting workflows serve `riscv-exploration` too, whose `bench.yml` prove
 
 Both posting workflows only run `.github/scripts/pr_comment.py` (standard-library Python, formatted like `verifier.py`), which checks the artifacts and builds, edits or deletes the comment. Its `--dry-run` prints the comment a run's downloaded artifacts would give (`gh run download <run> -p 'ab-*'`) and posts nothing.
 
-## The proving arena (`zk_alloc`)
+## The allocator
 
-One proof is one **phase**, opened by `cpu::prove`. `ArenaVec` bumps a per-thread slab, a small block's release is at most a cursor pop while a large one is recycled (below), and the next `begin_phase()` reclaims everything. Not a `#[global_allocator]`: `raw_dealloc` picks arena-vs-system by address range, so with no phase open `ArenaVec` is an ordinary system vector (used in particular by the verifier, where correctness and simplicity matters much more than performance).
-
-**The rule:** an `ArenaVec` allocated in a phase dies at the next `begin_phase()`. A reset neither clears nor unmaps, so a buffer that outlives its phase reads the previous proof's plausible bytes, so the symptom is a proof that stops verifying, never a crash. Anything outliving a phase (a `Proof`, a cache, a table) must be a plain `Vec`. And **`drop` means something**: a large released block is handed back out within the phase (a per-thread free list, see the crate docs), so dropping a big buffer where it dies is worth doing, and a use-after-free the bump arena used to mask now reads another buffer's live data. Run `ZK_ALLOC_POISON=1 cargo testall` after changing buffer lifetimes; it fills released blocks and fills what a phase used when it ends, turning a silent wrong answer into a loud failure. That covers both shapes: a buffer read after being dropped, and a buffer that outlives its phase.
-
-`setup_prover_without_arena` (or `leanvm_core::init_prover_pool` alone) leaves the arena disengaged, sending every `ArenaVec` to the system allocator. It is the escape hatch for a host where even the recycled peak does not fit; on one that it does fit, the arena is faster, since its pages stay faulted in across proofs.
+The prover's buffers are plain `Vec`s, and the libraries impose no allocator. A proof allocates gigabytes of short-lived buffers and frees them before it returns, so its speed depends on the process's global allocator: one that keeps freed pages mapped serves the next proof from them with no page fault, where glibc unmaps a large block on free and the next proof faults every page in again. The CLI and the proving benches install jemalloc with `dirty_decay_ms:-1` (`bench::Jemalloc`, `crates/bench/src/allocator.rs`); the cost is resident memory, the process holding its peak until it exits. A buffer filled in place skips the zero-fill through `primitives::uninit_vec` (`T: Copy`, every element written before it is read) or `spare_capacity_mut` and `set_len`. Large buffers are still worth dropping where their last use ends, so the allocator serves the next one from their memory.
 
 ## The thread pool (`parallel`)
 
@@ -146,8 +141,6 @@ Understand the third before changing the verifier. `guests/lean_ethereum.py` is 
 | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
 | `LEANVM_NUM_THREADS`                                                                                    | performance-worker count; `1` = sequential       |
 | `BENCH_TRACING`                                                                                         | the `benches/` targets' `--tracing`: the final pass's span tree |
-| `ZK_ALLOC_STATS`                                                                                        | arena peak/phase, high water, overflow           |
-| `ZK_ALLOC_POISON`                                                                                       | fill released arena blocks, to catch use-after-free |
 | `BENCH_REPEAT`, `BENCH_COOLDOWN`                                                                        | `--repeat`/`--cooldown` for the `benches/` targets |
 | `LEANVM_XMSS_N`, `LEANVM_HASH_N`, `LEANVM_HASH_UNROLL`                                                  | workload sizes in tests                          |
 | `FLOCK_N_LOG`                                                                                           | flock batch size                                 |

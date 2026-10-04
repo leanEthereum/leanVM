@@ -5,7 +5,6 @@
 //! the column's offset.
 
 use primitives::field::F64;
-use zk_alloc::ArenaVec;
 
 /// Where a column sits in the stacked witness. A [`Placement::VIRTUAL`] column is
 /// NOT committed: it carries data for the bus, but its evaluation claims settle
@@ -31,7 +30,7 @@ impl Placement {
 #[cfg(test)]
 pub(crate) struct Stacked {
     pub shape: StackShape,
-    pub q: ArenaVec<F64>,
+    pub q: Vec<F64>,
     pub placements: Vec<Placement>,
 }
 
@@ -109,16 +108,15 @@ const FILL_CHUNK: usize = 1 << 16;
 
 /// The uninitialized stacked witness: [`StackShape::committed_len`] slots, the
 /// placed columns rounded up to a whole lane rather than all the way to `2^mu`.
-/// Arena-backed: `q` is born and dies inside one `cpu::prove` phase.
 ///
 /// # Safety
 /// Every slot must be written before it is read. [`split_stack`] hands out one
 /// window per committed column and zeroes the pad tail, which together cover the
 /// whole allocation, so the obligation reduces to each column's fill writing its
 /// own window.
-pub unsafe fn alloc_stack(shape: StackShape) -> ArenaVec<F64> {
+pub unsafe fn alloc_stack(shape: StackShape) -> Vec<F64> {
     // SAFETY: forwarded to the caller by the contract above.
-    unsafe { ArenaVec::<F64>::uninitialized(shape.committed_len()) }
+    unsafe { primitives::uninit_vec::<F64>(shape.committed_len()) }
 }
 
 /// Carve the stack into one mutable window per committed column, in column order,

@@ -555,12 +555,6 @@ pub fn prove(program: &Program, public_input: [F192; 2], log_inv_rate: usize) ->
     if ::pcs::whir::validate_log_inv_rate(log_inv_rate).is_err() {
         return Err(ProveError::InvalidRate { log_inv_rate });
     }
-    // One proof is one arena phase: every transient buffer below is bump-allocated
-    // and reclaimed wholesale here, rather than faulted in and unmapped again per
-    // proof. Bound first so it outlives them; inert unless `init_prover` opted in.
-    // The returned `Proof` is system-allocated (`ps.into_proof()` builds `Vec`s),
-    // so it survives the next phase.
-    let _phase = zk_alloc::enter_phase();
     let exec = crate::stage!("Execute program", || program.execute(public_input)).map_err(ProveError::Execution)?;
     // A live value that came from outside the constraint system would make the proof
     // about a weaker statement than the program text, so it is refused here, on the one

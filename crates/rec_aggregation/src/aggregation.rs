@@ -3339,7 +3339,7 @@ mod tests {
 
     #[test]
     fn aggregate_one_sphincs_signer() {
-        leanvm_core::init_prover_pool();
+        leanvm_core::init_prover();
         let aggregate = prove_sphincs_leaf(&get_sphincs_signers(1));
         aggregate.verify().expect("verifies");
         assert!(aggregate.xmss_signers.is_empty());
@@ -3348,7 +3348,7 @@ mod tests {
 
     #[test]
     fn aggregate_one_signer() {
-        leanvm_core::init_prover_pool();
+        leanvm_core::init_prover();
         let aggregate = prove_leaf(&get_signers(1));
         aggregate.verify().expect("verifies");
         assert_eq!(aggregate.xmss_signers[0].leaf_index, XMSS_LEAF_INDEX_A);
@@ -3360,7 +3360,7 @@ mod tests {
     /// case, absorbing one entry a frame.
     #[test]
     fn aggregate_mixed_leaf() {
-        leanvm_core::init_prover_pool();
+        leanvm_core::init_prover();
         let aggregate = aggregate(
             &[],
             at_leaf_index(&get_signers(3), XMSS_LEAF_INDEX_A),
@@ -3379,7 +3379,7 @@ mod tests {
     /// child's two key lists have to land in their own.
     #[test]
     fn aggregate_mixed_two_to_one() {
-        leanvm_core::init_prover_pool();
+        leanvm_core::init_prover();
         let xmss = get_signers(6);
         let sphincs = get_sphincs_signers(4);
         let leaf = |x: &[(XmssPublicKey, XmssSignature)], s: &[RawSphincs]| {
@@ -3408,7 +3408,7 @@ mod tests {
     /// log(g^0)` (unsatisfiable, so nothing may be written there) is reached.
     #[test]
     fn aggregate_one_scheme_per_child() {
-        leanvm_core::init_prover_pool();
+        leanvm_core::init_prover();
         let xmss_child = prove_leaf(&get_signers(3));
         let sphincs_child = prove_sphincs_leaf(&get_sphincs_signers(2));
         let node =
@@ -3422,7 +3422,7 @@ mod tests {
     /// here rather than cached, the cache holding one message per key.
     #[test]
     fn aggregate_one_key_two_messages() {
-        leanvm_core::init_prover_pool();
+        leanvm_core::init_prover();
         let mut rng = StdRng::seed_from_u64(77);
         let (secret_key, public_key) = sphincs::key_gen(&mut rng);
         let raw: Vec<RawSphincs> = [3u8, 9]
@@ -3443,7 +3443,7 @@ mod tests {
 
     #[test]
     fn guest_column_selectors_match_native_eq() {
-        leanvm_core::init_prover_pool();
+        leanvm_core::init_prover();
         let (helpers, _) = include_str!("../guests/lean_ethereum.py")
             .split_once("\ndef main():")
             .unwrap();
@@ -3503,7 +3503,7 @@ def main():
 
     #[test]
     fn guest_merkle_children_bind_every_link() {
-        leanvm_core::init_prover_pool();
+        leanvm_core::init_prover();
         let (helpers, _) = include_str!("../guests/lean_ethereum.py")
             .split_once("\ndef main():")
             .unwrap();
@@ -3592,7 +3592,7 @@ def main():
     /// execute and neither would the byte counter's base.
     #[test]
     fn aggregate_two_to_one() {
-        leanvm_core::init_prover_pool();
+        leanvm_core::init_prover();
         let big = 2 * SIGNERS_WINDOW + 6;
         let signers = get_signers(SMALL_LEAF_SIZE + big);
         let left = prove_leaf(&signers[..SMALL_LEAF_SIZE]);
@@ -3614,7 +3614,7 @@ def main():
     /// aggregate has to verify against a statement that carries it.
     #[test]
     fn aggregate_with_a_da_payload() {
-        leanvm_core::init_prover_pool();
+        leanvm_core::init_prover();
         let rows = da_rows(3, 97);
 
         let node = aggregate(&[], vec![], vec![], &rows, None, LOG_INV_RATE).expect("node aggregates");
@@ -3678,7 +3678,7 @@ def main():
 
     #[test]
     fn da_roots_accumulate_and_can_be_selected_or_omitted() {
-        leanvm_core::init_prover_pool();
+        leanvm_core::init_prover();
         let signers = get_signers(SMALL_LEAF_SIZE);
         let mut children = Vec::new();
         for seed in [509, 510] {
@@ -3979,7 +3979,7 @@ def main():
 
     #[test]
     fn da_root_lists_merge_two_and_three() {
-        leanvm_core::init_prover_pool();
+        leanvm_core::init_prover();
         let mut leaves = Vec::new();
         let mut expected = Vec::new();
         for seed in 600..605 {
@@ -4023,7 +4023,7 @@ def main():
 
     #[test]
     fn da_guest_hashes_root_lists() {
-        leanvm_core::init_prover_pool();
+        leanvm_core::init_prover();
         let (helpers, _) = include_str!("../guests/lean_ethereum.py")
             .split_once("\ndef main():")
             .unwrap();
@@ -4067,7 +4067,7 @@ def main():
 
     #[test]
     fn da_guest_bounds_coverage_slots() {
-        leanvm_core::init_prover_pool();
+        leanvm_core::init_prover();
         let (helpers, _) = include_str!("../guests/lean_ethereum.py")
             .split_once("\ndef main():")
             .unwrap();
@@ -4128,7 +4128,7 @@ def main():
 
     #[test]
     fn da_guest_checks_commitment_and_codewords() {
-        leanvm_core::init_prover_pool();
+        leanvm_core::init_prover();
         let source = include_str!("../guests/lean_ethereum.py");
         let (helpers, _) = source.split_once("\ndef main():").unwrap();
         let source = format!(
@@ -4265,7 +4265,7 @@ def main():
 
     #[test]
     fn da_row_shape_checks_power_of_two_boundaries() {
-        leanvm_core::init_prover_pool();
+        leanvm_core::init_prover();
         let (helpers, _) = include_str!("../guests/lean_ethereum.py")
             .split_once("\ndef main():")
             .unwrap();
@@ -4300,7 +4300,7 @@ def main():
 
     #[test]
     fn ceil_log_hints_enforce_rounding_and_floor() {
-        leanvm_core::init_prover_pool();
+        leanvm_core::init_prover();
         let (helpers, _) = include_str!("../guests/lean_ethereum.py")
             .split_once("\ndef main():")
             .unwrap();
@@ -4355,7 +4355,7 @@ def main():
     /// 8, exercising two different arms of the tree dispatch and a non-empty gap.
     #[test]
     fn da_row_count_is_a_run_time_parameter() {
-        leanvm_core::init_prover_pool();
+        leanvm_core::init_prover();
         let signers = get_signers(SMALL_LEAF_SIZE);
         for n_rows in [1usize, 3, 4, 5] {
             let rows = da_rows(n_rows, 200 + n_rows as u64);
@@ -4379,10 +4379,10 @@ def main():
     #[test]
     #[ignore]
     fn da_blob_proof() {
-        leanvm_core::init_prover_pool();
+        leanvm_core::init_prover();
         let signers = get_signers(SMALL_LEAF_SIZE);
         // One discarded proof: the first pays the flock circuit build and the
-        // arena's page faults, which would otherwise land entirely on the first row
+        // allocator's page faults, which would otherwise land entirely on the first row
         // count reported.
         warm_up();
         println!(
@@ -4426,7 +4426,7 @@ def main():
     /// A leaf carrying no payload publishes the digest of an empty root list.
     #[test]
     fn no_payload_publishes_the_empty_root_list() {
-        leanvm_core::init_prover_pool();
+        leanvm_core::init_prover();
         let signers = get_signers(SMALL_LEAF_SIZE);
         let node = prove_leaf(&signers);
         assert!(node.da_roots.is_empty());
@@ -4443,7 +4443,7 @@ def main():
     /// where `plain_window` never executes and neither does the byte counter's base.
     #[test]
     fn aggregate_many_leaf_index_groups() {
-        leanvm_core::init_prover_pool();
+        leanvm_core::init_prover();
         // Two blocks a group plus a leading one, so SIGNERS_WINDOW / 2 groups make
         // SIGNERS_WINDOW + 1 blocks: one whole window and the final block. The cached
         // keys are activated over exactly that many leaf indices, and one key may claim
@@ -4467,7 +4467,7 @@ def main():
     /// second both.
     #[test]
     fn a_node_may_publish_less_than_it_covers() {
-        leanvm_core::init_prover_pool();
+        leanvm_core::init_prover();
         let at_a = get_signers(3);
         let at_b = get_signers_at(2, XMSS_LEAF_INDEX_B);
         let mut raw = at_leaf_index(&at_a, XMSS_LEAF_INDEX_A);
@@ -4581,7 +4581,7 @@ def main():
     /// with A, and a signature verified against the wrong group's tweaks fails.
     #[test]
     fn raw_signatures_follow_the_table_not_the_leaf_indices() {
-        leanvm_core::init_prover_pool();
+        leanvm_core::init_prover();
         const _: () = assert!(
             XMSS_LEAF_INDEX_A < XMSS_LEAF_INDEX_B,
             "A must sort first for this to bite"
@@ -4616,7 +4616,7 @@ def main():
 
     #[test]
     fn aggregate_two_leaf_indices() {
-        leanvm_core::init_prover_pool();
+        leanvm_core::init_prover();
         let at_a = get_signers(4);
         let at_b = get_signers_at(2, XMSS_LEAF_INDEX_B);
         assert_eq!(at_a[0].0, at_b[0].0, "the cache reuses keys across leaf indices");
@@ -4697,7 +4697,7 @@ def main():
 
     #[test]
     fn aggregate_overlapping_signers() {
-        leanvm_core::init_prover_pool();
+        leanvm_core::init_prover();
         let signers = get_signers(40);
         let left = prove_leaf(&signers[..25]);
         let right = prove_leaf(&signers[15..]);
@@ -4715,7 +4715,7 @@ def main():
     #[test]
     #[ignore]
     fn aggregate_three_levels() {
-        leanvm_core::init_prover_pool();
+        leanvm_core::init_prover();
         let signers = get_signers(4 * SMALL_LEAF_SIZE);
         let claims = get_sphincs_signers(5);
         let leaf = |index: usize, sphincs: &[RawSphincs]| {
@@ -4768,7 +4768,7 @@ def main():
     #[test]
     #[ignore]
     fn aggregate_statement_binds() {
-        leanvm_core::init_prover_pool();
+        leanvm_core::init_prover();
         let signers = get_signers(2 * SMALL_LEAF_SIZE);
         let left = prove_leaf(&signers[..SMALL_LEAF_SIZE]);
         let right = prove_leaf(&signers[SMALL_LEAF_SIZE..]);
@@ -4885,7 +4885,7 @@ def main():
     #[test]
     #[ignore]
     fn aggregate_hints_bind() {
-        leanvm_core::init_prover_pool();
+        leanvm_core::init_prover();
         let signers = get_signers(2 * SMALL_LEAF_SIZE);
 
         let rejects = |children: &[EthereumProof],
@@ -5239,7 +5239,7 @@ def main():
     #[test]
     #[ignore]
     fn aggregate_rejects_a_bad_signature() {
-        leanvm_core::init_prover_pool();
+        leanvm_core::init_prover();
         let mut raw_signatures = at_leaf_index(&get_signers(3), XMSS_LEAF_INDEX_A);
         raw_signatures[1].3.wots_signature.chain_tips[0][0] ^= 1;
         assert!(

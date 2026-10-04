@@ -23,4 +23,3 @@ serde.workspace = true
 tracing.workspace = true
 
 [dev-dependencies]
-zk_alloc.workspace = true

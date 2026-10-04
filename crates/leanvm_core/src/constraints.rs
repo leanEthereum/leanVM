@@ -36,8 +36,7 @@ use crate::PAR_THRESHOLD;
 use crate::colval::ColVal;
 use crate::transcript::{Challenger, ProverState, Receiver, Transmitter, VerifierState};
 use primitives::field::{F64, F192, F192Unreduced, powers};
-use primitives::multilinear::{eq_table_arena, fold_high_inplace, fold_high_k, poly_eval, shrink_eq_high};
-use zk_alloc::ArenaVec;
+use primitives::multilinear::{eq_table, fold_high_inplace, fold_high_k, poly_eval, shrink_eq_high};
 
 /// One table's involved columns' evaluations at its table-sumcheck point.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -81,7 +80,7 @@ pub fn xi_offsets(n_constraints: impl Iterator<Item = usize>) -> Vec<usize> {
 ///
 /// Generic twice over: in the column element, `K` before a table's columns are
 /// folded and `E` after ([`ColVal`]), and in the container, `Vec` for the former
-/// and `ArenaVec` for the latter. `#[inline(always)]` matters here, on this and on
+/// and `Vec` for the latter. `#[inline(always)]` matters here, on this and on
 /// every `ColVal` method: this is the body of the constraint sumcheck's innermost
 /// loop, and without it the generic stops inlining and costs measurable prover
 /// time. Nothing is lifted into `E`, so a `K` round evaluates the identity and the
@@ -160,12 +159,11 @@ pub fn prove(
     // challenges and the eq factor, so `weights` is the whole per-table state.
     let mut weights = vec![F192::ONE; airs.len()];
     // ONE eq table over the low (still free) variables serves every active table.
-    let mut eqr = eq_table_arena(&zeta[..n.saturating_sub(1)]);
+    let mut eqr = eq_table(&zeta[..n.saturating_sub(1)]);
     let mut chi = vec![F192::ZERO; n];
     // The folded tables are the batch's largest transients: one E-lifted copy of
-    // every column of every still-active table. Arena-backed, so they are bumped
-    // rather than mapped afresh each round.
-    let mut folded: Vec<Option<Vec<ArenaVec<F192>>>> = (0..airs.len()).map(|_| None).collect();
+    // every column of every still-active table.
+    let mut folded: Vec<Option<Vec<Vec<F192>>>> = (0..airs.len()).map(|_| None).collect();
     // `k`, the challenges drawn so far, common to every air that is still waiting.
     let mut k = F192::ONE;
     let mut claim = sigma.iter().copied().fold(F192::ZERO, |a, b| a + b);
@@ -315,7 +313,7 @@ mod tests {
     fn round_coefficients_match_full_evaluations() {
         fn check<T: ColVal + Into<F192>>(cols: &[Vec<T>]) {
             let weights = powers(F192::new(3, 5, 7), 3);
-            let eq = eq_table_arena(&[F192::new(11, 13, 17), F192::new(19, 23, 29)]);
+            let eq = eq_table(&[F192::new(11, 13, 17), F192::new(19, 23, 29)]);
             let eval = |p: &[F192], v: &[T], quadratic| {
                 synth_eval_attached(p, v, quadratic) + if quadratic { F192::ZERO } else { F192::ONE }
             };

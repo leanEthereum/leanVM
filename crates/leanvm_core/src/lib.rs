@@ -32,34 +32,14 @@ pub mod transcript;
 pub mod vmhash;
 pub mod witness;
 
-/// Prepare the process for proving: the worker pool ([`init_prover_pool`]) plus
-/// the proving arena ([`zk_alloc::enable_arena`]), which recycles the prover's
-/// large transient buffers across proofs instead of re-faulting them.
-///
-/// Call once at program or test start.
-///
-/// Call [`init_prover_pool`] alone on a host where even the arena's recycled peak
-/// does not fit: every [`ArenaVec`](zk_alloc::ArenaVec) then falls back to the
-/// system allocator, which is slower where the arena fits, since the arena's
-/// pages stay faulted in across proofs.
-///
-/// # Contract
-/// The arena has one region per process, so two proofs must never run
-/// concurrently in one process; [`zk_alloc::enter_phase`] asserts this. Use
-/// separate processes to parallelize across proofs.
-pub fn init_prover() {
-    init_prover_pool();
-    zk_alloc::enable_arena();
-}
-
-/// Spawn the worker pool up front, so no kernel pays the spawn cost inside a
-/// timed region. Idempotent.
+/// Prepare the process for proving: spawn the worker pool up front, so no kernel
+/// pays the spawn cost inside a timed region. Idempotent.
 ///
 /// Thread placement is the pool's own business: performance-core workers run at
 /// `USER_INTERACTIVE` and (on Apple silicon) efficiency-core workers at `UTILITY`,
 /// all drawing from one claim counter. `LEANVM_NUM_THREADS` sets the
 /// performance-worker count. See the `parallel` crate.
-pub fn init_prover_pool() {
+pub fn init_prover() {
     parallel::init();
 }
 

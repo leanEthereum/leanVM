@@ -10,7 +10,6 @@
 use crate::ntt::AdditiveNttF64;
 use crate::whir::build_eq_table_ext;
 use primitives::field::{F64, F192};
-use zk_alloc::ArenaVec;
 
 // ===================================================================
 // LCH novel-basis evaluations over K (mirror of whir's extension-field block)
@@ -115,7 +114,7 @@ pub(crate) fn induce_sumcheck_poly<T: RowElem>(
     v_challenges: &[F192],
     queries: &[usize],
     weights: &[F192],
-) -> (ArenaVec<F192>, F192) {
+) -> (Vec<F192>, F192) {
     let n = 1usize << log_msg_cols;
     let n_queries = queries.len();
     assert_eq!(opened_rows.len(), n_queries);
@@ -137,7 +136,7 @@ pub(crate) fn induce_sumcheck_poly<T: RowElem>(
         n_queries,
         || (vec![F64::ZERO; log_msg_cols.max(1)], vec![F192::ZERO; half]),
         // SAFETY: zero is a valid F192, and the expansion below accumulates into it.
-        || (unsafe { ArenaVec::<F192>::zeroed(n) }, F192::ZERO),
+        || (vec![F192::ZERO; n], F192::ZERO),
         |(sks_at_x, scratch), (accum_basis, local_sum), i| {
             let ap = weights[i];
             *local_sum += T::dot(&opened_rows[i], &eq) * ap;
@@ -218,7 +217,7 @@ pub(crate) fn induce_sumcheck_evaluate_at_residual(
     weights: &[F192],
     ris_for_basis: &[F192],
     yr_log_n: usize,
-) -> ArenaVec<F192> {
+) -> Vec<F192> {
     assert_eq!(ris_for_basis.len() + yr_log_n, log_msg_cols);
     let n_queries = queries.len();
     let yr_len = 1usize << yr_log_n;
@@ -272,7 +271,7 @@ pub(crate) fn induce_sumcheck_evaluate_at_residual(
         sum
     };
     if yr_len > PAR_FLOOR {
-        primitives::par_collect_arena(yr_len, compute_y)
+        primitives::par_collect(yr_len, compute_y)
     } else {
         (0..yr_len).map(compute_y).collect()
     }
@@ -383,7 +382,7 @@ fn transpose_forward_ntt_sparse_ext(
     positions: &[usize],
     values: &[F192],
     log_d: usize,
-) -> ArenaVec<F192> {
+) -> Vec<F192> {
     let _span = tracing::info_span!(
         "NTT",
         kind = "transpose induce",
@@ -398,7 +397,7 @@ fn transpose_forward_ntt_sparse_ext(
 
     if k == 0 {
         // SAFETY: zero is a valid F192, and the scatter below reads these slots.
-        let mut data = unsafe { ArenaVec::<F192>::zeroed(n) };
+        let mut data = vec![F192::ZERO; n];
         for (&p, &v) in positions.iter().zip(values) {
             data[p] += v;
         }
@@ -444,7 +443,7 @@ fn transpose_forward_ntt_sparse_ext(
     // Densify (active windows only; the rest stay zero, which is the correct
     // post-step-(k-1) state for an all-zero window).
     // SAFETY: zero is a valid F192, and the inactive windows must read as zero.
-    let mut data = unsafe { ArenaVec::<F192>::zeroed(n) };
+    let mut data = vec![F192::ZERO; n];
     for (w, buf) in &win_vec {
         data[(w << k)..((w + 1) << k)].copy_from_slice(buf);
     }
@@ -466,7 +465,7 @@ pub(crate) fn induce_sumcheck_poly_via_ntt_base(
     v_challenges: &[F192],
     queries: &[usize],
     weights: &[F192],
-) -> (ArenaVec<F192>, F192) {
+) -> (Vec<F192>, F192) {
     let n = 1usize << log_msg_cols;
     let log_block = log_msg_cols + log_inv_rate;
     let block_len = 1usize << log_block;
@@ -483,7 +482,7 @@ pub(crate) fn induce_sumcheck_poly_via_ntt_base(
 
     let mut coeffs = if log_block == 0 {
         // SAFETY: zero is a valid F192, and the loop below reads these slots.
-        let mut c = unsafe { ArenaVec::<F192>::zeroed(block_len) };
+        let mut c = vec![F192::ZERO; block_len];
         for i in 0..n_queries {
             c[queries[i]] += weights[i];
         }
@@ -520,7 +519,7 @@ pub(crate) fn induce_sumcheck_poly_auto_base(
     v_challenges: &[F192],
     queries: &[usize],
     weights: &[F192],
-) -> (ArenaVec<F192>, F192) {
+) -> (Vec<F192>, F192) {
     if induce_use_ntt_heuristic(log_msg_cols, log_inv_rate, queries.len()) {
         induce_sumcheck_poly_via_ntt_base(log_msg_cols, log_inv_rate, opened_rows, v_challenges, queries, weights)
     } else {

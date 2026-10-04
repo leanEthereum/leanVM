@@ -22,7 +22,6 @@ xmss.workspace = true
 sphincs.workspace = true
 primitives.workspace = true
 bench.workspace = true
-zk_alloc.workspace = true
 rand.workspace = true
 bincode.workspace = true
 serde.workspace = true

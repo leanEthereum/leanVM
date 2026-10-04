@@ -30,7 +30,6 @@ use primitives::{
     multilinear::eq_eval,
     stream::Stream,
 };
-use zk_alloc::ArenaVec;
 
 pub use super::whir_config::{
     FinalBlockConfig, INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0, LevelShapes, MAX_LOG_INV_RATE, MIN_LOG_INV_RATE,
@@ -96,7 +95,7 @@ fn mle_eval_ext(table: &[F192], point: &[F192]) -> F192 {
     folded[0]
 }
 
-use primitives::multilinear::eq_table_arena as build_eq_table_ext_parallel;
+use primitives::multilinear::eq_table as build_eq_table_ext_parallel;
 
 /// Partially evaluate the multilinear extension of `evals` at the first
 /// `rs.len()` (LSB) variables. Mirror of `whir::partial_eval_lsb`.
@@ -160,8 +159,8 @@ pub struct Commitment {
 /// Prover-side state retained after commit for the opening phase. The message
 /// itself is not stored; the caller retains it for opening.
 pub struct ProverData {
-    pub codeword: ArenaVec<F64>,
-    pub merkle_tree: ArenaVec<Hash>,
+    pub codeword: Vec<F64>,
+    pub merkle_tree: Vec<Hash>,
 }
 
 /// Commit to the `F64` message of a `2^log_n`-word witness: the message is its
@@ -197,7 +196,7 @@ pub fn commit(message: &[F64], log_n: usize, log_batch_size: usize, log_inv_rate
     // `transpose_lane_major` covers every word of the message region (its tiles are
     // asserted to), and `encode_interleaved_in_place` writes every other replica from
     // it before transforming that region in place.
-    let mut codeword = unsafe { zk_alloc::ArenaVec::<F64>::uninitialized(codeword_len) };
+    let mut codeword = unsafe { primitives::uninit_vec::<F64>(codeword_len) };
 
     // Leaves are hashed as the encode finishes each block of rows.
     let tree = merkle::MerkleBuilder::new(n_positions, n_lanes, 1usize << log_batch_size);
@@ -218,8 +217,8 @@ pub fn commit(message: &[F64], log_n: usize, log_batch_size: usize, log_inv_rate
 /// `mat[pos * num_interleaved + lane]`; each row (one `pos` across all lanes)
 /// is one Merkle leaf of `num_interleaved * 16` bytes.
 pub(crate) struct LigeroWitness {
-    pub mat: ArenaVec<F192>,
-    pub tree: ArenaVec<Hash>,
+    pub mat: Vec<F192>,
+    pub tree: Vec<Hash>,
     pub block_len: usize,
     pub num_interleaved: usize,
 }
@@ -259,7 +258,7 @@ pub(crate) fn ligero_commit_ext(
     // The encode builds the replicas itself, so the codeword starts uninitialized.
     //
     // SAFETY: the encode writes every matrix element before reading it.
-    let mut mat = unsafe { ArenaVec::<F192>::uninitialized(codeword_len) };
+    let mut mat = unsafe { primitives::uninit_vec::<F192>(codeword_len) };
 
     // One leaf per row, its F192s as K words: hashed as the encode finishes each block.
     let row_words = 3 * num_interleaved;
@@ -471,15 +470,15 @@ fn round_msg_and_eval_lsb_ext(f: &[F192], b: &[F192]) -> (SumcheckMessage, F192)
     (SumcheckMessage { u_0, u_2 }, y)
 }
 
-/// Arena-backed output for an initial-sumcheck fold.
+/// Uninitialized output for an initial-sumcheck fold.
 ///
 /// # Safety
 /// Every element must be written before it is read, which every fold kernel
 /// below does: one output slot per input pair.
 #[inline]
-unsafe fn fold_out_buf(n: usize) -> ArenaVec<F192> {
+unsafe fn fold_out_buf(n: usize) -> Vec<F192> {
     // SAFETY: forwarded to the caller's obligation, documented above.
-    unsafe { ArenaVec::uninitialized(n) }
+    unsafe { primitives::uninit_vec(n) }
 }
 
 /// Unreduced `(u_0, u_2)` over the already-folded E buffers, pair by pair. A
@@ -505,11 +504,7 @@ fn fold_msg_terms(nf: &[F192], nb: &[F192]) -> (F192Unreduced, F192Unreduced) {
 /// Fused fold + next-round message: the witness folds into E, the basis folds
 /// in E, and the next-round message is built over the freshly folded E values
 /// in the same pass. Mirror of `whir::fold_and_msg_lsb`.
-fn fold_and_msg_lsb<T: RoundWitness>(
-    f: &[T],
-    b: &[F192],
-    r: F192,
-) -> (ArenaVec<F192>, ArenaVec<F192>, SumcheckMessage) {
+fn fold_and_msg_lsb<T: RoundWitness>(f: &[T], b: &[F192], r: F192) -> (Vec<F192>, Vec<F192>, SumcheckMessage) {
     let n = f.len();
     debug_assert!(n.is_power_of_two() && n >= 2);
     debug_assert_eq!(b.len(), n);
@@ -519,8 +514,8 @@ fn fold_and_msg_lsb<T: RoundWitness>(
     let fold_b = |j: usize| -> F192 { F192::fold_pair(b[2 * j], b[2 * j + 1], r) };
     const PAR_THRESHOLD: usize = 4096;
     if half < PAR_THRESHOLD {
-        let mut nf = ArenaVec::with_capacity(half);
-        let mut nb = ArenaVec::with_capacity(half);
+        let mut nf = Vec::with_capacity(half);
+        let mut nb = Vec::with_capacity(half);
         for j in 0..half {
             nf.push(fold_f(j));
             nb.push(fold_b(j));
@@ -691,12 +686,12 @@ pub(crate) fn build_initial_basis(
     f: &[F64],
     block: usize,
     fill: impl Fn(usize, &mut [F192]) + Sync,
-) -> (ArenaVec<F192>, SumcheckMessage) {
+) -> (Vec<F192>, SumcheckMessage) {
     assert!(block.is_power_of_two() && f.len().is_multiple_of(block));
     let n_blocks = f.len() / block;
     let per = block.div_ceil(INITIAL_BASIS_CHUNK);
     // SAFETY: each task fills and publishes its disjoint lane windows before returning.
-    let mut basis = unsafe { ArenaVec::<F192>::uninitialized(f.len()) };
+    let mut basis = unsafe { primitives::uninit_vec::<F192>(f.len()) };
     let dst = parallel::SendPtr(basis.as_mut_ptr());
     let task = |t: usize| {
         let (pair, chunk) = (t / per, t % per);
@@ -745,7 +740,7 @@ fn fold_and_msg_blocks<T: RoundWitness>(
     r: F192,
     block: usize,
     last: bool,
-) -> (ArenaVec<F192>, ArenaVec<F192>, SumcheckMessage) {
+) -> (Vec<F192>, Vec<F192>, SumcheckMessage) {
     assert_eq!(b.len(), f.len());
     assert!(block > 0 && f.len().is_multiple_of(block));
     let n_in = f.len() / block;
@@ -843,7 +838,7 @@ fn fold_and_msg_blocks<T: RoundWitness>(
 /// E-vector afterwards.
 enum Witness<'a> {
     Base(&'a [F64]),
-    Ext(ArenaVec<F192>),
+    Ext(Vec<F192>),
 }
 
 /// Running sumcheck over the committed base witness and subsequent extension-field folds.
@@ -852,14 +847,14 @@ struct SumcheckProver<'a> {
     /// Single combined basis poly: `glue_pending(lambda)` folds each claim
     /// introduced since the last glue in as `combined_basis += lambda^tau *
     /// b_new`, `tau` counting from 1 (the running claim is `tau = 0`).
-    combined_basis: ArenaVec<F192>,
+    combined_basis: Vec<F192>,
     /// The running claim and its quadratic; `h(0) + h(1) = t_r` fixes the linear coefficient.
     t_r: F192,
     quad: RoundQuad,
     round: usize,
     /// The level's claims, in Protocol 1 step 1 order: the OOD claims, then the
     /// query batch. Drained by `glue_pending`.
-    pending: Vec<(ArenaVec<F192>, F192, RoundQuad)>,
+    pending: Vec<(Vec<F192>, F192, RoundQuad)>,
 }
 
 impl<'a> SumcheckProver<'a> {
@@ -868,7 +863,7 @@ impl<'a> SumcheckProver<'a> {
     /// whole blocks rather than adjacent words.
     fn new(
         f: &'a [F64],
-        b1: ArenaVec<F192>,
+        b1: Vec<F192>,
         h1: F192,
         block: usize,
         initial_message: Option<SumcheckMessage>,
@@ -929,10 +924,8 @@ impl<'a> SumcheckProver<'a> {
             Witness::Base(f) => fold_and_msg_lsb(f, &self.combined_basis, r),
             Witness::Ext(f) => fold_and_msg_lsb(f, &self.combined_basis, r),
         };
-        // Swap the freshly folded buffers in and drop the consumed ones, which
-        // at these sizes returns their slab space to the arena's reuse list, so
-        // the next round's `fold_out_buf` is served from it rather than growing
-        // the phase's cursor.
+        // Swap the freshly folded buffers in and drop the consumed ones, so the
+        // allocator serves the next round's `fold_out_buf` from their memory.
         drop(std::mem::replace(&mut self.f, Witness::Ext(nf)));
         drop(std::mem::replace(&mut self.combined_basis, nb));
         self.quad = RoundQuad::from_msg(msg, self.t_r);
@@ -941,7 +934,7 @@ impl<'a> SumcheckProver<'a> {
 
     /// Introduce a fresh basis poly with claimed sum `h_new`; sends the
     /// (u_0, u_2) for `Σ_x f(x) · b_new(x)` at the current dim.
-    fn introduce_new(&mut self, b_new: ArenaVec<F192>, h_new: F192) -> SumcheckMessage {
+    fn introduce_new(&mut self, b_new: Vec<F192>, h_new: F192) -> SumcheckMessage {
         let msg = match &self.f {
             Witness::Base(f) => {
                 assert_eq!(b_new.len(), f.len());
@@ -959,7 +952,7 @@ impl<'a> SumcheckProver<'a> {
     /// Introduce `b_new` and compute its claimed inner product in the same
     /// pass as the round message. OOD claims only occur after the first fold,
     /// when the witness has already been lifted from K to E.
-    fn introduce_new_with_eval(&mut self, b_new: ArenaVec<F192>) -> (SumcheckMessage, F192) {
+    fn introduce_new_with_eval(&mut self, b_new: Vec<F192>) -> (SumcheckMessage, F192) {
         let f = match &self.f {
             Witness::Ext(f) => f,
             Witness::Base(_) => panic!("OOD claim introduced before the first fold"),
@@ -1086,7 +1079,7 @@ pub fn recursive_prover_with_basis(
     config: &ProverConfig,
     log_n: usize,
     witness: &[F64],
-    b_initial: ArenaVec<F192>,
+    b_initial: Vec<F192>,
     target: F192,
     l0_codeword: &[F64],
     l0_tree: &[Hash],
@@ -1109,7 +1102,7 @@ pub(crate) fn recursive_prover_with_prepared_basis(
     config: &ProverConfig,
     log_n: usize,
     witness: &[F64],
-    b_initial: ArenaVec<F192>,
+    b_initial: Vec<F192>,
     target: F192,
     l0_codeword: &[F64],
     l0_tree: &[Hash],
@@ -1609,7 +1602,7 @@ pub fn recursive_verifier_with_basis(
     // at the whole (rotated) point; every later slot is an induced basis evaluated
     // at a suffix of `ris`, so the two side vectors describe slots 1.. and are
     // indexed `[k - 1]`.
-    let mut basis_polys: Vec<ArenaVec<F192>> = vec![ArenaVec::from_slice(b_initial), basis_0_induced];
+    let mut basis_polys: Vec<Vec<F192>> = vec![b_initial.to_vec(), basis_0_induced];
     let mut basis_ris_starts: Vec<usize> = vec![initial_k];
     let mut basis_separations: Vec<F192> = vec![query_scalar_0];
     let mut ris = r_lane_fold;
@@ -2165,7 +2158,7 @@ mod tests {
             &pc,
             log_n,
             &witness,
-            ArenaVec::from_slice(&b_initial),
+            b_initial.to_vec(),
             target,
             &pd.codeword,
             &pd.merkle_tree,
@@ -2250,10 +2243,10 @@ mod tests {
                 "parallel mismatch at n={n}"
             );
             let g = rng.ext();
-            let mut seeded = zk_alloc::alloc_uninit(1 << n);
+            let mut seeded = Box::new_uninit_slice(1 << n).into_vec();
             primitives::multilinear::fill_eq_table_uninit(&point, g, &mut seeded);
             // SAFETY: fill_eq_table_uninit initializes every entry.
-            let seeded = unsafe { zk_alloc::assume_init(seeded) };
+            let seeded = unsafe { seeded.into_boxed_slice().assume_init() }.into_vec();
             let scaled: Vec<F192> = serial.iter().map(|&e| g * e).collect();
             assert_eq!(&*seeded, &scaled, "seeded mismatch at n={n}");
         }
@@ -2405,7 +2398,7 @@ mod tests {
                         &pc,
                         log_n,
                         msg,
-                        ArenaVec::from_slice(b),
+                        b.to_vec(),
                         target,
                         &pd.codeword,
                         &pd.merkle_tree,

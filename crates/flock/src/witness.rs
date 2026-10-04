@@ -4,7 +4,6 @@
 
 use primitives::bits::bit_transpose_64bytes;
 use primitives::stream::Stream;
-use zk_alloc::ArenaVec;
 
 /// OR the low 32 bits of `val` into `buf` starting at bit-offset `bit_off`.
 /// Handles u64 straddling when `bit_off % 64 > 32`.
@@ -148,7 +147,7 @@ pub(crate) fn drive_witness_packed_and_lincheck<S: Sync, F>(
     n_blocks_log: usize,
     k_log: usize,
     per_block: F,
-) -> (ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u8>)
+) -> (Vec<u64>, Vec<u64>, Vec<u64>, Vec<u8>)
 where
     F: Fn(&S, &mut [u64], &mut [u64], &mut [u64]) + Sync,
 {
@@ -168,10 +167,10 @@ where
     let total_words = n_total * u64_per_block;
     // SAFETY (x4): group `g` publishes chunk `g` of every table in full below, and the chunk counts match.
     // The z/a/b chunks are 8 blocks of packed words, and the stripe chunk is the transpose's k bytes.
-    let mut z = unsafe { ArenaVec::<u64>::uninitialized(total_words) };
-    let mut a = unsafe { ArenaVec::<u64>::uninitialized(total_words) };
-    let mut b = unsafe { ArenaVec::<u64>::uninitialized(total_words) };
-    let mut z_lincheck = unsafe { ArenaVec::<u8>::uninitialized((n_total / 8) * k) };
+    let mut z = unsafe { primitives::uninit_vec::<u64>(total_words) };
+    let mut a = unsafe { primitives::uninit_vec::<u64>(total_words) };
+    let mut b = unsafe { primitives::uninit_vec::<u64>(total_words) };
+    let mut z_lincheck = unsafe { primitives::uninit_vec::<u8>((n_total / 8) * k) };
 
     // Four output tables at two widths, indexed by the same group: `z`/`a`/`b`
     // take eight blocks' packed words, `z_lincheck` takes one byte stripe.

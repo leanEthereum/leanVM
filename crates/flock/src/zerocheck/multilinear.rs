@@ -41,7 +41,6 @@ use crate::zerocheck::univariate_skip::pack_bits;
 use crate::zerocheck::univariate_skip::{SplitEq, build_eq};
 use primitives::field::{F192, F192Unreduced, PHI_8_TABLE_192 as PHI_8_TABLE};
 use primitives::stream::Stream;
-use zk_alloc::ArenaVec;
 
 /// Four independent products. Tuples keep the scalar and NEON paths in registers, while AVX-512 uses the batched helper.
 #[inline(always)]
@@ -115,7 +114,7 @@ pub fn interpolate_at_z_combined(values_on_lambda: &[F192], k_skip: usize, z: F1
 /// `a(s, x_rest)` is the witness bit at index `x_rest * 2^k_skip + s` (low
 /// bits = skip variable, high bits = rest variables).
 #[cfg(test)]
-fn fold_at_z_naive(witness: &[bool], m: usize, k_skip: usize, weights: &[F192]) -> ArenaVec<F192> {
+fn fold_at_z_naive(witness: &[bool], m: usize, k_skip: usize, weights: &[F192]) -> Vec<F192> {
     assert!(k_skip <= m);
     let ell = 1usize << k_skip;
     let n_rest = 1usize << (m - k_skip);
@@ -123,7 +122,7 @@ fn fold_at_z_naive(witness: &[bool], m: usize, k_skip: usize, weights: &[F192]) 
     assert_eq!(weights.len(), ell);
 
     // SAFETY: the loop below writes every one of the `n_rest` slots.
-    let mut folded = unsafe { ArenaVec::<F192>::uninitialized(n_rest) };
+    let mut folded = unsafe { primitives::uninit_vec::<F192>(n_rest) };
     for x_rest in 0..n_rest {
         let base = x_rest * ell;
         let mut acc = F192::ZERO;
@@ -334,7 +333,7 @@ pub fn bit_round_materialize(
     fold: &BitFold,
     r_eq: &[F192],
     padding: &PaddingSpec,
-) -> ((F192, F192), [ArenaVec<F192>; 3]) {
+) -> ((F192, F192), [Vec<F192>; 3]) {
     match fold.n_chunks() {
         8 => bit_round_store_kernel::<8>(bits, fold, r_eq, padding),
         16 => bit_round_store_kernel::<16>(bits, fold, r_eq, padding),
@@ -444,7 +443,7 @@ fn bit_round_store_kernel<const CHUNKS: usize>(
     fold: &BitFold,
     r_eq: &[F192],
     padding: &PaddingSpec,
-) -> ((F192, F192), [ArenaVec<F192>; 3]) {
+) -> ((F192, F192), [Vec<F192>; 3]) {
     let rows = bits.rows::<CHUNKS>();
     let n_pos = rows[0].len();
     assert!(n_pos >= 2, "a round needs two positions");
@@ -459,7 +458,7 @@ fn bit_round_store_kernel<const CHUNKS: usize>(
     let live = |pair: usize| (pair & pair_in_block_mask) < live_pairs;
 
     // SAFETY (x3): every slot is written below, padding included.
-    let mut out: [ArenaVec<F192>; 3] = std::array::from_fn(|_| unsafe { ArenaVec::uninitialized(n_pos) });
+    let mut out: [Vec<F192>; 3] = std::array::from_fn(|_| unsafe { primitives::uninit_vec(n_pos) });
     let [out_a, out_b, out_c] = &mut out;
     let chunks = [out_a, out_b, out_c].map(|o| parallel::Chunks::new(o, 2 * lo_size));
 
@@ -552,7 +551,7 @@ fn bit_round_store_kernel<const CHUNKS: usize>(
 /// In-place fold of a single multilinear polynomial table at `challenge`.
 /// Pairs `(a[2x], a[2x+1])` collapse to `a[x] = a[2x] + challenge · (a[2x+1] + a[2x])`.
 /// After the call, `a.len()` is halved.
-pub fn fold_in_place_single(a: &mut ArenaVec<F192>, challenge: F192) {
+pub fn fold_in_place_single(a: &mut Vec<F192>, challenge: F192) {
     let n = a.len();
     assert!(n.is_power_of_two() && n >= 2);
     let half = n / 2;
@@ -571,7 +570,7 @@ pub fn fold_in_place_single(a: &mut ArenaVec<F192>, challenge: F192) {
 ///
 /// Used at the tail of the multilinear-round sequence where the polynomial is
 /// small enough that parallel/fusion overhead outweighs benefit.
-pub fn fold_in_place_pair(a: &mut ArenaVec<F192>, b: &mut ArenaVec<F192>, challenge: F192) {
+pub fn fold_in_place_pair(a: &mut Vec<F192>, b: &mut Vec<F192>, challenge: F192) {
     let n = a.len();
     assert_eq!(b.len(), n);
     assert!(n.is_power_of_two() && n >= 2);
@@ -913,8 +912,8 @@ mod tests {
             let b_orig: Vec<F192> = (0..n).map(|_| rng.ext()).collect();
             let challenge = rng.ext();
 
-            let mut a = ArenaVec::from_slice(&a_orig);
-            let mut b = ArenaVec::from_slice(&b_orig);
+            let mut a = a_orig.to_vec();
+            let mut b = b_orig.to_vec();
             fold_in_place_pair(&mut a, &mut b, challenge);
 
             assert_eq!(a.len(), n / 2);
@@ -1023,8 +1022,8 @@ mod tests {
                 fold_and_compute_round_pair_into(&a, &b, &mut a_fused, &mut b_fused, r_fold, &r_eq);
 
             // Unfused path: clone, in-place fold, naive message.
-            let mut a_unf = ArenaVec::from_slice(&a);
-            let mut b_unf = ArenaVec::from_slice(&b);
+            let mut a_unf = a.to_vec();
+            let mut b_unf = b.to_vec();
             fold_in_place_pair(&mut a_unf, &mut b_unf, r_fold);
             let (m1_unf, minf_unf) = round_pair_naive(&a_unf, &b_unf, &r_eq);
 
@@ -1050,7 +1049,7 @@ mod tests {
             let mut c_fused = vec![F192::ZERO; n / 2];
             let m1_fused = fold_and_compute_round_single_into(&c, &mut c_fused, r_fold, &r_eq);
 
-            let mut c_unf = ArenaVec::from_slice(&c);
+            let mut c_unf = c.to_vec();
             fold_in_place_single(&mut c_unf, r_fold);
             let m1_unf = round_single_naive(&c_unf, &r_eq);
 
@@ -1075,7 +1074,7 @@ mod tests {
     }
 
     /// The naive message of one round on stored tables: `(G(1), G(inf))` with `c` added to `G(1)`.
-    fn naive_message(t: &[ArenaVec<F192>; 3], r_eq: &[F192]) -> (F192, F192) {
+    fn naive_message(t: &[Vec<F192>; 3], r_eq: &[F192]) -> (F192, F192) {
         let (g1, g_inf) = round_pair_naive(&t[0], &t[1], r_eq);
         (g1 + round_single_naive(&t[2], r_eq), g_inf)
     }

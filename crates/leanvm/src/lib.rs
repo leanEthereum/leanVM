@@ -46,20 +46,17 @@ pub use rand;
 /// Call once before verifying an [`EthereumProof`]. Idempotent, and
 /// [`setup_prover`] does it for you.
 pub fn setup_verifier() {
-    leanvm_core::init_prover_pool();
+    leanvm_core::init_prover();
     rec_aggregation::warm_up();
 }
 
 /// Call once before [`aggregate`].
 ///
-/// There is one arena per process, so only one [`aggregate`] call may run at a
-/// time in a process: to aggregate in parallel, use separate processes.
+/// A proof's buffers are ordinary heap allocations, freed before it returns, so
+/// proving speed depends on the process's global allocator. One that keeps freed
+/// pages mapped serves the next proof from them with no page fault: jemalloc with
+/// dirty pages that never decay, which the `leanvm` CLI installs. glibc's default
+/// is the slow case, since it unmaps a large block on free.
 pub fn setup_prover() {
-    zk_alloc::enable_arena();
-    setup_prover_without_arena();
-}
-
-/// [`setup_prover`] for a machine with small memory.
-pub fn setup_prover_without_arena() {
     setup_verifier();
 }

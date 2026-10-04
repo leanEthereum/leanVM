@@ -716,7 +716,6 @@ const STREAM_MIN_WORDS: usize = 1 << 23;
 ///
 /// - It is cache-line aligned, so a full-width load never splits a line.
 /// - It lives as long as the thread, so no pass allocates in its hot loop.
-/// - It is an ordinary allocation, never the proving arena, because it outlives every proof.
 fn with_scratch<R>(len: usize, f: impl FnOnce(&mut [F64]) -> R) -> R {
     // One cache line of words.
     #[derive(Clone, Copy)]

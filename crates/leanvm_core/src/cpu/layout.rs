@@ -88,10 +88,10 @@ pub struct Layout {
 /// column at its placed offset, plus the public [`Layout`] (and the sizes needed to
 /// announce it).
 pub(crate) struct Witness {
-    pub(crate) q: zk_alloc::ArenaVec<F64>,
+    pub(crate) q: Vec<F64>,
     /// The virtual columns' values as `(global column index, values)`. They carry
     /// data for the bus but are not committed, so they are not in `q`.
-    pub(crate) virt: Vec<(usize, zk_alloc::ArenaVec<F64>)>,
+    pub(crate) virt: Vec<(usize, Vec<F64>)>,
     pub(crate) layout: Layout,
     pub(crate) log_mem: usize,
     /// Freed immediately after reduction, before the mixed PCS opening.
@@ -483,7 +483,7 @@ impl Program {
         // A virtual column is not in the stack, so its values need storage of their
         // own: it carries data for the bus, and only its evaluation claims route
         // elsewhere (to `q_flock`).
-        let mut virt: Vec<(usize, zk_alloc::ArenaVec<F64>)> = Vec::new();
+        let mut virt: Vec<(usize, Vec<F64>)> = Vec::new();
         for (t, table) in tables::tables().iter().enumerate() {
             for c in 0..table.n_committed_columns() {
                 let i = sch.base[t] + c;
@@ -491,7 +491,7 @@ impl Program {
                     // SAFETY: a virtual window is a table column, `FillCtx::cols_at`
                     // writes every row of every window it is given, and `fill_table`
                     // asserts each table wrote all of its columns.
-                    virt.push((i, unsafe { zk_alloc::ArenaVec::<F64>::uninitialized(1 << l.taus[t]) }));
+                    virt.push((i, unsafe { primitives::uninit_vec::<F64>(1 << l.taus[t]) }));
                 }
             }
         }

@@ -802,7 +802,7 @@ mod tests {
             &pc,
             log_n,
             &packed,
-            zk_alloc::ArenaVec::from_slice(&rs_eq_ind),
+            rs_eq_ind.to_vec(),
             sumcheck_claim,
             &pd.codeword,
             &pd.merkle_tree,

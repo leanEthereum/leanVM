@@ -2,7 +2,6 @@ use std::mem::MaybeUninit;
 
 use primitives::field::{F64, F192};
 use primitives::multilinear::fill_eq_table_uninit;
-use zk_alloc::ArenaVec;
 
 use super::{RingSwitchOpen, StackClaim};
 use crate::ring_switch::{DeferredRingSwitchOutput, combine_deferred_chunk};
@@ -14,7 +13,7 @@ struct PointWeight<'a> {
     slot: usize,
     stride: usize,
     low: &'a [F192],
-    high: ArenaVec<F192>,
+    high: Vec<F192>,
 }
 
 impl<'a> PointWeight<'a> {
@@ -35,10 +34,10 @@ impl<'a> PointWeight<'a> {
         assert!(slot < stride, "claim slot must fit the stride");
         let low_vars = point.len().min(chunk_log.saturating_sub(stride_log));
         let (low, high_point) = point.split_at(low_vars);
-        let mut high = zk_alloc::alloc_uninit(1 << high_point.len());
+        let mut high = Box::new_uninit_slice(1 << high_point.len()).into_vec();
         fill_eq_table_uninit(high_point, lambda, &mut high);
         // SAFETY: the seeded equality build initializes the whole table.
-        let high = unsafe { zk_alloc::assume_init(high) };
+        let high = unsafe { high.into_boxed_slice().assume_init() }.into_vec();
         Self {
             offset,
             end: offset + len,
@@ -80,7 +79,7 @@ pub(super) fn build(
     lambdas: &[F192],
     ring: &RingSwitchOpen,
     rs_outputs: &[DeferredRingSwitchOutput],
-) -> (ArenaVec<F192>, SumcheckMessage) {
+) -> (Vec<F192>, SumcheckMessage) {
     assert_eq!(claims.len(), lambdas.len());
     let chunk_log = lane_block.min(INITIAL_BASIS_CHUNK).ilog2() as usize;
     let weights: Vec<_> = claims

@@ -39,7 +39,6 @@ use flock::hash::{
 use flock::verifier::VerifyError;
 use primitives::field::{F64, F192};
 use primitives::stream::Stream;
-use zk_alloc::ArenaVec;
 
 pub use flock::hash::{
     SliceClaim, min_n_blocks_log as n_blocks_log, qflock_kappa, ring_switch_open, ring_switch_verify,
@@ -57,10 +56,10 @@ pub const PINNED_T: u64 = flock::hash::PINNED_T;
 /// constraint proving so reduction needs no second witness pass.
 pub(crate) struct PreparedReductionWitness {
     n_blocks: usize,
-    z_packed: ArenaVec<u64>,
-    a_packed: ArenaVec<u64>,
-    b_packed: ArenaVec<u64>,
-    z_lincheck: ArenaVec<u8>,
+    z_packed: Vec<u64>,
+    a_packed: Vec<u64>,
+    b_packed: Vec<u64>,
+    z_lincheck: Vec<u8>,
 }
 
 impl PreparedReductionWitness {
