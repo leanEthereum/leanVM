@@ -7,7 +7,6 @@
 //! and so never leave the vector register.
 
 use core::ops::{Add, AddAssign, Mul, MulAssign};
-
 use serde::{Deserialize, Serialize};
 
 /// Reduction constant of the base field: `x^64 = x^4 + x^3 + x + 1 = 0x1B`.
@@ -369,7 +368,9 @@ pub mod software {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_rng::Rng;
+    use crate::test_util::Rng;
+    #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
+    use core::arch::aarch64::vgetq_lane_u64;
 
     /// Independent Python reference vectors: (a, b, a * b).
     const VECTORS: [(u64, u64, u64); 3] = [
@@ -424,8 +425,6 @@ mod tests {
     #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
     #[test]
     fn neon_variants_match_software() {
-        use core::arch::aarch64::vgetq_lane_u64;
-
         let mut rng = Rng::new(5);
         // Random pairs, then every pair of corners.
         let random = (0..10_000).map(|_| (rng.next_u64(), rng.next_u64()));

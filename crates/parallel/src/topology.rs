@@ -1,5 +1,7 @@
 //! Which cores exist, and how to ask the OS for one.
 
+#[cfg(all(target_arch = "aarch64", target_os = "macos"))]
+use core::ffi::CStr;
 use std::sync::OnceLock;
 
 /// Worker counts for the pool: performance cores first, then the efficiency
@@ -95,7 +97,7 @@ fn efficiency_cores() -> usize {
 /// Read an integer `sysctl` by name through the syscall, never a spawned
 /// `sysctl` process. Any failure reads as "unknown".
 #[cfg(all(target_arch = "aarch64", target_os = "macos"))]
-fn sysctl_usize(name: &core::ffi::CStr) -> Option<usize> {
+fn sysctl_usize(name: &CStr) -> Option<usize> {
     let mut value: i32 = 0;
     let mut len = core::mem::size_of::<i32>();
     // SAFETY: a read-only sysctl; `value`/`len` are correctly sized and the

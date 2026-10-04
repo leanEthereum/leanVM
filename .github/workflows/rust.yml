@@ -69,9 +69,10 @@ jobs:
       RUSTFLAGS: ""
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@nightly
-        with:
-          components: clippy, rust-src, rustfmt
+      # The guests' toolchain file pins a dated nightly with `rust-src` alone; rustup installs it here, with clippy and rustfmt.
+      - name: Install the guests' toolchain
+        working-directory: programs/hash/guest
+        run: rustup component add clippy rustfmt
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: programs -> target
@@ -80,7 +81,7 @@ jobs:
       - name: Check formatting
         run: |
           for guest in programs/*/guest; do
-            cargo fmt --manifest-path "$guest/Cargo.toml" -- --check
+            (cd "$guest" && cargo fmt -- --check)
           done
 
   doc:

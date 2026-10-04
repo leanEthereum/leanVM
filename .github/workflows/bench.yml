@@ -45,13 +45,18 @@ jobs:
           - name: arm64
             runner: ubuntu-24.04-arm
             rustflags: -C target-cpu=neoverse-n2 -C target-feature=+aes,+sha3
-        # The cases of `proven()` in bins/leanvm/src/tracked.rs, run by the CLI, then the
+        # The cases of `proven()` and `proven_trees()` in bins/leanvm/src/tracked.rs, run by the
+        # CLI (a tree's case, `Nto1` for N proofs combined into 1, prints two benchmarks:
+        # `-first`, a first-level node, the RISC-V verifier in rows over N leaf proofs, and
+        # `-node`, a higher node, the recursion verifier in rows over N child proofs), then the
         # `benches/` targets (`package`, `target`), each run with `--json`.
         benchmark:
           - name: fibonacci-asm-2000000
           - name: hash-50000
           - name: leanxmss-100
           - name: leansphincs-26
+          - name: aggregate-leanxmss-100-2to1
+          - name: aggregate-leanxmss-100-4to1
           - { name: flock-hash-batch-262144, package: flock, target: hash_batch }
           - { name: flock-arithmetic-batch, package: flock, target: arithmetic_batch }
           - { name: pcs-throughput, package: pcs, target: throughput }

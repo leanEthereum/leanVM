@@ -31,8 +31,8 @@
 //!
 //! See <https://ethresear.ch/t/leanda-design-and-benchmark/25642>.
 #![no_std]
-
 use leanvm_guest::{Blake2s, ext};
+use thiserror::Error;
 
 /// A BLAKE2s-256 digest, as four little-endian words.
 pub type Hash = [u64; 4];
@@ -53,7 +53,7 @@ pub const PAYLOAD_CELLS: usize = CELLS / 2;
 pub const MAX_ROWS: usize = 1024;
 
 /// Why a matrix is rejected.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, thiserror::Error)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Error)]
 pub enum DaError {
     /// No rows, or more than a commitment holds.
     #[error("{rows} rows, and a commitment holds 1 to {MAX_ROWS}")]

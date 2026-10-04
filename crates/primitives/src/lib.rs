@@ -1,16 +1,16 @@
 //! Shared primitives: field kernels, bit transposes, multilinear helpers, and
 //! small integer utilities.
 
+use std::mem::{MaybeUninit, needs_drop};
+
 pub mod bits;
 pub mod field;
 pub mod hash;
 pub mod multilinear;
 pub mod stream;
 
-use std::mem::{MaybeUninit, needs_drop};
-
 #[cfg(feature = "test-util")]
-pub mod test_rng;
+pub mod test_util;
 
 /// Format an integer with comma-separated groups of three decimal digits.
 ///

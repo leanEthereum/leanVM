@@ -9,7 +9,7 @@ use crate::cpu::{CpuError, DeferredClaims, Layout, Program, TableReduction};
 use crate::pcs::Rate;
 use crate::rec::circuit::{Builder, Dw, Ew, Kw};
 use crate::rec::transcript::{ProofSource, Transcript};
-use crate::tables::{self, Clock, N_TABLES};
+use crate::tables::{ClassSpec, Clock, N_TABLES};
 use ::pcs::pack::PACKING_WIDTH;
 use ::pcs::stack_open::{RingSwitchVerify, RingSwitchVerifyClaim};
 use primitives::field::F192;
@@ -81,7 +81,7 @@ impl<'p> ProofShape<'p> {
         let reductions: Vec<Reduction> = (0..class_flock::N_FLOCKS)
             .map(|f| {
                 let (table, part) = class_flock::flock(f);
-                let name = format!("flock {} {part:?}", tables::ClassSpec::ALL[table].name);
+                let name = format!("flock {} {part:?}", ClassSpec::ALL[table].name);
                 r.scope(name, |r| Reduction::replay(r, class_flock::shape(f), self.taus[table]))
             })
             .collect();

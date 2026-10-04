@@ -5,7 +5,8 @@
 //!
 //! The dual codeword `L` then follows from the root, by Fiat-Shamir.
 
-use fiat_shamir::{FiatShamirState, merkle::hash_to_scalars};
+use fiat_shamir::FiatShamirState;
+use fiat_shamir::merkle::hash_to_scalars;
 use leanda::{CELLS, Dual, Hash, LOG_K, M};
 use leanvm_guest::PublicValues;
 use pcs::ntt::AdditiveNttF64;
@@ -117,6 +118,9 @@ const fn as_field(words: &mut [u64]) -> &mut [F64] {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use leanda::{DaError, Hash};
+    use leanvm_core::cpu::Program;
+    use leanvm_core::rv::{Machine, Trap};
 
     fn hex(words: &[u64]) -> String {
         words
@@ -175,7 +179,7 @@ mod tests {
                 *limb = (rest * F64(row[0]).inv()).0;
             }
             let row: &[[u64; M]] = &[row.try_into().unwrap()];
-            let check = |dual: &[Dual], cells: &mut [[leanda::Hash; CELLS]]| {
+            let check = |dual: &[Dual], cells: &mut [[Hash; CELLS]]| {
                 leanda::check(dual.try_into().unwrap(), row, cells).map(|_| ())
             };
             assert_eq!(check(&dual, &mut cells), Ok(()));
@@ -191,7 +195,7 @@ mod tests {
                 broken[0][c] ^= 1 << bit;
                 assert_eq!(
                     check(&broken, &mut cells),
-                    Err(leanda::DaError::NotACodeword { row: 0 }),
+                    Err(DaError::NotACodeword { row: 0 }),
                     "limb {c} bit {bit}"
                 );
             }
@@ -199,9 +203,9 @@ mod tests {
     }
 
     /// The guest on the interpreter, with no proof: its output, or the trap.
-    fn on_the_vm(run: &Run) -> Result<[u64; 4], leanvm_core::rv::Trap> {
-        let program = leanvm_core::cpu::Program::from_elf(ELF).expect("the guest's ELF file");
-        leanvm_core::rv::Machine::new(program.rv(), &run.advice).run()
+    fn on_the_vm(run: &Run) -> Result<[u64; 4], Trap> {
+        let program = Program::from_elf(ELF).expect("the guest's ELF file");
+        Machine::new(program.rv(), &run.advice).run()
     }
 
     #[test]

@@ -20,7 +20,7 @@ use std::hint::black_box;
 use bench::{Metric, Plan, Timing, bencher_json};
 use primitives::bits::{bit_transpose_64bytes, transpose_64x64};
 use primitives::field::{F64, F192, mul4};
-use primitives::test_rng::Rng;
+use primitives::test_util::Rng;
 
 /// Operands per array, few enough that a sweep's inputs and outputs stay in L1.
 const N: usize = 256;

@@ -8,18 +8,25 @@
 //! leanSPHINCS at a quarter, and no leanDA, whose one blob is its smallest run), and a PR's
 //! base and head are proven in turns on one runner and compared there. A case's name is what
 //! a PR's results are matched by, so renaming one or changing its input shows it as new.
-
-use std::fmt::Write as _;
-use std::io::Write as _;
-use std::time::Duration;
-
-use bench::{Metric, Plan, Timing, bencher_json};
-use leanvm::{Program, Proved, Prover, Rate, Stats, verify};
-use primitives::pretty_integer;
+//!
+//! An aggregation tree is tracked the same way: each kind of node's circuit counted without a
+//! proof (the leaf's run measured gives the shape its proofs announce), and one node of each
+//! kind proven over copies of one leaf proof.
 
 use crate::fibonacci::fibonacci_program;
 use crate::guest::refuse;
-use crate::workload::{self, Workload};
+use crate::workload;
+use crate::workload::Workload;
+use bench::{Metric, Plan, Timing, bencher_json};
+use leanvm::aggregate::{CircuitStats, Kind, Leaf, LeafShape, Tree, TreeProof};
+use leanvm::{LeanVmError, Program, Proved, Prover, Rate, Stats, verify};
+use leanvm_guest::PublicValues;
+use primitives::pretty_integer;
+use std::fmt::Write as _;
+use std::fs::OpenOptions;
+use std::io::Write as _;
+use std::path::Path;
+use std::time::Duration;
 
 struct Case {
     name: &'static str,
@@ -67,7 +74,7 @@ impl Case {
         let digest: [u64; 4] =
             std::array::from_fn(|i| u64::from_le_bytes(digest[8 * i..8 * i + 8].try_into().unwrap()));
         // What the guest commits: the length, then the digest.
-        let mut public = leanvm_guest::PublicValues::new();
+        let mut public = PublicValues::new();
         public.commit(&(length as u64)).commit(&digest);
         Self::workload(
             name,
@@ -112,6 +119,78 @@ fn proven() -> [(&'static str, Build); 4] {
     ]
 }
 
+/// An aggregation tree over copies of one case's proof: first-level nodes of `arity_0` leaves,
+/// nodes of `arity` tree proofs. A tree's name ends `<N>to1` when both are `N`: every node
+/// combines `N` proofs into 1.
+struct Aggregation {
+    name: &'static str,
+    leaf: Case,
+    arity_0: usize,
+    arity: usize,
+}
+
+impl Aggregation {
+    const fn new(name: &'static str, leaf: Case, arity_0: usize, arity: usize) -> Self {
+        Self {
+            name,
+            leaf,
+            arity_0,
+            arity,
+        }
+    }
+
+    /// The tree over the leaf's proofs shaped `shape`, every tree proof at `rate`.
+    fn tree(&self, shape: LeafShape, rate: Rate) -> Tree<'_> {
+        Tree::new(&self.leaf.program, shape, self.arity_0, self.arity, rate)
+            .unwrap_or_else(|e| refuse(format_args!("{}: {e}", self.name)))
+    }
+
+    /// A kind of node's benchmark name, and what the markdown table calls it: `<name>-first`, a
+    /// first-level node (the RISC-V verifier in rows over `arity_0` leaf proofs), and
+    /// `<name>-node`, a higher node (the recursion verifier in rows over `arity` child proofs).
+    fn node(&self, kind: Kind) -> (String, String) {
+        match kind {
+            Kind::First => (
+                format!("{}-first", self.name),
+                format!("first-level node over {} x {}", self.arity_0, self.leaf.title),
+            ),
+            Kind::Node => (
+                format!("{}-node", self.name),
+                format!(
+                    "node over {} tree proofs, first level {} x {}",
+                    self.arity, self.arity_0, self.leaf.title
+                ),
+            ),
+        }
+    }
+}
+
+/// Aggregation trees counted without a proof: the README's leaves, 2 to 1 (`cargo leanvm
+/// aggregate`'s shape) and 4 to 1.
+fn counted_trees() -> Vec<Aggregation> {
+    let leaf = || Case::workload("leanxmss-400", workload::leanxmss(400));
+    vec![
+        Aggregation::new("aggregate-leanxmss-400-2to1", leaf(), 2, 2),
+        Aggregation::new("aggregate-leanxmss-400-4to1", leaf(), 4, 4),
+    ]
+}
+
+/// Builds an aggregation tree given its name.
+type BuildTree = fn(&'static str) -> Aggregation;
+
+/// Aggregation trees proven: the counted trees' arities over leaves of a size proven above.
+/// Each gives two benchmarks, `<name>-first` and `<name>-node`.
+fn proven_trees() -> [(&'static str, BuildTree); 2] {
+    [
+        ("aggregate-leanxmss-100-2to1", |name| {
+            Aggregation::new(name, Case::workload("leanxmss-100", workload::leanxmss(100)), 2, 2)
+        }),
+        ("aggregate-leanxmss-100-4to1", |name| {
+            Aggregation::new(name, Case::workload("leanxmss-100", workload::leanxmss(100)), 4, 4)
+        }),
+    ]
+}
+
 /// With `cycles_only`, count every case without a proof and print the counts as JSON, or with
 /// `markdown` as a table, or as JSON with the table appended to `markdown_file`; otherwise
 /// prove, verify and time the proven cases, or only the one named `only`, as JSON (one case
@@ -119,7 +198,7 @@ fn proven() -> [(&'static str, Build); 4] {
 pub fn run(
     cycles_only: bool,
     markdown: bool,
-    markdown_file: Option<&std::path::Path>,
+    markdown_file: Option<&Path>,
     only: Option<&str>,
     prover: &Prover,
     rate: Rate,
@@ -133,34 +212,53 @@ pub fn run(
                 (case, stats)
             })
             .collect();
+        let trees: Vec<_> = counted_trees()
+            .into_iter()
+            .map(|tree| {
+                let circuits = circuits(&tree, rate);
+                (tree, circuits)
+            })
+            .collect();
+        let tables = table(&counted) + &tree_table(&trees);
         if markdown {
-            return print!("{}", table(&counted));
+            return print!("{tables}");
         }
         if let Some(path) = markdown_file {
-            std::fs::OpenOptions::new()
+            OpenOptions::new()
                 .create(true)
                 .append(true)
                 .open(path)
-                .and_then(|mut file| file.write_all(table(&counted).as_bytes()))
+                .and_then(|mut file| file.write_all(tables.as_bytes()))
                 .unwrap_or_else(|e| refuse(format_args!("{}: {e}", path.display())));
         }
+        let circuits = trees.iter().flat_map(|(tree, circuits)| {
+            (circuits.iter()).map(|(kind, stats)| (tree.node(*kind).0, circuit_counts(stats)))
+        });
         counted
             .iter()
             .map(|(case, stats)| (case.name.to_string(), counts(stats)))
+            .chain(circuits)
             .collect()
     } else {
         let cases: Vec<_> = proven()
             .into_iter()
             .filter(|(name, _)| only.is_none_or(|only| only == *name))
             .collect();
-        if cases.is_empty() {
+        let trees: Vec<_> = proven_trees()
+            .into_iter()
+            .filter(|(name, _)| only.is_none_or(|only| only == *name))
+            .collect();
+        if cases.is_empty() && trees.is_empty() {
             refuse(format_args!("no tracked case is named {}", only.unwrap_or_default()));
         }
         bench::time_stages("Prove");
-        let report: Vec<_> = cases
+        let mut report: Vec<_> = cases
             .into_iter()
             .map(|(name, case)| (name.to_string(), proved(&case(name), prover, rate, plan)))
             .collect();
+        for (name, tree) in trees {
+            report.extend(proved_tree(&tree(name), prover, rate, plan));
+        }
         return println!("{}", bencher_json(&report));
     };
     println!("{}", bencher_json(&report));
@@ -175,6 +273,32 @@ fn counts(stats: &Stats) -> Vec<(&'static str, Metric)> {
         ("proven-rows", Metric::exact(stats.cycles)),
         ("committed", Metric::exact(stats.committed)),
     ]
+}
+
+/// Each kind of node's circuit, without a proof: the leaf's run, measured, gives the shape its
+/// proofs announce.
+fn circuits(tree: &Aggregation, rate: Rate) -> [(Kind, CircuitStats); 2] {
+    let shape = LeafShape::measured(&tree.leaf.measure(), rate);
+    let built = tree.tree(shape, rate);
+    Kind::ALL.map(|kind| (kind, built.stats(kind)))
+}
+
+/// `rows` (the circuit's own), `proven-rows` (the tables' heights, powers of two) and
+/// `committed` (the witness words): exact, the same on every machine.
+fn circuit_counts(stats: &CircuitStats) -> Vec<(&'static str, Metric)> {
+    let (rows, proven) = circuit_rows(stats);
+    vec![
+        ("rows", Metric::exact(rows)),
+        ("proven-rows", Metric::exact(proven)),
+        ("committed", Metric::exact(stats.committed)),
+    ]
+}
+
+/// A circuit's rows, and its tables' heights, summed over its tables.
+fn circuit_rows(stats: &CircuitStats) -> (usize, usize) {
+    let rows = stats.tables.iter().map(|t| t.rows).sum();
+    let proven = stats.tables.iter().map(|t| 1 << t.height_log).sum();
+    (rows, proven)
 }
 
 /// A verification takes milliseconds, so one pass says little about it.
@@ -202,14 +326,76 @@ fn proved(case: &Case, prover: &Prover, rate: Rate, plan: Plan) -> Vec<(String, 
     );
     let (verified, verify_time) = Plan::new(VERIFY_PASSES, 0).measure_quiet(|_| verify(&case.program, &output, &proof));
     verified.expect("an honest proof verifies");
+    measures(&time, proof.to_bytes().len(), &verify_time, &passes[1..], peak_memory)
+}
+
+/// A proven case's measures: its proving time, proof size and verifying time, each of its
+/// stages over the measured passes, and the peak memory.
+fn measures(
+    time: &Timing,
+    proof_size: usize,
+    verify_time: &Timing,
+    passes: &[Vec<(&'static str, Duration)>],
+    peak_memory: u64,
+) -> Vec<(String, Metric)> {
     let mut report = vec![
-        ("latency".to_string(), Metric::nanoseconds(&time)),
-        ("proof-size".to_string(), Metric::exact(proof.to_bytes().len())),
-        ("verify".to_string(), Metric::nanoseconds(&verify_time)),
+        ("latency".to_string(), Metric::nanoseconds(time)),
+        ("proof-size".to_string(), Metric::exact(proof_size)),
+        ("verify".to_string(), Metric::nanoseconds(verify_time)),
     ];
-    report.extend(stages(&passes[1..]));
+    report.extend(stages(passes));
     report.push(("peak-memory".to_string(), Metric::exact(peak_memory as usize)));
     report
+}
+
+/// Prove the leaf once, then one first-level node over copies of its proof and one node over
+/// copies of that, each reported as `proved` reports a case: its stages are the children of a
+/// `Prove` span around it, its verifying time is as a root, and its peak memory is the
+/// process's so far, the node's including the first-level node's.
+fn proved_tree(tree: &Aggregation, prover: &Prover, rate: Rate, plan: Plan) -> Vec<(String, Vec<(String, Metric)>)> {
+    eprintln!("{}", tree.name);
+    let leaf = &tree.leaf;
+    let Proved { proof, output, .. } = prover
+        .prove(&leaf.program, &leaf.advice, rate)
+        .unwrap_or_else(|e| refuse(format_args!("{}: {e}", leaf.name)));
+    assert_eq!(
+        output, leaf.expected,
+        "{}: the output is the native reference's",
+        leaf.name
+    );
+    let built = tree.tree(LeafShape::of(&proof).expect("an honest announcement"), rate);
+    // The leaf's stages.
+    bench::take_stages();
+    let leaves = vec![Leaf::new(&proof, output); tree.arity_0];
+    let outputs = vec![output; tree.arity_0];
+    let (first, first_report) = proved_node(&built, &outputs, plan, || built.prove_first(&leaves));
+    let children = vec![first; tree.arity];
+    let outputs = vec![output; tree.arity_0 * tree.arity];
+    let (_, node_report) = proved_node(&built, &outputs, plan, || built.prove_node(&children));
+    vec![
+        (tree.node(Kind::First).0, first_report),
+        (tree.node(Kind::Node).0, node_report),
+    ]
+}
+
+/// One node's proof and its measures.
+fn proved_node(
+    tree: &Tree<'_>,
+    outputs: &[[u64; 4]],
+    plan: Plan,
+    prove: impl Fn() -> Result<TreeProof, LeanVmError>,
+) -> (TreeProof, Vec<(String, Metric)>) {
+    let mut passes = Vec::new();
+    let (proof, time) = plan.warm_then_measure(|_| {
+        let proof = (tracing::info_span!("Prove").in_scope(&prove)).expect("honest children");
+        passes.push(bench::take_stages());
+        proof
+    });
+    let peak_memory = bench::peak_rss_bytes();
+    let (verified, verify_time) = Plan::new(VERIFY_PASSES, 0).measure_quiet(|_| tree.verify(&proof, outputs));
+    verified.expect("an honest tree proof verifies");
+    let report = measures(&time, proof.to_bytes().len(), &verify_time, &passes[1..], peak_memory);
+    (proof, report)
 }
 
 /// One `stage.<name>` measure per stage, in the order the stages ran, over the measured
@@ -265,6 +451,32 @@ fn table(counted: &[(Case, Stats)]) -> String {
             stats.details()
         )
         .unwrap();
+    }
+    table
+}
+
+/// Each tree's circuits as a markdown table, with the rows per table and their heights.
+fn tree_table(trees: &[(Aggregation, [(Kind, CircuitStats); 2])]) -> String {
+    let mut table = String::from(
+        "\n| recursion circuit | rows | proven rows | committed words | tables |\n|---|---:|---:|---:|---|\n",
+    );
+    for (tree, circuits) in trees {
+        for (kind, stats) in circuits {
+            let (rows, proven) = circuit_rows(stats);
+            let tables: Vec<String> = (stats.tables.iter())
+                .map(|t| format!("{} {} (2^{})", t.name, pretty_integer(&t.rows), t.height_log))
+                .collect();
+            writeln!(
+                table,
+                "| {} | {} | {} | 2^{:.2} | {} |",
+                tree.node(*kind).1,
+                pretty_integer(&rows),
+                pretty_integer(&proven),
+                (stats.committed as f64).log2(),
+                tables.join("  ")
+            )
+            .unwrap();
+        }
     }
     table
 }

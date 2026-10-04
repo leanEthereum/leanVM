@@ -2,6 +2,7 @@
 //! Bit-packing and R1CS-row helpers for the monolithic hash R1CS modules
 //! (only `hash` in this vendored subset).
 
+use parallel::Chunks;
 use primitives::bits::bit_transpose_64bytes;
 use primitives::stream::Stream;
 
@@ -180,10 +181,10 @@ where
     // A group's share: its packed words in each table, and one stripe per 8 instances.
     let group_words = group * (k / 64);
     let group_bytes = (group / 8) * k;
-    let z_chunks = parallel::Chunks::new(&mut z, group_words);
-    let a_chunks = parallel::Chunks::new(&mut a, group_words);
-    let b_chunks = parallel::Chunks::new(&mut b, group_words);
-    let stripe_chunks = parallel::Chunks::new(&mut z_lincheck, group_bytes);
+    let z_chunks = Chunks::new(&mut z, group_words);
+    let a_chunks = Chunks::new(&mut a, group_words);
+    let b_chunks = Chunks::new(&mut b, group_words);
+    let stripe_chunks = Chunks::new(&mut z_lincheck, group_bytes);
     debug_assert_eq!(z_chunks.count(), stripe_chunks.count());
 
     parallel::map_reduce_with_state(

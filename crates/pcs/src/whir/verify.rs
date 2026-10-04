@@ -15,9 +15,10 @@ use crate::whir_induce::{eval_sk_at_vks, induce_sumcheck_enforced_sum, induce_su
 use fiat_shamir::transcript::{Receiver, TranscriptError};
 use primitives::field::{F64, F192, powers};
 use primitives::multilinear::{eq_eval, eq_table};
+use thiserror::Error;
 
 /// Why a WHIR opening is rejected.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, thiserror::Error)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Error)]
 pub enum WhirError {
     /// The proof stream is malformed.
     #[error(transparent)]

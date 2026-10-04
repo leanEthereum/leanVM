@@ -1,8 +1,9 @@
 name: Counts
 
 # The tracked programs' exact counts (`cargo leanvm bench --cycles-only`: RISC-V cycles,
-# proven rows, committed words), the same on every machine, so one runner. Every run puts
-# the table in its summary. A PR's run also counts its base, the merge commit's first
+# proven rows, committed words, and two aggregation trees' circuits' rows, proven rows and
+# committed words), the same on every machine, so one runner. Every run puts the tables in
+# its summary. A PR's run also counts its base, the merge commit's first
 # parent, and saves both as the artifact `counts`; counts-comment.yml, on the default
 # branch, posts the counts that changed on the PR. Any increase fails the run, once saved.
 

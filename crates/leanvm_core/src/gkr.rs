@@ -8,17 +8,20 @@
 
 use crate::PAR_THRESHOLD;
 use crate::arith::Verifier;
-use fiat_shamir::transcript::{Challenger, ProverState, Transmitter};
+use fiat_shamir::transcript::{Challenger, ProverState, TranscriptError, Transmitter};
+use parallel::SendPtr;
 use primitives::field::{F192, F192Unreduced, mul_unreduced4, mul2, mul4};
 use primitives::multilinear::{eq_table, interp};
 use primitives::stream::Stream;
+use std::ops::Range;
+use thiserror::Error;
 
 /// Why the bus's grand-product GKR rejects.
-#[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
+#[derive(Clone, Debug, PartialEq, Eq, Error)]
 pub enum GkrError {
     /// The proof stream is malformed.
     #[error(transparent)]
-    Transcript(#[from] fiat_shamir::transcript::TranscriptError),
+    Transcript(#[from] TranscriptError),
     /// A layer's sumcheck does not end at the product of the next layer's claims.
     #[error("the GKR layer {layer} does not reduce to the next")]
     LayerMismatch { layer: usize },
@@ -116,7 +119,7 @@ impl SplitEq {
     /// Each run of `x` sharing a high weight is reduced once and scaled by it once.
     fn weighted_sum(
         &self,
-        range: std::ops::Range<usize>,
+        range: Range<usize>,
         mut terms: impl FnMut(usize, F192) -> [F192Unreduced; 4],
     ) -> [F192Unreduced; 4] {
         let mask = self.low.len() - 1;
@@ -299,7 +302,7 @@ impl QuaternaryLayerState {
         let rows = stored_rows.div_ceil(2);
         self.next.truncate(4 * rows);
         let values = &self.values;
-        let dst = parallel::SendPtr(self.next.as_mut_ptr());
+        let dst = SendPtr(self.next.as_mut_ptr());
         const PAIRS: usize = 16;
         let pairs = rows.div_ceil(2);
         let task = |index: usize| {

@@ -14,6 +14,7 @@ use leanvm_core::pcs::Rate;
 use leanvm_core::rv::{Guest, Machine, Region, Trap};
 use leanvm_core::tables::N_TABLES;
 use std::path::{Path, PathBuf};
+use std::thread::Builder;
 
 /// Every test of the two suites, as `(extension, instruction)`, the file being
 /// `<extension>/<extension>-<instruction>-00.elf`.
@@ -179,7 +180,7 @@ fn act4_proven() {
     }
     std::thread::scope(|scope| {
         for (name, statement, raw) in &python {
-            std::thread::Builder::new()
+            Builder::new()
                 .name(name.clone())
                 .spawn_scoped(scope, move || statement.assert_accepts(raw))
                 .unwrap();

@@ -54,15 +54,16 @@
 //! `lambda` is drawn after the map, so the family's error is fixed by then and is the
 //! constant term of the batched error, which is what lets it take `lambda^0 = 1`.
 
+use super::pack::PACKING_WIDTH;
+use super::ring_switch;
+use super::ring_switch::RsEqQuery;
+use super::whir::{Basis, ProverConfig, ProverData, VerifierConfig, WhirError, recursive_verifier_with_basis_succinct};
 use crate::merkle::Hash;
+use basis::StackWeight;
 use fiat_shamir::transcript::{Challenger, Receiver, Transmitter};
 use primitives::field::{F64, F192, powers};
 use primitives::multilinear::eq_eval;
-
-use super::pack::PACKING_WIDTH;
-use super::ring_switch;
-use super::whir::{ProverConfig, VerifierConfig, WhirError};
-use super::whir::{ProverData, recursive_verifier_with_basis_succinct};
+use std::cmp::Reverse;
 
 mod basis;
 
@@ -299,16 +300,10 @@ pub fn open_batch_mixed_whir_stacked(
     //
     // Filling costs less than writing the weight out and reading it back.
     let lane_block = 1usize << (log_n - config.initial_k());
-    let weight = basis::StackWeight::new(stack.len(), lane_block, point_claims, lambdas_pd, rings, &rs_outputs);
+    let weight = StackWeight::new(stack.len(), lane_block, point_claims, lambdas_pd, rings, &rs_outputs);
     let fill = |start: usize, dst: &mut [F192]| weight.fill(start, dst);
-    let initial = tracing::info_span!("Basis").in_scope(|| {
-        super::whir::initial_rounds(
-            stack,
-            lane_block,
-            config.initial_k(),
-            &super::whir::Basis::Virtual(&fill),
-        )
-    });
+    let initial = tracing::info_span!("Basis")
+        .in_scope(|| super::whir::initial_rounds(stack, lane_block, config.initial_k(), &Basis::Virtual(&fill)));
 
     // 4. One WHIR over the full stack against the combined claim (the
     //    stack is borrowed by the prover; no copy).
@@ -316,7 +311,7 @@ pub fn open_batch_mixed_whir_stacked(
         config,
         log_n,
         stack,
-        super::whir::Basis::Virtual(&fill),
+        Basis::Virtual(&fill),
         target,
         &prover_data.codeword,
         &prover_data.merkle_tree,
@@ -460,7 +455,7 @@ impl RingFamily {
         let n_rs: usize = rings.iter().map(|ring| ring.claims.len()).sum();
         let scales = powers(self.gamma_rs, n_rs);
         let max_qflock_vars = rings.iter().map(|ring| ring.qflock_vars).max().unwrap_or(0);
-        let rs_query = ring_switch::RsEqQuery::new(&self.map_challenges, &x[..max_qflock_vars]);
+        let rs_query = RsEqQuery::new(&self.map_challenges, &x[..max_qflock_vars]);
         let mut terms = vec![[F192::ZERO; ring_switch::LINEARIZED_TERMS]; rings.len()];
         for group in PrefixGroup::of(rings) {
             let at = ring_switch::rs_eq_prefix_terms(group.lead, &rs_query, &group.lengths);
@@ -509,7 +504,7 @@ impl<'a> PrefixGroup<'a> {
             .enumerate()
             .map(|(i, (r, point))| (i, r, point))
             .collect();
-        claims.sort_by_key(|&(_, _, point)| std::cmp::Reverse(point.len()));
+        claims.sort_by_key(|&(_, _, point)| Reverse(point.len()));
         let mut groups: Vec<Self> = Vec::new();
         for (claim, ring, point) in claims {
             let g = groups
@@ -542,10 +537,12 @@ impl<'a> PrefixGroup<'a> {
 mod tests {
     use super::*;
     use crate::ring_switch::fold_1b_rows;
-    use crate::whir::{INITIAL_BASIS_CHUNK, commit, default_config, inner_product_base_ext};
-    use crate::whir_config::test_config_for;
+    use crate::whir::{INITIAL_BASIS_CHUNK, commit, inner_product_base_ext};
+    use crate::whir_config::tests::{default_config, test_config_for};
+    use basis::StackWeight;
+    use fiat_shamir::transcript::{Proof, ProverState, VerifierState};
     use primitives::multilinear::eq_table;
-    use primitives::test_rng::Rng;
+    use primitives::test_util::Rng;
 
     const DOMAIN: &[u8] = b"stack-open-test";
 
@@ -618,7 +615,7 @@ mod tests {
                 }
             }
             // The weight, filled chunk by chunk as the opening reads it.
-            let weight = basis::StackWeight::new(
+            let weight = StackWeight::new(
                 stack.len(),
                 lane_block,
                 &claims,
@@ -643,7 +640,7 @@ mod tests {
         rings: Vec<RingSwitchOpen>,
         /// The verifier's copy of each ring's one claim.
         ring_verify: Vec<RingSwitchClaim>,
-        fs: fiat_shamir::transcript::Proof,
+        fs: Proof,
     }
 
     /// Synthetic stack of 2^14 F64 words: three aligned 2^12-word columns
@@ -761,7 +758,7 @@ mod tests {
             "test shape must keep the residual cube above q_flock (yr_log_n = {yr_log_n})"
         );
         let (cm, pd) = commit(&stack, log_n, pc.initial_k(), pc.log_inv_rates()[0]);
-        let mut ps = fiat_shamir::transcript::ProverState::from_label(DOMAIN);
+        let mut ps = ProverState::from_label(DOMAIN);
         open_batch_mixed_whir_stacked(&mut ps, log_n, &stack, &pd, &pc, &point_claims, &rings);
 
         Instance {
@@ -789,7 +786,7 @@ mod tests {
         inst: &Instance,
         point_claims: &[StackClaim],
         ring_claims: &[RingSwitchClaim],
-        fs: &fiat_shamir::transcript::Proof,
+        fs: &Proof,
     ) -> bool {
         let rings: Vec<RingSwitchVerify<'_>> = (inst.rings.iter().zip(ring_claims))
             .map(|(ring, claim)| RingSwitchVerify {
@@ -798,7 +795,7 @@ mod tests {
                 claims: verifier_claims(std::slice::from_ref(claim)),
             })
             .collect();
-        let mut vs = fiat_shamir::transcript::VerifierState::from_label(DOMAIN, fs);
+        let mut vs = VerifierState::from_label(DOMAIN, fs);
         verify_opening_batch_mixed_whir_stacked(
             &mut vs,
             &inst.vc,
@@ -931,7 +928,7 @@ mod tests {
             qflock_vars,
             claims,
         };
-        let mut ps = fiat_shamir::transcript::ProverState::from_label(DOMAIN);
+        let mut ps = ProverState::from_label(DOMAIN);
         open_batch_mixed_whir_stacked(
             &mut ps,
             log_n,
@@ -948,7 +945,7 @@ mod tests {
             qflock_vars,
             claims: verifier_claims(&ring.claims),
         };
-        let mut vs = fiat_shamir::transcript::VerifierState::from_label(DOMAIN, &fs);
+        let mut vs = VerifierState::from_label(DOMAIN, &fs);
         assert!(
             verify_opening_batch_mixed_whir_stacked(
                 &mut vs,
@@ -971,7 +968,7 @@ mod tests {
             qflock_vars: ring.qflock_vars,
             claims: verifier_claims(&bad_claims),
         };
-        let mut vs = fiat_shamir::transcript::VerifierState::from_label(DOMAIN, &fs);
+        let mut vs = VerifierState::from_label(DOMAIN, &fs);
         assert!(
             verify_opening_batch_mixed_whir_stacked(
                 &mut vs,

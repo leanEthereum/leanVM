@@ -8,6 +8,16 @@
 //!
 //! So one opcode completes a hash of any length, with no tree of chunks to rebuild in-circuit.
 
+#[cfg(target_arch = "aarch64")]
+use arm::Neon;
+#[cfg(not(any(all(target_arch = "x86_64", target_feature = "avx2"), target_arch = "aarch64")))]
+use batch::Scalar8;
+use batch::{Lanes32, hash_many_with};
+#[cfg(all(target_arch = "x86_64", not(target_feature = "avx512f"), target_feature = "avx2"))]
+use x86::Avx2;
+#[cfg(all(target_arch = "x86_64", target_feature = "avx512f"))]
+use x86::Avx512;
+
 mod batch;
 
 #[cfg(target_arch = "aarch64")]
@@ -15,17 +25,15 @@ mod arm;
 #[cfg(target_arch = "x86_64")]
 mod x86;
 
-use batch::{Lanes32, hash_many_with};
-
 /// The batched backend this build dispatches to.
 #[cfg(all(target_arch = "x86_64", target_feature = "avx512f"))]
-type Backend = x86::Avx512;
+type Backend = Avx512;
 #[cfg(all(target_arch = "x86_64", not(target_feature = "avx512f"), target_feature = "avx2"))]
-type Backend = x86::Avx2;
+type Backend = Avx2;
 #[cfg(target_arch = "aarch64")]
-type Backend = arm::Neon;
+type Backend = Neon;
 #[cfg(not(any(all(target_arch = "x86_64", target_feature = "avx2"), target_arch = "aarch64")))]
-type Backend = batch::Scalar8;
+type Backend = Scalar8;
 
 /// BLAKE2s initial values: the SHA-256 IV.
 pub const IV: [u32; 8] = [
@@ -278,30 +286,17 @@ pub fn hash_many_dyn(data: &[u8], len: usize, out: &mut [u8]) {
     hash_many_dyn_from_state(data, len, &PARAM_IV, 0, out);
 }
 
-/// The official unkeyed BLAKE2s-256 test vectors, as `(input, digest)` pairs.
-///
-/// Input `n` is the `n` bytes `00 01 .. n-1`, for `n` in `0..256`: every length through four blocks.
-///
-/// `test_vectors.txt` is extracted from `testvectors/blake2-kat.json` of <https://github.com/BLAKE2/BLAKE2>:
-///
-/// ```text
-/// jq -r '.[] | select(.hash == "blake2s" and .key == "") | .out' blake2-kat.json
-/// ```
-#[cfg(feature = "test-util")]
-pub fn test_vectors() -> impl Iterator<Item = (Vec<u8>, [u8; OUT_LEN])> {
-    let lines: Vec<&str> = include_str!("test_vectors.txt").lines().collect();
-    assert_eq!(lines.len(), 256, "the vector file is truncated");
-    lines.into_iter().enumerate().map(|(n, line)| {
-        let input = (0..n).map(|i| i as u8).collect();
-        let digest = std::array::from_fn(|i| u8::from_str_radix(&line[2 * i..2 * i + 2], 16).unwrap());
-        (input, digest)
-    })
-}
-
 #[cfg(test)]
 mod tests {
     use super::batch::Scalar8;
     use super::*;
+    use crate::test_util::test_vectors;
+    #[cfg(target_arch = "aarch64")]
+    use arm::Neon;
+    #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
+    use x86::Avx2;
+    #[cfg(all(target_arch = "x86_64", target_feature = "avx512f"))]
+    use x86::Avx512;
 
     #[test]
     fn continued_from_zero_prefix_matches_whole_image() {
@@ -413,11 +408,11 @@ mod tests {
         }
         check::<Scalar8>("scalar");
         #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
-        check::<x86::Avx2>("avx2");
+        check::<Avx2>("avx2");
         #[cfg(all(target_arch = "x86_64", target_feature = "avx512f"))]
-        check::<x86::Avx512>("avx512");
+        check::<Avx512>("avx512");
         #[cfg(target_arch = "aarch64")]
-        check::<arm::Neon>("neon");
+        check::<Neon>("neon");
     }
 
     #[test]

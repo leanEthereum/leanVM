@@ -2,11 +2,11 @@
 
 use super::MAX_LOG_ROWS;
 use super::execute::Execution;
-use super::layout::Layout;
-use super::layout::{Lookup, Schema, Shared, q_column};
+use super::layout::{Layout, Lookup, Schema, Shared, q_column};
 use super::program::Program;
-use crate::class_flock::{self, Prepared};
-use crate::tables::{self, FillContext};
+use crate::class_flock::Prepared;
+use crate::tables::{ClassSpec, ClassTable, FillContext};
+use crate::{class_flock, tables};
 use primitives::field::F64;
 
 /// The prover's witness: the stack `q` with every committed column at its placed offset, and the public layout.
@@ -47,12 +47,12 @@ impl Witness {
                 "a table has {r} rows, not a power of two: the fill blocks did not fill it"
             );
             let tau = crate::log2_strict_usize(r);
-            let floor = class_flock::n_blocks_log(tables::ClassSpec::ALL[t], r);
+            let floor = class_flock::n_blocks_log(ClassSpec::ALL[t], r);
             assert_eq!(
                 tau,
                 floor,
                 "the {} table must be filled to flock's instance floor",
-                tables::ClassSpec::ALL[t].name
+                ClassSpec::ALL[t].name
             );
             tau
         });
@@ -82,7 +82,7 @@ impl Witness {
 
         crate::stage!("Fill columns", || {
             // Each table fills its own columns from the trace, in its global span.
-            for (t, table) in tables::ClassTable::all().iter().enumerate() {
+            for (t, table) in ClassTable::all().iter().enumerate() {
                 let (base, n) = schema.spans[t];
                 let ctx = FillContext::new(trace, p, 1 << layout.taus[t], n);
                 table.fill(ctx, &mut windows[base..base + n]);

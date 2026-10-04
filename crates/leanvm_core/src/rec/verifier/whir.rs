@@ -5,7 +5,7 @@
 use super::ring::RingShare;
 use super::{Rows, infallible};
 use crate::arith::{Arith, Verifier};
-use crate::pcs::SlotClaim;
+use crate::pcs::StackClaim;
 use crate::rec::circuit::{Dw, Ew, Kw};
 use crate::witness::StackShape;
 use ::pcs::ring_switch::COMPOSITION_SHIFTS;
@@ -16,7 +16,7 @@ use primitives::field::{F64, F192};
 /// One opening of the committed stack: its point claims and its ring-switched regions.
 pub(super) struct Opening<'a, 'r> {
     /// The point claims, each on an aligned slice of the stack.
-    pub(super) slots: &'a [SlotClaim<Ew>],
+    pub(super) slots: &'a [StackClaim<Ew>],
     /// The ring-switched regions, their claims' slices bound upstream.
     pub(super) rings: &'a [RingSwitchVerify<'r, Ew>],
     /// The committed stack's size and its committed lanes.
@@ -125,15 +125,15 @@ impl Opening<'_, '_> {
     /// A plain claim's full point is its low point then its offset's bits.
     ///
     /// A strided claim's is its slot's bits, its point, then its offset's bits.
-    fn claim_eq_at(r: &mut Rows<'_, '_>, claim: &SlotClaim<Ew>, x: &[Ew]) -> Ew {
+    fn claim_eq_at(r: &mut Rows<'_, '_>, claim: &StackClaim<Ew>, x: &[Ew]) -> Ew {
         match claim {
-            SlotClaim::Point { offset, low_point, .. } => {
+            StackClaim::Point { offset, low_point, .. } => {
                 let n = low_point.len();
                 let low = r.eq_eval(low_point, &x[..n]);
                 let sel = r.eq_bits(offset >> n, &x[n..]);
                 r.mul(low, sel)
             }
-            SlotClaim::Strided {
+            StackClaim::Strided {
                 offset,
                 slot,
                 stride_log,

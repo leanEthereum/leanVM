@@ -100,7 +100,7 @@ mod portable {
 mod tests {
     use super::*;
     use primitives::field::{F64, F192};
-    use primitives::test_rng::Rng;
+    use primitives::test_util::Rng;
 
     #[test]
     fn the_portable_field_is_the_proof_systems() {

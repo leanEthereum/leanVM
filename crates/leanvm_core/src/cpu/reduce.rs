@@ -5,13 +5,14 @@ use super::deferred::{Claim, ProgramPoint};
 use super::error::CpuError;
 use super::layout::{Framework, Layout, Schema};
 use crate::arith::Verifier;
-use crate::constraints::{self, Claims};
-use crate::{leaf, pcs, tables};
+use crate::constraints::Claims;
+use crate::pcs::StackClaim;
+use crate::{constraints, leaf, tables};
 
 /// What the bus and the table sumcheck leave to the rest of the verifier.
 pub(crate) struct TableReduction<E> {
     /// The opening's point claims: the bus's framework claims, each table's columns, then the exit's.
-    pub(crate) slots: Vec<pcs::SlotClaim<E>>,
+    pub(crate) slots: Vec<StackClaim<E>>,
     /// Each producer's multiplicity bits at its point, which the opening ring-switches.
     pub(crate) producers: Vec<Claims<E>>,
     /// The claim on the program's bytecode table and RAM image.

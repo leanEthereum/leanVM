@@ -7,9 +7,13 @@
 //! a constant that drifts changes what each side ACCEPTS, and only a statement they both
 //! reject would show it. So the two lists are rendered the same way and diffed here.
 
+use leanvm_core::class_flock::{circuit, flock_index, stride_log};
 use leanvm_core::rv::{Hash, Reg, Region, RegisterFile, Syscall};
-use leanvm_core::tables::ClassSpec;
+use leanvm_core::tables::{ClassSpec, ClassTable, Clock, Part};
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write;
+use std::path::Path;
+use std::process::Command;
 
 /// What the Rust verifier's constants come to, in the format `protocol_constants()`
 /// prints: sorted `name value` lines, a list being comma-separated.
@@ -21,8 +25,8 @@ fn rust_constants() -> String {
     scalar("BAD_SLOT", leanvm_core::tables::BAD_SLOT as u64);
     scalar("BUS_BITS", leanvm_core::leaf::N_TUPLE_BITS as u64);
     scalar("EXIT_SLOT", leanvm_core::tables::EXIT_SLOT as u64);
-    scalar("CLOCK_START", leanvm_core::tables::Clock::CLOCK_START);
-    scalar("FAIL_BIT", leanvm_core::tables::Clock::FAIL_BIT as u64);
+    scalar("CLOCK_START", Clock::CLOCK_START);
+    scalar("FAIL_BIT", Clock::FAIL_BIT as u64);
     scalar("FLOCK_K_SKIP", flock::zerocheck::K_SKIP as u64);
     scalar("FLOCK_MIN_LOG_SIZE", leanvm_core::class_flock::MIN_CUBE_LOG as u64);
     scalar("HASH_OUT_WORD", Hash::OUT / 8);
@@ -31,7 +35,7 @@ fn rust_constants() -> String {
         "INITIAL_FOLDING_FACTOR",
         pcs::whir_config::INITIAL_FOLDING_FACTOR as u64,
     );
-    scalar("LIVE_BIT", leanvm_core::tables::Clock::LIVE_BIT as u64);
+    scalar("LIVE_BIT", Clock::LIVE_BIT as u64);
     scalar("LOG_PACKING", pcs::pack::LOG_PACKING as u64);
     scalar("LOG_REGISTERS", RegisterFile::LOG_CELLS as u64);
     scalar("MAX_LOG_ADVICE", Region::ADVICE.max_log_words() as u64);
@@ -43,15 +47,15 @@ fn rust_constants() -> String {
     scalar("NUM_FRAMEWORK_COLUMNS", leanvm_core::cpu::Q_BASE as u64);
     scalar("QUERY_GRINDING_BITS", pcs::whir_config::QUERY_GRINDING_BITS as u64);
     scalar("RAM_BASE", Region::RAM.base());
-    scalar("RAM_SLOT", leanvm_core::tables::Clock::RAM_SLOT as u64);
+    scalar("RAM_SLOT", Clock::RAM_SLOT as u64);
     scalar("RESIDUAL_MAX_LOG", pcs::whir_config::RESIDUAL_MAX_LOG as u64);
     let rs_domain = pcs::whir_config::RS_DOMAIN_INITIAL_REDUCTION_FACTOR;
     scalar("RS_DOMAIN_INITIAL_REDUCTION_FACTOR", rs_domain as u64);
     let rs_domain_rest = pcs::whir_config::RS_DOMAIN_SUBSEQUENT_REDUCTION_FACTOR;
     scalar("RS_DOMAIN_SUBSEQUENT_REDUCTION_FACTOR", rs_domain_rest as u64);
-    scalar("SEED_CLOCK", leanvm_core::tables::Clock::SEED_CLOCK);
+    scalar("SEED_CLOCK", Clock::SEED_CLOCK);
     scalar("SINK", RegisterFile::SINK as u64);
-    scalar("SLOT_BITS", leanvm_core::tables::Clock::SLOT_BITS as u64);
+    scalar("SLOT_BITS", Clock::SLOT_BITS as u64);
     scalar(
         "SUBSEQUENT_FOLDING_FACTOR",
         pcs::whir_config::SUBSEQUENT_FOLDING_FACTOR as u64,
@@ -65,14 +69,9 @@ fn rust_constants() -> String {
         "OUTPUT_REGISTERS {}",
         list(&Reg::OUTPUTS.map(|r| r.index() as u64))
     ));
-    lines.push(format!(
-        "REGISTER_SLOTS {}",
-        list(&leanvm_core::tables::Clock::REG_SLOTS.map(u64::from))
-    ));
+    lines.push(format!("REGISTER_SLOTS {}", list(&Clock::REG_SLOTS.map(u64::from))));
 
     for (t, spec) in ClassSpec::ALL.iter().enumerate() {
-        use leanvm_core::class_flock::{circuit, flock_index, stride_log};
-        use leanvm_core::tables::Part;
         let clock = circuit(flock_index(t, Part::Clock));
         let circuit = circuit(flock_index(t, Part::Class));
         let prefix = format!("TABLE.{}", spec.name.to_lowercase());
@@ -86,10 +85,7 @@ fn rust_constants() -> String {
             ("clock_const_pos", clock.const_pos() as u64),
             ("min_log_height", leanvm_core::class_flock::n_blocks_log(spec, 1) as u64),
             ("ports", spec.ports.len() as u64),
-            (
-                "width",
-                leanvm_core::tables::ClassTable::all()[t].n_committed_columns() as u64,
-            ),
+            ("width", ClassTable::all()[t].n_committed_columns() as u64),
         ] {
             line.clear();
             write!(line, "{prefix}.{field} {value}").unwrap();
@@ -109,8 +105,8 @@ fn rust_constants() -> String {
 
 #[test]
 fn constants_match_the_python_verifier() {
-    let verifier = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../python-verifier/verifier.py");
-    let dumped = std::process::Command::new("python3")
+    let verifier = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../python-verifier/verifier.py");
+    let dumped = Command::new("python3")
         .arg(&verifier)
         .arg("--constants")
         .output()
@@ -119,14 +115,14 @@ fn constants_match_the_python_verifier() {
     let python = String::from_utf8(dumped.stdout).expect("utf-8").trim().to_string();
     let rust = rust_constants();
 
-    let parse = |dump: &str| -> std::collections::BTreeMap<String, String> {
+    let parse = |dump: &str| -> BTreeMap<String, String> {
         dump.lines()
             .filter_map(|line| line.split_once(' '))
             .map(|(name, value)| (name.to_string(), value.to_string()))
             .collect()
     };
     let (theirs, ours) = (parse(&python), parse(&rust));
-    let names: std::collections::BTreeSet<&String> = theirs.keys().chain(ours.keys()).collect();
+    let names: BTreeSet<&String> = theirs.keys().chain(ours.keys()).collect();
     let differences: Vec<String> = names
         .into_iter()
         .filter(|name| theirs.get(*name) != ours.get(*name))

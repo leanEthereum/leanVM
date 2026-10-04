@@ -64,6 +64,10 @@ const fn words_of_signature(signature: &Signature) -> &[u64] {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use leansphincs::SphincsVerifyError::{InadmissibleDigest, InadmissibleEncoding, RootMismatch};
+    use leansphincs::{Signature, SphincsVerifyError};
+    use leanvm_core::cpu::Program;
+    use leanvm_core::rv::{Machine, Trap};
 
     fn hex(bytes: impl IntoIterator<Item = u8>) -> String {
         bytes.into_iter().map(|b| format!("{b:02x}")).collect()
@@ -84,7 +88,7 @@ mod tests {
     }
 
     /// A layer's counter, one-time signature and path, to tamper with.
-    fn layer(s: &mut leansphincs::Signature, lay: usize) -> (&mut u64, &mut [[u64; 2]; 42], &mut [[u64; 2]]) {
+    fn layer(s: &mut Signature, lay: usize) -> (&mut u64, &mut [[u64; 2]; 42], &mut [[u64; 2]]) {
         match lay {
             0 => (&mut s.layer0.counter, &mut s.layer0.ots, &mut s.layer0.path),
             1 => (&mut s.layer1.counter, &mut s.layer1.ots, &mut s.layer1.path),
@@ -113,14 +117,13 @@ mod tests {
 
     #[test]
     fn leansphincs_rejects_a_change_anywhere() {
-        use leansphincs::SphincsVerifyError::{InadmissibleDigest, InadmissibleEncoding, RootMismatch};
         // Invariant: a verifier binds every part of the signature, on every layer.
         //
         // Fixture state: one honest signature, checked after each mutation with its error.
         let (seed, message) = fixed();
         let (sk, pk) = leansphincs::key_gen(seed);
         let signature = sk.sign(&message).unwrap();
-        let rejects = |change: &dyn Fn(&mut leansphincs::Signature), expected: leansphincs::SphincsVerifyError| {
+        let rejects = |change: &dyn Fn(&mut Signature), expected: SphincsVerifyError| {
             let mut bad = signature.clone();
             change(&mut bad);
             assert_eq!(leansphincs::verify(&pk, &message, &bad), Err(expected));
@@ -161,9 +164,9 @@ mod tests {
     }
 
     /// The guest on the interpreter, with no proof: its output, or the trap.
-    fn on_the_vm(run: &Run) -> Result<[u64; 4], leanvm_core::rv::Trap> {
-        let program = leanvm_core::cpu::Program::from_elf(ELF).expect("the guest's ELF file");
-        leanvm_core::rv::Machine::new(program.rv(), &run.advice).run()
+    fn on_the_vm(run: &Run) -> Result<[u64; 4], Trap> {
+        let program = Program::from_elf(ELF).expect("the guest's ELF file");
+        Machine::new(program.rv(), &run.advice).run()
     }
 
     #[test]

@@ -10,6 +10,9 @@ use crate::blake2s::{Block, IV};
 #[cfg(any(test, all(target_arch = "riscv64", target_os = "none")))]
 use core::mem::MaybeUninit;
 
+#[cfg(all(target_arch = "riscv64", target_os = "none"))]
+pub use vm::{commit, read, read_slice, read_unchecked};
+
 /// A type made of 64-bit words and nothing else, so that any words are one.
 ///
 /// # Safety
@@ -166,9 +169,6 @@ impl Public {
 }
 
 #[cfg(all(target_arch = "riscv64", target_os = "none"))]
-pub use vm::{commit, read, read_slice, read_unchecked};
-
-#[cfg(all(target_arch = "riscv64", target_os = "none"))]
 pub(crate) mod vm {
     use super::{Public, Words, as_words_unchecked, assert_words};
 
@@ -291,7 +291,7 @@ macro_rules! advice_words {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use primitives::test_rng::Rng;
+    use primitives::test_util::Rng;
 
     /// The digest `commit` gives for `words` committed `n` at a time: a `Public` as the VM's, made in place.
     fn committed(words: &[u64], n: usize) -> [u64; 4] {

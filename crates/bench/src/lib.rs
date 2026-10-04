@@ -2,6 +2,7 @@
 //! warmup, cooldown and confidence intervals, the trace tree `--tracing` prints, the prover's
 //! stage times, and Bencher Metric Format output. Nothing the prover or verifier links.
 
+use std::fmt::Display;
 use std::io::{IsTerminal, Write};
 use std::time::{Duration, Instant};
 
@@ -10,6 +11,7 @@ mod stages;
 mod trace;
 pub use allocator::Jemalloc;
 pub use stages::{take_stages, time_stages};
+
 pub use trace::{TraceSuppressed, init_tracing, init_tracing_from_env, suppress_tracing};
 
 /// One line of live progress on stderr.
@@ -304,7 +306,7 @@ impl Metric {
 /// (`.github/workflows/bench.yml`): <https://bencher.dev/docs/reference/bencher-metric-format/>.
 /// A measure's name is a `&str`, or a `String` when it is built at run time.
 #[must_use]
-pub fn bencher_json<M: std::fmt::Display>(report: &[(String, Vec<(M, Metric)>)]) -> String {
+pub fn bencher_json<M: Display>(report: &[(String, Vec<(M, Metric)>)]) -> String {
     let benchmarks: Vec<String> = report
         .iter()
         .map(|(name, metrics)| {

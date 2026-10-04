@@ -15,13 +15,15 @@ use super::batch::FormPowers;
 use super::layout::Lookup;
 use super::{CpuError, Program};
 use crate::arith::Arith;
-use crate::class_flock;
-use crate::constraints;
-use crate::leaf::{self, BusVerify, N_TUPLE_BITS, SparseColumn};
-use crate::rv;
-use crate::tables::{self, Part};
-use flock::lincheck::{self, MatrixClaim, MatrixForm};
+use crate::constraints::{ConstraintError, Final};
+use crate::leaf::{BusVerify, N_TUPLE_BITS, SparseColumn};
+use crate::rv::RiscvProgram;
+use crate::tables::{ClassSpec, Part};
+use crate::{class_flock, leaf, tables};
+use flock::lincheck::{LincheckError, MatrixClaim, MatrixForm};
+use flock::verifier::FlockError;
 use primitives::field::F192;
+use thiserror::Error;
 
 /// One fixed polynomial `f` claimed to take `value` at `point`.
 ///
@@ -100,7 +102,7 @@ impl<E: Copy> DeferredClaims<E> {
 }
 
 /// Why a set of deferred claims has no shape the program and its circuits give claims.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, thiserror::Error)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Error)]
 pub enum MalformedClaim {
     /// Not one claim per packed witness.
     #[error("{got} circuit claims, for {expected} circuits")]
@@ -125,7 +127,7 @@ pub enum MalformedClaim {
 
 impl ProgramPoint {
     /// The value of the program's fixed polynomials at this point, if the point has the program's shape.
-    fn evaluate(&self, rv: &rv::Program) -> Option<F192> {
+    fn evaluate(&self, rv: &RiscvProgram) -> Option<F192> {
         let kbc = crate::log2_strict_usize(rv.entries().len());
         // A multiplicity is one word, so it has at most 64 bits.
         if self.bytecode.len() != kbc + N_TUPLE_BITS || self.image_point.len() != rv.log_ram() || self.twist.len() > 64
@@ -148,7 +150,7 @@ impl<E: Copy> Claim<ProgramPoint<E>, E> {
     pub(crate) fn from_table_sumcheck<A: Arith<E = E>>(
         a: &mut A,
         bus: &BusVerify<E>,
-        table_sumcheck: &constraints::Final<E>,
+        table_sumcheck: &Final<E>,
         powers: FormPowers<E>,
     ) -> Self {
         let [coefficients] = &bus.producers[..] else {
@@ -210,12 +212,12 @@ impl Program {
             .evaluate(self.rv())
             .ok_or(CpuError::MalformedClaim(MalformedClaim::ProgramPoint))?;
         if program != claims.program.value {
-            return Err(CpuError::Constraint(constraints::ConstraintError::FinalMismatch));
+            return Err(CpuError::Constraint(ConstraintError::FinalMismatch));
         }
 
         for (f, claim) in claims.circuits.iter().enumerate() {
             let (t, part) = class_flock::flock(f);
-            let table = tables::ClassSpec::ALL[t].name;
+            let table = ClassSpec::ALL[t].name;
             if !class_flock::shape(f).fits(&claim.point) {
                 return Err(CpuError::MalformedClaim(MalformedClaim::MatrixForm { table, part }));
             }
@@ -223,7 +225,7 @@ impl Program {
                 return Err(CpuError::Flock {
                     table,
                     part,
-                    error: flock::verifier::FlockError::Lincheck(lincheck::LincheckError::SumcheckMismatch),
+                    error: FlockError::Lincheck(LincheckError::SumcheckMismatch),
                 });
             }
         }
@@ -234,8 +236,10 @@ impl Program {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::rv::Region;
     use crate::rv::asm::*;
     use primitives::multilinear::{eq_table, mle_eval};
+    use primitives::test_util::Rng;
 
     #[test]
     fn the_twisted_bytecode_claim_is_the_per_bit_claims() {
@@ -249,11 +253,10 @@ mod tests {
             .branch(Bne, Reg::T1, Reg::ZERO, "loop")
             .exit()
             .finish();
-        let program =
-            Program::new(&text, crate::rv::Region::TEXT.base(), vec![], 2, 0).expect("valid instruction program");
+        let program = Program::new(&text, Region::TEXT.base(), vec![], 2, 0).expect("valid instruction program");
         let rv = program.rv();
         let kbc = crate::log2_strict_usize(rv.entries().len());
-        let mut rng = primitives::test_rng::Rng::new(5);
+        let mut rng = Rng::new(5);
         let (chi, alphas) = (rng.ext_vec(kbc), rng.ext_vec(N_TUPLE_BITS));
         let weights = leaf::fingerprint_weights(&alphas);
         let tuple = Lookup::Bytecode.tuple(rv);

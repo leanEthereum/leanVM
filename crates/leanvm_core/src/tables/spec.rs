@@ -2,8 +2,8 @@
 
 use super::Word;
 use super::clock::Clock;
-use crate::class_flock;
-use crate::rv::{self, Class, Ext, Hash};
+use crate::rv::{Class, Ext, Hash, Mul, Mulh};
+use crate::{class_flock, rv};
 use std::ops::Range;
 
 /// How a class uses RAM.
@@ -220,7 +220,7 @@ impl ClassSpec {
         copies: false,
         witness: None,
         batch_witness: if cfg!(all(target_arch = "x86_64", target_feature = "avx2")) {
-            Some(rv::Mul::witness_batch)
+            Some(Mul::witness_batch)
         } else {
             None
         },
@@ -240,7 +240,7 @@ impl ClassSpec {
         reads_rd: false,
         ram: Ram::None,
         copies: false,
-        witness: Some(rv::Mulh::witness),
+        witness: Some(Mulh::witness),
         batch_witness: None,
         k_log: 13,
         ports: &[Word::V1, Word::V2, Word::Flags, Word::Out],

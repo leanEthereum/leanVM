@@ -2,12 +2,13 @@
 
 use super::entry::{Entry, Target};
 use super::region::Region;
+use thiserror::Error;
 
 /// A decoded program.
 ///
 /// It is read-only once built, so what is proven is what was checked.
 #[derive(Clone, Debug)]
-pub struct Program {
+pub struct RiscvProgram {
     /// A power of two of entries, instruction `i` at the text's word `i`.
     ///
     /// The last slot is the halt slot.
@@ -25,7 +26,7 @@ pub struct Program {
 }
 
 /// Why words, an entry point and sizes form no program.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, thiserror::Error)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Error)]
 #[non_exhaustive]
 pub enum ProgramError {
     /// The text leaves no room in its region for the padding and the halt slot.
@@ -45,7 +46,7 @@ pub enum ProgramError {
     MalformedEntry,
 }
 
-impl Program {
+impl RiscvProgram {
     /// Decode `text`, checking the entry point and the sizes first.
     ///
     /// A word rv64im does not define is kept as an illegal entry, which traps when reached.
@@ -234,11 +235,11 @@ mod tests {
                 ProgramError::AdviceSize,
             ),
         ] {
-            assert_eq!(Program::validate(words, entry, image, ram, advice), Err(error));
+            assert_eq!(RiscvProgram::validate(words, entry, image, ram, advice), Err(error));
         }
 
         // Every size at its largest is accepted, without allocating any of it.
-        let largest = Program::validate(
+        let largest = RiscvProgram::validate(
             (1 << Region::TEXT.max_log_words()) - 2,
             Region::TEXT.base(),
             1 << Region::RAM.max_log_words(),
@@ -253,7 +254,7 @@ mod tests {
         fn any_words_decode_to_a_padded_well_formed_text(text in proptest::collection::vec(any::<u32>(), 1..=16), raw_entry in any::<usize>()) {
             // Fixture: random words, and an entry point on one of them.
             let entry = Region::TEXT.base() + 4 * (raw_entry % text.len()) as u64;
-            let program = Program::new(&text, entry, vec![], 0, 0).unwrap();
+            let program = RiscvProgram::new(&text, entry, vec![], 0, 0).unwrap();
 
             // A power of two of well-formed entries.
             let entries = program.entries();
@@ -270,7 +271,7 @@ mod tests {
         #[test]
         fn index_of_inverts_pc_of(len in 1usize..64, raw in any::<usize>(), delta in 1u64..4) {
             // Fixture: a text of `len` no-ops.
-            let program = Program::new(&vec![0x13; len], Region::TEXT.base(), vec![], 0, 0).unwrap();
+            let program = RiscvProgram::new(&vec![0x13; len], Region::TEXT.base(), vec![], 0, 0).unwrap();
             let index = raw % program.entries().len();
 
             // Each slot's address maps back to it; a misaligned one maps nowhere.
@@ -282,7 +283,7 @@ mod tests {
     #[test]
     fn index_of_refuses_addresses_outside_the_text() {
         // Fixture: one instruction, padded to four slots.
-        let program = Program::new(&[0x13], Region::TEXT.base(), vec![], 0, 0).unwrap();
+        let program = RiscvProgram::new(&[0x13], Region::TEXT.base(), vec![], 0, 0).unwrap();
         assert_eq!(program.entries().len(), 4);
 
         // Below the text, past its last slot, and far away.

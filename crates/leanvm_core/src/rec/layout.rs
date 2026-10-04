@@ -5,8 +5,9 @@ use super::circuit::Circuit;
 use super::table::{HashFlock, Table};
 use crate::constraints::{Air, Claims};
 use crate::leaf::ColumnClaim;
-use crate::pcs;
-use crate::witness::{self, Placement, Source, StackShape, Window};
+use crate::pcs::StackClaim;
+use crate::witness::{Placement, Source, StackShape, Window};
+use crate::{pcs, witness};
 use std::ops::Range;
 
 /// Each table's height and every column's place in the stack.
@@ -127,11 +128,7 @@ impl RecLayout {
     /// Every column claim the opening discharges, the bus's then each owned table's, located in the stack.
     ///
     /// A port's claim is a strided evaluation of its packed witness.
-    pub(crate) fn opening_claims<E: Copy>(
-        &self,
-        bus: Vec<ColumnClaim<E>>,
-        tables: &[Claims<E>],
-    ) -> Vec<pcs::SlotClaim<E>> {
+    pub(crate) fn opening_claims<E: Copy>(&self, bus: Vec<ColumnClaim<E>>, tables: &[Claims<E>]) -> Vec<StackClaim<E>> {
         let mut claims = bus;
         for (&(base, _), table) in Self::TABLE_COLUMNS.iter().zip(tables) {
             claims.extend(table.evals.iter().enumerate().map(|(c, &value)| ColumnClaim {
@@ -142,7 +139,7 @@ impl RecLayout {
         }
         (claims.into_iter())
             .map(|c| match self.placements[c.col] {
-                Placement::Committed(window) => pcs::SlotClaim::Point {
+                Placement::Committed(window) => StackClaim::Point {
                     offset: window.offset,
                     low_point: c.point,
                     value: c.value,
@@ -151,7 +148,7 @@ impl RecLayout {
                     offset,
                     port,
                     stride_log,
-                } => pcs::SlotClaim::Strided {
+                } => StackClaim::Strided {
                     offset,
                     slot: port,
                     stride_log,

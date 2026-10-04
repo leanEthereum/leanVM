@@ -6,8 +6,11 @@
 use super::circuit::{Assignment, Kind};
 use crate::class_flock;
 use crate::leaf::{BusForm, Coord};
-use crate::tables::{self, Part};
-use flock::circuit::Circuit as FlockCircuit;
+use crate::rv::Class;
+use crate::tables::{ClassSpec, ClassTable, Part};
+use Coord::{Col, Prod, Sum};
+use Kind::{D, E, K};
+use flock::circuit::Circuit;
 use primitives::field::{F64, F192};
 
 /// The recursion machine's tables, in protocol order.
@@ -50,16 +53,10 @@ pub(crate) struct HashFlock;
 /// - the message's words 4 to 6 as `x` and its word 7 as `ds`;
 /// - the output, the output's first three words as a challenge;
 /// - the eight message words.
-const HASH_KINDS: [Kind; 16] = {
-    use Kind::{D, E, K};
-    [D, D, D, K, E, K, D, E, K, K, K, K, K, K, K, K]
-};
+const HASH_KINDS: [Kind; 16] = [D, D, D, K, E, K, D, E, K, K, K, K, K, K, K, K];
 
 /// A cast row's slots: the digest, the element of its first three words, its two halves, its four words.
-const CAST_KINDS: [Kind; 8] = {
-    use Kind::{D, E, K};
-    [D, E, E, E, K, K, K, K]
-};
+const CAST_KINDS: [Kind; 8] = [D, E, E, E, K, K, K, K];
 
 impl Table {
     /// How many tables there are.
@@ -87,7 +84,6 @@ impl Table {
     ///
     /// A public slot carries a wire of any kind; its one entry is the widest.
     pub const fn slot_kinds(self) -> &'static [Kind] {
-        use Kind::{D, E, K};
         match self {
             Self::Emul => &[E, E, E, E],
             Self::Exk => &[E, K, E, E],
@@ -243,7 +239,6 @@ impl SlotForm {
     ///
     /// `p_i = sum_{j+l=i} a_j·b_l`, then `y^3 = y + 1` and `y^4 = y^2 + y` fold `p_3` and `p_4` down.
     fn emul(s: usize) -> Option<Self> {
-        use Coord::{Col, Prod, Sum};
         let p = |i: usize| {
             (0..3)
                 .filter(move |&j| i >= j && i - j < 3)
@@ -264,7 +259,6 @@ impl SlotForm {
 
     /// `EXK`'s slots `a`, `k`, `d` and `c = a·k + d`, limb by limb.
     fn exk(s: usize) -> Option<Self> {
-        use Coord::{Col, Prod, Sum};
         match s {
             0 => Self::e(0),
             1 => Self::k(3),
@@ -282,7 +276,6 @@ impl SlotForm {
 
     /// `HASH`'s slots, over its ports and its mux bit.
     fn hash(s: usize) -> Option<Self> {
-        use Coord::{Col, Prod, Sum};
         let (t, f, h, m, o, sel) = (
             HashFlock::T,
             HashFlock::F,
@@ -310,7 +303,6 @@ impl SlotForm {
 
     /// `CAST`'s slots over its four words.
     const fn cast(s: usize) -> Option<Self> {
-        use Coord::Col;
         match s {
             0 => Self::d(0),
             1 => Self::e(0),
@@ -345,31 +337,31 @@ impl HashFlock {
 
     /// The packed witness index of the BLAKE2s class circuit, which proves every hash row.
     pub(crate) fn index() -> usize {
-        let t = tables::ClassTable::index_of(crate::rv::Class::Hash).expect("the HASH class has a table");
+        let t = ClassTable::index_of(Class::Hash).expect("the HASH class has a table");
         class_flock::flock_index(t, Part::Class)
     }
 
     /// The BLAKE2s compression circuit.
-    pub(crate) fn circuit() -> &'static FlockCircuit {
+    pub(crate) fn circuit() -> &'static Circuit {
         class_flock::circuit(Self::index())
     }
 
     /// `log2` of a hash row's packed words: the stride between consecutive rows' same-port words.
     pub(crate) const fn stride_log() -> usize {
-        class_flock::stride_log(&tables::ClassSpec::HASH, Part::Class)
+        class_flock::stride_log(&ClassSpec::HASH, Part::Class)
     }
 
     /// `log2` of the hash table's height for `rows` rows, at least flock's floor.
     fn height_log(rows: usize) -> usize {
         flock::reduction::min_n_blocks_log(rows.max(1))
-            .max(class_flock::MIN_CUBE_LOG.saturating_sub(tables::ClassSpec::HASH.k_log))
+            .max(class_flock::MIN_CUBE_LOG.saturating_sub(ClassSpec::HASH.k_log))
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::tables::Word;
+    use crate::tables::{ClassSpec, Word};
     use proptest::prelude::*;
 
     fn eval(c: &Coord, cols: &[F64]) -> F64 {
@@ -415,7 +407,7 @@ mod tests {
 
     #[test]
     fn the_hash_ports_are_the_precompile_ports() {
-        let ports = tables::ClassSpec::HASH.ports;
+        let ports = ClassSpec::HASH.ports;
         assert_eq!(ports.len(), HashFlock::N_PORTS);
         assert_eq!((ports[HashFlock::T], ports[HashFlock::F]), (Word::V2, Word::Flags));
         assert!((0..4).all(|i| ports[HashFlock::H + i] == Word::Cell(i as u8)));

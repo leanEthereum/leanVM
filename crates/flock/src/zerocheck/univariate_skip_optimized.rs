@@ -1,8 +1,8 @@
 // CREDIT: https://github.com/succinctlabs/flock (flock-core), MIT OR Apache-2.0.
 //! Round-1 prover message: fully optimized (shift_reduce + extract_c).
 //!
-//! Scalar Rust, with NEON and GFNI kernels for the inner sweep. Three layered optimizations on top of
-//! the `round1_extract_c` scaffold:
+//! Scalar Rust, with NEON and GFNI kernels for the inner sweep.
+//! Three layered optimizations:
 //!
 //! 1. **Geometric small-eq + shift_reduce inner** (3 inner-most rest-dims).
 //!    Protocol fixes the three small challenges to
@@ -30,17 +30,33 @@
 //!
 //! This variant is hardcoded for `k_skip = 6` (ell=64, n_chunks=8, N_INNER=7).
 
-use std::sync::OnceLock;
-
+use super::univariate_skip::{SplitEq, ntt_extend_vec};
+use super::{K_SKIP, N_INNER, PaddingSpec};
+#[cfg(all(
+    target_arch = "x86_64",
+    target_feature = "gfni",
+    target_feature = "avx512bw",
+    target_feature = "avx512vbmi"
+))]
+use crate::zerocheck::bit_fold::gfni::{store_f192, weight_matrices};
+#[cfg(target_arch = "aarch64")]
+use core::arch::aarch64::*;
+#[cfg(all(target_arch = "x86_64", target_feature = "gfni"))]
+use core::arch::x86_64::*;
 use pcs::ntt::InvNttTableByteSingleGf8;
 use primitives::bits::bit_transpose_64bytes;
 use primitives::field::gf2_8::gf8_reduce;
+#[cfg(target_arch = "aarch64")]
+use primitives::field::gf2_8::neon::{gf8_mul_vec16, gf8_reduce_vec16};
 use primitives::field::{F8, F192, PHI_8_TABLE_192 as PHI_8_TABLE, phi8_192 as phi8};
-
-#[cfg(test)]
-use super::univariate_skip::pack_bits;
-use super::univariate_skip::{SplitEq, ntt_extend_vec};
-use super::{K_SKIP, N_INNER, PaddingSpec};
+#[cfg(all(
+    target_arch = "x86_64",
+    target_feature = "gfni",
+    target_feature = "avx512bw",
+    target_feature = "avx512vbmi"
+))]
+use primitives::field::{F64, mul_base8, mul4};
+use std::sync::OnceLock;
 
 // ---------------------------------------------------------------------------
 // Protocol constants: fixed by the optimization design.
@@ -132,26 +148,20 @@ const N_MEDIUM_VALUES: usize = 16;
 /// the address. Flat, each lookup costs a check, a branch and a multiply by the
 /// 24-byte element stride, and the branches keep the constant-trip loop around
 /// them from unrolling.
-#[cfg(any(
-    test,
-    not(all(
-        target_arch = "x86_64",
-        target_feature = "gfni",
-        target_feature = "avx512bw",
-        target_feature = "avx512vbmi"
-    ))
-))]
+#[cfg(not(all(
+    target_arch = "x86_64",
+    target_feature = "gfni",
+    target_feature = "avx512bw",
+    target_feature = "avx512vbmi"
+)))]
 type ConvertTable = [[F192; 256]; N_MEDIUM_VALUES];
 
-#[cfg(any(
-    test,
-    not(all(
-        target_arch = "x86_64",
-        target_feature = "gfni",
-        target_feature = "avx512bw",
-        target_feature = "avx512vbmi"
-    ))
-))]
+#[cfg(not(all(
+    target_arch = "x86_64",
+    target_feature = "gfni",
+    target_feature = "avx512bw",
+    target_feature = "avx512vbmi"
+)))]
 static CONVERT_TABLE_CACHE: OnceLock<Box<ConvertTable>> = OnceLock::new();
 
 /// `gamma^b` for each medium position `b`.
@@ -166,15 +176,12 @@ fn gamma_powers() -> &'static [F192; N_MEDIUM_VALUES] {
     })
 }
 
-#[cfg(any(
-    test,
-    not(all(
-        target_arch = "x86_64",
-        target_feature = "gfni",
-        target_feature = "avx512bw",
-        target_feature = "avx512vbmi"
-    ))
-))]
+#[cfg(not(all(
+    target_arch = "x86_64",
+    target_feature = "gfni",
+    target_feature = "avx512bw",
+    target_feature = "avx512vbmi"
+)))]
 fn build_convert_table() -> Box<ConvertTable> {
     let mut table: Box<ConvertTable> = Box::new([[F192::ZERO; 256]; N_MEDIUM_VALUES]);
     for (row, &g_b) in table.iter_mut().zip(gamma_powers()) {
@@ -185,15 +192,12 @@ fn build_convert_table() -> Box<ConvertTable> {
     table
 }
 
-#[cfg(any(
-    test,
-    not(all(
-        target_arch = "x86_64",
-        target_feature = "gfni",
-        target_feature = "avx512bw",
-        target_feature = "avx512vbmi"
-    ))
-))]
+#[cfg(not(all(
+    target_arch = "x86_64",
+    target_feature = "gfni",
+    target_feature = "avx512bw",
+    target_feature = "avx512vbmi"
+)))]
 fn convert_table() -> &'static ConvertTable {
     CONVERT_TABLE_CACHE.get_or_init(build_convert_table)
 }
@@ -249,7 +253,6 @@ unsafe fn xor_apply_byte_into_8_regs<const BH: usize>(
     db2: &mut core::arch::aarch64::uint8x16_t,
     db3: &mut core::arch::aarch64::uint8x16_t,
 ) {
-    use core::arch::aarch64::*;
     // SAFETY: NEON is part of the aarch64 baseline; `table_base` is the caller's `256 * 64`-byte table, so row
     // `byte * 64` plus a chunk offset `(i ^ BH) * 16 < 64` (`BH < 4`) stays inside it.
     unsafe {
@@ -298,8 +301,6 @@ unsafe fn fused_apply_one_k<const K: i32>(
     acc3_lo: &mut core::arch::aarch64::uint16x8_t,
     acc3_hi: &mut core::arch::aarch64::uint16x8_t,
 ) {
-    use core::arch::aarch64::*;
-    use primitives::field::gf2_8::neon::gf8_mul_vec16;
     // SAFETY: NEON is part of the aarch64 baseline; the caller guarantees `N_CHUNKS` readable bytes at `a_row` and
     // `b_row` and a `256 * 64`-byte table, and every load is a table row plus an offset below 64.
     unsafe {
@@ -388,9 +389,6 @@ fn shift_reduce_inner_ab_fused_neon(
     b_med: usize,
     out: &mut [u8; 64],
 ) {
-    use core::arch::aarch64::*;
-    use primitives::field::gf2_8::neon::gf8_reduce_vec16;
-
     let byte_base_b = chunk_byte_base + b_med * N_CHUNKS * 8;
     let table_base = inv_table.data_ptr();
 
@@ -498,8 +496,6 @@ unsafe fn shift_reduce_inner_ab_gfni_512(
     b_med: usize,
     out: &mut [u8; 64],
 ) {
-    use core::arch::x86_64::*;
-
     let byte_base_b = chunk_byte_base + b_med * N_CHUNKS * 8;
     // `inv_table.apply` overwrites every lane, so these need no re-zeroing per K.
     let mut a_col = [F8::ZERO; ELL];
@@ -570,8 +566,6 @@ unsafe fn shift_reduce_inner_ab_gfni(
     b_med: usize,
     out: &mut [u8; 64],
 ) {
-    use core::arch::x86_64::*;
-
     let byte_base_b = chunk_byte_base + b_med * N_CHUNKS * 8;
     // `inv_table.apply` overwrites every lane, so these need no re-zeroing per K.
     let mut a_col = [F8::ZERO; ELL];
@@ -753,10 +747,6 @@ impl Convert {
 
     #[target_feature(enable = "avx512f", enable = "avx512bw", enable = "avx512vbmi", enable = "gfni")]
     fn accumulate_gfni(&mut self, ab: &[[u8; 64]], c: &[[u8; 64]], eq_lo: F192) {
-        use crate::zerocheck::bit_fold::gfni::weight_matrices;
-        use core::arch::x86_64::*;
-        use primitives::field::{F64, mul_base8, mul4};
-
         // phi_8 of the unit bytes, as base-field scalars.
         static PHI_UNITS: OnceLock<[F64; 8]> = OnceLock::new();
         let units = PHI_UNITS.get_or_init(|| {
@@ -801,7 +791,6 @@ impl Convert {
     }
 
     fn values(&self) -> ([F192; ELL], [F192; ELL]) {
-        use crate::zerocheck::bit_fold::gfni::store_f192;
         let (mut ab, mut c) = ([F192::ZERO; ELL], [F192::ZERO; ELL]);
         // SAFETY: the module is compiled only with these target features enabled.
         unsafe {
@@ -1079,13 +1068,14 @@ pub fn round1_shift_reduce_extract_c_packed_padded(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::zerocheck::univariate_skip::round1_naive;
+    use crate::zerocheck::PaddingSpec;
+    use crate::zerocheck::univariate_skip::tests::{pack_bits, round1_naive};
     use pcs::ntt::AdditiveNttGf8;
-    use primitives::test_rng::Rng;
+    use primitives::test_util::Rng;
 
-    /// The convert stage against the table definition, over full and boundary windows.
     #[test]
-    fn convert_matches_table() {
+    fn convert_matches_definition() {
+        // Compare converted field values with their weighted sum over full and partial windows.
         let mut rng = Rng::new(0xC0_4E27);
         let mut partials = Convert::new();
         let (mut want_ab, mut want_c) = ([F192::ZERO; ELL], [F192::ZERO; ELL]);
@@ -1098,8 +1088,8 @@ mod tests {
             for lane in 0..ELL {
                 let conv = |rows: &[[u8; 64]]| {
                     rows.iter()
-                        .zip(convert_table())
-                        .fold(F192::ZERO, |acc, (r, t)| acc + t[r[lane] as usize])
+                        .zip(gamma_powers())
+                        .fold(F192::ZERO, |acc, (row, &gamma)| acc + gamma * phi8(F8(row[lane])))
                 };
                 want_ab[lane] += conv(&ab) * eq;
                 want_c[lane] += conv(&c) * eq;
@@ -1273,9 +1263,6 @@ mod tests {
     /// Covers the supported hash padding shapes, including a fully skipped chunk.
     #[test]
     fn padded_matches_dense_with_zero_padding() {
-        use crate::zerocheck::PaddingSpec;
-        use crate::zerocheck::univariate_skip::pack_bits;
-
         // (k_log, useful_bits, n_blocks_log): pick n_blocks_log so
         // m = k_log + n_blocks_log is small enough to keep the test fast
         // while still exercising the kernel's parallel + boundary paths.
@@ -1347,8 +1334,8 @@ mod tests {
         let table = make_inv_table();
         let a_bits = rng.bits(1 << m);
         let b_bits = rng.bits(1 << m);
-        let a_packed = super::super::univariate_skip::pack_bits(&a_bits);
-        let b_packed = super::super::univariate_skip::pack_bits(&b_bits);
+        let a_packed = pack_bits(&a_bits);
+        let b_packed = pack_bits(&b_bits);
 
         for &(chunk_byte_base, b_med) in &[(0usize, 0usize), (64, 5), (1024, 7), (4096, 15)] {
             let needed = chunk_byte_base + b_med * N_CHUNKS * 8 + 8 * N_CHUNKS;

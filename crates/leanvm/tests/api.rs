@@ -1,5 +1,7 @@
+use aggregate::{Leaf, LeafShape, Tree, TreeError, TreeProof};
 use leanvm::asm::*;
 use leanvm::*;
+use leanvm_guest::PublicValues;
 
 /// `a0 <- F(n) mod 2^64`, `n` being the first word of the program's image, by a loop
 /// that keeps its two numbers on the stack.
@@ -42,7 +44,7 @@ fn preimage(message: &[u8]) -> (Program, Vec<u64>, [u64; 4]) {
     let digest = primitives::hash::hash(message);
     let digest: [u64; 4] = std::array::from_fn(|i| u64::from_le_bytes(digest[8 * i..8 * i + 8].try_into().unwrap()));
     // The output is the digest of what the guest committed: the message's digest.
-    let mut public = leanvm_guest::PublicValues::new();
+    let mut public = PublicValues::new();
     public.commit(&digest);
     (program, advice, public.digest())
 }
@@ -122,17 +124,20 @@ fn public_api_end_to_end() {
             prover.prove(&guest, &advice, Rate::MIN).expect("the run halts")
         })
         .collect();
-    let (guest, ..) = preimage(b"");
-    let shape = aggregate::LeafShape::of(&leaves[0].proof).expect("an announced shape");
-    let tree = aggregate::Tree::new(&guest, shape, 2, 2, Rate::MIN).expect("a tree");
-    let pairs: Vec<aggregate::Leaf<'_>> = leaves.iter().map(aggregate::Leaf::from).collect();
+    let (guest, advice, _) = preimage(b"leanVM");
+    let shape = LeafShape::of(&leaves[0].proof).expect("an announced shape");
+    // A tree's key needs no proof: a measured run gives the shape its proof announces.
+    let measured = measure(&guest, &advice).expect("the run halts");
+    assert_eq!(LeafShape::measured(&measured, Rate::MIN), shape);
+    let tree = Tree::new(&guest, shape, 2, 2, Rate::MIN).expect("a tree");
+    let pairs: Vec<Leaf<'_>> = leaves.iter().map(Leaf::from).collect();
     let root = tree.prove(&pairs).expect("honest leaves");
-    let root = aggregate::TreeProof::from_bytes(&root.to_bytes()).expect("a tree proof's own bytes");
+    let root = TreeProof::from_bytes(&root.to_bytes()).expect("a tree proof's own bytes");
     let outputs = [leaves[0].output, leaves[1].output];
     assert_ne!(outputs[0], outputs[1]);
     tree.verify(&root, &outputs).unwrap();
     assert_eq!(
         tree.verify(&root, &[outputs[1], outputs[0]]),
-        Err(LeanVmError::Tree(aggregate::TreeError::Outputs))
+        Err(LeanVmError::Tree(TreeError::Outputs))
     );
 }

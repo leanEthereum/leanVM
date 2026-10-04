@@ -11,14 +11,15 @@
 //!
 //! End to end in [`crates/leanvm/tests/api.rs`](https://github.com/leanEthereum/leanVM/blob/main/crates/leanvm/tests/api.rs).
 
-use std::fmt;
-
+use aggregate::{TreeError, TreeProof};
 use leanvm_core::cpu::{self, CpuError, ProveError};
+use std::fmt::{Debug, Formatter};
+use thiserror::Error;
 
 pub use leanvm_core::{
     cpu::{Program, Stats},
     pcs::{InvalidRate, Rate},
-    rv::{ElfError, ProgramError, Region, Trap, asm},
+    rv::{ElfError, ProgramError, Region, RiscvProgram, Trap, asm},
 };
 
 /// The process's proving setup: the worker pool.
@@ -104,8 +105,8 @@ pub fn verify(program: &Program, output: &[u64; 4], proof: &Proof) -> Result<(),
 #[derive(Clone, PartialEq, Eq)]
 pub struct Proof(cpu::Proof);
 
-impl fmt::Debug for Proof {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Debug for Proof {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Proof").finish_non_exhaustive()
     }
 }
@@ -144,7 +145,7 @@ impl Proof {
 }
 
 /// Everything that can go wrong in loading, proving or verifying.
-#[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
+#[derive(Clone, Debug, PartialEq, Eq, Error)]
 #[non_exhaustive]
 pub enum LeanVmError {
     /// The file is not a guest.
@@ -180,12 +181,12 @@ pub enum LeanVmError {
     /// A tree proof of another protocol version.
     #[error(
         "a tree proof of protocol version {found}, and this verifier reads version {}",
-        aggregate::TreeProof::VERSION
+        TreeProof::VERSION
     )]
     UnsupportedTreeVersion { found: u16 },
     /// An aggregation tree cannot be built, a tree proof cannot be made, or a root is refused.
     #[error(transparent)]
-    Tree(#[from] aggregate::TreeError),
+    Tree(#[from] TreeError),
 }
 
 impl From<ProveError> for LeanVmError {
@@ -199,7 +200,7 @@ impl From<ProveError> for LeanVmError {
 }
 
 /// Why a proof does not verify: which stage of the verifier refused it.
-#[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
+#[derive(Clone, Debug, PartialEq, Eq, Error)]
 #[error("the proof does not verify: {0}")]
 pub struct LeanVmVerifyError(CpuError);
 
@@ -216,10 +217,10 @@ pub struct LeanVmVerifyError(CpuError);
 /// Every tree proof states the same few hundred words: a digest of its leaves' outputs, and claims only the root's verifier evaluates.
 /// A tree over one leaf, `arity_0` one, is a single proof's recursion.
 pub mod aggregate {
-    use super::{LeanVmError, Program, Proof, Proved, Rate};
+    use super::{LeanVmError, Program, Proof, Proved, Rate, Stats};
     use leanvm_core::rec::table::Table;
     use leanvm_core::rec::tree;
-    use std::fmt;
+    use std::fmt::{Debug, Formatter};
 
     pub use leanvm_core::rec::tree::{DensePoly, FalseClaim, Kind, TreeError};
 
@@ -281,6 +282,15 @@ pub mod aggregate {
             tree::LeafShape::of(&proof.0)
                 .map(Self)
                 .ok_or(LeanVmError::MalformedProof)
+        }
+
+        /// The shape a proof of a run that cost `stats` announces at `rate`: a tree's key, built without a proof.
+        #[must_use]
+        pub fn measured(stats: &Stats, rate: Rate) -> Self {
+            Self(tree::LeafShape::new(
+                stats.counts.map(|rows| rows.ilog2() as usize),
+                rate,
+            ))
         }
     }
 
@@ -375,8 +385,8 @@ pub mod aggregate {
         }
     }
 
-    impl fmt::Debug for TreeProof {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    impl Debug for TreeProof {
+        fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
             f.debug_struct("TreeProof")
                 .field("kind", &self.kind())
                 .finish_non_exhaustive()

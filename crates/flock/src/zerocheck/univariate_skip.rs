@@ -1,16 +1,5 @@
 // CREDIT: https://github.com/succinctlabs/flock (flock-core), MIT OR Apache-2.0.
-//! Round-1 (univariate skip): live helpers, plus the reference oracles the optimized kernels are
-//! checked against.
-//!
-//! The module is two disjoint halves:
-//!
-//! - **Live in production**: the [`build_eq`] re-export, [`SplitEq`] and [`ntt_extend_vec`].
-//!   The optimized round-1 kernel ([`super::univariate_skip_optimized`]) and the round-2
-//!   kernel ([`super::multilinear`]) are built on these.
-//! - **Test-only oracles**, below the banner and all `#[cfg(test)]`: `pack_bits`,
-//!   `round1_naive` and `round1_extract_c_packed`. They translate the protocol
-//!   formula directly, so the optimized kernels can be diffed against something obviously
-//!   correct.
+//! Univariate-skip equality weights and extension-domain interpolation.
 //!
 //! The round-1 message is `(P^{AB}, P^C)`, each a length-`2^k_skip` vector
 //! of F192 values. They are evaluations on the NTT domain `Λ` of the
@@ -29,8 +18,6 @@
 //! [`super::univariate_skip_optimized`] drops it and the caller restores it before the message
 //! goes on the wire.
 
-#[cfg(test)]
-use pcs::ntt::AdditiveNttGf8;
 use pcs::ntt::InvNttTableByteSingleGf8;
 use primitives::field::{F8, F192, phi8_192 as phi8};
 
@@ -39,25 +26,6 @@ use primitives::field::{F8, F192, phi8_192 as phi8};
 // ---------------------------------------------------------------------------
 
 pub use primitives::multilinear::eq_table as build_eq;
-
-/// Pack a bit vector LSB-first into bytes.
-#[cfg(test)]
-pub fn pack_bits(bits: &[bool]) -> Vec<u8> {
-    let n_bytes = bits.len().div_ceil(8);
-    // Each output byte depends on 8 contiguous input bits: disjoint, so
-    // process bytes in parallel.
-    parallel::map_collect(n_bytes, |byte_idx| {
-        let mut byte = 0u8;
-        let base = byte_idx * 8;
-        for j in 0..8 {
-            let bit_idx = base + j;
-            if bit_idx < bits.len() && bits[bit_idx] {
-                byte |= 1u8 << j;
-            }
-        }
-        byte
-    })
-}
 
 /// Eq table split into a lo half (large, L2-resident) and a hi half (small,
 /// kept in registers across the inner loop).
@@ -137,195 +105,99 @@ pub fn ntt_extend_vec(in_s: &[F192], inv_table: &InvNttTableByteSingleGf8) -> Ve
     out
 }
 
-// ===========================================================================
-// Test-only oracles. Everything below is `#[cfg(test)]`: direct translations of
-// the protocol formula, kept only so the optimized kernels have something
-// obviously correct to be diffed against.
-// ===========================================================================
-
-/// Compute the round-1 prover message naively (no shift-reduce, no fused
-/// inner, no deferred reduction: direct algorithmic translation of the
-/// protocol formula).
-///
-/// Returns `(p_ab, p_c)`, each a length-`2^k_skip` F192 vector of evaluations
-/// on Λ.
-///
-/// Preconditions:
-/// - `a.len() == b.len() == c.len() == 2^m`
-/// - `r_rest.len() == m - k_skip`
-/// - `k_skip <= m`
-///
-/// Index convention: for index `i ∈ 0..2^m`, the low `k_skip` bits address
-/// the *skip* variables (`y_skip ∈ S`), the high `m - k_skip` bits address
-/// the *rest* variables (`y_rest`).
 #[cfg(test)]
-pub fn round1_naive(
-    a: &[bool],
-    b: &[bool],
-    c: &[bool],
-    m: usize,
-    k_skip: usize,
-    r_rest: &[F192],
-) -> (Vec<F192>, Vec<F192>) {
-    assert!(k_skip <= m, "k_skip must be ≤ m");
-    assert_eq!(a.len(), 1usize << m);
-    assert_eq!(b.len(), 1usize << m);
-    assert_eq!(c.len(), 1usize << m);
-    assert_eq!(r_rest.len(), m - k_skip);
+pub(crate) mod tests {
+    use super::*;
+    use pcs::ntt::AdditiveNttGf8;
+    use primitives::test_util::Rng;
 
-    let ell = 1usize << k_skip;
-    let n_chunks_x = 1usize << (m - k_skip);
+    /// Compute the round-1 prover message naively (no shift-reduce, no fused
+    /// inner, no deferred reduction: direct algorithmic translation of the
+    /// protocol formula).
+    ///
+    /// Returns `(p_ab, p_c)`, each a length-`2^k_skip` F192 vector of evaluations
+    /// on Λ.
+    ///
+    /// Preconditions:
+    /// - `a.len() == b.len() == c.len() == 2^m`
+    /// - `r_rest.len() == m - k_skip`
+    /// - `k_skip <= m`
+    ///
+    /// Index convention: for index `i ∈ 0..2^m`, the low `k_skip` bits address
+    /// the *skip* variables (`y_skip ∈ S`), the high `m - k_skip` bits address
+    /// the *rest* variables (`y_rest`).
+    pub(crate) fn round1_naive(
+        a: &[bool],
+        b: &[bool],
+        c: &[bool],
+        m: usize,
+        k_skip: usize,
+        r_rest: &[F192],
+    ) -> (Vec<F192>, Vec<F192>) {
+        assert!(k_skip <= m, "k_skip must be ≤ m");
+        assert_eq!(a.len(), 1usize << m);
+        assert_eq!(b.len(), 1usize << m);
+        assert_eq!(c.len(), 1usize << m);
+        assert_eq!(r_rest.len(), m - k_skip);
 
-    // NTT for evaluating-on-Λ via inv-on-S then fwd-on-Λ.
-    let ntt_s = AdditiveNttGf8::new(k_skip, F8::ZERO);
-    let ntt_l = AdditiveNttGf8::new(k_skip, F8(ell as u8));
+        let ell = 1usize << k_skip;
+        let n_chunks_x = 1usize << (m - k_skip);
 
-    let eq_full = build_eq(r_rest);
+        // NTT for evaluating-on-Λ via inv-on-S then fwd-on-Λ.
+        let ntt_s = AdditiveNttGf8::new(k_skip, F8::ZERO);
+        let ntt_l = AdditiveNttGf8::new(k_skip, F8(ell as u8));
 
-    let mut p_ab = vec![F192::ZERO; ell];
-    let mut p_c = vec![F192::ZERO; ell];
+        let eq_full = build_eq(r_rest);
 
-    let mut a_col = vec![F8::ZERO; ell];
-    let mut b_col = vec![F8::ZERO; ell];
-    let mut c_col = vec![F8::ZERO; ell];
+        let mut p_ab = vec![F192::ZERO; ell];
+        let mut p_c = vec![F192::ZERO; ell];
 
-    for (x_rest, &weight) in eq_full.iter().enumerate().take(n_chunks_x) {
-        let base = x_rest * ell;
-        for s in 0..ell {
-            a_col[s] = F8(a[base + s] as u8);
-            b_col[s] = F8(b[base + s] as u8);
-            c_col[s] = F8(c[base + s] as u8);
+        let mut a_col = vec![F8::ZERO; ell];
+        let mut b_col = vec![F8::ZERO; ell];
+        let mut c_col = vec![F8::ZERO; ell];
+
+        for (x_rest, &weight) in eq_full.iter().enumerate().take(n_chunks_x) {
+            let base = x_rest * ell;
+            for s in 0..ell {
+                a_col[s] = F8(a[base + s] as u8);
+                b_col[s] = F8(b[base + s] as u8);
+                c_col[s] = F8(c[base + s] as u8);
+            }
+            // Extend the row polynomial from S to Λ.
+            ntt_s.inverse(&mut a_col);
+            ntt_l.forward(&mut a_col);
+            ntt_s.inverse(&mut b_col);
+            ntt_l.forward(&mut b_col);
+            ntt_s.inverse(&mut c_col);
+            ntt_l.forward(&mut c_col);
+
+            let eq_x = weight;
+            for i in 0..ell {
+                let ab = a_col[i] * b_col[i];
+                p_ab[i] += eq_x * phi8(ab);
+                p_c[i] += eq_x * phi8(c_col[i]);
+            }
         }
-        // Extend the row polynomial from S to Λ.
-        ntt_s.inverse(&mut a_col);
-        ntt_l.forward(&mut a_col);
-        ntt_s.inverse(&mut b_col);
-        ntt_l.forward(&mut b_col);
-        ntt_s.inverse(&mut c_col);
-        ntt_l.forward(&mut c_col);
 
-        let eq_x = weight;
-        for i in 0..ell {
-            let ab = a_col[i] * b_col[i];
-            p_ab[i] += eq_x * phi8(ab);
-            p_c[i] += eq_x * phi8(c_col[i]);
-        }
+        (p_ab, p_c)
     }
 
-    (p_ab, p_c)
-}
-
-/// Packed-input round-1 message in extract_c form: the scalar reference the
-/// optimized kernel is cross-checked against.
-#[cfg(test)]
-pub fn round1_extract_c_packed(
-    a_packed: &[u8],
-    b_packed: &[u8],
-    c_packed: &[u8],
-    m: usize,
-    k_skip: usize,
-    r_rest: &[F192],
-    inv_table: &InvNttTableByteSingleGf8,
-) -> (Vec<F192>, Vec<F192>) {
-    assert!(k_skip <= m);
-    let total_bytes = (1usize << m) / 8;
-    assert_eq!(a_packed.len(), total_bytes);
-    assert_eq!(b_packed.len(), total_bytes);
-    assert_eq!(c_packed.len(), total_bytes);
-    assert_eq!(r_rest.len(), m - k_skip);
-    assert_eq!(inv_table.k, k_skip);
-
-    let ell = 1usize << k_skip;
-    let n_chunks = ell / 8;
-
-    let eq = SplitEq::new(r_rest);
-    let lo_size = 1usize << eq.n_lo;
-    let hi_size = 1usize << eq.n_hi;
-
-    let mut res_ab = vec![F192::ZERO; ell];
-    let mut res_c_s = vec![F192::ZERO; ell];
-
-    let mut partial_ab = vec![F192::ZERO; ell];
-    let mut partial_c = vec![F192::ZERO; ell];
-
-    let mut a_col = vec![F8::ZERO; ell];
-    let mut b_col = vec![F8::ZERO; ell];
-
-    for x_hi in 0..hi_size {
-        partial_ab.iter_mut().for_each(|p| *p = F192::ZERO);
-        partial_c.iter_mut().for_each(|p| *p = F192::ZERO);
-
-        for x_lo in 0..lo_size {
-            let x_rest = (x_hi << eq.n_lo) | x_lo;
-            let chunk_offset = x_rest * n_chunks;
-
-            // A, B → Λ-domain via table lookup.
-            inv_table.apply(&a_packed[chunk_offset..chunk_offset + n_chunks], &mut a_col);
-            inv_table.apply(&b_packed[chunk_offset..chunk_offset + n_chunks], &mut b_col);
-
-            let eq_lo = eq.lo[x_lo];
-
-            // AB on Λ: unchanged.
-            for lambda in 0..ell {
-                let ab = a_col[lambda] * b_col[lambda];
-                partial_ab[lambda] += eq_lo * phi8(ab);
-            }
-
-            // C on S.
-            for s in 0..ell {
-                let c_bit = (c_packed[chunk_offset + s / 8] >> (s % 8)) & 1;
-                if c_bit != 0 {
-                    partial_c[s] += eq_lo;
+    /// Pack a bit vector LSB-first into bytes.
+    pub(crate) fn pack_bits(bits: &[bool]) -> Vec<u8> {
+        let n_bytes = bits.len().div_ceil(8);
+        // Each output byte depends on 8 contiguous input bits: disjoint, so
+        // process bytes in parallel.
+        parallel::map_collect(n_bytes, |byte_idx| {
+            let mut byte = 0u8;
+            let base = byte_idx * 8;
+            for j in 0..8 {
+                let bit_idx = base + j;
+                if bit_idx < bits.len() && bits[bit_idx] {
+                    byte |= 1u8 << j;
                 }
             }
-        }
-
-        let eq_hi = eq.hi[x_hi];
-        for lambda in 0..ell {
-            res_ab[lambda] += eq_hi * partial_ab[lambda];
-            res_c_s[lambda] += eq_hi * partial_c[lambda];
-        }
-    }
-
-    let res_c_lifted = ntt_extend_vec(&res_c_s, inv_table);
-    (res_ab, res_c_lifted)
-}
-
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use primitives::test_rng::Rng;
-
-    fn make_inv_table(k_skip: usize) -> InvNttTableByteSingleGf8 {
-        let ntt_s = AdditiveNttGf8::new(k_skip, F8::ZERO);
-        let ntt_l = AdditiveNttGf8::new(k_skip, F8(1u8 << k_skip));
-        InvNttTableByteSingleGf8::new(&ntt_s, &ntt_l)
-    }
-
-    /// The strongest correctness check: extract_c must produce **identical**
-    /// output to the naive round-1 message: same eq weights, same protocol,
-    /// just an optimized algorithm.
-    #[test]
-    fn extract_c_matches_naive() {
-        for &(m, k_skip) in &[(4, 3), (5, 3), (6, 3), (7, 4), (8, 3), (9, 6)] {
-            let mut rng = Rng::new(100 + m as u64 * 10 + k_skip as u64);
-            let a = rng.bits(1 << m);
-            let b = rng.bits(1 << m);
-            let c = rng.bits(1 << m);
-            let r = rng.ext_vec(m - k_skip);
-            let table = make_inv_table(k_skip);
-
-            let (naive_ab, naive_c) = round1_naive(&a, &b, &c, m, k_skip, &r);
-            let (opt_ab, opt_c) =
-                round1_extract_c_packed(&pack_bits(&a), &pack_bits(&b), &pack_bits(&c), m, k_skip, &r, &table);
-
-            assert_eq!(naive_ab, opt_ab, "AB mismatch at m={m}, k_skip={k_skip}");
-            assert_eq!(naive_c, opt_c, "C mismatch at m={m}, k_skip={k_skip}");
-        }
+            byte
+        })
     }
 
     #[test]

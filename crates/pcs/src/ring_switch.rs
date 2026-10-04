@@ -56,13 +56,12 @@
 //!   weight. It never materializes a dense vector per claim.
 //! - The verifier never materializes the vector: its MLE at the WHIR final point is the closed form of doc `leanvm` Annex A (`rs:weight`), with the Frobenius moved onto the point every claim shares (`rs:cost`), so a claim costs `64 L` E-multiplications and 63 squarings after one precomputation per opening, and claims at prefixes of one point share their products.
 
-use fiat_shamir::transcript::Challenger;
-use primitives::field::{F64, F192};
-use primitives::multilinear::eq_table;
-
 use super::pack::PACKING_WIDTH;
 use super::tensor_algebra::{DEGREE_E, transpose_s_hat};
 use super::whir::inner_product_base_ext;
+use fiat_shamir::transcript::Challenger;
+use primitives::field::{F64, F192};
+use primitives::multilinear::eq_table;
 
 /// Total degree of the six-challenge composed batching map. This is the
 /// conservative degree used by the WHIR list-size soundness accounting.
@@ -201,42 +200,6 @@ fn xor_accs(mut a: Vec<F192>, b: Vec<F192>) -> Vec<F192> {
         *av += bv;
     }
     a
-}
-
-/// Compute `rs_eq_ind`, the transparent E-valued weight vector over the
-/// suffix domain: `rs_eq_ind[y] = Phi(suffix_tensor[y])` where `Phi` sends
-/// E-basis bit w to `coordinate_weights[w]`, i.e.
-///
-/// `rs_eq_ind[y] = sum_w bit_w(suffix_tensor[y]) * coordinate_weights[w]`
-///
-/// Naive reference: a per-position bit-scan over the three 64-bit limbs.
-/// See [`fold_ext_elems`] for the bytewise-table production version.
-#[cfg(test)]
-fn fold_ext_elems_naive(suffix_tensor: &[F192], coordinate_weights: &[F192]) -> Vec<F192> {
-    assert_eq!(coordinate_weights.len(), DEGREE_E);
-    parallel::map_collect(suffix_tensor.len(), |i| {
-        let elem = suffix_tensor[i];
-        let mut acc = F192::ZERO;
-        let mut c0 = elem.c0;
-        while c0 != 0 {
-            let w = c0.trailing_zeros() as usize;
-            acc += coordinate_weights[w];
-            c0 &= c0 - 1;
-        }
-        let mut c1 = elem.c1;
-        while c1 != 0 {
-            let w = c1.trailing_zeros() as usize;
-            acc += coordinate_weights[64 | w];
-            c1 &= c1 - 1;
-        }
-        let mut c2 = elem.c2;
-        while c2 != 0 {
-            let w = c2.trailing_zeros() as usize;
-            acc += coordinate_weights[128 | w];
-            c2 &= c2 - 1;
-        }
-        acc
-    })
 }
 
 /// Number of bytes in an E element (= lookup tables for the fold).
@@ -461,10 +424,46 @@ mod tests {
     use super::*;
     use crate::merkle::Hash;
     use crate::pack::LOG_PACKING;
-    use crate::whir::VerifierConfig;
-    use crate::whir::{commit, recursive_prover_with_basis, recursive_verifier_with_basis_succinct};
-    use crate::whir_config::test_config_for;
-    use primitives::test_rng::Rng;
+    use crate::whir::{VerifierConfig, commit, recursive_prover_with_basis, recursive_verifier_with_basis_succinct};
+    use crate::whir_config::tests::test_config_for;
+    use fiat_shamir::transcript::{Proof, ProverState, VerifierState};
+    use primitives::test_util::Rng;
+    use std::collections::HashSet;
+
+    /// Compute `rs_eq_ind`, the transparent E-valued weight vector over the
+    /// suffix domain: `rs_eq_ind[y] = Phi(suffix_tensor[y])` where `Phi` sends
+    /// E-basis bit w to `coordinate_weights[w]`, i.e.
+    ///
+    /// `rs_eq_ind[y] = sum_w bit_w(suffix_tensor[y]) * coordinate_weights[w]`
+    ///
+    /// Naive reference: a per-position bit-scan over the three 64-bit limbs.
+    /// See [`fold_ext_elems`] for the bytewise-table production version.
+    fn fold_ext_elems_naive(suffix_tensor: &[F192], coordinate_weights: &[F192]) -> Vec<F192> {
+        assert_eq!(coordinate_weights.len(), DEGREE_E);
+        parallel::map_collect(suffix_tensor.len(), |i| {
+            let elem = suffix_tensor[i];
+            let mut acc = F192::ZERO;
+            let mut c0 = elem.c0;
+            while c0 != 0 {
+                let w = c0.trailing_zeros() as usize;
+                acc += coordinate_weights[w];
+                c0 &= c0 - 1;
+            }
+            let mut c1 = elem.c1;
+            while c1 != 0 {
+                let w = c1.trailing_zeros() as usize;
+                acc += coordinate_weights[64 | w];
+                c1 &= c1 - 1;
+            }
+            let mut c2 = elem.c2;
+            while c2 != 0 {
+                let w = c2.trailing_zeros() as usize;
+                acc += coordinate_weights[128 | w];
+                c2 &= c2 - 1;
+            }
+            acc
+        })
+    }
 
     // One claim's weight at the query's prefix of its length.
     fn eval_rs_eq(z_vals: &[F192], scale: F192, query: &RsEqQuery) -> F192 {
@@ -559,7 +558,7 @@ mod tests {
                 }
             }
         }
-        let monomials: std::collections::HashSet<_> = monomials.into_iter().map(Option::unwrap).collect();
+        let monomials: HashSet<_> = monomials.into_iter().map(Option::unwrap).collect();
         assert_eq!(monomials.len(), LINEARIZED_TERMS);
         assert_eq!(
             monomials.iter().map(|exponents| exponents.iter().sum::<u64>()).max(),
@@ -726,7 +725,7 @@ mod tests {
         claim: F192,
         root: Hash,
         rs_s_hat_v: Vec<F192>,
-        fs: fiat_shamir::transcript::Proof,
+        fs: Proof,
     }
 
     const E2E_DOMAIN: &[u8] = b"ring-switch-e2e-test";
@@ -754,7 +753,7 @@ mod tests {
         let claim = inner_product_ext(&prefix_weights, &s_hat_v_reference(&packed, &suffix_point));
 
         // One family of one claim: its slices, the map, then its target and its weight at a scale of one.
-        let mut ps = fiat_shamir::transcript::ProverState::from_label(E2E_DOMAIN);
+        let mut ps = ProverState::from_label(E2E_DOMAIN);
         let rs_s_hat_v = slices_at(&packed, &suffix_point);
         let coordinate_weights = build_coordinate_weights(&sample_map_challenges(&mut ps));
         let sumcheck_claim = verify_finish(&rs_s_hat_v, &coordinate_weights);
@@ -789,7 +788,7 @@ mod tests {
     /// slices ride the statement, tied to `claim` by the caller.
     fn verify_e2e_reduction(
         e: &E2e,
-        vs: &mut fiat_shamir::transcript::VerifierState<'_>,
+        vs: &mut VerifierState<'_>,
     ) -> Option<([F192; COMPOSITION_SHIFTS.len()], Vec<F192>, F192)> {
         if inner_product_ext(&e.prefix_weights, &e.rs_s_hat_v) != e.claim {
             return None;
@@ -803,7 +802,7 @@ mod tests {
     /// Dense verification: rebuild `rs_eq_ind`, and let the whir verifier's
     /// terminal closure evaluate its MLE from the whole table.
     fn verify_e2e_dense(e: &E2e) -> bool {
-        let mut vs = fiat_shamir::transcript::VerifierState::from_label(E2E_DOMAIN, &e.fs);
+        let mut vs = VerifierState::from_label(E2E_DOMAIN, &e.fs);
         let Some((_, coordinate_weights, sumcheck_claim)) = verify_e2e_reduction(e, &mut vs) else {
             return false;
         };
@@ -823,7 +822,7 @@ mod tests {
     /// Succinct verification: no `rs_eq_ind`, the succinct whir verifier's
     /// terminal closure evaluates its MLE once via `eval_rs_eq`.
     fn verify_e2e_succinct(e: &E2e) -> bool {
-        let mut vs = fiat_shamir::transcript::VerifierState::from_label(E2E_DOMAIN, &e.fs);
+        let mut vs = VerifierState::from_label(E2E_DOMAIN, &e.fs);
         let Some((challenges, _, sumcheck_claim)) = verify_e2e_reduction(e, &mut vs) else {
             return false;
         };
@@ -864,7 +863,7 @@ mod tests {
     #[test]
     fn end_to_end_rejects_tampering() {
         let e = prove_e2e(13, 13, false);
-        let with = |s_hat_v: Vec<F192>, claim: F192, fs: fiat_shamir::transcript::Proof| E2e {
+        let with = |s_hat_v: Vec<F192>, claim: F192, fs: Proof| E2e {
             rs_s_hat_v: s_hat_v,
             vc: e.vc.clone(),
             log_n: e.log_n,

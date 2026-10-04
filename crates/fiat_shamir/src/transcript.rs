@@ -2,11 +2,14 @@
 
 use crate::FiatShamirState;
 use crate::merkle::{Hash, PrunedMerklePaths, RawMerklePath, hash_to_scalars, scalars_to_hash};
-use bincode::Options;
+use bincode::{DefaultOptions, Options};
 use primitives::field::{F64, F192};
+use serde::de::DeserializeOwned;
+use serde::{Deserialize, Serialize};
+use thiserror::Error;
 
 /// A scalar stream and its Merkle opening phases. `M` selects pruned or raw paths.
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Proof<M = PrunedMerklePaths> {
     pub stream: Vec<F192>,
     pub merkle: Vec<M>,
@@ -18,7 +21,7 @@ pub struct Proof<M = PrunedMerklePaths> {
 /// ([`VerifierState::into_raw_proof`]), so that expansion is written once, in Rust.
 pub type RawProof = Proof<RawMerklePath>;
 
-impl<M: serde::Serialize + serde::de::DeserializeOwned> Proof<M> {
+impl<M: Serialize + DeserializeOwned> Proof<M> {
     /// The proof's wire bytes: bincode's fixed-width little-endian encoding.
     #[must_use]
     pub fn to_bytes(&self) -> Vec<u8> {
@@ -33,13 +36,13 @@ impl<M: serde::Serialize + serde::de::DeserializeOwned> Proof<M> {
 
 /// `bincode::serialize`'s encoding, refusing trailing bytes when it decodes.
 fn encoding() -> impl Options {
-    bincode::DefaultOptions::new().with_fixint_encoding()
+    DefaultOptions::new().with_fixint_encoding()
 }
 
 /// Why a proof's transcript cannot be read.
 ///
 /// Each variant is a malformed proof, never a verifier bug.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, thiserror::Error)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Error)]
 pub enum TranscriptError {
     /// The stream ends before a scalar the verifier reads.
     #[error("the proof stream ends after {len} scalars")]

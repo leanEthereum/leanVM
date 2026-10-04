@@ -20,7 +20,7 @@
 mod batch;
 mod deferred;
 mod error;
-mod execute;
+pub(crate) mod execute;
 pub mod filler;
 mod layout;
 mod program;
@@ -30,8 +30,6 @@ mod witness;
 pub use deferred::{Claim, DeferredClaims, MalformedClaim, ProgramPoint};
 pub use error::{CpuError, ProveError};
 pub use execute::Execution;
-#[cfg(test)]
-pub(crate) use execute::{ExtRow, HashRow};
 pub(crate) use execute::{Row, Trace};
 pub use fiat_shamir::transcript::Proof;
 pub use layout::{Framework, Layout, Lookup, N_BYTECODE_COLUMNS, N_SHARED, Q_BASE, Schema, Shared, Sizes};

@@ -12,6 +12,7 @@
 
 use super::program::ProgramError;
 use super::region::Region;
+use thiserror::Error;
 
 /// What a program is made from: its undecoded text, entry point and memory sizes.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -101,7 +102,7 @@ impl Guest {
 }
 
 /// Why a file is no guest.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, thiserror::Error)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Error)]
 #[non_exhaustive]
 pub enum ElfError {
     /// A field runs past the end of the file, or its offset overflows.

@@ -1,6 +1,11 @@
 // CREDIT: https://github.com/succinctlabs/flock (flock-core), MIT OR Apache-2.0.
 //! Bit transposes.
 
+#[cfg(target_arch = "aarch64")]
+use core::arch::aarch64::*;
+#[cfg(all(target_arch = "x86_64", target_feature = "avx512vbmi", target_feature = "gfni"))]
+use core::arch::x86_64::*;
+
 /// Transpose the eight 8x8 bit matrices of a 64-byte block, gathered across rows.
 ///
 /// ```text
@@ -107,8 +112,6 @@ fn bit_transpose_64bytes_portable(input: &[u8; 64], output: &mut [u8; 64]) {
 #[cfg(all(target_arch = "x86_64", target_feature = "avx512vbmi", target_feature = "gfni"))]
 #[target_feature(enable = "avx512f,avx512vbmi,gfni")]
 unsafe fn bit_transpose_64bytes_gfni(input: &[u8; 64], output: &mut [u8; 64]) {
-    use core::arch::x86_64::*;
-
     // Word `b`, byte `j`: input row `7 - j`, column `b`.
     const IDX: [u8; 64] = {
         let mut idx = [0u8; 64];
@@ -135,8 +138,6 @@ unsafe fn bit_transpose_64bytes_gfni(input: &[u8; 64], output: &mut [u8; 64]) {
 #[cfg(target_arch = "aarch64")]
 #[inline(always)]
 unsafe fn bit_transpose_64bytes_neon(input: &[u8; 64], output: &mut [u8; 64]) {
-    use core::arch::aarch64::*;
-
     // SAFETY: NEON is part of the aarch64 baseline, and every load and store offset is below 64, the length of
     // both arrays.
     unsafe {
@@ -204,7 +205,7 @@ unsafe fn bit_transpose_64bytes_neon(input: &[u8; 64], output: &mut [u8; 64]) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_rng::Rng;
+    use crate::test_util::Rng;
 
     /// The definition, one bit at a time.
     fn reference(input: &[u8; 64]) -> [u8; 64] {

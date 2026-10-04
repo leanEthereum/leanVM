@@ -83,20 +83,30 @@
 //! protocol's job, via PCS openings at fixed indices.
 
 use crate::gf2::{
-    ADD3_BITS, CARRY_BITS_PER_ADD, MatrixSide, WireWord, back_add, back_add3_fused, walk_add, walk_add3_fused,
-    wire_from_const, wire_from_slot_base, wire_rotl, wire_rotr, wire_xor,
+    ADD3_BITS, CARRY_BITS_PER_ADD, MatrixSide, RowValues, WireWord, back_add, back_add3_fused, walk_add,
+    walk_add3_fused, wire_from_const, wire_from_slot_base, wire_rotl, wire_rotr, wire_xor,
 };
-use crate::reduction::{self, Block};
-use crate::verifier;
+use crate::lincheck::LincheckCircuit;
+use crate::reduction;
+use crate::reduction::Block;
+use crate::verifier::FlockError;
 use crate::witness::{
     BitRecord, add_carry_parts, add3_fused_parts, drive_witness_packed_and_lincheck, or_bit_at,
     write_lin_word_ab_packed,
 };
+use fiat_shamir::transcript::{ProverState, VerifierState};
 use pcs::pack::LOG_PACKING;
 use pcs::stack_open::{RingSwitchOpen, RingSwitchVerify};
 use primitives::field::F192;
 
 pub use crate::reduction::{ReductionReplay, SliceClaim, ZerocheckStage, min_n_blocks_log};
+
+/// BLAKE2s initial values, the SHA-256 IV.
+pub use primitives::hash::IV as BLAKE2S_IV;
+
+/// BLAKE2s message schedule and per-G lane assignment, from the native hash so
+/// the circuit provably encodes the same schedule the prover computes.
+pub use primitives::hash::{G_LANES, SIGMA};
 
 // ---------------------------------------------------------------------------
 // Public constants
@@ -121,13 +131,6 @@ pub const WORD_BITS: usize = crate::gf2::WORD_BITS;
 /// Bits per G block: two fused three-operand ADDs and two two-operand ADDs,
 /// nothing materialized.
 pub const G_STRIDE: usize = 2 * ADD3_BITS + 2 * CARRY_BITS_PER_ADD; // 184
-
-/// BLAKE2s initial values, the SHA-256 IV.
-pub use primitives::hash::IV as BLAKE2S_IV;
-
-/// BLAKE2s message schedule and per-G lane assignment, from the native hash so
-/// the circuit provably encodes the same schedule the prover computes.
-pub use primitives::hash::{G_LANES, SIGMA};
 
 // ---------------------------------------------------------------------------
 // Layout positions (bit indices into the per-block z slice of length K)
@@ -278,7 +281,7 @@ pub const R1CS_DIGEST: [u8; 32] = [
 // ---------------------------------------------------------------------------
 
 /// One forward pass of the circuit against column weights `w`, storing every row's operand pair.
-fn forward_walk(sink: &mut crate::gf2::RowValues, w: &[F192]) {
+fn forward_walk(sink: &mut RowValues, w: &[F192]) {
     sink.bconst(Z_CONST_POS, w[Z_CONST_POS]);
     // Free-input rows: A = [slot], B = [Z_CONST].
     for (base, len) in [
@@ -362,7 +365,7 @@ pub fn bilinear_walk_pair(u: &[F192], w: &[F192]) -> (F192, F192) {
 /// pass over the nonzeros, and neither matrix is materialized.
 pub fn row_values_walk(w: &[F192]) -> (Vec<F192>, Vec<F192>) {
     assert_eq!(w.len(), K);
-    let mut sink = crate::gf2::RowValues::new(K, w[Z_CONST_POS]);
+    let mut sink = RowValues::new(K, w[Z_CONST_POS]);
     forward_walk(&mut sink, w);
     (sink.a, sink.b)
 }
@@ -524,7 +527,7 @@ pub fn marginal_walk(alpha: F192, u: &[F192]) -> Vec<F192> {
 /// ([`marginal_walk`]), so this circuit needs no matrices on either side.
 pub struct WalkLincheckCircuit;
 
-impl crate::lincheck::LincheckCircuit for WalkLincheckCircuit {
+impl LincheckCircuit for WalkLincheckCircuit {
     fn n_cols(&self) -> usize {
         K
     }
@@ -756,7 +759,7 @@ impl Blake2sSetup {
         a_packed_words: &[u64],
         b_packed_words: &[u64],
         z_packed_lincheck: &[u8],
-        ps: &mut fiat_shamir::transcript::ProverState,
+        ps: &mut ProverState,
     ) -> SliceClaim {
         let stage = self.prove_zerocheck(z_packed, a_packed_words, b_packed_words, ps);
         self.prove_lincheck(stage, z_packed_lincheck, ps)
@@ -770,7 +773,7 @@ impl Blake2sSetup {
         z_packed: &[u64],
         a_packed_words: &[u64],
         b_packed_words: &[u64],
-        ps: &mut fiat_shamir::transcript::ProverState,
+        ps: &mut ProverState,
     ) -> ZerocheckStage {
         BLOCK.prove_zerocheck(self.n_blocks_log, z_packed, a_packed_words, b_packed_words, ps)
     }
@@ -778,12 +781,7 @@ impl Blake2sSetup {
     /// **Flock reduction, second stage (prover): the lincheck.** Reduces the
     /// zerocheck's `(â, b̂, ĉ)` claims to the `2^k_skip` bit slices of `z` at
     /// one point, against the per-block matrices.
-    pub fn prove_lincheck(
-        &self,
-        stage: ZerocheckStage,
-        z_packed_lincheck: &[u8],
-        ps: &mut fiat_shamir::transcript::ProverState,
-    ) -> SliceClaim {
+    pub fn prove_lincheck(&self, stage: ZerocheckStage, z_packed_lincheck: &[u8], ps: &mut ProverState) -> SliceClaim {
         BLOCK.prove_lincheck(self.n_blocks_log, stage, z_packed_lincheck, ps)
     }
 
@@ -791,10 +789,7 @@ impl Blake2sSetup {
     /// lincheck straight off the shared transcript stream, recovering the one
     /// evaluation claim on the committed witness `q_flock`. Mirror of
     /// [`Self::prove_reduction_precomputed`]; the PCS then discharges the returned claim.
-    pub fn verify_reduction(
-        &self,
-        vs: &mut fiat_shamir::transcript::VerifierState<'_>,
-    ) -> Result<ReductionReplay, verifier::FlockError> {
+    pub fn verify_reduction(&self, vs: &mut VerifierState<'_>) -> Result<ReductionReplay, FlockError> {
         BLOCK.verify(self.n_blocks_log, vs)
     }
 }
@@ -802,7 +797,8 @@ impl Blake2sSetup {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use primitives::test_rng::Rng;
+    use crate::lincheck::LincheckCircuit;
+    use primitives::test_util::{Rng, test_vectors};
 
     /// Does `z` satisfy the block-diagonal R1CS, `(A_0 z) ⊙ (B_0 z) = z` per block?
     ///
@@ -856,7 +852,7 @@ mod tests {
     /// changes these digests.
     #[test]
     fn compress_matches_blake2s_vectors() {
-        for (input, digest) in primitives::hash::test_vectors() {
+        for (input, digest) in test_vectors() {
             assert_eq!(blake2s_256(&input), digest, "{} bytes", input.len());
         }
     }
@@ -954,7 +950,6 @@ mod tests {
     /// compression.
     #[test]
     fn const_pin_all_zero_rejected() {
-        use crate::lincheck::LincheckCircuit;
         assert_eq!(WalkLincheckCircuit.const_pin_col(), Z_CONST_POS);
         let z_zero = vec![false; K << 3];
         assert!(satisfies(&z_zero, 3), "homogeneous rows accept zero without the pin");

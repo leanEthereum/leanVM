@@ -2,6 +2,7 @@
 //! as the RISC-V instructions it replaces. They exist on the VM only.
 
 use crate::blake2s::Block;
+use core::mem::MaybeUninit;
 
 /// The BLAKE2s compression of message block `m` onto chaining value `h`, `t` bytes into
 /// the message, `last` on the final block: one `blake2s` instruction (custom-0, opcode
@@ -9,7 +10,7 @@ use crate::blake2s::Block;
 #[inline(always)]
 pub fn blake2s_compress(h: &[u64; 4], m: &[u64; 8], t: u64, last: bool) -> [u64; 4] {
     // Built here and nowhere else: a block kept in the hasher is copied whenever the hasher moves.
-    let mut block = core::mem::MaybeUninit::<Block>::uninit();
+    let mut block = MaybeUninit::<Block>::uninit();
     let base = block.as_mut_ptr();
     // SAFETY: the chaining value and the message are written before the instruction reads
     // them, and it writes the compression before it is read.

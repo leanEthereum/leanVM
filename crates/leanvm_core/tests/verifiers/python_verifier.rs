@@ -3,11 +3,14 @@
 //! in both, and this is what catches the Python one drifting.
 
 use fiat_shamir::transcript::RawProof;
-use leanvm_core::cpu::CpuError;
+use leanvm_core::cpu::{CpuError, Lookup, Program};
 use leanvm_core::pcs::Rate;
+use leanvm_core::rv::{Alu, Class};
+use leanvm_core::tables::{ClassTable, Clock};
 use primitives::field::F192;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Instant;
 
 /// One statement laid out the way the Python verifier takes it: the bytecode
@@ -20,12 +23,12 @@ pub struct PythonStatement {
 }
 
 impl PythonStatement {
-    pub fn new(tag: &str, program: &leanvm_core::cpu::Program, output: &[u64; 4]) -> Self {
+    pub fn new(tag: &str, program: &Program, output: &[u64; 4]) -> Self {
         // One directory per statement, not per tag: the tests share a process, so two of
         // them naming the same tag would write each other's files and check the wrong
         // proof, which python would ACCEPT, silently proving nothing.
-        static NEXT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
-        let unique = NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        static NEXT: AtomicUsize = AtomicUsize::new(0);
+        let unique = NEXT.fetch_add(1, Ordering::Relaxed);
         let directory =
             std::env::temp_dir().join(format!("leanvm-python-verifier-{tag}-{}-{unique}", std::process::id()));
         std::fs::create_dir_all(&directory).expect("create test directory");
@@ -35,7 +38,7 @@ impl PythonStatement {
             directory,
         };
         let rv = program.rv();
-        let table: Vec<u8> = leanvm_core::cpu::Lookup::Bytecode
+        let table: Vec<u8> = Lookup::Bytecode
             .table(rv)
             .iter()
             .flat_map(|w| w.0.to_le_bytes())
@@ -179,11 +182,7 @@ fn test_python_verifier() {
     // Neither a padding row's clock nor a failed row's can end the run.
     let final_clock = leanvm_core::tables::N_TABLES + 1;
     let honest = proof.stream[final_clock].c0;
-    for clock in [
-        0,
-        honest ^ leanvm_core::tables::Clock::SEED_CLOCK,
-        honest | 1 << leanvm_core::tables::Clock::FAIL_BIT,
-    ] {
+    for clock in [0, honest ^ Clock::SEED_CLOCK, honest | 1 << Clock::FAIL_BIT] {
         let mut forged = proof.clone();
         forged.stream[final_clock] = F192::new(clock, 0, 0);
         assert_eq!(program.verify(&output, &forged), Err(CpuError::FinalClock));
@@ -219,14 +218,14 @@ fn test_python_verifier() {
     // A load reads no `rs2`, a store writes no `rd`, and a doubleword one has no flags: their tables hold those fields
     // at constants, `x0`, the sink and zero, so an entry naming another register or a flag is refused.
     for (class, slot, reason) in [
-        (leanvm_core::rv::Class::Load, 5, "reads an rs2"),
-        (leanvm_core::rv::Class::Store, 6, "writes an rd"),
-        (leanvm_core::rv::Class::Ld, 5, "reads an rs2"),
-        (leanvm_core::rv::Class::Sd, 6, "writes an rd"),
-        (leanvm_core::rv::Class::Ld, 3, "flags are not its class's"),
+        (Class::Load, 5, "reads an rs2"),
+        (Class::Store, 6, "writes an rd"),
+        (Class::Ld, 5, "reads an rs2"),
+        (Class::Sd, 6, "writes an rd"),
+        (Class::Ld, 3, "flags are not its class's"),
     ] {
         // The class tag `g^t`, which is `2^t` since `g = x`.
-        let tag = 1u64 << leanvm_core::tables::ClassTable::index_of(class).expect("the class has a table");
+        let tag = 1u64 << ClassTable::index_of(class).expect("the class has a table");
         let mut malformed = table.clone();
         for (slot, value) in [(2, tag), (3, 0), (slot, 1)] {
             malformed[8 * slot * entries..][..8].copy_from_slice(&value.to_le_bytes());
@@ -243,9 +242,9 @@ fn test_python_verifier() {
     let refused = statement.verify(&raw);
     PythonStatement::assert_rejects(&refused, "an ordinary instruction marked as an exit");
     assert!(String::from_utf8_lossy(&refused.stderr).contains("an exit entry is not ECALL"));
-    let branch = leanvm_core::rv::Alu::SUB | leanvm_core::rv::Alu::BR_EQ;
-    let always = leanvm_core::rv::Alu::ALWAYS;
-    let jalr = leanvm_core::rv::Alu::CLEAR_BIT0;
+    let branch = Alu::SUB | Alu::BR_EQ;
+    let always = Alu::ALWAYS;
+    let jalr = Alu::CLEAR_BIT0;
     for (flags, dt, link, indirect) in [
         (branch, 0x44, 1, 1),
         (always, 0, 0, 0),

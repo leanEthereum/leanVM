@@ -3,8 +3,9 @@
 use super::python_verifier::PythonStatement;
 use leanvm_core::cpu::{Program, ProveError};
 use leanvm_core::pcs::Rate;
-use leanvm_core::rv::Region;
 use leanvm_core::rv::asm::*;
+use leanvm_core::rv::{Hash, Machine, Region, Trap};
+use primitives::field::{F64, F192};
 
 const STEPS: u64 = 1000;
 
@@ -104,9 +105,7 @@ fn alu_instructions_prove_and_verify() {
         .r(Add, Reg::A4, Reg::A4, Reg::A4)
         .jalr(Reg::ZERO, Reg::RA, 0);
     let program = Program::new(&a.finish(), Region::TEXT.base(), vec![], 2, 0).expect("valid instruction program");
-    let expected = leanvm_core::rv::Machine::new(program.rv(), &[])
-        .run()
-        .expect("the run halts");
+    let expected = Machine::new(program.rv(), &[]).run().expect("the run halts");
     assert_ne!(expected, [0; 4]);
     proves_and_verifies("alu", &program, expected);
 }
@@ -166,9 +165,7 @@ fn loads_and_stores_prove_and_verify() {
         .i(Addi, Reg::SP, Reg::SP, 16)
         .jalr(Reg::ZERO, Reg::RA, 0);
     let program = Program::new(&a.finish(), Region::TEXT.base(), image, LOG_RAM, 0).expect("valid instruction program");
-    let expected = leanvm_core::rv::Machine::new(program.rv(), &[])
-        .run()
-        .expect("the run halts");
+    let expected = Machine::new(program.rv(), &[]).run().expect("the run halts");
     proves_and_verifies("memory", &program, expected);
 }
 
@@ -194,9 +191,7 @@ fn shifts_and_multiplications_prove_and_verify() {
     }
     let program =
         Program::new(&a.exit().finish(), Region::TEXT.base(), vec![], 2, 0).expect("valid instruction program");
-    let expected = leanvm_core::rv::Machine::new(program.rv(), &[])
-        .run()
-        .expect("the run halts");
+    let expected = Machine::new(program.rv(), &[]).run().expect("the run halts");
     assert!(expected.iter().all(|&word| word != 0));
     proves_and_verifies("shift-mul", &program, expected);
 }
@@ -224,15 +219,12 @@ fn divisions_prove_and_verify() {
     }
     let program =
         Program::new(&a.exit().finish(), Region::TEXT.base(), vec![], 2, 0).expect("valid instruction program");
-    let expected = leanvm_core::rv::Machine::new(program.rv(), &[])
-        .run()
-        .expect("the run halts");
+    let expected = Machine::new(program.rv(), &[]).run().expect("the run halts");
     proves_and_verifies("div", &program, expected);
 }
 
 #[test]
 fn blake2s_precompile_proves_and_verifies() {
-    use leanvm_core::rv::Hash;
     // Hash 100 bytes in two compressions, using a block 128 bytes into RAM.
     const BLOCK: u64 = Region::RAM.base() + 128;
     let data: Vec<u8> = (0..100u32).map(|i| (i * 37 + 11) as u8).collect();
@@ -286,7 +278,7 @@ fn blake2s_precompile_proves_and_verifies() {
     let program = Program::new(&text, Region::TEXT.base(), vec![], 7, 0).expect("valid instruction program");
     assert_eq!(
         program.prove(&[], Rate::MIN).err(),
-        Some(ProveError::Trap(leanvm_core::rv::Trap::Misaligned {
+        Some(ProveError::Trap(Trap::Misaligned {
             pc: Region::TEXT.base() + 8,
             address: BLOCK + 4
         }))
@@ -305,7 +297,6 @@ fn blake2s_precompile_proves_and_verifies() {
 /// The four outputs are summed into `a0..a2`, limb by limb.
 #[test]
 fn extension_field_products_prove_and_verify() {
-    use primitives::field::{F64, F192};
     const N: usize = 16;
     let x: Vec<[u64; 3]> = (0..N as u64)
         .map(|i| std::array::from_fn(|c| 0x9E37_79B9_7F4A_7C15u64.wrapping_mul(3 * i + c as u64 + 1) ^ (i << 61)))
@@ -405,7 +396,7 @@ fn advice_proves_and_verifies() {
     let program = Program::new(&text, Region::TEXT.base(), vec![], 2, LOG_ADVICE).expect("valid instruction program");
     assert!(matches!(
         program.prove(&[], Rate::MIN).err(),
-        Some(ProveError::Trap(leanvm_core::rv::Trap::Unmapped { .. }))
+        Some(ProveError::Trap(Trap::Unmapped { .. }))
     ));
 }
 
@@ -416,7 +407,7 @@ fn a_trap_is_reported() {
     let program = Program::new(&text, Region::TEXT.base(), vec![], 2, 0).expect("valid instruction program");
     assert_eq!(
         program.prove(&[], Rate::MIN).err(),
-        Some(ProveError::Trap(leanvm_core::rv::Trap::Illegal {
+        Some(ProveError::Trap(Trap::Illegal {
             pc: Region::TEXT.base()
         }))
     );

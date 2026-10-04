@@ -1,5 +1,7 @@
 //! Streaming stores for x86 buffers written once and read in a later pass. Other targets use ordinary copies.
 
+#[cfg(target_arch = "x86_64")]
+use core::arch::x86_64::*;
 use std::marker::PhantomData;
 
 /// A region of streaming stores.
@@ -84,7 +86,6 @@ impl Drop for Stream {
 #[cfg(target_arch = "x86_64")]
 #[inline]
 unsafe fn stream_lines(dst: *mut u8, src: *const u8, bytes: usize) {
-    use core::arch::x86_64::*;
     // SAFETY: every access covers `off..off + 64` with `off + 64 <= bytes`, since `bytes` is a multiple of 64, so
     // it stays inside both ranges the caller vouches for; each store's target is 64-byte aligned because `dst` is;
     // each arm runs only under the target feature its `cfg` names.

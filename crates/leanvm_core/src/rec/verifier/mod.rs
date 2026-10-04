@@ -5,6 +5,14 @@
 //!
 //! No row depends on a value: a circuit built from a proof equals the one built from its shape.
 
+use super::circuit::{Builder, Ew};
+use super::transcript::Transcript;
+use crate::arith::{Arith, Verifier};
+use fiat_shamir::transcript::TranscriptError;
+use primitives::field::{F64, F192};
+use recursion::FixedHints;
+use std::fmt::Debug;
+
 mod flock;
 mod recursion;
 mod ring;
@@ -18,13 +26,6 @@ pub(crate) use flock::SkipDomain;
 pub(crate) use recursion::{FixedHint, RecShape};
 pub(crate) use ring::RingMap;
 pub use riscv::{CoreRows, ProofShape};
-
-use super::circuit::{Builder, Ew};
-use super::transcript::Transcript;
-use crate::arith::{Arith, Verifier};
-use fiat_shamir::transcript::TranscriptError;
-use primitives::field::{F64, F192};
-use recursion::FixedHints;
 
 /// The verifier's arithmetic and transcript as rows: a circuit being built, and a transcript replayed in it.
 ///
@@ -158,6 +159,6 @@ impl Verifier for Rows<'_, '_> {
 }
 
 /// The value of a read the rows never refuse.
-pub(crate) fn infallible<T, Er: std::fmt::Debug>(read: Result<T, Er>) -> T {
+pub(crate) fn infallible<T, Er: Debug>(read: Result<T, Er>) -> T {
     read.unwrap_or_else(|e| unreachable!("rows record a failure rather than refuse: {e:?}"))
 }

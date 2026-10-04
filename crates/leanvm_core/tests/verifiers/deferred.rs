@@ -1,6 +1,7 @@
 //! The claims the verifier's core leaves on the program and the circuits: they bind what the full verifier checks whole, and Python leaves the same ones.
 
 use super::python_verifier::PythonStatement;
+use leanvm_core::constraints::ConstraintError;
 use leanvm_core::cpu::{CpuError, DeferredClaims, MalformedClaim, Program};
 use leanvm_core::pcs::Rate;
 use leanvm_core::rv::Region;
@@ -31,9 +32,7 @@ fn claims_of(program: &Program, rate: Rate) -> DeferredClaims {
 fn assert_refused_by_the_program(claims: &DeferredClaims, program: &Program, what: &str) {
     assert_eq!(
         program.check_deferred(claims),
-        Err(CpuError::Constraint(
-            leanvm_core::constraints::ConstraintError::FinalMismatch
-        )),
+        Err(CpuError::Constraint(ConstraintError::FinalMismatch)),
         "{what}"
     );
 }

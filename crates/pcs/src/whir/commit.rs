@@ -6,7 +6,7 @@
 //! The commitments: the L0 base encode of the `F64` message, and each deeper
 //! level's extension-field encode, both Merkle-committed one leaf per row.
 
-use crate::merkle::{self, Hash};
+use crate::merkle::{Hash, MerkleBuilder};
 use crate::ntt::AdditiveNttF64;
 use crate::whir_ntt_ext::encode_interleaved_ext;
 use primitives::field::{F64, F192};
@@ -60,7 +60,7 @@ pub fn commit(message: &[F64], log_n: usize, log_batch_size: usize, log_inv_rate
     let mut codeword = unsafe { primitives::uninit_vec::<F64>(codeword_len) };
 
     // Leaves are hashed as the encode finishes each block of rows.
-    let tree = merkle::MerkleBuilder::new(n_positions, n_lanes, 1usize << log_batch_size);
+    let tree = MerkleBuilder::new(n_positions, n_lanes, 1usize << log_batch_size);
     tracing::info_span!("NTT", kind = "base encode", log_domain = k_code, lanes = n_lanes).in_scope(|| {
         crate::ntt::transpose_lane_major(&mut codeword[..message.len()], message, n_lanes, log_rows);
         let ntt = AdditiveNttF64::standard(k_code);
@@ -123,7 +123,7 @@ pub(crate) fn ligero_commit_ext(
 
     // One leaf per row, its F192s as K words: hashed as the encode finishes each block.
     let row_words = 3 * num_interleaved;
-    let builder = merkle::MerkleBuilder::new(block_len, row_words, row_words);
+    let builder = MerkleBuilder::new(block_len, row_words, row_words);
     tracing::info_span!(
         "NTT",
         kind = "extension encode",

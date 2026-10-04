@@ -36,10 +36,10 @@
 
 use crate::zerocheck::PaddingSpec;
 use crate::zerocheck::bit_fold::{BLOCK, BitFold};
-#[cfg(test)]
-use crate::zerocheck::univariate_skip::pack_bits;
 use crate::zerocheck::univariate_skip::{SplitEq, build_eq};
+use parallel::Chunks;
 use primitives::field::{F192, F192Unreduced, PHI_8_TABLE_192 as PHI_8_TABLE};
+use primitives::multilinear::{barycentric_sum, window_denominator};
 use primitives::stream::Stream;
 
 /// Four independent products. Tuples keep the scalar and NEON paths in registers, while AVX-512 uses the batched helper.
@@ -78,10 +78,6 @@ fn mul_quad_unreduced(
 // Lagrange weights for the univariate-skip fold at z.
 // ---------------------------------------------------------------------------
 
-#[cfg(test)]
-use primitives::multilinear::skip_lagrange_weights;
-use primitives::multilinear::{barycentric_sum, window_denominator};
-
 /// Interpolate a degree-`< 2·2^k_skip` polynomial at z, given its `2^k_skip`
 /// evaluations on Λ and the assumption that it equals **zero on S**.
 ///
@@ -106,32 +102,6 @@ pub fn interpolate_at_z_combined(values_on_lambda: &[F192], k_skip: usize, z: F1
 // ---------------------------------------------------------------------------
 // Fold a Boolean witness at z.
 // ---------------------------------------------------------------------------
-
-/// Evaluate the univariate-skip polynomial at the fold point `z`, given the
-/// precomputed Lagrange `weights`. Returns the multilinear extension table
-/// `a_mlv` of length `2^(m − k_skip)` over F_{2^192}.
-///
-///   `a_mlv[x_rest] = Σ_s a(s, x_rest) · L_s(z)`
-///
-/// `a(s, x_rest)` is the witness bit at index `x_rest * 2^k_skip + s` (low
-/// bits = skip variable, high bits = rest variables).
-#[cfg(test)]
-fn fold_at_z_naive(witness: &[bool], m: usize, k_skip: usize, weights: &[F192]) -> Vec<F192> {
-    assert!(k_skip <= m);
-    let ell = 1usize << k_skip;
-    let n_rest = 1usize << (m - k_skip);
-    assert_eq!(witness.len(), 1usize << m);
-    assert_eq!(weights.len(), ell);
-
-    (0..n_rest)
-        .map(|x_rest| {
-            let bits = &witness[x_rest * ell..][..ell];
-            (bits.iter().zip(weights))
-                .filter(|&(&bit, _)| bit)
-                .fold(F192::ZERO, |acc, (_, &w)| acc + w)
-        })
-        .collect()
-}
 
 // ---------------------------------------------------------------------------
 // Naive round-2 prover message (AB-pair multilinear sumcheck).
@@ -478,7 +448,7 @@ fn bit_round_store_kernel<const CHUNKS: usize>(
         unsafe { primitives::uninit_vec(n_pos) }
     });
     let [out_a, out_b, out_c] = &mut out;
-    let chunks = [out_a, out_b, out_c].map(|o| parallel::Chunks::new(o, 2 * lo_size));
+    let chunks = [out_a, out_b, out_c].map(|o| Chunks::new(o, 2 * lo_size));
 
     let message = parallel::map_reduce(
         eq_hi.len(),
@@ -612,7 +582,7 @@ fn fold_and_round_pair_kernel<const K: usize>(
     // One task per high eq index: `lo_size` quads, `4 * lo_size` outputs of each table.
     let (chunk_in, chunk_out) = ((4 * lo_size) << K, 4 * lo_size);
     let [out_a, out_b, out_c] = outs;
-    let chunks = [out_a, out_b, out_c].map(|o| parallel::Chunks::new(o, chunk_out));
+    let chunks = [out_a, out_b, out_c].map(|o| Chunks::new(o, chunk_out));
     let rho = |j: usize| (rhos[j], rhos[j], rhos[j], rhos[j]);
 
     // Four outputs of one table, each folded from its `2^K` inputs.
@@ -747,7 +717,39 @@ pub fn fold_in_place_pair(a: &mut Vec<F192>, b: &mut Vec<F192>, challenge: F192)
 #[cfg(test)]
 mod tests {
     use super::*;
-    use primitives::test_rng::Rng;
+    use crate::zerocheck::univariate_skip::tests::pack_bits;
+    use crate::zerocheck::univariate_skip_optimized::{
+        c_s, medium_challenges, round1_shift_reduce_extract_c_packed_padded, small_challenges,
+    };
+    use pcs::ntt::{AdditiveNttGf8, InvNttTableByteSingleGf8};
+    use primitives::field::F8;
+    use primitives::multilinear::skip_lagrange_weights;
+    use primitives::test_util::Rng;
+
+    /// Evaluate the univariate-skip polynomial at the fold point `z`, given the
+    /// precomputed Lagrange `weights`. Returns the multilinear extension table
+    /// `a_mlv` of length `2^(m − k_skip)` over F_{2^192}.
+    ///
+    ///   `a_mlv[x_rest] = Σ_s a(s, x_rest) · L_s(z)`
+    ///
+    /// `a(s, x_rest)` is the witness bit at index `x_rest * 2^k_skip + s` (low
+    /// bits = skip variable, high bits = rest variables).
+    fn fold_at_z_naive(witness: &[bool], m: usize, k_skip: usize, weights: &[F192]) -> Vec<F192> {
+        assert!(k_skip <= m);
+        let ell = 1usize << k_skip;
+        let n_rest = 1usize << (m - k_skip);
+        assert_eq!(witness.len(), 1usize << m);
+        assert_eq!(weights.len(), ell);
+
+        (0..n_rest)
+            .map(|x_rest| {
+                let bits = &witness[x_rest * ell..][..ell];
+                (bits.iter().zip(weights))
+                    .filter(|&(&bit, _)| bit)
+                    .fold(F192::ZERO, |acc, (_, &w)| acc + w)
+            })
+            .collect()
+    }
 
     /// Interpolate a degree-`< 2^k_skip` polynomial at z, given its `2^k_skip`
     /// evaluations on the **extension domain** `Λ = {2^k_skip, …, 2^(k_skip+1) − 1}`
@@ -860,12 +862,6 @@ mod tests {
     /// sum with the AB half, so this is what pins that half on its own.
     #[test]
     fn c_eval_from_round1_c_matches_direct_fold() {
-        use crate::zerocheck::univariate_skip_optimized::{
-            c_s, medium_challenges, round1_shift_reduce_extract_c_packed_padded, small_challenges,
-        };
-        use pcs::ntt::{AdditiveNttGf8, InvNttTableByteSingleGf8};
-        use primitives::field::F8;
-
         const K_SKIP: usize = 6;
         const N_INNER: usize = 7;
 

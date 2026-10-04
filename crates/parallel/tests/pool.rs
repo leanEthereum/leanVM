@@ -3,6 +3,7 @@
 //! surfaces on the dispatcher without wedging the pool.
 
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::time::Duration;
 
 const SIZES: [usize; 7] = [0, 1, 2, 17, scaled(1_000), scaled(4_096), scaled(100_000)];
 
@@ -35,7 +36,7 @@ fn tiny_dispatches_run_every_item_while_workers_wake_late() {
     //     batch 1:  after 5 ms idle, workers parked
     for batch in 0..2 {
         if batch == 1 {
-            std::thread::sleep(std::time::Duration::from_millis(5));
+            std::thread::sleep(Duration::from_millis(5));
         }
         for round in 0..scaled(1000) {
             let hits: Vec<AtomicUsize> = (0..2).map(|_| AtomicUsize::new(0)).collect();

@@ -3,9 +3,13 @@
 
 use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, Instant};
-
-use tracing::{Level, Subscriber, span};
-use tracing_subscriber::{Layer, layer::Context, registry::LookupSpan};
+use tracing::span::{Attributes, Id};
+use tracing::{Level, Subscriber};
+use tracing_subscriber::filter::filter_fn;
+use tracing_subscriber::layer::{Context, SubscriberExt};
+use tracing_subscriber::registry::LookupSpan;
+use tracing_subscriber::util::SubscriberInitExt;
+use tracing_subscriber::{Layer, Registry};
 
 /// The root span's name, set by [`time_stages`].
 static ROOT: OnceLock<&'static str> = OnceLock::new();
@@ -20,7 +24,7 @@ struct Opened(Instant);
 pub(crate) struct Stages;
 
 impl<S: Subscriber + for<'a> LookupSpan<'a>> Layer<S> for Stages {
-    fn on_new_span(&self, _: &span::Attributes<'_>, id: &span::Id, ctx: Context<'_, S>) {
+    fn on_new_span(&self, _: &Attributes<'_>, id: &Id, ctx: Context<'_, S>) {
         let Some(&root) = ROOT.get() else { return };
         let span = ctx.span(id).expect("a new span is registered");
         if span.parent().is_some_and(|parent| parent.name() == root) {
@@ -28,7 +32,7 @@ impl<S: Subscriber + for<'a> LookupSpan<'a>> Layer<S> for Stages {
         }
     }
 
-    fn on_close(&self, id: span::Id, ctx: Context<'_, S>) {
+    fn on_close(&self, id: Id, ctx: Context<'_, S>) {
         let span = ctx.span(&id).expect("a closing span is registered");
         if let Some(Opened(opened)) = span.extensions().get::<Opened>() {
             STAGES.lock().unwrap().push((span.name(), opened.elapsed()));
@@ -42,8 +46,6 @@ impl<S: Subscriber + for<'a> LookupSpan<'a>> Layer<S> for Stages {
 /// Installs a subscriber enabling `INFO` spans and no events, unless one is installed
 /// already: [`crate::init_tracing`]'s times the stages too.
 pub fn time_stages(root: &'static str) {
-    use tracing_subscriber::{Registry, filter::filter_fn, layer::SubscriberExt, util::SubscriberInitExt};
-
     ROOT.set(root).expect("one root span per process");
     let spans = filter_fn(|metadata| metadata.is_span() && *metadata.level() <= Level::INFO);
     let _ = Registry::default().with(Stages.with_filter(spans)).try_init();

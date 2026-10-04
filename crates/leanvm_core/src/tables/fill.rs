@@ -1,9 +1,8 @@
 //! Sequential registration and parallel execution of column writers.
 
-use super::ClassTable;
-use super::Clock;
+use super::{ClassTable, Clock};
 use crate::cpu::{Row, Trace};
-use crate::rv;
+use crate::rv::RiscvProgram;
 use parallel::SendPtr;
 use primitives::field::F64;
 use std::ops::Range;
@@ -14,7 +13,7 @@ pub(crate) struct FillContext<'a> {
     trace: &'a Trace,
 
     /// Public decoded program supplying each row's bytecode fields.
-    program: &'a rv::Program,
+    program: &'a RiscvProgram,
 
     /// Number of rows in every destination column.
     rows: usize,
@@ -28,7 +27,7 @@ pub(crate) struct FillContext<'a> {
 
 impl<'a> FillContext<'a> {
     /// Start sequential registration for a table with fixed row and column counts.
-    pub(crate) fn new(trace: &'a Trace, program: &'a rv::Program, rows: usize, n_cols: usize) -> Self {
+    pub(crate) fn new(trace: &'a Trace, program: &'a RiscvProgram, rows: usize, n_cols: usize) -> Self {
         Self {
             trace,
             program,
@@ -229,7 +228,8 @@ impl ClassTable {
 mod tests {
     use super::*;
     use crate::cpu::{Execution, Program};
-    use crate::rv::{Region, asm::Asm};
+    use crate::rv::Region;
+    use crate::rv::asm::Asm;
 
     fn fixture() -> (Program, Execution) {
         // A real trace supplies the context.

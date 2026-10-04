@@ -3,6 +3,7 @@
 
 use crate::transcript::TranscriptError;
 use primitives::field::{F64, F192};
+use serde::{Deserialize, Serialize};
 
 pub type Hash = [u8; 32];
 
@@ -85,7 +86,7 @@ fn sorted_unique(queries: &[usize]) -> Vec<usize> {
 /// the missing words being a zero prefix the caller also announces,
 /// which is what keeps a padding-free L0 commitment's absent lanes out of the
 /// proof.
-#[derive(Clone, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PrunedMerklePaths {
     pub leaf_data: Vec<Vec<F64>>,
     pub sibling_hashes: Vec<Hash>,
@@ -244,7 +245,7 @@ impl PrunedMerklePaths {
 /// the root is a walk up one path, with no dedup bookkeeping. The Python
 /// verifier consumes this; the wire format ([`PrunedMerklePaths`]) sends each
 /// shared sibling once.
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RawMerklePath {
     /// Transcript-derived position.
     pub leaf_index: usize,

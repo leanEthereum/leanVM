@@ -34,11 +34,12 @@
 use crate::PAR_THRESHOLD;
 use crate::arith::{Arith, Verifier};
 use crate::colval::ColVal;
-use fiat_shamir::transcript::{Challenger, ProverState, Transmitter, VerifierState};
+use fiat_shamir::transcript::{Challenger, ProverState, TranscriptError, Transmitter, VerifierState};
+use parallel::Chunks;
 use primitives::field::{F64, F192, F192Unreduced};
 use primitives::multilinear::{eq_table, poly_eval, shrink_eq_high};
-#[cfg(test)]
-use primitives::multilinear::{fold_high_inplace, fold_high_k};
+use std::ops::Deref;
+use thiserror::Error;
 
 /// One table's sent columns' evaluations at its table-sumcheck point.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -75,14 +76,14 @@ impl Claims {
 }
 
 /// Why the table constraints reject.
-#[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
+#[derive(Clone, Debug, PartialEq, Eq, Error)]
 pub enum ConstraintError {
     /// The bus point has fewer coordinates than the tallest table has variables.
     #[error("the bus point has {len} coordinates, and the tallest table has {rounds} variables")]
     PointTooShort { len: usize, rounds: usize },
     /// The proof stream is malformed.
     #[error(transparent)]
-    Transcript(#[from] fiat_shamir::transcript::TranscriptError),
+    Transcript(#[from] TranscriptError),
     /// The sumcheck's final claim is not the tables' summands at the opened columns.
     #[error("the constraint sumcheck's final claim does not match the columns")]
     FinalMismatch,
@@ -166,7 +167,7 @@ pub fn xi_offsets(n_constraints: impl Iterator<Item = usize>) -> Vec<usize> {
 /// time. Nothing is lifted into `E`, so a `K` round evaluates the identity and the
 /// bus forms in 64-bit arithmetic, and its scratch is a third the size.
 #[inline(always)]
-fn table_message<T: ColVal, C: std::ops::Deref<Target = [T]> + Sync>(
+fn table_message<T: ColVal, C: Deref<Target = [T]> + Sync>(
     cols: &[C],
     summand: &impl Summand,
     half: usize,
@@ -356,7 +357,7 @@ fn folded_message(
 }
 
 /// Convert the joining table's column layout into folded rows and its next message.
-fn fold_columns_and_message<T: ColVal + Into<F192>, C: std::ops::Deref<Target = [T]> + Sync>(
+fn fold_columns_and_message<T: ColVal + Into<F192>, C: Deref<Target = [T]> + Sync>(
     cols: &[C],
     rk: F192,
     summand: &impl Summand,
@@ -377,8 +378,8 @@ fn fold_columns_and_message<T: ColVal + Into<F192>, C: std::ops::Deref<Target = 
     }
     let pairs = half / 2;
     let (lo, hi) = out.split_at_mut(pairs * ncols);
-    let lo = parallel::Chunks::new(lo, ncols);
-    let hi = parallel::Chunks::new(hi, ncols);
+    let lo = Chunks::new(lo, ncols);
+    let hi = Chunks::new(hi, ncols);
     let message = folded_message(ncols, eqr, summand, at_one, |i, a, b| {
         for (c, col) in cols.iter().enumerate() {
             a[c] = interp(col[i], col[i + half]);
@@ -417,10 +418,10 @@ fn fold_rows_and_message(
     let (left, right) = table.split_at_mut(half * ncols);
     let (q0, q1) = left.split_at_mut(pairs * ncols);
     let (q2, q3) = right.split_at_mut(pairs * ncols);
-    let q0 = parallel::Chunks::new(q0, ncols);
-    let q1 = parallel::Chunks::new(q1, ncols);
-    let q2 = parallel::Chunks::new(q2, ncols);
-    let q3 = parallel::Chunks::new(q3, ncols);
+    let q0 = Chunks::new(q0, ncols);
+    let q1 = Chunks::new(q1, ncols);
+    let q2 = Chunks::new(q2, ncols);
+    let q3 = Chunks::new(q3, ncols);
     let message = folded_message(ncols, eqr, summand, at_one, |i, a, b| {
         // SAFETY: task i exclusively borrows row i in each disjoint quarter exactly once.
         let (lo, hi, upper_lo, upper_hi) = unsafe { (q0.get(i), q1.get(i), q2.get(i), q3.get(i)) };
@@ -434,105 +435,6 @@ fn fold_rows_and_message(
     });
     table.truncate(half * ncols);
     Some(message)
-}
-
-/// Reference prover with separate column-message and column-fold passes.
-#[cfg(test)]
-fn prove_reference<S: Summand>(
-    airs: &[Air<S>],
-    cols: Vec<Columns<'_>>,
-    zeta: &[F192],
-    sigma: &[F192],
-    ps: &mut ProverState,
-) -> Vec<Claims> {
-    // All tables share the tallest table's cube.
-    let n = airs.iter().map(|a| a.tau).max().unwrap_or(0);
-    debug_assert!(zeta.len() >= n, "the eq point must cover the tallest table");
-    // Each table carries its own accumulated equality and waiting-variable factors.
-    let mut weights = vec![F192::ONE; airs.len()];
-    let mut eqr = eq_table(&zeta[..n.saturating_sub(1)]);
-    let mut chi = vec![F192::ZERO; n];
-    // Extension columns are already owned; base columns stay borrowed until joining.
-    let (cols, mut folded): (Vec<Vec<&[F64]>>, Vec<_>) = cols
-        .into_iter()
-        .map(|c| match c {
-            Columns::K(k) => (k, None),
-            Columns::E(e) => (Vec::new(), Some(e)),
-        })
-        .unzip();
-    let mut k = F192::ONE;
-    let mut claim = sigma.iter().copied().fold(F192::ZERO, |a, b| a + b);
-    for j in 0..n {
-        let m = n - 1 - j;
-        // Shorter tables contribute a line until they join the common cube.
-        let waiting = airs
-            .iter()
-            .zip(sigma)
-            .filter(|(a, _)| a.tau <= m)
-            .fold(F192::ZERO, |acc, (_, &s)| acc + s);
-        let u = k * waiting;
-        // Sum the current messages before any column is folded.
-        let mut msg = [F192::ZERO; 2];
-        for (t, air) in airs.iter().enumerate() {
-            if air.tau > m {
-                let p = folded[t].as_ref().map_or_else(
-                    || table_message(&cols[t], &air.summand, 1 << m, &eqr, zeta[m].is_zero()),
-                    |table| table_message(table, &air.summand, 1 << m, &eqr, zeta[m].is_zero()),
-                );
-                for i in 0..2 {
-                    msg[i] += weights[t] * p[i];
-                }
-            }
-        }
-        // Retain only the equality weights needed by the next round.
-        shrink_eq_high(&mut eqr);
-        let h = round_polynomial(msg, zeta[m], claim, u);
-        // Bind the message before drawing the challenge for its fold.
-        ps.add_round_poly(&h, false);
-        let rk = ps.sample();
-        claim = poly_eval(&h, rk);
-        chi[m] = rk;
-        k *= rk;
-        let eq_k = F192::ONE + zeta[m] + rk;
-        for (t, air) in airs.iter().enumerate() {
-            weights[t] *= if air.tau > m { eq_k } else { rk };
-            if air.tau <= m {
-                continue;
-            }
-            // This independent oracle folds every column in a separate pass.
-            if let Some(table) = &mut folded[t] {
-                if m >= PAR_THRESHOLD.trailing_zeros() as usize {
-                    let cols = parallel::Chunks::new(table, 1);
-                    parallel::for_each(cols.count(), |ci| {
-                        // SAFETY: each task exclusively folds one owned column for the whole dispatch.
-                        let col = unsafe { &mut cols.get(ci)[0] };
-                        fold_high_inplace(col, rk);
-                    });
-                } else {
-                    table.iter_mut().for_each(|c| fold_high_inplace(c, rk));
-                }
-            } else {
-                folded[t] = Some(parallel::map_collect(cols[t].len(), |ci| fold_high_k(cols[t][ci], rk)));
-            }
-        }
-    }
-
-    // Send only the nonpublic terminal evaluations.
-    airs.iter()
-        .enumerate()
-        .map(|(t, air)| {
-            let mut evals: Vec<F192> = folded[t].as_ref().map_or_else(
-                || cols[t].iter().map(|c| F192::from(c[0])).collect(),
-                |table| table.iter().map(|c| c[0]).collect(),
-            );
-            evals.truncate(air.n_cols - air.n_public);
-            ps.add_scalars(&evals);
-            Claims {
-                chi: chi[..air.tau].to_vec(),
-                evals,
-            }
-        })
-        .collect()
 }
 
 /// What the table sumcheck's verifier establishes.
@@ -645,8 +547,107 @@ mod tests {
     use super::*;
     use fiat_shamir::transcript::Proof;
     use primitives::field::powers;
-    use primitives::test_rng::Rng;
+    use primitives::multilinear::{fold_high_inplace, fold_high_k};
+    use primitives::test_util::Rng;
     use proptest::prelude::*;
+
+    /// Reference prover with separate column-message and column-fold passes.
+    fn prove_reference<S: Summand>(
+        airs: &[Air<S>],
+        cols: Vec<Columns<'_>>,
+        zeta: &[F192],
+        sigma: &[F192],
+        ps: &mut ProverState,
+    ) -> Vec<Claims> {
+        // All tables share the tallest table's cube.
+        let n = airs.iter().map(|a| a.tau).max().unwrap_or(0);
+        debug_assert!(zeta.len() >= n, "the eq point must cover the tallest table");
+        // Each table carries its own accumulated equality and waiting-variable factors.
+        let mut weights = vec![F192::ONE; airs.len()];
+        let mut eqr = eq_table(&zeta[..n.saturating_sub(1)]);
+        let mut chi = vec![F192::ZERO; n];
+        // Extension columns are already owned; base columns stay borrowed until joining.
+        let (cols, mut folded): (Vec<Vec<&[F64]>>, Vec<_>) = cols
+            .into_iter()
+            .map(|c| match c {
+                Columns::K(k) => (k, None),
+                Columns::E(e) => (Vec::new(), Some(e)),
+            })
+            .unzip();
+        let mut k = F192::ONE;
+        let mut claim = sigma.iter().copied().fold(F192::ZERO, |a, b| a + b);
+        for j in 0..n {
+            let m = n - 1 - j;
+            // Shorter tables contribute a line until they join the common cube.
+            let waiting = airs
+                .iter()
+                .zip(sigma)
+                .filter(|(a, _)| a.tau <= m)
+                .fold(F192::ZERO, |acc, (_, &s)| acc + s);
+            let u = k * waiting;
+            // Sum the current messages before any column is folded.
+            let mut msg = [F192::ZERO; 2];
+            for (t, air) in airs.iter().enumerate() {
+                if air.tau > m {
+                    let p = folded[t].as_ref().map_or_else(
+                        || table_message(&cols[t], &air.summand, 1 << m, &eqr, zeta[m].is_zero()),
+                        |table| table_message(table, &air.summand, 1 << m, &eqr, zeta[m].is_zero()),
+                    );
+                    for i in 0..2 {
+                        msg[i] += weights[t] * p[i];
+                    }
+                }
+            }
+            // Retain only the equality weights needed by the next round.
+            shrink_eq_high(&mut eqr);
+            let h = round_polynomial(msg, zeta[m], claim, u);
+            // Bind the message before drawing the challenge for its fold.
+            ps.add_round_poly(&h, false);
+            let rk = ps.sample();
+            claim = poly_eval(&h, rk);
+            chi[m] = rk;
+            k *= rk;
+            let eq_k = F192::ONE + zeta[m] + rk;
+            for (t, air) in airs.iter().enumerate() {
+                weights[t] *= if air.tau > m { eq_k } else { rk };
+                if air.tau <= m {
+                    continue;
+                }
+                // This independent oracle folds every column in a separate pass.
+                if let Some(table) = &mut folded[t] {
+                    if m >= PAR_THRESHOLD.trailing_zeros() as usize {
+                        let cols = Chunks::new(table, 1);
+                        parallel::for_each(cols.count(), |ci| {
+                            // SAFETY: each task exclusively folds one owned column for the whole dispatch.
+                            let col = unsafe { &mut cols.get(ci)[0] };
+                            fold_high_inplace(col, rk);
+                        });
+                    } else {
+                        table.iter_mut().for_each(|c| fold_high_inplace(c, rk));
+                    }
+                } else {
+                    folded[t] = Some(parallel::map_collect(cols[t].len(), |ci| fold_high_k(cols[t][ci], rk)));
+                }
+            }
+        }
+
+        // Send only the nonpublic terminal evaluations.
+        airs.iter()
+            .enumerate()
+            .map(|(t, air)| {
+                let mut evals: Vec<F192> = folded[t].as_ref().map_or_else(
+                    || cols[t].iter().map(|c| F192::from(c[0])).collect(),
+                    |table| table.iter().map(|c| c[0]).collect(),
+                );
+                evals.truncate(air.n_cols - air.n_public);
+                ps.add_scalars(&evals);
+                Claims {
+                    chi: chi[..air.tau].to_vec(),
+                    evals,
+                }
+            })
+            .collect()
+    }
 
     /// Two identities over four columns, `pows`-weighted, plus `constant`. An attached
     /// third "identity" is the linear form `vals[1]`, whose claimed sum is an

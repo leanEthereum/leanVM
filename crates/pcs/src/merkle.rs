@@ -106,20 +106,6 @@ impl MerkleBuilder {
         }
     }
 
-    /// Absorb all rows, in parallel blocks.
-    #[cfg(test)]
-    fn absorb_all(&self, data: &[u8]) {
-        let num_leaves = self.nodes.width(0);
-        assert_eq!(data.len(), num_leaves * self.leaves.row_bytes(), "one row per leaf");
-        // Enough blocks for every worker, each at most one unit.
-        let log_tasks = (4 * parallel::num_threads()).next_power_of_two().ilog2();
-        let log_block = num_leaves.ilog2().saturating_sub(log_tasks).min(UNIT.ilog2());
-        let block_bytes = self.leaves.row_bytes() << log_block;
-        parallel::for_each(num_leaves >> log_block, |b| {
-            self.absorb_bytes(b << log_block, &data[b * block_bytes..][..block_bytes]);
-        });
-    }
-
     /// The finished tree.
     ///
     /// # Panics
@@ -387,6 +373,21 @@ const fn digests_as_bytes(out: &mut [MaybeUninit<Hash>]) -> &mut [u8] {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    impl MerkleBuilder {
+        /// Absorb all rows, in parallel blocks.
+        fn absorb_all(&self, data: &[u8]) {
+            let num_leaves = self.nodes.width(0);
+            assert_eq!(data.len(), num_leaves * self.leaves.row_bytes(), "one row per leaf");
+            // Enough blocks for every worker, each at most one unit.
+            let log_tasks = (4 * parallel::num_threads()).next_power_of_two().ilog2();
+            let log_block = num_leaves.ilog2().saturating_sub(log_tasks).min(UNIT.ilog2());
+            let block_bytes = self.leaves.row_bytes() << log_block;
+            parallel::for_each(num_leaves >> log_block, |b| {
+                self.absorb_bytes(b << log_block, &data[b * block_bytes..][..block_bytes]);
+            });
+        }
+    }
 
     /// The tree over `num_leaves` rows of `row_words`, each hashed as `zeros(leaf_words - row_words) ‖ row`.
     fn merkle_tree_padded_rows(data: &[F64], num_leaves: usize, row_words: usize, leaf_words: usize) -> Vec<Hash> {

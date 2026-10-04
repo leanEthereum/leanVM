@@ -1,13 +1,19 @@
 use super::claims::{Bits, DenseClaim, DenseTerm, MatrixClaim, NodeClaims};
-use super::reduce::{DenseProver, DenseVars, LABEL, MatrixProver, MatrixReduced};
+use super::reduce::{DenseProver, DenseVars, LABEL, MatrixProver, MatrixReduced, ReduceError};
 use super::statement::{Section, digest_halves_rows};
 use super::*;
 use crate::arith::{Arith, Native};
+use crate::cpu::Claim;
 use crate::rec::circuit::{Assignment, Builder, Kw};
+use crate::rec::table::HashFlock;
+use crate::rv::Region;
 use crate::rv::asm::*;
+use crate::tables::ClassSpec;
+use design::NodeRows;
 use fiat_shamir::transcript::{Challenger, ProverState, Transmitter, VerifierState};
+use flock::lincheck::MatrixForm;
 use primitives::multilinear::mle_eval;
-use primitives::test_rng::Rng;
+use primitives::test_util::Rng;
 use std::sync::OnceLock;
 
 // A program whose output is its one advice word, after a loop that reads every framework block.
@@ -15,7 +21,7 @@ fn program() -> &'static Program {
     static PROGRAM: OnceLock<Program> = OnceLock::new();
     PROGRAM.get_or_init(|| {
         let text = Asm::new()
-            .li(Reg::T0, crate::rv::Region::ADVICE.base())
+            .li(Reg::T0, Region::ADVICE.base())
             .load(Ld, Reg::A0, 0, Reg::T0)
             .li(Reg::T1, 9)
             .label("loop")
@@ -23,7 +29,7 @@ fn program() -> &'static Program {
             .branch(Bne, Reg::T1, Reg::ZERO, "loop")
             .exit()
             .finish();
-        Program::new(&text, crate::rv::Region::TEXT.base(), vec![3, 5], 2, 0).expect("a valid program")
+        Program::new(&text, Region::TEXT.base(), vec![3, 5], 2, 0).expect("a valid program")
     })
 }
 
@@ -184,7 +190,7 @@ fn mixed_levels_are_refused_at_the_root() {
 }
 
 // The reduction an honest prover proves, as its rows read it.
-fn honest_reduction(f: &Fixture, rows: &design::NodeRows) -> RawProof {
+fn honest_reduction(f: &Fixture, rows: &NodeRows) -> RawProof {
     let proof = rows.claim_values().prove(&f.tree.design.vars, &f.tree.tables);
     RawProof {
         stream: proof.stream,
@@ -193,7 +199,7 @@ fn honest_reduction(f: &Fixture, rows: &design::NodeRows) -> RawProof {
 }
 
 // The circuit a prover's rows build, at the nodes' heights.
-fn proven_circuit(f: &Fixture, rows: design::NodeRows) -> Circuit {
+fn proven_circuit(f: &Fixture, rows: NodeRows) -> Circuit {
     let reduction = honest_reduction(f, &rows);
     let Finished {
         mut circuit, failures, ..
@@ -456,7 +462,7 @@ fn forged_reduced_claims_are_refused() {
         (
             Forge::Matrix,
             FalseClaim::Matrix {
-                table: crate::tables::ClassSpec::ALL[0].name,
+                table: ClassSpec::ALL[0].name,
                 part: Part::Class,
             },
         ),
@@ -594,10 +600,7 @@ fn the_dense_reduction_reduces_to_the_polynomials() {
     // A false claim: the honest prover's reduction is refused, and a cheating prover's reduces it to a false value.
     let mut false_claims = claims;
     false_claims[6].terms[1].value += F192::ONE;
-    assert_eq!(
-        verify(&false_claims, &proof).err(),
-        Some(super::reduce::ReduceError::Dense)
-    );
+    assert_eq!(verify(&false_claims, &proof).err(), Some(ReduceError::Dense));
     let forged = prove(&false_claims, true);
     let reduced = verify(&false_claims, &forged).expect("the forgery meets the final identity");
     let falsified = DensePoly::ALL.into_iter().filter(|&poly| {
@@ -611,10 +614,10 @@ fn the_dense_reduction_reduces_to_the_polynomials() {
 fn matrix_claims(rng: &mut Rng) -> Vec<MatrixClaim<F192>> {
     let k_skip = flock::zerocheck::K_SKIP;
     let mut claims = Vec::new();
-    for f in [0, 3, crate::rec::table::HashFlock::index()] {
+    for f in [0, 3, HashFlock::index()] {
         let circuit = crate::class_flock::circuit(f);
         let k = circuit.k_log();
-        let form = flock::lincheck::MatrixForm {
+        let form = MatrixForm {
             alpha: rng.ext(),
             z_skip: rng.ext(),
             x_inner_rest: rng.ext_vec(k - k_skip),
@@ -622,7 +625,7 @@ fn matrix_claims(rng: &mut Rng) -> Vec<MatrixClaim<F192>> {
             s_hat_v: rng.ext_vec(1 << k_skip),
         };
         let value = form.evaluate(circuit);
-        claims.push(MatrixClaim::fresh(f, &crate::cpu::Claim { point: form, value }));
+        claims.push(MatrixClaim::fresh(f, &Claim { point: form, value }));
         let (rows, cols) = (rng.ext_vec(k), rng.ext_vec(k));
         let (ra, rb) = circuit.row_values(&eq_table(&cols));
         let u = eq_table(&rows);
@@ -660,7 +663,7 @@ fn the_matrix_reduction_reduces_to_the_matrices() {
         false_claims[c].value += F192::ONE;
         assert_eq!(
             verify(&false_claims, &proof).err(),
-            Some(super::reduce::ReduceError::Matrix),
+            Some(ReduceError::Matrix),
             "claim {c}"
         );
     }

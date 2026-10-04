@@ -4,13 +4,15 @@ use super::ring::RingShare;
 use super::whir::Opening;
 use super::{ProofShape, RecShape, Rows};
 use crate::class_flock;
+use crate::constraints::ConstraintError;
 use crate::cpu::{DeferredClaims, Program};
-use crate::pcs::{Rate, RingSwitchClaim, RingSwitchOpen, SlotClaim};
+use crate::pcs::{Rate, RingSwitchClaim, RingSwitchOpen, StackClaim};
 use crate::rec::RecError;
 use crate::rec::circuit::{Assignment, Builder, Circuit, Ew, Finished, Kw, Limbs};
 use crate::rec::fixed::FixedColumns;
 use crate::rec::table::HashFlock;
 use crate::rec::transcript::{ProofSource, Transcript};
+use crate::rv::Region;
 use crate::rv::asm::*;
 use crate::tables::{ClassSpec, N_TABLES, Part};
 use crate::witness::StackShape;
@@ -21,7 +23,7 @@ use ::pcs::stack_open::{RingFamily, RingSwitchVerify, RingSwitchVerifyClaim};
 use ::pcs::whir::inner_product_base_ext;
 use fiat_shamir::transcript::{Proof, ProverState, RawProof, VerifierState};
 use primitives::field::{F64, F192};
-use primitives::test_rng::Rng;
+use primitives::test_util::Rng;
 
 // A program with a loop, so that every framework block is read.
 fn small_program() -> Program {
@@ -34,7 +36,7 @@ fn small_program() -> Program {
         .branch(Bne, Reg::T1, Reg::ZERO, "loop")
         .exit()
         .finish();
-    Program::new(&text, crate::rv::Region::TEXT.base(), vec![3, 5], 2, 0).expect("a valid program")
+    Program::new(&text, Region::TEXT.base(), vec![3, 5], 2, 0).expect("a valid program")
 }
 
 // One honest proof of the small program, as the native verifier read it.
@@ -185,7 +187,7 @@ fn a_non_boolean_merkle_selector_is_refused() {
     a.values[bit.0 as usize][0] = 2;
     assert_eq!(
         verify(&prove(&a)),
-        Err(RecError::Constraint(crate::constraints::ConstraintError::FinalMismatch))
+        Err(RecError::Constraint(ConstraintError::FinalMismatch))
     );
 }
 
@@ -333,14 +335,14 @@ impl Ring {
 }
 
 // Point and strided claims and two ring-switched regions on a stack of `N_LANES` lanes, their values read from `q`.
-fn opening_claims(mu: usize, q: &[F64], rng: &mut Rng) -> (Vec<SlotClaim>, Vec<Ring>) {
+fn opening_claims(mu: usize, q: &[F64], rng: &mut Rng) -> (Vec<StackClaim>, Vec<Ring>) {
     let lane = 1usize << (mu - crate::pcs::LOG_BATCH);
     let eq = primitives::multilinear::eq_table;
     let mut slots = Vec::new();
     for (offset, vars) in [(0, mu - 6), (2 * lane, mu - 5), (8, 3), (5, 0)] {
         let low_point = rng.ext_vec(vars);
         let value = inner_product_base_ext(&q[offset..offset + (1 << vars)], &eq(&low_point));
-        slots.push(SlotClaim::Point {
+        slots.push(StackClaim::Point {
             offset,
             low_point,
             value,
@@ -351,7 +353,7 @@ fn opening_claims(mu: usize, q: &[F64], rng: &mut Rng) -> (Vec<SlotClaim>, Vec<R
         let value = (eq(&point).iter().enumerate()).fold(F192::ZERO, |acc, (j, e)| {
             acc + e.mul_base(q[offset + slot + (j << stride_log)])
         });
-        slots.push(SlotClaim::Strided {
+        slots.push(StackClaim::Strided {
             offset,
             slot,
             stride_log,
@@ -380,31 +382,31 @@ fn opening_claims(mu: usize, q: &[F64], rng: &mut Rng) -> (Vec<SlotClaim>, Vec<R
 fn opening_rows(
     shape: StackShape,
     log_inv_rate: usize,
-    slots: &[SlotClaim],
+    slots: &[StackClaim],
     rings: &[Ring],
     source: ProofSource<'_>,
 ) -> (Circuit, Vec<String>, bool) {
     let (b, (), finished) = replay(source, |r| {
         let root = r.t.next_root(r.b);
         let wire = |r: &mut Rows<'_, '_>, v: &F192| r.b.free_e(*v);
-        let slot_wires: Vec<SlotClaim<Ew>> = (slots.iter())
+        let slot_wires: Vec<StackClaim<Ew>> = (slots.iter())
             .map(|claim| match claim {
-                SlotClaim::Point {
+                StackClaim::Point {
                     offset,
                     low_point,
                     value,
-                } => SlotClaim::Point {
+                } => StackClaim::Point {
                     offset: *offset,
                     low_point: low_point.iter().map(|v| wire(r, v)).collect(),
                     value: wire(r, value),
                 },
-                SlotClaim::Strided {
+                StackClaim::Strided {
                     offset,
                     slot,
                     stride_log,
                     point,
                     value,
-                } => SlotClaim::Strided {
+                } => StackClaim::Strided {
                     offset: *offset,
                     slot: *slot,
                     stride_log: *stride_log,
@@ -478,7 +480,7 @@ fn check_opening(mu: usize, log_inv_rate: usize, seed: u64) {
     vs.finish().expect("the native verifier reads the whole proof");
     let raw = vs.into_raw_proof();
 
-    let rows = |slots: &[SlotClaim], rings: &[Ring], source: ProofSource<'_>| {
+    let rows = |slots: &[StackClaim], rings: &[Ring], source: ProofSource<'_>| {
         opening_rows(shape, log_inv_rate, slots, rings, source)
     };
     let (circuit, failures, finished) = rows(&slots, &rings, ProofSource::Proof(&raw));
@@ -493,7 +495,7 @@ fn check_opening(mu: usize, log_inv_rate: usize, seed: u64) {
     for i in 0..slots.len() {
         let mut forged = slots.clone();
         match &mut forged[i] {
-            SlotClaim::Point { value, .. } | SlotClaim::Strided { value, .. } => *value += F192::ONE,
+            StackClaim::Point { value, .. } | StackClaim::Strided { value, .. } => *value += F192::ONE,
         }
         let (_, failures, _) = rows(&forged, &rings, ProofSource::Proof(&raw));
         assert!(

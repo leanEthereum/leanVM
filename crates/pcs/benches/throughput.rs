@@ -28,18 +28,16 @@
 //! cargo bench -p pcs --bench throughput -- --json
 //! ```
 
-use std::hint::black_box;
-use std::time::Instant;
-
 use bench::{Metric, Plan, Timing, bencher_json, env_usize};
+use fiat_shamir::transcript::ProverState;
 use pcs::ntt::AdditiveNttF64;
 use pcs::whir::{LOG_INV_RATE_0, commit, config_for_rate, inner_product_base_ext, recursive_prover_with_basis};
-use primitives::{
-    field::{F64, F192},
-    multilinear::eq_table,
-    pretty_integer,
-    test_rng::Rng,
-};
+use primitives::field::{F64, F192};
+use primitives::multilinear::eq_table;
+use primitives::pretty_integer;
+use primitives::test_util::Rng;
+use std::hint::black_box;
+use std::time::Instant;
 
 #[global_allocator]
 static ALLOCATOR: bench::Jemalloc = bench::Jemalloc;
@@ -70,7 +68,7 @@ fn main() {
         let (cm, pd) = tracing::info_span!("Commit").in_scope(|| commit(&witness, log_n, pc.initial_k(), log_inv_rate));
         commit_t.push(t.elapsed().as_secs_f64());
 
-        let mut ch = fiat_shamir::transcript::ProverState::from_label(b"pcs-throughput");
+        let mut ch = ProverState::from_label(b"pcs-throughput");
         let t = Instant::now();
         tracing::info_span!("PCS open").in_scope(|| {
             recursive_prover_with_basis(
