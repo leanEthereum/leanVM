@@ -83,4 +83,7 @@ pub enum CpuError {
     /// The commitment opening is rejected.
     #[error("the opening: {0}")]
     Open(::pcs::whir::VerifyError),
+    /// A deferred claim has no shape a proof of the program gives.
+    #[error("the deferred claims: {0}")]
+    MalformedClaim(super::deferred::MalformedClaim),
 }

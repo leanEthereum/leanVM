@@ -4,6 +4,7 @@
 mod act4;
 mod constants;
 mod corrupted;
+mod deferred;
 mod guests;
 mod programs;
 mod python_verifier;

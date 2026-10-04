@@ -41,9 +41,14 @@ impl FormPowers {
             .collect()
     }
 
+    /// The weight of side `s`: the push side, which the producers' summands sit on, is side 0.
+    pub(super) const fn side(self, s: usize) -> F192 {
+        self.0[s]
+    }
+
     /// The weight of the push side, which the producers' summands sit on.
     pub(super) const fn push(self) -> F192 {
-        self.0[0]
+        self.side(0)
     }
 }
 
@@ -151,7 +156,8 @@ impl constraints::Summand for Term {
     fn public(&self, chi: &[F192]) -> Vec<F192> {
         match self {
             Self::Table(_) => Vec::new(),
-            Self::Producer(s) => leaf::producer_public_evals(&s.producer, &s.weights, s.beta, chi),
+            // Short of the program's columns, which the program claim settles.
+            Self::Producer(s) => leaf::producer_affine_evals(&s.producer, &s.weights, s.beta, chi),
         }
     }
 }
