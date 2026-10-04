@@ -7,5 +7,6 @@ mod layout;
 pub mod proof;
 pub mod table;
 pub mod transcript;
+pub mod verifier;
 
 pub use error::RecError;
