@@ -24,7 +24,6 @@
 
 use fiat_shamir::transcript::{Challenger, ProverState, Receiver, Transmitter, VerifierState};
 use primitives::field::{F8, F192};
-use zk_alloc::ArenaVec;
 
 use pcs::ntt::{AdditiveNttGf8, InvNttTableByteSingleGf8};
 
@@ -279,9 +278,9 @@ pub fn prove_packed_padded(
     // SAFETY: a pass writes every slot of the prefix it hands on, and nothing reads past it.
     let (mut a_nxt, mut b_nxt, mut c_nxt) = unsafe {
         (
-            ArenaVec::<F192>::uninitialized(n_in / 2),
-            ArenaVec::<F192>::uninitialized(n_in / 2),
-            ArenaVec::<F192>::uninitialized(n_in / 2),
+            primitives::uninit_vec::<F192>(n_in / 2),
+            primitives::uninit_vec::<F192>(n_in / 2),
+            primitives::uninit_vec::<F192>(n_in / 2),
         )
     };
     while next < n_mlv {

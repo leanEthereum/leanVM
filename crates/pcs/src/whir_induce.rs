@@ -10,7 +10,6 @@
 use crate::ntt::AdditiveNttF64;
 use primitives::field::{F64, F192, F192Unreduced};
 use primitives::multilinear::eq_table;
-use zk_alloc::ArenaVec;
 
 // ===================================================================
 // LCH novel-basis evaluations over K (mirror of whir's extension-field block)
@@ -124,7 +123,7 @@ pub(crate) fn induce_sumcheck_poly<T: RowElem>(
     v_challenges: &[F192],
     queries: &[usize],
     weights: &[F192],
-) -> (ArenaVec<F192>, F192) {
+) -> (Vec<F192>, F192) {
     /// Low bits of an output index, tabulated per query: 2^10 words, 8 KiB of K a query.
     const LOW_BITS: usize = 10;
     /// Outputs one pass over the queries accumulates: 128 unreduced sums, 6 KiB.
@@ -164,7 +163,7 @@ pub(crate) fn induce_sumcheck_poly<T: RowElem>(
     // Phase 3: each task owns the 2^L outputs sharing their high bits.
     //
     // SAFETY: every task writes all of its chunk, and the chunks tile the output.
-    let mut basis = unsafe { ArenaVec::<F192>::uninitialized(n) };
+    let mut basis = unsafe { primitives::uninit_vec::<F192>(n) };
     parallel::chunks_mut(&mut basis, 1 << low, |hi_index, out| {
         // Each query's scalar: its weight times its factors on the high bits.
         let scalars: Vec<F192> = per_query
@@ -231,7 +230,7 @@ pub(crate) fn induce_sumcheck_evaluate_at_residual(
     weights: &[F192],
     ris_for_basis: &[F192],
     yr_log_n: usize,
-) -> ArenaVec<F192> {
+) -> Vec<F192> {
     assert_eq!(ris_for_basis.len() + yr_log_n, log_msg_cols);
     let n_queries = queries.len();
     let yr_len = 1usize << yr_log_n;
@@ -285,7 +284,7 @@ pub(crate) fn induce_sumcheck_evaluate_at_residual(
         sum
     };
     if yr_len > PAR_FLOOR {
-        primitives::par_collect_arena(yr_len, compute_y)
+        primitives::par_collect(yr_len, compute_y)
     } else {
         (0..yr_len).map(compute_y).collect()
     }
@@ -470,7 +469,7 @@ fn transpose_forward_ntt_sparse_ext(
     positions: &[usize],
     values: &[F192],
     log_d: usize,
-) -> ArenaVec<F192> {
+) -> Vec<F192> {
     let _span = tracing::info_span!(
         "NTT",
         kind = "transpose induce",
@@ -484,8 +483,7 @@ fn transpose_forward_ntt_sparse_ext(
     let k = if log_d >= 12 { 8usize.min(log_d) } else { 0 };
 
     if k == 0 {
-        // SAFETY: zero is a valid F192, and the scatter below reads these slots.
-        let mut data = unsafe { ArenaVec::<F192>::zeroed(n) };
+        let mut data = vec![F192::ZERO; n];
         for (&p, &v) in positions.iter().zip(values) {
             data[p] += v;
         }
@@ -530,8 +528,7 @@ fn transpose_forward_ntt_sparse_ext(
 
     // Densify (active windows only; the rest stay zero, which is the correct
     // post-step-(k-1) state for an all-zero window).
-    // SAFETY: zero is a valid F192, and the inactive windows must read as zero.
-    let mut data = unsafe { ArenaVec::<F192>::zeroed(n) };
+    let mut data = vec![F192::ZERO; n];
     for (w, buf) in &win_vec {
         data[(w << k)..((w + 1) << k)].copy_from_slice(buf);
     }
@@ -553,7 +550,7 @@ pub(crate) fn induce_sumcheck_poly_via_ntt_base(
     v_challenges: &[F192],
     queries: &[usize],
     weights: &[F192],
-) -> (ArenaVec<F192>, F192) {
+) -> (Vec<F192>, F192) {
     let n = 1usize << log_msg_cols;
     let log_block = log_msg_cols + log_inv_rate;
     let block_len = 1usize << log_block;
@@ -569,8 +566,7 @@ pub(crate) fn induce_sumcheck_poly_via_ntt_base(
     }
 
     let mut coeffs = if log_block == 0 {
-        // SAFETY: zero is a valid F192, and the loop below reads these slots.
-        let mut c = unsafe { ArenaVec::<F192>::zeroed(block_len) };
+        let mut c = vec![F192::ZERO; block_len];
         for i in 0..n_queries {
             c[queries[i]] += weights[i];
         }
@@ -607,7 +603,7 @@ pub(crate) fn induce_sumcheck_poly_auto_base(
     v_challenges: &[F192],
     queries: &[usize],
     weights: &[F192],
-) -> (ArenaVec<F192>, F192) {
+) -> (Vec<F192>, F192) {
     if induce_use_ntt_heuristic(log_msg_cols, log_inv_rate, queries.len()) {
         induce_sumcheck_poly_via_ntt_base(log_msg_cols, log_inv_rate, opened_rows, v_challenges, queries, weights)
     } else {

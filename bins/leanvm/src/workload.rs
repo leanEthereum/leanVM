@@ -127,7 +127,7 @@ mod tests {
     #[test]
     fn the_signature_workloads_prove() {
         // End to end: proven, verified, and the output the native digest.
-        let prover = leanvm::Prover::without_arena();
+        let prover = leanvm::Prover::new();
         for workload in [super::leanxmss(2), super::leansphincs(1)] {
             super::run(&workload, &prover, leanvm::Rate::MIN, bench::Plan::default());
         }

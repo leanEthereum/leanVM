@@ -19,7 +19,6 @@ workspace = true
 leanvm.workspace = true
 primitives.workspace = true
 bench.workspace = true
-zk_alloc.workspace = true
 leanvm_guest.workspace = true
 # The programs' host sides: their guests' inputs and expected outputs.
 leanxmss-host.workspace = true

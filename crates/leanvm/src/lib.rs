@@ -21,25 +21,25 @@ pub use leanvm_core::{
     rv::{ElfError, ProgramError, Region, Trap, asm},
 };
 
-/// The process's proving setup: the worker pool and, unless declined, the proving arena.
+/// The process's proving setup: the worker pool.
 ///
-/// The arena is one per process, so one proof runs at a time in a process: prove in parallel from separate processes.
-/// Once a process has engaged the arena, it stays engaged.
+/// A proof's buffers are ordinary heap allocations, so its speed depends on the process's global allocator.
+///
+/// Each proof touches gigabytes of memory and frees it before returning.
+///
+/// An allocator that keeps freed pages mapped serves the next proof from them, with no page fault.
+///
+/// jemalloc with dirty pages that never decay does this: it is what the `leanvm` CLI installs.
+///
+/// glibc's default is the slow case, since it unmaps a large block on free.
 #[derive(Debug)]
 pub struct Prover(());
 
 impl Prover {
-    /// A prover with the arena, which recycles the prover's buffers across proofs.
+    /// A prover, with the worker pool spawned.
     #[must_use]
     pub fn new() -> Self {
         leanvm_core::init_prover();
-        Self(())
-    }
-
-    /// A prover on the system allocator, for a host whose memory the arena's peak does not fit.
-    #[must_use]
-    pub fn without_arena() -> Self {
-        leanvm_core::init_prover_pool();
         Self(())
     }
 

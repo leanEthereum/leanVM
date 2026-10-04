@@ -123,20 +123,18 @@ jobs:
       # Three workers, so the pool's dispatch, park and completion paths all run.
       LEANVM_NUM_THREADS: 3
       # Miri hides the environment unless told, and the pool would then run one thread.
-      # The pool's workers and the arena's region live for the process, which reads as a leak.
-      # The arena turns slab addresses back into pointers.
+      # The pool's workers live for the process, which reads as a leak.
       # Each seed is another thread interleaving.
       MIRIFLAGS: >-
         -Zmiri-env-forward=LEANVM_NUM_THREADS
         -Zmiri-ignore-leaks
-        -Zmiri-permissive-provenance
         -Zmiri-many-seeds=0..8
     steps:
       - uses: actions/checkout@v4
       # The latest nightly that ships Miri.
       - uses: dtolnay/rust-toolchain@miri
       - name: Miri
-        run: cargo miri test -p parallel -p zk_alloc
+        run: cargo miri test -p parallel
 
   deny:
     name: Cargo deny

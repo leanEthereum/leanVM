@@ -6,7 +6,6 @@ use fiat_shamir::transcript::TranscriptError;
 use primitives::field::powers;
 use primitives::multilinear::{eq_eval, eq_table};
 use primitives::test_rng::Rng;
-use zk_alloc::ArenaVec;
 
 struct Instance {
     vc: VerifierConfig,
@@ -33,7 +32,7 @@ fn prove_instance(log_n: usize, seed: u64) -> Instance {
         &pc,
         log_n,
         &witness,
-        ArenaVec::from_slice(&b_initial),
+        b_initial.to_vec(),
         target,
         &pd.codeword,
         &pd.merkle_tree,
@@ -243,7 +242,7 @@ fn truncated_lanes_match_an_explicit_zero_tail() {
                     &pc,
                     log_n,
                     msg,
-                    ArenaVec::from_slice(b),
+                    b.to_vec(),
                     target,
                     &pd.codeword,
                     &pd.merkle_tree,

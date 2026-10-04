@@ -5,7 +5,6 @@
 //! the column's offset.
 
 use primitives::field::F64;
-use zk_alloc::ArenaVec;
 
 /// What a column is, before it is placed.
 #[derive(Clone, Copy, Debug)]
@@ -152,16 +151,15 @@ const FILL_CHUNK: usize = 1 << 16;
 
 /// The uninitialized stacked witness: [`StackShape::committed_len`] slots, the
 /// placed columns rounded up to a whole lane rather than all the way to `2^mu`.
-/// Arena-backed: `q` is born and dies inside one `cpu::Program::prove` phase.
 ///
 /// # Safety
 /// Every slot must be written before it is read. [`split_stack`] hands out one
 /// window per committed column and zeroes the pad tail, which together cover the
 /// whole allocation, so the obligation reduces to each column's fill writing its
 /// own window.
-pub unsafe fn alloc_stack(shape: StackShape) -> ArenaVec<F64> {
+pub unsafe fn alloc_stack(shape: StackShape) -> Vec<F64> {
     // SAFETY: forwarded to the caller by the contract above.
-    unsafe { ArenaVec::<F64>::uninitialized(shape.committed_len()) }
+    unsafe { primitives::uninit_vec::<F64>(shape.committed_len()) }
 }
 
 /// Carve the stack into one mutable window per committed column, in column order,

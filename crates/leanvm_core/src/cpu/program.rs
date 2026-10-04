@@ -156,10 +156,6 @@ impl Program {
     /// Refuses a run that traps, one too long for one proof, and more advice than the program's region holds.
     #[tracing::instrument(name = "Prove", skip_all, fields(log_inv_rate = rate.log_inv_rate()))]
     pub fn prove(&self, advice: &[u64], rate: pcs::Rate) -> Result<(Proof, [u64; 4], Stats), ProveError> {
-        // One proof is one arena phase: every transient buffer below is reclaimed wholesale when it ends.
-        //
-        // The returned proof is system-allocated, so it survives the next phase.
-        let _phase = zk_alloc::enter_phase();
         let exec = crate::stage!("Execute program", || self.execute(advice))?;
         if self.stack_sizes(exec.trace.row_counts()).0 > pcs::MAX_MU {
             return Err(ProveError::TooLong);

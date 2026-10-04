@@ -14,7 +14,6 @@ parallel.workspace = true
 primitives.workspace = true
 fiat_shamir.workspace = true
 pcs.workspace = true
-zk_alloc.workspace = true
 tracing.workspace = true
 thiserror.workspace = true
 

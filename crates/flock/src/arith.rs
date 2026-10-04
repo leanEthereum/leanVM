@@ -12,7 +12,6 @@ pub mod mul;
 
 use crate::circuit::{Builder, Circuit};
 use crate::reduction::Block;
-use zk_alloc::ArenaVec;
 
 pub const A_BASE: usize = 0;
 pub const B_BASE: usize = 64;
@@ -137,7 +136,7 @@ impl U64Circuit {
         &self,
         pairs: &[(u64, u64)],
         n_blocks_log: usize,
-    ) -> (ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u8>) {
+    ) -> (Vec<u64>, Vec<u64>, Vec<u64>, Vec<u8>) {
         let n = self.op.out_bits();
         self.circuit
             .generate_witness_with(pairs, &(0, 0), n_blocks_log, |&(a, b), z, az, bz| {

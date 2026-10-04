@@ -89,7 +89,7 @@ pub fn fibonacci_program(fib_n: usize) -> (Program, [u64; 4]) {
 mod tests {
     #[test]
     fn fibonacci() {
-        let prover = leanvm::Prover::without_arena();
+        let prover = leanvm::Prover::new();
         super::run_fibonacci(200_000, &prover, leanvm::Rate::MIN, bench::Plan::default());
     }
 }

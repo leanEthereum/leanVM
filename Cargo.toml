@@ -36,7 +36,6 @@ fiat_shamir = { path = "crates/fiat_shamir" }
 pcs = { path = "crates/pcs" }
 flock = { path = "crates/flock" }
 leanvm_core = { path = "crates/leanvm_core" }
-zk_alloc = { path = "crates/zk_alloc" }
 parallel = { path = "crates/parallel" }
 leanvm_guest = { path = "sdk" }
 leanxmss-host = { path = "programs/leanxmss/host" }
@@ -48,6 +47,7 @@ serde = { version = "1", features = ["derive"] }
 bincode = "1"
 rand = "0.9"
 thiserror = { version = "2", default-features = false }
+tikv-jemallocator = "0.7"
 tracing = "0.1.26"
 tracing-forest = { version = "0.3.0", features = ["ansi", "smallvec"] }
 tracing-subscriber = { version = "0.3.23", features = ["std", "env-filter"] }

@@ -95,7 +95,6 @@ use crate::witness::{
 use pcs::pack::LOG_PACKING;
 use pcs::stack_open::{RingSwitchOpen, RingSwitchVerify};
 use primitives::field::F192;
-use zk_alloc::ArenaVec;
 
 pub use crate::reduction::{ReductionReplay, SliceClaim, ZerocheckStage, min_n_blocks_log};
 
@@ -665,7 +664,7 @@ fn build_block_witness_ab_packed_into(
 pub fn generate_witness_with_ab_packed_and_lincheck(
     blocks: &[Compression],
     n_blocks_log: usize,
-) -> (ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u8>) {
+) -> (Vec<u64>, Vec<u64>, Vec<u64>, Vec<u8>) {
     let padding = padding_block();
     drive_witness_packed_and_lincheck(
         blocks,

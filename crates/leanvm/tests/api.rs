@@ -70,13 +70,11 @@ fn public_api_end_to_end() {
         Err(LeanVmError::Verify(_))
     ));
 
-    // 3. One proof is one arena phase: the first proof outlives the second's phase.
+    // 3. A second proof leaves the first intact.
     let second = prover.prove(&program, &[], Rate::MIN).expect("the run halts");
     verify(&program, &output, &second.proof).unwrap();
     verify(&program, &output, &received).unwrap();
-    // 4. The same, over a guest whose rows include the hash table and the advice: with
-    // the arena engaged, a buffer that outlived its phase would show up here as a proof
-    // that stops verifying, and nowhere else (the verifier tests run the arena off).
+    // 4. The same, over a guest whose rows include the hash table and the advice.
     for message in [b"leanVM".as_slice(), b""] {
         let (guest, advice, digest) = preimage(message);
         let Proved { proof, output, .. } = prover.prove(&guest, &advice, Rate::MIN).expect("the run halts");
@@ -136,13 +134,5 @@ fn public_api_end_to_end() {
     assert_eq!(
         tree.verify(&root, &[outputs[1], outputs[0]]),
         Err(LeanVmError::Tree(aggregate::TreeError::Outputs))
-    );
-
-    let stats = zk_alloc::stats();
-    assert!(stats.phases >= 2, "expected one phase per proof, got {stats:?}");
-    assert!(stats.peak_bytes > 0, "no buffer reached the arena: {stats:?}");
-    assert_eq!(
-        stats.overflow, 0,
-        "a slab overflowed into the system allocator: {stats:?}"
     );
 }

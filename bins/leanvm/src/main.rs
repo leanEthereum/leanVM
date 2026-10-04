@@ -1,5 +1,8 @@
 //! Benchmark CLI.
 
+#[global_allocator]
+static ALLOCATOR: bench::Jemalloc = bench::Jemalloc;
+
 use clap::{Parser, Subcommand};
 use leanvm::{Prover, Rate};
 
@@ -155,8 +158,5 @@ fn main() {
             cli.rate,
             plan,
         ),
-    }
-    if std::env::var_os("ZK_ALLOC_STATS").is_some() {
-        eprintln!("{}", zk_alloc::stats());
     }
 }

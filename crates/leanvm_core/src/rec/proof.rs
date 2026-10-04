@@ -18,7 +18,6 @@ use crate::witness;
 use fiat_shamir::transcript::{Challenger, Proof, ProverState, RawProof, VerifierState};
 use flock::reduction::SliceClaim;
 use primitives::field::{F64, F192};
-use zk_alloc::ArenaVec;
 
 /// The transcript's public input for a statement: the hash of its words' limbs, in order.
 pub fn statement_seed(statement: &[Limbs]) -> [F64; 4] {
@@ -29,16 +28,16 @@ pub fn statement_seed(statement: &[Limbs]) -> [F64; 4] {
 /// The hash table's flock batch, one instance per row.
 struct HashBatch {
     tau: usize,
-    z: ArenaVec<u64>,
-    a: ArenaVec<u64>,
-    b: ArenaVec<u64>,
-    z_lincheck: ArenaVec<u8>,
+    z: Vec<u64>,
+    a: Vec<u64>,
+    b: Vec<u64>,
+    z_lincheck: Vec<u8>,
 }
 
 /// The prover's stack, the hash table's ports by global column, and the hash table's batch.
 struct RecWitness {
-    q: ArenaVec<F64>,
-    ports: Vec<(usize, ArenaVec<F64>)>,
+    q: Vec<F64>,
+    ports: Vec<(usize, Vec<F64>)>,
     batch: HashBatch,
 }
 
@@ -89,10 +88,10 @@ impl RecWitness {
         let mut q = unsafe { witness::alloc_stack(layout.shape) };
         let ports_at = RecLayout::columns(Table::Hash).start;
         // SAFETY: each port's buffer is written in full from the batch below.
-        let mut ports: Vec<(usize, ArenaVec<F64>)> = (0..HashFlock::N_PORTS)
+        let mut ports: Vec<(usize, Vec<F64>)> = (0..HashFlock::N_PORTS)
             .map(|c| {
                 (ports_at + c, unsafe {
-                    ArenaVec::uninitialized(1 << layout.tau(Table::Hash))
+                    primitives::uninit_vec(1 << layout.tau(Table::Hash))
                 })
             })
             .collect();
@@ -216,7 +215,6 @@ impl Circuit {
             "the assignment's rows are the circuit's"
         );
         let layout = RecLayout::new(self)?;
-        let _phase = zk_alloc::enter_phase();
         let log_inv_rate = rate.log_inv_rate().into();
         let mut ps = ProverState::new(iv, statement_seed(&a.statement));
 

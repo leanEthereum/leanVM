@@ -8,7 +8,6 @@ pub mod multilinear;
 pub mod stream;
 
 use std::mem::{MaybeUninit, needs_drop};
-use zk_alloc::{alloc_uninit, assume_init};
 
 #[cfg(feature = "test-util")]
 pub mod test_rng;
@@ -107,17 +106,44 @@ pub const fn log2_ceil_usize(n: usize) -> usize {
     if n <= 1 { 0 } else { (n - 1).ilog2() as usize + 1 }
 }
 
-/// Arena-backed parallel `(0..n).map(build).collect()`: one allocation on the
-/// calling thread, filled in place by the workers: no per-worker intermediate
-/// vectors to allocate and copy out of. This lives here rather than in
-/// `zk_alloc` so the allocator itself stays free of a thread-pool dependency.
-pub fn par_collect_arena<T: Send>(n: usize, build: impl Fn(usize) -> T + Sync) -> zk_alloc::ArenaVec<T> {
-    let mut out = alloc_uninit(n);
+/// A vector of `len` uninitialized elements, to be filled in place.
+///
+/// It skips the zero-fill, which would cost one more pass over memory.
+///
+/// # Safety
+///
+/// Every element must be written before it is read.
+///
+/// Only plain-data elements are allowed, so dropping an unwritten one runs no code:
+///
+/// ```compile_fail
+/// unsafe { primitives::uninit_vec::<String>(1) };
+/// ```
+#[must_use]
+#[expect(clippy::uninit_vec, reason = "the caller writes every element before reading it")]
+pub unsafe fn uninit_vec<T: Copy>(len: usize) -> Vec<T> {
+    // Exactly `len` slots, so the vector never reallocates while it is filled.
+    let mut v = Vec::with_capacity(len);
+
+    // SAFETY: the capacity holds `len` elements, and the caller writes each one before reading it.
+    unsafe { v.set_len(len) };
+    v
+}
+
+/// Parallel `(0..n).map(build).collect()`.
+///
+/// - One allocation on the calling thread, filled in place by the workers.
+/// - No per-worker vector is allocated, then copied out.
+pub fn par_collect<T: Send>(n: usize, build: impl Fn(usize) -> T + Sync) -> Vec<T> {
+    // The vector's spare capacity, written slot by slot before the length covers it.
+    let mut out = Vec::with_capacity(n);
+    let slots = &mut out.spare_capacity_mut()[..n];
+
     // Track partial initialization only when values require destruction.
     if needs_drop::<T>() {
         let mut initialized = vec![false; n];
         let mut guard = PartialInit {
-            slots: &mut out,
+            slots,
             initialized: &mut initialized,
             armed: true,
         };
@@ -131,10 +157,12 @@ pub fn par_collect_arena<T: Send>(n: usize, build: impl Fn(usize) -> T + Sync) -
         });
         guard.armed = false;
     } else {
-        parallel::fill(&mut out, |i| MaybeUninit::new(build(i)));
+        parallel::fill(slots, |i| MaybeUninit::new(build(i)));
     }
+
     // SAFETY: the dispatch joins and every slot is initialized before it returns successfully.
-    unsafe { assume_init(out) }
+    unsafe { out.set_len(n) };
+    out
 }
 
 struct PartialInit<'a, T> {
@@ -192,14 +220,14 @@ mod formatting_tests {
 
 #[cfg(test)]
 mod collection_tests {
-    use super::par_collect_arena;
+    use super::par_collect;
     use std::panic::{AssertUnwindSafe, catch_unwind};
     use std::sync::atomic::{AtomicUsize, Ordering};
 
     #[test]
     fn collection_initializes_owned_values() {
-        assert!(par_collect_arena::<String>(0, |_| unreachable!()).is_empty());
-        let values = par_collect_arena(257, |i| i.to_string());
+        assert!(par_collect::<String>(0, |_| unreachable!()).is_empty());
+        let values = par_collect(257, |i| i.to_string());
         for (i, value) in values.iter().enumerate() {
             assert_eq!(*value, i.to_string());
         }
@@ -221,7 +249,7 @@ mod collection_tests {
         let built = AtomicUsize::new(0);
         let drops = AtomicUsize::new(0);
         let result = catch_unwind(AssertUnwindSafe(|| {
-            par_collect_arena(257, |i| {
+            par_collect(257, |i| {
                 assert_ne!(i, 17, "construction failed");
                 built.fetch_add(1, Ordering::Relaxed);
                 Counted {
@@ -233,6 +261,6 @@ mod collection_tests {
         assert!(result.is_err());
         assert!(built.load(Ordering::Relaxed) > 0);
         assert_eq!(built.load(Ordering::Relaxed), drops.load(Ordering::Relaxed));
-        assert_eq!(&*par_collect_arena(3, |i| i as u64), &[0, 1, 2]);
+        assert_eq!(&*par_collect(3, |i| i as u64), &[0, 1, 2]);
     }
 }

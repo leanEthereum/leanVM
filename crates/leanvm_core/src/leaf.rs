@@ -15,10 +15,9 @@ use crate::colval::ColVal;
 use crate::gkr;
 use fiat_shamir::transcript::{Challenger, ProverState, Transmitter};
 use primitives::field::{F64, F192, F192Unreduced};
-use primitives::multilinear::{eq_table_arena, mle_eval};
+use primitives::multilinear::{eq_table, mle_eval};
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
-use zk_alloc::ArenaVec;
 
 /// One tuple coordinate as a function of the block's row `z`.
 #[derive(Clone, Debug)]
@@ -394,10 +393,9 @@ fn fill_tuple(coords: &[Coord], cols: &[&[F64]], w: &[F192], beta: F192, dst: &m
 const PRODUCER_CHUNK: usize = 1 << 12;
 
 /// A producer's entries' leaves, `β − π_α(e_x)`, which its bits raise to their powers.
-fn producer_leaves(p: &Producer, cols: &[&[F64]], w: &[F192], beta: F192) -> ArenaVec<F192> {
-    let mut q = ArenaVec::with_capacity(1 << p.kappa);
+fn producer_leaves(p: &Producer, cols: &[&[F64]], w: &[F192], beta: F192) -> Vec<F192> {
     // SAFETY: `fill_tuple` writes every slot before anything reads one.
-    unsafe { q.set_len(1 << p.kappa) };
+    let mut q = unsafe { primitives::uninit_vec(1 << p.kappa) };
     fill_tuple(&p.coords, cols, w, beta, &mut q);
     q
 }
@@ -413,7 +411,7 @@ pub fn build_leaves(
     cols: &[&[F64]],
     w: &[F192],
     beta: F192,
-) -> ArenaVec<F192> {
+) -> Vec<F192> {
     let kappas: Vec<usize> = blocks
         .iter()
         .map(|b| b.kappa)
@@ -434,14 +432,15 @@ pub fn build_leaves(
     // Capacity is rounded to whole four-tuples because `gkr::QuaternaryLayerState`
     // pads this level to that before reading it, and growing it here would copy it.
     let covered: usize = kappas.iter().map(|&kappa| 1usize << kappa).sum();
+    let capacity = explicit.next_multiple_of(4);
     let mut leaves = if covered == explicit {
-        let mut values = ArenaVec::with_capacity(explicit.next_multiple_of(4));
         // SAFETY: the per-block fills below cover `0..explicit` exactly, and each
         // joins before this function returns.
-        unsafe { values.set_len(explicit) };
+        let mut values = unsafe { primitives::uninit_vec(capacity) };
+        values.truncate(explicit);
         values
     } else {
-        let mut values = ArenaVec::with_capacity(explicit.next_multiple_of(4));
+        let mut values = Vec::with_capacity(capacity);
         values.resize(explicit, F192::ONE);
         values
     };
@@ -478,17 +477,17 @@ pub fn build_leaves(
 /// columns, then for each bit `i` the public column `(β − π_α(e_x))^{2^i} − 1`, so that
 /// bit `i`'s leaf is `1 + b_i·P'_i`. Prover-side; the verifier evaluates the public
 /// half itself, its program columns' share in a deferred claim.
-pub fn producer_columns(p: &Producer, cols: &[&[F64]], w: &[F192], beta: F192) -> Vec<ArenaVec<F192>> {
+pub fn producer_columns(p: &Producer, cols: &[&[F64]], w: &[F192], beta: F192) -> Vec<Vec<F192>> {
     let mut q = producer_leaves(p, cols, w, beta);
     let mult = cols[p.col];
     let bits = (0..p.bits).map(|bit| {
-        let mut column = ArenaVec::with_capacity(1 << p.kappa);
+        let mut column = Vec::with_capacity(1 << p.kappa);
         column.extend(mult.iter().map(|m| F192::from(F64((m.0 >> bit) & 1))));
         column
     });
     let mut public = Vec::with_capacity(p.bits);
     for _ in 0..p.bits {
-        let mut column = ArenaVec::with_capacity(1 << p.kappa);
+        let mut column = Vec::with_capacity(1 << p.kappa);
         column.extend(q.iter().map(|&v| v + F192::ONE));
         public.push(column);
         parallel::for_each_mut(&mut q, |_, v| *v = v.square());
@@ -1091,7 +1090,7 @@ impl<'a> BusSetup<'a> {
 /// against `eq(ζ[..κ], ·)`.
 pub struct ProducerProof {
     pub coefficients: Vec<F192>,
-    pub columns: Vec<ArenaVec<F192>>,
+    pub columns: Vec<Vec<F192>>,
     pub sigma: F192,
 }
 
@@ -1173,7 +1172,7 @@ pub fn prove_balance(
         .zip(std::mem::take(&mut open.producers))
         .map(|(p, coefficients)| {
             let columns = producer_columns(p, cols, &w, beta);
-            let eq = eq_table_arena(&bus_gkr.point[..p.kappa]);
+            let eq = eq_table(&bus_gkr.point[..p.kappa]);
             let (bits, public) = columns.split_at(p.bits);
             // Bit `i`'s block at ζ: `Σ_x eq(ζ, x)·(1 + b_i(x)·P'_i(x))`, the eq weights summing to one.
             let sigma = parallel::map_reduce(
@@ -1260,7 +1259,7 @@ fn tables_and_prods_at(
             pairs.sort_unstable();
             pairs.dedup();
 
-            let eq = eq_table_arena(&zeta[..tau]);
+            let eq = eq_table(&zeta[..tau]);
             let n_acc = n_cols + pairs.len();
             let sums = parallel::fold_reduce(
                 (1usize << tau).div_ceil(ROWS),

@@ -27,7 +27,6 @@ use crate::reduction::Block;
 use crate::witness::{GroupTables, drive_witness_batched, drive_witness_groups, drive_witness_packed_and_lincheck};
 use primitives::bits::transpose_64x64;
 use primitives::field::F192;
-use zk_alloc::ArenaVec;
 
 /// Instances one word-wide walk of the gate list computes.
 ///
@@ -305,7 +304,7 @@ impl Circuit {
         &self,
         rows: &[[u64; N]],
         n_blocks_log: usize,
-    ) -> (ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u8>) {
+    ) -> (Vec<u64>, Vec<u64>, Vec<u64>, Vec<u8>) {
         assert_eq!(N, self.n_input_words);
         self.generate_witness_from(rows, &[0; N], n_blocks_log, |row, words| words.copy_from_slice(row))
     }
@@ -331,7 +330,7 @@ impl Circuit {
         padding: &S,
         n_blocks_log: usize,
         input_words: impl Fn(&S, &mut [u64]) + Sync,
-    ) -> (ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u8>) {
+    ) -> (Vec<u64>, Vec<u64>, Vec<u64>, Vec<u8>) {
         assert!(rows.len() <= 1 << n_blocks_log, "more rows than instances");
         // A batch below 64 instances is walked in full and stored in part.
         let lanes = LANES.min(1 << n_blocks_log);
@@ -402,7 +401,7 @@ impl Circuit {
         padding: &S,
         n_blocks_log: usize,
         instance: impl Fn(&S, &mut [u64], &mut [u64], &mut [u64]) + Sync,
-    ) -> (ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u8>) {
+    ) -> (Vec<u64>, Vec<u64>, Vec<u64>, Vec<u8>) {
         drive_witness_packed_and_lincheck(rows, Some(padding), n_blocks_log, self.k_log, instance)
     }
 
@@ -415,7 +414,7 @@ impl Circuit {
         padding: &S,
         n_blocks_log: usize,
         batch: impl Fn([&S; 8], &mut [u64], &mut [u64], &mut [u64]) + Sync,
-    ) -> (ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u8>) {
+    ) -> (Vec<u64>, Vec<u64>, Vec<u64>, Vec<u8>) {
         // Eight adjacent instances occupy one lincheck byte stripe.
         drive_witness_batched(rows, padding, n_blocks_log, self.k_log, batch)
     }

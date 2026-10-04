@@ -22,7 +22,6 @@ use flock::reduction::{ReductionReplay, Shape, SliceClaim};
 use flock::verifier::FlockError;
 use primitives::field::F64;
 use std::sync::OnceLock;
-use zk_alloc::ArenaVec;
 
 /// The zerocheck's cube has at least this many variables (flock's univariate skip
 /// plus its fixed-point dimensions), which floors the batch of a small circuit.
@@ -142,10 +141,10 @@ pub const fn n_blocks_log(spec: &ClassSpec, n_rows: usize) -> usize {
 pub(crate) struct Prepared {
     flock: usize,
     n_blocks_log: usize,
-    z: ArenaVec<u64>,
-    a: ArenaVec<u64>,
-    b: ArenaVec<u64>,
-    z_lincheck: ArenaVec<u8>,
+    z: Vec<u64>,
+    a: Vec<u64>,
+    b: Vec<u64>,
+    z_lincheck: Vec<u8>,
 }
 
 impl Prepared {

@@ -5,8 +5,10 @@
 use std::io::{IsTerminal, Write};
 use std::time::{Duration, Instant};
 
+mod allocator;
 mod stages;
 mod trace;
+pub use allocator::Jemalloc;
 pub use stages::{take_stages, time_stages};
 pub use trace::{TraceSuppressed, init_tracing, init_tracing_from_env, suppress_tracing};
 
@@ -229,9 +231,11 @@ impl Plan {
 
 /// Peak resident set size of this process, in bytes.
 ///
-/// Worth reporting next to any timing here: the proving arena trades resident
-/// memory for the page faults it removes, so a throughput number is only half the
-/// picture. Read after a warmup pass, this is the steady-state footprint.
+/// Worth reporting next to any timing here.
+///
+/// - An allocator that keeps freed pages trades resident memory for the page faults it removes.
+/// - A throughput number alone is then half the picture.
+/// - Read after a warmup pass, this is the steady-state footprint.
 #[must_use]
 pub fn peak_rss_bytes() -> u64 {
     // SAFETY: `rusage` is a plain C struct of integers, for which all-zero bytes are a valid value.

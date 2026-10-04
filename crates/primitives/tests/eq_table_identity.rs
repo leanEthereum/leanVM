@@ -63,22 +63,20 @@ fn eq_table_is_bit_identical_at_boolean_points() {
 
 #[test]
 fn a_seeded_eq_table_is_the_scaled_table() {
-    // Invariant: the seeded fill, and the arena build, are the plain table scaled by the seed, on both sides of the
-    // tensor-product threshold.
+    // Invariant, on both sides of the tensor-product threshold:
+    //
+    //     table       = plain table
+    //     seeded fill = seed * plain table
     let mut rng = Rng::new(21);
     for n in [0usize, 1, 6, 13, 15, 17] {
         let point: Vec<F192> = (0..n).map(|_| rng.ext()).collect();
         let plain = eq_table_old(&point);
-        assert_eq!(
-            &*primitives::multilinear::eq_table_arena(&point),
-            &plain[..],
-            "arena build, n={n}"
-        );
+        assert_eq!(primitives::multilinear::eq_table(&point), plain, "table, n={n}");
         let seed = rng.ext();
-        let mut seeded = zk_alloc::alloc_uninit(1 << n);
-        primitives::multilinear::fill_eq_table_uninit(&point, seed, &mut seeded);
+        let mut seeded = Vec::with_capacity(1 << n);
+        primitives::multilinear::fill_eq_table_uninit(&point, seed, &mut seeded.spare_capacity_mut()[..1 << n]);
         // SAFETY: the fill writes every entry.
-        let seeded = unsafe { zk_alloc::assume_init(seeded) };
+        unsafe { seeded.set_len(1 << n) };
         let scaled: Vec<F192> = plain.iter().map(|&e| seed * e).collect();
         assert_eq!(&*seeded, &scaled, "seeded fill, n={n}");
     }

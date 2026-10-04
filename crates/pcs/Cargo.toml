@@ -13,7 +13,6 @@ workspace = true
 parallel.workspace = true
 primitives.workspace = true
 fiat_shamir.workspace = true
-zk_alloc.workspace = true
 tracing.workspace = true
 thiserror.workspace = true
 

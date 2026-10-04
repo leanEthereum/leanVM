@@ -19,8 +19,7 @@ use crate::whir_induce::{
 use fiat_shamir::merkle::PrunedMerklePaths;
 use fiat_shamir::transcript::Transmitter;
 use primitives::field::{F64, F192, powers};
-use primitives::multilinear::eq_table_arena;
-use zk_alloc::ArenaVec;
+use primitives::multilinear::eq_table;
 
 /// Prover side of the OOD claims taken right after a level's root enters the
 /// transcript: sample `z`, evaluate the folded witness there, send the claim
@@ -31,7 +30,7 @@ use zk_alloc::ArenaVec;
 fn send_ood(sc: &mut SumcheckProver<'_>, ps: &mut impl Transmitter, n_vars: usize, count: usize) {
     for _ in 0..count {
         let z = ps.sample_vec(n_vars);
-        let (intro, y) = sc.introduce_new_with_eval(eq_table_arena(&z));
+        let (intro, y) = sc.introduce_new_with_eval(eq_table(&z));
         ps.add_scalar(y);
         send_msg(ps, intro, y);
     }
@@ -69,7 +68,7 @@ pub fn recursive_prover_with_basis(
     config: &ProverConfig,
     log_n: usize,
     witness: &[F64],
-    b_initial: ArenaVec<F192>,
+    b_initial: Vec<F192>,
     target: F192,
     l0_codeword: &[F64],
     l0_tree: &[Hash],

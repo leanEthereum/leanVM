@@ -1,8 +1,7 @@
 use std::mem::MaybeUninit;
 
 use primitives::field::F192;
-use primitives::multilinear::fill_eq_table_uninit;
-use zk_alloc::ArenaVec;
+use primitives::multilinear::{eq_table_seeded, fill_eq_table_uninit};
 
 use super::{RingSwitchOpen, StackClaim};
 use crate::ring_switch::{DeferredWeight, combine_deferred_chunk};
@@ -14,7 +13,7 @@ struct PointWeight<'a> {
     slot: usize,
     stride: usize,
     low: &'a [F192],
-    high: ArenaVec<F192>,
+    high: Vec<F192>,
 }
 
 impl<'a> PointWeight<'a> {
@@ -35,10 +34,7 @@ impl<'a> PointWeight<'a> {
         assert!(slot < stride, "claim slot must fit the stride");
         let low_vars = point.len().min(chunk_log.saturating_sub(stride_log));
         let (low, high_point) = point.split_at(low_vars);
-        let mut high = zk_alloc::alloc_uninit(1 << high_point.len());
-        fill_eq_table_uninit(high_point, lambda, &mut high);
-        // SAFETY: the seeded equality build initializes the whole table.
-        let high = unsafe { zk_alloc::assume_init(high) };
+        let high = eq_table_seeded(high_point, lambda);
         Self {
             offset,
             end: offset + len,

@@ -15,7 +15,6 @@ use first_pass::{LaneWeight, WeightFold};
 use primitives::field::{F64, F192, F192Unreduced};
 use primitives::multilinear::eq_table;
 use primitives::stream::Stream;
-use zk_alloc::ArenaVec;
 
 // ===================================================================
 // Tuning constants
@@ -242,17 +241,6 @@ fn round_msg_and_eval_lsb_ext(f: &[F192], b: &[F192]) -> (SumcheckMessage, F192)
     (SumcheckMessage { u_0, u_2 }, y)
 }
 
-/// Arena-backed output for an initial-sumcheck fold.
-///
-/// # Safety
-/// Every element must be written before it is read, which every fold kernel
-/// below does: one output slot per input pair.
-#[inline]
-unsafe fn fold_out_buf(n: usize) -> ArenaVec<F192> {
-    // SAFETY: forwarded to the caller's obligation, documented above.
-    unsafe { ArenaVec::uninitialized(n) }
-}
-
 /// Unreduced `(u_0, u_2)` over the already-folded E buffers, pair by pair. A
 /// trailing odd element contributes nothing, exactly as in the pre-fold
 /// message: at the last round `half = 1` and the message is zero.
@@ -276,11 +264,7 @@ fn fold_msg_terms(nf: &[F192], nb: &[F192]) -> (F192Unreduced, F192Unreduced) {
 /// Fused fold + next-round message: the witness folds into E, the basis folds
 /// in E, and the next-round message is built over the freshly folded E values
 /// in the same pass. Mirror of `whir::fold_and_msg_lsb`.
-fn fold_and_msg_lsb<T: RoundWitness>(
-    f: &[T],
-    b: &[F192],
-    r: F192,
-) -> (ArenaVec<F192>, ArenaVec<F192>, SumcheckMessage) {
+fn fold_and_msg_lsb<T: RoundWitness>(f: &[T], b: &[F192], r: F192) -> (Vec<F192>, Vec<F192>, SumcheckMessage) {
     let n = f.len();
     debug_assert!(n.is_power_of_two() && n >= 2);
     debug_assert_eq!(b.len(), n);
@@ -289,8 +273,8 @@ fn fold_and_msg_lsb<T: RoundWitness>(
     let fold_f = |j: usize| -> F192 { T::fold_pair(f[2 * j], f[2 * j + 1], r) };
     let fold_b = |j: usize| -> F192 { F192::fold_pair(b[2 * j], b[2 * j + 1], r) };
     if half < PAR_THRESHOLD {
-        let mut nf = ArenaVec::with_capacity(half);
-        let mut nb = ArenaVec::with_capacity(half);
+        let mut nf = Vec::with_capacity(half);
+        let mut nb = Vec::with_capacity(half);
         for j in 0..half {
             nf.push(fold_f(j));
             nb.push(fold_b(j));
@@ -311,9 +295,9 @@ fn fold_and_msg_lsb<T: RoundWitness>(
     // global index (message pairs never straddle a chunk boundary).
     // SAFETY: every slot of `nf` is written by the chunked loop below (one output
     // per input pair) before any is read.
-    let mut nf = unsafe { fold_out_buf(half) };
+    let mut nf = unsafe { primitives::uninit_vec(half) };
     // SAFETY: as for `nf`, the same loop writes every slot of `nb`.
-    let mut nb = unsafe { fold_out_buf(half) };
+    let mut nb = unsafe { primitives::uninit_vec(half) };
     // The fold writes and the message accumulate share one pass per chunk, so
     // the freshly folded values are still in L1 when they are multiplied.
     let nf_base = parallel::SendPtr(nf.as_mut_ptr());
@@ -459,7 +443,7 @@ pub(crate) type BasisFill<'a> = dyn Fn(usize, &mut [F192]) + Sync + 'a;
 /// The weight the opening's sumcheck folds against.
 pub(crate) enum Basis<'a> {
     /// One E value per word, in memory.
-    Dense(ArenaVec<F192>),
+    Dense(Vec<F192>),
     /// Regenerated when read, by chunks of the initial fill size.
     ///
     /// Only the first pass and the first fold read it, so it is never stored.
@@ -472,7 +456,7 @@ impl Basis<'_> {
     /// # Panics
     ///
     /// Panics before the first fold has folded a regenerated weight.
-    fn dense(&self) -> &ArenaVec<F192> {
+    fn dense(&self) -> &Vec<F192> {
         match self {
             Basis::Dense(b) => b,
             Basis::Virtual(_) => panic!("the regenerated weight is read by the first fold only"),
@@ -480,7 +464,7 @@ impl Basis<'_> {
     }
 
     /// The weight in memory, to update.
-    fn dense_mut(&mut self) -> &mut ArenaVec<F192> {
+    fn dense_mut(&mut self) -> &mut Vec<F192> {
         match self {
             Basis::Dense(b) => b,
             Basis::Virtual(_) => panic!("the regenerated weight is read by the first fold only"),
@@ -514,7 +498,7 @@ fn fold_and_msg_blocks<T: RoundWitness>(
     rs: &[F192],
     block: usize,
     last: bool,
-) -> (ArenaVec<F192>, ArenaVec<F192>, SumcheckMessage) {
+) -> (Vec<F192>, Vec<F192>, SumcheckMessage) {
     if let Basis::Dense(b) = b {
         assert_eq!(b.len(), f.len());
     }
@@ -535,9 +519,9 @@ fn fold_and_msg_blocks<T: RoundWitness>(
 
     // SAFETY: the loop below writes every slot of `nf`, one output element per
     // group of input blocks, before any is read.
-    let mut nf = unsafe { fold_out_buf(n_out * block) };
+    let mut nf = unsafe { primitives::uninit_vec(n_out * block) };
     // SAFETY: as for `nf`, the same loop writes every slot of `nb`.
-    let mut nb = unsafe { fold_out_buf(n_out * block) };
+    let mut nb = unsafe { primitives::uninit_vec(n_out * block) };
     let nf_base = parallel::SendPtr(nf.as_mut_ptr());
     let nb_base = parallel::SendPtr(nb.as_mut_ptr());
 
@@ -654,7 +638,7 @@ fn fold_and_msg_blocks<T: RoundWitness>(
 /// E-vector afterwards.
 enum Witness<'a> {
     Base(&'a [F64]),
-    Ext(ArenaVec<F192>),
+    Ext(Vec<F192>),
 }
 
 /// Running sumcheck over the committed base witness and subsequent extension-field folds.
@@ -674,7 +658,7 @@ pub(super) struct SumcheckProver<'a> {
     lane_rs: Vec<F192>,
     /// The level's claims, in Protocol 1 step 1 order: the OOD claims, then the
     /// query batch. Drained by `glue_pending`.
-    pending: Vec<(ArenaVec<F192>, F192, RoundQuad)>,
+    pending: Vec<(Vec<F192>, F192, RoundQuad)>,
 }
 
 impl<'a> SumcheckProver<'a> {
@@ -761,10 +745,8 @@ impl<'a> SumcheckProver<'a> {
             Witness::Base(f) => fold_and_msg_lsb(f, self.combined_basis.dense(), r),
             Witness::Ext(f) => fold_and_msg_lsb(f, self.combined_basis.dense(), r),
         };
-        // Swap the freshly folded buffers in and drop the consumed ones, which
-        // at these sizes returns their slab space to the arena's reuse list, so
-        // the next round's `fold_out_buf` is served from it rather than growing
-        // the phase's cursor.
+        // Swap the folded buffers in and drop the consumed ones.
+        // Why: the allocator then serves the next round's fold from their memory.
         drop(std::mem::replace(&mut self.f, Witness::Ext(nf)));
         drop(std::mem::replace(&mut self.combined_basis, Basis::Dense(nb)));
         self.quad = RoundQuad::from_msg(msg, self.t_r);
@@ -773,7 +755,7 @@ impl<'a> SumcheckProver<'a> {
 
     /// Introduce a fresh basis poly with claimed sum `h_new`; sends the
     /// (u_0, u_2) for `Σ_x f(x) · b_new(x)` at the current dim.
-    pub(super) fn introduce_new(&mut self, b_new: ArenaVec<F192>, h_new: F192) -> SumcheckMessage {
+    pub(super) fn introduce_new(&mut self, b_new: Vec<F192>, h_new: F192) -> SumcheckMessage {
         let msg = match &self.f {
             Witness::Base(f) => {
                 assert_eq!(b_new.len(), f.len());
@@ -791,7 +773,7 @@ impl<'a> SumcheckProver<'a> {
     /// Introduce `b_new` and compute its claimed inner product in the same
     /// pass as the round message. OOD claims only occur after the first fold,
     /// when the witness has already been lifted from K to E.
-    pub(super) fn introduce_new_with_eval(&mut self, b_new: ArenaVec<F192>) -> (SumcheckMessage, F192) {
+    pub(super) fn introduce_new_with_eval(&mut self, b_new: Vec<F192>) -> (SumcheckMessage, F192) {
         let f = match &self.f {
             Witness::Ext(f) => f,
             Witness::Base(_) => panic!("OOD claim introduced before the first fold"),
@@ -864,7 +846,7 @@ mod tests {
                 let last = lanes <= 2;
 
                 // The stored weight, and the same weight refilled from it chunk by chunk.
-                let stored = Basis::Dense(ArenaVec::from_slice(&weight));
+                let stored = Basis::Dense(weight.to_vec());
                 let fill = |start: usize, out: &mut [F192]| out.copy_from_slice(&weight[start..start + out.len()]);
                 let regenerated = Basis::Virtual(&fill);
 
@@ -896,7 +878,7 @@ mod tests {
                     let label = format!("initial_k={initial_k}, block={block}, lanes={lanes}");
 
                     let mut expected = vec![round_msg_blocks(&f, &weight, block)];
-                    let stored = Basis::Dense(ArenaVec::from_slice(&weight));
+                    let stored = Basis::Dense(weight.to_vec());
                     let (mut nf, mut nb, msg) = fold_and_msg_blocks(&f, &stored, &rs[..1], block, initial_k == 1);
                     expected.push(msg);
                     for (j, r) in rs.iter().enumerate().skip(1) {
@@ -912,7 +894,7 @@ mod tests {
                     }
 
                     let fill = |start: usize, out: &mut [F192]| out.copy_from_slice(&weight[start..start + out.len()]);
-                    for basis in [Basis::Dense(ArenaVec::from_slice(&weight)), Basis::Virtual(&fill)] {
+                    for basis in [Basis::Dense(weight.to_vec()), Basis::Virtual(&fill)] {
                         let (mut sc, msg) = SumcheckProver::new(&f, basis, F192::ZERO, block, initial_k, None);
                         let mut actual = vec![msg];
                         for (j, &r) in rs.iter().enumerate() {
@@ -946,7 +928,7 @@ mod tests {
 
                 let (mut sc, _) = SumcheckProver::new(
                     &f[..used],
-                    Basis::Dense(ArenaVec::from_slice(&b[..used])),
+                    Basis::Dense(b[..used].to_vec()),
                     F192::ZERO,
                     block,
                     initial_k,

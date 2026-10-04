@@ -28,7 +28,6 @@ pub use fiat_shamir::merkle::{Hash, hash_leaf, hash_pair};
 use parallel::SendPtr;
 use primitives::field::F64;
 use primitives::hash::{BATCH, BLOCK_LEN, OUT_LEN, hash_many, hash_many_dyn_from_state, zero_prefix_state};
-use zk_alloc::ArenaVec;
 
 /// Nodes one climb takes at most: 32 KiB of digests, which stay in L1.
 const UNIT: usize = 1 << 10;
@@ -126,7 +125,7 @@ impl MerkleBuilder {
     /// # Panics
     ///
     /// Panics unless every leaf was absorbed.
-    pub fn finish(self) -> ArenaVec<Hash> {
+    pub fn finish(self) -> Vec<Hash> {
         assert!(self.progress.all_claimed(), "every leaf absorbed");
         // SAFETY: every block was absorbed once, and the last arrivals climbed every level above.
         unsafe { self.nodes.assume_init() }
@@ -135,14 +134,14 @@ impl MerkleBuilder {
 
 /// The flat tree, written at disjoint nodes by concurrent climbs.
 struct Nodes {
-    tree: ArenaVec<MaybeUninit<Hash>>,
+    tree: Vec<MaybeUninit<Hash>>,
     base: SendPtr<MaybeUninit<Hash>>,
     num_leaves: usize,
 }
 
 impl Nodes {
     fn new(num_leaves: usize) -> Self {
-        let mut tree = zk_alloc::alloc_uninit(2 * num_leaves - 1);
+        let mut tree = Box::new_uninit_slice(2 * num_leaves - 1).into_vec();
         let base = SendPtr(tree.as_mut_ptr());
         Self { tree, base, num_leaves }
     }
@@ -187,9 +186,9 @@ impl Nodes {
     /// # Safety
     ///
     /// Every node is written.
-    unsafe fn assume_init(self) -> ArenaVec<Hash> {
+    unsafe fn assume_init(self) -> Vec<Hash> {
         // SAFETY: forwarded.
-        unsafe { zk_alloc::assume_init(self.tree) }
+        unsafe { self.tree.into_boxed_slice().assume_init() }.into_vec()
     }
 }
 
@@ -390,7 +389,7 @@ mod tests {
     use super::*;
 
     /// The tree over `num_leaves` rows of `row_words`, each hashed as `zeros(leaf_words - row_words) ‖ row`.
-    fn merkle_tree_padded_rows(data: &[F64], num_leaves: usize, row_words: usize, leaf_words: usize) -> ArenaVec<Hash> {
+    fn merkle_tree_padded_rows(data: &[F64], num_leaves: usize, row_words: usize, leaf_words: usize) -> Vec<Hash> {
         assert_eq!(data.len(), row_words * num_leaves);
         let builder = MerkleBuilder::new(num_leaves, row_words, leaf_words);
         builder.absorb_all(words_as_bytes(data));
@@ -398,7 +397,7 @@ mod tests {
     }
 
     /// The tree over `num_leaves` equal byte leaves, each hashed as plain BLAKE2s-256 of its bytes.
-    fn merkle_tree(data: &[u8], num_leaves: usize) -> ArenaVec<Hash> {
+    fn merkle_tree(data: &[u8], num_leaves: usize) -> Vec<Hash> {
         let leaf_bytes = data.len() / num_leaves;
         let builder = MerkleBuilder::with_bytes(num_leaves, leaf_bytes, leaf_bytes);
         builder.absorb_all(data);

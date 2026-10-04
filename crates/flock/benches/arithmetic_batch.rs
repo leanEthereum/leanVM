@@ -25,6 +25,9 @@ use pcs::whir::{INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0};
 use pcs::whir::{commit, config_for_rate};
 use primitives::{field::F64, pretty_integer, test_rng::Rng};
 
+#[global_allocator]
+static ALLOCATOR: bench::Jemalloc = bench::Jemalloc;
+
 /// Every operation whose name contains one of the arguments, or all of them with
 /// none. `cargo bench` passes flags of its own (`--bench`), which are skipped.
 fn main() {
@@ -83,11 +86,8 @@ fn bench(op: U64Op, quiet: bool) -> (usize, Timing) {
     let config = config_for_rate(mu, LOG_INV_RATE_0).expect("WHIR configuration");
     let label = format!("flock-{op:?}-batch").into_bytes();
 
-    // One full prove pass from the raw pairs, one arena phase, as in
-    // `hash_batch`.
-    zk_alloc::enable_arena();
+    // One full prove pass from the raw pairs, as in `hash_batch`.
     let prove_pass = || {
-        let _phase = zk_alloc::enter_phase();
         let _span = tracing::info_span!("Flock prove", n_log).entered();
         let t_pass = Instant::now();
         let t = Instant::now();

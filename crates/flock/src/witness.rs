@@ -4,7 +4,6 @@
 
 use primitives::bits::bit_transpose_64bytes;
 use primitives::stream::Stream;
-use zk_alloc::ArenaVec;
 
 /// OR the low 32 bits of `val` into `buf` starting at bit-offset `bit_off`.
 /// Handles u64 straddling when `bit_off % 64 > 32`.
@@ -150,7 +149,7 @@ pub(crate) fn drive_witness_groups<St, I, F>(
     group: usize,
     init: I,
     fill: F,
-) -> (ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u8>)
+) -> (Vec<u64>, Vec<u64>, Vec<u64>, Vec<u8>)
 where
     St: Send,
     I: Fn() -> St + Sync,
@@ -171,10 +170,10 @@ where
     // SAFETY: group `g` publishes chunk `g` of every table in full below, and the chunk counts match.
     let (mut z, mut a, mut b, mut z_lincheck) = unsafe {
         (
-            ArenaVec::<u64>::uninitialized(total_words),
-            ArenaVec::<u64>::uninitialized(total_words),
-            ArenaVec::<u64>::uninitialized(total_words),
-            ArenaVec::<u8>::uninitialized((n_total / 8) * k),
+            primitives::uninit_vec::<u64>(total_words),
+            primitives::uninit_vec::<u64>(total_words),
+            primitives::uninit_vec::<u64>(total_words),
+            primitives::uninit_vec::<u8>((n_total / 8) * k),
         )
     };
 
@@ -244,7 +243,7 @@ pub(crate) fn drive_witness_packed_and_lincheck<S: Sync, F>(
     n_blocks_log: usize,
     k_log: usize,
     per_block: F,
-) -> (ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u8>)
+) -> (Vec<u64>, Vec<u64>, Vec<u64>, Vec<u8>)
 where
     F: Fn(&S, &mut [u64], &mut [u64], &mut [u64]) + Sync,
 {
@@ -295,7 +294,7 @@ pub(crate) fn drive_witness_batched<S: Sync>(
     n_blocks_log: usize,
     k_log: usize,
     batch: impl Fn([&S; 8], &mut [u64], &mut [u64], &mut [u64]) + Sync,
-) -> (ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u64>, ArenaVec<u8>) {
+) -> (Vec<u64>, Vec<u64>, Vec<u64>, Vec<u8>) {
     assert!(rows.len() <= 1 << n_blocks_log, "more rows than instances");
     let words = (1usize << k_log) / 64;
     drive_witness_groups(

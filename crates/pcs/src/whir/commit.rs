@@ -10,7 +10,6 @@ use crate::merkle::{self, Hash};
 use crate::ntt::AdditiveNttF64;
 use crate::whir_ntt_ext::encode_interleaved_ext;
 use primitives::field::{F64, F192};
-use zk_alloc::ArenaVec;
 
 /// Public commitment for an `F64` message: the L0 Merkle root.
 #[derive(Clone, Debug)]
@@ -21,8 +20,8 @@ pub struct Commitment {
 /// Prover-side state retained after commit for the opening phase. The message
 /// itself is not stored; the caller retains it for opening.
 pub struct ProverData {
-    pub codeword: ArenaVec<F64>,
-    pub merkle_tree: ArenaVec<Hash>,
+    pub codeword: Vec<F64>,
+    pub merkle_tree: Vec<Hash>,
 }
 
 /// Commit to the `F64` message of a `2^log_n`-word witness: the message is its
@@ -58,7 +57,7 @@ pub fn commit(message: &[F64], log_n: usize, log_batch_size: usize, log_inv_rate
     // `transpose_lane_major` covers every word of the message region (its tiles are
     // asserted to), and `encode_interleaved_in_place` writes every other replica from
     // it before transforming that region in place.
-    let mut codeword = unsafe { zk_alloc::ArenaVec::<F64>::uninitialized(codeword_len) };
+    let mut codeword = unsafe { primitives::uninit_vec::<F64>(codeword_len) };
 
     // Leaves are hashed as the encode finishes each block of rows.
     let tree = merkle::MerkleBuilder::new(n_positions, n_lanes, 1usize << log_batch_size);
@@ -79,8 +78,8 @@ pub fn commit(message: &[F64], log_n: usize, log_batch_size: usize, log_inv_rate
 /// `mat[pos * num_interleaved + lane]`; each row (one `pos` across all lanes)
 /// is one Merkle leaf of `num_interleaved * 16` bytes.
 pub(crate) struct LigeroWitness {
-    pub mat: ArenaVec<F192>,
-    pub tree: ArenaVec<Hash>,
+    pub mat: Vec<F192>,
+    pub tree: Vec<Hash>,
     pub block_len: usize,
     pub num_interleaved: usize,
 }
@@ -120,7 +119,7 @@ pub(crate) fn ligero_commit_ext(
     // The encode builds the replicas itself, so the codeword starts uninitialized.
     //
     // SAFETY: the encode writes every matrix element before reading it.
-    let mut mat = unsafe { ArenaVec::<F192>::uninitialized(codeword_len) };
+    let mut mat = unsafe { primitives::uninit_vec::<F192>(codeword_len) };
 
     // One leaf per row, its F192s as K words: hashed as the encode finishes each block.
     let row_words = 3 * num_interleaved;

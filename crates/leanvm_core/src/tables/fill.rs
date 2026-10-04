@@ -232,7 +232,7 @@ mod tests {
     use crate::rv::{Region, asm::Asm};
 
     fn fixture() -> (Program, Execution) {
-        // A real trace supplies the context without opening a proving arena phase.
+        // A real trace supplies the context.
         let text = Asm::new().exit().finish();
         let program = Program::new(&text, Region::TEXT.base(), vec![], 2, 0).expect("valid exit program");
         let execution = program.execute(&[]).expect("the program exits");
