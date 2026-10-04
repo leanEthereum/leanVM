@@ -1,0 +1,49 @@
+% !TeX root = ../drafts/e-recursion.tex
+\section{Recursion}\label{annex:rec}
+
+A recursion proof shows that leanVM proofs verify. It is not a run of the RISC-V machine: a second machine, the \emph{recursion machine}, proves that a fixed list of rows is satisfied, with the same bus (\S\ref{sec:gp}, \S\ref{sec:gkr}), table sumcheck (\S\ref{sec:air}), Flock (Annex~\ref{annex:flock}) and stacked opening (\S\ref{sec:stacking}, Annex~\ref{annex:pcs}) as a leanVM proof. This annex describes that machine: its wires (\S\ref{rec:wires}), its tables (\S\ref{rec:tables}), its statement (\S\ref{rec:statement}) and its proof (\S\ref{rec:proof}). Writing a verifier as its rows is the recursive composition of~\cite{BCCT13}.
+
+\subsection{Circuits and wires}\label{rec:wires}
+
+A \emph{circuit} $\rcirc$ is a list of rows, each in one of six tables, and a partition of the rows' slots into \emph{wires}. A wire holds one of three kinds of value: a word of $\K$, an element of $\E$ as its three limbs, or a digest as four words. Every row names one wire per slot. The circuit is public: the verifier builds it from what it verifies, never from a proof, by the same code the prover runs with every value read from a proof replaced by zero. So no row exists or is skipped according to a value; only the prover's assignment of values to wires depends on a proof.
+
+The slots naming one wire are the equalities the circuit asserts, and they are checked on the bus by copy cycles, the permutation argument of PLONK~\cite{GWC19} in the multiset form of \S\ref{sec:gp}. Table $j$ has $2^{\tau_j}$ rows, with $\tau_j\le32$, and its slots have indices $\rgid$ among all tables' slots, in table order. Slot $\rgid$ of row $z$ has the key
+\[
+  \slotkey(\rgid,z)\;=\;\intk{2^{32}\rgid+z},
+\]
+an index column (\S\ref{sec:idxcol}), and since $z<2^{32}$ no two slots of the circuit share a key. Order the slots of each wire by table, row and slot. The slot carrying value $v$ \pull{}s $\tup{\slotkey,v_0,v_1,v_2,v_3}$ at its own key and \push{}es $\tup{\slotnext,v_0,v_1,v_2,v_3}$, unused limbs zero, where $\slotnext$ is the key of the next slot of its wire, the last slot's next being the first. On a padding row every slot has $\slotnext=\slotkey$. The column $\slotnext$ is public, a function of the circuit.
+
+\begin{lemma}[Copy cycles]\label{lem:rec-cycles}
+If the pushed and pulled multisets are equal, every slot of a wire carries the same value.
+\end{lemma}
+\begin{proof}
+The keys are distinct, so each key is the first coordinate of exactly one pulled tuple. The map $\slotnext$ is a permutation of the keys: each wire's slots form one cycle under it, and a padding row's slot is a cycle of one. So each key is also the first coordinate of exactly one pushed tuple, that of the slot whose next it is. Equal multisets therefore match, at every key $k$, the tuple slot $k$ pulls with the tuple its predecessor pushes, and the two carry the same value. Around a cycle all values are one.
+\end{proof}
+
+By Theorem~\ref{th:product_check} the bus's product check passes on unequal multisets with probability at most $4\cdot2^{\mu}/|\E|$, $2^{\mu}$ the larger side's number of leaves. Lemma~\ref{lem:gp} needs no injectivity of the fingerprint beyond what it proves: distinct tuples have distinct fingerprint polynomials, and the product check's error is the only probability in the argument.
+
+A wire in one slot is a cycle of one: the slot pulls and pushes the same tuple, which constrains nothing. That is how a value the prover chooses enters: a scalar of the proof, a hint, a bit of a word. A padding row's slots are such cycles too, and no real slot's $\slotnext$ names a padding key, so whatever a padding row carries cancels and touches no wire. An equality the circuit asserts merges two wires into one. A constant and a word of the statement are rows of the \textsf{PUB} table, a framework block (\S\ref{sec:leafstack}) whose every coordinate is public, so a wire with a \textsf{PUB} slot holds the value the verifier gives it. A product by the constant $1$ or $0$, or a sum with the constant $0$, emits no row: the constants are wires of the circuit itself, so this depends on its structure and never on a value.
+
+\subsection{Tables}\label{rec:tables}
+
+A table's slots are degree-two forms over its columns (\S\ref{sec:m3}), so an output need not be committed: it rides the bus as the form that computes it.
+\begin{itemize}[itemsep=1pt,topsep=3pt]
+\item \textsf{EMUL}: $c=a\cdot b+d$ over $\E$, with the nine columns $a,b,d$. The slot of $c$ carries the product modulo $y^3+y+1$: $c_0=a_0b_0+a_1b_2+a_2b_1+d_0$, $c_1=a_0b_1+a_1b_0+a_1b_2+a_2b_1+a_2b_2+d_1$ and $c_2=a_0b_2+a_1b_1+a_2b_0+a_2b_2+d_2$.
+\item \textsf{EXK}: $c=a\cdot k+d$ with $k\in\K$, seven columns, $c_i=a_ik+d_i$.
+\item \textsf{HASH}: one BLAKE2s compression. Its words are ports of a packed witness of the \textsf{HASH} class circuit (\S\ref{flock:classes}), which Flock proves, and its one committed column is a bit $b$ with the identity $b^2=b$.
+\item \textsf{SPLIT}: a word and its 64 bits, with $w=\sum_i\intk{2^i}\,b_i$ and $b_i^2=b_i$. Read one way it splits a word, read the other it packs bits into one.
+\item \textsf{CAST}: four words seen as a digest, as an element of $\E$, as two elements of $\E$ with a zero top limb (a digest's two halves on the stream), and as four words.
+\end{itemize}
+A hash row's slots are the chaining value $h$, the counter and the finalization word, the message's first half through the mux, $b$, the message words $m_4,m_5,m_6$ as an element of $\E$, $m_7$, the output, the output's first three words as an element of $\E$, and the eight message words alone. The mux carries $m_i+b\,(m_i+m_{4+i})$, the left half when $b=0$ and the right one when $b=1$. A transcript step wires $h$ to the parameter IV, the counter to $(64,\text{final})$ and $b$ to the constant $0$, and a challenge is the output's first three words. A Merkle node wires its child to the mux, its direction to $b$, and leaves its sibling free. A block of a long message wires $h$ to the previous block's output and the counter to the block's. Every hash row is a row of this one table, so one Flock reduction proves them all.
+
+Each table's summand in the table sumcheck is its push form, its pull form weighted $\xi$, and its identities, the $i$-th of table $j$ weighted $\xi^{2+o_j+i}$ with $o_j$ the identities of the tables before it. The powers are distinct, so the target pins each identity's sum to zero.
+
+\subsection{The statement}\label{rec:statement}
+
+The statement is the list of the \textsf{PUB} rows' words that the circuit exposes. The transcript starts from a digest naming the circuit and absorbs, before anything is sent, the BLAKE2s hash of the statement's limbs, eight a block from the parameter IV. Every challenge therefore depends on the statement.
+
+The bus alone does not bind it. The verifier evaluates the \textsf{PUB} block's public coordinates at the bus's point, after $\alpha$, $\beta$ and $\zeta$ are drawn, and a change $\delta$ to a word's limbs moves both sides' totals by the same $\sum_l w_l\delta_l$, with weights $w_l\in\E$ and $\delta_l\in\K$. That sum vanishes on a space of $\K$-linear dimension at least one in the four limbs of a word. A statement moved inside it leaves every check of the bus and the table sumcheck as it was, so it is the seed that refuses it: a different statement is a different transcript.
+
+\subsection{The proof}\label{rec:proof}
+
+A recursion proof is a leanVM proof of the recursion machine's run. The stack (\S\ref{sec:stacking}) holds the \textsf{HASH} table's packed witness and then every committed column, \textsf{PUB} committing none. The bus balances the copy cycles by the GKR of \S\ref{sec:gkr}; the verifier then draws $\xi$, and one table sumcheck proves every table's summand at the bus's point. Flock reduces the hash rows to one ring-switched claim on the packed witness, its matrices settled against the compression circuit, and one opening discharges every column claim and that claim (Annex~\ref{annex:pcs}). A circuit whose witness exceeds one commitment has no proof: the prover refuses it, and so does the verifier.
