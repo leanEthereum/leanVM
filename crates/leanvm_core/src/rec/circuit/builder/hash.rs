@@ -1,23 +1,30 @@
 //! Hashing: one `HASH` row per compression, a transcript step, a Merkle node or a block of a long message.
 
 use super::Builder;
-use crate::rec::circuit::{Compression, Dw, Ew, Kind, Kw, Limbs, PARAM_IV};
+use crate::rec::circuit::{Compression, Dw, Ew, Kw, Limbs, PARAM_IV};
 use crate::rec::table::Table;
 use crate::rv::Hash;
 use primitives::field::F192;
 
-/// The wires of a hash row's slots before its outputs, in slot order.
-///
-/// The message's words also ride the row's last eight slots, so these slots see them a second time:
-/// - `mux` is its first half through the Merkle mux, whose bit is `bit`;
-/// - `x` is its words 4 to 6 as one element, and `ds` its word 7.
+/// Input wires of one hash row, before its output and individual message-word slots.
 #[derive(Clone, Copy)]
 struct HashHead {
+    /// Input chaining value.
     h: Dw,
+
+    /// Byte counter and finalization flag, followed by two zero words.
     tf: Dw,
+
+    /// Four-word message half selected by the Merkle path bit.
     mux: Dw,
+
+    /// Selects the left message half when zero and the right half when one.
     bit: Kw,
+
+    /// Message words four through six, packed as an extension-field element.
     x: Ew,
+
+    /// Final message word, used as a domain separator in transcript steps.
     ds: Kw,
 }
 
@@ -88,8 +95,8 @@ impl Builder {
     /// A hash row: its head's slots, then its output and challenge, then its message's words.
     fn hash_row(&mut self, head: HashHead, words: [u32; 8], compression: Compression) -> (Dw, Ew) {
         let out = compression.output();
-        let o = Dw(self.wire(Kind::D, out));
-        let ch = Ew(self.wire(Kind::E, [out[0], out[1], out[2], 0]));
+        let o = self.free_d(out);
+        let ch = self.free_e(F192::new(out[0], out[1], out[2]));
         let HashHead { h, tf, mux, bit, x, ds } = head;
         let mut slots = [0u32; Table::Hash.n_slots()];
         slots[..8].copy_from_slice(&[h.0, tf.0, mux.0, bit.0, x.0, ds.0, o.0, ch.0]);

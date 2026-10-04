@@ -1,6 +1,4 @@
-//! The circuit builder: wires and their equalities, constants and the statement.
-//!
-//! The rows each operation emits are in the submodules, one per kind of table.
+//! Circuit construction, wire equalities, constants, and public statements.
 
 mod arith;
 mod bits;
@@ -14,42 +12,57 @@ use std::collections::HashMap;
 /// The constants arithmetic folds away, once created.
 #[derive(Clone, Copy, Debug, Default)]
 struct Units {
+    /// Cached wire for the extension-field constant zero.
     e_zero: Option<u32>,
+
+    /// Cached wire for the extension-field constant one.
     e_one: Option<u32>,
+
+    /// Cached wire for the base-field constant zero.
     k_zero: Option<u32>,
+
+    /// Cached wire for the base-field constant one.
     k_one: Option<u32>,
 }
 
-/// Builds a circuit and, alongside, the values of an honest run of it.
+/// Builds circuit rows and records an honest assignment to their wires.
 ///
-/// Multiplying by the constant one, multiplying by the constant zero and adding the constant zero emit no row.
-/// Constants are wires of the circuit's own, so this folding depends on its structure, never on values.
+/// Arithmetic identities involving constant zero or one can avoid emitting rows.
+/// Folding depends on circuit constants, never on the values of unconstrained wires.
 #[derive(Debug, Default)]
 pub struct Builder {
     /// Each wire's value.
     values: Vec<Limbs>,
+
     /// Each wire's kind.
     kinds: Vec<Kind>,
-    /// The union-find forest of the equalities: each wire's parent, a root its own.
+
+    /// Parent wire in each equality class, with roots pointing to themselves.
     parent: Vec<u32>,
-    /// Each slot's own wire.
+
+    /// Wire numbers for every table row and slot.
     rows: Rows,
-    /// Per public row, where its value comes from, in the order they were made.
+
+    /// Sources of public row values, in insertion order.
     pubs: Vec<PubSource>,
-    /// Each constant's wire.
+
+    /// Deduplicated constant wires, keyed by kind and padded value.
     consts: HashMap<(Kind, Limbs), u32>,
+
+    /// Cached arithmetic identities used to fold operations.
     units: Units,
+
     /// Each hash row's compression.
     hash: Vec<Compression>,
+
     /// The statement's words.
     statement: Vec<Limbs>,
+
     /// The names the checks run under, outermost first.
     scope: Vec<String>,
-    failures: Vec<String>,
-}
 
-const fn e_limbs(x: F192) -> Limbs {
-    [x.c0, x.c1, x.c2, 0]
+    /// Failed checks collected with their enclosing scope names.
+    failures: Vec<String>,
 }
 
 impl Builder {
@@ -121,10 +134,7 @@ impl Builder {
         let pubs = order.iter().map(|&i| self.pubs[i]).collect();
         (rows, pubs)
     }
-}
 
-/// Wires and their equalities.
-impl Builder {
     fn wire(&mut self, kind: Kind, value: Limbs) -> u32 {
         let id = u32::try_from(self.values.len()).expect("fewer than 2^32 wires");
         self.values.push(value);
@@ -178,9 +188,11 @@ impl Builder {
         self.values[w.0 as usize]
     }
 
-    /// A free `E` value, which only the slots it is used in constrain.
+    /// An extension-field wire constrained only by the slots that use it.
+    ///
+    /// Its three coefficients occupy the first three words, with the fourth word zero.
     pub fn free_e(&mut self, value: F192) -> Ew {
-        Ew(self.wire(Kind::E, e_limbs(value)))
+        Ew(self.wire(Kind::E, [value.c0, value.c1, value.c2, 0]))
     }
 
     /// A free `K` value.
@@ -219,10 +231,7 @@ impl Builder {
         let c = self.k_const(value);
         self.eq_k(a, c);
     }
-}
 
-/// Constants and the statement: public rows.
-impl Builder {
     fn constant(&mut self, kind: Kind, value: Limbs) -> u32 {
         if let Some(&w) = self.consts.get(&(kind, value)) {
             return w;
@@ -242,9 +251,11 @@ impl Builder {
         w
     }
 
-    /// The constant `E` element `value`.
+    /// An extension-field wire bound to a public constant.
+    ///
+    /// Its three coefficients occupy the first three words, with the fourth word zero.
     pub fn e_const(&mut self, value: F192) -> Ew {
-        Ew(self.constant(Kind::E, e_limbs(value)))
+        Ew(self.constant(Kind::E, [value.c0, value.c1, value.c2, 0]))
     }
 
     /// The constant `K` word `value`.

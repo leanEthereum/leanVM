@@ -1,13 +1,13 @@
 //! Arithmetic over `E`: the `EMUL` and `EXK` rows, with the units folded away.
 
-use super::{Builder, e_limbs};
-use crate::rec::circuit::{Ew, Kind, Kw};
+use super::Builder;
+use crate::rec::circuit::{Ew, Kw};
 use crate::rec::table::Table;
 use primitives::field::{F64, F192};
 
 impl Builder {
     fn emul(&mut self, a: Ew, b: Ew, d: Ew) -> Ew {
-        let c = Ew(self.wire(Kind::E, e_limbs(self.e(a) * self.e(b) + self.e(d))));
+        let c = self.free_e(self.e(a) * self.e(b) + self.e(d));
         self.row(Table::Emul, &[a.0, b.0, d.0, c.0]);
         c
     }
@@ -59,7 +59,7 @@ impl Builder {
         if u.k_one == Some(k.0) {
             return self.add(a, d);
         }
-        let c = Ew(self.wire(Kind::E, e_limbs(self.e(a).mul_base(F64(self.k(k))) + self.e(d))));
+        let c = self.free_e(self.e(a).mul_base(F64(self.k(k))) + self.e(d));
         self.row(Table::Exk, &[a.0, k.0, d.0, c.0]);
         c
     }
