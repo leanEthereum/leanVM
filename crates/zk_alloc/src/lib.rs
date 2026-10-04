@@ -22,7 +22,7 @@
 
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::cell::{Cell, RefCell};
-use std::fmt::{Display, Formatter, Result as FmtResult};
+use std::fmt::{Display, Formatter};
 use std::mem::forget;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Mutex, OnceLock};
@@ -369,7 +369,7 @@ pub fn stats() -> Stats {
 }
 
 impl Display for Stats {
-    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let bytes_to_gib = |bytes: usize| bytes as f64 / (1u64 << 30) as f64;
         // A thread publishes its peak when it RESETS, so the phase in flight is
         // not in the sum: report the count the average is actually over.

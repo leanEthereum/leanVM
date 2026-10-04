@@ -2,7 +2,7 @@
 
 use crate::stages::Stages;
 use primitives::pretty_f64;
-use std::fmt::Error as FmtError;
+use std::fmt::Error;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 use tracing_forest::printer::Pretty;
@@ -14,7 +14,7 @@ use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{EnvFilter, Layer, Registry};
 
-fn format_trace_tree(tree: &Tree) -> Result<String, FmtError> {
+fn format_trace_tree(tree: &Tree) -> Result<String, Error> {
     let rendered = Pretty.fmt(tree)?;
     let mut percentages = Vec::new();
     collect_parent_percentages(tree, None, &mut percentages);

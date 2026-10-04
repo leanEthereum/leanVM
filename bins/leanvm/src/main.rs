@@ -5,7 +5,7 @@ use bench::Plan;
 use clap::builder::RangedU64ValueParser;
 use clap::{Parser, Subcommand};
 use leanvm::{Prover, Rate};
-use std::error::Error as StdError;
+use std::error::Error;
 use std::path::PathBuf;
 
 mod aggregate;
@@ -115,7 +115,7 @@ enum Command {
     },
 }
 
-fn parse_rate(log_inv_rate: &str) -> Result<Rate, Box<dyn StdError + Send + Sync>> {
+fn parse_rate(log_inv_rate: &str) -> Result<Rate, Box<dyn Error + Send + Sync>> {
     Ok(Rate::new(log_inv_rate.parse()?)?)
 }
 

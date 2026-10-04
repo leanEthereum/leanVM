@@ -14,7 +14,7 @@ use super::execute::Trace;
 use crate::arith::Arith;
 use crate::constraints::Claims;
 use crate::leaf::{Block, ColumnClaim, Coord, Producer, SparseColumn};
-use crate::pcs::{Rate, SlotClaim};
+use crate::pcs::{Rate, StackClaim};
 use crate::rv::{Entry, Reg, Region, RegisterFile, RiscvProgram, Syscall};
 use crate::tables::{ClassSpec, ClassTable, Clock, Part, Separator};
 use crate::witness::{Placement, Source, StackShape, Window};
@@ -539,7 +539,7 @@ impl Layout {
         bus_claims: Vec<ColumnClaim<A::E>>,
         table_claims: &[Claims<A::E>],
         output: &[A::E; 4],
-    ) -> Vec<SlotClaim<A::E>> {
+    ) -> Vec<StackClaim<A::E>> {
         let schema = Schema::get();
         let mut claims = bus_claims;
         claims.reserve(schema.n - N_SHARED);
@@ -578,9 +578,9 @@ impl Layout {
     /// The strided form freezes the low coordinates to the port's bits and the high ones to the claim's point.
     ///
     /// It is folded at the table's height, not the packed witness's, and joins the one opening.
-    fn slot_claim<E>(&self, c: ColumnClaim<E>) -> SlotClaim<E> {
+    fn slot_claim<E>(&self, c: ColumnClaim<E>) -> StackClaim<E> {
         match self.placements[c.col] {
-            Placement::Committed(window) => SlotClaim::Point {
+            Placement::Committed(window) => StackClaim::Point {
                 offset: window.offset,
                 low_point: c.point,
                 value: c.value,
@@ -589,7 +589,7 @@ impl Layout {
                 offset,
                 port,
                 stride_log,
-            } => SlotClaim::Strided {
+            } => StackClaim::Strided {
                 offset,
                 slot: port,
                 stride_log,

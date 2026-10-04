@@ -3,7 +3,7 @@
 use bench::Plan;
 use leanvm::{Program, Proved, Prover, Rate, verify};
 use primitives::{pretty_f64, pretty_integer};
-use std::error::Error as StdError;
+use std::error::Error;
 use std::fmt::Arguments;
 use std::num::ParseIntError;
 use std::path::Path;
@@ -14,7 +14,7 @@ pub fn parse_word(word: &str) -> Result<u64, ParseIntError> {
 }
 
 /// An error and its causes, outermost first.
-fn chain(error: &dyn StdError) -> String {
+fn chain(error: &dyn Error) -> String {
     let mut text = error.to_string();
     let mut source = error.source();
     while let Some(cause) = source {

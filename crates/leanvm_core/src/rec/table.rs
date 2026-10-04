@@ -10,7 +10,7 @@ use crate::rv::Class;
 use crate::tables::{ClassSpec, ClassTable, Part};
 use Coord::{Col, Prod, Sum};
 use Kind::{D, E, K};
-use flock::circuit::Circuit as FlockCircuit;
+use flock::circuit::Circuit;
 use primitives::field::{F64, F192};
 
 /// The recursion machine's tables, in protocol order.
@@ -342,7 +342,7 @@ impl HashFlock {
     }
 
     /// The BLAKE2s compression circuit.
-    pub(crate) fn circuit() -> &'static FlockCircuit {
+    pub(crate) fn circuit() -> &'static Circuit {
         class_flock::circuit(Self::index())
     }
 

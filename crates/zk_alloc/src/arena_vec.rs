@@ -2,7 +2,7 @@
 
 use crate::{raw_alloc, raw_dealloc};
 use std::alloc::{Layout, handle_alloc_error};
-use std::fmt::{Debug, Formatter, Result as FmtResult};
+use std::fmt::{Debug, Formatter};
 use std::marker::PhantomData;
 use std::mem::{ManuallyDrop, MaybeUninit, align_of, needs_drop, size_of};
 use std::ops::{Deref, DerefMut};
@@ -379,7 +379,7 @@ impl<T: Clone> Clone for ArenaVec<T> {
 }
 
 impl<T: Debug> Debug for ArenaVec<T> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         Debug::fmt(&**self, f)
     }
 }
