@@ -9,15 +9,17 @@
 //! fingerprint challenges `α, β` are `E`-valued, so a leaf accumulates via the mixed
 //! `mul_base` product (2 PMULL per coordinate).
 
-use crate::PAR_THRESHOLD;
 use crate::arith::{Arith, Native, Verifier};
 use crate::colval::ColVal;
-use crate::gkr;
-use fiat_shamir::transcript::{Challenger, ProverState, Transmitter};
+use crate::gkr::GkrError;
+use crate::{PAR_THRESHOLD, gkr};
+use fiat_shamir::transcript::{Challenger, ProverState, TranscriptError, Transmitter};
 use primitives::field::{F64, F192, F192Unreduced};
 use primitives::multilinear::{eq_table_arena, mle_eval};
 use std::collections::{HashMap, HashSet};
-use std::sync::Arc;
+use std::convert::Infallible;
+use std::sync::{Arc, OnceLock};
+use thiserror::Error;
 use zk_alloc::ArenaVec;
 
 /// One tuple coordinate as a function of the block's row `z`.
@@ -74,7 +76,7 @@ pub struct SparseColumn {
     log_len: usize,
     blocks: Vec<(usize, Vec<F64>)>,
     /// The column written out, which only the prover needs.
-    dense: std::sync::OnceLock<Vec<F64>>,
+    dense: OnceLock<Vec<F64>>,
 }
 
 impl SparseColumn {
@@ -94,7 +96,7 @@ impl SparseColumn {
         Self {
             log_len,
             blocks,
-            dense: std::sync::OnceLock::new(),
+            dense: OnceLock::new(),
         }
     }
 
@@ -184,14 +186,14 @@ pub struct ColumnClaim<E = F192> {
 }
 
 /// Why the bus does not balance.
-#[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
+#[derive(Clone, Debug, PartialEq, Eq, Error)]
 pub enum BusError {
     /// The proof stream is malformed.
     #[error(transparent)]
-    Transcript(#[from] fiat_shamir::transcript::TranscriptError),
+    Transcript(#[from] TranscriptError),
     /// The grand products' GKR rejects.
     #[error(transparent)]
-    Gkr(#[from] gkr::GkrError),
+    Gkr(#[from] GkrError),
 }
 
 /// The fingerprint weights `eq(α⃗, x)` over the `2^N_TUPLE_BITS` slots (§sec:gp).
@@ -1002,7 +1004,7 @@ impl Side<'_> {
             debug_assert_eq!((jc, jk), (col, zeta_lo.len()), "job/coord order drift");
             debug_assert_eq!(v, mle_eval(cols[col], zeta_lo), "job/coord order drift");
             ps.add_scalar(v);
-            Ok::<_, std::convert::Infallible>(v)
+            Ok::<_, Infallible>(v)
         });
         let Ok(framework) = framework;
         (open.sparse.drain(..)).fold(framework, |acc, s| acc + s.weight * s.column.eval(&s.point))

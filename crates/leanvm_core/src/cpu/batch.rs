@@ -5,9 +5,10 @@
 use super::layout::Layout;
 use crate::arith::{Arith, Native};
 use crate::colval::ColVal;
-use crate::constraints::{self, Air, Residual};
-use crate::leaf::{self, BusForm, BusVerify, Producer};
-use crate::tables;
+use crate::constraints::{Air, Residual, Summand};
+use crate::leaf;
+use crate::leaf::{BusForm, BusVerify, Producer};
+use crate::tables::ClassTable;
 use primitives::field::F192;
 
 /// The two bus sides' weights in the batch, `1` and `xi`, shared by every table.
@@ -50,7 +51,7 @@ impl FormPowers {
     ///
     /// The prover needs them to build each round; the verifier only their total, which it derives.
     pub(super) fn table_sums(self, bus: &[Vec<F192>; 2]) -> Vec<F192> {
-        (0..tables::ClassTable::all().len())
+        (0..ClassTable::all().len())
             .map(|t| self.combine(&mut Native, [bus[0][t], bus[1][t]]))
             .collect()
     }
@@ -78,7 +79,7 @@ impl Batch {
         powers: FormPowers,
     ) -> Self {
         // A table's term is one form, not two: the batch adds the sides' evaluations anyway.
-        let tables = tables::ClassTable::all()
+        let tables = ClassTable::all()
             .iter()
             .zip(&layout.taus)
             .enumerate()
@@ -136,7 +137,7 @@ pub(super) struct ProducerTerm {
     beta: F192,
 }
 
-impl constraints::Summand for Term {
+impl Summand for Term {
     #[inline(always)]
     fn eval<T: ColVal>(&self, cols: &[T], quadratic: bool) -> F192 {
         match self {
@@ -203,7 +204,7 @@ impl<'a, E: Copy> VerifierBatch<'a, E> {
         bus: &'a BusVerify<E>,
         powers: FormPowers<E>,
     ) -> Self {
-        let tables = (tables::ClassTable::all().iter().zip(&layout.taus).enumerate()).map(|(t, (table, &tau))| Air {
+        let tables = (ClassTable::all().iter().zip(&layout.taus).enumerate()).map(|(t, (table, &tau))| Air {
             tau,
             n_cols: table.n_committed_columns(),
             n_public: 0,

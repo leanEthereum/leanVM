@@ -1,22 +1,28 @@
 //! The hierarchical trace tree the benchmark binaries print with `--tracing`.
 
+use crate::stages::Stages;
 use primitives::pretty_f64;
+use std::fmt::Error as FmtError;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::Duration;
+use tracing_forest::printer::Pretty;
+use tracing_forest::tree::Tree;
+use tracing_forest::util::LevelFilter;
+use tracing_forest::{ForestLayer, Formatter, PrettyPrinter};
+use tracing_subscriber::filter::dynamic_filter_fn;
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
+use tracing_subscriber::{EnvFilter, Layer, Registry};
 
-fn format_trace_tree(tree: &tracing_forest::tree::Tree) -> Result<String, std::fmt::Error> {
-    use tracing_forest::Formatter;
-
-    let rendered = tracing_forest::printer::Pretty.fmt(tree)?;
+fn format_trace_tree(tree: &Tree) -> Result<String, FmtError> {
+    let rendered = Pretty.fmt(tree)?;
     let mut percentages = Vec::new();
     collect_parent_percentages(tree, None, &mut percentages);
     Ok(rewrite_trace_percentages(&rendered, &percentages))
 }
 
-fn collect_parent_percentages(
-    tree: &tracing_forest::tree::Tree,
-    parent_duration: Option<std::time::Duration>,
-    percentages: &mut Vec<f64>,
-) {
-    let tracing_forest::tree::Tree::Span(span) = tree else {
+fn collect_parent_percentages(tree: &Tree, parent_duration: Option<Duration>, percentages: &mut Vec<f64>) {
+    let Tree::Span(span) = tree else {
         return;
     };
 
@@ -76,7 +82,7 @@ fn rewrite_trace_percentages(rendered: &str, percentages: &[f64]) -> String {
 
 /// Set while [`suppress_tracing`]'s guard is alive; read by the trace tree's
 /// filter on every span and event.
-static TRACE_SUPPRESSED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+static TRACE_SUPPRESSED: AtomicBool = AtomicBool::new(false);
 
 /// Suppress trace-tree output until the returned guard is dropped.
 ///
@@ -92,7 +98,7 @@ static TRACE_SUPPRESSED: std::sync::atomic::AtomicBool = std::sync::atomic::Atom
 /// than the one to quote timings from.
 #[must_use = "tracing resumes as soon as the guard is dropped"]
 pub fn suppress_tracing() -> TraceSuppressed {
-    TRACE_SUPPRESSED.store(true, std::sync::atomic::Ordering::Relaxed);
+    TRACE_SUPPRESSED.store(true, Ordering::Relaxed);
     TraceSuppressed
 }
 
@@ -101,7 +107,7 @@ pub struct TraceSuppressed;
 
 impl Drop for TraceSuppressed {
     fn drop(&mut self) {
-        TRACE_SUPPRESSED.store(false, std::sync::atomic::Ordering::Relaxed);
+        TRACE_SUPPRESSED.store(false, Ordering::Relaxed);
     }
 }
 
@@ -114,24 +120,17 @@ impl Drop for TraceSuppressed {
 /// recorded on one pass and skipped on the next. It also times the stages
 /// [`crate::time_stages`] names, on every pass.
 pub fn init_tracing() {
-    use tracing_forest::{ForestLayer, PrettyPrinter, util::LevelFilter};
-    use tracing_subscriber::{
-        EnvFilter, Layer, Registry, filter::dynamic_filter_fn, layer::SubscriberExt, util::SubscriberInitExt,
-    };
-
     let env_filter = EnvFilter::builder()
         .with_default_directive(LevelFilter::INFO.into())
         .from_env_lossy();
 
-    let forest =
-        ForestLayer::from(PrettyPrinter::new().formatter(format_trace_tree)).with_filter(dynamic_filter_fn(|_, _| {
-            !TRACE_SUPPRESSED.load(std::sync::atomic::Ordering::Relaxed)
-        }));
+    let forest = ForestLayer::from(PrettyPrinter::new().formatter(format_trace_tree))
+        .with_filter(dynamic_filter_fn(|_, _| !TRACE_SUPPRESSED.load(Ordering::Relaxed)));
 
     let _ = Registry::default()
         .with(env_filter)
         .with(forest)
-        .with(crate::stages::Stages)
+        .with(Stages)
         .try_init();
 }
 

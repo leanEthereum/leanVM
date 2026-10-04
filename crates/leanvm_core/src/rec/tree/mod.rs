@@ -16,6 +16,24 @@
 //!
 //! Each node reduces the claims its children leave and carry to one of each, and only the root's verifier evaluates them.
 
+use crate::cpu::{CpuError, Lookup, Program, Proof};
+use crate::pcs::Rate;
+use crate::rec::RecError;
+use crate::rec::circuit::{Circuit, Finished};
+use crate::rec::fixed::FixedColumns;
+use crate::rec::layout::RecLayout;
+use crate::rec::table::Table;
+use crate::rec::transcript::ProofSource;
+use crate::rec::verifier::ProofShape;
+use crate::tables::{ClassSpec, N_TABLES, Part};
+use design::{ChildWitness, Design, LeafWitness, NodeRows, Witness};
+use fiat_shamir::transcript::RawProof;
+use primitives::field::{F64, F192};
+use primitives::multilinear::{eq_table, mle_eval_par};
+use reduce::DenseTables;
+use statement::TreeStatement;
+use thiserror::Error;
+
 mod claims;
 mod design;
 mod fixed;
@@ -26,22 +44,6 @@ mod tests;
 
 pub use claims::DensePoly;
 pub use statement::Kind;
-use statement::TreeStatement;
-
-use crate::cpu::{CpuError, Program, Proof};
-use crate::pcs::Rate;
-use crate::rec::RecError;
-use crate::rec::circuit::{Circuit, Finished};
-use crate::rec::fixed::FixedColumns;
-use crate::rec::table::Table;
-use crate::rec::transcript::ProofSource;
-use crate::rec::verifier::ProofShape;
-use crate::tables::{self, N_TABLES, Part};
-use design::{ChildWitness, Design, LeafWitness, Witness};
-use fiat_shamir::transcript::RawProof;
-use primitives::field::{F64, F192};
-use primitives::multilinear::{eq_table, mle_eval_par};
-use reduce::DenseTables;
 
 /// The most rounds the search for the nodes' heights takes: each round at least doubles a table.
 const MAX_ROUNDS: usize = 8;
@@ -90,7 +92,7 @@ pub struct TreeProof {
 }
 
 /// A claim of a root's statement that is false.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, thiserror::Error)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Error)]
 pub enum FalseClaim {
     /// A claim on a dense polynomial.
     #[error("on {0:?}")]
@@ -106,7 +108,7 @@ pub enum FalseClaim {
 }
 
 /// Why a tree cannot be built, a tree proof cannot be made, or a root is refused.
-#[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
+#[derive(Clone, Debug, PartialEq, Eq, Error)]
 pub enum TreeError {
     /// The arities make no tree: a first level takes at least one leaf, a node at least two children.
     #[error("a first level of {arity_0} leaves and nodes of {arity} children make no tree")]
@@ -292,7 +294,7 @@ impl<'p> Tree<'p> {
         let rv = program.rv();
         let mut image: Vec<F64> = rv.image().iter().map(|&w| F64(w)).collect();
         image.resize(1 << design.vars.0[DensePoly::Image as usize], F64::ZERO);
-        let tables = DenseTables([crate::cpu::Lookup::Bytecode.table(rv), image, fixed]);
+        let tables = DenseTables([Lookup::Bytecode.table(rv), image, fixed]);
         Ok(Self {
             design,
             circuits,
@@ -319,7 +321,7 @@ impl<'p> Tree<'p> {
                     c.floor = taus;
                     c
                 });
-                crate::rec::layout::RecLayout::from_taus(taus).map_err(|_| TreeError::TooLarge)?;
+                RecLayout::from_taus(taus).map_err(|_| TreeError::TooLarge)?;
                 return Ok((d, circuits));
             }
             taus = next;
@@ -486,7 +488,7 @@ impl<'p> Tree<'p> {
     }
 
     /// Prove a circuit's rows: its reduction, then its recursion proof.
-    fn prove_rows(&self, rows: design::NodeRows, kind: Kind) -> Result<TreeProof, TreeError> {
+    fn prove_rows(&self, rows: NodeRows, kind: Kind) -> Result<TreeProof, TreeError> {
         let d = &self.design;
         let reduction = rows.claim_values().prove(&d.vars, &self.tables);
         let raw = RawProof {
@@ -538,7 +540,7 @@ impl<'p> Tree<'p> {
         held.iter().position(|&h| !h).map_or(Ok(()), |f| {
             let (t, part) = crate::class_flock::flock(f);
             Err(TreeError::Claim(FalseClaim::Matrix {
-                table: tables::ClassSpec::ALL[t].name,
+                table: ClassSpec::ALL[t].name,
                 part,
             }))
         })

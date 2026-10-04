@@ -13,7 +13,7 @@
 
 use crate::cpu::Row;
 use crate::rv::Entry;
-use crate::tables::{ClassSpec, N_TABLES, Part};
+use crate::tables::{ClassSpec, ClassTable, Clock, N_TABLES, Part};
 use ::pcs::pack::LOG_PACKING;
 use fiat_shamir::transcript::{ProverState, VerifierState};
 use flock::circuit::Circuit;
@@ -98,7 +98,7 @@ pub fn circuit(f: usize) -> &'static Circuit {
         let spec = ClassSpec::ALL[t];
         let (circuit, n_inputs) = match part {
             Part::Class => (spec.class.circuit(), spec.n_inputs),
-            Part::Clock => (crate::tables::Clock::circuit(&spec.slots()), 1 + spec.n_accesses()),
+            Part::Clock => (Clock::circuit(&spec.slots()), 1 + spec.n_accesses()),
         };
         let shape = shape(f);
         assert_eq!(
@@ -161,7 +161,7 @@ impl Prepared {
             "a table's rows fill its batch (cpu::filler)"
         );
         let circuit = circuit(f);
-        let ports = crate::tables::ClassTable::all()[t].ports(part);
+        let ports = ClassTable::all()[t].ports(part);
         let n_inputs = circuit.n_input_words();
         let slots = spec.slots();
         // The row's input words, one per input port.

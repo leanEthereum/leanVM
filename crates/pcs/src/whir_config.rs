@@ -13,6 +13,10 @@
 //! The table is what the floating-point soundness analysis (the PCS annex, Theorem `thm:rbr`) derives at every size and rate it covers.
 //! That analysis lives in the test-only `derivation` module, and its test `the_table_is_the_derivation` checks every entry, so changing a constant it reads fails that test until the table is regenerated (AGENTS.md, "One protocol, three verifiers").
 
+#[cfg(test)]
+pub(crate) use derivation::{default_config, test_config_for};
+use thiserror::Error;
+
 // ===================================================================
 // Config
 // ===================================================================
@@ -32,7 +36,7 @@ pub const MIN_LOG_INV_RATE: usize = 1;
 pub const MAX_LOG_INV_RATE: usize = 4;
 
 /// Why [`config_for_rate`] has no configuration for a witness size and a rate.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, thiserror::Error)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Error)]
 #[non_exhaustive]
 pub enum ConfigError {
     /// An L0 rate outside the supported range.
@@ -46,7 +50,7 @@ pub enum ConfigError {
 /// Why the level ladder has no shape for a witness size. No size [`config_for_rate`] accepts gets here; the test-only derivation and its fallback ladder, which take any size, can.
 ///
 /// `level` counts from L0, the commitment's own code.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, thiserror::Error)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Error)]
 pub(crate) enum LadderError {
     /// No variable is left after the initial fold.
     #[error("log_n {log_n} does not exceed the initial fold {initial_k}")]
@@ -367,5 +371,3 @@ pub fn config_for_rate(log_n: usize, log_inv_rate: usize) -> Result<ProverConfig
 
 #[cfg(test)]
 mod derivation;
-#[cfg(test)]
-pub(crate) use derivation::{default_config, test_config_for};

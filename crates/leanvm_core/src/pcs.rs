@@ -25,13 +25,14 @@
 //! commitment only shrinks the level-0 symbols to 8 bytes; every random
 //! ingredient is sampled from `E` with the same error terms as before.
 
-use fiat_shamir::transcript::{ProverState, Receiver, Transmitter, VerifierState};
+use crate::witness::StackShape;
+use ::pcs::stack_open::{open_batch_mixed_whir_stacked, verify_opening_batch_mixed_whir_stacked};
+use ::pcs::whir::{ProverConfig, ProverData, WhirError, commit as whir_commit, config_for_rate};
+use fiat_shamir::transcript::{ProverState, Receiver, TranscriptError, Transmitter, VerifierState};
 use primitives::field::F64;
+use thiserror::Error;
 
 pub use ::pcs::stack_open::{RingSwitchClaim, RingSwitchOpen, RingSwitchVerify, StackClaim as SlotClaim};
-use ::pcs::stack_open::{open_batch_mixed_whir_stacked, verify_opening_batch_mixed_whir_stacked};
-use ::pcs::whir::ProverConfig;
-use ::pcs::whir::{ProverData, commit as whir_commit, config_for_rate};
 
 /// Row-batch lanes `2^LOG_BATCH`: the Merkle leaf width (`2^LOG_BATCH` F64
 /// = 512 bytes/leaf) IS WHIR's INITIAL folding factor: the L0 commit is
@@ -77,7 +78,7 @@ impl Rate {
 }
 
 /// A rate the commitment does not support.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, thiserror::Error)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Error)]
 #[error("log_inv_rate {log_inv_rate} is not in {min}..={max}", min = Rate::MIN.0, max = Rate::MAX.0)]
 pub struct InvalidRate {
     /// The rejected value.
@@ -119,12 +120,7 @@ pub struct Committed {
 /// ([`crate::witness::StackShape::committed_len`]); the zero tail past them is
 /// neither encoded nor hashed, and the resulting commitment is the same one the
 /// full `2^μ` witness would have produced.
-pub fn commit(
-    ps: &mut ProverState,
-    witness: &[F64],
-    shape: crate::witness::StackShape,
-    log_inv_rate: usize,
-) -> Committed {
+pub fn commit(ps: &mut ProverState, witness: &[F64], shape: StackShape, log_inv_rate: usize) -> Committed {
     let mu = shape.mu;
     assert!(
         mu >= MIN_MU,
@@ -153,7 +149,7 @@ pub fn commit(
 
 /// Verifier counterpart of [`commit`]'s root binding: read the committed root
 /// from the stream at the start of verification, before sampling any challenge.
-pub fn read_commitment(vs: &mut VerifierState) -> Result<[u8; 32], fiat_shamir::transcript::TranscriptError> {
+pub fn read_commitment(vs: &mut VerifierState) -> Result<[u8; 32], TranscriptError> {
     vs.next_root()
 }
 
@@ -182,10 +178,10 @@ pub fn verify(
     vs: &mut VerifierState,
     points: &[SlotClaim],
     rings: &[RingSwitchVerify<'_>],
-    shape: crate::witness::StackShape,
+    shape: StackShape,
     log_inv_rate: usize,
     root: &[u8; 32],
-) -> Result<(), ::pcs::whir::WhirError> {
+) -> Result<(), WhirError> {
     let cfg = whir_config(shape.mu, log_inv_rate);
     verify_opening_batch_mixed_whir_stacked(vs, &cfg, shape.mu, shape.n_lanes, root, points, rings)
 }

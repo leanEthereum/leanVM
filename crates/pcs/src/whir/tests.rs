@@ -2,10 +2,12 @@ use super::*;
 use crate::merkle::Hash;
 use crate::ring_switch::inner_product_ext;
 use crate::whir_config::test_config_for;
-use fiat_shamir::transcript::TranscriptError;
+use fiat_shamir::transcript::{Proof, ProverState, TranscriptError, VerifierState};
 use primitives::field::powers;
 use primitives::multilinear::{eq_eval, eq_table};
 use primitives::test_rng::Rng;
+use std::collections::HashSet;
+use std::panic::AssertUnwindSafe;
 use zk_alloc::ArenaVec;
 
 struct Instance {
@@ -17,7 +19,7 @@ struct Instance {
     target: F192,
     root: Hash,
     /// The transcript: every scalar WHIR transmitted, plus its opening phases.
-    fs: fiat_shamir::transcript::Proof,
+    fs: Proof,
 }
 
 fn prove_instance(log_n: usize, seed: u64) -> Instance {
@@ -28,7 +30,7 @@ fn prove_instance(log_n: usize, seed: u64) -> Instance {
     let point: Vec<F192> = (0..log_n).map(|_| rng.ext()).collect();
     let b_initial = eq_table(&point);
     let target = inner_product_base_ext(&witness, &b_initial);
-    let mut ps = fiat_shamir::transcript::ProverState::from_label(b"whir-test");
+    let mut ps = ProverState::from_label(b"whir-test");
     recursive_prover_with_basis(
         &pc,
         log_n,
@@ -55,12 +57,8 @@ fn dense_mle(table: &[F192], point: &[F192]) -> F192 {
     inner_product_ext(table, &eq_table(point))
 }
 
-fn verify_with(
-    inst: &Instance,
-    fs: &fiat_shamir::transcript::Proof,
-    eval_b_at: impl Fn(&[F192]) -> F192,
-) -> Result<(), WhirError> {
-    let mut vs = fiat_shamir::transcript::VerifierState::from_label(b"whir-test", fs);
+fn verify_with(inst: &Instance, fs: &Proof, eval_b_at: impl Fn(&[F192]) -> F192) -> Result<(), WhirError> {
+    let mut vs = VerifierState::from_label(b"whir-test", fs);
     recursive_verifier_with_basis_succinct(
         &inst.vc,
         inst.log_n,
@@ -73,18 +71,18 @@ fn verify_with(
 }
 
 /// The weight evaluated in closed form at the terminal fold point.
-fn verify_closed_form(inst: &Instance, fs: &fiat_shamir::transcript::Proof) -> bool {
+fn verify_closed_form(inst: &Instance, fs: &Proof) -> bool {
     verify_with(inst, fs, |fold_point| eq_eval(&inst.point, fold_point)).is_ok()
 }
 
 /// The weight evaluated from its whole table at the terminal fold point.
-fn verify_dense_weight(inst: &Instance, fs: &fiat_shamir::transcript::Proof) -> bool {
+fn verify_dense_weight(inst: &Instance, fs: &Proof) -> bool {
     verify_with(inst, fs, |fold_point| dense_mle(&inst.b_initial, fold_point)).is_ok()
 }
 
 /// Both weight evaluations on the same proof, asserting they agree; returns the
 /// shared verdict.
-fn verify_both_agree(inst: &Instance, fs: &fiat_shamir::transcript::Proof, what: &str) -> bool {
+fn verify_both_agree(inst: &Instance, fs: &Proof, what: &str) -> bool {
     let closed_form = verify_closed_form(inst, fs);
     let dense = verify_dense_weight(inst, fs);
     assert_eq!(closed_form, dense, "closed-form/dense verdict split on {what}");
@@ -144,7 +142,7 @@ fn tampered_proofs_are_rejected() {
         let mut rng = Rng::new(seed ^ 0xABCD);
         // One Merkle phase per level, in level order: phase 0 opens L0, the
         // last phase opens the final level.
-        type Tamper = fn(&mut fiat_shamir::transcript::Proof, u64);
+        type Tamper = fn(&mut Proof, u64);
         let tampers: &[(&str, Tamper)] = &[
             ("L0 opened row", |p, r| {
                 let rows = &mut p.merkle[0].leaf_data;
@@ -204,7 +202,7 @@ fn tampered_stream_words_reject_without_panicking() {
         for tamper in [F192::ONE, F192::new(0, 0, 1)] {
             let mut bad = inst.fs.clone();
             bad.stream[idx] += tamper;
-            let verdict = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| verify_closed_form(&inst, &bad)));
+            let verdict = std::panic::catch_unwind(AssertUnwindSafe(|| verify_closed_form(&inst, &bad)));
             match verdict {
                 Ok(accepted) => assert!(!accepted, "tampered stream word {idx} accepted"),
                 Err(_) => panic!("verifier panicked on tampered stream word {idx}"),
@@ -238,7 +236,7 @@ fn truncated_lanes_match_an_explicit_zero_tail() {
 
             let prove = |msg: &[F64], b: &[F192]| {
                 let (cm, pd) = commit(msg, log_n, pc.initial_k(), pc.log_inv_rates()[0]);
-                let mut ps = fiat_shamir::transcript::ProverState::from_label(b"whir-test");
+                let mut ps = ProverState::from_label(b"whir-test");
                 recursive_prover_with_basis(
                     &pc,
                     log_n,
@@ -274,8 +272,8 @@ fn truncated_lanes_match_an_explicit_zero_tail() {
             }
 
             // The verifier evaluates the weight over the whole `2^log_n` cube.
-            let verify = |fs: &fiat_shamir::transcript::Proof| {
-                let mut vs = fiat_shamir::transcript::VerifierState::from_label(b"whir-test", fs);
+            let verify = |fs: &Proof| {
+                let mut vs = VerifierState::from_label(b"whir-test", fs);
                 recursive_verifier_with_basis_succinct(
                     &pc,
                     log_n,
@@ -315,7 +313,7 @@ fn induce_via_ntt_matches_dense() {
         let lanes = 1usize << lanes_log;
         // Distinct sorted query positions plus one aligned random row each.
         let mut qs: Vec<usize> = Vec::new();
-        let mut seen = std::collections::HashSet::new();
+        let mut seen = HashSet::new();
         while qs.len() < n_queries {
             let q = (rng.next_u64() as usize) % block_len;
             if seen.insert(q) {

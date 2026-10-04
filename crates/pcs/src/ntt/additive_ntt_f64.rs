@@ -7,11 +7,24 @@
 //! - The E-valued encodes of deeper WHIR levels reuse it, one F64 lane per F192 coefficient.
 //! - Large transforms are bound by memory bandwidth, so the driver minimizes sweeps of the buffer.
 
-use std::cell::RefCell;
-
+#[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
+use core::arch::aarch64::*;
+#[cfg(all(
+    target_arch = "x86_64",
+    target_feature = "vpclmulqdq",
+    target_feature = "avx2",
+    not(target_feature = "avx512f")
+))]
+use core::arch::x86_64::*;
+#[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
+use core::arch::x86_64::*;
+use parallel::SendPtr;
 use primitives::field::F64;
+#[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
+use primitives::field::gf2_64::aarch64::reduce_pair_pmull4;
 use primitives::log2_strict_usize;
 use primitives::stream::Stream;
+use std::cell::RefCell;
 
 /// Table of the normalized subspace polynomials at the basis.
 ///
@@ -138,7 +151,7 @@ impl AdditiveNttF64 {
     /// - The first pass wants hundreds of scattered rows at once.
     pub fn encode_interleaved_in_place(&self, data: &mut [F64], num_ntts: usize, log_inv_rate: usize) {
         // The message is the buffer's own first replica.
-        let msg = parallel::SendPtr(data.as_mut_ptr());
+        let msg = SendPtr(data.as_mut_ptr());
         self.transform(data, num_ntts, log_inv_rate, Some(msg), None);
     }
 
@@ -155,7 +168,7 @@ impl AdditiveNttF64 {
         log_inv_rate: usize,
         on_rows: &RowSink<'_>,
     ) {
-        let msg = parallel::SendPtr(data.as_mut_ptr());
+        let msg = SendPtr(data.as_mut_ptr());
         self.transform(data, num_ntts, log_inv_rate, Some(msg), Some(on_rows));
     }
 
@@ -182,7 +195,7 @@ impl AdditiveNttF64 {
             "the codeword is 2^log_inv_rate messages"
         );
         // Read-only from here on: the pointer only feeds the first pass's reads.
-        let msg = parallel::SendPtr(msg.as_ptr().cast_mut());
+        let msg = SendPtr(msg.as_ptr().cast_mut());
         self.transform(data, num_ntts, log_inv_rate, Some(msg), Some(on_rows));
     }
 
@@ -226,7 +239,7 @@ impl AdditiveNttF64 {
         data: &mut [F64],
         num_ntts: usize,
         start: usize,
-        msg: Option<parallel::SendPtr<F64>>,
+        msg: Option<SendPtr<F64>>,
         on_rows: Option<&RowSink<'_>>,
     ) {
         // The buffer is 2^log_d rows of `num_ntts` words.
@@ -379,7 +392,7 @@ impl AdditiveNttF64 {
         num_ntts: usize,
         layer: usize,
         g: usize,
-        msg: Option<parallel::SendPtr<F64>>,
+        msg: Option<SendPtr<F64>>,
         stream: bool,
     ) {
         // A group is 2^g rows, `step` rows apart.
@@ -388,7 +401,7 @@ impl AdditiveNttF64 {
         // With a message, a task is one residue across every block.
         // Without one, a task is one (block, residue) pair.
         let n_tasks = if msg.is_some() { step } else { step << layer };
-        let base = parallel::SendPtr(data.as_mut_ptr());
+        let base = SendPtr(data.as_mut_ptr());
         parallel::for_each_chunk(n_tasks, |lo, hi| {
             // One L2-resident scratch of 2^g rows serves every group of the task.
             with_scratch(rows * num_ntts, |scratch| {
@@ -751,13 +764,13 @@ fn with_scratch<R>(len: usize, f: impl FnOnce(&mut [F64]) -> R) -> R {
 ///
 /// - This is the unfused form of a gathered first pass.
 /// - The message may be the buffer's own first replica, which is then left as it is.
-fn replicate(data: &mut [F64], msg: parallel::SendPtr<F64>, msg_len: usize) {
+fn replicate(data: &mut [F64], msg: SendPtr<F64>, msg_len: usize) {
     // Copy granularity: small enough to spread a short message over every worker.
     const CHUNK: usize = 1 << 14;
     let replicas = data.len() / msg_len;
     let in_place = std::ptr::eq(msg.0, data.as_mut_ptr());
     let chunks = msg_len.div_ceil(CHUNK);
-    let dst = parallel::SendPtr(data.as_mut_ptr());
+    let dst = SendPtr(data.as_mut_ptr());
     // Replica index innermost, so one worker copies a chunk into several replicas while it is cached.
     parallel::for_each(chunks * replicas, |t| {
         let (c, replica) = (t / replicas, t % replicas);
@@ -917,8 +930,6 @@ fn butterfly_lanes(top: &mut [F64], bot: &mut [F64], twiddle: F64) {
 #[inline]
 #[target_feature(enable = "vpclmulqdq", enable = "avx2")]
 unsafe fn butterfly_lanes_avx2(top: *mut F64, bot: *mut F64, twiddle: u64) {
-    use core::arch::x86_64::*;
-
     #[inline]
     #[target_feature(enable = "vpclmulqdq", enable = "avx2")]
     unsafe fn reduce(p: __m256i, r: __m256i) -> __m256i {
@@ -961,9 +972,6 @@ unsafe fn butterfly_lanes_avx2(top: *mut F64, bot: *mut F64, twiddle: u64) {
 #[inline]
 #[target_feature(enable = "aes")]
 unsafe fn butterfly_lanes_neon_8(top: *mut F64, bot: *mut F64, twiddle: u64) {
-    use core::arch::aarch64::*;
-    use primitives::field::gf2_64::aarch64::reduce_pair_pmull4;
-
     // SAFETY: caller guarantees the two eight-element regions; F64 is
     // repr(transparent) over u64 and this function carries the aes feature.
     unsafe {
@@ -1050,8 +1058,6 @@ unsafe fn butterfly_lanes_neon_8(top: *mut F64, bot: *mut F64, twiddle: u64) {
 #[inline]
 #[target_feature(enable = "vpclmulqdq", enable = "avx512f", enable = "avx2")]
 unsafe fn butterfly_lanes_avx512(top: *mut F64, bot: *mut F64, twiddle: u64) {
-    use core::arch::x86_64::*;
-
     // SAFETY:
     // - The caller supplies two valid eight-word rows.
     // - This function's target features cover every intrinsic below.
@@ -1102,8 +1108,6 @@ unsafe fn butterfly_lanes_avx512(top: *mut F64, bot: *mut F64, twiddle: u64) {
 #[inline]
 #[target_feature(enable = "aes")]
 unsafe fn butterfly_lane_pair_neon(top: *mut F64, bot: *mut F64, twiddle: u64) {
-    use core::arch::aarch64::*;
-    use primitives::field::gf2_64::aarch64::reduce_pair_pmull4;
     // SAFETY: caller guarantees the pointees; F64 is repr(transparent) u64.
     unsafe {
         let u = vld1q_u64(top as *const u64);
@@ -1128,6 +1132,7 @@ unsafe fn butterfly_lane_pair_neon(top: *mut F64, bot: *mut F64, twiddle: u64) {
 mod tests {
     use super::*;
     use primitives::test_rng::Rng;
+    use std::sync::Mutex;
 
     /// Scalar reference: one butterfly at a time over `num_ntts` interleaved lanes.
     fn forward_scalar_from_layer(ntt: &AdditiveNttF64, data: &mut [F64], num_ntts: usize, start_layer: usize) {
@@ -1252,7 +1257,7 @@ mod tests {
             // Under test: only the first replica holds the message, the rest is zero.
             let mut got = vec![F64::ZERO; msg_len << log_inv_rate];
             got[..msg_len].copy_from_slice(&msg);
-            let blocks = std::sync::Mutex::new(Vec::new());
+            let blocks = Mutex::new(Vec::new());
             ntt.encode_interleaved_in_place_with(&mut got, lanes, log_inv_rate, &|row, rows| {
                 blocks.lock().unwrap().push((row, rows.to_vec()));
             });

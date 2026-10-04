@@ -1,15 +1,14 @@
 //! Growable buffer backed by the proving arena during a phase and the system allocator otherwise. Size arena-backed buffers up front anyway: growing copies, and the old allocation is only recycled if it clears the arena's reuse floor.
 
+use crate::{raw_alloc, raw_dealloc};
 use std::alloc::{Layout, handle_alloc_error};
-use std::cmp;
-use std::fmt;
+use std::fmt::{Debug, Formatter, Result as FmtResult};
 use std::marker::PhantomData;
 use std::mem::{ManuallyDrop, MaybeUninit, align_of, needs_drop, size_of};
 use std::ops::{Deref, DerefMut};
-use std::ptr::{self, NonNull};
-use std::slice;
-
-use crate::{raw_alloc, raw_dealloc};
+use std::ptr::NonNull;
+use std::slice::{Iter, IterMut};
+use std::{cmp, ptr, slice};
 
 /// An owning, growable buffer allocated from the proving arena.
 pub struct ArenaVec<T> {
@@ -379,9 +378,9 @@ impl<T: Clone> Clone for ArenaVec<T> {
     }
 }
 
-impl<T: fmt::Debug> fmt::Debug for ArenaVec<T> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Debug::fmt(&**self, f)
+impl<T: Debug> Debug for ArenaVec<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        Debug::fmt(&**self, f)
     }
 }
 
@@ -438,7 +437,7 @@ impl<T> FromIterator<T> for ArenaVec<T> {
 
 impl<'a, T> IntoIterator for &'a ArenaVec<T> {
     type Item = &'a T;
-    type IntoIter = slice::Iter<'a, T>;
+    type IntoIter = Iter<'a, T>;
     #[inline]
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
@@ -447,7 +446,7 @@ impl<'a, T> IntoIterator for &'a ArenaVec<T> {
 
 impl<'a, T> IntoIterator for &'a mut ArenaVec<T> {
     type Item = &'a mut T;
-    type IntoIter = slice::IterMut<'a, T>;
+    type IntoIter = IterMut<'a, T>;
     #[inline]
     fn into_iter(self) -> Self::IntoIter {
         self.iter_mut()

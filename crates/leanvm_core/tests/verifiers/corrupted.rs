@@ -5,6 +5,7 @@
 
 use leanvm_core::cpu::Proof;
 use leanvm_core::pcs::Rate;
+use std::panic::AssertUnwindSafe;
 
 struct Rng(u64);
 
@@ -74,7 +75,7 @@ fn a_corrupted_proof_is_rejected_and_never_panics() {
         if forged == proof {
             continue; // the one no-op a random truncation can draw
         }
-        let verified = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| program.verify(&output, &forged)));
+        let verified = std::panic::catch_unwind(AssertUnwindSafe(|| program.verify(&output, &forged)));
         match verified {
             Ok(Ok(())) => panic!("round {round}: a corrupted proof was accepted"),
             Ok(Err(_)) => {}

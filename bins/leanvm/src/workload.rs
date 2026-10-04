@@ -1,10 +1,9 @@
 //! A guest workload, proven and verified the way the benchmarks report it.
 
+use crate::guest::refuse;
 use bench::Plan;
 use leanvm::{Program, Proved, Prover, Rate, verify};
 use primitives::{pretty_f64, pretty_integer};
-
-use crate::guest::refuse;
 
 /// One run of a guest (`programs/`): what it is given and what it must output.
 pub struct Workload {
@@ -124,12 +123,15 @@ pub fn run(workload: &Workload, prover: &Prover, rate: Rate, plan: Plan) {
 
 #[cfg(test)]
 mod tests {
+    use bench::Plan;
+    use leanvm::{Prover, Rate};
+
     #[test]
     fn the_signature_workloads_prove() {
         // End to end: proven, verified, and the output the native digest.
-        let prover = leanvm::Prover::without_arena();
+        let prover = Prover::without_arena();
         for workload in [super::leanxmss(2), super::leansphincs(1)] {
-            super::run(&workload, &prover, leanvm::Rate::MIN, bench::Plan::default());
+            super::run(&workload, &prover, Rate::MIN, Plan::default());
         }
     }
 }

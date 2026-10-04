@@ -20,6 +20,16 @@
 //! - [`class_flock`]: the glue to flock: a class's circuit proven over its own packed witness, in the same commitment.
 //! - [`cpu`]: whole-program assembly and the prove/verify entry points.
 
+pub(crate) use primitives::{log2_ceil_usize, log2_strict_usize};
+/// `stage!("Commit", || …)`: one named prover stage, run inside its `tracing` span,
+/// which is what the CLI's `--tracing` tree shows.
+macro_rules! stage {
+    ($name:literal, $f:expr) => {
+        tracing::info_span!($name).in_scope($f)
+    };
+}
+pub(crate) use stage;
+
 pub mod arith;
 pub mod class_flock;
 pub mod colval;
@@ -72,14 +82,3 @@ pub const SECURITY_BITS: u32 = 128;
 /// Below this many parallelizable items a pass runs serially: the fan-out
 /// overhead is not worth it for small inputs. Shared by [`constraints`], [`gkr`], [`leaf`].
 pub(crate) const PAR_THRESHOLD: usize = 1 << 11;
-
-/// `stage!("Commit", || …)`: one named prover stage, run inside its `tracing` span,
-/// which is what the CLI's `--tracing` tree shows.
-macro_rules! stage {
-    ($name:literal, $f:expr) => {
-        tracing::info_span!($name).in_scope($f)
-    };
-}
-pub(crate) use stage;
-
-pub(crate) use primitives::{log2_ceil_usize, log2_strict_usize};

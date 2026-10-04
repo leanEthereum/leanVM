@@ -31,18 +31,18 @@
     clippy::cast_precision_loss,
     reason = "The soundness analysis is real-valued; it only runs in tests, which pin the integer table to it."
 )]
-
 use super::{
     ConfigError, INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0, LadderError, MAX_LOG_INV_RATE, MAX_LOG_N, MIN_LOG_INV_RATE,
     MIN_LOG_N, ProverConfig, QUERY_GRINDING_BITS, RS_DOMAIN_INITIAL_REDUCTION_FACTOR,
     RS_DOMAIN_SUBSEQUENT_REDUCTION_FACTOR, SECURITY_BITS, config_for_rate, derive_ladder, derive_ladder_shape,
     validate_log_inv_rate,
 };
+use thiserror::Error;
 
 /// Why the derivation found no sound configuration, or why one it was handed is unsound.
 ///
 /// `level` counts from L0, the commitment's own code.
-#[derive(Clone, Copy, Debug, PartialEq, thiserror::Error)]
+#[derive(Clone, Copy, Debug, PartialEq, Error)]
 #[non_exhaustive]
 pub enum DerivationError {
     /// The rate is out of range.

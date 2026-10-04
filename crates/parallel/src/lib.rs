@@ -2,15 +2,16 @@
 
 use std::any::Any;
 use std::cell::{Cell, UnsafeCell};
+use std::ops::Deref;
 use std::panic::{AssertUnwindSafe, catch_unwind, resume_unwind};
 use std::ptr::NonNull;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Mutex, Once, OnceLock};
-use std::thread::Thread;
+use std::thread::{Builder, Thread};
+use topology::{Qos, set_qos};
 
 mod topology;
 
-use topology::{Qos, set_qos};
 pub use topology::{Topology, num_threads, topology};
 
 /// Idle spins before a worker parks: long enough to stay hot across back-to-back
@@ -72,7 +73,7 @@ struct Worker {
 #[repr(align(128))]
 struct Line(AtomicUsize);
 
-impl std::ops::Deref for Line {
+impl Deref for Line {
     type Target = AtomicUsize;
     #[inline]
     fn deref(&self) -> &AtomicUsize {
@@ -147,7 +148,7 @@ fn pool() -> &'static Pool {
         for id in 1..n {
             // Ids past the performance count are the efficiency workers.
             let qos = if id < topo.perf { Qos::Interactive } else { Qos::Utility };
-            std::thread::Builder::new()
+            Builder::new()
                 .name(format!("parallel-{id}"))
                 .spawn(move || worker_main(pool_ref, id, qos))
                 .expect("failed to spawn a pool worker");

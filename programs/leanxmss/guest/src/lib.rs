@@ -19,12 +19,13 @@
 //! [DKKW25]: https://eprint.iacr.org/2025/055
 //! [XMSS specification]: https://github.com/leanEthereum/leanVM/releases/download/doc-latest/XMSS.pdf
 #![no_std]
+use core::ops::Range;
+use leanvm_guest::{Blake2s, Template, hash_with};
+use thiserror::Error;
 
 mod sign;
 
 pub use sign::{SecretKey, XmssSignError, key_gen};
-
-use leanvm_guest::{Blake2s, Template, hash_with};
 
 /// A hash value: 128 bits.
 pub type Digest = [u64; 2];
@@ -101,7 +102,7 @@ pub struct Signature {
 }
 
 /// Why a signature is rejected.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, thiserror::Error)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Error)]
 pub enum XmssVerifyError {
     /// The randomness gives the message no valid encoding.
     #[error("the randomness gives the message no valid encoding")]
@@ -243,7 +244,7 @@ impl Chains {
     /// The step out of value `s` is hashed at position `8i + s`, so no two steps share a tweak. Only the tweak's
     /// position field changes: its second word, the leaf index, is the template's.
     #[inline(always)]
-    fn walk(&mut self, i: usize, values: core::ops::Range<usize>, value: Digest) -> Digest {
+    fn walk(&mut self, i: usize, values: Range<usize>, value: Digest) -> Digest {
         let first = (i * CHAIN_LENGTH) as u32;
         let positions = first + values.start as u32..first + values.end as u32;
         self.step.chain::<TWEAK_POSITION, { 8 * PAYLOAD }>(positions, value)

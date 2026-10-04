@@ -34,11 +34,14 @@
 use crate::PAR_THRESHOLD;
 use crate::arith::{Arith, Verifier};
 use crate::colval::ColVal;
-use fiat_shamir::transcript::{Challenger, ProverState, Transmitter, VerifierState};
+use fiat_shamir::transcript::{Challenger, ProverState, TranscriptError, Transmitter, VerifierState};
+use parallel::Chunks;
 use primitives::field::{F64, F192, F192Unreduced};
 use primitives::multilinear::{eq_table_arena, poly_eval, shrink_eq_high};
 #[cfg(test)]
 use primitives::multilinear::{fold_high_inplace, fold_high_k};
+use std::ops::Deref;
+use thiserror::Error;
 use zk_alloc::ArenaVec;
 
 /// One table's sent columns' evaluations at its table-sumcheck point.
@@ -76,14 +79,14 @@ impl Claims {
 }
 
 /// Why the table constraints reject.
-#[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
+#[derive(Clone, Debug, PartialEq, Eq, Error)]
 pub enum ConstraintError {
     /// The bus point has fewer coordinates than the tallest table has variables.
     #[error("the bus point has {len} coordinates, and the tallest table has {rounds} variables")]
     PointTooShort { len: usize, rounds: usize },
     /// The proof stream is malformed.
     #[error(transparent)]
-    Transcript(#[from] fiat_shamir::transcript::TranscriptError),
+    Transcript(#[from] TranscriptError),
     /// The sumcheck's final claim is not the tables' summands at the opened columns.
     #[error("the constraint sumcheck's final claim does not match the columns")]
     FinalMismatch,
@@ -167,7 +170,7 @@ pub fn xi_offsets(n_constraints: impl Iterator<Item = usize>) -> Vec<usize> {
 /// time. Nothing is lifted into `E`, so a `K` round evaluates the identity and the
 /// bus forms in 64-bit arithmetic, and its scratch is a third the size.
 #[inline(always)]
-fn table_message<T: ColVal, C: std::ops::Deref<Target = [T]> + Sync>(
+fn table_message<T: ColVal, C: Deref<Target = [T]> + Sync>(
     cols: &[C],
     summand: &impl Summand,
     half: usize,
@@ -357,7 +360,7 @@ fn folded_message(
 }
 
 /// Convert the joining table's column layout into folded rows and its next message.
-fn fold_columns_and_message<T: ColVal + Into<F192>, C: std::ops::Deref<Target = [T]> + Sync>(
+fn fold_columns_and_message<T: ColVal + Into<F192>, C: Deref<Target = [T]> + Sync>(
     cols: &[C],
     rk: F192,
     summand: &impl Summand,
@@ -378,8 +381,8 @@ fn fold_columns_and_message<T: ColVal + Into<F192>, C: std::ops::Deref<Target = 
     }
     let pairs = half / 2;
     let (lo, hi) = out.split_at_mut(pairs * ncols);
-    let lo = parallel::Chunks::new(lo, ncols);
-    let hi = parallel::Chunks::new(hi, ncols);
+    let lo = Chunks::new(lo, ncols);
+    let hi = Chunks::new(hi, ncols);
     let message = folded_message(ncols, eqr, summand, at_one, |i, a, b| {
         for (c, col) in cols.iter().enumerate() {
             a[c] = interp(col[i], col[i + half]);
@@ -418,10 +421,10 @@ fn fold_rows_and_message(
     let (left, right) = table.split_at_mut(half * ncols);
     let (q0, q1) = left.split_at_mut(pairs * ncols);
     let (q2, q3) = right.split_at_mut(pairs * ncols);
-    let q0 = parallel::Chunks::new(q0, ncols);
-    let q1 = parallel::Chunks::new(q1, ncols);
-    let q2 = parallel::Chunks::new(q2, ncols);
-    let q3 = parallel::Chunks::new(q3, ncols);
+    let q0 = Chunks::new(q0, ncols);
+    let q1 = Chunks::new(q1, ncols);
+    let q2 = Chunks::new(q2, ncols);
+    let q3 = Chunks::new(q3, ncols);
     let message = folded_message(ncols, eqr, summand, at_one, |i, a, b| {
         // SAFETY: task i exclusively borrows row i in each disjoint quarter exactly once.
         let (lo, hi, upper_lo, upper_hi) = unsafe { (q0.get(i), q1.get(i), q2.get(i), q3.get(i)) };
@@ -503,7 +506,7 @@ fn prove_reference<S: Summand>(
             // This independent oracle folds every column in a separate pass.
             if let Some(table) = &mut folded[t] {
                 if m >= PAR_THRESHOLD.trailing_zeros() as usize {
-                    let cols = parallel::Chunks::new(table, 1);
+                    let cols = Chunks::new(table, 1);
                     parallel::for_each(cols.count(), |ci| {
                         // SAFETY: each task exclusively folds one owned column for the whole dispatch.
                         let col = unsafe { &mut cols.get(ci)[0] };

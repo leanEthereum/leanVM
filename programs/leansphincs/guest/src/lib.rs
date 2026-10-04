@@ -18,14 +18,14 @@
 //!
 //! Byte for byte the scheme of the leanSPHINCS specification, whose letters the code keeps.
 #![no_std]
+use leanvm_guest::{Blake2s, Template, hash_with};
+use thiserror::Error;
 
 mod fts;
 mod ots;
 mod sign;
 
 pub use sign::{SecretKey, SphincsSignError, key_gen};
-
-use leanvm_guest::{Blake2s, Template, hash_with};
 
 /// `n`: a hash value, 128 bits.
 pub type Digest = [u64; 2];
@@ -184,7 +184,7 @@ impl<const HEIGHT: usize> LayerSignature<HEIGHT> {
 }
 
 /// Why a signature is rejected.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, thiserror::Error)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Error)]
 pub enum SphincsVerifyError {
     /// The message digest's last index is not zero.
     #[error("the message digest's last index is not zero")]

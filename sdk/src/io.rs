@@ -10,6 +10,9 @@ use crate::blake2s::{Block, IV};
 #[cfg(any(test, all(target_arch = "riscv64", target_os = "none")))]
 use core::mem::MaybeUninit;
 
+#[cfg(all(target_arch = "riscv64", target_os = "none"))]
+pub use vm::{commit, read, read_slice, read_unchecked};
+
 /// A type made of 64-bit words and nothing else, so that any words are one.
 ///
 /// # Safety
@@ -164,9 +167,6 @@ impl Public {
         }
     }
 }
-
-#[cfg(all(target_arch = "riscv64", target_os = "none"))]
-pub use vm::{commit, read, read_slice, read_unchecked};
 
 #[cfg(all(target_arch = "riscv64", target_os = "none"))]
 pub(crate) mod vm {

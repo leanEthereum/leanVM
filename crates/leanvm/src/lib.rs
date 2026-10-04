@@ -11,14 +11,15 @@
 //!
 //! End to end in [`crates/leanvm/tests/api.rs`](https://github.com/leanEthereum/leanVM/blob/main/crates/leanvm/tests/api.rs).
 
-use std::fmt;
-
-use leanvm_core::cpu::{self, CpuError, ProveError};
+use aggregate::{TreeError, TreeProof};
+use leanvm_core::cpu::{CpuError, Proof as TranscriptProof, ProveError};
+use std::fmt::{Debug, Formatter, Result as FmtResult};
+use thiserror::Error;
 
 pub use leanvm_core::{
     cpu::{Program, Stats},
     pcs::{InvalidRate, Rate},
-    rv::{ElfError, ProgramError, Region, Trap, asm},
+    rv::{ElfError, ProgramError, Region, RiscvProgram, Trap, asm},
 };
 
 /// The process's proving setup: the worker pool and, unless declined, the proving arena.
@@ -102,10 +103,10 @@ pub fn verify(program: &Program, output: &[u64; 4], proof: &Proof) -> Result<(),
 /// | "LVMP" | version: u16, little-endian | body |
 /// ```
 #[derive(Clone, PartialEq, Eq)]
-pub struct Proof(cpu::Proof);
+pub struct Proof(TranscriptProof);
 
-impl fmt::Debug for Proof {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Debug for Proof {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         f.debug_struct("Proof").finish_non_exhaustive()
     }
 }
@@ -137,14 +138,14 @@ impl Proof {
         if version != Self::VERSION {
             return Err(LeanVmError::UnsupportedVersion { found: version });
         }
-        cpu::Proof::from_bytes(body)
+        TranscriptProof::from_bytes(body)
             .map(Self)
             .ok_or(LeanVmError::MalformedProof)
     }
 }
 
 /// Everything that can go wrong in loading, proving or verifying.
-#[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
+#[derive(Clone, Debug, PartialEq, Eq, Error)]
 #[non_exhaustive]
 pub enum LeanVmError {
     /// The file is not a guest.
@@ -180,12 +181,12 @@ pub enum LeanVmError {
     /// A tree proof of another protocol version.
     #[error(
         "a tree proof of protocol version {found}, and this verifier reads version {}",
-        aggregate::TreeProof::VERSION
+        TreeProof::VERSION
     )]
     UnsupportedTreeVersion { found: u16 },
     /// An aggregation tree cannot be built, a tree proof cannot be made, or a root is refused.
     #[error(transparent)]
-    Tree(#[from] aggregate::TreeError),
+    Tree(#[from] TreeError),
 }
 
 impl From<ProveError> for LeanVmError {
@@ -199,7 +200,7 @@ impl From<ProveError> for LeanVmError {
 }
 
 /// Why a proof does not verify: which stage of the verifier refused it.
-#[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
+#[derive(Clone, Debug, PartialEq, Eq, Error)]
 #[error("the proof does not verify: {0}")]
 pub struct LeanVmVerifyError(CpuError);
 
@@ -218,14 +219,16 @@ pub struct LeanVmVerifyError(CpuError);
 pub mod aggregate {
     use super::{LeanVmError, Program, Proof, Proved, Rate};
     use leanvm_core::rec::table::Table;
-    use leanvm_core::rec::tree;
-    use std::fmt;
+    use leanvm_core::rec::tree::{
+        Leaf as CoreLeaf, LeafShape as CoreLeafShape, Tree as CoreTree, TreeProof as CoreTreeProof,
+    };
+    use std::fmt::{Debug, Formatter, Result as FmtResult};
 
     pub use leanvm_core::rec::tree::{DensePoly, FalseClaim, Kind, TreeError};
 
     /// The shape of a tree's leaves: each table's height and the commitment's rate, as a proof announces them.
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-    pub struct LeafShape(tree::LeafShape);
+    pub struct LeafShape(CoreLeafShape);
 
     /// A leaf of a tree: a proof, and the output it proves.
     #[derive(Clone, Copy, Debug)]
@@ -237,7 +240,7 @@ pub mod aggregate {
     }
 
     /// A tree's verifying key, and what its prover needs: built from the program and the shapes alone.
-    pub struct Tree<'p>(tree::Tree<'p>);
+    pub struct Tree<'p>(CoreTree<'p>);
 
     /// A proof of a tree: a first-level node's or a node's, the root's included.
     ///
@@ -247,7 +250,7 @@ pub mod aggregate {
     /// | "LVMT" | version: u16, little-endian | body |
     /// ```
     #[derive(Clone, PartialEq, Eq)]
-    pub struct TreeProof(tree::TreeProof);
+    pub struct TreeProof(CoreTreeProof);
 
     /// What one of a tree's circuits costs: each table's rows, and the words a proof commits.
     #[derive(Clone, Debug, PartialEq, Eq)]
@@ -278,9 +281,7 @@ pub mod aggregate {
         ///
         /// A proof whose announcement is malformed.
         pub fn of(proof: &Proof) -> Result<Self, LeanVmError> {
-            tree::LeafShape::of(&proof.0)
-                .map(Self)
-                .ok_or(LeanVmError::MalformedProof)
+            CoreLeafShape::of(&proof.0).map(Self).ok_or(LeanVmError::MalformedProof)
         }
     }
 
@@ -292,8 +293,8 @@ pub mod aggregate {
         }
 
         /// The leaf as the tree's core takes it.
-        const fn inner(self) -> tree::Leaf<'a> {
-            tree::Leaf::new(&self.proof.0, self.output)
+        const fn inner(self) -> CoreLeaf<'a> {
+            CoreLeaf::new(&self.proof.0, self.output)
         }
     }
 
@@ -316,7 +317,7 @@ pub mod aggregate {
             arity: usize,
             rate: Rate,
         ) -> Result<Self, LeanVmError> {
-            Ok(Self(tree::Tree::new(program, leaves.0, arity_0, arity, rate)?))
+            Ok(Self(CoreTree::new(program, leaves.0, arity_0, arity, rate)?))
         }
 
         /// Prove a first-level node over `arity_0` leaves, each a proof and its output, in order.
@@ -375,8 +376,8 @@ pub mod aggregate {
         }
     }
 
-    impl fmt::Debug for TreeProof {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    impl Debug for TreeProof {
+        fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
             f.debug_struct("TreeProof")
                 .field("kind", &self.kind())
                 .finish_non_exhaustive()
@@ -416,7 +417,7 @@ pub mod aggregate {
             if version != Self::VERSION {
                 return Err(LeanVmError::UnsupportedTreeVersion { found: version });
             }
-            tree::TreeProof::from_bytes(body)
+            CoreTreeProof::from_bytes(body)
                 .map(Self)
                 .ok_or(LeanVmError::MalformedProof)
         }

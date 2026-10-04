@@ -1,6 +1,7 @@
 //! Where a run starts and how it ends: the entry point and the panic.
 
 use core::arch::global_asm;
+use core::panic::PanicInfo;
 
 // The run starts here: a stack, `main`, the output made from what was committed, then
 // `exit` with it in `a0..a3`.
@@ -26,7 +27,7 @@ global_asm!(
 );
 
 #[panic_handler]
-fn panic(_: &core::panic::PanicInfo) -> ! {
+fn panic(_: &PanicInfo) -> ! {
     // `unimp`: an illegal instruction, so a panicking run has no proof.
     unsafe { core::arch::asm!("unimp", options(noreturn)) }
 }

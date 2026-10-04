@@ -15,6 +15,22 @@ use primitives::field::F192;
 
 use crate::zerocheck::univariate_skip::build_eq;
 
+#[cfg(not(all(
+    target_arch = "x86_64",
+    target_feature = "gfni",
+    target_feature = "avx512bw",
+    target_feature = "avx512vbmi"
+)))]
+use portable::Imp;
+
+#[cfg(all(
+    target_arch = "x86_64",
+    target_feature = "gfni",
+    target_feature = "avx512bw",
+    target_feature = "avx512vbmi"
+))]
+use gfni::Imp;
+
 /// Rows folded per call.
 pub const BLOCK: usize = 64;
 
@@ -126,22 +142,6 @@ fn fold_row_lookup<const CHUNKS: usize>(tables: &[[F192; 256]], row: &[u8; CHUNK
         .zip(tables)
         .fold(F192::ZERO, |acc, (&v, sums)| acc + sums[usize::from(v)])
 }
-
-#[cfg(not(all(
-    target_arch = "x86_64",
-    target_feature = "gfni",
-    target_feature = "avx512bw",
-    target_feature = "avx512vbmi"
-)))]
-use portable::Imp;
-
-#[cfg(all(
-    target_arch = "x86_64",
-    target_feature = "gfni",
-    target_feature = "avx512bw",
-    target_feature = "avx512vbmi"
-))]
-use gfni::Imp;
 
 #[cfg(not(all(
     target_arch = "x86_64",

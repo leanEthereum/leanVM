@@ -86,10 +86,30 @@
 //!   `byte_idx` and apply it across all `i_inner` with one lookup + one XOR
 //!   per byte.
 
-use fiat_shamir::transcript::{Challenger, ProverState, Receiver, Transmitter, VerifierState};
+#[cfg(all(
+    target_arch = "x86_64",
+    target_feature = "gfni",
+    target_feature = "avx512bw",
+    target_feature = "avx512vbmi"
+))]
+use crate::zerocheck::bit_fold::gfni::{OUT_BYTES, store_f192, weight_matrices};
+#[cfg(all(
+    target_arch = "x86_64",
+    target_feature = "gfni",
+    target_feature = "avx512bw",
+    target_feature = "avx512vbmi"
+))]
+use core::arch::x86_64::*;
+use fiat_shamir::transcript::{Challenger, ProverState, Receiver, TranscriptError, Transmitter, VerifierState};
+use parallel::SendPtr;
 use pcs::ring_switch::inner_product_ext;
 use primitives::field::F192;
+#[cfg(target_arch = "aarch64")]
+use primitives::field::neon::xor3_u64;
 use primitives::multilinear::{eq_eval, eq_table as build_eq, skip_lagrange_weights};
+#[cfg(target_arch = "aarch64")]
+use std::arch::aarch64::*;
+use thiserror::Error;
 #[cfg(test)]
 use zk_alloc::ArenaVec;
 
@@ -197,7 +217,7 @@ pub struct LincheckClaim {
 }
 
 /// Why the lincheck verifier rejects.
-#[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
+#[derive(Clone, Debug, PartialEq, Eq, Error)]
 pub enum LincheckError {
     /// The claim point's inner coordinates are not `k_log - k_skip` long.
     #[error("the claim point has {got} inner coordinates, and lincheck needs {expected}")]
@@ -216,7 +236,7 @@ pub enum LincheckError {
     SumcheckMismatch,
     /// The proof stream is malformed.
     #[error(transparent)]
-    Transcript(#[from] fiat_shamir::transcript::TranscriptError),
+    Transcript(#[from] TranscriptError),
 }
 
 // ---------------------------------------------------------------------------
@@ -332,8 +352,6 @@ unsafe fn process_block_neon_single(
     tables_ptr: *const F192,
     out_ptr: *mut F192,
 ) {
-    use primitives::field::neon::xor3_u64;
-    use std::arch::aarch64::*;
     const TILE_T: usize = NEON_TILE_T;
 
     let mut acc01 = [vdupq_n_u64(0); 8];
@@ -594,9 +612,6 @@ fn partial_fold_packed_z_gfni(
     useful_bits: usize,
     eq_outer: &[F192],
 ) -> Vec<F192> {
-    use crate::zerocheck::bit_fold::gfni::{OUT_BYTES, store_f192, weight_matrices};
-    use core::arch::x86_64::*;
-
     let (k, n_stripes) = (1usize << k_log, 1usize << (m - k_log - 3));
     assert_eq!(z_packed.len(), n_stripes * k);
     assert_eq!(eq_outer.len(), 8 * n_stripes);
@@ -949,10 +964,10 @@ fn sumcheck_bind_both_and_eval_next(comb: &mut Vec<F192>, z: &mut Vec<F192>, r: 
         // The two written quarters are indexed rather than zipped: eight-way
         // `zip` of four mutable and four shared slices has no counterpart here,
         // and index `i` of each quarter is written by exactly one task.
-        let cq0_p = parallel::SendPtr(cq0.as_mut_ptr());
-        let cq1_p = parallel::SendPtr(cq1.as_mut_ptr());
-        let zq0_p = parallel::SendPtr(zq0.as_mut_ptr());
-        let zq1_p = parallel::SendPtr(zq1.as_mut_ptr());
+        let cq0_p = SendPtr(cq0.as_mut_ptr());
+        let cq1_p = SendPtr(cq1.as_mut_ptr());
+        let zq0_p = SendPtr(zq0.as_mut_ptr());
+        let zq1_p = SendPtr(zq1.as_mut_ptr());
         parallel::map_reduce(
             half2,
             || (F192::ZERO, F192::ZERO),
@@ -1354,8 +1369,10 @@ pub fn verify_deferred(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use fiat_shamir::transcript::{ProverState, VerifierState};
     use primitives::field::F64;
     use primitives::test_rng::Rng;
+    use std::collections::HashSet;
 
     /// Test shim for the old dense-prove entry: the capture variant with a
     /// dense block and the captured `s_hat_v` discarded.
@@ -1366,7 +1383,7 @@ mod tests {
         k_skip: usize,
         circuit: &dyn LincheckCircuit,
         x_ab: &QuirkyPoint,
-        ps: &mut fiat_shamir::transcript::ProverState,
+        ps: &mut ProverState,
     ) -> LincheckClaim {
         prove_padded_capture_s_hat_v(z_packed, m, k_log, k_skip, 1 << k_log, circuit, x_ab, ps)
     }
@@ -1519,7 +1536,7 @@ mod tests {
     /// `k × k` slots. Used for tests.
     fn random_sparse_matrix(k: usize, nnz: usize, rng: &mut Rng) -> SparseBinaryMatrix {
         let mut rows: Vec<Vec<usize>> = vec![Vec::new(); k];
-        let mut seen = std::collections::HashSet::new();
+        let mut seen = HashSet::new();
         let mut count = 0;
         while count < nnz {
             let r = (rng.next_u64() as usize) % k;
@@ -1782,11 +1799,11 @@ mod tests {
                 b_0: b_0.clone(),
                 pin: PIN_COL,
             };
-            let mut ch_p = fiat_shamir::transcript::ProverState::from_label(b"flock-test-v0");
+            let mut ch_p = ProverState::from_label(b"flock-test-v0");
             let claim_p = prove(&z_packed, m, k_log, k_skip, &circuit, &x_ab, &mut ch_p);
 
             let proof_t = ch_p.into_proof();
-            let mut ch_v = fiat_shamir::transcript::VerifierState::from_label(b"flock-test-v0", &proof_t);
+            let mut ch_v = VerifierState::from_label(b"flock-test-v0", &proof_t);
             let claim_v = verify(m, k_log, k_skip, &circuit, &x_ab, v_a, v_b, v_c, &mut ch_v).unwrap_or_else(|e| {
                 panic!("verify rejected honest proof at m={m},k_log={k_log},k_skip={k_skip}: {e:?}")
             });
@@ -1847,7 +1864,7 @@ mod tests {
             b_0: b_0.clone(),
             pin: PIN_COL,
         };
-        let mut ch_p = fiat_shamir::transcript::ProverState::from_label(b"flock-test-v0");
+        let mut ch_p = ProverState::from_label(b"flock-test-v0");
         let _ = prove(&z_packed, m, k_log, k_skip, &circuit, &x_ab, &mut ch_p);
         let proof_t = ch_p.into_proof();
 
@@ -1876,7 +1893,7 @@ mod tests {
             } else {
                 bad.stream[zp_word].c0 ^= 1;
             }
-            let mut ch = fiat_shamir::transcript::VerifierState::from_label(b"flock-test-v0", &bad);
+            let mut ch = VerifierState::from_label(b"flock-test-v0", &bad);
             let res = verify(m, k_log, k_skip, &circuit, &x_ab, v_a, v_b, v_c, &mut ch);
             assert!(
                 matches!(res, Err(LincheckError::SumcheckMismatch)),
@@ -1905,21 +1922,21 @@ mod tests {
         let v_c = mle_eval_bool_quirky(&z, m, k_log, k_skip, &x_ab);
 
         let circuit = SparseCircuit { a_0, b_0, pin: PIN_COL };
-        let mut ch_p = fiat_shamir::transcript::ProverState::from_label(b"flock-test-v0");
+        let mut ch_p = ProverState::from_label(b"flock-test-v0");
         let _ = prove(&z_packed, m, k_log, k_skip, &circuit, &x_ab, &mut ch_p);
         let proof_t = ch_p.into_proof();
 
         // Truncated stream (dropped last z_partial word): a clean Transcript error.
         let mut bad = proof_t.clone();
         bad.stream.pop();
-        let mut ch = fiat_shamir::transcript::VerifierState::from_label(b"flock-test-v0", &bad);
+        let mut ch = VerifierState::from_label(b"flock-test-v0", &bad);
         assert!(matches!(
             verify(m, k_log, k_skip, &circuit, &x_ab, v_a, v_b, v_c, &mut ch),
             Err(LincheckError::Transcript(_))
         ));
 
         // Wrong x_inner_rest length.
-        let mut ch = fiat_shamir::transcript::VerifierState::from_label(b"flock-test-v0", &proof_t);
+        let mut ch = VerifierState::from_label(b"flock-test-v0", &proof_t);
         let bad_x_ab = QuirkyPoint {
             z_skip: x_ab.z_skip,
             x_inner_rest: x_ab.x_inner_rest[..x_ab.x_inner_rest.len() - 1].to_vec(),
@@ -1931,7 +1948,7 @@ mod tests {
         ));
 
         // k_skip > k_log.
-        let mut ch = fiat_shamir::transcript::VerifierState::from_label(b"flock-test-v0", &proof_t);
+        let mut ch = VerifierState::from_label(b"flock-test-v0", &proof_t);
         assert!(matches!(
             verify(m, k_log, k_log + 1, &circuit, &x_ab, v_a, v_b, v_c, &mut ch),
             Err(LincheckError::KSkipExceedsKLog { .. })

@@ -19,6 +19,8 @@
 //! Lookups per row: n_chunks (= ell/8), each load is `ell` contiguous bytes.
 
 use crate::ntt::AdditiveNttGf8;
+#[cfg(all(target_arch = "x86_64", target_feature = "avx512f"))]
+use core::arch::x86_64::*;
 use primitives::field::F8;
 
 #[derive(Clone, Debug)]
@@ -138,7 +140,6 @@ impl InvNttTableByteSingleGf8 {
     #[inline]
     #[target_feature(enable = "avx512f")]
     unsafe fn apply_avx512(&self, bytes: &[u8], out: &mut [F8]) {
-        use core::arch::x86_64::*;
         assert_eq!(self.ell, 64);
         assert_eq!(bytes.len(), self.n_chunks);
         assert_eq!(out.len(), self.ell);

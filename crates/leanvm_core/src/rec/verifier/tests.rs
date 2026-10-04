@@ -4,6 +4,7 @@ use super::ring::RingShare;
 use super::whir::Opening;
 use super::{ProofShape, RecShape, Rows};
 use crate::class_flock;
+use crate::constraints::ConstraintError;
 use crate::cpu::{DeferredClaims, Program};
 use crate::pcs::{Rate, RingSwitchClaim, RingSwitchOpen, SlotClaim};
 use crate::rec::RecError;
@@ -11,6 +12,7 @@ use crate::rec::circuit::{Assignment, Builder, Circuit, Ew, Finished, Kw, Limbs}
 use crate::rec::fixed::FixedColumns;
 use crate::rec::table::HashFlock;
 use crate::rec::transcript::{ProofSource, Transcript};
+use crate::rv::Region;
 use crate::rv::asm::*;
 use crate::tables::{ClassSpec, N_TABLES, Part};
 use crate::witness::StackShape;
@@ -34,7 +36,7 @@ fn small_program() -> Program {
         .branch(Bne, Reg::T1, Reg::ZERO, "loop")
         .exit()
         .finish();
-    Program::new(&text, crate::rv::Region::TEXT.base(), vec![3, 5], 2, 0).expect("a valid program")
+    Program::new(&text, Region::TEXT.base(), vec![3, 5], 2, 0).expect("a valid program")
 }
 
 // One honest proof of the small program, as the native verifier read it.
@@ -185,7 +187,7 @@ fn a_non_boolean_merkle_selector_is_refused() {
     a.values[bit.0 as usize][0] = 2;
     assert_eq!(
         verify(&prove(&a)),
-        Err(RecError::Constraint(crate::constraints::ConstraintError::FinalMismatch))
+        Err(RecError::Constraint(ConstraintError::FinalMismatch))
     );
 }
 

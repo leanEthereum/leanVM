@@ -8,8 +8,10 @@
 //! transposed-NTT fast path with the dispatch between them.
 
 use crate::ntt::AdditiveNttF64;
+use parallel::SendPtr;
 use primitives::field::{F64, F192, F192Unreduced};
 use primitives::multilinear::eq_table;
+use std::collections::HashMap;
 use zk_alloc::ArenaVec;
 
 // ===================================================================
@@ -420,7 +422,7 @@ fn transpose_low_layers_gathered(ntt: &AdditiveNttF64, data: &mut [F192], log_d:
     let rows = 1usize << g;
     let step = 1usize << (log_d - g);
     let per_task = GATHER_RESIDUES.min(step);
-    let base = parallel::SendPtr(data.as_mut_ptr());
+    let base = SendPtr(data.as_mut_ptr());
     parallel::for_each(step / per_task, |task| {
         let r0 = task * per_task;
         // Scratch index `i * per_task + j` holds row `r0 + j + i * step`.
@@ -478,7 +480,7 @@ fn transpose_forward_ntt_sparse_ext(
         nonzero = positions.len()
     )
     .entered();
-    use std::collections::HashMap;
+
     let n = 1usize << log_d;
     // No prefix for small domains: just scatter + full dense transpose.
     let k = if log_d >= 12 { 8usize.min(log_d) } else { 0 };

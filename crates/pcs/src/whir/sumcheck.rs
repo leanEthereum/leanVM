@@ -7,15 +7,19 @@
 //! running claim every level's queries are batched into. The first lane rounds
 //! come out of one pass, in [`first_pass`].
 
-mod first_pass;
-
+use core::ops::BitXorAssign;
 use fiat_shamir::transcript::{Receiver, TranscriptError, Transmitter};
-pub(crate) use first_pass::{InitialRounds, initial_rounds};
 use first_pass::{LaneWeight, WeightFold};
+use parallel::SendPtr;
 use primitives::field::{F64, F192, F192Unreduced};
 use primitives::multilinear::eq_table;
 use primitives::stream::Stream;
+use std::ops::Add;
 use zk_alloc::ArenaVec;
+
+mod first_pass;
+
+pub(crate) use first_pass::{InitialRounds, initial_rounds};
 
 // ===================================================================
 // Tuning constants
@@ -118,8 +122,8 @@ impl RoundQuad {
 /// the E basis is a mixed `mul_base`, 2 PMULL), `F192` after it (full E
 /// products, 3 PMULL). The associated accumulator is the matching
 /// deferred-reduction type.
-trait RoundWitness: Copy + Sync + std::ops::Add<Output = Self> {
-    type Acc: Copy + Send + core::ops::BitXorAssign;
+trait RoundWitness: Copy + Sync + Add<Output = Self> {
+    type Acc: Copy + Send + BitXorAssign;
     const ZERO_ACC: Self::Acc;
     fn mul_basis_unreduced(self, b: F192) -> Self::Acc;
     fn reduce(acc: Self::Acc) -> F192;
@@ -316,8 +320,8 @@ fn fold_and_msg_lsb<T: RoundWitness>(
     let mut nb = unsafe { fold_out_buf(half) };
     // The fold writes and the message accumulate share one pass per chunk, so
     // the freshly folded values are still in L1 when they are multiplied.
-    let nf_base = parallel::SendPtr(nf.as_mut_ptr());
-    let nb_base = parallel::SendPtr(nb.as_mut_ptr());
+    let nf_base = SendPtr(nf.as_mut_ptr());
+    let nb_base = SendPtr(nb.as_mut_ptr());
     let (u_0, u_2) = parallel::map_reduce(
         half.div_ceil(ROUND_CHUNK),
         || (F192Unreduced::ZERO, F192Unreduced::ZERO),
@@ -369,7 +373,7 @@ fn fold_and_msg_lsb<T: RoundWitness>(
 /// instances where dispatch costs more than the work. Unreduced accumulators
 /// combine by XOR and `reduce` is linear, so both paths land on the same message.
 #[inline]
-fn accumulate_msg<A: Copy + Send + core::ops::BitXorAssign>(
+fn accumulate_msg<A: Copy + Send + BitXorAssign>(
     n_tasks: usize,
     n_pairs: usize,
     zero: A,
@@ -538,8 +542,8 @@ fn fold_and_msg_blocks<T: RoundWitness>(
     let mut nf = unsafe { fold_out_buf(n_out * block) };
     // SAFETY: as for `nf`, the same loop writes every slot of `nb`.
     let mut nb = unsafe { fold_out_buf(n_out * block) };
-    let nf_base = parallel::SendPtr(nf.as_mut_ptr());
-    let nb_base = parallel::SendPtr(nb.as_mut_ptr());
+    let nf_base = SendPtr(nf.as_mut_ptr());
+    let nb_base = SendPtr(nb.as_mut_ptr());
 
     let per = block.div_ceil(ROUND_CHUNK);
     // Fold into an L1-resident stage rather than straight into `nf`/`nb`. The

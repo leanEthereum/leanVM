@@ -3,14 +3,18 @@
 use bench::Plan;
 use leanvm::{Program, Proved, Prover, Rate, verify};
 use primitives::{pretty_f64, pretty_integer};
+use std::error::Error as StdError;
+use std::fmt::Arguments;
+use std::num::ParseIntError;
+use std::path::Path;
 
-pub fn parse_word(word: &str) -> Result<u64, std::num::ParseIntError> {
+pub fn parse_word(word: &str) -> Result<u64, ParseIntError> {
     word.strip_prefix("0x")
         .map_or_else(|| word.parse(), |hex| u64::from_str_radix(hex, 16))
 }
 
 /// An error and its causes, outermost first.
-fn chain(error: &dyn std::error::Error) -> String {
+fn chain(error: &dyn StdError) -> String {
     let mut text = error.to_string();
     let mut source = error.source();
     while let Some(cause) = source {
@@ -21,12 +25,12 @@ fn chain(error: &dyn std::error::Error) -> String {
 }
 
 /// What the user got wrong, said once and plainly: none of these is a bug here.
-pub fn refuse(what: std::fmt::Arguments) -> ! {
+pub fn refuse(what: Arguments) -> ! {
     eprintln!("{what}");
     std::process::exit(1)
 }
 
-pub fn run_guest(elf: &std::path::Path, advice: &[u64], prover: &Prover, rate: Rate, plan: Plan) {
+pub fn run_guest(elf: &Path, advice: &[u64], prover: &Prover, rate: Rate, plan: Plan) {
     let bytes = std::fs::read(elf).unwrap_or_else(|e| refuse(format_args!("{}: {e}", elf.display())));
     let program =
         Program::from_elf(&bytes).unwrap_or_else(|e| refuse(format_args!("{}: {}", elf.display(), chain(&e))));

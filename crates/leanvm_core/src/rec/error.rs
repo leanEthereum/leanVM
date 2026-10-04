@@ -2,12 +2,16 @@
 
 use super::layout::RecLayout;
 use super::table::Table;
-use crate::constraints;
-use crate::leaf;
+use crate::constraints::ConstraintError;
+use crate::leaf::BusError;
 use crate::pcs;
+use ::pcs::whir::WhirError;
+use fiat_shamir::transcript::TranscriptError;
+use flock::verifier::FlockError;
+use thiserror::Error;
 
 /// Why a proof of the recursion machine is refused, or cannot be made.
-#[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
+#[derive(Clone, Debug, PartialEq, Eq, Error)]
 pub enum RecError {
     /// The statement does not have the circuit's number of words.
     #[error("the statement has {got} words, and the circuit exposes {expected}")]
@@ -20,17 +24,17 @@ pub enum RecError {
     TooManyRows { table: Table, tau: usize },
     /// The proof stream is malformed.
     #[error(transparent)]
-    Transcript(#[from] fiat_shamir::transcript::TranscriptError),
+    Transcript(#[from] TranscriptError),
     /// The bus does not balance.
     #[error(transparent)]
-    Bus(#[from] leaf::BusError),
+    Bus(#[from] BusError),
     /// The table sumcheck refuses.
     #[error(transparent)]
-    Constraint(#[from] constraints::ConstraintError),
+    Constraint(#[from] ConstraintError),
     /// Flock refuses the hash rows.
     #[error(transparent)]
-    Flock(#[from] flock::verifier::FlockError),
+    Flock(#[from] FlockError),
     /// The opening refuses.
     #[error(transparent)]
-    Open(#[from] ::pcs::whir::WhirError),
+    Open(#[from] WhirError),
 }

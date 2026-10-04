@@ -1,14 +1,14 @@
 //! Shared primitives: field kernels, bit transposes, multilinear helpers, and
 //! small integer utilities.
 
+use std::mem::{MaybeUninit, needs_drop};
+use zk_alloc::{ArenaVec, alloc_uninit, assume_init};
+
 pub mod bits;
 pub mod field;
 pub mod hash;
 pub mod multilinear;
 pub mod stream;
-
-use std::mem::{MaybeUninit, needs_drop};
-use zk_alloc::{alloc_uninit, assume_init};
 
 #[cfg(feature = "test-util")]
 pub mod test_rng;
@@ -111,7 +111,7 @@ pub const fn log2_ceil_usize(n: usize) -> usize {
 /// calling thread, filled in place by the workers: no per-worker intermediate
 /// vectors to allocate and copy out of. This lives here rather than in
 /// `zk_alloc` so the allocator itself stays free of a thread-pool dependency.
-pub fn par_collect_arena<T: Send>(n: usize, build: impl Fn(usize) -> T + Sync) -> zk_alloc::ArenaVec<T> {
+pub fn par_collect_arena<T: Send>(n: usize, build: impl Fn(usize) -> T + Sync) -> ArenaVec<T> {
     let mut out = alloc_uninit(n);
     // Track partial initialization only when values require destruction.
     if needs_drop::<T>() {

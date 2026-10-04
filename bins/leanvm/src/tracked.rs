@@ -9,17 +9,19 @@
 //! base and head are proven in turns on one runner and compared there. A case's name is what
 //! a PR's results are matched by, so renaming one or changing its input shows it as new.
 
-use std::fmt::Write as _;
-use std::io::Write as _;
-use std::time::Duration;
-
-use bench::{Metric, Plan, Timing, bencher_json};
-use leanvm::{Program, Proved, Prover, Rate, Stats, verify};
-use primitives::pretty_integer;
-
 use crate::fibonacci::fibonacci_program;
 use crate::guest::refuse;
-use crate::workload::{self, Workload};
+use crate::workload;
+use crate::workload::Workload;
+use bench::{Metric, Plan, Timing, bencher_json};
+use leanvm::{Program, Proved, Prover, Rate, Stats, verify};
+use leanvm_guest::PublicValues;
+use primitives::pretty_integer;
+use std::fmt::Write as _;
+use std::fs::OpenOptions;
+use std::io::Write as _;
+use std::path::Path;
+use std::time::Duration;
 
 struct Case {
     name: &'static str,
@@ -67,7 +69,7 @@ impl Case {
         let digest: [u64; 4] =
             std::array::from_fn(|i| u64::from_le_bytes(digest[8 * i..8 * i + 8].try_into().unwrap()));
         // What the guest commits: the length, then the digest.
-        let mut public = leanvm_guest::PublicValues::new();
+        let mut public = PublicValues::new();
         public.commit(&(length as u64)).commit(&digest);
         Self::workload(
             name,
@@ -119,7 +121,7 @@ fn proven() -> [(&'static str, Build); 4] {
 pub fn run(
     cycles_only: bool,
     markdown: bool,
-    markdown_file: Option<&std::path::Path>,
+    markdown_file: Option<&Path>,
     only: Option<&str>,
     prover: &Prover,
     rate: Rate,
@@ -137,7 +139,7 @@ pub fn run(
             return print!("{}", table(&counted));
         }
         if let Some(path) = markdown_file {
-            std::fs::OpenOptions::new()
+            OpenOptions::new()
                 .create(true)
                 .append(true)
                 .open(path)

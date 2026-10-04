@@ -7,12 +7,14 @@
 //! larger circuits. Here the witness is not the generic walk of the gate list but
 //! word arithmetic on the structure the list is built from, one instance at a time.
 
-pub mod add;
-pub mod mul;
-
 use crate::circuit::{Builder, Circuit};
 use crate::reduction::Block;
+use add::Adder;
+use mul::Multiplier;
 use zk_alloc::ArenaVec;
+
+pub mod add;
+pub mod mul;
 
 pub const A_BASE: usize = 0;
 pub const B_BASE: usize = 64;
@@ -81,8 +83,8 @@ fn or_bits(buf: &mut [u64], at: usize, v: u128) {
 
 /// What an operation's witness is computed from, besides its inputs.
 enum Plan {
-    Add(add::Adder),
-    Mul(mul::Multiplier),
+    Add(Adder),
+    Mul(Multiplier),
 }
 
 pub struct U64Circuit {
@@ -98,11 +100,11 @@ impl U64Circuit {
         let (a, b) = (c.input(0), c.input(1));
         let (out, plan) = match op {
             U64Op::WrappingAdd => {
-                let (out, adder) = add::Adder::build(&mut c, &a, &b);
+                let (out, adder) = Adder::build(&mut c, &a, &b);
                 (out, Plan::Add(adder))
             }
             U64Op::WrappingMul | U64Op::WideningMul => {
-                let (out, multiplier) = mul::Multiplier::build(&mut c, &a, &b, n);
+                let (out, multiplier) = Multiplier::build(&mut c, &a, &b, n);
                 (out, Plan::Mul(multiplier))
             }
         };

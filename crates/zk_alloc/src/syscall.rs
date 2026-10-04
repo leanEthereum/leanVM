@@ -1,5 +1,7 @@
 //! Operating system support for the proving arena.
 
+#[cfg(miri)]
+use std::alloc::Layout;
 use std::ptr;
 
 /// Reserve `size` bytes of anonymous address space, lazily backed by physical
@@ -31,7 +33,7 @@ pub unsafe fn reserve(size: usize) -> *mut u8 {
 /// Always safe to call. The allocation is never freed.
 #[cfg(miri)]
 pub unsafe fn reserve(size: usize) -> *mut u8 {
-    match std::alloc::Layout::from_size_align(size, 4096) {
+    match Layout::from_size_align(size, 4096) {
         // SAFETY: the layout's size is the arena's region, which is nonzero.
         Ok(layout) => unsafe { std::alloc::alloc_zeroed(layout) },
         Err(_) => ptr::null_mut(),

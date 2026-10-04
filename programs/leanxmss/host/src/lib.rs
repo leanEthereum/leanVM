@@ -71,6 +71,10 @@ const fn words_of_signature(signature: &Signature) -> &[u64] {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use leanvm_core::cpu::Program;
+    use leanvm_core::rv::{Machine, Trap};
+    use leanxmss::XmssVerifyError::{InvalidEncoding, InvalidMerklePath};
+    use leanxmss::{PublicKey, Signature};
 
     fn hex(bytes: impl IntoIterator<Item = u8>) -> String {
         bytes.into_iter().map(|b| format!("{b:02x}")).collect()
@@ -129,14 +133,13 @@ mod tests {
 
     #[test]
     fn leanxmss_rejects_a_change_anywhere() {
-        use leanxmss::XmssVerifyError::{InvalidEncoding, InvalidMerklePath};
         // Invariant: a verifier binds the claim and every part of the signature.
         //
         // Fixture state: one honest signature at leaf index 7.
         let (seed, message) = fixed();
         let (sk, pk) = leanxmss::key_gen(seed, 7);
         let signature = sk.sign(&message).unwrap();
-        let verify = |pk: &leanxmss::PublicKey, leaf_index, message: &[u64; 4], signature: &leanxmss::Signature| {
+        let verify = |pk: &PublicKey, leaf_index, message: &[u64; 4], signature: &Signature| {
             leanxmss::verify(pk, leaf_index, message, signature).err()
         };
 
@@ -168,9 +171,9 @@ mod tests {
     }
 
     /// The guest on the interpreter, with no proof: its output, or the trap.
-    fn on_the_vm(run: &Run) -> Result<[u64; 4], leanvm_core::rv::Trap> {
-        let program = leanvm_core::cpu::Program::from_elf(ELF).expect("the guest's ELF file");
-        leanvm_core::rv::Machine::new(program.rv(), &run.advice).run()
+    fn on_the_vm(run: &Run) -> Result<[u64; 4], Trap> {
+        let program = Program::from_elf(ELF).expect("the guest's ELF file");
+        Machine::new(program.rv(), &run.advice).run()
     }
 
     #[test]

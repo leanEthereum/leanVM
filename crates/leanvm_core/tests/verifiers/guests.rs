@@ -7,10 +7,11 @@ use super::python_verifier::PythonStatement;
 use leanvm_core::cpu::Program;
 use leanvm_core::pcs::Rate;
 use leanvm_core::rv::{ElfError, Guest, Machine, Region};
+use leanvm_guest::PublicValues;
 
 /// The output of a guest committing `values` in order.
 fn committed(values: &[&[u64]]) -> [u64; 4] {
-    let mut public = leanvm_guest::PublicValues::new();
+    let mut public = PublicValues::new();
     for &word in values.iter().copied().flatten() {
         public.commit(&word);
     }

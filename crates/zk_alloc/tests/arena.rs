@@ -3,6 +3,7 @@
 //! phase reset, which is the property that lets a library use the arena without
 //! imposing it on its consumers.
 
+use std::sync::atomic::{AtomicUsize, Ordering};
 use zk_alloc::{ArenaVec, enable_arena, enter_phase};
 
 const N: usize = 4096;
@@ -78,7 +79,6 @@ fn zeroed_clears_a_recycled_slab() {
 }
 
 fn drop_runs_for_elements_that_need_it() {
-    use std::sync::atomic::{AtomicUsize, Ordering};
     static DROPS: AtomicUsize = AtomicUsize::new(0);
 
     struct Noisy(#[allow(dead_code)] usize);

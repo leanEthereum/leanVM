@@ -13,8 +13,9 @@ use super::layout::RecLayout;
 use super::table::Table;
 use crate::arith::{Arith, Verifier};
 use crate::colval::ColVal;
-use crate::constraints::{self, Residual};
-use crate::leaf::{self, Block, BusForm, BusProof, BusVerify, Coord};
+use crate::constraints::{Residual, Summand};
+use crate::leaf::{Block, BusError, BusForm, BusProof, BusVerify, Coord};
+use crate::{constraints, leaf};
 use fiat_shamir::transcript::ProverState;
 use primitives::field::{F64, F192};
 use std::sync::Arc;
@@ -117,7 +118,7 @@ impl BusBlocks {
     /// # Errors
     ///
     /// Returns the first check of the balance that refuses.
-    pub(crate) fn verify<V: Verifier>(&self, v: &mut V) -> Result<BusVerify<V::E>, leaf::BusError> {
+    pub(crate) fn verify<V: Verifier>(&self, v: &mut V) -> Result<BusVerify<V::E>, BusError> {
         let bus = leaf::verify_balance(v, &self.push, &self.pull, &[], &RecLayout::TABLE_COLUMNS)?;
         debug_assert!(
             bus.sparse.iter().all(Vec::is_empty) && bus.producers.is_empty(),
@@ -178,7 +179,7 @@ impl<A: Arith> Residual<A> for TableResidual<'_, A::E> {
     }
 }
 
-impl constraints::Summand for TableSummand {
+impl Summand for TableSummand {
     #[inline(always)]
     fn eval<V: ColVal>(&self, cols: &[V], quadratic: bool) -> F192 {
         V::reduce(self.0.eval_unreduced(cols, quadratic))

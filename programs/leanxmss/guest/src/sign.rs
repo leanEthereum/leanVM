@@ -9,6 +9,7 @@
 //! Its signatures are the specification's, and verify as any other.
 
 use crate::*;
+use thiserror::Error;
 
 /// Bound on the randomness a signer tries before giving up.
 const MAX_RANDOMIZER_TRIALS: u64 = 1 << 32;
@@ -25,7 +26,7 @@ pub struct SecretKey {
 }
 
 /// Why signing failed.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, thiserror::Error)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Error)]
 pub enum XmssSignError {
     /// No randomness within the trial bound gave a valid encoding.
     #[error("no randomness within the trial bound gives a valid encoding")]

@@ -15,6 +15,8 @@
 //! Reduction: x^8 ≡ x^4 + x^3 + x + 1, so the upper byte h folds back as
 //!   h ^ (h<<1) ^ (h<<3) ^ (h<<4).
 
+#[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
+use core::arch::aarch64::*;
 use core::ops::{Add, AddAssign, Mul, MulAssign};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
@@ -99,7 +101,6 @@ fn clmul8(a: u8, b: u8) -> u16 {
 #[target_feature(enable = "aes")]
 #[inline]
 unsafe fn clmul8_neon(a: u8, b: u8) -> u16 {
-    use core::arch::aarch64::*;
     let va = vdup_n_p8(a);
     let vb = vdup_n_p8(b);
     let prod = vmull_p8(va, vb);
@@ -225,6 +226,8 @@ mod tests {
     use super::*;
     #[cfg(target_arch = "aarch64")]
     use crate::test_rng::Rng;
+    #[cfg(target_arch = "aarch64")]
+    use core::mem::transmute;
 
     #[test]
     fn inv_roundtrip() {
@@ -264,9 +267,6 @@ mod tests {
     #[cfg(target_arch = "aarch64")]
     #[test]
     fn neon_gf8_mul_vec16_matches_scalar() {
-        use core::arch::aarch64::*;
-        use core::mem::transmute;
-
         let mut rng = Rng::new(0xBADC0FFEE);
         for _ in 0..256 {
             let mut a_arr = [0u8; 16];

@@ -39,7 +39,11 @@ use crate::zerocheck::bit_fold::{BLOCK, BitFold};
 #[cfg(test)]
 use crate::zerocheck::univariate_skip::pack_bits;
 use crate::zerocheck::univariate_skip::{SplitEq, build_eq};
+use parallel::Chunks;
 use primitives::field::{F192, F192Unreduced, PHI_8_TABLE_192 as PHI_8_TABLE};
+#[cfg(test)]
+use primitives::multilinear::skip_lagrange_weights;
+use primitives::multilinear::{barycentric_sum, window_denominator};
 use primitives::stream::Stream;
 use zk_alloc::ArenaVec;
 
@@ -78,10 +82,6 @@ fn mul_quad_unreduced(
 // ---------------------------------------------------------------------------
 // Lagrange weights for the univariate-skip fold at z.
 // ---------------------------------------------------------------------------
-
-#[cfg(test)]
-use primitives::multilinear::skip_lagrange_weights;
-use primitives::multilinear::{barycentric_sum, window_denominator};
 
 /// Interpolate a degree-`< 2·2^k_skip` polynomial at z, given its `2^k_skip`
 /// evaluations on Λ and the assumption that it equals **zero on S**.
@@ -484,7 +484,7 @@ fn bit_round_store_kernel<const CHUNKS: usize>(
         unsafe { ArenaVec::uninitialized(n_pos) }
     });
     let [out_a, out_b, out_c] = &mut out;
-    let chunks = [out_a, out_b, out_c].map(|o| parallel::Chunks::new(o, 2 * lo_size));
+    let chunks = [out_a, out_b, out_c].map(|o| Chunks::new(o, 2 * lo_size));
 
     let message = parallel::map_reduce(
         eq_hi.len(),
@@ -618,7 +618,7 @@ fn fold_and_round_pair_kernel<const K: usize>(
     // One task per high eq index: `lo_size` quads, `4 * lo_size` outputs of each table.
     let (chunk_in, chunk_out) = ((4 * lo_size) << K, 4 * lo_size);
     let [out_a, out_b, out_c] = outs;
-    let chunks = [out_a, out_b, out_c].map(|o| parallel::Chunks::new(o, chunk_out));
+    let chunks = [out_a, out_b, out_c].map(|o| Chunks::new(o, chunk_out));
     let rho = |j: usize| (rhos[j], rhos[j], rhos[j], rhos[j]);
 
     // Four outputs of one table, each folded from its `2^K` inputs.
@@ -753,6 +753,11 @@ pub fn fold_in_place_pair(a: &mut ArenaVec<F192>, b: &mut ArenaVec<F192>, challe
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::zerocheck::univariate_skip_optimized::{
+        c_s, medium_challenges, round1_shift_reduce_extract_c_packed_padded, small_challenges,
+    };
+    use pcs::ntt::{AdditiveNttGf8, InvNttTableByteSingleGf8};
+    use primitives::field::F8;
     use primitives::test_rng::Rng;
 
     /// Interpolate a degree-`< 2^k_skip` polynomial at z, given its `2^k_skip`
@@ -866,12 +871,6 @@ mod tests {
     /// sum with the AB half, so this is what pins that half on its own.
     #[test]
     fn c_eval_from_round1_c_matches_direct_fold() {
-        use crate::zerocheck::univariate_skip_optimized::{
-            c_s, medium_challenges, round1_shift_reduce_extract_c_packed_padded, small_challenges,
-        };
-        use pcs::ntt::{AdditiveNttGf8, InvNttTableByteSingleGf8};
-        use primitives::field::F8;
-
         const K_SKIP: usize = 6;
         const N_INNER: usize = 7;
 
