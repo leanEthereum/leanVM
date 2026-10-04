@@ -19,7 +19,7 @@ use fiat_shamir::transcript::{ProverState, VerifierState};
 use flock::circuit::Circuit;
 use flock::lincheck::MatrixClaim;
 use flock::reduction::{ReductionReplay, Shape, SliceClaim};
-use flock::verifier::VerifyError;
+use flock::verifier::FlockError;
 use primitives::field::F64;
 use std::sync::OnceLock;
 use zk_alloc::ArenaVec;
@@ -253,6 +253,6 @@ pub fn verify_reduction(
     f: usize,
     n_blocks_log: usize,
     vs: &mut VerifierState,
-) -> Result<(ReductionReplay, MatrixClaim), VerifyError> {
+) -> Result<(ReductionReplay, MatrixClaim), FlockError> {
     shape(f).verify_deferred(n_blocks_log, vs)
 }

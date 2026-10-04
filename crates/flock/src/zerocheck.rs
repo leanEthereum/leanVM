@@ -129,13 +129,13 @@ pub struct ZerocheckClaim {
 
 /// Why the zerocheck verifier rejects.
 #[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
-pub enum VerifyError {
+pub enum ZerocheckError {
     /// Fewer variables than the univariate skip takes.
     #[error("log_n {log_n} is below k_skip {k_skip}")]
     LogNTooSmall { log_n: usize, k_skip: usize },
     /// The proof stream is malformed.
     #[error(transparent)]
-    Transcript(#[from] fiat_shamir::transcript::Error),
+    Transcript(#[from] fiat_shamir::transcript::TranscriptError),
 }
 
 // ---------------------------------------------------------------------------
@@ -384,13 +384,13 @@ pub fn prove_packed_padded(
 /// committed witness: never call this alone and treat `Ok` as acceptance.
 ///
 /// On accept: returns the [`ZerocheckClaim`] for lincheck and the PCS.
-/// On reject: returns a [`VerifyError`] indicating which check failed.
-pub fn verify(log_n: usize, vs: &mut VerifierState<'_>) -> Result<ZerocheckClaim, VerifyError> {
+/// On rejection, identifies the check that failed.
+pub fn verify(log_n: usize, vs: &mut VerifierState<'_>) -> Result<ZerocheckClaim, ZerocheckError> {
     let m = log_n;
     let k_skip = K_SKIP;
 
     if m < k_skip + N_INNER {
-        return Err(VerifyError::LogNTooSmall { log_n: m, k_skip });
+        return Err(ZerocheckError::LogNTooSmall { log_n: m, k_skip });
     }
     let n_mlv = m - k_skip;
     let ell = 1usize << k_skip;
@@ -679,13 +679,13 @@ mod tests {
         let mut bad = proof_t.clone();
         bad.stream.truncate(bad.stream.len() - 3);
         let mut ch = fiat_shamir::transcript::VerifierState::from_label(b"flock-test-v0", &bad);
-        assert!(matches!(verify(m, &mut ch), Err(VerifyError::Transcript(_))));
+        assert!(matches!(verify(m, &mut ch), Err(ZerocheckError::Transcript(_))));
 
         // log_n too small.
         let mut ch = fiat_shamir::transcript::VerifierState::from_label(b"flock-test-v0", &proof_t);
         assert!(matches!(
             verify(K_SKIP + 6, &mut ch),
-            Err(VerifyError::LogNTooSmall { .. })
+            Err(ZerocheckError::LogNTooSmall { .. })
         ));
     }
 

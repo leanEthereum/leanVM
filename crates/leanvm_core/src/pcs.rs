@@ -153,7 +153,7 @@ pub fn commit(
 
 /// Verifier counterpart of [`commit`]'s root binding: read the committed root
 /// from the stream at the start of verification, before sampling any challenge.
-pub fn read_commitment(vs: &mut VerifierState) -> Result<[u8; 32], fiat_shamir::transcript::Error> {
+pub fn read_commitment(vs: &mut VerifierState) -> Result<[u8; 32], fiat_shamir::transcript::TranscriptError> {
     vs.next_root()
 }
 
@@ -185,7 +185,7 @@ pub fn verify(
     shape: crate::witness::StackShape,
     log_inv_rate: usize,
     root: &[u8; 32],
-) -> Result<(), ::pcs::whir::VerifyError> {
+) -> Result<(), ::pcs::whir::WhirError> {
     let cfg = whir_config(shape.mu, log_inv_rate);
     verify_opening_batch_mixed_whir_stacked(vs, &cfg, shape.mu, shape.n_lanes, root, points, rings)
 }

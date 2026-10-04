@@ -32,7 +32,7 @@ pub struct SecretKey {
 
 /// Why signing failed.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, thiserror::Error)]
-pub enum SignError {
+pub enum SphincsSignError {
     /// `A_max` digests in a row had a nonzero last index.
     #[error("A_max digests in a row have a nonzero last index")]
     NoAdmissibleDigest,
@@ -88,7 +88,7 @@ impl SecretKey {
     }
 
     /// `Sign`: deterministic and stateless.
-    pub fn sign(&self, message: &Message) -> Result<Signature, SignError> {
+    pub fn sign(&self, message: &Message) -> Result<Signature, SphincsSignError> {
         let (pp, master) = (&self.public_param, &self.master);
         // A digest is admissible when its last index is zero: `2^10` tries on average.
         let (randomizer, idx, u) = (0..MAX_DIGEST_ATTEMPTS)
@@ -104,7 +104,7 @@ impl SecretKey {
                 let (idx, u) = message_digest(pp, &self.root, &randomizer, message);
                 (u[K - 1] == 0).then_some((randomizer, idx, u))
             })
-            .ok_or(SignError::NoAdmissibleDigest)?;
+            .ok_or(SphincsSignError::NoAdmissibleDigest)?;
         // The few-time key the index picks, and its opening at the digest's leaves.
         let (fts_key, fts) = fts::open(pp, master, idx, &u);
 
@@ -129,12 +129,12 @@ impl SecretKey {
         idx: u64,
         lay: usize,
         message: &mut Digest,
-    ) -> Result<LayerSignature<HEIGHT>, SignError> {
+    ) -> Result<LayerSignature<HEIGHT>, SphincsSignError> {
         let (pp, master, pos) = (&self.public_param, &self.master, Pos::of(idx, lay));
         // The least counter with a codeword: a larger one would reveal a second codeword.
         let (counter, x) = (0..MAX_ENCODING_ATTEMPTS)
             .find_map(|c| ots::encode(pp, pos, message, c as u32).map(|x| (c as u32, x)))
-            .ok_or(SignError::NoAdmissibleEncoding)?;
+            .ok_or(SphincsSignError::NoAdmissibleEncoding)?;
         // Chain `i` opened at value `x_i`.
         let mut chains = ots::Chains::new(pp, pos);
         let ots = core::array::from_fn(|i| chains.walk(i, 0, x.get(i), ots::secret(pp, master, pos, i)));

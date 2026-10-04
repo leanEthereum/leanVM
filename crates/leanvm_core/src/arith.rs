@@ -5,7 +5,7 @@
 //! - Natively an element is an `F192`, a read comes off the proof, and a failed equality is an error.
 //! - In rows an element is a wire, a read is a free wire bound by a hash row, and an equality joins two wires.
 
-use fiat_shamir::transcript::{Challenger, Error as TranscriptError, Receiver, VerifierState};
+use fiat_shamir::transcript::{Challenger, Receiver, TranscriptError, VerifierState};
 use primitives::field::{F64, F192};
 
 /// Arithmetic over `E`, on values or on the wires that hold them.

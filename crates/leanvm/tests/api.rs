@@ -63,11 +63,11 @@ fn public_api_end_to_end() {
     wrong_output[0] += 1;
     assert!(matches!(
         verify(&fibonacci(91), &output, &received),
-        Err(Error::Verify(_))
+        Err(LeanVmError::Verify(_))
     ));
     assert!(matches!(
         verify(&program, &wrong_output, &received),
-        Err(Error::Verify(_))
+        Err(LeanVmError::Verify(_))
     ));
 
     // 3. One proof is one arena phase: the first proof outlives the second's phase.
@@ -89,14 +89,20 @@ fn public_api_end_to_end() {
     let bytes = received.to_bytes();
     let mut bumped = bytes.clone();
     bumped[4] += 1;
-    assert_eq!(Proof::from_bytes(&bumped), Err(Error::UnsupportedVersion { found: 7 }));
+    assert_eq!(
+        Proof::from_bytes(&bumped),
+        Err(LeanVmError::UnsupportedVersion { found: 7 })
+    );
     let mut magic = bytes.clone();
     magic[0] ^= 1;
-    assert_eq!(Proof::from_bytes(&magic), Err(Error::MalformedProof));
-    assert_eq!(Proof::from_bytes(&bytes[..bytes.len() - 1]), Err(Error::MalformedProof));
+    assert_eq!(Proof::from_bytes(&magic), Err(LeanVmError::MalformedProof));
+    assert_eq!(
+        Proof::from_bytes(&bytes[..bytes.len() - 1]),
+        Err(LeanVmError::MalformedProof)
+    );
     assert_eq!(
         Proof::from_bytes(&[bytes.as_slice(), &[0]].concat()),
-        Err(Error::MalformedProof)
+        Err(LeanVmError::MalformedProof)
     );
 
     // 6. What the caller gets wrong is an error, not a panic.
@@ -106,7 +112,7 @@ fn public_api_end_to_end() {
         .expect("valid instruction program");
     assert_eq!(
         prover.prove(&one_word, &[1, 2], Rate::MIN).map(|_| ()),
-        Err(Error::AdviceTooLong { max: 1, got: 2 })
+        Err(LeanVmError::AdviceTooLong { max: 1, got: 2 })
     );
     assert_eq!(Program::from_elf(b"\x7fELF").map(|_| ()), Err(ElfError::Truncated));
 
@@ -129,7 +135,7 @@ fn public_api_end_to_end() {
     tree.verify(&root, &outputs).unwrap();
     assert_eq!(
         tree.verify(&root, &[outputs[1], outputs[0]]),
-        Err(Error::Tree(aggregate::TreeError::Outputs))
+        Err(LeanVmError::Tree(aggregate::TreeError::Outputs))
     );
 
     let stats = zk_alloc::stats();

@@ -795,7 +795,7 @@ impl Blake2sSetup {
     pub fn verify_reduction(
         &self,
         vs: &mut fiat_shamir::transcript::VerifierState<'_>,
-    ) -> Result<ReductionReplay, verifier::VerifyError> {
+    ) -> Result<ReductionReplay, verifier::FlockError> {
         BLOCK.verify(self.n_blocks_log, vs)
     }
 }

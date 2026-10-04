@@ -4,7 +4,7 @@
 //! the shape, and the walks behind its [`LincheckCircuit`].
 
 use crate::lincheck::{self, LincheckCircuit, LincheckClaim, MatrixClaim, MatrixForm, QuirkyPoint};
-use crate::verifier::VerifyError;
+use crate::verifier::FlockError;
 use crate::witness::packed_bytes;
 use crate::zerocheck::{self, K_SKIP, PaddingSpec, ZerocheckClaim};
 use fiat_shamir::transcript::{ProverState, VerifierState};
@@ -189,9 +189,9 @@ impl Block<'_> {
     /// **Verifier.** Replay the zerocheck and lincheck straight off the shared
     /// transcript stream, recovering the one evaluation claim on the committed
     /// witness `q_flock`. The PCS then discharges the returned claim.
-    pub fn verify(&self, n_blocks_log: usize, vs: &mut VerifierState<'_>) -> Result<ReductionReplay, VerifyError> {
+    pub fn verify(&self, n_blocks_log: usize, vs: &mut VerifierState<'_>) -> Result<ReductionReplay, FlockError> {
         let (replay, matrices) = self.shape().verify_deferred(n_blocks_log, vs)?;
-        matrices.check(self.circuit).map_err(VerifyError::Lincheck)?;
+        matrices.check(self.circuit).map_err(FlockError::Lincheck)?;
         Ok(replay)
     }
 }
@@ -212,9 +212,9 @@ impl Shape {
         &self,
         n_blocks_log: usize,
         vs: &mut VerifierState<'_>,
-    ) -> Result<(ReductionReplay, MatrixClaim), VerifyError> {
+    ) -> Result<(ReductionReplay, MatrixClaim), FlockError> {
         let m = self.k_log + n_blocks_log;
-        let zc_claim = zerocheck::verify(m, vs).map_err(VerifyError::Zerocheck)?;
+        let zc_claim = zerocheck::verify(m, vs).map_err(FlockError::Zerocheck)?;
 
         let x_ab = x_ab_of(&zc_claim, self.k_log - K_SKIP);
         let (lc_claim, matrices) = lincheck::verify_deferred(
@@ -228,7 +228,7 @@ impl Shape {
             zc_claim.c_eval,
             vs,
         )
-        .map_err(VerifyError::Lincheck)?;
+        .map_err(FlockError::Lincheck)?;
 
         let claim = reduction_claim(&lc_claim, &x_ab.x_outer);
         Ok((

@@ -117,7 +117,7 @@ impl BusBlocks {
     /// # Errors
     ///
     /// Returns the first check of the balance that refuses.
-    pub(crate) fn verify<V: Verifier>(&self, v: &mut V) -> Result<BusVerify<V::E>, leaf::Error> {
+    pub(crate) fn verify<V: Verifier>(&self, v: &mut V) -> Result<BusVerify<V::E>, leaf::BusError> {
         let bus = leaf::verify_balance(v, &self.push, &self.pull, &[], &RecLayout::TABLE_COLUMNS)?;
         debug_assert!(
             bus.sparse.iter().all(Vec::is_empty) && bus.producers.is_empty(),

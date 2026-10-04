@@ -20,17 +20,17 @@ pub enum RecError {
     TooManyRows { table: Table, tau: usize },
     /// The proof stream is malformed.
     #[error(transparent)]
-    Transcript(#[from] fiat_shamir::transcript::Error),
+    Transcript(#[from] fiat_shamir::transcript::TranscriptError),
     /// The bus does not balance.
     #[error(transparent)]
-    Bus(#[from] leaf::Error),
+    Bus(#[from] leaf::BusError),
     /// The table sumcheck refuses.
     #[error(transparent)]
-    Constraint(#[from] constraints::Error),
+    Constraint(#[from] constraints::ConstraintError),
     /// Flock refuses the hash rows.
     #[error(transparent)]
-    Flock(#[from] flock::verifier::VerifyError),
+    Flock(#[from] flock::verifier::FlockError),
     /// The opening refuses.
     #[error(transparent)]
-    Open(#[from] ::pcs::whir::VerifyError),
+    Open(#[from] ::pcs::whir::WhirError),
 }

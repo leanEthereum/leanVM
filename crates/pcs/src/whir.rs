@@ -53,7 +53,7 @@ pub use commit::{Commitment, ProverData, commit};
 pub use prove::recursive_prover_with_basis;
 pub(crate) use prove::recursive_prover_with_prepared_basis;
 pub(crate) use sumcheck::{Basis, INITIAL_BASIS_CHUNK, initial_rounds};
-pub use verify::{VerifyError, recursive_verifier_with_basis_succinct};
+pub use verify::{WhirError, recursive_verifier_with_basis_succinct};
 
 /// Mixed inner product `Σ_i b[i] · witness[i]` (E x K via `mul_base`). The
 /// evaluation-claim `target` for a K-witness against an E-basis.

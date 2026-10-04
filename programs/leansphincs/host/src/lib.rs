@@ -113,14 +113,14 @@ mod tests {
 
     #[test]
     fn leansphincs_rejects_a_change_anywhere() {
-        use leansphincs::VerifyError::{InadmissibleDigest, InadmissibleEncoding, RootMismatch};
+        use leansphincs::SphincsVerifyError::{InadmissibleDigest, InadmissibleEncoding, RootMismatch};
         // Invariant: a verifier binds every part of the signature, on every layer.
         //
         // Fixture state: one honest signature, checked after each mutation with its error.
         let (seed, message) = fixed();
         let (sk, pk) = leansphincs::key_gen(seed);
         let signature = sk.sign(&message).unwrap();
-        let rejects = |change: &dyn Fn(&mut leansphincs::Signature), expected: leansphincs::VerifyError| {
+        let rejects = |change: &dyn Fn(&mut leansphincs::Signature), expected: leansphincs::SphincsVerifyError| {
             let mut bad = signature.clone();
             change(&mut bad);
             assert_eq!(leansphincs::verify(&pk, &message, &bad), Err(expected));

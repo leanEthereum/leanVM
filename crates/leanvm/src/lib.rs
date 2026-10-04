@@ -48,7 +48,7 @@ impl Prover {
     /// # Errors
     ///
     /// The run's trap, a run longer than one proof holds, or more advice than the program's region holds.
-    pub fn prove(&self, program: &Program, advice: &[u64], rate: Rate) -> Result<Proved, Error> {
+    pub fn prove(&self, program: &Program, advice: &[u64], rate: Rate) -> Result<Proved, LeanVmError> {
         let (proof, output, stats) = program.prove(advice, rate)?;
         Ok(Proved {
             proof: Proof(proof),
@@ -81,7 +81,7 @@ pub struct Proved {
 /// # Errors
 ///
 /// What would refuse the proof itself.
-pub fn measure(program: &Program, advice: &[u64]) -> Result<Stats, Error> {
+pub fn measure(program: &Program, advice: &[u64]) -> Result<Stats, LeanVmError> {
     Ok(program.measure(advice)?)
 }
 
@@ -90,8 +90,8 @@ pub fn measure(program: &Program, advice: &[u64]) -> Result<Stats, Error> {
 /// # Errors
 ///
 /// The proof does not verify against this program and this output.
-pub fn verify(program: &Program, output: &[u64; 4], proof: &Proof) -> Result<(), Error> {
-    Ok(program.verify(output, &proof.0).map_err(VerifyError)?)
+pub fn verify(program: &Program, output: &[u64; 4], proof: &Proof) -> Result<(), LeanVmError> {
+    Ok(program.verify(output, &proof.0).map_err(LeanVmVerifyError)?)
 }
 
 /// A proof of a run.
@@ -127,24 +127,26 @@ impl Proof {
     /// # Errors
     ///
     /// Bytes that are no proof, or a proof of another protocol version.
-    pub fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
-        let (magic, rest) = bytes.split_first_chunk::<4>().ok_or(Error::MalformedProof)?;
-        let (version, body) = rest.split_first_chunk::<2>().ok_or(Error::MalformedProof)?;
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, LeanVmError> {
+        let (magic, rest) = bytes.split_first_chunk::<4>().ok_or(LeanVmError::MalformedProof)?;
+        let (version, body) = rest.split_first_chunk::<2>().ok_or(LeanVmError::MalformedProof)?;
         if *magic != Self::MAGIC {
-            return Err(Error::MalformedProof);
+            return Err(LeanVmError::MalformedProof);
         }
         let version = u16::from_le_bytes(*version);
         if version != Self::VERSION {
-            return Err(Error::UnsupportedVersion { found: version });
+            return Err(LeanVmError::UnsupportedVersion { found: version });
         }
-        cpu::Proof::from_bytes(body).map(Self).ok_or(Error::MalformedProof)
+        cpu::Proof::from_bytes(body)
+            .map(Self)
+            .ok_or(LeanVmError::MalformedProof)
     }
 }
 
 /// Everything that can go wrong in loading, proving or verifying.
 #[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
 #[non_exhaustive]
-pub enum Error {
+pub enum LeanVmError {
     /// The file is not a guest.
     #[error(transparent)]
     Elf(#[from] ElfError),
@@ -174,7 +176,7 @@ pub enum Error {
     UnsupportedVersion { found: u16 },
     /// The proof does not verify.
     #[error(transparent)]
-    Verify(#[from] VerifyError),
+    Verify(#[from] LeanVmVerifyError),
     /// A tree proof of another protocol version.
     #[error(
         "a tree proof of protocol version {found}, and this verifier reads version {}",
@@ -186,7 +188,7 @@ pub enum Error {
     Tree(#[from] aggregate::TreeError),
 }
 
-impl From<ProveError> for Error {
+impl From<ProveError> for LeanVmError {
     fn from(error: ProveError) -> Self {
         match error {
             ProveError::Trap(trap) => Self::Trap(trap),
@@ -199,7 +201,7 @@ impl From<ProveError> for Error {
 /// Why a proof does not verify: which stage of the verifier refused it.
 #[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
 #[error("the proof does not verify: {0}")]
-pub struct VerifyError(CpuError);
+pub struct LeanVmVerifyError(CpuError);
 
 /// Aggregation trees: many proofs of one program, verified as one.
 ///
@@ -214,7 +216,7 @@ pub struct VerifyError(CpuError);
 /// Every tree proof states the same few hundred words: a digest of its leaves' outputs, and claims only the root's verifier evaluates.
 /// A tree over one leaf, `arity_0` one, is a single proof's recursion.
 pub mod aggregate {
-    use super::{Error, Program, Proof, Proved, Rate};
+    use super::{LeanVmError, Program, Proof, Proved, Rate};
     use leanvm_core::rec::table::Table;
     use leanvm_core::rec::tree;
     use std::fmt;
@@ -275,8 +277,10 @@ pub mod aggregate {
         /// # Errors
         ///
         /// A proof whose announcement is malformed.
-        pub fn of(proof: &Proof) -> Result<Self, Error> {
-            tree::LeafShape::of(&proof.0).map(Self).ok_or(Error::MalformedProof)
+        pub fn of(proof: &Proof) -> Result<Self, LeanVmError> {
+            tree::LeafShape::of(&proof.0)
+                .map(Self)
+                .ok_or(LeanVmError::MalformedProof)
         }
     }
 
@@ -311,7 +315,7 @@ pub mod aggregate {
             arity_0: usize,
             arity: usize,
             rate: Rate,
-        ) -> Result<Self, Error> {
+        ) -> Result<Self, LeanVmError> {
             Ok(Self(tree::Tree::new(program, leaves.0, arity_0, arity, rate)?))
         }
 
@@ -320,7 +324,7 @@ pub mod aggregate {
         /// # Errors
         ///
         /// The wrong number of leaves, a leaf of another shape, or one that does not verify.
-        pub fn prove_first(&self, leaves: &[Leaf<'_>]) -> Result<TreeProof, Error> {
+        pub fn prove_first(&self, leaves: &[Leaf<'_>]) -> Result<TreeProof, LeanVmError> {
             let leaves: Vec<_> = leaves.iter().map(|l| l.inner()).collect();
             Ok(TreeProof(self.0.prove_first(&leaves)?))
         }
@@ -330,7 +334,7 @@ pub mod aggregate {
         /// # Errors
         ///
         /// The wrong number of children, or one that does not verify.
-        pub fn prove_node(&self, children: &[TreeProof]) -> Result<TreeProof, Error> {
+        pub fn prove_node(&self, children: &[TreeProof]) -> Result<TreeProof, LeanVmError> {
             let children: Vec<_> = children.iter().map(|c| c.0.clone()).collect();
             Ok(TreeProof(self.0.prove_node(&children)?))
         }
@@ -340,7 +344,7 @@ pub mod aggregate {
         /// # Errors
         ///
         /// A number of leaves that is not `arity_0` times a power of `arity`, or a leaf the first level refuses.
-        pub fn prove(&self, leaves: &[Leaf<'_>]) -> Result<TreeProof, Error> {
+        pub fn prove(&self, leaves: &[Leaf<'_>]) -> Result<TreeProof, LeanVmError> {
             let leaves: Vec<_> = leaves.iter().map(|l| l.inner()).collect();
             Ok(TreeProof(self.0.prove(&leaves)?))
         }
@@ -350,7 +354,7 @@ pub mod aggregate {
         /// # Errors
         ///
         /// The first check that refuses: the root's kind or rate, its proof, its digest of the outputs, or a claim it carries.
-        pub fn verify(&self, root: &TreeProof, outputs: &[[u64; 4]]) -> Result<(), Error> {
+        pub fn verify(&self, root: &TreeProof, outputs: &[[u64; 4]]) -> Result<(), LeanVmError> {
             Ok(self.0.verify(&root.0, outputs)?)
         }
 
@@ -402,17 +406,19 @@ pub mod aggregate {
         /// # Errors
         ///
         /// Bytes that are no tree proof, or a tree proof of another protocol version.
-        pub fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
-            let (magic, rest) = bytes.split_first_chunk::<4>().ok_or(Error::MalformedProof)?;
-            let (version, body) = rest.split_first_chunk::<2>().ok_or(Error::MalformedProof)?;
+        pub fn from_bytes(bytes: &[u8]) -> Result<Self, LeanVmError> {
+            let (magic, rest) = bytes.split_first_chunk::<4>().ok_or(LeanVmError::MalformedProof)?;
+            let (version, body) = rest.split_first_chunk::<2>().ok_or(LeanVmError::MalformedProof)?;
             if *magic != Self::MAGIC {
-                return Err(Error::MalformedProof);
+                return Err(LeanVmError::MalformedProof);
             }
             let version = u16::from_le_bytes(*version);
             if version != Self::VERSION {
-                return Err(Error::UnsupportedTreeVersion { found: version });
+                return Err(LeanVmError::UnsupportedTreeVersion { found: version });
             }
-            tree::TreeProof::from_bytes(body).map(Self).ok_or(Error::MalformedProof)
+            tree::TreeProof::from_bytes(body)
+                .map(Self)
+                .ok_or(LeanVmError::MalformedProof)
         }
     }
 }

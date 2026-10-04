@@ -26,7 +26,7 @@ pub struct SecretKey {
 
 /// Why signing failed.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, thiserror::Error)]
-pub enum SignError {
+pub enum XmssSignError {
     /// No randomness within the trial bound gave a valid encoding.
     #[error("no randomness within the trial bound gives a valid encoding")]
     NoValidEncoding,
@@ -67,7 +67,7 @@ impl SecretKey {
     /// Sign a message at the key's leaf index, deterministically.
     ///
     /// The signer tries randomness until the encoding is valid: about `2^15` tries.
-    pub fn sign(&self, message: &Message) -> Result<Signature, SignError> {
+    pub fn sign(&self, message: &Message) -> Result<Signature, XmssSignError> {
         let (seed, leaf_index, pp) = (&self.seed, self.leaf_index, &self.public_key.public_param);
         let (randomness, digits) = (0..MAX_RANDOMIZER_TRIALS)
             .find_map(|trial| {
@@ -79,7 +79,7 @@ impl SecretKey {
                 let randomness = [r0, r1, r2];
                 encode(pp, leaf_index, message, &randomness).map(|digits| (randomness, digits))
             })
-            .ok_or(SignError::NoValidEncoding)?;
+            .ok_or(XmssSignError::NoValidEncoding)?;
         // Chain `i` opened at value `digit_i`, and the path of fillers.
         let mut chains = Chains::new(pp, leaf_index);
         Ok(Signature {

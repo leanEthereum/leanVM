@@ -198,7 +198,7 @@ pub struct LincheckClaim {
 
 /// Why the lincheck verifier rejects.
 #[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
-pub enum VerifyError {
+pub enum LincheckError {
     /// The claim point's inner coordinates are not `k_log - k_skip` long.
     #[error("the claim point has {got} inner coordinates, and lincheck needs {expected}")]
     BadInnerRestLength { expected: usize, got: usize },
@@ -216,7 +216,7 @@ pub enum VerifyError {
     SumcheckMismatch,
     /// The proof stream is malformed.
     #[error(transparent)]
-    Transcript(#[from] fiat_shamir::transcript::Error),
+    Transcript(#[from] fiat_shamir::transcript::TranscriptError),
 }
 
 // ---------------------------------------------------------------------------
@@ -1175,11 +1175,11 @@ impl MatrixClaim {
     /// # Errors
     ///
     /// Returns a sumcheck mismatch when the form does not take the value.
-    pub fn check(&self, circuit: &dyn LincheckCircuit) -> Result<(), VerifyError> {
+    pub fn check(&self, circuit: &dyn LincheckCircuit) -> Result<(), LincheckError> {
         if self.form.evaluate(circuit) == self.value {
             Ok(())
         } else {
-            Err(VerifyError::SumcheckMismatch)
+            Err(LincheckError::SumcheckMismatch)
         }
     }
 }
@@ -1201,9 +1201,9 @@ pub fn verify(
     v_b: F192,
     v_c: F192,
     vs: &mut VerifierState<'_>,
-) -> Result<LincheckClaim, VerifyError> {
+) -> Result<LincheckClaim, LincheckError> {
     if circuit.n_cols() != 1 << k_log {
-        return Err(VerifyError::BadNCols {
+        return Err(LincheckError::BadNCols {
             expected: 1 << k_log,
             got: circuit.n_cols(),
         });
@@ -1237,23 +1237,23 @@ pub fn verify_deferred(
     v_b: F192,
     v_c: F192,
     vs: &mut VerifierState<'_>,
-) -> Result<(LincheckClaim, MatrixClaim), VerifyError> {
+) -> Result<(LincheckClaim, MatrixClaim), LincheckError> {
     let n_log = m - k_log;
 
     if k_skip > k_log {
-        return Err(VerifyError::KSkipExceedsKLog { k_skip, k_log });
+        return Err(LincheckError::KSkipExceedsKLog { k_skip, k_log });
     }
     let inner_rest_len = k_log - k_skip;
     let n_skip = 1usize << k_skip;
 
     if x_ab.x_inner_rest.len() != inner_rest_len {
-        return Err(VerifyError::BadInnerRestLength {
+        return Err(LincheckError::BadInnerRestLength {
             expected: inner_rest_len,
             got: x_ab.x_inner_rest.len(),
         });
     }
     if x_ab.x_outer.len() != n_log {
-        return Err(VerifyError::BadOuterLength {
+        return Err(LincheckError::BadOuterLength {
             expected: n_log,
             got: x_ab.x_outer.len(),
         });
@@ -1879,7 +1879,7 @@ mod tests {
             let mut ch = fiat_shamir::transcript::VerifierState::from_label(b"flock-test-v0", &bad);
             let res = verify(m, k_log, k_skip, &circuit, &x_ab, v_a, v_b, v_c, &mut ch);
             assert!(
-                matches!(res, Err(VerifyError::SumcheckMismatch)),
+                matches!(res, Err(LincheckError::SumcheckMismatch)),
                 "verify did not reject z_partial[{skip_idx}].{label} bit-flip: got {res:?}"
             );
         }
@@ -1915,7 +1915,7 @@ mod tests {
         let mut ch = fiat_shamir::transcript::VerifierState::from_label(b"flock-test-v0", &bad);
         assert!(matches!(
             verify(m, k_log, k_skip, &circuit, &x_ab, v_a, v_b, v_c, &mut ch),
-            Err(VerifyError::Transcript(_))
+            Err(LincheckError::Transcript(_))
         ));
 
         // Wrong x_inner_rest length.
@@ -1927,14 +1927,14 @@ mod tests {
         };
         assert!(matches!(
             verify(m, k_log, k_skip, &circuit, &bad_x_ab, v_a, v_b, v_c, &mut ch),
-            Err(VerifyError::BadInnerRestLength { .. })
+            Err(LincheckError::BadInnerRestLength { .. })
         ));
 
         // k_skip > k_log.
         let mut ch = fiat_shamir::transcript::VerifierState::from_label(b"flock-test-v0", &proof_t);
         assert!(matches!(
             verify(m, k_log, k_log + 1, &circuit, &x_ab, v_a, v_b, v_c, &mut ch),
-            Err(VerifyError::KSkipExceedsKLog { .. })
+            Err(LincheckError::KSkipExceedsKLog { .. })
         ));
     }
     /// Fold `z_vec`'s `2^|inner_rest_tail|` stripes of 64 slice values against the tail's eq table.

@@ -7,11 +7,11 @@ use crate::zerocheck;
 
 /// Why a flock reduction is rejected, by the step that rejects it.
 #[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
-pub enum VerifyError {
+pub enum FlockError {
     /// The zerocheck rejects.
     #[error("zerocheck: {0}")]
-    Zerocheck(zerocheck::VerifyError),
+    Zerocheck(zerocheck::ZerocheckError),
     /// The lincheck rejects.
     #[error("lincheck: {0}")]
-    Lincheck(lincheck::VerifyError),
+    Lincheck(lincheck::LincheckError),
 }

@@ -1,7 +1,7 @@
 // CREDIT: https://github.com/succinctlabs/flock (flock-core), MIT OR Apache-2.0.
 //! Digest encoding and Merkle openings carried by proofs.
 
-use crate::transcript::Error;
+use crate::transcript::TranscriptError;
 use primitives::field::{F64, F192};
 
 pub type Hash = [u8; 32];
@@ -23,9 +23,9 @@ pub fn hash_to_scalars(hash: &Hash) -> [F192; 2] {
 /// stream, where a malicious prover picks the third limb: a digest half is
 /// 128-bit, so a nonzero one is not a digest at all.
 #[inline]
-pub fn scalars_to_hash(scalars: &[F192; 2]) -> Result<Hash, Error> {
+pub fn scalars_to_hash(scalars: &[F192; 2]) -> Result<Hash, TranscriptError> {
     if scalars.iter().any(|s| s.c2 != 0) {
-        return Err(Error::NonCanonicalEncoding);
+        return Err(TranscriptError::NonCanonicalEncoding);
     }
     let mut hash = [0u8; 32];
     for (i, s) in scalars.iter().enumerate() {
@@ -360,7 +360,7 @@ mod tests {
         assert_eq!(scalars_to_hash(&scalars), Ok(hash));
         assert_eq!(
             scalars_to_hash(&[F192::new(scalars[0].c0, scalars[0].c1, 1), scalars[1]]),
-            Err(Error::NonCanonicalEncoding)
+            Err(TranscriptError::NonCanonicalEncoding)
         );
     }
 }

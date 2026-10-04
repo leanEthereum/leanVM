@@ -22,7 +22,7 @@ pub use riscv::{CoreRows, ProofShape};
 use super::circuit::{Builder, Ew};
 use super::transcript::Transcript;
 use crate::arith::{Arith, Verifier};
-use fiat_shamir::transcript::Error as TranscriptError;
+use fiat_shamir::transcript::TranscriptError;
 use primitives::field::{F64, F192};
 use recursion::FixedHints;
 

@@ -31,7 +31,9 @@ fn claims_of(program: &Program, rate: Rate) -> DeferredClaims {
 fn assert_refused_by_the_program(claims: &DeferredClaims, program: &Program, what: &str) {
     assert_eq!(
         program.check_deferred(claims),
-        Err(CpuError::Constraint(leanvm_core::constraints::Error::FinalMismatch)),
+        Err(CpuError::Constraint(
+            leanvm_core::constraints::ConstraintError::FinalMismatch
+        )),
         "{what}"
     );
 }

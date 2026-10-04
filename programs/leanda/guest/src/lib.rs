@@ -54,7 +54,7 @@ pub const MAX_ROWS: usize = 1024;
 
 /// Why a matrix is rejected.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, thiserror::Error)]
-pub enum Error {
+pub enum DaError {
     /// No rows, or more than a commitment holds.
     #[error("{rows} rows, and a commitment holds 1 to {MAX_ROWS}")]
     RowCount { rows: usize },
@@ -70,11 +70,11 @@ pub enum Error {
 /// # Errors
 ///
 /// A row count out of range, or the first row that is not a codeword.
-pub fn check(dual: &[Dual; M], rows: &[[u64; M]], cells: &mut [[Hash; CELLS]]) -> Result<[Hash; 2], Error> {
+pub fn check(dual: &[Dual; M], rows: &[[u64; M]], cells: &mut [[Hash; CELLS]]) -> Result<[Hash; 2], DaError> {
     // Membership first: the commitment is only worth computing over codewords.
     for (i, row) in rows.iter().enumerate() {
         if !is_orthogonal(dual, row) {
-            return Err(Error::NotACodeword { row: i });
+            return Err(DaError::NotACodeword { row: i });
         }
     }
     Ok([commit(rows, cells)?, dual_digest(dual)])
@@ -85,9 +85,9 @@ pub fn check(dual: &[Dual; M], rows: &[[u64; M]], cells: &mut [[Hash; CELLS]]) -
 /// # Errors
 ///
 /// No rows, or more than a commitment holds.
-pub fn commit(rows: &[[u64; M]], cells: &mut [[Hash; CELLS]]) -> Result<Hash, Error> {
+pub fn commit(rows: &[[u64; M]], cells: &mut [[Hash; CELLS]]) -> Result<Hash, DaError> {
     if rows.is_empty() || rows.len() > MAX_ROWS {
-        return Err(Error::RowCount { rows: rows.len() });
+        return Err(DaError::RowCount { rows: rows.len() });
     }
     // For example 3 rows pad to 4, the fourth a zero codeword.
     let padded = rows.len().next_power_of_two();

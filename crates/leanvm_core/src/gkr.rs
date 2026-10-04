@@ -19,7 +19,7 @@ use zk_alloc::ArenaVec;
 pub enum GkrError {
     /// The proof stream is malformed.
     #[error(transparent)]
-    Transcript(#[from] fiat_shamir::transcript::Error),
+    Transcript(#[from] fiat_shamir::transcript::TranscriptError),
     /// A layer's sumcheck does not end at the product of the next layer's claims.
     #[error("the GKR layer {layer} does not reduce to the next")]
     LayerMismatch { layer: usize },

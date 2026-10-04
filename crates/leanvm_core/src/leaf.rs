@@ -185,10 +185,10 @@ pub struct ColumnClaim<E = F192> {
 
 /// Why the bus does not balance.
 #[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
-pub enum Error {
+pub enum BusError {
     /// The proof stream is malformed.
     #[error(transparent)]
-    Transcript(#[from] fiat_shamir::transcript::Error),
+    Transcript(#[from] fiat_shamir::transcript::TranscriptError),
     /// The grand products' GKR rejects.
     #[error(transparent)]
     Gkr(#[from] gkr::GkrError),
@@ -1335,7 +1335,7 @@ pub fn verify_balance<V: Verifier>(
     pull: &[Block],
     producers: &[Producer],
     tables: &[(usize, usize)],
-) -> Result<BusVerify<V::E>, Error> {
+) -> Result<BusVerify<V::E>, BusError> {
     let setup = BusSetup::new(push, pull, producers);
     let alphas = v.sample_vec(N_TUPLE_BITS);
     let fp = Fingerprint {

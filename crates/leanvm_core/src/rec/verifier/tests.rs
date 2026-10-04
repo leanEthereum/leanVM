@@ -185,7 +185,7 @@ fn a_non_boolean_merkle_selector_is_refused() {
     a.values[bit.0 as usize][0] = 2;
     assert_eq!(
         verify(&prove(&a)),
-        Err(RecError::Constraint(crate::constraints::Error::FinalMismatch))
+        Err(RecError::Constraint(crate::constraints::ConstraintError::FinalMismatch))
     );
 }
 

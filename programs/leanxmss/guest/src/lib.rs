@@ -22,7 +22,7 @@
 
 mod sign;
 
-pub use sign::{SecretKey, SignError, key_gen};
+pub use sign::{SecretKey, XmssSignError, key_gen};
 
 use leanvm_guest::{Blake2s, Template, hash_with};
 
@@ -102,7 +102,7 @@ pub struct Signature {
 
 /// Why a signature is rejected.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, thiserror::Error)]
-pub enum VerifyError {
+pub enum XmssVerifyError {
     /// The randomness gives the message no valid encoding.
     #[error("the randomness gives the message no valid encoding")]
     InvalidEncoding,
@@ -125,10 +125,10 @@ pub fn verify(
     leaf_index: LeafIndex,
     message: &Message,
     signature: &Signature,
-) -> Result<(), VerifyError> {
+) -> Result<(), XmssVerifyError> {
     let pp = &pk.public_param;
     // The digits say where each chain was opened.
-    let digits = encode(pp, leaf_index, message, &signature.randomness).ok_or(VerifyError::InvalidEncoding)?;
+    let digits = encode(pp, leaf_index, message, &signature.randomness).ok_or(XmssVerifyError::InvalidEncoding)?;
     // Walk each chain the rest of the way, chain `i` from value `digit_i` to value 7: its end is the leaf's. The leaf
     // takes the chains one by one, unrolled, so each digit's shift and each position are constants.
     let mut chains = Chains::new(pp, leaf_index);
@@ -140,7 +140,7 @@ pub fn verify(
     if root == pk.merkle_root {
         Ok(())
     } else {
-        Err(VerifyError::InvalidMerklePath)
+        Err(XmssVerifyError::InvalidMerklePath)
     }
 }
 

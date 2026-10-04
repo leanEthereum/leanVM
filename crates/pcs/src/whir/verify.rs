@@ -12,13 +12,13 @@ use crate::merkle::Hash;
 use crate::ring_switch::inner_product_ext;
 use crate::whir_config::VerifierConfig;
 use crate::whir_induce::{eval_sk_at_vks, induce_sumcheck_enforced_sum, induce_sumcheck_evaluate_at_residual};
-use fiat_shamir::transcript::{Error as TranscriptError, Receiver};
+use fiat_shamir::transcript::{Receiver, TranscriptError};
 use primitives::field::{F64, F192, powers};
 use primitives::multilinear::{eq_eval, eq_table};
 
 /// Why a WHIR opening is rejected.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, thiserror::Error)]
-pub enum VerifyError {
+pub enum WhirError {
     /// The proof stream is malformed.
     #[error(transparent)]
     Transcript(#[from] TranscriptError),
@@ -177,7 +177,7 @@ pub fn recursive_verifier_with_basis_succinct<F>(
     expected_initial_root: &Hash,
     eval_b_at: F,
     vs: &mut impl Receiver,
-) -> Result<(), VerifyError>
+) -> Result<(), WhirError>
 where
     // Called once at the terminal check with the full fold point.
     F: Fn(&[F192]) -> F192,
@@ -189,7 +189,7 @@ where
     // layout by the caller, so it is not the prover's to choose.
     let max = 1usize << initial_k;
     if n_lanes == 0 || n_lanes > max {
-        return Err(VerifyError::LaneCount { n_lanes, max });
+        return Err(WhirError::LaneCount { n_lanes, max });
     }
 
     // The caller already bound the root and claim values through the transcript.
@@ -287,7 +287,7 @@ where
     for i in 0..r {
         let k_i = config.level_ks()[i];
         if n_current < k_i {
-            return Err(VerifyError::InvalidShape { level: i });
+            return Err(WhirError::InvalidShape { level: i });
         }
         let level_rs = replay_fold_rounds(vs, k_i, &mut t_r, &mut running_quad)?;
         ris.extend_from_slice(&level_rs);
@@ -352,7 +352,7 @@ where
             let mut weight = F192::ZERO;
             for ctx in &level_ctxs {
                 if ctx.log_msg_cols < yr_log_n || ctx.ris_start + (ctx.log_msg_cols - yr_log_n) > ris.len() {
-                    return Err(VerifyError::InvalidShape { level: i });
+                    return Err(WhirError::InvalidShape { level: i });
                 }
                 let folded = ctx.log_msg_cols - yr_log_n;
                 let mut point = ris[ctx.ris_start..ctx.ris_start + folded].to_vec();
@@ -366,13 +366,13 @@ where
                     0,
                 );
                 if at.len() != 1 {
-                    return Err(VerifyError::InvalidShape { level: i });
+                    return Err(WhirError::InvalidShape { level: i });
                 }
                 weight += ctx.beta * at[0];
             }
             for ctx in &ood_ctxs {
                 if ctx.z.len() < yr_log_n || ctx.ris_start + (ctx.z.len() - yr_log_n) > ris.len() {
-                    return Err(VerifyError::InvalidShape { level: i });
+                    return Err(WhirError::InvalidShape { level: i });
                 }
                 let folded = ctx.z.len() - yr_log_n;
                 let mut scalar = ctx.beta;
@@ -396,7 +396,7 @@ where
             return if weight * inner_product_ext(&yr, &eq_table(&ris_tail)) == t_r {
                 Ok(())
             } else {
-                Err(VerifyError::TerminalMismatch)
+                Err(WhirError::TerminalMismatch)
             };
         }
 
@@ -462,7 +462,7 @@ where
             )
             .is_none()
         {
-            return Err(VerifyError::InvalidShape { level: i });
+            return Err(WhirError::InvalidShape { level: i });
         }
     }
 

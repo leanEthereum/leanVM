@@ -77,13 +77,13 @@ impl Claims {
 
 /// Why the table constraints reject.
 #[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
-pub enum Error {
+pub enum ConstraintError {
     /// The bus point has fewer coordinates than the tallest table has variables.
     #[error("the bus point has {len} coordinates, and the tallest table has {rounds} variables")]
     PointTooShort { len: usize, rounds: usize },
     /// The proof stream is malformed.
     #[error(transparent)]
-    Transcript(#[from] fiat_shamir::transcript::Error),
+    Transcript(#[from] fiat_shamir::transcript::TranscriptError),
     /// The sumcheck's final claim is not the tables' summands at the opened columns.
     #[error("the constraint sumcheck's final claim does not match the columns")]
     FinalMismatch,
@@ -562,11 +562,11 @@ impl Final {
     /// # Errors
     ///
     /// Returns a final mismatch when the residual is not zero.
-    pub fn settle(self) -> Result<Vec<Claims>, Error> {
+    pub fn settle(self) -> Result<Vec<Claims>, ConstraintError> {
         if self.residual.is_zero() {
             Ok(self.claims)
         } else {
-            Err(Error::FinalMismatch)
+            Err(ConstraintError::FinalMismatch)
         }
     }
 }
@@ -584,10 +584,10 @@ pub fn verify<V: Verifier, S: Residual<V>>(
     airs: &[Air<S>],
     zeta: &[V::E],
     target: V::E,
-) -> Result<Final<V::E>, Error> {
+) -> Result<Final<V::E>, ConstraintError> {
     let n = airs.iter().map(|a| a.tau).max().unwrap_or(0);
     if zeta.len() < n {
-        return Err(Error::PointTooShort {
+        return Err(ConstraintError::PointTooShort {
             len: zeta.len(),
             rounds: n,
         });
@@ -745,7 +745,7 @@ mod tests {
         (xi, zeta)
     }
 
-    fn run(taus: &[usize], cols: &[Vec<Vec<F64>>]) -> (Proof, Result<Vec<Claims>, Error>) {
+    fn run(taus: &[usize], cols: &[Vec<Vec<F64>>]) -> (Proof, Result<Vec<Claims>, ConstraintError>) {
         let (xi, zeta) = xi_zeta(taus);
         let airs = airs_for(taus, false, xi);
         let zeros = vec![F192::ZERO; taus.len()];
@@ -920,7 +920,7 @@ mod tests {
             .map(|(t, &tau)| pows[3 * t + 2] * primitives::multilinear::mle_eval(&cols[t][1], &zeta[..tau]))
             .collect();
 
-        let settle = |sig: &[F192], cols: &[Vec<Vec<F64>>]| -> Result<Vec<Claims>, Error> {
+        let settle = |sig: &[F192], cols: &[Vec<Vec<F64>>]| -> Result<Vec<Claims>, ConstraintError> {
             let airs = airs_for(&taus, true, xi);
             let target = sig.iter().fold(F192::ZERO, |a, &b| a + b);
             let mut ps = ProverState::from_label(b"zc-test");

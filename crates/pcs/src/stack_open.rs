@@ -61,7 +61,7 @@ use primitives::multilinear::eq_eval;
 
 use super::pack::PACKING_WIDTH;
 use super::ring_switch;
-use super::whir::{ProverConfig, VerifierConfig, VerifyError};
+use super::whir::{ProverConfig, VerifierConfig, WhirError};
 use super::whir::{ProverData, recursive_verifier_with_basis_succinct};
 
 mod basis;
@@ -342,7 +342,7 @@ pub fn verify_opening_batch_mixed_whir_stacked(
     root: &Hash,
     point_claims: &[StackClaim],
     rings: &[RingSwitchVerify<'_>],
-) -> Result<(), VerifyError> {
+) -> Result<(), WhirError> {
     let n_rs: usize = rings.iter().map(|ring| ring.claims.len()).sum();
     assert!(n_rs > 0, "stacked PCS opening carries at least one ring-switched claim");
     // Caller (statement) invariants: panic on misuse, like the extension-field layer.

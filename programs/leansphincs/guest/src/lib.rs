@@ -23,7 +23,7 @@ mod fts;
 mod ots;
 mod sign;
 
-pub use sign::{SecretKey, SignError, key_gen};
+pub use sign::{SecretKey, SphincsSignError, key_gen};
 
 use leanvm_guest::{Blake2s, Template, hash_with};
 
@@ -185,7 +185,7 @@ impl<const HEIGHT: usize> LayerSignature<HEIGHT> {
 
 /// Why a signature is rejected.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, thiserror::Error)]
-pub enum VerifyError {
+pub enum SphincsVerifyError {
     /// The message digest's last index is not zero.
     #[error("the message digest's last index is not zero")]
     InadmissibleDigest,
@@ -228,13 +228,13 @@ impl Pos {
 }
 
 /// `Ver`: 497 hash calls.
-pub fn verify(pk: &PublicKey, message: &Message, signature: &Signature) -> Result<(), VerifyError> {
+pub fn verify(pk: &PublicKey, message: &Message, signature: &Signature) -> Result<(), SphincsVerifyError> {
     let pp = &pk.public_param;
     // The digest picks the few-time key and the leaf it opens in each tree.
     let (idx, u) = message_digest(pp, &pk.root, &signature.randomizer, message);
     // The last tree is dropped, so its index must be zero (FORS+C).
     if u[K - 1] != 0 {
-        return Err(VerifyError::InadmissibleDigest);
+        return Err(SphincsVerifyError::InadmissibleDigest);
     }
     // The few-time key is the message the bottom layer signs, and each root the next one up.
     let mut message = fts::recover(pp, idx, &u, &signature.fts);
@@ -242,7 +242,7 @@ pub fn verify(pk: &PublicKey, message: &Message, signature: &Signature) -> Resul
         let pos = Pos::of(idx, lay);
         let (counter, ots, path) = signature.layer(lay);
         // A counter is 32 bits: a word holding more is no counter.
-        let inadmissible = VerifyError::InadmissibleEncoding { layer: lay };
+        let inadmissible = SphincsVerifyError::InadmissibleEncoding { layer: lay };
         let counter = u32::try_from(counter).map_err(|_| inadmissible)?;
         let leaf = ots::leaf(pp, pos, &message, counter, ots).ok_or(inadmissible)?;
         message = tree_fold(pp, pos, leaf, path);
@@ -250,7 +250,7 @@ pub fn verify(pk: &PublicKey, message: &Message, signature: &Signature) -> Resul
     if message == pk.root {
         Ok(())
     } else {
-        Err(VerifyError::RootMismatch)
+        Err(SphincsVerifyError::RootMismatch)
     }
 }
 

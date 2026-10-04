@@ -179,7 +179,7 @@ impl<'a> TableArgument<'a> {
         let tables = constraints::verify(v, &airs, &bus.point, target)?;
         let zero = v.zero();
         v.ensure_eq(tables.residual, zero, || {
-            RecError::Constraint(constraints::Error::FinalMismatch)
+            RecError::Constraint(constraints::ConstraintError::FinalMismatch)
         })?;
         Ok(self.layout.opening_claims(bus.claims, &tables.claims))
     }
@@ -466,7 +466,7 @@ mod tests {
         assert!(circuit.verify_seeded(&forged, IV, seed, pcs::Rate::MIN, &proof).is_ok());
         assert!(matches!(
             verify_run(&circuit, &forged, &proof),
-            Err(RecError::Bus(leaf::Error::Gkr(_)))
+            Err(RecError::Bus(leaf::BusError::Gkr(_)))
         ));
     }
 
@@ -482,7 +482,7 @@ mod tests {
         let proof = prove_run(&circuit, &a);
         assert_eq!(
             verify_run(&circuit, &a.statement, &proof),
-            Err(RecError::Constraint(constraints::Error::FinalMismatch))
+            Err(RecError::Constraint(constraints::ConstraintError::FinalMismatch))
         );
     }
 
@@ -524,7 +524,7 @@ mod tests {
         merged.classes = merged.classes.map(|c| if c == cx { cy } else { c });
         assert_eq!(
             verify_run(&merged, &a.statement, &proof),
-            Err(RecError::Constraint(constraints::Error::FinalMismatch))
+            Err(RecError::Constraint(constraints::ConstraintError::FinalMismatch))
         );
     }
 

@@ -17,7 +17,7 @@ pub(crate) use matrix::{MatrixProver, MatrixReduced};
 use super::claims::NodeClaims;
 use crate::arith::Verifier;
 use crate::rec::circuit::{Limbs, digest_limbs};
-use fiat_shamir::transcript::{Error as TranscriptError, Proof, ProverState, Transmitter};
+use fiat_shamir::transcript::{Proof, ProverState, TranscriptError, Transmitter};
 use primitives::field::{F64, F192};
 
 /// The label every node's reduction transcript starts from.

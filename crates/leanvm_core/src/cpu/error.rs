@@ -63,13 +63,13 @@ pub enum CpuError {
     },
     /// The proof stream is malformed.
     #[error(transparent)]
-    Transcript(#[from] fiat_shamir::transcript::Error),
+    Transcript(#[from] fiat_shamir::transcript::TranscriptError),
     /// The memory and lookup bus does not balance.
     #[error("the bus: {0}")]
-    Bus(leaf::Error),
+    Bus(leaf::BusError),
     /// The table constraints do not hold.
     #[error("the table constraints: {0}")]
-    Constraint(constraints::Error),
+    Constraint(constraints::ConstraintError),
     /// One of a table's circuit proofs is rejected.
     #[error("the {table} table's {part:?} circuit: {error}")]
     Flock {
@@ -78,11 +78,11 @@ pub enum CpuError {
         /// Which of its two circuits.
         part: Part,
         /// Why flock rejects it.
-        error: flock::verifier::VerifyError,
+        error: flock::verifier::FlockError,
     },
     /// The commitment opening is rejected.
     #[error("the opening: {0}")]
-    Open(::pcs::whir::VerifyError),
+    Open(::pcs::whir::WhirError),
     /// A deferred claim has no shape a proof of the program gives.
     #[error("the deferred claims: {0}")]
     MalformedClaim(super::deferred::MalformedClaim),

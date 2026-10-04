@@ -210,7 +210,7 @@ impl Program {
             .evaluate(self.rv())
             .ok_or(CpuError::MalformedClaim(MalformedClaim::ProgramPoint))?;
         if program != claims.program.value {
-            return Err(CpuError::Constraint(constraints::Error::FinalMismatch));
+            return Err(CpuError::Constraint(constraints::ConstraintError::FinalMismatch));
         }
 
         for (f, claim) in claims.circuits.iter().enumerate() {
@@ -223,7 +223,7 @@ impl Program {
                 return Err(CpuError::Flock {
                     table,
                     part,
-                    error: flock::verifier::VerifyError::Lincheck(lincheck::VerifyError::SumcheckMismatch),
+                    error: flock::verifier::FlockError::Lincheck(lincheck::LincheckError::SumcheckMismatch),
                 });
             }
         }

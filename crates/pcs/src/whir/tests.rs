@@ -2,7 +2,7 @@ use super::*;
 use crate::merkle::Hash;
 use crate::ring_switch::inner_product_ext;
 use crate::whir_config::test_config_for;
-use fiat_shamir::transcript::Error as TranscriptError;
+use fiat_shamir::transcript::TranscriptError;
 use primitives::field::powers;
 use primitives::multilinear::{eq_eval, eq_table};
 use primitives::test_rng::Rng;
@@ -59,7 +59,7 @@ fn verify_with(
     inst: &Instance,
     fs: &fiat_shamir::transcript::Proof,
     eval_b_at: impl Fn(&[F192]) -> F192,
-) -> Result<(), VerifyError> {
+) -> Result<(), WhirError> {
     let mut vs = fiat_shamir::transcript::VerifierState::from_label(b"whir-test", fs);
     recursive_verifier_with_basis_succinct(
         &inst.vc,
@@ -198,7 +198,7 @@ fn tampered_stream_words_reject_without_panicking() {
     short.stream.truncate(1);
     assert_eq!(
         verify_with(&inst, &short, |point| eq_eval(&inst.point, point)),
-        Err(VerifyError::Transcript(TranscriptError::ExceededStream { len: 1 })),
+        Err(WhirError::Transcript(TranscriptError::ExceededStream { len: 1 })),
     );
     for idx in 0..inst.fs.stream.len() {
         for tamper in [F192::ONE, F192::new(0, 0, 1)] {

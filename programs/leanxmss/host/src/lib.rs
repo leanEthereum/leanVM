@@ -129,7 +129,7 @@ mod tests {
 
     #[test]
     fn leanxmss_rejects_a_change_anywhere() {
-        use leanxmss::VerifyError::{InvalidEncoding, InvalidMerklePath};
+        use leanxmss::XmssVerifyError::{InvalidEncoding, InvalidMerklePath};
         // Invariant: a verifier binds the claim and every part of the signature.
         //
         // Fixture state: one honest signature at leaf index 7.

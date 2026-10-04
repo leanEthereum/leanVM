@@ -9,7 +9,7 @@
 
 mod first_pass;
 
-use fiat_shamir::transcript::{Error as TranscriptError, Receiver, Transmitter};
+use fiat_shamir::transcript::{Receiver, TranscriptError, Transmitter};
 pub(crate) use first_pass::{InitialRounds, initial_rounds};
 use first_pass::{LaneWeight, WeightFold};
 use primitives::field::{F64, F192, F192Unreduced};
