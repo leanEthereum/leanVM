@@ -1,6 +1,7 @@
 //! The prover: it runs a program and proves the run.
 
-use crate::{Output, Program, Proof, ProveError, Rate, Stats};
+use super::{Output, Program, Proof, ProveError, Stats};
+use crate::pcs::Rate;
 
 /// A prover: it proves runs at one commitment rate.
 ///
@@ -30,7 +31,7 @@ impl Prover {
     #[must_use]
     pub fn new(rate: Rate) -> Self {
         // Spawning up front keeps the spawn cost out of the first proof.
-        leanvm_core::init_prover();
+        crate::init_prover();
         Self { rate }
     }
 
@@ -53,9 +54,9 @@ impl Prover {
     /// - The run is longer than one proof holds.
     /// - The advice is longer than the program's region.
     pub fn prove(&self, program: &Program, advice: &[u64]) -> Result<ProvenRun, ProveError> {
-        let (proof, output, stats) = program.0.prove(advice, self.rate)?;
+        let (proof, output, stats) = program.prove(advice, self.rate)?;
         Ok(ProvenRun {
-            proof: Proof(proof),
+            proof,
             output: Output::new(output),
             stats,
         })
@@ -77,37 +78,20 @@ pub struct ProvenRun {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::asm::Asm;
-    use crate::{Region, fixtures};
-
-    #[test]
-    fn a_run_proves_its_output() {
-        // a0 holds F(90) mod 2^64, and the program clears a1 and a2 before exit.
-        assert_eq!(fixtures::fibonacci_run().output, [2_880_067_194_370_816_120, 0, 0, 0]);
-    }
-
-    #[test]
-    fn the_advice_is_hidden_from_the_verifier() {
-        let prover = Prover::new(Rate::MIN);
-
-        // Two messages; the empty one makes the guest read a length of zero, then no word.
-        for message in [b"leanVM".as_slice(), b""] {
-            let (guest, advice, digest) = fixtures::preimage(message);
-            let run = prover.prove(&guest, &advice).expect("the run exits");
-            assert_eq!(run.output, digest, "the guest hashed the advice");
-
-            // The verifier gets the program and the output, never the advice.
-            guest.verify(run.output, &run.proof).unwrap();
-        }
-    }
+    use crate::rv::Region;
+    use crate::rv::asm::{Addi, Asm, Reg};
 
     #[test]
     fn a_second_proof_leaves_the_first_intact() {
-        // Fixture state: a first proof, made earlier and shared.
-        let (program, first) = (fixtures::fibonacci(90), fixtures::fibonacci_run());
+        // Fixture state: `a0 = 5; exit`, proven once.
+        let text = Asm::new().i(Addi, Reg::A0, Reg::ZERO, 5).exit().finish();
+        let program = Program::new(&text, Region::TEXT.base(), vec![], 0, 0).expect("a program");
+        let prover = Prover::new(Rate::MIN);
+        let first = prover.prove(&program, &[]).expect("the run exits");
+        assert_eq!(first.output, [5, 0, 0, 0]);
 
-        // A second proof of the same run reuses the pool and the freed pages.
-        let second = Prover::new(Rate::MIN).prove(&program, &[]).expect("the run exits");
+        // A second proof reuses the pool and the pages the first freed.
+        let second = prover.prove(&program, &[]).expect("the run exits");
 
         // Both still verify: no buffer of the first was shared with the second.
         program.verify(second.output, &second.proof).unwrap();

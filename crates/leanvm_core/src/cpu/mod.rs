@@ -23,17 +23,22 @@ mod error;
 pub(crate) mod execute;
 pub mod filler;
 mod layout;
+mod output;
 mod program;
+mod proof;
+mod prover;
 mod reduce;
 mod witness;
 
 pub use deferred::{Claim, DeferredClaims, MalformedClaim, ProgramPoint};
-pub use error::{CpuError, ProveError};
+pub use error::{CpuError, DecodeError, ProveError, VerifyError};
 pub use execute::Execution;
 pub(crate) use execute::{Row, Trace};
-pub use fiat_shamir::transcript::Proof;
 pub use layout::{Framework, Layout, Lookup, N_BYTECODE_COLUMNS, N_SHARED, Q_BASE, Schema, Shared, Sizes};
+pub use output::Output;
 pub use program::{Program, Stats};
+pub use proof::Proof;
+pub use prover::{ProvenRun, Prover};
 pub(crate) use reduce::TableReduction;
 
 /// Each table holds at most `2^MAX_LOG_ROWS` rows: its class's executed instructions.

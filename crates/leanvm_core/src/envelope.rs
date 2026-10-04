@@ -1,6 +1,6 @@
 //! The header in front of every proof's bytes.
 
-use crate::DecodeError;
+use crate::cpu::DecodeError;
 
 /// A magic and a protocol version, written in front of a proof's body.
 ///

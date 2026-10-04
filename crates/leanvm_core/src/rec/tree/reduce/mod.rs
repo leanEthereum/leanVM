@@ -11,7 +11,7 @@
 use super::claims::{DensePoly, NodeClaims};
 use crate::arith::Verifier;
 use crate::rec::circuit::{Limbs, digest_limbs};
-use fiat_shamir::transcript::{Proof, ProverState, TranscriptError, Transmitter};
+use fiat_shamir::transcript::{ProofTranscript, ProverState, TranscriptError, Transmitter};
 use primitives::field::{F64, F192};
 use std::ops::Add;
 use thiserror::Error;
@@ -79,7 +79,7 @@ impl<E: Copy> NodeClaims<E> {
 impl NodeClaims<F192> {
     /// Prove the reduction of these claims, which must be true of the given tables.
     #[tracing::instrument(name = "Reduce claims", skip_all)]
-    pub(crate) fn prove(&self, vars: &DenseVars, tables: &DenseTables) -> Proof {
+    pub(crate) fn prove(&self, vars: &DenseVars, tables: &DenseTables) -> ProofTranscript {
         let mut ps = ProverState::from_label(LABEL);
         ps.add_scalars(&self.bound);
         crate::stage!("Dense reduction", || DenseProver::prove(

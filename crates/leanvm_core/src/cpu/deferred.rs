@@ -200,6 +200,7 @@ impl Program {
     /// - A malformed claim: one whose shape no proof of this program gives.
     /// - A false claim: the stage whose identity it completes, the table constraints or the circuit's lincheck.
     #[tracing::instrument(name = "Check deferred", skip_all)]
+    #[doc(hidden)]
     pub fn check_deferred(&self, claims: &DeferredClaims) -> Result<(), CpuError> {
         if claims.circuits.len() != class_flock::N_FLOCKS {
             return Err(CpuError::MalformedClaim(MalformedClaim::CircuitCount {

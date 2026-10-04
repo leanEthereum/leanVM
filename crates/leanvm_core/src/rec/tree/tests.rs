@@ -36,7 +36,7 @@ fn program() -> &'static Program {
 // Four leaves of distinct outputs, a tree of first level 2 and arity 2 over them, and its proofs.
 struct Fixture {
     tree: Tree<'static>,
-    leaves: Vec<(Proof, [u64; 4])>,
+    leaves: Vec<(Proof, Output)>,
     firsts: [TreeProof; 2],
     root: TreeProof,
 }
@@ -44,14 +44,23 @@ struct Fixture {
 fn fixture() -> &'static Fixture {
     static FIXTURE: OnceLock<Fixture> = OnceLock::new();
     FIXTURE.get_or_init(|| {
-        let leaves: Vec<(Proof, [u64; 4])> = (1..=4)
+        let leaves: Vec<(Proof, Output)> = (1..=4)
             .map(|advice| {
                 let (proof, output, _) = program().prove(&[advice], Rate::MIN).expect("the run halts");
-                (proof, output)
+                (proof, Output::new(output))
             })
             .collect();
         let shape = LeafShape::of(&leaves[0].0).expect("a canonical announcement");
-        let tree = Tree::new(program(), shape, 2, 2, Rate::MIN).expect("a tree");
+        let tree = Tree::new(
+            program(),
+            TreeShape {
+                leaf: shape,
+                arity_0: 2,
+                arity: 2,
+                rate: Rate::MIN,
+            },
+        )
+        .expect("a tree");
         let firsts = [0, 2].map(|i| {
             let pair = [
                 Leaf::new(&leaves[i].0, leaves[i].1),
@@ -70,7 +79,7 @@ fn fixture() -> &'static Fixture {
 }
 
 impl Fixture {
-    fn outputs(&self) -> Vec<[u64; 4]> {
+    fn outputs(&self) -> Vec<Output> {
         self.leaves.iter().map(|l| l.1).collect()
     }
 
@@ -90,7 +99,8 @@ fn a_tree_verifies_and_binds_its_leaves_in_order() {
         .expect("a first-level node is the root of its leaves");
 
     let mut wrong = outputs.clone();
-    wrong[3][0] ^= 1;
+    let [a0, a1, a2, a3] = *wrong[3].words();
+    wrong[3] = Output::new([a0 ^ 1, a1, a2, a3]);
     assert_eq!(f.tree.verify(&f.root, &wrong), Err(TreeError::Outputs));
     let mut swapped = outputs.clone();
     swapped.swap(0, 1);
@@ -117,7 +127,16 @@ fn a_tree_verifies_and_binds_its_leaves_in_order() {
 fn one_leaf_is_a_root() {
     let f = fixture();
     let shape = LeafShape::of(&f.leaves[0].0).expect("a canonical announcement");
-    let tree = Tree::new(program(), shape, 1, 2, Rate::MIN).expect("a tree");
+    let tree = Tree::new(
+        program(),
+        TreeShape {
+            leaf: shape,
+            arity_0: 1,
+            arity: 2,
+            rate: Rate::MIN,
+        },
+    )
+    .expect("a tree");
     let root = tree.prove(&f.pairs()[..1]).expect("an honest leaf");
     tree.verify(&root, &[f.leaves[0].1]).expect("the root of one leaf");
     assert_eq!(tree.verify(&root, &[f.leaves[1].1]), Err(TreeError::Outputs));
@@ -136,7 +155,15 @@ fn what_a_prover_is_handed_is_checked() {
     let shape = LeafShape::of(&f.leaves[0].0).expect("a canonical announcement");
     for (arity_0, arity) in [(2, 1), (0, 2)] {
         assert!(matches!(
-            Tree::new(program(), shape, arity_0, arity, Rate::MIN),
+            Tree::new(
+                program(),
+                TreeShape {
+                    leaf: shape,
+                    arity_0,
+                    arity,
+                    rate: Rate::MIN
+                }
+            ),
             Err(TreeError::Arity { .. })
         ));
     }
@@ -148,8 +175,8 @@ fn what_a_prover_is_handed_is_checked() {
     // A leaf that does not verify, and one of another shape.
     let pairs = f.pairs();
     let mut forged = f.leaves[1].0.clone();
-    let mid = forged.stream.len() / 2;
-    forged.stream[mid] += F192::ONE;
+    let mid = forged.0.stream.len() / 2;
+    forged.0.stream[mid] += F192::ONE;
     assert!(matches!(
         f.tree.prove_first(&[pairs[0], Leaf::new(&forged, f.leaves[1].1)]),
         Err(TreeError::Leaf { index: 1, .. })
@@ -158,7 +185,9 @@ fn what_a_prover_is_handed_is_checked() {
         .prove(&[7], Rate::new(2).expect("a rate"))
         .expect("the run halts");
     assert_eq!(
-        f.tree.prove_first(&[Leaf::new(&longer, output), pairs[1]]).map(|_| ()),
+        f.tree
+            .prove_first(&[Leaf::new(&longer, Output::new(output)), pairs[1]])
+            .map(|_| ()),
         Err(TreeError::ForeignLeaf { index: 0 })
     );
 
@@ -215,8 +244,8 @@ fn a_proven_circuit_is_the_shapes() {
     let d = &f.tree.design;
     let leaves: Vec<LeafWitness> = (f.leaves[..2].iter())
         .map(|(proof, output)| LeafWitness {
-            raw: program().verify_to_raw(output, proof).expect("an honest leaf"),
-            output: *output,
+            raw: program().verify_to_raw(output.words(), proof).expect("an honest leaf"),
+            output: *output.words(),
         })
         .collect();
     let rows = d.first(&Witness::Prove {
@@ -314,7 +343,11 @@ fn a_fake_child_circuit_is_refused_at_the_root() {
         })
         .collect();
     let witness = |tables| Witness::Prove { items: &items, tables };
-    let outputs = [fake_outputs, fake_outputs].concat();
+    let outputs: Vec<Output> = [fake_outputs, fake_outputs]
+        .concat()
+        .into_iter()
+        .map(Output::new)
+        .collect();
 
     // An honest reduction over the tree's polynomials fails on the fake's hints.
     let honest = f.tree.prove_rows(d.node(&witness(&f.tree.tables)), Kind::Node);
@@ -429,8 +462,8 @@ fn forged_first(f: &Fixture, forge: Forge) -> TreeProof {
     let d = &f.tree.design;
     let items: Vec<LeafWitness> = (f.leaves[..2].iter())
         .map(|(proof, output)| LeafWitness {
-            raw: program().verify_to_raw(output, proof).expect("an honest leaf"),
-            output: *output,
+            raw: program().verify_to_raw(output.words(), proof).expect("an honest leaf"),
+            output: *output.words(),
         })
         .collect();
     let rows = d.first(&Witness::Prove {
@@ -486,17 +519,39 @@ fn forged_reduced_claims_are_refused() {
 fn tree_proof_bytes_round_trip() {
     let f = fixture();
     let bytes = f.root.to_bytes();
-    assert_eq!(TreeProof::from_bytes(&bytes).as_ref(), Some(&f.root));
-    for cut in [0, 1, 5, 29, bytes.len() / 2, bytes.len() - 1] {
-        assert_eq!(TreeProof::from_bytes(&bytes[..cut]), None, "cut at {cut}");
+    assert_eq!(TreeProof::from_bytes(&bytes).as_ref(), Ok(&f.root));
+
+    // Cuts inside the header, inside the body's prefix, and inside the recursion proof.
+    for cut in [0, 1, 5, 6, 11, 35, bytes.len() / 2, bytes.len() - 1] {
+        assert_eq!(
+            TreeProof::from_bytes(&bytes[..cut]),
+            Err(DecodeError::Malformed),
+            "cut at {cut}"
+        );
     }
-    assert_eq!(TreeProof::from_bytes(&[&bytes[..], &[0]].concat()), None);
+    assert_eq!(
+        TreeProof::from_bytes(&[&bytes[..], &[0]].concat()),
+        Err(DecodeError::Malformed)
+    );
+
+    // The body starts after the 6-byte header.
+    //
+    //     | header: 6 | rate: 1 | n_words: 4 | kind word ...
+    //     byte 6 = the rate, byte 11 = the kind word's low byte
     let mut kind = bytes.clone();
-    kind[5] = 2;
-    assert_eq!(TreeProof::from_bytes(&kind), None, "a kind that is no bit");
+    kind[11] = 2;
+    assert_eq!(
+        TreeProof::from_bytes(&kind),
+        Err(DecodeError::Malformed),
+        "a kind that is no bit"
+    );
     let mut rate = bytes;
-    rate[0] = 0;
-    assert_eq!(TreeProof::from_bytes(&rate), None, "a rate out of range");
+    rate[6] = 0;
+    assert_eq!(
+        TreeProof::from_bytes(&rate),
+        Err(DecodeError::Malformed),
+        "a rate out of range"
+    );
 }
 
 // Claims on three tables at random points, one of several terms with public bits, a kind bit and a scale.

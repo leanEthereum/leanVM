@@ -31,7 +31,7 @@ fn proves_and_verifies(tag: &str, elf: &[u8], advice: &[u64], expected: [u64; 4]
     PythonStatement::new(tag, &program, &output).assert_accepts(&raw);
     let mut wrong = output;
     wrong[3] ^= 1;
-    assert!(program.verify(&wrong, &proof).is_err());
+    assert!(program.verify(wrong.into(), &proof).is_err());
     println!(
         "{tag}: {} instructions, {}",
         program.rv().entries().len(),

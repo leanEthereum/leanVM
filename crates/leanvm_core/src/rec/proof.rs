@@ -15,7 +15,7 @@ use crate::arith::Verifier;
 use crate::constraints::{Columns, ConstraintError};
 use crate::pcs::{Rate, RingSwitchOpen, StackClaim};
 use crate::{constraints, pcs, witness};
-use fiat_shamir::transcript::{Challenger, Proof, ProverState, RawProof, VerifierState};
+use fiat_shamir::transcript::{Challenger, ProofTranscript, ProverState, RawProof, VerifierState};
 use flock::reduction::SliceClaim;
 use primitives::field::{F64, F192};
 
@@ -206,7 +206,7 @@ impl Circuit {
     ///
     /// Panics if the assignment is not one of the circuit, or its bus does not balance.
     #[tracing::instrument(name = "Prove recursion", skip_all)]
-    pub fn prove(&self, a: &Assignment, iv: [F64; 4], rate: Rate) -> Result<Proof, RecError> {
+    pub fn prove(&self, a: &Assignment, iv: [F64; 4], rate: Rate) -> Result<ProofTranscript, RecError> {
         assert_eq!(a.statement.len(), self.statement_len, "the assignment's statement");
         assert!(
             Table::ALL
@@ -234,7 +234,13 @@ impl Circuit {
     /// # Errors
     ///
     /// Returns the first check that refuses the proof.
-    pub fn verify(&self, statement: &[Limbs], iv: [F64; 4], rate: Rate, proof: &Proof) -> Result<(), RecError> {
+    pub fn verify(
+        &self,
+        statement: &[Limbs],
+        iv: [F64; 4],
+        rate: Rate,
+        proof: &ProofTranscript,
+    ) -> Result<(), RecError> {
         self.verify_to_raw(statement, iv, rate, proof).map(|_| ())
     }
 
@@ -250,7 +256,7 @@ impl Circuit {
         statement: &[Limbs],
         iv: [F64; 4],
         rate: Rate,
-        proof: &Proof,
+        proof: &ProofTranscript,
     ) -> Result<RawProof, RecError> {
         self.verify_seeded(statement, iv, statement_seed(statement), rate, proof)
     }
@@ -262,7 +268,7 @@ impl Circuit {
         iv: [F64; 4],
         public_input: [F64; 4],
         rate: Rate,
-        proof: &Proof,
+        proof: &ProofTranscript,
     ) -> Result<RawProof, RecError> {
         if statement.len() != self.statement_len {
             return Err(RecError::StatementLength {
@@ -302,13 +308,13 @@ mod tests {
 
     const IV: [F64; 4] = [F64(1), F64(2), F64(3), F64(4)];
 
-    fn prove_run(circuit: &Circuit, a: &Assignment) -> Proof {
+    fn prove_run(circuit: &Circuit, a: &Assignment) -> ProofTranscript {
         circuit
             .prove(a, IV, Rate::MIN)
             .expect("the circuit fits one commitment")
     }
 
-    fn verify_run(circuit: &Circuit, statement: &[Limbs], proof: &Proof) -> Result<(), RecError> {
+    fn verify_run(circuit: &Circuit, statement: &[Limbs], proof: &ProofTranscript) -> Result<(), RecError> {
         circuit.verify(statement, IV, Rate::MIN, proof)
     }
 

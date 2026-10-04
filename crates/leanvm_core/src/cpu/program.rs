@@ -4,11 +4,12 @@
 
 use super::batch::{Batch, FormPowers};
 use super::deferred::DeferredClaims;
-use super::error::{CpuError, ProveError};
+use super::error::{CpuError, ProveError, VerifyError};
 use super::execute::{Execution, TraceBuilder};
 use super::filler::{FillBlocks, Plan};
 use super::layout::{Announcement, Lookup, Schema, Sizes};
 use super::witness::Witness;
+use super::{Output, Proof};
 use crate::arith::Native;
 use crate::constraints::Columns;
 use crate::pcs::Rate;
@@ -17,7 +18,7 @@ use crate::tables::{ClassSpec, Clock};
 use crate::{class_flock, constraints, leaf, pcs, tables};
 use ::pcs::pack::PACKING_WIDTH;
 use ::pcs::stack_open::{RingSwitchClaim, RingSwitchOpen, RingSwitchVerify, RingSwitchVerifyClaim};
-use fiat_shamir::transcript::{Challenger, Proof, ProverState, RawProof, VerifierState};
+use fiat_shamir::transcript::{Challenger, ProverState, RawProof, VerifierState};
 use primitives::field::{F64, F192};
 use primitives::hash::Hasher;
 use std::cmp::Reverse;
@@ -105,6 +106,7 @@ impl Program {
     /// # Errors
     ///
     /// Refuses more advice than the program's region holds, a run that traps, and one that outruns the clock.
+    #[doc(hidden)]
     pub fn execute(&self, advice: &[u64]) -> Result<Execution, ProveError> {
         let p = &self.rv;
         let max = 1 << p.log_advice();
@@ -157,6 +159,7 @@ impl Program {
     ///
     /// Refuses a run that traps, one too long for one proof, and more advice than the program's region holds.
     #[tracing::instrument(name = "Prove", skip_all, fields(log_inv_rate = rate.log_inv_rate()))]
+    #[doc(hidden)]
     pub fn prove(&self, advice: &[u64], rate: Rate) -> Result<(Proof, [u64; 4], Stats), ProveError> {
         let exec = crate::stage!("Execute program", || self.execute(advice))?;
         if self.stack_sizes(exec.trace.row_counts()).0 > pcs::MAX_MU {
@@ -285,20 +288,22 @@ impl Program {
             });
         }
         crate::stage!("PCS open", || pcs::open(&mut ps, &committed, &w.q, &slots, &rings));
-        ps.into_proof()
+        Proof(ps.into_proof())
     }
 
-    /// Verify a proof that the program exits returning `output`.
+    /// Check that the proof shows this program, run on some advice, exiting with this output.
     ///
     /// It takes only public inputs, never the prover's witness.
+    ///
     /// It is the verifier's core, then the settlement of the claims the core leaves.
     ///
     /// # Errors
     ///
-    /// Returns the first stage that refuses the proof.
+    /// The proof is not one of this program and this output.
     #[tracing::instrument(name = "Verify", skip_all)]
-    pub fn verify(&self, output: &[u64; 4], proof: &Proof) -> Result<(), CpuError> {
-        self.check_deferred(&self.verify_core(output, proof)?)
+    pub fn verify(&self, output: Output, proof: &Proof) -> Result<(), VerifyError> {
+        let claims = self.verify_core(output.words(), proof)?;
+        Ok(self.check_deferred(&claims)?)
     }
 
     /// Verify a proof, and return it with every query's Merkle path written out, the form the Python verifier reads.
@@ -307,6 +312,7 @@ impl Program {
     ///
     /// Returns the first stage that refuses the proof.
     #[tracing::instrument(name = "Verify", skip_all)]
+    #[doc(hidden)]
     pub fn verify_to_raw(&self, output: &[u64; 4], proof: &Proof) -> Result<RawProof, CpuError> {
         let (claims, raw) = self.replay(output, proof)?;
         self.check_deferred(&claims)?;
@@ -322,6 +328,7 @@ impl Program {
     /// # Errors
     ///
     /// Returns the first stage that refuses the proof.
+    #[doc(hidden)]
     pub fn verify_core(&self, output: &[u64; 4], proof: &Proof) -> Result<DeferredClaims, CpuError> {
         self.replay(output, proof).map(|(claims, _)| claims)
     }
@@ -330,7 +337,7 @@ impl Program {
     #[tracing::instrument(name = "Verify core", skip_all)]
     fn replay(&self, output: &[u64; 4], proof: &Proof) -> Result<(DeferredClaims, RawProof), CpuError> {
         // The public statement seeds the transcript, as on the prover's side.
-        let mut vs = VerifierState::new(self.fs_seed(), proof, output.map(F64));
+        let mut vs = VerifierState::new(self.fs_seed(), &proof.0, output.map(F64));
 
         // The announced sizes, then the layout they describe, then the commitment.
         let announcement = Announcement::read(&mut vs)?;
@@ -401,6 +408,7 @@ impl Program {
     }
 
     /// The decoded text, memory image and region sizes.
+    #[doc(hidden)]
     pub const fn rv(&self) -> &RiscvProgram {
         &self.rv
     }
@@ -408,6 +416,7 @@ impl Program {
     /// BLAKE2s over the decoded text, the entry and halt addresses, the region sizes and the initial RAM image.
     ///
     /// ELF metadata is no part of it, and every illegal encoding decodes to the same entry.
+    #[doc(hidden)]
     pub const fn digest(&self) -> &[u8; 32] {
         &self.digest
     }
@@ -415,6 +424,7 @@ impl Program {
     /// The transcript's seed: the digest, as words.
     ///
     /// Every challenge depends on it, and the run's public output seeds the transcript beside it.
+    #[doc(hidden)]
     pub fn fs_seed(&self) -> [F64; 4] {
         fiat_shamir::digest_words(&self.digest)
     }
@@ -925,7 +935,9 @@ mod tests {
         let honest = program.execute(&[]).unwrap();
         assert_eq!(honest.output, [12, 0, 0, 0]);
         let (proof, _) = program.prove_execution(&honest, Rate::MIN);
-        program.verify(&honest.output, &proof).expect("the honest run verifies");
+        program
+            .verify(honest.output.into(), &proof)
+            .expect("the honest run verifies");
 
         let mut forged = program.execute(&[]).unwrap();
         let row = &mut forged.trace.rows[0][3];
@@ -1118,6 +1130,9 @@ mod tests {
         forged.trace.ts_final |= 1 << Clock::FAIL_BIT;
         assert!(unmatched_run(&program, &forged).is_empty());
         let (proof, _) = program.prove_execution(&forged, Rate::MIN);
-        assert_eq!(program.verify(&forged.output, &proof), Err(CpuError::FinalClock));
+        assert_eq!(
+            program.verify(forged.output.into(), &proof),
+            Err(CpuError::FinalClock.into())
+        );
     }
 }

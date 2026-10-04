@@ -2,7 +2,7 @@ use super::*;
 use crate::merkle::Hash;
 use crate::ring_switch::inner_product_ext;
 use crate::whir_config::tests::test_config_for;
-use fiat_shamir::transcript::{Proof, ProverState, TranscriptError, VerifierState};
+use fiat_shamir::transcript::{ProofTranscript, ProverState, TranscriptError, VerifierState};
 use primitives::field::powers;
 use primitives::multilinear::{eq_eval, eq_table};
 use primitives::test_util::Rng;
@@ -18,7 +18,7 @@ struct Instance {
     target: F192,
     root: Hash,
     /// The transcript: every scalar WHIR transmitted, plus its opening phases.
-    fs: Proof,
+    fs: ProofTranscript,
 }
 
 fn prove_instance(log_n: usize, seed: u64) -> Instance {
@@ -56,7 +56,7 @@ fn dense_mle(table: &[F192], point: &[F192]) -> F192 {
     inner_product_ext(table, &eq_table(point))
 }
 
-fn verify_with(inst: &Instance, fs: &Proof, eval_b_at: impl Fn(&[F192]) -> F192) -> Result<(), WhirError> {
+fn verify_with(inst: &Instance, fs: &ProofTranscript, eval_b_at: impl Fn(&[F192]) -> F192) -> Result<(), WhirError> {
     let mut vs = VerifierState::from_label(b"whir-test", fs);
     recursive_verifier_with_basis_succinct(
         &inst.vc,
@@ -70,18 +70,18 @@ fn verify_with(inst: &Instance, fs: &Proof, eval_b_at: impl Fn(&[F192]) -> F192)
 }
 
 /// The weight evaluated in closed form at the terminal fold point.
-fn verify_closed_form(inst: &Instance, fs: &Proof) -> bool {
+fn verify_closed_form(inst: &Instance, fs: &ProofTranscript) -> bool {
     verify_with(inst, fs, |fold_point| eq_eval(&inst.point, fold_point)).is_ok()
 }
 
 /// The weight evaluated from its whole table at the terminal fold point.
-fn verify_dense_weight(inst: &Instance, fs: &Proof) -> bool {
+fn verify_dense_weight(inst: &Instance, fs: &ProofTranscript) -> bool {
     verify_with(inst, fs, |fold_point| dense_mle(&inst.b_initial, fold_point)).is_ok()
 }
 
 /// Both weight evaluations on the same proof, asserting they agree; returns the
 /// shared verdict.
-fn verify_both_agree(inst: &Instance, fs: &Proof, what: &str) -> bool {
+fn verify_both_agree(inst: &Instance, fs: &ProofTranscript, what: &str) -> bool {
     let closed_form = verify_closed_form(inst, fs);
     let dense = verify_dense_weight(inst, fs);
     assert_eq!(closed_form, dense, "closed-form/dense verdict split on {what}");
@@ -141,7 +141,7 @@ fn tampered_proofs_are_rejected() {
         let mut rng = Rng::new(seed ^ 0xABCD);
         // One Merkle phase per level, in level order: phase 0 opens L0, the
         // last phase opens the final level.
-        type Tamper = fn(&mut Proof, u64);
+        type Tamper = fn(&mut ProofTranscript, u64);
         let tampers: &[(&str, Tamper)] = &[
             ("L0 opened row", |p, r| {
                 let rows = &mut p.merkle[0].leaf_data;
@@ -271,7 +271,7 @@ fn truncated_lanes_match_an_explicit_zero_tail() {
             }
 
             // The verifier evaluates the weight over the whole `2^log_n` cube.
-            let verify = |fs: &Proof| {
+            let verify = |fs: &ProofTranscript| {
                 let mut vs = VerifierState::from_label(b"whir-test", fs);
                 recursive_verifier_with_basis_succinct(
                     &pc,

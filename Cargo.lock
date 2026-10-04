@@ -269,8 +269,6 @@ name = "leanvm"
 version = "0.1.0"
 dependencies = [
  "leanvm_core",
- "leanvm_guest",
- "primitives",
  "thiserror",
 ]
 

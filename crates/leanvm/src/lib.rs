@@ -43,25 +43,32 @@
 //!
 //! Many proofs of one program aggregate into one proof through the aggregation module.
 
-pub mod aggregate;
-mod envelope;
-mod error;
-mod output;
-mod program;
-mod proof;
-mod prover;
-
-#[cfg(test)]
-mod fixtures;
-
-pub use error::{DecodeError, VerifyError};
-pub use output::Output;
-pub use program::Program;
-pub use proof::Proof;
-pub use prover::{ProvenRun, Prover};
-
 pub use leanvm_core::{
-    cpu::{ProveError, Stats},
+    cpu::{DecodeError, Output, Program, Proof, ProveError, ProvenRun, Prover, Stats, VerifyError},
     pcs::{InvalidRate, Rate},
     rv::{ElfError, ProgramError, Region, Trap, asm},
 };
+
+/// Aggregation trees: many proofs of one program, verified as one.
+///
+/// # Overview
+///
+/// ```text
+///                 node                  verifies `arity` tree proofs, of either kind
+///               /      \
+///        first-level   first-level      each verifies `arity_0` proofs of the program
+///          /  \          /  \
+///       leaf  leaf    leaf  leaf
+/// ```
+///
+/// Every tree proof states the same few hundred words:
+///
+/// - a digest of its leaves' outputs,
+/// - claims that only the root's verifier evaluates.
+///
+/// A tree over one leaf, with `arity_0 = 1`, is a single proof's recursion.
+pub mod aggregate {
+    pub use leanvm_core::rec::tree::{
+        CircuitStats, DensePoly, FalseClaim, Kind, Leaf, LeafShape, TableStats, Tree, TreeError, TreeProof, TreeShape,
+    };
+}

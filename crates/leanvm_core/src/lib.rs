@@ -35,6 +35,7 @@ pub mod class_flock;
 pub mod colval;
 pub mod constraints;
 pub mod cpu;
+mod envelope;
 pub mod gkr;
 pub mod leaf;
 pub mod pcs;

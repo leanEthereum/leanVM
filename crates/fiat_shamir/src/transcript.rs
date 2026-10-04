@@ -10,18 +10,18 @@ use thiserror::Error;
 
 /// A scalar stream and its Merkle opening phases. `M` selects pruned or raw paths.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Proof<M = PrunedMerklePaths> {
+pub struct ProofTranscript<M = PrunedMerklePaths> {
     pub stream: Vec<F192>,
     pub merkle: Vec<M>,
 }
 
-/// The proof the Python verifier consumes: [`Proof`] with every query's Merkle
+/// The proof the Python verifier consumes: [`ProofTranscript`] with every query's Merkle
 /// path written out, which is the one thing it would otherwise have to
 /// reconstruct. A verifier run yields it as a by-product
 /// ([`VerifierState::into_raw_proof`]), so that expansion is written once, in Rust.
-pub type RawProof = Proof<RawMerklePath>;
+pub type RawProof = ProofTranscript<RawMerklePath>;
 
-impl<M: Serialize + DeserializeOwned> Proof<M> {
+impl<M: Serialize + DeserializeOwned> ProofTranscript<M> {
     /// The proof's wire bytes: bincode's fixed-width little-endian encoding.
     #[must_use]
     pub fn to_bytes(&self) -> Vec<u8> {
@@ -169,15 +169,15 @@ impl ProverState {
         }
     }
 
-    pub fn into_proof(self) -> Proof {
-        Proof {
+    pub fn into_proof(self) -> ProofTranscript {
+        ProofTranscript {
             stream: self.stream,
             merkle: self.merkle,
         }
     }
 }
 
-/// Verifier side: reads scalars from a received [`Proof`] (borrowed) and pulls
+/// Verifier side: reads scalars from a received [`ProofTranscript`] (borrowed) and pulls
 /// opening phases in order.
 pub struct VerifierState<'a> {
     fs: FiatShamirState,
@@ -191,16 +191,16 @@ pub struct VerifierState<'a> {
 impl<'a> VerifierState<'a> {
     /// `iv` and `public_input` seed the Fiat-Shamir state (see [`FiatShamirState::new`]).
     /// They must match the prover's, or the two states diverge and verification fails.
-    pub fn new(iv: [F64; 4], proof: &'a Proof, public_input: [F64; 4]) -> Self {
+    pub fn new(iv: [F64; 4], proof: &'a ProofTranscript, public_input: [F64; 4]) -> Self {
         Self::from_fs(FiatShamirState::new(iv, public_input), proof)
     }
 
     /// A protocol with no public input of its own, seeded from `label` alone.
-    pub fn from_label(label: &[u8], proof: &'a Proof) -> Self {
+    pub fn from_label(label: &[u8], proof: &'a ProofTranscript) -> Self {
         Self::from_fs(FiatShamirState::from_label(label), proof)
     }
 
-    fn from_fs(fs: FiatShamirState, proof: &'a Proof) -> Self {
+    fn from_fs(fs: FiatShamirState, proof: &'a ProofTranscript) -> Self {
         Self {
             fs,
             stream: &proof.stream,

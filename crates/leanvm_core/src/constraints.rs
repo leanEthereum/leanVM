@@ -545,7 +545,7 @@ pub fn verify<V: Verifier, S: Residual<V>>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use fiat_shamir::transcript::Proof;
+    use fiat_shamir::transcript::ProofTranscript;
     use primitives::field::powers;
     use primitives::multilinear::{fold_high_inplace, fold_high_k};
     use primitives::test_util::Rng;
@@ -745,7 +745,7 @@ mod tests {
         (xi, zeta)
     }
 
-    fn run(taus: &[usize], cols: &[Vec<Vec<F64>>]) -> (Proof, Result<Vec<Claims>, ConstraintError>) {
+    fn run(taus: &[usize], cols: &[Vec<Vec<F64>>]) -> (ProofTranscript, Result<Vec<Claims>, ConstraintError>) {
         let (xi, zeta) = xi_zeta(taus);
         let airs = airs_for(taus, false, xi);
         let zeros = vec![F192::ZERO; taus.len()];

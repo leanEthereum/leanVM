@@ -21,7 +21,7 @@ use ::pcs::pack::PACKING_WIDTH;
 use ::pcs::ring_switch::fold_1b_rows;
 use ::pcs::stack_open::{RingFamily, RingSwitchVerify, RingSwitchVerifyClaim};
 use ::pcs::whir::inner_product_base_ext;
-use fiat_shamir::transcript::{Proof, ProverState, RawProof, VerifierState};
+use fiat_shamir::transcript::{ProofTranscript, ProverState, RawProof, VerifierState};
 use primitives::field::{F64, F192};
 use primitives::test_util::Rng;
 
@@ -53,7 +53,7 @@ fn fixture() -> Fixture {
     let (proof, output, _) = program.prove(&[], Rate::MIN).expect("the run halts");
     let native = program.verify_core(&output, &proof).expect("an honest proof");
     let raw = program.verify_to_raw(&output, &proof).expect("an honest proof");
-    let taus = std::array::from_fn(|i| usize::try_from(proof.stream[i].c0).expect("a height"));
+    let taus = std::array::from_fn(|i| usize::try_from(proof.0.stream[i].c0).expect("a height"));
     Fixture {
         program,
         raw,
@@ -182,7 +182,7 @@ fn a_non_boolean_merkle_selector_is_refused() {
     let iv = [F64(7); 4];
     let statement = a.statement().to_vec();
     let prove = |a: &Assignment| circuit.prove(a, iv, Rate::MIN).expect("the circuit fits");
-    let verify = |proof: &Proof| circuit.verify(&statement, iv, Rate::MIN, proof);
+    let verify = |proof: &ProofTranscript| circuit.verify(&statement, iv, Rate::MIN, proof);
     assert_eq!(verify(&prove(&a)), Ok(()));
     a.values[bit.0 as usize][0] = 2;
     assert_eq!(
@@ -207,7 +207,7 @@ fn replay<T>(source: ProofSource<'_>, f: impl FnOnce(&mut Rows<'_, '_>) -> T) ->
     (b, out, finished)
 }
 
-fn raw(proof: &Proof) -> RawProof {
+fn raw(proof: &ProofTranscript) -> RawProof {
     RawProof {
         stream: proof.stream.clone(),
         merkle: Vec::new(),
@@ -215,7 +215,7 @@ fn raw(proof: &Proof) -> RawProof {
 }
 
 // The reduction of packed witness `f` over `rows`, proven natively.
-fn prove_reduction<const N: usize>(f: usize, rows: &[[u64; N]], n_blocks_log: usize) -> Proof {
+fn prove_reduction<const N: usize>(f: usize, rows: &[[u64; N]], n_blocks_log: usize) -> ProofTranscript {
     let circuit = class_flock::circuit(f);
     let (t, _) = class_flock::flock(f);
     let (z, a, bz, zl) = ClassSpec::ALL[t].witness.map_or_else(
@@ -230,9 +230,9 @@ fn prove_reduction<const N: usize>(f: usize, rows: &[[u64; N]], n_blocks_log: us
 }
 
 // The reduction in rows agrees with the native replay, and a tampered scalar leaves a claim that does not settle.
-fn check_reduction(f: usize, n_blocks_log: usize, proof: &Proof) {
+fn check_reduction(f: usize, n_blocks_log: usize, proof: &ProofTranscript) {
     let shape = class_flock::shape(f);
-    let native = |proof: &Proof| {
+    let native = |proof: &ProofTranscript| {
         let mut vs = VerifierState::from_label(LABEL, proof);
         class_flock::verify_reduction(f, n_blocks_log, &mut vs).expect("the replay runs")
     };

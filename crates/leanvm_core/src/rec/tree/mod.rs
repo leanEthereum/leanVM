@@ -16,7 +16,8 @@
 //!
 //! Each node reduces the claims its children leave and carry to one of each, and only the root's verifier evaluates them.
 
-use crate::cpu::{CpuError, Lookup, Program, Proof};
+use crate::cpu::{CpuError, DecodeError, Lookup, Output, Program, Proof, ProvenRun, Stats, VerifyError};
+use crate::envelope::Envelope;
 use crate::pcs::Rate;
 use crate::rec::RecError;
 use crate::rec::circuit::{Circuit, Finished};
@@ -27,7 +28,7 @@ use crate::rec::transcript::ProofSource;
 use crate::rec::verifier::ProofShape;
 use crate::tables::{ClassSpec, N_TABLES, Part};
 use design::{ChildWitness, Design, LeafWitness, NodeRows, Witness};
-use fiat_shamir::transcript::RawProof;
+use fiat_shamir::transcript::{ProofTranscript, RawProof};
 use primitives::field::{F64, F192};
 use primitives::multilinear::{eq_table, mle_eval_par};
 use reduce::DenseTables;
@@ -39,16 +40,22 @@ mod design;
 mod fixed;
 mod reduce;
 mod statement;
+mod stats;
 #[cfg(test)]
 mod tests;
 
 pub use claims::DensePoly;
 pub use statement::Kind;
+pub use stats::{CircuitStats, TableStats};
 
 /// The most rounds the search for the nodes' heights takes: each round at least doubles a table.
 const MAX_ROUNDS: usize = 8;
 
-/// The shape of a tree's leaves: each table's height and the rate, as a RISC-V proof announces them.
+/// The shape every leaf proof of a tree shares.
+///
+/// It is each table's height and the commitment's rate, as a proof announces them.
+///
+/// A tree's circuits are built from it, so they verify leaves of that shape only.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct LeafShape {
     /// Each table's base-two logarithm of rows.
@@ -57,16 +64,33 @@ pub struct LeafShape {
     rate: Rate,
 }
 
-/// A leaf of a tree: a RISC-V proof, and the output it proves.
+/// One leaf of a tree: a proof of a run, and the output it proves.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Leaf<'a> {
-    /// The proof.
+    /// The proof of the run.
     proof: &'a Proof,
-    /// `a0..a3` at the run's exit.
-    output: [u64; 4],
+    /// The output the proof claims.
+    output: Output,
 }
 
-/// A tree's verifying key and its prover's tables: its two circuits, their fixed columns, and the dense polynomials.
+/// How a tree is shaped.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct TreeShape {
+    /// The shape every leaf proof shares.
+    pub leaf: LeafShape,
+    /// The leaf proofs a first-level node verifies, at least one.
+    pub arity_0: usize,
+    /// The tree proofs a higher node verifies, at least two.
+    pub arity: usize,
+    /// The commitment rate of every tree proof.
+    pub rate: Rate,
+}
+
+/// An aggregation tree over proofs of one program.
+///
+/// It is the tree's verifying key, and what its prover needs.
+///
+/// It is built from the program and the shape alone, before any proof exists.
 pub struct Tree<'p> {
     /// What fixes the circuits.
     design: Design<'p>,
@@ -78,7 +102,11 @@ pub struct Tree<'p> {
     tables: DenseTables,
 }
 
-/// A recursion proof of a tree: its statement's words, its proof, and the rate it is proven at.
+/// A proof made by one node of a tree, the root's included.
+///
+/// A first-level node's proof covers leaf proofs.
+///
+/// A higher node's proof covers tree proofs.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TreeProof {
     /// What its circuit verifies, its statement's first word.
@@ -86,7 +114,7 @@ pub struct TreeProof {
     /// Its statement's words.
     words: Vec<F192>,
     /// The recursion proof.
-    proof: Proof,
+    proof: ProofTranscript,
     /// The rate it is proven at.
     rate: Rate,
 }
@@ -149,12 +177,12 @@ pub enum TreeError {
         index: usize,
     },
     /// A leaf proof does not verify.
-    #[error("leaf {index} does not verify: {error}")]
+    #[error("leaf {index}: {error}")]
     Leaf {
         /// The leaf's index among its node's.
         index: usize,
         /// Why its verifier refuses it.
-        error: CpuError,
+        error: VerifyError,
     },
     /// A child proof does not verify.
     #[error("child {index} does not verify: {error}")]
@@ -198,14 +226,35 @@ pub enum TreeError {
 
 impl LeafShape {
     /// The shape of proofs with these table heights at this rate.
-    pub const fn new(taus: [usize; N_TABLES], rate: Rate) -> Self {
+    pub(crate) const fn new(taus: [usize; N_TABLES], rate: Rate) -> Self {
         Self { taus, rate }
     }
 
-    /// The shape a RISC-V proof announces, if its announcement is canonical.
-    pub fn of(proof: &Proof) -> Option<Self> {
+    /// The shape a proof announces.
+    ///
+    /// # Errors
+    ///
+    /// A proof whose announced heights or rate are not canonical.
+    pub fn of(proof: &Proof) -> Result<Self, DecodeError> {
+        Self::announced(proof).ok_or(DecodeError::Malformed)
+    }
+
+    /// The shape a proof of a run would announce, from the run's measured cost.
+    ///
+    /// So a tree's key is built before any leaf is proven.
+    #[must_use]
+    pub fn measured(stats: &Stats, rate: Rate) -> Self {
+        // Every proven table height is a power of two, so its logarithm is exact.
+        Self::new(stats.counts.map(|rows| rows.ilog2() as usize), rate)
+    }
+
+    /// The shape a proof's first scalars announce, if they are canonical.
+    fn announced(proof: &Proof) -> Option<Self> {
+        // A size is one canonical integer in the low limb.
         let size = |x: &F192| (x.c1 == 0 && x.c2 == 0).then(|| usize::try_from(x.c0).ok()).flatten();
-        let announced = proof.stream.get(..=N_TABLES)?;
+
+        // The stream opens with each table's height, then the rate.
+        let announced = proof.0.stream.get(..=N_TABLES)?;
         let mut taus = [0; N_TABLES];
         for (tau, x) in taus.iter_mut().zip(announced) {
             *tau = size(x)?;
@@ -216,24 +265,55 @@ impl LeafShape {
 }
 
 impl<'a> Leaf<'a> {
-    /// The leaf of this proof of this output.
-    pub const fn new(proof: &'a Proof, output: [u64; 4]) -> Self {
+    /// The leaf of a proof and the output it proves.
+    #[must_use]
+    pub const fn new(proof: &'a Proof, output: Output) -> Self {
         Self { proof, output }
     }
 }
 
+impl<'a> From<&'a ProvenRun> for Leaf<'a> {
+    fn from(run: &'a ProvenRun) -> Self {
+        Self::new(&run.proof, run.output)
+    }
+}
+
 impl TreeProof {
-    /// What the proof's circuit verifies.
+    /// The header of a tree proof's bytes: the magic `LVMT`, then the tree protocol's version.
+    ///
+    /// The version is bumped by every change to what a tree proof says.
+    const ENVELOPE: Envelope = Envelope::new(*b"LVMT", 1);
+
+    /// The kind of node that made the proof.
+    #[must_use]
     pub const fn kind(&self) -> Kind {
         self.kind
     }
 
-    /// The proof's bytes: its rate, its statement's words, then the recursion proof.
+    /// The proof's bytes.
+    #[must_use]
+    pub fn to_bytes(&self) -> Vec<u8> {
+        Self::ENVELOPE.seal(&self.body())
+    }
+
+    /// The tree proof these bytes encode.
+    ///
+    /// # Errors
+    ///
+    /// - Bytes that are no tree proof.
+    /// - A tree proof of another protocol version.
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, DecodeError> {
+        // The header first: a foreign version is refused before its body is read.
+        let body = Self::ENVELOPE.open(bytes)?;
+        Self::from_body(body).ok_or(DecodeError::Malformed)
+    }
+
+    /// The body behind the header: its rate, its statement's words, then the recursion proof.
     ///
     /// ```text
     /// | log_inv_rate: u8 | n_words: u32 | words: 24 bytes each | proof |
     /// ```
-    pub fn to_bytes(&self) -> Vec<u8> {
+    fn body(&self) -> Vec<u8> {
         let n_words = u32::try_from(self.words.len()).expect("a statement of a few hundred words");
         let mut bytes = vec![self.rate.log_inv_rate()];
         bytes.extend(n_words.to_le_bytes());
@@ -244,8 +324,8 @@ impl TreeProof {
         bytes
     }
 
-    /// The proof these bytes encode, if they encode one and nothing more.
-    pub fn from_bytes(bytes: &[u8]) -> Option<Self> {
+    /// The tree proof a body encodes, if it encodes one and nothing more.
+    fn from_body(bytes: &[u8]) -> Option<Self> {
         let (&rate, rest) = bytes.split_first()?;
         let (n_words, rest) = rest.split_first_chunk::<4>()?;
         let n_words = usize::try_from(u32::from_le_bytes(*n_words)).ok()?;
@@ -259,16 +339,14 @@ impl TreeProof {
         Some(Self {
             kind: Kind::of_word(*words.first()?)?,
             words,
-            proof: Proof::from_bytes(proof)?,
+            proof: ProofTranscript::from_bytes(proof)?,
             rate: Rate::new(rate).ok()?,
         })
     }
 }
 
 impl<'p> Tree<'p> {
-    /// The tree over proofs of a program of the given shape, a first-level node verifying `n_0` of them and a node `n` tree proofs.
-    ///
-    /// Every tree proof is at the given rate.
+    /// The tree over proofs of a program, shaped as given.
     ///
     /// The circuits are built from the shapes alone, so a verifier needs no proof to build its key.
     ///
@@ -277,13 +355,13 @@ impl<'p> Tree<'p> {
     /// - Arities that make no tree: a first level of no leaf, or nodes of fewer than two children.
     /// - A leaf shape no proof of the program has.
     /// - Circuits that fit no commitment.
-    pub fn new(
-        program: &'p Program,
-        leaves: LeafShape,
-        arity_0: usize,
-        arity: usize,
-        rate: Rate,
-    ) -> Result<Self, TreeError> {
+    pub fn new(program: &'p Program, shape: TreeShape) -> Result<Self, TreeError> {
+        let TreeShape {
+            leaf: leaves,
+            arity_0,
+            arity,
+            rate,
+        } = shape;
         if arity_0 == 0 || arity < 2 {
             return Err(TreeError::Arity { arity_0, arity });
         }
@@ -330,7 +408,7 @@ impl<'p> Tree<'p> {
     }
 
     /// The circuit of a proof of this kind.
-    pub const fn circuit(&self, kind: Kind) -> &Circuit {
+    pub(crate) const fn circuit(&self, kind: Kind) -> &Circuit {
         &self.circuits[kind as usize]
     }
 
@@ -351,11 +429,17 @@ impl<'p> Tree<'p> {
         let program = d.leaf.program();
         let items = (leaves.iter().enumerate())
             .map(|(index, &Leaf { proof, output })| {
-                if LeafShape::of(proof) != Some(shape) {
+                if LeafShape::announced(proof) != Some(shape) {
                     return Err(TreeError::ForeignLeaf { index });
                 }
-                let raw = (program.verify_to_raw(&output, proof)).map_err(|error| TreeError::Leaf { index, error })?;
-                Ok(LeafWitness { raw, output })
+                let raw = (program.verify_to_raw(output.words(), proof)).map_err(|error| TreeError::Leaf {
+                    index,
+                    error: error.into(),
+                })?;
+                Ok(LeafWitness {
+                    raw,
+                    output: *output.words(),
+                })
             })
             .collect::<Result<Vec<_>, _>>()?;
         let witness = Witness::Prove {
@@ -428,7 +512,7 @@ impl<'p> Tree<'p> {
     ///
     /// Returns the first check that refuses.
     #[tracing::instrument(name = "Verify tree", skip_all)]
-    pub fn verify(&self, root: &TreeProof, outputs: &[[u64; 4]]) -> Result<(), TreeError> {
+    pub fn verify(&self, root: &TreeProof, outputs: &[Output]) -> Result<(), TreeError> {
         let d = &self.design;
         if root.rate != d.rate {
             return Err(TreeError::Rate {
@@ -471,8 +555,9 @@ impl<'p> Tree<'p> {
     }
 
     /// The digest the root over these leaf outputs states.
-    fn digest(&self, outputs: &[[u64; 4]]) -> [u64; 4] {
+    fn digest(&self, outputs: &[Output]) -> [u64; 4] {
         let (arity_0, arity) = (self.design.arity_0, self.design.arity);
+        let outputs: Vec<[u64; 4]> = outputs.iter().map(|output| *output.words()).collect();
         let mut level: Vec<[u64; 4]> = outputs.chunks(arity_0).map(|o| Kind::First.digest(o)).collect();
         while level.len() > 1 {
             level = level.chunks(arity).map(|c| Kind::Node.digest(c)).collect();

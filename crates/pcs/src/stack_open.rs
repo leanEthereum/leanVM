@@ -540,7 +540,7 @@ mod tests {
     use crate::whir::{INITIAL_BASIS_CHUNK, commit, inner_product_base_ext};
     use crate::whir_config::tests::{default_config, test_config_for};
     use basis::StackWeight;
-    use fiat_shamir::transcript::{Proof, ProverState, VerifierState};
+    use fiat_shamir::transcript::{ProofTranscript, ProverState, VerifierState};
     use primitives::multilinear::eq_table;
     use primitives::test_util::Rng;
 
@@ -640,7 +640,7 @@ mod tests {
         rings: Vec<RingSwitchOpen>,
         /// The verifier's copy of each ring's one claim.
         ring_verify: Vec<RingSwitchClaim>,
-        fs: Proof,
+        fs: ProofTranscript,
     }
 
     /// Synthetic stack of 2^14 F64 words: three aligned 2^12-word columns
@@ -786,7 +786,7 @@ mod tests {
         inst: &Instance,
         point_claims: &[StackClaim],
         ring_claims: &[RingSwitchClaim],
-        fs: &Proof,
+        fs: &ProofTranscript,
     ) -> bool {
         let rings: Vec<RingSwitchVerify<'_>> = (inst.rings.iter().zip(ring_claims))
             .map(|(ring, claim)| RingSwitchVerify {

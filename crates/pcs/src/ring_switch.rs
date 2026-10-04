@@ -426,7 +426,7 @@ mod tests {
     use crate::pack::LOG_PACKING;
     use crate::whir::{VerifierConfig, commit, recursive_prover_with_basis, recursive_verifier_with_basis_succinct};
     use crate::whir_config::tests::test_config_for;
-    use fiat_shamir::transcript::{Proof, ProverState, VerifierState};
+    use fiat_shamir::transcript::{ProofTranscript, ProverState, VerifierState};
     use primitives::test_util::Rng;
     use std::collections::HashSet;
 
@@ -725,7 +725,7 @@ mod tests {
         claim: F192,
         root: Hash,
         rs_s_hat_v: Vec<F192>,
-        fs: Proof,
+        fs: ProofTranscript,
     }
 
     const E2E_DOMAIN: &[u8] = b"ring-switch-e2e-test";
@@ -863,7 +863,7 @@ mod tests {
     #[test]
     fn end_to_end_rejects_tampering() {
         let e = prove_e2e(13, 13, false);
-        let with = |s_hat_v: Vec<F192>, claim: F192, fs: Proof| E2e {
+        let with = |s_hat_v: Vec<F192>, claim: F192, fs: ProofTranscript| E2e {
             rs_s_hat_v: s_hat_v,
             vc: e.vc.clone(),
             log_n: e.log_n,

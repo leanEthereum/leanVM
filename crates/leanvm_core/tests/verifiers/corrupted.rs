@@ -27,7 +27,7 @@ fn corrupt(proof: &Proof, round: usize, rng: &mut Rng) -> Proof {
     let mut forged = proof.clone();
     match round % 5 {
         0 => {
-            let scalar = &mut forged.stream[rng.below(proof.stream.len())];
+            let scalar = &mut forged.0.stream[rng.below(proof.0.stream.len())];
             let bit = 1u64 << (rng.next() % 64);
             match rng.next() % 3 {
                 0 => scalar.c0 ^= bit,
@@ -36,20 +36,20 @@ fn corrupt(proof: &Proof, round: usize, rng: &mut Rng) -> Proof {
             }
         }
         // At least one scalar short, so the stream really is cut.
-        1 => forged.stream.truncate(rng.below(proof.stream.len())),
+        1 => forged.0.stream.truncate(rng.below(proof.0.stream.len())),
         2 => {
-            let paths = &mut forged.merkle[rng.below(proof.merkle.len())];
+            let paths = &mut forged.0.merkle[rng.below(proof.0.merkle.len())];
             let row = rng.below(paths.leaf_data.len());
             let word = rng.below(paths.leaf_data[row].len());
             paths.leaf_data[row][word].0 ^= 1 << (rng.next() % 64);
         }
         3 => {
-            let paths = &mut forged.merkle[rng.below(proof.merkle.len())];
+            let paths = &mut forged.0.merkle[rng.below(proof.0.merkle.len())];
             let hash = rng.below(paths.sibling_hashes.len());
             paths.sibling_hashes[hash][rng.below(32)] ^= 1;
         }
         _ => {
-            forged.merkle.remove(rng.below(proof.merkle.len()));
+            forged.0.merkle.remove(rng.below(proof.0.merkle.len()));
         }
     }
     forged
@@ -60,9 +60,12 @@ fn a_corrupted_proof_is_rejected_and_never_panics() {
     let (program, expected) = super::programs::fibonacci();
     let (proof, output, _) = program.prove(&[], Rate::MIN).expect("the run halts");
     assert_eq!(output, expected);
-    program.verify(&output, &proof).expect("the honest proof verifies");
+    program
+        .verify(output.into(), &proof)
+        .expect("the honest proof verifies");
     assert!(
         proof
+            .0
             .merkle
             .iter()
             .all(|p| !p.leaf_data.is_empty() && !p.sibling_hashes.is_empty()),
@@ -75,7 +78,7 @@ fn a_corrupted_proof_is_rejected_and_never_panics() {
         if forged == proof {
             continue; // the one no-op a random truncation can draw
         }
-        let verified = std::panic::catch_unwind(AssertUnwindSafe(|| program.verify(&output, &forged)));
+        let verified = std::panic::catch_unwind(AssertUnwindSafe(|| program.verify(output.into(), &forged)));
         match verified {
             Ok(Ok(())) => panic!("round {round}: a corrupted proof was accepted"),
             Ok(Err(_)) => {}
