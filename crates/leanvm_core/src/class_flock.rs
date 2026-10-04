@@ -161,7 +161,7 @@ impl Prepared {
             "a table's rows fill its batch (cpu::filler)"
         );
         let circuit = circuit(f);
-        let ports = crate::tables::tables()[t].ports(part);
+        let ports = crate::tables::ClassTable::all()[t].ports(part);
         let n_inputs = circuit.n_input_words();
         let slots = spec.slots();
         // The row's input words, one per input port.

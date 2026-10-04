@@ -456,7 +456,7 @@ fn forged_reduced_claims_are_refused() {
         (
             Forge::Matrix,
             FalseClaim::Matrix {
-                table: crate::tables::CLASSES[0].name,
+                table: crate::tables::ClassSpec::ALL[0].name,
                 part: Part::Class,
             },
         ),

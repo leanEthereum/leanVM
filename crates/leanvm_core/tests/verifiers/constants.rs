@@ -86,7 +86,10 @@ fn rust_constants() -> String {
             ("clock_const_pos", clock.const_pos() as u64),
             ("min_log_height", leanvm_core::class_flock::n_blocks_log(spec, 1) as u64),
             ("ports", spec.ports.len() as u64),
-            ("width", leanvm_core::tables::tables()[t].n_committed_columns() as u64),
+            (
+                "width",
+                leanvm_core::tables::ClassTable::all()[t].n_committed_columns() as u64,
+            ),
         ] {
             line.clear();
             write!(line, "{prefix}.{field} {value}").unwrap();

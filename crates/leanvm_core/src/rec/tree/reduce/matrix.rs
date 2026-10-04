@@ -51,7 +51,7 @@ struct RowTables {
 }
 
 /// The variables of flock circuit `f`'s matrices, each side.
-fn k_of(f: usize) -> usize {
+const fn k_of(f: usize) -> usize {
     class_flock::shape(f).k_log
 }
 

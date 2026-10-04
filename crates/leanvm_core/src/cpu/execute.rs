@@ -83,7 +83,7 @@ impl TraceBuilder {
     /// Record the row of `step`, executed at clock `ts`.
     pub(super) fn record(&mut self, p: &rv::Program, m: &Machine<'_>, step: Step, ts: u64) {
         let e = &p.entries()[step.index];
-        let table = tables::ClassSpec::table_index(e.class).expect("every class that runs has a table");
+        let table = tables::ClassTable::index_of(e.class).expect("every class that runs has a table");
         let spec = ClassSpec::ALL[table];
 
         // The register accesses the class makes, in column order, each at its slot of the row's clock.
@@ -166,7 +166,7 @@ impl TraceBuilder {
     /// An access in slot `k` pushes the timestamp `0 ^ k` and pulls that same timestamp, so the two tuples cancel.
     pub(super) fn pad(&mut self, p: &rv::Program, index: usize) {
         let e = &p.entries()[index];
-        let table = tables::ClassSpec::table_index(e.class).expect("a fill block's class has a table");
+        let table = tables::ClassTable::index_of(e.class).expect("a fill block's class has a table");
         let outcome = e.evaluate(0, 0, 0);
         let slots = &self.padding_prev[table];
 

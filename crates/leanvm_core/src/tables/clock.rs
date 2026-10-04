@@ -2,11 +2,11 @@
 
 use flock::circuit::{Builder, Circuit};
 
-// Timestamp bits: [zero:22 | failure:1 | live:1 | cycle:35 | slot:5].
-// Seeds and executed rows are live; padding rows are not.
-// A failed next clock cannot match another row or the final state.
-
 /// A row timestamp, including its live bit and access slot.
+///
+/// Seeds and executed rows carry the live bit; padding rows have clock zero.
+///
+/// An ordering failure marks the next clock, preventing a matching successor or final state.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Clock {
     /// Encoded timestamp supplied to the clock circuit.

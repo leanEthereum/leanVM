@@ -50,7 +50,7 @@ impl FormPowers {
     ///
     /// The prover needs them to build each round; the verifier only their total, which it derives.
     pub(super) fn table_sums(self, bus: &[Vec<F192>; 2]) -> Vec<F192> {
-        (0..tables::tables().len())
+        (0..tables::ClassTable::all().len())
             .map(|t| self.combine(&mut Native, [bus[0][t], bus[1][t]]))
             .collect()
     }
@@ -78,7 +78,7 @@ impl Batch {
         powers: FormPowers,
     ) -> Self {
         // A table's term is one form, not two: the batch adds the sides' evaluations anyway.
-        let tables = tables::tables()
+        let tables = tables::ClassTable::all()
             .iter()
             .zip(&layout.taus)
             .enumerate()
@@ -203,7 +203,7 @@ impl<'a, E: Copy> VerifierBatch<'a, E> {
         bus: &'a BusVerify<E>,
         powers: FormPowers<E>,
     ) -> Self {
-        let tables = (tables::tables().iter().zip(&layout.taus).enumerate()).map(|(t, (table, &tau))| Air {
+        let tables = (tables::ClassTable::all().iter().zip(&layout.taus).enumerate()).map(|(t, (table, &tau))| Air {
             tau,
             n_cols: table.n_committed_columns(),
             n_public: 0,

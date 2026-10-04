@@ -345,7 +345,7 @@ impl HashFlock {
 
     /// The packed witness index of the BLAKE2s class circuit, which proves every hash row.
     pub(crate) fn index() -> usize {
-        let t = tables::ClassSpec::table_index(crate::rv::Class::Hash).expect("the HASH class has a table");
+        let t = tables::ClassTable::index_of(crate::rv::Class::Hash).expect("the HASH class has a table");
         class_flock::flock_index(t, Part::Class)
     }
 

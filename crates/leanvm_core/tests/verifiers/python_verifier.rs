@@ -226,7 +226,7 @@ fn test_python_verifier() {
         (leanvm_core::rv::Class::Ld, 3, "flags are not its class's"),
     ] {
         // The class tag `g^t`, which is `2^t` since `g = x`.
-        let tag = 1u64 << leanvm_core::tables::ClassSpec::table_index(class).expect("the class has a table");
+        let tag = 1u64 << leanvm_core::tables::ClassTable::index_of(class).expect("the class has a table");
         let mut malformed = table.clone();
         for (slot, value) in [(2, tag), (3, 0), (slot, 1)] {
             malformed[8 * slot * entries..][..8].copy_from_slice(&value.to_le_bytes());

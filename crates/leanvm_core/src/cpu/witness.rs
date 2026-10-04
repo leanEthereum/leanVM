@@ -83,7 +83,7 @@ impl Witness {
 
         crate::stage!("Fill columns", || {
             // Each table fills its own columns from the trace, in its global span.
-            for (t, table) in tables::tables().iter().enumerate() {
+            for (t, table) in tables::ClassTable::all().iter().enumerate() {
                 let (base, n) = schema.spans[t];
                 let ctx = FillContext::new(trace, p, 1 << layout.taus[t], n);
                 table.fill(ctx, &mut windows[base..base + n]);

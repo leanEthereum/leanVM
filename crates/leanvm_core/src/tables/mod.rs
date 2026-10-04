@@ -21,8 +21,6 @@ pub use word::Word;
 pub(crate) use bus::Separator;
 pub(crate) use fill::FillContext;
 
-use std::sync::OnceLock;
-
 /// One of the two flock circuits of a table: its class's function, or its clock.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Part {
@@ -30,10 +28,4 @@ pub enum Part {
     Class,
     /// Memory access ordering.
     Clock,
-}
-
-/// The instruction tables, built once in protocol order.
-pub fn tables() -> &'static [ClassTable; N_TABLES] {
-    static TABLES: OnceLock<[ClassTable; N_TABLES]> = OnceLock::new();
-    TABLES.get_or_init(|| std::array::from_fn(ClassTable::new))
 }

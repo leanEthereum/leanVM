@@ -764,11 +764,7 @@ mod tests {
         let program = Program::new(&text, Region::TEXT.base(), vec![], 3, 0).expect("valid instruction program");
         let run = program.execute(&[]).unwrap();
         assert_eq!(run.output, [5, 0, 0, 0]);
-        (
-            program,
-            run,
-            classes.map(|c| tables::ClassSpec::table_index(c).unwrap()),
-        )
+        (program, run, classes.map(|c| tables::ClassTable::index_of(c).unwrap()))
     }
 
     /// The first row of the run among `rows`, past the padding rows at clock zero.
@@ -812,7 +808,7 @@ mod tests {
 
         // Mutation: the row claims b_1 = 1, as if b were (9, 1, 0), and c and RAM follow it.
         let mut forged = program.execute(&[]).unwrap();
-        let ext = tables::ClassSpec::table_index(rv::Class::Ext).unwrap();
+        let ext = tables::ClassTable::index_of(rv::Class::Ext).unwrap();
         let row = forged.trace.rows[ext].iter_mut().find(|r| r.ts != 0).unwrap();
         let x = row.ext.as_mut().unwrap();
         x.instance.limbs[4] = 1;
@@ -904,7 +900,7 @@ mod tests {
                 Err(ProveError::Trap(rv::Trap::Misaligned { address, .. })) if address == cell + 1
             ));
             let mut forged = program(0).execute(&[]).unwrap();
-            let row = real(&mut forged.trace.rows[tables::ClassSpec::table_index(class).unwrap()]);
+            let row = real(&mut forged.trace.rows[tables::ClassTable::index_of(class).unwrap()]);
             row.ram.address = cell + 1;
             (forged.trace.ram_fin[4], forged.trace.ram_ts[4]) = (F64::ZERO, F64(tables::Clock::SEED_CLOCK));
             let w = Witness::build(&misaligned, &forged);
@@ -961,11 +957,11 @@ mod tests {
         let text = Asm::new().i(Addi, Reg::A0, Reg::ZERO, 5).exit().finish();
         let program = Program::new(&text, Region::TEXT.base(), vec![], 2, 0).expect("valid instruction program");
         let exec = program.execute(&[]).unwrap();
-        let alu = tables::ClassSpec::table_index(rv::Class::Alu).unwrap();
+        let alu = tables::ClassTable::index_of(rv::Class::Alu).unwrap();
         let row = exec.trace.rows[alu].iter().position(|r| r.index == 0).unwrap();
         let mut w = Witness::build(&program, &exec);
         // Bytecode slot 9 binds the decoded branch target offset.
-        let bus = tables::tables()[alu].flushes();
+        let bus = tables::ClassTable::all()[alu].flushes();
         let Coord::Col(branch_offset) = bus.pull[1][9] else {
             panic!("the ALU binds its branch offset to a column");
         };

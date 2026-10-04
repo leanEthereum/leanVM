@@ -216,7 +216,7 @@ impl Lookup {
                 vec![
                     // An illegal entry's tag is zero, which is no table's: nothing can read it.
                     parallel::map_collect(entries.len(), |i| {
-                        tables::ClassSpec::table_index(entries[i].class).map_or(F64::ZERO, primitives::field::g_pow)
+                        tables::ClassTable::index_of(entries[i].class).map_or(F64::ZERO, primitives::field::g_pow)
                     }),
                     column(&|_, e| e.flags),
                     column(&|_, e| e.a1 as u64),
@@ -389,7 +389,7 @@ impl Sizes {
         }));
 
         // Each table's columns, its circuit words turned into ports of its packed witnesses.
-        for (t, table) in tables::tables().iter().enumerate() {
+        for (t, table) in tables::ClassTable::all().iter().enumerate() {
             let base = sources.len();
             sources.resize(base + table.n_committed_columns(), Source::Committed(taus[t]));
             for part in [Part::Class, Part::Clock] {
@@ -427,7 +427,7 @@ impl Schema {
         SCHEMA.get_or_init(|| {
             // Each table's span starts where the previous one ends.
             let mut next = N_SHARED;
-            let spans = tables::tables().each_ref().map(|table| {
+            let spans = tables::ClassTable::all().each_ref().map(|table| {
                 let span = (next, table.n_committed_columns());
                 next += span.1;
                 span
@@ -473,7 +473,7 @@ impl Layout {
 
         // Each table declares its flushes in local column indices, offset here to its global span.
         let schema = Schema::get();
-        for (t, table) in tables::tables().iter().enumerate() {
+        for (t, table) in tables::ClassTable::all().iter().enumerate() {
             let (base, kappa) = (schema.spans[t].0, taus[t]);
             let flushes = table.flushes();
             push.extend(

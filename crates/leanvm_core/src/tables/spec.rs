@@ -368,11 +368,6 @@ impl ClassSpec {
         &Self::EXT,
     ];
 
-    /// Protocol table index of an instruction class, if supported.
-    pub fn table_index(class: Class) -> Option<usize> {
-        Self::ALL.iter().position(|spec| spec.class == class)
-    }
-
     /// Check that register accesses and copy semantics match the circuit ports.
     pub(super) fn assert_valid(&self) {
         // Invariant: a register access exists exactly when its value is a circuit word, or a column a doubleword load or store moves.
@@ -447,8 +442,11 @@ impl ClassSpec {
 
     /// The clock slots of the row's accesses, in the order of their columns.
     pub fn slots(&self) -> Vec<u32> {
-        let registers = self.registers().iter().map(|&i| Clock::REG_SLOTS[i]);
-        registers.chain(self.ram.slots()).collect()
+        self.registers()
+            .iter()
+            .map(|&i| Clock::REG_SLOTS[i])
+            .chain(self.ram.slots())
+            .collect()
     }
 
     /// The clock circuit's port words: the clock, each access's previous timestamp, then the step.

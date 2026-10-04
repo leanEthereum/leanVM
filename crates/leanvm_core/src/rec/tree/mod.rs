@@ -538,7 +538,7 @@ impl<'p> Tree<'p> {
         held.iter().position(|&h| !h).map_or(Ok(()), |f| {
             let (t, part) = crate::class_flock::flock(f);
             Err(TreeError::Claim(FalseClaim::Matrix {
-                table: tables::CLASSES[t].name,
+                table: tables::ClassSpec::ALL[t].name,
                 part,
             }))
         })

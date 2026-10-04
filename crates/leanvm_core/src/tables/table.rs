@@ -2,10 +2,11 @@
 
 use super::bus::{FlushBuilder, Separator};
 use super::columns::Columns;
-use super::{BAD_SLOT, ClassSpec, EXIT_SLOT, Part, Word};
+use super::{BAD_SLOT, ClassSpec, EXIT_SLOT, N_TABLES, Part, Word};
 use crate::leaf::Coord::{self, Col, Const};
-use crate::rv::{Ext, ExtResult, Hash, RegisterFile};
+use crate::rv::{Class, Ext, ExtResult, Hash, RegisterFile};
 use primitives::field::{F64, g_pow};
+use std::sync::OnceLock;
 
 /// Circuit bindings and bus interactions for one instruction class.
 ///
@@ -25,6 +26,17 @@ pub struct ClassTable {
 }
 
 impl ClassTable {
+    /// All instruction tables, built once in protocol order.
+    pub fn all() -> &'static [Self; N_TABLES] {
+        static TABLES: OnceLock<[ClassTable; N_TABLES]> = OnceLock::new();
+        TABLES.get_or_init(|| std::array::from_fn(Self::new))
+    }
+
+    /// Protocol table index of an instruction class, if supported.
+    pub fn index_of(class: Class) -> Option<usize> {
+        ClassSpec::ALL.iter().position(|spec| spec.class == class)
+    }
+
     /// Build the columns and clock ports of a validated class specification.
     pub(super) fn new(index: usize) -> Self {
         let spec = ClassSpec::ALL[index];
@@ -177,7 +189,7 @@ impl ClassTable {
 
 #[cfg(test)]
 mod tests {
-    use super::super::{Clock, tables};
+    use super::super::Clock;
     use super::*;
 
     fn check_columns(coordinate: &Coord, width: usize) {
@@ -193,7 +205,7 @@ mod tests {
 
     #[test]
     fn every_table_binds_its_ports_and_accesses_within_its_local_columns() {
-        for table in tables() {
+        for table in ClassTable::all() {
             let width = table.n_committed_columns();
             let accesses = table.spec.n_accesses();
             let slots = table.spec.slots();
