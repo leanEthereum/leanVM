@@ -59,6 +59,10 @@ impl Alu {
     /// Every branch condition.
     pub const BRANCHES: u64 = Self::BR_EQ | Self::BR_NE | Self::BR_LT | Self::BR_GE | Self::BR_LTU | Self::BR_GEU;
 
+    const fn has_flag(&self, flag: u64) -> bool {
+        self.flags & flag != 0
+    }
+
     /// The flag word of a branch with function `funct3`.
     ///
     /// Returns `None` for functions 2 and 3, which are reserved.
@@ -104,11 +108,10 @@ impl InstructionClass for Alu {
     type Output = (u64, bool);
 
     fn eval(&self) -> (u64, bool) {
-        let on = |flag: u64| self.flags & flag != 0;
         let (v1, b) = (self.v1, self.v2 ^ self.imm);
 
         // One adder serves the sum and the difference.
-        let sum = if on(Self::SUB) {
+        let sum = if self.has_flag(Self::SUB) {
             v1.wrapping_sub(b)
         } else {
             v1.wrapping_add(b)
@@ -118,35 +121,35 @@ impl InstructionClass for Alu {
         let (lt, ltu, eq) = ((v1 as i64) < (b as i64), v1 < b, v1 == b);
 
         // The output: one selector, or the sum when none is set.
-        let mut out = if on(Self::SEL_LT) {
+        let mut out = if self.has_flag(Self::SEL_LT) {
             lt as u64
-        } else if on(Self::SEL_LTU) {
+        } else if self.has_flag(Self::SEL_LTU) {
             ltu as u64
-        } else if on(Self::SEL_AND) {
+        } else if self.has_flag(Self::SEL_AND) {
             v1 & b
-        } else if on(Self::SEL_OR) {
+        } else if self.has_flag(Self::SEL_OR) {
             v1 | b
-        } else if on(Self::SEL_XOR) {
+        } else if self.has_flag(Self::SEL_XOR) {
             v1 ^ b
-        } else if on(Self::WORD) {
+        } else if self.has_flag(Self::WORD) {
             sext32(sum)
         } else {
             sum
         };
 
         // A JALR target drops its low bit.
-        if on(Self::CLEAR_BIT0) {
+        if self.has_flag(Self::CLEAR_BIT0) {
             out &= !1;
         }
 
         // The jump: unconditional, or the one branch condition set.
-        let taken = on(Self::ALWAYS)
-            || (on(Self::BR_EQ) && eq)
-            || (on(Self::BR_NE) && !eq)
-            || (on(Self::BR_LT) && lt)
-            || (on(Self::BR_GE) && !lt)
-            || (on(Self::BR_LTU) && ltu)
-            || (on(Self::BR_GEU) && !ltu);
+        let taken = self.has_flag(Self::ALWAYS)
+            || (self.has_flag(Self::BR_EQ) && eq)
+            || (self.has_flag(Self::BR_NE) && !eq)
+            || (self.has_flag(Self::BR_LT) && lt)
+            || (self.has_flag(Self::BR_GE) && !lt)
+            || (self.has_flag(Self::BR_LTU) && ltu)
+            || (self.has_flag(Self::BR_GEU) && !ltu);
         (out, taken)
     }
 
