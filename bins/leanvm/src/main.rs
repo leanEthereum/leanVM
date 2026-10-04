@@ -126,17 +126,17 @@ fn parse_rate(log_inv_rate: &str) -> Result<Rate, Box<dyn Error + Send + Sync>> 
 
 fn main() {
     let cli = Cli::parse();
-    let prover = Prover::new();
+    let prover = Prover::new(cli.rate);
     let plan = Plan::new(cli.repeat, cli.cooldown);
     if cli.tracing {
         bench::init_tracing();
     }
     match cli.command {
-        Command::Fibonacci { n } => fibonacci::run_fibonacci(n, &prover, cli.rate, plan),
-        Command::Guest { elf, advice } => guest::run_guest(&elf, &advice, &prover, cli.rate, plan),
-        Command::Leanxmss { n } => workload::run(&workload::leanxmss(n), &prover, cli.rate, plan),
-        Command::Leansphincs { n } => workload::run(&workload::leansphincs(n), &prover, cli.rate, plan),
-        Command::Leanda { blobs } => workload::run(&workload::leanda(blobs), &prover, cli.rate, plan),
+        Command::Fibonacci { n } => fibonacci::run_fibonacci(n, &prover, plan),
+        Command::Guest { elf, advice } => guest::run_guest(&elf, &advice, &prover, plan),
+        Command::Leanxmss { n } => workload::run(&workload::leanxmss(n), &prover, plan),
+        Command::Leansphincs { n } => workload::run(&workload::leansphincs(n), &prover, plan),
+        Command::Leanda { blobs } => workload::run(&workload::leanda(blobs), &prover, plan),
         Command::Aggregate {
             program,
             n,
@@ -149,7 +149,7 @@ fn main() {
                 arity_0: arity0,
                 arity,
             };
-            aggregate::run(program, n, shape, &prover, cli.rate, plan);
+            aggregate::run(program, n, shape, &prover, plan);
         }
         Command::Bench {
             cycles_only,
@@ -162,7 +162,6 @@ fn main() {
             markdown_file.as_deref(),
             only.as_deref(),
             &prover,
-            cli.rate,
             plan,
         ),
     }

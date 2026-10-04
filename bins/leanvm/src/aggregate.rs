@@ -2,8 +2,8 @@
 
 use bench::{Plan, Timing};
 use clap::ValueEnum;
-use leanvm::aggregate::{Kind, Leaf, LeafShape, Tree, TreeProof};
-use leanvm::{Program, Proved, Prover, Rate};
+use leanvm::aggregate::{Kind, Leaf, LeafShape, Tree, TreeProof, TreeShape};
+use leanvm::{Program, ProvenRun, Prover};
 use primitives::{pretty_f64, pretty_integer};
 
 use crate::guest::refuse;
@@ -96,8 +96,9 @@ fn report(name: &str, tree: &Tree<'_>, kind: Kind, proof: &TreeProof, prove: &Ti
     println!("  verifying as a root         : {}", ms(verify));
 }
 
-/// Prove the leaf program at `rate`, then the tree over copies of its proof, every tree proof at `rate`, and print the report.
-pub fn run(leaf: LeafProgram, n: usize, shape: Shape, prover: &Prover, rate: Rate, plan: Plan) {
+/// Prove the leaf program, then the tree over copies of its proof, every proof at the prover's rate, and print the report.
+pub fn run(leaf: LeafProgram, n: usize, shape: Shape, prover: &Prover, plan: Plan) {
+    let rate = prover.rate();
     let Shape { leaves, arity_0, arity } = shape;
     if !shape.is_tree() {
         refuse(format_args!(
@@ -107,9 +108,9 @@ pub fn run(leaf: LeafProgram, n: usize, shape: Shape, prover: &Prover, rate: Rat
     let (title, program, advice, expected) = leaf.run(n);
     let (proved, leaf_time) = plan.warm_then_measure(|last| {
         let _quiet = (!last).then(bench::suppress_tracing);
-        (prover.prove(&program, &advice, rate)).unwrap_or_else(|e| refuse(format_args!("{title} has no proof: {e}")))
+        (prover.prove(&program, &advice)).unwrap_or_else(|e| refuse(format_args!("{title} has no proof: {e}")))
     });
-    let Proved {
+    let ProvenRun {
         proof, output, stats, ..
     } = proved;
     assert_eq!(output, expected, "the leaf's output is the native reference's");
@@ -118,7 +119,16 @@ pub fn run(leaf: LeafProgram, n: usize, shape: Shape, prover: &Prover, rate: Rat
     let leaf_shape = LeafShape::of(&proof).expect("an honest announcement");
     let (tree, setup) = Plan::new(1, 0).measure_quiet(|_| {
         let _span = tracing::info_span!("Tree setup").entered();
-        Tree::new(&program, leaf_shape, arity_0, arity, rate).unwrap_or_else(|e| refuse(format_args!("{e}")))
+        Tree::new(
+            &program,
+            TreeShape {
+                leaf: leaf_shape,
+                arity_0,
+                arity,
+                rate,
+            },
+        )
+        .unwrap_or_else(|e| refuse(format_args!("{e}")))
     });
     let leaves_proofs = vec![Leaf::new(&proof, output); leaves];
 

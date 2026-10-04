@@ -2,7 +2,7 @@
 
 use crate::guest::refuse;
 use bench::Plan;
-use leanvm::{Program, Proved, Prover, Rate, verify};
+use leanvm::{Program, ProvenRun, Prover};
 use primitives::{pretty_f64, pretty_integer};
 
 /// One run of a guest (`programs/`): what it is given and what it must output.
@@ -70,11 +70,11 @@ pub fn leanda(n: usize) -> Workload {
 /// Prove and verify a workload, and print the report.
 ///
 /// Proving runs one discarded warmup pass, then `plan.repeat` measured passes.
-pub fn run(workload: &Workload, prover: &Prover, rate: Rate, plan: Plan) {
+pub fn run(workload: &Workload, prover: &Prover, plan: Plan) {
     let program = workload.program();
     // Only the final measured pass is traced.
     let (
-        Proved {
+        ProvenRun {
             proof, output, stats, ..
         },
         prove_time,
@@ -82,7 +82,7 @@ pub fn run(workload: &Workload, prover: &Prover, rate: Rate, plan: Plan) {
         let _quiet = (!last).then(bench::suppress_tracing);
         // More items than one proof or the advice region holds is the user's mistake, not a bug.
         prover
-            .prove(&program, &workload.advice, rate)
+            .prove(&program, &workload.advice)
             .unwrap_or_else(|e| refuse(format_args!("{} {}s have no proof: {e}", workload.items, workload.item)))
     });
     assert_eq!(
@@ -91,7 +91,7 @@ pub fn run(workload: &Workload, prover: &Prover, rate: Rate, plan: Plan) {
     );
     let (_, verify_time) = Plan::new(plan.repeat, 0).measure_quiet(|last| {
         let _quiet = (!last).then(bench::suppress_tracing);
-        verify(&program, &output, &proof).expect("the proof verifies");
+        program.verify(output, &proof).expect("the proof verifies");
     });
 
     // The proven rows include padding: the guest's own cycles are the per-table base counts.
@@ -129,9 +129,9 @@ mod tests {
     #[test]
     fn the_signature_workloads_prove() {
         // End to end: proven, verified, and the output the native digest.
-        let prover = Prover::new();
+        let prover = Prover::new(Rate::MIN);
         for workload in [super::leanxmss(2), super::leansphincs(1)] {
-            super::run(&workload, &prover, Rate::MIN, Plan::default());
+            super::run(&workload, &prover, Plan::default());
         }
     }
 }

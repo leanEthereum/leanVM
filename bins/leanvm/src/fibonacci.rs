@@ -3,30 +3,30 @@
 
 use bench::Plan;
 use leanvm::asm::*;
-use leanvm::{Program, Proved, Prover, Rate, Region, verify};
+use leanvm::{Program, ProvenRun, Prover, Region};
 use primitives::{pretty_f64, pretty_integer};
 
 /// Prove and verify `n` steps of Fibonacci, binding `F(n) mod 2^64` as the output. Prints the benchmark report. Proving runs one discarded warmup pass
 /// followed by `plan.repeat` measured passes (see [`bench`]).
-pub fn run_fibonacci(n: usize, prover: &Prover, rate: Rate, plan: Plan) {
-    let trace_span = tracing::info_span!("Fibonacci", n, log_inv_rate = rate.log_inv_rate()).entered();
+pub fn run_fibonacci(n: usize, prover: &Prover, plan: Plan) {
+    let trace_span = tracing::info_span!("Fibonacci", n, log_inv_rate = prover.rate().log_inv_rate()).entered();
 
     let (program, expected) = fibonacci_program(n);
 
     // Only the final measured pass of each stage is traced.
     let (
-        Proved {
+        ProvenRun {
             proof, output, stats, ..
         },
         prove_time,
     ) = plan.warm_then_measure(|last| {
         let _quiet = (!last).then(bench::suppress_tracing);
-        prover.prove(&program, &[], rate).expect("the run halts")
+        prover.prove(&program, &[]).expect("the run halts")
     });
     assert_eq!(output, expected);
     let (_, verify_time) = Plan::new(plan.repeat, 0).measure_quiet(|last| {
         let _quiet = (!last).then(bench::suppress_tracing);
-        verify(&program, &output, &proof).unwrap();
+        program.verify(output, &proof).unwrap();
     });
 
     // tracing-forest renders its tree only when the root span closes, so the
@@ -92,7 +92,6 @@ mod tests {
 
     #[test]
     fn fibonacci() {
-        let prover = Prover::new();
-        super::run_fibonacci(200_000, &prover, Rate::MIN, Plan::default());
+        super::run_fibonacci(200_000, &Prover::new(Rate::MIN), Plan::default());
     }
 }
