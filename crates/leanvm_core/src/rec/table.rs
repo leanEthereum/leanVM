@@ -345,7 +345,7 @@ impl HashFlock {
 
     /// The packed witness index of the BLAKE2s class circuit, which proves every hash row.
     pub(crate) fn index() -> usize {
-        let t = tables::table_of(crate::rv::Class::Hash).expect("the HASH class has a table");
+        let t = tables::ClassSpec::table_index(crate::rv::Class::Hash).expect("the HASH class has a table");
         class_flock::flock_index(t, Part::Class)
     }
 
@@ -355,14 +355,14 @@ impl HashFlock {
     }
 
     /// `log2` of a hash row's packed words: the stride between consecutive rows' same-port words.
-    pub(crate) fn stride_log() -> usize {
-        class_flock::stride_log(&tables::HASH, Part::Class)
+    pub(crate) const fn stride_log() -> usize {
+        class_flock::stride_log(&tables::ClassSpec::HASH, Part::Class)
     }
 
     /// `log2` of the hash table's height for `rows` rows, at least flock's floor.
     fn height_log(rows: usize) -> usize {
         flock::reduction::min_n_blocks_log(rows.max(1))
-            .max(class_flock::MIN_CUBE_LOG.saturating_sub(tables::HASH.k_log))
+            .max(class_flock::MIN_CUBE_LOG.saturating_sub(tables::ClassSpec::HASH.k_log))
     }
 }
 
@@ -415,7 +415,7 @@ mod tests {
 
     #[test]
     fn the_hash_ports_are_the_precompile_ports() {
-        let ports = tables::HASH.ports;
+        let ports = tables::ClassSpec::HASH.ports;
         assert_eq!(ports.len(), HashFlock::N_PORTS);
         assert_eq!((ports[HashFlock::T], ports[HashFlock::F]), (Word::V2, Word::Flags));
         assert!((0..4).all(|i| ports[HashFlock::H + i] == Word::Cell(i as u8)));

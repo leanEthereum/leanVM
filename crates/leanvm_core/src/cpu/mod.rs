@@ -30,7 +30,9 @@ mod witness;
 pub use deferred::{Claim, DeferredClaims, MalformedClaim, ProgramPoint};
 pub use error::{CpuError, ProveError};
 pub use execute::Execution;
-pub(crate) use execute::{ExtRow, HashRow, Row, Trace};
+#[cfg(test)]
+pub(crate) use execute::{ExtRow, HashRow};
+pub(crate) use execute::{Row, Trace};
 pub use fiat_shamir::transcript::Proof;
 pub use layout::{Framework, Layout, Lookup, N_BYTECODE_COLUMNS, N_SHARED, Q_BASE, Schema, Shared, Sizes};
 pub use program::{Program, Stats};

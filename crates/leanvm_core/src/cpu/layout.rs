@@ -15,7 +15,7 @@ use crate::arith::Arith;
 use crate::constraints::Claims;
 use crate::leaf::{Block, ColumnClaim, Coord, Producer, SparseColumn};
 use crate::rv::{self, Reg, Region, RegisterFile, Syscall};
-use crate::tables::{self, Part, SEP_BYTECODE, SEP_STATE};
+use crate::tables::{self, Part, Separator};
 use crate::witness::{self, Placement, Source, StackShape, Window};
 use crate::{class_flock, pcs};
 use fiat_shamir::transcript::{ProverState, Receiver, Transmitter, VerifierState};
@@ -65,7 +65,7 @@ impl Framework {
         //
         // It ends at its last timestamp holding its final word (§sec:memchan).
         let array = |sep: F64, cell: Coord, init: Option<Coord>, ts: Shared, fin: Shared| {
-            let seed = [Const(sep), cell.clone(), Const(F64(tables::SEED_CLOCK))]
+            let seed = [Const(sep), cell.clone(), Const(F64(tables::Clock::SEED_CLOCK))]
                 .into_iter()
                 .chain(init)
                 .collect();
@@ -82,13 +82,13 @@ impl Framework {
             // The run starts at the entry point and ends on the halt slot; a wrong clock leaves the end unmatched.
             Self::State => (
                 vec![
-                    Const(SEP_STATE),
+                    Separator::State.coordinate(),
                     Const(F64(p.entry_pc())),
-                    Const(F64(tables::CLOCK_START)),
+                    Const(F64(tables::Clock::CLOCK_START)),
                     Const(F64::ZERO),
                 ],
                 vec![
-                    Const(SEP_STATE),
+                    Separator::State.coordinate(),
                     Const(F64(p.halt_pc())),
                     Const(F64(ts_final)),
                     Const(F64(ts_final)),
@@ -100,13 +100,13 @@ impl Framework {
                     base: F64::ZERO,
                     shift: 0,
                 };
-                array(tables::SEP_REG, cell, None, Shared::RegTs, Shared::RegFin)
+                array(Separator::Registers.value(), cell, None, Shared::RegTs, Shared::RegFin)
             }
             // RAM starts as the program's image, then zeros, all public.
             Self::Ram => {
                 let image = Sparse(Arc::new(SparseColumn::new(p.log_ram(), &[(0, p.image())])));
                 array(
-                    tables::SEP_MEM,
+                    Separator::Memory.value(),
                     word(Region::RAM.base()),
                     Some(image),
                     Shared::RamTs,
@@ -115,7 +115,7 @@ impl Framework {
             }
             // The one array seeded from a committed column: the prover's words.
             Self::Advice => array(
-                tables::SEP_MEM,
+                Separator::Memory.value(),
                 word(Region::ADVICE.base()),
                 Some(Col(Shared::AdvInit.col())),
                 Shared::AdvTs,
@@ -185,7 +185,7 @@ impl Lookup {
                     base: F64(Region::TEXT.base()),
                     shift: 2,
                 };
-                [Coord::Const(SEP_BYTECODE), pc]
+                [Separator::Bytecode.coordinate(), pc]
                     .into_iter()
                     .chain(self.columns(p).into_iter().map(|c| Coord::Public(Arc::new(c))))
                     .collect()
@@ -216,7 +216,7 @@ impl Lookup {
                 vec![
                     // An illegal entry's tag is zero, which is no table's: nothing can read it.
                     parallel::map_collect(entries.len(), |i| {
-                        tables::table_of(entries[i].class).map_or(F64::ZERO, primitives::field::g_pow)
+                        tables::ClassSpec::table_index(entries[i].class).map_or(F64::ZERO, primitives::field::g_pow)
                     }),
                     column(&|_, e| e.flags),
                     column(&|_, e| e.a1 as u64),
@@ -385,7 +385,7 @@ impl Sizes {
         // The packed witnesses: every class circuit's, then every clock circuit's.
         sources.extend((0..class_flock::N_FLOCKS).map(|f| {
             let (t, part) = class_flock::flock(f);
-            Source::Committed(taus[t] + class_flock::stride_log(tables::CLASSES[t], part))
+            Source::Committed(taus[t] + class_flock::stride_log(tables::ClassSpec::ALL[t], part))
         }));
 
         // Each table's columns, its circuit words turned into ports of its packed witnesses.
@@ -397,7 +397,7 @@ impl Sizes {
                     sources[base + c] = Source::Port {
                         column: q_column(class_flock::flock_index(t, part)),
                         port,
-                        stride_log: class_flock::stride_log(tables::CLASSES[t], part),
+                        stride_log: class_flock::stride_log(tables::ClassSpec::ALL[t], part),
                     };
                 }
             }
@@ -649,7 +649,7 @@ impl Announcement {
 
         // A live clock at slot zero: neither a padding row's clock nor a failed row's can end the run.
         let ts_final = vs.next_scalar()?;
-        let live = ts_final.c0 >> tables::LIVE_BIT == 1 && ts_final.c0.is_multiple_of(tables::CYCLE);
+        let live = ts_final.c0 >> tables::Clock::LIVE_BIT == 1 && ts_final.c0.is_multiple_of(tables::Clock::CYCLE);
         if !live || ts_final.c1 != 0 || ts_final.c2 != 0 {
             return Err(CpuError::FinalClock);
         }
@@ -699,7 +699,7 @@ impl Layout {
     ///
     /// A table's rows are its class's runs, unbounded by the program's size, so it has a cap of its own.
     fn check_heights(taus: &[usize; tables::N_TABLES]) -> Result<(), CpuError> {
-        for (spec, &log_rows) in tables::CLASSES.iter().zip(taus) {
+        for (spec, &log_rows) in tables::ClassSpec::ALL.iter().zip(taus) {
             let min = class_flock::n_blocks_log(spec, 1);
             if !(min..=MAX_LOG_ROWS).contains(&log_rows) {
                 return Err(CpuError::TableHeight {

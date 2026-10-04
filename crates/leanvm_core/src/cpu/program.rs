@@ -15,7 +15,7 @@ use crate::constraints;
 use crate::leaf;
 use crate::pcs;
 use crate::rv::{self, Machine, Region};
-use crate::tables::{self, CLOCK_START, CYCLE, MAX_CYCLES};
+use crate::tables::{self, Clock};
 use ::pcs::pack::PACKING_WIDTH;
 use fiat_shamir::transcript::{Challenger, Proof, ProverState, RawProof, VerifierState};
 use primitives::field::{F64, F192};
@@ -113,15 +113,15 @@ impl Program {
         let mut trace = TraceBuilder::new(p, m.memory().advice());
 
         // The clock starts on cycle 1, so that the first access comes strictly after the seeds.
-        let mut ts = CLOCK_START;
+        let mut ts = Clock::CLOCK_START;
         while !m.halted() {
             // The cycle count must not carry into the live bit.
-            if ts >> tables::SLOT_BITS & MAX_CYCLES == MAX_CYCLES {
+            if ts >> tables::Clock::SLOT_BITS & Clock::MAX_CYCLES == Clock::MAX_CYCLES {
                 return Err(ProveError::TooLong);
             }
             let step = m.step()?;
             trace.record(p, &m, step, ts);
-            ts += CYCLE;
+            ts += Clock::CYCLE;
         }
         let output = m.output()?;
 
@@ -351,7 +351,7 @@ impl Program {
             let (t, part) = class_flock::flock(f);
             let (replay, matrices) =
                 class_flock::verify_reduction(f, l.taus[t], &mut vs).map_err(|error| CpuError::Flock {
-                    table: tables::CLASSES[t].name,
+                    table: tables::ClassSpec::ALL[t].name,
                     part,
                     error,
                 })?;
@@ -487,7 +487,7 @@ impl Stats {
 
         // Each table's share of the program's own rows, largest first.
         let base_cycles: usize = self.base_counts.iter().sum();
-        let mut shares: Vec<(&str, usize)> = tables::CLASSES
+        let mut shares: Vec<(&str, usize)> = tables::ClassSpec::ALL
             .iter()
             .zip(&self.base_counts)
             .filter(|&(_, &c)| c > 0)
@@ -518,7 +518,7 @@ mod tests {
     use crate::leaf::Coord;
     use crate::rv::asm::*;
     use crate::rv::{InstructionClass, Reg};
-    use crate::tables::SEP_BYTECODE;
+    use crate::tables::Separator;
 
     #[test]
     fn construction_refuses_an_entry_or_a_size_out_of_range() {
@@ -649,7 +649,7 @@ mod tests {
         let e = &program.rv.entries()[index];
         let rv::Outcome { out, taken, access } = e.evaluate(0, 0, 0);
         let ram = access.unwrap_or_default();
-        let slots: Vec<u64> = tables::ALU.slots().into_iter().map(u64::from).collect();
+        let slots: Vec<u64> = tables::ClassSpec::ALU.slots().into_iter().map(u64::from).collect();
         Row {
             index: index as u32,
             ts: 0,
@@ -719,19 +719,19 @@ mod tests {
             let entry = program.rv.entries()[exit_index];
             if entry.jalr {
                 // The jump reads `t0` in slot 0, where the exit read `x0`, which leaves `x0`'s slot-1 read pulling the cycle before.
-                let ts = tables::CLOCK_START + exit_index as u64 * tables::CYCLE;
+                let ts = tables::Clock::CLOCK_START + exit_index as u64 * tables::Clock::CYCLE;
                 let previous = original[..exit_index]
                     .iter()
                     .enumerate()
                     .rev()
                     .find_map(|(i, &word)| {
                         (rv::Entry::decode(word, program.rv.pc_of(i)).ad == Reg::T0.index() as u8)
-                            .then_some((tables::CLOCK_START + i as u64 * tables::CYCLE) | 3)
+                            .then_some((tables::Clock::CLOCK_START + i as u64 * tables::Clock::CYCLE) | 3)
                     })
                     .unwrap();
                 let row = &mut execution.trace.rows[0][exit_index];
                 (row.v1, row.out, row.taken) = (halt, halt, false);
-                (row.prev[0], row.prev[1]) = (previous, ts - tables::CYCLE + 1);
+                (row.prev[0], row.prev[1]) = (previous, ts - tables::Clock::CYCLE + 1);
                 execution.trace.reg_ts[Reg::T0.index()] = F64(ts);
             }
             execution.trace.reg_fin[rv::RegisterFile::SINK as usize] = F64(pc + 4);
@@ -764,7 +764,11 @@ mod tests {
         let program = Program::new(&text, Region::TEXT.base(), vec![], 3, 0).expect("valid instruction program");
         let run = program.execute(&[]).unwrap();
         assert_eq!(run.output, [5, 0, 0, 0]);
-        (program, run, classes.map(|c| tables::table_of(c).unwrap()))
+        (
+            program,
+            run,
+            classes.map(|c| tables::ClassSpec::table_index(c).unwrap()),
+        )
     }
 
     /// The first row of the run among `rows`, past the padding rows at clock zero.
@@ -808,7 +812,7 @@ mod tests {
 
         // Mutation: the row claims b_1 = 1, as if b were (9, 1, 0), and c and RAM follow it.
         let mut forged = program.execute(&[]).unwrap();
-        let ext = tables::table_of(rv::Class::Ext).unwrap();
+        let ext = tables::ClassSpec::table_index(rv::Class::Ext).unwrap();
         let row = forged.trace.rows[ext].iter_mut().find(|r| r.ts != 0).unwrap();
         let x = row.ext.as_mut().unwrap();
         x.instance.limbs[4] = 1;
@@ -900,9 +904,9 @@ mod tests {
                 Err(ProveError::Trap(rv::Trap::Misaligned { address, .. })) if address == cell + 1
             ));
             let mut forged = program(0).execute(&[]).unwrap();
-            let row = real(&mut forged.trace.rows[tables::table_of(class).unwrap()]);
+            let row = real(&mut forged.trace.rows[tables::ClassSpec::table_index(class).unwrap()]);
             row.ram.address = cell + 1;
-            (forged.trace.ram_fin[4], forged.trace.ram_ts[4]) = (F64::ZERO, F64(tables::SEED_CLOCK));
+            (forged.trace.ram_fin[4], forged.trace.ram_ts[4]) = (F64::ZERO, F64(tables::Clock::SEED_CLOCK));
             let w = Witness::build(&misaligned, &forged);
             // The access's pull and push, at an address no cell has.
             assert_eq!(unmatched(&w).len(), 2, "{class:?}: {:?}", unmatched(&w));
@@ -932,7 +936,7 @@ mod tests {
         let mut forged = program.execute(&[]).unwrap();
         let row = &mut forged.trace.rows[0][3];
         // The read happens at cycle 4; the first write happened at cycle 1, the second at 2, each in slot 3.
-        let write = |cycle: u64| tables::SEED_CLOCK | (cycle * tables::CYCLE) | 3;
+        let write = |cycle: u64| tables::Clock::SEED_CLOCK | (cycle * tables::Clock::CYCLE) | 3;
         assert_eq!((row.v1, row.prev[0]), (9, write(2)));
         (row.v1, row.out, row.prev[0]) = (5, 8, write(1));
         forged.output[0] = 8;
@@ -957,10 +961,15 @@ mod tests {
         let text = Asm::new().i(Addi, Reg::A0, Reg::ZERO, 5).exit().finish();
         let program = Program::new(&text, Region::TEXT.base(), vec![], 2, 0).expect("valid instruction program");
         let exec = program.execute(&[]).unwrap();
-        let alu = tables::table_of(rv::Class::Alu).unwrap();
+        let alu = tables::ClassSpec::table_index(rv::Class::Alu).unwrap();
         let row = exec.trace.rows[alu].iter().position(|r| r.index == 0).unwrap();
         let mut w = Witness::build(&program, &exec);
-        let offset = Schema::get().spans[alu].0 + tables::branch_offset_column(alu);
+        // Bytecode slot 9 binds the decoded branch target offset.
+        let bus = tables::tables()[alu].flushes();
+        let Coord::Col(branch_offset) = bus.pull[1][9] else {
+            panic!("the ALU binds its branch offset to a column");
+        };
+        let offset = Schema::get().spans[alu].0 + branch_offset;
         column_mut(&mut w, offset)[row] = F64(8);
         column_mut(&mut w, Shared::BytecodeMult.col())[0].0 -= 1;
 
@@ -968,7 +977,7 @@ mod tests {
         assert_eq!(unmatched.len(), 1, "{unmatched:?}");
         let (side, block, at) = unmatched[0];
         assert_eq!((side, at), ("pull", row));
-        assert!(matches!(w.layout.pull[block].coords[0], Coord::Const(sep) if sep == SEP_BYTECODE));
+        assert!(matches!(w.layout.pull[block].coords[0], Coord::Const(sep) if sep == Separator::Bytecode.value()));
         assert_unbalanced(&program, w, &exec.output);
     }
 
@@ -1021,7 +1030,7 @@ mod tests {
         (row.v1, row.out, row.prev[0]) = (9, 9, row.ts);
         forged.output[0] = 9;
         forged.trace.reg_fin[Reg::A0.index()] = F64(9);
-        forged.trace.reg_ts[Reg::T0.index()] = F64(tables::CLOCK_START | 3);
+        forged.trace.reg_ts[Reg::T0.index()] = F64(tables::Clock::CLOCK_START | 3);
         // The read's row pushes a failed clock, which the next row's pull does not meet.
         let unmatched = unmatched_run(&program, &forged);
         assert_eq!(unmatched.len(), 2, "{unmatched:?}");
@@ -1049,7 +1058,7 @@ mod tests {
         let mut forged = program.execute(&[]).unwrap();
         let spin = text.len() - 1;
         let mut row = padding_jump(&program, spin);
-        (row.prev[2], row.vd_old) = (tables::SEED_CLOCK, 0);
+        (row.prev[2], row.vd_old) = (tables::Clock::SEED_CLOCK, 0);
         replace_lone_jump(&program, &mut forged, row);
         let link = program.rv.pc_of(spin) + 4;
         forged.output[1] = link;
@@ -1111,8 +1120,8 @@ mod tests {
         let exit = forged.trace.rows[0].iter_mut().find(|r| r.index == 2).unwrap();
         (exit.prev[2], exit.vd_old) = (exit.ts | 3, exit.out);
         let sink = rv::RegisterFile::SINK as usize;
-        (forged.trace.reg_ts[sink], forged.trace.reg_fin[sink]) = (F64(tables::SEED_CLOCK), F64::ZERO);
-        forged.trace.ts_final |= 1 << tables::FAIL_BIT;
+        (forged.trace.reg_ts[sink], forged.trace.reg_fin[sink]) = (F64(tables::Clock::SEED_CLOCK), F64::ZERO);
+        forged.trace.ts_final |= 1 << tables::Clock::FAIL_BIT;
         assert!(unmatched_run(&program, &forged).is_empty());
         let (proof, _) = program.prove_execution(&forged, pcs::Rate::MIN);
         assert_eq!(program.verify(&forged.output, &proof), Err(CpuError::FinalClock));

@@ -12,8 +12,8 @@
 //! claims routed to those words.
 
 use crate::cpu::Row;
-use crate::rv::{Div, Entry};
-use crate::tables::{CLASSES, ClassSpec, N_TABLES, Part, Word};
+use crate::rv::Entry;
+use crate::tables::{ClassSpec, N_TABLES, Part};
 use ::pcs::pack::LOG_PACKING;
 use fiat_shamir::transcript::{ProverState, VerifierState};
 use flock::circuit::Circuit;
@@ -76,9 +76,9 @@ pub fn max_k_log() -> usize {
 /// - The constant wire's column, the first after the port words.
 ///
 /// The table's spec fixes both, so the replay builds no circuit, and building the circuit checks them.
-pub fn shape(f: usize) -> Shape {
+pub const fn shape(f: usize) -> Shape {
     let (t, part) = flock(f);
-    let spec = CLASSES[t];
+    let spec = ClassSpec::ALL[t];
     let n_ports = match part {
         Part::Class => spec.ports.len(),
         // The clock, each access's previous timestamp, then the step.
@@ -95,10 +95,10 @@ pub fn circuit(f: usize) -> &'static Circuit {
     static CIRCUITS: [OnceLock<Circuit>; N_FLOCKS] = [const { OnceLock::new() }; N_FLOCKS];
     CIRCUITS[f].get_or_init(|| {
         let (t, part) = flock(f);
-        let spec = CLASSES[t];
+        let spec = ClassSpec::ALL[t];
         let (circuit, n_inputs) = match part {
             Part::Class => (spec.class.circuit(), spec.n_inputs),
-            Part::Clock => (crate::tables::clock_circuit(&spec.slots()), 1 + spec.n_accesses()),
+            Part::Clock => (crate::tables::Clock::circuit(&spec.slots()), 1 + spec.n_accesses()),
         };
         let shape = shape(f);
         assert_eq!(
@@ -137,54 +137,6 @@ pub const fn n_blocks_log(spec: &ClassSpec, n_rows: usize) -> usize {
     if natural > floor { natural } else { floor }
 }
 
-/// A row's value of one circuit word.
-///
-/// `slots` are the clock slots of the row's accesses.
-fn word_of(word: Word, slots: &[u32], row: &Row, entry: &Entry) -> u64 {
-    // The division's honest hints, the circuit's two prover-supplied ports.
-    let hints = || {
-        Div {
-            flags: entry.flags,
-            v1: row.v1,
-            v2: row.v2,
-        }
-        .hints()
-    };
-    // An extension-field row's limbs.
-    let ext = || row.ext.as_ref().expect("an extension-field row has its limbs");
-    match word {
-        Word::Clock => row.ts,
-        Word::Prev(i) => row.prev()[i as usize],
-        Word::Step => crate::tables::clock_step(row.ts, &row.prev()[..slots.len()], slots),
-        Word::Flags => entry.flags,
-        Word::Imm => entry.imm,
-        Word::V1 => row.v1,
-        Word::V2 => row.v2,
-        Word::Out => row.out,
-        Word::Taken => row.taken as u64,
-        Word::Address => row.ram.address,
-        Word::Cell(k) => match (&row.hash, &row.ext) {
-            (Some(h), _) => h.block[k as usize],
-            (_, Some(x)) => x.instance.limbs[k as usize],
-            _ => row.ram.old,
-        },
-        Word::CellNew(k) => match (&row.hash, &row.ext) {
-            (Some(h), _) => h.word_after(k as usize),
-            (_, Some(x)) => x.result.c[k as usize - 6],
-            _ => row.ram.new,
-        },
-        Word::Dest => ext().instance.pointers[2],
-        Word::LimbAddress(k) => {
-            let i = crate::rv::ExtResult::OFFSET_LIMBS.iter().position(|&j| j == k as usize);
-            ext().result.addresses[i.expect("a computed limb address")]
-        }
-        Word::LimbSeparator => ext().result.separator,
-        Word::Bad => 0,
-        Word::HintQ => hints().0,
-        Word::HintR => hints().1,
-    }
-}
-
 /// The flock-native tables of one class's batch, kept from the pass that wrote its
 /// committed column so the reduction needs no second witness pass.
 pub(crate) struct Prepared {
@@ -201,7 +153,7 @@ impl Prepared {
     /// into `window`, its committed column.
     pub(crate) fn build(f: usize, rows: &[Row], entries: &[Entry], window: &mut [F64]) -> Self {
         let (t, part) = flock(f);
-        let spec = CLASSES[t];
+        let spec = ClassSpec::ALL[t];
         let n_blocks_log = n_blocks_log(spec, rows.len());
         assert_eq!(
             rows.len(),
@@ -215,7 +167,7 @@ impl Prepared {
         // The row's input words, one per input port.
         let input_words = |row: &Row, words: &mut [u64]| {
             for (word, &port) in words.iter_mut().zip(ports) {
-                *word = word_of(port, &slots, row, &entries[row.index as usize]);
+                *word = port.value(row, &entries[row.index as usize], &slots);
             }
         };
         // A class with a word-level witness skips the walk of its gate list; the others
@@ -259,7 +211,7 @@ impl Prepared {
                 // would carry one and flock prove the other.
                 let row = &rows[batch * BATCH + j];
                 for (k, &port) in ports.iter().enumerate().skip(n_inputs) {
-                    let expected = word_of(port, &slots, row, &entries[row.index as usize]);
+                    let expected = port.value(row, &entries[row.index as usize], &slots);
                     assert_eq!(
                         src[k], expected,
                         "{}'s {part:?} circuit disagrees with the interpreter on {port:?}",

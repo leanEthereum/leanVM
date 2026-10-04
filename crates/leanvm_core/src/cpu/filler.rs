@@ -22,7 +22,7 @@
 
 use crate::rv::Class;
 use crate::rv::asm::{Instruction, Reg};
-use crate::tables::{CLASSES, N_TABLES};
+use crate::tables::{ClassSpec, N_TABLES};
 
 /// Block sizes, largest first.
 ///
@@ -37,7 +37,7 @@ pub const SIZES: [usize; 9] = [128, 64, 32, 16, 8, 4, 2, 1, 0];
 ///
 /// So that table is solved last, absorbing the cost of the whole fill.
 pub const JUMP: usize = 0;
-const _: () = assert!(matches!(CLASSES[JUMP].class, Class::Alu));
+const _: () = assert!(matches!(ClassSpec::ALL[JUMP].class, Class::Alu));
 
 /// One block in the text: `size` no-ops of `table`'s class from entry `index`, then the jump back to `index`.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -77,7 +77,7 @@ impl FillBlocks {
     /// Each table gets a block per positive size, and the ALU the lone jump too.
     pub fn append(text: &mut Vec<u32>) -> Self {
         let mut blocks = Vec::new();
-        for (t, spec) in CLASSES.iter().enumerate() {
+        for (t, spec) in ClassSpec::ALL.iter().enumerate() {
             for size in SIZES.into_iter().filter(|&size| size > 0 || t == JUMP) {
                 blocks.push(Block {
                     index: text.len(),
@@ -178,7 +178,7 @@ impl Plan {
     ///
     /// Counting those first makes it one decomposition rather than a fixpoint.
     pub fn solve(base: [usize; N_TABLES]) -> Self {
-        let height = |t: usize, rows: usize| rows.max(CLASSES[t].min_rows()).next_power_of_two();
+        let height = |t: usize, rows: usize| rows.max(ClassSpec::ALL[t].min_rows()).next_power_of_two();
         let mut plan = Self([Traversals::default(); N_TABLES]);
         for t in (0..N_TABLES).filter(|&t| t != JUMP) {
             plan.0[t] = Traversals::delivering(height(t, base[t]) - base[t]);
@@ -190,7 +190,7 @@ impl Plan {
         debug_assert!(
             plan.filled(base)
                 .iter()
-                .zip(CLASSES)
+                .zip(ClassSpec::ALL)
                 .all(|(&rows, spec)| spec.is_provable_height(rows))
         );
         plan
@@ -240,7 +240,7 @@ mod tests {
             let got = plan.filled(base);
 
             // Every table lands on the nearest provable height: what it owed, rounded up, the ALU owing the others' jumps too.
-            for (t, spec) in CLASSES.iter().enumerate() {
+            for (t, spec) in ClassSpec::ALL.iter().enumerate() {
                 let jumps = if t == JUMP {
                     plan.traversals() - plan.0[JUMP].count()
                 } else {

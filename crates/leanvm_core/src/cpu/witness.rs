@@ -6,7 +6,7 @@ use super::layout::Layout;
 use super::layout::{Lookup, Schema, Shared, q_column};
 use super::program::Program;
 use crate::class_flock::{self, Prepared};
-use crate::tables::{self, FillCtx};
+use crate::tables::{self, FillContext};
 use primitives::field::F64;
 use zk_alloc::ArenaVec;
 
@@ -48,12 +48,12 @@ impl Witness {
                 "a table has {r} rows, not a power of two: the fill blocks did not fill it"
             );
             let tau = crate::log2_strict_usize(r);
-            let floor = class_flock::n_blocks_log(tables::CLASSES[t], r);
+            let floor = class_flock::n_blocks_log(tables::ClassSpec::ALL[t], r);
             assert_eq!(
                 tau,
                 floor,
                 "the {} table must be filled to flock's instance floor",
-                tables::CLASSES[t].name
+                tables::ClassSpec::ALL[t].name
             );
             tau
         });
@@ -65,14 +65,14 @@ impl Witness {
         //
         // SAFETY: the allocation is uninitialized.
         // `split_stack` zeroes the pad tail and hands out windows tiling the rest.
-        // `fill_table` checks each table wrote every window it was given, and the shared columns are written below.
+        // Each table checks that it wrote every window it was given, and the shared columns are written below.
         let mut q = unsafe { crate::witness::alloc_stack(layout.shape) };
 
         // A port is not in the stack, so its values get a buffer of their own.
         let mut virt: Vec<(usize, ArenaVec<F64>)> = Vec::new();
         for (t, &(base, width)) in schema.spans.iter().enumerate() {
             for i in (base..base + width).filter(|&i| layout.placements[i].window().is_none()) {
-                // SAFETY: a port is a table column, which `fill_table` asserts its table writes in full.
+                // SAFETY: each table checks that it writes every circuit port column in full.
                 virt.push((i, unsafe { ArenaVec::<F64>::uninitialized(1 << layout.taus[t]) }));
             }
         }
@@ -85,8 +85,8 @@ impl Witness {
             // Each table fills its own columns from the trace, in its global span.
             for (t, table) in tables::tables().iter().enumerate() {
                 let (base, n) = schema.spans[t];
-                let ctx = FillCtx::new(trace, p, 1 << layout.taus[t], n);
-                tables::fill_table(table, &ctx, &mut windows[base..base + n]);
+                let ctx = FillContext::new(trace, p, 1 << layout.taus[t], n);
+                table.fill(ctx, &mut windows[base..base + n]);
             }
 
             // Every shared column is written: the stack is uninitialized, so one left out would read garbage.

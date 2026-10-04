@@ -9,7 +9,7 @@ use crate::cpu::{CpuError, DeferredClaims, Layout, Program, TableReduction};
 use crate::pcs::Rate;
 use crate::rec::circuit::{Builder, Dw, Ew, Kw};
 use crate::rec::transcript::{ProofSource, Transcript};
-use crate::tables::{self, CYCLE, LIVE_BIT, N_TABLES};
+use crate::tables::{self, Clock, N_TABLES};
 use ::pcs::pack::PACKING_WIDTH;
 use ::pcs::stack_open::{RingSwitchVerify, RingSwitchVerifyClaim};
 use primitives::field::F192;
@@ -81,7 +81,7 @@ impl<'p> ProofShape<'p> {
         let reductions: Vec<Reduction> = (0..class_flock::N_FLOCKS)
             .map(|f| {
                 let (table, part) = class_flock::flock(f);
-                let name = format!("flock {} {part:?}", tables::CLASSES[table].name);
+                let name = format!("flock {} {part:?}", tables::ClassSpec::ALL[table].name);
                 r.scope(name, |r| Reduction::replay(r, class_flock::shape(f), self.taus[table]))
             })
             .collect();
@@ -148,11 +148,11 @@ impl<'p> ProofShape<'p> {
         r.b.eq_k_const(high, 0);
         r.b.eq_k_const(top, 0);
         // Bit 40 set, every bit above it clear, and the slot bits below the cycle clear.
-        let slot_bits = CYCLE.trailing_zeros() as usize;
+        let slot_bits = Clock::CYCLE.trailing_zeros() as usize;
         for (i, bit) in r.b.split(word).into_iter().enumerate() {
-            if i == LIVE_BIT as usize {
+            if i == Clock::LIVE_BIT as usize {
                 r.b.eq_k_const(bit, 1);
-            } else if i > LIVE_BIT as usize || i < slot_bits {
+            } else if i > Clock::LIVE_BIT as usize || i < slot_bits {
                 r.b.eq_k_const(bit, 0);
             }
         }

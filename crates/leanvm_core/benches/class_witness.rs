@@ -18,7 +18,7 @@ fn main() {
         "class", "k_log", "walk", "64 lanes", "speedup"
     );
     // Every class without a word-level witness of its own.
-    for spec in leanvm_core::tables::CLASSES
+    for spec in leanvm_core::tables::ClassSpec::ALL
         .iter()
         .filter(|spec| spec.witness.is_none())
     {

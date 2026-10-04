@@ -17,7 +17,7 @@
 use super::InstructionClass;
 use crate::rv::circuits::{ClassCircuit, Word, WordGadgets};
 use crate::rv::entry::Class;
-use crate::tables::{SEP_MEM, SEP_REG};
+use crate::tables::Separator;
 use flock::circuit::{Builder, Circuit, Wire};
 use primitives::field::F192;
 
@@ -88,8 +88,8 @@ impl Ext {
     /// The bus separator of limb `k`: registers for a limb read from `x0`, memory otherwise.
     const fn separator(flags: u64, k: usize) -> u64 {
         match Self::limb([0; 3], flags, k) {
-            Limb::Zero => SEP_REG.0,
-            Limb::Memory(_) => SEP_MEM.0,
+            Limb::Zero => Separator::Registers.value().0,
+            Limb::Memory(_) => Separator::Memory.value().0,
         }
     }
 
@@ -232,7 +232,7 @@ impl ClassCircuit for Ext {
 
         // Phase 4: a base-field b reads its high limbs from x0, register number zero.
         //
-        //     separator  base ? SEP_REG : SEP_MEM      constants and base: no product
+        //     separator  base ? registers : memory      constants and base: no product
         //     address    base ? 0 : pb + 8k            one product per bit
         let not_base = c.not(base);
         for slot in [2, 3] {
@@ -242,11 +242,16 @@ impl ClassCircuit for Ext {
             c.output_word(3 + i, offset);
         }
         let separator: Word = (0..64)
-            .map(|bit| match (SEP_REG.0 >> bit & 1, SEP_MEM.0 >> bit & 1) {
-                (1, 1) => c.one(),
-                (1, 0) => base,
-                (0, 1) => not_base,
-                _ => None,
+            .map(|bit| {
+                match (
+                    Separator::Registers.value().0 >> bit & 1,
+                    Separator::Memory.value().0 >> bit & 1,
+                ) {
+                    (1, 1) => c.one(),
+                    (1, 0) => base,
+                    (0, 1) => not_base,
+                    _ => None,
+                }
             })
             .collect();
         c.output_word(9, &separator);

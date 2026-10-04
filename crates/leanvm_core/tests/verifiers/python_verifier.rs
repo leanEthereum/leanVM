@@ -181,8 +181,8 @@ fn test_python_verifier() {
     let honest = proof.stream[final_clock].c0;
     for clock in [
         0,
-        honest ^ leanvm_core::tables::SEED_CLOCK,
-        honest | 1 << leanvm_core::tables::FAIL_BIT,
+        honest ^ leanvm_core::tables::Clock::SEED_CLOCK,
+        honest | 1 << leanvm_core::tables::Clock::FAIL_BIT,
     ] {
         let mut forged = proof.clone();
         forged.stream[final_clock] = F192::new(clock, 0, 0);
@@ -226,7 +226,7 @@ fn test_python_verifier() {
         (leanvm_core::rv::Class::Ld, 3, "flags are not its class's"),
     ] {
         // The class tag `g^t`, which is `2^t` since `g = x`.
-        let tag = 1u64 << leanvm_core::tables::table_of(class).expect("the class has a table");
+        let tag = 1u64 << leanvm_core::tables::ClassSpec::table_index(class).expect("the class has a table");
         let mut malformed = table.clone();
         for (slot, value) in [(2, tag), (3, 0), (slot, 1)] {
             malformed[8 * slot * entries..][..8].copy_from_slice(&value.to_le_bytes());

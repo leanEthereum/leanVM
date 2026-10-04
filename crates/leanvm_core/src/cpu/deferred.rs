@@ -215,7 +215,7 @@ impl Program {
 
         for (f, claim) in claims.circuits.iter().enumerate() {
             let (t, part) = class_flock::flock(f);
-            let table = tables::CLASSES[t].name;
+            let table = tables::ClassSpec::ALL[t].name;
             if !class_flock::shape(f).fits(&claim.point) {
                 return Err(CpuError::MalformedClaim(MalformedClaim::MatrixForm { table, part }));
             }

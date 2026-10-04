@@ -8,7 +8,7 @@
 //! reject would show it. So the two lists are rendered the same way and diffed here.
 
 use leanvm_core::rv::{Hash, Reg, Region, RegisterFile, Syscall};
-use leanvm_core::tables::CLASSES;
+use leanvm_core::tables::ClassSpec;
 use std::fmt::Write;
 
 /// What the Rust verifier's constants come to, in the format `protocol_constants()`
@@ -21,8 +21,8 @@ fn rust_constants() -> String {
     scalar("BAD_SLOT", leanvm_core::tables::BAD_SLOT as u64);
     scalar("BUS_BITS", leanvm_core::leaf::N_TUPLE_BITS as u64);
     scalar("EXIT_SLOT", leanvm_core::tables::EXIT_SLOT as u64);
-    scalar("CLOCK_START", leanvm_core::tables::CLOCK_START);
-    scalar("FAIL_BIT", leanvm_core::tables::FAIL_BIT as u64);
+    scalar("CLOCK_START", leanvm_core::tables::Clock::CLOCK_START);
+    scalar("FAIL_BIT", leanvm_core::tables::Clock::FAIL_BIT as u64);
     scalar("FLOCK_K_SKIP", flock::zerocheck::K_SKIP as u64);
     scalar("FLOCK_MIN_LOG_SIZE", leanvm_core::class_flock::MIN_CUBE_LOG as u64);
     scalar("HASH_OUT_WORD", Hash::OUT / 8);
@@ -31,7 +31,7 @@ fn rust_constants() -> String {
         "INITIAL_FOLDING_FACTOR",
         pcs::whir_config::INITIAL_FOLDING_FACTOR as u64,
     );
-    scalar("LIVE_BIT", leanvm_core::tables::LIVE_BIT as u64);
+    scalar("LIVE_BIT", leanvm_core::tables::Clock::LIVE_BIT as u64);
     scalar("LOG_PACKING", pcs::pack::LOG_PACKING as u64);
     scalar("LOG_REGISTERS", RegisterFile::LOG_CELLS as u64);
     scalar("MAX_LOG_ADVICE", Region::ADVICE.max_log_words() as u64);
@@ -43,15 +43,15 @@ fn rust_constants() -> String {
     scalar("NUM_FRAMEWORK_COLUMNS", leanvm_core::cpu::Q_BASE as u64);
     scalar("QUERY_GRINDING_BITS", pcs::whir_config::QUERY_GRINDING_BITS as u64);
     scalar("RAM_BASE", Region::RAM.base());
-    scalar("RAM_SLOT", leanvm_core::tables::RAM_SLOT as u64);
+    scalar("RAM_SLOT", leanvm_core::tables::Clock::RAM_SLOT as u64);
     scalar("RESIDUAL_MAX_LOG", pcs::whir_config::RESIDUAL_MAX_LOG as u64);
     let rs_domain = pcs::whir_config::RS_DOMAIN_INITIAL_REDUCTION_FACTOR;
     scalar("RS_DOMAIN_INITIAL_REDUCTION_FACTOR", rs_domain as u64);
     let rs_domain_rest = pcs::whir_config::RS_DOMAIN_SUBSEQUENT_REDUCTION_FACTOR;
     scalar("RS_DOMAIN_SUBSEQUENT_REDUCTION_FACTOR", rs_domain_rest as u64);
-    scalar("SEED_CLOCK", leanvm_core::tables::SEED_CLOCK);
+    scalar("SEED_CLOCK", leanvm_core::tables::Clock::SEED_CLOCK);
     scalar("SINK", RegisterFile::SINK as u64);
-    scalar("SLOT_BITS", leanvm_core::tables::SLOT_BITS as u64);
+    scalar("SLOT_BITS", leanvm_core::tables::Clock::SLOT_BITS as u64);
     scalar(
         "SUBSEQUENT_FOLDING_FACTOR",
         pcs::whir_config::SUBSEQUENT_FOLDING_FACTOR as u64,
@@ -67,10 +67,10 @@ fn rust_constants() -> String {
     ));
     lines.push(format!(
         "REGISTER_SLOTS {}",
-        list(&leanvm_core::tables::REG_SLOTS.map(u64::from))
+        list(&leanvm_core::tables::Clock::REG_SLOTS.map(u64::from))
     ));
 
-    for (t, spec) in CLASSES.iter().enumerate() {
+    for (t, spec) in ClassSpec::ALL.iter().enumerate() {
         use leanvm_core::class_flock::{circuit, flock_index, stride_log};
         use leanvm_core::tables::Part;
         let clock = circuit(flock_index(t, Part::Clock));

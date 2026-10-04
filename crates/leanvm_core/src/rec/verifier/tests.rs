@@ -12,7 +12,7 @@ use crate::rec::fixed::FixedColumns;
 use crate::rec::table::HashFlock;
 use crate::rec::transcript::{ProofSource, Transcript};
 use crate::rv::asm::*;
-use crate::tables::{CLASSES, N_TABLES, Part};
+use crate::tables::{ClassSpec, N_TABLES, Part};
 use crate::witness::StackShape;
 use ::flock::lincheck::MatrixForm;
 use ::pcs::pack::PACKING_WIDTH;
@@ -216,7 +216,7 @@ fn raw(proof: &Proof) -> RawProof {
 fn prove_reduction<const N: usize>(f: usize, rows: &[[u64; N]], n_blocks_log: usize) -> Proof {
     let circuit = class_flock::circuit(f);
     let (t, _) = class_flock::flock(f);
-    let (z, a, bz, zl) = CLASSES[t].witness.map_or_else(
+    let (z, a, bz, zl) = ClassSpec::ALL[t].witness.map_or_else(
         || circuit.generate_witness(rows, n_blocks_log),
         |witness| circuit.generate_witness_with(rows, &[0; N], n_blocks_log, |row, z, az, bz| witness(row, z, az, bz)),
     );
@@ -284,14 +284,14 @@ fn xorshift(seed: u64) -> impl FnMut() -> u64 {
 }
 
 fn flock_index(name: &str, part: Part) -> usize {
-    let t = CLASSES.iter().position(|c| c.name == name).expect("a table");
+    let t = ClassSpec::ALL.iter().position(|c| c.name == name).expect("a table");
     class_flock::flock_index(t, part)
 }
 
 #[test]
 fn the_hash_reduction_in_rows_is_the_native_one() {
     let f = flock_index("HASH", Part::Class);
-    let n_blocks_log = class_flock::n_blocks_log(CLASSES[class_flock::flock(f).0], 5);
+    let n_blocks_log = class_flock::n_blocks_log(ClassSpec::ALL[class_flock::flock(f).0], 5);
     let mut next = xorshift(0xA7);
     let rows: Vec<[u64; 14]> = (0..5).map(|_| std::array::from_fn(|_| next())).collect();
     check_reduction(f, n_blocks_log, &prove_reduction(f, &rows, n_blocks_log));
@@ -300,7 +300,7 @@ fn the_hash_reduction_in_rows_is_the_native_one() {
 #[test]
 fn a_small_reduction_in_rows_is_the_native_one() {
     let f = flock_index("LD", Part::Class);
-    let n_blocks_log = class_flock::n_blocks_log(CLASSES[class_flock::flock(f).0], 20);
+    let n_blocks_log = class_flock::n_blocks_log(ClassSpec::ALL[class_flock::flock(f).0], 20);
     let mut next = xorshift(0x5EED);
     let rows: Vec<[u64; 2]> = (0..20).map(|_| [next(), next()]).collect();
     check_reduction(f, n_blocks_log, &prove_reduction(f, &rows, n_blocks_log));
