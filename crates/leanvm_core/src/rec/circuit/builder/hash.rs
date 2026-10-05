@@ -70,10 +70,11 @@ impl Builder {
     pub fn chain(&mut self, words: &[Kw]) -> Dw {
         let n_blocks = words.len().div_ceil(8).max(1);
         let zero = self.k_zero();
+        let bytes = 8 * words.len() as u64;
         let mut h = self.d_const(PARAM_IV);
         for j in 0..n_blocks {
             let m: [Kw; 8] = std::array::from_fn(|i| words.get(8 * j + i).copied().unwrap_or(zero));
-            h = self.leaf_block(h, m, 64 * (j as u64 + 1), j + 1 == n_blocks);
+            h = self.leaf_block(h, m, (64 * (j as u64 + 1)).min(bytes), j + 1 == n_blocks);
         }
         h
     }
@@ -110,16 +111,23 @@ impl Builder {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::rec::circuit::chain;
+    use crate::rec::circuit::{chain, digest_limbs};
 
     #[test]
     fn the_chain_in_rows_is_the_native_chain() {
-        for n in [0, 3, 8, 13] {
+        for n in [0, 3, 8, 13, 16] {
             let words: Vec<u64> = (0..n).map(|i| 0x9e37_79b9_7f4a_7c15u64.wrapping_mul(i + 1)).collect();
             let mut b = Builder::new();
             let wires: Vec<Kw> = words.iter().map(|&w| b.free_k(w)).collect();
             let h = b.chain(&wires);
             assert_eq!(b.d(h), chain(&words), "{n} words");
+            // The native chain is BLAKE2s of the words' bytes, so its length is hashed.
+            let bytes: Vec<u8> = words.iter().flat_map(|w| w.to_le_bytes()).collect();
+            assert_eq!(
+                chain(&words),
+                digest_limbs(&primitives::hash::hash(&bytes)),
+                "{n} words"
+            );
         }
     }
 }

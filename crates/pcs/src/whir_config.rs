@@ -13,6 +13,7 @@
 //! The table is what the floating-point soundness analysis (the PCS annex, Theorem `thm:rbr`) derives at every size and rate it covers.
 //! That analysis lives in the test-only `tests` module, and its test `the_table_is_the_derivation` checks every entry, so changing a constant it reads fails that test until the table is regenerated (AGENTS.md, "One protocol, three verifiers").
 
+use fiat_shamir::MAX_GRINDING_BITS;
 use thiserror::Error;
 
 // ===================================================================
@@ -90,6 +91,8 @@ pub fn validate_log_inv_rate(log_inv_rate: usize) -> Result<(), ConfigError> {
 /// count only needs to close the remaining `SECURITY_BITS - 17` bits.
 pub const QUERY_GRINDING_BITS: usize = 17;
 
+const _: () = assert!(QUERY_GRINDING_BITS <= MAX_GRINDING_BITS as usize);
+
 pub const INITIAL_FOLDING_FACTOR: usize = 6;
 pub const SUBSEQUENT_FOLDING_FACTOR: usize = 4;
 
@@ -159,6 +162,10 @@ impl ProverConfig {
         // `2^log_n` cube. Every claim weight vanishes on the absent lanes, but an OOD
         // weight `eq(z, .)` is a full tensor that does not, so L0 can take none.
         assert_eq!(ood_samples[0], 0, "L0 takes no OOD sample");
+        assert!(
+            grinding_bits.iter().all(|&g| g <= MAX_GRINDING_BITS as usize),
+            "a proof of work grinds at most the digest's low word"
+        );
         Self {
             initial_k,
             level_ks,

@@ -41,12 +41,19 @@ pub const DS_POW_BASE: F64 = F64(3);
 /// The tag of a grinding nonce.
 pub const DS_POW_NONCE: F64 = F64(4);
 
+/// The most grinding bits a proof of work takes: its window is the digest's low word.
+pub const MAX_GRINDING_BITS: u32 = 63;
+
 /// `compress(base, (nonce.c0, nonce.c1, nonce.c2, DS_POW_NONCE))` has its low `bits`
 /// bits zero: the grinding predicate over the VM compression. A CONTIGUOUS
-/// low-bit window rather than byte-wise leading zeros. `bits` is always `< 64`.
+/// low-bit window rather than byte-wise leading zeros.
+///
+/// # Panics
+///
+/// Panics if the grinding exceeds the digest's low word, whose mask would wrap to accept any nonce.
 #[inline]
 fn pow_bits_ok(base: [F64; 4], nonce: F192, bits: u32) -> bool {
-    debug_assert!(bits < 64, "grinding deficit fits the digest's low word");
+    assert!(bits <= MAX_GRINDING_BITS, "grinding past the digest's low word");
     let digest = compress(base, [F64(nonce.c0), F64(nonce.c1), F64(nonce.c2), DS_POW_NONCE])[0];
     digest.0 & ((1u64 << bits) - 1) == 0
 }
@@ -265,5 +272,13 @@ mod tests {
 
         let mut zero_bits = FiatShamirState::new(digest_words(&primitives::hash::hash(b"t")), pi(1));
         assert!(!zero_bits.verify_pow_field(F192::new(0, 1, 0), 0));
+    }
+
+    #[test]
+    #[should_panic(expected = "grinding past the digest's low word")]
+    fn grinding_past_the_low_word_is_refused() {
+        // A 64-bit mask would wrap to zero and accept any nonce.
+        let mut verifier = FiatShamirState::new(digest_words(&primitives::hash::hash(b"t")), pi(1));
+        verifier.verify_pow_field(F192::new(1, 0, 0), 64);
     }
 }

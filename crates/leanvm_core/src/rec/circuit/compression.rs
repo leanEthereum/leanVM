@@ -54,17 +54,19 @@ pub fn zero_prefix(n: usize) -> Limbs {
     words(primitives::hash::zero_prefix_state(n))
 }
 
-/// The BLAKE2s hash of `words` from the parameter IV, eight a block, zero padded.
+/// The BLAKE2s hash of the little-endian bytes of `words`, eight words a block.
 ///
-/// An empty list is one block of zeros.
+/// The last block is zero padded and its counter is the message's length in bytes.
+/// So the length is hashed: appending zero words changes the digest.
 pub fn chain(words: &[u64]) -> Limbs {
     let n_blocks = words.len().div_ceil(8).max(1);
+    let bytes = 8 * words.len() as u64;
     (0..n_blocks).fold(PARAM_IV, |h, j| {
         let mut m = [0; 8];
         for (slot, &w) in m.iter_mut().zip(words.iter().skip(8 * j)) {
             *slot = w;
         }
-        Compression::new(h, m, 64 * (j as u64 + 1), j + 1 == n_blocks).output()
+        Compression::new(h, m, (64 * (j as u64 + 1)).min(bytes), j + 1 == n_blocks).output()
     })
 }
 

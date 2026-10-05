@@ -2,7 +2,7 @@
 
 use super::circuit::{Builder, Dw, Ew, Kw, Limbs, digest_limbs, zero_prefix};
 use fiat_shamir::transcript::RawProof;
-use fiat_shamir::{DS_OBSERVE, DS_POW_BASE, DS_POW_NONCE, DS_SQUEEZE};
+use fiat_shamir::{DS_OBSERVE, DS_POW_BASE, DS_POW_NONCE, DS_SQUEEZE, MAX_GRINDING_BITS};
 use primitives::field::F192;
 
 /// What the circuit reads: the proof when it has one, zeros when it is built from the shape alone.
@@ -143,15 +143,16 @@ impl<'a> Transcript<'a> {
     /// A grinding nonce: its proof of work checked, then bound.
     ///
     /// The check holds the low `bits` bits of `compress(base, (nonce, POW_NONCE))` to zero.
-    /// A digest word has 64 bits, so more than 63 is a failure of the circuit.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the grinding exceeds the digest's low word, as the native check does.
     pub fn grind_check(&mut self, b: &mut Builder, bits: u32) {
+        assert!(bits <= MAX_GRINDING_BITS, "grinding past the digest's low word");
         let nonce = self.take(b);
         if bits == 0 {
             b.eq_e_const(nonce, F192::ZERO);
         } else {
-            if bits >= 64 {
-                b.fail("grinding past the digest's low word");
-            }
             let zero = b.zero();
             let base_tag = b.k_const(DS_POW_BASE.0);
             let (base, _) = b.compress(self.cv, zero, base_tag);
@@ -190,6 +191,12 @@ impl<'a> Transcript<'a> {
     /// It is hashed from the shared state of its whole zero blocks, then up the path.
     /// The direction at each level is the query's bit there, lowest first.
     ///
+    /// # Why the depth is the shape's
+    ///
+    /// - A one-block leaf, a node and a transcript step are one compression from the parameter IV at counter 64.
+    /// - So the root of a tree is also the root of the tree one level shorter whose leaves are node preimages.
+    /// - Only the path's length tells them apart: the bits must number the tree's height, fixed by the shape.
+    ///
     /// # Panics
     ///
     /// Panics if the leaf is not whole blocks of eight words, or the row is longer than it.
@@ -223,7 +230,9 @@ impl<'a> Transcript<'a> {
 mod tests {
     use super::*;
     use crate::rec::circuit::Circuit;
+    use fiat_shamir::merkle::{Hash, RawMerklePath, hash_leaf, hash_pair};
     use fiat_shamir::transcript::{Challenger, ProverState, Transmitter};
+    use primitives::field::F64;
 
     const LABEL: &[u8] = b"rec-transcript-test";
     const POLY: [F192; 4] = [
@@ -293,5 +302,38 @@ mod tests {
     fn the_circuit_from_the_shape_is_the_circuit_from_the_proof() {
         let (raw, _) = native();
         assert_eq!(replay(ProofSource::Proof(&raw)).0, replay(ProofSource::Shape).0);
+    }
+
+    // Opens one row of eight words at index 0 of a tree of the given depth, returning the rows' failures.
+    fn open(leaf: &[u64; 8], path: &[Hash], root: &Hash, depth: usize) -> Vec<String> {
+        let raw = RawProof {
+            stream: Vec::new(),
+            merkle: vec![RawMerklePath {
+                leaf_index: 0,
+                leaf_data: leaf.map(F64).to_vec(),
+                path: path.to_vec(),
+            }],
+        };
+        let mut b = Builder::new();
+        let root = b.d_const(digest_limbs(root));
+        let bits = vec![b.k_const(0); depth];
+        Transcript::from_state(root, ProofSource::Proof(&raw)).open_row(&mut b, root, &bits, 8, 8);
+        b.finish().failures
+    }
+
+    #[test]
+    fn a_node_opened_as_a_leaf_is_refused_at_the_shapes_depth() {
+        // Four one-block leaves under a root of depth two.
+        let words = |i: u64| -> [u64; 8] { std::array::from_fn(|j| 8 * i + j as u64) };
+        let bytes = |w: [u64; 8]| -> Vec<u8> { w.iter().flat_map(|x| x.to_le_bytes()).collect() };
+        let leaves: Vec<Hash> = (0..4).map(|i| hash_leaf(&bytes(words(i)))).collect();
+        let nodes = [hash_pair(&leaves[0], &leaves[1]), hash_pair(&leaves[2], &leaves[3])];
+        let root = hash_pair(&nodes[0], &nodes[1]);
+        assert!(open(&words(0), &[leaves[1], nodes[1]], &root, 2).is_empty());
+
+        // The first node's preimage, its children's digests, is a one-block leaf of the same hash.
+        let preimage: [u64; 8] = std::array::from_fn(|j| digest_limbs(&leaves[j / 4])[j % 4]);
+        assert!(open(&preimage, &[nodes[1]], &root, 1).is_empty());
+        assert!(!open(&preimage, &[nodes[1]], &root, 2).is_empty());
     }
 }
