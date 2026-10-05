@@ -7,7 +7,7 @@
 //! The program is public, so each instruction word is decoded into an entry once, before any run.
 
 use super::circuits::ClassCircuit;
-use super::instruction::{ExtOp, ImmOp, Instruction, LoadOp, Opcode, RegOp, ShiftOp, StoreOp};
+use super::instruction::{ExtOp, ImmOp, Instruction, LoadOp, Op, RegOp, ShiftOp, StoreOp};
 use super::register::{Reg, RegisterFile};
 use super::semantics::{
     Alu, Div, Ext, Hash, InstructionClass, Ld, Load, Mul, Mulh, Outcome, Sd, Shift, Store, WordAccess,
@@ -73,20 +73,70 @@ impl Class {
     /// The extension-field product reads `c`'s address from `ra`, as an address in `x0` is undefined.
     ///
     /// Returns `None` for the illegal class, which has no instruction.
-    pub const fn nop(self) -> Option<Instruction> {
-        let zero = Reg::ZERO;
+    pub const fn nop(self) -> Option<Op> {
+        let (rd, rs1, rs2) = (Reg::ZERO, Reg::ZERO, Reg::ZERO);
         Some(match self {
-            Self::Alu => ImmOp::Addi.encode(zero, zero, 0),
-            Self::Shift => ShiftOp::Slli.encode(zero, zero, 0),
-            Self::Load => LoadOp::Lb.encode(zero, zero, 0),
-            Self::Store => StoreOp::Sb.encode(zero, zero, 0),
-            Self::Ld => LoadOp::Ld.encode(zero, zero, 0),
-            Self::Sd => StoreOp::Sd.encode(zero, zero, 0),
-            Self::Mul => RegOp::Mul.encode(zero, zero, zero),
-            Self::Mulh => RegOp::Mulhu.encode(zero, zero, zero),
-            Self::Div => RegOp::Divu.encode(zero, zero, zero),
-            Self::Hash => Instruction::r(Opcode::Custom0, 0, 0, zero, zero, zero),
-            Self::Ext => ExtOp::Extmul.encode(Reg::RA, zero, zero),
+            Self::Alu => Op::Imm {
+                op: ImmOp::Addi,
+                rd,
+                rs1,
+                imm: 0,
+            },
+            Self::Shift => Op::Shift {
+                op: ShiftOp::Slli,
+                rd,
+                rs1,
+                amount: 0,
+            },
+            Self::Load => Op::Load {
+                op: LoadOp::Lb,
+                rd,
+                rs1,
+                offset: 0,
+            },
+            Self::Store => Op::Store {
+                op: StoreOp::Sb,
+                rs1,
+                rs2,
+                offset: 0,
+            },
+            Self::Ld => Op::Load {
+                op: LoadOp::Ld,
+                rd,
+                rs1,
+                offset: 0,
+            },
+            Self::Sd => Op::Store {
+                op: StoreOp::Sd,
+                rs1,
+                rs2,
+                offset: 0,
+            },
+            Self::Mul => Op::Reg {
+                op: RegOp::Mul,
+                rd,
+                rs1,
+                rs2,
+            },
+            Self::Mulh => Op::Reg {
+                op: RegOp::Mulhu,
+                rd,
+                rs1,
+                rs2,
+            },
+            Self::Div => Op::Reg {
+                op: RegOp::Divu,
+                rd,
+                rs1,
+                rs2,
+            },
+            Self::Hash => Op::Blake2s { rs1, rs2, last: false },
+            Self::Ext => Op::Ext {
+                op: ExtOp::Extmul,
+                rd: Reg::RA,
+                rs1,
+                rs2,
+            },
             Self::Illegal => return None,
         })
     }
@@ -258,142 +308,58 @@ impl Entry {
 
     /// The entry of the instruction `word` at address `pc`.
     ///
+    /// Every encoding the machine does not define is the illegal entry.
+    pub fn decode(word: u32, pc: u64) -> Self {
+        Instruction::from_bits(word)
+            .decode()
+            .map_or(Self::ILLEGAL, |op| Self::new(op, pc))
+    }
+
+    /// The entry of the operation `op` at address `pc`.
+    ///
     /// The address is known, so `AUIPC` and the jump targets fold to constants.
     ///
-    /// Every encoding rv64im does not define is the illegal entry, a reserved one included.
-    pub fn decode(word: u32, pc: u64) -> Self {
-        let ins = Instruction::from_bits(word);
-        let (rd, f3, rs1, rs2, f7) = (ins.rd(), ins.funct3(), ins.rs1(), ins.rs2(), ins.funct7());
+    /// A register-register and a register-immediate operation share one shape:
+    ///
+    /// - a register-register one reads `rs1` and `rs2`, and has no immediate;
+    /// - a register-immediate one reads `rs1` and `x0`, and has the immediate.
+    pub fn new(op: Op, pc: u64) -> Self {
+        let (class, flags) = op.function();
+        let entry = |rs1: Reg, rs2: Reg, rd: Reg, imm: u64| Self::sequential(class, flags, rs1, rs2, rd, imm);
+        let zero = Reg::ZERO;
+        match op {
+            Op::Reg { rd, rs1, rs2, .. } | Op::Ext { rd, rs1, rs2, .. } => entry(rs1, rs2, rd, 0),
+            Op::Imm { rd, rs1, imm, .. } => entry(rs1, zero, rd, imm as i64 as u64),
+            Op::Shift { rd, rs1, amount, .. } => entry(rs1, zero, rd, amount as u64),
+            Op::Load { rd, rs1, offset, .. } => entry(rs1, zero, rd, offset as i64 as u64),
+            Op::Store { rs1, rs2, offset, .. } => entry(rs1, rs2, zero, offset as i64 as u64),
+            Op::Blake2s { rs1, rs2, .. } => entry(rs1, rs2, zero, 0),
+            Op::Fence => entry(zero, zero, zero, 0),
+            Op::Ecall => Self::EXIT,
 
-        // A register-register and a register-immediate instruction share one entry shape.
-        //
-        // - A register-register one reads rs1 and rs2, and has no immediate.
-        // - A register-immediate one reads rs1 and x0, and has the immediate.
-        let reg = |class, flags| Self::sequential(class, flags, rs1, rs2, rd, 0);
-        let imm = |class, flags, imm| Self::sequential(class, flags, rs1, 0, rd, imm);
-
-        let Some(opcode) = ins.opcode() else {
-            return Self::ILLEGAL;
-        };
-        match opcode {
             // LUI and AUIPC: a constant added to x0.
-            Opcode::Lui => Self::sequential(Class::Alu, 0, 0, 0, rd, ins.imm_u()),
-            Opcode::Auipc => Self::sequential(Class::Alu, 0, 0, 0, rd, pc.wrapping_add(ins.imm_u())),
+            Op::Lui { rd, imm20 } => entry(zero, zero, rd, (imm20 << 12) as i32 as i64 as u64),
+            Op::Auipc { rd, imm20 } => entry(zero, zero, rd, pc.wrapping_add((imm20 << 12) as i32 as i64 as u64)),
+
+            // A branch compares by subtraction, and jumps to a fixed target.
+            Op::Branch { rs1, rs2, offset, .. } => Self {
+                target: Target::Abs(pc.wrapping_add(offset as i64 as u64)),
+                ..entry(rs1, rs2, zero, 0)
+            },
 
             // JAL: an unconditional jump to a fixed target, linking pc + 4.
-            Opcode::Jal => Self {
-                target: Target::Abs(pc.wrapping_add(ins.imm_j())),
+            Op::Jal { rd, offset } => Self {
+                target: Target::Abs(pc.wrapping_add(offset as i64 as u64)),
                 link: true,
-                ..Self::sequential(Class::Alu, Alu::ALWAYS, 0, 0, rd, 0)
+                ..entry(zero, zero, rd, 0)
             },
 
-            // JALR: a jump to rs1 + imm with bit 0 cleared, linking pc + 4.
-            Opcode::Jalr if f3 == 0 => Self {
+            // JALR: a jump to rs1 + offset with bit 0 cleared, linking pc + 4.
+            Op::Jalr { rd, rs1, offset } => Self {
                 link: true,
                 jalr: true,
-                ..imm(Class::Alu, Alu::CLEAR_BIT0, ins.imm_i())
+                ..entry(rs1, zero, rd, offset as i64 as u64)
             },
-
-            // Branches: a comparison by subtraction, and a fixed target.
-            Opcode::Branch => Alu::branch_flags(f3).map_or(Self::ILLEGAL, |flags| Self {
-                target: Target::Abs(pc.wrapping_add(ins.imm_b())),
-                ..Self::sequential(Class::Alu, flags, rs1, rs2, 0, 0)
-            }),
-
-            // Loads: the width and the extension. A double word is LD's, which has no flags.
-            Opcode::Load if f3 == 3 => imm(Class::Ld, 0, ins.imm_i()),
-            Opcode::Load => Load::flags_of(f3).map_or(Self::ILLEGAL, |flags| imm(Class::Load, flags, ins.imm_i())),
-
-            // Stores: the width, from 1 to 4 bytes. A double word is SD's, which has no flags.
-            Opcode::Store if f3 < 3 => Self::sequential(Class::Store, f3 as u64, rs1, rs2, 0, ins.imm_s()),
-            Opcode::Store if f3 == 3 => Self::sequential(Class::Sd, 0, rs1, rs2, 0, ins.imm_s()),
-
-            // Register-immediate arithmetic.
-            Opcode::OpImm => match f3 {
-                0 => imm(Class::Alu, 0, ins.imm_i()),
-                2 => imm(Class::Alu, Alu::SUB | Alu::SEL_LT, ins.imm_i()),
-                3 => imm(Class::Alu, Alu::SUB | Alu::SEL_LTU, ins.imm_i()),
-                4 => imm(Class::Alu, Alu::SEL_XOR, ins.imm_i()),
-                6 => imm(Class::Alu, Alu::SEL_OR, ins.imm_i()),
-                7 => imm(Class::Alu, Alu::SEL_AND, ins.imm_i()),
-                // A 64-bit shift amount has six bits, leaving six for the function.
-                1 if ins.funct6() == 0 => imm(Class::Shift, 0, ins.shamt() as u64),
-                5 if ins.funct6() == 0 => imm(Class::Shift, Shift::RIGHT, ins.shamt() as u64),
-                5 if ins.funct6() == 0x10 => imm(Class::Shift, Shift::RIGHT | Shift::ARITH, ins.shamt() as u64),
-                _ => Self::ILLEGAL,
-            },
-
-            // Register-immediate arithmetic on the low 32 bits: a shift amount has five bits.
-            Opcode::OpImm32 => match (f3, f7) {
-                (0, _) => imm(Class::Alu, Alu::WORD, ins.imm_i()),
-                (1, 0) => imm(Class::Shift, Shift::WORD, rs2 as u64),
-                (5, 0) => imm(Class::Shift, Shift::WORD | Shift::RIGHT, rs2 as u64),
-                (5, 0x20) => imm(Class::Shift, Shift::WORD | Shift::RIGHT | Shift::ARITH, rs2 as u64),
-                _ => Self::ILLEGAL,
-            },
-
-            // Register-register arithmetic, multiplication and division.
-            Opcode::Op => match (f7, f3) {
-                (0, 0) => reg(Class::Alu, 0),
-                (0x20, 0) => reg(Class::Alu, Alu::SUB),
-                (0, 1) => reg(Class::Shift, 0),
-                (0, 2) => reg(Class::Alu, Alu::SUB | Alu::SEL_LT),
-                (0, 3) => reg(Class::Alu, Alu::SUB | Alu::SEL_LTU),
-                (0, 4) => reg(Class::Alu, Alu::SEL_XOR),
-                (0, 5) => reg(Class::Shift, Shift::RIGHT),
-                (0x20, 5) => reg(Class::Shift, Shift::RIGHT | Shift::ARITH),
-                (0, 6) => reg(Class::Alu, Alu::SEL_OR),
-                (0, 7) => reg(Class::Alu, Alu::SEL_AND),
-                (1, 0) => reg(Class::Mul, 0),
-                (1, 1) => reg(Class::Mulh, Mulh::SIGNED_1 | Mulh::SIGNED_2),
-                (1, 2) => reg(Class::Mulh, Mulh::SIGNED_1),
-                (1, 3) => reg(Class::Mulh, 0),
-                (1, 4) => reg(Class::Div, Div::SIGNED),
-                (1, 5) => reg(Class::Div, 0),
-                (1, 6) => reg(Class::Div, Div::SIGNED | Div::REM),
-                (1, 7) => reg(Class::Div, Div::REM),
-                _ => Self::ILLEGAL,
-            },
-
-            // Register-register arithmetic on the low 32 bits.
-            Opcode::Op32 => match (f7, f3) {
-                (0, 0) => reg(Class::Alu, Alu::WORD),
-                (0x20, 0) => reg(Class::Alu, Alu::SUB | Alu::WORD),
-                (0, 1) => reg(Class::Shift, Shift::WORD),
-                (0, 5) => reg(Class::Shift, Shift::WORD | Shift::RIGHT),
-                (0x20, 5) => reg(Class::Shift, Shift::WORD | Shift::RIGHT | Shift::ARITH),
-                (1, 0) => reg(Class::Mul, Mul::WORD),
-                (1, 4) => reg(Class::Div, Div::WORD | Div::SIGNED),
-                (1, 5) => reg(Class::Div, Div::WORD),
-                (1, 6) => reg(Class::Div, Div::WORD | Div::SIGNED | Div::REM),
-                (1, 7) => reg(Class::Div, Div::WORD | Div::REM),
-                _ => Self::ILLEGAL,
-            },
-
-            // FENCE: a no-op, whatever its other fields hold.
-            Opcode::MiscMem if f3 == 0 => Self::sequential(Class::Alu, 0, 0, 0, 0, 0),
-
-            // The BLAKE2s compression: the block at rs1, the counter in rs2, no destination.
-            //
-            // Function 1 marks the final block.
-            Opcode::Custom0 if f7 == 0 && rd == 0 && f3 <= 1 => {
-                let flags = if f3 == 1 { Hash::FINAL } else { 0 };
-                Self::sequential(Class::Hash, flags, rs1, rs2, 0, 0)
-            }
-
-            // The extension-field multiplication: the function's bits accumulate, and make rs2 a base-field element.
-            //
-            // Every register is an address, and address 0 is unmapped, so rd = x0 is undefined.
-            Opcode::Custom1 if f7 == 0 && f3 <= 3 && rd != 0 => {
-                Self::sequential(Class::Ext, f3 as u64, rs1, rs2, rd, 0)
-            }
-
-            // ECALL is a jump to the halt slot.
-            //
-            // EBREAK and the CSR instructions share its opcode and stay illegal.
-            Opcode::System if ins == Instruction::ECALL => Self::EXIT,
-
-            _ => Self::ILLEGAL,
         }
     }
 
@@ -435,13 +401,17 @@ impl Entry {
     /// An entry with no control flow.
     ///
     /// A destination of `x0` becomes the sink, which nothing reads.
-    const fn sequential(class: Class, flags: u64, a1: u32, a2: u32, rd: u32, imm: u64) -> Self {
+    const fn sequential(class: Class, flags: u64, rs1: Reg, rs2: Reg, rd: Reg, imm: u64) -> Self {
         Self {
             class,
             flags,
-            a1: a1 as u8,
-            a2: a2 as u8,
-            ad: if rd == 0 { RegisterFile::SINK } else { rd as u8 },
+            a1: rs1.index() as u8,
+            a2: rs2.index() as u8,
+            ad: if rd.index() == 0 {
+                RegisterFile::SINK
+            } else {
+                rd.index() as u8
+            },
             imm,
             target: Target::Next,
             link: false,
@@ -495,9 +465,10 @@ impl Entry {
 mod tests {
     use super::*;
     use crate::rv::Region;
-    use crate::rv::instruction::{BranchOp, ExtOp, ImmOp, LoadOp, RegOp, ShiftOp, StoreOp};
+    use crate::rv::instruction::BranchOp;
     use crate::rv::register::Reg;
     use proptest::prelude::*;
+    use std::collections::HashSet;
 
     #[test]
     fn only_the_canonical_exit_jumps_to_the_halt_slot() {
@@ -607,6 +578,76 @@ mod tests {
     }
 
     #[test]
+    fn each_class_defines_exactly_the_flag_words_its_operations_use() {
+        // Fixture: every operation once, with registers that make every one well formed.
+        //
+        // The extension-field product needs a destination other than x0, so every operation gets ra.
+        let (rd, rs1, rs2) = (Reg::RA, Reg::RA, Reg::RA);
+        let ops: Vec<Op> = RegOp::ALL
+            .map(|op| Op::Reg { op, rd, rs1, rs2 })
+            .into_iter()
+            .chain(ImmOp::ALL.map(|op| Op::Imm { op, rd, rs1, imm: 0 }))
+            .chain(ShiftOp::ALL.map(|op| Op::Shift { op, rd, rs1, amount: 0 }))
+            .chain(LoadOp::ALL.map(|op| Op::Load { op, rd, rs1, offset: 0 }))
+            .chain(StoreOp::ALL.map(|op| Op::Store {
+                op,
+                rs1,
+                rs2,
+                offset: 0,
+            }))
+            .chain(BranchOp::ALL.map(|op| Op::Branch {
+                op,
+                rs1,
+                rs2,
+                offset: 0,
+            }))
+            .chain(ExtOp::ALL.map(|op| Op::Ext { op, rd, rs1, rs2 }))
+            .chain([
+                Op::Lui { rd, imm20: 0 },
+                Op::Auipc { rd, imm20: 0 },
+                Op::Jal { rd, offset: 0 },
+                Op::Jalr { rd, rs1, offset: 0 },
+                Op::Fence,
+                Op::Ecall,
+                Op::Blake2s { rs1, rs2, last: false },
+                Op::Blake2s { rs1, rs2, last: true },
+            ])
+            .collect();
+
+        // Every operation's entry obeys the bytecode table's rules.
+        for &op in &ops {
+            assert!(Entry::new(op, Region::TEXT.base()).is_well_formed(), "{op:?}");
+        }
+
+        // Invariant: a class's legal words are the words its operations use, no more and no fewer.
+        //
+        //     an unused legal word would be a function no program reaches
+        //     a used word outside the list would be refused by the verifiers
+        for class in [
+            Class::Alu,
+            Class::Shift,
+            Class::Load,
+            Class::Store,
+            Class::Ld,
+            Class::Sd,
+            Class::Mul,
+            Class::Mulh,
+            Class::Div,
+            Class::Hash,
+            Class::Ext,
+        ] {
+            let used: HashSet<u64> = ops
+                .iter()
+                .map(|op| op.function())
+                .filter(|&(c, _)| c == class)
+                .map(|(_, flags)| flags)
+                .collect();
+            let legal: HashSet<u64> = class.legal_flags().iter().copied().collect();
+            assert_eq!(used, legal, "{class:?}");
+        }
+    }
+
+    #[test]
     fn decoded_entries_are_well_formed() {
         // The forms the sweep below misses: they need rd = x0.
         //
@@ -648,7 +689,7 @@ mod tests {
 
         // Each no-op decodes to its class, reads x0 twice, writes the sink, and has no immediate.
         for class in classes {
-            let e = Entry::decode(class.nop().expect("a legal class").bits(), Region::TEXT.base());
+            let e = Entry::new(class.nop().expect("a legal class"), Region::TEXT.base());
             assert_eq!(
                 (e.class, e.a1, e.a2, e.ad, e.imm),
                 (class, 0, 0, RegisterFile::SINK, 0),

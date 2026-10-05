@@ -11,7 +11,7 @@ pub use super::instruction::LoadOp::{self, *};
 pub use super::instruction::RegOp::{self, *};
 pub use super::instruction::ShiftOp::{self, *};
 pub use super::instruction::StoreOp::{self, *};
-pub use super::instruction::{Instruction, Opcode};
+pub use super::instruction::{Instruction, Op, Opcode};
 pub use super::register::Reg;
 
 use super::register::Syscall;
@@ -65,7 +65,7 @@ impl Asm {
 
     /// `op rd, rs1, rs2`.
     pub fn r(&mut self, op: RegOp, rd: Reg, rs1: Reg, rs2: Reg) -> &mut Self {
-        self.emit(op.encode(rd, rs1, rs2))
+        self.emit(Op::Reg { op, rd, rs1, rs2 })
     }
 
     /// `op rd, rs1, imm`.
@@ -75,7 +75,7 @@ impl Asm {
     /// Panics if the immediate does not fit 12 signed bits.
     pub fn i(&mut self, op: ImmOp, rd: Reg, rs1: Reg, imm: i32) -> &mut Self {
         assert!((-2048..2048).contains(&imm), "{} immediate {imm}", op.mnemonic());
-        self.emit(op.encode(rd, rs1, imm))
+        self.emit(Op::Imm { op, rd, rs1, imm })
     }
 
     /// `op rd, rs1, amount`.
@@ -85,7 +85,7 @@ impl Asm {
     /// Panics if the amount does not fit the operation: 6 bits, or 5 on the low 32 bits.
     pub fn shift(&mut self, op: ShiftOp, rd: Reg, rs1: Reg, amount: u32) -> &mut Self {
         assert!(amount < 1 << op.amount_bits(), "{} by {amount}", op.mnemonic());
-        self.emit(op.encode(rd, rs1, amount))
+        self.emit(Op::Shift { op, rd, rs1, amount })
     }
 
     /// `op rd, offset(rs1)`: `rd = mem[rs1 + offset]`.
@@ -95,7 +95,7 @@ impl Asm {
     /// Panics if the offset does not fit 12 signed bits.
     pub fn load(&mut self, op: LoadOp, rd: Reg, offset: i32, rs1: Reg) -> &mut Self {
         assert!((-2048..2048).contains(&offset), "{} offset {offset}", op.mnemonic());
-        self.emit(op.encode(rd, rs1, offset))
+        self.emit(Op::Load { op, rd, rs1, offset })
     }
 
     /// `op rs2, offset(rs1)`: `mem[rs1 + offset] = rs2`.
@@ -105,7 +105,7 @@ impl Asm {
     /// Panics if the offset does not fit 12 signed bits.
     pub fn store(&mut self, op: StoreOp, rs2: Reg, offset: i32, rs1: Reg) -> &mut Self {
         assert!((-2048..2048).contains(&offset), "{} offset {offset}", op.mnemonic());
-        self.emit(op.encode(rs2, rs1, offset))
+        self.emit(Op::Store { op, rs1, rs2, offset })
     }
 
     /// `op rs1, rs2, label`.
@@ -122,17 +122,17 @@ impl Asm {
 
     /// `jalr rd, offset(rs1)`: jump to `rs1 + offset`, writing the return address to `rd`.
     pub fn jalr(&mut self, rd: Reg, rs1: Reg, offset: i32) -> &mut Self {
-        self.emit(Instruction::i(Opcode::Jalr, 0, rd, rs1, offset))
+        self.emit(Op::Jalr { rd, rs1, offset })
     }
 
     /// `lui rd, imm20`: `rd = imm20 << 12`, sign-extended.
     pub fn lui(&mut self, rd: Reg, imm20: u32) -> &mut Self {
-        self.emit(Instruction::u(Opcode::Lui, rd, imm20))
+        self.emit(Op::Lui { rd, imm20 })
     }
 
     /// `auipc rd, imm20`: `rd = pc + (imm20 << 12)`, sign-extended.
     pub fn auipc(&mut self, rd: Reg, imm20: u32) -> &mut Self {
-        self.emit(Instruction::u(Opcode::Auipc, rd, imm20))
+        self.emit(Op::Auipc { rd, imm20 })
     }
 
     /// `rd = value`, any 64-bit constant.
@@ -172,17 +172,17 @@ impl Asm {
     ///
     /// `last` marks the final block.
     pub fn blake2s(&mut self, rs1: Reg, rs2: Reg, last: bool) -> &mut Self {
-        self.emit(Instruction::r(Opcode::Custom0, last as u32, 0, Reg::ZERO, rs1, rs2))
+        self.emit(Op::Blake2s { rs1, rs2, last })
     }
 
     /// `op rd, rs1, rs2`: an extension-field multiplication, every register an address.
     pub fn ext(&mut self, op: ExtOp, rd: Reg, rs1: Reg, rs2: Reg) -> &mut Self {
-        self.emit(op.encode(rd, rs1, rs2))
+        self.emit(Op::Ext { op, rd, rs1, rs2 })
     }
 
     /// `ecall`.
     pub fn ecall(&mut self) -> &mut Self {
-        self.emit(Instruction::ECALL)
+        self.emit(Op::Ecall)
     }
 
     /// `exit(a0, a1, a2, a3)`: the system call number in `a7`, then `ecall`.
@@ -203,21 +203,21 @@ impl Asm {
                 .get(label)
                 .unwrap_or_else(|| panic!("undefined label {label}"));
             let offset = (to as i32 - at as i32) * 4;
-            let instruction = match fixup {
+            let op = match fixup {
                 Fixup::Branch(op, rs1, rs2) => {
                     assert!((-4096..4096).contains(&offset), "branch to {label} out of range");
-                    op.encode(rs1, rs2, offset)
+                    Op::Branch { op, rs1, rs2, offset }
                 }
-                Fixup::Jal(rd) => Instruction::j(rd, offset),
+                Fixup::Jal(rd) => Op::Jal { rd, offset },
             };
-            self.words[at] = instruction.bits();
+            self.words[at] = op.encode().bits();
         }
         std::mem::take(&mut self.words)
     }
 
-    /// Append an encoded instruction.
-    fn emit(&mut self, instruction: Instruction) -> &mut Self {
-        self.word(instruction.bits())
+    /// Append one instruction.
+    fn emit(&mut self, op: Op) -> &mut Self {
+        self.word(op.encode().bits())
     }
 }
 

@@ -25,20 +25,6 @@ impl Load {
     pub const LOG_WIDTH: u64 = 0b11;
     /// Sign-extend the value instead of zero-extending it.
     pub const SIGNED: u64 = 1 << 2;
-
-    /// The flag word of a load with function `funct3`.
-    ///
-    /// - 0 to 2 are `lb`, `lh` and `lw`: signed, of width 2^funct3.
-    /// - 4 to 6 are `lbu`, `lhu` and `lwu`: unsigned, of width 2^(funct3 - 4).
-    ///
-    /// Returns `None` for function 3, `ld`, which is [`Ld`]'s, and for function 7, which is reserved.
-    pub const fn flags_of(funct3: u32) -> Option<u64> {
-        match funct3 {
-            0..=2 => Some(Self::SIGNED | funct3 as u64),
-            4..=6 => Some((funct3 - 4) as u64),
-            _ => None,
-        }
-    }
 }
 
 impl InstructionClass for Load {

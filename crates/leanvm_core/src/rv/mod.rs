@@ -37,7 +37,7 @@ mod semantics;
 pub use circuits::ClassCircuit;
 pub use elf::{ElfError, Guest};
 pub use entry::{Class, Entry, Target};
-pub use instruction::{BranchOp, ExtOp, ImmOp, Instruction, LoadOp, Opcode, RegOp, ShiftOp, StoreOp};
+pub use instruction::{BranchOp, ExtOp, ImmOp, Instruction, LoadOp, Op, Opcode, RegOp, ShiftOp, StoreOp};
 pub use machine::{Machine, Trap};
 pub use program::{ProgramError, RiscvProgram};
 pub use region::Region;

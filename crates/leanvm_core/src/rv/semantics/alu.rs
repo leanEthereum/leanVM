@@ -62,22 +62,6 @@ impl Alu {
     const fn has_flag(&self, flag: u64) -> bool {
         self.flags & flag != 0
     }
-
-    /// The flag word of a branch with function `funct3`.
-    ///
-    /// Returns `None` for functions 2 and 3, which are reserved.
-    pub const fn branch_flags(funct3: u32) -> Option<u64> {
-        let condition = match funct3 {
-            0 => Self::BR_EQ,
-            1 => Self::BR_NE,
-            4 => Self::BR_LT,
-            5 => Self::BR_GE,
-            6 => Self::BR_LTU,
-            7 => Self::BR_GEU,
-            _ => return None,
-        };
-        Some(Self::SUB | condition)
-    }
 }
 
 impl InstructionClass for Alu {

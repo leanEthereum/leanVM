@@ -21,7 +21,7 @@
 //! That is what makes the solve exact, with no cost model and no residual to correct.
 
 use crate::rv::Class;
-use crate::rv::asm::{Instruction, Reg};
+use crate::rv::asm::{Op, Reg};
 use crate::tables::{ClassSpec, N_TABLES};
 
 /// Block sizes, largest first.
@@ -85,11 +85,23 @@ impl FillBlocks {
                     table: t,
                 });
                 // A no-op touches only `x0` and address zero, which a padding row at clock zero never touches for real.
-                let nop = spec.class.nop().expect("every table's class has an instruction").bits();
+                let nop = spec
+                    .class
+                    .nop()
+                    .expect("every table's class has an instruction")
+                    .encode()
+                    .bits();
                 text.extend(std::iter::repeat_n(nop, size));
 
                 // The closing jump, which a padding row takes back to the block's top.
-                text.push(Instruction::j(Reg::ZERO, -4 * size as i32).bits());
+                text.push(
+                    Op::Jal {
+                        rd: Reg::ZERO,
+                        offset: -4 * size as i32,
+                    }
+                    .encode()
+                    .bits(),
+                );
             }
         }
         Self(blocks)

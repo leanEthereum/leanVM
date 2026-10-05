@@ -132,10 +132,7 @@ mod tests {
 
     fn entry() -> Entry {
         // A decoded instruction supplies metadata independently of the row's values.
-        Entry::decode(
-            Class::Alu.nop().expect("the ALU has a no-op").bits(),
-            Region::TEXT.base(),
-        )
+        Entry::new(Class::Alu.nop().expect("the ALU has a no-op"), Region::TEXT.base())
     }
 
     proptest! {
