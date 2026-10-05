@@ -62,6 +62,16 @@ impl Program {
         .map_err(ElfError::Program)
     }
 
+    /// Whether a text of this many words fits the text region once its appended words are added.
+    ///
+    /// The appended words are the illegal word, the fill blocks, then the illegal slot and the halt slot.
+    fn text_fits(words: usize) -> bool {
+        words
+            .checked_add(1 + FillBlocks::WORDS + 2)
+            .and_then(usize::checked_next_power_of_two)
+            .is_some_and(|total| total <= 1 << Region::TEXT.max_log_words())
+    }
+
     /// The program of instruction words, an entry point, a RAM image and the memory sizes.
     ///
     /// The text gets an illegal word, then the fill blocks.
@@ -79,13 +89,7 @@ impl Program {
         // Check the shape on the supplied text, before anything is appended to it.
         RiscvProgram::validate(text.len(), entry_pc, image.len(), log_ram, log_advice)?;
 
-        // What gets appended must fit too: the illegal word, the fill blocks, then the illegal slot and the halt slot.
-        let fits = text
-            .len()
-            .checked_add(1 + FillBlocks::WORDS + 2)
-            .and_then(usize::checked_next_power_of_two)
-            .is_some_and(|total| total <= 1 << Region::TEXT.max_log_words());
-        if !fits {
+        if !Self::text_fits(text.len()) {
             return Err(ProgramError::TextTooLarge);
         }
 
@@ -578,12 +582,15 @@ mod tests {
     #[test]
     fn the_text_region_reserves_the_fill_blocks() {
         // The largest text that fits, after the illegal word, the fill blocks, and the two slots `rv` appends.
+        //
+        // Building a program that large takes gigabytes, so the boundary is checked on lengths.
         let limit = (1 << Region::TEXT.max_log_words()) - 1 - FillBlocks::WORDS - 2;
-        let program = |words: usize| Program::new(&vec![0; words], Region::TEXT.base(), vec![], 0, 0);
-        assert!(program(limit).is_ok());
+        assert!(Program::text_fits(limit));
+        assert!(!Program::text_fits(limit + 1));
 
-        // One word more no longer fits.
-        assert!(matches!(program(limit + 1), Err(ProgramError::TextTooLarge)));
+        // A text one word too long is refused before anything is built.
+        let too_long = Program::new(&vec![0; limit + 1], Region::TEXT.base(), vec![], 0, 0);
+        assert!(matches!(too_long, Err(ProgramError::TextTooLarge)));
     }
 
     #[test]
