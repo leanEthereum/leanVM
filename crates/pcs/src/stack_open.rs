@@ -59,13 +59,14 @@ use super::ring_switch;
 use super::ring_switch::RsEqQuery;
 use super::whir::{Basis, ProverConfig, ProverData, VerifierConfig, WhirError, recursive_verifier_with_basis_succinct};
 use crate::merkle::Hash;
-use basis::StackWeight;
 use fiat_shamir::transcript::{Challenger, Receiver, Transmitter};
 use primitives::field::{F64, F192, powers};
 use primitives::multilinear::eq_eval;
 use std::cmp::Reverse;
 
 mod basis;
+
+pub(crate) use basis::StackWeight;
 
 // ---------------------------------------------------------------------------
 // Claim types
@@ -270,14 +271,14 @@ pub fn open_batch_mixed_whir_stacked(
     // The lifted weight is never stored.
     //
     //     first pass:  each chunk is filled, then feeds the first lane rounds' sums while hot
-    //     first fold:  each chunk is filled again, then folded by those rounds' challenges
+    //     first fold:  each chunk's ring-switched part is filled again, then folded by those rounds' challenges;
+    //                  the point claims fold in closed form
     //
     // Filling costs less than writing the weight out and reading it back.
     let lane_block = 1usize << (log_n - config.initial_k());
     let weight = StackWeight::new(stack.len(), lane_block, point_claims, lambdas_pd, rings, &rs_outputs);
-    let fill = |start: usize, dst: &mut [F192]| weight.fill(start, dst);
     let initial = tracing::info_span!("Basis")
-        .in_scope(|| super::whir::initial_rounds(stack, lane_block, config.initial_k(), &Basis::Virtual(&fill)));
+        .in_scope(|| super::whir::initial_rounds(stack, lane_block, config.initial_k(), &Basis::Virtual(&weight)));
 
     // 4. One WHIR over the full stack against the combined claim (the
     //    stack is borrowed by the prover; no copy).
@@ -285,7 +286,7 @@ pub fn open_batch_mixed_whir_stacked(
         config,
         log_n,
         stack,
-        Basis::Virtual(&fill),
+        Basis::Virtual(&weight),
         target,
         &prover_data.codeword,
         &prover_data.merkle_tree,
@@ -513,17 +514,112 @@ impl<'a, E: PartialEq> PrefixGroup<'a, E> {
 // ---------------------------------------------------------------------------
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
+    use crate::ring_switch::DeferredWeight;
     use crate::ring_switch::tests::s_hat_v_reference;
     use crate::whir::{INITIAL_BASIS_CHUNK, commit, inner_product_base_ext};
     use crate::whir_config::tests::{default_config, test_config_for};
-    use basis::StackWeight;
     use fiat_shamir::transcript::{ProofTranscript, ProverState, VerifierState};
     use primitives::multilinear::eq_table;
     use primitives::test_util::Rng;
 
     const DOMAIN: &[u8] = b"stack-open-test";
+
+    /// An opening's weight over random claims, the stack cut into aligned pieces.
+    ///
+    /// Each piece is a ring-switched region or not, and carries a point claim on all of it, a strided one, and a point claim on a part of it.
+    pub(crate) struct RandomWeight {
+        len: usize,
+        lane_block: usize,
+        claims: Vec<StackClaim>,
+        lambdas: Vec<F192>,
+        rings: Vec<RingSwitch>,
+        outputs: Vec<DeferredWeight>,
+    }
+
+    impl RandomWeight {
+        pub(crate) fn new(rng: &mut Rng, lanes: usize, lane_block: usize) -> Self {
+            let len = lanes * lane_block;
+            let coordinates = rng.ext_vec(192);
+            let (mut claims, mut rings, mut outputs) = (Vec::new(), Vec::new(), Vec::new());
+            let mut offset = 0;
+            while offset < len {
+                // The largest aligned piece that fits.
+                let vars = (offset.trailing_zeros().min(usize::BITS - 1) as usize).min((len - offset).ilog2() as usize);
+                if rng.bit() {
+                    let ring = RingSwitch {
+                        offset,
+                        qflock_vars: vars,
+                        claims: (0..1 + usize::from(rng.bit()))
+                            .map(|_| SliceClaim {
+                                suffix_point: rng.ext_vec(vars),
+                                s_hat_v: Vec::new(),
+                            })
+                            .collect(),
+                    };
+                    outputs.extend(
+                        (ring.claims.iter())
+                            .map(|claim| ring_switch::deferred_weight(&claim.suffix_point, rng.ext(), &coordinates)),
+                    );
+                    rings.push(ring);
+                }
+                let stride_log = rng.next_u64() as usize % (vars + 1);
+                let part = rng.next_u64() as usize % (vars + 1);
+                claims.extend([
+                    StackClaim::Point {
+                        offset,
+                        low_point: rng.ext_vec(vars),
+                        value: F192::ZERO,
+                    },
+                    StackClaim::Strided {
+                        offset,
+                        slot: rng.next_u64() as usize % (1 << stride_log),
+                        stride_log,
+                        point: rng.ext_vec(vars - stride_log),
+                        value: F192::ZERO,
+                    },
+                    StackClaim::Point {
+                        offset: offset + ((rng.next_u64() as usize % (1 << (vars - part))) << part),
+                        low_point: rng.ext_vec(part),
+                        value: F192::ZERO,
+                    },
+                ]);
+                offset += 1 << vars;
+            }
+            let lambdas = rng.ext_vec(claims.len());
+            Self {
+                len,
+                lane_block,
+                claims,
+                lambdas,
+                rings,
+                outputs,
+            }
+        }
+
+        pub(crate) fn weight(&self) -> StackWeight<'_> {
+            StackWeight::new(
+                self.len,
+                self.lane_block,
+                &self.claims,
+                &self.lambdas,
+                &self.rings,
+                &self.outputs,
+            )
+        }
+
+        /// The weight written out, filled chunk by chunk.
+        pub(crate) fn dense(&self) -> Vec<F192> {
+            let weight = self.weight();
+            let mut out = vec![F192::ZERO; self.len];
+            let chunk = self.lane_block.min(INITIAL_BASIS_CHUNK);
+            for (i, dst) in out.chunks_exact_mut(chunk).enumerate() {
+                weight.fill(i * chunk, dst);
+            }
+            out
+        }
+    }
 
     #[test]
     fn fused_basis_matches_dense_weights() {
