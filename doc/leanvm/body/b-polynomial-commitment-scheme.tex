@@ -151,6 +151,8 @@ Suppose that for every level $i$: $\rad_i = 1 - \sqrt{\rate_i} - \slack_i$ with 
 Here $J_0$ is the number of input claims and $J_i = \nq_{i-1} + 2$ for $i \ge 1$. The \emph{RBR error}, which governs the Fiat--Shamir compilation (\S\ref{sec:iopcs}), is the maximum of these entries over all rounds.
 \end{theorem}
 
+\paragraph{The ring switch's place.} In leanVM the input claims come from ring switching (Annex~\ref{annex:rs}), whose challenges $\rsgamma$ and $\Phi$ are drawn before level $0$'s batching challenge. Its errors are fixed by the committed polynomial, which the commitment binds only to a list, so Lemma~\ref{lem:rs-family} is unioned over that list: $(\nrs - 1) L_0/|\E|$ for $\rsgamma$ and $2^{32} L_0/|\E|$ for $\Phi$, whose discrepancy has total degree below $2^{32}$ (\S\ref{rs:map}). These are level-$0$ terms, entered with $\varepsilon^{\mathrm{batch}}_0$. A deeper level's oracle is sent after every ring-switch challenge, and its claims are those of step 3(d), so its batching term is $(J_i - 1) L_i/|\E|$ alone.
+
 The remainder of this section proves the theorem: \S\ref{sec:tools} states the coding-theoretic tools, \S\ref{pcs:proof} the invariant and the round-by-round argument.
 
 \subsubsection{Proximity tools}\label{sec:tools}
