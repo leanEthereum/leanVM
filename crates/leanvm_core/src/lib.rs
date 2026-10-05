@@ -1,24 +1,20 @@
-//! leanVM: arithmetization of a minimal zkVM (see `doc/leanvm/main.tex`).
+//! leanVM: the arithmetization of a RISC-V (rv64im) zkVM (see `doc/leanvm/main.tex`).
 //!
-//! Machine words, addresses, the pc and timestamps live in `K = GF(2^64)`.
-//! What the machine computes with is an integer, read as the element with those bits;
-//! what the proof system only ever steps (a timestamp) is a power of a
-//! fixed generator `g`, so incrementing one is a multiplication by `g`, a free virtual
-//! operation. Every physical witness column is K-valued and is committed directly by a
-//! dense multilinear PCS.
-//! Challenges and transcript scalars live in `E = GF(2^192)`, leaving ample margin
-//! for 128-bit soundness.
+//! Machine words, addresses, the pc and timestamps are integers, each read as the element of `K = GF(2^64)` with those bits.
+//! A timestamp is `2^40 | cycle << 5 | slot`, and the clock circuit of each table orders its accesses and steps it (§sec:memchan).
+//! Every committed column is `K`-valued; challenges and transcript scalars live in `E = GF(2^192)`.
 //!
-//! - [`pcs`]: `K`-committed witness, `E`-opened, via the stacked WHIR (§sec:stacking, §annex:pcs).
-//! - [`witness`]: `K`-valued columns stacked into one committed witness.
-//! - [`gkr`]: the grand product via GKR (§sec:gkr), balancing the bus.
-//! - [`leaf`]: the shared bus: grand-product balance, decomposed to per-column claims (§sec:gp through §sec:leafstack, §sec:omc).
-//! - [`constraints`]: one table sumcheck over all the tables'
-//!   degree-2 identities plus their three bus forms (§sec:air).
-//! - [`rv`]: RISC-V (rv64im): the decoder, each instruction class's function and circuit, and the reference interpreter.
-//! - [`tables`]: the instruction tables, one per class (columns, flushes, constraints).
-//! - [`class_flock`]: the glue to flock: a class's circuit proven over its own packed witness, in the same commitment.
-//! - [`cpu`]: whole-program assembly and the prove/verify entry points.
+//! - `pcs`: `K`-committed witness, `E`-opened, via the stacked WHIR (§sec:stacking, §annex:pcs).
+//! - `witness`: `K`-valued columns stacked into one committed witness.
+//! - `gkr`: the grand product via GKR (§sec:gkr), balancing the bus.
+//! - `leaf`: the shared bus: grand-product balance, decomposed to per-column claims (§sec:gp through §sec:leafstack, §sec:omc).
+//! - `constraints`: one table sumcheck over every table's two bus forms, the extension-field identities and the lookup producers (§sec:air).
+//! - `rv`: RISC-V (rv64im): the decoder, each instruction class's function and circuit, and the reference interpreter.
+//! - `tables`: the instruction tables, one per class (columns, bus tuples, clock circuits).
+//! - `class_flock`: the glue to flock: each circuit proven over its own packed witness, in the same commitment.
+//! - `cpu`: whole-program assembly and the prove/verify entry points.
+//! - `arith`: the verifier's arithmetic, shared by the native verifier and its replay in rows.
+//! - `rec`: the recursion machine and the aggregation trees (§annex:rec).
 
 pub(crate) use primitives::{log2_ceil_usize, log2_strict_usize};
 /// `stage!("Commit", || …)`: one named prover stage, run inside its `tracing` span,
