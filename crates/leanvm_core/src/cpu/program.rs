@@ -438,17 +438,13 @@ impl Program {
     fn digest_of(rv: &RiscvProgram) -> [u8; 32] {
         let bytes = |words: &[u64]| -> Vec<u8> { words.iter().flat_map(|w| w.to_le_bytes()).collect() };
         let table = Lookup::Bytecode.table(rv);
-
-        // SAFETY: F64 is #[repr(transparent)] over u64.
-        // So the slice's bytes are the concatenation of its words' little-endian bytes on this target.
-        let table_bytes: &[u8] =
-            unsafe { core::slice::from_raw_parts(table.as_ptr().cast::<u8>(), core::mem::size_of_val(&table[..])) };
+        let table_bytes: Vec<u8> = table.iter().flat_map(|w| w.0.to_le_bytes()).collect();
 
         // The domain, the bytecode table, then the scalars and the image.
         let mut h = Hasher::new();
         h.update(Self::DIGEST_DOMAIN);
         h.update(&bytes(&[table.len() as u64]));
-        h.update(table_bytes);
+        h.update(&table_bytes);
         h.update(&bytes(&[
             rv.entry_pc(),
             rv.halt_pc(),
