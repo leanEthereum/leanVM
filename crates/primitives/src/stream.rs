@@ -3,6 +3,7 @@
 #[cfg(target_arch = "x86_64")]
 use core::arch::x86_64::*;
 use std::marker::PhantomData;
+use std::mem::MaybeUninit;
 
 /// A region of streaming stores.
 ///
@@ -32,6 +33,14 @@ impl Stream {
         assert_eq!(dst.len(), src.len(), "a streaming copy is elementwise");
         // SAFETY: distinct slices are valid for `size_of_val(src)` bytes each
         // and cannot overlap.
+        unsafe { copy_raw(dst.as_mut_ptr().cast(), src.as_ptr().cast(), size_of_val(src)) }
+    }
+
+    /// Copy `src` into unwritten slots, streaming whole cache lines as a copy does.
+    #[inline]
+    pub fn write<T: Copy>(&self, dst: &mut [MaybeUninit<T>], src: &[T]) {
+        assert_eq!(dst.len(), src.len(), "a streaming copy is elementwise");
+        // SAFETY: distinct slices are valid for `size_of_val(src)` bytes each and cannot overlap.
         unsafe { copy_raw(dst.as_mut_ptr().cast(), src.as_ptr().cast(), size_of_val(src)) }
     }
 }

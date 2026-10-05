@@ -8,6 +8,8 @@ pub mod hash;
 pub mod multilinear;
 pub mod stream;
 
+use std::mem::MaybeUninit;
+
 #[cfg(feature = "test-util")]
 pub mod test_util;
 
@@ -105,28 +107,26 @@ pub const fn log2_ceil_usize(n: usize) -> usize {
     if n <= 1 { 0 } else { (n - 1).ilog2() as usize + 1 }
 }
 
-/// A vector of `len` uninitialized elements, to be filled in place.
+/// Unwritten slots viewed as elements, for a kernel typed over elements that writes each slot before reading it.
 ///
-/// It skips the zero-fill, which would cost one more pass over memory.
+/// - It skips the zero-fill, which would cost one more pass over memory.
+/// - The slots become a vector only once every one is written.
+/// - A kernel that can take the slots themselves should, and needs no view.
 ///
 /// # Safety
 ///
-/// Every element must be written before it is read.
+/// - Nothing may read a slot through the view before writing it.
+/// - The view refers to memory not yet written, which the language leaves open; Miri accepts it while nothing reads it.
 ///
-/// Only plain-data elements are allowed, so dropping an unwritten one runs no code:
+/// Only plain-data elements are allowed, since a store through the view drops the old value:
 ///
 /// ```compile_fail
-/// unsafe { primitives::uninit_vec::<String>(1) };
+/// let mut slots = [std::mem::MaybeUninit::<String>::uninit()];
+/// unsafe { primitives::write_only(&mut slots) };
 /// ```
-#[must_use]
-#[expect(clippy::uninit_vec, reason = "the caller writes every element before reading it")]
-pub unsafe fn uninit_vec<T: Copy>(len: usize) -> Vec<T> {
-    // Exactly `len` slots, so the vector never reallocates while it is filled.
-    let mut v = Vec::with_capacity(len);
-
-    // SAFETY: the capacity holds `len` elements, and the caller writes each one before reading it.
-    unsafe { v.set_len(len) };
-    v
+pub const unsafe fn write_only<T: Copy>(slots: &mut [MaybeUninit<T>]) -> &mut [T] {
+    // SAFETY: a slot has its element's layout, and the caller writes every slot before reading it.
+    unsafe { &mut *(slots as *mut [MaybeUninit<T>] as *mut [T]) }
 }
 
 #[cfg(test)]

@@ -158,8 +158,7 @@ pub(crate) fn induce_sumcheck_poly<T: RowElem>(
 
     // Phase 3: each task owns the 2^L outputs sharing their high bits.
     //
-    // SAFETY: every task writes all of its chunk, and the chunks tile the output.
-    let mut basis = unsafe { primitives::uninit_vec::<F192>(n) };
+    let mut basis = Box::new_uninit_slice(n);
     parallel::chunks_mut(&mut basis, 1 << low, |hi_index, out| {
         // Each query's scalar: its weight times its factors on the high bits.
         let scalars: Vec<F192> = per_query
@@ -183,11 +182,12 @@ pub(crate) fn induce_sumcheck_poly<T: RowElem>(
                 }
             }
             for (o, a) in out.iter_mut().zip(acc) {
-                *o = a.reduce();
+                o.write(a.reduce());
             }
         }
     });
-    (basis, enforced_sum)
+    // SAFETY: every task wrote all of its chunk, and the chunks tile the output.
+    (unsafe { basis.assume_init() }.into_vec(), enforced_sum)
 }
 
 /// Just the `enforced_sum` half of [`induce_sumcheck_poly`]:

@@ -165,16 +165,22 @@ pub struct ZerocheckInput<'a> {
 /// A single round covers the last round, and a round whose eq challenge is 1, which leaves G(0) to send.
 struct Tables {
     t: [Vec<F192>; 3],
-    /// Ping-pong scratch: a pass writes its folded tables here, then the two swap.
+    /// Ping-pong scratch: a pass writes its folded tables into the spare capacity here, then the two swap.
     nxt: [Vec<F192>; 3],
     pending: Vec<F192>,
 }
 
 impl Tables {
-    fn swap_in(&mut self, n_out: usize) {
+    /// Take the folded tables a pass wrote into the scratch, `n_out` values each.
+    ///
+    /// # Safety
+    ///
+    /// The pass wrote the first `n_out` slots of every scratch table.
+    unsafe fn swap_in(&mut self, n_out: usize) {
         for (t, nxt) in self.t.iter_mut().zip(&mut self.nxt) {
+            // SAFETY: the caller's pass wrote these slots, within the capacity it was handed.
+            unsafe { nxt.set_len(n_out) };
             std::mem::swap(t, nxt);
-            t.truncate(n_out);
         }
     }
 }
@@ -298,8 +304,7 @@ impl<'a> CircuitProver<'a> {
         }
         let ((g1, g_inf), [a, b, c]) = bit_round_materialize(bits, &fold, &r[j + 1..], &padding);
         let room = a.len() / 2;
-        // SAFETY: a pass writes every slot of the prefix it hands on, and nothing reads past it.
-        let nxt = std::array::from_fn(|_| unsafe { primitives::uninit_vec::<F192>(room) });
+        let nxt = std::array::from_fn(|_| Vec::with_capacity(room));
         self.tables = Some(Tables {
             t: [a, b, c],
             nxt,
@@ -319,14 +324,13 @@ impl<'a> CircuitProver<'a> {
         let paired = j + 1 < n_mlv && n_out >= PAIRED_MIN && r[j] != F192::ONE && r[j + 1] != F192::ONE;
         if paired {
             let [a, b, c] = &tb.t;
-            let [an, bn, cn] = &mut tb.nxt;
-            let pair = fold_and_round_pair_into(
-                [a, b, c],
-                [&mut an[..n_out], &mut bn[..n_out], &mut cn[..n_out]],
-                &tb.pending,
-                &r[j + 1..],
-            );
-            tb.swap_in(n_out);
+            let outs = tb.nxt.each_mut().map(|t| {
+                t.clear();
+                &mut t.spare_capacity_mut()[..n_out]
+            });
+            let pair = fold_and_round_pair_into([a, b, c], outs, &tb.pending, &r[j + 1..]);
+            // SAFETY: the pass wrote the first `n_out` slots of each table.
+            unsafe { tb.swap_in(n_out) };
             tb.pending.clear();
             self.pair = Some(pair);
             return (None, pair.first.0, pair.first.1);

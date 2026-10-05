@@ -19,6 +19,7 @@ use primitives::field::{F64, F192, F192Unreduced};
 use primitives::multilinear::{eq_table, mle_eval};
 use std::collections::{HashMap, HashSet};
 use std::convert::Infallible;
+use std::mem::MaybeUninit;
 use std::sync::{Arc, OnceLock};
 use thiserror::Error;
 
@@ -361,7 +362,7 @@ fn push_terms<'a>(c: &'a Coord, w: F192, terms: &mut Vec<Term<'a>>, constant: &m
 
 /// One tuple's leaves, `β − Σ_i w_i c_i(z)` for every row `z`, into `dst`. The
 /// row-invariant weights and constant coordinates are folded once into `const_part`.
-fn fill_tuple(coords: &[Coord], cols: &[&[F64]], w: &[F192], beta: F192, dst: &mut [F192]) {
+fn fill_tuple(coords: &[Coord], cols: &[&[F64]], w: &[F192], beta: F192, dst: &mut [MaybeUninit<F192>]) {
     let mut const_part = beta;
     let mut terms: Vec<Term> = Vec::with_capacity(coords.len());
     for (i, c) in coords.iter().enumerate() {
@@ -384,12 +385,20 @@ fn fill_tuple(coords: &[Coord], cols: &[&[F64]], w: &[F192], beta: F192, dst: &m
         const_part + acc.reduce()
     };
     if dst.len() >= PAR_THRESHOLD {
-        parallel::fill(dst, row);
+        parallel::fill(dst, |z| MaybeUninit::new(row(z)));
     } else {
         for (z, slot) in dst.iter_mut().enumerate() {
-            *slot = row(z);
+            slot.write(row(z));
         }
     }
+}
+
+/// One tuple's leaves over `2^kappa` rows, in a vector of their own.
+fn tuple_leaves(coords: &[Coord], kappa: usize, cols: &[&[F64]], w: &[F192], beta: F192) -> Vec<F192> {
+    let mut leaves = Box::new_uninit_slice(1 << kappa);
+    fill_tuple(coords, cols, w, beta, &mut leaves);
+    // SAFETY: the fill wrote every slot.
+    unsafe { leaves.assume_init() }.into_vec()
 }
 
 /// Rows per task of the producers' per-bit passes.
@@ -397,10 +406,7 @@ const PRODUCER_CHUNK: usize = 1 << 12;
 
 /// A producer's entries' leaves, `β − π_α(e_x)`, which its bits raise to their powers.
 fn producer_leaves(p: &Producer, cols: &[&[F64]], w: &[F192], beta: F192) -> Vec<F192> {
-    // SAFETY: `fill_tuple` writes every slot before anything reads one.
-    let mut q = unsafe { primitives::uninit_vec(1 << p.kappa) };
-    fill_tuple(&p.coords, cols, w, beta, &mut q);
-    q
+    tuple_leaves(&p.coords, p.kappa, cols, w, beta)
 }
 
 /// Build one side's leaf vector: block `b` row `z` holds `β − Σ_i w_i c_i(z)` for
@@ -431,28 +437,21 @@ pub fn build_leaves(
     // blocks tile `0..explicit` and every slot below is written by one of them: the
     // identity fill would be overwritten in full, and this is the largest buffer in
     // the proof. The `covered` test is what licenses skipping it, so a layout that
-    // ever left a hole falls back to filling rather than reading uninitialized rows.
+    // ever left a hole falls back to filling rather than leaving rows unwritten.
     // Capacity is rounded to whole four-tuples because `gkr::QuaternaryLayerState`
     // pads this level to that before reading it, and growing it here would copy it.
     let covered: usize = kappas.iter().map(|&kappa| 1usize << kappa).sum();
-    let capacity = explicit.next_multiple_of(4);
-    let mut leaves = if covered == explicit {
-        // SAFETY: the per-block fills below cover `0..explicit` exactly, and each
-        // joins before this function returns.
-        let mut values = unsafe { primitives::uninit_vec(capacity) };
-        values.truncate(explicit);
-        values
-    } else {
-        let mut values = Vec::with_capacity(capacity);
-        values.resize(explicit, F192::ONE);
-        values
-    };
+    let mut leaves = Vec::with_capacity(explicit.next_multiple_of(4));
+    let slots = &mut leaves.spare_capacity_mut()[..explicit];
+    if covered != explicit {
+        slots.fill(MaybeUninit::new(F192::ONE));
+    }
     // Every row of every block is a real row: a table's height is exactly the
     // number of rows it executed (`cpu::filler`), so no block has padding rows
     // whose tuples would have to be divided back out of the product.
     for (b, blk) in blocks.iter().enumerate() {
         let off = lay.offsets[b];
-        let dst = &mut leaves[off..off + (1usize << blk.kappa)];
+        let dst = &mut slots[off..off + (1usize << blk.kappa)];
         fill_tuple(&blk.coords, cols, w, beta, dst);
     }
     let mut b = blocks.len();
@@ -461,18 +460,20 @@ pub fn build_leaves(
         let mult = cols[p.col];
         for bit in 0..p.bits {
             let off = lay.offsets[b];
-            let dst = &mut leaves[off..off + (1usize << p.kappa)];
+            let dst = &mut slots[off..off + (1usize << p.kappa)];
             // Bit `bit`'s leaves, then `q` squared in place for the next bit.
             parallel::chunks_mut2(dst, &mut q, PRODUCER_CHUNK, |ci, dst, q| {
                 let mult = &mult[ci * PRODUCER_CHUNK..];
                 for ((slot, q), m) in dst.iter_mut().zip(q.iter_mut()).zip(mult) {
-                    *slot = if (m.0 >> bit) & 1 == 1 { *q } else { F192::ONE };
+                    slot.write(if (m.0 >> bit) & 1 == 1 { *q } else { F192::ONE });
                     *q = q.square();
                 }
             });
             b += 1;
         }
     }
+    // SAFETY: the blocks tile `0..explicit` when they cover it, and the identity fill wrote it otherwise.
+    unsafe { leaves.set_len(explicit) };
     leaves
 }
 
@@ -1402,7 +1403,7 @@ pub fn verify_balance<V: Verifier>(
 pub(crate) mod tests {
     use super::{
         BUS_SOUNDNESS_BITS, Block, BusError, BusSetup, Coord, F64, F192, N_TUPLE_BITS, Producer, PublicColumn,
-        SparseColumn, fill_tuple, fingerprint_weights, prove_balance, soundness_bits, verify_balance,
+        SparseColumn, fingerprint_weights, prove_balance, soundness_bits, tuple_leaves, verify_balance,
     };
     use crate::cpu::{Layout, MAX_LOG_BYTECODE, Program};
     use crate::pcs::MAX_MU;
@@ -1429,16 +1430,14 @@ pub(crate) mod tests {
         let side = |blocks: &[Block]| {
             let mut at = Vec::new();
             for (b, block) in blocks.iter().enumerate() {
-                let mut leaves = vec![F192::ZERO; 1 << block.kappa];
-                fill_tuple(&block.coords, cols, &w, beta, &mut leaves);
+                let leaves = tuple_leaves(&block.coords, block.kappa, cols, &w, beta);
                 at.extend(leaves.into_iter().enumerate().map(|(z, leaf)| (leaf, b, z)));
             }
             at
         };
         let (mut pushed, pulled) = (side(push), side(pull));
         for (p, producer) in producers.iter().enumerate() {
-            let mut leaves = vec![F192::ZERO; 1 << producer.kappa];
-            fill_tuple(&producer.coords, cols, &w, beta, &mut leaves);
+            let leaves = tuple_leaves(&producer.coords, producer.kappa, cols, &w, beta);
             for (x, leaf) in leaves.into_iter().enumerate() {
                 let m = cols[producer.col][x].0 & ((1u64 << producer.bits) - 1);
                 pushed.extend(std::iter::repeat_n((leaf, push.len() + p, x), m as usize));

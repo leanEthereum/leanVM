@@ -367,15 +367,15 @@ fn fold_columns_and_message<T: ColVal + Into<F192>, C: Deref<Target = [T]> + Syn
 ) -> (Vec<F192>, Option<[F192; 2]>) {
     let ncols = cols.len();
     let half = cols[0].len() / 2;
-    // SAFETY: the single-row branch or the paired-row dispatch writes every output element.
-    let mut out = unsafe { primitives::uninit_vec(half * ncols) };
+    let mut out = Box::new_uninit_slice(half * ncols);
     let interp = |a: T, b: T| a.into() + (a + b).mul_e(rk);
     if half == 1 {
         // No next variable remains, so only the final evaluations are needed.
         for (c, dst) in cols.iter().zip(&mut out) {
-            *dst = interp(c[0], c[1]);
+            dst.write(interp(c[0], c[1]));
         }
-        return (out, None);
+        // SAFETY: one value per column fills the `ncols` slots.
+        return (unsafe { out.assume_init() }.into_vec(), None);
     }
     let pairs = half / 2;
     let (lo, hi) = out.split_at_mut(pairs * ncols);
@@ -388,11 +388,12 @@ fn fold_columns_and_message<T: ColVal + Into<F192>, C: Deref<Target = [T]> + Syn
         }
         // SAFETY: task i owns row i in each disjoint output half for the whole dispatch.
         unsafe {
-            lo.get(i).copy_from_slice(a);
-            hi.get(i).copy_from_slice(b);
+            lo.get(i).write_copy_of_slice(a);
+            hi.get(i).write_copy_of_slice(b);
         }
     });
-    (out, Some(message))
+    // SAFETY: the `pairs` tasks wrote every row of both halves.
+    (unsafe { out.assume_init() }.into_vec(), Some(message))
 }
 
 /// Fold row-major storage in place while building the next round's message from scratch.

@@ -297,11 +297,8 @@ fn fold_and_msg_lsb<T: RoundWitness>(f: &[T], b: &[F192], r: F192) -> (Vec<F192>
     // Parallel path: `half` is a power of two >= PAR_THRESHOLD and ROUND_CHUNK is a
     // power of two, so every chunk has even length and starts at an even
     // global index (message pairs never straddle a chunk boundary).
-    // SAFETY: every slot of `nf` is written by the chunked loop below (one output
-    // per input pair) before any is read.
-    let mut nf = unsafe { primitives::uninit_vec(half) };
-    // SAFETY: as for `nf`, the same loop writes every slot of `nb`.
-    let mut nb = unsafe { primitives::uninit_vec(half) };
+    let mut nf = Box::new_uninit_slice(half);
+    let mut nb = Box::new_uninit_slice(half);
     // The fold writes and the message accumulate share one pass per chunk, so
     // the freshly folded values are still in L1 when they are multiplied.
     let nf_base = SendPtr(nf.as_mut_ptr());
@@ -319,10 +316,11 @@ fn fold_and_msg_lsb<T: RoundWitness>(f: &[T], b: &[F192], r: F192) -> (Vec<F192>
             let bc = unsafe { nb_base.slice(base, len) };
             for t in 0..len {
                 let j = base + t;
-                fc[t] = fold_f(j);
-                bc[t] = fold_b(j);
+                fc[t].write(fold_f(j));
+                bc[t].write(fold_b(j));
             }
-            fold_msg_terms(fc, bc)
+            // SAFETY: the loop just wrote both windows.
+            unsafe { fold_msg_terms(fc.assume_init_ref(), bc.assume_init_ref()) }
         },
         |(mut a0, mut a2), (c0, c2)| {
             a0 ^= c0;
@@ -330,6 +328,8 @@ fn fold_and_msg_lsb<T: RoundWitness>(f: &[T], b: &[F192], r: F192) -> (Vec<F192>
             (a0, a2)
         },
     );
+    // SAFETY: the tasks wrote every slot of both, one output per pair or group of input blocks.
+    let (nf, nb) = unsafe { (nf.assume_init().into_vec(), nb.assume_init().into_vec()) };
     (
         nf,
         nb,
@@ -492,11 +492,8 @@ fn fold_and_msg_blocks<T: RoundWitness>(
         Vec::new()
     };
 
-    // SAFETY: the loop below writes every slot of `nf`, one output element per
-    // group of input blocks, before any is read.
-    let mut nf = unsafe { primitives::uninit_vec(n_out * block) };
-    // SAFETY: as for `nf`, the same loop writes every slot of `nb`.
-    let mut nb = unsafe { primitives::uninit_vec(n_out * block) };
+    let mut nf = Box::new_uninit_slice(n_out * block);
+    let mut nb = Box::new_uninit_slice(n_out * block);
     let nf_base = SendPtr(nf.as_mut_ptr());
     let nb_base = SendPtr(nb.as_mut_ptr());
 
@@ -564,8 +561,8 @@ fn fold_and_msg_blocks<T: RoundWitness>(
         // SAFETY: distinct (out_blk, x0) name disjoint in-bounds windows of `nf`
         // and `nb`, which stay borrowed for the whole dispatch.
         unsafe {
-            stream.copy(nf_base.slice(out_blk * block + x0, len), stage);
-            stream.copy(nb_base.slice(out_blk * block + x0, len), stage_b);
+            stream.write(nf_base.slice(out_blk * block + x0, len), stage);
+            stream.write(nb_base.slice(out_blk * block + x0, len), stage_b);
         }
     };
 
@@ -598,6 +595,8 @@ fn fold_and_msg_blocks<T: RoundWitness>(
         acc
     };
     let (u_0, u_2) = accumulate_msg(n_out.div_ceil(2) * per, f.len() / 2, F192Unreduced::ZERO, task);
+    // SAFETY: the tasks wrote every slot of both, one output per pair or group of input blocks.
+    let (nf, nb) = unsafe { (nf.assume_init().into_vec(), nb.assume_init().into_vec()) };
     (
         nf,
         nb,
