@@ -13,10 +13,9 @@ use super::layout::RecLayout;
 use super::table::{HashFlock, Table};
 use crate::arith::Verifier;
 use crate::constraints::{Columns, ConstraintError};
-use crate::pcs::{Rate, RingSwitchOpen, StackClaim};
+use crate::pcs::{Rate, RingSwitch, SliceClaim, StackClaim};
 use crate::{constraints, pcs, witness};
 use fiat_shamir::transcript::{Challenger, ProofTranscript, ProverState, RawProof, VerifierState};
-use flock::reduction::SliceClaim;
 use primitives::field::{F64, F192};
 
 /// The transcript's public input for a statement: the hash of its words' limbs, in order.
@@ -64,7 +63,7 @@ impl HashBatch {
     }
 
     /// Prove every hash row: zerocheck, then lincheck, a batch of one circuit, to one ring-switched claim on the packed witness.
-    fn prove(self, layout: &RecLayout, ps: &mut ProverState) -> RingSwitchOpen {
+    fn prove(self, layout: &RecLayout, ps: &mut ProverState) -> RingSwitch {
         let window = layout.hash_window();
         let instance = flock::reduction::Instance {
             block: HashFlock::circuit().block(),
@@ -75,7 +74,7 @@ impl HashBatch {
             z_lincheck: &self.z_lincheck,
         };
         let [reduced] = <[_; 1]>::try_from(flock::reduction::prove(&[instance], ps)).expect("one circuit");
-        flock::reduction::ring_switch_open(window.n_vars, window.offset, &reduced)
+        window.ring(reduced)
     }
 
     /// The verifier's replay of the hash rows' reduction, to the claim on the packed witness.
@@ -288,8 +287,7 @@ impl Circuit {
         let root = pcs::read_commitment(&mut vs)?;
         let slots = TableArgument::of(self, statement, &layout).verify(&mut vs)?;
         let hash_claim = HashBatch::verify(&layout, &mut vs)?;
-        let window = layout.hash_window();
-        let ring = flock::reduction::ring_switch_verify(window.n_vars, window.offset, &hash_claim);
+        let ring = layout.hash_window().ring(hash_claim);
         pcs::verify(
             &mut vs,
             &slots,

@@ -10,8 +10,6 @@ use crate::pcs::Rate;
 use crate::rec::circuit::{Builder, Dw, Ew, Kw};
 use crate::rec::transcript::{ProofSource, Transcript};
 use crate::tables::{Clock, N_TABLES};
-use ::pcs::pack::PACKING_WIDTH;
-use ::pcs::stack_open::{RingSwitchVerify, RingSwitchVerifyClaim};
 use primitives::field::F192;
 
 /// What fixes the rows of a RISC-V proof's verifier: the program, each table's height, and the commitment's rate.
@@ -102,26 +100,8 @@ impl<'p> ProofShape<'p> {
 
     /// The one opening: the point claims, then the ring-switched regions, each packed witness then each producer's multiplicity column.
     fn open(&self, r: &mut Rows<'_, '_>, root: Dw, reductions: &[Reduction], reduced: &TableReduction<Ew>) {
-        let zero = r.zero();
-        let bits: Vec<Vec<Ew>> = (reduced.producers.iter())
-            .map(|claims| claims.evals_padded_with(PACKING_WIDTH, zero))
-            .collect();
-        let witnesses = reductions.iter().enumerate().map(|(f, reduction)| {
-            let window = self.layout.witness_window(f);
-            ::flock::reduction::ring_switch_verify(window.n_vars, window.offset, &reduction.slice)
-        });
-        let producers = (self.layout.producers.iter().zip(&reduced.producers).zip(&bits)).map(|((p, claims), bits)| {
-            let window = self.layout.multiplicity_window(p);
-            RingSwitchVerify {
-                offset: window.offset,
-                qflock_vars: window.n_vars,
-                claims: vec![RingSwitchVerifyClaim {
-                    suffix_point: &claims.chi,
-                    s_hat_v: bits.as_slice().try_into().expect("a multiplicity has at most 64 bits"),
-                }],
-            }
-        });
-        let rings: Vec<RingSwitchVerify<'_, Ew>> = witnesses.chain(producers).collect();
+        let slices = reductions.iter().map(|reduction| reduction.slice.clone());
+        let rings = self.layout.rings(slices, &reduced.producers, r.zero());
         let opening = Opening {
             slots: &reduced.slots,
             rings: &rings,

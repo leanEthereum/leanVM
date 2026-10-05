@@ -3,7 +3,7 @@ use std::mem::MaybeUninit;
 use primitives::field::F192;
 use primitives::multilinear::{eq_table_seeded, fill_eq_table_uninit};
 
-use super::{RingSwitchOpen, StackClaim};
+use super::{RingSwitch, StackClaim};
 use crate::ring_switch::{DeferredWeight, combine_deferred_chunk};
 use crate::whir::INITIAL_BASIS_CHUNK;
 
@@ -95,7 +95,7 @@ impl<'a> StackWeight<'a> {
         lane_block: usize,
         claims: &'a [StackClaim],
         lambdas: &[F192],
-        rings: &[RingSwitchOpen],
+        rings: &[RingSwitch],
         rs_outputs: &'a [DeferredWeight],
     ) -> Self {
         assert_eq!(claims.len(), lambdas.len());

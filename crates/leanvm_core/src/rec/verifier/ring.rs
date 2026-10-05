@@ -7,7 +7,7 @@ use crate::arith::Arith;
 use crate::rec::circuit::{Builder, Ew};
 use ::pcs::pack::PACKING_WIDTH;
 use ::pcs::ring_switch::COMPOSITION_SHIFTS;
-use ::pcs::stack_open::{PrefixGroup, RingSwitchVerify};
+use ::pcs::stack_open::{PrefixGroup, RingSwitch};
 use primitives::field::{F64, F192};
 
 /// The ring-switching map `Phi`, as the coefficients `C_k^(2^-k)` of its Frobenius form, `k < 64`.
@@ -16,8 +16,8 @@ pub(crate) struct RingMap {
 }
 
 /// Every ring-switched claim of an opening as one family, claim `j` scaled by `gamma_rs^j`, under one map.
-pub(super) struct RingShare<'a, 'r> {
-    rings: &'a [RingSwitchVerify<'r, Ew>],
+pub(super) struct RingShare<'a> {
+    rings: &'a [RingSwitch<Ew>],
     scales: Vec<Ew>,
     map: RingMap,
 }
@@ -121,9 +121,9 @@ impl RingMap {
     }
 }
 
-impl<'a, 'r> RingShare<'a, 'r> {
+impl<'a> RingShare<'a> {
     /// The family of the regions' claims in order, under the challenge `gamma_rs` and the map's challenges.
-    pub(super) fn new(r: &mut Rows<'_, '_>, rings: &'a [RingSwitchVerify<'r, Ew>], gamma_rs: Ew, map: &[Ew]) -> Self {
+    pub(super) fn new(r: &mut Rows<'_, '_>, rings: &'a [RingSwitch<Ew>], gamma_rs: Ew, map: &[Ew]) -> Self {
         let n_claims = rings.iter().map(|ring| ring.claims.len()).sum();
         let scales = r.powers(gamma_rs, n_claims);
         let map = r.scope("ring switch map", |r| RingMap::new(r.b, map));
@@ -136,7 +136,12 @@ impl<'a, 'r> RingShare<'a, 'r> {
         let zero = r.zero();
         let mut family = vec![zero; PACKING_WIDTH];
         for (claim, &scale) in claims.zip(&self.scales) {
-            for (f, &s) in family.iter_mut().zip(claim.s_hat_v) {
+            assert_eq!(
+                claim.s_hat_v.len(),
+                PACKING_WIDTH,
+                "a ring-switched claim has 64 slices"
+            );
+            for (f, &s) in family.iter_mut().zip(&claim.s_hat_v) {
                 *f = r.mul_add(scale, s, *f);
             }
         }

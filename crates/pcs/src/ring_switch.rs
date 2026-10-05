@@ -61,7 +61,7 @@ use super::tensor_algebra::{DEGREE_E, transpose_s_hat};
 use super::whir::inner_product_base_ext;
 use fiat_shamir::transcript::Challenger;
 use primitives::bit_fold::{BLOCK, F192Map, Sliced};
-use primitives::field::{F64, F192};
+use primitives::field::F192;
 use primitives::multilinear::eq_table;
 
 /// Total degree of the six-challenge composed batching map. This is the
@@ -166,43 +166,6 @@ pub fn inner_product_ext(a: &[F192], b: &[F192]) -> F192 {
     acc
 }
 
-/// Compute the slice-MLE vector `s_hat_v` (length 64) from a packed witness
-/// and a tensor-expanded suffix point.
-///
-/// `packed_witness[y] in K` for `y in 0..2^L`; `suffix_tensor` is
-/// `eq(r_suffix, .)` over the same range (from
-/// the `eq` table builder).
-///
-/// Output: `s_hat_v[i] = sum_y bit_i(packed_witness[y]) * suffix_tensor[y]`
-/// for `i in 0..64` (bit i = polynomial-basis coordinate of the u64).
-///
-/// The prover takes these from lincheck, so this is the reference for tests and the unprepared fallback.
-pub fn fold_1b_rows(packed_witness: &[F64], suffix_tensor: &[F192]) -> Vec<F192> {
-    assert_eq!(packed_witness.len(), suffix_tensor.len());
-    parallel::fold_reduce(
-        packed_witness.len(),
-        || vec![F192::ZERO; PACKING_WIDTH],
-        |acc, i| {
-            let w = suffix_tensor[i];
-            let mut bits = packed_witness[i].0;
-            while bits != 0 {
-                acc[bits.trailing_zeros() as usize] += w;
-                bits &= bits - 1;
-            }
-        },
-        xor_accs,
-    )
-}
-
-/// XOR-reduce two per-worker partial accumulators of the bit-slice folds
-/// (E addition is XOR, so the reduction order does not matter).
-fn xor_accs(mut a: Vec<F192>, b: Vec<F192>) -> Vec<F192> {
-    for (av, bv) in a.iter_mut().zip(b) {
-        *av += bv;
-    }
-    a
-}
-
 /// A claim's weight `Phi(scale·eq(point, ·))`, kept factored: the split eq
 /// tensor, its high half scaled, and `Phi` on the coordinates, so combining
 /// claims needs only additions.
@@ -276,34 +239,9 @@ fn split_n_lo(n: usize) -> usize {
     (n / 2).clamp(4.min(n), n)
 }
 
-/// Factored eq tensor: `eq(point, y) = eq_lo[y & (2^n_lo - 1)] * eq_hi[y >> n_lo]`
-/// (LSB-first indexing, matching the full `eq` table). Materializes
-/// `2^n_lo + 2^(n - n_lo)` entries instead of `2^n`; field multiplication is
-/// exact, so the reconstructed entries are bit-identical to the full build.
-fn build_eq_split_ext(point: &[F192]) -> (Vec<F192>, Vec<F192>) {
-    let n_lo = split_n_lo(point.len());
-    (eq_table(&point[..n_lo]), eq_table(&point[n_lo..]))
-}
-
 // ---------------------------------------------------------------------------
 // Prover / verifier of the reduction
 // ---------------------------------------------------------------------------
-
-/// The 64 bit-slice values of `packed_witness` at `suffix_point`, folded out of the witness.
-///
-/// The prover takes a claim's slices from the reduction that sent them, so this serves a caller that has none.
-pub fn slices_at(packed_witness: &[F64], suffix_point: &[F192]) -> Vec<F192> {
-    assert_eq!(
-        packed_witness.len(),
-        1usize << suffix_point.len(),
-        "packed witness must have 2^|suffix_point| words"
-    );
-    let (eq_lo, eq_hi) = build_eq_split_ext(suffix_point);
-    let mask = eq_lo.len() - 1;
-    let shift = eq_lo.len().trailing_zeros();
-    let full: Vec<F192> = parallel::map_collect(packed_witness.len(), |y| eq_lo[y & mask] * eq_hi[y >> shift]);
-    fold_1b_rows(packed_witness, &full)
-}
 
 /// The family's target: given the shared coordinate weights, `Σ_w Phi(b_w)·t_w`
 /// over the transposed slices, which is `Σ_i x^i·Phi(s_i)`. Pair it with the closed-form weight
@@ -396,13 +334,14 @@ pub fn close_rs_eq(terms: &[F192; LINEARIZED_TERMS]) -> F192 {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
     use crate::merkle::Hash;
     use crate::pack::LOG_PACKING;
     use crate::whir::{VerifierConfig, commit, recursive_prover_with_basis, recursive_verifier_with_basis_succinct};
     use crate::whir_config::tests::test_config_for;
     use fiat_shamir::transcript::{ProofTranscript, ProverState, VerifierState};
+    use primitives::field::F64;
     use primitives::test_util::Rng;
     use std::collections::HashSet;
 
@@ -584,7 +523,7 @@ mod tests {
 
     /// Reference s_hat_v: brute-force partial evaluation of each bit-column
     /// MLE at the suffix point (direct bit-extract loop, no fold kernel).
-    fn s_hat_v_reference(packed: &[F64], suffix_point: &[F192]) -> Vec<F192> {
+    pub(crate) fn s_hat_v_reference(packed: &[F64], suffix_point: &[F192]) -> Vec<F192> {
         let eq_suffix = eq_table(suffix_point);
         (0..PACKING_WIDTH)
             .map(|i| {
@@ -599,36 +538,7 @@ mod tests {
             .collect()
     }
 
-    /// s_hat_v[i] must equal the MLE of the i-th bit-slice at the suffix
-    /// point; cross-check the fold kernel against a from-the-bits brute
-    /// force over the full (prefix + suffix) hypercube.
-    #[test]
-    fn s_hat_v_matches_bruteforce() {
-        let m = 9;
-        let mut rng = Rng::new(1);
-        let bits = rng.bits(1usize << m);
-        let packed = pack_witness(&bits);
-        let suffix_point = rng.ext_vec(m - LOG_PACKING);
-        let eq_suffix = eq_table(&suffix_point);
-
-        let s_hat_v = fold_1b_rows(&packed, &eq_suffix);
-        assert_eq!(s_hat_v.len(), PACKING_WIDTH);
-
-        // From the flat bit layout: column i is z[y * 64 + i].
-        for i in 0..PACKING_WIDTH {
-            let mut expected = F192::ZERO;
-            for (y, &w) in eq_suffix.iter().enumerate() {
-                if bits[(y << LOG_PACKING) | i] {
-                    expected += w;
-                }
-            }
-            assert_eq!(s_hat_v[i], expected, "bit column {i}");
-        }
-        assert_eq!(s_hat_v, s_hat_v_reference(&packed, &suffix_point));
-    }
-
-    /// The prefix x suffix split factors the bit-MLE, and `slices_at`'s
-    /// witness fold reproduces the reference slice values.
+    /// The prefix x suffix split factors the bit-MLE.
     #[test]
     fn slices_factor_the_bit_mle() {
         let m = 10;
@@ -651,11 +561,6 @@ mod tests {
             inner_product_ext(&prefix_weights, &s_ref),
             direct,
             "prefix x suffix split must factor the MLE"
-        );
-        assert_eq!(
-            slices_at(&packed, suffix_point),
-            s_ref,
-            "the witness fold must reproduce the reference slices"
         );
     }
 
@@ -736,7 +641,7 @@ mod tests {
 
         // One family of one claim: its slices, the map, then its target and its weight at a scale of one.
         let mut ps = ProverState::from_label(E2E_DOMAIN);
-        let rs_s_hat_v = slices_at(&packed, &suffix_point);
+        let rs_s_hat_v = s_hat_v_reference(&packed, &suffix_point);
         let coordinate_weights = build_coordinate_weights(&sample_map_challenges(&mut ps));
         let sumcheck_claim = verify_finish(&rs_s_hat_v, &coordinate_weights);
         let weight = deferred_weight(&suffix_point, F192::ONE, &coordinate_weights);

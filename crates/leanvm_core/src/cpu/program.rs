@@ -16,8 +16,6 @@ use crate::pcs::Rate;
 use crate::rv::{ElfError, Guest, Machine, ProgramError, Region, RiscvProgram};
 use crate::tables::{ClassSpec, Clock};
 use crate::{class_flock, constraints, leaf, pcs, tables};
-use ::pcs::pack::PACKING_WIDTH;
-use ::pcs::stack_open::{RingSwitchClaim, RingSwitchOpen, RingSwitchVerify, RingSwitchVerifyClaim};
 use fiat_shamir::transcript::{Challenger, ProverState, RawProof, VerifierState};
 use primitives::field::{F64, F192};
 use primitives::hash::Hasher;
@@ -261,30 +259,13 @@ impl Program {
         // Flock's reductions, batched over every class circuit then every clock circuit under shared challenges.
         //
         // Each circuit leaves a validity claim on its packed witness, discharged in the same opening through a ring-switched region.
+        // Each producer's multiplicity column is a ring-switched region too.
         let reductions = w.reductions;
-        let reduced = crate::stage!("Flock reductions", || {
+        let slices = crate::stage!("Flock reductions", || {
             class_flock::prove_reductions(&reductions, &mut ps)
         });
         drop(reductions);
-        let mut rings: Vec<_> = (reduced.iter().enumerate())
-            .map(|(f, reduced)| {
-                let window = l.witness_window(f);
-                flock::reduction::ring_switch_open(window.n_vars, window.offset, reduced)
-            })
-            .collect();
-
-        // Each producer's multiplicity column, a ring-switched region too.
-        for (p, claims) in l.producers.iter().zip(&table_claims[tables::N_TABLES..]) {
-            let window = l.multiplicity_window(p);
-            rings.push(RingSwitchOpen {
-                offset: window.offset,
-                qflock_vars: window.n_vars,
-                claims: vec![RingSwitchClaim {
-                    suffix_point: claims.chi.clone(),
-                    s_hat_v: Some(claims.evals_padded::<PACKING_WIDTH>().to_vec()),
-                }],
-            });
-        }
+        let rings = l.rings(slices, &table_claims[tables::N_TABLES..], F192::ZERO);
         crate::stage!("PCS open", || pcs::open(&mut ps, &committed, &w.q, &slots, &rings));
         Proof(ps.into_proof())
     }
@@ -349,36 +330,14 @@ impl Program {
         //
         // Each leaves its matrices' form to its circuit.
         let n_blocks_log = std::array::from_fn(|f| l.taus[class_flock::flock(f).0]);
-        let (replays, circuit_claims): (Vec<_>, Vec<_>) = class_flock::verify_reductions(&n_blocks_log, &mut vs)
+        let (slices, circuit_claims): (Vec<_>, Vec<_>) = class_flock::verify_reductions(&n_blocks_log, &mut vs)
             .map_err(CpuError::Reductions)?
             .into_iter()
-            .map(|(replay, matrices)| (replay, matrices.into()))
+            .map(|(replay, matrices)| (replay.claim, matrices.into()))
             .unzip();
 
         // The ring-switched regions: each packed witness, then each producer's multiplicity column.
-        let producer_claims = &reduced.producers;
-        let slices: Vec<[F192; PACKING_WIDTH]> = producer_claims.iter().map(|claims| claims.evals_padded()).collect();
-        let witnesses = replays.iter().enumerate().map(|(f, replay)| {
-            let window = l.witness_window(f);
-            flock::reduction::ring_switch_verify(window.n_vars, window.offset, &replay.claim)
-        });
-        let producers = l
-            .producers
-            .iter()
-            .zip(producer_claims)
-            .zip(&slices)
-            .map(|((p, claims), slices)| {
-                let window = l.multiplicity_window(p);
-                RingSwitchVerify {
-                    offset: window.offset,
-                    qflock_vars: window.n_vars,
-                    claims: vec![RingSwitchVerifyClaim {
-                        suffix_point: &claims.chi,
-                        s_hat_v: slices,
-                    }],
-                }
-            });
-        let rings: Vec<_> = witnesses.chain(producers).collect();
+        let rings = l.rings(slices, &reduced.producers, F192::ZERO);
 
         // The one opening, then nothing may be left on the stream.
         pcs::verify(

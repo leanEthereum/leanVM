@@ -11,7 +11,7 @@
 //!   3. [`lincheck`] reduces those to the `2^k_skip` bit-slice values of each
 //!      circuit's `z` at one point, against its per-block matrices, in one
 //!      batched sumcheck.
-//!   4. The PCS binds each circuit's family of slices ([`hash::SliceClaim`]) to
+//!   4. The PCS binds each circuit's family of slices to
 //!      the commitment.
 //!
 //! [`hash`] is the protocol's circuit: the BLAKE2s compression as a per-block

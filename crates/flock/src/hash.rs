@@ -96,10 +96,10 @@ use crate::witness::{
 };
 use fiat_shamir::transcript::{ProverState, VerifierState};
 use pcs::pack::LOG_PACKING;
-use pcs::stack_open::{RingSwitchOpen, RingSwitchVerify};
+use pcs::stack_open::SliceClaim;
 use primitives::field::F192;
 
-pub use crate::reduction::{Instance, ReductionReplay, SliceClaim, min_n_blocks_log};
+pub use crate::reduction::{Instance, ReductionReplay, min_n_blocks_log};
 
 /// BLAKE2s initial values, the SHA-256 IV.
 pub use primitives::hash::IV as BLAKE2S_IV;
@@ -725,17 +725,6 @@ const BLOCK: Block<'static> = Block {
 /// instance, keeping the proof shape uniform.
 pub fn qflock_kappa(n_blocks: usize) -> usize {
     K_LOG + min_n_blocks_log(n_blocks.max(1)) - LOG_PACKING
-}
-
-/// [`reduction::ring_switch_open`] for `n_blocks` compressions, `offset` being
-/// `q_flock`'s slot in the committed stack.
-pub fn ring_switch_open(n_blocks: usize, offset: usize, reduced: &SliceClaim) -> RingSwitchOpen {
-    reduction::ring_switch_open(qflock_kappa(n_blocks), offset, reduced)
-}
-
-/// [`reduction::ring_switch_verify`] for `n_blocks` compressions.
-pub fn ring_switch_verify(n_blocks: usize, offset: usize, claim: &SliceClaim) -> RingSwitchVerify<'_> {
-    reduction::ring_switch_verify(qflock_kappa(n_blocks), offset, claim)
 }
 
 impl Blake2sSetup {

@@ -9,16 +9,16 @@ use crate::pcs::StackClaim;
 use crate::rec::circuit::{Dw, Ew, Kw};
 use crate::witness::StackShape;
 use ::pcs::ring_switch::COMPOSITION_SHIFTS;
-use ::pcs::stack_open::RingSwitchVerify;
+use ::pcs::stack_open::RingSwitch;
 use ::pcs::whir::{VerifierConfig, config_for_rate, eval_sk_at_vks};
 use primitives::field::{F64, F192};
 
 /// One opening of the committed stack: its point claims and its ring-switched regions.
-pub(super) struct Opening<'a, 'r> {
+pub(super) struct Opening<'a> {
     /// The point claims, each on an aligned slice of the stack.
     pub(super) slots: &'a [StackClaim<Ew>],
     /// The ring-switched regions, their claims' slices bound upstream.
-    pub(super) rings: &'a [RingSwitchVerify<'r, Ew>],
+    pub(super) rings: &'a [RingSwitch<Ew>],
     /// The committed stack's size and its committed lanes.
     pub(super) shape: StackShape,
     /// The commitment's base-two logarithm of the inverse rate.
@@ -88,7 +88,7 @@ struct WhirReplay<'c> {
     oods: Vec<OodCtx>,
 }
 
-impl Opening<'_, '_> {
+impl Opening<'_> {
     /// Verify the opening of the commitment `root`.
     ///
     /// The family takes the batching challenge's power one, and point claim `i` its power `i + 1`.

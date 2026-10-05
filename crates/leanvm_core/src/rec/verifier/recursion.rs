@@ -130,12 +130,7 @@ impl RecShape {
             .scope("flock", |r| Reduction::replay(r, &[(shape, tau)]))
             .try_into()
             .unwrap_or_else(|_| unreachable!("a batch of one circuit"));
-        let window = self.layout.hash_window();
-        let rings = [::flock::reduction::ring_switch_verify(
-            window.n_vars,
-            window.offset,
-            &reduction.slice,
-        )];
+        let rings = [self.layout.hash_window().ring(reduction.slice.clone())];
         let opening = Opening {
             slots: &slots,
             rings: &rings,

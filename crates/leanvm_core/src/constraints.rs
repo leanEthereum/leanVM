@@ -63,19 +63,6 @@ impl<E: Copy> Claims<E> {
     }
 }
 
-impl Claims {
-    /// The evaluations, then zeros up to `N`.
-    ///
-    /// # Panics
-    ///
-    /// Panics if there are more than `N` evaluations.
-    pub fn evals_padded<const N: usize>(&self) -> [F192; N] {
-        let mut out = [F192::ZERO; N];
-        out[..self.evals.len()].copy_from_slice(&self.evals);
-        out
-    }
-}
-
 /// Why the table constraints reject.
 #[derive(Clone, Debug, PartialEq, Eq, Error)]
 pub enum ConstraintError {

@@ -32,7 +32,7 @@ use fiat_shamir::transcript::{ProverState, Receiver, TranscriptError, Transmitte
 use primitives::field::F64;
 use thiserror::Error;
 
-pub use ::pcs::stack_open::{RingSwitchClaim, RingSwitchOpen, RingSwitchVerify, StackClaim};
+pub use ::pcs::stack_open::{RingSwitch, SliceClaim, StackClaim};
 
 /// Row-batch lanes `2^LOG_BATCH`: the Merkle leaf width (`2^LOG_BATCH` F64
 /// = 512 bytes/leaf) IS WHIR's INITIAL folding factor: the L0 commit is
@@ -163,7 +163,7 @@ pub fn read_commitment(vs: &mut VerifierState) -> Result<[u8; 32], TranscriptErr
 ///
 /// There is no plain (non-ring-switch) path: the witness ALWAYS carries a `q_flock`
 /// sub-block (≥ 1 padding instance, §cpu), so every opening is stacked.
-pub fn open(ps: &mut ProverState, c: &Committed, q: &[F64], points: &[StackClaim], rings: &[RingSwitchOpen]) {
+pub fn open(ps: &mut ProverState, c: &Committed, q: &[F64], points: &[StackClaim], rings: &[RingSwitch]) {
     let lane_block = 1usize << (c.mu - LOG_BATCH);
     assert_eq!(q.len() % lane_block, 0, "witness must be whole committed lanes");
     assert!(q.len() <= 1usize << c.mu, "witness must fit the announced size");
@@ -177,7 +177,7 @@ pub fn open(ps: &mut ProverState, c: &Committed, q: &[F64], points: &[StackClaim
 pub fn verify(
     vs: &mut VerifierState,
     points: &[StackClaim],
-    rings: &[RingSwitchVerify<'_>],
+    rings: &[RingSwitch],
     shape: StackShape,
     log_inv_rate: usize,
     root: &[u8; 32],

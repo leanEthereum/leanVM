@@ -6,7 +6,7 @@ use super::{ProofShape, RecShape, Rows};
 use crate::class_flock;
 use crate::constraints::ConstraintError;
 use crate::cpu::{DeferredClaims, Program};
-use crate::pcs::{Rate, RingSwitchClaim, RingSwitchOpen, StackClaim};
+use crate::pcs::{Rate, RingSwitch, SliceClaim, StackClaim};
 use crate::rec::RecError;
 use crate::rec::circuit::{Assignment, Builder, Circuit, Ew, Finished, Kw, Limbs};
 use crate::rec::fixed::FixedColumns;
@@ -19,8 +19,7 @@ use crate::witness::StackShape;
 use ::flock::reduction::{Instance, Shape};
 use ::flock::zerocheck::K_SKIP;
 use ::pcs::pack::PACKING_WIDTH;
-use ::pcs::ring_switch::fold_1b_rows;
-use ::pcs::stack_open::{RingFamily, RingSwitchVerify, RingSwitchVerifyClaim};
+use ::pcs::stack_open::RingFamily;
 use ::pcs::whir::inner_product_base_ext;
 use fiat_shamir::transcript::{ProofTranscript, ProverState, RawProof, VerifierState};
 use primitives::field::{F64, F192};
@@ -387,31 +386,32 @@ fn a_mixed_batch_in_rows_is_the_native_one() {
 // Fewer lanes than a leaf holds, and not whole blocks of them, so the level-0 image has a zero prefix.
 const N_LANES: usize = 37;
 
-// A region's claims, each a suffix point and its slices.
-#[derive(Clone)]
-struct Ring {
-    offset: usize,
-    qflock_vars: usize,
-    claims: Vec<(Vec<F192>, Vec<F192>)>,
+// The 64 bit slices of the packed words `q` at `point`.
+fn slices(q: &[F64], point: &[F192]) -> Vec<F192> {
+    let eq = primitives::multilinear::eq_table(point);
+    (0..PACKING_WIDTH)
+        .map(|i| (q.iter().zip(&eq)).fold(F192::ZERO, |acc, (w, &e)| if w.0 >> i & 1 == 1 { acc + e } else { acc }))
+        .collect()
 }
 
-impl Ring {
-    fn verify(&self) -> RingSwitchVerify<'_> {
-        RingSwitchVerify {
-            offset: self.offset,
-            qflock_vars: self.qflock_vars,
-            claims: (self.claims.iter())
-                .map(|(suffix_point, s_hat_v)| RingSwitchVerifyClaim {
-                    suffix_point,
-                    s_hat_v: s_hat_v.as_slice().try_into().expect("64 slices"),
+// The regions with every claim's elements as free wires holding their values.
+fn ring_wires(r: &mut Rows<'_, '_>, rings: &[RingSwitch]) -> Vec<RingSwitch<Ew>> {
+    (rings.iter())
+        .map(|ring| RingSwitch {
+            offset: ring.offset,
+            qflock_vars: ring.qflock_vars,
+            claims: (ring.claims.iter())
+                .map(|claim| SliceClaim {
+                    suffix_point: claim.suffix_point.iter().map(|&v| r.b.free_e(v)).collect(),
+                    s_hat_v: claim.s_hat_v.iter().map(|&v| r.b.free_e(v)).collect(),
                 })
                 .collect(),
-        }
-    }
+        })
+        .collect()
 }
 
 // Point and strided claims and two ring-switched regions on a stack of `N_LANES` lanes, their values read from `q`.
-fn opening_claims(mu: usize, q: &[F64], rng: &mut Rng) -> (Vec<StackClaim>, Vec<Ring>) {
+fn opening_claims(mu: usize, q: &[F64], rng: &mut Rng) -> (Vec<StackClaim>, Vec<RingSwitch>) {
     let lane = 1usize << (mu - crate::pcs::LOG_BATCH);
     let eq = primitives::multilinear::eq_table;
     let mut slots = Vec::new();
@@ -439,14 +439,14 @@ fn opening_claims(mu: usize, q: &[F64], rng: &mut Rng) -> (Vec<StackClaim>, Vec<
     }
     let rings = [(4 * lane, mu - 4, 2), (16 * lane, mu - 5, 1)]
         .into_iter()
-        .map(|(offset, qflock_vars, n_claims)| Ring {
+        .map(|(offset, qflock_vars, n_claims)| RingSwitch {
             offset,
             qflock_vars,
             claims: (0..n_claims)
                 .map(|_| {
                     let suffix_point = rng.ext_vec(qflock_vars);
-                    let s_hat_v = fold_1b_rows(&q[offset..offset + (1 << qflock_vars)], &eq(&suffix_point));
-                    (suffix_point, s_hat_v)
+                    let s_hat_v = slices(&q[offset..offset + (1 << qflock_vars)], &suffix_point);
+                    SliceClaim { suffix_point, s_hat_v }
                 })
                 .collect(),
         })
@@ -459,7 +459,7 @@ fn opening_rows(
     shape: StackShape,
     log_inv_rate: usize,
     slots: &[StackClaim],
-    rings: &[Ring],
+    rings: &[RingSwitch],
     source: ProofSource<'_>,
 ) -> (Circuit, Vec<String>, bool) {
     let (b, (), finished) = replay(source, |r| {
@@ -491,28 +491,7 @@ fn opening_rows(
                 },
             })
             .collect();
-        let claim_wires: Vec<Vec<(Vec<Ew>, Vec<Ew>)>> = (rings.iter())
-            .map(|ring| {
-                (ring.claims.iter())
-                    .map(|(point, slices)| {
-                        let point = point.iter().map(|v| wire(r, v)).collect();
-                        (point, slices.iter().map(|v| wire(r, v)).collect())
-                    })
-                    .collect()
-            })
-            .collect();
-        let ring_wires: Vec<RingSwitchVerify<'_, Ew>> = (rings.iter().zip(&claim_wires))
-            .map(|(ring, claims)| RingSwitchVerify {
-                offset: ring.offset,
-                qflock_vars: ring.qflock_vars,
-                claims: (claims.iter())
-                    .map(|(suffix_point, s_hat_v)| RingSwitchVerifyClaim {
-                        suffix_point,
-                        s_hat_v: s_hat_v.as_slice().try_into().expect("64 slices"),
-                    })
-                    .collect(),
-            })
-            .collect();
+        let ring_wires = ring_wires(r, rings);
         let opening = Opening {
             slots: &slot_wires,
             rings: &ring_wires,
@@ -535,28 +514,15 @@ fn check_opening(mu: usize, log_inv_rate: usize, seed: u64) {
 
     let mut ps = ProverState::from_label(LABEL);
     let committed = crate::pcs::commit(&mut ps, &q, shape, log_inv_rate);
-    let opens: Vec<RingSwitchOpen> = (rings.iter())
-        .map(|ring| RingSwitchOpen {
-            offset: ring.offset,
-            qflock_vars: ring.qflock_vars,
-            claims: (ring.claims.iter())
-                .map(|(suffix_point, s_hat_v)| RingSwitchClaim {
-                    suffix_point: suffix_point.clone(),
-                    s_hat_v: Some(s_hat_v.clone()),
-                })
-                .collect(),
-        })
-        .collect();
-    crate::pcs::open(&mut ps, &committed, &q, &slots, &opens);
+    crate::pcs::open(&mut ps, &committed, &q, &slots, &rings);
     let proof = ps.into_proof();
-    let verifies: Vec<RingSwitchVerify<'_>> = rings.iter().map(Ring::verify).collect();
     let mut vs = VerifierState::from_label(LABEL, &proof);
     let root = crate::pcs::read_commitment(&mut vs).expect("a root");
-    crate::pcs::verify(&mut vs, &slots, &verifies, shape, log_inv_rate, &root).expect("the native verifier accepts");
+    crate::pcs::verify(&mut vs, &slots, &rings, shape, log_inv_rate, &root).expect("the native verifier accepts");
     vs.finish().expect("the native verifier reads the whole proof");
     let raw = vs.into_raw_proof();
 
-    let rows = |slots: &[StackClaim], rings: &[Ring], source: ProofSource<'_>| {
+    let rows = |slots: &[StackClaim], rings: &[RingSwitch], source: ProofSource<'_>| {
         opening_rows(shape, log_inv_rate, slots, rings, source)
     };
     let (circuit, failures, finished) = rows(&slots, &rings, ProofSource::Proof(&raw));
@@ -582,7 +548,7 @@ fn check_opening(mu: usize, log_inv_rate: usize, seed: u64) {
     for ring in 0..rings.len() {
         for claim in 0..rings[ring].claims.len() {
             let mut forged = rings.clone();
-            forged[ring].claims[claim].1[7] += F192::ONE;
+            forged[ring].claims[claim].s_hat_v[7] += F192::ONE;
             let (_, failures, _) = rows(&slots, &forged, ProofSource::Proof(&raw));
             assert!(
                 terminal(&failures),
@@ -620,7 +586,7 @@ fn the_ring_family_in_rows_is_the_native_one() {
     let mu = 16;
     let q: Vec<F64> = (0..1 << mu).map(|_| F64(rng.next_u64())).collect();
     let (_, mut rings) = opening_claims(mu, &q, &mut rng);
-    let lead = rings[0].claims[0].0.clone();
+    let lead = rings[0].claims[0].suffix_point.clone();
     let top = 1usize << mu;
     for (offset, vars, lengths) in [
         (top - (1 << (mu - 5)), mu - 5, &[mu - 5][..]),
@@ -628,52 +594,43 @@ fn the_ring_family_in_rows_is_the_native_one() {
     ] {
         let claims = (lengths.iter())
             .map(|&len| {
-                let point = lead[..len].to_vec();
-                let eq = primitives::multilinear::eq_table(&point);
-                (point, fold_1b_rows(&q[offset..offset + (1 << vars)], &eq))
+                let suffix_point = lead[..len].to_vec();
+                let s_hat_v = slices(&q[offset..offset + (1 << vars)], &suffix_point);
+                SliceClaim { suffix_point, s_hat_v }
             })
             .collect();
-        rings.push(Ring {
+        rings.push(RingSwitch {
             offset,
             qflock_vars: vars,
             claims,
         });
     }
-    let verifies: Vec<RingSwitchVerify<'_>> = rings.iter().map(Ring::verify).collect();
     let gamma_rs = rng.ext();
     let map: [F192; 6] = std::array::from_fn(|_| rng.ext());
     let x = rng.ext_vec(mu);
-    let slices = verifies
-        .iter()
-        .flat_map(|ring| ring.claims.iter().map(|c| c.s_hat_v.as_slice()));
     let family = RingFamily::new(gamma_rs, map);
-    let target = family.target(slices);
-    let weight = family.weight(&verifies, &x);
+    let target = family.target(
+        rings
+            .iter()
+            .flat_map(|ring| ring.claims.iter().map(|c| c.s_hat_v.as_slice())),
+    );
+    let weight = family.weight(&rings, &x);
 
     let (b, (target_wire, weight_wire), _) = replay(ProofSource::Shape, |r| {
+        // Claims at prefixes of the lead point hold its wires, so the rows see them as one point.
         let lead_wires: Vec<Ew> = lead.iter().map(|&v| r.b.free_e(v)).collect();
-        let claims: Vec<Vec<(Vec<Ew>, Vec<Ew>)>> = (rings.iter())
-            .map(|ring| {
-                (ring.claims.iter())
-                    .map(|(p, s)| {
-                        let point = if lead.starts_with(p) {
-                            lead_wires[..p.len()].to_vec()
-                        } else {
-                            p.iter().map(|&v| r.b.free_e(v)).collect()
-                        };
-                        (point, s.iter().map(|&v| r.b.free_e(v)).collect())
-                    })
-                    .collect()
-            })
-            .collect();
-        let wires: Vec<RingSwitchVerify<'_, Ew>> = (rings.iter().zip(&claims))
-            .map(|(ring, claims)| RingSwitchVerify {
+        let wires: Vec<RingSwitch<Ew>> = (rings.iter())
+            .map(|ring| RingSwitch {
                 offset: ring.offset,
                 qflock_vars: ring.qflock_vars,
-                claims: (claims.iter())
-                    .map(|(p, s)| RingSwitchVerifyClaim {
-                        suffix_point: p,
-                        s_hat_v: s.as_slice().try_into().expect("64 slices"),
+                claims: (ring.claims.iter())
+                    .map(|claim| SliceClaim {
+                        suffix_point: if lead.starts_with(&claim.suffix_point) {
+                            lead_wires[..claim.suffix_point.len()].to_vec()
+                        } else {
+                            claim.suffix_point.iter().map(|&v| r.b.free_e(v)).collect()
+                        },
+                        s_hat_v: claim.s_hat_v.iter().map(|&v| r.b.free_e(v)).collect(),
                     })
                     .collect(),
             })

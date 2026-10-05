@@ -14,11 +14,12 @@ use super::execute::Trace;
 use crate::arith::Arith;
 use crate::constraints::Claims;
 use crate::leaf::{Block, ColumnClaim, Coord, Producer, PublicColumn, SparseColumn};
-use crate::pcs::{Rate, StackClaim};
+use crate::pcs::{Rate, RingSwitch, SliceClaim, StackClaim};
 use crate::rv::{Entry, Reg, Region, RegisterFile, RiscvProgram, Syscall};
 use crate::tables::{ClassSpec, ClassTable, Clock, Part, Separator};
 use crate::witness::{Placement, Source, StackShape, Window};
 use crate::{class_flock, pcs, tables, witness};
+use ::pcs::pack::PACKING_WIDTH;
 use Coord::{Col, Const, IntIndex, Sparse};
 use fiat_shamir::transcript::{ProverState, Receiver, Transmitter, VerifierState};
 use primitives::field::{F64, F192};
@@ -528,6 +529,26 @@ impl Layout {
         self.placements[p.col]
             .window()
             .expect("a multiplicity column is committed")
+    }
+
+    /// Every ring-switched region of the opening, prover and verifiers alike.
+    ///
+    /// - Each packed witness, with its reduction's claim.
+    /// - Each producer's multiplicity column, its bits' evaluations as the slices, then zeros up to 64.
+    pub(crate) fn rings<E: Copy>(
+        &self,
+        witnesses: impl IntoIterator<Item = SliceClaim<E>>,
+        multiplicities: &[Claims<E>],
+        zero: E,
+    ) -> Vec<RingSwitch<E>> {
+        let witnesses = (witnesses.into_iter().enumerate()).map(|(f, claim)| self.witness_window(f).ring(claim));
+        let producers = (self.producers.iter().zip(multiplicities)).map(|(p, claims)| {
+            self.multiplicity_window(p).ring(SliceClaim {
+                suffix_point: claims.chi.clone(),
+                s_hat_v: claims.evals_padded_with(PACKING_WIDTH, zero),
+            })
+        });
+        witnesses.chain(producers).collect()
     }
 
     /// Every claim the opening discharges, located in the stack, in the order that feeds the batch's weights.

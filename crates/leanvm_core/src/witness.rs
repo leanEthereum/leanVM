@@ -4,6 +4,7 @@
 //! `q̂(ζ, sel_i) = c` on the stack, where `sel_i` is the high-bit selector of
 //! the column's offset.
 
+use crate::pcs::{RingSwitch, SliceClaim};
 use primitives::field::F64;
 
 /// What a column is, before it is placed.
@@ -26,6 +27,17 @@ pub enum Source {
 pub struct Window {
     pub offset: usize,
     pub n_vars: usize,
+}
+
+impl Window {
+    /// The window as a ring-switched region holding one claim.
+    pub fn ring<E>(self, claim: SliceClaim<E>) -> RingSwitch<E> {
+        RingSwitch {
+            offset: self.offset,
+            qflock_vars: self.n_vars,
+            claims: vec![claim],
+        }
+    }
 }
 
 /// Where a column sits in the stacked witness.

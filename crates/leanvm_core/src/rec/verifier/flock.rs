@@ -9,9 +9,10 @@ use crate::arith::{Arith, Verifier};
 use crate::cpu::Claim;
 use crate::rec::circuit::Ew;
 use ::flock::lincheck::MatrixForm;
-use ::flock::reduction::{Shape, SliceClaim};
+use ::flock::reduction::Shape;
 use ::flock::zerocheck::univariate_skip_optimized::{medium_challenges, small_challenges};
 use ::flock::zerocheck::{K_SKIP, MIN_LOG_N};
+use ::pcs::stack_open::SliceClaim;
 use primitives::field::{F192, PHI_8_TABLE_192 as PHI_8_TABLE};
 use primitives::multilinear::window_denominator;
 

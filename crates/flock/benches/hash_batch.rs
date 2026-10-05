@@ -23,10 +23,10 @@ use bench::{Metric, Plan, Timing, bencher_json};
 use fiat_shamir::transcript::{ProverState, Receiver, Transmitter, VerifierState};
 use flock::hash::{
     Blake2sSetup, Compression, K_LOG, generate_witness_with_ab_packed_and_lincheck, min_n_blocks_log,
-    pinned_compression, ring_switch_open, ring_switch_verify,
+    pinned_compression,
 };
 use pcs::pack::LOG_PACKING;
-use pcs::stack_open::{open_batch_mixed_whir_stacked, verify_opening_batch_mixed_whir_stacked};
+use pcs::stack_open::{RingSwitch, open_batch_mixed_whir_stacked, verify_opening_batch_mixed_whir_stacked};
 use pcs::whir::{INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0};
 use pcs::whir::{commit, config_for_rate};
 use primitives::{field::F64, pretty_integer, test_util::Rng};
@@ -96,7 +96,11 @@ fn main() {
         drop((a_packed, b_packed, z_lincheck));
 
         let t = Instant::now();
-        let ring = ring_switch_open(n, 0, &reduced);
+        let ring = RingSwitch {
+            offset: 0,
+            qflock_vars: mu,
+            claims: vec![reduced],
+        };
         open_batch_mixed_whir_stacked(
             &mut ps,
             mu,
@@ -144,7 +148,11 @@ fn main() {
         let mut vs = VerifierState::from_label(b"flock-blake2s-batch", &transcript);
         let root = vs.next_root().expect("commitment root");
         let replay = setup.verify_reduction(&mut vs).expect("Flock reduction verifies");
-        let ring = ring_switch_verify(n, 0, &replay.claim);
+        let ring = RingSwitch {
+            offset: 0,
+            qflock_vars: mu,
+            claims: vec![replay.claim],
+        };
         assert!(
             verify_opening_batch_mixed_whir_stacked(
                 &mut vs,
