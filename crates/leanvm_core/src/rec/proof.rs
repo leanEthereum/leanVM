@@ -83,9 +83,9 @@ impl HashBatch {
 
 impl RecWitness {
     fn build(layout: &RecLayout, a: &Assignment) -> Self {
-        // SAFETY: `split_stack` zeroes the pad tail; every committed window is written below: each owned table's
-        // committed columns by its fill, and the packed witness from its batch.
-        let mut q = unsafe { witness::alloc_stack(layout.shape) };
+        // SAFETY: the owned tables and hash batch fill every committed window before it is read.
+        // The pad tail is zeroed.
+        let mut q = unsafe { primitives::uninit_vec::<F64>(layout.shape.committed_len()) };
         let ports_at = RecLayout::columns(Table::Hash).start;
         // SAFETY: each port's buffer is written in full from the batch below.
         let mut ports: Vec<(usize, Vec<F64>)> = (0..HashFlock::N_PORTS)

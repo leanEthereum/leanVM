@@ -62,10 +62,10 @@ impl Witness {
 
         // The stack is written exactly once: one window per committed column, each filled in place.
         //
-        // SAFETY: the allocation is uninitialized.
-        // `split_stack` zeroes the pad tail and hands out windows tiling the rest.
-        // Each table checks that it wrote every window it was given, and the shared columns are written below.
-        let mut q = unsafe { crate::witness::alloc_stack(layout.shape) };
+        // SAFETY: each table fills its column windows before they are read.
+        // The shared columns are filled below.
+        // The pad tail is zeroed.
+        let mut q = unsafe { primitives::uninit_vec::<F64>(layout.shape.committed_len()) };
 
         // A port is not in the stack, so its values get a buffer of their own.
         let mut virt: Vec<(usize, Vec<F64>)> = Vec::new();
