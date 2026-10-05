@@ -446,6 +446,12 @@ impl ClassSpec {
         1 << class_flock::n_blocks_log(self, 1)
     }
 
+    /// The height the table is proven at when the run makes `rows` of its rows: the next power of two at or above its floor.
+    pub const fn provable_height(&self, rows: usize) -> usize {
+        let floor = self.min_rows();
+        if rows > floor { rows.next_power_of_two() } else { floor }
+    }
+
     /// Whether the table can be proven over `rows` rows: a power of two at or above its floor.
     pub const fn is_provable_height(&self, rows: usize) -> bool {
         rows.is_power_of_two() && rows >= self.min_rows()

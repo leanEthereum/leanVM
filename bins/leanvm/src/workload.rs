@@ -134,4 +134,16 @@ mod tests {
             super::run(&workload, &prover, Plan::default());
         }
     }
+
+    #[test]
+    fn counting_a_run_agrees_with_its_trace() {
+        // Measuring counts rows without recording them, which must match the rows the trace records.
+        for workload in [super::leanxmss(2), super::leansphincs(1), super::leanda(1)] {
+            let program = workload.program();
+            let exec = program.execute(&workload.advice).expect("the run halts");
+            let stats = program.measure(&workload.advice).expect("the run halts");
+            assert_eq!(stats.base_counts, exec.base_counts, "{}", workload.title);
+            assert_eq!(stats.cycles, exec.cycles, "{}", workload.title);
+        }
+    }
 }

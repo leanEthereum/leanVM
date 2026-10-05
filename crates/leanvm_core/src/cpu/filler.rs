@@ -178,7 +178,7 @@ impl Plan {
     ///
     /// Counting those first makes it one decomposition rather than a fixpoint.
     pub fn solve(base: [usize; N_TABLES]) -> Self {
-        let height = |t: usize, rows: usize| rows.max(ClassSpec::ALL[t].min_rows()).next_power_of_two();
+        let height = |t: usize, rows: usize| ClassSpec::ALL[t].provable_height(rows);
         let mut plan = Self([Traversals::default(); N_TABLES]);
         for t in (0..N_TABLES).filter(|&t| t != JUMP) {
             plan.0[t] = Traversals::delivering(height(t, base[t]) - base[t]);

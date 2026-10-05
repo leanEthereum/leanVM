@@ -5,7 +5,7 @@
 use super::batch::{Batch, FormPowers};
 use super::deferred::DeferredClaims;
 use super::error::{CpuError, ProveError, VerifyError};
-use super::execute::{Execution, TraceBuilder};
+use super::execute::{Execution, Recorder, RowCounter, TraceBuilder};
 use super::filler::{FillBlocks, Plan};
 use super::layout::{Announcement, Lookup, Schema, Sizes};
 use super::witness::Witness;
@@ -45,6 +45,9 @@ const _: () = assert!(cfg!(target_endian = "little"));
 impl Program {
     /// The domain separator of the digest, versioned with the statement's format.
     const DIGEST_DOMAIN: &'static [u8] = b"leanvm-rv64im-9";
+
+    /// The cycles between two checks of a running trace against one commitment.
+    const SIZE_CHECK_PERIOD: u64 = 1 << 16;
 
     /// The program of a guest's ELF executable.
     ///
@@ -108,28 +111,13 @@ impl Program {
     ///
     /// # Errors
     ///
-    /// Refuses more advice than the program's region holds, a run that traps, and one that outruns the clock.
+    /// Refuses more advice than the program's region holds, a run that traps, and one too long for one proof.
     #[doc(hidden)]
     pub fn execute(&self, advice: &[u64]) -> Result<Execution, ProveError> {
         let p = &self.rv;
-        let max = 1 << p.log_advice();
-        if advice.len() > max {
-            return Err(ProveError::AdviceTooLong { max, got: advice.len() });
-        }
-        let mut m = Machine::new(p, advice);
+        let mut m = self.machine(advice)?;
         let mut trace = TraceBuilder::new(p, m.memory().advice());
-
-        // The clock starts on cycle 1, so that the first access comes strictly after the seeds.
-        let mut ts = Clock::CLOCK_START;
-        while !m.halted() {
-            // The cycle count must not carry into the live bit.
-            if ts >> Clock::SLOT_BITS & Clock::MAX_CYCLES == Clock::MAX_CYCLES {
-                return Err(ProveError::TooLong);
-            }
-            let step = m.step()?;
-            trace.record(p, &m, step, ts);
-            ts += Clock::CYCLE;
-        }
+        let ts = self.run(&mut m, &mut trace)?;
         let output = m.output()?;
 
         // The padding rows, written out rather than executed.
@@ -152,6 +140,49 @@ impl Program {
         })
     }
 
+    /// The machine about to run the program on `advice`.
+    fn machine(&self, advice: &[u64]) -> Result<Machine<'_>, ProveError> {
+        let max = 1 << self.rv.log_advice();
+        if advice.len() > max {
+            return Err(ProveError::AdviceTooLong { max, got: advice.len() });
+        }
+        Ok(Machine::new(&self.rv, advice))
+    }
+
+    /// Run `m` to its halt, handing every step to `recorder`, and return the clock it stopped at.
+    ///
+    /// Every so many cycles the rows so far are checked against one commitment.
+    ///
+    /// So a run too long for one proof is refused while it runs, before its trace outgrows memory.
+    #[inline(always)]
+    fn run<R: Recorder>(&self, m: &mut Machine<'_>, recorder: &mut R) -> Result<u64, ProveError> {
+        // The clock starts on cycle 1, so that the first access comes strictly after the seeds.
+        let mut ts = Clock::CLOCK_START;
+
+        // The heights last checked: the stack grows only when one of them does.
+        let mut checked = [0; tables::N_TABLES];
+        while !m.halted() {
+            let cycle = ts >> Clock::SLOT_BITS & Clock::MAX_CYCLES;
+
+            // The cycle count must not carry into the live bit.
+            if cycle == Clock::MAX_CYCLES {
+                return Err(ProveError::TooLong);
+            }
+            if cycle.is_multiple_of(Self::SIZE_CHECK_PERIOD) {
+                let counts = recorder.row_counts();
+                let heights = std::array::from_fn(|t| ClassSpec::ALL[t].provable_height(counts[t]));
+                if heights != checked {
+                    self.committed_size(heights)?;
+                    checked = heights;
+                }
+            }
+            let step = m.step()?;
+            recorder.record(&self.rv, m, step, ts);
+            ts += Clock::CYCLE;
+        }
+        Ok(ts)
+    }
+
     /// Prove a run of the program on `advice`, the advice region's first words, at commitment rate `rate`.
     ///
     /// The statement says nothing about the advice.
@@ -165,32 +196,30 @@ impl Program {
     #[doc(hidden)]
     pub fn prove(&self, advice: &[u64], rate: Rate) -> Result<(Proof, [u64; 4], Stats), ProveError> {
         let exec = crate::stage!("Execute program", || self.execute(advice))?;
-        if self.stack_sizes(exec.trace.row_counts()).0 > pcs::MAX_MU {
-            return Err(ProveError::TooLong);
-        }
+        self.committed_size(exec.trace.row_counts())?;
         let (proof, stats) = self.prove_execution(&exec, rate);
         Ok((proof, exec.output, stats))
     }
 
     /// The statistics a proof of this run would report, from one execution and no proof.
     ///
-    /// The rows per table fix the layout, and the layout the committed size.
+    /// The run counts its rows without recording them, and the fill plan gives the heights they are proven at.
     ///
     /// # Errors
     ///
     /// What would refuse the proof itself, the rate aside.
     pub fn measure(&self, advice: &[u64]) -> Result<Stats, ProveError> {
-        let exec = self.execute(advice)?;
-        let counts = exec.trace.row_counts();
-        let (log_words, committed) = self.stack_sizes(counts);
-        if log_words > pcs::MAX_MU {
-            return Err(ProveError::TooLong);
-        }
+        let mut m = self.machine(advice)?;
+        let mut counter = RowCounter::new(&self.rv);
+        self.run(&mut m, &mut counter)?;
+        m.output()?;
+        let base_counts = counter.row_counts();
+        let counts = Plan::solve(base_counts).filled(base_counts);
         Ok(Stats {
-            cycles: exec.cycles,
+            cycles: counts.iter().sum(),
             counts,
-            base_counts: exec.base_counts,
-            committed,
+            base_counts,
+            committed: self.committed_size(counts)?,
         })
     }
 
@@ -423,13 +452,26 @@ impl Program {
         fiat_shamir::digest_words(&self.digest)
     }
 
-    /// The base-two logarithm of the stacked witness, and its committed size, for a run of these row counts.
+    /// The committed size of a run making these rows per table, each table taken at its provable height.
     ///
-    /// The layout depends on the program and the row counts alone, so no witness is built.
-    pub(super) fn stack_sizes(&self, row_counts: [usize; tables::N_TABLES]) -> (usize, usize) {
-        let taus = row_counts.map(|rows| crate::log2_ceil_usize(rows.max(1)));
+    /// The layout depends on the program and the heights alone, so no witness is built.
+    ///
+    /// # Why one check for a run in progress and a finished one
+    ///
+    /// - Rows only accumulate, and the fill only raises a table to a provable height.
+    /// - So the heights of a run in progress never exceed those it finishes at, nor does its stack.
+    /// - A run refused mid-way would therefore be refused at its end.
+    ///
+    /// # Errors
+    ///
+    /// Refuses a stack larger than one commitment.
+    fn committed_size(&self, row_counts: [usize; tables::N_TABLES]) -> Result<usize, ProveError> {
+        let taus = std::array::from_fn(|t| crate::log2_strict_usize(ClassSpec::ALL[t].provable_height(row_counts[t])));
         let (placements, shape) = Sizes::of(&self.rv).stack(taus);
-        (shape.mu, crate::witness::committed_len(&placements))
+        if shape.mu > pcs::MAX_MU {
+            return Err(ProveError::TooLong);
+        }
+        Ok(crate::witness::committed_len(&placements))
     }
 
     /// The digest of `rv`'s public statement.
@@ -681,6 +723,38 @@ mod tests {
             "unmatched (side, block, row): {:?}",
             &unmatched[..unmatched.len().min(12)]
         );
+    }
+
+    #[test]
+    fn a_run_too_long_for_one_proof_is_refused_while_it_runs() {
+        // Fibonacci for 2^63 steps: only the cycle cap would stop it, after 2^35 rows.
+        let text = Asm::new()
+            .li(Reg::A0, 0)
+            .li(Reg::A1, 1)
+            .li(Reg::T0, 1 << 63)
+            .label("loop")
+            .r(Add, Reg::A2, Reg::A0, Reg::A1)
+            .i(Addi, Reg::A0, Reg::A1, 0)
+            .i(Addi, Reg::A1, Reg::A2, 0)
+            .i(Addi, Reg::T0, Reg::T0, -1)
+            .branch(Bne, Reg::T0, Reg::ZERO, "loop")
+            .exit()
+            .finish();
+        let program = Program::new(&text, Region::TEXT.base(), vec![], 2, 0).expect("valid instruction program");
+        assert_eq!(program.measure(&[]), Err(ProveError::TooLong));
+
+        // The run stops before its rows outnumber the words of one commitment.
+        let mut m = program.machine(&[]).unwrap();
+        let mut counter = RowCounter::new(&program.rv);
+        assert_eq!(program.run(&mut m, &mut counter), Err(ProveError::TooLong));
+        let counts = counter.row_counts();
+        let rows: usize = counts.iter().sum();
+        assert!(rows < 1 << pcs::MAX_MU, "{rows} rows counted");
+        assert_eq!(program.committed_size(counts), Err(ProveError::TooLong));
+
+        // A period earlier, no table had more than these rows, and they fit.
+        let earlier = counts.map(|c| c.saturating_sub(Program::SIZE_CHECK_PERIOD as usize));
+        assert!(program.committed_size(earlier).is_ok());
     }
 
     #[test]
