@@ -825,6 +825,69 @@ mod tests {
         assert_eq!(unmatched.len(), 4, "{unmatched:?}");
     }
 
+    #[test]
+    fn a_write_to_x0_unbalances_the_bytecode_read() {
+        // Invariant: no row writes `x0`, so a base-field operand's high limbs, which read it, are zero.
+        //
+        // Fixture state: `t3 = 1`, then `extmulk` of a = (3, 5, 7) by the base-field b = 9, then the `ecall`.
+        let image = vec![3, 5, 7, 9, 0, 0, 0];
+        let ram = Region::RAM.base();
+        let text = Asm::new()
+            .li(Reg::T0, ram)
+            .li(Reg::T1, ram + 24)
+            .li(Reg::T2, ram + 32)
+            .i(Addi, Reg::A7, Reg::ZERO, 93)
+            .i(Addi, Reg::T3, Reg::ZERO, 1)
+            .ext(Extmulk, Reg::T2, Reg::T0, Reg::T1)
+            .ecall()
+            .finish();
+        let program = Program::new(&text, Region::TEXT.base(), image, 3, 0).expect("valid instruction program");
+        assert!(unmatched_run(&program, &program.execute(&[]).unwrap()).is_empty());
+        let (addi, ecall) = (text.len() as u32 - 3, text.len() as u32 - 1);
+
+        // Mutation: the `addi` writes its 1 to `x0` instead of `t3`, and everything after reads it.
+        //
+        //     addi   writes x0 after its own read of it in slot 1; t3 keeps its seed
+        //     ext    reads b = (9, 1, 1), and c and RAM follow it
+        //     ecall  reads 1 twice, and writes 1 + 1 to the sink
+        let mut forged = program.execute(&[]).unwrap();
+        let alu = ClassTable::index_of(Class::Alu).unwrap();
+        let write = forged.trace.rows[alu].iter_mut().find(|r| r.index == addi).unwrap();
+        let ts = write.ts;
+        (write.prev[2], write.vd_old) = (ts | 1, 0);
+        let t3 = Reg::T3.index();
+        (forged.trace.reg_fin[t3], forged.trace.reg_ts[t3]) = (F64::ZERO, F64(Clock::SEED_CLOCK));
+        let ext = ClassTable::index_of(Class::Ext).unwrap();
+        let at = forged.trace.rows[ext].iter().position(|r| r.ts != 0).unwrap();
+        let x = &mut forged.trace.ext[at];
+        (x.instance.limbs[4], x.instance.limbs[5]) = (1, 1);
+        x.prev[3 + 4] = ts | 3;
+        x.c = x.instance.eval();
+        for (k, word) in x.c.into_iter().enumerate() {
+            forged.trace.ram_fin[4 + k] = F64(word);
+        }
+        let exit = forged.trace.rows[alu].iter_mut().find(|r| r.index == ecall).unwrap();
+        (exit.v1, exit.v2, exit.out) = (1, 1, 2);
+        forged.trace.reg_fin[0] = F64(1);
+        forged.trace.reg_fin[RegisterFile::SINK as usize] = F64(2);
+        let mut w = Witness::build(&program, &forged);
+        let bus = ClassTable::all()[alu].flushes();
+        let Coord::Col(destination) = bus.pull[1][ClassTable::DESTINATION_SLOT] else {
+            panic!("the ALU binds its destination to a column");
+        };
+        let row = forged.trace.rows[alu].iter().position(|r| r.index == addi).unwrap();
+        column_mut(&mut w, Schema::get().spans[alu].0 + destination)[row] = F64::ZERO;
+        column_mut(&mut w, Shared::BytecodeMult.col())[addi as usize].0 -= 1;
+
+        // Registers, RAM and the multiplicities balance: only the read of an entry whose destination is 0 is left.
+        let unmatched = unmatched(&w);
+        assert_eq!(unmatched.len(), 1, "{unmatched:?}");
+        let (side, block, at) = unmatched[0];
+        assert_eq!((side, at), ("pull", row));
+        assert!(matches!(w.layout.pull[block].coords[0], Coord::Const(sep) if sep == Separator::Bytecode.value()));
+        assert_unbalanced(&program, w, &forged.output);
+    }
+
     /// Extension-field products on packed elements: `x` at word 0, `y` at word 3, the base-field `w` at word 6, `c`
     /// at word 7, and `d` at word 10, so that limb addresses carry: `y`'s second limb is at `+32`, `c`'s at `+64`.
     ///

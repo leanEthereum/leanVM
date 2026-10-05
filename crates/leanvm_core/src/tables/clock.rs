@@ -1,6 +1,7 @@
 //! Timestamp encoding and the circuit that orders a row's memory accesses.
 
 use flock::circuit::{Builder, Circuit};
+use std::ops::Range;
 
 /// A row timestamp, including its live bit and access slot.
 ///
@@ -58,7 +59,7 @@ impl Clock {
 
     /// Circuit checking that each access follows its cell's previous timestamp.
     ///
-    /// - Inputs: row clock, then one previous timestamp per access.
+    /// - Inputs: row clock, its slot bits forced zero, then one previous timestamp per access.
     /// - Output: XOR mask for the next clock, with bit 41 recording an ordering failure.
     /// - Live accesses must be strictly ordered; padding accesses must remain non-live.
     ///
@@ -76,13 +77,16 @@ impl Clock {
     ///
     /// Panics if an access slot does not fit in five bits.
     pub fn builder(slots: &[u32], inputs: &[usize], outputs: &[usize]) -> Builder {
-        let input_bits: Vec<usize> = std::iter::repeat_n(Self::CLOCK_BITS, 1 + slots.len())
-            .chain(inputs.iter().copied())
+        // Invariant: the clock's slot bits are structural zeros.
+        // So the timestamp an access is ordered at, its slot ORed in, is the one its tuple carries, its slot XORed in.
+        let input_bits: Vec<Range<usize>> = std::iter::once(Self::SLOT_BITS as usize..Self::CLOCK_BITS)
+            .chain(std::iter::repeat_n(0..Self::CLOCK_BITS, slots.len()))
+            .chain(inputs.iter().map(|&bits| 0..bits))
             .collect();
         let output_bits: Vec<usize> = std::iter::once(Self::CLOCK_BITS + 1)
             .chain(outputs.iter().copied())
             .collect();
-        let mut c = Builder::new(&input_bits, &output_bits);
+        let mut c = Builder::with_input_ranges(&input_bits, &output_bits);
         let ts = c.input(0);
         let live = ts[Self::LIVE_BIT as usize];
         let mut in_order = Vec::with_capacity(slots.len());
@@ -133,13 +137,13 @@ impl Clock {
     /// Reference clock transition as an XOR mask, with bit 41 set on an ordering failure.
     pub fn step(self, prev: &[u64], slots: &[u32]) -> u64 {
         let ts = self.timestamp;
-        // The circuit reads 41 input bits and requires matching live bits.
+        // The circuit reads 41 input bits, the clock's above its slot bits, and requires matching live bits.
         let read = |t: u64| t & ((1 << Self::CLOCK_BITS) - 1);
-        let (ts, live) = (read(ts), ts >> Self::LIVE_BIT & 1);
+        let (ts, live) = (read(ts) & !(Self::CYCLE - 1), ts >> Self::LIVE_BIT & 1);
         let low = (1u64 << Self::LIVE_BIT) - 1;
         let fail = prev.iter().zip(slots).any(|(&p, &slot)| {
             let p = read(p);
-            let late = p & low >= (ts & low & !(Self::CYCLE - 1)) | u64::from(slot);
+            let late = p & low >= (ts & low) | u64::from(slot);
             p >> Self::LIVE_BIT != live || live == 1 && late
         });
         // A carry can flip several cycle bits, so the step is an XOR mask rather than an increment.
@@ -152,6 +156,8 @@ impl Clock {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use flock::lincheck::LincheckCircuit;
+    use primitives::field::F192;
 
     #[test]
     fn the_clock_circuit_is_its_reference() {
@@ -199,5 +205,32 @@ mod tests {
             Clock::CYCLE,
             "an honest row advances one cycle"
         );
+    }
+
+    #[test]
+    fn a_clock_with_slot_bits_cannot_read_its_own_push() {
+        // Invariant: an access is ordered at the timestamp its tuple carries, so it cannot pull its own push.
+        //
+        // Fixture state: a live row at cycle 1000 whose clock has bit 0 set.
+        // Mutation: its access in slot 1 pulls its own push, at `ts ^ 1`, which is below `ts | 1`, so the order check passes.
+        let slots = [0, 1, 3];
+        let circuit = Clock::circuit(&slots);
+        let ts = Clock::SEED_CLOCK | (1000 * Clock::CYCLE) | 1;
+        let prev = [ts - Clock::CYCLE, ts ^ 1, ts - Clock::CYCLE];
+        assert_eq!(Clock { timestamp: ts }.step(&prev, &slots) >> Clock::FAIL_BIT, 0);
+
+        // The instance as the gate walk fills it, then the clock's bit 0 as the forger commits it.
+        let words = (1usize << circuit.k_log()) / 64;
+        let (mut z, mut az, mut bz) = (vec![0; words], vec![0; words], vec![0; words]);
+        circuit.witness_instance(&[ts, prev[0], prev[1], prev[2]], &mut z, &mut az, &mut bz);
+        z[0] |= 1;
+        let w: Vec<F192> = (0..circuit.n_cols())
+            .map(|s| [F192::ZERO, F192::ONE][(z[s / 64] >> (s % 64) & 1) as usize])
+            .collect();
+
+        // Every row holds but bit 0's, whose empty row forces it to zero.
+        let (a, b) = circuit.row_values(&w);
+        let broken: Vec<usize> = (0..w.len()).filter(|&s| a[s] * b[s] != w[s]).collect();
+        assert_eq!(broken, [0]);
     }
 }

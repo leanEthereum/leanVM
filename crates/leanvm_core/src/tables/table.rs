@@ -43,11 +43,39 @@ impl ClassTable {
         let spec = ClassSpec::ALL[index];
         spec.assert_valid();
         let cols = Columns::new(spec);
-        Self {
+        let table = Self {
             index,
             spec,
             cols,
             clock_ports: spec.clock_ports(),
+        };
+        table.assert_x0_is_constant();
+        table
+    }
+
+    /// Asserts that no access of the table can change register cell 0, `x0`.
+    ///
+    /// - A read pushes back the value it pulls.
+    /// - A register access that changes its cell does so at the entry's destination, which the decoder keeps in `1..=32`.
+    ///
+    /// So `x0` keeps its zero seed, which a base-field extension operand's high limbs read.
+    ///
+    /// # Panics
+    ///
+    /// Panics if an access that may reach the registers changes its cell elsewhere than at the entry's destination.
+    fn assert_x0_is_constant(&self) {
+        let bus = self.flushes();
+        let destination = &bus.pull[1][Self::DESTINATION_SLOT];
+        // Pushes are the state, then the accesses; pulls are the state, the bytecode, then the accesses.
+        for (push, pull) in bus.push[1..].iter().zip(&bus.pull[2..]) {
+            let memory = matches!(push[0], Const(sep) if sep == Separator::Memory.value());
+            let read = matches!((&pull[3], &push[3]), (Col(old), Col(new)) if old == new);
+            let at_destination = matches!((&push[1], destination), (Col(at), Col(ad)) if at == ad);
+            assert!(
+                memory || read || at_destination,
+                "{} writes a register other than its destination",
+                self.spec.name
+            );
         }
     }
 
@@ -94,6 +122,9 @@ impl ClassTable {
             .map_or(Const(F64::ZERO), |control| control.exit_marker(c.ts, c.step));
         bus.state(c.pc, c.ts, c.step, npc, exit);
     }
+
+    /// The bytecode tuple's coordinate holding the cell the entry writes.
+    pub(crate) const DESTINATION_SLOT: usize = 6;
 
     /// Read the public decoded entry, using constants for absent register and circuit ports.
     fn bytecode_tuple(&self) -> Vec<Coord> {

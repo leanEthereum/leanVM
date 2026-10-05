@@ -1493,14 +1493,19 @@ type Wire = int | None  # None is a structural zero
 
 
 class _GateList:
-    def __init__(self, input_bits: Sequence[int], output_bits: Sequence[int]) -> None:
+    def __init__(self, input_bits: Sequence[int | range], output_bits: Sequence[int]) -> None:
+        """An input port given as a range is range.stop bits wide, its bits below the range structural zeros, which
+        their empty rows force to zero."""
         self.gates: list[Gate] = []
-        words = [-(-bits // 64) for bits in (*input_bits, *output_bits)]
+        ranges = [bits if isinstance(bits, range) else range(bits) for bits in input_bits]
+        words = [-(-bits // 64) for bits in (*(r.stop for r in ranges), *output_bits)]
         self.constant_column = 64 * sum(words)
         self.next_slot = self.constant_column + 1
         self.one: Wire = self.push("free", self.constant_column)
         bases = [64 * sum(words[:port]) for port in range(len(words))]
-        self.inputs: list[list[Wire]] = [[self.push("free", base + i) for i in range(bits)] for base, bits in zip(bases, input_bits)]
+        self.inputs: list[list[Wire]] = [
+            [self.push("free", base + i) if i in bits else None for i in range(bits.stop)] for base, bits in zip(bases, ranges)
+        ]
         self.output_bases = bases[len(input_bits) :]
 
     @property
@@ -1913,9 +1918,10 @@ def _clock(slots: Sequence[int], inputs: Sequence[int] = (), outputs: Sequence[i
     """(ts, prev_0, ..., prev_n) -> step, for a row whose accesses are in clock slots `slots`: the next clock is
     ts ^ step, ts one cycle on when the row is live (bit 40) and ts itself on a padding row. Bit 41 of step is set
     when an access is out of order: its previous timestamp disagrees with ts on the live bit, or, on a live row, is
-    not strictly below ts ^ slot. Each input reads its bits up to the live bit, the others being forced zero. Ports of
-    the widths `inputs` and `outputs` follow its own, for a table with no class circuit to compute what it needs."""
-    c = _GateList((*(LIVE_BIT + 1,) * (1 + len(slots)), *inputs), (FAIL_BIT + 1, *outputs))
+    not strictly below ts ^ slot. Each input reads its bits up to the live bit, the others being forced zero, and ts
+    has its slot bits forced zero too, so ts | slot, which the order check compares with, is ts ^ slot. Ports of the
+    widths `inputs` and `outputs` follow its own, for a table with no class circuit to compute what it needs."""
+    c = _GateList((range(SLOT_BITS, LIVE_BIT + 1), *(LIVE_BIT + 1,) * len(slots), *inputs), (FAIL_BIT + 1, *outputs))
     ts = c.inputs[0]
     live = ts[LIVE_BIT]
     in_order: list[Wire] = []

@@ -27,6 +27,7 @@ use crate::reduction::Block;
 use crate::witness::{GroupTables, drive_witness_batched, drive_witness_groups, drive_witness_packed_and_lincheck};
 use primitives::bits::transpose_64x64;
 use primitives::field::F192;
+use std::ops::Range;
 
 /// Instances one word-wide walk of the gate list computes.
 ///
@@ -63,8 +64,17 @@ impl Builder {
     /// Ports of the given widths in bits, each rounded up to whole words: the inputs,
     /// whose bits are free wires, then the outputs.
     pub fn new(input_bits: &[usize], output_bits: &[usize]) -> Self {
+        let inputs: Vec<Range<usize>> = input_bits.iter().map(|&bits| 0..bits).collect();
+        Self::with_input_ranges(&inputs, output_bits)
+    }
+
+    /// Ports as above, each input port given as the range of its free bits, and as wide as the range's end.
+    ///
+    /// An input bit below its range is a structural zero: its empty row forces it to zero.
+    pub fn with_input_ranges(inputs: &[Range<usize>], output_bits: &[usize]) -> Self {
+        let input_bits: Vec<usize> = inputs.iter().map(|bits| bits.end).collect();
         let words = |bits: &[usize]| bits.iter().map(|b| b.div_ceil(64)).sum::<usize>();
-        let n_input_words = words(input_bits);
+        let n_input_words = words(&input_bits);
         let const_pos = 64 * (n_input_words + words(output_bits));
         let mut c = Self {
             gates: Vec::new(),
@@ -76,10 +86,12 @@ impl Builder {
         };
         c.one = Some(c.push(Gate::Free(const_pos as u32)));
         let mut base = 0;
-        for &bits in input_bits {
-            let wires = (0..bits).map(|i| Some(c.push(Gate::Free((base + i) as u32)))).collect();
+        for bits in inputs {
+            let wires = (0..bits.end)
+                .map(|i| bits.contains(&i).then(|| c.push(Gate::Free((base + i) as u32))))
+                .collect();
             c.inputs.push(wires);
-            base += 64 * bits.div_ceil(64);
+            base += 64 * bits.end.div_ceil(64);
         }
         for &bits in output_bits {
             c.outputs.push((base, bits));
