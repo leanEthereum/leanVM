@@ -54,6 +54,19 @@ pub fn leansphincs(n: usize) -> Workload {
     }
 }
 
+/// Verify `n` Falcon-512 signatures, one key each.
+pub fn falcon(n: usize) -> Workload {
+    let run = falcon_host::batch(n);
+    Workload {
+        title: format!("Falcon-512 verification, {n} signatures"),
+        elf: falcon_host::ELF,
+        advice: run.advice,
+        expected: run.expected,
+        items: n,
+        item: "signature",
+    }
+}
+
 /// Check `n` leanDA blobs and compute their commitment.
 pub fn leanda(n: usize) -> Workload {
     let run = leanda_host::blobs(n);
@@ -130,7 +143,7 @@ mod tests {
     fn the_signature_workloads_prove() {
         // End to end: proven, verified, and the output the native digest.
         let prover = Prover::new(Rate::MIN);
-        for workload in [super::leanxmss(2), super::leansphincs(1)] {
+        for workload in [super::leanxmss(2), super::leansphincs(1), super::falcon(1)] {
             super::run(&workload, &prover, Plan::default());
         }
     }

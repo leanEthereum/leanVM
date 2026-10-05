@@ -110,9 +110,9 @@ programs/hash/hash.elf
   verifying                   : 7.796 ms
 ```
 
-### leanXMSS, leanSPHINCS and leanDA
+### leanXMSS, leanSPHINCS, leanDA and Falcon-512
 
-Three programs check what an Ethereum node would: leanXMSS signatures, leanSPHINCS signatures, and leanDA blobs (`programs/leanxmss`, `programs/leansphincs`, `programs/leanda`).
+Three programs check what an Ethereum node would: leanXMSS signatures, leanSPHINCS signatures, and leanDA blobs (`programs/leanxmss`, `programs/leansphincs`, `programs/leanda`). A fourth verifies Falcon-512 signatures as the round-3 specification defines them (`programs/falcon`), pinned to NIST's known answers.
 
 Each guest is a `no_std` library, byte-compatible with the schemes' reference implementations, plus the `main` that runs it. Each host runs the same library natively to build the inputs and the expected output.
 
@@ -120,13 +120,14 @@ Each guest is a `no_std` library, byte-compatible with the schemes' reference im
 cargo leanvm leanxmss --n 400 --repeat 3
 cargo leanvm leansphincs --n 104 --repeat 3
 cargo leanvm leanda --blobs 1 --repeat 3
+cargo leanvm falcon --n 28 --repeat 3
 ```
 
 The report gives the RISC-V cycles per signature or per blob, the rows per table and the committed witness, then the proving and verifying times.
 
 These are the most one proof holds: continuations are not implemented.
 
-To get the cost of all three without proving, exact and the same on every machine:
+To get the cost of all four without proving, exact and the same on every machine:
 
 ```bash
 cargo leanvm bench --cycles-only --markdown

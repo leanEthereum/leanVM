@@ -107,6 +107,7 @@ fn counted() -> Vec<Case> {
         Case::workload("leanxmss-400", workload::leanxmss(400)),
         Case::workload("leansphincs-104", workload::leansphincs(104)),
         Case::workload("leanda-1", workload::leanda(1)),
+        Case::workload("falcon-28", workload::falcon(28)),
     ]
 }
 
@@ -114,7 +115,7 @@ fn counted() -> Vec<Case> {
 type Build = fn(&'static str) -> Case;
 
 /// Proven: the sizes that fit a GitHub-hosted runner, each built only if it is proven.
-fn proven() -> [(&'static str, Build); 5] {
+fn proven() -> [(&'static str, Build); 6] {
     [
         ("fibonacci-asm-2000000", |name| Case::fibonacci(name, 2_000_000)),
         ("hash-50000", |name| Case::hash(name, 50_000)),
@@ -123,6 +124,7 @@ fn proven() -> [(&'static str, Build); 5] {
             Case::workload(name, workload::leanxmss(100))
         }),
         ("leansphincs-26", |name| Case::workload(name, workload::leansphincs(26))),
+        ("falcon-7", |name| Case::workload(name, workload::falcon(7))),
     ]
 }
 

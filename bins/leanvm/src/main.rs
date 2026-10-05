@@ -72,6 +72,12 @@ enum Command {
         #[arg(long, default_value_t = 16, value_parser = RangedU64ValueParser::<usize>::new().range(1..))]
         n: usize,
     },
+    /// Prove and verify a guest checking Falcon-512 signatures, one key each.
+    Falcon {
+        /// Signatures to verify.
+        #[arg(long, default_value_t = 4, value_parser = RangedU64ValueParser::<usize>::new().range(1..))]
+        n: usize,
+    },
     /// Prove and verify a guest checking leanDA blobs and computing their commitment.
     Leanda {
         /// Blobs of 128 KiB to check.
@@ -136,6 +142,7 @@ fn main() {
         Command::Guest { elf, advice } => guest::run_guest(&elf, &advice, &prover, plan),
         Command::Leanxmss { n } => workload::run(&workload::leanxmss(n), &prover, plan),
         Command::Leansphincs { n } => workload::run(&workload::leansphincs(n), &prover, plan),
+        Command::Falcon { n } => workload::run(&workload::falcon(n), &prover, plan),
         Command::Leanda { blobs } => workload::run(&workload::leanda(blobs), &prover, plan),
         Command::Aggregate {
             program,
