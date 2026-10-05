@@ -48,7 +48,7 @@ pub struct ClassSpec {
     /// Table name used in diagnostics and reports.
     pub name: &'static str,
 
-    /// Whether branches and jumps derive the successor and link value.
+    /// Whether branches and jumps move the successor by the circuit's jump.
     pub control: bool,
 
     /// Whether the second source register is read, in clock slot 1.
@@ -107,8 +107,17 @@ impl ClassSpec {
         witness: None,
         batch_witness: None,
         k_log: 10,
-        ports: &[Word::V1, Word::V2, Word::Imm, Word::Flags, Word::Out, Word::Taken],
-        n_inputs: 4,
+        ports: &[
+            Word::V1,
+            Word::V2,
+            Word::Imm,
+            Word::Flags,
+            Word::Dt,
+            Word::Pc4,
+            Word::Out,
+            Word::Jump,
+        ],
+        n_inputs: 6,
         clock_k_log: 9,
         clock_inputs: &[],
         clock_outputs: &[],
@@ -405,6 +414,12 @@ impl ClassSpec {
             "{}: rd is read or written, not both",
             self.name
         );
+        // A class with branches and jumps gates the bytecode's offset in its circuit, and reads `pc + 4` for its indirect jump.
+        assert!(
+            self.control == (has(Word::Dt) && has(Word::Jump)) && self.control == has(Word::Pc4),
+            "{}: control flow",
+            self.name
+        );
         // A doubleword load moves its cell to `rd`, a doubleword store `v2` to its cell, and its circuit gives the address alone.
         if self.copies {
             let moves = match self.ram {
@@ -504,16 +519,20 @@ impl ClassSpec {
 /// Bytecode slot binding a circuit's verdict to a public zero.
 ///
 /// It follows all decoded instruction fields.
-pub const BAD_SLOT: usize = 12;
+pub const BAD_SLOT: usize = 10;
 
 /// Bytecode slot binding the exit selector.
-pub const EXIT_SLOT: usize = 13;
+pub const EXIT_SLOT: usize = 11;
 
 /// Number of instruction tables in the proof layout.
 pub const N_TABLES: usize = 11;
 
 /// Number of tables with a class circuit, which come first: table `t < N_CIRCUITS` has one, and its class circuit is
 /// packed witness `t`.
+///
+/// Their bus forms are linear, so their columns are opened at the bus's point.
+///
+/// The tables past them prove identities of their own, in the table sumcheck.
 pub const N_CIRCUITS: usize = {
     let mut n = 0;
     while n < N_TABLES && ClassSpec::ALL[n].has_circuit() {

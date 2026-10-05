@@ -7,7 +7,7 @@ use leanvm_core::rv::asm::*;
 use leanvm_core::rv::{Hash, Machine, Region, Trap};
 use primitives::field::{F64, F192};
 
-const STEPS: u64 = 1000;
+const STEPS: u64 = 2000;
 
 /// Fibonacci mod 2^64, iteratively, and the output it proves: `a0 = F(STEPS)`.
 pub fn fibonacci() -> (Program, [u64; 4]) {

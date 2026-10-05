@@ -57,7 +57,7 @@ impl InstructionClass for Load {
         vec![self.v1, self.imm, self.flags, self.cell]
     }
 
-    fn output_words(&(address, value): &(u64, u64)) -> Vec<u64> {
+    fn output_words(&self, &(address, value): &(u64, u64)) -> Vec<u64> {
         vec![address, value]
     }
 }
@@ -108,7 +108,7 @@ impl InstructionClass for Store {
         vec![self.v1, self.v2, self.imm, self.flags, self.cell]
     }
 
-    fn output_words(&(address, cell): &(u64, u64)) -> Vec<u64> {
+    fn output_words(&self, &(address, cell): &(u64, u64)) -> Vec<u64> {
         vec![address, cell]
     }
 }
@@ -142,7 +142,7 @@ impl InstructionClass for Ld {
     }
 
     /// The address alone: the value moved is a column of the table, not a circuit word.
-    fn output_words(&(address, _): &(u64, u64)) -> Vec<u64> {
+    fn output_words(&self, &(address, _): &(u64, u64)) -> Vec<u64> {
         vec![address]
     }
 }
@@ -176,7 +176,7 @@ impl InstructionClass for Sd {
     }
 
     /// The address alone: the value moved is a column of the table, not a circuit word.
-    fn output_words(&(address, _): &(u64, u64)) -> Vec<u64> {
+    fn output_words(&self, &(address, _): &(u64, u64)) -> Vec<u64> {
         vec![address]
     }
 }

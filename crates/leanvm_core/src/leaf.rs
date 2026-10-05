@@ -84,6 +84,15 @@ impl PublicColumn {
 }
 
 impl Coord {
+    /// Whether the coordinate is linear in the columns: it multiplies no column by another.
+    pub fn is_linear(&self) -> bool {
+        match self {
+            Self::Prod(..) => false,
+            Self::Sum(terms) => terms.iter().all(Self::is_linear),
+            _ => true,
+        }
+    }
+
     /// The coordinate with every column index shifted by `base`: a table's local coordinate, made global.
     pub fn offset(self, base: usize) -> Self {
         match self {
@@ -618,6 +627,20 @@ impl<E: Copy> BusForm<E> {
         }
     }
 
+    /// The form's part linear in the columns `cols`, as a form over them alone, in their order.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the form multiplies two columns.
+    pub(crate) fn on(&self, cols: &[usize], zero: E) -> Self {
+        assert!(self.prods.is_empty(), "a linear form");
+        Self {
+            coeffs: cols.iter().map(|&c| self.coeffs[c]).collect(),
+            prods: Vec::new(),
+            constant: zero,
+        }
+    }
+
     /// The form at the columns' values `evals`.
     pub fn at<A: Arith<E = E>>(&self, a: &mut A, evals: &[E]) -> E {
         let linear = (self.coeffs.iter().zip(evals)).fold(self.constant, |acc, (&c, &v)| a.mul_add(c, v, acc));
@@ -1121,6 +1144,8 @@ pub struct BusProof {
     pub point: Vec<F192>,
     /// `forms[side][table]`, in `[push, pull]` order.
     pub forms: [Vec<BusForm>; 2],
+    /// Each table's columns at `ζ[..τ]`: what a table with linear forms sends in place of a sumcheck.
+    pub evals: Vec<Vec<F192>>,
     /// `sigmas[side][table]`: each form's eq-weighted sum over its table's rows.
     /// Prover-side only. NOTHING here travels: the batch's target is the caller's
     /// derived `Σ_s η^·totals[s]`, and the shares serve only to build each round's
@@ -1166,11 +1191,11 @@ pub fn prove_balance(
     // every table block becomes a form for the zerocheck instead, and every producer
     // bit a weight for its producer's air.
     // Each table's columns at ζ[..τ], computed once and shared by the two sides
-    // (a form's linear part factors through them). Nothing here travels, neither the
-    // evaluations nor any total: the verifier derives each side's table share as `Ṽ₀(ζ)` less the
-    // framework decomposition ([`verify_balance`]) and the batch settles it. A
-    // transmitted total would appear in exactly one check, which it could always be
-    // solved to satisfy, and would settle nothing.
+    // (a form's linear part factors through them). No total travels: the verifier derives
+    // each side's table share as `Ṽ₀(ζ)` less the framework decomposition (`verify_balance`).
+    // The caller sends a linear table's evaluations, which the opening binds, and the batch
+    // settles the rest. A transmitted total would appear in exactly one check, which it could
+    // always be solved to satisfy, and would settle nothing.
     let mut forms = BusSetup::empty_forms(tables, F192::ZERO);
     let mut frameworks = [F192::ZERO; 2];
     let mut open = Openings::default();
@@ -1232,6 +1257,7 @@ pub fn prove_balance(
         claims: open.claims,
         point: bus_gkr.point,
         forms,
+        evals: table_evals,
         sigmas,
         producers,
         weights: w,

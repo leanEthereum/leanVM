@@ -280,7 +280,7 @@ Each instruction class's circuit (\S\ref{sec:tables}) and each table's clock cir
 \hline
 Circuit & ports (in $\to$ out) & $\kblock$ & $\jconst$ & $\wedge$ wires & positions used\\
 \hline
-\texttt{ALU}   & $4\to2$  & $10$ & $384$   & $424$      & $809$\\
+\texttt{ALU}   & $6\to2$  & $10$ & $512$   & $551$      & $1{,}000$\\
 \texttt{LOAD}  & $4\to2$  & $10$ & $384$   & $253$      & $638$\\
 \texttt{STORE} & $5\to2$  & $10$ & $448$   & $309$      & $758$\\
 \texttt{LD}, \texttt{SD} & $2\to1$ & $8$ & $192$ & $63$ & $256$\\
@@ -296,7 +296,7 @@ clock, \texttt{EXT}'s twelve & $17\to9$ & $12$ & $1{,}664$ & $993$ & $2{,}495$\\
 \hline
 \end{tabular}
 \end{center}
-A clock circuit's $\wedge$ wires include the $35$ carries placed at its output's positions (\S\ref{sec:clock}), which use none past $\jconst$, and \texttt{EXT}'s the $128$ that gate $b$'s addresses (below); the load tables' and the store tables' clock circuits make one fewer, their slots being $0,2,3$ and $0,1,2$ rather than $0,1,3$. \texttt{LD} and \texttt{SD} share one circuit, the adder of their address, whose $256$ positions fill $\kblock=8$ exactly. \texttt{LOAD} and \texttt{STORE} make no gate for a width of $8$ bytes, which is \texttt{LD}'s and \texttt{SD}'s: their two width bits are never both set, so ``at least $2$ bytes'' is the XOR of the two; bit $2$ of their bus address is an empty position; a load shifts only the low half of the cell into place, and a store only the low half of $v_2$.
+A clock circuit's $\wedge$ wires include the $35$ carries placed at its output's positions (\S\ref{sec:clock}), which use none past $\jconst$, and \texttt{EXT}'s the $128$ that gate $b$'s addresses (below); the load tables' and the store tables' clock circuits make one fewer, their slots being $0,2,3$ and $0,1,2$ rather than $0,1,3$. \texttt{LD} and \texttt{SD} share one circuit, the adder of their address, whose $256$ positions fill $\kblock=8$ exactly. \texttt{ALU}'s indirect jump takes $64$ $\wedge$ wires, its flag times each bit of the sum XOR $\pc^{+}$, which make its output $\pc^{+}$ and are added to $\Delta$ but for bit $0$; its last $64$ are its jump, the decision times each bit of that offset, each placed at its output's position. \texttt{LOAD} and \texttt{STORE} make no gate for a width of $8$ bytes, which is \texttt{LD}'s and \texttt{SD}'s: their two width bits are never both set, so ``at least $2$ bytes'' is the XOR of the two; bit $2$ of their bus address is an empty position; a load shifts only the low half of the cell into place, and a store only the low half of $v_2$.
 What the two verifiers and the prover have to agree on is this layout and the order the $\wedge$ wires are made in, which fixes every position; the order of the $\oplus$ wires is free, since they are substituted away.
 
 \paragraph{Addition.} A ripple-carry adder over $n$ bits ($n=64$, or $32$ in the compression). With $c_0=0$, the carry into position $i+1$ is the majority of $a_i,b_i,c_i$,

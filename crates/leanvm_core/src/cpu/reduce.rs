@@ -7,7 +7,8 @@ use super::layout::{Framework, Layout, Schema};
 use crate::arith::Verifier;
 use crate::constraints::Claims;
 use crate::pcs::StackClaim;
-use crate::{constraints, leaf, tables};
+use crate::tables::{ClassTable, N_TABLES};
+use crate::{constraints, leaf};
 
 /// What the bus and the table sumcheck leave to the rest of the verifier.
 pub(crate) struct TableReduction<E> {
@@ -15,16 +16,44 @@ pub(crate) struct TableReduction<E> {
     pub(crate) slots: Vec<StackClaim<E>>,
     /// Each producer's multiplicity bits at its point, which the opening ring-switches.
     pub(crate) producers: Vec<Claims<E>>,
-    /// Each table's claims, whose register numbers' bits the opening ring-switches.
+    /// Each table's claims in the table sumcheck, whose register numbers' bits the opening ring-switches.
     pub(crate) tables: Vec<Claims<E>>,
     /// The claim on the program's bytecode table and RAM image.
     pub(crate) program: Claim<ProgramPoint<E>, E>,
+}
+
+/// The claims the tables' columns are left with, prover and verifiers alike.
+pub(crate) struct TableClaims<E> {
+    /// Each table's column claims: a settled table's at the bus point, another's at the table sumcheck's.
+    pub(crate) columns: Vec<Claims<E>>,
+    /// Each table's claims in the table sumcheck: a settled table's on its register numbers alone.
+    pub(crate) summed: Vec<Claims<E>>,
+    /// Each producer's claims in the table sumcheck.
+    pub(crate) producers: Vec<Claims<E>>,
+}
+
+impl<E: Clone> TableClaims<E> {
+    /// Split the table sumcheck's claims, the settled tables' at the bus point leading the column claims.
+    pub(crate) fn new(settled: Vec<Claims<E>>, mut summed: Vec<Claims<E>>) -> Self {
+        let producers = summed.split_off(N_TABLES);
+        let mut columns = settled;
+        columns.extend_from_slice(&summed[columns.len()..]);
+        Self {
+            columns,
+            summed,
+            producers,
+        }
+    }
 }
 
 impl Layout {
     /// Verify the bus and the table sumcheck of a run that ends on the given clock and returns the given output.
     ///
     /// The layout's own final clock is zero: a leaf is affine in each coordinate, so the clock's share joins the pull side's total here.
+    ///
+    /// A table with a class circuit puts linear forms on the bus, so its columns' values at the bus's point settle its share.
+    ///
+    /// The table sumcheck then proves what the other tables and the producers owe.
     ///
     /// # Errors
     ///
@@ -37,10 +66,44 @@ impl Layout {
     ) -> Result<TableReduction<V::E>, CpuError> {
         let mut bus = leaf::verify_balance(v, &self.push, &self.pull, &self.producers, &Schema::get().spans)
             .map_err(CpuError::Bus)?;
-        let [at, again] = Framework::FINAL_CLOCK;
-        let weight = v.add(bus.weights[at], bus.weights[again]);
-        let per_tick = v.mul(bus.selectors[1][Framework::State as usize], weight);
+        let per_tick = v.mul(
+            bus.selectors[1][Framework::State as usize],
+            bus.weights[Framework::FINAL_CLOCK],
+        );
         bus.totals[1] = v.mul_add(per_tick, clock, bus.totals[1]);
+
+        // Each settled table's columns at the bus point `zeta[..tau]`, which the opening checks, short of its register
+        // numbers, which the batch folds.
+        //
+        // Its forms there, its register numbers taken as zero, are its share of each side short of their part, which
+        // leaves the rest owed: in characteristic two, the sum.
+        let mut settled = Vec::with_capacity(N_TABLES);
+        for (t, table) in ClassTable::all().iter().enumerate() {
+            if !table.settled_at_bus() {
+                continue;
+            }
+            let (registers, n) = (table.summed_columns(), table.n_committed_columns());
+            let mut sent = v.next_scalars(n - registers.len())?.into_iter();
+            let zero = v.zero();
+            let evals: Vec<V::E> = (0..n)
+                .map(|c| {
+                    if registers.contains(&c) {
+                        zero
+                    } else {
+                        sent.next().expect("a sent value per column")
+                    }
+                })
+                .collect();
+            for (total, forms) in bus.totals.iter_mut().zip(&bus.forms) {
+                let share = forms[t].at(v, &evals);
+                *total = v.add(*total, share);
+            }
+            settled.push(Claims {
+                chi: bus.point[..self.taus[t]].to_vec(),
+                evals,
+                slices: Vec::new(),
+            });
+        }
 
         // The tie between the batch and the bus, and why the batch's target is never sent.
         //
@@ -58,13 +121,12 @@ impl Layout {
         let table_sumcheck = constraints::verify(v, batch.airs(), &bus.point, target).map_err(CpuError::Constraint)?;
         drop(batch);
         let program = Claim::from_table_sumcheck(v, &bus, &table_sumcheck, powers);
-        let mut tables = table_sumcheck.claims;
-        let producers = tables.split_off(tables::N_TABLES);
-        let slots = self.opening_claims(v, bus.claims, &tables, output);
+        let claims = TableClaims::new(settled, table_sumcheck.claims);
+        let slots = self.opening_claims(v, bus.claims, &claims.columns, output);
         Ok(TableReduction {
             slots,
-            producers,
-            tables,
+            producers: claims.producers,
+            tables: claims.summed,
             program,
         })
     }

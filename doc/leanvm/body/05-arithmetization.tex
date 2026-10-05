@@ -9,7 +9,7 @@ The arithmetization is inspired by the M3 model (multi-multiset matching)~\cite{
 
 \paragraph{Constraints.} The constraints of $T_j$ are $C_{j,1},\dots,C_{j,\ncons{j}}$, each a polynomial over $\K$ of degree at most $d$ ($d=2$ throughout) in the $\ncol{j}$ columns, required to vanish on every row in $\cube{\tau_j}$.
 
-\paragraph{The bus.} All interactions (between tables) share a single \emph{bus}, a channel carrying tuples of up to $m=16$ $\K$-elements (shorter ones are zero-padded). Table $T_j$ has $\nfl{j}$ flushes $\btup_{j,1},\dots,\btup_{j,\nfl{j}}$, each is either a \emph{push} or a \emph{pull}. Each one of the $m$ coordinates in each tuple is a fixed polynomial of degree at most $d$ in the table's columns, so every row $x\in\cube{\tau_j}$ emits one tuple $\btup_{j,f}(x)$ per flush. A few \emph{boundary} tuples are pushed (resp. pulled) by default to the bus (for instance for the VM state $(\dsep{ST}, \pc, \ts,0)$, the initial $(\dsep{ST}, \intk{\pc_{\mathrm{entry}}}, \intk{2^{40}+2^{5}},0)$ is pushed and the final $(\dsep{ST}, \intk{\tbase+4(\nprog-1)}, \tsfinal,\tsfinal)$ is pulled, \S\ref{sec:state}).
+\paragraph{The bus.} All interactions (between tables) share a single \emph{bus}, a channel carrying tuples of up to $m=16$ $\K$-elements (shorter ones are zero-padded). Table $T_j$ has $\nfl{j}$ flushes $\btup_{j,1},\dots,\btup_{j,\nfl{j}}$, each is either a \emph{push} or a \emph{pull}. Each one of the $m$ coordinates in each tuple is a fixed polynomial of degree at most $d$ in the table's columns, so every row $x\in\cube{\tau_j}$ emits one tuple $\btup_{j,f}(x)$ per flush. A few \emph{boundary} tuples are pushed (resp. pulled) by default to the bus (for instance for the VM state $(\dsep{ST}, \pc, \ts,0)$, the initial $(\dsep{ST}, \intk{\pc_{\mathrm{entry}}}, \intk{2^{40}+2^{5}},0)$ is pushed and the final $(\dsep{ST}, \intk{\tbase+4(\nprog-1)}, \tsfinal,1)$ is pulled, \S\ref{sec:state}).
 
 \paragraph{Balance.} The bus balances when its pushed tuples and its pulled tuples form the same multiset (\ref{def:multiset}).
 
@@ -116,7 +116,7 @@ both sums over the blocks of side $s$.
 \begin{itemize}[itemsep=1pt,topsep=3pt]
 \item \emph{Padding.} Public: the verifier evaluates it.
 \item \emph{Boundary blocks.} Every slot of their tuples is public (a constant, a public component, or an index column of \S\ref{sec:idxcol}) or a single committed column, so $\widetilde L_b(\zeta_{<\kappa_b})$ is a linear combination of their evaluations at $\zeta_{<\kappa_b}$. The verifier computes the public ones; the prover sends each committed one, as a claim deferred to the PCS (\S\ref{sec:stacking}).
-\item \emph{Table and producer blocks.} Nothing is sent for them: the table sumcheck proves them.
+\item \emph{Table and producer blocks.} Nothing is sent for them: the table sumcheck proves them, but for a linear table's (below).
 \end{itemize}
 The verifier subtracts the first two kinds from the claimed value; the difference, $\mathsf{rem}_{s}$, is what the tables and the producers owe.
 
@@ -135,6 +135,12 @@ of degree at most $d$ in $T_j$'s columns, with coefficients the verifier builds 
   B^{\push}(x)\;=\;\sum_{k<\nbit}\eq(\mathsf{sel}_{b_k},\zeta_{\ge\kappa})\bigl(1+\mbit{k}(x)\,\pubp{k}(x)\bigr),
 \]
 $b_k$ being its block of bit $k$, of degree $2$ in its columns: the bits $\mbit{k}$, committed (\S\ref{sec:lookup}), and the $\pubp{k}$, public. It owes nothing on the pull side. Below, the sums over $j$ run over the tables and then the producers.
+
+\paragraph{What a linear table owes.} A table with no constraints whose every flush is linear in its columns has $B^{s}_j=\sum_c b^{s}_{j,c}\,\mathsf{col}_c+b^{s}_{j}$, coefficients the verifier builds. By Fact~\ref{fact:eq} its sum against $\eq(\zeta_{<\tau_j},\cdot)$ is then the form at the columns' extensions,
+\[
+  \sum_{x\in\cube{\tau_j}}\eq(\zeta_{<\tau_j},x)\,B^{s}_j(x)\;=\;\sum_c b^{s}_{j,c}\,\widetilde{\mathsf{col}_c}(\zeta_{<\tau_j})+b^{s}_{j},
+\]
+an identity, which needs no sumcheck. The prover sends each column's value at $\zeta_{<\tau_j}$, a claim deferred to the PCS, after $\zeta$ and before $\xi$; the verifier subtracts the table's share from $\mathsf{rem}_{s}$ on both sides, and the table leaves \eqref{eq:bus}. The values bind the table as the boundary blocks' bind their columns, so this adds no soundness error. The table may keep some columns $R_j$ out of this, its register numbers here (\S\ref{sec:regpack}): it sends the others' values, the verifier subtracts the form with the kept columns at zero, and the table stays in \eqref{eq:bus} with $\sum_{c\in R_j}b^{s}_{j,c}\,\mathsf{col}_c$ alone, a linear form the table sumcheck folds like any.
 
 \subsection{Table sumcheck}\label{sec:air}
 
@@ -165,7 +171,7 @@ the verifier computing the right side itself. Each summand of $F$ has individual
 
 \paragraph{Producer airs.} A producer (\S\ref{sec:leafstack}) joins the batch like a table of height $2^{\kappa}$ with no constraints, its summand $\xi^{0}B^{\push}$ carrying the push side's power, against $\eq(\zeta_{<\kappa},\cdot)$, of individual degree $3$ as well; $\taumax$ is then the largest of the tables' and the producers' log heights. Its columns are its bits $\mbit{0},\dots,\mbit{\nbit-1}$ and its public columns $\pubp{0},\dots,\pubp{\nbit-1}$: the prover folds both, but at the end sends only the bits' values at $\fc_{<\kappa}$, and the verifier evaluates each $\widetilde{\pubp{k}}(\fc_{<\kappa})$ itself (\S\ref{sec:lookup}). The bits' claims are settled by ring switching against the multiplicity column (\S\ref{sec:ringswitch}).
 
-\paragraph{The machine's tables.} The instruction tables of \S\ref{sec:tables} carry no constraint of their own, $\ncons{j}=0$, what a row asserts being what its circuits assert (Annex~\ref{annex:flock}), but for the last, \texttt{EXT}: its three identities, of degree two, say the extension-field product (\S\ref{sec:tab-classes}). So $\nconstot=3$, the batch weights side $s$ by $\xi^{\,s-1}$, and \texttt{EXT}'s identity $i$ by $\xi^{\,\nside+i-1}$. A table's register numbers are columns of its bits: for each, the prover sends its bits' values in place of its own, which the verifier recombines, and the bits' claims are settled by ring switching against the register word that packs them (\S\ref{sec:regpack}).
+\paragraph{The machine's tables.} The instruction tables of \S\ref{sec:tables} carry no constraint of their own, $\ncons{j}=0$, what a row asserts being what its circuits assert (Annex~\ref{annex:flock}), but for the last, \texttt{EXT}: its three identities, of degree two, say the extension-field product (\S\ref{sec:tab-classes}). Every other table's flushes are linear in its columns, a successor included (\S\ref{sec:tab-class}), so each is a linear table and settles at $\zeta$ (\S\ref{sec:leafstack}). The table sumcheck therefore batches \texttt{EXT}, the linear tables' register numbers and the bytecode's producer: $\nconstot=3$, the batch weights side $s$ by $\xi^{\,s-1}$, and \texttt{EXT}'s identity $i$ by $\xi^{\,\nside+i-1}$. A linear table's register numbers are the exception: the batch folds them, its summand being its forms' part on them alone, so that every table's numbers end at the table sumcheck's point. A register number is a column of its bits: the prover sends its bits' values in place of its own, which the verifier recombines, and the bits' claims are settled by ring switching against the register word that packs them (\S\ref{sec:regpack}).
 
 \subsection{Example: proving elliptic curve multiplication}\label{sec:arith-example}
 

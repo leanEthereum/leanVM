@@ -2,7 +2,7 @@
 
 use super::Clock;
 use crate::cpu::{Payload, RowRef};
-use crate::rv::{Div, Entry, Ext};
+use crate::rv::{Alu, Div, Ext, Fetched};
 
 /// A circuit port word represented by a virtual table column or a prover hint.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -23,8 +23,12 @@ pub enum Word {
     V2,
     /// Result written to the destination register.
     Out,
-    /// Whether control flow takes the branch or jump, encoded as zero or one.
-    Taken,
+    /// Decoded jump offset: the fixed target XOR `pc + 4`, zero for an entry with none.
+    Dt,
+    /// Decoded fall-through address, `pc + 4`.
+    Pc4,
+    /// The jump offset when the jump is taken, zero otherwise: what the successor adds to `pc + 4`.
+    Jump,
     /// Load or store address carried on the memory bus.
     Address,
     /// Indexed cell value before the instruction: the one cell of a load or a store, or one of the hash's block.
@@ -46,7 +50,7 @@ pub enum Word {
 }
 
 impl Word {
-    /// The value this circuit word takes on an executed or padding row.
+    /// The value this circuit word takes on an executed or padding row of the entry `at`.
     ///
     /// The entry and access slots must belong to the row's instruction class.
     ///
@@ -55,8 +59,8 @@ impl Word {
     /// # Panics
     ///
     /// Panics if an indexed word is out of range or needs extension-field data absent from the row.
-    pub(crate) fn value(self, r: RowRef<'_>, entry: &Entry, slots: &[u32]) -> u64 {
-        let row = r.row;
+    pub(crate) fn value(self, r: RowRef<'_>, at: Fetched<'_>, slots: &[u32]) -> u64 {
+        let (row, entry) = (r.row, at.entry);
         // The operands of an extension-field row, which only its ports read.
         let ext = || match r.payload {
             Payload::Ext(ext) => &ext.instance,
@@ -71,7 +75,17 @@ impl Word {
             Self::V1 => row.v1,
             Self::V2 => row.v2,
             Self::Out => row.out,
-            Self::Taken => row.taken as u64,
+            Self::Dt => at.dt,
+            Self::Pc4 => at.pc4,
+            Self::Jump => Alu {
+                flags: entry.flags,
+                v1: row.v1,
+                v2: row.v2,
+                imm: entry.imm,
+                dt: at.dt,
+                pc4: at.pc4,
+            }
+            .jump(row.taken),
             Self::Address => row.ram.address,
             Self::Cell(k) => r.cell(k as usize),
             Self::CellNew(k) => r.cell_new(k as usize),
@@ -103,7 +117,7 @@ mod tests {
     use super::super::Clock;
     use super::*;
     use crate::cpu::execute::{ExtRow, HashRow, Row};
-    use crate::rv::{Class, InstructionClass, Region, WordAccess};
+    use crate::rv::{Class, Entry, InstructionClass, Region, WordAccess};
     use proptest::prelude::*;
 
     fn row() -> Row {
@@ -135,9 +149,17 @@ mod tests {
         Entry::new(Class::Alu.nop().expect("the ALU has a no-op"), Region::TEXT.base())
     }
 
+    fn at(entry: &Entry, dt: u64) -> Fetched<'_> {
+        Fetched {
+            entry,
+            pc4: Region::TEXT.base() + 4,
+            dt,
+        }
+    }
+
     proptest! {
         #[test]
-        fn word_values_preserve_scalar_ports(values in any::<[u64; 8]>(), taken in any::<bool>()) {
+        fn word_values_preserve_scalar_ports(values in any::<[u64; 8]>(), taken in any::<bool>(), dt in any::<u64>()) {
             // Each port must preserve all 64 bits of its source, including arbitrary flag words.
             let mut row = row();
             let mut entry = entry();
@@ -145,11 +167,15 @@ mod tests {
             row.taken = taken;
             let ports = [Word::Clock, Word::Flags, Word::Imm, Word::V1, Word::V2, Word::Out, Word::Cell(0), Word::CellNew(0)];
             for (port, expected) in ports.into_iter().zip(values) {
-                prop_assert_eq!(port.value(RowRef::plain(&row), &entry, &[]), expected);
+                prop_assert_eq!(port.value(RowRef::plain(&row), at(&entry, dt), &[]), expected);
             }
-            prop_assert_eq!(Word::Taken.value(RowRef::plain(&row), &entry, &[]), u64::from(taken));
-            prop_assert_eq!(Word::Address.value(RowRef::plain(&row), &entry, &[]), 16);
-            prop_assert_eq!(Word::Bad.value(RowRef::plain(&row), &entry, &[]), 0);
+            // The offset and the link are the bytecode's, and a fixed jump adds that offset only when the row takes it.
+            entry.flags = Alu::ALWAYS;
+            prop_assert_eq!(Word::Dt.value(RowRef::plain(&row), at(&entry, dt), &[]), dt);
+            prop_assert_eq!(Word::Pc4.value(RowRef::plain(&row), at(&entry, dt), &[]), Region::TEXT.base() + 4);
+            prop_assert_eq!(Word::Jump.value(RowRef::plain(&row), at(&entry, dt), &[]), if taken { dt } else { 0 });
+            prop_assert_eq!(Word::Address.value(RowRef::plain(&row), at(&entry, 0), &[]), 16);
+            prop_assert_eq!(Word::Bad.value(RowRef::plain(&row), at(&entry, 0), &[]), 0);
         }
 
         #[test]
@@ -173,8 +199,8 @@ mod tests {
                 };
                 let (n, d) = (magnitude(dividend), magnitude(divisor));
                 let (q, r) = n.checked_div(d).map_or((0, 0), |q| (q, n % d));
-                prop_assert_eq!(Word::HintQ.value(RowRef::plain(&row), &entry, &[]), q as u64);
-                prop_assert_eq!(Word::HintR.value(RowRef::plain(&row), &entry, &[]), r as u64);
+                prop_assert_eq!(Word::HintQ.value(RowRef::plain(&row), at(&entry, 0), &[]), q as u64);
+                prop_assert_eq!(Word::HintR.value(RowRef::plain(&row), at(&entry, 0), &[]), r as u64);
             }
         }
     }
@@ -196,8 +222,8 @@ mod tests {
             entry.flags = flags;
             assert_eq!(
                 (
-                    Word::HintQ.value(RowRef::plain(&row), &entry, &[]),
-                    Word::HintR.value(RowRef::plain(&row), &entry, &[])
+                    Word::HintQ.value(RowRef::plain(&row), at(&entry, 0), &[]),
+                    Word::HintR.value(RowRef::plain(&row), at(&entry, 0), &[])
                 ),
                 expected
             );
@@ -219,16 +245,16 @@ mod tests {
             payload: Payload::Hash(&hash),
         };
         for k in 0..16 {
-            assert_eq!(Word::Cell(k).value(r, &entry, &[]), 100 + u64::from(k));
+            assert_eq!(Word::Cell(k).value(r, at(&entry, 0), &[]), 100 + u64::from(k));
             let expected = if (4..8).contains(&k) {
                 196 + u64::from(k)
             } else {
                 100 + u64::from(k)
             };
-            assert_eq!(Word::CellNew(k).value(r, &entry, &[]), expected);
+            assert_eq!(Word::CellNew(k).value(r, at(&entry, 0), &[]), expected);
         }
         for i in 0..18 {
-            assert_eq!(Word::Prev(i).value(r, &entry, &[]), 300 + u64::from(i));
+            assert_eq!(Word::Prev(i).value(r, at(&entry, 0), &[]), 300 + u64::from(i));
         }
     }
 
@@ -255,9 +281,9 @@ mod tests {
                     row: &row,
                     payload: Payload::Ext(&ext),
                 };
-                assert_eq!(Word::Dest.value(r, &entry, &[]), pointers[2]);
-                assert_eq!(Word::FlagBit(0).value(r, &entry, &[]), flags & Ext::ACCUMULATE);
-                assert_eq!(Word::FlagBit(1).value(r, &entry, &[]), flags >> 1);
+                assert_eq!(Word::Dest.value(r, at(&entry, 0), &[]), pointers[2]);
+                assert_eq!(Word::FlagBit(0).value(r, at(&entry, 0), &[]), flags & Ext::ACCUMULATE);
+                assert_eq!(Word::FlagBit(1).value(r, at(&entry, 0), &[]), flags >> 1);
                 for (k, p, offset) in [
                     (1, pointers[0], 8),
                     (2, pointers[0], 16),
@@ -271,10 +297,10 @@ mod tests {
                     } else {
                         p.wrapping_add(offset)
                     };
-                    assert_eq!(Word::LimbAddress(k).value(r, &entry, &[]), expected);
+                    assert_eq!(Word::LimbAddress(k).value(r, at(&entry, 0), &[]), expected);
                 }
                 for i in 0..12 {
-                    assert_eq!(Word::Prev(i).value(r, &entry, &[]), 400 + u64::from(i));
+                    assert_eq!(Word::Prev(i).value(r, at(&entry, 0), &[]), 400 + u64::from(i));
                 }
             }
         }
@@ -288,27 +314,30 @@ mod tests {
         // The unused fourth timestamp must not reject an otherwise ordered row.
         row.prev[3] = u64::MAX;
         // Cycle 1 -> 2 flips both low cycle bits, so the XOR step is 3 * 32.
-        assert_eq!(Word::Step.value(RowRef::plain(&row), &entry, &slots), 3 * Clock::CYCLE);
+        assert_eq!(
+            Word::Step.value(RowRef::plain(&row), at(&entry, 0), &slots),
+            3 * Clock::CYCLE
+        );
         for i in 0..3 {
             assert_eq!(
-                Word::Prev(i).value(RowRef::plain(&row), &entry, &slots),
+                Word::Prev(i).value(RowRef::plain(&row), at(&entry, 0), &slots),
                 row.prev[i as usize]
             );
         }
         // Reading one's own push is unordered, even when its value could balance the bus.
         row.prev[1] = row.ts ^ 1;
         assert_eq!(
-            Word::Step.value(RowRef::plain(&row), &entry, &slots),
+            Word::Step.value(RowRef::plain(&row), at(&entry, 0), &slots),
             (3 * Clock::CYCLE) | (1 << Clock::FAIL_BIT)
         );
         // Padding accesses cancel themselves without advancing the clock.
         row.ts = 0;
         row.prev[..3].copy_from_slice(&[0, 1, 3]);
-        assert_eq!(Word::Step.value(RowRef::plain(&row), &entry, &slots), 0);
+        assert_eq!(Word::Step.value(RowRef::plain(&row), at(&entry, 0), &slots), 0);
         // A padding row cannot pull a seeded, live tuple.
         row.prev[0] = Clock::SEED_CLOCK;
         assert_eq!(
-            Word::Step.value(RowRef::plain(&row), &entry, &slots),
+            Word::Step.value(RowRef::plain(&row), at(&entry, 0), &slots),
             1 << Clock::FAIL_BIT
         );
     }
@@ -317,7 +346,7 @@ mod tests {
     #[should_panic(expected = "Dest reads an extension-field row's limbs")]
     fn word_extension_destination_requires_extension_data() {
         // A class-specific port cannot be supplied by an ordinary row.
-        Word::Dest.value(RowRef::plain(&row()), &entry(), &[]);
+        Word::Dest.value(RowRef::plain(&row()), at(&entry(), 0), &[]);
     }
 
     #[test]
@@ -339,13 +368,13 @@ mod tests {
             row: &row,
             payload: Payload::Ext(&ext),
         };
-        Word::LimbAddress(0).value(r, &entry(), &[]);
+        Word::LimbAddress(0).value(r, at(&entry(), 0), &[]);
     }
 
     #[test]
     #[should_panic]
     fn word_previous_timestamp_rejects_an_out_of_range_index() {
         // Ordinary rows store four previous timestamps at most.
-        Word::Prev(4).value(RowRef::plain(&row()), &entry(), &[]);
+        Word::Prev(4).value(RowRef::plain(&row()), at(&entry(), 0), &[]);
     }
 }

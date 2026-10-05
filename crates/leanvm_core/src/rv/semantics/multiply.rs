@@ -45,7 +45,7 @@ impl InstructionClass for Mul {
         vec![self.v1, self.v2, self.flags]
     }
 
-    fn output_words(&out: &u64) -> Vec<u64> {
+    fn output_words(&self, &out: &u64) -> Vec<u64> {
         vec![out]
     }
 }
@@ -87,7 +87,7 @@ impl InstructionClass for Mulh {
         vec![self.v1, self.v2, self.flags]
     }
 
-    fn output_words(&out: &u64) -> Vec<u64> {
+    fn output_words(&self, &out: &u64) -> Vec<u64> {
         vec![out]
     }
 }

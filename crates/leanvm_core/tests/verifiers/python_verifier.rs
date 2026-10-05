@@ -180,6 +180,8 @@ fn test_python_verifier() {
     PythonStatement::assert_rejects(&statement.verify(&raw_announcement), "a noncanonical announcement");
 
     // Neither a padding row's clock nor a failed row's can end the run.
+    //
+    // A padding row of the exit pushes the exit marker at its clock, zero, which only a final clock zero would meet.
     let final_clock = leanvm_core::tables::N_TABLES + 1;
     let honest = proof.0.stream[final_clock].c0;
     for clock in [0, honest ^ Clock::SEED_CLOCK, honest | 1 << Clock::FAIL_BIT] {
@@ -242,35 +244,52 @@ fn test_python_verifier() {
     let refused = statement.verify(&raw);
     PythonStatement::assert_rejects(&refused, "an ordinary instruction marked as an exit");
     assert!(String::from_utf8_lossy(&refused.stderr).contains("an exit entry is not ECALL"));
-    let branch = Alu::SUB | Alu::BR_EQ;
-    let always = Alu::ALWAYS;
-    let jalr = Alu::CLEAR_BIT0;
-    for (flags, dt, link, indirect) in [
-        (branch, 0x44, 1, 1),
-        (always, 0, 0, 0),
-        (0, 0x44, 0, 0),
-        (0, 0, 1, 0),
-        (0, 0, 0, 1),
-        (jalr, 0, 0, 1),
-        (jalr, 0, 1, 0),
-        (jalr, 0x44, 1, 1),
-        (branch, 0, 1, 0),
-        (branch, 0, 0, 1),
-        (always, 0x44, 1, 1),
+    // A jump's shape is its flags': only a branch or a `jal` has an offset, and a `jal` links `pc + 4` as a constant
+    // added to `x0`. Entry 0's fields are set in full, so each case breaks that rule alone.
+    let alu = 1u64 << ClassTable::index_of(Class::Alu).unwrap();
+    let link = Region::TEXT.base() + 4;
+    for (what, fields) in [
+        (
+            "an addition with an offset",
+            [(2, alu), (3, 0), (4, 0), (5, 0), (7, 0), (9, 0x44)],
+        ),
+        (
+            "a jal reading a register",
+            [(2, alu), (3, Alu::ALWAYS), (4, 1), (5, 0), (7, link), (9, 0x44)],
+        ),
+        (
+            "a jal linking another address",
+            [(2, alu), (3, Alu::ALWAYS), (4, 0), (5, 0), (7, link + 4), (9, 0x44)],
+        ),
+        (
+            "a jalr with an offset",
+            [
+                (2, alu),
+                (3, Alu::INDIRECT | Alu::ALWAYS),
+                (4, 0),
+                (5, 0),
+                (7, 0),
+                (9, 0x44),
+            ],
+        ),
     ] {
         let mut malformed = table.clone();
-        for (slot, value) in [(3, flags), (9, dt), (10, link), (11, indirect)] {
+        for (slot, value) in fields {
             malformed[8 * slot * entries..][..8].copy_from_slice(&value.to_le_bytes());
         }
         std::fs::write(&statement.bytecode, malformed).expect("write malformed control flow");
         let refused = statement.verify(&raw);
-        PythonStatement::assert_rejects(&refused, "malformed control flow");
-        assert!(String::from_utf8_lossy(&refused.stderr).contains("invalid control flow"));
+        PythonStatement::assert_rejects(&refused, what);
+        assert!(
+            String::from_utf8_lossy(&refused.stderr).contains("invalid control flow"),
+            "{what}"
+        );
     }
-    std::fs::write(&statement.bytecode, table).expect("restore bytecode");
+    std::fs::write(&statement.bytecode, &table).expect("restore bytecode");
+    // The legal shapes of entry 0: a `jal` to `pc + 4`, a branch with an offset, a `jalr`.
     let control_shapes = Command::new("python3")
         .arg("-c")
-        .arg(
+        .arg(format!(
             r#"import runpy, sys
 from pathlib import Path
 v = runpy.run_path(sys.argv[1])
@@ -278,13 +297,16 @@ data = Path(sys.argv[2]).read_bytes()
 words = [v['K'](int.from_bytes(data[i:i+8], 'little')) for i in range(0, len(data), 8)]
 v['check_bytecode'](words)
 n = len(words) // 16
-for flags, link, jalr in [(1 << 14, 1, 0), (1 | (1 << 8), 0, 0), (1 << 7, 1, 1)]:
+for fields in [[(2, {alu}), (3, {always}), (4, 0), (5, 0), (7, {link}), (9, 0)], [(2, {alu}), (3, {branch}), (9, 0x44)], [(2, {alu}), (3, {indirect}), (5, 0), (9, 0)]]:
     candidate = words.copy()
-    for slot, value in [(3, flags), (9, 0), (10, link), (11, jalr)]:
+    for slot, value in fields:
         candidate[slot * n] = v['K'](value)
     v['check_bytecode'](candidate)
 "#,
-        )
+            always = Alu::ALWAYS,
+            branch = Alu::SUB | Alu::BR_EQ,
+            indirect = Alu::INDIRECT | Alu::ALWAYS,
+        ))
         .arg(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../python-verifier/verifier.py"))
         .arg(&statement.bytecode)
         .output()
@@ -374,8 +396,8 @@ fn the_python_verifier_follows_the_slowest_rate() {
 
 /// Every ring-switched claim joins the opening's one family through its slices: both verifiers reject a moved slice of
 /// the first, a middle and the last flock circuit, the last circuit's form value, a moved multiplicity bit, and a moved
-/// bit of the last table's register numbers. Python also rejects a family target off by one and a family combined by
-/// the wrong challenge.
+/// register bit of the last table and of the first, a table the bus point settles. Python also rejects a family target
+/// off by one and a family combined by the wrong challenge.
 #[test]
 fn both_verifiers_bind_every_circuits_slices() {
     let (program, _) = super::programs::fibonacci();
@@ -398,6 +420,13 @@ def recorded(name):
     g[name] = wrapped
 recorded('table_sumcheck')
 recorded('verify_flock')
+Table = g['Table']
+read_registers = Table.read_registers
+def read_recorded(table, transcript):
+    out = read_registers(table, transcript)
+    print('register_bits', transcript.stream_offset - len(out[1]))
+    return out
+Table.read_registers = read_recorded
 sys.exit(v['main'](sys.argv[2:]))
 "#;
     let traced = statement.verify_with(&raw, Some(prelude));
@@ -419,6 +448,8 @@ sys.exit(v['main'](sys.argv[2:]))
     // The announced heights lead the stream; the last table's register bits end right before the multiplicity bits.
     let taus = std::array::from_fn(|t| proof.0.stream[t].c0 as usize);
     let register_end = bits_end - Lookup::Bytecode.multiplicity_bits(taus);
+    // The first table's register bits, the only columns of a settled table the table sumcheck sends, come first.
+    let settled_bits = ends("register_bits")[0];
     for at in [
         slices(0),
         slices(n / 2) + 7,
@@ -426,6 +457,7 @@ sys.exit(v['main'](sys.argv[2:]))
         flock_end - 1,
         bits_end - 1,
         register_end - 1,
+        settled_bits,
     ] {
         let mut forged = proof.clone();
         forged.0.stream[at] += F192::ONE;

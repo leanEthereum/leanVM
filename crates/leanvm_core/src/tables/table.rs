@@ -51,6 +51,7 @@ impl ClassTable {
             clock_ports: spec.clock_ports(),
         };
         table.assert_x0_is_constant();
+        table.assert_linear_if_circuit();
         table
     }
 
@@ -100,6 +101,66 @@ impl ClassTable {
         }
     }
 
+    /// Whether the bus point settles the table: a table with a class circuit flushes only linear tuples.
+    pub(crate) const fn settled_at_bus(&self) -> bool {
+        self.spec.has_circuit()
+    }
+
+    /// The columns the table sumcheck folds, in order: all of them, or only the register numbers of a settled table.
+    ///
+    /// Why: a settled table's other columns are sent at the bus point, but its register numbers are read through their
+    /// word's bits, which share the table sumcheck's point with the other words.
+    pub(crate) fn summed_columns(&self) -> Vec<usize> {
+        if self.settled_at_bus() {
+            self.register_bits().fields.iter().map(|f| f.col).collect()
+        } else {
+            (0..self.n_committed_columns()).collect()
+        }
+    }
+
+    /// The register numbers among the summed columns, each at its place among them.
+    pub(crate) fn summed_bits(&self) -> BitColumns {
+        let cols = self.summed_columns();
+        let at = |col| {
+            cols.iter()
+                .position(|&c| c == col)
+                .expect("a register number is summed")
+        };
+        BitColumns {
+            fields: (self.register_bits().fields.into_iter())
+                .map(|f| BitField { col: at(f.col), ..f })
+                .collect(),
+        }
+    }
+
+    /// A bus form of the table as the table sumcheck folds it, over the summed columns.
+    ///
+    /// A settled table's is the form's part on its register numbers: the bus point settles the rest.
+    pub(crate) fn summed_form<E: Copy>(&self, form: &BusForm<E>, zero: E) -> BusForm<E> {
+        if self.settled_at_bus() {
+            form.on(&self.summed_columns(), zero)
+        } else {
+            form.clone()
+        }
+    }
+
+    /// Asserts that a table with a class circuit puts no product of columns on the bus.
+    ///
+    /// Such a table is settled at the bus's point, where only a linear form factors through its columns.
+    ///
+    /// # Panics
+    ///
+    /// Panics on a product in a table with a class circuit.
+    fn assert_linear_if_circuit(&self) {
+        let bus = self.flushes();
+        let linear = bus.push.iter().chain(&bus.pull).flatten().all(Coord::is_linear);
+        assert!(
+            !self.spec.has_circuit() || linear,
+            "{}: a product on the bus",
+            self.spec.name
+        );
+    }
+
     /// Number of columns, the virtual ones included.
     pub const fn n_committed_columns(&self) -> usize {
         self.cols.len()
@@ -131,16 +192,12 @@ impl ClassTable {
     }
 
     /// Bind the next instruction and clock to the current state.
+    ///
+    /// The successor is linear in the row's columns: `pc + 4`, plus the circuit's jump for a class with control flow.
     fn flush_state(&self, bus: &mut FlushBuilder) {
         let c = &self.cols;
-        // Branches and jumps derive the successor as a degree-two bus form.
-        let npc = match (c.control, c.rd) {
-            (Some(control), Some(rd)) => control.next_pc(c.pc4, rd.out),
-            _ => Col(c.pc4),
-        };
-        let exit = c
-            .control
-            .map_or(Const(F64::ZERO), |control| control.exit_marker(c.ts, c.step));
+        let npc = c.control.map_or(Col(c.pc4), |control| control.next_pc(c.pc4));
+        let exit = c.control.map_or(Const(F64::ZERO), |control| Col(control.exit));
         bus.state(c.pc, c.ts, c.step, npc, exit);
     }
 
@@ -167,8 +224,8 @@ impl ClassTable {
             c.imm.map_or(Const(F64::ZERO), Col),
             Col(c.pc4),
         ];
-        if let (Some(control), Some(_)) = (c.control, c.rd) {
-            entry.extend([Col(control.dt), Col(control.link), Col(control.jalr)]);
+        if let Some(control) = c.control {
+            entry.push(Col(control.dt));
         }
         if let Some(bad) = c.bad {
             entry.resize(BAD_SLOT, Const(F64::ZERO));
@@ -184,16 +241,18 @@ impl ClassTable {
         let c = &self.cols;
         // The accesses' columns are in the order the row makes them.
         let mut accesses = bus.accesses(c.ts, c.prev, self.spec.slots());
-        let vd = c.rd.map(|rd| {
-            c.control
-                .map_or(Col(rd.out), |control| control.destination(c.pc4, rd.out))
-        });
         accesses.read(Separator::Registers.coordinate(), Col(c.a1), Col(c.v1));
         if let Some(r) = c.rs2 {
             accesses.read(Separator::Registers.coordinate(), Col(r.a2), Col(r.v2));
         }
-        if let (Some(rd), Some(vd)) = (c.rd, vd) {
-            accesses.write(Separator::Registers.coordinate(), Col(rd.ad), Col(rd.vd_old), vd);
+        // The destination receives the circuit's output, which is the link of a jump that links.
+        if let Some(rd) = c.rd {
+            accesses.write(
+                Separator::Registers.coordinate(),
+                Col(rd.ad),
+                Col(rd.vd_old),
+                Col(rd.out),
+            );
         }
         // An address in `rd` is read and written back as found.
         if let Some(p) = c.pointer {

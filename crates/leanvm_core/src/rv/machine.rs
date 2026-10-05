@@ -143,7 +143,7 @@ impl<'a> Machine<'a> {
         };
 
         // Compute, then apply the memory access.
-        let outcome = entry.evaluate(v1, v2, cell.map_or(0, |cell| self.memory.get(cell)));
+        let outcome = entry.evaluate(pc, v1, v2, cell.map_or(0, |cell| self.memory.get(cell)));
         let memory = match (cell, outcome.access, block, limbs) {
             (Some(cell), Some(access), _, _) => {
                 self.memory.set(cell, access.new);
@@ -156,16 +156,15 @@ impl<'a> Machine<'a> {
             _ => MemoryAccess::None,
         };
 
-        // Write the destination: the output, or pc + 4 for a link.
-        let pc4 = pc.wrapping_add(4);
-        let vd = if entry.link { pc4 } else { outcome.out };
+        // Write the destination: the output, which is `pc + 4` for a jump that links.
+        let vd = outcome.out;
         let vd_old = self.write_destination(&entry, vd);
 
-        // Move pc: the computed address, the fixed target, or the next instruction.
-        let npc = match (entry.jalr, outcome.taken) {
-            (true, _) => outcome.out,
-            (false, true) => self.program.target_of(index).expect("a taken entry has a target"),
-            (false, false) => pc4,
+        // Move pc: the fixed target, the address an indirect jump computes, or the next instruction.
+        let npc = match (outcome.taken, self.program.target_of(index)) {
+            (true, Some(target)) => target,
+            (true, None) => v1.wrapping_add(entry.imm) & !1,
+            (false, _) => pc.wrapping_add(4),
         };
         self.exited = entry.is_exit();
         self.pc = npc;
@@ -335,7 +334,7 @@ pub struct Step {
     ///
     /// Zero for a store, a hash or an extension-field product, which write no register.
     pub vd_old: u64,
-    /// What the destination holds now: the output, or `pc + 4` for a link.
+    /// What the destination holds now: the output.
     pub vd: u64,
     /// What the instruction did to memory.
     pub memory: MemoryAccess,

@@ -1,7 +1,7 @@
 //! Local column allocation and the aliases used by memory moves.
 
 use super::{ClassSpec, Ram, Word};
-use crate::leaf::Coord::{self, Col, Prod};
+use crate::leaf::Coord::{self, Col};
 use crate::rv::{Ext, Hash};
 
 /// The `rs2` read's columns: the register's number and what it held.
@@ -37,44 +37,23 @@ pub(super) struct DestinationColumns {
     pub(super) out: usize,
 }
 
-/// Columns selecting branches, jumps, links, and exits.
+/// Columns of a class with branches and jumps, the exit included.
 #[derive(Clone, Copy)]
 pub(super) struct ControlColumns {
-    /// Branch target offset.
+    /// Decoded jump offset, a circuit input.
     pub(super) dt: usize,
 
-    /// Selector for writing a return address.
-    pub(super) link: usize,
-
-    /// Selector for an indirect jump.
-    pub(super) jalr: usize,
-
-    /// Branch or jump decision.
-    pub(super) taken: usize,
+    /// The offset when the jump is taken, zero otherwise: a circuit output.
+    pub(super) jump: usize,
 
     /// Selector for the exit instruction.
     pub(super) exit: usize,
 }
 
 impl ControlColumns {
-    /// The fall-through, conditional branch, or indirect jump target as a degree-two bus form.
-    pub(super) fn next_pc(self, pc4: usize, out: usize) -> Coord {
-        Coord::Sum(vec![
-            Col(pc4),
-            Prod(self.taken, self.dt),
-            Prod(self.jalr, out),
-            Prod(self.jalr, pc4),
-        ])
-    }
-
-    /// The computed result or the fall-through address of a linking jump.
-    pub(super) fn destination(self, pc4: usize, out: usize) -> Coord {
-        Coord::Sum(vec![Col(out), Prod(self.link, out), Prod(self.link, pc4)])
-    }
-
-    /// Bind an exit to the next clock, which only the final state accepts.
-    pub(super) fn exit_marker(self, ts: usize, step: usize) -> Coord {
-        Coord::Sum(vec![Prod(self.exit, ts), Prod(self.exit, step)])
+    /// The successor, `pc + 4` plus the jump: the fall-through or the target.
+    pub(super) fn next_pc(self, pc4: usize) -> Coord {
+        Coord::Sum(vec![Col(pc4), Col(self.jump)])
     }
 }
 
@@ -159,7 +138,7 @@ pub(super) struct Columns {
     /// First source register number.
     pub(super) a1: usize,
 
-    /// Fall-through instruction address.
+    /// Fall-through instruction address, `pc + 4`.
     pub(super) pc4: usize,
 
     /// First source register value.
@@ -177,7 +156,7 @@ pub(super) struct Columns {
     /// Optional destination register used as an address.
     pub(super) pointer: Option<PointerColumns>,
 
-    /// Optional control-flow selectors.
+    /// Optional control-flow columns.
     pub(super) control: Option<ControlColumns>,
 
     /// Optional decoded immediate.
@@ -235,9 +214,7 @@ impl Columns {
         });
         let control = spec.control.then(|| ControlColumns {
             dt: allocator.allocate(1),
-            link: allocator.allocate(1),
-            jalr: allocator.allocate(1),
-            taken: allocator.allocate(1),
+            jump: allocator.allocate(1),
             exit: allocator.allocate(1),
         });
         let imm = spec.words().any(|w| w == Word::Imm).then(|| allocator.allocate(1));
@@ -314,9 +291,11 @@ impl Columns {
             Word::Flags => self.flags.unwrap_or_else(missing),
             Word::Imm => self.imm.unwrap_or_else(missing),
             Word::V1 => self.v1,
+            Word::Pc4 => self.pc4,
             Word::V2 => self.rs2.map_or_else(missing, |r| r.v2),
             Word::Out => self.rd.map_or_else(missing, |rd| rd.out),
-            Word::Taken => self.control.map_or_else(missing, |c| c.taken),
+            Word::Dt => self.control.map_or_else(missing, |c| c.dt),
+            Word::Jump => self.control.map_or_else(missing, |c| c.jump),
             Word::Address => self.ram.map_or_else(missing, |r| r.address),
             Word::Cell(k) => match (self.ram, self.block) {
                 (Some(ram), _) => ram.cell,

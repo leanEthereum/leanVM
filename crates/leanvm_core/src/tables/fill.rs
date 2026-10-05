@@ -1,7 +1,7 @@
 //! Sequential registration and parallel execution of column writers.
 
-use super::{ClassTable, Clock};
-use crate::cpu::{Row, Trace};
+use super::{ClassTable, Clock, Word};
+use crate::cpu::{Row, RowRef, Trace};
 use crate::rv::{Ext, RiscvProgram};
 use parallel::SendPtr;
 use primitives::field::F64;
@@ -187,14 +187,12 @@ impl ClassTable {
             ctx.column(out, ext, p.vd, |x| F64(x.instance.pointers[2]));
         }
         if let Some(k) = c.control {
-            ctx.columns_at(out, rows, [k.dt, k.link, k.jalr, k.taken, k.exit], move |r| {
-                let e = entry(r);
+            ctx.columns_at(out, rows, [k.dt, k.jump, k.exit], move |r| {
+                let at = p.fetch(r.index as usize);
                 [
-                    F64(p.dt_of(r.index as usize)),
-                    F64(e.link as u64),
-                    F64(e.jalr as u64),
-                    F64(r.taken as u64),
-                    F64((e.is_exit()) as u64),
+                    F64(at.dt),
+                    F64(Word::Jump.value(RowRef::plain(r), at, &[])),
+                    F64(at.entry.is_exit() as u64),
                 ]
             });
         }

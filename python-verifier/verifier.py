@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import sys
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Callable, Container, Iterable, Sequence
 from dataclasses import dataclass, field
 from functools import cache, cached_property, reduce
 from itertools import accumulate, count, islice, pairwise, product, repeat
@@ -508,6 +508,10 @@ class Form:
     def evaluate(self, column: Callable[[int], E]) -> E:
         return E.sum(reduce(mul, map(column, monomial), c) for monomial, c in self.terms.items())
 
+    def on(self, columns: Container[int]) -> Form:
+        """Its part linear in `columns`."""
+        return Form({monomial: c for monomial, c in self.terms.items() if len(monomial) == 1 and monomial[0] in columns})
+
 
 @dataclass(frozen=True)
 class BusBlock:
@@ -532,7 +536,7 @@ class Producer:
 @dataclass(frozen=True)
 class BusLayout:
     """Where a side's blocks sit in the stacked leaf cube. Split by kind because framework coordinates are
-    public, so the verifier evaluates their fingerprints outright, while a table's stay symbolic until its sumcheck,
+    public, so the verifier evaluates their fingerprints outright, while a table's stay symbolic until its columns settle them,
     and a producer's bits become weights on its own sumcheck."""
 
     depth: int  # log2 of the padded cube, so how many layers the side's GKR walks
@@ -606,8 +610,8 @@ def framework_tuples(layout: Layout, lows: dict[str, MultilinearPoint]) -> dict[
 
     halt_pc = E(TEXT_BASE + 4 * (2**layout.log_bytecode - 1))  # the run ends on the text's last slot, which is never executed
     return {
-        # cycle 1, then the halt slot at the announced clock with its exit marker
-        "state": ((SEP_STATE, E(layout.entry_pc), E(CLOCK_START), ZERO), (SEP_STATE, halt_pc, layout.final_clock, layout.final_clock)),
+        # cycle 1, then the halt slot at the announced clock, marked as an exit
+        "state": ((SEP_STATE, E(layout.entry_pc), E(CLOCK_START), ZERO), (SEP_STATE, halt_pc, layout.final_clock, ONE)),
         # the registers start at zero, RAM as the statement has it, the advice as the prover has it
         "registers": array(SEP_REG, int_index_mle(0, 0, lows["registers"]), ZERO, "register_final_ts", "register_final"),
         "ram": array(SEP_MEM, int_index_mle(RAM_BASE, 3, lows["ram"]), Image(), "ram_final_ts", "ram_final"),
@@ -654,7 +658,7 @@ def verify_bus_balance(layout: Layout, transcript: Transcript) -> BusResult:
     end = [fingerprint(block, tuples[block][1]) for block in FRAMEWORK]
     # RAM's image seeds the push side, at its block's selector.
     image = (push_layout.framework[FRAMEWORK.index("ram")].eq_above(point) * image_slots["ram"], lows["ram"])
-    totals = []  # what remains to be proven by the next table sumcheck
+    totals = []  # what the tables and the producers owe: settled at the bus point, or by the table sumcheck
     forms = tuple(tuple(Form() for _ in range(2)) for _ in TABLES)
     # A producer's bit block weighs on its own sumcheck, at its selector.
     producers = tuple(tuple(p.eq_above(point) for p in bits) for bits in push_layout.producers)
@@ -662,7 +666,8 @@ def verify_bus_balance(layout: Layout, transcript: Transcript) -> BusResult:
         framework_selectors = [p.eq_above(point) for p in side_layout.framework]
         table_selectors = [p.eq_above(point) for p in side_layout.tables]
         known = dot(framework_selectors, [beta + fingerprint for fingerprint in framework_fingerprints])
-        # A table's blocks stay symbolic: they accumulate into the form its sumcheck settles over its own columns.
+        # A table's blocks stay symbolic: they accumulate into the form its columns settle, at the bus point or in the
+        # table sumcheck.
         beta_form = _const(beta)
         for selector, block in zip(table_selectors, blocks, strict=True):
             form = forms[block.owner][side]
@@ -693,7 +698,7 @@ class ProducerAir:
 
 @dataclass(frozen=True)
 class TableSumcheck:
-    claims: list[ColumnClaim]  # the tables' column claims, short of their register numbers
+    claims: list[ColumnClaim]  # the column claims of the tables the bus point does not settle, short of their register numbers
     registers: list[tuple[MultilinearPoint, tuple[E, ...]]]  # per table, its point and its register numbers' bits there
     families: list[tuple[MultilinearPoint, tuple[E, ...]]]  # per producer, its point and its bits' values there
     twists: list[tuple[E, ...]]  # per producer, the weight of each bit's public column in the terminal identity
@@ -712,7 +717,8 @@ def table_sumcheck(
     transcript: Transcript,
 ) -> TableSumcheck:
     """A table's summand is its two bus forms at `form_powers`, then its own identities, each at a power of its own:
-    their sums are zero."""
+    their sums are zero. A table the bus point settles keeps only its forms' part on its register numbers, the only
+    columns it sends here."""
     heights = [*table_log_heights, *(producer.log_rows for producer in producers)]
     n_rounds = max(heights)
     challenges, claim = sumcheck(transcript, target, 4, [None] * n_rounds)
@@ -727,23 +733,15 @@ def table_sumcheck(
     claims: list[ColumnClaim] = []
     registers = []
     for table, height, forms, own, weight in zip(TABLES, table_log_heights, bus_forms, identity_powers, weights[: len(TABLES)], strict=True):
-        # Every column's evaluation but the register numbers', then each register number's bits'. Bit b of an integer
-        # is x^b, so a register number's evaluation is sum_b x^b slice_b.
-        sent = iter(transcript.next_scalars(table.width - len(table.registers)))
-        slices = tuple(transcript.next_scalars(sum(width for _, width in table.registers)))
-        numbers, start = {}, 0
-        for local, width in table.registers:
-            numbers[local] = E.sum(E(1 << bit) * slice for bit, slice in enumerate(slices[start : start + width]))
-            start += width
-        evaluations = tuple(numbers[local] if local in numbers else next(sent) for local in range(table.width))
-        final += weight * dot(form_powers, [form.evaluate(evaluations.__getitem__) for form in forms])
-        final += weight * dot(own, [form.evaluate(evaluations.__getitem__) for form in table.identities])
         table_point = tuple(point[:height])
-        claims.extend(
-            ColumnClaim(GLOBAL_COLUMN_BASES[table.opcode] + local, table_point, value)
-            for local, value in enumerate(evaluations)
-            if local not in numbers
-        )
+        if table.circuit is not None:
+            numbers, slices = table.read_registers(transcript)
+            final += weight * dot(form_powers, [form.on(numbers).evaluate(numbers.__getitem__) for form in forms])
+        else:
+            evaluations, slices = table.read_evaluations(transcript)
+            final += weight * dot(form_powers, [form.evaluate(evaluations.__getitem__) for form in forms])
+            final += weight * dot(own, [form.evaluate(evaluations.__getitem__) for form in table.identities])
+            claims.extend(table.column_claims(table_point, evaluations))
         registers.append((table_point, slices))
     families = []
     twists = []
@@ -902,7 +900,7 @@ class Flushes:
         self.pull.append(tuple(pull))
 
     def state(self, columns: Sequence[str], npc: Form, exit_marker: Form) -> None:
-        """Pull the current state and push the next: `npc`, derived rather than committed, and the clock ts ^ step
+        """Pull the current state and push the next: `npc`, a linear form of the row's columns, and the clock ts ^ step
         the row's clock circuit gives."""
         pc, ts, step = _cols(columns, "pc", "ts", "step")
         self.pair((_const(SEP_STATE), npc, _col(ts) + _col(step), exit_marker), (_const(SEP_STATE), _col(pc), _col(ts), _const(ZERO)))
@@ -934,7 +932,7 @@ class Flushes:
 # the product, and its clock circuit splits the flags into their bits and computes the addresses of the limbs at no
 # pointer.
 
-CONTROL_COLUMNS = ("dt", "link", "jalr", "taken", "exit")  # the bytecode fields of a class with branches and jumps, and its taken bit
+CONTROL_COLUMNS = ("dt", "jump", "exit")  # a class with jumps: the bytecode's offset, the circuit's gated jump, the exit
 HASH_COLUMNS = (*(f"cell_{k}" for k in range(HASH_WORDS)), *(f"cell_new_{HASH_OUT_WORD + j}" for j in range(4)))
 EXT_COLUMNS = (
     *(f"limb_{k}" for k in range(EXT_LIMBS)),
@@ -944,8 +942,8 @@ EXT_COLUMNS = (
 RAM_COLUMNS = {"none": (), "read": ("address", "cell_0"), "write": ("address", "cell_0", "cell_new_0"), "block": HASH_COLUMNS, "limbs": EXT_COLUMNS}
 
 
-EXIT_SLOT = 13  # public selector: only ECALL can terminate the state channel
-BAD_SLOT = 12  # where a bytecode tuple holds a row's `bad` word: past every field of an entry, where the program is zero
+EXIT_SLOT = 11  # public selector: only ECALL can terminate the state channel
+BAD_SLOT = 10  # where a bytecode tuple holds a row's `bad` word: past every field of an entry, where the program is zero
 BYTECODE_PUBLIC_SLOT = 2  # an entry's first field, after the separator and the address
 
 
@@ -983,14 +981,14 @@ def _class_flushes(opcode: int, columns: Sequence[str], control: bool, ram: str,
     a1, pc4, v1 = _cols(columns, "a1", "pc4", "v1")
     # A row without flags, an rs2 read, an rd write or an immediate reads their constants off the entry: zero, x0, the
     # sink, and zero.
-    npc, vd, fields = _col(pc4), _const(ZERO), ()
+    npc, vd, fields, exit_selector = _col(pc4), _const(ZERO), (), _const(ZERO)
     flags_form, a2_form, ad_form, imm_form = _const(ZERO), _const(ZERO), _const(SINK), _const(ZERO)
     if "flags" in words:
         flags_form = _col(_cols(columns, "flags")[0])
     if reads_rs2:
         a2_form = _col(_cols(columns, "a2")[0])
     if writes_rd:
-        # What rd receives: the circuit's result, or the cell a doubleword load moves.
+        # What rd receives: the circuit's result (a jump's link), or the cell a doubleword load moves.
         ad, out = _cols(columns, "ad", "cell_0" if copies else "out")
         ad_form, vd = _col(ad), _col(out)
     if "vd" in words:
@@ -998,21 +996,17 @@ def _class_flushes(opcode: int, columns: Sequence[str], control: bool, ram: str,
     if "imm" in words:
         imm_form = _col(_cols(columns, "imm")[0])
     if control:
-        dt, link, jalr, taken, exit = _cols(columns, *CONTROL_COLUMNS)
-        # What the row derives, each of degree 2: the next pc, and what rd receives.
-        npc = _col(pc4) + _prod(taken, dt) + _prod(jalr, out) + _prod(jalr, pc4)
-        vd = _col(out) + _prod(link, out) + _prod(link, pc4)
-        fields = (_col(dt), _col(link), _col(jalr))
+        # The next pc is pc + 4 plus the circuit's jump: the bytecode's offset when a fixed jump is taken, the sum XOR
+        # pc + 4 for an indirect one. Only an exit marks its next state, which only the final state meets.
+        dt, jump, exit = _cols(columns, *CONTROL_COLUMNS)
+        npc, fields, exit_selector = _col(pc4) + _col(jump), (_col(dt),), _col(exit)
     flushes = Flushes()
-    ts, step = _cols(columns, "ts", "step")
-    # Only an exit marks its next state, exit * (ts ^ step), which only the final state meets.
-    exit_marker = _prod(exit, ts) + _prod(exit, step) if control else _const(ZERO)
-    flushes.state(columns, npc, exit_marker)
+    flushes.state(columns, npc, exit_selector)
     entry = (_const(_gpow(opcode)), flags_form, _col(a1), a2_form, ad_form, imm_form, _col(pc4), *fields)
     if "bad" in words:
         # What the circuit asserts to be zero rides a slot where the program is zero, so the lookup makes it zero.
         entry = (*entry, *[_const(ZERO)] * (BAD_SLOT - BYTECODE_PUBLIC_SLOT - len(entry)), _col(_cols(columns, "bad")[0]))
-    entry = (*entry, *[_const(ZERO)] * (EXIT_SLOT - BYTECODE_PUBLIC_SLOT - len(entry)), _col(exit) if control else _const(ZERO))
+    entry = (*entry, *[_const(ZERO)] * (EXIT_SLOT - BYTECODE_PUBLIC_SLOT - len(entry)), exit_selector)
     flushes.read((_const(SEP_BYTECODE), _col(_cols(columns, "pc")[0]), *entry))
     # The register's number comes straight from the bytecode. A read pushes back the value it pulled. The accesses'
     # columns are numbered in the order the row makes them.
@@ -1148,6 +1142,29 @@ class Table:
         elif self.reads_rd:
             fields += (("ad", REGISTER_BITS),)
         return tuple((_cols(self.columns, name)[0], width) for name, width in fields)
+
+    def read_registers(self, transcript: Transcript) -> tuple[dict[int, E], tuple[E, ...]]:
+        """Its register numbers' evaluations at the table sumcheck's point, by column, and their bits' there: each number's
+        bits are sent. Bit b of an integer is x^b, so a number's evaluation is sum_b x^b slice_b."""
+        slices = tuple(transcript.next_scalars(sum(width for _, width in self.registers)))
+        numbers, start = {}, 0
+        for local, width in self.registers:
+            numbers[local] = E.sum(E(1 << bit) * slice for bit, slice in enumerate(slices[start : start + width]))
+            start += width
+        return numbers, slices
+
+    def read_evaluations(self, transcript: Transcript) -> tuple[tuple[E, ...], tuple[E, ...]]:
+        """Its columns' evaluations at the table sumcheck's point, and its register numbers' bits there: every column's but
+        the numbers' is sent, then the numbers' bits."""
+        sent = iter(transcript.next_scalars(self.width - len(self.registers)))
+        numbers, slices = self.read_registers(transcript)
+        return tuple(numbers[local] if local in numbers else next(sent) for local in range(self.width)), slices
+
+    def column_claims(self, point: MultilinearPoint, evaluations: Sequence[E]) -> list[ColumnClaim]:
+        """Its columns' claims at `point`, short of its register numbers, whose bits are their word's claim."""
+        numbers = {local for local, _ in self.registers}
+        base = GLOBAL_COLUMN_BASES[self.opcode]
+        return [ColumnClaim(base + local, point, value) for local, value in enumerate(evaluations) if local not in numbers]
 
     @property
     def min_log_height(self) -> int:
@@ -1599,21 +1616,24 @@ class _GateList:
 
 
 # The ALU class's selector bits, one-hot where they select. `b` is `v2 ^ imm`, one of the two being zero.
-ALU_SUB, ALU_WORD, ALU_LT, ALU_LTU, ALU_AND, ALU_OR, ALU_XOR, ALU_CLEAR_BIT0 = range(8)
+ALU_SUB, ALU_WORD, ALU_LT, ALU_LTU, ALU_AND, ALU_OR, ALU_XOR, ALU_INDIRECT = range(8)
 ALU_BRANCHES = ALU_EQ, ALU_NE, ALU_BLT, ALU_BGE, ALU_BLTU, ALU_BGEU = range(8, 14)
 ALU_ALWAYS = 14
 ALU_LEGAL_FLAGS = frozenset(
     sum(1 << bit for bit in bits)
-    for bits in [(), (ALU_SUB,), (ALU_WORD,), (ALU_SUB, ALU_WORD), (ALU_AND,), (ALU_OR,), (ALU_XOR,), (ALU_CLEAR_BIT0,), (ALU_ALWAYS,)]
+    for bits in [(), (ALU_SUB,), (ALU_WORD,), (ALU_SUB, ALU_WORD), (ALU_AND,), (ALU_OR,), (ALU_XOR,), (ALU_INDIRECT, ALU_ALWAYS), (ALU_ALWAYS,)]
     + [(ALU_SUB, bit) for bit in (ALU_LT, ALU_LTU, *ALU_BRANCHES)]
 )
 
 
 def _alu() -> _GateList:
-    """(v1, v2, imm, flags) -> (out, taken): add or subtract (and the 32-bit forms), the two comparisons, AND, OR, XOR,
-    the six branch conditions, the jumps. `v1 - b` is `v1 + not(b) + 1`, which borrows exactly when it does not carry out."""
-    c = _GateList((64, 64, 64, 15), (64, 1))
-    v1, v2, imm, flags = c.inputs
+    """(v1, v2, imm, flags, dt, pc4) -> (out, jump): add or subtract (and the 32-bit forms), the two comparisons, AND, OR,
+    XOR, the six branch conditions, the jumps. `v1 - b` is `v1 + not(b) + 1`, which borrows exactly when it does not carry
+    out. An indirect jump (jalr) outputs its link pc4 and offsets the successor by its sum XOR pc4, bit 0 left out, so
+    it lands on the sum with bit 0 cleared. `jump` is that offset added to `dt` when the jump is taken and zero
+    otherwise, each bit a product written at its output position."""
+    c = _GateList((64, 64, 64, 15, 64, 64), (64, 64))
+    v1, v2, imm, flags, dt, pc4 = c.inputs
     b = [c.xor(x, y) for x, y in zip(v2, imm)]
     carry = flags[ALU_SUB]
     total: list[Wire] = []
@@ -1639,14 +1659,20 @@ def _alu() -> _GateList:
         out[i] = c.xor(out[i], c.xor(and_term, c.product(or_xor, diff[i])))
     lt_term = c.product(flags[ALU_LT], lt)
     out[0] = c.xor(out[0], c.xor(lt_term, c.product(flags[ALU_LTU], ltu)))
-    out[0] = c.product(c.invert(flags[ALU_CLEAR_BIT0]), out[0])
+    offset = list(dt)
+    for i in range(64):
+        moved = c.product(flags[ALU_INDIRECT], c.xor(out[i], pc4[i]))
+        out[i] = c.xor(out[i], moved)
+        if i > 0:
+            offset[i] = c.xor(offset[i], moved)
 
     taken = flags[ALU_ALWAYS]
     for bit, holds in zip(ALU_BRANCHES, (eq, ne, lt, c.invert(lt), ltu, c.invert(ltu))):
         taken = c.xor(taken, c.product(flags[bit], holds))
     for i, wire in enumerate(out):
         c.output(0, i, wire)
-    c.output(1, 0, taken)
+    for i, bit in enumerate(offset):
+        c.and_output(1, i, taken, bit)
     return c
 
 
@@ -2018,7 +2044,7 @@ HASH_PORTS = ("v2", "flags", *(f"cell_{k}" for k in (*range(4), *range(8, 16))),
 HASH_FINAL = 2**32 - 1
 
 TABLES = (
-    Table("alu", 0, True, "none", _alu().circuit(), ("v1", "v2", "imm", "flags", "out", "taken"), ALU_LEGAL_FLAGS),
+    Table("alu", 0, True, "none", _alu().circuit(), ("v1", "v2", "imm", "flags", "dt", "pc4", "out", "jump"), ALU_LEGAL_FLAGS),
     # A load's flags are log2 of its width in bytes, then whether it sign-extends; a store's, log2 of its width. A
     # doubleword is LD's or SD's, which have no flags: their circuit is the address alone, the word moved a column.
     Table("load", 1, False, "read", _load().circuit(), ("v1", "imm", "flags", "cell_0", "address", "out"), frozenset((0, 1, 2, 4, 5, 6))),
@@ -2084,12 +2110,13 @@ def register_words(table_log_heights: Sequence[int]) -> list[list[int]]:
 
 def check_bytecode(bytecode: Sequence[K]) -> None:
     """The proof system is sound for any decoded table, so what makes one RISC-V is checked here: an entry some table
-    can read names two registers to read and a cell other than x0 to write, its successor is pc + 4, and its flags
-    are ones its class defines. An entry with no tag can be read by no table: a run reaching one has no proof. It has
-    one form, the illegal entry's, and the halt slot is one."""
+    can read names two registers to read and a cell other than x0 to write, its successor is pc + 4, its flags are
+    ones its class defines, and only a branch or a jal has a jump offset, a jal linking pc + 4 as a constant added to
+    x0. An entry with no tag can be read by no table: a run reaching one has no proof. It has one form, the illegal
+    entry's, and the halt slot is one."""
     size = len(bytecode) // 2**BUS_BITS
     fields = [[int(word) for word in bytecode[slot * size : (slot + 1) * size]] for slot in range(2**BUS_BITS)]
-    tag, flags, a1, a2, ad, imm, pc4, dt, link, jalr = fields[BYTECODE_PUBLIC_SLOT:BAD_SLOT]
+    tag, flags, a1, a2, ad, imm, pc4, dt = fields[BYTECODE_PUBLIC_SLOT:BAD_SLOT]
     exit = fields[EXIT_SLOT]
     outside = fields[:BYTECODE_PUBLIC_SLOT] + [fields[BAD_SLOT]] + fields[EXIT_SLOT + 1 :]
     require(not any(any(column) for column in outside), "a bytecode slot outside an entry's fields is nonzero")
@@ -2097,7 +2124,7 @@ def check_bytecode(bytecode: Sequence[K]) -> None:
     require(size > 0 and tag[-1] == 0, "the halt slot is not an illegal entry")
     for z in range(size):
         if tag[z] == 0:
-            illegal = flags[z] == a1[z] == a2[z] == imm[z] == dt[z] == link[z] == jalr[z] == exit[z] == 0 and ad[z] == SINK
+            illegal = flags[z] == a1[z] == a2[z] == imm[z] == dt[z] == exit[z] == 0 and ad[z] == SINK
             require(illegal and pc4[z] == TEXT_BASE + 4 * z + 4, "an illegal entry is not in its one form")
             continue
         table = tags.get(tag[z])
@@ -2110,24 +2137,13 @@ def check_bytecode(bytecode: Sequence[K]) -> None:
         if exit[z]:
             halt_pc = TEXT_BASE + 4 * (size - 1)
             require(
-                table.opcode == 0
-                and flags[z] == 1 << ALU_ALWAYS
-                and a1[z] == a2[z] == imm[z] == link[z] == jalr[z] == 0
-                and ad[z] == SINK
-                and dt[z] == (halt_pc ^ pc4[z]),
+                table.control and flags[z] == 1 << ALU_ALWAYS and a1[z] == a2[z] == imm[z] == 0 and ad[z] == SINK and dt[z] == (halt_pc ^ pc4[z]),
                 "an exit entry is not ECALL",
             )
-        require(link[z] <= 1 and jalr[z] <= 1, "a bytecode selector is not a bit")
-        if not exit[z]:
-            if table.opcode == 0 and flags[z] == 1 << ALU_CLEAR_BIT0:
-                control = jalr[z] == link[z] == 1 and dt[z] == 0
-            elif table.opcode == 0 and flags[z] == 1 << ALU_ALWAYS:
-                control = link[z] == 1 and jalr[z] == 0
-            elif table.opcode == 0 and any(flags[z] & (1 << bit) for bit in ALU_BRANCHES):
-                control = link[z] == jalr[z] == 0
-            else:
-                control = link[z] == jalr[z] == dt[z] == 0
-            require(control, "a bytecode entry has invalid control flow")
+        elif table.control and flags[z] == 1 << ALU_ALWAYS:
+            require(a1[z] == a2[z] == 0 and imm[z] == pc4[z], "a bytecode entry has invalid control flow")
+        elif not (table.control and any(flags[z] & (1 << bit) for bit in ALU_BRANCHES)):
+            require(dt[z] == 0, "a bytecode entry has invalid control flow")
         # A field the class's table holds at a constant has to be that constant.
         require(table.reads_rs2 or a2[z] == 0, "a bytecode entry reads an rs2 its class does not")
         require(table.writes_rd or table.reads_rd or ad[z] == SINK, "a bytecode entry writes an rd its class does not")
@@ -2404,7 +2420,7 @@ def verify_core(
     # Everything public and fixed is one digest, which seeds the transcript; every variable-length part is length-framed.
     halt_pc = TEXT_BASE + 4 * (len(bytecode) // 2**BUS_BITS - 1)
     require(entry_pc % 4 == 0 and TEXT_BASE <= entry_pc < halt_pc, "the entry pc is not an instruction of the text")
-    preimage = b"leanvm-rv64im-10" + pack("<Q", len(bytecode)) + b"".join(word.to_bytes() for word in bytecode)
+    preimage = b"leanvm-rv64im-11" + pack("<Q", len(bytecode)) + b"".join(word.to_bytes() for word in bytecode)
     preimage += pack("<5Q", entry_pc, halt_pc, log_ram, log_advice, len(image)) + pack(f"<{len(image)}Q", *image)
     transcript = Transcript(proof, blake2s_hash(preimage), [K(word) for word in output])
 
@@ -2424,11 +2440,27 @@ def verify_core(
     root = Digest.from_halves(*transcript.next_scalars(2))
 
     # 3] Bus: one batched GKR over the push and pull trees, then the leaf decomposition, which leaves each table a
-    # degree-2 claim and each producer a weight on each of its bits.
+    # linear form per side and each producer a weight on each of its bits.
     bus = verify_bus_balance(layout, transcript)
 
-    # 4] One batched (back-loaded) "table sumcheck" over all the tables and the producer, at the bus point, proving the
-    # target the two leaf claims derive: the tables' bus forms and the producer's bits, weighted by the same powers of xi.
+    # 4] A table with a class circuit settles at the bus point: its columns there, short of its register numbers,
+    # which the opening checks, are its forms' share of each side short of the numbers' part, which leaves the rest owed
+    # (in characteristic two, the sum). Its register numbers are folded by the table sumcheck, at the other words' point.
+    totals = list(bus.totals)
+    claims = list(bus.claims)
+    for table in TABLES:
+        if table.circuit is None:
+            continue
+        sent = iter(transcript.next_scalars(table.width - len(table.registers)))
+        numbers = {local for local, _ in table.registers}
+        evaluations = tuple(ZERO if local in numbers else next(sent) for local in range(table.width))
+        for side, form in enumerate(bus.forms[table.opcode]):
+            totals[side] += form.evaluate(evaluations.__getitem__)
+        claims.extend(table.column_claims(tuple(bus.point[: layout.table_log_heights[table.opcode]]), evaluations))
+
+    # 5] One batched (back-loaded) "table sumcheck" over the tables and the producer, at the bus point, proving the
+    # target what is left owed: the tables' bus forms (a settled table's on its register numbers alone) and the
+    # producer's bits, weighted by the same powers of xi.
     # RAM's image is not in the target, nor the program's columns in the producer's public ones: their share of the
     # terminal identity is the program's deferred claim, the image's reaching it through every round's challenge.
     # A table's own identities take the next powers of xi, in table order, which no other form uses: their sums are
@@ -2439,26 +2471,27 @@ def verify_core(
     for table in TABLES:
         identity_powers.append(powers(xi, start + len(table.identities))[start:])
         start += len(table.identities)
-    target = dot(form_powers, bus.totals)
+    target = dot(form_powers, totals)
     (bytecode_producer,) = layout.producers
     publics = (_bytecode_affine(bytecode_producer, bus.weights, bus.beta),)
     producer_airs = [
         ProducerAir(producer.log_rows, tuple(form_powers[0] * c for c in coefficients), public)
         for producer, coefficients, public in zip(layout.producers, bus.producers, publics, strict=True)
     ]
-    tables = table_sumcheck(layout.table_log_heights, bus.forms, producer_airs, form_powers, identity_powers, bus.point, target, transcript)
+    forms = [bus.forms[table.opcode] for table in TABLES]
+    tables = table_sumcheck(layout.table_log_heights, forms, producer_airs, form_powers, identity_powers, bus.point, target, transcript)
     ((chi, _),), (twist,) = tables.families, tables.twists
     image_weight, image_point = bus.image
     program = ProgramPoint((*chi, *bus.alphas), twist, tables.target_weight * form_powers[0] * image_weight, image_point)
-    claims = [*bus.claims, *tables.claims]
+    claims.extend(tables.claims)
 
-    # 5] the exit: a7 holds `exit` and a0..a3 the output when the run ends. A register's final value is the final
+    # 6] the exit: a7 holds `exit` and a0..a3 the output when the run ends. A register's final value is the final
     # registers' column at the Boolean point naming it, a claim the verifier computes rather than receives.
     for register, value in ((SYSCALL_REGISTER, SYS_EXIT), *zip(OUTPUT_REGISTERS, output)):
         point = tuple(ONE if register >> bit & 1 else ZERO for bit in range(LOG_REGISTERS))
         claims.append(ColumnClaim(SHARED["register_final"], point, E(value)))
 
-    # 6] every circuit via Flock, every class circuit then every table's clock circuit, each over its own packed
+    # 7] every circuit via Flock, every class circuit then every table's clock circuit, each over its own packed
     # witness, batched under shared challenges, each leaving its matrix form to its circuit
     flocks = verify_flock([(circuit, layout.table_log_heights[table.opcode]) for table, circuit, _ in FLOCKS], transcript)
     families = [(point, s) for point, s, _, _ in flocks]
@@ -2469,7 +2502,7 @@ def verify_core(
     packed = [(tables.registers[word[0]][0], tuple(bit for t in word for bit in tables.registers[t][1])) for word in words]
     families += [(point, (*values, *[ZERO] * (K_BITS - len(values)))) for point, values in (*tables.families, *packed)]
 
-    # 7] Ring-switching: one family for every claim, which leads the batch, taking the first power (lambda^0 = 1).
+    # 8] Ring-switching: one family for every claim, which leads the batch, taking the first power (lambda^0 = 1).
     columns = (*WITNESS_COLUMNS, *(producer.column for producer in layout.producers), *(REGISTER_COLUMNS[word[0]] for word in words))
     regions = [layout.placements[column] for column in columns]
     ring_claims = [(region, point, s) for region, (point, s) in zip(regions, families, strict=True)]

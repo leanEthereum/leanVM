@@ -20,6 +20,12 @@ pub struct Alu {
     pub v2: u64,
     /// The immediate.
     pub imm: u64,
+    /// The jump's offset: the fixed target XOR `pc + 4`, zero for an entry with none.
+    ///
+    /// The decision does not read it; the circuit gates it by the decision.
+    pub dt: u64,
+    /// The fall-through address `pc + 4`: what an indirect jump links, and what its target is taken against.
+    pub pc4: u64,
 }
 
 impl Alu {
@@ -39,8 +45,8 @@ impl Alu {
     pub const SEL_OR: u64 = 1 << 5;
     /// Output `v1 ^ b`.
     pub const SEL_XOR: u64 = 1 << 6;
-    /// Clear bit 0 of the output, as `JALR` does to its target.
-    pub const CLEAR_BIT0: u64 = 1 << 7;
+    /// Jump to the sum with bit 0 cleared and output `pc + 4`, as `JALR` does; set with `ALWAYS`.
+    pub const INDIRECT: u64 = 1 << 7;
     /// Branch when `v1 == b`.
     pub const BR_EQ: u64 = 1 << 8;
     /// Branch when `v1 != b`.
@@ -62,6 +68,20 @@ impl Alu {
     const fn has_flag(&self, flag: u64) -> bool {
         self.flags & flag != 0
     }
+
+    /// What the successor adds to `pc + 4`, given the decision: zero when the jump is not taken.
+    ///
+    /// - A fixed jump adds its offset, the target XOR `pc + 4`.
+    /// - An indirect jump has offset zero and adds the sum XOR `pc + 4`, bit 0 left out.
+    /// - Its successor is then the sum with bit 0 cleared, since `pc + 4` is even.
+    pub const fn jump(&self, taken: bool) -> u64 {
+        let indirect = if self.has_flag(Self::INDIRECT) {
+            (self.v1.wrapping_add(self.v2 ^ self.imm) ^ self.pc4) & !1
+        } else {
+            0
+        };
+        if taken { self.dt ^ indirect } else { 0 }
+    }
 }
 
 impl InstructionClass for Alu {
@@ -78,7 +98,7 @@ impl InstructionClass for Alu {
         Self::SEL_AND,
         Self::SEL_OR,
         Self::SEL_XOR,
-        Self::CLEAR_BIT0,
+        Self::INDIRECT | Self::ALWAYS,
         Self::SUB | Self::BR_EQ,
         Self::SUB | Self::BR_NE,
         Self::SUB | Self::BR_LT,
@@ -89,6 +109,8 @@ impl InstructionClass for Alu {
     ];
 
     /// The output, and whether the jump is taken.
+    ///
+    /// The output of an indirect jump is its link, `pc + 4`.
     type Output = (u64, bool);
 
     fn eval(&self) -> (u64, bool) {
@@ -105,7 +127,7 @@ impl InstructionClass for Alu {
         let (lt, ltu, eq) = ((v1 as i64) < (b as i64), v1 < b, v1 == b);
 
         // The output: one selector, or the sum when none is set.
-        let mut out = if self.has_flag(Self::SEL_LT) {
+        let out = if self.has_flag(Self::SEL_LT) {
             lt as u64
         } else if self.has_flag(Self::SEL_LTU) {
             ltu as u64
@@ -115,16 +137,13 @@ impl InstructionClass for Alu {
             v1 | b
         } else if self.has_flag(Self::SEL_XOR) {
             v1 ^ b
+        } else if self.has_flag(Self::INDIRECT) {
+            self.pc4
         } else if self.has_flag(Self::WORD) {
             sext32(sum)
         } else {
             sum
         };
-
-        // A JALR target drops its low bit.
-        if self.has_flag(Self::CLEAR_BIT0) {
-            out &= !1;
-        }
 
         // The jump: unconditional, or the one branch condition set.
         let taken = self.has_flag(Self::ALWAYS)
@@ -138,26 +157,29 @@ impl InstructionClass for Alu {
     }
 
     fn input_words(&self) -> Vec<u64> {
-        vec![self.v1, self.v2, self.imm, self.flags]
+        vec![self.v1, self.v2, self.imm, self.flags, self.dt, self.pc4]
     }
 
-    fn output_words(&(out, taken): &(u64, bool)) -> Vec<u64> {
-        vec![out, taken as u64]
+    /// The output, and the offset the successor adds to `pc + 4`.
+    fn output_words(&self, &(out, taken): &(u64, bool)) -> Vec<u64> {
+        vec![out, self.jump(taken)]
     }
 }
 
 impl ClassCircuit for Alu {
-    /// The ALU: `(v1, v2, imm, flags) -> (out, taken)`.
+    /// The ALU: `(v1, v2, imm, flags, dt, pc4) -> (out, jump)`.
     ///
     /// It mirrors the reference function on every legal flag word.
     ///
     /// - The second operand is `b = v2 ^ imm`.
     /// - One adder gives `v1 + b`, or `v1 - b` for the comparisons.
     /// - The output is that sum, unless a selector picks a comparison or a bitwise operation.
+    /// - An indirect jump outputs `pc + 4` instead, and adds to `dt` the sum XOR `pc + 4` but for bit 0.
     /// - The jump is taken always, or when the one branch condition set holds.
+    /// - `jump` is that offset gated by the decision, so the successor `pc + 4 + jump` is linear in the row's columns.
     fn circuit() -> Circuit {
-        let mut c = Builder::new(&[64, 64, 64, 15], &[64, 1]);
-        let (v1, v2, imm, f) = (c.input(0), c.input(1), c.input(2), c.input(3));
+        let mut c = Builder::new(&[64, 64, 64, 15, 64, 64], &[64, 64]);
+        let (v1, v2, imm, f, dt, pc4) = (c.input(0), c.input(1), c.input(2), c.input(3), c.input(4), c.input(5));
         let flag = |bit: u64| f[bit.trailing_zeros() as usize];
         let b = c.xor_word(&v2, &imm);
 
@@ -205,9 +227,20 @@ impl ClassCircuit for Alu {
         let compared = c.xor(lt_term, ltu_term);
         out[0] = c.xor(out[0], compared);
 
-        // A JALR target drops its low bit.
-        let keep_bit0 = c.not(flag(Self::CLEAR_BIT0));
-        out[0] = c.and(keep_bit0, out[0]);
+        // An indirect jump outputs its link, and offsets the successor by the sum's difference from it.
+        //
+        //     out  = out ^ indirect * (out ^ pc4)            = pc4 when indirect
+        //     jump = dt  ^ indirect * (out ^ pc4), bit 0 kept = the sum with bit 0 cleared, XOR pc4
+        let indirect = flag(Self::INDIRECT);
+        let mut offset = dt;
+        for i in 0..64 {
+            let d = c.xor(out[i], pc4[i]);
+            let moved = c.and(indirect, d);
+            out[i] = c.xor(out[i], moved);
+            if i > 0 {
+                offset[i] = c.xor(offset[i], moved);
+            }
+        }
 
         // The jump: unconditional, or the one branch condition set.
         let (ge, geu) = (c.not(lt), c.not(ltu));
@@ -225,8 +258,11 @@ impl ClassCircuit for Alu {
             c.xor(acc, term)
         });
 
+        // Each bit of the jump is a product written at its output position, so it costs no copy.
         c.output_word(0, &out);
-        c.output(1, 0, taken);
+        for (i, &bit) in offset.iter().enumerate() {
+            c.and_output(1, i, taken, bit);
+        }
         c.finish()
     }
 }
@@ -254,11 +290,20 @@ mod tests {
                 edge_word(),
                 any::<bool>(),
                 any::<bool>(),
+                any::<u64>(),
+                any::<u64>(),
             )
-                .prop_map(|(flags, v1, v2, equal, immediate)| {
+                .prop_map(|(flags, v1, v2, equal, immediate, dt, pc4)| {
                     let v2 = if equal { v1 } else { v2 };
                     let (v2, imm) = if immediate { (0, v2) } else { (v2, 0) };
-                    Self { flags, v1, v2, imm }
+                    Self {
+                        flags,
+                        v1,
+                        v2,
+                        imm,
+                        dt,
+                        pc4,
+                    }
                 })
                 .boxed()
         }
@@ -278,13 +323,15 @@ mod tests {
         const LABEL: &[u8] = b"rv-alu-reduction-test";
         let block = ALU.block();
         let n_log = 4;
-        let rows: Vec<[u64; 4]> = (0..1u64 << n_log)
+        let rows: Vec<[u64; 6]> = (0..1u64 << n_log)
             .map(|i| {
                 [
                     i.wrapping_mul(0x9e37_79b9_7f4a_7c15),
                     !i,
                     0,
                     Alu::LEGAL[i as usize % Alu::LEGAL.len()],
+                    i << 2,
+                    i << 3,
                 ]
             })
             .collect();
@@ -313,10 +360,10 @@ mod tests {
         };
         assert!(accepts(None));
 
-        // Mutation: an output bit, a spare bit of taken's word, the last product.
+        // Mutation: an output bit, a bit of the jump, the last product.
         for bit in [
             64 * ALU.n_input_words() + 5,
-            64 * (ALU.n_input_words() + 1) + 1,
+            64 * (ALU.n_input_words() + 1) + 3,
             ALU.useful_bits() - 1,
         ] {
             assert!(!accepts(Some(bit)), "flipping bit {bit} must reject");

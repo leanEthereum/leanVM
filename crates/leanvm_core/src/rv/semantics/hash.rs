@@ -79,7 +79,7 @@ impl InstructionClass for Hash {
             .collect()
     }
 
-    fn output_words(out: &[u64; 4]) -> Vec<u64> {
+    fn output_words(&self, out: &[u64; 4]) -> Vec<u64> {
         out.to_vec()
     }
 }

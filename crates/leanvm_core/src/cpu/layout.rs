@@ -47,8 +47,8 @@ impl Framework {
     /// Every framework block, in bus order.
     pub const ALL: [Self; 4] = [Self::State, Self::Registers, Self::Ram, Self::Advice];
 
-    /// Where the final clock sits in the state's finalizing tuple, twice: the run's last state is `(pc, ts)` at slot zero.
-    pub(crate) const FINAL_CLOCK: [usize; 2] = [2, 3];
+    /// Where the final clock sits in the state's finalizing tuple: the run's last state is `(pc, ts)` at slot zero.
+    pub(crate) const FINAL_CLOCK: usize = 2;
 
     /// The base-two logarithm of the block's rows: one per cell of its array.
     pub const fn log_rows(self, sizes: Sizes) -> usize {
@@ -80,7 +80,9 @@ impl Framework {
         };
 
         match self {
-            // The run starts at the entry point and ends on the halt slot; a wrong clock leaves the end unmatched.
+            // The run starts at the entry point and ends on the halt slot, marked by the exit.
+            //
+            // A wrong clock leaves the end unmatched, and so does a padding row's exit, whose clock is zero.
             Self::State => (
                 vec![
                     Separator::State.coordinate(),
@@ -92,7 +94,7 @@ impl Framework {
                     Separator::State.coordinate(),
                     Const(F64(p.halt_pc())),
                     Const(F64(ts_final)),
-                    Const(F64(ts_final)),
+                    Const(F64::ONE),
                 ],
             ),
             // Register `i` is cell `i`, starting at zero.
@@ -128,7 +130,7 @@ impl Framework {
 
 /// How many public columns a bytecode entry has.
 ///
-/// They are the class tag, `flags`, `a1`, `a2`, `ad`, `imm`, `pc4`, `dt`, `link` and `jalr` (§sec:e2e-bc).
+/// They are the class tag, `flags`, `a1`, `a2`, `ad`, `imm`, `pc4` and `dt` (§sec:e2e-bc).
 ///
 /// Then come a zero verdict and the exit selector.
 pub const N_BYTECODE_COLUMNS: usize = tables::EXIT_SLOT + 1 - crate::leaf::BYTECODE_PUBLIC_SLOT;
@@ -230,8 +232,6 @@ impl Lookup {
                     column(&|_, e| e.imm),
                     column(&|i, _| p.pc_of(i).wrapping_add(4)),
                     column(&|i, _| p.dt_of(i)),
-                    column(&|_, e| e.link as u64),
-                    column(&|_, e| e.jalr as u64),
                     column(&|_, _| 0),
                     column(&|_, e| e.is_exit() as u64),
                 ]

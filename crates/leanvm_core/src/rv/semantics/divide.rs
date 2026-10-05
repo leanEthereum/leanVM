@@ -91,7 +91,7 @@ impl InstructionClass for Div {
     }
 
     /// The result, then the circuit's verdict on the hints, which honest hints keep at zero.
-    fn output_words(&out: &u64) -> Vec<u64> {
+    fn output_words(&self, &out: &u64) -> Vec<u64> {
         vec![out, 0]
     }
 }
@@ -262,7 +262,7 @@ mod tests {
         ] {
             assert_eq!(
                 run(&DIV, &div.input_words(), 2),
-                Div::output_words(&div.eval()),
+                div.output_words(&div.eval()),
                 "{div:?}"
             );
         }
@@ -287,7 +287,7 @@ mod tests {
             // A nonzero divisor refuses them; a zero divisor ignores them.
             let by_zero = if div.flags & Div::WORD != 0 { div.v2 as u32 == 0 } else { div.v2 == 0 };
             if by_zero {
-                prop_assert_eq!(got, Div::output_words(&div.eval()));
+                prop_assert_eq!(got, div.output_words(&div.eval()));
             } else {
                 prop_assert_eq!(got[1], 1);
             }

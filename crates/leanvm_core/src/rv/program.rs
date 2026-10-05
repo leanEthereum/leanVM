@@ -77,7 +77,7 @@ impl RiscvProgram {
         entries.resize((text.len() + 2).next_power_of_two(), Entry::ILLEGAL);
 
         // The decoder only makes well-formed entries, which the bytecode table's rules restate.
-        if !entries.iter().all(Entry::is_well_formed) {
+        if !(entries.iter().enumerate()).all(|(i, e)| e.is_well_formed(Region::TEXT.address(i))) {
             return Err(ProgramError::MalformedEntry);
         }
         Ok(Self {
@@ -184,11 +184,31 @@ impl RiscvProgram {
     ///
     /// Zero for an entry with no fixed target.
     ///
-    /// The table then forms the next `pc` as `pc + 4 + taken * dt`, the sum in the field being XOR.
+    /// The ALU's circuit gates it by its decision, and the table adds that to `pc + 4`, the sum in the field being XOR.
     pub fn dt_of(&self, index: usize) -> u64 {
         self.target_of(index)
             .map_or(0, |target| target ^ self.pc_of(index).wrapping_add(4))
     }
+
+    /// Entry `index` as the bytecode lookup returns it.
+    pub fn fetch(&self, index: usize) -> Fetched<'_> {
+        Fetched {
+            entry: &self.entries[index],
+            pc4: self.pc_of(index).wrapping_add(4),
+            dt: self.dt_of(index),
+        }
+    }
+}
+
+/// An entry as the bytecode lookup returns it: its decoded fields, and the two its address fixes.
+#[derive(Clone, Copy, Debug)]
+pub struct Fetched<'a> {
+    /// The decoded entry.
+    pub entry: &'a Entry,
+    /// The fall-through address, `pc + 4`.
+    pub pc4: u64,
+    /// The jump offset: the fixed target XOR `pc + 4`, zero for an entry with none.
+    pub dt: u64,
 }
 
 #[cfg(test)]
@@ -259,7 +279,7 @@ mod tests {
             // A power of two of well-formed entries.
             let entries = program.entries();
             prop_assert!(entries.len().is_power_of_two());
-            prop_assert!(entries.iter().all(Entry::is_well_formed));
+            prop_assert!((entries.iter().enumerate()).all(|(i, e)| e.is_well_formed(program.pc_of(i))));
 
             // Each word decoded at its own address, then illegal padding to the end.
             for (i, &word) in text.iter().enumerate() {

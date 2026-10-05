@@ -216,7 +216,7 @@ impl TraceBuilder {
     pub(super) fn pad(&mut self, p: &RiscvProgram, index: usize) {
         let e = &p.entries()[index];
         let table = ClassTable::index_of(e.class).expect("a fill block's class has a table");
-        let outcome = e.evaluate(0, 0, 0);
+        let outcome = e.evaluate(p.pc_of(index), 0, 0, 0);
         let slots = &self.padding_prev[table];
 
         // Its accesses' timestamps: in its payload for a hash or an extension-field row, in the row otherwise.
@@ -264,7 +264,7 @@ impl TraceBuilder {
             v2: 0,
             out: outcome.out,
             taken: outcome.taken,
-            vd_old: if e.link { p.pc_of(index) + 4 } else { outcome.out },
+            vd_old: outcome.out,
             ram: outcome.access.unwrap_or_default(),
             prev,
         });

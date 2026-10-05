@@ -935,7 +935,7 @@ impl Op {
             Self::Branch { op, .. } => (Class::Alu, Alu::SUB | op.condition()),
             Self::Lui { .. } | Self::Auipc { .. } | Self::Fence => (Class::Alu, 0),
             Self::Jal { .. } | Self::Ecall => (Class::Alu, Alu::ALWAYS),
-            Self::Jalr { .. } => (Class::Alu, Alu::CLEAR_BIT0),
+            Self::Jalr { .. } => (Class::Alu, Alu::INDIRECT | Alu::ALWAYS),
             Self::Blake2s { last, .. } => (Class::Hash, if last { Hash::FINAL } else { 0 }),
             Self::Ext { op, .. } => (Class::Ext, op.flags()),
         }

@@ -8,15 +8,16 @@ use super::error::{CpuError, ProveError, VerifyError};
 use super::execute::{Execution, Recorder, RowCounter, TraceBuilder};
 use super::filler::{FillBlocks, Plan};
 use super::layout::{Announcement, Lookup, Schema, Sizes};
+use super::reduce::TableClaims;
 use super::witness::Witness;
 use super::{MAX_LOG_BYTECODE, Output, Proof};
 use crate::arith::Native;
-use crate::constraints::Columns;
+use crate::constraints::{Claims, Columns};
 use crate::pcs::Rate;
 use crate::rv::{ElfError, Guest, Machine, ProgramError, Region, RiscvProgram};
-use crate::tables::{ClassSpec, Clock};
+use crate::tables::{ClassSpec, ClassTable, Clock};
 use crate::{class_flock, constraints, leaf, pcs, tables};
-use fiat_shamir::transcript::{Challenger, ProverState, RawProof, VerifierState};
+use fiat_shamir::transcript::{Challenger, ProverState, RawProof, Transmitter, VerifierState};
 use primitives::field::{F64, F192};
 use primitives::hash::Hasher;
 use std::cmp::Reverse;
@@ -42,7 +43,7 @@ const _: () = assert!(cfg!(target_endian = "little"));
 
 impl Program {
     /// The domain separator of the digest, versioned with the statement's format.
-    const DIGEST_DOMAIN: &'static [u8] = b"leanvm-rv64im-10";
+    const DIGEST_DOMAIN: &'static [u8] = b"leanvm-rv64im-11";
 
     /// The cycles between two checks of a running trace against one commitment.
     const SIZE_CHECK_PERIOD: u64 = 1 << 16;
@@ -252,7 +253,8 @@ impl Program {
         announcement.write(&mut ps);
         let committed = crate::stage!("Commit", || pcs::commit(&mut ps, &w.q, w.layout.shape, log_inv_rate));
 
-        // The bus, then the one batch over every table and producer, both reading the stack's windows in place.
+        // The bus, then the linear tables' columns at its point, then the one batch over the other tables and the
+        // producers, all reading the stack's windows in place.
         let spans = &Schema::get().spans;
         let (bus_claims, table_claims) = {
             let l = &w.layout;
@@ -260,31 +262,48 @@ impl Program {
             let mut bus = crate::stage!("Prove bus", || {
                 leaf::prove_balance(&l.push, &l.pull, &l.producers, &cols, spans, &mut ps)
             });
-            let table_claims = crate::stage!("Prove constraints", || {
+            // A settled table's columns at the bus point, short of its register numbers, which the batch folds.
+            let settled: Vec<Claims> = (ClassTable::all().iter().enumerate())
+                .filter(|(_, table)| table.settled_at_bus())
+                .map(|(t, table)| {
+                    let registers = table.summed_columns();
+                    let evals = &bus.evals[t];
+                    (evals.iter().enumerate())
+                        .filter(|(c, _)| !registers.contains(c))
+                        .for_each(|(_, &e)| ps.add_scalar(e));
+                    Claims {
+                        chi: bus.point[..l.taus[t]].to_vec(),
+                        evals: evals.clone(),
+                        slices: Vec::new(),
+                    }
+                })
+                .collect();
+            let summed = crate::stage!("Prove constraints", || {
                 let producers = std::mem::take(&mut bus.producers);
                 let coefficients: Vec<Vec<F192>> = producers.iter().map(|p| p.coefficients.clone()).collect();
 
                 // The batch's eq point is the bus's, which lets it settle the bus forms alongside the constraints.
                 let powers = FormPowers::new(&mut Native, ps.sample());
-                let mut sums = powers.table_sums(&bus.sigmas);
+                let mut sums = powers.table_sums(&bus);
                 sums.extend(producers.iter().map(|p| powers.push() * p.sigma));
 
-                // The tables' columns in the field they are committed in, then the producers' lifted columns.
-                let table_cols = spans
-                    .iter()
-                    .map(|&(base, n)| Columns::K((0..n).map(|c| cols[base + c]).collect()))
+                // The tables' summed columns in the field they are committed in, then the producers' lifted columns.
+                let table_cols = (ClassTable::all().iter().zip(spans))
+                    .map(|(table, &(base, _))| {
+                        Columns::K(table.summed_columns().iter().map(|&c| cols[base + c]).collect())
+                    })
                     .chain(producers.into_iter().map(|p| Columns::E(p.columns)))
                     .collect();
                 let batch = Batch::new(l, &bus.forms, &coefficients, &bus.weights, bus.beta, powers);
                 constraints::prove(batch.airs(), table_cols, &bus.point, &sums, &mut ps)
             });
-            (bus.claims, table_claims)
+            (bus.claims, TableClaims::new(settled, summed))
         };
         let l = &w.layout;
         let slots = l.opening_claims(
             &mut Native,
             bus_claims,
-            &table_claims,
+            &table_claims.columns,
             &output.map(|o| F192::from(F64(o))),
         );
 
@@ -297,8 +316,7 @@ impl Program {
             class_flock::prove_reductions(&reductions, &mut ps)
         });
         drop(reductions);
-        let (table_claims, producer_claims) = table_claims.split_at(tables::N_TABLES);
-        let rings = l.rings(slices, producer_claims, table_claims, F192::ZERO);
+        let rings = l.rings(slices, &table_claims.producers, &table_claims.summed, F192::ZERO);
         crate::stage!("PCS open", || pcs::open(&mut ps, &committed, &w.q, &slots, &rings));
         Proof(ps.into_proof())
     }
@@ -519,7 +537,7 @@ mod tests {
     use crate::leaf::tests::unmatched_leaves;
     use crate::pcs::Rate;
     use crate::rv::asm::*;
-    use crate::rv::{Class, Entry, Machine, Outcome, ProgramError, Reg, RegisterFile, Trap};
+    use crate::rv::{Alu, Class, Machine, Outcome, ProgramError, Reg, RegisterFile, Trap};
     use crate::tables::{ClassSpec, ClassTable, Clock, Separator};
 
     #[test]
@@ -617,10 +635,19 @@ mod tests {
         unmatched_leaves(&w.layout.push, &w.layout.pull, &w.layout.producers, &w.columns())
     }
 
-    /// A committed column of a built witness, to forge it.
+    /// A column of a built witness, to forge it: its window in the stack, or a port's own buffer.
     fn column_mut(w: &mut Witness, col: usize) -> &mut [F64] {
-        let window = w.layout.placements[col].window().expect("a forged column is committed");
-        &mut w.q[window.offset..window.offset + (1 << window.n_vars)]
+        match w.layout.placements[col].window() {
+            Some(window) => &mut w.q[window.offset..window.offset + (1 << window.n_vars)],
+            None => {
+                &mut w
+                    .virt
+                    .iter_mut()
+                    .find(|(i, _)| *i == col)
+                    .expect("a port has a buffer")
+                    .1
+            }
+        }
     }
 
     /// A column the stack does not hold, a port or a register number, of a built witness, to forge it.
@@ -659,7 +686,7 @@ mod tests {
     /// The padding row a jump to itself makes, `jal rd, 0` at entry `index`, at clock zero.
     fn padding_jump(program: &Program, index: usize) -> Row {
         let e = &program.rv.entries()[index];
-        let Outcome { out, taken, access } = e.evaluate(0, 0, 0);
+        let Outcome { out, taken, access } = e.evaluate(program.rv.pc_of(index), 0, 0, 0);
         let ram = access.unwrap_or_default();
         let slots: Vec<u64> = ClassSpec::ALU.slots().into_iter().map(u64::from).collect();
         Row {
@@ -729,62 +756,130 @@ mod tests {
 
     #[test]
     fn only_ecall_can_terminate_the_state_channel() {
-        let prototype = Asm::new()
-            .li(Reg::T0, Region::TEXT.base())
-            .i(Addi, Reg::A0, Reg::ZERO, 42)
-            .exit()
-            .finish();
-        let halt = Program::new(&prototype, Region::TEXT.base(), vec![], 2, 0)
-            .expect("valid exit program")
-            .rv
-            .halt_pc();
-        let original = Asm::new()
-            .li(Reg::T0, halt)
-            .i(Addi, Reg::A0, Reg::ZERO, 42)
-            .exit()
-            .finish();
+        // Fixture: `a0 = 42; exit`, and the same program with the exit replaced by `j halt`.
+        let original = Asm::new().i(Addi, Reg::A0, Reg::ZERO, 42).exit().finish();
         let honest_program = Program::new(&original, Region::TEXT.base(), vec![], 2, 0).expect("valid exit program");
-        assert_eq!(honest_program.rv.halt_pc(), halt);
+        let halt = honest_program.rv.halt_pc();
         let exit_index = original.len() - 1;
         let pc = honest_program.rv.pc_of(exit_index);
-        for instruction in [
-            Instruction::j(Reg::ZERO, (halt - pc) as i32),
-            Instruction::i(Opcode::Jalr, 0, Reg::ZERO, Reg::T0, 0),
-        ] {
-            let mut text = original.clone();
-            text[exit_index] = instruction.bits();
-            let program = Program::new(&text, Region::TEXT.base(), vec![], 2, 0).expect("valid jump program");
-            assert!(matches!(program.execute(&[]), Err(ProveError::Trap(Trap::Illegal { pc })) if pc == halt));
+        let mut text = original;
+        text[exit_index] = Instruction::j(Reg::ZERO, (halt - pc) as i32).bits();
+        let program = Program::new(&text, Region::TEXT.base(), vec![], 2, 0).expect("valid jump program");
+        assert!(matches!(program.execute(&[]), Err(ProveError::Trap(Trap::Illegal { pc })) if pc == halt));
 
-            // Forge the terminal row directly, bypassing the interpreter's trap.
-            let mut execution = honest_program.execute(&[]).unwrap();
-            let entry = program.rv.entries()[exit_index];
-            if entry.jalr {
-                // The jump reads `t0` in slot 0, where the exit read `x0`, which leaves `x0`'s slot-1 read pulling the cycle before.
-                let ts = Clock::CLOCK_START + exit_index as u64 * Clock::CYCLE;
-                let previous = original[..exit_index]
-                    .iter()
-                    .enumerate()
-                    .rev()
-                    .find_map(|(i, &word)| {
-                        (Entry::decode(word, program.rv.pc_of(i)).ad == Reg::T0.index() as u8)
-                            .then_some((Clock::CLOCK_START + i as u64 * Clock::CYCLE) | 3)
-                    })
-                    .unwrap();
-                let row = &mut execution.trace.rows[0][exit_index];
-                (row.v1, row.out, row.taken) = (halt, halt, false);
-                (row.prev[0], row.prev[1]) = (previous, ts - Clock::CYCLE + 1);
-                execution.trace.reg_ts[Reg::T0.index()] = F64(ts);
-            }
-            execution.trace.reg_fin[RegisterFile::SINK as usize] = F64(pc + 4);
-            let witness = Witness::build(&program, &execution);
-            let unmatched = unmatched(&witness);
-            // The final state on the pull side, and the ALU's state push, the push side's
-            // first block past its four framework blocks.
-            assert_eq!(unmatched.len(), 2, "{unmatched:?}");
-            assert!(unmatched.iter().all(|(_, block, _)| *block == 0 || *block == 4));
-            assert_unbalanced(&program, witness, &execution.output);
-        }
+        // Mutation: the exit's row becomes the jump's, bypassing the interpreter's trap; it writes its link to the sink.
+        let mut execution = honest_program.execute(&[]).unwrap();
+        let row = execution.trace.rows[0]
+            .iter_mut()
+            .find(|r| r.index as usize == exit_index)
+            .unwrap();
+        row.out = pc + 4;
+        execution.trace.reg_fin[RegisterFile::SINK as usize] = F64(pc + 4);
+        let witness = Witness::build(&program, &execution);
+        let unmatched = unmatched(&witness);
+        // The final state on the pull side, and the ALU's state push, the push side's
+        // first block past its four framework blocks.
+        assert_eq!(unmatched.len(), 2, "{unmatched:?}");
+        assert!(unmatched.iter().all(|(_, block, _)| *block == 0 || *block == 4));
+        assert_unbalanced(&program, witness, &execution.output);
+    }
+
+    /// The jump's column on the ALU's state push, `pc + 4` plus the jump: a port of its class circuit.
+    fn jump_column() -> usize {
+        let alu = ClassTable::index_of(Class::Alu).unwrap();
+        let push = ClassTable::all()[alu].flushes().push.swap_remove(0);
+        let Coord::Sum(terms) = &push[1] else {
+            panic!("pc + 4 plus the jump")
+        };
+        let [_, Coord::Col(jump)] = terms[..] else {
+            panic!("pc + 4 plus the jump")
+        };
+        Schema::get().spans[alu].0 + jump
+    }
+
+    /// Prove a forged run of `program` whose ALU jump at `row` is `value` on the bus alone, the circuit's witness keeping
+    /// what its inputs give.
+    ///
+    /// The bus is unbalanced until that column is forged, and balanced after, so what refuses it is the verifier.
+    fn forged_jump(program: &Program, forged: &Execution, row: usize, value: u64) -> CpuError {
+        let mut w = Witness::build(program, forged);
+        // The row's state push, and the next row's pull.
+        let left = unmatched(&w);
+        assert_eq!(left.len(), 2, "{left:?}");
+        assert!(
+            left.iter().all(|&(_, block, _)| block >= Framework::ALL.len()),
+            "{left:?}"
+        );
+        column_mut(&mut w, jump_column())[row] = F64(value);
+        assert!(unmatched(&w).is_empty());
+        let proof = program.prove_witness(w, &forged.output, Rate::MIN);
+        program
+            .verify_core(&forged.output, &proof)
+            .expect_err("a forged successor is refused")
+    }
+
+    #[test]
+    fn a_forged_branch_is_refused() {
+        // Invariant: a row goes where its circuit decides, the bus carrying the circuit's jump, never a free column.
+        //
+        // Fixture: `bne x0, x0, skip; a0 = 1; skip: exit`, which never branches, and the same with `beq`, which does.
+        let text = |op| {
+            Asm::new()
+                .branch(op, Reg::ZERO, Reg::ZERO, "skip")
+                .i(Addi, Reg::A0, Reg::ZERO, 1)
+                .label("skip")
+                .exit()
+                .finish()
+        };
+        let program = Program::new(&text(Bne), Region::TEXT.base(), vec![], 2, 0).expect("a valid program");
+        let taken = Program::new(&text(Beq), Region::TEXT.base(), vec![], 2, 0).expect("a valid program");
+        assert_eq!(program.execute(&[]).unwrap().output[0], 1);
+
+        // Mutation: the run of `beq` as one of `bne`, which outputs a0 = 0, its circuit deciding not to branch.
+        //
+        // Its push names `pc + 4`, which the exit's pull does not meet, until the bus's jump is forged to the offset.
+        let mut forged = taken.execute(&[]).unwrap();
+        let alu = ClassTable::index_of(Class::Alu).unwrap();
+        let row = forged.trace.rows[alu].iter().position(|r| r.index == 0).unwrap();
+        forged.trace.rows[alu][row].taken = false;
+        let error = forged_jump(&program, &forged, row, program.rv.dt_of(0));
+        assert!(matches!(error, CpuError::Open(_)), "{error}");
+    }
+
+    #[test]
+    fn a_forged_jalr_target_is_refused() {
+        // Invariant: a `jalr` goes to the target its circuit computes from its register and immediate.
+        //
+        // Fixture: `t0 = &L; jalr x0, 0(t0); L: a0 = 1; exit`, and the same with offset 4, which skips `L`.
+        let target = Region::TEXT.base() + 12;
+        let text = |offset| {
+            Asm::new()
+                .li(Reg::T0, target)
+                .jalr(Reg::ZERO, Reg::T0, offset)
+                .i(Addi, Reg::A0, Reg::ZERO, 1)
+                .exit()
+                .finish()
+        };
+        let program = Program::new(&text(0), Region::TEXT.base(), vec![], 2, 0).expect("a valid program");
+        let skipping = Program::new(&text(4), Region::TEXT.base(), vec![], 2, 0).expect("a valid program");
+        assert_eq!(program.rv.pc_of(3), target);
+        assert_eq!(program.execute(&[]).unwrap().output[0], 1);
+
+        // Mutation: the run with offset 4 as one with offset 0, which outputs a0 = 0, its circuit computing `L`.
+        //
+        // Its push names `L`, which the exit's pull does not meet, until the bus's jump is forged to the exit's.
+        let forged = skipping.execute(&[]).unwrap();
+        let alu = ClassTable::index_of(Class::Alu).unwrap();
+        let jalr = (0..)
+            .find(|&i| program.rv.entries()[i].flags == Alu::INDIRECT | Alu::ALWAYS)
+            .unwrap();
+        let row = forged.trace.rows[alu]
+            .iter()
+            .position(|r| r.index as usize == jalr && r.ts != 0)
+            .unwrap();
+        let pc4 = program.rv.pc_of(jalr) + 4;
+        let error = forged_jump(&program, &forged, row, (target + 4) ^ pc4);
+        assert!(matches!(error, CpuError::Open(_)), "{error}");
     }
 
     /// The two families of loads and stores: the doubleword ones, whose value is a column, and the narrower ones, whose
