@@ -27,32 +27,8 @@ use primitives::field::{F8, F192, phi8_192 as phi8};
 
 pub use primitives::multilinear::eq_table as build_eq;
 
-/// Eq table split into a lo half (large, L2-resident) and a hi half (small,
-/// kept in registers across the inner loop).
-#[derive(Clone, Debug)]
-pub struct SplitEq {
-    pub n_lo: usize,
-    pub n_hi: usize,
-    pub lo: Vec<F192>,
-    pub hi: Vec<F192>,
-}
-
-impl SplitEq {
-    /// Cap on the hi half size: keeps outer F192 muls cheap.
-    pub const MAX_N_HI: usize = 7;
-
-    pub fn new(r: &[F192]) -> Self {
-        let n = r.len();
-        let n_hi = n.min(Self::MAX_N_HI);
-        let n_lo = n - n_hi;
-        Self {
-            n_lo,
-            n_hi,
-            lo: build_eq(&r[..n_lo]),
-            hi: build_eq(&r[n_lo..]),
-        }
-    }
-}
+/// Most high variables of a split eq table capped on its high side: few high weights keep the outer products cheap.
+pub const EQ_HIGH_VARS: usize = 7;
 
 /// Extend a length-`ell` F192 vector from the input domain S to the extension
 /// domain Λ using bit-plane decomposition: for each of the 192 bit positions
@@ -109,7 +85,6 @@ pub fn ntt_extend_vec(in_s: &[F192], inv_table: &InvNttTableByteSingleGf8) -> Ve
 pub(crate) mod tests {
     use super::*;
     use pcs::ntt::AdditiveNttGf8;
-    use primitives::test_util::Rng;
 
     /// Compute the round-1 prover message naively (no shift-reduce, no fused
     /// inner, no deferred reduction: direct algorithmic translation of the
@@ -198,22 +173,5 @@ pub(crate) mod tests {
             }
             byte
         })
-    }
-
-    #[test]
-    fn split_eq_basic() {
-        // Building the lo and hi tables separately should produce the same
-        // values as the full eq table when indexed appropriately.
-        let mut rng = Rng::new(300);
-        let n = 6;
-        let r = rng.ext_vec(n);
-        let full = build_eq(&r);
-        let eq = SplitEq::new(&r);
-        assert_eq!(eq.n_lo + eq.n_hi, n);
-        for (x, &value) in full.iter().enumerate() {
-            let x_lo = x & ((1 << eq.n_lo) - 1);
-            let x_hi = x >> eq.n_lo;
-            assert_eq!(eq.lo[x_lo] * eq.hi[x_hi], value);
-        }
     }
 }

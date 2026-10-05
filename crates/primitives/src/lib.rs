@@ -1,8 +1,6 @@
 //! Shared primitives: field kernels, bit transposes, multilinear helpers, and
 //! small integer utilities.
 
-use std::mem::{MaybeUninit, needs_drop};
-
 pub mod bit_fold;
 pub mod bits;
 pub mod field;
@@ -131,61 +129,6 @@ pub unsafe fn uninit_vec<T: Copy>(len: usize) -> Vec<T> {
     v
 }
 
-/// Parallel `(0..n).map(build).collect()`.
-///
-/// - One allocation on the calling thread, filled in place by the workers.
-/// - No per-worker vector is allocated, then copied out.
-pub fn par_collect<T: Send>(n: usize, build: impl Fn(usize) -> T + Sync) -> Vec<T> {
-    // The vector's spare capacity, written slot by slot before the length covers it.
-    let mut out = Vec::with_capacity(n);
-    let slots = &mut out.spare_capacity_mut()[..n];
-
-    // Track partial initialization only when values require destruction.
-    if needs_drop::<T>() {
-        let mut initialized = vec![false; n];
-        let mut guard = PartialInit {
-            slots,
-            initialized: &mut initialized,
-            armed: true,
-        };
-        let chunk_size = parallel::recommended_chunk_size(n);
-        parallel::chunks_mut2(guard.slots, guard.initialized, chunk_size, |chunk, slots, marks| {
-            let base = chunk * chunk_size;
-            for (offset, (slot, mark)) in slots.iter_mut().zip(marks).enumerate() {
-                slot.write(build(base + offset));
-                *mark = true;
-            }
-        });
-        guard.armed = false;
-    } else {
-        parallel::fill(slots, |i| MaybeUninit::new(build(i)));
-    }
-
-    // SAFETY: the dispatch joins and every slot is initialized before it returns successfully.
-    unsafe { out.set_len(n) };
-    out
-}
-
-struct PartialInit<'a, T> {
-    slots: &'a mut [MaybeUninit<T>],
-    initialized: &'a mut [bool],
-    armed: bool,
-}
-
-impl<T> Drop for PartialInit<'_, T> {
-    fn drop(&mut self) {
-        if self.armed {
-            // The pool stops all writers before resuming a task panic on this thread.
-            for (slot, initialized) in self.slots.iter_mut().zip(self.initialized.iter()) {
-                if *initialized {
-                    // SAFETY: the mark is set only after this slot has received a valid value.
-                    unsafe { slot.assume_init_drop() };
-                }
-            }
-        }
-    }
-}
-
 #[cfg(test)]
 mod formatting_tests {
     use super::{pretty_f64, pretty_integer};
@@ -216,52 +159,5 @@ mod formatting_tests {
         assert_eq!(pretty_f64(f64::INFINITY), "inf");
         assert_eq!(pretty_f64(f64::NEG_INFINITY), "-inf");
         assert_eq!(pretty_f64(f64::NAN), "NaN");
-    }
-}
-
-#[cfg(test)]
-mod collection_tests {
-    use super::par_collect;
-    use std::panic::{AssertUnwindSafe, catch_unwind};
-    use std::sync::atomic::{AtomicUsize, Ordering};
-
-    #[test]
-    fn collection_initializes_owned_values() {
-        assert!(par_collect::<String>(0, |_| unreachable!()).is_empty());
-        let values = par_collect(257, |i| i.to_string());
-        for (i, value) in values.iter().enumerate() {
-            assert_eq!(*value, i.to_string());
-        }
-    }
-
-    #[test]
-    fn panicking_collection_drops_only_initialized_values() {
-        struct Counted<'a> {
-            _value: String,
-            drops: &'a AtomicUsize,
-        }
-
-        impl Drop for Counted<'_> {
-            fn drop(&mut self) {
-                self.drops.fetch_add(1, Ordering::Relaxed);
-            }
-        }
-
-        let built = AtomicUsize::new(0);
-        let drops = AtomicUsize::new(0);
-        let result = catch_unwind(AssertUnwindSafe(|| {
-            par_collect(257, |i| {
-                assert_ne!(i, 17, "construction failed");
-                built.fetch_add(1, Ordering::Relaxed);
-                Counted {
-                    _value: i.to_string(),
-                    drops: &drops,
-                }
-            })
-        }));
-        assert!(result.is_err());
-        assert!(built.load(Ordering::Relaxed) > 0);
-        assert_eq!(built.load(Ordering::Relaxed), drops.load(Ordering::Relaxed));
-        assert_eq!(&*par_collect(3, |i| i as u64), &[0, 1, 2]);
     }
 }

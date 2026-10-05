@@ -802,8 +802,8 @@ impl<'a> SumcheckProver<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ring_switch::inner_product_ext;
     use crate::whir_config::INITIAL_FOLDING_FACTOR;
+    use primitives::multilinear::inner_product;
     use primitives::test_util::Rng;
 
     /// Round message for a lane round, over `f.len() / block` blocks: the reference the first pass is tested against.
@@ -917,7 +917,7 @@ mod tests {
         // Invariant: after every round, the witness and the weight are their multilinear extensions at the round
         // challenges rotated left by the lane fold, which is the point the verifier hands its weight closure.
         let mut rng = Rng::new(0x707A7E);
-        let dense_mle = |table: &[F192], point: &[F192]| inner_product_ext(table, &eq_table(point));
+        let dense_mle = |table: &[F192], point: &[F192]| inner_product(table, &eq_table(point));
         // Fixture state: `log_n = 15` puts the lane block over the fold's task chunk; the lane counts below the
         // interleaving leave absent lanes, zero in the dense tables.
         for (log_n, initial_k, lanes) in [(9usize, 3usize, &[1usize, 5, 8][..]), (15, 3, &[3, 8][..])] {

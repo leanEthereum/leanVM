@@ -30,7 +30,7 @@
 //!
 //! This variant is hardcoded for `k_skip = 6` (ell=64, n_chunks=8, N_INNER=7).
 
-use super::univariate_skip::{SplitEq, ntt_extend_vec};
+use super::univariate_skip::{EQ_HIGH_VARS, ntt_extend_vec};
 use super::{K_SKIP, N_INNER, PaddingSpec};
 #[cfg(target_arch = "aarch64")]
 use core::arch::aarch64::*;
@@ -62,6 +62,7 @@ use primitives::field::{F8, F192, PHI_8_TABLE_192 as PHI_8_TABLE, phi8_192 as ph
     target_feature = "avx512vbmi"
 ))]
 use primitives::field::{F64, mul_base8};
+use primitives::multilinear::SplitEq;
 #[cfg(all(
     target_arch = "x86_64",
     target_feature = "avx2",
@@ -1144,14 +1145,14 @@ pub fn round1_shift_reduce_extract_c_packed_padded(
     assert_eq!(r_rest.len(), m - k_skip);
     assert_eq!(inv_table.k, k_skip);
 
-    let eq = SplitEq::new(&r_rest[N_INNER..]);
-    let big_lo_size = 1usize << eq.n_lo;
-    let hi_size = 1usize << eq.n_hi;
-    let n_lo_and_inner = eq.n_lo + N_INNER;
+    let eq = SplitEq::with_high_vars(&r_rest[N_INNER..], EQ_HIGH_VARS);
+    let big_lo_size = eq.low.len();
+    let hi_size = eq.high.len();
+    let n_lo_and_inner = eq.low_log() + N_INNER;
 
     let d_inv_val = d_inv();
-    let eq_lo_scaled: Vec<F192> = eq.lo.iter().map(|v| *v * d_inv_val).collect();
-    let eq_hi = &eq.hi;
+    let eq_lo_scaled: Vec<F192> = eq.low.iter().map(|v| *v * d_inv_val).collect();
+    let eq_hi = &eq.high;
 
     let (within_outer_mask, b_med_counts) = build_b_med_counts(padding);
 

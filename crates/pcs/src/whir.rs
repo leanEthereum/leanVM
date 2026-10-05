@@ -39,6 +39,7 @@ mod verify;
 
 use fiat_shamir::transcript::Challenger;
 use primitives::field::{F64, F192};
+use primitives::multilinear::inner_product_base;
 
 pub use super::whir_config::{
     ConfigError, INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0, MAX_LOG_INV_RATE, MAX_LOG_N, MIN_LOG_INV_RATE, MIN_LOG_N,
@@ -59,11 +60,7 @@ pub fn inner_product_base_ext(witness: &[F64], b: &[F192]) -> F192 {
     assert_eq!(witness.len(), b.len());
     const PAR_THRESHOLD: usize = 4096;
     if witness.len() < PAR_THRESHOLD {
-        return witness
-            .iter()
-            .zip(b.iter())
-            .map(|(&w, &e)| e.mul_base(w))
-            .fold(F192::ZERO, |a, v| a + v);
+        return inner_product_base(witness, b);
     }
     parallel::map_reduce(
         witness.len(),

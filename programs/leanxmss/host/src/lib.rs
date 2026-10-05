@@ -75,6 +75,7 @@ mod tests {
     use leanvm_core::rv::{Machine, Trap};
     use leanxmss::XmssVerifyError::{InvalidEncoding, InvalidMerklePath};
     use leanxmss::{PublicKey, Signature};
+    use primitives::hash::{digest_words, hash};
 
     fn hex(bytes: impl IntoIterator<Item = u8>) -> String {
         bytes.into_iter().map(|b| format!("{b:02x}")).collect()
@@ -88,10 +89,7 @@ mod tests {
     /// The seed `0, 1, .., 31` and the message `7, 10, 13, ..` the known answers were made with.
     fn fixed() -> ([u8; 32], [u64; 4]) {
         let message: [u8; 32] = std::array::from_fn(|i| (i * 3 + 7) as u8);
-        (
-            std::array::from_fn(|i| i as u8),
-            std::array::from_fn(|i| u64::from_le_bytes(message[8 * i..8 * i + 8].try_into().unwrap())),
-        )
+        (std::array::from_fn(|i| i as u8), digest_words(&message))
     }
 
     #[test]
@@ -123,7 +121,7 @@ mod tests {
             // The key's and the signature's words are their specification bytes.
             assert_eq!(hex(bytes(words_of_key(&pk))), pk_hex, "leaf index {leaf_index}");
             assert_eq!(
-                hex(primitives::hash::hash(&bytes(words_of_signature(&signature)))),
+                hex(hash(&bytes(words_of_signature(&signature)))),
                 sig_digest,
                 "leaf index {leaf_index}"
             );
@@ -215,8 +213,7 @@ mod tests {
                 .chunks(entry)
                 .flat_map(|e| e[..claim].to_vec())
                 .collect();
-            let digest = primitives::hash::hash(&bytes(&claims));
-            let expected = std::array::from_fn(|i| u64::from_le_bytes(digest[8 * i..8 * i + 8].try_into().unwrap()));
+            let expected = digest_words(&hash(&bytes(&claims)));
             assert_eq!(run.expected, expected, "{n} claims, natively");
             assert_eq!(on_the_vm(&run), Ok(expected), "{n} claims, on the VM");
         }

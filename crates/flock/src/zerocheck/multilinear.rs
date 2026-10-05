@@ -35,11 +35,11 @@
 //! `current_claim = (1+r_now)·G(0) + r_now·G(1)`.
 
 use crate::zerocheck::PaddingSpec;
-use crate::zerocheck::univariate_skip::{SplitEq, build_eq};
+use crate::zerocheck::univariate_skip::{EQ_HIGH_VARS, build_eq};
 use parallel::Chunks;
 use primitives::bit_fold::{BLOCK, BitFold};
 use primitives::field::{F192, F192Unreduced, PHI_8_TABLE_192 as PHI_8_TABLE};
-use primitives::multilinear::{barycentric_sum, window_denominator};
+use primitives::multilinear::{SplitEq, barycentric_sum, window_denominator};
 use primitives::stream::Stream;
 
 /// Four independent products. Tuples keep the scalar and NEON paths in registers, while VPCLMULQDQ uses the batched helper.
@@ -183,15 +183,8 @@ const fn padding_pairs(padding: &PaddingSpec, position_log: usize) -> (usize, us
 ///
 /// - 2^10 entries are 24 KiB, so the table stays in L1 beside the fold's matrices.
 /// - The remaining variables index the tasks, one reduced product each.
+/// - Each task sums its terms unreduced, then pays one reduction and one product.
 const EQ_LO_VARS: usize = 10;
-
-/// The split eq table over `r`: `eq(r, k) = hi[k >> n_lo] * lo[k & (2^n_lo - 1)]`.
-///
-/// Each task sums its `2^n_lo` terms unreduced, then pays one reduction and one product.
-fn split_eq(r: &[F192]) -> (Vec<F192>, Vec<F192>) {
-    let n_lo = r.len().min(EQ_LO_VARS);
-    (build_eq(&r[..n_lo]), build_eq(&r[n_lo..]))
-}
 
 /// The packed `a` and `b` witnesses, 64 skip bits per row.
 ///
@@ -394,7 +387,11 @@ fn bit_round_pair_kernel<const CHUNKS: usize>(
 
     // `r_eq[0]` weights round `t`'s split by `v`; the rest weight the quads.
     let (r_v, r_quad) = (r_eq[0], &r_eq[1..]);
-    let (eq_lo, eq_hi) = split_eq(r_quad);
+    let SplitEq {
+        low: eq_lo,
+        high: eq_hi,
+        ..
+    } = SplitEq::with_low_vars(r_quad, EQ_LO_VARS);
     let lo_size = eq_lo.len();
 
     // A quad covers 2^6 skip bits times its 4 * 2^t bound rows.
@@ -476,7 +473,11 @@ fn bit_round_store_kernel<const CHUNKS: usize>(
     assert!(n_pos >= 2, "a round needs two positions");
     assert_eq!(r_eq.len(), n_pos.trailing_zeros() as usize - 1);
 
-    let (eq_lo, eq_hi) = split_eq(r_eq);
+    let SplitEq {
+        low: eq_lo,
+        high: eq_hi,
+        ..
+    } = SplitEq::with_low_vars(r_eq, EQ_LO_VARS);
     let lo_size = eq_lo.len();
 
     // A position covers 2^6 skip bits times its 2^t bound rows.
@@ -617,8 +618,10 @@ fn fold_and_round_pair_kernel<const K: usize>(
     // Up to 2^7 high eq indices, one task each: enough tasks for every worker at every table size.
     let (r_v, r_quad) = (r_eq[0], &r_eq[1..]);
     let SplitEq {
-        lo: eq_lo, hi: eq_hi, ..
-    } = SplitEq::new(r_quad);
+        low: eq_lo,
+        high: eq_hi,
+        ..
+    } = SplitEq::with_high_vars(r_quad, EQ_HIGH_VARS);
     let lo_size = eq_lo.len();
 
     // One task per high eq index: `lo_size` quads, `4 * lo_size` outputs of each table.

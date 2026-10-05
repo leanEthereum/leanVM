@@ -68,6 +68,7 @@ mod tests {
     use leansphincs::{Signature, SphincsVerifyError};
     use leanvm_core::cpu::Program;
     use leanvm_core::rv::{Machine, Trap};
+    use primitives::hash::digest_words;
 
     fn hex(bytes: impl IntoIterator<Item = u8>) -> String {
         bytes.into_iter().map(|b| format!("{b:02x}")).collect()
@@ -81,10 +82,7 @@ mod tests {
     /// The seed `0, 1, .., 31` and the message `7, 10, 13, ..` the known answers were made with.
     fn fixed() -> ([u8; 32], [u64; 4]) {
         let message: [u8; 32] = std::array::from_fn(|i| (i * 3 + 7) as u8);
-        (
-            std::array::from_fn(|i| i as u8),
-            std::array::from_fn(|i| u64::from_le_bytes(message[8 * i..8 * i + 8].try_into().unwrap())),
-        )
+        (std::array::from_fn(|i| i as u8), digest_words(&message))
     }
 
     /// A layer's counter, one-time signature and path, to tamper with.

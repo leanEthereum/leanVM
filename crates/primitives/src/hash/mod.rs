@@ -211,6 +211,12 @@ pub fn hash(data: &[u8]) -> [u8; OUT_LEN] {
     hasher.finalize()
 }
 
+/// A digest as the four little-endian words it packs.
+pub fn digest_words(digest: &[u8; OUT_LEN]) -> [u64; 4] {
+    let (words, _) = digest.as_chunks::<8>();
+    std::array::from_fn(|i| u64::from_le_bytes(words[i]))
+}
+
 /// Inputs one vector of the widest backend holds.
 ///
 /// Batched calls accept any count, and hash the remainder one at a time.

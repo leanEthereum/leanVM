@@ -7,9 +7,12 @@
 //! fold of a committed table also lifts it into `E`.
 
 use std::mem::MaybeUninit;
+use std::ops::Range;
 
 use crate::field::gf2_64::{reduce, software::clmul};
-use crate::field::{F64, F192, PHI_8_TABLE_192 as PHI_8_TABLE, Weights8, dot_base, mul_base8, mul4};
+use crate::field::{
+    F64, F192, F192Unreduced, PHI_8_TABLE_192 as PHI_8_TABLE, Weights8, dot_base, mul_base8, mul_unreduced4, mul4,
+};
 
 /// Multilinear interpolation in one variable over `E`: `lo + t·(lo+hi)`, the
 /// char-2 form of `(1−t)·lo + t·hi`.
@@ -352,6 +355,104 @@ pub fn skip_lagrange_weights(k_skip: usize, z: F192) -> Vec<F192> {
     weights
 }
 
+/// The inner product `sum_i a_i * b_i` over `E`.
+#[inline]
+pub fn inner_product(a: &[F192], b: &[F192]) -> F192 {
+    assert_eq!(a.len(), b.len());
+    a.iter().zip(b).fold(F192::ZERO, |acc, (&x, &y)| acc + x * y)
+}
+
+/// The mixed inner product `sum_i e_i * k_i`, with `k` in `K` and `e` in `E`.
+#[inline]
+pub fn inner_product_base(k: &[F64], e: &[F192]) -> F192 {
+    assert_eq!(k.len(), e.len());
+    k.iter().zip(e).fold(F192::ZERO, |acc, (&k, &e)| acc + e.mul_base(k))
+}
+
+/// The table `eq(r, .)` as two smaller tables, `eq(r, x) = low[x mod 2^L] * high[x >> L]`.
+///
+/// - The low table is `eq` over the first `L` variables of `r`, the high table over the rest.
+/// - Together they hold `2^L + 2^(n - L)` entries instead of `2^n`.
+/// - Products are exact, so every entry equals the full table's.
+#[derive(Clone, Debug)]
+pub struct SplitEq {
+    /// The table over the low `L` variables.
+    pub low: Vec<F192>,
+    /// The table over the remaining variables.
+    pub high: Vec<F192>,
+    /// `L`.
+    low_log: usize,
+}
+
+impl SplitEq {
+    /// The split with at most `max_low` low variables.
+    pub fn with_low_vars(r: &[F192], max_low: usize) -> Self {
+        Self::at_split(r, r.len().min(max_low))
+    }
+
+    /// The split with at most `max_high` high variables.
+    pub fn with_high_vars(r: &[F192], max_high: usize) -> Self {
+        Self::at_split(r, r.len() - r.len().min(max_high))
+    }
+
+    fn at_split(r: &[F192], low_log: usize) -> Self {
+        Self {
+            low: eq_table(&r[..low_log]),
+            high: eq_table(&r[low_log..]),
+            low_log,
+        }
+    }
+
+    /// The number of low variables `L`.
+    pub const fn low_log(&self) -> usize {
+        self.low_log
+    }
+
+    /// The number of high variables.
+    pub const fn high_log(&self) -> usize {
+        self.high.len().trailing_zeros() as usize
+    }
+
+    /// `eq(r, x)`.
+    #[inline]
+    pub fn at(&self, x: usize) -> F192 {
+        self.low[x & (self.low.len() - 1)] * self.high[x >> self.low_log]
+    }
+
+    /// `sum_x eq(r, x) * terms(x)` over a range of `x`, four coefficients at once.
+    ///
+    /// - The closure returns the unreduced products at `x`, already scaled by the low weight it is given.
+    /// - Each run of `x` sharing a high weight is reduced once and scaled by it once.
+    #[inline]
+    pub fn weighted_sum(
+        &self,
+        range: Range<usize>,
+        mut terms: impl FnMut(usize, F192) -> [F192Unreduced; 4],
+    ) -> [F192Unreduced; 4] {
+        let mask = self.low.len() - 1;
+        let mut total = [F192Unreduced::ZERO; 4];
+        let mut x = range.start;
+        while x < range.end {
+            // The run of `x` in this high block.
+            let high = x >> self.low_log;
+            let run_end = ((high + 1) << self.low_log).min(range.end);
+            let mut run = [F192Unreduced::ZERO; 4];
+            for y in x..run_end {
+                let t = terms(y, self.low[y & mask]);
+                for (acc, t) in run.iter_mut().zip(t) {
+                    *acc ^= t;
+                }
+            }
+            let scaled = mul_unreduced4([self.high[high]; 4], run.map(F192Unreduced::reduce));
+            for (acc, t) in total.iter_mut().zip(scaled) {
+                *acc ^= t;
+            }
+            x = run_end;
+        }
+        total
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -386,5 +487,38 @@ mod tests {
                 assert_eq!(got, want);
             }
         }
+    }
+
+    #[test]
+    fn split_eq_is_the_eq_table() {
+        // Invariant: the two tables weigh every row as the full eq table, and a weighted sum
+        // over a range equals the dense one, whether it crosses a high block or not.
+        //
+        // Fixture state: 14 variables, split 12 low and 2 high, then 7 low and 7 high.
+        let r: Vec<F192> = (0..14u64).map(|i| F192::new(3 * i + 1, i + 7, 5 * i + 2)).collect();
+        let dense = eq_table(&r);
+        for split in [SplitEq::with_low_vars(&r, 12), SplitEq::with_high_vars(&r, 7)] {
+            assert_eq!(split.low_log() + split.high_log(), r.len());
+            for x in [0, 1, 127, 128, 4095, 4096, 4097, 12_345, (1 << 14) - 1] {
+                assert_eq!(split.at(x), dense[x], "x={x}");
+            }
+
+            // Terms of one coefficient: x itself, as a field element, scaled by the weight.
+            let terms = |x: usize, w: F192| {
+                let mut t = [F192Unreduced::ZERO; 4];
+                t[0] = w.mul_unreduced(F192::new(x as u64, 1, 0));
+                t
+            };
+            for range in [0..10, 4090..4100, 100..9000, 0..1 << 14] {
+                let want = range
+                    .clone()
+                    .fold(F192::ZERO, |sum, x| sum + dense[x] * F192::new(x as u64, 1, 0));
+                assert_eq!(split.weighted_sum(range.clone(), terms)[0].reduce(), want, "{range:?}");
+            }
+        }
+
+        // A split with fewer variables than its cap puts them all on the capped side.
+        let short = SplitEq::with_high_vars(&r[..3], 7);
+        assert_eq!((short.low_log(), short.high_log()), (0, 3));
     }
 }

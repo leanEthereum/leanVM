@@ -9,12 +9,11 @@
 use super::sample_queries_ordered;
 use super::sumcheck::{RoundQuad, recv_quad};
 use crate::merkle::Hash;
-use crate::ring_switch::inner_product_ext;
 use crate::whir_config::VerifierConfig;
 use crate::whir_induce::{eval_sk_at_vks, induce_sumcheck_enforced_sum, induce_sumcheck_evaluate_at_residual};
 use fiat_shamir::transcript::{Receiver, TranscriptError};
 use primitives::field::{F64, F192, powers};
-use primitives::multilinear::{eq_eval, eq_table};
+use primitives::multilinear::{eq_eval, eq_table, inner_product};
 use thiserror::Error;
 
 /// Why a WHIR opening is rejected.
@@ -394,7 +393,7 @@ where
             full_point.extend_from_slice(&ris_tail);
             full_point.rotate_left(initial_k);
             weight += eval_b_at(&full_point);
-            return if weight * inner_product_ext(&yr, &eq_table(&ris_tail)) == t_r {
+            return if weight * inner_product(&yr, &eq_table(&ris_tail)) == t_r {
                 Ok(())
             } else {
                 Err(WhirError::TerminalMismatch)

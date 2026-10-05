@@ -10,7 +10,7 @@
 use crate::ntt::AdditiveNttF64;
 use parallel::SendPtr;
 use primitives::field::{F64, F192, F192Unreduced};
-use primitives::multilinear::eq_table;
+use primitives::multilinear::{eq_table, inner_product, inner_product_base};
 use std::collections::HashMap;
 
 // ===================================================================
@@ -74,20 +74,14 @@ pub(crate) trait RowElem: Copy + Sync {
 impl RowElem for F64 {
     #[inline]
     fn dot(row: &[Self], eq: &[F192]) -> F192 {
-        row.iter()
-            .zip(eq.iter())
-            .map(|(&r, &e)| e.mul_base(r))
-            .fold(F192::ZERO, |a, v| a + v)
+        inner_product_base(row, eq)
     }
 }
 
 impl RowElem for F192 {
     #[inline]
     fn dot(row: &[Self], eq: &[F192]) -> F192 {
-        row.iter()
-            .zip(eq.iter())
-            .map(|(&r, &e)| r * e)
-            .fold(Self::ZERO, |a, v| a + v)
+        inner_product(row, eq)
     }
 }
 
@@ -286,7 +280,7 @@ pub(crate) fn induce_sumcheck_evaluate_at_residual(
         sum
     };
     if yr_len > PAR_FLOOR {
-        primitives::par_collect(yr_len, compute_y)
+        parallel::map_collect(yr_len, compute_y)
     } else {
         (0..yr_len).map(compute_y).collect()
     }

@@ -1,10 +1,9 @@
 use super::*;
 use crate::merkle::Hash;
-use crate::ring_switch::inner_product_ext;
 use crate::whir_config::tests::test_config_for;
 use fiat_shamir::transcript::{ProofTranscript, ProverState, TranscriptError, VerifierState};
 use primitives::field::powers;
-use primitives::multilinear::{eq_eval, eq_table};
+use primitives::multilinear::{eq_eval, eq_table, inner_product};
 use primitives::test_util::Rng;
 use std::collections::HashSet;
 use std::panic::AssertUnwindSafe;
@@ -53,7 +52,7 @@ fn prove_instance(log_n: usize, seed: u64) -> Instance {
 
 /// The multilinear extension of `table` at `point`, from the whole table.
 fn dense_mle(table: &[F192], point: &[F192]) -> F192 {
-    inner_product_ext(table, &eq_table(point))
+    inner_product(table, &eq_table(point))
 }
 
 fn verify_with(inst: &Instance, fs: &ProofTranscript, eval_b_at: impl Fn(&[F192]) -> F192) -> Result<(), WhirError> {

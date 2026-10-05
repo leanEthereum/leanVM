@@ -19,7 +19,7 @@ use ::pcs::pack::LOG_PACKING;
 use fiat_shamir::transcript::{ProverState, VerifierState};
 use flock::circuit::Circuit;
 use flock::lincheck::MatrixClaim;
-use flock::reduction::{Instance, ReductionReplay, Shape, SliceClaim};
+use flock::reduction::{Instance, ReductionReplay, Shape, SliceClaim, min_n_blocks_log};
 use flock::verifier::FlockError;
 use primitives::field::F64;
 use std::sync::OnceLock;
@@ -134,14 +134,21 @@ pub fn circuit(f: usize) -> &'static Circuit {
 /// `log2` of the batch proving `n_rows` instances: a power of two, at least flock's
 /// stripe floor and at least what the zerocheck's cube needs for each of the table's circuits.
 pub const fn n_blocks_log(spec: &ClassSpec, n_rows: usize) -> usize {
-    let n = if n_rows > 8 { n_rows } else { 8 };
-    let natural = n.next_power_of_two().trailing_zeros() as usize;
     let smallest = if spec.clock_k_log < spec.k_log || !spec.has_circuit() {
         spec.clock_k_log
     } else {
         spec.k_log
     };
-    let floor = MIN_CUBE_LOG.saturating_sub(smallest);
+    batch_log(smallest, n_rows)
+}
+
+/// `log2` of the batch proving a table's rows on one circuit, given `log2` of its bits per instance.
+///
+/// - At least flock's stripe floor of eight instances.
+/// - At least what the zerocheck's cube of `2^13` bits needs.
+pub const fn batch_log(k_log: usize, n_rows: usize) -> usize {
+    let natural = min_n_blocks_log(if n_rows > 1 { n_rows } else { 1 });
+    let floor = MIN_CUBE_LOG.saturating_sub(k_log);
     if natural > floor { natural } else { floor }
 }
 

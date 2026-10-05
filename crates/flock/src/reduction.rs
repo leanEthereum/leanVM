@@ -25,9 +25,10 @@ const _: () = assert!(
 
 /// Minimum `n_blocks_log` needed to prove `n_blocks` instances, subject to the
 /// lincheck floor of `n_blocks_log ≥ 3` (`n_outer ≥ 8`).
-pub fn min_n_blocks_log(n_blocks: usize) -> usize {
+pub const fn min_n_blocks_log(n_blocks: usize) -> usize {
     assert!(n_blocks >= 1, "n_blocks must be ≥ 1");
-    n_blocks.max(8).next_power_of_two().trailing_zeros() as usize
+    let n = if n_blocks > 8 { n_blocks } else { 8 };
+    n.next_power_of_two().trailing_zeros() as usize
 }
 
 /// A circuit as the reduction sees it: `2^k_log` witness bits per instance, of

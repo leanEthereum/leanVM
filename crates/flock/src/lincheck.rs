@@ -92,7 +92,6 @@
 use core::arch::x86_64::*;
 use fiat_shamir::transcript::{Challenger, ProverState, Receiver, TranscriptError, Transmitter, VerifierState};
 use parallel::SendPtr;
-use pcs::ring_switch::inner_product_ext;
 #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
 use primitives::bit_fold::avx2;
 #[cfg(all(
@@ -105,7 +104,7 @@ use primitives::bit_fold::gfni::{OUT_BYTES, store_f192, weight_matrices};
 use primitives::field::F192;
 #[cfg(target_arch = "aarch64")]
 use primitives::field::neon::xor3_u64;
-use primitives::multilinear::{eq_eval, eq_table as build_eq, skip_lagrange_weights};
+use primitives::multilinear::{eq_eval, eq_table as build_eq, inner_product, skip_lagrange_weights};
 #[cfg(target_arch = "aarch64")]
 use std::arch::aarch64::*;
 use thiserror::Error;
@@ -1098,7 +1097,7 @@ impl CircuitProver {
         } else {
             (F192::ZERO, F192::ZERO)
         };
-        let running = inner_product_ext(&comb, &z);
+        let running = inner_product(&comb, &z);
         Self {
             comb,
             z,
@@ -1380,7 +1379,7 @@ impl MatrixForm {
         let w_col = outer_product(&build_eq(&self.r_inner_rest), &self.s_hat_v);
         circuit
             .bilinear_form(self.alpha, &eq_inner, &w_col)
-            .unwrap_or_else(|| inner_product_ext(&circuit.fold_alpha_batched(self.alpha, &eq_inner), &w_col))
+            .unwrap_or_else(|| inner_product(&circuit.fold_alpha_batched(self.alpha, &eq_inner), &w_col))
     }
 }
 

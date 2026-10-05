@@ -23,6 +23,7 @@ use bench::{Metric, Plan, Timing, bencher_json};
 use leanvm::aggregate::{CircuitStats, Kind, Leaf, LeafShape, Tree, TreeError, TreeProof, TreeShape};
 use leanvm::{Output, Program, ProvenRun, Prover, Rate, Stats};
 use leanvm_guest::PublicValues;
+use primitives::hash::{digest_words, hash};
 use primitives::pretty_integer;
 use std::fmt::Write as _;
 use std::fs::OpenOptions;
@@ -73,9 +74,7 @@ impl Case {
     /// The `hash` guest: BLAKE2s of the bytes `0, 1, 2, ...` (mod 251) through the precompile.
     fn hash(name: &'static str, length: usize) -> Self {
         let message: Vec<u8> = (0..length).map(|i| (i % 251) as u8).collect();
-        let digest = primitives::hash::hash(&message);
-        let digest: [u64; 4] =
-            std::array::from_fn(|i| u64::from_le_bytes(digest[8 * i..8 * i + 8].try_into().unwrap()));
+        let digest = digest_words(&hash(&message));
         // What the guest commits: the length, then the digest.
         let mut public = PublicValues::new();
         public.commit(&(length as u64)).commit(&digest);

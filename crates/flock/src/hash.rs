@@ -691,7 +691,7 @@ pub struct Blake2sSetup {
 
 impl Blake2sSetup {
     /// Build a setup for `n_blocks` BLAKE2s compressions.
-    pub fn new(n_blocks: usize) -> Self {
+    pub const fn new(n_blocks: usize) -> Self {
         Self {
             n_blocks_log: min_n_blocks_log(n_blocks),
         }

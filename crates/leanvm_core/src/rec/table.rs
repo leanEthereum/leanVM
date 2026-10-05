@@ -352,9 +352,8 @@ impl HashFlock {
     }
 
     /// `log2` of the hash table's height for `rows` rows, at least flock's floor.
-    fn height_log(rows: usize) -> usize {
-        flock::reduction::min_n_blocks_log(rows.max(1))
-            .max(class_flock::MIN_CUBE_LOG.saturating_sub(ClassSpec::HASH.k_log))
+    const fn height_log(rows: usize) -> usize {
+        class_flock::batch_log(ClassSpec::HASH.k_log, rows)
     }
 }
 
