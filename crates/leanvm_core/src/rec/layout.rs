@@ -3,7 +3,7 @@
 use super::RecError;
 use super::circuit::Circuit;
 use super::table::{HashFlock, Table};
-use crate::constraints::{Air, Claims};
+use crate::constraints::{Air, BitColumns, Claims};
 use crate::leaf::ColumnClaim;
 use crate::pcs::StackClaim;
 use crate::witness::{Placement, Source, StackShape, Window};
@@ -120,6 +120,7 @@ impl RecLayout {
                 tau: self.tau(table),
                 n_cols: table.n_cols(),
                 n_public: 0,
+                bits: BitColumns::default(),
                 summand,
             })
             .collect()
@@ -138,24 +139,7 @@ impl RecLayout {
             }));
         }
         (claims.into_iter())
-            .map(|c| match self.placements[c.col] {
-                Placement::Committed(window) => StackClaim::Point {
-                    offset: window.offset,
-                    low_point: c.point,
-                    value: c.value,
-                },
-                Placement::Port {
-                    offset,
-                    port,
-                    stride_log,
-                } => StackClaim::Strided {
-                    offset,
-                    slot: port,
-                    stride_log,
-                    point: c.point,
-                    value: c.value,
-                },
-            })
+            .filter_map(|c| self.placements[c.col].claim(c.point, c.value))
             .collect()
     }
 }

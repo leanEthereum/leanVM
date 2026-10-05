@@ -9,7 +9,7 @@
 use super::layout::Layout;
 use crate::arith::{Arith, Native};
 use crate::colval::ColVal;
-use crate::constraints::{Air, Residual, Summand};
+use crate::constraints::{Air, BitColumns, Residual, Summand};
 use crate::leaf;
 use crate::leaf::{BusForm, BusVerify, Producer};
 use crate::tables::ClassTable;
@@ -106,6 +106,7 @@ impl Batch {
                     tau,
                     n_cols: table.n_committed_columns(),
                     n_public: 0,
+                    bits: table.register_bits(),
                     summand: Term::Table(summand),
                 }
             },
@@ -116,6 +117,7 @@ impl Batch {
             tau: p.kappa,
             n_cols: 2 * p.bits,
             n_public: p.bits,
+            bits: BitColumns::default(),
             summand: Term::Producer(ProducerTerm {
                 coefficients: coefficients.iter().map(|&c| c * powers.push()).collect(),
                 producer: p.clone(),
@@ -235,6 +237,7 @@ impl<'a, E: Copy> VerifierBatch<'a, E> {
                 tau,
                 n_cols: table.n_committed_columns(),
                 n_public: 0,
+                bits: table.register_bits(),
                 summand: OwedTerm::Table {
                     forms: [&bus.forms[0][t], &bus.forms[1][t]],
                     powers,
@@ -248,6 +251,7 @@ impl<'a, E: Copy> VerifierBatch<'a, E> {
                 tau: p.kappa,
                 n_cols: 2 * p.bits,
                 n_public: p.bits,
+                bits: BitColumns::default(),
                 summand: OwedTerm::Producer {
                     coefficients: coefficients.iter().map(|&c| a.mul(c, powers.push())).collect(),
                     producer: p,

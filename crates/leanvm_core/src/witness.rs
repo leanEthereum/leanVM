@@ -4,7 +4,7 @@
 //! `q̂(ζ, sel_i) = c` on the stack, where `sel_i` is the high-bit selector of
 //! the column's offset.
 
-use crate::pcs::{RingSwitch, SliceClaim};
+use crate::pcs::{RingSwitch, SliceClaim, StackClaim};
 use primitives::field::F64;
 
 /// What a column is, before it is placed.
@@ -20,6 +20,8 @@ pub enum Source {
         port: usize,
         stride_log: usize,
     },
+    /// Not committed: a field of a committed word, which the opening reads through the word's bit slices.
+    Sliced,
 }
 
 /// A committed column's window in the stacked witness: `2^n_vars` words from `offset`.
@@ -51,6 +53,8 @@ pub enum Placement {
         port: usize,
         stride_log: usize,
     },
+    /// A field of a committed word: its claims are its bits', which the opening ring-switches.
+    Sliced,
 }
 
 impl Placement {
@@ -58,7 +62,34 @@ impl Placement {
     pub const fn window(&self) -> Option<Window> {
         match *self {
             Self::Committed(window) => Some(window),
-            Self::Port { .. } => None,
+            Self::Port { .. } | Self::Sliced => None,
+        }
+    }
+
+    /// A claim on the column at `point`, located in the stack.
+    ///
+    /// - A committed column's is at its window, the point as the low point.
+    /// - A port's is a strided evaluation of its packed witness: the low coordinates frozen to the port's bits.
+    /// - A sliced column's is none: its bits' ring-switched claim stands for it.
+    pub fn claim<E>(self, point: Vec<E>, value: E) -> Option<StackClaim<E>> {
+        match self {
+            Self::Committed(window) => Some(StackClaim::Point {
+                offset: window.offset,
+                low_point: point,
+                value,
+            }),
+            Self::Port {
+                offset,
+                port,
+                stride_log,
+            } => Some(StackClaim::Strided {
+                offset,
+                slot: port,
+                stride_log,
+                point,
+                value,
+            }),
+            Self::Sliced => None,
         }
     }
 }
@@ -125,7 +156,7 @@ pub fn placements_of(sources: &[Source]) -> (Vec<Placement>, StackShape) {
         .iter()
         .map(|s| match *s {
             Source::Committed(kappa) => Some(kappa),
-            Source::Port { .. } => None,
+            Source::Port { .. } | Source::Sliced => None,
         })
         .collect();
     let (offsets, placed) = stack_offsets(&kappas);
@@ -146,6 +177,7 @@ pub fn placements_of(sources: &[Source]) -> (Vec<Placement>, StackShape) {
                     stride_log,
                 }
             }
+            Source::Sliced => Placement::Sliced,
         })
         .collect();
     // Floor at the PCS minimum (WHIR's level ladder needs room); tiny

@@ -98,10 +98,12 @@ impl<'p> ProofShape<'p> {
         }
     }
 
-    /// The one opening: the point claims, then the ring-switched regions, each packed witness then each producer's multiplicity column.
+    /// The one opening: the point claims, then the ring-switched regions.
+    ///
+    /// They are each packed witness, each producer's multiplicity column, then each table's register numbers.
     fn open(&self, r: &mut Rows<'_, '_>, root: Dw, reductions: &[Reduction], reduced: &TableReduction<Ew>) {
         let slices = reductions.iter().map(|reduction| reduction.slice.clone());
-        let rings = self.layout.rings(slices, &reduced.producers, r.zero());
+        let rings = self.layout.rings(slices, &reduced.producers, &reduced.tables, r.zero());
         let opening = Opening {
             slots: &reduced.slots,
             rings: &rings,

@@ -38,15 +38,18 @@ use crate::colval::ColVal;
 use fiat_shamir::transcript::{Challenger, ProverState, TranscriptError, Transmitter, VerifierState};
 use parallel::Chunks;
 use primitives::field::{F64, F192, F192Unreduced};
-use primitives::multilinear::{eq_table, poly_eval, shrink_eq_high};
+use primitives::multilinear::{SplitEq, eq_table, poly_eval, shrink_eq_high};
 use std::ops::Deref;
 use thiserror::Error;
 
-/// One table's sent columns' evaluations at its table-sumcheck point.
+/// One table's columns' evaluations at its table-sumcheck point.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Claims<E = F192> {
     pub chi: Vec<E>,
+    /// Every column's evaluation but the public ones', a bit column's made of its bits'.
     pub evals: Vec<E>,
+    /// The bit columns' bits' evaluations, column after column, low bit first.
+    pub slices: Vec<E>,
 }
 
 impl<E: Copy> Claims<E> {
@@ -124,7 +127,132 @@ pub struct Air<S> {
     pub tau: usize,
     pub n_cols: usize,
     pub n_public: usize,
+    /// The columns whose evaluations are sent as their bits' evaluations.
+    pub bits: BitColumns,
     pub summand: S,
+}
+
+/// Columns of small integers, each evaluation sent as the evaluations of its bits.
+///
+/// - Bit `b` of an integer is the element `x^b` of `K`, so a column is the `K`-linear combination of its bits.
+/// - The bits are slices of a committed word, so the opening binds them by ring switching (§sec:regpack).
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct BitColumns {
+    /// The columns, in the order their bits are sent.
+    pub cols: Vec<usize>,
+    /// The bits per column: every value is below `2^width`.
+    pub width: usize,
+}
+
+impl BitColumns {
+    /// How many bit evaluations the columns send.
+    pub const fn n_slices(&self) -> usize {
+        self.cols.len() * self.width
+    }
+
+    /// Write the word whose bit slices the columns are: column `i` in bits `i·width` up.
+    ///
+    /// # Panics
+    ///
+    /// Panics if a value does not fit its width.
+    pub fn pack(&self, cols: &[&[F64]], word: &mut [F64]) {
+        parallel::fill(word, |x| {
+            F64((self.cols.iter().enumerate()).fold(0, |packed, (i, &c)| {
+                let value = cols[c][x].0;
+                assert!(value >> self.width == 0, "a bit column's value fits its width");
+                packed | value << (i * self.width)
+            }))
+        });
+    }
+
+    /// Each column's bits' evaluations at `point`, column after column, low bit first.
+    ///
+    /// One pass per column: rows are summed into one bucket per value, under the low half of `eq`.
+    ///
+    /// ```text
+    ///     slice_b = sum_x eq(point, x) bit_b(col(x)) = sum_{v : bit_b(v)} sum_{x : col(x) = v} eq(point, x)
+    /// ```
+    fn slices(&self, cols: &[&[F64]], point: &[F192]) -> Vec<F192> {
+        if self.cols.is_empty() {
+            return Vec::new();
+        }
+        let eq = SplitEq::with_high_vars(point, point.len() / 2);
+        let (low, values) = (eq.low_log(), 1usize << self.width);
+        self.cols
+            .iter()
+            .flat_map(|&c| {
+                let col = cols[c];
+                let buckets = parallel::map_reduce(
+                    eq.high.len(),
+                    || vec![F192::ZERO; values],
+                    |h| {
+                        let mut run = vec![F192::ZERO; values];
+                        for (x, value) in col[h << low..(h + 1) << low].iter().enumerate() {
+                            run[value.0 as usize] += eq.low[x];
+                        }
+                        run.iter_mut().for_each(|b| *b *= eq.high[h]);
+                        run
+                    },
+                    |mut a, b| {
+                        a.iter_mut().zip(b).for_each(|(a, b)| *a += b);
+                        a
+                    },
+                );
+                (0..self.width).map(move |b| {
+                    (buckets.iter().enumerate())
+                        .filter(|(v, _)| v >> b & 1 == 1)
+                        .fold(F192::ZERO, |acc, (_, &e)| acc + e)
+                })
+            })
+            .collect()
+    }
+
+    /// Send the evaluations: every column's but the public and the bit ones', then the bits'.
+    fn send(&self, chi: &[F192], evals: Vec<F192>, slices: Vec<F192>, ps: &mut ProverState) -> Claims {
+        let sent: Vec<F192> = (evals.iter().enumerate())
+            .filter(|(c, _)| !self.cols.contains(c))
+            .map(|(_, &e)| e)
+            .collect();
+        ps.add_scalars(&sent);
+        ps.add_scalars(&slices);
+        Claims {
+            chi: chi.to_vec(),
+            evals,
+            slices,
+        }
+    }
+
+    /// Read the evaluations `send` sent, rebuilding each bit column's from its bits.
+    fn receive<V: Verifier>(&self, v: &mut V, chi: &[V::E], n_sent: usize) -> Result<Claims<V::E>, TranscriptError> {
+        let mut sent = v.next_scalars(n_sent - self.cols.len())?.into_iter();
+        let slices = v.next_scalars(self.n_slices())?;
+        let mut evals = Vec::with_capacity(n_sent);
+        for c in 0..n_sent {
+            let bits = self.cols.iter().position(|&b| b == c);
+            evals.push(bits.map_or_else(
+                || sent.next().expect("a sent evaluation per column"),
+                |i| Self::combine(v, self.bits_of(&slices, i)),
+            ));
+        }
+        Ok(Claims {
+            chi: chi.to_vec(),
+            evals,
+            slices,
+        })
+    }
+
+    /// Column `i`'s bits among the slices.
+    fn bits_of<'s, E>(&self, slices: &'s [E], i: usize) -> &'s [E] {
+        &slices[i * self.width..(i + 1) * self.width]
+    }
+
+    /// A column's evaluation from its bits': `sum_b x^b slice_b`.
+    fn combine<A: Arith>(a: &mut A, bits: &[A::E]) -> A::E {
+        let zero = a.zero();
+        (bits.iter().enumerate()).fold(zero, |acc, (b, &bit)| {
+            a.mul_const_add(bit, F192::from(F64(1 << b)), acc)
+        })
+    }
 }
 
 /// One table's columns as the prover hands them over: `K`-valued as committed, lifted
@@ -223,6 +351,13 @@ pub fn prove<S: Summand>(
     let mut weights = vec![F192::ONE; airs.len()];
     let mut eqr = eq_table(&zeta[..n.saturating_sub(1)]);
     let mut chi = vec![F192::ZERO; n];
+    // A table's bit columns are read again at the end: their bits are sent, not their folded value.
+    let bit_columns: Vec<Vec<&[F64]>> = (airs.iter().zip(&cols))
+        .map(|(air, c)| match c {
+            Columns::K(c) if !air.bits.cols.is_empty() => c.clone(),
+            _ => Vec::new(),
+        })
+        .collect();
     // Borrow the committed columns until their joining round, then retain only folded rows.
     let mut pending: Vec<Option<Columns<'_>>> = cols.into_iter().map(Some).collect();
     let mut folded: Vec<Option<Vec<F192>>> = (0..airs.len()).map(|_| None).collect();
@@ -294,11 +429,8 @@ pub fn prove<S: Summand>(
             );
             // Public evaluations are reconstructed by the verifier rather than sent.
             evals.truncate(air.n_cols - air.n_public);
-            ps.add_scalars(&evals);
-            Claims {
-                chi: chi[..air.tau].to_vec(),
-                evals,
-            }
+            let slices = air.bits.slices(&bit_columns[t], &chi[..air.tau]);
+            air.bits.send(&chi[..air.tau], evals, slices, ps)
         })
         .collect()
 }
@@ -511,16 +643,13 @@ pub fn verify<V: Verifier, S: Residual<V>>(
     let mut residual = claim;
     let mut claims = Vec::with_capacity(airs.len());
     for (&weight, air) in weights.iter().zip(airs) {
-        let evals = v.next_scalars(air.n_cols - air.n_public)?;
-        let mut values = evals.clone();
+        let table = air.bits.receive(v, &chi[..air.tau], air.n_cols - air.n_public)?;
+        let mut values = table.evals.clone();
         values.extend(air.summand.public_at(v, &chi[..air.tau]));
         assert_eq!(values.len(), air.n_cols, "a table's public columns are all evaluated");
         let summand = air.summand.value_at(v, &values);
         residual = v.mul_add(weight, summand, residual);
-        claims.push(Claims {
-            chi: chi[..air.tau].to_vec(),
-            evals,
-        });
+        claims.push(table);
     }
     let target_weight = v.product(&chi);
     Ok(Final {
@@ -536,7 +665,7 @@ mod tests {
     use super::*;
     use fiat_shamir::transcript::ProofTranscript;
     use primitives::field::powers;
-    use primitives::multilinear::{fold_high_inplace, fold_high_k};
+    use primitives::multilinear::{fold_high_inplace, fold_high_k, mle_eval};
     use primitives::test_util::Rng;
     use proptest::prelude::*;
 
@@ -629,11 +758,8 @@ mod tests {
                     |table| table.iter().map(|c| c[0]).collect(),
                 );
                 evals.truncate(air.n_cols - air.n_public);
-                ps.add_scalars(&evals);
-                Claims {
-                    chi: chi[..air.tau].to_vec(),
-                    evals,
-                }
+                let slices = air.bits.slices(&cols[t], &chi[..air.tau]);
+                air.bits.send(&chi[..air.tau], evals, slices, ps)
             })
             .collect()
     }
@@ -715,6 +841,7 @@ mod tests {
                 tau,
                 n_cols: 4,
                 n_public: 0,
+                bits: BitColumns::default(),
                 summand: Synth {
                     pows: pows[n * t..n * (t + 1)].to_vec(),
                     attached,
@@ -846,6 +973,7 @@ mod tests {
                 tau,
                 n_cols: 0,
                 n_public: 0,
+                bits: BitColumns::default(),
                 summand: Constant,
             }];
             let zeta = vec![F192::new(3, 5, 7); tau];
@@ -955,6 +1083,44 @@ mod tests {
                     .is_err(),
                 "tampered word {i} must be rejected"
             );
+        }
+    }
+
+    #[test]
+    fn a_bit_column_is_sent_as_its_bits() {
+        // Fixture state: column 0 holds integers below 8, sent as its three bits' evaluations.
+        let tau = 5;
+        let mut cols = good_table(tau, 0);
+        cols[0] = (0..1u64 << tau).map(|i| F64(i * 5 % 8)).collect();
+        cols[2] = cols[0].iter().zip(&cols[1]).map(|(&a, &b)| a * b).collect();
+        cols[3] = cols[0].clone();
+        let (xi, zeta) = xi_zeta(&[tau]);
+        let mut airs = airs_for(&[tau], false, xi);
+        airs[0].bits = BitColumns {
+            cols: vec![0],
+            width: 3,
+        };
+        let views = vec![Columns::K(cols.iter().map(|c| &c[..]).collect())];
+        let mut ps = ProverState::from_label(b"zc-bits");
+        let claims = prove(&airs, views, &zeta, &[F192::ZERO], &mut ps);
+        let proof = ps.into_proof();
+
+        // Each slice is its bit's evaluation at the table's point.
+        for (b, &slice) in claims[0].slices.iter().enumerate() {
+            let bit: Vec<F64> = cols[0].iter().map(|v| F64(v.0 >> b & 1)).collect();
+            assert_eq!(slice, mle_eval(&bit, &claims[0].chi));
+        }
+        let verdict = |proof: &ProofTranscript| {
+            let mut vs = VerifierState::from_label(b"zc-bits", proof);
+            verify(&mut vs, &airs, &zeta, F192::ZERO).and_then(Final::settle)
+        };
+        assert_eq!(verdict(&proof), Ok(claims));
+
+        // Mutation: one slice moved, which the column's rebuilt evaluation carries into the final identity.
+        for at in proof.stream.len() - 3..proof.stream.len() {
+            let mut bad = proof.clone();
+            bad.stream[at] += F192::ONE;
+            assert_eq!(verdict(&bad), Err(ConstraintError::FinalMismatch), "slice {at}");
         }
     }
 }

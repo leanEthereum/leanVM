@@ -15,6 +15,8 @@ pub(crate) struct TableReduction<E> {
     pub(crate) slots: Vec<StackClaim<E>>,
     /// Each producer's multiplicity bits at its point, which the opening ring-switches.
     pub(crate) producers: Vec<Claims<E>>,
+    /// Each table's claims, whose register numbers' bits the opening ring-switches.
+    pub(crate) tables: Vec<Claims<E>>,
     /// The claim on the program's bytecode table and RAM image.
     pub(crate) program: Claim<ProgramPoint<E>, E>,
 }
@@ -62,6 +64,7 @@ impl Layout {
         Ok(TableReduction {
             slots,
             producers,
+            tables,
             program,
         })
     }

@@ -373,8 +373,9 @@ fn the_python_verifier_follows_the_slowest_rate() {
 }
 
 /// Every ring-switched claim joins the opening's one family through its slices: both verifiers reject a moved slice of
-/// the first, a middle and the last flock circuit, the last circuit's form value, and a moved multiplicity bit. Python
-/// also rejects a family target off by one and a family combined by the wrong challenge.
+/// the first, a middle and the last flock circuit, the last circuit's form value, a moved multiplicity bit, and a moved
+/// bit of the last table's register numbers. Python also rejects a family target off by one and a family combined by
+/// the wrong challenge.
 #[test]
 fn both_verifiers_bind_every_circuits_slices() {
     let (program, _) = super::programs::fibonacci();
@@ -415,12 +416,16 @@ sys.exit(v['main'](sys.argv[2:]))
         panic!("one table sumcheck")
     };
     let slices = |f: usize| flock_end - (n - f) * 65;
+    // The announced heights lead the stream; the last table's register bits end right before the multiplicity bits.
+    let taus = std::array::from_fn(|t| proof.0.stream[t].c0 as usize);
+    let register_end = bits_end - Lookup::Bytecode.multiplicity_bits(taus);
     for at in [
         slices(0),
         slices(n / 2) + 7,
         slices(n - 1) + 63,
         flock_end - 1,
         bits_end - 1,
+        register_end - 1,
     ] {
         let mut forged = proof.clone();
         forged.0.stream[at] += F192::ONE;

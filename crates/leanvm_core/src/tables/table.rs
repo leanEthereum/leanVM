@@ -3,6 +3,7 @@
 use super::bus::{FlushBuilder, Separator};
 use super::columns::Columns;
 use super::{BAD_SLOT, ClassSpec, EXIT_SLOT, N_TABLES, Part, Word};
+use crate::constraints::BitColumns;
 use crate::leaf::BusForm;
 use crate::leaf::Coord::{self, Col, Const, Scaled};
 use crate::rv::{Class, Ext, Hash, RegisterFile};
@@ -76,6 +77,18 @@ impl ClassTable {
                 "{} writes a register other than its destination",
                 self.spec.name
             );
+        }
+    }
+
+    /// The register numbers a row reads off its entry: `a1`, then `a2` and `ad` where the row has them.
+    ///
+    /// They are bit columns, one register number in six bits each, all of a row's packed into one committed word.
+    pub(crate) fn register_bits(&self) -> BitColumns {
+        let c = &self.cols;
+        let ad = c.rd.map(|rd| rd.ad).or_else(|| c.pointer.map(|p| p.ad));
+        BitColumns {
+            cols: [Some(c.a1), c.rs2.map(|r| r.a2), ad].into_iter().flatten().collect(),
+            width: RegisterFile::LOG_CELLS,
         }
     }
 

@@ -693,7 +693,8 @@ class ProducerAir:
 
 @dataclass(frozen=True)
 class TableSumcheck:
-    claims: list[ColumnClaim]  # the tables' column claims
+    claims: list[ColumnClaim]  # the tables' column claims, short of their register numbers
+    registers: list[tuple[MultilinearPoint, tuple[E, ...]]]  # per table, its point and its register numbers' bits there
     families: list[tuple[MultilinearPoint, tuple[E, ...]]]  # per producer, its point and its bits' values there
     twists: list[tuple[E, ...]]  # per producer, the weight of each bit's public column in the terminal identity
     residual: E  # what the terminal identity leaves to the program: the public columns' and the target's missing parts
@@ -724,12 +725,26 @@ def table_sumcheck(
 
     final = ZERO
     claims: list[ColumnClaim] = []
+    registers = []
     for table, height, forms, own, weight in zip(TABLES, table_log_heights, bus_forms, identity_powers, weights[: len(TABLES)], strict=True):
-        evaluations = tuple(transcript.next_scalars(table.width))
+        # Every column's evaluation but the register numbers', then each register number's six bits'. Bit b of an
+        # integer is x^b, so a register number's evaluation is sum_b x^b slice_b.
+        sent = iter(transcript.next_scalars(table.width - len(table.registers)))
+        slices = tuple(transcript.next_scalars(LOG_REGISTERS * len(table.registers)))
+        numbers = {
+            local: E.sum(E(1 << bit) * slice for bit, slice in enumerate(slices[LOG_REGISTERS * i : LOG_REGISTERS * (i + 1)]))
+            for i, local in enumerate(table.registers)
+        }
+        evaluations = tuple(numbers[local] if local in numbers else next(sent) for local in range(table.width))
         final += weight * dot(form_powers, [form.evaluate(evaluations.__getitem__) for form in forms])
         final += weight * dot(own, [form.evaluate(evaluations.__getitem__) for form in table.identities])
         table_point = tuple(point[:height])
-        claims.extend(ColumnClaim(GLOBAL_COLUMN_BASES[table.opcode] + local, table_point, value) for local, value in enumerate(evaluations))
+        claims.extend(
+            ColumnClaim(GLOBAL_COLUMN_BASES[table.opcode] + local, table_point, value)
+            for local, value in enumerate(evaluations)
+            if local not in numbers
+        )
+        registers.append((table_point, slices))
     families = []
     twists = []
     for producer, weight in zip(producers, weights[len(TABLES) :], strict=True):
@@ -739,7 +754,7 @@ def table_sumcheck(
         final += weight * E.sum(c * (ONE + b * p) for c, b, p in zip(producer.coefficients, bits, public, strict=True))
         families.append((producer_point, bits))
         twists.append(tuple(weight * c * b for c, b in zip(producer.coefficients, bits, strict=True)))  # P'_i enters at c_i b_i
-    return TableSumcheck(claims, families, twists, final + claim, reduce(mul, challenges, ONE))
+    return TableSumcheck(claims, registers, families, twists, final + claim, reduce(mul, challenges, ONE))
 
 
 # The bus blocks no instruction table owns, which each side starts with, in this order: the run's boundary, then
@@ -750,7 +765,8 @@ LOOKUPS = ("bytecode",)
 # The committed columns no instruction table owns, each with the array whose rows it has: each read-write array's final
 # words and timestamps, the advice's initial words, then how often each entry of the read-only array is read: entry
 # x's word is that count as an integer, and its bits are its producer's one-bit columns. They come first in the global
-# column numbering, then the packed flock witnesses (`FLOCKS`), then the tables' own columns.
+# column numbering, then the packed flock witnesses (`FLOCKS`), then the tables' own columns, then each table's packed
+# register numbers (`REGISTER_COLUMNS`).
 SHARED_COLUMNS = (
     ("register_final", "registers"),
     ("register_final_ts", "registers"),
@@ -799,7 +815,7 @@ class Layout:
     push: tuple[BusBlock, ...]
     pull: tuple[BusBlock, ...]
     producers: tuple[Producer, ...]  # the bytecode's, then the two range arrays'
-    placements: tuple[Placement, ...]
+    placements: dict[int, Placement]  # every committed column's and every port's: a register number has none
     stack_log: int
     stack_lanes: int  # the level-0 lanes committed, the rest of each leaf being zero
     table_log_heights: tuple[int, ...]
@@ -1119,6 +1135,13 @@ class Table:
     @property
     def width(self) -> int:
         return len(self.columns)
+
+    @property
+    def registers(self) -> tuple[int, ...]:
+        """The register numbers a row reads off its entry, a1, then a2 and ad where it has them: not committed, but
+        packed into one committed word per row, six bits each in this order, which the opening reads bit by bit."""
+        names = ("a1", *(("a2",) if self.reads_rs2 else ()), *(("ad",) if self.writes_rd or self.reads_rd else ()))
+        return _cols(self.columns, *names)
 
     @property
     def min_log_height(self) -> int:
@@ -2029,6 +2052,8 @@ FLOCKS = (
 )
 WITNESS_COLUMNS = tuple(NUM_FRAMEWORK_COLUMNS + index for index in range(len(FLOCKS)))
 GLOBAL_COLUMN_BASES = tuple(NUM_FRAMEWORK_COLUMNS + len(FLOCKS) + sum(TABLE_WIDTHS[:table]) for table in range(len(TABLES)))
+# Each table's packed register numbers, one committed word per row, after every table's columns.
+REGISTER_COLUMNS = tuple(GLOBAL_COLUMN_BASES[-1] + TABLE_WIDTHS[-1] + table for table in range(len(TABLES)))
 
 
 def check_bytecode(bytecode: Sequence[K]) -> None:
@@ -2124,6 +2149,7 @@ def build_layout(
     kappas = [*(log_rows[block] for _, block in SHARED_COLUMNS), *witness_kappas]
     for table in TABLES:
         kappas += [table_log_heights[table.opcode]] * table.width
+    kappas += [table_log_heights[table.opcode] for table in TABLES]
 
     # A circuit word gets no block of its own: it is committed inside its circuit's flock witness, whose ports
     # interleave, so it sits at that witness's offset behind its own port's bits. Same width either way.
@@ -2133,7 +2159,9 @@ def build_layout(
         for port, name in enumerate(ports)
         if name
     }
-    blocks = {column: kappa for column, kappa in enumerate(kappas) if column not in words}
+    # A register number is no column of the stack either: it is a field of its table's register column.
+    sliced = {GLOBAL_COLUMN_BASES[table.opcode] + local for table in TABLES for local in table.registers}
+    blocks = {column: kappa for column, kappa in enumerate(kappas) if column not in words and column not in sliced}
     block_offsets, placed = stack_offsets(list(blocks.values()))
     offsets = dict(zip(blocks, block_offsets))
     stack_log = max(MIN_STACKED_LOG, log2_ceil(placed))  # Floor at the PCS minimum
@@ -2146,7 +2174,7 @@ def build_layout(
         witness, port, bits = words[column]
         return Placement(kappa, offsets[WITNESS_COLUMNS[witness]] + port, bits)
 
-    placements = [placement(column, kappa) for column, kappa in enumerate(kappas)]
+    placements = {column: placement(column, kappa) for column, kappa in enumerate(kappas) if column not in sliced}
     return Layout(
         log_bytecode,
         bytecode,
@@ -2157,7 +2185,7 @@ def build_layout(
         tuple(push),
         tuple(pull),
         producers,
-        tuple(placements),
+        placements,
         stack_log,
         stack_lanes,
         tuple(table_log_heights),
@@ -2347,7 +2375,7 @@ def verify_core(
     # Everything public and fixed is one digest, which seeds the transcript; every variable-length part is length-framed.
     halt_pc = TEXT_BASE + 4 * (len(bytecode) // 2**BUS_BITS - 1)
     require(entry_pc % 4 == 0 and TEXT_BASE <= entry_pc < halt_pc, "the entry pc is not an instruction of the text")
-    preimage = b"leanvm-rv64im-9" + pack("<Q", len(bytecode)) + b"".join(word.to_bytes() for word in bytecode)
+    preimage = b"leanvm-rv64im-10" + pack("<Q", len(bytecode)) + b"".join(word.to_bytes() for word in bytecode)
     preimage += pack("<5Q", entry_pc, halt_pc, log_ram, log_advice, len(image)) + pack(f"<{len(image)}Q", *image)
     transcript = Transcript(proof, blake2s_hash(preimage), [K(word) for word in output])
 
@@ -2405,11 +2433,13 @@ def verify_core(
     # witness, batched under shared challenges, each leaving its matrix form to its circuit
     flocks = verify_flock([(circuit, layout.table_log_heights[table.opcode]) for table, circuit, _ in FLOCKS], transcript)
     families = [(point, s) for point, s, _, _ in flocks]
-    # and the producer's bits, the 64 bit slices of its multiplicity column: the bits the bus reads, then zeros
-    families += [(point, (*values, *[ZERO] * (K_BITS - len(values)))) for point, values in tables.families]
+    # and the producer's bits, the 64 bit slices of its multiplicity column: the bits the bus reads, then zeros; and
+    # each table's register column's, its register numbers' bits, then zeros, which an honest word's unused bits are
+    families += [(point, (*values, *[ZERO] * (K_BITS - len(values)))) for point, values in (*tables.families, *tables.registers)]
 
     # 7] Ring-switching: one family for every claim, which leads the batch, taking the first power (lambda^0 = 1).
-    regions = [layout.placements[column] for column in (*WITNESS_COLUMNS, *(producer.column for producer in layout.producers))]
+    producer_columns = tuple(producer.column for producer in layout.producers)
+    regions = [layout.placements[column] for column in (*WITNESS_COLUMNS, *producer_columns, *REGISTER_COLUMNS)]
     ring_claims = [(region, point, s) for region, (point, s) in zip(regions, families, strict=True)]
     verify_stacked_opening(
         transcript,

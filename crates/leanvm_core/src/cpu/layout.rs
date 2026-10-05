@@ -394,6 +394,8 @@ impl Sizes {
         }));
 
         // Each table's columns, its circuit words turned into ports of its packed witnesses.
+        //
+        // Its register numbers are fields of its packed register column instead.
         for (t, table) in ClassTable::all().iter().enumerate() {
             let base = sources.len();
             sources.resize(base + table.n_committed_columns(), Source::Committed(taus[t]));
@@ -406,7 +408,13 @@ impl Sizes {
                     };
                 }
             }
+            for c in table.register_bits().cols {
+                sources[base + c] = Source::Sliced;
+            }
         }
+
+        // Each table's packed register numbers, one word per row.
+        sources.extend(taus.map(Source::Committed));
         debug_assert_eq!(sources.len(), Schema::get().n);
         sources
     }
@@ -414,13 +422,15 @@ impl Sizes {
 
 /// Where each table's columns sit in the global column order.
 ///
-/// The shared columns and the packed witnesses come first.
-///
-/// Then each table, in table order, owns a contiguous span of columns.
+/// - The shared columns and the packed witnesses come first.
+/// - Then each table, in table order, owns a contiguous span of columns.
+/// - Then each table's packed register numbers, one column per table (§sec:regpack).
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Schema {
     /// Each table's first column and its number of columns.
     pub spans: [(usize, usize); tables::N_TABLES],
+    /// Each table's packed register column: one word per row, its register numbers as bit fields.
+    pub registers: [usize; tables::N_TABLES],
     /// The total number of columns.
     pub n: usize,
 }
@@ -437,7 +447,12 @@ impl Schema {
                 next += span.1;
                 span
             });
-            Self { spans, n: next }
+            let registers = std::array::from_fn(|t| next + t);
+            Self {
+                spans,
+                registers,
+                n: next + tables::N_TABLES,
+            }
         })
     }
 }
@@ -535,10 +550,12 @@ impl Layout {
     ///
     /// - Each packed witness, with its reduction's claim.
     /// - Each producer's multiplicity column, its bits' evaluations as the slices, then zeros up to 64.
+    /// - Each table's packed register column, its register numbers' bits as the slices, then zeros up to 64.
     pub(crate) fn rings<E: Copy>(
         &self,
         witnesses: impl IntoIterator<Item = SliceClaim<E>>,
         multiplicities: &[Claims<E>],
+        tables: &[Claims<E>],
         zero: E,
     ) -> Vec<RingSwitch<E>> {
         let witnesses = (witnesses.into_iter().enumerate()).map(|(f, claim)| self.witness_window(f).ring(claim));
@@ -548,7 +565,17 @@ impl Layout {
                 s_hat_v: claims.evals_padded_with(PACKING_WIDTH, zero),
             })
         });
-        witnesses.chain(producers).collect()
+        // Why zeros: an unused bit of an honest word is zero, so a word with one set fails the opening.
+        let registers = (Schema::get().registers.iter().zip(tables)).map(|(&col, claims)| {
+            let mut s_hat_v = claims.slices.clone();
+            s_hat_v.resize(PACKING_WIDTH, zero);
+            let window = self.placements[col].window().expect("a register column is committed");
+            window.ring(SliceClaim {
+                suffix_point: claims.chi.clone(),
+                s_hat_v,
+            })
+        });
+        witnesses.chain(producers).chain(registers).collect()
     }
 
     /// Every claim the opening discharges, located in the stack, in the order that feeds the batch's weights.
@@ -592,36 +619,13 @@ impl Layout {
         };
         claims.push(register_claim(Reg::SYSCALL, exit));
         claims.extend((Reg::OUTPUTS.into_iter().zip(output)).map(|(reg, &value)| register_claim(reg, value)));
-        claims.into_iter().map(|c| self.slot_claim(c)).collect()
-    }
 
-    /// A column claim, located in the stacked witness.
-    ///
-    /// - A committed column's claim is at its window, the claim's point as the low point.
-    /// - A port has no window: its claim is a strided evaluation of its class's packed witness.
-    ///
-    /// The strided form freezes the low coordinates to the port's bits and the high ones to the claim's point.
-    ///
-    /// It is folded at the table's height, not the packed witness's, and joins the one opening.
-    fn slot_claim<E>(&self, c: ColumnClaim<E>) -> StackClaim<E> {
-        match self.placements[c.col] {
-            Placement::Committed(window) => StackClaim::Point {
-                offset: window.offset,
-                low_point: c.point,
-                value: c.value,
-            },
-            Placement::Port {
-                offset,
-                port,
-                stride_log,
-            } => StackClaim::Strided {
-                offset,
-                slot: port,
-                stride_log,
-                point: c.point,
-                value: c.value,
-            },
-        }
+        // A port's claim is folded at the table's height, not its packed witness's, and joins the one opening.
+        //
+        // A register number's has no place in the stack: its bits' claim is its table's ring-switched region.
+        (claims.into_iter())
+            .filter_map(|c| self.placements[c.col].claim(c.point, c.value))
+            .collect()
     }
 }
 
