@@ -33,7 +33,7 @@ mod witness;
 pub use deferred::{Claim, DeferredClaims, MalformedClaim, ProgramPoint};
 pub use error::{CpuError, DecodeError, ProveError, VerifyError};
 pub use execute::Execution;
-pub(crate) use execute::{Row, Trace};
+pub(crate) use execute::{Payload, Payloads, Row, RowRef, Trace};
 pub use layout::{Framework, Layout, Lookup, N_BYTECODE_COLUMNS, N_SHARED, Q_BASE, Schema, Shared, Sizes};
 pub use output::Output;
 pub use program::{Program, Stats};

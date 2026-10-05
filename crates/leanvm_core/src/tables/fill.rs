@@ -68,6 +68,19 @@ impl<'a> FillContext<'a> {
         at: [usize; N],
         f: impl Fn(&R) -> [F64; N] + Send + Sync + 'a,
     ) {
+        // Padding is already in the trace, so every writer must cover the entire column.
+        assert_eq!(rows.len(), self.rows, "a table's rows must fill its cube");
+        self.indexed(out, at, move |i| f(&rows[i]));
+    }
+
+    /// Queue selected columns computed together from each row's index.
+    /// Each column accepts exactly one writer.
+    fn indexed<const N: usize>(
+        &mut self,
+        out: &mut [ColumnOut],
+        at: [usize; N],
+        f: impl Fn(usize) -> [F64; N] + Send + Sync + 'a,
+    ) {
         let n = self.rows;
         let dst: [SendPtr<F64>; N] = at.map(|c| {
             assert_eq!(out[c].len(), n, "column {c} has the wrong window length");
@@ -77,11 +90,9 @@ impl<'a> FillContext<'a> {
             );
             SendPtr(out[c].as_mut_ptr())
         });
-        // Padding is already in the trace, so every writer must cover the entire column.
-        assert_eq!(rows.len(), n, "a table's rows must fill its cube");
         let writer = move |range: Range<usize>| {
             for i in range {
-                let v = f(&rows[i]);
+                let v = f(i);
                 for (k, p) in dst.iter().enumerate() {
                     // SAFETY: row blocks are disjoint and each column has exactly one writer.
                     // Every index is within the checked column height.
@@ -170,10 +181,10 @@ impl ClassTable {
                 ctx.column(out, rows, rd.out, move |r| F64(r.out));
             }
         }
+        let (hash, ext) = (&ctx.trace.hash, &ctx.trace.ext);
         if let Some(p) = c.pointer {
-            ctx.columns_at(out, rows, [p.ad, p.vd], move |r| {
-                [F64(entry(r).ad as u64), F64(r.ext().instance.pointers[2])]
-            });
+            ctx.column(out, rows, p.ad, move |r| F64(entry(r).ad as u64));
+            ctx.column(out, ext, p.vd, |x| F64(x.instance.pointers[2]));
         }
         if let Some(k) = c.control {
             ctx.columns_at(out, rows, [k.dt, k.link, k.jalr, k.taken, k.exit], move |r| {
@@ -200,14 +211,14 @@ impl ClassTable {
             }
         }
         if let Some(block) = c.block {
-            ctx.columns(out, rows, block.words, move |r| r.hash().block.map(F64));
-            ctx.columns(out, rows, block.out, |r| r.hash().out.map(F64));
+            ctx.columns(out, hash, block.words, |h| h.block.map(F64));
+            ctx.columns(out, hash, block.out, |h| h.out.map(F64));
         }
         if let Some(limbs) = c.limbs {
-            ctx.columns(out, rows, limbs.limbs, |r| r.ext().instance.limbs.map(F64));
-            ctx.columns(out, rows, limbs.new, |r| r.ext().c.map(F64));
-            ctx.columns(out, rows, limbs.addresses, |r| {
-                let x = &r.ext().instance;
+            ctx.columns(out, ext, limbs.limbs, |x| x.instance.limbs.map(F64));
+            ctx.columns(out, ext, limbs.new, |x| x.c.map(F64));
+            ctx.columns(out, ext, limbs.addresses, |x| {
+                let x = &x.instance;
                 Ext::OFFSET_LIMBS.map(|k| F64(Ext::bus_address(x.pointers, x.flags, k)))
             });
         }
@@ -220,13 +231,15 @@ impl ClassTable {
         if let Some(bad) = c.bad {
             ctx.column(out, rows, bad, move |_| F64::ZERO);
         }
+        let table = ctx.trace.table(self.index);
         let n = self.spec.n_accesses();
         for i in 0..n {
-            ctx.column(out, rows, c.prev + i, move |r| F64(r.prev()[i]));
+            ctx.indexed(out, [c.prev + i], move |j| [F64(table.row(j).prev()[i])]);
         }
         let slots = self.spec.slots();
-        ctx.column(out, rows, c.step, move |r| {
-            F64(Clock { timestamp: r.ts }.step(&r.prev()[..n], &slots))
+        ctx.indexed(out, [c.step], move |j| {
+            let r = table.row(j);
+            [F64(Clock { timestamp: r.row.ts }.step(&r.prev()[..n], &slots))]
         });
         ctx.finish();
     }

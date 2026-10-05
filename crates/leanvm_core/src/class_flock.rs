@@ -12,7 +12,7 @@
 //! ([`ClassSpec::ports`]). The table's columns for them are therefore virtual, their
 //! claims routed to those words.
 
-use crate::cpu::Row;
+use crate::cpu::{Payloads, RowRef, Trace};
 use crate::rv::Entry;
 use crate::tables::{ClassSpec, ClassTable, N_CIRCUITS, N_TABLES, Part};
 use ::pcs::pack::LOG_PACKING;
@@ -159,7 +159,26 @@ pub(crate) struct Prepared {
 impl Prepared {
     /// Build packed witness `f`'s batch, one instance per row of its table, and write it
     /// into `window`, its committed column.
-    pub(crate) fn build(f: usize, rows: &[Row], entries: &[Entry], window: &mut [F64]) -> Self {
+    pub(crate) fn build(f: usize, trace: &Trace, entries: &[Entry], window: &mut [F64]) -> Self {
+        let table = trace.table(flock(f).0);
+        match table.payloads {
+            Payloads::None => Self::build_from(f, table.rows, |r| RowRef::plain(r), entries, window),
+            // Why: the witness walk takes a slice, so a payload is paired with its row first.
+            _ => {
+                let refs: Vec<RowRef> = (0..table.rows.len()).map(|i| table.row(i)).collect();
+                Self::build_from(f, &refs, |r| *r, entries, window)
+            }
+        }
+    }
+
+    /// Build packed witness `f`'s batch from its table's rows, each seen through `view`.
+    fn build_from<S: Sync>(
+        f: usize,
+        rows: &[S],
+        view: impl for<'r> Fn(&'r S) -> RowRef<'r> + Sync,
+        entries: &[Entry],
+        window: &mut [F64],
+    ) -> Self {
         let (t, part) = flock(f);
         let spec = ClassSpec::ALL[t];
         let n_blocks_log = n_blocks_log(spec, rows.len());
@@ -173,9 +192,10 @@ impl Prepared {
         let n_inputs = circuit.n_input_words();
         let slots = spec.slots();
         // The row's input words, one per input port.
-        let input_words = |row: &Row, words: &mut [u64]| {
+        let input_words = |row: &S, words: &mut [u64]| {
+            let row = view(row);
             for (word, &port) in words.iter_mut().zip(ports) {
-                *word = port.value(row, &entries[row.index as usize], &slots);
+                *word = port.value(row, &entries[row.row.index as usize], &slots);
             }
         };
         // A class with a word-level witness skips the walk of its gate list; the others
@@ -217,9 +237,9 @@ impl Prepared {
             for (j, src) in src.chunks_exact(stride).enumerate() {
                 // What the circuit computed is what the interpreter did, or the bus
                 // would carry one and flock prove the other.
-                let row = &rows[batch * BATCH + j];
+                let row = view(&rows[batch * BATCH + j]);
                 for (k, &port) in ports.iter().enumerate().skip(n_inputs) {
-                    let expected = port.value(row, &entries[row.index as usize], &slots);
+                    let expected = port.value(row, &entries[row.row.index as usize], &slots);
                     assert_eq!(
                         src[k], expected,
                         "{}'s {part:?} circuit disagrees with the interpreter on {port:?}",

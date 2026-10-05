@@ -102,10 +102,7 @@ impl Witness {
         // The packed witnesses, one instance per row of their table.
         let reductions = crate::stage!("Build flock witnesses", || {
             (0..class_flock::N_FLOCKS)
-                .map(|f| {
-                    let rows = &trace.rows[class_flock::flock(f).0];
-                    Prepared::build(f, rows, p.entries(), windows[q_column(f)])
-                })
+                .map(|f| Prepared::build(f, trace, p.entries(), windows[q_column(f)]))
                 .collect()
         });
 

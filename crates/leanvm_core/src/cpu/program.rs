@@ -670,8 +670,6 @@ mod tests {
             vd_old: program.rv.pc_of(index) + 4,
             ram,
             prev: [slots[0], slots[1], slots[2], 0],
-            hash: None,
-            ext: None,
         }
     }
 
@@ -817,8 +815,8 @@ mod tests {
         // Mutation: the row claims b_1 = 1, as if b were (9, 1, 0), and c and RAM follow it, so the identities hold.
         let mut forged = program.execute(&[]).unwrap();
         let ext = ClassTable::index_of(Class::Ext).unwrap();
-        let row = forged.trace.rows[ext].iter_mut().find(|r| r.ts != 0).unwrap();
-        let x = row.ext.as_mut().unwrap();
+        let at = forged.trace.rows[ext].iter().position(|r| r.ts != 0).unwrap();
+        let x = &mut forged.trace.ext[at];
         x.instance.limbs[4] = 1;
         x.c = x.instance.eval();
         for (k, word) in x.c.into_iter().enumerate() {
@@ -884,8 +882,8 @@ mod tests {
         // Mutation: the last row's d forged in two limbs, and d's final words following it, so the bus balances.
         let mut forged = program.execute(&[]).unwrap();
         let ext = ClassTable::index_of(Class::Ext).unwrap();
-        let row = forged.trace.rows[ext].iter_mut().rfind(|r| r.ts != 0).unwrap();
-        let x = row.ext.as_mut().unwrap();
+        let at = forged.trace.rows[ext].iter().rposition(|r| r.ts != 0).unwrap();
+        let x = &mut forged.trace.ext[at];
         for (k, bit) in [(0, 1), (2, 1 << 63)] {
             x.c[k] ^= bit;
             forged.trace.ram_fin[10 + k].0 ^= bit;
@@ -904,8 +902,8 @@ mod tests {
         let program = extension_products();
         let mut forged = program.execute(&[]).unwrap();
         let ext = ClassTable::index_of(Class::Ext).unwrap();
-        let row = forged.trace.rows[ext].iter_mut().find(|r| r.ts == 0).unwrap();
-        let x = row.ext.as_mut().unwrap();
+        let at = forged.trace.rows[ext].iter().position(|r| r.ts == 0).unwrap();
+        let x = &mut forged.trace.ext[at];
         (x.instance.limbs[0], x.instance.limbs[3]) = (1, 1);
         assert_eq!(
             verdict(&program, &forged),
@@ -925,8 +923,8 @@ mod tests {
         let program = extension_products();
         let mut forged = program.execute(&[]).unwrap();
         let ext = ClassTable::index_of(Class::Ext).unwrap();
-        let row = forged.trace.rows[ext].iter_mut().rfind(|r| r.ts != 0).unwrap();
-        let x = row.ext.as_mut().unwrap();
+        let at = forged.trace.rows[ext].iter().rposition(|r| r.ts != 0).unwrap();
+        let x = &mut forged.trace.ext[at];
         x.instance.limbs[3] ^= 5;
         x.c = x.instance.eval();
         for (k, word) in x.c.into_iter().enumerate() {
@@ -969,9 +967,9 @@ mod tests {
         let row = forged.trace.rows[load].iter_mut().find(|r| r.ts != 0).unwrap();
         (row.ram.old, row.ram.new, row.out) = (misaligned, misaligned, misaligned);
         let ext = ClassTable::index_of(Class::Ext).unwrap();
-        let row = forged.trace.rows[ext].iter_mut().find(|r| r.ts != 0).unwrap();
-        row.v1 = misaligned;
-        row.ext.as_mut().unwrap().instance.pointers[0] = misaligned;
+        let at = forged.trace.rows[ext].iter().position(|r| r.ts != 0).unwrap();
+        forged.trace.rows[ext][at].v1 = misaligned;
+        forged.trace.ext[at].instance.pointers[0] = misaligned;
 
         // Each of a's limbs is at `ram + 4 + 8j`, which no cell is: the row's pull and push there, and the seed push
         // and final pull of the word at `ram + 8j`, which the row no longer meets.
