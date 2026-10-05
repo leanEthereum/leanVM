@@ -3,10 +3,10 @@
 use super::bus::{FlushBuilder, Separator};
 use super::columns::Columns;
 use super::{BAD_SLOT, ClassSpec, EXIT_SLOT, N_TABLES, Part, Word};
-use crate::constraints::BitColumns;
+use crate::constraints::{BitColumns, BitField};
 use crate::leaf::BusForm;
 use crate::leaf::Coord::{self, Col, Const, Scaled};
-use crate::rv::{Class, Ext, Hash, RegisterFile};
+use crate::rv::{Class, Ext, Hash, Reg, RegisterFile};
 use primitives::field::{F64, F192, g_pow};
 use std::sync::OnceLock;
 
@@ -82,13 +82,21 @@ impl ClassTable {
 
     /// The register numbers a row reads off its entry: `a1`, then `a2` and `ad` where the row has them.
     ///
-    /// They are bit columns, one register number in six bits each, all of a row's packed into one committed word.
+    /// - They are bit columns, packed into a committed word with the other tables' of the same height.
+    /// - A register read is below 32, five bits; a cell written may be the sink, 32, six bits.
     pub(crate) fn register_bits(&self) -> BitColumns {
         let c = &self.cols;
-        let ad = c.rd.map(|rd| rd.ad).or_else(|| c.pointer.map(|p| p.ad));
-        BitColumns {
-            cols: [Some(c.a1), c.rs2.map(|r| r.a2), ad].into_iter().flatten().collect(),
+        let read = |col| BitField { col, width: Reg::BITS };
+        let written = |col| BitField {
+            col,
             width: RegisterFile::LOG_CELLS,
+        };
+        let ad = (c.rd.map(|rd| written(rd.ad))).or_else(|| c.pointer.map(|p| read(p.ad)));
+        BitColumns {
+            fields: [Some(read(c.a1)), c.rs2.map(|r| read(r.a2)), ad]
+                .into_iter()
+                .flatten()
+                .collect(),
         }
     }
 

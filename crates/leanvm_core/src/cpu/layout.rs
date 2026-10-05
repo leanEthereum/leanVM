@@ -12,7 +12,7 @@ use super::MAX_LOG_ROWS;
 use super::error::CpuError;
 use super::execute::Trace;
 use crate::arith::Arith;
-use crate::constraints::Claims;
+use crate::constraints::{BitColumns, Claims};
 use crate::leaf::{Block, ColumnClaim, Coord, Producer, PublicColumn, SparseColumn};
 use crate::pcs::{Rate, RingSwitch, SliceClaim, StackClaim};
 use crate::rv::{Entry, Reg, Region, RegisterFile, RiscvProgram, Syscall};
@@ -408,15 +408,98 @@ impl Sizes {
                     };
                 }
             }
-            for c in table.register_bits().cols {
-                sources[base + c] = Source::Sliced;
+            for f in table.register_bits().fields {
+                sources[base + f.col] = Source::Sliced;
             }
         }
 
-        // Each table's packed register numbers, one word per row.
-        sources.extend(taus.map(Source::Committed));
+        // Each table's packed register numbers: committed where its word opens, a field of that word otherwise.
+        let base = sources.len();
+        sources.resize(base + tables::N_TABLES, Source::Sliced);
+        for word in RegisterWord::of(taus) {
+            sources[word.col] = Source::Committed(taus[word.tables[0]]);
+        }
         debug_assert_eq!(sources.len(), Schema::get().n);
         sources
+    }
+}
+
+/// One committed register word: the register numbers of tables of one height, one word per row (§sec:regpack).
+///
+/// Each table's fields follow the previous table's, low bits first.
+///
+/// Tables of one height share their table-sumcheck point, so a word is one ring-switched claim whatever it holds.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct RegisterWord {
+    /// Its column: the register column of its first table.
+    pub(crate) col: usize,
+    /// Its tables, in table order.
+    pub(crate) tables: Vec<usize>,
+}
+
+impl RegisterWord {
+    /// The words of tables of heights `2^taus`.
+    ///
+    /// In table order, each table joins the first word of its height with room for its fields, or opens one.
+    pub(crate) fn of(taus: [usize; tables::N_TABLES]) -> Vec<Self> {
+        let bits = ClassTable::all()
+            .each_ref()
+            .map(|table| table.register_bits().n_slices());
+        let mut words: Vec<(Self, usize)> = Vec::new();
+        for t in 0..tables::N_TABLES {
+            let room = words
+                .iter_mut()
+                .find(|(word, used)| taus[word.tables[0]] == taus[t] && used + bits[t] <= PACKING_WIDTH);
+            match room {
+                Some((word, used)) => {
+                    word.tables.push(t);
+                    *used += bits[t];
+                }
+                None => words.push((
+                    Self {
+                        col: Schema::get().registers[t],
+                        tables: vec![t],
+                    },
+                    bits[t],
+                )),
+            }
+        }
+        words.into_iter().map(|(word, _)| word).collect()
+    }
+
+    /// Fill the word's column from its tables' register numbers.
+    ///
+    /// `windows` holds every column's values, the word's own column to be written.
+    pub(crate) fn pack(&self, windows: &mut [&mut [F64]]) {
+        let word = std::mem::take(&mut windows[self.col]);
+        let schema = Schema::get();
+        let tables: Vec<(BitColumns, Vec<&[F64]>)> = (self.tables.iter())
+            .map(|&t| {
+                let (base, n) = schema.spans[t];
+                let cols = windows[base..base + n].iter().map(|c| &**c).collect();
+                (ClassTable::all()[t].register_bits(), cols)
+            })
+            .collect();
+        parallel::fill(word, |x| {
+            let (packed, _) = tables.iter().fold((0, 0), |(packed, shift), (bits, cols)| {
+                (packed | bits.packed(cols, x) << shift, shift + bits.n_slices())
+            });
+            F64(packed)
+        });
+    }
+
+    /// The word's claim at its tables' point: each table's register numbers' bits, then zeros up to 64.
+    ///
+    /// Why zeros: an unused bit of an honest word is zero, so a word with one set fails the opening.
+    fn claim<E: Copy>(&self, tables: &[Claims<E>], zero: E) -> SliceClaim<E> {
+        let mut s_hat_v: Vec<E> = (self.tables.iter())
+            .flat_map(|&t| tables[t].slices.iter().copied())
+            .collect();
+        s_hat_v.resize(PACKING_WIDTH, zero);
+        SliceClaim {
+            suffix_point: tables[self.tables[0]].chi.clone(),
+            s_hat_v,
+        }
     }
 }
 
@@ -424,12 +507,14 @@ impl Sizes {
 ///
 /// - The shared columns and the packed witnesses come first.
 /// - Then each table, in table order, owns a contiguous span of columns.
-/// - Then each table's packed register numbers, one column per table (§sec:regpack).
+/// - Then each table's packed register numbers, one column per table, committed only where a register word opens (§sec:regpack).
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Schema {
     /// Each table's first column and its number of columns.
     pub spans: [(usize, usize); tables::N_TABLES],
     /// Each table's packed register column: one word per row, its register numbers as bit fields.
+    ///
+    /// Tables of one height share the first one's word while it has room.
     pub registers: [usize; tables::N_TABLES],
     /// The total number of columns.
     pub n: usize,
@@ -471,6 +556,8 @@ pub struct Layout {
     pub shape: StackShape,
     /// Each table's base-two logarithm of rows.
     pub taus: [usize; tables::N_TABLES],
+    /// The committed register words.
+    pub(crate) registers: Vec<RegisterWord>,
 }
 
 impl Layout {
@@ -529,6 +616,7 @@ impl Layout {
             placements,
             shape,
             taus,
+            registers: RegisterWord::of(taus),
         }
     }
 
@@ -550,7 +638,7 @@ impl Layout {
     ///
     /// - Each packed witness, with its reduction's claim.
     /// - Each producer's multiplicity column, its bits' evaluations as the slices, then zeros up to 64.
-    /// - Each table's packed register column, its register numbers' bits as the slices, then zeros up to 64.
+    /// - Each register word, its tables' register numbers' bits as the slices, then zeros up to 64.
     pub(crate) fn rings<E: Copy>(
         &self,
         witnesses: impl IntoIterator<Item = SliceClaim<E>>,
@@ -565,15 +653,11 @@ impl Layout {
                 s_hat_v: claims.evals_padded_with(PACKING_WIDTH, zero),
             })
         });
-        // Why zeros: an unused bit of an honest word is zero, so a word with one set fails the opening.
-        let registers = (Schema::get().registers.iter().zip(tables)).map(|(&col, claims)| {
-            let mut s_hat_v = claims.slices.clone();
-            s_hat_v.resize(PACKING_WIDTH, zero);
-            let window = self.placements[col].window().expect("a register column is committed");
-            window.ring(SliceClaim {
-                suffix_point: claims.chi.clone(),
-                s_hat_v,
-            })
+        let registers = self.registers.iter().map(|word| {
+            let window = self.placements[word.col]
+                .window()
+                .expect("a register word is committed");
+            window.ring(word.claim(tables, zero))
         });
         witnesses.chain(producers).chain(registers).collect()
     }

@@ -90,9 +90,10 @@
 \newcommand{\mlt}{\mathit{mult}}         % committed multiplicity column of a lookup array: entry x's read count, as a word
 \newcommand{\mbit}[1]{\mathit{mult}_{#1}} % bit #1 of \mlt: a one-bit column of the array's producer
 \newcommand{\nbit}{N_{\mathrm{bit}}}     % bits of \mlt the bus reads: the bit length of \nrd
-\newcommand{\regword}[1]{\mathit{regs}_{\mathsf{#1}}} % committed register word of table #1: a row's register numbers, six bits each
-\newcommand{\regbit}[2]{\mathit{regs}_{\mathsf{#1},#2}} % bit #2 of \regword{#1}: a one-bit column of the table
+\newcommand{\regword}[1]{\mathit{regs}_{#1}} % committed register word #1: the register numbers of tables of one height, row by row
+\newcommand{\regbit}[2]{\mathit{regs}_{#1,#2}} % bit #2 of \regword{#1}: a one-bit column of each table it packs
 \newcommand{\nreg}{N_{\mathrm{reg}}}     % register numbers a table's rows read off their entries: 1 to 3
+\newcommand{\nregbit}[1]{B_{#1}}         % bits of table #1's register numbers: five per register read, six for a cell written
 \newcommand{\nrd}{N_{\mathrm{reads}}}    % the most reads the announced tables can make of one lookup array
 \newcommand{\pubp}[1]{\Psi_{#1}}         % a producer's public column (beta - pi_alpha(entry))^{2^#1} - 1
 \newcommand{\mset}[1]{\{\!\{#1\}\!\}}     % a multiset (plain braces stay sets)

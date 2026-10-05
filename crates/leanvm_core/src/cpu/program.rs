@@ -918,10 +918,12 @@ mod tests {
         let row = forged.trace.rows[alu].iter().position(|r| r.index == addi).unwrap();
         // The destination is a register number: its column and its field of the packed word both name `x0`.
         virtual_mut(&mut w, Schema::get().spans[alu].0 + destination)[row] = F64::ZERO;
-        let bits = ClassTable::all()[alu].register_bits();
-        let field = bits.cols.iter().position(|&c| c == destination).unwrap();
-        let mask = (1 << bits.width) - 1;
-        column_mut(&mut w, Schema::get().registers[alu])[row].0 &= !(mask << (field * bits.width));
+        // The ALU's fields come first in its word, so its destination's sits after the reads'.
+        let fields = ClassTable::all()[alu].register_bits().fields;
+        let at = fields.iter().position(|f| f.col == destination).unwrap();
+        let shift: usize = fields[..at].iter().map(|f| f.width).sum();
+        let mask = (1 << fields[at].width) - 1;
+        column_mut(&mut w, Schema::get().registers[alu])[row].0 &= !(mask << shift);
         column_mut(&mut w, Shared::BytecodeMult.col())[addi as usize].0 -= 1;
 
         // Registers, RAM and the multiplicities balance: only the read of an entry whose destination is 0 is left.
@@ -1285,7 +1287,7 @@ mod tests {
         forged.trace.reg_ts[Reg::RA.index()] = F64(addi.ts);
         let mut w = Witness::build(&program, &forged);
         let table = &ClassTable::all()[alu];
-        let a1 = Schema::get().spans[alu].0 + table.register_bits().cols[0];
+        let a1 = Schema::get().spans[alu].0 + table.register_bits().fields[0].col;
         virtual_mut(&mut w, a1)[row] = F64(Reg::RA.index() as u64);
         column_mut(&mut w, Schema::get().registers[alu])[row].0 ^= Reg::RA.index() as u64;
         // The entry's count follows the reads, which no longer include this one.
@@ -1305,16 +1307,22 @@ mod tests {
         // Invariant: the opening binds a row's packed word to the bits the table sumcheck read, its unused bits to zero.
         //
         // Fixture state: `addi a0, x0, 5; exit`, whose rows' register numbers are honest everywhere.
-        // Mutation: one bit of the `addi` row's packed word: `a1`'s lowest, the first unused one, then the top one.
+        // Mutation: one bit of the `addi` row's packed word: `a1`'s lowest, the next table's first, the first no table
+        // uses, then the top one.
         let text = Asm::new().i(Addi, Reg::A0, Reg::ZERO, 5).exit().finish();
         let program = Program::new(&text, Region::TEXT.base(), vec![], 2, 0).expect("valid instruction program");
         let exec = program.execute(&[]).unwrap();
         let alu = ClassTable::index_of(Class::Alu).unwrap();
         let row = exec.trace.rows[alu].iter().position(|r| r.index == 0).unwrap();
-        let used = ClassTable::all()[alu].register_bits().n_slices();
-        for bit in [0, used, 63] {
+        // The ALU opens its word, which the tables of its height share after it.
+        let word = Witness::build(&program, &exec).layout.registers.swap_remove(0);
+        assert_eq!(word.tables[0], alu);
+        assert!(word.tables.len() > 1, "the tables of one height share the word");
+        let bits = |t: usize| ClassTable::all()[t].register_bits().n_slices();
+        let used: usize = word.tables.iter().map(|&t| bits(t)).sum();
+        for bit in [0, bits(alu), used, 63] {
             let mut w = Witness::build(&program, &exec);
-            column_mut(&mut w, Schema::get().registers[alu])[row].0 ^= 1 << bit;
+            column_mut(&mut w, word.col)[row].0 ^= 1 << bit;
             assert!(
                 unmatched(&w).is_empty(),
                 "the bus reads the register numbers, not the word"

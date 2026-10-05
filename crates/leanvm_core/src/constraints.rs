@@ -139,30 +139,36 @@ pub struct Air<S> {
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct BitColumns {
     /// The columns, in the order their bits are sent.
-    pub cols: Vec<usize>,
-    /// The bits per column: every value is below `2^width`.
+    pub fields: Vec<BitField>,
+}
+
+/// A column of integers below `2^width`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct BitField {
+    /// The column.
+    pub col: usize,
+    /// The bits it holds.
     pub width: usize,
 }
 
 impl BitColumns {
     /// How many bit evaluations the columns send.
-    pub const fn n_slices(&self) -> usize {
-        self.cols.len() * self.width
+    pub fn n_slices(&self) -> usize {
+        self.fields.iter().map(|f| f.width).sum()
     }
 
-    /// Write the word whose bit slices the columns are: column `i` in bits `i·width` up.
+    /// Row `x`'s values as one integer: each field in the bits after the previous ones, the first lowest.
     ///
     /// # Panics
     ///
     /// Panics if a value does not fit its width.
-    pub fn pack(&self, cols: &[&[F64]], word: &mut [F64]) {
-        parallel::fill(word, |x| {
-            F64((self.cols.iter().enumerate()).fold(0, |packed, (i, &c)| {
-                let value = cols[c][x].0;
-                assert!(value >> self.width == 0, "a bit column's value fits its width");
-                packed | value << (i * self.width)
-            }))
+    pub fn packed(&self, cols: &[&[F64]], x: usize) -> u64 {
+        let (packed, _) = self.fields.iter().fold((0, 0), |(packed, shift), f| {
+            let value = cols[f.col][x].0;
+            assert!(value >> f.width == 0, "a bit column's value fits its width");
+            (packed | value << shift, shift + f.width)
         });
+        packed
     }
 
     /// Each column's bits' evaluations at `point`, column after column, low bit first.
@@ -173,15 +179,15 @@ impl BitColumns {
     ///     slice_b = sum_x eq(point, x) bit_b(col(x)) = sum_{v : bit_b(v)} sum_{x : col(x) = v} eq(point, x)
     /// ```
     fn slices(&self, cols: &[&[F64]], point: &[F192]) -> Vec<F192> {
-        if self.cols.is_empty() {
+        if self.fields.is_empty() {
             return Vec::new();
         }
         let eq = SplitEq::with_high_vars(point, point.len() / 2);
-        let (low, values) = (eq.low_log(), 1usize << self.width);
-        self.cols
+        let low = eq.low_log();
+        self.fields
             .iter()
-            .flat_map(|&c| {
-                let col = cols[c];
+            .flat_map(|f| {
+                let (col, values) = (cols[f.col], 1usize << f.width);
                 let buckets = parallel::map_reduce(
                     eq.high.len(),
                     || vec![F192::ZERO; values],
@@ -198,7 +204,7 @@ impl BitColumns {
                         a
                     },
                 );
-                (0..self.width).map(move |b| {
+                (0..f.width).map(move |b| {
                     (buckets.iter().enumerate())
                         .filter(|(v, _)| v >> b & 1 == 1)
                         .fold(F192::ZERO, |acc, (_, &e)| acc + e)
@@ -207,10 +213,22 @@ impl BitColumns {
             .collect()
     }
 
+    /// The field on column `c`, and where its bits start among the slices.
+    fn field_of(&self, c: usize) -> Option<(BitField, usize)> {
+        let mut start = 0;
+        for &f in &self.fields {
+            if f.col == c {
+                return Some((f, start));
+            }
+            start += f.width;
+        }
+        None
+    }
+
     /// Send the evaluations: every column's but the public and the bit ones', then the bits'.
     fn send(&self, chi: &[F192], evals: Vec<F192>, slices: Vec<F192>, ps: &mut ProverState) -> Claims {
         let sent: Vec<F192> = (evals.iter().enumerate())
-            .filter(|(c, _)| !self.cols.contains(c))
+            .filter(|&(c, _)| self.field_of(c).is_none())
             .map(|(_, &e)| e)
             .collect();
         ps.add_scalars(&sent);
@@ -224,14 +242,13 @@ impl BitColumns {
 
     /// Read the evaluations `send` sent, rebuilding each bit column's from its bits.
     fn receive<V: Verifier>(&self, v: &mut V, chi: &[V::E], n_sent: usize) -> Result<Claims<V::E>, TranscriptError> {
-        let mut sent = v.next_scalars(n_sent - self.cols.len())?.into_iter();
+        let mut sent = v.next_scalars(n_sent - self.fields.len())?.into_iter();
         let slices = v.next_scalars(self.n_slices())?;
         let mut evals = Vec::with_capacity(n_sent);
         for c in 0..n_sent {
-            let bits = self.cols.iter().position(|&b| b == c);
-            evals.push(bits.map_or_else(
+            evals.push(self.field_of(c).map_or_else(
                 || sent.next().expect("a sent evaluation per column"),
-                |i| Self::combine(v, self.bits_of(&slices, i)),
+                |(f, start)| Self::combine(v, &slices[start..start + f.width]),
             ));
         }
         Ok(Claims {
@@ -239,11 +256,6 @@ impl BitColumns {
             evals,
             slices,
         })
-    }
-
-    /// Column `i`'s bits among the slices.
-    fn bits_of<'s, E>(&self, slices: &'s [E], i: usize) -> &'s [E] {
-        &slices[i * self.width..(i + 1) * self.width]
     }
 
     /// A column's evaluation from its bits': `sum_b x^b slice_b`.
@@ -354,7 +366,7 @@ pub fn prove<S: Summand>(
     // A table's bit columns are read again at the end: their bits are sent, not their folded value.
     let bit_columns: Vec<Vec<&[F64]>> = (airs.iter().zip(&cols))
         .map(|(air, c)| match c {
-            Columns::K(c) if !air.bits.cols.is_empty() => c.clone(),
+            Columns::K(c) if !air.bits.fields.is_empty() => c.clone(),
             _ => Vec::new(),
         })
         .collect();
@@ -1097,8 +1109,7 @@ mod tests {
         let (xi, zeta) = xi_zeta(&[tau]);
         let mut airs = airs_for(&[tau], false, xi);
         airs[0].bits = BitColumns {
-            cols: vec![0],
-            width: 3,
+            fields: vec![BitField { col: 0, width: 3 }],
         };
         let views = vec![Columns::K(cols.iter().map(|c| &c[..]).collect())];
         let mut ps = ProverState::from_label(b"zc-bits");

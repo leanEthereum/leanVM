@@ -81,6 +81,9 @@ impl Reg {
     /// The number of integer registers.
     pub const COUNT: usize = 32;
 
+    /// The bits of a register's number.
+    pub const BITS: usize = Self::COUNT.trailing_zeros() as usize;
+
     /// Register `x{index}`.
     ///
     /// Returns `None` for an index of 32 or more.

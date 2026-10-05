@@ -98,12 +98,9 @@ impl Witness {
             // What the run did not leave, the multiplicities, is counted from its rows.
             trace.count_reads(windows[Lookup::Bytecode.multiplicity().col()]);
 
-            // Each table's register numbers, packed into its register column.
-            for (t, table) in ClassTable::all().iter().enumerate() {
-                let (base, n) = schema.spans[t];
-                let word = std::mem::take(&mut windows[schema.registers[t]]);
-                let cols: Vec<&[F64]> = windows[base..base + n].iter().map(|c| &**c).collect();
-                table.register_bits().pack(&cols, word);
+            // The tables' register numbers, packed into their words.
+            for word in &layout.registers {
+                word.pack(&mut windows);
             }
         });
 

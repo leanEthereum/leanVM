@@ -727,14 +727,14 @@ def table_sumcheck(
     claims: list[ColumnClaim] = []
     registers = []
     for table, height, forms, own, weight in zip(TABLES, table_log_heights, bus_forms, identity_powers, weights[: len(TABLES)], strict=True):
-        # Every column's evaluation but the register numbers', then each register number's six bits'. Bit b of an
-        # integer is x^b, so a register number's evaluation is sum_b x^b slice_b.
+        # Every column's evaluation but the register numbers', then each register number's bits'. Bit b of an integer
+        # is x^b, so a register number's evaluation is sum_b x^b slice_b.
         sent = iter(transcript.next_scalars(table.width - len(table.registers)))
-        slices = tuple(transcript.next_scalars(LOG_REGISTERS * len(table.registers)))
-        numbers = {
-            local: E.sum(E(1 << bit) * slice for bit, slice in enumerate(slices[LOG_REGISTERS * i : LOG_REGISTERS * (i + 1)]))
-            for i, local in enumerate(table.registers)
-        }
+        slices = tuple(transcript.next_scalars(sum(width for _, width in table.registers)))
+        numbers, start = {}, 0
+        for local, width in table.registers:
+            numbers[local] = E.sum(E(1 << bit) * slice for bit, slice in enumerate(slices[start : start + width]))
+            start += width
         evaluations = tuple(numbers[local] if local in numbers else next(sent) for local in range(table.width))
         final += weight * dot(form_powers, [form.evaluate(evaluations.__getitem__) for form in forms])
         final += weight * dot(own, [form.evaluate(evaluations.__getitem__) for form in table.identities])
@@ -799,6 +799,7 @@ MAX_LOG_RAM = 27
 MAX_LOG_ADVICE = 26
 MAX_LOG_ROWS = 32
 LOG_REGISTERS = 6
+REGISTER_BITS = 5  # a register's number: x0..x31
 SINK = 32
 SYSCALL_REGISTER, SYS_EXIT = 17, 93  # a7 holds `exit` when the run halts
 OUTPUT_REGISTERS = (10, 11, 12, 13)  # a0..a3, the public output
@@ -1137,11 +1138,16 @@ class Table:
         return len(self.columns)
 
     @property
-    def registers(self) -> tuple[int, ...]:
-        """The register numbers a row reads off its entry, a1, then a2 and ad where it has them: not committed, but
-        packed into one committed word per row, six bits each in this order, which the opening reads bit by bit."""
-        names = ("a1", *(("a2",) if self.reads_rs2 else ()), *(("ad",) if self.writes_rd or self.reads_rd else ()))
-        return _cols(self.columns, *names)
+    def registers(self) -> tuple[tuple[int, int], ...]:
+        """The register numbers a row reads off its entry, a1, then a2 and ad where it has them, each with its width:
+        not committed, but packed in this order into a committed word (`register_words`), which the opening reads bit by
+        bit. A register read is below 32, five bits; a cell written may be the sink, 32, six bits."""
+        fields = (("a1", REGISTER_BITS), *((("a2", REGISTER_BITS),) if self.reads_rs2 else ()))
+        if self.writes_rd:
+            fields += (("ad", LOG_REGISTERS),)
+        elif self.reads_rd:
+            fields += (("ad", REGISTER_BITS),)
+        return tuple((_cols(self.columns, name)[0], width) for name, width in fields)
 
     @property
     def min_log_height(self) -> int:
@@ -2052,8 +2058,28 @@ FLOCKS = (
 )
 WITNESS_COLUMNS = tuple(NUM_FRAMEWORK_COLUMNS + index for index in range(len(FLOCKS)))
 GLOBAL_COLUMN_BASES = tuple(NUM_FRAMEWORK_COLUMNS + len(FLOCKS) + sum(TABLE_WIDTHS[:table]) for table in range(len(TABLES)))
-# Each table's packed register numbers, one committed word per row, after every table's columns.
+# Each table's packed register numbers, one word per row, after every table's columns.
 REGISTER_COLUMNS = tuple(GLOBAL_COLUMN_BASES[-1] + TABLE_WIDTHS[-1] + table for table in range(len(TABLES)))
+
+
+def register_words(table_log_heights: Sequence[int]) -> list[list[int]]:
+    """The committed register words, each the tables whose register numbers it packs, in table order: each table joins
+    the first word of its height with room for its fields, or opens one, committed in its own register column. Tables
+    of one height share their table-sumcheck point, so a word is one ring-switched claim."""
+    words: list[list[int]] = []
+    used: list[int] = []
+    for table in TABLES:
+        bits = sum(width for _, width in table.registers)
+        height = table_log_heights[table.opcode]
+        for index, word in enumerate(words):
+            if table_log_heights[word[0]] == height and used[index] + bits <= K_BITS:
+                word.append(table.opcode)
+                used[index] += bits
+                break
+        else:
+            words.append([table.opcode])
+            used.append(bits)
+    return words
 
 
 def check_bytecode(bytecode: Sequence[K]) -> None:
@@ -2150,6 +2176,7 @@ def build_layout(
     for table in TABLES:
         kappas += [table_log_heights[table.opcode]] * table.width
     kappas += [table_log_heights[table.opcode] for table in TABLES]
+    hosts = {REGISTER_COLUMNS[word[0]] for word in register_words(table_log_heights)}
 
     # A circuit word gets no block of its own: it is committed inside its circuit's flock witness, whose ports
     # interleave, so it sits at that witness's offset behind its own port's bits. Same width either way.
@@ -2159,8 +2186,10 @@ def build_layout(
         for port, name in enumerate(ports)
         if name
     }
-    # A register number is no column of the stack either: it is a field of its table's register column.
-    sliced = {GLOBAL_COLUMN_BASES[table.opcode] + local for table in TABLES for local in table.registers}
+    # A register number is no column of the stack either: it is a field of a register word, and so is the register
+    # column of a table whose numbers an earlier table's word holds.
+    sliced = {GLOBAL_COLUMN_BASES[table.opcode] + local for table in TABLES for local, _ in table.registers}
+    sliced |= set(REGISTER_COLUMNS) - hosts
     blocks = {column: kappa for column, kappa in enumerate(kappas) if column not in words and column not in sliced}
     block_offsets, placed = stack_offsets(list(blocks.values()))
     offsets = dict(zip(blocks, block_offsets))
@@ -2434,12 +2463,15 @@ def verify_core(
     flocks = verify_flock([(circuit, layout.table_log_heights[table.opcode]) for table, circuit, _ in FLOCKS], transcript)
     families = [(point, s) for point, s, _, _ in flocks]
     # and the producer's bits, the 64 bit slices of its multiplicity column: the bits the bus reads, then zeros; and
-    # each table's register column's, its register numbers' bits, then zeros, which an honest word's unused bits are
-    families += [(point, (*values, *[ZERO] * (K_BITS - len(values)))) for point, values in (*tables.families, *tables.registers)]
+    # each register word's, its tables' register numbers' bits at their shared point, then zeros, which an honest
+    # word's unused bits are
+    words = register_words(layout.table_log_heights)
+    packed = [(tables.registers[word[0]][0], tuple(bit for t in word for bit in tables.registers[t][1])) for word in words]
+    families += [(point, (*values, *[ZERO] * (K_BITS - len(values)))) for point, values in (*tables.families, *packed)]
 
     # 7] Ring-switching: one family for every claim, which leads the batch, taking the first power (lambda^0 = 1).
-    producer_columns = tuple(producer.column for producer in layout.producers)
-    regions = [layout.placements[column] for column in (*WITNESS_COLUMNS, *producer_columns, *REGISTER_COLUMNS)]
+    columns = (*WITNESS_COLUMNS, *(producer.column for producer in layout.producers), *(REGISTER_COLUMNS[word[0]] for word in words))
+    regions = [layout.placements[column] for column in columns]
     ring_claims = [(region, point, s) for region, (point, s) in zip(regions, families, strict=True)]
     verify_stacked_opening(
         transcript,
@@ -2505,6 +2537,7 @@ def protocol_constants() -> str:
         "QUERY_GRINDING_BITS": QUERY_GRINDING_BITS,
         "RAM_BASE": RAM_BASE,
         "RAM_SLOT": RAM_SLOT,
+        "REGISTER_BITS": REGISTER_BITS,
         "RESIDUAL_MAX_LOG": RESIDUAL_MAX_LOG,
         "RS_DOMAIN_INITIAL_REDUCTION_FACTOR": RS_DOMAIN_INITIAL_REDUCTION_FACTOR,
         "RS_DOMAIN_SUBSEQUENT_REDUCTION_FACTOR": RS_DOMAIN_SUBSEQUENT_REDUCTION_FACTOR,
