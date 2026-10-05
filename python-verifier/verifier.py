@@ -627,6 +627,10 @@ def verify_bus_balance(layout: Layout, transcript: Transcript) -> BusResult:
     # Both trees run over the taller one's depth: the producers' bits push with no pull of their own.
     depth = max(push_layout.depth, pull_layout.depth)
 
+    # A proof of work before the fingerprint challenges, for a program too large for the field alone; none otherwise.
+    grinding = max(0, layout.log_bytecode - UNGROUND_LOG_BYTECODE)
+    if grinding:
+        transcript.grind_check(grinding)
     alphas = transcript.samples(BUS_BITS)
     weights = eq_kernel(alphas)
     beta = transcript.sample()
@@ -790,9 +794,11 @@ TEXT_BASE = 0x1000_0000
 RAM_BASE = 0x4000_0000  # RAM's word z sits at RAM_BASE + 8z; the program's image is its first words
 ADVICE_BASE = 0x2000_0000  # the advice's word z sits at ADVICE_BASE + 8z; what it holds before the run is the prover's
 # What the regions hold at most, and the most rows a table may announce. These bound the counting arguments the
-# memory and lookup proofs rest on, so the verifier checks them before it runs any reduction. The bytecode's cap, below
-# its region's, keeps the bus's degree within its margin over the commitment's list for every layout one commitment holds.
-MAX_LOG_BYTECODE = 21
+# memory and lookup proofs rest on, so the verifier checks them before it runs any reduction.
+MAX_LOG_TEXT = 26
+# The most bytecode entries, log2, whose bus keeps its margin over the commitment's list with no grinding. Each bit of
+# entries past it doubles the bus's degree, so the bus grinds one bit for it before its fingerprint challenges.
+UNGROUND_LOG_BYTECODE = 21
 MAX_LOG_RAM = 27
 MAX_LOG_ADVICE = 26
 MAX_LOG_ROWS = 32
@@ -2163,7 +2169,7 @@ def build_layout(
     log_bytecode = log2_strict(len(bytecode)) - BUS_BITS
     require(
         all(table.min_log_height <= log_height <= MAX_LOG_ROWS for table, log_height in zip(TABLES, table_log_heights, strict=True))
-        and 0 <= log_bytecode <= MAX_LOG_BYTECODE,
+        and 0 <= log_bytecode <= MAX_LOG_TEXT,
         "invalid announced table sizes",
     )
     require(
@@ -2561,9 +2567,9 @@ def protocol_constants() -> str:
         "LIVE_BIT": LIVE_BIT,
         "LOG_REGISTERS": LOG_REGISTERS,
         "MAX_LOG_ADVICE": MAX_LOG_ADVICE,
-        "MAX_LOG_BYTECODE": MAX_LOG_BYTECODE,
         "MAX_LOG_RAM": MAX_LOG_RAM,
         "MAX_LOG_ROWS": MAX_LOG_ROWS,
+        "MAX_LOG_TEXT": MAX_LOG_TEXT,
         "MAX_STACKED_LOG": MAX_STACKED_LOG,
         "MIN_STACKED_LOG": MIN_STACKED_LOG,
         "NUM_FRAMEWORK_COLUMNS": NUM_FRAMEWORK_COLUMNS,
@@ -2581,6 +2587,7 @@ def protocol_constants() -> str:
         "SYSCALL_REGISTER": SYSCALL_REGISTER,
         "SYS_EXIT": SYS_EXIT,
         "TEXT_BASE": TEXT_BASE,
+        "UNGROUND_LOG_BYTECODE": UNGROUND_LOG_BYTECODE,
     }
     lines = [f"{name} {value}" for name, value in scalars.items()]
     lines.append("OUTPUT_REGISTERS " + ",".join(str(r) for r in OUTPUT_REGISTERS))

@@ -1,10 +1,13 @@
 //! RISC-V programs, proven and checked by both verifiers.
 
 use super::python_verifier::PythonStatement;
-use leanvm_core::cpu::{Program, ProveError};
+use fiat_shamir::transcript::TranscriptError;
+use leanvm_core::cpu::{CpuError, Program, Proof, ProveError, UNGROUND_LOG_BYTECODE};
+use leanvm_core::leaf::BusError;
 use leanvm_core::pcs::Rate;
 use leanvm_core::rv::asm::*;
 use leanvm_core::rv::{Hash, Machine, Region, Trap};
+use leanvm_core::tables::N_TABLES;
 use primitives::field::{F64, F192};
 
 const STEPS: u64 = 2000;
@@ -415,4 +418,55 @@ fn a_trap_is_reported() {
             pc: Region::TEXT.base()
         }))
     );
+}
+
+/// A text past the most the bus covers without grinding, its proof, and the proof with a nonce that misses the work.
+///
+/// The exit, then a nop for every unground entry: with the illegal word, the fill blocks and the halt slot, the bytecode
+/// has 2^(UNGROUND_LOG_BYTECODE + 1) entries, so one bit of grinding.
+fn large_program() -> (Program, Proof, Proof, [u64; 4]) {
+    let mut a = Asm::new();
+    a.li(Reg::A0, 7).exit();
+    for _ in 0..1 << UNGROUND_LOG_BYTECODE {
+        a.i(Addi, Reg::ZERO, Reg::ZERO, 0);
+    }
+    let program = Program::new(&a.finish(), Region::TEXT.base(), vec![], 0, 0).expect("valid instruction program");
+    let (proof, output, _) = program.prove(&[], Rate::MIN).expect("the run halts");
+    assert_eq!(output, [7, 0, 0, 0]);
+
+    // The nonce follows the announcement and the root; replace it with the next one that misses the work.
+    let missed = CpuError::Bus(BusError::Transcript(TranscriptError::PowFailed { bits: 1 }));
+    let forged = (1..64)
+        .map(|step| {
+            let mut forged = proof.clone();
+            forged.0.stream[N_TABLES + 4].c0 += step;
+            forged
+        })
+        .find(|forged| program.verify(output.into(), forged) == Err(missed.clone().into()))
+        .expect("half the nonces miss one bit of work");
+    (program, proof, forged, output)
+}
+
+#[test]
+fn a_large_program_grinds_before_the_bus() {
+    let (program, proof, forged, output) = large_program();
+    assert!(program.verify(output.into(), &proof).is_ok());
+    // The nonce that misses the work is refused at the bus.
+    assert!(program.verify(output.into(), &forged).is_err());
+}
+
+/// Python reads the large program's bytecode table, 2^26 words, which takes it minutes.
+#[test]
+#[ignore = "minutes of Python: run with --ignored"]
+fn python_checks_a_large_programs_grinding() {
+    let (program, proof, forged, output) = large_program();
+    let statement = PythonStatement::new("large", &program, &output);
+    let mut raw = program.verify_to_raw(&output, &proof).expect("honest proof verifies");
+    statement.assert_accepts(&raw);
+
+    // The raw proof carries the same stream, so the same forged nonce.
+    raw.stream = forged.0.stream;
+    let refused = statement.verify(&raw);
+    PythonStatement::assert_rejects(&refused, "a nonce short of the work");
+    assert!(String::from_utf8_lossy(&refused.stderr).contains("invalid grinding nonce"));
 }

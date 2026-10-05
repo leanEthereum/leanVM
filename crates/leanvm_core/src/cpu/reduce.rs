@@ -64,8 +64,15 @@ impl Layout {
         clock: V::E,
         output: &[V::E; 4],
     ) -> Result<TableReduction<V::E>, CpuError> {
-        let mut bus = leaf::verify_balance(v, &self.push, &self.pull, &self.producers, &Schema::get().spans)
-            .map_err(CpuError::Bus)?;
+        let mut bus = leaf::verify_balance(
+            v,
+            &self.push,
+            &self.pull,
+            &self.producers,
+            self.grinding,
+            &Schema::get().spans,
+        )
+        .map_err(CpuError::Bus)?;
         let per_tick = v.mul(
             bus.selectors[1][Framework::State as usize],
             bus.weights[Framework::FINAL_CLOCK],

@@ -153,6 +153,11 @@ impl Verifier for Rows<'_, '_> {
         self.t.sample(self.b)
     }
 
+    fn grind_check(&mut self, bits: u32) -> Result<(), TranscriptError> {
+        self.t.grind_check(self.b, bits);
+        Ok(())
+    }
+
     fn ensure_eq<Er>(&mut self, a: Ew, b: Ew, _: impl FnOnce() -> Er) -> Result<(), Er> {
         self.b.eq_e(a, b);
         Ok(())

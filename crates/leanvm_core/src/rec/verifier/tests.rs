@@ -5,7 +5,8 @@ use super::whir::Opening;
 use super::{ProofShape, RecShape, Rows};
 use crate::class_flock;
 use crate::constraints::ConstraintError;
-use crate::cpu::{DeferredClaims, Program};
+use crate::cpu::{CpuError, DeferredClaims, Program, UNGROUND_LOG_BYTECODE};
+use crate::leaf::BusError;
 use crate::pcs::{Rate, RingSwitch, SliceClaim, StackClaim};
 use crate::rec::RecError;
 use crate::rec::circuit::{Assignment, Builder, Circuit, Ew, Finished, Kw, Limbs};
@@ -21,7 +22,7 @@ use ::flock::zerocheck::K_SKIP;
 use ::pcs::pack::PACKING_WIDTH;
 use ::pcs::stack_open::RingFamily;
 use ::pcs::whir::inner_product_base_ext;
-use fiat_shamir::transcript::{ProofTranscript, ProverState, RawProof, VerifierState};
+use fiat_shamir::transcript::{ProofTranscript, ProverState, RawProof, TranscriptError, VerifierState};
 use primitives::field::{F64, F192};
 use primitives::test_util::Rng;
 use std::sync::OnceLock;
@@ -168,6 +169,48 @@ fn a_forged_announcement_is_refused_first() {
     // A live clock at slot zero passes the announcement, and the bus refuses the wrong one.
     let failure = forge(&|p| p.stream[clock] = F192::new(ts.c0 + 32, 0, 0));
     assert!(failure.starts_with("bus and tables"), "a later clock: {failure}");
+}
+
+// A program past the unground bytecode: its rows check the bus's proof of work, which a smaller program's never meet.
+#[test]
+fn a_large_programs_rows_check_its_grinding() {
+    // The exit, then nops nothing runs, enough for one bit of grinding.
+    let mut a = Asm::new();
+    a.li(Reg::A0, 7).exit();
+    for _ in 0..1 << UNGROUND_LOG_BYTECODE {
+        a.i(Addi, Reg::ZERO, Reg::ZERO, 0);
+    }
+    let program = Program::new(&a.finish(), Region::TEXT.base(), vec![], 0, 0).expect("a valid program");
+    let (proof, output, _) = program.prove(&[], Rate::MIN).expect("the run halts");
+    let f = Fixture {
+        native: program.verify_core(&output, &proof).expect("an honest proof"),
+        raw: program.verify_to_raw(&output, &proof).expect("an honest proof"),
+        taus: std::array::from_fn(|i| usize::try_from(proof.0.stream[i].c0).expect("a height")),
+        program,
+        output,
+    };
+
+    // The rows leave the native claims, and the shape builds the same circuit.
+    let (b, claims) = f.build(ProofSource::Proof(&f.raw));
+    assert_eq!(values(&b, &claims), f.native);
+    let Finished { circuit, failures, .. } = b.finish();
+    assert!(failures.is_empty(), "{failures:?}");
+    assert!(circuit == f.build(ProofSource::Shape).0.finish().circuit);
+
+    // The nonce follows the announcement and the root: one the native verifier refuses for missing the work fails at the bus.
+    let missed = CpuError::Bus(BusError::Transcript(TranscriptError::PowFailed { bits: 1 }));
+    let forged = (1..64)
+        .map(|step| {
+            let mut forged = proof.clone();
+            forged.0.stream[N_TABLES + 4].c0 += step;
+            forged
+        })
+        .find(|forged| f.program.verify_core(&f.output, forged).err() == Some(missed.clone()))
+        .expect("half the nonces miss one bit of work");
+    let mut forged_raw = f.raw.clone();
+    forged_raw.stream = forged.0.stream;
+    let failure = f.failures(&forged_raw).into_iter().next().unwrap_or_default();
+    assert!(failure.starts_with("bus and tables"), "{failure}");
 }
 
 // The direction bit of a Merkle node is the hash row's mux selector: a non-Boolean one is refused by the outer verifier.

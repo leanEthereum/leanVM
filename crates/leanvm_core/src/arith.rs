@@ -206,6 +206,13 @@ pub trait Verifier: Arith {
     /// A challenge.
     fn sample(&mut self) -> Self::E;
 
+    /// Read a nonce, check it clears a proof of work of the given bits, then bind it.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error past the end of the stream, or on a nonce short of the work when the verifier checks values.
+    fn grind_check(&mut self, bits: u32) -> Result<(), TranscriptError>;
+
     /// Check two elements are equal, refusing with the given error when they differ.
     ///
     /// # Errors
@@ -304,6 +311,10 @@ impl Verifier for VerifierState<'_> {
 
     fn sample(&mut self) -> F192 {
         Challenger::sample(self)
+    }
+
+    fn grind_check(&mut self, bits: u32) -> Result<(), TranscriptError> {
+        Receiver::grind_check(self, bits)
     }
 
     fn ensure_eq<Er>(&mut self, a: F192, b: F192, err: impl FnOnce() -> Er) -> Result<(), Er> {

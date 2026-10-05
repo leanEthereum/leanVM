@@ -10,7 +10,7 @@ use super::filler::{FillBlocks, Plan};
 use super::layout::{Announcement, Lookup, Schema, Sizes};
 use super::reduce::TableClaims;
 use super::witness::Witness;
-use super::{MAX_LOG_BYTECODE, Output, Proof};
+use super::{Output, Proof};
 use crate::arith::Native;
 use crate::constraints::{Claims, Columns};
 use crate::pcs::Rate;
@@ -21,9 +21,6 @@ use fiat_shamir::transcript::{Challenger, ProverState, RawProof, Transmitter, Ve
 use primitives::field::{F64, F192};
 use primitives::hash::Hasher;
 use std::cmp::Reverse;
-
-// The bytecode lives in the text region.
-const _: () = assert!(MAX_LOG_BYTECODE <= Region::TEXT.max_log_words());
 
 /// A validated program, its fill blocks, and the digest of everything public about it.
 ///
@@ -71,7 +68,7 @@ impl Program {
     ///
     /// # Errors
     ///
-    /// Refuses an entry outside the supplied text, a text past the bytecode cap, and sizes exceeding the machine's regions.
+    /// Refuses an entry outside the supplied text, and sizes exceeding the machine's regions.
     pub fn new(
         text: &[u32],
         entry_pc: u64,
@@ -82,12 +79,12 @@ impl Program {
         // Check the shape on the supplied text, before anything is appended to it.
         RiscvProgram::validate(text.len(), entry_pc, image.len(), log_ram, log_advice)?;
 
-        // The bytecode cap holds what gets appended too: the illegal word, the fill blocks, then the illegal slot and the halt slot.
+        // What gets appended must fit too: the illegal word, the fill blocks, then the illegal slot and the halt slot.
         let fits = text
             .len()
             .checked_add(1 + FillBlocks::WORDS + 2)
             .and_then(usize::checked_next_power_of_two)
-            .is_some_and(|total| total <= 1 << MAX_LOG_BYTECODE);
+            .is_some_and(|total| total <= 1 << Region::TEXT.max_log_words());
         if !fits {
             return Err(ProgramError::TextTooLarge);
         }
@@ -260,7 +257,7 @@ impl Program {
             let l = &w.layout;
             let cols = w.columns();
             let mut bus = crate::stage!("Prove bus", || {
-                leaf::prove_balance(&l.push, &l.pull, &l.producers, &cols, spans, &mut ps)
+                leaf::prove_balance(&l.push, &l.pull, &l.producers, l.grinding, &cols, spans, &mut ps)
             });
             // A settled table's columns at the bus point, short of its register numbers, which the batch folds.
             let settled: Vec<Claims> = (ClassTable::all().iter().enumerate())
@@ -581,7 +578,7 @@ mod tests {
     #[test]
     fn the_text_region_reserves_the_fill_blocks() {
         // The largest text that fits, after the illegal word, the fill blocks, and the two slots `rv` appends.
-        let limit = (1 << MAX_LOG_BYTECODE) - 1 - FillBlocks::WORDS - 2;
+        let limit = (1 << Region::TEXT.max_log_words()) - 1 - FillBlocks::WORDS - 2;
         let program = |words: usize| Program::new(&vec![0; words], Region::TEXT.base(), vec![], 0, 0);
         assert!(program(limit).is_ok());
 

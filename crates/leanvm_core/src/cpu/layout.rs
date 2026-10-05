@@ -8,9 +8,9 @@
 //!
 //! The Python verifier mirrors it, so reordering a variant changes the proof layout.
 
-use super::MAX_LOG_ROWS;
 use super::error::CpuError;
 use super::execute::Trace;
+use super::{MAX_LOG_ROWS, UNGROUND_LOG_BYTECODE};
 use crate::arith::Arith;
 use crate::constraints::{BitColumns, Claims};
 use crate::leaf::{Block, ColumnClaim, Coord, Producer, PublicColumn, SparseColumn};
@@ -21,9 +21,13 @@ use crate::witness::{Placement, Source, StackShape, Window};
 use crate::{class_flock, pcs, tables, witness};
 use ::pcs::pack::PACKING_WIDTH;
 use Coord::{Col, Const, IntIndex, Sparse};
+use fiat_shamir::MAX_GRINDING_BITS;
 use fiat_shamir::transcript::{ProverState, Receiver, Transmitter, VerifierState};
 use primitives::field::{F64, F192};
 use std::sync::{Arc, OnceLock};
+
+// The largest text grinds within the proof of work's window.
+const _: () = assert!(Region::TEXT.max_log_words() - UNGROUND_LOG_BYTECODE <= MAX_GRINDING_BITS as usize);
 
 /// The bus blocks no table owns, which each side of the bus starts with.
 ///
@@ -161,6 +165,13 @@ impl Lookup {
     pub const fn multiplicity(self) -> Shared {
         match self {
             Self::Bytecode => Shared::BytecodeMult,
+        }
+    }
+
+    /// The proof-of-work bits the bus grinds for this array: one per bit of entries past the most the field alone covers.
+    pub const fn grinding_bits(self, sizes: Sizes) -> u32 {
+        match self {
+            Self::Bytecode => sizes.log_bytecode.saturating_sub(UNGROUND_LOG_BYTECODE) as u32,
         }
     }
 
@@ -550,6 +561,8 @@ pub struct Layout {
     pub pull: Vec<Block>,
     /// The lookup arrays' table sides, in lookup order (§sec:lookup).
     pub producers: Vec<Producer>,
+    /// The proof-of-work bits before the bus's fingerprint challenges, fixed by the program alone.
+    pub grinding: u32,
     /// Where each column sits in the stacked witness, from the columns' sizes alone.
     pub placements: Vec<Placement>,
     /// The stacked witness's shape: its announced size, and how many lane blocks are committed.
@@ -613,6 +626,7 @@ impl Layout {
             push,
             pull,
             producers,
+            grinding: Lookup::Bytecode.grinding_bits(sizes),
             placements,
             shape,
             taus,

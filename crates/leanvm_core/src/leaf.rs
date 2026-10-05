@@ -232,9 +232,9 @@ pub enum BusError {
     /// The grand products' GKR rejects.
     #[error(transparent)]
     Gkr(#[from] GkrError),
-    /// The layout has too many factors for the challenge field to give the bus its margin.
-    #[error("the bus layout gives {bits} bits of soundness, below {required}")]
-    Soundness { bits: u32, required: u32 },
+    /// The layout has too many factors for the challenge field and its grinding to give the bus its margin.
+    #[error("the bus layout gives {bits} bits of soundness and {grinding} of grinding, below {required}")]
+    Soundness { bits: u32, grinding: u32, required: u32 },
 }
 
 /// The fingerprint weights `eq(α⃗, x)` over the `2^N_TUPLE_BITS` slots (§sec:gp).
@@ -291,7 +291,13 @@ fn factors(blocks: &[Block], producers: &[Producer]) -> u128 {
         .sum::<u128>()
 }
 
-/// Check that the 192-bit challenge field gives the bus its margin with no grinding.
+/// Check that the 192-bit challenge field and the grinding give the bus its margin.
+///
+/// # Why grinding counts
+///
+/// - A proof of work of `g` bits before the fingerprint challenges makes each draw of them cost `2^g` hashes.
+/// - So the fingerprint's error counts `g` bits fewer against the margin (§sec:e2e-ledger).
+/// - The GKR's own terms are far below the margin, so the grinding before the fingerprint covers the sum.
 ///
 /// # Errors
 ///
@@ -301,6 +307,7 @@ fn check_soundness(
     pull_blocks: &[Block],
     producers: &[Producer],
     mu: usize,
+    grinding: u32,
 ) -> Result<(), BusError> {
     let widest = push_blocks
         .iter()
@@ -312,9 +319,10 @@ fn check_soundness(
     assert!(widest <= 1 << N_TUPLE_BITS, "a tuple's coordinates index its slots");
     let factors = factors(push_blocks, producers).max(factors(pull_blocks, &[]));
     let bits = soundness_bits(factors, mu);
-    if bits < BUS_SOUNDNESS_BITS {
+    if bits + grinding < BUS_SOUNDNESS_BITS {
         return Err(BusError::Soundness {
             bits,
+            grinding,
             required: BUS_SOUNDNESS_BITS,
         });
     }
@@ -1078,6 +1086,8 @@ struct Side<'a> {
 /// The two bus sides in `[push, pull]` order, which both parties lay out the same way before the GKR.
 struct BusSetup<'a> {
     sides: [Side<'a>; 2],
+    /// The proof-of-work bits before the fingerprint challenges.
+    grinding: u32,
 }
 
 impl<'a> BusSetup<'a> {
@@ -1088,14 +1098,15 @@ impl<'a> BusSetup<'a> {
     ///
     /// # Errors
     ///
-    /// A layout too large for the bus's soundness margin.
-    fn new(push: &'a [Block], pull: &'a [Block], producers: &'a [Producer]) -> Result<Self, BusError> {
+    /// A layout too large for the bus's soundness margin at this grinding.
+    fn new(push: &'a [Block], pull: &'a [Block], producers: &'a [Producer], grinding: u32) -> Result<Self, BusError> {
         let mut push_lay = layout(push, producers);
         let mut pull_lay = layout(pull, &[]);
         let mu = push_lay.mu.max(pull_lay.mu);
-        check_soundness(push, pull, producers, mu)?;
+        check_soundness(push, pull, producers, mu, grinding)?;
         (push_lay.mu, pull_lay.mu) = (mu, mu);
         Ok(Self {
+            grinding,
             sides: [
                 Side {
                     blocks: push,
@@ -1159,15 +1170,21 @@ pub struct BusProof {
     pub beta: F192,
 }
 
+/// Prove the bus balances, after a proof of work of the given bits when there are any.
 pub fn prove_balance(
     push: &[Block],
     pull: &[Block],
     producers: &[Producer],
+    grinding: u32,
     cols: &[&[F64]],
     tables: &[(usize, usize)],
     ps: &mut ProverState,
 ) -> BusProof {
-    let setup = BusSetup::new(push, pull, producers).expect("the size caps keep every bus layout sound");
+    let setup = BusSetup::new(push, pull, producers, grinding).expect("the size caps keep every bus layout sound");
+    // No grinding sends no nonce.
+    if setup.grinding > 0 {
+        ps.grind(setup.grinding);
+    }
     let alphas = ps.sample_vec(N_TUPLE_BITS);
     let fp = Fingerprint {
         w: fingerprint_weights(&alphas),
@@ -1367,15 +1384,19 @@ pub struct BusVerify<E = F192> {
 ///
 /// # Errors
 ///
-/// Returns the GKR's refusal, a malformed stream, or a layout too large for the bus's soundness margin.
+/// Returns the GKR's refusal, a malformed stream, a nonce short of the proof of work, or a layout too large for the bus's margin at this grinding.
 pub fn verify_balance<V: Verifier>(
     v: &mut V,
     push: &[Block],
     pull: &[Block],
     producers: &[Producer],
+    grinding: u32,
     tables: &[(usize, usize)],
 ) -> Result<BusVerify<V::E>, BusError> {
-    let setup = BusSetup::new(push, pull, producers)?;
+    let setup = BusSetup::new(push, pull, producers, grinding)?;
+    if setup.grinding > 0 {
+        v.grind_check(setup.grinding)?;
+    }
     let alphas = v.sample_vec(N_TUPLE_BITS);
     let fp = Fingerprint {
         w: v.eq_table(&alphas),
@@ -1431,7 +1452,7 @@ pub(crate) mod tests {
         BUS_SOUNDNESS_BITS, Block, BusError, BusSetup, Coord, F64, F192, N_TUPLE_BITS, Producer, PublicColumn,
         SparseColumn, fingerprint_weights, prove_balance, soundness_bits, tuple_leaves, verify_balance,
     };
-    use crate::cpu::{Layout, MAX_LOG_BYTECODE, Program};
+    use crate::cpu::{Layout, Lookup, Program, Sizes, UNGROUND_LOG_BYTECODE};
     use crate::pcs::MAX_MU;
     use crate::rv::Region;
     use crate::tables::N_TABLES;
@@ -1507,10 +1528,10 @@ pub(crate) mod tests {
         let tables = [(0, 1)];
 
         let mut ps = ProverState::from_label(b"leaf-virtual-coordinates");
-        let bus = prove_balance(&push, &pull, &[], &[&column], &tables, &mut ps);
+        let bus = prove_balance(&push, &pull, &[], 0, &[&column], &tables, &mut ps);
         let proof = ps.into_proof();
         let mut vs = VerifierState::from_label(b"leaf-virtual-coordinates", &proof);
-        let verified = verify_balance(&mut vs, &push, &pull, &[], &tables).expect("an honest bus balances");
+        let verified = verify_balance(&mut vs, &push, &pull, &[], 0, &tables).expect("an honest bus balances");
 
         // What the verifier derives the tables owe is what their forms sum to, the virtual coordinates aside.
         for side in 0..2 {
@@ -1554,7 +1575,7 @@ pub(crate) mod tests {
     }
 
     #[test]
-    fn every_layout_one_commitment_holds_keeps_the_margin() {
+    fn every_layout_one_commitment_holds_keeps_the_margin_with_its_grinding() {
         // Every block of a RISC-V layout at 2^MAX_MU rows, more than any block of a committed layout has.
         let program = Program::new(&[0x0000_0073], Region::TEXT.base(), vec![], 0, 0).unwrap();
         let layout = Layout::new(program.rv(), [0; N_TABLES], 0);
@@ -1583,9 +1604,22 @@ pub(crate) mod tests {
                 .collect::<Vec<_>>()
         };
 
-        // The bytecode cap keeps the margin, and one more bit of bytecode loses it.
-        assert!(BusSetup::new(&push, &pull, &bytecode(MAX_LOG_BYTECODE)).is_ok());
-        assert!(BusSetup::new(&push, &pull, &bytecode(MAX_LOG_BYTECODE + 1)).is_err());
+        // Every text the region holds keeps the margin with its grinding, and one bit less grinding loses it.
+        let keeps =
+            |log_bytecode: usize, grinding: u32| BusSetup::new(&push, &pull, &bytecode(log_bytecode), grinding).is_ok();
+        for log_bytecode in 0..=Region::TEXT.max_log_words() {
+            let sizes = Sizes {
+                log_bytecode,
+                log_ram: 0,
+                log_advice: 0,
+            };
+            let grinding = Lookup::Bytecode.grinding_bits(sizes);
+            assert!(keeps(log_bytecode, grinding), "2^{log_bytecode} entries");
+            assert_eq!(grinding == 0, log_bytecode <= UNGROUND_LOG_BYTECODE);
+            if grinding > 0 {
+                assert!(!keeps(log_bytecode, grinding - 1), "2^{log_bytecode} entries");
+            }
+        }
     }
 
     #[test]
@@ -1600,9 +1634,9 @@ pub(crate) mod tests {
         }];
         let pull = [Block::framework(0, tuple)];
 
-        // The verifier's setup refuses it with an error, before drawing any challenge.
+        // Without grinding, the verifier's setup refuses it with an error, before drawing any challenge.
         assert!(matches!(
-            BusSetup::new(&[], &pull, &producers),
+            BusSetup::new(&[], &pull, &producers, 0),
             Err(BusError::Soundness {
                 required: BUS_SOUNDNESS_BITS,
                 ..

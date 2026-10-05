@@ -109,7 +109,7 @@ impl BusBlocks {
 
     /// Prove the bus balances over the global columns.
     pub(crate) fn prove(&self, cols: &[&[F64]], ps: &mut ProverState) -> BusProof {
-        leaf::prove_balance(&self.push, &self.pull, &[], cols, &RecLayout::TABLE_COLUMNS, ps)
+        leaf::prove_balance(&self.push, &self.pull, &[], 0, cols, &RecLayout::TABLE_COLUMNS, ps)
     }
 
     /// Verify the bus balances.
@@ -118,7 +118,7 @@ impl BusBlocks {
     ///
     /// Returns the first check of the balance that refuses.
     pub(crate) fn verify<V: Verifier>(&self, v: &mut V) -> Result<BusVerify<V::E>, BusError> {
-        let bus = leaf::verify_balance(v, &self.push, &self.pull, &[], &RecLayout::TABLE_COLUMNS)?;
+        let bus = leaf::verify_balance(v, &self.push, &self.pull, &[], 0, &RecLayout::TABLE_COLUMNS)?;
         debug_assert!(
             bus.sparse.iter().all(Vec::is_empty) && bus.producers.is_empty(),
             "the machine's target has no share for sparse columns or producers"
