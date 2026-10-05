@@ -37,7 +37,7 @@ impl<'p> ProofShape<'p> {
     ///
     /// Refuses what the native verifier refuses of an announcement: a height out of range, or a witness the commitment does not take.
     pub fn new(program: &'p Program, taus: [usize; N_TABLES], rate: Rate) -> Result<Self, CpuError> {
-        let layout = Layout::announced(program.rv(), taus)?;
+        let layout = Layout::announced(program, taus)?;
         Ok(Self {
             program,
             taus,

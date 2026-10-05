@@ -11,6 +11,7 @@
 use super::MAX_LOG_ROWS;
 use super::error::CpuError;
 use super::execute::Trace;
+use super::program::Program;
 use crate::arith::Arith;
 use crate::constraints::Claims;
 use crate::leaf::{Block, ColumnClaim, Coord, Producer, PublicColumn, SparseColumn};
@@ -459,12 +460,13 @@ pub struct Layout {
 }
 
 impl Layout {
-    /// The layout of a run of `p` with table heights `2^taus`, ending on clock `ts_final`.
+    /// The layout of a run of `program` with table heights `2^taus`, ending on clock `ts_final`.
     ///
     /// A table's height is its row count: the fill blocks bring every count to a power of two.
     ///
     /// So every row was executed, and no flush has padding tuples to divide back out of the bus.
-    pub fn new(p: &RiscvProgram, taus: [usize; tables::N_TABLES], ts_final: u64) -> Self {
+    pub fn new(program: &Program, taus: [usize; tables::N_TABLES], ts_final: u64) -> Self {
+        let p = &program.rv;
         let sizes = Sizes::of(p);
 
         // The framework's blocks open both sides, one push and one pull block each.
@@ -500,7 +502,9 @@ impl Layout {
             .into_iter()
             .map(|lookup| Producer {
                 kappa: lookup.log_rows(sizes),
-                coords: lookup.tuple(p),
+                coords: match lookup {
+                    Lookup::Bytecode => program.bytecode.clone(),
+                },
                 col: lookup.multiplicity().col(),
                 bits: lookup.multiplicity_bits(taus),
             })
@@ -692,15 +696,15 @@ impl Announcement {
         })
     }
 
-    /// The layout the announced heights describe for `p`, its final clock zero.
+    /// The layout the announced heights describe for `program`, its final clock zero.
     ///
     /// The verifier adds the announced clock's share itself.
     ///
     /// # Errors
     ///
     /// Refuses heights whose stacked witness the commitment does not take.
-    pub(super) fn layout(&self, p: &RiscvProgram) -> Result<Layout, CpuError> {
-        Layout::announced(p, self.taus)
+    pub(super) fn layout(&self, program: &Program) -> Result<Layout, CpuError> {
+        Layout::announced(program, self.taus)
     }
 }
 
@@ -710,10 +714,10 @@ impl Layout {
     /// # Errors
     ///
     /// Refuses a height outside its table's range, or heights whose stacked witness the commitment does not take.
-    pub(crate) fn announced(p: &RiscvProgram, taus: [usize; tables::N_TABLES]) -> Result<Self, CpuError> {
+    pub(crate) fn announced(program: &Program, taus: [usize; tables::N_TABLES]) -> Result<Self, CpuError> {
         Self::check_heights(&taus)?;
         // The caps bound each height alone; the stacked size they imply is checked here.
-        let layout = Self::new(p, taus, 0);
+        let layout = Self::new(program, taus, 0);
         if !(pcs::MIN_MU..=pcs::MAX_MU).contains(&layout.shape.mu) {
             return Err(CpuError::WitnessSize { mu: layout.shape.mu });
         }

@@ -15,7 +15,7 @@ use crate::arith::Verifier;
 use crate::constraints::{Columns, ConstraintError};
 use crate::pcs::{Rate, RingSwitch, SliceClaim, StackClaim};
 use crate::{constraints, pcs, witness};
-use fiat_shamir::transcript::{Challenger, ProofTranscript, ProverState, RawProof, VerifierState};
+use fiat_shamir::transcript::{Challenger, ProofTranscript, ProverState, VerifierState};
 use primitives::field::{F64, F192};
 
 /// The transcript's public input for a statement: the hash of its words' limbs, in order.
@@ -247,23 +247,6 @@ impl Circuit {
         rate: Rate,
         proof: &ProofTranscript,
     ) -> Result<(), RecError> {
-        self.verify_to_raw(statement, iv, rate, proof).map(|_| ())
-    }
-
-    /// Verify a proof, returning it as its verifier read it, every Merkle path written out.
-    ///
-    /// That is what a recursive verifier replays.
-    ///
-    /// # Errors
-    ///
-    /// Returns the first check that refuses the proof.
-    pub fn verify_to_raw(
-        &self,
-        statement: &[Limbs],
-        iv: [F64; 4],
-        rate: Rate,
-        proof: &ProofTranscript,
-    ) -> Result<RawProof, RecError> {
         self.verify_seeded(statement, iv, statement_seed(statement), rate, proof)
     }
 
@@ -275,7 +258,7 @@ impl Circuit {
         public_input: [F64; 4],
         rate: Rate,
         proof: &ProofTranscript,
-    ) -> Result<RawProof, RecError> {
+    ) -> Result<(), RecError> {
         if statement.len() != self.statement_len {
             return Err(RecError::StatementLength {
                 expected: self.statement_len,
@@ -296,8 +279,7 @@ impl Circuit {
             rate.log_inv_rate().into(),
             &root,
         )?;
-        vs.finish()?;
-        Ok(vs.into_raw_proof())
+        Ok(vs.finish()?)
     }
 }
 

@@ -21,7 +21,6 @@ thiserror.workspace = true
 [dev-dependencies]
 proptest.workspace = true
 leanvm_guest.workspace = true
-bincode.workspace = true
 bench.workspace = true
 primitives = { workspace = true, features = ["test-util"] }
 

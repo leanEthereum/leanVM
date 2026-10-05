@@ -28,7 +28,7 @@ use crate::rec::transcript::ProofSource;
 use crate::rec::verifier::ProofShape;
 use crate::tables::{ClassSpec, N_TABLES, Part};
 use design::{ChildWitness, Design, LeafWitness, NodeInputs, NodeRows};
-use fiat_shamir::transcript::{ProofTranscript, RawProof};
+use fiat_shamir::transcript::ProofTranscript;
 use primitives::field::{F64, F192};
 use primitives::multilinear::{eq_table, mle_eval_par};
 use reduce::DenseTables;
@@ -432,12 +432,11 @@ impl<'p> Tree<'p> {
                 if LeafShape::announced(proof) != Some(shape) {
                     return Err(TreeError::ForeignLeaf { index });
                 }
-                let raw = (program.verify_to_raw(output.words(), proof)).map_err(|error| TreeError::Leaf {
-                    index,
-                    error: error.into(),
-                })?;
+                program
+                    .verify(output, proof)
+                    .map_err(|error| TreeError::Leaf { index, error })?;
                 Ok(LeafWitness {
-                    raw,
+                    proof: &proof.0,
                     output: *output.words(),
                 })
             })
@@ -463,16 +462,17 @@ impl<'p> Tree<'p> {
                 got: children.len(),
             });
         }
-        let raws = (children.iter().enumerate())
-            .map(|(index, c)| self.read(c).map_err(|error| TreeError::Child { index, error }))
-            .collect::<Result<Vec<_>, _>>()?;
+        for (index, c) in children.iter().enumerate() {
+            self.verify_recursion(c)
+                .map_err(|error| TreeError::Child { index, error })?;
+        }
         let statements: Vec<TreeStatement> = (children.iter())
             .map(|c| TreeStatement::new(d.statement, c.words.clone()))
             .collect();
-        let items: Vec<ChildWitness<'_>> = (children.iter().zip(&statements).zip(raws))
-            .map(|((c, statement), raw)| ChildWitness {
+        let items: Vec<ChildWitness<'_>> = (children.iter().zip(&statements))
+            .map(|(c, statement)| ChildWitness {
                 statement,
-                raw,
+                proof: &c.proof,
                 columns: &self.columns[c.kind as usize],
             })
             .collect();
@@ -528,7 +528,7 @@ impl<'p> Tree<'p> {
                 got: root.kind,
             });
         }
-        self.read(root).map_err(TreeError::Root)?;
+        self.verify_recursion(root).map_err(TreeError::Root)?;
         let statement = TreeStatement::new(d.statement, root.words.clone());
         if statement.digest_words() != self.digest(outputs) {
             return Err(TreeError::Outputs);
@@ -565,24 +565,20 @@ impl<'p> Tree<'p> {
         level[0]
     }
 
-    /// Verify a tree proof's recursion proof, short of its claims, returning it as its verifier read it.
-    fn read(&self, p: &TreeProof) -> Result<RawProof, RecError> {
+    /// Verify a tree proof's recursion proof, short of its claims.
+    fn verify_recursion(&self, p: &TreeProof) -> Result<(), RecError> {
         let limbs: Vec<[u64; 4]> = p.words.iter().map(|w| [w.c0, w.c1, w.c2, 0]).collect();
         self.circuit(p.kind)
-            .verify_to_raw(&limbs, self.design.iv, self.design.rate, &p.proof)
+            .verify(&limbs, self.design.iv, self.design.rate, &p.proof)
     }
 
     /// Prove a circuit's rows: its reduction, then its recursion proof.
     fn prove_rows(&self, rows: NodeRows, kind: Kind) -> Result<TreeProof, TreeError> {
         let d = &self.design;
         let reduction = rows.claim_values().prove(&d.vars, &self.tables);
-        let raw = RawProof {
-            stream: reduction.stream,
-            merkle: Vec::new(),
-        };
         let Finished {
             assignment, failures, ..
-        } = crate::stage!("Reduce in rows", || rows.reduce(d, ProofSource::Proof(&raw)));
+        } = crate::stage!("Reduce in rows", || rows.reduce(d, ProofSource::Proof(&reduction)));
         if let Some(first) = failures.into_iter().next() {
             return Err(TreeError::Unsatisfied(first));
         }

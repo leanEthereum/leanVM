@@ -20,7 +20,7 @@ use crate::rec::fixed::FixedColumns;
 use crate::rec::table::{HashFlock, Table};
 use crate::rec::transcript::{ProofSource, Transcript};
 use crate::rec::verifier::{FixedHint, ProofShape, RecShape, RingMap, Rows, infallible};
-use fiat_shamir::transcript::RawProof;
+use fiat_shamir::transcript::ProofTranscript;
 use primitives::field::{F64, F192};
 use primitives::hash::Hasher;
 use primitives::multilinear::mle_eval_par;
@@ -52,20 +52,20 @@ pub(crate) struct Design<'p> {
     pub(crate) iv: [F64; 4],
 }
 
-/// A leaf as a first-level node's prover holds it: its proof as its verifier read it, and its output.
-pub(crate) struct LeafWitness {
-    /// The proof, its Merkle paths written out.
-    pub(crate) raw: RawProof,
+/// A leaf as a first-level node's prover holds it: its proof, verified, and its output.
+pub(crate) struct LeafWitness<'a> {
+    /// The proof.
+    pub(crate) proof: &'a ProofTranscript,
     /// The output it proves.
     pub(crate) output: [u64; 4],
 }
 
-/// A child as a node's prover holds it: its statement, its proof as its verifier read it, and its circuit's fixed columns.
+/// A child as a node's prover holds it: its statement, its proof, verified, and its circuit's fixed columns.
 pub(crate) struct ChildWitness<'a> {
     /// What it states.
     pub(crate) statement: &'a TreeStatement,
-    /// The proof, its Merkle paths written out.
-    pub(crate) raw: RawProof,
+    /// The proof.
+    pub(crate) proof: &'a ProofTranscript,
     /// The fixed columns of its circuit.
     pub(crate) columns: &'a FixedColumns,
 }
@@ -179,14 +179,14 @@ impl<'p> Design<'p> {
     }
 
     /// The first level's rows, verifying its leaves.
-    pub(crate) fn first(&self, inputs: &NodeInputs<'_, LeafWitness>) -> NodeRows {
+    pub(crate) fn first(&self, inputs: &NodeInputs<'_, LeafWitness<'_>>) -> NodeRows {
         let mut b = Builder::new();
         let mut claims = NodeClaims::default();
         let mut outputs = Vec::with_capacity(self.arity_0);
         for i in 0..self.arity_0 {
             let leaf = inputs.item(i);
             let output = leaf.map_or([0; 4], |l| l.output).map(|o| b.free_k(o));
-            let source = leaf.map_or(ProofSource::Shape, |l| ProofSource::Proof(&l.raw));
+            let source = leaf.map_or(ProofSource::Shape, |l| ProofSource::Proof(l.proof));
             let core = b.scope(format!("leaf {i}"), |b| self.leaf.verify_core(b, output, source));
             claims.bind_state(&mut b, core.state);
             b.scope(format!("leaf {i} program"), |b| {
@@ -232,7 +232,7 @@ impl<'p> Design<'p> {
                 })
                 .collect();
             let columns = child.map_or_else(|| zeros.as_ref().expect("zero columns from a shape"), |c| c.columns);
-            let source = child.map_or(ProofSource::Shape, |c| ProofSource::Proof(&c.raw));
+            let source = child.map_or(ProofSource::Shape, |c| ProofSource::Proof(c.proof));
             let rows = b.scope(format!("child {i}"), |b| {
                 self.child.verify(b, iv, &limbs, columns, source)
             });
@@ -273,7 +273,7 @@ impl<'p> Design<'p> {
         &self,
         b: &mut Builder,
         program: &Claim<ProgramPoint<Ew>, Ew>,
-        inputs: &NodeInputs<'_, LeafWitness>,
+        inputs: &NodeInputs<'_, LeafWitness<'_>>,
         claims: &mut NodeClaims<Ew>,
     ) {
         let p = &program.point;

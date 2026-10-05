@@ -1,7 +1,7 @@
 //! A Fiat-Shamir transcript replayed in rows: every absorb and squeeze is a hash row on the wires it binds.
 
 use super::circuit::{Builder, Dw, Ew, Kw, Limbs, digest_limbs, zero_prefix};
-use fiat_shamir::transcript::RawProof;
+use fiat_shamir::transcript::ProofTranscript;
 use fiat_shamir::{DS_OBSERVE, DS_POW_BASE, DS_POW_NONCE, DS_SQUEEZE};
 use primitives::field::F192;
 
@@ -10,19 +10,19 @@ use primitives::field::F192;
 /// The rows never depend on what is read, so both sources give one circuit.
 #[derive(Clone, Copy, Debug)]
 pub enum ProofSource<'a> {
-    /// The proof, as its native verifier read it.
-    Proof(&'a RawProof),
+    /// The proof, its Merkle phases pruned as it travels.
+    Proof(&'a ProofTranscript),
     /// No proof: every scalar and opening is zero.
     Shape,
 }
 
-/// One Merkle opening as the circuit reads it: the leaf's image and the sibling path.
+/// One query's Merkle opening as the circuit reads it: the row the proof stores, and the sibling path.
 #[derive(Clone, Debug)]
-pub struct MerkleOpening {
-    /// The leaf's words.
-    pub image: Vec<u64>,
+struct MerkleOpening {
+    /// The row's words, the leaf image's tail.
+    row: Vec<u64>,
     /// The siblings, lowest first.
-    pub path: Vec<Limbs>,
+    path: Vec<Limbs>,
 }
 
 /// The transcript's chaining value as a wire, and where the proof is read.
@@ -31,7 +31,7 @@ pub struct Transcript<'a> {
     cv: Dw,
     source: ProofSource<'a>,
     offset: usize,
-    opening: usize,
+    phase: usize,
 }
 
 impl<'a> Transcript<'a> {
@@ -47,7 +47,7 @@ impl<'a> Transcript<'a> {
             cv,
             source,
             offset: 0,
-            opening: 0,
+            phase: 0,
         }
     }
 
@@ -56,10 +56,10 @@ impl<'a> Transcript<'a> {
         self.cv
     }
 
-    /// Whether every scalar and opening of the proof was read.
+    /// Whether every scalar and Merkle phase of the proof was read.
     pub const fn finished(&self) -> bool {
         match self.source {
-            ProofSource::Proof(p) => self.offset == p.stream.len() && self.opening == p.merkle.len(),
+            ProofSource::Proof(p) => self.offset == p.stream.len() && self.phase == p.merkle.len(),
             ProofSource::Shape => true,
         }
     }
@@ -165,23 +165,67 @@ impl<'a> Transcript<'a> {
         self.absorb(b, nonce, DS_POW_NONCE.0);
     }
 
-    /// The next query's opening, its image and path padded with zeros to the given lengths.
-    fn next_opening(&mut self, leaf_words: usize, depth: usize) -> MerkleOpening {
-        let opening = match self.source {
-            ProofSource::Proof(p) => p.merkle.get(self.opening).map(|o| MerkleOpening {
-                image: o.leaf_data.iter().map(|w| w.0).collect(),
-                path: o.path.iter().map(digest_limbs).collect(),
+    /// The next Merkle phase's openings, one per query in `queries` order.
+    ///
+    /// The phase stores each distinct query's row once and one octopus over them all, written out here into each query's own path.
+    /// A missing phase, or one that does not walk, reads as zeros, which no root accepts.
+    fn next_openings(
+        &mut self,
+        b: &Builder,
+        queries: &[Vec<Kw>],
+        row_words: usize,
+        leaf_words: usize,
+    ) -> Vec<MerkleOpening> {
+        let depth = queries.first().map_or(0, Vec::len);
+        let paths = match self.source {
+            ProofSource::Proof(p) => p.merkle.get(self.phase).and_then(|phase| {
+                // A query's index is its bits' value, lowest first.
+                let indices: Vec<usize> = (queries.iter())
+                    .map(|bits| (bits.iter().rev()).fold(0, |q, &bit| (q << 1) | b.k(bit) as usize))
+                    .collect();
+                phase.paths(1 << depth, &indices, row_words, leaf_words)
             }),
             ProofSource::Shape => None,
         };
-        self.opening += 1;
-        let mut opening = opening.unwrap_or(MerkleOpening {
-            image: Vec::new(),
-            path: Vec::new(),
-        });
-        opening.image.resize(leaf_words, 0);
-        opening.path.resize(depth, [0; 4]);
-        opening
+        self.phase += 1;
+        let Some(paths) = paths else {
+            let zeros = MerkleOpening {
+                row: vec![0; row_words],
+                path: vec![[0; 4]; depth],
+            };
+            return vec![zeros; queries.len()];
+        };
+        (paths.into_iter())
+            .map(|(row, path)| MerkleOpening {
+                row: row.iter().map(|w| w.0).collect(),
+                path: path.iter().map(digest_limbs).collect(),
+            })
+            .collect()
+    }
+
+    /// Authenticate one Merkle phase, each query's row against `root`, and return the rows' words in `queries` order.
+    ///
+    /// A query is its index bits, lowest first. Each row is hashed up a path of its own, so the rows never depend on which queries coincide.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the leaf is not whole blocks of eight words, or the row is longer than it.
+    pub fn open_rows(
+        &mut self,
+        b: &mut Builder,
+        root: Dw,
+        queries: &[Vec<Kw>],
+        row_words: usize,
+        leaf_words: usize,
+    ) -> Vec<Vec<Kw>> {
+        assert!(
+            leaf_words.is_multiple_of(8) && row_words <= leaf_words,
+            "a leaf of whole blocks holds the row"
+        );
+        let openings = self.next_openings(b, queries, row_words, leaf_words);
+        (queries.iter().zip(&openings))
+            .map(|(bits, opening)| Self::open_row(b, root, bits, opening, leaf_words))
+            .collect()
     }
 
     /// Authenticate one query's row against a root and return the row's words.
@@ -189,22 +233,19 @@ impl<'a> Transcript<'a> {
     /// The leaf image ends with the row, every word before it zero.
     /// It is hashed from the shared state of its whole zero blocks, then up the path.
     /// The direction at each level is the query's bit there, lowest first.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the leaf is not whole blocks of eight words, or the row is longer than it.
-    pub fn open_row(&mut self, b: &mut Builder, root: Dw, bits: &[Kw], row_words: usize, leaf_words: usize) -> Vec<Kw> {
-        assert!(
-            leaf_words.is_multiple_of(8) && row_words <= leaf_words,
-            "a leaf of whole blocks holds the row"
-        );
-        let opening = self.next_opening(leaf_words, bits.len());
-        let prefix = leaf_words - row_words;
+    fn open_row(b: &mut Builder, root: Dw, bits: &[Kw], opening: &MerkleOpening, leaf_words: usize) -> Vec<Kw> {
+        let prefix = leaf_words - opening.row.len();
         let zero_blocks = prefix / 8;
         let mut h = b.d_const(zero_prefix(zero_blocks));
         let zero = b.k_const(0);
         let words: Vec<Kw> = (zero_blocks * 8..leaf_words)
-            .map(|i| if i < prefix { zero } else { b.free_k(opening.image[i]) })
+            .map(|i| {
+                if i < prefix {
+                    zero
+                } else {
+                    b.free_k(opening.row[i - prefix])
+                }
+            })
             .collect();
         let n_blocks = leaf_words / 8;
         for (j, m) in words.as_chunks::<8>().0.iter().enumerate() {
@@ -233,7 +274,7 @@ mod tests {
         F192::new(8, 8, 8),
     ];
 
-    fn native() -> (RawProof, [F192; 3]) {
+    fn native() -> (ProofTranscript, [F192; 3]) {
         let mut ps = ProverState::from_label(LABEL);
         ps.add_scalars(&[F192::new(1, 2, 3), F192::new(u64::MAX, 7, 0)]);
         let c0 = ps.sample();
@@ -242,12 +283,7 @@ mod tests {
         ps.add_round_poly(&POLY, true);
         ps.grind(6);
         let c1 = ps.sample();
-        let proof = ps.into_proof();
-        let raw = RawProof {
-            stream: proof.stream,
-            merkle: Vec::new(),
-        };
-        (raw, [c0, r, c1])
+        (ps.into_proof(), [c0, r, c1])
     }
 
     // The native transcript above, in rows: the claims are the sums the scalars read make.

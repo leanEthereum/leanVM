@@ -172,7 +172,7 @@ fn python_leaves_the_same_deferred_claims() {
     let claims = program
         .verify_core(&output, &proof)
         .expect("the proof's own checks pass");
-    let raw = program.verify_to_raw(&output, &proof).expect("the proof verifies");
-    let python = PythonStatement::new("deferred", &program, &output).deferred(&raw);
+    program.check_deferred(&claims).expect("the proof verifies");
+    let python = PythonStatement::new("deferred", &program, &output).deferred(&proof);
     assert_eq!(python, render(&claims));
 }

@@ -12,12 +12,10 @@
 //! Lincheck's `C` is the identity, whose form is closed and stays in the core.
 
 use super::batch::FormPowers;
-use super::layout::Lookup;
 use super::{CpuError, Program};
 use crate::arith::Arith;
 use crate::constraints::{ConstraintError, Final};
 use crate::leaf::{BusVerify, N_TUPLE_BITS, SparseColumn};
-use crate::rv::RiscvProgram;
 use crate::tables::{ClassSpec, Part};
 use crate::{class_flock, leaf, tables};
 use flock::lincheck::{LincheckError, MatrixClaim, MatrixForm};
@@ -126,8 +124,9 @@ pub enum MalformedClaim {
 }
 
 impl ProgramPoint {
-    /// The value of the program's fixed polynomials at this point, if the point has the program's shape.
-    fn evaluate(&self, rv: &RiscvProgram) -> Option<F192> {
+    /// The value of `program`'s fixed polynomials at this point, if the point has the program's shape.
+    fn evaluate(&self, program: &Program) -> Option<F192> {
+        let rv = program.rv();
         let kbc = crate::log2_strict_usize(rv.entries().len());
         // A multiplicity is one word, so it has at most 64 bits.
         if self.bytecode.len() != kbc + N_TUPLE_BITS || self.image_point.len() != rv.log_ram() || self.twist.len() > 64
@@ -136,7 +135,7 @@ impl ProgramPoint {
         }
         let (chi, alphas) = self.bytecode.split_at(kbc);
         let weights = leaf::fingerprint_weights(alphas);
-        let bytecode = leaf::producer_public_twist(&Lookup::Bytecode.tuple(rv), &weights, chi, &self.twist);
+        let bytecode = leaf::producer_public_twist(&program.bytecode, &weights, chi, &self.twist);
         let image = SparseColumn::new(rv.log_ram(), &[(0, rv.image())]);
         Some(bytecode + self.image_weight * image.eval(&self.image_point))
     }
@@ -210,7 +209,7 @@ impl Program {
         }
 
         let program = (claims.program.point)
-            .evaluate(self.rv())
+            .evaluate(self)
             .ok_or(CpuError::MalformedClaim(MalformedClaim::ProgramPoint))?;
         if program != claims.program.value {
             return Err(CpuError::Constraint(ConstraintError::FinalMismatch));
@@ -237,6 +236,7 @@ impl Program {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::cpu::layout::Lookup;
     use crate::rv::Region;
     use crate::rv::asm::*;
     use primitives::multilinear::{eq_table, mle_eval};

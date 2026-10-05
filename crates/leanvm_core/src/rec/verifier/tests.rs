@@ -21,7 +21,7 @@ use ::flock::zerocheck::K_SKIP;
 use ::pcs::pack::PACKING_WIDTH;
 use ::pcs::stack_open::RingFamily;
 use ::pcs::whir::inner_product_base_ext;
-use fiat_shamir::transcript::{ProofTranscript, ProverState, RawProof, VerifierState};
+use fiat_shamir::transcript::{ProofTranscript, ProverState, VerifierState};
 use primitives::field::{F64, F192};
 use primitives::test_util::Rng;
 use std::sync::OnceLock;
@@ -40,10 +40,10 @@ fn small_program() -> Program {
     Program::new(&text, Region::TEXT.base(), vec![3, 5], 2, 0).expect("a valid program")
 }
 
-// One honest proof of the small program, as the native verifier read it.
+// One honest proof of the small program, and what the native verifier makes of it.
 struct Fixture {
     program: Program,
-    raw: RawProof,
+    proof: ProofTranscript,
     output: [u64; 4],
     taus: [usize; N_TABLES],
     native: DeferredClaims,
@@ -56,11 +56,10 @@ fn fixture() -> &'static Fixture {
         let program = small_program();
         let (proof, output, _) = program.prove(&[], Rate::MIN).expect("the run halts");
         let native = program.verify_core(&output, &proof).expect("an honest proof");
-        let raw = program.verify_to_raw(&output, &proof).expect("an honest proof");
         let taus = std::array::from_fn(|i| usize::try_from(proof.0.stream[i].c0).expect("a height"));
         Fixture {
             program,
-            raw,
+            proof: proof.0,
             output,
             taus,
             native,
@@ -79,8 +78,8 @@ impl Fixture {
     }
 
     // The checks a forged proof fails, in the order the rows meet them.
-    fn failures(&self, raw: &RawProof) -> Vec<String> {
-        self.build(ProofSource::Proof(raw)).0.finish().failures
+    fn failures(&self, proof: &ProofTranscript) -> Vec<String> {
+        self.build(ProofSource::Proof(proof)).0.finish().failures
     }
 }
 
@@ -91,7 +90,7 @@ fn values(b: &Builder, claims: &DeferredClaims<Ew>) -> DeferredClaims {
 #[test]
 fn the_core_leaves_the_native_deferred_claims() {
     let f = fixture();
-    let (b, claims) = f.build(ProofSource::Proof(&f.raw));
+    let (b, claims) = f.build(ProofSource::Proof(&f.proof));
     let got = values(&b, &claims);
     assert_eq!(got.program, f.native.program, "the program claim");
     for (i, (got, native)) in got.circuits.iter().zip(&f.native.circuits).enumerate() {
@@ -110,25 +109,26 @@ fn the_core_leaves_the_native_deferred_claims() {
 #[test]
 fn a_tampered_proof_fails_where_the_native_verifier_does() {
     let f = fixture();
-    let first = |raw: &RawProof| f.failures(raw).into_iter().next().unwrap_or_default();
+    let first = |proof: &ProofTranscript| f.failures(proof).into_iter().next().unwrap_or_default();
 
     // The GKR's root, read right after the announcement and the commitment's two halves.
-    let mut forged = f.raw.clone();
+    let mut forged = f.proof.clone();
     forged.stream[N_TABLES + 4].c1 ^= 1;
     assert!(first(&forged).starts_with("bus and tables"), "{}", first(&forged));
 
-    // A sibling and a leaf word of the first and the last opening.
-    for opening in [0, f.raw.merkle.len() - 1] {
-        let mut forged = f.raw.clone();
-        forged.merkle[opening].path[1][0] ^= 1;
+    // A sibling and a row's last word, in the first and the last phase.
+    for phase in [0, f.proof.merkle.len() - 1] {
+        let mut forged = f.proof.clone();
+        forged.merkle[phase].sibling_hashes[1][0] ^= 1;
         assert!(
             first(&forged).starts_with("opening / whir / rows"),
             "{}",
             first(&forged)
         );
-        let mut forged = f.raw.clone();
-        let last = forged.merkle[opening].leaf_data.len() - 1;
-        forged.merkle[opening].leaf_data[last].0 ^= 1;
+        let mut forged = f.proof.clone();
+        let row = &mut forged.merkle[phase].leaf_data[0];
+        let last = row.len() - 1;
+        row[last].0 ^= 1;
         assert!(
             first(&forged).starts_with("opening / whir / rows"),
             "{}",
@@ -141,9 +141,9 @@ fn a_tampered_proof_fails_where_the_native_verifier_does() {
 fn a_forged_announcement_is_refused_first() {
     let f = fixture();
     let clock = N_TABLES + 1;
-    let ts = f.raw.stream[clock];
-    let forge = |edit: &dyn Fn(&mut RawProof)| {
-        let mut forged = f.raw.clone();
+    let ts = f.proof.stream[clock];
+    let forge = |edit: &dyn Fn(&mut ProofTranscript)| {
+        let mut forged = f.proof.clone();
         edit(&mut forged);
         f.failures(&forged).into_iter().next().unwrap_or_default()
     };
@@ -212,13 +212,6 @@ fn replay<T>(source: ProofSource<'_>, f: impl FnOnce(&mut Rows<'_, '_>) -> T) ->
     (b, out, finished)
 }
 
-fn raw(proof: &ProofTranscript) -> RawProof {
-    RawProof {
-        stream: proof.stream.clone(),
-        merkle: Vec::new(),
-    }
-}
-
 // Packed witness `f`'s batch over `rows`: its instances' count, and its witness as the prover holds it.
 struct Batch {
     f: usize,
@@ -275,10 +268,10 @@ fn check_reductions(batches: &[Batch]) {
         let mut vs = VerifierState::from_label(LABEL, proof);
         ::flock::reduction::verify_deferred(&circuits, &mut vs)
     };
-    let rows = |proof: &RawProof| replay(ProofSource::Proof(proof), |r| Reduction::replay(r, &circuits));
+    let rows = |proof: &ProofTranscript| replay(ProofSource::Proof(proof), |r| Reduction::replay(r, &circuits));
 
     let replays = native(&proof).expect("an honest batch");
-    let (b, reductions, finished) = rows(&raw(&proof));
+    let (b, reductions, finished) = rows(&proof);
     assert!(finished, "the rows read the whole stream");
     for ((batch, reduction), (replay, matrices)) in batches.iter().zip(&reductions).zip(&replays) {
         let point: Vec<F192> = reduction.slice.suffix_point.iter().map(|&w| b.e(w)).collect();
@@ -316,7 +309,7 @@ fn check_reductions(batches: &[Batch]) {
         let mut forged = proof.clone();
         forged.stream[index] += F192::ONE;
         assert!(native(&forged).is_err(), "the native verifier refuses scalar {index}");
-        let failures = rows(&raw(&forged)).0.finish().failures;
+        let failures = rows(&forged).0.finish().failures;
         assert!(
             failures.first().is_some_and(|f| f.starts_with(stage)),
             "scalar {index}: {failures:?}"
@@ -344,7 +337,7 @@ fn check_reductions(batches: &[Batch]) {
         forged.stream[len - tail + PACKING_WIDTH] += delta * lifts[1];
         forged.stream[len - tail + 2 * PACKING_WIDTH + 1] += delta * lifts[0];
         let moved = native(&forged).expect("the batch's identity holds");
-        let (b, reductions, _) = rows(&raw(&forged));
+        let (b, reductions, _) = rows(&forged);
         for (f, (reduction, (_, matrices))) in reductions.iter().zip(&moved).enumerate() {
             assert_eq!(b.e(reduction.matrix.value), matrices.value);
             let settles = matrices.form.evaluate(class_flock::circuit(batches[f].f)) == matrices.value;
@@ -520,12 +513,11 @@ fn check_opening(mu: usize, log_inv_rate: usize, seed: u64) {
     let root = crate::pcs::read_commitment(&mut vs).expect("a root");
     crate::pcs::verify(&mut vs, &slots, &rings, shape, log_inv_rate, &root).expect("the native verifier accepts");
     vs.finish().expect("the native verifier reads the whole proof");
-    let raw = vs.into_raw_proof();
 
     let rows = |slots: &[StackClaim], rings: &[RingSwitch], source: ProofSource<'_>| {
         opening_rows(shape, log_inv_rate, slots, rings, source)
     };
-    let (circuit, failures, finished) = rows(&slots, &rings, ProofSource::Proof(&raw));
+    let (circuit, failures, finished) = rows(&slots, &rings, ProofSource::Proof(&proof));
     assert!(failures.is_empty(), "{what}: {failures:?}");
     assert!(finished, "{what}: the rows left part of the proof unread");
     assert!(
@@ -539,7 +531,7 @@ fn check_opening(mu: usize, log_inv_rate: usize, seed: u64) {
         match &mut forged[i] {
             StackClaim::Point { value, .. } | StackClaim::Strided { value, .. } => *value += F192::ONE,
         }
-        let (_, failures, _) = rows(&forged, &rings, ProofSource::Proof(&raw));
+        let (_, failures, _) = rows(&forged, &rings, ProofSource::Proof(&proof));
         assert!(
             terminal(&failures),
             "{what}: a wrong value of point claim {i} passes: {failures:?}"
@@ -549,14 +541,14 @@ fn check_opening(mu: usize, log_inv_rate: usize, seed: u64) {
         for claim in 0..rings[ring].claims.len() {
             let mut forged = rings.clone();
             forged[ring].claims[claim].s_hat_v[7] += F192::ONE;
-            let (_, failures, _) = rows(&slots, &forged, ProofSource::Proof(&raw));
+            let (_, failures, _) = rows(&slots, &forged, ProofSource::Proof(&proof));
             assert!(
                 terminal(&failures),
                 "{what}: a wrong slice of ring {ring} claim {claim} passes: {failures:?}"
             );
         }
     }
-    let mut forged = raw;
+    let mut forged = proof;
     let mid = forged.stream.len() / 2;
     forged.stream[mid].c1 ^= 1;
     assert!(
@@ -685,13 +677,13 @@ fn a_recursion_proof_in_rows_is_its_verifier() {
     assert!(failures.is_empty(), "{failures:?}");
     let iv = label_cv().map(F64);
     let proof = circuit.prove(&a, iv, Rate::MIN).expect("the circuit fits");
-    let raw = circuit
-        .verify_to_raw(a.statement(), iv, Rate::MIN, &proof)
+    circuit
+        .verify(a.statement(), iv, Rate::MIN, &proof)
         .expect("an honest proof");
     let taus = circuit.heights();
     let columns = FixedColumns::of(&circuit, &taus);
 
-    let (b, rows) = recursion_rows(&circuit, a.statement(), &columns, ProofSource::Proof(&raw));
+    let (b, rows) = recursion_rows(&circuit, a.statement(), &columns, ProofSource::Proof(&proof));
     let form = rows.matrix.point.map(|w| b.e(w));
     let hash = class_flock::circuit(HashFlock::index());
     assert_eq!(
@@ -715,12 +707,12 @@ fn a_recursion_proof_in_rows_is_its_verifier() {
     assert!(proven == shaped.finish().circuit, "the shape builds another circuit");
 
     // A tampered scalar, and a statement word the proof is not of.
-    let mut forged = raw.clone();
+    let mut forged = proof.clone();
     forged.stream[7].c1 ^= 1;
     let (b, _) = recursion_rows(&circuit, a.statement(), &columns, ProofSource::Proof(&forged));
     assert!(!b.finish().failures.is_empty(), "a forged scalar passes");
     let mut statement = a.statement().to_vec();
     statement[1][2] ^= 1;
-    let (b, _) = recursion_rows(&circuit, &statement, &columns, ProofSource::Proof(&raw));
+    let (b, _) = recursion_rows(&circuit, &statement, &columns, ProofSource::Proof(&proof));
     assert!(!b.finish().failures.is_empty(), "another statement passes");
 }

@@ -169,20 +169,20 @@ fn act4_proven() {
             .prove(&[], Rate::MIN)
             .unwrap_or_else(|trap| panic!("{name}: {trap}"));
         assert_eq!(output, PASS, "{name}: the prover's output");
-        let raw = program
-            .verify_to_raw(&output, &proof)
+        program
+            .verify(output.into(), &proof)
             .unwrap_or_else(|error| panic!("{name}: {error:?}"));
         let used = stats.base_counts.map(|rows| rows > 0);
         if used.iter().zip(&covered).any(|(&used, &seen)| used && !seen) {
             covered = std::array::from_fn(|t| covered[t] || used[t]);
-            python.push((name.clone(), PythonStatement::new(&name, &program, &output), raw));
+            python.push((name.clone(), PythonStatement::new(&name, &program, &output), proof));
         }
     }
     std::thread::scope(|scope| {
-        for (name, statement, raw) in &python {
+        for (name, statement, proof) in &python {
             Builder::new()
                 .name(name.clone())
-                .spawn_scoped(scope, move || statement.assert_accepts(raw))
+                .spawn_scoped(scope, move || statement.assert_accepts(proof))
                 .unwrap();
         }
     });

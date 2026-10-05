@@ -16,7 +16,7 @@ use crate::pcs::Rate;
 use crate::rv::{ElfError, Guest, Machine, ProgramError, Region, RiscvProgram};
 use crate::tables::{ClassSpec, Clock};
 use crate::{class_flock, constraints, leaf, pcs, tables};
-use fiat_shamir::transcript::{Challenger, ProverState, RawProof, VerifierState};
+use fiat_shamir::transcript::{Challenger, ProverState, VerifierState};
 use primitives::field::{F64, F192};
 use primitives::hash::Hasher;
 use std::cmp::Reverse;
@@ -32,6 +32,8 @@ pub struct Program {
     pub(super) digest: [u8; 32],
     /// Where each fill block sits in the text.
     pub(super) filler: FillBlocks,
+    /// The bytecode producer's tuple: the digest binds it and every layout pushes it.
+    pub(super) bytecode: Vec<leaf::Coord>,
 }
 
 // Why: the digest reads tables of words as bytes, which is their little-endian image only on a little-endian target.
@@ -90,10 +92,12 @@ impl Program {
         text.push(0);
         let filler = FillBlocks::append(&mut text);
         let rv = RiscvProgram::new(&text, entry_pc, image, log_ram, log_advice)?;
+        let bytecode = Lookup::Bytecode.tuple(&rv);
         Ok(Self {
-            digest: Self::digest_of(&rv),
+            digest: Self::digest_of(&rv, &bytecode),
             rv,
             filler,
+            bytecode,
         })
     }
 
@@ -285,19 +289,6 @@ impl Program {
         Ok(self.check_deferred(&claims)?)
     }
 
-    /// Verify a proof, and return it with every query's Merkle path written out, the form the Python verifier reads.
-    ///
-    /// # Errors
-    ///
-    /// Returns the first stage that refuses the proof.
-    #[tracing::instrument(name = "Verify", skip_all)]
-    #[doc(hidden)]
-    pub fn verify_to_raw(&self, output: &[u64; 4], proof: &Proof) -> Result<RawProof, CpuError> {
-        let (claims, raw) = self.replay(output, proof)?;
-        self.check_deferred(&claims)?;
-        Ok(raw)
-    }
-
     /// The verifier's core: every check that depends on the proof.
     ///
     /// It returns the claims the proof leaves on polynomials only the program or the VM's circuits fix.
@@ -307,20 +298,15 @@ impl Program {
     /// # Errors
     ///
     /// Returns the first stage that refuses the proof.
+    #[tracing::instrument(name = "Verify core", skip_all)]
     #[doc(hidden)]
     pub fn verify_core(&self, output: &[u64; 4], proof: &Proof) -> Result<DeferredClaims, CpuError> {
-        self.replay(output, proof).map(|(claims, _)| claims)
-    }
-
-    /// The verifier's core, and the proof it replayed with its Merkle paths written out.
-    #[tracing::instrument(name = "Verify core", skip_all)]
-    fn replay(&self, output: &[u64; 4], proof: &Proof) -> Result<(DeferredClaims, RawProof), CpuError> {
         // The public statement seeds the transcript, as on the prover's side.
         let mut vs = VerifierState::new(self.fs_seed(), &proof.0, output.map(F64));
 
         // The announced sizes, then the layout they describe, then the commitment.
         let announcement = Announcement::read(&mut vs)?;
-        let l = announcement.layout(&self.rv)?;
+        let l = announcement.layout(self)?;
         let root = pcs::read_commitment(&mut vs)?;
 
         let clock = F192::from(F64(announcement.ts_final));
@@ -350,11 +336,10 @@ impl Program {
         )
         .map_err(CpuError::Open)?;
         vs.finish()?;
-        let claims = DeferredClaims {
+        Ok(DeferredClaims {
             program: reduced.program,
             circuits: circuit_claims,
-        };
-        Ok((claims, vs.into_raw_proof()))
+        })
     }
 
     /// The decoded text, memory image and region sizes.
@@ -391,9 +376,9 @@ impl Program {
     /// The digest of `rv`'s public statement.
     ///
     /// Every variable-length part is length-framed, so the preimage parses one way.
-    fn digest_of(rv: &RiscvProgram) -> [u8; 32] {
+    fn digest_of(rv: &RiscvProgram, bytecode: &[leaf::Coord]) -> [u8; 32] {
         let bytes = |words: &[u64]| -> Vec<u8> { words.iter().flat_map(|w| w.to_le_bytes()).collect() };
-        let table = Lookup::Bytecode.table(rv);
+        let table = leaf::stacked_bytecode_table(Lookup::Bytecode.log_rows(Sizes::of(rv)), bytecode);
 
         // SAFETY: F64 is #[repr(transparent)] over u64.
         // So the slice's bytes are the concatenation of its words' little-endian bytes on this target.
@@ -817,7 +802,8 @@ mod tests {
         let unmatched = unmatched(&w);
         assert!(unmatched.is_empty(), "the forged run balances: {unmatched:?}");
         let proof = program.prove_witness(w, &exec.output, Rate::MIN);
-        program.verify_to_raw(&exec.output, &proof).map(drop)
+        let claims = program.verify_core(&exec.output, &proof)?;
+        program.check_deferred(&claims)
     }
 
     #[test]

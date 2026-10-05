@@ -270,11 +270,10 @@ impl Oracle {
     /// Open each query's row of `E` elements, three words each.
     fn open_e_rows(&self, r: &mut Rows<'_, '_>, queries: &[Vec<Kw>]) -> OpenedRows<Ew> {
         let leaf_words = 3 << self.log_num_interleaved;
-        let rows = (queries.iter())
-            .map(|bits| {
-                let words = r.t.open_row(r.b, self.root, bits, leaf_words, leaf_words);
-                words.chunks(3).map(|c| r.b.k_to_e([c[0], c[1], c[2]])).collect()
-            })
+        let rows =
+            (r.t.open_rows(r.b, self.root, queries, leaf_words, leaf_words)
+                .into_iter())
+            .map(|words| words.chunks(3).map(|c| r.b.k_to_e([c[0], c[1], c[2]])).collect())
             .collect();
         OpenedRows(rows)
     }
@@ -316,13 +315,10 @@ impl<'c> WhirReplay<'c> {
         let phase = w.phase(0, n_current + config.log_inv_rates()[0]);
         // The proof stores the committed lanes, the image's tail; the image is lane-descending.
         w.query(r, phase, oods, n_current, |r, queries, weights| {
-            let rows: Vec<Vec<Kw>> = (queries.iter())
-                .map(|bits| {
-                    let mut row = r.t.open_row(r.b, root, bits, shape.n_lanes, max);
-                    row.reverse();
-                    row
-                })
-                .collect();
+            let mut rows = r.t.open_rows(r.b, root, queries, shape.n_lanes, max);
+            for row in &mut rows {
+                row.reverse();
+            }
             OpenedRows(rows).enforced_sum(r, &lane_fold, weights)
         });
 
