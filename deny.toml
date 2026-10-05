@@ -26,6 +26,14 @@ allow = [
     "Unicode-3.0",
 ]
 confidence-threshold = 0.9
+# The Falcon host's round-3 signer (public domain), which builds benchmark inputs and is never linked by the prover.
+exceptions = [
+    { name = "tide-fn-dsa", allow = ["Unlicense"] },
+    { name = "tide-fn-dsa-comm", allow = ["Unlicense"] },
+    { name = "tide-fn-dsa-kgen", allow = ["Unlicense"] },
+    { name = "tide-fn-dsa-sign", allow = ["Unlicense"] },
+    { name = "tide-fn-dsa-vrfy", allow = ["Unlicense"] },
+]
 
 [licenses.private]
 # The unpublished crates (all but `leanvm`) are the workspace's own.
