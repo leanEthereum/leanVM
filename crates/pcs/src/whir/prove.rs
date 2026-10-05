@@ -186,8 +186,7 @@ pub(crate) fn recursive_prover_with_prepared_basis(
     // MLE evaluation is introduced into the running sumcheck.
     send_ood(&mut sc_prover, ps, n1, ood_count(1));
 
-    // Query-phase PoW grinding for L0 (0 bits in the production profile; the
-    // canonical 0 nonce is still absorbed to keep the transcript in lockstep).
+    // PoW grinding for L0's query phase.
     ps.grind(config.grinding_bits()[0] as u32);
 
     // Open L0; lane-fold weights = r_lane_fold.

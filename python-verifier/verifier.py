@@ -773,8 +773,9 @@ TEXT_BASE = 0x1000_0000
 RAM_BASE = 0x4000_0000  # RAM's word z sits at RAM_BASE + 8z; the program's image is its first words
 ADVICE_BASE = 0x2000_0000  # the advice's word z sits at ADVICE_BASE + 8z; what it holds before the run is the prover's
 # What the regions hold at most, and the most rows a table may announce. These bound the counting arguments the
-# memory and lookup proofs rest on, so the verifier checks them before it runs any reduction.
-MAX_LOG_TEXT = 26
+# memory and lookup proofs rest on, so the verifier checks them before it runs any reduction. The bytecode's cap, below
+# its region's, keeps the bus's degree within its margin over the commitment's list for every layout one commitment holds.
+MAX_LOG_BYTECODE = 21
 MAX_LOG_RAM = 27
 MAX_LOG_ADVICE = 26
 MAX_LOG_ROWS = 32
@@ -2073,7 +2074,7 @@ def build_layout(
     log_bytecode = log2_strict(len(bytecode)) - BUS_BITS
     require(
         all(table.min_log_height <= log_height <= MAX_LOG_ROWS for table, log_height in zip(TABLES, table_log_heights, strict=True))
-        and 0 <= log_bytecode <= MAX_LOG_TEXT,
+        and 0 <= log_bytecode <= MAX_LOG_BYTECODE,
         "invalid announced table sizes",
     )
     require(
@@ -2430,9 +2431,9 @@ def protocol_constants() -> str:
         "LIVE_BIT": LIVE_BIT,
         "LOG_REGISTERS": LOG_REGISTERS,
         "MAX_LOG_ADVICE": MAX_LOG_ADVICE,
+        "MAX_LOG_BYTECODE": MAX_LOG_BYTECODE,
         "MAX_LOG_RAM": MAX_LOG_RAM,
         "MAX_LOG_ROWS": MAX_LOG_ROWS,
-        "MAX_LOG_TEXT": MAX_LOG_TEXT,
         "MAX_STACKED_LOG": MAX_STACKED_LOG,
         "MIN_STACKED_LOG": MIN_STACKED_LOG,
         "NUM_FRAMEWORK_COLUMNS": NUM_FRAMEWORK_COLUMNS,

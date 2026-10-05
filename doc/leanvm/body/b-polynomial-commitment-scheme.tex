@@ -134,7 +134,7 @@ Fix a commitment $\mathsf{cm} = \orc^{(0)}$ and input claims $\{(W_t, c_t)\}_t$,
 \[
 \relopen \;:=\; \Bigl\{ \bigl(\orc^{(0)}, \{(W_t, c_t)\}_t\bigr) \;:\; \exists\, U \in \lst_{\rad_0}(\orc^{(0)}) \text{ with } \inner{W_t}{g_U} = c_t \text{ for all } t \Bigr\}.
 \]
-The commitment binds the prover to the list $\polyset_{\mathsf{cm}} := \{\mle{g_U} : U \in \lst_{\rad_0}(\orc^{(0)})\}$, of size at most $L_0 := \tfrac{1}{2\slack_0\sqrt{\rate_0}}$ for $\rad_0 = 1 - \sqrt{\rate_0} - \slack_0$, by the Johnson bound (Theorem~\ref{thm:johnson-interleaved}).
+The commitment binds the prover to the list $\polyset_{\mathsf{cm}} := \{\mle{g_U} : U \in \lst_{\rad_0}(\orc^{(0)})\}$, of size at most $L_0 := \tfrac{1}{2\slack_0\sqrt{\rate_0}}$ for $\rad_0 = 1 - \sqrt{\rate_0} - \slack_0$, by the Johnson bound (Theorem~\ref{thm:johnson-interleaved}). An outer protocol that draws challenges between the commitment and the opening must therefore have each of them hold against every member of this list, at a cost of a factor $L_0$ on its error (\S\ref{sec:e2e-ledger}).
 
 \begin{theorem}[RBR soundness]\label{thm:rbr}
 Suppose that for every level $i$: $\rad_i = 1 - \sqrt{\rate_i} - \slack_i$ with $\slack_i \in (0, 1-\sqrt{\rate_i})$, $L_i := \tfrac{1}{2\slack_i\sqrt{\rate_i}}$, and $\epsilon_i := \mcanumi{i}/|\E|$ is the mutual correlated agreement error of Theorem~\ref{thm:mca-johnson} below for $\mathcal{C}_i$ at radius $\rad_i$. Then the Protocol~\ref{fig:protocol} is a $L_0$-list binding PCS, and its opening phase $\relopen$ has the following RBR soundness error at each verifier message:

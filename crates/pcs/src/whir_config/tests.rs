@@ -32,8 +32,8 @@
     reason = "The soundness analysis is real-valued; it only runs in tests, which pin the integer table to it."
 )]
 use super::{
-    ConfigError, INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0, LadderError, MAX_LOG_INV_RATE, MAX_LOG_N, MIN_LOG_INV_RATE,
-    MIN_LOG_N, ProverConfig, QUERY_GRINDING_BITS, RS_DOMAIN_INITIAL_REDUCTION_FACTOR,
+    ConfigError, INITIAL_FOLDING_FACTOR, L0_LIST_BITS, LOG_INV_RATE_0, LadderError, MAX_LOG_INV_RATE, MAX_LOG_N,
+    MIN_LOG_INV_RATE, MIN_LOG_N, ProverConfig, QUERY_GRINDING_BITS, RS_DOMAIN_INITIAL_REDUCTION_FACTOR,
     RS_DOMAIN_SUBSEQUENT_REDUCTION_FACTOR, SECURITY_BITS, WHIR_QUERIES, config_for_rate, derive_ladder,
     derive_ladder_shape, validate_log_inv_rate,
 };
@@ -223,14 +223,14 @@ pub(crate) fn test_config_for(log_n: usize) -> ProverConfig {
 // Thm `thm:rbr`). The MCA theorem (`thm:mca-johnson` = BCHKS25 Thm 4.6) gives
 // the proximity-gap exceptional set `a = O_rho(n / eta^5)`, and the eta search
 // keeps `log2(q/a)` above the target on its own rather than grinding the fold
-// challenges for it. Binding to a
-// single codeword of the (Johnson-bounded) interleaved list is via
-// `ood_samples` explicit multilinear OOD evaluations, except at L0, where the
-// opening's own post-commit random evaluation claim plays the OOD role (union
-// over the list, `L*mu/q`), so `ood_samples = 0`. Plain Johnson without OOD
-// binding would be unsound at these parameters: the query phase would pay a
-// union bound over the interleaved list (19 to 52 bits here) that the query
-// counts do not include.
+// challenges for it. Every level past L0 binds the prover to a single
+// codeword of its (Johnson-bounded) interleaved list with `ood_samples`
+// explicit multilinear OOD evaluations. L0 takes none, so the commitment is
+// only list binding: the opening's relation quantifies over L0's list, and
+// every challenge drawn between the root and the opening pays a union over it
+// (`L0_LIST_BITS`). Without OOD binding past L0, each level's query phase
+// would pay a union bound over its list, which the query counts do not
+// include.
 //
 // Grinding always lands after the level's Merkle root is observed and before
 // its query positions are sampled, the standard FRI/STARK placement.
@@ -263,8 +263,7 @@ struct WhirLevelConfig {
     /// Out-of-domain samples taken right after this level's commit enters
     /// the transcript. Each binds the prover to a single codeword of the
     /// interleaved list via a multilinear evaluation claim.
-    /// Must be 0 at L0 (bound by the opening's own post-commit evaluation
-    /// claim) and ≥ 1 at deeper levels.
+    /// Must be 0 at L0, which is only list binding, and ≥ 1 at deeper levels.
     ood_samples: usize,
     /// Security target this level guarantees, post-grinding.
     target_security_bits: usize,
@@ -469,11 +468,10 @@ const fn prev_queries_at(levels: &[WhirLevelConfig], i: usize) -> usize {
 ///   points of `F^μ` (Schwartz-Zippel, total degree ≤ μ), union over pairs:
 ///   `bits = s·(192 − log₂ μ) − (2·log₂ L_int − 1)`.
 /// - `ood_samples = 0` (L0): the protocol takes no OOD sample at commitment,
-///   so the PCS itself is only list binding (the PCS annex, opening paragraph). What this
-///   term materializes is the OUTER protocol's binding: the opening's own
-///   evaluation claim sits at a post-commit random point, so at most one
-///   list member matches it except with `L·μ/|F|` (union over the list, not
-///   pairs): `bits = 192 − log₂ L_int − log₂ μ`.
+///   so the PCS itself is only list binding (the PCS annex, opening paragraph). This
+///   term stands for a degree-`μ` identity test drawn before the opening, which
+///   must hold against every list member (union over the list, not pairs):
+///   `bits = 192 − log₂ L_int − log₂ μ`.
 #[expect(
     clippy::suboptimal_flops,
     reason = "Keep the rounding of the protocol parameter formulas unchanged."
@@ -699,7 +697,7 @@ impl WhirSecurityConfig {
             }
 
             // OOD samples: every level past L0 needs explicit samples, while
-            // L0 is bound by the opening's own post-commit evaluation claim.
+            // L0 is only list binding, a union every earlier challenge pays.
             // The query counts past L0 assume single-codeword binding.
             if (level == 0) != (lv.ood_samples == 0) {
                 return Err(DerivationError::OodSamples {
@@ -895,6 +893,28 @@ fn production_profile_is_128_bit_johnson_with_query_grinding() {
     assert!(
         (128.0..129.0).contains(&min_pg_bits),
         "eta search should use, but not exceed, the one-bit PG margin: {min_pg_bits}"
+    );
+}
+
+#[test]
+fn l0_list_bits_bound_every_l0_list() {
+    // Every configured size and rate: its L0 list, which every challenge before the opening is unioned over.
+    let largest = (MIN_LOG_INV_RATE..=MAX_LOG_INV_RATE)
+        .flat_map(|log_inv_rate| (MIN_LOG_N..=MAX_LOG_N).map(move |log_n| (log_inv_rate, log_n)))
+        .map(|(log_inv_rate, log_n)| {
+            let cfg = WhirSecurityConfig::derive_config_with_log_inv_rate(log_n + crate::LOG_PACKING, log_inv_rate)
+                .unwrap_or_else(|e| panic!("rate 2^-{log_inv_rate}, log_n {log_n}: {e}"));
+            let l0 = &cfg.levels[0];
+            johnson_interleaved_list_log2(l0.log_inv_rate, l0.log_msg_cols, l0.eta)
+        })
+        .fold(f64::NEG_INFINITY, f64::max);
+
+    // The constant is the largest list's bits rounded up, so it bounds every list and wastes no bit.
+    assert_eq!(
+        largest.ceil() as usize,
+        L0_LIST_BITS,
+        "L0_LIST_BITS must be {}",
+        largest.ceil()
     );
 }
 

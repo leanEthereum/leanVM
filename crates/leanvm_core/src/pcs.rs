@@ -18,12 +18,12 @@
 //! committer hashes them once rather than once per leaf, and only the image's tail
 //! rides the proof. Both sides derive the lane count from the announced layout.
 //!
-//! Security: the K configs use rate-1/2 Johnson list decoding with OOD binding
-//! and 128-bit round-by-round soundness ([`::pcs::whir::SECURITY_BITS`]).
-//! L0's opening claim supplies its binding evaluation; each deeper commitment
-//! takes one explicit OOD sample. The base-field
-//! commitment only shrinks the level-0 symbols to 8 bytes; every random
-//! ingredient is sampled from `E` with the same error terms as before.
+//! Security: Johnson list decoding at every supported rate, `2^-1` to `2^-4`, with 128-bit round-by-round soundness.
+//!
+//! - L0 takes no OOD sample, so the commitment binds only to a list of polynomials (§annex:pcs).
+//! - Every challenge drawn after the root and before the opening must hold against each of them, its error multiplied by the list size (§sec:e2e-ledger).
+//! - Each deeper commitment takes one explicit OOD sample, which binds it to one codeword.
+//! - The base-field commitment only shrinks the level-0 symbols to 8 bytes; every random ingredient is sampled from `E`.
 
 use crate::witness::StackShape;
 use ::pcs::stack_open::{open_batch_mixed_whir_stacked, verify_opening_batch_mixed_whir_stacked};

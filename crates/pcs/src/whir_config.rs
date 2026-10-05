@@ -19,12 +19,19 @@ use thiserror::Error;
 // Config
 // ===================================================================
 
-// The production WHIR configuration: rate-1/2 Johnson list decoding with
-// OOD binding and 128-bit round-by-round soundness over F192.
+// The production WHIR configuration: Johnson list decoding at rates 2^-1 to 2^-4 and 128-bit round-by-round soundness over F192.
+// L0 takes no OOD sample, so the commitment binds only to a list, whose size every challenge before the opening pays; every later level takes one OOD sample.
 
 /// Round-by-round soundness target (bits): every verifier-challenge transition
 /// must have conditional failure probability at most `2^-SECURITY_BITS`.
 pub const SECURITY_BITS: usize = 128;
+
+/// Bits a challenge drawn after the commitment loses to the commitment's list.
+///
+/// L0 takes no OOD sample, so the root binds the prover to a list of up to `L_0 = 1/(2 eta_0 sqrt(rho_0))` polynomials (the PCS annex, `thm:rbr`).
+/// A challenge drawn after the root and before the opening must then hold against each of them: its error is multiplied by `L_0`.
+/// This is `ceil(log2 L_0)` at its largest over every configured size and rate, pinned to the derivation by a test.
+pub const L0_LIST_BITS: usize = 12;
 
 /// L0 code rate index: `rho_0 = 2^-LOG_INV_RATE_0` (rate 1/2).
 pub const LOG_INV_RATE_0: usize = 1;
@@ -191,7 +198,7 @@ impl ProverConfig {
 
     /// Per-level out-of-domain samples (L0, L1, ..., L_r), taken right after the level's root enters the transcript.
     ///
-    /// L0 takes none: the opening's own post-commit evaluation claim binds it.
+    /// L0 takes none: the commitment binds only to a list, which every challenge before the opening pays for.
     pub fn ood_samples(&self) -> &[usize] {
         &self.ood_samples
     }

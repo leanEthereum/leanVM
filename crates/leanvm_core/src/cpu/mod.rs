@@ -47,3 +47,9 @@ pub(crate) use reduce::TableReduction;
 ///
 /// No counting argument needs them: they bound the layout an announcement describes.
 pub const MAX_LOG_ROWS: usize = 32;
+
+/// The base-two logarithm of the most instruction slots a program's text holds, its padding and halt slot included.
+///
+/// The bytecode's producer adds one bus factor per entry and per possible read, so its size sets the bus's degree.
+/// At this cap the bus keeps its margin over the commitment's list for every layout one commitment holds (§sec:e2e-ledger).
+pub const MAX_LOG_BYTECODE: usize = 21;

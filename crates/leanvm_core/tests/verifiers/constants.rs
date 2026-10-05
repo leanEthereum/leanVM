@@ -39,9 +39,9 @@ fn rust_constants() -> String {
     scalar("LOG_PACKING", pcs::pack::LOG_PACKING as u64);
     scalar("LOG_REGISTERS", RegisterFile::LOG_CELLS as u64);
     scalar("MAX_LOG_ADVICE", Region::ADVICE.max_log_words() as u64);
+    scalar("MAX_LOG_BYTECODE", leanvm_core::cpu::MAX_LOG_BYTECODE as u64);
     scalar("MAX_LOG_RAM", Region::RAM.max_log_words() as u64);
     scalar("MAX_LOG_ROWS", leanvm_core::cpu::MAX_LOG_ROWS as u64);
-    scalar("MAX_LOG_TEXT", Region::TEXT.max_log_words() as u64);
     scalar("MAX_STACKED_LOG", leanvm_core::pcs::MAX_MU as u64);
     scalar("MIN_STACKED_LOG", leanvm_core::pcs::MIN_MU as u64);
     scalar("NUM_FRAMEWORK_COLUMNS", leanvm_core::cpu::Q_BASE as u64);
