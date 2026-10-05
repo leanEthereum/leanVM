@@ -3,13 +3,13 @@
 //! The hash table's first columns are ports of its rows' packed BLAKE2s witnesses, which flock proves.
 //! The public table commits nothing: its blocks are the framework's.
 
-use super::circuit::{Assignment, Kind};
+use super::circuit::{Assignment, WireKind};
 use crate::class_flock;
 use crate::leaf::{BusForm, Coord};
 use crate::rv::Class;
 use crate::tables::{ClassSpec, ClassTable, Part};
 use Coord::{Col, Prod, Sum};
-use Kind::{D, E, K};
+use WireKind::{D, E, K};
 use flock::circuit::Circuit;
 use primitives::field::{F64, F192};
 
@@ -53,10 +53,10 @@ pub(crate) struct HashFlock;
 /// - the message's words 4 to 6 as `x` and its word 7 as `ds`;
 /// - the output, the output's first three words as a challenge;
 /// - the eight message words.
-const HASH_KINDS: [Kind; 16] = [D, D, D, K, E, K, D, E, K, K, K, K, K, K, K, K];
+const HASH_KINDS: [WireKind; 16] = [D, D, D, K, E, K, D, E, K, K, K, K, K, K, K, K];
 
 /// A cast row's slots: the digest, the element of its first three words, its two halves, its four words.
-const CAST_KINDS: [Kind; 8] = [D, E, E, E, K, K, K, K];
+const CAST_KINDS: [WireKind; 8] = [D, E, E, E, K, K, K, K];
 
 impl Table {
     /// How many tables there are.
@@ -83,7 +83,7 @@ impl Table {
     /// Its slots' kinds.
     ///
     /// A public slot carries a wire of any kind; its one entry is the widest.
-    pub const fn slot_kinds(self) -> &'static [Kind] {
+    pub const fn slot_kinds(self) -> &'static [WireKind] {
         match self {
             Self::Emul => &[E, E, E, E],
             Self::Exk => &[E, K, E, E],
@@ -395,9 +395,9 @@ mod tests {
         for t in Table::OWNED {
             for (s, &kind) in t.slot_kinds().iter().enumerate() {
                 let used = match kind {
-                    Kind::K => 1,
-                    Kind::E => 3,
-                    Kind::D => 4,
+                    WireKind::K => 1,
+                    WireKind::E => 3,
+                    WireKind::D => 4,
                 };
                 assert!(t.slot(s).0[used..].iter().all(zero), "{t:?} slot {s}");
             }

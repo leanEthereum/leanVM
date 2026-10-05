@@ -4,7 +4,7 @@ mod arith;
 mod bits;
 mod hash;
 
-use super::{Assignment, Circuit, Compression, Dw, Ew, Finished, Kind, Kw, Limbs, PubSource, Rows};
+use super::{Assignment, Circuit, Compression, Dw, Ew, Finished, Kw, Limbs, PubSource, TableSlots, WireKind};
 use crate::rec::table::Table;
 use primitives::field::F192;
 use std::collections::HashMap;
@@ -35,19 +35,19 @@ pub struct Builder {
     values: Vec<Limbs>,
 
     /// Each wire's kind.
-    kinds: Vec<Kind>,
+    kinds: Vec<WireKind>,
 
     /// Parent wire in each equality class, with roots pointing to themselves.
     parent: Vec<u32>,
 
     /// Wire numbers for every table row and slot.
-    rows: Rows,
+    rows: TableSlots,
 
     /// Sources of public row values, in insertion order.
     pubs: Vec<PubSource>,
 
     /// Deduplicated constant wires, keyed by kind and padded value.
-    consts: HashMap<(Kind, Limbs), u32>,
+    consts: HashMap<(WireKind, Limbs), u32>,
 
     /// Cached arithmetic identities used to fold operations.
     units: Units,
@@ -61,11 +61,17 @@ pub struct Builder {
     /// The names the checks run under, outermost first.
     scope: Vec<String>,
 
-    /// Failed checks collected with their enclosing scope names.
+    /// Failed checks collected with their enclosing scope names, the first few only.
     failures: Vec<String>,
+
+    /// How many failed checks were past the recorded ones.
+    unrecorded: usize,
 }
 
 impl Builder {
+    /// How many failed checks are recorded by name: a forged proof can fail one per row.
+    const RECORDED_FAILURES: usize = 64;
+
     /// An empty circuit.
     pub fn new() -> Self {
         Self::default()
@@ -81,26 +87,31 @@ impl Builder {
 
     /// Record a check that failed on the values and that no equality expresses.
     pub fn fail(&mut self, what: &str) {
-        if self.failures.len() < 64 {
+        if self.failures.len() < Self::RECORDED_FAILURES {
             self.failures.push(format!("{}: {what}", self.scope.join(" / ")));
+        } else {
+            self.unrecorded += 1;
         }
     }
 
     /// The circuit, its values, and the checks that failed on them.
     ///
     /// A wire class is numbered by its first slot, so a circuit is the same however it was built.
+    /// Past the recorded failures, a last entry counts the others.
     pub fn finish(mut self) -> Finished {
         let (wires, pubs) = self.statement_first();
-        let mut number = vec![u32::MAX; self.values.len()];
+        let mut number: Vec<Option<u32>> = vec![None; self.values.len()];
         let mut n_classes = 0;
         let classes = wires.map(|w| {
             let root = self.find(w) as usize;
-            if number[root] == u32::MAX {
-                number[root] = n_classes;
+            *number[root].get_or_insert_with(|| {
                 n_classes += 1;
-            }
-            number[root]
+                n_classes - 1
+            })
         });
+        if self.unrecorded > 0 {
+            self.failures.push(format!("{} more failed checks", self.unrecorded));
+        }
         let circuit = Circuit {
             classes,
             pubs,
@@ -123,7 +134,7 @@ impl Builder {
     /// The rows and the public sources with the statement's public rows first, in statement order.
     ///
     /// They are then one aligned stretch of the public table.
-    fn statement_first(&mut self) -> (Rows, Vec<PubSource>) {
+    fn statement_first(&mut self) -> (TableSlots, Vec<PubSource>) {
         let mut order: Vec<usize> = (0..self.pubs.len()).collect();
         order.sort_by_key(|&i| match self.pubs[i] {
             PubSource::Statement(j) => (0, j),
@@ -135,7 +146,7 @@ impl Builder {
         (rows, pubs)
     }
 
-    fn wire(&mut self, kind: Kind, value: Limbs) -> u32 {
+    fn wire(&mut self, kind: WireKind, value: Limbs) -> u32 {
         let id = u32::try_from(self.values.len()).expect("fewer than 2^32 wires");
         self.values.push(value);
         self.kinds.push(kind);
@@ -192,17 +203,17 @@ impl Builder {
     ///
     /// Its three coefficients occupy the first three words, with the fourth word zero.
     pub fn free_e(&mut self, value: F192) -> Ew {
-        Ew(self.wire(Kind::E, [value.c0, value.c1, value.c2, 0]))
+        Ew(self.wire(WireKind::E, [value.c0, value.c1, value.c2, 0]))
     }
 
     /// A free `K` value.
     pub fn free_k(&mut self, value: u64) -> Kw {
-        Kw(self.wire(Kind::K, [value, 0, 0, 0]))
+        Kw(self.wire(WireKind::K, [value, 0, 0, 0]))
     }
 
     /// A free digest.
     pub fn free_d(&mut self, value: Limbs) -> Dw {
-        Dw(self.wire(Kind::D, value))
+        Dw(self.wire(WireKind::D, value))
     }
 
     /// Hold `a` and `b` equal.
@@ -232,7 +243,7 @@ impl Builder {
         self.eq_k(a, c);
     }
 
-    fn constant(&mut self, kind: Kind, value: Limbs) -> u32 {
+    fn constant(&mut self, kind: WireKind, value: Limbs) -> u32 {
         if let Some(&w) = self.consts.get(&(kind, value)) {
             return w;
         }
@@ -241,10 +252,10 @@ impl Builder {
         self.row(Table::Pub, &[w]);
         self.consts.insert((kind, value), w);
         let unit = match (kind, value) {
-            (Kind::E, [0, 0, 0, 0]) => &mut self.units.e_zero,
-            (Kind::E, [1, 0, 0, 0]) => &mut self.units.e_one,
-            (Kind::K, [0, 0, 0, 0]) => &mut self.units.k_zero,
-            (Kind::K, [1, 0, 0, 0]) => &mut self.units.k_one,
+            (WireKind::E, [0, 0, 0, 0]) => &mut self.units.e_zero,
+            (WireKind::E, [1, 0, 0, 0]) => &mut self.units.e_one,
+            (WireKind::K, [0, 0, 0, 0]) => &mut self.units.k_zero,
+            (WireKind::K, [1, 0, 0, 0]) => &mut self.units.k_one,
             _ => return w,
         };
         *unit = Some(w);
@@ -255,17 +266,17 @@ impl Builder {
     ///
     /// Its three coefficients occupy the first three words, with the fourth word zero.
     pub fn e_const(&mut self, value: F192) -> Ew {
-        Ew(self.constant(Kind::E, [value.c0, value.c1, value.c2, 0]))
+        Ew(self.constant(WireKind::E, [value.c0, value.c1, value.c2, 0]))
     }
 
     /// The constant `K` word `value`.
     pub fn k_const(&mut self, value: u64) -> Kw {
-        Kw(self.constant(Kind::K, [value, 0, 0, 0]))
+        Kw(self.constant(WireKind::K, [value, 0, 0, 0]))
     }
 
     /// The constant digest `value`.
     pub fn d_const(&mut self, value: Limbs) -> Dw {
-        Dw(self.constant(Kind::D, value))
+        Dw(self.constant(WireKind::D, value))
     }
 
     /// The constant zero of `E`.

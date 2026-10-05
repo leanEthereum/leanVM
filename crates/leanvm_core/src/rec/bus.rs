@@ -14,11 +14,10 @@ use super::table::Table;
 use crate::arith::{Arith, Verifier};
 use crate::colval::ColVal;
 use crate::constraints::{Residual, Summand};
-use crate::leaf::{Block, BusError, BusForm, BusProof, BusVerify, Coord};
+use crate::leaf::{Block, BusError, BusForm, BusProof, BusVerify, Coord, PublicColumn};
 use crate::{constraints, leaf};
 use fiat_shamir::transcript::ProverState;
 use primitives::field::{F64, F192};
-use std::sync::Arc;
 
 /// A slot's key on the bus: its index among all tables' slots in the high 32 bits, its row in the low 32.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -74,12 +73,12 @@ impl SlotKey {
 
 impl BusBlocks {
     /// The blocks at a layout's heights, over a circuit's fixed columns and the public table's value columns.
-    pub(crate) fn new(fixed: &FixedColumns, public: [Arc<Vec<F64>>; 4], layout: &RecLayout) -> Self {
+    pub(crate) fn new(fixed: &FixedColumns, public: [PublicColumn; 4], layout: &RecLayout) -> Self {
         let mut blocks = Self {
             push: Vec::new(),
             pull: Vec::new(),
         };
-        let next = |table: Table, slot: usize| Arc::clone(fixed.get(FixedColumn::Next(table.first_slot() + slot)));
+        let next = |table: Table, slot: usize| fixed.public(FixedColumn::Next(table.first_slot() + slot));
         let values = public.into_iter().map(Coord::Public).collect();
         let public = Table::Pub;
         blocks.add_pair(public, 0, layout.tau(public), next(public, 0), values);
@@ -96,7 +95,7 @@ impl BusBlocks {
     /// A slot's pull block at its own keys and its push block at `next`, both carrying `limbs`.
     ///
     /// An owned table's blocks are its own, the public table's the framework's.
-    fn add_pair(&mut self, table: Table, slot: usize, tau: usize, next: Arc<Vec<F64>>, limbs: Vec<Coord>) {
+    fn add_pair(&mut self, table: Table, slot: usize, tau: usize, next: PublicColumn, limbs: Vec<Coord>) {
         let block = |key: Coord, limbs: Vec<Coord>| {
             let coords = std::iter::once(key).chain(limbs).collect();
             match table {

@@ -12,3 +12,4 @@ pub mod tree;
 pub mod verifier;
 
 pub use error::RecError;
+pub(crate) use fixed::FixedColumn;

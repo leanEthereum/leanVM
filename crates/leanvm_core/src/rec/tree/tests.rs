@@ -248,7 +248,7 @@ fn a_proven_circuit_is_the_shapes() {
             output: *output.words(),
         })
         .collect();
-    let rows = d.first(&Witness::Prove {
+    let rows = d.first(&NodeInputs::Prove {
         items: &leaves,
         tables: &f.tree.tables,
     });
@@ -269,7 +269,7 @@ fn a_proven_circuit_is_the_shapes() {
             columns: &f.tree.columns[Kind::First as usize],
         })
         .collect();
-    let rows = d.node(&Witness::Prove {
+    let rows = d.node(&NodeInputs::Prove {
         items: &items,
         tables: &f.tree.tables,
     });
@@ -342,7 +342,7 @@ fn a_fake_child_circuit_is_refused_at_the_root() {
             columns: &columns,
         })
         .collect();
-    let witness = |tables| Witness::Prove { items: &items, tables };
+    let inputs = |tables| NodeInputs::Prove { items: &items, tables };
     let outputs: Vec<Output> = [fake_outputs, fake_outputs]
         .concat()
         .into_iter()
@@ -350,7 +350,7 @@ fn a_fake_child_circuit_is_refused_at_the_root() {
         .collect();
 
     // An honest reduction over the tree's polynomials fails on the fake's hints.
-    let honest = f.tree.prove_rows(d.node(&witness(&f.tree.tables)), Kind::Node);
+    let honest = f.tree.prove_rows(d.node(&inputs(&f.tree.tables)), Kind::Node);
     assert!(
         matches!(&honest, Err(TreeError::Unsatisfied(check)) if check.starts_with("reduction")),
         "{:?}",
@@ -358,7 +358,7 @@ fn a_fake_child_circuit_is_refused_at_the_root() {
     );
 
     // Reduced over the forged polynomial, every row holds and the root's proof verifies.
-    let rows = d.node(&witness(&tables));
+    let rows = d.node(&inputs(&tables));
     let reduction = rows.claim_values().prove(&d.vars, &tables);
     let reduction = RawProof {
         stream: reduction.stream,
@@ -466,7 +466,7 @@ fn forged_first(f: &Fixture, forge: Forge) -> TreeProof {
             output: *output.words(),
         })
         .collect();
-    let rows = d.first(&Witness::Prove {
+    let rows = d.first(&NodeInputs::Prove {
         items: &items,
         tables: &f.tree.tables,
     });

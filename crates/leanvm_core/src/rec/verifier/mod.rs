@@ -8,8 +8,9 @@
 use super::circuit::{Builder, Ew};
 use super::transcript::Transcript;
 use crate::arith::{Arith, Verifier};
+use crate::leaf::PublicColumn;
 use fiat_shamir::transcript::TranscriptError;
-use primitives::field::{F64, F192};
+use primitives::field::F192;
 use recursion::FixedHints;
 use std::fmt::Debug;
 
@@ -131,10 +132,10 @@ impl Arith for Rows<'_, '_> {
         self.b.mul(a, b)
     }
 
-    fn public_mle(&mut self, column: &[F64], point: &[Ew]) -> Ew {
-        match self.fixed.as_deref_mut() {
-            Some(fixed) => fixed.evaluate(self.b, column, point),
-            None => Arith::public_mle(&mut *self.b, column, point),
+    fn public_mle(&mut self, column: &PublicColumn, point: &[Ew]) -> Ew {
+        match (self.fixed.as_deref_mut(), column.fixed) {
+            (Some(hints), Some(fixed)) => hints.evaluate(self.b, fixed, point),
+            _ => Arith::public_mle(&mut *self.b, column, point),
         }
     }
 }

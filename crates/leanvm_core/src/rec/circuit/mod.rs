@@ -22,7 +22,7 @@ pub type Limbs = [u64; 4];
 
 /// What a wire holds.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum Kind {
+pub enum WireKind {
     /// One `K` word.
     K,
     /// One `E` element, three `K` limbs.
@@ -54,9 +54,9 @@ pub enum PubSource {
 
 /// Every table's rows, row-major, one number per slot: a wire, or the class of wires it is held equal to.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub(crate) struct Rows([Vec<u32>; Table::COUNT]);
+pub(crate) struct TableSlots([Vec<u32>; Table::COUNT]);
 
-impl Rows {
+impl TableSlots {
     /// Append a row to a table.
     fn push(&mut self, table: Table, slots: &[u32]) {
         debug_assert_eq!(slots.len(), table.n_slots());
@@ -92,7 +92,7 @@ impl Rows {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Circuit {
     /// Each slot's wire class.
-    pub(crate) classes: Rows,
+    pub(crate) classes: TableSlots,
     /// Per public row, where its value comes from.
     pub(crate) pubs: Vec<PubSource>,
     /// How many words the statement has.
@@ -131,7 +131,7 @@ impl Circuit {
 #[derive(Clone, Debug)]
 pub struct Assignment {
     /// Each slot's own wire, whose value the slot carries.
-    pub(crate) wires: Rows,
+    pub(crate) wires: TableSlots,
     /// Each wire's value.
     pub(crate) values: Vec<Limbs>,
     /// Each hash row's compression.
@@ -159,6 +159,6 @@ pub struct Finished {
     pub circuit: Circuit,
     /// The run's values.
     pub assignment: Assignment,
-    /// The checks that failed, each under its scope's name.
+    /// The checks that failed, each under its scope's name, then a count of those past the first few.
     pub failures: Vec<String>,
 }

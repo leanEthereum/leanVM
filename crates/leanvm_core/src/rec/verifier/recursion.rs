@@ -22,9 +22,8 @@ use crate::rec::proof::TableArgument;
 use crate::rec::table::{HashFlock, Table};
 use crate::rec::transcript::{ProofSource, Transcript};
 use ::flock::lincheck::MatrixForm;
-use primitives::field::{F64, F192};
+use primitives::field::F192;
 use primitives::multilinear::mle_eval_par;
-use std::sync::Arc;
 
 /// What fixes the rows verifying a recursion proof: its circuit's heights and the commitment's rate.
 #[derive(Clone, Debug)]
@@ -120,7 +119,7 @@ impl RecShape {
         let mut r = Rows::hinting(b, &mut t, &mut hints);
 
         let root = r.t.next_root(r.b);
-        let constants = std::array::from_fn(|j| Arc::clone(columns.get(FixedColumn::Constant(j))));
+        let constants = std::array::from_fn(|j| columns.public(FixedColumn::Constant(j)));
         let blocks = BusBlocks::new(columns, constants, &self.layout);
         let slots = r.scope("bus and tables", |r| {
             infallible(TableArgument::new(&self.layout, blocks).verify(r))
@@ -158,23 +157,16 @@ impl RecShape {
 }
 
 impl FixedHints<'_> {
-    /// A public column's evaluation at a point, its fixed part a hint whose value the column gives.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the column is none of the fixed columns: the bus of a recursion proof reads no other public column.
-    pub(super) fn evaluate(&mut self, b: &mut Builder, column: &[F64], point: &[Ew]) -> Ew {
-        let fixed = (self.columns)
-            .locate(column)
-            .expect("a recursion proof's bus reads only its fixed columns");
+    /// A fixed column's evaluation at a point, its fixed part a hint whose value the column gives.
+    pub(super) fn evaluate(&mut self, b: &mut Builder, column: FixedColumn, point: &[Ew]) -> Ew {
         let at: Vec<F192> = point.iter().map(|&w| b.e(w)).collect();
-        let value = b.free_e(mle_eval_par(column, &at));
+        let value = b.free_e(mle_eval_par(self.columns.get(column), &at));
         self.hints.push(FixedHint {
-            column: fixed,
+            column,
             point: point.to_vec(),
             value,
         });
-        match fixed {
+        match column {
             FixedColumn::Next(_) => value,
             FixedColumn::Constant(j) => {
                 let statement = self.statement_at(b, j, point);

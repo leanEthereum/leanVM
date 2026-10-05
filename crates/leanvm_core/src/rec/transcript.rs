@@ -18,7 +18,7 @@ pub enum ProofSource<'a> {
 
 /// One Merkle opening as the circuit reads it: the leaf's image and the sibling path.
 #[derive(Clone, Debug)]
-pub struct Opening {
+pub struct MerkleOpening {
     /// The leaf's words.
     pub image: Vec<u64>,
     /// The siblings, lowest first.
@@ -166,16 +166,16 @@ impl<'a> Transcript<'a> {
     }
 
     /// The next query's opening, its image and path padded with zeros to the given lengths.
-    fn next_opening(&mut self, leaf_words: usize, depth: usize) -> Opening {
+    fn next_opening(&mut self, leaf_words: usize, depth: usize) -> MerkleOpening {
         let opening = match self.source {
-            ProofSource::Proof(p) => p.merkle.get(self.opening).map(|o| Opening {
+            ProofSource::Proof(p) => p.merkle.get(self.opening).map(|o| MerkleOpening {
                 image: o.leaf_data.iter().map(|w| w.0).collect(),
                 path: o.path.iter().map(digest_limbs).collect(),
             }),
             ProofSource::Shape => None,
         };
         self.opening += 1;
-        let mut opening = opening.unwrap_or(Opening {
+        let mut opening = opening.unwrap_or(MerkleOpening {
             image: Vec::new(),
             path: Vec::new(),
         });

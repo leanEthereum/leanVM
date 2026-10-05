@@ -8,6 +8,7 @@
 use super::bus::SlotKey;
 use super::circuit::{Circuit, Limbs, PubSource};
 use super::table::Table;
+use crate::leaf::PublicColumn;
 use primitives::field::F64;
 use std::sync::Arc;
 
@@ -25,7 +26,7 @@ pub(crate) enum FixedColumn {
 
 /// A circuit's fixed columns, each at its table's height, in stacking order.
 ///
-/// Every column is its own allocation, which a bus block shares: a verifier recognizes a column by its address.
+/// Every column is its own allocation, which a bus block shares.
 #[derive(Clone, Debug)]
 pub(crate) struct FixedColumns {
     /// The columns, in stacking order.
@@ -123,21 +124,19 @@ impl FixedColumns {
         &self.columns[column.index()]
     }
 
-    /// The column whose values these are, recognized by its address.
-    pub(crate) fn locate(&self, values: &[F64]) -> Option<FixedColumn> {
-        (self.columns.iter())
-            .position(|c| std::ptr::eq(c.as_slice(), values))
-            .map(FixedColumn::at)
+    /// A column as a bus coordinate reads it, naming which fixed column it is.
+    pub(crate) fn public(&self, column: FixedColumn) -> PublicColumn {
+        PublicColumn::fixed(Arc::clone(self.get(column)), column)
     }
 
     /// The public table's four value columns: the constants, with the statement's words on their rows, which come first.
-    pub(crate) fn public_values(&self, statement: &[Limbs]) -> [Arc<Vec<F64>>; 4] {
+    pub(crate) fn public_values(&self, statement: &[Limbs]) -> [PublicColumn; 4] {
         std::array::from_fn(|j| {
             let mut column = self.get(FixedColumn::Constant(j)).to_vec();
             for (cell, word) in column.iter_mut().zip(statement) {
                 *cell = F64(word[j]);
             }
-            Arc::new(column)
+            PublicColumn::new(Arc::new(column))
         })
     }
 }

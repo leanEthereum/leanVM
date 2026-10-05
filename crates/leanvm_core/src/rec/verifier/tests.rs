@@ -25,6 +25,7 @@ use ::pcs::whir::inner_product_base_ext;
 use fiat_shamir::transcript::{ProofTranscript, ProverState, RawProof, VerifierState};
 use primitives::field::{F64, F192};
 use primitives::test_util::Rng;
+use std::sync::OnceLock;
 
 // A program with a loop, so that every framework block is read.
 fn small_program() -> Program {
@@ -49,19 +50,23 @@ struct Fixture {
     native: DeferredClaims,
 }
 
-fn fixture() -> Fixture {
-    let program = small_program();
-    let (proof, output, _) = program.prove(&[], Rate::MIN).expect("the run halts");
-    let native = program.verify_core(&output, &proof).expect("an honest proof");
-    let raw = program.verify_to_raw(&output, &proof).expect("an honest proof");
-    let taus = std::array::from_fn(|i| usize::try_from(proof.0.stream[i].c0).expect("a height"));
-    Fixture {
-        program,
-        raw,
-        output,
-        taus,
-        native,
-    }
+// Proven once, shared by every test.
+fn fixture() -> &'static Fixture {
+    static FIXTURE: OnceLock<Fixture> = OnceLock::new();
+    FIXTURE.get_or_init(|| {
+        let program = small_program();
+        let (proof, output, _) = program.prove(&[], Rate::MIN).expect("the run halts");
+        let native = program.verify_core(&output, &proof).expect("an honest proof");
+        let raw = program.verify_to_raw(&output, &proof).expect("an honest proof");
+        let taus = std::array::from_fn(|i| usize::try_from(proof.0.stream[i].c0).expect("a height"));
+        Fixture {
+            program,
+            raw,
+            output,
+            taus,
+            native,
+        }
+    })
 }
 
 impl Fixture {
@@ -351,30 +356,20 @@ fn check_reductions(batches: &[Batch]) {
     }
 }
 
-fn xorshift(seed: u64) -> impl FnMut() -> u64 {
-    let mut state = seed;
-    move || {
-        state ^= state << 13;
-        state ^= state >> 7;
-        state ^= state << 17;
-        state
-    }
-}
-
 fn flock_index(name: &str, part: Part) -> usize {
     let t = ClassSpec::ALL.iter().position(|c| c.name == name).expect("a table");
     class_flock::flock_index(t, part)
 }
 
 fn hash_batch(seed: u64) -> Batch {
-    let mut next = xorshift(seed);
-    let rows: Vec<[u64; 14]> = (0..5).map(|_| std::array::from_fn(|_| next())).collect();
+    let mut rng = Rng::new(seed);
+    let rows: Vec<[u64; 14]> = (0..5).map(|_| std::array::from_fn(|_| rng.next_u64())).collect();
     Batch::new(flock_index("HASH", Part::Class), &rows)
 }
 
 fn ld_batch(seed: u64, n: usize) -> Batch {
-    let mut next = xorshift(seed);
-    let rows: Vec<[u64; 2]> = (0..n).map(|_| [next(), next()]).collect();
+    let mut rng = Rng::new(seed);
+    let rows: Vec<[u64; 2]> = (0..n).map(|_| [rng.next_u64(), rng.next_u64()]).collect();
     Batch::new(flock_index("LD", Part::Class), &rows)
 }
 

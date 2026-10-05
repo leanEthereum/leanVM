@@ -71,7 +71,7 @@ pub(crate) struct ChildWitness<'a> {
 }
 
 /// What a circuit is built from: the shapes alone, or what a prover holds.
-pub(crate) enum Witness<'a, T> {
+pub(crate) enum NodeInputs<'a, T> {
     /// No values: every proof read is zeros, and the rows are the circuit's.
     Shape,
     /// The verified proofs, and the dense polynomials the hints are evaluations of.
@@ -95,7 +95,7 @@ pub(crate) struct NodeRows {
     claims: NodeClaims<Ew>,
 }
 
-impl<T> Witness<'_, T> {
+impl<T> NodeInputs<'_, T> {
     /// Proof `i`, when a prover holds it.
     const fn item(&self, i: usize) -> Option<&T> {
         match self {
@@ -179,18 +179,18 @@ impl<'p> Design<'p> {
     }
 
     /// The first level's rows, verifying its leaves.
-    pub(crate) fn first(&self, witness: &Witness<'_, LeafWitness>) -> NodeRows {
+    pub(crate) fn first(&self, inputs: &NodeInputs<'_, LeafWitness>) -> NodeRows {
         let mut b = Builder::new();
         let mut claims = NodeClaims::default();
         let mut outputs = Vec::with_capacity(self.arity_0);
         for i in 0..self.arity_0 {
-            let leaf = witness.item(i);
+            let leaf = inputs.item(i);
             let output = leaf.map_or([0; 4], |l| l.output).map(|o| b.free_k(o));
             let source = leaf.map_or(ProofSource::Shape, |l| ProofSource::Proof(&l.raw));
             let core = b.scope(format!("leaf {i}"), |b| self.leaf.verify_core(b, output, source));
             claims.bind_state(&mut b, core.state);
             b.scope(format!("leaf {i} program"), |b| {
-                self.program_claims(b, &core.claims.program, witness, &mut claims);
+                self.program_claims(b, &core.claims.program, inputs, &mut claims);
             });
             let fresh = core.claims.circuits.iter().enumerate();
             claims.matrices.extend(fresh.map(|(f, c)| MatrixClaim::fresh(f, c)));
@@ -206,14 +206,14 @@ impl<'p> Design<'p> {
     }
 
     /// The node's rows, verifying its children, of either kind.
-    pub(crate) fn node(&self, witness: &Witness<'_, ChildWitness<'_>>) -> NodeRows {
+    pub(crate) fn node(&self, inputs: &NodeInputs<'_, ChildWitness<'_>>) -> NodeRows {
         let mut b = Builder::new();
         let iv = b.d_const(self.iv.map(|w| w.0));
-        let zeros = matches!(witness, Witness::Shape).then(|| FixedColumns::zeros(&self.taus));
+        let zeros = matches!(inputs, NodeInputs::Shape).then(|| FixedColumns::zeros(&self.taus));
         let mut claims = NodeClaims::default();
         let mut digests = Vec::with_capacity(self.arity);
         for i in 0..self.arity {
-            let child = witness.item(i);
+            let child = inputs.item(i);
             let statement = match child {
                 Some(c) => c.statement.map(|&w| b.free_e(w)),
                 None => TreeStatement::filled(self.statement, F192::ZERO).map(|&w| b.free_e(w)),
@@ -259,8 +259,8 @@ impl<'p> Design<'p> {
     /// A circuit built from the shapes alone.
     pub(crate) fn shape(&self, kind: Kind) -> Finished {
         let rows = match kind {
-            Kind::First => self.first(&Witness::Shape),
-            Kind::Node => self.node(&Witness::Shape),
+            Kind::First => self.first(&NodeInputs::Shape),
+            Kind::Node => self.node(&NodeInputs::Shape),
         };
         rows.reduce(self, ProofSource::Shape)
     }
@@ -273,7 +273,7 @@ impl<'p> Design<'p> {
         &self,
         b: &mut Builder,
         program: &Claim<ProgramPoint<Ew>, Ew>,
-        witness: &Witness<'_, LeafWitness>,
+        inputs: &NodeInputs<'_, LeafWitness>,
         claims: &mut NodeClaims<Ew>,
     ) {
         let p = &program.point;
@@ -283,7 +283,7 @@ impl<'p> Design<'p> {
         let mut total = b.zero();
         for (i, &mu) in p.twist.iter().enumerate() {
             let point: Vec<Ew> = ladders.iter().map(|l| l[i]).chain(alpha.iter().copied()).collect();
-            let d = witness.hint(b, DensePoly::Bytecode, &point);
+            let d = inputs.hint(b, DensePoly::Bytecode, &point);
             let twisted = (0..i).fold(d, |x, _| b.square(x));
             total = b.mul_add(mu, twisted, total);
             claims.bound.push(d);
@@ -291,7 +291,7 @@ impl<'p> Design<'p> {
         }
         let m = self.vars.0[DensePoly::Image as usize];
         let low = p.image_point[..m].to_vec();
-        let image = witness.hint(b, DensePoly::Image, &low);
+        let image = inputs.hint(b, DensePoly::Image, &low);
         let above = (p.image_point[m..].iter()).fold(p.image_weight, |acc, &x| b.times_one_plus(acc, x));
         total = b.mul_add(above, image, total);
         b.eq_e(total, program.value);

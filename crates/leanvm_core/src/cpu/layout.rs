@@ -13,7 +13,7 @@ use super::error::CpuError;
 use super::execute::Trace;
 use crate::arith::Arith;
 use crate::constraints::Claims;
-use crate::leaf::{Block, ColumnClaim, Coord, Producer, SparseColumn};
+use crate::leaf::{Block, ColumnClaim, Coord, Producer, PublicColumn, SparseColumn};
 use crate::pcs::{Rate, StackClaim};
 use crate::rv::{Entry, Reg, Region, RegisterFile, RiscvProgram, Syscall};
 use crate::tables::{ClassSpec, ClassTable, Clock, Part, Separator};
@@ -187,7 +187,11 @@ impl Lookup {
                 };
                 [Separator::Bytecode.coordinate(), pc]
                     .into_iter()
-                    .chain(self.columns(p).into_iter().map(|c| Coord::Public(Arc::new(c))))
+                    .chain(
+                        self.columns(p)
+                            .into_iter()
+                            .map(|c| Coord::Public(PublicColumn::new(Arc::new(c)))),
+                    )
                     .collect()
             }
         }

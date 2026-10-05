@@ -5,6 +5,7 @@
 //! - Natively an element is an `F192`, a read comes off the proof, and a failed equality is an error.
 //! - In rows an element is a wire, a read is a free wire bound by a hash row, and an equality joins two wires.
 
+use crate::leaf::PublicColumn;
 use fiat_shamir::transcript::{Challenger, Receiver, TranscriptError, VerifierState};
 use primitives::field::{F64, F192};
 
@@ -29,11 +30,12 @@ pub trait Arith {
     fn inv(&mut self, a: Self::E) -> Self::E;
 
     /// The multilinear extension of a public `K` column at `point`, lowest coordinate first.
-    fn public_mle(&mut self, column: &[F64], point: &[Self::E]) -> Self::E {
-        assert_eq!(column.len(), 1 << point.len(), "a column has a word per vertex");
+    fn public_mle(&mut self, column: &PublicColumn, point: &[Self::E]) -> Self::E {
+        let values = column.values.as_slice();
+        assert_eq!(values.len(), 1 << point.len(), "a column has a word per vertex");
         let eq = self.eq_table(point);
         let zero = self.zero();
-        (eq.iter().zip(column)).fold(zero, |acc, (&e, &v)| self.mul_const_add(e, F192::from(v), acc))
+        (eq.iter().zip(values)).fold(zero, |acc, (&e, &v)| self.mul_const_add(e, F192::from(v), acc))
     }
 
     /// The constant zero.
@@ -250,8 +252,8 @@ impl Arith for Native {
         if a.is_zero() { F192::ZERO } else { a.inv() }
     }
 
-    fn public_mle(&mut self, column: &[F64], point: &[F192]) -> F192 {
-        primitives::multilinear::mle_eval_par(column, point)
+    fn public_mle(&mut self, column: &PublicColumn, point: &[F192]) -> F192 {
+        primitives::multilinear::mle_eval_par(&column.values, point)
     }
 }
 
@@ -278,8 +280,8 @@ impl Arith for VerifierState<'_> {
         if a.is_zero() { F192::ZERO } else { a.inv() }
     }
 
-    fn public_mle(&mut self, column: &[F64], point: &[F192]) -> F192 {
-        primitives::multilinear::mle_eval_par(column, point)
+    fn public_mle(&mut self, column: &PublicColumn, point: &[F192]) -> F192 {
+        primitives::multilinear::mle_eval_par(&column.values, point)
     }
 }
 
