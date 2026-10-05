@@ -334,7 +334,7 @@ def stack_offsets(sizes: Sequence[int]) -> tuple[list[int], int]:
     for index, size in sorted(enumerate(sizes), key=lambda item: (-item[1], item[0])):
         offsets[index] = total
         total += 2**size
-    return offsets, log2_ceil(total)
+    return offsets, total
 
 
 def _selector_point(selector: int, length: int) -> MultilinearPoint:
@@ -415,11 +415,13 @@ class Transcript:
         self.opening_offset = end
         return chunk
 
-    def merkle(self, root: Digest, block_length: int, queries: Sequence[int], leaf_words: int) -> list[tuple[K, ...]]:
+    def merkle(self, root: Digest, block_length: int, queries: Sequence[int], leaf_words: int, zero_prefix: int = 0) -> list[tuple[K, ...]]:
+        """Each query's leaf words, checked against `root`; the first `zero_prefix` words of every leaf must be zero."""
         height = log2_strict(block_length)
         rows = []
         for query in queries:
             leaf = self._merkle_data(8 * leaf_words)
+            require(not any(leaf[: 8 * zero_prefix]), "a leaf's absent lanes are not zero")
             node = blake2s_hash(leaf)
             for level in range(height):
                 sibling = self._merkle_data(32)
@@ -541,7 +543,8 @@ class BusLayout:
 
 def bus_layout(framework_log_rows: Sequence[int], blocks: Sequence[BusBlock], producers: Sequence[Producer]) -> BusLayout:
     sizes = [*framework_log_rows, *(block.log_rows for block in blocks), *(p.log_rows for p in producers for _ in range(p.bits))]
-    offsets, depth = stack_offsets(sizes)
+    offsets, total = stack_offsets(sizes)
+    depth = log2_ceil(total)
     placements = [Placement(size, offset) for size, offset in zip(sizes, offsets)]
     split = len(framework_log_rows) + len(blocks)
     bounds = accumulate((p.bits for p in producers), initial=split)
@@ -798,6 +801,7 @@ class Layout:
     producers: tuple[Producer, ...]  # the bytecode's, then the two range arrays'
     placements: tuple[Placement, ...]
     stack_log: int
+    stack_lanes: int  # the level-0 lanes committed, the rest of each leaf being zero
     table_log_heights: tuple[int, ...]
     final_clock: E  # the timestamp the run ended on, announced by the prover
 
@@ -1242,8 +1246,11 @@ class GluedClaim:
     weight_at: Callable[[Sequence[E]], E]
 
 
-def verify_whir(transcript: Transcript, log_n: int, log_inv_rate: int, target: E, root: Digest, evaluate_basis: Callable[[Sequence[E]], E]) -> None:
-    """Verify the base-field multilevel opening with a one-point terminal check."""
+def verify_whir(
+    transcript: Transcript, log_n: int, n_lanes: int, log_inv_rate: int, target: E, root: Digest, evaluate_basis: Callable[[Sequence[E]], E]
+) -> None:
+    """Verify the base-field multilevel opening with a one-point terminal check. Only `n_lanes` of the witness's level-0
+    lanes are committed: the others lead every level-0 leaf as zeros."""
     config = derive_config(log_n, log_inv_rate)
     levels = len(config.folds)
 
@@ -1281,11 +1288,16 @@ def verify_whir(transcript: Transcript, log_n: int, log_inv_rate: int, target: E
         # fixed: the OOD claims above and these query positions.
         lam = transcript.sample()
         query_weights = powers(lam, len(queries))
-        # Level 0 committed the K witness, one leaf word per lane; every deeper
-        # level a folded E one, three words per lane.
+        # Level 0 committed the K witness, one leaf word per lane, lanes descending so
+        # that the absent ones lead the leaf; every deeper level a folded E one, three
+        # words per lane.
         lanes = 2**fold_count
-        words = transcript.merkle(current_root, block_length, queries, lanes if level == 0 else 3 * lanes)
-        rows: list[Sequence[K | E]] = [tuple(reversed(row)) for row in words] if level == 0 else [_ext_row(row) for row in words]
+        rows: list[Sequence[K | E]]
+        if level == 0:
+            words = transcript.merkle(current_root, block_length, queries, lanes, zero_prefix=lanes - n_lanes)
+            rows = [tuple(reversed(row)) for row in words]
+        else:
+            rows = [_ext_row(row) for row in transcript.merkle(current_root, block_length, queries, 3 * lanes)]
         enforced = _enforced_sum(rows, level_folds, query_weights)
 
         # Every commitment, including the last one, enters through an intro
@@ -2016,7 +2028,8 @@ GLOBAL_COLUMN_BASES = tuple(NUM_FRAMEWORK_COLUMNS + len(FLOCKS) + sum(TABLE_WIDT
 def check_bytecode(bytecode: Sequence[K]) -> None:
     """The proof system is sound for any decoded table, so what makes one RISC-V is checked here: an entry some table
     can read names two registers to read and a cell other than x0 to write, its successor is pc + 4, and its flags
-    are ones its class defines. An entry with no tag can be read by no table: a run reaching one has no proof."""
+    are ones its class defines. An entry with no tag can be read by no table: a run reaching one has no proof. It has
+    one form, the illegal entry's, and the halt slot is one."""
     size = len(bytecode) // 2**BUS_BITS
     fields = [[int(word) for word in bytecode[slot * size : (slot + 1) * size]] for slot in range(2**BUS_BITS)]
     tag, flags, a1, a2, ad, imm, pc4, dt, link, jalr = fields[BYTECODE_PUBLIC_SLOT:BAD_SLOT]
@@ -2024,8 +2037,11 @@ def check_bytecode(bytecode: Sequence[K]) -> None:
     outside = fields[:BYTECODE_PUBLIC_SLOT] + [fields[BAD_SLOT]] + fields[EXIT_SLOT + 1 :]
     require(not any(any(column) for column in outside), "a bytecode slot outside an entry's fields is nonzero")
     tags = {int(_gpow(table.opcode)): table for table in TABLES}
+    require(size > 0 and tag[-1] == 0, "the halt slot is not an illegal entry")
     for z in range(size):
         if tag[z] == 0:
+            illegal = flags[z] == a1[z] == a2[z] == imm[z] == dt[z] == link[z] == jalr[z] == exit[z] == 0 and ad[z] == SINK
+            require(illegal and pc4[z] == TEXT_BASE + 4 * z + 4, "an illegal entry is not in its one form")
             continue
         table = tags.get(tag[z])
         if table is None:
@@ -2112,9 +2128,11 @@ def build_layout(
         if name
     }
     blocks = {column: kappa for column, kappa in enumerate(kappas) if column not in words}
-    block_offsets, total_log = stack_offsets(list(blocks.values()))
+    block_offsets, placed = stack_offsets(list(blocks.values()))
     offsets = dict(zip(blocks, block_offsets))
-    stack_log = max(MIN_STACKED_LOG, total_log)  # Floor at the PCS minimum
+    stack_log = max(MIN_STACKED_LOG, log2_ceil(placed))  # Floor at the PCS minimum
+    # The columns tile from 0, so only the lanes up to the last placed word are committed.
+    stack_lanes = max(1, -(-placed // 2 ** (stack_log - INITIAL_FOLDING_FACTOR)))
 
     def placement(column: int, kappa: int) -> Placement:
         if column not in words:
@@ -2135,6 +2153,7 @@ def build_layout(
         producers,
         tuple(placements),
         stack_log,
+        stack_lanes,
         tuple(table_log_heights),
         final_clock,
     )
@@ -2206,13 +2225,17 @@ def ring_switch(claims: Sequence[tuple[Placement, MultilinearPoint, Sequence[E]]
 type StackClaim = tuple[Callable[[Sequence[E]], E], E]  # the weight it puts on the stack, and the value it claims for it
 
 
-def verify_stacked_opening(transcript: Transcript, root: Digest, stack_log: int, log_inv_rate: int, claims: Sequence[StackClaim]) -> None:
+def verify_stacked_opening(
+    transcript: Transcript, root: Digest, stack_log: int, stack_lanes: int, log_inv_rate: int, claims: Sequence[StackClaim]
+) -> None:
     """Discharge every claim on the committed stack in one opening: the same powers of one challenge
     batch the values into the target, and the weights into the basis WHIR evaluates at its terminal point.
     """
     weights, values = zip(*claims, strict=True)
     scales = powers(transcript.sample(), len(claims))
-    verify_whir(transcript, stack_log, log_inv_rate, dot(scales, values), root, lambda point: dot(scales, [weight(point) for weight in weights]))
+    verify_whir(
+        transcript, stack_log, stack_lanes, log_inv_rate, dot(scales, values), root, lambda point: dot(scales, [weight(point) for weight in weights])
+    )
 
 
 def _bytecode_affine(producer: Producer, weights: Sequence[E], beta: E) -> Callable[[MultilinearPoint], list[E]]:
@@ -2317,6 +2340,7 @@ def verify_core(
     check_bytecode(bytecode)
     # Everything public and fixed is one digest, which seeds the transcript; every variable-length part is length-framed.
     halt_pc = TEXT_BASE + 4 * (len(bytecode) // 2**BUS_BITS - 1)
+    require(entry_pc % 4 == 0 and TEXT_BASE <= entry_pc < halt_pc, "the entry pc is not an instruction of the text")
     preimage = b"leanvm-rv64im-9" + pack("<Q", len(bytecode)) + b"".join(word.to_bytes() for word in bytecode)
     preimage += pack("<5Q", entry_pc, halt_pc, log_ram, log_advice, len(image)) + pack(f"<{len(image)}Q", *image)
     transcript = Transcript(proof, blake2s_hash(preimage), [K(word) for word in output])
@@ -2382,7 +2406,12 @@ def verify_core(
     regions = [layout.placements[column] for column in (*WITNESS_COLUMNS, *(producer.column for producer in layout.producers))]
     ring_claims = [(region, point, s) for region, (point, s) in zip(regions, families, strict=True)]
     verify_stacked_opening(
-        transcript, root, layout.stack_log, log_inverse_rate, [ring_switch(ring_claims, transcript), *(c.on_stack(layout) for c in claims)]
+        transcript,
+        root,
+        layout.stack_log,
+        layout.stack_lanes,
+        log_inverse_rate,
+        [ring_switch(ring_claims, transcript), *(c.on_stack(layout) for c in claims)],
     )
     transcript.finish()
     return DeferredClaims((program, tables.residual), tuple((form, value) for _, _, form, value in flocks))
