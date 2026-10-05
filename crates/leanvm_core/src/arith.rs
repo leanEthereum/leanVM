@@ -111,9 +111,12 @@ pub trait Arith {
     }
 
     /// `eq(bits, point)` for public bits, lowest first: `prod_j (bit_j ? z_j : 1 + z_j)`.
+    ///
+    /// The product runs from the highest coordinate down.
+    /// Why: selectors of nearby offsets share their high bits, so in rows their common partial products are made once.
     fn eq_bits(&mut self, bits: usize, point: &[Self::E]) -> Self::E {
         let one = self.one();
-        (point.iter().enumerate()).fold(one, |acc, (j, &z)| {
+        (point.iter().enumerate()).rev().fold(one, |acc, (j, &z)| {
             if bits >> j & 1 == 1 {
                 self.mul(acc, z)
             } else {
