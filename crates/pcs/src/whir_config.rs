@@ -28,9 +28,14 @@ pub const SECURITY_BITS: usize = 128;
 
 /// Bits a challenge drawn after the commitment loses to the commitment's list.
 ///
-/// L0 takes no OOD sample, so the root binds the prover to a list of up to `L_0 = 1/(2 eta_0 sqrt(rho_0))` polynomials (the PCS annex, `thm:rbr`).
-/// A challenge drawn after the root and before the opening must then hold against each of them: its error is multiplied by `L_0`.
-/// This is `ceil(log2 L_0)` at its largest over every configured size and rate, pinned to the derivation by a test.
+/// Level 0 takes no out-of-domain sample.
+/// So the root binds the prover to a list of up to `L_0 = 1/(2 eta_0 sqrt(rho_0))` polynomials (Johnson bound).
+///
+/// A challenge drawn between the root and the opening must hold against every list member.
+/// By a union bound its error grows by a factor `L_0`.
+///
+/// The value is `ceil(log2 L_0)` at its largest over every configured size and rate.
+/// A test pins it to the derivation.
 pub const L0_LIST_BITS: usize = 12;
 
 /// L0 code rate index: `rho_0 = 2^-LOG_INV_RATE_0` (rate 1/2).

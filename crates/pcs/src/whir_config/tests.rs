@@ -210,30 +210,24 @@ pub(crate) fn test_config_for(log_n: usize) -> ProverConfig {
     panic!("no feasible whir config at log_n = {log_n}");
 }
 
-// ===================================================================
 // Security configuration schema
-// ===================================================================
 //
-// Auditable, per-level spec for a WHIR instance: query count, grinding
-// bits, slack-from-Johnson, and the proximity-gap analysis the parameters were
-// derived under.
+// An auditable per-level spec: query count, grinding bits, slack below the Johnson radius, and the analysis behind them.
 //
-// That analysis is always the Johnson radius with explicit slack `eta`
-// (gamma = (1 - sqrt(rho)) - eta) WITH out-of-domain binding (`doc/leanvm/body/b-polynomial-commitment-scheme.tex`,
-// Thm `thm:rbr`). The MCA theorem (`thm:mca-johnson` = BCHKS25 Thm 4.6) gives
-// the proximity-gap exceptional set `a = O_rho(n / eta^5)`, and the eta search
-// keeps `log2(q/a)` above the target on its own rather than grinding the fold
-// challenges for it. Every level past L0 binds the prover to a single
-// codeword of its (Johnson-bounded) interleaved list with `ood_samples`
-// explicit multilinear OOD evaluations. L0 takes none, so the commitment is
-// only list binding: the opening's relation quantifies over L0's list, and
-// every challenge drawn between the root and the opening pays a union over it
-// (`L0_LIST_BITS`). Without OOD binding past L0, each level's query phase
-// would pay a union bound over its list, which the query counts do not
-// include.
+// Every level works at the Johnson radius minus a slack: gamma = 1 - sqrt(rho) - eta.
 //
-// Grinding always lands after the level's Merkle root is observed and before
-// its query positions are sampled, the standard FRI/STARK placement.
+// The proximity gap comes from the list correlated agreement theorem (BCHKS25 Thm 4.6, `thm:mca-johnson` in the PCS annex).
+// Its exceptional set is a = O_rho(n / eta^5).
+// The eta search keeps log2(q / a) above the target on its own, so the fold challenges need no grinding.
+//
+// How each level handles its list (WHIR, ePrint 2024/1586, Theorem 7.5):
+//
+//     L0       no out-of-domain sample: the root binds the prover only to a list of up to L_0 polynomials
+//              every challenge drawn between the root and the opening pays a union bound over that list
+//     L1 ...   explicit multilinear out-of-domain samples pin one codeword of the level's list
+//              so the query phases pay no union bound, and the query counts below include none
+//
+// Grinding lands after a level's Merkle root is observed and before its query positions are drawn.
 
 /// Parameters for a single level in the multilevel WHIR ladder.
 /// L0 = the upstream `pcs::commit` output (reused, not re-committed);
