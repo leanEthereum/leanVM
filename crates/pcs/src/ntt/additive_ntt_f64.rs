@@ -905,13 +905,22 @@ fn butterfly_lanes(top: &mut [F64], bot: &mut [F64], twiddle: F64) {
     }
 }
 
-/// [`butterfly_lanes_avx512`] at half the width, for a machine with VPCLMULQDQ
-/// but no AVX-512. Without it the base encode's innermost loop is scalar there,
-/// which costs it about half again as much.
+/// Four F64 butterflies with a shared twiddle, for a machine with VPCLMULQDQ but no AVX-512.
+///
+/// ```text
+///     reduce:     p = lo + hi * x^64,  x^64 = x^4 + x^3 + x + 1
+///                 p mod f = lo ^ g(hi ^ spill),  g(y) = y ^ y<<1 ^ y<<3 ^ y<<4
+///                 spill = n ^ n>>1 ^ n>>3 with n = hi>>60, the bits g pushes past x^63
+/// ```
+///
+/// - The reduction takes no further carry-less multiply, the scarce unit.
+/// - The spill is one byte-shuffle lookup of the top nibble.
+/// - The left shifts of g are doublings, which issue on more ports than shifts.
 ///
 /// # Safety
-/// Requires VPCLMULQDQ + AVX2; `top` and `bot` must each address four readable
-/// and writable F64 values.
+///
+/// - Requires VPCLMULQDQ and AVX2.
+/// - Each pointer must address four readable and writable words.
 #[cfg(all(
     target_arch = "x86_64",
     target_feature = "vpclmulqdq",
@@ -921,30 +930,43 @@ fn butterfly_lanes(top: &mut [F64], bot: &mut [F64], twiddle: F64) {
 #[inline]
 #[target_feature(enable = "vpclmulqdq", enable = "avx2")]
 unsafe fn butterfly_lanes_avx2(top: *mut F64, bot: *mut F64, twiddle: u64) {
-    #[inline]
-    #[target_feature(enable = "vpclmulqdq", enable = "avx2")]
-    unsafe fn reduce(p: __m256i, r: __m256i) -> __m256i {
-        let t = _mm256_clmulepi64_epi128::<0x01>(p, r);
-        let u = _mm256_clmulepi64_epi128::<0x01>(t, r);
-        _mm256_xor_si256(_mm256_xor_si256(p, t), u)
-    }
-
-    // SAFETY: the caller supplies valid four-element rows and the function's
-    // target features cover every intrinsic below.
+    // SAFETY:
+    // - The caller supplies two valid four-word rows.
+    // - This function's target features cover every intrinsic below.
     unsafe {
         let u = _mm256_loadu_si256(top.cast());
         let v = _mm256_loadu_si256(bot.cast());
         let tw = _mm256_set1_epi64x(twiddle as i64);
-        let r = _mm256_set1_epi64x(0x1b);
 
-        let even = reduce(_mm256_clmulepi64_epi128::<0x00>(v, tw), r);
-        let odd = reduce(_mm256_clmulepi64_epi128::<0x11>(v, tw), r);
-        // The odd products land in each lane's low half; swap them up, then take
-        // the odd qwords (32-bit elements 2, 3, 6, 7) from them.
-        let odd = _mm256_shuffle_epi32::<0x4e>(odd);
-        let product = _mm256_blend_epi32::<0b1100_1100>(even, odd);
+        // Products v * t, one 128-bit product per 128-bit lane, then back to lane order.
+        let even = _mm256_clmulepi64_epi128::<0x00>(v, tw);
+        let odd = _mm256_clmulepi64_epi128::<0x11>(v, tw);
+        let lo = _mm256_unpacklo_epi64(even, odd);
+        let hi = _mm256_unpackhi_epi64(even, odd);
 
-        let new_u = _mm256_xor_si256(u, product);
+        // The spill of every top nibble.
+        const SPILL: [u8; 16] = {
+            let mut table = [0u8; 16];
+            let mut n = 0;
+            while n < 16 {
+                table[n] = (n ^ (n >> 1) ^ (n >> 3)) as u8;
+                n += 1;
+            }
+            table
+        };
+        let table = _mm256_broadcastsi128_si256(_mm_loadu_si128(SPILL.as_ptr().cast()));
+        let spill = _mm256_shuffle_epi8(table, _mm256_srli_epi64::<60>(hi));
+        // Both hi and spill are multiplied by the same constant, so fold them first.
+        let x = _mm256_xor_si256(hi, spill);
+        let x2 = _mm256_add_epi64(x, x);
+        let x8 = {
+            let x4 = _mm256_add_epi64(x2, x2);
+            _mm256_add_epi64(x4, x4)
+        };
+        let x16 = _mm256_add_epi64(x8, x8);
+        let gx = _mm256_xor_si256(_mm256_xor_si256(x, x2), _mm256_xor_si256(x8, x16));
+
+        let new_u = _mm256_xor_si256(u, _mm256_xor_si256(lo, gx));
         let new_v = _mm256_xor_si256(v, new_u);
         _mm256_storeu_si256(top.cast(), new_u);
         _mm256_storeu_si256(bot.cast(), new_v);
