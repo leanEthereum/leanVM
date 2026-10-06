@@ -5,7 +5,7 @@ An aggregate proof certifies signature claims and the correct encoding of blob d
 
 \subsection{Recursive aggregation}\label{sec:recursion}\label{sec:xmss-agg}\label{sec:sphincs-agg}
 
-A signature claim identifies what was signed and by whom. For XMSS~\cite{rfc8391}, it is a public key, an epoch, and a message; the keys claiming one $(\text{epoch},\text{message})$ pair form one group, so an epoch signed at under several messages contributes one group per message. For SPHINCS+~\cite{sphincs}, it is a $(\text{key},\text{message})$ pair; the instance is NiceTry's EVM profile over Keccak-256 (specified in \texttt{doc/sphincs}), which the guest absorbs with the \texttt{SHA3} instruction, 136 bytes a block.
+A signature claim identifies what was signed and by whom. For XMSS~\cite{rfc8391}, it is a public key, an epoch, and a message; the keys claiming one $(\text{epoch},\text{message})$ pair form one group, so an epoch signed at under several messages contributes one group per message. For SPHINCS+~\cite{sphincs}, it is a $(\text{message},\text{key})$ pair; the instance is NiceTry's EVM profile over Keccak-256 (specified in \texttt{doc/sphincs}), which the guest absorbs with the \texttt{SHA3} instruction, 136 bytes a block.
 
 A node may publish any subset of the signature claims supported by its raw signatures and verified children. The default is their sorted, deduplicated union. The essential condition is coverage: every published claim must be justified, either directly at this node or recursively through a child.
 
@@ -34,13 +34,15 @@ The signer-set digest is BLAKE2s of the following, where each cell is $16$ bytes
 \begin{center}
 \begin{tabular}{@{}ll@{}}
 \hline
-block $0$ & XMSS group count, SPHINCS+ claim count, SPHINCS+ list digest\\
+block $0$ & XMSS group count, zero cell, SPHINCS+ list digest\\
 per XMSS group & epoch, key count, $32$-byte message\\
 & key list digest, two zero cells\\
 \hline
 \end{tabular}
 \end{center}
-Each inner list digest is BLAKE2s of the list alone: $32$ bytes per XMSS key or $64$ bytes per SPHINCS+ $(\text{key},\text{message})$ pair.
+Each inner list digest is BLAKE2s of the list alone: $32$ bytes per XMSS key or $64$ bytes per SPHINCS+ $(\text{message},\text{key})$ pair, the key being its root then its public parameter.
+
+An inner list digest binds its list's length, so the SPHINCS+ claims enter the statement through their list digest alone. A verifier holding only that digest, such as the \texttt{block\_deps\_hash} of \href{https://eips.ethereum.org/EIPS/eip-8288}{EIP-8288}, can therefore check an aggregate that claims nothing else: no XMSS group and no DA root.
 
 \subsubsection{Checking coverage}
 

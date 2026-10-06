@@ -2466,18 +2466,19 @@ def sp_wots_pk(adrs_a, kp, pp, msg):
 
 
 def verify_sig_sphincs(signer):
-    # `signer` is one 4-cell entry of the SPHINCS coverage table: the key's root and
-    # pkSeed, then the 32-byte message THAT signer signed. Where XMSS's message is
-    # one statement field for the whole node, a SPHINCS message rides its own slot,
-    # and the signer-set digest binds the two together.
-    root = signer[1]
-    pp = signer[GEN]
+    # `signer` is one 4-cell entry of the SPHINCS coverage table: the 32-byte message,
+    # then the root and pkSeed of the key that signed it (EIP-8288's data hash, then
+    # its key). Where XMSS's message is one statement field for the whole node, a
+    # SPHINCS message rides its own slot, and the signer-set digest binds the two
+    # together.
+    root = signer[GEN ** 2]
+    pp = signer[GEN ** 3]
 
     # ---- the message digest, which picks the FORS instance and its leaves ----
     # H_msg = keccak(0xFF..FF | R | pkSeed | pkRoot | M), 112 bytes in one block.
     r = hint_witness("sp_rand")
     digest = StackBuf(2)
-    keccak([SP_ONES, SP_ONES, r, pp, root, signer[GEN ** 2], signer[GEN ** 3]], digest)
+    keccak([SP_ONES, SP_ONES, r, pp, root, signer[1], signer[GEN]], digest)
 
     # Every index below is a bit field of that digest, so its last 24 bytes are
     # advice-decomposed here and bound lane by lane; every address is built from
@@ -2796,7 +2797,7 @@ def scaled_log(x, g_squares, shift: Const):
 
 def sphincs_window(state_0, state_1, base, entries_ptr, x_q, g_squares):
     # One window of the SPHINCS list's hash: SIGNERS_WINDOW claims, one 64-byte block
-    # each (the claimed key, then the message it signed). Block j's counter is
+    # each (the message, then the key that signed it). Block j's counter is
     # base + 64(j+1), one XOR, except the last, whose offset is the base's own lowest
     # bit and which therefore takes the NEXT window's base as its whole counter. That
     # base is derived here and carried out for the following window.
@@ -2983,11 +2984,13 @@ def plain_tail(state_0, state_1, base, run_ptr, k: Const):
 
 
 def signer_set_digest(run_ptr, n_epochs_g, g_squares):
-    # BLAKE2s of the signer set: both list lengths and the SPHINCS list's digest
-    # in the first block, then two blocks a group, its (epoch, count, message)
-    # and its key list's digest. Every block is full, so the hash is over exactly
-    # 64·(1 + 2·epochs) bytes, and leading with both lengths makes the encoding
-    # prefix-free: no set's string is a prefix of another's.
+    # BLAKE2s of the signer set: the group count, a zero cell and the SPHINCS
+    # list's digest in the first block, then two blocks a group, its (epoch,
+    # count, message) and its key list's digest. Every block is full, so the hash
+    # is over exactly 64·(1 + 2·epochs) bytes, and leading with the group count
+    # makes the encoding prefix-free: no set's string is a prefix of another's.
+    # The SPHINCS count needs no cell, the list's digest binding its length, so
+    # that digest is all the statement knows of the SPHINCS claims.
     blocks = n_epochs_g * n_epochs_g * GEN  # g^(1 + 2·epochs)
     split = StackBuf(2)
     hint_witness(split, "signers_split")
@@ -3315,8 +3318,8 @@ def main():
     #
     # so one range check per write keeps each writer inside its own region: that is
     # what makes the statement's split mean which scheme verified which key against
-    # which (epoch, message). An XMSS slot is two cells, a SPHINCS slot four: a key
-    # and the message that key signed. A DA root occupies two cells.
+    # which (epoch, message). An XMSS slot is two cells, a SPHINCS slot four: a
+    # message and the key that signed it. A DA root occupies two cells.
     meta = StackBuf(7)
     hint_witness(meta, "meta")  # every count in the exponent
     n_decl_g = meta[0]
@@ -3418,21 +3421,21 @@ def main():
     # followed by its own duplicate slots. The coverage indices below run over one
     # space: the group regions in order, then SPHINCS, then DA.
     #
-    # The digest is a plain BLAKE2s of one string, in whole blocks: both lengths
-    # and the SPHINCS list's digest, then per group its (epoch, count,
+    # The digest is a plain BLAKE2s of one string, in whole blocks: the group
+    # count and the SPHINCS list's digest, then per group its (epoch, count,
     # message) and its key list's digest, each list hashed plainly in turn. Leading
-    # with both lengths makes the encoding prefix-free, so no set's string is a
-    # prefix of another's and the digest binds its own lengths. `half` and `odd` are
-    # hinted per group and pinned by half*half*odd == n with odd in {0, 1}, which
-    # leaves half = n // 2 and odd = n % 2 as the only solution.
+    # with the group count makes the encoding prefix-free, so no set's string is a
+    # prefix of another's, and each list's digest binds its own length. `half` and
+    # `odd` are hinted per group and pinned by half*half*odd == n with odd in {0, 1},
+    # which leaves half = n // 2 and odd = n % 2 as the only solution.
     xmss_table = HeapBuf(xmss_slots_g * xmss_slots_g)
     sphincs_table = HeapBuf(sphincs_slots_g ** 4)
-    # The run the set's hash covers: both lengths and the SPHINCS list's digest
-    # in one block, then two a group. Eight cells a group, so a group's
-    # header and its key digest are one block each.
+    # The run the set's hash covers: the group count, a zero cell and the SPHINCS
+    # list's digest in one block, then two a group. Eight cells a group, so a
+    # group's header and its key digest are one block each.
     signers_run = HeapBuf(n_decl_g ** 8 * GEN ** 4)
     signers_run[1] = n_decl_g
-    signers_run[GEN] = n_sphincs_g
+    signers_run[GEN] = 0
     decl_keys = HeapBuf(n_decl_g * GEN)
     decl_keys[GEN ** 0] = 1
     for xe in mul_range(1, n_decl_g):
@@ -3539,12 +3542,13 @@ def main():
     written[GEN ** 0] = n_raw_x_g * n_raw_s_g * n_direct_da_g
     for xc in mul_range(1, n_children_g):
         base = written[xc]
-        # The child's two list lengths, then its groups, rebuilt into its signer-set
+        # The child's group count, then its groups, rebuilt into its signer-set
         # chain by rebuild_child_groups: everything hinted there is pinned by the
         # chain, which the child's statement digest carries, so a lie about any of
-        # it changes the public input its proof has to satisfy. Nothing demands a
-        # mid-tree statement be canonical (sorted, distinct groups); it still binds
-        # every claim to its (epoch, message), which is all the group map relies on.
+        # it changes the public input its proof has to satisfy. The SPHINCS count
+        # is pinned by the list digest it sizes. Nothing demands a mid-tree
+        # statement be canonical (sorted, distinct groups); it still binds every
+        # claim to its (epoch, message), which is all the group map relies on.
         child_meta = StackBuf(2)
         hint_witness(child_meta, "child_meta")  # n_epochs, n_sphincs
         nsub_e_g = child_meta[0]
@@ -3553,7 +3557,7 @@ def main():
         assert log(nsub_s_g) < MAX_KEYS
         sub_run = HeapBuf(nsub_e_g ** 8 * GEN ** 4)
         sub_run[1] = nsub_e_g
-        sub_run[GEN] = nsub_s_g
+        sub_run[GEN] = 0
         nsub_x_g = rebuild_child_groups(nsub_e_g, sub_run, base, epochs, msgs, group_base, group_slots, n_epochs_g, xmss_table, cover, g_squares)
         # Implied by the per-group bounds and the child's own n_total assert; stands
         # as documentation.
