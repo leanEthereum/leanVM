@@ -30,7 +30,6 @@ pub(crate) const RIPPLE_BITS_PER_ADD3: usize = WORD_BITS - 2; // 30
 /// Product slots per fused three-operand ADD: 31 majorities + 30 ripple.
 pub(crate) const ADD3_BITS: usize = CARRY_BITS_PER_ADD + RIPPLE_BITS_PER_ADD3; // 61
 
-// ---------------------------------------------------------------------------
 // Circuit-walk evaluation (wire side)
 //
 // Evaluates the two bilinear forms `uᵀ A_0 w` and `uᵀ B_0 w` for arbitrary row
@@ -43,7 +42,6 @@ pub(crate) const ADD3_BITS: usize = CARRY_BITS_PER_ADD + RIPPLE_BITS_PER_ADD3; /
 // Cost: O(circuit) field ops, never the millions of substituted nonzeros, and
 // the matrices need not be materialized at all. This is what lets a verifier
 // evaluate the matrix MLEs directly instead of deferring the claim.
-// ---------------------------------------------------------------------------
 
 /// One lane's wire values: bit `i` of the word, as the F192 combination
 /// `⟨lin_func_i, w⟩`.
@@ -153,7 +151,6 @@ pub(crate) fn walk_add3_fused(
     out
 }
 
-// ---------------------------------------------------------------------------
 // Backward walk (the marginal side)
 //
 // For either matrix `D_0`, the forward walk evaluates `S(w) = uᵀ D_0 w`, which
@@ -169,7 +166,6 @@ pub(crate) fn walk_add3_fused(
 // marginal entries owned by the gadget's own slots, and returns the adjoints of
 // its operands. `hash::marginal_walk_side` threads them in reverse
 // topological order, selecting either the A or B operand of every row.
-// ---------------------------------------------------------------------------
 
 /// Which matrix operand the backward walk follows in each R1CS row.
 #[derive(Clone, Copy)]

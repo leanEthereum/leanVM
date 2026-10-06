@@ -64,10 +64,6 @@ use primitives::field::{F64, F192, powers};
 
 mod basis;
 
-// ---------------------------------------------------------------------------
-// Claim types
-// ---------------------------------------------------------------------------
-
 /// An owning point claim folded into the stacked mixed opening.
 ///
 /// Its point and value are values, or whatever a verifier holds them as.
@@ -149,10 +145,6 @@ impl<E: Copy> StackClaim<E> {
         }
     }
 }
-
-// ---------------------------------------------------------------------------
-// Prover
-// ---------------------------------------------------------------------------
 
 /// Open the committed `F64` stack: discharge every `point_claims` slice
 /// evaluation AND the ring-switched q_flock claims (`ring`) in ONE WHIR
@@ -253,10 +245,6 @@ pub fn open(
     );
 }
 
-// ---------------------------------------------------------------------------
-// Verifier
-// ---------------------------------------------------------------------------
-
 /// Verifier mirror of [`open`].
 ///
 /// It replays the ring switch succinctly, recomputes the combined target, then drives the succinct WHIR verifier with one terminal evaluation of the lifted weight.
@@ -329,10 +317,6 @@ fn check_statement<E: Copy>(
     }
     Ok(())
 }
-
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
 
 #[cfg(test)]
 mod tests {

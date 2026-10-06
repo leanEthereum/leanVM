@@ -16,10 +16,6 @@
 use fiat_shamir::MAX_GRINDING_BITS;
 use thiserror::Error;
 
-// ===================================================================
-// Config
-// ===================================================================
-
 // The production WHIR configuration: Johnson list decoding at rates 2^-1 to 2^-4 and 128-bit round-by-round soundness over F192.
 // L0 takes no OOD sample, so the commitment binds only to a list, whose size every challenge before the opening pays; every later level takes one OOD sample.
 

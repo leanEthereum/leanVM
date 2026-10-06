@@ -90,10 +90,6 @@ pub(crate) struct PaddingSpec {
     pub(crate) useful_bits_per_block: usize,
 }
 
-// ---------------------------------------------------------------------------
-// Public types: claim, proof, error.
-// ---------------------------------------------------------------------------
-
 /// Evaluation claims on the multilinear extensions of a, b, c, all three at the
 /// **same** point `(z, mlv_challenges)`: C rides the sumcheck with AB, so the
 /// three claims share the point its challenges define, and lincheck can batch
@@ -127,10 +123,6 @@ pub enum ZerocheckError {
     #[error(transparent)]
     Transcript(#[from] TranscriptError),
 }
-
-// ---------------------------------------------------------------------------
-// API: prove / verify.
-// ---------------------------------------------------------------------------
 
 /// One circuit's witness in a batched zerocheck: the packed `a`, `b`, `c` bits over
 /// a cube of `2^m` bits.

@@ -75,14 +75,6 @@ fn mul_quad_unreduced(
     )
 }
 
-// ---------------------------------------------------------------------------
-// Fold a Boolean witness at z.
-// ---------------------------------------------------------------------------
-
-// ---------------------------------------------------------------------------
-// Naive round-2 prover message (AB-pair multilinear sumcheck).
-// ---------------------------------------------------------------------------
-
 /// Single-table sibling of [`round_pair_naive`], for the linear `c` term:
 /// `G_c(1) = Σ_{x'} eq(r_eq, x') · c_mlv(1, x')`. Linear, so no `G(∞)`.
 pub(crate) fn round_single_naive(c_mlv: &[F192], r_eq: &[F192]) -> F192 {
@@ -131,10 +123,6 @@ pub(crate) fn round_pair_naive(a_mlv: &[F192], b_mlv: &[F192], r_eq: &[F192]) ->
     }
     (g_one, g_inf)
 }
-
-// ---------------------------------------------------------------------------
-// Bit-resident rounds: fold and message straight from the packed witness.
-// ---------------------------------------------------------------------------
 
 /// Returns `(pair_in_block_mask, live_pairs)` for a round whose positions each cover `2^position_log` witness bits.
 ///
@@ -696,10 +684,6 @@ fn fold_and_round_pair_kernel<const K: usize>(
     RoundPair::from_sums(sums, r_v)
 }
 
-// ---------------------------------------------------------------------------
-// Subsequent multilinear rounds (3..(m−k_skip+1)): fold + next message.
-// ---------------------------------------------------------------------------
-
 /// In-place fold of a single multilinear polynomial table at `challenge`.
 /// Pairs `(a[2x], a[2x+1])` collapse to `a[x] = a[2x] + challenge · (a[2x+1] + a[2x])`.
 /// After the call, `a.len()` is halved.
@@ -831,10 +815,6 @@ mod planar {
         acc.map(|s| s.total())
     }
 }
-
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
 
 #[cfg(test)]
 mod tests {

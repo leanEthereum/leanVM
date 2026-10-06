@@ -147,10 +147,6 @@ pub(crate) fn sample_map_challenges(ch: &mut impl Challenger) -> [F192; COMPOSIT
     std::array::from_fn(|_| ch.sample())
 }
 
-// ---------------------------------------------------------------------------
-// Building blocks
-// ---------------------------------------------------------------------------
-
 /// A claim's weight `Phi(scale·eq(point, ·))`, kept factored: the split eq
 /// tensor, its high half scaled, and `Phi` on the coordinates, so combining
 /// claims needs only additions.
@@ -223,10 +219,6 @@ pub(crate) fn combine_deferred_chunk(outputs: &[DeferredWeight], start: usize, o
 fn split_n_lo(n: usize) -> usize {
     (n / 2).clamp(4.min(n), n)
 }
-
-// ---------------------------------------------------------------------------
-// The map in Frobenius form, which the verifiers evaluate
-// ---------------------------------------------------------------------------
 
 /// The ring-switching map `Phi`, as the coefficients `C_k^(2^-k)` of its Frobenius form `Phi(v) = sum_{k<64} C_k v^(2^k)`.
 ///
@@ -865,8 +857,6 @@ pub(crate) mod tests {
             }
         }
     }
-
-    // -- end-to-end: reduction + whir opening --------------------------
 
     struct E2e {
         vc: VerifierConfig,

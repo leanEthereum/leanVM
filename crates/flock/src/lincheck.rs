@@ -101,10 +101,6 @@ use thiserror::Error;
 mod fold;
 mod sumcheck;
 
-// ---------------------------------------------------------------------------
-// LincheckCircuit: the per-block linear structure lincheck consumes
-// ---------------------------------------------------------------------------
-//
 // Lincheck's hot path computes a single length-`k = 2^k_log` vector
 //
 //   `comb_vec[c] = ξ_A(c) + α · ξ_B(c)`
@@ -155,10 +151,6 @@ pub trait LincheckCircuit: Sync {
         None
     }
 }
-
-// ---------------------------------------------------------------------------
-// Public types
-// ---------------------------------------------------------------------------
 
 /// A "quirky" claim point: one univariate-skip coord (`z_skip`) representing
 /// the first `k_skip` variables via the polynomial extension with the φ_8 basis,
@@ -244,10 +236,6 @@ fn outer_product(hi: &[F192], lo: &[F192]) -> Vec<F192> {
     }
     out
 }
-
-// ---------------------------------------------------------------------------
-// API
-// ---------------------------------------------------------------------------
 
 /// The weight circuit `f`'s four terms take in a batch, `α^{4f}`: circuit `f`'s
 /// `A`, `B`, `C` and pin terms ride `α^{4f}`, `α^{4f+1}`, `α^{4f+2}`, `α^{4f+3}`.
@@ -695,10 +683,6 @@ impl MatrixClaim {
     }
 }
 
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -997,8 +981,6 @@ mod tests {
         }
     }
 
-    // ---- Unit tests for the kernels ----
-
     /// `partial_fold_packed_z_fast` (parallel lookup-table) matches the scalar
     /// reference `partial_fold_packed_z`.
     #[test]
@@ -1190,8 +1172,6 @@ mod tests {
             }
         }
     }
-
-    // ---- End-to-end prove/verify roundtrip on honest data ----
 
     /// Build a small honest instance: random sparse A_0/B_0/C_0, random z;
     /// compute a, b, c via apply_block_diag; pick three points; compute true

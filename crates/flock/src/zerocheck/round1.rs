@@ -88,10 +88,6 @@ use primitives::multilinear::SplitEq;
 use std::sync::LazyLock;
 use std::sync::OnceLock;
 
-// ---------------------------------------------------------------------------
-// Protocol constants: fixed by the optimization design.
-// ---------------------------------------------------------------------------
-
 const ELL: usize = 64;
 const N_CHUNKS: usize = 8;
 const N_MEDIUM: usize = 4;
@@ -219,10 +215,8 @@ pub(crate) fn ntt_extend_vec(in_s: &[F192], inv_table: &InvNttTableByteSingleGf8
     out
 }
 
-// ---------------------------------------------------------------------------
 // Convert table: γ^b · φ_8(v) for b ∈ [0, 16), v ∈ [0, 256).
 // Computed once and cached.
-// ---------------------------------------------------------------------------
 
 const N_MEDIUM_VALUES: usize = 16;
 
@@ -266,7 +260,6 @@ fn convert_table() -> &'static ConvertTable {
     CONVERT_TABLE_CACHE.get_or_init(build_convert_table)
 }
 
-// ---------------------------------------------------------------------------
 // Shift_reduce inner kernel (AB only: extract_c handles C separately).
 //
 // For one medium-position b_med and the 8 small-positions K ∈ 0..8:
@@ -276,9 +269,7 @@ fn convert_table() -> &'static ConvertTable {
 // At the end, reduce each acc[lane] back to a u8 in F_8.
 //
 // Output `out[lane]` is the F_8 representative of Σ_K x^K · y_K[lane] mod p.
-// ---------------------------------------------------------------------------
 
-// ---------------------------------------------------------------------------
 // Fused NEON inner kernel: inv_NTT apply + F_8 mul + shift_reduce, all in
 // NEON registers (no Vec<F8> round-trip).
 //
@@ -291,7 +282,6 @@ fn convert_table() -> &'static ConvertTable {
 // 7 calls to the byte helper for b=1..7 (with the specific protocol BH/ODD
 // pattern), one 16-lane F_8 mul per output chunk, and finally widen-shift-XOR
 // into the per-(K, lane) 16-bit accumulators.
-// ---------------------------------------------------------------------------
 
 /// # Safety
 /// `table_base` points to a `256 * 64`-byte table, and `BH < 4`.
@@ -707,13 +697,11 @@ fn shift_reduce_inner_ab_scalar(
     }
 }
 
-// ---------------------------------------------------------------------------
 // Convert: per lane, the medium bytes to F192, weighted by eq and summed.
 //
 //   partial[lane] += eq_lo * sum_b gamma^b * phi_8(byte_b[lane])
 //
 // The map from the 16 bytes of a lane to F192 is GF(2)-linear.
-// ---------------------------------------------------------------------------
 
 /// The per-`x_hi` sums of one worker, one per lane for `A B` and for `C`.
 #[cfg(not(all(
@@ -914,10 +902,6 @@ impl Convert {
         (ab, c)
     }
 }
-
-// ---------------------------------------------------------------------------
-// Main optimized round-1 prover message.
-// ---------------------------------------------------------------------------
 
 /// Per-worker scratch and local accumulators.
 struct WorkerState {

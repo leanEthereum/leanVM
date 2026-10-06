@@ -136,14 +136,12 @@ pub const fn gf8_reduce(p: u16) -> u8 {
     ((t & 0xff) ^ h2 ^ (h2 << 1) ^ (h2 << 3) ^ (h2 << 4)) as u8
 }
 
-// ---------------------------------------------------------------------------
 // aarch64 NEON helpers: 16-lane GF(2^8) mul and reduce.
 //
 // These are the building blocks for the round-1 URM shift_reduce inner kernel.
 //
 // `vmull_p8` is a baseline NEON instruction (no aes feature needed), so the
 // only cfg gate is `target_arch = "aarch64"`.
-// ---------------------------------------------------------------------------
 
 #[cfg(target_arch = "aarch64")]
 pub mod neon {

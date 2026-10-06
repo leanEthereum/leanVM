@@ -23,9 +23,7 @@ mod first_pass;
 
 pub(crate) use first_pass::{InitialRounds, initial_rounds};
 
-// ===================================================================
 // Tuning constants
-// ===================================================================
 //
 // Prover-side work sizes, gathered here so they can be found and tuned together.
 // The round messages do not depend on them.
@@ -53,9 +51,7 @@ pub(crate) const INITIAL_BASIS_CHUNK: usize = 256;
 /// Elements a stored (dense) weight's lane fold stages in L1 before publishing them.
 const DENSE_STAGE: usize = 128;
 
-// ===================================================================
 // Stateful sumcheck over E with a two-phase (Base then Ext) witness
-// ===================================================================
 //
 // Each round sends (u_0, u_2) of the quadratic
 // q(X) = u_0 + u_1 X + u_2 X^2 with q(0) + q(1) = T_r, verifier derives
@@ -456,9 +452,7 @@ fn fold_and_msg_lsb<T: RoundWitness>(f: &[T], b: &[F192], r: F192) -> (Vec<F192>
     )
 }
 
-// ===================================================================
 // Lane rounds: the L0 fold binds whole lanes, not adjacent words
-// ===================================================================
 //
 // The committed witness is stored lane-major (lane `l` is the contiguous stack
 // block `q[l·H .. (l+1)·H)`, `H = 2^(log_n − initial_k)`), because that is what

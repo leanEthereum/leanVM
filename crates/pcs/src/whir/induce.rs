@@ -14,9 +14,7 @@ use primitives::field::{F64, F192, F192Unreduced};
 use primitives::multilinear::{eq_table, inner_product, inner_product_base};
 use std::collections::HashMap;
 
-// ===================================================================
 // LCH novel-basis evaluations over K (mirror of whir's extension-field block)
-// ===================================================================
 //
 // The subspace-polynomial recurrence runs entirely over the K evaluation
 // domain (F64 values); results are lifted into E with `mul_base` only where
