@@ -293,7 +293,7 @@ impl Instruction {
 
         Some(match opcode {
             Opcode::Op | Opcode::Op32 => Op::Reg {
-                op: RegOp::find(|fields| fields == (opcode, f3, f7))?,
+                op: RegOp::from_fields((opcode, f3, f7))?,
                 rd,
                 rs1,
                 rs2,
@@ -302,7 +302,7 @@ impl Instruction {
             // A shift shares its opcodes with the immediate arithmetic.
             //
             // Its immediate holds the amount in the low bits, and a function above them.
-            Opcode::OpImm | Opcode::OpImm32 => match ImmOp::find(|fields| fields == (opcode, f3)) {
+            Opcode::OpImm | Opcode::OpImm32 => match ImmOp::from_fields((opcode, f3)) {
                 Some(op) => Op::Imm {
                     op,
                     rd,
@@ -310,26 +310,26 @@ impl Instruction {
                     imm: self.imm_i() as i32,
                 },
                 None => {
-                    let op = ShiftOp::find(|(o, f, high, bits)| (o, f, high) == (opcode, f3, imm12 >> bits << bits))?;
+                    let op = ShiftOp::decode(opcode, f3, imm12)?;
                     let amount = imm12 & ((1 << op.amount_bits()) - 1);
                     Op::Shift { op, rd, rs1, amount }
                 }
             },
 
             Opcode::Load => Op::Load {
-                op: LoadOp::find(|fields| fields == f3)?,
+                op: LoadOp::from_fields(f3)?,
                 rd,
                 rs1,
                 offset: self.imm_i() as i32,
             },
             Opcode::Store => Op::Store {
-                op: StoreOp::find(|fields| fields == f3)?,
+                op: StoreOp::from_fields(f3)?,
                 rs1,
                 rs2,
                 offset: self.imm_s() as i32,
             },
             Opcode::Branch => Op::Branch {
-                op: BranchOp::find(|fields| fields == f3)?,
+                op: BranchOp::from_fields(f3)?,
                 rs1,
                 rs2,
                 offset: self.imm_b() as i32,
@@ -368,7 +368,7 @@ impl Instruction {
 
             // Every register is an address, and the address in x0 would be 0, which is unmapped.
             Opcode::Custom1 if f7 == 0 && rd != Reg::ZERO => Op::Ext {
-                op: ExtOp::find(|fields| fields == f3)?,
+                op: ExtOp::from_fields(f3)?,
                 rd,
                 rs1,
                 rs2,
@@ -494,11 +494,11 @@ macro_rules! operations {
                 }
             }
 
-            /// The operation whose encoding fields pass the test, if one does.
+            /// The operation with these exact encoding fields, if one exists.
             ///
             /// The decoder reads the same table the encoder writes from.
-            fn find(matches: impl Fn($fields) -> bool) -> Option<Self> {
-                Self::ALL.into_iter().find(|op| matches(op.fields()))
+            fn from_fields(fields: $fields) -> Option<Self> {
+                Self::ALL.into_iter().find(|op| op.fields() == fields)
             }
         }
     };
@@ -736,6 +736,18 @@ impl ImmOp {
 }
 
 impl ShiftOp {
+    /// Decodes an immediate shift, rejecting reserved function bits.
+    fn decode(opcode: Opcode, funct3: u32, imm12: u32) -> Option<Self> {
+        // RV64 shifts use six amount bits; word shifts use five.
+        let bits = match opcode {
+            Opcode::OpImm => 6,
+            Opcode::OpImm32 => 5,
+            _ => return None,
+        };
+        // Ignore only the amount, retaining every bit that selects the function.
+        Self::from_fields((opcode, funct3, imm12 >> bits << bits, bits))
+    }
+
     /// How many bits the amount has: 6, or 5 on the low 32 bits.
     pub const fn amount_bits(self) -> u32 {
         self.fields().3
@@ -1106,6 +1118,34 @@ mod tests {
             amount: 63,
         };
         assert_eq!(Instruction::from_bits(0x43f5_d513).decode(), Some(srai));
+    }
+
+    #[test]
+    fn immediate_shifts_accept_only_defined_encodings() {
+        // Exhaust every function and 12-bit immediate for both shift widths.
+        for opcode in [Opcode::OpImm, Opcode::OpImm32] {
+            for funct3 in [1, 5] {
+                for imm12 in 0..4096 {
+                    // Independent ISA masks retain the function above the shift amount.
+                    let expected = match (opcode, funct3, imm12) {
+                        (Opcode::OpImm, 1, 0..=63) => Some(ShiftOp::Slli),
+                        (Opcode::OpImm, 5, 0..=63) => Some(ShiftOp::Srli),
+                        (Opcode::OpImm, 5, 0x400..=0x43f) => Some(ShiftOp::Srai),
+                        (Opcode::OpImm32, 1, 0..=31) => Some(ShiftOp::Slliw),
+                        (Opcode::OpImm32, 5, 0..=31) => Some(ShiftOp::Srliw),
+                        (Opcode::OpImm32, 5, 0x400..=0x41f) => Some(ShiftOp::Sraiw),
+                        _ => None,
+                    };
+                    // Exercise the instruction decoder, including rejection of reserved bits.
+                    let instruction = Instruction::i(opcode, funct3, Reg::A0, Reg::A1, imm12);
+                    let actual = instruction.decode().map(|op| match op {
+                        Op::Shift { op, .. } => op,
+                        _ => panic!("shift function decoded as {op:?}"),
+                    });
+                    assert_eq!(actual, expected, "{opcode:?}, funct3={funct3}, immediate={imm12:#x}");
+                }
+            }
+        }
     }
 
     #[test]
