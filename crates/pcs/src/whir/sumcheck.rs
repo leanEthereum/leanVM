@@ -7,6 +7,7 @@
 //! running claim every level's queries are batched into. The first lane rounds
 //! come out of one pass, in [`first_pass`].
 
+use crate::stack_open::StackWeight;
 use core::ops::BitXorAssign;
 use fiat_shamir::transcript::{Receiver, TranscriptError, Transmitter};
 use first_pass::{LaneWeight, WeightFold};
@@ -410,11 +411,6 @@ fn msg_terms_lone<T: RoundWitness>(f0: &[T], b0: &[F192]) -> (T::Acc, T::Acc) {
     (u, u)
 }
 
-/// The opening's initial weight, regenerated one aligned chunk at a time.
-///
-/// Called as `fill(start, out)`, it writes the weights of words `start..start + out.len()`.
-pub(crate) type BasisFill<'a> = dyn Fn(usize, &mut [F192]) + Sync + 'a;
-
 /// The weight the opening's sumcheck folds against.
 pub(crate) enum Basis<'a> {
     /// One E value per word, in memory.
@@ -422,7 +418,7 @@ pub(crate) enum Basis<'a> {
     /// Regenerated when read, by chunks of the initial fill size.
     ///
     /// Only the first pass and the first fold read it, so it is never stored.
-    Virtual(&'a BasisFill<'a>),
+    Virtual(&'a StackWeight<'a>),
 }
 
 impl Basis<'_> {
@@ -451,8 +447,8 @@ impl Basis<'_> {
 fn window<'r>(b: &'r Basis<'_>, raw: &'r mut [F192; INITIAL_BASIS_CHUNK], at: usize, len: usize) -> &'r [F192] {
     match b {
         Basis::Dense(b) => &b[at..at + len],
-        Basis::Virtual(fill) => {
-            fill(at, &mut raw[..len]);
+        Basis::Virtual(weight) => {
+            weight.fill(at, &mut raw[..len]);
             &raw[..len]
         }
     }
@@ -491,6 +487,11 @@ fn fold_and_msg_blocks<T: RoundWitness>(
     } else {
         Vec::new()
     };
+    // A regenerated weight folds its point claims in closed form, so only its ring-switched part goes lane by lane.
+    let points = match b {
+        Basis::Virtual(weight) if rs.len() > 1 => Some(weight.fold_points(rs, n_out * block)),
+        _ => None,
+    };
 
     let mut nf = Box::new_uninit_slice(n_out * block);
     let mut nb = Box::new_uninit_slice(n_out * block);
@@ -520,11 +521,11 @@ fn fold_and_msg_blocks<T: RoundWitness>(
         let len = stage.len();
         let src0 = eq.len() * out_blk * block + x0;
         let [raw_lo, raw_hi] = raw;
-        let b_lo = window(b, raw_lo, src0, len);
         // Sliced, not indexed: runs of one length let the bounds checks fall out
         // and the pair fold vectorise, as the adjacent-pair kernel's do.
         let f_lo = &f[src0..src0 + len];
         if let [r] = *rs {
+            let b_lo = window(b, raw_lo, src0, len);
             if 2 * out_blk + 1 < n_in {
                 let src1 = src0 + block;
                 let b_hi = window(b, raw_hi, src1, len);
@@ -551,12 +552,22 @@ fn fold_and_msg_blocks<T: RoundWitness>(
                 if src >= f.len() {
                     break;
                 }
-                let b_l = if l == 0 { b_lo } else { window(b, raw_hi, src, len) };
                 T::add_weighted_lane(&mut acc_f, e, &f[src..src + len]);
-                acc_b.add(e, b_l);
+                match b {
+                    Basis::Dense(b) => acc_b.add(e, &b[src..src + len]),
+                    // A lane with no ring-switched words adds nothing.
+                    Basis::Virtual(weight) => {
+                        if weight.fill_rings(src, &mut raw_lo[..len]) {
+                            acc_b.add(e, &raw_lo[..len]);
+                        }
+                    }
+                }
             }
             acc_f.write(stage);
             acc_b.write(stage_b);
+            if let Some(points) = &points {
+                points.add(out_blk * block + x0, stage_b);
+            }
         }
         // SAFETY: distinct (out_blk, x0) name disjoint in-bounds windows of `nf`
         // and `nb`, which stay borrowed for the whole dispatch.
@@ -801,6 +812,7 @@ impl<'a> SumcheckProver<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::stack_open::tests::RandomWeight;
     use crate::whir_config::INITIAL_FOLDING_FACTOR;
     use primitives::multilinear::inner_product;
     use primitives::test_util::Rng;
@@ -835,28 +847,28 @@ mod tests {
 
     #[test]
     fn a_regenerated_weight_folds_like_the_stored_one() {
-        // Invariant: the first lane round writes the same fold and message from either weight.
+        // Invariant: a lane fold writes the same fold and message from either weight, one lane bit at a time
+        // or several, where the point claims fold in closed form.
         let mut rng = Rng::new(0xF111);
         // Fixture state: blocks below, at and above one fill chunk and one task chunk.
         for block in [1, 16, INITIAL_BASIS_CHUNK, 4 * INITIAL_BASIS_CHUNK, 2 * ROUND_CHUNK] {
-            // An odd lane count leaves a lone block, folded against the absent zero lanes.
-            for lanes in [1, 2, 3, 37] {
+            // An odd lane count leaves a lone block, and a partial group absent lanes, folded as zero.
+            for lanes in [1, 2, 3, 17, 37] {
                 let f: Vec<F64> = (0..block * lanes).map(|_| F64(rng.next_u64())).collect();
-                let weight = rng.ext_vec(f.len());
-                let r = rng.ext();
-                // The last lane round is the one whose output is a single block.
-                let last = lanes <= 2;
+                let fixture = RandomWeight::new(&mut rng, lanes, block);
+                let (stored, weight) = (Basis::Dense(fixture.dense()), fixture.weight());
+                for bits in [1, 2, PRECOMPUTED_ROUNDS] {
+                    let rs = rng.ext_vec(bits);
+                    // The last lane round is the one whose output is a single block.
+                    let last = lanes <= 1 << bits;
+                    let label = format!("block={block}, lanes={lanes}, bits={bits}");
 
-                // The stored weight, and the same weight refilled from it chunk by chunk.
-                let stored = Basis::Dense(weight.to_vec());
-                let fill = |start: usize, out: &mut [F192]| out.copy_from_slice(&weight[start..start + out.len()]);
-                let regenerated = Basis::Virtual(&fill);
-
-                let (nf_s, nb_s, msg_s) = fold_and_msg_blocks(&f, &stored, &[r], block, last);
-                let (nf_r, nb_r, msg_r) = fold_and_msg_blocks(&f, &regenerated, &[r], block, last);
-                assert_eq!(&*nf_s, &*nf_r, "fold, block={block}, lanes={lanes}");
-                assert_eq!(&*nb_s, &*nb_r, "weight fold, block={block}, lanes={lanes}");
-                assert_eq!(msg_s, msg_r, "message, block={block}, lanes={lanes}");
+                    let (nf_s, nb_s, msg_s) = fold_and_msg_blocks(&f, &stored, &rs, block, last);
+                    let (nf_r, nb_r, msg_r) = fold_and_msg_blocks(&f, &Basis::Virtual(&weight), &rs, block, last);
+                    assert_eq!(&*nf_s, &*nf_r, "fold, {label}");
+                    assert_eq!(&*nb_s, &*nb_r, "weight fold, {label}");
+                    assert_eq!(msg_s, msg_r, "message, {label}");
+                }
             }
         }
     }
@@ -875,7 +887,8 @@ mod tests {
                     .filter(|&l| l >= 1 && l <= full)
                 {
                     let f: Vec<F64> = (0..block * lanes).map(|_| F64(rng.next_u64())).collect();
-                    let weight = rng.ext_vec(f.len());
+                    let fixture = RandomWeight::new(&mut rng, lanes, block);
+                    let weight = fixture.dense();
                     let rs = rng.ext_vec(initial_k);
                     let label = format!("initial_k={initial_k}, block={block}, lanes={lanes}");
 
@@ -895,8 +908,8 @@ mod tests {
                         expected.push(msg);
                     }
 
-                    let fill = |start: usize, out: &mut [F192]| out.copy_from_slice(&weight[start..start + out.len()]);
-                    for basis in [Basis::Dense(weight.to_vec()), Basis::Virtual(&fill)] {
+                    let regenerated = fixture.weight();
+                    for basis in [Basis::Dense(weight.to_vec()), Basis::Virtual(&regenerated)] {
                         let (mut sc, msg) = SumcheckProver::new(&f, basis, F192::ZERO, block, initial_k, None);
                         let mut actual = vec![msg];
                         for (j, &r) in rs.iter().enumerate() {
