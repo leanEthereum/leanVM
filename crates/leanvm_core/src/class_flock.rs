@@ -14,7 +14,6 @@
 use crate::cpu::{Payloads, RowRef, Trace};
 use crate::rv::RiscvProgram;
 use crate::tables::{Fill, N_CIRCUITS, N_TABLES, Part, PerTable, TableId};
-use ::pcs::pack::LOG_PACKING;
 use flock::circuit::Circuit;
 use flock::reduction::{Instance, Shape, min_n_blocks_log};
 use primitives::field::F64;
@@ -117,7 +116,7 @@ impl FlockId {
 
     /// `log2` of an instance's packed words: the stride between consecutive instances' same-port words.
     pub const fn stride_log(self) -> usize {
-        self.k_log() - LOG_PACKING
+        self.k_log() - F64::DEGREE.ilog2() as usize
     }
 
     /// What the verifier's replay of the witness's reduction reads of its circuit short of its matrices.

@@ -826,7 +826,7 @@ NUM_FRAMEWORK_COLUMNS = len(SHARED_COLUMNS)
 
 K_BITS = 64
 FLOCK_K_SKIP = log2_ceil(K_BITS)
-LOG_PACKING = log2_ceil(K_BITS)  # bits per committed K-element (pcs::pack::LOG_PACKING)
+LOG_PACKING = log2_ceil(K_BITS)  # variables packed into each committed K-element
 # Flock's zerocheck runs over a cube of at least this many variables: the skip, then seven fixed coordinates.
 FLOCK_MIN_LOG_SIZE = 13
 

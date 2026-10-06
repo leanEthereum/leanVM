@@ -20,7 +20,6 @@ use fiat_shamir::transcript::{ProverState, Receiver, Transmitter, VerifierState}
 use flock::Witness;
 use flock::gadgets::{U64Circuit, U64Op};
 use flock::reduction::{Instance, min_n_blocks_log};
-use pcs::pack::LOG_PACKING;
 use pcs::ring_switch::RingSwitch;
 use pcs::stack_open;
 use pcs::whir::{INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0};
@@ -77,7 +76,7 @@ fn bench(op: U64Op, quiet: bool) -> (usize, Timing) {
     let circuit = U64Circuit::new(op);
     let setup_ms = t.elapsed().as_secs_f64() * 1e3;
     let block = circuit.block();
-    let mu = circuit.k_log() + n_log - LOG_PACKING;
+    let mu = circuit.k_log() + n_log - F64::DEGREE.ilog2() as usize;
     assert!(
         mu >= 15,
         "FLOCK_N_LOG too small: need a committed witness with mu >= 15"

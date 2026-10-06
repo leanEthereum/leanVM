@@ -12,8 +12,6 @@
 
 use primitives::field::{F64, F192};
 
-use crate::pack::PACKING_WIDTH;
-
 /// Rectangular tensor-algebra transpose: `s_hat_v` (64 E-elements, the row
 /// view of a `K (x)_F2 E` element) to `s_hat_u` (192 K-elements, the column
 /// view).
@@ -26,10 +24,10 @@ use crate::pack::PACKING_WIDTH;
 pub(crate) fn transpose_s_hat(s_hat_v: &[F192]) -> Vec<F64> {
     assert_eq!(
         s_hat_v.len(),
-        PACKING_WIDTH,
+        F64::DEGREE,
         "transpose_s_hat: s_hat_v must have one entry per packing bit (64)"
     );
-    let mut s_hat_u = vec![F64::ZERO; 3 * PACKING_WIDTH];
+    let mut s_hat_u = vec![F64::ZERO; 3 * F64::DEGREE];
     for (i, elem) in s_hat_v.iter().enumerate() {
         // Deposit bit w of elem into bit i of s_hat_u[w]; scan set bits only.
         let mut c0 = elem.c0;
@@ -73,7 +71,7 @@ mod tests {
     #[test]
     fn rect_transpose_bit_relation() {
         let mut rng = Rng::new(1);
-        let s_hat_v = rng.ext_vec(PACKING_WIDTH);
+        let s_hat_v = rng.ext_vec(F64::DEGREE);
         let s_hat_u = transpose_s_hat(&s_hat_v);
         assert_eq!(s_hat_u.len(), 192);
         for (i, &v) in s_hat_v.iter().enumerate() {

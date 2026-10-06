@@ -24,7 +24,6 @@ use fiat_shamir::transcript::{ProverState, Receiver, Transmitter, VerifierState}
 use flock::Witness;
 use flock::hash::{BLOCK, Compression, K_LOG, generate_witness, pinned_compression};
 use flock::reduction::{Instance, min_n_blocks_log};
-use pcs::pack::LOG_PACKING;
 use pcs::ring_switch::RingSwitch;
 use pcs::stack_open;
 use pcs::whir::{INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0};
@@ -44,7 +43,7 @@ fn main() {
         .checked_shl(requested_n_log as u32)
         .expect("FLOCK_N_LOG exceeds the platform usize width");
     let n_log = min_n_blocks_log(n);
-    let mu = K_LOG + n_log - LOG_PACKING;
+    let mu = K_LOG + n_log - F64::DEGREE.ilog2() as usize;
     assert!(
         mu >= 15,
         "FLOCK_N_LOG too small: need a committed witness with mu >= 15"

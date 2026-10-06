@@ -18,6 +18,9 @@ pub const R64: u64 = 0x1B;
 pub struct F64(pub u64);
 
 impl F64 {
+    /// Degree over GF(2), the number of binary coefficients in one element.
+    pub const DEGREE: usize = 64;
+
     pub const ZERO: Self = Self(0);
     pub const ONE: Self = Self(1);
     /// `x`, with `ord(x) = 2^64 - 1`.

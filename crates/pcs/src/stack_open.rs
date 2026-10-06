@@ -321,7 +321,6 @@ fn check_statement<E: Copy>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::pack::PACKING_WIDTH;
     use crate::ring_switch::tests::s_hat_v_reference;
     use crate::whir::config::tests::{default_config, test_config_for};
     use crate::whir::{INITIAL_BASIS_CHUNK, commit, inner_product_base_ext};
@@ -349,7 +348,7 @@ mod tests {
                 claims: (0..2)
                     .map(|_| SliceClaim {
                         suffix_point: rng.ext_vec(qflock_vars),
-                        s_hat_v: rng.ext_vec(PACKING_WIDTH),
+                        s_hat_v: rng.ext_vec(F64::DEGREE),
                     })
                     .collect(),
             };

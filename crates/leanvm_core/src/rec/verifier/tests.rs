@@ -17,7 +17,6 @@ use crate::witness::StackShape;
 use ::flock::reduction::{self, Instance, ReductionReplay, Shape};
 use ::flock::verifier::FlockError;
 use ::flock::zerocheck::K_SKIP;
-use ::pcs::pack::PACKING_WIDTH;
 use ::pcs::whir::{WhirError, inner_product_base_ext, strata};
 use fiat_shamir::transcript::{ProofTranscript, ProverState, RawProof, TranscriptError, VerifierState};
 use primitives::field::{F64, F192};
@@ -333,7 +332,7 @@ fn check_reductions(batches: &[Instance<'static>]) {
     // The first scalar of the zerocheck's first round, the last circuit's `c` claim, the last lincheck round's top
     // coefficient, the first circuit's first slice and its form's value.
     let n = batches.len();
-    let tail = n * (PACKING_WIDTH + 1);
+    let tail = n * (F64::DEGREE + 1);
     let n_rounds = (circuits.iter())
         .map(|(shape, _)| shape.k_log - K_SKIP)
         .max()
@@ -345,7 +344,7 @@ fn check_reductions(batches: &[Instance<'static>]) {
         (lincheck_start - 1, "zerocheck"),
         (len - tail - 1, "lincheck"),
         (len - tail, "lincheck"),
-        (len - tail + PACKING_WIDTH, "lincheck"),
+        (len - tail + F64::DEGREE, "lincheck"),
     ];
     for (index, stage) in tampers {
         let mut forged = proof.clone();
@@ -379,8 +378,8 @@ fn check_reductions(batches: &[Instance<'static>]) {
         };
         let delta = F192::new(7, 0, 0);
         let mut forged = proof;
-        forged.stream[len - tail + PACKING_WIDTH] += delta * lifts[1];
-        forged.stream[len - tail + 2 * PACKING_WIDTH + 1] += delta * lifts[0];
+        forged.stream[len - tail + F64::DEGREE] += delta * lifts[1];
+        forged.stream[len - tail + 2 * F64::DEGREE + 1] += delta * lifts[0];
         let moved = native(&forged).expect("the batch's identity holds");
         for (f, replay) in moved.iter().enumerate() {
             let matrices = &replay.matrices;
@@ -419,7 +418,7 @@ const N_LANES: usize = 37;
 // The 64 bit slices of the packed words `q` at `point`.
 fn slices(q: &[F64], point: &[F192]) -> Vec<F192> {
     let eq = primitives::multilinear::eq_table(point);
-    (0..PACKING_WIDTH)
+    (0..F64::DEGREE)
         .map(|i| (q.iter().zip(&eq)).fold(F192::ZERO, |acc, (w, &e)| if w.0 >> i & 1 == 1 { acc + e } else { acc }))
         .collect()
 }

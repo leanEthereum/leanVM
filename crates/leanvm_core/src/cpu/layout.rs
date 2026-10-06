@@ -19,7 +19,6 @@ use crate::rv::{Entry, Reg, Region, RegisterFile, RiscvProgram, Syscall};
 use crate::tables::{ClassTable, Clock, N_TABLES, PerTable, Separator, TableId};
 use crate::witness::{Placement, Source, StackShape, Window};
 use crate::{class_flock, pcs, witness};
-use ::pcs::pack::PACKING_WIDTH;
 use Coord::{Col, Const, IntIndex, Sparse};
 use fiat_shamir::MAX_GRINDING_BITS;
 use fiat_shamir::arith::Arith;
@@ -449,7 +448,7 @@ impl RegisterWord {
         for t in TableId::ALL {
             let room = words
                 .iter_mut()
-                .find(|(word, used)| taus[word.tables[0]] == taus[t] && used + bits[t] <= PACKING_WIDTH);
+                .find(|(word, used)| taus[word.tables[0]] == taus[t] && used + bits[t] <= F64::DEGREE);
             match room {
                 Some((word, used)) => {
                     word.tables.push(t);

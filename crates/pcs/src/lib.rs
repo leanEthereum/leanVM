@@ -9,12 +9,9 @@
 
 pub mod merkle;
 pub mod ntt;
-pub mod pack;
 pub mod ring_switch;
 pub mod stack_open;
 #[cfg(test)]
 mod tensor_algebra;
 pub mod verifier;
 pub mod whir;
-
-pub use pack::LOG_PACKING;
