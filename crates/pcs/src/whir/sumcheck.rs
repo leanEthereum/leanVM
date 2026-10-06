@@ -12,8 +12,11 @@ use fiat_shamir::transcript::{Receiver, TranscriptError, Transmitter};
 use first_pass::{LaneWeight, WeightFold};
 use parallel::SendPtr;
 use primitives::field::{F64, F192, F192Unreduced};
+#[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
+use primitives::field::{F192x4, F192x4Unreduced};
 use primitives::multilinear::eq_table;
 use primitives::stream::Stream;
+use std::mem::MaybeUninit;
 use std::ops::Add;
 
 mod first_pass;
@@ -136,6 +139,37 @@ trait RoundWitness: Copy + Sync + Add<Output = Self> {
     fn fold_lone(x0: Self, r: F192) -> F192;
     /// Add `e·x` over one lane's window `xs` to a fold of several lane bits at once.
     fn add_weighted_lane(acc: &mut WeightFold, e: &LaneWeight, xs: &[Self]);
+
+    /// The fold of each pair of a run, handed out with its index.
+    #[inline(always)]
+    fn fold_pairs(
+        n: usize,
+        x0: impl Fn(usize) -> Self,
+        x1: impl Fn(usize) -> Self,
+        r: F192,
+        mut out: impl FnMut(usize, F192),
+    ) {
+        for i in 0..n {
+            out(i, Self::fold_pair(x0(i), x1(i), r));
+        }
+    }
+
+    /// A round message's unreduced coefficients over a run of witness pairs and the weight pairs beside them.
+    #[inline(always)]
+    fn pair_terms(
+        n: usize,
+        x0: impl Fn(usize) -> Self,
+        x1: impl Fn(usize) -> Self,
+        y0: impl Fn(usize) -> F192,
+        y1: impl Fn(usize) -> F192,
+    ) -> (Self::Acc, Self::Acc) {
+        let (mut u_0, mut u_2) = (Self::ZERO_ACC, Self::ZERO_ACC);
+        for i in 0..n {
+            u_0 ^= x0(i).mul_basis_unreduced(y0(i));
+            u_2 ^= (x0(i) + x1(i)).mul_basis_unreduced(y0(i) + y1(i));
+        }
+        (u_0, u_2)
+    }
 }
 
 impl RoundWitness for F64 {
@@ -186,6 +220,92 @@ impl RoundWitness for F192 {
     fn add_weighted_lane(acc: &mut WeightFold, e: &LaneWeight, xs: &[Self]) {
         acc.add(e, xs);
     }
+
+    /// Four pairs at a time in vector lanes, where the target has them.
+    #[inline(always)]
+    fn fold_pairs(
+        n: usize,
+        x0: impl Fn(usize) -> Self,
+        x1: impl Fn(usize) -> Self,
+        r: F192,
+        mut out: impl FnMut(usize, Self),
+    ) {
+        #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
+        let done = {
+            let r4 = F192x4::splat(r);
+            for i in (0..n / 4 * 4).step_by(4) {
+                let (a, b) = (lanes(&x0, i), lanes(&x1, i));
+                for (k, v) in (a + r4 * (a + b)).to_array().into_iter().enumerate() {
+                    out(i + k, v);
+                }
+            }
+            n / 4 * 4
+        };
+        #[cfg(not(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2")))]
+        let done = 0;
+        for i in done..n {
+            out(i, Self::fold_pair(x0(i), x1(i), r));
+        }
+    }
+
+    #[inline(always)]
+    fn pair_terms(
+        n: usize,
+        x0: impl Fn(usize) -> Self,
+        x1: impl Fn(usize) -> Self,
+        y0: impl Fn(usize) -> Self,
+        y1: impl Fn(usize) -> Self,
+    ) -> (Self::Acc, Self::Acc) {
+        let [u_0, u_2, _] = pair_sums::<false>(n, x0, x1, y0, y1);
+        (u_0, u_2)
+    }
+}
+
+/// Unreduced sums over a run of pairs: of `x0·y0`, of `(x0 + x1)·(y0 + y1)`, and of `x1·y1` when asked (zero otherwise).
+///
+/// Four pairs at a time in vector lanes, where the target has them.
+#[inline(always)]
+fn pair_sums<const ODD: bool>(
+    n: usize,
+    x0: impl Fn(usize) -> F192,
+    x1: impl Fn(usize) -> F192,
+    y0: impl Fn(usize) -> F192,
+    y1: impl Fn(usize) -> F192,
+) -> [F192Unreduced; 3] {
+    #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
+    let (done, mut sums) = {
+        let (mut u_0, mut u_2, mut odd) = (
+            F192x4Unreduced::zero(),
+            F192x4Unreduced::zero(),
+            F192x4Unreduced::zero(),
+        );
+        for i in (0..n / 4 * 4).step_by(4) {
+            let (a0, a1, b0, b1) = (lanes(&x0, i), lanes(&x1, i), lanes(&y0, i), lanes(&y1, i));
+            u_0 ^= a0.mul_unreduced(b0);
+            u_2 ^= (a0 + a1).mul_unreduced(b0 + b1);
+            if ODD {
+                odd ^= a1.mul_unreduced(b1);
+            }
+        }
+        (n / 4 * 4, [u_0.sum(), u_2.sum(), odd.sum()])
+    };
+    #[cfg(not(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2")))]
+    let (done, mut sums) = (0, [F192Unreduced::ZERO; 3]);
+    for i in done..n {
+        sums[0] ^= x0(i).mul_unreduced(y0(i));
+        sums[1] ^= (x0(i) + x1(i)).mul_unreduced(y0(i) + y1(i));
+        if ODD {
+            sums[2] ^= x1(i).mul_unreduced(y1(i));
+        }
+    }
+    sums
+}
+
+/// Four consecutive values, one per lane.
+#[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
+#[inline(always)]
+fn lanes(v: &impl Fn(usize) -> F192, i: usize) -> F192x4 {
+    F192x4::new(std::array::from_fn(|k| v(i + k)))
 }
 
 /// Round message over a witness `f` and an E basis `b`. Mirror of
@@ -200,12 +320,18 @@ fn round_msg_lsb<T: RoundWitness>(f: &[T], b: &[F192]) -> SumcheckMessage {
     debug_assert_eq!(b.len(), n);
 
     let half = n / 2;
-    let term = |j: usize| -> (T::Acc, T::Acc) {
-        let (f0, f1) = (f[2 * j], f[2 * j + 1]);
-        let (b0, b1) = (b[2 * j], b[2 * j + 1]);
-        (f0.mul_basis_unreduced(b0), (f0 + f1).mul_basis_unreduced(b0 + b1))
+    let task = |t: usize| -> (T::Acc, T::Acc) {
+        let base = t * ROUND_CHUNK;
+        let (f, b) = (&f[2 * base..], &b[2 * base..]);
+        T::pair_terms(
+            ROUND_CHUNK.min(half - base),
+            |j| f[2 * j],
+            |j| f[2 * j + 1],
+            |j| b[2 * j],
+            |j| b[2 * j + 1],
+        )
     };
-    let (u_0, u_2) = accumulate_msg(half, half, T::ZERO_ACC, term);
+    let (u_0, u_2) = accumulate_msg(half.div_ceil(ROUND_CHUNK), half, T::ZERO_ACC, task);
     SumcheckMessage {
         u_0: T::reduce(u_0),
         u_2: T::reduce(u_2),
@@ -219,29 +345,30 @@ fn round_msg_and_eval_lsb_ext(f: &[F192], b: &[F192]) -> (SumcheckMessage, F192)
     debug_assert!(n.is_power_of_two() && n >= 2);
     debug_assert_eq!(b.len(), n);
 
-    let term = |j: usize| {
-        let f0 = f[2 * j];
-        let f1 = f[2 * j + 1];
-        let b0 = b[2 * j];
-        let b1 = b[2 * j + 1];
-        let e0 = f0 * b0;
-        (e0, (f0 + f1) * (b0 + b1), e0 + f1 * b1)
-    };
     let half = n / 2;
-    let (u_0, u_2, y) = if half < PAR_THRESHOLD {
-        (0..half)
-            .map(term)
-            .fold((F192::ZERO, F192::ZERO, F192::ZERO), |(a0, a2, ay), (b0, b2, by)| {
-                (a0 + b0, a2 + b2, ay + by)
-            })
-    } else {
-        parallel::map_reduce(
-            half,
-            || (F192::ZERO, F192::ZERO, F192::ZERO),
-            term,
-            |(a0, a2, ay), (b0, b2, by)| (a0 + b0, a2 + b2, ay + by),
+    // The message, and the odd elements' products: with the even ones', the inner product.
+    let task = |t: usize| -> [F192Unreduced; 3] {
+        let base = t * ROUND_CHUNK;
+        let (f, b) = (&f[2 * base..], &b[2 * base..]);
+        pair_sums::<true>(
+            ROUND_CHUNK.min(half - base),
+            |j| f[2 * j],
+            |j| f[2 * j + 1],
+            |j| b[2 * j],
+            |j| b[2 * j + 1],
         )
     };
+    let n_tasks = half.div_ceil(ROUND_CHUNK);
+    let xor = |mut a: [F192Unreduced; 3], c: [F192Unreduced; 3]| {
+        a.iter_mut().zip(c).for_each(|(a, c)| *a ^= c);
+        a
+    };
+    let [u_0, u_2, odd] = if half < PAR_THRESHOLD {
+        (0..n_tasks).map(task).fold([F192Unreduced::ZERO; 3], xor)
+    } else {
+        parallel::map_reduce(n_tasks, || [F192Unreduced::ZERO; 3], task, xor)
+    };
+    let (u_0, u_2, y) = (u_0.reduce(), u_2.reduce(), (u_0 ^ odd).reduce());
     (SumcheckMessage { u_0, u_2 }, y)
 }
 
@@ -250,19 +377,13 @@ fn round_msg_and_eval_lsb_ext(f: &[F192], b: &[F192]) -> (SumcheckMessage, F192)
 /// message: at the last round `half = 1` and the message is zero.
 #[inline]
 fn fold_msg_terms(nf: &[F192], nb: &[F192]) -> (F192Unreduced, F192Unreduced) {
-    let mut u_0 = F192Unreduced::ZERO;
-    let mut u_2 = F192Unreduced::ZERO;
-    let mut k = 0;
-    while k + 1 < nf.len() {
-        let f0 = nf[k];
-        let f1 = nf[k + 1];
-        let b0 = nb[k];
-        let b1 = nb[k + 1];
-        u_0 ^= f0.mul_unreduced(b0);
-        u_2 ^= (f0 + f1).mul_unreduced(b0 + b1);
-        k += 2;
-    }
-    (u_0, u_2)
+    F192::pair_terms(
+        nf.len() / 2,
+        |k| nf[2 * k],
+        |k| nf[2 * k + 1],
+        |k| nb[2 * k],
+        |k| nb[2 * k + 1],
+    )
 }
 
 /// Fused fold + next-round message: the witness folds into E, the basis folds
@@ -274,14 +395,24 @@ fn fold_and_msg_lsb<T: RoundWitness>(f: &[T], b: &[F192], r: F192) -> (Vec<F192>
     debug_assert_eq!(b.len(), n);
     let half = n / 2;
 
-    let fold_f = |j: usize| -> F192 { T::fold_pair(f[2 * j], f[2 * j + 1], r) };
-    let fold_b = |j: usize| -> F192 { F192::fold_pair(b[2 * j], b[2 * j + 1], r) };
+    // Fold a window of pairs of the witness and of the weight.
+    let fold = |base: usize, fc: &mut [MaybeUninit<F192>], bc: &mut [MaybeUninit<F192>]| {
+        let (f, b) = (&f[2 * base..], &b[2 * base..]);
+        T::fold_pairs(fc.len(), |j| f[2 * j], |j| f[2 * j + 1], r, |j, v| _ = fc[j].write(v));
+        F192::fold_pairs(bc.len(), |j| b[2 * j], |j| b[2 * j + 1], r, |j, v| _ = bc[j].write(v));
+    };
     if half < PAR_THRESHOLD {
         let mut nf = Vec::with_capacity(half);
         let mut nb = Vec::with_capacity(half);
-        for j in 0..half {
-            nf.push(fold_f(j));
-            nb.push(fold_b(j));
+        fold(
+            0,
+            &mut nf.spare_capacity_mut()[..half],
+            &mut nb.spare_capacity_mut()[..half],
+        );
+        // SAFETY: the fold wrote all `half` slots of both.
+        unsafe {
+            nf.set_len(half);
+            nb.set_len(half);
         }
         let (u_0, u_2) = fold_msg_terms(&nf, &nb);
         return (
@@ -314,11 +445,7 @@ fn fold_and_msg_lsb<T: RoundWitness>(f: &[T], b: &[F192], r: F192) -> (Vec<F192>
             let fc = unsafe { nf_base.slice(base, len) };
             // SAFETY: as for `fc`, the same window of `nb`.
             let bc = unsafe { nb_base.slice(base, len) };
-            for t in 0..len {
-                let j = base + t;
-                fc[t].write(fold_f(j));
-                bc[t].write(fold_b(j));
-            }
+            fold(base, fc, bc);
             // SAFETY: the loop just wrote both windows.
             unsafe { fold_msg_terms(fc.assume_init_ref(), bc.assume_init_ref()) }
         },
@@ -389,13 +516,9 @@ fn accumulate_msg<A: Copy + Send + BitXorAssign>(
 /// `(u_0, u_2)` over one pair of blocks, elementwise.
 #[inline]
 fn msg_terms_pair<T: RoundWitness>(f0: &[T], f1: &[T], b0: &[F192], b1: &[F192]) -> (T::Acc, T::Acc) {
-    let mut u_0 = T::ZERO_ACC;
-    let mut u_2 = T::ZERO_ACC;
-    for (((&x0, &x1), &y0), &y1) in f0.iter().zip(f1).zip(b0).zip(b1) {
-        u_0 ^= x0.mul_basis_unreduced(y0);
-        u_2 ^= (x0 + x1).mul_basis_unreduced(y0 + y1);
-    }
-    (u_0, u_2)
+    let n = f0.len();
+    assert!(f1.len() == n && b0.len() == n && b1.len() == n);
+    T::pair_terms(n, |i| f0[i], |i| f1[i], |i| b0[i], |i| b1[i])
 }
 
 /// [`msg_terms_pair`] against an absent partner block. With `f1 = b1 = 0` both
@@ -529,12 +652,8 @@ fn fold_and_msg_blocks<T: RoundWitness>(
                 let src1 = src0 + block;
                 let b_hi = window(b, raw_hi, src1, len);
                 let f_hi = &f[src1..src1 + len];
-                for ((d, &x0), &x1) in stage.iter_mut().zip(f_lo).zip(f_hi) {
-                    *d = T::fold_pair(x0, x1, r);
-                }
-                for ((d, &y0), &y1) in stage_b.iter_mut().zip(b_lo).zip(b_hi) {
-                    *d = F192::fold_pair(y0, y1, r);
-                }
+                T::fold_pairs(len, |i| f_lo[i], |i| f_hi[i], r, |i, v| stage[i] = v);
+                F192::fold_pairs(len, |i| b_lo[i], |i| b_hi[i], r, |i, v| stage_b[i] = v);
             } else {
                 for (d, &x0) in stage.iter_mut().zip(f_lo) {
                     *d = T::fold_lone(x0, r);
