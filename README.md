@@ -139,7 +139,7 @@ It prints a markdown table of the RISC-V cycles, per item and in all, and the co
 ### hashing
 
 ```bash
-BENCH_REPEAT=3 BENCH_COOLDOWN=2 FLOCK_N_LOG=18 cargo bench -p flock --bench hash_batch
+BENCH_REPEAT=3 BENCH_COOLDOWN=2 FLOCK_N_LOG=18 cargo bench -p flock --features bench --bench hash_batch
 ```
 
 ```

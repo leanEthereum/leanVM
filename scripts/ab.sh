@@ -22,11 +22,12 @@
 # Needs git, python3 and cargo (or $CARGO).
 set -euo pipefail
 
-# The `benches/` targets, by benchmark name: package and target. Any other name is a CLI case.
+# The `benches/` targets, by benchmark name: package, target, then any build flags. Any other name is a CLI case.
+# flock's targets need its `bench` feature, which an older base lacks: `--all-features` asks for it only where it exists.
 target_of() {
   case $1 in
-    flock-hash-batch-262144) echo flock hash_batch ;;
-    flock-arithmetic-batch) echo flock arithmetic_batch ;;
+    flock-hash-batch-262144) echo flock hash_batch --all-features ;;
+    flock-arithmetic-batch) echo flock arithmetic_batch --all-features ;;
     pcs-throughput) echo pcs throughput ;;
     blake2s-batch) echo primitives hash_throughput ;;
     kernels) echo primitives kernels ;;
@@ -58,9 +59,9 @@ build() {
   local name exe
   local -a target cmd
   read -ra target <<< "$(target_of "$1")"
-  if [ ${#target[@]} = 2 ]; then
+  if [ ${#target[@]} -ge 2 ]; then
     name=${target[1]}
-    cmd=(bench -p "${target[0]}" --bench "${target[1]}" --no-run)
+    cmd=(bench -p "${target[0]}" --bench "${target[1]}" --no-run "${target[@]:2}")
   else
     name=leanvm
     cmd=(build --release -p leanvm-cli)

@@ -16,7 +16,7 @@
 //! ports to something outside (memory words, in the VM) relies on exactly this.
 //!
 //! A circuit is one gate list, where a wire is the gate driving it and each
-//! committed wire is a row. As in [`crate::hash`], no matrix is ever built: the
+//! committed wire is a row. As in the BLAKE2s circuit, no matrix is ever built: the
 //! verifier walks the list forwards and the prover backwards (doc/leanvm, Annex
 //! C "Evaluating the matrices"). Across implementations what has to agree is the
 //! port layout and the order products are made in, which fixes their slots; the
@@ -202,6 +202,8 @@ impl Circuit {
         self.k_log
     }
 
+    /// The bits of an instance that carry data; the rest are zero.
+    #[cfg(any(test, feature = "bench"))]
     pub const fn useful_bits(&self) -> usize {
         self.useful_bits
     }
@@ -307,6 +309,7 @@ impl Circuit {
     /// `(z, a, b, z_lincheck)` for `rows` of input words, padded with all-zero inputs
     /// to `2^n_blocks_log` instances: the bit-packed `z`, `A·z` and `B·z`
     /// (`2^k_log / 64` words per instance), and lincheck's byte stripes.
+    #[cfg(any(test, feature = "bench"))]
     pub fn generate_witness<const N: usize>(
         &self,
         rows: &[[u64; N]],
@@ -400,7 +403,7 @@ impl Circuit {
         )
     }
 
-    /// [`Self::generate_witness`] with the caller's own rows, padding row and way to
+    /// The walk's tables with the caller's own rows, padding row and way to
     /// fill an instance, for a circuit whose witness is cheaper as word arithmetic.
     pub fn generate_witness_with<S: Sync>(
         &self,

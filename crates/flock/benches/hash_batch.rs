@@ -1,20 +1,20 @@
 //! Standalone batch BLAKE2s proving, isolated from the VM.
 //!
 //! ```text
-//! BENCH_REPEAT=3 BENCH_COOLDOWN=2 FLOCK_N_LOG=18 cargo bench -p flock --bench hash_batch
+//! BENCH_REPEAT=3 BENCH_COOLDOWN=2 FLOCK_N_LOG=18 cargo bench -p flock --features bench --bench hash_batch
 //! ```
 //!
 //! `BENCH_TRACING=1` prints the final pass's span tree (`RUST_LOG` adjusts it).
 //!
 //! ```text
-//! BENCH_TRACING=1 FLOCK_N_LOG=18 cargo bench -p flock --bench hash_batch
+//! BENCH_TRACING=1 FLOCK_N_LOG=18 cargo bench -p flock --features bench --bench hash_batch
 //! ```
 //!
 //! With `-- --json` it prints, in place of the report, the proving time (witness
 //! excluded, as in the report's throughput) as Bencher Metric Format JSON, for CI.
 //!
 //! ```text
-//! FLOCK_N_LOG=18 cargo bench -p flock --bench hash_batch -- --json
+//! FLOCK_N_LOG=18 cargo bench -p flock --features bench --bench hash_batch -- --json
 //! ```
 
 use std::time::Instant;

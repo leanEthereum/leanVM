@@ -90,10 +90,7 @@ use crate::lincheck::LincheckCircuit;
 use crate::reduction;
 use crate::reduction::Block;
 use crate::verifier::FlockError;
-use crate::witness::{
-    BitRecord, add_carry_parts, add3_fused_parts, drive_witness_packed_and_lincheck, or_bit_at,
-    write_lin_word_ab_packed,
-};
+use crate::witness::drive_witness_packed_and_lincheck;
 use fiat_shamir::transcript::VerifierState;
 use primitives::field::F192;
 
@@ -173,22 +170,6 @@ fn g_slot(g: usize, off: usize) -> usize {
     GS_BASE + G_STRIDE * g + off
 }
 
-// ---------------------------------------------------------------------------
-// Reference BLAKE2s compression, the witness oracle.
-// ---------------------------------------------------------------------------
-
-#[inline]
-const fn g_fn(v: &mut [u32; 16], a: usize, b: usize, c: usize, d: usize, mx: u32, my: u32) {
-    v[a] = v[a].wrapping_add(v[b]).wrapping_add(mx);
-    v[d] = (v[d] ^ v[a]).rotate_right(16);
-    v[c] = v[c].wrapping_add(v[d]);
-    v[b] = (v[b] ^ v[c]).rotate_right(12);
-    v[a] = v[a].wrapping_add(v[b]).wrapping_add(my);
-    v[d] = (v[d] ^ v[a]).rotate_right(8);
-    v[c] = v[c].wrapping_add(v[d]);
-    v[b] = (v[b] ^ v[c]).rotate_right(7);
-}
-
 /// The 16-word working state a compression starts from: the chaining value,
 /// the first four IV words, and the last four IV words XOR'd with the counter
 /// and the finalization flags.
@@ -201,19 +182,6 @@ fn initial_state(h: &[u32; 8], t: u64, f0: u32, f1: u32) -> [u32; 16] {
     v[14] = IV[6] ^ f0;
     v[15] = IV[7] ^ f1;
     v
-}
-
-/// BLAKE2s compression function (RFC 7693 §3.2). Returns the new chaining
-/// value `h'[i] = h[i] ^ v[i] ^ v[i+8]`.
-pub fn blake2s_compress(h: &[u32; 8], m: &[u32; 16], t: u64, f0: u32, f1: u32) -> [u32; 8] {
-    let mut v = initial_state(h, t, f0, f1);
-    for r in 0..N_ROUNDS {
-        for g in 0..N_G_PER_ROUND {
-            let [la, lb, lc, ld] = G_LANES[g];
-            g_fn(&mut v, la, lb, lc, ld, m[SIGMA[r][2 * g]], m[SIGMA[r][2 * g + 1]]);
-        }
-    }
-    std::array::from_fn(|i| h[i] ^ v[i] ^ v[i + 8])
 }
 
 /// One BLAKE2s compression input: `(h, m, t, f0, f1)`.
@@ -519,6 +487,111 @@ impl LincheckCircuit for WalkLincheckCircuit {
 // assignment of doc/leanvm, Annex C, the same one the walks above encode.
 // ---------------------------------------------------------------------------
 
+/// OR the low 32 bits of `val` into `buf` starting at bit-offset `bit_off`.
+/// Handles u64 straddling when `bit_off % 64 > 32`.
+#[inline(always)]
+const fn or_u32_at_bit(buf: &mut [u64], bit_off: usize, val: u32) {
+    let u64_idx = bit_off >> 6;
+    let shift = bit_off & 63;
+    buf[u64_idx] |= (val as u64) << shift;
+    if shift > 32 {
+        buf[u64_idx + 1] |= (val as u64) >> (64 - shift);
+    }
+}
+
+/// Set bit `bit_off` of `buf` (low-bit-first within each u64).
+#[inline(always)]
+const fn or_bit_at(buf: &mut [u64], bit_off: usize) {
+    buf[bit_off >> 6] |= 1u64 << (bit_off & 63);
+}
+
+/// A `64·NW`-bit record composed in registers and flushed into the block once.
+struct BitRecord<const NW: usize> {
+    w: [u64; NW],
+}
+
+impl<const NW: usize> BitRecord<NW> {
+    #[inline(always)]
+    const fn new() -> Self {
+        Self { w: [0u64; NW] }
+    }
+
+    /// OR a (pre-masked) value into record bits `[POS, POS + width)`.
+    /// `POS` is const so the straddle branch and shifts fold at compile time.
+    #[inline(always)]
+    const fn push<const POS: usize>(&mut self, val: u32) {
+        let v = val as u64;
+        let idx = POS >> 6;
+        let s = POS & 63;
+        self.w[idx] |= v << s;
+        if s > 32 {
+            self.w[idx + 1] |= v >> (64 - s);
+        }
+    }
+
+    /// OR the record into `buf` starting at bit `base_bit`.
+    #[inline(always)]
+    pub(crate) fn flush(&self, buf: &mut [u64], base_bit: usize) {
+        let bi = base_bit >> 6;
+        let s = base_bit & 63;
+        let mut spill = 0u64;
+        for j in 0..NW {
+            buf[bi + j] |= (self.w[j] << s) | spill;
+            // `(x >> 1) >> (63 - s)` = `x >> (64 - s)` without the s = 0 UB.
+            spill = (self.w[j] >> 1) >> (63 - s);
+        }
+        buf[bi + NW] |= spill;
+    }
+}
+
+/// One 32-bit ADD's witness parts: `(sum, left, right, carry_aux)` with
+/// `left/right/carry_aux` masked to the low 31 bits (bit 31 is the discarded
+/// mod-2³² carry-out; the carry slot is 31 bits wide).
+#[inline(always)]
+const fn add_carry_parts(x: u32, y: u32) -> (u32, u32, u32, u32) {
+    let sum = x.wrapping_add(y);
+    let cin = sum ^ x ^ y;
+    const MASK_LO31: u32 = 0x7FFF_FFFF;
+    let left = (x ^ cin) & MASK_LO31;
+    let right = (y ^ cin) & MASK_LO31;
+    let carry_aux = left & right;
+    (sum, left, right, carry_aux)
+}
+
+/// One fused three-operand ADD's witness parts (see
+/// `gf2::walk_add3_fused` for the row algebra): the sum, then each
+/// layer's `(left, right, product)` triple.
+///
+/// The majority triple is masked to bits 0..=30. The ripple triple is masked
+/// to bits 1..=30 **and shifted down by one**, so its slot `j` holds bit
+/// `j + 1`, matching the 30-slot ripple run.
+#[inline(always)]
+const fn add3_fused_parts(x: u32, y: u32, z: u32) -> (u32, (u32, u32, u32), (u32, u32, u32)) {
+    const MASK_LO31: u32 = 0x7FFF_FFFF;
+    const MASK_LO30: u32 = 0x3FFF_FFFF;
+    let maj_left = (x ^ z) & MASK_LO31;
+    let maj_right = (y ^ z) & MASK_LO31;
+    let maj_aux = maj_left & maj_right;
+    // p + 2·maj, where maj[i] = maj_aux[i] ⊕ z[i] is the bitwise majority.
+    let p = x ^ y ^ z;
+    let q = (maj_aux ^ (z & MASK_LO31)) << 1;
+    let sum = p.wrapping_add(q);
+    let cin = sum ^ p ^ q;
+    let rip_left = ((p ^ cin) >> 1) & MASK_LO30;
+    let rip_right = ((q ^ cin) >> 1) & MASK_LO30;
+    let rip_aux = rip_left & rip_right;
+    (sum, (maj_left, maj_right, maj_aux), (rip_left, rip_right, rip_aux))
+}
+
+/// Write a 32-bit lin-id (or input) slot: (z, a) = val, b = all-ones.
+/// **c is not written**: since `C = I`, `c == z` byte-for-byte.
+#[inline]
+const fn write_lin_word_ab_packed(bit_off: usize, val: u32, z: &mut [u64], a: &mut [u64], b: &mut [u64]) {
+    or_u32_at_bit(z, bit_off, val);
+    or_u32_at_bit(a, bit_off, val);
+    or_u32_at_bit(b, bit_off, 0xFFFF_FFFF);
+}
+
 // Record-relative positions, mirroring the `G_*` sub-block offsets.
 const REC_MAJ_A1: usize = G_ADD3_A1;
 const REC_RIP_A1: usize = G_ADD3_A1 + CARRY_BITS_PER_ADD;
@@ -718,7 +791,8 @@ impl Blake2sSetup {
 mod tests {
     use super::*;
     use crate::lincheck::LincheckCircuit;
-    use primitives::test_util::{Rng, test_vectors};
+    use primitives::hash::compress;
+    use primitives::test_util::Rng;
 
     /// Does `z` satisfy the block-diagonal R1CS, `(A_0 z) ⊙ (B_0 z) = z` per block?
     ///
@@ -743,38 +817,6 @@ mod tests {
     fn generate_witness(blocks: &[Compression], n_blocks_log: usize) -> Vec<bool> {
         let z = generate_witness_with_ab_packed_and_lincheck(blocks, n_blocks_log).0;
         unpack_bits(&z, (1usize << n_blocks_log) * K)
-    }
-
-    /// Full BLAKE2s-256 over the compression function, so the known-answer
-    /// vectors below exercise `blake2s_compress` end to end (multi-block,
-    /// counter, and the final-block flag).
-    fn blake2s_256(data: &[u8]) -> [u8; 32] {
-        let mut h = param_iv();
-        let n_blocks = data.len().div_ceil(64).max(1);
-        for i in 0..n_blocks {
-            let chunk = &data[i * 64..data.len().min((i + 1) * 64)];
-            let mut block = [0u8; 64];
-            block[..chunk.len()].copy_from_slice(chunk);
-            let m: [u32; 16] = std::array::from_fn(|w| u32::from_le_bytes(block[4 * w..4 * w + 4].try_into().unwrap()));
-            let t = (i * 64 + chunk.len()) as u64;
-            let last = i + 1 == n_blocks;
-            h = blake2s_compress(&h, &m, t, if last { u32::MAX } else { 0 }, 0);
-        }
-        let mut out = [0u8; 32];
-        for (w, word) in h.iter().enumerate() {
-            out[4 * w..4 * w + 4].copy_from_slice(&word.to_le_bytes());
-        }
-        out
-    }
-
-    /// The official BLAKE2s-256 vectors. Pins SIGMA, the lane schedule, the
-    /// state init and the finalization: a single wrong entry in any of them
-    /// changes these digests.
-    #[test]
-    fn compress_matches_blake2s_vectors() {
-        for (input, digest) in test_vectors() {
-            assert_eq!(blake2s_256(&input), digest, "{} bytes", input.len());
-        }
     }
 
     /// Every slot a layout region claims is the output of one non-degenerate
@@ -821,7 +863,8 @@ mod tests {
         let m: [u32; 16] = std::array::from_fn(|_| rng.next_u32());
         let blocks = vec![(h, m, 0x1234_5678_9ABC_DEF0u64, u32::MAX, 0u32)];
         let z = generate_witness(&blocks, 3);
-        let expected = blake2s_compress(&h, &m, 0x1234_5678_9ABC_DEF0, u32::MAX, 0);
+        let mut expected = h;
+        compress(&mut expected, &m, 0x1234_5678_9ABC_DEF0, true);
         for w in 0..8 {
             let got = (0..WORD_BITS).fold(0u32, |acc, b| acc | ((z[out_bit(w, b)] as u32) << b));
             assert_eq!(got, expected[w], "out[{w}] mismatch");

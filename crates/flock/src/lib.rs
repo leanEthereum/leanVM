@@ -1,46 +1,34 @@
 // CREDIT: https://github.com/succinctlabs/flock, MIT OR Apache-2.0.
-//! flock: a batched R1CS proving system for hash circuits over GF(2), reduced
-//! to evaluation claims on the committed packed witness.
+//! flock: a batched R1CS proving system over GF(2), reduced to evaluation claims on the committed packed witness.
 //!
-//! Protocol flow (all challenges from the shared [`fiat_shamir`] transcript):
-//!   1. The caller commits every circuit's packed Boolean witness `q_flock`
-//!      (inside the VM's one stacked [`pcs`] commitment).
-//!   2. [`zerocheck`] reduces `a·b ⊕ c = 0` over every circuit's cube to
-//!      evaluation claims on its `(â, b̂, ĉ)`, the circuits batched under shared
-//!      challenges.
-//!   3. [`lincheck`] reduces those to the `2^k_skip` bit-slice values of each
-//!      circuit's `z` at one point, against its per-block matrices, in one
-//!      batched sumcheck.
-//!   4. The PCS binds each circuit's family of slices to
-//!      the commitment.
+//! The protocol, every challenge drawn from the shared transcript:
 //!
-//! [`hash`] is the protocol's circuit: the BLAKE2s compression as a per-block
-//! R1CS, plus its witness generation and the leanVM-facing reduction entry
-//! points (`Blake2sSetup::{instance, verify_reduction}`). [`circuit`]
-//! is the gate-list vocabulary every other circuit is written in, and [`arith`]
-//! holds u64 addition and multiplication in it.
-//! Steps 2 to 4 above are
-//! circuit-agnostic ([`reduction`]): they take the block shape as plain numbers
-//! and reach the matrices only through [`lincheck::LincheckCircuit`], whose
-//! impls walk the circuit rather than reading any matrix.
+//! 1. The caller commits every circuit's packed Boolean witness, inside the VM's one stacked commitment.
+//! 2. The zerocheck reduces `a·b ⊕ c = 0` over every circuit's cube to claims on its `(â, b̂, ĉ)`.
+//! 3. The lincheck reduces those to the bit-slice values of each circuit's `z` at one point.
+//! 4. The commitment's opening binds each circuit's slices.
 //!
-//! BLAKE2s is a 32-bit ARX round whose XORs and rotations are free over GF(2),
-//! so its only nonlinear constraints are the product bits of the modular ADDs.
-//! The private `gf2` module owns that part: the wire word and the two adder
-//! gadgets, forwards and transposed, kept separate because the fused
-//! three-operand adder's bit boundaries are the subtlest thing here.
+//! Both sumchecks batch every circuit under shared challenges.
+//! Steps 2 to 4 take a circuit's block shape as plain numbers, and reach its matrices only by walking its gate list.
+//!
+//! Circuits are gate lists over word ports, with u64 addition and multiplication as gadgets.
+//! The leanVM's instruction classes are written in them.
+//!
+//! The hand-optimized BLAKE2s circuit, with its own witness kernels, is flock's throughput benchmark and nothing else.
+//! It, the standalone u64 circuits and the walk-only witness entry point build only for tests and the `bench` feature.
 
 #![warn(unreachable_pub)]
 
 pub mod arith;
 pub mod circuit;
+#[cfg(any(test, feature = "bench"))]
 mod gf2;
+#[cfg(any(test, feature = "bench"))]
 pub mod hash;
 pub mod lincheck;
 pub mod reduction;
-/// The circuit driven through the whole reduction. A `src` module rather than
-/// its own test binary so it shares the process, and so the slow
-/// [`hash::matrices`] build, with the unit tests.
+/// The BLAKE2s circuit driven through the whole reduction.
+/// It is a source module rather than a test binary, so it shares the unit tests' process.
 #[cfg(test)]
 mod reduction_tests;
 pub mod verifier;

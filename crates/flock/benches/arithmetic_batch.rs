@@ -2,7 +2,7 @@
 //! addition, and multiplication wrapping (a `u64` result) or widening (a `u128`).
 //!
 //! ```text
-//! BENCH_REPEAT=3 BENCH_COOLDOWN=2 FLOCK_N_LOG=20 cargo bench -p flock --bench arithmetic_batch -- mul_wrapping
+//! BENCH_REPEAT=3 BENCH_COOLDOWN=2 FLOCK_N_LOG=20 cargo bench -p flock --features bench --bench arithmetic_batch -- mul_wrapping
 //! ```
 //!
 //! With `--json` it prints, in place of the reports, each operation's proving time (witness
@@ -10,7 +10,7 @@
 //! `flock-<operation>-batch-<n>` (`flock-mul-wrapping-batch-262144`), measure `latency`.
 //!
 //! ```text
-//! FLOCK_N_LOG=18 cargo bench -p flock --bench arithmetic_batch -- --json
+//! FLOCK_N_LOG=18 cargo bench -p flock --features bench --bench arithmetic_batch -- --json
 //! ```
 
 use std::time::Instant;

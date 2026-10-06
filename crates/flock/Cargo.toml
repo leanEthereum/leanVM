@@ -9,6 +9,10 @@ publish = false
 [lints]
 workspace = true
 
+[features]
+# The BLAKE2s circuit, the standalone u64 circuits and the walk-only witness: only benchmarks and tests run them.
+bench = []
+
 [dependencies]
 parallel.workspace = true
 primitives.workspace = true
@@ -24,7 +28,9 @@ bench.workspace = true
 [[bench]]
 name = "hash_batch"
 harness = false
+required-features = ["bench"]
 
 [[bench]]
 name = "arithmetic_batch"
 harness = false
+required-features = ["bench"]

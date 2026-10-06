@@ -285,7 +285,7 @@ const fn or_run(buf: &mut [u64], slot: u32, bits: u64) {
 mod tests {
     use super::*;
     use crate::rv::Class;
-    use crate::rv::semantics::tests::{Ports, circuit_matches_reference, edge_word, run};
+    use crate::rv::semantics::tests::{Ports, circuit_matches_reference, edge_word};
     use proptest::prelude::*;
     use proptest::sample::select;
     use proptest::strategy::BoxedStrategy;
@@ -355,20 +355,6 @@ mod tests {
         assert!(walk.1[..] == fast.1[..], "A*z");
         assert!(walk.2[..] == fast.2[..], "B*z");
         assert!(walk.3[..] == fast.3[..], "lincheck stripes");
-    }
-
-    proptest! {
-        #[test]
-        fn any_finalization_word_is_xored_in(hash in any::<Hash>(), f0 in any::<u32>()) {
-            // Any 32-bit finalization word, against flock's compression, which takes one.
-            let half = |w: &[u64]| -> Vec<u32> { w.iter().flat_map(|&w| [w as u32, (w >> 32) as u32]).collect() };
-            let h = half(&hash.block[..4]).try_into().unwrap();
-            let m = half(&hash.block[8..]).try_into().unwrap();
-            let out = flock::hash::blake2s_compress(&h, &m, hash.t, f0, 0);
-            let expected: Vec<u64> = (0..4).map(|i| out[2 * i] as u64 | (out[2 * i + 1] as u64) << 32).collect();
-            let inputs = Hash { flags: f0 as u64, ..hash }.input_words();
-            prop_assert_eq!(run(&BLAKE2S, &inputs, 4), expected);
-        }
     }
 
     impl Ports for Hash {
